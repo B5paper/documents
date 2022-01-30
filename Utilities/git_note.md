@@ -222,6 +222,56 @@ doc/**/*.pdf
 
 `git commit`会显示出`git status`的信息，如果想要更详细的信息，可以使用`git commit -v`。如果想一行提交，可以使用`git commit -m "comments"`。
 
+如果想跳过`git add`阶段，可以使用`git commit -a -m "comments"`。[书上说 -a 的作用是 make Git automatically stage every file that is already tracked before doing the commit. 那么没有被标记 tracked 的文件会不会被 commit 呢？]
+
+`git rm`可以删除 staging area 和 working directory 中的文件。删除操作会被提交到 staging area，以后就不再 track 这个文件了。[如果一个文件已经被 committed，然后它又被修改了，那么在删除的时候似乎需要加上`-f`选项]
+
+如果只想让 git 不再追踪某个文件，从 staging area 里删除，但又不想让它在硬盘上删除，可以使用：`git rm --cached README`。
+
+`git rm`接受的参数可以是 files, directories, and file-glob patterns。比如`git rm log/\*.log`（这里的反斜杠`\`用于区别 git 和 shell 的 string expansion）。再比如`git rm \*~`可以移除所有以`~`结尾的文件。
+
+[如果我们直接用`mv`命令删除一个文件，然后再`git add .`，`git commit`，会发生什么呢？]
+
+想要重命名一个文件可以用`git mv file_from file_to`，它等价于下面三个命令的组合：
+
+```bash
+mv README.md README
+git rm README.md
+git add README
+```
+
+可以使用`git log`查看提交历史。`git log -p`可以查看每次提交修改的内容。`git log -p -2`可以只查看最后两次 commit 的内容。`git log --stat`可以查看每次提交中每个文件修改了多少行。
+
+`git log --pretty=oneline`可以以单行形式只显示 sha-1 码和 comments 信息。`oneline`还可以替换成`short`，`full`以及`fuller`。还可以使用`format`设置自定义的格式：`git log --pretty=format:"%h - %an, %ar : %s"`。
+
+输出：
+
+```
+ca82a6d - Scott Chacon, 6 years ago : changed the version number
+085bb3b - Scott Chacon, 6 years ago : removed unnecessary test
+a11bef0 - Scott Chacon, 6 years ago : first commit
+```
+
+`format`的格式参考如下：
+
+| Option | Description of Output |
+| - | - |
+| `%H` | Commit hash |
+| `%h` | Abbreviated commit hash |
+| `%T` | Tree hash |
+| `%t` | Abbreviated tree hash |
+| `%P` | Parent hashes |
+| `%p` | Abbreviated parent hashes |
+| `%an` | Author name |
+| `%ae` | Author email |
+| `%ad` | Author date (format respects the `--date=option`) |
+| `%ar` | Author date, relative |
+| `%cn` | Committer name |
+| `%ce` | Committer email |
+| `%cd` | Committer date |
+| `%cr` | Committer date, relative |
+| `%s` | Subject |
+
 ## Miscellaneous
 
 * `git status`显示中文目录为`\xxx\xxx\xxx/`的形式
