@@ -1,0 +1,270 @@
+# 贝叶斯网引论 Note
+
+## 样本空间
+
+**样本空间**
+
+随机试验所有可能的结果组成的集合，记作$\Omega$。
+
+**状态空间**
+
+随机变量$X$的所有可能取值的集合，记作$\Omega_X$。
+
+**随机变量**
+
+随机变量是定义在样本空间$\Omega$上的函数，通常用大写字母表示。取值用小写字母表示。
+
+**事件**
+
+所有使$X$取值为$x$的原子事件组成一个事件，记为$\Omega_{X = x} = \{ \omega \in \Omega \, \vert \, X(\omega) = x \}$，简记为$X = x$。
+
+**概率质量分布**
+
+$P(X = x) = P(\Omega_{X = x})$依赖于$X$的取值$x$，让$x$在$\Omega_X$上变动，$P(X = x)$就成为$\Omega_X$的一个取值于$[0, 1]$的函数，称之为随机变量$X$的概率质量函数，记为$P(X)$。
+
+**边缘分布**
+
+相对于联合分布$P(R, T)$，$P(T) = \sum\limits_R P(T, R)$称为边缘分布。
+
+比如$P(T = \text{public}) = \sum\limits_R P(T = \text{public}, R)$
+
+记$\mathbf X = \{X_1, \dots, X_n\}$，$\mathbf Y$是$X$的真子集，即$\mathbf Y \subset \mathbf X$，$\mathbf Z = \mathbf X \setminus \mathbf Y$。则相对于$P(\mathbf X)$，$\mathbf Y$的边缘分布$P(\mathbf Y)$定义为
+
+$$P(\mathbf Y) = \sum\limits_{\mathbf Z} P(X_1, \dots, X_n)$$
+
+从联合分布$P(\mathbf X)$到边缘分布$P(\mathbf Y)$的过程称为边缘化。
+
+**条件概率**
+
+条件概率：$P(A \, \vert \, B) = \dfrac{P(A \cap B)}{P(B)}$
+
+乘法定律：$P(A \cap B) = P(B) \cdot P(A \, \vert \, B) = P(A) \cdot P(B \, \vert \, A)$
+
+条件分布：$P(X = x \, \vert \, Y = y) = \dfrac{P(X = x, Y = y)}{P(Y = y)}$
+
+条件分布与条件概率的不同之处在于，条件概率指的是两个事件，而条件分布指的是两个随机变量。
+
+固定$y$，让$x$在$\Omega_X$上变动，则得到一个在$\Omega_X$上的函数，称为在给定$Y = y$时变量$X$的条件概率分布，记为$P(X \, \vert \, Y = y)$。
+
+令$P(X \, \vert \, Y) := \{ P(X \, \vert \, Y = y) \, \vert \, y \in \Omega_Y \}$称为给定$Y$时变量$X$的条件概率分布。
+
+让$x$和$y$在$\Omega_X$和$\Omega_Y$上变动，则得到一组等式，缩写为$P(X \, \vert \, Y) = \dfrac{P(X, Y)}{P(Y)}$
+
+设$\mathbf X = \{ X_1, \dots, X_n \}$和$\mathbf Y = \{ Y_1, \dots, Y_m \}$为两个变量集合，$P(\mathbf X, \mathbf Y)$为$\mathbf X \cup \mathbf Y$的联合概率分布，$P(\mathbf Y)$为$\mathbf Y$的边缘概率分布。则给定$\mathbf Y$时$\mathbf X$的条件概率分布定义为
+
+$$P(\mathbf X \, \vert \, \mathbf Y) = \dfrac{P(\mathbf X, \mathbf Y)}{P(\mathbf Y)}$$
+
+（这段看得不是很懂）
+
+**链规则**
+
+$$P(X, Y) = P(X) P(Y \, \vert \, X)$$
+
+$$P(X_1, X_2, \dots, X_n) = P(X_1) P(X_2 \, \vert \, X_1) \cdots P(X_n \, \vert \, X_1, \dots, X_{n-1})$$
+
+相互独立：$P(A \cap B) = P(A) P(B)$，$P(A) = P(A \, \vert \, B)$，$P(B) = P(B \, \vert \, A)$
+
+事件$A$与$B$在给定条件$C$时相互条件独立：$P(A \cap B \, \vert \, C) = P(A \, \vert \, C) \cdot P(B \, \vert \, C)$
+
+$P(A \, \vert \, C) = P(A \, \vert \, B \cap C)$，$P(B \vert C) = P(B \, \vert \, A \cap C)$
+
+边缘独立：$P(X, Y) = P(X) P(Y)$，$P(X) = P(X \, \vert \, Y = y)$，记为$X \perp Y$
+
+$X$和$Y$在给定$Z$时相互条件独立：$X \perp Y \, \vert \, Z$：$P(X, Y \, \vert \, Z) = P(X \, \vert \, Z) P(Y \, \vert \, Z)$
+
+$P(X \, \vert \, Y = y, Z = z) = P(X \, \vert \, Z = z)$，这并不意味着未知$z$取值时，$X$和$Y$相互独立。
+
+**先验概率，后验概率**
+
+先验概率和后验概率是相对于某组证据而言的。
+
+设$H$和$E$为两个随机变量，$H = h$为某一假设，$E = e$为一组证据。在考虑证据$E = e$之前，对事件$H = h$的概率估计$P(H = h)$称为先验概率。而在考虑证据之后，对$H = h$的概率估计$P(H = h \, \vert \, E = e)$称为后验概率。
+
+**贝叶斯定理**
+
+$$P(H = h \, \vert \, E = e) = \dfrac{P(H = h) P(E = e \, \vert \, H = h)}{P(E = e)}$$
+
+这里$H$表示假设，$E$表示证据，这两个都是随机变量。
+
+$P(E = e \, \vert \, H = h)$称为$H = h$的似然度，有时记为$L(H = h \, \vert \, E = e)$。似然度之所以有用是因为似然度往往容易获得，而后验概率则不然。
+
+**随机变量的先验和后验概率分布**
+
+设$X$为一个随机变量，有
+
+$P(X \, \vert \, E = e) = \dfrac{P(X) P(E = e \, \vert \, X)}{P(E = e)}$
+
+这是贝叶斯定理的变量形式。其中$P(X)$是$X$的先验分布，$P(X \, \vert \, E = e)$是$X$的后验分布，$P(E = e \, \vert \, X)$称为$X$的似然函数，也记作$L(X \, \vert \, E = e)$。$P(E = e) = \sum\limits_X P(X) P(E = e \, \vert \, X)$只是一个归一化常数而已。因此通常又写为
+
+$$P(X \, \vert \, E = e) \propto P(X) L(X \, \vert \, E = e)$$
+
+即后验分布正比于先验分布和似然函数的乘积。
+
+### 信息论基础
+
+**凹函数**
+
+$f(\lambda x_1 + (1 - \lambda) x_2) \geq \lambda f(x_1) + (1 - \lambda) f(x_2)$，$\forall \lambda \in [0, 1]$
+
+**Jensen 不等式**
+
+设$f$为$I$上的凹函数（形状为 n），$p_i \in [0, 1]$，$i = 1, 2, \dots, n$，且$\sum\limits_{i=1}^n p_i = 1$，$\forall x_i \in I$，有$f(\sum\limits_{i=1}^n p_i x_i) \geq \sum\limits_{i=1}^n p_i f(x_i)$
+
+**熵**
+
+离散随机变量$X$的熵$H(X)$的定义为：
+
+$$H(X) = \sum\limits_X P(X) \log \dfrac{1}{P(X)} = - \sum\limits_X P(X) \log P(X)$$
+
+通常对数以 2 为底，熵单位为比特。随机变量的熵越大，则不确定性越大。
+
+变量的势：用$\lvert X \rvert$来记变量$X$的取值个数。
+
+联合熵：$H(X, Y) = \sum\limits_{X, Y} P(X, Y) \log \dfrac{1}{P(X, Y)} = - \sum\limits_{X, Y} P(X, Y) \log P(X, Y)$
+
+条件熵：$H(X \, \vert \, Y = y) = \sum\limits_X P(X \, \vert \, Y = y) \log \dfrac{1}{P(X \, \vert \, Y = y)}$
+
+$H(X \, \vert \, Y) = \sum\limits_{X, Y} P(X, Y) \log \dfrac{1}{P(X \, \vert \, Y)} = \sum\limits_{y \in \Omega_Y} P(Y = y) H(X \, \vert \, Y = y)$
+
+定理：
+
+$I(X; Y) = H(X) - H(X \, \vert \, Y)$ （互信息定义）
+
+$I(X; Y) = \sum\limits_{X, Y} P(X, Y) \log \dfrac{P(X, Y)}{P(X) P(Y)}$
+
+$I(X; Y) = I(Y; X)$
+
+$H(X, Y) = H(X) + H(Y \, \vert \, X) = H(Y) + H(X \, \vert \, Y)$ 熵的链规则
+
+$I(X; Y) + H(X, Y) = H(X) + H(Y)$
+
+![](./pics/贝叶斯网引论_note/pic_1.png)
+
+相对熵：$KL(P, Q) = \sum\limits_X P(X) \log \dfrac{P(X)}{Q(X)}$（Kullback - Leibler 距离）
+
+信息不等式：设$P(X)$和$Q(X)$为定义在某个变量$X$的状态空间$\Omega_X$上的两个概率分布，则有$KL(P, Q) \geq 0$。其中当且仅当$P$与$Q$相同，即$P(X = x) = Q(X = x)$，$\forall x \in \Omega_X$时等号成立。
+
+推论：若定义某个概率分布$P^*(X)$为$P^*(X) = \dfrac{f(X)}{\sum\limits_X f(X)}$，那么对于任意其它概率分布$P(X)$，有$\sum\limits_X f(X) \log P^*(X) \geq \sum\limits_X f(X) \log P(X)$。当且仅当$P^*$与$P$相同时等号成立。
+
+互信息与变量独立的两个关系：
+
+1. $I(X; Y) \geq 0$
+1. $H(X \, \vert \, Y) \leq H(X)$，当且仅当$X$与$Y$相互独立时等号成立。
+
+给定$Z$时$Y$关于$X$的信息：$I(X; Y \, \vert \, Z) = H(X \, \vert \, Z) - H(X \, \vert \, Z, Y)$，$I(X; Y \, \vert \, Z) = I(Y; X \, \vert \, Z)$（给定$Z$时$X$和$Y$间的条件互信息）
+
+定理：
+
+1. $I(X; Y \, \vert \, Z) \geq 0$
+1. $H(X \, \vert \, Y, Z) \leq H(X \, \vert \, Z)$
+
+边缘分布：
+
+记$X = \{ X_1, \dots, X_n \}$，$Y \subset X$，$Z = X \setminus Y$，则$Y$的边缘分布$P(Y) = \sum\limits_Z P(X_1, \dots, X_n)$
+
+## 贝叶斯网
+
+考虑一个包含$m$个变量的联合分布$P(X_1, \dots, X_n)$，利用链规则，可以把它写为
+
+$$\begin{aligned} P(X_1, \dots, X_n) &= P(X_1) P(X_2 \, \vert \, X_1) \cdots P(X_n \, \vert \, X_1, X_2, \dots, X_{n-1}) \\ &= \prod\limits_{i=1}^n P(X_i \, \vert \, X_1, X_2, \dots, X_{i-1})\end{aligned}$$
+
+对于任意$X_i$，如果存在$\pi(X_i) \subseteq \{ X_1, \dots, X_{i-1} \}$，使得给定$\pi (X_i)$，$X_i$与$\{ X_1, \dots, X_{i-1} \}$中的其它变量条件独立，即
+
+$$P(X_1 \, \vert \, X_1, \dots, X_{i-1}) = P(X_i \, \vert \, \pi(X_i))$$
+
+那么有
+
+$$P(X_i, \dots, X_n) = \prod\limits_{i=1}^n P(X_i \, \vert \, \pi(X_i))$$
+
+这样就得到了联合分布的一个分解，其中当$\pi(X_i) = \varnothing$时，$P(X_i \, \vert \, \pi(X_i))$为边缘分布$P(X_i)$。
+
+### 贝叶斯网的概念
+
+**贝叶斯网（Bayesian network）**
+
+贝叶斯网是一个有向无环图，其中节点代表随机变量，节点间的边代表变量之间的直接依赖关系。每个节点都附有一个概率分布，根节点$X$所附的是它的边缘分布$P(X)$，而非根节点$X$所附的是条件概率分布$P(X \, \vert \, \pi(X))$。
+
+贝叶斯网的构造过程：
+
+1. 把每个变量都表示为一个节点。
+1. 对于每个节点$X_i$，都从$\pi (X_i)$中的每个节点画一条有向边到$X_i$。
+
+贝叶斯网是一个有向无环图，其中节点代表随机变量，节点间的边代表变量之间的依赖关系。每个节点都附有一个概率分布，根节点$X$所附的是它的边缘分布$P(X)$，而非根节点$X$所附的是条件概率分布$P(X \, \vert \, \pi(X))$。
+
+### 贝叶斯网的构造
+
+网络结构的确定方法：
+
+1. 选定一组刻画问题的随机变量$\{ X_1, X_2, \dots, X_n \}$
+
+1. 选择一个变量顺序$\alpha = \left< X_1, X_2, \dots, X_n \right>$
+
+1. 从一个空图出发，按照顺序$\alpha$逐个将变量加入$\mathcal G$中
+
+1. 在加入变量$X_i$时，$\mathcal G$中的变量包括$X_1$，$X_2$，$\dots$，$X_{i-1}$
+
+    1. 利用问题的背景知识，在这些变量中选择一个尽可能小的子集$\pi (X_i)$，使得假设“给定$\pi (X_i)$，$X_i$与$\mathcal G$中的其它变量条件独立”合理。
+
+    1. 从$\pi(X_i)$中的每一个节点添加一条指向$X_i$的有向边。
+
+在实际应用中通常使用因果关系来构建贝叶斯网。
+
+当利用因果关系建立贝叶斯网时，实际上是在基于因果关系进行条件独立的假设。所做的假设可以归纳为因果马尔可夫假设（causal Markov assumption），这个假设是因果关系和条件独立之间的桥梁。
+
+**减少网络中参数的方法**
+
+![](./pics/贝叶斯网引论_note/pic_2.png)
+
+设变量$Y$有$m$个父节点$X_1$，$\dots$，$X_m$，条件分布$P(Y \, \vert \, X_1, \dots, X_m)$刻画$Y$对其父节点的依赖关系。为减少参数个数，人们往往假设条件分布具有某种规律，称为局部结构。常见的局部结构有两种：因果机制独立（causal independence）和环境独立（context specific independence）。
+
+1. 因果机制独立
+
+    设上图中的箭头表示因果关系，我们说$X_1$，$\dots$，$X_m$独立地影响$Y$，如果存在与$Y$有共同状态空间的变量$\xi_1$，$\dots$，$\xi_m$，使得：
+
+    1. 对每个$i$，$\xi_i$依赖于$X_i$，并且给定$X_i$，$\xi_i$独立于其它的$\xi_j$和$X_j$。
+
+    1. 在$\Omega_Y$上存在一个满足交换律和结合律的算子$*$，使得
+
+        $$Y = \xi_1 * \xi_2 * \cdots * \xi_m$$
+
+    那么就说，不同原因对$Y$的影响是独立的，总影响是各原因的单独影响按算子$*$的合成结果，如下图所示：
+
+    ![](./pics/贝叶斯网引论_note/pic_3.png)
+
+    我们把$\xi_i$称为$X_i$对$Y$的贡献，把$*$称为基本合成算子，把$P(\xi_i \, \vert \, X_i)$称为$X_i$对$Y$的贡献概率分布。
+
+    在变量取二值的情况下，当基本合成算子$*$是逻辑或$lor$时，上图所示的是噪音或门（noisy OR gate）；当它是逻辑与$\land$时，上图所示的是噪音与门（noisy AND gate）。噪音最大（小）门（noisy MAX/MIN gate）是它们的自然推广，此时$*$是最大（小）值运算。当$*$是加法运算时，此模型称为噪音加法器（noisy adder）。
+
+    定理：设原因变量$X_1$，$\dots$，$X_m$独立地影响结果变量$Y$，那么对任意$\alpha \in \Omega_Y$，有
+
+    $$P(Y = \alpha \, \vert \, X_1, \dots, X_m) = \sum\limits_{\alpha_1 * \cdots * \alpha_m = \alpha} P(\xi_1 = \alpha_1 \, \vert \, X_1) \cdots P(\xi_m = \alpha_m \, \vert \, X_m)$$
+
+    其中的$*$是基本合成算子。
+
+    这条定理说的是条件概率分布$P(Y = \alpha \, \vert \, X_1, \dots, X_m)$可以从各原因的贡献概率分布出发得到，这大大减少了参数的个数。
+
+    > 想法：如果想看原因对结果的影响，直接把$X$连到$Y$不就好了吗，为什么还要加一层$\xi$呢？
+
+1. 环境独立
+
+## 贝叶斯网与概率推理
+
+推理（inference）是通过计算回答查询（query）的过程，贝叶斯网中的推理问题有三大类：后验概率问题、最大后验假设问题以及最大可能解释问题。
+
+**后验概率问题**
+
+后验概率问题指的是已知贝叶斯网中某些变量的取值，计算另外一些变量的后验概率分布的问题。
+
+在此类问题中，已知变量称为证据变量（evidence variables），记为$\mathbf E$，它们的取值记为$\mathbf e$。需要计算其后验概率分布的变量称为查询变量（query variables），记为$\mathbf Q$。需要计算的后验分布为$P(\mathbf Q \, \vert \, \mathbf E = \mathbf e)$。
+
+概率推理指的就是后验概率问题。
+
+根据证据变量和查询变量所扮演的因果角色不同，概率推理有 4 种不同类型：
+
+* 从结果到原因的诊断推理（diagnostic inference）
+
+* 从原因到结果的预测推理（predictive inference）
+
+* 在同一结果的不同原因之间的原因关联推理（intercausal inference）
+
+* 包含多种类型的混合推理（mixed inference）

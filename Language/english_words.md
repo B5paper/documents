@@ -1,0 +1,265 @@
+# English Words
+
+incidental 附带的，偶然的
+
+pitfall 陷阱，缺陷
+
+bite v./n. 咬，刺痛
+
+arguably 可以说
+
+endeavour v. 努力  n. 尝试
+
+thrive vi. 繁荣，兴旺
+
+plenty quant. 大量的，充裕的  pron. 充裕
+
+proceed vt. proceed to do sth.（做完某事之后）接着（做另一事） vi. proceed with sth. 继续进行（某行动）
+
+1. issue vt. If you issue a statement or a warning, you make it known formally or publicly 发表（声明），发出（警告）
+
+1. magic hand wave
+
+    Any sufficiently advanced technology is indistinguishable from magic. Arthur C. Clarke, “Profiles of The Future”, 1961 (Clarke’s third law)
+
+    Refers to those times when a colleague says “let me fix that” and proceeds to issue a string of commands on the keyboard (thus waving hands about) and then says “there you go”.
+
+    I call this the “magic hand wave”. This was picked up by management in some companies and is now the standard term for describing “technical work”.
+
+    In discussion, “John can do his magic hand wave, and that work will be complete”.
+
+1. in the interest of space 出于空间的考虑
+
+    in the interests of  为了...的利益
+
+1. mindset 心态
+
+1. realm 领域，范围
+
+1. frustration 挫折
+
+1. culprit 犯人，罪犯；罪魁祸首
+
+1. dabble v. 涉猎，浸水
+
+1. prepend vt. 预谋，在前面追加
+
+1. resort 凭借，手段
+
+1. precedence 优先，优先级
+
+1. malformed 畸形的，难看的
+
+1. operand 操作数，运算对象
+
+1. jam 果酱，堵塞
+
+1. scramble 爬；弄乱
+
+axiomatic 公理的，自明的
+
+descendent 后裔
+
+render 使成为，渲染
+
+intervention 干预，介入
+
+stumble 绊脚
+
+muster 寻找，召集
+
+nerve 神经，勇气
+
+muster the nerve 鼓起勇气
+
+embark on 着手开始
+
+significant 显著的，相当数量的，重要的，别有含义的
+
+attribution 在报道中指明信息或引言的来源，多用于使用非自己采集资料的情况
+
+manuscript 手稿，原稿
+
+errata 堪误表（erratum 的复数）
+
+crunch 嘎吱嘎吱地嚼；大量地处理数字
+
+tailor 裁缝；定做
+
+exposition 解释，阐述
+
+deliberately 故意地；慎重地
+
+vague 不明确的
+
+interrelate （使）相互关联
+
+by no means 决不
+
+sentiment 观点，情绪
+
+quick-and-dirty 应急的；快餐部
+
+connotation 隐含意义，联想意义
+
+mission-critical 关键的
+
+inevitably 不可避免地
+
+fruitfully 产量多地，肥沃地
+
+prototyping 样机研究，原型设计
+
+reasonable 合情理的；相当大的，不少的
+
+expressive 富于表现力的
+
+spreadsheet 电子表格
+
+sophisticated 复杂的，精致的
+
+dice 把食物切成小块；掷骰子
+
+panel 面板
+
+econometrics 计量经济学
+
+subscription 订阅
+
+maturity 成熟
+
+arduous 艰辛的，困难的
+
+substitute 替换
+
+drawn-out 延长的，持续了很久的
+
+condense 冷凝，压缩，浓缩
+
+prerequisite 先决条件，前提；预备课程；先决的
+
+remainder 剩余部分
+
+devote If you devote a particular proportion of a piece of writing or a speech to a particular subject, you deal with the subject in that amount of space or time.
+
+convention 习俗，惯例，约定
+
+jargon 行话，黑话
+
+snuck sneak 的过去式
+
+munge/munging/wrangling 清洗整理数据
+
+a wealth of 很多的
+
+settle for less 退而求其次
+
+preparation 准备，准备工作
+
+daunting 令人畏惧的，令人气馁的
+
+disposal 处理，清除
+
+distinct 不同的，有区别的
+
+indispensable 不可或缺的
+
+workhorse 做重活的人
+
+hood 风帽；罩
+
+conform 遵守，符合
+
+accommodate 为...提供住宿，容纳
+
+premier 首要的，最早的；总理，首相
+
+kick off 开始，开球
+
+lane 小路
+
+relive 重温
+
+recount 叙述，说明
+
+crush 迷恋对象
+
+set 舞台，片场，摄影棚
+
+iconic 偶像的，标志性的
+
+titular 名义上的
+
+die-hard 顽固分子
+
+die-hard fan 死忠粉
+
+parallel 相似之处；相似的事情
+
+make parallels 做比较，compare
+
+drop （电影）落幕
+
+accomplish 完成（目标）
+
+nostalgia 怀旧，念旧
+
+nostalgic 思乡的，怀旧的
+
+overdo 把...做得过分
+
+spinoff 续集
+
+audition （演员）面试，试镜
+
+special 特别节目
+
+sorcerer 魔术师，男巫士
+
+commemorate 纪念
+
+beloved 钟爱的，深受喜爱的
+
+head back 调头，回去
+
+trio 三重唱，三人组
+
+era 时代，时期
+
+dedication 献辞
+
+downside 缺点，不利方面
+
+controversy 争论，争议
+
+fiery 燃烧的，火红的
+
+proprietary 专卖的
+
+revoke 撤回，撤销
+
+in a nutshell 简言之，总而言之
+
+subtle 不易察觉的，微妙的
+
+miniature 微型的，小型的
+
+instantaneous 瞬间发生的，瞬间完成的
+
+reside 居住，定居
+
+suffice 足够，足以
+
+tarball 压缩包
+
+trump 王牌；赢过
+
+prematurely 过早地
+
+skeleton 骨骼，框架
+
+bona fide 真正的，真诚的
+
+negate 否认，否定；取消
+
+synonyms 同义词
