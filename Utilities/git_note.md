@@ -272,8 +272,41 @@ a11bef0 - Scott Chacon, 6 years ago : first commit
 | `%cr` | Committer date, relative |
 | `%s` | Subject |
 
+`oneline`和`format`通常和`log --graph`合起来用，得到 branch 和 merge 历史。`git log --pretty=format:"%h %s" --graph`
+
+有关`git log`的常用参数：
+
+| Option | Description |
+| - | - |
+| `-p` | Show the patch introduced with each commit. |
+| `--stat` | Show statistics for files modified in each commit. |
+| `--shortstat` | Display only the changed/insertions/deletions line from the `--stat` command. |
+| `--name-only` | Show the list of files modified after the commit information. |
+| `--name-status` | Show the list of files affected with added/modified/deleted information as well. |
+| `--abbrev-commit` | Show only the first few characters of the SHA-A checksum instead of all 40. |
+| `--relative-date` | Display the date in a relative format (for example, "2 weeks ago") instead of using the full date format. |
+| `--graph` | Display an ASCII graph of the branch and merge history beside the log output. |
+| `--pretty` | Show commits in an alternate format. Options include oneline, short, full, fuller and format (where you specify your own format). |
+
+`git log -<n>`可以显示最后`n`次 commit 的信息，但是这个通常不常用，因为`git log`每次都只输出一页。
+
+`git log`还常和`--since`和`--until`合起来用：
+
+```bash
+git log --since=2.weeks
+git log --since=2008-01-15
+git log --since="2 years 1 day 3 minutes ago"
+```
+
+
+
+
 ## Miscellaneous
 
 * `git status`显示中文目录为`\xxx\xxx\xxx/`的形式
 
     解决方案：`git config --global core.quotepath false`
+
+* 代理
+
+    `git config --global https.proxy http://127.0.0.1:10809`
