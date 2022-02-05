@@ -263,3 +263,51 @@ bona fide 真正的，真诚的
 negate 否认，否定；取消
 
 synonyms 同义词
+
+entrepreneur 企业家
+
+retrospective 回顾展；回顾的
+
+beneficiary 受益者
+
+muse 灵感；沉思，冥想
+
+converse 交谈；相反的说法
+
+cognitive 认识的，认知的
+
+bat 用球棒击球；球棒；蝙蝠
+
+back and forth 反复地，来回地
+
+relentlessly 残酷地，无情地
+
+in no uncertain terms 用十分明确的言辞
+
+leverage 利用
+
+devise 设计，发明
+
+browse 浏览
+
+astronomer 天文学家
+
+neutron 中子
+
+spooky 令人毛骨悚然的
+
+transient 短暂的；瞬态
+
+astrophysicist 天体物理学家
+
+trawl 用拖网捕鱼；查阅（资料）
+
+one-off 一次性的
+
+dwarf 使...显得矮小；小矮人
+
+vast 巨大的
+
+outback 内地
+
+astronomy 天文学

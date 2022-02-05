@@ -184,6 +184,10 @@ $$P(X_i, \dots, X_n) = \prod\limits_{i=1}^n P(X_i \, \vert \, \pi(X_i))$$
 
 贝叶斯网是一个有向无环图，其中节点代表随机变量，节点间的边代表变量之间的直接依赖关系。每个节点都附有一个概率分布，根节点$X$所附的是它的边缘分布$P(X)$，而非根节点$X$所附的是条件概率分布$P(X \, \vert \, \pi(X))$。
 
+想法：
+
+1. 一个有向无环图成为贝叶斯网的充分必要条件是什么？
+
 贝叶斯网的构造过程：
 
 1. 把每个变量都表示为一个节点。
@@ -315,6 +319,74 @@ $$P(X_i, \dots, X_n) = \prod\limits_{i=1}^n P(X_i \, \vert \, \pi(X_i))$$
 
 ### 有向分隔与条件独立
 
+**引理**
+
+设$\mathcal N$是一贝叶斯网，$Y$是它的一个叶节点，$\mathcal N'$是从$\mathcal N$中除去$Y$后得到的贝叶斯网。令$\mathbf X$为$\mathcal N'$中所有节点的集合，那么有
+
+$$P_{\mathcal N} (\mathbf X) = P_{\mathcal N'} (\mathbf X)$$
+
+即$\mathbf X$在$\mathcal N$中的分布函数和它在$\mathcal N'$中的分布函数相同，或者说从$\mathcal N$中除去$Y$不会影响$\mathbf X$的分布函数。
+
+想法：
+
+1. 证明看不懂
+
+    $P_{\mathcal N} (\mathbf X) = \sum\limits_{Y} P_{\mathcal N} (\mathbf X, Y) = \sum\limits_{Y} \prod\limits_{X \in \mathbf X} P(X \, \vert \, \pi(X)) P(Y \, \vert \, \pi(Y))$
+
+    这一步是咋得到的，看不明白
+
+**祖先闭集（ancestral set）**，**最小祖先闭集**
+
+设$\mathbf X$为贝叶斯网中的一个节点集合，如果其中每个节点的祖先节点都在$\mathbf X$内，即有$\forall X \in \mathbf X$，$\mathrm{an} (X) \subseteq \mathbf X$，则称$\mathbf X$是一个**祖先闭集**。对任一节点集合$\mathbf Y$，用符号$\mathrm{an} (\mathbf Y)$代表包含$\mathbf Y$的**最小祖先闭集**。不难看出$\mathrm{an} (\mathbf Y) = \mathbf Y \bigcup \mathrm{an} (\mathbf Y)$。
+
+**引理**
+
+如果$\mathbf X$是贝叶斯网$\mathcal N$中的一个祖先闭集，而且在$\mathbf X$之外有节点存在，那么在$\mathbf X$之外一定存在一个叶节点。
+
+设$\mathbf X$为贝叶斯网中的一个祖先闭集，从$\mathcal N$中除去所有不属于$\mathbf X$的节点而得到的也是一个贝叶斯网。
+
+**命题**
+
+设$\mathbf X$为贝叶斯网$\mathcal N$中的一个祖先闭集，$\mathcal N'$为从$\mathcal N$中除去所有不属于$\mathbf X$的节点后得到的贝叶斯网，那么有
+
+$$P_{\mathcal N} (\mathbf X) = P_{\mathcal N'} (\mathbf X)$$
+
+即$\mathbf X$在$\mathcal N$中的分布函数与它在$\mathcal N'$中的分布函数相同。
+
+**命题**
+
+设$\mathbf X$，$\mathbf Y$和$\mathbf Z$为贝叶斯网$\mathcal N$中 3 个两两交空的节点集合，它们的并集为$\mathcal N$中所有节点。如果$\mathbf Z$ d-分隔$\mathbf X$和$\mathbf Y$，那么$\mathbf X$和$\mathbf Y$在给定$\mathbf Z$时条件独立，即
+
+$$\mathbf X \perp \mathbf Y \mid \mathbf Z$$
+
+**定理（整体马尔可夫性）**
+
+设$X$和$Y$为贝叶斯网$\mathcal N$中的两个变量，$\mathbf Z$为$\mathcal N$中一个不包含$X$和$Y$的节点集合。如果$\mathbf Z$ d-分隔$X$和$Y$，那么$X$和$Y$在给定$\mathbf Z$时条件独立，即
+
+$$X \perp Y \mid Z$$
+
+说明：
+
+1. 这条定理说的是，在贝叶斯网中，d-分隔意味着条件独立。
+
+**马尔可夫边界（Markov boundary）**
+
+在贝叶斯网中，一个节点$X$的马尔可夫边界包括其父节点、子节点以及子节点的父节点，即$\mathrm{bm} (X) = \pi(X) \bigcup \mathrm{ch} (X) \bigcup_{Y \in \mathrm{ch} (X)} \pi (Y)$。
+
+**推论**
+
+在一个贝叶斯网络中，给定变量$X$的马尔可夫边界$\mathrm{mb} (X)$，则$X$条件独立于网络中所有其它变量。
+
+**推论（局部马尔可夫性）**
+
+在一个贝叶斯网中，给定变量$X$的父节点$\pi (X)$，则$X$条件独立于它的所有非后代节点，即
+
+$$X \perp [\mathrm{nd} (X) \setminus \pi (X)] \mid \pi (X)$$
+
+**因果马尔可夫假设**
+
+给定一个变量$X$的直接原因（父节点），该变量条件独立于所有那些不是它的直接或间接结果（非后代节点）的变量。
+
 ## 贝叶斯网与概率推理
 
 推理（inference）是通过计算回答查询（query）的过程，贝叶斯网中的推理问题有三大类：后验概率问题、最大后验假设问题以及最大可能解释问题。
@@ -323,7 +395,9 @@ $$P(X_i, \dots, X_n) = \prod\limits_{i=1}^n P(X_i \, \vert \, \pi(X_i))$$
 
 后验概率问题指的是已知贝叶斯网中某些变量的取值，计算另外一些变量的后验概率分布的问题。
 
-在此类问题中，已知变量称为证据变量（evidence variables），记为$\mathbf E$，它们的取值记为$\mathbf e$。需要计算其后验概率分布的变量称为查询变量（query variables），记为$\mathbf Q$。需要计算的后验分布为$P(\mathbf Q \, \vert \, \mathbf E = \mathbf e)$。
+**证据变量（evidence variables）**，**查询变量（query variables）**
+
+在后验概率问题中，已知变量称为证据变量，记为$\mathbf E$，它们的取值记为$\mathbf e$。需要计算其后验概率分布的变量称为查询变量，记为$\mathbf Q$。需要计算的后验分布为$P(\mathbf Q \, \vert \, \mathbf E = \mathbf e)$。
 
 概率推理指的就是后验概率问题。
 
@@ -336,3 +410,19 @@ $$P(X_i, \dots, X_n) = \prod\limits_{i=1}^n P(X_i \, \vert \, \pi(X_i))$$
 * 在同一结果的不同原因之间的原因关联推理（intercausal inference）
 
 * 包含多种类型的混合推理（mixed inference）
+
+**最大后验假设问题**
+
+已知证据$\mathbf E = \mathbf e$，有时会对一些变量的后验概率最大的状态组合感兴趣，这些变量称为假设变量（hypothesis variables），记之为$\mathbf H$。$\mathbf H$的一个状态组合称为一个假设（hypothesis），记之为$\mathbf h$。在所有可能的假设中，想找出后验概率最大的那个假设$\mathbf h^*$，即
+
+$$\mathbf h^* = \mathop{\arg \max}_{\mathbf h} P(\mathbf H = \mathbf h \mid \mathbf E = \mathbf e)$$
+
+这就是最大后验假设（maximum a posteriori hypothesis）问题，简称 MAP 问题。
+
+**最大可能解释问题**
+
+在贝叶斯网中，证据$\mathbf E = \mathbf e$的一个解释（explanation）指的是网络中全部变量的一个与$\mathbf E = \mathbf e$相一致的状态组合。往往有时最关心概率最大的那个解释，即最大可能解释（most probable explanation），简称 MPE。
+
+求最大可能解释的 MPE 问题可视为 MAP 问题的一个特例，即 MAP 中的假设变量$\mathbf H$包含了网络中的所有非证据变量。
+
+### 变量消元法（variable elimination）

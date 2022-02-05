@@ -309,4 +309,4 @@ git log --since="2 years 1 day 3 minutes ago"
 
 * 代理
 
-    `git config --global https.proxy http://127.0.0.1:10809`
+    `git config --global http.proxy http://127.0.0.1:10809`
