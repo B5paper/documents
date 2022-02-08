@@ -16,7 +16,7 @@
 
         Example: `[('D', 'G'), ('I', 'G')]`
 
-* `pgmpy.factors,discrete.TabularCPD(variable=None, variable_card=None, values=None, evidence=None, evidence_card=None, state_names=None)`
+* `pgmpy.factors.discrete.TabularCPD(variable=None, variable_card=None, values=None, evidence=None, evidence_card=None, state_names=None)`
 
     Parameters:
 
