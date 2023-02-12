@@ -23364,7 +23364,7 @@ public:
     ```c++
     int binary_search(int[] nums, int target) {
         int left = 0, right = nums.length - 1; 
-        while(left <= right) {
+        while (left <= right) {
             int mid = left + (right - left) / 2;
             if (nums[mid] < target) {
                 left = mid + 1;
@@ -23379,6 +23379,27 @@ public:
         return -1;
     }
     ```
+
+    这个边界情况我仍然不知道怎么推导出来。似乎有这样的原则在里面：
+
+    1. 每一次缩小搜索范围，都要保证目标值在新的搜索范围内
+    1. 要保证可以跳出循环（结束算法）
+
+    假如没有找到 target，那么在返回 -1 时，`left`和`right`代表的意义是什么？
+
+    1. 假设无论之前搜索区间有多长，最终只会缩减到两种情况，一种是`[a, b]`，另一种是`[a, b, c]`。我们要找的数字为`t`。
+
+    2. 对于`[a, b]`，根据我们的原则，`t`一定在搜索范围内，因此`a <= t <= b`；而又因为`t`不等于`a`和`b`，所以`a < t < b`。又因为此时`l = 0`，`r = 1`，我们可以计算出`m = l + (r - l) / 2 = 0`，所以`nums[m] = a < t`。根据代码，`l = m + 1 = 1`，此时计算`m = l + (r - 1) / 2 = 1`，`nums[m] = b > t`。根据代码有`r = m - 1 = 0`。此时`l = 1`，`nums[l] = b`，是第一个比`t`大的元素；`r = 0`，`nums[r] = a`，是第一个比`t`小的元素。
+
+    3. 对于`[a, b, c]`，`t`有两种情况：`a < t < b`，`b < t < c`。
+
+        当`a < t < b`时，`m`首先被计算出来等于`1`，然后`r`会被赋值`0`，此时`l = r = 0`，`nums[l] = nums[r] = a`。接着计算`m = 0`，`l = m + 1 = 1`，退出循环。此时`l`指向第一个比`t`大的元素，`m`指向第一个比`t`小的元素。
+
+        当`b < t < c`时，同理得到`l = 2`，`r = 1`。此时`l`指向第一个比`t`大的元素，`m`指向第一个比`t`小的元素。
+
+        因此对于`[a, b, c]`这种情况，仍然有`l`指向第一个比`t`大的元素，`m`指向第一个比`t`小的元素成立。
+
+    这时我们只要证明“无论之前搜索区间有多长，最终只会缩减到两种情况”就可以了。
 
 1. 搜索左边界
 
@@ -23529,6 +23550,27 @@ public:
 };
 ```
 
+后来写的：
+
+```c++
+// The API isBadVersion is defined for you.
+// bool isBadVersion(int version);
+
+class Solution {
+public:
+    int firstBadVersion(int n) {
+        int left = 1, right = n, mid;
+        while (left <= right)
+        {
+            mid = left + (right - left) / 2;
+            if (isBadVersion(mid)) right = mid - 1;
+            else left = mid + 1;
+        }
+        return left;
+    }
+};
+```
+
 ### 搜索插入位置
 
 给定一个排序数组和一个目标值，在数组中找到目标值，并返回其索引。如果目标值不存在于数组中，返回它将会被按顺序插入的位置。
@@ -23590,6 +23632,13 @@ public:
         }
     };
     ```
+
+这道题等价于两个子题目的组合：
+
+1. 给定有序数组和指定元素，如果元素存在，那么返回它所对应的索引
+2. 给定有序数组和指定元素，如果元素不存在，那么返回第一个比这个元素大的元素的索引
+
+恰好“二分查找”的正常写法可以同时满足这两个子题目。
 
 ### 在排序数组中查找元素的第一个和最后一个位置
 
@@ -29091,6 +29140,98 @@ public:
             return num == n;
         }
     };
+    ```
+
+#### 字符串中第二大的数字
+
+给你一个混合字符串 s ，请你返回 s 中 第二大 的数字，如果不存在第二大的数字，请你返回 -1 。
+
+混合字符串 由小写英文字母和数字组成。
+
+ 
+```
+示例 1：
+
+输入：s = "dfa12321afd"
+输出：2
+解释：出现在 s 中的数字包括 [1, 2, 3] 。第二大的数字是 2 。
+```
+
+```
+示例 2：
+
+输入：s = "abc1111"
+输出：-1
+解释：出现在 s 中的数字只包含 [1] 。没有第二大的数字。
+```
+
+提示：
+
+* 1 <= s.length <= 500
+* s 只包含小写英文字母和（或）数字。
+
+代码：
+
+1. c++
+
+    可以用`set`自动排序的特性，可以使用`priority_queue`大顶堆。不过这道题因为只需要找到第 2 大的数字，所以可以直接模拟：
+
+    ```c++
+    class Solution {
+    public:
+        int secondHighest(string s) {
+            int n1 = -1, n2 = -1;
+            int n;
+            for (char &c: s)
+            {
+                if (c >= '0' && c <= '9')
+                {
+                    n = c - '0';
+                    if (n > n1)
+                    {
+                        n2 = n1;
+                        n1 = n;
+                    }
+                    else if (n < n1)
+                    {
+                        if (n > n2) n2 = n;
+                    }
+                }
+            }
+            return n2;
+        }
+    };
+    ```
+
+    假如要求使用`secondHighest(string s, int k)`返回第`k`大的数字，那么就没办法使用模拟了，这时候该怎么办？
+
+    由于这道题中数字只有 0 ~ 9，或许可以用这个特性做些优化。
+
+1. rust
+
+    仿照 c++ 的写法。占的内存比别人的多，不知道该怎么缩减内存了。
+
+    ```rust
+    impl Solution {
+        pub fn second_highest(s: String) -> i32 {
+            let mut n1 = -1;
+            let mut n2 = -1;
+            let mut n;
+            for c in s.bytes() {
+                if c >= b'0' && c <= b'9' {
+                    n = (c - b'0') as i32;
+                    if n > n1 {
+                        n2 = n1;
+                        n1 = n;
+                    }
+                    else if n < n1 && n > n2 {
+                        n2 = n;
+                    }
+                }
+            }
+            return n2;
+        }
+    }
     ```
 
 ## 各种算法中需要注意的细节

@@ -1,0 +1,23 @@
+# Ssh Note
+
+正向转发：假如现在有两台机器 A 和 B，B 上装有 ssh server，A 想在访问本机的某个端口时，变成访问机器 B 上的某个端口，那么就称为正向代理。
+
+此时在`A`机器上运行：
+
+`ssh -L [A_addr:]<A_port>:<B_addr>:<B_port> user_name@addr`
+
+登陆就可以了。
+
+注意，`addr`不一定和`B_addr`相同。若不同，则通过`addr`转发到`B_addr`上。
+
+反向代理：假如现在有机器`A`和`B`，`B`上装有 ssh server，目标是在`B`上访问`B_port`端口时，相当于访问`A_port`端口。
+
+命令：
+
+`ssh -R B_addr:B_port:A_addr:A_port user@addr`
+
+此时在`B`上访问`B_addr:B_port`就当于访问`A_addr:A_port`。
+
+同理，`addr`不一定和`B_addr`相同。
+
+这种形式相当于内网穿透。

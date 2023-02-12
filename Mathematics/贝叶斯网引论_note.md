@@ -14,17 +14,13 @@
 
     我们观察不到的属性，或者不想观察的属性，实际上也都被忽略了。比如叶子上是否有绒毛，根系是否发达等等。
 
-**样本空间**
+**样本空间**，**样本点**，**原子事件**
 
-随机试验所有可能的结果组成的集合称为该试验的样本空间，记作$\Omega$。
+随机试验所有可能的结果组成的集合称为该试验的样本空间，记作$\Omega$。随机试验的每一个可能结果称为样本点，或原子事件，记为$\omega$。
 
 说明：
 
 1. 样本空间可以是离散的，也可以是连续的。
-
-**样本点**，**原子事件**
-
-随机试验的可能结果称为样本点，或原子事件，记为$\omega$。
 
 **事件**，**事件发生**
 
@@ -573,6 +569,8 @@ $$\mathbf h^* = \mathop{\arg \max}_{\mathbf h} P(\mathbf H = \mathbf h \mid \mat
 
 ### 变量消元法（variable elimination）
 
+**分解**，**消元**
+
 设$F(X_1, X_2, \dots, X_n)$是变量$\{ X_1, X_2, \dots, X_n \}$的一个函数，而$\mathcal F = \{ f_1, f_2, \dots, f_m \}$是一组函数，其中每个$f_i$所涉及的变量是$\{ X_1, X_2, \dots, X_n \}$的一个子集。如果
 
 $$F = \prod\limits_{i=1}^m f_i$$
@@ -591,6 +589,59 @@ $$G(X_2, \dots, X_n) = \sum\limits_{X_1} F(X_1, X_2, \dots, X_n)$$
 
 1. 将新函数$\displaystyle \sum\limits_{X_1} \prod\limits_{i=1}^k f_i$放回$\mathcal F$中。
 
+说明：
+
+1. 这里举一个例子：
+
+    $$\begin{aligned}
+    P(D) &= \sum\limits_{A, B, C} P(A, B, C, D) \quad (边缘分布) \\
+    &= \sum\limits_{A, B, C} P(A) P(B \mid A) P(C \mid B) P(D \mid C) \quad (链规则，条件独立的推论) \\
+    &= \sum\limits_{C} P(D \mid C) \sum\limits_B P(C \mid B) \sum\limits_A P(A) P(B \mid A) \quad (联合分布的分解，2.2 节，2.3 节)
+    \end{aligned}$$
+
+    消元步骤：
+
+    $\displaystyle \mathcal F = \{ \underbrace{P(A), P(B \mid A)}_{\psi_1 (B) = \sum\limits_A P(A) P(B \mid A)}, P(C \mid B), P(D \mid C) \}$
+
+    $\displaystyle \mathcal F = \{ \underbrace{\psi_1 (B), P(C \mid B)}_{\psi_2 (C) = \sum\limits_B P(C \mid B) \psi_1 (B)}, P(D \mid C) \}$
+
+    $\displaystyle \mathcal F = \{ \underbrace{\psi_2 (C), P(D \mid C)}_{\psi_3 (D) = \sum\limits_C P(D \mid C) \psi_2 (C)} \}$
+
 **定理**
 
 设$\mathcal F$是函数$F(X_1, X_2, \dots, X_n)$的一个分解。设$\mathcal F'$是从$\mathcal F$中消去$X_1$后所得的一组函数，$G(X_2, \dots, X_n)$是从$F(X_1, X_2, \dots, X_n)$中消去$X_1$后所得的函数。那么，$\mathcal F'$是$G(X_2, \dots, X_n)$的一个分解。
+
+说明：
+
+1. 这个定理描述了概率的联合分布的分解的一般情况。
+
+设$f(\mathbf X, \mathbf Y)$为两组变量$\mathbf X$和$\mathbf Y$的函数，其中$\mathbf X \cap \mathbf Y = \varnothing$。设$\mathbf x$为$\mathbf X$的一取值，在$f(\mathbf X, \mathbf Y)$中，将$\mathbf X$设置为$\mathbf x$得到一个关于$\mathbf Y$的函数$f_{\mathbf X = \mathbf x} (\mathbf Y)$：
+
+$$f_{\mathbf X = \mathbf x} (\mathbf Y = \mathbf y) := f(\mathbf X = \mathbf x, \mathbf Y = \mathbf y), \quad \forall \mathbf y \in \Omega_\mathbf Y $$
+
+有时把$f_{\mathbf X = \mathbf x} (\mathbf Y)$记为$f(\mathbf X = \mathbf x, \mathbf Y)$。
+
+**变量消元算法（VE 算法）**
+
+设$\mathbf X$是一个贝叶斯网$\mathcal N$中所有变量的集合，$\mathcal F$是$\mathcal N$中所有概率分布的集合。
+
+假设观测到了证据$\mathbf E = \mathbf e$，在$\mathcal F$的因子中，将各证据变量设置为它们的观测值，得到另一组函数，记为$\mathcal F'$，这一步称为证据设置。
+
+设$\mathbf Y = \mathbf X \setminus \mathbf E$，$\mathbf Q$是$\mathbf Y$的一个子集合。从$\mathcal F'$中逐个消去所有在$\mathbf Y$中但不在$\mathbf Q$中的变量，得到另一个函数集合，记为$\mathcal F''$。
+
+根据前面的定理，$\mathcal F''$是$P(\mathbf Q, \mathbf E = \mathbf e)$的一个分解，所以，将$\mathcal F''$中的所有因子相乘，就得到$P(\mathbf Q, \mathbf E = \mathbf e)$。
+
+按照条件概率的定义，可以得到：
+
+$$P(\mathbf Q \mid \mathbf E = \mathbf e) = \dfrac{P(\mathbf Q, \mathbf E = \mathbf e)}{P(\mathbf E = \mathbf e)}$$
+
+其中$P(\mathbf E = \mathbf e) = \sum\limits_{\mathbf Q} P(\mathbf Q, \mathbf E = \mathbf e)$。这个过程即为变量消元法，简称 VE 算法。
+
+说明：
+
+1. 根据贝叶斯网的定义，$\mathcal F$是$\mathcal N$所表示的联合概率分布$P(\mathbf X)$的一个分解。
+
+1. $\mathscr F'$是函数$P(\mathbf Y, \mathbf E = \mathbf e)$的一个分解。
+
+## 参数学习
+

@@ -4,32 +4,6 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## Variables
 
-Special variables:
-
-1. `$0`: The name of the Bash script.
-
-1. `$1` - `$9`: The first 9 arguments to the Bash script.
-
-1. `$#`: How many arguments supplied to the Bash script.
-
-1. `$@`: All the arguments supplied to the Bash script.
-
-1. `$?`: The exit status of the most recently run process.
-
-1. `$$`: The process ID of the current script.
-
-1. `$USER`: The username of the user running the script.
-
-1. `$HOSTNAME`: The hostname of the machine the script is running on.
-
-1. `$SECONDS`: The number of seconds since the script was started.
-
-1. `$RANDOM`: Returns a different random number each time is it referred to.
-
-1. `$LINENO`: Returns the current line number in the Bash script.
-
-1. `env`命令可列出其它可用的环境变量。
-
 定义，使用变量：
 
 ```bash
@@ -46,7 +20,11 @@ echo $variable
 
 `myvar=$( ls /etc | wc -l )`
 
+或者`myvar=$(ls -lh)`（小括号两边的空格不是必须的）
+
 如果结果是多行输出，那么换行符都会被删除，从而并成单行的结果。
+
+**export**
 
 可以用`export`导出一个变量，使得一个新的脚本在执行时，以值传递到新脚本中：
 
@@ -159,6 +137,36 @@ do
     shift 1;
 done
 ```
+
+**Special variables**:
+
+1. `$0`: The name of the Bash script.
+
+    实际上，这个变量存储的是脚本被调用时的路径名。
+
+    如果用`./my_script.sh`调用，那么`$0`就等于`./my_script.sh`；如果用`/path/to/my_script.sh`绝对路径调用，那么`$0`就等于`/path/to/my_script.sh`；如果使用`bash my_script.sh`调用，那么`$0`就等于`my_script.sh`。
+
+1. `$1` - `$9`: The first 9 arguments to the Bash script.
+
+1. `$#`: How many arguments supplied to the Bash script.
+
+1. `$@`: All the arguments supplied to the Bash script.
+
+1. `$?`: The exit status of the most recently run process.
+
+1. `$$`: The process ID of the current script.
+
+1. `$USER`: The username of the user running the script.
+
+1. `$HOSTNAME`: The hostname of the machine the script is running on.
+
+1. `$SECONDS`: The number of seconds since the script was started.
+
+1. `$RANDOM`: Returns a different random number each time is it referred to.
+
+1. `$LINENO`: Returns the current line number in the Bash script.
+
+1. `env`命令可列出其它可用的环境变量。
 
 ## Arithmetic
 

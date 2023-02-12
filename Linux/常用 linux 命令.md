@@ -16,6 +16,58 @@
 
     `sudo apt install rar`
 
+## 双系统安装
+
+在安装了 windows 的机器上安装 ubuntu 系统：
+
+目前是 uefi + 单硬盘情形。
+
+需要点我的电脑右键 -> 管理 -> 磁盘管理。然后选择硬盘，右键点压缩卷。压缩空间量写要给 Ubuntu 预留的空间。
+
+接下来准备个新U盘，下载 ubuntu 的安装镜像，把里面的文件复制到U盘里就行。UEFI 的启动方式不需要写 mbr 分区表，只要有文件夹就行。
+
+使用 U 盘启动 Ubuntu 安装程序后，在选择磁盘擦除和分区方式时，选择手动分区。
+
+我们选择空闲空间，然后创建下面四个分区：
+
+1. efi，设置为 200M 就差不多够了
+
+1. swap: 相当于 windows 中的虚拟内存。设置成两倍内存大小就差不多了。
+
+1. 根目录`/`。大小设置成 40G ~ 50G 吧，总之以后要装各种软件。格式为`ext4`。
+
+1. `/home`。用户数据目录，剩下的空间全给它，格式为`ext4`。
+
+在选择安装启动分区时，要选择 efi 对应的分区号，比如`/dev/sda1`。
+
+剩下的正常安装就可以了。
+
+## device 相关
+
+查看网卡名：
+
+* `ifconfig`
+
+    需要事先安装`net-tools`
+
+* `sudo vi /etc/network/interfaces`
+
+查看网卡型号：
+
+`lspci -k | grep -i -A2 net`
+
+查看网卡设备信息：
+
+`lspci | grep -i net `
+
+查看无线网络：
+
+`iwconfig`
+
+查看 usb 网卡：
+
+`lsusb`
+
 ## 用户相关
 
 * `adduser`, `finger`, `passwd`, `deluser`
@@ -39,6 +91,10 @@
 使用`service xxx restart`时，总是需要输入第一个用户的密码（比如`ubuntu`用户的密码），而不是`root`用户或当前用户的密码。这个似乎和`polkit`有关。相关的解释在这里：<https://askubuntu.com/questions/1114351/why-system-keep-ask-to-enter-password-for-the-first-member-of-sudo-group-instead>
 
 转换到`root`账户：`sudo su`
+
+### mount 共享文件夹
+
+`sudo mount -t vboxsf E_DRIVE -o umask=0002 -o uid=1000 -o gid=1000 /mnt/e`
 
 ### Linux group
 
@@ -247,4 +303,10 @@ do
     # xxx
 done
 ```
+
+## problem shooting
+
+1. Ubuntu 无法连接企业 Wifi
+
+    解决方案：<https://ubuntuforums.org/showthread.php?t=2474436>
 

@@ -30,288 +30,197 @@ conferences:
 
 ## Introduction
 
-```python
-from pandas import DataFrame, Series
-import pandas as pd
-frame = DataFrame(records)
-frame
-frame['tz'][:10]
-tz_counts = frame['tz'].value_counts()
-```
-
-The output shown for the `frame` is the *summary view*, shown for large DataFrame objects.
-
-```python
-clean_tz = frame['tz'].fillna('Missing')
-clean_tz[clean_tz == ''] = 'Unknown'
-tz_counts = clean_tz.value_counts()
-tz_counts[:10]
+### Series
+
+`Series`可以看作是扩展了很多功能的一维数组。
+
+* 创建
+
+    ```python
+    s1 = pd.Series([2, 4, 6, 8])  # 可以通过 list 直接创建
+    s1 = pd.Series(np.arange(2, 10, 2))  # 也可以和 numpy 互相兼容
+    s2 = pd.Series([4, 7, -5, 3], index=['d', 'b', 'a', 'c'])  # 用参数 index 指定索引
+    s2 = pd.Series({'d': 4, 'b': 7, 'a': -5, 'c': 3})  # 用字典的方式指定索引
+    print(s1)
+    print()
+    print(s2)
+    ```
+
+    输出：
+
+    ```
+    0    2
+    1    4
+    2    6
+    3    8
+    dtype: int32
 
-tz_counts[:10].plot(kind='barh', rot=0)
-```
+    d    4
+    b    7
+    a   -5
+    c    3
+    dtype: int64
+    ```
 
-使用`Series`:
-
-```python
-results = Series([x.split()[0] for x in frame.a.drapna()])
-results[:5]
-results.value_counts()[:8]
-
-cframe = frame[frame.a.notnull()]
-operating_system = np.where(cframe['a'].str.contains('Windows'), 'Windows', 'Not Windows')
-operating_system[:5]
-
-by_tz_os = cframe.groupby(['tz', operating_system])
-agg_counts = by_tz_os.size().unstack().fillna(0)
-agg_counts[:10]
+* 索引
 
-indexer = agg_counts.sum(1).argsort()
-index[:10]
-
-count_subset = agg_counts.take(indexer)[-10:]
-count_subset
+    ```python
+    s2[0]  # 使用数字索引
+    s2.d  # 使用属性索引
+    s2['d'] = 6  # 使用字符串索引，并赋值
+    s2[['c', 'a', 'd']]  # 索引多个值
+    s2[s2 > 0]  # 布尔索引
+    ```
 
-count_subset.plot(kind='barh', stacked=True)
-normed_subset = count_subset.div(count_subset.sum(1), axis=0)
-normed_subset.plot(kind='barh', stacked=True)
-```
-
-**Series**
+* 运算
 
-一维数组。
+    ```python
+    s2 * 2  # 可以直接使用运算符
+    np.exp(s2)  # 可以和 numpy 兼容
+    'b' in s2  # 检查键值是否存在
 
-```python
-obj = Series([4, 7, -5, 3])
-obj
-obj.values
-obj.index
-
-obj2 = Series([4, 7, -5, 3], index=['d', 'b', 'a', 'c'])
-obj2
-obj2.index
-obj2['a']  # -5
-obj2['d'] = 6
-obj2[['c', 'a', 'd']]  # 索引多个值
+    # 带缺失数据的运算（不知道这个功能复现的充要条件是什么）
+    sdata = {'Ohio': 35000, 'Texas': 71000, 'Oregon': 16000, 'Utah': 5000}
+    obj3 = pd.Series(sdata)
+    states = ['California', 'Ohio', 'Oregon', 'Texas']
+    obj4 = Series(sdata, index=states)
+    print(obj3 + obj4)
+    ```
 
-obj2[obj2 > 0]
-obj2 * 2
-np.exp(obj2)
+    输出：
 
-'b' in obj2  # True
-'e' in obj2  # False
-
-# Create a Series from a dict
-sdata = {'Ohio': 35000, 'Texas': 71000, 'Oregon': 16000, 'Utah': 5000}
-obj3 = Series(sdata)
-obj3  # index 会按字典序排序
+    ```
+    California     NaN
+    Ohio         70000
+    Oregon       32000
+    Texas       142000
+    Utah           NaN
+    ```
 
-states = ['California', 'Ohio', 'Oregon', 'Texas']
-obj4 = Series(sdata, index=states)  # 指定 keys，在字典中查找，若找到则放到 obj4 里，否则给出 NaN
-obj4
-```
-
-可以用`isnull()`和`notnull()`找出缺失值（missing or NA values）：
-
-```python
-pd.isnull(obj4)
-```
-
-输出：
+* 常用属性（attribute）
 
-```
-California  True
-Ohio        False
-Oregon      False
-Texas       False
-```
-
-```python
-pd.notnull(obj4)
-```
-
-输出：
+    * `name`
 
-```
-California  False
-Ohio        True
-Oregon      True
-Texas       True
-```
+    * `index`
 
-也可以用内置方法调用：`obj4.isnull()`
+### DataFrame
 
-pandas 可以在缺失数据的情况下做运算：
+`DataFrame`和一个二维数组类似，不同于二维数组的是，它的每一列都是一个`Series`对象。因此它的每一行代表了一条数据，每一列代表了一个属性。
 
-```python
-obj3
-```
-
-输出：
-
-```
-Ohio    35000
-Oregon  16000
-Texas   71000
-Utah     5000
-```
+* 创建
 
-输入：
+    ```python
+    df1 = pd.DataFrame([[1, 2, 3], [4, 5, 6]])  # 可以通过 array-like 的类型创建
+    df2 = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
+                        index=['a', 'b'],
+                        columns=['A', 'B', 'C'])  # 指定行索引和列索引
+    df3 = pd.DataFrame({'A': [1, 4], 'B': [2, 5], 'C': [3, 6]})  # 按列创建，同时指定列索引
+    df4 = pd.DataFrame({'a': [1, 4], 'b': [2, 5], 'c': [3, 6]}, columns=['a', 'c'])  # 使用部分数据创建
+    df5 = df5 = pd.DataFrame({
+        'a': {'A': 1, 'B': 4}, 
+        'b': {'A': 2, 'B': 5},
+        'c': {'A': 3, 'B': 6}})  # 使用嵌套的字典创建，这时可同时指定 index 和 columns 从而使用部分数据创建
+        # 另一个作用是可以有缺失值，这时会自动填充为 NaN
+    print(df1)
+    print()
+    print(df2)
+    ```
 
-```python
-obj4
-```
+    输出：
 
-输出：
+    ```
+    0  1  2
+    0  1  2  3
+    1  4  5  6
 
-```
-California     NaN
-Ohio         35000
-Oregon       16000
-Texas        71000
-```
+    A  B  C
+    a  1  2  3
+    b  4  5  6
+    ```
 
-输入：
+    不提供属性名字的情况下，会从`0`开始编号。这个例子中有`0`，`1`，`2`三列属性。每行也都有一个名字，这里是`0`和`1`。
 
-```python
-obj3 + obj4
-```
+    如果`index`指定不存在的`key`，那么数值就会被填充为`NaN`。
 
-输出：
+* 常用属性
 
-```
-California     NaN
-Ohio         70000
-Oregon       32000
-Texas       142000
-Utah           NaN
-```
+    * `index`
 
-`Series`对象和它的`index`都有一个`name` attribute。
+    * `columns`
 
-`Series`的`index`也可直接被赋值：`obj.index = ['Bob', 'Steve', 'Jeff', 'Ryan']`
+* 索引
 
-**DataFrame**
+    在`frame`后使用方括号可以索引到一个属性，即一列：
 
-```python
-data = {'state': ['Ohio', 'Ohio', 'Ohio', 'Nevada', 'Nevada'],
-'year': [2000, 2001, 2002, 2001, 2002],
-'pop': [1.5, 1.7, 3.6, 2.4, 2.9]}
-frame = DataFrame(data)
-frame
-```
+    ```python
+    df['a']  # 索引一列
+    df.a  # 同上
+    df[df > 2]  # 布尔索引
+    df.ix['A']  # 索引一行（好像不行
+    ```
 
-输出：
+    使用索引得到的列都是引用，如果想得到副本，需要`Series`的`copy`方法。
 
-```
-  pop state  year
-0 1.5 Ohio   2000
-1 1.7 Ohio   2001
-2 3.6 Ohio   2002
-3 2.4 Nevada 2001
-4 2.9 Nevada 2002
-```
+* 切片
 
-也可以指定顺序：
+    ```python
+    df1[:2]  # 取前两行
+    ```
 
-```python
-DataFrame(data, columns=['year', 'state', 'pop'])
-```
+* 赋值
 
-输出：
+    ```python
+    df[0] = 0  # 将整列都赋为 0
+    df[0] = np.arange(5)  # 能和 numpy 兼容
 
-```
-  year state  pop
-0 2000 Ohio   1.5
-1 2001 Ohio   1.7
-2 2002 Ohio   3.6
-3 2001 Nevada 2.4
-4 2002 Nevada 2.9
-```
+    # 对部分赋值，缺失的数值赋 NaN
+    val = Series([-1.2, -1.5, -1.7], index=['two', 'four', 'five'])
+    frame2['debt'] = val
 
-如果在`column`里指定不存在的`Series`，那么会被赋值为`NA`：
+    # 创建一个新列
+    frame2['eastern'] = frame2.state == 'Ohio'
 
-```python
-frame2 = DataFrame(data, columns=['year', 'state', 'pop', 'debt'], index=['one', 'two', 'three', 'four', 'five'])
-frame2
-```
+    # 删除一列
+    del frame2['eastern']
+    ```
 
-输出：
+一些常用的方法：
 
-```
-      year state  pop debt
-one   2000 Ohio   1.5 NaN
-two   2001 Ohio   1.7 NaN
-three 2002 Ohio   3.6 NaN
-four  2001 Nevada 2.4 NaN
-five  2002 Nevada 2.9 NaN
-```
+* `value_counts()`
 
-```python
-frame2.columns
-```
+* `fillna(val)`
 
-输出：
+* `plot(kind, rot)`
 
-```
-Index([year, state, pop, debt], dtype=object)
-```
+* `notnull()`
 
-两种方式索引某一列：
+* `unstack()`
 
-```python
-frame2['state']
-frame2.state
-```
+* `groupby()`
 
-使用名称索引某一行：`frame2.ix['three']`
+* `sum()`
 
-对整列赋值：
+* `argsort()`
 
-```python
-frame2['debt'] = 16.5
-frame2['debt'] = np.arange(5.)
+* `take()`
 
-# 对部分赋值，缺失的数值赋 NaN
-val = Series([-1.2, -1.5, -1.7], index=['two', 'four', 'five'])
-frame2['debt'] = val
+* `div()`
 
-# 创建一个新列
-frame2['eastern'] = frame2.state == 'Ohio'
+* `isnull()`
 
-# 删除一列
-del frame2['eastern']
-```
+    找出 missing or NA values
 
-使用索引得到的列都是引用，如果想得到副本，需要`Series`的`copy`方法。
+    也有全局函数：`pd.isnull()`
 
-另外一种创建 DataFrame 的方法：
+常用的属性：
 
-```python
-pop = {'Nevada': {2001: 2.4, 2003: 2.9},
-'Ohio': {2000: 1.5, 2001: 1.7, 2002: 3.6}}
-frame3 = DataFrame(pop)
-```
+* `values`
 
-对 DataFrame 进行转置：
+* `index`
 
-```python
-frame3.T
-```
+* `columns`
 
-`index`还可以指定不存在的`key`：
-
-```python
-DataFrame(pop, index=[2001, 2002, 2003])
-```
-
-输出：
-
-```
-     Nevada Ohio
-2001 2.4    1.7
-2002 2.9    3.6
-2003 NaN    NaN
-```
+* `T`
 
 然后是一个看不懂的操作：
 
@@ -347,12 +256,6 @@ year
 2002 2.9 3.6
 ```
 
-拿到 2D 的`ndarray`数据：
-
-```python
-frame3.values
-```
-
 如果`columns`是不同的`dtype`，那么`frame.values`得到的就是`dtype=object`类型的 ndarray。
 
 `DataFrame`的构造函数一览表：
@@ -367,4 +270,91 @@ frame3.values
 | list of dicts of Series | Each item becomes a row in the DataFrame. Union of dict key or Series indexes become the DataFrame's column labels. |
 | List of lists or tuples | Treated as the '2D ndarray' case. |
 | Another DataFrame | The DataFrame's indexes are used unless different ones are passed. |
-| NumPy MaskedArray | Like the '2D ndarray' case except masked values become NA/missing in the DataFrame result.|
+| NumPy MaskedArray | Like the '2D ndarray' case except masked values become NA/missing in the DataFrame result. |
+
+**Index Objects**
+
+`Index`对象无法被修改，只能被替换。因此它可以被共享。
+
+```python
+index = pd.Index(np.arange(3))
+obj2 = Series([1.5, -2.5, 0], index=index)
+obj2.index is index  # True
+```
+
+pandas 中常见的 index 的类型：
+
+| Class | Description |
+| - | - |
+| `Index` | The most general Index object, representing axis labels in a NumPy array of Python objects. |
+| `Int64Index` | Specialized Index for integer values. |
+| `MultiIndex` | "Hierarchical" index object representing multiple levels of indexing on a single axis. Can be thought of as similar to an array of tuples. |
+| `DatatimeIndex` | Stores nanosecond timestamps (represented using NumPy's datetime64 dtype). |
+| `PeriodIndex` | Specialized Index for Period data (timespans). |
+
+`index`和`columns`也可以看作是一个 set：可以用`in`判断某个元素是否在其中，也有如下所示的方法和属性：
+
+| Method | Description |
+| - | - |
+| `append` | Concatenate with additional Index objects, producing a new Index |
+| `diff` | Compute set difference as an Index |
+| `intersection` | Compute set intersection |
+| `union` | Compute set union |
+| `isin` | Compute boolean array indicating whether each value is contained in the passed collection |
+| `delete` | Compute new Index with element at index i deleted |
+| `drop` | Compute new index by deleting passed values |
+| `insert` | Compute new Index by inserting element at index i |
+| `is_monotonic` | Returns True if each element is greater than or euqal to the previous element |
+| `is_unique` | Returns True if the Index has no duplicate values |
+| `unique` | Compute the array of unique values in the Index |
+
+一些核心功能：
+
+* `reindex(index, method, fill_value, limit, level, copy)`
+
+    重新赋值索引。（`method`参数好像没啥用，有机会了找文档再核实下）
+
+* `drop(index)`
+
+    删除指定的索引及对应的值。
+
+`Series`的索引和 numpy 类似，有一点不同：当使用 label 作为索引时，end point 是包含在内的。
+
+对一个`DataFrame`索引会得到`Series`，然而只有两种情况是例外，会得到`DataFrame`，一种是切片，一种是布尔索引。
+
+Indexing options with DataFrame
+
+| Type | Notes |
+| - | - |
+| `obj[val]` | Select single column or sequence of columns from the DataFrame. Special case conveniences: boolean array (filter rows), slice (slice rows), or boolean DataFrame (set values based on some criterion). |
+| `obj.iloc[val]` | Selects single row of subset of rows from the DataFrame. |
+| `obj.iloc[:, val]` | Selects single column of subset of columns. |
+| `obj.iloc[val1, val2]` | Select both rows and columns. |
+| reindex method | Conform one or more axes to new indexes. |
+| `xs` method | Select single row or column as a Series by label. |
+| `icol`, `irow` methods | Select single column or row, respecitively, as a Series by integer location. |
+| `get_value`, `set_value` methods | Select single value by row and column label. |
+
+如果让两个行索引不同的`Series`相加，那么会相加有相同行索引的项，行索引不同的项会被赋`NaN`。`DataFrame`同理。如果不想这样，可以`df1.add(df2, fill_value=0)`，这样就会把不存在的元素赋 0，再做相加。对于`reindex`也是同理，可以将不存在的列填充：`df1.reindex(columns=df2.columns, fill_value=0)`。
+
+常用的算术操作有 4 个：`add`，`sub`，`div`，`mul`。
+
+对于`DataFrame`和`Series`的算术操作，会进行 broadcasting. `Series`会被看作行。如果想将`Series`看作列，可以使用`add(ser, axis=0)`。如果出现索引不匹配的情况，会赋值`NaN`.
+
+dimension reduction:
+
+```python
+f = lambda x: x.max() - x.min()
+frame.apply(f)
+frame.apply(f, axis=1)
+
+def f(x):
+    return Series([x.min(), x.max()], index=['min', 'max'])
+frame.apply(f)
+
+format = labmda x: '%.2f' % x
+frame.applymap(format)
+
+# applymap 应用于 DataFrame，map 应用于 Series
+frame['e'].map(format)
+```

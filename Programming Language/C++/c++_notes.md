@@ -772,6 +772,23 @@ int main ()
 }
 ```
 
+**文件读写相关**：
+
+```c++
+// 文件存在，并且没有记录
+char ch;
+ifs >> ch;
+if (ifs.eof())
+{
+    cout << "文件为空！" << endl;
+    this->m_EmpNum = 0;
+    this->m_FileIsEmpty = true;
+    this->m_EmpArray = NULL;
+    ifs.close();
+    return;
+}
+```
+
 ## 函数调用协议
 
 影响函数参数的入栈方式，栈内数据的清除方式，编译器函数名的修饰规则等。

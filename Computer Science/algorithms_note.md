@@ -99,3 +99,105 @@ int binary_search(vector<int> &nums, int target) {
 ### left bound
 
 ### right bound
+
+## Math
+
+### 最大公约数
+
+```java
+static int gcd(int p, int q) {
+        if (q == 0) return p;
+        int r = p % q;
+        return gcd(q, r);
+    }
+```
+
+## Array-processing
+
+* 找最大值
+
+    find the maximum of the array values
+
+    ```java
+    static int findMax(int[] arr) {
+        int max = arr[0];
+        for (int i = 1; i < arr.length - 1; ++i)
+            if (arr[i] > max) max = arr[i];
+        return max;
+    }
+    ```
+
+* 计算均值
+
+    compute the average of the array values
+
+    ```java
+    static double calcMean(double[] arr) {
+        double n = arr.length;
+        double sum = 0.0;
+        for (int i = 0; i < n - 1; ++i) {
+            sum += arr[i];
+        }
+        return sum / n;
+    }
+    ```
+
+* 复制另一个数组
+
+    copy to another array
+
+    ```java
+    int N = a.length;
+    double[] b = new double[N];
+    for (int i = 0; i < N; i++)
+        b[i] = a[i]; 
+    ```
+
+* 反转数组
+
+    reverse the elements within an array
+
+    ```java
+    static void reverseArray(int[] arr) {
+        int left = 0, right = arr.length - 1;
+        int n = arr.length;
+        n /= 2;
+        int temp;
+        for (int i = 0; i < n; ++i) {
+            temp = arr[left];
+            arr[left] = arr[right];
+            arr[right] = temp;
+            ++left;
+            --right;
+        }
+    }
+    ```
+
+    ```java
+    int N = a.length;
+    for (int i = 0; i < N/2; i++)
+    {
+        double temp = a[i];
+        a[i] = a[N-1-i];
+        a[N-i-1] = temp;
+    }
+    ```
+
+* 矩阵乘法
+
+    ```java
+    static double[][] matMultiply(double[][] A, double[][] B) {
+        int m = A.length, l = A[0].length, n = B[0].length;
+        double[][] C = new double[m][n];
+        for (int k = 0; k < l; ++k) {
+            for (int i = 0; i < m; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    C[i][j] += A[i][k] * B[k][j];
+                }
+            }
+        }
+        return C;
+    }
+    ```
+
+    

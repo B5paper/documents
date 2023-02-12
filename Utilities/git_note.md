@@ -1,5 +1,7 @@
 # Git Note
 
+## Background and basic concepts
+
 * CVCs: Centralized Version Control Systems
 
     * CVS
@@ -36,6 +38,12 @@ git project 的三个 sections:
 * the staging area
 
     The staging area is a file, generally contained in your Git directory, that stores information about what will go into your next commit.
+
+working directory 中的每个文件都有两种状态：tracked 或 untracked。Tracked files are files that were in the last snapshort; they can be unmodified, modified, or staged. Untracked files are everything else - any files in your working directory that were not in your last snapshot and are not in your staging area.
+
+[如果一个 staged 文件又被修改了，会成为什么状态呢？答：这个文件会同时变成 staged 和 unstaged 两种状态，当然，文件内容是不同的。可以再 add 一次以合并两种状态。]
+
+## Configs
 
 git 的配置文件有三个位置：
 
@@ -91,73 +99,85 @@ man git-<verb>
 git help config
 ```
 
-初始化一个仓库：
+## Basic operations
 
-```bash
-git init
-```
+* initialize a repository
 
-clone 一个仓库：
+    初始化一个仓库：
 
-```bash
-git clone [url]
-```
+    ```bash
+    git init
+    ```
 
-比如：
+* clone a repository
 
-```bash
-git clone https://github.com/libgit2/libgit2
-```
+    ```bash
+    git clone [url]
+    ```
 
-这个命令将创建一个`libgit2`文件夹，并将所有内容复制到这个文件夹内。如果想指定文件夹，可以使用
+    比如：
 
-```bash
-git clone https://github.com/libgit2/libgit2 mylibgit
-```
+    ```bash
+    git clone https://github.com/libgit2/libgit2
+    ```
 
-常用的 transfer protocols:
+    这个命令将创建一个`libgit2`文件夹，并将所有内容复制到这个文件夹内。如果想指定文件夹，可以使用
 
-* `https://`
+    ```bash
+    git clone https://github.com/libgit2/libgit2 mylibgit
+    ```
 
-* `git://`
+    常用的 transfer protocols:
 
-* ssh: `user@server:path/to/repo.git`
+    * `https://`
 
-working directory 中的每个文件都有两种状态：tracked 或 untracked。Tracked files are files that were in the last snapshort; they can be unmodified, modified, or staged. Untracked files are everything else - any files in your working directory that were not in your last snapshot and are not in your staging area.
+    * `git://`
 
-[如果一个 staged 文件又被修改了，会成为什么状态呢？答：这个文件会同时变成 staged 和 unstaged 两种状态，当然，文件内容是不同的。可以再 add 一次以合并两种状态。]
+    * ssh: `user@server:path/to/repo.git`
 
-查看文件的状态：
+* check status of the repo
 
-`git status`
+    查看文件的状态：
 
-将 untracked 文件放到 staged area 里：
+    `git status`
 
-```bash
-git add README
-```
+    将 untracked 文件放到 staged area 里：
 
-syntax:
+    ```bash
+    git add README
+    ```
 
-`git add (files)`
+    Short status: `git status -s`或`git status --short`
 
-如果`add`添加的是一个文件夹，那么会递归地添加文件夹中的所有文件。
+    输出：
 
-Short status: `git status -s`或`git status --short`
+    ```
+    M  README
+    MM  Rakefile
+    A   lib/git.rb
+    M   lib/simplegit.rb
+    ??  LICENSE.txt
+    ```
 
-输出：
+    其中`??`代表 new files that aren't tracked, `A`代表 new files that have been added to the staging area, `M`代表 modified files。
 
-```
- M  README
-MM  Rakefile
-A   lib/git.rb
-M   lib/simplegit.rb
-??  LICENSE.txt
-```
+    状态一共有两栏，左侧一栏表示 staging area，右侧一栏表示 working tree。
 
-其中`??`代表 new files that aren't tracked, `A`代表 new files that have been added to the staging area, `M`代表 modified files。
+* add files to staging area
 
-状态一共有两栏，左侧一栏表示 staging area，右侧一栏表示 working tree。
+    `git add (files)`
+
+    如果`add`添加的是一个文件夹，那么会递归地添加文件夹中的所有文件。
+
+    `-n`, `--dry-run`: Don’t actually add the file(s), just show if they exist and/or will be ignored.
+
+    example:
+
+    `git add Documentation/\*.txt`: Adds content from all `*.txt` files under Documentation directory and its subdirectories. The asterisk `*` is used to escape from shell.
+
+    `git add git-*.sh`: Add content from all `git-*.sh` files in current directory, not its subdirectories.
+
+## .gitignore rules
 
 可以在项目目录下创建一个`.gitignore`来忽视一些文件。文件规则：
 
@@ -165,7 +185,7 @@ M   lib/simplegit.rb
 
 * Standard glob patterns work.
 
-    An asterisk (`*`) matckes zero or more characters;
+    An asterisk (`*`) matches zero or more characters;
 
     `[abc]` matches any character inside the brackets;
 
@@ -212,23 +232,35 @@ doc/**/*.pdf
 
 [如果直接输入`TODO`的话，会递归地匹配所有的 TODO 文件吗？]
 
-`git diff`: to see what you've changed but not yet staged.
+## Other operations
 
-`git diff --staged` 或 `git diff --cached`: to see what you've staged that will go into your next commit.
+* `git diff`
 
-[`git diff`比较的是 working directory 中文件和 last commited 文件的差异，还是 working directory 中的文件和 staged area 中的文件？]
+    To see what you've changed but not yet staged.
 
-`git commit`选择的 editor 与 shell 的`$EDITOR`环境变量有关。也可以用`git config --global core.editor`设置。
+    `git diff --staged` 或 `git diff --cached`: to see what you've staged that will go into your next commit.
 
-`git commit`会显示出`git status`的信息，如果想要更详细的信息，可以使用`git commit -v`。如果想一行提交，可以使用`git commit -m "comments"`。
+    [`git diff`比较的是 working directory 中文件和 last commited 文件的差异，还是 working directory 中的文件和 staged area 中的文件？]
 
-如果想跳过`git add`阶段，可以使用`git commit -a -m "comments"`。[书上说 -a 的作用是 make Git automatically stage every file that is already tracked before doing the commit. 那么没有被标记 tracked 的文件会不会被 commit 呢？]
+    `git diff`好像只能比较已经 tracked 的文件。如果一个文件是新创建的，既没有在 working tree 也没有在 staging area，那么使用`git diff`就不会有任何输出。如果一个文件已经被`git add xxx`添加过，出现在 staging area 中，那么使用`git diff --staged`就可以看到 diff 信息。
 
-`git rm`可以删除 staging area 和 working directory 中的文件。删除操作会被提交到 staging area，以后就不再 track 这个文件了。[如果一个文件已经被 committed，然后它又被修改了，那么在删除的时候似乎需要加上`-f`选项]
+    [有关 diff 的输出格式，有时间了看下]
 
-如果只想让 git 不再追踪某个文件，从 staging area 里删除，但又不想让它在硬盘上删除，可以使用：`git rm --cached README`。
+* `git commit`
 
-`git rm`接受的参数可以是 files, directories, and file-glob patterns。比如`git rm log/\*.log`（这里的反斜杠`\`用于区别 git 和 shell 的 string expansion）。再比如`git rm \*~`可以移除所有以`~`结尾的文件。
+    `git commit`选择的 editor 与 shell 的`$EDITOR`环境变量有关。也可以用`git config --global core.editor`设置。
+
+    `git commit`会显示出`git status`的信息，如果想要更详细的信息，可以使用`git commit -v`。如果想一行提交，可以使用`git commit -m "comments"`。
+
+    如果想跳过`git add`阶段，可以使用`git commit -a -m "comments"`。[书上说 -a 的作用是 make Git automatically stage every file that is already tracked before doing the commit. 那么没有被标记 tracked 的文件会不会被 commit 呢？]
+
+* `git rm`
+
+    `git rm`可以删除 staging area 和 working directory 中的文件。删除操作会被提交到 staging area，以后就不再 track 这个文件了。[如果一个文件已经被 committed，然后它又被修改了，那么在删除的时候似乎需要加上`-f`选项]
+
+    如果只想让 git 不再追踪某个文件，从 staging area 里删除，但又不想让它在硬盘上删除，可以使用：`git rm --cached README`。
+
+    `git rm`接受的参数可以是 files, directories, and file-glob patterns。比如`git rm log/\*.log`（这里的反斜杠`\`用于区别 git 和 shell 的 string expansion）。再比如`git rm \*~`可以移除所有以`~`结尾的文件。
 
 [如果我们直接用`mv`命令删除一个文件，然后再`git add .`，`git commit`，会发生什么呢？]
 
