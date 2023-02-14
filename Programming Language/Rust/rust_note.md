@@ -3143,4 +3143,342 @@ Cargo 只会在运行`cargo test`时编译这个目录中的文件。
 
     `mut`每次只能修饰一个变量，不能修饰多个。
 
+## Appended
+
+1. 闭包（closure）
+
+    ```rust
+
+    fn get_increased_val(init_val: u32) -> impl FnMut() -> u32 {
+        let mut count = init_val;
+        move || -> u32 {
+            count += 1;
+            count
+        }
+    }
+
+    fn main() {
+        let mut get_val = get_increased_val(0);
+        println!("{}", get_val());
+        println!("{}", get_val());
+    }
+    ```
+
+1. `String`
+
+1. cargo 换源
+
+1. 为什么`&"hello, world"`和`"hello, world"`以及`&&"hello, world"`指的都是`&str`？
+
+1. 猜数字中的一些小问题
+
+    ```rust
+    use std::io::{self, Write};
+    fn main() {
+        let target = 35;
+        let mut guess: i32 = 0;
+        let mut buf = String::new();
+        while guess != target {
+            print!("input the guess number: ");  //　没有 \n　时，会先缓存不刷新，因此下面需要强制刷新
+            io::stdout().flush().unwrap();
+            buf.clear();  //　不清空时，字符串找不到 \0，后面的解析会出问题
+            io::stdin().read_line(&mut buf).unwrap();
+            let line_str = buf.trim();
+            guess = i32::from_str_radix(line_str, 10).unwrap();  // 好像也可以使用 line_str.parse()
+            if guess > target {
+                println!("what you guessed is bigger than the secert number.");
+            } else if guess < target {
+                println!("what you guessed is smaller than the secret number.");
+            }
+        }
+        println!("correct number. good job.");
+    }
+    ```
+
+1. 整数运算
+
+    不允许`i32`和`i64`之间互相隐式转换。也就是说，对于`i32`来说，算术运算只能发生在两个`i32`之间。如果是一个`i32`加一个`i64`，那么会报错。
+
+    通过溢出报错，加上非相同类型不能运算，基本就避免了各种溢出的问题。但是程序员会累一些，需要处理溢出异常和类型转换。
+
+1. 配置代理 proxy
+
+1. 有关 rustup 的教程
+
+    Ref: <https://rust-lang.github.io/rustup/index.html>
+
+1. cargo 只下载，不编译
+
+    `cargo fetch`
+
+1. `std::fs`模块
+
+    与文件操作相关的库在`std::fs`模块中。这个模块需要和`std::io`中的 trait 配合使用。
+
+    引入：
+
+    ```rust
+    use std::fs::File;
+    ```
+
+    打开一个文件：
+
+    ```rust
+    fn main() -> std::io::Result<()> {
+        // open a file with write mode. if the file existed, the existed file will be covered.
+        let mut file = File::create("aaa.txt")?;  
+
+        // open a file with read-only mode
+        let mut file2 = File::open("bbb.txt")?;  
+
+        // open a file with append mode
+        let mut file3 = File::options().append(true).open("ccc.txt")?;  
+
+        // open a file with binary mode
+    }
+    ```
+
+    读文本文件：
+
+    * 一次性把所有内容读完
+
+        ```rust
+        use std::{fs::File, io::Read};  // io::Read 是必须的，read_to_string() 函数要用到这个
+
+        fn main() -> std::io::Result<()> {
+            let file_path = "/home/hlc/Documents/Projects/rust_test/hello.txt";
+            let mut file = File::open(file_path)?;
+            let mut lines = String::new();
+            file.read_to_string(&mut lines)?;
+            println!("{}", lines);
+            Ok(())
+        }
+        ```
+
+        由于`read_to_string`接受的参数是`&mut String`，所以`file`必须被指定为`mut`。但是如果我们从别的函数中只拿到了非`mut`的`file`，那么似乎就没办法调用`read_to_string()`了，即使只想看看文件内容，不想做任何更改也不行。这种情况该怎么办呢？
+
+    * 一行一行地读
+
+        <https://stackoverflow.com/questions/45882329/read-large-files-line-by-line-in-rust>
+
+        ```rust
+        use std::fs::File;
+        use std::io::{self, prelude::*, BufReader};
+
+        fn main() -> io::Result<()> {
+            let file = File::open("foo.txt")?;
+            let reader = BufReader::new(file);
+
+            for line in reader.lines() {
+                println!("{}", line?);
+            }
+
+            Ok(())
+        }
+        ```
+
+        不清楚`BufReader()`会申请多大的 buffer，是固定的还是动态分配内存的？ 
+
+    * 一次读指定字节数
+
+        ```rust
+
+        ```
+
+    常用 methods:
+
+1. `std::io`
+
+    `std::io`模块为标准输入输出，文件读写提供了统一的接口。
+
+    常用的 trait：
+
+    * `impl Read for File`
+
+        * `fn read(&mut self, buf: &mut [u8]) -> Result<usize>`
+
+            把 buffer 填满，或者读到文件/输入的结尾
+
+        * `fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize>`
+
+            由`Vec<u8>`负责管理内存，`read_to_end()`把所有内容读到`buf`里。
+
+            ```rust
+            let mut buf = Vec::new();
+            let mut n = file.read_to_end(&mut buf).unwrap();
+            ```
+
+        * `fn read_to_string(&mut self, buf: &mut String) -> Result<usize>`
+
+            由`String`负责管理内存，`read_to_string()`把所有内容读到`buf`里。
+
+        * `fn read_exact(&mut self, buf: &mut [u8]) -> Result<()>`
+
+            不清楚这个和`read()`有啥区别
+
+        * `fn read_vectored(&mut self, bufs: &mut [IoSliceMut<'_>]) -> Result<usize>`
+
+            依次往不同 buffers 中写数据
+
+            Example:
+
+            ```rust
+            use std::{fs::File, io::Read};
+            use std::io::IoSliceMut;
+
+            fn main() -> std::io::Result<()> {
+                let file_path = "example.txt";
+                let mut file = File::open(file_path)?;
+                let mut lines = String::new();
+                let mut buf1: [u8; 15] = [0; 15];
+                let mut buf2: [u8; 10] = [0; 10];
+                let mut bufs = &mut [
+                    IoSliceMut::new(&mut buf1),
+                    IoSliceMut::new(&mut buf2),
+                ][..];
+
+                let mut n = file.read_vectored(&mut bufs).unwrap();
+
+                println!("Succeed to read {} bytes.", n);
+                Ok(())
+            }
+            ```
+
+1. convert a string to a vector of chars
+
+    ```rust
+    fn main() {
+        let s = "Hello world!";
+        let char_vec: Vec<char> = s.chars().collect();  // or collect::<Vec<char>>()
+        for c in char_vec {
+            println!("{}", c);
+        }
+    }
+    ```
+
+1. convert a vector to an array
+
+    这个其实不好实现，因为 array 必须要初始化，这样的话我们就需要知道 array 有几个元素。但是 vector 是动态分配内存的，我们不知道有几个元素。因此将`Vec`转换成`[u8]`比较困难。
+
+    目前只简单找了一种方法。有时间的话，再查查其他方法吧。
+
+    需要复制的话，可以使用这个方法：
+
+    ```rust
+    fn demo<T>(v: Vec<T>) -> [T; 32] where T: Copy {
+        let slice = v.as_slice();
+        let array: [T; 32] = match slice.try_into() {
+            Ok(ba) => ba,
+            Err(_) => panic!("Expected a Vec of length {} but it was {}", 32, v.len()),
+        };
+        array
+    }
+    ```
+
+1. convert `&[u8]` to `String`
+
+    ```rust
+    std::str::from_utf8(byte_array).unwrap().to_string();
+    ```
+
+    也可以直接调用`String`的`from_utf8()`：
+
+    ```rust
+    let str = String::from_utf8([b'a', b'b', b'c'].to_vec()).unwrap();
+    ```
+
+    字符串转换大全：<https://gist.github.com/jimmychu0807/9a89355e642afad0d2aeda52e6ad2424>
+
+1. convert `[char; N]` to `String`
+
+    ```rust
+    let arr = ['h', 'e', 'l', 'l', 'o'];
+    let mut str: String = arr.iter().collect();
+    ```
+    
+    或者可以`String::from_iter()`
+
+1. substring
+
+    有一个`substring` crate。也可以使用`.get()`方法。
+
+1. 按行读取文件
+
+    <https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html>
+
+1. reverse a string
+
+    ```rust
+    fn main() {
+        let foo = "palimpsest";
+        println!("{}", foo.chars().rev().collect::<String>());
+    }
+    ```
+
+1. 有关`rand` crate
+
+    正常情况下，需要
+
+    ```rust
+    use rand::{self, Rng};
+    ```
+
+    才能调用`rand`中的函数：
+
+    ```rust
+    fn main()　{
+        let mut rng = rand::thread_rng();
+    }
+    ```
+
+    但是事实是只需要
+
+    ```rust
+    use rand::Rng;
+    ```
+
+    就可以调用`rand`中的函数了。
+
+    为什么？
+
+1. 给程序传递参数
+
+    ```rust
+    use std::env;
+
+    fn main() {
+        let args: Vec<String> = env::args().collect();
+        let program_path: &String = &args[0];
+        let first_arg: &String = &args[1];
+    }
+    ```
+
+    可以用`env::args().len()`判断参数的数量。
+
+    这里得到的`program_path`指的是 bash 是以什么样的路径运行程序的。因此这个变量既有可能是绝对路径，也有可能是相对路径。
+
+    如果我们使用`cargo run`运行程序，那么得到的是相对路径，通常为`target/debug/<program-name>`
+
+1. 字符串拼接
+
+    ```rust
+    let mut s1 = "Hello,".to_string();
+    let s2 = "world".to_string();
+    s1 += &s2;  // 运算符似乎也会对所有权有影响，所以 s2 需要写引用
+
+    let s = "Hello," + "world"; // Can't use + with two &str
+    let s = s1 + &s2; // Move s1 to s, and concats s2 to s
+    ```
+
+    ```rust
+    let s1 = String::from("Hello"); let s2 = String::from("world."); let s = format!("{}, {}", s1, s2);
+    ```
+
+    Ref: <http://www.codebaoku.com/it-rust/it-rust-string-concat.html>
+
+    有时间了看看这个网站，还有挺多的技巧。
+
+1. 在给`pringln!`传递参数时，会自动把参数变成引用，因此不会发生 move 操作。
+
+1. `Vec<String>`和`Vec<&String>`以及`Vec<&str>`有什么异同？
 

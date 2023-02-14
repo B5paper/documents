@@ -1295,3 +1295,160 @@ Examples:
     echo `expr index "$stringZ" 1c`             # 3
     # 'c' (in #3 position) matches before '1'.
     ```
+
+## Miscellaneous
+
+1. 有关重定向符的用法
+
+    * `command > filename`
+
+        将输出重定向到文件，如果文件存在，则会被覆盖。
+
+        其实这行命令应该这么理解：`[command] [> filename]`，把它分成两个部分。第二部分`> filename`的完整版应该是`1> filename`，`1`表示 stdout。
+
+        例子：
+
+        `echo "hello, world" > hello.txt`
+    
+    * `[descriptor]> filename`
+
+        把文件描述符重定向到某个文件。`descriptor`可以是`0`，`1`，`2`，其中`0`表示 stdin，`1`表示 stdout，`2`表示 stderr。
+
+        注意，文件描述符和`>`中间不能有空格，而后面的 filename 与`>`之间可以有空格，也可以没有。
+
+        Example:
+
+        file name: `echo_stderr.sh`
+
+        ```bash
+        #!/bin/bash
+
+        echo "hello, world!" >& 2
+        ```
+
+        `./echo_stderr.sh 2> hello.txt`
+
+        在这个例子中，`echo_stderr.sh`在 stderr 进行输出。而下面的命令`./echo_stderr.sh 2> hello.txt`将 stderr 重定向到`hello.txt`文件。因此可以在文件中得到输出的内容。
+
+        注意，如果将上述命令替换为`./echo_stderr.sh 1> hello.txt`或`./echo_stderr.sh > hello.txt`，则仍会在屏幕中进行输出，`hello.txt`文件中不会有任何内容。
+
+    * `[descriptor]>& <descriptor>`
+
+        将一个文件描述符重定向到另一个文件描述符。
+
+        例子：
+
+        `echo "helo, world" >& 2`
+
+        将 stdout 重定向到 stderr。
+
+    * `command &> filename`
+
+        将 stdout 和 stderr 都重定向到指定文件。注意`&>`前没有其他的参数。
+
+        这个命令等价于`1>filename 2>&1`
+
+        一些参考资料：<https://stackoverflow.com/questions/24793069/what-does-do-in-bash>
+
+1. 有关标准输入输出，标准错误
+
+    * stdin: `/proc/<PID>/fd/0`，`/proc/self/fd/0`，`/dev/stdin`，`0`，这几种都是等价的，下面的同理。
+
+    * stdout: `/proc/<PID>/fd/1`，`/proc/self/fd/1`，`/dev/stdout`，`1`
+
+    * stderr: `/proc/<PID>/fd/2`，`/proc/self/fd/2`，`/dev/stderr`，`2`
+
+    程序可以通过 stdin 接收管道（pipe）传递的值：
+
+    `recv.sh`:
+
+    ```bash
+    #!/bin/bash
+    $input$(cat /dev/stdin)
+    echo "recv: $input"
+    ```
+
+    `echo "hello" | ./recv.sh`
+
+1. 有关进程和子进程
+
+    当前进程的 PID：`echo "in current process, PID: $$"`
+
+    可以用小括号打开一个子进程：`(echo "in child process, PID: $BASHPID")`
+
+    注意子进程的 PID 不可以用`$$`获得。因为子进程会从父进程中继承一些环境变量。
+
+    除了使用小括号可以打开一个子进程外，执行一个别的脚本`./xxx.sh`或`bash xxx.sh`也会打开一个子进程。
+
+    将子进程放到后台执行：`(echo "hello") &`
+
+    （似乎所有的后台命令都是开了个新进程，比如`echo hello &`）
+
+    获得子进程的返回值（exit code）：
+
+    1. 如果是前台的子进程，可以使用`$?`获得
+
+        ```bash
+        (echo "in child process"; exit 1)
+        echo "the exit code of the child process: $?"
+        ```
+
+    1. 如果是后台的子进程，必须使用`wait`获得
+
+        ```bash
+        exit 1 &
+        wait $!  # $! is the PID of the latest background process
+        echo "the exit code of the background child process is $?"
+        ```
+
+        `wait`命令会等待子进程执行完成，并将其返回值传递到`$?`变量中。
+
+    `$VAR=$(command)$`也会开启一个子进程：
+    
+    ```bash
+    #!/bin/bash
+    child_pid=$(echo $BASHPID)
+    echo "child pid: $child_pid"
+    echo "current pid: $$"
+    ```
+
+1. 有关字符串处理
+
+* if statement
+
+    <https://acloudguru.com/blog/engineering/conditions-in-bash-scripting-if-statements>
+
+    <https://ryanstutorials.net/bash-scripting-tutorial/bash-if-statements.php>
+
+* bash 中默认函数内外的变量都是全局变量。可以用`local xxxx`或`local xxx=xxxx`定义局部变量。
+
+1. debug a bash script
+
+    vscode 里有个插件叫 bash debug 可以对 bash 设置断点。但是如果是手动调试的话，可以看看下面这些链接：
+
+    * <https://unix.stackexchange.com/questions/521775/how-to-debug-trace-bash-function>
+
+    * <https://www.shell-tips.com/bash/debug-script/#gsc.tab=0>
+
+* 有关返回值
+
+    前台进程的返回值可以直接由`$?`获得：
+
+    ```bash
+    echo "hello" | grep hello
+    echo $?  # 显示 0
+    echo "hello" | grep world
+    echo $?  # 字符串中没有 world，返回 1
+    ```
+
+    后台进程的返回值：
+
+    后台进程的返回值不能直接获得，必须由`wait <PID>`才能获得。
+
+    我们可以首先由`$!`得到最近后台进程的 pid，然后通过`wait $!`得到后台进程的返回值。
+
+    Ref:
+
+    1. <https://stackoverflow.com/questions/1570262/get-exit-code-of-a-background-process>
+
+    1. <https://www.baeldung.com/linux/background-process-get-exit-code>

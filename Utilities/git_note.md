@@ -330,7 +330,264 @@ git log --since=2008-01-15
 git log --since="2 years 1 day 3 minutes ago"
 ```
 
+## config
 
+显示当前的所有配置：`git config --list --show-origin`
+
+`--show-origin`表示显示来源的配置文件。
+
+还可以通过`git config <key>`显示一个指定 key 的值：`git config user.name`
+
+proxy:
+
+```bash
+git config --global http.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
+git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
+```
+
+修改默认编辑器：`git config --global core.editor emacs`
+
+## 一些操作
+
+查看一个 tag 所在的 branch: `git branch -a --contains <tag>`
+
+* Pull a specific commit
+
+    不能直接 pull specific commit，但是可以先与远程仓库同步，然后再使用`git-checkout COMMIT_ID`切换到指定的 commit。
+
+    只合并一个指定的　commit 到主分支：
+
+    ```bash
+    git fetch origin
+    git checkout master
+    git cherry-pick abc123
+    ```
+
+    合并所有的 commit 到主分支：
+
+    ```bash
+    git checkout master
+    git merge abc123
+    ```
+
+其他的各种 git 相关的技巧：<https://unfuddle.com/stack/tips-tricks/git-pull-specific-commit/>，有时间了看看
+
+* git commit
+
+    * `git commit --author="Liucheng Hu"`
+
+        不知道为啥，`git config --global user.name "Liucheng Hu"`设置完后，`git commit`时的作者并不是这个。`git commmit`时必须单独指定`--author`才行。
+
+    * `git commit -s`
+
+        Signed off. 签名。不清楚这个有啥用。在 github 上会显示 signed by xxx。
+        
+    * `git commit --amend`
+
+        修正最后一次 commit 的内容，可以用这个操作补上`--author`信息或者`-s`签名。
+
+* git branch
+
+    `git branch <new-branch-name>`：创建一个新 branch
+
+    本地把 branch 创建好后，不需要 commit，只需要`git push [<remote_name>] [<local_branch>]`就可以了。
+
+    `git branch -r`: list remote tracking branches
+
+    local branch 创建好后，与远程仓库中的 branch 并没有建立联系。如果想要建立联系，可以使用`git push --set-upstream origin test`。
+
+    删除一个本地的 branch: `git branch -d <local_branch_name>`
+
+    直接从 github 里删除 branch: `git push origin --delete <remote_brance_name>`
+
+    `git clone xxx`一个新仓库里，似乎只会 clone main branch，其他的 branch 不会 clone。如何能把其他的 branch clone 下来呢？
+
+* git remote
+
+    remote 仓库在 git 中是以配置的形式存在的。`git remote`也是用来设置配置。
+
+    Examples:
+
+    * `git remote`: list existing remotes
+
+        输出：
+
+        ```
+        origin
+        ```
+
+        表示目前只有`origin`这一个有关远程仓库的配置。
+
+    * `git remove -v`：显示每个 remote 配置的详细信息
+
+    * `git remote add <shortname> <url>`: 添加一个 remote 配置
+
+    * `git remote show <remote>`：联网拉取 remote 的信息。主要是远程 branch 和 local branch 的对应关系以及状态等。
+
+    * `git remote rename <old_name> <new_name>`
+
+    * `git remote rm <remote>`
+
+* git push
+
+    `git push -u <remote_name> <local_branch_name>`: Push the local repo branch under `<local_branch_name>` to the remote repo at `<remote_name>`.
+
+    不清楚加`-u`和不加`-u`有啥区别。
+
+    `git push <remote> <branch>`: 把 local 的`<branch>` push 到`<remote>`。
+
+* git rebase
+
+    1. 找到最后一个没有问题的 commit，并执行`git rebase`：
+
+        `git rebase -i <commit_sha>`
+
+        接下来`git`会从`<commit_sha>`（不包含`<commit_sha>`）开始，遍历（walk through）接下来每一个 commit，然后你可以做一些修改，并使用`git commit --amend`提交。
+
+        这时候会进入一个文件编辑器，一般是`nano`。第一个 commit 我们保持`pick`，剩下的 commit 我们可以把每个 commit 前面的`pick`改成`s`，表示`squash`，即虽然采取这次 commit 的修改内容，但是把它整合到其它的 commit 里。
+
+        每次遇到 conflict 的时候，需要我们手动去 merge，然后再按照`git status`里的提示继续就可以了，一般是执行`git rebase --continue`。
+
+    `git rebase <branch_name>`会找到当前分支和`<branch_name>`分支的公共 commit 节点，然后从这里开始，将`<branch_name>`分支的 commits replay 到当前分支。
+
+    如下图所示：
+
+    <div text-align:center>
+    <img width=400 src='./pic_1.png' />
+    </div>
+
+    ref: 
+    
+    1. <https://medium.com/mindorks/understanding-git-merge-git-rebase-88e2afd42671>，一个讲`git merge`和`git rebase`的博文，挺好的，很详细。
+    
+    1. <https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase>
+
+    显然我们最好不要把其他 branch rebase 到`main`分支上，如果这样的话，那么`main`分支就会增加许多 commits。如杲我们此时把`main`分支 push 到 remote 仓库上，那么其他的开发者在 sync 的时候就会平白无故在 main 分支中冒出来很多 commits，感到疑惑。
+
+    如果是要使用交互模式（interactive）模式的 rebase，那么会打开一个编辑器，要求对每一次 commit 进行处理。常见的命令如下所示：
+
+    ```
+    pick 2231360 some old commit
+    pick ee2adc2 Adds new feature
+
+
+    # Rebase 2cf755d..ee2adc2 onto 2cf755d (9 commands)
+    #
+    # Commands:
+    # p, pick = use commit
+    # r, reword = use commit, but edit the commit message
+    # e, edit = use commit, but stop for amending
+    # s, squash = use commit, but meld into previous commit
+    # f, fixup = like "squash", but discard this commit's log message
+    # x, exec = run command (the rest of the line) using shell
+    # d, drop = remove commit
+    ```
+
+    其中`p`和`s`用得比较多。`p`表示采取这个 commit，`s`表示采取这个 commit，但把这个 commit 合并到上一个 comit 里。
+
+* pull request
+
+    所谓的 pr，实际上 merge 的是指定的两个 branch。
+
+* 有关 branch，commit
+
+    我们可以在其他的 branch 上开发，在其他 branch 上随便 commit，最后在 merge 到 main branch 上时，只需要用 squash 把多个 commit 合并成一个就可以了。
+
+    最后把我们的 main branch merge 到别人的仓库里。
+
+* `git fetch`只更新当前 branch 的信息，不更新其他 branch 的信息。
+
+* `git merge <from_branch> [<to_branch>]`
+
+    default merge to current branch.
+
+    执行 merge 操作时，`<to_branch>`必须存在。
+
+    `git merge <branch_name>`：把`<branch_name>`分支 merge 到当前分支。即对比`<branch_name>`分支最新的一次 commit 与当前分支的最新 commit，如果这两个 commit 在同一条线上，那么直接使用 fast-forward，改变当前 branch 的指针。如果这两个 commit 不在同一条线上，那么对当前 branch 创建一个新的 merge commit，并要求你手动处理 conflict。
+
+    注意，fast-forward 不会创建新 commit，而 conflict 会创建新 commit。
+
+* `git pull`会 pull 所有设置 upstream 的 branch。（那么`git pull --all`是干嘛用的？）
+
+* 所谓的 fast-forward，指的是 main branch HEAD 所在的 commit 节点，可以顺着其他 commit 节点，找到其他 branch 的 HEAD 所在的 commit。
+
+* `git pull --rebase`会把远程的仓库强行覆盖本地的 branch。有时间了研究下`git pull`的三种模式（fast-forward, merge, rebase）
+
+* git tag
+
+    Ref:
+
+    * <https://m.php.cn/tool/git/484989.html>
+
+        简单讲了一些 git tag 的用法。
+
+        问题：如果我们在不同的 branch 中打 tag，那么在 github 中跳转到对应的 tag 时，会自动切换不同的 branch 吗？
+
+* git diff
+
+    `git diff`会对比 working directory 和 staging area 中的改动。如果 staged area 中没有内容，那么会直接对比 working directory 和 last commit 中的变化。
+
+    `git diff --staged`或`git diff --cached`会对比 staged area 和 last commit 中的改动。
+
+* `git rm`
+
+    `git rm`相当于我们先`rm <file_name>`，然后再`git add <file_name>`。
+
+    如果一个文件已经在 staged area 中，那么再把它使用`git rm <file_name>`删除，此时 git 会报错，要求加参数`--cached`或`-f`。
+
+    `git rm --cached <file_name>`表示将 staged area 中的对应文件改变为删除状态，而不改变 working directory 中的文件。
+
+    `git rm -f <file_name>`表示将 staged area 中的对应文件改变为删除状态，同时删除 working directory 中的文件。
+
+* `git mv`
+
+    如果我们直接使用`mv <file_name_1> <file_name_2>`，然后再`git add .`，那么最后使用`git status`看到的是两个操作：
+
+    1. 删除`<file_name_1>`
+    2. 新添加文件`<file_name_2>`
+
+    但是我们想要的操作仅仅是对文件重命名而已。此时可以使用`git mv <file_name_1> <file_name_2>`，效果如下：
+
+    ```
+    (base) hlc@hlc-NUC11PAHi7:~/Documents/Projects/git_test/helloworld$ git status
+    On branch main
+    Your branch is ahead of 'origin/main' by 8 commits.
+    (use "git push" to publish your local commits)
+
+    Changes to be committed:
+    (use "git restore --staged <file>..." to unstage)
+        renamed:    main_1.txt -> main_3.txt
+    ```
+
+* `git log`
+
+    `git log -p -<N>`可以显示最近`N`次 commit 改动的详细内容。
+
+    `git log --stat`可以简单看看每个文件改了多少行。
+
+* `git reset`
+
+    `git reset HEAD <file>...`可以将某个文件的状态从 staged area 设置回到 unstaged 状态。
+
+    好像也可以使用`git restore --staged <file>`完成相同的功能。
+
+* `git checkout`
+
+    `git checkout -- <file>...`可以将某个已经修改过，但是没有 staged 的文件，恢复到 last commit 的内容。
+
+    >  Git just replaced that file with the last staged or committed version
+
+    好像也可以使用`git restore <file>`完成相同的功能。
+
+    这两个命令只适用于已经 tracked 的文件，如果一个文件是新创建的，那么
+
+* `git restore`
+
+* `git fetch`
+
+    `git fetch <remote>`从指定的 remote config 中更新内容。
+
+* `git tag`
 
 
 ## Miscellaneous
