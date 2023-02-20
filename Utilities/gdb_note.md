@@ -1,0 +1,131 @@
+# Gdb Note
+
+* `file <exe_path>`
+
+    加载某个程序
+
+* `run`
+
+    从头开始执行程序
+
+* `break <func_name>`
+* `break <src_path>:<line>`
+
+    下断点
+
+* `continue`
+
+    从断点处继续执行
+
+* `step`
+
+    单步调试，相当于 step into
+
+* `next`
+
+    相当于 step over
+
+* `Enter`键
+
+    重复上一个命令
+
+* `print <var_name>`
+
+    打印变量值
+
+    * `print/x <var_name>`
+
+        以十六进制形式打印变量值
+
+* `watch <var_name>`
+
+    监视一个变量，当变量的值被修改时，程序中断
+
+* `backtrace`
+
+    显示调用函数栈
+
+* `where`
+
+    和`backtrace`功能差不多。教程上说`backtrace`主要用于程序崩溃时，而`where`用于任何正常情况，但是这个说法还没得到证实。
+
+* `finish`
+
+    runs until the current function is finished
+
+* `delete`
+
+    deletes a specified breakpoint
+
+* `info breakpoints`
+
+    显示所有的断点的信息
+
+* `help`
+
+    显示帮助信息
+
+* `break <file>:<line> if i >= ARRAYSIZE`
+
+    条件断点，conditional breakpoints
+
+* `point <pointer>`
+
+    显示指针所指向的地址
+
+* `print <pointer>-><var_name>`
+
+    显示成员的值
+
+* `print (*<pointer>).<var_name>`
+
+    对指针解引用后，打印成员值
+
+* `print *<pointer>`
+
+    显示整个结构体的值
+
+* `print ptr->ptr2->data`
+
+    链式显示指针值
+
+* `list`
+
+    显示上下文代码
+
+* `frame`
+
+    显示当前行
+
+* 显示所有断点
+
+    `info breakpoints`
+
+* `set print elements 1000`
+
+* `set print pretty on`
+
+* `x/s pointer`
+
+使用`root`权限调试：
+
+1. 将`/usr/bin/gdb`改个名字，比如改成`hgdb`
+
+    然后在`/usr/bin`下创建一个新文件`gdb`：
+
+    ```bash
+    #!/bin/bash
+    pkexec /usr/bin/hgdb "$@"
+    ```
+
+    再加上可执行属性：`chmod +x /usr/bin/gdb`
+
+    这样就可以了。
+
+1. 另外一些或许有用的方案：<https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+
+1. 使用 gdb 调 rust 的 test 代码：<https://whamcloud.github.io/Online-Help/docs/Contributor_Docs/cd_Debugging_Rust_Tests.html>
+
+1. 另外一个参考资料：<https://itecnote.com/tecnote/c-how-to-debug-programs-with-sudo-in-vscode/>
+
+显示很长的字符串：<https://stackoverflow.com/questions/233328/how-do-i-print-the-full-value-of-a-long-string-in-gdb>

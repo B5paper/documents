@@ -21,3 +21,7 @@
 同理，`addr`不一定和`B_addr`相同。
 
 这种形式相当于内网穿透。
+
+生成一个密钥对：`ssh-keygen -t rsa`
+
+在远程机吕上把公钥写到`authorized_keys`文件里面：`cat ~/id_rsa.pub >> ~/.ssh/authorized_keys`

@@ -78,6 +78,54 @@
 
 创建新用户：`sudo adduser hlc`
 
+* 添加用户
+
+    * `sudo useradd -m <user_name>`
+
+        `-m`表示在`/home`中创建一个用户的文件夹。如果这个文件夹已经存在，那么会报错说一些模板文件没法复制过来（`useradd: Not copying any file from skel directory into it.`。
+
+        如果想手动复制诸如`.bashrc`等模板文件，可以手动把复制过来：
+
+        ```bash
+        cp -r /etc/skel/. /<user_home_directpory>
+        ```
+
+        其他一些常用参数：
+
+        * `-m`: 指定 home directory
+
+            `sudo useradd -m -d /opt/username <user_name>`
+
+            在创建时指定用户的 home 目录。
+
+        * `-s`：指定 shell
+
+            `sudo useradd -s /usr/bin/zsh username`
+
+            如果不指定，则默认使用`sh`作为`shell`。
+
+        Ref: <https://linuxize.com/post/how-to-create-users-in-linux-using-the-useradd-command/>
+
+    * add a user to sudoers group
+
+        ```bash
+        sudo usermod -aG sudo username
+        ```
+
+        其中`-a`表示 add，`G`表示 group。
+
+        Ref: <https://linuxize.com/post/how-to-add-user-to-sudoers-in-ubuntu/>
+
+        当前用户需要重新登陆后才能生效。
+
+    * change the login shell
+
+        `chsh -s /usr/bin/bash <user_name>`
+
+        Ref: <https://www.cyberciti.biz/faq/howto-change-linux-unix-freebsd-login-shell/>
+
+        Ref: <https://www.tecmint.com/change-a-users-default-shell-in-linux/>
+
 ### `sudoers`
 
 刚开始的时候我们新创建的用户不在`/etc/sudoers`文件中，没有`sudo`的权限。可以在使用`visudo`在`/etc/sudoers.d/`目录下创建个文件，对我们的权限进行配置。这个文件会被自动读入到`/etc/sudoers`文件中。
@@ -155,6 +203,18 @@ Only root or users with `sudo` access can add a user to a group.
 `getent gorup`
 
 （修改组后，要重新登录 shell 才会生效）
+
+## grep
+
+`grep hello test.txt`：显示`test.txt`文件中所有包含`hello`字符串的行
+
+`grep -c hello test.txt`：显示包含`hello`的行数
+
+`cat test.txt | grep hello`：与其他命令联合使用，过滤内容
+
+`ps -ef | grep ssh`
+
+`ps -ef | grep ssh | grep -v grep`：显示所有进程，但是不显示`grep`进程本身。`-v`表示不显示包含后续字符串的信息
 
 ## 文件相关
 
@@ -304,9 +364,50 @@ do
 done
 ```
 
+## Tricks
+
+* 使用`sudo`时保留用户的环境变量：`sudo -E <command>`
+
+* 在一行中设置多个环境变量：
+
+    `http_proxy=xxx https_proxy=xxx no_proxy=xxx <command>`
+
+    用空格分隔开不同环境变量就可以。
+
+* 查看某个端口`<port>`被哪个进程占用
+
+    这个比较好用：`sudo ss -tulpn | grep :3306`
+
+    其他的方法：<https://www.cyberciti.biz/faq/what-process-has-open-linux-port/>
+
+* 查看环境变量
+
+    `printenv`或者`env`
+
+    注意`sudo`的环境变量与`root`并不一致，可以用`sudo printenv`查看`sudo`使用的环境变量。
+
+    `sudo`默认加载的环境变量可以到`/etv/environment`，`/etc/profile`中设置。
+
 ## problem shooting
 
-1. Ubuntu 无法连接企业 Wifi
+* Ubuntu 无法连接企业 Wifi
 
     解决方案：<https://ubuntuforums.org/showthread.php?t=2474436>
+
+* 插上耳机没有声音
+
+    `sudo apt install pavucontrol`
+
+    `pavucontrol`
+
+    然后在`configuration`中设置。
+
+* 通过代理设置时间
+
+    Ref: <https://superuser.com/questions/307158/how-to-use-ntpdate-behind-a-proxy/509620#509620?newreg=8c16b52e667c4208a9ae057d64a8195b>
+
+    参考第二个回答，用 wget 获取时间。缺点是会在当前文件夹下生成一个`index.html`文件。
+
+    `tlsdate`这个工具似乎好多年没更新过了，也不知道怎么编译。
+
 

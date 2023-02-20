@@ -218,4 +218,23 @@ TCP 状态时序图：
 
 `unlink()`
 
+## 查看 ssl 版本
+
+查看 ssl 版本：
+
+For TLS 1.2:
+
+`openssl s_client -connect www.google.com:443 -tls1_2`
+
+For TLS 1.1:
+
+`openssl s_client -connect www.google.com:443 -tls1_1`
+
+For TLS 1:
+
+`openssl s_client -connect www.google.com:443 -tls1`
+
+或者使用 nmap：`nmap --script ssl-enum-ciphers -p 443 www.google.com`
+
+参考资料：<https://stackoverflow.com/questions/40557031/command-prompt-to-check-tls-version-required-by-a-host>
         
