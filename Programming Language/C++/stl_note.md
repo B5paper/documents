@@ -148,7 +148,44 @@ deque 也支持随机访问。其原理是用一个中控器记录各小段数�
 
     同理，`equal_to`函数也可以这样写。
 
+## list
 
+Ref: <https://www.geeksforgeeks.org/list-cpp-stl/>
+
+`list`是一个双向链表。
+
+Examples:
+
+```cpp
+#include <list>
+using namespace std;
+
+void show_list(list<int> &lst)
+{
+    for (list<int>::iterator it = lst.begin(); it != lst.end(); ++it)  // 也可以使用 auto &num: lst
+    {
+        cout << *it << ", ";
+    }
+    cout << endl;
+}
+
+int main()
+{
+    list<int> lst({1, 3, 2});  // 1, 3, 2
+    lst.push_front(4);  // 4, 1, 3, 2
+    lst.push_back(5);  // 4, 1, 3, 2, 5
+    lst.front();  // 4
+    lst.back();  // 5
+    lst.pop_front();  // 1, 3, 2, 5
+    lst.pop_back();  // 1, 3, 2
+    lst.reverse();  // 2, 3, 1
+    lst.insert(++lst.begin(), 4);  // 2, 4, 3, 1
+    lst.remove(2);  // 4, 3, 1
+    lst.sort();  // 1, 3, 4
+    show_list(lst);
+    return 0;
+}
+```
 
 ## algorithm
 

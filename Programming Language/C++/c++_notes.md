@@ -63,7 +63,7 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
 
 1. 如果只初始化了几个值，那么剩下的数据似乎会被自动初始化为 0：
 
-    ```c++
+    ```cpp
     int main()
     {
         int arr[5] = {1, 2};  // {1, 2, 0, 0, 0}
@@ -71,13 +71,15 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
     }
     ```
 
+    （好像并不是这样。。如果要证明它自动初始化为 0，必须加上“如果不初始化几个值，那么其余的值不会被初始化”的证明。）
+
 ## 函数
 
 **有关引用**
 
 1. 不要返回局部变量的引用
 
-    ```c++
+    ```cpp
     int& test()
     {
         int a = 3;
@@ -95,7 +97,7 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
 
 1. 如果局部变量是静态的，那么就可以返回引用，甚至可以修改静态变量
 
-    ```c++
+    ```cpp
     int& test()
     {
         static int a = 3;
@@ -120,7 +122,7 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
 
 占位参数：
 
-```c++
+```cpp
 int test(int a, int)
 {
     return 0;
@@ -146,7 +148,7 @@ int main()
 
 1. `const`可以作为不同的类型吗？
 
-    ```c++
+    ```cpp
     void test(int a)
     {
         cout << "without const" << endl;
@@ -211,7 +213,7 @@ int main()
 
 `struct`:
 
-```c++
+```cpp
 struct STRU
 {
     int val;
@@ -231,7 +233,7 @@ int main()
 
 **构造函数**
 
-```c++
+```cpp
 class A
 {
     public:
@@ -268,7 +270,7 @@ int main()
 
 **拷贝构造函数**
 
-```c++
+```cpp
 class A
 {
     A(const A &obj)
@@ -288,7 +290,7 @@ int main()
 
 不要用拷贝构造函数初始化一个匿名对象，编译器会认为它是一个对象的声明：
 
-```c++
+```cpp
 A a;
 A(a);  // equals A a;
 ```
@@ -297,7 +299,7 @@ A(a);  // equals A a;
 
 1. 用已存在的对象初始化另一个对象
 
-    ```c++
+    ```cpp
     A a;
     A b(a);
     A b = a;
@@ -305,7 +307,7 @@ A(a);  // equals A a;
 
 1. 函数按值传递参数
 
-    ```c++
+    ```cpp
     int func(A a) {}
     int main()
     {
@@ -336,7 +338,7 @@ C++ 为一个类默认提供 4 个函数：
 
 1. 静态成员变量在类内声明，在类外初始化。
 
-    ```c++
+    ```cpp
     class MyClass
     {
         public:

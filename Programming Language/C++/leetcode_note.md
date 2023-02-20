@@ -8212,6 +8212,140 @@ public:
 
 1. 
 
+### 轮转数组
+
+给定一个整数数组 nums，将数组中的元素向右轮转 k 个位置，其中 k 是非负数。
+
+ 
+
+示例 1:
+
+输入: nums = [1,2,3,4,5,6,7], k = 3
+输出: [5,6,7,1,2,3,4]
+解释:
+向右轮转 1 步: [7,1,2,3,4,5,6]
+向右轮转 2 步: [6,7,1,2,3,4,5]
+向右轮转 3 步: [5,6,7,1,2,3,4]
+示例 2:
+
+输入：nums = [-1,-100,3,99], k = 2
+输出：[3,99,-1,-100]
+解释: 
+向右轮转 1 步: [99,-1,-100,3]
+向右轮转 2 步: [3,99,-1,-100]
+ 
+
+提示：
+
+1 <= nums.length <= 105
+-231 <= nums[i] <= 231 - 1
+0 <= k <= 105
+ 
+代码：
+
+1. 复制一遍数组，然后截取中间一段
+
+    ```cpp
+    class Solution {
+    public:
+        void rotate(vector<int>& nums, int k) {
+            k = k % nums.size();
+            int N = nums.size();
+            nums.resize(nums.size() * 2);
+            nums.insert(nums.begin()+N, nums.begin(), nums.begin()+N);
+            int i = 0, j = N - k;
+            while (i < N)
+            {
+                nums[i++] = nums[j++];
+            }
+            nums.resize(N);
+        }
+    };
+    ```
+
+    对比下答案里给的解法：
+
+    ```cpp
+    class Solution {
+    public:
+        void rotate(vector<int>& nums, int k) {
+            int n = nums.size();
+            vector<int> newArr(n);
+            for (int i = 0; i < n; ++i) {
+                newArr[(i + k) % n] = nums[i];  // 似乎环状的算法都会用到取模
+            }
+            nums.assign(newArr.begin(), newArr.end());
+        }
+    };
+    ```
+
+1. 三次翻转数组
+
+    很简洁，不知道怎么想出来的。
+
+    ```cpp
+    class Solution {
+    public:
+        void rotate(vector<int>& nums, int k) {
+            k = k % nums.size();
+            reverse(nums.begin(), nums.end());
+            reverse(nums.begin(), nums.begin() + k);
+            reverse(nums.begin() + k, nums.end());
+        }
+    };
+    ``` 
+
+1. 自己写的。。。不知道啥算法
+
+    ```cpp
+    class Solution {
+    public:
+        void rotate(vector<int>& nums, int k) {
+            if (k == 0) return;
+            int count = 0, pos = 0, start_pos = 0;
+            int temp1 = nums[0], temp2;
+            while (count < nums.size())
+            {
+                pos = (pos + k) % nums.size();
+                temp2 = nums[pos];
+                nums[pos] = temp1;
+                temp1 = temp2;
+                ++count;
+
+                if (pos == start_pos)
+                {
+                    start_pos++;
+                    if (start_pos >= nums.size()) return;
+                    pos = start_pos;
+                    temp1 = nums[pos];
+                }
+            }
+        }
+    };
+    ```
+
+    答案里的环状替换：
+
+    ```cpp
+    class Solution {
+    public:
+        void rotate(vector<int>& nums, int k) {
+            int n = nums.size();
+            k = k % n;
+            int count = gcd(k, n);
+            for (int start = 0; start < count; ++start) {
+                int current = start;
+                int prev = nums[start];
+                do {
+                    int next = (current + k) % n;
+                    swap(nums[next], prev);
+                    current = next;
+                } while (start != current);
+            }
+        }
+    };
+    ```
+
 ## 链表
 
 ### 从尾到头打印链表
@@ -25260,7 +25394,13 @@ public:
 
 代码：
 
-双指针，没啥好说的。二分查找的效率还不如双指针。
+可以用双指针，也可以用二分查找。不过推荐双指针，因为实现简单。
+
+如果要在有序数组中找到和为定值的两个数，那么可以用双指针。为什么双指针一定能找到解？我们可以做这样的证明：
+
+假设有这样的数组：`[a ... b ... c, d ... e ... f]`，我们要找的解为`[b, e]`。双指针分别从`a`，`f`开始向内遍历，总会有一侧指针先到达`b`或者先到达`e`。我们假设右侧指针先到达`e`，此时左侧指针一定在`b`的左边（假如左侧指针在`b`上，或到了`b`的右边，那么就和我们的假设相违背了。），此时左侧指针指向的元素与右侧指针指向的元素之和是小于 target 的。根据算法，此时只能继续移动左侧指针，直到和等于 target。因此双指针法一定会找到正确的两个数。
+
+（我只能证明双指针是正确的，但没办法知道它是怎么通过线性和非线性思维被想出来的）
 
 ```c++
 class Solution {
@@ -25274,7 +25414,6 @@ public:
             if (sum == target) return vector<int>({l+1, r+1});
             else if (sum > target) --r;
             else ++l;
-            
         }
         return vector<int>();
     }
