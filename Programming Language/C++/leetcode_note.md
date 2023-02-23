@@ -1618,7 +1618,7 @@ public:
 };
 ```
 
-#### 连续子数组的最大和
+#### 连续子数组的最大和（最大子数组和）
 
 输入一个整型数组，数组中的一个或连续多个整数组成一个子数组。求所有子数组的和的最大值。
 
@@ -1725,6 +1725,68 @@ $$
     感觉这个版本才抓到了问题的精髓。如果发现某段数组的和小于零，那么这段数组贡献到结果`res`中去是负收益，我们直接把这段数组抛弃掉就好，然后重新开始。否则我们直接比较结果，取较大的就好了。
 
     为什么要抛弃掉某段和为负的数组？假如没有这段数组，后面如果涨得话会涨得更猛。
+
+    或者可以这样想：假如我们前面已经准备了一段数组，对于新来的一个数，如果旧数组+新数还没有新数本身大，那我就可以认为旧数组还不如这一个新数，可以把旧数组舍弃掉了。（假设数组是`[..., a, b, c, d, ...]`，现在我们发现`c`是符合要求的新元素，这时候有没有可能从`c`开始向前取元素组成新数组？假如我们取了`[b, c]`，那么`b`不符合我们之前的要求，因此`[..., a]`的和大于等于 0，又因为`c`是符合要求的，所以`[..., a, b]`的和一定是小于 0 的，因此`b`一定小于 0，因此`b`对`[b, c]`的贡献是负值，可以删掉。如果取`[..., b, c]`作为新数组，我们可以把`[..., b]`看作`b'`，一定小于 0。可以验证下这个结论）
+
+1. 前缀和（超时）
+
+    做这道题的时候，我的第一反应是前槡和，可是超时了。
+
+    ```cpp
+    class Solution {
+    public:
+        int maxSubArray(vector<int>& nums) {
+            vector<int> sum1(nums.size());
+            sum1[0] = nums[0];
+            for (int i = 1; i < nums.size(); ++i)
+            {
+                sum1[i] = sum1[i-1] + nums[i];
+            }
+            int ans = INT32_MIN;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                for (int j = i; j < nums.size(); ++j)
+                {
+                    ans = max(ans, sum1[j] - sum1[i] + nums[i]);
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 官方答案还给了个线段树，不懂，有空了看看
+
+    ```cpp
+    class Solution {
+    public:
+        struct Status {
+            int lSum, rSum, mSum, iSum;
+        };
+
+        Status pushUp(Status l, Status r) {
+            int iSum = l.iSum + r.iSum;
+            int lSum = max(l.lSum, l.iSum + r.lSum);
+            int rSum = max(r.rSum, r.iSum + l.rSum);
+            int mSum = max(max(l.mSum, r.mSum), l.rSum + r.lSum);
+            return (Status) {lSum, rSum, mSum, iSum};
+        };
+
+        Status get(vector<int> &a, int l, int r) {
+            if (l == r) {
+                return (Status) {a[l], a[l], a[l], a[l]};
+            }
+            int m = (l + r) >> 1;
+            Status lSub = get(a, l, m);
+            Status rSub = get(a, m + 1, r);
+            return pushUp(lSub, rSub);
+        }
+
+        int maxSubArray(vector<int>& nums) {
+            return get(nums, 0, nums.size() - 1).mSum;
+        }
+    };
+    ```
 
 #### 最长递增子序列
 
@@ -6639,6 +6701,8 @@ public:
 
 ### 合并两个有序数组
 
+tag: 数组，双指针
+
 给你两个有序整数数组 nums1 和 nums2，请你将 nums2 合并到 nums1 中，使 nums1 成为一个有序数组。
 
 初始化 nums1 和 nums2 的元素数量分别为 m 和 n 。你可以假设 nums1 的空间大小等于 m + n，这样它就有足够的空间保存来自 nums2 的元素。
@@ -6736,7 +6800,7 @@ public:
             vector<int> res;
             for (auto &num: nums2)
             {
-                if (m[num])
+                if (m[num])  // 这种应该算利用了语法特性了吧，不喜欢
                 {
                     res.emplace_back(num);
                     --m[num];
@@ -6769,6 +6833,35 @@ public:
                 }
             }
             return res;
+        }
+    };
+    ```
+
+1. 双哈希表（速度好像还行，没有慢到不能接受）
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> intersect(vector<int>& nums1, vector<int>& nums2) {
+            vector<int> ans;
+            unordered_map<int, int> m1, m2;
+            for (int &num: nums1)
+                m1[num] += 1;
+            for (int &num: nums2)
+                m2[num] += 1;
+            for (auto &p: m1)
+            {
+                int key = p.first;
+                int val = p.second;
+                if (m2.find(key) != m2.end())
+                {
+                    for (int i = min(val, m2[key]); i > 0; --i)
+                    {
+                        ans.push_back(key);
+                    }
+                }
+            }
+            return ans;
         }
     };
     ```
@@ -8604,7 +8697,6 @@ public:
                 return NULL;
             else
                 return nums[nums.size() - k];
-            
         }
     };
     ```
@@ -8757,6 +8849,41 @@ public:
     };
     ```
 
+1. 自己写的，自从对循环的功能开始解耦，就好懂多了
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode *detectCycle(ListNode *head) {
+            ListNode *slow = head, *fast = head;
+            while (fast && fast->next)
+            {
+                slow = slow->next;
+                fast = fast->next->next;
+                if (slow == fast)  // 我们让外循环只负责往前走指针
+                {
+                    fast = head;
+                    while (fast != slow)  // 让内循环负责返回正确答案。这两层循环互不干扰，代码就很好懂了
+                    {
+                        fast = fast->next;
+                        slow = slow->next;
+                    }
+                    return fast;
+                }
+            }
+            return nullptr;
+        }
+    };
+    ```
+
 ### 环形链表
 
 给定一个链表，判断链表中是否有环。
@@ -8817,7 +8944,7 @@ public:
     class Solution {
     public:
         ListNode* reverseList(ListNode* head) {
-            ListNode *prev = nullptr;
+            ListNode *prev = nullptr;  // 这个很重要
             ListNode *pnode = head;
             ListNode *next;
             while (pnode)
@@ -8983,6 +9110,46 @@ B:     b1 → b2 → b3
                 else pnode_b = headA;
             }
             return pnode_a;
+        }
+    };
+    ```
+
+    后来又写的，把`while`完全展开，好理解多了：
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+            if (!headA || !headB) return nullptr;
+            ListNode *p1 = headA, *p2 = headB;
+            while (p1 && p2)
+            {
+                p1 = p1->next;
+                p2 = p2->next;
+            }
+            if (!p1) p1 = headB;
+            if (!p2) p2 = headA;
+            while (p1 && p2)
+            {
+                p1 = p1->next;
+                p2 = p2->next;
+            }
+            if (!p1) p1 = headB;
+            if (!p2) p2 = headA;
+            while (p1 && p2 && p1 != p2)
+            {
+                p1 = p1->next;
+                p2 = p2->next;
+            }
+            return p1;
         }
     };
     ```
@@ -9220,7 +9387,7 @@ B:     b1 → b2 → b3
 
 代码：
 
-1. 自己写的，用两个指针
+1. 自己写的，用两个指针 + 哈希表
 
     ```c++
     /**
@@ -9255,6 +9422,79 @@ B:     b1 → b2 → b3
         }
     };
     ```
+
+    自己后来又写的：
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* removeDuplicateNodes(ListNode* head) {
+            if (!head) return head;
+            ListNode *p = head;
+            unordered_set<int> s;
+            s.insert(head->val);
+            while (p)
+            {
+                if (p->next)
+                {
+                    if (s.find(p->next->val) != s.end())
+                    {
+                        p->next = p->next->next;
+                        continue;  // 这个不能少；这条语句似乎涉及到 while 里面套 while 的问题。可能会出现很多个连续的重复项待删除，理论上应该在这里再写个 while()，把所有的重复项删掉，但是我们通过 continue 借用了外层的 while。这样内部的逻辑就稍微复杂了点。是否有关于这方面的设计指导呢？
+                    }
+                    else
+                        s.insert(p->next->val);
+                }
+                p = p->next;
+            }
+            return head;
+        }
+    };
+    ```
+
+    自己写的双指针：
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* removeDuplicateNodes(ListNode* head) {
+            if (!head) return head;
+            ListNode *p1 = head, *p2;
+            int val;
+            while (p1)
+            {
+                val = p1->val;
+                p2 = p1;
+                while (p2 && p2->next)  // 为什么这里有 p2，让我们看 p2 = p2->next 这一行
+                {
+                    while (p2->next && p2->next->val == val)  // p2 只有在重复节点都删完的情况下，才会移动到下一个节点
+                        p2->next = p2->next->next;
+                    p2 = p2->next;  // 虽然 while (p2->next) 保证了在进入循环时，p2 一定不是最后一个节点，但是经过上一句 p2->next = p2->next->next; 代码后，p2 就有可能变成最后一个节点
+                }
+                p1 = p1->next;
+            }
+            return head;
+        }
+    };
+    ```
+
+    我觉得我比官方答案写得好，三重循环各自的用途，写得明明白白。
 
 1. 官方答案 1，用一个指针
 
@@ -10631,6 +10871,94 @@ L0 → Ln → L1 → Ln - 1 → L2 → Ln - 2 → …
     };
     ```
 
+### 链表排序
+
+给定链表的头结点 head ，请将其按 升序 排列并返回 排序后的链表 。
+
+ 
+
+示例 1：
+
+
+
+输入：head = [4,2,1,3]
+输出：[1,2,3,4]
+示例 2：
+
+
+
+输入：head = [-1,5,3,4,0]
+输出：[-1,0,3,4,5]
+示例 3：
+
+输入：head = []
+输出：[]
+ 
+
+提示：
+
+链表中节点的数目在范围 [0, 5 * 104] 内
+-105 <= Node.val <= 105
+ 
+
+进阶：你可以在 O(n log n) 时间复杂度和常数级空间复杂度下，对链表进行排序吗？
+
+代码：
+
+1. 自己写的冒泡排序，超时了
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode* sortList(ListNode* head) {
+            int len = 0;
+            ListNode *cur = head;
+            ListNode *dummy_head = new ListNode(-1, head);
+            ListNode *prev = dummy_head;
+            ListNode *next;
+            while (cur)
+            {
+                ++len;
+                cur = cur->next;
+            }
+            for (int i = 0; i < len - 1; ++i)
+            {
+                prev = dummy_head;
+                cur = dummy_head->next;
+                for (int j = 0; j < len - i - 1; ++j)
+                {
+                    if (cur->next && cur->val > cur->next->val)
+                    {
+                        next = cur->next;
+                        cur->next = next->next;
+                        next->next = cur;
+                        prev->next = next;
+                        prev = next;
+                    }
+                    else
+                    {
+                        prev = cur;
+                        cur = cur->next;
+                    }
+                }
+            }
+            return dummy_head->next;
+        }
+    };
+    ```
+
+1. 这道题用归并排序比较简单
+
 ## 树
 
 ### 遍历
@@ -10719,6 +11047,14 @@ L0 → Ln → L1 → Ln - 1 → L2 → Ln - 2 → …
     ```
 
 1. 栈（深度优先）
+
+    我觉得这个不应该叫做深度优先，其实树的先序遍历本身就是深度优先。这种方法只不过是只存储左节点，不存储右节点，从而节约了一半左右的内存。
+
+    下次可以将这个方法改名为“栈（节约内存版）”。
+
+    我觉得这个版本才是真正的栈的做法。因为我们的需求是记录自己在一棵树中的路径，记录一个 path。这个方法刚好满足了这个需求。而上面的“栈（广度优先）”，只是取巧，把右节点也存进去了，从而简化了代码而已。这种方法并不是通用的。
+
+    比如对于中序遍历，如果我们先存右节点，再处理当前节点，再存左节点，会遇到行为与预期不符的情况，因为我们还是先处理当前节点了。我们需要做的是先找到一条 path，然后边退边处理。
 
     ```c++
     /**
@@ -10863,7 +11199,7 @@ L0 → Ln → L1 → Ln - 1 → L2 → Ln - 2 → …
             if (!root) return res;
             stack<TreeNode*> s;  // 用来记录左路径
             TreeNode *r = root;  // 注意一开始 s 中不把 root 入栈，反而把 r 赋值为根节点
-            while (r || !s.empty())
+            while (r || !s.empty())  // r 存在表示开始遍历右子树，s 不为空表示路径还没回退完
             {
                 // 如果这里写成下面的形式，那么根节点或右子树的根节点就不会被压栈
                 // while (r->left)
@@ -19748,6 +20084,37 @@ numMatrix.sumRegion(1, 2, 2, 4); // return 12 (蓝色矩形框的元素总和)
     };
     ```
 
+    这个写法虽然简单，但是我仍不明白为什么时候才需要左右各加一个做对齐。
+
+1. 自己写的
+
+    ```cpp
+    class Solution {
+    public:
+        int pivotIndex(vector<int>& nums) {
+            int n = nums.size();
+            vector<int> presum_l(nums.size()), presum_r(nums.size());
+            presum_l[0] = nums[0];
+            presum_r.back() = nums.back();
+            for (int i = 1; i < n; ++i)
+            {
+                presum_l[i] = presum_l[i-1] + nums[i];
+                presum_r[n-1-i] = presum_r[n-i] + nums[n-1-i];
+            }
+            if (presum_r[1] == 0)  // 这里的 if，下面的 for，以及后面的 if，必须符合这个顺序才行，不然不符合题目要求的从左到右返回坐标
+                return 0;
+            for (int i = 1; i < n-1; ++i)
+            {
+                if (presum_l[i-1] == presum_r[i+1])
+                    return i;
+            }
+            if (presum_l[n-2] == 0)
+                return n-1;
+            return -1;
+        }
+    };
+    ```
+
 1. 官方给的答案，更简单一点
 
     ```c++
@@ -21493,6 +21860,8 @@ dig = (n - count) % digit;
 
 另外一种解释，也挺好的：假如计划在第 i 天卖出股票，那么最大利润的差值一定是在[0, i-1] 之间选最低点买入；所以遍历数组，依次求每个卖出时机的的最大差值，再从中取最大值。
 
+还有一种解释：如果我们发现有一天股票亏了，那么即使我们在当天买入，最坏情况也只是 0，不会亏。所以不如从零再来，更何况之前的最大利润都已经记录过了。
+
 代码：
 
 1. 比较简洁的标准答案
@@ -21509,6 +21878,26 @@ dig = (n - count) % digit;
                 if (price < low) low = price;
             }
             return res;
+        }
+    };
+    ```
+
+    自己写出来的：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxProfit(vector<int>& prices) {
+            int ans = 0;
+            int start = prices[0];
+            for (int i = 1; i < prices.size(); ++i)
+            {
+                if (prices[i] - start < 0)
+                    start = prices[i];
+                else
+                    ans = max(ans, prices[i] - start);
+            }
+            return ans;
         }
     };
     ```
@@ -24396,7 +24785,7 @@ void shell_sort(vector<int> &nums)
     };
     ```
 
-### 快速排序
+### Quicksort（快速排序）
 
 快速排序的思想是分治，找到一个数`x`，通过一些操作，使得`x`左边的数都小于等于`x`，`x`右边的数都大于等于`x`。然后再对`x`左边的数执行同样的操作，对`x`右边的数也执行同样的操作。直到需要操作的数只剩一个，就可以结束递归了。
 
@@ -25567,6 +25956,8 @@ public:
         }
     };
     ```
+
+    这道题虽然简单，但是其中的双重循环，已经有复杂循环的雏形了。如果把内层的`while()`改成`if`，然后借用外层`while`进行循环，又该怎么写呢？
 
 #### 链表的中间节点
 
