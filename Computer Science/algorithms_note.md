@@ -125,49 +125,131 @@ merge sort 的灵感灵源是拿两副已经排好序的扑克牌，每次只比
 
 然后对于合并的过程，我们只需要创建一个临时数组，把两摞按大小合并进去就可以了，最后再把这个临时数组复制到原数组上。
 
-```c++
-void merge(vector<int> &nums, int l, int r)
+```cpp
+void merge(vector<int> &nums, int l, int m, int r)
 {
-    vector<int> temp(r - l + 1);
-    int m = l + (r - l) / 2;
     int i = l, j = m + 1;
-    int k = 0;
+    int p = 0;
+    vector<int> temp(r - l + 1);
     while (i <= m && j <= r)
     {
         if (nums[i] < nums[j])
-            temp[k++] = nums[i++];
+            temp[p++] = nums[i++];
         else
-            temp[k++] = nums[j++];
+            temp[p++] = nums[j++];
     }
     while (i <= m)
-        temp[k++] = nums[i++];
+        temp[p++] = nums[i++];
     while (j <= r)
-        temp[k++] = nums[j++];
-    k = 0;
+        temp[p++] = nums[j++];
+    p = 0;
     i = l;
     while (i <= r)
-        nums[i++] = temp[k++];
+        nums[i++] = temp[p++];
 }
 
-void merge_sort_helper(vector<int> &nums, int l, int r)
+void partition(vector<int> &nums, int l, int r)
 {
-    if (l >= r)
+    if (r - l + 1 <= 1)
         return;
+    int n = nums.size();
     int m = l + (r - l) / 2;
-    merge_sort_helper(nums, l, m);  // 这个看起来像是一棵二叉树的先序遍历。既然先序遍历可以写，那么其他类型的遍历可以写吗？
-    merge_sort_helper(nums, m+1, r);
-    merge(nums, l, r);  // merge 的过程，可以把两个子节点看作两副牌，然后父节点看作临时数组
+    partition(nums, l, m);
+    partition(nums, m+1, r);
+    merge(nums, l, m, r);
 }
 
 void merge_sort(vector<int> &nums)
 {
-    merge_sort_helper(nums, 0, nums.size() - 1);
+    partition(nums, 0, nums.size() - 1);
 }
 ```
 
-问题：
+归并排序 merge sort，其实本质上是树的后序遍历。即我们想象手上有两副牌，分别代表一个父节点的两个子节点，我们必须等两个子节点都被处理好排好序后，才能处理父节点（即 merge 操作）。
 
-`merge_sort_helper()`函数的写法是如何推导出来的？这个函数有没有其他的写法？
+`partition()`函数是怎么被构建出来的呢？
+
+首先，我们知道拿到一副牌后，要先把它分成两半，然后对这两半进行递归处理。为了把牌分成两半，我们总得知道中间牌的索引吧。为了知道中间牌的索引，我们总得知道当前手中牌的数量吧。因为我们每次都是简单地从中间切牌，所以实际上拿到的牌相当于一个“连续子数组”。因为它是连续子数组，所以我们只需要给出区间左端点的索引和右端点的索引就可以了。以上这些线索引导我们：必须创建一个变量`m`以记录中间牌索引，必须给函数传递`left, right`参数，以确定牌的范围。我们可以写出如下代码：
+
+```cpp
+void partition(vector<int> &nums, int l, int r)
+{
+    int m = l + (r - l) / 2;
+    partition(nums, l, m);
+    partition(nums, m+1, r);
+}
+```
+
+接下来我们判断递归的结束条件：当手里没有牌，或只剩一张牌时，就不需要再分了。这时候我们需要回退到父节点合并手中排序好的两副牌。在合并时，我们总得知道手里都是哪两副牌吧，这个线索告诉我们，`merge()`函数一定接收 3 个索引参数，用来定位两副牌。这些线索引导我们写出如下代码：
+
+```cpp
+void merge(vector<int> &nums, int l, int m, int r)
+{
+
+}
+
+void partition(vector<int> &nums, int l, int r)
+{
+    if (r - l + 1 <= 1)
+        return;
+    int m = l + (r - l) / 2;
+    partition(nums, l, m);
+    partition(nums, m+1, r);
+    merge(nums, l, m, r);
+}
+```
+
+这个写法是很明显的二叉树的后序遍历，即先处理左节点和右节点，最后再处理本节点。
+
+接下来我们继续完善`merge()`函数。在 merge 函数中，我们已经有了数组`[a, ..., b, c, ..., d]`其中`[a, ..., b]`是第一副牌，`[c, ..., d]`是第二幅牌，我们需要把这两个有序子数组合并成一个大的有序数组。可以原地修改吗？不可以，因为大数组没有额外的空间，不能倒序双指针。我们可以新建个数组用于缓存结果，等排完序后，再把拷贝回去；也可以把`[c, ..., d]`复制到临时数组中，然后用倒序双指针。
+
+方案一：使用完整的临时数组
+
+```cpp
+void merge(vector<int> &nums, int l, int m, int r)
+{
+    vector<int> temp(r - l + 1);
+    int i = l, j = m + 1;
+    int p = 0;
+    while (i <= m && j <= r)  // 双指针一起向前走
+    {
+        if (nums[i] < nums[j])
+            temp[p++] = nums[i++];
+        else
+            temp[p++] = nums[j++];
+    }
+    while (i <= m)  // 双指针一个走到头，另一个还没走完，后面跟上双 while 来处理这种情况，是常见的写法
+        temp[p++] = nums[i++];
+    while (j <= r)
+        temp[p++] = nums[j++];
+    p = 0;
+    i = l;
+    while (i <= r)  // 最后再把临时数组中的排好序的结果，放回到原数组中
+        nums[i++] = temp[p++];
+}
+```
+
+方案二：只缓存数组二，然后用倒序双指针
+
+```cpp
+void merge(vector<int> &nums, int l, int m, int r)
+{
+    vector<int> temp(nums.begin()+m+1, nums.end());
+    int i = m, j = r - (m+1) + 1 - 1;  // 其中，r - (m+1) + 1 指的是 temp 的长度，-1 表示根据长度计算最后一个元素的索引
+    int p = r;
+    while (i > -1 && j > -1)
+    {
+        if (temp[j] >= nums[i])
+            nums[p--] = temp[j--];
+        else
+            nums[p--] = nums[i--];
+    }
+    while (j > -1)  // 如果 i > -1，那么相当于大数组的指针没走完，这种情况就不需要管了
+        nums[p--] = temp[j--];
+}
+```
+
+可以看到倒序双指针的效率要高于方案一。
 
 ### Quick sort
 
@@ -631,6 +713,292 @@ void insertion_sort(vector<int> &nums)
 
 现在我们的问题来了：为什么在循环内部进行插入的代码需要单独处理边界情况，而在循环外部进行插入的代码不需要处理边界？为什么第二种情况的循环变量一定要写在循环外面？对于`for`和`while`，我们该如何才能快速选择正确的那个？有没有可能先`--j`，再执行其他语句？
 
+### 一道滑动窗口题的循环
+
+题目：字符串中的变位词
+
+给定两个字符串 s1 和 s2，写一个函数来判断 s2 是否包含 s1 的某个变位词。
+
+换句话说，第一个字符串的排列之一是第二个字符串的 子串 。
+
+分析：
+
+看到这道题，我们很快就能想到滑动窗口+数组计数。首先把滑动窗口扩大到`s1`的长度，然后不断把整个窗口在`s2`中向右移动，每移动一格，都将左侧指针指向的字符的计数减一，让右指针指向的新加进来的字符的计数加一。如果我们可以判断滑动窗口中的字符的计数与`s1`正好相等，那么就可以返回 true 了。
+
+由此思路我们可以写出如下的代码：
+
+```cpp
+class Solution {
+public:
+    bool checkInclusion(string s1, string s2) {
+        if (s1.size() > s2.size()) return false;
+        int left = 0, right = 0;
+        vector<int> count(26, 0);
+        int n = s1.size();
+        for (int i = 0; i < n; ++i)
+            --count[s1[i] - 'a'];
+        while (right < n)  // 扩充滑动窗口的长度，直到元素够 n 个为止
+            ++count[s2[right++] - 'a'];
+        bool contains;
+        while (right < s2.size())
+        {
+            contains = true;
+            for (int i = 0; i < 26; ++i)
+            {
+                if (count[i] != 0)
+                {
+                    contains = false;
+                    break;
+                }
+            }
+            if (contains)
+                return true;
+            ++count[s2[right++] - 'a'];  // 向右移动滑动窗口，
+            --count[s2[left++] - 'a'];
+        }
+        return false;
+    }
+};
+```
+
+但是这段代码是有问题的。首先，假设我们的`s2`是`[a, ..., b, c, d, ..., e, f]`，其中`[a, ..., b]`的长度恰好是`s1`的长度。在执行完
+
+```cpp
+while (right < n)
+    ++count[s2[right++] - 'a'];
+```
+
+这两行代码后，`right`会指向数组中的`c`，而我们统计的滑动窗口，实际上只有`[a, ..., b]`而已。现在我们考虑最后的边界条件，当`right`指向`f`时，滑动窗口为`[..., e]`，进入`while (right < s2.size())`循环，在循环的最后，滑动窗口变成`[..., f]`，`right++`指向数组之外，此时已经不满足循环的条件，因此退出循环。可是这样一来，最后一种情况`[..., f]`我们就没有判断。
+
+我们可以额外对最后一种情况单独处理：
+
+```cpp
+class Solution {
+public:
+    bool checkInclusion(string s1, string s2) {
+        if (s1.size() > s2.size()) return false;
+        int left = 0, right = 0;
+        vector<int> count(26, 0);
+        int n = s1.size();
+        for (int i = 0; i < n; ++i)
+            --count[s1[i] - 'a'];
+        while (right < n)
+            ++count[s2[right++] - 'a'];
+        bool contains;
+        while (right < s2.size())
+        {
+            contains = true;
+            for (int i = 0; i < 26; ++i)
+            {
+                if (count[i] != 0)
+                {
+                    contains = false;
+                    break;
+                }
+            }
+            if (contains)
+                return true;
+            ++count[s2[right++] - 'a'];
+            --count[s2[left++] - 'a'];
+        }
+        contains = true;
+        for (int i = 0; i < 26; ++i)
+        {
+            if (count[i] != 0)
+            {
+                contains = false;
+                break;
+            }
+        }
+        if (contains)
+            return true;
+        return false;
+    }
+};
+```
+
+这样就没问题了。可是这样略显繁琐，为什么我们没有提前判断出来最后的边界会有问题？有没有什么提前判断的方法？对于现在这种额外处理的办法，有没有什么更简洁的办法呢？
+
+我们首先考虑把`while`的条件改成`while (right <= s2.size())`。这样确实可以进入循环，没问题，但是在循环时，`right`就已经指向数组外面了，因此循环最后的`s2[right++]`一定会数组越界。
+
+为了不让`right`在循环内越界，我们考虑两种方案，一种是把`right`的递增操作放到`while`循环的前一部分，另一种是将`right`定义为滑动窗口的最后一个元素的索引，而不是最后一个元素的下一个位置。
+
+对于方案一，我们可以先写出
+
+```cpp
+class Solution {
+public:
+    bool checkInclusion(string s1, string s2) {
+        if (s1.size() > s2.size()) return false;
+        int left = 0, right = 0;
+        vector<int> count(26, 0);
+        int n = s1.size();
+        for (int i = 0; i < n; ++i)
+            --count[s1[i] - 'a'];
+        while (right < n)
+            ++count[s2[right++] - 'a'];
+        bool contains;
+        while (right < s2.size())
+        {
+            ++count[s2[right++] - 'a'];
+            --count[s2[left++] - 'a'];
+            contains = true;
+            for (int i = 0; i < 26; ++i)
+            {
+                if (count[i] != 0)
+                {
+                    contains = false;
+                    break;
+                }
+            }
+            if (contains)
+                return true;
+        }
+        return false;
+    }
+};
+```
+
+这样也是有问题的。假设我们的`s2`是`[a, ..., b, c, d, ..., e, f]`，其中`[a, ..., b]`的长度恰好是`s1`的长度。在进入循环时，`right`实际指向`c`，所以
+
+```cpp
+++count[s2[right++] - 'a'];
+```
+
+这行代码实际修改的是`[a, ..., c]`的内容。然而我们对`[a, ..., b]`是否符合情况的判断，在后面才进行。这样就把`[a, ..., b]`这种情况跳过了。
+
+如果我们尝试把`right`定义为最后一个元素的索引，则有
+
+```cpp
+class Solution {
+public:
+    bool checkInclusion(string s1, string s2) {
+        if (s1.size() > s2.size()) return false;
+        int left = 0, right = 0;
+        vector<int> count(26, 0);
+        int n = s1.size();
+        for (int i = 0; i < n; ++i)
+            --count[s1[i] - 'a'];
+        while (right < n)
+            ++count[s2[right++] - 'a'];
+        bool contains;
+        --right;
+        while (right < s2.size())
+        {
+            contains = true;
+            for (int i = 0; i < 26; ++i)
+            {
+                if (count[i] != 0)
+                {
+                    contains = false;
+                    break;
+                }
+            }
+            if (contains)
+                return true;
+            ++count[s2[++right] - 'a'];
+            --count[s2[left++] - 'a'];
+        }
+        return false;
+    }
+};
+```
+
+因为在前面使用`--right`变成了索引，所以后面使用
+
+```cpp
+++count[s2[++right] - 'a'];
+```
+
+先递增，再使用`right`。我们考虑最后一种情况，当循环结束时，`right`指向`f`。由于满足循环条件，再次进入循环，前面的判断没有问题，可是当再次执行到`s2[++right]`时，先递增，再取数，会导致数组越界。
+
+由此可见，无论如何，都无法简单地使用一个 while 处理完所有情况。我们需要重新思考 while 的几大模块：
+
+1. 初始状态。指在进入循环前各个变量，指针，数组的状态。
+1. 进入循环的条件。指`while()`中的条件语句。当然这个语句也可以作为退出循环的条件。
+1. 状态判定。即`while`中的`if`语句，对当前的数组，变量，指针之类的只做检查，不做改变。
+1. 状态改变。改变循环中的数据状态。
+1. （可选的）预处理与后处理。
+
+对于这道题，我们的问题是：有没有可能不做预处理和后处理，只使用一个`while`解决所有的情况呢？
+
+假如我们遵循先判定状态，再改变状态的模式，即：
+
+```cpp
+// 初始状态
+while ()
+{
+    // 判定状态
+    // 改变状态
+}
+```
+
+那么我们需要保证进入循环时，初始状态即我们要判断的第一组状态，这一点是没问题的。接下来我们需要保证改变状态后，能再次进入循环，并判断最后一组状态。问题就在于，判断完最后一组状态后，我们不再需要改变状态了。
+
+```cpp
+// 把 while 展开：
+
+// 初始状态
+// 判断状态
+// 改变状态
+// 判断状态
+// 改变状态
+// 判断状态
+// ----------------
+// 改变状态  (最后一次循环中，这个模块已经不再被需要了)
+```
+
+在这里，我们可以看到引起冲突的根本原因是，`while`中有两个模块，而我们并不是每次都完整地用到两个模块。由此我们即可得到所有的解决方案：
+
+1. 在改变状态前加上`if`，每次都判断是否需要改变状态
+
+    ```cpp
+    class Solution {
+    public:
+        bool checkInclusion(string s1, string s2) {
+            if (s1.size() > s2.size()) return false;
+            int left = 0, right = 0;
+            vector<int> count(26, 0);
+            int n = s1.size();
+            for (int i = 0; i < n; ++i)
+                --count[s1[i] - 'a'];
+            while (right < n)
+                ++count[s2[right++] - 'a'];
+            bool contains;
+            while (right <= s2.size())
+            {
+                contains = true;
+                for (int i = 0; i < 26; ++i)
+                {
+                    if (count[i] != 0)
+                    {
+                        contains = false;
+                        break;
+                    }
+                }
+                if (contains)
+                    return true;
+                if (right == s2.size())
+                {
+                    ++right;
+                    continue;
+                }
+                ++count[s2[right++] - 'a'];
+                --count[s2[left++] - 'a'];
+            }
+            return false;
+        }
+    };
+    ```
+
+1. 不执行最后一个循环，加入后处理进行状态判断
+
+1. 交换“判断状态”和“改变状态”的位置，在设置初始状态的时候，少写一个循环，在`while`中由改变状态来实现初始状态。
+
+满足我们要求的只有方案 3。但是我们可以在循环中实现状态初始化吗？要想实现初始化，我们必须把`left`放到`-1`的位置，这样又会造成数组越界。
+
+由此我们得出，如果`while`中的状态改变不会造成数组下标越界等问题，那么就无所谓。如果会造成下标越界的问题，那么可以用`if`判断是否改变状态，或额外使用后处理进行状态判断。
+
 ## 尝试与状态改变
 
 有时候我们会遇到这样的情况：先尝试一些运算看看行不行，如果不行的话就不改变状态。如果没问题，那么实际执行运算。
@@ -638,4 +1006,89 @@ void insertion_sort(vector<int> &nums)
 这种问题有两种处理思路，一种是对逻辑进行模拟，然后计算，如果不满足条件就不进入下一个循环或下一层递归；一种是使用递归，直接实际改变状态，然后在下一个函数的入口处检测是否满足递归的退出条件。
 
 这两种方法哪种更好一点呢？
+
+## if 的连锁效应
+
+考虑一个链表找交点问题：
+
+输入两个链表，找出它们的第一个公共结点。
+
+当不存在公共节点时，返回空节点。
+
+分析：
+
+我们常用的算法是双指针：
+
+```cpp
+class Solution {
+public:
+    ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+        if (!headA || !headB) return nullptr;
+        ListNode *p1 = headA, *p2 = headB;
+        while (p1 && p2)
+        {
+            p1 = p1->next;
+            p2 = p2->next;
+        }
+        if (!p1) p1 = headB;
+        if (!p2) p2 = headA;
+        while (p1 && p2)
+        {
+            p1 = p1->next;
+            p2 = p2->next;
+        }
+        if (!p1) p1 = headB;
+        if (!p2) p2 = headA;
+        while (p1 && p2 && p1 != p2)
+        {
+            p1 = p1->next;
+            p2 = p2->next;
+        }
+        return p1;
+    }
+};
+```
+
+其中这两行
+
+```cpp
+if (!p1) p1 = headB;
+if (!p2) p2 = headA;
+```
+
+我们有一个模糊的想法：如果指针`p1`已经走到结尾的`NULL`，那么`p2`一定还在半途中，可不可以用`p2`来判断`p1`的状态呢？比如写成这样：
+
+```cpp
+if (p2) p1 = headB;
+if (p1) p2 = headA;
+```
+
+但是实际上，这样写是有问题的：当`p1`被置为`headB`后，下面一行的`if (p1)`一定是 true，因此`p2 = headA`一定会被执行。
+
+那么稍微改一下是否可以呢：
+
+```cpp
+if (p2) p1 = headB;
+else if (p1) p2 = headA;
+```
+
+这样也不行。首先前面的`while()`保证了`p1`，`p2`至少有一个是`NULL`。如果`p1`是`NULL`，`p2`不是`NULL`，那么`if (p2)`为 true；如果`p1`不是`NULL`，`p2`是`NULL`，那么`else if (p1) `为 true。如果`p1`，`p2`都是`NULL`，那么说明两个指针同时走到结尾，这两个条件都为 false。而我们下一轮循环的理想条件是两个指针至少有一个在链表的开头处，因此如果执意要使用`if (p1), if (p2)`，需要再加一个判断：
+
+```cpp
+if (p2) p1 = headB;
+else if (p1) p2 = headA;
+else  // p1, p2 都为空
+{
+    p1 = headB;
+    p2 = headA;
+}
+```
+
+但是这样看来，代码麻烦了许多，还不如刚开始的方案。
+
+由此我们可以得出结论：如果在一个`if`语句中，`if ()`中的条件只和单一变量`x`有关，`if ()`中执行的代码也只和单一变量`x`相关，那么就没有问题；如果`if ()`的条件和其它变量相关，那么就说明`if`是“耦合”的，我们需要慎重处理。
+
+[这节的标题改成“if 的耦合与解耦”是不是比较好]
+
+
 
