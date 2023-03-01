@@ -105,6 +105,29 @@ main()
 
 ## standard library
 
+### String
+
+* 初始化字符串
+
+    ```c
+    #include <string>
+
+    void *memset(void *s, int c, size_t n);
+    ```
+
+    return value: `s`指向哪，返回的指针就指向哪。
+
+    通常全局变量和静态变量会被自动初始化为 0，而局部变量和`malloc`申请的内存则不会，需要手动初始化。
+
+    Example:
+
+    ```c
+    char buf[10];
+    memset(buf, 0, 10);
+    ```
+
+1. 
+
 ### IO
 
 `<stdio.h>`
