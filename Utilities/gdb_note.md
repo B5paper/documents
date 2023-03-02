@@ -1,5 +1,7 @@
 # Gdb Note
 
+<https://interrupt.memfault.com/blog/advanced-gdb>
+
 * `file <exe_path>`
 
     加载某个程序
@@ -129,3 +131,13 @@
 1. 另外一个参考资料：<https://itecnote.com/tecnote/c-how-to-debug-programs-with-sudo-in-vscode/>
 
 显示很长的字符串：<https://stackoverflow.com/questions/233328/how-do-i-print-the-full-value-of-a-long-string-in-gdb>
+
+## Problem shooting
+
+1. How can I get address info on a structure member?
+
+    <https://stackoverflow.com/questions/33673343/how-can-i-get-address-info-on-a-structure-member>
+
+1. print struct in gdb
+
+    <https://gnu.gpp.help.narkive.com/pJBTiPUJ/hash-map-print-in-gdb>

@@ -3143,6 +3143,10 @@ Cargo 只会在运行`cargo test`时编译这个目录中的文件。
 
     `mut`每次只能修饰一个变量，不能修饰多个。
 
+1. How to pretty-print a Rust HashMap in GDB?
+
+    <https://stackoverflow.com/questions/50179667/how-do-i-pretty-print-a-rust-hashmap-in-gdb>
+
 ## Appended
 
 1. 闭包（closure）
