@@ -34,3 +34,21 @@ Banner grabbing:
 server: `nc -l -p 12345 < hello.txt`
 
 client: `nc 127.0.0.1 > hello.txt`
+
+* Use netcat behind a proxy
+
+    <https://unix.stackexchange.com/questions/38783/how-to-make-netcat-use-an-existing-http-proxy>
+
+    Example:
+
+    ```bash
+    nc -X connect -x <proxy_address> <connect_ip> <port>
+    ```
+
+    `connect` means HTTP proxy.
+
+* port forwarding
+
+    netcat can only listen a port or connect to a port, but can't do port forwarding. You can use `ncat` (from `nmap`) or `socat` instead.
+
+    Ref: <https://unix.stackexchange.com/questions/293304/using-netcat-for-port-forwarding>

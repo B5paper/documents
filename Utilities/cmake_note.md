@@ -1,5 +1,11 @@
 # CMake Note
 
+Materials:
+
+1. quick cmake tutorial: <https://www.jetbrains.com/help/clion/quick-cmake-tutorial.html>
+
+1. 
+
 官方的 tutorial 写得并不是很好。可以参考这篇 tutorial。
 
 Tutorials:

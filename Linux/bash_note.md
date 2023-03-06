@@ -24,6 +24,10 @@ echo $variable
 
 如果结果是多行输出，那么换行符都会被删除，从而并成单行的结果。
 
+* Check if a variable is set in Bash
+
+    Ref: <https://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash>
+
 **export**
 
 可以用`export`导出一个变量，使得一个新的脚本在执行时，以值传递到新脚本中：
@@ -1296,6 +1300,45 @@ Examples:
     # 'c' (in #3 position) matches before '1'.
     ```
 
+1. convert a string to lower case in Bash
+
+    posix:
+
+    1. tr
+    
+        `echo "$a" | tr '[:upper:]' '[:lower:]'`
+
+    1. awk
+    
+        `echo "$a" | awk '{print tolower($0)}'`
+
+    Ref: <https://stackoverflow.com/questions/2264428/how-to-convert-a-string-to-lower-case-in-bash>
+
+1. Converting a Bash array into a delimited string
+
+    ```bash
+    ids="1 2 3 4";echo ${ids// /|}
+    ```
+
+    output:
+
+    ```
+    1|2|3|4
+    ```
+
+    Ref: <https://stackoverflow.com/questions/13470413/converting-a-bash-array-into-a-delimited-string>
+
+## Subshell
+
+Materials:
+
+1. <https://tldp.org/LDP/abs/html/subshells.html>
+
+* parent shell create a new subshell and get the pid of the subshell
+
+    Ref: <https://stackoverflow.com/questions/20573621/bash-get-process-id-of-a-process-started-in-subshell>
+
+
 ## Miscellaneous
 
 1. 有关重定向符的用法
@@ -1374,7 +1417,7 @@ Examples:
 
     当前进程的 PID：`echo "in current process, PID: $$"`
 
-    可以用小括号打开一个子进程：`(echo "in child process, PID: $BASHPID")`
+    可以用小括号打开一个子进程：`(echo "in child process, PID: $BASHPID")`（好像也可以用`$PPID`获得子进程（subshell）的 pid，但我没试过）
 
     注意子进程的 PID 不可以用`$$`获得。因为子进程会从父进程中继承一些环境变量。
 
@@ -1452,3 +1495,75 @@ Examples:
     1. <https://stackoverflow.com/questions/1570262/get-exit-code-of-a-background-process>
 
     1. <https://www.baeldung.com/linux/background-process-get-exit-code>
+
+* `if`中的字符串在使用`-n`比较时，要加`""`
+
+    Supposing `b` is an undefined variable，
+
+    ```bash
+    if [ -n "$b" ]; then echo "hello"; fi
+    ```
+
+    output： nothing
+
+    ```bash
+    if [ -n $b ]; then echo "hello"; fi
+    ```
+
+    output:
+
+    ```
+    hello
+    ```
+
+* EOF
+
+    There is no method to echo an `EOF` directly. But there are some ways to trigger an `EOF`:
+
+    1. reaching the end of a file
+
+    1. pressing key bindings to `EOF` (`Ctrl + D` by default)
+
+    1. `cat <<EOF`
+
+        Ref: <https://stackoverflow.com/questions/2500436/how-does-cat-eof-work-in-bash>
+
+* `bash -c`
+
+    <https://unix.stackexchange.com/questions/144514/add-arguments-to-bash-c>
+
+* learning materials
+
+    1. <https://askubuntu.com/questions/121866/why-does-bash-remove-n-in-cat-file>
+
+    1. <https://stackoverflow.com/questions/10028820/bash-wait-with-timeout>
+
+    1. <https://stackoverflow.com/questions/42615374/the-linux-timeout-command-and-exit-codes>
+
+    1. <https://stackoverflow.com/questions/13296863/difference-between-wait-and-sleep>
+
+    1. <https://superuser.com/questions/1699317/permission-denied-on-dev-stderr-after-sudo>
+
+    1. <https://unix.stackexchange.com/questions/38538/bash-dev-stderr-permission-denied>
+
+    1. <https://stackoverflow.com/questions/37981492/how-to-timeout-a-group-of-commands-in-bash>
+
+    1. <https://linuxconfig.org/bash-scripting-tutorial>
+
+    1. <https://www.javatpoint.com/bash-split-string>
+
+    1. <https://www.tutorialkart.com/bash-shell-scripting/bash-split-string/>
+
+    1. <https://www.freecodecamp.org/news/bash-array-how-to-declare-an-array-of-strings-in-a-bash-script/>
+
+    1. <https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays>
+
+    1. <https://linuxhint.com/bash_split_examples/>
+
+    1. <https://stackoverflow.com/questions/918886/how-do-i-split-a-string-on-a-delimiter-in-bash>
+
+    1. <https://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash>
+
+    1. <https://stackoverflow.com/questions/71768999/how-to-merge-when-you-get-error-hint-you-have-divergent-branches-and-need-to-s>
+
+    1. <https://stackoverflow.com/questions/9954794/execute-a-shell-function-with-timeout>
