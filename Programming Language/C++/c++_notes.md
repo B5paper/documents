@@ -2,6 +2,8 @@
 
 ## Variable
 
+**Basic types**
+
 | Type | Space | Range |
 | - | - | - |
 | short | 2 bytes | [-2^15, 2^15-1], [-32768, 32767] |
@@ -12,11 +14,64 @@
 | double | 8 bytes | 15 ~ 16 位有效数字 |
 | bool | 1 bytes | true, false |
 
+Example:
+
+```cpp
+#include <iostream>
+#include <cstdlib>
+using namespace std;
+
+int main()
+{
+    char *types[] = {"short", "int", "long", "long long", 
+        "bool", "char", "char*", "int*"};
+    int length[] = {sizeof(short), sizeof(int),
+        sizeof(long), sizeof(long long), 
+        sizeof(bool), sizeof(char), sizeof(char*), sizeof(int*)};
+    int len = sizeof(types) / sizeof(char*);
+    for (int i = 0; i < len; ++i)
+    {
+        printf("%s: %d, ", types[i], length[i]); 
+    }
+    cout << endl;
+    return 0; 
+}
+```
+
+Output:
+
+```
+short: 2, int: 4, long: 4, long long: 8, bool: 1, char: 1, char*: 8, int*: 8,
+```
+
+**Integer type**
+
+Interger numbers are stored in the memory by the radix complement.
+
+Examples:
+
+```
+1: 00000000000000000000000000000001
+-1: 11111111111111111111111111111111
+```
+
+**Literal variables**
+
 字面常量小数默认为`double`类型。
 
-默认情况下，输出一个小数，会显示出 6 位有效数字。
+默认情况下，使用`cout`输出一个小数，会显示出 6 位有效数字。使用`printf("%f")`输出一个小数，会显示到小数点后 6 位。
+
+这两种方式都会做四舍五入。但是四舍五入的方式有些奇怪，并不是严格按照`5`加一，`4.xx`舍弃的方法来的。具体情况似乎和底层的二进制存储方式有关。有时间了再看看。
+
+**char and ASCII**
 
 对于`char`类型变量，`0 ~ 31`存储的是非可打印字符，`32 ~ 127`存储的是可打印字符。
+
+Note: `32`是空格` `，`33`是叹号`!`，`34`是双引号`"`，`126`是波浪线`~`，`127`是 DEL。
+
+ASCII table: <https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html>
+
+**string and `char*`**
 
 字符串定义：
 
@@ -28,7 +83,7 @@ char str[] = "hello, world!";
 
 数组与指针：
 
-```c++
+```cpp
 int arr[3] = {1, 2, 3};
 cout << (int)arr << endl;  // 数组名即数组首地址
 cout << (int)&arr[0] << endl;  // 第一个元素的地址
@@ -37,7 +92,7 @@ cout << (int)&arr[1] << endl;  // 第二个元素的地址
 
 二维数组的定义：
 
-```c++
+```cpp
 int arr[row][col];
 int arr[row][col] = {{data_1, data_2}, {data_3, data_4}, ...};
 int arr[row][col] = {data_1, data_2, data_3, data_4, ...};
@@ -61,6 +116,28 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
 
 1. 局部数组编译器不会自动初始化。通常可以用`memset`将其初始化为 0：`memset(arr, 0, sizeof(arr));`。`memset`是以字节为单位对内存数据进行赋值的，因此如果赋的值非零，就不能用`memset`了。
 
+    Example:
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        int arr[30];
+        for (int i = 0; i < 30; ++i)
+            cout << arr[i] << ", ";
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    Output:
+
+    ```
+    0, 0, 0, 0, -1696722216, 529, 1150278918, 32766, 0, 0, 0, 0, 1973229152, 32758, 24, 0, 0, 0, 0, 0, 16, 0, 1973228793, 32758, 0, 0, 52, 0, -1696708304, 529,
+    ```
+
 1. 如果只初始化了几个值，那么剩下的数据似乎会被自动初始化为 0：
 
     ```cpp
@@ -71,7 +148,7 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
     }
     ```
 
-    （好像并不是这样。。如果要证明它自动初始化为 0，必须加上“如果不初始化几个值，那么其余的值不会被初始化”的证明。）
+    （不清楚这一点是否被编译器保证，因此写程序时不应该依赖这个特性）
 
 ## 函数
 
@@ -230,6 +307,8 @@ int main()
     return 0;
 }
 ```
+
+### 构造与析构
 
 **构造函数**
 
@@ -1047,6 +1126,107 @@ class Person
 
 返回`bool`的仿函数称为谓词。接收一个参数的谓词称为一元谓词，接收两个参数的谓词称为二元谓词。
 
+## Multithreading programming 多线程
+
+### thread
+
+```cpp
+#include <iostream>
+#include <thread>
+using namespace std;
+
+void print_1(int a)  // use a normal function
+{
+    cout << "method 1: " << a << endl;
+}
+
+struct MyFunc  // use a pseudo-funciton
+{
+    void operator()(int a) {
+        cout << "method 2: " << a << endl;
+    }
+} print_2;
+
+int main()
+{
+    auto print_3 = [](int a){  // use a function object
+        cout << "method 3: " << a << endl;
+    };
+
+    thread thd_1(print_1, 111);
+    thread thd_2(print_2, 222);
+    thread thd_3(print_3, 333);
+    thd_1.join();
+    thd_2.join();
+    thd_3.join();
+    return 0;
+}
+```
+
+Output：
+
+```
+method 1: method 2: 222111
+
+method 3: 333
+```
+
+Notice that because `iostream` is not thread-safe, the output is disordered.
+
+Notes:
+
+1. 如果不调用`thread_obj.join()`，主线程不会等子线程结束。在整个进程退出时，子线程会被强制结束。
+
+Determian whether the current thread is the main thread:
+
+```cpp
+#include <iostream>
+#include <thread>
+using namespace std;
+
+thread::id main_id = this_thread::get_id();
+
+void print_1(int a)
+{
+    thread::id id = this_thread::get_id();
+    if (id == main_id)
+    {
+        cout << "this is main thraed" << endl;
+    }
+    else
+    {
+        cout << "this is child thread with incoming parameter: " << a << endl;
+    }
+}
+
+int main()
+{
+    thread thd(print_1, 123);
+    print_1(321);
+    thd.join();
+    return 0;
+}
+```
+
+### Mutex and semephore
+
+
+
+## Lambda Expression （匿名函数）
+
+```cpp
+int main()
+{
+    auto f = [](int a)
+    {
+        cout << a << endl;
+    };
+    f(123);
+    return 0;
+}
+```
+
+
 ## Miscellaneous
 
 1. 宏
@@ -1153,4 +1333,33 @@ class Person
     a > b  // false
     (int) a > b  // true
     ```
+
+1. 匿名函数
+
+    ```cpp
+    int main()
+    {
+        int a = 30;
+        all_of(v.begin(), v.end(), [](int &a){
+            // xxx
+            a = 40;
+            return true;
+        });
+        return 0;
+    }
+    ```
+
+    在匿名函数的参数中，使用引用`int &a`作为参数时，外部的变量会被修改。使用`int a`作为参数时，外部的变量会传递进来一个副本。
+
+1. 如果使用``malloc`申请的内存不够，会发生什么？
+
+    试了下，在不合法的地方写入数据是没事的，还能正常使用，可能是没修改到重要的内存，比如别的函数的入口地址之类的。但是在`free()`的时候会报错。如果不`free`直接结束程序，也不会报错。
+
+1. 如果用`new`创建一个对象，但是用`free`释放掉内存，会发生什么？
+
+    试了下，内存会被正确释放掉，但是不会调用析构函数。如果不递归调用析构函数的话，感觉基类的成员的内存也不会被释放，这样就内存泄露了。
+
+1. 使用`free`释放完内存后，传递给`free()`的指针的值不会改变。
+
+    （想了想确实是这样，传递给`free`的是指针的副本，又不是指针本身，当然不可能被改变）
 
