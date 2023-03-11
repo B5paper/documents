@@ -286,7 +286,102 @@ int main()
     }
     ```
 
+## Pointer （指针）
+
+### Basic usage
+
+指针常见的用法是指向一个`new`创建的对象：
+
+```cpp
+struct MyClass
+{
+    int m_a;
+    int m_b;
+};
+
+int main()
+{
+    int *p = new int(3);
+    cout << *p << endl;
+    MyClass *pobj = new MyClass({10, 11});
+    cout << pobj->m_a << ", " << pobj->m_b << endl;
+    delete p;
+    delete pobj;
+    return 0;
+}
+```
+
+`new`会返回新创建对象的地址，我们将它赋给指针即可。在不需要使用对象的时候，我们需要手动调用`delete`释放内存。
+
+1. 如果用`new`创建一个对象，但是不使用`delete`，而是用`free`释放掉内存，会发生什么？
+
+    试了下，内存会被正确释放掉，但是不会调用析构函数。如果不递归调用析构函数的话，感觉基类的成员的内存也不会被释放，这样就内存泄露了。
+
+1. 使用`free`释放完内存后，传递给`free()`的指针的值不会改变。
+
+    （想了想确实是这样，传递给`free`的是指针的副本，又不是指针本身，当然不可能被改变）
+
+1. 使用`delete`或`free`释放一个局部变量的内存，会发生什么？
+
+    会在运行时报错。准确地说，在 debug 模式下会报错，在 release 模式下会卡住。
+
+### 指针的运算
+
+对某个变量或对象取完地址后，进行`+`，`-`运算时，并不是按照一个字节一个字节来的，而是按照变量/对象的类型实际的 size 来的。
+
+```cpp
+int a = 3;
+int *pa = &a;
+cout << sizeof(a) << ", " 
+    << (long long)pa << ", " 
+    << (long long)(pa+1) << endl;
+```
+
+Output:
+
+```
+4, 612068490332, 612068490336
+```
+
+可以看到变量`a`占了 4 个字节，对`pa`进行加 1 时，内存地址的偏移也是 4 个字节。
+
+如果我们对`pa`进行重新解释，那么加减运算的步长也会随之改变：
+
+```cpp
+int a = 3;
+int *pa = &a;
+cout << sizeof(short) << ", " 
+    << (long long)pa << ", " 
+    << (long long)((short*)pa + 1) << endl;
+```
+
+Output:
+
+```
+2, 4297063068, 4297063070
+```
+
+在上面代码中，我们把`pa`重新解释成`short*`，因为 short 只占用 2 个字节，所以`pa + 1`在内存中也是移动两个字节。
+
+类型转换的优先级要高于`+/-`运算的优先级，所以不需要再加一层括号`((short*)pa)+1`。
+
 ## Class
+
+### Access
+
+* Public field:
+
+    All the class members declared under public will be available to everyone. The data members and member functions declared public can be accessed by other classes too. The public members of a class can be accessed from anywhere in the program using the direct member access operator (.) with the object of that class.
+
+    外部可以访问到，谁都可以访问。
+
+* Protected field:
+
+    Protected access modifier is similar to that of private access modifiers, the difference is that the class member declared as Protected are inaccessible outside the class but they can be accessed by any subclass(derived class) of that class.
+
+    外部访问不到，只有本类和继承类可以访问。
+
+    Non-public constructors are useful when there are construction requirements that cannot be guaranteed solely by the constructor. For instance, if an initialization method needs to be called right after the constructor, or if the object needs to register itself with some container/manager object, this must be done outside the constructor. By limiting access to the constructor and providing only a factory method, you can ensure that any instance a user receives will fulfill all of its guarantees. This is also commonly used to implement a Singleton, which is really just another guarantee the class makes (that there will only be a single instance).
 
 `struct`:
 
@@ -330,6 +425,8 @@ int main()
 ```
 
 不能用`A a();`来调用默认构造函数，编译器会认为它是一个函数的声明。因此只能用`A a;`来调用默认构造函数。
+
+注意`A a = A(xxx);`只会调用一次构造函数，而不是先调用构造函数，再调用赋值运算符。（但是别人的代码似乎是先调用了构造函数，然后调用了移动构造函数。奇怪，不清楚哪个版本是对的。）
 
 构造函数的创建规则：
 
@@ -410,6 +507,10 @@ C++ 为一个类默认提供 4 个函数：
 1. 析构函数
 1. 拷贝构造函数（按值浅拷贝）
 1. 赋值运算符`operator=`（按值浅拷贝）
+
+**析构函数**
+
+先调用当前类的析构函数，再调用成员变量的类的析构函数。
 
 **静态成员**
 
@@ -570,6 +671,438 @@ int main()
 
 注意各个类声明的顺序。有时候报错说类名找不到，有时候报错说函数名找不到。
 
+### Memory model of a simple object
+
+```cpp
+class A
+{
+    public:
+    A(char a, int b, char c): m_a(a), m_b(b), m_c(c) {}
+    void func_1() {}
+    void func_2() {}
+
+    char m_a;  // 1 byte, but aligned to 4 bytes
+    int m_b;  // 4 bytes
+    char m_c;  // 1 byte, but aligned to 4 bytes
+};
+
+int main()
+{
+    A obj_a('h', 456, 'h');
+    cout << sizeof(obj_a) << endl;
+    printf("%d, %d\n", *(char *)&obj_a, *(int*)((char*)&obj_a+4));
+    for (int i = 0; i < 12; ++i)
+        printf("%d, ", *((char*)&obj_a + i));
+    cout << endl;
+    int num = 456;
+    for (int i = 0; i < 4; ++i)
+        printf("%d, ", *((char*)&num + i));
+    printf("\n");
+    return 0;
+}
+```
+
+Output:
+
+```
+12
+104, 456
+104, 0, 0, 0, -56, 1, 0, 0, 104, 1, 0, 0,
+-56, 1, 0, 0,
+```
+
+我们可以看到，对象`obj_a`占用 12 个字节，在类`A`内部有 3 个成员变量，其中因为`int m_b`占了 4 个节点，所以剩下的两个`char`类型也都按最长的 4 字节对齐。
+
+首先我们取对象地址`&obj_a`，然后将其内存解释为`char`类型：`(char*)&obj_a`，最后对其解引用，即可得到值`'h'`对应的整数 104：`*(char*)&obj_a`。
+
+然后我们尝试把存进去的 456 取出来。首先取对象地址：`&obj_a`，然后将内存解释为`char`类型：`(char*)&obj_a`，这一步是为了在对其进行`+`操作时，步长为 1 个字节。接下来对其加 4，即可跳到第二个成员变量处：`(char*)&obj_a + 4`，最后我们将这个内存解释为`int`类型，并对其解引用，即可得到结果 456：`*(int*)((char*)&obj_a + 4)`。
+
+后面的几行代码，一个字节一个字节地打印出 12 个字节对应的内容，可以验证存储的确实是`'h', 456, 'h'`。
+
+### Memory model of a object whos class inherits from another class
+
+
+
+### 继承
+
+`public`继承无法访问基类中`private`字段的内容，其余字段中的内容不变；`protected`继承无法访问基类中`private`的内容，但会把`public`内容中的属性修改成`protected`；`private`继承无法访问基类中`private`的内容，但会把`public`和`protected`的内容改成`private`属性。
+
+在继承时，父类中所有非静态成员属性都会被子类继承下去，但是被编译器隐藏了，访问不到。
+
+继承中构造和析构的顺序：先构造父类，再构造子类；析构的顺序相反。
+
+在继承时，如果基类没有默认构造函数，那么需要子类在初始化列表里显式调用基类的构造函数：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    A(int a, int b): a(a), b(b) {}
+
+    int a;
+    int b;
+};
+
+class B: public A
+{
+    public:
+    B(): A(1, 2) {}  // 在初始化列表中显式调用 A 的构造函数
+};
+
+int main()
+{
+    B obj_b;
+    cout << obj_b.a << endl;
+}
+```
+
+Output:
+
+```
+1
+2
+```
+
+**访问父类中隐藏的变量**
+
+可以加上父类的作用域来访问：`s.Base::m_A`，`s.Base::func()`。
+
+如果子类有同名的成员函数，那么父类中就算有重载的函数，也会被隐藏掉，除非使用基类的作用域来访问。
+
+静态成员的处理方式和非静态成员相同。
+
+**多继承**
+
+`class ChildClass: public Base1, protected Base2;`
+
+多继承中的同名成员也需要用作用域来区分。
+
+**菱形继承问题**
+
+基类`A`，有`B`和`C`两个派生类，`D`又继承于`B`和`C`，此时`D`有两份`A`的数据。
+
+为了让`D`只有一份数据，可以使用虛继承：
+
+```c++
+class B: virtual public A;
+class C: virtual public A;
+```
+
+此时可以不使用作用域运算符来指定`A`的数据，可以直接用`对象.var`来访问`A`中的成员。
+
+此时`B`和`C`会继承一个`vbptr`，指向`vbtable`，其中记录了`A`中`var`的偏移量，从而可以唯一地指定一个偏移量。
+
+**多态**
+
+静态多态：函数重载，运算符重载
+
+动态多态：派生类和虚函数实现运行时多态
+
+静态多态在编译阶段确定函数地址，动态多态在运行阶段确定函数地址。
+
+对于虚函数，可以使用基类的指针/引用调用子类的方法。
+
+子类方法的`virtual`可写可不写。
+
+多态的原理：
+
+基类会有一个`vfptr`指针，指向`vftable`，表内有虚函数的地址。子类函数重写父类的虚函数时，子类中虚函数表内部会替换成子类的虚函数地址。
+
+纯虚函数：
+
+`virtual void func_name() = 0;`
+
+定义了纯虚函数的类称为抽象类。抽象类无法实例化对象。抽象类的子类必须重写抽象类中的纯虚函数，否则也会为抽象类。
+
+虚析构与纯虚析构：
+
+`delete`父类指针的时候，并不调用子类的析构函数，因此会造成子类堆区的内存泄漏。解决方法是把父类的析构函数改成虚函数。
+
+纯虚析构：`virtual ~Animal() = 0;`，但是它还需要一个实现，才能通过编译：
+
+```c++
+Animal::~Animal() {}
+```
+
+### 虚函数
+
+#### The usage of virtual functions
+
+如果我们定义了虚函数，再配合指向派生类对象的基类指针，那么就可以用基类指针调用派生类的函数。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    virtual void print()
+    {
+        cout << "in class A" << endl;
+    }
+};
+
+class B: public A
+{
+    public:
+    virtual void print()
+    {
+        cout << "in class B" << endl;
+    }
+};
+
+class C: public A
+{
+    public:
+    virtual void print()
+    {
+        cout << "in class C" << endl;
+    }
+};
+
+int main()
+{
+    A *ptr = nullptr;
+    B b;
+    C c;
+    ptr = &b;
+    ptr->print();
+    ptr = &c;
+    ptr->print();
+    return 0;
+}
+```
+
+Output:
+
+```
+in class B
+in class C
+```
+
+如果我们写好了框架，那么只需要用基类指针调用派生类中的方法就可以了：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class Animal
+{
+    public:
+    virtual void sing() {}
+};
+
+class Bird: public Animal
+{
+    public:
+    virtual void sing()
+    {
+        cout << "bird sing ..." << endl;
+    }
+};
+
+class Cat: public Animal
+{
+    public:
+    virtual void sing()
+    {
+        cout << "cat sing ..." << endl;
+    }
+};
+
+void give_a_performance(Animal* animals[], int n)
+{
+    for (int i = 0; i < n; ++i)
+    {
+        animals[i]->sing();
+    }
+}
+
+int main()
+{
+    Bird bird;
+    Cat cat;
+    Animal *animals[] = {&bird, &cat};
+    give_a_performance(animals, 2);
+    return 0;
+}
+```
+
+作为一个框架开发者，我们只需要把`class Animal`这个类写出来，然后把`give_a_performance`这个函数使用`Animal`实现，剩下的事我们就不需要管了。用户在使用我们的框架时，只需要写一个类继承`Animal`，并实现`sing()`虚函数，就可以直接调用我们框架中的`give_a_performance`函数了。这种效果非常像回调函数，思想很像控制反转。（是不是可以推导出，凡是要开发一个框架，都需要有一点控制反转的思想在里面？）
+
+#### Mechanism of virtual functions
+
+Virtual functions use virtual function table to find the correct entry address of correspoding function.
+
+```cpp
+class A
+{
+    public:
+    virtual void func_a() {}  // 类 B 没有重写这个虚函数，可以预测到类 A 和类 B 的虚函数表中，这个虚函数的地址相同
+    virtual void func_b() {}
+};
+
+class B: public A
+{
+    public:
+    virtual void func_b() {};  // 类 B 重写了这个虚函数，可以预测到类 A 和类 B 的虚函数表中，这个虚函数的地址不同
+    void func_c() {}  // 普通函数将不会出现在虚函数表中
+};
+
+int main()
+{
+    A a;
+    B b;
+
+    cout << "Address of objects:" << endl;
+    cout << "a: " << &a << endl;  // 不可以用 printf("%x", &a);，printf 好像会截断内存地址的高几位。不清楚为什么。cout 打印出的内存地址是可以在 gdb 里调试的，但是 printf 不能。
+    cout << "b: " << &b << endl;
+    cout << endl;
+
+    cout << "Class A virtual function table:" << endl;
+    void *base = (void *)*(long long*)&a;  // (long long*) 的作用为指示起始地址为 &a 的内存中存储的数据占用 8 个字节，这个解释是为了 *(long long*) 前面那个 * 解引用时候用。不写 (long long*) 的话，编译器不知道 &a 对应的内存中存储着多长字节，什么格式的数据。(void*) 则纯粹是为了说明解引用得到的数据是一个指针。因为所有的指针都占用 8 个字节，所以我们可以把 (void*) 换成 (int*)，或 (char*) 都可以，只不过 base 的类型也要跟着换。
+    for (int i = -2; i < 2; ++i)
+        cout << "base[" << i << "]: " << (void*)*((long long*)base + i) << endl;  // 这里的 (long long*) 同理，表示 base 指向的对象占 8 个字节（即一个指针）。而 (void*) 是为了告诉 << 运算符，后面跟的是一个指针，一个内存地址。不然 << 会以十进制（long long）的形式打印出内存地址
+    cout << endl;
+
+    cout << "Class B virtual function table:" << endl;
+    base = (void *)*(long long*)&b;
+    for (int i = -2; i < 2; ++i)
+        cout << "base[" << i << "]: " << (void*)*((long long*)base + i) << endl;
+
+    return 0;
+}
+```
+
+Output:
+
+```
+Address of objects:
+a: 0xa07e1ff9c8
+b: 0xa07e1ff9b0
+
+Class A virtual function table:
+base[-2]: 0
+base[-1]: 0x7ff6a5ec4590
+base[0]: 0x7ff6a5ec2b60
+base[1]: 0x7ff6a5ec2ba0
+
+Class B virtual function table:
+base[-2]: 0
+base[-1]: 0x7ff6a5ec45a0
+base[0]: 0x7ff6a5ec2b60
+base[1]: 0x7ff6a5ec2bd0
+```
+
+可以看到，`base[0]: 0x7ff6a5ec2b60`其实就是`func_a()`的地址，类`A`和类`B`的虚函数表中，这个地址是一样的。
+
+而`base[1]`是两个类中`func_b()`的地址，由于`B`对`A`中的`func_a()`进行了重写，因此这两个地址不一样。
+
+大概过程是这样的：先把基类所有虚函数放到当前类的虚函数表里，然后再把当前类里实现的虚函数在表里做替换。注意，基类的普通成员函数和派生类的普通成员函数不会出现在虚函数表中。
+
+另外，`base[-1]`是一个`type_info`类型的对象的地址，用于`typeid()`运算符返回对应的类型。`base[-2]`是一个偏移，目前不清楚是什么意思。有时间了看看。
+
+使用 GDB 查看虚函数表：<https://stackoverflow.com/questions/54079937/how-to-print-virtual-function-of-the-vtable-at-a-specific-address-when-debugging>
+
+说明：
+
+1. 可以用`cout << (void*)&A::func_a << endl;`直接打印出成员函数`func_a()`的地址。这个地址和虚函数表中的地址是一致的。
+
+    但是问题是，为什么无法使用下面的代码输出地址：
+
+    ```cpp
+    void (A::*fptr_a)() = &A::func_a;
+    cout << (void*)fptr_a << endl;
+    ```
+
+    这样只会输出`0x1`。为什么？
+
+### RTTI
+
+RTTI 指的是 Runtime Type Identification，即运行时类型识别。
+
+类型的本质是对内存的解释。C++ 中为了支持面向对象和多态，在代码运行时，某个类型的指针可能并不会指向本类型，这就需要我们动态识别指针所指的类型。在 C++ 中，这一机制被称为 RTTI。
+
+RTTI 的具体实现有两种方式，
+
+1. `typeid()`：返回其表达式或类型名的实际类型
+
+1. `dynamic_cast()`：将基类的指针或引用安全地转换为派生类类型的指针或引用
+
+### 类型转换
+
+常用的显式类型转换：
+
+`(type)expression`
+
+我们可以在表达式前面加上小括号括起来的类型，进行强制类型转换。
+
+Example:
+
+```cpp
+
+```
+
+四种类型转换运算符：
+
+* `const_cast<type> (expr)`
+
+    The `const_cast` operator is used to explicitly override const and/or volatile in a cast. The target type must be the same as the source type except for the alteration of its const or volatile attributes. This type of casting manipulates the const attribute of the passed object, either to be set or removed.
+
+    只试了试去除掉`const`修饰，好像确实有用。但是结果很奇怪：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        const int a = 3;
+        int *pa = const_cast<int*>(&a);
+        *pa = 4;
+        cout << a << endl;
+        cout << *pa << endl;
+        cout << endl;
+        
+        *(int*)&a = 5;
+        cout << a << endl;
+        cout << *(int*)&a << endl;
+        cout << *pa << endl;
+        return 0;
+    }
+    ```
+
+    Output:
+
+    ```
+    3
+    4
+
+    3
+    5
+    5
+    ```
+
+    编译器似乎提前计算好了一些常量表达式中的内容。但是`a`内存里的值确实被修改了。
+
+* `dynamic_cast<type> (expr)`
+
+    The `dynamic_cast` performs a runtime cast that verifies the validity of the cast. If the cast cannot be made, the cast fails and the expression evaluates to null. A `dynamic_cast` performs casts on polymorphic types and can cast a `A*` pointer into a `B*` pointer only if the object being pointed to actually is a B object.
+
+* `reinterpret_cast<type> (expr)`
+
+    The `reinterpret_cast` operator changes a pointer to any other type of pointer. It also allows casting from pointer to an integer type and vice versa.
+
+    C 语言风格的强制类型转换。突出一个乱转换。我愿称之为最强转换。
+
+* `static_cast<type> (expr)`
+
+    The `static_cast` operator performs a nonpolymorphic cast. For example, it can be used to cast a base class pointer into a derived class pointer.
+
 ## 运算符重载
 
 **成员函数运算符重载**
@@ -724,74 +1257,7 @@ int main()
     }
     ```
 
-## 继承
 
-`public`继承无法访问基类中`private`字段的内容，其余字段中的内容不变；`protected`继承无法访问基类中`private`的内容，但会把`public`内容中的属性修改成`protected`；`private`继承无法访问基类中`private`的内容，但会把`public`和`protected`的内容改成`private`属性。
-
-在继承时，父类中所有非静态成员属性都会被子类继承下去，但是被编译器隐藏了，访问不到。
-
-继承中构造和析构的顺序：先构造父类，再构造子类；析构的顺序相反。
-
-**访问父类中隐藏的变量**
-
-可以加上父类的作用域来访问：`s.Base::m_A`，`s.Base::func()`。
-
-如果子类有同名的成员函数，那么父类中就算有重载的函数，也会被隐藏掉，除非使用基类的作用域来访问。
-
-静态成员的处理方式和非静态成员相同。
-
-**多继承**
-
-`class ChildClass: public Base1, protected Base2;`
-
-多继承中的同名成员也需要用作用域来区分。
-
-**菱形继承问题**
-
-基类`A`，有`B`和`C`两个派生类，`D`又继承于`B`和`C`，此时`D`有两份`A`的数据。
-
-为了让`D`只有一份数据，可以使用虛继承：
-
-```c++
-class B: virtual public A;
-class C: virtual public A;
-```
-
-此时可以不使用作用域运算符来指定`A`的数据，可以直接用`对象.var`来访问`A`中的成员。
-
-此时`B`和`C`会继承一个`vbptr`，指向`vbtable`，其中记录了`A`中`var`的偏移量，从而可以唯一地指定一个偏移量。
-
-**多态**
-
-静态多态：函数重载，运算符重载
-
-动态多态：派生类和虚函数实现运行时多态
-
-静态多态在编译阶段确定函数地址，动态多态在运行阶段确定函数地址。
-
-对于虚函数，可以使用基类的指针/引用调用子类的方法。
-
-子类方法的`virtual`可写可不写。
-
-多态的原理：
-
-基类会有一个`vfptr`指针，指向`vftable`，表内有虚函数的地址。子类函数重写父类的虚函数时，子类中虚函数表内部会替换成子类的虚函数地址。
-
-纯虚函数：
-
-`virtual void func_name() = 0;`
-
-定义了纯虚函数的类称为抽象类。抽象类无法实例化对象。抽象类的子类必须重写抽象类中的纯虚函数，否则也会为抽象类。
-
-虚析构与纯虚析构：
-
-`delete`父类指针的时候，并不调用子类的析构函数，因此会造成子类堆区的内存泄漏。解决方法是把父类的析构函数改成虚函数。
-
-纯虚析构：`virtual ~Animal() = 0;`，但是它还需要一个实现，才能通过编译：
-
-```c++
-Animal::~Animal() {}
-```
 
 ## I/O
 
@@ -867,6 +1333,209 @@ if (ifs.eof())
     this->m_EmpArray = NULL;
     ifs.close();
     return;
+}
+```
+
+### Read formated strings from stdin
+
+* Read strings seperated by `,`, `\n`, and `\t`
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main()
+    {
+        string strs[3];
+        for (int i = 0; i < 3; ++i)
+            cin >> strs[i];
+        for (auto &str: strs)
+            cout << str << endl;
+        return 0;
+    }
+    ```
+
+    `cin` will read the character from stream until it encounters ` `, `'\n` or `\t`. `cin` will drop these delimiters even if they are repeated or combined. Then `cin` will parse the string and convert it to the corresponding type.
+
+* Read the whole line
+
+    We can use `std::getline()` to get the whole line.
+
+    Example:
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main()
+    {
+        string str;
+        getline(cin, str);
+        cout << str << endl;
+        return 0;
+    }
+    ```
+
+* Read strings seperated by specific delimiter
+
+    * Single delimiter
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <cstdio>
+        using namespace std;
+
+        /*
+        1,2,3
+        4,5,6
+        */
+
+        int main()
+        {
+            int arr[2][3];
+            string str;
+            int m = 2, n = 3;
+            char ch;
+            int i = 0, j = 0;
+            while (m--)
+            {
+                str.clear();
+                j = 0;
+                while (ch = getchar())
+                {
+                    if (ch == '\n')
+                    {
+                        arr[i][j++] = stoi(str);
+                        break;
+                    }
+                    if (ch == ',')
+                    {
+                        arr[i][j++] = stoi(str);
+                        str.clear();
+                        continue;
+                    }
+                    str.push_back(ch);
+                }
+                ++i;
+            }
+
+            for (int i = 0; i < 2; ++i)
+            {
+                for (int j = 0; j < 3; ++j)
+                {
+                    cout << arr[i][j] << ", ";
+                }
+                cout << endl;
+            }
+            return 0;
+        }`
+        ```
+
+        这段代码并不容易写出来。因为我们假设不知道列数，每列都使用`'\n`来判断一行的结束。
+
+    * Multiple delimiter
+
+### Get a char from input stream
+
+All of these functions read a character from input and return an integer value. The integer is returned to accommodate a special value used to indicate failure. The value EOF is generally used for this purpose.
+
+#### `getc()`
+
+It reads a single character from a given input stream and returns the corresponding integer value (typically ASCII value of read character) on success. It returns EOF on failure.
+
+Syntax:
+
+```cpp
+int getc(FILE *stream); 
+```
+
+Example:
+
+```cpp
+#include <stdio.h>
+int main()
+{
+   printf("%c", getc(stdin));
+   return(0);
+}
+```
+
+这个函数需要用户输入字符，并且按下回车后，才会读取第一个字符。
+
+问题：
+
+1. `getc()`可以读取任意的 input stream。那么除了`stdin`之外的 input stream 都有什么呢？有什么实际读取的例子？
+
+#### `getchar()`
+
+The difference between getc() and getchar() is getc() can read from any input stream, but getchar() reads from standard input. So getchar() is equivalent to getc(stdin).
+
+Syntax:
+
+```cpp
+int getchar(void); 
+```
+
+Example:
+
+```cpp
+int main()
+{
+   printf("%c", getchar());
+   return 0;
+}
+```
+
+#### `getch()`
+
+getch() is a nonstandard function and is present in conio.h header file which is mostly used by MS-DOS compilers like Turbo C. It is not part of the C standard library or ISO C, nor is it defined by POSIX (Source: http://en.wikipedia.org/wiki/Conio.h)
+Like above functions, it reads also a single character from keyboard. But it does not use any buffer, so the entered character is immediately returned without waiting for the enter key.
+
+这个函数不读取缓冲区，会当按键按下的时候立即返回。如果输入中文，程序会直接崩溃。
+
+Syntax:
+
+```cpp
+int getch();
+```
+
+Example:
+
+```cpp
+#include <stdio.h>
+#include <conio.h>
+int main()
+{
+   printf("%c", getch());   
+   return 0;
+}
+```
+
+#### `getche()`
+
+Like getch(), this is also a non-standard function present in conio.h. It reads a single character from the keyboard and displays immediately on output screen without waiting for enter key.
+
+`getch()`只读取不回显，`getche()`会回显。这两个函数都会返回 ascii 的 int 值。
+
+Syntax:
+
+```cpp
+int getche(void); 
+```
+
+Example:
+
+```cpp
+#include <stdio.h>
+#include <conio.h>
+// Example for getche() in C
+int main()
+{
+  printf("%c", getche());
+  return 0;
 }
 ```
 
@@ -1126,6 +1795,251 @@ class Person
 
 返回`bool`的仿函数称为谓词。接收一个参数的谓词称为一元谓词，接收两个参数的谓词称为二元谓词。
 
+## lvalue and rvalue
+
+## C++11/17/20 new features
+
+### move
+
+    Suppose we want to traverse a set of vectors, a simple thought is to use reference binding:
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vecs[3] = {
+            vector<int>({1, 2, 3}), 
+            vector<int>({4, 5, 6}),
+            vector<int>({7, 8, 9})};
+        for (auto &vec: vecs)
+        {
+            for (auto &item: vec)
+            {
+                cout << item << ", ";
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    Output:
+
+    ```
+    4, 5, 6,
+    4, 5, 6,
+    7, 8, 9,
+    ```
+
+    This method does make sense. But for a reference `&`, it is actually a constant pointer binding with each element in `vecs`. However, every pointer occupies 8 bytes in a 64-bit system. For the vector array with 3 elements, it needs create an 8-byte pointer and destroy that in every round of `for` loop. This is low effeciency.
+
+    How about moving a new object to a bound reference?
+
+    ```cpp
+    vector<int> &rvec = vecs[0];
+    rvec = vecs[1];
+    ```
+
+    Unfortunately, this method doesn't make sense. Because `rves` is equal to `vecs[0]`, the second line just means `vecs[0] = vecs[1];`, and the data of `vecs[0]` will be replaced with the data of `vecs[1]`.
+
+    We can also use pointer, but pointer is not safe.
+
+    How to only move the ownership of 'allocated memory' to a new variable?
+
+    In C++, we can ragard the 'allocated memory' as a right value, and a named variable with allocated memory as a left value.
+
+    C++11 provided a function `move` which can convert a left value to a right value, so that we can reassign the allocated memory to another variable.
+
+    `move`的源代码：
+
+    ```cpp
+    template<typename _Tp>
+    _GLIBCXX_NODISCARD
+    constexpr typename std::remove_reference<_Tp>::type&&
+    move(_Tp&& __t) noexcept
+    { return static_cast<typename std::remove_reference<_Tp>::type&&>(__t); }
+    ```
+
+    我们可以看到，`move`仅仅是做了一个强制类型转换，把左值转换成右值引用并返回。
+
+    紧接着，如果某个类型实现了移动构造函数，会直接调用移动构造函数，而不是拷贝构造函数：
+
+    ```cpp
+    A& operator=(const A &&obj) {}
+    ```
+
+    在移动构造函数中，我们需要实现的是，把`obj`的 allocator 的指针赋给当前对象`*this`。如果某个对象的 allocator 不是我们写的，我们还需要在移动构造函数内继续调用`move`：`this -> xxx = move(obj.xxx);`，直到找到别人的移动构造函数为止。
+
+    注：短字符串并不一定会一直调用移动构造函数，这个叫做 SSO 优化：<https://stackoverflow.com/questions/21694302/what-are-the-mechanics-of-short-string-optimization-in-libc>。
+
+    实验：
+
+    ```cpp
+    void move_test(std::string&& s) {
+        std::string s2 = std::move(s);
+        std::cout << "; After move: " << std::hex << reinterpret_cast<uintptr_t>(s2.data()) << std::endl;
+    }
+
+    int main()
+    {
+        std::string sbase;
+
+        for (size_t len=0; len < 32; ++len) {
+            std::string s1 = sbase;
+            std::cout << "Length " << len << " - Before move: " << std::hex << reinterpret_cast<uintptr_t>(s1.data());
+            move_test(std::move(s1));
+            sbase += 'a';
+        }
+    }
+    ```
+
+    有时间了可以看看。
+
+### 完美转发
+
+一个右值被作为参数传入函数中后，由于它有了名字，所以它会变成一个左值。
+
+```cpp
+#include <iostream>
+#include <utility>
+using namespace std;
+
+void test_move_2(string &&str)
+{
+    cout << "in test move 2, right value" << endl;
+}
+
+void test_move_2(string &str)
+{
+    cout << "in test move 2, left value" << endl;
+}
+
+void test_move(string &&str)
+{
+    cout << "in test move, right value" << endl;
+    test_move_2(str);
+}
+
+void test_move(string &str)
+{
+    cout << "in test move, left value" << endl;
+    test_move_2(str);
+}
+
+int main()
+{
+    string str(500, 'a');
+    test_move(move(str));
+    return 0;
+}
+```
+
+Output:
+
+```
+in test move, right value
+in test move 2, left value
+```
+
+这显然与我们的想法不符。我们希望一个右值引用被传入其他函数后，仍然是右值引用；一个左值引用传入其他函数后，仍然是左值引用。有一个简单的方法，我们可以在处理右值引用的函数里，再次调用`move`：
+
+```cpp
+#include <iostream>
+#include <utility>
+using namespace std;
+
+void test_move_2(string &&str)
+{
+    cout << "in test move 2, right value" << endl;
+}
+
+void test_move_2(string &str)
+{
+    cout << "in test move 2, left value" << endl;
+}
+
+void test_move(string &&str)
+{
+    cout << "in test move, right value" << endl;
+    test_move_2(move(str));  // 在这里加上 move，使得左值再次变成右值
+}
+
+void test_move(string &str)
+{
+    cout << "in test move, left value" << endl;
+    test_move_2(str);
+}
+
+int main()
+{
+    string str(500, 'a');
+    test_move(move(str));
+    return 0;
+}
+```
+
+Output:
+
+```
+in test move, right value
+in test move 2, right value
+```
+
+假如我们的`test_move`函数并没有实际处理内存，而只是希望下一级函数可以处理内存。那么当前函数就不需要关心传入的参数是左值还是右值了，只要按原样转发给下一级函数就可以了。这种转发称为完美转发。通常由`forward()`函数配合模板实现：
+
+```cpp
+#include <iostream>
+#include <utility>
+using namespace std;
+
+void test_move_2(string &&str)
+{
+    cout << "in test move 2, right value" << endl;
+}
+
+void test_move_2(string &str)
+{
+    cout << "in test move 2, left value" << endl;
+}
+
+template<class T>
+void test_move(T &&str)
+{
+    cout << "in test move, no matter what type of value" << endl;
+    test_move_2(forward<T>(str));
+}
+
+int main()
+{
+    string str(500, 'a');
+    test_move(str);
+    cout << "------" << endl;
+    test_move(move(str));
+    return 0;
+}
+```
+
+输出：
+
+```
+in test move, no matter what type of value
+in test move 2, left value
+------
+in test move, no matter what type of value
+in test move 2, right value
+```
+
+我们可以看到，左值被转发成了左值，右值被转发成了右值，而`test_move()`本身不需要关心传入的参数是什么值。这样我们就实现了完美转发。
+
+其中，
+
+1. `forward()`是 STL 库`<utility>`中的一个函数，可以按原类型进行转发引用
+
+1. `T&&`指的是通用引用，既可以是左值引用，也可以是右值引用。而`T&`只代表左值引用。为了使用这个特性，使得`test_move`既接受左值引用，也接受右值引用，我们需要引入模板语法。
+
 ## Multithreading programming 多线程
 
 ### thread
@@ -1210,7 +2124,395 @@ int main()
 
 ### Mutex and semephore
 
+## Smart pointers
 
+`#include <memory>`
+
+### auto_ptr
+
+`auto_ptr`是最早被引入 c++ 的智能指针，从 c++11 开始被弃用。
+
+This class template is deprecated as of C++11. unique_ptr is a new facility with similar functionality, but with improved security.
+
+auto_ptr is a smart pointer that manages an object obtained via a new expression and deletes that object when auto_ptr itself is destroyed.
+
+Example:
+
+```cpp
+int main()
+{
+    auto_ptr<int> p(new int(3));
+    cout << *p << endl;
+    cout << p.get() << endl;
+    cout << &*p << endl;
+    cout << *p.get() << endl;
+    return 0;
+}
+```
+
+Output:
+
+```
+3
+0x22d0a3549e0
+0x22d0a3549e0
+3
+```
+
+我们可以直接对智能指针`p`进行解引用，得到实际的对象。也可以用`get()`方法得到指针存储的对象的地址。
+
+`auto_ptr` is based on an exclusive ownership model i.e. two pointers of the same type can’t point to the same resource at the same time.
+
+Example:
+
+```cpp
+int main()
+{
+    auto_ptr<int> p(new int(3));
+    cout << "object memory address: " << p.get() << endl;
+    cout << "object content: " << *p << endl;
+    cout << "--------" << endl;
+    auto_ptr<int> p2 = p;
+    cout << "p content: " << p.get() << endl;
+    cout << "p2 content: " << p2.get() << endl;
+    cout << "p2 object content: " << *p2 << endl;
+    // cout << "p object content: " << *p << endl;  // Error
+    return 0;
+}
+```
+
+Output:
+
+```
+object memory address: 0x181483649e0
+object content: 3
+--------
+p content: 0
+p2 content: 0x181483649e0
+p2 object content: 3
+```
+
+可以看到，当执行完赋值操作后，`p`被赋为空指针，`p2`指向`p`的内容。这其实是一个 transfer 的过程，而不是一个 copy 的过程。如果我们再对`p`解引用，那么会运行时报错。
+
+为什么`auto_ptr`被抛弃？因为它无法使得两个指针指向同一个对象，所以不支持 stl container （为什么不支持？）。
+
+### unique_ptr
+
+`unique_ptr`和`auto_ptr`功能差不多，只不过当它对 move 语义和 copy 语义区分得更清。
+
+`unique_ptr`禁止了 copy from lvalue 操作：
+
+```cpp
+unique_ptr(const unique_ptr&) = delete;
+unique_ptr& operator=(const unique_ptr&) = delete;
+```
+
+因此我们无法使用一个`unique_ptr`对另一个`unique_ptr`赋值：
+
+```cpp
+int main()
+{
+    unique_ptr<int> p1(new int(3));
+    unique_ptr<int> p2 = p1;  // Error, copy constructor is forbidden
+    p2 = p1;  // Error, operator with lvalue is forbidden
+    unique_ptr<int> p3 = move(p1);  // Ok, move constructor is allowed
+    p3 = move(p1);  // Ok, operator with rvalue is allowed
+    return 0;
+}
+```
+
+我们只能使用 rvalue 对`unique_ptr`赋值。
+
+### shared_ptr
+
+A shared_ptr is a container for raw pointers. It is a reference counting ownership model i.e. it maintains the reference count of its contained pointer in cooperation with all copies of the shared_ptr.
+
+Example:
+
+```cpp
+int main()
+{
+    shared_ptr<int> sp_1(new int(3));
+    cout << *sp_1 << endl;
+    cout << sp_1.get() << endl;
+    cout << sp_1.use_count() << endl;
+
+    cout << "------" << endl;
+    shared_ptr<int> sp_2(sp_1);
+    cout << *sp_2 << endl;
+    cout << sp_2.get() << endl;
+    cout << sp_1.use_count() << endl;
+    cout << sp_2.use_count() << endl;
+
+    cout << "------" << endl;
+    sp_1.reset();
+    cout << sp_1.get() << endl;
+    cout << sp_1.use_count() << endl;
+    cout << sp_2.use_count() << endl;
+    return 0;
+}
+```
+
+Output:
+
+```
+3
+0x1665db249e0
+1
+------
+3
+0x1665db249e0
+2
+2
+------
+0
+0
+1
+```
+
+可以看到，`sp_1`和`sp_2`都指向同一个对象。他们的引用计数都变成了 2。当`sp_1`重置时，`sp_1`的引用计数变成 0，`sp_2`的引用计数变成 1。
+
+如果一开始没有对`shared_ptr`初始化，可以使用`make_shared()`函数，或者`reset()`方法进行赋值。
+
+* `make_shared`
+
+    Header file:
+
+    `#include <memory>`
+
+    Syntax:
+
+    ```cpp
+    template <class T, class... Args>
+    shared_ptr<T> make_shared (Args&&... args);
+    ```
+
+    `make_shared`可以使用`new`创建一个`T`类型的对象，并返回一个指向该对象的`shared_ptr`指针。`make_shared`中的参数会传递给`new`调用的构造函数。
+
+    Example:
+
+    ```cpp
+
+    ```
+
+    
+
+**循环引用问题（Cyclic Dependency）**
+
+假如现在有一个类 A，一个类 B，每个类中都有一个对方类的智能指针，那么就会造成循环引用问题：
+
+```cpp
+class A;
+class B;
+
+class A
+{
+    public:
+    shared_ptr<B> sp;
+    string name;
+
+    ~A() {
+        cout << name << " in A destructor" << endl;
+    }
+};
+
+class B
+{
+    public:
+    shared_ptr<A> sp;
+    string name;
+
+    ~B() {
+        cout << name << " in B destructor" << endl;
+    }
+};
+
+void test_cyclic_ref()
+{
+    shared_ptr<A> pa(new A);
+    shared_ptr<B> pb(new B);
+    pa->name = "pa";
+    pb->name = "pb";
+    pa->sp = pb;
+    pb->sp = pa;
+    
+    shared_ptr<A> pc(new A);
+    pc->name = "pc";
+}
+
+int main()
+{
+    test_cyclic_ref();
+    return 0;
+}
+```
+
+Output:
+
+```
+pc in A deconstructor
+```
+
+可以看到，`pa`和`pb`指向的对象并非调用析构函数，只有`pc`指向的对象调用了析构函数。因此在离开函数`test_cyclic_ref`时，`pa`和`pb`指向的对象的内存并未被释放。
+
+当程序想释放对象`a`的内存时，发现`a.sp`所指向的内存（即对象`b`）并未被销毁，因此需要先销毁对象`b`。可是当程序准备释放对象`b`的内存时，发现`b.sp`所指向的内存（即对象`a`）并未被销毁，于是又会去先销毁对象`a`。这样就造成了循环。
+
+### weak_ptr
+
+为了解决这个问题，我们引入`weak_ptr`。
+
+A weak_ptr is created as a copy of shared_ptr. It provides access to an object that is owned by one or more shared_ptr instances but does not participate in reference counting.
+
+The existence or destruction of weak_ptr has no effect on the shared_ptr or its other copies. It is required in some cases to break circular references between shared_ptr instances. 
+
+由于`weak_ptr`只是`shared_ptr`的复制，而不参与引用计数，所以可以打破这引用循环。只需要把类 A 中的`shared_ptr`改成`weak_ptr`即可：
+
+```cpp
+class A;
+class B;
+
+class A
+{
+    public:
+    weak_ptr<B> wp;  // 将某个类中的 shared_ptr 改成 weak_ptr
+    string name;
+
+    ~A() {
+        cout << name << " in A destructor" << endl;
+    }
+};
+
+class B
+{
+    public:
+    shared_ptr<A> sp;
+    string name;
+
+    ~B() {
+        cout << name << " in B destructor" << endl;
+    }
+};
+
+void test_cyclic_ref()
+{
+    shared_ptr<A> pa(new A);
+    shared_ptr<B> pb(new B);
+    pa->name = "pa";
+    pb->name = "pb";
+    pa->wp = pb;
+    pb->sp = pa;
+    
+    shared_ptr<A> pc(new A);
+    pc->name = "pc";
+}
+
+int main()
+{
+    test_cyclic_ref();
+    return 0;
+}
+```
+
+Output:
+
+```
+pc in A destructor
+pb in B destructor
+pa in A destructor
+```
+
+可以看到，每个对象的内存，都被正确释放了。
+
+问题：
+
+1. 析构顺序
+
+    如果交换
+
+    ```cpp
+    shared_ptr<A> pa(new A);
+    shared_ptr<B> pb(new B);
+    ```
+
+    这两行，即变成
+    
+    ```cpp
+    shared_ptr<B> pb(new B);
+    shared_ptr<A> pa(new A);
+    ```
+
+    上面的代码仍然会输出：
+
+    ```
+    pc in A destructor
+    pb in B destructor
+    pa in A destructor
+    ```
+
+    按道理，按照清栈顺序，应该先处理`pa`，再处理`pb`，为什么输出结果仍不变？
+
+1. 这段代码其实是在外部也申请了两个`shared_ptr`指针。如果仅有`A`，`B`两个对象，内部的指针互相指，那么也会造成循环引用吗？
+
+    会。代码如下：
+
+    ```cpp
+    class A;
+    class B;
+
+    class A
+    {
+        public:
+        shared_ptr<B> sp;
+        string name;
+
+        ~A() {
+            cout << name << " in A destructor" << endl;
+        }
+    };
+
+    class B
+    {
+        public:
+        shared_ptr<A> sp;
+        string name;
+
+        ~B() {
+            cout << name << " in B destructor" << endl;
+        }
+    };
+
+    void test_cyclic_ref()
+    {
+        A *pa = new A;
+        B *pb = new B;
+        pa->name = "pa";
+        pb->name = "pb";
+        pa->sp.reset(pb);
+        pb->sp.reset(pa);
+        
+        shared_ptr<A> pc(new A);
+        pc->name = "pc";
+
+        cout << pa->sp.use_count() << endl;
+        cout << pb->sp.use_count() << endl;
+    }
+
+    int main()
+    {
+        test_cyclic_ref();
+        return 0;
+    }
+    ```
+
+    Output:
+
+    ```
+    1
+    1
+    pc in A destructor
+    ```
+
+    唯一的区别是，使用`shared_ptr`的代码，其指针的引用数为 2。而这段代码的引用数为 1。
 
 ## Lambda Expression （匿名函数）
 
@@ -1225,7 +2527,6 @@ int main()
     return 0;
 }
 ```
-
 
 ## Miscellaneous
 
@@ -1355,11 +2656,5 @@ int main()
 
     试了下，在不合法的地方写入数据是没事的，还能正常使用，可能是没修改到重要的内存，比如别的函数的入口地址之类的。但是在`free()`的时候会报错。如果不`free`直接结束程序，也不会报错。
 
-1. 如果用`new`创建一个对象，但是用`free`释放掉内存，会发生什么？
 
-    试了下，内存会被正确释放掉，但是不会调用析构函数。如果不递归调用析构函数的话，感觉基类的成员的内存也不会被释放，这样就内存泄露了。
-
-1. 使用`free`释放完内存后，传递给`free()`的指针的值不会改变。
-
-    （想了想确实是这样，传递给`free`的是指针的副本，又不是指针本身，当然不可能被改变）
 

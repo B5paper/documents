@@ -16390,7 +16390,7 @@ struct Node {
     };
     ```
 
-### 验证二叉搜索树（再看看）
+### 验证二叉搜索树
 
 给定一个二叉树，判断其是否是一个有效的二叉搜索树。
 
@@ -16526,6 +16526,118 @@ struct Node {
         }
     }
     ```
+
+1. 自己写了一个，有问题
+
+    ```cpp
+    /**
+    * Definition for a binary tree node.
+    * struct TreeNode {
+    *     int val;
+    *     TreeNode *left;
+    *     TreeNode *right;
+    *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+    * };
+    */
+    class Solution {
+    public:
+        bool ans;
+        int dfs(TreeNode *r, bool left)
+        {
+            if (!ans) return 0;
+            if (!r->left && !r->right)
+                return r->val;
+            int max_val = INT32_MIN;
+            int min_val = INT32_MAX;
+            if (r->left)
+                max_val = dfs(r->left, true);
+            if (r->right)
+                min_val = dfs(r->right, false);
+            if (max_val >= r->val || min_val <= r->val)
+            {
+                ans = false;
+                return 0;
+            }
+            if (left)
+                return max(max(max_val, r->val), min_val);
+            return min(min(min_val, r->val), max_val);
+        }
+
+        bool isValidBST(TreeNode* root) {
+            ans = true;
+            dfs(root, true);
+            return ans;
+        }
+    };
+    ```
+
+    思路是用后序遍历，收集左子树的最大值，右子树的最小值，如果左子树的最大值大于当前节点，或右子树的最小值小于当前节点，那么说明不符合二叉搜索树。
+
+    但是这个思路是错的，因为一个节点可能属于某个节点的左子树，也可能属于其他节点的右子树。这样的话在收集信息的过程中信息就会丢失。
+
+    正确的版本应该是这样的：
+
+    ```cpp
+    /**
+    * Definition for a binary tree node.
+    * struct TreeNode {
+    *     int val;
+    *     TreeNode *left;
+    *     TreeNode *right;
+    *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+    * };
+    */
+    class Solution {
+    public:
+        bool ans;
+        int max_val(TreeNode *r)
+        {
+            if (!r->right)
+                return r->val;
+            return max_val(r->right);
+        }
+
+        int min_val(TreeNode *r)
+        {
+            if (!r->left)
+                return r->val;
+            return min_val(r->left);
+        }
+
+        void dfs(TreeNode *r)
+        {
+            if (!ans) return;
+            if (r->left && max_val(r->left) >= r->val)
+            {
+                ans = false;
+                return;
+            }
+            if (r->right && min_val(r->right) <= r->val)
+            {
+                ans = false;
+                return;
+            }
+            if (r->left) dfs(r->left);
+            if (r->right) dfs(r->right);
+        }
+
+        bool isValidBST(TreeNode* root) {
+            ans = true;
+            dfs(root);
+            return ans;
+        }
+    };
+    ```
+
+    对于每个节点，都在左侧找到最大节点，在右侧找到最小节点。而且每个节点都是独立寻找，互不影响。
+
+    我觉得代码还有优化空间，可以把`max_val`和`min_val`改成迭代版本，然后不必找到最后一个节点，发现不符合条件的就立即返回。
+
+    （不清楚这个代码是怎么通过样例的，可能有这样的逻辑链：当子树没问题时，我对当前节点的判断方法就没问题。而当子树有问题时，会在子树的位置定位出问题。但是我判断当前节点，用的是先序遍历，只能保证左子树没问题，不能保证右子树没问题。 ）
 
 ### 两数之和 IV - 输入 BST （两数之和 IV - 输入二叉搜索树）
 

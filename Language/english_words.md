@@ -170,7 +170,7 @@ hood 风帽；罩
 
 conform 遵守，符合
 
-accommodate 为...提供住宿，容纳
+accommodate v. If a building or space can accommodate someone or something, it has enough room for them. eg. The integer is returned to accommodate a special value used to indicate failure.
 
 premier 首要的，最早的；总理，首相
 
@@ -311,3 +311,7 @@ vast 巨大的
 outback 内地
 
 astronomy 天文学
+
+ampersand pron. [ˈæmpərsænd] n. &的记号名称
+
+steal v. If you steal something from someone, you take it away from them without their permission and without intending to return it.
