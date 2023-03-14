@@ -233,6 +233,103 @@ public:
     };
     ```
 
+### Sliding window （滑动窗口）
+
+滑动窗口相对于双指针，还需要维护滑动窗口的某个属性，某种状态。而双指针纯粹是两个指针，两个索引，没有额外需要维护的状态。
+
+#### 乘积小于 K 的子数组
+
+给定一个正整数数组 nums和整数 k ，请找出该数组内乘积小于 k 的连续的子数组的个数。
+
+```
+示例 1:
+
+输入: nums = [10,5,2,6], k = 100
+输出: 8
+解释: 8 个乘积小于 100 的子数组分别为: [10], [5], [2], [6], [10,5], [5,2], [2,6], [5,2,6]。
+需要注意的是 [10,5,2] 并不是乘积小于100的子数组。
+示例 2:
+
+输入: nums = [1,2,3], k = 0
+输出: 0
+```
+
+代码：
+
+因为这道题是乘法，容易溢出，所以不可以使用前缀和。只能使用滑动窗口。
+
+1. 双重循环搜索，超时
+
+    ```cpp
+    class Solution {
+    public:
+        int numSubarrayProductLessThanK(vector<int>& nums, int k) {
+            int prod = nums[0];
+            int ans = 0;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                prod = nums[i];
+                if (prod < k)
+                    ++ans;
+                for (int j = i+1; j < nums.size(); ++j)
+                {
+                    prod *= nums[j];
+                    if (prod < k)
+                        ++ans;
+                    else
+                        break;
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 滑动窗口
+
+    ```cpp
+    class Solution {
+    public:
+        int numSubarrayProductLessThanK(vector<int>& nums, int k) {
+            if (k <= 1) return 0;
+            int ans = 0;
+            int left = 0, right = 0, prod = 1;
+            while (right < nums.size())
+            {
+                prod *= nums[right];
+                while (prod >= k) prod /= nums[left++];  // 为什么这里不需要比较 left < right ?
+                ans += right - left + 1;
+                ++right;  // 为什么在大循环中移动 right，而不是另写一个小循环单独移动 right？
+            }
+            return ans;
+        }
+    };
+    ```
+
+    这个滑动窗口其实很妙，为了能不遗漏每一种情况，`while()`中其实分成了两组行动，一个是固定左端点，向右移动右端点，一个是固定右端点，向右移动左端点。
+
+    什么时候固定左端点呢？当滑动窗口中乘积小于`k`时，则固定左端点。当乘积大于等于`k`时，开始固定右端点。为什么即使变换固定端点，也可以不遗漏每一种情况？
+
+    先看正常二重循环的情况：
+
+    1. 固定`i`，然后向右移动`j`，直到`j`增长到最大`j_max_1`
+
+    1. 固定`i+1`，然后向右移动`j`，直到`j`增长到最大`j_max_2`，我们假设`j_max_2 > j_max_1`
+
+    1. 固定`i+2`，向右移动`j`，直到`j`增长到最大`j_max_3`，我们假设`j_max_3 > j_max_2 > j_max_1`
+
+    1. ...
+
+    如果我们从`j_max_1`处向下划一条线，分隔`[i+1, ..., j_max_1, ..., j_max_2]`，`[i+2, ..., j_max_1, ..., j_max_2, ..., j_max_3]`，就可以看到，上面二重循环`i`不断增加的过程，就是固定`j_max_1`，向右移动`i`的过程。
+
+    接下来我们固定`j_max_1`为左端点，向右移动区间右端点，直到达到`j_max_2`。此时以`j_max_2`为固定点向下划线，再收缩左端点，重复上面的过程。这样就可以解释为什么滑动窗口不会遗漏每一种情况了。
+
+    那么为什么滑动窗口比二重循环快呢？因为对于每个`[i, i+1, ...]`，都需要从这里先到`j_max_1`，时间复杂度为`O(n + (n-1) + (n-2) + ... + 1) = O((n + 1) * n / 2) = O(n^2)`，而滑动窗口只需要从`i`到`j_max_1`找一次就可以了，即`O(n + n) = O(n)`。
+
+1. 答案还给了先取对数，再做前缀和 + 哈希表
+
+    确实可行，不过我觉得这个方法不是很好。没必要硬用前缀和。
+
 ### Prefix sum （前缀和）
 
 （常见的前缀和都是和哈希表配合使用的，因此实际上只使用前缀和的并不多）
@@ -7050,9 +7147,71 @@ public:
     };
     ```
 
+    后来又写的：
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> findAnagrams(string s, string p) {
+            vector<int> ans;
+            if (s.size() < p.size()) return ans;
+            int cnt[26] = {0};
+            for (int i = 0; i < p.size(); ++i)
+            {
+                --cnt[p[i] - 'a'];
+                ++cnt[s[i] - 'a'];
+            }
+
+            bool all_zero = true;
+            for (int i = 0; i < 26; ++i)
+            {
+                if (cnt[i] != 0)
+                {
+                    all_zero = false;
+                    break;
+                }
+            }
+            if (all_zero)
+                ans.push_back(0);
+            for (int i = p.size(); i < s.size(); ++i)
+            {
+                ++cnt[s[i] - 'a'];
+                --cnt[s[i-p.size()] - 'a'];
+                all_zero = true;
+                for (int i = 0; i < 26; ++i)
+                {
+                    if (cnt[i] != 0)
+                    {
+                        all_zero = false;
+                        break;
+                    }
+                }
+                if (all_zero)
+                    ans.push_back(i - p.size() + 1);
+            }
+            return ans;
+        }
+    };
+    ```
+
+    后来写的改成了一个数组，不过总体原理和原来差不多。
+
+    这道题应该还可以用 KMP 算法来做。回头试一下。
+
+    我们还可以维护一个当前窗口`cnt`中 0 的数量，这样每次只比较这个数量是否等于 26 就可以了，不需要比较 26 次。
+
+1. 先使得`p`中的词都在`s`中出现过，再判断长度是否正好是`p`的长度
+
+    数组`cnt[26]`可以记录`int`值，正数表示`s`中出现过，`p`中没出现过；负数表示`p`中出现过，`s`中没出现过。
+
+    我们在最外层循环里对`cnt`数组遍历，在内层循环中不断移动右指针，使得`cnt[i]`等 0，接下来检查下一个`cnt`中的字符。等`cnt`中的所有负数都大于等于 0 后，我们再移动左指针，使得`cnt`中所有的正数都等于 0。如果此时又有负数，那就继续移动右指针。直到`cnt`中所有数都等于 0，那么就可以记录左指针的位置到答案中了。
+
 注：这道题没法用双指针+踩坑法做，因为这种方法没法处理`s = "abab"`，`p = "ab"`的情形。
 
-这道题似乎可以用双指针做，通过双指针 + 长度配合的方式。但我现在还没懂这样做的原理。
+1. 每次右指针只往右走一步，如果右指针出现了一个`p`中没有的字符，那么就收缩左指针，直到删去这个字符为止。此时比较滑动窗口的长度，若长度和`p`相同，那么就一定和`p`是异位词。
+
+    我觉得这个方法利用了抽屉原理。如果现在有 5 个数字，取值`[1, 10]`，现在已知这 5 个数字的和是 5，请求这几个数字分别是多少？只有一种情况，那就是全是 1。我不知道这个原理叫什么名字。
+
 
 ### 错误的集合
 
@@ -7801,7 +7960,34 @@ public:
 1. 使用栈。代码简洁，但效率较低。
 
 ```c++
-
+class Solution {
+public:
+    bool backspaceCompare(string s, string t) {
+        stack<char> stk1, stk2;
+        for (int i = 0; i < s.size(); ++i)
+        {
+            if (s[i] == '#')
+            {
+                if (!stk1.empty())
+                    stk1.pop();
+            }
+            else
+                stk1.push(s[i]);
+        }
+        for (int i = 0; i < t.size(); ++i)
+        {
+            if (t[i] == '#')
+            {
+                if (!stk2.empty())
+                    stk2.pop();
+            }
+                
+            else
+                stk2.push(t[i]);
+        }
+        return stk1 == stk2;
+    }
+};
 ```
 
 1. 使用倒序双指针。代码较复杂，但效率高。
@@ -8586,7 +8772,7 @@ public:
     };
     ```
 
-### 和大于等于 target 的最短子数组
+### 和大于等于 target 的最短子数组（长度最小的子数组）
 
 给定一个含有 n 个正整数的数组和一个正整数 target 。
 
@@ -8636,6 +8822,40 @@ public:
                 }
             }
             return ans == INT32_MAX ? 0 : ans;
+        }
+    };
+    ```
+
+    后来又写的（也会超时）：
+
+    ```cpp
+    class Solution {
+    public:
+        int minSubArrayLen(int target, vector<int>& nums) {
+            int n = nums.size();
+            vector<int> presum(n, 0);  // 不可以用 int presum[n] = {0}; 因为无法申请动态的数组。但是在本地的 c++ 编译器上是可以的。奇怪。
+            presum[0] = nums[0];  // 申请数量为 n 的数组，不申请 n+1 个，这样更直观
+            for (int i = 1; i < n; ++i)
+            {
+                presum[i] = presum[i-1] + nums[i];
+            }
+
+            int s = 0;
+            int ans = INT32_MAX;
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = i; j < n; ++j)
+                {
+                    s = presum[j] - presum[i] + nums[i];
+                    if (s >= target)
+                    {
+                        ans = min(ans, j - i + 1);
+                        break;
+                    }
+                }
+            }
+            if (ans == INT32_MAX) return 0;
+            return ans;
         }
     };
     ```
@@ -8749,28 +8969,9 @@ public:
 
 思考：如果题目改正数组中的数为整数，该怎么做呢？
 
-### 乘积小于 K 的子数组
 
-给定一个正整数数组 nums和整数 k ，请找出该数组内乘积小于 k 的连续的子数组的个数。
 
- 
 
-```
-示例 1:
-
-输入: nums = [10,5,2,6], k = 100
-输出: 8
-解释: 8 个乘积小于 100 的子数组分别为: [10], [5], [2], [6], [10,5], [5,2], [2,6], [5,2,6]。
-需要注意的是 [10,5,2] 并不是乘积小于100的子数组。
-示例 2:
-
-输入: nums = [1,2,3], k = 0
-输出: 0
-```
-
-代码：
-
-1. 
 
 ### 轮转数组
 
@@ -8987,6 +9188,146 @@ nums[0] + nums[3] + nums[4] = (-1) + 2 + (-1) = 0 。
     ```
 
     题目说答案中不可以有重复的结果，那么我们就直接想到排序了。排完序后自然地想到双指针或二分查找。
+
+### 找出字符串中第一个匹配项的下标
+
+给你两个字符串 haystack 和 needle ，请你在 haystack 字符串中找出 needle 字符串的第一个匹配项的下标（下标从 0 开始）。如果 needle 不是 haystack 的一部分，则返回  -1 。
+
+ 
+
+示例 1：
+
+输入：haystack = "sadbutsad", needle = "sad"
+输出：0
+解释："sad" 在下标 0 和 6 处匹配。
+第一个匹配项的下标是 0 ，所以返回 0 。
+示例 2：
+
+输入：haystack = "leetcode", needle = "leeto"
+输出：-1
+解释："leeto" 没有在 "leetcode" 中出现，所以返回 -1 。
+ 
+
+提示：
+
+* 1 <= haystack.length, needle.length <= 104
+* haystack 和 needle 仅由小写英文字符组成
+
+1. KMP 算法
+
+    ```cpp
+    class Solution {
+    public:
+        int strStr(string haystack, string needle) {
+            if (haystack.size() < needle.size()) return -1;
+            string &txt = haystack;
+            string &pat = needle;
+            int aux[pat.size()];
+            aux[0] = 0;
+            int len = 0;
+            int i = 1;
+            while (i < pat.size())
+            {
+                if (pat[i] == pat[len])
+                {
+                    ++len;
+                    aux[i] = len;
+                    ++i;
+                }
+                else
+                {
+                    if (len != 0)
+                        len = aux[len-1];
+                    else
+                    {
+                        aux[i] = 0;
+                        ++i;
+                    }
+                }
+            }
+
+            i = 0;
+            int j = 0;
+            while (i + pat.size() <= txt.size() && j < pat.size())
+            {
+                if (txt[i+j] == pat[j])
+                {
+                    ++j;
+                }
+                else
+                {
+                    if (j == 0)
+                    {
+                        ++i;
+                        continue;
+                    }
+                    int ai = i;
+                    i += j - aux[j-1];
+                    j -= j - aux[j-1];
+                }
+            }
+            if (i + pat.size() > txt.size())
+                return -1;
+            return i;
+        }
+    };
+    ```
+
+    首先我们需要对待搜索的`pattern`构造一个辅助数组，用于存储在第 i 个位置处，有多少个最长前缀可以匹配当前位置的后缀：
+
+    ```
+    ┌────────┬───────┬────────┬────────────┐
+    │xxxxxxxx│       │xxxxxxxx│            │
+    └────────┴───────┴────────┴────────────┘
+     0      7         i-7    i
+    ```
+
+    比如在`pat[i]`位置，如果`pat[0...7]`和`pat[i-1...i]`完全相等，并且`pat[8] != pat[i-8]`，那么就记录`aux[i] = 8`。因为最长匹配到 8 个字符。
+
+    接下来是这个辅助数据构造的第一个技巧：
+
+    如果我们`pat[i] == pat[7]`，但是`pat[i+1] != pat[8]`的时候怎么办？我们当然可以从`pat[i-1]`开始，倒着找到一个等于`pat[i]`的字符，假设这个字符的索引为`j`，然后往前检查`pat[i]`处的后缀是否等于`pat[0...j]`，如果正好相等，那么就可以更新`aux[i]`。但是我们还需要继续向前找`j`，直到使得`aux[i]`最大。
+
+    这个想法是可行的，但是我们有更多巧妙的办法：整体上来看，我们是把`pat[0...i]`分成了三段，其中第一段和第三段相等。由于前面的数据我们已经处理过了，所以我们还可以把第一段和第三段再分成三段：
+
+    ```
+    ┌─────────┬───────┬─────────┬────────────┐
+    │+++xxx+++│       │+++xxx+++│            │
+    └─────────┴───────┴─────────┴────────────┘
+     |a| b |c|         |d| e |f|
+     |   g   |    h    |   k   |
+     0                         i
+    ```
+
+    我们可以看到，之前把`pat[0...i]`分成了 g，h，k 三组，其中 g 和 k 完全相等。假如现在`pat[i+1]`不再匹配，那么我们不需要从头开始找，对于 g 区间，我们只需要丢弃掉 b，c 两个小区间，对于 k 区间，我们只需要丢弃掉 d, e 两个小区间，接着再比较 a 区间的下一个字符和`pat[i+1]`（即 f 区间的下一个字符）是否相等就可以了。如果不相等的话，我们重复这个过程，快速定位到下一个点。
+
+    等构造完了辅助数组`aux`，我们开始使用本方法的第二个技巧：
+
+    ```
+    ┌────────┬─────┬──────┬─────┬──────────────────────┐
+    │        │xxxxx│      │xxxxx│@                     │
+    └────────┴─────┴──────┴─────┴──────────────────────┘
+     0        s  s+k      i-k  i
+             ┌─────┬──────┬─────┬────────┐
+             │xxxxx│      │xxxxx│+       │
+             └─────┴──────┴─────┴────────┘
+             0    k        j-k  j
+                          ┌─────┬──────┬─────┬────────┐
+                          │xxxxx│      │xxxxx│        │
+                          └─────┴──────┴─────┴────────┘
+    ```
+
+    假如我们从`txt[s]`处开始匹配字符串`pat`，在`txt[i+1]`的时候发现`txt[i+1] != pat[j+1]`。这时候该怎么办呢？
+
+    我们把字符串`txt[s...i]`和`pat[0..j]`分成三段，第一段和第三段的长度为`k+1`，且内容完全相同，`k`这个数字可由`aux[j]`得到。下次我们再匹配`pat`的时候，不必从`s+1`开始，而是直接从`i-k`开始就可以了。而且对于`pat`字符串，我们也不必从`0`开始一个一个比较，我们只需要从`k`开始比较就可以了。
+    
+    为什么这样是对的？有没有可能在`txt[s..i]`中存在一个字符串，使得它和`pat`完全匹配？假如它存在，那么它一定会在之前就被找到，因为我们的`aux`数组总是找最长的匹配字符串。为什么`aux`可以保证找的是最长匹配的字符串？因为当我们使用`aux`跳转时，跳转过去的也是最长的。
+
+    通过这两个技巧，我们就可以快速跳转到下一个位置进行匹配。
+
+    Ref: <https://www.geeksforgeeks.org/kmp-algorithm-for-pattern-searching/>
+
+    问题：KMP 算法的灵感源自哪里？如何通过线性思考和非线性思考得到？
 
 ## 链表
 
@@ -16963,7 +17304,7 @@ struct Node {
                 {
                     node = q.front();
                     q.pop();
-                    if (i != size - 1) node->next = q.front();
+                    if (i < size - 1) node->next = q.front();
                     else node->next = nullptr;
                     if (node->left) q.push(node->left);
                     if (node->right) q.push(node->right);
@@ -17022,6 +17363,34 @@ struct Node {
         }
     };
     ```
+
+    一个左节点的`next`的寻找顺序：
+
+    1. parent 的右节点
+    1. parent 的 next 的左节点（如果 parent 的 next 不存在，那么直接置空）
+    1. parent 的 next 的右节点
+
+    如果以上都找不到，那么左节点的`next`置空。
+
+    一个右节点的`next`的寻找顺序：
+
+    1. parent 的 next 的左节点（如果 parent 的 next 不存在，那么直接置空）
+    1. parent 的 next 的右节点
+
+    根节点没有 parent，但是根节点的 next 可以直接置空。
+
+    由于我们需要层序遍历，所以需要先从父节点把子节点都修改好。
+
+    当一层遍历结束时，我们如何找到下一层呢？可以想到以下查找顺序：
+
+    1. 当前层第一个节点的左节点
+    1. 当前层第一个节点的右节点
+    1. 当前层第二个节点的左节点
+    1. ...
+
+    如果当前层的所有节点都没有子节点，那么说明到了叶子节点，结束循环。
+
+    启示：我们是否可以利用已经生成的信息呢？
 
 ### 相同的树
 
@@ -25767,7 +26136,25 @@ public:
     }
     ```
 
-    如果数字不存在于数组中，且没有`nums[right] != target`的限制，那么返回的是第一个小于`traget`的下标。
+    这份代码的作用有四个：
+
+    1. 如果`target`在`nums`中出现，并且只出现一次，那么当执行完`while`语句后，`right`的值即为`target`的索引。
+
+    1. 如果`target`在`nums`中出现，且连续出现多次，那么当执行完`while`语句后，`right`的值为最右侧`target`的索引。
+
+    1. 如果`target`不在`nums`中出现，且小于任何一个数组中的值，那么当执行完`while`语句后，`right`的值为`-1`
+
+    1. 如果`target`不在`nums`中出现，且大于任何一个数组中的值，那么当执行完`while`语句后，`right`的值为`nums.size() - 1`。
+
+    我们可以观察到两个现象：
+
+    1. 第二点和第四点，如果`right`的值为`nums.size() - 1`，我们无法区分`target`是最后一个值，还是比数组中所有的值都大。
+
+        为了解决这个问题，我们可以在`while`结束后做个判断，如果`nums[right] == target`，那么说明`target`是最后一个值；否则说明`target`比所有值都大。
+
+    1. 第三点和第四点，可以合并起来。如果`target`不在`nums`中出现，那么`right`的值代表的意义为第一个**小于**`traget`的下标。
+
+        如果我们无法事先知道`target`是否在`nums`中出现，那么我们可以把这个结论再放宽一点：无论什么情况，`right`总是代表第一个**小于等于**`target`的下标（这个下标有可能是 -1）。
 
     另一种形式：
 
@@ -25984,6 +26371,46 @@ public:
 };
 ```
 
+后来又写的：
+
+```cpp
+class Solution {
+public:
+    vector<int> searchRange(vector<int>& nums, int target) {
+        vector<int> ans(2, -1);
+        int n = nums.size();
+        int left = 0, right = n - 1;
+        int mid;
+        while (left <= right)
+        {
+            mid = left + (right - left) / 2;
+            if (nums[mid] < target)
+                left = mid + 1;
+            else if (nums[mid] > target)
+                right = mid - 1;
+            else
+                right = mid - 1;
+        }
+        if (left == n || nums[left] != target) return ans;
+        ans[0] = left;
+        // left = 0;  // 左端点搜索过了，并确定存在，就不需要从 0 开始搜索了
+        right = n - 1;
+        while (left <= right)
+        {
+            mid = left + (right - left) / 2;
+            if (nums[mid] < target)
+                left = mid + 1;
+            else if (nums[mid] > target)
+                right = mid - 1;
+            else
+                left = mid + 1;
+        }
+        ans[1] = right;
+        return ans;
+    }
+};
+```
+
 ### 搜索旋转排序数组
 
 整数数组 nums 按升序排列，数组中的值 互不相同 。
@@ -26047,6 +26474,60 @@ public:
     };
     ```
 
+    后来又写的：
+
+    ```cpp
+    class Solution {
+    public:
+        int search(vector<int>& nums, int target) {
+            int n = nums.size();
+            int left = 0, right = n - 1;
+            int mid;
+            while (left <= right)
+            {
+                mid = left + (right - left) / 2;
+                if (nums[mid] > nums[right])
+                    left = mid + 1;
+                else if (nums[mid] < nums[right])
+                    right = mid;
+                else
+                {
+                    left = mid;
+                    break;
+                }
+            }
+            int pivox_idx = left;
+
+            right = n - 1;
+            while (left <= right)
+            {
+                mid = left + (right - left) / 2;
+                if (nums[mid] > target)
+                    right = mid - 1;
+                else if (nums[mid] < target)
+                    left = mid + 1;
+                else
+                    return mid;
+            }
+            if (pivox_idx == 0) return -1;
+
+            left = 0;
+            right = pivox_idx - 1;
+            while (left <= right)
+            {
+                mid = left + (right - left) / 2;
+                if (nums[mid] > target)
+                    right = mid - 1;
+                else if (nums[mid] < target)
+                    left = mid + 1;
+                else
+                    return mid;
+            }
+            return -1;
+        }
+    };
+    ```
+
 1. 只判断 target 是否落在有序序列中
 
     ```c++
@@ -26074,6 +26555,12 @@ public:
         }
     };
     ```
+
+    别人写的题解：将数组一分为二，其中一定有一个是有序的，另一个可能是有序，也能是部分有序。此时有序部分用二分法查找。无序部分再一分为二，其中一个一定有序，另一个可能有序，可能无序。就这样循环. 
+
+    定理一：只有在顺序区间内才可以通过区间两端的数值判断target是否在其中。
+
+    定理二：判断顺序区间还是乱序区间，只需要对比 left 和 right 是否是顺序对即可，left <= right，顺序区间，否则乱序区间。
 
 ### 搜索二维矩阵
 
@@ -26117,6 +26604,43 @@ public:
             if (matrix[row][m] == target) return true;
             if (matrix[row][m] < target) l = m + 1;
             else r = m;
+        }
+        return false;
+    }
+};
+```
+
+后来又写的：
+
+```cpp
+class Solution {
+public:
+    bool searchMatrix(vector<vector<int>>& matrix, int target) {
+        int m = matrix.size(), n = matrix[0].size();
+        int left = 0, right = m - 1, mid;
+        while (left <= right)
+        {
+            mid = left + (right - left) / 2;
+            if (matrix[mid][0] > target)
+                right = mid - 1;
+            else if (matrix[mid][0] < target)
+                left = mid + 1;
+            else
+                return true;
+        } // 对于标准二分写法，当执行完后，left 一定是第个比 target 大的元素的索引
+        if (left == 0) return false;
+        int row = left - 1;
+        left = 0;
+        right = n - 1;
+        while (left <= right)
+        {
+            mid = left + (right - left) / 2;
+            if (matrix[row][mid] > target)
+                right = mid - 1;
+            else if (matrix[row][mid] < target)
+                left = mid + 1;
+            else
+                return true;
         }
         return false;
     }
@@ -27897,28 +28421,103 @@ public:
 
 代码：
 
-滑动窗口。代码同“乘积小于K的子数组”几乎一模一样。
+1. 滑动窗口。代码同“乘积小于K的子数组”几乎一模一样。
 
-```c++
-class Solution {
-public:
-    int minSubArrayLen(int target, vector<int>& nums) {
-        int left = 0, right = 0, sum = 0;
-        int ans = INT32_MAX;
-        while (right < nums.size())
-        {
-            sum += nums[right];
-            while (sum >= target)
+    ```c++
+    class Solution {
+    public:
+        int minSubArrayLen(int target, vector<int>& nums) {
+            int left = 0, right = 0, sum = 0;
+            int ans = INT32_MAX;
+            while (right < nums.size())
             {
-                ans = min(ans, right - left + 1);
-                sum -= nums[left++];
+                sum += nums[right];
+                while (sum >= target)
+                {
+                    ans = min(ans, right - left + 1);
+                    sum -= nums[left++];
+                }
+                ++right;
             }
-            ++right;
+            return ans == INT32_MAX ? 0 : ans;
         }
-        return ans == INT32_MAX ? 0 : ans;
-    }
-};
-```
+    };
+    ```
+
+1. 前缀和 + 二分查找
+
+    ```cpp
+    class Solution {
+    public:
+        int minSubArrayLen(int target, vector<int>& nums) {
+            int n = nums.size();
+            vector<int> presum(n, 0);
+            presum[0] = nums[0];
+            if (nums[0] >= target) return 1;
+
+            int left = 0, right = nums.size() - 1;
+            int mid;
+            int t;
+            int ans = INT32_MAX;
+            for (int i = 1; i < n; ++i)
+            {
+                presum[i] = presum[i-1] + nums[i];
+                right = i;
+                t = presum[i] - target;
+                if (t == 0)
+                    ans = min(ans, i+1);
+                else if (t > 0)
+                {
+                    while (left <= right)
+                    {
+                        mid = left + (right - left) / 2;
+                        if (presum[mid] < t)
+                            left = mid + 1;
+                        else if (presum[mid] > t)
+                            right = mid - 1;
+                        else
+                            left = mid + 1;
+                    }
+                    ans = min(ans, i - (right+1) + 1);
+                }
+            }
+            if (ans == INT32_MAX) return 0;
+            return ans;
+        }
+    };
+    ```
+
+    这个边界条件的检查很麻烦。二分查找的边界条件，前缀和的边界条件，滑动窗口的边界条件，可谓是三大难题了。
+
+    我们的前缀和`presum[i]`表示从`nums[0]`到`nums[i]`的所有数字之和，包含两个边界。因此对于闭区间`[i, j]`，若令`sum[i, j]`表示从`nums[i]`到`nums[j]`的所有数字之和，则有`sum[i, j] = presum[j] - presum[i] + nums[i]`。
+
+    对于`target`，我们需要满足这样一个式子：`sum[i, j] >= target`，且长度`len = j - i + 1`尽量地小。将第一个式子展开，得到
+    
+    `presum[j] - presum[i] + nums[i] >= target`
+    
+    => `presum[j] - (presum[i] - nums[i]) >= target`
+    
+    => `presum[j] - presum[i-1] >= target`
+
+    => `presum[i-1] <= presum[j] - target`
+
+    OK，到这里如果我们令`k = i - 1`，令`s = presum[j] - target`，那么就得到
+
+    `presum[k] <= s`
+
+    当`k`尽量大时，`i`也会尽量大，`len = j - i + 1`会尽量小，符合题意。而我们可以想到，二分查找的查找右边界方法，可以返回小于等于`target`的第一个元素的索引。
+
+    但是有一些边界问题：
+
+    1. 如果`s`小于 0，那么意味着无论如何也找不到一个连续数组，使得数组之和大于等于`target`。可是如果直接套我们的右边界查找算法，那么`right`会返回 -1。因此我们进入二分查找算法，直接判断。
+
+    1. 如果`s`等于 0，那么意味着当前子数组的长度正好可以满足要求，当前子数组的长度为`len = j - 0 + 1 = j + 1`，`ans = min(ans, len)`。`right`值为 -1。
+
+    1. 如果`s`大于 0，但是小于`presum`的第一个元素，那么`right`仍会返回 -1。当前子数组的长度也可以满足要求。注意到我们的`right`实际上是`k`，所以`i`可以算出来为`i = right + 1`。这一个边界问题和第 2 条边界问题可以合并起来，`len = j - i + 1 = j - (right + 1) + 1 = j - right`。
+
+    1. 因为`s = presum[j] - target`，所以`s`没有可能超过`presum`的最大值。其余的情况我们就不用考虑了。
+
+    1. 如果`presum`只有一个元素，（分析不动了）
 
 #### 四数之和
 
@@ -28855,6 +29454,43 @@ sr = 1, sc = 1, newColor = 2
     };
     ```
 
+    后来又写的 dfs：
+
+    ```cpp
+    class Solution {
+    public:
+        void dfs(vector<vector<char>> &grid, int x, int y)
+        {
+            if (x < 0 || x >= grid.size() ||
+                y < 0 || y >= grid[0].size() || grid[x][y] == '0')
+            {
+                return;
+            }
+            grid[x][y] = '0';
+            dfs(grid, x - 1, y);
+            dfs(grid, x + 1, y);
+            dfs(grid, x, y - 1);
+            dfs(grid, x, y + 1);
+        }
+
+        int numIslands(vector<vector<char>>& grid) {
+            int ans = 0;
+            for (int i = 0; i < grid.size(); ++i)
+            {
+                for (int j = 0; j < grid[0].size(); ++j)
+                {
+                    if (grid[i][j] == '1')
+                    {
+                        ++ans;
+                        dfs(grid, i, j);
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
 #### 省份数量
 
 有 n 个城市，其中一些彼此相连，另一些没有相连。如果城市 a 与城市 b 直接相连，且城市 b 与城市 c 直接相连，那么城市 a 与城市 c 间接相连。
@@ -28912,6 +29548,51 @@ sr = 1, sc = 1, newColor = 2
         }
     };
     ```
+
+    后来自己写的：
+
+    ```cpp
+    class Solution {
+    public:
+        void dfs(vector<vector<int>>& isConnected, int i)
+        {
+            int n = isConnected.size();
+            for (int j = 0; j < n; ++j)
+            {
+                if (isConnected[i][j])
+                {
+                    isConnected[i][j] = 0;
+                    isConnected[j][i] = 0;
+                    if (i == j)
+                        continue;
+                    dfs(isConnected, j);
+                }
+            }
+        }
+
+        int findCircleNum(vector<vector<int>>& isConnected) {
+            int ans = 0;
+            int n = isConnected.size();
+
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = 0; j < n; ++j)
+                {
+                    if (isConnected[i][j] == 1)
+                    {
+                        ++ans;
+                        dfs(isConnected, i);
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    后来的思路是每找到一团，就把这一团全部解开，包括自己连自己。因此区别孤岛与团的方式就是看它是否和自己相连。
+
+    如果自己不与自己相连，那么我们没有办法区别哪些访问过，哪些没有。我们只能先遍历一遍，找那些孤岛，再在第二遍遍历中搜索团。
 
 1. 广度优先
 
@@ -29018,6 +29699,58 @@ sr = 1, sc = 1, newColor = 2
         }
     };
     ```
+
+1. 后来又写的，把条件改到了搜索过程中，速度快了一些
+
+    ```cpp
+    class Solution {
+    public:
+        const int dx[8] = {0, 0, -1, 1, -1, -1, 1, 1};
+        const int dy[8] = {-1, 1, 0, 0, -1, 1, -1, 1};
+
+        int shortestPathBinaryMatrix(vector<vector<int>>& grid) {
+            if (grid[0][0] == 1) return -1;
+            int m = grid.size(), n = grid[0].size();
+            if (m == 1 && n == 1 && grid[0][0] == 0) return 1;
+            queue<pair<int, int>> q;
+            q.push(make_pair(0, 0));
+            grid[0][0] = 1;
+            int sx, sy, x, y;
+            int ans = 0;
+            int size;
+            while (!q.empty())
+            {
+                size = q.size();
+                ++ans;
+                for (int k = 0; k < size; ++k)
+                {
+                    sx = q.front().first;
+                    sy = q.front().second;
+                    q.pop();
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        x = sx + dx[i];
+                        y = sy + dy[i];
+                        if (x >= 0 && x < m && y >= 0 && y < n &&
+                            grid[x][y] == 0)
+                        {
+                            if (x == m - 1 && y == n - 1)
+                            {
+                                ++ans;
+                                return ans;
+                            }
+                            q.push(make_pair(x, y));
+                            grid[x][y] = 1;
+                        }
+                    }
+                }
+            }
+            return -1;
+        }
+    };
+    ```
+
+    由于是在搜索的过程中判断条件，而不是在当前节点判断条件，所以若当前节点直接满足退出函数的条件，需要单独处理。
 
 #### 被围绕的区域
 
@@ -29156,6 +29889,142 @@ sr = 1, sc = 1, newColor = 2
         }
     };
     ```
+
+    后来自己写的，和这个挺像的，还行，就是代码有点长：
+
+    ```cpp
+    class Solution {
+    public:
+        void solve(vector<vector<char>>& board) {
+            int m = board.size(), n = board[0].size();
+            int sx, sy;
+            const int dx[4] = {-1, 1, 0, 0};
+            const int dy[4] = {0, 0, -1, 1};
+            int x, y;
+            int i = 0, j = 0;
+            queue<pair<int, int>> q;
+            for (j = 0; j < n; ++j)
+            {
+                if (board[i][j] == 'O')
+                {
+                    q.push(make_pair(i, j));
+                    board[i][j] = 'A';
+                    while (!q.empty())
+                    {
+                        sx = q.front().first;
+                        sy = q.front().second;
+                        q.pop();
+                        for (int k = 0; k < 4; ++k)
+                        {
+                            x = sx + dx[k];
+                            y = sy + dy[k];
+                            if (x >= 0 && x < m && y >= 0 && y < n &&
+                                board[x][y] == 'O')
+                            {
+                                board[x][y] = 'A';
+                                q.push(make_pair(x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+            i = m - 1;
+            for (j = 0; j < n; ++j)
+            {
+                if (board[i][j] == 'O')
+                {
+                    q.push(make_pair(i, j));
+                    board[i][j] = 'A';
+                    while (!q.empty())
+                    {
+                        sx = q.front().first;
+                        sy = q.front().second;
+                        q.pop();
+                        for (int k = 0; k < 4; ++k)
+                        {
+                            x = sx + dx[k];
+                            y = sy + dy[k];
+                            if (x >= 0 && x < m && y >= 0 && y < n &&
+                                board[x][y] == 'O')
+                            {
+                                board[x][y] = 'A';
+                                q.push(make_pair(x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+            j = 0;
+            for (i = 0; i < m; ++i)
+            {
+                if (board[i][j] == 'O')
+                {
+                    q.push(make_pair(i, j));
+                    board[i][j] = 'A';
+                    while (!q.empty())
+                    {
+                        sx = q.front().first;
+                        sy = q.front().second;
+                        q.pop();
+                        for (int k = 0; k < 4; ++k)
+                        {
+                            x = sx + dx[k];
+                            y = sy + dy[k];
+                            if (x >= 0 && x < m && y >= 0 && y < n &&
+                                board[x][y] == 'O')
+                            {
+                                board[x][y] = 'A';
+                                q.push(make_pair(x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+            j = n - 1;
+            for (i = 0; i < m; ++i)
+            {
+                if (board[i][j] == 'O')
+                {
+                    q.push(make_pair(i, j));
+                    board[i][j] = 'A';
+                    while (!q.empty())
+                    {
+                        sx = q.front().first;
+                        sy = q.front().second;
+                        q.pop();
+                        for (int k = 0; k < 4; ++k)
+                        {
+                            x = sx + dx[k];
+                            y = sy + dy[k];
+                            if (x >= 0 && x < m && y >= 0 && y < n &&
+                                board[x][y] == 'O')
+                            {
+                                board[x][y] = 'A';
+                                q.push(make_pair(x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < m; ++i)
+            {
+                for (int j = 0; j < n; ++j)
+                {
+                    if (board[i][j] == 'O')
+                        board[i][j] = 'X';
+                    else if (board[i][j] == 'A')
+                        board[i][j] = 'O';
+                }
+            }
+        }
+    };
+    ```
+
+    这段代码分别搜索了第一行，最后一行，第一列，最后一列。我觉得可以把 bfs 部分单独写一个函数。
 
 1. 深度优先的一个版本
 
@@ -29816,6 +30685,33 @@ public:
     };
     ```
 
+    后来又写的：
+
+    ```cpp
+    class Solution {
+    public:
+        vector<vector<int>> ans;
+        vector<int> path;
+
+        void backtrack(vector<int> &nums, int pos)
+        {
+            ans.push_back(path);
+            for (int i = pos; i < nums.size(); ++i)
+            {
+                path.push_back(nums[i]);
+                backtrack(nums, i+1);
+                path.pop_back();
+            }
+        }
+        vector<vector<int>> subsets(vector<int>& nums) {
+            backtrack(nums, 0);
+            return ans;
+        }
+    };
+    ```
+
+    之所以不需要写`vis[]`，是因为子集不能有相同的集合，所以我们不需要重复搜索之前的集合，我们只需要向后搜索就好了。既然只搜索后面，那么就不需要记录前面搜索过没有了。
+
 1. 利用二进制表示某个元素是否被选入集合
 
 1. 用纯递归实现
@@ -29896,6 +30792,14 @@ public:
     }
 };
 ```
+
+首先我们需要排序，这样比较方便区分重复元素。
+
+假如现在有`[1, 2, 2, 2, 3]`，我们可以分析：
+
+1. 如果某个元素前面的元素已经访问过，那么当前元素一定可以访问。
+
+1. 如果某个元素前面的元素没有被访问过，那么如果当前元素和前面的元素相等时，跳过。
 
 #### 组合
 
@@ -30844,6 +31748,49 @@ public:
     }
 };
 ```
+
+后来又写的：
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> ans;
+    vector<int> temp;
+    vector<bool> vis;
+    void backtrack(vector<vector<int>> &graph, int node)
+    {
+        if (node == graph.size() - 1)
+        {
+            ans.push_back(temp);
+            return;
+        }
+
+        int num = graph[node].size();
+        for (int i = 0; i < num; ++i)
+        {
+            if (vis[graph[node][i]])
+                continue;
+            temp.push_back(graph[node][i]);
+            vis[graph[node][i]] = true;
+            backtrack(graph, graph[node][i]);
+            temp.pop_back();
+            vis[graph[node][i]] = false;
+        }
+    }
+
+    vector<vector<int>> allPathsSourceTarget(vector<vector<int>>& graph) {
+        if (graph[0].empty())
+            return ans;
+        else
+            temp.push_back(0);
+        vis.assign(graph.size(), false);
+        backtrack(graph, 0);
+        return ans;
+    }
+};
+```
+
+因为题目中说了不会存在环，所以不可能访问到已经访问过的节点，这段代码里`vis`是没有用的，可以优化掉。
 
 #### 电话号码的字母组合
 

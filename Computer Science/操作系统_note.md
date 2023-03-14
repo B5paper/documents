@@ -549,8 +549,8 @@ mutex 是初值为 1 的信号量。
 
     consumer() {
         while (1) {
-            P(mutex);
             P(full);
+            P(mutex);
             从缓冲区取出一个产品;
             V(mutex);
             V(empty);
