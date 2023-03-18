@@ -675,6 +675,26 @@ fn dangle() -> &String {
 1. 在任意给定时间，要么只能有一个可变引用，要么只能有多个不可变引用
 1. 引用必须总是有效的
 
+**引用与 mut**
+
+```rust
+let mut r = &list_node;  // 这个 mut 指的是 r 可以被重新赋值，指向其他的引用
+r = &list_node_2;  // OK
+
+let r = &list_node;
+r = &list_node_2;  // Error
+```
+
+```rust
+let r = &mut list_node;  // 这个 mut 指的是 r 可以修改 list_node 中的内容
+r.val = 3;  // OK
+
+let r = &list_node;
+r.val = 3;  // Error
+```
+
+
+
 ## 字符串
 
 rust 中常用的字符串有两种，一种为`str`，一种为`String`。
@@ -1070,6 +1090,79 @@ m.call();
         })
     }
     ```
+
+    Option 常用的方法：
+
+    * `take()`：返回`Option`中的元素，并将原`Option`置为`None`。
+
+        Example:
+
+        ```rust
+        let mut p1: Option<Box<String>> = Some(Box::new(String::from("hello")));
+        println!("{}", p1 == None);
+        let p2 = p1.take();
+        println!("{}", p1 == None);
+        println!("{}", p2 == Some(Box::new(String::from("hello"))));
+        ```
+
+        输出：
+
+        ```
+        false
+        true
+        true
+        ```
+
+        因为`take()`会对`p1`进行更改，所以要求`p1`必须是`mut`的。
+
+    * `insert`
+
+        Syntax:
+
+        ```rust
+        pub const fn insert(&mut self, value: T) -> &mut T
+        where
+            T: ~const Destruct,
+        ```
+
+        `insert()`会用一个新值替换掉`Option<T>`类型中原来的值，然后将原来的值 drop 掉。
+
+        `insert()`会返回一个`&mut T`类型的值，因此要求`Option<T>`对象本身也必须是`mut`的。
+
+    * 比较
+
+        如果 struct `T`实现了`PartialEq` trait，那么两个`Option<T>`就可以比较是否相等。
+
+    * `unwrap()`
+
+        提取`Option<T>`类型里面的值，并返回。`unwrap()`会发生 move 语义。
+
+    * `replace(val)`
+
+        使用`val`替换`Some()`中的值，并返回`Option<T>`类型的旧值。
+
+    * `as_ref()`
+
+        Converts from &Option<T> to Option<&T>.
+
+    * `as_mut()`
+
+        Converts from `&mut Option<T>` to `Option<&mut T>`.
+
+        如果我们不想动`Option<T>`中的对象（不想发生 move 操作），那么直接用`as_ref()`或`as_mut()`，然后`unwrap()`就可以了。不`as_ref()`或`as_mut()`，直接`unwrap()`会发生 move。
+
+        如果对象`Option<T>`不是 mut 的，那么无法`as_mut()`
+
+    * `inspect()`
+
+        对里面的元素作用一个匿名函数。
+
+    * `is_some()`
+
+    * `is_none()`
+
+    * `is_some_and()`
+
 
 * `Result`
 
@@ -1930,6 +2023,8 @@ rust 遵循 c 的传统，允许出现这种情况。空语句除了传达一丝
     }
     ```
 
+    也可以使用`while let Some(val) = xxx {}`
+
 ## 函数
 
 rust 中函数的定义出现在调用之前还是之后都无所谓，只要在与调用处同一作用域就行。
@@ -2465,6 +2560,44 @@ fn main() {
 }
 ```
 
+### Copy trait
+
+rust 中的很多类型都没实现`Copy` trait，只有少数的几个内置基本类型实现了`Copy` trait。
+
+如果一个类型实现了`Copy` trait，那么在`=`时就会优先 copy，否则会选择 move。
+
+实现一个类型的 copy trait，可以选择直接使用`derive`：
+
+```rust
+#[derive(Copy, Clone)]
+struct MyStruc {
+    x: i32,
+    y: f64
+}
+```
+
+也可以自己实现：
+
+```rust
+struct MyStruc {
+    x: i32
+}
+
+impl Copy for MyStruc {
+
+}
+
+impl Clone for MyStruc {
+    fn clone(&self) -> Self {
+        MyStruc {
+            x: self.x
+        }
+    }
+}
+```
+
+`Copy` trait 的实现依赖`Clone`，所以需要先实现`Clone`。
+
 ## 生命周期
 
 生命周期注解：
@@ -2902,7 +3035,19 @@ pub fn add_to_waitlist() {}
     println!("x = {x} and y = {y}");
     ```
 
-## box
+    `println!()`不会使变量 move。
+
+## Box
+
+`Box`是智能指针，用于在堆上分配内存。智能指针不同于结构体的地方在于其实现了`Deref`和`Drop` trait。
+
+`String`和`Vec<T>`都是智能指针。
+
+常用的智能指针：
+
+* `Box<T>`：用于在堆上分配值
+* `Rc<T>`：一个引用计数类型，其数据可以有多个所有者
+* `Ref<T>`和`RefMut<T>`，通过`RefCell<T>`访问。（`RefCell<T>`是一个在运行时而不是在编译时执行借用规则的类型）。
 
 在堆上分配内存：
 
@@ -2910,6 +3055,82 @@ pub fn add_to_waitlist() {}
 let p = Box::new(5);
 println!("{}", p);
 ```
+
+有些类型里需要指向自己的指针：
+
+```rust
+use crate::List::*;
+enum List {
+    Con(i32, Box<List>),
+    Nil,
+}
+
+fn main() {
+    let l = Con(3, Box::new(Con(5, Box::new(Nil))));
+}
+```
+
+`Deref` trait 可以将智能指针当作常规引用处理。
+
+```cpp
+use std::ops::Deref;
+struct MyBox<T>(T);
+impl<T> MyBox<T> {
+    fn new(t: T) -> MyBox<T> {
+        MyBox(t)
+    }
+}
+
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+fn main() {
+    let a = MyBox::new(3);
+    println!("{}", *a);  // *a 实际调用了 *(a.deref())，不过这个知不知道都无所谓
+}
+```
+
+Rust 在发现类型和 trait 实现满足三种情况时会进行 Deref 强制转换：
+
+* 当 `T: Deref<Target=U>` 时从 `&T` 到 `&U`。
+* 当 `T: DerefMut<Target=U>` 时从 `&mut T` 到 `&mut U`。
+* 当 `T: Deref<Target=U>` 时从 `&mut T` 到 `&U`。
+
+Rust 也会将可变引用强转为不可变引用。但是反之是 不可能 的：不可变引用永远也不能强转为可变引用。
+
+## `Rc<T>`
+
+```rust
+use std::rc::Rc;
+
+fn main() {
+
+}
+```
+
+## `RefCell<T>`
+
+不同于 Rc<T>，RefCell<T> 代表其数据的唯一的所有权。
+
+对于引用和 Box<T>，借用规则的不可变性作用于编译时。对于 RefCell<T>，这些不可变性作用于 运行时。对于引用，如果违反这些规则，会得到一个编译错误。而对于 RefCell<T>，如果违反这些规则程序会 panic 并退出。
+
+如下为选择 Box<T>，Rc<T> 或 RefCell<T> 的理由：
+
+Rc<T> 允许相同数据有多个所有者；Box<T> 和 RefCell<T> 有单一所有者。
+Box<T> 允许在编译时执行不可变或可变借用检查；Rc<T>仅允许在编译时执行不可变借用检查；RefCell<T> 允许在运行时执行不可变或可变借用检查。
+因为 RefCell<T> 允许在运行时执行可变借用检查，所以我们可以在即便 RefCell<T> 自身是不可变的情况下修改其内部的值。
+
+`RefCell<T>`可以通过调用`borrow_mut()`，把不可变引用变成可变引用。
+
+当创建不可变和可变引用时，我们分别使用 & 和 &mut 语法。对于 RefCell<T> 来说，则是 borrow 和 borrow_mut 方法，这属于 RefCell<T> 安全 API 的一部分。borrow 方法返回 Ref<T> 类型的智能指针，borrow_mut 方法返回 RefMut<T> 类型的智能指针。这两个类型都实现了 Deref，所以可以当作常规引用对待。
+
+RefCell<T> 记录当前有多少个活动的 Ref<T> 和 RefMut<T> 智能指针。每次调用 borrow，RefCell<T> 将活动的不可变借用计数加一。当 Ref<T> 值离开作用域时，不可变借用计数减一。就像编译时借用规则一样，RefCell<T> 在任何时候只允许有多个不可变借用或一个可变借用。
+
+如果我们尝试违反这些规则，相比引用时的编译时错误，RefCell<T> 的实现会在运行时出现 panic。
 
 ## iterator
 
@@ -3146,6 +3367,16 @@ Cargo 只会在运行`cargo test`时编译这个目录中的文件。
 1. How to pretty-print a Rust HashMap in GDB?
 
     <https://stackoverflow.com/questions/50179667/how-do-i-pretty-print-a-rust-hashmap-in-gdb>
+
+1. 无论运算符两侧是否是引用，运算完的结果都是一个值
+
+1. 容器 insert 或 push 进去的，都必须是值，不能是引用
+
+1. `type`
+
+    Define an alias for an existing type.
+
+    The syntax is `type Name = ExistingType;`.
 
 ## Appended
 
@@ -3485,4 +3716,12 @@ Cargo 只会在运行`cargo test`时编译这个目录中的文件。
 1. 在给`pringln!`传递参数时，会自动把参数变成引用，因此不会发生 move 操作。
 
 1. `Vec<String>`和`Vec<&String>`以及`Vec<&str>`有什么异同？
+
+1. `unwrap()`也会发生 move 操作
+
+1. `println!()`
+
+1. 使用`Box<>`可以拿到对象的成员，此时成员如果没有实现`Copy` trait，那么会发生 move。使用 ref （比如`&`和`&mut`）只能拿到对象成员的 ref，如果强行拿，会先看成员有没有`Copy` trait，如果没有的话，会发生 move。然而 ref 不允许产生 move 语义，因此会无法通过编译。
+
+    如果是`& Box<>`或`&mut Box<>`，那么它其实只代表了`Box<>`，因为编译器会自动解引用。（即使自动解引用，我们也只能拿到 Box 所指对象或对象的成员的引用）
 

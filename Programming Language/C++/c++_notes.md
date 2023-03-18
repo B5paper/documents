@@ -2300,7 +2300,6 @@ Output:
 
     ```
 
-    
 
 **循环引用问题（Cyclic Dependency）**
 
@@ -2518,6 +2517,112 @@ pa in A destructor
     ```
 
     唯一的区别是，使用`shared_ptr`的代码，其指针的引用数为 2。而这段代码的引用数为 1。
+
+## Coroutine 协程
+
+A coroutine is any function that contains a `co_return`, `co_yield` or `co_await`.
+
+协程主要用来处理单线程异步操作。和 JavaScript 挺像的。
+
+一个简单的 example:
+
+```cpp
+#include <coroutine>
+using namespace std;
+
+struct Task {
+    struct promise_type {
+        Task get_return_object() { return {}; }
+        suspend_never initial_suspend() {return {}; }
+        suspend_never final_suspend() noexcept {return {};}
+        void return_void() {}
+        void unhandled_exception() {}
+    };
+};
+
+Task myCoroutine() {
+    co_return;
+}
+
+int main() {
+    Task x = myCoroutine();
+    return 0;
+}
+```
+
+`Task`是我们随便定义的一个结构体，里面必须要有一个`promise_type`子结构体才行。
+
+`co_return`关键字会先调用`get_return_object()`生成一个 promise 对象，然后 promise 对象会调用`initial_suspend()`函数，然后调用`return_void()`函数，最后调用`final_suspend()`函数，退出整个程序。
+
+`promise_type`是一个标记型的类型，表示了外部类有 coroutine 的功能，除此之外`promise_type`什么用都没有。我们需要手动实现`promise_type`中的一些方法，以便当外部类被当作 yield 型调用时，可以实现异步 IO 的功能。
+
+* `co_await`
+
+    一个一元操作符，等待一个 promise 对象返回。
+
+    Example:
+
+    ```cpp
+    co_await expr;
+    ```
+
+    其中`expr`必须是`awaitable`类型。
+
+* `awaiter`
+
+    定义了`await_ready`、`await_suspend`和`await_resume`方法的类型。
+
+* `co_yield expr;`等价于`co_await promise.yield_value(expr);`
+
+* `suspend_always`
+
+    函数返回一个值后，promise 对象总是挂起。
+
+* `co_yield`或`co_return`会先调用`get_return_object()`返回一个 promise 的外类对象。
+
+* `promise_type`的`resume()`函数可以让 promise 对象继续调用`yield_value()`方法。
+
+* 如果拿到了一个 promise 对象的 handle，那么可以用`handle.promise()`返回 promise 对象
+
+* 可以用`coroutine_handle<promise_type>::from_promise()`创建一个指定 promise 对象的 handle
+
+* awaitable 代表一系列类型，不是一个具体的类型
+
+    常见的 awaitable 系列的类型：
+
+    * `suspend_always`
+    * `suspend_never `
+
+* 如果一个 promise type 提供了`await_transform(expr)`方法，那么`co_await expr;`应会变成`co_await promise.await_transform(expr);`
+
+* awaitable 系列类型对象
+
+    定义了几个方法的`struct`对象即为 awaitable 系列类型的对象
+
+    ```cpp
+    struct Sleeper {
+        constexpr bool await_ready() const noexcept { return false; }
+        void await_suspend(std::coroutine_handle<> h) const {
+            auto t = std::jthread([h,l = length] {
+                std::this_thread::sleep_for(l);
+                h.resume();
+            });
+        }
+        constexpr void await_resume() const noexcept {}
+        const std::chrono::duration<int, std::milli> length;
+    };
+
+    Task myCoroutine() {
+        using namespace std::chrono_literals;
+        auto before = std::chrono::steady_clock::now();
+        co_await Sleeper{200ms};
+        auto after = std::chrono::steady_clock::now();
+        std::cout << "Slept for " << (after-before) / 1ms << " ms\n";
+    }
+    ```
+
+    当我们调用`co_await abaitable;`时，会先调用`await_ready()`方法，如果这个方法返回`true`，会继续执行主程序。如果返回`false`，那么会继续调用`await_suspend()`方法。在`await_suspend()`方法的最后，我们需要调用`resume()`方法，此时会接着执行`await_resume()`方法。执行完`await_resume()`后，会继续执行主程序。
+
 
 ## Lambda Expression （匿名函数）
 
