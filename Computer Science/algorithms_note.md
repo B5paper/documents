@@ -251,7 +251,7 @@ void merge(vector<int> &nums, int l, int m, int r)
 
 可以看到倒序双指针的效率要高于方案一。
 
-### Quick sort
+### Quicksort
 
 快速排序有一点点像归并排序的前半段，有点像冒泡排序。灵感可能来自于分治。
 
@@ -355,7 +355,7 @@ int sort_with_pivot_elm(vector<int> &nums, int left, int right, int idx)
         while (i < j && nums[j] >= pivot_elm) --j;
         swap(nums[i], nums[j]);
     }
-    if (nums[i] > nums[right])
+    if (nums[i] > nums[right])  // 没想明白为啥要加这个，背会
         swap(nums[right], nums[i]);
     return i;
 }

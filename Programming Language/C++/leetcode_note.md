@@ -1723,6 +1723,8 @@ $$
     };
     ```
 
+    其实这道题的思路很像三个排序数组的合并，我们取三个指针分别在三个数组的头部，每次选最小的那个合并入新数组就可以了。
+
 1. 用循环和库函数的写法
 
     ```c++
@@ -2178,9 +2180,39 @@ $$
 
 代码：
 
+1. 朴素的实现
+
+    ```cpp
+    class Solution {
+    public:
+        int dfs(string str1, string str2)
+        {
+            if (str1.empty() || str2.empty())
+                return 0;
+                
+            if (str1.back() == str2.back())
+            {
+                return dfs(str1.substr(0, str1.size() - 1), 
+                        str2.substr(0, str2.size() - 1)) + 1;
+            }
+            else {
+                return max(dfs(str1.substr(0, str1.size() - 1), str2),
+                    dfs(str1, str2.substr(0, str2.size() - 1)));
+            }
+            return 0;
+        }
+
+        int longestCommonSubsequence(string text1, string text2) {
+            return dfs(text1, text2);
+        }
+    };
+    ```
+
+    问题：为什么我们倒序思考才可以想到解8法，正序思考为什么想不到解法？
+
 1. 二维数组自底向上
 
-    ```c++
+    ```cpp
     class Solution {
     public:
         int longestCommonSubsequence(string text1, string text2) {
@@ -2762,6 +2794,8 @@ public:
 
     其实这个并不能算是动态规划，因为中间有重新开始计数的过程。动态规划应该能把问题分割成子问题才对。这个归类到滑动窗口比较好一点。滑动窗口和散列表的结合。
 
+    这种方法作为第一种方法的进阶，不需要一下子想到，等以后熟练了再细想。
+
     ```c++
     class Solution {
     public:
@@ -2836,6 +2870,73 @@ public:
 如果`left`向`right`之间没有重复的字符，那么应该`++left`，作为新的起点。如果有和`right`处相同的字符，那么从重复的字符处作为新的起点。这两种情况差异太大，没办法用滑动窗口实现。
 
 这道题只是使用哈希表来记忆一些东西而已。
+
+**有关滑动窗口与双重循环**
+
+这道题本质上仍是对二重循环的优化。假如我们用最朴素的解法，应该这样写：
+
+```cpp
+class Solution {
+public:
+    int lengthOfLongestSubstring(string s) {
+        if (s.empty()) return 0;
+        int ans = 1;
+        int len;
+        int n = s.size();
+        int i = 0, j;
+        while (i < n)
+        {
+            unordered_set<int> occ;
+            occ.insert(s[i]);
+            j = i + 1;
+            while (j < n)
+            {
+                if (occ.find(s[j]) != occ.end())
+                {
+                    len = j - i;
+                    ans = max(ans, len);
+                    break;
+                }
+                occ.insert(s[j]);
+                ++j;
+            }
+            if (j == n && s[n-1] != s[i])
+            {
+                len = j - i;
+                ans = max(ans, len);
+            }
+            ++i;
+        }
+        return ans;
+    }
+};
+```
+
+1. 每次我们都从起始位置`i`开始，往右扩大我们的搜索范围，每遇到一个字符都把它放到哈希表里，如果遇到了哈希表中存在的字符，那么就停止向右搜索，统计最长的无重复字符的长度。
+
+1. （边界情况）如果一直搜索到字符串末尾都没有找到相同字符，那么就把从`i`开始到末尾的整个长度统计在内。
+
+通过这种双重循环的方式，其实遍历的过程是这样的：
+
+```
+abcd e fghijk e lmn h opqrs
+```
+
+对于上面的字符串，假如我们从`a`开始往后搜索，遇到第二次出现的`e`时，停止搜索，并统计第一个`e`到第二个`e`的长度。
+
+接下来我们从`b`开始往后搜索，同样会在第二次出现`e`的时候停止搜索，并更新答案。
+
+但是经过我们的第一次搜索，其实从`a`到`k`都是没有重复字符的，在第二次搜索的时候，没有利用到我们已知的这个结果。第二次搜索的时候，我们已知从`b`到`k`都是没有重复字符的，那么直接从`e`开始搜索就好了。同样的过程，一直重复到第一个`e`右侧的`f`出现的位置。
+
+在`f`这个位置，我们已知`f`到`k`都只出现了一次，所以直接从`e`开始搜索。向右一直扩展到第二次出现某个字符的位置，比如`h`。现在我们知道了`f`到`n`都只出现了一次。
+
+接下来从`g`往右搜索，我们知道`g`到`n`都只出现了一次，那么继续从`h`往右移动右端点就可以了。重复上面的过程。
+
+此时我们发现，当左端点没有到达重复出现的字符时，右端点是不会动的。
+
+这道题的关键：重复字符不一定是起始搜索字符，而是有可能出现在区间中的任何一个字符。如果我们使用一个哈希表来存储已经出现过的字符，那么必须维护哈希表的内容和滑动窗口保持一致。
+
+有关滑动窗口：滑动窗口是对二重循环的优化。我们必须找到什么时候固定右端点，什么时候固定左端点。要先理解二重循环的细节，然后再明白哪些是重复搜索的，哪些是已知信息，再去做优化，看能不能优化成滑动窗口。
 
 #### 骰子的点数
 
@@ -4893,6 +4994,111 @@ public:
         }
     };
     ```
+#### 无矛盾的最佳球队
+
+假设你是球队的经理。对于即将到来的锦标赛，你想组合一支总体得分最高的球队。球队的得分是球队中所有球员的分数 总和 。
+
+然而，球队中的矛盾会限制球员的发挥，所以必须选出一支 没有矛盾 的球队。如果一名年龄较小球员的分数 严格大于 一名年龄较大的球员，则存在矛盾。同龄球员之间不会发生矛盾。
+
+给你两个列表 scores 和 ages，其中每组 scores[i] 和 ages[i] 表示第 i 名球员的分数和年龄。请你返回 所有可能的无矛盾球队中得分最高那支的分数 。
+
+ 
+
+示例 1：
+
+输入：scores = [1,3,5,10,15], ages = [1,2,3,4,5]
+输出：34
+解释：你可以选中所有球员。
+示例 2：
+
+输入：scores = [4,5,6,5], ages = [2,1,2,1]
+输出：16
+解释：最佳的选择是后 3 名球员。注意，你可以选中多个同龄球员。
+示例 3：
+
+输入：scores = [1,2,3,5], ages = [8,9,10,1]
+输出：6
+解释：最佳的选择是前 3 名球员。
+ 
+
+提示：
+
+1 <= scores.length, ages.length <= 1000
+scores.length == ages.length
+1 <= scores[i] <= 106
+1 <= ages[i] <= 1000
+
+
+代码：
+
+1. 朴素的回溯
+
+    我们可以先构建子集，再判断子集是否满足矛盾条件。如果不矛盾，那么更新答案。如果矛盾，那么说明当前集合无效，退出。
+
+    如何判断矛盾条件呢？一个简单的想法是把`temp`排序，然后遍历一遍。如果对于`i`号球员和`j`号球员，如果有`ages[i] < ages[j]`，只要`socres`里存在`scores[i] > scores[j]`，那么就说明当前队伍是矛盾的。因为我们判断的是“存在”，所以只要`ages[i]`对应的所有 scores 的最大值大于`ages[j]`对应的所有 scores 里的最小值，那么就说明是矛盾的。因此我们在使用`sort()`排序时，只要把两个都设置成小于号就可以了。
+
+    ```cpp
+    class Solution {
+    public:
+        int ans;
+        vector<int> temp;
+
+        void backtrack(vector<int> &scores, vector<int> &ages, int p)
+        {
+            vector<int> temp = this->temp;
+            sort(temp.begin(), temp.end(), [&](int id_1, int id_2) {
+                if (scores[id_1] < scores[id_2]) return true;
+                else if (scores[id_1] > scores[id_2]) return false;
+                else {
+                    return ages[id_1] < ages[id_2];
+                }
+            });
+            int n = temp.size();
+            for (int i = 0; i < n - 1; ++i)
+            {
+                if (scores[temp[i]] < scores[temp[i+1]] && ages[temp[i]] > ages[temp[i+1]])
+                {
+                    return;
+                }
+            }
+            
+            if (!temp.empty())
+            {
+                int score_sum = 0;
+                for (int i: this->temp)
+                    score_sum += scores[i];
+                ans = max(ans, score_sum);
+                // cout << "(age, score): ";
+                // for (auto i: this->temp)
+                // {
+                //     cout << "(" << ages[i] << ", " << scores[i] << ") ";
+                // }
+                // cout << "sum: " << score_sum << ", ";
+                // cout << "ans: " << ans;
+                // cout << endl;
+            }
+
+            for (int i = p; i < scores.size(); ++i)
+            {
+                this->temp.push_back(i);
+                backtrack(scores, ages, i+1);
+                this->temp.pop_back();
+            }
+        }
+
+        int bestTeamScore(vector<int>& scores, vector<int>& ages) {
+            ans = 0;
+            backtrack(scores, ages, 0);
+            return ans;
+        }
+    };
+    ```
+
+    这个方法由于会遍历所有情况，时间复杂度为指数级（怎么计算？）。
+    
+1. 动态规划
+
+    先对队员进行排序。用数组记录以队员`i`结尾可以得到的最大分数。然后我们不断地向后推进就可以了，每次都遍历一遍前面得到的所有最优结果。
 
 ## 贪心
 
@@ -25662,6 +25868,203 @@ s1, s2 只包含 'x' 或 'y'。
     ```
 
 1. 快慢指针
+
+### 至少有 1 位重复的数字
+
+给定正整数 n，返回在 [1, n] 范围内具有 至少 1 位 重复数字的正整数的个数。
+
+ 
+
+示例 1：
+
+输入：n = 20
+输出：1
+解释：具有至少 1 位重复数字的正数（<= 20）只有 11 。
+示例 2：
+
+输入：n = 100
+输出：10
+解释：具有至少 1 位重复数字的正数（<= 100）有 11，22，33，44，55，66，77，88，99 和 100 。
+示例 3：
+
+输入：n = 1000
+输出：262
+ 
+
+提示：
+
+1 <= n <= 109
+
+代码：
+
+1. 自己写的朴素解法，超时
+
+    ```cpp
+    class Solution {
+    public:
+        int numDupDigitsAtMostN(int n) {
+            int ans = 0;
+            for (int i = 1; i <= n; ++i)
+            {
+                unordered_set<int> s;
+                int num = i;
+                while (num)
+                {
+                    if (s.find(num % 10) == s.end())
+                    {
+                        s.insert(num % 10);
+                    }
+                    else 
+                    {
+                        ++ans;
+                        break;
+                    }
+                    num /= 10;
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 官方答案 1，记忆化搜索
+
+    ```cpp
+    class Solution {
+    public:
+        vector<vector<int>> dp;
+
+        int f(int mask, const string &sn, int i, bool same) {
+            if (i == sn.size()) {
+                return 1;
+            }
+            if (!same && dp[i][mask] >= 0) {
+                return dp[i][mask];
+            }
+            int res = 0, t = same ? (sn[i] - '0') : 9;
+            for (int k = 0; k <= t; k++) {
+                if (mask & (1 << k)) {
+                    continue;
+                }
+                res += f(mask == 0 && k == 0 ? mask : mask | (1 << k), sn, i + 1, same && k == t);
+            }
+            if (!same) {
+                dp[i][mask] = res;
+            }
+            return res;
+        }
+
+        int numDupDigitsAtMostN(int n) {
+            string sn = to_string(n);
+            dp.resize(sn.size(), vector<int>(1 << 10, -1));
+            return n + 1 - f(0, sn, 0, true);
+        }
+    };
+    ```
+
+1. 官方答案 2，组合数学
+
+    ```cpp
+    class Solution {
+    public:
+        int A(int x, int y) {
+            int res = 1;
+            for (int i = 0; i < x; i++) {
+                res *= y--;
+            }
+            return res;
+        }
+
+        int f(int mask, const string &sn, int i, bool same) {
+            if (i == sn.size()) {
+                return 1;
+            }
+            int t = same ? sn[i] - '0' : 9, res = 0, c = __builtin_popcount(mask) + 1;
+            for (int k = 0; k <= t; k++) {
+                if (mask & (1 << k)) {
+                    continue;
+                }
+                if (same && k == t) {
+                    res += f(mask | (1 << t), sn, i + 1, true);
+                } else if (mask == 0 && k == 0) {
+                    res += f(0, sn, i + 1, false);
+                } else {
+                    res += A(sn.size() - 1 - i, 10 - c);
+                }
+            }
+            return res;
+        }
+
+        int numDupDigitsAtMostN(int n) {
+            string sn = to_string(n);
+            return n + 1 - f(0, sn, 0, true);
+        }
+    };
+    ```
+
+1. 别人的解法，组合数学
+
+    这个题解写得挺好的，思路清晰。
+
+    Ref: <https://leetcode.cn/problems/numbers-with-repeated-digits/solution/javascriptni-xiang-si-wei-by-unicodeee-b1b1/>
+
+    ```js
+    /**
+    * @param {number} n
+    * @return {number}
+    */
+    let numDupDigitsAtMostN = function (n) {
+    const factorial = (n1) => {
+        let res = 1;
+        for (let i = 2; i <= n1; i++) {
+        res *= i;
+        }
+        return res;
+    };
+    let len = n.toString().length;
+    let count = 0;
+
+    // length < len
+    for (let i = 1; i < len; i++) {
+        count += (9 * factorial(9)) / factorial(9 - i + 1);
+    }
+    // length == len
+
+    let num = n;
+    let used = new Set();
+    for (let i = len - 1; i >= 0; i--) {
+        let cur_dig = Math.floor(num / Math.pow(10, i));
+        for (let j = i === len - 1 ? 1 : 0; j < cur_dig; j++) {
+        if (!used.has(j)) {
+            count += factorial(10 - len + i) / factorial(10 - len);
+        }
+        }
+        if (used.has(cur_dig)) {
+        break;
+        }
+        used.add(cur_dig);
+        num -= cur_dig * Math.pow(10, i);
+    }
+    let self_dup = false; // if the number itself has duplicate digits
+    used = new Set();
+    for (let i = 0; i < len; i++) {
+        let cur_dig = Math.floor(n / Math.pow(10, i)) % 10;
+        if (used.has(cur_dig)) {
+        self_dup = true;
+        break;
+        }
+        used.add(cur_dig);
+    }
+    if (!self_dup) {
+        count++;
+    }
+    return n - count;
+    };
+    ```
+
+    总的思路是从高位到低位，依次选取数字，保持每个数字都不重复。最后拿总的排列数量减去不重复的数字的数量，就可以了。
+
+    （不是很明白，有时间了再研究一下）
 
 ### 区间相关
 
