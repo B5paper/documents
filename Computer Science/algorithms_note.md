@@ -251,14 +251,140 @@ void merge(vector<int> &nums, int l, int m, int r)
 
 可以看到倒序双指针的效率要高于方案一。
 
-### Quick sort
+### Quicksort
 
 快速排序有一点点像归并排序的前半段，有点像冒泡排序。灵感可能来自于分治。
 
-基本的想法是先设置一个分界元素，再对两侧进行排序。然后再设置下一个分界元素，再对两侧进行排序：
+快速排序基本的想法是先设置一个分界元素，通过冒泡的方法，将数组分成两部分，左半部分都小于等于分界元素，右半部分都大于分界元素。再对两侧进行排序。然后再设置下一个分界元素，再对两侧进行排序：
 
 ```cpp
+void quick_sort(vector<int> &nums)
+{
+    int pivot_idx = get_pivot_idx();
+    int pivot_num = nums[pivot_idx];
+    while ()
+    {
+        int num_left = find_a_elm_smaller_than_pivot_num();
+        int num_right = find_a_elm_greater_tham_pivot_num();
+        swap(num_left, num_right);
+    }
+}
+```
 
+但是目前`pivot_num`在数组中间的话，我们可以在轮到它时选择跳过，也可以将它先和最右边元素交换位置，等处理完了再交换回来。对于找到两个适合的元素，一个想法是双重循环，先找到一个大于等于`pivot_num`的元素，记为`i`，再从`i+1`开始，找到一个小于`pivot_num`的元素，记为`j`，然后再交换`i`和`j`对应的元素就可以了；另一个想法是对撞双指针，分别从数组的两端，找一个比`pivot_num`小的和比`pivot_num`大的元素。
+
+根据以上想法，我们可以写出下面四种情况：
+
+1. 跳过`pivot_num` + 双重循环
+
+    ```cpp
+
+    ```
+
+1. 交换`pivot_num` + 双重循环
+
+1. 跳过`pivot_num` + 对撞双指针
+
+1. 交换`pivot_num` + 对撞双指针
+
+从以上可以看出，跳过并不是一个明智的选择。因为最终我们一定要交换`pivot_num`到合适的位置，起码要交换一次，而跳过的话，会增加很多比较的运算。另外，双重循环如果总是遇到`[5, 1, 1, 1, 1]`这样的情况，那么`5`会被一个一个地移动到最右边，交换了很多次，而用对撞双指针就没这个问题。
+
+综上，我们选择交换 + 对撞双指针为最优解。
+
+粗略排完了当前数组，我们得到一个新的索引，这个索引左侧的元素都小于索引处的元素，索引右侧的元素都大于等于索引处的元素。
+
+接下来我们需要细排子数组。显然快速排序的本质是一个先序遍历，当对当前节点对应的区间进行粗排序，再到下一个子区间进行精排序。我们希望`quick_sort()`的函数参数不增多，因此稍微改写下结构：
+
+```cpp
+int partition_sort(vector<int> &nums, int left, int right, int pivot_idx)
+{
+    // 交换 + 对撞双指针
+}
+
+void partition(vector<int> &nums, int left, int right)
+{
+    int pivot_idx = get_pivot_idx();
+    int idx = partition_sort(nums, left, right, pivot_idx);  // 先处理当前区间，根据函数返回值得到排好的两个子区间
+    partition(nums, left, idx-1);  // 处理左区间
+    partition(nums, idx+1, right);  // 处理右区间
+}
+
+void quick_sort(vector<int> &nums)
+{
+    partition(nums, 0, nums.size() - 1);
+}
+```
+
+由于是树的先序遍历，所以我们想一下终止条件，当当前节点的区间长度只有 1 或 0 的时候，就不需要排序了，因此将此设置为终止条件：
+
+```cpp
+void partition(vector<int> &nums, int left, int right)
+{
+    if (right - left + 1 <= 1)
+        return;
+    int pivot_idx = get_pivot_idx();
+    // ...
+}
+```
+
+最后我们再考虑一个问题：如何得到分界元素呢？我们可以随机选一个，也可以取中间元素。随机选一个效果可能好一点。
+
+```cpp
+int pivot_idx = left + rand() % (right - left + 1);
+```
+
+为什么这里要对`right - left + 1`取模，而不是`right - left`？
+
+最终我们可以得到完整版的快速排序算法：
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <random>
+#include <ctime>
+using namespace std;
+
+int sort_with_pivot_elm(vector<int> &nums, int left, int right, int idx)
+{
+    int pivot_elm = nums[idx];
+    swap(nums[idx], nums[right]);
+    int i = left, j = right - 1;
+    while (i < j)
+    {
+        while (i < j && nums[i] < pivot_elm) ++i;
+        while (i < j && nums[j] >= pivot_elm) --j;
+        swap(nums[i], nums[j]);
+    }
+    if (nums[i] > nums[right])  // 没想明白为啥要加这个，背会
+        swap(nums[right], nums[i]);
+    return i;
+}
+
+void partition(vector<int> &nums, int left, int right)
+{
+    if (right - left + 1 <= 1)
+        return;
+    int pivot_idx = left + rand() % (right - left + 1);
+    int idx = sort_with_pivot_elm(nums, left, right, pivot_idx);
+    partition(nums, left, idx-1);
+    partition(nums, idx+1, right);
+}
+
+void quick_sort(vector<int> &nums)
+{
+    partition(nums, 0, nums.size() - 1);
+}
+
+int main()
+{
+    srand(time(NULL));
+    vector<int> nums({3, 4, 5, 1, 1, 3, 4, 2});
+    quick_sort(nums);
+    for (int num: nums)
+        cout << num << ", ";
+    cout << endl;
+    return 0;
+}
 ```
 
 #### 有关边界情况的问题
@@ -534,6 +660,18 @@ public:
 ## 离散与连续
 
 很多问题如果不考虑边界情况，把所有量作为连续量来处理，那么问题会简单很多。如果考虑边界值，情况则会变得复杂。如何处理离散值的边界问题？如何才能保证使用连续量进行思考，使用离散值来完善算法细节？
+
+### 索引与长度
+
+### 整数的一分为二
+
+### 二分搜索
+
+### 前缀和
+
+### 滑动窗口
+
+### 链表的中间节点
 
 ## 循环与控制
 
@@ -999,6 +1137,37 @@ while ()
 
 由此我们得出，如果`while`中的状态改变不会造成数组下标越界等问题，那么就无所谓。如果会造成下标越界的问题，那么可以用`if`判断是否改变状态，或额外使用后处理进行状态判断。
 
+### 判断状态，更新数据，改变状态
+
+循环的三要素：判断状态，更新数据，改变状态。
+
+我们要保证在更新数据时，状态是有效的。什么时候状态有效？可能在循环外，也可能在循环内。
+
+### while 与 do while
+
+如果一段代码至少需要执行一遍，那么我们就用 do while。
+
+```cpp
+wchar_t* not_reach_EOF = (wchar_t*) true;
+while (not_reach_EOF)
+{
+    not_reach_EOF = fgetws(buf_read, BUFFSIZE, file);
+    wstr.append(buf_read);
+    wcout << wstr << endl;
+    memset(buf_read, 0, BUFFSIZE);
+}
+```
+
+上面这段代码是读文件时的一段代码，由于`not_reach_EOF`必须设置为`true`，所以这段代码可以直接写成 do while 型。
+
+建议：
+
+1. 优先考虑 while，如果一个 while 可能不被执行，那么就继续用 while。如果一个 while 的条件在进入 while 之前必须设置为 true，那么可以考虑把 while 替换成 do while。
+
+### 多重退出条件
+
+如果一个 while 有多重退出条件，那么必须对它们进行排列组合，分析每一种情况。
+
 ## 尝试与状态改变
 
 有时候我们会遇到这样的情况：先尝试一些运算看看行不行，如果不行的话就不改变状态。如果没问题，那么实际执行运算。
@@ -1089,6 +1258,117 @@ else  // p1, p2 都为空
 由此我们可以得出结论：如果在一个`if`语句中，`if ()`中的条件只和单一变量`x`有关，`if ()`中执行的代码也只和单一变量`x`相关，那么就没有问题；如果`if ()`的条件和其它变量相关，那么就说明`if`是“耦合”的，我们需要慎重处理。
 
 [这节的标题改成“if 的耦合与解耦”是不是比较好]
+
+### if 中的多重判断
+
+比较含退格的字符串
+
+给定 s 和 t 两个字符串，当它们分别被输入到空白的文本编辑器后，如果两者相等，返回 true 。# 代表退格字符。
+
+注意：如果对空文本输入退格字符，文本继续为空。
+
+ 
+
+示例 1：
+
+输入：s = "ab#c", t = "ad#c"
+输出：true
+解释：s 和 t 都会变成 "ac"。
+示例 2：
+
+输入：s = "ab##", t = "c#d#"
+输出：true
+解释：s 和 t 都会变成 ""。
+示例 3：
+
+输入：s = "a#c", t = "b"
+输出：false
+解释：s 会变成 "c"，但 t 仍然是 "b"。
+ 
+
+提示：
+
+1 <= s.length, t.length <= 200
+s 和 t 只含有小写字母以及字符 '#'
+ 
+
+进阶：
+
+你可以用 O(n) 的时间复杂度和 O(1) 的空间复杂度解决该问题吗？
+
+
+错误的代码：
+
+```cpp
+class Solution {
+public:
+    bool backspaceCompare(string s, string t) {
+        stack<char> stk1, stk2;
+        for (int i = 0; i < s.size(); ++i)
+        {
+            if (s[i] == '#' && !stk1.empty())
+                stk1.pop();
+            else
+                stk1.push(s[i]);
+        }
+        for (int i = 0; i < t.size(); ++i)
+        {
+            if (t[i] == '#' && !stk2.empty())
+                stk2.pop();
+            else
+                stk2.push(t[i]);
+        }
+        while (!stk1.empty())
+        {
+            cout << stk1.top() << ", ";
+            stk1.pop();
+        }
+        cout << endl;
+        while (!stk2.empty())
+        {
+            cout << stk2.top() << ", ";
+            stk2.pop();
+        }
+        cout << endl;
+        return stk1 == stk2;
+    }
+};
+```
+
+`if`中的两个条件，实际上是四个分支。我们需要对这四个分支都考虑清楚。
+
+正确的版本：
+
+```cpp
+class Solution {
+public:
+    bool backspaceCompare(string s, string t) {
+        stack<char> stk1, stk2;
+        for (int i = 0; i < s.size(); ++i)
+        {
+            if (s[i] == '#')
+            {
+                if (!stk1.empty())
+                    stk1.pop();
+            }
+            else
+                stk1.push(s[i]);
+        }
+        for (int i = 0; i < t.size(); ++i)
+        {
+            if (t[i] == '#')
+            {
+                if (!stk2.empty())
+                    stk2.pop();
+            }
+                
+            else
+                stk2.push(t[i]);
+        }
+        return stk1 == stk2;
+    }
+};
+```
 
 
 

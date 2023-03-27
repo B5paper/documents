@@ -1,3 +1,19 @@
+# Kubernetes Note
+
+materials:
+
+1. github awesome: <https://github.com/caicloud/kube-ladder#%E7%9B%AE%E6%A0%87-5>
+
+1. github asesome: <https://github.com/0voice/k8s_awesome_document>
+
+1. hand book: <https://www.bookstack.cn/read/kubernetes-handbook/ch05>
+
+1. dive into kubeadm: <https://zhuanlan.zhihu.com/p/74922114>
+
+1. kubectl commands: <https://zhuanlan.zhihu.com/p/145268395>
+
+1. k8s hand book: <https://github.com/Leverege/kubernetes-book>
+
 有个 k8s api 的教程，写得还挺好：<https://www.containiq.com/post/kubernetes-api>
 
 Ubuntu 20.04 安装过程中遇到的问题:
@@ -88,53 +104,29 @@ required fileds:
 ---
 
 apiVersion: apps/v1
-
 kind: Deployment
-
 metadata:
-
   name: rss-site
-
   labels:
-
     app: web
-
 spec:
-
   replicas: 2
-
   selector:
-
     matchLabels:
-
       app: web
-
   template:
-
     metadata:
-
       labels:
-
         app: web
-
     spec:
-
       containers:
-
         - name: front-end
-
           image: nginx
-
           ports:
-
             - containerPort: 80
-
         - name: rss-reader
-
           image: nickchase/rss-php-nginx:v1
-
           ports:
-
             - containerPort: 88
 ```
 
@@ -143,3 +135,27 @@ spec:
 有关 runtimeclass 的资料：
 
 * <https://devopslearners.com/different-container-runtimes-and-configurations-in-the-same-kubernetes-cluster-fed228e1853e>
+
+## Frequently used commands
+
+* `kubectl wait`
+
+    Ref:
+
+    1. <https://vadosware.io/post/so-you-need-to-wait-for-some-kubernetes-resources/>
+
+    1. <https://stackoverflow.com/questions/71858436/kubectl-wait-until-pod-is-gone-terminating>
+
+    Example:
+
+    ```bash
+    kubectl wait --for=condition=ready pod -l app=blog --timeout=60s
+    ```
+
+## Miscellaneous
+
+* Why do pod names have 5 random alphanumeric characters
+
+    Ref: <https://stackoverflow.com/questions/54489128/why-do-pod-names-have-5-random-alphanumeric-characters-appended-to-their-name-wh>
+
+* 

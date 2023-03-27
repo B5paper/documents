@@ -314,6 +314,210 @@ int main()
 
 * `toupper(c)`：当`c`是小写字母，输出对应折大写字母；否则原样输出`c`
 
+## numeric
+
+* `accumulate`
+
+* 
+
+## algorithm
+
+`#include <algorithm>`
+
+* Reduction
+
+    * `std::all_of`
+
+        Returns true if pred returns true for all the elements in the range `[first,last)` or if the range is empty, and false otherwise.
+
+        ```cpp
+        template <class InputIterator, class UnaryPredicate> 
+        bool all_of (InputIterator first, InputIterator last, UnaryPredicate pred);
+        ```
+
+        Example:
+
+        ```cpp
+        // all_of example
+        #include <iostream>     // std::cout
+        #include <algorithm>    // std::all_of
+        #include <array>        // std::array
+
+        int main () {
+            std::array<int,8> foo = {3,5,7,11,13,17,19,23};
+
+            if ( std::all_of(foo.begin(), foo.end(), [](int i){return i%2;}) )
+                std::cout << "All the elements are odd numbers.\n";
+
+            return 0;
+        }
+        ```
+
+        注意，这几个函数中，空集都是返回 true 的。
+
+        问题：当传入匿名函数后，`all_of`是如何判断匿名函数的返回值类型是不是`bool`的？
+
+    * `std::any_of`
+
+        ```cpp
+        template <class InputIterator, class UnaryPredicate>
+        bool any_of (InputIterator first, InputIterator last, UnaryPredicate pred);
+        ```
+
+    * `std::none_of`
+
+        Returns true if pred returns false for all the elements in the range [first,last) or if the range is empty, and false otherwise.
+
+        ```cpp
+        template <class InputIterator, class UnaryPredicate>
+        bool none_of (InputIterator first, InputIterator last, UnaryPredicate pred);
+        ```
+
+    * `std::for_each`
+
+        ```cpp
+        template <class InputIterator, class Function>
+        Function for_each (InputIterator first, InputIterator last, Function fn);
+        ```
+
+        Example
+
+        ```cpp
+        // for_each example
+        #include <iostream>     // std::cout
+        #include <algorithm>    // std::for_each
+        #include <vector>       // std::vector
+
+        void myfunction (int i) {  // function:
+            std::cout << ' ' << i;
+        }
+
+        struct myclass {           // function object type:
+            void operator() (int i) {std::cout << ' ' << i;}
+        } myobject;
+
+        int main () {
+            std::vector<int> myvector;
+            myvector.push_back(10);
+            myvector.push_back(20);
+            myvector.push_back(30);
+
+            std::cout << "myvector contains:";
+            for_each (myvector.begin(), myvector.end(), myfunction);
+            std::cout << '\n';
+
+            // or:
+            std::cout << "myvector contains:";
+            for_each (myvector.begin(), myvector.end(), myobject);
+            std::cout << '\n';
+
+            return 0;
+        }
+        ```
+
+        `for_each`的用法，第三个参数`Function`可以是普通函数，伪函数，匿名函数，也可以是`function`函数。
+
+* Conditionally find an element
+
+    * `std::find`
+
+        ```cpp
+        template <class InputIterator, class T>
+        InputIterator find (InputIterator first, InputIterator last, const T& val);
+        ```
+        
+        Example:
+
+        ```cpp
+        // find example
+        #include <iostream>     // std::cout
+        #include <algorithm>    // std::find
+        #include <vector>       // std::vector
+
+        int main () {
+            // using std::find with array and pointer:
+            int myints[] = { 10, 20, 30, 40 };
+            int * p;
+
+            p = std::find (myints, myints+4, 30);
+            if (p != myints+4)
+                std::cout << "Element found in myints: " << *p << '\n';
+            else
+                std::cout << "Element not found in myints\n";
+
+            // using std::find with vector and iterator:
+            std::vector<int> myvector (myints,myints+4);
+            std::vector<int>::iterator it;
+
+            it = find (myvector.begin(), myvector.end(), 30);
+            if (it != myvector.end())
+                std::cout << "Element found in myvector: " << *it << '\n';
+            else
+                std::cout << "Element not found in myvector\n";
+
+            return 0;
+        }
+        ```
+
+        从 example 中可以看出，如果给`find`传递的是数组地址，那么`find`会返回 pointer；如果给`find`传递的是 iterator，那么`find`会返回 iterator。这个是怎么实现的呢？
+
+    * `std::find_if`
+
+        ```cpp
+        template <class InputIterator, class UnaryPredicate>
+        InputIterator find_if (InputIterator first, InputIterator last, UnaryPredicate pred);
+        ```
+
+        Example:
+
+        ```cpp
+        // find_if example
+        #include <iostream>     // std::cout
+        #include <algorithm>    // std::find_if
+        #include <vector>       // std::vector
+
+        bool IsOdd (int i) {
+            return ((i%2)==1);
+        }
+
+        int main () {
+            std::vector<int> myvector;
+
+            myvector.push_back(10);
+            myvector.push_back(25);
+            myvector.push_back(40);
+            myvector.push_back(55);
+
+            std::vector<int>::iterator it = std::find_if (myvector.begin(), myvector.end(), IsOdd);
+            std::cout << "The first odd value is " << *it << '\n';
+
+            return 0;
+        }
+        ```
+
+    * `find_if_not`
+
+* Find subsequences
+
+    * `search`
+
+    * `find_end`
+
+    * `search_n`
+
+* Counting
+
+    * `std::count`
+
+    * `std::count_if`
+
+* Other
+
+    * `std::adjacent_find`
+
+    * `std::is_permutation`
+
+    * `std::equal`
 
 ## miscellaneous
 

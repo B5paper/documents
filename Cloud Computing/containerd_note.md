@@ -128,3 +128,17 @@ ctr 本身没有 manual，这个 man page 似乎是仿照着 man page 的格式�
     `journalctl -xn --no-pager`
 
     Ref: <https://unix.stackexchange.com/questions/229188/journalctl-how-to-prevent-text-from-truncating-in-terminal>
+
+1. 在 containerd 中使用本地 docker registry 中的 image
+
+    1. 使用`docker save`或`ctr image export`把 image 保存成本地`tar`的形式
+
+    1. 使用`sudo ctr -n=k8s.io images import myimage.tar`把 image 导入到 k8s namespace 中
+
+    Ref: <https://stackoverflow.com/questions/69981852/how-to-use-local-docker-images-in-kubernetes-deployments-not-minikube>
+
+    1. `docker save [your image] > image.tar`
+
+    1. `ctr image import image.tar`
+
+    Ref: <https://stackoverflow.com/questions/63478550/how-can-i-share-my-docker-images-with-conatinerd-runtime>
