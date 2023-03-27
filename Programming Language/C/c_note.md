@@ -1,5 +1,9 @@
 # C Note
 
+C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/index.htm>
+
+有时间了看看。
+
 ## Hello world
 
 file `hello.c`:
@@ -166,6 +170,10 @@ main()
 * `EOF`
 
     输入的结束标志。被定义为 -1。
+
+#### FILE
+
+turorial: <https://www.programiz.com/c-programming/c-file-input-output>
 
 ### random number
 
@@ -348,3 +356,7 @@ I think the first random number generated after setting seed should be abandoned
     ```
 
 目前已经看到：1.5.3 行计数
+
+## 其他
+
+* 读 utf-8 文件：<https://stackoverflow.com/questions/21737906/how-to-read-write-utf8-text-files-in-c>

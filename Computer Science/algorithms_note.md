@@ -1137,6 +1137,37 @@ while ()
 
 由此我们得出，如果`while`中的状态改变不会造成数组下标越界等问题，那么就无所谓。如果会造成下标越界的问题，那么可以用`if`判断是否改变状态，或额外使用后处理进行状态判断。
 
+### 判断状态，更新数据，改变状态
+
+循环的三要素：判断状态，更新数据，改变状态。
+
+我们要保证在更新数据时，状态是有效的。什么时候状态有效？可能在循环外，也可能在循环内。
+
+### while 与 do while
+
+如果一段代码至少需要执行一遍，那么我们就用 do while。
+
+```cpp
+wchar_t* not_reach_EOF = (wchar_t*) true;
+while (not_reach_EOF)
+{
+    not_reach_EOF = fgetws(buf_read, BUFFSIZE, file);
+    wstr.append(buf_read);
+    wcout << wstr << endl;
+    memset(buf_read, 0, BUFFSIZE);
+}
+```
+
+上面这段代码是读文件时的一段代码，由于`not_reach_EOF`必须设置为`true`，所以这段代码可以直接写成 do while 型。
+
+建议：
+
+1. 优先考虑 while，如果一个 while 可能不被执行，那么就继续用 while。如果一个 while 的条件在进入 while 之前必须设置为 true，那么可以考虑把 while 替换成 do while。
+
+### 多重退出条件
+
+如果一个 while 有多重退出条件，那么必须对它们进行排列组合，分析每一种情况。
+
 ## 尝试与状态改变
 
 有时候我们会遇到这样的情况：先尝试一些运算看看行不行，如果不行的话就不改变状态。如果没问题，那么实际执行运算。

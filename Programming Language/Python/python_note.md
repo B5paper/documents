@@ -29,4 +29,20 @@
 
     * windows: `python -c "from distutils import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"`
 
-1. 
+1. python 3.1 之后，不再有`unichr()`函数，直接使用`chr()`函数就可以了。把一个整数转换成一个 Unicode 字符。
+
+1. `PYTHONPATH`的作用
+
+    `PYTHONPATH`中的内容会被添加到`sys.path`中，使用冒号`:`分隔不同路径（如果是 windows 系统怎么办？比如`C:/path_1:D:/path_2`这样的）。
+
+    我们使用`import <package_name>`时，会在`sys.path`路径下搜索。
+
+    Ref: <https://www.simplilearn.com/tutorials/python-tutorial/python-path>
+
+1. 有关`.pyd`文件
+
+    <https://stackoverflow.com/questions/50278029/how-to-import-a-pyd-file-as-a-python-module>
+
+    这个资料里说 pyd 其实就是 dll，没法直接 import。
+
+    实际上，可以使用`importlib`这个库导入 pyd 文件。有时间了研究一下。

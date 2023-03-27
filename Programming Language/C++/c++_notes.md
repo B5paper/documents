@@ -1,5 +1,7 @@
 # C++ Notes
 
+微软出的 c/c++ tutorial，挺好的，有时间了看看：<https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/fopen-wfopen?view=msvc-170>
+
 ## Variable
 
 **Basic types**
@@ -464,7 +466,11 @@ int main()
 
 ### 构造与析构
 
-**构造函数**
+#### 构造函数
+
+Ref: <https://www.geeksforgeeks.org/constructors-c/>
+
+有空了看看，查漏补缺。
 
 ```cpp
 class A
@@ -487,21 +493,74 @@ int main()
 
 注意`A a = A(xxx);`只会调用一次构造函数，而不是先调用构造函数，再调用赋值运算符。（但是别人的代码似乎是先调用了构造函数，然后调用了移动构造函数。奇怪，不清楚哪个版本是对的。）
 
-构造函数的创建规则：
+```cpp
+A test_2() {
+    A a;
+    a.val = 3;
+    return a;
+}
 
-1. 若用户定义了构造函数，则不提供默认构造函数，但仍提供默认拷贝构造函数
+int main(int argc, char* argv[])
+{
+    A obj = test_2();
+    return 0;
+}
+```
 
-1. 若用户定义了拷贝构造函数，则不提供其他的构造函数
+上面的代码本来需要先调用一次构造函数，再调用一次复制构造函数（如果实现了移动构造函数，会调用移动构造函数）。但是编译器有返回值优化（RVO，Retuan value optimization），所以只会调用一次构造函数。如果想关掉这个优化功能，可以加上`-fno-elide-constructors`参数。
 
-编译器给每个`class`默认提供 4 种函数：
+提问：是在`return a;`的时候调用复制/移动构造函数，还是在`A obj = test_2();`时候调用复制/移动构造函数？
 
-1. 默认构造函数
+#### 析构函数（destructor）
 
-1. 默认析构函数
+#### 拷贝构造函数，复制构造函数（copy constructor）
 
-1. 默认拷贝构造函数，对属性进行值拷贝
+当出现以下情况时，会调用复制构造函数：
 
-1. 赋值运算符`operator=`，对属性进行值拷贝
+1. 用已存在的对象初始化另一个对象
+
+    ```cpp
+    A a;
+    A b(a);
+    A c = a;
+    ```
+
+1. 函数按值传递参数
+
+    ```cpp
+    int func(A a) {}
+    int main()
+    {
+        A a;
+        func(a);
+        return 0;
+    }
+    ```
+
+1. 函数按值返回对象
+
+编译器提供了默认的复制构造函数，这个构造函数执行的是“浅复制（shadow copy）”：如果成员中有`vector<T>`之类的对象，复制构造函数会递归地调用成员对象的复制构造函数。如果成员中有`int`，`int*`之类的基本类型，那么会直接按值进行复制。
+
+对于`vector`，底层是调用了
+
+```cpp
+constexpr vector(const vector& __x)
+: _Base(__x.size(),
+_Alloc_traits::_S_select_on_copy(__x._M_get_Tp_allocator()))
+{
+    this->_M_impl._M_finish =
+        std::__uninitialized_copy_a(
+            __x.begin(), __x.end(),
+            this->_M_impl._M_start,
+            _M_get_Tp_allocator());
+}
+```
+
+可以看到，这个复制构造函数是把底层的数据又复制了一遍。
+
+如果我们的类中有指针，那么就需要深复制（deep copy），防止底层数据被多个对象共享，或者同一块内存被多次释放。
+
+#### 赋值运算符（operator=）
 
 **拷贝构造函数**
 
@@ -532,28 +591,6 @@ A(a);  // equals A a;
 
 调用拷贝构造函数的时机：
 
-1. 用已存在的对象初始化另一个对象
-
-    ```cpp
-    A a;
-    A b(a);
-    A b = a;
-    ```
-
-1. 函数按值传递参数
-
-    ```cpp
-    int func(A a) {}
-    int main()
-    {
-        A a;
-        func(a);
-        return 0;
-    }
-    ```
-
-1. 函数按值返回对象
-
 当其它类对象作为本类成员，构造时先构造类对象，再构造自身，析构的顺序相反。
 
 有关拷贝构造函数一些需要注意的地方：
@@ -563,8 +600,11 @@ A(a);  // equals A a;
 C++ 为一个类默认提供 4 个函数：
 
 1. 构造函数
+
 1. 析构函数
+
 1. 拷贝构造函数（按值浅拷贝）
+
 1. 赋值运算符`operator=`（按值浅拷贝）
 
 **析构函数**
@@ -729,6 +769,24 @@ int main()
 ```
 
 注意各个类声明的顺序。有时候报错说类名找不到，有时候报错说函数名找不到。
+
+#### 编译器提供的函数
+
+构造函数的创建规则：
+
+1. 若用户定义了构造函数，则不提供默认构造函数，但仍提供默认拷贝构造函数
+
+1. 若用户定义了拷贝构造函数，则不提供其他的构造函数
+
+编译器给每个`class`默认提供 4 种函数：
+
+1. 默认构造函数
+
+1. 默认析构函数
+
+1. 默认拷贝构造函数，对属性进行值拷贝
+
+1. 赋值运算符`operator=`，对属性进行值拷贝
 
 ### Memory model of a simple object
 
@@ -1093,6 +1151,8 @@ RTTI 的具体实现有两种方式，
 1. `dynamic_cast()`：将基类的指针或引用安全地转换为派生类类型的指针或引用
 
 ### 类型转换
+
+c++ 中有关类型转换的 tutorial: <https://cplusplus.com/doc/oldtutorial/typecasting/>
 
 常用的显式类型转换：
 
@@ -1611,6 +1671,72 @@ int main()
 
 可以用`|`组合多个 flags。
 
+### file IO
+
+#### C 语言方法
+
+* `fgets`
+
+    ```cpp
+    char *fgets(char *str, int n, FILE *stream)
+    ```
+
+    头文件：`#include <stdio.h>`
+
+    从`stream`中读取`n - 1`个字节到缓冲区`buf`中，最后一个字节会被填充为`\0`。如果读取了`n`个字节，或者遇到`'\n'`，则返回`str`。如果遇到 EOF，或出错，则返回`NULL`。
+
+    `fgets()`读取的字符串，会包含`\n`。
+
+    宽字符版：`fgetws()`
+
+    `fgets`返回有效指针有两个条件，一个是遇到`\n`，另一个是`buf`读满。
+
+    如果我们希望`fgets()`读完一行就停止，可以使用`fgets()`往缓冲区中循环读入数，然后直到遇到一行结尾就结束。如果`fgets()`没有读到换行，那么会把 buffer 填满，最后一个字节填`'\0'`，如果读到了换行，那么会在 buffer 中间的某个位置填`\n\0`。怎么检测呢？
+    
+    1. 我们可以使用`strlen()`或`wcslen()`检测 buffer 中字符串的长度，如果长度为`n - 1`，那么说明 buffer 被写满了。此时我们检测倒数第 2 个字符是否为`\n`，如果是`\n`，说明读到了行尾，如果不是，说明没到行尾。如果长度小于`n-1`，那么说明 buffer 没有被写满，一定是到行尾了。
+
+        这种方法每次都至少需要遍历一遍 buffer，效率比较低。
+
+    1. 每次都把 buffer 置零，然后检测倒数第二个字符就可以了。如果字符为`'\0'`或`'\n'`，那么说明读到了结尾。如果不是这两个，那么说明还没到结尾。
+
+        其实不需要把整个 buffer 置零，只需要把倒数第二个字符置 0 就可以了。
+
+        这种解决方法的代码：
+
+        ```cpp
+        vector<wstring> read_file_to_lines(string file_path)
+        {
+            FILE *file = fopen(file_path.c_str(), "r");
+            const int BUFSIZE = 128;
+            wchar_t buf[BUFSIZE];
+            wstring line;
+            vector<wstring> lines;
+            int i = 0;
+            while (!feof(file))
+            {
+                line.clear();
+                while (true)
+                {
+                    buf[BUFSIZE - 2] = L'\0';
+                    fgetws(buf, BUFSIZE, file);
+                    line.append(buf);
+                    if (buf[BUFSIZE - 2] == L'\0' || buf[BUFSIZE - 2] == L'\n')
+                        break;
+                }
+                lines.push_back(line);
+            }
+            return lines;
+        }
+        ```
+
+* `fread`
+
+    Syntax:
+
+    ```cpp
+    size_t fread(void *__restrict__ _DstBuf, size_t _ElementSize, size_t _Count, FILE *__restrict__ _File)
+    ```
+
 ## 模板
 
 **函数模板**
@@ -1902,6 +2028,22 @@ class Person
     ```
 
     有时间了可以看看。
+
+    不可以返回函数内部值的右值，因为对象会在函数结束时被销毁：
+
+    ```cpp
+    vector<int>&& test()
+    {
+        vector<int> aaa;
+        return move(aaa);
+    }
+
+    int main(int argc, char* argv[])
+    {
+        vector<int> aaa = test();
+        return 0;
+    }
+    ```
 
 ### 完美转发
 
@@ -2797,3 +2939,110 @@ int main()
 
     如果没有输入，`argc`为 1，`argv[0]`为在 terminal 中运行这个程序输入的 path。注意这个 path 可以是相对路径，也可以是绝对路径。它总是与 terminal 中输入的命令相同。
 
+1. choose without replacement
+
+    ```cpp
+    #include <iostream>
+    #include <unordered_map>
+    #include <algorithm>
+    #include <vector>
+    #include <string>
+    #include <random>
+    using namespace std;
+
+    int main(int argc, char* argv[])
+    {
+        vector<int> v{3, 2, 5, 4, 1};
+        int buf[3];
+        sample(v.begin(), v.end(), buf, 3, mt19937{random_device{}()});
+        for (auto item: buf)
+            cout << item << ",";
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    注意`sample()`不会改变元素在 container 中的顺序。如果需要随机顺序，还得再`shuffle()`一下。
+
+1. shuffle
+
+    ```cpp
+    vector<int> vv{3,4,5,6,7};
+    shuffle(vv.begin(), vv.end(), mt19937{random_device{}()});
+    for (auto item: vv)
+        cout << item << ",";
+    cout << endl;
+    ```
+
+1. unicode 字符处理
+
+    使用`wchar_t`和`wstring`。
+
+    ```cpp
+    wchar_t wc[] = L"你";
+    cout << sizeof(wc) << ", " << sizeof(wc[0]) << endl;
+    wstring ws{L"你好"};
+    ```
+
+    `wchar_t`占两个字节。
+
+    `wcout`无法输出的问题：
+
+    ```cpp
+    #include <iostream>
+    #include <locale>
+    #include <string>
+    #include <codecvt>
+
+    int main()
+    {
+        std::ios_base::sync_with_stdio(false);
+
+        std::locale utf8( std::locale(), new std::codecvt_utf8_utf16<wchar_t> );
+        std::wcout.imbue(utf8);
+
+        std::wstring w(L"Bilişim Sistemleri Mühendisliğine Giriş");
+        std::wcout << w << '\n';
+    }
+    ```
+
+    `wstring`和`string`之间的转换，好像还挺麻烦的：
+
+    ```cpp
+    #include <codecvt>
+    #include <string>
+
+    std::wstring utf8ToUtf16(const std::string& utf8Str)
+    {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> conv;
+        return conv.from_bytes(utf8Str);
+    }
+
+    std::string utf16ToUtf8(const std::wstring& utf16Str)
+    {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> conv;
+        return conv.to_bytes(utf16Str);
+    }
+    ```
+
+1. `memset()`是按字节填充数据的。如果我们要填充的数据大于一个字节，就没法用这个函数。另外，如果缓冲区是`wchar_t`类型，那么需要用`sizeof(wchar_t) * BUFFSIZE`计算填充长度。
+
+1. `-fpermissive`可以返回右值的地址。
+
+1. 有关程序的编码问题，乱码问题，深度解析：<https://blog.csdn.net/qq_50052051/article/details/123690739>
+
+1. filter containers in c++
+
+    <https://www.cppstories.com/2021/filter-cpp-containers/>
+
+1. 读 utf-8 文件：<https://stackoverflow.com/questions/4775437/read-unicode-utf-8-file-into-wstring>
+
+1. 将 char string 转换成 wchar_t string: <https://learncplusplus.org/convert-a-char-array-to-a-wide-string-in-modern-c-software/>
+
+    <https://codereview.stackexchange.com/questions/419/converting-between-stdwstring-and-stdstring>
+
+1. wcout 不输出
+
+    <https://stackoverflow.com/questions/50053386/wcout-does-not-output-as-desired>
+
+1. c++ 中中文字符的处理：<https://blog.csdn.net/orz_3399/article/details/53415987>

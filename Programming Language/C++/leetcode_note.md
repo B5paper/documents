@@ -5100,6 +5100,240 @@ scores.length == ages.length
 
     先对队员进行排序。用数组记录以队员`i`结尾可以得到的最大分数。然后我们不断地向后推进就可以了，每次都遍历一遍前面得到的所有最优结果。
 
+#### 最小路径和
+
+给定一个包含非负整数的 m x n 网格 grid ，请找出一条从左上角到右下角的路径，使得路径上的数字总和为最小。
+
+说明：每次只能向下或者向右移动一步。
+
+ 
+
+示例 1：
+
+
+输入：grid = [[1,3,1],[1,5,1],[4,2,1]]
+输出：7
+解释：因为路径 1→3→1→1→1 的总和最小。
+示例 2：
+
+输入：grid = [[1,2,3],[4,5,6]]
+输出：12
+ 
+
+提示：
+
+m == grid.length
+n == grid[i].length
+1 <= m, n <= 200
+0 <= grid[i][j] <= 100
+
+代码：
+
+1. 动态规划
+
+    ```cpp
+    class Solution {
+    public:
+        int minPathSum(vector<vector<int>>& grid) {
+            int m = grid.size();
+            int n = grid[0].size();
+            vector<vector<int>> dp(m, vector<int>(n, 0));
+            dp[0][0] = grid[0][0];
+            for (int j = 1; j < n; ++j)
+                dp[0][j] = dp[0][j-1] + grid[0][j];
+            for (int i = 1; i < m; ++i)
+                dp[i][0] = dp[i-1][0] + grid[i][0];
+            for (int i = 1; i < m; ++i)
+            {
+                for (int j = 1; j < n; ++j)
+                {
+                    dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
+                }
+            }
+            return dp[m-1][n-1];
+        }
+    };
+    ```
+
+#### 统计只差一个字符的子串数目
+
+代码：
+
+1. 自己写的一个错误版本
+
+    ```cpp
+    class Solution {
+    public:
+        int countSubstrings(string s, string t) {
+            int ans = 0;
+            int p = 0;
+            for (int i = 0; i < s.size(); ++i)
+            {
+                for (int j = 0; j < t.size(); ++j)
+                {
+                    int p1 = i, p2 = j;
+                    int state = 0;
+                    while (p1 < s.size() && p2 < t.size())
+                    {
+                        if (s[p1] == t[p2] && state == 0)
+                        {
+                            ++p1;
+                            ++p2;
+                        }
+                        else if (s[p1] != t[p2] && state == 0)
+                        {
+                            ans += p1 - i + 1;
+                            state = 1;
+                            ++p1;
+                            ++p2;
+                        }
+                        else if (s[p1] == t[p2] && state == 1)
+                        {
+                            ++ans;
+                            ++p1;
+                            ++p2;
+                        }
+                        else if (s[p1] != t[p2] && state == 1)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 状态转移
+
+    ```cpp
+    class Solution {
+    public:
+        int countSubstrings(string s, string t) {
+            int ans = 0;
+            int p = 0;
+            int m = s.size();
+            int n = t.size();
+            int max_len = min(m, n);
+            vector<vector<vector<int>>> dp(m, vector<vector<int>>(
+                n, vector<int>(max_len+1, 0)));
+            // 0：没探索过
+            // 1: dp[i][j][len] 当前以及前面都相等
+            // 2: dp[i][j][len] 当前以及前面有一个不等
+            // 3: dp[i][j][len] 当前位置是第二个不等的
+            for (int i = 0; i < m; ++i)
+            {
+                for (int j = 0; j < n; ++j)
+                {
+                    if (s[i] == t[j]) dp[i][j][1] = 1;
+                    else
+                    {
+                        dp[i][j][1] = 2;
+                        ++ans;
+                    }
+                }
+            }
+
+            for (int len = 2; len <= max_len; ++len)
+            {
+                for (int i = 0; i < m - len + 1; ++i)
+                {
+                    for (int j = 0; j < n - len + 1; ++j)
+                    {
+                        int p1 = i + len - 1;
+                        int p2 = j + len - 1;
+                        if (dp[i][j][len-1] == 1)
+                        {
+                            if (s[p1] == t[p2]) dp[i][j][len] = 1;
+                            else
+                            {
+                                dp[i][j][len] = 2;
+                                ++ans;
+                            }
+                        }
+                        else if (dp[i][j][len-1] == 2)
+                        {
+                            if (s[p1] == t[p2])
+                            {
+                                dp[i][j][len] = 2;
+                                ++ans;
+                            }
+                            else dp[i][j][len] = 3;
+
+                        }
+                        else if (dp[i][j][len-1] == 3)
+                        {
+                            dp[i][j][len] = 3;
+                        }
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 官方，枚举
+
+    ```cpp
+    class Solution {
+    public:
+        int countSubstrings(string s, string t) {
+            int m = s.size(), n = t.size();
+            int ans = 0;
+            for (int i = 0; i < m; i++) {
+                for (int j = 0; j < n; j++) {
+                    int diff = 0;
+                    for (int k = 0; i + k < m && j + k < n; k++) {
+                        diff += s[i + k] == t[j + k] ? 0 : 1;
+                        if (diff > 1) {
+                            break;
+                        } else if (diff == 1) {
+                            ans++;
+                        }
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 官方，两遍动态规划
+
+    先从左到右找 LCS，再从右向左找 LCS
+
+    ```cpp
+    class Solution {
+    public:
+        int countSubstrings(string s, string t) {
+            int m = s.size(), n = t.size();
+            vector<vector<int>> dpl(m + 1, vector<int>(n + 1));
+            vector<vector<int>> dpr(m + 1, vector<int>(n + 1));
+            for (int i = 0; i < m; i++) {
+                for (int j = 0; j < n; j++) {
+                    dpl[i + 1][j + 1] = s[i] == t[j] ? (dpl[i][j] + 1) : 0;
+                }
+            }
+            for (int i = m - 1; i >= 0; i--) {
+                for (int j = n - 1; j >= 0; j--) {
+                    dpr[i][j] = s[i] == t[j] ? (dpr[i + 1][j + 1] + 1) : 0;
+                }
+            }
+            int ans = 0;
+            for (int i = 0; i < m; i++) {
+                for (int j = 0; j < n; j++) {
+                    if (s[i] != t[j]) {
+                        ans += (dpl[i][j] + 1) * (dpr[i + 1][j + 1] + 1);
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
 ## 贪心
 
 ### 雪糕的最大数量
@@ -5644,6 +5878,131 @@ scores.length == ages.length
     注意题目中的几个要点：数组无序，有正有负有零；`target`不一定是 0；要求返回索引，而不是返回数组。
 
     因为要求返回索引，所以我们无法对数组进行排序后用双指针。
+
+### 和相等的子数组
+
+给你一个下标从 0 开始的整数数组 nums ，判断是否存在 两个 长度为 2 的子数组且它们的 和 相等。注意，这两个子数组起始位置的下标必须 不相同 。
+
+如果这样的子数组存在，请返回 true，否则返回 false 。
+
+子数组 是一个数组中一段连续非空的元素组成的序列。
+
+ 
+
+示例 1：
+
+输入：nums = [4,2,4]
+输出：true
+解释：元素为 [4,2] 和 [2,4] 的子数组有相同的和 6 。
+示例 2：
+
+输入：nums = [1,2,3,4,5]
+输出：false
+解释：没有长度为 2 的两个子数组和相等。
+示例 3：
+
+输入：nums = [0,0,0]
+输出：true
+解释：子数组 [nums[0],nums[1]] 和 [nums[1],nums[2]] 的和相等，都为 0 。
+注意即使子数组的元素相同，这两个子数组也视为不相同的子数组，因为它们在原数组中的起始位置不同。
+ 
+
+提示：
+
+2 <= nums.length <= 1000
+-109 <= nums[i] <= 109
+
+代码：
+
+1. 一开始自己写的，没有看到长度固定为 2，所以超时了
+
+    ```cpp
+    class Solution {
+    public:
+        bool findSubarrays(vector<int>& nums) {
+            int n = nums.size();
+            long long sum_1 = 0, sum_2 = 0;
+            vector<long long> presum(n, 0);
+            presum[0] = nums[0];
+            for (int i = 1; i < n; ++i)
+                presum[i] = presum[i-1] + nums[i];
+            for (int i1 = 0; i1 < n - 1; ++i1)
+            {
+                for (int i2 = i1; i2 < n; ++i2)
+                {
+                    sum_1 = presum[i2] - presum[i1] + nums[i1];
+                    for (int j1 = i1+1; j1 < n; ++j1)
+                    {
+                        for (int j2 = j1+1; j2 < n; ++j2)
+                        {
+                            sum_2 = presum[j2] - presum[j1] + nums[j1];
+                            if (sum_1 == sum_2 && j2 - j1 + 1 == 2 && i2 - i1 + 1 == 2)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+    };
+    ```
+
+    这样写的其实是按长度不固定的情况来写的。
+
+1. 二重循环
+
+    ```cpp
+    class Solution {
+    public:
+        bool findSubarrays(vector<int>& nums) {
+            int n = nums.size();
+            int sum_1 = 0, sum_2 = 0;
+            for (int i = 0; i < n - 1; ++i)
+            {
+                sum_1 = nums[i] + nums[i+1];
+                for (int j = i + 1; j < n - 1; ++j)
+                {
+                    sum_2 = nums[j] + nums[j+1];
+                    if (sum_1 == sum_2)
+                        return true;
+                }
+            }
+            return false;
+        }
+    };
+    ```
+
+    为什么这道题可以使用二重循环？因为题目中说数组中的元素是整数，所以没法用双指针构造滑动窗口。
+
+1. 哈希表
+
+    ```cpp
+    class Solution {
+    public:
+        bool findSubarrays(vector<int>& nums) {
+            int n = nums.size();
+            unordered_set<int> s;
+            int sum;
+            for (int i = 0; i < n - 1; ++i)
+            {
+                sum = nums[i] + nums[i+1];
+                if (s.find(sum) == s.end())
+                    s.insert(sum);
+                else
+                    return true;
+            }
+            return false;
+        }
+    };
+    ```
+
+    完全类似两数之和的思路。
+
+1. 先求出所有的2元素数组和，再判断是否有重复
+
+    判断重复的方法有两种，一种是排序，看是否存在相邻的重复元素；另一种是使用哈希表，看哈希表的大小是否等于数组的长度。
 
 ### 二维数组中的查找
 
@@ -9886,6 +10245,429 @@ s 和 t 只包含小写字母
     };
     ```
 
+### 区域和检索 - 数组可修改
+
+给你一个数组 nums ，请你完成两类查询。
+
+其中一类查询要求 更新 数组 nums 下标对应的值
+另一类查询要求返回数组 nums 中索引 left 和索引 right 之间（ 包含 ）的nums元素的 和 ，其中 left <= right
+实现 NumArray 类：
+
+NumArray(int[] nums) 用整数数组 nums 初始化对象
+void update(int index, int val) 将 nums[index] 的值 更新 为 val
+int sumRange(int left, int right) 返回数组 nums 中索引 left 和索引 right 之间（ 包含 ）的nums元素的 和 （即，nums[left] + nums[left + 1], ..., nums[right]）
+ 
+```
+示例 1：
+
+输入：
+["NumArray", "sumRange", "update", "sumRange"]
+[[[1, 3, 5]], [0, 2], [1, 2], [0, 2]]
+输出：
+[null, 9, null, 8]
+
+解释：
+NumArray numArray = new NumArray([1, 3, 5]);
+numArray.sumRange(0, 2); // 返回 1 + 3 + 5 = 9
+numArray.update(1, 2);   // nums = [1,2,5]
+numArray.sumRange(0, 2); // 返回 1 + 2 + 5 = 8
+ 
+
+提示：
+
+1 <= nums.length <= 3 * 104
+-100 <= nums[i] <= 100
+0 <= index < nums.length
+-100 <= val <= 100
+0 <= left <= right < nums.length
+调用 update 和 sumRange 方法次数不大于 3 * 104 
+```
+
+代码：
+
+1. 直接求解，会超时
+
+    ```cpp
+    class NumArray {
+    public:
+        NumArray(vector<int>& nums) {
+            this->nums = nums;
+        }
+        
+        void update(int index, int val) {
+            nums[index] = val;
+        }
+        
+        int sumRange(int left, int right) {
+            return accumulate(nums.begin() + left, nums.begin() + right + 1, 0);
+        }
+
+        private:
+        vector<int> nums;
+    };
+
+    /**
+     * Your NumArray object will be instantiated and called as such:
+     * NumArray* obj = new NumArray(nums);
+     * obj->update(index,val);
+     * int param_2 = obj->sumRange(left,right);
+     */
+    ```
+
+1. 分治法
+
+    为了尽量利用已经计算过的值，我们可以对原数组分块，每次只更新有改动的块就可以了。
+
+    ```cpp
+    class NumArray {
+    public:
+        NumArray(vector<int>& nums) {
+            this->nums = nums;
+            block_size = sqrt(nums.size());
+            int n = nums.size() / block_size;
+            if (n * block_size == nums.size())
+                block_sums.assign(n, 0);
+            else
+                block_sums.assign(n+1, 0);
+            for (int i = 0; i < block_sums.size(); ++i)
+            {
+                for (int j = i * block_size; j < (i+1) * block_size && j < nums.size(); ++j)
+                {
+                    block_sums[i] += nums[j];
+                }
+            }
+        }
+        
+        void update(int index, int val) {
+            int idx = index / block_size;
+            block_sums[idx] -= nums[index];
+            block_sums[idx] += val;
+            nums[index] = val;
+        }
+        
+        int sumRange(int left, int right) {
+            int ans = 0;
+            int i_block = left / block_size;
+            int j_block = right / block_size;
+            if (i_block == j_block)
+            {
+                for (int i = left; i <= right; ++i)
+                    ans += nums[i];
+                return ans;
+            }
+            int left_end = (i_block + 1) * block_size - 1;
+            int right_start = j_block * block_size;
+            ans += accumulate(nums.begin()+left, nums.begin()+left_end+1, 0);
+            ans += accumulate(nums.begin()+right_start, nums.begin()+right+1, 0);
+            for (int i = i_block + 1; i < j_block; ++i)
+                ans += block_sums[i];
+            return ans;
+        }
+
+        private:
+        vector<int> nums;
+        vector<int> block_sums;
+        int block_size;
+    };
+
+    /**
+    * Your NumArray object will be instantiated and called as such:
+    * NumArray* obj = new NumArray(nums);
+    * obj->update(index,val);
+    * int param_2 = obj->sumRange(left,right);
+    */
+    ```
+
+1. 线段树
+
+    将一个区间先分成两段，左叶子节点存储左半段的总和，右叶子节点存储右半段的总和，本节点存储当前区间的总和。
+
+    每次更新节点，先找到叶子节点，然后自底向上更新路径。
+
+    如果需要查询求和，只需要找到对应的节点相加就可以了。
+
+    ```cpp
+    class NumArray {
+    private:
+        vector<int> segmentTree;
+        int n;
+
+        void build(int node, int s, int e, vector<int> &nums) {
+            if (s == e) {
+                segmentTree[node] = nums[s];
+                return;
+            }
+            int m = s + (e - s) / 2;
+            build(node * 2 + 1, s, m, nums);
+            build(node * 2 + 2, m + 1, e, nums);
+            segmentTree[node] = segmentTree[node * 2 + 1] + segmentTree[node * 2 + 2];
+        }
+
+        void change(int index, int val, int node, int s, int e) {
+            if (s == e) {
+                segmentTree[node] = val;
+                return;
+            }
+            int m = s + (e - s) / 2;
+            if (index <= m) {
+                change(index, val, node * 2 + 1, s, m);
+            } else {
+                change(index, val, node * 2 + 2, m + 1, e);
+            }
+            segmentTree[node] = segmentTree[node * 2 + 1] + segmentTree[node * 2 + 2];
+        }
+
+        int range(int left, int right, int node, int s, int e) {
+            if (left == s && right == e) {
+                return segmentTree[node];
+            }
+            int m = s + (e - s) / 2;
+            if (right <= m) {
+                return range(left, right, node * 2 + 1, s, m);
+            } else if (left > m) {
+                return range(left, right, node * 2 + 2, m + 1, e);
+            } else {
+                return range(left, m, node * 2 + 1, s, m) + range(m + 1, right, node * 2 + 2, m + 1, e);
+            }
+        }
+
+    public:
+        NumArray(vector<int>& nums) : n(nums.size()), segmentTree(nums.size() * 4) {
+            build(0, 0, n - 1, nums);
+        }
+
+        void update(int index, int val) {
+            change(index, val, 0, 0, n - 1);
+        }
+
+        int sumRange(int left, int right) {
+            return range(left, right, 0, 0, n - 1);
+        }
+    };
+    ```
+
+    官方解，有时间了看看。
+
+1. 树状数组 官方答案，有时间了看看
+
+    ```cpp
+    class NumArray {
+    private:
+        vector<int> tree;
+        vector<int> &nums;
+
+        int lowBit(int x) {
+            return x & -x;
+        }
+
+        void add(int index, int val) {
+            while (index < tree.size()) {
+                tree[index] += val;
+                index += lowBit(index);
+            }
+        }
+
+        int prefixSum(int index) {
+            int sum = 0;
+            while (index > 0) {
+                sum += tree[index];
+                index -= lowBit(index);
+            }
+            return sum;
+        }
+
+    public:
+        NumArray(vector<int>& nums) : tree(nums.size() + 1), nums(nums) {
+            for (int i = 0; i < nums.size(); i++) {
+                add(i + 1, nums[i]);
+            }
+        }
+
+        void update(int index, int val) {
+            add(index + 1, val - nums[index]);
+            nums[index] = val;
+        }
+
+        int sumRange(int left, int right) {
+            return prefixSum(right + 1) - prefixSum(left);
+        }
+    };
+    ```
+
+### 删除有序数组中的重复项 II
+
+给你一个有序数组 nums ，请你 原地 删除重复出现的元素，使得出现次数超过两次的元素只出现两次 ，返回删除后数组的新长度。
+
+不要使用额外的数组空间，你必须在 原地 修改输入数组 并在使用 O(1) 额外空间的条件下完成。
+
+ 
+
+说明：
+
+为什么返回数值是整数，但输出的答案是数组呢？
+
+请注意，输入数组是以「引用」方式传递的，这意味着在函数里修改输入数组对于调用者是可见的。
+
+你可以想象内部操作如下:
+
+// nums 是以“引用”方式传递的。也就是说，不对实参做任何拷贝
+int len = removeDuplicates(nums);
+
+// 在函数里修改输入数组对于调用者是可见的。
+// 根据你的函数返回的长度, 它会打印出数组中 该长度范围内 的所有元素。
+for (int i = 0; i < len; i++) {
+    print(nums[i]);
+}
+ 
+
+示例 1：
+
+输入：nums = [1,1,1,2,2,3]
+输出：5, nums = [1,1,2,2,3]
+解释：函数应返回新长度 length = 5, 并且原数组的前五个元素被修改为 1, 1, 2, 2, 3 。 不需要考虑数组中超出新长度后面的元素。
+示例 2：
+
+输入：nums = [0,0,1,1,1,1,2,3,3]
+输出：7, nums = [0,0,1,1,2,3,3]
+解释：函数应返回新长度 length = 7, 并且原数组的前五个元素被修改为 0, 0, 1, 1, 2, 3, 3 。 不需要考虑数组中超出新长度后面的元素。
+ 
+
+提示：
+
+1 <= nums.length <= 3 * 104
+-104 <= nums[i] <= 104
+nums 已按升序排列
+
+代码：
+
+1. 双指针，自己写的，还行
+
+    ```cpp
+    class Solution {
+    public:
+        int removeDuplicates(vector<int>& nums) {
+            int left = 0, right = 0;
+            int n = nums.size();
+            if (n < 3) return n;
+            while (right < n - 2)
+            {
+                if (nums[right] == nums[right+1] && nums[right+2] == nums[right])
+                {
+                    ++right;
+                    continue;
+                }
+                nums[left] = nums[right];
+                ++left;
+                ++right;
+            }
+            nums[left++] = nums[right++];
+            nums[left++] = nums[right++];
+            return left;
+        }
+    };
+    ```
+
+1. 双指针，官方解
+
+    ```cpp
+    class Solution {
+    public:
+        int removeDuplicates(vector<int>& nums) {
+            int n = nums.size();
+            if (n <= 2) {
+                return n;
+            }
+            int slow = 2, fast = 2;
+            while (fast < n) {
+                if (nums[slow - 2] != nums[fast]) {
+                    nums[slow] = nums[fast];
+                    ++slow;
+                }
+                ++fast;
+            }
+            return slow;
+        }
+    };
+    ```
+
+### 最接近的三数之和
+
+给你一个长度为 n 的整数数组 nums 和 一个目标值 target。请你从 nums 中选出三个整数，使它们的和与 target 最接近。
+
+返回这三个数的和。
+
+假定每组输入只存在恰好一个解。
+
+ 
+
+示例 1：
+
+输入：nums = [-1,2,1,-4], target = 1
+输出：2
+解释：与 target 最接近的和是 2 (-1 + 2 + 1 = 2) 。
+示例 2：
+
+输入：nums = [0,0,0], target = 1
+输出：0
+ 
+
+提示：
+
+3 <= nums.length <= 1000
+-1000 <= nums[i] <= 1000
+-104 <= target <= 104
+
+代码：
+
+1. 排序加双指针
+
+    ```cpp
+    class Solution {
+    public:
+        int threeSumClosest(vector<int>& nums, int target) {
+            sort(nums.begin(), nums.end());
+            int n = nums.size();
+            int left, right;
+            int sum;
+            int diff = INT32_MAX;
+            int ans;
+            for (int i = 0; i < n - 2; ++i)
+            {
+                left = i + 1;
+                right = n - 1;;
+                sum = nums[left] + nums[right] + nums[i];
+                if (abs(target - sum) < diff)
+                {
+                    ans = sum;
+                    diff = abs(target - sum);
+                }
+                while (left < right)
+                {
+                    sum = nums[left] + nums[right] + nums[i];
+                    if (sum < target)
+                        ++left;
+                    else if (sum > target)
+                        --right;
+                    else
+                        return sum;
+                }
+                if (abs(target - sum) < diff)
+                {
+                    ans = sum;
+                    diff = abs(target - sum);
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    双指针其实是遍历了所有情况，而不是到了某个位置就停止。
+
+    另外，别人的解法都是在`while`中，每移动一步指针就尝试更新一下答案。我的这个解法只在双指针停止后才更新答案，却仍然通过了所有的测试用例，为什么？
+
+1. 这道题用回溯法该怎么做呢？
+
 ## 链表
 
 ### 从尾到头打印链表
@@ -12622,6 +13404,234 @@ lists[i].length 的总和不超过 10^4
     ```
 
 1. 用类似归并排序的思想
+
+### 反转链表 II
+
+给你单链表的头指针 head 和两个整数 left 和 right ，其中 left <= right 。请你反转从位置 left 到位置 right 的链表节点，返回 反转后的链表 。
+ 
+
+示例 1：
+
+
+输入：head = [1,2,3,4,5], left = 2, right = 4
+输出：[1,4,3,2,5]
+示例 2：
+
+输入：head = [5], left = 1, right = 1
+输出：[5]
+ 
+
+提示：
+
+链表中节点数目为 n
+1 <= n <= 500
+-500 <= Node.val <= 500
+1 <= left <= right <= n
+ 
+
+进阶： 你可以使用一趟扫描完成反转吗？
+
+代码：
+
+1. 先找到头尾，然后反转头尾中间的链表，最后处理下头尾的`next`就好了
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode() : val(0), next(nullptr) {}
+    *     ListNode(int x) : val(x), next(nullptr) {}
+    *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* reverseBetween(ListNode* head, int left, int right) {
+            if (!head->next) return head;
+            ListNode *p = head;
+            ListNode *dummy_head = new ListNode(-1, head);
+            ListNode *pre = dummy_head;
+            --left;
+            --right;
+            while (left)
+            {
+                pre = pre->next;
+                p = p->next;
+                --left;
+                --right;
+            }
+            ListNode *start_pre = pre;
+            ListNode *start = p;
+            ListNode *nex = start->next;
+
+            while (right)
+            {
+                p = p->next;
+                --right;
+            }
+            ListNode *end = p;
+            
+            pre = start_pre;
+            p = start;
+            while (pre != end)
+            {
+                p->next = pre;
+                pre = p;
+                p = nex;
+                if (nex) nex = nex->next;
+            }
+
+            start_pre->next = pre;
+            start->next = p;
+            return dummy_head->next;
+        }
+    };
+    ```
+
+    上面的代码在找`end`的时候，多遍历了一遍。这段可以优化掉。
+
+1. 优化方法一：边向后遍历，边判断是否到`end`
+
+1. 优化方法二（官方优化）：每遍历一个节点，就在`start`处做一次插入操作。
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode *reverseBetween(ListNode *head, int left, int right) {
+            // 设置 dummyNode 是这一类问题的一般做法
+            ListNode *dummyNode = new ListNode(-1);
+            dummyNode->next = head;
+            ListNode *pre = dummyNode;
+            for (int i = 0; i < left - 1; i++) {
+                pre = pre->next;
+            }
+            ListNode *cur = pre->next;
+            ListNode *next;
+            for (int i = 0; i < right - left; i++) {
+                next = cur->next;
+                cur->next = next->next;
+                next->next = pre->next;
+                pre->next = next;
+            }
+            return dummyNode->next;
+        }
+    };
+    ```
+
+    充分利用了链表快速插入的特性。
+
+1. 其他方法，用栈
+
+    栈能做，但是效率低。
+
+### 旋转链表
+
+给你一个链表的头节点 head ，旋转链表，将链表每个节点向右移动 k 个位置。
+
+ 
+
+示例 1：
+
+
+输入：head = [1,2,3,4,5], k = 2
+输出：[4,5,1,2,3]
+示例 2：
+
+
+输入：head = [0,1,2], k = 4
+输出：[2,0,1]
+ 
+
+提示：
+
+链表中节点的数目在范围 [0, 500] 内
+-100 <= Node.val <= 100
+0 <= k <= 2 * 109
+
+代码：
+
+1. 自己写的，边界条件不好判断
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode* rotateRight(ListNode* head, int k) {
+            if (!head) return nullptr;
+            if (!head->next) return head;
+            int n = 0;
+            ListNode *p = head;
+            ListNode *end;
+            while (p)
+            {
+                ++n;
+                if (!p->next) end = p;
+                p = p->next;
+            }
+            int m = n - k % n - 1;
+            if (m == -1 || m == n - 1) return head;
+            p = head;
+            while (m)
+            {
+                p = p->next;
+                --m;
+            }
+            ListNode *new_head = p->next;
+            p->next = nullptr;
+            end->next = head;
+            return new_head;
+        }
+    };
+    ```
+
+1. 官方答案，先闭合为环，再断开
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* rotateRight(ListNode* head, int k) {
+            if (k == 0 || head == nullptr || head->next == nullptr) {
+                return head;
+            }
+            int n = 1;
+            ListNode* iter = head;
+            while (iter->next != nullptr) {
+                iter = iter->next;
+                n++;
+            }
+            int add = n - k % n;
+            if (add == n) {
+                return head;
+            }
+            iter->next = head;
+            while (add--) {
+                iter = iter->next;
+            }
+            ListNode* ret = iter->next;
+            iter->next = nullptr;
+            return ret;
+        }
+    };
+    ```
+
+    其实和我的思路差不多。如果用我的方法，需要判断边界条件；官方的答案不需要处理特殊情况。
+
+1. 快慢指针
+
+    让一个指针比另一个指针快`k`步，这样当快指针到链表尾时，慢指针就会在要断开的位置。
+
+    这种方法也挺好的，比较优雅。
 
 ## 树
 
@@ -22039,6 +23049,124 @@ order.length == 26
 
     重载一下`<`符号也是可以的。另外可以不使用哈希表，因为可以直接使用`idx[order[i] - 'a'] = i;`做映射。
 
+### 二进制求和
+
+给你两个二进制字符串 a 和 b ，以二进制字符串的形式返回它们的和。
+
+ 
+
+示例 1：
+
+输入:a = "11", b = "1"
+输出："100"
+示例 2：
+
+输入：a = "1010", b = "1011"
+输出："10101"
+ 
+
+提示：
+
+1 <= a.length, b.length <= 104
+a 和 b 仅由字符 '0' 或 '1' 组成
+字符串如果不是 "0" ，就不含前导零
+
+代码：
+
+1. 先反转字符串，求完和后把答案再反转过来
+
+    ```cpp
+    class Solution {
+    public:
+        string addBinary(string a, string b) {
+            string ans(max(a.size(), b.size()) + 1, '0');
+            int p1 = 0, p2 = 0, p = 0;
+            int sum, cur_digit, carry = 0;
+            reverse(a.begin(), a.end());
+            reverse(b.begin(), b.end());
+            while (p1 < a.size() && p2 < b.size())
+            {
+                sum = a[p1] - '0' + b[p2] - '0' + carry;
+                cur_digit = sum % 2;
+                carry = sum / 2;
+                ans[p] = cur_digit + '0';
+                ++p1;
+                ++p2;
+                ++p;
+            }
+            while (p1 < a.size())
+            {
+                sum = a[p1] - '0' + carry;
+                cur_digit = sum % 2;
+                carry = sum / 2;
+                ans[p] = cur_digit + '0';
+                ++p1;
+                ++p;
+            }
+            while (p2 < b.size())
+            {
+                sum = b[p2] - '0' + carry;
+                cur_digit = sum % 2;
+                carry = sum / 2;
+                ans[p] = cur_digit + '0';
+                ++p2;
+                ++p;
+            }
+            if (carry)
+            {
+                ans[ans.size()-1] = '1';
+                reverse(ans.begin(), ans.end());
+                return ans;
+            }
+            reverse(ans.begin(), ans.end()-1);
+            return ans.substr(0, ans.size()-1);
+        }
+    };
+    ```
+
+    还有优化空间，可以倒序遍历三个字符串，这样就不需要反转了。另外可以把`/`，`+`，`%`换成位运算（怎么换？）
+
+    官方给的简洁写法。一味追求行数少，失去了可读性，不太喜欢。
+
+    ```cpp
+    class Solution {
+    public:
+        string addBinary(string a, string b) {
+            string ans;
+            reverse(a.begin(), a.end());
+            reverse(b.begin(), b.end());
+
+            int n = max(a.size(), b.size()), carry = 0;
+            for (size_t i = 0; i < n; ++i) {
+                carry += i < a.size() ? (a.at(i) == '1') : 0;
+                carry += i < b.size() ? (b.at(i) == '1') : 0;
+                ans.push_back((carry % 2) ? '1' : '0');
+                carry /= 2;
+            }
+
+            if (carry) {
+                ans.push_back('1');
+            }
+            reverse(ans.begin(), ans.end());
+
+            return ans;
+        }
+    };
+    ```
+
+1. 官方给的答案，直接用二进制做
+
+    ```py
+    class Solution:
+        def addBinary(self, a, b) -> str:
+            x, y = int(a, 2), int(b, 2)
+            while y:
+                answer = x ^ y
+                carry = (x & y) << 1
+                x, y = answer, carry
+            return bin(x)[2:]
+    ```
+
 ## 前缀和
 
 ### 矩阵区域和
@@ -23616,6 +24744,101 @@ randomSet.getRandom(); // 由于 2 是集合中唯一的数字，getRandom 总�
      * int param_3 = obj->getRandom();
      */
     ```
+
+### x 的平方根
+
+给你一个非负整数 x ，计算并返回 x 的 算术平方根 。
+
+由于返回类型是整数，结果只保留 整数部分 ，小数部分将被 舍去 。
+
+注意：不允许使用任何内置指数函数和算符，例如 pow(x, 0.5) 或者 x ** 0.5 。
+
+ 
+
+示例 1：
+
+输入：x = 4
+输出：2
+示例 2：
+
+输入：x = 8
+输出：2
+解释：8 的算术平方根是 2.82842..., 由于返回类型是整数，小数部分将被舍去。
+ 
+
+提示：
+
+0 <= x <= 231 - 1
+
+代码：
+
+1. 自己写的，递增对比
+
+    ```cpp
+    class Solution {
+    public:
+        int mySqrt(int x) {
+            int n = 1;
+            int max_n = sqrt(float(INT32_MAX));  // 有时间了把这个优化掉
+            while (n <= max_n && n * n < x)
+                n += 1;
+            if (n > max_n) return max_n;
+            if (n * n == x)
+                return n;
+            return n - 1;
+        }
+    };
+    ```
+
+    效率比较低，但优点是没有用`long long`之类的类型。
+
+    想了想，其实没法用乘2递增法。
+
+1. 官方题解，二分查找
+
+    ```cpp
+    class Solution {
+    public:
+        int mySqrt(int x) {
+            int l = 0, r = x, ans = -1;
+            while (l <= r) {
+                int mid = l + (r - l) / 2;
+                if ((long long)mid * mid <= x) {
+                    ans = mid;
+                    l = mid + 1;
+                } else {
+                    r = mid - 1;
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 牛顿迭代
+
+    ```cpp
+    class Solution {
+    public:
+        int mySqrt(int x) {
+            if (x == 0) {
+                return 0;
+            }
+
+            double C = x, x0 = x;
+            while (true) {
+                double xi = 0.5 * (x0 + C / x0);
+                if (fabs(x0 - xi) < 1e-7) {
+                    break;
+                }
+                x0 = xi;
+            }
+            return int(x0);
+        }
+    };
+    ```
+
+    这个感觉也是有点复杂了。
 
 ## 整数，进制，位运算
 
