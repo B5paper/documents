@@ -802,6 +802,8 @@ r.val = 3;  // Error
 
 ## 字符串
 
+### &str
+
 rust 中常用的字符串有两种，一种为`str`，一种为`String`。
 
 * `str`
@@ -848,28 +850,296 @@ rust 中常用的字符串有两种，一种为`str`，一种为`String`。
     capacity()
     ```
 
-* `String`
+### String
 
-    如果想对字符串进行修改，我们需要使用标准库中提供的`String`类型，它会在堆上申请内存，存储字符串内容。
+如果想对字符串进行修改，我们需要使用标准库中提供的`String`类型，它会在堆上申请内存，存储字符串内容。
 
-    由于标准库中`String`会自动被导入，所以在程序中可以直接拿来使用。
+由于标准库中`String`会自动被导入，所以在程序中可以直接拿来使用。
 
-    创建一个字符串：
+创建一个字符串：
+
+```rust
+// create a string from &str
+let hello = String::from("hello, world!");  // 不可变
+let mut hello = String::from("Hello, ");  // 可变
+
+// craete a string from utf8 vec
+let sparkle_heart = vec![240, 159, 146, 150];
+let sparkle_heart = String::from_utf8(sparkle_heart).unwrap();
+assert_eq!("💖", sparkle_heart);
+
+let a = vec![65, 66, 97, 98];
+let mystr = String::from_utf8(a).unwrap();  // ABab
+```
+
+修改字符串：
+
+```rust
+let mut s = String::from("hello, ");
+s.push('w');
+s.push_str("orld!");
+```
+
+`str`中的 indexing 和 slicing 规则同样适用于`String`。
+
+修改字符串中的数据：
+
+```rust
+let mut mystr = String::from("你好\nhello\r\nworld");
+unsafe {
+    let mut v = mystr.as_mut_vec();  // 返回一个 &mut Vec<u8> 引用
+    v[7] = b'w';
+}
+println!("{}", mystr);  // 你好\nwello\r\nworld
+```
+
+常用的方法：
+
+* `chars()`
+
+    Syntax:
 
     ```rust
-    let hello = String::from("hello, world!");  // 不可变
-    let mut hello = String::from("Hello, ");  // 可变
+    pub fn chars(&self) -> Chars<'_>
     ```
 
-    `str`中的 indexing 和 slicing 规则同样适用于`String`。
+    Returns an iterator over the chars of a string slice.
 
-    修改字符串：
+    Example:
 
     ```rust
-    let mut s = String::from("hello, ");
-    s.push('w');
-    s.push_str("orld!");
+    let mut mystr = String::from("你好hello");
+    let mut chars = mystr.chars();  // 必须写成 mut，才能调用 next()
+    println!("{}", chars.nth(1).unwrap());  // 好
+    println!("{}", chars.next().unwrap());  // h
+    println!("{}", chars.count());  // 4, count() will consumes the iterator
+    println!("{}", chars.next().unwrap());  // Error
     ```
+
+    如果`chars.next()`读到字符串的末尾，那么会返回`None`。
+
+* `char_indices()`
+
+    Syntax:
+
+    ```rust
+    pub fn char_indices(&self) -> CharIndices<'_>
+    ```
+
+    Returns an iterator over the chars of a string slice, and their positions.
+
+    Examples:
+
+    ```rust
+    let mut mystr = String::from("你好hello");
+    let mut ch_idx = mystr.char_indices();
+    println!("{:?}", ch_idx.nth(1).unwrap());  // (3, '好')
+    println!("{:?}", ch_idx.next().unwrap());  // (6, 'h')
+    println!("{:?}", ch_idx.count());  // 4
+    println!("{}", ch_idx.next().unwrap());  // Error
+    ```
+
+    这个方法的功能和`chars()`差不多，只不过`next()`返回的是一个`Some((idx, ch))`。（`Some`内部是一个 tuple）
+
+* `bytes()`
+
+    Syntax:
+
+    ```rust
+    pub fn bytes(&self) -> Bytes<'_>
+    ```
+
+    An iterator over the bytes of a string slice.
+
+    Examples:
+
+    ```rust
+    let mut mystr = String::from("你好hello");
+    let mut bytes = mystr.bytes();
+    println!("{:?}", bytes.nth(3).unwrap());  // 229
+    println!("{:?}", bytes.next().unwrap());  // 165
+    println!("{:?}", bytes.next().unwrap());  // 189
+    println!("{:?}", bytes.next().unwrap());  // 104, h
+    println!("{:?}", bytes.next().unwrap());  // 101, e
+    println!("{:?}", bytes.count());  // 3
+    println!("{:?}", String::from_utf8(vec![229, 165, 189]));  // Ok("好")
+    ```
+
+* `split_whitespace()`
+
+    Syntax:
+
+    ```rust
+    pub fn split_whitespace(&self) -> SplitWhitespace<'_>
+    ```
+
+    Splits a string slice by whitespace.
+
+    The iterator returned will return string slices that are sub-slices of the original string slice, separated by any amount of whitespace.
+
+    Examples:
+
+    ```rust
+
+    ```
+
+* `split_ascii_whitespace()`
+
+    Syntax:
+
+    ```rust
+    pub fn split_ascii_whitespace(&self) -> SplitAsciiWhitespace<'_>
+    ```
+
+    Splits a string slice by ASCII whitespace.
+
+    The iterator returned will return string slices that are sub-slices of the original string slice, separated by any amount of ASCII whitespace.
+
+    以空格` `，制表符`\t`，换行符`\n`等分隔一个字符串。返回一个迭代器。
+
+* `lines()`
+
+    Syntax:
+
+    ```rust
+    pub fn lines(&self) -> Lines<'_>
+    ```
+
+    An iterator over the lines of a string, as string slices.
+
+    以`\n`或`\r\n`分隔行，每次返回一行内容，不包含末尾的`'\n`，`\r\n`。
+
+    Examples:
+
+    ```rust
+    let mut mystr = String::from("你好\nhello\r\nworld");
+    let mut lines = mystr.lines();
+    println!("{:?}", lines.next());
+    println!("{:?}", lines.next());
+    println!("{:?}", lines.next());
+    println!("{:?}", lines.next());
+    ```
+
+    输出：
+
+    ```
+    Some("你好")
+    Some("hello")
+    Some("world")
+    None
+    ```
+
+* `encode_utf16()`
+
+    Syntax:
+
+    ```rust
+    pub fn encode_utf16(&self) -> EncodeUtf16<'_>
+    ```
+
+    Returns an iterator of u16 over the string encoded as UTF-16.
+
+    将 utf-8 编码的字符串一个一个地转换成 utf-16 编码的字符。
+
+    Example:
+
+    ```rust
+    let mut mystr = String::from("你好\nhello\r\nworld");
+    let mut utf16 = mystr.encode_utf16();
+    println!("{:?}", utf16.next());
+    println!("{:?}", utf16.next());
+    println!("{:?}", utf16.next());
+    println!("{:?}", utf16.next());
+    ```
+
+    输出：
+
+    ```
+    Some(20320)
+    Some(22909)
+    Some(10)
+    Some(104)
+    ```
+
+    感觉这个函数可以用于把 utf-8 编码的内容转换成 utf-16 编码，比如文本文件的编码格式转换。
+
+* `contains()`
+
+    Syntax:
+
+    ```rust
+    pub fn contains<'a, P>(&'a self, pat: P) -> bool
+    where
+        P: Pattern<'a>,
+    ```
+
+    Returns true if the given pattern matches a sub-slice of this string slice.
+
+    Returns false if it does not.
+
+    The pattern can be a `&str`, char, a slice of chars, or a function or closure that determines if a character matches.
+
+    Example:
+
+    ```rust
+    let mut mystr = String::from("你好\nhello\r\nworld");
+    println!("{:?}", mystr.contains("hello"));
+    println!("{:?}", mystr.contains('好'));
+    println!("{:?}", mystr.contains(|c| c == 'w'));
+    ```
+
+    输出：
+
+    ```
+    true
+    true
+    true
+    ```
+
+* `starts_with()`
+
+    Syntax:
+
+    ```rust
+    pub fn starts_with<'a, P>(&'a self, pat: P) -> bool
+    where
+        P: Pattern<'a>,
+    ```
+
+    Returns true if the given pattern matches a prefix of this string slice.
+
+* `ends_with()`
+
+    Syntax:
+
+    ```rust
+    pub fn ends_with<'a, P>(&'a self, pat: P) -> bool
+    where
+        P: Pattern<'a>,
+        <P as Pattern<'a>>::Searcher: ReverseSearcher<'a>,
+    ```
+
+    Returns true if the given pattern matches a suffix of this string slice.
+
+* `find()`
+
+    Syntax:
+
+    ```rust
+    pub fn find<'a, P>(&'a self, pat: P) -> Option<usize>
+    where
+        P: Pattern<'a>,
+    ```
+
+    Returns the byte index of the first character of this string slice that matches the pattern.
+
+    Returns None if the pattern doesn’t match.
+
+    这个函数好像只能找到`pat`第一次出现的地方。如果要找到字符串中所有的`pat`，可以考虑`match()`相关的函数。
+
+* `replace()`
+
+    替换字符串，返回一个新的字符串。
 
 rust 核心语言中只有`str`和`slice`，前者通常以`&str`的形式出现，而后者为一个引用。
 
@@ -968,7 +1238,7 @@ for b in "你好".bytes() {
 
 
 
-实际上，用花括号括起来的任何代码块者可以看作一个表达式：
+实际上，用花括号括起来的任何代码块都可以看作一个表达式：
 
 ```rust
 {
@@ -999,6 +1269,12 @@ slice 是数组或字符串中一部分值的引用。
 let s = String::from("hello world");
 let hello = &s[0..5];
 let world = &s[6..11];
+```
+
+一个字符串的 slice，没见过，学习一下:
+
+```rust
+let x: &[_] = &['1', '2'];
 ```
 
 `Range`语法：
@@ -1728,6 +2004,10 @@ fn my_func_2(a_string: String) -> String {
 }
 ```
 
+partially move:
+
+struct 对象中只有部分字段发生了 move，那么这个行为称为 partially move。partially moved 的对象不能再调用方法。但是可以继续 move 其他字段。
+
 ## 表达式
 
 语句（statements）是执行一些操作但不返回值的指令，表达式（expressions）计算并产生一个值。
@@ -2337,10 +2617,15 @@ impl<T: Display> ToString for T {
 
 ### vector
 
-```rust
-let v: Vec<i32> = Vec::new();
-let vv = vec![1, 2, 3];
-```
+* 创建，初始化：
+
+    ```rust
+    let v: Vec<i32> = Vec::new();
+    let vv = vec![1, 2, 3];
+    let mut v = Vec::from([0; 5]);
+    let mut v: Vec<Vec<i32>> = vec![vec![0; 4]; 3];  // 3 行 4 列的二维数组
+    let mut v = Vec::from_iter((0..5).into_iter());  // 使用 range 创建
+    ```
 
 添加元素：
 
@@ -2397,7 +2682,7 @@ let row = vec![
     SpreadsheetCell::Int(3),
     SpreadsheetCell::Text(String::from("blue")),
     SpreadsheetCell::Float(10.12),
-;
+];
 ```
 
 ### hash map
@@ -2642,41 +2927,139 @@ fn main() {
 
 二叉搜索树实现的类似 c++ 中`map`和`set`的数据结构。不清楚 rust 中实现的是不是红黑树。有时间了再研究吧，顺便把 b-tree，二叉平衡搜索树和红黑树全部研究一遍。
 
+```rust
+let mut t = BTreeSet::new();
+t.insert(5);
+t.insert(4);
+t.insert(3);
+println!("{}", t.first().unwrap());
+let m: Option<&i32> = t.get(&8);
+```
 
 
 ## trait
 
-```rust
-pub trait Summary {
-    fn summarize(&self) -> String;
-}
+trait 不可以有自己的成员变量。
 
-pub struct NewsArticle {
-    pub headline: String,
-    pub location: String,
-    pub author: String,
-    pub content: String,
-}
+### Basic usage
 
-impl Summary for NewsArticle {
-    fn summarize(&self) -> String {
-        format!("{}, by {} ({})", self.headline, self.author, self.location)
+* 实现一个简单的 trait
+
+    ```rust
+    pub trait Summary {
+        fn summarize(&self) -> String;
     }
-}
 
-pub struct Tweet {
-    pub username: String,
-    pub content: String,
-    pub reply: bool,
-    pub retweet: bool,
-}
-
-impl Summary for Tweet {
-    fn summarize(&self) -> String {
-        format!("{}: {}", self.username, self.content)
+    pub struct NewsArticle {
+        pub headline: String,
+        pub location: String,
+        pub author: String,
+        pub content: String,
     }
-}
-```
+
+    impl Summary for NewsArticle {
+        fn summarize(&self) -> String {
+            format!("{}, by {} ({})", self.headline, self.author, self.location)
+        }
+    }
+
+    pub struct Tweet {
+        pub username: String,
+        pub content: String,
+        pub reply: bool,
+        pub retweet: bool,
+    }
+
+    impl Summary for Tweet {
+        fn summarize(&self) -> String {
+            format!("{}: {}", self.username, self.content)
+        }
+    }
+    ```
+
+* trait 与泛型
+
+    ```rust
+    use std::fmt::Display;
+
+    struct Pair<T> {
+        x: T,
+        y: T,
+    }
+
+    impl<T> Pair<T> {
+        fn new(x: T, y: T) -> Self {
+            Self {
+                x,
+                y,
+            }
+        }
+    }
+
+    impl<T: Display + PartialOrd> Pair<T> {  // 对不同泛型实现不同的 struct 方法
+        fn cmp_display(&self) {
+            if self.x >= self.y {
+                println!("The largest member is x = {}", self.x);
+            } else {
+                println!("The largest member is y = {}", self.y);
+            }
+        }
+    }
+    ```
+
+    还可以为一个有条件约束的泛型实现一个 trait：
+
+    ```rust
+    impl<T: Display> ToString for T {
+        // --snip--
+    }
+    ```
+
+    这样的好处是不需要写一个具体的 struct，可以匹配到很多的 struct：
+
+    ```rust
+    trait Print {
+        fn print(&self);
+    }
+
+    trait PrintExtraMsg {
+        fn print_ext(&self);
+    }
+
+    struct MessageType_1 {
+        val: i32
+    }
+
+    struct MessageType_2 {
+        msg: String
+    }
+
+    impl Print for MessageType_1 {
+        fn print(&self) {
+            println!("Message i32: {}", self.val);
+        }
+    }
+
+    impl Print for MessageType_2 {
+        fn print(&self) {
+            println!("Message str: {}", self.msg);
+        }
+    }
+
+    impl<T: Print> PrintExtraMsg for T {  // 本来需要为 MessageType_1 和 MessageType_2 分别实现 PrintExtraMsg trait，但是我们在这里用泛型代替两个 struct，只需要写一个实现就可以了
+        fn print_ext(&self) {
+            self.print();  // 这种实现方法的缺点是不能拿到 struct 的成员变量，只能调用上级 trait 的函数
+            println!("extra greetings");
+        }
+    }
+
+    fn main() {
+        let mut obj = MessageType_1 {
+            val: 42
+        };
+        obj.print_ext();
+    }
+    ```
 
 可以为自己的类型实现外部 trait，但是不能为外部类型实现外部 trait。这点与 c++ 有非常大不同。
 
@@ -3000,6 +3383,12 @@ rust 要求被引用对象的生命周期大于等于引用的生命周期。否
 
 ## 错误处理
 
+## 迭代器 Iterators
+
+### CharIndices
+
+`String`对象有个`char_indices()`方法，可以返回一个`CharIndices`类型的对象。
+
 ## 包和模块
 
 ### 包
@@ -3060,6 +3449,81 @@ rust 默认导入一些库，称为预导入(prelude)。
 package 中会包含多个 crate。package 最多包含一个 library crate，可以包含多个 binary crate，这两者至少要有一个。
 
 ### 模块
+
+* 先看一种最简单的情况，在`main.rs`中定义一个`mod`
+
+    `src/main.rs`:
+
+    ```rust
+    mod MyMod {  // 如果 mod 出现在当前文件中，那么就不需要用 mod/use 之类的引入
+        pub struct MyStru {  // 不使用 pub 的话，即使是对当前文件，也是不可见的
+            pub val: i32,  // struct 是否 pub 与 val 是否 pub，是独立的
+        }
+
+        impl MyStru {
+            pub fn print(&self) {  // 不使用 pub 的话，下面 m_obj.print() 无法被调用
+                println!("{}", self.val);
+            }
+        }
+    }
+
+    fn main() {
+        let m_obj = MyMod::MyStru {  // 即使是当前文件，也需要用 mod 名称索引
+            val: 42
+        };
+        m_obj.print();
+    }
+    ```
+
+* 比如说想在`main.rs`里调用其他文件里的 struct，trait，函数等，可以这样：
+
+    `src/main.rs`:
+
+    ```rust
+    mod greeting;  // 引入 mod。只有先引入，才能用 use。同目录下，文件名就是 mod 名。
+    use greeting::*;  // use 的作用仅仅是简化路径
+
+    fn main() {
+        let m_grt = MyGreeting {
+            greeting: String::from("hello"),
+        };
+        m_grt.print();
+        print_hello_world();
+    }
+    ```
+
+    `src/greeting.rs`:
+
+    ```rust
+    pub trait SayGreeting {  // 默认情况下，mod 中的东西，以及 struct 中的成员，都只对当前 mod 和下级 mod 可见，对上级 mod 不可见。
+        fn print(&self);
+    }
+
+    pub struct MyGreeting {
+        pub greeting: String,  // 如果这个 pub 不写，那么 main.rs 中无法直接在 MyGreeting 中填写字段
+    }
+
+    impl SayGreeting for MyGreeting {
+        fn print(&self) {
+            println!("{}", self.greeting);
+        }
+    }
+
+    pub fn print_hello_world() {
+        println!("hello, world from greeting.rs");
+    }
+    ```
+
+    输出：
+
+    ```
+    hello
+    hello, world from greeting.rs
+    ```
+
+* 文件夹算作一个 mod，下面的文件也算作一个 mod
+
+* 
 
 `cargo create --lib restaurant`
 
@@ -3475,17 +3939,73 @@ let _ = Rc::clone(&five);
 
 如下为选择 Box<T>，Rc<T> 或 RefCell<T> 的理由：
 
-Rc<T> 允许相同数据有多个所有者；Box<T> 和 RefCell<T> 有单一所有者。
-Box<T> 允许在编译时执行不可变或可变借用检查；Rc<T>仅允许在编译时执行不可变借用检查；RefCell<T> 允许在运行时执行不可变或可变借用检查。
-因为 RefCell<T> 允许在运行时执行可变借用检查，所以我们可以在即便 RefCell<T> 自身是不可变的情况下修改其内部的值。
+`Rc<T>`允许相同数据有多个所有者；`Box<T>`和`RefCell<T>`有单一所有者。
+`Box<T>`允许在编译时执行不可变或可变借用检查；`Rc<T>`仅允许在编译时执行不可变借用检查；`RefCell<T>`允许在运行时执行不可变或可变借用检查。
+因为`RefCell<T>`允许在运行时执行可变借用检查，所以我们可以在即便`RefCell<T>`自身是不可变的情况下修改其内部的值。
 
 `RefCell<T>`可以通过调用`borrow_mut()`，把不可变引用变成可变引用。
 
-当创建不可变和可变引用时，我们分别使用 & 和 &mut 语法。对于 RefCell<T> 来说，则是 borrow 和 borrow_mut 方法，这属于 RefCell<T> 安全 API 的一部分。borrow 方法返回 Ref<T> 类型的智能指针，borrow_mut 方法返回 RefMut<T> 类型的智能指针。这两个类型都实现了 Deref，所以可以当作常规引用对待。
+当创建不可变和可变引用时，我们分别使用`&`和`&mut`语法。对于 `RefCell<T>` 来说，则是`borrow`和`borrow_mut`方法，这属于`RefCell<T>`安全 API 的一部分。`borrow`方法返回`Ref<T>`类型的智能指针，`borrow_mut`方法返回 `RefMut<T>`类型的智能指针。这两个类型都实现了`Deref`，所以可以当作常规引用对待。
 
-RefCell<T> 记录当前有多少个活动的 Ref<T> 和 RefMut<T> 智能指针。每次调用 borrow，RefCell<T> 将活动的不可变借用计数加一。当 Ref<T> 值离开作用域时，不可变借用计数减一。就像编译时借用规则一样，RefCell<T> 在任何时候只允许有多个不可变借用或一个可变借用。
+`RefCell<T>`记录当前有多少个活动的`Ref<T>`和`RefMut<T>`智能指针。每次调用`borrow`，`RefCell<T>`将活动的不可变借用计数加一。当`Ref<T>`值离开作用域时，不可变借用计数减一。就像编译时借用规则一样，`RefCell<T>`在任何时候只允许有多个不可变借用或一个可变借用。
 
-如果我们尝试违反这些规则，相比引用时的编译时错误，RefCell<T> 的实现会在运行时出现 panic。
+如果我们尝试违反这些规则，相比引用时的编译时错误，`RefCell<T>`的实现会在运行时出现 panic：
+
+```rust
+let mystr = String::from("hello");
+let rc = RefCell::new(mystr);
+let b = rc.borrow_mut();
+let c = rc.borrow_mut();
+```
+
+上面的几行代码可以通过编译，但是一旦运行会直接 panic。
+
+但是这样写就没问题：
+
+```rust
+let mystr = String::from("hello");
+let rc = RefCell::new(mystr);
+rc.borrow_mut();
+rc.borrow_mut();
+println!("{}", rc.borrow_mut());
+println!("{}", rc.borrow_mut());
+```
+
+### Cell
+
+`Cell`比较像一个只包含了一个元素的容器。在写`struct`时，可以把成员设置成`Cell`类型的变量，可以通过对`Cell`进行插入，删除，替换等操作，间接地对里面的元素进行修改。
+
+```rust
+use std::cell::*;
+
+struct Msg {
+    greeting: String,
+    person: Cell<String>
+}
+
+impl Msg {
+    fn print(&self) {
+        println!("{}, {}", self.greeting, self.person.take());  // 这里的 take() 会把 Cell 里面的东西拿出来，然后在原地放一个 None
+    }
+}
+
+fn main() {
+    let obj = Msg {  // 注意 obj 不是 mut 对象，但是后面我们仍可以对其中的 Cell 成员进行修改
+        greeting: String::from("hello"),
+        person: Cell::from(String::from("abc")),
+    };
+    obj.print();
+    obj.person.set(String::from("xyz"));  // set() 可以往 Cell 里放置一个变量
+    obj.print();
+}
+```
+
+输出：
+
+```
+hello, abc
+hello, xyz
+```
 
 ## iterator
 
@@ -4279,7 +4799,20 @@ fn main() {
 
 1. `unwrap()`也会发生 move 操作
 
-1. `println!()`会发生 move 操作。如果传入的对象是常见内置数值类型，那么会发生 Copy。如果是`String`或其他自定义类型，那么会发生 move。
+1. `println!()`不会发生 move 操作。
+
+    ```rust
+    let mut mystr = String::from("hello");
+    println!("{}", mystr);
+    println!("{}", mystr);
+    ```
+
+    输出：
+
+    ```
+    hello
+    hello
+    ```
 
 1. 使用`Box<>`可以拿到对象的成员，此时成员如果没有实现`Copy` trait，那么会发生 move。使用 ref （比如`&`和`&mut`）只能拿到对象成员的 ref，如果强行拿，会先看成员有没有`Copy` trait，如果没有的话，会发生 move。然而 ref 不允许产生 move 语义，因此会无法通过编译。
 

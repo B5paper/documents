@@ -1683,7 +1683,7 @@ int main()
 
     头文件：`#include <stdio.h>`
 
-    从`stream`中读取`n - 1`个字节到缓冲区`buf`中，最后一个字节会被填充为`\0`。如果读取了`n`个字节，或者遇到`'\n'`，则返回`str`。如果遇到 EOF，或出错，则返回`NULL`。
+    从`stream`中读取`n - 1`个字节到缓冲区`buf`中，最后一个字节会被填充为`\0`。如果读取了`n - 1`个字节，或者遇到`'\n'`，则返回`str`。如果遇到 EOF，或出错，则返回`NULL`。
 
     `fgets()`读取的字符串，会包含`\n`。
 
@@ -1723,6 +1723,31 @@ int main()
                     if (buf[BUFSIZE - 2] == L'\0' || buf[BUFSIZE - 2] == L'\n')
                         break;
                 }
+                lines.push_back(line);
+            }
+            return lines;
+        }
+        ```
+
+        稍微改进一下：
+
+        ```cpp
+        vector<string> read_file_to_lines(const string &file_path)
+        {
+            vector<string> lines;
+            string line;
+            const int BUFSIZE = 128;
+            char buf[BUFSIZE];
+            FILE *f = fopen(file_path.c_str(), "r");
+            while (!feof(f))
+            {
+                line.clear();
+                do
+                {
+                    buf[BUFSIZE - 2] = 0;
+                    fgets(buf, BUFSIZE, f);
+                    line.append(buf);
+                } while (buf[BUFSIZE - 2] != '\0' && buf[BUFSIZE - 2] != '\n');
                 lines.push_back(line);
             }
             return lines;
@@ -2781,6 +2806,38 @@ int main()
 ```
 
 ## Exception 异常处理
+
+## 工程化
+
+1. 头文件`xxx.h`中，只写对应`xxx.cpp`文件中出现的函数，尽量不写其他用到的头文件，仅保证头文件中没有语法错误即可。`xxx.cpp`中需要包含实现函数时用到的头文件。这样比较清晰，不容易乱。
+
+## Topics
+
+### String processing
+
+* 去除字符串左侧的指定字符（一个或多个）
+
+    * 一个
+
+    * 多个
+
+* 去除字符串左侧的指定子串
+
+* 去除字符串右侧的指定字符（一个或多个）
+
+    * 一个
+
+    * 多个
+
+* 去除字符串右侧的指定子串
+
+* 分隔以`,`以及空白字符隔开的字符串
+
+    ```cpp
+
+    ```
+
+* 模式匹配
 
 ## Miscellaneous
 

@@ -5334,6 +5334,224 @@ n == grid[i].length
     };
     ```
 
+#### 多边形三角剖分的最低得分
+
+你有一个凸的 n 边形，其每个顶点都有一个整数值。给定一个整数数组 values ，其中 values[i] 是第 i 个顶点的值（即 顺时针顺序 ）。
+
+假设将多边形 剖分 为 n - 2 个三角形。对于每个三角形，该三角形的值是顶点标记的乘积，三角剖分的分数是进行三角剖分后所有 n - 2 个三角形的值之和。
+
+返回 多边形进行三角剖分后可以得到的最低分 。
+ 
+
+示例 1：
+
+
+
+输入：values = [1,2,3]
+输出：6
+解释：多边形已经三角化，唯一三角形的分数为 6。
+示例 2：
+
+
+
+输入：values = [3,7,4,5]
+输出：144
+解释：有两种三角剖分，可能得分分别为：3*7*5 + 4*5*7 = 245，或 3*4*5 + 3*4*7 = 144。最低分数为 144。
+示例 3：
+
+
+
+输入：values = [1,3,1,4,1,5]
+输出：13
+解释：最低分数三角剖分的得分情况为 1*1*3 + 1*1*4 + 1*1*5 + 1*1*1 = 13。
+ 
+
+提示：
+
+n == values.length
+3 <= n <= 50
+1 <= values[i] <= 100
+
+
+代码：
+
+1. 自己写的递归，超时，用时很长很长
+
+    思路是这样的：
+
+    假设现在有顶点`[0, 1, 2, 3, 4]`，顺时针排列成一个凸多边形。我们可以将这个多边形每次都分成两份，求这两份的最小值，再相加，得到一个结果。如果我们可以把“分成两份”的所有情况穷举一下，就可以得到所有结果的最小值。
+
+    为了不遗漏，不重复，提出下面的分法：
+
+    1. 情况一：过`0`点
+
+        以顶点`0`为例，`0`除了无法和相邻的两个顶点`1`和`4`相连，可以和其他的任何顶点相连，即`0`可以连`2`，`0`可以连`3`。这样一共有`n - 3`种分法（假设`n`是顶点总数）。
+
+    1. 情况二：不过`0`点
+
+        如果一种完全的三角形分割法，所有连线不过`0`点，那么一定有一条连线过`0`点相邻的两个点。也就是说一定有一条线过`[1, 4]`。那我们直接从`[1, 4]`区分开，然后把`[0, 1, 4]`看作一个小三角形，把剩余部分看作一个新多边形就好了。
+
+    下面的代码就是完全按照这个思路来写的：
+
+    ```cpp
+    class Solution {
+    public:
+        int dfs(vector<int> &vals, vector<int> vertices)
+        {
+            if (vertices.size() == 3)
+            {
+                int val = 1;
+                for (auto v_id: vertices)
+                {
+                    val *= vals[v_id];
+                }
+                return val;
+            }
+            int n = vertices.size();
+            int min_val = INT32_MAX;
+            int v_origin = vertices[0];
+            for (int i = 2; i < n - 1; ++i)
+            {
+                vector<int> vertices_1, vertices_2;
+                int v_line = vertices[i];
+                for (int j = 0; j <= i; ++j)
+                {
+                    vertices_1.push_back(vertices[j]);
+                }
+                for (int j = i; j < n; ++j)
+                {
+                    vertices_2.push_back(vertices[j]);
+                }
+                vertices_2.push_back(vertices[0]);
+                int val_1 = dfs(vals, vertices_1);
+                int val_2 = dfs(vals, vertices_2);
+                int val = val_1 + val_2;
+                min_val = min(min_val, val);
+            }
+            vector<int> vertices_1, vertices_2;
+            vertices_1.push_back(vertices[0]);
+            vertices_1.push_back(vertices[1]);
+            vertices_1.push_back(vertices[n-1]);
+            for (int i = 1; i < n; ++i)
+                vertices_2.push_back(vertices[i]);
+            int val_1 = dfs(vals, vertices_1);
+            int val_2 = dfs(vals, vertices_2);
+            int val = val_1 + val_2;
+            min_val = min(min_val, val);
+            return min_val;
+        }
+
+        int minScoreTriangulation(vector<int>& values) {
+            vector<int> vertices;
+            for (int i = 0; i < values.size(); ++i)
+            {
+                vertices.push_back(i);
+            }
+            int min_val = dfs(values, vertices);
+            return min_val;
+        }
+    };
+    ```
+
+1. 加上记忆化搜索，快了很多，但仍然超时
+
+    ```cpp
+    class Solution {
+    public:
+        map<set<int>, int> m;  // unordered_map 里似乎无法使用 set，为什么？
+        int dfs(vector<int> &vals, vector<int> vertices)
+        {
+            set<int> s(vertices.begin(), vertices.end());
+            if (m.find(s) != m.end())
+                return m[s];
+            if (vertices.size() == 3)
+            {
+                int val = 1;
+                for (auto v_id: vertices)
+                {
+                    val *= vals[v_id];
+                }
+                return val;
+            }
+            int n = vertices.size();
+            int min_val = INT32_MAX;
+            int v_origin = vertices[0];
+            for (int i = 2; i < n - 1; ++i)
+            {
+                vector<int> vertices_1, vertices_2;
+                int v_line = vertices[i];
+                for (int j = 0; j <= i; ++j)
+                {
+                    vertices_1.push_back(vertices[j]);
+                }
+                for (int j = i; j < n; ++j)
+                {
+                    vertices_2.push_back(vertices[j]);
+                }
+                vertices_2.push_back(vertices[0]);
+                int val_1 = dfs(vals, vertices_1);
+                int val_2 = dfs(vals, vertices_2);
+                int val = val_1 + val_2;
+                min_val = min(min_val, val);
+            }
+            vector<int> vertices_1, vertices_2;
+            vertices_1.push_back(vertices[0]);
+            vertices_1.push_back(vertices[1]);
+            vertices_1.push_back(vertices[n-1]);
+            for (int i = 1; i < n; ++i)
+                vertices_2.push_back(vertices[i]);
+            int val_1 = dfs(vals, vertices_1);
+            int val_2 = dfs(vals, vertices_2);
+            int val = val_1 + val_2;
+            min_val = min(min_val, val);
+            m[s] = min_val;
+            return min_val;
+        }
+
+        int minScoreTriangulation(vector<int>& values) {
+            vector<int> vertices;
+            for (int i = 0; i < values.size(); ++i)
+            {
+                vertices.push_back(i);
+            }
+            int min_val = dfs(values, vertices);
+            return min_val;
+        }
+    };
+    ```
+
+    想不到更好的办法了。不会把这个问题转换成自底向上计算。
+
+1. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        int minScoreTriangulation(vector<int>& values) {
+            unordered_map<int, int> memo;
+            int n = values.size();
+            function<int(int, int)> dp = [&](int i, int j) -> int {
+                if (i + 2 > j) {
+                    return 0;
+                }
+                if (i + 2 == j) {
+                    return values[i] * values[i + 1] * values[j];
+                }
+                int key = i * n + j;
+                if (!memo.count(key)) {
+                    int minScore = INT_MAX;
+                    for (int k = i + 1; k < j; k++) {
+                        minScore = min(minScore, values[i] * values[k] * values[j] + dp(i, k) + dp(k, j));
+                    }
+                    memo[key] = minScore;
+                }
+                return memo[key];
+            };
+            return dp(0, n - 1);
+        }
+    };
+    ```
+
 ## 贪心
 
 ### 雪糕的最大数量
@@ -5827,6 +6045,76 @@ n == grid[i].length
         }
     };
     ```
+
+### 交换一次的先前排列
+
+给你一个正整数数组 arr（可能存在重复的元素），请你返回可在 一次交换（交换两数字 arr[i] 和 arr[j] 的位置）后得到的、按字典序排列小于 arr 的最大排列。
+
+如果无法这么操作，就请返回原数组。
+
+ 
+
+示例 1：
+
+输入：arr = [3,2,1]
+输出：[3,1,2]
+解释：交换 2 和 1
+示例 2：
+
+输入：arr = [1,1,5]
+输出：[1,1,5]
+解释：已经是最小排列
+示例 3：
+
+输入：arr = [1,9,4,6,7]
+输出：[1,7,4,6,9]
+解释：交换 9 和 7
+ 
+
+提示：
+
+1 <= arr.length <= 104
+1 <= arr[i] <= 104
+
+代码：
+
+1. 贪心，自己写的
+
+    其实我们是要匹配这样的模板：从右往左，找到第一个左高右低的，假如这两个数为`[..., x0, x1, ...]`然后从`x1`开始往右搜索，找到小于`x0`的最大数字，让它和`x0`交换即可。（为什么这样就能满足题目要求？）
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> prevPermOpt1(vector<int>& arr) {
+            int n = arr.size();
+            int max_val_idx;
+            int max_val;
+            for (int i = n - 2; i > -1; --i)
+            {
+                if (arr[i] > arr[i+1])
+                {
+                    int max_val_idx = i + 1;
+                    int max_val = arr[i+1];
+                    for (int j = i + 1; j < n; ++j)
+                    {
+                        if (arr[j] < arr[i] && arr[j] > max_val)
+                        {
+                            max_val_idx = j;
+                            max_val = arr[j];
+                        }
+                    }
+                    swap(arr[max_val_idx], arr[i]);
+                    return arr;
+                }
+            }
+            return arr;
+        }
+    };
+    ```
+
+    我们可以用排中律对上面的解答进行优化。我们从数组末尾向前找第一个小于`x0`的数，这个数就一定是要交换的数，如果有重复数字，那么就向左找到最后一次出现的位置。假如这个数小于`x0`，但是不是要交换的数，那么在它的右边一定有比它大，但比`x0`小的数，可是这与我们的前提“第一个”相违背。因此这个数就是要交换的数。
+
+    我们还可以用单调栈再对它优化，从后向前遍历，栈顶存更大的值的索引，如果栈顶的值大于`arr[i]`，那么就从栈顶弹出元素。如果我们找到了符合要求的`i`，那么就可以立即从栈顶拿到小于`arr[i]`，并且最大的元素的索引。
 
 ## 数组
 
@@ -10668,6 +10956,120 @@ nums 已按升序排列
 
 1. 这道题用回溯法该怎么做呢？
 
+### 算术三元组的数目
+
+给你一个下标从 0 开始、严格递增 的整数数组 nums 和一个正整数 diff 。如果满足下述全部条件，则三元组 (i, j, k) 就是一个 算术三元组 ：
+
+i < j < k ，
+nums[j] - nums[i] == diff 且
+nums[k] - nums[j] == diff
+返回不同 算术三元组 的数目。
+
+ 
+```
+示例 1：
+
+输入：nums = [0,1,4,6,7,10], diff = 3
+输出：2
+解释：
+(1, 2, 4) 是算术三元组：7 - 4 == 3 且 4 - 1 == 3 。
+(2, 4, 5) 是算术三元组：10 - 7 == 3 且 7 - 4 == 3 。
+示例 2：
+
+输入：nums = [4,5,6,7,8,9], diff = 2
+输出：2
+解释：
+(0, 2, 4) 是算术三元组：8 - 6 == 2 且 6 - 4 == 2 。
+(1, 3, 5) 是算术三元组：9 - 7 == 2 且 7 - 5 == 2 。
+ 
+
+提示：
+
+3 <= nums.length <= 200
+0 <= nums[i] <= 200
+1 <= diff <= 50
+nums 严格 递增
+```
+
+代码：
+
+1. 三重循环（竟然没超时，而且击败了 78% 的用户，很奇怪）
+
+    ```cpp
+    class Solution {
+    public:
+        int arithmeticTriplets(vector<int>& nums, int diff) {
+            int n = nums.size();
+            int ans = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = i + 1; j < n; ++j)
+                {
+                    if (nums[j] - nums[i] != diff) continue;
+                    for (int k = j + 1; k < n; ++k)
+                    {
+                        if (nums[k] - nums[j] == diff)
+                            ++ans;
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 哈希表
+
+    类似两数之和的思想。
+
+    ```cpp
+    class Solution {
+    public:
+        int arithmeticTriplets(vector<int>& nums, int diff) {
+            unordered_set<int> s;
+            int n = nums.size();
+            int ans = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                if (s.find(nums[i] - diff) != s.end() &&
+                    s.find(nums[i] - diff - diff) != s.end())
+                    ++ans;
+                s.insert(nums[i]);
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 三指针
+
+    由于数组单调递增，所以在方法 1 的三重循环里面，对于每个`i`，解都是唯一的。当`i`增加的时候，`j`和`k`也一定都是增加的。也就是说`j`不需要再搜索`[i+1,...,j]`这段区间的内容了，`k`也不需要再搜索`[j+1,...,k]`这段区间的内容了。
+
+    ```cpp
+    class Solution {
+    public:
+        int arithmeticTriplets(vector<int>& nums, int diff) {
+            int n = nums.size();
+            int ans = 0;
+            int i = 0, j = 1, k = 2;
+            while (i < n - 2 && j < n - 1 && k < n)
+            {
+                if (i >= j) j = i + 1;
+                while (j < n - 1 && nums[j] - nums[i] < diff) ++j;  // 注意，这里是 < diff，而不是 != diff
+                if (j >= k) k = j + 1;
+                while (k < n && nums[k] - nums[j] < diff) ++k;
+                if (j < n - 1 && k < n &&  // 由于前面的 while 退出条件是多个，所以这里需要再验证一遍
+                    nums[j] - nums[i] == diff &&
+                    nums[k] - nums[j] == diff) ++ans;
+                ++i;
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 如果我们搜索到了一组`(i, j, k)`，显然`(j, k)`已经满足`diff`的条件了，我们能否把这个 pair 存起来，当`i`遍历到`j`时，直接把这个 pair 取出来继续向后搜索？（有点像 KMP 算法）
+
 ## 链表
 
 ### 从尾到头打印链表
@@ -13685,50 +14087,99 @@ lists[i].length 的总和不超过 10^4
     };
     ```
 
-1. 栈（广度优先）
+1. 栈
 
-    ```c++
-    /**
-    * Definition for a binary tree node.
-    * struct TreeNode {
-    *     int val;
-    *     TreeNode *left;
-    *     TreeNode *right;
-    *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
-    *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
-    *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
-    * };
-    */
-    class Solution {
-    public:
-        vector<int> preorderTraversal(TreeNode* root) {
-            vector<int> res;
-            if (!root) return res;
-            stack<TreeNode*> s;
-            s.push(root);
-            TreeNode *r;
-            while (!s.empty())
+    我们的需求是记录一个 path，记录一个当前状态，从而判断接下来该向哪搜索。对此我们记录一条从根节点到当前节点的 path，然后按下面的规则判断走向：
+
+    path 分为搜索状态和回退状态，刚开始时，path 为搜索状态。
+
+    1. 搜索状态
+
+        1. 如果一个节点有左节点，那么访问左节点，并将左节点记录到 path
+
+        1. 如果一个节点没有左节点，但有右节点，那么将右节点记录到 path，但不访问
+
+        1. 如果一个节点既没有左节点，也没有右节点，那么将状态切换到回退状态
+
+        可以看到，搜索状态没有考虑一个节点既有左节点，又有右节点时，对右节点的搜索。这部分放到回退状态搜索。
+
+    1. 回退状态
+
+        1. 如果一个节点是右节点，那么将其从 path 中删除
+
+        1. 如果一个节点是左节点，那么从 path 中删除这个节点。如果父节点存在右节点，那么访问父节点的右节点，并将状态改变为搜索状态，搜索父节点的右节点
+
+    这个想法的一个实现：
+
+    ```cpp
+    struct TreeNode
+    {
+        int val;
+        TreeNode *left;
+        TreeNode *right;
+
+        TreeNode(int val) {
+            this->val = val;
+            left = nullptr;
+            right = nullptr;
+        }
+    };
+
+    void preorder(TreeNode *root)
+    {
+        stack<TreeNode*> s;
+        s.push(root);
+        cout << root->val << endl;
+        TreeNode *r, *p;
+        bool search_state = true;
+        while (!s.empty())
+        {
+            if (search_state)
+            {
+                r = s.top();
+                if (r->left)
+                {
+                    cout << r->left->val << endl;
+                    s.push(r->left);
+                }
+                else if (r->right)
+                {
+                    s.push(r->right);
+                }
+                else
+                {
+                    search_state = false;
+                }
+            }
+            else
             {
                 r = s.top();
                 s.pop();
-                res.push_back(r->val);
-                if (r->right) s.push(r->right);
-                if (r->left) s.push(r->left);
+                if (s.empty()) return;
+                p = s.top();
+                if (r == p->right)
+                {
+                    
+                }
+                else
+                {
+                    search_state = true;
+                    if (p->right)
+                    {
+                        cout << p->right->val << endl;
+                        s.push(p->right);
+                    }
+                }
             }
-            return res;
         }
-    };
+    }
     ```
 
-1. 栈（深度优先）
+    虽然经过优化的迭代写法代码行数很少，但我不认为迭代写法很简单。
 
-    我觉得这个不应该叫做深度优先，其实树的先序遍历本身就是深度优先。这种方法只不过是只存储左节点，不存储右节点，从而节约了一半左右的内存。
+    首先尽量搜索左节点，如果没有左节点就去找右节点，这样我们总会漏掉当左右节点都存在时，对右节点的搜索。我们可以在回退的过程中继续搜索前面遗漏掉的右节点。
 
-    下次可以将这个方法改名为“栈（节约内存版）”。
-
-    我觉得这个版本才是真正的栈的做法。因为我们的需求是记录自己在一棵树中的路径，记录一个 path。这个方法刚好满足了这个需求。而上面的“栈（广度优先）”，只是取巧，把右节点也存进去了，从而简化了代码而已。这种方法并不是通用的。
-
-    比如对于中序遍历，如果我们先存右节点，再处理当前节点，再存左节点，会遇到行为与预期不符的情况，因为我们还是先处理当前节点了。我们需要做的是先找到一条 path，然后边退边处理。
+    对比中序遍历，如果我们先存右节点，再处理当前节点，再存左节点，会遇到行为与预期不符的情况，因为我们还是先处理当前节点了。我们需要做的是先找到一条 path，然后边退边处理。
 
     ```c++
     /**
