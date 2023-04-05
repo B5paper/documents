@@ -1,6 +1,14 @@
 # English Words
 
-incidental 附带的，偶然的
+* incidental 附带的，次要的
+
+    > If one thing is incidental to another, it is less important than the other thing or is not a major part of it. 附带的; 次要的
+
+    例句：
+
+    > The playing of music proved to be incidental to the main business of the evening.
+
+    > 音乐演奏结果只是当晚主要活动的陪衬。
 
 pitfall 陷阱，缺陷
 
@@ -312,6 +320,83 @@ outback 内地
 
 astronomy 天文学
 
+delve 钻研，探究
+
+esoteric 只有内行才懂的
+
+alter 改变，改动
+
+analogous 相似的，类似的
+
+inconsistent 不一致的，不协调的
+
+arise (arose) 出现，引发
+
+prohibitive 高得令人望而却步的；禁止的
+
+generalize 归纳
+
+cogent 令人信服的
+
+unduly 过度地
+
+impart 传授，给予
+
+indispensable 不可或缺的
+
+extrapolation 外推法，推断
+
+implication 含义
+
+mitigate 减轻，缓和
+
+curriculum 课程
+
+indispensable 不可或缺的
+
+molecular 分子的
+
+distinctive 独特的，与众不同的
+
+critical 重要的，批判的
+
+* replete 充满的，装满的
+
+* requisite 必需的，必要的
+
+* amenable 有责任的，愿意的
+
+    > ADJ If you are amenable to something, you are willing to do it or accept it. 愿意的
+
+* byproduct 副产品
+
+* reap 获得，收获
+
+* savings 储蓄，存款
+
+* survey
+
+    > 3. V-T If you survey something, you look at or consider the whole of it carefully. 审视
+
+    > 例：
+    > He pushed himself to his feet and surveyed the room.
+    > 他站起来审视这个房间。
+
+* intricate
+
+    > 1. ADJ You use intricate to describe something that has many small parts or details. 复杂精细的
+
+    > 例：...the production of carpets with highly intricate patterns.
+
+    > …图案复杂精细的地毯的制作。
+
+* superfluous 多余的
+
+* derive 获得，起源于
+
+* derivative 派生物，衍生物，导数，微商
+
 ampersand pron. [ˈæmpərsænd] n. &的记号名称
 
 steal v. If you steal something from someone, you take it away from them without their permission and without intending to return it.
+
