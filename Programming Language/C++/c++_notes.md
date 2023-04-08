@@ -1687,7 +1687,7 @@ int main()
 
     `fgets()`读取的字符串，会包含`\n`。
 
-    宽字符版：`fgetws()`
+    宽字符版：`fgetws()`。注意`fgetws()`并不能把文件中的 UTF-8 编码的字符自动转换成 UTF16-LE (Unicode)。它只会占用`wchar_t`的高位字节，并将低位字节置 0。
 
     `fgets`返回有效指针有两个条件，一个是遇到`\n`，另一个是`buf`读满。
 
@@ -2813,6 +2813,140 @@ int main()
 
 ## Topics
 
+### character encoding
+
+`codecvt.h`头文件专门用于处理字符编码。
+
+`locale.h`有些函数对`codecvt.h`中的函数进行了封装，可以更方便地处理`wchar_t`之类的字符。
+
+Examples:
+
+utf-8 与 utf-16 字符串之间的互相转换：
+
+```cpp
+#include <codecvt>
+#include <locale>
+#include <string>
+using namespace std;
+
+int main()
+{
+    wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> convertor;
+
+    // 将 utf-8 编码的“你好”转换成 utf-16 编码的“你好”
+    wstring wstr = convertor.from_bytes("\xE4\xBD\xA0\xE5\xA5\xBD");
+
+    // 将 utf-16 le 编码的“你好”转换成 utf-8 编码的"你好"
+    string str = convertor.to_bytes((wchar_t*)"\x60\x4f\x7d\x59\0");  // 末尾的 \0 是必须的，我猜可能是因为 wchar_t 必须有两个字节都为 \0，才能作为字符串的结尾
+
+    return 0;
+}
+```
+
+我们可以在编码查询网站<https://www.qqxiuzi.cn/bianma/zifuji.php>上查到，`你好`的 utf-8 编码为`E4BDA0E5A5BD`，utf-16le 编码为`604F7D59`。前面这两串编码都是从低字节向高字节来写的。由于程序中实际使用的是小端存储模式，所以如果两个字节合起来读，实际上“你”的编码为`4f60`，“好”的编码为`7d59`。
+
+`<codecvt>`头文件中有三个 class:
+
+* `std::codecvt_utf8`：用于在 utf-8 和 UCS-2 or UCS-4 之间相互转换
+
+* `std::codecvt_utf16`：用于在 utf-8 和 Elem (either UCS-2 or UCS-4) 之间互相转换
+
+* `std::codecvt_utf8_utf16`：用于在 utf-8 和 utf-16 之间互相转换
+
+我们主要看`codecvt_utf8_utf16`怎么用。
+
+```cpp
+template < class Elem, unsigned long MaxCode = 0x10ffffUL, codecvt_mode Mode = (codecvt_mode)0 >
+class codecvt_utf8_utf16
+: public codecvt <Elem, char, mbstate_t>
+```
+
+这是一个模板类，其中`codecvt_utf8_utf16`的模板参数`Elem`表示“内部”数据使用的编码方式，`codecvt`的第二个模板参数`char`表示“外部”数据使用的编码方式。
+
+由于`char`表示以字节进行编码，所以指的是 utf-8。而`Elem`可以取值`wchar_t`，`char16_t `，`char32_t`。
+
+常用函数：
+
+* `std::codecvt::in()`
+
+    Syntax:
+
+    ```cpp
+    result in (
+        state_type& state,   
+        const extern_type* from, 
+        const extern_type* from_end, 
+        const extern_type*& from_next,        
+        intern_type* to, 
+        intern_type* to_limit, 
+        intern_type*& to_next
+    ) const;
+    ```
+
+    由于对`codecvt_utf8_utf16`类型为说，“内部”数据指的是`wchar_t`之类的固定长度编码字符串，“外部”数据指的是 utf-8 编码的字符串。所以`in()`函数的作用就是把 utf-8 转换成`wchar_t`之类。
+
+    Parameters:
+
+    * `state`: 盲猜存储 shift 的作用。实际上它是一个`int`类型的值，直接填 0 就行。（可能需要做个类型转换）
+
+    * `from`：utf-8 字符串的起始地址，`from_end`指的是字符串的结束地址。它们组成了一个左闭右开的区间`[from, from_end)`。
+
+    * `from_next`：无论什么原因导致函数返回（比如成功解析完字符串，或者转换失败），`from_next`都指向待转换的字符串中，下一个待翻译的字节。
+
+    * `to`：指定缓冲区的地址。同理，`to`和`to_limit`构成了左闭右开的区间`[to, to_limit)`。
+
+    * `to_next`：无论什么原因导致函数返回，`to_next`都指向下一个待填充的缓冲区。
+
+    Example:
+
+    ```cpp
+    #include <codecvt>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        codecvt_utf8_utf16<wchar_t> cvt;
+        char *utf8_nihao = "\xE4\xBD\xA0\xE5\xA5\xBD";
+        const char *from_next;
+        wchar_t utf16_buf[3];
+        wchar_t *dst_next;
+        mbstate_t mbs = mbstate_t();
+        cvt.in(mbs, utf8_nihao, utf8_nihao + 6, from_next,
+            utf16_buf, utf16_buf + 2, dst_next);
+        for (int i = 0; i < 4; ++i)
+        {
+            cout << hex << (int)*((char*)utf16_buf + i) << ", ";
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    60, 4f, 7d, 59,
+    ```
+
+* `std::codecvt::out`
+
+    Syntax:
+
+    ```cpp
+    result out (
+        state_type& state,   
+        const intern_type* from, 
+        const intern_type* from_end, 
+        const intern_type*& from_next,        
+        extern_type* to, 
+        extern_type* to_limit, 
+        extern_type*& to_next
+    ) const;
+    ```
+
+    各个参数的作用可以参考`in()`，这里就不再详细写了。
+
 ### String processing
 
 * 去除字符串左侧的指定字符（一个或多个）
@@ -3103,3 +3237,49 @@ int main()
     <https://stackoverflow.com/questions/50053386/wcout-does-not-output-as-desired>
 
 1. c++ 中中文字符的处理：<https://blog.csdn.net/orz_3399/article/details/53415987>
+
+1. 大端模式与小端模式
+
+    cpu 在读内存的时候，是一个字节一个字节地读的，但是有些数据，需要把连续几个字节合起来用才能表示一个有效值。我们该怎么把这几个字节连起来呢？比如，要把两个 8 位的数据类型，组成一个 16 位的数据类型，我们实际上拥有的是这样的：
+
+    `[6, 5, 4, 3, 2, 1, 0], [6, 5, 4, 3, 2, 1, 0]`
+
+    我们可以把这两段内存直接合并成一个：
+
+    `[13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]`
+
+    上面这种模式就是**大端模式**，即低内存地址存储高位字节的数据。
+
+    我们也可以把它分成两份：
+
+    `[6, 5, 4, 3, 2, 1, 0], [13, 12, 11, 10, 9, 8, 7]`
+
+    上面这种存储模式称为**小端模式**，即低内存地址存储低位字节的数据。
+
+    又例如，对于两个字节的数据（比如`short`）`0x1234`，它的大端模式为`[0x12, 0x34]`，小端模式为`[0x34, 0x12]`。
+
+    windows 上的 mingw64 g++ 使用的是小端模式。我们可以写程序验证：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        short val = 0x1234;
+        cout << hex << val << endl;
+        cout << hex << (int)*(char*)&val << ", " 
+            << (int)*((char*)&val + 1) << endl;
+            
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1234
+    34, 12
+    ```
+
+    可以看到，低位内存的数据为`0x34`，对应`0x1234`的低位；高位内存的数据为`0x12`，对应`0x1234`的高位。因此为小端模式。
