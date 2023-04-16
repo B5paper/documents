@@ -5552,6 +5552,139 @@ n == values.length
     };
     ```
 
+#### 最小的必要团队
+
+作为项目经理，你规划了一份需求的技能清单 req_skills，并打算从备选人员名单 people 中选出些人组成一个「必要团队」（ 编号为 i 的备选人员 people[i] 含有一份该备选人员掌握的技能列表）。
+
+所谓「必要团队」，就是在这个团队中，对于所需求的技能列表 req_skills 中列出的每项技能，团队中至少有一名成员已经掌握。可以用每个人的编号来表示团队中的成员：
+
+例如，团队 team = [0, 1, 3] 表示掌握技能分别为 people[0]，people[1]，和 people[3] 的备选人员。
+请你返回 任一 规模最小的必要团队，团队成员用人员编号表示。你可以按 任意顺序 返回答案，题目数据保证答案存在。
+
+ 
+
+示例 1：
+
+输入：req_skills = ["java","nodejs","reactjs"], people = [["java"],["nodejs"],["nodejs","reactjs"]]
+输出：[0,2]
+示例 2：
+
+输入：req_skills = ["algorithms","math","java","reactjs","csharp","aws"], people = [["algorithms","math","java"],["algorithms","math","reactjs"],["java","csharp","aws"],["reactjs","csharp"],["csharp","math"],["aws","java"]]
+输出：[1,2]
+ 
+
+提示：
+
+1 <= req_skills.length <= 16
+1 <= req_skills[i].length <= 16
+req_skills[i] 由小写英文字母组成
+req_skills 中的所有字符串 互不相同
+1 <= people.length <= 60
+0 <= people[i].length <= 16
+1 <= people[i][j].length <= 16
+people[i][j] 由小写英文字母组成
+people[i] 中的所有字符串 互不相同
+people[i] 中的每个技能是 req_skills 中的技能
+题目数据保证「必要团队」一定存在
+
+
+代码：
+
+1. 回溯遍历所有的子集，自己写的
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> ans;
+        vector<int> temp;
+        unordered_set<string> fullfill;
+
+        void backtrack(vector<string>& req_skills, vector<vector<string>>& people, int pos)
+        {
+            if (temp.size() >= ans.size())  // 剪枝，比当前答案大的就不需要再搜索了
+                return;
+
+            fullfill.clear();
+            fullfill.insert(req_skills.begin(), req_skills.end());
+            for (int i = 0; i < temp.size(); ++i)
+            {
+                for (int j = 0; j < people[temp[i]].size(); ++j)
+                    fullfill.erase(people[temp[i]][j]);
+            
+                if (fullfill.empty())
+                {
+                    ans = temp;
+                    return;
+                }
+            }
+
+            for (int i = pos; i < people.size(); ++i)
+            {
+                temp.push_back(i);
+                backtrack(req_skills, people, i + 1);
+                temp.pop_back();
+            }
+        }
+
+
+        vector<int> smallestSufficientTeam(vector<string>& req_skills, vector<vector<string>>& people) {
+            ans.assign(people.size(), 0);  // 刚开始的时候，将答案置为最长值
+            for (int i = 0; i < ans.size(); ++i)
+            {
+                ans[i] = i;
+            }
+            backtrack(req_skills, people, 0);
+            return ans;
+        }
+    };
+    ```
+
+    遍历所有子集，看每个子集是否满足要求。显然这样是超时的。
+
+1. 动态规划（官方答案）
+
+    有几个点：
+
+    1. 对技能按位进行 one-hot 编码，比如技能 0 对应`b0001`，技能 1 对应`b0010`。这样方便后面计算并集，从而快速得到技能组合。
+
+    1. `dp[i]`定义为实现技能组合为`i`所需要的最小人员列表。
+
+    1. 我们尝试将每个人加到某个技能组合里，如果加完后，新的技能组合满足要求（所有的位都为 1），那么**尝试**去更新新技能组合的`dp`状态。即如果`dp[i].size() + 1 < dp[j].size()`，那么更新`dp[j]`为`dp[i]`再加上当前人。（这个挺像背包问题的）
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> smallestSufficientTeam(vector<string>& req_skills, vector<vector<string>>& people) {
+            int n = req_skills.size(), m = people.size();
+            unordered_map<string, int> skill_index;
+            for (int i = 0; i < n; ++i) {
+                skill_index[req_skills[i]] = i;
+            }
+            vector<vector<int>> dp(1 << n);
+            for (int i = 0; i < m; ++i) {
+                int cur_skill = 0;
+                for (string& s : people[i]) {
+                    cur_skill |= 1 << skill_index[s];
+                }
+                for (int prev = 0; prev < dp.size(); ++prev) {
+                    if (prev > 0 && dp[prev].empty()) {
+                        continue;
+                    }
+                    int comb = prev | cur_skill;
+                    if (comb == prev) {
+                        continue;
+                    }
+                    if (dp[comb].empty() || dp[prev].size() + 1 < dp[comb].size()) {
+                        dp[comb] = dp[prev];
+                        dp[comb].push_back(i);
+                    }
+                }
+            }
+            return dp[(1 << n) - 1];
+        }
+    };
+    ```
+
 ## 贪心
 
 ### 雪糕的最大数量
@@ -21365,6 +21498,109 @@ minStack.getMin();   --> 返回 -2.
 
     这个代码效率挺低的，只击败了 26%，说明有优化空间。
 
+### 链表中的下一个更大节点
+
+给定一个长度为 n 的链表 head
+
+对于列表中的每个节点，查找下一个 更大节点 的值。也就是说，对于每个节点，找到它旁边的第一个节点的值，这个节点的值 严格大于 它的值。
+
+返回一个整数数组 answer ，其中 answer[i] 是第 i 个节点( 从1开始 )的下一个更大的节点的值。如果第 i 个节点没有下一个更大的节点，设置 answer[i] = 0 。
+
+ 
+
+示例 1：
+
+
+
+输入：head = [2,1,5]
+输出：[5,5,0]
+示例 2：
+
+
+
+输入：head = [2,7,4,3,5]
+输出：[7,0,5,5,0]
+ 
+
+提示：
+
+链表中节点数为 n
+1 <= n <= 104
+1 <= Node.val <= 109
+
+代码：
+
+1. 单调栈
+
+    当链表下行时，我们把下行数据存起来，当链表上行时，我们对下行数据进行匹配消除。
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        vector<int> nextLargerNodes(ListNode* head) {
+            vector<int> ans;
+            stack<pair<int, int>> s;
+            ListNode *p = head;
+            int i = 0;
+            while (p)
+            {
+                if (s.empty())
+                {
+                    s.push(make_pair(p->val, i));
+                }
+                else if (p->val > s.top().first)
+                {
+                    ans[s.top().second] = p->val;
+                    s.pop();
+                    continue;
+                }
+                s.push(make_pair(p->val, i));
+                ans.push_back(0);
+                ++i;
+                p = p->next;
+            }
+            return ans;
+        }
+    };
+    ```
+
+    上面的代码有两个重要的地方：
+
+    1. 当消除完一个单调栈的顶部元素后，马上把`p`所指的元素压入栈中，作为下一个要处理的对象。
+
+        当栈顶元素在“下行区间”中，`p`所指元素在“上行区间”中时，如果不采用这种方法，那么就无法处理上行区间中的元素。通过这种方法，巧妙地把下行区间中的元素记录了下来，同时又可以处理止行区间中的元素。（为什么可以想到这种方法？总感觉这里面有深奥的道理。）
+
+    1. 如果单调栈只记录值，不记录索引，那么“左指针”就会留在较高的一个顶点上，即使在下行区间有合适的元素匹配，也无法对这些元素即时消除。此时就只能再记录“右指针”的上行区间。可是如果右指针有多个上行区间，那么就复杂到无法处理了。
+
+        其实单调栈还可以直接记录索引，把节点值先放到`ans`中，然后后面根据索引去取`ans`中的值，再对这个值进行修改或置 0。（比如再遍历一遍链表，如果节点的值和`ans`中的值相等，那么将`ans`对应的位置置 0）
+
+    一些自己的思考：
+
+    首先想到快慢指针`p1`，`p2`，这时有 4 种情况：
+
+    1. `p1`，`p2`都处于下行阶段，此时`p2`不可能比`p1`大
+
+    1. `p1`，`p2`都处于上行阶段，此时`p2`必定等于`p1->next`，并且每个`p2`的值，都是`p1`对应的`ans`。
+
+    1. `p1`和`p2`处于一个山顶的两侧。这种情况不可能存在，因为在上行阶段`p1`一定紧跟着`p2`。
+
+    1. `p1`和`p2`处于一个山谷的两侧。`p1`在左侧山顶，`p2`在右侧山腰。当`p2`对应的值小于`p1`时，`p1`无法向前移动。但是此时`p2`一定会比山底的元素要大，山底的元素会被优先消除掉，存到`ans`里。
+    
+        由此我们可以想到把下行区间存成一个栈，然后优先处理山底元素。
+
+        可是此时`p2`在上行过程中的值会被丢弃掉。我们必须把`p2`上行过程中的值也存下来。就算把上行栈存下来，上行栈中的值该跟谁比呢？比如`[10, 7, 2, 3, 4, 8, 9]`，下行栈存`[10, 7]`，上行栈存`[2, 3, 4, 8, 9]`，下行栈的`7`可以对应到上行栈的`8`，可以上行栈中的`[2, 3, 4]`该怎么处理呢？（想到这里，感觉行不通，不再想了）
+
+
 ## 队列
   
 ### 用栈实现队列
@@ -27740,6 +27976,102 @@ s1, s2 只包含 'x' 或 'y'。
 
     （不是很明白，有时间了再研究一下）
 
+### 移动石子直到连续 II
+
+在一个长度 无限 的数轴上，第 i 颗石子的位置为 stones[i]。如果一颗石子的位置最小/最大，那么该石子被称作 端点石子 。
+
+每个回合，你可以将一颗端点石子拿起并移动到一个未占用的位置，使得该石子不再是一颗端点石子。
+
+值得注意的是，如果石子像 stones = [1,2,5] 这样，你将 无法 移动位于位置 5 的端点石子，因为无论将它移动到任何位置（例如 0 或 3），该石子都仍然会是端点石子。
+
+当你无法进行任何移动时，即，这些石子的位置连续时，游戏结束。
+
+要使游戏结束，你可以执行的最小和最大移动次数分别是多少？ 以长度为 2 的数组形式返回答案：answer = [minimum_moves, maximum_moves] 。
+
+ 
+
+示例 1：
+
+输入：[7,4,9]
+输出：[1,2]
+解释：
+我们可以移动一次，4 -> 8，游戏结束。
+或者，我们可以移动两次 9 -> 5，4 -> 6，游戏结束。
+示例 2：
+
+输入：[6,5,4,3,10]
+输出：[2,3]
+解释：
+我们可以移动 3 -> 8，接着是 10 -> 7，游戏结束。
+或者，我们可以移动 3 -> 7, 4 -> 8, 5 -> 9，游戏结束。
+注意，我们无法进行 10 -> 2 这样的移动来结束游戏，因为这是不合要求的移动。
+示例 3：
+
+输入：[100,101,104,102,103]
+输出：[0,0]
+ 
+
+提示：
+
+3 <= stones.length <= 10^4
+1 <= stones[i] <= 10^9
+stones[i] 的值各不相同。
+
+
+代码：
+
+1. 官方答案，双指针
+
+    最小步数的思考：
+
+    如果遇到`[1,2,4]`这样的情况，可以将`1`移到`3`，变成`[2,3,4]`，共一步。
+
+    如果遇到`[1,2,5]`这样的情况，可以将`1`移到`3`，变成`[2,3,5]`，然后仿照上面，把`2`移到`4`，变成`[3,4,5]`，共两步。
+
+    归纳：如果遇到`[x_0, x_1, ..., x_m, x_n]`，其中`[x_0, ..., x_m]`都是连续的，那么最少需要移动`x_n - x_m - 1`步。
+
+    如果遇到`[1,2,6,8]`，我们可以把`6`先移到`3`，变成`[1,2,3,5]`，尽量减小`x_m`和`x_n`之间的距离，同时尽量减小连续序列右侧的离散元素的数量。
+
+    由此我们可以得到贪心算法：每次都把最右侧的元素移到左侧的第一个空缺位置上，最后形成`[x_0, x_1, ..., x_m, x_n]`这样的情况，再加上`x_n - x_m - 1`步即可。或者每次都把最左侧的元素移到到右侧的第一个空缺位置。
+
+    最大步数的思考：
+
+    对于`[1,2,4]`和`[1,2,5]`这样的情况，似乎并没有什么更好的方法来增大步数。
+
+    对于`[1,2,6,8]`这种情况，我们可以把`8`移到`5`，变成`1,2,5,6`，再把`6`移到`4`，变成`[1,2,4,5]`，最后再把`5`移到`3`，变成`[1,2,3,4]`。每次都把最右侧的元素移到到右侧的第一个空格里。如果从左侧开始处理，那么同理。在左右两种结果中取一个最大的答案就可以了。
+
+    （如果一次左，一次右，有没有可能比全左或全右的结果更大？）
+
+    由于每次都减少一个空位，所以我们只需要计算最左侧的石子到右侧第二个石子之间的空位数就可以了。
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> numMovesStonesII(vector<int>& stones) {
+            int n = stones.size();
+            sort(stones.begin(), stones.end());
+            if (stones.back() - stones[0] + 1 == n) {
+                return {0, 0};
+            }
+            int ma = max(stones[n - 2] - stones[0] + 1, stones[n - 1] - stones[1] + 1) - (n - 1);
+            int mi = n;
+            for (int i = 0, j = 0; i < n && j + 1 < n; ++i) {
+                while (j + 1 < n && stones[j + 1] - stones[i] + 1 <= n) {
+                    ++j;
+                }
+                if (j - i + 1 == n - 1 && stones[j] - stones[i] + 1 == n - 1) {
+                    mi = min(mi, 2);
+                } else {
+                    mi = min(mi, n - (j - i + 1));
+                }
+            }
+            return {mi, ma};
+        }
+    };
+    ```
+
+    感觉这道题挺像贪心的。思路确实不难想，关键是怎么证明？
+
 ### 区间相关
 
 #### 会议室
@@ -28766,6 +29098,164 @@ arr = [6]
         }
     }
     ```
+
+### 困于环中的机器人
+
+在无限的平面上，机器人最初位于 (0, 0) 处，面朝北方。注意:
+
+北方向 是y轴的正方向。
+南方向 是y轴的负方向。
+东方向 是x轴的正方向。
+西方向 是x轴的负方向。
+机器人可以接受下列三条指令之一：
+
+"G"：直走 1 个单位
+"L"：左转 90 度
+"R"：右转 90 度
+机器人按顺序执行指令 instructions，并一直重复它们。
+
+只有在平面中存在环使得机器人永远无法离开时，返回 true。否则，返回 false。
+
+ 
+
+示例 1：
+
+输入：instructions = "GGLLGG"
+输出：true
+解释：机器人最初在(0,0)处，面向北方。
+“G”:移动一步。位置:(0,1)方向:北。
+“G”:移动一步。位置:(0,2).方向:北。
+“L”:逆时针旋转90度。位置:(0,2).方向:西。
+“L”:逆时针旋转90度。位置:(0,2)方向:南。
+“G”:移动一步。位置:(0,1)方向:南。
+“G”:移动一步。位置:(0,0)方向:南。
+重复指令，机器人进入循环:(0,0)——>(0,1)——>(0,2)——>(0,1)——>(0,0)。
+在此基础上，我们返回true。
+示例 2：
+
+输入：instructions = "GG"
+输出：false
+解释：机器人最初在(0,0)处，面向北方。
+“G”:移动一步。位置:(0,1)方向:北。
+“G”:移动一步。位置:(0,2).方向:北。
+重复这些指示，继续朝北前进，不会进入循环。
+在此基础上，返回false。
+示例 3：
+
+输入：instructions = "GL"
+输出：true
+解释：机器人最初在(0,0)处，面向北方。
+“G”:移动一步。位置:(0,1)方向:北。
+“L”:逆时针旋转90度。位置:(0,1).方向:西。
+“G”:移动一步。位置:(- 1,1)方向:西。
+“L”:逆时针旋转90度。位置:(- 1,1)方向:南。
+“G”:移动一步。位置:(- 1,0)方向:南。
+“L”:逆时针旋转90度。位置:(- 1,0)方向:东方。
+“G”:移动一步。位置:(0,0)方向:东方。
+“L”:逆时针旋转90度。位置:(0,0)方向:北。
+重复指令，机器人进入循环:(0,0)——>(0,1)——>(- 1,1)——>(- 1,0)——>(0,0)。
+在此基础上，我们返回true。
+ 
+
+提示：
+
+1 <= instructions.length <= 100
+instructions[i] 仅包含 'G', 'L', 'R'
+
+代码：
+
+1. 自己写的，找规律
+
+    经过不知道多少轮（假设是 n 轮）循环后，如果机器人面朝北，且不在原点，那么永远就无法再回来了。因为第 n + 1 轮开启的是第二次 n 轮循环，一定会相对原点做相同方向的位移。
+
+    由于向左旋转和向右旋转会抵消，所以每次循环我们只需要统计净旋转量就可以了。如果净旋转量为 0，或者 4 的倍数，那么就说明已经面朝北了。此时判断是否在原点就可以了。
+
+    ```cpp
+    class Solution {
+    public:
+        bool isRobotBounded(string instructions) {
+            int left_count = 0, right_count = 0;
+            int n = instructions.size();
+            int x = 0, y = 0;
+            int dir = 0;  // north = 0, west = 1, south = 2, east = 3
+            while (true)
+            {
+                for (int i = 0; i < n; ++i)
+                {
+                    if (instructions[i] == 'L')
+                    {
+                        ++left_count;
+                        dir += 1;
+                        dir %= 4;
+                    }
+                    else if (instructions[i] == 'R')
+                    {
+                        ++right_count;
+                        dir -= 1;
+                        if (dir < 0)
+                            dir += 4;
+                        dir %= 4;
+                    }
+                    else  // 'G'
+                    {
+                        if (dir == 0)
+                            y += 1;
+                        else if (dir == 1)
+                            x -= 1;
+                        else if (dir == 2)
+                            y -= 1;
+                        else
+                            x += 1;
+                    }
+                }
+                if (abs(left_count - right_count) % 4 == 0)
+                {
+                    if (x == 0 && y == 0)
+                        return true;
+                    else
+                        return false;
+                }
+            }
+            return true;
+        }
+    };
+    ```
+
+1. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        bool isRobotBounded(string instructions) {
+            vector<vector<int>> direc {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+            int direcIndex = 0;
+            int x = 0, y = 0;
+            for (char instruction : instructions) {
+                if (instruction == 'G') {
+                    x += direc[direcIndex][0];
+                    y += direc[direcIndex][1];
+                } else if (instruction == 'L') {
+                    direcIndex += 3;
+                    direcIndex %= 4;
+                } else {
+                    direcIndex++;
+                    direcIndex %= 4;
+                }
+            }
+            return direcIndex != 0 || (x == 0 && y == 0);
+        }
+    };
+    ```
+
+    如果执行完一遍指令后在原点，那么无论机器人朝向什么方向，执行完下一轮指令后也一定会回到原点。我觉得可以把坐标轴的四个方向看作四个轮换式，它们是各向同性的。
+
+    如果不在原点，则分情况讨论：
+
+    1. 如果面朝北，那么一定无法再回去。
+
+    1. 如果面朝南，由于指令中的左右易位，上下易位，所以一定可以回去。
+
+    1. 如果面朝东或西，（这种情况也能回去，想不到比较好的证明方法了。或许可以用向量法？）
 
 ## 基本算法
 
@@ -33506,6 +33996,8 @@ public:
     ```
 
     之所以不需要写`vis[]`，是因为子集不能有相同的集合，所以我们不需要重复搜索之前的集合，我们只需要向后搜索就好了。既然只搜索后面，那么就不需要记录前面搜索过没有了。
+
+    注意，总是遵循“后序”，可以保证不重不漏，所有情况只出现一次。（为什么？）如果我们找元素时，总是遵循“前序”，即总是从找过的元素里面找，那么会发生什么？
 
 1. 利用二进制表示某个元素是否被选入集合
 

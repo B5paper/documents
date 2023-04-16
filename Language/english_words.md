@@ -1,6 +1,6 @@
 # English Words
 
-incidental adj. If one thing is incidental to another, it is less important than the other thing or is not a major part of it. eg. The playing of music proved to be incidental to the main business of the evening.
+incidental prn. [ˌɪnsɪˈdɛntl] adj. If one thing is incidental to another, it is less important than the other thing or is not a major part of it. 附带的 eg. The playing of music proved to be incidental to the main business of the evening.
 
 pitfall n. 陷阱，缺陷
 
@@ -20,7 +20,7 @@ plenty quant. 大量的，充裕的
 
 plenty pron. 充裕
 
-proceed vt. proceed to do sth.（做完某事之后）接着（做另一事）
+proceed prn. [proʊˈsiːd] vt. proceed to do sth.（做完某事之后）接着（做另一事）
 
 proceed vi. proceed with sth. 继续进行（某行动）
 
@@ -44,9 +44,11 @@ dabble v. 涉猎，浸水
 
 prepend vt. 预谋，在前面追加
 
-resort v. 凭借，手段
+resort prn. [rɪˈzɔːrt] n-uncount. If you achieve something without resort to a particular course of action, you succeed without carrying out that action. To have resort to a particular course of action means to have to do that action in order to achieve something. 凭借，诉诸，求助
 
-precedence n. 优先，优先级
+resort n. If you do something as a last resort, you do it because you can find no other way of getting out of a difficult situation or of solving a problem. 最后的办法，最终手段
+
+precedence prn. [ˈprɛsɪdəns] n. 优先，优先级
 
 malformed adj. 畸形的，难看的
 
@@ -80,7 +82,7 @@ attribution n. 在报道中指明信息或引言的来源，多用于使用非�
 
 manuscript n. 手稿，原稿
 
-errata n. 堪误表（erratum 的复数）
+errata prn. [e'rɑtə] n. 堪误表（erratum 的复数）
 
 crunch v. 嘎吱嘎吱地嚼；大量地处理数字
 
@@ -90,7 +92,7 @@ exposition n. 解释，阐述
 
 deliberately adv. 故意地；慎重地
 
-vague adj. 不明确的
+vague prn. [veɪɡ] adj. 不明确的
 
 interrelate v. （使）相互关联
 
@@ -148,13 +150,11 @@ jargon n. 行话，黑话
 
 snuck v. sneak 的过去式
 
-munge/munging/wrangling v. 清洗整理数据
-
 a wealth of phrase. 很多的
 
 settle for less phrase. 退而求其次
 
-preparation n. 准备，准备工作
+preparation prn. [ˌprepəˈreɪʃn] n. 准备，准备工作
 
 daunting adj. 令人畏惧的，令人气馁的
 
@@ -172,7 +172,7 @@ conform v. 遵守，符合
 
 accommodate v. If a building or space can accommodate someone or something, it has enough room for them. eg. The integer is returned to accommodate a special value used to indicate failure.
 
-premier adj. 首要的，最早的；总理，首相
+premier prn. [prɪˈmɪr] adj. 首要的，最早的；总理，首相
 
 kick off phrase. 开始，开球
 
@@ -186,7 +186,7 @@ crush n. 迷恋对象
 
 set n. 舞台，片场，摄影棚
 
-iconic adj. 偶像的，标志性的
+iconic prn. [aɪˈkɑnɪk] adj. 偶像的，标志性的
 
 titular adj. 名义上的
 
@@ -202,15 +202,15 @@ drop v. （电影）落幕
 
 accomplish v. 完成（目标）
 
-nostalgia v. 怀旧，念旧
+nostalgia prn. [nəˈstældʒə] v. 怀旧，念旧
 
-nostalgic adj. 思乡的，怀旧的
+nostalgic prn. [nəˈstældʒɪk] adj. 思乡的，怀旧的
 
 overdo v. 把...做得过分
 
 spinoff n. 续集
 
-audition n. （演员）面试，试镜
+audition prn. [ɔːˈdɪʃn] n. （演员）面试，试镜
 
 special n. 特别节目
 
@@ -230,11 +230,11 @@ dedication n. 献辞
 
 downside n. 缺点，不利方面
 
-controversy n. 争论，争议
+controversy prn. [ˈkɑːntrəvɜːrsi] n. 争论，争议
 
 fiery adj. 燃烧的，火红的
 
-proprietary adj. 专卖的
+proprietary prn. [prəˈpraɪəteri] adj. 专卖的
 
 revoke v. 撤回，撤销
 
@@ -246,9 +246,9 @@ miniature adj. 微型的，小型的
 
 instantaneous adj. 瞬间发生的，瞬间完成的
 
-reside n. 居住，定居
+reside prn. [rɪˈzaɪd] n. 居住，定居
 
-suffice adj. 足够，足以
+suffice prn. [rɪˈzɜːrv] v. If you say that something will suffice, you mean it will be enough to achieve a purpose or to fulfil a need.
 
 tarball n. 压缩包
 
@@ -298,9 +298,9 @@ spooky adj. 令人毛骨悚然的
 
 transient adj. 短暂的；瞬态
 
-astrophysicist n. 天体物理学家
+astrophysicist prn. [ˌæstroʊ'fɪzɪsɪst] n. 天体物理学家
 
-trawl v. 用拖网捕鱼；查阅（资料）
+trawl prn. [trɔːl] v. 用拖网捕鱼；查阅（资料）
 
 one-off adj. 一次性的
 
@@ -356,11 +356,11 @@ replete adj. 充满的，装满的
 
 requisite adj. 必需的，必要的
 
-amenable adj. 有责任的，愿意的 If you are amenable to something, you are willing to do it or accept it.
+amenable prn. [əˈmɛnəbəl] adj. If you are amenable to something, you are willing to do it or accept it. 愿意的，顺从的
 
 byproduct n. 副产品
 
-reap v. 获得，收获
+reap v. If you reap the benefits or the rewards of something, you enjoy the good things that happen as a result of it. 获得，收获
 
 savings n. 储蓄，存款
 
@@ -368,13 +368,22 @@ survey vt. If you survey something, you look at or consider the whole of it care
 
 intricate adj. You use intricate to describe something that has many small parts or details. 复杂精细的 eg. ...the production of carpets with highly intricate patterns. …图案复杂精细的地毯的制作。
 
-superfluous adj. 多余的
+superfluous prn. [suːˈpɜːrfluəs] adj. 多余的
 
 derive v. 获得，起源于
 
-derivative n. 派生物，衍生物，导数，微商
+derivative n. A derivative is something which has been developed or obtained from something else.
+
+derivative n. 导数
 
 ampersand prn. [ˈæmpərsænd] n. &的记号名称
 
 steal v. If you steal something from someone, you take it away from them without their permission and without intending to return it.
 
+detour prn. [ˈdiːtʊr] n-count. If you make a detour on a journey, you go by a route which is not the shortest way, because you want to avoid something such as a traffic jam, or because there is something you want to do on the way. eg. The detours involve some specific process—for example, starting a business or getting divorced.
+
+bankrupt adj. People or organizations that go bankrupt do not have enough money to pay their debts. eg. Go bankrupt: Once you have no assets, there’s no point in continuing the game.
+
+jail n-var. A jail is a place where criminals are kept in order to punish them, or where people waiting to be tried are kept. eg. Go to jail: This is a consequence of an error of judgment, and is not a normal exit from the game board.
+
+sublime adj. 庄严的，雄伟的

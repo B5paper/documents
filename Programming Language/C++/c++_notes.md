@@ -3283,3 +3283,20 @@ class codecvt_utf8_utf16
     ```
 
     可以看到，低位内存的数据为`0x34`，对应`0x1234`的低位；高位内存的数据为`0x12`，对应`0x1234`的高位。因此为小端模式。
+
+1. 将一个十六进制字符串转换成整数
+
+    ```cpp
+    std::string s = "5f0066";
+    int num = std::stoi(s, 0, 16);
+    ```
+
+    或者这样：
+
+    ```cpp
+    std::stringstream str;
+    std::string s1 = "5f0066";
+    str << s1;
+    int value;
+    str >> std::hex >> value;
+    ```
