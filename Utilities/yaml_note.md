@@ -1,5 +1,13 @@
 # YAML Note
 
+Some learning materials that shoud be processed:
+
+1. <https://www.jianshu.com/p/d777ae6b69f3>
+
+1. <https://spacelift.io/blog/yaml>
+
+1. <https://www.cloudbees.com/blog/yaml-tutorial-everything-you-need-get-started>
+
 yaml 是 Yet Another Markup Language 的缩写。
 
 与 yaml 相关的库：<https://yaml.org/>

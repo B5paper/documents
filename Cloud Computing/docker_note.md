@@ -1,5 +1,17 @@
 # Docker Note
 
+Learning materials:
+
+1. <https://www.simplilearn.com/tutorials/docker-tutorial/what-is-dockerfile>
+
+1. get the manifest using bash: <https://stackoverflow.com/questions/57316115/get-manifest-of-a-public-docker-image-hosted-on-docker-hub-using-the-docker-regi/72574987#72574987>
+
+1. docker handbook: <https://docker-handbook.farhan.dev/table-of-contents>
+
+1. awesome docker: <https://github.com/veggiemonk/awesome-docker>
+
+
+
 官网：<https://docs.docker.com/>
 
 docker hub:
@@ -246,9 +258,15 @@ docker 挂载主机目录访问如果出现`cannot open directory: Permisson den
     character_set_server = utf8
     ```
 
-1. 代理配置
+1. proxy
 
     在 registry 中 pull image 时，代理的设置需要在 docker service 中配置，因为摘取镜像这个动作是 service 干的，不是 client 干的。官网也给出了具体教程：<https://docs.docker.com/config/daemon/systemd/#httphttps-proxy>。
+
+    The configs in `~/.docker/config.json` will impact on the proxy of all containers. Besides, the proxy address in the file should be the ip address of virtual ethernet interface `docker0` rather than `127.0.0.1`, because the `127.0.0.1` inside the container is different from `127.0.0.1` on the host.
+
+1. restart a stopped docker container
+
+    Ref: <https://stackoverflow.com/questions/39666950/how-restart-a-stopped-docker-container>
 
 ## Dockerfile
 

@@ -1,5 +1,7 @@
 # Gdb Note
 
+<https://interrupt.memfault.com/blog/advanced-gdb>
+
 * `file <exe_path>`
 
     加载某个程序
@@ -129,3 +131,28 @@
 1. 另外一个参考资料：<https://itecnote.com/tecnote/c-how-to-debug-programs-with-sudo-in-vscode/>
 
 显示很长的字符串：<https://stackoverflow.com/questions/233328/how-do-i-print-the-full-value-of-a-long-string-in-gdb>
+
+1. pretty print: <https://sourceware.org/gdb/onlinedocs/gdb/Pretty_002dPrinter-Commands.html>
+
+## Problem shooting
+
+1. How can I get address info on a structure member?
+
+    <https://stackoverflow.com/questions/33673343/how-can-i-get-address-info-on-a-structure-member>
+
+1. print struct in gdb
+
+    <https://gnu.gpp.help.narkive.com/pJBTiPUJ/hash-map-print-in-gdb>
+
+1. 有关 cout
+
+    `std::cout`在 gdb 中是不可见的。可以自己写个函数 wrap 一层。
+
+1. Error: `Cannot resolve function printf to any overloaded instance`
+
+1. 在 gdb 中 print `wchar_t` 字符串
+
+    <https://stackoverflow.com/questions/1721545/how-can-i-display-unicode-strings-while-debugging-on-linux>
+
+1. gdb 设置字符集：<https://sourceware.org/gdb/onlinedocs/gdb/Character-Sets.html>
+

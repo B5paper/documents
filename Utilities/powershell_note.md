@@ -17,3 +17,5 @@ Set-ExecutionPolicy
 允许执行在网络上签名的脚本：`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned`
 
 显示当前目录下的所有文件：`ls -force`
+
+设置环境变量：<https://linuxhint.com/set-environment-variable-powershell/>

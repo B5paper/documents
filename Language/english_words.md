@@ -1,313 +1,389 @@
 # English Words
 
-incidental 附带的，偶然的
+incidental prn. [ˌɪnsɪˈdɛntl] adj. If one thing is incidental to another, it is less important than the other thing or is not a major part of it. 附带的 eg. The playing of music proved to be incidental to the main business of the evening.
 
-pitfall 陷阱，缺陷
+pitfall n. 陷阱，缺陷
 
-bite v./n. 咬，刺痛
+bite v. 咬，刺痛
 
-arguably 可以说
+bite n. 咬，刺痛
 
-endeavour v. 努力  n. 尝试
+arguably adv. 可以说
+
+endeavour v. 努力
+
+endeavour n. 尝试
 
 thrive vi. 繁荣，兴旺
 
-plenty quant. 大量的，充裕的  pron. 充裕
+plenty quant. 大量的，充裕的
 
-proceed vt. proceed to do sth.（做完某事之后）接着（做另一事） vi. proceed with sth. 继续进行（某行动）
+plenty pron. 充裕
 
-1. issue vt. If you issue a statement or a warning, you make it known formally or publicly 发表（声明），发出（警告）
+proceed prn. [proʊˈsiːd] vt. proceed to do sth.（做完某事之后）接着（做另一事）
 
-1. magic hand wave
+proceed vi. proceed with sth. 继续进行（某行动）
 
-    Any sufficiently advanced technology is indistinguishable from magic. Arthur C. Clarke, “Profiles of The Future”, 1961 (Clarke’s third law)
+issue vt. If you issue a statement or a warning, you make it known formally or publicly 发表（声明），发出（警告）
 
-    Refers to those times when a colleague says “let me fix that” and proceeds to issue a string of commands on the keyboard (thus waving hands about) and then says “there you go”.
+magic hand wave phrase. Any sufficiently advanced technology is indistinguishable from magic. Arthur C. Clarke, “Profiles of The Future”, 1961 (Clarke’s third law). Refers to those times when a colleague says “let me fix that” and proceeds to issue a string of commands on the keyboard (thus waving hands about) and then says “there you go”. I call this the “magic hand wave”. This was picked up by management in some companies and is now the standard term for describing “technical work”. In discussion, “John can do his magic hand wave, and that work will be complete”.
 
-    I call this the “magic hand wave”. This was picked up by management in some companies and is now the standard term for describing “technical work”.
+in the interest of space phrase. 出于空间的考虑
 
-    In discussion, “John can do his magic hand wave, and that work will be complete”.
+in the interests of phrase. 为了...的利益
 
-1. in the interest of space 出于空间的考虑
+mindset n. 心态
 
-    in the interests of  为了...的利益
+realm n. 领域，范围
 
-1. mindset 心态
+frustration n. 挫折
 
-1. realm 领域，范围
+culprit n. 犯人，罪犯；罪魁祸首
 
-1. frustration 挫折
+dabble v. 涉猎，浸水
 
-1. culprit 犯人，罪犯；罪魁祸首
+prepend vt. 预谋，在前面追加
 
-1. dabble v. 涉猎，浸水
+resort prn. [rɪˈzɔːrt] n-uncount. If you achieve something without resort to a particular course of action, you succeed without carrying out that action. To have resort to a particular course of action means to have to do that action in order to achieve something. 凭借，诉诸，求助
 
-1. prepend vt. 预谋，在前面追加
+resort n. If you do something as a last resort, you do it because you can find no other way of getting out of a difficult situation or of solving a problem. 最后的办法，最终手段
 
-1. resort 凭借，手段
+precedence prn. [ˈprɛsɪdəns] n. 优先，优先级
 
-1. precedence 优先，优先级
+malformed adj. 畸形的，难看的
 
-1. malformed 畸形的，难看的
+operand n. 操作数，运算对象
 
-1. operand 操作数，运算对象
+jam n. 果酱，堵塞
 
-1. jam 果酱，堵塞
+scramble v. 爬；弄乱
 
-1. scramble 爬；弄乱
+axiomatic adj. 公理的，自明的
 
-axiomatic 公理的，自明的
+descendent n. 后裔
 
-descendent 后裔
+render vt. 使成为，渲染
 
-render 使成为，渲染
+intervention n. 干预，介入
 
-intervention 干预，介入
+stumble adj. 绊脚
 
-stumble 绊脚
+muster vt. 寻找，召集
 
-muster 寻找，召集
+nerve n. 神经，勇气
 
-nerve 神经，勇气
+muster the nerve phrase. 鼓起勇气
 
-muster the nerve 鼓起勇气
+embark on phrase. 着手开始
 
-embark on 着手开始
+significant adj. 显著的，相当数量的，重要的，别有含义的
 
-significant 显著的，相当数量的，重要的，别有含义的
+attribution n. 在报道中指明信息或引言的来源，多用于使用非自己采集资料的情况
 
-attribution 在报道中指明信息或引言的来源，多用于使用非自己采集资料的情况
+manuscript n. 手稿，原稿
 
-manuscript 手稿，原稿
+errata prn. [e'rɑtə] n. 堪误表（erratum 的复数）
 
-errata 堪误表（erratum 的复数）
+crunch v. 嘎吱嘎吱地嚼；大量地处理数字
 
-crunch 嘎吱嘎吱地嚼；大量地处理数字
+tailor n. 裁缝；定做
 
-tailor 裁缝；定做
+exposition n. 解释，阐述
 
-exposition 解释，阐述
+deliberately adv. 故意地；慎重地
 
-deliberately 故意地；慎重地
+vague prn. [veɪɡ] adj. 不明确的
 
-vague 不明确的
+interrelate v. （使）相互关联
 
-interrelate （使）相互关联
+by no means phrase. 决不
 
-by no means 决不
+sentiment n. 观点，情绪
 
-sentiment 观点，情绪
+quick-and-dirty adj. 应急的；快餐部
 
-quick-and-dirty 应急的；快餐部
+connotation n. 隐含意义，联想意义
 
-connotation 隐含意义，联想意义
+mission-critical adj. 关键的
 
-mission-critical 关键的
+inevitably adv. 不可避免地
 
-inevitably 不可避免地
+fruitfully adv. 产量多地，肥沃地
 
-fruitfully 产量多地，肥沃地
+prototyping n. 样机研究，原型设计
 
-prototyping 样机研究，原型设计
+reasonable adj. 合情理的；相当大的，不少的
 
-reasonable 合情理的；相当大的，不少的
+expressive adj. 富于表现力的
 
-expressive 富于表现力的
+spreadsheet n. 电子表格
 
-spreadsheet 电子表格
+sophisticated adj. 复杂的，精致的
 
-sophisticated 复杂的，精致的
+dice v. 把食物切成小块；掷骰子
 
-dice 把食物切成小块；掷骰子
+panel n. 面板
 
-panel 面板
+econometrics n. 计量经济学
 
-econometrics 计量经济学
+subscription n. 订阅
 
-subscription 订阅
+maturity n. 成熟
 
-maturity 成熟
+arduous adj. 艰辛的，困难的
 
-arduous 艰辛的，困难的
+substitute v. 替换
 
-substitute 替换
+drawn-out adj. 延长的，持续了很久的
 
-drawn-out 延长的，持续了很久的
+condense v. 冷凝，压缩，浓缩
 
-condense 冷凝，压缩，浓缩
+prerequisite n. 先决条件，前提；预备课程；先决的
 
-prerequisite 先决条件，前提；预备课程；先决的
+remainder n. 剩余部分
 
-remainder 剩余部分
+devote v. If you devote a particular proportion of a piece of writing or a speech to a particular subject, you deal with the subject in that amount of space or time.
 
-devote If you devote a particular proportion of a piece of writing or a speech to a particular subject, you deal with the subject in that amount of space or time.
+convention n. 习俗，惯例，约定
 
-convention 习俗，惯例，约定
+jargon n. 行话，黑话
 
-jargon 行话，黑话
+snuck v. sneak 的过去式
 
-snuck sneak 的过去式
+a wealth of phrase. 很多的
 
-munge/munging/wrangling 清洗整理数据
+settle for less phrase. 退而求其次
 
-a wealth of 很多的
+preparation prn. [ˌprepəˈreɪʃn] n. 准备，准备工作
 
-settle for less 退而求其次
+daunting adj. 令人畏惧的，令人气馁的
 
-preparation 准备，准备工作
+disposal v. 处理，清除
 
-daunting 令人畏惧的，令人气馁的
+distinct adj. 不同的，有区别的
 
-disposal 处理，清除
+indispensable adj. 不可或缺的
 
-distinct 不同的，有区别的
+workhorse n. 做重活的人
 
-indispensable 不可或缺的
+hood n. 风帽；罩
 
-workhorse 做重活的人
+conform v. 遵守，符合
 
-hood 风帽；罩
+accommodate v. If a building or space can accommodate someone or something, it has enough room for them. eg. The integer is returned to accommodate a special value used to indicate failure.
 
-conform 遵守，符合
+premier prn. [prɪˈmɪr] adj. 首要的，最早的；总理，首相
 
-accommodate 为...提供住宿，容纳
+kick off phrase. 开始，开球
 
-premier 首要的，最早的；总理，首相
+lane n. 小路
 
-kick off 开始，开球
+relive v. 重温
 
-lane 小路
+recount v. 叙述，说明
 
-relive 重温
+crush n. 迷恋对象
 
-recount 叙述，说明
+set n. 舞台，片场，摄影棚
 
-crush 迷恋对象
+iconic prn. [aɪˈkɑnɪk] adj. 偶像的，标志性的
 
-set 舞台，片场，摄影棚
+titular adj. 名义上的
 
-iconic 偶像的，标志性的
+die-hard n. 顽固分子
 
-titular 名义上的
+die-hard fan n. 死忠粉
 
-die-hard 顽固分子
+parallel n. 相似之处；相似的事情
 
-die-hard fan 死忠粉
+make parallels phrase. 做比较，compare
 
-parallel 相似之处；相似的事情
+drop v. （电影）落幕
 
-make parallels 做比较，compare
+accomplish v. 完成（目标）
 
-drop （电影）落幕
+nostalgia prn. [nəˈstældʒə] v. 怀旧，念旧
 
-accomplish 完成（目标）
+nostalgic prn. [nəˈstældʒɪk] adj. 思乡的，怀旧的
 
-nostalgia 怀旧，念旧
+overdo v. 把...做得过分
 
-nostalgic 思乡的，怀旧的
+spinoff n. 续集
 
-overdo 把...做得过分
+audition prn. [ɔːˈdɪʃn] n. （演员）面试，试镜
 
-spinoff 续集
+special n. 特别节目
 
-audition （演员）面试，试镜
+sorcerer n. 魔术师，男巫士
 
-special 特别节目
+commemorate v. 纪念
 
-sorcerer 魔术师，男巫士
+beloved adj. 钟爱的，深受喜爱的
 
-commemorate 纪念
+head back phrase. 调头，回去
 
-beloved 钟爱的，深受喜爱的
+trio n. 三重唱，三人组
 
-head back 调头，回去
+era n. 时代，时期
 
-trio 三重唱，三人组
+dedication n. 献辞
 
-era 时代，时期
+downside n. 缺点，不利方面
 
-dedication 献辞
+controversy prn. [ˈkɑːntrəvɜːrsi] n. 争论，争议
 
-downside 缺点，不利方面
+fiery adj. 燃烧的，火红的
 
-controversy 争论，争议
+proprietary prn. [prəˈpraɪəteri] adj. 专卖的
 
-fiery 燃烧的，火红的
+revoke v. 撤回，撤销
 
-proprietary 专卖的
+in a nutshell phrase. 简言之，总而言之
 
-revoke 撤回，撤销
+subtle adj. 不易察觉的，微妙的
 
-in a nutshell 简言之，总而言之
+miniature adj. 微型的，小型的
 
-subtle 不易察觉的，微妙的
+instantaneous adj. 瞬间发生的，瞬间完成的
 
-miniature 微型的，小型的
+reside prn. [rɪˈzaɪd] n. 居住，定居
 
-instantaneous 瞬间发生的，瞬间完成的
+suffice prn. [rɪˈzɜːrv] v. If you say that something will suffice, you mean it will be enough to achieve a purpose or to fulfil a need.
 
-reside 居住，定居
+tarball n. 压缩包
 
-suffice 足够，足以
+trump n. 王牌；赢过
 
-tarball 压缩包
+prematurely adv. 过早地
 
-trump 王牌；赢过
+skeleton n. 骨骼，框架
 
-prematurely 过早地
+bona fide adj. 真正的，真诚的
 
-skeleton 骨骼，框架
+negate v. 否认，否定；取消
 
-bona fide 真正的，真诚的
+synonyms n. 同义词
 
-negate 否认，否定；取消
+entrepreneur n. 企业家
 
-synonyms 同义词
+retrospective adj. 回顾展；回顾的
 
-entrepreneur 企业家
+beneficiary n. 受益者
 
-retrospective 回顾展；回顾的
+muse n. 灵感；沉思，冥想
 
-beneficiary 受益者
+converse n. 交谈；相反的说法
 
-muse 灵感；沉思，冥想
+cognitive adj. 认识的，认知的
 
-converse 交谈；相反的说法
+bat n. 用球棒击球；球棒；蝙蝠
 
-cognitive 认识的，认知的
+back and forth adv. 反复地，来回地
 
-bat 用球棒击球；球棒；蝙蝠
+relentlessly adv. 残酷地，无情地
 
-back and forth 反复地，来回地
+in no uncertain terms phrase. 用十分明确的言辞
 
-relentlessly 残酷地，无情地
+leverage v. 利用
 
-in no uncertain terms 用十分明确的言辞
+devise v. 设计，发明
 
-leverage 利用
+browse v. 浏览
 
-devise 设计，发明
+astronomer n. 天文学家
 
-browse 浏览
+neutron n. 中子
 
-astronomer 天文学家
+spooky adj. 令人毛骨悚然的
 
-neutron 中子
+transient adj. 短暂的；瞬态
 
-spooky 令人毛骨悚然的
+astrophysicist prn. [ˌæstroʊ'fɪzɪsɪst] n. 天体物理学家
 
-transient 短暂的；瞬态
+trawl prn. [trɔːl] v. 用拖网捕鱼；查阅（资料）
 
-astrophysicist 天体物理学家
+one-off adj. 一次性的
 
-trawl 用拖网捕鱼；查阅（资料）
+dwarf v. 使...显得矮小；小矮人
 
-one-off 一次性的
+vast adj. 巨大的
 
-dwarf 使...显得矮小；小矮人
+outback n. 内地
 
-vast 巨大的
+astronomy n. 天文学
 
-outback 内地
+delve v. 钻研，探究
 
-astronomy 天文学
+esoteric adj. 只有内行才懂的
+
+alter v. 改变，改动
+
+analogous adj. 相似的，类似的
+
+inconsistent adj. 不一致的，不协调的
+
+arise (arose) v. 出现，引发
+
+prohibitive adj. 高得令人望而却步的；禁止的
+
+generalize v. 归纳
+
+cogent adj. 令人信服的
+
+unduly adv. 过度地
+
+impart v. 传授，给予
+
+indispensable adj. 不可或缺的
+
+extrapolation n. 外推法，推断
+
+implication n. 含义
+
+mitigate v. 减轻，缓和
+
+curriculum n. 课程
+
+indispensable adj. 不可或缺的
+
+molecular adj. 分子的
+
+distinctive adj. 独特的，与众不同的
+
+critical adj. 重要的，批判的
+
+replete adj. 充满的，装满的
+
+requisite adj. 必需的，必要的
+
+amenable prn. [əˈmɛnəbəl] adj. If you are amenable to something, you are willing to do it or accept it. 愿意的，顺从的
+
+byproduct n. 副产品
+
+reap v. If you reap the benefits or the rewards of something, you enjoy the good things that happen as a result of it. 获得，收获
+
+savings n. 储蓄，存款
+
+survey vt. If you survey something, you look at or consider the whole of it carefully. 审视 eg. He pushed himself to his feet and surveyed the room.
+
+intricate adj. You use intricate to describe something that has many small parts or details. 复杂精细的 eg. ...the production of carpets with highly intricate patterns. …图案复杂精细的地毯的制作。
+
+superfluous prn. [suːˈpɜːrfluəs] adj. 多余的
+
+derive v. 获得，起源于
+
+derivative n. A derivative is something which has been developed or obtained from something else.
+
+derivative n. 导数
+
+ampersand prn. [ˈæmpərsænd] n. &的记号名称
+
+steal v. If you steal something from someone, you take it away from them without their permission and without intending to return it.
+
+detour prn. [ˈdiːtʊr] n-count. If you make a detour on a journey, you go by a route which is not the shortest way, because you want to avoid something such as a traffic jam, or because there is something you want to do on the way. eg. The detours involve some specific process—for example, starting a business or getting divorced.
+
+bankrupt adj. People or organizations that go bankrupt do not have enough money to pay their debts. eg. Go bankrupt: Once you have no assets, there’s no point in continuing the game.
+
+jail n-var. A jail is a place where criminals are kept in order to punish them, or where people waiting to be tried are kept. eg. Go to jail: This is a consequence of an error of judgment, and is not a normal exit from the game board.
+
+sublime adj. 庄严的，雄伟的

@@ -1,5 +1,23 @@
 # Git Note
 
+Some materials to learn:
+
+* <https://www.atlassian.com/git/tutorials/learn-undoing-changes-with-bitbucket>
+
+* <https://www.atlassian.com/git/tutorials/export-git-archive>
+
+* <https://www.atlassian.com/git/tutorials/setting-up-a-repository>
+
+* <https://support.atlassian.com/bitbucket-cloud/docs/use-pull-requests-for-code-review/#Workwithpullrequests-Mergestrategies>
+
+* <https://phoenixnap.com/kb/git-push-tag>
+
+* This seems to be a Git book: <https://www.gitkraken.com/learn/git/problems/git-push-to-remote-branch>
+
+* <https://www.atlassian.com/git/tutorials/setting-up-a-repository>
+
+* <https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History>
+
 ## Background and basic concepts
 
 * CVCs: Centralized Version Control Systems
@@ -589,6 +607,10 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
 * `git tag`
 
+* search code in a specific branch
+
+    <https://stackoverflow.com/questions/31891733/searching-code-in-a-specific-github-branch>
+
 
 ## Miscellaneous
 
@@ -599,3 +621,17 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 * 代理
 
     `git config --global http.proxy http://127.0.0.1:10809`
+
+* how does a PR work
+
+    Ref: <https://zellwk.com/blog/edit-pull-request/>
+
+## Problem shooting
+
+* `git The requested URL returned error: 403`
+
+    This is commonly because that you don't have enough access privileges. Please check if the token is correct or expired.
+
+* `The process '/usr/bin/git' failed with exit code 128`
+
+    Check if the URL is correct. Sometimes some tags in the URL doesn't exist at all.
