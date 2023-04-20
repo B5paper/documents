@@ -415,6 +415,10 @@ Ref:
 
 1. <https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/>
 
+## custom resources
+
+<https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/>
+
 ## refs
 
 * 有关`kubectl create`和`kubectl apply`的区别
@@ -437,3 +441,22 @@ Ref:
 
   `docker login`似乎会在`$HOME`目录下生成一个类似的 cookie 的，写有登陆信息的文件，然后 k8s 会去找这个文件，并用这里的登陆信息去 pull image。
 
+## Problem shooting
+
+1. `0/1 nodes are available: 1 node(s) had taints that the pod didn't tolerate.`
+
+    <https://github.com/calebhailey/homelab/issues/3>
+
+1. 自己写 operator:
+
+    <https://zhuanlan.zhihu.com/p/246550722>
+
+1. 理解 runtimeclass
+
+    <https://www.alibabacloud.com/blog/getting-started-with-kubernetes-%7C-understanding-kubernetes-runtimeclass-and-using-multiple-container-runtimes_596341>
+
+    <https://kubernetes.io/docs/concepts/containers/runtime-class/>
+
+    <https://itnext.io/kubernetes-running-multiple-container-runtimes-65220b4f9ef4>
+
+    <https://devopslearners.com/different-container-runtimes-and-configurations-in-the-same-kubernetes-cluster-fed228e1853e>

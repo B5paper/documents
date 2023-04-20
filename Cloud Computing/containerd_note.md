@@ -142,3 +142,15 @@ ctr 本身没有 manual，这个 man page 似乎是仿照着 man page 的格式�
     1. `ctr image import image.tar`
 
     Ref: <https://stackoverflow.com/questions/63478550/how-can-i-share-my-docker-images-with-conatinerd-runtime>
+
+1. 如果是装 k8s 对应的 containerd，需要额外的配置
+
+    <https://www.itzgeek.com/how-tos/linux/ubuntu-how-tos/install-containerd-on-ubuntu-22-04.html>
+
+    这里面有个 
+
+    > Containerd configuration for Kubernetes
+
+    这部分比较重要。有时间了总结下。
+
+    另外 containerd cni plugin 也比较重要，有时间了看下。

@@ -4900,3 +4900,7 @@ fn main() {
     ```
 
 1. 将`char`转换为`u8`
+
+1. How to clear the Cargo cache?
+
+    <https://stackoverflow.com/questions/25072930/how-to-clear-the-cargo-cache>

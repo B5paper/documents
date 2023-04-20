@@ -14,6 +14,8 @@ Java 有三个版本：
 
 通常使用标准版。JDK 里已经包含 JRE 了。
 
+ubuntu 安装 java: <https://www.cnblogs.com/ziyue7575/p/13898610.html>。（我记得我当时装的时候，直接使用 openjdk 就可以了）
+
 编译：`javac <ClassName>.java`
 
 运行：`java <ClassName>`
