@@ -154,3 +154,7 @@ ctr 本身没有 manual，这个 man page 似乎是仿照着 man page 的格式�
     这部分比较重要。有时间了总结下。
 
     另外 containerd cni plugin 也比较重要，有时间了看下。
+
+1. containerd 分析 log
+
+    <https://zhuanlan.zhihu.com/p/411559687>

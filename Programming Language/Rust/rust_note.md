@@ -4904,3 +4904,7 @@ fn main() {
 1. How to clear the Cargo cache?
 
     <https://stackoverflow.com/questions/25072930/how-to-clear-the-cargo-cache>
+
+1. cargo 清除 cache
+
+    <https://stackoverflow.com/questions/25072930/how-to-clear-the-cargo-cache>

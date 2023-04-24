@@ -147,3 +147,35 @@
 1. rust 入坑指南：<https://www.bbsmax.com/A/nAJv1Elazr/>
 
 1. Clear explanation of Rust’s module system: <https://www.sheshbabu.com/posts/rust-module-system/>
+
+1. tyk: <https://tyk.io/docs/key-concepts/tcp-proxy/>
+
+1. 英语语法：<https://hzpt-inet-club.github.io/english-note/guide/grammar.html>
+
+1. tiny proxy: <http://tinyproxy.github.io/>
+
+1. 计算机相关的 book 索引：<https://github.com/justjavac/free-programming-books-zh_CN#cc>
+
+1. 密码学书籍：《密码学原理与实践（第三版）》
+
+1. 多层代理
+
+    1. <https://www.jianshu.com/p/65e5dc421efd?u_atoken=9e76061d-c931-4a8b-afcb-7112b4b6226f&u_asession=01BlPNo6p8GAH0xxqYZVzSUNLH89eGueLFuyW5J_SswgUwb9cwrIm_ZiRDVRdOsm75X0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K-LBhYCXQLBox-yRMr3PkXjVpSIj1gN2LaYxLWUpsc1qWBkFo3NEHBv0PZUm6pbxQU&u_asig=052J1jEuZGEWMfO-oHpuKvz_yCBJPRdAKaWndk-Ed22acNhPPRxyslEHAzMNGPtip0hdoJDg9GPrHUG7GIMi3lW1Ch1Yxx0QW0Jmn4JfAyMO31yyhovOCxKEusJx9ix7cLQycQSxgoev4UB9YeQuPJ8-rOfoVlSaUKV_qo2uS81w79JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJzVXSzCAdq94XiTuPldyd9udvHNQQGlUC6smprnUXooZcU4HK4hPy3A7RVNDWi_-Gxu3h9VXwMyh6PgyDIVSG1W9g-3O41MaKlGvHUIo7KbJYTOybdtHlb3igdkDLY_odFSxogSNUdlAp_ZVEZry-KXhFG6Yl5zBlQuFaJfDxJN-bmWspDxyAEEo4kbsryBKb9Q&u_aref=qZ1Fmxk2l%2F%2FlS%2BpX9GAh3qI5uh4%3D>
+
+    1. <https://blog.csdn.net/weixin_43047908/article/details/120684640>
+
+    1. <https://blog.csdn.net/ss810540895/article/details/124987061>
+
+1. 内网穿透 nps: <https://github.com/ehang-io/nps/blob/master/README_zh.md>
+
+1. c语言标准库字符串操作概览：<http://akaedu.github.io/book/ch25s01.html>
+
+1. kvm: <https://zhuanlan.zhihu.com/p/596287657>
+
+1. Bootloader和BIOS、uboot和grub和bootmgr的区别: <https://blog.csdn.net/liao20081228/article/details/81297143>
+
+1. 英语字典：
+
+    1. <https://www.collinsdictionary.com/>
+
+    1. <https://www.oxfordlearnersdictionaries.com/>
