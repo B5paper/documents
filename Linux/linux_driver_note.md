@@ -6,15 +6,13 @@
 
 #### 基于 Ubuntu 和 apt 的驱动开发环境的搭建
 
-如果我们使用 Ubuntu 系统，那么就可以使用它提供的
+如果我们使用 Ubuntu 系统，那么就可以在它编译好的内核库的基础上开发驱动。如果使用其他系统，那么有可能需要自己编译内核。
 
-Ubuntu 的内核是 signed 版本，我们要写的 module 是 unsigned 版本，没有办法直接`insmod`。目前我的解决办法是，先更新一下内核，换成 unsigned 版本或者 hwe 版本（hwe 版本表示支持最新硬件）：
+linux 驱动是以 module 的形式加载到内核中的。Ubuntu 的内核是 signed 版本，我们自己写的 module 是 unsigned 版本，没有办法直接加载（在执行`insmod`时会报错）。目前我的解决办法是，先更新一下内核，换成 unsigned 版本或者 hwe 版本（hwe 版本表示支持最新硬件）：
 
 ```bash
 apt install linux-image-generic-hwe-22.04
 ```
-
-我们可以用`uname -r`查看当前内核的版本，`uname -a`查看系统的完整版本。
 
 接下来我们把原来的 kernel 删掉，然后下载新的：
 
@@ -24,6 +22,8 @@ sudo apt remove --purge linux-headers-*
 sudo apt autoremove && sudo apt autoclean
 sudo apt-get install linux-headers-`uname -r`
 ```
+
+注：我们可以用`uname -r`查看当前内核的版本，`uname -a`查看系统的完整版本。
 
 这时候应该可以看见`/lib/modules/xxxxx-generic`路径下（比如`/lib/modules/5.19.0-32-generic/`），有一个`build`文件夹。这个`build`是一个 symbolic link，指向`/usr/src`下对应的内核源码文件夹：
 
@@ -41,7 +41,9 @@ drwxr-xr-x 16 root root 4.0K  2月 18 09:31 kernel
 
 #### 基于编译内核的驱动开发环境搭建
 
-**下载内核源码**
+1. 下载内核源码
+
+（这部分目前用不到，先不写了）
 
 通常我们说的 linux kernel 可以在
 
@@ -51,39 +53,35 @@ drwxr-xr-x 16 root root 4.0K  2月 18 09:31 kernel
 
 ```
 
-##### 编译内核
+1. 编译内核（在 Ubuntu 22.04 下编译）
 
-###### 使用源码编译
+    一个写得还不错的 tutorial，可以参考一下：<https://phoenixnap.com/kb/build-linux-kernel>
 
-**在 Ubuntu 22.04 下编译**
+    编译内核需要一些额外的工具，可以参考这个网页<https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel>装一下：
 
-一个写得还不错的 tutorial，可以参考一下：<https://phoenixnap.com/kb/build-linux-kernel>
+    ```bash
+    sudo apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm
+    ```
 
-编译内核需要一些额外的工具，可以参考这个网页<https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel>装一下：
+    下载好源码后，首先需要创建一个`.config`文件。我们可以使用 Ubuntu 系统里现成的：
 
-```bash
-sudo apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm
-```
+    如果使用这种方法后编译失败，通常是证书设置的问题，参考这个：<https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11>
 
-下载好源码后，首先需要创建一个`.config`文件。我们可以使用 Ubuntu 系统里现成的：
+    在`.config`里把`CONFIG_SYSTEM_TRUSTED_KEYS`和`CONFIG_SYSTEM_REVOCATION_KEYS`都设置成空字符串。
 
-如果使用这种方法后编译失败，通常是证书设置的问题，参考这个：<https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11>
+    也可以创建一个默认的：
 
-在`.config`里把`CONFIG_SYSTEM_TRUSTED_KEYS`和`CONFIG_SYSTEM_REVOCATION_KEYS`都设置成空字符串。
+    ```bash
+    make menuconfig
+    ```
 
-也可以创建一个默认的：
+    这种方法会在内核源码目录创建一个`.config`文件。使用这个 config 编译起来比较快，可能是因为有点选项没选上吧。
 
-```bash
-make menuconfig
-```
-
-这种方法会在内核源码目录创建一个`.config`文件。使用这个 config 编译起来比较快，可能是因为有点选项没选上吧。
-
-单核编译可以用`makd`，多线程编译可以使用`makd -j16`（使用 16 线程编译）。
+    单核编译可以用`makd`，多线程编译可以使用`makd -j16`（使用 16 线程编译）。
 
 ### hello, world 驱动
 
-为了测试上面搭建的驱动开发环境是否成功，我们使用一个 hello, world 项目测试一下。
+为了测试上面搭建的驱动开发环境是否成功，我们使用一个 hello world 项目测试一下。
 
 首先，创建一个项目文件夹：`mkdir driver_test`，然后进入这个目录：`cd driver_test`。
 
@@ -128,6 +126,12 @@ default:
 
 最后卸载驱动：`sudo rmmod hello_world`。
 
+### 交叉编译
+
+（有时间了填下这个坑）
+
+交叉编译：`sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-`
+
 ## 内核模块
 
 内核模块编程注意事项：
@@ -140,7 +144,7 @@ default:
 
 ### 内核模块的加载与卸载
 
-**内核模块如何编写**
+**内核模块的加载函数与卸载函数**
 
 需要包含头文件
 
@@ -149,57 +153,35 @@ default:
 #include <linux/module.h>
 ```
 
-必须实现加载函数和卸载函数
-
-```c
-// 加载函数
-int xxx(void)
-{
-    // ...
-    return 0;  //返回 0 表示加载成功
-}
-
-// 卸载函数
-void yyy(void)
-{
-    // ...
-}
-```
-
-使用以下两个宏来修饰加载函数和卸载函数
-
-```c
-module_init(xxx);  // 修饰加载函数
-module_exit(yyy);  // 修饰卸载函数
-```
-
-（相当于把普通函数注册成加载函数/卸载函数）
-
 Syntax:
 
-1. Init function
+1. 加载函数（Init function）
 
     ```c
-    static int __init hello_world_init(void) /* Constructor */
+    static int __init hello_world_init(void)  /* Constructor */
     {
-        return 0;
+        return 0;  //返回 0 表示加载成功
     }
-    module_init(hello_world_init);
+    module_init(hello_world_init);  // 使用宏来注册加载函数
     ```
 
-1. Exit function
+2. 卸载函数（Exit function）
 
     ```c
     void __exit hello_world_exit(void)
     {
 
     }
-    module_exit(hello_world_exit);
+    module_exit(hello_world_exit);  // 使用宏来注册卸载函数
     ```
 
-注：内核中打印函数使用`printk`。用法和`printf`几乎一样。
+**`printk()`**
 
-`printk()`使用的枚举消息以及例子：
+注：内核驱动中 IO 输出函数使用`printk()`，用法和`printf()`几乎一样。
+
+`printk()`可打印的消息分为不同的类型，在字符串前使用宏字符串进行修饰。
+
+消息类型如下：
 
 * `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
 
@@ -223,15 +205,35 @@ Example:
 printk(KERN_INFO "Welcome To EmbeTronicX");
 ```
 
-Note: In the newer Linux kernels, you can use the APIs below instead of this printk.
+Note: In the newer Linux kernels, you can use the APIs below instead of this `printk`.
 
-pr_info – Print an info-level message. (ex. pr_info("test info message\n")).
-pr_cont – Continues a previous log message in the same line.
-pr_debug – Print a debug-level message conditionally.
-pr_err – Print an error-level message. (ex. pr_err(“test error message\n”)).
-pr_warn – Print a warning-level message.
+* `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
+* `pr_cont()` – Continues a previous log message in the same line.
+* `pr_debug()` – Print a debug-level message conditionally.
+* `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
+* `pr_warn()` – Print a warning-level message.
 
-我们开始写我们的`hello_world.c`文件：
+`printk()`的打印的日志级别有 0-7，还可以是无级别。如果无法看到输出内容，可以参考这几个网站的解决方式：
+
+1. <http://www.jyguagua.com/?p=708>
+
+2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
+
+我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
+
+第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
+
+第二个数为`printk()`的默认打印级别。
+
+修改内核的默认打印级别（即修改第 1 个数）：
+
+`echo 5 > /proc/sys/kernel/printk`
+
+（现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
+
+**有关模块加载与卸载的一个 Example**
+
+`hello_world.c`：
 
 ```c
 #include <linux/init.h>
@@ -239,13 +241,13 @@ pr_warn – Print a warning-level message.
 
 int hello_init(void)  // 参数列表中的 void 不可省略，不然无法通过编译.
 {
-    printk("<1>""hello my module\n");
+    printk(KERN_INFO "hello my module\n");
     return 0;
 }
 
 void hello_exit(void)  // exit 不需要返回值
 {
-    printk("<1>""bye bye!\n");
+    printk(KERN_INFO "bye bye!\n");
 }
 
 module_init(hello_init);
@@ -264,35 +266,23 @@ default:
 
 然后在当前文件夹下运行`make`，会生成`hello_world.ko`文件。这个文件就是我们需要的内核模块文件，ko 代表 kernel object。
 
-此时我们可以使用`sudo insmod hello_world.ko`插入模块，使用`sudo rmmod hello_world`移除模块，`sudo lsmod`查看已经加载的模块，`sudo dmesg`查看日志输出。
+此时可以使用`sudo insmod hello_world.ko`插入模块，使用`sudo rmmod hello_world`移除模块，`sudo lsmod`查看已经加载的模块，`sudo dmesg`查看日志输出。
 
 （如果还是无法`insmod`，或许需要取消 secure boot：<https://askubuntu.com/questions/762254/why-do-i-get-required-key-not-available-when-install-3rd-party-kernel-modules>）
 
 除了添加`MODULE_LICENSE()`外，可选的添加信息有：
 
-`MODULE_AUTHOR("hlc")`
+* `MODULE_AUTHOR`: 模块作者
 
-`MODULE_VERSION("1.0")`
+    Example: `MODULE_AUTHOR("hlc")`
 
-`MODULE_DESCRIPTION("this is my first module")`
+* `MODULE_VERSION`: 模块版本
+  
+    Example: `MODULE_VERSION("1.0")`
 
-`printk()`的打印的日志级别有 0-7，还可以是无级别。如果无法看到输出内容，可以参考这几个网站的解决方式：
+* `MODULE_DESCRIPTION`：模块描述
 
-1. <http://www.jyguagua.com/?p=708>
-
-1. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
-
-我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
-
-第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
-
-第二个数为`printk()`的默认打印级别。
-
-修改内核的默认打印级别（即修改第 1 个数）：
-
-`echo 5 > /proc/sys/kernel/printk`
-
-（现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
+    Example: `MODULE_DESCRIPTION("this is my first module")`
 
 一个其他网站上提供的 hello world example:
 
@@ -356,11 +346,9 @@ clean:
   make -C $(KDIR)  M=$(shell pwd) clean
 ```
 
-交叉编译：`sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-`
-
 获得模块的一些信息：`modinfo hello_world_module.ko`
 
-### 内核模块参数（Module Parameters Macros）
+### 模块参数（Module Parameters Macros）
 
 Module Parameters Macros：
 
