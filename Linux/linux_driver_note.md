@@ -1,5 +1,9 @@
 # Linux Driver Note
 
+Ref:
+
+* <https://embetronicx.com/tutorials/linux/device-drivers/>
+
 ## Introduction
 
 ### 驱动开发环境的搭建
@@ -360,47 +364,63 @@ Module Parameters Macros：
 
     This macro is used to initialize the arguments. module_param takes three parameters: the name of the variable, its type, and a permissions mask to be used for an accompanying sysfs entry.
 
-    The macro should be placed outside of any function and is typically found near the head of the source file. module_param() macro, defined in linux/moduleparam.h.
+    The macro should be placed outside of any function and is typically found near the head of the source file. `module_param()` macro, defined in `linux/moduleparam.h`.
+
+    Parameters:
+
+    * `type`
+
+        可以是下面几个之一：`byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `charp`, `bool`, `invbool`;
+
+    * `perm` is the usual permissions value.
+
+        There are several types of permissions:
+
+        这些宏定义在`stat.h`中
+
+        * `S_IWUSR`, `S_IRUSR`, `S_IXUSR`
+        * `S_IRGRP`, `S_IWGRP`, `S_IXGRP`
+        * `S_IROTH`, `S_IWOTH`, `S_IXOTH`
+
+        可以看出来，`S_I`是一个 common prefix，R = read, W = write, X = Execute. USR = user, GRP = Group。
+
+        Using `|` (OR operation) we can set multiple permissions at a time.
+
+        在使用`S_IROTH`和`S_IWOTH`时会编译时报错，但是如果使用`0775`，可以顺序地给 others 加上`r`权限。不清楚为什么。
 
     Example:
 
-    `module_param(valueETX, int, S_IWUSR|S_IRUSR);`
+    `module_param(valueETX, int, S_IWUSR | S_IRUSR);`
 
 * `module_param_array();`
 
-    `module_param_array(name,type,num,perm);`
+    `module_param_array(name, type, int *num, permissions);`
 
     `module_param_array(数组模块参数名，数组元素类型，NULL，访问权限);`
 
     This macro is used to send the array as an argument to the Linux device driver.
 
-    Where,
+    Parameters:
 
-    `name` is the name of your array (and of the parameter),
+    * `name`
+    
+        The name of the array (and of the parameter)
 
-    `type` is the type of the array elements,
+    * `type`
+    
+        The type of the array elements
 
-    `num` is an integer variable (optional) otherwise NULL,
+    * `num`
 
-    `perm` is the usual permissions value.
+        An integer variable (optional) otherwise `NULL`。
+
+        在命令行中传递的数组的元素个数。
+
+        比如`sudo insmod hello_world.ko m_arr=3,4,5`，那么`num`会被改写成`3`。
 
 * `module_param_cb()`
 
     This macro is used to register the callback. Whenever the argument (parameter) got changed, this callback function will be called.
-
-There are several types of permissions:
-
-S_IWUSR
-S_IRUSR
-S_IXUSR
-S_IRGRP
-S_IWGRP
-S_IXGRP
-
-In this S_I is a common header.
-R = read ,W =write ,X= Execute.
-USR =user ,GRP =Group
-Using OR ‘|’ (or operation) we can set multiple permissions at a time.
 
 在代码中对模块参数的使用和普通变量没有区别。
 
@@ -436,6 +456,28 @@ module_param(param_string, charp, 0644);
 module_param_array(param_arr, int, NULL, 0755);
 ```
 
+说明：
+
+1. 这里的`0775`并不是和 linux 文件权限一一对应。使用`0775`作为权限后，得到的参数文件的权限如下所示：
+
+    ```
+    -rw-rw-r-- 1 root root 4096  5月 16 10:52 /sys/module/hello_world/parameters/a
+    ```
+
+    因为这个数字和 linux 文件的权限并不是对应关系，所以使用`0776`，`0777`，`777`等作为参数时会编译报错。
+
+    正常情况下还是使用`S_IWUSR`这些标志位吧。
+
+2. `0775`前面这个`0`必须加上，不然会编译报错。目前不清楚是为什么。
+
+3. `unsigned short`定义的变量，在`module_param()`中注册模块参数时，必须使用`ushort`作为类型。
+
+    在`module_param()`中填`unsigned short`会编译报错。
+
+    如果使用`typedef unsigned short us;`，然后在`module_param()`中填`us`，同样也会编译报错。
+
+4. 如果数组没有被初始化，或初始化的元素数量不够，那么元素的默认值都是 0。
+
 打印模块参数：
 
 ```c
@@ -457,7 +499,9 @@ insmod hello_abc.ko param_string="hello world"
 insmod mod_param.ko param_arr=111,222,333
 ```
 
-数组可以只改一部分，但是参数不能给多。
+数组可以只传递一部分元素，此时会重新计算数组的长度，并重新赋值。比如在代码中定义了数组容量为`3`，并且初始化了所有元素，但是在命令行中只传递了 2 个元素的数组，那么`/sys/module/xxx/parameters`中的对应文件也只会显示 2 个元素。
+
+如果命令行传递的元素的数量超出数组的容量，那么会报错。
 
 当模块加载成功后，那些访问权限非 0 的模块会在以下路径下：
 
@@ -592,11 +636,25 @@ sudo sh -c "echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX"
 
 Type sudo su. Then enter the password if it asks. Then do echo `13 > /sys/module/hello_world_module/parameters/cb_valueETX`
 
-然后我们可以在`dmesg`里看到参数值变化的消息。
+然后我们可以在`dmesg`里看到参数值变化的消息：
+
+```
+[ 1688.610775] ValueETX = 14  
+[ 1688.610782] cb_valueETX = 0  
+[ 1688.610784] NameETX = EmbeTronicX 
+[ 1688.610785] Arr_value[0] = 100
+[ 1688.610786] Arr_value[1] = 102
+[ 1688.610787] Arr_value[2] = 104
+[ 1688.610788] Arr_value[3] = 106
+[ 1688.610789] Kernel Module Inserted Successfully...
+[ 1849.370708] Call back function called...
+[ 1849.370714] New value of cb_valueETX = 13
+[ 1880.687099] Kernel Module Removed Successfully...
+```
 
 ### 模块符号的导出
 
-模块导出符号可以将模块中的变量/函数导出，供内核其他代码/模块使用。
+模块导出符号可以将模块中的变量/函数导出，供内核其他模块使用。
 
 如何导出：
 
@@ -942,6 +1000,21 @@ struct cdev {
 
 **如何往内核中添加一个 cdev**
 
+two ways of allocating and initializing one of these structures:
+
+1. Runtime Allocation
+
+    ```c
+    struct cdev *my_cdev = cdev_alloc( );
+    my_cdev->ops = &my_fops;
+    ``````
+
+1. Own allocation
+
+    ```c
+    void cdev_init(struct cdev *cdev, struct file_operations *fops);
+    ```
+
 `cdev_init`：初始化 cdev（为 cdev 提供操作函数集合）
 
 ```c
@@ -1174,7 +1247,7 @@ void class_destroy(struct class *cls);
 
 `...` – variable arguments
 
-A “dev” file will be created, showing the dev_t for the device, if the dev_t is not 0,0. If a pointer to a parent struct device is passed in, the newly created struct device will be a child of that device in sysfs. The pointer to the struct device will be returned from the call. Any further sysfs files that might be required can be created using this pointer. The return value can be checked using IS_ERR() macro.
+A “dev” file will be created, showing the `dev_t` for the device, if the `dev_t` is not `0,0`. If a pointer to a parent struct device is passed in, the newly created struct device will be a child of that device in sysfs. The pointer to the struct device will be returned from the call. Any further sysfs files that might be required can be created using this pointer. The return value can be checked using IS_ERR() macro.
 
 ```c
 struct device *device_create(struct class *class, struct device *parent, dev_t devt, void *drvdata, const char *fmt, ...);
@@ -1415,3 +1488,1004 @@ int main()
 
 我们可以使用`ls -l /dev`查看已经创建的设备文件。First of all, note that the first letter of the permissions field is denoted that driver type. Device files are denoted either by b, for block devices, or c, for character devices. Also, note that the size field in the ls -l listing is replaced by two numbers, separated by a comma. The first value is the major device number and the second is the minor device number.
 
+
+file operations syntax:
+
+```c
+struct file_operations {
+    struct module *owner;
+    loff_t (*llseek) (struct file *, loff_t, int);
+    ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+    ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+    ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
+    ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
+    int (*iterate) (struct file *, struct dir_context *);
+    int (*iterate_shared) (struct file *, struct dir_context *);
+    unsigned int (*poll) (struct file *, struct poll_table_struct *);
+    long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+    long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+    int (*mmap) (struct file *, struct vm_area_struct *);
+    int (*open) (struct inode *, struct file *);
+    int (*flush) (struct file *, fl_owner_t id);
+    int (*release) (struct inode *, struct file *);
+    int (*fsync) (struct file *, loff_t, loff_t, int datasync);
+    int (*fasync) (int, struct file *, int);
+    int (*lock) (struct file *, int, struct file_lock *);
+    ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
+    unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
+    int (*check_flags)(int);
+    int (*flock) (struct file *, int, struct file_lock *);
+    ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
+    ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
+    int (*setlease)(struct file *, long, struct file_lock **, void **);
+    long (*fallocate)(struct file *file, int mode, loff_t offset,
+              loff_t len);
+    void (*show_fdinfo)(struct seq_file *m, struct file *f);
+#ifndef CONFIG_MMU
+    unsigned (*mmap_capabilities)(struct file *);
+#endif
+    ssize_t (*copy_file_range)(struct file *, loff_t, struct file *,
+            loff_t, size_t, unsigned int);
+    int (*clone_file_range)(struct file *, loff_t, struct file *, loff_t,
+            u64);
+    ssize_t (*dedupe_file_range)(struct file *, u64, u64, struct file *,
+            u64);
+};
+```
+
+fields:
+
+* `struct module *owner`
+
+    It is a pointer to the module that “owns” the structure. This field is used to prevent the module from being unloaded while its operations are in use. Almost all the time, it is simply initialized to `THIS_MODULE`, a macro defined in `<linux/module.h>`.
+
+* `ssize_t (*read) (struct file *, char _ _user *, size_t, loff_t *);`
+
+    This is used to retrieve data from the device. A null pointer in this position causes the read system call to fail with `-EINVAL` (“Invalid argument”). A non-negative return value represents the number of bytes successfully read (the return value is a “signed size” type, usually the native integer type for the target platform).
+
+* `ssize_t (*write) (struct file *, const char _ _user *, size_t, loff_t *);`
+
+    It is used to sends the data to the device. If NULL -EINVAL is returned to the program calling the write system call. The return value, if non-negative, represents the number of bytes successfully written.
+
+* `int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);`
+
+    The ioctl system call offers a way to issue device-specific commands (such as formatting a track of a floppy disk, which is neither reading nor writing). Additionally, a few ioctl commands are recognized by the kernel without referring to the fops table. If the device doesn’t provide an ioctl method, the system call returns an error for any request that isn’t predefined (-ENOTTY, “No such ioctl for device”).
+
+* `int (*open) (struct inode *, struct file *);`
+
+    Though this is always the first operation performed on the device file, the driver is not required to declare a corresponding method. If this entry is NULL, opening the device always succeeds, but your driver isn’t notified.
+
+* `int (*release) (struct inode *, struct file *);`
+
+    This operation is invoked when the file structure is being released. Like open, release can be NULL.
+
+Examples:
+
+```c
+static struct file_operations fops =
+{
+.owner          = THIS_MODULE,
+.read           = etx_read,
+.write          = etx_write,
+.open           = etx_open,
+.release        = etx_release,
+};
+```
+
+Complete example:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (File Operations)
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/err.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+
+/*
+** Function Prototypes
+*/
+static int      __init etx_driver_init(void);
+static void     __exit etx_driver_exit(void);
+static int      etx_open(struct inode *inode, struct file *file);
+static int      etx_release(struct inode *inode, struct file *file);
+static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+
+static struct file_operations fops =
+{
+    .owner      = THIS_MODULE,
+    .read       = etx_read,
+    .write      = etx_write,
+    .open       = etx_open,
+    .release    = etx_release,
+};
+
+/*
+** This function will be called when we open the Device file
+*/
+static int etx_open(struct inode *inode, struct file *file)
+{
+        pr_info("Driver Open Function Called...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we close the Device file
+*/
+static int etx_release(struct inode *inode, struct file *file)
+{
+        pr_info("Driver Release Function Called...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we read the Device file
+*/
+static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Driver Read Function Called...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Driver Write Function Called...!!!\n");
+        return len;
+}
+
+/*
+** Module Init function
+*/
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_err("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_err("Cannot add the device to the system\n");
+            goto r_class;
+        }
+
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_err("Cannot create the struct class\n");
+            goto r_class;
+        }
+
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_err("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        pr_info("Device Driver Insert...Done!!!\n");
+      return 0;
+
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        return -1;
+}
+
+/*
+** Module exit function
+*/
+static void __exit etx_driver_exit(void)
+{
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
+}
+
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("Simple Linux device driver (File Operations)");
+MODULE_VERSION("1.3");
+```
+
+执行`dmesg`的输出：
+
+```
+
+```
+
+执行`cat > /dev/etx_device`：`cat `command will open the driver, read the driver, and close the driver. So if I do `cat` to our driver, it should call the open, read, and release functions. Just check.
+
+此时执行`dmesg`的输出：
+
+```
+
+```
+
+Instead of doing `echo` and `cat` command in the terminal you can also use `open()`, `read()`, `write()`, `close()` system calls from user-space applications.
+
+## Data exchange between kernel space and user space
+
+Using this driver we can send strings or data to the kernel device driver using the write function. It will store that string in the kernel space. Then when I read the device file, it will send the data which is written by write by function to the userspace application.
+
+申请内存：
+
+```c
+#include <linux/slab.h>
+
+void *kmalloc(size_t size, gfp_t flags);
+```
+
+The allocated region is contiguous in physical memory.
+
+* `size` - how many bytes of memory are required.
+
+* `flags`– the type of memory to allocate.
+
+    The flags argument may be one of:
+
+    * `GFP_USER` – Allocate memory on behalf of the user. May sleep.
+
+    * `GFP_KERNEL` – Allocate normal kernel ram. May sleep.
+
+    * `GFP_ATOMIC` – Allocation will not sleep. May use emergency pools. For example, use this inside interrupt handler.
+
+    * `GFP_HIGHUSER` – Allocate pages from high memory.
+
+    * `GFP_NOIO` – Do not do any I/O at all while trying to get memory.
+
+    * `GFP_NOFS` – Do not make any fs calls while trying to get memory.
+
+    * `GFP_NOWAIT` – Allocation will not sleep.
+
+    * `__GFP_THISNODE` – Allocate node-local memory only.
+
+    * `GFP_DMA` – Allocation is suitable for DMA. Should only be used for kmalloc caches. Otherwise, use a slab created with SLAB_DMA.
+
+    Also, it is possible to set different flags by OR’ing in one or more of the following additional flags:
+
+    * `__GFP_COLD` – Request cache-cold pages instead of trying to return cache-warm pages.
+
+
+    * `__GFP_HIGH` – This allocation has high priority and may use emergency pools.
+
+    * `__GFP_NOFAIL` – Indicate that this allocation is in no way allowed to fail (think twice before using).
+
+    * `__GFP_NORETRY` – If memory is not immediately available, then give up at once.
+
+    * `__GFP_NOWARN` – If allocation fails, don’t issue any warnings.
+
+    * `__GFP_REPEAT` – If allocation fails initially, try once more before failing.
+
+    更多的参数，可以参考`linux/gfp.h`
+
+释放内存：
+
+```c
+void kfree(const void *objp)
+```
+
+Parameters:
+
+* `*objp` – pointer returned by `kmalloc`
+
+* `copy_from_user()`
+
+    Syntax:
+
+    ```c
+    unsigned long copy_from_user(void *to, const void __user *from, unsigned long  n);
+    ```
+
+    to – Destination address, in the kernel space
+
+
+    from – The source address in the user space
+
+    n – Number of bytes to copy
+
+    Returns number of bytes that could not be copied. On success, this will be zero.
+
+* `copy_to_user()`
+
+    Syntax:
+
+    ```c
+    unsigned long copy_to_user(const void __user *to, const void *from, unsigned long  n);
+    ```
+
+    This function is used to Copy a block of data into userspace (Copy data from kernel space to user space).
+
+    Parameters:
+
+    `to` – Destination address, in the user space
+
+    `from` – The source address in the kernel space
+
+    `n` – Number of bytes to copy
+
+    Returns number of bytes that could not be copied. On success, this will be zero.
+
+Example:
+
+```c
+static int etx_open(struct inode *inode, struct file *file)
+{
+        /*Creating Physical memory*/
+        if((kernel_buffer = kmalloc(mem_size , GFP_KERNEL)) == 0){
+            printk(KERN_INFO "Cannot allocate memory in kernel\n");
+            return -1;
+        }
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+
+static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+{
+        copy_from_user(kernel_buffer, buf, len);
+        printk(KERN_INFO "Data Write : Done!\n");
+        return len;
+}
+
+static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+{
+        copy_to_user(buf, kernel_buffer, mem_size);
+        printk(KERN_INFO "Data Read : Done!\n");
+        return mem_size;
+}
+
+static int etx_release(struct inode *inode, struct file *file)
+{
+        kfree(kernel_buffer);
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+```
+
+Full driver code:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (Real Linux Device Driver)
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include <linux/err.h>
+ 
+
+#define mem_size        1024           //Memory Size
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+uint8_t *kernel_buffer;
+
+/*
+** Function Prototypes
+*/
+static int      __init etx_driver_init(void);
+static void     __exit etx_driver_exit(void);
+static int      etx_open(struct inode *inode, struct file *file);
+static int      etx_release(struct inode *inode, struct file *file);
+static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+
+
+/*
+** File Operations structure
+*/
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+ 
+/*
+** This function will be called when we open the Device file
+*/
+static int etx_open(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we close the Device file
+*/
+static int etx_release(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we read the Device file
+*/
+static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+{
+        //Copy the data from the kernel space to the user-space
+        if( copy_to_user(buf, kernel_buffer, mem_size) )
+        {
+                pr_err("Data Read : Err!\n");
+        }
+        pr_info("Data Read : Done!\n");
+        return mem_size;
+}
+
+/*
+** This function will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+{
+        //Copy the data to kernel space from the user-space
+        if( copy_from_user(kernel_buffer, buf, len) )
+        {
+                pr_err("Data Write : Err!\n");
+        }
+        pr_info("Data Write : Done!\n");
+        return len;
+}
+
+/*
+** Module Init function
+*/
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_info("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_info("Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_info("Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_info("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        
+        /*Creating Physical memory*/
+        if((kernel_buffer = kmalloc(mem_size , GFP_KERNEL)) == 0){
+            pr_info("Cannot allocate memory in kernel\n");
+            goto r_device;
+        }
+        
+        strcpy(kernel_buffer, "Hello_World");
+        
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        return -1;
+}
+
+/*
+** Module exit function
+*/
+static void __exit etx_driver_exit(void)
+{
+  kfree(kernel_buffer);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("Simple Linux device driver (Real Linux Device Driver)");
+MODULE_VERSION("1.4");
+```
+
+User space application code:
+
+```c
+/***************************************************************************//**
+*  \file       test_app.c
+*
+*  \details    Userspace application to test the Device driver
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+*******************************************************************************/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int8_t write_buf[1024];
+int8_t read_buf[1024];
+
+int main()
+{
+        int fd;
+        char option;
+        printf("*********************************\n");
+        printf("*******WWW.EmbeTronicX.com*******\n");
+
+        fd = open("/dev/etx_device", O_RDWR);
+        if(fd < 0) {
+                printf("Cannot open device file...\n");
+                return 0;
+        }
+
+        while(1) {
+                printf("****Please Enter the Option******\n");
+                printf("        1. Write               \n");
+                printf("        2. Read                 \n");
+                printf("        3. Exit                 \n");
+                printf("*********************************\n");
+                scanf(" %c", &option);
+                printf("Your Option = %c\n", option);
+                
+                switch(option) {
+                        case '1':
+                                printf("Enter the string to write into driver :");
+                                scanf("  %[^\t\n]s", write_buf);
+                                printf("Data Writing ...");
+                                write(fd, write_buf, strlen(write_buf)+1);
+                                printf("Done!\n");
+                                break;
+                        case '2':
+                                printf("Data Reading ...");
+                                read(fd, read_buf, 1024);
+                                printf("Done!\n\n");
+                                printf("Data = %s\n\n", read_buf);
+                                break;
+                        case '3':
+                                close(fd);
+                                exit(1);
+                                break;
+                        default:
+                                printf("Enter Valid option = %c\n",option);
+                                break;
+                }
+        }
+        close(fd);
+}
+```
+
+这里只需要正常编译就可以了：
+
+```bash
+gcc -o test_app test_app.c
+```
+
+Note: Instead of using user space application, you can use echo and cat command.
+
+## ioctl
+
+There are many ways to Communicate between the Userspace and Kernel Space, they are:
+IOCTL
+Procfs
+Sysfs
+Configfs
+Debugfs
+Sysctl
+UDP Sockets
+Netlink Sockets
+
+IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.  The major use of this is in case of handling some specific operations of a device for which the kernel does not have a system call by default.
+
+Some real-time applications of ioctl are Ejecting the media from a “cd” drive, changing the Baud Rate of Serial port, Adjusting the Volume, Reading or Writing device registers, etc. We already have the write and read function in our device driver. But it is not enough for all cases.
+
+There are some steps involved to use IOCTL.
+
+* Create IOCTL command in the driver
+
+    ```c
+    #include <linux/ioctl.h>
+
+    #define WR_VALUE _IOW('a','a',int32_t*)
+    #define RD_VALUE _IOR('a','b',int32_t*)
+
+    #define "ioctl name" __IOX("magic number","command number","argument type")
+    ```
+
+    where IOX can be :
+
+    * `IO`: an ioctl with no parameters
+    * `IOW`: an ioctl with write parameters (copy_from_user)
+    * `IOR`: an ioctl with read parameters (copy_to_user)
+    * `IOWR`: an ioctl with both write and read parameters
+
+    * The Magic Number is a unique number or character that will differentiate our set of ioctl calls from the other ioctl calls. some times the major number for the device is used here.
+  
+    * Command Number is the number that is assigned to the ioctl. This is used to differentiate the commands from one another.
+  
+    * The last is the type of data.
+
+* Write IOCTL function in the driver
+
+    ```c
+    int  ioctl(struct inode *inode,struct file *file,unsigned int cmd,unsigned long arg)
+    ```
+
+    * `inode`: is the inode number of the file being worked on.
+    * `file`: is the file pointer to the file that was passed by the application.
+    * `cmd`: is the ioctl command that was called from the userspace.
+    * `arg`: are the arguments passed from the userspace
+
+    Within the function “ioctl” we need to implement all the commands that we defined above (`WR_VALUE`, `RD_VALUE`). We need to use the same commands in the `switch` statement which is defined above.
+
+    Then we need to inform the kernel that the ioctl calls are implemented in the function “etx_ioctl“. This is done by making the fops pointer “unlocked_ioctl” to point to “etx_ioctl” as shown below.
+
+    ```c
+    /*
+    ** This function will be called when we write IOCTL on the Device file
+    */
+    static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+    {
+            switch(cmd) {
+                    case WR_VALUE:
+                            if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+                            {
+                                    pr_err("Data Write : Err!\n");
+                            }
+                            pr_info("Value = %d\n", value);
+                            break;
+                    case RD_VALUE:
+                            if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+                            {
+                                    pr_err("Data Read : Err!\n");
+                            }
+                            break;
+                    default:
+                            pr_info("Default\n");
+                            break;
+            }
+            return 0;
+    }
+
+    /*
+    ** File operation sturcture
+    */
+    static struct file_operations fops =
+    {
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .unlocked_ioctl = etx_ioctl,
+            .release        = etx_release,
+    };
+    ```
+
+* Create IOCTL command in a Userspace application
+
+    ```c
+    #define WR_VALUE _IOW('a','a',int32_t*)
+    #define RD_VALUE _IOR('a','b',int32_t*)
+    ```  
+
+* Use the IOCTL system call in a Userspace
+
+    ```c
+    #include <sys/ioctl.h>
+    long ioctl( "file descriptor","ioctl command","Arguments");
+    ```
+
+    * `file descriptor`: This the open file on which the ioctl command needs to be executed, which would generally be device files.
+  
+    * `ioctl command`: ioctl command which is implemented to achieve the desired functionality
+    
+    * `arguments`: The arguments need to be passed to the ioctl command.
+
+    Example:
+
+    ```c
+    ioctl(fd, WR_VALUE, (int32_t*) &number); 
+
+    ioctl(fd, RD_VALUE, (int32_t*) &value);
+    ```
+
+Driver full code:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (IOCTL)
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include <linux/ioctl.h>
+#include <linux/err.h>
+ 
+ 
+#define WR_VALUE _IOW('a','a',int32_t*)
+#define RD_VALUE _IOR('a','b',int32_t*)
+ 
+int32_t value = 0;
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+
+/*
+** Function Prototypes
+*/
+static int      __init etx_driver_init(void);
+static void     __exit etx_driver_exit(void);
+static int      etx_open(struct inode *inode, struct file *file);
+static int      etx_release(struct inode *inode, struct file *file);
+static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+
+/*
+** File operation sturcture
+*/
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .unlocked_ioctl = etx_ioctl,
+        .release        = etx_release,
+};
+
+/*
+** This function will be called when we open the Device file
+*/
+static int etx_open(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we close the Device file
+*/
+static int etx_release(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we read the Device file
+*/
+static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Read Function\n");
+        return 0;
+}
+
+/*
+** This function will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Write function\n");
+        return len;
+}
+
+/*
+** This function will be called when we write IOCTL on the Device file
+*/
+static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+         switch(cmd) {
+                case WR_VALUE:
+                        if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+                        {
+                                pr_err("Data Write : Err!\n");
+                        }
+                        pr_info("Value = %d\n", value);
+                        break;
+                case RD_VALUE:
+                        if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+                        {
+                                pr_err("Data Read : Err!\n");
+                        }
+                        break;
+                default:
+                        pr_info("Default\n");
+                        break;
+        }
+        return 0;
+}
+ 
+/*
+** Module Init function
+*/
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_err("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_err("Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_err("Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_err("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        return -1;
+}
+
+/*
+** Module exit function
+*/
+static void __exit etx_driver_exit(void)
+{
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("Simple Linux device driver (IOCTL)");
+MODULE_VERSION("1.5");
+```
+
+User program full code:
+
+```c
+/***************************************************************************//**
+*  \file       test_app.c
+*
+*  \details    Userspace application to test the Device driver
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+*******************************************************************************/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include<sys/ioctl.h>
+ 
+#define WR_VALUE _IOW('a','a',int32_t*)
+#define RD_VALUE _IOR('a','b',int32_t*)
+ 
+int main()
+{
+        int fd;
+        int32_t value, number;
+        printf("*********************************\n");
+        printf("*******WWW.EmbeTronicX.com*******\n");
+ 
+        printf("\nOpening Driver\n");
+        fd = open("/dev/etx_device", O_RDWR);
+        if(fd < 0) {
+                printf("Cannot open device file...\n");
+                return 0;
+        }
+ 
+        printf("Enter the Value to send\n");
+        scanf("%d",&number);
+        printf("Writing Value to Driver\n");
+        ioctl(fd, WR_VALUE, (int32_t*) &number); 
+ 
+        printf("Reading Value from Driver\n");
+        ioctl(fd, RD_VALUE, (int32_t*) &value);
+        printf("Value is %d\n", value);
+ 
+        printf("Closing Driver\n");
+        close(fd);
+}
+```
+
+This is a simple example of using ioctl in a Linux device driver. If you want to send multiple arguments, put those variables into the structure, and pass the address of the structure.

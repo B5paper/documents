@@ -30,17 +30,72 @@ The host model can be configured to use a specified feature set as needed. （�
 
     The qemu-img package is installed as a dependency of the qemu-kvm package.
 
+    （这个包 apt 里找不到）
+
 * `libvirt`: This package provides the server and host-side libraries for interacting with hypervisors and host systems, and the libvirtd daemon that handles the library calls, manages virtual machines, and controls the hypervisor.
+
+    * `libvirt-client`: This package provides the client-side APIs and libraries for accessing libvirt servers. The libvirt-client package includes the virsh command-line tool to manage and control virtual machines and hypervisors from the command line or a special virtualization shell.
+
+    apt 里搜不到`libvirt`，只能搜到`libvirt-clients`和`libvirt-daemon`。
 
 Several additional virtualization management packages are also available and are recommended when using virtualization:
 
-* `virt-install`: This package provides the virt-install command for creating virtual machines from the command line.
-
 * `libvirt-python`: This package contains a module that permits applications written in the Python programming language to use the interface supplied by the libvirt API.
+
+    （这个包 apt 里找不到）
 
 * `virt-manager`: This package provides the virt-manager tool, also known as Virtual Machine Manager. This is a graphical tool for administering virtual machines. It uses the `libvirt-client` library as the management API.
 
-`libvirt-client`: This package provides the client-side APIs and libraries for accessing libvirt servers. The libvirt-client package includes the virsh command-line tool to manage and control virtual machines and hypervisors from the command line or a special virtualization shell.
+    * `virt-install`: This command for creating virtual machines from the command line.
+
+        在安装之前，需要把当前用户加入到`kvm`和`libvirt`的 group 中：
+
+        ```
+        sudo usermod -a -G kvm hlc
+        sudo usermod -a -G libvirt hlc
+        ```
+
+        查看支持的系统类型：`virt-install --osinfo list`
+
+        如果安装失败，那么 console 中会有对应的提示。通常都是`libvirt-qemu`没有 iso 文件的权限，改改权限就好了。
+
+        Example:
+
+        ```bash
+        virt-install --name bbb --memory 2048 --vcpus 2 --disk size=8 --cdrom /home/libvirt-qemu/debian-11.7.0-amd64-netinst.iso --os-variant debian11
+        ```
+
+        执行后，会自动弹出来一个图形化的安装界面（virt viewer）。
+
+        Importing a virtual machine image:
+
+        The following example imports a virtual machine from a virtual disk image:
+
+        ```bash
+        virt-install \ 
+            --name guest1-rhel7 \ 
+            --memory 2048 \ 
+            --vcpus 2 \ 
+            --disk /path/to/imported/disk.qcow \ 
+            --import \ 
+            --os-variant rhel7 
+        ```
+
+        The `--import` option specifies that the virtual machine will be imported from the virtual disk image specified by the --disk /path/to/imported/disk.qcow option.
+
+        installs a virtual machine from a network location: 
+
+        ```bash
+        virt-install \ 
+            --name guest1-rhel7 \ 
+            --memory 2048 \ 
+            --vcpus 2 \ 
+            --disk size=8 \ 
+            --location http://example.com/path/to/os \ 
+            --os-variant rhel7 
+        ```
+
+    （这个包 apt 里也找不到）
 
 The main required options for virtual guest machine installations are:
 
@@ -65,3 +120,46 @@ The main required options for virtual guest machine installations are:
 * `--import`: Skips the OS installation process and builds a guest around an existing disk image. The device used for booting is the first device specified by the disk or filesystem option.
 
 * `--boot`: The post-install VM boot configuration. This option allows specifying a boot device order, permanently booting off kernel and initrd with optional kernel arguments and enabling a BIOS boot menu.
+
+某个 option 的帮助：`virt-install --option=?`
+
+Example:
+
+```bash
+virt-install \ 
+  --name guest1-rhel7 \ 
+  --memory 2048 \ 
+  --vcpus 2 \ 
+  --disk size=8 \ 
+  --cdrom /path/to/rhel7.iso \ 
+  --os-variant rhel7 
+```
+
+退出一个 console: `Ctrl` + `]`，（也有可能是`Ctrl` + `Shirt` + `]`）
+
+## network
+
+To configure a NAT network for the guest virtual machine, use the following option for `virt-install`:
+
+`--network default`
+
+If no `network` option is specified, the guest virtual machine is configured with a default network with NAT.
+
+When configured for bridged networking, the guest uses an external DHCP server. This option should be used if the host has a static networking configuration and the guest requires full inbound and outbound connectivity with the local area network (LAN). It should be used if live migration will be performed with the guest virtual machine. To configure a bridged network with DHCP for the guest virtual machine, use the following option: `--network br0`
+
+Bridged networking can also be used to configure the guest to use a static IP address. To configure a bridged network with a static IP address for the guest virtual machine, use the following options: 
+
+```bash
+--network br0 \
+--extra-args "ip=192.168.1.2::192.168.1.1:255.255.255.0:test.example.com:eth0:none"
+```
+
+To configure a guest virtual machine with no network interface, use the following option:
+
+`--network=none`
+
+可以输入`virt-manager`进入图形管理界面。
+
+Name the virtual machine. Virtual machine names can contain letters, numbers and the following characters: underscores (_), periods (.), and hyphens (-). Virtual machine names must be unique for migration and cannot consist only of numbers.
+
+Most virt-install options are not required. The minimum requirements are --name, --memory, guest storage (--disk, --filesystem or --disk none), and an install method (--location, --cdrom, --pxe, --import, or boot).

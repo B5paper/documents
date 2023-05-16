@@ -14,7 +14,7 @@ Learning materials:
 
 登陆就可以了。
 
-注意，`addr`不一定和`B_addr`相同。若不同，则通过`addr`转发到`B_addr`上。
+注意，`addr`不一定和`B_addr`相同。若，则通过`addr`转发到`B_addr`上。
 
 反向代理：假如现在有机器`A`和`B`，`B`上装有 ssh server，目标是在`B`上访问`B_port`端口时，相当于访问`A_port`端口。
 
