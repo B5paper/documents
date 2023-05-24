@@ -162,9 +162,9 @@ Syntax:
 1. 加载函数（Init function）
 
     ```c
-    static int __init hello_world_init(void)  /* Constructor */
+    static int __init hello_world_init(void)  // __init 并不是必要的。它代表什么意思？
     {
-        return 0;  //返回 0 表示加载成功
+        return 0;  // 返回 0 表示加载成功
     }
     module_init(hello_world_init);  // 使用宏来注册加载函数
     ```
@@ -172,68 +172,12 @@ Syntax:
 2. 卸载函数（Exit function）
 
     ```c
-    void __exit hello_world_exit(void)
+    void __exit hello_world_exit(void)  // __exit 也不是必要的，它代表什么含义？
     {
 
     }
     module_exit(hello_world_exit);  // 使用宏来注册卸载函数
     ```
-
-**`printk()`**
-
-注：内核驱动中 IO 输出函数使用`printk()`，用法和`printf()`几乎一样。
-
-`printk()`可打印的消息分为不同的类型，在字符串前使用宏字符串进行修饰。
-
-消息类型如下：
-
-* `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
-
-* `KERN_ALERT`: A situation requiring immediate action.
-
-* `KERN_CRIT`: Critical conditions are often related to serious hardware or software failures.
-
-* `KERN_ERR`: Used to report error conditions; device drivers often use KERN_ERR to report hardware difficulties.
-
-* `KERN_WARNING`: Warnings about problematic situations that do not, in themselves, create serious problems with the system.
-
-* `KERN_NOTICE`: Situations that are normal, but still worthy of note. A number of security-related conditions are reported at this level.
-
-* `KERN_INFO`: Informational messages. Many drivers print information about the hardware they find at startup time at this level.
-
-* `KERN_DEBUG`: Used for debugging messages.
-
-Example:
-
-```c
-printk(KERN_INFO "Welcome To EmbeTronicX");
-```
-
-Note: In the newer Linux kernels, you can use the APIs below instead of this `printk`.
-
-* `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
-* `pr_cont()` – Continues a previous log message in the same line.
-* `pr_debug()` – Print a debug-level message conditionally.
-* `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
-* `pr_warn()` – Print a warning-level message.
-
-`printk()`的打印的日志级别有 0-7，还可以是无级别。如果无法看到输出内容，可以参考这几个网站的解决方式：
-
-1. <http://www.jyguagua.com/?p=708>
-
-2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
-
-我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
-
-第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
-
-第二个数为`printk()`的默认打印级别。
-
-修改内核的默认打印级别（即修改第 1 个数）：
-
-`echo 5 > /proc/sys/kernel/printk`
-
-（现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
 
 **有关模块加载与卸载的一个 Example**
 
@@ -254,9 +198,39 @@ void hello_exit(void)  // exit 不需要返回值
     printk(KERN_INFO "bye bye!\n");
 }
 
-module_init(hello_init);
+module_init(hello_init);  // 这一行和下一行的分号都不是必要的，为什么？
 module_exit(hello_exit);
-MODULE_LICENSE("GPL");  // 不加这行的话，无法通过编译。MODULE_LICENSE 必须大写，不然无法通过编译
+MODULE_LICENSE("GPL");  // 不加这行的话，无法通过编译。MODULE_LICENSE 必须大写，不然无法通过编译。这一行末尾的分号是必要的，为什么？
+```
+
+另外一个 example:
+
+```c
+一个其他网站上提供的 hello world example:
+
+```c
+#include<linux/kernel.h>  // 这个头文件有什么用？
+#include<linux/init.h>
+#include<linux/module.h>
+
+static int __init hello_world_init(void)  // __init 是什么意思？
+{
+    printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
+    return 0;
+}
+
+static void __exit hello_world_exit(void)  // __exit 是什么意思？
+{
+    printk(KERN_INFO "Kernel Module Removed Successfully...\n");
+}
+ 
+module_init(hello_world_init);
+module_exit(hello_world_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("A simple hello world driver");
+MODULE_VERSION("2:1.0");
 ```
 
 接着，我们写 Makefile：
@@ -268,11 +242,104 @@ default:
 	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
 ```
 
+另外一个 makefile 的 example:
+
+```Makefile
+```Makefile
+obj-m += hello_world.o
+ 
+ifdef ARCH
+  KDIR = /home/embetronicx/BBG/tmp/lib/modules/5.10.65/build
+else
+  KDIR = /lib/modules/$(shell uname -r)/build  # 为什么要在前面加上 shell
+endif
+ 
+all:
+  make -C $(KDIR)  M=$(shell pwd) modules  # $(PWD) 和 $(shell pwd) 有什么不同
+ 
+clean:
+  make -C $(KDIR)  M=$(shell pwd) clean  # KDIR 是个变量，为什么要给它加上 $() ？
+```
+
 然后在当前文件夹下运行`make`，会生成`hello_world.ko`文件。这个文件就是我们需要的内核模块文件，ko 代表 kernel object。
 
 此时可以使用`sudo insmod hello_world.ko`插入模块，使用`sudo rmmod hello_world`移除模块，`sudo lsmod`查看已经加载的模块，`sudo dmesg`查看日志输出。
 
 （如果还是无法`insmod`，或许需要取消 secure boot：<https://askubuntu.com/questions/762254/why-do-i-get-required-key-not-available-when-install-3rd-party-kernel-modules>）
+
+### 日志消息打印
+
+**`printk()`**
+
+内核模块中可以使用函数`printk()`将消息打印到日志中，用法和`printf()`几乎相同。
+
+```c
+printk("hello my module\n");
+```
+
+`printk()`可打印的消息有不同的级别，我们可以在字符串前使用下面的宏字符串进行修饰：
+
+* `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
+
+* `KERN_ALERT`: A situation requiring immediate action.
+
+* `KERN_CRIT`: Critical conditions are often related to serious hardware or software failures.
+
+* `KERN_ERR`: Used to report error conditions; device drivers often use KERN_ERR to report hardware difficulties.
+
+* `KERN_WARNING`: Warnings about problematic situations that do not, in themselves, create serious problems with the system.
+
+* `KERN_NOTICE`: Situations that are normal, but still worthy of note. A number of security-related conditions are reported at this level.
+
+* `KERN_INFO`: Informational messages. Many drivers print information about the hardware they find at startup time at this level.
+
+* `KERN_DEBUG`: Used for debugging messages.
+
+Example:
+
+```c
+printk(KERN_INFO "this is a info level log");
+printk(KERN_WARNING "this is a warning level log");
+printk("this is a non-level log")
+```
+
+经实际测试，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
+
+**默认打印级别**
+
+上面的日志级别可以对应到数字 0 - 7，还可以是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
+
+可以参考这几个网站的资料：
+
+1. <http://www.jyguagua.com/?p=708>
+
+2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
+
+我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
+
+第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
+
+第二个数为`printk()`的默认打印级别。
+
+修改内核的默认打印级别（即修改第 1 个数）：
+
+`echo 5 > /proc/sys/kernel/printk`
+
+（现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
+
+**`printk`的替代函数**
+
+In the newer Linux kernels, you can use the APIs below instead of this `printk`.
+
+* `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
+* `pr_cont()` – Continues a previous log message in the same line.
+* `pr_debug()` – Print a debug-level message conditionally.
+* `pr_warn()` – Print a warning-level message.
+* `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
+
+经实测，`pr_info()`为正常白字，`pr_cont()`为白字加粗，`pr_debug()`没有输出，`pr_warn()`为白字加粗，`pr_err()`为红字。
+
+### 模块信息
 
 除了添加`MODULE_LICENSE()`外，可选的添加信息有：
 
@@ -287,68 +354,6 @@ default:
 * `MODULE_DESCRIPTION`：模块描述
 
     Example: `MODULE_DESCRIPTION("this is my first module")`
-
-一个其他网站上提供的 hello world example:
-
-```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple hello world driver
-*
-*  \author     EmbeTronicX
-*
-* *******************************************************************************/
-#include<linux/kernel.h>
-#include<linux/init.h>
-#include<linux/module.h>
- 
-/*
-** Module Init function
-*/
-static int __init hello_world_init(void)
-{
-    printk(KERN_INFO "Welcome to EmbeTronicX\n");
-    printk(KERN_INFO "This is the Simple Module\n");
-    printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
-    return 0;
-}
-
-/*
-** Module Exit function
-*/
-static void __exit hello_world_exit(void)
-{
-    printk(KERN_INFO "Kernel Module Removed Successfully...\n");
-}
- 
-module_init(hello_world_init);
-module_exit(hello_world_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("A simple hello world driver");
-MODULE_VERSION("2:1.0");
-```
-
-Makefile 的 example:
-
-```Makefile
-obj-m += hello_world.o
- 
-ifdef ARCH
-  #You can update your Beaglebone path here.
-  KDIR = /home/embetronicx/BBG/tmp/lib/modules/5.10.65/build
-else
-  KDIR = /lib/modules/$(shell uname -r)/build
-endif
- 
-all:
-  make -C $(KDIR)  M=$(shell pwd) modules
- 
-clean:
-  make -C $(KDIR)  M=$(shell pwd) clean
-```
 
 获得模块的一些信息：`modinfo hello_world_module.ko`
 
@@ -817,6 +822,8 @@ In fact, all device drivers that are neither storage nor network device drivers 
     unregister_chrdev_region(dev_t from, unsigned count);
     ```
 
+    header file: `<linux/fs.h>`
+
     params:
 
     `from`: 要注销的起始设备号
@@ -860,6 +867,8 @@ In fact, all device drivers that are neither storage nor network device drivers 
      ```c
      int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
      ```
+
+     header file: `<linux/fs.h>`
 
      params:
 
@@ -983,13 +992,13 @@ MODULE_DESCRIPTION("Simple linux driver (Dynamically allocating the Major and Mi
 MODULE_VERSION("1.1");
 ```
 
-### cdev
+### cdev 设备驱动
 
 cdev 在内核中代表一个字符设备驱动。
 
 ```c
 struct cdev {
-    struct kobject kjob;
+    struct kobject kobj;
     struct module *owner;
     const struct file_operations *ops;  // 驱动操作函数集合
     struct list_head list;
@@ -1002,7 +1011,7 @@ struct cdev {
 
 two ways of allocating and initializing one of these structures:
 
-1. Runtime Allocation
+1. Runtime allocation
 
     ```c
     struct cdev *my_cdev = cdev_alloc( );
@@ -1158,6 +1167,18 @@ MODULE_LICENSE("GPL");
 
 对其编译后，加载模块：`sudo insmod hello_world.ko`。
 
+`__user`表示是一个用户空间的指针，所以kernel不可能直接使用。
+
+```c
+#ifdef __CHECKER__
+# define __user __attribute__((noderef, address_space(1)))
+# define __kernel /* default address space */
+#else
+# define __user
+# define __kernel
+#endif
+```
+
 Manually Creating Device File
 
 We can create the device file manually by using mknod.
@@ -1231,44 +1252,57 @@ Create `Device` with the `class` which is created by the above step
 void class_destroy(struct class *cls);
 ```
 
-创建设备文件（设备节点）：
+### 设备文件
 
-`struct device *device_create(struct *class, struct device *parent, dev_t dev, void * drvdata, const char *fmt, ...);`
+* `device_create`
 
-`class` – pointer to the struct class that this device should be registered to
+    创建设备文件（设备节点）
 
-`parent` – pointer to the parent struct device of this new device, if any
+    Syntax:
 
-`devt` – the dev_t for the char device to be added
+    ```c
+    struct device *device_create(struct *class, struct device *parent, dev_t dev, void * drvdata, const char *fmt, ...);
+    ```
 
-`drvdata` – the data to be added to the device for callbacks
+    Parameters:
 
-`fmt` – string for the device’s name
+    * `class` – pointer to the struct class that this device should be registered to
 
-`...` – variable arguments
+    * `parent` – pointer to the parent struct device of this new device, if any
 
-A “dev” file will be created, showing the `dev_t` for the device, if the `dev_t` is not `0,0`. If a pointer to a parent struct device is passed in, the newly created struct device will be a child of that device in sysfs. The pointer to the struct device will be returned from the call. Any further sysfs files that might be required can be created using this pointer. The return value can be checked using IS_ERR() macro.
+        父设备指针
 
-```c
-struct device *device_create(struct class *class, struct device *parent, dev_t devt, void *drvdata, const char *fmt, ...);
-```
+    * `devt` – the dev_t for the char device to be added
 
-Params:
+        设备号
 
-* `parent`: 父设备指针
-* `devt`：设备号
-* `drvdata`：额外的数据
-* `fmt`：设备文件名
+    * `drvdata` – the data to be added to the device for callbacks
 
-成功会在`/dev`目录下生成对应的设备文件，并返回设备指针
+        额外的数据
 
-销毁设备文件：
+    * `fmt` – string for the device’s name
 
-`void device_destroy(struct class *class, dev_t devt)`
+        设备文件名
+
+    * `...` – variable arguments
+
+    A “dev” file will be created, showing the `dev_t` for the device, if the `dev_t` is not `0,0`. If a pointer to a parent struct device is passed in, the newly created struct device will be a child of that device in sysfs. The pointer to the struct device will be returned from the call. Any further sysfs files that might be required can be created using this pointer. The return value can be checked using IS_ERR() macro.
+
+    成功会在`/dev`目录下生成对应的设备文件，并返回设备指针
+
+* `device_destroy`
+
+    销毁设备文件
+
+    Syntax:
+
+    ```c
+    void device_destroy(struct class *class, dev_t devt)
+    ```
 
 内核中指针了一些宏，用于判断指针是否出错。
 
-```
+```c
 IS_ERR(指针)  // 返回真表示出错
 IS_ERR_OR_NULL(指针)  // 
 PTR_ERR(指针)  // 将出错的指针转换成错误码
@@ -1305,9 +1339,10 @@ static struct class *dev_class;
 static int __init hello_world_init(void)
 {
         /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                pr_err("Cannot allocate major number for device\n");
-                return -1;
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0)
+        {
+            pr_err("Cannot allocate major number for device\n");
+            return -1;
         }
         pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
  
@@ -1319,7 +1354,7 @@ static int __init hello_world_init(void)
         }
  
         /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))) {
             pr_err("Cannot create the Device\n");
             goto r_device;
         }
@@ -1338,10 +1373,10 @@ r_class:
 */
 static void __exit hello_world_exit(void)
 {
-        device_destroy(dev_class,dev);
-        class_destroy(dev_class);
-        unregister_chrdev_region(dev, 1);
-        pr_info("Kernel Module Removed Successfully...\n");
+    device_destroy(dev_class,dev);
+    class_destroy(dev_class);
+    unregister_chrdev_region(dev, 1);
+    pr_info("Kernel Module Removed Successfully...\n");
 }
  
 module_init(hello_world_init);
@@ -1488,8 +1523,9 @@ int main()
 
 我们可以使用`ls -l /dev`查看已经创建的设备文件。First of all, note that the first letter of the permissions field is denoted that driver type. Device files are denoted either by b, for block devices, or c, for character devices. Also, note that the size field in the ls -l listing is replaced by two numbers, separated by a comma. The first value is the major device number and the second is the minor device number.
 
-
 file operations syntax:
+
+header file: `<linux/fs.h>`
 
 ```c
 struct file_operations {
@@ -2489,3 +2525,1995 @@ int main()
 ```
 
 This is a simple example of using ioctl in a Linux device driver. If you want to send multiple arguments, put those variables into the structure, and pass the address of the structure.
+
+## Procfs
+
+`/proc` is a mount point for the procfs (Process Filesystem) which is a filesystem in memory. Many processes store information about themselves on this virtual filesystem. ProcFS also stores other system information.
+
+Check memory info: `cat /proc/meminfo`
+
+Check modules info: `cat /proc/modules`
+
+* `/proc/devices` — registered character and block major numbers
+* `/proc/iomem` — on-system physical RAM and bus device addresses
+* `/proc/ioports` — on-system I/O port addresses (especially for x86 systems)
+* `/proc/interrupts` — registered interrupt request numbers
+* `/proc/softirqs` — registered soft IRQs
+* `/proc/swaps` — currently active swaps
+* `/proc/kallsyms` — running kernel symbols, including from loaded modules
+* `/proc/partitions` — currently connected block devices and their partitions
+* `/proc/filesystems` — currently active filesystem drivers
+* `/proc/cpuinfo` — information about the CPU(s) on the system
+
+Most proc files are read-only and only expose kernel information to user space programs.
+
+proc files can also be used to control and modify kernel behavior on the fly. The proc files need to be writable in this case.
+
+enable IP forwarding of iptable: `echo 1 > /proc/sys/net/ipv4/ip_forward`
+
+The proc file system can also be used to debug a kernel module. Just create entries for every variable that we want to track.
+
+Creating procfs directory:
+
+```c
+struct proc_dir_entry *proc_mkdir(const char *name, struct proc_dir_entry *parent)
+```
+
+`name`: The name of the directory that will be created under `/proc`.
+
+`parent`: In case the folder needs to be created in a subfolder under `/proc` a pointer to the same is passed else it can be left as NULL.
+
+create proc entries:
+
+header file: `linux/proc_fs.h`
+
+```c
+struct proc_dir_entry *proc_create ( const char *name, umode_t mode, struct proc_dir_entry *parent, const struct file_operations *proc_fops )
+```
+
+* `name`: The name of the proc entry
+* `mode`: The access mode for proc entry
+* `parent`: The name of the parent directory under /proc. If NULL is passed as a parent, the /proc directory will be set as a parent.
+* `proc_fops`: The structure in which the file operations for the proc entry will be created.
+
+Note: The above proc_create is valid in the Linux Kernel v3.10 to v5.5. From v5.6, there is a change in this API. The fourth argument const struct file_operations *proc_fops is changed to const struct proc_ops *proc_ops.
+
+Example:
+
+```c
+proc_create("etx_proc",0666,NULL,&proc_fops);
+```
+
+create `file_operations` structure `proc_fops` in which we can map the read and write functions for the proc entry:
+
+```c
+static struct file_operations proc_fops = {
+    .open = open_proc,
+    .read = read_proc,
+    .write = write_proc,
+    .release = release_proc
+};
+```
+
+For linux kernel v5.6 and above, use this:
+
+```c
+static struct proc_ops proc_fops = {
+        .proc_open = open_proc,
+        .proc_read = read_proc,
+        .proc_write = write_proc,
+        .proc_release = release_proc
+};
+```
+
+`open` and `release` functions are optional:
+
+```c
+static int open_proc(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "proc file opend.....\t");
+    return 0;
+}
+
+static int release_proc(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "proc file released.....\n");
+    return 0;
+}
+```
+
+The write function will receive data from the user space using the function copy_from_user into an array “etx_array”:
+
+```c
+static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_t * off)
+{
+    printk(KERN_INFO "proc file write.....\t");
+    copy_from_user(etx_array,buff,len);
+    return len;
+}
+```
+
+Once data is written to the proc entry we can read from the proc entry using a read function, i.e transfer data to the user space using the function `copy_to_user` function:
+
+```c
+static ssize_t read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset)
+{
+    printk(KERN_INFO "proc file read.....\n");
+    if(len)
+        len=0;
+    else{
+        len=1;
+        return 0;
+    }
+    copy_to_user(buffer,etx_array,20);
+
+    return length;;
+}
+```
+
+Proc entry should be removed in the Driver exit function using the below function:
+
+```c
+void remove_proc_entry(const char *name, struct proc_dir_entry *parent);
+```
+
+Example:
+
+```c
+remove_proc_entry("etx_proc",NULL);
+```
+
+And you can remove the complete parent directory using `proc_remove(struct proc_dir_entry *parent)`.
+
+Complete Driver Source Code:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (procfs)
+*
+*  \author     EmbeTronicX
+* 
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+* *******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include <linux/ioctl.h>
+#include<linux/proc_fs.h>
+#include <linux/err.h>
+
+/* 
+** I am using the kernel 5.10.27-v7l. So I have set this as 510.
+** If you are using the kernel 3.10, then set this as 310,
+** and for kernel 5.1, set this as 501. Because the API proc_create()
+** changed in kernel above v5.5.
+**
+*/ 
+#define LINUX_KERNEL_VERSION  510
+ 
+#define WR_VALUE _IOW('a','a',int32_t*)
+#define RD_VALUE _IOR('a','b',int32_t*)
+ 
+int32_t value = 0;
+char etx_array[20]="try_proc_array\n";
+static int len = 1;
+ 
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+static struct proc_dir_entry *parent;
+
+/*
+** Function Prototypes
+*/
+static int      __init etx_driver_init(void);
+static void     __exit etx_driver_exit(void);
+
+/*************** Driver Functions **********************/
+static int      etx_open(struct inode *inode, struct file *file);
+static int      etx_release(struct inode *inode, struct file *file);
+static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+ 
+/***************** Procfs Functions *******************/
+static int      open_proc(struct inode *inode, struct file *file);
+static int      release_proc(struct inode *inode, struct file *file);
+static ssize_t  read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset);
+static ssize_t  write_proc(struct file *filp, const char *buff, size_t len, loff_t * off);
+
+/*
+** File operation sturcture
+*/
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .unlocked_ioctl = etx_ioctl,
+        .release        = etx_release,
+};
+
+
+#if ( LINUX_KERNEL_VERSION > 505 )
+
+/*
+** procfs operation sturcture
+*/
+static struct proc_ops proc_fops = {
+        .proc_open = open_proc,
+        .proc_read = read_proc,
+        .proc_write = write_proc,
+        .proc_release = release_proc
+};
+
+#else //LINUX_KERNEL_VERSION > 505
+
+/*
+** procfs operation sturcture
+*/
+static struct file_operations proc_fops = {
+        .open = open_proc,
+        .read = read_proc,
+        .write = write_proc,
+        .release = release_proc
+};
+
+#endif //LINUX_KERNEL_VERSION > 505
+
+/*
+** This function will be called when we open the procfs file
+*/
+static int open_proc(struct inode *inode, struct file *file)
+{
+    pr_info("proc file opend.....\t");
+    return 0;
+}
+
+/*
+** This function will be called when we close the procfs file
+*/
+static int release_proc(struct inode *inode, struct file *file)
+{
+    pr_info("proc file released.....\n");
+    return 0;
+}
+
+/*
+** This function will be called when we read the procfs file
+*/
+static ssize_t read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset)
+{
+    pr_info("proc file read.....\n");
+    if(len)
+    {
+        len=0;
+    }
+    else
+    {
+        len=1;
+        return 0;
+    }
+    
+    if( copy_to_user(buffer,etx_array,20) )
+    {
+        pr_err("Data Send : Err!\n");
+    }
+ 
+    return length;;
+}
+
+/*
+** This function will be called when we write the procfs file
+*/
+static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_t * off)
+{
+    pr_info("proc file wrote.....\n");
+    
+    if( copy_from_user(etx_array,buff,len) )
+    {
+        pr_err("Data Write : Err!\n");
+    }
+    
+    return len;
+}
+
+/*
+** This function will be called when we open the Device file
+*/
+static int etx_open(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we close the Device file
+*/
+static int etx_release(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we read the Device file
+*/
+static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Read function\n");
+        return 0;
+}
+
+/*
+** This function will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Write Function\n");
+        return len;
+}
+
+/*
+** This function will be called when we write IOCTL on the Device file
+*/
+static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+         switch(cmd) {
+                case WR_VALUE:
+                        if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+                        {
+                                pr_err("Data Write : Err!\n");
+                        }
+                        pr_info("Value = %d\n", value);
+                        break;
+                case RD_VALUE:
+                        if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+                        {
+                                pr_err("Data Read : Err!\n");
+                        }
+                        break;
+                default:
+                        pr_info("Default\n");
+                        break;
+        }
+        return 0;
+}
+ 
+/*
+** Module Init function
+*/
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_info("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_info("Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_info("Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_info("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        
+        /*Create proc directory. It will create a directory under "/proc" */
+        parent = proc_mkdir("etx",NULL);
+        
+        if( parent == NULL )
+        {
+            pr_info("Error creating proc entry");
+            goto r_device;
+        }
+        
+        /*Creating Proc entry under "/proc/etx/" */
+        proc_create("etx_proc", 0666, parent, &proc_fops);
+ 
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        return -1;
+}
+ 
+/*
+** Module exit function
+*/
+static void __exit etx_driver_exit(void)
+{
+        /* Removes single proc entry */
+        //remove_proc_entry("etx/etx_proc", parent);
+        
+        /* remove complete /proc/etx */
+        proc_remove(parent);
+        
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("Simple Linux device driver (procfs)");
+MODULE_VERSION("1.6");
+```
+
+As there are changes in the procfs file system in the Linux kernel 3.10 and 5.6, we have added a macro called `LINUX_KERNEL_VERSION`. You have to mention your Linux kernel version. Based on that, we will control the APIs in this source code.
+
+Note:
+
+You can follow this format for this `LINUX_KERNEL_VERSION`.
+
+Example:
+
+|Your Linux Kernel version | LINUX_KERNEL_VERSION |
+| - | - |
+| v3.10 | 310 |
+| v5.6 | 506 |
+| v5.10 | 510 |
+
+test:
+
+`cat /proc/etx/etx_proc`
+
+`echo "device driver proc" > /proc/etx/etx_proc`
+
+## waitqueue
+
+Whenever a process must wait for an event (such as the arrival of data or the termination of a process), it should go to sleep. Sleeping causes the process to suspend execution, freeing the processor for other uses. After some time, the process will be woken up and will continue with its job when the event which we are waiting for has arrived.
+
+Wait queue is a mechanism provided in the kernel to implement the wait. As the name itself suggests, waitqueue is the list of processes waiting for an event. In other words, A wait queue is used to wait for someone to wake you up when a certain condition is true. They must be used carefully to ensure there is no race condition.
+
+There are 3 important steps in Waitqueue.
+
+1. Initializing Waitqueue
+
+    header file: `linux/wait.h`
+
+    1. Static method
+
+        ```c
+        DECLARE_WAIT_QUEUE_HEAD(wq);
+        ```
+
+        Where the “wq” is the name of the queue on which task will be put to sleep.
+
+    1. Dynamic method
+
+        ```c
+        wait_queue_head_t wq;
+        init_waitqueue_head (&wq);
+        ```
+
+1. Queuing (Put the Task to sleep until the event comes)
+
+    Once the wait queue is declared and initialized, a process may use it to go to sleep. There are several macros are available for different uses.
+
+    * wait_event
+
+        Syntax:
+
+        ```c
+        wait_event(wq, condition);
+        ```
+
+        sleep until a condition gets true.
+
+        Parameters:
+
+        * `wq` – the waitqueue to wait on
+
+        * `condition` – a C expression for the event to wait for
+
+        The process is put to sleep (`TASK_UNINTERRUPTIBLE`) until the condition evaluates to true. The `condition` is checked each time the waitqueue `wq` is woken up.
+
+    * wait_event_timeout
+
+        Syntax:
+
+        ```c
+        wait_event_timeout(wq, condition, timeout);
+        ```
+
+        sleep until a condition gets true or a timeout elapses
+
+        Parameters:
+
+        * `wq` –  the waitqueue to wait on
+
+        * `condtion` – a C expression for the event to wait for
+
+        * `timeout` –  timeout, in jiffies
+
+        The process is put to sleep (TASK_UNINTERRUPTIBLE) until the condition evaluates to true or timeout elapses. The condition is checked each time the waitqueue wq is woken up.
+
+        It returns 0 if the condition evaluated to false after the timeout elapsed, 1 if the condition evaluated to true after the timeout elapsed, or the remaining jiffies (at least 1) if the condition evaluated to true before the timeout elapsed.
+
+    * wait_event_cmd
+
+        Syntax:
+
+        ```c
+        wait_event_cmd(wq, condition, cmd1, cmd2);
+        ```
+
+        sleep until a condition gets true
+
+        * `wq` –  the waitqueue to wait on
+
+        * `condtion` – a C expression for the event to wait for
+
+        * `cmd1` – the command will be executed before sleep
+
+        * `cmd2` – the command will be executed after sleep
+
+        The process is put to sleep (TASK_UNINTERRUPTIBLE) until the condition evaluates to true. The condition is checked each time the waitqueue wq is woken up.
+
+    * wait_event_interruptible
+
+        Syntax:
+
+        ```c
+        wait_event_interruptible(wq, condition);
+        ```
+
+        sleep until a condition gets true
+
+        * `wq` –  the waitqueue to wait on
+
+        * `condtion` – a C expression for the event to wait for
+
+        The process is put to sleep (TASK_INTERRUPTIBLE) until the condition evaluates to true or a signal is received. The condition is checked each time the waitqueue wq is woken up.
+
+        The function will return -ERESTARTSYS if it was interrupted by a signal and 0 if condition evaluated to true.
+
+    * wait_event_interruptible_timeout
+
+        Syntax:
+
+        ```c
+        wait_event_interruptible_timeout(wq, condition, timeout);
+        ```
+
+        sleep until a condition gets true or a timeout elapses
+
+        * `wq` –  the waitqueue to wait on
+
+        * `condtion` – a C expression for the event to wait for
+
+        * `timeout` –  timeout, in jiffies
+
+        The process is put to sleep (TASK_INTERRUPTIBLE) until the condition evaluates to true or a signal is received or timeout elapsed. The condition is checked each time the waitqueue wq is woken up.
+
+        It returns, 0 if the condition evaluated to false after the timeout elapsed, 1 if the condition evaluated to true after the timeout elapsed, the remaining jiffies (at least 1) if the condition evaluated to true before the timeout elapsed, or -ERESTARTSYS if it was interrupted by a signal.
+
+    * wait_event_killable
+
+        Syntax:
+
+        ```c
+        wait_event_killable(wq, condition);
+        ```
+
+        sleep until a condition gets true
+
+        * `wq` –  the waitqueue to wait on
+
+        * `condtion` – a C expression for the event to wait for
+
+        The process is put to sleep (TASK_KILLABLE) until the condition evaluates to true or a signal is received. The condition is checked each time the waitqueue wq is woken up.
+
+        The function will return -ERESTARTSYS if it was interrupted by a signal and 0 if condition evaluated to true.
+
+    Whenever we use the above one of the macro, it will add that task to the waitqueue which is created by us. Then it will wait for the event.
+
+    Note: Old kernel versions used the functions `sleep_on()` and `interruptible_sleep_on()`, but those two functions can introduce bad race conditions and should not be used.
+
+1. Waking Up Queued Task
+
+    When some Tasks are in sleep mode because of the waitqueue, then we can use the below function to wake up those tasks.
+
+    * wake_up
+
+        Syntax:
+
+        ```c
+        wake_up(&wq);
+        ```
+
+        wakes up only one process from the wait queue which is in non-interruptible sleep.
+
+        Parameters:
+
+        * `wq` – the waitqueue to wake up
+
+    * wake_up_all
+
+        Syntax:
+
+        ```c
+        wake_up_all(&wq);
+        ```
+
+        wakes up all the processes on the wait queue
+
+    * wake_up_interruptible
+
+        Syntax:
+
+        ```c
+        wake_up_interruptible(&wq);
+        ```
+
+        wakes up only one process from the wait queue that is in interruptible sleep
+
+    * wake_up_sync and wake_up_interruptible_sync
+
+        Syntax:
+
+        ```c
+        wake_up_sync(&wq);
+        wake_up_interruptible_sync(&wq);
+        ```
+
+        Normally, a `wake_up` call can cause an immediate reschedule to happen, meaning that other processes might run before `wake_up` returns. The “synchronous” variants instead make any awakened processes runnable but do not reschedule the CPU. This is used to avoid rescheduling when the current process is known to be going to sleep, thus forcing a reschedule anyway. Note that awakened processes could run immediately on a different processor, so these functions should not be expected to provide mutual exclusion.
+
+driver code:
+
+* Waitqueue created by Static Method
+
+    ```c
+    /***************************************************************************//**
+    *  \file       driver.c
+    *
+    *  \details    Simple linux driver (Waitqueue Static method)
+    *
+    *  \author     EmbeTronicX
+    *
+    *  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+    *
+    *******************************************************************************/
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include <linux/slab.h>                 //kmalloc()
+    #include <linux/uaccess.h>              //copy_to/from_user()
+    #include <linux/kthread.h>
+    #include <linux/wait.h>                 // Required for the wait queues
+    #include <linux/err.h>
+    
+    
+    uint32_t read_count = 0;
+    static struct task_struct *wait_thread;
+    
+    DECLARE_WAIT_QUEUE_HEAD(wait_queue_etx);
+    
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
+    int wait_queue_flag = 0;
+
+    /*
+    ** Function Prototypes
+    */
+    static int      __init etx_driver_init(void);
+    static void     __exit etx_driver_exit(void);
+    
+    /*************** Driver functions **********************/
+    static int      etx_open(struct inode *inode, struct file *file);
+    static int      etx_release(struct inode *inode, struct file *file);
+    static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+    static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+
+    /*
+    ** File operation sturcture
+    */
+    static struct file_operations fops =
+    {
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .release        = etx_release,
+    };
+
+    /*
+    ** Thread function
+    */
+    static int wait_function(void *unused)
+    {
+            
+            while(1) {
+                    pr_info("Waiting For Event...\n");
+                    wait_event_interruptible(wait_queue_etx, wait_queue_flag != 0 );
+                    if(wait_queue_flag == 2) {
+                            pr_info("Event Came From Exit Function\n");
+                            return 0;
+                    }
+                    pr_info("Event Came From Read Function - %d\n", ++read_count);
+                    wait_queue_flag = 0;
+            }
+            do_exit(0);
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we open the Device file
+    */
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+            pr_info("Device File Opened...!!!\n");
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we close the Device file
+    */
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+            pr_info("Device File Closed...!!!\n");
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we read the Device file
+    */
+    static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+    {
+            pr_info("Read Function\n");
+            wait_queue_flag = 1;
+            wake_up_interruptible(&wait_queue_etx);
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we write the Device file
+    */
+    static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+    {
+            pr_info("Write function\n");
+            return len;
+    }
+    
+    /*
+    ** Module Init function
+    */
+    static int __init etx_driver_init(void)
+    {
+            /*Allocating Major number*/
+            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                    pr_info("Cannot allocate major number\n");
+                    return -1;
+            }
+            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+    
+            /*Creating cdev structure*/
+            cdev_init(&etx_cdev,&fops);
+            etx_cdev.owner = THIS_MODULE;
+            etx_cdev.ops = &fops;
+    
+            /*Adding character device to the system*/
+            if((cdev_add(&etx_cdev,dev,1)) < 0){
+                pr_info("Cannot add the device to the system\n");
+                goto r_class;
+            }
+    
+            /*Creating struct class*/
+            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+                pr_info("Cannot create the struct class\n");
+                goto r_class;
+            }
+    
+            /*Creating device*/
+            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+                pr_info("Cannot create the Device 1\n");
+                goto r_device;
+            }
+    
+            //Create the kernel thread with name 'mythread'
+            wait_thread = kthread_create(wait_function, NULL, "WaitThread");
+            if (wait_thread) {
+                    pr_info("Thread Created successfully\n");
+                    wake_up_process(wait_thread);
+            } else
+                    pr_info("Thread creation failed\n");
+    
+            pr_info("Device Driver Insert...Done!!!\n");
+            return 0;
+    
+    r_device:
+            class_destroy(dev_class);
+    r_class:
+            unregister_chrdev_region(dev,1);
+            return -1;
+    }
+
+    /*
+    ** Module exit function
+    */ 
+    static void __exit etx_driver_exit(void)
+    {
+            wait_queue_flag = 2;
+            wake_up_interruptible(&wait_queue_etx);
+            device_destroy(dev_class,dev);
+            class_destroy(dev_class);
+            cdev_del(&etx_cdev);
+            unregister_chrdev_region(dev, 1);
+            pr_info("Device Driver Remove...Done!!!\n");
+    }
+    
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+    
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("Simple linux driver (Waitqueue Static method)");
+    MODULE_VERSION("1.7");
+    ```
+
+* Waitqueue created by Dynamic Method
+
+    ```c
+    /****************************************************************************//**
+    *  \file       driver.c
+    *
+    *  \details    Simple linux driver (Waitqueue Dynamic method)
+    *
+    *  \author     EmbeTronicX
+    *
+    *  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+    *
+    *******************************************************************************/
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include <linux/slab.h>                 //kmalloc()
+    #include <linux/uaccess.h>              //copy_to/from_user()
+    #include <linux/kthread.h>
+    #include <linux/wait.h>                 // Required for the wait queues
+    #include <linux/err.h>
+    
+    
+    uint32_t read_count = 0;
+    static struct task_struct *wait_thread;
+    
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
+    wait_queue_head_t wait_queue_etx;
+    int wait_queue_flag = 0;
+    
+    /*
+    ** Function Prototypes
+    */
+    static int      __init etx_driver_init(void);
+    static void     __exit etx_driver_exit(void);
+    
+    /*************** Driver functions **********************/
+    static int      etx_open(struct inode *inode, struct file *file);
+    static int      etx_release(struct inode *inode, struct file *file);
+    static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+    static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+
+    /*
+    ** File operation sturcture
+    */
+    static struct file_operations fops =
+    {
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .release        = etx_release,
+    };
+    
+    /*
+    ** Thread function
+    */
+    static int wait_function(void *unused)
+    {
+            
+            while(1) {
+                    pr_info("Waiting For Event...\n");
+                    wait_event_interruptible(wait_queue_etx, wait_queue_flag != 0 );
+                    if(wait_queue_flag == 2) {
+                            pr_info("Event Came From Exit Function\n");
+                            return 0;
+                    }
+                    pr_info("Event Came From Read Function - %d\n", ++read_count);
+                    wait_queue_flag = 0;
+            }
+            return 0;
+    }
+    
+    /*
+    ** This function will be called when we open the Device file
+    */ 
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+            pr_info("Device File Opened...!!!\n");
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we close the Device file
+    */
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+            pr_info("Device File Closed...!!!\n");
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we read the Device file
+    */
+    static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+    {
+            pr_info("Read Function\n");
+            wait_queue_flag = 1;
+            wake_up_interruptible(&wait_queue_etx);
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we write the Device file
+    */
+    static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+    {
+            pr_info("Write function\n");
+            return len;
+    }
+
+    /*
+    ** Module Init function
+    */
+    static int __init etx_driver_init(void)
+    {
+            /*Allocating Major number*/
+            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                    pr_info("Cannot allocate major number\n");
+                    return -1;
+            }
+            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+    
+            /*Creating cdev structure*/
+            cdev_init(&etx_cdev,&fops);
+    
+            /*Adding character device to the system*/
+            if((cdev_add(&etx_cdev,dev,1)) < 0){
+                pr_info("Cannot add the device to the system\n");
+                goto r_class;
+            }
+    
+            /*Creating struct class*/
+            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+                pr_info("Cannot create the struct class\n");
+                goto r_class;
+            }
+    
+            /*Creating device*/
+            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+                pr_info("Cannot create the Device 1\n");
+                goto r_device;
+            }
+            
+            //Initialize wait queue
+            init_waitqueue_head(&wait_queue_etx);
+    
+            //Create the kernel thread with name 'mythread'
+            wait_thread = kthread_create(wait_function, NULL, "WaitThread");
+            if (wait_thread) {
+                    pr_info("Thread Created successfully\n");
+                    wake_up_process(wait_thread);
+            } else
+                    pr_info("Thread creation failed\n");
+    
+            pr_info("Device Driver Insert...Done!!!\n");
+            return 0;
+    
+    r_device:
+            class_destroy(dev_class);
+    r_class:
+            unregister_chrdev_region(dev,1);
+            return -1;
+    }
+
+    /*
+    ** Module exit function
+    */
+    static void __exit etx_driver_exit(void)
+    {
+            wait_queue_flag = 2;
+            wake_up_interruptible(&wait_queue_etx);
+            device_destroy(dev_class,dev);
+            class_destroy(dev_class);
+            cdev_del(&etx_cdev);
+            unregister_chrdev_region(dev, 1);
+            pr_info("Device Driver Remove...Done!!!\n");
+    }
+    
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+    
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("Simple linux driver (Waitqueue Dynamic method)");
+    MODULE_VERSION("1.8");
+    ```
+
+Makefile:
+
+```Makefile
+obj-m += driver.o
+KDIR = /lib/modules/$(shell uname -r)/build
+all:
+    make -C $(KDIR)  M=$(shell pwd) modules
+clean:
+    make -C $(KDIR)  M=$(shell pwd) clean
+```
+
+（这个版本中的 Makefile 使用的并不是`$(PWD)`之类的，而是`$(shell pwd)`，这两者有什么不同？）
+
+test: `sudo cat /dev/etx_device`
+
+## sysfs
+
+Sysfs is a virtual filesystem mounted on `/sys`. Sysfs contain information about devices and drivers.
+
+**Kernel Objects**
+
+The heart of the sysfs model is the kobject. Kobject is the glue that binds the sysfs and the kernel, which is represented by `struct kobject` and defined in `<linux/kobject.h>`. A struct kobject represents a kernel object, maybe a device or so, such as the things that show up as directory in the sysfs filesystem.
+
+Kobjects are usually embedded in other structures.
+
+Syntax:
+
+```c
+#define KOBJ_NAME_LEN 20 
+
+struct kobject {
+ char *k_name;
+ char name[KOBJ_NAME_LEN];
+ struct kref kref;
+ struct list_head entry;
+ struct kobject *parent;
+ struct kset *kset;
+ struct kobj_type *ktype;
+ struct dentry *dentry;
+};
+```
+
+Explanation:
+
+* `struct kobject`
+
+    * `name` (Name of the kobject. Current kobject is created with this name in sysfs.)
+
+    * `parent` (This is kobject’s parent. When we create a directory in sysfs for the current kobject, it will create under this parent directory)
+
+    * `ktype` (the type associated with a kobject)
+
+    * `kset` (a group of kobjects all of which are embedded in structures of the same type)
+
+    * `sd` (points to a sysfs_dirent structure that represents this kobject in sysfs.)
+
+    * `kref` (provides reference counting)
+
+    `kobject` is used to create kobject directory in /sys.
+
+There are two steps to creating and using sysfs.
+
+1. Create a directory in `/sys`
+
+    We can use this function (`kobject_create_and_add`) to create a directory.
+
+    `struct kobject * kobject_create_and_add ( const char * name, struct kobject * parent);`
+
+    Where,
+
+    * `name` – the name for the kobject
+
+    * `parent` – the parent kobject of this kobject, if any.
+
+        If you pass `kernel_kobj` to the second argument, it will create the directory under `/sys/kernel/`. If you pass `firmware_kobj` to the second argument, it will create the directory under `/sys/firmware/`. If you pass `fs_kobj` to the second argument, it will create the directory under `/sys/fs/`. If you pass NULL to the second argument, it will create the directory under `/sys/`.
+
+    This function creates a kobject structure dynamically and registers it with sysfs. If the kobject was not able to be created, `NULL` will be returned.
+
+    Call `kobject_put` and the structure `kobject` will be dynamically freed when it is no longer being used. (not clear. Does it mean free the memory immediately or wait for the last time that `struct object` was used?)
+
+    Example:
+
+    ```c
+    struct kobject *kobj_ref;
+
+    /*Creating a directory in /sys/kernel/ */
+    kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj); //sys/kernel/etx_sysfs
+
+    /*Freeing Kobj*/
+    kobject_put(kobj_ref);
+    ```
+
+1. Create Sysfs file
+
+    sysfs file is used to interact user space with kernel space.
+
+    We can create the sysfs file using sysfs attributes. Attributes are represented as regular files in sysfs with one value per file. There are loads of helper functions that can be used to create the kobject attributes. They can be found in the header file `sysfs.h`.
+
+    * Create attribute
+
+        Syntax:
+
+        ```c
+        struct kobj_attribute {
+            struct attribute attr;
+            ssize_t (*show)(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
+            ssize_t (*store)(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count);
+        };
+        ```
+
+        Parameters:
+
+        * `attr` – the attribute representing the file to be created,
+
+        * `show` – the pointer to the function that will be called when the file is read in sysfs,
+
+        * `store` – the pointer to the function which will be called when the file is written in sysfs.
+
+        We can create an attribute using `__ATTR` macro.
+
+        `__ATTR(name, permission, show_ptr, store_ptr);`
+        
+    * Store and Show functions
+
+        ```c
+        ssize_t (*show)(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
+
+        ssize_t (*store)(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count);
+        ```
+
+        Store function will be called whenever we are writing something to the sysfs attribute.
+
+        Show function will be called whenever we are reading the sysfs attribute.
+
+    * Create sysfs file
+
+        To create a single file attribute we are going to use ‘sysfs_create_file’.
+
+        int sysfs_create_file ( struct kobject *  kobj, const struct attribute * attr);
+
+        Where,
+
+        `kobj` – object we’re creating for.
+
+        `attr` – attribute descriptor.
+
+        One can use another function `sysfs_create_group` to create a group of attributes.
+
+        Once you have done with the sysfs file, you should delete this file using `sysfs_remove_file`。
+
+        ```c
+        void sysfs_remove_file ( struct kobject *  kobj, const struct attribute * attr);
+        ```
+
+        Where,
+
+        `kobj` – object we’re creating for.
+
+        `attr` – attribute descriptor.
+
+    Example:
+
+    ```c
+    struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf)
+    {
+        return sprintf(buf, "%d", etx_value);
+    }
+
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count)
+    {
+            sscanf(buf,"%d",&etx_value);
+            return count;
+    }
+
+    //This Function will be called from Init function
+    /*Creating a directory in /sys/kernel/ */
+    kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+    
+    /*Creating sysfs file for etx_value*/
+    if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+        printk(KERN_INFO"Cannot create sysfs file......\n");
+        goto r_sysfs;
+    }
+    //This should be called from exit function
+    kobject_put(kobj_ref); 
+    sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    ```
+
+    driver:
+
+    ```c
+    /***************************************************************************//**
+    *  \file       driver.c
+    *
+    *  \details    Simple Linux device driver (sysfs)
+    *
+    *  \author     EmbeTronicX
+    *
+    *  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+    *
+    *******************************************************************************/
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include<linux/slab.h>                 //kmalloc()
+    #include<linux/uaccess.h>              //copy_to/from_user()
+    #include<linux/sysfs.h> 
+    #include<linux/kobject.h> 
+    #include <linux/err.h>
+    
+    volatile int etx_value = 0;
+    
+    
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
+    struct kobject *kobj_ref;
+
+    /*
+    ** Function Prototypes
+    */
+    static int      __init etx_driver_init(void);
+    static void     __exit etx_driver_exit(void);
+    
+    /*************** Driver functions **********************/
+    static int      etx_open(struct inode *inode, struct file *file);
+    static int      etx_release(struct inode *inode, struct file *file);
+    static ssize_t  etx_read(struct file *filp, 
+                            char __user *buf, size_t len,loff_t * off);
+    static ssize_t  etx_write(struct file *filp, 
+                            const char *buf, size_t len, loff_t * off);
+    
+    /*************** Sysfs functions **********************/
+    static ssize_t  sysfs_show(struct kobject *kobj, 
+                            struct kobj_attribute *attr, char *buf);
+    static ssize_t  sysfs_store(struct kobject *kobj, 
+                            struct kobj_attribute *attr,const char *buf, size_t count);
+
+    struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+
+    /*
+    ** File operation sturcture
+    */
+    static struct file_operations fops =
+    {
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .release        = etx_release,
+    };
+
+    /*
+    ** This function will be called when we read the sysfs file
+    */
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf)
+    {
+            pr_info("Sysfs - Read!!!\n");
+            return sprintf(buf, "%d", etx_value);
+    }
+
+    /*
+    ** This function will be called when we write the sysfsfs file
+    */
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count)
+    {
+            pr_info("Sysfs - Write!!!\n");
+            sscanf(buf,"%d",&etx_value);
+            return count;
+    }
+
+    /*
+    ** This function will be called when we open the Device file
+    */ 
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+            pr_info("Device File Opened...!!!\n");
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we close the Device file
+    */ 
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+            pr_info("Device File Closed...!!!\n");
+            return 0;
+    }
+    
+    /*
+    ** This function will be called when we read the Device file
+    */
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len, loff_t *off)
+    {
+            pr_info("Read function\n");
+            return 0;
+    }
+
+    /*
+    ** This function will be called when we write the Device file
+    */
+    static ssize_t etx_write(struct file *filp, 
+                    const char __user *buf, size_t len, loff_t *off)
+    {
+            pr_info("Write Function\n");
+            return len;
+    }
+    
+    /*
+    ** Module Init function
+    */
+    static int __init etx_driver_init(void)
+    {
+            /*Allocating Major number*/
+            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                    pr_info("Cannot allocate major number\n");
+                    return -1;
+            }
+            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+    
+            /*Creating cdev structure*/
+            cdev_init(&etx_cdev,&fops);
+    
+            /*Adding character device to the system*/
+            if((cdev_add(&etx_cdev,dev,1)) < 0){
+                pr_info("Cannot add the device to the system\n");
+                goto r_class;
+            }
+    
+            /*Creating struct class*/
+            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+                pr_info("Cannot create the struct class\n");
+                goto r_class;
+            }
+    
+            /*Creating device*/
+            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+                pr_info("Cannot create the Device 1\n");
+                goto r_device;
+            }
+    
+            /*Creating a directory in /sys/kernel/ */
+            kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+    
+            /*Creating sysfs file for etx_value*/
+            if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                    pr_err("Cannot create sysfs file......\n");
+                    goto r_sysfs;
+        }
+            pr_info("Device Driver Insert...Done!!!\n");
+            return 0;
+    
+    r_sysfs:
+            kobject_put(kobj_ref); 
+            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    
+    r_device:
+            class_destroy(dev_class);
+    r_class:
+            unregister_chrdev_region(dev,1);
+            cdev_del(&etx_cdev);
+            return -1;
+    }
+
+    /*
+    ** Module exit function
+    */
+    static void __exit etx_driver_exit(void)
+    {
+            kobject_put(kobj_ref); 
+            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+            device_destroy(dev_class,dev);
+            class_destroy(dev_class);
+            cdev_del(&etx_cdev);
+            unregister_chrdev_region(dev, 1);
+            pr_info("Device Driver Remove...Done!!!\n");
+    }
+    
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+    
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("Simple Linux device driver (sysfs)");
+    MODULE_VERSION("1.8");
+    ```
+
+    test: `ls -l /sys/kernel`, `ls -l /sys/kernel/etx_sysfs`
+
+    read and modify the value:
+
+    ```bash
+    sudo su
+    cat /sys/kernel/etx_sysfs/etx_value
+    echo 123 > /sys/kernel/etx_sysfs/etx_value
+    cat /sys/kernel/etx_sysfs/etx_value
+    ```
+
+## Interrupts
+
+special functions called interrupt handlers (ISR)
+
+In Linux, interrupt signals are the distraction that diverts the processor to a new activity outside of the normal flow of execution. This new activity is called interrupt handler or interrupt service routine (ISR) and that distraction is Interrupts.
+
+**Polling vs Interrupts**
+
+* Polling
+
+    In polling the CPU keeps on checking all the hardwares of the availablilty of any request
+
+    The polling method is like a salesperson. The salesman goes from door to door while requesting to buy a product or service. Similarly, the controller keeps monitoring the flags or signals one by one for all devices and provides service to whichever component that needs its service.
+
+* Interrupt
+
+    In interrupt the CPU takes care of the hardware only when the hardware requests for some service
+
+    An interrupt is like a shopkeeper. If one needs a service or product, he goes to him and apprises him of his needs. In case of interrupts, when the flags or signals are received, they notify the controller that they need to be serviced.
+
+**Interrupts and Exceptions**
+
+Exceptions are often discussed at the same time as interrupts. Unlike interrupts, exceptions occur synchronously with respect to the processor clock; they are often called synchronous interrupts. Exceptions are produced by the processor while executing instructions either in response to a programming error (e.g. divide by zero) or abnormal conditions that must be handled by the kernel (e.g. a page fault).
+
+Interrupts – asynchronous interrupts generated by hardware.
+
+Exceptions – synchronous interrupts generated by the processor.
+
+（这里的同步和异步指的是时序，如果在非时钟周期内到达了中断信号，那么就称其为异步。）
+
+**Maskable and Non-maskable**
+
+Maskable – All Interrupt Requests (IRQs) issued by I/O devices give rise to maskable interrupts. A maskable interrupt can be in two states: masked or unmasked; a masked interrupt is ignored by the control unit as long as it remains masked.
+
+Non-maskable – Only a few critical events (such as hardware failures) give rise to nonmaskable interrupts. Non-maskable interrupts are always recognized by the CPU.
+
+**Exception types**
+
+* Falts – Like Divide by zero, Page Fault, Segmentation Fault.
+
+* Traps – Reported immediately following the execution of the trapping instruction. Like Breakpoints.
+
+* Aborts – Aborts are used to report severe errors, such as hardware failures and invalid or inconsistent values in system tables.
+
+**Interrupt handler**
+
+For a device’s each interrupt, its device driver must register an interrupt handler.
+
+An interrupt handler or interrupt service routine (ISR) is the function that the kernel runs in response to a specific interrupt:
+
+1. Each device that generates interrupts has an associated interrupt handler.
+
+1. The interrupt handler for a device is part of the device’s driver (the kernel code that manages the device).
+
+
+In Linux, interrupt handlers are normal C functions, which match a specific prototype and thus enable the kernel to pass the handler information in a standard way. What differentiates interrupt handlers from other kernel functions is that the kernel invokes them in response to interrupts and that they run in a special context called interrupt context. This special context is occasionally called atomic context because code executing in this context is unable to block.
+
+Because an interrupt can occur at any time, an interrupt handler can be executed at any time. It is imperative that the handler runs quickly, to resume the execution of the interrupted code as soon as possible. It is important that
+
+1. To the hardware: the operating system services the interrupt without delay.
+1. To the rest of the system: the interrupt handler executes in as short a period as possible.
+
+Top halves and Bottom halves
+Top half
+The interrupt handler is the top half. The top half will run immediately upon receipt of the interrupt and performs only the work that is time-critical, such as acknowledging receipt of the interrupt or resetting the hardware.
+
+Bottom half
+The bottom half is used to process data, letting the top half to deal with new incoming interrupts. Interrupts are enabled when a bottom half runs. The interrupt can be disabled if necessary, but generally, this should be avoided as this goes against the basic purpose of having a bottom half – processing data while listening to new interrupts. The bottom half runs in the future, at a more convenient time, with all interrupts enabled.
+
+比如网卡接收数据，我们使用 top half 快速地把网络数据包从网卡的缓冲区复制到内存中，然后使用 bottom half 慢慢处理内存中的数据包就可以了。如果 top half 不够快，那么新来的数据就会覆盖掉旧数据，造成读写错误。
+
+Intel processors handle interrupt using IDT (Interrupt Descriptor Table).  The IDT consists of 256 entries with each entry corresponding to a vector and of 8 bytes. All the entries are a pointer to the interrupt handling function. The CPU uses IDTR to point to IDT. The relation between those two can be depicted as below,
+
+Example:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Interrupt Example
+*
+*  \author     EmbeTronicX
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/sysfs.h> 
+#include<linux/kobject.h> 
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <linux/err.h>
+#define IRQ_NO 11
+
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+  printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+  return IRQ_HANDLED;
+}
+
+volatile int etx_value = 0;
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+struct kobject *kobj_ref;
+ 
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+
+/*************** Driver Fuctions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+
+/*************** Sysfs Fuctions **********************/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count);
+
+struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+ 
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+ 
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf)
+{
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+}
+
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count)
+{
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
+}
+
+static int etx_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+ 
+static int etx_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+ 
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Read function\n");
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+}
+
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Write Function\n");
+        return len;
+}
+ 
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            printk(KERN_INFO "Cannot create the Device 1\n");
+            goto r_device;
+        }
+ 
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+ 
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+            printk(KERN_INFO "my_device: cannot register IRQ ");
+                    goto irq;
+        }
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+    return 0;
+
+irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+
+r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+ 
+static void __exit etx_driver_exit(void)
+{
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("A simple device driver - Interrupts");
+MODULE_VERSION("1.9");
+```
+
+期望输出：
+
+```
+linux@embetronicx-VirtualBox: dmesg
+
+[19743.366386] Major = 246 Minor = 0
+[19743.370707] Device Driver Insert...Done!!!
+[19745.580487] Device File Opened...!!!
+[19745.580507] Read function
+[19745.580531] Shared IRQ: Interrupt Occurred
+[19745.580540] Device File Closed...!!!
+```
+
+实际输出：
+
+```
+[162342.126355] Major = 238 Minor = 0 
+[162342.138918] Device Driver Insert...Done!!!
+[162359.827734] Device File Opened...!!!
+[162359.827746] Read function
+[162359.827955] __common_interrupt: 2.59 No irq handler for vector
+[162359.827974] Device File Closed...!!!
+```
+
+If you are using the newer Linux kernel, then this may not work properly. You may get something like below.
+
+`do_IRQ: 1.59 No irq handler for vector`
+
+In order to solve that, you have to change the Linux kernel source code, Compile it, then install it.
+
+build:
+
+```bash
+wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.47.tar.xz
+sudo tar -xvf ../linux-5.4.47.tar
+cd linux-5.4.47/
+cp -v /boot/config-$(uname -r) .confi
+sudo apt install build-essential kernel-package fakeroot libncurses5-dev libssl-dev ccache flex libelf-dev bison libncurses-dev
+```
+
+Add the below line in the downloaded Linux kernel file `arch/x86/kernel/irq.c` right after all the include lines.
+
+`EXPORT_SYMBOL(vector_irq);`
+
+```bash
+make oldconfig
+make menuconfig
+sudo make  （也可以并行编译：sudo make -j 4）
+sudo su
+make modules_install
+sudo make install
+sudo update-initramfs -c -k 5.4.47
+sudo update-grub
+reboot
+uname -r
+```
+
+新版本的 kernel 应该使用的 driver 代码：
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Interrupt Example
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with kernel 5.4.47
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/sysfs.h> 
+#include<linux/kobject.h> 
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <asm/hw_irq.h>
+#include <linux/err.h>
+#define IRQ_NO 11
+ 
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+  printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+  return IRQ_HANDLED;
+}
+ 
+ 
+volatile int etx_value = 0;
+ 
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+struct kobject *kobj_ref;
+ 
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+ 
+/*************** Driver Fuctions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+ 
+/*************** Sysfs Fuctions **********************/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count);
+ 
+struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+ 
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+ 
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf)
+{
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+}
+ 
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count)
+{
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
+}
+ 
+static int etx_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+ 
+static int etx_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+ 
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        struct irq_desc *desc;
+
+        printk(KERN_INFO "Read function\n");
+        desc = irq_to_desc(11);
+        if (!desc) 
+        {
+            return -EINVAL;
+        }
+        __this_cpu_write(vector_irq[59], desc);
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+}
+
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Write Function\n");
+        return len;
+}
+ 
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            printk(KERN_INFO "Cannot create the Device 1\n");
+            goto r_device;
+        }
+ 
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+ 
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+            printk(KERN_INFO "my_device: cannot register IRQ ");
+                    goto irq;
+        }
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+    return 0;
+ 
+irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+ 
+r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+ 
+static void __exit etx_driver_exit(void)
+{
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("A simple device driver - Interrupts");
+MODULE_VERSION("1.9");
+```

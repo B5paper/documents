@@ -388,6 +388,12 @@ done
 
     `sudo`默认加载的环境变量可以到`/etv/environment`，`/etc/profile`中设置。
 
+* 挂载 iso 文件
+
+    `sudo mount -o loop,ro -t iso9660 filename.iso test_folder`
+    
+    `sudo mount filename.iso test_folder`
+
 ## problem shooting
 
 * Ubuntu 无法连接企业 Wifi
