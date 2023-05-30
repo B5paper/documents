@@ -303,7 +303,7 @@ printk(KERN_WARNING "this is a warning level log");
 printk("this is a non-level log")
 ```
 
-经实际测试，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
+经实际测试，如果不加日志级别，那么为白色粗字，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
 
 **默认打印级别**
 
@@ -759,52 +759,51 @@ In fact, all device drivers that are neither storage nor network device drivers 
 
     内核中有很多的字符设备驱动，这些字符设备驱动如何与对应的字符设备文件匹配，实际上是通过设备号来找到对应的字符设备驱动。
 
-    设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
-
-    The `dev_t` type (defined in `<linux/types.h>`) is used to hold device numbers—both the major and minor parts. `dev_t` is a 32-bit quantity with 12 bits set aside for the major number and 20 for the minor number.
-
-    主设备号用来区分不同类型的设备。
-
-    在`/proc/devices`文件中可以查找到设备号与对应的设备类型。
-
-    内核中提供了操作设备号的宏：
-
-    ```c
-    MAJOR(设备号);  // 通过设备号获取主设备号  MAJOR(dev_t dev);
-    MINOR(设备号);  // 通过设备号获取次设备号  MINOR(dev_t dev);
-    MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造设备号  MKDEV(int major, int minor);
-    ```
-
-    这些宏都是位运算，有空可以看看。
-
-    Example:
-
-    ```c
-    dev_t dev = MKDEV(235, 0);
-
-    register_chrdev_region(dev, 1, "Embetronicx_Dev");
-    ```
-
 ### 设备号
 
-设备号在内核中属于资源，需要向内核申请。
+#### 构造设备号
 
-需要包含头文件：
+设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
+
+The `dev_t` type (defined in `<linux/types.h>`) is used to hold device numbers—both the major and minor parts. `dev_t` is a 32-bit quantity with 12 bits set aside for the major number and 20 for the minor number.
+
+主设备号用来区分不同类型的设备，次设备号用于区分设备的实例。
+
+在`/proc/devices`文件中可以查找到设备号与对应的设备类型。
+
+内核中提供了操作设备号的宏：
 
 ```c
-#include <linux/cdev.h>
-#include <linux/fs.h>
+MAJOR(设备号);  // 通过设备号获取主设备号  MAJOR(dev_t dev);
+MINOR(设备号);  // 通过设备号获取次设备号  MINOR(dev_t dev);
+MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造设备号  MKDEV(int major, int minor);
 ```
 
- 1. 静态申请（Statically allocating）
+这些宏都是位运算，有空可以看看。
+
+Example:
+
+```c
+MKDEV(220,0);
+```
+
+#### 申请与注销设备号
+
+设备号在内核中属于资源，需要向内核申请。有两种申请方式，一种是静态申请，一种是动态申请。
+
+1. 静态申请（Statically allocating）
 
     首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如 220。根据设备个数分配次设备号，一般从 0 开始。
 
-    构造设备号：`MKDEV(220,0);`
+    Syntax:
 
-    调用`register_chrdev_region(dev_t from, unsigned count, const char *name);`
+    ```c
+    register_chrdev_region(dev_t from, unsigned count, const char *name);
+    ```
 
-    params:
+    Header file: `<linux/fs.h>`
+
+    Params:
 
     * `from`: 要申请的起始设备号
 
@@ -816,72 +815,77 @@ In fact, all device drivers that are neither storage nor network device drivers 
 
     返回 0 表示成功，返回非 0 表示失败。
 
-    不再使用设备号需要注销：
+    Example:
 
     ```c
-    unregister_chrdev_region(dev_t from, unsigned count);
+    dev_t dev = MKDEV(235, 0);
+    register_chrdev_region(dev, 1, "my driver");
+    ```
+
+ 2. 动态申请（Dynamically Allocating）
+
+    通过`alloc_chrdev_region`向内核申请
+
+    ```c
+    int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
     ```
 
     header file: `<linux/fs.h>`
 
     params:
 
-    `from`: 要注销的起始设备号
+    * `dev`: 设备号的地址
 
-    `count`: 设备号的个数
+    * `baseminor`: 起始次设备号
 
-    一般在卸载模块的时候释放设备号。The usual place to call unregister_chrdev_region would be in your module’s cleanup function (Exit Function).
+    * `count`: 设备号个数
 
-    Example:
+    * `name`：设备在内核中对应的名称
 
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/cdev.h>
-    #include <linux/fs.h>
+    释放的方法和静态申请一致。
 
-    int hello_init(void)
-    {
-        printk("<1>""hello my module\n");
+不再使用设备号需要注销：
 
-        // allocate a device number
-        register_chrdev_region(MKDEV(220,0), 1, "hlc_dev");
-        return 0;
-    }
+```c
+unregister_chrdev_region(dev_t from, unsigned count);
+```
 
-    void hello_exit(void)
-    {
-        unregister_chrdev_region(MKDEV(220,0), 1);
-        printk("<1>""bye bye!\n");
-    }
+header file: `<linux/fs.h>`
 
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
+params:
 
- 2. 动态申请（Dynamically Allocating）
+* `from`: 要注销的起始设备号
 
-     通过`alloc_chrdev_region`向内核申请
+* `count`: 设备号的个数
 
-     ```c
-     int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
-     ```
+一般在卸载模块的时候释放设备号。The usual place to call unregister_chrdev_region would be in your module’s cleanup function (Exit Function).
 
-     header file: `<linux/fs.h>`
+Example:
 
-     params:
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/fs.h>
 
-     `dev`: 设备号的地址
+int hello_init(void)
+{
+    printk("load my module\n");
 
-     `baseminor`: 起始次设备号
+    // allocate a device number
+    register_chrdev_region(MKDEV(220, 0), 1, "hlc_dev");
+    return 0;
+}
 
-     `count`: 设备号个数
+void hello_exit(void)
+{
+    unregister_chrdev_region(MKDEV(220, 0), 1);
+    printk("unload my module\n");
+}
 
-     `name`：设备在内核中对应的名称
-
-     释放的方法和静态申请一致。
-
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL");
+```
 
 **Difference between static and dynamic method**
 
@@ -1077,8 +1081,6 @@ struct file_operations cdd_fops = {  // GNU C 额外语法，选择性地初始�
     .unlocked_ioctl = cdd_ioctl,  // ioctl 接口
     .release = cdd_release,  // 对应用户 close 接口
 };
-
-
 ```
 
 `inode`是文件的节点结构，用来存储文件静态信息。文件创建时，内核中就会有一个 inode 结构
@@ -1142,7 +1144,7 @@ struct file_operations m_ops = {
 
 int hello_init(void)
 {
-    printk("<1>""hello my module\n");
+    printk("Insert my test module.\n");
 
     // allocate a device number
     dev_num = MKDEV(220,0);
@@ -1157,7 +1159,7 @@ void hello_exit(void)
 {
     cdev_del(&m_dev);
     unregister_chrdev_region(dev_num, 1);
-    printk("<1>""bye bye!\n");
+    printk("Exit my test module.\n");
 }
 
 module_init(hello_init);
@@ -1166,6 +1168,8 @@ MODULE_LICENSE("GPL");
 ```
 
 对其编译后，加载模块：`sudo insmod hello_world.ko`。
+
+设备驱动需要和设备文件配合使用。
 
 `__user`表示是一个用户空间的指针，所以kernel不可能直接使用。
 
@@ -1179,7 +1183,9 @@ MODULE_LICENSE("GPL");
 #endif
 ```
 
-Manually Creating Device File
+### 设备文件
+
+**Manually Creating Device File**
 
 We can create the device file manually by using mknod.
 
@@ -1251,8 +1257,6 @@ Create `Device` with the `class` which is created by the above step
 ```c
 void class_destroy(struct class *cls);
 ```
-
-### 设备文件
 
 * `device_create`
 
@@ -1420,7 +1424,7 @@ if (出错) {
 int register_chrdev(unsigned int major, const char *name, const struct file_operations *fops);
 ```
 
-当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operatorions`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
+当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
 
 通过代码测试设备文件：
 
@@ -4499,6 +4503,355 @@ r_class:
  
 static void __exit etx_driver_exit(void)
 {
+    free_irq(IRQ_NO,(void *)(irq_handler));
+    kobject_put(kobj_ref); 
+    sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    device_destroy(dev_class,dev);
+    class_destroy(dev_class);
+    cdev_del(&etx_cdev);
+    unregister_chrdev_region(dev, 1);
+    printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("A simple device driver - Interrupts");
+MODULE_VERSION("1.9");
+```
+
+### Work queue
+
+Work queues defer work into a kernel thread; this bottom half always runs in the process context.
+
+Workqueue 将工作推迟到一个内核线程中，这个底层部分总是运行在进程的上下文环境中。
+
+Workqueue is allowing users to create a kernel thread and bind work to the kernel thread.
+
+So, this will run in the process context and the work queue can sleep.
+
+（什么是 process context ? 为什么 kernel thread 会运行在 process context 中？）
+
+Normally, it is easy to decide between using workqueue and softirq/tasklet:
+
+If the deferred work needs to sleep, then workqueue is used.
+If the deferred work need not sleep, then softirq or tasklet are used.
+
+注：
+
+* 什么是 softirq？
+
+There are two ways to implement Workqueue in the Linux kernel.
+
+Using global workqueue (Static / Dynamic)
+Creating Own workqueue (We will see in the next tutorial)
+
+**Initialize work using Static Method**
+
+The below call creates a workqueue by the name and the function that we are passing in the second argument gets scheduled in the queue.
+
+`DECLARE_WORK(name, void (*func)(void *))`
+
+Where,
+
+* `name`: The name of the “work_struct” structure that has to be created.
+
+* `func`: The function to be scheduled in this workqueue.
+
+Example:
+
+```c
+DECLARE_WORK(workqueue,workqueue_fn);
+```
+
+Schedule work to the Workqueue
+The below functions are used to allocate the work to the queue.
+
+Schedule_work
+This function puts a job in the kernel-global workqueue if it was not already queued and leaves it in the same position on the kernel-global workqueue otherwise.
+
+int schedule_work( struct work_struct *work );
+
+where,
+
+work – job to be done
+
+Returns zero if work was already on the kernel-global workqueue and non-zero otherwise.
+
+Scheduled_delayed_work
+After waiting for a given time this function puts a job in the kernel-global workqueue.
+
+int scheduled_delayed_work( struct delayed_work *dwork, unsigned long delay );
+
+where,
+
+dwork – job to be done
+
+delay– number of jiffies to wait or 0 for immediate execution
+
+Schedule_work_on
+This puts a job on a specific CPU.
+
+int schedule_work_on( int cpu, struct work_struct *work );
+
+where,
+
+cpu– CPU to put the work task on
+
+work– job to be done
+
+Scheduled_delayed_work_on
+After waiting for a given time this puts a job in the kernel-global workqueue on the specified CPU.
+
+int scheduled_delayed_work_on(int cpu, struct delayed_work *dwork, unsigned long delay );
+where,
+
+cpu – CPU to put the work task on
+
+dwork – job to be done
+
+delay– number of jiffies to wait or 0 for immediate execution
+
+Delete work from workqueue
+There are also a number of helper functions that you can use to flush or cancel work on work queues. To flush a particular work item and block until the work is complete, you can make a call to flush_work. All work on a given work queue can be completed using a call to flush_work. In both cases, the caller blocks until the operation are complete. To flush the kernel-global work queue, call flush_scheduled_work.
+
+int flush_work( struct work_struct *work );
+void flush_scheduled_work( void );
+Cancel Work from workqueue
+You can cancel work if it is not already executing in a handler. A call to cancel_work_sync will terminate the work in the queue or block until the callback has finished (if the work is already in progress in the handler). If the work is delayed, you can use a call to cancel_delayed_work_sync.
+
+int cancel_work_sync( struct work_struct *work );
+int cancel_delayed_work_sync( struct delayed_work *dwork );
+Check the workqueue
+Finally, you can find out whether a work item is pending (not yet executed by the handler) with a call to work_pending or delayed_work_pending.
+
+`work_pending( work );`
+
+`delayed_work_pending( work );`
+
+Example:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (Global Workqueue - Static method)
+*
+*  \author     EmbeTronicX
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/sysfs.h> 
+#include<linux/kobject.h> 
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <linux/workqueue.h>            // Required for workqueues
+#include <linux/err.h>
+ 
+#define IRQ_NO 11
+ 
+ 
+void workqueue_fn(struct work_struct *work); 
+ 
+/*Creating work by Static Method */
+DECLARE_WORK(workqueue,workqueue_fn);
+ 
+/*Workqueue Function*/
+void workqueue_fn(struct work_struct *work)
+{
+        printk(KERN_INFO "Executing Workqueue Function\n");
+}
+ 
+ 
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+        schedule_work(&workqueue);
+        
+        return IRQ_HANDLED;
+}
+ 
+ 
+volatile int etx_value = 0;
+ 
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+struct kobject *kobj_ref;
+
+/*
+** Function Prototypes
+*/
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+ 
+/*************** Driver Fuctions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+ 
+/*************** Sysfs Fuctions **********************/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count);
+ 
+struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+
+/*
+** File operation sturcture
+*/
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+
+/*
+** This function will be called when we read the sysfs file
+*/ 
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf)
+{
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+}
+
+/*
+** This function will be called when we write the sysfsfs file
+*/
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count)
+{
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
+}
+
+/*
+** This function will be called when we open the Device file
+*/  
+static int etx_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we close the Device file
+*/  
+static int etx_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we read the Device file
+*/
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Read function\n");
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+}
+
+/*
+** This function will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Write Function\n");
+        return len;
+}
+ 
+/*
+** Module Init function
+*/
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            printk(KERN_INFO "Cannot create the Device 1\n");
+            goto r_device;
+        }
+ 
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+ 
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+            printk(KERN_INFO "my_device: cannot register IRQ ");
+                    goto irq;
+        }
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+ 
+r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+
+/*
+** Module exit function
+*/ 
+static void __exit etx_driver_exit(void)
+{
         free_irq(IRQ_NO,(void *)(irq_handler));
         kobject_put(kobj_ref); 
         sysfs_remove_file(kernel_kobj, &etx_attr.attr);
@@ -4514,6 +4867,1070 @@ module_exit(etx_driver_exit);
  
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("A simple device driver - Interrupts");
-MODULE_VERSION("1.9");
+MODULE_DESCRIPTION("Simple Linux device driver (Global Workqueue - Static method)");
+MODULE_VERSION("1.10");
 ```
+
+看起来似乎是`irq_handler()`会调用`schedule_work()`，把繁重的工作分配到 bottom half 去做。推测：`schedule_work()`一定是非阻塞的。
+
+test:
+
+```bash
+sudo cat /dev/etx_device
+sudo dmesg
+```
+
+#### Initialize work using Dynamic Method
+
+The below call (`INIT_WORK`) creates a workqueue in Linux by the name work and the function that gets scheduled in the queue is work_fn.
+
+`INIT_WORK(work,work_fn)`
+
+Where,
+
+`name`: The name of the “work_struct” structure that has to be created.
+`func`: The function to be scheduled in this workqueue.
+
+**Schedule work to the Workqueue**
+The below functions used to allocate the work to the queue.
+
+`Schedule_work`
+
+This function puts a job in the kernel-global workqueue if it was not already queued and leaves it in the same position on the kernel-global workqueue otherwise.
+
+`int schedule_work( struct work_struct *work );`
+
+where,
+
+`work` – job to be done
+
+Returns zero if work was already on the kernel-global workqueue and non-zero otherwise.
+
+`Scheduled_delayed_work`
+
+After waiting for a given time this function puts a job in the kernel-global workqueue.
+
+`int scheduled_delayed_work( struct delayed_work *dwork, unsigned long delay );`
+
+where,
+
+`dwork` – job to be done
+
+`delay` – number of jiffies to wait or 0 for immediate execution
+
+`Schedule_work_on`
+
+This puts a job on a specific CPU.
+
+`int schedule_work_on( int cpu, struct work_struct *work );`
+
+where,
+
+`cpu` – CPU to put the work task on
+
+`work` – job to be done
+
+`Scheduled_delayed_work_on`
+
+After waiting for a given time this puts a job in the kernel-global workqueue on the specified CPU.
+
+`int scheduled_delayed_work_on(int cpu, struct delayed_work *dwork, unsigned long delay );`
+
+where,
+
+`cpu` – CPU to put the work task on
+
+`dwork` – job to be done
+
+`delay` – number of jiffies to wait or 0 for immediate execution
+
+**Delete work from workqueue**
+
+There are also a number of helper functions that you can use to flush or cancel work on work queues. To flush a particular work item and block until the work is complete, you can make a call to flush_work. All work on a given work queue can be completed using a call to . In both cases, the caller blocks until the operation are complete. To flush the kernel-global work queue, call flush_scheduled_work.
+
+`int flush_work( struct work_struct *work );`
+
+`void flush_scheduled_work( void );`
+
+**Cancel Work from workqueue**
+
+You can cancel work if it is not already executing in a handler. A call to cancel_work_sync will terminate the work in the queue or block until the callback has finished (if the work is already in progress in the handler). If the work is delayed, you can use a call to cancel_delayed_work_sync.
+
+`int cancel_work_sync( struct work_struct *work );`
+
+`int cancel_delayed_work_sync( struct delayed_work *dwork );`
+
+**Check workqueue**
+
+Finally, you can find out whether a work item is pending (not yet executed by the handler) with a call to work_pending or delayed_work_pending.
+
+`work_pending( work );`
+`delayed_work_pending( work );`
+
+Example:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (Global Workqueue - Dynamic method)
+*
+*  \author     EmbeTronicX
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/sysfs.h> 
+#include<linux/kobject.h> 
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <linux/workqueue.h>            // Required for workqueues
+#include <linux/err.h>
+ 
+#define IRQ_NO 11
+ 
+/* Work structure */
+static struct work_struct workqueue;
+ 
+void workqueue_fn(struct work_struct *work); 
+ 
+/*Workqueue Function*/
+void workqueue_fn(struct work_struct *work)
+{
+        printk(KERN_INFO "Executing Workqueue Function\n");
+}
+ 
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+        /*Allocating work to queue*/
+        schedule_work(&workqueue);
+        
+        return IRQ_HANDLED;
+}
+ 
+volatile int etx_value = 0;
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+struct kobject *kobj_ref;
+
+/*
+** Function Prototypes
+*/
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+ 
+/*************** Driver Fuctions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+ 
+/*************** Sysfs Fuctions **********************/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count);
+ 
+struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+
+/*
+** File operation sturcture
+*/ 
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+
+/*
+** This fuction will be called when we read the sysfs file
+*/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf)
+{
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+}
+ 
+/*
+** This fuction will be called when we write the sysfsfs file
+*/
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count)
+{
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
+}
+
+/*
+** This fuction will be called when we open the Device file
+*/  
+static int etx_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This fuction will be called when we close the Device file
+*/  
+static int etx_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This fuction will be called when we read the Device file
+*/ 
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Read function\n");
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+}
+
+/*
+** This fuction will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Write Function\n");
+        return 0;
+}
+ 
+/*
+** Module Init function
+*/ 
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            printk(KERN_INFO "Cannot create the Device 1\n");
+            goto r_device;
+        }
+ 
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+ 
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+            printk(KERN_INFO "my_device: cannot register IRQ ");
+                    goto irq;
+        }
+ 
+        /*Creating work by Dynamic Method */
+        INIT_WORK(&workqueue,workqueue_fn);
+ 
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+ 
+r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+
+/*
+** Module exit function
+*/ 
+static void __exit etx_driver_exit(void)
+{
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("Simple Linux device driver (Global Workqueue - Dynamic method)");
+MODULE_VERSION("1.11");
+```
+
+The core workqueue is represented by structure struct workqueue_struct, which is the structure onto which work is placed. This work is added to the queue in the top half (Interrupt context) and the execution of this work happened in the bottom half (Kernel context).
+
+The work is represented by structure struct `work_struct`, which identifies the work and the deferral function.
+
+**Create and destroy workqueue structure**
+
+Workqueues are created through a macro called create_workqueue, which returns a workqueue_struct reference. You can remove this workqueue later (if needed) through a call to the destroy_workqueue function.
+
+`struct workqueue_struct *create_workqueue( name );`
+
+`void destroy_workqueue( struct workqueue_struct * );`
+
+You should use create_singlethread_workqueue() for creating a workqueue when you want to create only a single thread for all the processors.
+
+Since create_workqueue and create_singlethread_workqueue() are macros. Both are using the alloc_workqueue function in the background.
+
+```c
+#define create_workqueue(name)                    
+        alloc_workqueue("%s", WQ_MEM_RECLAIM, 1, (name))
+#define create_singlethread_workqueue(name)       
+        alloc_workqueue("%s", WQ_UNBOUND | WQ_MEM_RECLAIM, 1, (name))
+```
+
+alloc_workqueue
+Allocate a workqueue with the specified parameters.
+
+alloc_workqueue ( fmt, flags, max_active );
+
+fmt– printf format for the name of the workqueue
+
+flags – WQ_* flags
+
+max_active – max in-flight work items, 0 for default
+
+This will return Pointer to the allocated workqueue on success, NULL on failure.
+
+WQ_* flags
+This is the second argument of alloc_workqueue.
+
+WQ_UNBOUND
+
+Work items queued to an unbound wq are served by the special worker-pools which host workers who are not bound to any specific CPU. This makes the wq behave like a simple execution context provider without concurrency management. The unbound worker-pools try to start the execution of work items as soon as possible. Unbound wq sacrifices locality but is useful for the following cases.
+
+* Wide fluctuation in the concurrency level requirement is expected and using bound wq may end up creating a large number of mostly unused workers across different CPUs as the issuer hops through different CPUs.
+
+* Long-running CPU-intensive workloads which can be better managed by the system scheduler.
+
+WQ_FREEZABLE
+
+A freezable wq participates in the freeze phase of the system suspend operations. Work items on the wq are drained and no new work item starts execution until thawed.
+
+WQ_MEM_RECLAIM
+
+All wq which might be used in the memory reclaim paths MUST have this flag set. The wq is guaranteed to have at least one execution context regardless of memory pressure.
+
+WQ_HIGHPRI
+
+Work items of a highpri wq are queued to the highpri worker-pool of the target CPU. Highpri worker-pools are served by worker threads with elevated nice levels.
+
+Note that normal and highpri worker-pools don’t interact with each other. Each maintains its separate pool of workers and implements concurrency management among its workers.
+
+WQ_CPU_INTENSIVE
+
+Work items of a CPU intensive wq do not contribute to the concurrency level. In other words, runnable CPU-intensive work items will not prevent other work items in the same worker pool from starting execution. This is useful for bound work items that are expected to hog CPU cycles so that their execution is regulated by the system scheduler.
+
+Although CPU-intensive work items don’t contribute to the concurrency level, the start of their executions is still regulated by the concurrency management and runnable non-CPU-intensive work items can delay the execution of CPU-intensive work items.
+
+This flag is meaningless for unbound wq.
+
+Queuing Work to workqueue
+With the work structure initialized, the next step is enqueuing the work on a workqueue. You can do this in a few ways.
+
+queue_work
+This will queue the work to the CPU on which it was submitted, but if the CPU dies it can be processed by another CPU.
+int queue_work( struct workqueue_struct *wq, struct work_struct *work );
+
+Where,
+
+wq – workqueue to use
+
+work – work to queue
+
+It returns false if work was already on a queue, true otherwise.
+
+queue_work_on
+This puts work on a specific CPU.
+int queue_work_on( int cpu, struct workqueue_struct *wq, struct work_struct *work );
+
+Where,
+
+cpu– cpu to put the work task on
+
+wq – workqueue to use
+
+work– job to be done
+
+`queue_delayed_work`
+After waiting for a given time this function puts work in the workqueue.
+
+```c
+int queue_delayed_work( struct workqueue_struct *wq,struct delayed_work *dwork, unsigned long delay );
+```
+
+Where,
+
+`wq` – workqueue to use
+
+`dwork` – work to queue
+
+`delay`– number of jiffies to wait before queueing or 0 for immediate execution
+
+`queue_delayed_work_on`
+
+After waiting for a given time this puts a job in the workqueue on the specified CPU.
+
+```c
+int queue_delayed_work_on( int cpu, struct workqueue_struct *wq,struct delayed_work *dwork, unsigned long delay );
+```
+
+Where,
+
+`cpu` – CPU to put the work task on
+
+`wq` – workqueue to use
+
+`dwork` – work to queue
+
+`delay` – number of jiffies to wait before queueing or 0 for immediate execution
+
+Full code:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (Own Workqueue)
+*
+*  \author     EmbeTronicX
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/sysfs.h> 
+#include<linux/kobject.h> 
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <linux/workqueue.h>            // Required for workqueues
+#include <linux/err.h>
+ 
+#define IRQ_NO 11
+ 
+static struct workqueue_struct *own_workqueue;
+ 
+static void workqueue_fn(struct work_struct *work); 
+ 
+static DECLARE_WORK(work, workqueue_fn);
+ 
+ 
+/*Workqueue Function*/
+static void workqueue_fn(struct work_struct *work)
+{
+    printk(KERN_INFO "Executing Workqueue Function\n");
+    return;
+        
+}
+ 
+ 
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred\n");
+        /*Allocating work to queue*/
+        queue_work(own_workqueue, &work);
+        
+        return IRQ_HANDLED;
+}
+ 
+ 
+volatile int etx_value = 0;
+ 
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+struct kobject *kobj_ref;
+
+/*
+** Function Prototypes
+*/ 
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+ 
+/*************** Driver Fuctions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+ 
+/*************** Sysfs Fuctions **********************/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count);
+ 
+struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+
+/*
+** File operation sturcture
+*/
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+
+/*
+** This fuction will be called when we read the sysfs file
+*/  
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf)
+{
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+}
+
+/*
+** This fuction will be called when we write the sysfsfs file
+*/ 
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count)
+{
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
+}
+
+/*
+** This fuction will be called when we open the Device file
+*/ 
+static int etx_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This fuction will be called when we close the Device file
+*/  
+static int etx_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This fuction will be called when we read the Device file
+*/ 
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Read function\n");
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+}
+
+/*
+** This fuction will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Write Function\n");
+        return 0;
+}
+ 
+/*
+** Module Init function
+*/ 
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            printk(KERN_INFO "Cannot create the Device 1\n");
+            goto r_device;
+        }
+ 
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+ 
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+            printk(KERN_INFO "my_device: cannot register IRQ \n");
+                    goto irq;
+        }
+ 
+        /*Creating workqueue */
+        own_workqueue = create_workqueue("own_wq");
+        
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+ 
+r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+
+/*
+** Module exit function
+*/ 
+static void __exit etx_driver_exit(void)
+{
+        /* Delete workqueue */
+        destroy_workqueue(own_workqueue);
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("Simple Linux device driver (Own Workqueue)");
+MODULE_VERSION("1.12");
+```
+
+test:
+
+```bash
+sudo cat /dev/etx_device
+dmesg
+```
+
+Use `ps -aef` command to see our workqueue. You can able to see our workqueue which is `own_wq`.
+
+**Difference between Schedule_work and queue_work**
+
+If you want to use your own dedicated workqueue you should create a workqueue using create_workqueue. At that time you need to put work on your workqueue by using queue_work function.
+
+If you don’t want to create any own workqueue, you can use kernel global workqueue. In that condition, you can use schedule_work function to put your work to global workqueue.
+
+## Linked list
+
+Linux implement a Doubly Linked List, which is defined in `/lib/modules/$(uname -r)/build/include/linux/list.h`.
+
+```c
+#define LIST_HEAD_INIT(name) { &(name), &(name) }
+#define LIST_HEAD(name) \
+    struct list_head name = LIST_HEAD_INIT(name)
+struct list_head {
+    struct list_head *next;
+    struct list_head *prev;
+};
+```
+
+Usage:
+
+```c
+#include <linux/list.h>
+
+struct my_list{
+     struct list_head list;     //linux kernel list implementation
+     int data;
+};
+```
+
+Create a linked list head:
+
+```c
+LIST_HEAD(linked_list);
+```
+
+This macro will create the head node structure in the name of “linked_list” and it will initialize that to its own address.
+
+Example:
+
+```c
+struct list_head etx_linked_list = { &etx_linked_list , &etx_linked_list};
+```
+
+While creating the head node, it initializes the prev and next pointer to its own address. This means that prev and next pointer points to itself. The node is empty If the node’s prev and next pointer points to itself.
+
+（不是很懂，创建了 head note 后，不应该已经有一个 node 了吗，为什么还说他是空的？猜测这里的 head 是一个 dummy head）
+
+**Create Node in Linked List**
+
+```c
+INIT_LIST_HEAD(struct list_head *list);
+```
+
+可以用上面的宏进行初始化链表。
+
+Example:
+
+```c
+struct my_list{
+     struct list_head list;     //linux kernel list implementation
+     int data;
+};
+
+struct my_list new_node;
+
+INIT_LIST_HEAD(&new_node.list);
+new_node.data = 10;
+```
+
+**Add Node to Linked List**
+
+* Add after Head Node
+
+    Insert a new entry after the specified head:
+
+    `inline void list_add(struct list_head *new, struct list_head *head);`
+
+    Where,
+
+    `struct list_head * new` – the new entry to be added
+
+    `struct list_head * head` – list head to add it after
+
+    Example:
+
+    ```c
+    list_add(&new_node.list, &etx_linked_list);
+    ```
+
+* Add before Head Node
+
+    Insert a new entry before the specified head：
+
+    `inline void list_add_tail(struct list_head *new, struct list_head *head);`
+
+    Where,
+
+    `struct list_head * new` – a new entry to be added
+
+    `struct list_head * head` – list head to add before the head
+
+    Example:
+
+    ```c
+    list_add_tail(&new_node.list, &etx_linked_list);
+    ```
+
+* Delete Node from Linked List
+
+    * `list_del`
+
+        It will delete the entry node from the list. This function removes the entry node from the linked list by disconnecting prev and next pointers from the list, but it doesn’t free any memory space allocated for the entry node.
+
+        `inline void list_del(struct list_head *entry);`
+
+        Where,
+
+        `struct list_head * entry` – the element to delete from the list.
+
+    * `list_del_init`
+
+        It will delete the entry node from the list and reinitialize it. This function removes the entry node from the linked list by disconnecting prev and next pointers from the list, but it doesn’t free any memory space allocated for the entry node.
+
+        `inline void list_del_init(struct list_head *entry);`
+
+        Where,
+
+        `struct list_head * entry` – the element to delete from the list.
+
+* Replace Node in Linked List
+
+    * `list_replace`
+
+        This function is used to replace the old node with the new node.
+
+        `inline void list_replace(struct list_head *old, struct list_head *new);`
+
+        Where,
+
+        `struct list_head * old` – the element to be replaced
+
+        `struct list_head * new` – the new element to insert
+
+        If old was empty, it will be overwritten.
+
+    * `list_replace_init`
+
+        This function is used to replace the old node with the new node and reinitialize the old entry.
+
+        `inline void list_replace_init(struct list_head *old, struct list_head *new);`
+
+        Where,
+
+       `struct list_head * old` – the element to be replaced
+
+       `struct list_head * new` – the new element to insert
+
+        If old was empty, it will be overwritten.
+
+* Moving Node in Linked List
+
+    * `list_move`
+
+        This will delete one list from the linked list and again adds to it after the head node.
+
+        inline void list_move(struct list_head *list, struct list_head *head);
+
+        Where,
+
+        `struct list_head * list` – the entry to move
+
+        `struct list_head * head` – the head that will precede our entry
+
+    * `list_move_tail`
+
+        This will delete one list from the linked list and again adds it before the head node.
+
+        inline void list_move_tail(struct list_head *list, struct list_head *head);
+
+        Where,
+
+        `struct list_head * list` – the entry to move
+
+        `struct list_head * head` – the head that will precede our entry
+
+* Rotate Node in Linked List
+
+    This will rotate the list to the left.
+
+    `inline void list_rotate_left(struct list_head *head);`
+
+    Where,
+
+    head – the head of the list
+
+* Test the Linked List Entry
+
+    * `list_is_last`
+
+        This tests whether list is the last entry in the list head.
+
+        inline int list_is_last(const struct list_head *list, const struct list_head *head);
+
+            Where,
+
+        const struct list_head * list – the entry to test
+
+        const struct list_head * head – the head of the list
+
+        It returns 1 if it is the last entry otherwise 0.
+
+    * `list_empty`
+
+        It tests whether a list is empty or not.
+
+        `inline int list_empty(const struct list_head *head);`
+
+        Where,
+
+        `const struct list_head * head` – the head of the list
+
+        It returns 1 if it is empty otherwise 0.
+
+    * `list_is_singular`
+
+        This will test whether a list has just one entry.
+
+        `inline int list_is_singular(const struct list_head *head);`
+
+        Where,
+
+        const struct list_head * head – the head of the list
+
+        It returns 1 if it has only one entry otherwise 0.
+
+* Split Linked List into two parts
+
+    This cut a list into two.
+    This helper moves the initial part of head, up to and including entry, from head to list. You should pass on entry an element you know is on head. list should be an empty list or a list you do not care about losing its data.
+
+    inline void list_cut_position(struct list_head *list, struct list_head *head, struct list_head *entry);
+
+    Where,
+
+    struct list_head * list – a new list to add all removed entries
+
+    struct list_head * head– a list with entries
+
+    struct list_head * entry– an entry within the head could be the head itself and if so we won’t cut the list
+
+* Join Two Linked Lists
+
+    This will join two lists, this is designed for stacks.
+    inline void list_splice(const struct list_head *list, struct list_head *head);
+
+    Where,
+
+    const struct list_head * list – the new list to add.
+
+    struct list_head * head – the place to add it in the first list.
+
+* Traverse Linked List
+
+    * `list_entry`
+
+        This macro is used to get the struct for this entry.
+        
+        list_entry(ptr, type, member);
+
+        ptr– the struct list_head pointer.
+
+        type – the type of the struct this is embedded in.
+
+        member – the name of the list_head within the struct.
+
+    * `list_for_each`
+
+        This macro is used to iterate over a list.
+        
+        list_for_each(pos, head);
+
+        pos –  the &struct list_head to use as a loop cursor.
+
+        head –  the head for your list.
+
+    * `list_for_each_entry`
+
+        This is used to iterate over a list of the given type.
+
+        ```c
+        list_for_each_entry(pos, head, member);
+        ```
+
+        pos – the type * to use as a loop cursor.
+
+        head – the head for your list.
+
+        member – the name of the list_head within the struct.
+
+    * `list_for_each_entry_safe`
+
+        This will iterate over the list of given type-safe against the removal of list entry.
+
+        `list_for_each_entry_safe ( pos, n, head, member);`
+
+        Where,
+
+        pos – the type * to use as a loop cursor.
+
+        n – another type * to use as temporary storage
+
+        head – the head for your list.
+
+        member – the name of the list_head within the struct.
+
+    * `list_for_each_prev`
+
+        This will be used to iterate over a list backward.
+
+        list_for_each_prev(pos, head);
+
+        pos – the &struct list_head to use as a loop cursor.
+
+        head – the head for your list.
+
+    * `list_for_each_entry_reverse`
+
+        This macro is used to iterate backward over the list of the given type.
+        
+        list_for_each_entry_reverse(pos, head, member);
+
+        pos – the type * to use as a loop cursor.
+
+        head  the head for your list.
+
+        member – the name of the list_head within the struct.
+

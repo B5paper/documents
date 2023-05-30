@@ -109,7 +109,29 @@ Syntax:
 [u_0]
 请使用静态方式申请设备号。
 [u_1]
-(empty)
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/fs.h>
+
+int hello(void)
+{
+    printk(KERN_WARNING "hello my module\n");
+    dev_t dev_num = MKDEV(255, 0);
+    register_chrdev_region(dev_num, 1, "my driver");
+    return 0;
+}
+
+void bye(void)
+{
+    unregister_chrdev_region(MKDEV(255, 0), 1);
+    printk("goodbye my module\n");
+}
+
+module_init(hello)
+module_exit(bye)
+MODULE_LICENSE("GPL");
+```
 
 [unit]
 [u_0]
@@ -173,7 +195,6 @@ int hello_init(void)
 {
     printk("my hello world driver\n");
     alloc_chrdev_region(&dev_num, 0, 1, m_dev_name);
-    struct cdev *my_cdev = cdev_alloc();
     
     cdev_init(&m_dev, &m_ops);
     cdev_add(&m_dev, dev_num, 1);
@@ -193,7 +214,7 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
-[dep]
+[deps]
 内核模块的加载与卸载
 [u_0]
 如何手动创建 cdev 设备文件？
@@ -260,6 +281,8 @@ MODULE_LICENSE("GPL");
 [unit]
 [u_0]
 实现通过用户空间的`read()`和`write()`函数与内核空间交换数据。
+[u_1]
+(empty)
 
 [unit]
 [u_0]
@@ -284,3 +307,18 @@ long int m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *of
 ```
 
 （目前各个参数都用不到，所以不知道是什么意思）
+
+[unit]
+[u_0]
+写出`struct file_operations`中的常用字段。
+[u_1]
+```c
+struct file_operations
+{
+    struct module *owner;
+    ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+    ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+    int (*open) (struct inode *, struct file *);
+    int (*release) (struct inode *, struct file *);
+};
+```

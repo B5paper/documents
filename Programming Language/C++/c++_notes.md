@@ -1590,7 +1590,7 @@ int main()
 
 #### `getchar()`
 
-The difference between getc() and getchar() is getc() can read from any input stream, but getchar() reads from standard input. So getchar() is equivalent to getc(stdin).
+The difference between `getc()` and `getchar()` is `getc()` can read from any input stream, but `getchar()` reads from standard input. So `getchar()` is equivalent to `getc(stdin)`.
 
 Syntax:
 
