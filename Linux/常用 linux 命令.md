@@ -364,6 +364,34 @@ do
 done
 ```
 
+## grub 中更改启动使用的内核
+
+Ref: <https://gist.github.com/chaiyujin/c08e59752c3e238ff3b1a5098322b363>
+
+显示当前使用的内核版本：
+
+`grep submenu /boot/grub/grub.cfg`
+
+显示所有可用的内核版本：
+
+`grep gnulinux-4.15.0 /boot/grub/grub.cfg`
+
+我们需要找到`$menuentry_id_option`后面的 kernel id 字符串。这个是我们需要的。
+
+编辑`/etc/default/grub`文件中的`GRUB_DEFAULT`，网上说写成类似`GRUB_DEFAULT='gnulinux-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf>gnulinux-4.15.0-126-generic-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf'`这样的就可以，但是我试了试不行。写成`1>2`这样的可以，其中`1`表示一级菜单的第二个选项，`2`表示二级菜单的第三个选项。
+
+这些选项或许可以通过文件获得，但我是先实际看了看 grub 菜单，然后直接记住的。如果 grub 菜单等待时间过短，可以设置`GRUB_TIMEOUT`为`-1`或一个比较大的数。
+
+最后需要执行`sudo update-grub`使改动生效。
+
+More ref:
+
+1. <https://docs.digitalocean.com/products/droplets/how-to/kernel/use-non-default/>
+
+1. <https://unix.stackexchange.com/questions/694323/how-to-set-default-kernel-in-debian>
+
+1. <https://unix.stackexchange.com/questions/198003/set-the-default-kernel-in-grub>
+
 ## Tricks
 
 * 使用`sudo`时保留用户的环境变量：`sudo -E <command>`

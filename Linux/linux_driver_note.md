@@ -206,9 +206,6 @@ MODULE_LICENSE("GPL");  // 不加这行的话，无法通过编译。MODULE_LICE
 另外一个 example:
 
 ```c
-一个其他网站上提供的 hello world example:
-
-```c
 #include<linux/kernel.h>  // 这个头文件有什么用？
 #include<linux/init.h>
 #include<linux/module.h>
@@ -244,7 +241,6 @@ default:
 
 另外一个 makefile 的 example:
 
-```Makefile
 ```Makefile
 obj-m += hello_world.o
  
@@ -307,7 +303,7 @@ printk("this is a non-level log")
 
 **默认打印级别**
 
-上面的日志级别可以对应到数字 0 - 7，还可以是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
+上面的日志级别可以对应到数字 0 - 7，如果不指定日志级别，那么就是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
 
 可以参考这几个网站的资料：
 
@@ -367,7 +363,7 @@ Module Parameters Macros：
 
     `module_param(模块参数名，模块参数，访问权限);`
 
-    This macro is used to initialize the arguments. module_param takes three parameters: the name of the variable, its type, and a permissions mask to be used for an accompanying sysfs entry.
+    This macro is used to initialize the arguments. `module_param` takes three parameters: the name of the variable, its type, and a permissions mask to be used for an accompanying sysfs entry.
 
     The macro should be placed outside of any function and is typically found near the head of the source file. `module_param()` macro, defined in `linux/moduleparam.h`.
 
@@ -376,6 +372,24 @@ Module Parameters Macros：
     * `type`
 
         可以是下面几个之一：`byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `charp`, `bool`, `invbool`;
+
+        Numerous types are supported for module parameters:
+
+        * `bool`
+
+            A boolean (true or false) value (the associated variable should be of type int).
+
+        * `invbool`
+
+            The invbool type inverts the value, so that true values become false and vice versa.
+
+        * `charp`
+
+            A char pointer value. Memory is allocated for user-provided strings, and the pointer is set accordingly.
+
+        * `int`, `long`, `short`, `uint`, `ulong`, `ushort`
+            
+            Basic integer values of various lengths. The versions starting with `u` are for unsigned values.
 
     * `perm` is the usual permissions value.
 
@@ -423,29 +437,7 @@ Module Parameters Macros：
 
         比如`sudo insmod hello_world.ko m_arr=3,4,5`，那么`num`会被改写成`3`。
 
-* `module_param_cb()`
-
-    This macro is used to register the callback. Whenever the argument (parameter) got changed, this callback function will be called.
-
 在代码中对模块参数的使用和普通变量没有区别。
-
-Numerous types are supported for module parameters:
-
-* `bool`
-
-    A boolean (true or false) value (the associated variable should be of type int).
-
-* `invbool`
-
-    The invbool type inverts the value, so that true values become false and vice versa.
-
-* `charp`
-
-    A char pointer value. Memory is allocated for user-provided strings, and the pointer is set accordingly.
-
-* `int`, `long`, `short`, `uint`, `ulong`, `ushort`
-    
-    Basic integer values of various lengths. The versions starting with u are for unsigned values.
 
 Examples:
 
@@ -496,7 +488,7 @@ int modparam_init(void)  // 这是一个普通函数，函数的名字可以随�
 }
 ```
 
-在命令行中传递模块参数：
+**在命令行中传递模块参数**
 
 ```bash
 insmod hello_abc.ko param_int=50
@@ -519,7 +511,13 @@ sudo su
 echo 1 > /sys/module/hello_world_module/parameters/my_param
 ```
 
-如果我们需要监测模块变量的改变，那么可以用下面的代码：
+**监测模块参数的改变**
+
+`module_param_cb()`
+
+This macro is used to register the callback. Whenever the argument (parameter) got changed, this callback function will be called.
+
+为了注册 callback，我们首先需要填写一个结构体：
 
 ```c
 struct kernel_param_ops 
@@ -530,17 +528,11 @@ struct kernel_param_ops
 };
 ```
 
+（不明白这里的`free`有什么用）
+
 Example:
 
 ```c
-/***************************************************************************//**
-*  \file       hello_world.c
-*
-*  \details    Simple hello world driver
-*
-*  \author     EmbeTronicX
-*
-* *******************************************************************************/
 #include<linux/kernel.h>
 #include<linux/init.h>
 #include<linux/module.h>
@@ -609,20 +601,6 @@ MODULE_DESCRIPTION("A simple hello world driver");
 MODULE_VERSION("1.0");
 ```
 
-编译：
-
-```Makefile
-obj-m += hello_world_module.o
-
-KDIR = /lib/modules/$(shell uname -r)/build
-
-all:
-    make -C $(KDIR)  M=$(shell pwd) modules
-
-clean:
-    make -C $(KDIR)  M=$(shell pwd) clean
-```
-
 加载模块：
 
 ```bash
@@ -639,7 +617,7 @@ sudo sh -c "echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX"
 
 方法二：
 
-Type sudo su. Then enter the password if it asks. Then do echo `13 > /sys/module/hello_world_module/parameters/cb_valueETX`
+Type sudo su. Then enter the password if it asks. Then do `echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX`
 
 然后我们可以在`dmesg`里看到参数值变化的消息：
 
@@ -661,57 +639,55 @@ Type sudo su. Then enter the password if it asks. Then do echo `13 > /sys/module
 
 模块导出符号可以将模块中的变量/函数导出，供内核其他模块使用。
 
-如何导出：
+内核中提供了相应的宏来实现模块的导出:
 
-1. 内核中提供了相应的宏来实现模块的导出
+```
+EXPORT_SYMBOL
+EXPORT_SYMBOL_GPL  (只有遵循 GPL 协议的代码才可以使用)
+```
 
-    ```
-    EXPORT_SYMBOL
-    EXPORT_SYMBOL_GPL  (只有遵循 GPL 协议的代码才可以使用)
-    ```
+Example:
 
-    Example:
+```c
+#include <linux/init.h>
+#include <linux/module.h>
 
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
+int add(int a, int b)
+{
+    return a + b;
+}
 
-    int add(int a, int b)
-    {
-        return a + b;
-    }
+int mul(int a, int b)
+{
+    return a * b;
+}
 
-    int mul(int a, int b)
-    {
-        return a * b;
-    }
+EXPORT_SYMBOL(add);
+EXPORT_SYMBOL_GPL(mul);
 
-    EXPORT_SYMBOL(add);
-    EXPORT_SYMBOL_GPL(mul);
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("hlc");
+MODULE_VERSION("1.0");
+MODULE_DESCRIPTION("this is a module symbol!");
+// ...
+```
 
-    MODULE_LICENSE("GPL");
-    MODULE_AUTHOR("hlc");
-    MODULE_VERSION("1.0");
-    MODULE_DESCRIPTION("this is a module symbol!");
-    // ...
-    ```
+在别的模块中使用时，需要这样写：
 
-    在别的模块中使用时，需要这样写：
+```c
+extern int add(int a, int b);
+extern int mul(int a, int b);
+```
 
-    ```c
-    extern int add(int a, int b);
-    extern int mul(int a, int b);
-    ```
+`extern`表示函数是在外部实现的，不是在本文件中实现的。使用这些函数时，需要先加载他们所在的模块。
 
-    `extern`表示函数是在外部实现的，不是在本文件中实现的。使用这些函数时，需要先加载他们所在的模块。
+在 Makefile 中，应该把两个`.o`文件都写上：
 
-    在 Makefile 中，应该把两个`.o`文件都写上：
+```Makefile
+obj-m += xxx.o xxx_2.o
+```
 
-    ```Makefile
-    obj-m += xxx.o xxx_2.o
-    ```
-
-    在加载模块的时候，应该先加载导出符号的模块，再加载使用符号的模块。卸载时，顺序要相反。
+在加载模块的时候，应该先加载导出符号的模块，再加载使用符号的模块。卸载时，顺序要相反。
 
 ## 设备驱动
 
@@ -745,23 +721,17 @@ linux 设备：
 
 In fact, all device drivers that are neither storage nor network device drivers are some type of character driver.
 
-1. 字符设备驱动的实现
+字符设备驱动的访问：
 
-    1. 概述
+驱动是沟通硬件和上层应用的媒介，字符设备驱动通过字符设备文件来访问，Linux 中所有的设备文件存放在`/dev`中，在用户层访问设备文件和普通文件的方法是没有区别的。Linux 操作系统实际上是通过设备号来找到对应的字符设备驱动（怎么找？）。
 
-    驱动是沟通硬件和上层应用的媒介，字符设备驱动通过字符设备文件来访问，访问设备文件使用文件IO，在用户层访问设备文件和普通文件的方法是没有区别的
+一个设备文件需要实现和普通文件相同的方法：
 
-    `open, close, read, write, lseek, ioctl, mmap, stat`
-
-1. 通过设备文件找到对应的驱动
-
-    Linux 中所有的设备文件存放在`/dev`中。
-
-    内核中有很多的字符设备驱动，这些字符设备驱动如何与对应的字符设备文件匹配，实际上是通过设备号来找到对应的字符设备驱动。
+`open, close, read, write, lseek, ioctl, mmap, stat`
 
 ### 设备号
 
-#### 构造设备号
+**构造设备号**
 
 设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
 
@@ -784,10 +754,10 @@ MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造�
 Example:
 
 ```c
-MKDEV(220,0);
+dev_t m_dev_num = MKDEV(220,0);
 ```
 
-#### 申请与注销设备号
+**申请设备号**
 
 设备号在内核中属于资源，需要向内核申请。有两种申请方式，一种是静态申请，一种是动态申请。
 
@@ -840,9 +810,7 @@ MKDEV(220,0);
 
     * `count`: 设备号个数
 
-    * `name`：设备在内核中对应的名称
-
-    释放的方法和静态申请一致。
+**注销设备号**
 
 不再使用设备号需要注销：
 
@@ -858,7 +826,9 @@ params:
 
 * `count`: 设备号的个数
 
-一般在卸载模块的时候释放设备号。The usual place to call unregister_chrdev_region would be in your module’s cleanup function (Exit Function).
+一般在卸载模块的时候释放设备号。The usual place to call `unregister_chrdev_region` would be in your module’s cleanup function (Exit Function).
+
+动态申请得到的设备号，释放的方法和静态申请一致。
 
 Example:
 
@@ -867,24 +837,39 @@ Example:
 #include <linux/module.h>
 #include <linux/fs.h>
 
+dev_t dev = MKDEV(220, 0);
+
 int hello_init(void)
 {
     printk("load my module\n");
 
     // allocate a device number
-    register_chrdev_region(MKDEV(220, 0), 1, "hlc_dev");
+    register_chrdev_region(dev, 1, "hlc_dev");
+    printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
     return 0;
 }
 
 void hello_exit(void)
 {
-    unregister_chrdev_region(MKDEV(220, 0), 1);
+    unregister_chrdev_region(dev, 1);
     printk("unload my module\n");
 }
 
 module_init(hello_init);
 module_exit(hello_exit);
 MODULE_LICENSE("GPL");
+```
+
+```c
+// ...
+
+dev_t dev = 0;
+if ((alloc_chrdev_region(&dev, 0, 1, "Embetronicx_Dev")) < 0){
+        printk(KERN_INFO "Cannot allocate major number for device 1\n");
+        return -1;
+}
+
+// ...
 ```
 
 **Difference between static and dynamic method**
@@ -896,105 +881,6 @@ With the Dynamic method, you are telling the kernel that how many device numbers
 Partially to avoid conflict with other device drivers, it’s considered preferable to use the Dynamic method function, which will dynamically allocate the device numbers for you.
 
 The disadvantage of dynamic assignment is that you can’t create the device nodes in advance, because the major number assigned to your module will vary. For normal use of the driver, this is hardly a problem, because once the number has been assigned, you can read it from /proc/devices.
-
-Examples:
-
-```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple linux driver (Statically allocating the Major and Minor number)
-*
-*  \author     EmbeTronicX
-*
-* *******************************************************************************/
-#include<linux/kernel.h>
-#include<linux/init.h>
-#include<linux/module.h>
-#include <linux/fs.h>
-
-//creating the dev with our custom major and minor number
-dev_t dev = MKDEV(235, 0);
-
-/*
-** Module Init function
-*/
-static int __init hello_world_init(void)
-{
-    register_chrdev_region(dev, 1, "Embetronicx_Dev");
-    printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-    printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
-    return 0;
-}
-
-/*
-** Module exit function
-*/
-static void __exit hello_world_exit(void)
-{
-    unregister_chrdev_region(dev, 1);
-    printk(KERN_INFO "Kernel Module Removed Successfully...\n");
-}
- 
-module_init(hello_world_init);
-module_exit(hello_world_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="42272f202736302d2c2b213a02252f232b2e6c212d2f">[email protected]</a>>");
-MODULE_DESCRIPTION("Simple linux driver (Statically allocating the Major and Minor number)");
-MODULE_VERSION("1.0");
-```
-
-```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple linux driver (Dynamically allocating the Major and Minor number)
-*
-*  \author     EmbeTronicX
-*
-* *******************************************************************************/
-#include<linux/kernel.h>
-#include<linux/init.h>
-#include<linux/module.h>
-#include<linux/kdev_t.h>
-#include<linux/fs.h>
- 
-dev_t dev = 0;
-
-/*
-** Module Init function
-*/
-static int __init hello_world_init(void)
-{
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "Embetronicx_Dev")) <0){
-                printk(KERN_INFO "Cannot allocate major number for device 1\n");
-                return -1;
-        }
-        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-        printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
-        
-        return 0;
-}
-
-/*
-** Module exit function
-*/
-static void __exit hello_world_exit(void)
-{
-        unregister_chrdev_region(dev, 1);
-        printk(KERN_INFO "Kernel Module Removed Successfully...\n");
-}
- 
-module_init(hello_world_init);
-module_exit(hello_world_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4a2f27282f3e3825242329320a2d272b232664292527">[email protected]</a>>");
-MODULE_DESCRIPTION("Simple linux driver (Dynamically allocating the Major and Minor number)");
-MODULE_VERSION("1.1");
-```
 
 ### cdev 设备驱动
 
@@ -1011,7 +897,7 @@ struct cdev {
 };
 ```
 
-**如何往内核中添加一个 cdev**
+**向内核中添加一个 cdev**
 
 two ways of allocating and initializing one of these structures:
 
@@ -1024,18 +910,19 @@ two ways of allocating and initializing one of these structures:
 
 1. Own allocation
 
+    Syntax:
+
     ```c
     void cdev_init(struct cdev *cdev, struct file_operations *fops);
     ```
 
-`cdev_init`：初始化 cdev（为 cdev 提供操作函数集合）
+    （`cdev`事先声明，`fops`也要事先写好）
 
-```c
-void cdev_init(struct *cdev, const struct file_operations *fops);
-// cdev 事先声明，fops 也要事先写好
-```
+    初始化 cdev（为 cdev 提供操作函数集合）
 
 `cdev_add`：将 cdev 添加到内核（还会为 cdev 绑定设备号）
+
+Syntax:
 
 ```c
 int cdev_add(struct cdev *p, dev_t dev, unsigned count);
@@ -1043,19 +930,19 @@ int cdev_add(struct cdev *p, dev_t dev, unsigned count);
 
 params:
 
-`p`: 要添加的 cdev 结构
+* `p`: 要添加的 cdev 结构
 
-`dev`：起始设备号
+* `dev`：起始设备号
 
-`count`：设备号个数
+* `count`：设备号个数
 
 返回 0 表示成功，非 0 表示失败。
 
-* `cdev_del`：将 cdev 从内核中移除
+`cdev_del`：将 cdev 从内核中移除
 
-    ```c
-    void cdev_del(struct cdev *p)
-    ```
+```c
+void cdev_del(struct cdev *p)
+```
 
 Examples:
 
@@ -1089,7 +976,7 @@ struct file_operations cdd_fops = {  // GNU C 额外语法，选择性地初始�
 
 应用程序 app 先找到设备文件，设备文件通过设备号找到设备驱动，然后再调用相关的函数。设备号如何找到设备驱动？首先可以通过设备号找到`cdev`结构体，然后从`cdev`结构体找到`file_operations`结构体，再在这个结构体里找对应的驱动函数。
 
-每个文件都对应内核中一个`inode` struct。文件被打开时，内核会创建一个`file` struct，记录一些信息。
+每个静态文件都对应内核中一个`inode` struct，存放一些基本信息。而当文件被打开时，内核会创建一个`file` struct，记录一些信息。
 
 Example:
 
@@ -1171,7 +1058,7 @@ MODULE_LICENSE("GPL");
 
 设备驱动需要和设备文件配合使用。
 
-`__user`表示是一个用户空间的指针，所以kernel不可能直接使用。
+`__user`表示是一个用户空间的指针，所以 kernel 不可以直接使用。
 
 ```c
 #ifdef __CHECKER__
@@ -1187,7 +1074,7 @@ MODULE_LICENSE("GPL");
 
 **Manually Creating Device File**
 
-We can create the device file manually by using mknod.
+We can create the device file manually by using `mknod`.
 
 `mknod -m <permissions> <name> <device type> <major> <minor>`
 
