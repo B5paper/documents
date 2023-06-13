@@ -103,7 +103,7 @@ The main required options for virtual guest machine installations are:
 
 * `--memory`: The amount of memory (RAM) to allocate to the guest, in MiB.
 
-* `--disk`: The storage configuration details for the virtual machine. If you use the --disk none option, the virtual machine is created with no disk space.
+* `--disk`: The storage configuration details for the virtual machine. If you use the `--disk none` option, the virtual machine is created with no disk space.
 
 * `--filesystem`: The path to the file system for the virtual machine guest.
 
@@ -163,3 +163,11 @@ To configure a guest virtual machine with no network interface, use the followin
 Name the virtual machine. Virtual machine names can contain letters, numbers and the following characters: underscores (_), periods (.), and hyphens (-). Virtual machine names must be unique for migration and cannot consist only of numbers.
 
 Most virt-install options are not required. The minimum requirements are --name, --memory, guest storage (--disk, --filesystem or --disk none), and an install method (--location, --cdrom, --pxe, --import, or boot).
+
+## virt-install
+
+```bash
+virt-install --name ubuntu_2004 --memory 4096 --vcpus 4 --cpu host --cdrom /home/libvirt-qemu/ubuntu-20.04.6-live-server-amd64.iso --disk 40 -w network=default --graphics spice --input keyboard,bus=usb 
+```
+
+这个命令已经被验证可以正确执行。需要注意的是这个：`--cdrom /home/libvirt-qemu/ubuntu-20.04.6-live-server-amd64.iso`，因为权限的问题，iso 文件必须放在`libvirt-qemu`这个文件夹下，不然就会报错。

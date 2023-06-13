@@ -392,6 +392,36 @@ More ref:
 
 1. <https://unix.stackexchange.com/questions/198003/set-the-default-kernel-in-grub>
 
+## deb package inspect
+
+Ref: <https://blog.packagecloud.io/inspect-extract-contents-debian-packages/>
+
+A debian package is a Unix `ar` archive that includes two tar archives: one containing the control information and another with the program data to be installed.
+
+list its contents: `dpkg -c ./path/to/test.deb`
+
+To extract data from a deb package to current dir: `ar -x ./test_2.0.0_amd64.deb`
+
+Extract files from `control.tar.gz` and `data.tar.gz` using `tar`: `tar -xzf control.tar.gz`
+
+To extract files from a debian package, using `dpkg-deb`:
+
+`dpkg-deb -x ./path/to/test.deb ./path/to/destination`
+
+Extract control information from a Debian package using `dpkg-deb`:
+
+`dpkg -e ./test_2.0.0_amd64.deb`
+
+The `preinst`, `postinst`, `prerm`, and `postrm` files are scripts that will automatically execute before or after a package is installed or removed. These scripts are part of the control section of a Debian package.
+
+Using `apt-file` to view the contents of debian packages on remote repositories:
+
+`apt-get install apt-file`
+
+`apt-file update`
+
+`apt-file list <packagename>`
+
 ## Tricks
 
 * 使用`sudo`时保留用户的环境变量：`sudo -E <command>`
@@ -443,5 +473,11 @@ More ref:
     参考第二个回答，用 wget 获取时间。缺点是会在当前文件夹下生成一个`index.html`文件。
 
     `tlsdate`这个工具似乎好多年没更新过了，也不知道怎么编译。
+
+* dpkg-deb: 错误: 子进程 粘贴 被信号(断开的管道) 终止了
+
+    `sudo dpkg -i --force-overwrite " /var/cache/apt/archives/texlive-math-extra 2016.20160805.1 all.deb"`
+
+    `sudo apt-get dist-upgrade`
 
 

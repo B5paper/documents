@@ -5821,3 +5821,739 @@ new_node.data = 10;
 
         member – the name of the list_head within the struct.
 
+1. When we write the value to our device file using echo value > /dev/etx_value, it will invoke the interrupt. Because we configured the interrupt by using the software. If you don’t know how it works, please refer to this tutorial.
+
+1. The interrupt will invoke the ISR function.
+
+1. In ISR we are allocating work to the Workqueue.
+
+1. Whenever Workqueue executes, we are creating the Linked List Node and adding the Node to the Linked List.
+
+1. When we are reading the driver using cat /dev/etx_device, printing all the nodes which are present in the Linked List using traverse.
+
+1. When we are removing the driver using rmmod, it will remove all the nodes in Linked List and free the memory.
+
+Creating Head Node
+
+```c
+/*Declare and init the head node of the linked list*/
+LIST_HEAD(Head_Node);
+```
+
+This will create the head node in the name of `Head_Node` and initialize that.
+
+Creating Node and add that into Linked List
+
+```c
+/*Creating Node*/
+temp_node = kmalloc(sizeof(struct my_list), GFP_KERNEL);
+
+/*Assgin the data that is received*/
+temp_node->data = etx_value;
+
+/*Init the list within the struct*/
+INIT_LIST_HEAD(&temp_node->list);
+
+/*Add Node to Linked List*/
+list_add_tail(&temp_node->list, &Head_Node);
+```
+
+Traversing Linked List:
+
+```c
+struct my_list *temp;
+int count = 0;
+printk(KERN_INFO "Read function\n");
+
+/*Traversing Linked List and Print its Members*/
+list_for_each_entry(temp, &Head_Node, list) {
+    printk(KERN_INFO "Node %d data = %d\n", count++, temp->data);
+}
+
+printk(KERN_INFO "Total Nodes = %d\n", count);
+```
+
+Deleting Linked List:
+
+```c
+/* Go through the list and free the memory. */
+struct my_list *cursor, *temp;
+list_for_each_entry_safe(cursor, temp, &Head_Node, list) {
+    list_del(&cursor->list);
+    kfree(cursor);
+}
+```
+
+source code:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (Kernel Linked List)
+*
+*  \author     EmbeTronicX
+*
+* *******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/sysfs.h> 
+#include<linux/kobject.h> 
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <linux/workqueue.h>            // Required for workqueues
+#include <linux/err.h>
+ 
+#define IRQ_NO 11
+ 
+volatile int etx_value = 0;
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+struct kobject *kobj_ref;
+ 
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+ 
+static struct workqueue_struct *own_workqueue;
+ 
+ 
+static void workqueue_fn(struct work_struct *work); 
+ 
+static DECLARE_WORK(work, workqueue_fn);
+ 
+/*Linked List Node*/
+struct my_list{
+     struct list_head list;     //linux kernel list implementation
+     int data;
+};
+ 
+/*Declare and init the head node of the linked list*/
+LIST_HEAD(Head_Node);
+ 
+/*
+** Function Prototypes
+*/ 
+/*************** Driver Fuctions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+ 
+/*************** Sysfs Fuctions **********************/
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count);
+ 
+struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+/******************************************************/
+ 
+ 
+/*Workqueue Function*/
+static void workqueue_fn(struct work_struct *work)
+{
+        struct my_list *temp_node = NULL;
+ 
+        printk(KERN_INFO "Executing Workqueue Function\n");
+        
+        /*Creating Node*/
+        temp_node = kmalloc(sizeof(struct my_list), GFP_KERNEL);
+ 
+        /*Assgin the data that is received*/
+        temp_node->data = etx_value;
+ 
+        /*Init the list within the struct*/
+        INIT_LIST_HEAD(&temp_node->list);
+ 
+        /*Add Node to Linked List*/
+        list_add_tail(&temp_node->list, &Head_Node);
+}
+ 
+ 
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred\n");
+        /*Allocating work to queue*/
+        queue_work(own_workqueue, &work);
+        
+        return IRQ_HANDLED;
+}
+
+/*
+** File operation sturcture
+*/ 
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+
+/*
+** This fuction will be called when we read the sysfs file
+*/  
+static ssize_t sysfs_show(struct kobject *kobj, 
+                struct kobj_attribute *attr, char *buf)
+{
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+}
+
+/*
+** This fuction will be called when we write the sysfsfs file
+*/  
+static ssize_t sysfs_store(struct kobject *kobj, 
+                struct kobj_attribute *attr,const char *buf, size_t count)
+{
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        return count;
+}
+
+/*
+** This fuction will be called when we open the Device file
+*/ 
+static int etx_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This fuction will be called when we close the Device file
+*/   
+static int etx_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This fuction will be called when we read the Device file
+*/ 
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        struct my_list *temp;
+        int count = 0;
+        printk(KERN_INFO "Read function\n");
+ 
+        /*Traversing Linked List and Print its Members*/
+        list_for_each_entry(temp, &Head_Node, list) {
+            printk(KERN_INFO "Node %d data = %d\n", count++, temp->data);
+        }
+ 
+        printk(KERN_INFO "Total Nodes = %d\n", count);
+        return 0;
+}
+
+/*
+** This fuction will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        printk(KERN_INFO "Write Function\n");
+        /*Copying data from user space*/
+        sscanf(buf,"%d",&etx_value);
+        /* Triggering Interrupt */
+        asm("int $0x3B");  // Corresponding to irq 11
+        return len;
+}
+ 
+/*
+** Module Init function
+*/  
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            printk(KERN_INFO "Cannot create the Device \n");
+            goto r_device;
+        }
+ 
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+ 
+        /*Creating sysfs file*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+            printk(KERN_INFO "my_device: cannot register IRQ \n");
+                    goto irq;
+        }
+ 
+        /*Creating workqueue */
+        own_workqueue = create_workqueue("own_wq");
+        
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+ 
+r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+
+/*
+** Module Exit function
+*/ 
+static void __exit etx_driver_exit(void)
+{
+ 
+        /* Go through the list and free the memory. */
+        struct my_list *cursor, *temp;
+        list_for_each_entry_safe(cursor, temp, &Head_Node, list) {
+            list_del(&cursor->list);
+            kfree(cursor);
+        }
+ 
+        /* Delete workqueue */
+        destroy_workqueue(own_workqueue);
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("A simple device driver - Kernel Linked List");
+MODULE_VERSION("1.13");
+```
+
+test:
+
+```bash
+cat /dev/etx_device
+echo 10 > /dev/etx_device
+```
+
+## Thread
+
+There are two types of threads.
+
+1. User Level Thread
+
+    In this type, the kernel is not aware of these threads. Everything is maintained by the user thread library. That thread library contains code for creating and destroying threads, for passing messages and data between threads, for scheduling thread execution, and for saving and restoring thread contexts. So all will be in User Space.
+
+1. Kernel Level Thread
+
+    Kernel level threads are managed by the OS, therefore, thread operations are implemented in the kernel code. There is no thread management code in the application area.
+
+kernel level thread
+
+header file: `linux/kthread.h`
+
+Create Kernel Thread
+
+* `kthread_create`
+
+    Syntax:
+
+    ```c
+    struct task_struct * kthread_create (int (* threadfn(void *data), void *data, const char namefmt[], ...);
+    ```
+
+    Where,
+
+    `threadfn` – the function to run until signal_pending(current).
+
+    `data` – data ptr for threadfn.
+
+    `namefmt[]` – printf-style name for the thread.
+
+    `...` – variable arguments
+
+    This helper function creates and names a kernel thread. But we need to wake up that thread manually. When woken, the thread will run `threadfn()` with data as its argument.
+
+    `threadfn` can either call `do_exit` directly if it is a standalone thread for which no one will call `kthread_stop`, or return when ‘`kthread_should_stop`‘ is true (which means `kthread_stop` has been called). The return value should be zero or a negative error number; it will be passed to `kthread_stop`.
+
+    It Returns `task_struct` or `ERR_PTR(-ENOMEM)`.
+
+Start Kernel Thread
+
+* `wake_up_process`
+
+    Syntax:
+
+    ```c
+    int wake_up_process (struct task_struct * p);
+    ```
+
+    p – The process to be woken up.
+
+    Attempt to wake up the nominated process and move it to the set of runnable processes.
+
+    It returns 1 if the process was woken up, 0 if it was already running.
+
+    It may be assumed that this function implies a write memory barrier before changing the task state if and only if any tasks are woken up.
+
+Stop Kernel Thread
+
+* `kthread_stop`
+
+    Syntax:
+
+    ```c
+    int kthread_stop ( struct task_struct *k);
+    ```
+
+    Where,
+
+    `k` – thread created by kthread_create.
+
+    Sets kthread_should_stop for k to return true, wakes it and waits for it to exit. Your threadfn must not call do_exit itself, if you use this function! This can also be called after kthread_create instead of calling wake_up_process: the thread will exit without calling threadfn.
+
+    It Returns the result of threadfn, or –EINTR if wake_up_process was never called.
+
+Other functions in Kernel Thread
+
+* `kthread_should_stop`
+
+    ```c
+    int kthread_should_stop (void);
+    ```
+
+    When someone calls `kthread_stop` on your kthread, it will be woken and this will return `true`. You should then return, and your return value will be passed through to `kthread_stop`.
+
+    相当于由外部通知当前线程可以结束了。这种常见的场景，比如执行`ping`命令，默认一直发送 icmp 包，如果没有外部`Ctrl + C`信号，则不会主动停止。
+
+* `kthread_bind`
+
+    ```c
+    void kthread_bind(struct task_struct *k, unsigned int cpu);
+    ```
+
+    `k` – thread created by kthread_create.
+
+    `cpu` – CPU (might not be online, must be possible) for k to run on.
+
+
+Thread Function
+
+First, we have to create our thread that has the argument of void *  and should return int value.  We should follow some conditions in our thread function. It is advisable.
+
+* If that thread is a long run thread, we need to check `kthread_should_stop()` every time, because any function may call kthread_stop. If any function called kthread_stop, that time `kthread_should_stop` will return true. We have to exit our thread function if true value been returned by `kthread_should_stop`.
+
+* But if your thread function is not running long, then let that thread finish its task and kill itself using do_exit.
+
+Example:
+
+```c
+int thread_function(void *pv) 
+{
+    int i=0;
+    while(!kthread_should_stop())
+    {
+        printk(KERN_INFO "In EmbeTronicX Thread Function %d\n", i++);
+        msleep(1000);
+    } 
+    return 0; 
+}
+```
+
+```c
+static struct task_struct *etx_thread; 
+
+etx_thread = kthread_create(thread_function,NULL,"eTx Thread");
+
+if (etx_thread) 
+{
+    wake_up_process(etx_thread); 
+} 
+else 
+{
+    printk(KERN_ERR "Cannot create kthread\n"); 
+}
+```
+
+`kthread_run`:
+
+Syntax:
+
+```c
+kthread_run (threadfn, data, namefmt, ...);
+```
+
+Where,
+
+`threadfn` – the function to run until signal_pending(current).
+
+`data` – data ptr for threadfn.
+
+`namefmt` – printf-style name for the thread.
+
+`...` – variable arguments
+
+Convenient wrapper for `kthread_create` followed by `wake_up_process`.
+
+It returns the `kthread` or `ERR_PTR(-ENOMEM)`.
+
+Example:
+
+```c
+static struct task_struct *etx_thread;
+
+etx_thread = kthread_run(thread_function,NULL,"eTx Thread"); 
+if(etx_thread) 
+{
+ printk(KERN_ERR "Kthread Created Successfully...\n");
+}
+else 
+{
+ printk(KERN_ERR "Cannot create kthread\n"); 
+}
+```
+
+Source code:
+
+```c
+/***************************************************************************//**
+*  \file       driver.c
+*
+*  \details    Simple Linux device driver (Kernel Thread)
+*
+*  \author     EmbeTronicX
+*
+*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
+*
+*******************************************************************************/
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kdev_t.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>                 //kmalloc()
+#include<linux/uaccess.h>              //copy_to/from_user()
+#include <linux/kthread.h>             //kernel threads
+#include <linux/sched.h>               //task_struct 
+#include <linux/delay.h>
+#include <linux/err.h>
+ 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev etx_cdev;
+ 
+static int __init etx_driver_init(void);
+static void __exit etx_driver_exit(void);
+ 
+static struct task_struct *etx_thread;
+ 
+/*
+** Function Prototypes
+*/
+/*************** Driver functions **********************/
+static int etx_open(struct inode *inode, struct file *file);
+static int etx_release(struct inode *inode, struct file *file);
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len,loff_t * off);
+static ssize_t etx_write(struct file *filp, 
+                const char *buf, size_t len, loff_t * off);
+ /******************************************************/
+ 
+int thread_function(void *pv);
+
+/*
+** Thread
+*/
+int thread_function(void *pv)
+{
+    int i=0;
+    while(!kthread_should_stop()) {
+        pr_info("In EmbeTronicX Thread Function %d\n", i++);
+        msleep(1000);
+    }
+    return 0;
+}
+
+/*
+** File operation sturcture
+*/ 
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+};
+
+/*
+** This function will be called when we open the Device file
+*/  
+static int etx_open(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Opened...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we close the Device file
+*/   
+static int etx_release(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Closed...!!!\n");
+        return 0;
+}
+
+/*
+** This function will be called when we read the Device file
+*/
+static ssize_t etx_read(struct file *filp, 
+                char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Read function\n");
+ 
+        return 0;
+}
+
+/*
+** This function will be called when we write the Device file
+*/
+static ssize_t etx_write(struct file *filp, 
+                const char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Write Function\n");
+        return len;
+}
+
+/*
+** Module Init function
+*/  
+static int __init etx_driver_init(void)
+{
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_err("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+ 
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+ 
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_err("Cannot add the device to the system\n");
+            goto r_class;
+        }
+ 
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_err("Cannot create the struct class\n");
+            goto r_class;
+        }
+ 
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_err("Cannot create the Device \n");
+            goto r_device;
+        }
+ 
+        etx_thread = kthread_create(thread_function,NULL,"eTx Thread");
+        if(etx_thread) {
+            wake_up_process(etx_thread);
+        } else {
+            pr_err("Cannot create kthread\n");
+            goto r_device;
+        }
+#if 0
+        /* You can use this method also to create and run the thread */
+        etx_thread = kthread_run(thread_function,NULL,"eTx Thread");
+        if(etx_thread) {
+            pr_info("Kthread Created Successfully...\n");
+        } else {
+            pr_err("Cannot create kthread\n");
+             goto r_device;
+        }
+#endif
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
+ 
+ 
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+}
+
+/*
+** Module exit function
+*/  
+static void __exit etx_driver_exit(void)
+{
+        kthread_stop(etx_thread);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!\n");
+}
+ 
+module_init(etx_driver_init);
+module_exit(etx_driver_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+MODULE_DESCRIPTION("A simple device driver - Kernel Thread");
+MODULE_VERSION("1.14");
+```
+
+Latest progress: <https://embetronicx.com/tutorials/linux/device-drivers/tasklet-static-method/>
