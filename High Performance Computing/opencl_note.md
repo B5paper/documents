@@ -206,6 +206,28 @@ int main(void) {
 
 (empty)
 
+### Ubuntu + AMD GPU
+
+Ref: <https://askubuntu.com/questions/1406137/how-enable-opencl-on-amd-gpu-ubuntu-22-04-lts>
+
+首先需要在官网上下载一个 driver：<https://www.amd.com/en/support/graphics/amd-radeon-5600-series/amd-radeon-rx-5600-series/amd-radeon-rx-5600-xt>
+
+找到自己系统对应的版本，使用`dpkg -i xxx.deb`安装。
+
+然后参考安装文档：<https://amdgpu-install.readthedocs.io/en/latest/>，指定要安装什么库。目前我安装的是
+
+```bash
+amdgpu-install --usecase=workstation,rocm,opencl --opencl=rocr,legacy --vulkan=pro --accept-eula
+```
+
+接下来可以在`/opt/rocm/opencl/`中找到 OpenCL 相关的头文件与库。（这个好像不行，看看`/usr/lib/x86_64-linux-gnu/`这个文件夹中有没有 OpenCL 相关的库，目前这个是正常的）
+
+另外还需要安装：`apt install mesa-opencl-icd` （这个好像也不好使，也有可能需要安装的是`libclc-amdgcn`）
+
+此时运行`clinfo`，如果正常，说明安装成功。如果不正常，可以重启后再试试。
+
+amd 的 opencl 有三个版本，mesa, amd, ROCm
+
 ## Quickstart
 
 **OpenCL Platform Mode**
