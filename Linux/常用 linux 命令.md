@@ -52,13 +52,21 @@
 
 * `sudo vi /etc/network/interfaces`
 
-查看网卡型号：
+**PCIE 网卡**
 
-`lspci -k | grep -i -A2 net`
+* 查看网卡型号
 
-查看网卡设备信息：
+    * `lspci -k | grep -i -A2 net`
 
-`lspci | grep -i net `
+    * `lspci | grep -i net`
+
+    * `lshw -class network`
+
+    * `sudo lshw -class network -short`
+
+    * `ip link show`, `ip a`
+
+    * `ip -br -c link show`, `ip -br -c addr show`
 
 查看无线网络：
 
@@ -378,7 +386,7 @@ Ref: <https://gist.github.com/chaiyujin/c08e59752c3e238ff3b1a5098322b363>
 
 我们需要找到`$menuentry_id_option`后面的 kernel id 字符串。这个是我们需要的。
 
-编辑`/etc/default/grub`文件中的`GRUB_DEFAULT`，网上说写成类似`GRUB_DEFAULT='gnulinux-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf>gnulinux-4.15.0-126-generic-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf'`这样的就可以，但是我试了试不行。写成`1>2`这样的可以，其中`1`表示一级菜单的第二个选项，`2`表示二级菜单的第三个选项。
+编辑`/etc/default/grub`文件中的`GRUB_DEFAULT`，网上说写成类似`GRUB_DEFAULT='gnulinux-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf>gnulinux-4.15.0-126-generic-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf'`这样的就可以，但是我试了试不行。写成`"1>2"`这样的可以（注意字符串要用引号括起来），其中`1`表示一级菜单的第二个选项，`2`表示二级菜单的第三个选项。
 
 这些选项或许可以通过文件获得，但我是先实际看了看 grub 菜单，然后直接记住的。如果 grub 菜单等待时间过短，可以设置`GRUB_TIMEOUT`为`-1`或一个比较大的数。
 
@@ -391,6 +399,10 @@ More ref:
 1. <https://unix.stackexchange.com/questions/694323/how-to-set-default-kernel-in-debian>
 
 1. <https://unix.stackexchange.com/questions/198003/set-the-default-kernel-in-grub>
+
+1. <https://askubuntu.com/questions/599208/how-to-list-grubs-menuentries-in-command-line/1022706#1022706>
+
+    有时间可以看一下这个 script，调研一下 menu 是怎么抽出来的。
 
 ## deb package inspect
 
@@ -480,4 +492,17 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
 
     `sudo apt-get dist-upgrade`
 
+* 查看系统版本
+
+    1. 方法一：`lsb_release -a`
+
+    1. 方法二：`cat /etc/lsb-release`
+
+    1. 方法三：`cat /etc/os-release`
+
+    1. 方法四：`/etc/issue`
+
+    1. 方法五：`hostnamectl`
+
+    1. 方法六：`uname -srn`
 

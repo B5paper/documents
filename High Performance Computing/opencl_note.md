@@ -210,7 +210,7 @@ int main(void) {
 
 Ref: <https://askubuntu.com/questions/1406137/how-enable-opencl-on-amd-gpu-ubuntu-22-04-lts>
 
-首先需要在官网上下载一个 driver：<https://www.amd.com/en/support/graphics/amd-radeon-5600-series/amd-radeon-rx-5600-series/amd-radeon-rx-5600-xt>
+首先需要在官网上下载一个 driver：<https:/evice_id;/www.amd.com/en/support/graphics/amd-radeon-5600-series/amd-radeon-rx-5600-series/amd-radeon-rx-5600-xt>
 
 找到自己系统对应的版本，使用`dpkg -i xxx.deb`安装。
 
@@ -573,7 +573,7 @@ horizontal_reflect(read_only image2d_t src,
 
     * `size` is the size in bytes of the buffer memory object to be allocated.
 
-    * `host_ptr` is a pointer to the buffer data that may already be allocated by the application. The size of the buffer that host_ptr points to must be greater than or equal to size bytes.
+    * `host_ptr` is a pointer to the buffer data that may already be allocated by the application. The size of the buffer that `host_ptr` points to must be greater than or equal to `size` bytes.
 
         填 NULL。
 
@@ -896,13 +896,13 @@ horizontal_reflect(read_only image2d_t src,
 
     * `work_dim` is the number of dimensions used to specify the global work-items and work-items in the work-group. `work_dim` must be greater than zero and less than or equal to `CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS`. If `global_work_size` is `NULL`, or the value in any passed dimension is `0` then the kernel command will trivially succeed after its event dependencies are satisfied and subsequently update its completion event. The behavior in this situation is similar to that of an enqueued marker, except that unlike a marker, an enqueued kernel with no events passed to `event_wait_list` may run at any time.
 
-    * `global_work_offset` can be used to specify an array of `work_dim` unsigned values that describe the offset used to calculate the global ID of a work-item. If `global_work_offset` is NULL, the global IDs start at offset (0, 0, 0). `global_work_offset` must be NULL before version 1.1.
+    * `global_work_offset` can be used to specify an array of `work_dim` unsigned values that describe the offset used to calculate the global ID of a work-item. If `global_work_offset` is `NULL`, the global IDs start at offset `(0, 0, 0)`. `global_work_offset` must be NULL before version 1.1.
 
-    * `global_work_size` points to an array of work_dim unsigned values that describe the number of global work-items in work_dim dimensions that will execute the kernel function. The total number of global work-items is computed as global_work_size[0] × …​ × global_work_size[work_dim - 1].
+    * `global_work_size` points to an array of work_dim unsigned values that describe the number of global work-items in `work_dim` dimensions that will execute the kernel function. The total number of global work-items is computed as `global_work_size[0] × …​ × global_work_size[work_dim - 1]`.
 
-    * `local_work_size` points to an array of work_dim unsigned values that describe the number of work-items that make up a work-group (also referred to as the size of the work-group) that will execute the kernel specified by kernel. The total number of work-items in a work-group is computed as local_work_size[0] × …​ × local_work_size[work_dim - 1]. The total number of work-items in the work-group must be less than or equal to the CL_KERNEL_WORK_GROUP_SIZE value specified in the Kernel Object Device Queries table, and the number of work-items specified in local_work_size[0], …​, local_work_size[work_dim - 1] must be less than or equal to the corresponding values specified by CL_DEVICE_MAX_WORK_ITEM_SIZES[0], …​, CL_DEVICE_MAX_WORK_ITEM_SIZES[work_dim - 1]. The explicitly specified local_work_size will be used to determine how to break the global work-items specified by global_work_size into appropriate work-group instances.
+    * `local_work_size` points to an array of work_dim unsigned values that describe the number of work-items that make up a work-group (also referred to as the size of the work-group) that will execute the kernel specified by kernel. The total number of work-items in a work-group is computed as `local_work_size[0] × …​ × local_work_size[work_dim - 1]`. The total number of work-items in the work-group must be less than or equal to the CL_KERNEL_WORK_GROUP_SIZE value specified in the Kernel Object Device Queries table, and the number of work-items specified in local_work_size[0], …​, local_work_size[work_dim - 1] must be less than or equal to the corresponding values specified by CL_DEVICE_MAX_WORK_ITEM_SIZES[0], …​, CL_DEVICE_MAX_WORK_ITEM_SIZES[work_dim - 1]. The explicitly specified local_work_size will be used to determine how to break the global work-items specified by global_work_size into appropriate work-group instances.
 
-    * `event_wait_list` and num_events_in_wait_list specify events that need to complete before this particular command can be executed. If event_wait_list is NULL, then this particular command does not wait on any event to complete. If event_wait_list is NULL, num_events_in_wait_list must be 0. If event_wait_list is not NULL, the list of events pointed to by event_wait_list must be valid and num_events_in_wait_list must be greater than 0. The events specified in event_wait_list act as synchronization points. The context associated with events in event_wait_list and command_queue must be the same. The memory associated with event_wait_list can be reused or freed after the function returns.
+    * `event_wait_list` and num_events_in_wait_list specify events that need to complete before this particular command can be executed. If `event_wait_list` is NULL, then this particular command does not wait on any event to complete. If `event_wait_list` is NULL, `num_events_in_wait_list` must be 0. If `event_wait_list` is not NULL, the list of events pointed to by `event_wait_list` must be valid and `num_events_in_wait_list` must be greater than 0. The events specified in event_wait_list act as synchronization points. The context associated with events in `event_wait_list` and command_queue must be the same. The memory associated with `event_wait_list` can be reused or freed after the function returns.
 
     * `event` returns an event object that identifies this command and can be used to query or wait for this command to complete. If event is NULL or the enqueue is unsuccessful, no event will be created and therefore it will not be possible to query the status of this command or to wait for this command to complete. If event_wait_list and event are not NULL, event must not refer to an element of the event_wait_list array.
 
@@ -1217,3 +1217,29 @@ int main()
     return 0;
 }
 ```
+
+## time based note
+
+1. `CL_MEM_COPY_HOST_PTR`
+
+    如果需要在创建 buffer 时就把数据从 host 上复制到 buffer 里，那么可以这样写：
+
+    ```cpp
+    cl_mem buf_rand_seed_vbuf = clCreateBuffer(my_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, ray_count * sizeof(cl_long), random_seeds, &ret);
+    ```
+
+    此时会把`random_seeds`中的数据写入到 buffer 中。
+
+1. set arg
+
+    猜测 set arg 的行为是在内存中开辟一个栈，存储一些数据，这些数据为作为 kernel 的参数。这些数据通常有两大类，一类是`cl_mem`，另一类是`cl_float3`，`cl_int`之类的数值。
+
+    猜测 set arg 是按值复制，所以不用担心数值类的局部变量消失后参数失效的问题。由于`cl_mem`是个指针，如果不显式释放，其对应的 buffer （即显存）也不会被释放，所以也不用担心`cl_mem`失效。
+
+    综上，一个`kernel`在整个程序的生命周期中，只需要设置一次 arg 就可以了。后面只需要 writer buffer, nd range kernel 就会触发计算。
+
+## Problems shooting
+
+* `Memory access fault by GPU node-1 (Agent handle: 0x55555670bd80) on address 0x7fffe0e00000. Reason: Page not present or supervisor privilege.`
+
+    原因是 buffer 的 read 次数和 write 次数不匹配，多次循环后，导致 buffer 溢出。

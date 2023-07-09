@@ -4,7 +4,7 @@ Materials:
 
 1. quick cmake tutorial: <https://www.jetbrains.com/help/clion/quick-cmake-tutorial.html>
 
-1. 
+
 
 官方的 tutorial 写得并不是很好。可以参考这篇 tutorial。
 
@@ -215,3 +215,19 @@ endforeach()
 创建 release 版本的 build system: `cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild/Release`
 
 platform checks: <https://gitlab.kitware.com/cmake/community/-/wikis/doc/tutorials/How-To-Write-Platform-Checks>
+
+## Problems shooting
+
+1. `file RPATH_CHANGE could not write new RPATH:`
+
+    后面会跟一个`xxx.so`文件的路径。
+
+    这个错误原因是 llvm 在编译的时候，主机上内存不够导致编译中途崩溃，但是仍然创建了一些大小为 0 的`xxx.so`文件。第二次编译时，编译器发现了这些已经存在的文件，无法重新写入。
+
+    解决办法：
+
+    使用`ls -lh`查看编译目录下所有大小为 0 的`xxx.so`空文件，把它们都删掉就好了。
+
+    注：
+
+    llvm 在编译时会占用大量内存，有些文件在 link 时候占用内存达到 12G 左右，所以编译线程数不要设置太大。

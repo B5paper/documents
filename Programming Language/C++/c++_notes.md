@@ -1947,6 +1947,91 @@ class Person
 };
 ```
 
+**模板与实例化**
+
+如果我们实现了一个函数模板：
+
+`my_header.h`
+
+```cpp
+template<typename T>
+void set_ocl_kernel_args(cl_kernel k, T &arg);
+```
+
+`my_source.cpp`:
+
+```cpp
+#include "my_header.h"
+
+template <typename T>
+void set_ocl_kernel_args(cl_kernel k, T &arg)
+{
+    int size = sizeof(arg);
+    T *ptr = &arg;
+    printf("size: %d, addr: %p\n", size, ptr);
+}
+```
+
+如果直接对这两个文件进行编译，由于编译器不知道`T`的具体类型，所以无法确定参数实际占了多少内存，最终无法定位内存地址，从而无法通过编译。
+
+一种解决办法是在头文件里写模板类和函数的实现，另一种办法是在编译时就指定好可能会用到的类型：
+
+`my_source.cpp`:
+
+```cpp
+#include "my_header.h"
+
+template <typename T>
+void set_ocl_kernel_args(cl_kernel k, T &arg)
+{
+    int size = sizeof(arg);
+    T *ptr = &arg;
+    printf("size: %d, addr: %p\n", size, ptr);
+}
+
+template void set_ocl_kernel_args<cl_mem>(cl_kernel k, cl_mem &param);
+```
+
+最后的这一行叫模板的实例化（instantiation）。
+
+另一个模板实例化的 example：
+
+`my_header.h`:
+
+```cpp
+struct OclKernelArg
+{
+    void *ptr;
+    size_t size;
+};
+
+struct OclKernelArgCollector
+{
+    template<typename T> OclKernelArgCollector& sa(T &arg);  // set argument
+
+    vector<OclKernelArg> kernel_args;
+};
+```
+
+`my_source.cpp`:
+
+```cpp
+#include "my_header.h"
+
+template<typename T>
+OclKernelArgCollector& OclKernelArgCollector::sa(T &arg)
+{
+    kernel_args.push_back({&arg, sizeof(arg)});
+    return *this;
+}
+
+template OclKernelArgCollector& OclKernelArgCollector::sa<cl_mem>(cl_mem &arg);
+template OclKernelArgCollector& OclKernelArgCollector::sa<float>(float &arg);
+template OclKernelArgCollector& OclKernelArgCollector::sa<char*>(char* &arg);
+```
+
+这段代码是对类中的模板成员函数进行实例化。虽然需要对每一个类型都实例化一次，但是这段代码对我来说是可以接受的。如果能有一些字符串处理工具自动填实例类型就更好了。
+
 ## 谓词
 
 返回`bool`的仿函数称为谓词。接收一个参数的谓词称为一元谓词，接收两个参数的谓词称为二元谓词。
@@ -3300,3 +3385,26 @@ class codecvt_utf8_utf16
     int value;
     str >> std::hex >> value;
     ```
+
+1. union
+
+    用 union 定义的变量，同一时间只有一个被激活，但他们共用同一块内存。
+
+    ```cpp
+    struct Test
+    {
+        void *ptr;
+        union {
+            int64_t size_i64;
+            int32_t size_i32;
+        };
+    };
+
+    int main()
+    {
+        Test t;
+        t.size_i64 = 3;
+        printf("%d", t.size_i32);  // 3
+    } 
+    ```
+
