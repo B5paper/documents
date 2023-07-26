@@ -2,27 +2,20 @@
 
 [unit]
 [u_0]
-请使用 glfw3 和 glew 创建一个空白窗口。
-[u_1]
+请使用 glfw3 创建一个空白窗口。
+[i_1]
 `main.c`:
 
 ```c
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>  // glfw3.h 一定要写在 glew.h 的后面才行，不然会编译报错
+#include <GLFW/glfw3.h>
 
 int main()
 {
     glfwInit();
-    GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl qa test", NULL, NULL);
-    glfwMakeContextCurrent(window);
-    glewInit();  // glewInit() 必须写在这里。如果写在 glfwInit(); 的下一行，那么会在运行时报错。
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl qa", NULL, NULL);
     do {
-        glClear(GL_COLOR_BUFFER_BIT);
-        glfwSwapBuffers(window);
         glfwPollEvents();
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-        glfwWindowShouldClose(window) == 0);
+    } while(glfwWindowShouldClose(window) == GLFW_FALSE);
     return 0;
 }
 ```
@@ -30,7 +23,40 @@ int main()
 编译：
 
 ```bash
-gcc main.c -lOpenGL -lglfw -lGLEW -o main
+gcc main.c -lglfw -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+[unit]
+[u_0]
+请使用 glfw3 创建一个空白窗口，既可以点 X 退出，也可以按 esc 键退出。
+[u_1]
+`main.c`:
+
+```c
+#include <GLFW/glfw3.h>
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+    do {
+        glfwPollEvents();
+    } while (glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
+    return 0;
+}
+```
+
+编译：
+
+```bash
+gcc main.c -lglfw -o main
 ```
 
 运行：
@@ -43,47 +69,93 @@ gcc main.c -lOpenGL -lglfw -lGLEW -o main
 
 出现一个黑色窗口，按 Esc 键退出。
 
+[unit]
+[u_0]
+请给出函数`glGenBuffers()`的原型，给出函数的作用和参数的解释，返回值的判断。
+[u_1]
+Syntax:
+
+```cpp
+void glGenBuffers(GLsizei n, GLuint *buffers);
+```
+
+Description:
+
+生成指定数量的非负整数 buffer id，这些 id 不保证是连续的。注意，此时并不会分配内存/显存，只做 id 是否被占用的检查。
+
+Parameters:
+
+* `n`: 生成 n 个 buffer ids。
+
+* `buffers`: 指定一个数组起始地址，用于存储 buffer ids。
+
+Return values:
+
+(empty)
+
+[unit]
+[u_0]
+请解释函数`glBindBuffer`。
+[u_1]
+Syntax:
+
+```cpp
+void glBindBuffer(GLenum target, GLuint buffer);
+```
+
+声明 buffer 的用途。这个函数不会实际分配显存。一个 buffer 可以被多次绑定，之前的绑定会被自动销毁。
+
+Parameters:
+
+* `target`: 指定 buffer 的用途
+
+	常用的有下面几个：
+
+	* `GL_ARRAY_BUFFER`: 顶点
+	* `GL_COPY_READ_BUFFER`: Buffer copy source
+	* `GL_COPY_WRITE_BUFFER`: Buffer copy destination
+	* `GL_ELEMENT_ARRAY_BUFFER`: Vertex array indices
+
+* `buffer`: Specifies the name (buffer 的 id) of a buffer object.
 
 [unit]
 [u_0]
 请不使用 shader 画出一个三角形。
 [u_1]
 ```c
-#include <stdio.h>
-#include <stdlib.h>
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>  // glfw3.h 一定要写在 glew.h 的后面才行，不然会编译报错
+#include <unistd.h>
 
 int main()
 {
     glfwInit();
     GLFWwindow* window = glfwCreateWindow(1024, 768, "opengl qa test", NULL, NULL);
     glfwMakeContextCurrent(window);
-    glewInit();
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    static const GLfloat g_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
+    glewInit();  // glewInit() 必须写在 glfwMakeContextCurrent() 的后面，不然会报错。
+    
+    const GLfloat g_vertex_buffer_data[] = {
+        -0.5f, -0.0f, 0.0f,
+        0.5f, 0.0f, 0.0f,
         0.0f,  1.0f, 0.0f,
     };
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    GLuint vtx_buf;  // c++ 的语法检查比较严，不能写 int，不然会报错
+    glGenBuffers(1, &vtx_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray(0);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     do {
         glClear(GL_COLOR_BUFFER_BIT);
-		glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDisableVertexAttribArray(0);
+        glDrawArrays(GL_LINE_LOOP, 0, 3);
         glfwSwapBuffers(window);
         glfwPollEvents();
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-        glfwWindowShouldClose(window) == 0);
-
-	glDeleteBuffers(1, &vertexbuffer);
+        usleep(100000);
+    } while (glfwWindowShouldClose(window) == 0);
+    glDisableVertexAttribArray(0);
+	glDeleteBuffers(1, &vtx_buf);
     glfwTerminate();
     return 0;
 }
@@ -103,7 +175,636 @@ gcc main.c -lGLEW -lglfw -lGL -o main
 
 [unit]
 [u_0]
-请使用 shader 画出一个三角形。
+请写出加载 shader 的代码。
+[u_1]
+`main.cpp`
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <stdio.h>
+#include <vector>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if(VertexShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	}else{
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if(FragmentShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+	glfwInit();
+	GLFWwindow* window = glfwCreateWindow(1024, 768, "opengl qa test", NULL, NULL);
+    glfwMakeContextCurrent(window);
+	glewInit();
+    GLuint program = LoadShaders("./vtx.glsl", "./fce.glsl");
+    glUseProgram(program);
+	return 0;
+}
+```
+
+`vtx.glsl`:
+
+```glsl
+layout(location = 0) in vec3 vertexPosition_modelspace;
+
+void main()
+{
+    gl_Position.xyz = vertexPosition_modelspace;
+    gl_Position.w = 1.0;
+}
+```
+
+`fce.glsl`:
+
+```glsl
+out vec3 color;
+
+void main()
+{
+    color = vec3(0.5, 0.8, 0.5);
+}
+```
+
+编译：
+
+```bash
+g++ main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+[unit]
+[u_0]
+请使用 shader 画一个绿色三角形。
+[u_1]
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <unistd.h>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <stdio.h>
+#include <vector>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if(VertexShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	}else{
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if(FragmentShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+
+int main()
+{
+    glfwInit();
+    GLFWwindow* window = glfwCreateWindow(1024, 768, "opengl qa test", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();  // glewInit() 必须写在 glfwMakeContextCurrent() 的后面，不然会报错。
+    GLuint program = LoadShaders("./vtx.glsl", "./fce.glsl");
+    glUseProgram(program);
+    
+    const GLfloat g_vertex_buffer_data[] = {
+        -0.5f, -0.0f, 0.0f,
+        0.5f, 0.0f, 0.0f,
+        0.0f,  1.0f, 0.0f,
+    };
+    GLuint vtx_buf;
+    glGenBuffers(1, &vtx_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray(0);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    do {
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDrawArrays(GL_LINE_LOOP, 0, 3);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        usleep(100000);
+    } while (glfwWindowShouldClose(window) == 0);
+    glDisableVertexAttribArray(0);
+	glDeleteBuffers(1, &vtx_buf);
+    glfwTerminate();
+    return 0;
+}
+```
+
+`vtx.glsl`:
+
+```glsl
+layout(location = 0) in vec3 vertexPosition_modelspace;
+
+void main()
+{
+    gl_Position.xyz = vertexPosition_modelspace;
+    gl_Position.w = 1.0;
+}
+```
+
+`fce.glsl`:
+
+```glsl
+out vec3 color;
+
+void main()
+{
+    color = vec3(0.5, 0.8, 0.5);
+}
+```
+
+编译：
+
+```bash
+g++ main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+[unit]
+[u_0]
+请使一个三角形绕 y 轴旋转。
 [u_1]
 (empty)
+
+[unit]
+[u_0]
+请使用 shader 画一个彩色的 cube，并使之旋转。
+[u_1]
+(empty)
+
+[unit]
+[u_0]
+请
+[u_1]
+(empty)
+
+[unit]
+[u_0]
+请画一个彩色正体，并使之绕 y 轴旋转。
+[u_1]
+`main.cpp`:
+
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <unistd.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+static const GLfloat g_color_buffer_data[] = {
+    0.583f,  0.771f,  0.014f,
+    0.609f,  0.115f,  0.436f,
+    0.327f,  0.483f,  0.844f,
+    0.822f,  0.569f,  0.201f,
+    0.435f,  0.602f,  0.223f,
+    0.310f,  0.747f,  0.185f,
+    0.597f,  0.770f,  0.761f,
+    0.559f,  0.436f,  0.730f,
+    0.359f,  0.583f,  0.152f,
+    0.483f,  0.596f,  0.789f,
+    0.559f,  0.861f,  0.639f,
+    0.195f,  0.548f,  0.859f,
+    0.014f,  0.184f,  0.576f,
+    0.771f,  0.328f,  0.970f,
+    0.406f,  0.615f,  0.116f,
+    0.676f,  0.977f,  0.133f,
+    0.971f,  0.572f,  0.833f,
+    0.140f,  0.616f,  0.489f,
+    0.997f,  0.513f,  0.064f,
+    0.945f,  0.719f,  0.592f,
+    0.543f,  0.021f,  0.978f,
+    0.279f,  0.317f,  0.505f,
+    0.167f,  0.620f,  0.077f,
+    0.347f,  0.857f,  0.137f,
+    0.055f,  0.953f,  0.042f,
+    0.714f,  0.505f,  0.345f,
+    0.783f,  0.290f,  0.734f,
+    0.722f,  0.645f,  0.174f,
+    0.302f,  0.455f,  0.848f,
+    0.225f,  0.587f,  0.040f,
+    0.517f,  0.713f,  0.338f,
+    0.053f,  0.959f,  0.120f,
+    0.393f,  0.621f,  0.362f,
+    0.673f,  0.211f,  0.457f,
+    0.820f,  0.883f,  0.371f,
+    0.982f,  0.099f,  0.879f
+};
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if(VertexShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	}else{
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if(FragmentShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+    GLfloat g_vertex_buffer_data[] = {
+        -1.0f,-1.0f,-1.0f, // triangle 1 : begin
+        -1.0f,-1.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f, // triangle 1 : end
+        1.0f, 1.0f,-1.0f, // triangle 2 : begin
+        -1.0f,-1.0f,-1.0f,
+        -1.0f, 1.0f,-1.0f, // triangle 2 : end
+        1.0f,-1.0f, 1.0f,
+        -1.0f,-1.0f,-1.0f,
+        1.0f,-1.0f,-1.0f,
+        1.0f, 1.0f,-1.0f,
+        1.0f,-1.0f,-1.0f,
+        -1.0f,-1.0f,-1.0f,
+        -1.0f,-1.0f,-1.0f,
+        -1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f,-1.0f,
+        1.0f,-1.0f, 1.0f,
+        -1.0f,-1.0f, 1.0f,
+        -1.0f,-1.0f,-1.0f,
+        -1.0f, 1.0f, 1.0f,
+        -1.0f,-1.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f,-1.0f,-1.0f,
+        1.0f, 1.0f,-1.0f,
+        1.0f,-1.0f,-1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f,-1.0f,
+        -1.0f, 1.0f,-1.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f,-1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f,-1.0f, 1.0f
+    };
+    // for (int i = 0; i < sizeof(g_vertex_buffer_data) / sizeof(float); ++i)
+    // {
+    //     g_vertex_buffer_data[i] /= 3.0;
+    // }
+    glfwInit();
+    GLFWwindow* window = glfwCreateWindow(1024, 768, "opengl qa test", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+
+    GLuint program = LoadShaders("./vtx.glsl","./fce.glsl");
+    glUseProgram(program);
+
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+    // static const GLfloat g_vertex_buffer_data[] = {
+    //     -1.0f, -1.0f, 0.0f,
+    //     1.0f, -1.0f, 0.0f,
+    //     0.0f,  1.0f, 0.0f,
+    // };
+    GLuint vertexbuffer;
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+
+    GLuint colorbuffer;
+    glGenBuffers(1, &colorbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+    glVertexAttribPointer(
+            1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+            3,                                // size
+            GL_FLOAT,                         // type
+            GL_FALSE,                         // normalized?
+            0,                                // stride
+            (void*)0                          // array buffer offset
+        );
+
+	GLuint MatrixID = glGetUniformLocation(program, "MVP");
+    GLuint rot_mat_id = glGetUniformLocation(program, "rot_mat");
+	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+	glm::mat4 View       = glm::lookAt(
+								glm::vec3(4,3,-3), // Camera is at (4,3,-3), in World Space
+								glm::vec3(0,0,0), // and looks at the origin
+								glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+						   );
+	// Model matrix : an identity matrix (model will be at the origin)
+	glm::mat4 Model      = glm::mat4(1.0f);
+	// Our ModelViewProjection : multiplication of our 3 matrices
+	glm::mat4 MVP        = Projection * View * Model; 
+    glm::vec3 rot_dir(0, 1, 0);
+    glm::mat4 one(1.0f);
+    glm::mat4 rot_mat = glm::rotate(glm::mat4(1.0f), 0.02f, rot_dir);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // 猜测 enable 索引用于控制渲染管线中的 buffer 是否生效
+    // 如果 buffer 不生效，其实 glsl 是不会报错的
+    // 不清楚这个错误处理机制是怎样的
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    int i = 0;
+    do {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        rot_mat = glm::rotate(glm::mat4(1.0f), 3.1415926535f * 2 / 1000 * i, rot_dir);
+        glUniformMatrix4fv(rot_mat_id, 1, GL_FALSE, &rot_mat[0][0]);
+        // printf("%d\n", i);
+        ++i;
+        if (i == 1001)
+            i = 0;
+
+		// 猜测：每绑定一次，都会去自动调用一次 glsl 中的代码
+        // 多次调用并未使正方体发生旋转 => vertexbuffer 中的数据不会发生改变，
+        // 说明计算得到的临时输出有另外的缓冲区存储
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+        glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        usleep(20000);
+    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+        glfwWindowShouldClose(window) == 0);
+
+    glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+
+	glDeleteBuffers(1, &vertexbuffer);
+    glfwTerminate();
+    return 0;
+}
+```
 

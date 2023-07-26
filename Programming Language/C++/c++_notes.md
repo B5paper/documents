@@ -424,6 +424,10 @@ Output:
 
 ### Reference
 
+c++ 规定不允许有元素类型为引用的数组。
+
+Ref: <https://stackoverflow.com/questions/1164266/why-are-arrays-of-references-illegal>
+
 ## 函数，指针与引用
 
 ## Class
@@ -2032,6 +2036,12 @@ template OclKernelArgCollector& OclKernelArgCollector::sa<char*>(char* &arg);
 
 这段代码是对类中的模板成员函数进行实例化。虽然需要对每一个类型都实例化一次，但是这段代码对我来说是可以接受的。如果能有一些字符串处理工具自动填实例类型就更好了。
 
+Ref:
+
+1. <https://stackoverflow.com/questions/4933056/how-do-i-explicitly-instantiate-a-template-function>
+
+1. <https://stackoverflow.com/questions/495021/why-can-templates-only-be-implemented-in-the-header-file>
+
 ## 谓词
 
 返回`bool`的仿函数称为谓词。接收一个参数的谓词称为一元谓词，接收两个参数的谓词称为二元谓词。
@@ -3058,6 +3068,33 @@ class codecvt_utf8_utf16
 
 * 模式匹配
 
+## gcc attribute
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template <typename T>
+inline T __attribute__((const)) my_max(const T x, const T y)
+{
+    if (x > y)
+        return x;
+    else
+        return y;
+}
+
+int main()
+{
+    const int a = 3, b = 4;
+    int c = my_max(a, b);
+    cout << c << endl;
+}
+```
+
+似乎会用于 gcc 的优化，有空了看看。
+
+Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+
 ## Miscellaneous
 
 1. 宏
@@ -3407,4 +3444,42 @@ class codecvt_utf8_utf16
         printf("%d", t.size_i32);  // 3
     } 
     ```
+
+1. 全局变量的使用
+
+    在一个头文件`my_lib.h`里声明全局变量：`extern int aaa;`
+
+    在另一个实现文件`my_lib.cpp`里初始化全局变量：`int aaa = 3;`，或者直接`int aaa;`。记得要在`my_lib.cpp`中包含头文件`#include "my_lib.h"`。
+
+    最后在需要使用全局变量的地方包含头文件`my_lib.h`就可以了。比如在`main.cpp`中，
+
+    ```cpp
+    #include "my_lib.h"
+
+    int main()
+    {
+        int b = aaa;
+        return 0;
+    }
+    ``` 
+
+    关于编译：
+
+    `my_lib.o`和`main.o`的编译互不影响，可以分开来编译：
+
+    ```bash
+    g++ -c my_lib.cpp -o my_lib.o
+    g++ -c main.cpp -o main.o
+    g++ my_lib.o main.o -o main
+    ```
+
+    当然也可以合在一起编译：
+
+    ```bash
+    g++ my_lib.cpp main.cpp -o main
+    ```
+
+    如果全局变量是一个 C++ class 的实例，那么在初始化时允许调用自定义的构造函数。
+
+
 
