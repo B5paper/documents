@@ -268,6 +268,14 @@ docker 挂载主机目录访问如果出现`cannot open directory: Permisson den
 
     Ref: <https://stackoverflow.com/questions/39666950/how-restart-a-stopped-docker-container>
 
+1. Removing Dangling and Unused Images
+
+    <https://www.baeldung.com/ops/docker-remove-dangling-unused-images#:~:text=If%20we%20do%20not%20want,can%20use%20the%20%2Da%20flag.&text=The%20command%20will%20return%20the,the%20space%20that%20was%20freed.>
+
+1. 进入 container 时选择 user: <https://blog.csdn.net/q1248807225/article/details/113754472?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-113754472-blog-124169267.pc_relevant_multi_platform_whitelistv3&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-113754472-blog-124169267.pc_relevant_multi_platform_whitelistv3&utm_relevant_index=1>
+
+1. docker port introduction: <https://nickjanetakis.com/blog/docker-tip-59-difference-between-exposing-and-publishing-ports>
+
 ## Dockerfile
 
 Dockerfile 用于构建镜像。

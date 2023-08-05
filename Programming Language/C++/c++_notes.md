@@ -424,6 +424,10 @@ Output:
 
 ### Reference
 
+c++ 规定不允许有元素类型为引用的数组。
+
+Ref: <https://stackoverflow.com/questions/1164266/why-are-arrays-of-references-illegal>
+
 ## 函数，指针与引用
 
 ## Class
@@ -1590,7 +1594,7 @@ int main()
 
 #### `getchar()`
 
-The difference between getc() and getchar() is getc() can read from any input stream, but getchar() reads from standard input. So getchar() is equivalent to getc(stdin).
+The difference between `getc()` and `getchar()` is `getc()` can read from any input stream, but `getchar()` reads from standard input. So `getchar()` is equivalent to `getc(stdin)`.
 
 Syntax:
 
@@ -1946,6 +1950,97 @@ class Person
     friend void printPerson<>(Person<T1, T2> &p);
 };
 ```
+
+**模板与实例化**
+
+如果我们实现了一个函数模板：
+
+`my_header.h`
+
+```cpp
+template<typename T>
+void set_ocl_kernel_args(cl_kernel k, T &arg);
+```
+
+`my_source.cpp`:
+
+```cpp
+#include "my_header.h"
+
+template <typename T>
+void set_ocl_kernel_args(cl_kernel k, T &arg)
+{
+    int size = sizeof(arg);
+    T *ptr = &arg;
+    printf("size: %d, addr: %p\n", size, ptr);
+}
+```
+
+如果直接对这两个文件进行编译，由于编译器不知道`T`的具体类型，所以无法确定参数实际占了多少内存，最终无法定位内存地址，从而无法通过编译。
+
+一种解决办法是在头文件里写模板类和函数的实现，另一种办法是在编译时就指定好可能会用到的类型：
+
+`my_source.cpp`:
+
+```cpp
+#include "my_header.h"
+
+template <typename T>
+void set_ocl_kernel_args(cl_kernel k, T &arg)
+{
+    int size = sizeof(arg);
+    T *ptr = &arg;
+    printf("size: %d, addr: %p\n", size, ptr);
+}
+
+template void set_ocl_kernel_args<cl_mem>(cl_kernel k, cl_mem &param);
+```
+
+最后的这一行叫模板的实例化（instantiation）。
+
+另一个模板实例化的 example：
+
+`my_header.h`:
+
+```cpp
+struct OclKernelArg
+{
+    void *ptr;
+    size_t size;
+};
+
+struct OclKernelArgCollector
+{
+    template<typename T> OclKernelArgCollector& sa(T &arg);  // set argument
+
+    vector<OclKernelArg> kernel_args;
+};
+```
+
+`my_source.cpp`:
+
+```cpp
+#include "my_header.h"
+
+template<typename T>
+OclKernelArgCollector& OclKernelArgCollector::sa(T &arg)
+{
+    kernel_args.push_back({&arg, sizeof(arg)});
+    return *this;
+}
+
+template OclKernelArgCollector& OclKernelArgCollector::sa<cl_mem>(cl_mem &arg);
+template OclKernelArgCollector& OclKernelArgCollector::sa<float>(float &arg);
+template OclKernelArgCollector& OclKernelArgCollector::sa<char*>(char* &arg);
+```
+
+这段代码是对类中的模板成员函数进行实例化。虽然需要对每一个类型都实例化一次，但是这段代码对我来说是可以接受的。如果能有一些字符串处理工具自动填实例类型就更好了。
+
+Ref:
+
+1. <https://stackoverflow.com/questions/4933056/how-do-i-explicitly-instantiate-a-template-function>
+
+1. <https://stackoverflow.com/questions/495021/why-can-templates-only-be-implemented-in-the-header-file>
 
 ## 谓词
 
@@ -2973,6 +3068,33 @@ class codecvt_utf8_utf16
 
 * 模式匹配
 
+## gcc attribute
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template <typename T>
+inline T __attribute__((const)) my_max(const T x, const T y)
+{
+    if (x > y)
+        return x;
+    else
+        return y;
+}
+
+int main()
+{
+    const int a = 3, b = 4;
+    int c = my_max(a, b);
+    cout << c << endl;
+}
+```
+
+似乎会用于 gcc 的优化，有空了看看。
+
+Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+
 ## Miscellaneous
 
 1. 宏
@@ -3300,3 +3422,64 @@ class codecvt_utf8_utf16
     int value;
     str >> std::hex >> value;
     ```
+
+1. union
+
+    用 union 定义的变量，同一时间只有一个被激活，但他们共用同一块内存。
+
+    ```cpp
+    struct Test
+    {
+        void *ptr;
+        union {
+            int64_t size_i64;
+            int32_t size_i32;
+        };
+    };
+
+    int main()
+    {
+        Test t;
+        t.size_i64 = 3;
+        printf("%d", t.size_i32);  // 3
+    } 
+    ```
+
+1. 全局变量的使用
+
+    在一个头文件`my_lib.h`里声明全局变量：`extern int aaa;`
+
+    在另一个实现文件`my_lib.cpp`里初始化全局变量：`int aaa = 3;`，或者直接`int aaa;`。记得要在`my_lib.cpp`中包含头文件`#include "my_lib.h"`。
+
+    最后在需要使用全局变量的地方包含头文件`my_lib.h`就可以了。比如在`main.cpp`中，
+
+    ```cpp
+    #include "my_lib.h"
+
+    int main()
+    {
+        int b = aaa;
+        return 0;
+    }
+    ``` 
+
+    关于编译：
+
+    `my_lib.o`和`main.o`的编译互不影响，可以分开来编译：
+
+    ```bash
+    g++ -c my_lib.cpp -o my_lib.o
+    g++ -c main.cpp -o main.o
+    g++ my_lib.o main.o -o main
+    ```
+
+    当然也可以合在一起编译：
+
+    ```bash
+    g++ my_lib.cpp main.cpp -o main
+    ```
+
+    如果全局变量是一个 C++ class 的实例，那么在初始化时允许调用自定义的构造函数。
+
+
+

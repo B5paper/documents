@@ -24,3 +24,10 @@ pacman -S mingw64/mingw-w64-x86_64-gcc
 
 这个命令会同时装上 g++ 和 gcc。
 
+装 gdb:
+
+```bash
+pacman -S mingw64/mingw-w64-x86_64-gdb
+```
+
+如果只用上面的命令安装，是不会安装 make 程序的。不如一步到位：`pacman -S mingw-w64-x86_64-toolchain`

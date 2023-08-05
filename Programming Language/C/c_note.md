@@ -175,6 +175,12 @@ main()
 
 turorial: <https://www.programiz.com/c-programming/c-file-input-output>
 
+* `fread()`, `fwrite()`的返回值指的是读取了多少个 block。这个值和设置的`n`参数有关。
+
+    如果返回值等于`n`，那么说明成功读取。
+
+    还有一种情况，如果返回值等于`n - 1`，但是`feof(f_ptr)`返回 true，那么说明读到了文件结尾，也相当于成功读取。
+
 ### random number
 
 The function of generating random numbers is integrated in the `<stdlib.h>` file.

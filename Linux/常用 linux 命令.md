@@ -52,13 +52,21 @@
 
 * `sudo vi /etc/network/interfaces`
 
-查看网卡型号：
+**PCIE 网卡**
 
-`lspci -k | grep -i -A2 net`
+* 查看网卡型号
 
-查看网卡设备信息：
+    * `lspci -k | grep -i -A2 net`
 
-`lspci | grep -i net `
+    * `lspci | grep -i net`
+
+    * `lshw -class network`
+
+    * `sudo lshw -class network -short`
+
+    * `ip link show`, `ip a`
+
+    * `ip -br -c link show`, `ip -br -c addr show`
 
 查看无线网络：
 
@@ -364,6 +372,68 @@ do
 done
 ```
 
+## grub 中更改启动使用的内核
+
+Ref: <https://gist.github.com/chaiyujin/c08e59752c3e238ff3b1a5098322b363>
+
+显示当前使用的内核版本：
+
+`grep submenu /boot/grub/grub.cfg`
+
+显示所有可用的内核版本：
+
+`grep gnulinux-4.15.0 /boot/grub/grub.cfg`
+
+我们需要找到`$menuentry_id_option`后面的 kernel id 字符串。这个是我们需要的。
+
+编辑`/etc/default/grub`文件中的`GRUB_DEFAULT`，网上说写成类似`GRUB_DEFAULT='gnulinux-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf>gnulinux-4.15.0-126-generic-advanced-4591a659-55e2-4bec-8dbe-d98bd9e489cf'`这样的就可以，但是我试了试不行。写成`"1>2"`这样的可以（注意字符串要用引号括起来），其中`1`表示一级菜单的第二个选项，`2`表示二级菜单的第三个选项。
+
+这些选项或许可以通过文件获得，但我是先实际看了看 grub 菜单，然后直接记住的。如果 grub 菜单等待时间过短，可以设置`GRUB_TIMEOUT`为`-1`或一个比较大的数。
+
+最后需要执行`sudo update-grub`使改动生效。
+
+More ref:
+
+1. <https://docs.digitalocean.com/products/droplets/how-to/kernel/use-non-default/>
+
+1. <https://unix.stackexchange.com/questions/694323/how-to-set-default-kernel-in-debian>
+
+1. <https://unix.stackexchange.com/questions/198003/set-the-default-kernel-in-grub>
+
+1. <https://askubuntu.com/questions/599208/how-to-list-grubs-menuentries-in-command-line/1022706#1022706>
+
+    有时间可以看一下这个 script，调研一下 menu 是怎么抽出来的。
+
+## deb package inspect
+
+Ref: <https://blog.packagecloud.io/inspect-extract-contents-debian-packages/>
+
+A debian package is a Unix `ar` archive that includes two tar archives: one containing the control information and another with the program data to be installed.
+
+list its contents: `dpkg -c ./path/to/test.deb`
+
+To extract data from a deb package to current dir: `ar -x ./test_2.0.0_amd64.deb`
+
+Extract files from `control.tar.gz` and `data.tar.gz` using `tar`: `tar -xzf control.tar.gz`
+
+To extract files from a debian package, using `dpkg-deb`:
+
+`dpkg-deb -x ./path/to/test.deb ./path/to/destination`
+
+Extract control information from a Debian package using `dpkg-deb`:
+
+`dpkg -e ./test_2.0.0_amd64.deb`
+
+The `preinst`, `postinst`, `prerm`, and `postrm` files are scripts that will automatically execute before or after a package is installed or removed. These scripts are part of the control section of a Debian package.
+
+Using `apt-file` to view the contents of debian packages on remote repositories:
+
+`apt-get install apt-file`
+
+`apt-file update`
+
+`apt-file list <packagename>`
+
 ## Tricks
 
 * 使用`sudo`时保留用户的环境变量：`sudo -E <command>`
@@ -388,6 +458,12 @@ done
 
     `sudo`默认加载的环境变量可以到`/etv/environment`，`/etc/profile`中设置。
 
+* 挂载 iso 文件
+
+    `sudo mount -o loop,ro -t iso9660 filename.iso test_folder`
+    
+    `sudo mount filename.iso test_folder`
+
 ## problem shooting
 
 * Ubuntu 无法连接企业 Wifi
@@ -410,4 +486,23 @@ done
 
     `tlsdate`这个工具似乎好多年没更新过了，也不知道怎么编译。
 
+* dpkg-deb: 错误: 子进程 粘贴 被信号(断开的管道) 终止了
+
+    `sudo dpkg -i --force-overwrite " /var/cache/apt/archives/texlive-math-extra 2016.20160805.1 all.deb"`
+
+    `sudo apt-get dist-upgrade`
+
+* 查看系统版本
+
+    1. 方法一：`lsb_release -a`
+
+    1. 方法二：`cat /etc/lsb-release`
+
+    1. 方法三：`cat /etc/os-release`
+
+    1. 方法四：`/etc/issue`
+
+    1. 方法五：`hostnamectl`
+
+    1. 方法六：`uname -srn`
 

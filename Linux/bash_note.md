@@ -1567,3 +1567,9 @@ Materials:
     1. <https://stackoverflow.com/questions/71768999/how-to-merge-when-you-get-error-hint-you-have-divergent-branches-and-need-to-s>
 
     1. <https://stackoverflow.com/questions/9954794/execute-a-shell-function-with-timeout>
+
+1. How to Create Bash Aliases
+
+    <https://linuxize.com/post/how-to-create-bash-aliases/>
+
+
