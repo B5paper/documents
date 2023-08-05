@@ -148,6 +148,8 @@ deque 也支持随机访问。其原理是用一个中控器记录各小段数�
 
     同理，`equal_to`函数也可以这样写。
 
+1. `insert()`需要这样写：`insert({key_1, val_1})`。有时间了看下为什么。
+
 ## list
 
 Ref: <https://www.geeksforgeeks.org/list-cpp-stl/>

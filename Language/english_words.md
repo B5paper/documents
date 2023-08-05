@@ -10,9 +10,9 @@ bite n. 咬，刺痛
 
 arguably adv. 可以说
 
-endeavour v. 努力
+endeavour prn. [ɪnˈdevər] v. 努力
 
-endeavour n. 尝试
+endeavour prn. [ɪnˈdevər] n. 尝试
 
 thrive vi. 繁荣，兴旺
 
@@ -130,7 +130,7 @@ subscription n. 订阅
 
 maturity n. 成熟
 
-arduous adj. 艰辛的，困难的
+arduous prn. [ˈɑːrdʒuəs] adj. 艰辛的，困难的
 
 substitute v. 替换
 
@@ -268,7 +268,7 @@ entrepreneur n. 企业家
 
 retrospective adj. 回顾展；回顾的
 
-beneficiary n. 受益者
+beneficiary prn. [ˌbenɪˈfɪʃieri] n. 受益者
 
 muse n. 灵感；沉思，冥想
 
@@ -340,9 +340,9 @@ extrapolation n. 外推法，推断
 
 implication n. 含义
 
-mitigate v. 减轻，缓和
+mitigate prn. [ˈmɪtɪɡeɪt] v. 减轻，缓和
 
-curriculum n. 课程
+curriculum prn. [kəˈrɪkjələm] n. 课程
 
 indispensable adj. 不可或缺的
 
@@ -352,7 +352,7 @@ distinctive adj. 独特的，与众不同的
 
 critical adj. 重要的，批判的
 
-replete adj. 充满的，装满的
+replete adj-graded. History is replete with examples of populations out of control. 充满的，装满的 eg. The Harbor was replete with boats. 港口里满是船只。
 
 requisite adj. 必需的，必要的
 
@@ -387,3 +387,4 @@ bankrupt adj. People or organizations that go bankrupt do not have enough money 
 jail n-var. A jail is a place where criminals are kept in order to punish them, or where people waiting to be tried are kept. eg. Go to jail: This is a consequence of an error of judgment, and is not a normal exit from the game board.
 
 sublime adj. 庄严的，雄伟的
+
