@@ -84,3 +84,35 @@ invoke ExitProcess, 0
 end start
 end
 ```
+
+[unit]
+[u_0]
+`lea`命令是什么意思？请解释它的作用，并给出几个例子。
+[u_1]
+(empty)
+
+[unit]
+[u_0]
+请用 masm 汇编分别实现`while ()`和`do while()`。
+[u_1]
+(empty)
+
+[unit]
+[u_0]
+请写出`.model`的 syntax，并写出 32-bit 下各个参数的可取的值。
+给出一个 example。
+[u_1]
+```asm
+.MODEL memory-model ⟦, language-type⟧ ⟦, stack-option⟧
+```
+
+`memory-model`: 32 位下可取值：`FLAT`
+
+`language-type`: 32 位下可取值：`C, STDCALL`
+
+`stack-option`: Not used
+
+Example:
+
+`.model flat, stdcall`
+

@@ -348,6 +348,10 @@ git log --since=2008-01-15
 git log --since="2 years 1 day 3 minutes ago"
 ```
 
+`git log --all`：查看所有 branch 的记录
+
+`git reflog`：查看包括`reset --hard`之类的修改记录
+
 ## config
 
 显示当前的所有配置：`git config --list --show-origin`
@@ -414,11 +418,13 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     local branch 创建好后，与远程仓库中的 branch 并没有建立联系。如果想要建立联系，可以使用`git push --set-upstream origin test`。
 
-    删除一个本地的 branch: `git branch -d <local_branch_name>`
+    删除一个本地的 branch: `git branch -d <local_branch_name>`（只有当这个 branch 被 merge 过之后，才可以用`-d`删除。如果 branch 没有被 merge，那么可以用`-D`强制删除）
 
     直接从 github 里删除 branch: `git push origin --delete <remote_brance_name>`
 
     `git clone xxx`一个新仓库里，似乎只会 clone main branch，其他的 branch 不会 clone。如何能把其他的 branch clone 下来呢？
+
+    `git branch -vv`：查看 branch 更详细的信息，包括对应的 remote branch 信息
 
 * git remote
 
@@ -453,6 +459,8 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
     不清楚加`-u`和不加`-u`有啥区别。
 
     `git push <remote> <branch>`: 把 local 的`<branch>` push 到`<remote>`。
+
+    `git push [-f] [--set-upstream] [remote_name [local_branch][:remote_branch]]`
 
 * git rebase
 
@@ -524,6 +532,8 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
     `git merge <branch_name>`：把`<branch_name>`分支 merge 到当前分支。即对比`<branch_name>`分支最新的一次 commit 与当前分支的最新 commit，如果这两个 commit 在同一条线上，那么直接使用 fast-forward，改变当前 branch 的指针。如果这两个 commit 不在同一条线上，那么对当前 branch 创建一个新的 merge commit，并要求你手动处理 conflict。
 
     注意，fast-forward 不会创建新 commit，而 conflict 会创建新 commit。
+
+    `git merge origin/master`
 
 * `git pull`会 pull 所有设置 upstream 的 branch。（那么`git pull --all`是干嘛用的？）
 
@@ -599,11 +609,15 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     这两个命令只适用于已经 tracked 的文件，如果一个文件是新创建的，那么
 
+    `git checkout -b <branch-name>`：如果分支不存在，则创建分支并切换
+
 * `git restore`
 
 * `git fetch`
 
     `git fetch <remote>`从指定的 remote config 中更新内容。
+
+    `git fetch [remote_name] [branch_name]`
 
 * `git tag`
 

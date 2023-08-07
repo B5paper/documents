@@ -156,3 +156,13 @@
 
 1. gdb 设置字符集：<https://sourceware.org/gdb/onlinedocs/gdb/Character-Sets.html>
 
+    <https://www-zeuthen.desy.de/unix/unixguide/infohtml/gdb/Character-Sets.html>
+
+1. 在调试 c 代码时看到对应的汇编代码：<https://juejin.cn/post/6844903625077063693>
+
+1. 用 gdb 调试汇编：<https://zhuanlan.zhihu.com/p/259625135>
+
+    <https://resources.infosecinstitute.com/topic/debugging-your-first-x86-program/>
+
+1. a tutorial about gdb: <https://www-users.cse.umn.edu/~kauffman/tutorials/gdb.html>
+

@@ -2,7 +2,13 @@
 
 tutorial: <https://www.cs.virginia.edu/~evans/cs216/guides/x86.html>
 
+nasm tutorial: <https://www.tutorialspoint.com/assembly_programming/assembly_basic_syntax.htm>
+
 resources: <https://visualmasm.com/resources/>
+
+tutorial: <http://www.interq.or.jp/chubu/r6/masm32/tute/tute001.html>
+
+masm tutorial: <https://www.jj2007.eu/Masm32_Tips_Tricks_and_Traps.htm>
 
 books:
 
@@ -10,9 +16,29 @@ books:
 
 1. Assembly Language for x86 Processors, P88
 
+1. x86汇编语言 从实模式到保护模式，有空了看下。<https://book.douban.com/subject/20492528/>
+
+Reference:
+
+1. 常见的各种命令，都可以在这里查：<https://www.felixcloutier.com/x86/>
+
 汇编编译器：
 
 masm32: <https://www.masm32.com/index.htm>
+
+如果只是想学习 8086 汇编，可以使用 emu8086。
+
+visual studio 提供了 masm，但是被集成在 visual studio 中，无法单独下载。有时间了学习下：<https://learn.microsoft.com/en-us/cpp/assembler/masm/masm-for-x64-ml64-exe?view=msvc-170>。
+
+有时间可以了解下 bochs: <https://www.cnblogs.com/diyuanxu/articles/16367513.html>
+
+其他的可能会用到的 debugger: <https://softwarerecs.stackexchange.com/questions/31746/assembly-debugger>
+
+使用 gdb 对汇编进行调试：<http://dbp-consulting.com/tutorials/debugging/basicAsmDebuggingGDB.html>
+
+还有一些没探索过的资料：
+
+1. <https://thestarman.pcministry.com/asm/win32/index.html>
 
 ## Hello world
 
@@ -668,3 +694,58 @@ begin: xor ecx, ecx
        mov eax, [esi]
 ```
 
+## Ref
+
+* `.model`
+
+    Syntax:
+
+    ```asm
+    .MODEL memory-model ⟦, language-type⟧ ⟦, stack-option⟧
+    ```
+
+    Parameters:
+
+    * `memory-model`
+
+        Required parameter that determines the size of code and data pointers.
+
+        32-bit values: `FLAT`
+
+        16-bit values (support for earlier 16-bit development): `TINY, SMALL, COMPACT, MEDIUM, LARGE, HUGE, FLAT`
+
+    * `language-type`
+
+        Optional parameter that sets the calling and naming conventions for procedures and public symbols.
+
+        32-bit values: `C, STDCALL`
+
+        16-bit values: `C, BASIC, FORTRAN, PASCAL, SYSCALL, STDCALL`
+
+    * `stack-option`
+
+        Optional parameter. stack-option is not used if memory-model is FLAT.
+
+        32-bit values: Not used
+
+        16-bit values: `NEARSTACK, FARSTACK`
+
+    Ref: <https://learn.microsoft.com/en-us/cpp/assembler/masm/dot-model?view=msvc-170>
+
+## Miscellaneous
+
+1. 寄存器比如`eax`，`ebx`，`ecx`这些经常会被改变，尤其是在函数调用前后。所以不要将数据放在这些寄存器中，尽量将数据都放到内存中。寄存器的作用域尽量控制在它的 3，4 行上下文中。寄存器的作用尽量仅限于与内存交互数据，做算术运算，指令跳转等。
+
+1. 如果想让函数返回一个值，可以把这值存到`eax`寄存器中。
+
+    Ref: <https://stackoverflow.com/questions/55773868/returning-a-value-in-x86-assembly-language>
+
+1. 调试 debug
+
+    目前直接对汇编程序进行调试的主流调试器有 x64dbg 和 bochs。
+
+    如果需要 C/C++ 生成的汇编程序进行调试，可以使用 gdb。
+
+    在 visual studio 里似乎也可以调试，但我目前还不会用。<https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/debugging-in-assembly-mode>
+
+    
