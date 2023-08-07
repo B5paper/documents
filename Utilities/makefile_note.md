@@ -375,3 +375,17 @@ f2.o
 常用的 wildcard 有`*`和`%`。
 
 * `*` wildcard
+
+## Miscellaneous
+
+1. 在 makefile 里使用`cd`进入其他目录
+
+    ```Makefile
+    target:
+        cd xxx; run xxx;
+        // or use this:
+        cd xxx && run xxxx
+    ```
+
+    Ref: <https://stackoverflow.com/questions/1789594/how-do-i-write-the-cd-command-in-a-makefile>
+

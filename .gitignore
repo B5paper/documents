@@ -4,3 +4,4 @@
 /High Performance Computing/opencl_note_qa_exam_db
 .gitignore~
 ..gitignore.un~
+*_db

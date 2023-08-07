@@ -951,7 +951,7 @@ Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
 
 In glTexImage2D, the GL_RGB indicates that we are talking about a 3-component color, and GL_BGR says how exactly it is represented in RAM. As a matter of fact, BMP does not store Red->Green->Blue but Blue->Green->Red, so we have to tell it to OpenGL.
 
-### texture （纹理）
+## texture （纹理）
 
 其实就是贴图。
 
@@ -1356,6 +1356,16 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 ```bash
 ./main
 ```
+
+## glsl 的版本很重要
+
+在 glsl 的文件的第一行添加：
+
+`#version 330 core`
+
+如果不写的话，有的机器上的 glsl 无法通过编译。
+
+（如果不指定版本，那么默认的版本是什么？）
 
 ## API Reference
 
