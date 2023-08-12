@@ -28071,6 +28071,101 @@ stones[i] 的值各不相同。
 
     感觉这道题挺像贪心的。思路确实不难想，关键是怎么证明？
 
+### 移动石子直到连续
+
+三枚石子放置在数轴上，位置分别为 a，b，c。
+
+每一回合，你可以从两端之一拿起一枚石子（位置最大或最小），并将其放入两端之间的任一空闲位置。形式上，假设这三枚石子当前分别位于位置 x, y, z 且 x < y < z。那么就可以从位置 x 或者是位置 z 拿起一枚石子，并将该石子移动到某一整数位置 k 处，其中 x < k < z 且 k != y。
+
+当你无法进行任何移动时，即，这些石子的位置连续时，游戏结束。
+
+要使游戏结束，你可以执行的最小和最大移动次数分别是多少？ 以长度为 2 的数组形式返回答案：answer = [minimum_moves, maximum_moves]
+
+ 
+
+示例 1：
+
+输入：a = 1, b = 2, c = 5
+输出：[1, 2]
+解释：将石子从 5 移动到 4 再移动到 3，或者我们可以直接将石子移动到 3。
+示例 2：
+
+输入：a = 4, b = 3, c = 2
+输出：[0, 0]
+解释：我们无法进行任何移动。
+ 
+
+提示：
+
+1 <= a <= 100
+1 <= b <= 100
+1 <= c <= 100
+a != b, b != c, c != a
+
+代码：
+
+1. 找规律，自己写的
+
+    最小值的话，以左侧石子往右侧移动为例，每次都把最左边的石子放到右侧开始的第一个空位上就可以了。这样得到一个结果。然后从头开始，把右侧石子移到左边，再得到一个结果。两个结果比较，取较小的即可。
+
+    对于最大值，同样以左侧石子往右侧移动为例，先把最左侧的石子一格一格地移到右边第一个石子旁，然后两个石子交替往右移动，直到和最右侧的石子汇合，这样得到一个结果。然后重新开始，把右侧石子移到左边，再得到一个结果。两个结果比较，取较大值即可。
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> numMovesStones(int a, int b, int c) {
+            vector<int> vec{a, b, c};
+            sort(vec.begin(), vec.end());
+            int min_steps = 0, max_steps = 0;
+            int count = 0;
+            int left = 0, right = 2;
+            while (left < right)
+            {
+                while (left < right && vec[right] - 1 == vec[right-1])
+                    --right;
+                if (left >= right)
+                    break;
+                vec[left] = vec[right] - 1;
+                swap(vec[left], vec[right-1]);
+                count++;
+            }
+            min_steps = count;
+
+            vec.assign({a, b, c});
+            sort(vec.begin(), vec.end());
+            left = 0, right = 2;
+            count = 0;
+            while (left < right)
+            {
+                while (left < right && vec[left] + 1 == vec[left+1])
+                    ++left;
+                if (left == right)
+                    break;
+                vec[right] = vec[left] + 1;
+                swap(vec[left+1], vec[right]);
+                count++;
+            }
+            min_steps = min(min_steps, count);
+
+            vec.assign({a, b, c});
+            sort(vec.begin(), vec.end());
+            left = 0, right = 1;
+            count = 0;
+            count = vec[1] - vec[0] - 1;
+            count += vec[2] - vec[1] - 1;
+            max_steps = count;
+
+            count = 0;
+            count = vec[1] - vec[0] - 1;
+            count += (vec[2] - 1) - vec[1] - 1;
+            max_steps = max(max_steps, count);
+            return {min_steps, max_steps};
+        }
+    };
+    ```
+
+    这个代码在计算最小值的时候，还是用了模拟，比较麻烦。其实可以直接计算出结果的，有时间了再优化优化。
+
 ### 区间相关
 
 #### 会议室
@@ -35614,6 +35709,114 @@ public:
             return n2;
         }
     }
+    ```
+
+#### 不邻接植花
+
+有 n 个花园，按从 1 到 n 标记。另有数组 paths ，其中 paths[i] = [xi, yi] 描述了花园 xi 到花园 yi 的双向路径。在每个花园中，你打算种下四种花之一。
+
+另外，所有花园 最多 有 3 条路径可以进入或离开.
+
+你需要为每个花园选择一种花，使得通过路径相连的任何两个花园中的花的种类互不相同。
+
+以数组形式返回 任一 可行的方案作为答案 answer，其中 answer[i] 为在第 (i+1) 个花园中种植的花的种类。花的种类用  1、2、3、4 表示。保证存在答案。
+
+ 
+
+示例 1：
+
+输入：n = 3, paths = [[1,2],[2,3],[3,1]]
+输出：[1,2,3]
+解释：
+花园 1 和 2 花的种类不同。
+花园 2 和 3 花的种类不同。
+花园 3 和 1 花的种类不同。
+因此，[1,2,3] 是一个满足题意的答案。其他满足题意的答案有 [1,2,4]、[1,4,2] 和 [3,2,1]
+示例 2：
+
+输入：n = 4, paths = [[1,2],[3,4]]
+输出：[1,2,1,2]
+示例 3：
+
+输入：n = 4, paths = [[1,2],[2,3],[3,4],[4,1],[1,3],[2,4]]
+输出：[1,2,3,4]
+ 
+
+提示：
+
+1 <= n <= 104
+0 <= paths.length <= 2 * 104
+paths[i].length == 2
+1 <= xi, yi <= n
+xi != yi
+每个花园 最多 有 3 条路径可以进入或离开
+
+代码：
+
+1. 自己写的，暴力回溯
+
+    首先找连在一起的“团”，然后深度优先搜索对每个团进行处理。对于每个节点，分别尝试放入 1, 2, 3, 4 不同颜色，如果当前节点无论哪种颜色都不符合条件，那么回退到上一个节点，改变上一个节点的颜色，以此类推。
+
+    这个我还不太会写，忘了图的 dfs 怎么写了。需要先复习下图的 dfs，再写这个。
+
+    ```cpp
+    class Solution {
+    public:
+        vector<bool> vis;
+        vector<int> ans;
+        void backtrack(int n, vector<vector<int>>& paths, int node)
+        {
+            for (int i = 0)
+        }
+
+        vector<int> gardenNoAdj(int n, vector<vector<int>>& paths) {
+            vector<vector<int>> p(n+1);
+            for (int i = 0; i < paths.size(); ++i)
+            {
+                p[paths[i][0]] = p[paths[i][1]];
+                p[paths[i][1]] = p[paths[i][0]];
+            }
+            ans.resize(n);
+            vis.assign(n, false);
+            for (int i = 0; i < n; ++i)
+            {
+                if (vis[i]) continue;
+                backtrack(n, paths, node);
+            }
+            return ans;
+        }
+    };
+    ```
+
+    官方答案说，由于有 4 种颜色，而最多只有 3 个节点与当前节点相连，所以当前节点一定有可行解。所以一定不需要回退到上一个节点。这样就不需要回溯，只需要遍历一遍就可以了。
+
+1. 官方答案，颜色标记
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> gardenNoAdj(int n, vector<vector<int>>& paths) {
+            vector<vector<int>> adj(n);
+            for (auto &path : paths) {
+                adj[path[0] - 1].emplace_back(path[1] - 1);
+                adj[path[1] - 1].emplace_back(path[0] - 1);
+            }
+            vector<int> ans(n);
+            for (int i = 0; i < n; i++) {
+                vector<bool> colored(5, false);
+                for (auto &vertex : adj[i]) { 
+                    colored[ans[vertex]] = true;
+                }
+                for (int j = 1; j <= 4; j++) { 
+                    if (colored[j] == 0) { 
+                        ans[i] = j;
+                        break;
+                    }
+                }
+            }
+            return ans;
+        }
+    };
     ```
 
 ## 各种算法中需要注意的细节

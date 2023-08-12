@@ -339,6 +339,8 @@ int __stdcall add(int x, int y);
 int (__stdcall *lpAddFun)(int, int);
 ```
 
+ref: <https://stackoverflow.com/questions/1789807/function-pointer-as-an-argument>
+
 **注：在 windows 下，使用 mingw 的 g++/gcc 进行编译，好像没用，根本没有`@`。有机会再研究。**
 
 ## Pointer and reference 指针与引用
@@ -3481,5 +3483,10 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
 
     如果全局变量是一个 C++ class 的实例，那么在初始化时允许调用自定义的构造函数。
 
+1. 用 g++ 编译时报错：`error adding symbols: DSO missing from command line`
 
+    解决方案：
+    
+    加一个编译 flag: `-Wl,--copy-dt-needed-entries`
 
+    Ref: <https://stackoverflow.com/questions/19901934/libpthread-so-0-error-adding-symbols-dso-missing-from-command-line>
