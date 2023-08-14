@@ -17,6 +17,49 @@ int main()
 }
 ```
 
+## string
+
+可以通过指定数据起始地址和字节数的方式填充数据：
+
+```cpp
+string buf;
+char *c = "abcdefagasdfw";
+buf.append(c, 8);  // 给定数据的起始地址和个数
+buf.append(c, c + 8);  // 也可以给定两个指针（或两个迭代器）
+```
+
+使用`str.data()`和`str.c_str()`获得的内存地址是一样的。`string`会在`str.size()`个字节后添加一个额外的`\0`，所以如果我们使用`memcpy()`往`str.data()`中写入字符串时，不需要担心程序会找不到字符串的结尾。
+
+Example:
+
+```cpp
+#include <string>
+#include <string.h>
+using namespace std;
+
+int main()
+{
+    char str_1[8];
+    string str_2;
+    str_2.resize(8);
+    char src[9] = "abcdefgh";
+    memcpy(str_1, src, 8);
+    memcpy(str_2.data(), src, 8);
+    printf("str_1: %s\n", str_1);
+    printf("str_2: %s\n", str_2.c_str());
+    return 0;
+}
+```
+
+输出：
+
+```
+str_1: abcdefghabcdefgh
+str_2: abcdefgh
+```
+
+可以看到`string`类型`resize()`为 8 个字节后，仍能正常显示字符串。但是`char str_1[8]`显示异常。
+
 ## deque
 
 deque 也支持随机访问。其原理是用一个中控器记录各小段数据的地址。
@@ -149,6 +192,221 @@ deque 也支持随机访问。其原理是用一个中控器记录各小段数�
     同理，`equal_to`函数也可以这样写。
 
 1. `insert()`需要这样写：`insert({key_1, val_1})`。有时间了看下为什么。
+
+### 插入元素时的 copy 机制
+
+考虑这样一个问题：
+
+我们实现了一个 class，在构造函数申请内存，在析构函数中释放内存。现在我们想要把这个对象放到`unordered_map`中，使用`string`作为键。可能会写出这样的代码：
+
+```cpp
+#include <iostream>
+#include <unordered_map>
+#include <string>
+using namespace std;
+
+class B
+{
+    public:
+    B(const char *src) {
+        cout << "constructor" << endl;
+        buf = (char*) malloc(16);
+        memset(buf, 0, 16);
+        memcpy(buf, src, strlen(src));
+        cout << "buf: " << buf << endl;
+    }
+
+    ~B() {
+        cout << "destructor" << endl;
+        free(buf);
+    }
+
+    char *buf;
+};
+
+int main()
+{
+    unordered_map<string, B> m;
+    m.insert(make_pair("b", B("hello")));
+    return 0;
+}
+```
+
+直接运行会报错：
+
+```
+constructor
+buf: hello
+destructor
+destructor
+free(): double free detected in tcache 2
+Aborted (core dumped)
+```
+
+为什么？我们试试只`make_pair()`:
+
+```cpp
+#include <iostream>
+#include <unordered_map>
+#include <string>
+using namespace std;
+
+class B
+{
+    public:
+    B(const char *src) {
+        cout << "constructor" << endl;
+        buf = (char*) malloc(16);
+        memset(buf, 0, 16);
+        memcpy(buf, src, strlen(src));
+        cout << "buf: " << buf << endl;
+    }
+
+    ~B() {
+        cout << "destructor" << endl;
+        free(buf);
+    }
+
+    char *buf;
+};
+
+int main()
+{
+    pair<string, B> p("b", B("hello"));
+    return 0;
+}
+```
+
+输出：
+
+```
+constructor
+buf: hello
+destructor
+destructor
+free(): double free detected in tcache 2
+Aborted (core dumped)
+```
+
+和前面的输出相同，看来问题就在这个`make_pair()`上。我们看`make_pair()`的原型：
+
+```cpp
+template <class T1, class T2>  pair<V1,V2> make_pair (T1&& x, T2&& y);  // see below for definition of V1 and V2
+```
+
+可以看到传递进去的参数是引用，并没有调用`B`的构造函数。但是当 pair 对象被析构时，会调用`B`的析构函数吗？我们做个实验试试：
+
+```cpp
+#include <iostream>
+#include <unordered_map>
+#include <string>
+using namespace std;
+
+class B
+{
+    public:
+    B(const char *src) {
+        cout << "constructor" << endl;
+        buf = (char*) malloc(16);
+        memset(buf, 0, 16);
+        memcpy(buf, src, strlen(src));
+        cout << "buf: " << buf << endl;
+    }
+
+    ~B() {
+        cout << "destructor" << endl;
+        free(buf);
+    }
+
+    char *buf;
+};
+
+int main()
+{
+    unordered_map<string, B> m;
+    B b("hello");
+    cout << "break 1" << endl;
+    {
+        pair<string, B> p("b", b);
+        cout << "break 2" << endl;
+    }
+    cout << "break 3" << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+constructor
+buf: hello
+break 1
+break 2
+destructor
+break 3
+destructor
+free(): double free detected in tcache 2
+Aborted (core dumped)
+```
+
+`break 2`和`break 3`之间的`destructor`证明了，在离开作用域销毁`p`时，调用了`b`的析构函数。然而在整个`main()`函数结束时，`b`也要被销毁，因此`b`的析构函数被再次调用。这样就导致了内存错误发生。
+
+对于使用匿名对象的写法也是同理，
+
+```cpp
+auto p = make_pair("b", B("hello"));
+```
+
+`B("hello")`构造了一个匿名对象，它被按引用传入`make_pair()`后，马上被析构。当`p`离开它的作用域时，匿名对象的析构函数再次被调用，这样也导致了内存错误。
+
+`unordered_map`也是同理，无论是使用`insert()`还是`emplace()`插入元素，都无法避免析构函数被调用两次的问题。为了解决这个问题，我们需要将对象的作用域控制在`unordered_map`内，由`unordered_map`负责构造和析构，而对外是不可见的。这时我们就需要用到`piecewise_construct`了：
+
+```cpp
+#include <iostream>
+#include <unordered_map>
+#include <string>
+using namespace std;
+
+class B
+{
+    public:
+    B(const char *src) {
+        cout << "constructor" << endl;
+        buf = (char*) malloc(16);
+        memset(buf, 0, 16);
+        memcpy(buf, src, strlen(src));
+        cout << "buf: " << buf << endl;
+    }
+
+    ~B() {
+        cout << "destructor" << endl;
+        free(buf);
+    }
+
+    char *buf;
+};
+
+int main()
+{
+    unordered_map<string, B> m;
+    m.emplace(
+        piecewise_construct, 
+        forward_as_tuple("b"),
+        forward_as_tuple("hello")
+    );
+    return 0;
+}
+```
+
+输出：
+
+```
+constructor
+buf: hello
+destructor
+```
+
+这样就解决了报错的问题。
 
 ## list
 

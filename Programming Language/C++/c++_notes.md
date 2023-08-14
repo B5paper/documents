@@ -2360,7 +2360,7 @@ Notes:
 
 1. 如果不调用`thread_obj.join()`，主线程不会等子线程结束。在整个进程退出时，子线程会被强制结束。
 
-Determian whether the current thread is the main thread:
+Determain whether the current thread is the main thread:
 
 ```cpp
 #include <iostream>
@@ -2392,6 +2392,226 @@ int main()
 ```
 
 ### Mutex and semephore
+
+如果我们想使用三个线程把一个数字从 0 加到 15，那么可以这样写代码：
+
+```cpp
+#include <thread>
+#include <iostream>
+using namespace std;
+
+int idx = 0;
+
+void print_idx()
+{
+    for (int i = 0; i < 5; ++i)
+    {
+        ++idx;
+        cout << "idx is: " << idx << endl;
+    }
+}
+
+int main()
+{
+    thread thds[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        thds[i] = thread(print_idx);
+    }
+    for (int i = 0; i < 3; ++i)
+    {
+        thds[i].join();
+    }
+    return 0;
+}
+```
+
+可是这样的话程序的输出总是很不稳定：
+
+```
+idx is: idx is: idx is: 23
+idx is: 
+idx is: 5
+2idx is: 6
+idx is: 7
+idx is: 8
+4
+
+idx is: 10
+idx is: idx is: 11
+idx is: 12
+10idx is: 13
+
+idx is: 14
+idx is: 15
+```
+
+如果我们想要稳定的输出，可以使用`mutex`：
+
+```cpp
+#include <mutex>
+#include <thread>
+#include <iostream>
+using namespace std;
+
+int idx = 0;
+mutex mtx;
+
+void print_idx()
+{
+    for (int i = 0; i < 5; ++i)
+    {
+        mtx.lock();
+        ++idx;
+        cout << "idx is: " << idx << endl;
+        mtx.unlock();
+    }
+}
+
+int main()
+{
+    thread thds[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        thds[i] = thread(print_idx);
+    }
+    for (int i = 0; i < 3; ++i)
+    {
+        thds[i].join();
+    }
+    return 0;
+}
+```
+
+这样就能得到稳定的输出：
+
+```
+idx is: 1
+idx is: 2
+idx is: 3
+idx is: 4
+idx is: 5
+idx is: 6
+idx is: 7
+idx is: 8
+idx is: 9
+idx is: 10
+idx is: 11
+idx is: 12
+idx is: 13
+idx is: 14
+idx is: 15
+```
+
+在这个例子中，`mutex`的作用其实是开启了一个临界区，使用`mtx.lock()`和`mtx.unlock()`配对保护临界区中的操作。
+
+对于这种配对使用的场景，还可以使用`locl_guard`更便捷地实现：
+
+```cpp
+#include <mutex>
+#include <thread>
+#include <iostream>
+using namespace std;
+
+int idx = 0;
+mutex mtx;
+
+void print_idx()
+{
+    for (int i = 0; i < 5; ++i)
+    {
+        lock_guard<mutex> mtx_guard(mtx);
+        ++idx;
+        cout << "idx is: " << idx << endl;
+    }
+}
+
+int main()
+{
+    thread thds[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        thds[i] = thread(print_idx);
+    }
+    for (int i = 0; i < 3; ++i)
+    {
+        thds[i].join();
+    }
+    return 0;
+}
+```
+
+输出：
+
+```
+idx is: 1
+idx is: 2
+idx is: 3
+idx is: 4
+idx is: 5
+idx is: 6
+idx is: 7
+idx is: 8
+idx is: 9
+idx is: 10
+idx is: 11
+idx is: 12
+idx is: 13
+idx is: 14
+idx is: 15
+```
+
+`mtx_guard`对象的存在就保证了这个作用域是个临界区，当`mtx_guard`被销毁时，`mtx`会被自动释放。
+
+Ref: <https://www.modernescpp.com/index.php/prefer-locks-to-mutexes/>
+
+mutex 中的`try_lock()`可以无阻塞地尝试 lock，相反，`lock()`则是阻塞式地尝试 lock。
+
+考虑这样一个场景：如果我们希望线程 1 完成填充数组中的数据后，线程 2 对数组中数据进行计算。这时候我们发现 mutex 就不太适用了。使用 mutex 可能会这样写：
+
+```cpp
+#include <mutex>
+#include <thread>
+#include <iostream>
+using namespace std;
+
+mutex mtx;
+float arr[4];
+
+void fill_array()
+{
+    mtx.lock();
+    for (int i = 0; i < 4; ++i)
+    {
+        arr[i] = i;
+    }
+    mtx.unlock();
+}
+
+void get_array_sum()
+{
+    mtx.lock();
+    int s = 0;
+    for (int i = 0; i < 4; ++i)
+    {
+        s += arr[i];
+    }
+    mtx.unlock();
+    cout << "sum is " << s << endl;
+}
+
+int main()
+{
+    thread thd_1(fill_array);
+    thread thd_2(get_array_sum);
+    
+    thd_2.join();
+    thd_1.join();
+    return 0;
+}
+```
+
+其实这和临界区也没有什么区别了。或许条件变量（conditional variable）可以解决这个问题，有时间了看看。
 
 ## Smart pointers
 
@@ -2907,6 +3127,10 @@ int main()
 ## 工程化
 
 1. 头文件`xxx.h`中，只写对应`xxx.cpp`文件中出现的函数，尽量不写其他用到的头文件，仅保证头文件中没有语法错误即可。`xxx.cpp`中需要包含实现函数时用到的头文件。这样比较清晰，不容易乱。
+
+1. 跨文件的全局变量
+
+    在头文件`a.h`中写声明：`extern int aaa;`，在其他某个实现文件`xxx.cpp`中写定义：`int aaa;`。在其余地方，比如`main.cpp`，只要 include 了`a.h`，就可以使用这个变量。
 
 ## Topics
 
