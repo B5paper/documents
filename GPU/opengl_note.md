@@ -7,8 +7,13 @@ Ref: <www.opengl-tutorial.org>
 需要安装的包：
 
 ```bash
-apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev
 apt install libglew-dev libglfw3-dev
+```
+
+如果安装了上面两个包还是不够，可以选择性安装下面的包。
+
+```bash
+apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev
 ```
 
 创建一个窗口所需要的最小代码：
@@ -20,18 +25,17 @@ apt install libglew-dev libglfw3-dev
 
 int main()
 {
-    glfwInit();
-    GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
-    glfwMakeContextCurrent(window);
-    do {
-        glfwPollEvents();
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
-    return 0;
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	do {
+		glfwPollEvents();
+	} while (glfwWindowShouldClose(window) == GLFW_FALSE);
+	return 0;
 }
 ```
 
 编译：
-
 
 ```bash
 gcc main.c -lglfw -o main
@@ -43,151 +47,268 @@ gcc main.c -lglfw -o main
 ./main
 ```
 
-效果：出现一个窗口，按 Esc 键退出。
+效果：出现一个窗口，点右上角关闭按钮退出。
 
 glfw 主要处理鼠标键盘等事件消息。
 
-### triangle
+### Triangle
+
+我们先画一个没有颜色的三角形，再画一个有颜色的三角形。填充颜色的工作是由 shader 完成的。
 
 #### Without shader
 
-为了画三角形，首先需要创建一些顶点，这些顶点在 OpenGL 中以指定的类型存储起来，这种类型的对象叫 VAO (Vertex Array Object):
-
 ```cpp
-GLuint VertexArrayID;
-glGenVertexArrays(1, &VertexArrayID);
-glBindVertexArray(VertexArrayID);
-```
-
-这里的`VertexArrayID`类似于 Linux 中的设备号。
-
-Do this once your window is created (= after the OpenGL Context creation) and before any other OpenGL call.
-
-实际上是在`glewInit()`后添加的这段代码。
-
-Screen Coordinates:
-
-* X in on your right
-* Y is up
-* Z is towards your back (yes, behind, not in front of you)  （从屏幕指向你）
-
-The origin of the coordinates is at the center of the display window.
-
-bind buffer:
-
-```cpp
-// This will identify our vertex buffer
-GLuint vertexbuffer;
-// Generate 1 buffer, put the resulting identifier in vertexbuffer
-glGenBuffers(1, &vertexbuffer);
-// The following commands will talk about our 'vertexbuffer' buffer
-glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-// Give our vertices to OpenGL.
-glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-```
-
-`glClearColor()SimpleFragmentShader`是如何确定哪个窗口的？
-
-Full codes:
-
-`main.cpp:`
-
-```cpp
-#include <stdio.h>
-#include <stdlib.h>
-#include <GL/glew.h>
-#include <GL/glxew.h>
+#include <GL/glew.h>  // glew 必须写在 glfw3 的前面，不然会报错
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include "shader.hpp"
-using namespace glm;
-
 
 int main()
 {
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        return -1;
-    }
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();  // glewInit() 必须写在 glfwMakeContextCurrent() 之后，在 glGenBuffers() 等操作之前
 
-    GLFWwindow* window = glfwCreateWindow(1024, 768, "Triangle", NULL, NULL);
-    if (window == NULL) {
-        fprintf(stderr, "Failed to open GLFW window.\n");
-        glfwTerminate();
-        return -1;
-    }
+	float vtxs[3][3] = {  // 有 3 个顶点，每个顶点用 (x, y, z) 三个分量描述
+		{-0.5, 0, 0},  // x, y, z
+		{0, 1, 0},  // 窗口的中心为 (0, 0)，向右为 x 轴正方向，向上为 y 轴正方向
+		{0.5, 0, 0}  // 由于是平面三角形，所以 z 一直设置成 0 就可以了
+	};
 
-    glfwMakeContextCurrent(window);
+	GLuint buffer;
+	glGenBuffers(1, &buffer);  // 这里的 buffer 更像是一个“句柄”
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);  // 指定要操作的 buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);  // 对指定的 buffer 写入数据
 
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
-        return -1;
-    }
+	glEnableVertexAttribArray(0);  // 允许 buffer 被传递到 shader 中。目前程序里没有 shader 部分，但是这行代码还是需要的
+	glClearColor(0, 0, 0, 0);  // 预设下面 glClear() 要用到的颜色，(r, g, b, a)，全 0 表示黑色
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);  // 使用预设颜色清空屏幕
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);  // 指定下面的命令要用到的 buffer
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);  // 对显存进行解释
+		// 0 表示 shader 中 0 号位置的 buffer
+		// 3 表示每 3 个数据作为一个 vertex，与此相对的还有 4，表示 4 个数据作为一个顶点
+		// GL_FLOAT 表示 buffer 中每个元素都是 GL_FLOAT 类型，占 4 个字节
+		// 0 和 NULL 目前不明白是什么意思
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    static const GLfloat g_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        0.0f,  1.0f, 0.0f,
-    };
-
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-
-    do {
-        // Clear the screen.
-        glClear(GL_COLOR_BUFFER_BIT);
-
-		glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                 // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                 // size
-			GL_FLOAT,          // type
-			GL_FALSE,          // normalized?
-			0,                 // stride
-			(void*)0           // array buffer offset
-		);
-
-        // Draw the triangle!
-        glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
-        glDisableVertexAttribArray(0);
-
-        // Swap buffers
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-            glfwWindowShouldClose(window) == 0);
-
-    // Cleanup VBO
-	glDeleteBuffers(1, &vertexbuffer);
-    glfwTerminate();
-    return 0;
+		glDrawArrays(GL_TRIANGLES, 0, 3);  // 3 表示使用 3 个 vertex 来绘制 GL_TRIANGLES
+		glfwSwapBuffers(window);  // 不知道干嘛用的，但不写这一步无法显示图像
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
 }
 ```
 
 编译：
 
 ```bash
-g++ -g main.cpp -lGLEW -lglfw -lX11 -lGL -lGLU
+g++ main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+注意编译时除了要加上`-lGLEW`外，还必须加上`-lGL`。
+
+运行：
+
+```bash
+./main
+```
+
+显示效果：
+
+<div style="text-align:center">
+<img width=700 src="./pics/opengl_note/pic_1.png"/>
+</div>
+
+#### With shader
+
+shader 可以自动化将显存并行，对顶点进行变换，对面进行着色，贴图，打光等。
+
+`main.cpp:`
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+// 加载 shader 的代码几乎是固定的，所以直接用一个函数封装起来了
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);  // 创建 vertex shader
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);  // 创建 fragment shader
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);  // 注册 shader 的源代码
+	glCompileShader(VertexShaderID);  // 编译 shader
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);  // 不知道这个 iv 是什么意思
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();  // 创建 program
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);  // 同样，不懂这里的 iv 是什么意思
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");  // 加载 shader
+	glUseProgram(program_id);  // 随便写个位置都会生效
+
+	float vtxs[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
+}
+```
+
+`vtx_shader.glsl`:
+
+```glsl
+#version 330 core
+// 上面这一行非常重要，不写可能会报错
+
+layout(location = 0) in vec3 pos;  // 即 main.cpp 中代码 glEnableVertexAttribArray() 以及 glVertexAttribPointer() 指定的 0 位置
+// vec3 表示把 buffer 中的数据 3 个一组，写入到一个 vec3 类型的对象`pos`中
+
+void main()
+{
+    gl_Position = vec4(pos, 1);  // gl_Position 可能是个 vec4 类型的内置变量，不懂
+}
+```
+
+`frag_shader.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;  // color 可能是个内置变量
+
+void main()
+{
+	color = vec3(0.5, 0.8, 0.5);  // 指定 rgb 颜色，对线条，顶点，面进行染色
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lglfw -lGLEW -lGL -o main
 ```
 
 运行：
 
 ```bash
-./a.out
+./main
 ```
 
-注：
+效果：
 
-1. `glfwWindowHint()`的几行全都可以注释掉，不影响窗口的创建。
+<div style="text-align:center">
+<img width=700 src='./pics/opengl_note/pic_2.png' />
+</div>
 
-#### With shader
-
-`main.cpp:`
+可以看到，整个三角形被渲染成了绿色。
 
 ```cpp
 #include <stdio.h>
@@ -445,6 +566,223 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 g++ -g shader.cpp main.cpp -lGLEW -lglfw  -lGL -lGLU
 ```
 
+### Coordinates
+
+OpenGL 通常使用一个四元向量`(x, y, z, w)`表示一个点的坐标或一个方向向量。
+
+当表示坐标（position）时，这个向量的最后一个数为 1：`(x, y, z, 1)`
+
+当表示方向（direction）时，这个向量的最后一个数为 0：`(x, y, z, 0)`
+
+这样做的好处是，无论是这个向量表示的是坐标还是方向，都可以和统一的变换矩阵相乘，做相同的仿射变换（平移，旋转，缩放等）操作。
+
+Homogeneous coordinates allow us to use a single mathematical formula to deal with these two cases.
+
+假设我们的变换矩阵为$4 \times 4$的矩阵$M$，要变换的向量为$4 \times 1$的向量$v$，那么变换就可以写成：
+
+$$
+M \cdot v = 
+\left[ \begin{matrix} 
+m_{11}\ m_{12}\ m_{13}\ m_{14} \\
+m_{21}\ m_{22}\ m_{23}\ m_{24} \\
+m_{31}\ m_{32}\ m_{33}\ m_{34} \\
+m_{41}\ m_{42}\ m_{43}\ m_{44}
+\end{matrix} \right]
+\cdot
+\left[
+\begin{matrix}
+x \\
+y \\
+z \\
+w
+\end{matrix}
+\right]
+$$
+
+OpenGL 使用C++ 库`glm`计算矩阵与向量相乘。（这个库可以实现矩阵和矩阵相乘吗？）
+
+`glm`的安装：`sudo apt install libglm-dev`。
+
+使用：
+
+`main.cpp`:
+
+```cpp
+#include <glm/glm.hpp>
+#include <iostream>
+using std::cout, std::endl;
+
+int main()
+{
+	glm::mat4 M = {
+		{1, 2, 3, 4},  // 事实上，这些最内层的括号可以去掉
+		{5, 6, 7, 8},
+		{9, 10, 11, 12},
+		{13, 14, 15, 16}
+	};
+	glm::vec4 v = {1, 2, 3, 4};
+	glm::vec4 result = M * v;
+	for (int i = 0; i < 4; ++i)
+		cout << result[i] << ", ";
+	cout << endl;
+	return 0;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+输出：
+
+```
+90, 100, 110, 120,
+```
+
+我们对比 numpy 的矩阵相乘：
+
+```python
+import numpy as np
+a = np.arange(1, 17).reshape(4, 4)
+b = np.arange(1, 5).reshape(4, 1)
+print(a.dot(b))
+print()
+print(a.T.dot(b))
+```
+
+输出：
+
+```
+[[ 30]
+ [ 70]
+ [110]
+ [150]]
+
+[[ 90]
+ [100]
+ [110]
+ [120]]
+```
+
+我们可以看到，将**数值**与 numpy 的计算结果对比，`glm`计算的其实是$M^{\intercal} \cdot v$。事实上，`glm`将代码中输入的最内层的数组，看作是一个列向量，单独的一个`vec4`也看作一个列向量。而`numpy`正好相反，将最内层的数组看作是一个行向量。
+
+有两种解决办法：
+
+1. 将$M$进行转置后再和$v$相乘。
+
+2. 按列向量的方式填充$M$。
+
+常用的几种变换矩阵：
+
+* 平移矩阵（Translation matrices）
+
+	$M = \left[ \begin{matrix} 
+	1\ \ 0\ \ 0\ \ X \\
+	0\ \ 1\ \ 0\ \ Y \\
+	0\ \ 0\ \ 1\ \ Z \\
+	0\ \ 0\ \ 0\ \ 1
+	\end{matrix} \right]$
+
+	平移矩阵可以将点坐标的 x, y, z 分量分别增加 X, Y, Z。
+
+	$v' = M \cdot v$
+
+	`glm`实现：
+
+	`main.cpp`
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M = {
+			{1, 0, 0, 0},
+			{0, 1, 0, 0},
+			{0, 0, 1, 0},
+			{1, 3, 5, 1}
+		};
+		glm::vec4 v_pos = {1, 2, 3, 1};
+		glm::vec4 v_dir = {1, 2, 3, 0};
+		glm::vec4 result_pos = M * v_pos;
+		glm::vec4 result_dir = M * v_dir;
+		for (int i = 0; i < result_pos.length(); ++i)
+			cout << result_pos[i] << ", ";
+		cout << endl;
+		for (int i = 0; i < result_dir.length(); ++i)
+			cout << result_dir[i] << ", ";
+		cout << endl;
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	2, 5, 8, 1, 
+	1, 2, 3, 0, 
+	```
+
+	可以看到，`(2, 5, 8, 1)`为`(1, 2, 3, 1)`分别在 x, y, z 方向上加了 1, 3, 5 个单位的结果。而变换矩阵对方向向量毫无作用。
+
+	`glm`也提供了便捷创建平移矩阵`M`的函数：
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>  // 需要添加这个头文件
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M = glm::translate(glm::mat4(1), {1, 3, 5});  // glm::translate() 创建一个平移矩阵
+		glm::vec4 v_pos = {1, 2, 3, 1};
+		glm::vec4 v_dir = {1, 2, 3, 0};
+		glm::vec4 result_pos = M * v_pos;
+		glm::vec4 result_dir = M * v_dir;
+		for (int i = 0; i < result_pos.length(); ++i)
+			cout << result_pos[i] << ", ";
+		cout << endl;
+		for (int i = 0; i < result_dir.length(); ++i)
+			cout << result_dir[i] << ", ";
+		cout << endl;
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	2, 5, 8, 1, 
+	1, 2, 3, 0, 
+	```
+
+	说明：
+
+	1. `glm::mat4(1)`表示创建一个单位矩阵，即主对角线上元素都为 1，其余位置元素都为 0.
+
+	1. `glm::translate()`之所以要在第一个参数输入一个矩阵，是因为如果有多个矩阵变换，在这里只要输入上一个变换矩阵，`translate()`就会自动将矩阵相乘，合并成最终的变换矩阵。
+
+* 
+
+OpenGL 的坐标系为了方便指定，有几个专有名词，分别是 Screen coordinates，World coordinates，Model coordinates，View coordinates。
+
+* Screen Coordinates
+
+    指的是绘制窗口的坐标系。
+
+    原点在窗口正中心，x 轴正方向为右，y 轴正方向是上，z 轴正方向是从屏幕指向你。
+
 ### rectangle and triangle
 
 `main.cpp`:
@@ -556,6 +894,22 @@ int main()
 
 ## 绘制不同图形
 
+
+`glClearColor()`是如何确定哪个窗口的？
+
+注：
+
+1. `glfwWindowHint()`的几行全都可以注释掉，不影响窗口的创建。
+
+
+为了画三角形，首先需要创建一些顶点，这些顶点在 OpenGL 中以指定的类型存储起来，这种类型的对象叫 VAO (Vertex Array Object):
+
+```cpp
+GLuint VertexArrayID;
+glGenVertexArrays(1, &VertexArrayID);
+glBindVertexArray(VertexArrayID);
+```
+
 最重要的几步：
 
 ```cpp
@@ -576,7 +930,18 @@ glDrawArrays(GL_LINE_LOOP, 0, 6);  // 从第 0 组数据开始，取 6 组数据
 
 ## GLSL
 
+GLSL 的全称是 GL Shader Language，它是 OpenGL 的一部分。
+
+使用`glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &v) )`可以拿到 layout 的最大值。
+
 常用的 shader 有两种：Vertex Shader 和 Fragment Shader
+
+```cpp
+void main(){
+  gl_Position.xyz = vertexPosition_modelspace;
+  gl_Position.w = 1.0;
+}
+```
 
 load shaders:
 
