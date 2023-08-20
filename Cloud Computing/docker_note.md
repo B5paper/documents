@@ -291,7 +291,7 @@ ENV <env_name> <value>  容器中的环境变量
 ADD <xxx.tar.gz> <container_dir>  # 将宿主机目录下的文件拷贝进镜像且会自动处理 URL 和解压 tar 压缩包
 COPY 只复制文件或目录，不解压
 VOLUME 数据目录挂载
-CMD ['ccommand', '参数1', ...]  指定启动容器后要运行的指令
+CMD ['command', '参数1', ...]  指定启动容器后要运行的指令
 ENTRYPOINT ['comman', 'param1', 'param2', ...]  指定启动容器后要运行的命令
 ```
 

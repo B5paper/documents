@@ -2,14 +2,21 @@
 
 Ref: <www.opengl-tutorial.org>
 
-## Quick start
-
 需要安装的包：
 
 ```bash
-apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev
 apt install libglew-dev libglfw3-dev
 ```
+
+如果安装了上面两个包还是不够，可以选择性安装下面的包。
+
+```bash
+apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev
+```
+
+## Triangle (Quick start)
+
+### GLFW Window
 
 创建一个窗口所需要的最小代码：
 
@@ -20,18 +27,17 @@ apt install libglew-dev libglfw3-dev
 
 int main()
 {
-    glfwInit();
-    GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
-    glfwMakeContextCurrent(window);
-    do {
-        glfwPollEvents();
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
-    return 0;
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	do {
+		glfwPollEvents();
+	} while (glfwWindowShouldClose(window) == GLFW_FALSE);
+	return 0;
 }
 ```
 
 编译：
-
 
 ```bash
 gcc main.c -lglfw -o main
@@ -43,158 +49,272 @@ gcc main.c -lglfw -o main
 ./main
 ```
 
-效果：出现一个窗口，按 Esc 键退出。
+效果：出现一个窗口，点右上角关闭按钮退出。
 
 glfw 主要处理鼠标键盘等事件消息。
 
-### triangle
+### Without shader
 
-#### Without shader
-
-为了画三角形，首先需要创建一些顶点，这些顶点在 OpenGL 中以指定的类型存储起来，这种类型的对象叫 VAO (Vertex Array Object):
+我们先画一个没有颜色的三角形，再画一个有颜色的三角形。填充颜色的工作是由 shader 完成的。
 
 ```cpp
-GLuint VertexArrayID;
-glGenVertexArrays(1, &VertexArrayID);
-glBindVertexArray(VertexArrayID);
-```
-
-这里的`VertexArrayID`类似于 Linux 中的设备号。
-
-Do this once your window is created (= after the OpenGL Context creation) and before any other OpenGL call.
-
-实际上是在`glewInit()`后添加的这段代码。
-
-Screen Coordinates:
-
-* X in on your right
-* Y is up
-* Z is towards your back (yes, behind, not in front of you)  （从屏幕指向你）
-
-The origin of the coordinates is at the center of the display window.
-
-bind buffer:
-
-```cpp
-// This will identify our vertex buffer
-GLuint vertexbuffer;
-// Generate 1 buffer, put the resulting identifier in vertexbuffer
-glGenBuffers(1, &vertexbuffer);
-// The following commands will talk about our 'vertexbuffer' buffer
-glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-// Give our vertices to OpenGL.
-glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-```
-
-`glClearColor()SimpleFragmentShader`是如何确定哪个窗口的？
-
-Full codes:
-
-`main.cpp:`
-
-```cpp
-#include <stdio.h>
-#include <stdlib.h>
-#include <GL/glew.h>
-#include <GL/glxew.h>
+#include <GL/glew.h>  // glew 必须写在 glfw3 的前面，不然会报错
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include "shader.hpp"
-using namespace glm;
-
 
 int main()
 {
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        return -1;
-    }
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();  // glewInit() 必须写在 glfwMakeContextCurrent() 之后，在 glGenBuffers() 等操作之前
 
-    GLFWwindow* window = glfwCreateWindow(1024, 768, "Triangle", NULL, NULL);
-    if (window == NULL) {
-        fprintf(stderr, "Failed to open GLFW window.\n");
-        glfwTerminate();
-        return -1;
-    }
+	float vtxs[3][3] = {  // 有 3 个顶点，每个顶点用 (x, y, z) 三个分量描述
+		{-0.5, 0, 0},  // x, y, z
+		{0, 1, 0},  // 窗口的中心为 (0, 0)，向右为 x 轴正方向，向上为 y 轴正方向
+		{0.5, 0, 0}  // 由于是平面三角形，所以 z 一直设置成 0 就可以了
+	};
 
-    glfwMakeContextCurrent(window);
+	GLuint buffer;
+	glGenBuffers(1, &buffer);  // 这里的 buffer 更像是一个“句柄”
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);  // 指定要操作的 buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);  // 对指定的 buffer 写入数据
 
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
-        return -1;
-    }
+	glEnableVertexAttribArray(0);  // 允许 buffer 被传递到 shader 中。目前程序里没有 shader 部分，但是这行代码还是需要的
+	glClearColor(0, 0, 0, 0);  // 预设下面 glClear() 要用到的颜色，(r, g, b, a)，全 0 表示黑色
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);  // 使用预设颜色清空屏幕
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);  // 指定下面的命令要用到的 buffer
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);  // 对显存进行解释
+		// 0 表示 shader 中 0 号位置的 buffer
+		// 3 表示每 3 个数据作为一个 vertex，与此相对的还有 4，表示 4 个数据作为一个顶点
+		// GL_FLOAT 表示 buffer 中每个元素都是 GL_FLOAT 类型，占 4 个字节
+		// 0 和 NULL 目前不明白是什么意思
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    static const GLfloat g_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        0.0f,  1.0f, 0.0f,
-    };
-
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-
-    do {
-        // Clear the screen.
-        glClear(GL_COLOR_BUFFER_BIT);
-
-		glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                 // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                 // size
-			GL_FLOAT,          // type
-			GL_FALSE,          // normalized?
-			0,                 // stride
-			(void*)0           // array buffer offset
-		);
-
-        // Draw the triangle!
-        glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
-        glDisableVertexAttribArray(0);
-
-        // Swap buffers
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-            glfwWindowShouldClose(window) == 0);
-
-    // Cleanup VBO
-	glDeleteBuffers(1, &vertexbuffer);
-    glfwTerminate();
-    return 0;
+		glDrawArrays(GL_TRIANGLES, 0, 3);  // 3 表示使用 3 个 vertex 来绘制 GL_TRIANGLES
+		glfwSwapBuffers(window);  // 不知道干嘛用的，但不写这一步无法显示图像
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
 }
 ```
 
 编译：
 
 ```bash
-g++ -g main.cpp -lGLEW -lglfw -lX11 -lGL -lGLU
+g++ main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+注意编译时除了要加上`-lGLEW`外，还必须加上`-lGL`。
+
+运行：
+
+```bash
+./main
+```
+
+显示效果：
+
+<div style="text-align:center">
+<img width=700 src="./pics/opengl_note/pic_1.png"/>
+</div>
+
+### With shader
+
+shader 可以自动化将显存并行，对顶点进行变换，对面进行着色，贴图，打光等。
+
+`main.cpp:`
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+// 加载 shader 的代码几乎是固定的，所以直接用一个函数封装起来了
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);  // 创建 vertex shader
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);  // 创建 fragment shader
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);  // 注册 shader 的源代码
+	glCompileShader(VertexShaderID);  // 编译 shader
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);  // 不知道这个 iv 是什么意思
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();  // 创建 program
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);  // 同样，不懂这里的 iv 是什么意思
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");  // 加载 shader
+	glUseProgram(program_id);  // 随便写个位置都会生效
+
+	float vtxs[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
+}
+```
+
+`vtx_shader.glsl`:
+
+```glsl
+#version 330 core
+// 上面这一行非常重要，不写可能会报错
+
+layout(location = 0) in vec3 pos;  // 即 main.cpp 中代码 glEnableVertexAttribArray() 以及 glVertexAttribPointer() 指定的 0 位置
+// vec3 表示把 buffer 中的数据 3 个一组，写入到一个 vec3 类型的对象`pos`中
+
+void main()
+{
+    gl_Position = vec4(pos, 1);  // gl_Position 可能是个 vec4 类型的内置变量，不懂
+}
+```
+
+`frag_shader.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;  // color 可能是个内置变量
+
+void main()
+{
+	color = vec3(0.5, 0.8, 0.5);  // 指定 rgb 颜色，对线条，顶点，面进行染色
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lglfw -lGLEW -lGL -o main
 ```
 
 运行：
 
 ```bash
-./a.out
+./main
 ```
 
-注：
+效果：
 
-1. `glfwWindowHint()`的几行全都可以注释掉，不影响窗口的创建。
+<div style="text-align:center">
+<img width=700 src='./pics/opengl_note/pic_2.png' />
+</div>
 
-#### With shader
-
-`main.cpp:`
+可以看到，整个三角形被渲染成了绿色。
 
 ```cpp
 #include <stdio.h>
 #include <stdlib.h>
 #include <GL/glew.h>
 #include <GL/glxew.h>
-// #include <GL/freeglut.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "shader.hpp"
@@ -445,138 +565,634 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 g++ -g shader.cpp main.cpp -lGLEW -lglfw  -lGL -lGLU
 ```
 
-### rectangle and triangle
+## Coordinates
+
+OpenGL 通常使用一个四元向量`(x, y, z, w)`表示一个点的坐标或一个方向向量。
+
+当表示坐标（position）时，这个向量的最后一个数为 1：`(x, y, z, 1)`
+
+当表示方向（direction）时，这个向量的最后一个数为 0：`(x, y, z, 0)`
+
+这样做的好处是，无论是这个向量表示的是坐标还是方向，都可以和统一的变换矩阵相乘，做相同的仿射变换（平移，旋转，缩放等）操作。
+
+Homogeneous coordinates allow us to use a single mathematical formula to deal with these two cases.
+
+假设我们的变换矩阵为$4 \times 4$的矩阵$M$，要变换的向量为$4 \times 1$的向量$v$，那么变换就可以写成：
+
+$$
+M \cdot v = 
+\left[ \begin{matrix} 
+m_{11} &m_{12} &m_{13} &m_{14} \\
+m_{21} &m_{22} &m_{23} &m_{24} \\
+m_{31} &m_{32} &m_{33} &m_{34} \\
+m_{41} &m_{42} &m_{43} &m_{44}
+\end{matrix} \right]
+\cdot
+\left[
+\begin{matrix}
+x \\
+y \\
+z \\
+w
+\end{matrix}
+\right]
+$$
+
+OpenGL 使用C++ 库`glm`计算矩阵与向量相乘。（这个库可以实现矩阵和矩阵相乘吗？）
+
+`glm`的安装：`sudo apt install libglm-dev`。
+
+使用：
 
 `main.cpp`:
 
 ```cpp
-#include <stdio.h>
-#include <stdlib.h>
-#include <GL/glew.h>
-#include <GL/glxew.h>
-// #include <GL/freeglut.h>
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include "shader.hpp"
-using namespace glm;
-
+#include <iostream>
+using std::cout, std::endl;
 
 int main()
 {
-    glewExperimental = true;
-
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        return -1;
-    }
-
-    GLFWwindow* window = glfwCreateWindow(1024, 768, "Triangle", NULL, NULL);
-    if (window == NULL) {
-        fprintf(stderr, "Failed to open GLFW window.\n");
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
-        return -1;
-    }
-
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);  // 这个好像没什么用
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // 设置 preset 的颜色，后面 glClear() 会用到
-
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);  // gen buffer 和 bind buffer 只需要一次就够了
-    // 这个 buffer 有点像申请设备号，没什么用，但必须要申请
-
-    const GLfloat arr_rect[] = {
-        -0.5f, -0.5f,
-        -0.5f, 0.5f,
-        0.5f,  0.5f,
-        0.5, -0.5,
-    };
-
-    const GLfloat arr_tri[] = {
-        0, 0.5f, 0,
-        0.5f, -0.5f, 0,
-        -0.5f, -0.5f, 0,
-    };
-
-    // 会循环绘制，不会进入阻塞状态。这样的话，捕捉鼠标键盘消息很有可能用的另外一个线程
-    do {
-        // Clear the screen.
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // 似乎是个控制画哪个不画哪个的开关，glDrawArrays() 只会画有效的 attrib array
-        glEnableVertexAttribArray(0);  // 参数只能填 0，填其他的都不行，不清楚是为什么
-        glBufferData(GL_ARRAY_BUFFER, sizeof(arr_rect), arr_rect, GL_STATIC_DRAW);
-        glVertexAttribPointer(  // 因为每次都给 GL_ARRAY_BUFFER 定入新数据，所以每次都要重新解释一遍
-            0,  // attribute 0. 对绘制有影响，但是目前不明白有什么用
-            2,  // 几个数据为一组
-            GL_FLOAT,  // type
-            GL_FALSE,  // normalized?
-            0,  // stride
-            (void*)0  // array buffer offset
-        );
-        glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-        glBufferData(GL_ARRAY_BUFFER, sizeof(arr_tri), arr_tri, GL_STATIC_DRAW);
-        glVertexAttribPointer(
-            0,
-            3,
-            GL_FLOAT,
-            GL_FALSE,
-            0,
-            (void*)0
-        );
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDisableVertexAttribArray(0);
-        
-        // Swap buffers
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-            glfwWindowShouldClose(window) == 0);
-
-    // Cleanup VBO
-	glDeleteBuffers(1, &vertexbuffer);
-    glfwTerminate();
-    return 0;
+	glm::mat4 M = {
+		{1, 2, 3, 4},  // 事实上，这些最内层的括号可以去掉
+		{5, 6, 7, 8},
+		{9, 10, 11, 12},
+		{13, 14, 15, 16}
+	};
+	glm::vec4 v = {1, 2, 3, 4};
+	glm::vec4 result = M * v;
+	for (int i = 0; i < 4; ++i)
+		cout << result[i] << ", ";
+	cout << endl;
+	return 0;
 }
 ```
 
-一些猜测：
+编译：
 
-1. `GL_ARRAY_BUFFER`全局只存在一个，并且需要申请。所谓的 buffer 其实只是一个 handler。
+```bash
+g++ -g main.cpp -o main
+```
 
-2. `glBufferData()`将数据写入`GL_ARRAY_BUFFER`中，然后我们需要用`glVertexAttribPointer()`对 buffer 中的数据进行解释
+运行：
 
-## 绘制不同图形
+```bash
+./main
+```
 
-最重要的几步：
+输出：
+
+```
+90, 100, 110, 120,
+```
+
+我们对比 numpy 的矩阵相乘：
+
+```python
+import numpy as np
+a = np.arange(1, 17).reshape(4, 4)
+b = np.arange(1, 5).reshape(4, 1)
+print(a.dot(b))
+print()
+print(a.T.dot(b))
+```
+
+输出：
+
+```
+[[ 30]
+ [ 70]
+ [110]
+ [150]]
+
+[[ 90]
+ [100]
+ [110]
+ [120]]
+```
+
+我们可以看到，将**数值**与 numpy 的计算结果对比，`glm`计算的其实是$M^{\intercal} \cdot v$。事实上，`glm`将代码中输入的最内层的数组，看作是一个列向量，单独的一个`vec4`也看作一个列向量。而`numpy`正好相反，将最内层的数组看作是一个行向量。
+
+有两种解决办法：
+
+1. 将$M$进行转置后再和$v$相乘。
+
+2. 按列向量的方式填充$M$。
+
+#### 常用变换矩阵
+
+常用的几种变换矩阵：
+
+* 平移矩阵（Translation matrices）
+
+	$M = \left[ \begin{matrix} 
+	1 &0 &0 &X \\
+	0 &1 &0 &Y \\
+	0 &0 &1 &Z \\
+	0 &0 &0 &1
+	\end{matrix} \right]$
+
+	平移矩阵可以将点坐标的 x, y, z 分量分别增加 X, Y, Z。
+
+	$v' = M \cdot v$
+
+	`glm`实现：
+
+	`main.cpp`
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M = {
+			{1, 0, 0, 0},
+			{0, 1, 0, 0},
+			{0, 0, 1, 0},
+			{1, 3, 5, 1}
+		};
+		glm::vec4 v_pos = {1, 2, 3, 1};
+		glm::vec4 v_dir = {1, 2, 3, 0};
+		glm::vec4 result_pos = M * v_pos;
+		glm::vec4 result_dir = M * v_dir;
+		for (int i = 0; i < result_pos.length(); ++i)
+			cout << result_pos[i] << ", ";
+		cout << endl;
+		for (int i = 0; i < result_dir.length(); ++i)
+			cout << result_dir[i] << ", ";
+		cout << endl;
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	2, 5, 8, 1, 
+	1, 2, 3, 0, 
+	```
+
+	可以看到，`(2, 5, 8, 1)`为`(1, 2, 3, 1)`分别在 x, y, z 方向上加了 1, 3, 5 个单位的结果。而变换矩阵对方向向量毫无作用。
+
+	`glm`也提供了便捷创建平移矩阵`M`的函数：
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>  // 需要添加这个头文件
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M = glm::translate(glm::mat4(1), {1, 3, 5});  // glm::translate() 创建一个平移矩阵
+		glm::vec4 v_pos = {1, 2, 3, 1};
+		glm::vec4 v_dir = {1, 2, 3, 0};
+		glm::vec4 result_pos = M * v_pos;
+		glm::vec4 result_dir = M * v_dir;
+		for (int i = 0; i < result_pos.length(); ++i)
+			cout << result_pos[i] << ", ";
+		cout << endl;
+		for (int i = 0; i < result_dir.length(); ++i)
+			cout << result_dir[i] << ", ";
+		cout << endl;
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	2, 5, 8, 1, 
+	1, 2, 3, 0, 
+	```
+
+	说明：
+
+	1. `glm::mat4(1)`表示创建一个单位矩阵，即主对角线上元素都为 1，其余位置元素都为 0.
+
+	1. `glm::translate()`之所以要在第一个参数输入一个矩阵，是因为如果有多个矩阵变换，在这里只要输入上一个变换矩阵，`translate()`就会自动将矩阵相乘，合并成最终的变换矩阵。
+
+* 缩放矩阵（Scaling matrices）
+
+	$M = \begin{bmatrix}
+	a &0 &0 &0 \\
+	0 &b &0 &0 \\
+	0 &0 &c &0 \\
+	0 &0 &0 &1
+	\end{bmatrix}$
+
+	缩放矩阵可同时作用于位置向量和方向向量。可以将向量$(x, y, z, w)$变换为$(a \cdot x,\ b \cdot y,\ c \cdot z,\ w)$。
+
+	C++ 程序：
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M = glm::scale(glm::mat4(1), {2, 3, 4});
+		glm::vec4 v_pos = {1, 2, 3, 1};
+		glm::vec4 v_dir = {1, 2, 3, 0};
+		glm::vec4 result_pos = M * v_pos;
+		glm::vec4 result_dir = M * v_dir;
+		for (int i = 0; i < result_pos.length(); ++i)
+			cout << result_pos[i] << ", ";
+		cout << endl;
+		for (int i = 0; i < result_dir.length(); ++i)
+			cout << result_dir[i] << ", ";
+		cout << endl;
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	2, 6, 12, 1, 
+	2, 6, 12, 0,
+	```
+
+* 旋转矩阵（Rotation matrices）
+
+	绕 x 轴按右手螺旋方向旋转（大拇指指向 x 轴正方向，四指环绕的方向就是旋转方向）：
+
+	$M = \begin{bmatrix}
+	1 &0 &0 \\
+	0 &\cos\theta &-\sin\theta \\
+	0 &\sin\theta &\cos\theta
+	\end{bmatrix}$
+
+	绕 y 轴按右手螺旋方向旋转：
+
+	$M = \begin{bmatrix}
+	\cos\theta &0 &\sin\theta \\
+	0 &1 &0 \\
+	-\sin\theta &0 &\sin\theta
+	\end{bmatrix}$
+
+	绕 z 轴按右手螺旋方向旋转：
+
+	$M = \begin{bmatrix}
+	\cos\theta &-\sin\theta &0 \\
+	\sin\theta &\cos\theta &0 \\
+	0 &0 &1
+	\end{bmatrix}$
+
+	如果想直观地生成旋转矩阵，可以参考这个网站：<https://www.andre-gaschler.com/rotationconverter/>
+
+	如果需要生成按任意轴旋转的旋转矩阵，公式可以参考：<https://zh.wikipedia.org/zh-cn/%E6%97%8B%E8%BD%AC%E7%9F%A9%E9%98%B5>
+
+	使用`glm`生成旋转矩阵：
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M = glm::rotate(glm::mat4(1), 0.2f, {0, 1, 0});  // 只写 0.2 会报错，必须写成 0.2f
+		for (int i = 0; i < M.length(); ++i)
+		{
+			for (int j = 0; j < M[i].length(); ++j)
+				cout << M[i][j] << ", ";
+			cout << endl;
+		}
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	0.980067, 0, -0.198669, 0, 
+	0, 1, 0, 0, 
+	0.198669, 0, 0.980067, 0, 
+	0, 0, 0, 1,
+	```
+
+	说明：
+
+	1. 之所以必须写成`0.2f`，是因为下一个参数`{0, 1, 0}`会生成一个`float`类型的`glm::vec3`，而`0.2`的字面量默认是`double`类型，所以编译器会报错`float`类型与`double`类型不一致。
+
+	2. 旋转的单位是弧度，不是角度。
+
+	可以和网站生成的旋转矩阵做个对比：
+
+	<div style='text-align:center'>
+	<img width=700 src='./pics/opengl_note/pic_3.png' />
+	</div>
+
+	可以看到，程序的每行输出，都是网站生成的旋转矩阵的一个列向量。并且`glm`生成的旋转矩阵是$4 \times 4$的，而网站的旋转矩阵是$3 \times 3$的。
+
+* 三种变换矩阵的合并（Cumulating transformations）
+
+	```cpp
+	TransformedVector = TranslationMatrix * RotationMatrix * ScaleMatrix * OriginalVector;
+	```
+
+	这行代码会先算 scaling，再算 rotation，最后才是 translation。
+
+	调换坐标操作的顺序可能会产生不同的结果。一个通常不会出错的顺序是：Scale it first if needed; then set its direction, then translate it.
+
+	```cpp
+	glm::mat4 myModelMatrix = myTranslationMatrix * myRotationMatrix * myScaleMatrix;
+	glm::vec4 myTransformedVector = myModelMatrix * myOriginalVector;
+	```
+
+#### 常用坐标系
+
+OpenGL 的坐标系为了方便指定，有几个专有名词，分别是 Model coordinates，World coordinates，Camera coordinates。
+
+* Model coordinates
+
+	每个顶点（vertex）相对于模型中心的坐标被称为模型坐标系（model coordinates）。
+
+* World coordinates
+
+	将模型坐标系通过缩放、旋转、平移变换后，模型的每个顶点的坐标会发生改变，此时的顶点的坐标所在的坐标系被称为世界坐标系（world coordinates）。这个空间被称为 world space。即：
+
+	$c_w = M_t \cdot M_r \cdot M_s \cdot c_m$
+
+	其中$d_w$表示 world coordinates 的一个坐标向量，$c_m$表示 model coordinates 下的一个坐标向量，$M_s$表示缩放矩阵（scaling matrix），$M_r$表示旋转矩阵（rotation matrix），$M_t$表示平移矩阵（translation matrix）。
+
+	令$M_m = M_t \cdot M_r \cdot M_s$，我们称$M_m$为 model matrix。
+
+* Camera coordinates
+
+    指的是绘制窗口的坐标系。原点在窗口正中心，x 轴正方向为右，y 轴正方向是上，z 轴正方向是从屏幕指向你。整个坐标系遵守右手螺旋定则。
+	
+	其实窗口就相当于摄像机，最终世界坐标系上的点需要映射到窗口坐标系上，才能绘制成像素。
+
+	$c_c = M_v \cdot c_w$
+
+	其中$c_c$表示 camera coordinates 的一个坐标向量，$c_w$表示 world coordinates 中的一个坐标向量，$M_v$指的是 view matrix，与 model matrix 的作用相似。表示假设一开始世界坐标系中心和摄像机坐标系中心重合，那么$c_c$表示将世界经过矩阵$M_v$变换后，得到的每个点的坐标。
+
+	在通常的使用过程中，我们很少会去想将整个世界移动，而是去移动摄像机。因此我们并不是直接构造$M_v$，而是根据摄像机的位置反推出$M_v$。假设摄像机一开始在世界坐标系的中心，那么将相机向左移就相当于将世界向右移。类似地，可以得到旋转的变换关系。
+
+	我们并不需要自己实现这个反推过程，因为`glm`已经帮我们实现好了：
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::vec3 eye{0, 0, 1};  // 摄像机位于这个位置
+		glm::vec3 center{0, 0, 0};  // 摄像机看向这个点
+		glm::vec3 up{0, 1, 0};  // 摄像机的“上”方向
+		glm::mat4 M_c = glm::lookAt(eye, center, up);
+		for (int i = 0; i < M_c.length(); ++i)
+		{
+			for (int j = 0; j < M_c[i].length(); ++j)
+			{
+				cout << M_c[i][j] << ", ";
+			}
+			cout << endl;
+		}
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	1, 0, -0, 0, 
+	-0, 1, -0, 0, 
+	0, 0, 1, 0, 
+	-0, -0, -1, 1,
+	```
+
+	如果我们使用下面这行代码初始化编译矩阵，那么将会编译失败：
+
+	```cpp
+	glm::mat4 M_c = glm::lookAt({0, 0, 1}, {0, 0, 0}, {0, 1, 0});
+	```
+
+	因为`{0, 0, 1}`等这些参数本身是由模板函数`glm::vec()`生成的，而`glm::lookAt()`也是模板函数，所以`glm::lookAt()`无法推断出参数的类型，所以无法实例化。这个现象挺反直觉的。有时间了研究一下模板函数的原理。
+
+* Homogeneous coordinates
+
+    为了能够得到透视效果（近大远小，点坐标的的 z 值越大，则越靠近原点），我们还需要透视变换（或者叫透视投影，perspective projection）。
+
+	$c_h = M_p \cdot c_c$
+
+	其中，$c_h$表示同质坐标系（Homogeneous coordinates）下一个点坐标的向量，$c_c$表示 camera coordinates 下的点坐标向量，$M_p$表示透视矩阵（perspective projection matrix）。
+
+	这个矩阵我们同样可以使用`glm`直接生成：
+
+	```cpp
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>
+	#include <iostream>
+	using std::cout, std::endl;
+
+	int main()
+	{
+		glm::mat4 M_p = glm::perspective(
+			1.02,  // fov, The vertical Field of View, in radians （不是很懂这个）
+			4.0 / 3.0,  // Aspect Ratio，窗口的长宽比
+			0.1,  // Near clipping plane. Keep as big as possible, or you'll get precision issues.
+			100.0  // Far clipping plane. Keep as little as possible.
+		);
+		for (int i = 0; i < M_p.length(); ++i)
+		{
+			for (int j = 0; j < M_p[i].length(); ++j)
+			{
+				cout << M_p[i][j] << ", ";
+			}
+			cout << endl;
+		}
+		return 0;
+	}
+	```
+
+	输出：
+
+	```
+	1.29904, 0, 0, 0, 
+	0, 1.73205, 0, 0, 
+	0, 0, -1.002, -1, 
+	0, 0, -0.2002, 0,
+	```
+
+	我们可以用下面图来再次解释透视矩阵的作用。
+
+	根据近大远小的透视原理，我们的视野范围实际上是一个平截头体（frustum），如下图中红色部分所示：
+
+	<div style='text-align:center'>
+	<img width=700 src='./pics/opengl_note/pic_4.png' />
+	</div>
+
+	对于 3D 来说，我们实际上并不是截取这样一个截头锥体的视野，而是让 3D 世界中的物体做一个等效变换：
+
+	<div style='text-align:center'>
+	<img width=700 src='./pics/opengl_note/pic_5.png' />
+	</div>
+
+	上图中红色部分为正方体的视野，而蓝色的物体都被进行了仿射变换。我们拿红色的正方体视野去截取变形了的物体，就可以得到投影到屏幕上的结果：
+
+	<div style='text-align:center'>
+	<img width=700 src='./pics/opengl_note/pic_6.png' />
+	</div>
+
+	最后我们还需要让它适应屏幕长宽比（比如 1024 x 768）：
+
+	<div style='text-align:center'>
+	<img width=700 src='./pics/opengl_note/pic_7.png' />
+	</div>
+
+	这样我们就得到了最终的渲染结果。
+
+#### MVP matrix
+
+将 Model matrix，View matrix 以及 Perpective matrix 合并起来，可以得到综合变换的矩阵：MVP Matrix：
+
+$$
+M_{mvp} = M_p \cdot M_v \cdot M_m
+$$
+
+这样我们就可以一步得到将物体映射到屏幕上的坐标：
+
+$$
+c_h = M_{mvp} \cdot c_m
+$$
+
+其中，$c_h$表示窗口坐标系上的坐标，$c_m$表示模型坐标系下的坐标，$M_{mvp}$表示综合变换矩阵。
+
+C++ 的代码实现：
 
 ```cpp
-// 把数据写入到 opengl 全局 buffer 中
-glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+using std::cout, std::endl;
 
-// 对 buffer 中的数据进行解释
-glVertexAttribPointer(
-    0,  // attribute 0. 对绘制有影响，但是目前不明白有什么用
-    4,  // 几个数据为一组，比如一个点的坐标为 (x, y z)，那么就填 3，如果为 (x, y, z, w)，那么就填 4
-    GL_FLOAT,  // type
-    GL_FALSE,  // normalized?
-    0,  // stride
-    (void*)0  // array buffer offset
-);
-glDrawArrays(GL_LINE_LOOP, 0, 6);  // 从第 0 组数据开始，取 6 组数据，画首尾相连的线段
+int main()
+{
+	glm::mat4 M_s = glm::scale(glm::mat4(1), {2, 2, 2});
+	glm::mat4 M_r = glm::rotate(glm::mat4(1), 0.2f, {0, 1, 0});
+	glm::mat4 M_t = glm::translate(glm::mat4(1), {0.1, 0.2, -1});
+	glm::mat4 M_m = M_t * M_r * M_s;  // model matrix
+	glm::vec3 eye{0, 0, 1};
+	glm::vec3 center{0, 0, 0};
+	glm::vec3 up{0, 1, 0};
+	glm::mat4 M_v = glm::lookAt(eye, center, up);  // view matrix
+	glm::mat4 M_p = glm::perspective(glm::radians(45.0), 1024.0 / 768.0, 0.1, 100.0);  // perspective matrix
+	glm::mat4 M_mvp = M_p * M_v * M_m;  // the MVP matrix
+	glm::vec4 c_m{1, 2, 3, 1};
+	glm::vec4 c_h = M_mvp * c_m;
+	cout << "c_m:" << endl;
+	for (int i = 0; i < c_m.length(); ++i)
+		cout << c_m[i] << ", ";
+	cout << endl;
+	cout << "M_mvp:" << endl;;
+	for (int i = 0; i < M_mvp.length(); ++i)
+	{
+		for (int j = 0; j < M_mvp[i].length(); ++j)
+		{
+			cout << M_mvp[i][j] << ", ";
+		}
+		cout << endl;
+	}
+	cout << "c_h:" << endl;
+	for (int i = 0; i < c_h.length(); ++i)
+		cout << c_h[i] << ", ";
+	cout << endl;
+	return 0;
+}
 ```
+
+输出：
+
+```
+c_m:
+1, 2, 3, 1, 
+M_mvp:
+3.54913, 0, 0.398134, 0.397339, 
+0, 4.82843, 0, 0, 
+0.719445, 0, -1.96406, -1.96013, 
+0.181066, 0.482843, 1.8038, 2, 
+c_h:
+5.88854, 10.1397, -3.69023, -3.48306, 
+```
+
+说明：
+
+1. 为什么点坐标的最后一个分量`1`变成了`-3.48306`？如果不进行透视变换，那么最后一个分量仍为`1`，说明是透视变换影响了第 4 个分量。为什么会影响？这个影响有什么意义？
+
+	> […]luckily for us, a 4x4 matrix can represent this projection : Actually, this is not correct. A perspective transformation is not affine, and as such, can’t be represented entirely by a matrix. After beeing multiplied by the ProjectionMatrix, homogeneous coordinates are divided by their own W component. This W component happens to be -Z (because the projection matrix has been crafted this way). This way, points that are far away from the origin are divided by a big Z; their X and Y coordinates become smaller; points become more close to each other, objects seem smaller; and this is what gives the perspective. This transformation is done in hardware, and is not visible in the shader.
+
+为什么我们花这么大力气计算出了 MVP 矩阵，却只将它作用在一个向量上，而不是用它来乘一个$4 \times n$的矩阵？因为 GPU 会自动并行化处理每个顶点，我们在 shader 中只需要将 MVP 矩阵作用在每个点上就可以了。这就是并行的力量！
 
 ## GLSL
 
-常用的 shader 有两种：Vertex Shader 和 Fragment Shader
+GLSL 的全称是 GL Shader Language，它是 OpenGL 的一部分。
+
+### 数据的传递
+
+C 这边通过`glGetUniformLocation()`和`glUniformMatrix4fv()`向 glsl 文件中传输数据。
+
+```cpp
+// Get a handle for our "MVP" uniform
+// Only during the initialisation
+GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+  
+// Send our transformation to the currently bound shader, in the "MVP" uniform
+// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+```
+
+glsl 通过`uniform`得到数据：
+
+```glsl
+// Input vertex data, different for all executions of this shader.
+layout(location = 0) in vec3 vertexPosition_modelspace;
+  
+// Values that stay constant for the whole mesh.
+uniform mat4 MVP;
+  
+void main()
+{
+  // Output position of the vertex, in clip space : MVP * position
+  gl_Position =  MVP * vec4(vertexPosition_modelspace, 1);
+}
+```
+
+### 常见运算
+
+```glsl
+mat4 myMatrix;
+vec4 myVector;
+// fill myMatrix and myVector somehow
+vec4 transformedVector = myMatrix * myVector;
+
+mat4 transform = mat2 * mat1;
+vec4 out_vec = transform * in_vec;
+
+transformed_vertex = MVP * in_vertex;
+```
+
+使用`glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &v))`可以拿到 layout 的最大值。
+
+常用的 shader 有两种： Vertex Shader 和 Fragment Shader
+
+```cpp
+void main(){
+  gl_Position.xyz = vertexPosition_modelspace;
+  gl_Position.w = 1.0;
+}
+```
+
+### shader 的加载
 
 load shaders:
 
@@ -692,266 +1308,225 @@ const char *vertex_shader_path = "./vertex_shader.glsl";
 const char *fragment_shader_path = "./fragment_shader.glsl";
 GLuint prog_id = LoadShaders(vertex_shader_path, fragment_shader_path);
 glUseProgram(prog_id);  // 随便放个位置基本都能起效
-``
+```
 
-## glm
+### Example（旋转的三角形）
 
-glm 定义了很多方便的结构体。
+下面这几段代码可以实现一个旋转的绿色三角形的效果。我们在`while()`循环中修改旋转角，然后重新计算 MVP 矩阵，然后将 MVP 矩阵分发到 shader 中，和每个顶点的向量相乘，计算出变换后的点的坐标。
+
+`main.cpp`:
 
 ```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <sys/unistd.h>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
 
 int main()
 {
-    glm::mat4 my_mat;  // 定义一个 4 行 4 列的矩阵
-	for (int i = 0; i < 4; ++i)  // 定义四行
-	{
-		for (int j = 0; j < 4; ++j)  // 定义一列
-		{
-			my_mat[i][j] = i * 4 + j;
-		}
-	}
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
 
-    glm::vec4 my_vec;  // 定义一列
-	my_vec[0] = 1;
-	my_vec[1] = 2;
-	my_vec[2] = 3;
-	my_vec[3] = 4;
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");
+	glUseProgram(program_id);
 
-    glm::vec4 res_vec = my_mat * my_vec;
+	GLint mvp_id = glGetUniformLocation(program_id, "MVP");  // 从 shader 中拿到 uniform MVP 的 handle
+
+	float vtxs[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+	glm::mat4 M_s = glm::scale(glm::mat4(1), {1, 1, 1});
+	glm::mat4 M_r = glm::rotate(glm::mat4(1), 0.0f, {0, 1, 0});
+	glm::mat4 M_t = glm::translate(glm::mat4(1), {0, -0.5, 0});
+	glm::mat4 M_m = M_t * M_r * M_s;
+	glm::vec3 eye{0, 0, 2};
+	glm::vec3 center{0, 0, 0};
+	glm::vec3 up{0, 1, 0};
+	glm::mat4 M_v = glm::lookAt(eye, center, up);
+	glm::mat4 M_p = glm::perspective(glm::radians(60.0), 1024.0 / 768.0, 0.1, 100.0);
+	glm::mat4 M_mvp = M_p * M_v * M_m;  // the MVP matrix
+
+	glEnableVertexAttribArray(0);
+	glClearColor(0, 0, 0, 0);
+	float theta = 0;
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		theta += 0.01;
+		if (theta > 3.14159 * 2)
+			theta -= 3.14159 * 2;
+		M_r = glm::rotate(glm::mat4(1), theta, {0, 1, 0});
+		M_m = M_t * M_r * M_s;
+		M_mvp = M_p * M_v * M_m;  // 改变旋转角，然后重新计算 mvp 矩阵
+		glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &M_mvp[0][0]);  // 将数据传递给 shader
+
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glfwSwapBuffers(window);
+
+		usleep(10000);  // 睡眠一段时间，防止三角形转得太快
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
 }
 ```
 
-Translation matrices:
-
-$\left[\begin{matrix} 1\ 0\ 0\ X \\ 0\ 1\ 0\ Y \\ 0\ 0\ 1\ Z \\ 0\ 0\ 0\ 1 \end{matrix}\right]$
-
-如果一个向量以 1 结尾，那么它代表一个 position，如果以 0 结尾，那么它代表一个 direction。
-
-拿矩阵去乘一个 position，得到的仍是一个 position；拿矩阵去乘一个 direction，得到的仍是一个 direction。
-
-在 glsl 中做矩阵相乘：
+`vtx_shader.glsl`:
 
 ```glsl
-mat4 myMatrix;
-vec4 myVector;
-// fill myMatrix and myVector somehow
-vec4 transformedVector = myMatrix * myVector; 
-```
+#version 330 core
 
-在 glm 中用内置库做平移：
+layout(location = 0) in vec3 pos;
+uniform mat4 MVP;  // 从 C 程序中传递来的数据
 
-```cpp
-#include <glm/gtx/transform.hpp> // after <glm/glm.hpp>
- 
-glm::mat4 myMatrix = glm::translate(glm::mat4(), glm::vec3(10.0f, 0.0f, 0.0f));
-glm::vec4 myVector(10.0f, 10.0f, 10.0f, 0.0f);
-glm::vec4 transformedVector = myMatrix * myVector; // guess the result
-```
-
-在 glsl 中做平移：
-
-```glsl
-vec4 transformedVector = myMatrix * myVector;
-```
-
-The Identity matrix:
-
-```
-1 0 0 0
-0 1 0 0
-0 0 1 0
-0 0 0 1
-```
-
-用它乘以任何向量都会得到向量本身。
-
-```cpp
-glm::mat4 myIdentityMatrix = glm::mat4(1.0f);
-```
-
-Scaling matrices:
-
-```
-x 0 0 0
-0 y 0 0
-0 0 z 0
-0 0 0 1
-```
-
-```cpp
-// Use #include <glm/gtc/matrix_transform.hpp> and #include <glm/gtx/transform.hpp>
-glm::mat4 myScalingMatrix = glm::scale(2.0f, 2.0f ,2.0f);
-```
-
-Rotation matrices:
-
-```cpp
-// Use #include <glm/gtc/matrix_transform.hpp> and #include <glm/gtx/transform.hpp>
-glm::vec3 myRotationAxis( ??, ??, ??);
-glm::rotate(angle_in_degrees, myRotationAxis);
-```
-
-Example:
-
-```cpp
-glm::vec3 rot_dir = {0, 1, 0};
-glm::mat4 rot_mat = glm::rotate(0.02f, rot_dir);
-glm::vec4 my_vec = {1, 2, 3, 1};
-my_vec = rot_mat * my_vec;
-```
-
-注：
-
-1. `rotate()`会创建一个$4 \times 4$的旋转矩阵，这个矩阵可以作用于向量，使得向量发生旋转。
-
-    不清楚旋转矩阵怎么直接作用于多个向量（与多个向量直接相乘），如果一个一个乘感觉有点慢。
-
-1. `rotate()`的旋转单位是弧度，不是角度。
-
-combine different transformations together:
-
-```cpp
-TransformedVector = TranslationMatrix * RotationMatrix * ScaleMatrix * OriginalVector;
-```
-
-这行代码会先算 scaling，再算 rotation，最后才是 translation。
-
-调换坐标操作的顺序可能会产生不同的结果。一个通常不会出错的顺序是：Scale it first if needed; then set its direction, then translate it.
-
-矩阵乘矩阵（Matrix-matrix multiplication）：
-
-```cpp
-glm::mat4 myModelMatrix = myTranslationMatrix * myRotationMatrix * myScaleMatrix;
-glm::vec4 myTransformedVector = myModelMatrix * myOriginalVector;
-```
-
-in glsl:
-
-```glsl
-mat4 transform = mat2 * mat1;
-vec4 out_vec = transform * in_vec;
-```
-
-model matrix:
-
-model_matrix * model_coordinate = world_coordinate
-
-（将居中的坐标变换到别处）
-
-
-The View matrix:
-
-view_matrix * world_coordinate = camera_coordinate
-
-（如果一个模型在世界的中心，那么将它经过 view_matrix 变换后，它会进入相机的坐标）
-
-```cpp
-// Use #include <glm/gtc/matrix_transform.hpp> and #include <glm/gtx/transform.hpp>
-glm::mat4 ViewMatrix = glm::translate(glm::mat4(), glm::vec3(-3.0f, 0.0f ,0.0f));
-```
-
-glm 提供的另一个好用的工具：
-
-```cpp
-glm::mat4 CameraMatrix = glm::lookAt(
-    cameraPosition, // the position of your camera, in world space
-    cameraTarget,   // where you want to look at, in world space
-    upVector        // probably glm::vec3(0,1,0), but (0,-1,0) would make you looking upside-down, which can be great too
-);
-```
-
-The Projection matrix:
-
-```cpp
-// Generates a really hard-to-read matrix, but a normal, standard 4x4 matrix nonetheless
-glm::mat4 projectionMatrix = glm::perspective(
-    glm::radians(FoV), // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
-    4.0f / 3.0f,       // Aspect Ratio. Depends on the size of your window. Notice that 4/3 == 800/600 == 1280/960, sounds familiar ?
-    0.1f,              // Near clipping plane. Keep as big as possible, or you'll get precision issues.
-    100.0f             // Far clipping plane. Keep as little as possible.
-);
-```
-
-We went from Camera Space (all vertices defined relatively to the camera) to Homogeneous Space (all vertices defined in a small cube. Everything inside the cube is onscreen).
-
-projection_matrix * camera_coordinates = homogeneous_coordinates
-
-其实就是透视变换，我的理解是给平面的物体加上纵深的感觉。
-
-the ModelViewProjection matrix:
-
-```cpp
-// C++ : compute the matrix
-glm::mat4 MVPmatrix = projection * view * model; // Remember : inverted !
-```
-
-```glsl
-// GLSL : apply it
-transformed_vertex = MVP * in_vertex;
-```
-
-Example:
-
-```cpp
-#include <glm/gtc/matrix_transform.hpp>
-
-// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-glm::mat4 Projection = glm::perspective(glm::radians(45.0f), (float) width / (float)height, 0.1f, 100.0f);
-  
-// Or, for an ortho camera :
-//glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
-  
-// Camera matrix
-glm::mat4 View = glm::lookAt(
-    glm::vec3(4,3,3), // Camera is at (4,3,3), in World Space
-    glm::vec3(0,0,0), // and looks at the origin
-    glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-    );
-  
-// Model matrix : an identity matrix (model will be at the origin)
-glm::mat4 Model = glm::mat4(1.0f);
-// Our ModelViewProjection : multiplication of our 3 matrices
-glm::mat4 mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
-
-
-// Get a handle for our "MVP" uniform
-// Only during the initialisation
-GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-  
-// Send our transformation to the currently bound shader, in the "MVP" uniform
-// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
-```
-
-```glsl
-// Input vertex data, different for all executions of this shader.
-layout(location = 0) in vec3 vertexPosition_modelspace;
-  
-// Values that stay constant for the whole mesh.
-uniform mat4 MVP;
-  
-void main(){
-  // Output position of the vertex, in clip space : MVP * position
-  gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
+void main()
+{
+    gl_Position = vec4(pos, 1);
+    gl_Position = MVP * gl_Position;  //  对每个点坐标进行矩阵变换
 }
 ```
 
-Here is the same triangle as in tutorial 2, still at the origin (0,0,0), but viewed in perspective from point (4,3,3), heads up (0,1,0), with a 45° field of view.
+`frag_shader.glsl`:
 
-## obj file format
+```glsl
+#version 330 core
 
-Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
+out vec3 color;
 
-以`v`开头的行表示这是一个顶点的 x, y, z 坐标。
+void main()
+{
+	color = vec3(0.5, 0.8, 0.5);
+}
+```
 
-以`f`开关的行表示这个一个 mesh （小三角形）的三个顶点的索引，索引从 1 开始。
+编译：
 
-## aaa
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
 
-In glTexImage2D, the GL_RGB indicates that we are talking about a 3-component color, and GL_BGR says how exactly it is represented in RAM. As a matter of fact, BMP does not store Red->Green->Blue but Blue->Green->Red, so we have to tell it to OpenGL.
+运行：
 
-### texture （纹理）
+```bash
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_8.png' />
+</div>
+
+这是旋转了一定角度的三角形。
+
+## texture （纹理）
 
 其实就是贴图。
 
@@ -1356,6 +1931,341 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 ```bash
 ./main
 ```
+
+## 遮挡测试（depth test）
+
+
+
+## glm
+
+glm 定义了很多方便的结构体。
+
+```cpp
+#include <glm/glm.hpp>
+
+int main()
+{
+    glm::mat4 my_mat;  // 定义一个 4 行 4 列的矩阵
+	for (int i = 0; i < 4; ++i)
+	{
+		for (int j = 0; j < 4; ++j)
+		{
+			my_mat[i][j] = i * 4 + j;
+		}
+	}
+
+    glm::vec4 my_vec;  // 定义一列
+	my_vec[0] = 1;
+	my_vec[1] = 2;
+	my_vec[2] = 3;
+	my_vec[3] = 4;
+
+    glm::vec4 res_vec = my_mat * my_vec;
+}
+```
+
+如果一个向量以 1 结尾，那么它代表一个 position，如果以 0 结尾，那么它代表一个 direction。
+
+拿矩阵去乘一个 position，得到的仍是一个 position；拿矩阵去乘一个 direction，得到的仍是一个 direction。
+
+在 glm 中用内置库做平移：
+
+```cpp
+#include <glm/gtx/transform.hpp> // after <glm/glm.hpp>
+ 
+glm::mat4 myMatrix = glm::translate(glm::mat4(), glm::vec3(10.0f, 0.0f, 0.0f));
+glm::vec4 myVector(10.0f, 10.0f, 10.0f, 0.0f);
+glm::vec4 transformedVector = myMatrix * myVector; // guess the result
+```
+
+在 glsl 中做平移：
+
+```glsl
+vec4 transformedVector = myMatrix * myVector;
+```
+
+The Identity matrix:
+
+```
+1 0 0 0
+0 1 0 0
+0 0 1 0
+0 0 0 1
+```
+
+用它乘以任何向量都会得到向量本身。
+
+```cpp
+glm::mat4 myIdentityMatrix = glm::mat4(1.0f);
+```
+
+矩阵乘矩阵（Matrix-matrix multiplication）：
+
+```cpp
+glm::mat4 myModelMatrix = myTranslationMatrix * myRotationMatrix * myScaleMatrix;
+glm::vec4 myTransformedVector = myModelMatrix * myOriginalVector;
+```
+
+in glsl:
+
+```glsl
+mat4 transform = mat2 * mat1;
+vec4 out_vec = transform * in_vec;
+```
+
+model matrix:
+
+model_matrix * model_coordinate = world_coordinate
+
+（将居中的坐标变换到别处）
+
+The View matrix:
+
+view_matrix * world_coordinate = camera_coordinate
+
+（如果一个模型在世界的中心，那么将它经过 view_matrix 变换后，它会进入相机的坐标）
+
+```cpp
+// Use #include <glm/gtc/matrix_transform.hpp> and #include <glm/gtx/transform.hpp>
+glm::mat4 ViewMatrix = glm::translate(glm::mat4(), glm::vec3(-3.0f, 0.0f ,0.0f));
+```
+
+glm 提供的另一个好用的工具：
+
+```cpp
+glm::mat4 CameraMatrix = glm::lookAt(
+    cameraPosition, // the position of your camera, in world space
+    cameraTarget,   // where you want to look at, in world space
+    upVector        // probably glm::vec3(0,1,0), but (0,-1,0) would make you looking upside-down, which can be great too
+);
+```
+
+the ModelViewProjection matrix:
+
+```cpp
+// C++ : compute the matrix
+glm::mat4 MVPmatrix = projection * view * model; // Remember : inverted !
+```
+
+```glsl
+// GLSL : apply it
+transformed_vertex = MVP * in_vertex;
+```
+
+Example:
+
+```cpp
+#include <glm/gtc/matrix_transform.hpp>
+
+// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+glm::mat4 Projection = glm::perspective(glm::radians(45.0f), (float) width / (float)height, 0.1f, 100.0f);
+  
+// Or, for an ortho camera :
+//glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
+  
+// Camera matrix
+glm::mat4 View = glm::lookAt(
+    glm::vec3(4,3,3), // Camera is at (4,3,3), in World Space
+    glm::vec3(0,0,0), // and looks at the origin
+    glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+    );
+  
+// Model matrix : an identity matrix (model will be at the origin)
+glm::mat4 Model = glm::mat4(1.0f);
+// Our ModelViewProjection : multiplication of our 3 matrices
+glm::mat4 mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
+
+
+// Get a handle for our "MVP" uniform
+// Only during the initialisation
+GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+  
+// Send our transformation to the currently bound shader, in the "MVP" uniform
+// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+```
+
+```glsl
+// Input vertex data, different for all executions of this shader.
+layout(location = 0) in vec3 vertexPosition_modelspace;
+  
+// Values that stay constant for the whole mesh.
+uniform mat4 MVP;
+  
+void main(){
+  // Output position of the vertex, in clip space : MVP * position
+  gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
+}
+```
+
+
+
+## 绘制不同图形
+
+### rectangle and triangle
+
+`main.cpp`:
+
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <GL/glew.h>
+#include <GL/glxew.h>
+// #include <GL/freeglut.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include "shader.hpp"
+using namespace glm;
+
+
+int main()
+{
+    glewExperimental = true;
+
+    if (!glfwInit()) {
+        fprintf(stderr, "Failed to initialize GLFW\n");
+        return -1;
+    }
+
+    GLFWwindow* window = glfwCreateWindow(1024, 768, "Triangle", NULL, NULL);
+    if (window == NULL) {
+        fprintf(stderr, "Failed to open GLFW window.\n");
+        glfwTerminate();
+        return -1;
+    }
+
+    glfwMakeContextCurrent(window);
+
+    if (glewInit() != GLEW_OK) {
+        fprintf(stderr, "Failed to initialize GLEW\n");
+        return -1;
+    }
+
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);  // 这个好像没什么用
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // 设置 preset 的颜色，后面 glClear() 会用到
+
+    GLuint vertexbuffer;
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);  // gen buffer 和 bind buffer 只需要一次就够了
+    // 这个 buffer 有点像申请设备号，没什么用，但必须要申请
+
+    const GLfloat arr_rect[] = {
+        -0.5f, -0.5f,
+        -0.5f, 0.5f,
+        0.5f,  0.5f,
+        0.5, -0.5,
+    };
+
+    const GLfloat arr_tri[] = {
+        0, 0.5f, 0,
+        0.5f, -0.5f, 0,
+        -0.5f, -0.5f, 0,
+    };
+
+    // 会循环绘制，不会进入阻塞状态。这样的话，捕捉鼠标键盘消息很有可能用的另外一个线程
+    do {
+        // Clear the screen.
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // 似乎是个控制画哪个不画哪个的开关，glDrawArrays() 只会画有效的 attrib array
+        glEnableVertexAttribArray(0);  // 参数只能填 0，填其他的都不行，不清楚是为什么
+        glBufferData(GL_ARRAY_BUFFER, sizeof(arr_rect), arr_rect, GL_STATIC_DRAW);
+        glVertexAttribPointer(  // 因为每次都给 GL_ARRAY_BUFFER 定入新数据，所以每次都要重新解释一遍
+            0,  // attribute 0. 对绘制有影响，但是目前不明白有什么用
+            2,  // 几个数据为一组
+            GL_FLOAT,  // type
+            GL_FALSE,  // normalized?
+            0,  // stride
+            (void*)0  // array buffer offset
+        );
+        glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(arr_tri), arr_tri, GL_STATIC_DRAW);
+        glVertexAttribPointer(
+            0,
+            3,
+            GL_FLOAT,
+            GL_FALSE,
+            0,
+            (void*)0
+        );
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDisableVertexAttribArray(0);
+        
+        // Swap buffers
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+            glfwWindowShouldClose(window) == 0);
+
+    // Cleanup VBO
+	glDeleteBuffers(1, &vertexbuffer);
+    glfwTerminate();
+    return 0;
+}
+```
+
+一些猜测：
+
+1. `GL_ARRAY_BUFFER`全局只存在一个，并且需要申请。所谓的 buffer 其实只是一个 handler。
+
+2. `glBufferData()`将数据写入`GL_ARRAY_BUFFER`中，然后我们需要用`glVertexAttribPointer()`对 buffer 中的数据进行解释
+
+
+`glClearColor()`是如何确定哪个窗口的？
+
+注：
+
+1. `glfwWindowHint()`的几行全都可以注释掉，不影响窗口的创建。
+
+
+为了画三角形，首先需要创建一些顶点，这些顶点在 OpenGL 中以指定的类型存储起来，这种类型的对象叫 VAO (Vertex Array Object):
+
+```cpp
+GLuint VertexArrayID;
+glGenVertexArrays(1, &VertexArrayID);
+glBindVertexArray(VertexArrayID);
+```
+
+最重要的几步：
+
+```cpp
+// 把数据写入到 opengl 全局 buffer 中
+glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
+
+// 对 buffer 中的数据进行解释
+glVertexAttribPointer(
+    0,  // attribute 0. 对绘制有影响，但是目前不明白有什么用
+    4,  // 几个数据为一组，比如一个点的坐标为 (x, y z)，那么就填 3，如果为 (x, y, z, w)，那么就填 4
+    GL_FLOAT,  // type
+    GL_FALSE,  // normalized?
+    0,  // stride
+    (void*)0  // array buffer offset
+);
+glDrawArrays(GL_LINE_LOOP, 0, 6);  // 从第 0 组数据开始，取 6 组数据，画首尾相连的线段
+```
+
+## obj file format
+
+Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
+
+以`v`开头的行表示这是一个顶点的 x, y, z 坐标。
+
+以`f`开关的行表示这个一个 mesh （小三角形）的三个顶点的索引，索引从 1 开始。
+
+## aaa
+
+In glTexImage2D, the GL_RGB indicates that we are talking about a 3-component color, and GL_BGR says how exactly it is represented in RAM. As a matter of fact, BMP does not store Red->Green->Blue but Blue->Green->Red, so we have to tell it to OpenGL.
+
+## glsl 的版本很重要
+
+在 glsl 的文件的第一行添加：
+
+`#version 330 core`
+
+如果不写的话，有的机器上的 glsl 无法通过编译。
+
+（如果不指定版本，那么默认的版本是什么？）
 
 ## API Reference
 

@@ -543,11 +543,7 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     `git merge origin/master`
 
-* `git pull`会 pull 所有设置 upstream 的 branch。（那么`git pull --all`是干嘛用的？）
-
 * 所谓的 fast-forward，指的是 main branch HEAD 所在的 commit 节点，可以顺着其他 commit 节点，找到其他 branch 的 HEAD 所在的 commit。
-
-* `git pull --rebase`会把远程的仓库强行覆盖本地的 branch。有时间了研究下`git pull`的三种模式（fast-forward, merge, rebase）
 
 * git tag
 
@@ -695,7 +691,17 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     * `-n`, `--no-commit`: Passing this option will prevent git revert from creating a new commit that inverses the target commit. Instead of creating the new commit this option will add the inverse changes to the Staging Index and Working Directory. 只改变文件内容，不提交 commit
 
-    
+## git branch
+
+## git remote
+
+`git remote`只涉及到 url，不涉及到下面的 branch。
+
+## git pull
+
+* `git pull`会 pull 所有设置 upstream 的 branch。（那么`git pull --all`是干嘛用的？）
+
+* `git pull --rebase`会把远程的仓库强行覆盖本地的 branch。有时间了研究下`git pull`的三种模式（fast-forward, merge, rebase）
 
 
 ## Miscellaneous

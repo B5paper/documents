@@ -6,9 +6,19 @@
 * CPD: Conditional Probabilisy Distributions
 * DAG: Directed acyclic graph
 
+## Startup
+
+Example:
+
+```python
+import pgmpy.models.BayesianNetwork
+```
+
 ## Bayesian Network
 
-* `pgmpy.models.BayesianModel(edges)`
+* `pgmpy.models.BayesianModel(edges)` 
+
+    这个类更名为`BayesianNetwork`，后续`BayesianModel`将会被舍弃
 
     Parameters:
 
@@ -26,6 +36,12 @@
     * `evidence`: list of str，条件变量的名称
     * `evidence_card`：list of int，条件变量的度
     * `state_names`（optional）：`dict`, `{str: list}`，其中 list 是随机变量的可取值
+
+    Example:
+
+    ```python
+    
+    ```
 
 * `model.get_cpds(name=None)`
 
