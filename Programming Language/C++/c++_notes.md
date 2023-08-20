@@ -3481,5 +3481,31 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
 
     如果全局变量是一个 C++ class 的实例，那么在初始化时允许调用自定义的构造函数。
 
+1. `getchar()`在 windows 下和 linux 下的表现
+
+    在 windows 下，输入`a`回车，会得到两个字符，对应的 int 值分别是`97`和`10`：
+
+    ```cpp
+    int main()
+    {
+
+        int ch;
+        ch = getchar();
+        cout << ch << endl;
+        ch = getchar();
+        cout << ch << endl;
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    97
+    10
+    ```
+
+    linux 下的输出与此完全相同。
+
 
 

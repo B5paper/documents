@@ -174,6 +174,28 @@ public:
 };
 ```
 
+后来又写的：
+
+```cpp
+class Solution {
+public:
+    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {
+        int p = nums1.size() - 1, p1 = m - 1, p2 = n - 1;
+        while (p1 > -1 && p2 > -1)
+        {
+            if (nums1[p1] < nums2[p2])
+                nums1[p--] = nums2[p2--];
+            else
+                nums1[p--] = nums1[p1--];
+        }
+        while (p2 > -1)
+            nums1[p--] = nums2[p2--];
+    }
+};
+```
+
+看起来简洁了许多。有关条件的简并问题，以后有时间了可以思考思考。
+
 #### 移动零
 
 给定一个数组 nums，编写一个函数将所有 0 移动到数组的末尾，同时保持非零元素的相对顺序。
