@@ -1310,7 +1310,7 @@ GLuint prog_id = LoadShaders(vertex_shader_path, fragment_shader_path);
 glUseProgram(prog_id);  // 随便放个位置基本都能起效
 ```
 
-### Example（旋转的三角形）
+### Example （旋转三角形）
 
 下面这几段代码可以实现一个旋转的绿色三角形的效果。我们在`while()`循环中修改旋转角，然后重新计算 MVP 矩阵，然后将 MVP 矩阵分发到 shader 中，和每个顶点的向量相乘，计算出变换后的点的坐标。
 
@@ -1525,6 +1525,211 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 </div>
 
 这是旋转了一定角度的三角形。
+
+### Example （彩色三角形）
+
+如果给每一个顶点都赋予一个颜色，那么 opengl 会自动将小三角形绘制成渐变色。
+
+赋予颜色的方式与绘制坐标的方式相似，都是将一个数组传递给 shader。
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");
+	glUseProgram(program_id);
+
+	float vtxs[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+	float fce_colors[3][3] = {  // rgb 数据格式，指定每个顶点的颜色
+		{0.8, 0.5, 0.5},  // 小三角形的颜色会根据顶点的颜色进行渐变
+		{0.5, 0.8, 0.5},  // 所以我们最终会得到一个彩色三角形
+		{0.5, 0.5, 0.8}
+	};
+	GLuint buf_color;
+	glGenBuffers(1, &buf_color);
+	glBindBuffer(GL_ARRAY_BUFFER, buf_color);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, fce_colors, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);  // 1 对应 shader 中的 layout(location = 1)
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glBindBuffer(GL_ARRAY_BUFFER, buf_color);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);  // 注意这里的 1，与 0 区别开
+		
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
+}
+```
+
+`vtx_shader.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec3 vtx_color;
+out vec3 fce_color;  // 不同 glsl 文件中，这里的变量名是全局的
+// 因此 fce_color 会被传递到 fragment sahder 中的 fce_color 变量中
+
+void main()
+{
+    gl_Position = vec4(pos, 1);
+    fce_color = vtx_color;  // 将变量传递到下一级 shader
+}
+```
+
+`frag_shader.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+in vec3 fce_color;  // 从 vertex shader 中接受数据
+
+void main()
+{
+	color = fce_color;  // 输出最后的颜色，但是这里输出的是渐变色，不懂为什么
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_9.png' />
+</div>
 
 ## texture （纹理）
 
