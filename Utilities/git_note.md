@@ -264,6 +264,14 @@ doc/**/*.pdf
 
     [有关 diff 的输出格式，有时间了看下]
 
+    `git diff --stat`可以直观地查看哪个文件修改了多少：
+
+    ```
+    (base) PS D:\Documents\documents> git diff --stat
+    Utilities/git_note.md | 64 +++++++++++++++++++++++++++++++++++++++++++++++++++
+    1 file changed, 64 insertions(+)
+    ```
+
 * `git commit`
 
     `git commit`选择的 editor 与 shell 的`$EDITOR`环境变量有关。也可以用`git config --global core.editor`设置。
@@ -595,6 +603,12 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     好像也可以使用`git restore --staged <file>`完成相同的功能。
 
+    It has three primary forms of invocation. These forms correspond to command line arguments --soft, --mixed, --hard. The three arguments each correspond to Git's three internal state management mechanism's, The Commit Tree (HEAD), The Staging Index, and The Working Directory.
+
+    `git reset`：等价于` git reset --mixed HEAD`。如果当前的 HEAD 指向分支的 ref，那么不改变 workding directory 中的内容，并且清空 staging area 中的内容。
+
+    `git reset <commit>`：清空 staging area 中的内容，改变当前的 HEAD，但是不会改变 workding directory 中的内容。
+
 * `git checkout`
 
     `git checkout -- <file>...`可以将某个已经修改过，但是没有 staged 的文件，恢复到 last commit 的内容。
@@ -606,6 +620,18 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
     这两个命令只适用于已经 tracked 的文件，如果一个文件是新创建的，那么
 
     `git checkout -b <branch-name>`：如果分支不存在，则创建分支并切换
+
+    `git checkout <commit>`的作用似乎和`git reset <commit>`的作用完全相同。
+
+    如果进入了 detach 模式，可以使用`git checkout <branch_name>`使得 HEAD 重新指到 branch name 上。比如`git checkout main`。如果进入了 detach 模式后，提交了 commit，并且想保留更改，那么可以使用`git branch <new-branch-name>`创建一个新的 branch，保留提交记录。
+
+    看了看网上的主流建议，是说`git reset`专门用于指定 HEAD 移动到哪个 commit 上，`git checkout`专门用于切换分支。
+
+    `git reset <commit>`和`git checkout <commit>`都不会对 working directory 中的文件有影响。
+
+    Ref: <https://www.geeksforgeeks.org/git-difference-between-git-revert-checkout-and-reset/>
+
+    有时间了看看 ref。
 
 * `git restore`
 
@@ -620,6 +646,50 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 * search code in a specific branch
 
     <https://stackoverflow.com/questions/31891733/searching-code-in-a-specific-github-branch>
+
+* `git revert <commit_1> [commit_2] ...`
+
+    取消指定的 commit，并将`revert`作为一个新 commit。
+
+    A revert operation will take the specified commit, inverse the changes from that commit, and create a new "revert commit". The ref pointers are then updated to point at the new revert commit making it the tip of the branch.
+
+    `git revert HEAD`
+
+    如果`git revert`一个中间的 commit 会发生什么？
+
+    假如一个文件有三行：
+
+    ```
+    first commit
+    second commit
+    third commit
+    ```
+
+    如果我们执行`git revert <second_commit>`，那么会发生冲突 confict：
+
+    对于 revert 而言，它想把第二行变成它的 parent 的 commit，即 empty：
+
+    ```
+    first commit
+    ```
+
+    而对于 third commit 而言，它想把第二行变成 third commit 的内容，即：
+
+    ```
+    first commit
+    second commit
+    third commit
+    ```
+
+    因此会发生冲突。
+
+    common options:
+
+    * `-e`, `--edit`: This is a default option and doesn't need to be specified. This option will open the configured system editor and prompts you to edit the commit message prior to committing the revert。 默认缺省参数，打开编译器写 commit comment。
+
+    * `--no-edit`：不打开 editor
+
+    * `-n`, `--no-commit`: Passing this option will prevent git revert from creating a new commit that inverses the target commit. Instead of creating the new commit this option will add the inverse changes to the Staging Index and Working Directory. 只改变文件内容，不提交 commit
 
 ## git branch
 
