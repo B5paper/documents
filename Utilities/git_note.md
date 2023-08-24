@@ -693,6 +693,8 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
 ## git branch
 
+`git branch --set-upstream-to=origin/main`可以设置当前 branch 对应的 remote branch。
+
 ## git remote
 
 `git remote`只涉及到 url，不涉及到下面的 branch。
