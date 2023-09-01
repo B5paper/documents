@@ -464,6 +464,20 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
     
     `sudo mount filename.iso test_folder`
 
+* 清空 cache
+
+    1. Clear PageCache only.
+
+        `# sync; echo 1 > /proc/sys/vm/drop_caches`
+
+    2. Clear dentries and inodes.
+
+        `# sync; echo 2 > /proc/sys/vm/drop_caches`
+
+    3. Clear pagecache, dentries, and inodes.
+
+        `# sync; echo 3 > /proc/sys/vm/drop_caches`
+
 ## problem shooting
 
 * Ubuntu 无法连接企业 Wifi

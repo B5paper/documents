@@ -2900,6 +2900,120 @@ glVertexAttribPointer(
 glDrawArrays(GL_LINE_LOOP, 0, 6);  // 从第 0 组数据开始，取 6 组数据，画首尾相连的线段
 ```
 
+### Element buffer objects
+
+**element buffer objects** is abbreviated to EBO. This is called **indexed drawing**.
+
+```c
+float vertices[] = {
+	0.5f, 0.5f, 0.0f, // top right
+	0.5f, -0.5f, 0.0f, // bottom right
+	-0.5f, -0.5f, 0.0f, // bottom left
+	-0.5f, 0.5f, 0.0f // top left
+};
+
+unsigned int indices[] = { // note that we start from 0!
+	0, 1, 3, // first triangle
+	1, 2, 3 // second triangle
+};
+
+// ..:: Initialization code :: ..
+// 1. bind Vertex Array Object
+glBindVertexArray(VAO);
+// 2. copy our vertices array in a vertex buffer for OpenGL to use
+glBindBuffer(GL_ARRAY_BUFFER, VBO);
+glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+unsigned int EBO;
+glGenBuffers(1, &EBO);
+
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+(void*)0);
+glEnableVertexAttribArray(0);
+
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+glBindVertexArray(VAO);
+glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+glBindVertexArray(0);
+```
+
+Example:
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+	
+	float vtxs[4][3] = {
+		{-0.5, 0.5, 0},
+		{-0.5, -0.5, 0},
+		{0.5, 0.5, 0},
+		{0.5, -0.5, 0}
+	};
+
+	unsigned int idxs[2][3] = {
+		{0, 1, 2},
+		{1, 2, 3}
+	};
+
+	GLuint oglbuf_vtxs;
+	glGenBuffers(1, &oglbuf_vtxs);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtxs);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+	
+	GLuint oglbuf_idxs;
+	glGenBuffers(1, &oglbuf_idxs);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, oglbuf_idxs);  // 创建 target 为 GL_ELEMENT_ARRAY_BUFFER 的 buffer
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(idxs), idxs, GL_STATIC_DRAW);
+	
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);  // 对内存进行解释，在 glVertexAttribPointer() 之前不需要 glBindBuffer()
+	glEnableVertexAttribArray(0);
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, oglbuf_idxs);  // bind 的类型为 GL_ELEMENT_ARRAY_BUFFER
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  // 使用 glDrawElements 绘制
+
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
+	return 0;
+}
+```
+
+编译：
+
+```bash
+g++ main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_13.png'>
+</div>
+
 ## obj file format
 
 Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
@@ -2907,6 +3021,450 @@ Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
 以`v`开头的行表示这是一个顶点的 x, y, z 坐标。
 
 以`f`开关的行表示这个一个 mesh （小三角形）的三个顶点的索引，索引从 1 开始。
+
+## Light
+
+Current we use Phong lighting model to simulate the real world lighting.
+
+The major building blocks of the Phong lighting model consist of 3 components: ambient, diffuse and specular lighting.
+
+* Ambient lighting: even when it is dark there is usually still some light somewhere in the
+world (the moon, a distant light) so objects are almost never completely dark. To simulate
+this we use an ambient lighting constant that always gives the object some color.
+
+* Diffuse lighting: simulates the directional impact a light object has on an object. This is the
+most visually significant component of the lighting model. The more a part of an object faces
+the light source, the brighter it becomes.
+
+* Specular lighting: simulates the bright spot of a light that appears on shiny objects. Specular
+highlights are more inclined to the color of the light than the color of the object.
+
+**Ambient lighting**
+
+Light usually does not come from a single light source, but from many light sources scattered all
+around us, even when they’re not immediately visible. One of the properties of light is that it can
+scatter and bounce in many directions, reaching spots that aren’t directly visible; light can thus
+reflect on other surfaces and have an indirect impact on the lighting of an object. Algorithms that
+take this into consideration are called global illumination algorithms, but these are complicated and
+expensive to calculate.
+
+Since we’re not big fans of complicated and expensive algorithms we’ll start by using a very
+simplistic model of global illumination, namely ambient lighting.
+
+Adding ambient lighting to the scene is really easy. We take the light’s color, multiply it with a
+small constant ambient factor, multiply this with the object’s color, and use that as the fragment’s
+color in the cube object’s shader:
+
+```cpp
+void main()
+{
+	float ambientStrength = 0.1;
+	vec3 ambient = ambientStrength * lightColor;
+	vec3 result = ambient * objectColor;
+	FragColor = vec4(result, 1.0);
+}
+```
+
+**Diffuse lighting**
+
+Ambient lighting by itself doesn’t produce the most interesting results, but diffuse lighting however
+will start to give a significant visual impact on the object. Diffuse lighting gives the object more
+brightness the closer its fragments are aligned to the light rays from a light source.
+
+If the light ray is perpendicular
+to the object’s surface the light has the greatest impact.
+
+* Normal vector: a vector that is perpendicular to the vertex’ surface.
+
+* The directed light ray: a direction vector that is the difference vector between the light’s
+position and the fragment’s position. To calculate this light ray we need the light’s position
+vector and the fragment’s position vector.
+
+A normal vector is a (unit) vector that is perpendicular to the surface of a vertex.
+
+镜面反射的计算：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_15.jpg' />
+</div>
+
+如图所示，假设光源位置为$L$，反射点为$O$，摄像机位置为$E$。我们令反射点处的法线为$\overrightarrow{ON}$，则可以得到入射角和反射角为$\theta$。假设反射光线为$\overrightarrow{OM}$，那么可以得到反射光线和摄像机的夹角$\alpha$。
+
+显然$\overrightarrow{OE}$和$\overrightarrow{OM}$之间的夹角越小，进入摄像机的光线越强。这种负相关的关系，我们可以用$\cos \alpha$来表示。于是有
+
+$$\cos \alpha = \overrightarrow{OE} \cdot \overrightarrow{OM}$$
+
+我们可以使用向量点乘很快地计算出夹角的$\cos$值。
+
+下面实现一个有背景光 + 漫反射 + 镜面反射的三角形：
+
+Example:
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <iostream>
+#include <unistd.h>
+using namespace std;
+using namespace glm;
+
+
+GLuint load_shader(const char *vtx_shader_path, const char *frag_shader_path)
+{
+    GLuint vtx_shader, frag_shader;
+    vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    const int buf_size = 1024;
+    char *buf = (char*) malloc(buf_size);
+    FILE *f = fopen(vtx_shader_path, "r");
+    memset(buf, 0, buf_size);
+    fread(buf, buf_size, 1, f);
+    fclose(f);
+    glShaderSource(vtx_shader, 1, &buf, NULL);
+    glCompileShader(vtx_shader);
+    fopen(frag_shader_path, "r");
+    memset(buf, 0, buf_size);
+    fread(buf, buf_size, 1, f);
+    fclose(f);
+    glShaderSource(frag_shader, 1, &buf, NULL);
+    glCompileShader(frag_shader);
+    GLuint program_id = glCreateProgram();
+    glAttachShader(program_id, vtx_shader);
+    glAttachShader(program_id, frag_shader);
+    glLinkProgram(program_id);
+    glDetachShader(program_id, vtx_shader);
+    glDetachShader(program_id, frag_shader);
+    glDeleteShader(vtx_shader);
+    glDeleteShader(frag_shader);
+    free(buf);
+    return program_id;
+}
+
+struct MVP
+{
+    MVP() {
+        m_scale = {1, 1, 1};
+        m_translate = {0, 0, 0};
+        rotate_dir = {0, 1, 0};
+        rotate_rad = 0;
+        eye = {0, 0, 1};
+        center = {0, 0, 0};
+        up = {0, 1, 0};
+    }
+
+    mat4 get_rotate_mat() {
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        return M_r;
+    }
+
+    mat4 get_mvp() {
+        mat4 M_s = scale(mat4(1), m_scale);
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        mat4 M_t = translate(mat4(1), m_translate);
+        mat4 M_m = M_t * M_r * M_s;
+        mat4 M_v = lookAt(eye, center, up);
+        mat4 M_p = perspective(radians(90.0), 1024 / 768.0, 0.1, 100.0);
+        mat4 mvp = M_p * M_v * M_m;
+        return mvp;
+    }
+
+    vec3 m_scale;
+    vec3 m_translate;
+    vec3 rotate_dir;
+    float rotate_rad;
+    vec3 eye, center, up;    
+};
+
+struct ModelMat
+{
+    vec3 m_scale;
+    vec3 m_translate;
+    vec3 rotate_dir;
+    float rotate_rad;
+    mat4 M_m;
+
+    ModelMat() {
+        m_scale = {1, 1, 1};
+        m_translate = {0, 0, 0};
+        rotate_dir = {0, 1, 0};
+        rotate_rad = 0;
+    }
+
+    mat4& get_model_mat() {
+        mat4 M_s = scale(mat4(1), m_scale);
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        mat4 M_t = translate(mat4(1), m_translate);
+        M_m = M_t * M_r * M_s;
+        return M_m;
+    }
+
+    mat4 get_rotate_mat() {
+        return rotate(mat4(1), rotate_rad, rotate_dir);
+    }
+};
+
+struct ViewMat
+{
+    vec3 eye, center, up;
+    mat4 M_v;
+
+    ViewMat() {
+        eye = {0, 0, 1};
+        center = {0, 0, 0};
+        up = {0, 1, 0};
+    }
+
+    mat4& get_view_mat() {
+        M_v = lookAt(eye, center, up);
+        return M_v;
+    }
+};
+
+mat4 get_mvp(mat4 &model, mat4 &view)
+{
+    mat4 M_p = perspective(radians(90.0), 1024 / 768.0, 0.1, 100.0);
+    return M_p * view * model;
+}
+
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "gl light", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+
+    GLuint program_id = load_shader("./vtx.glsl", "./frag.glsl");
+    GLuint pid_light = load_shader("./vtx_light.glsl", "./frag_light.glsl");
+
+    GLuint norm_id = glGetUniformLocation(program_id, "norm");
+    GLuint mvp_id = glGetUniformLocation(program_id, "mvp");
+    GLuint eye_id = glGetUniformLocation(program_id, "eye");
+    GLuint light_mvp_id = glGetUniformLocation(pid_light, "mvp");
+    
+
+    float vtxs[3][3] = {
+        {-0.5, 0, 0},
+        {0, 1, 0},
+        {0.5, 0, 0}
+    };
+    GLuint buf_vtxs;
+    glGenBuffers(1, &buf_vtxs);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+
+    float vtxs_line[2][3];
+    GLuint buf_line;
+    glGenBuffers(1, &buf_line);
+
+    float vtxs_coord[6][3] = {
+        {0, 0, 0},
+        {1, 0, 0},
+        {0, 0, 0},
+        {0, 1, 0},
+        {0, 0, 0},
+        {0, 0, 1}
+    };
+    GLuint buf_coord;
+    glGenBuffers(1, &buf_coord);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_coord);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs_coord), vtxs_coord, GL_STATIC_DRAW);
+
+    ModelMat tri_mat, light_mat, coord_mat;
+    ViewMat view_mat;
+
+    light_mat.m_scale = {0.1, 0.1, 0.1};
+    light_mat.m_translate = {0.7, 0.7, 0};
+    view_mat.eye = {0, 0.5, 2};
+
+    MVP MVP, MVP_light, MVP_line, MVP_coord;
+    MVP_light.m_translate = {0.7, 0.7, 0};
+    MVP_light.m_scale = {0.1, 0.1, 0.1};
+    mat4 light_mvp, mvp, mvp_line, mvp_coord;
+    vec3 norm;
+    float theta = 0;
+    float theta_obj = 0;
+    glEnableVertexAttribArray(0);
+    glClearColor(0, 0, 0, 0);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    while (!glfwWindowShouldClose(window))
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // rotate camera
+        view_mat.eye = {sin(theta) * sqrt(2), 0.5, cos(theta) * sqrt(2)};
+        theta += 0.001;
+        if (theta > pi<float>() * 2)
+            theta = 0;
+
+        // darw coordinate
+        glUseProgram(pid_light);
+        mvp_coord = get_mvp(coord_mat.get_model_mat(), view_mat.get_view_mat());
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &mvp_coord[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_coord);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_LINES, 0, 6);
+
+        // draw light triangle
+        light_mvp = get_mvp(light_mat.get_model_mat(), view_mat.get_view_mat());
+        glUseProgram(pid_light);
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &light_mvp[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // draw triangle
+        tri_mat.rotate_rad = theta_obj;
+        theta_obj += 0.01;
+        if (theta_obj > pi<float>() * 2)
+            theta_obj = 0;
+        mvp = get_mvp(tri_mat.get_model_mat(), view_mat.get_view_mat());
+        norm = cross(vec3{0.5, 0, 0} - vec3{-0.5, 0, 0}, vec3{0, 1, 0} - vec3{-0.5, 0, 0});
+        norm = tri_mat.get_rotate_mat() * vec4(norm, 1);
+
+        glUseProgram(program_id);
+        glUniform3fv(norm_id, 1, &norm[0]);
+        glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &mvp[0][0]);
+        glUniform3fv(eye_id, 1, &view_mat.eye[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // draw norm line
+        vtxs_line[1][0] = norm[0] / 2;
+        vtxs_line[1][1] = norm[1] / 2;
+        vtxs_line[1][2] = norm[2] / 2;
+        glBindBuffer(GL_ARRAY_BUFFER, buf_line);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs_line), vtxs_line, GL_STATIC_DRAW);
+
+        glUseProgram(pid_light);
+        mvp_line = get_mvp(coord_mat.get_model_mat(), view_mat.get_view_mat());
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &mvp_line[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_line);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_LINES, 0, 2);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, true);
+        }
+        usleep(10000);
+    }
+    return 0;
+}
+```
+
+`vtx_light:glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 mvp;
+
+void main()
+{
+    gl_Position = mvp * vec4(pos, 1);
+}
+```
+
+`frag_light.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(1, 1, 1);
+}
+```
+
+`vtx.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 mvp;
+uniform vec3 norm;
+out vec3 norm_frag;
+out vec3 pos_frag;
+
+void main()
+{
+    gl_Position = mvp * vec4(pos, 1);
+    norm_frag = norm;
+    pos_frag = pos;
+}
+```
+
+`frag.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+in vec3 norm_frag;
+in vec3 pos_frag;
+uniform vec3 eye;
+
+void main()
+{
+    vec3 lightColor = vec3(1, 1, 1);
+    vec3 ambient = lightColor * 0.1;
+    vec3 objectColor = vec3(0.5, 0.8, 0.5);
+    vec3 lightPos = vec3(0.7, 0.7, 0);
+    vec3 FragPos = pos_frag;
+    vec3 norm = normalize(norm_frag);
+    vec3 lightDir = normalize(lightPos - FragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * lightColor;
+    float specularStrength = 0.5;
+    vec3 viewPos = eye;
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;
+    vec3 result = (ambient + diffuse) * objectColor;
+    result = (ambient + diffuse + specular) * objectColor;
+    // FragColor = vec4(result, 1.0);
+    color = result;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_14.png'>
+</div>
+
+实现的效果是一个旋转的摄像机 + 旋转的三角形，三角形表面实现光照效果。
+
+（这个效果似乎有一些 bug，当光源到三角形背面的时候，三角形仍会有镜面反射。而且大三角形总是会遮挡小三角形，depth test 似乎有问题）
 
 ## aaa
 
@@ -3457,3 +4015,58 @@ Ref:
     `glDeleteBuffers` deletes `n` buffer objects named by the elements of the array buffers. After a buffer object is deleted it has no contents, and its name is again unused. Unused names in buffers that have been marked as used for the purposes of glGenBuffers are marked as unused again. Unused names in buffers are silently ignored, as is the value zero. If a buffer object is deleted while it is bound, all bindings to that object in the current context are reset to zero. Bindings to that buffer in other contexts are not affected.
 
     `glDeleteBuffers` silently ignores 0's and names that do not correspond to existing buffer objects. 
+
+* `glCreateShader`
+
+	Syntax:
+
+	```c
+	GLuint glCreateShader(GLenum shaderType);
+	```
+
+	Parameters:
+
+	* `shaderType`
+
+		Specifies the type of shader to be created. Must be one of `GL_COMPUTE_SHADER`, `GL_VERTEX_SHADER`, `GL_TESS_CONTROL_SHADER`, `GL_TESS_EVALUATION_SHADER`, `GL_GEOMETRY_SHADER`, or `GL_FRAGMENT_SHADER`.
+
+		目前常用的是`GL_VERTEX_SHADER`和`GL_FRAGMENT_SHADER`。
+
+* `glShaderSource`
+
+	Replaces the source code in a shader object
+
+	Syntax:
+
+	```c
+	void glShaderSource(
+		GLuint shader,
+		GLsizei count,
+		const GLchar **string,
+		const GLint *length
+	);
+	```
+
+	Parameters:
+
+	* `shader`
+
+		Specifies the handle of the shader object whose source code is to be replaced.
+
+	* `count`
+
+		Specifies the number of elements in the string and length arrays.
+
+		通常填 1。
+
+	* `string`
+
+		Specifies an array of pointers to strings containing the source code to be loaded into the shader.
+
+		注意这里需要填指针的指针。
+		
+	* `length`
+
+		Specifies an array of string lengths.
+
+		通常填 NULL.
