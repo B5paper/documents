@@ -4,8 +4,6 @@ Materials:
 
 1. quick cmake tutorial: <https://www.jetbrains.com/help/clion/quick-cmake-tutorial.html>
 
-
-
 官方的 tutorial 写得并不是很好。可以参考这篇 tutorial。
 
 Tutorials:
@@ -71,6 +69,8 @@ add_executable(HelloWorld main.cpp)
 * `return`
 
 * `set_property(assign value to variable)`
+
+All conditional statements should be ended with its corresponding end command (endif, endwhile, endforeachetc)
 
 更多的 cmake commands 可以在文档中查到：<https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html>
 
@@ -217,6 +217,10 @@ endforeach()
 创建 release 版本的 build system: `cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild/Release`
 
 platform checks: <https://gitlab.kitware.com/cmake/community/-/wikis/doc/tutorials/How-To-Write-Platform-Checks>
+
+CMake can generates a cache file that is designed to be used with a graphical editor. 
+
+Build logic and definitions with CMake language is written either in CMakeLists.txt or a file ends with `<project_name>.cmake`. But as a best practice, main script is named as CMakeLists.txt instead of cmake.
 
 ## API Ref
 
