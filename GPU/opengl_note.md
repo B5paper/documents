@@ -2,6 +2,10 @@
 
 Ref: <www.opengl-tutorial.org>
 
+Ref: <>
+
+常见的创建窗口的库：GLUT, SDL, SFML and GLFW
+
 需要安装的包：
 
 ```bash
@@ -74,7 +78,7 @@ int main()
 		{0.5, 0, 0}  // 由于是平面三角形，所以 z 一直设置成 0 就可以了
 	};
 
-	GLuint buffer;
+	GLuint buffer;  // c++ 的语法检查比较严，不能写 int，不然会报错
 	glGenBuffers(1, &buffer);  // 这里的 buffer 更像是一个“句柄”
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);  // 指定要操作的 buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);  // 对指定的 buffer 写入数据
@@ -1310,7 +1314,7 @@ GLuint prog_id = LoadShaders(vertex_shader_path, fragment_shader_path);
 glUseProgram(prog_id);  // 随便放个位置基本都能起效
 ```
 
-### Example（旋转的三角形）
+### Example （旋转三角形）
 
 下面这几段代码可以实现一个旋转的绿色三角形的效果。我们在`while()`循环中修改旋转角，然后重新计算 MVP 矩阵，然后将 MVP 矩阵分发到 shader 中，和每个顶点的向量相乘，计算出变换后的点的坐标。
 
@@ -1526,27 +1530,11 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 
 这是旋转了一定角度的三角形。
 
-## texture （纹理）
+### Example （彩色三角形）
 
-其实就是贴图。
+如果给每一个顶点都赋予一个颜色，那么 opengl 会自动将小三角形绘制成渐变色。
 
-首先要使用`glGenTextures()`创建一个纹理对象，然后分别调用`glBindTexture()`，`glTexImage2D()`填充图片数据，最后调用`glGenerateMipmap()`将其多层次化，这样这个纹理对象就准备就绪可以使用了。
-
-接下来使用 uv 坐标，即纹理图片的左下角为原点，向右为 u 轴正方向，向上为 v 轴正方向，坐标归一化为 0 到 1，用浮点数表示。
-
-对于每个 mesh 小三角形，纹理图片使用一个用 3 * 2 个 float 类型数据（3 表示 3 个顶点，2 表示两个坐标数据表示一个顶点）定义的小三角形与之对应，后续会把定义的这个纹理区域贴到 mesh 上。
-
-在代码的循环绘制区，贴图的关键代码如下：
-
-```c
-glActiveTexture(GL_TEXTURE0);
-glBindTexture(GL_TEXTURE_2D, img);
-glUniform1i(img_id, 0);
-```
-
-这里的`img`就是一个 texture 类型的 buffer。而`img_id`是 glsl 里对应`sampler2D`类型变量的 global id。
-
-完整的代码：
+赋予颜色的方式与绘制坐标的方式相似，都是将一个数组传递给 shader。
 
 `main.cpp`:
 
@@ -1557,7 +1545,6 @@ glUniform1i(img_id, 0);
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <cstring>
 
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
 	// Create the shaders
@@ -1567,7 +1554,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	// Read the Vertex Shader code from the file
 	std::string VertexShaderCode;
 	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
-	if (VertexShaderStream.is_open()){
+	if (VertexShaderStream.is_open()) {
 		std::stringstream sstr;
 		sstr << VertexShaderStream.rdbuf();
 		VertexShaderCode = sstr.str();
@@ -1581,7 +1568,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	// Read the Fragment Shader code from the file
 	std::string FragmentShaderCode;
 	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
-	if (FragmentShaderStream.is_open()){
+	if (FragmentShaderStream.is_open()) {
 		std::stringstream sstr;
 		sstr << FragmentShaderStream.rdbuf();
 		FragmentShaderCode = sstr.str();
@@ -1646,8 +1633,229 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	return ProgramID;
 }
 
-GLuint loadBMP_custom(const char * imagepath){
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
 
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");
+	glUseProgram(program_id);
+
+	float vtxs[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+	float fce_colors[3][3] = {  // rgb 数据格式，指定每个顶点的颜色
+		{0.8, 0.5, 0.5},  // 小三角形的颜色会根据顶点的颜色进行渐变
+		{0.5, 0.8, 0.5},  // 所以我们最终会得到一个彩色三角形
+		{0.5, 0.5, 0.8}
+	};
+	GLuint buf_color;
+	glGenBuffers(1, &buf_color);
+	glBindBuffer(GL_ARRAY_BUFFER, buf_color);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, fce_colors, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);  // 1 对应 shader 中的 layout(location = 1)
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glBindBuffer(GL_ARRAY_BUFFER, buf_color);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);  // 注意这里的 1，与 0 区别开
+		
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
+}
+```
+
+`vtx_shader.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec3 vtx_color;
+out vec3 fce_color;  // 不同 glsl 文件中，这里的变量名是全局的
+// 因此 fce_color 会被传递到 fragment sahder 中的 fce_color 变量中
+
+void main()
+{
+    gl_Position = vec4(pos, 1);
+    fce_color = vtx_color;  // 将变量传递到下一级 shader
+}
+```
+
+`frag_shader.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+in vec3 fce_color;  // 从 vertex shader 中接受数据
+
+void main()
+{
+	color = fce_color;  // 输出最后的颜色，但是这里输出的是渐变色，不懂为什么
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_9.png' />
+</div>
+
+## texture （纹理）
+
+### 简单贴图
+
+其实就是贴图。
+
+首先要使用`glGenTextures()`创建一个纹理对象，然后分别调用`glBindTexture()`，`glTexImage2D()`填充图片数据，最后调用`glGenerateMipmap()`将其多层次化，这样这个纹理对象就准备就绪可以使用了。
+
+接下来使用 uv 坐标，即纹理图片的左下角为原点，向右为 u 轴正方向，向上为 v 轴正方向，坐标归一化为 0 到 1，用浮点数表示。
+
+对于每个 mesh 小三角形，纹理图片使用一个用 3 * 2 个 float 类型数据（3 表示 3 个顶点，2 表示两个坐标数据表示一个顶点）定义的小三角形与之对应，后续会把定义的这个纹理区域贴到 mesh 上。
+
+在代码的循环绘制区，贴图的关键代码如下：
+
+```c
+glActiveTexture(GL_TEXTURE0);
+glBindTexture(GL_TEXTURE_2D, img);
+glUniform1i(img_id, 0);
+```
+
+这里的`img`就是一个 texture 类型的 buffer。而`img_id`是 glsl 里对应`sampler2D`类型变量的 global id。
+
+完整的代码：
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <cstring>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()){
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0) {
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0) {
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0) {
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+	return ProgramID;
+}
+
+GLuint loadBMP_custom(const char * imagepath){
 	printf("Reading image %s\n", imagepath);
 
 	// Data read from the header of the BMP file
@@ -1660,7 +1868,7 @@ GLuint loadBMP_custom(const char * imagepath){
 
 	// Open the file
 	FILE * file = fopen(imagepath,"rb");
-	if (!file){
+	if (!file) {
 		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
 		getchar();
 		return 0;
@@ -1669,20 +1877,30 @@ GLuint loadBMP_custom(const char * imagepath){
 	// Read the header, i.e. the 54 first bytes
 
 	// If less than 54 bytes are read, problem
-	if ( fread(header, 1, 54, file)!=54 ){ 
+	if (fread(header, 1, 54, file) != 54) { 
 		printf("Not a correct BMP file\n");
 		fclose(file);
 		return 0;
 	}
 	// A BMP files always begins with "BM"
-	if ( header[0]!='B' || header[1]!='M' ){
+	if (header[0]!='B' || header[1]!='M') {
 		printf("Not a correct BMP file\n");
 		fclose(file);
 		return 0;
 	}
+
 	// Make sure this is a 24bpp file
-	if ( *(int*)&(header[0x1E])!=0  )         {printf("Not a correct BMP file\n");    fclose(file); return 0;}
-	if ( *(int*)&(header[0x1C])!=24 )         {printf("Not a correct BMP file\n");    fclose(file); return 0;}
+	if (*(int*)&(header[0x1E])!=0) {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+
+	if (*(int*)&(header[0x1C]) != 24) {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
 
 	// Read the information about the image
 	dataPos    = *(int*)&(header[0x0A]);
@@ -1706,124 +1924,24 @@ GLuint loadBMP_custom(const char * imagepath){
 	// Create one OpenGL texture
 	GLuint textureID;
 	glGenTextures(1, &textureID);
-	
-	// "Bind" the newly created texture : all future texture functions will modify this texture
 	glBindTexture(GL_TEXTURE_2D, textureID);
-
-	// Give the image to OpenGL
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
 
 	// OpenGL has now copied the data. Free our own version
 	delete [] data;
 
 	// Poor filtering, or ...
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
 
 	// ... nice trilinear filtering ...
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	// ... which requires mipmaps. Generate them automatically.
+
+	// Generate mipmaps automatically
 	glGenerateMipmap(GL_TEXTURE_2D); 
-
-	// Return the ID of the texture we just created
-	return textureID;
-}
-
-#define FOURCC_DXT1 0x31545844 // Equivalent to "DXT1" in ASCII
-#define FOURCC_DXT3 0x33545844 // Equivalent to "DXT3" in ASCII
-#define FOURCC_DXT5 0x35545844 // Equivalent to "DXT5" in ASCII
-
-GLuint loadDDS(const char * imagepath){
-
-	unsigned char header[124];
-
-	FILE *fp; 
- 
-	/* try to open the file */ 
-	fp = fopen(imagepath, "rb"); 
-	if (fp == NULL){
-		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath); getchar(); 
-		return 0;
-	}
-   
-	/* verify the type of file */ 
-	char filecode[4]; 
-	fread(filecode, 1, 4, fp); 
-	if (strncmp(filecode, "DDS ", 4) != 0) { 
-		fclose(fp); 
-		return 0; 
-	}
-	
-	/* get the surface desc */ 
-	fread(&header, 124, 1, fp); 
-
-	unsigned int height      = *(unsigned int*)&(header[8 ]);
-	unsigned int width	     = *(unsigned int*)&(header[12]);
-	unsigned int linearSize	 = *(unsigned int*)&(header[16]);
-	unsigned int mipMapCount = *(unsigned int*)&(header[24]);
-	unsigned int fourCC      = *(unsigned int*)&(header[80]);
-
- 
-	unsigned char * buffer;
-	unsigned int bufsize;
-	/* how big is it going to be including all mipmaps? */ 
-	bufsize = mipMapCount > 1 ? linearSize * 2 : linearSize; 
-	buffer = (unsigned char*)malloc(bufsize * sizeof(unsigned char)); 
-	fread(buffer, 1, bufsize, fp); 
-	/* close the file pointer */ 
-	fclose(fp);
-
-	unsigned int components  = (fourCC == FOURCC_DXT1) ? 3 : 4; 
-	unsigned int format;
-	switch(fourCC) 
-	{ 
-	case FOURCC_DXT1: 
-		format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT; 
-		break; 
-	case FOURCC_DXT3: 
-		format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; 
-		break; 
-	case FOURCC_DXT5: 
-		format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; 
-		break; 
-	default: 
-		free(buffer); 
-		return 0; 
-	}
-
-	// Create one OpenGL texture
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-
-	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	glPixelStorei(GL_UNPACK_ALIGNMENT,1);	
-	
-	unsigned int blockSize = (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16; 
-	unsigned int offset = 0;
-
-	/* load the mipmaps */ 
-	for (unsigned int level = 0; level < mipMapCount && (width || height); ++level) 
-	{ 
-		unsigned int size = ((width+3)/4)*((height+3)/4)*blockSize; 
-		glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height,  
-			0, size, buffer + offset); 
-	 
-		offset += size; 
-		width  /= 2; 
-		height /= 2; 
-
-		// Deal with Non-Power-Of-Two textures. This code is not included in the webpage to reduce clutter.
-		if(width < 1) width = 1;
-		if(height < 1) height = 1;
-
-	} 
-
-	free(buffer); 
-
 	return textureID;
 }
 
@@ -1835,6 +1953,7 @@ int main()
     glewInit();
 
     GLuint program_id = LoadShaders("./vtx.glsl", "./frag.glsl");
+	glUseProgram(program_id);
     
     GLuint img = loadBMP_custom("./img.bmp");  // 主要用于创建并填充 texture 的 buffer
     GLuint img_id  = glGetUniformLocation(program_id, "myTextureSampler");  // 获取 glsl 中 myTextureSampler 变量的 id，后续我们会把 texture 的 buffer 的数据绑定到 glsl 中的 myTextureSampler 变量下
@@ -1866,7 +1985,6 @@ int main()
     glClearColor(0, 0, 0, 0);
     do {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glUseProgram(program_id);
 
         glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, img);  // 绑定 buffer
@@ -1932,9 +2050,546 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 ./main
 ```
 
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_12.png'>
+</div>
+
+里面用到的函数：
+
+* `glGenTextures()`
+
+	generate texture names
+
+	Syntax:
+
+	```c
+	void glGenTextures(GLsizei n, GLuint *textures);
+	```
+
+	和`glGenBuffers()`很像，只是检查 id 占用，并写入`n`个可用的 texture id。
+
+* `glBindTexture()`
+
+	bind a named texture to a texturing target
+
+	Syntax:
+
+	```c
+	void glBindTexture(GLenum target, GLuint texture);
+	```
+
+	Parameters:
+
+	* `target`
+
+    	Specifies the target to which the texture is bound. Must be one of `GL_TEXTURE_1D`, `GL_TEXTURE_2D`, `GL_TEXTURE_3D`, `GL_TEXTURE_1D_ARRAY`, `GL_TEXTURE_2D_ARRAY`, `GL_TEXTURE_RECTANGLE`, `GL_TEXTURE_CUBE_MAP`, `GL_TEXTURE_CUBE_MAP_ARRAY`, `GL_TEXTURE_BUFFER`, `GL_TEXTURE_2D_MULTISAMPLE` or `GL_TEXTURE_2D_MULTISAMPLE_ARRAY`. 
+
+		目前用到的就是`GL_TEXTURE_2D`。
+
+* `glTexImage2D()`
+
+	specify a two-dimensional texture image
+
+	Syntax:
+
+	```c
+	void glTexImage2D( 	GLenum target,
+		GLint level,
+		GLint internalformat,
+		GLsizei width,
+		GLsizei height,
+		GLint border,
+		GLenum format,
+		GLenum type,
+		const void * data);
+	```
+
+	Parameters
+
+	* `target`
+
+    	Specifies the target texture. Must be `GL_TEXTURE_2D`, `GL_PROXY_TEXTURE_2D`, `GL_TEXTURE_1D_ARRAY`, `GL_PROXY_TEXTURE_1D_ARRAY`, `GL_TEXTURE_RECTANGLE`, `GL_PROXY_TEXTURE_RECTANGLE`, `GL_TEXTURE_CUBE_MAP_POSITIVE_X`, `GL_TEXTURE_CUBE_MAP_NEGATIVE_X`, `GL_TEXTURE_CUBE_MAP_POSITIVE_Y`, `GL_TEXTURE_CUBE_MAP_NEGATIVE_Y`, `GL_TEXTURE_CUBE_MAP_POSITIVE_Z`, `GL_TEXTURE_CUBE_MAP_NEGATIVE_Z`, or `GL_PROXY_TEXTURE_CUBE_MAP`.
+
+		目前用到的是`GL_TEXTURE_2D`。
+
+	* `level`
+
+    	Specifies the level-of-detail number. Level 0 is the base image level. Level n is the nth mipmap reduction image. If target is `GL_TEXTURE_RECTANGLE` or `GL_PROXY_TEXTURE_RECTANGLE`, level must be 0.
+
+		目前填 0 就好。
+
+	* `internalformat`
+
+    	Specifies the number of color components in the texture. Must be one of base internal formats given in Table 1, one of the sized internal formats given in Table 2, or one of the compressed internal formats given in Table 3, below.
+
+		目前用到的是`GL_RGB`。更详细的 table 可以参考这个地址：<https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml>
+
+	* `width`
+
+    	Specifies the width of the texture image. All implementations support texture images that are at least 1024 texels wide.
+
+		看不懂这个描述。目前填的数值是 bmp 图片的宽。
+	
+	* `height`
+
+    	Specifies the height of the texture image, or the number of layers in a texture array, in the case of the `GL_TEXTURE_1D_ARRAY` and `GL_PROXY_TEXTURE_1D_ARRAY` targets. All implementations support 2D texture images that are at least 1024 texels high, and texture arrays that are at least 256 layers deep.
+
+		目前填的数值是 bmp 图片的高。
+
+	* `border`
+
+    	This value must be 0.
+
+	* `format`
+
+    	Specifies the format of the pixel data. The following symbolic values are accepted: `GL_RED`, `GL_RG`, `GL_RGB`, `GL_BGR`, `GL_RGBA`, `GL_BGRA`, `GL_RED_INTEGER`, `GL_RG_INTEGER`, `GL_RGB_INTEGER`, `GL_BGR_INTEGER`, `GL_RGBA_INTEGER`, `GL_BGRA_INTEGER`, `GL_STENCIL_INDEX`, `GL_DEPTH_COMPONENT`, `GL_DEPTH_STENCIL`.
+
+		目前填的是`GL_BGR`。
+
+	* `type`
+
+    	Specifies the data type of the pixel data. The following symbolic values are accepted: `GL_UNSIGNED_BYTE`, `GL_BYTE`, `GL_UNSIGNED_SHORT`, `GL_SHORT`, `GL_UNSIGNED_INT`, `GL_INT`, `GL_HALF_FLOAT`, `GL_FLOAT`, `GL_UNSIGNED_BYTE_3_3_2`, `GL_UNSIGNED_BYTE_2_3_3_REV`, `GL_UNSIGNED_SHORT_5_6_5`, `GL_UNSIGNED_SHORT_5_6_5_REV`, `GL_UNSIGNED_SHORT_4_4_4_4`, `GL_UNSIGNED_SHORT_4_4_4_4_REV`, `GL_UNSIGNED_SHORT_5_5_5_1`, `GL_UNSIGNED_SHORT_1_5_5_5_REV`, `GL_UNSIGNED_INT_8_8_8_8`, `GL_UNSIGNED_INT_8_8_8_8_REV`, `GL_UNSIGNED_INT_10_10_10_2`, and `GL_UNSIGNED_INT_2_10_10_10_REV`.
+
+		目前使用的是`GL_UNSIGNED_BYTE`。
+
+	* `data`
+
+    	Specifies a pointer to the image data in memory. 
+
+
+### 抗锯齿
+
+#### 线性插值
+
+#### 各向异性插值
+
+### 多尺寸贴图（mipmap）
+
+看到了 Compressed Textures，下次接着看
+
 ## 遮挡测试（depth test）
 
+`main.cpp`:
 
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");
+	glUseProgram(program_id);
+
+	float vtxs_1[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	float color_1[3][3] = {
+		{0.8, 0.5, 0.5},
+		{0.8, 0.5, 0.5},
+		{0.8, 0.5, 0.5}
+	};
+
+	float vtxs_2[3][3] = {
+		{-0.5, -0.5, -0.5},  // 由于这个三角形的 z 坐标都是负值，所以它被上一个三角形压在下面
+		{0, 0.5, -0.5},  // 但是真的如此吗？
+		{0.5, -0.5, -0.5}
+	};
+
+	float color_2[3][3] = {
+		{0.5, 0.8, 0.5},
+		{0.5, 0.8, 0.5},
+		{0.5, 0.8, 0.5}
+	};
+
+	GLuint oglbuf_vtx_1;
+	glGenBuffers(1, &oglbuf_vtx_1);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs_1, GL_STATIC_DRAW);
+
+	GLuint oglbuf_color_1;
+	glGenBuffers(1, &oglbuf_color_1);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, color_1, GL_STATIC_DRAW);
+
+	GLuint oglbuf_vtx_2;
+	glGenBuffers(1, &oglbuf_vtx_2);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs_2, GL_STATIC_DRAW);
+
+	GLuint oglbuf_color_2;
+	glGenBuffers(1, &oglbuf_color_2);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, color_2, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_1);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_2);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_2);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
+}
+```
+
+`vtx_shader.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec3 vtx_color;
+out vec3 fce_color;
+
+void main()
+{
+    gl_Position = vec4(pos, 1);
+    fce_color = vtx_color;
+}
+```
+
+`frag_shader.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+in vec3 fce_color;
+
+void main()
+{
+	color = fce_color;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+<div style="text-align:center">
+<img width=700 src='./pics/opengl_note/pic_10.png' />
+</div>
+
+按道理绿色的三角形（由`vtxs_2`定义）的 z 值比红色三角形（由`vtxs_1`定义）小，应该被压在红色三角形的下面，但是它却被绘制在了上面，为什么？
+
+如果不做特殊处理，opengl 会按先后顺序绘制每个图形，因此后绘制的``vtx_2`遮盖了`vtx_1`的一部分。为了避免这种错误的绘制结果，我们可以在代码中加入深度测试（depth test）以得到正确的绘制结果。
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+	// Create the shaders
+	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// Read the Vertex Shader code from the file
+	std::string VertexShaderCode;
+	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
+	if (VertexShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << VertexShaderStream.rdbuf();
+		VertexShaderCode = sstr.str();
+		VertexShaderStream.close();
+	} else {
+		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		getchar();
+		return 0;
+	}
+
+	// Read the Fragment Shader code from the file
+	std::string FragmentShaderCode;
+	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
+	if (FragmentShaderStream.is_open()) {
+		std::stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+
+	// Compile Vertex Shader
+	printf("Compiling shader : %s\n", vertex_file_path);
+	char const * VertexSourcePointer = VertexShaderCode.c_str();
+	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+	glCompileShader(VertexShaderID);
+
+	// Check Vertex Shader
+	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+		printf("%s\n", &VertexShaderErrorMessage[0]);
+	}
+
+	// Compile Fragment Shader
+	printf("Compiling shader : %s\n", fragment_file_path);
+	char const * FragmentSourcePointer = FragmentShaderCode.c_str();
+	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+	glCompileShader(FragmentShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+		printf("%s\n", &FragmentShaderErrorMessage[0]);
+	}
+
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, VertexShaderID);
+	glAttachShader(ProgramID, FragmentShaderID);
+	glLinkProgram(ProgramID);
+
+	// Check the program
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	
+	glDetachShader(ProgramID, VertexShaderID);
+	glDetachShader(ProgramID, FragmentShaderID);
+	
+	glDeleteShader(VertexShaderID);
+	glDeleteShader(FragmentShaderID);
+
+	return ProgramID;
+}
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+
+	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");
+	glUseProgram(program_id);
+
+	float vtxs_1[3][3] = {
+		{-0.5, 0, 0},
+		{0, 1, 0},
+		{0.5, 0, 0}
+	};
+
+	float color_1[3][3] = {
+		{0.8, 0.5, 0.5},
+		{0.8, 0.5, 0.5},
+		{0.8, 0.5, 0.5}
+	};
+
+	float vtxs_2[3][3] = {
+		{-0.5, -0.5, -0.5},
+		{0, 0.5, -0.5},
+		{0.5, -0.5, -0.5}
+	};
+
+	float color_2[3][3] = {
+		{0.5, 0.8, 0.5},
+		{0.5, 0.8, 0.5},
+		{0.5, 0.8, 0.5}
+	};
+
+	GLuint oglbuf_vtx_1;
+	glGenBuffers(1, &oglbuf_vtx_1);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs_1, GL_STATIC_DRAW);
+
+	GLuint oglbuf_color_1;
+	glGenBuffers(1, &oglbuf_color_1);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, color_1, GL_STATIC_DRAW);
+
+	GLuint oglbuf_vtx_2;
+	glGenBuffers(1, &oglbuf_vtx_2);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs_2, GL_STATIC_DRAW);
+
+	GLuint oglbuf_color_2;
+	glGenBuffers(1, &oglbuf_color_2);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, color_2, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnable(GL_DEPTH_TEST);  // 加入深度测试
+	glDepthFunc(GL_LESS);  // 指定深度测试使用的比较函数
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // 需要同时清空深度缓存
+
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_1);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtx_2);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glBindBuffer(GL_ARRAY_BUFFER, oglbuf_color_2);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (
+		glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+	);
+	return 0;
+}
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_11.png' />
+</div>
+
+看起来好像没什么变化。不应该啊。不懂。**为什么会这样？**
 
 ## glm
 
@@ -2245,6 +2900,120 @@ glVertexAttribPointer(
 glDrawArrays(GL_LINE_LOOP, 0, 6);  // 从第 0 组数据开始，取 6 组数据，画首尾相连的线段
 ```
 
+### Element buffer objects
+
+**element buffer objects** is abbreviated to EBO. This is called **indexed drawing**.
+
+```c
+float vertices[] = {
+	0.5f, 0.5f, 0.0f, // top right
+	0.5f, -0.5f, 0.0f, // bottom right
+	-0.5f, -0.5f, 0.0f, // bottom left
+	-0.5f, 0.5f, 0.0f // top left
+};
+
+unsigned int indices[] = { // note that we start from 0!
+	0, 1, 3, // first triangle
+	1, 2, 3 // second triangle
+};
+
+// ..:: Initialization code :: ..
+// 1. bind Vertex Array Object
+glBindVertexArray(VAO);
+// 2. copy our vertices array in a vertex buffer for OpenGL to use
+glBindBuffer(GL_ARRAY_BUFFER, VBO);
+glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+unsigned int EBO;
+glGenBuffers(1, &EBO);
+
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+(void*)0);
+glEnableVertexAttribArray(0);
+
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+glBindVertexArray(VAO);
+glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+glBindVertexArray(0);
+```
+
+Example:
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
+int main()
+{
+	glfwInit();
+	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glewInit();
+	
+	float vtxs[4][3] = {
+		{-0.5, 0.5, 0},
+		{-0.5, -0.5, 0},
+		{0.5, 0.5, 0},
+		{0.5, -0.5, 0}
+	};
+
+	unsigned int idxs[2][3] = {
+		{0, 1, 2},
+		{1, 2, 3}
+	};
+
+	GLuint oglbuf_vtxs;
+	glGenBuffers(1, &oglbuf_vtxs);
+	glBindBuffer(GL_ARRAY_BUFFER, oglbuf_vtxs);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+	
+	GLuint oglbuf_idxs;
+	glGenBuffers(1, &oglbuf_idxs);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, oglbuf_idxs);  // 创建 target 为 GL_ELEMENT_ARRAY_BUFFER 的 buffer
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(idxs), idxs, GL_STATIC_DRAW);
+	
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);  // 对内存进行解释，在 glVertexAttribPointer() 之前不需要 glBindBuffer()
+	glEnableVertexAttribArray(0);
+	glClearColor(0, 0, 0, 0);
+	do {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, oglbuf_idxs);  // bind 的类型为 GL_ELEMENT_ARRAY_BUFFER
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  // 使用 glDrawElements 绘制
+
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	} while (glfwWindowShouldClose(window) == GLFW_FALSE &&
+		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
+	return 0;
+}
+```
+
+编译：
+
+```bash
+g++ main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_13.png'>
+</div>
+
 ## obj file format
 
 Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
@@ -2252,6 +3021,450 @@ Ref: <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
 以`v`开头的行表示这是一个顶点的 x, y, z 坐标。
 
 以`f`开关的行表示这个一个 mesh （小三角形）的三个顶点的索引，索引从 1 开始。
+
+## Light
+
+Current we use Phong lighting model to simulate the real world lighting.
+
+The major building blocks of the Phong lighting model consist of 3 components: ambient, diffuse and specular lighting.
+
+* Ambient lighting: even when it is dark there is usually still some light somewhere in the
+world (the moon, a distant light) so objects are almost never completely dark. To simulate
+this we use an ambient lighting constant that always gives the object some color.
+
+* Diffuse lighting: simulates the directional impact a light object has on an object. This is the
+most visually significant component of the lighting model. The more a part of an object faces
+the light source, the brighter it becomes.
+
+* Specular lighting: simulates the bright spot of a light that appears on shiny objects. Specular
+highlights are more inclined to the color of the light than the color of the object.
+
+**Ambient lighting**
+
+Light usually does not come from a single light source, but from many light sources scattered all
+around us, even when they’re not immediately visible. One of the properties of light is that it can
+scatter and bounce in many directions, reaching spots that aren’t directly visible; light can thus
+reflect on other surfaces and have an indirect impact on the lighting of an object. Algorithms that
+take this into consideration are called global illumination algorithms, but these are complicated and
+expensive to calculate.
+
+Since we’re not big fans of complicated and expensive algorithms we’ll start by using a very
+simplistic model of global illumination, namely ambient lighting.
+
+Adding ambient lighting to the scene is really easy. We take the light’s color, multiply it with a
+small constant ambient factor, multiply this with the object’s color, and use that as the fragment’s
+color in the cube object’s shader:
+
+```cpp
+void main()
+{
+	float ambientStrength = 0.1;
+	vec3 ambient = ambientStrength * lightColor;
+	vec3 result = ambient * objectColor;
+	FragColor = vec4(result, 1.0);
+}
+```
+
+**Diffuse lighting**
+
+Ambient lighting by itself doesn’t produce the most interesting results, but diffuse lighting however
+will start to give a significant visual impact on the object. Diffuse lighting gives the object more
+brightness the closer its fragments are aligned to the light rays from a light source.
+
+If the light ray is perpendicular
+to the object’s surface the light has the greatest impact.
+
+* Normal vector: a vector that is perpendicular to the vertex’ surface.
+
+* The directed light ray: a direction vector that is the difference vector between the light’s
+position and the fragment’s position. To calculate this light ray we need the light’s position
+vector and the fragment’s position vector.
+
+A normal vector is a (unit) vector that is perpendicular to the surface of a vertex.
+
+镜面反射的计算：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_15.jpg' />
+</div>
+
+如图所示，假设光源位置为$L$，反射点为$O$，摄像机位置为$E$。我们令反射点处的法线为$\overrightarrow{ON}$，则可以得到入射角和反射角为$\theta$。假设反射光线为$\overrightarrow{OM}$，那么可以得到反射光线和摄像机的夹角$\alpha$。
+
+显然$\overrightarrow{OE}$和$\overrightarrow{OM}$之间的夹角越小，进入摄像机的光线越强。这种负相关的关系，我们可以用$\cos \alpha$来表示。于是有
+
+$$\cos \alpha = \overrightarrow{OE} \cdot \overrightarrow{OM}$$
+
+我们可以使用向量点乘很快地计算出夹角的$\cos$值。
+
+下面实现一个有背景光 + 漫反射 + 镜面反射的三角形：
+
+Example:
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <iostream>
+#include <unistd.h>
+using namespace std;
+using namespace glm;
+
+
+GLuint load_shader(const char *vtx_shader_path, const char *frag_shader_path)
+{
+    GLuint vtx_shader, frag_shader;
+    vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    const int buf_size = 1024;
+    char *buf = (char*) malloc(buf_size);
+    FILE *f = fopen(vtx_shader_path, "r");
+    memset(buf, 0, buf_size);
+    fread(buf, buf_size, 1, f);
+    fclose(f);
+    glShaderSource(vtx_shader, 1, &buf, NULL);
+    glCompileShader(vtx_shader);
+    fopen(frag_shader_path, "r");
+    memset(buf, 0, buf_size);
+    fread(buf, buf_size, 1, f);
+    fclose(f);
+    glShaderSource(frag_shader, 1, &buf, NULL);
+    glCompileShader(frag_shader);
+    GLuint program_id = glCreateProgram();
+    glAttachShader(program_id, vtx_shader);
+    glAttachShader(program_id, frag_shader);
+    glLinkProgram(program_id);
+    glDetachShader(program_id, vtx_shader);
+    glDetachShader(program_id, frag_shader);
+    glDeleteShader(vtx_shader);
+    glDeleteShader(frag_shader);
+    free(buf);
+    return program_id;
+}
+
+struct MVP
+{
+    MVP() {
+        m_scale = {1, 1, 1};
+        m_translate = {0, 0, 0};
+        rotate_dir = {0, 1, 0};
+        rotate_rad = 0;
+        eye = {0, 0, 1};
+        center = {0, 0, 0};
+        up = {0, 1, 0};
+    }
+
+    mat4 get_rotate_mat() {
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        return M_r;
+    }
+
+    mat4 get_mvp() {
+        mat4 M_s = scale(mat4(1), m_scale);
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        mat4 M_t = translate(mat4(1), m_translate);
+        mat4 M_m = M_t * M_r * M_s;
+        mat4 M_v = lookAt(eye, center, up);
+        mat4 M_p = perspective(radians(90.0), 1024 / 768.0, 0.1, 100.0);
+        mat4 mvp = M_p * M_v * M_m;
+        return mvp;
+    }
+
+    vec3 m_scale;
+    vec3 m_translate;
+    vec3 rotate_dir;
+    float rotate_rad;
+    vec3 eye, center, up;    
+};
+
+struct ModelMat
+{
+    vec3 m_scale;
+    vec3 m_translate;
+    vec3 rotate_dir;
+    float rotate_rad;
+    mat4 M_m;
+
+    ModelMat() {
+        m_scale = {1, 1, 1};
+        m_translate = {0, 0, 0};
+        rotate_dir = {0, 1, 0};
+        rotate_rad = 0;
+    }
+
+    mat4& get_model_mat() {
+        mat4 M_s = scale(mat4(1), m_scale);
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        mat4 M_t = translate(mat4(1), m_translate);
+        M_m = M_t * M_r * M_s;
+        return M_m;
+    }
+
+    mat4 get_rotate_mat() {
+        return rotate(mat4(1), rotate_rad, rotate_dir);
+    }
+};
+
+struct ViewMat
+{
+    vec3 eye, center, up;
+    mat4 M_v;
+
+    ViewMat() {
+        eye = {0, 0, 1};
+        center = {0, 0, 0};
+        up = {0, 1, 0};
+    }
+
+    mat4& get_view_mat() {
+        M_v = lookAt(eye, center, up);
+        return M_v;
+    }
+};
+
+mat4 get_mvp(mat4 &model, mat4 &view)
+{
+    mat4 M_p = perspective(radians(90.0), 1024 / 768.0, 0.1, 100.0);
+    return M_p * view * model;
+}
+
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "gl light", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+
+    GLuint program_id = load_shader("./vtx.glsl", "./frag.glsl");
+    GLuint pid_light = load_shader("./vtx_light.glsl", "./frag_light.glsl");
+
+    GLuint norm_id = glGetUniformLocation(program_id, "norm");
+    GLuint mvp_id = glGetUniformLocation(program_id, "mvp");
+    GLuint eye_id = glGetUniformLocation(program_id, "eye");
+    GLuint light_mvp_id = glGetUniformLocation(pid_light, "mvp");
+    
+
+    float vtxs[3][3] = {
+        {-0.5, 0, 0},
+        {0, 1, 0},
+        {0.5, 0, 0}
+    };
+    GLuint buf_vtxs;
+    glGenBuffers(1, &buf_vtxs);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+
+    float vtxs_line[2][3];
+    GLuint buf_line;
+    glGenBuffers(1, &buf_line);
+
+    float vtxs_coord[6][3] = {
+        {0, 0, 0},
+        {1, 0, 0},
+        {0, 0, 0},
+        {0, 1, 0},
+        {0, 0, 0},
+        {0, 0, 1}
+    };
+    GLuint buf_coord;
+    glGenBuffers(1, &buf_coord);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_coord);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs_coord), vtxs_coord, GL_STATIC_DRAW);
+
+    ModelMat tri_mat, light_mat, coord_mat;
+    ViewMat view_mat;
+
+    light_mat.m_scale = {0.1, 0.1, 0.1};
+    light_mat.m_translate = {0.7, 0.7, 0};
+    view_mat.eye = {0, 0.5, 2};
+
+    MVP MVP, MVP_light, MVP_line, MVP_coord;
+    MVP_light.m_translate = {0.7, 0.7, 0};
+    MVP_light.m_scale = {0.1, 0.1, 0.1};
+    mat4 light_mvp, mvp, mvp_line, mvp_coord;
+    vec3 norm;
+    float theta = 0;
+    float theta_obj = 0;
+    glEnableVertexAttribArray(0);
+    glClearColor(0, 0, 0, 0);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    while (!glfwWindowShouldClose(window))
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // rotate camera
+        view_mat.eye = {sin(theta) * sqrt(2), 0.5, cos(theta) * sqrt(2)};
+        theta += 0.001;
+        if (theta > pi<float>() * 2)
+            theta = 0;
+
+        // darw coordinate
+        glUseProgram(pid_light);
+        mvp_coord = get_mvp(coord_mat.get_model_mat(), view_mat.get_view_mat());
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &mvp_coord[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_coord);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_LINES, 0, 6);
+
+        // draw light triangle
+        light_mvp = get_mvp(light_mat.get_model_mat(), view_mat.get_view_mat());
+        glUseProgram(pid_light);
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &light_mvp[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // draw triangle
+        tri_mat.rotate_rad = theta_obj;
+        theta_obj += 0.01;
+        if (theta_obj > pi<float>() * 2)
+            theta_obj = 0;
+        mvp = get_mvp(tri_mat.get_model_mat(), view_mat.get_view_mat());
+        norm = cross(vec3{0.5, 0, 0} - vec3{-0.5, 0, 0}, vec3{0, 1, 0} - vec3{-0.5, 0, 0});
+        norm = tri_mat.get_rotate_mat() * vec4(norm, 1);
+
+        glUseProgram(program_id);
+        glUniform3fv(norm_id, 1, &norm[0]);
+        glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &mvp[0][0]);
+        glUniform3fv(eye_id, 1, &view_mat.eye[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // draw norm line
+        vtxs_line[1][0] = norm[0] / 2;
+        vtxs_line[1][1] = norm[1] / 2;
+        vtxs_line[1][2] = norm[2] / 2;
+        glBindBuffer(GL_ARRAY_BUFFER, buf_line);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs_line), vtxs_line, GL_STATIC_DRAW);
+
+        glUseProgram(pid_light);
+        mvp_line = get_mvp(coord_mat.get_model_mat(), view_mat.get_view_mat());
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &mvp_line[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_line);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_LINES, 0, 2);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, true);
+        }
+        usleep(10000);
+    }
+    return 0;
+}
+```
+
+`vtx_light:glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 mvp;
+
+void main()
+{
+    gl_Position = mvp * vec4(pos, 1);
+}
+```
+
+`frag_light.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(1, 1, 1);
+}
+```
+
+`vtx.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 mvp;
+uniform vec3 norm;
+out vec3 norm_frag;
+out vec3 pos_frag;
+
+void main()
+{
+    gl_Position = mvp * vec4(pos, 1);
+    norm_frag = norm;
+    pos_frag = pos;
+}
+```
+
+`frag.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+in vec3 norm_frag;
+in vec3 pos_frag;
+uniform vec3 eye;
+
+void main()
+{
+    vec3 lightColor = vec3(1, 1, 1);
+    vec3 ambient = lightColor * 0.1;
+    vec3 objectColor = vec3(0.5, 0.8, 0.5);
+    vec3 lightPos = vec3(0.7, 0.7, 0);
+    vec3 FragPos = pos_frag;
+    vec3 norm = normalize(norm_frag);
+    vec3 lightDir = normalize(lightPos - FragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * lightColor;
+    float specularStrength = 0.5;
+    vec3 viewPos = eye;
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;
+    vec3 result = (ambient + diffuse) * objectColor;
+    result = (ambient + diffuse + specular) * objectColor;
+    // FragColor = vec4(result, 1.0);
+    color = result;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/opengl_note/pic_14.png'>
+</div>
+
+实现的效果是一个旋转的摄像机 + 旋转的三角形，三角形表面实现光照效果。
+
+（这个效果似乎有一些 bug，当光源到三角形背面的时候，三角形仍会有镜面反射。而且大三角形总是会遮挡小三角形，depth test 似乎有问题）
 
 ## aaa
 
@@ -2267,6 +3480,22 @@ In glTexImage2D, the GL_RGB indicates that we are talking about a 3-component co
 
 （如果不指定版本，那么默认的版本是什么？）
 
+### History
+
+In the old days, using OpenGL meant developing in **immediate mode** (often referred to as the **fixed function pipeline**). Most of the functionality of OpenGL was hidden inside the library and developers did not have much control over how OpenGL does its calculations.
+
+For that reason the specification started to deprecate immediate mode functionality from version 3.2 onwards and started motivating developers to develop in OpenGL’s **core-profile** mode, which is a division of OpenGL’s specification that removed all old deprecated functionality.
+
+When using OpenGL’s core-profile, OpenGL forces us to use modern practices. Whenever we try to use one of OpenGL’s deprecated functions, OpenGL raises an error and stops drawing.
+
+OpenGL has not made great changement since version 3.3. So we can choose opengl 3.3 as a good start.
+
+Whenever a graphics company comes up with a new technique or a new large optimization for rendering this is often found in an extension implemented in the drivers. The developer has to query whether any of these extensions are available before using them (or use an OpenGL extension library).
+
+OpenGL is by itself a large state machine: a collection of variables that define how OpenGL should currently operate. The state of OpenGL is commonly referred to as the OpenGL context. When using OpenGL, we often change its state by setting some options, manipulating some buffers and then render using the current context.
+
+Whenever we tell OpenGL that we now want to draw lines instead of triangles for example, we change the state of OpenGL by changing some context variable that sets how OpenGL should draw. As soon as we change the context by telling OpenGL it should draw lines, the next drawing commands will now draw lines instead of triangles. When working in OpenGL we will come across several **state-changing** functions that change the context and several **state-using** functions that perform some operations based on the current state of OpenGL. As long as you keep in mind that OpenGL is basically one large state machine, most of its functionality will make more sense.
+
 ## API Reference
 
 ### glfw
@@ -2277,6 +3506,7 @@ Ref:
 
 1. <http://www.opengl-tutorial.org/beginners-tutorials/tutorial-7-model-loading/>
 
+在使用 glfw 时一些可能会用到的库`-lglfw3 -lGL -lX11 -lpthread -lXrandr -lXi -ldl`
 
 
 * `glfwInit()`
@@ -2785,3 +4015,58 @@ Ref:
     `glDeleteBuffers` deletes `n` buffer objects named by the elements of the array buffers. After a buffer object is deleted it has no contents, and its name is again unused. Unused names in buffers that have been marked as used for the purposes of glGenBuffers are marked as unused again. Unused names in buffers are silently ignored, as is the value zero. If a buffer object is deleted while it is bound, all bindings to that object in the current context are reset to zero. Bindings to that buffer in other contexts are not affected.
 
     `glDeleteBuffers` silently ignores 0's and names that do not correspond to existing buffer objects. 
+
+* `glCreateShader`
+
+	Syntax:
+
+	```c
+	GLuint glCreateShader(GLenum shaderType);
+	```
+
+	Parameters:
+
+	* `shaderType`
+
+		Specifies the type of shader to be created. Must be one of `GL_COMPUTE_SHADER`, `GL_VERTEX_SHADER`, `GL_TESS_CONTROL_SHADER`, `GL_TESS_EVALUATION_SHADER`, `GL_GEOMETRY_SHADER`, or `GL_FRAGMENT_SHADER`.
+
+		目前常用的是`GL_VERTEX_SHADER`和`GL_FRAGMENT_SHADER`。
+
+* `glShaderSource`
+
+	Replaces the source code in a shader object
+
+	Syntax:
+
+	```c
+	void glShaderSource(
+		GLuint shader,
+		GLsizei count,
+		const GLchar **string,
+		const GLint *length
+	);
+	```
+
+	Parameters:
+
+	* `shader`
+
+		Specifies the handle of the shader object whose source code is to be replaced.
+
+	* `count`
+
+		Specifies the number of elements in the string and length arrays.
+
+		通常填 1。
+
+	* `string`
+
+		Specifies an array of pointers to strings containing the source code to be loaded into the shader.
+
+		注意这里需要填指针的指针。
+		
+	* `length`
+
+		Specifies an array of string lengths.
+
+		通常填 NULL.
