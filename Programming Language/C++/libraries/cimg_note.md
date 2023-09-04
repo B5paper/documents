@@ -40,7 +40,7 @@ int main()
         {
             for (int k = 0; k < spectrum; ++k)
             {
-                arr[i * width + j * height + k] = img(i, j, 0, k);
+                arr[i * width + j * height + k] = img(i, j, 0, k);  // 这代码有错
             }   
         }
     }
@@ -94,7 +94,7 @@ int main()
         arr[i * 3 + 2] = 255;
     }
 
-    CImg<unsigned char> img_arr(1024, 768, 1, 3, 0);
+    CImg<unsigned char> img_arr(1024, 768, 1, 3, 0);  // 宽为 1024，高为 768，“厚度” 为 1，通道数为 3，初始数据填充为 0
     int row, col;  // ij coordinate
     for (size_t x = 0; x < 1024; ++x)  // xy coordinate
     {
@@ -130,3 +130,43 @@ g++ -g main.cpp -lX11 -o main
 效果：
 
 在当前文件夹下生成纯蓝色图片`img_arr.png`。
+
+## 显示图片
+
+`main.cpp`:
+
+```cpp
+#include "CImg.h"
+#include <unistd.h>
+using namespace cimg_library;
+using namespace std;
+
+int main()
+{   
+    CImg<unsigned char> img_arr(1024, 768, 1, 3);
+    CImgDisplay main_disp(img_arr, "test");
+    while (!main_disp.is_closed())
+    {
+        main_disp.wait();
+        usleep(10000);
+    }
+    return 0;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lX11 -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+出现一个黑色的窗口。
+
