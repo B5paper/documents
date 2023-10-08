@@ -52,3 +52,31 @@
     这个资料里说 pyd 其实就是 dll，没法直接 import。
 
     实际上，可以使用`importlib`这个库导入 pyd 文件。有时间了研究一下。
+
+1. python 中 dict 类型对象的`.copy()`方法是 shallow copy
+
+    ```python
+    d = {}
+    d['hello'] = 'world'
+    d['1'] = '2'
+
+    d_1 = d  # 只是创建了一个 d 的引用，并没有做值拷贝
+    d_1['1'] = '3'  # 改变 d_1 的内容会影响 d 的内容
+    print(d['1'])  # 3
+
+    d['1'] = '2'
+    d_2 = d.copy()  # shallow copy
+    d_2['1'] = '3'  # 改变 d_2 的内容不再影响 d
+    print(d['1'])  # 2
+
+    from copy import deepcopy
+    my_data = [1, 2, 3]
+    d['1'] = my_data  # d['1'] 是 my_data 的一个引用，并不拥有自己的数据
+    d_3 = d  # d_3 是 d 的一个引用，因此和 d 等价
+    d_4 = d.copy()  # d_4 是 d 的一个浅拷贝，因此 d_4['1'] = xxx 不影响 d['1']，但是 d_1['1'][xx] = xxx 会影响 d
+    d_5 = deepcopy(d)  # d_5 与 d 完全互不影响
+    d_3['1'][0] = 2  # 影响 my_data 中的内容
+    d_4['1'][1] = 3  # 影响 my_data 中的内容
+    d_5['1'][2] = 4  # 不影响 my_data 中的内容
+    print(d['1'])  # [2, 3, 3]
+    ```

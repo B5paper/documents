@@ -179,3 +179,93 @@
     1. <https://www.collinsdictionary.com/>
 
     1. <https://www.oxfordlearnersdictionaries.com/>
+
+1. opencl reduction operation
+
+    基本还是归并的思想，每次处理相邻的两个值，归并后再处理相临的两个值，直到最后只剩一个值。
+
+    有时间了自己实现一个找最大值，最小值，或平均值的 reduction 操作算子。
+
+    Ref:
+
+    1. <https://stackoverflow.com/questions/20613013/opencl-float-sum-reduction>
+
+    1. <https://dournac.org/info/gpu_sum_reduction>
+
+    1. <https://dean-shaff.github.io/blog/c++/opencl/2020/03/29/opencl-reduction-sum.html>
+
+1. 一些全局光照的项目
+
+    1. LumenRenderer, <https://github.com/LumenPT/LumenRenderer>
+
+        一个基于 volumetric bodie 的实时全局光照渲染器。是某个大学的学生课程项目。
+
+        感觉效果应该不会太好，有时间了研究下他们的代码。
+
+    1. <https://github.com/Friduric/voxel-cone-tracing>
+
+        一个基于 voxel cone 的实时全局光照。7 年前的代码，看起来像是学术论文的复现。有空了简单看下。
+
+    1. <https://github.com/Cigg/Voxel-Cone-Tracing>
+
+        又一个基于 voxel cone 的实时全局光照，8 年前的代码。
+
+        看起来像课程毕设。
+
+    1. <https://github.com/djbozkosz/Light-Propagation-Volumes>
+
+        一篇博士论文，基于 volume 的实时全局光。
+
+    1. Strolle，<https://github.com/Patryk27/strolle>
+
+        使用 rust + mesa 驱动开发的实时全局光照。感觉效果一般般，demo 挺阴森的。
+
+    1. github 上搜 global illumination，就能搜到不少的库
+
+    1. <https://github.com/EmbarkStudios/kajiya>
+
+        基于 rust + vulkan 的实时全局光照。看起来像是个比较成熟的项目。
+
+    1. <https://github.com/but0n/Ashes>
+
+        一个使用 js + node 的光追项目
+
+1. C/C++ 语言细节
+
+    1. C 语言中 float 最大值为`FLT_MAX`，但是要使用这个值，需要`#include <float.h>`
+
+        有空了研究下这个库的一些细节知识吧。
+
+        Ref:
+
+        1. <https://www.tutorialspoint.com/c_standard_library/float_h.htm>
+
+        1. <https://stackoverflow.com/questions/4786663/limits-for-floating-point-types>
+
+        1. <https://stackoverflow.com/questions/48630106/what-are-the-actual-min-max-values-for-float-and-double-c>
+        
+    1. lambda 表达式与函数指针
+
+        <https://www.geeksforgeeks.org/lambda-expressions-vs-function-pointers/>
+
+        假如一个 lambda 表达式 capture 了一些外部变量，那么该怎么写它的函数指针？
+
+1. 如果一个 obj 文件没有法线信息，那么该怎么办？
+
+    可以通过`facted_normal = normalize( cross( 2-3, 1-3))`估算一下。
+
+    ref: <https://computergraphics.stackexchange.com/questions/10759/how-does-obj-format-determine-vertex-normals>
+
+1. <https://github.com/EmbarkStudios/rust-gpu>
+
+    rust-gpu
+
+    盲猜是个基于 mesa 的 rust gpu 驱动
+
+1. modelgl
+
+    <https://github.com/moderngl/moderngl>
+
+    一个 opengl 的 python binding。看了下 example，确实方便。有空了学学。
+
+    另外一个相关项目： modelgl-window，<https://github.com/moderngl/moderngl-window>。用于提供类似 glfw 那样的窗口管理服务。

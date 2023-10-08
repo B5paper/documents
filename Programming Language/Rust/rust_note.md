@@ -47,8 +47,6 @@ let mut e: [i32; 3] = [3, 2, 1];
 for elm in &e {
     print!("{}, ", elm);
 }
-
-
 ```
 
 ## Installation
@@ -92,11 +90,9 @@ fn main() {
 }
 ```
 
-然后输入命令：
+编译：`rustc main.rs`，生成二进制文件
 
-* `rustc main.rs`：生成二进制文件
-
-* `./main`：运行
+运行：`./main`
 
 ## 项目管理
 

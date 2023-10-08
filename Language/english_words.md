@@ -388,3 +388,12 @@ jail n-var. A jail is a place where criminals are kept in order to punish them, 
 
 sublime adj. 庄严的，雄伟的
 
+by means of phrase. If you do something by means of a particular method, instrument, or process, you do it using that method, instrument, or process.  依靠，基于，借助于 eg. By means of coordinate systems algebraic methods can be applied powerfully in the study of geometry.
+
+theoretical adj. 理论的
+
+abscissa prn. [æbˈsɪsə] n. the horizontal or x-coordinate of a point in a two-dimensional system of Cartesian coordinates. It is the distance from the y-axis measured parallel to the x-axis.
+
+ordinate n. the vertical or y-coordinate of a point in a two-dimensional system of Cartesian coordinates
+
+parenthesis prn. [pəˈrɛnθɪsɪs] n-count. Parentheses are a pair of curved marks that you put around words or numbers to indicate that they are additional, separate, or less important. 圆括号

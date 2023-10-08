@@ -844,7 +844,39 @@ Output:
 
 ### Memory model of a object whos class inherits from another class
 
+### 杂项 Miscellaneous
 
+* 如果 class 中一个 member function 中有 static 变量，那么这个变量会被所有实例的修改影响
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    class A
+    {
+        public:
+        void count() {
+            static int val = 0;
+            ++val;
+            cout << "val is " << val << endl;
+        }
+    };
+
+    int main()
+    {
+        A a, b;
+        a.count();
+        b.count();
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    val is 1
+    val is 2
+    ```
 
 ### 继承
 
@@ -1768,6 +1800,55 @@ int main()
     size_t fread(void *__restrict__ _DstBuf, size_t _ElementSize, size_t _Count, FILE *__restrict__ _File)
     ```
 
+#### C++ flavor
+
+Ref: 
+
+1. <https://cplusplus.com/doc/tutorial/files/>
+
+2. <https://www.udacity.com/blog/2021/05/how-to-read-from-a-file-in-cpp.html>
+
+    展示了用流式处理，按行处理，单字符处理等多种读取文件的方法。
+
+```cpp
+#include <string>
+#include <vector>
+#include <fstream>
+#include <iostream>
+using namespace std;
+
+string read_file(string file_path)
+{
+    string file_content;
+    ifstream ifs(file_path);  // ifstream，默认打开文件的模式是 ios::read，因此不需要再指定
+    if (!ifs.is_open())
+    {
+        cout << "fail to open file: " << file_path << endl;
+    }
+    string line;
+    while (ifs.good())  // 如果遇到文件末尾，ifs.good() 会返回 false
+    {
+        getline(ifs, line);  // 每次读取一行，line 的末尾不包含 \n
+        file_content.append(line);
+        file_content.push_back('\n');  // 手动添加 \n
+    }
+    return file_content;
+}
+
+int main()
+{
+    string content = read_file("./hello.txt");
+    cout << content << endl;
+    return 0;
+}
+```
+
+说明：
+
+1. 在手动添加`\n`的时候，如果文件的最后一行的末尾没有`\n`，那么我们读取的`content`会多出一个`\n`，这样会导致读取的内容和原文件不符。
+
+    但是这个问题也不算是什么大问题，目前也没有找到什么比较好的解决办法，所以这段代码还是比较实用的。
+
 ## 模板
 
 **函数模板**
@@ -2050,122 +2131,491 @@ Ref:
 
 ## lvalue and rvalue
 
+简单地说，有变量名的是左值，没有变量名的是右值。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    int val;
+};
+
+void func(A &a)  // 接收一个左值引用
+{
+    a.val = 2;
+}
+
+int main()
+{
+    A a;  // a 是一个左值
+    a.val = 1;
+    func(a);
+    cout << a.val << endl;
+    return 0;
+}
+```
+
+如果我们想给`func()`传递一个匿名对象（右值），那么就会报错：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    int val;
+};
+
+void func(A &a)
+{
+    a.val = 2;
+}
+
+int main()
+{
+    func(A());
+    return 0;
+}
+```
+
+报错内容：
+
+```
+/usr/bin/g++-11 -fdiagnostics-color=always -g *.cpp -o /home/hlc/Documents/Projects/cpp_test/main
+main.cpp: In function ‘int main()’:
+main.cpp:17:10: error: cannot bind non-const lvalue reference of type ‘A&’ to an rvalue of type ‘A’
+   17 |     func(A());
+      |          ^~~
+main.cpp:10:14: note:   initializing argument 1 of ‘void func(A&)’
+   10 | void func(A &a)
+      |           ~~~^
+```
+
+此时如果将函数声明`void func(A &a)`改成`void func(A &&a)`，也是可以通过编译并正常运行的：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    int val;
+};
+
+void func(A &&a)
+{
+    a.val = 2;
+}
+
+int main()
+{
+    func(A());
+    return 0;
+}
+```
+
+目前找到的一个解决办法是：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    int val;
+};
+
+void func(A &a)
+{
+    a.val = 2;
+}
+
+int main()
+{
+    func(const_cast<A&>(static_cast<const A&>(A())));
+    return 0;
+}
+```
+
+目前并不清楚`static_cast<>`为什么不能直接转换成`A&`，也不是很明白类型转换的原理。
+
+另外一种比较常见的解决方法是完美转发，但是完美转发需要用到模板，这一点不太好。
+
+**Value Categories**
+
+Ref: <https://poby.medium.com/c-lvalue-and-rvalue-aa0c07a095fa>
+
+Value categories properties of expressions
+
+* lvalue
+
+* rvalue
+
+Identity:
+
+* does the expression have a name?
+
+* does the expression have a memory location?
+
+* can you take the address of the expression?
+
+Definition
+
+lvalue
+
+* has a name
+
+* must be able to take its address of memory location via &
+
+```cpp
+Foo *pfoo = new Foo;
+```
+
+`pfoo` is a lvalue
+
+* the data type is “pointer to Foo”
+* It has a name
+* It can take the address of the pfoo
+
+`pfoo` is a lvalue
+
+even if it doesn't have a name, we can still take the address of `*pfoo`.
+
+```cpp
+int i = 1; // i is lvalue
+i = 0; // lvalue can be assigned with a value
+int* p = &i; // lvalue can take its address of memory location via &
+ 
+// function returning a reference is lvalue
+int& foo();
+foo() = 9; // foo() is an lvalue hence it can get assigned
+int* p = &foo(); // foo() is lvalue hence it can take it's address
+```
+
+rvalue
+
+* does NOT have a name
+* can’t take its address
+* literals (such as 2, “hello world”, true, or nullptr)
+* can’t be assigned with a value
+* temporary objects returned from functions.
+* lifetime usually ends with the current statement
+
+```cpp
+int j = 0;
+j = 4; // j is lvalue// a function returning a value is rvalue
+int boo();
+j = boo(); // np, j is lvalue, boo() is an rvalue
+int* p = &boo(); // error, cannot take the address of an rvalue
+```
+
+**Pass by value vs Pass by reference**
+
+Pass by Value
+
+```cpp
+class Foo{};
+void func(Foo f);    // f is passed by value
+Foo foo;             // foo is lvalue
+func(foo);           // call with an lvalue - valid
+func(Foo{});         // call with an rvalue - valid
+```
+
+Pass by Reference
+
+```cpp
+class Foo{};
+void func(Foo& f);   // f is passed by lvalue reference
+Foo foo;             // foo is lvalue
+func(foo);           // call with an lvalue - valid
+func(Foo{});         // call with an rvalue - error
+```
+
+to fix the above,
+
+void func(const Foo& f); // f is passed by const reference
+
+or
+
+```cpp
+class Foo{};
+void func(Foo&& f);  // f is passed by rvalue reference
+Foo foo;             // foo is lvalue
+// func(foo);        // call with an lvalue - error
+func(std::move(foo)) // need to cast lvalue foo to rvalue using move
+func(Foo{});         // call with an rvalue - valid
+```
+
+References
+
+lvalue reference
+
+* called method or function can/will modify the data
+* the caller will observe any modifications made
+
+const reference
+
+* called method or function can NOT modify the data
+
+rvalue reference
+
+* called method or function can/will modify the data
+* the caller will not and should not observe any modification made
+* declared using &&
+
+C++ 11 extended the notion of rvalues by letting you bind an rvalue (category) to an rvalue reference.
+
+`std::move()`可以将一个左值变成一个右值。如果我们的函数接收的参数为右值引用，但是要传进去的是一个左值，那么就可以用`move`将它变成一个右值：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void add(int &&a, int &&b, int &&c)
+{
+    c = a + b;
+}
+
+int main()
+{
+    add(1, 2, 3);  // OK
+    int a = 1, b = 2, c;
+    add(move(a), move(b), move(c));  // OK
+    cout << "c is " << c << endl;  // c is 3
+    return 0;
+}
+```
+
+下面这个 example 会无法通过编译：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void add(int &a, int &b, int &c)
+{
+    c = a + b;
+}
+
+int main()
+{
+    add(1, 2, 3);  // error
+    cout << "c is " << c << endl;
+    return 0;
+}
+```
+
+This is invalid. Since the callee can change but the caller can’t see the change made by the callee. So, this is wrong.
+
+注：我觉得这句话并不是关键，关键在于，右值本来就是匿名对象，而匿名对象其实是一个“中间量”，它会被自动地创建，又被自动地销毁，我们不能知道，也没必要知道它的内存占用。右值引用则让我们多了一份选择，匿名对象可以自动被创建，但是当你被销毁时，请留下你已经创建好的内存。右值引用只是多了一个处理引用的入口。
+
+左值引用说明对象是在函数外部申请的内存，由函数外部处理。右值引用说明对象是编译器自动创建的内存，至于这个内存要不要销毁，要看编程者的选择。
+
+显然，如果我们`move`一个左值，就是在告诉函数，这个对象在函数外面本来是手动申请内存的，但是现在把这个内存控制权交给函数内部了，函数内部可以拿走它的内存，也可以不拿走。c++ 并不保持`move`过后的对象仍有效，这需要程序员自己保证。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    int val;
+};
+
+void modify_rvalue(A &&obj)
+{
+    delete &obj;
+}
+
+int main()
+{
+    A a;
+    a.val = 3;
+    cout << a.val << endl;
+    modify_rvalue(move(a));
+    cout << a.val << endl;
+    return 0;
+}
+```
+
+比如上面这段代码，运行时输出为：
+
+```
+3
+free(): invalid pointer
+Aborted (core dumped)
+```
+
+其实我们将对象`move`到函数内部后，这个对象已经被销毁了，但是函数外部的我们是不知道的。c++ 并不能保证 move 完后的对象仍是有效的。
+
+一种解决办法是在参数声明处加上`const`修饰：
+
+```cpp
+#include <iostream>
+#include <string>
+using namespace std;
+
+void print(const string &str)
+{
+    cout << str << endl;
+}
+
+int main()
+{
+    print("hello");
+    return 0;
+}
+```
+
+另一种方法是同时提供 lvalue 和 rvalue 作为函数参数：
+
+```cpp
+#include <iostream>
+#include <string>
+using namespace std;
+
+void print(string &str)
+{
+    cout << str << endl;
+}
+
+void print(string &&str)
+{
+    cout << str << endl;
+}
+
+int main()
+{
+    print("hello");
+    return 0;
+}
+```
+
+这样看来，只需要把所有的函数都声明成右值参数，如果遇到左值实参，只需要`move()`将其变成右值就可以了。
+
 ## C++11/17/20 new features
 
 ### move
 
-    Suppose we want to traverse a set of vectors, a simple thought is to use reference binding:
+Suppose we want to traverse a set of vectors, a simple thought is to use reference binding:
 
-    ```cpp
-    #include <vector>
-    #include <iostream>
-    using namespace std;
+```cpp
+#include <vector>
+#include <iostream>
+using namespace std;
 
-    int main()
+int main()
+{
+    vector<int> vecs[3] = {
+        vector<int>({1, 2, 3}), 
+        vector<int>({4, 5, 6}),
+        vector<int>({7, 8, 9})};
+    for (auto &vec: vecs)
     {
-        vector<int> vecs[3] = {
-            vector<int>({1, 2, 3}), 
-            vector<int>({4, 5, 6}),
-            vector<int>({7, 8, 9})};
-        for (auto &vec: vecs)
+        for (auto &item: vec)
         {
-            for (auto &item: vec)
-            {
-                cout << item << ", ";
-            }
-            cout << endl;
+            cout << item << ", ";
         }
-        return 0;
+        cout << endl;
     }
-    ```
+    return 0;
+}
+```
 
-    Output:
+Output:
 
-    ```
-    4, 5, 6,
-    4, 5, 6,
-    7, 8, 9,
-    ```
+```
+4, 5, 6,
+4, 5, 6,
+7, 8, 9,
+```
 
-    This method does make sense. But for a reference `&`, it is actually a constant pointer binding with each element in `vecs`. However, every pointer occupies 8 bytes in a 64-bit system. For the vector array with 3 elements, it needs create an 8-byte pointer and destroy that in every round of `for` loop. This is low effeciency.
+This method does make sense. But for a reference `&`, it is actually a constant pointer binding with each element in `vecs`. However, every pointer occupies 8 bytes in a 64-bit system. For the vector array with 3 elements, it needs create an 8-byte pointer and destroy that in every round of `for` loop. This is low effeciency.
 
-    How about moving a new object to a bound reference?
+How about moving a new object to a bound reference?
 
-    ```cpp
-    vector<int> &rvec = vecs[0];
-    rvec = vecs[1];
-    ```
+```cpp
+vector<int> &rvec = vecs[0];
+rvec = vecs[1];
+```
 
-    Unfortunately, this method doesn't make sense. Because `rves` is equal to `vecs[0]`, the second line just means `vecs[0] = vecs[1];`, and the data of `vecs[0]` will be replaced with the data of `vecs[1]`.
+Unfortunately, this method doesn't make sense. Because `rves` is equal to `vecs[0]`, the second line just means `vecs[0] = vecs[1];`, and the data of `vecs[0]` will be replaced with the data of `vecs[1]`.
 
-    We can also use pointer, but pointer is not safe.
+We can also use pointer, but pointer is not safe.
 
-    How to only move the ownership of 'allocated memory' to a new variable?
+How to only move the ownership of 'allocated memory' to a new variable?
 
-    In C++, we can ragard the 'allocated memory' as a right value, and a named variable with allocated memory as a left value.
+In C++, we can ragard the 'allocated memory' as a right value, and a named variable with allocated memory as a left value.
 
-    C++11 provided a function `move` which can convert a left value to a right value, so that we can reassign the allocated memory to another variable.
+C++11 provided a function `move` which can convert a left value to a right value, so that we can reassign the allocated memory to another variable.
 
-    `move`的源代码：
+`move`的源代码：
 
-    ```cpp
-    template<typename _Tp>
-    _GLIBCXX_NODISCARD
-    constexpr typename std::remove_reference<_Tp>::type&&
-    move(_Tp&& __t) noexcept
-    { return static_cast<typename std::remove_reference<_Tp>::type&&>(__t); }
-    ```
+```cpp
+template<typename _Tp>
+_GLIBCXX_NODISCARD
+constexpr typename std::remove_reference<_Tp>::type&&
+move(_Tp&& __t) noexcept
+{ return static_cast<typename std::remove_reference<_Tp>::type&&>(__t); }
+```
 
-    我们可以看到，`move`仅仅是做了一个强制类型转换，把左值转换成右值引用并返回。
+我们可以看到，`move`仅仅是做了一个强制类型转换，把左值转换成右值引用并返回。
 
-    紧接着，如果某个类型实现了移动构造函数，会直接调用移动构造函数，而不是拷贝构造函数：
+紧接着，如果某个类型实现了移动构造函数，会直接调用移动构造函数，而不是拷贝构造函数：
 
-    ```cpp
-    A& operator=(const A &&obj) {}
-    ```
+```cpp
+A& operator=(const A &&obj) {}
+```
 
-    在移动构造函数中，我们需要实现的是，把`obj`的 allocator 的指针赋给当前对象`*this`。如果某个对象的 allocator 不是我们写的，我们还需要在移动构造函数内继续调用`move`：`this -> xxx = move(obj.xxx);`，直到找到别人的移动构造函数为止。
+在移动构造函数中，我们需要实现的是，把`obj`的 allocator 的指针赋给当前对象`*this`。如果某个对象的 allocator 不是我们写的，我们还需要在移动构造函数内继续调用`move`：`this -> xxx = move(obj.xxx);`，直到找到别人的移动构造函数为止。
 
-    注：短字符串并不一定会一直调用移动构造函数，这个叫做 SSO 优化：<https://stackoverflow.com/questions/21694302/what-are-the-mechanics-of-short-string-optimization-in-libc>。
+注：短字符串并不一定会一直调用移动构造函数，这个叫做 SSO 优化：<https://stackoverflow.com/questions/21694302/what-are-the-mechanics-of-short-string-optimization-in-libc>。
 
-    实验：
+实验：
 
-    ```cpp
-    void move_test(std::string&& s) {
-        std::string s2 = std::move(s);
-        std::cout << "; After move: " << std::hex << reinterpret_cast<uintptr_t>(s2.data()) << std::endl;
+```cpp
+void move_test(std::string&& s) {
+    std::string s2 = std::move(s);
+    std::cout << "; After move: " << std::hex << reinterpret_cast<uintptr_t>(s2.data()) << std::endl;
+}
+
+int main()
+{
+    std::string sbase;
+
+    for (size_t len=0; len < 32; ++len) {
+        std::string s1 = sbase;
+        std::cout << "Length " << len << " - Before move: " << std::hex << reinterpret_cast<uintptr_t>(s1.data());
+        move_test(std::move(s1));
+        sbase += 'a';
     }
+}
+```
 
-    int main()
-    {
-        std::string sbase;
+有时间了可以看看。
 
-        for (size_t len=0; len < 32; ++len) {
-            std::string s1 = sbase;
-            std::cout << "Length " << len << " - Before move: " << std::hex << reinterpret_cast<uintptr_t>(s1.data());
-            move_test(std::move(s1));
-            sbase += 'a';
-        }
-    }
-    ```
+不可以返回函数内部值的右值，因为对象会在函数结束时被销毁：
 
-    有时间了可以看看。
+```cpp
+vector<int>&& test()
+{
+    vector<int> aaa;
+    return move(aaa);
+}
 
-    不可以返回函数内部值的右值，因为对象会在函数结束时被销毁：
-
-    ```cpp
-    vector<int>&& test()
-    {
-        vector<int> aaa;
-        return move(aaa);
-    }
-
-    int main(int argc, char* argv[])
-    {
-        vector<int> aaa = test();
-        return 0;
-    }
-    ```
+int main(int argc, char* argv[])
+{
+    vector<int> aaa = test();
+    return 0;
+}
+```
 
 ### 完美转发
 
@@ -2390,6 +2840,40 @@ int main()
     return 0;
 }
 ```
+
+**按引用传递参数**
+
+```cpp
+#include <iostream>
+#include <thread>
+using namespace std;
+
+struct A
+{
+    int val;
+};
+
+void thread_func(A &obj)
+{
+    obj.val = 2;
+}
+
+int main()
+{
+    A obj;
+    obj.val = 1;
+
+    thread thd(thread_func, ref(obj));  // 如果直接传递 obj，会编译时报错
+    thd.join();
+    cout << obj.val << endl;
+
+    return 0;
+}
+```
+
+我们可以让线程函数接受引用类型的参数，但是在传递参数的时候需要加上`ref()`。原因我不是很懂。
+
+具体的解释：<https://stackoverflow.com/questions/61985888/why-the-compiler-complains-that-stdthread-arguments-must-be-invocable-after-co>
 
 ### Mutex and semephore
 
@@ -2711,6 +3195,24 @@ int main()
 ```
 
 我们只能使用 rvalue 对`unique_ptr`赋值。
+
+如果需要延迟给`unique_ptr`赋值，那么可以用`make_unique()`:
+
+```cpp
+#include <iostream>
+#include <memory>
+using namespace std;
+
+int main()
+{
+    unique_ptr<int> pval;
+    pval = make_unique<int>(3);
+    cout << *pval << endl;
+    return 0;
+}
+```
+
+Ref: <https://www.learncpp.com/cpp-tutorial/stdunique_ptr/>
 
 ### shared_ptr
 

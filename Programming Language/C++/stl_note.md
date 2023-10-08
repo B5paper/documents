@@ -60,6 +60,8 @@ str_2: abcdefgh
 
 可以看到`string`类型`resize()`为 8 个字节后，仍能正常显示字符串。但是`char str_1[8]`显示异常。
 
+`assign()`会同时改变 string 的内容和 size。
+
 ## deque
 
 deque 也支持随机访问。其原理是用一个中控器记录各小段数据的地址。

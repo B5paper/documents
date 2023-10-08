@@ -522,13 +522,167 @@ int main()
 ```cpp
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+using namespace glm;
+
+GLuint load_shader(const char *vtx_shader_path, const char *frag_shader_path)
+{
+    GLuint vtx_shader, frag_shader;
+    vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    char *buf = (char*) malloc(1024);
+    FILE *f = fopen(vtx_shader_path, "r");
+    memset(buf, 0, 1024);
+    fread(buf, 1024, 1, f);
+    fclose(f);
+    glShaderSource(vtx_shader, 1, &buf, NULL);
+    f = fopen(frag_shader_path, "r");
+    memset(buf, 0, 1024);
+    fread(buf, 1024, 1, f);
+    fclose(f);
+    glShaderSource(frag_shader, 1, &buf, NULL);
+    glCompileShader(vtx_shader);
+    glCompileShader(frag_shader);
+    GLuint program_id = glCreateProgram();
+    glAttachShader(program_id, vtx_shader);
+    glAttachShader(program_id, frag_shader);
+    glLinkProgram(program_id);
+    glDetachShader(program_id, vtx_shader);
+    glDetachShader(program_id, frag_shader);
+    glDeleteShader(vtx_shader);
+    glDeleteShader(frag_shader);
+    free(buf);
+    return program_id;
+}
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "aaa", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+
+    GLuint program_id = load_shader("./vtx_shader.glsl", "./frag_shader.glsl");
+    GLuint mvp_id = glGetUniformLocation(program_id, "MVP");
+    glUseProgram(program_id);
+
+    float vtxs[9] = {
+        -0.5, 0, 0,
+        0, 1, 0,
+        0.5, 0, 0
+    };
+    GLuint buf_vtxs;
+    glGenBuffers(1, &buf_vtxs);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+    mat4 M_s = scale(mat4(1), {1, 1, 1});
+    mat4 M_r = rotate(mat4(1), 0.0f, {0, 1, 0});
+    mat4 M_t = translate(mat4(1), {0, 0, 0});
+    mat4 M_m = M_t * M_r * M_s;
+    vec3 eye = {0, 0, 1};
+    vec3 center = {0, 0, 0};
+    vec3 up = {0, 1, 0};
+    mat4 M_v = lookAt(eye, center, up);
+    mat4 M_p = perspective(radians(90.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
+    mat4 MVP = M_p * M_v * M_m;
+
+    float theta = 0.0f;
+    glClearColor(0, 0, 0, 0);
+    glEnableVertexAttribArray(0);
+    while (!glfwWindowShouldClose(window))
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        M_r = rotate(mat4(1), theta, {0, 1, 0});
+        M_m = M_t * M_r * M_s;
+        MVP = M_p * M_v * M_m;
+        glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &MVP[0][0]);
+        theta += 0.001f;
+        if (theta > pi<float>() * 2)
+            theta = 0;
+
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    return 0;
+}
+```
+
+`vtx_shader.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 MVP;
+
+void main()
+{
+    gl_Position = MVP * vec4(pos, 1);
+}
+```
+
+`frag_shader.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(0.5, 0.8, 0.5);
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+[unit]
+[u_0]
+请使用 VBO 画一个 cube。
+[u_1]
+(empty)
+
+[unit]
+[u_0]
+请使用 shader 画一个彩色的 cube，并使之旋转。
+[u_1]
+(empty)
+
+[unit]
+[u_0]
+请给一个三角形加上纹理贴图。
+[u_1]
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <sys/unistd.h>
+#include <cstring>
 
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
 	// Create the shaders
@@ -552,7 +706,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	// Read the Fragment Shader code from the file
 	std::string FragmentShaderCode;
 	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
-	if (FragmentShaderStream.is_open()) {
+	if (FragmentShaderStream.is_open()){
 		std::stringstream sstr;
 		sstr << FragmentShaderStream.rdbuf();
 		FragmentShaderCode = sstr.str();
@@ -571,7 +725,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	// Check Vertex Shader
 	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if ( InfoLogLength > 0 ){
+	if (InfoLogLength > 0) {
 		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
 		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
 		printf("%s\n", &VertexShaderErrorMessage[0]);
@@ -586,7 +740,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	// Check Fragment Shader
 	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if ( InfoLogLength > 0 ){
+	if (InfoLogLength > 0) {
 		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
 		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
 		printf("%s\n", &FragmentShaderErrorMessage[0]);
@@ -602,7 +756,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	// Check the program
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if ( InfoLogLength > 0 ){
+	if (InfoLogLength > 0) {
 		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
 		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
 		printf("%s\n", &ProgramErrorMessage[0]);
@@ -610,102 +764,189 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	
 	glDetachShader(ProgramID, VertexShaderID);
 	glDetachShader(ProgramID, FragmentShaderID);
-	
 	glDeleteShader(VertexShaderID);
 	glDeleteShader(FragmentShaderID);
-
 	return ProgramID;
+}
+
+GLuint loadBMP_custom(const char * imagepath){
+	printf("Reading image %s\n", imagepath);
+
+	// Data read from the header of the BMP file
+	unsigned char header[54];
+	unsigned int dataPos;
+	unsigned int imageSize;
+	unsigned int width, height;
+	// Actual RGB data
+	unsigned char * data;
+
+	// Open the file
+	FILE * file = fopen(imagepath,"rb");
+	if (!file) {
+		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
+		getchar();
+		return 0;
+	}
+
+	// Read the header, i.e. the 54 first bytes
+
+	// If less than 54 bytes are read, problem
+	if (fread(header, 1, 54, file) != 54) { 
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+	// A BMP files always begins with "BM"
+	if (header[0]!='B' || header[1]!='M') {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+
+	// Make sure this is a 24bpp file
+	if (*(int*)&(header[0x1E])!=0) {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+
+	if (*(int*)&(header[0x1C]) != 24) {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+
+	// Read the information about the image
+	dataPos    = *(int*)&(header[0x0A]);
+	imageSize  = *(int*)&(header[0x22]);
+	width      = *(int*)&(header[0x12]);
+	height     = *(int*)&(header[0x16]);
+
+	// Some BMP files are misformatted, guess missing information
+	if (imageSize==0)    imageSize=width*height*3; // 3 : one byte for each Red, Green and Blue component
+	if (dataPos==0)      dataPos=54; // The BMP header is done that way
+
+	// Create a buffer
+	data = new unsigned char [imageSize];
+
+	// Read the actual data from the file into the buffer
+	fread(data,1,imageSize,file);
+
+	// Everything is in memory now, the file can be closed.
+	fclose (file);
+
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+
+	// OpenGL has now copied the data. Free our own version
+	delete [] data;
+
+	// Poor filtering, or ...
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	// Generate mipmaps automatically
+	glGenerateMipmap(GL_TEXTURE_2D); 
+	return textureID;
 }
 
 int main()
 {
-	glfwInit();
-	GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
-	glfwMakeContextCurrent(window);
-	glewInit();
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "opengl test", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
 
-	GLuint program_id = LoadShaders("./vtx_shader.glsl", "./frag_shader.glsl");
+    GLuint program_id = LoadShaders("./vtx.glsl", "./frag.glsl");
 	glUseProgram(program_id);
+    
+    GLuint img = loadBMP_custom("./img.bmp");  // 主要用于创建并填充 texture 的 buffer
+    GLuint img_id  = glGetUniformLocation(program_id, "myTextureSampler");  // 获取 glsl 中 myTextureSampler 变量的 id，后续我们会把 texture 的 buffer 的数据绑定到 glsl 中的 myTextureSampler 变量下
 
-	GLint mvp_id = glGetUniformLocation(program_id, "MVP");
+    float tri_vtxs[3][3] = {
+        -0.5, 0, 0,
+        0.5, 0, 0,
+        0, 0.5, 0,
+    };
+    GLuint tri_vtxs_buf;
+    glGenBuffers(1, &tri_vtxs_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, tri_vtxs_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(tri_vtxs), tri_vtxs, GL_STATIC_DRAW);
 
-	float vtxs[3][3] = {
-		{-0.5, 0, 0},
-		{0, 1, 0},
-		{0.5, 0, 0}
-	};
+    float uv_vtxs[3][2] = {
+        0, 0,
+        1, 0,
+        0.5, 1
+    };  // 注意这些点的顺序要和对应的 mesh 保持一致，顶点的顺序会影响贴图的方向
+    GLuint uv_vtxs_buf;
+    glGenBuffers(1, &uv_vtxs_buf);  // 纹理贴图的顶点 buffer 只是常规 buffer
+    glBindBuffer(GL_ARRAY_BUFFER, uv_vtxs_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(uv_vtxs), uv_vtxs, GL_STATIC_DRAW);
+    
+    glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glClearColor(0, 0, 0, 0);
+    do {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	GLuint buffer;
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+        glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, img);  // 绑定 buffer
+		glUniform1i(img_id, 0);  // 将 texture buffer 绑定到 glsl 中的变量
 
-	glm::mat4 M_s = glm::scale(glm::mat4(1), {1, 1, 1});
-	glm::mat4 M_r = glm::rotate(glm::mat4(1), 0.0f, {0, 1, 0});
-	glm::mat4 M_t = glm::translate(glm::mat4(1), {0, -0.5, 0});
-	glm::mat4 M_m = M_t * M_r * M_s;
-	glm::vec3 eye{0, 0, 2};
-	glm::vec3 center{0, 0, 0};
-	glm::vec3 up{0, 1, 0};
-	glm::mat4 M_v = glm::lookAt(eye, center, up);
-	glm::mat4 M_p = glm::perspective(glm::radians(60.0), 1024.0 / 768.0, 0.1, 100.0);
-	glm::mat4 M_mvp = M_p * M_v * M_m;
+        glBindBuffer(GL_ARRAY_BUFFER, tri_vtxs_buf);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);  // 将 buffer 绑定到 glsl 中的 location 0
 
-	glEnableVertexAttribArray(0);
-	glClearColor(0, 0, 0, 0);
-	float theta = 0;
-	do {
-		glClear(GL_COLOR_BUFFER_BIT);
+        glBindBuffer(GL_ARRAY_BUFFER, uv_vtxs_buf);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);  // 将 buffer 绑定到 glsl 中的 location 1
 
-		theta += 0.01;
-		if (theta > 3.14159 * 2)
-			theta -= 3.14159 * 2;
-		M_r = glm::rotate(glm::mat4(1), theta, {0, 1, 0});
-		M_m = M_t * M_r * M_s;
-		M_mvp = M_p * M_v * M_m;
-		glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &M_mvp[0][0]);
+        glDrawArrays(GL_TRIANGLES, 0, 3);  // 真正的绘制只需要这一行就行了，剩下的工作交给 glsl shader
 
-		glBindBuffer(GL_ARRAY_BUFFER, buffer);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-		
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		glfwSwapBuffers(window);
-
-		usleep(10000);
-		glfwPollEvents();
-	} while (
-		glfwWindowShouldClose(window) == GLFW_FALSE &&
-		glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
-	);
-	return 0;
+        glfwSwapBuffers(window);  // 这一行别忘了，不然不出图
+        glfwPollEvents();
+    } while (
+        glfwWindowShouldClose(window) == GL_FALSE &&
+        glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
+    );
+    glDisableVertexAttribArray(0);
+    return 0;
 }
 ```
 
-`vtx_shader.glsl`:
+`vtx.glsl`:
 
 ```glsl
-#version 330 core
-
-layout(location = 0) in vec3 pos;
-uniform mat4 MVP;  // 从 C 程序中传递来的数据
+layout(location = 0) in vec4 vtx_pos;  // 接受 c 程序中传进来的数据，下一行同理
+layout(location = 1) in vec2 uv_pos;
+out vec2 uv;  // 这个变量名 uv 必须和 frag.glsl 中的 in vec2 us; 中的变量名 uv 保持一致才行。看来他们是全局的
 
 void main()
 {
-    gl_Position = vec4(pos, 1);
-    gl_Position = MVP * gl_Position;  //  对每个点坐标进行矩阵变换
+    gl_Position = vtx_pos;
+    uv = uv_pos;  // 把 uv_pos 数据传递给下一级
 }
 ```
 
-`frag_shader.glsl`:
+`frag.glsl`:
 
 ```glsl
-#version 330 core
-
 out vec3 color;
+uniform sampler2D myTextureSampler;  // 就是 c 代码里传进来的图片数据
+in vec2 uv;
 
 void main()
 {
-	color = vec3(0.5, 0.8, 0.5);
+    color = texture(myTextureSampler, uv).rgb;  // 不懂，先记住这个语法
 }
 ```
 
@@ -721,17 +962,7 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 ./main
 ```
 
-[unit]
-[u_0]
-请使用 shader 画一个彩色的 cube，并使之旋转。
-[u_1]
-(empty)
-
-[unit]
-[u_0]
-请给一个三角形加上纹理贴图。
-[u_1]
-(empty)
+（当前目录下需有一张`img.bmp`图片）
 
 [unit]
 [u_0]
@@ -1022,3 +1253,362 @@ int main()
 }
 ```
 
+[unit]
+[u_0]
+请使用冯氏模型为一个三角形打光。
+[u_1]
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <iostream>
+#include <unistd.h>
+using namespace std;
+using namespace glm;
+
+
+GLuint load_shader(const char *vtx_shader_path, const char *frag_shader_path)
+{
+    GLuint vtx_shader, frag_shader;
+    vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    const int buf_size = 1024;
+    char *buf = (char*) malloc(buf_size);
+    FILE *f = fopen(vtx_shader_path, "r");
+    memset(buf, 0, buf_size);
+    fread(buf, buf_size, 1, f);
+    fclose(f);
+    glShaderSource(vtx_shader, 1, &buf, NULL);
+    glCompileShader(vtx_shader);
+    fopen(frag_shader_path, "r");
+    memset(buf, 0, buf_size);
+    fread(buf, buf_size, 1, f);
+    fclose(f);
+    glShaderSource(frag_shader, 1, &buf, NULL);
+    glCompileShader(frag_shader);
+    GLuint program_id = glCreateProgram();
+    glAttachShader(program_id, vtx_shader);
+    glAttachShader(program_id, frag_shader);
+    glLinkProgram(program_id);
+    glDetachShader(program_id, vtx_shader);
+    glDetachShader(program_id, frag_shader);
+    glDeleteShader(vtx_shader);
+    glDeleteShader(frag_shader);
+    free(buf);
+    return program_id;
+}
+
+struct MVP
+{
+    MVP() {
+        m_scale = {1, 1, 1};
+        m_translate = {0, 0, 0};
+        rotate_dir = {0, 1, 0};
+        rotate_rad = 0;
+        eye = {0, 0, 1};
+        center = {0, 0, 0};
+        up = {0, 1, 0};
+    }
+
+    mat4 get_rotate_mat() {
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        return M_r;
+    }
+
+    mat4 get_mvp() {
+        mat4 M_s = scale(mat4(1), m_scale);
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        mat4 M_t = translate(mat4(1), m_translate);
+        mat4 M_m = M_t * M_r * M_s;
+        mat4 M_v = lookAt(eye, center, up);
+        mat4 M_p = perspective(radians(90.0), 1024 / 768.0, 0.1, 100.0);
+        mat4 mvp = M_p * M_v * M_m;
+        return mvp;
+    }
+
+    vec3 m_scale;
+    vec3 m_translate;
+    vec3 rotate_dir;
+    float rotate_rad;
+    vec3 eye, center, up;    
+};
+
+struct ModelMat
+{
+    vec3 m_scale;
+    vec3 m_translate;
+    vec3 rotate_dir;
+    float rotate_rad;
+    mat4 M_m;
+
+    ModelMat() {
+        m_scale = {1, 1, 1};
+        m_translate = {0, 0, 0};
+        rotate_dir = {0, 1, 0};
+        rotate_rad = 0;
+    }
+
+    mat4& get_model_mat() {
+        mat4 M_s = scale(mat4(1), m_scale);
+        mat4 M_r = rotate(mat4(1), rotate_rad, rotate_dir);
+        mat4 M_t = translate(mat4(1), m_translate);
+        M_m = M_t * M_r * M_s;
+        return M_m;
+    }
+
+    mat4 get_rotate_mat() {
+        return rotate(mat4(1), rotate_rad, rotate_dir);
+    }
+};
+
+struct ViewMat
+{
+    vec3 eye, center, up;
+    mat4 M_v;
+
+    ViewMat() {
+        eye = {0, 0, 1};
+        center = {0, 0, 0};
+        up = {0, 1, 0};
+    }
+
+    mat4& get_view_mat() {
+        M_v = lookAt(eye, center, up);
+        return M_v;
+    }
+};
+
+mat4 get_mvp(mat4 &model, mat4 &view)
+{
+    mat4 M_p = perspective(radians(90.0), 1024 / 768.0, 0.1, 100.0);
+    return M_p * view * model;
+}
+
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "gl light", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+
+    GLuint program_id = load_shader("./vtx.glsl", "./frag.glsl");
+    GLuint pid_light = load_shader("./vtx_light.glsl", "./frag_light.glsl");
+
+    GLuint norm_id = glGetUniformLocation(program_id, "norm");
+    GLuint mvp_id = glGetUniformLocation(program_id, "mvp");
+    GLuint eye_id = glGetUniformLocation(program_id, "eye");
+    GLuint light_mvp_id = glGetUniformLocation(pid_light, "mvp");
+    
+
+    float vtxs[3][3] = {
+        {-0.5, 0, 0},
+        {0, 1, 0},
+        {0.5, 0, 0}
+    };
+    GLuint buf_vtxs;
+    glGenBuffers(1, &buf_vtxs);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+
+    float vtxs_line[2][3];
+    GLuint buf_line;
+    glGenBuffers(1, &buf_line);
+
+    float vtxs_coord[6][3] = {
+        {0, 0, 0},
+        {1, 0, 0},
+        {0, 0, 0},
+        {0, 1, 0},
+        {0, 0, 0},
+        {0, 0, 1}
+    };
+    GLuint buf_coord;
+    glGenBuffers(1, &buf_coord);
+    glBindBuffer(GL_ARRAY_BUFFER, buf_coord);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs_coord), vtxs_coord, GL_STATIC_DRAW);
+
+    ModelMat tri_mat, light_mat, coord_mat;
+    ViewMat view_mat;
+
+    light_mat.m_scale = {0.1, 0.1, 0.1};
+    light_mat.m_translate = {0.7, 0.7, 0};
+    view_mat.eye = {0, 0.5, 2};
+
+    MVP MVP, MVP_light, MVP_line, MVP_coord;
+    MVP_light.m_translate = {0.7, 0.7, 0};
+    MVP_light.m_scale = {0.1, 0.1, 0.1};
+    mat4 light_mvp, mvp, mvp_line, mvp_coord;
+    vec3 norm;
+    float theta = 0;
+    float theta_obj = 0;
+    glEnableVertexAttribArray(0);
+    glClearColor(0, 0, 0, 0);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    while (!glfwWindowShouldClose(window))
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // rotate camera
+        view_mat.eye = {sin(theta) * sqrt(2), 0.5, cos(theta) * sqrt(2)};
+        theta += 0.001;
+        if (theta > pi<float>() * 2)
+            theta = 0;
+
+        // darw coordinate
+        glUseProgram(pid_light);
+        mvp_coord = get_mvp(coord_mat.get_model_mat(), view_mat.get_view_mat());
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &mvp_coord[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_coord);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_LINES, 0, 6);
+
+        // draw light triangle
+        light_mvp = get_mvp(light_mat.get_model_mat(), view_mat.get_view_mat());
+        glUseProgram(pid_light);
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &light_mvp[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // draw triangle
+        tri_mat.rotate_rad = theta_obj;
+        theta_obj += 0.01;
+        if (theta_obj > pi<float>() * 2)
+            theta_obj = 0;
+        mvp = get_mvp(tri_mat.get_model_mat(), view_mat.get_view_mat());
+        norm = cross(vec3{0.5, 0, 0} - vec3{-0.5, 0, 0}, vec3{0, 1, 0} - vec3{-0.5, 0, 0});
+        norm = tri_mat.get_rotate_mat() * vec4(norm, 1);
+
+        glUseProgram(program_id);
+        glUniform3fv(norm_id, 1, &norm[0]);
+        glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &mvp[0][0]);
+        glUniform3fv(eye_id, 1, &view_mat.eye[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // draw norm line
+        vtxs_line[1][0] = norm[0] / 2;
+        vtxs_line[1][1] = norm[1] / 2;
+        vtxs_line[1][2] = norm[2] / 2;
+        glBindBuffer(GL_ARRAY_BUFFER, buf_line);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs_line), vtxs_line, GL_STATIC_DRAW);
+
+        glUseProgram(pid_light);
+        mvp_line = get_mvp(coord_mat.get_model_mat(), view_mat.get_view_mat());
+        glUniformMatrix4fv(light_mvp_id, 1, GL_FALSE, &mvp_line[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_line);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+        glDrawArrays(GL_LINES, 0, 2);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, true);
+        }
+        usleep(10000);
+    }
+    return 0;
+}
+```
+
+`vtx_light:glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 mvp;
+
+void main()
+{
+    gl_Position = mvp * vec4(pos, 1);
+}
+```
+
+`frag_light.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(1, 1, 1);
+}
+```
+
+`vtx.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+uniform mat4 mvp;
+uniform vec3 norm;
+out vec3 norm_frag;
+out vec3 pos_frag;
+
+void main()
+{
+    gl_Position = mvp * vec4(pos, 1);
+    norm_frag = norm;
+    pos_frag = pos;
+}
+```
+
+`frag.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+in vec3 norm_frag;
+in vec3 pos_frag;
+uniform vec3 eye;
+
+void main()
+{
+    vec3 lightColor = vec3(1, 1, 1);
+    vec3 ambient = lightColor * 0.1;
+    vec3 objectColor = vec3(0.5, 0.8, 0.5);
+    vec3 lightPos = vec3(0.7, 0.7, 0);
+    vec3 FragPos = pos_frag;
+    vec3 norm = normalize(norm_frag);
+    vec3 lightDir = normalize(lightPos - FragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * lightColor;
+    float specularStrength = 0.5;
+    vec3 viewPos = eye;
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;
+    vec3 result = (ambient + diffuse) * objectColor;
+    result = (ambient + diffuse + specular) * objectColor;
+    // FragColor = vec4(result, 1.0);
+    color = result;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lGLEW -lglfw -lGL -o main
+```
+
+运行：
+
+```bash
+./main
+```
