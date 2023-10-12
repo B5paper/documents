@@ -1,5 +1,41 @@
 # Computer Graphics Note
 
+## 数学基础（miscellaneous math）
+
+### 二次方程（quadratic equation）求解
+
+二次方程的形式为
+
+$$A x^2 + B x + C = 0$$
+
+将其变形可以得到
+
+$$x^2 + \frac B A x + \frac C A = 0$$
+
+使用完全平方（complete the square）公式可得到
+
+$$\left(x + \frac{B}{2A}\right)^2 - \frac{B^2}{4A^2} + \frac C A = 0$$
+
+将常数项移到右边并开平方，得到：
+
+$$x + \frac{B}{2A} = \pm\sqrt{\frac{B^2}{4A^2} - \frac C A}$$
+
+因此可得到二次方程的根为：
+
+$$x = \frac{-B \pm \sqrt{B^2 - 4AC}}{2A}$$
+
+由于负数开平方后并不是实数，所以需要一个判别式（discriminant）：
+
+$$D = B^2 - 4AC$$
+
+If $D > 0$, there are two real solutions (also called *roots*). If $D = 0$, there is one real solution (a “double” root). If $D < 0$, there are no real solutions.
+
+### 三角学（Trigonometry）
+
+
+
+### 线性代数（Linear algebra）
+
 ## Ray tracing
 
 所谓的渲染即把三维物体映射成二维的像素。通常有两种渲染方式：
@@ -32,7 +68,7 @@ $$\boldsymbol p(t) = \boldsymbol e + t \boldsymbol d$$
 <img width=700 src='./pics/computer_graphics_note_pics/pic_2.jpg'>
 </div>
 
-如上图所示，我们只需要求出来$t_0$，就可以拿到交点坐标。
+如上图所示，我们只需要求出来$t_0$，就可以拿到交点坐标$\boldsymbol p_0$。
 
 注意，这里的$\overset{\rightarrow} d$不一定是单位向量。
 
@@ -90,7 +126,7 @@ $$\boldsymbol e$$
 
 $$-d \boldsymbol w + u \boldsymbol u + v \boldsymbol v$$
 
-其中$u$，$v$的计算方法和平行投影中$u$，$v$的计算方法相同。
+其中$u$，$v$的计算方法和平行投影中$u$，$v$的计算方法相同。$d$为$\boldsymbol e$到视平面的距离。
 
 ### Intersection
 
@@ -207,4 +243,188 @@ $$
 
     假设
 
+## The graphics pipeline
 
+渲染管线专注于 object-order rendering。
+
+The process of finding all the pixels in an image that are occupied by a geometric primitive is called rasterization, so object-order rendering can also be called rendering by rasterization.
+
+The sequence of operations that is required, starting with objects and ending by updating pixels in the image, is known as the graphics pipeline.
+
+For each primitive that comes in, the rasterizer has two jobs: it enumerates the pixels that are covered by the primitive and it interpolates values, called attributes, across the primitive.
+
+The output of the rasterizer is a set of fragments, one for each pixel covered by the primitive. Each fragment “lives” at a particular pixel and carries its own set of attribute values.
+
+### Line Drawing Using Implicit Line Equations
+
+这里介绍使用“中点法（midpoint algorithm）”进行栅格化。
+
+首先我们写出过$(x_0, y_0)$，$(x_1, y_1)$，（$x_0 < x_1$）的隐方程：
+
+$$f(x, y) := (y_0 - y_1)x + (x_1 - x_0)y + x_0 y_1 - x_1 y_0 = 0$$
+
+此时我们可以写出直线的斜率：
+
+$$m = \frac{y_1 - y_0}{x_1 - x_0}$$
+
+对于$m \in (0, 1]$的情况，
+
+The key assumption of the midpoint algorithm is that we draw the thinnest line possible that has no gaps. A diagonal connection between two pixels is not considered a gap.
+
+假设像素的离散坐标为$(x, y)$，那么直线光栅化的伪代码为
+
+```
+y = y0
+for x = x0 to x1 do
+    draw(x, y)
+    if (some condition) then
+        y = y + 1
+```
+
+<div style='text-align:center'>
+<img width=700 src='./pics/computer_graphics_note_pics/pic_6.png'>
+</div>
+
+如图所示，从$(x_0, y_0)$开始，到右上角的$(x_1, y_1)$，其实我们只需要做两个选择：向右或向上。正常情况下我们选择向右，只需要在合适的时机选择向上就可以了。这样可以保持每一列都恰好有一个像素被填充。
+
+那么这个“合适的时机”怎么确定呢？如果直线可能穿过某两个像素，我们连接这两个像素的中心，找到连线的中点，然后判断直线在中点的上方还是下方。如果在上方，那么填充上面的像素，如果在下方，那么填充下面的像素。如下图所示：
+
+<div style='text-align:center'>
+<img width=400 src='./pics/computer_graphics_note_pics/pic_7.png'>
+</div>
+
+直线在中点（上图中红色圆点）上方，所以上面的像素被填充。
+
+因为对于某个点$(x, y)$，我们可以用$f(x, y)$与$0$的大小比较，判断这个点在直线的上面还是下面，所以上面伪代码中的 if 语句，可以写成这样：
+
+```
+if f(x + 1, y + 0.5) < 0 then
+    y = y + 1
+```
+
+这里的$(x, y)$指的是某个像素格子的中心的坐标。
+
+一份代码实现：
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <array>
+#include "../CImg/CImg.h"
+using namespace std;
+using namespace cimg_library;
+
+template<typename T>
+void assign_rgb(CImg<T> &img, int x, int y, vector<float> rgb)
+{
+    for (int i = 0; i < 3; ++i) {
+        img(x, y, 0, i) = round(rgb[i] * 255);
+    }
+}
+
+array<float, 2> center_coord_to_corner_coord(float x, float y, float width, float height)
+{
+    array<float, 2> cor_xy;
+    cor_xy[0] = x + width / 2;
+    cor_xy[1] = height / 2 - y;
+    return cor_xy;
+}
+
+array<float, 2> corner_coord_to_center_coord(float x, float y, float width, float height)
+{
+    array<float, 2> cen_xy;
+    cen_xy[0] = x - width / 2;
+    cen_xy[1] = height / 2 - y;
+    return cen_xy;
+}
+
+array<int, 2> corner_coord_to_grid_xy(float x, float y, int num_cols, int num_rows, float width, float height)
+{
+    array<int, 2> grid_xy;
+    grid_xy[0] = floor(x / (width / num_cols));
+    grid_xy[1] = floor(y / (height / num_rows));
+    return grid_xy;
+}
+
+array<int, 2> center_coord_to_grid_xy(float x, float y, int num_cols, int num_rows, float width ,float height)
+{
+    array<float, 2> cor_xy = center_coord_to_corner_coord(x, y, width, height);
+    array<int, 2> grid_xy = corner_coord_to_grid_xy(cor_xy[0], cor_xy[1], num_cols, num_rows, width, height);
+    return grid_xy;
+}
+
+array<float, 2> get_grid_center_in_corner_coord(int x, int y, int num_cols, int num_rows, float width, float height)
+{
+    // 这里的 xy 以左上角为原点，向右为 x 正方向，向下为 y 正方向
+    // xy 指定的是 grid 的索引
+    // 返回的是 corner coord 坐标系的坐标
+    array<float, 2> grid_center_xy;
+    grid_center_xy[0] = (width / num_cols) * (x + 0.5);
+    grid_center_xy[1] = (height / num_rows) * (y + 0.5);
+    return grid_center_xy;
+}
+
+float f(float x, float y, array<array<float, 2>, 2> &points)
+{
+    float val = (points[0][1] - points[1][1]) * x + (points[1][0] - points[0][0]) * y + 
+        points[0][0] * points[1][1] - points[1][0] * points[0][1];
+    return val;
+}
+
+int main()
+{
+    int width = 400, height = 300;
+    vector<uint8_t> arr(width * height * 3);
+    CImg<unsigned char> img(width, height, 1, 3, 0);
+    auto &a = img(0, 0, 0);
+
+    // (250, 150) -> (300, 125)
+    int x_0 = 250, x_1 = 300;
+    int y_0 = 150, y_1 = 125;
+    
+    array<array<float, 2>, 2> points;
+    points[0] = get_grid_center_in_corner_coord(250, 150, 400, 300, 2, 2);
+    points[1] = get_grid_center_in_corner_coord(300, 125, 400, 300, 2, 2);
+    int x = x_0, y = y_0;
+    vector<array<float, 2>> grid_centers_xy(2);
+    array<float, 2> center_of_segment;
+    while (x <= x_1)
+    {
+        assign_rgb(img, x, y, {0, 1, 0});
+        grid_centers_xy[0] = get_grid_center_in_corner_coord(x + 1, y, 400, 300, 2, 2);
+        grid_centers_xy[1] = get_grid_center_in_corner_coord(x + 1, y - 1, 400, 300, 2, 2);
+        center_of_segment[0] = grid_centers_xy[0][0];
+        center_of_segment[1] = (grid_centers_xy[0][1] + grid_centers_xy[1][1]) / 2;
+        if (f(center_of_segment[0], center_of_segment[1], points) > 0)
+            --y;
+        ++x;
+    }
+
+    assign_rgb(img, x_0, y_0, {1, 0, 0});
+    assign_rgb(img, x_1, y_1, {0, 0, 1});
+
+    cout << x << ", " << y << endl;
+    img.save_png("./pic.png");
+    return 0;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lX11 -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+效果：
+
+<div style='text-align:center'>
+<img width=700 src='./pics/computer_graphics_note_pics/pic_8.png'>
+</div>
+
+还可以用增量的方式判断，更快一些：

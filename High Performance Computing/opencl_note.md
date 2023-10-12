@@ -1238,8 +1238,294 @@ int main()
 
     综上，一个`kernel`在整个程序的生命周期中，只需要设置一次 arg 就可以了。后面只需要 writer buffer, nd range kernel 就会触发计算。
 
+## opencl kernel programming (OpenCL Language)
+
+### vloadn 与 vstoren
+
+`vloadn()`用于从某个内存地址读取一个 vector，`vstoren()`用于将一个 vector 存储到某个内存目标地址中。
+
+Ref:
+
+1. <https://man.opencl.org/vloadn.html>
+
+1. <https://man.opencl.org/vstoren.html>
+
+1. <https://man.opencl.org/vectorDataLoadandStoreFunctions.html>
+
+Syntax:
+
+```c
+gentype n vload n(size_t offset,
+                  const gentype *p)
+
+gentype n vload n(size_t offset,
+                  const constant gentype *p)
+
+void vstore n(gentype n data,
+              size_t offset,
+              gentype *p)
+```
+
+Example:
+
+`main.cpp`:
+
+```cpp
+#include <CL/cl.h>
+#include <fstream>
+#include <iostream>
+#include "../ocl_simple/global_ocl_env.h"
+using namespace std;
+
+ostream& operator<<(ostream &cout, cl_float3 &vec)
+{
+    cout << "[";
+    for (int i = 0; i < 3; ++i)
+        cout << vec.s[i] << ", ";
+    cout << vec.s[3] << "]";
+    return cout;
+}
+
+int main()
+{
+    init_global_ocl_env("./kernels.cl", {"test_vstore"});
+    cl_float3 vec_1 = {1, 2, 3, 4}, vec_2 = {2, 3, 4, 5};
+    add_buf("vec_1", sizeof(cl_float3), 1, &vec_1);
+    add_buf("vec_2", sizeof(cl_float3), 1, &vec_2);
+    run_kern("test_vstore", {1}, "vec_1", "vec_2");
+    read_buf(&vec_1, "vec_1");
+    read_buf(&vec_2, "vec_2");
+    cout << "vec_1: " << vec_1 << endl;
+    cout << "vec_2: " << vec_2 << endl;
+    return 0;
+}
+```
+
+`kernels.cl`:
+
+```c
+__kernel void test_vstore(global float *a, global float *b)
+{
+    float3 vec = vload3(0, a);
+    vstore3(vec, 0, b);
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lOpenCL -o main
+```
+
+运行：
+
+```bash
+./main
+```
+
+输出：
+
+```
+opencl device name: gfx1034
+vec_1: [1, 2, 3, 4]
+vec_2: [1, 2, 3, 5]
+[Warning] destroy ocl env
+release ocl buffer: vec_2
+release ocl buffer: vec_1
+```
+
+可以看到，`vec_1`中前 3 个数据被复制到了`vec_2`中。我们知道，`cl_float3`和`cl_float4`是等价的，都是 4 个元素，但是`vload3()`和`vstore3()`都只对前 3 个元素作用。
+
+如果我们使用 offset 参数指定下一个 vector，也会出现步长为 3 的情况：
+
+`main.cpp`:
+
+```cpp
+#include <CL/cl.h>
+#include <fstream>
+#include <iostream>
+#include "../ocl_simple/global_ocl_env.h"
+using namespace std;
+
+ostream& operator<<(ostream &cout, cl_float3 &vec)
+{
+    cout << "[";
+    for (int i = 0; i < 3; ++i)
+        cout << vec.s[i] << ", ";
+    cout << vec.s[3] << "]";
+    return cout;
+}
+
+int main()
+{
+    init_global_ocl_env("./kernels.cl", {"test_vstore"});
+    cl_float3 vec_1[2] = {1, 2, 3, 4, 5, 6, 7, 8};
+    cl_float3 vec_2[2] = {2, 3, 4, 5, 6, 7, 8, 9};
+    add_buf("vec_1", sizeof(cl_float3), 2, vec_1);
+    add_buf("vec_2", sizeof(cl_float3), 2, vec_2);
+    run_kern("test_vstore", {1}, "vec_1", "vec_2");
+    read_buf(vec_1, "vec_1");
+    read_buf(vec_2, "vec_2");
+    cout << "vec_1: " << vec_1[0] << ", " << vec_1[1] << endl;
+    cout << "vec_2: " << vec_2[0] << ", " << vec_2[1] << endl;
+    return 0;
+}
+```
+
+`kernels.cl`:
+
+```c
+__kernel void test_vstore(global float *a, global float *b)
+{
+    float3 vec = vload3(1, a);  // offset 设置为 1，下面一行同理
+    vstore3(vec, 1, b);
+}
+```
+
+输出：
+
+```
+opencl device name: gfx1034
+vec_1: [1, 2, 3, 4], [5, 6, 7, 8]
+vec_2: [2, 3, 4, 4], [5, 6, 8, 9]
+[Warning] destroy ocl env
+release ocl buffer: vec_2
+release ocl buffer: vec_1
+```
+
+可以看到，`offset`设置为 1 时，`vec_1`中的`[4, 5, 6]`被赋值给了`vec_2`中的`[5, 6, 7]`所在位置，`vload3()`和`vstore3()`的步长都为 3 个元素。
+
+所以只有用`vload4()`和`vstore4()`，才能正确作用于`cl_float3`类型。
+
+### vector data types
+
+可以在`int`, `float`等类型后加上一个数字`n`，表示一个向量。比如`float3`，`int4`。目前支持的`n`有`2`, `3`, `4`, `8`, `16`。
+
+For 3-component vector data types, the size of the data type is `4 × sizeof(component)`. This means that a 3-component vector data type will be aligned to a `4 × sizeof(component)` boundary.
+
+向量字面量，以`float4`为例：
+
+```c
+(float4)( float, float, float, float )
+(float4)( float2, float, float )
+(float4)( float, float2, float )
+(float4)( float, float, float2 )
+(float4)( float2, float2 )
+(float4)( float3, float )
+(float4)( float, float3 )
+(float4)( float )
+
+float4 f = (float4)(1.0f, 2.0f, 3.0f, 4.0f);
+uint4 u = (uint4)(1); // u will be (1, 1, 1, 1)
+float4 f = (float4)((float2)(1.0f, 2.0f), (float2)(3.0f, 4.0f));
+float4 f = (float4)(1.0f, (float2)(2.0f, 3.0f), 4.0f);
+```
+
+可以用`xyzw`表示 4 个元素及以下的向量的各个分量：
+
+```c
+float4 c;
+c.xyzw = (float4)(1.0f, 2.0f, 3.0f, 4.0f);
+c.z = 1.0f;
+c.xy = (float2)(3.0f, 4.0f);
+c.xyz = (float3)(3.0f, 4.0f, 5.0f);
+
+float4 pos = (float4)(1.0f, 2.0f, 3.0f, 4.0f);
+float4 swiz = pos.wzyx; // swiz = (4.0f, 3.0f, 2.0f, 1.0f)
+float4 dup = pox.xxyy; // dup = (1.0f, 1.0f, 2.0f, 2.0f)
+```
+
+还可以使用`x` + 十六进制数字进行索引分量：
+
+```c
+float4 f;
+float4 v_A = f.xs123;  // is illegal
+float4 v_B = f.s012w;  // is illegal
+```
+
+还可以使用`lo`和`hi`拿到低位分量和高位分量，`odd`，`even`拿到索引为奇数和偶数的分量：
+
+```c
+float4 vf;
+float2 low = vf.lo;  // returns vf.xy
+float2 high = vf.hi;  // returns vf.zw
+float x = low.lo;  // returns low.x
+float y = low.hi;  // returns low.y
+float2 odd = vf.odd;  // returns vf.yw
+float2 even = vf.even; // returns vf.xz
+```
+
+如果是`float3`，那么按照`float4`处理，并保持`w`分量未定义。
+
+Example，验证`lo`和`hi`：
+
+```cpp
+#include "../ocl_simple/global_ocl_env.h"
+
+template<typename T, size_t arr_elm_num>
+ostream& operator<<(ostream &cout, array<T, arr_elm_num> &arr)
+{
+    cout << "[";
+    for (int i = 0; i < arr.size() - 1; ++i) {
+        cout << arr[i] << ", ";
+    }
+    cout << arr[arr.size() - 1] << "]";
+    return cout;
+}
+
+int main()
+{
+    init_global_ocl_env("./kernels.cl", {"low_to_high_4", "low_to_high_8"});
+
+    array<float, 4> vec_1{0, 1, 2, 3};
+    add_buf("vec_1", sizeof(cl_float4), 1, &vec_1);
+    run_kern("low_to_high_4", {1}, "vec_1");
+    read_buf(&vec_1, "vec_1");
+    cout << vec_1 << endl;
+
+    array<float, 8> vec_2{0, 1, 2, 3, 4, 5, 6, 7};
+    add_buf("vec_2", sizeof(cl_float8), 1, &vec_2);
+    run_kern("low_to_high_8", {1}, "vec_2");
+    read_buf(&vec_2, "vec_2");
+    cout << vec_2 << endl;
+
+    return 0;
+}
+```
+
+`kernels.cl`:
+
+```c
+kernel void low_to_high_4(global float4 *vec)
+{
+    (*vec).hi = (*vec).lo;
+}
+
+kernel void low_to_high_8(global float8 *vec)
+{
+    (*vec).hi = (*vec).lo;
+}
+```
+
+输出：
+
+```
+opencl device name: gfx1034
+[0, 1, 0, 1]
+[0, 1, 2, 3, 0, 1, 2, 3]
+[Warning] destroy ocl env
+release ocl buffer: vec_2
+release ocl buffer: vec_1
+```
+
+
+
 ## Problems shooting
 
 * `Memory access fault by GPU node-1 (Agent handle: 0x55555670bd80) on address 0x7fffe0e00000. Reason: Page not present or supervisor privilege.`
 
     原因是 buffer 的 read 次数和 write 次数不匹配，多次循环后，导致 buffer 溢出。
+
+* 向量类型转换 vector type casting 
+
+    ref: <https://blog.csdn.net/10km/article/details/51171911>

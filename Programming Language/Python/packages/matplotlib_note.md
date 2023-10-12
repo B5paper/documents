@@ -272,3 +272,9 @@ plt.grid()
 plt.plot(x, y, marker="o", markersize=20, markeredgecolor="red", markerfacecolor="green")
 plt.show()
 ```
+
+### 使用 matplotlib 画一个球体
+
+Ref: <https://saturncloud.io/blog/rendering-a-3d-sphere-in-matplotlib-a-guide/>
+
+这个里面用到了球的参数方程和`np.outer()`，目前对这两个都不太熟，有时间了再看吧。

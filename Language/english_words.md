@@ -397,3 +397,9 @@ abscissa prn. [æbˈsɪsə] n. the horizontal or x-coordinate of a point in a tw
 ordinate n. the vertical or y-coordinate of a point in a two-dimensional system of Cartesian coordinates
 
 parenthesis prn. [pəˈrɛnθɪsɪs] n-count. Parentheses are a pair of curved marks that you put around words or numbers to indicate that they are additional, separate, or less important. 圆括号
+
+accordance n. 依照，依据 eg. in accordance with
+
+identity n-var. The identity of a person or place is the characteristics they have that distinguish them from others. 特性 eg. This section lists without derivation a variety of useful trigonometric identities.
+
+derivation prn. [ˌdɛrəˈveʃən] n. 起源，由来

@@ -343,6 +343,202 @@ ref: <https://stackoverflow.com/questions/1789807/function-pointer-as-an-argumen
 
 **注：在 windows 下，使用 mingw 的 g++/gcc 进行编译，好像没用，根本没有`@`。有机会再研究。**
 
+### 函数的变长参数（variable arguments）
+
+Variable length argument is a feature that allows a function to receive any number of arguments.
+
+C 语言版本：
+
+```cpp
+#include <iostream>
+#include <stdarg.h>  // 必须包含这个头文件才能使用变长参数
+using namespace std;
+
+float fmin(int elm_num, ...)  // 也可以写成 float fmin(int elm_num...)
+{
+    float min_val, val;
+    va_list args;
+    va_start(args, elm_num);
+    min_val = va_arg(args, double);  // 即使字面量是 float 类型，这里也强制使用 double
+    for (int i = 1; i < elm_num; ++i)
+    {
+        val = va_arg(args, double);
+        if (val < min_val)
+            min_val = val;
+    }
+    va_end(args);
+    return min_val;
+}
+
+int main()
+{
+    float min_val = fmin(2.1, 0.5, 1.2);
+    cout << "min val is: " << min_val << endl;
+    return 0;
+}
+```
+
+说明：
+
+1. C 语言通过`va_list`，`va_start`，`va_copy`，`va_arg`，`va_end`这 5 个关键字实现变长参数。
+
+    `va_list`用于声明一个特殊变量，操作参数列表。
+
+    `va_start(args, elm_num)`表示从`elm_num`后面的那个参数开始遍历。
+
+    `va_arg(args, type)`根据指定的类型获得参数。注意，传入参数的字面量首先会被强制转化成至少`double`，`int`精度。因此这里的`type`不能填`float`，`short`，`bool`等。
+
+    `va_end()`：释放空间，结束参数的遍历。
+
+    `va_copy()`目前暂时用不上，不知道有什么用。
+
+2. 如果我们执行的是
+
+    ```cpp
+    fmin(1, 2, 3);
+    ```
+
+    那么函数的输出会是 0。因为字面量`int`类型到`double`类型的转换会出错。
+
+3. 只有完全清楚字面量类型，promotion 类型，`va_arg()`类型之间的转换规则，才有可能写出一个正确的变长参数函数。任何一个环节出错都有可能导致类型转换错误。
+
+    这个挺麻烦的，我的建议是尽量不要使用变长参数。
+
+Ref: 
+
+1. <https://www.scaler.com/topics/cpp/functions-with-variable-number-of-arguments-in-cpp/>
+
+2. <https://www.geeksforgeeks.org/variable-length-argument-c/>
+
+3. <https://www.tutorialspoint.com/cprogramming/c_variable_arguments.htm>
+
+C++ 版本：
+
+基本使用方法：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T>
+void print(T param)  // 模板函数的重载，如果只剩一个参数了，那么走这个分支
+{
+    cout << param << endl;
+}
+
+template<typename T, typename ...Ts>  // 使用 typename... 类型名 定义变长参数列表
+void print(T param, Ts... params)  // 使用 类型名...形参名 定义函数参数
+{
+    cout << param << ", ";
+    print(params...);  // 使用 形参名... 传递变长参数给下一个函数
+}
+
+int main()
+{
+    print("hello", 123, true);
+    return 0;
+}
+```
+
+输出：
+
+```
+hello, 123, 1
+```
+
+可以看到，c++ 通过模板 + 递归处理参数的方式实现变长参数，在编译期写好不同参数类型，不同参数长度的函数。
+
+`print(T param, Ts... params)`表示每次处理只处理一个参数，即`param`，剩下的参数`params`递归交给下一个函数处理。如果我们想一次处理两人个参数，当然可以写成`print(T param_1, P param_2)`。
+
+当只剩一个参数时，通过调用重载的模板函数`print(T param)`进行处理，在这里终止递归调用。至此，处理完所有的参数。
+
+这里是每次处理两个参数的例子：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T, typename P>
+void print(T param_1, P param_2)
+{
+    cout << "[" << param_1 << ", " << param_2 << "]" << endl;
+}
+
+template<typename T, typename P, typename ...Ts>
+void print(T param_1, P param_2, Ts... params)
+{
+    cout << "[" << param_1 << ", " << param_2 << "]" << ", ";
+    print(params...);
+}
+
+int main()
+{
+    print("hello", 123, "world", 456);
+    return 0;
+}
+```
+
+输出：
+
+```
+[hello, 123], [world, 456]
+```
+
+上面的例子，在传入参数时，都使用按值传递。如果是不涉及内存分配问题，或者体量比较小的参数还好。如果涉及到内存的问题，或者想按引用传递，那么可以使用下面的方法实现完美转发：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void aaa(float &val)
+{
+    cout << "left val: " << val << endl;
+}
+
+void aaa(float &&val)
+{
+    cout << "right val: " << val << endl;
+}
+
+template<typename T>
+void test(T &&param)
+{
+    cout << typeid(param).name() << endl;
+    aaa(forward<T>(param));
+}
+
+template<typename T, typename ...Ts>
+void test(T &&param, Ts&&... params)
+{
+    cout << typeid(param).name() << endl;
+    aaa(forward<T>(param));
+    test(forward<Ts>(params)...);  // 学习一下变长参数完美转发的方法
+}
+
+int main()
+{
+    float val = 1;
+    int val2 = 1;
+    test(val, 1.0f, val2, move(val));
+    return 0;
+}
+```
+
+输出：
+
+```
+f
+left val: 1
+f
+right val: 1
+i
+right val: 1
+f
+right val: 1
+```
+
+注意其中的`val2`，虽然是左值，但是`aaa()`接收的是`float`，因此编译器会将`val2`在传入`aaa()`时，进行一次隐式类型转换。类型转换后的值是个右值，所以`aaa()`看到的就是一个右值参数。
+
 ## Pointer and reference 指针与引用
 
 ### Basic usage of a pointer
@@ -431,6 +627,37 @@ c++ 规定不允许有元素类型为引用的数组。
 Ref: <https://stackoverflow.com/questions/1164266/why-are-arrays-of-references-illegal>
 
 ## 函数，指针与引用
+
+## Struct
+
+### 在初始化时将 struct 所有字段都置 0
+
+```cpp
+#include <iostream>
+using namespace std;
+
+struct Struc
+{
+    int val;
+    char *pchar;
+};
+
+int main()
+{
+    Struc struc_1;
+    Struc struc_2{};  // 后面加括号，或写成 Struc struc_2 = {}; 的形式，可以让所有字段都赋 0
+    cout << struc_1.val << ", " << (int*)struc_1.pchar << endl;
+    cout << struc_2.val << ", " << (int*)struc_2.pchar << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+-136146744, 0x7ffff7e28e88
+0, 0
+```
 
 ## Class
 
@@ -2125,6 +2352,433 @@ Ref:
 
 1. <https://stackoverflow.com/questions/495021/why-can-templates-only-be-implemented-in-the-header-file>
 
+### c++ 不允许对函数模板偏特化（Partial specialization of function templates is not allowed）
+
+如果我们实现了一个函数模板，但是对于某些指定的类型，我们希望有指定的处理方法，那么就可以用**特化**（注意，这里是特化，不是偏特化）来实现：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T>
+T my_add(T a, T b)
+{
+    cout << "in function template" << endl;
+    return a + b;
+}
+
+template<>  // 由于不需要用到新的通用类型，所以这里的类型参数列表是空的
+float my_add<float>(float a, float b)  // 如果这里写成 float my_add(float a, float b)，那么就变成了函数重载
+{
+    cout << "in specialization of function template" << endl;
+    return a + b;
+}
+
+int main()
+{
+    float a = 1, b = 2;
+    float c = my_add(a, b);
+    cout << a << " + " << b << " = " << c << endl;
+
+    int v_1 = 1, v_2 = 2;
+    int v_3 = my_add(v_1, v_2);
+    cout << v_1 << " + " << v_2 << " = " << v_3 << endl;
+
+    return 0;
+}
+```
+
+输出：
+
+```
+in specialization of function template
+1 + 2 = 3
+in function template
+1 + 2 = 3
+```
+
+如果模板参数列表里有多个参数，我们可以使用**全特化**来指定要特殊处理的类型：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T, typename P>
+T my_round_add(T a, P b)
+{
+    cout << "in function template" << endl;
+    return a + b;
+}
+
+template<>
+float my_round_add<float, int>(float a, int b)
+{
+    cout << "in specialization of function template" << endl;
+    return (int)(a + 0.5) + b;
+}
+
+int main()
+{
+    float a = 1.5;
+    int b = 2;
+    float c = my_round_add(a, b);
+    cout << a << " + " << b << " = " << c << endl;
+
+    int v_1 = 1, v_2 = 2;
+    int v_3 = my_round_add(v_1, v_2);
+    cout << v_1 << " + " << v_2 << " = " << v_3 << endl;
+
+    return 0;
+}
+```
+
+输出：
+
+```cpp
+in specialization of function template
+1.5 + 2 = 4
+in function template
+1 + 2 = 3
+```
+
+但是如果只想特殊处理部分的模板类型呢，可以吗？
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T, typename P>
+T my_round_add(T a, P b)
+{
+    cout << "in function template" << endl;
+    return a + b;
+}
+
+template<typename P>
+float my_round_add<float, P>(float a, int b)
+{
+    cout << "in specialization of function template" << endl;
+    return (int)(a + 0.5) + b;
+}
+
+int main()
+{
+    float a = 1.5;
+    int b = 2;
+    float c = my_round_add(a, b);
+    cout << a << " + " << b << " = " << c << endl;
+
+    int v_1 = 1, v_2 = 2;
+    int v_3 = my_round_add(v_1, v_2);
+    cout << v_1 << " + " << v_2 << " = " << v_3 << endl;
+
+    return 0;
+}
+```
+
+上面的代码会在编译时报错：
+
+```
+Starting build...
+/usr/bin/g++-11 -fdiagnostics-color=always -g *.cpp -o /home/hlc/Documents/Projects/cpp_test/main
+main.cpp:39:7: error: non-class, non-variable partial specialization ‘my_round_add<float, P>’ is not allowed
+   39 | float my_round_add<float, P>(float a, int b)
+      |       ^~~~~~~~~~~~~~~~~~~~~~
+
+Build finished with error(s).
+```
+
+只指定部分模板参数的行为叫偏特化。显然函数模板不允许偏特化。
+
+虽然函数不允许偏特化，但是`class`是允许偏特化的：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T, typename P>
+struct my_round_add
+{
+    public:
+    T operator()(T a, P b) {
+        cout << "in class template" << endl;
+        return a + b;
+    }
+};
+
+template<typename P>
+struct my_round_add<float, P>
+{
+    public:
+    float operator()(float a, P b) {
+        cout << "in specialization of class template" << endl;
+        return (int)(a + 0.5) + b;
+    }
+};
+
+int main()
+{
+    float a = 1.5;
+    int b = 2;
+    float c = my_round_add<float, int>()(a, b);  // 在调用时需指定模板参数
+    cout << a << " + " << b << " = " << c << endl;
+
+    int v_1 = 1, v_2 = 2;
+    int v_3 = my_round_add<int, int>()(v_1, v_2);
+    cout << v_1 << " + " << v_2 << " = " << v_3 << endl;
+
+    return 0;
+}
+```
+
+输出：
+
+```
+in specialization of class template
+1.5 + 2 = 4
+in class template
+1 + 2 = 3
+```
+
+可以看到，`class`和`struct`支持模板偏特化，但是需要在调用时指定类型列表。
+
+那么如果我们有一些函数偏特化的需求，该怎么处理呢？可以放弃使用模板，使用函数重载直接实现功能：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T, typename P>
+T my_round_add(T a, P b)
+{
+    cout << "in function template" << endl;
+    return a + b;
+}
+
+template<typename P>
+float my_round_add(float a, P b)  // 使用函数重载，而不是模板的特化
+{
+    cout << "in overload function" << endl;
+    return (int)(a + 0.5) + b;
+}
+
+int main()
+{
+    float a = 1.5;
+    int b = 2;
+    float c = my_round_add(a, b);
+    cout << a << " + " << b << " = " << c << endl;
+
+    int v_1 = 1, v_2 = 2;
+    int v_3 = my_round_add(v_1, v_2);
+    cout << v_1 << " + " << v_2 << " = " << v_3 << endl;
+
+    return 0;
+}
+```
+
+输出：
+
+```
+in overload function
+1.5 + 2 = 4
+in function template
+1 + 2 = 3
+```
+
+编译器会根据函数重载的调用规则，调用最匹配的模板函数实现，这样就解决了偏特化的需求的问题。
+
+### 类模板偏特化的一个例子
+
+假如我想实现一个模板类`class vec3`，当我不指定模板参数时，它默认是`float`类型，当指定模板参数时，使用指定的类型。为了使用`std::array`的一些特性，我希望`vec3`继承`std::array<T, 3>`，并且可以使用列表初始化。想要实现的效果如下：
+
+```cpp
+int main()
+{
+    vec3 v1 = {1, 2, 3};  // float
+    vec3 v2 = {1, 2.2, 3};  // float
+    vec3 v3<int> = {2, 3, 4};  // int
+    vec3 v4<double> = {2, 3, 4};  // double
+}
+```
+
+实现的方法如下：
+
+```cpp
+#include <array>
+#include <iostream>
+using namespace std;
+
+struct PlaceHolder;
+
+template<typename T = PlaceHolder, typename P = float>  // T 用来占位，判断是否人为指定类型，P 用来绕过 initializer_list
+class vec3: public array<T, 3>
+{
+    public:
+    vec3(P args...) = delete;  // 下面的 initializer_list 走不通的话，会走这一行对模板参数进行推导（deduction）
+    vec3(initializer_list<P> &&il) {  // 这里的 P 默认就是 float
+        cout << typeid(T).name() << ", " << typeid(P).name() << endl;
+        for (int i = 0; i < 3; ++i)
+            (*this)[i] = *(il.begin() + i);
+    }
+};
+
+template<typename P>
+class vec3<PlaceHolder, P>: public array<float, 3>  // partial specialization，偏特化来实现默认参数类型 float
+{
+    public:
+    vec3(P args...) = delete;
+    vec3(initializer_list<float> &&il) {
+        cout << "type: float" << endl;
+        for (int i = 0; i < 3; ++i)
+            (*this)[i] = *(il.begin() + i);
+    }
+};
+
+template<typename T, typename P>
+ostream& operator<<(ostream &cout, vec3<T, P> &vec)
+{
+    cout << "[" << vec[0] << ", ";
+    cout << vec[1] << ", ";
+    cout << vec[2] << "]";
+    return cout;
+}
+
+int main() {
+    vec3 v_1{0, 1, 2};  // float
+    vec3 v_2{0, 1.2, 3};  // float
+    vec3 v_3{1.3, 2, 3};  // float
+    vec3<int> v_4 = {3, 4, 5};  // int
+    vec3<double> v_5 = {2, 3, 4};  // double
+
+    cout << v_1 << endl;
+    cout << v_2 << endl;
+    cout << v_3 << endl;
+    cout << v_4 << endl;
+    cout << v_5 << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+type: float
+type: float
+type: float
+i, f
+d, f
+[0, 1, 2]
+[0, 1.2, 3]
+[1.3, 2, 3]
+[3, 4, 5]
+[2, 3, 4]
+```
+
+可以看到虽然看起来实现了，但是会偷偷将 double 精度的类型转换成 float，再转回 double。这样会损失精度。这个方案并不完美。
+
+### traits 技术
+
+在写模板类的时候，如果我们想实现类似
+
+```cpp
+if (T.type == float) {
+    // do something
+} else if (T.type == int) {
+    // do something
+} else {
+    // do another thing
+}
+```
+
+这样的功能，那么可以使用 traits 技巧把一个类型映射到一个`enum`值上。
+
+```cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+class MyType {};
+
+enum Types
+{
+    tp_float,
+    tp_int,
+    tp_my_type,
+    tp_unkonwn_type
+};
+
+template<typename T>
+struct type_traits
+{
+    Types type = tp_unkonwn_type;
+};
+
+template<>
+struct type_traits<float>
+{
+    Types type = Types::tp_float;
+};
+
+template<>
+struct type_traits<int>
+{
+    Types type = Types::tp_int;
+};
+
+template<>
+struct type_traits<MyType>
+{
+    Types type = Types::tp_my_type;
+};
+
+template<typename T>
+class Container
+{
+    public:
+    Container(T obj) {
+        if (type_traits<T>().type == Types::tp_float) {
+            cout << "this is a float type" << endl;
+        } else if (type_traits<T>().type == Types::tp_int) {
+            cout << "this is a int type" << endl;
+        } else if (type_traits<T>().type == Types::tp_my_type) {
+            cout << "this is a MyType type" << endl;
+        } else {
+            cout << "unknown type" << endl;
+        }
+        vec.push_back(obj);
+    }
+
+    vector<T> vec;
+};
+
+int main()
+{
+    float val_1 = 1;
+    int val_2 = 2;
+    MyType val_3;
+    double val_4 = 1;
+    Container c_1(val_1);
+    Container c_2(val_2);
+    Container c_3(val_3);
+    Container c_4(val_4);
+    return 0;
+}
+```
+
+输出：
+
+```cpp
+this is a float type
+this is a int type
+this is a MyType type
+unknown type
+```
+
+可以看到，我们使用模板的特化，将指定类型映射到一个整数上，从而对不同的类型选择不同的分支。这个映射的过程发生在编译期，并且不依赖编译器对 rtti 的实现（比如`typeid()`的实现），因此方便又可靠。
+
+Ref: <https://www.zhihu.com/tardis/zm/art/413864991?source_id=1003>
+
 ## 谓词
 
 返回`bool`的仿函数称为谓词。接收一个参数的谓词称为一元谓词，接收两个参数的谓词称为二元谓词。
@@ -2314,6 +2968,15 @@ int boo();
 j = boo(); // np, j is lvalue, boo() is an rvalue
 int* p = &boo(); // error, cannot take the address of an rvalue
 ```
+
+获得右值的地址的一个方法：
+
+```cpp
+string content;
+const char ** addr = (const char**)&static_cast<const char* const &>(content.c_str());
+```
+
+看起来是将右值转换成了一个 const 左值引用，再对 const 左值引用取 const 地址。
 
 **Pass by value vs Pass by reference**
 
