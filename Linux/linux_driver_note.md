@@ -18,6 +18,14 @@ linux 驱动是以 module 的形式加载到内核中的。Ubuntu 的内核是 s
 apt install linux-image-generic-hwe-22.04
 ```
 
+可以直接使用
+
+```bash
+apt install linux-image-`uname -r`
+```
+
+来安装。
+
 接下来我们把原来的 kernel 删掉，然后下载新的：
 
 ```bash

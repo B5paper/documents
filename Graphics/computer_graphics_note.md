@@ -32,7 +32,42 @@ If $D > 0$, there are two real solutions (also called *roots*). If $D = 0$, ther
 
 ### 三角学（Trigonometry）
 
+An angle is defined by the length of the arc segment it cuts out on the unit circle. All angles
+are in the range $[−\pi, \pi]$.
 
+注：
+
+1. 有关弧度的定义。
+
+单位换算：
+
+$$\mathrm{degrees} = \frac{180}{\pi} \mathrm{radians}$$
+
+$$\mathrm{radians} = \frac{\pi}{180} \mathrm{degrees}$$
+
+<div style='text-align:center'>
+<img width=300 src='./pics/computer_graphics_note_pics/pic_9.png'>
+</div>
+
+对于上图的直角三角形，有
+
+$$a^2 + o^2 = h^2$$
+
+其中$h$是斜边，叫做 hypotenuse。
+
+我们可以将三角函数定义如下：
+
+$$\sin \phi := o / h$$
+
+$$\csc \phi := h / o$$
+
+$$\cos \phi := a / h$$
+
+$$\sec \phi := h / a$$
+
+$$\tan \phi := o / a$$
+
+$$\cot \phi := a / o$$
 
 ### 线性代数（Linear algebra）
 
@@ -428,3 +463,150 @@ g++ -g main.cpp -lX11 -o main
 </div>
 
 还可以用增量的方式判断，更快一些：
+
+## 辐射度量学（Radiometry）
+
+假设一个光子(Photon)的波长为$\lambda$，那么它的频率（frequency）$f$为
+
+$$f = \frac{c}{\lambda}$$
+
+其中$c$是光速。
+
+这个光子的能量（energy）$q$为
+
+$$q = hf = \frac{hc}{\lambda}$$
+
+其中$h$是普朗克常量（Plank’s Constant），$h = 6.63 \times 10^{-34}$，单位为焦秒（$\mathrm{Js}$）。
+
+对于不同波长光子组成的一束光，该如何描述它的能量呢？
+
+如果我们假设这束光的能量随波长连续变化，那么就可以定义波长$\lambda$处的光谱能量（spectral energy）为
+
+$$Q_\lambda = \frac{d Q}{d \lambda}$$
+
+其中$Q$为这束光的总能量。如果公式中的物理量的单位都采用 SI 单位，那么$Q_\lambda$的单位为$\mathrm{J} \cdot \mathrm{nm}^{-1}$。
+
+对于单位时间内一束光在波长$\lambda$处的光谱能量，我们将其定义为光谱功率（spectral power）$\Phi_\lambda$：
+
+$$\Phi_\lambda = \frac{d^2Q}{dt \ d\lambda} = \frac{d Q_\lambda}{dt}$$
+
+如果使用 SI 单位制，光谱功率$\Phi_\lambda$的单位为$\mathrm{W} \cdot \mathrm{nm}^{-1}$。
+
+为方便起见，以后将$\Phi_\lambda$简写为$\Phi$。
+
+现在我们假设这束光照到了一个物体表面上，我们使用光谱辐照度（spectral irradiance）$H$来描述单位面积内的光谱功率：
+
+$$H = \frac{d^3 Q}{dA \ dt \ d\lambda}$$
+
+其中$d A$表面面积的微元。$H$的单位为$\mathrm{J m^{−2} s^{−1} (nm)^{−1}}$。
+
+我们定义反射光的光谱辐照度（radiant exitance）为$E$，其单位与$H$相同。
+
+入射光的英文名为 incident light，出射光的英文名为 exitant light。
+
+使用光谱辐照度描述物体表面的光线信息仍然太粗糙，我们需要一个更细致的量拿到更多信息。
+
+对于空间角度（solid angle）$\sigma$处的光谱辐照度，我们将其定义为光谱辐射（spectral radiance）：
+
+$$\mathrm{radiance} = \frac{dH}{d\sigma}$$
+
+这里的空间角指的其实是一个方向，而不是一个角度。为了简便起见，我们将光谱辐射简称为辐射（radiance）。
+
+令空间角$\sigma$与法线之间的角度为$\sigma$，如下图所示：
+
+<div>
+
+</div>
+
+将辐射分解为水平方向和垂直方向，只有垂直方向对表面接收的能量有贡献，因此面元$dA$处的辐射实际上为：
+
+$$L_f = \frac{dH}{\cos \theta \, d\sigma }$$
+
+$L_f$又被称为场辐射（field radiance）。对于出射光的辐射，我们可以将其定义为
+
+$$L_s = \frac{dE}{\cos\theta \, d\sigma}$$
+
+$L_s$又被称为表面辐射（surface radiance）。
+
+<div>
+
+</div>
+
+对于入射光，我们只需要让所有空间角的场辐射叠加，就可以得到辐照度$H$：
+
+$$H = \int_{\mathrm{all}\ \mathbf{k}} L_f(\mathbf k) \cos\theta \ d\sigma$$
+
+其中，$\mathbf k$指的是某一个方向，如上图所示。$\mathbf k$可以被认为是一个单位向量，一个方向向量。每一个$\mathbf k$都对应一个$\theta$角和一个$\sigma$方向角。
+
+为了求解积分，我们将$\sigma$映射到极坐标系：
+
+$$d\sigma = \sin \theta \, d\theta \, d\phi$$
+
+（这个映射是怎么映射的？为什么这里有一个$\sin \theta$？）
+
+为了简化计算，我们假设来自各个方向的$L_f$都相等，于是可以计算出来辐照度
+
+$$
+\begin{aligned}
+H &= \int_{\phi = 0}^{2\pi}\int_{\theta=0}^\frac{\pi}{2} L_f \cos\theta \sin\theta \, d\theta \, d\phi \\
+&= \pi L_f
+\end{aligned}
+$$
+
+有了光谱功率密度$H$，我们只需要让它对面元积分，就可以得到物体表面的光谱功率了：
+
+$$\Phi = \int_{\text{all}\ \mathbf{x}} H(\mathbf x) \, dA$$
+
+其中，$\mathbf x$表示物体表面上的一个点，$dA$表示$\mathbf x$处的面元。
+
+研究完了入射光，我们研究物体表面的反射。
+
+假设物体上某一个点$\mathbf x$处的入射光方向为$\mathbf k_i$（由$\mathbf x$指向光源位置），对应的反射光线方向为$\mathbf k_o$（由$\mathbf x$指向出射方向），如下图所示：
+
+<div>
+<img alt="pic here" width=700 src='./'>
+</div>
+
+那么我们可以使用$\rho$来描述这个过程：
+
+$$\rho(\mathbf k_i, \mathbf k_o) = \frac{L_s}{H}$$
+
+其中，$H$是入射光方向$\mathbf k_i$的 radiance $L_f$对所有空间角的积分。$\rho(\mathbf k_i, \mathbf k_o)$又被称为双向反射分布函数（bidirectional reflectance distribution function, BRDF）。
+
+可以看到$L_s$是和空间角$d\sigma$相关的，而$H$是对空间角积分过的，与空间角无关。为什么要这样定义？根据维基百科的说法，反射光$\mathbf k_o$只和对应的入射光$\mathbf k_i$相关，而与其他的光无关。（<https://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function>）
+
+> The reason the function is defined as a quotient of two differentials and not directly as a quotient between the undifferentiated quantities, is because irradiating light other than ${\displaystyle \mathrm {d} E_{\text{i}}(\omega _{\text{i}})}$, which are of no interest for $f_{\text{r}}(\omega _{\text{i}},\,\omega _{\text{r}})$, might illuminate the surface which would unintentionally affect $L_{\text{r}}(\omega _{\text{r}})$, whereas ${\displaystyle \mathrm {d} L_{\text{r}}(\omega _{\text{r}})}$ is only affected by ${\displaystyle \mathrm {d} E_{\text{i}}(\omega _{\text{i}})}$. 
+
+（那么为什么不直接定义成$\rho = L_s / L_f$？）
+
+注：
+
+1. 看来着这个模型的意思是，对于一束入射光$\mathbf k_i$，在点$\mathbf x$处有向各个方向的反射光$\mathbf k_o$。并不是只有镜面反射。
+
+将出射光对空，可以得到：
+
+$$R(\mathbf k_i) = \frac{E}{H}$$
+
+由于$E$和$H$不好直接计算，我们将这个式子用$\rho$再次表示：
+
+$$R(\mathbf k_i) = \int_{\text{all}\ \mathbf k_o} \rho(\mathbf k_i, \mathbf k_o) \cos \theta_o \ d\sigma_o$$
+
+An idealized diffuse surface is called *Lambertian surface*. The Lambertian BRDF has $\rho$ equal to a constant for all angles. This means the surface will have the same radiance for all viewing angles. Such surfaces are impossible in nature for thermodynamic reasons.
+
+最后一步，只需要将所有的入射光线叠加起来，就能得到某个方向的出射光线了：
+
+$$L_s (\mathbf k_o) = \int_{\text{all}\ \mathbf k_i} \rho (\mathbf k_i, \mathbf k_o) L_f(\mathbf k_i) \cos \theta_i \ d\sigma_i$$
+
+这个公式叫做渲染方程（rendering equation）。
+
+渲染方程是对空间角进行积分的，在现实生活中，入射光其实是从其他物体反射过来的，我们需要更多信息，于是可以把渲染方程做一个变换：
+
+$$L_s(\mathbf x, \mathbf k_o) = \int_{\text{all}\ \mathbf x'} \frac{\rho(\mathbf k_i, \mathbf k_o) L_s(\mathbf x', \mathbf x - \mathbf x') v(\mathbf x, \mathbf x') \cos \theta_i \cos \theta'}{\left\| \mathbf x - \mathbf x' \right\|} \ d A'$$
+
+where
+
+$$v(\mathbf x, \mathbf x') = \left\{ \begin{aligned}  
+&1, \quad \text{if } \mathbf x \text{ and } \mathbf x' \text{ are mutually visible,} \\
+&0, \quad \text{otherwise}
+\end{aligned}  \right.$$
+

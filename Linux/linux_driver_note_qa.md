@@ -32,7 +32,7 @@ MODULE_LICENSE("GPL");
 
 ```Makefile
 KERNEL_DIR=/usr/src/linux-headers-5.19.0-41-generic
-obj-m += hello_world.o
+obj-m += hello.o
 default:
 	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
 ```

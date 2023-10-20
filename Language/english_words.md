@@ -403,3 +403,15 @@ accordance n. 依照，依据 eg. in accordance with
 identity n-var. The identity of a person or place is the characteristics they have that distinguish them from others. 特性 eg. This section lists without derivation a variety of useful trigonometric identities.
 
 derivation prn. [ˌdɛrəˈveʃən] n. 起源，由来
+
+perimeter prn. [pəˈrɪmɪtər] n. 周长；周围
+
+trigonometric prn. [ˌtrɪɡənə'metrɪk] adj. 三角法的
+
+Pythagorean prn. [paɪˌθæɡəˈriən] adj. 毕达哥拉斯的
+
+distort v. 变形，失真
+
+instance n-count. An instance is a particular example or occurrence of something.
+
+constructive adj. 建设的，积极的，构造上的

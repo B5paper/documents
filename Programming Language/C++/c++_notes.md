@@ -539,6 +539,85 @@ right val: 1
 
 注意其中的`val2`，虽然是左值，但是`aaa()`接收的是`float`，因此编译器会将`val2`在传入`aaa()`时，进行一次隐式类型转换。类型转换后的值是个右值，所以`aaa()`看到的就是一个右值参数。
 
+### 给函数传递数组
+
+一些 example:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void func_1(int arr[], int arr_len) {
+    cout << arr[0] << endl;
+    arr[0] = 0;
+}
+
+void func_2(int arr[][3], int dim0, int dim1) {
+    cout << arr[0][0] << endl;
+    arr[0][0] = 0;
+}
+
+void func_3(int *arr, int dim0, int dim1) {
+    cout << *(arr + 0 * dim1 + 0) << endl;
+    *(arr + 0 * dim1 + 0)  = 0;
+}
+
+void func_4(int (*arr)[3], int dim0, int dim1) {
+    cout << arr[0][0] << endl;
+    arr[0][0] = 0;
+}
+
+void func_5(int (*arr)[3][4], int dim0, int dim1, int dim2) {
+    cout << arr[0][0][0] << endl;
+    arr[0][0][0] = 0;
+}
+
+int main() {
+    int arr[3] = {1, 2, 3};
+    func_1(arr, 3);
+    cout << arr[0] << endl;
+
+    int arr_2[2][3] = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+    func_2(arr_2, 2, 3);
+    cout << arr_2[0][0] << endl;
+
+    arr_2[0][0] = 1;
+    func_3((int*)arr_2, 2, 3);
+    cout << arr_2[0][0] << endl;
+
+    arr_2[0][0] = 1;
+    func_4(arr_2, 2, 3);
+    cout << arr_2[0][0] << endl;
+
+    int arr_3[2][3][4] = {1};
+    func_5(arr_3, 2, 3, 4);
+    cout << arr_3[0][0][0] << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+1
+0
+1
+0
+1
+0
+1
+0
+1
+0
+```
+
+在函数内部无论如何写都无法用`sizeof(arr)`拿到数组的实际长度。
+
+数组作为参数传递时，一直都传递的是指针。
+
 ## Pointer and reference 指针与引用
 
 ### Basic usage of a pointer
@@ -620,6 +699,37 @@ Output:
 
 ### 指针与数组
 
+数组指针：
+
+```cpp
+int main() {
+    int arr_1[3] = {1, 2, 3};
+    int arr_2[3] = {2, 3, 4};
+
+    int *parr_1 = arr_1;
+    cout << arr_1[0] << endl;
+    parr_1[0] = 0;
+    cout << arr_1[0] << endl;
+
+    arr_1[0] = 1;
+    int *parr_2[] = {arr_1, arr_2};
+    cout << arr_1[0] << endl;
+    parr_2[0][0] = 0;
+    cout << arr_1[0] << endl;
+    
+    return 0;
+}
+```
+
+输出：
+
+```
+1
+0
+1
+0
+```
+
 ### Reference
 
 c++ 规定不允许有元素类型为引用的数组。
@@ -627,6 +737,278 @@ c++ 规定不允许有元素类型为引用的数组。
 Ref: <https://stackoverflow.com/questions/1164266/why-are-arrays-of-references-illegal>
 
 ## 函数，指针与引用
+
+函数指针原始的用法：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void print_msg(const char *msg)
+{
+    cout << msg << endl;
+}
+
+int main()
+{
+    void (*print)(const char *) = print_msg;
+    print_msg("hello");
+    print("world");
+    return 0;
+}
+```
+
+输出：
+
+```
+hello
+world
+```
+
+使用`typedef`定义函数指针类型的别名：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+typedef void (*Pfunc)(const char*msg);
+
+void print_msg(const char *msg)
+{
+    cout << msg << endl;
+}
+
+int main()
+{
+    Pfunc print = print_msg;
+    print_msg("hello");
+    print("world");
+    return 0;
+}
+```
+
+让函数返回一个函数指针：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+typedef void (*Pfunc)(int, int);
+
+int add(int a, int b)
+{
+    return a + b;
+}
+
+int substract(int a, int b)
+{
+    return a - b;
+}
+
+int (*get_calc_op_func(char operation_type))(int, int)
+{
+    if (operation_type == '+') {
+        return add;
+    } else if (operation_type == '-') {
+        return substract;
+    }
+    else {
+        cout << "unknown operation" << endl;
+        return nullptr;
+    }
+}
+
+int main()
+{
+    int a = 10, b = 3;
+    int (*calc_operation)(int, int) = get_calc_op_func('+');
+    cout << calc_operation(a, b) << endl;
+    calc_operation = get_calc_op_func('-');
+    cout << calc_operation(a, b) << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+13
+7
+```
+
+使用`typedef`可以让代码更简洁一些：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+typedef int (*Pfunc)(int, int);
+
+int add(int a, int b)
+{
+    return a + b;
+}
+
+int substract(int a, int b)
+{
+    return a - b;
+}
+
+Pfunc get_calc_op_func(char operation_type)
+{
+    if (operation_type == '+') {
+        return add;
+    } else if (operation_type == '-') {
+        return substract;
+    }
+    else {
+        cout << "unknown operation" << endl;
+        return nullptr;
+    }
+}
+
+int main()
+{
+    int a = 10, b = 3;
+    Pfunc calc_operation = get_calc_op_func('+');
+    cout << calc_operation(a, b) << endl;
+    calc_operation = get_calc_op_func('-');
+    cout << calc_operation(a, b) << endl;
+    return 0;
+}
+```
+
+如果要返回一个 lambda 表达式，那么没有办法 capture:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+typedef void (*Pfunc)(const char *msg);
+
+Pfunc get_print_func()
+{
+    return [](const char *msg) {  // OK
+        cout << msg << endl;
+    };
+}
+
+int main()
+{
+    Pfunc print = get_print_func();
+    print("hello");
+    return 0;
+}
+```
+
+下面这个例子会发生编译错误：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+typedef void (*Pfunc)();
+
+Pfunc get_print_func(const char *msg)
+{
+    return [msg]() {  // error, can't capture variables
+        cout << msg << endl;
+    };
+}
+
+int main()
+{
+    Pfunc print = get_print_func("hello");
+    print();
+    return 0;
+}
+```
+
+编译输出：
+
+```
+Starting build...
+/usr/bin/g++-11 -fdiagnostics-color=always -g *.cpp -o /home/hlc/Documents/Projects/cpp_test/main
+main.cpp: In function ‘void (* get_print_func(const char*))()’:
+main.cpp:41:5: error: cannot convert ‘get_print_func(const char*)::<lambda()>’ to ‘Pfunc’ {aka ‘void (*)()’} in return
+   41 |     };
+      |     ^
+
+Build finished with error(s).
+```
+
+编译器说没办法将 lambda 表达式转换成函数指针。
+
+这时候就必须要用到 c++ 提供的`std::function`了：
+
+```cpp
+#include <iostream>
+#include <functional>  // 使用 funtion 必须要加上头文件 functional
+using namespace std;
+
+function<void()> get_print_func(const char *msg)
+{
+    return [msg]() {
+        cout << msg << endl;
+    };
+}
+
+int main()
+{
+    function print = get_print_func("hello");
+    print();
+    return 0;
+}
+```
+
+输出：
+
+```
+hello
+```
+
+如果不希望填模板参数，还可以直接使用`auto`：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+auto get_print_func(const char *msg)
+{
+    return [msg]() {
+        cout << msg << endl;
+    };
+}
+
+int main()
+{
+    auto print = get_print_func("hello");
+    print();
+    return 0;
+}
+```
+
+ref:
+
+1. <https://www.scaler.com/topics/cpp/function-pointer-cpp/>
+
+1. <https://www.learncpp.com/cpp-tutorial/function-pointers/>
+
+1. <https://www.geeksforgeeks.org/function-pointer-in-cpp/>
+
+1. <https://stackoverflow.com/questions/4295432/typedef-function-pointer>
+
+1. <https://www.gamedev.net/forums/topic/687109-function-that-returns-a-function-pointer/>
+
+1. <https://www.geeksforgeeks.org/returning-a-function-pointer-from-a-function-in-c-cpp/>
+
+1. <https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer>
+
+1. <https://www.nextptr.com/question/qa1224899171/converting-captureless-generic-lambda-to-function-pointers>
+
+1. <https://zhuanlan.zhihu.com/p/390883475>
+
+1. <https://www.geeksforgeeks.org/working-and-examples-of-bind-in-cpp-stl/>
 
 ## Struct
 
@@ -1414,6 +1796,88 @@ RTTI 的具体实现有两种方式，
 1. `typeid()`：返回其表达式或类型名的实际类型
 
 1. `dynamic_cast()`：将基类的指针或引用安全地转换为派生类类型的指针或引用
+
+#### typeid 简介
+
+`typeid()`是一个操作符，用于拿到类型或对象的类型信息：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    int a = 3;
+    if (typeid(a) == typeid(int))
+    {
+        cout << "the type of the obj is int" << endl;
+    }
+    return 0;
+}
+```
+
+输出：
+
+```
+the type of the obj is int
+```
+
+`typeid()`返回的实际是一个`std::type_info`类型的对象的引用，
+
+如果表达式的类型是类类型且至少包含一个虚函数，则`typeid`操作符会在运行时动态确定表达式的类型；否则，`typeid`返回表达式的静态类型，在编译期就可以计算。
+
+c++ 标准规定了`type_info`类型必须实现下面四种运算：
+
+```cpp
+t1 == t2  // 如果两个对象类型相同，则返回 true，否则返回 false
+t1 != t2  // 如果两个对象类型不同，则返回 false，否则返回 true
+t.name()  // 返回一个 c-style 字符串，通过一定的规则对类型命名
+t1.before(t2)  // t1 是否出现在 t2 之前
+```
+
+如果一个基类指针`p`指向一个派生类对象，且基类中有虚函数，那么`typeid(*p)`的类型为派生类，这个过程在运行时确定：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+class A {};
+class B: public A {};
+
+class C {
+    virtual void func() {}
+};
+class D: public C {};
+
+int main()
+{
+    A *pa = new B;
+    if (typeid(*pa) == typeid(A)) {
+        cout << "the type of *pa is A" << endl;
+    } else if (typeid(*pa) == typeid(B)) {
+        cout << "the type of *pa is B" << endl;
+    }
+
+    C *pc = new D;
+    if (typeid(*pc) == typeid(C)) {
+        cout << "the type of *pc is C" << endl;
+    } else if (typeid(*pc) == typeid(D)) {
+        cout << "the type of *pc is D" << endl;
+    }
+    return 0;
+}
+```
+
+输出：
+
+```
+the type of *pa is A
+the type of *pc is D
+```
+
+（这个例子可以看出来，没有虚函数的派生类毫无意义）
+
+`typeid`相关的异常使用`bad_typeid`类型处理。
 
 ### 类型转换
 
@@ -2778,6 +3242,10 @@ unknown type
 可以看到，我们使用模板的特化，将指定类型映射到一个整数上，从而对不同的类型选择不同的分支。这个映射的过程发生在编译期，并且不依赖编译器对 rtti 的实现（比如`typeid()`的实现），因此方便又可靠。
 
 Ref: <https://www.zhihu.com/tardis/zm/art/413864991?source_id=1003>
+
+Other resources:
+
+1. <https://leimao.github.io/blog/CPP-Traits/>
 
 ## 谓词
 
@@ -4287,6 +4755,40 @@ int main()
 }
 ```
 
+谨慎使用`&`捕捉外界的变量：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+auto get_print_func(const char *msg)  // 如果在这里把改成 const char *&msg，那么将会获得正确输出
+{
+    return [&msg]() {
+        cout << msg << endl;
+    };
+}
+
+int main()
+{   
+    const char *msg = "hello";
+    cout << msg << endl;
+    auto print = get_print_func(msg);
+    print();
+    return 0;
+}
+```
+
+输出：
+
+```
+hello
+����
+```
+
+上面的程序中，参数的函数`msg`在进入函数时被生成，在函数返回时被销毁，而`[&msg]`是捕捉`msg`的引用，当`get_print_func()`返回时，这个引用就已经无效了。后面我们再调用`print()`就会发生错误输出。
+
+因此`[&]`捕获的变量必须要在外界调用时依然有效才可以。
+
 ## Exception 异常处理
 
 ## 工程化
@@ -4543,7 +5045,6 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
     sizeof(arr)  // 3 * 4 = 12
     ```
 
-    函数指针：``
 
 1. 内存分区模型
 
@@ -4872,6 +5373,158 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
 
     如果全局变量是一个 C++ class 的实例，那么在初始化时允许调用自定义的构造函数。
 
+    Example:
+
+    `main.cpp`:
+
+    ```cpp
+    #include <iostream>
+    #include "test.h"
+    using namespace std;
+
+    int main()
+    {
+        cout << "val: " << a.m_val << endl;
+        return 0;
+    }
+    ```
+
+    `test.h`:
+
+    ```cpp
+    class A
+    {
+        public:
+        A(int val): m_val(val) {}
+        int m_val;
+    };
+
+    extern A a;
+    ```
+
+    `test.cpp`:
+
+    ```cpp
+    #include "test.h"
+
+    A a(3);
+    ```
+
+    编译：
+
+    ```bash
+    g++ test.h test.cpp main.cpp -o main
+    ```
+
+    运行：
+
+    ```bash
+    ./main
+    ```
+
+    输出：
+
+    ```
+    val: 3
+    ```
+
+    但是如果我们在`test.cpp`中使用`A a;`定义变量，就无法通过编译：
+
+    ```
+    test.cpp:3:3: error: no matching function for call to ‘A::A()’
+        3 | A a;
+        |   ^
+    In file included from test.cpp:1:
+    test.h:4:5: note: candidate: ‘A::A(int)’
+        4 |     A(int val): m_val(val) {}
+        |     ^
+    test.h:4:5: note:   candidate expects 1 argument, 0 provided
+    test.h:1:7: note: candidate: ‘constexpr A::A(const A&)’
+        1 | class A
+        |       ^
+    test.h:1:7: note:   candidate expects 1 argument, 0 provided
+    test.h:1:7: note: candidate: ‘constexpr A::A(A&&)’
+    test.h:1:7: note:   candidate expects 1 argument, 0 provided
+    ```
+
+    可以看到，如果没有实现对应的构造函数，那么是没办法定义变量的。
+
+    对应的解决办法是使用指针/智能指针，并在`test.cpp`中维护相关的内存：
+
+    `main.cpp`:
+
+    ```cpp
+    #include <iostream>
+    #include "test.h"
+    using namespace std;
+
+    int main()
+    {
+        init_global_env(3, 4);
+        cout << "val: " << pa->m_val << endl;
+        cout << "val 2: " << pa_2.get()->m_val << endl;
+        exit_global_env();
+        return 0;
+    }
+    ```
+
+    `test.h`:
+
+    ```cpp
+    #include <memory>
+    using namespace std;
+
+    class A
+    {
+        public:
+        A(int val): m_val(val) {}
+        int m_val;
+    };
+
+    void init_global_env(int param_1, int param_2);
+    void exit_global_env();
+
+    extern A *pa;
+    extern shared_ptr<A> pa_2;
+    ```
+
+    `test.cpp`:
+
+    ```
+    #include "test.h"
+    #include <memory>
+    using namespace std;
+
+    A *pa;
+    shared_ptr<A> pa_2;
+
+    void init_global_env(int param_1, int param_2)
+    {
+        pa = new A(param_1);
+        pa_2 = make_shared<A>(param_2);
+    }
+
+    void exit_global_env()
+    {
+        delete pa;
+    }
+    ```
+
+    编译：
+
+    ```bash
+    g++ test.h test.cpp main.cpp -o main
+    ```
+
+    输出：
+
+    ```
+    val: 3
+    val 2: 4
+    ```
+
+    可以看到，其实没有什么比较好的方法。还需要额外借助几个函数来完成初始化和销毁的工作。
+
 1. `getchar()`在 windows 下和 linux 下的表现
 
     在 windows 下，输入`a`回车，会得到两个字符，对应的 int 值分别是`97`和`10`：
@@ -4905,3 +5558,5 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
     加一个编译 flag: `-Wl,--copy-dt-needed-entries`
 
     Ref: <https://stackoverflow.com/questions/19901934/libpthread-so-0-error-adding-symbols-dso-missing-from-command-line>
+
+

@@ -250,6 +250,12 @@
 
         假如一个 lambda 表达式 capture 了一些外部变量，那么该怎么写它的函数指针？
 
+    1. Don't inherit from standard types
+
+        <https://quuxplusone.github.io/blog/2018/12/11/dont-inherit-from-std-types/>
+
+        没看过，也不知道讲什么的。自己尝试过继承`array<T, n>`，还挺好用的。
+
 1. 如果一个 obj 文件没有法线信息，那么该怎么办？
 
     可以通过`facted_normal = normalize( cross( 2-3, 1-3))`估算一下。
@@ -269,3 +275,35 @@
     一个 opengl 的 python binding。看了下 example，确实方便。有空了学学。
 
     另外一个相关项目： modelgl-window，<https://github.com/moderngl/moderngl-window>。用于提供类似 glfw 那样的窗口管理服务。
+
+1. latex 的效果参考
+
+    1. <https://www.maths.tcd.ie/~dwilkins/LaTeXPrimer/Calculus.html>
+
+        一些常见微积分公式的 latex 写法
+
+    1. <https://artofproblemsolving.com/wiki/index.php/LaTeX:Symbols>
+
+        常用的 latex symbol
+
+    1. <https://www.scijournal.org/articles/parallel-symbol-in-latex>
+
+        latex 中常用的 parallel symbol
+
+        这个网站好像还有不少和 latex 相关的资料，有时间了看看。
+
+    1. <https://www.physicsread.com/latex-absolute-value/>
+
+        绝对值的常见写法。
+
+        同上，这个网站好像也有不少关于 latex 的知识。
+
+1. Bi-Directional Reflectance Distribution Functions
+
+    1. <https://web.cs.wpi.edu/~emmanuel/courses/cs563/write_ups/chuckm/chuckm_BRDFs_overview.html>
+
+        看起来挺正式的介绍，没仔细看过。
+
+    1. <https://snr.unl.edu/agmet/brdf/brdf-definition.asp>
+
+        同上。

@@ -781,6 +781,128 @@ int main()
 
     * `std::equal`
 
+## initializer list
+
+如果一个函数的参数形式是`std::initializer_list`类型的对象，那么我们就可以用`{}`的形式将参数传递进去：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void func(initializer_list<float> &&il)
+{
+    cout << "len of inizializer list: " << il.size() << endl;
+    auto iter = il.begin();
+
+    for (auto iter = il.begin(); iter != il.end(); ++iter)
+    {
+        cout << *iter << endl;
+    }
+}
+
+int main()
+{
+    func({1, 2, 3});
+    return 0;
+}
+```
+
+输出：
+
+```
+len of inizializer list: 3
+1
+2
+3
+```
+
+可以看到`initializer_list`是一个模板类，它要求大括号中的元素都是相同的类型。
+
+`initializer_list`无法被继承：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+template<typename T>
+class MyIL: public initializer_list<T>
+{
+
+};
+
+void func(MyIL<float> &&il)
+{
+    cout << "len of inizializer list: " << il.size() << endl;
+    auto iter = il.begin();
+
+    for (auto iter = il.begin(); iter != il.end(); ++iter)
+    {
+        cout << *iter << endl;
+    }
+}
+
+int main()
+{
+    func({1, 2, 3});
+    return 0;
+}
+```
+
+上面的代码会出现编译错误：
+
+```
+Starting build...
+/usr/bin/g++-11 -fdiagnostics-color=always -g *.cpp -o /home/hlc/Documents/Projects/cpp_test/main
+main.cpp: In function ‘int main()’:
+main.cpp:53:9: error: invalid initialization of reference of type ‘MyIL<float>&&’ from expression of type ‘<brace-enclosed initializer list>’
+   53 |     func({1, 2, 3});
+      |     ~~~~^~~~~~~~~~~
+main.cpp:40:25: note: in passing argument 1 of ‘void func(MyIL<float>&&)’
+   40 | void func(MyIL<float> &&il)
+      |           ~~~~~~~~~~~~~~^~
+
+Build finished with error(s).
+```
+
+可以看到经过继承后，使用初始化列表进行初始化的特性就消失了。说明在编译器的实现中，大括号`{}`和`initializer_list`是强绑定在一起的。
+
+其他有关初始化列表的一些资料：
+
+1. <https://medium.com/@its.me.siddh/modern-c-series-std-initializer-list-why-what-how-184899326a49>
+
+## limits
+
+这个标准库里存着一些整数、浮点数编码相关的信息，比如最大值，最小值，最小间隔，数字位数之类的。
+
+使用时需加上`<limits>`头文件。
+
+```cpp
+#include <iostream>
+#include <limits>
+using namespace std;
+
+int main() {
+    cout
+    << numeric_limits<int>::min() << ", "
+    << numeric_limits<int>::max() << ", "
+    << numeric_limits<int>::digits << endl;
+
+    cout
+    << numeric_limits<float>::min() << ", "
+    << numeric_limits<float>::max() << ", "
+    << numeric_limits<float>::infinity() << endl;
+
+    return 0;
+}
+```
+
+输出：
+
+```
+-2147483648, 2147483647, 31
+1.17549e-38, 3.40282e+38, inf
+```
+
 ## miscellaneous
 
 1. `function`

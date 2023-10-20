@@ -1518,6 +1518,215 @@ release ocl buffer: vec_2
 release ocl buffer: vec_1
 ```
 
+使用 xyza 索引和 s数字 索引：
+
+`main.cpp`:
+
+```cpp
+int main()
+{
+    init_global_ocl_env("./kernels.cl", {"assign"});
+    cl_float3 vec = {0, 1, 2};
+    cl_float3 vec_2 = {2, 1, 0};
+    add_buf("vec", sizeof(cl_float3), 1, &vec);
+    add_buf("vec_2", sizeof(cl_float3), 1, &vec_2);
+    run_kern("assign", {1}, "vec", "vec_2");
+    read_buf(&vec, "vec");
+    read_buf(&vec_2, "vec_2");
+    cout << vec << endl;
+    cout << vec_2 << endl;
+    return 0;
+}
+```
+
+`kernels.cl`:
+
+```cpp
+kernel void assign(global float3 *vec_1, global float3 *vec_2)
+{
+    (*vec_1).s1 = (*vec_1).s0;
+    vec_1->s2 = vec_1->s0;
+
+    (*vec_2).y = (*vec_2).x;
+    vec_2->z = vec_2->x;
+}
+```
+
+输出：
+
+```
+opencl device name: gfx1034
+[0, 0, 0, 0]
+[2, 2, 2, 0]
+[Warning] destroy ocl env
+release ocl buffer: vec_2
+release ocl buffer: vec
+```
+
+（没想到指针也可以使用便捷索引）
+
+显式类型转换的语法：
+
+```cpp
+destType convert_destType<_sat><_roundingMode> (sourceType)
+destType convert_destTypen<_sat><_roundingMode> (sourceTypen)
+```
+
+These provide a full set of type conversions for the following scalar types: char, uchar, short, ushort, int, uint, long, ulong, float, double, half, and the built-in vector types derived therefrom.
+
+（`half`和`double`类型的转换需要机器支持这个类型才可以）
+
+Example:
+
+`main.cpp`:
+
+```cpp
+int main()
+{
+    init_global_ocl_env("./kernels.cl", {"convert_float_to_int"});
+    float val[3] = {1.3, 1.5, 1.7};
+    int dst_val[3];
+    add_buf("val_0", sizeof(float), 1, &val[0]);
+    add_buf("val_1", sizeof(float), 1, &val[1]);
+    add_buf("val_2", sizeof(float), 1, &val[2]);
+    add_buf("dst_val_0", sizeof(int), 1, &dst_val[0]);
+    add_buf("dst_val_1", sizeof(int), 1, &dst_val[1]);
+    add_buf("dst_val_2", sizeof(int), 1, &dst_val[2]);
+    run_kern("convert_float_to_int", {1}, "dst_val_0", "val_0");
+    run_kern("convert_float_to_int", {1}, "dst_val_1", "val_1");
+    run_kern("convert_float_to_int", {1}, "dst_val_2", "val_2");
+    read_buf(&dst_val[0], "dst_val_0");
+    read_buf(&dst_val[1], "dst_val_1");
+    read_buf(&dst_val[2], "dst_val_2");
+    cout << dst_val[0] << endl;
+    cout << dst_val[1] << endl;
+    cout << dst_val[2] << endl;
+    return 0;
+}
+```
+
+`kernels.cl`:
+
+```c
+kernel void convert_float_to_int(global int *dst_val, global float *src_val)
+{
+    *dst_val = convert_int(*src_val);
+}
+```
+
+输出：
+
+```
+1
+1
+1
+```
+
+如果将 kernel 改成
+
+```c
+kernel void convert_float_to_int(global int *dst_val, global float *src_val)
+{
+    *dst_val = convert_int_rte(*src_val);
+}
+```
+
+那么效果如下：
+
+```
+1
+2
+2
+```
+
+其他支持的模式：
+
+| Rounding Mode Modifier | Rounding Mode Description |
+| - | - |
+| `_rte` | Round to nearest even. |
+| `_rtz` | Round toward zero. |
+| `_rtp` | Round toward positive infinity. |
+| `_rtn` | Round toward negative infinity. |
+| No modifier specified | Use the default rounding mode for this destination type: _rtz for conversion to integers or _rte for conversion to floating-point types. |
+
+没太看懂`_sat`是干嘛用的，好像不是很重要。
+
+可以使用`as_type`和`as_typen`进行内存类型转换：
+
+```cpp
+int main()
+{
+    init_global_ocl_env("./kernels.cl", {"reinterpret_float_as_int"});
+    float src = 1.3;
+    int dst = -1;
+    add_buf("src", sizeof(float), 1, &src);
+    add_buf("dst", sizeof(int), 1, &dst);
+    run_kern("reinterpret_float_as_int", {1}, "dst", "src");
+    read_buf(&dst, "dst");
+    cout << dst << endl;
+    return 0;
+}
+```
+
+`kernels.cl`:
+
+```c
+kernel void reinterpret_float_as_int(global int *dst, global float *src)
+{
+    *dst = as_int(*src);
+}
+```
+
+输出：
+
+```
+opencl device name: gfx1034
+1067869798
+[Warning] destroy ocl env
+release ocl buffer: dst
+release ocl buffer: src
+```
+
+可以看到，`as_type`是对内存的重新解释，并不是数值类型转换。
+
+### qualifiers
+
+#### function qualifiers
+
+**Function Qualifiers**
+
+`kernel` is used to specify that a function in the program source is a kernel function.
+
+The following rules apply to kernel functions:
+
+* The return type must be void. If the return type is not void, it will result in a compilation error.
+
+* The function can be executed on a device by enqueuing a command to execute the kernel from the host.
+
+* The function behaves as a regular function if it is called from a kernel function. The only restriction is that a kernel function with variables declared inside the function with the local qualifier cannot be called from another kernel function.
+
+**Kernel Attribute Qualifiers**
+
+`__attribute__` is used to declare the following additional information about the kernel:
+
+* `__attribute__((work_group_size_hint(X, Y, Z)))` is a hint to the compiler and is intended to specify the work-group size that will most likely be used, that is, the value specified in the `local_work_size` argument to `clEnqueueNDRangeKernel`.
+
+    如果有没有用到的 dim，那么让没有用到的 dim 填 1。
+
+    global worker size 最终会划分到 local worker size 上。如果 local worder size 设置为空，那么 local worker size 等于 global worker size。
+
+    或许只有进一步弄明白 global, group, local 代表的意义，才能明白这个 attribute 是怎么做优化的。
+
+* `__attribute__((reqd_work_group_size(X, Y, Z)))` is intended to specify the work-group size that will be used, that is, the value specified in the `local_work_size` argument to clEnqueueN- DRangeKernel. This provides an opportunity for the compiler to perform specific optimizations that depend on knowing what the work-group size is.
+
+* `__attribute__((vec_type_hint(<type>)))` is a hint to the compiler on the computational width of the kernel, that is, the size of the data type the kernel is operating on. This serves as a hint to an auto-vectorizing compiler. The default value of `<type>` is `int`, `indi-` cating that the kernel is scalar in nature and the auto-vectorizer can therefore vectorize the code across the SIMD lanes of the vector unit for multiple work-items.
+
+指定这些修饰符的话，具体能快多少？
+
+**Address Space Qualifiers**
+
+The type qualifier can be `global` (or `__global`), `local` (or `__local`), `constant` (or `__constant`), or `private` (or `__private`).
+
 
 
 ## Problems shooting

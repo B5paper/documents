@@ -264,6 +264,8 @@ docker 挂载主机目录访问如果出现`cannot open directory: Permisson den
 
     The configs in `~/.docker/config.json` will impact on the proxy of all containers. Besides, the proxy address in the file should be the ip address of virtual ethernet interface `docker0` rather than `127.0.0.1`, because the `127.0.0.1` inside the container is different from `127.0.0.1` on the host.
 
+    如果要设置 build image 以及 run container 时的代理，可以参考：<https://docs.docker.com/network/proxy/>
+
 1. restart a stopped docker container
 
     Ref: <https://stackoverflow.com/questions/39666950/how-restart-a-stopped-docker-container>
@@ -295,7 +297,7 @@ CMD ['command', '参数1', ...]  指定启动容器后要运行的指令
 ENTRYPOINT ['comman', 'param1', 'param2', ...]  指定启动容器后要运行的命令
 ```
 
-Dockerfile 中可以有多个 CMD 指令，但只有最后一个生效。CMD 会被 docker run 之后的参数替换。`ENTRYPOINT`不会被`docker run`之后的命令覆盖，而且`CMD`或者`docker run`的指令会被当作参数送给`ENDTRYPOINT`r指令指定的程序.
+Dockerfile 中可以有多个 CMD 指令，但只有最后一个生效。CMD 会被 docker run 之后的参数替换。`ENTRYPOINT`不会被`docker run`之后的命令覆盖，而且`CMD`或者`docker run`的指令会被当作参数送给`ENDTRYPOINT`指令指定的程序.
 
 例子：
 
@@ -305,6 +307,17 @@ cmd ["/etc/nginx/nginx.conf"]
 ```
 
 `docker build -t <img_name>:<tag> <dockerfile_dir>`
+
+* `COPY [--chown=<user>:<group>] <源路径>... <目标路径>`
+* `COPY [--chown=<user>:<group>] ["<源路径1>",... "<目标路径>"]`
+
+如果 copy 的是一个文件夹，那么并不会自动在目标路径中创建文件夹，而是会把源路径文件夹中的文件都复制到目标路径文件夹中。
+
+因此 copy 的正确写法通常是：
+
+```dockerfile
+COPY ./<dir_name> /root/<dir_name>
+```
 
 查看所有的虚悬镜像：
 
