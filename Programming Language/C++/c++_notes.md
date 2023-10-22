@@ -4799,6 +4799,104 @@ hello
 
     在头文件`a.h`中写声明：`extern int aaa;`，在其他某个实现文件`xxx.cpp`中写定义：`int aaa;`。在其余地方，比如`main.cpp`，只要 include 了`a.h`，就可以使用这个变量。
 
+1. 动态链接与静态链接
+
+    * 动态链接
+
+        `mylib.h`:
+
+        ```cpp
+        int add(int a, int b);
+        ```
+
+        `mylib.cpp`:
+
+        ```cpp
+        int add(int a, int b)
+        {
+            return a + b;
+        }
+        ```
+
+        编译 lib：
+
+        ```bash
+        g++ -shared mylib.cpp -o libmylib.so
+        ```
+
+        如果是 windows 平台，那么使用
+
+        ```bash
+        g++ -shared mylib.cpp -o libmylib.dll
+        ```
+
+        测试程序：
+
+        `main.cpp`:
+
+        ```cpp
+        #include <iostream>
+        #include "mylib.h"
+        using namespace std;
+
+        int main()
+        {
+            int a = 1, b = 2;
+            int c = add(a, b);
+            cout << c << endl;
+            return 0;
+        }
+        ```
+
+        编译：
+
+        ```bash
+        g++ main.cpp -L. -lmylib -o main
+        ```
+
+        运行：
+
+        ```
+        ./main.exe
+        ```
+
+        只有当`libmylib.dll`和`main.exe`在同一个文件夹下时，`main.exe`才能成功运行。如果`libmylib.dll`不在当前目录下，那么需要将它放到搜索目录里。
+
+    * 静态链接
+
+        编译 lib:
+
+        ```bash
+        g++ -c mylib.cpp -o mylib.obj
+        ar rcs mylib.lib mylib.obj
+        ```
+
+        编译测试程序：
+
+        ```bash
+        g++ main.cpp mylib.lib -o main.exe
+        ```
+
+        此时可以把`main.exe`放到电脑的任何文件夹里运行。
+
+        不清楚此时 glibc 是否是静态链接的。
+
+    Ref:
+
+    1. <https://stackoverflow.com/questions/64455245/how-to-write-a-static-c-library-and-link-it-to-an-executable-using-g-on-wind>
+
+    1. <https://www.systutorials.com/how-to-statically-link-c-and-c-programs-on-linux-with-gcc/>
+
+    1. <https://www.herongyang.com/Linux-Apps/GCC-c-to-Build-Static-Library-Files.html>
+
+    1. <https://medium.com/@neunhoef/static-binaries-for-a-c-application-f7c76f8041cf>
+
+    1. <https://blog.habets.se/2013/01/Compiling-C++-statically.html>
+
+    我们无法将很多的`.so`文件合并成一个，或者将很多的`.so`文件静态链接到一个程序上。
+
+    Ref: <https://stackoverflow.com/questions/915128/merge-multiple-so-shared-libraries>
+
 ## Topics
 
 ### character encoding
