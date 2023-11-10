@@ -161,7 +161,7 @@ int main()
 编译：
 
 ```bash
-g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
+g++ -g main.cpp -lglfw -lvulkan -o main
 ```
 
 运行：
@@ -597,3 +597,113 @@ optimal use of Vulkan
 * `pMessage`: The debug message as a null-terminated string
 * `pObjects`: Array of Vulkan object handles related to the message
 * `objectCount`: Number of objects in array
+
+除了使用`pNext`创建，还可以显式指定：
+
+```cpp
+VkDebugUtilsMessengerCreateInfoEXT dm_crt_info;
+dm_crt_info = {};
+dm_crt_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+dm_crt_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+dm_crt_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+dm_crt_info.pfnUserCallback = debugCallback;  // callback 函数
+
+auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");  // 这里用到前面创建好的 vulkan instance
+if (func != nullptr) {
+    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+} else {
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+```
+
+Example:
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <iostream>
+using namespace std;
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+    return VK_FALSE;
+}
+
+int main()
+{
+    VkApplicationInfo app_info{};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pApplicationName = "hello";
+    app_info.pEngineName = "no engine";
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo inst_crt_info{};
+    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    inst_crt_info.pApplicationInfo = &app_info;
+    glfwInit();
+    uint32_t extension_count;
+    const char **glfw_extension_names = glfwGetRequiredInstanceExtensions(&extension_count);
+    const char **extension_names = new const char*[extension_count + 1];
+    for (int i = 0; i < extension_count; ++i)
+    {
+        extension_names[i] = glfw_extension_names[i];
+    }
+    extension_names[extension_count] = "VK_EXT_debug_utils";
+    ++extension_count;
+    inst_crt_info.enabledExtensionCount = extension_count;
+    inst_crt_info.ppEnabledExtensionNames = extension_names;
+    inst_crt_info.enabledLayerCount = 1;
+    const char *layer = "VK_LAYER_KHRONOS_validation";
+    inst_crt_info.ppEnabledLayerNames = &layer;
+    VkInstance instance;
+    VkResult rtn = vkCreateInstance(&inst_crt_info, nullptr, &instance);
+    if (rtn != VK_SUCCESS)
+    {
+        cout << "fail to create vk instance" << endl;
+    }
+    cout << "successfully create vk instance" << endl;
+
+    VkDebugUtilsMessengerCreateInfoEXT dm_crt_info{};
+    dm_crt_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    dm_crt_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    dm_crt_info.messageType = 
+        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    dm_crt_info.pfnUserCallback = debugCallback;
+    VkDebugUtilsMessengerEXT dm;
+    auto vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    rtn = vkCreateDebugUtilsMessengerEXT(instance, &dm_crt_info, nullptr, &dm);
+    if (rtn != VK_SUCCESS)
+    {
+        cout << "fail to create debug messenger" << endl;
+    }
+    cout << "successfully create debug messenger" << endl;
+    delete []extension_names;
+    return 0;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
+```
+
+运行：
+
+```
+./main
+```
+
+输出：
+
+```
+successfully create vk instance
+successfully create debug messenger
+```

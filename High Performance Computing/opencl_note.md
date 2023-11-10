@@ -1727,7 +1727,30 @@ The following rules apply to kernel functions:
 
 The type qualifier can be `global` (or `__global`), `local` (or `__local`), `constant` (or `__constant`), or `private` (or `__private`).
 
+`global`是全局的显存，`local`是 work group 共享的显存，`private`是 work item 独有的显存。work iterm 访问 work group 的显存比访问全局的显存要快一些。所以一种可能的加速做法是，对于频繁访问的地址，将 global 的显存复制到 local 里，然后再让 work iterm 多次访问 local memory。
 
+凡是没有指定地址修饰符的，默认都是`private`类型。
+
+* `global`
+
+    The global address qualifier should not be used for image types.
+
+    Pointers to the global address space are allowed as arguments to functions
+    (including kernel functions) and variables declared inside functions. Vari-
+    ables declared inside a function cannot be allocated in the global address
+    space.
+
+    examples:
+
+    ```cpp
+    void my_func(global float4 *vA, global float4 *vB)
+    {
+        global float4 *p;  // legal
+        global float4 a;  // illegal
+    }
+    ```
+
+    其中`global float4 *p;`指的是`p`指向一个全局的`float4`对象。
 
 ## Problems shooting
 

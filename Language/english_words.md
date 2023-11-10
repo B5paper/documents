@@ -415,3 +415,5 @@ distort v. 变形，失真
 instance n-count. An instance is a particular example or occurrence of something.
 
 constructive adj. 建设的，积极的，构造上的
+
+dielectric n. 电介质，绝缘体

@@ -69,6 +69,21 @@ $$\tan \phi := o / a$$
 
 $$\cot \phi := a / o$$
 
+inverse functions:
+
+$$
+\begin{aligned}
+&\mathrm{asin}: [-1, 1] \rightarrow [-\pi / 2, \pi / 2]  \\
+&\mathrm{acos}: [-1, 1] \rightarrow [0, \pi]  \\
+&\mathrm{atan}: \mathbb R \rightarrow [-\pi / 2, \pi / 2]  \\
+&\mathrm{atan2}: \mathbb R^2 \rightarrow [-\pi, \pi]  \\
+&\end{aligned}
+$$
+
+其中，`atan2(y, x)`的用处比较大，它可以直接将笛卡尔坐标系的坐标转换成极坐标系（polar coordinates）中的角度。
+
+极坐标系的坐标$(r, \phi)$分别指的是圆半径和从 x 轴正方向逆时针旋转的角度。
+
 ### 线性代数（Linear algebra）
 
 ## Ray tracing
@@ -235,12 +250,15 @@ x_a − x_b &x_a − x_c &x_d \\
 y_a − y_b &y_a − y_c &y_d \\
 z_a − z_b &z_a − z_c &z_d
 \end{bmatrix}
+
 \begin{bmatrix}
 \beta \\
 \gamma \\
 t
 \end{bmatrix}
+
 =
+
 \begin{bmatrix}
 x_a − x_e \\
 y_a − y_e \\
@@ -276,7 +294,29 @@ $$
 
     在 Lambert 光照的基础上加上镜面反射，就构成了 Blinn-Phong 光照模型。
 
-    假设
+### 折射 refraction
+
+假设一束光从折射率为$n$的介质以$\theta$的入射角，射入到折射率为$n_t$的介质中，折射角为$\phi$，那么有
+
+$$n \sin \theta = n_t \sin \phi$$
+
+如果给定入射光$\boldsymbol d$，表面处法向量$\boldsymbol n$，入射介质系数$n$，反射介质系数$n_t$，那么可以计算出来折射光线：
+
+$$\boldsymbol t = \frac{n}{n_t} (\boldsymbol d - \boldsymbol n (\boldsymbol d \cdot \boldsymbol n)) - \boldsymbol n \sqrt{1 - \frac{n^2}{n_t^2} (1 - (\boldsymbol d \cdot \boldsymbol n)^2)}$$
+
+其中，$\boldsymbol d$的方向为从外部指向入射点
+
+如果根号内的项计算出来是负数，那么说明发生了全反射（total internal reflection）。
+
+光照在表面处，除了有一个折射分量，还会有一个反射分量。这个反射分量通过 Fresnel equations 计算出来。实际使用中，我们只需要使用 Schlick approximation 来近似就可以了：
+
+$$R(\theta) = R_0 + (1 - R_0)(1 - \cos \theta)^5$$
+
+其中，
+
+$$R_0 = \left( \frac{n_t - 1}{n_t + 1} \right)^2$$
+
+光线在介质中会发生衰减，能量衰减的过程与距离$x$有关。
 
 ## The graphics pipeline
 
@@ -486,6 +526,10 @@ $$Q_\lambda = \frac{d Q}{d \lambda}$$
 
 其中$Q$为这束光的总能量。如果公式中的物理量的单位都采用 SI 单位，那么$Q_\lambda$的单位为$\mathrm{J} \cdot \mathrm{nm}^{-1}$。
 
+注：
+
+1. $Q$应该定义成一片物体表面上经过一段时间光照后，接收到的总能量。
+
 对于单位时间内一束光在波长$\lambda$处的光谱能量，我们将其定义为光谱功率（spectral power）$\Phi_\lambda$：
 
 $$\Phi_\lambda = \frac{d^2Q}{dt \ d\lambda} = \frac{d Q_\lambda}{dt}$$
@@ -522,6 +566,10 @@ $$\mathrm{radiance} = \frac{dH}{d\sigma}$$
 
 $$L_f = \frac{dH}{\cos \theta \, d\sigma }$$
 
+注：
+
+1. 这里加的$\cos \theta$其实我不是很懂。
+
 $L_f$又被称为场辐射（field radiance）。对于出射光的辐射，我们可以将其定义为
 
 $$L_s = \frac{dE}{\cos\theta \, d\sigma}$$
@@ -537,6 +585,14 @@ $L_s$又被称为表面辐射（surface radiance）。
 $$H = \int_{\mathrm{all}\ \mathbf{k}} L_f(\mathbf k) \cos\theta \ d\sigma$$
 
 其中，$\mathbf k$指的是某一个方向，如上图所示。$\mathbf k$可以被认为是一个单位向量，一个方向向量。每一个$\mathbf k$都对应一个$\theta$角和一个$\sigma$方向角。
+
+注：
+
+1. 这里的$L_f$是否就可以认为是光的 rgb 颜色？
+
+    对波长微分是否可以理解为一组 rgb 取值？
+
+    对波长微分表示只有一个波长，这个波长可以用一组 rgb 表示。反过来 rgb(1, 0, 0)，rgb(0, 1, 0), rgb(0, 0, 1)也代表了三个波长。所有的颜色的光都可以表示这三组颜色的叠加。积分的性质也正好满足线性叠加的性质。因此可以认为$L_f$代表了光的颜色。
 
 为了求解积分，我们将$\sigma$映射到极坐标系：
 

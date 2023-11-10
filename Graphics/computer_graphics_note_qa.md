@@ -10,7 +10,11 @@ $\boldsymbol p(t) = \boldsymbol e + t \boldsymbol d$
 [u_0]
 请写出 Lambert 光照模型公式。
 [u_1]
-$xxx$
+假设单通道颜色的强度为$L$，光强为$I$，那么$L$可以被计算为：
+
+$$L = k_d I \max(0, \boldsymbol n \cdot \boldsymbol l)$$
+
+其中，$\boldsymbol n$是光线与物体交点处的物体表面的法线的单位向量，$\boldsymbol l$是从交点指向光源的单位法线向量。$k_d$是漫反射系数（diffuse coefficient）。
 
 [unit]
 [u_0]

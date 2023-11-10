@@ -59,7 +59,7 @@ int main()
 编译：
 
 ```bash
-g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
+g++ -g main.cpp -lglfw -lvulkan -o main
 ```
 
 运行：

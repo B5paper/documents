@@ -1128,6 +1128,89 @@ int main(int argc, char* argv[])
 
 #### 析构函数（destructor）
 
+有关容器、构造函数与析构函数的问题：
+
+```cpp
+#include <vector>
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    A() {
+        cout << "in cons" << endl;
+    }
+
+    ~A() {
+        cout << "in des" << endl;
+    }
+};
+
+int main()
+{
+    A a;
+    vector<A> vec;
+    vec.push_back(a);
+    cout << "here" << endl;
+    return 0;
+}
+```
+
+这段代码的输出为：
+
+```
+in cons
+here
+in des
+in des
+```
+
+可以看到，构造函数调用了一次，析构函数调用了两次。如果某段代码里，构造函数里有申请内存的操作，析构函数里有释放内存的操作，那岂不是会释放两次内存，造成程序崩溃？
+
+如果在`vector`里直接构造对象，就没有问题了：
+
+```cpp
+#include <vector>
+#include <iostream>
+using namespace std;
+
+class A
+{
+    public:
+    A() {
+        cout << "in cons" << endl;
+    }
+
+    ~A() {
+        cout << "in des" << endl;
+    }
+};
+
+int main()
+{
+    // A a;
+    vector<A> vec;
+    vec.emplace_back();
+    cout << "here" << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+in cons
+here
+in des
+```
+
+因为`push_back()`至少需要提供一个已经存在的对象，无论是匿名的还是非匿名的，而`emplace_back()`不需要已经存在的对象，所以`push_back()`无法实现和`emplace_back()`相同的功能。
+
+如果容器是`unordered_map`之类的，那么在构造对象时，可以使用`emplace()`加`piecewise_construct`实现原地构造对象。
+
+我们还可以得到结论，对于已经存在的对象，`emplace_back()`和`push_back()`作用相同，调用一次构造函数，两次析构函数。对于不存在的对象，`emplace_back()`只会调用一次析构函数。
+
 #### 拷贝构造函数，复制构造函数（copy constructor）
 
 当出现以下情况时，会调用复制构造函数：
@@ -3247,6 +3330,32 @@ Other resources:
 
 1. <https://leimao.github.io/blog/CPP-Traits/>
 
+### 使用 traits 技术使模板对指定的类型生效
+
+```cpp
+#include <array>
+#include <vector>
+#include <iostream>
+using namespace std;
+typedef array<float, 3> vec3;
+
+template<typename T1, typename T2>
+enable_if_t<conjunction_v<
+        is_same<remove_reference_t<T1>, vec3>,
+        is_same<remove_reference_t<T2>, vec3>>, vec3>
+operator+(T1 &&vec_1, T2 &&vec_2) {
+    return {vec_1[0] + vec_2[0], vec_1[1] + vec_2[1], vec_1[2] + vec_2[2]};
+}
+
+int main() {
+    vec3 vec_1, vec_2;
+    vec3 vec = vec_1 + vec3{1, 2, 3};
+    string hello = "hello";
+    const char *str = (hello + ", world").c_str();
+    return 0;
+}
+```
+
 ## 谓词
 
 返回`bool`的仿函数称为谓词。接收一个参数的谓词称为一元谓词，接收两个参数的谓词称为二元谓词。
@@ -4227,6 +4336,12 @@ int main()
 ```
 
 其实这和临界区也没有什么区别了。或许条件变量（conditional variable）可以解决这个问题，有时间了看看。
+
+### 线程函数按引用传递参数相关的内存问题
+
+如果传递的参数是局部变量，那么局部变量会在函数执行前就申请好，并不会因为离开了一个函数中的大括号括起来的作用域就被释放。此时在线程子函数中，参数的引用并不会失效。
+
+如果传递的参数是使用`new`，`malloc()`等动态申请的内存，那么变量的内存在子线程外部被释放掉后，参数的引用会失效，之后的行为都是未定义的。
 
 ## Smart pointers
 
