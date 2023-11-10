@@ -42,7 +42,7 @@ echo $variable
 read var1
 ```
 
-`read`命令可以读取输入并将其存到变量`var1`中。
+`read`命令可以读取输入并将其存到变量`var1`中。输入字符串中的空格，单引号，双引号，不会被特殊处理。但是如果输入左方向键，右方向键等，则会有回显乱码。退格键可以正常使用。反斜杠`\` + 换行会被特殊处理。反斜杠`\`加`n`，`t`等字符，不会按转义字符处理。
 
 `-p`参数可以给出输入提示，`-s`则是 silent 模式，输入不回显。
 
@@ -54,6 +54,8 @@ read -sp 'Password: ' passvar
 
 读取多个变量：`read var1 var2 var3`。在输入变量时，变量之间使用空格分隔。如果输入的变量数大于指定的变量数，那么会把多余的输入都存储到最后一个输入中。如果输入的变量少于指定的变量，那么多余的变量会保持空白。
 
+假如一个文件有多行内容，使用`cat text.txt | ./test.sh`的方式给脚本`read`，`read`会只处理第一行。换句话说，`read`只按空格对字符串分隔，而不按换行符、制表符等分隔。
+
 在 bash 中，`STDIN`, `STDOUT`, `STDERR`分别对应 3 个 linux 文件：
 
 * `STDIN`: `/proc/<processID>/fd/0`
@@ -64,7 +66,7 @@ read -sp 'Password: ' passvar
 
 同时 linux 还给出了这些文件的快捷方式：
 
-* `STDIN`: `/dev/sdin` or `/proc/self/fd/0`
+* `STDIN`: `/dev/stdin` or `/proc/self/fd/0`
 
 * `STDOUT`: `/dev/stdout` or `/proc/self/fd/1`
 
@@ -1338,6 +1340,60 @@ Materials:
 
     Ref: <https://stackoverflow.com/questions/20573621/bash-get-process-id-of-a-process-started-in-subshell>
 
+
+## File
+
+bash 通常通过标准输入输出和文件进行交互。
+
+按行读取文件并回显：
+
+`content.txt`:
+
+```
+hello      world
+nihao
+zaijian
+```
+
+`test.sh`
+
+```bash
+#!/bin/bash
+
+file_path=./content.txt
+while read -r line
+do
+    echo "$line"
+done < $file_path
+```
+
+输出：
+
+```
+hello      world
+nihao
+zaijian
+```
+
+可以看到，文件通过重定向的方式，被`read`函数捕获到，每次处理一行。
+
+说明：
+
+1. 在`echo "$line"`时，必须加上双引号，如果不加，bash 会首先把`$line`展开为带空格的字符串列表，然后按多个参数给`echo`输出。此时第一行就会变成`hello world`。
+
+1. 如果`content.txt`的最后一行的末尾没有`\n`，那么`read`在读取完最后一行后，会返回 false，导致 while 循环退出，从而不会打印最后一行。但是此时最后一行的值已经存在了`$line`变量中，我们还可以在 while 外部将其打印出来。
+
+    这种情况最好的解决办法就是让每旧文件的末尾都最好带有`\n`，使得 bash 能正常处理。
+
+    如果遇到别人写的文本文档没有`\n`，自己写脚本处理时，可以检测跳出循环后的`$line`值是否为 empty。如果非空，说明最后一行仍有内容。
+
+1. 如果`content.txt`文件里有反斜杠`\`，那么`read`会先将反斜杠后面的字符处理为转义字符，然后再将值存入到`$line`变量中。
+
+    这显然不是我们所希望的，所以需要给`read`加上`-r`参数，保证所有字符都不会被转义。
+
+1. 参考资料上的`read`写法是`IFS= read -r line`，不清楚`IFS`有什么用处。
+
+    Ref: <https://www.cyberciti.biz/faq/unix-howto-read-line-by-line-from-file/>
 
 ## Miscellaneous
 
