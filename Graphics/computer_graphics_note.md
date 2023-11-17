@@ -546,29 +546,25 @@ $$H = \frac{d^3 Q}{dA \ dt \ d\lambda}$$
 
 我们定义反射光的光谱辐照度（radiant exitance）为$E$，其单位与$H$相同。
 
+注：
+
+1. 同样都是某个表面处的辐射总功率，入射的总功率叫做 irradiance，出射的总功率却叫 radiant exitance。这种不对称的叫法还是第一次见。
+
+1. 根据$H$的单位，可以看出一些这个量的特性。$\mathrm{Js}^{-1}$表示这个量是个功率，即单位时间内的能量，或者说，对时间的微分。$\mathrm{m}^{-2}$表示单位面积，即这个功率还需要再对面积微分，得到的是功率的密度。$(\mathrm{nm})^{-1}$表示这个能量是只针对于单个波长而言的。
+
 入射光的英文名为 incident light，出射光的英文名为 exitant light。
 
-使用光谱辐照度描述物体表面的光线信息仍然太粗糙，我们需要一个更细致的量拿到更多信息。
+使用光谱辐照度描述物体表面的光线信息仍然太粗糙，我们需要一个更细致的量拿到更多信息。irradiance 无法度量来自空间四面八方每个方向上的辐射功率，所以我们还需要对空间角进行微分。
 
-对于空间角度（solid angle）$\sigma$处的光谱辐照度，我们将其定义为光谱辐射（spectral radiance）：
+对于表面处某一点$\boldsymbol p$，我们在上面构建一个半球面，$\boldsymbol p$与半球面上任意一点$\boldsymbol p_0$连接的向量成一个方向，或者说空间角（solid angle）。对于空间角$\sigma$处的光谱辐照度，我们将其定义为光谱辐射（spectral radiance）：
 
 $$\mathrm{radiance} = \frac{dH}{d\sigma}$$
 
-这里的空间角指的其实是一个方向，而不是一个角度。为了简便起见，我们将光谱辐射简称为辐射（radiance）。
+为了简便起见，我们将光谱辐射简称为辐射（radiance）。
 
-令空间角$\sigma$与法线之间的角度为$\sigma$，如下图所示：
-
-<div>
-
-</div>
-
-将辐射分解为水平方向和垂直方向，只有垂直方向对表面接收的能量有贡献，因此面元$dA$处的辐射实际上为：
+令空间角$\sigma$与$\boldsymbol p$点法线之间的角度为$\theta$，我们可以将 radiance 分解为水平方向和垂直方向，只有垂直方向的水平分量对表面接收的能量有贡献，因此我们可以**反推**出$\sigma$处的辐射功率密度为：
 
 $$L_f = \frac{dH}{\cos \theta \, d\sigma }$$
-
-注：
-
-1. 这里加的$\cos \theta$其实我不是很懂。
 
 $L_f$又被称为场辐射（field radiance）。对于出射光的辐射，我们可以将其定义为
 
@@ -665,4 +661,26 @@ $$v(\mathbf x, \mathbf x') = \left\{ \begin{aligned}
 &1, \quad \text{if } \mathbf x \text{ and } \mathbf x' \text{ are mutually visible,} \\
 &0, \quad \text{otherwise}
 \end{aligned}  \right.$$
+
+## Colorimetry
+
+对于不同波长$\lambda$的光的激励（stimulus），三种视锥细胞（cones）会给出不同的响应（response）$L(\lambda)$，$M(\lambda)$，$S(\lambda)$。
+
+对于给定的光谱激励$\Phi(\lambda)$，可以计算出每种细胞的积分响应：
+
+$$L = \int_\lambda \Phi(\lambda) L(\lambda)\ d \lambda$$
+
+$$M = \int_\lambda \Phi(\lambda) M(\lambda)\ d\lambda$$
+
+$$S = \int_\lambda \Phi(\lambda) S(\lambda)\ d\lambda$$
+
+这三个值又被称为 tristimulus values。
+
+注：
+
+1. $L$是单个视细胞对于全光谱的光的响应程度，这里全光谱的光可以理解为各种不同波长的光子组成一束光。
+
+如果我们给定两束不同的光$\Phi_1 (\lambda)$和$\Phi_2 (\lambda)$，是有可能得到相同的响应$(L, M, S)$的，这个现象被称作 metamerism。
+
+配色（color matching）实验：假如我们现在有三个光源（这三个光源被称为 primaries），每个光源都有自己的频谱（即在$\lambda$-$\mathrm{intensity}$图上的三条曲线），并且我们有三个调节旋钮可以调节这三个光源的强度，如果这三个光源生成的$(L, M, S)$与某第四个光源生成的$(L, M, S)$相同，那么我们就可以使用前三个光源的强度来描述第四个光源。我们称前三个光源的强度为第四个光源的 color。
 

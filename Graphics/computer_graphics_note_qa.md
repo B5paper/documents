@@ -69,3 +69,9 @@ $xxx$
 光追反射
 [u_1]
 (empty)
+
+[unit]
+[u_0]
+写出 irradiance 的表达式
+[u_1]
+（empty）

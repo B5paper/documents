@@ -1,16 +1,16 @@
 # Go Note
 
-编译：
+下载和安装：
 
-`go build xxx.go`
+在官网上下载需要的版本：<https://go.dev/doc/install>
 
-编译和运行：
+解压后，把`bin`文件夹添加到`PATH`里就可以了。
 
-`go run xxx.go`
+使用`go version`检查是否安装成功。
 
-变量名：字母，下划线，数字
+## Hello, world
 
-hello world 程序：
+`main.go`：
 
 ```go
 package main
@@ -20,6 +20,22 @@ func main() {  // 大括号必须在这里
     fmt.Println("hello world")  // 语句后没有分号
 }
 ```
+
+编译：
+
+`go build main.go`
+
+编译完后会生成二进制文件。
+
+运行：
+
+`./main`
+
+编译和运行：
+
+`go run xxx.go`
+
+## 项目管理
 
 项目管理：
 
@@ -74,6 +90,10 @@ package calc
 
 自动生成`bin`或`pkg`目录，需要使用`go install`命令。 
 
+## 变量
+
+变量名：字母，下划线，数字
+
 变量声明：
 
 ```go
@@ -93,6 +113,11 @@ var (
 ```
 
 1. 声明的变量必须使用
+
+    如果存在未被使用的变量，那么会无法通过编译。
+
+    这里的使用，目前指的是打印出来，有 IO。
+
 1. 没有初始化的变量默认值为 0
 
 swap:
@@ -186,6 +211,7 @@ const (
     ```
 
 整型与布尔类型不能互相转换
+
 ```go
 var flag bool
 var ch byte
@@ -249,7 +275,7 @@ if s == "abc" {
 }
 
 // if 支持一个初始化语句，初始化语句和判断条件以分号分隔
-if a:= 10; a == 10 {
+if a: = 10; a == 10 {
     fmt.Println("hello")
 }
 
@@ -485,7 +511,7 @@ func main() {
 ```go
 func main() {
     a := 10
-    a := 20
+    b := 20
 
     defer func() {
         fmt.Printf("a = %d, b = %d\n", a, b)
@@ -581,7 +607,7 @@ func main() {
 
 ## 指针
 
- ```go
+```go
 var p *int
 p = &a
 
@@ -666,6 +692,8 @@ var d [5]int
 d = a  // 同类型的数组可以赋值
 ```
 
+给函数传递参数时，数组是按值传递，而 slice 是按引用传递。
+
 ## 随机数
 
 ```go
@@ -679,7 +707,101 @@ func main() {
 }
 ```
 
+## struct
+
+需要`type`和`struct`关键字配合使用来实现一个 struct.
+
+```go
+type struct_name struct {
+  member1 datatype
+  member2 datatype
+  member3 datatype
+  ...
+} 
+```
+
+example:
+
+```go
+package main
+import ("fmt")
+
+type Person struct {
+  name string
+  age int
+  job string
+  salary int
+}
+
+func main() {
+  var pers1 Person
+  var pers2 Person
+
+  // Pers1 specification
+  pers1.name = "Hege"
+  pers1.age = 45
+  pers1.job = "Teacher"
+  pers1.salary = 6000
+
+  // Access and print Pers1 info
+  fmt.Println("Name: ", pers1.name)
+  fmt.Println("Age: ", pers1.age)
+  fmt.Println("Job: ", pers1.job)
+  fmt.Println("Salary: ", pers1.salary)
+}
+```
+
+另外一种初始化 struct 的方式：
+
+```go
+res := author{
+    name:      "Sona",
+    branch:    "CSE",
+    particles: 203,
+    salary:    34000,
+}
+```
+
 ## map
+
+创建：
+
+```go
+package main
+import ("fmt")
+
+func main() {
+  var a = map[string]string{"brand": "Ford", "model": "Mustang", "year": "1964"}
+  b := map[string]int{"Oslo": 1, "Bergen": 2, "Trondheim": 3, "Stavanger": 4}
+
+  fmt.Printf("a\t%v\n", a)
+  fmt.Printf("b\t%v\n", b)
+}
+```
+
+Allowed Key Types
+
+The map key can be of any data type for which the equality operator (==) is defined. These include:
+
+    Booleans
+    Numbers
+    Strings
+    Arrays
+    Pointers
+    Structs
+    Interfaces (as long as the dynamic type supports equality)
+
+Invalid key types are:
+
+    Slices
+    Maps
+    Functions
+
+These types are invalid because the equality operator (==) is not defined for them.
+
+Allowed Value Types
+
+The map values can be any type.
 
 ```go
 info := map[int]string {
@@ -707,6 +829,242 @@ delete(m, 1)  // 删除 key 为 1 的内容
 // map 作为函数参数时按引用传递
 func test(m map[int]string) {
     // ...
+}
+```
+
+## method
+
+如果一个 type 或者一个 struct 定义在了**当前**`package`内，那么就可以给他添加一些 method：
+
+```go
+func(reciver_name Type) method_name(parameter_list)(return_type){
+    // Code
+}
+```
+
+这个 method 的调用类似于 c++/java 里的成员函数。
+
+example:
+
+```go
+package main
+ 
+import "fmt"
+ 
+// Author structure
+type author struct {
+    name      string
+    branch    string
+    particles int
+    salary    int
+}
+ 
+// Method with a receiver
+// of author type
+func (a author) show() {
+ 
+    fmt.Println("Author's Name: ", a.name)
+    fmt.Println("Branch Name: ", a.branch)
+    fmt.Println("Published articles: ", a.particles)
+    fmt.Println("Salary: ", a.salary)
+}
+ 
+// Main function
+func main() {
+ 
+    // Initializing the values
+    // of the author structure
+    res := author{
+        name:      "Sona",
+        branch:    "CSE",
+        particles: 203,
+        salary:    34000,
+    }
+ 
+    // Calling the method
+    res.show()
+}
+```
+
+内置类型如果通过`type`定义，那么也可以为其定义 method:
+
+```go
+package main
+ 
+import "fmt"
+ 
+// Type definition
+type data int
+ 
+// Defining a method with
+// non-struct type receiver
+func (d1 data) multiply(d2 data) data {
+    return d1 * d2
+}
+ 
+/*
+// if you try to run this code,
+// then compiler will throw an error
+func(d1 int)multiply(d2 int)int{
+return d1 * d2
+}
+*/
+ 
+// Main function
+func main() {
+    value1 := data(23)
+    value2 := data(20)
+    res := value1.multiply(value2)
+    fmt.Println("Final result: ", res)
+}
+```
+
+注意，上面的 method 都是按值传递对象。如果需要按引用传递对象，那么需要传递指针：
+
+```go
+func (p *Type) method_name(...Type) Type {
+    // Code
+}
+```
+
+example:
+
+```go
+
+// Go program to illustrate pointer receiver
+package main
+ 
+import "fmt"
+ 
+// Author structure
+type author struct {
+    name      string
+    branch    string
+    particles int
+}
+ 
+// Method with a receiver of author type
+func (a *author) show(abranch string) {
+    (*a).branch = abranch
+}
+ 
+// Main function
+func main() {
+ 
+    // Initializing the values
+    // of the author structure
+    res := author{
+        name:   "Sona",
+        branch: "CSE",
+    }
+ 
+    fmt.Println("Author's name: ", res.name)
+    fmt.Println("Branch Name(Before): ", res.branch)
+ 
+    // Creating a pointer
+    p := &res
+ 
+    // Calling the show method
+    p.show("ECE")
+    fmt.Println("Author's name: ", res.name)
+    fmt.Println("Branch Name(After): ", res.branch)
+}
+```
+
+输出：
+
+```
+Author's name:  Sona
+Branch Name(Before):  CSE
+Author's name:  Sona
+Branch Name(After):  ECE
+```
+
+method 可以在传实参时自动加引用或者解引用，最终的效果以 method 参数列表里为准：
+
+```go
+
+// Go program to illustrate how the
+// method can accept pointer and value
+ 
+package main
+ 
+import "fmt"
+ 
+// Author structure
+type author struct {
+    name   string
+    branch string
+}
+ 
+// Method with a pointer
+// receiver of author type
+func (a *author) show_1(abranch string) {
+    (*a).branch = abranch
+}
+ 
+// Method with a value
+// receiver of author type
+func (a author) show_2() {
+ 
+    a.name = "Gourav"
+    fmt.Println("Author's name(Before) : ", a.name)
+}
+ 
+// Main function
+func main() {
+ 
+    // Initializing the values
+    // of the author structure
+    res := author{
+        name:   "Sona",
+        branch: "CSE",
+    }
+ 
+    fmt.Println("Branch Name(Before): ", res.branch)
+ 
+    // Calling the show_1 method
+    // (pointer method) with value
+    res.show_1("ECE")
+    fmt.Println("Branch Name(After): ", res.branch)
+ 
+    // Calling the show_2 method
+    // (value method) with a pointer
+    (&res).show_2()
+    fmt.Println("Author's name(After): ", res.name)
+}
+```
+
+## interface
+
+可以使用`interface`指定一些方法，类似 c++ 的纯虚函数：
+
+```go
+package main
+
+import "fmt"
+
+type Print interface {
+	print()
+}
+
+type MyStr struct {
+	str string
+}
+
+func (my_str *MyStr) print() { // 对 interface 的实现
+	fmt.Println(my_str.str)
+}
+
+func show_msg(msg Print) { // 只有实现了 Print 接口的对象，才能调用该函数
+	msg.print()
+}
+
+func main() {
+	msg := MyStr{
+		str: "hello",
+	}
+	show_msg(&msg)
 }
 ```
 
