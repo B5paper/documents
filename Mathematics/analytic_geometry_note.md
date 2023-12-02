@@ -51,3 +51,11 @@ Two points $A$ and $B$ are symmetric with respect to a point $O$ if $O$ is the m
 1. 关于点的对称的定义。
 
 看到 P8 Extent of a graph.
+
+## Miscellaneous
+
+* 使用叉乘计算三角形面积
+
+    $s = \frac 1 2 \lvert (b - a) \times (c - a) \rvert$
+
+    Ref: <https://math.stackexchange.com/questions/738236/how-to-calculate-the-area-of-a-triangle-abc-when-given-three-position-vectors-a>

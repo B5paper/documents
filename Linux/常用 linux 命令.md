@@ -520,3 +520,17 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
 
     1. 方法六：`uname -srn`
 
+* 在換 ubuntu apt 源之前，需要先安装`apt install ca-certificates`，不然換完源无法`apt update`
+
+* linux 在 mount u盘时出现 Read-only file system 问题
+
+    原因是 U 盘是 ntfs 文件系统，而操作系统不是完全支持 ntfs。
+
+    解决办法：
+
+    ```bash
+    apt install ntfs-3g fuse
+    ```
+
+    Ref: <https://linuxconfig.org/how-to-mount-partition-with-ntfs-file-system-and-read-write-access>
+

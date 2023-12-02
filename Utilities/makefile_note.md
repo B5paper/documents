@@ -325,7 +325,27 @@ echo_lib_src:
 	echo ${lib_src}
 ```
 
-执行多个 targets:
+**打印一个变量**：
+
+```makefile
+$(info    VAR is $(VAR))
+```
+
+Ref: <https://stackoverflow.com/questions/16467718/how-to-print-out-a-variable-in-makefile>
+
+打印变量这个功能挺有用的，有时间了看下。
+
+**使用 eval 改变变量的值**
+
+```makefile
+$(eval COMPONENTS = opengl)
+```
+
+说明：
+
+1. 目前不清楚使用 eval 对变量赋值和直接对变量赋值有什么不同
+
+**执行多个 targets**:
 
 ```makefile
 all: one two three
@@ -376,6 +396,66 @@ f2.o
 
 * `*` wildcard
 
+## Conditional
+
+```makefile
+libs_for_gcc = -lgnu
+normal_libs =
+
+foo: $(objects)
+ifeq ($(CC),gcc)
+        $(CC) -o foo $(objects) $(libs_for_gcc)
+else
+        $(CC) -o foo $(objects) $(normal_libs)
+endif
+```
+
+匹配一个空变量：
+
+```makefile
+ifeq ($(TOP),)
+$(error TOP not defined: Was preconfig.mk included in root makefile?)
+endif
+```
+
+## Functions
+
+Function call examples:
+
+```makefile
+$(function arguments)
+${function arguments}
+```
+
+调用内置函数的一个例子：
+
+```makefile
+comma:= ,
+empty:=
+space:= $(empty) $(empty)
+foo:= a b c
+bar:= $(subst $(space),$(comma),$(foo))
+# bar is now ‘a,b,c’.
+```
+
+## Variables
+
+**在 makefile 中尝试输出当前的所有变量**
+
+Ref: <https://stackoverflow.com/questions/7117978/gnu-make-list-the-values-of-all-variables-or-macros-in-a-particular-run>
+
+上一级 make 和下一级 make 间的环境变量继承关系是怎样的？
+
+如果下一级的 make 继承上一级的 make，那么就可以在执行下一级 make 前，把所有变量保存下来，从而可以单独运行下一级 make。这样就能独立编译一些模块了。
+
+**makefile 中`:=`和`=`的不同**
+
+`:=`是一次性赋值，`=`是递归赋值，一个变量改变，所有与之相关的变量都受其影响。
+
+有空了看一下。
+
+Ref: <https://stackoverflow.com/questions/4879592/whats-the-difference-between-and-in-makefile>
+
 ## Miscellaneous
 
 1. 在 makefile 里使用`cd`进入其他目录
@@ -388,4 +468,159 @@ f2.o
     ```
 
     Ref: <https://stackoverflow.com/questions/1789594/how-do-i-write-the-cd-command-in-a-makefile>
+
+* 在 make 时报错`*** missing separator.  Stop.`
+
+    很有可能是`\t`被換成了空格。
+
+* 如果一个 makefile 里的一个 target 只使用`$()`调用函数，不执行 bash 命令，那么它被视作什么也不做
+
+    这时候会产生一条`make: xxx is up to date`的提示。
+
+* 待处理的笔记（需要把 qa 完善，才能处理这些笔记）
+
+    每个 makefile 都包含下面这五种成分： explicit rules, implicit rules, variable definitions, directives, and comments.
+
+	其中 explicit rules 告诉 make 程序如何构建一个 target（通常是一个文件），implicit rules 告诉 make 如何构造链式依赖（主要是那些 prerequisites）
+
+	一个命令只能做三件事：
+
+	* Reading another makefile (see Including Other Makefiles).
+
+	* Deciding (based on the values of variables) whether to use or ignore a part of the makefile.
+
+	* Defining a variable from a verbatim string containing multiple lines.
+
+	可以使用`-f name` or `--file=name`执行指定的 makefile。
+
+	**include**
+
+	将 make 程序从当前行停下来，先读取其他 makefile
+
+	```makefile
+	include filenames…
+	```
+
+	`filenames` can contain shell file name patterns. If `filenames` is empty, nothing is included and no error is printed. If the file names contain any variable or function references, they are expanded.
+
+	Example:
+
+	```makefile
+	include foo *.mk $(bar)
+	```
+
+	include 文件的搜索顺序：
+
+	1. current directory
+
+	2. 使用`-I` or `--include-dir`指定的目录
+
+	3. `/usr/local/include`, `/usr/include`
+
+	The `.INCLUDE_DIRS` variable will contain the current list of directories that make will search for included files.
+
+	You can avoid searching in these default directories by adding the command line option `-I` with the special value `-` (e.g., `-I-`) to the command line. This will cause make to forget any already-set include directories, including the default directories. 
+
+	如果找不到 include 后面的文件，make 不会立即报错，只有当读完 makefile 所有内容，仍找不到构建 include 所需的 makefile 的方法后，才会报 fatal error。
+
+	如果想让 make 在找不到 include 文件时不报错，可以使用`-include filenames…`。
+
+	注：
+
+	1. 这个`-I-`不知道怎么用，目前看来也没有什么用
+
+	**MAKEFILES**
+
+	If the environment variable MAKEFILES is defined, make considers its value as a list of names (separated by whitespace) of additional makefiles to be read before the others. 
+
+	搜索的路径与`include`相同。
+
+	看不出来有啥用。
+
+	小知识：`%`会 matches any target whatever.
+
+	**make的两个工作流程**
+
+	GNU make does its work in two distinct phases. During the first phase it reads all the makefiles, included makefiles, etc. and internalizes all the variables and their values and implicit and explicit rules, and builds a dependency graph of all the targets and their prerequisites. During the second phase, make uses this internalized data to determine which targets need to be updated and run the recipes necessary to update them. 
+
+	这两个阶段直接决定了 when variable and function expansion happens
+
+	We say that expansion is immediate if it happens during the first phase: make will expand that part of the construct as the makefile is parsed. We say that expansion is deferred if it is not immediate. Expansion of a deferred construct part is delayed until the expansion is used: either when it is referenced in an immediate context, or when it is needed during the second phase. 
+
+	* Variable Assignment
+
+			```makefile
+			immediate = deferred
+			immediate ?= deferred
+			immediate := immediate
+			immediate ::= immediate
+			immediate :::= immediate-with-escape
+			immediate += deferred or immediate
+			immediate != immediate
+
+			define immediate
+			deferred
+			endef
+
+			define immediate =
+			deferred
+			endef
+
+			define immediate ?=
+			deferred
+			endef
+
+			define immediate :=
+			immediate
+			endef
+
+			define immediate ::=
+			immediate
+			endef
+
+			define immediate :::=
+			immediate-with-escape
+			endef
+
+			define immediate +=
+			deferred or immediate
+			endef
+
+			define immediate !=
+			immediate
+			endef
+			```
+
+			For the append operator ‘+=’, the right-hand side is considered immediate if the variable was previously set as a simple variable (‘:=’ or ‘::=’), and deferred otherwise.
+
+			For the immediate-with-escape operator ‘:::=’, the value on the right-hand side is immediately expanded but then escaped (that is, all instances of $ in the result of the expansion are replaced with $$).
+
+			For the shell assignment operator ‘!=’, the right-hand side is evaluated immediately and handed to the shell. The result is stored in the variable named on the left, and that variable is considered a recursively expanded variable (and will thus be re-evaluated on each reference). 
+
+	* Conditional Directives
+
+			Conditional directives are parsed immediately. This means, for example, that automatic variables cannot be used in conditional directives, as automatic variables are not set until the recipe for that rule is invoked. If you need to use automatic variables in a conditional directive you must move the condition into the recipe and use shell conditional syntax instead. 
+
+	* Rule Definition
+
+			```makefile
+			immediate : immediate ; deferred
+					deferred
+			```
+
+			That is, the target and prerequisite sections are expanded immediately, and the recipe used to build the target is always deferred. This is true for explicit rules, pattern rules, suffix rules, static pattern rules, and simple prerequisite definitions. 
+
+	**How Makefiles Are Parsed**
+
+	1. Read in a full logical line, including backslash-escaped lines (see Splitting Long Lines).
+
+	2. Remove comments (see What Makefiles Contain).
+
+	3. If the line begins with the recipe prefix character and we are in a rule context, add the line to the current recipe and read the next line (see Recipe Syntax).
+
+	4. Expand elements of the line which appear in an immediate expansion context (see How make Reads a Makefile).
+
+	5. Scan the line for a separator character, such as ‘:’ or ‘=’, to determine whether the line is a macro assignment or a rule (see Recipe Syntax).
+
+	6. Internalize the resulting operation and read the next line. 
 

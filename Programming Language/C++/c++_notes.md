@@ -1010,6 +1010,32 @@ ref:
 
 1. <https://www.geeksforgeeks.org/working-and-examples-of-bind-in-cpp-stl/>
 
+### const 左值作为参数参数
+
+如果想让一个函数既接收左值参数，又接收右值参数，还不想重载，也不想写模板实现完美转发，那么可以试一试`const`左值引用。
+
+```cpp
+#include <iostream>
+#include <string>
+using namespace std;
+
+void print(const string &msg)
+{
+    cout << msg << endl;
+}
+
+int main()
+{
+    print("hello");  // OK, "hello" 会先被转换成匿名对象 string("hello")，然后再转换成 const 左值引用
+
+    string hello_world = "hello, world";
+    print(hello_world);  // OK，本身就是左值引用
+    return 0;
+}
+```
+
+想一想，通常右值引用都是匿名对象，我们硬用右值引用改匿名对象也没什么意义。如果懒得定模板，`const`左值引用确实是个比较好的选择。
+
 ## Struct
 
 ### 在初始化时将 struct 所有字段都置 0
@@ -2622,6 +2648,234 @@ int main()
 1. 在手动添加`\n`的时候，如果文件的最后一行的末尾没有`\n`，那么我们读取的`content`会多出一个`\n`，这样会导致读取的内容和原文件不符。
 
     但是这个问题也不算是什么大问题，目前也没有找到什么比较好的解决办法，所以这段代码还是比较实用的。
+
+#### filesystem (since C++ 17)
+
+没错，c++ 直到 c++17 才支持文件系统。
+
+```cpp
+#include <iostream>
+#include <filesystem>
+namespace fs = std::filesystem;
+using namespace std;
+
+int main()
+{
+    fs::path p("./main");  // 使用字符串创建 path
+    string relative_path = p.c_str();  // path 转换成 c-style string
+    string absolute_path = fs::absolute(p).c_str();  // 使用 path 构造绝对路径 absolute
+    cout << "relative: " << relative_path << endl;  // 不清楚为啥会多个点，不过路径确实没错
+    cout << "absolute: " << absolute_path << endl;
+
+    absolute_path = fs::absolute("./main").c_str();  // 也可以直接使用 C 字符串构造 absolute
+    cout << "absolute: " << absolute_path << endl;
+
+    string cur_path = fs::current_path();  // 当前目录，当前目录也可以直接用赋值转换成 string
+    cout << fs::current_path() << endl;  // path 也可以直接用 cout 输出
+    cout << cur_path << endl;
+    return 0;
+}
+```
+
+输出：
+
+```
+relative: ./main
+absolute: /home/hlc/Documents/Projects/cpp_test/./main
+absolute: /home/hlc/Documents/Projects/cpp_test/./main
+"/home/hlc/Documents/Projects/cpp_test"
+/home/hlc/Documents/Projects/cpp_test
+```
+
+其余的一些功能，判断是文件还是目录，判断是否存在，遍历目录，拿到文件/目录的元信息（权限，inode之类的），新建，删除，读写追加文件，指定工作目录，以及 socket 之类的系统虚拟文件的读写，等有空了再看吧。
+
+还有一些常用的功能，比如拼接路径，修改文件名，路径截取，正斜杠和反斜杠的处理，上一级目录，有空了也看看。
+
+记得编译器要打开 c++ 17 的支持，不然会报错的。 visual studio 默认还在用 c++ 14 的标准。
+
+```cpp
+#include <filesystem>
+namespace fs = std::filesystem;
+```
+
+常用的几个类：
+
+* `fs::path`
+
+    `fs::path`几乎只负责处理字符串，不与文件系统产生交互。
+
+    `fs::path`在`string`的基础上，增加了一些处理文件扩展名，绝对路径与相对路径转换，路径拼接之类的与路径相关的字符串处理功能。
+
+    `fs::path`的路径拼接可以使用`/`完成，也可以使用`append()`方法。
+    
+    注：
+    
+    1. cpp reference 中对`append()`和`concat()`的解释：
+
+        `append`, `operator/=`: appends elements to the path with a directory separator
+    
+        `concat`, `operator+=`: concatenates two paths without introducing a directory separator
+
+        可以看到，`append()`与`/`是自动添加分隔符，而`concat()`与`+`只做字符串拷贝。
+
+        example:
+
+        ```cpp
+        #include <filesystem>
+        #include <string>
+        #include <iostream>
+        using namespace std;
+        namespace fs = std::filesystem;
+
+        int main()
+        {
+            fs::path base_dir = "./my_dir";
+            string file_name = "hello_world.txt";  // 注意，file_name 不能是 fs::path 类型，不然 append() 会报错
+            base_dir.append(file_name);  // append() 只接收各种字符串作为参数，不接收 fs::path 类型
+            cout << base_dir << endl;
+            return 0;
+        }
+        ```
+
+        输出：
+
+        ```
+        "./my_dir/hello_world.txt"
+        ```
+
+        可以看到`file_name`本身没有`/`，但是输出中增加了一个分隔符`/`。
+
+        Ref: <https://en.cppreference.com/w/cpp/filesystem/path/append>
+
+    2. 感觉`path`的设计不是很好，既然底层是`string`，没有什么特殊的数据结构，又必须和`string`打交道，还不能保证`path`对象总是有效，那为什么还要专门设计这个 class？直接用`string` + 路径相关的处理函数不是更好？
+
+* `fs::directory_entry`
+
+    从这个类开始，才开始和系统的文件系统交互。
+    
+    这个类很奇怪，从名字上看，它是个目录对象，但实际上初始化这个类的，是一个`path`，或者说是一个`string`，因此`directory_entry`可能是一个目录，也可能是一个文件。
+
+    example：判断一个`path`是一个目录还是一个文件
+
+    ```cpp
+    #include <filesystem>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+    namespace fs = std::filesystem;
+
+    int main()
+    {
+        fs::path file_path("./hello.txt");
+        fs::path dir_path("./world");
+        fs::directory_entry file_entry(file_path);
+        fs::directory_entry dir_entry(dir_path);
+        cout << file_entry << (file_entry.is_regular_file() ? " is " : " isn't ") << "a file." << endl;
+        if (dir_entry.is_directory())
+        {
+            cout << dir_entry << " is a directory." << endl;
+        }
+        else
+        {
+            cout << dir_entry << " isn't a directory." << endl;
+        }
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    "./hello.txt" is a file.
+    "./world" is a directory.
+    ```
+
+* `fs::directory_iterator`
+
+    如果我们需要对一个目录进行遍历，那么就需要用到`directory_iterator`对象。
+
+    example:
+
+    ```
+    #include <filesystem>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+    namespace fs = std::filesystem;
+
+    int main()
+    {
+        fs::path cur_dir = ".";
+        fs::directory_iterator dir_iter(cur_dir);
+        for (const fs::directory_entry &dir_entry: dir_iter)  // 只能写成 const 形式
+        {
+            cout << dir_entry << endl;
+        }
+        return 9;
+    }
+    ```
+
+    输出：
+
+    ```
+    "./main"
+    "./main.cpp"
+    "./hello.txt"
+    "./world"
+    "./.vscode"
+    ```
+
+    注：
+
+    1. 官方的 example 也全都写成这种 range for 的形式，虽然`directory_iterator`也可以直接用`->`或`*`获得`directory_entry`对象，也可以配合`std::begin()`和`std::end()`拿到头尾，但是似乎并没有人这样用。
+
+        我们只需要按照官方的 example 使用它就可以了。
+
+    2. `directory_iterator`的行为有点像迭代器（iterator），有点像容器（container），又有点像生成器（generator），其实它就是四不像，难用。
+
+    3. 构建`directory_iterator`时，并不会检查 path 是否有效。如果 path 不存在，那么会直接报 runtime error。
+
+        可以使用`fs::exists()`对 path 的有效性进行检查。
+
+    一个比较系统的教程：<https://www.studyplan.dev/pro-cpp/file-system>
+
+### cout
+
+* cout 指定小数位数
+
+    方案 1：
+
+    ```cpp
+    #include <iostream>
+    #include <iomanip>
+    using namespace std;
+
+    int main()
+    {
+        float pi = 3.1415926;
+        cout << fixed << setprecision(2) << pi << endl;
+        return 0;
+    }
+    ```
+
+    方案 2：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        float pi = 3.1415926;
+        cout.setf(ios::showpoint);  // optional
+        cout.setf(ios::fixed);
+        cout.precision(2);  // 3.14
+        cout << pi << endl;
+        return 0;
+    }
+    ```
+
+    Ref: <https://stackoverflow.com/questions/5907031/printing-the-correct-number-of-decimal-points-with-cout>
 
 ## 模板
 
@@ -5174,6 +5428,18 @@ class codecvt_utf8_utf16
 
 * 模式匹配
 
+### 内存与对象
+
+本话题主要讨论对象在内存中存储时遇到的各种问题。
+
+#### 有关 vector 和 array 的一个猜想
+
+如果是`vector<vector<int>> arr`，那么`arr`不会占用一大块连续的内存；如果是`vector<array<int, 3>> arr`，那么`arr`会占用一大块连续的内存。
+
+#### 有关指针与 struct
+
+如果不使用指针，那么只能把包含这个对象的 struct 的指针传来传去，然后配合 id 或哈希值拿到具体的资源
+
 ## gcc attribute
 
 ```cpp
@@ -5773,3 +6039,85 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
     Ref: <https://stackoverflow.com/questions/19901934/libpthread-so-0-error-adding-symbols-dso-missing-from-command-line>
 
 
+1. 有关程序中大量使用随机数的问题
+
+    `rand()`的速度很慢，`mt19937`也只快了 3 倍。如果代码中大量用到`rand()`，那么 cpu 会分配很多时间（90% 甚至更多）在系统调用上。
+
+    如果是对随机性不敏感的场合（比如图片渲染），可以使用打表的方法，提前生成一些随机数，在用的时候直接读取数组就可以了。
+
+    ```cpp
+    vector<float> rand_nums;
+    const total_rand_nums_count = 1024;
+    int rand_num_idx = 0;
+
+    float get_rand_num()
+    {
+        if (rand_num_idx >= total_rand_nums_count)
+            rand_num_idx = 0;
+        return rand_nums[rand_num_idx++];
+    }
+
+    int main()
+    {
+        // initialize random numbers table
+        rand_nums.resize(total_rand_nums_count);
+        for (int i = 0; i < total_rand_nums_count; ++i)
+        {
+            rand_nums[i] = (float)rand() / RAND_MAX;
+        }
+
+        // usage
+        float rand_num = get_rand_num();
+        return 0;
+    }
+    ```
+
+    如果现在是多线程，又该怎么办？如果还使用上面的代码，由于`rand_num_idx`并不是线程安全的，所以`rand_nums[rand_num_idx++]`可能会数组越界。
+
+    一个比较自然的想法是加锁：
+
+    ```cpp
+    mutex mtx;
+
+    int main()
+    {
+        // usage
+        {
+            lock_gurad g(mtx)
+            float rand_num = get_rand_num();
+        }
+    }
+    ```
+
+    每个线程在获取随机数时，一个一个访问，保证`rand_num_idx`每次都只递增 1，这样就不会数组越界了。但是加锁同`rand()`一样，会造成性能严重下降，导致 cpu 跑不满，或者 cpu 被浪费在系统调用上。
+
+    如果不加锁，又不想数组越界，还有一种方法是使用`rand_num_idx++ % total_rand_nums_count`作为下标进行访问，然后为了防止`rand_num_idx`递增溢出，在每次访问前或后尝试清零：
+
+    ```cpp
+    float get_rand_num()
+    {
+        if (rand_num_idx >= total_rand_nums_count)
+            rand_num_idx = 0;
+        return rand_nums[rand_num_idx % total_rand_nums_count++];
+    }
+
+    int main()
+    {
+        // usage
+        float rand_num = get_rand_num();
+    }
+    ```
+
+    这样可能会造成有的随机数没有被访问到，有的随机数被访问了多次。但是由于我们是随机性不敏感的场合，所以这样的代价是可以承受的。使用这样的方法可以把 cpu 跑满。
+
+    如果想让每个随机数都访问到，而且不加锁，不越界，可以让每个线程维护一个自己的`rand_num_idx`，或者干脆每个线程维护一个自己的随机数表。
+
+1. `array<int, 3> vec;`和`int vec[3];`该如何选择？
+
+    `array<int, 3>`比`int vec[3]`多了一个`=`运算符，比较方便三个数一起赋值。
+
+    `vector`里可以存`array`，但是不能直接存`int []`数组，如果一定要存数组，可以使用一个`struct`将数组包裹起来，再将 struct 对象存到`vector`中。
+
+    因此如果是存一个向量，那么可以选择`array<float, 3>`，这样可以直接使用`pos_1 = pos_2;`这样的功能。
+
+    如果是在`struct`中定义一组数据，那么可以使用`type []`数组。

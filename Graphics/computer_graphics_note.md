@@ -678,9 +678,21 @@ $$S = \int_\lambda \Phi(\lambda) S(\lambda)\ d\lambda$$
 
 注：
 
-1. $L$是单个视细胞对于全光谱的光的响应程度，这里全光谱的光可以理解为各种不同波长的光子组成一束光。
+1. $L$是单个视细胞对于全光谱的光的响应程度，这里全光谱的光可以理解为各种不同波长的光子组成一束光。$M$和$S$同理。
 
 如果我们给定两束不同的光$\Phi_1 (\lambda)$和$\Phi_2 (\lambda)$，是有可能得到相同的响应$(L, M, S)$的，这个现象被称作 metamerism。
 
 配色（color matching）实验：假如我们现在有三个光源（这三个光源被称为 primaries），每个光源都有自己的频谱（即在$\lambda$-$\mathrm{intensity}$图上的三条曲线），并且我们有三个调节旋钮可以调节这三个光源的强度，如果这三个光源生成的$(L, M, S)$与某第四个光源生成的$(L, M, S)$相同，那么我们就可以使用前三个光源的强度来描述第四个光源。我们称前三个光源的强度为第四个光源的 color。
+
+假如我们将上面配色实验中的三个光源換成单波长光源（monochromatic light sources）,然后对每一个其它波长的光进行配色，就能得到不同波长下的$(L_\lambda, M_\lambda, S_\lambda)$，这些值叫做 spectral tristimulus values，可以构成一幅曲线图。
+
+当三个单色光源为 435.8, 546.1, and 700 nm 时，画出的 spectral tristimulus values 如下图所示：
+
+<div style='text-align:center'>
+<img alt='pic here' />
+</div>
+
+注：
+
+1. tristimulus 不是 LSM 吗，为什么会变成 RGB？而且 RGB 看起来更像是三种单色光的强度。
 

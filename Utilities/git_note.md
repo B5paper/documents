@@ -643,6 +643,8 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
 * `git tag`
 
+    * git 没有办法单独 pull 某个指定的 commit 或 tag，只能 git clone 完后，执行`git checkout <tag_name>`，或`git checkout <commit_id>`切换到指定的 commit
+
 * search code in a specific branch
 
     <https://stackoverflow.com/questions/31891733/searching-code-in-a-specific-github-branch>

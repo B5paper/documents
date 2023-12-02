@@ -6565,3 +6565,41 @@ MODULE_VERSION("1.14");
 ```
 
 Latest progress: <https://embetronicx.com/tutorials/linux/device-drivers/tasklet-static-method/>
+
+## Miscellaneous
+
+* modprobe 的作用
+
+    在 linux 中，如果一些内核模块之间有依赖关系，那么必须按依赖关系进行`insmod`，否则会报错。
+
+    `modprobe`会根据`depmod`所产生的相依关系，决定要载入哪些模块。若在载入过程中发生错误，在`modprobe`会卸载整组的模块。
+
+    example:
+
+    载入模块：
+
+    ```bash
+    sudo modprobe -v xdxgpu
+    ```
+
+    尝试制裁模块：
+
+    ```bash
+    sudo modprobe -vr xdxgpu
+    ```
+
+* depmod 命令
+
+    `depmod`通常在`modprobe`之前运行，用于分析可载入模块的依赖关系。
+
+    example:
+
+    分析所有可用模块的依赖关系：
+
+    ```bash
+    sudo depmod -av
+    ```
+
+    注：
+
+    1. 这里没有加路径，可能是会分析到当前目录下？

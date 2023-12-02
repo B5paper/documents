@@ -1240,11 +1240,15 @@ int main()
 
 ## opencl kernel programming (OpenCL Language)
 
+opencl kernel 里可以执行`printf()`，并且这个函数还是 atomic 的
+
 ### vloadn 与 vstoren
 
 `vloadn()`用于从某个内存地址读取一个 vector，`vstoren()`用于将一个 vector 存储到某个内存目标地址中。
 
-Ref:
+这两个函数还挺有用的，尤其是`vloadn()`。opencl 里的 float3 其实是 float4，只不过最后一个数字不参与计算。但是在 host 上如果我们定义了一个`glm::vec3`，或者`float arr[3]`，那可是只有 3 个数字。如果按照 opencl 的标准来，必须把之前写的`vec3`都改成`cl_float3`，这样得改动好多之前写好的代码。那么能不能把数据加载进显存的时候，用`glm::vec3`，而让 opencl 计算的时候，用`float3`？可以的，我们只需要用`vload3()`创建局部`float3`对象就可以了。
+
+Refs:
 
 1. <https://man.opencl.org/vloadn.html>
 

@@ -202,6 +202,16 @@ TAG 指的是镜像 image 的版本。默认
 
 容器与系统交互使用的是 socket，通过端口与系统交互。
 
+* 重新命名一个 container
+
+    ```bash
+    docker rename CONTAINER NEW_NAME
+    ```
+
+    注：
+    
+    1. docker 的各种常用命令，有时间了系统地学一下：<https://docs.docker.com/engine/reference/run/>
+
 ## 镜像仓库（docker image registry）
 
 UnionFS（联合文件系统）：是一种分层，轻量级并且高性能的文件系统，它支持**对文件系统的修改作为一次提交来一层层地叠加**。镜像可以通过分层叠加。
