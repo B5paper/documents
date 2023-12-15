@@ -286,6 +286,12 @@ epoch 9: sec: 1677465618, clk: 101, rnd_num: 5142
 
 I think the first random number generated after setting seed should be abandoned. Because they are located in almost the same range.
 
+## 预处理命令
+
+`#define`中，`##`的作用是拼接两个字符串。如果`##`的左右有变量，那么将变量替换为字符串，如果没有变量，那么将其直接看作字符串。
+
+Ref: <https://stackoverflow.com/questions/29577775/what-does-mean-in-the-define-directive-in-the-code-here>
+
 ## Examples
 
 * 读一个字符，并将其复制到输出

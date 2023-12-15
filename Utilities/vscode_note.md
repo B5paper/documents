@@ -53,3 +53,19 @@
     ProxyJump liucheng@172.18.25.248
     User ubuntu
     ```
+
+* vscode debug with a root privilege
+
+    一种方式是创建一个`gdb`的脚本：
+
+    ```bash
+    #!/bin/bash
+    pkexec /usr/bin/gdb "$@"
+    ```
+
+    然后在 vscode 中将`miDebuggerPath`设置成 gdb 脚本的 path 就好了。
+
+    另一种方法是设置权限：`user_name ALL=(ALL) NOPASSWD:/usr/bin/gdb`，可以直接让 gdb 获得 root 权限。
+
+    Ref: <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+

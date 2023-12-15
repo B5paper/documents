@@ -1196,6 +1196,37 @@ void main(){
 }
 ```
 
+* mix
+
+    `mix()`是 glsl 里的一个线性插值函数。
+
+    mix — linearly interpolate between two values
+
+    Syntax:
+
+    ```c
+    genType mix(
+        genType x,
+        genType y,
+        genType a);
+    ```
+
+    Parameters:
+
+    * x
+
+        Specify the start of the range in which to interpolate.
+    
+    * y
+
+        Specify the end of the range in which to interpolate.
+    
+    * a
+
+        Specify the value to use to interpolate between x and y. 
+
+    `mix` performs a linear interpolation between x and y using a to weight between them. The return value is computed as $x \times (1−a) + y \times a$. 
+
 ### shader 的加载
 
 load shaders:
@@ -1734,6 +1765,12 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 <div style='text-align:center'>
 <img width=700 src='./pics/opengl_note/pic_9.png' />
 </div>
+
+### 常见类型
+
+* bvec2
+
+    `bvec2`是 glsl 中的一种数据类型，表示由两个 bool 值组成的向量。
 
 ## texture （纹理）
 

@@ -478,6 +478,12 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
 
         `# sync; echo 3 > /proc/sys/vm/drop_caches`
 
+* 修改 boot 文件，启动文字操作系统
+
+    将`linux`行最后的`splash`替换成`text`即可。
+
+    Ref: <https://superuser.com/questions/974797/how-to-boot-a-linux-system-without-graphical-server>
+
 ## problem shooting
 
 * Ubuntu 无法连接企业 Wifi

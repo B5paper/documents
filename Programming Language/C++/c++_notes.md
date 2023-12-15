@@ -736,6 +736,64 @@ c++ 规定不允许有元素类型为引用的数组。
 
 Ref: <https://stackoverflow.com/questions/1164266/why-are-arrays-of-references-illegal>
 
+### 函数的返回值为对象
+
+```cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+class A
+{
+    public:
+    A(int val) {
+        cout << "cons: " << val << endl;
+        this->val = val;
+        arr.resize(3);
+    }
+
+    ~A() {
+        cout << "des: " << val << ", " << arr.size() << endl;
+    }
+
+    int val;
+    vector<int> arr;
+};
+
+A func()
+{
+    return A(1);
+}
+
+int main()
+{
+    A a(2);
+    a.arr.resize(4);
+    a = func();
+    cout << a.arr.size() << endl;
+    cout << "here" << endl;
+}
+```
+
+输出：
+
+```
+cons: 2
+cons: 1
+des: 1, 3
+3
+here
+des: 1, 3
+```
+
+可以看到，用函数的返回值去赋值一个对象时，对象会先在函数内部构造，在函数返回时调用析构函数销毁对象。在赋值时，会发生 shadow copy，如果 struct 中原先有 vector，那么函数外部的对象的 vector 会被销毁，然后 shadow copy 成函数内部生成的对象的 vector。
+
+最终退出程序时，再销毁外部的 struct 对象。
+
+也就是说，当我们使用函数的返回值来赋值一个外部 struct 对象时，外部已经存在的对象会被销毁，然后 shadow copy 成函数内部创建的对象。
+
+如果外部对象的构造函数和析构函数有申请/释放内存的操作，那么就要小心了，可能会把已经申请好的内存释放掉。
+
 ## 函数，指针与引用
 
 函数指针原始的用法：
@@ -4253,6 +4311,32 @@ in test move 2, right value
 
 1. `T&&`指的是通用引用，既可以是左值引用，也可以是右值引用。而`T&`只代表左值引用。为了使用这个特性，使得`test_move`既接受左值引用，也接受右值引用，我们需要引入模板语法。
 
+### c++ 17 初始化一个 struct
+
+    指定字段进行初始化：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    struct A
+    {
+        int val;
+        int val_2;
+    };
+
+    int main()
+    {
+        A a = {
+            .val = 1,
+            .val_2 = 2
+        };
+
+        cout << a.val << endl;
+        return 0;
+    }
+    ```
+
 ## Multithreading programming 多线程
 
 ### thread
@@ -4596,6 +4680,107 @@ int main()
 如果传递的参数是局部变量，那么局部变量会在函数执行前就申请好，并不会因为离开了一个函数中的大括号括起来的作用域就被释放。此时在线程子函数中，参数的引用并不会失效。
 
 如果传递的参数是使用`new`，`malloc()`等动态申请的内存，那么变量的内存在子线程外部被释放掉后，参数的引用会失效，之后的行为都是未定义的。
+
+### ref 与 cref
+
+如果需要按引用向线程函数传递参数，一个朴素的想法可能是这样的：
+
+```cpp
+#include <thread>
+#include <iostream>
+using namespace std;
+
+struct A
+{
+    int val;
+};
+
+void thd_func(A &a)
+{
+    a.val = 2;
+}
+
+int main()
+{
+    A a;
+    a.val = 1;
+    thread thd = thread(thd_func, a);
+    thd.join();
+    cout << a.val << endl;
+    return 0;
+}
+```
+
+但是这样会编译出错：
+
+```
+Starting build...
+/usr/bin/g++-11 -fdiagnostics-color=always -g *.cpp -o /home/hlc/Documents/Projects/cpp_test/main
+In file included from /usr/include/c++/11/thread:43,
+                 from main.cpp:32:
+/usr/include/c++/11/bits/std_thread.h: In instantiation of ‘std::thread::thread(_Callable&&, _Args&& ...) [with _Callable = void (&)(A&); _Args = {A&}; <template-parameter-1-3> = void]’:
+main.cpp:50:36:   required from here
+/usr/include/c++/11/bits/std_thread.h:130:72: error: static assertion failed: std::thread arguments must be invocable after conversion to rvalues
+  130 |                                       typename decay<_Args>::type...>::value,
+      |                                                                        ^~~~~
+/usr/include/c++/11/bits/std_thread.h:130:72: note: ‘std::integral_constant<bool, false>::value’ evaluates to false
+/usr/include/c++/11/bits/std_thread.h: In instantiation of ‘struct std::thread::_Invoker<std::tuple<void (*)(A&), A> >’:
+/usr/include/c++/11/bits/std_thread.h:203:13:   required from ‘struct std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (*)(A&), A> > >’
+/usr/include/c++/11/bits/std_thread.h:143:29:   required from ‘std::thread::thread(_Callable&&, _Args&& ...) [with _Callable = void (&)(A&); _Args = {A&}; <template-parameter-1-3> = void]’
+main.cpp:50:36:   required from here
+/usr/include/c++/11/bits/std_thread.h:258:11: error: no type named ‘type’ in ‘struct std::thread::_Invoker<std::tuple<void (*)(A&), A> >::__result<std::tuple<void (*)(A&), A> >’
+  258 |           _M_invoke(_Index_tuple<_Ind...>)
+      |           ^~~~~~~~~
+/usr/include/c++/11/bits/std_thread.h:262:9: error: no type named ‘type’ in ‘struct std::thread::_Invoker<std::tuple<void (*)(A&), A> >::__result<std::tuple<void (*)(A&), A> >’
+  262 |         operator()()
+      |         ^~~~~~~~
+
+Build finished with error(s).
+```
+
+此时可以使用`ref`来完成这个功能：
+
+```cpp
+#include <thread>
+#include <iostream>
+using namespace std;
+
+struct A
+{
+    int val;
+};
+
+void thd_func(A &a)
+{
+    a.val = 2;
+}
+
+int main()
+{
+    A a;
+    a.val = 1;
+    thread thd = thread(thd_func, ref(a));
+    thd.join();
+    cout << a.val << endl;
+    return 0;
+}
+```
+
+编译并运行，输出为：
+
+```
+2
+```
+
+不清楚`ref`详细的原理，只知道这么使用就行了。
+
+如果不想传`ref()`，又想按引用传递对象，那么可以传指针，比如`void thd_func(A *a)`，这样也是可以的。
+
+（理论上，c++ 的引用也是一种指针，不清楚为啥不能实现）
+
+更多资料：
+
+<https://en.cppreference.com/w/cpp/utility/functional/ref>
 
 ## Smart pointers
 
@@ -5438,7 +5623,286 @@ class codecvt_utf8_utf16
 
 #### 有关指针与 struct
 
-如果不使用指针，那么只能把包含这个对象的 struct 的指针传来传去，然后配合 id 或哈希值拿到具体的资源
+如果不使用指针，那么只能把包含这个对象的 struct 的指针传来传去，然后配合 id 或哈希值拿到具体的资源。
+
+* 假如一个场景中包含了很多物体，我想根据物体对象，拿到它所在的场景，该怎么写 c++ 代码？
+
+    显然要用到指针。但是需不需要用到智能指针？
+
+    一个比较简单的情况：
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct Scene;
+
+    struct Object
+    {
+        string name;
+        Scene *pscene;
+
+        string get_scene_name();
+    };
+
+    struct Scene
+    {
+        string name;
+        vector<Object> objs;
+    };
+
+    string Object::get_scene_name() {
+        return pscene->name;
+    }
+
+    int main()
+    {
+        Scene scene;
+        scene.name = "m_scene";
+        Object obj;
+        obj.name = "hello";
+        obj.pscene = &scene;
+        scene.objs.push_back(obj);
+
+        Object &inner_obj = scene.objs[0];
+        cout << "scene name: " << inner_obj.get_scene_name() << endl;
+        return09;
+    }
+    ```
+
+    输出：
+
+    ```
+    scene name: m_scene
+    ```
+
+    但是如果 scene 在 obj 不知道的时候，偷偷失效了，会发生什么？
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct Scene;
+
+    struct Object
+    {
+        string name;
+        Scene *pscene;
+
+        string get_scene_name();
+    };
+
+    struct Scene
+    {
+        string name;
+        vector<Object> objs;
+    };
+
+    string Object::get_scene_name() {
+        return pscene->name;
+    }
+
+    int main()
+    {
+        Scene *scene = new Scene;
+        scene->name = "m_scene";
+        Object obj;
+        obj.name = "hello";
+        obj.pscene = scene;
+        scene->objs.push_back(obj);
+
+        Object &inner_obj = scene->objs[0];
+        delete scene;  // 在 inner_obj 不知道的时候，scene 已经失效了
+        cout << "scene name: " << inner_obj.get_scene_name() << endl;
+        return 0;
+    }
+    ```
+
+    这段代码会报运行时错误：
+
+    ```
+    terminate called after throwing an instance of 'std::length_error'
+        what():  basic_string::_M_create
+    ```
+
+    可以看到`scene`会失效，`inner_obj`本身也会失效。
+
+    假如两个对象没有包含的关系，即一个对象中，不使用 stl 容器包含另一个对象，会发生什么？
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct B;
+
+    struct A
+    {
+        string name;
+        B *pb;
+    };
+
+    struct B
+    {
+        string name;
+        A *pa;
+    };
+
+    int main()
+    {
+        A *a = new A;
+        a->name = "a";
+        B *b = new B;
+        b->name = "b";
+        b->pa = a;
+        a->pb = b;
+
+        delete a;
+        cout << b->name << endl;
+        cout << b->pa->name << endl;  // 在这一行会出现运行时错误
+        return 0;
+    }
+    ```
+
+    可见，一个对象的消失，并不会通知另外一个对象。
+
+    如果換成智能指针呢？会发生什么？
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct B;
+
+    struct A
+    {
+        string name;
+        shared_ptr<B> pb;
+        A() {
+            cout << "in A constructor" << endl;
+        }
+        ~A() {
+            cout << "in A destructor" << endl;
+        }
+    };
+
+    struct B
+    {
+        string name;
+        shared_ptr<A> pa;
+        B() {
+            cout << "in B constructor" << endl;
+        }
+        ~B() {
+            cout << "in B destructor" << endl;
+        }
+    };
+
+    int main()
+    {
+        A *a = new A;
+        a->name = "a";
+        B *b = new B;
+        b->name = "b";
+        b->pa = make_shared<A>(*a);
+        a->pb = make_shared<B>(*b);
+
+        delete a;
+        cout << b->name << endl;
+        cout << b->pa->name << endl;
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    in A constructor
+    in B constructor
+    in A destructor
+    in B destructor
+    b
+    a
+    ```
+
+    可以看到，在`delete a;`时，`A`和`B`两个对象就已经被销毁了，后面的输出其实是不可靠的。
+
+    有一个想法是给`A`和`B`互设友元，这样当某个对象失效的时候，可以在析构函数里告诉互相链接的对象。但是这样要求你提前知道哪些类是需要互相通信的，而且当类的数量变多的时候，通信连接数会指数增长。
+
+    其实智能指针和 move 语义也都只能保证有关联的两个指针，如果一个有效，那么另一个也一定有效。无法保证一个失效时，对另外一个指针进行通知；或者让一个指针总是能查询与之相关联的另一个指针是否有效。
+
+    或许可以增加一个全局对象，或者用一个额外的类，来对资源进行管理，提供对象是否失效的查询接口。这样要求每次有新的对象创建，必须在这个资源管理对象中进行注册，当对象被销毁时，在资源管理对象中反注册。这样就又涉及到整个程序的设计思想了，是否真的需要这样做，还得权衡代码复杂度和性能。
+
+    如果让`B`对象包含`A`的指针，如果仅仅是为了传参方便，我觉得没有必要这样做。如果他们确实存在包含关系，那么只需要用到 c++ 的局部变量内存管理就好了。如果两个对象存在依赖关系，那么可以考虑用智能指针。
+
+### 构造函数与析构函数调用次数不一致
+
+c++ 中将一个自动管理的对象（比如局部变量，全局变量等）交给另外一个自动管理的系统（比如 shared_ptr，stl 容器）时，由于会调用移动构造函数，所以有可能不调用构造函数，造成构造函数和析构函数调用的次数不成对，最终导致内存错误。
+
+一个经典的错误是，在程序结束时，构造函数调用一次，析构函数调用两次。
+
+example:
+
+```cpp
+#include <iostream>
+#include <memory>
+using namespace std;
+
+struct B;
+
+struct A
+{
+    int val;
+    shared_ptr<B> to_b;
+    A() {
+        cout << "in A constructor" << endl;
+    }
+    ~A() {
+        cout << "in A destructor, val: " << val << endl;
+    }
+};
+
+struct B
+{
+    int val;
+    weak_ptr<A> to_a;
+    B() {
+        cout << "in B constructor" << endl;
+    }
+    ~B() {
+        cout << "in B destructor, val: " << val << endl;
+    }
+};
+
+int main()
+{
+    A a;
+    a.val = 1;
+    B b;
+    b.val = 2;
+    a.to_b = make_shared<B>(b);
+    b.to_a = make_shared<A>(a);
+    return 0;
+}
+```
+
+输出：
+
+```
+in A constructor
+in B constructor
+in A destructor, val: 1
+in B destructor, val: 2
+in A destructor, val: 1
+in B destructor, val: 2
+```
 
 ## gcc attribute
 

@@ -58,6 +58,10 @@ g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o 
 ./main
 ```
 
+## Vulkan Instance Creation
+
+
+
 ## 画一个三角形
 
 ### 1. base code
@@ -1553,6 +1557,105 @@ make
 </div>
 
 ## physical device selection
+
+## swapchain
+
+* 有关窗口 buffer 和渲染 buffer 的创建与关联流程
+
+    猜想：swap chain 用于和窗口交换数据，在调用`vkCreateSwapchainKHR(()`时会创建好一些图片缓冲区。
+
+    调用`vkGetSwapchainImagesKHR()`可以拿到缓冲区的这些图片，实际拿到的是`VkImage`类型的一些对象，猜测这些对象其实是图片指针。
+
+    调用`vkCreateImageView()`生成`VkImageView`，可以给`VkImage`加一些额外的图片信息，相当于一个 wrapper 的功能。
+
+    然后再调用`vkCreateFramebuffer()`，将`VkImageViewv`转换成`VkFramebuffer`，供 render pass 使用。
+
+    最终`VkFramebuffer`会被写在`VkRenderPassBeginInfo`对象的`framebuffer`字段中，而`vkCmdBeginRenderPass()`会接收`VkRenderPassBeginInfo`对象作为参数，进行实际的渲染。
+
+* 有关与窗口交换 buffer 和渲染指令队列
+
+    ```cpp
+    void drawFrame(VkDevice &device, VkFence &inFlightFence, VkCommandBuffer &commandBuffer,
+        VkSwapchainKHR &swapChain, VkSemaphore &imageAvailableSemaphore,
+        VkRenderPass &renderPass, std::vector<VkFramebuffer> &swapChainFramebuffers,
+        VkExtent2D &swapChainExtent, VkPipeline &graphicsPipeline,
+        VkSemaphore &renderFinishedSemaphore, VkQueue &graphicsQueue,
+        VkQueue &presentQueue)
+    {
+        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &inFlightFence);
+
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+        vkResetCommandBuffer(commandBuffer, 0);
+        recordCommandBuffer(commandBuffer, imageIndex, renderPass, swapChainFramebuffers, swapChainExtent, graphicsPipeline);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = &imageAvailableSemaphore;  // 拿到画图所需要的缓冲区
+        submitInfo.pWaitDstStageMask = &static_cast<const VkPipelineStageFlags&>(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &renderFinishedSemaphore;  // 判断是否绘制完成
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapChain;
+        presentInfo.pImageIndices = &imageIndex;
+        vkQueuePresentKHR(presentQueue, &presentInfo);
+    }
+    ```
+
+    看起来`vkQueuePresentKHR()`会把渲染好的图片的信息加入到 present 队列里。说明 present 队列与窗口的 swap 是 vk 在后台帮忙完成的，它和渲染指令队列是异步交互的。
+
+## 从录入绘制命令到显示到屏幕
+
+fence 用于等待 gpu 指令执行完成，从而保证每次只绘制一帧。
+
+> a fence to make sure only one frame is rendering at a time.
+
+fence 会作为参数传入`vkQueueSubmit()`中，提交完指令后等待 gpu 返回。
+
+`vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);`:
+
+> The `vkWaitForFences` function takes an array of fences and waits on the host for either any or all of the fences to be signaled before returning. The VK_TRUE we pass here indicates that we want to wait for all fences, but in the case of a single one it doesn’t matter. This function also has a timeout parameter that we set to the maximum value of a 64 bit unsigned integer, UINT64_MAX, which effectively disables the timeout.
+
+`vkResetFences(device, 1, &inFlightFence);`:
+
+> manually reset the fence to the unsignaled state
+
+`vkResetFences()`的作用类似把 fence 的值清零。
+
+* `vkResetCommandBuffer`
+
+    ```c
+    VkResult vkResetCommandBuffer(
+        VkCommandBuffer                             commandBuffer,
+        VkCommandBufferResetFlags                   flags);
+    ```
+
+    `flags`似乎用于指定是否回收 command 占用的内存。如果没必要直接置 0 就好了。
+
+* `vkQueuePresentKHR`
+
+    ```c
+    VkResult vkQueuePresentKHR(
+        VkQueue                                     queue,
+        const VkPresentInfoKHR*                     pPresentInfo);
+    ```
+
+    After queueing all rendering commands and transitioning the image to the correct layout, to queue an image for presentation.
+
+看起来`vkQueueSubmit`和`vkQueuePresentKHR`都是非阻塞式的，因此分开来执行了。
 
 ## frames in flight
 
@@ -4506,3 +4609,1833 @@ void createDescriptorSetLayout() {
 ```cpp
 
 ```
+
+## vulkan 开发前置的搭建
+
+使用 vulkan 开始做渲染前的准备工作繁多复杂，这里把统一捋一下，并做一些模块化的设计。
+
+* `collect_available_inst_exts`
+
+    ```cpp
+    void collect_available_inst_exts(vector<VkExtensionProperties> &available_inst_exts)
+    {
+        uint32_t inst_ext_count;
+        vkEnumerateInstanceExtensionProperties(nullptr, &inst_ext_count, nullptr);
+        available_inst_exts.resize(inst_ext_count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &inst_ext_count, available_inst_exts.data());
+        cout << "there are " << inst_ext_count << " instance extensions available:" << endl;
+        for (int i = 0; i < inst_ext_count; ++i)
+        {
+            cout << available_inst_exts[i].extensionName << endl;
+        }
+    }
+    ```
+
+    收集所有可用的 instance extension，将`vkEnumerateInstanceExtensionProperties()`函数的第一个参数填`nullptr`，可以获得所有可用的 extension。
+
+* `collect_glfw_extensions`
+
+    ```cpp
+    void collect_glfw_required_inst_exts(vector<const char*> &enabled_extensions)
+    {
+        uint32_t ext_count;
+        const char **glfw_exts = glfwGetRequiredInstanceExtensions(&ext_count);
+        cout << "glfw requires " << ext_count << " extensions:" << endl;
+        for (int i = 0; i < ext_count; ++i)
+        {
+            cout << glfw_exts[i] << endl;
+            enabled_extensions.push_back(glfw_exts[i]);
+        }
+    }
+    ```
+
+    ```cpp
+    void collect_glfw_extensions(vector<const char*> &enabled_extensions)
+    {
+        uint32_t count;
+        const char **glfw_required_extensions = glfwGetRequiredInstanceExtensions(&count);
+        cout << "glfw requires " << count << " extensions:" << endl;
+        for (int i = 0; i < count; ++i)
+        {
+            cout << glfw_required_extensions[i] << endl;
+            enabled_extensions.push_back(glfw_required_extensions[i]);
+        }
+    }
+    ```
+
+    在创建 vulkan instance 的时候，需要知道启用了哪些 extension，哪些 layer。
+
+    对于 glfw 来说，通常要求 vulkan 支持 surface 相关的 extension。我们使用`glfwGetRequiredInstanceExtensions()`拿到所需的 extension。需要注意，在调用这个函数之前，需要保证`glfwInit()`已经被调用。
+
+    `glfwGetRequiredInstanceExtensions()`返回的是一个`const char**`，同时又以传出参数的形式说明 extension 有几个。这说明这些字符串占用的内存是由 glfw 内部管理的，我们无法动态地修改。这样的形式有几个问题：如果我现在想启用额外的 extension，额外的数据就没地方放了。所以我们选择用`vector`自己去管理内存，这样就能动态地添加 extension。
+
+    在上面的程序中，`vector<>`存储的是`const char*`，由于`char*`只是一个内存地址，并不是真正的字符串数据，所以如果程序被修改，有时候可能出现字符串的内存地址被改变，导致无法找到真正的字符串的问题。最保险的做法是存储`vector<string>`，然后在需要的时候将其转化成`vector<const char*>`。对于小程序而言，涉及到这个问题的情况不多，暂时先使用`vector<const char*>`。
+
+* `collect_available_layers`
+
+    ```cpp
+    void collect_available_inst_layers(vector<VkLayerProperties> &available_inst_layers)
+    {
+        uint32_t layer_count;
+        vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+        available_inst_layers.resize(layer_count);
+        vkEnumerateInstanceLayerProperties(&layer_count, available_inst_layers.data());
+        cout << "ther are " << layer_count << " available instance layers:" << endl;
+        for (int i = 0; i < layer_count; ++i)
+        {
+            cout << available_inst_layers[i].layerName << endl;
+        }
+    }
+    ```
+
+    ```cpp
+    void collect_available_layers(vector<VkLayerProperties> &available_layers)
+    {
+        uint32_t count;
+        vkEnumerateInstanceLayerProperties(&count, nullptr);
+        available_layers.resize(count);
+        vkEnumerateInstanceLayerProperties(&count, available_layers.data());
+        cout << "there are " << count << " layers available:" << endl;
+        for (int i = 0; i < count; ++i)
+        {
+            cout << available_layers[i].layerName << endl;
+        }
+    }
+    ```
+
+    得到所有可供 vulkan instance 使用的 layer。
+
+    由于无法同时完成申请内存和存放数据两个需求，所以调用两次`vkEnumerateInstanceLayerProperties()`完成这个功能。
+
+* `enable_validation_layer`
+
+    ```cpp
+    void enable_validation_layer(vector<const char*> &enalbed_layers)
+    {
+        enalbed_layers.push_back("VK_LAYER_KHRONOS_validation");
+    }
+    ```
+
+    如果是自己写的需要 debug 的小工程，最好还是开启下 validation layer。不然有可能程序直接报 segmentation fault 退出了，没有其他错误提示。
+
+* `check_enabled_layers_valid`
+
+    ```cpp
+    bool check_enabled_layers_valid(const vector<const char*> enabled_layers, 
+        const vector<VkLayerProperties> available_layers)
+    {
+        bool found;
+        for (int i = 0; i < enabled_layers.size(); ++i)
+        {
+            found = false;
+            for (int j = 0; j < available_layers.size(); ++j)
+            {
+                if (string(enabled_layers[i]) == string(available_layers[j].layerName))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    ```
+
+    检查`enabled_layers`是否为`available_layers`的子集。双重循环 + `string()`比较是否相等。不是时间复杂度最低的算法，但是很容易实现。
+
+* `debug_callback`
+
+    ```cpp
+    VkBool32 debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData)
+    {
+        cout << "validation layer: " << pCallbackData->pMessage << endl;
+        return VK_FALSE;
+    }
+    ```
+
+    validation callback 函数。参数的类型挺长的，其实只定义了两个东西，一个是告警的严重程度，另一个是告警的消息类型。
+
+    总是返回 false 就对了，具体原因我也不记了。
+
+* `create_vk_instance`
+
+    (2023.12.15 version)
+
+    ```cpp
+    #define GLFW_INCLUDE_VULKAN
+    #include <GLFW/glfw3.h>
+    #include <vector>
+    using std::vector;
+    #include <iostream>
+    using std::cout, std::endl;
+
+    void collect_glfw_required_inst_exts(vector<const char*> &enabled_extensions)
+    {
+        uint32_t ext_count;
+        const char **glfw_exts = glfwGetRequiredInstanceExtensions(&ext_count);
+        cout << "glfw requires " << ext_count << " extensions:" << endl;
+        for (int i = 0; i < ext_count; ++i)
+        {
+            cout << glfw_exts[i] << endl;
+            enabled_extensions.push_back(glfw_exts[i]);
+        }
+    }
+
+    void collect_available_inst_layers(vector<VkLayerProperties> &available_inst_layers)
+    {
+        uint32_t layer_count;
+        vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+        available_inst_layers.resize(layer_count);
+        vkEnumerateInstanceLayerProperties(&layer_count, available_inst_layers.data());
+        cout << layer_count << " available instance layers:" << endl;
+        for (int i = 0; i < layer_count; ++i)
+        {
+            cout << available_inst_layers[i].layerName << endl;
+        }
+    }
+
+    void collect_available_inst_exts(vector<VkExtensionProperties> &available_inst_exts)
+    {
+        uint32_t inst_ext_count;
+        vkEnumerateInstanceExtensionProperties(nullptr, &inst_ext_count, nullptr);
+        available_inst_exts.resize(inst_ext_count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &inst_ext_count, available_inst_exts.data());
+        cout << "there are " << inst_ext_count << " instance extensions available:" << endl;
+        for (int i = 0; i < inst_ext_count; ++i)
+        {
+            cout << available_inst_exts[i].extensionName << endl;
+        }
+    }
+
+    VkBool32 debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+        VkDebugUtilsMessageTypeFlagsEXT message_type,
+        const VkDebugUtilsMessengerCallbackDataEXT *p_callback_data,
+        void *p_user_data)
+    {
+        cout << "validation layer: " << p_callback_data->pMessage << endl;
+        return VK_FALSE;
+    }
+
+    int main()
+    {
+        glfwInit();
+        
+        vector<VkExtensionProperties> available_inst_exts;
+        collect_available_inst_exts(available_inst_exts);
+
+        vector<VkLayerProperties> available_inst_layers;
+        collect_available_inst_layers(available_inst_layers);
+
+        vector<const char*> enabled_extensions;
+        collect_glfw_required_inst_exts(enabled_extensions);
+        enabled_extensions.push_back("VK_EXT_debug_utils");
+
+        vector<const char*> enabled_inst_layers;
+        enabled_inst_layers.push_back("VK_LAYER_KHRONOS_validation");
+
+        VkApplicationInfo app_info{};
+        app_info.apiVersion = VK_API_VERSION_1_0;
+        app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+        app_info.pApplicationName = "hello";
+        app_info.pEngineName = "no engine";
+        app_info.pNext = NULL;
+        app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+
+        VkDebugUtilsMessengerCreateInfoEXT debug_messenger_crt_info{};
+        debug_messenger_crt_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debug_messenger_crt_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debug_messenger_crt_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debug_messenger_crt_info.pfnUserCallback = debug_callback;
+
+        VkInstanceCreateInfo inst_crt_info{};
+        inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        inst_crt_info.pApplicationInfo = &app_info;
+        inst_crt_info.enabledExtensionCount = enabled_extensions.size();
+        inst_crt_info.ppEnabledExtensionNames = enabled_extensions.data();
+        inst_crt_info.enabledLayerCount = enabled_inst_layers.size();
+        inst_crt_info.ppEnabledLayerNames = enabled_inst_layers.data();
+        inst_crt_info.flags = 0;
+        inst_crt_info.pNext = &debug_messenger_crt_info;
+
+        VkResult result;
+        VkInstance inst;
+        result = vkCreateInstance(&inst_crt_info, nullptr, &inst);
+        if (result != VK_SUCCESS)
+        {
+            cout << "fail to create vulkan instance" << endl;
+            exit(-1);
+        }
+        return 0;
+    }
+    ```
+
+    ```cpp
+    void create_vk_instance(VkInstance &vk_inst, const vector<const char*> &enabled_extensions,
+        const vector<const char*> &enabled_layers,
+        VkBool32 (*debug_callback)(VkDebugUtilsMessageSeverityFlagBitsEXT,
+            VkDebugUtilsMessageTypeFlagsEXT,
+            const VkDebugUtilsMessengerCallbackDataEXT*,
+            void*))
+    {
+        VkApplicationInfo app_info{};
+        app_info.apiVersion = VK_API_VERSION_1_0;
+        app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+        app_info.pApplicationName = "hello, world";
+        app_info.pEngineName = "no engine";
+        app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        VkInstanceCreateInfo inst_crt_info{};
+        inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        inst_crt_info.pApplicationInfo = &app_info;
+        inst_crt_info.enabledExtensionCount = enabled_extensions.size();
+        inst_crt_info.ppEnabledExtensionNames = enabled_extensions.data();
+        inst_crt_info.enabledLayerCount = enabled_layers.size();
+        inst_crt_info.ppEnabledLayerNames = enabled_layers.data();
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.pfnUserCallback = debug_callback;
+        inst_crt_info.pNext = &debugCreateInfo;
+        
+        VkResult ret_val = vkCreateInstance(&inst_crt_info, nullptr, &vk_inst);
+        if (ret_val != VK_SUCCESS)
+        {
+            cout << "fail to create a vulkan instance" << endl;
+            exit(-1);
+        }
+        cout << "successfully create a vulkan instance" << endl;
+    }
+    ```
+
+    很长，但是并不难，我们做了不少准备工作，extension 和 layer 我们都提前准备好了，`debug_callback`我们也是提前准备好的。设置告警的消息类型和消息严重程度比较烦人，不过好在只需要设置一次。
+
+    需要注意`inst_crt_info.pNext = &debugCreateInfo;`这个地方，把`debugCreateInfo`传给链表的 next 指针，那么在创建的过程中就会启用 validation layer。否则的话，会在 instance 创建结束后才启用 validation layer。
+
+* 至此的一个 usage summary
+
+    ```cpp
+    int main()
+    {
+        glfwInit();
+        vector<const char*> enabled_extensions;
+        collect_glfw_extensions(enabled_extensions);
+
+        vector<const char*> enabled_layers;
+        enable_validation_layer(enabled_layers);
+
+        vector<VkLayerProperties> available_layers;
+        collect_available_layers(available_layers);
+
+        bool is_valid = check_enabled_layers_valid(enabled_layers, available_layers);
+        if (!is_valid)
+        {
+            cout << "some layers are not valid" << endl;
+            exit(-1);
+        }
+
+        VkInstance vk_inst;
+        create_vk_instance(vk_inst, enabled_extensions, enabled_layers, debug_callback);
+
+        return 0;
+    }
+    ```
+
+    前面将一些创建的过程模块化了，这里使用`main()`函数稍微总结下用法。
+
+    可以看到整个创建过程还是比较清晰的，如果遇到一些额外的需求（比较要添加几层 extensions 之类的）也非常好处理。
+
+    这种半封装的好处是，我们可以使用一个`vk_env`对象把它们都收集起来，在后面创建 command buffer 等需要的时候，直接查找并使用就可以了。
+
+* `collect_available_physical_devices`
+
+    ```cpp
+    void collect_available_physical_devices(const VkInstance inst,
+        vector<VkPhysicalDevice> &phy_devs)
+    {
+        uint32_t phy_dev_count;
+        vkEnumeratePhysicalDevices(inst, &phy_dev_count, nullptr);
+        phy_devs.resize(phy_dev_count);
+        vkEnumeratePhysicalDevices(inst, &phy_dev_count, phy_devs.data());
+    }
+    ```
+
+    ```cpp
+    void collect_available_physical_devices(VkInstance vk_inst, vector<VkPhysicalDevice> &phy_devs)
+    {
+        uint32_t deviceCount;
+        vkEnumeratePhysicalDevices(vk_inst, &deviceCount, nullptr);
+        phy_devs.resize(deviceCount);
+        vkEnumeratePhysicalDevices(vk_inst, &deviceCount, phy_devs.data());
+    }
+    ```
+
+    枚举可用的物理设备。
+
+    由于`VkInstance`本身就是指针类型，所以`vk_inst`直接按值传递就好了。
+
+* `get_phy_dev_queue_families`
+
+    ```cpp
+    void get_phy_dev_queue_families(VkPhysicalDevice phy_dev, 
+        vector<VkQueueFamilyProperties> &queue_family_props)
+    {
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(phy_dev, &queueFamilyCount, nullptr);
+        queue_family_props.resize(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(phy_dev, &queueFamilyCount, queue_family_props.data());
+    }
+    ```
+
+    每一个 physical device 都有自己对应的指令家族，看看自己都支持哪些类型的指令队列。
+
+    试了试，在 amd 的 gpu 上，会返回两个 queue family，一个只支持 surface，另一个同时支持 surface 和 graphics。
+
+* `select_graphcs_queue_family_idx`
+
+    ```cpp
+    uint32_t select_graphcs_queue_family_idx(
+        const vector<VkQueueFamilyProperties> &queue_family_props,
+        bool &valid)
+    {
+        valid = false;
+        for (int i = 0; i < queue_family_props.size(); ++i)
+        {
+            if (queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
+                valid = true;
+                return i;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    检查 queue family 是否能做图形计算。
+
+    由于返回的是 uint 值，而有效的索引是从 0 开始，所以额外使用一个 bool 值指示返回结果是否有效。
+
+* `select_present_queue_family_idx`
+
+    ```cpp
+    uint32_t select_present_queue_family_idx(
+        const VkPhysicalDevice phs_dev,
+        const VkSurfaceKHR surface,
+        const vector<VkQueueFamilyProperties> &queue_family_props,
+        bool &valid)
+    {
+        valid = false;
+        VkBool32 presentSupport = false;
+        for (int i = 0; i < queue_family_props.size(); ++i)
+        {
+            vkGetPhysicalDeviceSurfaceSupportKHR(phs_dev, i, surface, &presentSupport);
+            if (presentSupport)
+            {
+                valid = true;
+                return i;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    检查 queue family 是否支持 surface。这个特性主要用来和窗口交换图片缓冲区。
+
+* `create_window`
+
+    ```cpp
+    GLFWwindow* create_window(int width, int height, const char *title)
+    {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
+        return window;
+    }
+    ```
+
+    没有 window 就拿不到 surface，因此需要先创建 window。
+
+* `create_window_surface`
+
+    ```cpp
+    void create_window_surface(VkSurfaceKHR &surface, GLFWwindow *window, const VkInstance vk_inst)
+    {
+        VkResult ret_val;
+        ret_val = glfwCreateWindowSurface(vk_inst, window, nullptr, &surface);
+        if (ret_val != VK_SUCCESS) {
+            cout << "failed to create window surface!" << endl;;
+            exit(-1);
+        }
+    }
+    ```
+
+    可以看到，创建 surface 的功能是 glfw 提供的，并不归 vulkan 管。
+
+* `select_physical_device`
+
+    ```cpp
+    VkPhysicalDevice select_physical_device(
+        const vector<VkPhysicalDevice> &phy_devs,
+        const VkSurfaceKHR surface,
+        uint32_t &graphics_queue_family_idx,
+        uint32_t &present_queue_family_idx,
+        vector<VkQueueFamilyProperties> &selected_queue_family_props)
+    {
+        vector<VkQueueFamilyProperties> queue_family_props;
+
+        bool valid;
+        for (const VkPhysicalDevice& phy_dev: phy_devs)
+        {
+            queue_family_props.clear();
+            get_phy_dev_queue_families(phy_dev, queue_family_props);
+
+            graphics_queue_family_idx = select_graphcs_queue_family_idx(queue_family_props, valid);
+            if (!valid)
+                continue;
+
+            present_queue_family_idx = select_present_queue_family_idx(phy_dev, surface, queue_family_props, valid);
+            if (!valid)
+                continue;
+
+            // also need to check device extension, swapchain support, but here skipped
+            graphics_queue_family_idx = graphics_queue_family_idx;
+            present_queue_family_idx = present_queue_family_idx;
+            selected_queue_family_props = queue_family_props;
+            return phy_dev;
+        }
+
+        return nullptr;
+    }
+    ```
+
+    我们希望能拿到一个同时支持 graphics 和 present 的 physical device，因此遍历所有的 physical device，获取它们的 queue family，再检查 queue family 是否支持这两个特性。
+
+    如果遇到第一个同时支持这两个特性的物理设备，那么就将其返回。
+
+    只拿到 queue family 的下标，是因为 vulkan 的很多 API 也是使用索引来访问物理设备的 queue family，而不是指针。
+
+* staged summary
+
+    我们又做了不少工作，再总结一下。
+
+    ```cpp
+    int main()
+    {
+        glfwInit();
+        vector<const char*> enabled_extensions;
+        collect_glfw_extensions(enabled_extensions);
+
+        vector<const char*> enabled_layers;
+        enable_validation_layer(enabled_layers);
+
+        vector<VkLayerProperties> available_layers;
+        collect_available_layers(available_layers);
+
+        bool is_valid = check_enabled_layers_valid(enabled_layers, available_layers);
+        if (!is_valid)
+        {
+            cout << "some layers are not valid" << endl;
+            exit(-1);
+        }
+
+        VkInstance vk_inst;
+        create_vk_instance(vk_inst, enabled_extensions, enabled_layers, debug_callback);
+
+        vector<VkPhysicalDevice> phy_devs;
+        collect_available_physical_devices(vk_inst, phy_devs);
+
+        GLFWwindow *window = create_window(700, 500, "hello");
+        if (!window) {
+            cout << "fail to create window" << endl;
+            exit(-1);
+        }
+
+        VkSurfaceKHR surface;
+        create_window_surface(surface, window, vk_inst);
+
+        VkPhysicalDevice phy_dev;
+        uint32_t graphics_queue_family_idx;
+        uint32_t present_queue_family_idx;
+        vector<VkQueueFamilyProperties> phy_dev_queue_family_props;
+        phy_dev = select_physical_device(phy_devs, surface,
+            graphics_queue_family_idx,
+            present_queue_family_idx,
+            phy_dev_queue_family_props);
+
+        return 0;
+    }
+    ```
+
+    至此我们可以挑选出来一个可用的物理设备了。
+
+* `enable_swapchain_device_extension`
+
+    ```cpp
+    void enable_swapchain_device_extension(vector<const char*> &enabled_device_extensions)
+    {
+        enabled_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
+    ```
+
+    前面也有一个和`extension`相关的，不过前面是 instance extension，这里是 device extension，这两个是不一样的。
+
+* `create_logic_device`
+
+    ```cpp
+    VkDevice create_logic_device(
+        VkPhysicalDevice phy_dev,
+        const uint32_t graphics_queue_family_idx,
+        const uint32_t present_queue_family_idx,
+        const vector<const char*> &enabled_dev_extensions,
+        const vector<const char*> &enabled_layers)
+    {
+        vector<uint32_t> queue_families;
+        if (graphics_queue_family_idx == present_queue_family_idx)
+        {
+            queue_families.resize(1);
+            queue_families[0] = graphics_queue_family_idx;
+        }
+        else
+        {
+            queue_families.resize(2);
+            queue_families[0] = graphics_queue_family_idx;
+            queue_families[1] = present_queue_family_idx;
+        }
+
+        vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        const float queuePriority = 1.0f;
+        for (uint32_t queue_family_idx: queue_families) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queue_family_idx;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
+
+        VkDeviceCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        VkPhysicalDeviceFeatures deviceFeatures{};
+        createInfo.pEnabledFeatures = &deviceFeatures;
+        createInfo.queueCreateInfoCount = queueCreateInfos.size();
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.enabledExtensionCount = enabled_dev_extensions.size();
+        createInfo.ppEnabledExtensionNames = enabled_dev_extensions.data();
+        createInfo.enabledLayerCount = enabled_layers.size();
+        createInfo.ppEnabledLayerNames = enabled_layers.data();
+
+        VkDevice device;
+        VkResult ret_val = vkCreateDevice(phy_dev, &createInfo, nullptr, &device);
+        if (ret_val != VK_SUCCESS) {
+            cout << "failed to create logical device!" << endl;
+            cout << "error code: " << ret_val << endl;
+        }
+        else {
+            cout << "successfully create logical device" << endl;
+        }
+
+        return device;
+    }
+    ```
+
+    将 physical device 和指定的 queue family 绑定到一起，就组成了一个 logic device，也即`VkDevice`，主要负责 command 相关的东西，不负责 memory 相关的操作。
+
+    注意在创建的过程中使用到的 extension 是 device extension，不是 instance extension。用错的话会导致 device 创建失败。
+
+* `get_graphics_and_present_queue`
+
+    ```cpp
+    void get_graphics_and_present_queue(VkQueue &graphics_queue, VkQueue &present_queue,
+        VkDevice &device,
+        uint32_t graphics_queue_family_idx,
+        uint32_t present_queue_family_idx)
+    {
+        vkGetDeviceQueue(device, graphics_queue_family_idx, 0, &graphics_queue);
+        vkGetDeviceQueue(device, present_queue_family_idx, 0, &present_queue);
+    }
+    ```
+
+    每个 logic device 与几个 queue 绑定，在创建的时候就生成并绑定好了。这里只是把 logic device 中的 queue 取出来。
+
+    `get`指明了这一含义。
+
+    有了 queue 之后，后面还会用到 logic device 吗？按说应该用不到了。
+
+* staged summary
+
+    logic device 的目的就是 queue，现在 queue 创建出来了，所以又可以总结一下。
+
+    ```cpp
+    // ......
+    VkPhysicalDevice phy_dev;
+    uint32_t graphics_queue_family_idx;
+    uint32_t present_queue_family_idx;
+    vector<VkQueueFamilyProperties> phy_dev_queue_family_props;
+    phy_dev = select_physical_device(phy_devs, surface,
+        graphics_queue_family_idx,
+        present_queue_family_idx,
+        phy_dev_queue_family_props);
+
+    vector<const char*> enabled_device_extensions;
+    enable_swapchain_device_extension(enabled_device_extensions);
+
+    VkDevice device;
+    device = create_logic_device(phy_dev, graphics_queue_family_idx,
+        present_queue_family_idx, enabled_device_extensions, enabled_layers);
+
+    VkQueue graphics_queue, present_queue;
+    get_graphics_and_present_queue(graphics_queue, present_queue,
+        device, graphics_queue_family_idx, present_queue_family_idx);
+    // ......
+    ```
+
+* `get_phy_dev_surf_infos`
+
+    ```cpp
+    void get_phy_dev_surf_infos(VkSurfaceCapabilitiesKHR &surf_caps,
+        vector<VkSurfaceFormatKHR> &surf_fmts,
+        vector<VkPresentModeKHR> &present_modes,
+        VkPhysicalDevice phy_dev,
+        VkSurfaceKHR surf)
+    {
+        VkResult result;
+        result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phy_dev, surf, &surf_caps);
+        if (result != VK_SUCCESS)
+        {
+            cout << "fail to get physical device surface capabilities" << endl;
+            exit(-1);
+        }
+
+        uint32_t surf_fmt_count;
+        result = vkGetPhysicalDeviceSurfaceFormatsKHR(phy_dev, surf, &surf_fmt_count, nullptr);
+        if (result != VK_SUCCESS)
+        {
+            cout << "fail to get physical device surface formats" << endl;
+            exit(-1);
+        }
+        if (surf_fmt_count != 0)
+        {
+            surf_fmts.resize(surf_fmt_count);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(phy_dev, surf, &surf_fmt_count, surf_fmts.data());
+        }
+        else
+        {
+            cout << "[warning] surf_fmt_count is 0" << endl;
+        }
+
+        uint32_t present_mode_count;
+        result = vkGetPhysicalDeviceSurfacePresentModesKHR(phy_dev, surf, &present_mode_count, nullptr);
+        if (result != VK_SUCCESS)
+        {
+            cout << "fail to get physical device surface present modes" << endl;
+            exit(-1);
+        }
+        if (present_mode_count != 0)
+        {
+            present_modes.resize(present_mode_count);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(phy_dev, surf, &present_mode_count, present_modes.data());
+        }
+        else
+        {
+            cout << "[warning] present_mode_count is 0" << endl;
+        }
+    }
+    ```
+
+    列出 physical device 所支持的 surface 的一些特征，比如窗口的颜色为 RGBA，swapchain 最小/最大的缓存图片数，给窗口发信号的方式等等。
+
+    在函数的三个输出参数中，只有`surf_caps`不用 vector，剩下两个都要用。
+
+    我们离 swapchain 的创建越来越近了。
+
+* `select_surface_features`
+
+    ```cpp
+    void select_surface_features(
+        const VkSurfaceCapabilitiesKHR &surface_caps,
+        const vector<VkSurfaceFormatKHR> &surf_fmts,
+        const vector<VkPresentModeKHR> &present_modes,
+        VkSurfaceFormatKHR &surf_fmt,
+        VkPresentModeKHR &present_mode,
+        VkExtent2D &extent_2d)
+    {
+        bool is_surf_fmt_selected = false;
+        for (const VkSurfaceFormatKHR& availableFormat: surf_fmts)
+        {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB 
+                && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                surf_fmt = availableFormat;
+                is_surf_fmt_selected = true;
+                break;
+            }
+        }
+        if (!is_surf_fmt_selected)
+        {
+            cout << "[Error] Didn't find the suitable surface format." << endl;
+            exit(-1);
+        }
+
+        bool is_present_mode_selected = false;
+        for (const VkPresentModeKHR& availablePresentMode: present_modes)
+        {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                present_mode = availablePresentMode;
+                is_present_mode_selected = true;
+                break;
+            }
+        }
+        if (!is_present_mode_selected)
+        {
+            cout << "[Error] Didn't find the suitable present mode." << endl;
+            exit(-1);
+        }
+
+        extent_2d = surface_caps.currentExtent;
+    }
+    ```
+
+    从 physical device 支持的各种特性中选择一些合适的。
+
+* `create_swapchain`
+
+    ```cpp
+    VkSwapchainKHR create_swapchain(const VkSurfaceCapabilitiesKHR &surf_caps,
+        const VkSurfaceFormatKHR &surf_fmt,
+        const VkPresentModeKHR &present_mode,
+        const VkExtent2D &extent_2d,
+        const VkSurfaceKHR &surface,
+        uint32_t graphics_queue_family_idx,
+        uint32_t present_queue_family_idx,
+        VkDevice device)
+    {
+        uint32_t imageCount = surf_caps.minImageCount + 1;
+        if (surf_caps.maxImageCount > 0 && imageCount > surf_caps.maxImageCount) {
+            imageCount = surf_caps.maxImageCount;
+        }
+        VkSwapchainCreateInfoKHR swap_chain_crt_info{};
+        swap_chain_crt_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swap_chain_crt_info.surface = surface;
+        swap_chain_crt_info.minImageCount = imageCount;
+        swap_chain_crt_info.imageFormat = surf_fmt.format;
+        swap_chain_crt_info.imageColorSpace = surf_fmt.colorSpace;
+        swap_chain_crt_info.imageExtent = extent_2d;
+        swap_chain_crt_info.imageArrayLayers = 1;
+        swap_chain_crt_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        uint32_t queueFamilyIndices[] = {graphics_queue_family_idx, present_queue_family_idx};
+        if (graphics_queue_family_idx != present_queue_family_idx) {
+            swap_chain_crt_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            swap_chain_crt_info.queueFamilyIndexCount = 2;
+            swap_chain_crt_info.pQueueFamilyIndices = queueFamilyIndices;
+        } else {
+            // swap_chain_crt_info.queueFamilyIndexCount = 1;
+            // swap_chain_crt_info.pQueueFamilyIndices = queueFamilyIndices;
+            swap_chain_crt_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+        swap_chain_crt_info.preTransform = surf_caps.currentTransform;
+        swap_chain_crt_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swap_chain_crt_info.presentMode = present_mode;
+        swap_chain_crt_info.clipped = VK_TRUE;
+        swap_chain_crt_info.oldSwapchain = VK_NULL_HANDLE;
+        VkSwapchainKHR swapChain;
+        if (vkCreateSwapchainKHR(device, &swap_chain_crt_info, nullptr, &swapChain) != VK_SUCCESS) {
+            cout << "failed to create swap chain!" << endl;
+        }
+        else {
+            cout << "successfully create swap chain" << endl;
+        }
+        return swapChain;
+    }
+    ```
+
+    可以看到创建 swapchain 也是用到了很多的信息，所以参数比较多。
+
+    关于`graphics_queue_family_idx`和`present_queue_family_idx`是否相等会有不同处理方式，这点没怎么看懂。
+
+    不清楚`VK_SHARING_MODE_CONCURRENT`和`VK_SHARING_MODE_EXCLUSIVE`的区别是什么。
+
+    注意，在创建 swapchain 时，vulkan 就自动帮我们创建好了用于作为缓冲区的 vkimage。
+
+* 汇总一下 main 函数中新添加的代码
+
+    ```cpp
+    int main()
+    {
+        // ......
+        VkQueue graphics_queue, present_queue;
+        get_graphics_and_present_queue(graphics_queue, present_queue,
+            device, graphics_queue_family_idx, present_queue_family_idx);
+
+        VkSurfaceCapabilitiesKHR surf_caps;
+        vector<VkSurfaceFormatKHR> surf_fmts;
+        vector<VkPresentModeKHR> present_modes;
+        get_phy_dev_surf_infos(surf_caps, surf_fmts, present_modes, phy_dev, surface);
+
+        VkSurfaceFormatKHR surf_fmt;
+        VkPresentModeKHR present_mode;
+        VkExtent2D extent_2d;
+        select_surface_features(surf_caps, surf_fmts, present_modes, surf_fmt, present_mode, extent_2d);
+
+        VkSwapchainKHR swapchain;
+        swapchain = create_swapchain(surf_caps,
+            surf_fmt, present_mode, extent_2d, surface, graphics_queue_family_idx,
+            present_queue_family_idx, device);
+        // ......
+    }
+    ```
+
+* `get_swapchain_images`
+
+    ```cpp
+    void get_swapchain_images(vector<VkImage> &swapchain_imgs, 
+        VkFormat &img_fmt,
+        const VkDevice device,
+        const VkSwapchainKHR swapchain,
+        const VkSurfaceFormatKHR surf_fmt)
+    {
+        uint32_t imageCount;
+        vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
+        swapchain_imgs.resize(imageCount);
+        vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchain_imgs.data());
+        img_fmt = surf_fmt.format;
+    }
+    ```
+
+    刚才在创建 swapchain 时候，这些 image 已经创建好了，现在再把拿出来，给后面做渲染用。
+
+* `create_image_views`
+
+    ```cpp
+    void create_image_views(vector<VkImageView> &swapchain_image_views,
+        const vector<VkImage> &swapchain_imgs,
+        const VkFormat img_fmt,
+        const VkDevice device)
+    {
+        swapchain_image_views.resize(swapchain_imgs.size());
+        for (size_t i = 0; i < swapchain_imgs.size(); i++)
+        {
+            VkImageViewCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = swapchain_imgs[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.format = img_fmt;
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.baseMipLevel = 0;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1;
+
+            if (vkCreateImageView(device, &createInfo, nullptr, &swapchain_image_views[i]) != VK_SUCCESS) {
+                cout << "failed to create image views!" << endl;
+            } else {
+                cout << "successfully create image view " << i << endl;
+            }
+        }
+    }
+    ```
+
+    image view 是 image 的指针。
+
+* `create_render_pass`
+
+    ```cpp
+    VkRenderPass create_render_pass(const VkFormat img_fmt, const VkDevice device)
+    {
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = img_fmt;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        VkAttachmentReference colorAttachmentRef{};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+
+        VkRenderPassCreateInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+
+        VkRenderPass renderPass;
+        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+            cout << "failed to create render pass!" << endl;
+        }
+        return renderPass;
+    }
+    ```
+
+    render pass 会修改 image 的 state，进行接力渲染。
+
+    `colorAttachment.initialLayout`和`colorAttachment.finalLayout`标明了通过 render pass 前后的 image 的状态变化。
+
+    在 render pass 之外很难对图像进行操作。
+
+* `read_file`
+
+    ```cpp
+    string read_file(const char *file_path)
+    {
+        ifstream ifs(file_path, ios::ate | ios::binary);
+        if (!ifs.is_open())
+        {
+            cout << "fail to open the file " << file_path << endl;
+            exit(-1);
+        }
+        size_t file_size = (size_t) ifs.tellg();
+        string buffer;
+        buffer.resize(file_size);
+        ifs.seekg(0);
+        ifs.read(buffer.data(), file_size);
+        ifs.close();
+        return buffer;
+    }
+    ```
+
+    需要读已经编译好了的 shader 文件。
+
+* `create_shader_module`
+
+    ```cpp
+    VkShaderModule create_shader_module(const string &code, const VkDevice device)
+    {
+        VkShaderModuleCreateInfo create_info{};
+        create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        create_info.codeSize = code.size();
+        create_info.pCode = (uint32_t*) code.data();
+        VkShaderModule shader_module;
+        if (vkCreateShaderModule(device, &create_info, nullptr, &shader_module) != VK_SUCCESS)
+        {
+            cout << "failed to create shader module!" << endl;
+            exit(-1);
+        }
+        return shader_module;
+    }
+    ```
+
+* `create_binding_desc`
+
+    ```cpp
+    VkVertexInputBindingDescription create_binding_desc(uint32_t stride)
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = stride;
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        return bindingDescription;
+    }
+    ```
+
+* `create_attrib_desc`
+
+    ```cpp
+    vector<VkVertexInputAttributeDescription> create_attrib_desc(const vector<uint32_t> &offsets)
+    {
+        vector<VkVertexInputAttributeDescription> attributeDescriptions;
+        attributeDescriptions.resize(2);
+        if (offsets.size() != 2)
+        {
+            cout << "[Error] the size of offsets is: " << offsets.size() << endl;
+            exit(-1);
+        }
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsets[0];
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsets[1];
+
+        return attributeDescriptions;
+    }
+    ```
+
+* `create_pipeline`
+
+    ```cpp
+    VkPipeline create_pipeline(const char *vtx_shader_path,
+        const char *frag_shader_path,
+        const uint32_t vtx_stride,
+        const vector<uint32_t> &offsets,
+        const VkDevice device, const VkExtent2D extent_2d,
+        const VkRenderPass renderPass)
+    {
+        auto vert_shader_code = read_file(vtx_shader_path);  // "vert_2.spv"
+        auto frag_shader_code = read_file(frag_shader_path);  // "frag_2.spv"
+
+        VkShaderModule vertShaderModule = create_shader_module(vert_shader_code, device);
+        VkShaderModule fragShaderModule = create_shader_module(frag_shader_code, device);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+        auto bindingDescription = create_binding_desc(vtx_stride);
+        auto attributeDescriptions = create_attrib_desc(offsets);
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t) attributeDescriptions.size();
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
+        vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+        VkPipelineLayout pipelineLayout{};
+        if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create pipeline layout!");
+        }
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+        VkPipeline graphicsPipeline;
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create graphics pipeline!");
+        }
+
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+
+        return graphicsPipeline;
+    }
+    ```
+
+    创建过程很长很复杂，主要是处理 shader 相关的操作。
+
+* summary
+
+    ```cpp
+    // ...
+    VkSwapchainKHR swapchain;
+    swapchain = create_swapchain(surf_caps,
+        surf_fmt, present_mode, extent_2d, surface, graphics_queue_family_idx,
+        present_queue_family_idx, device);
+
+    vector<VkImage> swapchain_imgs;
+    VkFormat img_fmt;
+    get_swapchain_images(swapchain_imgs, img_fmt, device, swapchain, surf_fmt);
+
+    vector<VkImageView> swapchain_image_views;
+    create_image_views(swapchain_image_views, swapchain_imgs, img_fmt, device);
+
+    VkRenderPass render_pass;
+    render_pass = create_render_pass(img_fmt, device);
+
+    VkPipeline graphics_pipeline;
+    graphics_pipeline = create_pipeline("vert_2.spv", "frag_2.spv",
+        6 * sizeof(float), {0, 3 * sizeof(float)},
+        device, extent_2d, render_pass);
+    // ...
+    ```
+
+* `create_framebuffers`
+
+    ```cpp
+    void create_framebuffers(vector<VkFramebuffer> &frame_buffers,
+        const vector<VkImageView> &swapChainImageViews,
+        const VkRenderPass renderPass,
+        const VkExtent2D extent_2d,
+        const VkDevice device)
+    {
+        frame_buffers.resize(swapChainImageViews.size());
+
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = &swapChainImageViews[i];
+            framebufferInfo.width = extent_2d.width;
+            framebufferInfo.height = extent_2d.height;
+            framebufferInfo.layers = 1;
+
+            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &frame_buffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
+        }
+    }
+    ```
+
+    frame buffer 会绑定到一个 image view 上。其实真正 hold back 内存的，还是 vkimage 对象。
+
+* `create_command_pool`
+
+    ```cpp
+    VkCommandPool create_command_pool(const VkDevice device, 
+        const VkPhysicalDevice phy_dev,
+        const uint32_t graphics_queue_family_idx)
+    {
+        VkCommandPool commandPool;
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = graphics_queue_family_idx;
+
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create command pool!");
+        }
+
+        return commandPool;
+    }
+    ```
+
+    创建 command pool 只用到了 device 和 physical device，其实应该放在前面写。
+
+* `create_command_buffer`
+
+    ```cpp
+    void create_command_buffer(vector<VkCommandBuffer> &command_buffers,
+        const VkDevice device,
+        const VkCommandPool command_pool,
+        const uint32_t num)
+    {
+        command_buffers.resize(num);
+
+        VkCommandBuffer commandBuffer;
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = command_pool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = num;
+
+        if (vkAllocateCommandBuffers(device, &allocInfo, command_buffers.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+    }
+    ```
+
+    所有的命令都要先记录到 command buffer 里，然后再提交给 GPU。
+
+    可以看到，可以一次性创建多个 command buffer。一个 command buffer 提交给 gpu 执行等待返回时，另一个 command buffer 可以继续记录指令，等 GPU 空闲时直接提交给 GPU。
+
+* `create_buffer`
+
+    ```cpp
+    void create_buffer(VkBuffer &buffer,
+        VkDeviceMemory &bufferMemory,
+        const VkPhysicalDevice phy_dev,
+        const VkDevice device,
+        const VkDeviceSize size,
+        const VkBufferUsageFlags usage,
+        const VkMemoryPropertyFlags properties)
+    {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(phy_dev, &memProperties);
+        uint32_t i;
+        for (i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((memRequirements.memoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                break;
+            }
+        }
+        allocInfo.memoryTypeIndex = i;
+
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate buffer memory!");
+        }
+
+        vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    }
+    ```
+
+    buffer 只是对 memory 的一层 wrapper，需要将 buffer 和 memory 进行绑定，才能让 buffer 正常工作。
+
+    可用的 memory 有不同的类型，必须选择适合的类型才可以。
+
+    目前并不清楚这些不同类型的 memory 是怎么划分的。
+
+* `copy_buffer`
+
+    ```cpp
+    void copy_buffer(VkCommandBuffer command_buffer,
+        VkDevice device, 
+        VkQueue graphicsQueue, 
+        VkBuffer srcBuffer, VkBuffer dstBuffer,
+        VkDeviceSize size)
+    {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkBeginCommandBuffer(command_buffer, &beginInfo);
+        VkBufferCopy copyRegion{};
+        copyRegion.size = size;
+        vkCmdCopyBuffer(command_buffer, srcBuffer, dstBuffer, 1, &copyRegion);
+        vkEndCommandBuffer(command_buffer);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &command_buffer;
+
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue);
+    }
+    ```
+
+    vulkan 只允许 copy 操作发生在两个 buffer 间。无论是 host 与 device 之间传输数据，还是在 device 中进行显存的拷贝，都必须以 buffer 的形式出现。
+
+* `create_vertex_buffer`
+
+    ```cpp
+    void create_vertex_buffer(VkBuffer &vertex_buffer,
+        VkDeviceMemory &vertexBufferMemory,
+        const VkPhysicalDevice phy_dev,
+        const VkDevice device,
+        const VkCommandBuffer command_buffer,
+        const VkQueue graphics_queue,
+        const VkDeviceSize buffer_size,
+        const void *host_src)
+    {
+        // VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+        VkDeviceSize bufferSize = buffer_size;
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        create_buffer(stagingBuffer, stagingBufferMemory,
+            phy_dev, device, bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, host_src, (size_t) bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        create_buffer(vertex_buffer, vertexBufferMemory, phy_dev, device, bufferSize, 
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        copy_buffer(command_buffer, device, graphics_queue, stagingBuffer, vertex_buffer, buffer_size);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+    ```
+
+    `create_buffer`会申请 device memory，那为什么还要`vkMapMemory`？不懂 staging buffer memory 的机制。
+
+    或者说，真正的 vertex buffer 其实是 host invisible 的，而 staging memory 是 host visible 的？
+
+* `create_index_buffer`
+
+    ```cpp
+    void create_index_buffer(VkBuffer &index_buffer,
+        VkDeviceMemory &index_buffer_memory,
+        const VkPhysicalDevice phy_dev,
+        const VkDevice device,
+        const VkCommandBuffer command_buffer,
+        const VkQueue graphics_queue,
+        const VkDeviceSize buffer_size,
+        const void *data_src)
+    {
+        VkDeviceSize bufferSize = buffer_size;
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        create_buffer(stagingBuffer, stagingBufferMemory, phy_dev, device, bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, data_src, (size_t) bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        create_buffer(index_buffer, index_buffer_memory, phy_dev, device,
+            bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        copy_buffer(command_buffer, device, graphics_queue, stagingBuffer, index_buffer, bufferSize);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+    ```
+
+    这个似乎只有 buffer 的 usage `VK_BUFFER_USAGE_INDEX_BUFFER_BIT`和`create_vertex_buffer()`不同，剩下的完全相同。
+
+* `create_fence`
+
+    ```cpp
+    VkFence create_fence(const VkDevice device)
+    {
+        VkFence fence;
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        if (vkCreateFence(device, &fenceInfo, nullptr, &fence) != VK_SUCCESS)
+        {
+            cout << "fail to cretae fence" << endl;
+            exit(-1);
+        }
+        return fence;
+    }
+    ```
+
+    fence 的作用似乎是等待 gpu 返回，猜测和 waitDeviceIdle 作用差不多。
+
+* `create_semaphore`
+
+    ```cpp
+    VkSemaphore create_semaphore(const VkDevice device)
+    {
+        VkSemaphore semaphore;
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS)
+        {
+            cout << "fail to create semaphore" << endl;
+            exit(-1);
+        }
+        return semaphore;
+    }
+    ```
+
+    用于同步 swapchain 和 render 之间的动作。
+
+* `draw_frame`
+
+    ```cpp
+    void draw_frame(const VkDevice device, const VkFence fence,
+        const VkSwapchainKHR swapchain,
+        const VkSemaphore image_available,
+        const VkSemaphore render_finished,
+        const VkCommandBuffer command_buffer,
+        const VkRenderPass render_pass,
+        const vector<VkFramebuffer> &frame_buffers,
+        const VkExtent2D extent_2d,
+        const VkPipeline graphics_pipeline,
+        const VkBuffer vertex_buffer,
+        const VkBuffer index_buffer,
+        const VkQueue graphics_queue,
+        const VkQueue present_queue,
+        const uint32_t num_vertex)
+    {
+        vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &fence);
+
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available, VK_NULL_HANDLE, &imageIndex);
+
+        // set command buffer
+        vkResetCommandBuffer(command_buffer, 0);
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        if (vkBeginCommandBuffer(command_buffer, &beginInfo) != VK_SUCCESS) {
+            cout << "failed to begin recording command buffer!" << endl;;
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = render_pass;
+        renderPassInfo.framebuffer = frame_buffers[imageIndex];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = extent_2d;
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+        vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) extent_2d.width;
+        viewport.height = (float) extent_2d.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = extent_2d;
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        VkBuffer vertexBuffers[] = {vertex_buffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(command_buffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+        // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        // vkCmdDraw(commandBuffer, vertices.size(), 1, 0, 0);
+        vkCmdDrawIndexed(command_buffer, num_vertex, 1, 0, 0, 0);
+        vkCmdEndRenderPass(command_buffer);
+
+        if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = &image_available;  // 拿到画图所需要的缓冲区
+        submitInfo.pWaitDstStageMask = &static_cast<const VkPipelineStageFlags&>(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &command_buffer;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &render_finished;  // 判断是否绘制完成
+        if (vkQueueSubmit(graphics_queue, 1, &submitInfo, fence) != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = &render_finished;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapchain;
+        presentInfo.pImageIndices = &imageIndex;
+        vkQueuePresentKHR(present_queue, &presentInfo);
+    }
+    ```
+
+    可以看到，`bind`和`set`过程是不会去实际绘制的，只有`vkCmdDraw`相关的命令才会去绘制。
+
+    cpu 与 gpu 之间的通信通过`fence`来同步，渲染与显示之间的通信通过两个 semaphore 来完成。
+
+* the final main function
+
+    ```cpp
+    int main()
+    {
+        glfwInit();
+        vector<const char*> enabled_extensions;
+        collect_glfw_extensions(enabled_extensions);
+
+        vector<const char*> enabled_layers;
+        enable_validation_layer(enabled_layers);
+
+        vector<VkLayerProperties> available_layers;
+        collect_available_layers(available_layers);
+
+        bool is_valid = check_enabled_layers_valid(enabled_layers, available_layers);
+        if (!is_valid)
+        {
+            cout << "some layers are not valid" << endl;
+            exit(-1);
+        }
+
+        VkInstance vk_inst;
+        create_vk_instance(vk_inst, enabled_extensions, enabled_layers, debug_callback);
+
+        vector<VkPhysicalDevice> phy_devs;
+        collect_available_physical_devices(vk_inst, phy_devs);
+
+        GLFWwindow *window = create_window(700, 500, "hello");
+        if (!window) {
+            cout << "fail to create window" << endl;
+            exit(-1);
+        }
+
+        VkSurfaceKHR surface;
+        create_window_surface(surface, window, vk_inst);
+
+        VkPhysicalDevice phy_dev;
+        uint32_t graphics_queue_family_idx;
+        uint32_t present_queue_family_idx;
+        vector<VkQueueFamilyProperties> phy_dev_queue_family_props;
+        phy_dev = select_physical_device(phy_devs, surface,
+            graphics_queue_family_idx,
+            present_queue_family_idx,
+            phy_dev_queue_family_props);
+
+        vector<const char*> enabled_device_extensions;
+        enable_swapchain_device_extension(enabled_device_extensions);
+
+        VkDevice device;
+        device = create_logic_device(phy_dev, graphics_queue_family_idx,
+            present_queue_family_idx, enabled_device_extensions, enabled_layers);
+
+        VkQueue graphics_queue, present_queue;
+        get_graphics_and_present_queue(graphics_queue, present_queue,
+            device, graphics_queue_family_idx, present_queue_family_idx);
+
+        VkSurfaceCapabilitiesKHR surf_caps;
+        vector<VkSurfaceFormatKHR> surf_fmts;
+        vector<VkPresentModeKHR> present_modes;
+        get_phy_dev_surf_infos(surf_caps, surf_fmts, present_modes, phy_dev, surface);
+
+        VkSurfaceFormatKHR surf_fmt;
+        VkPresentModeKHR present_mode;
+        VkExtent2D extent_2d;
+        select_surface_features(surf_caps, surf_fmts, present_modes, surf_fmt, present_mode, extent_2d);
+
+        VkSwapchainKHR swapchain;
+        swapchain = create_swapchain(surf_caps,
+            surf_fmt, present_mode, extent_2d, surface, graphics_queue_family_idx,
+            present_queue_family_idx, device);
+
+        vector<VkImage> swapchain_imgs;
+        VkFormat img_fmt;
+        get_swapchain_images(swapchain_imgs, img_fmt, device, swapchain, surf_fmt);
+
+        vector<VkImageView> swapchain_image_views;
+        create_image_views(swapchain_image_views, swapchain_imgs, img_fmt, device);
+
+        VkRenderPass render_pass;
+        render_pass = create_render_pass(img_fmt, device);
+
+        VkPipeline graphics_pipeline;
+        graphics_pipeline = create_pipeline("vert_2.spv", "frag_2.spv",
+            6 * sizeof(float), {0, 3 * sizeof(float)},
+            device, extent_2d, render_pass);
+
+        vector<VkFramebuffer> frame_buffers;
+        create_framebuffers(frame_buffers, swapchain_image_views, render_pass, extent_2d, device);
+
+        VkCommandPool command_pool;
+        command_pool = create_command_pool(device, phy_dev, graphics_queue_family_idx);
+
+        vector<VkCommandBuffer> command_buffers;
+        create_command_buffer(command_buffers, device, command_pool, 1);
+
+        // create vertex buffer
+        const vector<float> vertices = {
+            -0.5f, -0.5f, 0, 1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, 0, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0, 0.0f, 0.0f, 1.0f,
+            -0.5f, 0.5f, 0, 1.0f, 1.0f, 1.0f
+        }; 
+        VkBuffer vertex_buffer;
+        VkDeviceMemory vertex_buffer_memory;
+        create_vertex_buffer(vertex_buffer, vertex_buffer_memory, phy_dev, device,
+            command_buffers[0], graphics_queue, sizeof(float) * vertices.size(), vertices.data());
+
+        const vector<uint16_t> indices = {
+            0, 1, 2, 2, 3, 0
+        };
+        VkBuffer index_buffer;
+        VkDeviceMemory index_buffer_memory;
+        create_index_buffer(index_buffer, index_buffer_memory, phy_dev, device,
+            command_buffers[0], graphics_queue, sizeof(uint16_t) * indices.size(), indices.data());
+
+        VkFence fence;
+        fence = create_fence(device);   
+
+        VkSemaphore image_buffer_available, render_finished;
+        image_buffer_available = create_semaphore(device);
+        render_finished = create_semaphore(device);
+
+        while (!glfwWindowShouldClose(window))
+        {
+            draw_frame(device, fence, swapchain, image_buffer_available, render_finished,
+            command_buffers[0], render_pass, frame_buffers, extent_2d,
+            graphics_pipeline, vertex_buffer, index_buffer,
+            graphics_queue, present_queue, 6);
+            
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    最终的 main 函数！写得逻辑清晰，所有的过程都基本是模块化的。
+
+* 最后附上用到的两个 shader 的源代码
+
+    `shader_2.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec2 inPosition;
+    layout(location = 1) in vec3 inColor;
+
+    layout(location = 0) out vec3 fragColor;
+
+    void main() {
+        gl_Position = vec4(inPosition, 0.0, 1.0);
+        fragColor = inColor;
+    }
+    ```
+
+    `shader_2.frag`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 fragColor;
+
+    layout(location = 0) out vec4 outColor;
+
+    void main() {
+        outColor = vec4(fragColor, 1.0);
+    }
+    ```
+
+## semaphore 的使用
+
+vulkan 有两种信号量，一种是 binary semaphore，一种是 timeline semaphore。
+
+binary semaphore 顾名思义，只有两种状态，用于 gpu 内部的通信，由程序内部控制，不允许用户与其交互。这种 semaphore 几乎只在 render 和 present 的过程中被用到。
+
+timeline semaphore 与通常意义上的信号量就比较像了，host 可以给他 signal，也可以 wait，还可以非阻塞地查询信量的状态。
+
+timeline semaphore 要求至少得是 vulkan 1.2 版本。详细的创建过程如下：
+
+1. 在创建 vulkan instance 的时候，application 中的 api verion 要写成`VK_API_VERSION_1_2`, 这个要和后面的 device feature 对应。
+
+2. device extension 必须启动`VK_KHR_timeline_semaphore`
+
+    这个 extension 有可能会依赖 instance 的`VK_KHR_get_physical_device_properties2` extension，如果有需要，这个也得开启。
+
+3. 在创建 vkdevice 时，必须指定 device feature，显式开启 timeline semaphore
+
+    ```cpp
+    VkPhysicalDeviceVulkan12Features vk12_feats{};
+    vk12_feats.timelineSemaphore = true;
+    vk12_feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    ```
+
+    需要创建一个`VkPhysicalDeviceVulkan12Features`对象，然后将它填入`VkDeviceCreateInfo`对象的`pNext`指针。
+
+4. 在创建 semaphore 时，需要额外添加一个类型信息，写到`pNext`指针中
+
+    ```cpp
+    VkSemaphoreTypeCreateInfo type_crt_info{};
+    type_crt_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+    type_crt_info.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+    type_crt_info.initialValue = 1;
+    semaphoreInfo.pNext = &type_crt_info;
+    ```
+
+    这样使用`vkCreateSemaphore`创建出来的 semaphore，就是 timeline semaphore 了。
+
+5. 测试
+
+    ```cpp
+    VkSemaphoreWaitInfo sem_wait_info{};
+    sem_wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+    sem_wait_info.pNext = NULL;
+    sem_wait_info.pSemaphores = &test_sem;
+    sem_wait_info.semaphoreCount = 1;
+    uint64_t sem_vals = 1;
+    sem_wait_info.pValues = &sem_vals;
+    sem_wait_info.flags = 0;
+    vkWaitSemaphores(device, &sem_wait_info, UINT64_MAX);
+    ```
