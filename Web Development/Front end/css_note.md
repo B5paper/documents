@@ -1,5 +1,7 @@
 # CSS Note
 
+CSS stands for Cascading Style Sheets.
+
 ## Selectors
 
 Syntax:
@@ -41,11 +43,24 @@ p {
 
 * `#id`
 
+    ```css
+    #para1 {
+        color: red
+    }
+    ```
+
 * `*`：选择所有元素
 
 * `element`：选择 tag 名称
 
 * `element1,element2`：选择多个 tab 名称
+
+    ```css
+    h1, h2, p {
+        text-align: center;
+        color: red;
+    }
+    ```
 
 * `element1 element2`：在`element1`中选择`element2`
 
@@ -204,6 +219,88 @@ p {
 * `:visited`
 
     `a:visited`: Selects all visited links
+
+## invoke a css
+
+external:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="mystyle.css">
+</head>
+<body>
+
+<h1>This is a heading</h1>
+<p>This is a paragraph.</p>
+
+</body>
+</html>
+```
+
+internal:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  background-color: linen;
+}
+
+h1 {
+  color: maroon;
+  margin-left: 40px;
+}
+</style>
+</head>
+<body>
+
+<h1>This is a heading</h1>
+<p>This is a paragraph.</p>
+
+</body>
+</html>
+```
+
+inline:
+
+```html
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1 style="color:blue;text-align:center;">This is a heading</h1>
+<p style="color:red;">This is a paragraph.</p>
+
+</body>
+</html>
+```
+
+If some properties have been defined for the same selector (element) in different style sheets, the value from the last read style sheet will be used. 
+
+比如这种情况，外部的设置会覆盖内部的：
+
+```html
+<head>
+<style>
+h1 {
+  color: orange;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="mystyle.css">
+</head>
+```
+
+而如果`<link>`写在`<style>`上面，那么`<style>`就会覆盖`<link>`。
+
+All the styles in a page will "cascade" into a new "virtual" style sheet by the following rules, where number one has the highest priority:
+
+1. Inline style (inside an HTML element)
+2. External and internal style sheets (in the head section)
+3. Browser default
 
 ## Miscellaneous
 

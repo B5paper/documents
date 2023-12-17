@@ -3759,6 +3759,85 @@ pub fn add_to_waitlist() {}
     println!("x = {x} and y = {y}");
     ```
 
+### read from stdin
+
+```rust
+use std::io;
+
+fn get_line() -> String {
+    let mut line = String::new();
+    let result = io::stdin().read_line(&mut line);
+    match result {
+        Err(err) => println!("error meg: {err}"),
+        Ok(ok) => println!("read bytes: {ok}")
+    }
+    line
+}
+
+fn main() {
+    let line = get_line();
+    println!("get line: {line}");
+}
+```
+
+输入：
+
+```
+hello, world
+```
+
+输出：
+
+```
+hello, world
+read bytes: 14
+get line: hello, world
+
+```
+
+可以看到，`read_line()`不会删除换行符，在 windows 上多占了`\r\n`两个字符，长度为 14。
+
+按引用传递参数：
+
+```rust
+use std::io;
+
+fn get_line(line: &mut String) {
+    let result = io::stdin().read_line(line);
+    match result {
+        Err(err) => println!("error meg: {err}"),
+        Ok(ok) => println!("read bytes: {ok}")
+    }
+}
+
+fn main() {
+    let mut line = String::new();
+    get_line(&mut line);
+    println!("get line: {line}");
+}
+```
+
+先传递进去，再返回回来：
+
+```rust
+use std::io;
+
+fn get_line(mut line: String) -> String {
+    let result = io::stdin().read_line(&mut line);
+    match result {
+        Err(err) => println!("error meg: {err}"),
+        Ok(ok) => println!("read bytes: {ok}")
+    }
+    line
+}
+
+fn main() {
+    let mut line = String::new();
+    line = get_line(line);
+    println!("get line: {line}");
+}
+```
+
 ## 智能指针
 
 ### Box
