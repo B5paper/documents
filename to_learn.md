@@ -307,3 +307,423 @@
     1. <https://snr.unl.edu/agmet/brdf/brdf-definition.asp>
 
         同上。
+
+* bandicoot
+
+    基于 gpu 的 c++ 矩阵计算库
+
+    <https://coot.sourceforge.io/docs.html>
+
+    <https://gitlab.com/conradsnicta/bandicoot-code>
+
+* spla
+
+    线性代数库。
+
+    <https://github.com/SparseLinearAlgebra/spla>
+
+* cgal
+
+    解析几何库
+
+    <https://www.cgal.org/> 
+
+* 有关解析几何中，line 的表示的一些资料，有空了看看
+
+    Refs:
+
+    1. <http://jongarvin.com/up/MCV4U/slides/vector_parametric_plane_handout.pdf>
+
+    2. <https://www.britannica.com/science/analytic-geometry/Analytic-geometry-of-three-and-more-dimensions>
+
+    3. <https://www.sfu.ca/math-coursenotes/Math%20157%20Course%20Notes/sec_AnalyticGeometry.html>
+
+* 计算机图形学中有关光线追踪，反射，折射，相关的资料
+
+    * 光线在球面的折射（refraction）：
+
+        Refs:
+
+        1. <https://phys.libretexts.org/Courses/University_of_California_Davis/UCD%3A_Physics_9B__Waves_Sound_Optics_Thermodynamics_and_Fluids/04%3A_Geometrical_Optics/4.04%3A_Spherical_Refractors>
+
+        2. <https://www.toppr.com/guides/physics/ray-optics-and-optical-instruments/refraction-at-spherical-surface-and-by-lenses/>
+
+        3. <https://samdriver.xyz/article/refraction-sphere>
+
+    * manuka 渲染器
+
+        <https://www.wetafx.co.nz/research-and-tech/technology/manuka/>
+
+    * GAMES101 相关
+
+        Refs:
+
+        1. 视频：<https://www.bilibili.com/video/BV1X7411F744/?p=14&vd_source=39781faaf2433372c59bdb80774d648e>
+
+        2. ppt 目录：<https://sites.cs.ucsb.edu/~lingqi/teaching/games101.html>
+
+        3. path tracing 相关
+
+            1. <https://sites.cs.ucsb.edu/~lingqi/teaching/resources/GAMES101_Lecture_15.pdf>
+
+            1. <https://sites.cs.ucsb.edu/~lingqi/teaching/resources/GAMES101_Lecture_16.pdf>
+
+        4. 透明材质渲染
+
+            <https://sites.cs.ucsb.edu/~lingqi/teaching/resources/GAMES101_Lecture_17.pdf>
+
+    * 有关 shadow 的资料
+
+        Refs:
+
+        1. <https://web.cse.ohio-state.edu/~shen.94/681/Site/Slides_files/shadow.pdf>
+
+        2. <https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/ligth-and-shadows.html>
+
+    * 球与直线的相交
+
+        <https://www.cnblogs.com/charlee44/p/13247167.html>
+
+    * about ray tracing
+
+        1. <https://github.com/dannyfritz/awesome-ray-tracing>
+
+        2. <https://github.com/embree/embree>
+
+        3. <https://www.scratchapixel.com/index.html>
+
+        4. <https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays.html>
+
+        5. <https://github.com/NVIDIAGameWorks/RTXGI>
+
+        6. <https://github.com/GPUOpen-LibrariesAndSDKs/HIPRTSDK>
+
+        7. <https://gpuopen.com/hiprt/>
+
+        8. <https://github.com/Khrylx/DSGPURayTracing>
+
+        9. <https://github.com/blahgeek/hptracing>
+
+* 开源渲染器 mitsuba3
+
+    <https://www.mitsuba-renderer.org/>
+
+    <https://github.com/mitsuba-renderer/mitsuba3> 
+
+* 水面渲染
+
+    都是 github 链接，感觉没啥用，未来可能把这个删了。
+
+    <https://github.com/damienfir/water_rendering>
+
+    <https://github.com/victorpohren/Paraview-to-POVRay-Water-Render>
+
+    <https://github.com/IceLanguage/WaterRenderingLaboratory>
+
+    <https://github.com/ACskyline/Wave-Particles-with-Interactive-Vortices>
+
+    <https://github.com/hehao98/WaterRendering>
+
+    <https://github.com/marcozakaria/URP-LWRP-Shaders>
+
+    <https://community.khronos.org/t/refraction-reflection/35950>
+
+    <https://zhuanlan.zhihu.com/p/486631970>
+
+    opengl water: <https://blog.bonzaisoftware.com/tnp/gl-water-tutorial/>
+
+* tiny object loader
+
+    <https://github.com/tinyobjloader/tinyobjloader>
+
+* opengl tutorial
+
+    <https://zhuanlan.zhihu.com/p/657043402>
+
+* tex commands
+
+    1. <https://docs.mathjax.org/en/latest/input/tex/macros/index.html>
+
+    1. <https://texdoc.org/serve/texbytopic/0>
+
+    1. <https://www.tug.org/utilities/plain/cseq.html>
+
+* amd gpu
+
+    <https://gpuopen.com/>
+
+    <https://cgpress.org/archives/amd-open-sources-firerays-2-0.html>
+
+    <https://github.com/GPUOpen-LibrariesAndSDKs/RadeonRays_SDK>
+
+* LLaMA: Open and Efficient Foundation Language Models
+
+    <https://research.facebook.com/publications/llama-open-and-efficient-foundation-language-models/>
+
+    看起来像 facebook 对 llama 的论文简介推荐页。
+
+    目前还没仔细看过这个网页。
+
+    如果有论文介绍的话，以后可能会拜读一下。
+
+* ntroducing Llama 2
+
+    The next generation of our open source large language model
+
+    <https://ai.meta.com/llama/>
+
+    llama2 的欢迎页。不过为什么 url 还是 llama？
+
+    似乎可以直接下载模式，并且网页上有模型参数及性能对比。
+
+    有时间的话玩玩。
+
+* 万字长文：AIGC技术与应用全解析
+
+    <https://zhuanlan.zhihu.com/p/607822576>
+
+    有关 aigc 及大语言模型的常见应用，以及背后用到的技术，以及如果要做成应用，该怎么做。
+
+    看到有挺多应用的，音视频，语言，多模态，视觉，有时间了简单了解一下。
+
+* Stable Diffusion
+
+    <https://github.com/CompVis/stable-diffusion>
+
+    stable diffusion 的 github repo 页面。
+
+    似乎只需要 10G 显存就可以部署起来，有时间了试试吧。
+
+    stable diffusion 是 22 年夏天开源的，距今也只有一年半的时间，但是总以为它是 17 年开源的。
+
+* Stable Diffusion Launch Announcement
+
+    <https://stability.ai/news/stable-diffusion-announcement>
+
+    stable diffusion 的官方运营网站，提供了 api 接口。
+
+* Llama 2
+
+    <https://github.com/facebookresearch/llama>
+
+    llama 的 github repo。
+
+    不知道有啥用。
+
+    因为名气挺大的，所以有机会了拜读下代码。
+
+* Umi-OCR 文字识别工具
+
+    <https://github.com/hiroi-sora/Umi-OCR>
+
+    免费的 ocr 工具。免费的东西谁不喜欢呢？
+
+* torchgpipe
+
+    <https://github.com/kakaobrain/torchgpipe>
+
+    gpipe 的 torch 实现，已经是 4，5 年前的代码了，主流版本的实现已经合并入 torch 中了。
+
+    有时间的话简单看下，这个可能是原始版本的 gpipe 实现。
+
+* 深入理解 Megatron-LM（2）原理介绍
+
+    <https://zhuanlan.zhihu.com/p/650383289>
+
+    megatron 的论文解读，我觉得讲得还不错。这个系列可以看作和原论文相互地看，互相印证。
+
+    <https://zhuanlan.zhihu.com/p/650234985>
+
+    这个是 megatron 系列知乎专栏的第一篇。
+
+* DeepSpeed之ZeRO系列：将显存优化进行到底
+
+    <https://zhuanlan.zhihu.com/p/513571706>
+
+    讲 zero 系列的，我觉得讲得还可以。
+
+* ZeRO-Offload: Democratizing Billion-Scale Model Training
+
+    <https://www.usenix.org/conference/atc21/presentation/ren-jie>
+
+    zero offload 的论文网站
+
+* [译] DeepSpeed：所有人都能用的超大规模模型训练工具
+
+    <https://zhuanlan.zhihu.com/p/343570325>
+
+    系统地讲了下 deepspeed 中用到的各种技术，不仅局限于 zero 系列。
+
+* 图解大模型训练之：流水线并行（Pipeline Parallelism），以Gpipe为例
+
+    <https://zhuanlan.zhihu.com/p/613196255>
+
+    分析了 gpipe 的原理以及时间空间复杂度。讲得还是挺好的。
+
+* 如何评价微软开源的分布式训练框架deepspeed？
+
+    <https://www.zhihu.com/question/371094177/answer/2964829128>
+
+    deepspeed 的解析。一般般吧，没仔细看。
+
+* ColossalAI
+
+    <https://github.com/hpcaitech/ColossalAI>
+
+    colossal ai 是一个分布式训练的工具，实现了大部分的基本功能，比如 pipeline 之类的，而且仓库更新得也很频繁。
+
+* 9个主流的分布式深度学习框架
+
+    <https://zhuanlan.zhihu.com/p/582498905>
+
+    很多都超过两年没更新了，大家主要用的还是 deepspeed, megatron, colossal ai 这三个。
+
+* [细读经典]Megatron论文和代码详细分析(1)
+
+    <https://zhuanlan.zhihu.com/p/366906920>
+
+    megatron 的论文解读。前面已经有类似的论文解读了，这里只是提供另外一种视角看问题。
+
+* 模型并行训练：为什么要用Megatron，DeepSpeed不够用吗？
+
+    <https://zhuanlan.zhihu.com/p/670958880>
+
+    站在了一个更高的视角上，对比 megatron 和 deepspeed 的优缺点，并分析一些遇到的实际问题。
+
+* DeepSpeed ZeRO理论与VLM大模型训练实践
+
+    <https://zhuanlan.zhihu.com/p/675360966>
+
+* Pytorch Distributed
+
+    <https://zhuanlan.zhihu.com/p/348177135>
+
+    有关 pytorch 的分布式训练。没看。
+
+    <https://zhuanlan.zhihu.com/p/615754302>
+
+    同样，没看。
+
+* 论文阅读: PyTorch Distributed: Experiences on Accelerating Data Parallel Training
+
+    <https://zhuanlan.zhihu.com/p/666243122>
+
+* pytorch DistributedDataParallel基本原理及应用
+
+    <https://zhuanlan.zhihu.com/p/420894601>
+
+    没看。
+
+* Pytorch 分布式数据 Distributed Data Parallal
+
+    <https://zhuanlan.zhihu.com/p/460966888>
+
+    没看。
+
+* Pytorch - 分布式通信原语（附源码）
+
+    <https://zhuanlan.zhihu.com/p/478953028>
+
+    没看。
+
+* 分布式机器学习：异步SGD和Hogwild!算法（Pytorch）
+
+    <https://zhuanlan.zhihu.com/p/606063318>
+
+    没看。
+
+* 自动求导系列
+
+    * autograd
+
+    <https://github.com/HIPS/autograd>
+
+        一个比较成熟的自动求慰框架，可以对一些简单的操作求导。
+
+    * <https://blog.paperspace.com/pytorch-101-understanding-graphs-and-automatic-differentiation/>
+
+        pytorch 的自动求导讲解。没看。
+
+    * <https://medium.com/howsofcoding/pytorch-quick-reference-auto-grad-d615ca7c46e>
+
+        没看。
+
+    * <https://www.youtube.com/watch?v=RxmBukb-Om4&list=PLeDtc0GP5ICldMkRg-DkhpFX1rRBNHTCs>
+
+        youtube 上现场撸代码的视频。
+
+        <https://github.com/joelgrus/autograd/tree/part01>
+
+        配套 repo。
+
+    * <https://www.cs.toronto.edu/~rgrosse/courses/csc321_2017/tutorials/tut4.pdf>
+
+        没看。
+
+    * micrograd
+
+        <https://github.com/karpathy/micrograd>
+
+        个人维护的一个自动求导库。
+
+    * <https://github.com/pranftw/neograd>
+
+        没看。
+
+* LLaMA 超详细解读（paper & code）
+
+    <https://zhuanlan.zhihu.com/p/632102048>
+
+    没看。
+
+* 如何最简单、通俗地理解Transformer？
+
+    <https://www.zhihu.com/question/445556653/answer/3254012065>
+
+    transformer 解释。没看。
+
+* deepspeed
+
+    <https://github.com/microsoft/DeepSpeed>
+
+    deepspeed 的 github repo
+
+* synchronization in vulkan
+
+    <https://www.kdab.com/synchronization-in-vulkan/>
+
+    有关 semaphore 和 fence 的简单介绍。没啥新东西，就当是复习了。
+
+* LLVM IR入门指南
+
+    <https://evian-zhang.github.io/llvm-ir-tutorial/01-LLVM%E6%9E%B6%E6%9E%84%E7%AE%80%E4%BB%8B.html>
+
+    挺好的一份学习资料。有空了看看。
+
+* GPGMM
+
+    <https://github.com/intel/GPGMM>
+
+    intel 开发的一个基于 vulkan 的显存池。
+
+* glslang
+
+    <https://github.com/KhronosGroup/glslang>
+
+    希望能用 glslang 生成一个 ast
+
+* cupy
+
+    NumPy/SciPy-compatible Array Library for GPU-accelerated Computing with Python
+
+    <https://cupy.dev/>
+
+    用 cuda 作为 backend，用于替代 numpy 和 scipy 的部分功能，提高计算效率。
+
+    不清楚这个库是谁开发的，有空了看看。
+
+* <https://cliutils.gitlab.io/modern-cmake/chapters/testing.html>
+
+    cmake 的一个比较好的教程。这个还是在以前的笔记里找到的。废话比较多，跟着主要思路自己多实践，再查查 api，gpt。
+
+    可以把这个写到任务管理系统里。

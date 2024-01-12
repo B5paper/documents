@@ -1242,6 +1242,22 @@ int main()
 
 opencl kernel 里可以执行`printf()`，并且这个函数还是 atomic 的
 
+opencl 的 kernel 函数中，`printf()`只能打印常量字符串，不能打印变长字符串，也不能打印`global char *`的字符串。
+
+```opencl
+kernel void copy_str(global char *str)
+{
+    char local_str[] = "aaaaa";
+    constant char *const_str = "const strrrrr";
+    printf("%s\n", str);  // invalid
+    printf("%s\n", local_str);  // invalid
+    printf("%s\n", const_str);  // valid
+    printf("hello, world\n");  // valid
+}
+```
+
+更多资料：<https://man.opencl.org/printfFunction.html>
+
 ### vloadn 与 vstoren
 
 `vloadn()`用于从某个内存地址读取一个 vector，`vstoren()`用于将一个 vector 存储到某个内存目标地址中。
@@ -1756,6 +1772,22 @@ The type qualifier can be `global` (or `__global`), `local` (or `__local`), `con
 
     其中`global float4 *p;`指的是`p`指向一个全局的`float4`对象。
 
+### C++ support
+
+## opencl c++ binding
+
+opencl 的 c++ binding，相当于是 opencl c 接口的官方 c++ wrapper.
+
+<https://github.khronos.org/OpenCL-CLHPP/namespaces.html>
+
+## C++ grammar for OpenCL kernels
+
+opencl 的 kernel 语言支持 c++ 了，看起来是以 c++17 为标准，舍弃了部分特性，添加了部分特性.
+
+<https://www.khronos.org/opencl/assets/CXX_for_OpenCL.html>
+
+有时间了看下，感觉我应该用不到。
+
 ## Problems shooting
 
 * `Memory access fault by GPU node-1 (Agent handle: 0x55555670bd80) on address 0x7fffe0e00000. Reason: Page not present or supervisor privilege.`
@@ -1765,3 +1797,11 @@ The type qualifier can be `global` (or `__global`), `local` (or `__local`), `con
 * 向量类型转换 vector type casting 
 
     ref: <https://blog.csdn.net/10km/article/details/51171911>
+
+* copy global data to private space
+
+    用的是`async_work_group_copy()`：
+
+    <https://stackoverflow.com/questions/45575072/opencl-copy-character-from-global-to-local-memory>
+
+    对于 struct 之类的对象，直接在 private space 创建一个新对象就可以了。对于`char*`字符串，确实没想过这个问题。

@@ -25,6 +25,46 @@ int main()
 [u_0]
 collect glfw extensions
 [u_1]
+(2023.12.18 version)
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vector>
+using std::vector;
+#include <iostream>
+using std::cout, std::endl;
+
+void collect_glfw_required_inst_exts(vector<const char*> &glfw_required_inst_exts)
+{
+    uint32_t ext_count;
+    const char **glfw_required_inst_extensions = glfwGetRequiredInstanceExtensions(&ext_count);
+    glfw_required_inst_exts.resize(ext_count);
+    cout << "glfw requires " << ext_count << " instance extensions:" << endl;
+    for (int i = 0; i < ext_count; ++i)
+    {
+        glfw_required_inst_exts[i] = glfw_required_inst_extensions[i];
+        cout << glfw_required_inst_extensions[i] << endl;
+    }
+}
+
+int main()
+{
+    glfwInit();
+    vector<const char*> glfw_required_inst_exts;
+    collect_glfw_required_inst_exts(glfw_required_inst_exts);
+    return 0;
+}
+```
+
+output:
+
+```
+glfw requires 2 instance extensions:
+VK_KHR_surface
+VK_KHR_xcb_surface
+```
+
 (2023.12.15 version)
 ```cpp
 #define GLFW_INCLUDE_VULKAN
@@ -55,24 +95,88 @@ int main()
 }
 ```
 
-```cpp
-void collect_glfw_extensions(vector<const char*> &enabled_extensions)
-{
-    uint32_t count;
-    const char **glfw_required_extensions = glfwGetRequiredInstanceExtensions(&count);
-    cout << "glfw requires " << count << " extensions:" << endl;
-    for (int i = 0; i < count; ++i)
-    {
-        cout << glfw_required_extensions[i] << endl;
-        enabled_extensions.push_back(glfw_required_extensions[i]);
-    }
-}
-```
-
 [unit]
 [u_0]
 创建一个 vulkan instance。
 [u_1]
+(2023.12.18 version)
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vector>
+using std::vector;
+#include <iostream>
+using std::cout, std::endl;
+
+void collect_glfw_required_inst_exts(vector<const char*> &glfw_required_inst_exts)
+{
+    uint32_t ext_count;
+    const char **glfw_required_inst_extensions = glfwGetRequiredInstanceExtensions(&ext_count);
+    glfw_required_inst_exts.resize(ext_count);
+    cout << "glfw requires " << ext_count << " instance extensions:" << endl;
+    for (int i = 0; i < ext_count; ++i)
+    {
+        glfw_required_inst_exts[i] = glfw_required_inst_extensions[i];
+        cout << glfw_required_inst_extensions[i] << endl;
+    }
+}
+
+void fill_vk_app_info(VkApplicationInfo &app_info)
+{
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.apiVersion = VK_API_VERSION_1_2;
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pApplicationName = "hello";
+    app_info.pEngineName = "no engine";
+}
+
+VkInstance create_vk_inst(const VkApplicationInfo &app_info,
+    const vector<const char*> &enabled_inst_exts,
+    const vector<const char*> &enabled_inst_layers)
+{
+
+    VkInstanceCreateInfo inst_crt_info{};
+    inst_crt_info.enabledExtensionCount = enabled_inst_exts.size();
+    inst_crt_info.enabledLayerCount = enabled_inst_layers.size();
+    inst_crt_info.pApplicationInfo = &app_info;
+    inst_crt_info.ppEnabledExtensionNames = enabled_inst_exts.data();
+    inst_crt_info.ppEnabledLayerNames = enabled_inst_layers.data();
+    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    VkInstance inst;
+    VkResult result = vkCreateInstance(&inst_crt_info, nullptr, &inst);
+    if (result != VK_SUCCESS)
+    {
+        cout << "fail to create vk instance" << endl;
+        cout << "error code: " << result << endl;
+        exit(-1);
+    }
+    return inst;
+}
+
+int main()
+{
+    glfwInit();
+    vector<const char*> glfw_required_inst_exts;
+    collect_glfw_required_inst_exts(glfw_required_inst_exts);
+    VkApplicationInfo app_info{};
+    fill_vk_app_info(app_info);
+    VkInstance vk_inst = create_vk_inst(app_info, glfw_required_inst_exts, {});
+    cout << "successfully create vk instance" << endl;
+    return 0;
+}
+```
+
+output:
+
+```
+glfw requires 2 instance extensions:
+VK_KHR_surface
+VK_KHR_xcb_surface
+successfully create vk instance
+```
+
 (2023.12.15 version)
 ```cpp
 #define GLFW_INCLUDE_VULKAN
@@ -179,7 +283,50 @@ g++ -g main.cpp -lglfw -lvulkan -o main
 [u_0]
 列出所有可用的 instance layer。
 [u_1]
+(2023.12.18 version)
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vector>
+using std::vector;
+#include <iostream>
+using std::cout, std::endl;
+
+void collect_available_instance_layers(vector<VkLayerProperties> &available_inst_layers)
+{
+    uint32_t layer_count;
+    vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+    available_inst_layers.resize(layer_count);
+    vkEnumerateInstanceLayerProperties(&layer_count, available_inst_layers.data());
+    cout << "vulkan instance has " << layer_count << " available layers:" << endl;
+    for (int i = 0; i < layer_count; ++i)
+    {
+        cout << i << ": " << available_inst_layers[i].layerName << endl;
+    }
+}
+
+
+int main()
+{
+    vector<VkLayerProperties> available_inst_layers;
+    collect_available_instance_layers(available_inst_layers);
+    return 0;
+}
+```
+
+output:
+
+```
+vulkan instance has 4 available layers:
+0: VK_LAYER_RENDERDOC_Capture
+1: VK_LAYER_MESA_device_select
+2: VK_LAYER_KHRONOS_validation
+3: VK_LAYER_MESA_overlay
+```
+
 (2023.12.15 version)
+
 ```cpp
 void collect_available_inst_layers(vector<VkLayerProperties> &available_inst_layers)
 {
@@ -187,7 +334,7 @@ void collect_available_inst_layers(vector<VkLayerProperties> &available_inst_lay
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
     available_inst_layers.resize(layer_count);
     vkEnumerateInstanceLayerProperties(&layer_count, available_inst_layers.data());
-    cout << "ther are " << layer_count << " available instance layers:" << endl;
+    cout << "there are " << layer_count << " available instance layers:" << endl;
     for (int i = 0; i < layer_count; ++i)
     {
         cout << available_inst_layers[i].layerName << endl;
@@ -224,7 +371,47 @@ int main()
 [u_0]
 创建 debug message create info structure，并写出对应的 callback 函数。
 [u_1]
+(2023.12.18 version)
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vector>
+using std::vector;
+#include <iostream>
+using std::cout, std::endl;
+
+VkBool32 dbg_callback(VkDebugUtilsMessageSeverityFlagBitsEXT msg_severity,
+    VkDebugUtilsMessageTypeFlagsEXT msg_type,
+    const VkDebugUtilsMessengerCallbackDataEXT *p_callback_data,
+    void *p_user_data)
+{
+    cout << "validation layer: " << p_callback_data->pMessage << endl;
+    return VK_FALSE;
+}
+
+void fill_debug_msg_crt_info(VkDebugUtilsMessengerCreateInfoEXT &dbg_msg_crt_info)
+{
+    dbg_msg_crt_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    dbg_msg_crt_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    dbg_msg_crt_info.pfnUserCallback = dbg_callback;
+    dbg_msg_crt_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+}
+
+int main()
+{
+    VkDebugUtilsMessengerCreateInfoEXT dbg_msg_crt_info{};
+    fill_debug_msg_crt_info(dbg_msg_crt_info);
+    return 0;
+}
+```
+
 (2023.12.15 version)
+
 ```cpp
 VkBool32 debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -265,7 +452,233 @@ instance layer name: `VK_LAYER_KHRONOS_validation`
 [u_0]
 使用 callback validation layer 创建 instance。
 [u_1]
+(2023.12.18 version)
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vector>
+using std::vector;
+#include <iostream>
+using std::cout, std::endl;
+
+VkBool32 dbg_callback(VkDebugUtilsMessageSeverityFlagBitsEXT msg_severity,
+    VkDebugUtilsMessageTypeFlagsEXT msg_type,
+    const VkDebugUtilsMessengerCallbackDataEXT *p_callback_data,
+    void *p_user_data)
+{
+    cout << "validation layer: " << p_callback_data->pMessage << endl;
+    return VK_FALSE;
+}
+
+void fill_debug_msg_crt_info(VkDebugUtilsMessengerCreateInfoEXT &dbg_msg_crt_info)
+{
+    dbg_msg_crt_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    dbg_msg_crt_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    dbg_msg_crt_info.pfnUserCallback = dbg_callback;
+    dbg_msg_crt_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+}
+
+void collect_glfw_required_inst_exts(vector<const char*> &enabled_inst_exts)
+{
+    uint32_t ext_count;
+    const char **glfw_required_inst_exts = glfwGetRequiredInstanceExtensions(&ext_count);
+    cout << "glfw requires " << ext_count << " instance extensions:" << endl;
+    for (int i = 0; i < ext_count; ++i)
+    {
+        enabled_inst_exts.push_back(glfw_required_inst_exts[i]);
+        cout << i << ": " << glfw_required_inst_exts[i] << endl;
+    }
+}
+
+void collect_validation_required_inst_exts(vector<const char*> &validation_required_inst_exts)
+{
+    validation_required_inst_exts.push_back("VK_EXT_debug_utils");
+}
+
+void collect_validation_required_inst_layers(vector<const char*> &validation_required_inst_layers)
+{
+    validation_required_inst_layers.push_back("VK_LAYER_KHRONOS_validation");
+}
+
+void fill_app_info(VkApplicationInfo &app_info)
+{
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.apiVersion = VK_API_VERSION_1_2;
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pApplicationName = "hello";
+    app_info.pEngineName = "no engine";
+    app_info.pNext = nullptr;
+}
+
+VkInstance create_vk_instance(const VkApplicationInfo &app_info,
+    const vector<const char*> &enabled_inst_exts,
+    const vector<const char*> &enabled_inst_layers,
+    const VkDebugUtilsMessengerCreateInfoEXT &dbg_msg_crt_info)
+{
+    VkInstanceCreateInfo inst_crt_info{};
+    inst_crt_info.enabledExtensionCount = enabled_inst_exts.size();
+    inst_crt_info.enabledLayerCount = enabled_inst_layers.size();
+    inst_crt_info.flags = 0;
+    inst_crt_info.pApplicationInfo = &app_info;
+    inst_crt_info.pNext = &dbg_msg_crt_info;
+    inst_crt_info.ppEnabledExtensionNames = enabled_inst_exts.data();
+    inst_crt_info.ppEnabledLayerNames = enabled_inst_layers.data();
+    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    VkInstance inst;
+    VkResult result = vkCreateInstance(&inst_crt_info, nullptr, &inst);
+    if (result != VK_SUCCESS)
+    {
+        cout << "fail to create vulkan instance" << endl;
+        cout << "error code: " << result << endl;
+        exit(-1);
+    }
+    return inst;
+}
+
+int main()
+{
+    glfwInit();
+    vector<const char*> enabled_inst_exts;
+    collect_glfw_required_inst_exts(enabled_inst_exts);
+    collect_validation_required_inst_exts(enabled_inst_exts);
+    vector<const char*> enabled_inst_layers;
+    collect_validation_required_inst_layers(enabled_inst_layers);
+    VkDebugUtilsMessengerCreateInfoEXT dbg_msg_crt_info{};
+    fill_debug_msg_crt_info(dbg_msg_crt_info);
+    VkApplicationInfo app_info{};
+    fill_app_info(app_info);
+    VkInstance inst = create_vk_instance(app_info,
+        enabled_inst_exts,
+        enabled_inst_layers,
+        dbg_msg_crt_info);
+    cout << "successfully create a vulkan instance" << endl;
+    return 0;
+}
+```
+
+output:
+
+```
+glfw requires 2 instance extensions:
+0: VK_KHR_surface
+1: VK_KHR_xcb_surface
+validation layer: Searching for ICD drivers named /usr/lib/i386-linux-gnu/libvulkan_lvp.so
+validation layer: Searching for ICD drivers named /usr/lib/x86_64-linux-gnu/libvulkan_radeon.so
+validation layer: Searching for ICD drivers named /usr/lib/i386-linux-gnu/libvulkan_radeon.so
+validation layer: Searching for ICD drivers named /usr/lib/x86_64-linux-gnu/libvulkan_lvp.so
+validation layer: Searching for ICD drivers named /usr/lib/i386-linux-gnu/libvulkan_intel.so
+validation layer: Searching for ICD drivers named /usr/lib/x86_64-linux-gnu/libvulkan_intel.so
+validation layer: Build ICD instance extension list
+validation layer: Instance Extension: VK_KHR_device_group_creation (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.23
+validation layer: Instance Extension: VK_KHR_external_fence_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_memory_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_semaphore_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_display_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_physical_device_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.2
+validation layer: Instance Extension: VK_KHR_get_surface_capabilities2 (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.25
+validation layer: Instance Extension: VK_KHR_surface_protected_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_wayland_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xcb_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xlib_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.6
+validation layer: Instance Extension: VK_EXT_acquire_drm_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_acquire_xlib_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_debug_report (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.10
+validation layer: Instance Extension: VK_EXT_direct_mode_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_display_surface_counter (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_device_group_creation (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_fence_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_memory_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_semaphore_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_physical_device_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.2
+validation layer: Instance Extension: VK_KHR_get_surface_capabilities2 (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.25
+validation layer: Instance Extension: VK_KHR_surface_protected_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_wayland_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xcb_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xlib_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.6
+validation layer: Instance Extension: VK_EXT_debug_report (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.10
+validation layer: Instance Extension: VK_KHR_device_group_creation (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.23
+validation layer: Instance Extension: VK_KHR_external_fence_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_memory_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_semaphore_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_display_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_physical_device_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.2
+validation layer: Instance Extension: VK_KHR_get_surface_capabilities2 (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.25
+validation layer: Instance Extension: VK_KHR_surface_protected_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_wayland_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xcb_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xlib_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.6
+validation layer: Instance Extension: VK_EXT_acquire_drm_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_acquire_xlib_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_debug_report (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.10
+validation layer: Instance Extension: VK_EXT_direct_mode_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_display_surface_counter (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Build ICD instance extension list
+validation layer: Instance Extension: VK_KHR_device_group_creation (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.23
+validation layer: Instance Extension: VK_KHR_external_fence_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_memory_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_semaphore_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_display_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_physical_device_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.2
+validation layer: Instance Extension: VK_KHR_get_surface_capabilities2 (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.25
+validation layer: Instance Extension: VK_KHR_surface_protected_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_wayland_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xcb_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xlib_surface (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.6
+validation layer: Instance Extension: VK_EXT_acquire_drm_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_acquire_xlib_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_debug_report (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.10
+validation layer: Instance Extension: VK_EXT_direct_mode_display (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_display_surface_counter (/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so) version 0.0.1
+validation layer: Build ICD instance extension list
+validation layer: Instance Extension: VK_KHR_device_group_creation (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_fence_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_memory_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_semaphore_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_physical_device_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.2
+validation layer: Instance Extension: VK_KHR_get_surface_capabilities2 (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.25
+validation layer: Instance Extension: VK_KHR_surface_protected_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_wayland_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xcb_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xlib_surface (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.6
+validation layer: Instance Extension: VK_EXT_debug_report (/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so) version 0.0.10
+validation layer: Build ICD instance extension list
+validation layer: Instance Extension: VK_KHR_device_group_creation (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.23
+validation layer: Instance Extension: VK_KHR_external_fence_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_memory_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_external_semaphore_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_display_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_get_physical_device_properties2 (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.2
+validation layer: Instance Extension: VK_KHR_get_surface_capabilities2 (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.25
+validation layer: Instance Extension: VK_KHR_surface_protected_capabilities (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_KHR_wayland_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xcb_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.6
+validation layer: Instance Extension: VK_KHR_xlib_surface (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.6
+validation layer: Instance Extension: VK_EXT_acquire_drm_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_acquire_xlib_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_debug_report (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.10
+validation layer: Instance Extension: VK_EXT_direct_mode_display (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+validation layer: Instance Extension: VK_EXT_display_surface_counter (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
+successfully create a vulkan instance
+```
+
 (2023.12.15 version)
+
 ```cpp
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -449,6 +862,19 @@ void collect_available_physical_devices(const VkInstance inst,
 [u_0]
 get physical device queue family
 [u_1]
+(2023.12.18 version)
+
+```cpp
+void get_phy_dev_queue_family(const VkPhysicalDevice phy_dev,
+    vector<VkQueueFamilyProperties> &queue_family_props)
+{
+    uint32_t queue_family_count;
+    vkGetPhysicalDeviceQueueFamilyProperties(phy_dev, &queue_family_count, nullptr);
+    queue_family_props.resize(queue_family_count);
+    vkGetPhysicalDeviceQueueFamilyProperties(phy_dev, &queue_family_count, queue_family_props.data());
+}
+```
+
 ```cpp
 void get_phy_dev_queue_families(VkPhysicalDevice phy_dev, 
     vector<VkQueueFamilyProperties> &queue_family_props)
@@ -479,5 +905,72 @@ uint32_t select_graphcs_queue_family_idx(
         }
     }
     return 0;
+}
+```
+
+[unit]
+[u_0]
+select present queue family index
+[u_1]
+```cpp
+uint32_t select_present_queue_family_idx(
+    const VkPhysicalDevice phs_dev,
+    const VkSurfaceKHR surface,
+    const vector<VkQueueFamilyProperties> &queue_family_props,
+    bool &valid)
+{
+    valid = false;
+    VkBool32 presentSupport = false;
+    for (int i = 0; i < queue_family_props.size(); ++i)
+    {
+        vkGetPhysicalDeviceSurfaceSupportKHR(phs_dev, i, surface, &presentSupport);
+        if (presentSupport)
+        {
+            valid = true;
+            return i;
+        }
+    }
+    return 0;
+}
+```
+
+[unit]
+[u_0]
+create window
+[u_1]
+```cpp
+GLFWwindow* create_window(int width, int height, const char *title)
+{
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
+    return window;
+}
+```
+
+[unit]
+[u_0]
+create window surface
+[u_1]
+```cpp
+void create_window_surface(VkSurfaceKHR &surface, GLFWwindow *window, const VkInstance vk_inst)
+{
+    VkResult ret_val;
+    ret_val = glfwCreateWindowSurface(vk_inst, window, nullptr, &surface);
+    if (ret_val != VK_SUCCESS) {
+        cout << "failed to create window surface!" << endl;;
+        exit(-1);
+    }
+}
+```
+
+[unit]
+[u_0]
+enable swapchain device extension
+[u_1]
+```cpp
+void enable_swapchain_device_extension(vector<const char*> &enabled_device_extensions)
+{
+    enabled_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 }
 ```

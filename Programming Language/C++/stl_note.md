@@ -515,6 +515,63 @@ int main()
 
     最坏情况是取两容器中较大的`size`。
 
+* `nth_element()`
+
+    最常见的用法：
+
+    ```cpp
+    template< class RandomIt >
+    void nth_element( RandomIt first, RandomIt nth, RandomIt last );
+    ```
+
+    `nth_element()`可以保证第`nth`的数据一定在按序排好的正确的位置上，并且保证`nth`之前的数据一定小于等于`nth`之后的数据。
+
+    example:
+
+    ```cpp
+    #include <algorithm>
+    #include <iostream>
+    using namespace std;
+
+    template<typename T>
+    ostream& operator<<(ostream &cout, vector<T> &arr)
+    {
+        cout << "[";
+        for (int i = 0; i < arr.size() - 1; ++i)
+        {
+            cout << arr[i] << ", ";
+        }
+        cout << arr.back() << "]";
+        return cout;
+    }
+
+    int main()
+    {
+        vector<int> arr(10);
+        for (int i = 0; i < 10; ++i)
+            arr[i] = rand() % 20;
+        cout << arr << endl;
+        nth_element(arr.begin(), arr.begin() + 4, arr.end());
+        cout << arr << endl;
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    [3, 6, 17, 15, 13, 15, 6, 12, 9, 1]
+    [6, 3, 1, 6, 9, 12, 13, 15, 15, 17]
+    ```
+
+    可以看到，`arr[4]`的元素的位置是对的，即`9`。在`9`之前的数字都小于 9，在`9`之后的数字都大于 9.
+
+    这个函数通常被用来找中位数。
+
+    如果需要自定义比较函数，可以参考文档：
+
+    Ref: <https://en.cppreference.com/w/cpp/algorithm/nth_element>
+
 **内建函数对象**
 
 `#include <functional>`
@@ -961,3 +1018,125 @@ int main() {
     vector<int> vec(5);
     iota(vec.begin(), vec.end(), 0);  // vec: [0, 1, 2, 3, 4]
     ```
+
+## tuple
+
+`tuple`用于存储不同类型的几个变量。
+
+简单的用法：
+
+```cpp
+#include <tuple>  // for std::tuple, std::make_tuple, std::get
+#include <iostream>
+
+int main()
+{
+    std::tuple<int, const char*> t;
+    t = std::make_tuple(1, "hello");
+    std::cout << std::get<0>(t) << std::endl;
+    std::cout << std::get<1>(t) << std::endl;
+    return 0;
+}
+```
+
+output:
+
+```
+1
+hello
+```
+
+使用`tuple`时，需要先`#include <tuple>`头文件。
+
+可以看到，在`t`变量中，先存了一个`int`类型数据，再存了一个指针类型的数据。
+
+我们使用`make_tuple()`来创建 tuple 对象，使用`get()`取得不同索引处的数据。
+
+`get()`其实返回的是一个引用，因此也能拿来赋值：
+
+```cpp
+#include <tuple>  // for std::tuple, std::make_tuple, std::get
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    tuple<int, const char*> t(2, "hello");  // 使用构造函数初始化对象
+    get<1>(t) = "world";  // get() 返回的是一个引用，因此可以对一个函数赋值
+    cout << get<1>(t) << endl;
+    return 0;
+}
+```
+
+output:
+
+```
+world
+```
+
+在上面的代码中，可以看出`get()`返回的是一个引用。
+
+可以使用`tuple_size_v<T>`模板对象的值拿到 tuple 的元素个数：
+
+```cpp
+#include <tuple>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    tuple<int, const char*> t(2, "hello");
+    cout << tuple_size<tuple<int, const char*>>::value << endl;
+    cout << tuple_size<decltype(t)>::value << endl;
+    cout << tuple_size_v<decltype(t)> << endl;
+    return 0;
+}
+```
+
+output:
+
+```
+2
+2
+2
+```
+
+可以看到，这些实现都是在编译期实现的，都是模板元编程的应用。
+
+`swap()`可以交换两个 tuple 对象的内容。`swap(0`既是 method，又是 function。
+
+可以使用`tie()`和`ignore`将 tuple 中的数据取出来：
+
+```cpp
+#include <tuple>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    tuple<int, const char*, float> t(2, "hello", 1.1);
+    int ival;
+    float fval;
+    const char *msg;
+    tie(ival, msg, fval) = t;
+    cout << ival << endl;
+    cout << msg << endl;
+    cout << fval << endl;
+
+    tie(ival, ignore, fval) = t;
+    tie(ignore, ignore, fval) = t;
+    return 0;
+}
+```
+
+output:
+
+```
+2
+hello
+1.1
+```
+
+可以使用`tuple_cat()`将两个 tuple 拼接到一起。目前没怎么用过，所以就不详细写了。
+
+tuple 可以存不同类型的对象，array 只能存同一类型的对象。`pair`只能存两个对象，`tuple`可以存 0 个或多个对象。拿`tuple`存多个对象，由于只能使用索引来获得引用，对象失去了名字，所以过段时间很容易忘记这个`tuple`存的是什么东西。综合看来，`tuple`比较适合临时存一些数据，比如函数的多个返回值。也适合存一些意义非常明确，或者与变量名关系不大的数据，比如三维空间的 xyz 坐标，person 的 id 和姓名等等。

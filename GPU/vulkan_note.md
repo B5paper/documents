@@ -14,6 +14,22 @@ sudo apt install vulkan-validationlayers-dev spirv-tools
 vkcube
 ```
 
+## resources
+
+### specification
+
+所有的说明都在这里了，非常详细：
+
+<https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#preamble>
+
+<https://stackoverflow.com/questions/60592369/vulkan-timeline-semaphore-extension-cannot-be-enabled>
+
+### tutorial
+
+vulkan tutorial: <https://vulkan-tutorial.com/Introduction>
+
+这个是网页版的，如果不想看电子版，还可以下载 pdf 版。
+
 ## 第一份代码
 
 `main.cpp`
@@ -620,6 +636,23 @@ if (func != nullptr) {
 }
 ```
 
+如果在创建 vulkan instance 时，没有指定 extension `VK_EXT_debug_utils`，那么会导致`vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");`返回`nullptr`。
+
+如果直接调用`vkCreateDebugUtilsMessengerEXT()`，那么会报错没有这个 symbol。所以其实我们可以直接用这个函数名字：
+
+```cpp
+auto vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+    inst,
+    "vkCreateDebugUtilsMessengerEXT");
+VkResult result = vkCreateDebugUtilsMessengerEXT(inst, &dbg_msg_crt_info, nullptr, &dbg_messenger);
+if (result != VK_SUCCESS)
+{
+    cout << "fail to create debug messenger" << endl;
+    exit(-1);
+}
+cout << "successfully create the debug messenger" << endl;
+```
+
 Example:
 
 ```cpp
@@ -710,6 +743,75 @@ g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o 
 ```
 successfully create vk instance
 successfully create debug messenger
+```
+
+## physical device queue family
+
+可以使用`vkGetPhysicalDeviceQueueFamilyProperties()`拿到一个 physical device 所支持的 queue family。
+
+以 amd gpu 为例，可以拿到 3 个 queue family。
+
+每个 queue family 又支持不同的指令集（功能集），Khronos 的 spec 上列出的指令集 bit 如下：
+
+* `VK_QUEUE_GRAPHICS_BIT`
+
+* `VK_QUEUE_COMPUTE_BIT`
+
+* `VK_QUEUE_TRANSFER_BIT`
+
+* `VK_QUEUE_SPARSE_BINDING_BIT`
+
+* `VK_QUEUE_PROTECTED_BIT`
+
+* `VK_QUEUE_VIDEO_DECODE_BIT_KHR`
+
+* `VK_QUEUE_VIDEO_ENCODE_BIT_KHR`
+
+* `VK_QUEUE_OPTICAL_FLOW_BIT_NV`
+
+我们常用的主要是 graphics 和 compute。有意思的是，vk 规定，如果一个 queue family 支持 graphics，那么它必须支持 compute。
+
+example:
+
+```cpp
+    vector<VkQueueFamilyProperties> queue_family_props;
+    get_phy_dev_queue_family(phy_devs[0], queue_family_props);
+    cout << "there are " << queue_family_props.size() << " queue families" << endl;
+    for (int i = 0; i < queue_family_props.size(); ++i)
+    {
+        cout << i << ":" << endl;
+        cout << queue_family_props[i].queueCount << endl;
+        if (queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            cout << "support graphics" << endl;
+        }
+        if (queue_family_props[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+        {
+            cout << "support compute" << endl;
+        }
+        if (queue_family_props[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+        {
+            cout << "support transfer" << endl;
+        }
+    }
+```
+
+output:
+
+```
+there are 3 queue families
+0:
+1
+support graphics
+support compute
+support transfer
+1:
+4
+support compute
+support transfer
+2:
+1
+support transfer
 ```
 
 ### 最终代码
@@ -6438,4 +6540,30 @@ timeline semaphore 要求至少得是 vulkan 1.2 版本。详细的创建过程�
     sem_wait_info.pValues = &sem_vals;
     sem_wait_info.flags = 0;
     vkWaitSemaphores(device, &sem_wait_info, UINT64_MAX);
+    ```
+
+refs:
+
+1. <https://www.khronos.org/blog/vulkan-timeline-semaphores>
+
+## descriptor
+
+A descriptor set specifies the actual buffer or image resources that will be bound to the descriptors.
+
+## Miscellaneous
+
+* renderdoc 与程序实际的结果不一致
+
+    可以抓一下 vulkan api，看是否绘制了多帧，或者一帧没有渲染完。
+
+    可能是信号量等同步机制出了问题，导致`vkQueuePresentKHR()`没有在合适的时机被调用。
+
+* khronos 提供的 vulkan api capture layer
+
+    <https://vulkan.lunarg.com/doc/view/1.3.204.1/windows/layer_configuration.html>
+
+    这个是以环境变量的方式提供额外的 layer，从而提供抓取 api 的功能。
+
+    ```bash
+    export VK_INSTANCE_LAYERS=VK_LAYER_LUNARG_api_dump:VK_LAYER_KHRONOS_validation
     ```

@@ -60,6 +60,24 @@ add_executable(HelloWorld main.cpp)
 
 * `if`, `elif`, `endif`
 
+    ```cmake
+    if(variable)
+        # If variable is `ON`, `YES`, `TRUE`, `Y`, or non zero number
+    else()
+        # If variable is `0`, `OFF`, `NO`, `FALSE`, `N`, `IGNORE`, `NOTFOUND`, `""`, or ends in `-NOTFOUND`
+    endif()
+    # If variable does not expand to one of the above, CMake will expand it then try again
+    ```
+
+    看来 cmake 是基于字符串的值进行条件选择的。
+
+    如果字符串的值为`0`, `OFF`, `NO`, `FALSE`, `N`, `IGNORE`, `NOTFOUND`, `""`, 或以`-NOTFOUND`结尾，那么就走`else`分支；否则就走`if`分支。
+
+    `else`和`endif`后面都有一个没什么用的括号，这个设计挺有特点的。
+
+    通常是使用变量作为控制条件：`if(${var_name})`
+
+
 * `while`, `endwhile`
 
 * `foreach`, `endforeach`
@@ -222,7 +240,136 @@ CMake can generates a cache file that is designed to be used with a graphical ed
 
 Build logic and definitions with CMake language is written either in CMakeLists.txt or a file ends with `<project_name>.cmake`. But as a best practice, main script is named as CMakeLists.txt instead of cmake.
 
+## CMake command line
+
+* `cmake -L ..`
+
+    `-L`可以在生成 make 项目的时候，列出使用`-D`定义的 options。
+
+    如果不明白某些 option 的意思，还可以使用`-LH`列出每个 option 的意思。
+
+    example:
+
+    ```bash
+    cmake -L ..
+    ```
+
+    output:
+
+    ```
+    -- The C compiler identification is GNU 11.4.0
+    -- The CXX compiler identification is GNU 11.4.0
+    -- Detecting C compiler ABI info
+    -- Detecting C compiler ABI info - done
+    -- Check for working C compiler: /usr/bin/cc - skipped
+    -- Detecting C compile features
+    -- Detecting C compile features - done
+    -- Detecting CXX compiler ABI info
+    -- Detecting CXX compiler ABI info - done
+    -- Check for working CXX compiler: /usr/bin/c++ - skipped
+    -- Detecting CXX compile features
+    -- Detecting CXX compile features - done
+    hello math
+    -- Configuring done
+    -- Generating done
+    -- Build files have been written to: /home/hlc/Documents/Projects/cmake_test/math_lib/build
+    -- Cache values
+    CMAKE_BUILD_TYPE:STRING=
+    CMAKE_INSTALL_PREFIX:PATH=/usr/local
+    ```
+
+    可以看到，最后两行有 options 的信息。
+
+    加`-H`的效果如下：
+
+    ```bash
+    cmake -LH ..
+    ```
+
+    output:
+
+    ```
+    -- The C compiler identification is GNU 11.4.0
+    -- The CXX compiler identification is GNU 11.4.0
+    -- Detecting C compiler ABI info
+    -- Detecting C compiler ABI info - done
+    -- Check for working C compiler: /usr/bin/cc - skipped
+    -- Detecting C compile features
+    -- Detecting C compile features - done
+    -- Detecting CXX compiler ABI info
+    -- Detecting CXX compiler ABI info - done
+    -- Check for working CXX compiler: /usr/bin/c++ - skipped
+    -- Detecting CXX compile features
+    -- Detecting CXX compile features - done
+    hello math
+    -- Configuring done
+    -- Generating done
+    -- Build files have been written to: /home/hlc/Documents/Projects/cmake_test/math_lib/build
+    -- Cache values
+    // Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ...
+    CMAKE_BUILD_TYPE:STRING=
+
+    // Install path prefix, prepended onto install directories.
+    CMAKE_INSTALL_PREFIX:PATH=/usr/local
+    ```
+
+    可以看到，每个配置选项都加上了一行注释。
+
+* `cmake -Dxxx=abc ..`
+
+    `-D`命令可以通过给字符串赋值的方式设置一些配置选项。
+
+    比如将编译模式改成 debug：`cmake -DCMAKE_BUILD_TYPE=Debug ..`。
+
+    使用`-D`配置的选项会被缓存在`CMakeCache.txt`里，下次就不用再指定了。但是如果是已经有了`CMakeCache.txt`，再指定`-D`，会不会修改`CMakeCache.txt`中的内容？这个没调研过。
+
+    常见的 options:
+
+    * `-DCMAKE_BUILD_TYPE=`
+
+        ick from Release, RelWithDebInfo, Debug, or sometimes more.
+
+    * `-DCMAKE_INSTALL_PREFIX=`
+
+        The location to install to. System install on UNIX would often be `/usr/local` (the default), user directories are often `~/.local`, or you can pick a folder.
+
+    * `-DBUILD_SHARED_LIBS=`
+
+        You can set this `ON` or `OFF` to control the default for shared libraries (the author can pick one vs. the other explicitly instead of using the default, though)
+
+    * `-DBUILD_TESTING=`
+
+        This is a common name for enabling tests, not all packages use it, though, sometimes with good reason.
+
+试了试`--trace-source`，好像没什么用，出来的信息也看不懂。不清楚这个怎么用。
+
 ## API Ref
+
+* `cmake_minimum_required`
+
+    用于指定最低的 cmake 版本。
+
+    通常可以写成
+
+    ```cmake
+    cmake_minimum_required(VERSION 3.12)
+    ```
+
+    如果是支持一系列的版本，可以写成
+
+    ```cmake
+    cmake_minimum_required(VERSION 3.7...3.28)
+    ```
+
+* `project`
+
+    example:
+
+    ```cmake
+    project(MyProject VERSION 1.0
+                    DESCRIPTION "Very nice project"
+                    LANGUAGES CXX)
+    ```
 
 * `add_executable`
 
@@ -252,6 +399,14 @@ Build logic and definitions with CMake language is written either in CMakeLists.
     add_executable(<name> IMPORTED [GLOBAL])
     ```
 
+    example:
+
+    ```cmake
+    add_executable(one two.cpp three.h)
+    ```
+
+    其实这里的`.h`文件会被忽略掉。
+
 * `add_library`
 
     * Normal Libraries
@@ -275,6 +430,8 @@ Build logic and definitions with CMake language is written either in CMakeLists.
         add_library(my_lib SHARED my_lib.cpp)
         add_executable(main my_lib main.cpp)
         ```
+
+        注意，这里的`STATIC`，`SHARED`和`MODULE`都是大小写敏感的。
 
         在`add_executable()`的时候，只需要把自己的库加上去就可以了。
 
@@ -310,6 +467,26 @@ Build logic and definitions with CMake language is written either in CMakeLists.
         add_library(<name> ALIAS <target>)
         ```
 
+* `target_include_directories`
+
+    `target_include_directories` adds an include directory to a target. 
+
+    为构建目标添加一个 include 目录。
+
+    example:
+
+    ```cmake
+    target_include_directories(one PUBLIC include)
+    ```
+
+    这里的`PUBLIC`指的是，如果其他 target 链接到了这个 target （`one`）止，那么其他的 target 也需要将`include`包含到 include 目录中。显然这个`PUBLIC`是针对库的，对 executable 意义不大。
+
+    另外两个选项：
+
+    * `PRIVATE`: only affect the current target, not dependencies
+
+    * `INTERFACE`: only needed for dependencies
+
 * `add_subdirectory`
 
     Add a subdirectory to the build.
@@ -338,6 +515,21 @@ Build logic and definitions with CMake language is written either in CMakeLists.
     If a module is specified instead of a file, the file with name <modulename>.cmake is searched first in CMAKE_MODULE_PATH, then in the CMake module directory. There is one exception to this: if the file which calls include() is located itself in the CMake builtin module directory, then first the CMake builtin module directory is searched and CMAKE_MODULE_PATH afterwards. See also policy CMP0017.
 
 * `target_link_libraries`
+
+    添加库文件。
+
+    example:
+
+    ```cmake
+    target_link_libraries(main mylib)
+    ```
+
+    此时 cmake 会为 target `main`搜索`libmylib.so`库文件。通常我们还需要加上库文件的搜索路径，如果是当前文件夹，那么就写：
+
+    ```cmake
+    target_link_directories(main PUBLIC .)
+    target_link_libraries(main mylib)
+    ```
 
     Specify libraries or flags to use when linking a given target and/or its dependents. Usage requirements from linked library targets will be propagated. Usage requirements of a target's dependencies affect compilation of its own sources.
 
@@ -463,6 +655,20 @@ Build logic and definitions with CMake language is written either in CMakeLists.
         In other words, when Object Libraries appear in a target's INTERFACE_LINK_LIBRARIES property they will be treated as Interface Libraries, but when they appear in a target's LINK_LIBRARIES property their object files will be included in the link too.
 
 * `set`
+
+    给一个变量赋值。
+
+    example:
+
+    ```cmake
+    set(greeting_msg hello)
+    set(msg_2 hello world)
+    set(msg_3 "hello world")
+    ```
+
+    第二行`${msg_2}`的值是`helloworld`，即忽略空格。
+
+    如果想要加入空格，需要像第三行那样使用双引号把字符串括起来。
 
     Set a normal, cache, or environment variable to a given value.
 
@@ -590,6 +796,8 @@ Build logic and definitions with CMake language is written either in CMakeLists.
              [BYPASS_PROVIDER])
         ```
 
+
+
 ## Problems shooting
 
 1. `file RPATH_CHANGE could not write new RPATH:`
@@ -605,3 +813,7 @@ Build logic and definitions with CMake language is written either in CMakeLists.
     注：
 
     llvm 在编译时会占用大量内存，有些文件在 link 时候占用内存达到 12G 左右，所以编译线程数不要设置太大。
+
+* cmake 与环境变量
+
+    可以使用`set(ENV{variable_name} value)`设置环境变量，使用`$ENV{variable_name}`获取环境变量。

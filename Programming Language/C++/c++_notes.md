@@ -4052,6 +4052,272 @@ int main()
 
 这样看来，只需要把所有的函数都声明成右值参数，如果遇到左值实参，只需要`move()`将其变成右值就可以了。
 
+## key words explanation
+
+### `using`
+
+c++ 中 using 的三种用法:
+
+1. 导入命名空间
+
+    ```cpp
+    using namespace std;
+    using std::cout;
+    ```
+
+2. 指定类型别名
+
+    相当于`typedef`
+
+    ```cpp
+    typedef int T;
+    using T = int;
+    ```
+
+3. 在派生类中引用基类成员
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    class A
+    {
+        public:
+        void print_val() { cout << val << endl; }
+
+        protected:
+        int val;
+    };
+
+    class B: private A
+    {
+        public:
+        using A::val;
+        using A::print_val;
+    };
+
+    int main()
+    {
+        B b;
+        b.val = 3;
+        b.print_val();
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    3
+    ```
+
+    上面的代码中，`A`中的`print_val()`和`val`都对`B`可见，但是`B`使用 private 继承，会使得`A`中的`public`字段和`protected`字段在`B`中都变成`private`字段。
+
+    但是我们在`class B`中，在`public`字段中使用`using`重新引用`val`和`print_val`这两个名字，可以将这两个成员变成`public`字段，从而对外可见。
+    
+### `namespace`
+
+`namespace`是为了同名变量互不干扰：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+namespace haha
+{
+    int val;
+    void print_val() {
+        cout << val << endl;
+    }
+}
+
+namespace hehe
+{
+    int val;
+    void print_val() {
+        cout << val << endl;
+    }
+}
+
+int main()
+{
+    haha::val = 1;
+    haha::print_val();
+
+    hehe::val = 2;
+    hehe::print_val();
+    return 0;
+}
+```
+
+输出：
+
+```
+1
+2
+```
+
+`namespace`的大括号后面没有分号`;`。
+
+可以在`namespace`中声明变量，函数，类，在`namespace`外面进行定义或初始化。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+namespace haha
+{
+    void print_hello();
+    class A;
+}
+
+void haha::print_hello() {
+    cout << "hello" << endl;
+}
+
+class haha::A {
+    public:
+    void print_val() {
+        cout << val << endl;
+    }
+    int val;
+};
+
+int main()
+{
+    haha::print_hello();
+
+    haha::A a;
+    a.val = 123;
+    a.print_val();
+    return 0;
+}
+```
+
+output:
+
+```
+hello
+123
+```
+
+类成员可以在`namespace`中声明，也可以在外部声明：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+namespace haha
+{
+    class A;
+    class B {  // 在内部声明类成员
+        public:
+        int val;
+        void print_val();
+    };
+}
+
+class haha::A {  // 在外部声明类成员
+    public:
+    void print_val() {
+        cout << val << endl;
+    }
+    int val;
+};
+
+void haha::B::print_val() {
+    cout << val << endl;
+}
+
+int main()
+{
+    haha::A a;
+    a.val = 123;
+    a.print_val();
+    haha::B b;
+    b.val = 456;
+    b.print_val();
+    return 0;
+}
+```
+
+output:
+
+```
+123
+456
+```
+
+namespace 可以嵌套，还可以使用`using`来指定使用哪个名字：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+namespace haha
+{
+    void print_hello() {
+        cout << "hello" << endl;
+    }
+
+    namespace hehe
+    {
+        void print_world() {
+            cout << "world" << endl;
+        }
+    }
+}
+
+using haha::print_hello;
+using namespace haha::hehe;
+
+int main()
+{
+    print_hello();
+    print_world();
+    return 0;
+}
+```
+
+output:
+
+```
+hello
+world
+```
+
+`using`相当于预处理命令，并不是真正的程序命令，因此想要在运行时更换 namespace 是做不到的：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+namespace haha
+{
+    void print_msg() {
+        cout << "hello" << endl;
+    }
+}
+
+namespace hehe
+{
+    void print_msg() {
+        cout << "world" << endl;
+    }
+}
+
+int main()
+{
+    using haha::print_msg;
+    print_msg();
+    using hehe::print_msg;
+    print_msg();
+    return 0;
+}
+```
+
+这段代码会报编译错误，第二个`print_msg()`有歧义。因为在`using hehe::print_msg;`后，`print_msg`有了两处来源，因此会报`ambiguous`错误。但是第一个`print_msg();`是没问题的。因此只删去第二处`print_msg();`，程序也可以正常运行。
+
 ## C++11/17/20 new features
 
 ### move

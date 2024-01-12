@@ -484,6 +484,25 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
 
     Ref: <https://superuser.com/questions/974797/how-to-boot-a-linux-system-without-graphical-server>
 
+## 查看显存使用情况
+
+`glxinfo | grep -E -i 'device|memory'`
+
+注意`device`和`memory`中间不能有空格。
+
+或者使用`glxinfo -B`，也能看到有显存使用情况的数据。
+
+## amd gpu 的 usage
+
+```bash
+cat /sys/class/drm/card0/device/gpu_busy_percent  # gpu core usage.
+cat /sys/class/drm/card0/device/mem_busy_percent  # gpu memory usage.
+cat /sys/class/drm/card0/device/mem_info_vram_used  # memory used. 
+```
+
+ref: <https://unix.stackexchange.com/questions/576707/how-to-monitor-amd-gpu-on-linux-server>
+
+
 ## problem shooting
 
 * Ubuntu 无法连接企业 Wifi
@@ -540,3 +559,11 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
 
     Ref: <https://linuxconfig.org/how-to-mount-partition-with-ntfs-file-system-and-read-write-access>
 
+* 使用 dpkg 找到某个文件是属于哪个 package 的
+
+    ```bash
+    $ dpkg -S /bin/ls
+    coreutils: /bin/ls
+    ```
+
+    ref: <https://askubuntu.com/questions/481/how-do-i-find-the-package-that-provides-a-file>
