@@ -76,50 +76,7 @@ g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o 
 
 ## Vulkan Instance Creation
 
-
-
-## 画一个三角形
-
-### 1. base code
-
-```cpp
-#include <vulkan/vulkan.h>
-#include <iostream>
-#include <stdexcept>
-#include <cstdlib>
-class HelloTriangleApplication {
-public:
-    void run() {
-        initVulkan();
-        mainLoop();
-        cleanup();
-    }
-
-private:
-    void initVulkan() {
-
-    }
-
-    void mainLoop() {
-
-    }
-
-    void cleanup() {
-
-    }
-};
-
-int main() {
-    HelloTriangleApplication app;
-    try {
-        app.run();
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
-}
-```
+### collect required instance extensions
 
 编译：
 
@@ -132,8 +89,6 @@ g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o 
 ```
 ./main
 ```
-
-### 2. instance
 
 `main.cpp`:
 
@@ -1719,7 +1674,7 @@ make
 
     看起来`vkQueuePresentKHR()`会把渲染好的图片的信息加入到 present 队列里。说明 present 队列与窗口的 swap 是 vk 在后台帮忙完成的，它和渲染指令队列是异步交互的。
 
-## 从录入绘制命令到显示到屏幕
+## 计算与显示的同步机制
 
 fence 用于等待 gpu 指令执行完成，从而保证每次只绘制一帧。
 
@@ -3647,6 +3602,8 @@ int main()
 ```
 
 ## 使用 index buffer
+
+同 opengl 一样，使用顶点数据 + 索引数据结合的形式定义三角形，从而节省存储空间。
 
 `main.cpp`:
 
@@ -6567,3 +6524,5 @@ A descriptor set specifies the actual buffer or image resources that will be bou
     ```bash
     export VK_INSTANCE_LAYERS=VK_LAYER_LUNARG_api_dump:VK_LAYER_KHRONOS_validation
     ```
+
+* 可以使用 gfxreconstruct 抓帧

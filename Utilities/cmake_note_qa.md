@@ -46,7 +46,7 @@ make
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
-[uint]
+[unit]
 [u_0]
 编译一个自定义的库，要求输出`libmymath.so`
 

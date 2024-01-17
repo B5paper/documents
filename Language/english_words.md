@@ -417,3 +417,21 @@ instance n-count. An instance is a particular example or occurrence of something
 constructive adj. 建设的，积极的，构造上的
 
 dielectric n. 电介质，绝缘体
+
+extensive adj. 广阔的，大量的
+
+encompass vt. 围绕，包含
+
+numeral n. 数字，数词
+
+anomaly n. 异常，反常
+
+in addition to 除...外（还）
+
+precise adj. 清晰的，精密的
+
+aggregate n. 总数，合计
+
+dedicated adj. 专用的
+
+coherency n. 一致

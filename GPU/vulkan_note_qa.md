@@ -25,6 +25,23 @@ int main()
 [u_0]
 collect glfw extensions
 [u_1]
+(2024.01.15 version)
+```cpp
+void collect_glfw_required_inst_exts(vector<const char*> &glfw_required_inst_exts)
+{
+    uint32_t ext_count;
+    glfwGetRequiredInstanceExtensions(&ext_count);
+    glfw_required_inst_exts.resize(ext_count);
+    const char **ext_names = glfwGetRequiredInstanceExtensions(&ext_count);
+    for (int i = 0; i < ext_count; ++i)
+        glfw_required_inst_exts[i] = ext_names[i];
+
+    printf("glfw requires %d instance extensions:\n", ext_count);
+    for (int i = 0; i < ext_count; ++i)
+        printf("%d: %s\n", i, glfw_required_inst_exts[i]);
+}
+```
+
 (2023.12.18 version)
 
 ```cpp

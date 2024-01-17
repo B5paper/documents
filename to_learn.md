@@ -727,3 +727,159 @@
     cmake 的一个比较好的教程。这个还是在以前的笔记里找到的。废话比较多，跟着主要思路自己多实践，再查查 api，gpt。
 
     可以把这个写到任务管理系统里。
+
+* yacc 相关
+
+    * <https://www.geeksforgeeks.org/introduction-to-yacc/>
+
+* compiler
+
+    <https://shperb.github.io/teaching/Compiler_Principles>
+
+    <http://www.craftinginterpreters.com/>
+
+    <https://github.com/aalhour/awesome-compilers>
+
+    <>
+
+* zlibrary
+
+    <https://singlelogin.se>
+
+    ? Just send any letter from your mailbox to our magic email address <blackbox@zlib.se>
+
+* pdf coffee
+
+    <https://pdfcoffee.com/>
+
+* library genesis
+
+    <https://www.libgen.is/>
+
+* cmake 相关
+
+    * CMake: find_package()
+
+        <https://wiki.hanzheteng.com/development/cmake/cmake-find_package>
+
+    * find_library
+
+        <https://cmake.org/cmake/help/latest/command/find_library.html#command:find_library>
+
+    * cmake-modules(7)
+
+        <https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#manual:cmake-modules(7)>
+
+    * Finding Packages
+
+        <https://cmake.org/cmake/help/book/mastering-cmake/chapter/Finding%20Packages.html>
+
+    * How to Find Packages With CMake: The Basics
+
+        <https://izzys.casa/2020/12/how-to-find-packages-with-cmake-the-basics/>
+
+    * Using Dependencies Guide
+
+        <https://cmake.org/cmake/help/latest/guide/using-dependencies/index.html#guide:Using%20Dependencies%20Guide>
+
+    下面这两个主要是调试相关的：
+
+    * Introducing CMake Debugger in VS Code: Debug your CMake Scripts using Open-Source CMake Debugger
+
+        <https://devblogs.microsoft.com/cppblog/introducing-cmake-debugger-in-vs-code-debug-your-cmake-scripts-using-open-source-cmake-debugger/>
+
+    * variable_watch
+
+        <https://cmake.org/cmake/help/latest/command/variable_watch.html>
+
+* 动态漫反射全局光照（Dynamic Diffuse Global Illumination）
+
+    <https://zhuanlan.zhihu.com/p/404520592>
+
+* vulkan resources
+
+    * Vulkan Guide 
+
+        <https://vkguide.dev/>
+
+    * Vulkan-Cookbook 
+
+        <https://github.com/PacktPublishing/Vulkan-Cookbook>
+
+    * Vulkan Tutorial
+
+        <https://vulkan-tutorial.com/Introduction>
+
+        这个就是那个废话很多，条理不清的教程。
+
+    * LunarG: Creator and Curator of the Vulkan SDK
+
+        <https://www.lunarg.com/vulkan-sdk/>
+
+    * How to write a Vulkan driver in 2022
+
+        <https://www.collabora.com/news-and-blog/blog/2022/03/23/how-to-write-vulkan-driver-in-2022/>
+
+    * Getting Started with the Ubuntu Vulkan SDK
+
+        <https://vulkan.lunarg.com/doc/sdk/1.3.268.0/linux/getting_started_ubuntu.html>
+
+    * Vulkan Specification and Proposals
+
+        <https://docs.vulkan.org/spec/latest/appendices/glossary.html#glossary>
+
+        vulkan api reference
+
+    * Vulkan® 1.3.275 - A Specification (with all registered extensions)
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#synchronization-semaphores-waiting>
+
+    * Mastering-Graphics-Programming-with-Vulkan
+
+        <https://github.com/PacktPublishing/Mastering-Graphics-Programming-with-Vulkan>
+
+    * Synchronization and Cache Control
+
+        <https://docs.vulkan.org/spec/latest/chapters/synchronization.html#synchronization-semaphores>
+
+    * Vulkan Timeline Semaphores
+
+        <https://www.khronos.org/blog/vulkan-timeline-semaphores>
+
+* vulkan copy image from swapchain, and image layout
+
+    * How do I copy any image into Swapchain images?
+
+        <https://www.reddit.com/r/vulkan/comments/upeyel/how_do_i_copy_any_image_into_swapchain_images/>
+
+    * How to get image from swapchain for screenshot. Getting error "Cannot read invalid swapchain image 0x3, please fill the memory before using."
+
+        <https://www.reddit.com/r/vulkan/comments/7wwrs5/how_to_get_image_from_swapchain_for_screenshot/>
+
+    * How to Copy Swap Chain Image to a VkBuffer in Vulkan?
+
+        <https://stackoverflow.com/questions/38985094/how-to-copy-swap-chain-image-to-a-vkbuffer-in-vulkan>
+
+    * C++ (Cpp) vkCmdCopyImageToBuffer Examples
+
+        <https://cpp.hotexamples.com/examples/-/-/vkCmdCopyImageToBuffer/cpp-vkcmdcopyimagetobuffer-function-examples.html>
+
+    * Vulkan从入门到精通38-使用vkCmdCopyImageToBuffer保存VkImage图像
+
+        <https://zhuanlan.zhihu.com/p/469416830>
+
+    * vulkan学习笔记五
+
+        <https://blog.csdn.net/hometoned/article/details/126061556>
+
+    * Tracking image layout transitions
+
+        <https://community.khronos.org/t/tracking-image-layout-transitions/107409>
+
+    * VkImageLayout(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageLayout.html>
+
+    * How to deal with the layouts of presentable images?
+
+        <https://stackoverflow.com/questions/37524032/how-to-deal-with-the-layouts-of-presentable-images>
