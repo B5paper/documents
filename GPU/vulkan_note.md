@@ -74,69 +74,131 @@ g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o 
 ./main
 ```
 
-## Vulkan Instance Creation
+## Vulkan instance creation
 
-### collect required instance extensions
+### final code
 
-编译：
-
-```
-g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
-```
-
-运行：
-
-```
-./main
-```
+最终可以这样写，将创建 instance 的过程模块化，几乎每个模块都可以选择性地添加：
 
 `main.cpp`:
 
 ```cpp
 #define GLFW_INCLUDE_VULKAN  // 不写这一行会编译报错
 #include <GLFW/glfw3.h>
+#include <vector>
 #include <iostream>
 using namespace std;
 
-int main()
+void collect_glfw_required_inst_exts(vector<const char*> &glfw_required_inst_exts)
 {
+    uint32_t ext_count;
+    const char **exts = glfwGetRequiredInstanceExtensions(&ext_count);
+    glfw_required_inst_exts.assign(exts, exts + ext_count);
+    
+    printf("glfw requires %d vulkan instance extensions:\n", ext_count);
+    for (int i = 0; i < ext_count; ++i)
+        printf("    %d: %s\n", i, exts[i]);
+}
+
+void collect_validation_required_inst_exts(vector<const char*> &validation_required_inst_exts)
+{
+    validation_required_inst_exts.push_back("VK_EXT_debug_utils");
+}
+
+void collect_validation_required_inst_layers(vector<const char*> &validation_required_inst_layers)
+{
+    validation_required_inst_layers.push_back("VK_LAYER_KHRONOS_validation");
+}
+
+void collect_vk_inst_enabled_exts(vector<const char*> &enabled_inst_exts)
+{
+    vector<const char*> glfw_required_inst_exts;
+    collect_glfw_required_inst_exts(glfw_required_inst_exts);
+
+    vector<const char*> validation_required_inst_exts;
+    collect_validation_required_inst_exts(validation_required_inst_exts);
+
+    enabled_inst_exts.insert(enabled_inst_exts.begin(), 
+        glfw_required_inst_exts.begin(), glfw_required_inst_exts.end());
+    enabled_inst_exts.insert(enabled_inst_exts.begin(),
+        validation_required_inst_exts.begin(), validation_required_inst_exts.end());
+}
+
+void collect_vk_inst_enabled_layers(vector<const char*> &enabled_inst_layers)
+{
+    vector<const char*> validation_required_inst_layers;
+    collect_validation_required_inst_layers(validation_required_inst_layers);
+
+    enabled_inst_layers.insert(enabled_inst_layers.begin(),
+        validation_required_inst_layers.begin(), validation_required_inst_layers.end());
+}
+
+VkBool32 dbg_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+    VkDebugUtilsMessageTypeFlagsEXT msg_type,
+    const VkDebugUtilsMessengerCallbackDataEXT *p_callback_data,
+    void *p_user_data)
+{
+    printf("validation layer: %s\n", p_callback_data->pMessage);
+    return VK_FALSE;
+}
+
+void create_vulkan_instance(VkInstance &inst)
+{
+    VkInstanceCreateInfo inst_crt_info{};  // 大括号的作用是置零所有字段，尤其是 pNext
+    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+    vector<const char*> inst_enabled_exts, inst_enabled_layers;
+    collect_vk_inst_enabled_exts(inst_enabled_exts);
+    collect_vk_inst_enabled_layers(inst_enabled_layers);
+    inst_crt_info.enabledExtensionCount = inst_enabled_exts.size();
+    inst_crt_info.ppEnabledExtensionNames = inst_enabled_exts.data();
+    inst_crt_info.enabledLayerCount = inst_enabled_layers.size();
+    inst_crt_info.ppEnabledLayerNames = inst_enabled_layers.data();
+
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.pApplicationName = "hello";
+    app_info.apiVersion = VK_API_VERSION_1_0;  // 有时候可能会用到 vulkan 1.2 的特性，如果代码中用到了，需要在这里改
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "no engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_0;
-
-    VkInstanceCreateInfo inst_crt_info{};  // 清空所有字段，尤其是 pNext
-    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    app_info.pApplicationName = "hello";
+    app_info.pEngineName = "no engine";
     inst_crt_info.pApplicationInfo = &app_info;
-    uint32_t glfwExtensionCount = 0;
-    glfwInit();  // 如果不初始化 glfw 环境，下面的 glfwExtensions 会是 NULL
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    if (glfwExtensions == nullptr) {
-        cout << "fail to initialize glfw env" << endl;
-        return -1;
+
+    VkDebugUtilsMessengerCreateInfoEXT dbg_msgr_crt_info{};
+    dbg_msgr_crt_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    dbg_msgr_crt_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+    dbg_msgr_crt_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    dbg_msgr_crt_info.pfnUserCallback = dbg_callback;
+    inst_crt_info.pNext = &dbg_msgr_crt_info;
+
+    VkResult result = vkCreateInstance(&inst_crt_info, nullptr, &inst);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to create a vulkan instance\n");
+        exit(-1);
     }
-    inst_crt_info.enabledExtensionCount = glfwExtensionCount;
-    inst_crt_info.ppEnabledExtensionNames = glfwExtensions;
-    inst_crt_info.enabledLayerCount = 0;
-    VkInstance instance;
-    VkResult result = vkCreateInstance(&inst_crt_info, nullptr, &instance);
-    if (result != VK_SUCCESS) {
-        cout << "failed to create instance." << endl;
-        return -1;
-    } else {
-        cout << "successfully create a vk instance." << endl;
-    }
+}
+
+int main()
+{
+    glfwInit();  // 如果不初始化 glfw 环境，后面会拿不到 glfw required instance extensions
+    VkInstance inst;
+    create_vulkan_instance(inst);
+    printf("successfully create a vulkan instance.\n");
     return 0;
 }
 ```
 
 编译：
 
-```bash
-g++ -g main.cpp -lglfw -lvulkan -o main
+```Makefile
+main: main.cpp
+	g++ -g main.cpp -lglfw -lvulkan -o main
 ```
 
 运行：
@@ -145,11 +207,11 @@ g++ -g main.cpp -lglfw -lvulkan -o main
 ./main
 ```
 
-输出：
+这份代码里的函数和命名也都做了优化，应该不会变动太大了。
 
-```
-successfully create a vk instance.
-```
+为什么这里用`printf()`而不用`cout`，因为`cout`比较适合处理流处理，这里只需要输出格式化的字符串就可以，没有流数据的需求，所以直接用`printf()`了。
+
+### instance extensions
 
 枚举 vulkan 支持的 extension 和 glfw 需要的 extension：
 
@@ -226,9 +288,17 @@ VK_KHR_xcb_surface
 
 ### validation layer
 
+validation layer 主要用于输出 vulkan 驱动在执行时的各种细节，尤其是报错信息。
+
+如果不加 validation layer，vulkan 出错时可能会直接 segmentation falut，或者什么错也不报，继续运行。
+
+validation layer 的创建方式有两种，一种是随 instance 一起创建，这样可以监控到 instance 创建时的 bug；另一种是等 instance 创建好后，再 attach 到 instance 上，显然这样无法监控 instance 在创建时报的 bug。
+
 There were formerly two different types of validation layers in Vulkan: instance and device specific.
 
 The idea was that instance layers would only check calls related to global Vulkan objects like instances, and device specific layers would only check calls related to a specific GPU. Device specific layers have now been deprecated, which means that instance validation layers apply to all Vulkan calls. The specification document still recommends that you enable validation layers at device level as well for compatibility,
+
+#### check out validation layer support
 
 ```cpp
 #define GLFW_INCLUDE_VULKAN
@@ -328,6 +398,8 @@ OK: validation layer exists
 validation layer 对应的名称为`"VK_LAYER_KHRONOS_validation"`。
 
 为了使用 callback function，需要使用`VK_EXT_DEBUG_UTILS_EXTENSION_NAME` extension，这个宏等价于`"VK_EXT_debug_utils"`。
+
+#### using pNext of instance create info
 
 Example code:
 
@@ -554,7 +626,7 @@ validation layer: Instance Extension: VK_EXT_display_surface_counter (/usr/lib/x
 successfully create a vk instance.
 ```
 
-### debug messenger
+#### using debug messenger
 
 为了使用 debug messenger，我们首先需要启用`"VK_EXT_debug_utils"` extension，这个字符串等价于`VK_EXT_DEBUG_UTILS_EXTENSION_NAME`宏。
 
@@ -700,7 +772,9 @@ successfully create vk instance
 successfully create debug messenger
 ```
 
-## physical device queue family
+## physical device selection
+
+### queue family
 
 可以使用`vkGetPhysicalDeviceQueueFamilyProperties()`拿到一个 physical device 所支持的 queue family。
 
@@ -1613,7 +1687,13 @@ make
 <img width=700 src='./pics/vulkan_note/pic_0.png'>
 </div>
 
-## physical device selection
+## logic device, queue
+
+### logic device creation
+
+### command queue
+
+### present queue
 
 ## swapchain
 
@@ -4669,6 +4749,108 @@ void createDescriptorSetLayout() {
 
 ```
 
+* vulkan descriptor
+
+    一些核心的代码：
+
+    ```cpp
+    void createDescriptorSetLayout() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+    }
+    ```
+
+    上面的代码创建了一个 descriptor set layout，看起来这个 layout 就是 shader 文件里开关的那几行，绑定数据用的。
+
+    后面的 pipeline layout 中，会把这个 descriptor set layout 应用上去：
+
+    ```cpp
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;  // 在这里被应用
+
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+    ```
+
+    最终会在创建 pipeline 的时候用到：
+
+    ```cpp
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create graphics pipeline!");
+    }
+    ```
+
+    pipeline 最终通过 bind 的方式，加入到 renderpass 中发挥作用。
+
+
+## map memory
+
+* vulkan map memory 主要是为了把显存的地址空间映射到用户的地址空间。
+
+    之所以要做地址空间的映射，猜测可能是操作系统对“进程”的地址空间的限制。
+
+## vkimage
+
+* 有关 vulkan 中的 subresource
+
+    对于 depth-stencil 图像，depth 层和 stencil 层都可以独立拿出来作为一张图片，这些都称作 subimage，即 subresource.
+
+    depth 和 stencil 这两种 subimage 都被叫作 aspect.
+
+    不清楚 stencil 是什么意思，可能是和 depth, color 处于同一层的一种概念。
+
+* 有关 image view 的解释
+
+    vkimage 对象存储的图像可能是压缩过的数据，并且极大可能是 rgbds 多个通道（aspect）组合成的图像，还有可能有 mip level 多个尺寸的图像。
+    
+    vkimageview 可以指定一些额外的信息，从而让 vk 去做压缩数据到未压缩数据的自动转换，抽取指定 aspect 的数据，选择指定 mip level 等等。
+
+* 不清楚 array image 是什么意思，可能是未压缩的图像数据？
+
+* layer 似乎指的是完整的一张图片
+
+    比如一个 cube 上的贴图， 因为正方体有 6 个面，所以这个 vkimageview 有 6 个 layer，每个 layer 对应一个 array。
+
+    而对应的 vkimage 的 layer 数显然需要大于等于 6 才行。
+
+    non-array image 的 layer 数为 1。
+
+    显然这里的 vkimage 已经不再是通常意义上的一张 rgb 图片，而是一个更复杂的抽象概念。
+
+* vkGetDeviceMemoryCommitment 可以返回 gpu 实际分配的显存
+
 ## vulkan 开发前置的搭建
 
 使用 vulkan 开始做渲染前的准备工作繁多复杂，这里把统一捋一下，并做一些模块化的设计。
@@ -5031,16 +5213,6 @@ void createDescriptorSetLayout() {
     }
     ```
 
-    ```cpp
-    void collect_available_physical_devices(VkInstance vk_inst, vector<VkPhysicalDevice> &phy_devs)
-    {
-        uint32_t deviceCount;
-        vkEnumeratePhysicalDevices(vk_inst, &deviceCount, nullptr);
-        phy_devs.resize(deviceCount);
-        vkEnumeratePhysicalDevices(vk_inst, &deviceCount, phy_devs.data());
-    }
-    ```
-
     枚举可用的物理设备。
 
     由于`VkInstance`本身就是指针类型，所以`vk_inst`直接按值传递就好了。
@@ -5090,7 +5262,7 @@ void createDescriptorSetLayout() {
 
     ```cpp
     uint32_t select_present_queue_family_idx(
-        const VkPhysicalDevice phs_dev,
+        const VkPhysicalDevice phy_dev,
         const VkSurfaceKHR surface,
         const vector<VkQueueFamilyProperties> &queue_family_props,
         bool &valid)
@@ -5099,7 +5271,7 @@ void createDescriptorSetLayout() {
         VkBool32 presentSupport = false;
         for (int i = 0; i < queue_family_props.size(); ++i)
         {
-            vkGetPhysicalDeviceSurfaceSupportKHR(phs_dev, i, surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(phy_dev, i, surface, &presentSupport);
             if (presentSupport)
             {
                 valid = true;
@@ -6024,6 +6196,8 @@ void createDescriptorSetLayout() {
     可用的 memory 有不同的类型，必须选择适合的类型才可以。
 
     目前并不清楚这些不同类型的 memory 是怎么划分的。
+
+    memory heap 目前没有多大用，只需要关心 memoty type 就可以了。
 
 * `copy_buffer`
 

@@ -883,3 +883,63 @@
     * How to deal with the layouts of presentable images?
 
         <https://stackoverflow.com/questions/37524032/how-to-deal-with-the-layouts-of-presentable-images>
+
+* go 语言相关
+
+    * golangbot
+
+        <https://golangbot.com/>
+
+        看起来是一个发布 go 相关的新闻的网站
+
+    * Learning notes for golang
+
+        <https://github.com/jincheng9/go-tutorial>
+
+    * The Go Handbook – Learn Golang for Beginners
+
+        <https://www.freecodecamp.org/news/go-beginners-handbook/>
+
+    * Golang Tutorial – Learn Go Programming Language
+
+        <https://www.geeksforgeeks.org/golang-tutorial-learn-go-programming-language/>
+
+    * Goroutines – Concurrency in Golang
+
+        <https://www.geeksforgeeks.org/goroutines-concurrency-in-golang/?ref=lbp>
+
+    * Golang Logo Programiz  Learn Go Programming
+
+        <https://www.programiz.com/golang>
+
+    * Go Interface
+
+        <https://www.programiz.com/golang/interface>
+
+    * Go by Example
+
+        <https://gobyexample.com/>
+
+    * Tutorials
+
+        <https://go.dev/doc/tutorial/>
+
+    * Documentation
+
+        <https://go.dev/doc/>
+
+    * Effective Go
+
+        <https://go.dev/doc/effective_go>
+
+    * How to delete an element from a Slice in Golang
+
+        <https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang>
+
+    * Go Generics 101
+
+        <https://go101.org/generics/101.html>
+
+    * Memory management in Go
+
+        <https://medium.com/@ali.can/memory-optimization-in-go-23a56544ccc0>

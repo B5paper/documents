@@ -435,3 +435,5 @@ aggregate n. 总数，合计
 dedicated adj. 专用的
 
 coherency n. 一致
+
+stencil n. 模板

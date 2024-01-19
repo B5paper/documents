@@ -92,17 +92,38 @@ make
 `hmath.h`:
 
 ```cpp
+#ifndef HMATH_H
+#define HMATH_H
 
+int times(int a, int b);
+int add(int a, int b);
+
+#endif
 ```
 
 `hmath.cpp`:
 
 ```cpp
+#include "hmath.h"
 
+int times(int a, int b)
+{
+    return a * b;
+}
+
+int add(int a, int b)
+{
+    return a + b;
+}
 ```
-
 [u_1]
-(empty)
+`CMakeLists.txt`:
+
+```cmake
+cmake_minimum_required(VERSION 3.12)
+project(my_math_lib)
+add_library(hmath SHARED hmath.cpp)
+```
 
 [unit]
 [u_0]
