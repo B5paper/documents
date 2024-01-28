@@ -943,3 +943,51 @@
     * Memory management in Go
 
         <https://medium.com/@ali.can/memory-optimization-in-go-23a56544ccc0>
+
+* makefile 的一些资源整合
+
+    * How to trim a string in makefile?
+
+        <https://stackoverflow.com/questions/55401729/how-to-trim-a-string-in-makefile>
+
+    * 8.2 Functions for String Substitution and Analysis
+
+        <https://www.gnu.org/software/make/manual/html_node/Text-Functions.html>
+
+    * 6.2.4 Conditional Variable Assignment
+
+        <https://www.gnu.org/software/make/manual/html_node/Conditional-Assignment.html>
+
+    * GNU make
+
+        <https://www.gnu.org/software/make/manual/html_node/index.html#SEC_Contents>
+
+    * 2.6 Another Style of Makefile
+
+        <https://www.gnu.org/software/make/manual/html_node/Combine-By-Prerequisite.html>
+
+    * 6 How to Use Variables
+
+        <https://www.gnu.org/software/make/manual/html_node/Using-Variables.html>
+
+    * How to Use Variables
+
+        <https://ftp.gnu.org/old-gnu/Manuals/make-3.79.1/html_chapter/make_6.html>
+
+    * Force exit from a Makefile target without raising an error
+
+        <https://stackoverflow.com/questions/19773600/force-exit-from-a-makefile-target-without-raising-an-error>
+
+    * Understanding and Using Makefile Variables 
+
+        <https://earthly.dev/blog/makefile-variables/>
+
+    * 4.6 Phony Targets
+
+        <https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html>
+
+    * Is there an easy way to find the source mk file for a specific target?
+
+        <https://stackoverflow.com/questions/58661901/is-there-an-easy-way-to-find-the-source-mk-file-for-a-specific-target>
+
+        

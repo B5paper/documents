@@ -6700,3 +6700,7 @@ A descriptor set specifies the actual buffer or image resources that will be bou
     ```
 
 * 可以使用 gfxreconstruct 抓帧
+
+* `volk`似乎也是一个映射 vulkan 函数指针的库。
+
+    如果同时用了`volk.h`和`<vulkan/vulkan.h>`，那么有可能会出现在调用 vulkan api 时，发生 segmentation fault 错误。

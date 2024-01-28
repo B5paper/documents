@@ -437,3 +437,5 @@ dedicated adj. 专用的
 coherency n. 一致
 
 stencil n. 模板
+
+substantial adj. 大量的
