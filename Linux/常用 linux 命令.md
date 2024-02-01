@@ -484,6 +484,10 @@ Using `apt-file` to view the contents of debian packages on remote repositories:
 
     Ref: <https://superuser.com/questions/974797/how-to-boot-a-linux-system-without-graphical-server>
 
+* 使用 systemctl 设置文字系统
+
+    `sudo systemctl set-default multi-user.target`
+
 ## 查看显存使用情况
 
 `glxinfo | grep -E -i 'device|memory'`

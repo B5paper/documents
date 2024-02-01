@@ -6704,3 +6704,18 @@ A descriptor set specifies the actual buffer or image resources that will be bou
 * `volk`似乎也是一个映射 vulkan 函数指针的库。
 
     如果同时用了`volk.h`和`<vulkan/vulkan.h>`，那么有可能会出现在调用 vulkan api 时，发生 segmentation fault 错误。
+
+* error result: `VK_ERROR_NATIVE_WINDOW_IN_USE_KHR`
+
+    一般是因为 glfw windows 初始化的时候，少了个 hint。
+
+    正常的应该是这样：
+
+    ```cpp
+    GLFWwindow* create_window(int width, int height, const char *title)
+    {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
+        return window;
+    }
+    ```

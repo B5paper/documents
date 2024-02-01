@@ -68,6 +68,18 @@
 
     1. Bash Special Variables: <https://www.baeldung.com/linux/bash-special-variables>
 
+    1. Bash script what is := for?
+
+        <https://stackoverflow.com/questions/1064280/bash-script-what-is-for>
+
+    1. recipe commences before first target. Stop 错误分析
+
+        <https://blog.csdn.net/freege9/article/details/77987536>
+
+    * Bash遍历字符串列表-腾讯云开发者社区-腾讯云
+
+        <https://cloud.tencent.com/developer/article/1805119>
+
 1. sed
 
     1. <https://stackoverflow.com/questions/46970466/how-to-replace-only-last-match-in-a-line-with-sed>
@@ -90,9 +102,19 @@
 
     遇到需要先 login，再 pull image 的情况：<https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/>
 
-1. dockerfile ref: <https://docs.docker.com/engine/reference/builder/>
+* docker relatives
 
-1. dockerfile 中的 proxy 设置：<https://dev.to/zyfa/setup-the-proxy-for-dockerfile-building--4jc8>
+    1. dockerfile ref: <https://docs.docker.com/engine/reference/builder/>
+
+    1. dockerfile 中的 proxy 设置：<https://dev.to/zyfa/setup-the-proxy-for-dockerfile-building--4jc8>
+
+    * docker rename
+
+        <https://docs.docker.com/engine/reference/commandline/rename/>
+
+    * COPY 复制文件
+
+        <https://yeasy.gitbook.io/docker_practice/image/dockerfile/copy>
 
 1. linux 中`cut`的用法：<https://linuxize.com/post/linux-cut-command/>
 
@@ -255,6 +277,26 @@
         <https://quuxplusone.github.io/blog/2018/12/11/dont-inherit-from-std-types/>
 
         没看过，也不知道讲什么的。自己尝试过继承`array<T, n>`，还挺好用的。
+
+    * <https://en.cppreference.com/w/cpp/language/override>
+
+        c++ override 关键字
+
+    * const rvalue references
+
+        <https://www.sandordargo.com/blog/2021/08/18/const-rvalue-references>
+
+    * `std::remove_cvref`
+
+        <https://en.cppreference.com/w/cpp/types/remove_cvref>
+
+    * const_cast conversion
+
+        <https://en.cppreference.com/w/cpp/language/const_cast>
+
+    * c++ piecewise_construct
+
+        <https://blog.csdn.net/newbeixue/article/details/111185671>
 
 1. 如果一个 obj 文件没有法线信息，那么该怎么办？
 
@@ -846,6 +888,12 @@
 
         <https://www.khronos.org/blog/vulkan-timeline-semaphores>
 
+    * vulkan 拿 swapchain 的 image 数据
+
+        <https://github.com/SaschaWillems/Vulkan/blob/master/examples/screenshot/screenshot.cpp>
+
+        这是一个比较老的 vulkan example 库，五六年前就停止维护了，整个 repo 能通过编译，里面有些 example code 在新版的 vulkan example repo 中是没有的，所以还有一些价值。有时间了系统学习一下。
+
 * vulkan copy image from swapchain, and image layout
 
     * How do I copy any image into Swapchain images?
@@ -990,4 +1038,36 @@
 
         <https://stackoverflow.com/questions/58661901/is-there-an-easy-way-to-find-the-source-mk-file-for-a-specific-target>
 
-        
+    * makefile 的 tutorial
+
+        <https://www.gnu.org/software/make/manual/html_node/Using-Variables.html>
+
+        gnu 出的这一套 makefile 教程，我觉得写得还不错，条理挺清晰的，有时间了看看
+
+        <https://stackoverflow.com/questions/2145590/what-is-the-purpose-of-phony-in-a-makefile>
+
+    * What does @: (at symbol colon) mean in a Makefile?
+
+        <https://stackoverflow.com/questions/8610799/what-does-at-symbol-colon-mean-in-a-makefile>
+
+* 直接生成论文格式
+
+    typst, <https://typst.app/>
+
+* 大模型理论基础 
+
+    <https://datawhalechina.github.io/so-large-lm/#/>
+
+    一个 git book，
+
+* How to search a string with spaces and special characters in vi editor
+
+    <https://stackoverflow.com/questions/34036575/how-to-search-a-string-with-spaces-and-special-characters-in-vi-editor>
+
+* mime type 的位置
+
+    <https://askubuntu.com/questions/16580/where-are-file-associations-stored>
+
+* 让 firefox 正确识别并显示 markdown mime type
+
+    <https://superuser.com/questions/696361/how-to-get-the-markdown-viewer-addon-of-firefox-to-work-on-linux>
