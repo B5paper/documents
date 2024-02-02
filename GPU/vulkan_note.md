@@ -1754,6 +1754,14 @@ make
 
     看起来`vkQueuePresentKHR()`会把渲染好的图片的信息加入到 present 队列里。说明 present 队列与窗口的 swap 是 vk 在后台帮忙完成的，它和渲染指令队列是异步交互的。
 
+* 在创建 swapchain 时，`imageFormat`十分重要，必须设置成和 surface 的 image format 相同
+
+    常见的设置为`VK_FORMAT_B8G8R8A8_SRGB`。
+
+* 可以在`VkSwapchainCreateInfoKHR`中设置 swapchain 中的 image 的 usage
+
+    只有 usage 中有 transfer 相关的功能，后面才能把 swap chain 中的 image 转换成对应的 layout
+
 ## 计算与显示的同步机制
 
 fence 用于等待 gpu 指令执行完成，从而保证每次只绘制一帧。
@@ -2658,7 +2666,28 @@ int main()
 
     现在改成多帧渲染，由于第 3 步到第 4 步 gpu 是不响应的，所以其实节省的是第 2 步的时间。
 
-## transmit memory content from cpu to gpu
+## Vulkan Memory
+
+* `memoryTypeBits`其实是一个掩码，第`i`位为 1 表示第`i`个显存类型是可用的。
+
+    事实上，已经有`mem_props.memoryTypeCount`可以表示 memory type 的数量，并且可以看到当`mem_props.memoryTypeCount`为 16 时，内存类型分布在数组的 0 ~ 15 索引处。
+
+    但是考虑到未来某个机器上，内存类型不一定是连续分布的，所以还是用比特位去检测有效位比较靠谱。
+
+* `vkGetImageMemoryRequirements`返回的那个 type bits 指的是这几个置为 1 的显存**类型**都是可以用的，具体需要什么显存**属性**，需要自己去指定，然后找找允许用的这几个显存类型里，有没有自己想要的属性。
+
+    注意这里显存类型（type）和属性（property）是两个不一样的概念。显存类型是由一个`uint32_t`的 32 位整数指定的，使用 one-hot 编码，每一位表示一种显存类型。需要用到哪一位，就将哪一位置 1，或者指定由低位（右边）往高位（左边）数，1 的索引。
+
+    常见的 type 有：
+
+    ```cpp
+    VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |  // 2
+    VkMemoryPropertyFlagBits:: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |  // 1
+    VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |  // 4
+    VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT  // 8
+    ```
+
+### transmit memory content from cpu to gpu
 
 `shader_2.vert`:
 
@@ -4821,7 +4850,7 @@ void createDescriptorSetLayout() {
 
     之所以要做地址空间的映射，猜测可能是操作系统对“进程”的地址空间的限制。
 
-## vkimage
+## VKImage
 
 * 有关 vulkan 中的 subresource
 
@@ -4850,6 +4879,368 @@ void createDescriptorSetLayout() {
     显然这里的 vkimage 已经不再是通常意义上的一张 rgb 图片，而是一个更复杂的抽象概念。
 
 * vkGetDeviceMemoryCommitment 可以返回 gpu 实际分配的显存
+
+* 在创建 vkimage 时，由于需要有 4 字节对齐的要求，所以实际创建的 image 可能会有 padding
+
+    ```cpp
+    void create_vk_image(VkImage &img, const VkDevice device,
+        const uint32_t width, const uint32_t height)
+    {
+        VkImageCreateInfo img_crt_info{};
+        img_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_crt_info.imageType = VK_IMAGE_TYPE_2D;
+        img_crt_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        img_crt_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_crt_info.format = VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+        img_crt_info.extent.width = width;
+        img_crt_info.extent.height = height;
+        img_crt_info.extent.depth = 1;
+        img_crt_info.mipLevels = 1;
+        img_crt_info.arrayLayers = 1;
+        img_crt_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_crt_info.tiling = VK_IMAGE_TILING_LINEAR;
+        img_crt_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkResult result = vkCreateImage(device, &img_crt_info, nullptr, &img);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create image\n");
+            exit(-1);
+        }
+    }
+
+    VkImage img;
+    create_vk_image(img, device, 700, 500);
+
+    VkImageSubresource img_subres{};
+    img_subres.arrayLayer = 0;
+    img_subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_subres.mipLevel = 0;
+    VkSubresourceLayout subres_layout;
+    vkGetImageSubresourceLayout(device, img, &img_subres, &subres_layout);
+    printf("rowPitch in bytes: %lu, rowPitch in pixel: %lu\n", subres_layout.rowPitch, subres_layout.rowPitch / 4);
+    ```
+
+    输出：
+
+    ```
+    rowPitch in bytes: 2816, rowPitch in pixel: 704
+    ```
+
+    比如上面这段代码，创建的图片宽度为 700，但是实际的图片宽度为 704。其中 4 个像素为 padding。
+
+* image layout 都是可以直接不管的，它们相当于 warning，并不会造成实际的错误。
+
+* copy image
+
+    总体还是挺复杂的，这里是一些代码。总体思路是，因为我们拿不到 swapchain image 的 memory，所以先创建个自己的 vkimage，并创建一个 backed memory，然后使用`vkCmdCopyImage`去复制 image，最后使用`vkMapMemory`拿到自己的 image 的显存内容。
+
+    比较复杂的部分是执行`vkCmdCopyImage()`的前置条件，需要创建 command pool, command buffer，submit 等等。
+
+    image layout 只是一个状态，相关的报错并不影响 command 的执行，因此都可以忽略掉。
+
+    ```cpp
+    void copy_image_to_arr(const VkImage img, std::vector<u_char> &arr,
+        uint32_t &img_width, uint32_t &img_height,
+        const VkDevice device, const uint32_t queue_family_idx,
+        const uint32_t memory_type_idx)
+    {
+        // get image extent
+        VkImageSubresource subres{};
+        subres.mipLevel = 0;
+        subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subres.arrayLayer = 0;
+        VkSubresourceLayout subres_layout;
+        vkGetImageSubresourceLayout(device, img, &subres, &subres_layout);
+        printf("row pitch: %lu\n", subres_layout.rowPitch);
+        printf("img size: %lu\n", subres_layout.size);
+        printf("row num (img size / row pitch): %f\n", (float)subres_layout.size / subres_layout.rowPitch);
+        uint32_t width = subres_layout.rowPitch / 4;
+        uint32_t height = subres_layout.size / subres_layout.rowPitch;
+        img_width = width;
+        img_height = height;
+        
+        // create dst image
+        VkImageCreateInfo img_crt_info{};
+        img_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_crt_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        img_crt_info.tiling = VK_IMAGE_TILING_LINEAR;
+        img_crt_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_crt_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_crt_info.queueFamilyIndexCount = 1;
+        img_crt_info.pQueueFamilyIndices = &queue_family_idx;
+        img_crt_info.mipLevels = 1;
+        img_crt_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_crt_info.imageType = VK_IMAGE_TYPE_2D;
+        img_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+        img_crt_info.extent.width = width;
+        img_crt_info.extent.height = height;
+        img_crt_info.extent.depth = 1;
+        img_crt_info.arrayLayers = 1;
+        VkImage img_dst;
+        VkResult result = vkCreateImage(device, &img_crt_info, nullptr, &img_dst);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create image\n");
+            exit(-1);
+        }
+
+        // create backed memory
+        VkMemoryRequirements mem_req{};
+        vkGetImageMemoryRequirements(device, img_dst, &mem_req);
+        VkMemoryAllocateInfo mem_alc_info{};
+        mem_alc_info.allocationSize = mem_req.size;
+        mem_alc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        mem_alc_info.memoryTypeIndex = memory_type_idx;
+        VkDeviceMemory mem;
+        result = vkAllocateMemory(device, &mem_alc_info, nullptr, &mem);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate memory\n");
+            exit(-1);
+        }
+        result = vkBindImageMemory(device, img_dst, mem, 0);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to bind image memory\n");
+            exit(-1);
+        }
+
+        // create command pool and allocate command buffer
+        VkCommandPool cmd_pool;
+        VkCommandPoolCreateInfo cmd_pool_crt_info{};
+        cmd_pool_crt_info.queueFamilyIndex = queue_family_idx;
+        cmd_pool_crt_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmd_pool_crt_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        result = vkCreateCommandPool(device, &cmd_pool_crt_info, nullptr, &cmd_pool);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create command pool\n");
+            exit(-1);
+        }
+        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmd_buf_alc_info.commandPool = cmd_pool;
+        cmd_buf_alc_info.commandBufferCount = 1;
+        VkCommandBuffer cmd_buf;
+        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf); 
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate command buffer\n");
+            exit(-1);
+        }
+
+        VkQueue queue;
+        vkGetDeviceQueue(device, queue_family_idx, 0, &queue);
+        
+        // submit copy image command
+        VkCommandBufferBeginInfo cmd_buf_beg_info{};
+        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        result = vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to begin command buffer\n");
+            exit(-1);
+        }
+        VkImageCopy img_copy{};
+        img_copy.extent.width = width;
+        img_copy.extent.height = height;
+        img_copy.extent.depth = 1;
+        img_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_copy.srcSubresource.layerCount = 1;
+        img_copy.srcSubresource.baseArrayLayer = 0;
+        img_copy.srcSubresource.mipLevel = 0;
+        img_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_copy.dstSubresource.baseArrayLayer = 0;
+        img_copy.dstSubresource.layerCount = 1;
+        img_copy.dstSubresource.mipLevel = 0;
+        vkCmdCopyImage(cmd_buf, img, VK_IMAGE_LAYOUT_UNDEFINED, img_dst, VK_IMAGE_LAYOUT_UNDEFINED, 1, &img_copy);
+        result = vkEndCommandBuffer(cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to end command buffer\n");
+            exit(-1);
+        }
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = nullptr;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd_buf;
+        result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to subbmit queue\n");
+            exit(-1);
+        }
+        result = vkDeviceWaitIdle(device);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to wait device idle\n");
+            exit(-1);
+        }
+
+        // map memory, fill image array
+        arr.resize(mem_req.size);
+        u_char *mem_data;
+        result = vkMapMemory(device, mem, 0, VK_WHOLE_SIZE, 0, (void**)&mem_data);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to map memory\n");
+            exit(-1);
+        }
+        for (int i = 0; i < mem_req.size; ++i)
+        {
+            arr[i] = *mem_data++;
+        }
+        vkUnmapMemory(device, mem);
+        
+        // clean up
+        vkFreeCommandBuffers(device, cmd_pool, 1, &cmd_buf);
+        vkDestroyCommandPool(device, cmd_pool, nullptr);
+        vkDestroyImage(device, img_dst, nullptr);
+        vkFreeMemory(device, mem, nullptr);
+    }
+
+    void save_vk_img_to_file(const VkImage img, const char *file_path,
+        const VkDevice device, const uint32_t queue_family_idx,
+        const uint32_t mem_type_idx)
+    {
+        // save image
+        std::vector<u_char> arr;
+        uint32_t width, height;
+        copy_image_to_arr(img, arr, width, height, device, queue_family_idx, mem_type_idx);
+        FILE *f = fopen(file_path, "w");
+        fprintf(f, "P3\n");
+        fprintf(f, "%d %d\n", width, height);
+        fprintf(f, "255\n");
+        for (int row = 0; row < height; ++row)
+        {
+            for (int col = 0; col < width; ++col)
+            {
+                fprintf(f, "%d %d %d ", arr[(row*width + col) * 4 + 2],
+                    arr[(row*width + col) * 4 + 1],
+                    arr[(row*width + col) * 4 + 0]);
+            }
+            fprintf(f, "\n");
+        }
+        fclose(f);
+    }
+    ```
+
+    有一个细节需要注意，我们在 copy image 的时候，是没有考虑到 padding 的，但是在使用 device memory 的时候，会考虑到 padding 的部分。
+
+* 使用 barrier 对图片的 layout 进行转换
+
+    核心函数是`vkCmdPipelineBarrier()`，通过 image memory barrier，对 image layout 进行转换。
+
+    ```cpp
+        VkCommandPool cmd_pool;
+        VkCommandPoolCreateInfo cmd_crt_info{};
+        cmd_crt_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmd_crt_info.queueFamilyIndex = graphics_queue_family_idx;
+        cmd_crt_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        result = vkCreateCommandPool(device, &cmd_crt_info, nullptr, &cmd_pool);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create command pool\n");
+            exit(-1);
+        }
+        VkCommandBuffer cmd_buf;
+        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd_buf_alc_info.commandPool = cmd_pool;
+        cmd_buf_alc_info.commandBufferCount = 1;
+        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create command buffer\n");
+            exit(-1);
+        }
+
+        VkCommandBufferBeginInfo cmd_buf_beg_info{};
+        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        result = vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to begin command buffer\n");
+            exit(-1);
+        }
+
+        VkImageMemoryBarrier img_mem_bar{};
+        img_mem_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        img_mem_bar.image = img;
+        img_mem_bar.srcAccessMask = 0;
+        img_mem_bar.dstAccessMask = 0;
+        img_mem_bar.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        img_mem_bar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        img_mem_bar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        img_mem_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_mem_bar.subresourceRange.baseArrayLayer = 0;
+        img_mem_bar.subresourceRange.layerCount = 1;
+        img_mem_bar.subresourceRange.baseMipLevel = 0;
+        img_mem_bar.subresourceRange.levelCount = 1;
+        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_HOST_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
+        img_mem_bar.image = imgs[0];
+        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
+
+        VkImageCopy region{};
+        region.srcOffset = {0, 0, 0};
+        region.dstOffset = {0, 0, 0};
+        VkImageSubresourceLayers img_subres_layers;
+        img_subres_layers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_subres_layers.layerCount = 1;
+        img_subres_layers.baseArrayLayer = 0;
+        img_subres_layers.mipLevel = 0;
+        region.extent = {700, 500, 1};
+        region.srcSubresource = img_subres_layers;
+        region.dstSubresource = img_subres_layers;
+        VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        vkCmdCopyImage(cmd_buf, img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            imgs[0], VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &region);
+        img_mem_bar.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
+
+        result = vkEndCommandBuffer(cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to end command buffer\n");
+            exit(-1);
+        }
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = nullptr;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd_buf;
+        result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to submit command buffer\n");
+            exit(-1);
+        }
+
+        result = vkDeviceWaitIdle(device);
+        if (result != VK_SUCCESS)
+        {
+            printf("error\n");
+            exit(-1);
+        }
+    ```
+
+    目前不太清楚为啥根本没有 pipeline，还是会出现`VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT`。
 
 ## vulkan 开发前置的搭建
 
@@ -6677,6 +7068,27 @@ refs:
 
 1. <https://www.khronos.org/blog/vulkan-timeline-semaphores>
 
+* 在 present image 时，可以不使用任何 semaphore
+
+    ```cpp
+        VkPresentInfoKHR present_info{};
+        present_info.pImageIndices = &img_idx;
+        present_info.pResults = &result;
+        present_info.waitSemaphoreCount = 0;
+        present_info.pWaitSemaphores = nullptr;
+        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = &swpch;
+        result = vkQueuePresentKHR(queue, &present_info);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to present\n");
+            exit(-1);
+        }
+    ```
+
+    这样也是可以成功执行的。
+
 ## descriptor
 
 A descriptor set specifies the actual buffer or image resources that will be bound to the descriptors.
@@ -6705,6 +7117,13 @@ A descriptor set specifies the actual buffer or image resources that will be bou
 
     如果同时用了`volk.h`和`<vulkan/vulkan.h>`，那么有可能会出现在调用 vulkan api 时，发生 segmentation fault 错误。
 
+* 如果要引入 volk，可以使用
+
+    ```cpp
+    #define VK_NO_PROTOTYPES
+    #include "../FlaxEngine/Source/ThirdParty/volk/volk.h"
+    ```
+
 * error result: `VK_ERROR_NATIVE_WINDOW_IN_USE_KHR`
 
     一般是因为 glfw windows 初始化的时候，少了个 hint。
@@ -6718,4 +7137,46 @@ A descriptor set specifies the actual buffer or image resources that will be bou
         GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
         return window;
     }
+    ```
+
+## 未验证
+
+* vulkan memory
+
+    vulkan 将 memory 分为两类：host memroy 和 device memroy。
+
+    host memory 顾名思义就是 cpu 能直接访问的内存。有时候对内存有一些特别的要求，比对 4 字节对齐之类的，那么就需要用到自定义的 allocator。
+
+    因此在 vulkan 的 api 中，有时会见到`VkAllocationCallbacks`这样的结构体：
+
+    ```cpp
+    typedef struct VkAllocationCallbacks {
+        void* pUserData;
+        PFN_vkAllocationFunction pfnAllocation;
+        PFN_vkReallocationFunction pfnReallocation;
+        PFN_vkFreeFunction pfnFree;
+        PFN_vkInternalAllocationNotification pfnInternalAllocation;
+        PFN_vkInternalFreeNotification pfnInternalFree;
+    } VkAllocationCallbacks;
+    ```
+
+    常用的有`pfnAllocation`, `pfnReallocation`, and `pfnFree`这三个字段。
+
+    ```cpp
+    void* VKAPI_CALL Allocation(
+        void* pUserData,
+        size_t size,
+        size_talignment,
+        VkSystemAllocationScope allocationScope);
+
+    void* VKAPI_CALL Reallocation(
+        void* pUserData,
+        void* pOriginal,
+        size_t size,
+        size_t alignment,
+        VkSystemAllocationScope allocationScope);
+
+    void VKAPI_CALL Free(
+        void* pUserData,
+        void* pMemory);
     ```
