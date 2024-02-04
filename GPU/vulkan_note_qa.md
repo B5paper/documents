@@ -387,6 +387,12 @@ int main()
 [unit]
 [u_0]
 创建 debug message create info structure，并写出对应的 callback 函数。
+[idx]
+3
+[id]
+<hash of the current time>
+[dep]
+(empty)
 [u_1]
 (2023.12.18 version)
 

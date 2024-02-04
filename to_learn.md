@@ -298,6 +298,10 @@
 
         <https://blog.csdn.net/newbeixue/article/details/111185671>
 
+    * typedef in C++
+
+        <https://www.codesdope.com/cpp-typedef/>
+
 1. 如果一个 obj 文件没有法线信息，那么该怎么办？
 
     可以通过`facted_normal = normalize( cross( 2-3, 1-3))`估算一下。
@@ -894,6 +898,26 @@
 
         这是一个比较老的 vulkan example 库，五六年前就停止维护了，整个 repo 能通过编译，里面有些 example code 在新版的 vulkan example repo 中是没有的，所以还有一些价值。有时间了系统学习一下。
 
+    * VkMemoryType(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkMemoryType.html>
+
+    * vkMapMemory(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkMapMemory.html>
+
+    * Vulkan-Samples
+
+        <https://github.com/KhronosGroup/Vulkan-Samples>
+
+    * Vulkan学习资料汇总
+
+        <https://zhuanlan.zhihu.com/p/24798656>
+
+    * Vulkan buffer memory management - When do we need staging buffers?
+
+        <https://stackoverflow.com/questions/44940684/vulkan-buffer-memory-management-when-do-we-need-staging-buffers>
+
 * vulkan copy image from swapchain, and image layout
 
     * How do I copy any image into Swapchain images?
@@ -1071,3 +1095,527 @@
 * 让 firefox 正确识别并显示 markdown mime type
 
     <https://superuser.com/questions/696361/how-to-get-the-markdown-viewer-addon-of-firefox-to-work-on-linux>
+
+* opengl
+
+    * OpenGL® and OpenGL® ES Reference Pages
+
+        <https://registry.khronos.org/OpenGL-Refpages/es3/>
+
+    * glfw Window reference
+
+        <https://www.glfw.org/docs/latest/group__window.html#ga15a5a1ee5b3c2ca6b15ca209a12efd14>
+
+    * glRect
+
+        <https://docs.gl/gl3/glRect>
+
+    * glRect — draw a rectangle
+
+        <https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glRect.xml>
+
+    * glRect — draw a rectangle
+
+        <https://registry.khronos.org/OpenGL-Refpages/gl2.1/>
+
+    * <https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf>
+
+    * OpenGLES 与 EGL 基础概念
+
+        <https://zhuanlan.zhihu.com/p/74006499>
+
+    * glbinding is a cross-platform C++ binding for the OpenGL API.
+
+        <https://github.com/cginternals/glbinding>
+
+    * opengl es samples
+
+        <https://www.khronos.org/assets/uploads/books/openglr_es_20_programming_guide_sample.pdf>
+
+    * How can I use OpenGL to render to memory without requiring any windowing system library?
+
+        <https://stackoverflow.com/questions/68298698/how-can-i-use-opengl-to-render-to-memory-without-requiring-any-windowing-system>
+
+    * OpenGL基础 - 统一变量Uniform
+
+        <https://zhuanlan.zhihu.com/p/33093968>
+
+    * Introduction to C++ OpenGL Programming
+    
+        <https://www.cprogramming.com/tutorial/opengl_introduction.html>
+
+    * An Introduction on OpenGL with 2D Graphics
+
+        <https://www3.ntu.edu.sg/home/ehchua/programming/opengl/cg_introduction.html>
+
+    * Confused about z-axis behaviour
+
+        <https://computergraphics.stackexchange.com/questions/2063/confused-about-z-axis-behaviour>
+
+    * glfw Window guide
+
+        <https://www.glfw.org/docs/3.3/window_guide.html#window_close>
+
+    * opengl Tutorial 7 : Model loading
+
+        <http://www.opengl-tutorial.org/beginners-tutorials/tutorial-7-model-loading/>
+
+* 3d models
+
+    * obj文件中v、vt、vn、f这四个参数的含义
+
+        <https://blog.csdn.net/xiongzai2016/article/details/108052800>
+
+    * obj文件(1):obj文件用txt打开并且了解v,f,vn,vt的含义
+
+        <https://blog.csdn.net/weixin_44115959/article/details/123270006>
+
+    * OBJ FILE FORMAT
+
+        <https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html>
+
+    * glGetError — return error information
+
+        <https://registry.khronos.org/OpenGL-Refpages/es2.0/xhtml/glGetError.xml>
+
+    *  原神模型预览器
+
+        <https://github.com/GenshinMatrix/genshin-model-viewer>
+
+    * learn mmd
+
+        <https://learnmmd.com/http:/learnmmd.com/category/weighting-bones/>
+
+    * DanceXR is a versatile character model viewer and motion player
+
+        <https://github.com/alloystorm/dvvr>
+
+    * 数据分析 3d 图形渲染 PMX文件格式解析
+
+        <https://www.kuazhi.com/post/416347.html>
+
+    * bvh+obj File Format Specification
+
+        <https://github.com/rspencer01/bvh-obj>
+
+    * OFF (file format)
+
+        <https://en.wikipedia.org/wiki/OFF_(file_format)>
+
+    * SCN ray-tracing format
+
+        <https://paulbourke.net/dataformats/scn/>
+
+* render farm
+
+    * 3d cat
+
+        <https://www.3dcat.live/news/post-id-120/>
+
+    * rebus farm
+
+        <https://rebusfarm.net/blog/what-is-cloud-rendering>
+
+    * How to build a render farm – 3S Cloud Render Farm
+
+        <https://3sfarm.com/build-a-render-farm/>
+
+    * render bus
+
+        <https://www.renderbus.com/?source=bdsem&keyword=%E8%B5%9B%E8%AF%9A%E6%B8%B2%E6%9F%93&device=pc-cpc&e_matchtype=2&e_creative=58091948671&e_adposition=cr1&bd_vid=4809392668305511569>
+
+    * PMXViewer
+
+        <https://github.com/KentaTheBugMaker/PMXViewer>
+
+* graph visualization
+
+    * rust Visualization libs
+
+        <https://lib.rs/visualization>
+
+    * Graphviz
+
+        <https://www.graphviz.org/>
+
+    * GraphStream
+
+        <https://graphstream-project.org/>
+
+    * networkx
+
+        <https://networkx.org/documentation/stable/>
+
+    * d3.js
+
+        <https://d3-graph-gallery.com/>
+
+* c++
+
+    * Functions with Variable Number of Arguments in C++
+
+        <https://www.scaler.com/topics/cpp/functions-with-variable-number-of-arguments-in-cpp/>
+
+    * C++11特性——右值引用
+
+        <https://blog.csdn.net/gls_nuaa/article/details/126134537>
+
+    * eigen
+
+        <https://gitlab.com/libeigen/eigen>
+
+    * yaLanTingLibs is a collection of modern c++ util libraries
+
+        <https://github.com/alibaba/yalantinglibs>
+
+    * Static functions in C
+
+        <https://www.tutorialspoint.com/static-functions-in-c>
+
+    * Static functions in C
+
+        <https://www.geeksforgeeks.org/what-are-static-functions-in-c/>
+
+    * What is a Static Function in C?
+
+        <https://www.scaler.com/topics/static-function-in-c/>
+
+    * The Library is a small and open-source C++ library for image processing
+
+        <https://cimg.eu/index.html>
+
+    * libvips: A fast image processing library with low memory needs.
+
+        <https://www.libvips.org/>
+
+        <https://cpp.libhunt.com/libvips-alternatives>
+
+    * Type Qualifiers in C++
+
+        <https://prepinsta.com/c-plus-plus/type-qualifiers/>
+
+    * What is the meaning of "qualifier"?
+
+        <https://stackoverflow.com/questions/3785789/what-is-the-meaning-of-qualifier>
+
+    * operator overloading
+
+        <https://en.cppreference.com/w/cpp/language/operators>
+
+    * C++ globally overloaded operator= [duplicate]
+
+        <https://stackoverflow.com/questions/5037156/c-globally-overloaded-operator>
+
+    * Can I call a constructor from another constructor (do constructor chaining) in C++?
+
+        <https://stackoverflow.com/questions/308276/can-i-call-a-constructor-from-another-constructor-do-constructor-chaining-in-c>
+
+    * Calling Constructor with in constructor in same class
+
+        <https://stackoverflow.com/questions/29063703/calling-constructor-with-in-constructor-in-same-class>
+
+
+* rendering and ray tracing
+
+    * GAMES202-高质量实时渲染
+
+        <https://www.bilibili.com/video/BV1YK4y1T7yY/?spm_id_from=333.999.0.0&vd_source=39781faaf2433372c59bdb80774d648e>
+
+    * 自定义SRP（五）—— 烘焙光照
+
+        <https://zhuanlan.zhihu.com/p/640860572>
+
+    * Baked Light: Light Maps and Probes
+
+        <https://catlikecoding.com/unity/tutorials/custom-srp/baked-light/>
+
+    * Ray Tracing in One Weekend
+
+        <https://raytracing.github.io/books/RayTracingInOneWeekend.html>
+
+    * stb
+
+        <https://github.com/nothings/stb>
+
+    * unreal engine: Lumen Global Illumination and Reflections
+
+        <https://docs.unrealengine.com/5.0/en-US/lumen-global-illumination-and-reflections-in-unreal-engine/>
+
+    * C# and Shader Tutorials: for the Unity Engine
+
+        <https://catlikecoding.com/unity/tutorials/>
+
+    * Radeon ProRender SDK
+
+        <https://radeon-pro.github.io/RadeonProRenderDocs/en/sdk/about.html>
+
+    * Monte Carlo Integration
+
+        <https://www.cnblogs.com/lsy-lsy/p/16560754.html>
+
+    * 光追和路径追踪的区别到底是哪里？
+
+        <https://www.zhihu.com/question/368551323/answer/2793409825>
+
+    * 光线追踪vs路径追踪：游戏内照明的两种实现方式比较
+
+        <https://baijiahao.baidu.com/s?id=1774279027961829017&wfr=spider&for=pc>
+
+    * Basics about path tracing 路径追踪基础
+
+        <https://zhuanlan.zhihu.com/p/588056773>
+
+    * 高数数学咋用二重积分求解菲涅尔积分∫sin(x^2)dx呢，x从零到正无穷大inf？
+
+        <https://www.zhihu.com/question/526300658/answer/2425869091>
+
+    * 这个二重积分求解?
+
+        <https://www.zhihu.com/question/603500493/answer/3048561769>
+
+    * 面试公司的unity特效测试，目测又要凉凉了，哎，自学没有方向感好难
+
+        <https://www.bilibili.com/video/BV1y84y1q72j/?spm_id_from=333.788.recommend_more_video.1&vd_source=39781faaf2433372c59bdb80774d648e>
+
+    * （超详细！）计算机图形学 入门篇 8. 光追I: Recursive(Whitted-Style) Ray Tracing算法与光追的加速结构算法
+
+        <https://zhuanlan.zhihu.com/p/466122358>
+
+    * 【Udemy UE5 最畅销课程】Unreal Engine 5 C++ Developer: Learn C++ & Make Video
+
+        <https://www.bilibili.com/video/BV1M84y1x7Gc/?spm_id_from=333.337.search-card.all.click&vd_source=39781faaf2433372c59bdb80774d648e>
+
+    * 一个实时流体模和流体渲染程序
+
+        <https://www.bilibili.com/video/BV1sj411D7hp/?spm_id_from=333.337.search-card.all.click&vd_source=39781faaf2433372c59bdb80774d648e>
+
+    * [C++/OpenGL] 用可莉酱来测试液体的模拟和渲染吧 (based on Affine Particle-in-cell
+
+        <https://www.bilibili.com/video/BV11m4y1F7c6/?spm_id_from=333.337.search-card.all.click&vd_source=39781faaf2433372c59bdb80774d648e>
+
+    * （深度解析）GAMES 101 作业6：BVH与SAH(Surface Area Heuristic)
+
+        <https://zhuanlan.zhihu.com/p/475966001>
+
+    * raytracing.github.io 
+
+        <https://github.com/RayTracing/raytracing.github.io>
+
+    * Physically Based Rendering: From Theory To Implementation
+    
+        <https://www.pbr-book.org/>
+
+* opengl
+
+    * Where points OpenGL z-axis?
+
+        <https://stackoverflow.com/questions/3430789/where-points-opengl-z-axis>
+
+    * GPU渲染之路：从图形引擎到内核驱动(三、用户态图形驱动层)
+
+        <https://zhuanlan.zhihu.com/p/651364842>
+
+    * How to get the Graphics Card Model Name in OpenGL or Win32?
+
+        <https://stackoverflow.com/questions/42245870/how-to-get-the-graphics-card-model-name-in-opengl-or-win32>
+
+    * glfw: Context handling
+
+        <https://www.glfw.org/docs/3.0/group__context.html#ga6d4e0cdf151b5e579bd67f13202994ed>
+
+    * VAOs and Element Buffer Objects
+
+        <https://stackoverflow.com/questions/33863426/vaos-and-element-buffer-objects>
+
+    * OpenGL, VAOs and multiple buffers
+
+        <https://stackoverflow.com/questions/14249634/opengl-vaos-and-multiple-buffers>
+
+    * What is the role of glBindVertexArrays vs glBindBuffer and what is their relationship?
+
+        <https://stackoverflow.com/questions/21652546/what-is-the-role-of-glbindvertexarrays-vs-glbindbuffer-and-what-is-their-relatio>
+
+    * Compiling a shader
+
+        <https://subscription.packtpub.com/book/game-development/9781789342253/1/ch01lvl1sec14/compiling-a-shader>
+
+* bvh
+
+    * 4.3 Bounding Volume Hierarchies
+
+        <https://pbr-book.org/3ed-2018/Primitives_and_Intersection_Acceleration/Bounding_Volume_Hierarchies>
+
+    * GPU-path-tracing-tutorial-3 
+
+        <https://github.com/SimronThapa/GPU-path-tracing-tutorial-3/blob/master/bvh.h>
+
+    * Introduction to Acceleration Structures
+
+        <https://scratchapixel.com/lessons/3d-basic-rendering/introduction-acceleration-structure/bounding-volume-hierarchy-BVH-part1.html>
+
+    * Introduction to Acceleration Structures
+
+        <https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-acceleration-structure/bounding-volume-hierarchy-BVH-part2.html>
+
+* shader
+
+    * ShaderLab入门
+
+        <https://zhuanlan.zhihu.com/p/533320848>
+
+    * 转载一篇——shader入门经典
+
+        <https://zhuanlan.zhihu.com/p/235461709>
+
+* Unity小白的TA之路-优梦创客
+
+    <https://91maketop.github.io/ta/#/>
+
+* 魔法盒：游戏特效大全
+
+    <https://www.magesbox.com/>
+
+* vulkan
+
+    * GPU驱动开发学习笔记
+
+        <https://www.zhihu.com/column/c_1555603544597549056>
+
+    * Vulkan Render Pass介绍
+
+        <https://zhuanlan.zhihu.com/p/617374058>
+
+    * Vulkan Command Buffers
+
+        <https://zhuanlan.zhihu.com/p/615441145>
+
+    * Vulkan-Docs
+
+        <https://github.com/KhronosGroup/Vulkan-Docs>
+
+    * vulkan dev tools
+
+        <https://vulkan.lunarg.com/sdk/home#linux>
+
+    * Understanding Vulkan Synchronization
+
+        <https://www.khronos.org/blog/understanding-vulkan-synchronization>
+
+    * Compute shader synchronization?
+
+        <https://groups.google.com/g/webgl-dev-list/c/Xdis0MAA4-M>
+
+    * vulkan: Copy Commands
+
+        <http://geekfaner.com/shineengine/blog29_Vulkanv1.2_15.html>
+
+    * Copying Images on the Host in Vulkan
+
+        <https://www.khronos.org/blog/copying-images-on-the-host-in-vulkan>
+
+    * VulkanSamples 
+
+        <https://github.com/LunarG/VulkanSamples/blob/master/BUILD.md>
+
+    * Copy result using vkCmdCopyImage to swap chain image
+
+        <https://www.reddit.com/r/vulkan/comments/47ods9/copy_result_using_vkcmdcopyimage_to_swap_chain/>
+
+    * VK_EXT_external_memory_dma_buf(3) 
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_external_memory_dma_buf.html>
+
+    * VkBufferImageCopy(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkBufferImageCopy.html>
+
+    * VkImageSubresourceLayers(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageSubresourceLayers.html>
+
+    * What is the difference between framebuffer and image in Vulkan?
+
+        <https://stackoverflow.com/questions/39557141/what-is-the-difference-between-framebuffer-and-image-in-vulkan>
+
+    * Vulkan有没有类似Opengl的红宝书，蓝宝书那样的书？
+
+        <https://www.zhihu.com/question/527771207>
+
+    * 如何正确的入门Vulkan？
+
+        <https://www.zhihu.com/question/424430509/answer/1632072443>
+
+    * Vulkan Memory and Resources
+
+        <https://www.informit.com/articles/article.aspx?p=2756465&seqNum=3>
+
+    * Vulkan Usage Recommendations
+
+        <https://developer.samsung.com/galaxy-gamedev/resources/articles/usage.html>
+
+    * Getting started with the Vulkan programming model
+
+        <https://subscription.packtpub.com/book/game-development/9781786469809/1/ch01lvl1sec12/getting-started-with-the-vulkan-programming-model>
+
+    * API without Secrets: Introduction to Vulkan* Part 6
+
+        <https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-6.html>
+
+* How to printf "unsigned long" in C?
+
+    <https://stackoverflow.com/questions/3209909/how-to-printf-unsigned-long-in-c>
+
+* MyGUI is a cross-platform library for creating graphical user interfaces (GUIs) for games and 3D applications.
+
+    <https://github.com/MyGUI/mygui>
+
+* c++
+
+    * C++11 中 std::piecewise_construct 的使用 
+
+        <https://juejin.cn/post/7029372430397210632>
+
+    * An improved emplace() for unique-key maps
+
+        <https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4006.html>
+
+    * map::emplace with muliple constructor arguments
+
+        <https://groups.google.com/a/isocpp.org/g/std-discussion/c/izS4U8Ojhss?pli=1>
+
+    * Convert between string, u16string & u32string
+
+        <https://stackoverflow.com/questions/7232710/convert-between-string-u16string-u32string>
+
+    * EA Standard Template Library
+
+        <https://github.com/electronicarts/EASTL>
+
+    * Conan is a package manager for C and C++ developers:
+
+        <https://github.com/conan-io/conan>
+
+    * C Programming/Serialization
+
+        <https://en.wikibooks.org/wiki/C_Programming/Serialization>
+
+    * An Introduction to Object Serialization in C++
+
+        <https://www.codeguru.com/cplusplus/an-introduction-to-object-serialization-in-c/>
+
+    * How to write reflection for C++
+
+        <https://pvs-studio.com/en/blog/posts/cpp/0956/>
+
+    * C - serialization techniques
+
+        <https://stackoverflow.com/questions/6002528/c-serialization-techniques>
+
+* <https://www.ea.com/frostbite>
+
+    一个渲染引擎。
+
+* cairo is a 2D graphics library with support for multiple output devices. 
+
+    <https://www.cairographics.org/>
+    
