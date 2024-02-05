@@ -3710,6 +3710,10 @@ int main()
 }
 ```
 
+* vulkan 中 image layout 是否正确并不影响 command 的执行，但是 barrier 如果设置得不对，就会导致一个 shader 的输出还没被计算完，就被另外一个 shader 使用。
+
+    由于 vulkan 中的 barrier 兼具 layout 转换和 memory barrier 的作用，所以 layout 随便填一填就行了，barrier 还是得设置。
+
 ## 使用 index buffer
 
 同 opengl 一样，使用顶点数据 + 索引数据结合的形式定义三角形，从而节省存储空间。
@@ -7139,6 +7143,10 @@ A descriptor set specifies the actual buffer or image resources that will be bou
     }
     ```
 
+* 与 vulkan 相关的代码中，经常会用`return false;`表示成功。其实这里的 false 指的可能是 0，或者`VK_SUCCESS`。
+
+    在检查函数的返回值时可以考虑到这点。
+
 ## 未验证
 
 * vulkan memory
@@ -7180,3 +7188,6 @@ A descriptor set specifies the actual buffer or image resources that will be bou
         void* pUserData,
         void* pMemory);
     ```
+
+## Chaos
+

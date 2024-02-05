@@ -1250,6 +1250,10 @@
 
         <https://d3-graph-gallery.com/>
 
+    * List of graph visualization libraries
+
+        <https://elise-deux.medium.com/the-list-of-graph-visualization-libraries-7a7b89aab6a6>
+
 * c++
 
     * Functions with Variable Number of Arguments in C++
@@ -1457,6 +1461,10 @@
 
         <https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-acceleration-structure/bounding-volume-hierarchy-BVH-part2.html>
 
+    * How to build a BVH – Part 1: Basics
+
+        <https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/>
+
 * shader
 
     * ShaderLab入门
@@ -1618,4 +1626,347 @@
 * cairo is a 2D graphics library with support for multiple output devices. 
 
     <https://www.cairographics.org/>
+
+* rust and alsa
+
+    *  Unable to build / install with cargo: "failed to run custom build command for alsa-sys v0.1.2" #659 
+
+        <https://github.com/Spotifyd/spotifyd/issues/659>
+
+    *  alsa v0.8.1 Thin but safe wrappers for ALSA (Linux sound API) 
+
+        <https://crates.io/crates/alsa>
+
+* Linux Performance
+
+    <https://www.brendangregg.com/linuxperf.html>
+
+* Linux Performance Analysis in 60,000 Milliseconds
+
+    <https://netflixtechblog.com/linux-performance-analysis-in-60-000-milliseconds-accc10403c55>
+
+* What's the difference between ray tracing and path tracing?
+
+    <https://www.quora.com/Whats-the-difference-between-ray-tracing-and-path-tracing>
+
+* Skia: The 2D Graphics Library
+
+    <https://skia.org/>
+
+* How to get a reflection vector?
+
+    <https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector>
+
+* Dot Product
+
+    <https://www.mathsisfun.com/algebra/vectors-dot-product.html>
+
+* glm
+
+    <https://glm.g-truc.net/0.9.2/api/a00277.html>
     
+* musl is an implementation of the C standard library built on top of the Linux system call API
+
+    <https://musl.libc.org/>
+
+* pthread_create
+
+    <https://man7.org/linux/man-pages/man3/pthread_create.3.html>
+
+* Unable to display <CL_DEVICE_MAX_WORK_ITEM_SIZE> in OpenCL and C++
+
+    <https://stackoverflow.com/questions/57049160/unable-to-display-cl-device-max-work-item-size-in-opencl-and-c>
+
+* Why does an Ubuntu Server have graphical.target as the default systemd target?
+
+    <https://askubuntu.com/questions/836525/why-does-an-ubuntu-server-have-graphical-target-as-the-default-systemd-target>
+
+    讲 multi-user 的，里面有一些关于 linux 启动过程的东西，有时间可以看一下。
+
+* c++ needs to learn
+
+    * List-initialization (since C++11)
+
+        <https://en.cppreference.com/w/cpp/language/list_initialization>
+
+    * Default Parameters With Default Template Parameters Types
+
+        <https://www.fluentcpp.com/2018/08/10/template-default-arguments-application-smart-iterators/>
+
+    * Thinking in C++ Vol 2 - Practical Programming
+
+        <https://www.linuxtopia.org/online_books/programming_books/c++_practical_programming/c++_practical_programming_107.html>
+
+    * Tricks with Default Template Arguments
+
+        <https://www.foonathan.net/2020/10/tricks-default-template-argument/>
+
+    * Union declaration
+
+        <https://en.cppreference.com/w/cpp/language/union>
+
+    * Resolve "DSO missing from command line" error
+
+        <https://zhangboyi.gitlab.io/post/2020-09-14-resolve-dso-missing-from-command-line-error/>
+    
+    * libpthread.so.0: error adding symbols: DSO missing from command line
+
+        <https://stackoverflow.com/questions/19901934/libpthread-so-0-error-adding-symbols-dso-missing-from-command-line>
+
+    * How can I clear an input buffer in C?
+
+        <https://stackoverflow.com/questions/7898215/how-can-i-clear-an-input-buffer-in-c>
+
+    * Clearing the buffer when using Getchar (there must be a better way!)
+
+        <https://stackoverflow.com/questions/43954160/clearing-the-buffer-when-using-getchar-there-must-be-a-better-way>
+
+    * Detect Operating System in C
+
+        <https://iq.opengenus.org/detect-operating-system-in-c/>
+
+* c++
+
+    * C++ Syncing threads in most elegant way
+
+        <https://stackoverflow.com/questions/16277840/c-syncing-threads-in-most-elegant-way>
+
+    * Three Simple Ways For C++ Thread Synchronization in C++11 and C++14
+
+        <https://chrizog.com/cpp-thread-synchronization>
+
+    * std::counting_semaphore, std::binary_semaphore
+
+        <https://en.cppreference.com/w/cpp/thread/counting_semaphore>
+
+    * C++ 多线程（七）：信号量 Semaphore 及 C++ 11 实现
+
+        <https://zhuanlan.zhihu.com/p/512969481>
+
+    * C++学习笔记：模板参数
+
+        <https://blog.csdn.net/iuices/article/details/122872720>
+
+    * 类模板三种类模板参数
+
+        <https://blog.csdn.net/u014253011/article/details/80036801>
+
+    * Function template
+
+        <https://en.cppreference.com/w/cpp/language/function_template>
+
+    * Friend Class and Function in C++
+
+        <https://www.geeksforgeeks.org/friend-class-function-cpp/>
+
+    * stringstream Class In C++ – Usage Examples And Applications
+
+        <https://www.softwaretestinghelp.com/stringstream-class-in-cpp/>
+
+    * Stringstream in C++
+
+        <https://www.tutorialspoint.com/stringstream-in-cplusplus>
+
+    * stringstream in C++ and its Applications
+
+        <https://www.geeksforgeeks.org/stringstream-c-applications/>
+
+    * Unnamed and inline namespaces
+
+        <https://www.learncpp.com/cpp-tutorial/unnamed-and-inline-namespaces/>
+
+    * Async.h - asynchronous, stackless subroutines
+
+        <https://github.com/naasking/async.h>
+
+    * Sample code for asynchronous programming in C
+
+        <https://stackoverflow.com/questions/2108961/sample-code-for-asynchronous-programming-in-c>
+
+    * Asynchronous Routines For C
+
+        <https://hackaday.com/2019/09/24/asynchronous-routines-for-c/>
+
+    * typedef in C++
+
+        <https://www.geeksforgeeks.org/typedef-in-cpp/>
+
+    * typedef specifier
+
+        <https://en.cppreference.com/w/cpp/language/typedef>
+
+    * override specifier (since C++11)
+
+        <https://en.cppreference.com/w/cpp/language/override>
+
+    * C++ Delegate模板类的设计
+
+        <https://blog.csdn.net/weixin_50948630/article/details/132110710>
+
+* opengl
+
+    * Tutorial 7 : Model loading
+    
+        <http://www.opengl-tutorial.org/beginners-tutorials/tutorial-7-model-loading/>
+
+    * The Matrix and Quaternions FAQ
+
+        <http://www.opengl-tutorial.org/assets/faq_quaternions/index.html>
+
+    * Welcome to OpenGL
+
+        <https://learnopengl.com/>
+
+    * opengl读取obj兔子并贴图_OpenGL学习笔记(八)-纹理
+
+        <https://blog.csdn.net/weixin_39925813/article/details/110901035>
+
+    * free 3d model downloading
+
+        <https://free3d.com/>
+
+    *  LearnOpenGL-CN
+
+        <https://learnopengl-cn.readthedocs.io/zh/latest/01%20Getting%20started/01%20OpenGL/>
+
+    * GLSL 语言—矢量和矩阵 [ ] 运算符
+
+        <https://cloud.tencent.com/developer/article/1504841>
+
+    * 欢迎来到OpenGL的世界
+
+        <https://learnopengl-cn.github.io/>
+
+    * glumpy: opengl + numpy
+
+        <https://github.com/glumpy/glumpy>
+
+    * PyGLM: OpenGL Mathematics (GLM) library for Python
+
+        <https://pypi.org/project/PyGLM/>
+
+    * glumpy 1.2.1 
+
+        <https://pypi.org/project/glumpy/>
+
+    * VisPy
+
+        <https://macrocosme.github.io/vispy-and-the-future-of-big-data-visualisation/>
+
+    * 3d graphics
+
+        <http://morpheo.inrialpes.fr/~franco/3dgraphics/index.html>
+
+    * gltut for python
+
+        <https://www.pygame.org/project-gltut+for+python-2797-.html>
+
+    * GLSL Programming/Vector and Matrix Operations
+
+        <https://en.wikibooks.org/wiki/GLSL_Programming/Vector_and_Matrix_Operations>
+
+    * opengl 4.5
+
+        <https://yaakuro.gitbook.io/opengl-4-5/>
+
+    * Buffer Object
+
+        <https://www.khronos.org/opengl/wiki/Buffer_Object>
+
+    * glGetString — return a string describing the current GL connection
+
+        <https://registry.khronos.org/OpenGL-Refpages/gl4/html/glGetString.xhtml>
+
+    * OpenGL® 4.5 Reference Pages 
+
+        <https://registry.khronos.org/OpenGL-Refpages/gl4/>
+
+    * ogl dev: modern opengl tutorials
+
+        <https://ogldev.org/>
+
+    * Download Computer Graphics With Opengl (3rd Edition) 
+
+        <https://vdoc.pub/download/computer-graphics-with-opengl-3rd-edition-6dr3a2ql4vi0>
+
+    * learn opengl
+
+        <https://learnopengl.com/Lighting/Colors>
+
+    * Modern OpenGL
+
+        <https://glumpy.github.io/modern-gl.html>
+
+    * OpenGL Programming/Scientific OpenGL Tutorial 03
+
+        <https://en.wikibooks.org/wiki/OpenGL_Programming/Scientific_OpenGL_Tutorial_03>
+
+    * glm Geometric functions
+
+        <https://glm.g-truc.net/0.9.4/api/a00131.html>
+
+    * awesome-opengl
+    
+        <https://github.com/eug/awesome-opengl>
+
+    * 浅析OpenGL光照
+
+        <https://www.cnblogs.com/javawebsoa/p/3243737.html>
+
+    * GLSL Tutorial von Lighthouse3D
+
+        <https://cgvr.cs.uni-bremen.de/teaching/cg2_07/literatur/glsl_tutorial/index.html>
+
+    * Getting started with glsl
+
+        <https://riptutorial.com/glsl>
+
+    * OpenGL 101: Textures 
+
+        <https://solarianprogrammer.com/2013/05/17/opengl-101-textures/>
+
+    * How to debug a GLSL shader?
+
+        <https://stackoverflow.com/questions/2508818/how-to-debug-a-glsl-shader>
+
+* learn mmd
+
+    <https://learnmmd.com/http:/learnmmd.com/create-mmd-model-color-morphs-using-pmxe/>
+
+* 记录一次xf86vmode library not found问题
+
+    <https://blog.csdn.net/qq1186351245/article/details/125300966>
+
+* Saba: a mmd player
+
+    <https://github.com/benikabocha/saba>
+
+* compiler
+
+    * glslang
+
+        <https://github.com/KhronosGroup/glslang>
+
+    * Introduction to bison
+
+        <https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/120%20Introducing%20bison.pdf>
+
+    * Question for pest parser example
+
+        <https://users.rust-lang.org/t/question-for-pest-parser-example/82041>
+
+    * pest
+
+        <https://pest.rs/>
+
+* vulkan-compute 
+
+    <https://github.com/topics/vulkan-compute>
+
+* Getting Started with Vulkan Compute Acceleration
+
+    <https://www.khronos.org/blog/getting-started-with-vulkan-compute-acceleration>
+
+* Arrow Types in LaTeX: A Complete List
+
+    <https://latex-tutorial.com/arrow-latex/>

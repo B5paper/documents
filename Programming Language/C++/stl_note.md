@@ -1140,3 +1140,83 @@ hello
 可以使用`tuple_cat()`将两个 tuple 拼接到一起。目前没怎么用过，所以就不详细写了。
 
 tuple 可以存不同类型的对象，array 只能存同一类型的对象。`pair`只能存两个对象，`tuple`可以存 0 个或多个对象。拿`tuple`存多个对象，由于只能使用索引来获得引用，对象失去了名字，所以过段时间很容易忘记这个`tuple`存的是什么东西。综合看来，`tuple`比较适合临时存一些数据，比如函数的多个返回值。也适合存一些意义非常明确，或者与变量名关系不大的数据，比如三维空间的 xyz 坐标，person 的 id 和姓名等等。
+
+## extent
+
+`std::extent`是一个模板类，使用 traits 技术获得数组在某个维度的长度。
+
+```cpp
+#include <iostream>
+
+int main()
+{
+    std::cout << std::extent_v<int[3][4]> << std::endl;  // 3
+    std::cout << std::extent_v<int[3][4], 0> << std::endl;  // 3
+    std::cout << std::extent_v<int[3][4], 1> << std::endl;  // 4
+    std::cout << std::extent<int[3][4], 1>::value << std::endl;  // 5
+    return 0;
+}
+```
+
+输出：
+
+```
+3
+3
+4
+4
+```
+
+`std::extent`可以和`decltype`结合起来使用，推测一个数组实例的维度长度：
+
+```cpp
+#include <iostream>
+
+int main()
+{
+    int arr[3][4];
+    std::cout << std::extent_v<decltype(arr)> << std::endl; // 3
+    using arr_type = decltype(arr);
+    std::cout << std::extent_v<arr_type> << std::endl;  // 3
+    return 0;
+}
+```
+
+如果先取了索引，再拿 extent，那么会得到 0，因为索引只是一个 reference。比如`arr[0]`的类型，实际上是`int (&)[3]`。我们可以 remove 掉 reference，从而得到正确的 extent：
+
+```cpp
+#include <iostream>
+
+int main()
+{
+    int arr[3][4];
+    std::cout << std::extent_v<decltype(arr[0])> << std::endl;  // 0
+    std::cout << std::extent_v<std::remove_reference_t<decltype(arr[0])>> << std::endl;  // 4
+    return 0;
+}
+```
+
+如果将数组传递给函数参数，那么会丢失第一个维度的 extent：
+
+```cpp
+#include <iostream>
+
+void print_arr_extent(int arr[3][4])
+{
+    using t_0= std::remove_reference_t<decltype(arr)>;
+    std::cout << std::extent_v<t_0> << std::endl;  // 0
+    using t_1 = std::remove_reference_t<decltype(arr[0])>;
+    std::cout << std::extent_v<t_1> << std::endl;  // 4
+    using t_2 = decltype(arr[0]);
+    std::cout << std::extent_v<t_2> << std::endl;  // 0
+}
+
+int main()
+{
+    int arr[3][4];
+    print_arr_extent(arr);
+    return 0;
+}
+```
+
+不清楚该怎么解决这个问题。
