@@ -290,7 +290,7 @@ VK_KHR_xcb_surface
 
 validation layer 主要用于输出 vulkan 驱动在执行时的各种细节，尤其是报错信息。
 
-如果不加 validation layer，vulkan 出错时可能会直接 segmentation falut，或者什么错也不报，继续运行。
+如果不加 validation layer，vulkan 出错时可能会直接 segmentation fault，或者什么错也不报，继续运行。
 
 validation layer 的创建方式有两种，一种是随 instance 一起创建，这样可以监控到 instance 创建时的 bug；另一种是等 instance 创建好后，再 attach 到 instance 上，显然这样无法监控 instance 在创建时报的 bug。
 
@@ -399,7 +399,7 @@ validation layer 对应的名称为`"VK_LAYER_KHRONOS_validation"`。
 
 为了使用 callback function，需要使用`VK_EXT_DEBUG_UTILS_EXTENSION_NAME` extension，这个宏等价于`"VK_EXT_debug_utils"`。
 
-#### using pNext of instance create info
+#### using pNext of instance creation info
 
 Example code:
 
@@ -843,7 +843,132 @@ support transfer
 support transfer
 ```
 
-### 最终代码
+## logic device, queue
+
+逻辑设备（logic device）意味着物理设备（的一个子集）和指令队列（queue）的一个绑定，使用指令队列向物理设备发送渲染、计算指令。
+
+或者说，指令队列其实是逻辑设备的一个资源，用于异步地完成指令。
+
+或者说，逻辑设备是一个抽象对象，它的核心功能是维护了一个指令队列，用于异步地和物理设备交互。
+
+逻辑设备可能只选取了物理设备的部分功能，因此它其实绑定的是物理设备的一个子集。
+
+逻辑设备主要负责指令相关的操作，物理设备主要负责显存相关的操作。
+
+### logic device creation
+
+### command queue
+
+### present queue
+
+## swapchain
+
+* 有关窗口 buffer 和渲染 buffer 的创建与关联流程
+
+    猜想：swap chain 用于和窗口交换数据，在调用`vkCreateSwapchainKHR(()`时会创建好一些图片缓冲区。
+
+    调用`vkGetSwapchainImagesKHR()`可以拿到缓冲区的这些图片，实际拿到的是`VkImage`类型的一些对象，猜测这些对象其实是图片指针。
+
+    调用`vkCreateImageView()`生成`VkImageView`，可以给`VkImage`加一些额外的图片信息，相当于一个 wrapper 的功能。
+
+    然后再调用`vkCreateFramebuffer()`，将`VkImageViewv`转换成`VkFramebuffer`，供 render pass 使用。
+
+    最终`VkFramebuffer`会被写在`VkRenderPassBeginInfo`对象的`framebuffer`字段中，而`vkCmdBeginRenderPass()`会接收`VkRenderPassBeginInfo`对象作为参数，进行实际的渲染。
+
+* 有关与窗口交换 buffer 和渲染指令队列
+
+    ```cpp
+    void drawFrame(VkDevice &device, VkFence &inFlightFence, VkCommandBuffer &commandBuffer,
+        VkSwapchainKHR &swapChain, VkSemaphore &imageAvailableSemaphore,
+        VkRenderPass &renderPass, std::vector<VkFramebuffer> &swapChainFramebuffers,
+        VkExtent2D &swapChainExtent, VkPipeline &graphicsPipeline,
+        VkSemaphore &renderFinishedSemaphore, VkQueue &graphicsQueue,
+        VkQueue &presentQueue)
+    {
+        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &inFlightFence);
+
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+        vkResetCommandBuffer(commandBuffer, 0);
+        recordCommandBuffer(commandBuffer, imageIndex, renderPass, swapChainFramebuffers, swapChainExtent, graphicsPipeline);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = &imageAvailableSemaphore;  // 拿到画图所需要的缓冲区
+        submitInfo.pWaitDstStageMask = &static_cast<const VkPipelineStageFlags&>(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &renderFinishedSemaphore;  // 判断是否绘制完成
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapChain;
+        presentInfo.pImageIndices = &imageIndex;
+        vkQueuePresentKHR(presentQueue, &presentInfo);
+    }
+    ```
+
+    看起来`vkQueuePresentKHR()`会把渲染好的图片的信息加入到 present 队列里。说明 present 队列与窗口的 swap 是 vk 在后台帮忙完成的，它和渲染指令队列是异步交互的。
+
+* 在创建 swapchain 时，`imageFormat`十分重要，必须设置成和 surface 的 image format 相同
+
+    常见的设置为`VK_FORMAT_B8G8R8A8_SRGB`。
+
+* 可以在`VkSwapchainCreateInfoKHR`中设置 swapchain 中的 image 的 usage
+
+    只有 usage 中有 transfer 相关的功能，后面才能把 swap chain 中的 image 转换成对应的 layout
+
+## 计算与显示的同步机制
+
+fence 用于等待 gpu 指令执行完成，从而保证每次只绘制一帧。
+
+> a fence to make sure only one frame is rendering at a time.
+
+fence 会作为参数传入`vkQueueSubmit()`中，提交完指令后等待 gpu 返回。
+
+`vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);`:
+
+> The `vkWaitForFences` function takes an array of fences and waits on the host for either any or all of the fences to be signaled before returning. The VK_TRUE we pass here indicates that we want to wait for all fences, but in the case of a single one it doesn’t matter. This function also has a timeout parameter that we set to the maximum value of a 64 bit unsigned integer, UINT64_MAX, which effectively disables the timeout.
+
+`vkResetFences(device, 1, &inFlightFence);`:
+
+> manually reset the fence to the unsignaled state
+
+`vkResetFences()`的作用类似把 fence 的值清零。
+
+* `vkResetCommandBuffer`
+
+    ```c
+    VkResult vkResetCommandBuffer(
+        VkCommandBuffer                             commandBuffer,
+        VkCommandBufferResetFlags                   flags);
+    ```
+
+    `flags`似乎用于指定是否回收 command 占用的内存。如果没必要直接置 0 就好了。
+
+* `vkQueuePresentKHR`
+
+    ```c
+    VkResult vkQueuePresentKHR(
+        VkQueue                                     queue,
+        const VkPresentInfoKHR*                     pPresentInfo);
+    ```
+
+    After queueing all rendering commands and transitioning the image to the correct layout, to queue an image for presentation.
+
+看起来`vkQueueSubmit`和`vkQueuePresentKHR`都是非阻塞式的，因此分开来执行了。
+
+## 画一个三角形的最终代码
 
 `vtx_shader.glsl`:
 
@@ -1686,121 +1811,6 @@ make
 <div style='text-align:center'>
 <img width=700 src='./pics/vulkan_note/pic_0.png'>
 </div>
-
-## logic device, queue
-
-### logic device creation
-
-### command queue
-
-### present queue
-
-## swapchain
-
-* 有关窗口 buffer 和渲染 buffer 的创建与关联流程
-
-    猜想：swap chain 用于和窗口交换数据，在调用`vkCreateSwapchainKHR(()`时会创建好一些图片缓冲区。
-
-    调用`vkGetSwapchainImagesKHR()`可以拿到缓冲区的这些图片，实际拿到的是`VkImage`类型的一些对象，猜测这些对象其实是图片指针。
-
-    调用`vkCreateImageView()`生成`VkImageView`，可以给`VkImage`加一些额外的图片信息，相当于一个 wrapper 的功能。
-
-    然后再调用`vkCreateFramebuffer()`，将`VkImageViewv`转换成`VkFramebuffer`，供 render pass 使用。
-
-    最终`VkFramebuffer`会被写在`VkRenderPassBeginInfo`对象的`framebuffer`字段中，而`vkCmdBeginRenderPass()`会接收`VkRenderPassBeginInfo`对象作为参数，进行实际的渲染。
-
-* 有关与窗口交换 buffer 和渲染指令队列
-
-    ```cpp
-    void drawFrame(VkDevice &device, VkFence &inFlightFence, VkCommandBuffer &commandBuffer,
-        VkSwapchainKHR &swapChain, VkSemaphore &imageAvailableSemaphore,
-        VkRenderPass &renderPass, std::vector<VkFramebuffer> &swapChainFramebuffers,
-        VkExtent2D &swapChainExtent, VkPipeline &graphicsPipeline,
-        VkSemaphore &renderFinishedSemaphore, VkQueue &graphicsQueue,
-        VkQueue &presentQueue)
-    {
-        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(device, 1, &inFlightFence);
-
-        uint32_t imageIndex;
-        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-        vkResetCommandBuffer(commandBuffer, 0);
-        recordCommandBuffer(commandBuffer, imageIndex, renderPass, swapChainFramebuffers, swapChainExtent, graphicsPipeline);
-
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &imageAvailableSemaphore;  // 拿到画图所需要的缓冲区
-        submitInfo.pWaitDstStageMask = &static_cast<const VkPipelineStageFlags&>(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &renderFinishedSemaphore;  // 判断是否绘制完成
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
-            throw std::runtime_error("failed to submit draw command buffer!");
-        }
-
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &swapChain;
-        presentInfo.pImageIndices = &imageIndex;
-        vkQueuePresentKHR(presentQueue, &presentInfo);
-    }
-    ```
-
-    看起来`vkQueuePresentKHR()`会把渲染好的图片的信息加入到 present 队列里。说明 present 队列与窗口的 swap 是 vk 在后台帮忙完成的，它和渲染指令队列是异步交互的。
-
-* 在创建 swapchain 时，`imageFormat`十分重要，必须设置成和 surface 的 image format 相同
-
-    常见的设置为`VK_FORMAT_B8G8R8A8_SRGB`。
-
-* 可以在`VkSwapchainCreateInfoKHR`中设置 swapchain 中的 image 的 usage
-
-    只有 usage 中有 transfer 相关的功能，后面才能把 swap chain 中的 image 转换成对应的 layout
-
-## 计算与显示的同步机制
-
-fence 用于等待 gpu 指令执行完成，从而保证每次只绘制一帧。
-
-> a fence to make sure only one frame is rendering at a time.
-
-fence 会作为参数传入`vkQueueSubmit()`中，提交完指令后等待 gpu 返回。
-
-`vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);`:
-
-> The `vkWaitForFences` function takes an array of fences and waits on the host for either any or all of the fences to be signaled before returning. The VK_TRUE we pass here indicates that we want to wait for all fences, but in the case of a single one it doesn’t matter. This function also has a timeout parameter that we set to the maximum value of a 64 bit unsigned integer, UINT64_MAX, which effectively disables the timeout.
-
-`vkResetFences(device, 1, &inFlightFence);`:
-
-> manually reset the fence to the unsignaled state
-
-`vkResetFences()`的作用类似把 fence 的值清零。
-
-* `vkResetCommandBuffer`
-
-    ```c
-    VkResult vkResetCommandBuffer(
-        VkCommandBuffer                             commandBuffer,
-        VkCommandBufferResetFlags                   flags);
-    ```
-
-    `flags`似乎用于指定是否回收 command 占用的内存。如果没必要直接置 0 就好了。
-
-* `vkQueuePresentKHR`
-
-    ```c
-    VkResult vkQueuePresentKHR(
-        VkQueue                                     queue,
-        const VkPresentInfoKHR*                     pPresentInfo);
-    ```
-
-    After queueing all rendering commands and transitioning the image to the correct layout, to queue an image for presentation.
-
-看起来`vkQueueSubmit`和`vkQueuePresentKHR`都是非阻塞式的，因此分开来执行了。
 
 ## frames in flight
 
@@ -6982,7 +6992,7 @@ void createDescriptorSetLayout() {
     }
     ```
 
-    最终的 main 函数！写得逻辑清晰，所有的过程都基本是模块化的。
+    最终的 main 函数写得逻辑清晰，所有的过程都基本是模块化的。
 
 * 最后附上用到的两个 shader 的源代码
 

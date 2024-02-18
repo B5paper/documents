@@ -73,15 +73,7 @@ Note: `32`是空格` `，`33`是叹号`!`，`34`是双引号`"`，`126`是波浪
 
 ASCII table: <https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html>
 
-**string and `char*`**
-
-字符串定义：
-
-```c++
-char str[] = "hello, world!";
-```
-
-## 数组
+## 数组与字符串
 
 数组与指针：
 
@@ -141,6 +133,17 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
 
     （不清楚这一点是否被编译器保证，因此写程序时不应该依赖这个特性）
 
+### 字符串
+
+C 风格的字符串是一种特殊的数组，即数组中存储的是`char`类型的数据。
+
+字符串定义：
+
+```c++
+char str[] = "hello, world!";
+const char *str = "nihao, zaijian";
+```
+
 ## 运算符
 
 有符号整数的`>>`，左侧会位移`1`。
@@ -166,7 +169,8 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
 
     int main()
     {
-        int &ra = test();  // error
+        int &ra = test();
+        ra = 1;  // run time error
         return 0;
     }
     ```
@@ -194,7 +198,7 @@ int arr[][col] = {data_1, data_2, data_3, data_4, ...};
     }
     ```
 
-### 函数的默认参数
+**函数的默认参数**
 
 函数的声明和实现只能有一个有默认参数。
 
@@ -206,7 +210,7 @@ int test(int a, int)
     return 0;
 }
 
-int test2(int a, int = 3)  // 点位参数也可以有默认参数
+int test2(int a, int = 3)  // 占位参数也可以有默认参数
 {
     return 0;
 }
@@ -273,6 +277,27 @@ int main()
     ```
 
     想了想，这种设计是正确的。因为函数的形参总是一个副本，无论有没有`const`都无所谓。而引用是关系到变量实际上是否被修改的，所以需要对`const`加以区分。
+
+    `int *a`和`const int *a`也被认为是不同的参数，可以在函数重载时通过编译。并且`a`可以在函数中被赋值。
+
+    ```cpp
+    void test(int *a)
+    {
+        a = nullptr;
+    }
+
+    void test(const int *a)
+    {
+        a = nullptr;
+    }
+
+    int main()
+    {
+        return 0;
+    }
+    ```
+
+    指针其实也是传递了一个副本，但是确能通过编译，但是指针的类型其实依赖于变量的类型，这里变量的类型并不是一个副本变量的类型，而是原变量的类型，因此指针被认为是不同的类型。
 
 1. 默认参数
 

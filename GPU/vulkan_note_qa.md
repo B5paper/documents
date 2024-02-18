@@ -997,3 +997,64 @@ void enable_swapchain_device_extension(vector<const char*> &enabled_device_exten
     enabled_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 }
 ```
+
+[unit]
+[u_0]
+create vulkan logic device.
+[u_1]
+```cpp
+VkDevice create_logic_device(
+    VkPhysicalDevice phy_dev,
+    const uint32_t graphics_queue_family_idx,
+    const uint32_t present_queue_family_idx,
+    const vector<const char*> &enabled_dev_extensions,
+    const vector<const char*> &enabled_dev_layers)
+{
+    vector<uint32_t> queue_families;
+    if (graphics_queue_family_idx == present_queue_family_idx)
+    {
+        queue_families.resize(1);
+        queue_families[0] = graphics_queue_family_idx;
+    }
+    else
+    {
+        queue_families.resize(2);
+        queue_families[0] = graphics_queue_family_idx;
+        queue_families[1] = present_queue_family_idx;
+    }
+
+    vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    const float queuePriority = 1.0f;
+    for (uint32_t queue_family_idx: queue_families) {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queue_family_idx;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.queueCreateInfoCount = queueCreateInfos.size();
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+    createInfo.enabledExtensionCount = enabled_dev_extensions.size();
+    createInfo.ppEnabledExtensionNames = enabled_dev_extensions.data();
+    createInfo.enabledLayerCount = enabled_dev_layers.size();
+    createInfo.ppEnabledLayerNames = enabled_dev_layers.data();
+
+    VkDevice device;
+    VkResult ret_val = vkCreateDevice(phy_dev, &createInfo, nullptr, &device);
+    if (ret_val != VK_SUCCESS) {
+        cout << "failed to create logical device!" << endl;
+        cout << "error code: " << ret_val << endl;
+    }
+    else {
+        cout << "successfully create logical device" << endl;
+    }
+
+    return device;
+}
+```

@@ -1074,6 +1074,14 @@
 
         <https://stackoverflow.com/questions/8610799/what-does-at-symbol-colon-mean-in-a-makefile>
 
+    * Makefile中.PHONY的作用
+
+        <https://www.cnblogs.com/idorax/p/9306528.html>
+
+    * Debugging Makefiles
+
+        <https://the-turing-way.netlify.app/reproducible-research/make/make-debugging.html>
+
 * 直接生成论文格式
 
     typst, <https://typst.app/>
@@ -1970,3 +1978,69 @@
 * Arrow Types in LaTeX: A Complete List
 
     <https://latex-tutorial.com/arrow-latex/>
+
+* sleep()
+
+    * sleep(3) — Linux manual page
+
+        <https://man7.org/linux/man-pages/man3/sleep.3.html>
+
+    * Sleep() Function in C Language
+
+        <https://linuxhint.com/sleep-function-c/>
+
+    * nanosleep(2) — Linux manual page
+
+        <https://man7.org/linux/man-pages/man2/nanosleep.2.html>
+
+* ubuntu 安装显卡驱动的官方教程
+
+    <https://help.ubuntu.com/community/BinaryDriverHowto>
+
+    一种是开源驱动，一种是闭源驱动
+
+* Linux内核API atomic_inc
+
+    <https://deepinout.com/linux-kernel-api/linux-kernel-api-synchronization-mechanism/linux-kernel-api-atomic_inc.html>
+
+* git pull without remotely compressing objects
+
+    <https://stackoverflow.com/questions/7102053/git-pull-without-remotely-compressing-objects>
+
+    这个好像不是 client 端决定的，是 server 端决定的
+
+*  how to disable auto suggestion in Version 8 #13451 
+
+    <https://github.com/ipython/ipython/issues/13451>
+
+    新版本的 ipython 的自动提示非常难用，这个方法可以把自动提示关掉
+
+* Linux depmod command
+
+    <https://www.computerhope.com/unix/depmod.htm>
+
+    depmod 可以找到一个 module 所依赖的模块，之前好像记过
+
+    <https://eng.libretexts.org/Bookshelves/Computer_Science/Operating_Systems/Linux_-_The_Penguin_Marches_On_(McClanahan)/06%3A_Kernel_Module_Management/2.05%3A_Kernel_Module_Management_-_lsmod_Command/2.05.02%3A_Kernel_Module_Management_-_modprobe_Command>
+
+* Visual Studio Code - Convert spaces to tabs
+
+    vscode 有时候在 makefile 里输入的是空格，不是 tab，导致语法错误
+
+* Fix: x11 Connection Rejected Because of Wrong Authentication
+
+    <https://itslinuxfoss.com/x11-connection-rejected-because-of-wrong-authentication/>
+
+    用 vnc 的时候会遇到这个问题，目前还是没弄清楚原理
+
+* gRPC: Transporting massive data with Google’s serialization
+
+    <https://alexandreesl.com/2017/05/02/grpc-transporting-massive-data-with-googles-serialization/>
+
+* 万字长文深入理解 cache，写出高性能代码
+
+    <https://zhuanlan.zhihu.com/p/656338505>
+
+* GRPC C++  1.60.0
+
+    <https://grpc.github.io/grpc/cpp/md_doc_server_reflection_tutorial.html>
