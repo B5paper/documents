@@ -786,8 +786,6 @@
 
     <https://github.com/aalhour/awesome-compilers>
 
-    <>
-
 * zlibrary
 
     <https://singlelogin.se>
@@ -1295,6 +1293,10 @@
     * The Library is a small and open-source C++ library for image processing
 
         <https://cimg.eu/index.html>
+
+        * Combining image channels in CImg
+
+            <https://stackoverflow.com/questions/73779710/combining-image-channels-in-cimg>
 
     * libvips: A fast image processing library with low memory needs.
 
@@ -1955,10 +1957,6 @@
 
         <https://github.com/KhronosGroup/glslang>
 
-    * Introduction to bison
-
-        <https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/120%20Introducing%20bison.pdf>
-
     * Question for pest parser example
 
         <https://users.rust-lang.org/t/question-for-pest-parser-example/82041>
@@ -2044,3 +2042,214 @@
 * GRPC C++  1.60.0
 
     <https://grpc.github.io/grpc/cpp/md_doc_server_reflection_tutorial.html>
+
+* matrix faq
+
+    <http://www.opengl-tutorial.org/assets/faq_quaternions/index.html>
+
+    Identity Matrix: <http://www.c-jump.com/bcc/common/Talk3/Math/GLM/W01_0040_identity_matrix.htm>
+
+* How to flip an image (horizontal and vertical) using CImg?
+
+    <https://github.com/GreycLab/CImg/issues/211>
+
+* How to create a video from images with FFmpeg? [closed]
+
+    <https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg>
+
+* bash: How to read a file into a variable in shell?
+
+    <https://stackoverflow.com/questions/7427262/how-to-read-a-file-into-a-variable-in-shell>
+
+* bash: How to get execution time of a script effectively?
+
+    <https://unix.stackexchange.com/questions/52313/how-to-get-execution-time-of-a-script-effectively>
+
+* git-stash用法小结
+
+    <https://www.cnblogs.com/tocy/p/git-stash-reference.html>
+
+* 有关 web 网页渲染
+
+    * V8 源码分析（二）- JS 引擎和渲染引擎
+
+        <https://miguoer.github.io/blog/web-front/framework/framework-v8-02.html#%E6%B8%B2%E6%9F%93%E5%BC%95%E6%93%8E%E5%8F%8A-webkit-%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84>
+
+    * 从零开始的跨平台渲染引擎（零）——基础架构分析与设计
+
+        <https://zhuanlan.zhihu.com/p/403395505>
+
+    * 深度 | 跨平台Web Canvas渲染引擎架构的设计与思考
+
+        <https://zhuanlan.zhihu.com/p/362690073>
+
+    * Rendering engine
+
+        <https://developer.mozilla.org/en-US/docs/Glossary/Rendering_engine>
+
+    * blink 如何工作
+
+        <https://www.zhihu.com/search?type=content&q=Blink%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%20>
+
+* gpu algorithms
+
+    * GPU Sorting Algorithms in OpenCL
+
+        <https://github.com/Gram21/GPUSorting>
+
+    * OpenRC (v. 0.1-beta)
+
+        <https://github.com/macroing/OpenRC>
+
+    * opencl-bitonic-sort
+
+        <https://github.com/icaromagalhaes/opencl-bitonic-sort>
+
+    * ClPy: OpenCL backend for CuPy
+
+        <https://github.com/fixstars/clpy>
+
+    * 并行排序算法原理及其程序实现
+
+        <https://baijiahao.baidu.com/s?id=1761234516988191255&wfr=spider&for=pc>
+
+* opencl 相关
+
+    *  OpenCL C++ Bindings
+
+        <https://github.khronos.org/OpenCL-CLHPP/>
+
+    * a simple usage of OpenCL
+    
+        <https://www.cs.ubbcluj.ro/~rlupsa/edu/pdp/progs/opencl-sample1.cpp>
+
+    *  OpenCL-examples
+
+        <https://github.com/Dakkers/OpenCL-examples/tree/master>
+
+    * Introduction to OpenCL Programming (C/C++)
+
+        <https://ulhpc-tutorials.readthedocs.io/en/latest/gpu/opencl/>
+
+* C++ 的 traits 技术到底是什么？
+
+    <https://www.zhihu.com/tardis/zm/art/413864991?source_id=1003>
+
+* 你工作中最推荐的 C/C++ 程序库有哪些，为什么？
+
+    <https://www.zhihu.com/question/51134387/answer/574376062>
+    
+* yasio - 轻量级跨平台socket库
+
+    <https://zhuanlan.zhihu.com/p/69580088>
+
+* 有没有哪些高效的c++ socket框架？
+
+    <https://www.zhihu.com/question/67089512/answer/249255377>
+
+* Asio C++ Library
+
+    <https://think-async.com/Asio/>
+
+* git 相关操作
+
+    * The following untracked working tree files would be overwritten by merge, but I don't care
+
+        <https://stackoverflow.com/questions/17404316/the-following-untracked-working-tree-files-would-be-overwritten-by-merge-but-i>
+
+    * Git Push error: refusing to update checked out branch
+
+        <https://stackoverflow.com/questions/11117823/git-push-error-refusing-to-update-checked-out-branch>
+
+* 分布式计算相关
+
+    * 分布式计算  框架
+
+        <https://www.zhihu.com/search?type=content&q=%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97%20%20%E6%A1%86%E6%9E%B6>
+
+    * 9个主流的分布式深度学习框架
+
+        <https://zhuanlan.zhihu.com/p/582498905>
+
+    * 分布式图计算引擎
+
+        <https://zhuanlan.zhihu.com/p/385286103>
+
+    * 如何自学分布式深度学习框架？
+
+        <https://www.zhihu.com/question/576308139>
+        
+    * Ray分布式计算框架详解
+
+        <https://zhuanlan.zhihu.com/p/460600694>
+
+    * 大模型-LLM分布式训练框架总结
+
+        <https://zhuanlan.zhihu.com/p/623746805>
+
+* Socket Programming in C
+
+    <https://www.geeksforgeeks.org/socket-programming-cc/>
+
+    这个其实是 unix 风格的 socket 编译。
+
+* Using multiple namespaces [closed]
+
+    <https://stackoverflow.com/questions/57063459/using-multiple-namespaces>
+
+    之前好像实验过，使用多个 namespace 不影响，只有出现冲突的时候才会报错。
+
+*  OpenCL-path-tracing-tutorial-3-Part-2
+
+    <https://github.com/straaljager/OpenCL-path-tracing-tutorial-3-Part-2>
+
+* 浅析Linux内核中的链表
+
+    <https://blog.csdn.net/m0_74282605/article/details/128037229>
+
+* c++11 yield函数的使用
+
+    <https://blog.csdn.net/c_base_jin/article/details/79246211>
+
+* glTexImage2D — specify a two-dimensional texture image
+
+    <https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml>
+
+* 贝塞尔曲线与插值
+
+    * cxx-spline
+
+        <https://github.com/snsinfu/cxx-spline>
+
+    * Interpolation (scipy.interpolate)
+
+        <https://docs.scipy.org/doc/scipy/reference/interpolate.html>
+
+    * Bezier Curve in Modern C++
+
+        <https://stackoverflow.com/questions/53219377/bezier-curve-in-modern-c>
+
+    * How to make OpenGL camera and Ray-tracer camera show the same image?
+
+        <https://stackoverflow.com/questions/37682152/how-to-make-opengl-camera-and-ray-tracer-camera-show-the-same-image>
+
+    * OpenGL rotating a camera around a point
+
+        <https://stackoverflow.com/questions/287655/opengl-rotating-a-camera-around-a-point>
+
+    * 「科普扫盲」贝塞尔曲线
+
+        <https://baijiahao.baidu.com/s?id=1646828274206074616&wfr=spider&for=pc>
+
+    * 图形学 · 简谈 Bézier curve
+
+        <https://zhuanlan.zhihu.com/p/470453595?utm_id=0>
+
+    * 【数学与算法】贝塞尔(Bézier)曲线
+
+        <https://blog.csdn.net/u011754972/article/details/123494165>
+
+* How to return value from an asynchronous callback function? [duplicate]
+
+    <https://stackoverflow.com/questions/6847697/how-to-return-value-from-an-asynchronous-callback-function>
+

@@ -2678,17 +2678,25 @@ int main()
 
 ## Vulkan Memory
 
+vulkan memory 由 physical device 管理，不对应到具体的图像资源上。vulkan 中的两大类资源对象是 VKImage 和 VKBuffer，它们需要绑定在 VKDeviceMemory 对象上才可以使用。我们通常使用的也是 image 和 buffer，不会直接去使用 memory。
+
 * `memoryTypeBits`其实是一个掩码，第`i`位为 1 表示第`i`个显存类型是可用的。
 
     事实上，已经有`mem_props.memoryTypeCount`可以表示 memory type 的数量，并且可以看到当`mem_props.memoryTypeCount`为 16 时，内存类型分布在数组的 0 ~ 15 索引处。
 
     但是考虑到未来某个机器上，内存类型不一定是连续分布的，所以还是用比特位去检测有效位比较靠谱。
 
-* `vkGetImageMemoryRequirements`返回的那个 type bits 指的是这几个置为 1 的显存**类型**都是可以用的，具体需要什么显存**属性**，需要自己去指定，然后找找允许用的这几个显存类型里，有没有自己想要的属性。
+* `vkGetImageMemoryRequirements`返回的那个 type bits 指的是这几个置为 1 的显存**类型**都是可以用的。
 
-    注意这里显存类型（type）和属性（property）是两个不一样的概念。显存类型是由一个`uint32_t`的 32 位整数指定的，使用 one-hot 编码，每一位表示一种显存类型。需要用到哪一位，就将哪一位置 1，或者指定由低位（右边）往高位（左边）数，1 的索引。
+    比如`vkGetBufferMemoryRequirements(device, buffer, &mem_req);`返回的`mem_req.memoryTypeBits`值为`15`，那么就表示第 0，1，2，3 这四个内存类型是可选的。
 
-    常见的 type 有：
+    具体需要什么显存**属性**，需要自己去指定，然后找找允许用的这几个显存类型里，有没有自己想要的属性。
+
+    比如我希望在显卡上申请一块显存，那么就需要用到`VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`这个属性，我还希望这个显存是主机可见的，那么还需要用到`VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`这个属性。
+
+    对于第 0，1，2，3 个显存类型，我们使用`vkGetPhysicalDeviceMemoryProperties()`获得它们所支持的属性，然后用位运算检查我们所需要的属性是否是所支持属性的子集。
+
+    常见的 property 有：
 
     ```cpp
     VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |  // 2
@@ -2696,6 +2704,83 @@ int main()
     VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |  // 4
     VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT  // 8
     ```
+
+    注意这里显存类型（type）和属性（property）是两个不一样的概念。显存类型是由一个`uint32_t`的 32 位整数指定的，使用 one-hot 编码，每一位表示一种显存类型。需要用到哪一位，就将哪一位置 1，或者指定由低位（右边）往高位（左边）数，1 的索引。
+
+    一个常见的申请 buffer 的函数的写法如下：
+
+    ```cpp
+    void create_vk_buffer(VkBuffer &buffer,
+        VkDeviceMemory &bufferMemory,
+        const VkPhysicalDevice phy_dev,
+        const VkDevice device,
+        const VkDeviceSize size,
+        const VkBufferUsageFlags usage,
+        const VkMemoryPropertyFlags properties)
+    {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create buffer, error code: %d\n", result);
+            exit(-1);
+        }
+
+        VkMemoryRequirements mem_req;
+        vkGetBufferMemoryRequirements(device, buffer, &mem_req);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = mem_req.size;
+        VkPhysicalDeviceMemoryProperties mem_prop;
+        vkGetPhysicalDeviceMemoryProperties(phy_dev, &mem_prop);
+        bool valid_mem_type = false;
+        uint32_t mem_type_idx = -1;
+        for (uint32_t i = 0; i < mem_prop.memoryTypeCount; i++)
+        {
+            if ((mem_req.memoryTypeBits & (1 << i)) && (mem_prop.memoryTypes[i].propertyFlags & properties) == properties)
+            {
+                valid_mem_type = true;
+                mem_type_idx = i;
+                break;
+            }
+        }
+        if (!valid_mem_type)
+        {
+            printf("fail to find an appropriate memoty type.\n");
+            exit(-1);
+        }
+        allocInfo.memoryTypeIndex = mem_type_idx;
+
+        result = vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate vk memory, error code: %d\n", result);
+            exit(-1);
+        }
+
+        vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    }
+    ```
+
+    其中，usage 常见的有
+
+    ```
+    VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+    VK_BUFFER_USAGE_TRANSFER_DST_BIT
+    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+    VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT
+    VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT
+    ```
+
+    等等。更多的资料可以在官网上查到。
+
+    创建完了 buffer，还需要把它绑定到一个 memory 对象上，这样才能使用。
 
 ### transmit memory content from cpu to gpu
 

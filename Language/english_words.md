@@ -439,3 +439,5 @@ coherency n. 一致
 stencil n. 模板
 
 substantial adj. 大量的
+
+attenuation n. 减少，衰减

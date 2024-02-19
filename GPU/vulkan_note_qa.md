@@ -1058,3 +1058,72 @@ VkDevice create_logic_device(
     return device;
 }
 ```
+
+[unit]
+[u_0]
+创建一个 1MB 的 buffer，要求使用显存，主机可见，并且绑定到 memory 对象上。
+[u_1]
+```cpp
+void create_vk_buffer(VkBuffer &buffer,
+    VkDeviceMemory &bufferMemory,
+    const VkPhysicalDevice phy_dev,
+    const VkDevice device,
+    const VkDeviceSize size,
+    const VkBufferUsageFlags usage,
+    const VkMemoryPropertyFlags properties)
+{
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = size;
+    bufferInfo.usage = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to create buffer, error code: %d\n", result);
+        exit(-1);
+    }
+
+    VkMemoryRequirements mem_req;
+    vkGetBufferMemoryRequirements(device, buffer, &mem_req);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = mem_req.size;
+    VkPhysicalDeviceMemoryProperties mem_prop;
+    vkGetPhysicalDeviceMemoryProperties(phy_dev, &mem_prop);
+    bool valid_mem_type = false;
+    uint32_t mem_type_idx = -1;
+    for (uint32_t i = 0; i < mem_prop.memoryTypeCount; i++)
+    {
+        if ((mem_req.memoryTypeBits & (1 << i)) && (mem_prop.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            valid_mem_type = true;
+            mem_type_idx = i;
+            break;
+        }
+    }
+    if (!valid_mem_type)
+    {
+        printf("fail to find an appropriate memoty type.\n");
+        exit(-1);
+    }
+    allocInfo.memoryTypeIndex = mem_type_idx;
+
+    result = vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to allocate vk memory, error code: %d\n", result);
+        exit(-1);
+    }
+
+    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+}
+
+int main()
+{
+    create_vk_buffer(buf, buf_mem, phy_dev, dev, 1024, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    return 0;
+}
+```
