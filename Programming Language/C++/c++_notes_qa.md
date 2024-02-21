@@ -113,3 +113,11 @@ int main()
     return 0;
 }
 ```
+
+[unit]
+[u_0]
+解释 move 语义。
+[u_1]
+`std::move()`可以将一个左值或左值引用 remove reference 后，转换成右值引用。
+右值引用表示一个新的类型，被以右值引用为形参的函数处理，比如 move 构造函数，move 赋值函数。
+通常这些函数会改变对象的 allocator，并使原对象失效。

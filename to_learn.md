@@ -1274,6 +1274,10 @@
 
         <https://gitlab.com/libeigen/eigen>
 
+        * 解决 fatal error: Eigen/Core: No such file or directory
+
+            <https://blog.csdn.net/qq_43872529/article/details/100937091>
+
     * yaLanTingLibs is a collection of modern c++ util libraries
 
         <https://github.com/alibaba/yalantinglibs>
@@ -2131,6 +2135,10 @@
 
         <https://ulhpc-tutorials.readthedocs.io/en/latest/gpu/opencl/>
 
+    * Programming with OpenCL C
+
+        <https://www.informit.com/articles/article.aspx?p=1732873&seqNum=6>
+
 * C++ 的 traits 技术到底是什么？
 
     <https://www.zhihu.com/tardis/zm/art/413864991?source_id=1003>
@@ -2253,3 +2261,96 @@
 
     <https://stackoverflow.com/questions/6847697/how-to-return-value-from-an-asynchronous-callback-function>
 
+* Rotation Matrix
+
+    <https://www.cuemath.com/algebra/rotation-matrix/>
+
+    一些常见的旋转矩阵
+
+* opengl and x11 forwarding
+
+    * OpenGL program not work with X forwarding
+
+        <https://superuser.com/questions/196838/opengl-program-not-work-with-x-forwarding>
+
+        实际上，opengl　没有办法远程 forwarding
+
+    * Headless OpenGL Rendering using ssh and X11 forwarding
+
+        <https://community.khronos.org/t/headless-opengl-rendering-using-ssh-and-x11-forwarding/109508>
+
+    * Introduction to X11-forwarding
+
+        <https://hpc.nmsu.edu/discovery/software/x11-forwarding/>
+
+    * What is the $DISPLAY environment variable?
+
+        <https://askubuntu.com/questions/432255/what-is-the-display-environment-variable>
+
+    * Running X Windows programs remotely
+
+        <https://hpcf.umbc.edu/general-productivity/running-x-windows-programs-remotely/>
+
+* 在Ubuntu上安装3D渲染引擎Panda3D
+
+    <https://www.codenong.com/de7b4be494b35417d7f0/>
+
+* Protocol Buffers Documentation
+
+    <https://protobuf.dev/programming-guides/encoding/>
+
+* 醒醒吧，你根本不适合用事件驱动架构
+
+    <https://www.51cto.com/article/711545.html>
+
+* Remote Tensor API of GPU Plugin
+
+    <https://docs.openvino.ai/archive/2023.0/openvino_docs_OV_UG_supported_plugins_GPU_RemoteTensor_API.html>
+
+    open vino 的 remote gpu 方案，没看
+
+* POCL-R: Distributed OpenCL Runtime for Low Latency Remote Offloading
+
+    <https://dl.acm.org/doi/10.1145/3388333.3388642>
+
+* Welcome to the Library Genesis Guide – Updated for February 2024!
+
+    <https://librarygenesis.net/>
+
+* Problem 1: Matching a decimal numbers 
+
+    <https://regexone.com/problem/matching_decimal_numbers>
+
+    正则表达式的习题
+
+* OPENgl - GL/glut.h no such file or directory
+
+    <https://stackoverflow.com/questions/19858072/opengl-gl-glut-h-no-such-file-or-directory>
+
+* compiler
+
+    * Getting Started with the LLVM System¶
+
+        <https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm>
+
+    * SPIRV-LLVM-Translator
+
+        <https://github.com/KhronosGroup/SPIRV-LLVM-Translator>
+
+* rpc and communication
+
+    * 谁能用通俗的语言解释一下什么是 RPC 框架？
+
+        <https://www.zhihu.com/question/25536695/answer/2562779668>
+
+    * An Introduction to gRPC: Building Distributed Systems With Efficiency and Scalability in Mind
+
+        <https://semaphoreci.com/blog/grpc>
+
+    * asio C++ library
+
+        <https://think-async.com/Asio/asio-1.28.0/doc/>
+
+* lonezilla is a partition and disk imaging/cloning program
+
+    <https://clonezilla.org/>
