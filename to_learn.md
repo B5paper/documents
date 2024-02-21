@@ -2317,12 +2317,6 @@
 
     <https://librarygenesis.net/>
 
-* Problem 1: Matching a decimal numbers 
-
-    <https://regexone.com/problem/matching_decimal_numbers>
-
-    正则表达式的习题
-
 * OPENgl - GL/glut.h no such file or directory
 
     <https://stackoverflow.com/questions/19858072/opengl-gl-glut-h-no-such-file-or-directory>

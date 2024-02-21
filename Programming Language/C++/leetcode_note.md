@@ -32995,6 +32995,51 @@ sr = 1, sc = 1, newColor = 2
 
     如果自己不与自己相连，那么我们没有办法区别哪些访问过，哪些没有。我们只能先遍历一遍，找那些孤岛，再在第二遍遍历中搜索团。
 
+    又是自己写的，击败 30%：
+
+    ```cpp
+    class Solution {
+    public:
+        void set_province_visited(vector<vector<int>> &isConnected, int n, int idx, vector<bool> &visited)
+        {
+            for (int i = 0; i < n; ++i)
+            {
+                if (visited[i])
+                    continue;
+                if (isConnected[i][idx] && i != idx)
+                {
+                    visited[i] = true;
+                    set_province_visited(isConnected, n, i, visited);
+                }
+            }
+        }
+
+        int findCircleNum(vector<vector<int>>& isConnected) {
+            int n = isConnected.size();
+            int ans = 0;
+            vector<bool> visited(n, false);
+            for (int i = 0; i < n; ++i)
+            {
+                if (visited[i])
+                    continue;
+                visited[i] = true;
+                ++ans;
+                set_province_visited(isConnected,
+                            n, i, visited);
+            }
+            return ans;
+        }
+    };
+    ```
+
+    这次的思路比较接近原版题解了。想法是如果能找到当前节点和未搜索过的节点相连，那么就一直搜索下去，如果找不到就停止。
+
+    因为一个节点只能属于一个省份，所以搜索过就不用再搜索了。
+
+    有一个边界条件是自己与自己相连，正好 visited 可以避免重复计算这种情况。以后应该想想如何解决这种边界问题。
+
+    另外这种算法只能保证正确性，不能保证是否有重复的搜索或冗余的代码。这种情况该怎么分析呢？
+
 1. 广度优先
 
     ```c++
