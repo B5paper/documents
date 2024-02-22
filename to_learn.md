@@ -2348,3 +2348,132 @@
 * lonezilla is a partition and disk imaging/cloning program
 
     <https://clonezilla.org/>
+
+* C/C++ link 相关
+
+    * Telling gcc directly to link a library statically
+
+        <https://stackoverflow.com/questions/6578484/telling-gcc-directly-to-link-a-library-statically>
+
+    * Linux ldconfig Command With Examples
+
+        <https://linuxhint.com/linux-ldconfig-command/>
+
+    * 3.15 Options for Linking
+
+        <https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html>
+
+    * How to create shared library (.SO) in C++ (G++)?
+
+        <https://iq.opengenus.org/create-shared-library-in-cpp/>
+
+* How to Call C++ from Python
+
+    <https://www.matecdev.com/posts/cpp-call-from-python.html>
+
+* How to call C / C++ from Python?
+
+    <https://www.geeksforgeeks.org/how-to-call-c-c-from-python/>
+
+* 有关 proxy 的一些小项目，有时间了学习一下原理
+
+    * proxy
+
+        <https://github.com/kklis/proxy>
+
+    * SimpleNetwork
+
+        <https://github.com/kashimAstro/SimpleNetwork>
+
+* 有关计算机图形学，光线追踪，全局光照
+
+    * OpenGL实现光线追踪
+
+        <https://www.zhihu.com/column/c_1499058069263323137>
+
+    * 【计算机图形学】OpenGL递归实现光线追踪
+
+        <https://blog.csdn.net/weixin_59008623/article/details/126163209>
+
+    * Ray_Tracing_CPU
+
+        <https://github.com/0xCCCCCCCCC/Ray_Tracing_CPU>
+
+    * Global-Illumination
+
+        <https://github.com/ReillyBova/Global-Illumination>
+
+    * flatmatch-global-illumination
+
+        <https://github.com/rbuch703/flatmatch-global-illumination>
+
+    * GlobalIllumination
+
+        <https://github.com/MarcioCerqueira/GlobalIllumination>
+
+    * 计算机图形学十四：基于物理渲染的基础知识(辐射度量学，BRDF和渲染方程)
+
+        <https://zhuanlan.zhihu.com/p/145410416>
+
+* Filesystem library (since C++17)
+
+    <https://en.cppreference.com/w/cpp/filesystem>
+
+* 色彩系统
+
+    * A Beginner’s Guide to Additive and Subtractive Colors
+
+        <https://simplified.com/blog/colors/additive-and-subtractive-colors>
+
+    * 图形学笔记 -- Color and Perception（颜色和感知）
+
+        <https://blog.csdn.net/lz0499/article/details/131133714>
+
+    * 图形学笔记 -- Color and Perception（颜色和感知）
+
+        <https://www.sunocean.life/blog/blog/2021/10/02/games101-Color-and-Perception#%E9%A2%9C%E8%89%B2%E5%BA%94%E8%AF%A5%E5%A6%82%E4%BD%95%E6%B7%B7%E5%90%88>
+
+    * @橙与青 | 色彩空间为什么那么空？色度系统、色度图、色域、伽马、白点
+
+        <https://www.bilibili.com/video/BV19e4y1y7Mo/?spm_id_from=333.337.search-card.all.click&vd_source=39781faaf2433372c59bdb80774d648e>
+
+* github explore
+
+    * daisyUI 4
+
+        <https://github.com/saadeghi/daisyui?tab=readme-ov-file>
+
+        一个 ui 库。
+
+    * ZLUDA
+
+        <https://github.com/vosen/ZLUDA>
+
+        在 amd 上运行 cuda 程序。
+
+    * shadcn/ui
+
+        <https://github.com/shadcn-ui/ui>
+
+        一个黑白 ui 库。
+
+    * gitbutler
+
+        <https://github.com/gitbutlerapp/gitbutler>
+
+        一个 git 的图形化工具。
+
+    * Nabla
+
+        <https://github.com/Devsh-Graphics-Programming/Nabla>
+
+        一个基于 c++ 的渲染引擎。
+
+    * {fmt} is an open-source formatting library providing a fast and safe alternative to C stdio and C++ iostreams.
+
+        <https://github.com/fmtlib/fmt>
+
+    * Granite is my personal Vulkan renderer project.
+
+        <https://github.com/Themaister/Granite>
+

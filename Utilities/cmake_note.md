@@ -704,8 +704,10 @@ Build logic and definitions with CMake language is written either in CMakeLists.
         Syntax:
 
         ```s
-        set(ENV{<variable>} [<value>])
+        set($ENV{<variable>} [<value>])
         ```
+
+        这个好像不对，有空了再看看。
 
 * `message`
 

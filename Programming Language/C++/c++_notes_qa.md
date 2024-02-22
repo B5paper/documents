@@ -121,3 +121,33 @@ int main()
 `std::move()`可以将一个左值或左值引用 remove reference 后，转换成右值引用。
 右值引用表示一个新的类型，被以右值引用为形参的函数处理，比如 move 构造函数，move 赋值函数。
 通常这些函数会改变对象的 allocator，并使原对象失效。
+
+[unit]
+[u_0]
+`nth_element()`的作用是什么，对于数组`[3, 4, 5, 2, 1]`和`nth = 3`，给出 example code。
+[u_1]
+`nth_element()`可以保证第`nth`的数据一定在按序排好的正确的位置上，并且保证`nth`之前的数据一定小于等于`nth`之后的数据。
+
+```cpp
+#include <algorithm>
+#include <vector>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    vector<int> arr{3, 4, 5, 2, 1};
+    nth_element(arr.begin(), arr.begin() + 2, arr.end());
+    for (int num: arr)
+        printf("%d, ", num);
+    putchar('\n');
+    return 0;
+}
+```
+
+输出：
+
+```
+2, 1, 3, 4, 5,
+```
+
