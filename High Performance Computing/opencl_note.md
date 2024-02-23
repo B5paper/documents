@@ -1006,7 +1006,7 @@ clReleaseContext
 
 这个程序主要用于给一个长为 1024 的随机数组排序。
 
-`my_cl_op.cl`:
+`kernels.cl`:
 
 ```c
 void swap(__global int *a, __global int *b)
@@ -1036,9 +1036,11 @@ __kernel void cl_sort(__global int *A, __global int *n_elm)
 `main.c`:
 
 ```c
+#define CL_TARGET_OPENCL_VERSION 300
 #include <CL/cl.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 int main()
 {
@@ -1076,7 +1078,8 @@ int main()
     }
 
     cl_command_queue cq;
-    cq = clCreateCommandQueue(context, device_id, NULL, &ret_val);
+    cq = clCreateCommandQueueWithProperties(context, device_id, nullptr, &ret_val);
+    // cq = clCreateCommandQueue(context, device_id, 0, &ret_val);
     if (ret_val != CL_SUCCESS)
     {
         printf("fail to create command queue\n");
@@ -1086,7 +1089,7 @@ int main()
     }
 
     const int ARR_SIZE = 1024;
-    int *A = malloc(ARR_SIZE * sizeof(int));
+    int *A = (int*) malloc(ARR_SIZE * sizeof(int));
     srand(time(NULL));
     for (int i = 0; i < ARR_SIZE; ++i)
     {
@@ -1102,7 +1105,7 @@ int main()
         exit(-1);
     }
 
-    int *N = malloc(1 * sizeof(int));
+    int *N = (int*) malloc(1 * sizeof(int));
     *N = 1024;
     cl_mem mem_N;
     mem_N = clCreateBuffer(context, CL_MEM_READ_WRITE, 1 * sizeof(int), NULL, &ret_val);
@@ -1114,7 +1117,7 @@ int main()
         exit(-1);
     }
     
-    ret_val = clEnqueueWriteBuffer(cq, mem_A, CL_TRUE, 0, ARR_SIZE * sizeof(int), A, NULL, NULL, NULL);
+    ret_val = clEnqueueWriteBuffer(cq, mem_A, CL_TRUE, 0, ARR_SIZE * sizeof(int), A, 0, NULL, NULL);
     if (ret_val != CL_SUCCESS)
     {
         printf("fail to enqueue write buffer A\n");
@@ -1122,7 +1125,7 @@ int main()
         getchar();
     }
 
-    ret_val = clEnqueueWriteBuffer(cq, mem_N, CL_TRUE, 0, 1 * sizeof(int), N, NULL, NULL, NULL);
+    ret_val = clEnqueueWriteBuffer(cq, mem_N, CL_TRUE, 0, 1 * sizeof(int), N, 0, NULL, NULL);
     if (ret_val != CL_SUCCESS)
     {
         printf("fail to enqueue write buffer N\n");
@@ -1130,14 +1133,14 @@ int main()
         getchar();
     }
 
-    FILE *f = fopen("my_cl_op.cl", "r");
+    FILE *f = fopen("kernels.cl", "r");
     // char buf[1024] = {0};
-    char *buf = malloc(1024 * sizeof(char));  // 必须用 malloc 申请的内存才行，如果用数组会报错
-    int n_read = 0;
+    char *buf = (char*) malloc(1024 * sizeof(char));  // 必须用 malloc 申请的内存才行，如果用数组会报错
+    size_t n_read = 0;
     n_read = fread(buf, sizeof(char), 1024, f);
     fclose(f);
     cl_program program;
-    program = clCreateProgramWithSource(context, 1, &buf, &n_read, &ret_val);
+    program = clCreateProgramWithSource(context, 1, (const char**)&buf, &n_read, &ret_val);
     if (ret_val != CL_SUCCESS)
     {
         printf("fail to create program with source\n");

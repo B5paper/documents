@@ -2415,6 +2415,10 @@
 
         <https://zhuanlan.zhihu.com/p/145410416>
 
+    *  Vulkan-glTF-PBR
+
+        <https://github.com/SaschaWillems/Vulkan-glTF-PBR>
+
 * Filesystem library (since C++17)
 
     <https://en.cppreference.com/w/cpp/filesystem>
@@ -2477,3 +2481,56 @@
 
         <https://github.com/Themaister/Granite>
 
+* How to trim string in bash
+
+    <https://linuxhint.com/trim_string_bash/>
+
+* Resource acquisition is initialization
+
+    c++ RAII feature
+
+    <https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization>
+
+* Debug with printf
+
+    opencl debug
+
+    <https://downloads.ti.com/mctools/esd/docs/opencl/debug/debug_printf.html>
+
+* OpenCL Reference Pages
+
+    <https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/>
+
+* atomic_flag_test_and_set
+
+    c++ atomic 相关
+
+    <https://en.cppreference.com/w/cpp/atomic/atomic_flag_test_and_set>
+
+* Converting 3D polar coordinates to cartesian coordinates
+
+    <https://stackoverflow.com/questions/20769011/converting-3d-polar-coordinates-to-cartesian-coordinates>
+
+* pigz;
+
+    <https://thequantitative.medium.com/use-pigz-to-multi-thread-tar-and-zip-with-all-available-cpu-cores-88f2e3f8bfb6>
+
+* opencl 中的 atomic load
+
+    * 6.57 Built-in Functions for Memory Model Aware Atomic Operations
+
+        <https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html>
+
+    * Difference between __atomic_load_n and __atomic_load
+
+        <https://stackoverflow.com/questions/57487647/difference-between-atomic-load-n-and-atomic-load>
+
+* openwrt
+
+    * Quick start guide for OpenWrt installation
+
+        <https://openwrt.org/docs/guide-quick-start/start>
+
+    * Accessing the modem through the router
+
+        <https://openwrt.org/docs/guide-user/network/wan/access.modem.through.nat>
