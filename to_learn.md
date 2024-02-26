@@ -2534,3 +2534,53 @@
     * Accessing the modem through the router
 
         <https://openwrt.org/docs/guide-user/network/wan/access.modem.through.nat>
+
+* Linux 服务器功耗与性能管理（一）：CPU 硬件基础（2024）
+
+    <http://arthurchiao.art/blog/linux-cpu-1-zh/>
+
+* How do I backup my file system with tar and multi-thread?
+
+    <https://askubuntu.com/questions/1124015/how-do-i-backup-my-file-system-with-tar-and-multi-thread>
+
+* Gzip with all cores
+
+    <https://stackoverflow.com/questions/4341442/gzip-with-all-cores>
+
+* how to mount local directory to remote like sshfs?
+
+    <https://superuser.com/questions/616182/how-to-mount-local-directory-to-remote-like-sshfs>
+
+* rsync 用法教程
+
+    <https://www.ruanyifeng.com/blog/2020/08/rsync.html>
+
+* vulkan
+
+    * csdn vulkan 学习笔记
+
+        <https://blog.csdn.net/hometoned?type=blog>
+
+    * Vulkan系列教程—VMA教程（三）—内存映射（Memory Mapping）
+
+        <https://blog.csdn.net/weixin_50523841/article/details/122377747>
+
+    * vkGetImageSubresourceLayout(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetImageSubresourceLayout.html>
+
+    * VkImageLayout(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageLayout.html>
+
+    * VkImageSubresource(3) Manual Page
+
+        <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageSubresource.html>
+
+    * Uniform buffers Guide
+
+        <https://vkguide.dev/docs/chapter-4/storage_buffers/>
+
+* gltf解析概述
+
+    <https://blog.csdn.net/hometoned/article/details/125187834?spm=1001.2014.3001.5502>

@@ -35686,6 +35686,40 @@ public:
     };
     ```
 
+1. 自己写的 dfs
+
+    ```cpp
+    class Solution {
+    public:
+        vector<bool> visited;
+        void dfs(vector<vector<int>> &rooms, int cur_room)
+        {
+            visited[cur_room] = true;
+            vector<int> &keys = rooms[cur_room];
+            for (int i = 0; i < keys.size(); ++i)
+            {
+                if (visited[keys[i]])
+                    continue;
+                dfs(rooms, keys[i]);
+            }
+        }
+
+        bool canVisitAllRooms(vector<vector<int>>& rooms) {
+            visited.assign(rooms.size(), false);
+            visited[0] = true;
+            dfs(rooms, 0);
+            for (int i = 0; i < rooms.size(); ++i)
+            {
+                if (!visited[i])
+                    return false;
+            }
+            return true;
+        }
+    };
+    ```
+
+    `visited`数组除了有剪枝的作用，还能防止程序在环中死循环。
+
 #### 字符串中第二大的数字
 
 给你一个混合字符串 s ，请你返回 s 中 第二大 的数字，如果不存在第二大的数字，请你返回 -1 。
