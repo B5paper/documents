@@ -1,5 +1,11 @@
 # CMake Note
 
+## cached
+
+* cmake 在搜索`cMakeLists.txt`时区分大小写，使用`cmakelists.txt`不行。
+
+## notes
+
 Materials:
 
 1. quick cmake tutorial: <https://www.jetbrains.com/help/clion/quick-cmake-tutorial.html>

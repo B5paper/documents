@@ -1,5 +1,27 @@
 # Python Note
 
+## cached
+
+* python use `shutil` to copy file
+
+    ```cpp
+    import shutil
+
+    def main():
+        shutil.copyfile('./test_1.txt', './test_2.txt')
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    * <https://stackoverflow.com/questions/123198/how-to-copy-files>
+
+    * <https://www.freecodecamp.org/news/python-copy-file-copying-files-to-another-directory/>
+
+* python delete a file
+
+    <https://blog.enterprisedna.co/delete-files-from-python/>
+
 ## pypi mirror
 
 在上海使用上交的镜像比较快：<https://mirrors.sjtug.sjtu.edu.cn/docs/pypi/web/simple>

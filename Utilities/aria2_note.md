@@ -7,3 +7,5 @@
 找 cookie 的方法是，先打开浏览器调试器，然后点击下载链接，看 header 就可以了。
 
 也有文章说，可以使用`--load-cookies`来加载 cookie。
+
+* 如果 aria2c 下载失败，但是 wget 可以下载成功，浏览器也可以下载成功，那么可以试一试给 aria2 加止这个参数`--check-certificate=false`再下载

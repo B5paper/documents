@@ -2,6 +2,55 @@
 
 微软出的 c/c++ tutorial，挺好的，有时间了看看：<https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/fopen-wfopen?view=msvc-170>
 
+## cached
+
+* 有关树的返回
+
+    对于树的数据结构，函数从哪里进入就得从哪里返回，因此对树进行展开其实是一个搜集当前节点以及子树信息的过程。
+
+    因此一个二叉树要返回的信息，其实是对三个信息的综合：当前节点，左子树，右子树。
+
+    因此广义上看，似乎无论什么遍历，到最后都是后序遍历？
+
+* c++ 的 move 其实是移动了 memory allocator 的证据
+
+    ```cpp
+    #include <vector>
+    #include <stdio.h>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> arr_1{1, 2, 3, 4, 5};
+        for (auto &num: arr_1)
+            printf("%d, ", num);
+        putchar('\n');
+
+        vector<int> arr_2 = move(arr_1);
+        for (int &num: arr_1)
+            printf("%d, ", num);
+        putchar('\n');
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 4, 5, 
+
+    ```
+
+    上面这段代码只有第一次 printf 的时候有输出，第二次 printf 的时候没有输出，说明`arr_1`已经失效了。
+
+    如果 print `arr_1.size()`，也会输出 0.
+
+* c++ 中，形参使用 const 和非 const 是相同类型是因为形参按值传递似乎站不住脚，因为做了个实验，const 的对象无法修改成员数据，const 的内置类型也无法修改自身，这样的代码无法通过编译。
+
+    因此 const 实际限制修改的是形参，而不管实参是按值传递还是按引用传递。
+
+    这样一来，const type 和 type 为什么会是相同的类型，就又不得而知了。
+
 ## Variable
 
 **Basic types**
@@ -2681,6 +2730,27 @@ int main()
 
     ```cpp
     size_t fread(void *__restrict__ _DstBuf, size_t _ElementSize, size_t _Count, FILE *__restrict__ _File)
+    ```
+
+* 可以使用`ate`的方式打开文件，这样可以用`tellg()`得到文件的大小，从而创建合适的缓冲区
+
+    ```cpp
+    string read_file(const char *file_path)
+    {
+        ifstream ifs(file_path, ios::ate | ios::binary);
+        if (!ifs.is_open())
+        {
+            cout << "fail to open the file " << file_path << endl;
+            exit(-1);
+        }
+        size_t file_size = (size_t) ifs.tellg();
+        string buffer;
+        buffer.resize(file_size);
+        ifs.seekg(0);
+        ifs.read(buffer.data(), file_size);
+        ifs.close();
+        return buffer;
+    }
     ```
 
 #### C++ flavor

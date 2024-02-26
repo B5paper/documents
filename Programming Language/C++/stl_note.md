@@ -1,5 +1,11 @@
 # STL Note
 
+## cached
+
+* `random_device{}`只是创建一个`random_device`类型的匿名对象，而它本身又是个仿函数，所以还需要再加一个`()`来返回一个随机值。
+
+    注：有空了把 stl random 相关的东西都整理一下，把这条放到 random 条目下
+
 ## vector
 
 使用`swap`收缩内存空间：

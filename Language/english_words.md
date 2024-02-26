@@ -441,3 +441,5 @@ stencil n. 模板
 substantial adj. 大量的
 
 attenuation n. 减少，衰减
+
+* lexical adj. 词法的
