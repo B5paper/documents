@@ -443,3 +443,7 @@ substantial adj. 大量的
 attenuation n. 减少，衰减
 
 * lexical adj. 词法的
+
+other than 除...以外
+
+coverage n. 覆盖范围

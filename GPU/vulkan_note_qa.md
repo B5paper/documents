@@ -986,6 +986,7 @@ void create_window_surface(VkSurfaceKHR &surface, GLFWwindow *window, const VkIn
     }
 }
 ```
+在执行 glfw create window 之前，必须要有`glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);`这一行。
 
 [unit]
 [u_0]

@@ -2584,3 +2584,59 @@
 * gltf解析概述
 
     <https://blog.csdn.net/hometoned/article/details/125187834?spm=1001.2014.3001.5502>
+
+* Magnum Engine: Light­weight and mod­u­lar C++11/C++14 graph­ics mid­dle­ware for games and data visu­al­iz­a­tion.
+
+    <https://magnum.graphics/>
+
+* Fluid Engine Dev - Jet
+
+    <https://github.com/doyubkim/fluid-engine-dev>
+
+* DigitalVox5 - Vulkan Cross Platform Engine and Editor
+
+    <https://github.com/yangfengzzz/DigitalVox5>
+
+* Route Traffic for a Specific IP Over a Specific Network Interface
+
+    <https://www.baeldung.com/linux/route-traffic-to-interface>
+
+* CppCoreGuidelines
+
+    The C++ Core Guidelines are a collaborative effort led by Bjarne Stroustrup, much like the C++ language itself.
+
+    <https://github.com/isocpp/CppCoreGuidelines>
+
+* offsetof
+
+    <https://en.cppreference.com/w/cpp/types/offsetof>
+
+* How to get the GPU info?
+
+    <https://askubuntu.com/questions/5417/how-to-get-the-gpu-info>
+
+* AMD Open Source Driver for Vulkan®
+
+    <https://github.com/GPUOpen-Drivers/AMDVLK>
+
+* API without Secrets: Introduction to Vulkan* Part 1: The Beginning
+
+    <https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-1.html>
+
+* Theia: ray graphic processing unit
+
+    <https://opencores.org/projects/theia_gpu>
+
+* gpu design
+
+    * MIAOW is an open source implementation of the AMD Southern Islands GPU ISA.
+
+        <https://github.com/VerticalResearchGroup/miaow>
+
+    * Homebrew GPU Project - Episode 1
+
+        <https://www.notion.so/Homebrew-GPU-Project-Episode-1-a93e12b8642c4eaf98efdcdbf0a2fef5>
+
+    * VeriGPU
+
+        <https://github.com/hughperkins/VeriGPU>
