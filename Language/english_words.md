@@ -447,3 +447,7 @@ attenuation n. 减少，衰减
 other than 除...以外
 
 coverage n. 覆盖范围
+
+reciprocal prn. [rɪˈsɪprəkl] adj. 相互的，倒数的
+
+consecutive adj 连续的

@@ -2640,3 +2640,89 @@
     * VeriGPU
 
         <https://github.com/hughperkins/VeriGPU>
+
+* SPIRV-Cross is a tool designed for parsing and converting SPIR-V to other shader languages.
+
+    <https://github.com/KhronosGroup/SPIRV-Cross>
+
+* How to do case insensitive search in Vim
+
+    <https://stackoverflow.com/questions/2287440/how-to-do-case-insensitive-search-in-vim>
+
+* Vim find last occurrence of
+
+    <https://stackoverflow.com/questions/15707618/vim-find-last-occurrence-of>
+
+* 正则表达式详解
+
+    <https://blog.csdn.net/m0_56312312/article/details/131059486>
+
+* Python Bindings: Calling C or C++ From Python
+
+    <https://realpython.com/python-bindings-overview/>
+
+* Python JSON
+
+    <https://www.w3schools.com/python/python_json.asp>
+
+* python type hint: How do I annotate types in a for-loop?
+
+    <https://stackoverflow.com/questions/41641449/how-do-i-annotate-types-in-a-for-loop>
+
+    * typing — Support for type hints
+
+        <https://docs.python.org/3/library/typing.html>
+
+* python: Check if a given key already exists in a dictionary
+
+    <https://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary>
+
+* Python RegEx
+
+    <https://www.w3schools.com/python/python_regex.asp#search>
+
+    * re — Regular expression operations¶
+
+        <https://docs.python.org/3/library/re.html>
+
+    * Grep regex NOT containing a string
+
+        <https://stackoverflow.com/questions/10411616/grep-regex-not-containing-a-string>
+
+* python type hint: Is it possible to type hint a lambda function?
+
+    <https://stackoverflow.com/questions/33833881/is-it-possible-to-type-hint-a-lambda-function>
+
+* python: reading a os.popen(command) into a string
+
+    <https://stackoverflow.com/questions/2339469/reading-a-os-popencommand-into-a-string>
+
+* 大模型与分布式
+
+    * 大模型分布式训练并行技术（一）-概述
+
+        <https://zhuanlan.zhihu.com/p/598714869>
+
+    * 大模型-LLM分布式训练框架总结
+
+        <https://zhuanlan.zhihu.com/p/623746805>
+
+    * 带你认识大模型训练关键算法：分布式训练Allreduce算法
+
+        <https://zhuanlan.zhihu.com/p/377246167>
+
+    * [整理] 聊聊 Transformer
+
+        <https://zhuanlan.zhihu.com/p/47812375>
+
+* Nvidia GPU显存池-BFC
+
+    <https://zhuanlan.zhihu.com/p/628813906>
+
+* 提升你OpenCL CV算法优化能力的40条经验
+
+    <https://zhuanlan.zhihu.com/p/609618273>
+
+* GPU指令集技术分析
+
+    <https://zhuanlan.zhihu.com/p/391629316>
