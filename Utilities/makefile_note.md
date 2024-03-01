@@ -1,5 +1,13 @@
 # Makefile Note
 
+## cache
+
+* makefile 文件名可以是`Makefile`，也可以是`makefile`,但是不能是`makefilE`。
+
+    也就是说，文件名只对第一个字母大小写不敏感。
+
+## 其他
+
 Ref: <https://www.gnu.org/software/make/manual/html_node/index.html#SEC_Contents>
 
 > When make recompiles the editor, each changed C source file must be recompiled. If a header file has changed, each C source file that includes the header file must be recompiled to be safe. Each compilation produces an object file corresponding to the source file. Finally, if any source file has been recompiled, all the object files, whether newly made or saved from previous compilations, must be linked together to produce the new executable editor. 

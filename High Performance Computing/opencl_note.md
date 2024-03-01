@@ -10,6 +10,362 @@ Ref:
 
 * <https://www.khronos.org/opencl/resources>
 
+## cache
+
+* opencl 
+
+    `clGetPlatformIDs()`的第一个参数`num_entries`经测试也可以设置为 0.
+
+    其实可以像 vulkan 那样，用这种方式获得 platform id:
+
+    ```cpp
+    #define CL_TARGET_OPENCL_VERSION 300
+    #include <CL/cl.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        cl_uint num_plats;
+        clGetPlatformIDs(0, nullptr, &num_plats);
+        cl_platform_id *plats = (cl_platform_id*) malloc(num_plats * sizeof(cl_platform_id));
+        clGetPlatformIDs(num_plats, plats, &num_plats);
+        printf("opencl platform number: %d\n", num_plats);
+        return 0;
+    }
+    ```
+
+    `malloc()`可以换成 vector。
+
+    既然`cl_platform_id`已经是个独立的类型了，其实 id 就代表了 platform，那么变量的命名也就没必要再加上 id 了。就好像 vulkan 中的句柄（handle）。
+
+* opencl 中一个 ctx 可以有多个 deivce，每个 device 可以有多个 command queue。
+
+    但是每个 command queue 只能对应到一个 device 上。
+
+* opencl 记录一些感觉可能有用的内置函数
+
+    * `clamp`
+
+        ```c
+        gentype clamp(gentype x,
+            gentype minval,
+            gentype maxval)
+        ```
+
+        Returns `fmin(fmax(x, minval), maxval)`.
+
+        钳位函数，返回最小值和最大值定义的区间中的数
+
+    * `gentype degrees(gentype radians)`
+
+        将弧度转化为角度。
+
+        与函数`gentype radians(gentype degrees)`配置使用
+
+    * `mix`
+
+        ```c
+        gentype mix(gentype x,
+            gentype y, gentype a)
+        ```
+
+        Returns the linear blend of x and y implemented as
+
+        x + (y – x) * a
+
+        a must be a value in the range 0.0 … 1.0. If a is not in this range, the return values are undefined.
+
+        线性混合。
+
+    * `gentype step(gentype edge, gentype x)`
+
+        Returns 0.0 if x < edge; otherwise it returns 1.0. The step function can be used to create a discontinuous jump at an arbitrary point.
+
+        阶跃函数。
+
+    * `gentype sign(gentype x)`
+
+        Returns 1.0 if x > 0, -0.0 if x = -0.0, +0.0 if x = +0.0, or -1.0 if x < 0. Returns 0.0 if x is a NaN.
+
+        返回`x`的符号。
+
+    * `float4 cross(float4 p0, float4 p1)`
+
+        Returns the cross-product of p0.xyz and p1.xyz. The w compo- nent of a 4-component vector result returned will be 0.
+
+        向量叉乘。参数可以同时为`float3`，也可以同时为`float4`，但是不能一个`float3`，另一个`float4`。
+
+    * `float dot(gentypef p0, gentypef p1)`
+
+        点乘。
+
+        这里没说`p0`和`p1`是什么类型。可能任意长度的向量都支持。
+
+    * `float length(gentypef p)`
+
+        Returns the length of vector p, i.e., $\sqrt{p.x^2 + p.y^2 + …}$
+
+        The length is calculated without overflow or extraordinary precision loss due to underflow.
+
+        不清楚这里的 *underflow* 说的是什么意思。
+
+    * `gentypef normalize(gentypef p)`
+
+        Returns a vector in the same direction as p but with a length of 1.
+
+    * `intn isequal(floatn x, floatn y)`
+
+        Returns the component-wise compare of x == y.
+
+    * `intn isless(floatn x, floatn y)`
+
+        Returns the component-wise compare of x < y.
+
+    * `intn isfinite(floatn x)`
+
+        Tests for the finite value of x.
+
+    * `intn isinf(floatn x)`
+
+    * `intn isnan(floatn x)`
+
+    * `intn isnormal(floatn x)`
+
+        Tests for a normal value (i.e., x is neither zero, denormal, infinite, nor NaN).
+
+        检测`x`是否为一个正常数字。
+
+    * `int any(sgentype x)`
+
+        Returns 1 if the most significant bit in any component of x is set; otherwise returns 0.
+
+        不明白这里的 significant bit 是什么意思
+
+    * `select`
+
+        ```c
+        entype select(gentype a,
+            gentype b,
+            sgentype c)
+        ```
+
+        For each component of a vector type `result[i] = if MSB of c[i] is set ? b[i] : a[i]`
+
+        这个函数有点像 numpy 的 where().
+
+        cached task: 有时间可以做个实验试试。
+
+* opencl 中内置函数的运算有一定的误差，官方文档给出了误差上界
+
+    比如
+
+    `1.0f/x`的误差为`<= 2.5 ulp`
+
+    `cos`的误差为`<= 4 ulp`
+
+    `fabs`的误差为`0 ulp`
+
+    其中`ulp`指的是两个相邻最近的离散值的距离。
+
+* opencl 中的浮点数和整数用的是两套函数
+
+    比如整数的绝对值用的是
+
+    `ugentype abs(gentype x)`
+
+    如果使用`abs(1.0);`，则会在编译时报错。
+
+* opencl 中一些常见的宏
+
+    ```c
+    #define CHAR_BIT 8
+    #define INT_MAX 2147483647
+    #define LONG_MIN (-0x7fffffffffffffffL – 1)
+    #define SCHAR_MAX 127
+    #define SHRT_MIN (-32767 – 1)
+    #define UCHAR_MAX 255
+    #define UINT_MAX 0xffffffff
+    ```
+
+* opencl build in functions
+
+    * `get_work_dim`
+
+        syntax:
+
+        ```c
+        uint get_work_dim()
+        ```
+
+    * `get_global_size`
+
+        syntax:
+
+        ```c
+        size_t get_global_size(uint dimindx)
+        ```
+
+    * `get_global_id`
+
+        ```c
+        size_t get_global_id(uint dimindx)
+        ```
+
+    * `get_num_groups`
+
+        ```c
+        size_t get_num_groups(uint dimindx)
+        ```
+
+    * `get_group_id`
+
+        ```c
+        size_t get_group_id(uint dimindx)
+        ```
+
+    * `get_local_id`
+
+        ```c
+        size_t get_local_id(uint dimindx)
+        ```
+    
+    * `get_local_size`
+
+        ```c
+        size_t get_local_size(uint dimindx)
+        ```
+    
+    opencl 中的三角函数都是以弧度为单位。
+
+    `gentype acospi(gentype x)`计算的是`acos(x) / PI`。
+
+    比如`acospi(0.5)`，先计算出来弧度为`PI/3`，再把这个数除以`PI`，得到`1/3`。
+
+    * `gentype atan(gentype y_over_x)`
+
+        试了一下，这里的`y`指的是直角三角形的对边，`x`指的是另一条直角边。
+
+        输入的参数是`y / x`。
+
+    * `gentype cbrt(gentype x)`
+
+        求立方根。
+
+        C 的数学库里也有这个函数。之前竟然都不知道。
+
+    * `gentype copysign(gentype x, gentype y)`
+
+        将`x`的符号变成和`y`一样。
+
+    * `gentype fmax(gentype x,gentype y)`
+
+        Returns y if x < y; otherwise it returns x. If one argument is a NaN, fmax() returns the other argument.
+        
+        If both arguments are NaNs, fmax() returns a NaN.
+
+    * `gentype logb(gentype x)`
+
+        Compute the exponent of x, which is the integral part of logr|x|.
+
+        不知道这里的`r`是什么意思。
+
+    * `gentype rint(gentype x)`
+
+        按四舍五入法将小数转换成整数。
+
+        如果是`x.5`，似乎只会舍入到偶数。比如`0.5`变成`0`，`1.5`变成 2.
+
+    * `gentype rootn(gentype x, intn y)`
+
+        Compute x to the power 1/y.
+
+    * `gentype round(gentype x)`
+
+        严格执行四舍，五入
+
+    * `gentypef half_cos(gentypef x)`
+
+        Compute the cosine of x. x must be in the range `[-2^16… +2^16]`.
+
+        这里的`x`仍是浮点数，不清楚`2^16`这个数字是怎么来的。
+
+        `half`可能指的是半精度。
+
+    常用的常量：
+
+    * `M_E_F`, `M_E`
+
+        Value of e
+
+    * `M_PI_F`, `M_PI`
+
+        Value of pi
+
+    * `M_1_PI_F`, `M_1_PI`
+
+        Value of 1/pi
+
+* 如果一个 kernel 函数内部有`local`声明的变量，那么这个函数不能被其他 kernel 函数调用
+
+    测试了下，好像没什么问题。
+
+    example:
+
+    ```c
+    kernel void func_a(global int *output)
+    {
+        local int a;
+        a = 100;
+        *output = a;
+    }
+
+    kernel void func_b(global int *output)
+    {
+        func_a(output);
+    }
+    ```
+
+    这段代码是正常的，在`main.cpp`中，`output`的输出为 100。
+
+* 可以给 opencl kernel 加上下面这些修饰符，帮助编译器优化
+
+    ```c
+    __attribute__((work_group_size_hint(X, Y, Z)))
+
+    __attribute__((reqd_work_group_size(X, Y, Z)))
+
+    __attribute__((vec_type_hint(<type>)))
+    ```
+
+    第一个是 hint，说明只是提示，不是确定的。
+
+    第二个是 reqd，说明是要求，必须和 host 代码保持一致。（如果不一致会怎么样？）
+
+    第三个的`<type>`通常是`int`，不清楚这个有什么用。
+
+* kernel 函数不能有 private address space 的指针作为参数
+
+* local variable 必须在 function 的最外层（kernel function scope）申请，且不能初始化。
+
+    local address space 主要是用于 work-group 共享的。当 work-group 结束时，这些变量就会被释放掉。
+
+* 指针只能在同一个 address space 下被赋值，跨 address space 的赋值是不合法的
+
+    example:
+
+    ```cpp
+    void func_a(global float4 *pointer)
+    {
+        global float4 *g_pointer = pointer;
+        // local float4 *l_pointer = pointer;  // compiling error
+        // private float4 *p_pointer = pointer;  // compiling error
+    }
+    ```
+
+* 如果一个变量是`image2d_t`，那么还可以给参数加上`read_only`或`write_only`修饰，因为当前的 GPU 不允许同时对图片读和写
+
+    这是因为 GPU 对图片数据做了缓存，读图时从缓存中读，但是写图片时不会改变缓存中的内容。
+
 ## Introduction
 
 OpenCL 可以创建 kernel programs (or kernels)，支持在不同的硬件上并行计算。

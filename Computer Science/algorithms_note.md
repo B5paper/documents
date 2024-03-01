@@ -4,7 +4,143 @@
 
 分析代码中的任何细节，对常见的写法进行不常见的提问：为什么这样是对的？为什么不可以那样？对的只有这一种写法吗？
 
+## cache
 
+* 冒泡排序
+
+    ```cpp
+    #include <iostream>
+    #include <random>
+    #include <algorithm>
+    using namespace std;
+
+    int main()
+    {
+        int arr[10];
+        for (int i = 0; i < 10; ++i)
+            arr[i] = i;
+        shuffle(arr, arr+10, mt19937(random_device{}()));
+        
+        for (int num: arr)
+            printf("%d, ", num);
+        putchar('\n');
+
+        for (int i = 0; i < 9; ++i)
+        {
+            for (int j = 0; j < 9; ++j)
+            {
+                if (arr[j] > arr[j+1])
+                    swap(arr[j], arr[j+1]);
+            }
+        }
+
+        for (int num: arr)
+            printf("%d, ", num);
+        putchar('\n');
+        return 0;
+    }
+    ```
+
+    第`0`轮排完，最后一个数一定是最大的，即最后`1`**个**数是排好的。
+
+    第`1`轮排完，最后两个数是最大的，即最后`2`**个**数是排好的，并且排好的区间的左界一定大于左界之外的所有数。（假设所有数都不重复）
+
+    由此可以归纳出猜想：第`i`轮排完，最后`i+1`个数是排好的。
+
+    当剩 2 个数没排时，这 2 个数比排好的数都小，但是这 2 个数的大小关系未知，还得再排一次。
+
+    当只剩 1 个数没排时，它一定是最小的，不需要再排了。
+
+    因此我们要排好`n-1`个数。应用前面归纳出的猜想，当`i+1 = n-1`时，`i = n-2`，那么只需要排完第`n - 2`轮就可以了。
+
+    也就是说，`i`的取值范围为`[0, n-2]`，一共排`n-1`轮。
+
+    这是一个序数与基数之间的归纳猜想，可以看出即使是冒泡排序，也有一定的复杂性。
+
+    我们可以把序数`i`直接換成基数“轮数”。即第 1 轮排完，最后 1 个数是最大的；第 2 轮排完，最后 2 个数是最大的。
+
+    第`n`轮排完，最后`n`个数是最大的。我们只需要排`n-1`个数，因此需要排`n-1`轮。
+
+    当`i`的取值范围为`[0, n-1]`时，共执行`n`轮。要想执行`n-1`轮，只需要让`i`取到`n-2`就可以了。
+
+    这样稍微简单一点。
+
+    大部分的算法题都是这样归纳出猜想以节约时间，是否有更好的分析方法？
+
+* 归并排序
+
+    ```cpp
+    #include <iostream>
+    #include <random>
+    #include <algorithm>
+    using namespace std;
+
+    void merge_sort(int arr[10], int left, int right)
+    {
+        if (right - left + 1 <= 1)
+            return;
+
+        int mid_idx = left + (right - left) / 2;
+        merge_sort(arr, left, mid_idx);
+        merge_sort(arr, mid_idx+1, right);
+        int i = left, j = mid_idx + 1, p = 0;
+        int *temp = (int*) malloc(right - left + 1);
+        while (i <= mid_idx && j <= right)
+        {
+            if (arr[i] < arr[j])
+                temp[p++] = arr[i++];
+            else
+                temp[p++] = arr[j++];
+        }
+        while (i <= mid_idx)
+            temp[p++] = arr[i++];
+        while (j <= right)
+            temp[p++] = arr[j++];
+        for (p = 0; p < right - left + 1; ++p)
+            arr[left + p] = temp[p];
+        free(temp);
+    }
+
+    int main()
+    {
+        int arr[10];
+        for (int i = 0; i < 10; ++i)
+            arr[i] = i;
+        shuffle(arr, arr+10, mt19937(random_device{}()));
+
+        for (int num: arr)
+            printf("%d, ", num);
+        putchar('\n');
+        
+        merge_sort(arr, 0, 9);
+
+        for (int num: arr)
+            printf("%d, ", num);
+        putchar('\n');
+        return 0;
+    }
+    ```
+
+    一些边界条件没想清楚：
+
+    * `int mid_idx = left + (right - left) / 2;`
+
+        这一行为什么能保证最后一定是左右两个区间长度分别为`[0, 1], [1, 0], [1, 1]`这三种情况？
+
+    * `while (i <= mid_idx && j <= right)`
+
+        这一行是否可以保证，left 和 right 的长度最多只差 1？
+
+        如果左右两个区间的长度最大只差 1，那么后面的两行
+
+        ```cpp
+        while (i <= mid_idx)
+        while (j <= right)
+        ```
+
+        就可以不这么写了。
+
+    归并排序其实是一个后序遍历的树，因为只有处理完了当前节点的两个子节点，才能去归并当前节点。
 
 ## Basic
 

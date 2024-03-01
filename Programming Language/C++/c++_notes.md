@@ -4,6 +4,19 @@
 
 ## cached
 
+* 使用`fopen("xxx", r+")`并不能使`ftell(f)`返回文件的长度。
+
+    C 语言中可以这样读文件：
+
+    ```cpp
+    FILE *f = fopen("kernels.cl", "r");
+    fseek(f, 0, SEEK_END);
+    size_t p_program_length = ftell(f);
+    char *program_content = (char*) malloc(p_program_length);
+    fseek(f, 0, SEEK_SET);
+    fread(program_content, p_program_length, 1, f);
+    ```
+
 * 有关树的返回
 
     对于树的数据结构，函数从哪里进入就得从哪里返回，因此对树进行展开其实是一个搜集当前节点以及子树信息的过程。

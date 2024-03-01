@@ -36309,6 +36309,180 @@ public:
     };
     ```
 
+#### 颜色交替的最短路径
+
+给定一个整数 n，即有向图中的节点数，其中节点标记为 0 到 n - 1。图中的每条边为红色或者蓝色，并且可能存在自环或平行边。
+
+给定两个数组 redEdges 和 blueEdges，其中：
+
+    redEdges[i] = [ai, bi] 表示图中存在一条从节点 ai 到节点 bi 的红色有向边，
+    blueEdges[j] = [uj, vj] 表示图中存在一条从节点 uj 到节点 vj 的蓝色有向边。
+
+返回长度为 n 的数组 answer，其中 answer[X] 是从节点 0 到节点 X 的红色边和蓝色边交替出现的最短路径的长度。如果不存在这样的路径，那么 answer[x] = -1。
+
+
+
+示例 1：
+
+输入：n = 3, red_edges = [[0,1],[1,2]], blue_edges = []
+输出：[0,1,-1]
+
+示例 2：
+
+输入：n = 3, red_edges = [[0,1]], blue_edges = [[2,1]]
+输出：[0,1,-1]
+
+
+
+提示：
+
+    1 <= n <= 100
+    0 <= redEdges.length, blueEdges.length <= 400
+    redEdges[i].length == blueEdges[j].length == 2
+    0 <= ai, bi, uj, vj < n
+
+
+解答：
+
+* 自己写的（时间击败 99%）
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> shortestAlternatingPaths(int n, vector<vector<int>>& redEdges, vector<vector<int>>& blueEdges) {
+            vector<vector<int>> red_edges(n), blue_edges(n);
+            for (int i = 0; i < redEdges.size(); ++i)
+                red_edges[redEdges[i][0]].push_back(redEdges[i][1]);
+            for (int i = 0; i < blueEdges.size(); ++i)
+                blue_edges[blueEdges[i][0]].push_back(blueEdges[i][1]);
+
+            vector<bool> red_visited(n, false), blue_visited(n, false);
+            vector<int> ans(n, -1);
+            int edge_count = 0;
+            bool red_flag = true;
+
+            vector<int> cur_nodes;
+            cur_nodes = {0};
+            vector<int> next_nodes;
+            int idx;
+            while (!cur_nodes.empty())
+            {
+                for (int j = 0; j < cur_nodes.size(); ++j)
+                {
+                    idx = cur_nodes[j];
+                    if (red_flag && red_visited[idx] ||
+                        !red_flag && blue_visited[idx])
+                        continue;
+                    ans[idx] = ans[idx] == -1 ? edge_count : min(ans[idx], edge_count);
+                    if (red_flag)
+                        red_visited[idx] = true;
+                    else
+                        blue_visited[idx] = true;
+                    if (red_flag)
+                        next_nodes.insert(next_nodes.end(), red_edges[idx].begin(), red_edges[idx].end());
+                    else
+                        next_nodes.insert(next_nodes.end(),
+                            blue_edges[idx].begin(), blue_edges[idx].end());
+                }
+                ++edge_count;
+                cur_nodes = next_nodes;
+                next_nodes.clear();
+                red_flag = !red_flag;
+            }
+
+            cur_nodes = {0};
+            edge_count = 0;
+            red_flag = false;
+            red_visited.assign(n, false);
+            blue_visited.assign(n, false);
+            while (!cur_nodes.empty())
+            {
+                for (int j = 0; j < cur_nodes.size(); ++j)
+                {
+                    idx = cur_nodes[j];
+                    if (red_flag && red_visited[idx] ||
+                        !red_flag && blue_visited[idx])
+                        continue;
+                    ans[idx] = ans[idx] == -1 ? edge_count : min(ans[idx], edge_count);
+                    if (red_flag)
+                        red_visited[idx] = true;
+                    else
+                        blue_visited[idx] = false;
+                    if (red_flag)
+                        next_nodes.insert(next_nodes.end(),
+                            red_edges[idx].begin(), red_edges[idx].end());
+                    else
+                        next_nodes.insert(next_nodes.end(),
+                            blue_edges[idx].begin(), blue_edges[idx].end());
+                }
+                ++edge_count;
+                cur_nodes = next_nodes;
+                next_nodes.clear();
+                red_flag = !red_flag;
+            }
+                
+            return ans;
+        }
+    };
+    ```
+
+    首先题目给的边的数据是一条一条的，不方便快速按索引查找，所以改了改形式，给定 node 的索引，可以直接查到它和哪些其他 node 相连。
+
+    整个代码一个朴素的想法是，使用一个 flag 来保存状态，当前要找的边是红边还是蓝边。由于是从 0 节点出发，所以出发边要么是红，要么是蓝，最多遍历两次就可以了。
+
+    如果从某个节点集合搜索不到下一个节点集合，那么就退出循环。
+
+    由于下一个节点集合没有先后顺序，所以 vector 可以存储， queue 也可以。这里选择了 vector。
+
+    题目允许有环，也允许自指，但是我们不可能无限搜索下去，所以我们允许一红一蓝交替地成环，但是不搜索重复的节点。
+
+    还有一个细节，`ans[idx] = ans[idx] == -1 ? edge_count : min(ans[idx], edge_count);`，按道理`ans`数组初始应该赋值 max int32 value，然后只需要每次取 min 值就可以了。但是题目要求使用 -1 代表无法到达，我们将 ans 数组的初值设置为 -1，并在更新答案时加了个判断。
+
+    这道题整个思路仍是 bfs，但是加了一些条件，这么写有点繁琐，肯定有更好的方案。
+
+* 官方题解（没看）
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> shortestAlternatingPaths(int n, vector<vector<int>>& redEdges, vector<vector<int>>& blueEdges) {
+            vector<vector<vector<int>>> next(2, vector<vector<int>>(n));
+            for (auto &e : redEdges) {
+                next[0][e[0]].push_back(e[1]);
+            }
+            for (auto &e : blueEdges) {
+                next[1][e[0]].push_back(e[1]);
+            }
+
+            vector<vector<int>> dist(2, vector<int>(n, INT_MAX)); // 两种类型的颜色最短路径的长度
+            queue<pair<int, int>> q;
+            dist[0][0] = 0;
+            dist[1][0] = 0;
+            q.push({0, 0});
+            q.push({0, 1});
+            while (!q.empty()) {
+                auto [x, t] = q.front();
+                q.pop();
+                for (auto y : next[1 - t][x]) {
+                    if (dist[1 - t][y] != INT_MAX) {
+                        continue;
+                    }
+                    dist[1 - t][y] = dist[t][x] + 1;
+                    q.push({y, 1 - t});
+                }
+            }
+            vector<int> answer(n);
+            for (int i = 0; i < n; i++) {
+                answer[i] = min(dist[0][i], dist[1][i]);
+                if (answer[i] == INT_MAX) {
+                    answer[i] = -1;
+                }
+            }
+            return answer;
+        }
+    };
+    ```
+
 ## 各种算法中需要注意的细节
 
 ### bfs

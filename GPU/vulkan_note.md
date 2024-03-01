@@ -2,6 +2,664 @@
 
 ## cached
 
+* vulkan validation layer error:
+
+    ```
+    VUID-vkCmdDraw-None-08600(ERROR / SPEC): msgNum: 1198051129 - Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0xcfef35000000000a, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw():  The VkPipeline 0xcfef35000000000a[] (created with VkPipelineLayout 0xee647e0000000009[]) statically uses descriptor set (index #0) which is not compatible with the currently bound descriptor set's pipeline layout (VkPipelineLayout 0x0[]). The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout or VkDescriptorSetLayout array that was used to create the current VkPipeline or VkShaderEXT, as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.3.268.0/linux/1.3-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+        Objects: 1
+            [0] 0xcfef35000000000a, type: 19, name: NULL
+    ```
+
+    报这个错是因为少写了一行
+
+    ```cpp
+    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
+    ```
+
+* descriptor set 主要是用来描述 uniform buffer 的
+
+    在创建完 descriptor set layout 后，可以和 pipeline layout 绑定：
+
+    ```cpp
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &desc_set_layout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    VkPipelineLayout pipelineLayout;
+    vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+    ```
+
+    要写入 uniform buffer 的数据，可以使用`vkUpdateDescriptorSets()`:
+
+    ```cpp
+    float rgb[3] = {0.8, 0.5, 0.5};
+    VkBuffer color_buf;
+    VkDeviceMemory color_buf_mem;
+    create_vk_buffer(color_buf, color_buf_mem, phy_dev, device, sizeof(float) * 3, 
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    vkMapMemory(device, color_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, rgb, sizeof(rgb));
+    vkUnmapMemory(device, color_buf_mem);
+
+    VkWriteDescriptorSet wrt_desc_set{};
+    wrt_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    wrt_desc_set.dstSet = desc_set;
+    VkDescriptorBufferInfo desc_buf_info{};
+    desc_buf_info.buffer = color_buf;
+    wrt_desc_set.pBufferInfo = &desc_buf_info;
+    wrt_desc_set.descriptorCount = 1;
+    desc_buf_info.offset = 0;
+    desc_buf_info.range = VK_WHOLE_SIZE;
+    wrt_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    wrt_desc_set.dstArrayElement = 0;
+    wrt_desc_set.dstBinding = 0;
+    vkUpdateDescriptorSets(device, 1, &wrt_desc_set, 0, nullptr);
+    ```
+
+    在 record command buffer 时，不要忘了这个：
+
+    ```cpp
+    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
+    ```
+
+    这一行和前面的`pipelineLayoutInfo.pSetLayouts = &desc_set_layout;`是相对应的，必须保持一致。
+
+    这里用的是`desc_set`，而不是 layout。descriptor set 需要在 pool 中申请（allocate）。
+
+    在 shader 中，vulkan 要求 uniform buffer 必须写成 bloack 的形式：
+
+    `shader_2.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 inPosition;
+
+    layout (binding = 0) uniform RGB {
+        vec3 rgb;
+    } rgbs;
+
+    layout(location = 0) out vec3 frag_color;
+
+    void main() {
+        gl_Position = vec4(inPosition, 1.0);
+        frag_color = rgbs.rgb;
+    }
+    ```
+
+    `shader_2.frag`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 frag_color;
+    layout(location = 0) out vec3 outColor;
+
+    void main() {
+        outColor = vec3(0.5, 0.8, 0.5);
+        outColor = frag_color;
+    }
+    ```
+
+    运行后效果如下：
+
+    <div style=text-align:center>
+    <img width=500 src='./pics/vulkan_note/pic_1.png'>
+    </div>
+
+* vulkan: `VkVertexInputBindingDescription`中的`stride`指的是给每个流处理器分的数据的长度
+
+    比如，对于位置坐标，float, `(x, y, z)`三个分量，`stride`就是`sizeof(float) * 3 = 4 * 3 = 12`。
+
+    `inputRate`似乎涉及到 vertex 还是 instance 的数据索引，因为没使用过 instance，所以不清楚这个是怎么回事。
+
+    目前只需要填`VK_VERTEX_INPUT_RATE_VERTEX`就可以了。
+
+    * `VkVertexInputAttributeDescription`似乎是指，比如 vertex buffer，给每个流处理器分 5 个 float 数，前 2 个 float 数表示 x, y 坐标，后 3 个 float 数表示 r, g, b 颜色。那么就认为这个 input vertex buffer 有两个 attribute，分别为 xy 坐标和 rgb 颜色。
+
+        我们使用 offset 来指定偏移，从而获得不同的 attribute。
+
+        每个 attrib 对应一个 location，location 从 0 开始依次递增。这些 location 都同属于一个 binding。
+
+* 不清楚为什么要在 pipeline 里填写 scissor 和 viewport 的信息
+
+    vkCmd 的 scissor 和 viewport 和 pipeline 中的是一样的吗？
+
+* 实际上 vertex input buffer 并不是只能传递 vertex 数据
+
+    因为 shader pipeline 是串行执行的，要想给 fragment shader 数据，必须先把数据给 vertex shader
+
+    因此 vertex shader 的 input 实际上是所有的输入数据。
+
+* `vkCmdDraw()`的参数`vertexCount`指的是有几个顶点。
+
+    比如画一个三角形有 3 个顶点，那么就把它设置为 3。
+
+* vulkan 的坐标系
+
+    窗口中间为`(0, 0)`，向右为`x`轴正方向，向下为`y`轴正方向，`x`的范围为`[-1, 1]`，`y`的范围也为`[-1, 1]`。
+
+    这点与 opengl 不一样。
+
+* vulkan 画三角形的代码
+
+    ```cpp
+    #include "../simple_vulkan/simple_vk.hpp"
+
+    int main()
+    {
+        glfwInit();
+        VkInstance inst;
+        create_vk_instance(inst);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        GLFWwindow *window = glfwCreateWindow(700, 500, "hello", nullptr, nullptr);
+        VkSurfaceKHR surf;
+        glfwCreateWindowSurface(inst, window, nullptr, &surf);
+        VkPhysicalDevice phy_dev;
+        uint32_t queue_family_idx;
+        select_vk_physical_device(phy_dev, queue_family_idx, queue_family_idx, inst, surf);
+        VkDevice device;
+        VkQueue queue;
+        create_vk_device(device, queue, queue, phy_dev, queue_family_idx, queue_family_idx);
+        VkSwapchainKHR swpch;
+        create_vk_swapchain(swpch, device, surf, queue_family_idx);
+        VkRenderPass render_pass = create_render_pass(VK_FORMAT_B8G8R8A8_SRGB, device);
+
+        // create pipeline
+        auto vert_shader_code = read_file("vert_2.spv");  // "vert_2.spv"
+        auto frag_shader_code = read_file("frag_2.spv");  // "frag_2.spv"
+        VkShaderModule vertShaderModule = create_shader_module(vert_shader_code, device);
+        VkShaderModule fragShaderModule = create_shader_module(frag_shader_code, device);
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+        
+        VkVertexInputBindingDescription vtx_binding_desc{};
+        vtx_binding_desc.binding = 0;
+        vtx_binding_desc.stride = sizeof(float) * 3;  // (x, y, z) 三个分量
+        vtx_binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        VkVertexInputAttributeDescription vtx_attr_desc{};
+        vtx_attr_desc.binding = 0;
+        vtx_attr_desc.location = 0;
+        vtx_attr_desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+        vtx_attr_desc.offset = 0;
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &vtx_binding_desc;
+        vertexInputInfo.vertexAttributeDescriptionCount = 1;
+        vertexInputInfo.pVertexAttributeDescriptions = &vtx_attr_desc;
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
+        std::vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        VkPipelineLayout pipelineLayout{};
+        vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.renderPass = render_pass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+        VkPipeline pipeline;
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create graphics pipeline!");
+        }
+
+        // VkPipeline pipeline = create_pipeline("./vert_2.spv", "frag_2.spv", 9 * sizeof(float), {0, 3 * sizeof(float)}, device, {700, 500}, render_pass);
+        
+        uint32_t swpch_img_count;
+        vkGetSwapchainImagesKHR(device, swpch, &swpch_img_count, nullptr);
+        std::vector<VkImage> swpch_imgs(swpch_img_count);
+        vkGetSwapchainImagesKHR(device, swpch, &swpch_img_count, swpch_imgs.data());
+
+        std::vector<VkImageView> swpch_img_views(swpch_img_count);
+        VkImageViewCreateInfo img_view_crt_info{};
+        img_view_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        img_view_crt_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        img_view_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+        img_view_crt_info.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        VkResult result;
+        for (int i = 0; i < swpch_img_count; ++i)
+        {
+            img_view_crt_info.image = swpch_imgs[i];
+            result = vkCreateImageView(device, &img_view_crt_info, nullptr, &swpch_img_views[i]);
+            if (result != VK_SUCCESS)
+            {
+                printf("fail to create image view, error code %d\n", result);
+                exit(-1);
+            }
+        }
+
+        VkFramebufferCreateInfo frame_buf_crt_info{};
+        frame_buf_crt_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        frame_buf_crt_info.renderPass = render_pass;
+        frame_buf_crt_info.attachmentCount = 1;
+        frame_buf_crt_info.width = 700;
+        frame_buf_crt_info.height = 500;
+        frame_buf_crt_info.layers = 1;
+        std::vector<VkFramebuffer> frame_bufs(swpch_img_count);
+        for (int i = 0; i < swpch_img_count; ++i)
+        {
+            frame_buf_crt_info.pAttachments = &swpch_img_views[i];
+            result = vkCreateFramebuffer(device, &frame_buf_crt_info, nullptr, &frame_bufs[i]);
+            if (result != VK_SUCCESS)
+            {
+                printf("fail to create frame buffer, error code: %d\n", result);
+                exit(-1);
+            }
+        }
+
+        VkCommandPool cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
+        cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
+        VkCommandBuffer cmd_buf;
+        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd_buf_alc_info.commandBufferCount = 1;
+        cmd_buf_alc_info.commandPool = cmd_pool;
+        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate command buffer\n");
+            exit(-1);
+        }
+
+        float vtxs[9] = {
+            0, -1, 0,
+            1, 1, 0,
+            -1, 1, 0
+        };
+        VkBuffer vtx_buf;
+        VkDeviceMemory vtx_buf_mem;
+        create_vk_buffer(vtx_buf, vtx_buf_mem, phy_dev, device, 3 * 3 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        float *p_mem_data = nullptr;
+        result = vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+        memcpy(p_mem_data, vtxs, sizeof(vtxs));
+        vkUnmapMemory(device, vtx_buf_mem);
+        vkDeviceWaitIdle(device);
+
+        float temp_mem[9];
+        vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+        memcpy(temp_mem, p_mem_data, sizeof(vtxs));
+        vkUnmapMemory(device, vtx_buf_mem);
+
+        uint32_t idxs[3] = {0, 1, 2};
+        VkBuffer idx_buf;
+        VkDeviceMemory idx_buf_mem;
+        create_vk_buffer(idx_buf, idx_buf_mem, phy_dev, device, sizeof(idxs), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        vkMapMemory(device, idx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+        memcpy(p_mem_data, idxs, sizeof(idxs));
+        vkUnmapMemory(device, idx_buf_mem);
+
+        VkSemaphore sem_finish_rendering = create_semaphore(device);
+        VkSemaphore sem_img_available = create_semaphore(device);
+        VkFence fence_acq_img = create_fence(device);
+        VkFence fence_queue_submit = create_fence(device);
+
+        vkResetFences(device, 1, &fence_acq_img);
+        uint32_t available_img_idx;
+        result = vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
+
+        VkCommandBufferBeginInfo cmd_buf_beg_info{};
+        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+
+            VkRenderPassBeginInfo rdps_beg_info{};
+            rdps_beg_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            rdps_beg_info.renderPass = render_pass;
+            rdps_beg_info.framebuffer = frame_bufs[available_img_idx];
+            rdps_beg_info.renderArea.offset = {0, 0};
+            rdps_beg_info.renderArea.extent = {700, 500};
+            rdps_beg_info.clearValueCount = 1;
+            VkClearValue clr_val{0, 0, 0, 1};
+            rdps_beg_info.pClearValues = &clr_val;
+            vkCmdBeginRenderPass(cmd_buf, &rdps_beg_info, VK_SUBPASS_CONTENTS_INLINE);
+
+                vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                VkViewport viewport{};
+                viewport.x = 0.0f;
+                viewport.y = 0.0f;
+                viewport.width = 700;
+                viewport.height = 500;
+                viewport.minDepth = 0.0f;
+                viewport.maxDepth = 1.0f;
+                vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+                VkRect2D scissor{};
+                scissor.offset = {0, 0};
+                scissor.extent.width = 700;
+                scissor.extent.height = 500;
+                vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+                VkDeviceSize offset = 0;
+                vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+                // vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
+                // vkCmdDrawIndexed(cmd_buf, 3, 1, 0, 0, 0);
+                vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+
+            vkCmdEndRenderPass(cmd_buf);
+
+        result = vkEndCommandBuffer(cmd_buf);
+
+        vkResetFences(device, 1, &fence_queue_submit);
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = &sem_finish_rendering;
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = &sem_img_available;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd_buf;
+        VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        submit_info.pWaitDstStageMask = &pipeline_stage_flags;
+        vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
+
+        vkQueueWaitIdle(queue);
+        vkDeviceWaitIdle(device);
+
+        VkPresentInfoKHR prst_info{};
+        prst_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        prst_info.swapchainCount = 1;
+        prst_info.pSwapchains = &swpch;
+        prst_info.pImageIndices = &available_img_idx;
+        prst_info.waitSemaphoreCount = 1;
+        prst_info.pWaitSemaphores = &sem_finish_rendering;
+        vkQueuePresentKHR(queue, &prst_info);
+
+        getchar();
+        return 0;
+    }
+    ```
+
+    `shader_2.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 inPosition;
+
+    void main() {
+        gl_Position = vec4(inPosition, 1.0);
+    }
+    ```
+
+    `shader_2.frag`:
+
+    ```glsl
+    #version 450
+
+    // layout(location = 0) in vec3 fragColor;
+
+    layout(location = 0) out vec3 outColor;
+
+    void main() {
+        // outColor = vec4(fragColor, 1.0);
+        outColor = vec3(0.5, 0.8, 0.5);
+    }
+    ```
+
+    编译 shader:
+
+    ```bash
+    glsl shader_2.vert -o vert_2.spv
+    glsl shader_2.frag -o frag_2.spv
+    ```
+
+    编译`main.cpp`:
+
+    ```makefile
+    main: main.cpp
+        g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
+    ```
+
+    运行：
+
+    ```bash
+    ./main
+    ```
+
+* vulkan draw frame
+
+    * 在调用`vkQueuePresentKHR()`时，可以指定多个 swapchain，猜测作用是同时更新多个窗口。
+
+    * 一个 renderpass 由多个模块组成：pipeline, scissor, viewport, vertex buffer, index buffer, draw command
+
+    * 一个 command buffer 中包含多个 render pass
+
+    example code:
+
+    ```cpp
+    vkResetFences(device, 1, &fence_acq_img);
+    uint32_t available_img_idx;
+    result = vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
+
+    VkCommandBufferBeginInfo cmd_buf_beg_info{};
+    cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+
+        VkRenderPassBeginInfo rdps_beg_info{};
+        rdps_beg_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rdps_beg_info.renderPass = render_pass;
+        rdps_beg_info.framebuffer = frame_bufs[available_img_idx];
+        rdps_beg_info.renderArea.offset = {0, 0};
+        rdps_beg_info.renderArea.extent = {700, 500};
+        rdps_beg_info.clearValueCount = 1;
+        VkClearValue clr_val{0, 0, 0, 1};
+        rdps_beg_info.pClearValues = &clr_val;
+        vkCmdBeginRenderPass(cmd_buf, &rdps_beg_info, VK_SUBPASS_CONTENTS_INLINE);
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = 700;
+            viewport.height = 500;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            VkRect2D scissor{};
+            scissor.offset = {0, 0};
+            scissor.extent.width = 700;
+            scissor.extent.height = 500;
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+            vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
+            // vkCmdDrawIndexed(cmd_buf, 9, 1, 0, 0, 0);
+            vkCmdDraw(cmd_buf, 9, 1, 0, 0);
+
+        vkCmdEndRenderPass(cmd_buf);
+
+    result = vkEndCommandBuffer(cmd_buf);
+
+    vkResetFences(device, 1, &fence_queue_submit);
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &sem_finish_rendering;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.waitSemaphoreCount = 0;
+    submit_info.pWaitSemaphores = &sem_img_available;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buf;
+    VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.pWaitDstStageMask = &pipeline_stage_flags;
+    vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
+
+    VkPresentInfoKHR prst_info{};
+    prst_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    prst_info.swapchainCount = 1;
+    prst_info.pSwapchains = &swpch;
+    prst_info.pImageIndices = &available_img_idx;
+    prst_info.waitSemaphoreCount = 1;
+    prst_info.pWaitSemaphores = &sem_finish_rendering;
+    vkQueuePresentKHR(queue, &prst_info);
+    ```
+
+    不清楚这里的`rdps_beg_info.renderArea.offset`和`rdps_beg_info.renderArea.extent`是干嘛用的，理论上和后面的 viewport 和 scissor 功能重合了。
+
+    vulkan 画一个三角形，根本用不到 descriptor set 和 uniform buffer。
+
+* vulkan synchronization
+
+    fence 必须先 reset 才能使用。
+
+    一个 fence 只能作用用一个 queue，`vkAcquireNextImageKHR()`也算一个 queue。
+
+    `sem_img_available`必须先由`vkAcquireNextImageKHR()`赋值过后才能交给`vkQueueSubmit()`使用。
+
+    example code:
+
+    ```cpp
+    VkSemaphore sem_finish_rendering = create_semaphore(device);
+    VkSemaphore sem_img_available = create_semaphore(device);
+    VkFence fence_acq_img = create_fence(device);
+    VkFence fence_queue_submit = create_fence(device);
+
+    vkResetFences(device, 1, &fence_acq_img);
+    uint32_t available_img_idx;
+    vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
+
+    vkResetFences(device, 1, &fence_queue_submit);
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &sem_finish_rendering;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.waitSemaphoreCount = 0;
+    submit_info.pWaitSemaphores = &sem_img_available;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buf;
+    VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.pWaitDstStageMask = &pipeline_stage_flags;
+    vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
+    ```
+
+    猜想：fence 只代表 gpu 返回，不代表 queue 执行结束，因此使用 semaphore 来判断 queue 是否执行结束。
+
+    （这段代码中可能还少了一个 wait fence）
+
+* vulkan vertex buffer, index buffer
+
+    example code:
+
+    ```cpp
+    float vtxs[9] = {
+        -0.5, 0, 0,
+        0, 0.5, 0,
+        0.5, 0, 0
+    };
+    VkBuffer vtx_buf;
+    VkDeviceMemory vtx_buf_mem;
+    create_vk_buffer(vtx_buf, vtx_buf_mem, phy_dev, device, 3 * 3 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    float *p_mem_data = nullptr;
+    result = vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, vtxs, sizeof(vtxs));
+    vkUnmapMemory(device, vtx_buf_mem);
+
+    uint32_t idxs[3] = {0, 1, 2};
+    VkBuffer idx_buf;
+    VkDeviceMemory idx_buf_mem;
+    create_vk_buffer(idx_buf, idx_buf_mem, phy_dev, device, sizeof(idxs), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    vkMapMemory(device, idx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, idxs, sizeof(idxs));
+    vkUnmapMemory(device, idx_buf_mem);
+
+    VkCommandBufferBeginInfo cmd_buf_beg_info{};
+    cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+    VkDeviceSize offset = 0;
+    vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+    vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
+    vkEndCommandBuffer(cmd_buf);
+    ```
+
+    vulkan 专门给出了`VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`和`VK_BUFFER_USAGE_INDEX_BUFFER_BIT`这两个 buffer 类型，用于创建 vertex buffer 和 index buffer。如果用了其他类型，后面`vkCmdBindXXXXBuffer()`会运行时报错。
+
+    数据的传递通过 map memory 完成。
+
 * vulkand command pool 和 command buffer 的创建比较简单
 
     ```cpp
@@ -136,6 +794,8 @@
     一个 binding 只描述一个资源位置的情况。一个 layout 描述的是多个 binding。
 
 * 如果不使用 descriptor binding，那么可以使用`vkCmdBindVertexBuffers()`进行绑定。这个函数的参数里指定了要绑定的位置。
+
+    这个好像不对。
 
 * 没有单个 descriptor 的说法，只有 descriptor set 和 descriptor pool
 
@@ -5203,7 +5863,7 @@ void createDescriptorSetLayout() {
     }
     ```
 
-    上面的代码创建了一个 descriptor set layout，看起来这个 layout 就是 shader 文件里开关的那几行，绑定数据用的。
+    上面的代码创建了一个 descriptor set layout，看起来这个 layout 就是 shader 文件里开头的那几行，绑定数据用的。
 
     后面的 pipeline layout 中，会把这个 descriptor set layout 应用上去：
 

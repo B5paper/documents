@@ -7,11 +7,9 @@
 `vector_add_kernel.cl`:
 
 ```c
-__kernel void vector_add(__global const int *A, __global const int *B, __global int *C) {
-    // Get the index of the current element to be processed
+kernel void vector_add(global const int *A, global const int *B, global int *C)
+{
     int i = get_global_id(0);
-
-    // Do the operation
     C[i] = A[i] + B[i];
 }
 ```
@@ -27,116 +25,73 @@ __kernel void vector_add(__global const int *A, __global const int *B, __global 
 请写一个向量相加的主程序。
 [u_1]
 ```c
-#define _CRT_SECURE_NO_DEPRECATE
-#pragma warning(disable: 4996)
+#define CL_TARGET_OPENCL_VERSION 300
+#include <CL/cl.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/cl.h>
-#endif
+int main()
+{
+    cl_uint num_plats;
+    clGetPlatformIDs(0, nullptr, &num_plats);
+    cl_platform_id *plats = (cl_platform_id*) malloc(num_plats * sizeof(cl_platform_id));
+    clGetPlatformIDs(num_plats, plats, &num_plats);
+    printf("opencl platform number: %d\n", num_plats);
 
-#define MAX_SOURCE_SIZE (0x100000)
+    cl_uint num_devs;
+    clGetDeviceIDs(plats[0], CL_DEVICE_TYPE_ALL, 0, nullptr, &num_devs);
+    cl_device_id *devs = (cl_device_id*) malloc(num_devs * sizeof(cl_device_id));
+    clGetDeviceIDs(plats[0], CL_DEVICE_TYPE_ALL, num_devs, devs, &num_devs);
+    printf("platform %d has %d available device.\n", 0, num_devs);
 
-int main(void) {
-    // Create the two input vectors
-    int i;
-    const int LIST_SIZE = 1024;
-    int* A = (int*)malloc(sizeof(int) * LIST_SIZE);
-    int* B = (int*)malloc(sizeof(int) * LIST_SIZE);
-    for (i = 0; i < LIST_SIZE; i++) {
-        A[i] = i;
-        B[i] = LIST_SIZE - i;
-    }
+    cl_int ret_code;
+    cl_context ctx = clCreateContext(nullptr, 1, &devs[0], nullptr, nullptr, &ret_code);
+    cl_command_queue cmd_queue = clCreateCommandQueueWithProperties(ctx, devs[0], nullptr, &ret_code);
+    cl_mem mem_1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(float), nullptr, &ret_code);
+    cl_mem mem_2 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(float), nullptr, &ret_code);
+    cl_mem mem_3 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(float), nullptr, &ret_code);
 
-    // Load the kernel source code into the array source_str
-    FILE* fp;
-    char* source_str;
-    size_t source_size;
+    FILE *f = fopen("kernels.cl", "r");
+    fseek(f, 0, SEEK_END);
+    size_t p_program_length = ftell(f);
+    char *program_content = (char*) malloc(p_program_length);
+    fseek(f, 0, SEEK_SET);
+    fread(program_content, p_program_length, 1, f);
+    cl_program prog = clCreateProgramWithSource(ctx, 1, (const char **) &program_content, &p_program_length, &ret_code);
+    free(program_content);
+    ret_code = clBuildProgram(prog, 1, &devs[0], nullptr, nullptr, nullptr);
+    cl_kernel kern_add = clCreateKernel(prog, "add", &ret_code);
 
-    fp = fopen("vector_add_kernel.cl", "r");  // 打开我们刚才写的算子文件
-    if (!fp) {
-        fprintf(stderr, "Failed to load kernel.\n");
-        exit(1);
-    }
-    source_str = (char*)malloc(MAX_SOURCE_SIZE);
-    source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
-    fclose(fp);
+    float A[4] = {1, 2, 3, 4};
+    float B[4] = {5, 6, 7, 8};
+    float C[4] = {0};
+    clEnqueueWriteBuffer(cmd_queue, mem_1, CL_TRUE, 0, sizeof(float) * 4, A, 0, nullptr, nullptr);
+    clEnqueueWriteBuffer(cmd_queue, mem_2, CL_TRUE, 0, sizeof(float) * 4, B, 0, nullptr, nullptr);
+    size_t global_work_offset = 0;
+    size_t global_work_size = 4;
+    clSetKernelArg(kern_add, 0, sizeof(cl_mem), &mem_1);
+    clSetKernelArg(kern_add, 1, sizeof(cl_mem), &mem_2);
+    clSetKernelArg(kern_add, 2, sizeof(cl_mem), &mem_3);
+    clEnqueueNDRangeKernel(cmd_queue, kern_add, 1, &global_work_offset, &global_work_size,
+        nullptr, 0, nullptr, nullptr);
+    clEnqueueReadBuffer(cmd_queue, mem_3, CL_TRUE, 0, sizeof(float) * 4, C, 0, nullptr, nullptr);
 
-    // Get platform and device information
-    cl_platform_id platform_id = NULL;
-    cl_device_id device_id = NULL;
-    cl_uint ret_num_devices;
-    cl_uint ret_num_platforms;
-    cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-    ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1,
-        &device_id, &ret_num_devices);
+    // display
+    printf("A: [");
+    for (int i = 0; i < 4; ++i)
+        printf("%.2f, ", A[i]);
+    printf("]\n");
 
-    // Create an OpenCL context
-    cl_context context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
+    printf("B: [");
+    for (int i = 0; i < 4; ++i)
+        printf("%.2f, ", B[i]);
+    printf("]\n");
 
-    // Create a command queue
-    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
-
-    // Create memory buffers on the device for each vector 
-    cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
-        LIST_SIZE * sizeof(int), NULL, &ret);
-    cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
-        LIST_SIZE * sizeof(int), NULL, &ret);
-    cl_mem c_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-        LIST_SIZE * sizeof(int), NULL, &ret);
-
-    // Copy the lists A and B to their respective memory buffers
-    ret = clEnqueueWriteBuffer(command_queue, a_mem_obj, CL_TRUE, 0,
-        LIST_SIZE * sizeof(int), A, 0, NULL, NULL);
-    ret = clEnqueueWriteBuffer(command_queue, b_mem_obj, CL_TRUE, 0,
-        LIST_SIZE * sizeof(int), B, 0, NULL, NULL);
-
-    // Create a program from the kernel source
-    cl_program program = clCreateProgramWithSource(context, 1,
-        (const char**)&source_str, (const size_t*)&source_size, &ret);
-
-    // Build the program
-    ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-
-    // Create the OpenCL kernel
-    cl_kernel kernel = clCreateKernel(program, "vector_add", &ret);
-
-    // Set the arguments of the kernel
-    ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&a_mem_obj);
-    ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&b_mem_obj);
-    ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&c_mem_obj);
-
-    // Execute the OpenCL kernel on the list
-    size_t global_item_size = LIST_SIZE; // Process the entire lists
-    size_t local_item_size = 64; // Divide work items into groups of 64
-    ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL,
-        &global_item_size, &local_item_size, 0, NULL, NULL);
-
-    // Read the memory buffer C on the device to the local variable C
-    int* C = (int*)malloc(sizeof(int) * LIST_SIZE);
-    ret = clEnqueueReadBuffer(command_queue, c_mem_obj, CL_TRUE, 0,
-        LIST_SIZE * sizeof(int), C, 0, NULL, NULL);
-
-    // Display the result to the screen
-    for (i = 0; i < LIST_SIZE; i++)
-        printf("%d + %d = %d\n", A[i], B[i], C[i]);
-
-    // Clean up
-    ret = clFlush(command_queue);
-    ret = clFinish(command_queue);
-    ret = clReleaseKernel(kernel);
-    ret = clReleaseProgram(program);
-    ret = clReleaseMemObject(a_mem_obj);
-    ret = clReleaseMemObject(b_mem_obj);
-    ret = clReleaseMemObject(c_mem_obj);
-    ret = clReleaseCommandQueue(command_queue);
-    ret = clReleaseContext(context);
-    free(A);
-    free(B);
-    free(C);
+    printf("C: [");
+    for (int i = 0; i < 4; ++i)
+        printf("%.2f, ", C[i]);
+    printf("]\n");
+    
     return 0;
 }
 ```

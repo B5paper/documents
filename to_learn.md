@@ -2726,3 +2726,39 @@
 * GPU指令集技术分析
 
     <https://zhuanlan.zhihu.com/p/391629316>
+
+* AMD ROCm™ 6 OPEN SOFTWARE FOR AI AND HPC WORKLOADS
+
+    <https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/product-briefs/amd-rocm-6-brief.pdf>
+
+* image format: ppm
+
+    <https://netpbm.sourceforge.net/doc/ppm.html>
+
+* What are LUTs? The Ultimate Guide to Color Grading
+
+    <https://boords.com/blog/what-are-luts-the-ultimate-guide-to-color-grading>
+
+* hlsl math functions: Per-Component Math Operations
+
+    <https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-per-component-math>
+
+* hlsl: lerp
+
+    <https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-lerp>
+
+* c++: std::exp2, std::exp2f, std::exp2l
+
+    <https://en.cppreference.com/w/cpp/numeric/math/exp2>
+
+* hlsl: RWStructuredBuffer
+
+    <https://copyprogramming.com/howto/rwstructuredbuffer#rwstructuredbufferoperator-function>
+
+*  Using Ubuntu in multi-user.target mode (i.e. command line only)
+
+    <https://displaylink.org/forum/showthread.php?t=68710>
+
+* Systemd service - what is `multi-user.target`
+
+    <https://unix.stackexchange.com/questions/404667/systemd-service-what-is-multi-user-target>
