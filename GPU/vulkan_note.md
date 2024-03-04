@@ -2,665 +2,13 @@
 
 ## cached
 
-* vulkan validation layer error:
-
-    ```
-    VUID-vkCmdDraw-None-08600(ERROR / SPEC): msgNum: 1198051129 - Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0xcfef35000000000a, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw():  The VkPipeline 0xcfef35000000000a[] (created with VkPipelineLayout 0xee647e0000000009[]) statically uses descriptor set (index #0) which is not compatible with the currently bound descriptor set's pipeline layout (VkPipelineLayout 0x0[]). The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout or VkDescriptorSetLayout array that was used to create the current VkPipeline or VkShaderEXT, as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.3.268.0/linux/1.3-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
-        Objects: 1
-            [0] 0xcfef35000000000a, type: 19, name: NULL
-    ```
-
-    报这个错是因为少写了一行
-
-    ```cpp
-    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
-    ```
-
-* descriptor set 主要是用来描述 uniform buffer 的
-
-    在创建完 descriptor set layout 后，可以和 pipeline layout 绑定：
-
-    ```cpp
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &desc_set_layout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    VkPipelineLayout pipelineLayout;
-    vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-    ```
-
-    要写入 uniform buffer 的数据，可以使用`vkUpdateDescriptorSets()`:
-
-    ```cpp
-    float rgb[3] = {0.8, 0.5, 0.5};
-    VkBuffer color_buf;
-    VkDeviceMemory color_buf_mem;
-    create_vk_buffer(color_buf, color_buf_mem, phy_dev, device, sizeof(float) * 3, 
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    vkMapMemory(device, color_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-    memcpy(p_mem_data, rgb, sizeof(rgb));
-    vkUnmapMemory(device, color_buf_mem);
-
-    VkWriteDescriptorSet wrt_desc_set{};
-    wrt_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    wrt_desc_set.dstSet = desc_set;
-    VkDescriptorBufferInfo desc_buf_info{};
-    desc_buf_info.buffer = color_buf;
-    wrt_desc_set.pBufferInfo = &desc_buf_info;
-    wrt_desc_set.descriptorCount = 1;
-    desc_buf_info.offset = 0;
-    desc_buf_info.range = VK_WHOLE_SIZE;
-    wrt_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    wrt_desc_set.dstArrayElement = 0;
-    wrt_desc_set.dstBinding = 0;
-    vkUpdateDescriptorSets(device, 1, &wrt_desc_set, 0, nullptr);
-    ```
-
-    在 record command buffer 时，不要忘了这个：
-
-    ```cpp
-    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
-    ```
-
-    这一行和前面的`pipelineLayoutInfo.pSetLayouts = &desc_set_layout;`是相对应的，必须保持一致。
-
-    这里用的是`desc_set`，而不是 layout。descriptor set 需要在 pool 中申请（allocate）。
-
-    在 shader 中，vulkan 要求 uniform buffer 必须写成 bloack 的形式：
-
-    `shader_2.vert`:
-
-    ```glsl
-    #version 450
-
-    layout(location = 0) in vec3 inPosition;
-
-    layout (binding = 0) uniform RGB {
-        vec3 rgb;
-    } rgbs;
-
-    layout(location = 0) out vec3 frag_color;
-
-    void main() {
-        gl_Position = vec4(inPosition, 1.0);
-        frag_color = rgbs.rgb;
-    }
-    ```
-
-    `shader_2.frag`:
-
-    ```glsl
-    #version 450
-
-    layout(location = 0) in vec3 frag_color;
-    layout(location = 0) out vec3 outColor;
-
-    void main() {
-        outColor = vec3(0.5, 0.8, 0.5);
-        outColor = frag_color;
-    }
-    ```
-
-    运行后效果如下：
-
-    <div style=text-align:center>
-    <img width=500 src='./pics/vulkan_note/pic_1.png'>
-    </div>
-
-* vulkan: `VkVertexInputBindingDescription`中的`stride`指的是给每个流处理器分的数据的长度
-
-    比如，对于位置坐标，float, `(x, y, z)`三个分量，`stride`就是`sizeof(float) * 3 = 4 * 3 = 12`。
-
-    `inputRate`似乎涉及到 vertex 还是 instance 的数据索引，因为没使用过 instance，所以不清楚这个是怎么回事。
-
-    目前只需要填`VK_VERTEX_INPUT_RATE_VERTEX`就可以了。
-
-    * `VkVertexInputAttributeDescription`似乎是指，比如 vertex buffer，给每个流处理器分 5 个 float 数，前 2 个 float 数表示 x, y 坐标，后 3 个 float 数表示 r, g, b 颜色。那么就认为这个 input vertex buffer 有两个 attribute，分别为 xy 坐标和 rgb 颜色。
-
-        我们使用 offset 来指定偏移，从而获得不同的 attribute。
-
-        每个 attrib 对应一个 location，location 从 0 开始依次递增。这些 location 都同属于一个 binding。
-
-* 不清楚为什么要在 pipeline 里填写 scissor 和 viewport 的信息
-
-    vkCmd 的 scissor 和 viewport 和 pipeline 中的是一样的吗？
-
-* 实际上 vertex input buffer 并不是只能传递 vertex 数据
-
-    因为 shader pipeline 是串行执行的，要想给 fragment shader 数据，必须先把数据给 vertex shader
-
-    因此 vertex shader 的 input 实际上是所有的输入数据。
-
-* `vkCmdDraw()`的参数`vertexCount`指的是有几个顶点。
-
-    比如画一个三角形有 3 个顶点，那么就把它设置为 3。
-
 * vulkan 的坐标系
 
     窗口中间为`(0, 0)`，向右为`x`轴正方向，向下为`y`轴正方向，`x`的范围为`[-1, 1]`，`y`的范围也为`[-1, 1]`。
 
     这点与 opengl 不一样。
 
-* vulkan 画三角形的代码
-
-    ```cpp
-    #include "../simple_vulkan/simple_vk.hpp"
-
-    int main()
-    {
-        glfwInit();
-        VkInstance inst;
-        create_vk_instance(inst);
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        GLFWwindow *window = glfwCreateWindow(700, 500, "hello", nullptr, nullptr);
-        VkSurfaceKHR surf;
-        glfwCreateWindowSurface(inst, window, nullptr, &surf);
-        VkPhysicalDevice phy_dev;
-        uint32_t queue_family_idx;
-        select_vk_physical_device(phy_dev, queue_family_idx, queue_family_idx, inst, surf);
-        VkDevice device;
-        VkQueue queue;
-        create_vk_device(device, queue, queue, phy_dev, queue_family_idx, queue_family_idx);
-        VkSwapchainKHR swpch;
-        create_vk_swapchain(swpch, device, surf, queue_family_idx);
-        VkRenderPass render_pass = create_render_pass(VK_FORMAT_B8G8R8A8_SRGB, device);
-
-        // create pipeline
-        auto vert_shader_code = read_file("vert_2.spv");  // "vert_2.spv"
-        auto frag_shader_code = read_file("frag_2.spv");  // "frag_2.spv"
-        VkShaderModule vertShaderModule = create_shader_module(vert_shader_code, device);
-        VkShaderModule fragShaderModule = create_shader_module(frag_shader_code, device);
-        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
-        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName = "main";
-        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-        
-        VkVertexInputBindingDescription vtx_binding_desc{};
-        vtx_binding_desc.binding = 0;
-        vtx_binding_desc.stride = sizeof(float) * 3;  // (x, y, z) 三个分量
-        vtx_binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        VkVertexInputAttributeDescription vtx_attr_desc{};
-        vtx_attr_desc.binding = 0;
-        vtx_attr_desc.location = 0;
-        vtx_attr_desc.format = VK_FORMAT_R32G32B32_SFLOAT;
-        vtx_attr_desc.offset = 0;
-
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.pVertexBindingDescriptions = &vtx_binding_desc;
-        vertexInputInfo.vertexAttributeDescriptionCount = 1;
-        vertexInputInfo.pVertexAttributeDescriptions = &vtx_attr_desc;
-
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.scissorCount = 1;
-
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.depthClampEnable = VK_FALSE;
-        rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;
-
-        VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE;
-
-        VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlending.logicOpEnable = VK_FALSE;
-        colorBlending.logicOp = VK_LOGIC_OP_COPY;
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = &colorBlendAttachment;
-        colorBlending.blendConstants[0] = 0.0f;
-        colorBlending.blendConstants[1] = 0.0f;
-        colorBlending.blendConstants[2] = 0.0f;
-        colorBlending.blendConstants[3] = 0.0f;
-
-        std::vector<VkDynamicState> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-        dynamicState.pDynamicStates = dynamicStates.data();
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        VkPipelineLayout pipelineLayout{};
-        vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = shaderStages;
-        pipelineInfo.pVertexInputState = &vertexInputInfo;
-        pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizer;
-        pipelineInfo.pMultisampleState = &multisampling;
-        pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = pipelineLayout;
-        pipelineInfo.renderPass = render_pass;
-        pipelineInfo.subpass = 0;
-        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-        VkPipeline pipeline;
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create graphics pipeline!");
-        }
-
-        // VkPipeline pipeline = create_pipeline("./vert_2.spv", "frag_2.spv", 9 * sizeof(float), {0, 3 * sizeof(float)}, device, {700, 500}, render_pass);
-        
-        uint32_t swpch_img_count;
-        vkGetSwapchainImagesKHR(device, swpch, &swpch_img_count, nullptr);
-        std::vector<VkImage> swpch_imgs(swpch_img_count);
-        vkGetSwapchainImagesKHR(device, swpch, &swpch_img_count, swpch_imgs.data());
-
-        std::vector<VkImageView> swpch_img_views(swpch_img_count);
-        VkImageViewCreateInfo img_view_crt_info{};
-        img_view_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        img_view_crt_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        img_view_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
-        img_view_crt_info.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-        VkResult result;
-        for (int i = 0; i < swpch_img_count; ++i)
-        {
-            img_view_crt_info.image = swpch_imgs[i];
-            result = vkCreateImageView(device, &img_view_crt_info, nullptr, &swpch_img_views[i]);
-            if (result != VK_SUCCESS)
-            {
-                printf("fail to create image view, error code %d\n", result);
-                exit(-1);
-            }
-        }
-
-        VkFramebufferCreateInfo frame_buf_crt_info{};
-        frame_buf_crt_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        frame_buf_crt_info.renderPass = render_pass;
-        frame_buf_crt_info.attachmentCount = 1;
-        frame_buf_crt_info.width = 700;
-        frame_buf_crt_info.height = 500;
-        frame_buf_crt_info.layers = 1;
-        std::vector<VkFramebuffer> frame_bufs(swpch_img_count);
-        for (int i = 0; i < swpch_img_count; ++i)
-        {
-            frame_buf_crt_info.pAttachments = &swpch_img_views[i];
-            result = vkCreateFramebuffer(device, &frame_buf_crt_info, nullptr, &frame_bufs[i]);
-            if (result != VK_SUCCESS)
-            {
-                printf("fail to create frame buffer, error code: %d\n", result);
-                exit(-1);
-            }
-        }
-
-        VkCommandPool cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
-        cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
-        VkCommandBuffer cmd_buf;
-        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
-        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmd_buf_alc_info.commandBufferCount = 1;
-        cmd_buf_alc_info.commandPool = cmd_pool;
-        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to allocate command buffer\n");
-            exit(-1);
-        }
-
-        float vtxs[9] = {
-            0, -1, 0,
-            1, 1, 0,
-            -1, 1, 0
-        };
-        VkBuffer vtx_buf;
-        VkDeviceMemory vtx_buf_mem;
-        create_vk_buffer(vtx_buf, vtx_buf_mem, phy_dev, device, 3 * 3 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        float *p_mem_data = nullptr;
-        result = vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-        memcpy(p_mem_data, vtxs, sizeof(vtxs));
-        vkUnmapMemory(device, vtx_buf_mem);
-        vkDeviceWaitIdle(device);
-
-        float temp_mem[9];
-        vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-        memcpy(temp_mem, p_mem_data, sizeof(vtxs));
-        vkUnmapMemory(device, vtx_buf_mem);
-
-        uint32_t idxs[3] = {0, 1, 2};
-        VkBuffer idx_buf;
-        VkDeviceMemory idx_buf_mem;
-        create_vk_buffer(idx_buf, idx_buf_mem, phy_dev, device, sizeof(idxs), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        vkMapMemory(device, idx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-        memcpy(p_mem_data, idxs, sizeof(idxs));
-        vkUnmapMemory(device, idx_buf_mem);
-
-        VkSemaphore sem_finish_rendering = create_semaphore(device);
-        VkSemaphore sem_img_available = create_semaphore(device);
-        VkFence fence_acq_img = create_fence(device);
-        VkFence fence_queue_submit = create_fence(device);
-
-        vkResetFences(device, 1, &fence_acq_img);
-        uint32_t available_img_idx;
-        result = vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
-
-        VkCommandBufferBeginInfo cmd_buf_beg_info{};
-        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
-
-            VkRenderPassBeginInfo rdps_beg_info{};
-            rdps_beg_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            rdps_beg_info.renderPass = render_pass;
-            rdps_beg_info.framebuffer = frame_bufs[available_img_idx];
-            rdps_beg_info.renderArea.offset = {0, 0};
-            rdps_beg_info.renderArea.extent = {700, 500};
-            rdps_beg_info.clearValueCount = 1;
-            VkClearValue clr_val{0, 0, 0, 1};
-            rdps_beg_info.pClearValues = &clr_val;
-            vkCmdBeginRenderPass(cmd_buf, &rdps_beg_info, VK_SUBPASS_CONTENTS_INLINE);
-
-                vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-                VkViewport viewport{};
-                viewport.x = 0.0f;
-                viewport.y = 0.0f;
-                viewport.width = 700;
-                viewport.height = 500;
-                viewport.minDepth = 0.0f;
-                viewport.maxDepth = 1.0f;
-                vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
-                VkRect2D scissor{};
-                scissor.offset = {0, 0};
-                scissor.extent.width = 700;
-                scissor.extent.height = 500;
-                vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
-                VkDeviceSize offset = 0;
-                vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
-                // vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
-                // vkCmdDrawIndexed(cmd_buf, 3, 1, 0, 0, 0);
-                vkCmdDraw(cmd_buf, 3, 1, 0, 0);
-
-            vkCmdEndRenderPass(cmd_buf);
-
-        result = vkEndCommandBuffer(cmd_buf);
-
-        vkResetFences(device, 1, &fence_queue_submit);
-        VkSubmitInfo submit_info{};
-        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_info.signalSemaphoreCount = 1;
-        submit_info.pSignalSemaphores = &sem_finish_rendering;
-        submit_info.waitSemaphoreCount = 1;
-        submit_info.waitSemaphoreCount = 0;
-        submit_info.pWaitSemaphores = &sem_img_available;
-        submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &cmd_buf;
-        VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        submit_info.pWaitDstStageMask = &pipeline_stage_flags;
-        vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
-
-        vkQueueWaitIdle(queue);
-        vkDeviceWaitIdle(device);
-
-        VkPresentInfoKHR prst_info{};
-        prst_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        prst_info.swapchainCount = 1;
-        prst_info.pSwapchains = &swpch;
-        prst_info.pImageIndices = &available_img_idx;
-        prst_info.waitSemaphoreCount = 1;
-        prst_info.pWaitSemaphores = &sem_finish_rendering;
-        vkQueuePresentKHR(queue, &prst_info);
-
-        getchar();
-        return 0;
-    }
-    ```
-
-    `shader_2.vert`:
-
-    ```glsl
-    #version 450
-
-    layout(location = 0) in vec3 inPosition;
-
-    void main() {
-        gl_Position = vec4(inPosition, 1.0);
-    }
-    ```
-
-    `shader_2.frag`:
-
-    ```glsl
-    #version 450
-
-    // layout(location = 0) in vec3 fragColor;
-
-    layout(location = 0) out vec3 outColor;
-
-    void main() {
-        // outColor = vec4(fragColor, 1.0);
-        outColor = vec3(0.5, 0.8, 0.5);
-    }
-    ```
-
-    编译 shader:
-
-    ```bash
-    glsl shader_2.vert -o vert_2.spv
-    glsl shader_2.frag -o frag_2.spv
-    ```
-
-    编译`main.cpp`:
-
-    ```makefile
-    main: main.cpp
-        g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
-    ```
-
-    运行：
-
-    ```bash
-    ./main
-    ```
-
-* vulkan draw frame
-
-    * 在调用`vkQueuePresentKHR()`时，可以指定多个 swapchain，猜测作用是同时更新多个窗口。
-
-    * 一个 renderpass 由多个模块组成：pipeline, scissor, viewport, vertex buffer, index buffer, draw command
-
-    * 一个 command buffer 中包含多个 render pass
-
-    example code:
-
-    ```cpp
-    vkResetFences(device, 1, &fence_acq_img);
-    uint32_t available_img_idx;
-    result = vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
-
-    VkCommandBufferBeginInfo cmd_buf_beg_info{};
-    cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
-
-        VkRenderPassBeginInfo rdps_beg_info{};
-        rdps_beg_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        rdps_beg_info.renderPass = render_pass;
-        rdps_beg_info.framebuffer = frame_bufs[available_img_idx];
-        rdps_beg_info.renderArea.offset = {0, 0};
-        rdps_beg_info.renderArea.extent = {700, 500};
-        rdps_beg_info.clearValueCount = 1;
-        VkClearValue clr_val{0, 0, 0, 1};
-        rdps_beg_info.pClearValues = &clr_val;
-        vkCmdBeginRenderPass(cmd_buf, &rdps_beg_info, VK_SUBPASS_CONTENTS_INLINE);
-
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = 700;
-            viewport.height = 500;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent.width = 700;
-            scissor.extent.height = 500;
-            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
-            VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
-            vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
-            // vkCmdDrawIndexed(cmd_buf, 9, 1, 0, 0, 0);
-            vkCmdDraw(cmd_buf, 9, 1, 0, 0);
-
-        vkCmdEndRenderPass(cmd_buf);
-
-    result = vkEndCommandBuffer(cmd_buf);
-
-    vkResetFences(device, 1, &fence_queue_submit);
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &sem_finish_rendering;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.waitSemaphoreCount = 0;
-    submit_info.pWaitSemaphores = &sem_img_available;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &cmd_buf;
-    VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    submit_info.pWaitDstStageMask = &pipeline_stage_flags;
-    vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
-
-    VkPresentInfoKHR prst_info{};
-    prst_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    prst_info.swapchainCount = 1;
-    prst_info.pSwapchains = &swpch;
-    prst_info.pImageIndices = &available_img_idx;
-    prst_info.waitSemaphoreCount = 1;
-    prst_info.pWaitSemaphores = &sem_finish_rendering;
-    vkQueuePresentKHR(queue, &prst_info);
-    ```
-
-    不清楚这里的`rdps_beg_info.renderArea.offset`和`rdps_beg_info.renderArea.extent`是干嘛用的，理论上和后面的 viewport 和 scissor 功能重合了。
-
-    vulkan 画一个三角形，根本用不到 descriptor set 和 uniform buffer。
-
-* vulkan synchronization
-
-    fence 必须先 reset 才能使用。
-
-    一个 fence 只能作用用一个 queue，`vkAcquireNextImageKHR()`也算一个 queue。
-
-    `sem_img_available`必须先由`vkAcquireNextImageKHR()`赋值过后才能交给`vkQueueSubmit()`使用。
-
-    example code:
-
-    ```cpp
-    VkSemaphore sem_finish_rendering = create_semaphore(device);
-    VkSemaphore sem_img_available = create_semaphore(device);
-    VkFence fence_acq_img = create_fence(device);
-    VkFence fence_queue_submit = create_fence(device);
-
-    vkResetFences(device, 1, &fence_acq_img);
-    uint32_t available_img_idx;
-    vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
-
-    vkResetFences(device, 1, &fence_queue_submit);
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &sem_finish_rendering;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.waitSemaphoreCount = 0;
-    submit_info.pWaitSemaphores = &sem_img_available;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &cmd_buf;
-    VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    submit_info.pWaitDstStageMask = &pipeline_stage_flags;
-    vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
-    ```
-
-    猜想：fence 只代表 gpu 返回，不代表 queue 执行结束，因此使用 semaphore 来判断 queue 是否执行结束。
-
-    （这段代码中可能还少了一个 wait fence）
-
-* vulkan vertex buffer, index buffer
-
-    example code:
-
-    ```cpp
-    float vtxs[9] = {
-        -0.5, 0, 0,
-        0, 0.5, 0,
-        0.5, 0, 0
-    };
-    VkBuffer vtx_buf;
-    VkDeviceMemory vtx_buf_mem;
-    create_vk_buffer(vtx_buf, vtx_buf_mem, phy_dev, device, 3 * 3 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    float *p_mem_data = nullptr;
-    result = vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-    memcpy(p_mem_data, vtxs, sizeof(vtxs));
-    vkUnmapMemory(device, vtx_buf_mem);
-
-    uint32_t idxs[3] = {0, 1, 2};
-    VkBuffer idx_buf;
-    VkDeviceMemory idx_buf_mem;
-    create_vk_buffer(idx_buf, idx_buf_mem, phy_dev, device, sizeof(idxs), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    vkMapMemory(device, idx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-    memcpy(p_mem_data, idxs, sizeof(idxs));
-    vkUnmapMemory(device, idx_buf_mem);
-
-    VkCommandBufferBeginInfo cmd_buf_beg_info{};
-    cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
-    VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
-    vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
-    vkEndCommandBuffer(cmd_buf);
-    ```
-
-    vulkan 专门给出了`VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`和`VK_BUFFER_USAGE_INDEX_BUFFER_BIT`这两个 buffer 类型，用于创建 vertex buffer 和 index buffer。如果用了其他类型，后面`vkCmdBindXXXXBuffer()`会运行时报错。
-
-    数据的传递通过 map memory 完成。
-
-* vulkand command pool 和 command buffer 的创建比较简单
+* vulkan command pool 和 command buffer 的创建比较简单
 
     ```cpp
     VkCommandPool cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
@@ -679,14 +27,6 @@
     ```
 
     按部就班，没有什么难理解的地方。
-
-* 感觉在 vulkan 的 debug messenger callback 函数中，前两个参数可以都设置为`flag`，不需要区分到 flag bits。
-
-    因为 flag bits 是枚举类型，实际上的类型是`uint32_t`，而`VkFlag`也是`uint32_t`，因此实际上是通用的。
-
-    callback 函数的返回值类型也可以设置成`VkResult`，返回`VK_SUCCESS`。这样比`VkBool32`加`VK_FALSE`更明确一些。
-
-    只需要记住顺序，先是 severity，然后才是 message type
 
 * vulkan 的 vk get physical device queue family properties() 返回的参数的类型却是 vk queue family properties。
 
@@ -1361,7 +701,7 @@ validation layer 对应的名称为`"VK_LAYER_KHRONOS_validation"`。
 
 为了使用 callback function，需要使用`VK_EXT_DEBUG_UTILS_EXTENSION_NAME` extension，这个宏等价于`"VK_EXT_debug_utils"`。
 
-#### using pNext of instance creation info
+#### using `pNext` of instance creation info
 
 Example code:
 
@@ -1587,6 +927,14 @@ validation layer: Instance Extension: VK_EXT_direct_mode_display (/usr/lib/x86_6
 validation layer: Instance Extension: VK_EXT_display_surface_counter (/usr/lib/x86_64-linux-gnu/libvulkan_intel.so) version 0.0.1
 successfully create a vk instance.
 ```
+
+* 感觉在 vulkan 的 debug messenger callback 函数中，前两个参数可以都设置为`flag`，不需要区分到 flag bits。
+
+    因为 flag bits 是枚举类型，实际上的类型是`uint32_t`，而`VkFlag`也是`uint32_t`，因此实际上是通用的。
+
+    callback 函数的返回值类型也可以设置成`VkResult`，返回`VK_SUCCESS`。这样比`VkBool32`加`VK_FALSE`更明确一些。
+
+    只需要记住顺序，先是 severity，然后才是 message type
 
 #### using debug messenger
 
@@ -1823,6 +1171,12 @@ support transfer
 
 ### present queue
 
+## Renderpass and Pipeline
+
+* 不清楚为什么要在 pipeline 里填写 scissor 和 viewport 的信息
+
+    vkCmd 的 scissor 和 viewport 和 pipeline 中的是一样的吗？
+
 ## swapchain
 
 * 有关窗口 buffer 和渲染 buffer 的创建与关联流程
@@ -1929,6 +1283,45 @@ fence 会作为参数传入`vkQueueSubmit()`中，提交完指令后等待 gpu �
     After queueing all rendering commands and transitioning the image to the correct layout, to queue an image for presentation.
 
 看起来`vkQueueSubmit`和`vkQueuePresentKHR`都是非阻塞式的，因此分开来执行了。
+
+* vulkan synchronization
+
+    fence 必须先 reset 才能使用。
+
+    一个 fence 只能作用用一个 queue，`vkAcquireNextImageKHR()`也算一个 queue。
+
+    `sem_img_available`必须先由`vkAcquireNextImageKHR()`赋值过后才能交给`vkQueueSubmit()`使用。
+
+    example code:
+
+    ```cpp
+    VkSemaphore sem_finish_rendering = create_semaphore(device);
+    VkSemaphore sem_img_available = create_semaphore(device);
+    VkFence fence_acq_img = create_fence(device);
+    VkFence fence_queue_submit = create_fence(device);
+
+    vkResetFences(device, 1, &fence_acq_img);
+    uint32_t available_img_idx;
+    vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
+
+    vkResetFences(device, 1, &fence_queue_submit);
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &sem_finish_rendering;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.waitSemaphoreCount = 0;
+    submit_info.pWaitSemaphores = &sem_img_available;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buf;
+    VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.pWaitDstStageMask = &pipeline_stage_flags;
+    vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
+    ```
+
+    猜想：fence 只代表 gpu 返回，不代表 queue 执行结束，因此使用 semaphore 来判断 queue 是否执行结束。
+
+    （这段代码中可能还少了一个 wait fence）
 
 ## 画一个三角形的最终代码
 
@@ -3744,6 +3137,46 @@ vulkan memory 由 physical device 管理，不对应到具体的图像资源上�
 
     创建完了 buffer，还需要把它绑定到一个 memory 对象上，这样才能使用。
 
+* vulkan memory
+
+    vulkan 将 memory 分为两类：host memroy 和 device memroy。
+
+    host memory 顾名思义就是 cpu 能直接访问的内存。有时候对内存有一些特别的要求，比对 4 字节对齐之类的，那么就需要用到自定义的 allocator。
+
+    因此在 vulkan 的 api 中，有时会见到`VkAllocationCallbacks`这样的结构体：
+
+    ```cpp
+    typedef struct VkAllocationCallbacks {
+        void* pUserData;
+        PFN_vkAllocationFunction pfnAllocation;
+        PFN_vkReallocationFunction pfnReallocation;
+        PFN_vkFreeFunction pfnFree;
+        PFN_vkInternalAllocationNotification pfnInternalAllocation;
+        PFN_vkInternalFreeNotification pfnInternalFree;
+    } VkAllocationCallbacks;
+    ```
+
+    常用的有`pfnAllocation`, `pfnReallocation`, and `pfnFree`这三个字段。
+
+    ```cpp
+    void* VKAPI_CALL Allocation(
+        void* pUserData,
+        size_t size,
+        size_talignment,
+        VkSystemAllocationScope allocationScope);
+
+    void* VKAPI_CALL Reallocation(
+        void* pUserData,
+        void* pOriginal,
+        size_t size,
+        size_t alignment,
+        VkSystemAllocationScope allocationScope);
+
+    void VKAPI_CALL Free(
+        void* pUserData,
+        void* pMemory);
+    ```
+
 ### transmit memory content from cpu to gpu
 
 `shader_2.vert`:
@@ -4771,7 +4204,409 @@ int main()
 
     由于 vulkan 中的 barrier 兼具 layout 转换和 memory barrier 的作用，所以 layout 随便填一填就行了，barrier 还是得设置。
 
-## 使用 index buffer
+### map memory
+
+* vulkan map memory 主要是为了把显存的地址空间映射到用户的地址空间。
+
+    之所以要做地址空间的映射，猜测可能是操作系统对“进程”的地址空间的限制。
+
+### vulkan buffer
+
+### vulkan image
+
+* 有关 vulkan 中的 subresource
+
+    对于 depth-stencil 图像，depth 层和 stencil 层都可以独立拿出来作为一张图片，这些都称作 subimage，即 subresource.
+
+    depth 和 stencil 这两种 subimage 都被叫作 aspect.
+
+    不清楚 stencil 是什么意思，可能是和 depth, color 处于同一层的一种概念。
+
+* 有关 image view 的解释
+
+    vkimage 对象存储的图像可能是压缩过的数据，并且极大可能是 rgbds 多个通道（aspect）组合成的图像，还有可能有 mip level 多个尺寸的图像。
+    
+    vkimageview 可以指定一些额外的信息，从而让 vk 去做压缩数据到未压缩数据的自动转换，抽取指定 aspect 的数据，选择指定 mip level 等等。
+
+* 不清楚 array image 是什么意思，可能是未压缩的图像数据？
+
+* layer 似乎指的是完整的一张图片
+
+    比如一个 cube 上的贴图， 因为正方体有 6 个面，所以这个 vkimageview 有 6 个 layer，每个 layer 对应一个 array。
+
+    而对应的 vkimage 的 layer 数显然需要大于等于 6 才行。
+
+    non-array image 的 layer 数为 1。
+
+    显然这里的 vkimage 已经不再是通常意义上的一张 rgb 图片，而是一个更复杂的抽象概念。
+
+* vkGetDeviceMemoryCommitment 可以返回 gpu 实际分配的显存
+
+* 在创建 vkimage 时，由于需要有 4 字节对齐的要求，所以实际创建的 image 可能会有 padding
+
+    ```cpp
+    void create_vk_image(VkImage &img, const VkDevice device,
+        const uint32_t width, const uint32_t height)
+    {
+        VkImageCreateInfo img_crt_info{};
+        img_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_crt_info.imageType = VK_IMAGE_TYPE_2D;
+        img_crt_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        img_crt_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_crt_info.format = VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+        img_crt_info.extent.width = width;
+        img_crt_info.extent.height = height;
+        img_crt_info.extent.depth = 1;
+        img_crt_info.mipLevels = 1;
+        img_crt_info.arrayLayers = 1;
+        img_crt_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_crt_info.tiling = VK_IMAGE_TILING_LINEAR;
+        img_crt_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkResult result = vkCreateImage(device, &img_crt_info, nullptr, &img);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create image\n");
+            exit(-1);
+        }
+    }
+
+    VkImage img;
+    create_vk_image(img, device, 700, 500);
+
+    VkImageSubresource img_subres{};
+    img_subres.arrayLayer = 0;
+    img_subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_subres.mipLevel = 0;
+    VkSubresourceLayout subres_layout;
+    vkGetImageSubresourceLayout(device, img, &img_subres, &subres_layout);
+    printf("rowPitch in bytes: %lu, rowPitch in pixel: %lu\n", subres_layout.rowPitch, subres_layout.rowPitch / 4);
+    ```
+
+    输出：
+
+    ```
+    rowPitch in bytes: 2816, rowPitch in pixel: 704
+    ```
+
+    比如上面这段代码，创建的图片宽度为 700，但是实际的图片宽度为 704。其中 4 个像素为 padding。
+
+* image layout 都是可以直接不管的，它们相当于 warning，并不会造成实际的错误。
+
+* copy image
+
+    总体还是挺复杂的，这里是一些代码。总体思路是，因为我们拿不到 swapchain image 的 memory，所以先创建个自己的 vkimage，并创建一个 backed memory，然后使用`vkCmdCopyImage`去复制 image，最后使用`vkMapMemory`拿到自己的 image 的显存内容。
+
+    比较复杂的部分是执行`vkCmdCopyImage()`的前置条件，需要创建 command pool, command buffer，submit 等等。
+
+    image layout 只是一个状态，相关的报错并不影响 command 的执行，因此都可以忽略掉。
+
+    ```cpp
+    void copy_image_to_arr(const VkImage img, std::vector<u_char> &arr,
+        uint32_t &img_width, uint32_t &img_height,
+        const VkDevice device, const uint32_t queue_family_idx,
+        const uint32_t memory_type_idx)
+    {
+        // get image extent
+        VkImageSubresource subres{};
+        subres.mipLevel = 0;
+        subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subres.arrayLayer = 0;
+        VkSubresourceLayout subres_layout;
+        vkGetImageSubresourceLayout(device, img, &subres, &subres_layout);
+        printf("row pitch: %lu\n", subres_layout.rowPitch);
+        printf("img size: %lu\n", subres_layout.size);
+        printf("row num (img size / row pitch): %f\n", (float)subres_layout.size / subres_layout.rowPitch);
+        uint32_t width = subres_layout.rowPitch / 4;
+        uint32_t height = subres_layout.size / subres_layout.rowPitch;
+        img_width = width;
+        img_height = height;
+        
+        // create dst image
+        VkImageCreateInfo img_crt_info{};
+        img_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_crt_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        img_crt_info.tiling = VK_IMAGE_TILING_LINEAR;
+        img_crt_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_crt_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_crt_info.queueFamilyIndexCount = 1;
+        img_crt_info.pQueueFamilyIndices = &queue_family_idx;
+        img_crt_info.mipLevels = 1;
+        img_crt_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_crt_info.imageType = VK_IMAGE_TYPE_2D;
+        img_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+        img_crt_info.extent.width = width;
+        img_crt_info.extent.height = height;
+        img_crt_info.extent.depth = 1;
+        img_crt_info.arrayLayers = 1;
+        VkImage img_dst;
+        VkResult result = vkCreateImage(device, &img_crt_info, nullptr, &img_dst);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create image\n");
+            exit(-1);
+        }
+
+        // create backed memory
+        VkMemoryRequirements mem_req{};
+        vkGetImageMemoryRequirements(device, img_dst, &mem_req);
+        VkMemoryAllocateInfo mem_alc_info{};
+        mem_alc_info.allocationSize = mem_req.size;
+        mem_alc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        mem_alc_info.memoryTypeIndex = memory_type_idx;
+        VkDeviceMemory mem;
+        result = vkAllocateMemory(device, &mem_alc_info, nullptr, &mem);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate memory\n");
+            exit(-1);
+        }
+        result = vkBindImageMemory(device, img_dst, mem, 0);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to bind image memory\n");
+            exit(-1);
+        }
+
+        // create command pool and allocate command buffer
+        VkCommandPool cmd_pool;
+        VkCommandPoolCreateInfo cmd_pool_crt_info{};
+        cmd_pool_crt_info.queueFamilyIndex = queue_family_idx;
+        cmd_pool_crt_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmd_pool_crt_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        result = vkCreateCommandPool(device, &cmd_pool_crt_info, nullptr, &cmd_pool);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create command pool\n");
+            exit(-1);
+        }
+        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmd_buf_alc_info.commandPool = cmd_pool;
+        cmd_buf_alc_info.commandBufferCount = 1;
+        VkCommandBuffer cmd_buf;
+        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf); 
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate command buffer\n");
+            exit(-1);
+        }
+
+        VkQueue queue;
+        vkGetDeviceQueue(device, queue_family_idx, 0, &queue);
+        
+        // submit copy image command
+        VkCommandBufferBeginInfo cmd_buf_beg_info{};
+        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        result = vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to begin command buffer\n");
+            exit(-1);
+        }
+        VkImageCopy img_copy{};
+        img_copy.extent.width = width;
+        img_copy.extent.height = height;
+        img_copy.extent.depth = 1;
+        img_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_copy.srcSubresource.layerCount = 1;
+        img_copy.srcSubresource.baseArrayLayer = 0;
+        img_copy.srcSubresource.mipLevel = 0;
+        img_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_copy.dstSubresource.baseArrayLayer = 0;
+        img_copy.dstSubresource.layerCount = 1;
+        img_copy.dstSubresource.mipLevel = 0;
+        vkCmdCopyImage(cmd_buf, img, VK_IMAGE_LAYOUT_UNDEFINED, img_dst, VK_IMAGE_LAYOUT_UNDEFINED, 1, &img_copy);
+        result = vkEndCommandBuffer(cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to end command buffer\n");
+            exit(-1);
+        }
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = nullptr;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd_buf;
+        result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to subbmit queue\n");
+            exit(-1);
+        }
+        result = vkDeviceWaitIdle(device);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to wait device idle\n");
+            exit(-1);
+        }
+
+        // map memory, fill image array
+        arr.resize(mem_req.size);
+        u_char *mem_data;
+        result = vkMapMemory(device, mem, 0, VK_WHOLE_SIZE, 0, (void**)&mem_data);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to map memory\n");
+            exit(-1);
+        }
+        for (int i = 0; i < mem_req.size; ++i)
+        {
+            arr[i] = *mem_data++;
+        }
+        vkUnmapMemory(device, mem);
+        
+        // clean up
+        vkFreeCommandBuffers(device, cmd_pool, 1, &cmd_buf);
+        vkDestroyCommandPool(device, cmd_pool, nullptr);
+        vkDestroyImage(device, img_dst, nullptr);
+        vkFreeMemory(device, mem, nullptr);
+    }
+
+    void save_vk_img_to_file(const VkImage img, const char *file_path,
+        const VkDevice device, const uint32_t queue_family_idx,
+        const uint32_t mem_type_idx)
+    {
+        // save image
+        std::vector<u_char> arr;
+        uint32_t width, height;
+        copy_image_to_arr(img, arr, width, height, device, queue_family_idx, mem_type_idx);
+        FILE *f = fopen(file_path, "w");
+        fprintf(f, "P3\n");
+        fprintf(f, "%d %d\n", width, height);
+        fprintf(f, "255\n");
+        for (int row = 0; row < height; ++row)
+        {
+            for (int col = 0; col < width; ++col)
+            {
+                fprintf(f, "%d %d %d ", arr[(row*width + col) * 4 + 2],
+                    arr[(row*width + col) * 4 + 1],
+                    arr[(row*width + col) * 4 + 0]);
+            }
+            fprintf(f, "\n");
+        }
+        fclose(f);
+    }
+    ```
+
+    有一个细节需要注意，我们在 copy image 的时候，是没有考虑到 padding 的，但是在使用 device memory 的时候，会考虑到 padding 的部分。
+
+* 使用 barrier 对图片的 layout 进行转换
+
+    核心函数是`vkCmdPipelineBarrier()`，通过 image memory barrier，对 image layout 进行转换。
+
+    ```cpp
+        VkCommandPool cmd_pool;
+        VkCommandPoolCreateInfo cmd_crt_info{};
+        cmd_crt_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmd_crt_info.queueFamilyIndex = graphics_queue_family_idx;
+        cmd_crt_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        result = vkCreateCommandPool(device, &cmd_crt_info, nullptr, &cmd_pool);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create command pool\n");
+            exit(-1);
+        }
+        VkCommandBuffer cmd_buf;
+        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd_buf_alc_info.commandPool = cmd_pool;
+        cmd_buf_alc_info.commandBufferCount = 1;
+        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to create command buffer\n");
+            exit(-1);
+        }
+
+        VkCommandBufferBeginInfo cmd_buf_beg_info{};
+        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        result = vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to begin command buffer\n");
+            exit(-1);
+        }
+
+        VkImageMemoryBarrier img_mem_bar{};
+        img_mem_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        img_mem_bar.image = img;
+        img_mem_bar.srcAccessMask = 0;
+        img_mem_bar.dstAccessMask = 0;
+        img_mem_bar.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        img_mem_bar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        img_mem_bar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        img_mem_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_mem_bar.subresourceRange.baseArrayLayer = 0;
+        img_mem_bar.subresourceRange.layerCount = 1;
+        img_mem_bar.subresourceRange.baseMipLevel = 0;
+        img_mem_bar.subresourceRange.levelCount = 1;
+        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_HOST_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
+        img_mem_bar.image = imgs[0];
+        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
+
+        VkImageCopy region{};
+        region.srcOffset = {0, 0, 0};
+        region.dstOffset = {0, 0, 0};
+        VkImageSubresourceLayers img_subres_layers;
+        img_subres_layers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_subres_layers.layerCount = 1;
+        img_subres_layers.baseArrayLayer = 0;
+        img_subres_layers.mipLevel = 0;
+        region.extent = {700, 500, 1};
+        region.srcSubresource = img_subres_layers;
+        region.dstSubresource = img_subres_layers;
+        VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        vkCmdCopyImage(cmd_buf, img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            imgs[0], VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &region);
+        img_mem_bar.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
+
+        result = vkEndCommandBuffer(cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to end command buffer\n");
+            exit(-1);
+        }
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = nullptr;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd_buf;
+        result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to submit command buffer\n");
+            exit(-1);
+        }
+
+        result = vkDeviceWaitIdle(device);
+        if (result != VK_SUCCESS)
+        {
+            printf("error\n");
+            exit(-1);
+        }
+    ```
+
+    目前不太清楚为啥根本没有 pipeline，还是会出现`VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT`。
+
+### vertex buffer and index buffer
+
+vertex buffer 和 index buffer 是两种特殊的 buffer，它们被送入 shader 中，与 uniform buffer 相区别开。
 
 同 opengl 一样，使用顶点数据 + 索引数据结合的形式定义三角形，从而节省存储空间。
 
@@ -5809,7 +5644,151 @@ int main()
 
 主要多了`vkCmdBindIndexBuffer()`，`vkCmdDrawIndexed()`，`createIndexBuffer()`这几个，另外还有额外的顶点数据`indices`。也不算多难。
 
-## descriptor set
+* vulkan vertex buffer, index buffer
+
+    example code:
+
+    ```cpp
+    float vtxs[9] = {
+        -0.5, 0, 0,
+        0, 0.5, 0,
+        0.5, 0, 0
+    };
+    VkBuffer vtx_buf;
+    VkDeviceMemory vtx_buf_mem;
+    create_vk_buffer(vtx_buf, vtx_buf_mem, phy_dev, device, 3 * 3 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    float *p_mem_data = nullptr;
+    result = vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, vtxs, sizeof(vtxs));
+    vkUnmapMemory(device, vtx_buf_mem);
+
+    uint32_t idxs[3] = {0, 1, 2};
+    VkBuffer idx_buf;
+    VkDeviceMemory idx_buf_mem;
+    create_vk_buffer(idx_buf, idx_buf_mem, phy_dev, device, sizeof(idxs), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    vkMapMemory(device, idx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, idxs, sizeof(idxs));
+    vkUnmapMemory(device, idx_buf_mem);
+
+    VkCommandBufferBeginInfo cmd_buf_beg_info{};
+    cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+    VkDeviceSize offset = 0;
+    vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+    vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
+    vkEndCommandBuffer(cmd_buf);
+    ```
+
+    vulkan 专门给出了`VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`和`VK_BUFFER_USAGE_INDEX_BUFFER_BIT`这两个 buffer 类型，用于创建 vertex buffer 和 index buffer。如果用了其他类型，后面`vkCmdBindXXXXBuffer()`会运行时报错。
+
+    数据的传递通过 map memory 完成。
+
+* 实际上 vertex input buffer 并不是只能传递 vertex 数据
+
+    因为 shader pipeline 是串行执行的，要想给 fragment shader 数据，必须先把数据给 vertex shader
+
+    因此 vertex shader 的 input 实际上是所有的输入数据。
+
+## Descriptor set
+
+* descriptor set 主要是用来描述 uniform buffer 的
+
+    在创建完 descriptor set layout 后，可以和 pipeline layout 绑定：
+
+    ```cpp
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &desc_set_layout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    VkPipelineLayout pipelineLayout;
+    vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+    ```
+
+    要写入 uniform buffer 的数据，可以使用`vkUpdateDescriptorSets()`:
+
+    ```cpp
+    float rgb[3] = {0.8, 0.5, 0.5};
+    VkBuffer color_buf;
+    VkDeviceMemory color_buf_mem;
+    create_vk_buffer(color_buf, color_buf_mem, phy_dev, device, sizeof(float) * 3, 
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    vkMapMemory(device, color_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, rgb, sizeof(rgb));
+    vkUnmapMemory(device, color_buf_mem);
+
+    VkWriteDescriptorSet wrt_desc_set{};
+    wrt_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    wrt_desc_set.dstSet = desc_set;
+    VkDescriptorBufferInfo desc_buf_info{};
+    desc_buf_info.buffer = color_buf;
+    wrt_desc_set.pBufferInfo = &desc_buf_info;
+    wrt_desc_set.descriptorCount = 1;
+    desc_buf_info.offset = 0;
+    desc_buf_info.range = VK_WHOLE_SIZE;
+    wrt_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    wrt_desc_set.dstArrayElement = 0;
+    wrt_desc_set.dstBinding = 0;
+    vkUpdateDescriptorSets(device, 1, &wrt_desc_set, 0, nullptr);
+    ```
+
+    在 record command buffer 时，不要忘了这个：
+
+    ```cpp
+    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
+    ```
+
+    这一行和前面的`pipelineLayoutInfo.pSetLayouts = &desc_set_layout;`是相对应的，必须保持一致。
+
+    这里用的是`desc_set`，而不是 layout。descriptor set 需要在 pool 中申请（allocate）。
+
+    在 shader 中，vulkan 要求 uniform buffer 必须写成 bloack 的形式：
+
+    `shader_2.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 inPosition;
+
+    layout (binding = 0) uniform RGB {
+        vec3 rgb;
+    } rgbs;
+
+    layout(location = 0) out vec3 frag_color;
+
+    void main() {
+        gl_Position = vec4(inPosition, 1.0);
+        frag_color = rgbs.rgb;
+    }
+    ```
+
+    `shader_2.frag`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 frag_color;
+    layout(location = 0) out vec3 outColor;
+
+    void main() {
+        outColor = vec3(0.5, 0.8, 0.5);
+        outColor = frag_color;
+    }
+    ```
+
+    运行后效果如下：
+
+    <div style=text-align:center>
+    <img width=500 src='./pics/vulkan_note/pic_1.png'>
+    </div>
+
+A descriptor set specifies the actual buffer or image resources that will be bound to the descriptors.
 
 ```cpp
 VkDescriptorSetLayout descriptorSetLayout;
@@ -5904,404 +5883,19 @@ void createDescriptorSetLayout() {
 
     pipeline 最终通过 bind 的方式，加入到 renderpass 中发挥作用。
 
+* vulkan: `VkVertexInputBindingDescription`中的`stride`指的是给每个流处理器分的数据的长度
 
-## map memory
+    比如，对于位置坐标，float, `(x, y, z)`三个分量，`stride`就是`sizeof(float) * 3 = 4 * 3 = 12`。
 
-* vulkan map memory 主要是为了把显存的地址空间映射到用户的地址空间。
+    `inputRate`似乎涉及到 vertex 还是 instance 的数据索引，因为没使用过 instance，所以不清楚这个是怎么回事。
 
-    之所以要做地址空间的映射，猜测可能是操作系统对“进程”的地址空间的限制。
+    目前只需要填`VK_VERTEX_INPUT_RATE_VERTEX`就可以了。
 
-## VKImage
+    * `VkVertexInputAttributeDescription`似乎是指，比如 vertex buffer，给每个流处理器分 5 个 float 数，前 2 个 float 数表示 x, y 坐标，后 3 个 float 数表示 r, g, b 颜色。那么就认为这个 input vertex buffer 有两个 attribute，分别为 xy 坐标和 rgb 颜色。
 
-* 有关 vulkan 中的 subresource
+        我们使用 offset 来指定偏移，从而获得不同的 attribute。
 
-    对于 depth-stencil 图像，depth 层和 stencil 层都可以独立拿出来作为一张图片，这些都称作 subimage，即 subresource.
-
-    depth 和 stencil 这两种 subimage 都被叫作 aspect.
-
-    不清楚 stencil 是什么意思，可能是和 depth, color 处于同一层的一种概念。
-
-* 有关 image view 的解释
-
-    vkimage 对象存储的图像可能是压缩过的数据，并且极大可能是 rgbds 多个通道（aspect）组合成的图像，还有可能有 mip level 多个尺寸的图像。
-    
-    vkimageview 可以指定一些额外的信息，从而让 vk 去做压缩数据到未压缩数据的自动转换，抽取指定 aspect 的数据，选择指定 mip level 等等。
-
-* 不清楚 array image 是什么意思，可能是未压缩的图像数据？
-
-* layer 似乎指的是完整的一张图片
-
-    比如一个 cube 上的贴图， 因为正方体有 6 个面，所以这个 vkimageview 有 6 个 layer，每个 layer 对应一个 array。
-
-    而对应的 vkimage 的 layer 数显然需要大于等于 6 才行。
-
-    non-array image 的 layer 数为 1。
-
-    显然这里的 vkimage 已经不再是通常意义上的一张 rgb 图片，而是一个更复杂的抽象概念。
-
-* vkGetDeviceMemoryCommitment 可以返回 gpu 实际分配的显存
-
-* 在创建 vkimage 时，由于需要有 4 字节对齐的要求，所以实际创建的 image 可能会有 padding
-
-    ```cpp
-    void create_vk_image(VkImage &img, const VkDevice device,
-        const uint32_t width, const uint32_t height)
-    {
-        VkImageCreateInfo img_crt_info{};
-        img_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        img_crt_info.imageType = VK_IMAGE_TYPE_2D;
-        img_crt_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        img_crt_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        img_crt_info.format = VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
-        img_crt_info.extent.width = width;
-        img_crt_info.extent.height = height;
-        img_crt_info.extent.depth = 1;
-        img_crt_info.mipLevels = 1;
-        img_crt_info.arrayLayers = 1;
-        img_crt_info.samples = VK_SAMPLE_COUNT_1_BIT;
-        img_crt_info.tiling = VK_IMAGE_TILING_LINEAR;
-        img_crt_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkResult result = vkCreateImage(device, &img_crt_info, nullptr, &img);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to create image\n");
-            exit(-1);
-        }
-    }
-
-    VkImage img;
-    create_vk_image(img, device, 700, 500);
-
-    VkImageSubresource img_subres{};
-    img_subres.arrayLayer = 0;
-    img_subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    img_subres.mipLevel = 0;
-    VkSubresourceLayout subres_layout;
-    vkGetImageSubresourceLayout(device, img, &img_subres, &subres_layout);
-    printf("rowPitch in bytes: %lu, rowPitch in pixel: %lu\n", subres_layout.rowPitch, subres_layout.rowPitch / 4);
-    ```
-
-    输出：
-
-    ```
-    rowPitch in bytes: 2816, rowPitch in pixel: 704
-    ```
-
-    比如上面这段代码，创建的图片宽度为 700，但是实际的图片宽度为 704。其中 4 个像素为 padding。
-
-* image layout 都是可以直接不管的，它们相当于 warning，并不会造成实际的错误。
-
-* copy image
-
-    总体还是挺复杂的，这里是一些代码。总体思路是，因为我们拿不到 swapchain image 的 memory，所以先创建个自己的 vkimage，并创建一个 backed memory，然后使用`vkCmdCopyImage`去复制 image，最后使用`vkMapMemory`拿到自己的 image 的显存内容。
-
-    比较复杂的部分是执行`vkCmdCopyImage()`的前置条件，需要创建 command pool, command buffer，submit 等等。
-
-    image layout 只是一个状态，相关的报错并不影响 command 的执行，因此都可以忽略掉。
-
-    ```cpp
-    void copy_image_to_arr(const VkImage img, std::vector<u_char> &arr,
-        uint32_t &img_width, uint32_t &img_height,
-        const VkDevice device, const uint32_t queue_family_idx,
-        const uint32_t memory_type_idx)
-    {
-        // get image extent
-        VkImageSubresource subres{};
-        subres.mipLevel = 0;
-        subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subres.arrayLayer = 0;
-        VkSubresourceLayout subres_layout;
-        vkGetImageSubresourceLayout(device, img, &subres, &subres_layout);
-        printf("row pitch: %lu\n", subres_layout.rowPitch);
-        printf("img size: %lu\n", subres_layout.size);
-        printf("row num (img size / row pitch): %f\n", (float)subres_layout.size / subres_layout.rowPitch);
-        uint32_t width = subres_layout.rowPitch / 4;
-        uint32_t height = subres_layout.size / subres_layout.rowPitch;
-        img_width = width;
-        img_height = height;
-        
-        // create dst image
-        VkImageCreateInfo img_crt_info{};
-        img_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        img_crt_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        img_crt_info.tiling = VK_IMAGE_TILING_LINEAR;
-        img_crt_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        img_crt_info.samples = VK_SAMPLE_COUNT_1_BIT;
-        img_crt_info.queueFamilyIndexCount = 1;
-        img_crt_info.pQueueFamilyIndices = &queue_family_idx;
-        img_crt_info.mipLevels = 1;
-        img_crt_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        img_crt_info.imageType = VK_IMAGE_TYPE_2D;
-        img_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
-        img_crt_info.extent.width = width;
-        img_crt_info.extent.height = height;
-        img_crt_info.extent.depth = 1;
-        img_crt_info.arrayLayers = 1;
-        VkImage img_dst;
-        VkResult result = vkCreateImage(device, &img_crt_info, nullptr, &img_dst);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to create image\n");
-            exit(-1);
-        }
-
-        // create backed memory
-        VkMemoryRequirements mem_req{};
-        vkGetImageMemoryRequirements(device, img_dst, &mem_req);
-        VkMemoryAllocateInfo mem_alc_info{};
-        mem_alc_info.allocationSize = mem_req.size;
-        mem_alc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        mem_alc_info.memoryTypeIndex = memory_type_idx;
-        VkDeviceMemory mem;
-        result = vkAllocateMemory(device, &mem_alc_info, nullptr, &mem);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to allocate memory\n");
-            exit(-1);
-        }
-        result = vkBindImageMemory(device, img_dst, mem, 0);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to bind image memory\n");
-            exit(-1);
-        }
-
-        // create command pool and allocate command buffer
-        VkCommandPool cmd_pool;
-        VkCommandPoolCreateInfo cmd_pool_crt_info{};
-        cmd_pool_crt_info.queueFamilyIndex = queue_family_idx;
-        cmd_pool_crt_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmd_pool_crt_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        result = vkCreateCommandPool(device, &cmd_pool_crt_info, nullptr, &cmd_pool);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to create command pool\n");
-            exit(-1);
-        }
-        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
-        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cmd_buf_alc_info.commandPool = cmd_pool;
-        cmd_buf_alc_info.commandBufferCount = 1;
-        VkCommandBuffer cmd_buf;
-        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf); 
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to allocate command buffer\n");
-            exit(-1);
-        }
-
-        VkQueue queue;
-        vkGetDeviceQueue(device, queue_family_idx, 0, &queue);
-        
-        // submit copy image command
-        VkCommandBufferBeginInfo cmd_buf_beg_info{};
-        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        result = vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to begin command buffer\n");
-            exit(-1);
-        }
-        VkImageCopy img_copy{};
-        img_copy.extent.width = width;
-        img_copy.extent.height = height;
-        img_copy.extent.depth = 1;
-        img_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        img_copy.srcSubresource.layerCount = 1;
-        img_copy.srcSubresource.baseArrayLayer = 0;
-        img_copy.srcSubresource.mipLevel = 0;
-        img_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        img_copy.dstSubresource.baseArrayLayer = 0;
-        img_copy.dstSubresource.layerCount = 1;
-        img_copy.dstSubresource.mipLevel = 0;
-        vkCmdCopyImage(cmd_buf, img, VK_IMAGE_LAYOUT_UNDEFINED, img_dst, VK_IMAGE_LAYOUT_UNDEFINED, 1, &img_copy);
-        result = vkEndCommandBuffer(cmd_buf);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to end command buffer\n");
-            exit(-1);
-        }
-        VkSubmitInfo submit_info{};
-        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_info.waitSemaphoreCount = 0;
-        submit_info.pWaitSemaphores = nullptr;
-        submit_info.signalSemaphoreCount = 0;
-        submit_info.pSignalSemaphores = nullptr;
-        submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &cmd_buf;
-        result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to subbmit queue\n");
-            exit(-1);
-        }
-        result = vkDeviceWaitIdle(device);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to wait device idle\n");
-            exit(-1);
-        }
-
-        // map memory, fill image array
-        arr.resize(mem_req.size);
-        u_char *mem_data;
-        result = vkMapMemory(device, mem, 0, VK_WHOLE_SIZE, 0, (void**)&mem_data);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to map memory\n");
-            exit(-1);
-        }
-        for (int i = 0; i < mem_req.size; ++i)
-        {
-            arr[i] = *mem_data++;
-        }
-        vkUnmapMemory(device, mem);
-        
-        // clean up
-        vkFreeCommandBuffers(device, cmd_pool, 1, &cmd_buf);
-        vkDestroyCommandPool(device, cmd_pool, nullptr);
-        vkDestroyImage(device, img_dst, nullptr);
-        vkFreeMemory(device, mem, nullptr);
-    }
-
-    void save_vk_img_to_file(const VkImage img, const char *file_path,
-        const VkDevice device, const uint32_t queue_family_idx,
-        const uint32_t mem_type_idx)
-    {
-        // save image
-        std::vector<u_char> arr;
-        uint32_t width, height;
-        copy_image_to_arr(img, arr, width, height, device, queue_family_idx, mem_type_idx);
-        FILE *f = fopen(file_path, "w");
-        fprintf(f, "P3\n");
-        fprintf(f, "%d %d\n", width, height);
-        fprintf(f, "255\n");
-        for (int row = 0; row < height; ++row)
-        {
-            for (int col = 0; col < width; ++col)
-            {
-                fprintf(f, "%d %d %d ", arr[(row*width + col) * 4 + 2],
-                    arr[(row*width + col) * 4 + 1],
-                    arr[(row*width + col) * 4 + 0]);
-            }
-            fprintf(f, "\n");
-        }
-        fclose(f);
-    }
-    ```
-
-    有一个细节需要注意，我们在 copy image 的时候，是没有考虑到 padding 的，但是在使用 device memory 的时候，会考虑到 padding 的部分。
-
-* 使用 barrier 对图片的 layout 进行转换
-
-    核心函数是`vkCmdPipelineBarrier()`，通过 image memory barrier，对 image layout 进行转换。
-
-    ```cpp
-        VkCommandPool cmd_pool;
-        VkCommandPoolCreateInfo cmd_crt_info{};
-        cmd_crt_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmd_crt_info.queueFamilyIndex = graphics_queue_family_idx;
-        cmd_crt_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        result = vkCreateCommandPool(device, &cmd_crt_info, nullptr, &cmd_pool);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to create command pool\n");
-            exit(-1);
-        }
-        VkCommandBuffer cmd_buf;
-        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
-        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmd_buf_alc_info.commandPool = cmd_pool;
-        cmd_buf_alc_info.commandBufferCount = 1;
-        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to create command buffer\n");
-            exit(-1);
-        }
-
-        VkCommandBufferBeginInfo cmd_buf_beg_info{};
-        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        result = vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to begin command buffer\n");
-            exit(-1);
-        }
-
-        VkImageMemoryBarrier img_mem_bar{};
-        img_mem_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        img_mem_bar.image = img;
-        img_mem_bar.srcAccessMask = 0;
-        img_mem_bar.dstAccessMask = 0;
-        img_mem_bar.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        img_mem_bar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        img_mem_bar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        img_mem_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        img_mem_bar.subresourceRange.baseArrayLayer = 0;
-        img_mem_bar.subresourceRange.layerCount = 1;
-        img_mem_bar.subresourceRange.baseMipLevel = 0;
-        img_mem_bar.subresourceRange.levelCount = 1;
-        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_HOST_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
-        img_mem_bar.image = imgs[0];
-        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
-
-        VkImageCopy region{};
-        region.srcOffset = {0, 0, 0};
-        region.dstOffset = {0, 0, 0};
-        VkImageSubresourceLayers img_subres_layers;
-        img_subres_layers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        img_subres_layers.layerCount = 1;
-        img_subres_layers.baseArrayLayer = 0;
-        img_subres_layers.mipLevel = 0;
-        region.extent = {700, 500, 1};
-        region.srcSubresource = img_subres_layers;
-        region.dstSubresource = img_subres_layers;
-        VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        vkCmdCopyImage(cmd_buf, img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            imgs[0], VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1, &region);
-        img_mem_bar.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        img_mem_bar.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &img_mem_bar);
-
-        result = vkEndCommandBuffer(cmd_buf);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to end command buffer\n");
-            exit(-1);
-        }
-        VkSubmitInfo submit_info{};
-        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_info.waitSemaphoreCount = 0;
-        submit_info.pWaitSemaphores = nullptr;
-        submit_info.signalSemaphoreCount = 0;
-        submit_info.pSignalSemaphores = nullptr;
-        submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &cmd_buf;
-        result = vkQueueSubmit(queue, 1, &submit_info, nullptr);
-        if (result != VK_SUCCESS)
-        {
-            printf("fail to submit command buffer\n");
-            exit(-1);
-        }
-
-        result = vkDeviceWaitIdle(device);
-        if (result != VK_SUCCESS)
-        {
-            printf("error\n");
-            exit(-1);
-        }
-    ```
-
-    目前不太清楚为啥根本没有 pipeline，还是会出现`VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT`。
+        每个 attrib 对应一个 location，location 从 0 开始依次递增。这些 location 都同属于一个 binding。
 
 ## vulkan 开发前置的搭建
 
@@ -8150,9 +7744,445 @@ refs:
 
     这样也是可以成功执行的。
 
-## descriptor
+## Draw
 
-A descriptor set specifies the actual buffer or image resources that will be bound to the descriptors.
+* vulkan 画三角形的代码
+
+    ```cpp
+    #include "../simple_vulkan/simple_vk.hpp"
+
+    int main()
+    {
+        glfwInit();
+        VkInstance inst;
+        create_vk_instance(inst);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        GLFWwindow *window = glfwCreateWindow(700, 500, "hello", nullptr, nullptr);
+        VkSurfaceKHR surf;
+        glfwCreateWindowSurface(inst, window, nullptr, &surf);
+        VkPhysicalDevice phy_dev;
+        uint32_t queue_family_idx;
+        select_vk_physical_device(phy_dev, queue_family_idx, queue_family_idx, inst, surf);
+        VkDevice device;
+        VkQueue queue;
+        create_vk_device(device, queue, queue, phy_dev, queue_family_idx, queue_family_idx);
+        VkSwapchainKHR swpch;
+        create_vk_swapchain(swpch, device, surf, queue_family_idx);
+        VkRenderPass render_pass = create_render_pass(VK_FORMAT_B8G8R8A8_SRGB, device);
+
+        // create pipeline
+        auto vert_shader_code = read_file("vert_2.spv");  // "vert_2.spv"
+        auto frag_shader_code = read_file("frag_2.spv");  // "frag_2.spv"
+        VkShaderModule vertShaderModule = create_shader_module(vert_shader_code, device);
+        VkShaderModule fragShaderModule = create_shader_module(frag_shader_code, device);
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+        
+        VkVertexInputBindingDescription vtx_binding_desc{};
+        vtx_binding_desc.binding = 0;
+        vtx_binding_desc.stride = sizeof(float) * 3;  // (x, y, z) 三个分量
+        vtx_binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        VkVertexInputAttributeDescription vtx_attr_desc{};
+        vtx_attr_desc.binding = 0;
+        vtx_attr_desc.location = 0;
+        vtx_attr_desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+        vtx_attr_desc.offset = 0;
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &vtx_binding_desc;
+        vertexInputInfo.vertexAttributeDescriptionCount = 1;
+        vertexInputInfo.pVertexAttributeDescriptions = &vtx_attr_desc;
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
+        std::vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        VkPipelineLayout pipelineLayout{};
+        vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.renderPass = render_pass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+        VkPipeline pipeline;
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create graphics pipeline!");
+        }
+
+        // VkPipeline pipeline = create_pipeline("./vert_2.spv", "frag_2.spv", 9 * sizeof(float), {0, 3 * sizeof(float)}, device, {700, 500}, render_pass);
+        
+        uint32_t swpch_img_count;
+        vkGetSwapchainImagesKHR(device, swpch, &swpch_img_count, nullptr);
+        std::vector<VkImage> swpch_imgs(swpch_img_count);
+        vkGetSwapchainImagesKHR(device, swpch, &swpch_img_count, swpch_imgs.data());
+
+        std::vector<VkImageView> swpch_img_views(swpch_img_count);
+        VkImageViewCreateInfo img_view_crt_info{};
+        img_view_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        img_view_crt_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        img_view_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+        img_view_crt_info.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        VkResult result;
+        for (int i = 0; i < swpch_img_count; ++i)
+        {
+            img_view_crt_info.image = swpch_imgs[i];
+            result = vkCreateImageView(device, &img_view_crt_info, nullptr, &swpch_img_views[i]);
+            if (result != VK_SUCCESS)
+            {
+                printf("fail to create image view, error code %d\n", result);
+                exit(-1);
+            }
+        }
+
+        VkFramebufferCreateInfo frame_buf_crt_info{};
+        frame_buf_crt_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        frame_buf_crt_info.renderPass = render_pass;
+        frame_buf_crt_info.attachmentCount = 1;
+        frame_buf_crt_info.width = 700;
+        frame_buf_crt_info.height = 500;
+        frame_buf_crt_info.layers = 1;
+        std::vector<VkFramebuffer> frame_bufs(swpch_img_count);
+        for (int i = 0; i < swpch_img_count; ++i)
+        {
+            frame_buf_crt_info.pAttachments = &swpch_img_views[i];
+            result = vkCreateFramebuffer(device, &frame_buf_crt_info, nullptr, &frame_bufs[i]);
+            if (result != VK_SUCCESS)
+            {
+                printf("fail to create frame buffer, error code: %d\n", result);
+                exit(-1);
+            }
+        }
+
+        VkCommandPool cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
+        cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
+        VkCommandBuffer cmd_buf;
+        VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+        cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd_buf_alc_info.commandBufferCount = 1;
+        cmd_buf_alc_info.commandPool = cmd_pool;
+        cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
+        if (result != VK_SUCCESS)
+        {
+            printf("fail to allocate command buffer\n");
+            exit(-1);
+        }
+
+        float vtxs[9] = {
+            0, -1, 0,
+            1, 1, 0,
+            -1, 1, 0
+        };
+        VkBuffer vtx_buf;
+        VkDeviceMemory vtx_buf_mem;
+        create_vk_buffer(vtx_buf, vtx_buf_mem, phy_dev, device, 3 * 3 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        float *p_mem_data = nullptr;
+        result = vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+        memcpy(p_mem_data, vtxs, sizeof(vtxs));
+        vkUnmapMemory(device, vtx_buf_mem);
+        vkDeviceWaitIdle(device);
+
+        float temp_mem[9];
+        vkMapMemory(device, vtx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+        memcpy(temp_mem, p_mem_data, sizeof(vtxs));
+        vkUnmapMemory(device, vtx_buf_mem);
+
+        uint32_t idxs[3] = {0, 1, 2};
+        VkBuffer idx_buf;
+        VkDeviceMemory idx_buf_mem;
+        create_vk_buffer(idx_buf, idx_buf_mem, phy_dev, device, sizeof(idxs), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        vkMapMemory(device, idx_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+        memcpy(p_mem_data, idxs, sizeof(idxs));
+        vkUnmapMemory(device, idx_buf_mem);
+
+        VkSemaphore sem_finish_rendering = create_semaphore(device);
+        VkSemaphore sem_img_available = create_semaphore(device);
+        VkFence fence_acq_img = create_fence(device);
+        VkFence fence_queue_submit = create_fence(device);
+
+        vkResetFences(device, 1, &fence_acq_img);
+        uint32_t available_img_idx;
+        result = vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
+
+        VkCommandBufferBeginInfo cmd_buf_beg_info{};
+        cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+
+            VkRenderPassBeginInfo rdps_beg_info{};
+            rdps_beg_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            rdps_beg_info.renderPass = render_pass;
+            rdps_beg_info.framebuffer = frame_bufs[available_img_idx];
+            rdps_beg_info.renderArea.offset = {0, 0};
+            rdps_beg_info.renderArea.extent = {700, 500};
+            rdps_beg_info.clearValueCount = 1;
+            VkClearValue clr_val{0, 0, 0, 1};
+            rdps_beg_info.pClearValues = &clr_val;
+            vkCmdBeginRenderPass(cmd_buf, &rdps_beg_info, VK_SUBPASS_CONTENTS_INLINE);
+
+                vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                VkViewport viewport{};
+                viewport.x = 0.0f;
+                viewport.y = 0.0f;
+                viewport.width = 700;
+                viewport.height = 500;
+                viewport.minDepth = 0.0f;
+                viewport.maxDepth = 1.0f;
+                vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+                VkRect2D scissor{};
+                scissor.offset = {0, 0};
+                scissor.extent.width = 700;
+                scissor.extent.height = 500;
+                vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+                VkDeviceSize offset = 0;
+                vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+                // vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
+                // vkCmdDrawIndexed(cmd_buf, 3, 1, 0, 0, 0);
+                vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+
+            vkCmdEndRenderPass(cmd_buf);
+
+        result = vkEndCommandBuffer(cmd_buf);
+
+        vkResetFences(device, 1, &fence_queue_submit);
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = &sem_finish_rendering;
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = &sem_img_available;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd_buf;
+        VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        submit_info.pWaitDstStageMask = &pipeline_stage_flags;
+        vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
+
+        vkQueueWaitIdle(queue);
+        vkDeviceWaitIdle(device);
+
+        VkPresentInfoKHR prst_info{};
+        prst_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        prst_info.swapchainCount = 1;
+        prst_info.pSwapchains = &swpch;
+        prst_info.pImageIndices = &available_img_idx;
+        prst_info.waitSemaphoreCount = 1;
+        prst_info.pWaitSemaphores = &sem_finish_rendering;
+        vkQueuePresentKHR(queue, &prst_info);
+
+        getchar();
+        return 0;
+    }
+    ```
+
+    `shader_2.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 inPosition;
+
+    void main() {
+        gl_Position = vec4(inPosition, 1.0);
+    }
+    ```
+
+    `shader_2.frag`:
+
+    ```glsl
+    #version 450
+
+    // layout(location = 0) in vec3 fragColor;
+
+    layout(location = 0) out vec3 outColor;
+
+    void main() {
+        // outColor = vec4(fragColor, 1.0);
+        outColor = vec3(0.5, 0.8, 0.5);
+    }
+    ```
+
+    编译 shader:
+
+    ```bash
+    glsl shader_2.vert -o vert_2.spv
+    glsl shader_2.frag -o frag_2.spv
+    ```
+
+    编译`main.cpp`:
+
+    ```makefile
+    main: main.cpp
+        g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
+    ```
+
+    运行：
+
+    ```bash
+    ./main
+    ```
+
+* `vkCmdDraw()`的参数`vertexCount`指的是有几个顶点。
+
+    比如画一个三角形有 3 个顶点，那么就把它设置为 3。
+
+* vulkan draw frame
+
+    * 在调用`vkQueuePresentKHR()`时，可以指定多个 swapchain，猜测作用是同时更新多个窗口。
+
+    * 一个 renderpass 由多个模块组成：pipeline, scissor, viewport, vertex buffer, index buffer, draw command
+
+    * 一个 command buffer 中包含多个 render pass
+
+    example code:
+
+    ```cpp
+    vkResetFences(device, 1, &fence_acq_img);
+    uint32_t available_img_idx;
+    result = vkAcquireNextImageKHR(device, swpch, UINT64_MAX, sem_img_available, fence_acq_img, &available_img_idx);
+
+    VkCommandBufferBeginInfo cmd_buf_beg_info{};
+    cmd_buf_beg_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmd_buf_beg_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd_buf, &cmd_buf_beg_info);
+
+        VkRenderPassBeginInfo rdps_beg_info{};
+        rdps_beg_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rdps_beg_info.renderPass = render_pass;
+        rdps_beg_info.framebuffer = frame_bufs[available_img_idx];
+        rdps_beg_info.renderArea.offset = {0, 0};
+        rdps_beg_info.renderArea.extent = {700, 500};
+        rdps_beg_info.clearValueCount = 1;
+        VkClearValue clr_val{0, 0, 0, 1};
+        rdps_beg_info.pClearValues = &clr_val;
+        vkCmdBeginRenderPass(cmd_buf, &rdps_beg_info, VK_SUBPASS_CONTENTS_INLINE);
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = 700;
+            viewport.height = 500;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            VkRect2D scissor{};
+            scissor.offset = {0, 0};
+            scissor.extent.width = 700;
+            scissor.extent.height = 500;
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+            vkCmdBindIndexBuffer(cmd_buf, idx_buf, 0, VK_INDEX_TYPE_UINT32);
+            // vkCmdDrawIndexed(cmd_buf, 9, 1, 0, 0, 0);
+            vkCmdDraw(cmd_buf, 9, 1, 0, 0);
+
+        vkCmdEndRenderPass(cmd_buf);
+
+    result = vkEndCommandBuffer(cmd_buf);
+
+    vkResetFences(device, 1, &fence_queue_submit);
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &sem_finish_rendering;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.waitSemaphoreCount = 0;
+    submit_info.pWaitSemaphores = &sem_img_available;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buf;
+    VkPipelineStageFlags pipeline_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.pWaitDstStageMask = &pipeline_stage_flags;
+    vkQueueSubmit(queue, 1, &submit_info, fence_queue_submit);
+
+    VkPresentInfoKHR prst_info{};
+    prst_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    prst_info.swapchainCount = 1;
+    prst_info.pSwapchains = &swpch;
+    prst_info.pImageIndices = &available_img_idx;
+    prst_info.waitSemaphoreCount = 1;
+    prst_info.pWaitSemaphores = &sem_finish_rendering;
+    vkQueuePresentKHR(queue, &prst_info);
+    ```
+
+    不清楚这里的`rdps_beg_info.renderArea.offset`和`rdps_beg_info.renderArea.extent`是干嘛用的，理论上和后面的 viewport 和 scissor 功能重合了。
+
+    vulkan 画一个三角形，根本用不到 descriptor set 和 uniform buffer。
 
 ## Miscellaneous
 
@@ -8204,47 +8234,21 @@ A descriptor set specifies the actual buffer or image resources that will be bou
 
     在检查函数的返回值时可以考虑到这点。
 
-## 未验证
-
-* vulkan memory
-
-    vulkan 将 memory 分为两类：host memroy 和 device memroy。
-
-    host memory 顾名思义就是 cpu 能直接访问的内存。有时候对内存有一些特别的要求，比对 4 字节对齐之类的，那么就需要用到自定义的 allocator。
-
-    因此在 vulkan 的 api 中，有时会见到`VkAllocationCallbacks`这样的结构体：
-
-    ```cpp
-    typedef struct VkAllocationCallbacks {
-        void* pUserData;
-        PFN_vkAllocationFunction pfnAllocation;
-        PFN_vkReallocationFunction pfnReallocation;
-        PFN_vkFreeFunction pfnFree;
-        PFN_vkInternalAllocationNotification pfnInternalAllocation;
-        PFN_vkInternalFreeNotification pfnInternalFree;
-    } VkAllocationCallbacks;
-    ```
-
-    常用的有`pfnAllocation`, `pfnReallocation`, and `pfnFree`这三个字段。
-
-    ```cpp
-    void* VKAPI_CALL Allocation(
-        void* pUserData,
-        size_t size,
-        size_talignment,
-        VkSystemAllocationScope allocationScope);
-
-    void* VKAPI_CALL Reallocation(
-        void* pUserData,
-        void* pOriginal,
-        size_t size,
-        size_t alignment,
-        VkSystemAllocationScope allocationScope);
-
-    void VKAPI_CALL Free(
-        void* pUserData,
-        void* pMemory);
-    ```
-
 ## Chaos
 
+## Problems shooting
+
+* vulkan validation layer error:
+
+    ```
+    VUID-vkCmdDraw-None-08600(ERROR / SPEC): msgNum: 1198051129 - Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0xcfef35000000000a, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw():  The VkPipeline 0xcfef35000000000a[] (created with VkPipelineLayout 0xee647e0000000009[]) statically uses descriptor set (index #0) which is not compatible with the currently bound descriptor set's pipeline layout (VkPipelineLayout 0x0[]). The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout or VkDescriptorSetLayout array that was used to create the current VkPipeline or VkShaderEXT, as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.3.268.0/linux/1.3-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+        Objects: 1
+            [0] 0xcfef35000000000a, type: 19, name: NULL
+    ```
+
+    报这个错是因为少写了一行
+
+    ```cpp
+    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
+    ```

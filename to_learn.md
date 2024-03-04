@@ -2762,3 +2762,57 @@
 * Systemd service - what is `multi-user.target`
 
     <https://unix.stackexchange.com/questions/404667/systemd-service-what-is-multi-user-target>
+
+* oxigen
+
+    Oxigen is a parallel genetic algorithm framework implemented in Rust.
+
+    <https://github.com/Martin1887/oxigen>
+
+* Thrust: The C++ Parallel Algorithms Library
+
+    <https://github.com/NVIDIA/thrust>
+
+* Educational Parallel Algorithm Collection
+
+    <https://github.com/s-hironobu/AlgorithmCollection>
+
+* MPI-parallel-algorithms
+
+    <https://github.com/Cloveryww/MPI-parallel-algorithms>
+
+* 并行算法科普向 系列之一：计算模型，调度器，和其它
+
+    <https://zhuanlan.zhihu.com/p/90172780>
+
+* STL并行算法
+
+    <https://zhuanlan.zhihu.com/p/640339182>
+
+* 谈谈并行计算中的一些热点研究问题
+
+    <https://zhuanlan.zhihu.com/p/422402885>
+
+* 深度学习并行训练算法一锅炖: DDP, TP, PP, ZeRO
+
+    <https://zhuanlan.zhihu.com/p/581677880>
+
+* GPU并行算法 N-S方程高性能计算
+
+    <https://zhuanlan.zhihu.com/p/670434007>
+
+* 多核时代与并行算法
+
+    <https://zhuanlan.zhihu.com/p/89863627>
+
+* VkVertexInputBindingDescription(3) 
+
+    <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkVertexInputBindingDescription.html>
+
+* Create the Framebuffers
+
+    <https://vulkan.lunarg.com/doc/view/latest/windows/tutorial/html/12-init_frame_buffers.html>
+
+    这个是 lunarG 出的一个 vulkan 教程，配有一个比较实用的 example
+
+    感觉挺好的
