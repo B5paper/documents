@@ -1074,3 +1074,19 @@ int main()
     return 0;
 }
 ```
+
+[unit]
+[u_0]
+解释`vkGetPhysicalDeviceMemoryProperties()`得到的信息的含义。
+[u_1]
+函数原型：
+
+```c
+void vkGetPhysicalDeviceMemoryProperties(
+    VkPhysicalDevice                            physicalDevice,
+    VkPhysicalDeviceMemoryProperties*           pMemoryProperties);
+```
+
+得到的信息是不同属性组合的内存类型。
+
+

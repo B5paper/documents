@@ -12,6 +12,255 @@ Ref:
 
 ## cache
 
+* opencl synchronization functions
+
+    * `barrier`
+
+        ```cpp
+        void barrier(cl_mem_fence_flags flags)
+        ```
+
+        > All work-items in a work-group executing the kernel on a compute unit must execute this function before any are allowed to continue execution beyond the barrier.
+
+        parameters:
+
+        * `CLK_LOCAL_MEM_FENCE`: The barrier function will either flush any variables stored in local memory or queue a memory fence to ensure correct ordering of memory operations to local memory.
+
+            如果`barrier()`前面的代码不涉及到 global memory 的写入，就用这个
+
+        * `CLK_GLOBAL_MEM_FENCE`： The barrier function will either flush any variables stored in global memory or queue a memory fence to ensure correct ordering of memory operations to global memory. This is needed when work- items in a work-group, for example, write to a buffer object in global memory and then read the updated data.
+
+            如果`barrier()`前面的代码涉及到 global memory 的写入，并且需要同步，那么就用这个。
+
+    * `async_work_group_copy()`
+
+        syntax:
+
+        ```cpp
+        event_t async_work_group_copy(
+            local gentype *dst,
+            const global gentype *src,
+            size_t num_gentypes,
+            event_t event)
+
+        event_t async_work_group_copy(global gentype *dst,
+            const local gentype *src,
+            size_t num_gentypes,
+            event_t event)
+        ```
+
+        异步复制数据。函数的返回值`event`是用来让函数`wait_group_events()`使用的，等待事件列表完成。而参数中的`event`是用来让多个函数 share 的，也就是说多个函数都注册到这个 event 上。（不清楚这些个函数是串行执行还是并行，应该是并行）
+
+    * `async_work_group_strided_copy`
+
+        syntac:
+
+        ```cpp
+        event_t async_work_group_strided_copy(
+            local gentype *dst,
+            const global gentype *src,
+            size_t num_gentypes,
+            size_t src_stride,
+            event_t event)
+
+        event_t async_work_group_strided_copy(
+            global gentype *dst,
+            const local gentype *src,
+            size_t num_gentypes,
+            size_t dst_stride,
+            event_t event)
+        ```
+
+        按`stride`去增加偏移量。其他的和`async_work_group_copy`相同。
+
+    * `wait_group_events`
+
+        syntax:
+
+        ```cpp
+        void wait_group_events(int num_events,
+            event_t *event_list)
+        ```
+
+        Wait for events that identify the copy operations associated with `async_work_group_copy` and `async_work_group_strided_copy` functions to complete. The event objects specified in `event_list` will be released after the wait is performed.
+
+        等待事件完成。
+
+    * `prefetch`
+
+        ```c
+        void prefetch(const global gentype *p,
+            size_t num_gentypes)
+        ```
+
+        Prefetch num_gentypes * sizeof(gentype) bytes into the global cache. The prefetch function is applied to a work-item in a work-group and does not affect the functional behavior of the kernel.
+
+        先把一些数据放到缓存里，以提高命中率。
+
+* `vloadn`
+
+    从指定地址 + 指定偏移读取数据。
+
+    syntax:
+
+    ```c
+    gentypen vloadn(size_t offset,
+        const global gentype *p)
+    ```
+
+    Returns sizeof(gentypen) bytes of data read from address (p + (offset * n)).
+
+    The address computed as `(p + (offset * n))` must be 8-bit aligned if gentype is `char` or `uchar`; 16-bit aligned if gentype is `short` or `ushort`; 32-bit aligned if gentype is `int`, `uint`, or `float`; 64-bit aligned if gentype is `long`, `ulong`, or `double`.
+
+    vloadn is used to do an unaligned vector load.
+
+    example:
+
+    `kernels.cl`:
+
+    ```opencl
+    kernel void test(global float *in, global float3 *out)
+    {
+        *out = vload3(1, in);
+    }
+    ```
+
+    `main.cpp`:
+
+    ```cpp
+    #include "../ocl_simple/global_ocl_env.h"
+
+    int main()
+    {
+        float arr[] = {
+            0, 1, 2,
+            3, 4, 5
+        };
+        cl_float3 out;
+        init_global_ocl_env("kernels.cl", {"test"});
+        add_buf("arr", sizeof(float), sizeof(arr) / sizeof(float), arr);
+        add_buf("out", sizeof(cl_float3), 1);
+        run_kern("test", {1}, "arr", "out");
+        read_buf(&out, "out");
+        printf("%f, %f, %f, %f\n", out.s[0], out.s[1], out.s[2], out.s[3]);
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    opencl device name: gfx1034
+    3.000000, 4.000000, 5.000000, 0.000000
+    [Warning] destroy ocl env
+    release ocl buffer: out
+    release ocl buffer: arr
+    ```
+
+    要求`arr`必须是`float`类型，同样，给 kernel 传递参数时，也需要以`float`指针来传递。如果使用`cl_float3`存储数据以及传递，数据会出错。
+
+    因为`cl_float3`实际上占用的是`sizeof(float) * 4`个字节的内存，所以会有一些问题。
+
+* `vstoren`
+
+    syntax:
+
+    ```c
+    gentypen vstoren(gentypen data,
+        size_t offset,
+        global gentype *p)
+    ```
+
+    Write sizeof(gentypen) bytes given by data to address (p + (offset * n)).
+
+    这个函数的返回值类型应该是`void`吧，好像书上写错了。
+
+    这个函数的使用和`vloadn()`正好相反。
+
+    example:
+
+    `kernels.cl`:
+
+    ```c
+    kernel void test(global float3 *in, global float *out)
+    {
+        float3 data = *in;
+        vstore3(data, 1, out);
+    }
+    ```
+
+    `main.cpp`:
+
+    ```cpp
+    #include "../ocl_simple/global_ocl_env.h"
+
+    int main()
+    {
+        cl_float3 in = {1, 2, 3};
+        float out[6] = {0};
+        init_global_ocl_env("kernels.cl", {"test"});
+        add_buf("in", sizeof(cl_float3), sizeof(cl_float3) / sizeof(cl_float3), &in);
+        add_buf("out", sizeof(float), 6);
+        run_kern("test", {1}, "in", "out");
+        read_buf(&out, "out");
+        printf("%f, %f, %f\n", out[3], out[4], out[5]);
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    opencl device name: gfx1034
+    1.000000, 2.000000, 3.000000
+    [Warning] destroy ocl env
+    release ocl buffer: out
+    release ocl buffer: in
+    ```
+
+    可以看到，`in`中的数组被存储到了`out`的 3，4，5 这三个索引处。
+
+* `vload_half()`与`vload_halfn()`，`vstore_harf()`与`vstore_harfn()`
+
+    syntax:
+
+    ```c
+    float vload_half(size_t offset,
+        const global half *p)
+
+    floatn vload_halfn(size_t offset,
+        const global half *p)
+
+    void vstore_half(float data,
+        size_t offset,
+        global half *p)
+
+    void vstore_halfn(floatn data,
+        size_t offset,
+        global half *p)
+    ```
+
+    Returns sizeof(half) bytes of data read from address (p + offset).
+
+* 有关`half`类型和`e`, `z`, `p`, `n`
+
+    ```cpp
+    void vstore_half_rte(double data, size_t offset, half *p)
+    void vstore_half_rtz(double data, size_t offset, half *p)
+    void vstore_half_rtp(double data, size_t offset, half *p)
+    void vstore_half_rtn(double data, size_t offset, half *p)
+    ```
+
+    这几个都涉及到浮点数到整数的转换，猜测`rte`的意思是向偶数取整，`rtz`是向零取整，`rtp`是向正无穷取整，`rtn`是向负方向取整。
+
+    `rt`表示 round to，`e`表示 even，`z`表示 zero，`p`表示 positive，`n`表示 negative。
+
+* `vloada_halfn`
+
+    `load`或`store`后面带一个`a`的，表示 aligned。指针的偏移必须是 1, 2, 4, 8, 16 的整数倍。
+
+    如果碰到`float3`这样的数据，会自动对齐到`float4`。
+
 * opencl 
 
     `clGetPlatformIDs()`的第一个参数`num_entries`经测试也可以设置为 0.

@@ -2,6 +2,146 @@
 
 ## cached
 
+* vulkan 中`VkPipelineColorBlendStateCreateInfo`的含义
+
+    `logicOpEnable`与`logicOp`的作用：
+
+    > The application can enable a logical operation between the fragment’s color values and the existing value in the framebuffer attachment. This logical operation is applied prior to updating the framebuffer attachment. Logical operations are applied only for signed and unsigned integer and normalized integer framebuffers. Logical operations are not applied to floating-point or sRGB format color attachments.
+
+    vulkan 支持在 fragment color 输出的结果，与当前已存在的 frame buffer 做一次按位逻辑操作，然后再把结果存到 frame buffer 里。
+
+    这里的位操作只支持整数存储的图片数据， 不支持浮点点和 sRGB 存储的图片数据。
+
+    `blendConstants`:
+
+    Blend Factors 用于根据 alpha 值混合 fragment output color 和 framebuffer 的颜色。
+
+    常见的模式有：
+
+    ```cpp
+    typedef enum VkBlendFactor {
+        VK_BLEND_FACTOR_ZERO = 0,
+        VK_BLEND_FACTOR_ONE = 1,
+        VK_BLEND_FACTOR_SRC_COLOR = 2,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR = 3,
+        VK_BLEND_FACTOR_DST_COLOR = 4,
+        VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR = 5,
+        VK_BLEND_FACTOR_SRC_ALPHA = 6,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA = 7,
+        VK_BLEND_FACTOR_DST_ALPHA = 8,
+        VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA = 9,
+        VK_BLEND_FACTOR_CONSTANT_COLOR = 10,
+        VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR = 11,
+        VK_BLEND_FACTOR_CONSTANT_ALPHA = 12,
+        VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA = 13,
+        VK_BLEND_FACTOR_SRC_ALPHA_SATURATE = 14,
+        VK_BLEND_FACTOR_SRC1_COLOR = 15,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR = 16,
+        VK_BLEND_FACTOR_SRC1_ALPHA = 17,
+        VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA = 18,
+    } VkBlendFactor;
+    ```
+
+    其中的 constant 指的就是`blendConstants`指定的混合常数。
+
+    具体是怎么混合的，仍然不清楚。
+
+* `VkPipelineColorBlendAttachmentState`中`colorWriteMask`必须写上，无论`blendEnable`是否为`VK_FALSE`都不能省略。
+
+* vulkan 的 fence 在创建时要加一个`VK_FENCE_CREATE_SIGNALED_BIT`的 flag，表示一开始就能对它使用 wait。
+
+    其实 fence 也是一个 semaphore。
+
+* 在`VkBufferCreateInfo`中，如果`sharingMode`是`VK_SHARING_MODE_EXCLUSIVE`，那么`queueFamilyIndexCount`可以直接写 0，当然`pQueueFamilyIndices`也不用填了。
+
+* vulkan 在创建 renderpass 和 pipeline 时，并不涉及到 frame buffer
+
+    在 cmd draw 的时候，才会用到 frame buffer
+
+* vulkan 画一个三角形的代码（2024.03.06）
+
+    见`ref_2`。
+
+    这份代码虽然仍不完整，但是已经算是比较简洁的了。没有用到 c++ 的特性，减少了很多麻烦。
+
+    `shader.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 pos;
+
+    void main()
+    {
+        gl_Position = vec4(pos, 1);
+    }
+    ```
+
+    `shader.frag`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) out vec3 color;
+
+    void main()
+    {
+        color = vec3(0.5, 0.8, 0.5);
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.cpp vert.spv frag.spv
+        g++ -g main.cpp -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -o main
+
+    vert.spv: shader.vert
+        glslc shader.vert -o vert.spv
+
+    frag.spv: shader.frag
+        glslc shader.frag -o frag.spv
+    ```
+
+    compile: `make`
+
+    run: `./main`
+
+* vulkan 中的 shader module 不区分 vertex shader 和 fragment shader
+
+* 要先创建 render pass，再创建 pipeline
+
+    render pass 比 pipeline 的架构更大，创建好一个 render pass 后，创建多个 pipeline，然后逐个挂载到这个 render pass 上。
+
+* `VkFormat`
+
+    `44`对应的是`VK_FORMAT_B8G8R8A8_UNORM`，`50`对应的是`VK_FORMAT_B8G8R8A8_SRGB`。
+
+* `VkColorSpaceKHR`
+
+    `0`对应的是`VK_COLOR_SPACE_SRGB_NONLINEAR_KHR`。
+
+* vulkan 中 validation layer 的 callback 函数
+
+    ```cpp
+    VkBool32 dbg_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+        VkDebugUtilsMessageTypeFlagsEXT msg_type,
+        const VkDebugUtilsMessengerCallbackDataEXT *p_msg,
+        void *p_user_data)
+    {
+        printf("validation layer: %s\n", p_msg->pMessage);
+        return VK_FALSE;
+    }
+    ```
+
+    * 返回值类型必须是`VkBool32`，不能是`VkResult`。因为`VkResult`其实是枚举类型，而枚举的值又是 int 值。而`VkBool32`其实是 unsigned int。因此这两个不能转换。
+
+    * 第一个参数必须是`VkDebugUtilsMessageSeverityFlagBitsEXT`类型，不能是`VkDebugUtilsMessageSeverityFlagsEXT`
+
+        因为`VkDebugUtilsMessageSeverityFlagsEXT`是`uint32_t`，而`VkDebugUtilsMessageSeverityFlagBitsEXT`是枚举，枚举的值是字面量的类型`int`。
+
+    * 第 3 个参数必须加`const`修饰。
+
 * `glfwInit();`必须在`vkCreateInstance()`之前就执行，不然`glfwCreateWindowSurface()`无法执行成功。
 
 * vulkan 一个 queue family 中有多少个 queue？
@@ -3162,6 +3302,70 @@ int main()
 ## Vulkan Memory
 
 vulkan memory 由 physical device 管理，不对应到具体的图像资源上。vulkan 中的两大类资源对象是 VKImage 和 VKBuffer，它们需要绑定在 VKDeviceMemory 对象上才可以使用。我们通常使用的也是 image 和 buffer，不会直接去使用 memory。
+
+* `vkGetPhysicalDeviceMemoryProperties()`
+
+    此函数用于得到物理设备所支持的显存属性的信息。
+
+    syntax:
+
+    ```c
+    void vkGetPhysicalDeviceMemoryProperties(
+        VkPhysicalDevice                            physicalDevice,
+        VkPhysicalDeviceMemoryProperties*           pMemoryProperties);
+    ```
+
+    `VkPhysicalDeviceMemoryProperties`的结构为：
+
+    ```c
+    typedef struct VkPhysicalDeviceMemoryProperties {
+        uint32_t        memoryTypeCount;
+        VkMemoryType    memoryTypes[VK_MAX_MEMORY_TYPES];
+        uint32_t        memoryHeapCount;
+        VkMemoryHeap    memoryHeaps[VK_MAX_MEMORY_HEAPS];
+    } VkPhysicalDeviceMemoryProperties;
+    ```
+
+    `memoryHeaps`目前不知道是啥意思。
+
+    `VkMemoryType`是一个 struct，结构如下：
+
+    ```c
+    typedef struct VkMemoryType {
+        VkMemoryPropertyFlags    propertyFlags;
+        uint32_t                 heapIndex;
+    } VkMemoryType;
+    ```
+
+    其中`propertyFlags`表示这个 type 的显存支持什么样的属性（property）。
+
+    所有的显存属性如下：
+
+    ```c
+    typedef enum VkMemoryPropertyFlagBits {
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT = 0x00000001,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT = 0x00000002,
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004,
+        VK_MEMORY_PROPERTY_HOST_CACHED_BIT = 0x00000008,
+        VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT = 0x00000010,
+    // Provided by VK_VERSION_1_1
+        VK_MEMORY_PROPERTY_PROTECTED_BIT = 0x00000020,
+    // Provided by VK_AMD_device_coherent_memory
+        VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD = 0x00000040,
+    // Provided by VK_AMD_device_coherent_memory
+        VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD = 0x00000080,
+    // Provided by VK_NV_external_memory_rdma
+        VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV = 0x00000100,
+    } VkMemoryPropertyFlagBits;
+    ```
+
+    我们常用的就是 device local 和 host visible。
+
+    device local 表示在 GPU 里申请显存，host visible 表示这个显存需要和主机通信。
+
+    有的 buffer 是直接在 shader 里创建的，不需要和主机通信，那么就可以不设置 host visible。
+
+    重新回到`VkMemoryType`，每种显存类型其实是不同显存属性的按位组合，因此我们可以通过位运算找到适合自己的显存类型。
 
 * `memoryTypeBits`其实是一个掩码，第`i`位为 1 表示第`i`个显存类型是可用的。
 

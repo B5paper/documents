@@ -46,7 +46,7 @@ $$\mathrm{degrees} = \frac{180}{\pi} \mathrm{radians}$$
 $$\mathrm{radians} = \frac{\pi}{180} \mathrm{degrees}$$
 
 <div style='text-align:center'>
-<img width=300 src='./pics/computer_graphics_note_pics/pic_9.png'>
+<img width=200 src='./pics/computer_graphics_note_pics/pic_9.png'>
 </div>
 
 对于上图的直角三角形，有
@@ -101,7 +101,7 @@ Broadly speaking, image-order rendering is simpler to get working and more flexi
 $$\boldsymbol p (t) = \boldsymbol e + t(\boldsymbol s - \boldsymbol e)$$
 
 <div style='text-align:center'>
-<img width=700 src='./pics/computer_graphics_note_pics/pic_1.jpg'>
+<img width=500 src='./pics/computer_graphics_note_pics/pic_1.jpg'>
 </div>
 
 其中，$t$表示某个点与摄像机位置$\boldsymbol e$的距离。$t$的范围为$(-\infty, \infty)$。

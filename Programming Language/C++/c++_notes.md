@@ -4,6 +4,39 @@
 
 ## cached
 
+* c++ 中，对于模板函数，即使通用类型在参数列表中消失，也算函数的重载
+
+    但是实际无法正常调用，因为无法推导出`T`的类型：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    template<typename T>
+    void print(int a, int b)
+    {
+        cout << a << ", " << b << endl;
+    }
+
+    template<typename T>
+    void print(int a, int b, T c)
+    {
+        cout << a << ", " << b << ", " << c << endl;
+    }
+
+    int main()
+    {
+        print(1, 2, 3);  // OK
+        print(4, 5);  // Error
+        print<int>(4, 5);  // OK, T = int
+        return 0;
+    }
+    ```
+
+    比如上面的代码，`void print(int a, int b)`的参数列表并没有给出`T`，所以尽管它算作`print()`的一个重载，但是后面的代码`print(4, 5);`并不能通过编译，因为无法推导出`T`的类型。
+
+    如果我们像这样`print<int>(4, 5);`指定了`T`的类型，那么是可以正常运行的。
+
 * 使用`fopen("xxx", r+")`并不能使`ftell(f)`返回文件的长度。
 
     C 语言中可以这样读文件：

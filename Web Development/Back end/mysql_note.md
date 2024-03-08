@@ -8,7 +8,7 @@
 
 `source /path/to/xxx.sql`
 
-select: `select select_list from talbe_name;`
+select: `select select_list from table_name;`
 
 启动：
 
