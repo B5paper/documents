@@ -2,8 +2,6 @@
 
 Ref: <www.opengl-tutorial.org>
 
-Ref: <>
-
 常见的创建窗口的库：GLUT, SDL, SFML and GLFW
 
 需要安装的包：
@@ -4107,3 +4105,158 @@ Ref:
 		Specifies an array of string lengths.
 
 		通常填 NULL.
+
+## miscellaneous
+
+* qa 文件夹中有一段代码，不知道有啥用，先保存起来
+
+	```cpp
+	#include <GL/glew.h>
+	#include <GLFW/glfw3.h>
+	#include <stdio.h>
+	#include <string.h>
+	#include <stdlib.h>
+	#include <glm/glm.hpp>
+	#include <glm/gtc/matrix_transform.hpp>
+	using namespace glm;
+
+	GLuint load_shader(const char *vtx_shader_path, const char *frag_shader_path)
+	{
+		GLuint vtx_shader, frag_shader;
+		vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+		frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+		char *buf = (char*) malloc(1024);
+		FILE *f = fopen(vtx_shader_path, "r");
+		memset(buf, 0, 1024);
+		fread(buf, 1024, 1, f);
+		fclose(f);
+		glShaderSource(vtx_shader, 1, &buf, NULL);
+		f = fopen(frag_shader_path, "r");
+		memset(buf, 0, 1024);
+		fread(buf, 1024, 1, f);
+		fclose(f);
+		glShaderSource(frag_shader, 1, &buf, NULL);
+		glCompileShader(vtx_shader);
+		glCompileShader(frag_shader);
+		GLuint program_id = glCreateProgram();
+		glAttachShader(program_id, vtx_shader);
+		glAttachShader(program_id, frag_shader);
+		glLinkProgram(program_id);
+		glDetachShader(program_id, vtx_shader);
+		glDetachShader(program_id, frag_shader);
+		glDeleteShader(vtx_shader);
+		glDeleteShader(frag_shader);
+		free(buf);
+		return program_id;
+	}
+
+	#include <unistd.h>
+	#include <time.h>
+	#include <iostream>
+
+	int main()
+	{
+		glfwInit();
+		GLFWwindow *window = glfwCreateWindow(1024, 768, "aaa", NULL, NULL);
+		glfwMakeContextCurrent(window);
+		glewInit();
+
+		GLuint program_id = load_shader("./vtx.glsl", "./frag.glsl");
+		GLuint mvp_id = glGetUniformLocation(program_id, "MVP");
+		glUseProgram(program_id);
+
+		float vtxs[9] = {
+			-0.5, 0, 0,
+			0, 1, 0,
+			0.5, 0, 0
+		};
+		GLuint buf_vtxs;
+		glGenBuffers(1, &buf_vtxs);
+		glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9, vtxs, GL_STATIC_DRAW);
+
+		mat4 M_s = scale(mat4(1), {1, 1, 1});
+		mat4 M_r = rotate(mat4(1), 0.0f, {0, 1, 0});
+		mat4 M_t = translate(mat4(1), {0, 0, 0});
+		mat4 M_m = M_t * M_r * M_s;
+		vec3 eye = {0, 0, 1};
+		vec3 center = {0, 0, 0};
+		vec3 up = {0, 1, 0};
+		mat4 M_v = lookAt(eye, center, up);
+		mat4 M_p = perspective(radians(90.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
+		mat4 MVP = M_p * M_v * M_m;
+
+		float theta = 0.0f;
+		glClearColor(0, 0, 0, 0);
+		glEnableVertexAttribArray(0);
+		uint64_t frame_count = 0;
+		size_t start_time = time(0);
+		size_t end_time;
+		float fps;
+		while (!glfwWindowShouldClose(window))
+		{
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			M_r = rotate(mat4(1), theta, {0, 1, 0});
+			M_m = M_t * M_r * M_s;
+			MVP = M_p * M_v * M_m;
+			glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &MVP[0][0]);
+			theta += 0.001f;
+			if (theta > pi<float>() * 2)
+				theta = 0;
+
+			glBindBuffer(GL_ARRAY_BUFFER, buf_vtxs);
+			glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, NULL);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+			glfwSwapBuffers(window);
+			glfwPollEvents();
+			if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+			++frame_count;
+			if (frame_count % 100000 == 0)
+			{
+				end_time = time(0);
+				fps = (float)frame_count / (end_time - start_time);
+				
+				std::cout << "fps: " << fps << std::endl;
+				start_time = time(0);
+				frame_count = 0;
+			}
+		}
+		return 0;
+	}
+	```
+
+	`vtx.glsl`:
+
+	```cpp
+	#version 330 core
+
+	layout(location = 0) in vec3 pos;
+	uniform mat4 MVP;
+
+	void main()
+	{
+		gl_Position = MVP * vec4(pos, 1);
+	}
+	```
+
+	`frag.glsl`:
+
+	```cpp
+	#version 330 core
+
+	out vec3 color;
+
+	void main()
+	{
+		color = vec3(0.5, 0.8, 0.5);
+	}
+	```
+
+	`Makefile`:
+
+	```makefile
+	main: main.cpp
+		g++ -g main.cpp -lglfw -lGLEW -lGL -o main
+	```

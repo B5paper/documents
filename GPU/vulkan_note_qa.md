@@ -114,9 +114,57 @@ int main()
 
 [unit]
 [u_0]
-创建一个 vulkan instance。
+创建一个 vulkan instance。不需要创建 debug messenger。
 [u_1]
 (2023.12.18 version)
+`main.cpp`:
+
+```cpp
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+int main()
+{
+    glfwInit();
+    uint32_t glfw_req_inst_ext_cnt;
+    const char **glfw_req_inst_exts = glfwGetRequiredInstanceExtensions(&glfw_req_inst_ext_cnt);
+
+    VkInstance inst;
+    VkInstanceCreateInfo inst_crt_info{};
+    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    inst_crt_info.enabledExtensionCount = glfw_req_inst_ext_cnt;
+    inst_crt_info.ppEnabledExtensionNames = glfw_req_inst_exts;
+    VkApplicationInfo app_info{};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.apiVersion = VK_API_VERSION_1_0;
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pApplicationName = "hello";
+    app_info.pEngineName = "no engine"; 
+    inst_crt_info.pApplicationInfo = &app_info;
+    VkResult result;
+    result = vkCreateInstance(&inst_crt_info, nullptr, &inst);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to create vk instance.\n");
+        exit(-1);
+    }
+    printf("successfully create a vulkan instance.\n");
+    return 0;
+}
+```
+
+编译：
+
+```bash
+g++ -g main.cpp -lglfw -lvulkan -o main
+```
+
+运行：
+
+```bash
+./main
+```
 
 ```cpp
 #define GLFW_INCLUDE_VULKAN
@@ -192,108 +240,6 @@ glfw requires 2 instance extensions:
 VK_KHR_surface
 VK_KHR_xcb_surface
 successfully create vk instance
-```
-
-(2023.12.15 version)
-```cpp
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <vector>
-using std::vector;
-#include <iostream>
-using std::cout, std::endl;
-
-void collect_glfw_required_inst_exts(vector<const char*> &enabled_extensions)
-{
-    uint32_t ext_count;
-    const char **glfw_exts = glfwGetRequiredInstanceExtensions(&ext_count);
-    cout << "glfw requires " << ext_count << " extensions:" << endl;
-    for (int i = 0; i < ext_count; ++i)
-    {
-        cout << glfw_exts[i] << endl;
-        enabled_extensions.push_back(glfw_exts[i]);
-    }
-}
-
-int main()
-{
-    glfwInit();
-    vector<const char*> enabled_extensions;
-    collect_glfw_required_inst_exts(enabled_extensions);
-
-    VkApplicationInfo app_info{};
-    app_info.apiVersion = VK_API_VERSION_1_0;
-    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pApplicationName = "hello";
-    app_info.pEngineName = "no engine";
-    app_info.pNext = NULL;
-    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-
-    VkInstanceCreateInfo inst_crt_info{};
-    inst_crt_info.enabledExtensionCount = enabled_extensions.size();
-    inst_crt_info.enabledLayerCount = 0;
-    inst_crt_info.flags = 0;
-    inst_crt_info.pApplicationInfo = &app_info;
-    inst_crt_info.pNext = NULL;
-    inst_crt_info.ppEnabledExtensionNames = enabled_extensions.data();
-    inst_crt_info.ppEnabledLayerNames = nullptr;
-    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-
-    VkResult result;
-    VkInstance inst;
-    result = vkCreateInstance(&inst_crt_info, nullptr, &inst);
-    if (result != VK_SUCCESS)
-    {
-        cout << "fail to create vulkan instance" << endl;
-        exit(-1);
-    }
-    return 0;
-}
-```
-
-
-`main.cpp`:
-
-```cpp
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-int main()
-{
-    VkApplicationInfo app_info{};
-    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.pApplicationName = "hello";
-    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "no engine";
-    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_0;
-
-    VkInstanceCreateInfo inst_crt_info{};
-    inst_crt_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    inst_crt_info.pApplicationInfo = &app_info;
-    uint32_t glfwExtensionCount = 0;
-    glfwInit();
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    inst_crt_info.enabledExtensionCount = glfwExtensionCount;
-    inst_crt_info.ppEnabledExtensionNames = glfwExtensions;
-    inst_crt_info.enabledLayerCount = 0;
-    VkInstance instance;
-    vkCreateInstance(&inst_crt_info, nullptr, &instance);
-    return 0;
-}
-```
-
-编译：
-
-```bash
-g++ -g main.cpp -lglfw -lvulkan -o main
-```
-
-运行：
-
-```bash
-./main
 ```
 
 [unit]

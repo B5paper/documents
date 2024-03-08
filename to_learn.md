@@ -2816,3 +2816,49 @@
     这个是 lunarG 出的一个 vulkan 教程，配有一个比较实用的 example
 
     感觉挺好的
+
+* kimi: 月之暗面的一个语言大模型
+
+    <https://kimi.moonshot.cn/>
+
+* ComfyUI: The most powerful and modular stable diffusion GUI and backend.
+
+    <https://github.com/comfyanonymous/ComfyUI>
+
+* 一些 C 库函数
+
+    * C 库函数 - fseek()
+
+        <https://www.runoob.com/cprogramming/c-function-fseek.html>
+
+    * C 库函数 - fopen()
+
+        <https://www.runoob.com/cprogramming/c-function-fopen.html>
+
+    * C 库函数 - ftell()
+
+        <https://www.runoob.com/cprogramming/c-function-ftell.html>
+
+* mistral ai: Open and portable generative AI for devs and businesses.
+
+    <https://mistral.ai/>
+
+    这个好像也是做的大模型。
+
+* opencl c specification
+
+    <https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_C.html>
+
+    opencl 的 C 语言说明书。非常详细。基本记录了有关 opencl 的一切。
+
+
+* Beyond Linux® From Scratch (System V Edition) 
+
+    <https://www.linuxfromscratch.org/blfs/view/svn/index.html>
+
+* notion online
+
+    <https://www.notion.so/Getting-Started-2422ad75c93341bdade29c567a75ccb8>
+
+    在线写笔记，支持 markdown。
+

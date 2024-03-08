@@ -2,266 +2,13 @@
 
 ## cached
 
-* vulkan 的坐标系
-
-    窗口中间为`(0, 0)`，向右为`x`轴正方向，向下为`y`轴正方向，`x`的范围为`[-1, 1]`，`y`的范围也为`[-1, 1]`。
-
-    这点与 opengl 不一样。
-
-* vulkan command pool 和 command buffer 的创建比较简单
-
-    ```cpp
-    VkCommandPool cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
-    VkCommandBuffer cmd_buf;
-    VkCommandBufferAllocateInfo cmd_buf_alc_info{};
-    cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmd_buf_alc_info.commandBufferCount = 1;
-    cmd_buf_alc_info.commandPool = cmd_pool;
-    cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
-    if (result != VK_SUCCESS)
-    {
-        printf("fail to allocate command buffer\n");
-        exit(-1);
-    }
-    ```
-
-    按部就班，没有什么难理解的地方。
-
-* vulkan 的 vk get physical device queue family properties() 返回的参数的类型却是 vk queue family properties。
-
-    第一说明 queue family 是个只属于 physical device 的概念；
-    
-    第二，说明 vulkan 也觉得这个类型名实在是太长了，写全的话是 vk physical device queue family proeprties，快占半个屏幕了，没歧义的话能简化就简化
-
-* vulkan 中有关 image view 和 frame buffer 的创建
-
-    * 创建 image view
-
-        ```cpp
-        std::vector<VkImageView> swpch_img_views(swpch_img_count);
-        VkImageViewCreateInfo img_view_crt_info{};
-        img_view_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        img_view_crt_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        img_view_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
-        img_view_crt_info.components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY};
-        img_view_crt_info.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-        VkResult result;
-        for (int i = 0; i < swpch_img_count; ++i)
-        {
-            img_view_crt_info.image = swpch_imgs[i];
-            result = vkCreateImageView(device, &img_view_crt_info, nullptr, &swpch_img_views[i]);
-            if (result != VK_SUCCESS)
-            {
-                printf("fail to create image view, error code %d\n", result);
-                exit(-1);
-            }
-        }
-        ```
-
-        `VkImage`其实包含了许多的数据区，每个数据区都是一张图片。image view 指的就是其中的一张图片。
-
-        通常只需要指定 vkiamge 的通道位（aspect bit）， array level 和 mip level，就可以定位一个数据区。这些信息被放在`subresourceRange`中。
-
-        `viewType`主要有 1D，2D，3D，cube 这几种。我们通常用的是 2D。
-
-        `components`指的是是否需要把 rgba 通道改变顺序，比如改成 bgra。如果不需要改变的话，直接填 identity `VK_COMPONENT_SWIZZLE_IDENTITY`就可以了。swizzle 的意思是鸡尾酒，这里取的是混合成分的意思吗？
-
-        `format`指的是 image 的 format，它与 surface 的 format 相同。常见的一个取值是`VK_FORMAT_B8G8R8A8_SRGB`。
-    
-    * 创建 frame buffer
-
-        ```cpp
-        VkFramebufferCreateInfo frame_buf_crt_info{};
-        frame_buf_crt_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        frame_buf_crt_info.renderPass = render_pass;
-        frame_buf_crt_info.attachmentCount = 1;
-        frame_buf_crt_info.width = 700;
-        frame_buf_crt_info.height = 500;
-        frame_buf_crt_info.layers = 1;
-        std::vector<VkFramebuffer> frame_bufs(swpch_img_count);
-        for (int i = 0; i < swpch_img_count; ++i)
-        {
-            frame_buf_crt_info.pAttachments = &swpch_img_views[i];
-            result = vkCreateFramebuffer(device, &frame_buf_crt_info, nullptr, &frame_bufs[i]);
-            if (result != VK_SUCCESS)
-            {
-                printf("fail to create frame buffer, error code: %d\n", result);
-                exit(-1);
-            }
-        }
-        ```
-
-        frame buffer 是交给 render pass 使用的，一个 framebuffer 可以有多个 image view，这些 image view 都被称为 attachment。
-
-        目前不清楚这里的`layers`有什么作用。如果把 layer 填 2 或更大，该怎么取得不同 layer 的数据呢？
-
-* 在创建 vulkan device 时，如果程序有显示画图的需要，那么需要为 device 增加一个 extension: `VK_KHR_SWAPCHAIN_EXTENSION_NAME`，或者叫`"VK_KHR_swapchain"`
-
-* vulkan 中的 uniform buffer 通过 map memory 的方式进行 gpu 和 cpu 间的通信
-
-    由于是直接 map memory，所以除了有 host visible 的要求外，还需要加上`VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`属性。
-
-* vertex buffer 和 index buffer 使用的是`vkCmdBindXXXBuffer()`进行绑定
-
-    这一点与 uniform buffer 不太相同。
-
-    如果传递的是 color 信息，又该用什么方式 bind 呢？
-
 * `glfwInit();`必须在`vkCreateInstance()`之前就执行，不然`glfwCreateWindowSurface()`无法执行成功。
 
 * vulkan 一个 queue family 中有多少个 queue？
 
-* vulkan descriptor sets
-
-    猜测：
-
-    1. 一个 descriptor 指的是一块显存和　shader 中一个 location　的绑定
-
-    2. 一个 descriptor set 指的是一个 shader 中不同位置（location）的资源绑定情况
-
-        具体如何绑定，由 descriptor set layout 指定。
-
-    3. 为了提高效率，descriptor set 都从一个 pool 中申请。pool 意味着大小是有限的，所以 descriptor set 的数量也是有限的。
-
 * 使用`vkGetPhysicalDeviceSurfaceFormatsKHR()`拿到 swapchain image 的 format
 
     这个 format 可能有多个，我们主要使用的是`VK_FORMAT_B8G8R8A8_SRGB`。
-
-* 一个 binding `VkDescriptorSetLayoutBinding` 只描述资源的位置（location），类型（texture, storage, sampler 等）。并不绑定实际的数据。
-
-    一个 binding 只描述一个资源位置的情况。一个 layout 描述的是多个 binding。
-
-* 如果不使用 descriptor binding，那么可以使用`vkCmdBindVertexBuffers()`进行绑定。这个函数的参数里指定了要绑定的位置。
-
-    这个好像不对。
-
-* 没有单个 descriptor 的说法，只有 descriptor set 和 descriptor pool
-
-* 在创建 descriptor layout binding 时，常用的`VkDescriptorType`:
-
-    * `VK_DESCRIPTOR_TYPE_SAMPLER:`
-
-    * `VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE`
-
-        A sampled image is an image that can be used in conjunction with a sampler to provide filtered data to a shader.
-
-        sampled image can not be written to.
-
-    * `VK_DESCRIPTOR_TYPE_STORAGE_IMAGE`
-
-        A storage image is an image that cannot be used with a sampler but can be written to.
-
-    * `VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER`
-
-        存放一些数据，不能被写入。
-
-    * `VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER`
-
-        存放一些数据，可以被写入。
-
-    * `VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER`, `VK_DESCRIPTOR_TYPE_STORAGE_BUFFER`
-
-        和 texel buffer 很像，只不过其中的数据需要 shader 中的 struct 来解释。
-
-* 一个 shader 可以绑定多个 set，从 0 开始编号，比如 set 0, set 1, ...
-
-    每个 set 又有多个 binding，从 0 开始编号，比如 binding 0, bindinig 1, ...
-
-    一个常见的 shader 可能是这种的：
-
-    ```glsl
-    #version 450 core
-    layout (set = 0, binding = 0) uniform sampler2DmyTexture;
-    layout (set = 0, binding = 2) uniform sampler3DmyLut;
-    layout (set = 1, binding = 0) uniform myTransforms
-    {
-        mat4 transform1;
-        mat3 transform2;
-    };
-    void main(void)
-    {
-        // Do nothing!
-    }
-    ```
-
-* `VkDescriptorSetLayoutBinding`中的`stageFlags`不知道写啥可以写`VK_SHADER_STAGE_ALL`，通用。
-
-    其他的几个 stage 可以参考官网说明：<https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkShaderStageFlagBits.html>
-
-    这个 struct 中的`descriptorCount`表示一个 binding 处可以有多个 descriptor 资源，这个好像是使用偏移来区分不同的数据。
-
-    比如每个 shader 拿到的是一个 20 个字节的数据，前 12 个字节表示的是 3 个 float 数，表示一个 rgb 的颜色。后面 8 个字节表示两个 float 数，表示一个 xy 的平面坐标。这样一个 binding 位置其实有两个 resource。
-
-    目前还没找到 example，但是之前好像见到过，有空的话找找。
-
-* `VkDescriptorSetLayoutCreateInfo`用的 flags 目前没什么用，直接设置成 0.
-
-* `VkDescriptorPoolCreateInfo`中的`maxSets`是根据 frames in flight 的数量设置的。有多少个 frames 就将`maxSets`设置成几。
-
-    目前还不清楚为什么要这样做。同一个 set 无法用在多个 render 过程中吗？
-
-* `VkDescriptorPoolSize`规定了给不同类型的 descriptor 预留多少个位置。
-
-    vulkan 文档里的解释是
-
-    > descriptorCount is the number of descriptors of that type to allocate.
-
-    目前仍不清楚这个参数的具体含义。
-
-* 创建一个简单 descriptor set 的过程
-
-    ```cpp
-    VkDescriptorPoolCreateInfo desc_pool_crt_info{};
-    desc_pool_crt_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    desc_pool_crt_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    desc_pool_crt_info.maxSets = 2;
-    desc_pool_crt_info.poolSizeCount = 1;
-    VkDescriptorPoolSize desc_pool_size{};
-    desc_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    desc_pool_size.descriptorCount = 2;
-    desc_pool_crt_info.pPoolSizes = &desc_pool_size;
-    VkDescriptorPool desc_pool;
-    VkResult result = vkCreateDescriptorPool(device, &desc_pool_crt_info, nullptr, &desc_pool);
-    if (result != VK_SUCCESS)
-    {
-        printf("fail to create descriptor pool, error code: %d\n", result);
-        exit(-1);
-    }
-
-    VkDescriptorSetLayout desc_set_layout;
-    VkDescriptorSetLayoutCreateInfo desc_set_layout_crt_info{};
-    desc_set_layout_crt_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    desc_set_layout_crt_info.bindingCount = 1;
-    VkDescriptorSetLayoutBinding desc_set_layout_binding{};
-    desc_set_layout_binding.binding = 0;
-    desc_set_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    desc_set_layout_binding.descriptorCount = 1;
-    desc_set_layout_binding.stageFlags = VK_SHADER_STAGE_ALL;
-    desc_set_layout_crt_info.pBindings = &desc_set_layout_binding;
-    result = vkCreateDescriptorSetLayout(device, &desc_set_layout_crt_info, nullptr, &desc_set_layout);
-    if (result != VK_SUCCESS)
-    {
-        printf("fail to create descriptor set layout, error code: %d\n", result);
-        exit(-1);
-    }
-
-    VkDescriptorSet desc_set;
-    VkDescriptorSetAllocateInfo desc_set_allo_info{};
-    desc_set_allo_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    desc_set_allo_info.pSetLayouts = &desc_set_layout;
-    desc_set_allo_info.descriptorSetCount = 1;
-    desc_set_allo_info.descriptorPool = desc_pool;
-    result = vkAllocateDescriptorSets(device, &desc_set_allo_info, &desc_set);
-    if (result != VK_SUCCESS)
-    {
-        printf("fail to allocate descriptor set, error code: %d\n", result);
-        exit(-1);
-    }
-    ```
-
-    此时还不够，descriptor set 还需要集成到 pipeline set layout 中，才能起作用。
 
 ## 安装
 
@@ -697,7 +444,7 @@ VK_LAYER_MESA_overlay
 OK: validation layer exists
 ```
 
-validation layer 对应的名称为`"VK_LAYER_KHRONOS_validation"`。
+validation layer 对应的名称为`"VK_LAYER_KHRONOS_validation"`。这个字符串并没有对应的宏。
 
 为了使用 callback function，需要使用`VK_EXT_DEBUG_UTILS_EXTENSION_NAME` extension，这个宏等价于`"VK_EXT_debug_utils"`。
 
@@ -1086,6 +833,12 @@ successfully create debug messenger
 
 ### queue family
 
+* vulkan 的 vk get physical device queue family properties() 返回的参数的类型却是 vk queue family properties。
+
+    第一说明 queue family 是个只属于 physical device 的概念；
+    
+    第二，说明 vulkan 也觉得这个类型名实在是太长了，写全的话是 vk physical device queue family proeprties，快占半个屏幕了，没歧义的话能简化就简化
+
 可以使用`vkGetPhysicalDeviceQueueFamilyProperties()`拿到一个 physical device 所支持的 queue family。
 
 以 amd gpu 为例，可以拿到 3 个 queue family。
@@ -1153,7 +906,7 @@ support transfer
 support transfer
 ```
 
-## logic device, queue
+## logic device and queue
 
 逻辑设备（logic device）意味着物理设备（的一个子集）和指令队列（queue）的一个绑定，使用指令队列向物理设备发送渲染、计算指令。
 
@@ -1167,15 +920,390 @@ support transfer
 
 ### logic device creation
 
+* 在创建 vulkan device 时，如果程序有显示画图的需要，那么需要为 device 增加一个 extension: `VK_KHR_SWAPCHAIN_EXTENSION_NAME`，或者叫`"VK_KHR_swapchain"`
+
 ### command queue
 
 ### present queue
+
+### command pool and command buffer
+
+* vulkan command pool 和 command buffer 的创建比较简单
+
+    ```cpp
+    VkCommandPool cmd_pool = create_command_pool(device, phy_dev, queue_family_idx);
+    VkCommandBuffer cmd_buf;
+    VkCommandBufferAllocateInfo cmd_buf_alc_info{};
+    cmd_buf_alc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd_buf_alc_info.commandBufferCount = 1;
+    cmd_buf_alc_info.commandPool = cmd_pool;
+    cmd_buf_alc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    result = vkAllocateCommandBuffers(device, &cmd_buf_alc_info, &cmd_buf);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to allocate command buffer\n");
+        exit(-1);
+    }
+    ```
+
+    按部就班，没有什么难理解的地方。
 
 ## Renderpass and Pipeline
 
 * 不清楚为什么要在 pipeline 里填写 scissor 和 viewport 的信息
 
     vkCmd 的 scissor 和 viewport 和 pipeline 中的是一样的吗？
+
+### Descriptor set
+
+* 一个 binding `VkDescriptorSetLayoutBinding` 只描述资源的位置（location），类型（texture, storage, sampler 等）。并不绑定实际的数据。
+
+    一个 binding 只描述一个资源位置的情况。一个 layout 描述的是多个 binding。
+
+* 如果不使用 descriptor binding，那么可以使用`vkCmdBindVertexBuffers()`进行绑定。这个函数的参数里指定了要绑定的位置。
+
+    这个好像不对。
+
+* 没有单个 descriptor 的说法，只有 descriptor set 和 descriptor pool
+
+* 在创建 descriptor layout binding 时，常用的`VkDescriptorType`:
+
+    * `VK_DESCRIPTOR_TYPE_SAMPLER:`
+
+    * `VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE`
+
+        A sampled image is an image that can be used in conjunction with a sampler to provide filtered data to a shader.
+
+        sampled image can not be written to.
+
+    * `VK_DESCRIPTOR_TYPE_STORAGE_IMAGE`
+
+        A storage image is an image that cannot be used with a sampler but can be written to.
+
+    * `VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER`
+
+        存放一些数据，不能被写入。
+
+    * `VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER`
+
+        存放一些数据，可以被写入。
+
+    * `VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER`, `VK_DESCRIPTOR_TYPE_STORAGE_BUFFER`
+
+        和 texel buffer 很像，只不过其中的数据需要 shader 中的 struct 来解释。
+
+* 一个 shader 可以绑定多个 set，从 0 开始编号，比如 set 0, set 1, ...
+
+    每个 set 又有多个 binding，从 0 开始编号，比如 binding 0, bindinig 1, ...
+
+    一个常见的 shader 可能是这种的：
+
+    ```glsl
+    #version 450 core
+    layout (set = 0, binding = 0) uniform sampler2DmyTexture;
+    layout (set = 0, binding = 2) uniform sampler3DmyLut;
+    layout (set = 1, binding = 0) uniform myTransforms
+    {
+        mat4 transform1;
+        mat3 transform2;
+    };
+    void main(void)
+    {
+        // Do nothing!
+    }
+    ```
+
+* `VkDescriptorSetLayoutBinding`中的`stageFlags`不知道写啥可以写`VK_SHADER_STAGE_ALL`，通用。
+
+    其他的几个 stage 可以参考官网说明：<https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkShaderStageFlagBits.html>
+
+    这个 struct 中的`descriptorCount`表示一个 binding 处可以有多个 descriptor 资源，这个好像是使用偏移来区分不同的数据。
+
+    比如每个 shader 拿到的是一个 20 个字节的数据，前 12 个字节表示的是 3 个 float 数，表示一个 rgb 的颜色。后面 8 个字节表示两个 float 数，表示一个 xy 的平面坐标。这样一个 binding 位置其实有两个 resource。
+
+    目前还没找到 example，但是之前好像见到过，有空的话找找。
+
+* `VkDescriptorSetLayoutCreateInfo`用的 flags 目前没什么用，直接设置成 0.
+
+* `VkDescriptorPoolCreateInfo`中的`maxSets`是根据 frames in flight 的数量设置的。有多少个 frames 就将`maxSets`设置成几。
+
+    目前还不清楚为什么要这样做。同一个 set 无法用在多个 render 过程中吗？
+
+* `VkDescriptorPoolSize`规定了给不同类型的 descriptor 预留多少个位置。
+
+    vulkan 文档里的解释是
+
+    > descriptorCount is the number of descriptors of that type to allocate.
+
+    目前仍不清楚这个参数的具体含义。
+
+* 创建一个简单 descriptor set 的过程
+
+    ```cpp
+    VkDescriptorPoolCreateInfo desc_pool_crt_info{};
+    desc_pool_crt_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    desc_pool_crt_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    desc_pool_crt_info.maxSets = 2;
+    desc_pool_crt_info.poolSizeCount = 1;
+    VkDescriptorPoolSize desc_pool_size{};
+    desc_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    desc_pool_size.descriptorCount = 2;
+    desc_pool_crt_info.pPoolSizes = &desc_pool_size;
+    VkDescriptorPool desc_pool;
+    VkResult result = vkCreateDescriptorPool(device, &desc_pool_crt_info, nullptr, &desc_pool);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to create descriptor pool, error code: %d\n", result);
+        exit(-1);
+    }
+
+    VkDescriptorSetLayout desc_set_layout;
+    VkDescriptorSetLayoutCreateInfo desc_set_layout_crt_info{};
+    desc_set_layout_crt_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    desc_set_layout_crt_info.bindingCount = 1;
+    VkDescriptorSetLayoutBinding desc_set_layout_binding{};
+    desc_set_layout_binding.binding = 0;
+    desc_set_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    desc_set_layout_binding.descriptorCount = 1;
+    desc_set_layout_binding.stageFlags = VK_SHADER_STAGE_ALL;
+    desc_set_layout_crt_info.pBindings = &desc_set_layout_binding;
+    result = vkCreateDescriptorSetLayout(device, &desc_set_layout_crt_info, nullptr, &desc_set_layout);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to create descriptor set layout, error code: %d\n", result);
+        exit(-1);
+    }
+
+    VkDescriptorSet desc_set;
+    VkDescriptorSetAllocateInfo desc_set_allo_info{};
+    desc_set_allo_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    desc_set_allo_info.pSetLayouts = &desc_set_layout;
+    desc_set_allo_info.descriptorSetCount = 1;
+    desc_set_allo_info.descriptorPool = desc_pool;
+    result = vkAllocateDescriptorSets(device, &desc_set_allo_info, &desc_set);
+    if (result != VK_SUCCESS)
+    {
+        printf("fail to allocate descriptor set, error code: %d\n", result);
+        exit(-1);
+    }
+    ```
+
+    此时还不够，descriptor set 还需要集成到 pipeline set layout 中，才能起作用。
+
+* vulkan descriptor sets
+
+    猜测：
+
+    1. 一个 descriptor 指的是一块显存和　shader 中一个 location　的绑定
+
+    2. 一个 descriptor set 指的是一个 shader 中不同位置（location）的资源绑定情况
+
+        具体如何绑定，由 descriptor set layout 指定。
+
+    3. 为了提高效率，descriptor set 都从一个 pool 中申请。pool 意味着大小是有限的，所以 descriptor set 的数量也是有限的。
+
+* descriptor set 主要是用来描述 uniform buffer 的
+
+    在创建完 descriptor set layout 后，可以和 pipeline layout 绑定：
+
+    ```cpp
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &desc_set_layout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    VkPipelineLayout pipelineLayout;
+    vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+    ```
+
+    要写入 uniform buffer 的数据，可以使用`vkUpdateDescriptorSets()`:
+
+    ```cpp
+    float rgb[3] = {0.8, 0.5, 0.5};
+    VkBuffer color_buf;
+    VkDeviceMemory color_buf_mem;
+    create_vk_buffer(color_buf, color_buf_mem, phy_dev, device, sizeof(float) * 3, 
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    vkMapMemory(device, color_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
+    memcpy(p_mem_data, rgb, sizeof(rgb));
+    vkUnmapMemory(device, color_buf_mem);
+
+    VkWriteDescriptorSet wrt_desc_set{};
+    wrt_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    wrt_desc_set.dstSet = desc_set;
+    VkDescriptorBufferInfo desc_buf_info{};
+    desc_buf_info.buffer = color_buf;
+    wrt_desc_set.pBufferInfo = &desc_buf_info;
+    wrt_desc_set.descriptorCount = 1;
+    desc_buf_info.offset = 0;
+    desc_buf_info.range = VK_WHOLE_SIZE;
+    wrt_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    wrt_desc_set.dstArrayElement = 0;
+    wrt_desc_set.dstBinding = 0;
+    vkUpdateDescriptorSets(device, 1, &wrt_desc_set, 0, nullptr);
+    ```
+
+    在 record command buffer 时，不要忘了这个：
+
+    ```cpp
+    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
+    ```
+
+    这一行和前面的`pipelineLayoutInfo.pSetLayouts = &desc_set_layout;`是相对应的，必须保持一致。
+
+    这里用的是`desc_set`，而不是 layout。descriptor set 需要在 pool 中申请（allocate）。
+
+    在 shader 中，vulkan 要求 uniform buffer 必须写成 bloack 的形式：
+
+    `shader_2.vert`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 inPosition;
+
+    layout (binding = 0) uniform RGB {
+        vec3 rgb;
+    } rgbs;
+
+    layout(location = 0) out vec3 frag_color;
+
+    void main() {
+        gl_Position = vec4(inPosition, 1.0);
+        frag_color = rgbs.rgb;
+    }
+    ```
+
+    `shader_2.frag`:
+
+    ```glsl
+    #version 450
+
+    layout(location = 0) in vec3 frag_color;
+    layout(location = 0) out vec3 outColor;
+
+    void main() {
+        outColor = vec3(0.5, 0.8, 0.5);
+        outColor = frag_color;
+    }
+    ```
+
+    运行后效果如下：
+
+    <div style=text-align:center>
+    <img width=500 src='./pics/vulkan_note/pic_1.png'>
+    </div>
+
+A descriptor set specifies the actual buffer or image resources that will be bound to the descriptors.
+
+```cpp
+VkDescriptorSetLayout descriptorSetLayout;
+
+void createDescriptorSetLayout() {
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &uboLayoutBinding;
+
+    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout!");
+    }
+}
+```
+
+使用：
+
+```cpp
+
+```
+
+* vulkan descriptor
+
+    一些核心的代码：
+
+    ```cpp
+    void createDescriptorSetLayout() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+    }
+    ```
+
+    上面的代码创建了一个 descriptor set layout，看起来这个 layout 就是 shader 文件里开头的那几行，绑定数据用的。
+
+    后面的 pipeline layout 中，会把这个 descriptor set layout 应用上去：
+
+    ```cpp
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;  // 在这里被应用
+
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+    ```
+
+    最终会在创建 pipeline 的时候用到：
+
+    ```cpp
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create graphics pipeline!");
+    }
+    ```
+
+    pipeline 最终通过 bind 的方式，加入到 renderpass 中发挥作用。
+
+* vulkan: `VkVertexInputBindingDescription`中的`stride`指的是给每个流处理器分的数据的长度
+
+    比如，对于位置坐标，float, `(x, y, z)`三个分量，`stride`就是`sizeof(float) * 3 = 4 * 3 = 12`。
+
+    `inputRate`似乎涉及到 vertex 还是 instance 的数据索引，因为没使用过 instance，所以不清楚这个是怎么回事。
+
+    目前只需要填`VK_VERTEX_INPUT_RATE_VERTEX`就可以了。
+
+    * `VkVertexInputAttributeDescription`似乎是指，比如 vertex buffer，给每个流处理器分 5 个 float 数，前 2 个 float 数表示 x, y 坐标，后 3 个 float 数表示 r, g, b 颜色。那么就认为这个 input vertex buffer 有两个 attribute，分别为 xy 坐标和 rgb 颜色。
+
+        我们使用 offset 来指定偏移，从而获得不同的 attribute。
+
+        每个 attrib 对应一个 location，location 从 0 开始依次递增。这些 location 都同属于一个 binding。
 
 ## swapchain
 
@@ -4214,6 +4342,69 @@ int main()
 
 ### vulkan image
 
+* vulkan 中有关 image view 和 frame buffer 的创建
+
+    * 创建 image view
+
+        ```cpp
+        std::vector<VkImageView> swpch_img_views(swpch_img_count);
+        VkImageViewCreateInfo img_view_crt_info{};
+        img_view_crt_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        img_view_crt_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        img_view_crt_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+        img_view_crt_info.components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY};
+        img_view_crt_info.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        VkResult result;
+        for (int i = 0; i < swpch_img_count; ++i)
+        {
+            img_view_crt_info.image = swpch_imgs[i];
+            result = vkCreateImageView(device, &img_view_crt_info, nullptr, &swpch_img_views[i]);
+            if (result != VK_SUCCESS)
+            {
+                printf("fail to create image view, error code %d\n", result);
+                exit(-1);
+            }
+        }
+        ```
+
+        `VkImage`其实包含了许多的数据区，每个数据区都是一张图片。image view 指的就是其中的一张图片。
+
+        通常只需要指定 vkiamge 的通道位（aspect bit）， array level 和 mip level，就可以定位一个数据区。这些信息被放在`subresourceRange`中。
+
+        `viewType`主要有 1D，2D，3D，cube 这几种。我们通常用的是 2D。
+
+        `components`指的是是否需要把 rgba 通道改变顺序，比如改成 bgra。如果不需要改变的话，直接填 identity `VK_COMPONENT_SWIZZLE_IDENTITY`就可以了。swizzle 的意思是鸡尾酒，这里取的是混合成分的意思吗？
+
+        `format`指的是 image 的 format，它与 surface 的 format 相同。常见的一个取值是`VK_FORMAT_B8G8R8A8_SRGB`。
+
+    * 创建 frame buffer
+
+        ```cpp
+        VkFramebufferCreateInfo frame_buf_crt_info{};
+        frame_buf_crt_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        frame_buf_crt_info.renderPass = render_pass;
+        frame_buf_crt_info.attachmentCount = 1;
+        frame_buf_crt_info.width = 700;
+        frame_buf_crt_info.height = 500;
+        frame_buf_crt_info.layers = 1;
+        std::vector<VkFramebuffer> frame_bufs(swpch_img_count);
+        for (int i = 0; i < swpch_img_count; ++i)
+        {
+            frame_buf_crt_info.pAttachments = &swpch_img_views[i];
+            result = vkCreateFramebuffer(device, &frame_buf_crt_info, nullptr, &frame_bufs[i]);
+            if (result != VK_SUCCESS)
+            {
+                printf("fail to create frame buffer, error code: %d\n", result);
+                exit(-1);
+            }
+        }
+        ```
+
+        frame buffer 是交给 render pass 使用的，一个 framebuffer 可以有多个 image view，这些 image view 都被称为 attachment。
+
+        目前不清楚这里的`layers`有什么作用。如果把 layer 填 2 或更大，该怎么取得不同 layer 的数据呢？
+
 * 有关 vulkan 中的 subresource
 
     对于 depth-stencil 图像，depth 层和 stencil 层都可以独立拿出来作为一张图片，这些都称作 subimage，即 subresource.
@@ -4605,6 +4796,12 @@ int main()
     目前不太清楚为啥根本没有 pipeline，还是会出现`VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT`。
 
 ### vertex buffer and index buffer
+
+* vertex buffer 和 index buffer 使用的是`vkCmdBindXXXBuffer()`进行绑定
+
+    这一点与 uniform buffer 不太相同。
+
+    如果传递的是 color 信息，又该用什么方式 bind 呢？
 
 vertex buffer 和 index buffer 是两种特殊的 buffer，它们被送入 shader 中，与 uniform buffer 相区别开。
 
@@ -5692,210 +5889,11 @@ int main()
 
     因此 vertex shader 的 input 实际上是所有的输入数据。
 
-## Descriptor set
+### uniform buffer
 
-* descriptor set 主要是用来描述 uniform buffer 的
+* vulkan 中的 uniform buffer 通过 map memory 的方式进行 gpu 和 cpu 间的通信
 
-    在创建完 descriptor set layout 后，可以和 pipeline layout 绑定：
-
-    ```cpp
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &desc_set_layout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    VkPipelineLayout pipelineLayout;
-    vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-    ```
-
-    要写入 uniform buffer 的数据，可以使用`vkUpdateDescriptorSets()`:
-
-    ```cpp
-    float rgb[3] = {0.8, 0.5, 0.5};
-    VkBuffer color_buf;
-    VkDeviceMemory color_buf_mem;
-    create_vk_buffer(color_buf, color_buf_mem, phy_dev, device, sizeof(float) * 3, 
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    vkMapMemory(device, color_buf_mem, 0, VK_WHOLE_SIZE, 0, (void**) &p_mem_data);
-    memcpy(p_mem_data, rgb, sizeof(rgb));
-    vkUnmapMemory(device, color_buf_mem);
-
-    VkWriteDescriptorSet wrt_desc_set{};
-    wrt_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    wrt_desc_set.dstSet = desc_set;
-    VkDescriptorBufferInfo desc_buf_info{};
-    desc_buf_info.buffer = color_buf;
-    wrt_desc_set.pBufferInfo = &desc_buf_info;
-    wrt_desc_set.descriptorCount = 1;
-    desc_buf_info.offset = 0;
-    desc_buf_info.range = VK_WHOLE_SIZE;
-    wrt_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    wrt_desc_set.dstArrayElement = 0;
-    wrt_desc_set.dstBinding = 0;
-    vkUpdateDescriptorSets(device, 1, &wrt_desc_set, 0, nullptr);
-    ```
-
-    在 record command buffer 时，不要忘了这个：
-
-    ```cpp
-    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipelineLayout, 0, 1, &desc_set, 0, nullptr);
-    ```
-
-    这一行和前面的`pipelineLayoutInfo.pSetLayouts = &desc_set_layout;`是相对应的，必须保持一致。
-
-    这里用的是`desc_set`，而不是 layout。descriptor set 需要在 pool 中申请（allocate）。
-
-    在 shader 中，vulkan 要求 uniform buffer 必须写成 bloack 的形式：
-
-    `shader_2.vert`:
-
-    ```glsl
-    #version 450
-
-    layout(location = 0) in vec3 inPosition;
-
-    layout (binding = 0) uniform RGB {
-        vec3 rgb;
-    } rgbs;
-
-    layout(location = 0) out vec3 frag_color;
-
-    void main() {
-        gl_Position = vec4(inPosition, 1.0);
-        frag_color = rgbs.rgb;
-    }
-    ```
-
-    `shader_2.frag`:
-
-    ```glsl
-    #version 450
-
-    layout(location = 0) in vec3 frag_color;
-    layout(location = 0) out vec3 outColor;
-
-    void main() {
-        outColor = vec3(0.5, 0.8, 0.5);
-        outColor = frag_color;
-    }
-    ```
-
-    运行后效果如下：
-
-    <div style=text-align:center>
-    <img width=500 src='./pics/vulkan_note/pic_1.png'>
-    </div>
-
-A descriptor set specifies the actual buffer or image resources that will be bound to the descriptors.
-
-```cpp
-VkDescriptorSetLayout descriptorSetLayout;
-
-void createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
-
-    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
-    }
-}
-```
-
-使用：
-
-```cpp
-
-```
-
-* vulkan descriptor
-
-    一些核心的代码：
-
-    ```cpp
-    void createDescriptorSetLayout() {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.pImmutableSamplers = nullptr;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &uboLayoutBinding;
-
-        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-    }
-    ```
-
-    上面的代码创建了一个 descriptor set layout，看起来这个 layout 就是 shader 文件里开头的那几行，绑定数据用的。
-
-    后面的 pipeline layout 中，会把这个 descriptor set layout 应用上去：
-
-    ```cpp
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;  // 在这里被应用
-
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-    ```
-
-    最终会在创建 pipeline 的时候用到：
-
-    ```cpp
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create graphics pipeline!");
-    }
-    ```
-
-    pipeline 最终通过 bind 的方式，加入到 renderpass 中发挥作用。
-
-* vulkan: `VkVertexInputBindingDescription`中的`stride`指的是给每个流处理器分的数据的长度
-
-    比如，对于位置坐标，float, `(x, y, z)`三个分量，`stride`就是`sizeof(float) * 3 = 4 * 3 = 12`。
-
-    `inputRate`似乎涉及到 vertex 还是 instance 的数据索引，因为没使用过 instance，所以不清楚这个是怎么回事。
-
-    目前只需要填`VK_VERTEX_INPUT_RATE_VERTEX`就可以了。
-
-    * `VkVertexInputAttributeDescription`似乎是指，比如 vertex buffer，给每个流处理器分 5 个 float 数，前 2 个 float 数表示 x, y 坐标，后 3 个 float 数表示 r, g, b 颜色。那么就认为这个 input vertex buffer 有两个 attribute，分别为 xy 坐标和 rgb 颜色。
-
-        我们使用 offset 来指定偏移，从而获得不同的 attribute。
-
-        每个 attrib 对应一个 location，location 从 0 开始依次递增。这些 location 都同属于一个 binding。
+    由于是直接 map memory，所以除了有 host visible 的要求外，还需要加上`VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`属性。
 
 ## vulkan 开发前置的搭建
 
@@ -7746,6 +7744,12 @@ refs:
 
 ## Draw
 
+* vulkan 的坐标系
+
+    窗口中间为`(0, 0)`，向右为`x`轴正方向，向下为`y`轴正方向，`x`的范围为`[-1, 1]`，`y`的范围也为`[-1, 1]`。
+
+    这点与 opengl 不一样。
+
 * vulkan 画三角形的代码
 
     ```cpp
@@ -8186,12 +8190,6 @@ refs:
 
 ## Miscellaneous
 
-* renderdoc 与程序实际的结果不一致
-
-    可以抓一下 vulkan api，看是否绘制了多帧，或者一帧没有渲染完。
-
-    可能是信号量等同步机制出了问题，导致`vkQueuePresentKHR()`没有在合适的时机被调用。
-
 * khronos 提供的 vulkan api capture layer
 
     <https://vulkan.lunarg.com/doc/view/1.3.204.1/windows/layer_configuration.html>
@@ -8215,26 +8213,9 @@ refs:
     #include "../FlaxEngine/Source/ThirdParty/volk/volk.h"
     ```
 
-* error result: `VK_ERROR_NATIVE_WINDOW_IN_USE_KHR`
-
-    一般是因为 glfw windows 初始化的时候，少了个 hint。
-
-    正常的应该是这样：
-
-    ```cpp
-    GLFWwindow* create_window(int width, int height, const char *title)
-    {
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
-        return window;
-    }
-    ```
-
 * 与 vulkan 相关的代码中，经常会用`return false;`表示成功。其实这里的 false 指的可能是 0，或者`VK_SUCCESS`。
 
     在检查函数的返回值时可以考虑到这点。
-
-## Chaos
 
 ## Problems shooting
 
@@ -8252,3 +8233,35 @@ refs:
     vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipelineLayout, 0, 1, &desc_set, 0, nullptr);
     ```
+
+* renderdoc 与程序实际的结果不一致
+
+    可以抓一下 vulkan api，看是否绘制了多帧，或者一帧没有渲染完。
+
+    可能是信号量等同步机制出了问题，导致`vkQueuePresentKHR()`没有在合适的时机被调用。
+
+* error result: `VK_ERROR_NATIVE_WINDOW_IN_USE_KHR`
+
+    一般是因为 glfw windows 初始化的时候，少了个 hint。
+
+    正常的应该是这样：
+
+    ```cpp
+    GLFWwindow* create_window(int width, int height, const char *title)
+    {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
+        return window;
+    }
+    ```
+
+* semaphore not signaled
+
+    ```
+    VUID-vkQueuePresentKHR-pWaitSemaphores-03268(ERROR / SPEC): msgNum: 622825338 - Validation Error: [ VUID-vkQueuePresentKHR-pWaitSemaphores-03268 ] Object 0: handle = 0x967dd1000000000e, type = VK_OBJECT_TYPE_SEMAPHORE; Object 1: handle = 0x5581f7685b80, type = VK_OBJECT_TYPE_QUEUE; | MessageID = 0x251f8f7a | vkQueuePresentKHR(): pPresentInfo->pWaitSemaphores[0] queue (VkQueue 0x5581f7685b80[]) is waiting on semaphore (VkSemaphore 0x967dd1000000000e[]) that has no way to be signaled. The Vulkan spec states: All elements of the pWaitSemaphores member of pPresentInfo must reference a semaphore signal operation that has been submitted for execution and any semaphore signal operations on which it depends (if any) must have also been submitted for execution (https://vulkan.lunarg.com/doc/view/1.3.268.0/linux/1.3-extensions/vkspec.html#VUID-vkQueuePresentKHR-pWaitSemaphores-03268)
+        Objects: 2
+            [0] 0x967dd1000000000e, type: 5, name: NULL
+            [1] 0x5581f7685b80, type: 4, name: NULL
+    ```
+
+    `vkQueuePresentKHR()`等待的 semaphore 并没有被提前 signal。可能是因为前面 command buffer 没有提交成功。

@@ -2,21 +2,6 @@
 
 ## cached
 
-* 正则表达式的一些 example
-
-    | 正则表达式 | 对应的字符串类型 |
-    | - | - |
-    | `if` | `{return IF;}` |
-    | `[a-z][a-z0-9]*` | `{return ID;}` |
-    | `[0-9]+` | `{return NUM;}` |
-    | `([0-9]+"."[0-9]*)|([0-9]*"."[0-9]+)` | `{return REAL;}` |
-    | `("--"[a-z]*"\n")|(" "|"\n"|"\t")+` | `{ /* do nothing */ }`|
-    | `.` | `{ error(); }` |
-
-    这里比较有意思的是`REAL`这一行。正则表达式有点像填空，每个位置上，一个 pattern 可能出现零次，一次，或多次。但是一个位置上 pattern 的出现与否，并不影响另外位置上的 pattern 是否出现。因此如果要约束两个位置上只能是`(0, 1), (1, 0), (1, 1)`，而不能是`(0, 0)`，那么就只能写两遍，就像 real 那一行那样。
-
-    注意最后一行的`.`并不是字符串句号，而是句点符号，表示除換行符之外的任意单个字符。
-
 * 正则表达式的一些缩写
 
     `[abcd]`表示`(a|b|c|d)`
@@ -31,175 +16,6 @@
 
     这些缩写只是为了方便，并没有增加正则表达式的描述能力。
 
-
-* compiler: 正则表达式，regular expression
-
-    正则表达式其实是定义了一个由字符串组成的集合。正则表达式可以使用有限的符号来定义无限元素的集合。
-
-    * 符号（symbol）
-
-        symbol $\bold a$ 可以匹配任意包含$\bold a$的字符串。
-
-    * 可选（alternation）
-
-        对于两个正则表达式$M$，$N$，$M | N$可以形成一个新的正则表达式。只要一个字符串包含$M$或$N$其中的一个，就可以匹配得上。
-
-    * 联结（concatenation）
-
-        $M \cdot N$表示$M$后紧跟$N$。
-
-    * $\epsilon$（epsilon）
-
-        表示空字符串。
-
-    * 重复（repetition）
-
-        对于给定的正则表达式$M$，它的克林（Kleene）闭包是$M^*$。
-
-        如果一个字符串是由$M$中的字符串经零至多次联结运算的结果，则该字符串属于$M^*$。
-
-    Examples:
-
-    * $a$
-
-        表示`{"a"}`。
-
-    * $a\, |\, b$
-
-        表示`{"a", "b"}`。
-
-    * $(a\, |\, b) \cdot a$
-
-        表示`{"aa", "ba"}`。
-
-    * $(a \cdot b) \, |\, \epsilon$
-
-        表示`{"", "ab"}`。
-
-    * $((a\, |\, b) \cdot a)^*$
-
-        表示`{"", "aa", "ba", "aaaa", "baaa", "aaba", "baba", "aaaaaa", ...}`
-
-    * $(0 \, | \, 1)^* \cdot 0$
-
-        由$2$的倍数组成的二进制数。
-
-    * $b^*(abb^*)^*(a \, | \, \epsilon)$
-
-        由`a`和`b`组成，但`a`不连续出现的字符串。
-
-    * $(a\, | \, b)^*aa(a \, | \, b)^*$
-
-        由`a`和`b`组成，且有连续出现的`a`的字符串。
-
-    在写正则表达式时，联结符号（$\cdot$）和$\epsilon$符号可以被省略。并假定克林闭包的优先级高于联结运算，联结运算的优先级高于可选运算。
-
-    examples:
-
-    * $ab \, | \, c$表示$(a \cdot b) \, | \, c$
-
-    * $(a\, |\, )$表示$(a \, | \, \epsilon)$
-
-    感觉这样定义的正则表达式其实就是离散数学和集合论的结合，每个位置上可能有，可能没有，再加𣥖与，或，空集。
-
-* 编译器习题 1.1 的一个实现
-
-    ```cpp
-    #include <iostream>
-    #include <string.h>
-    using namespace std;
-
-    typedef const char* String;
-    #define TRUE 1
-    #define FALSE 0
-
-    typedef struct tree *T_tree;
-    struct tree {
-        T_tree left;
-        String key;
-        T_tree right;
-    };
-
-    T_tree Tree(T_tree l, String k, T_tree r)
-    {
-        T_tree t = (T_tree) malloc(sizeof(*t));
-        t->left = l;
-        t->key = k;
-        t->right = r;
-        return t;
-    }
-
-    T_tree insert(String key, T_tree t)
-    {
-        if (t == NULL)
-            return Tree(NULL, key, NULL);
-        else if (strcmp(key, t->key) < 0)
-            return Tree(insert(key, t->left), t->key, t->right);
-        else if (strcmp(key, t->key) > 0)
-            return Tree(t->left, t->key, insert(key, t->right));
-        else
-            return Tree(t->left, key, t->right);
-    }
-
-    bool member(String key, T_tree root)
-    {
-        if (root == NULL)
-            return FALSE;
-
-        if (strcmp(key, root->key) == 0)
-            return TRUE;
-        else if (strcmp(key, root->key) < 0)
-            return member(key, root->left);
-        else
-            return member(key, root->right);
-    }
-
-    T_tree insert(String key, void *binding, T_tree t);
-    void *lookup(String key, T_tree t);
-
-    int main()
-    {
-        T_tree root = NULL;
-        root = insert("hello", root);
-        root = insert("world", root);
-        root = insert("nihao", root);
-        root = insert("zaijian", root);
-
-        String key = "zaijian";
-        bool found = member(key, root);
-        if (found)
-            printf("member %s exists.\n", key);
-        else
-            printf("member %s doesn't exist.\n", key);
-
-        key = "haha";
-        found = member(key, root);
-        if (found)
-            printf("member %s exists.\n", key);
-        else
-            printf("member %s doesn't exist.\n", key);
-
-        return 0;
-    }
-    ```
-
-    输出：
-
-    ```
-    member zaijian exists.
-    member haha doesn't exist.
-    ```
-
-    这段代码，每次`insert()`，都会返回一个全新的树，所以习题上才说旧的树还可继续用于查找。
-
-    这个`insert()`不会插入重复的元素，如果某个元素已经存在，那么就返回原树的一个副本。
-
-    `typedef struct tree *T_tree;`实际上就是指定了一个新类型的指针，有些代码可能没有`struct tree`的定义，纯粹是为了区分类型。这样的操作常见于句柄。
-
-    `T_tree t = (T_tree) malloc(sizeof(*t));`这种写法还是第一次见，看来等号左边写出来的变量，右边就可以直接用了。或者说，这个语句，其实是声明和赋值的结合体。
-
-    b 小题没看懂。
-
 * 非确定有限自动机（NFA）是一种需要对从一个状态出发的多条标有相同符号的边进行选择的自动机。
 
     比如对于初始状态$s_0$，它向外有 2 条边，每条边的条件都是字母`a`，由此可以得到两个完全不同的终止条件。
@@ -207,6 +23,93 @@
     标有$\epsilon$的边可以在不接收输入字符的情况下进行状态转换。
 
 ## notes
+
+### 正则表达式 regular expression
+
+正则表达式定义了一个由字符串组成的集合。正则表达式可以使用有限的符号来定义无限元素的集合。
+
+* 符号（symbol）
+
+    symbol $\bold a$ 可以匹配任意包含$\bold a$的字符串。
+
+* 可选（alternation）
+
+    对于两个正则表达式$M$，$N$，$M | N$可以形成一个新的正则表达式。只要一个字符串包含$M$或$N$其中的一个，就可以匹配得上。
+
+* 联结（concatenation）
+
+    $M \cdot N$表示$M$后紧跟$N$。
+
+* $\epsilon$（epsilon）
+
+    表示空字符串。
+
+* 重复（repetition）
+
+    对于给定的正则表达式$M$，它的克林（Kleene）闭包是$M^*$。
+
+    如果一个字符串是由$M$中的字符串经零至多次联结运算的结果，则该字符串属于$M^*$。
+
+Examples:
+
+* $a$
+
+    表示`{"a"}`。
+
+* $a\, |\, b$
+
+    表示`{"a", "b"}`。
+
+* $(a\, |\, b) \cdot a$
+
+    表示`{"aa", "ba"}`。
+
+* $(a \cdot b) \, |\, \epsilon$
+
+    表示`{"", "ab"}`。
+
+* $((a\, |\, b) \cdot a)^*$
+
+    表示`{"", "aa", "ba", "aaaa", "baaa", "aaba", "baba", "aaaaaa", ...}`
+
+* $(0 \, | \, 1)^* \cdot 0$
+
+    由$2$的倍数组成的二进制数。
+
+* $b^*(abb^*)^*(a \, | \, \epsilon)$
+
+    由`a`和`b`组成，但`a`不连续出现的字符串。
+
+* $(a\, | \, b)^*aa(a \, | \, b)^*$
+
+    由`a`和`b`组成，且有连续出现的`a`的字符串。
+
+在写正则表达式时，联结符号（$\cdot$）和$\epsilon$符号可以被省略。并假定克林闭包的优先级高于联结运算，联结运算的优先级高于可选运算。
+
+examples:
+
+* $ab \, | \, c$表示$(a \cdot b) \, | \, c$
+
+* $(a\, |\, )$表示$(a \, | \, \epsilon)$
+
+感觉这样定义的正则表达式其实就是离散数学和集合论的结合，每个位置上可能有，可能没有，再加𣥖与，或，空集。
+
+#### 正则表达式的一些 example
+
+    | 正则表达式 | 对应的字符串类型 |
+    | - | - |
+    | `if` | `{return IF;}` |
+    | `[a-z][a-z0-9]*` | `{return ID;}` |
+    | `[0-9]+` | `{return NUM;}` |
+    | `([0-9]+"."[0-9]*)|([0-9]*"."[0-9]+)` | `{return REAL;}` |
+    | `("--"[a-z]*"\n")|(" "|"\n"|"\t")+` | `{ /* do nothing */ }`|
+    | `.` | `{ error(); }` |
+
+    这里比较有意思的是`REAL`这一行。正则表达式有点像填空，每个位置上，一个 pattern 可能出现零次，一次，或多次。但是一个位置上 pattern 的出现与否，并不影响另外位置上的 pattern 是否出现。因此如果要约束两个位置上只能是`(0, 1), (1, 0), (1, 1)`，而不能是`(0, 0)`，那么就只能写两遍，就像 real 那一行那样。
+
+    注意，最后一行的`.`并不是字符串句号，而是句点符号，表示除換行符之外的任意单个字符。
+
+### bison and flex
 
 使用 bison 和 flex 创建一个简易计算器。
 
@@ -321,3 +224,146 @@ make
 
 表示编译器运行成功。
 
+## 课后习题
+
+* 一些自己写的答案
+
+    * 编译器习题 1.1 的一个实现
+
+        ```cpp
+        #include <iostream>
+        #include <string.h>
+        using namespace std;
+
+        typedef const char* String;
+        #define TRUE 1
+        #define FALSE 0
+
+        typedef struct tree *T_tree;
+        struct tree {
+            T_tree left;
+            String key;
+            T_tree right;
+        };
+
+        T_tree Tree(T_tree l, String k, T_tree r)
+        {
+            T_tree t = (T_tree) malloc(sizeof(*t));
+            t->left = l;
+            t->key = k;
+            t->right = r;
+            return t;
+        }
+
+        T_tree insert(String key, T_tree t)
+        {
+            if (t == NULL)
+                return Tree(NULL, key, NULL);
+            else if (strcmp(key, t->key) < 0)
+                return Tree(insert(key, t->left), t->key, t->right);
+            else if (strcmp(key, t->key) > 0)
+                return Tree(t->left, t->key, insert(key, t->right));
+            else
+                return Tree(t->left, key, t->right);
+        }
+
+        bool member(String key, T_tree root)
+        {
+            if (root == NULL)
+                return FALSE;
+
+            if (strcmp(key, root->key) == 0)
+                return TRUE;
+            else if (strcmp(key, root->key) < 0)
+                return member(key, root->left);
+            else
+                return member(key, root->right);
+        }
+
+        T_tree insert(String key, void *binding, T_tree t);
+        void *lookup(String key, T_tree t);
+
+        int main()
+        {
+            T_tree root = NULL;
+            root = insert("hello", root);
+            root = insert("world", root);
+            root = insert("nihao", root);
+            root = insert("zaijian", root);
+
+            String key = "zaijian";
+            bool found = member(key, root);
+            if (found)
+                printf("member %s exists.\n", key);
+            else
+                printf("member %s doesn't exist.\n", key);
+
+            key = "haha";
+            found = member(key, root);
+            if (found)
+                printf("member %s exists.\n", key);
+            else
+                printf("member %s doesn't exist.\n", key);
+
+            return 0;
+        }
+        ```
+
+        输出：
+
+        ```
+        member zaijian exists.
+        member haha doesn't exist.
+        ```
+
+        这段代码，每次`insert()`，都会返回一个全新的树，所以习题上才说旧的树还可继续用于查找。
+
+        这个`insert()`不会插入重复的元素，如果某个元素已经存在，那么就返回原树的一个副本。
+
+        `typedef struct tree *T_tree;`实际上就是指定了一个新类型的指针，有些代码可能没有`struct tree`的定义，纯粹是为了区分类型。这样的操作常见于句柄。
+
+        `T_tree t = (T_tree) malloc(sizeof(*t));`这种写法还是第一次见，看来等号左边写出来的变量，右边就可以直接用了。或者说，这个语句，其实是声明和赋值的结合体。
+
+        b 小题没看懂。
+
+    * 2.1 a
+
+        $c^*b^+(c^*a^*b^*)^*a^+(a^*b^*c^*)^*$
+
+    * 2.1 b
+
+        如果以$a$开始，必须以$a$结束：$(a(b^*c^*)^*a)$
+
+        如果不以$a$开始，那么中间字符串可以有上面的模式，也可以没有：$((b^*c^*)^*a(b^*c^*)^*a(b^*c^*)^*)^*$
+
+    * 2.1 c
+
+        4 的倍数要求最后三位是$100$，即$(1^*0^*)^*100$
+
+    * 2.1 d
+
+        情况 1：位数比 6 大，不考虑后面的位：$(1^+0^*)^+(1|0)^6$
+
+        情况2：位数为 6，则对于`101001`从左往右各个位情况如下：
+
+        1. 这位必须为 1
+
+        2. 这位可以是 0 可以是 1
+
+        3. 如果前面一位是 1，这位可为 0 可为 1；如果前面一位是 0，这位必为 1
+
+        4. 可为 0 可为 1
+
+        5. 0 或 1
+
+        6. 若前面为 1，这里 0 或 1 都可以；若前面为 0 ，这里 0 或 1 都不可以
+
+        由 5 和 6 联合推导出，第 5 位必为 1，第 6 位可为 0 可为 1
+
+        由此得到：$1(1(1 | 0) | 01)(0 | 1)(1(0 | 1))$
+
+        感觉这个不太对，还得再改改。因为如果前几位已经可以确定大小，后面的位数就可以不考虑了。
+
+    * 2.2 a
+
+        a 比 b 多的情况有无限种，所以无法匹配。

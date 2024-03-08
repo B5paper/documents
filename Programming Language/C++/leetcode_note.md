@@ -36483,6 +36483,163 @@ public:
     };
     ```
 
+#### 通知所有员工所需的时间
+
+公司里有 n 名员工，每个员工的 ID 都是独一无二的，编号从 0 到 n - 1。公司的总负责人通过 headID 进行标识。
+
+在 manager 数组中，每个员工都有一个直属负责人，其中 manager[i] 是第 i 名员工的直属负责人。对于总负责人，manager[headID] = -1。题目保证从属关系可以用树结构显示。
+
+公司总负责人想要向公司所有员工通告一条紧急消息。他将会首先通知他的直属下属们，然后由这些下属通知他们的下属，直到所有的员工都得知这条紧急消息。
+
+第 i 名员工需要 informTime[i] 分钟来通知它的所有直属下属（也就是说在 informTime[i] 分钟后，他的所有直属下属都可以开始传播这一消息）。
+
+返回通知所有员工这一紧急消息所需要的 分钟数 。
+
+ 
+
+示例 1：
+
+输入：n = 1, headID = 0, manager = [-1], informTime = [0]
+输出：0
+解释：公司总负责人是该公司的唯一一名员工。
+
+示例 2：
+
+输入：n = 6, headID = 2, manager = [2,2,-1,2,2,2], informTime = [0,0,1,0,0,0]
+输出：1
+解释：id = 2 的员工是公司的总负责人，也是其他所有员工的直属负责人，他需要 1 分钟来通知所有员工。
+上图显示了公司员工的树结构。
+
+ 
+
+提示：
+
+    1 <= n <= 10^5
+    0 <= headID < n
+    manager.length == n
+    0 <= manager[i] < n
+    manager[headID] == -1
+    informTime.length == n
+    0 <= informTime[i] <= 1000
+    如果员工 i 没有下属，informTime[i] == 0 。
+    题目 保证 所有员工都可以收到通知。
+
+
+代码：
+
+1. 自己第一次写的，超时了
+
+    ```cpp
+    class Solution {
+    public:
+        int numOfMinutes(int n, int headID, vector<int>& manager, vector<int>& informTime) {
+            vector<int> heads{headID};
+            vector<int> next_heads;
+            vector<int> time_consumed(n, 0);
+            int ans = 0;
+            while (!heads.empty())
+            {
+                for (int i = 0; i < heads.size(); ++i)
+                {
+                    int cur_head = heads[i];
+                    for (int j = 0; j < manager.size(); ++j)
+                    {
+                        if (manager[j] == cur_head)
+                        {
+                            next_heads.push_back(j);
+                            time_consumed[j] = time_consumed[cur_head] + informTime[cur_head];
+                        }
+                    }
+                }
+                heads = next_heads;
+                next_heads.clear();
+            }
+            for (int i = 0; i < time_consumed.size(); ++i)
+                ans = max(ans, time_consumed[i]);
+            return ans;
+        }
+    };
+    ```
+
+    这个想法非常简单，每次都遍历一遍边界节点，计算到达下一层边界节点所花时间。
+
+    然后再遍历最后一层边界节点所花时间，找到最大的就可以了。整体的算法是 bfs。
+
+    这个主要是“找下一层边界节点”比较费时间。
+
+1. 第二次修改的，击败 63%
+
+    ```cpp
+    class Solution {
+    public:
+        int numOfMinutes(int n, int headID, vector<int>& manager, vector<int>& informTime) {
+            vector<int> cur_mgrs{headID};
+            vector<int> nex_mgrs;
+            vector<int> time_consumed(n, 0);
+            int ans = 0;
+
+            vector<vector<int>> mgr_to_emps(n);
+            for (int i = 0; i < manager.size(); ++i)
+            {
+                if (manager[i] != -1)
+                    mgr_to_emps[manager[i]].push_back(i);
+            }
+
+            while (!cur_mgrs.empty())
+            {
+                for (int i = 0; i < cur_mgrs.size(); ++i)
+                {
+                    int cur_head = cur_mgrs[i];
+                    nex_mgrs.insert(nex_mgrs.end(),
+                            mgr_to_emps[cur_head].begin(), mgr_to_emps[cur_head].end());
+                    for (int j = 0; j < mgr_to_emps[cur_head].size(); ++j)
+                    {
+                        int emp_id = mgr_to_emps[cur_head][j];
+                        time_consumed[emp_id] = time_consumed[cur_head] + informTime[cur_head];
+                    }
+                }
+                cur_mgrs = nex_mgrs;
+                nex_mgrs.clear();
+            }
+            for (int i = 0; i < time_consumed.size(); ++i)
+                ans = max(ans, time_consumed[i]);
+            return ans;
+        }
+    };
+    ```
+
+    先遍历一遍节点，建立 manager 和 employees 的映射关系，然后再按上面的方法进行 bfs。
+
+    按道理这个映射关系应该写成`unordered_map<int, vector<int>>`的形式。但是 mgr 恰好从 0 开始计数，并且索引是一个一个递增的，所以我们可以直接把数组位置看作 manager 的 node 索引。这样只需要一个`vector<vector<int>>`就可以了。
+
+1. 官方答案（没看）
+
+    ```cpp
+    class Solution {
+    public:
+        int numOfMinutes(int n, int headID, vector<int>& manager, vector<int>& informTime) {
+            // 建立一个从 manager[i] 到 i 的有向图
+            unordered_map<int, vector<int>> g;
+            for (int i = 0; i < n; i++) {
+                g[manager[i]].emplace_back(i);
+            }
+            // 定义一个 dfs 函数，遍历从 headID 开始的子树
+            function<int(int)> dfs = [&](int cur) -> int {
+                int res = 0;
+                // 遍历当前节点的所有子节点，计算从子节点到当前节点的时间
+                for (int neighbor : g[cur]) {
+                    res = max(res, dfs(neighbor));
+                }
+                // 加上当前节点到其上级节点的时间
+                return informTime[cur] + res;
+            };
+            // 返回从 headID 到其所有子节点的最大时间
+            return dfs(headID);
+        }
+    };
+    ```
+
+
 ## 各种算法中需要注意的细节
 
 ### bfs

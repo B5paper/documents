@@ -4,12 +4,12 @@
 [u_0]
 请写一个向量相加的算子`add`。
 [u_1]
-`vector_add_kernel.cl`:
+`kernels.cl`:
 
 ```c
-kernel void vector_add(global const int *A, global const int *B, global int *C)
+kernel void add(global const int *A, global const int *B, global int *C)
 {
-    int i = get_global_id(0);
+    size_t i = get_global_id(0);
     C[i] = A[i] + B[i];
 }
 ```
