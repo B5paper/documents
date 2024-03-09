@@ -36639,6 +36639,280 @@ public:
     };
     ```
 
+#### 重新规划路线
+
+n 座城市，从 0 到 n-1 编号，其间共有 n-1 条路线。因此，要想在两座不同城市之间旅行只有唯一一条路线可供选择（路线网形成一颗树）。去年，交通运输部决定重新规划路线，以改变交通拥堵的状况。
+
+路线用 connections 表示，其中 connections[i] = [a, b] 表示从城市 a 到 b 的一条有向路线。
+
+今年，城市 0 将会举办一场大型比赛，很多游客都想前往城市 0 。
+
+请你帮助重新规划路线方向，使每个城市都可以访问城市 0 。返回需要变更方向的最小路线数。
+
+题目数据 保证 每个城市在重新规划路线方向后都能到达城市 0 。
+
+ 
+
+示例 1：
+
+输入：n = 6, connections = [[0,1],[1,3],[2,3],[4,0],[4,5]]
+输出：3
+解释：更改以红色显示的路线的方向，使每个城市都可以到达城市 0 。
+
+示例 2：
+
+输入：n = 5, connections = [[1,0],[1,2],[3,2],[3,4]]
+输出：2
+解释：更改以红色显示的路线的方向，使每个城市都可以到达城市 0 。
+
+示例 3：
+
+输入：n = 3, connections = [[1,0],[2,0]]
+输出：0
+
+ 
+
+提示：
+
+    2 <= n <= 5 * 10^4
+    connections.length == n-1
+    connections[i].length == 2
+    0 <= connections[i][0], connections[i][1] <= n-1
+    connections[i][0] != connections[i][1]
+
+
+分析：
+
+这道题跟前面不同的是，之前的题给的图都能沿着边顺利拿到下一层的节点集合，从而执行 bfs。但是这道题的边由于方向不同，需要同时拿到正反方向才可以。
+
+这里的问题在于，我们统计答案的时候，是需要一层一层向外递增`ans`的。
+
+综合上面的考虑，就必须重写题目给出的条件方便索引，让我们既可以快速拿到下一层，又可以快速判断正反方向。
+
+
+代码：
+
+1. 线性搜索，超时
+
+    ```cpp
+    class Solution {
+    public:
+        int minReorder(int n, vector<vector<int>>& connections) {
+            int ans = 0;
+            vector<bool> vis(connections.size(), false);
+            vector<bool> node_vis(n, false);
+            vector<int> cur_nodes{0}, nex_nodes;
+            while (!cur_nodes.empty())
+            {
+                for (int i = 0; i < cur_nodes.size(); ++i)
+                {
+                    int cur_node = cur_nodes[i];
+                    for (int j = 0; j < connections.size(); ++j)
+                    {
+                        if (vis[j])
+                            continue;
+                        vector<int> &conn = connections[j];
+                        if (conn[0] == cur_node && !node_vis[conn[1]])
+                        {
+                            ++ans;
+                            nex_nodes.push_back(conn[1]);
+                            node_vis[conn[1]] = true;
+                            vis[j] = true;
+                        }
+                        else if (conn[1] == cur_node && !node_vis[conn[0]])
+                        {
+                            nex_nodes.push_back(conn[0]);
+                            node_vis[conn[0]] = true;
+                            vis[j] = true;
+                        }
+                    }
+                }
+                cur_nodes = nex_nodes;
+                nex_nodes.clear();
+            }
+            return ans;
+        }
+    };
+    ```
+
+    这个方法没有重写条件，直接对`connections`反复线性搜索，因此效率很低。
+
+    使用`vis`表示某条边已经被搜索过了，可以跳过处理。使用`node_vis`表示已经搜索过的节点，防止回流搜索。
+
+    后面通过线性搜索的方式找下一组节点。
+
+1. 使用链表找下一组节点，使用邻接矩阵判断方向，超出内存限制
+
+    ```cpp
+    class Solution {
+    public:
+        int minReorder(int n, vector<vector<int>>& connections) {
+            vector<vector<int>> conns(n);
+            vector<vector<int>> edges(n, vector<int>(n, 0));
+            for (int i = 0; i < connections.size(); ++i)
+            {
+                int node_0 = connections[i][0];
+                int node_1 = connections[i][1];
+                conns[node_0].push_back(node_1);
+                conns[node_1].push_back(node_0);
+                edges[node_0][node_1] = 1;
+                edges[node_1][node_0] = -1;
+            }
+
+            vector<bool> vis(n, false);
+            vector<int> cur_nodes{0}, nex_nodes;
+            int ans = 0;
+            while (!cur_nodes.empty())
+            {
+                for (int i = 0; i < cur_nodes.size(); ++i)
+                {
+                    int cur_node = cur_nodes[i];
+                    vis[cur_node] = true;
+                    for (int j = 0; j < conns[cur_node].size(); ++j)
+                    {
+                        int nex_node = conns[cur_node][j];
+                        if (vis[nex_node])
+                            continue;
+                        nex_nodes.push_back(nex_node);
+                        if (edges[cur_node][nex_node] == 1)
+                            ans++;
+                    }
+                }
+                cur_nodes = nex_nodes;
+                nex_nodes.clear();
+            }
+            return ans;
+        }
+    };
+    ```
+
+    `conns`表示与某个节点相连的所有节点，不考虑方向。`edges`是一个邻接矩阵，用来表示方向。
+
+    这样我们可以通过`conns`快速拿到下一组节点，并且使用`vis`防止回流搜索，最后使用`edges`快速判断是否该增加答案。
+
+    由于邻接矩阵占的内存过大，所以这个方法也不行。
+
+1. 改进了邻接矩阵的存储类型，仍然超出内存限制
+
+    ```cpp
+    class Solution {
+    public:
+        int minReorder(int n, vector<vector<int>>& connections) {
+            vector<vector<int>> conns(n);
+            vector<vector<bool>> edges(n, vector<bool>(n, false));
+            for (int i = 0; i < connections.size(); ++i)
+            {
+                int node_0 = connections[i][0];
+                int node_1 = connections[i][1];
+                conns[node_0].push_back(node_1);
+                conns[node_1].push_back(node_0);
+                edges[node_0][node_1] = true;
+            }
+
+            vector<bool> vis(n, false);
+            vector<int> cur_nodes{0}, nex_nodes;
+            int ans = 0;
+            while (!cur_nodes.empty())
+            {
+                for (int i = 0; i < cur_nodes.size(); ++i)
+                {
+                    int cur_node = cur_nodes[i];
+                    vis[cur_node] = true;
+                    for (int j = 0; j < conns[cur_node].size(); ++j)
+                    {
+                        int nex_node = conns[cur_node][j];
+                        if (vis[nex_node])
+                            continue;
+                        nex_nodes.push_back(nex_node);
+                        if (edges[cur_node][nex_node])
+                            ans++;
+                    }
+                }
+                cur_nodes = nex_nodes;
+                nex_nodes.clear();
+            }
+            return ans;
+        }
+    };
+    ```
+
+    由于在前面的代码中发现只有当`edges[i][j] == 1`时才对答案有贡献，所以我们只需要用 bool 值保存哪里为 1 就可以了。
+
+    虽然减少了一定的内存使用，但还是超出内存限制。
+
+1. 使用`pair<int, bool>`在链表里直接存储边的方向，cpu 击败 97%，内存占用击败 86%
+
+    ```cpp
+    class Solution {
+    public:
+        int minReorder(int n, vector<vector<int>>& connections) {
+            vector<vector<pair<int, bool>>> conns(n);
+            for (int i = 0; i < connections.size(); ++i)
+            {
+                int node_0 = connections[i][0];
+                int node_1 = connections[i][1];
+                conns[node_0].push_back({node_1, true});
+                conns[node_1].push_back({node_0, false});
+            }
+
+            vector<bool> vis(n, false);
+            vector<int> cur_nodes{0}, nex_nodes;
+            int ans = 0;
+            while (!cur_nodes.empty())
+            {
+                for (int i = 0; i < cur_nodes.size(); ++i)
+                {
+                    int cur_node = cur_nodes[i];
+                    vis[cur_node] = true;
+                    for (int j = 0; j < conns[cur_node].size(); ++j)
+                    {
+                        auto& [nex_node, posi] = conns[cur_node][j];
+                        if (vis[nex_node])
+                            continue;
+                        nex_nodes.push_back(nex_node);
+                        if (posi)
+                            ans++;
+                    }
+                }
+                cur_nodes = nex_nodes;
+                nex_nodes.clear();
+            }
+            return ans;
+        }
+    };
+    ```
+
+    撤掉了邻接矩阵。到这里突然想明白了，这道题主要是需要使用`vis`来防止回流搜索，邻接矩阵并不是必要的。
+
+1. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        int dfs(int x, int parent, vector<vector<pair<int, int>>>& e) {
+            int res = 0;
+            for (auto &edge : e[x]) {
+                if (edge.first == parent) {
+                    continue;
+                }
+                res += edge.second + dfs(edge.first, x, e);
+            }
+            return res;
+        }
+
+        int minReorder(int n, vector<vector<int>>& connections) {
+            vector<vector<pair<int, int>>> e(n);
+            for (auto edge : connections) {
+                e[edge[0]].push_back(make_pair(edge[1], 1));
+                e[edge[1]].push_back(make_pair(edge[0], 0));
+            }
+            return dfs(0, -1, e);
+        }
+    };
+    ```
+
+    没看。
+
 
 ## 各种算法中需要注意的细节
 

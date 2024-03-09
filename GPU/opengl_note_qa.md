@@ -659,18 +659,6 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 
 [unit]
 [u_0]
-请使用 VBO 画一个 cube。
-[u_1]
-(empty)
-
-[unit]
-[u_0]
-请使用 shader 画一个彩色的 cube，并使之旋转。
-[u_1]
-(empty)
-
-[unit]
-[u_0]
 请给一个三角形加上纹理贴图。
 [u_1]
 `main.cpp`:

@@ -47,6 +47,7 @@ int main()
             for (int k = 0; k < spectrum; ++k)
             {
                 arr[i * width + j * height + k] = img(i, j, 0, k);  // 这代码有错
+                // 可能应该改成 i * height * spectrum + j * spectrum + k
             }   
         }
     }
