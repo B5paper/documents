@@ -36913,6 +36913,91 @@ n 座城市，从 0 到 n-1 编号，其间共有 n-1 条路线。因此，要�
 
     没看。
 
+#### 所有可能的路径
+
+给你一个有 n 个节点的 有向无环图（DAG），请你找出所有从节点 0 到节点 n-1 的路径并输出（不要求按特定顺序）
+
+graph[i] 是一个从节点 i 可以访问的所有节点的列表（即从节点 i 到节点 graph[i][j]存在一条有向边）。
+
+
+
+示例 1：
+
+输入：graph = [[1,2],[3],[3],[]]
+输出：[[0,1,3],[0,2,3]]
+解释：有两条路径 0 -> 1 -> 3 和 0 -> 2 -> 3
+
+示例 2：
+
+输入：graph = [[4,3,1],[3,2,4],[3],[4],[]]
+输出：[[0,4],[0,3,4],[0,1,3,4],[0,1,2,3,4],[0,1,4]]
+
+
+
+提示：
+
+    n == graph.length
+    2 <= n <= 15
+    0 <= graph[i][j] < n
+    graph[i][j] != i（即不存在自环）
+    graph[i] 中的所有元素 互不相同
+    保证输入为 有向无环图（DAG）
+
+
+代码：
+
+1. 一开始自己写的，错了
+
+    ```cpp
+    class Solution {
+    public:
+        void dfs(vector<vector<int>> &graph, int cur_node, vector<vector<int>> &paths)
+        {
+            if (graph[cur_node].empty())
+            {
+                paths.push_back({cur_node});
+                return;
+            }
+            
+            for (int i = 0; i < graph[cur_node].size(); ++i)
+            {
+                vector<vector<int>> next_paths;
+                dfs(graph, graph[cur_node][i], next_paths);
+                for (int j = 0; j < next_paths.size(); ++j)
+                {
+                    paths.push_back({cur_node});
+                    vector<int> &back = paths.back();
+                    back.insert(back.end(), next_paths[j].begin(), next_paths[j].end());
+                }
+            }
+        }
+
+        vector<vector<int>> allPathsSourceTarget(vector<vector<int>>& graph) {
+            vector<vector<int>> ans;
+            dfs(graph, 0, ans);
+            return ans;
+        }
+    };
+    ```
+
+    一开始想的是，如果我使用 dfs 做，每个子节点都需要当前节点汇报完当前子节点的 path 情况后，当前节点才能对子节点进行汇总。因此这其实是一个后序遍历。
+
+    一个比较难的地方在于，如果当前节点有一个子节点，那么就退化成了链表的形式，反转链表就是这么个思路。如果当前节点有两个或多个子节点，那么需要把当前从 0 出发的路径删了，然后 fork 成两份或多份，分别在这两份（多份）链表的末尾加止子节点。
+
+    这样不断删，又不断新增，似乎把问题变得复杂了。
+
+    那我如果反向想，由叶子节点开始创建链表，随着向上级汇总，只需要在链表头部不断加入上级节点就可以了。于是有了这段代码。
+
+    每个节点不光对子节点遍历，还要对子节点的返回值遍历，这样就能拿到所有路径了。
+
+    但是题目问的并不是所有路径，而是`0`到`n-1`的路径。
+
+    那也简单，我们只需要把终止条件从`if (graph[cur_node].empty())`改成`if (graph[cur_node].empty() && cur_node == graph.size() - 1)`就可以了。
+
+    但这样还是不对，因为题目并没有说`n-1`号节点是叶子节点。再把改成`if (cur_node == graph.size() - 1)`。这次终于对了，但是只击败了 7%。
+
+    如果我们中途不创建新的 vector，只进行 push back，到最后返回答案的时候 reverse 一下，应该会快一些。
+
 
 ## 各种算法中需要注意的细节
 

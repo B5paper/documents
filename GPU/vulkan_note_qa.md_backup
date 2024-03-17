@@ -1,8 +1,6 @@
 # Vulkan Note QA
 
 [unit]
-[idx]
-0
 [u_0]
 写一个`VkApplicationInfo` struct。
 [u_1]
@@ -24,8 +22,6 @@ int main()
 ```
 
 [unit]
-[idx]
-1
 [u_0]
 collect glfw extensions
 [u_1]
@@ -117,8 +113,6 @@ int main()
 ```
 
 [unit]
-[idx]
-2
 [u_0]
 创建一个 vulkan instance。不需要创建 debug messenger。
 [u_1]
@@ -249,8 +243,6 @@ successfully create vk instance
 ```
 
 [unit]
-[idx]
-3
 [u_0]
 列出所有可用的 instance layer。
 [u_1]
@@ -342,7 +334,9 @@ int main()
 [u_0]
 创建 debug message create info structure，并写出对应的 callback 函数。
 [idx]
-4
+3
+[id]
+<hash of the current time>
 [dep]
 (empty)
 [u_1]
@@ -416,8 +410,6 @@ int main()
 ```
 
 [unit]
-[idx]
-5
 [u_0]
 写出 validation 所需要的 instance extension 和 layer name。
 [u_1]
@@ -426,8 +418,6 @@ instance extension name: `VK_EXT_debug_utils`
 instance layer name: `VK_LAYER_KHRONOS_validation`
 
 [unit]
-[idx]
-6
 [u_0]
 使用 callback validation layer 创建 instance。
 [u_1]
@@ -823,8 +813,6 @@ int main()
 ```
 
 [unit]
-[idx]
-7
 [u_0]
 列出所有可用的 physical device。
 [u_1]
@@ -840,8 +828,6 @@ void collect_available_physical_devices(const VkInstance inst,
 ```
 
 [unit]
-[idx]
-8
 [u_0]
 get physical device queue family
 [u_1]
@@ -870,8 +856,6 @@ void get_phy_dev_queue_families(VkPhysicalDevice phy_dev,
 ```
 
 [unit]
-[idx]
-9
 [u_0]
 select graphics queue family index
 [u_1]
@@ -894,8 +878,6 @@ uint32_t select_graphcs_queue_family_idx(
 ```
 
 [unit]
-[idx]
-10
 [u_0]
 select present queue family index
 [u_1]
@@ -922,8 +904,6 @@ uint32_t select_present_queue_family_idx(
 ```
 
 [unit]
-[idx]
-11
 [u_0]
 create window
 [u_1]
@@ -938,8 +918,6 @@ GLFWwindow* create_window(int width, int height, const char *title)
 ```
 
 [unit]
-[idx]
-12
 [u_0]
 create window surface
 [u_1]
@@ -957,8 +935,6 @@ void create_window_surface(VkSurfaceKHR &surface, GLFWwindow *window, const VkIn
 在执行 glfw create window 之前，必须要有`glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);`这一行。
 
 [unit]
-[idx]
-13
 [u_0]
 enable swapchain device extension
 [u_1]
@@ -970,8 +946,6 @@ void enable_swapchain_device_extension(vector<const char*> &enabled_device_exten
 ```
 
 [unit]
-[idx]
-14
 [u_0]
 create vulkan logic device.
 [u_1]
@@ -1033,8 +1007,6 @@ VkDevice create_logic_device(
 ```
 
 [unit]
-[idx]
-15
 [u_0]
 创建一个 1MB 的 buffer，要求使用显存，主机可见，并且绑定到 memory 对象上。
 [u_1]
@@ -1104,8 +1076,6 @@ int main()
 ```
 
 [unit]
-[idx]
-16
 [u_0]
 解释`vkGetPhysicalDeviceMemoryProperties()`得到的信息的含义。
 [u_1]

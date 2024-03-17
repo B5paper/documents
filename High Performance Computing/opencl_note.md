@@ -12,6 +12,88 @@ Ref:
 
 ## cache
 
+* opencl build-in functions
+
+	syntax:
+
+	```c
+	int atomic_add(volatile global int *p, int val)
+	```
+
+	Read the 32-bit value (referred to as old) stored at the location pointed by p. Compute (old + val) and store the result at the location pointed by p. The function returns old.
+
+	类似的函数还有
+
+	```c
+	int atomic_sub(volatile global int *p, int val)
+
+	int atomic_inc(volatile global int *p)
+	int atomic_dec(volatile global int *p)
+	```
+
+	其余的几个看函数名就能猜出来意思，这里就不多写了。
+
+	其他的一些 atomic 函数：
+
+	* `atomic_xchg`
+
+		syntax:
+
+		```c
+		int	atomic_xchg(volatile global int *p, int val)
+		```
+
+		> Swap the old stored at location p with new value given by val. The function returns old.
+
+	* `atomic_cmpxchg`
+
+		syntax:
+
+		```c
+		int atomic_cmpxchg(volatile global int *p, int cmp, int val)
+		```
+
+		Read the 32-bit value (referred to as old) stored at the location pointed by p. Compute (old == cmp) ? val : old and store the result at the location pointed by p. The function returns old.
+
+	* `atomic_min`
+
+		syntax:
+
+		```c
+		int atomic_min(volatile global int *p, int val)
+		```
+
+		Read the 32-bit value (referred to as old) stored at the location pointed by p. Compute min(old, val) and store the result at the location pointed by p. The function returns old.
+
+		相似的函数：
+
+		```c
+		int atomic_max(volatile global int *p, int val)
+		```
+
+	* `atomic_and`
+
+		syntax:
+
+		```c
+		int atomic_and(volatile global int *p, int val)
+		```
+
+		Read the 32-bit value (referred to as old) stored at the location pointed by p. Compute (old & val) and store the result at the location pointed by p. The function returns old.
+
+		其他几个相似的函数：
+
+		```c
+		int atomic_or(volatile global int *p, int val)
+		int atomic_xor(volatile global int *p, int val)
+		```
+
+* opencl： 并没有一个方法可以提前知道 kernel 中参数的 size。
+
+* `clGetKernelInfo(kernel, CL_KERNEL_NUM_ARGS, info_size, (void*) info.data(), &info_size);`
+
+	返回的直接就是整数类型，不是字符串。
+
 * opencl synchronization functions
 
     * `barrier`

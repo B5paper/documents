@@ -4,6 +4,92 @@
 
 ## cached
 
+* c++ 模板函数多参数
+
+	对于`Args...args`，是可以无参数传递的。但如果是`(T arg, Args...args)`，这样就不行了，要求至少有一个参数。
+
+	```cpp
+	#include <iostream>
+	using namespace std;
+
+	template<typename T, typename...Args>
+	void test_1(T param_1, Args...args)
+	{
+		cout << "in test_1" << endl;
+	}
+
+	template<typename...Args>
+	void test_2(Args...args)
+	{
+		cout << "in test_2" << endl;
+	}
+
+	int main()
+	{
+		// test_1();  // error
+		test_1("hello");
+		test_1("hello", "world");
+
+		test_2();
+		test_2("hello");
+		test_2("hello", "world");
+
+		return 0;
+	}
+	```
+
+	output:
+
+	```
+	in test_1
+	in test_1
+	in test_2
+	in test_2
+	in test_2
+	```
+
+* c++ 中`unorderd_map`使用`[]`获取元素时，要求元素的类型必须有不带参数的构造函数。
+
+	但是使用`at()`就可以避开这个。
+
+* c/c++ 中，不可以将`char**`隐式转换为`const char**`
+
+    ```cpp
+    void test(const char **strs)
+    {
+
+    }
+
+    int main()
+    {
+        char **strs = nullptr;
+        test(strs);
+        return 0;
+    }
+    ```
+
+    编译：
+
+    ```bash
+    g++ main.cpp
+    ```
+
+    输出：
+
+    ```
+    main.cpp: In function ‘int main()’:
+    main.cpp:9:10: error: invalid conversion from ‘char**’ to ‘const char**’ [-fpermissive]
+        9 |     test(strs);
+        |          ^~~~
+        |          |
+        |          char**
+    main.cpp:1:24: note:   initializing argument 1 of ‘void test(const char**)’
+        1 | void test(const char **strs)
+        |           ~~~~~~~~~~~~~^~~~
+    ```
+
+    不清楚为什么。
+
 * c++ 中，对于模板函数，即使通用类型在参数列表中消失，也算函数的重载
 
     但是实际无法正常调用，因为无法推导出`T`的类型：

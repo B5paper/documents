@@ -2,6 +2,142 @@
 
 ## cached
 
+* vulkan `VkAttachmentStoreOp`
+
+	syntax:
+
+	```c
+	typedef enum VkAttachmentStoreOp {
+		VK_ATTACHMENT_STORE_OP_STORE = 0,
+		VK_ATTACHMENT_STORE_OP_DONT_CARE = 1,
+	// Provided by VK_VERSION_1_3
+		VK_ATTACHMENT_STORE_OP_NONE = 1000301000,
+	// Provided by VK_KHR_dynamic_rendering, VK_KHR_load_store_op_none
+		VK_ATTACHMENT_STORE_OP_NONE_KHR = VK_ATTACHMENT_STORE_OP_NONE,
+	// Provided by VK_QCOM_render_pass_store_ops
+		VK_ATTACHMENT_STORE_OP_NONE_QCOM = VK_ATTACHMENT_STORE_OP_NONE,
+	// Provided by VK_EXT_load_store_op_none
+		VK_ATTACHMENT_STORE_OP_NONE_EXT = VK_ATTACHMENT_STORE_OP_NONE,
+	} VkAttachmentStoreOp;
+	```
+
+	渲染完成后，结果是否需要写回 attachment 显存。
+
+	`VK_ATTACHMENT_STORE_OP_STORE`指的是写回显存。
+
+	`VK_ATTACHMENT_STORE_OP_DONT_CARE`是不写回。
+
+	`VK_ATTACHMENT_STORE_OP_NONE`表示没有 access 权限。
+
+	疑问：既然要写回显存，那么 render pass 渲染生成的图像，一开始是放在哪里呢？
+
+* vulkan `VkAttachmentLoadOp`
+
+	可选的值有这些：
+
+	```c
+	typedef enum VkAttachmentLoadOp {
+		VK_ATTACHMENT_LOAD_OP_LOAD = 0,
+		VK_ATTACHMENT_LOAD_OP_CLEAR = 1,
+		VK_ATTACHMENT_LOAD_OP_DONT_CARE = 2,
+	// Provided by VK_KHR_load_store_op_none
+		VK_ATTACHMENT_LOAD_OP_NONE_KHR = 1000400000,
+	// Provided by VK_EXT_load_store_op_none
+		VK_ATTACHMENT_LOAD_OP_NONE_EXT = VK_ATTACHMENT_LOAD_OP_NONE_KHR,
+	} VkAttachmentLoadOp;
+	```
+
+	猜测：`VK_ATTACHMENT_LOAD_OP_LOAD`是将 vkimage 的值设置成新 load 的 texture 的值。
+
+	`VK_ATTACHMENT_LOAD_OP_CLEAR`是将 image 设置为指定值。
+
+	`VK_ATTACHMENT_LOAD_OP_DONT_CARE`是不需要额外设置，只是将其作为缓冲区。
+
+	`VK_ATTACHMENT_LOAD_OP_NONE_KHR`表示这个 image 没有 access 权限。一般不怎么用到。
+
+* vulkan tutorial Multisampling
+
+    <https://vulkan-tutorial.com/Multisampling>
+
+* vulkan `VkPipelineMultisampleStateCreateInfo`
+
+	multisample 指的是抗锯齿，将一个像素中放置多个采样点，然后计算采样点是否在小三角形范围内，然后根据采样点的多少决定像素颜色的深浅。
+
+	syntax:
+
+	```c
+	typedef struct VkPipelineMultisampleStateCreateInfo {
+		VkStructureType                          sType;
+		const void*                              pNext;
+		VkPipelineMultisampleStateCreateFlags    flags;
+		VkSampleCountFlagBits                    rasterizationSamples;
+		VkBool32                                 sampleShadingEnable;
+		float                                    minSampleShading;
+		const VkSampleMask*                      pSampleMask;
+		VkBool32                                 alphaToCoverageEnable;
+		VkBool32                                 alphaToOneEnable;
+	} VkPipelineMultisampleStateCreateInfo;
+	```
+
+	sample count:
+
+	```c
+	typedef enum VkSampleCountFlagBits {
+		VK_SAMPLE_COUNT_1_BIT = 0x00000001,
+		VK_SAMPLE_COUNT_2_BIT = 0x00000002,
+		VK_SAMPLE_COUNT_4_BIT = 0x00000004,
+		VK_SAMPLE_COUNT_8_BIT = 0x00000008,
+		VK_SAMPLE_COUNT_16_BIT = 0x00000010,
+		VK_SAMPLE_COUNT_32_BIT = 0x00000020,
+		VK_SAMPLE_COUNT_64_BIT = 0x00000040,
+	} VkSampleCountFlagBits;
+	```
+
+	其余的几个字段暂时不懂啥意思。
+
+* vulkan pipeline input assembly 指的好像是跳过一部分 index buffer 中的数据
+
+	syntax:
+
+	```cpp
+	typedef struct VkPipelineInputAssemblyStateCreateInfo {
+		VkStructureType                            sType;
+		const void*                                pNext;
+		VkPipelineInputAssemblyStateCreateFlags    flags;
+		VkPrimitiveTopology                        topology;
+		VkBool32                                   primitiveRestartEnable;
+	} VkPipelineInputAssemblyStateCreateInfo;
+	```
+
+	官方文档是这么写的：
+
+	> Each draw is made up of zero or more vertices and zero or more instances, which are processed by the device and result in the assembly of primitives.
+
+	> Restarting the assembly of primitives discards the most recent index values if those elements formed an incomplete primitive, and restarts the primitive assembly using the subsequent indices
+	
+	具体是怎么做的目前仍不太清楚。
+
+	目前仍不太清楚原理。
+
+	通常我们选的`topology`为`VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST`。
+
+* `vulkan`中`VK_SUBPASS_CONTENTS_INLINE`指的似乎是 subpass 和 command buffer 的关系。
+
+    spec 上是这样写的：
+
+    ```cpp
+    typedef enum VkSubpassContents {
+        VK_SUBPASS_CONTENTS_INLINE = 0,
+        VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS = 1,
+    // Provided by VK_EXT_nested_command_buffer
+        VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT = 1000451000,
+    } VkSubpassContents;
+    ```
+
+    > `VK_SUBPASS_CONTENTS_INLINE` specifies that the contents of the subpass will be recorded inline in the primary command buffer, and secondary command buffers must not be executed within the subpass.
+
+    这个好像是在说，第一个 subpass 只能被记录在主 command buffer 中，不能被记录在次级 command buffer 中。
+
 * vulkan 中`VkPipelineColorBlendStateCreateInfo`的含义
 
     `logicOpEnable`与`logicOp`的作用：

@@ -451,3 +451,11 @@ coverage n. 覆盖范围
 reciprocal prn. [rɪˈsɪprəkl] adj. 相互的，倒数的
 
 consecutive adj 连续的
+
+pedagogy prn. [ˈpedəɡɑːdʒi] n. 教育学，教学法
+
+earpiece n. 听筒
+
+tactile adj. 触觉的
+
+peripheral adj. 外围的，次要的

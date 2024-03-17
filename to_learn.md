@@ -2862,3 +2862,30 @@
 
     在线写笔记，支持 markdown。
 
+* 中值滤波与图像处理相关算法
+
+    * Median filter
+
+        <http://www.librow.com/articles/article-1>
+
+    * Median filter
+
+        <https://neubias.github.io/training-resources/median_filter/index.html>
+
+    * Median Finding Algorithm
+
+        <https://www.cs.cornell.edu/courses/cs2110/2009su/Lectures/examples/MedianFinding.pdf>
+
+    * My Favorite Algorithm: Linear Time Median Finding 
+
+        <https://rcoh.me/posts/linear-time-median-finding/>
+
+    * Median-finding Algorithm
+
+        <https://brilliant.org/wiki/median-finding-algorithm/>
+
+* 野草云，性价比很高的云服务器
+
+    <https://www.yecaoyun.com/Page/offers.html>
+
+    
