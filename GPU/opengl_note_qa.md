@@ -316,6 +316,115 @@ GLuint load_program(const char *vtx_shader_path, const char *frag_shader_path)
 [u_0]
 请使用 shader 画一个绿色三角形。
 [u_1]
+(2024.03.18 version)
+
+`main.cpp`:
+
+```cpp
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+GLuint load_shader(const char *vtx_shader_path, const char *frag_shader_path)
+{
+    GLuint vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    FILE *f = fopen(vtx_shader_path, "r");
+    fseek(f, 0, SEEK_END);
+    size_t len = ftell(f);
+    char *content = (char*) malloc(len);
+    fseek(f, 0, SEEK_SET);
+    fread(content, len, 1, f);
+    glShaderSource(vtx_shader, 1, &content, (GLint*) &len);
+    free(content);
+    fclose(f);
+    f = fopen(frag_shader_path, "r");
+    fseek(f, 0, SEEK_END);
+    len = ftell(f);
+    content = (char*) malloc(len);
+    fseek(f, 0, SEEK_SET);
+    fread(content, len, 1, f);
+    glShaderSource(frag_shader, 1, &content, (GLint*) &len);
+    free(content);
+    fclose(f);
+    glCompileShader(vtx_shader);
+    glCompileShader(frag_shader);
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vtx_shader);
+    glAttachShader(prog, frag_shader);
+    glLinkProgram(prog);
+    glDetachShader(prog, vtx_shader);
+    glDetachShader(prog, frag_shader);
+    glDeleteShader(vtx_shader);
+    glDeleteShader(frag_shader);
+    return prog;
+}
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(700, 500, "triangle", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+    GLuint prog = load_shader("shader.vert", "shader.frag");
+    float vtxs[9] = {
+        -0.5, 0, 0,
+        0, 1, 0,
+        0.5, 0, 0
+    };
+    GLuint vtx_buf;
+    glGenBuffers(1, &vtx_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+    glClearColor(0, 0, 0, 0);
+    glEnableVertexAttribArray(0);
+    while (!glfwWindowShouldClose(window))
+    {
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            continue;
+        }
+        glClear(GL_COLOR_BUFFER_BIT);
+        glUseProgram(prog);
+        glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glfwSwapBuffers(window);
+    }
+
+    return 0;
+}
+```
+
+`shader.vert`:
+
+```cpp
+#version 330
+
+layout(location = 0) in vec3 pos;
+
+void main()
+{
+    gl_Position = vec4(pos, 1);
+}
+```
+
+`shader.frag`:
+
+```cpp
+#version 330
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(0.5, 0.8, 0.5);
+}
+```
+
 `main.cpp`:
 
 ```cpp

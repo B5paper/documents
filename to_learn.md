@@ -1,5 +1,3 @@
-1. git 合并多个 commit，保持 history 整洁：<https://cloud.tencent.com/developer/article/1690638>
-
 1. 有时 local branch 会同时 ahead / behind remote branch，如何查看提前/落后了多少？<https://stackoverflow.com/questions/17719829/check-if-local-git-repo-is-ahead-behind-remote>
 
 1. sync 两个 local branches: <https://stackoverflow.com/questions/20108129/how-to-sync-two-local-branches>
@@ -2888,4 +2886,28 @@
 
     <https://www.yecaoyun.com/Page/offers.html>
 
-    
+* latex 插入与文字等宽的 space
+
+    <https://tex.stackexchange.com/questions/124860/whitespace-as-wide-as-a-character>
+
+* Algorithmica is an open-access web book dedicated to the art and science of computing.
+
+    <https://github.com/algorithmica-org/algorithmica>
+
+*  aptakube: Kubernetes GUI
+
+    <https://github.com/aptakube/aptakube?tab=readme-ov-file>
+
+* OpenAI Grok Curve Experiments
+
+    <https://github.com/openai/grok>
+
+*  MediaCrawler
+
+    各个中国社交媒体的爬虫
+
+    <https://github.com/NanmiCoder/MediaCrawler>
+
+* Marker: An open-source, user-friendly UI for viewing and editing markdown files
+
+    <https://github.com/tk04/Marker>

@@ -459,3 +459,5 @@ earpiece n. 听筒
 tactile adj. 触觉的
 
 peripheral adj. 外围的，次要的
+
+provision n. 供应；规定
