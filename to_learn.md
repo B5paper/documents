@@ -1,7 +1,3 @@
-1. 有时 local branch 会同时 ahead / behind remote branch，如何查看提前/落后了多少？<https://stackoverflow.com/questions/17719829/check-if-local-git-repo-is-ahead-behind-remote>
-
-1. sync 两个 local branches: <https://stackoverflow.com/questions/20108129/how-to-sync-two-local-branches>
-
 1. 使用 go 语言调用 containerd 的接口：<https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
 
 1. `unknown service runtime.v1.RuntimeService`: <https://github.com/containerd/containerd/discussions/6616>
@@ -91,8 +87,6 @@
     <https://stackoverflow.com/questions/20318852/tar-file-changed-as-we-read-it>
 
 1. k8s 相关：
-
-    Get a Shell to a Running Container: <https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/>
 
     How to delete kubernetes stuck CRD deletion: <https://rogulski.it/blog/kubernetes-stuck-resource-action/>
 
@@ -2911,3 +2905,68 @@
 * Marker: An open-source, user-friendly UI for viewing and editing markdown files
 
     <https://github.com/tk04/Marker>
+
+* virtualization
+
+    * Everything you need to know about GPU virtualization
+
+        <https://www.techtarget.com/searchvirtualdesktop/essentialguide/Everything-you-need-to-know-about-GPU-virtualization>
+
+    * nvidia gpu
+
+        <https://www.nvidia.com/en-us/data-center/virtual-solutions/>
+
+    * Nvidia GPU Pooling-Remote GPU
+
+        <https://bruce-lee-ly.medium.com/nvidia-gpu-pooling-remote-gpu-1b6a2ca3787f>
+
+    * GPU resource pooling
+
+        <https://www.h3c.com/en/pub/Document_Center/2022/05/CAS-CVM-HELP-WebHelp/Config/DRX.html>
+
+    * Hypervisor
+
+        <https://www.geeksforgeeks.org/hypervisor/>
+
+    * A Big Little Hypervisor for IoT Development
+
+        <https://projectacrn.org/>
+
+    * hvpp is a lightweight Intel x64/VT-x hypervisor written in C++ focused primarily on virtualization of already running operating system.
+
+        <https://github.com/wbenny/hvpp>
+
+    * Real-Time Hypervisor Solution Brief 
+
+        <https://www.real-time-systems.com/intel-hypervisor-solution-brief/>
+
+    * hv is an x86-64 Intel VT-x hypervisor that aims to be simple and lightweight, while still following the Intel SDM as closely as possible.
+
+        <https://github.com/jonomango/hv>
+
+    * Real-Time Systems* Hypervisor
+
+        <https://www.intel.com/content/www/us/en/developer/articles/technical/real-time-systems-hypervisor.html>
+
+    * QEMU
+
+        <https://www.qemu.org/>
+
+    * QEMU Alternatives
+
+        <https://alternativeto.net/software/qemu/>
+
+    * GDRCopy: A low-latency GPU memory copy library based on NVIDIA GPUDirect RDMA technology.
+
+        <https://github.com/NVIDIA/gdrcopy>
+
+    * Grok-1
+
+        This repository contains JAX example code for loading and running the Grok-1 open-weights model.
+
+        <https://github.com/xai-org/grok-1>
+
+* What are some highly recommended books for gaining a thorough understanding of operating systems and their principles?
+
+    <https://www.quora.com/What-are-some-highly-recommended-books-for-gaining-a-thorough-understanding-of-operating-systems-and-their-principles>
+

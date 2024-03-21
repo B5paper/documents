@@ -461,3 +461,23 @@ tactile adj. 触觉的
 peripheral adj. 外围的，次要的
 
 provision n. 供应；规定
+
+refinement n. 精炼，提纯
+
+in the first place phrase. 首先，从一开始
+
+intricacy prn. [ˈɪntrɪkəsi] n-uncount. 错综复杂
+
+rigorous prn. [ˈrɪɡərəs] adj. 严密的
+
+violate v. 违反，侵犯
+
+adequately adv. 足够地; 合格地
+
+priest prn. [priːst] n. 神父，牧师
+
+recreational adj. 娱乐的，消遣的
+
+informative prn. [ɪnˈfɔːrmətɪv] adj. 信息丰富的
+
+conformance n. 一致
