@@ -7,8 +7,6 @@ using std::vector;
 using std::cout, std::endl;
 using namespace cimg_library;
 
-typedef vector<uint8_t> Bytes;
-
 class Img
 {
     public:

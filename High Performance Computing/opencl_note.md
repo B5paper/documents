@@ -482,7 +482,7 @@ Ref:
 
         For each component of a vector type `result[i] = if MSB of c[i] is set ? b[i] : a[i]`
 
-        这个函数有点像 numpy 的 where().
+        这个函数有点像 numpy 的`where()`.
 
         cached task: 有时间可以做个实验试试。
 
