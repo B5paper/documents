@@ -2970,3 +2970,104 @@
 
     <https://www.quora.com/What-are-some-highly-recommended-books-for-gaining-a-thorough-understanding-of-operating-systems-and-their-principles>
 
+* XGBoost GPU Support
+
+    <https://xgboost.readthedocs.io/en/stable/gpu/index.html>
+
+* windowskernelprogrammingbook
+
+    <https://github.com/zodiacon/windowskernelprogrammingbook>
+
+* Kernel-Mode Driver Architecture Design Guide
+
+    <https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/>
+
+* System Design
+
+    <https://github.com/systemdesign42/system-design>
+
+* RustBook
+
+    <https://github.com/QMHTMY/RustBook>
+
+* event drien programming
+
+    * What is the Event Driven Programming Paradigm ?
+
+        <https://www.geeksforgeeks.org/what-is-the-event-driven-programming-paradigm/>
+
+    * Event-driven programming
+
+        <https://medium.com/@miladev95/event-driven-programming-cbd3ed8ec2ca>
+
+    * Event Driven Programming
+
+        <https://www.studysmarter.co.uk/explanations/computer-science/computer-programming/event-driven-programming/>
+
+    * Boost.Asio network programming little book
+
+        <https://nanxiao.gitbooks.io/boost-asio-network-programming-little-book/content/>
+
+    * Boost.Asio: A Powerful Networking Library for C++
+
+        <https://medium.com/@extio/boost-asio-a-powerful-networking-library-for-c-e86367c2568d>
+
+    * asio C++ library
+
+        <https://think-async.com/Asio/asio-1.28.0/doc/asio/overview/basics.html>
+
+    * C++ Boost Asio Introduction Tutorial
+
+        <https://studiofreya.com/cpp/boost/c-boost-asio-introduction-tutorial/>
+
+    * asio c++ library
+
+        <https://think-async.com/Asio/asio-1.28.0/doc/asio/tutorial.html>
+
+    * Systems Performance (Addison-Wesley Professional Computing Series) 2nd Edition 
+
+        <https://www.amazon.com/Systems-Performance-Brendan-Gregg/dp/0136820158/ref=sr_1_10?crid=1MQFCT3ZPVBG5&dib=eyJ2IjoiMSJ9.cHobVSU3xkegrF5e32h_-aQ2N7WnDMoBX7QcPuijg9HKVb6RnDB0hC6mKQmC8qroNIV_mQWC3KvCdOLenemMQP8j9UeiZnPLu1lgG36x4lWPvg9YMaVeXLO93WFHGCCWwCCTkdEExZfa4u2hA_fKcoX2tXgCmf58HiylRXOJcNrDG06BiaJEYU2Jjn4LmTRVPtzVicX3REFRHXPN4NBQlMrY2FPmRW98FXPDRcLfNj0.ni1rJD1tj4Qj_jt3gCLMUfkAFtQbsFUFmdJtieIUO50&dib_tag=se&keywords=operating+system&qid=1710926003&sprefix=operating+syst%2Caps%2C333&sr=8-10>
+
+*  paradedb: Postgres for Search and Analytics
+
+    <https://github.com/paradedb/paradedb>
+
+* 经典并发同步模式：生产者-消费者设计模式
+
+    <https://zhuanlan.zhihu.com/p/73442055>
+
+* Retina: Retina is a cloud-agnostic, open-source Kubernetes network observability platform that provides a centralized hub for monitoring application health, network health, and security. 
+
+    <https://github.com/microsoft/retina>
+
+* MNN团队
+
+    <https://www.zhihu.com/org/mnntuan-dui>
+
+* clBLAS
+
+    <https://github.com/clMathLibraries/clBLAS>
+
+*  CLBlast: The tuned OpenCL BLAS library
+
+    <https://github.com/CNugteren/CLBlast>
+
+* onnx
+
+    <https://onnx.ai/>
+
+*  Alternatives to ONNX
+
+    <https://slashdot.org/software/p/ONNX/alternatives>
+
+* 模型压缩常用方法简介
+
+    <https://blog.csdn.net/weixin_44966641/article/details/127036590>
+
+* Hyprland is a dynamic tiling Wayland compositor based on wlroots that doesn't sacrifice on its looks.
+
+    <https://github.com/hyprwm/Hyprland>
+
+* Garnet is a new remote cache-store from Microsoft Research
+
+    <https://github.com/microsoft/garnet>
