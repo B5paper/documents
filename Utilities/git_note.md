@@ -1,5 +1,101 @@
 # Git Note
 
+## cache
+
+* git merge two branches
+
+	将 master branch merge 到 development branch:
+
+	```bash
+	git checkout development
+	git merge master
+	```
+
+	or
+
+	```bash
+	git checkout development
+	git rebase master
+	```
+
+* 查看 git repo 是超前还是落后
+
+	* `git status -sb`
+
+		执行之前先执行`git fetch`
+
+	* 方法二：
+
+		1. Do a fetch: git fetch.
+		2. Get how many commits current branch is behind: behind_count = $(git rev-list --count HEAD..@{u}).
+		3. Get how many commits current branch is ahead: ahead_count = $(git rev-list --count @{u}..HEAD). (It assumes that where you fetch from is where you push to, see push.default configuration option).
+		4. If both behind_count and ahead_count are 0, then current branch is up to date.
+		5. If behind_count is 0 and ahead_count is greater than 0, then current branch is ahead.
+		6. If behind_count is greater than 0 and ahead_count is 0, then current branch is behind.
+		7. If both behind_count and ahead_count are greater than 0, then current branch is diverged.
+
+		Explanation:
+
+    	* `git rev-list` list all commits of giving commits range. --count option output how many commits would have been listed, and suppress all other output.
+    	* `HEAD` names current branch.
+    	* `@{u}` refers to the local upstream of current branch (configured with branch.<name>.remote and branch.<name>.merge). There is also @{push}, it is usually points to the same as @{u}.
+    	* `<rev1>..<rev2>` specifies commits range that include commits that are reachable from but exclude those that are reachable from . When either or is omitted, it defaults to HEAD.
+
+	* 方法三
+
+		You can do this with a combination of git merge-base and git rev-parse. If git merge-base <branch> <remote branch> returns the same as git rev-parse <remote branch>, then your local branch is ahead. If it returns the same as git rev-parse <branch>, then your local branch is behind. If merge-base returns a different answer than either rev-parse, then the branches have diverged and you'll need to do a merge.
+
+		It would be best to do a git fetch before checking the branches, though, otherwise your determination of whether or not you need to pull will be out of date. You'll also want to verify that each branch you check has a remote tracking branch. You can use git for-each-ref --format='%(upstream:short)' refs/heads/<branch> to do that. That command will return the remote tracking branch of <branch> or the empty string if it doesn't have one. Somewhere on SO there's a different version which will return an error if the branch doesn't haven't a remote tracking branch, which may be more useful for your purpose.
+
+* 使用`git rebase`合并多个 commit
+
+	```bash
+	# 从HEAD版本开始往过去数3个版本
+	$ git rebase -i HEAD~3
+
+	# 从指定版本开始交互式合并（不包含此版本）
+	$ git rebase -i [commitid]
+	```
+
+	说明：
+
+	* `-i（--interactive）`：弹出交互式的界面进行编辑合并
+
+	* `[commitid]`：要合并多个版本之前的版本号，注意：[commitid] 本身不参与合并
+
+	指令解释（交互编辑时使用）：
+
+    p, pick = use commit
+    r, reword = use commit, but edit the commit message
+    e, edit = use commit, but stop for amending
+    s, squash = use commit, but meld into previous commit
+    f, fixup = like "squash", but discard this commit's log message
+    x, exec = run command (the rest of the line) using shell
+    d, drop = remove commit
+
+	合并完成后，推送远程：
+
+	```bash
+	$ git push --force origin master
+	```
+
+	冲突解决
+	
+	在 git rebase 过程中，可能会存在冲突，此时就需要解决冲突。
+
+	```bash
+	# 查看冲突
+	$ git status
+
+	# 解决冲突之后，本地提交
+	$ git add .
+
+	# rebase 继续
+	$ git rebase --continue
+	```
+
+## notes
+
 Some materials to learn:
 
 * <https://www.atlassian.com/git/tutorials/learn-undoing-changes-with-bitbucket>

@@ -2,6 +2,55 @@
 
 ## cached
 
+* python 正则表达式中，空格不需要转义
+
+	比如使用`(.+), (.+)`去匹配`hello, world`，得到的 group 1 为`hello`，group 2 为`world`，空格被正确匹配了。
+
+* python 正则表达式中，group 的用法
+
+	```python
+	import re
+
+	string = 'hello, world'
+	patstr = '(.+), (.+)'
+	pat = re.compile(patstr)
+	m = pat.search(string)
+
+	print('-------- test 1 --------')
+	g0 = m.group(0)
+	print(g0)
+	g1 = m.group(1)
+	print(g1)
+	g2 = m.group(2)
+	print(g2)
+
+	print('-------- test 2 --------')
+	g1, g2 = m.groups()
+	print(g1)
+	print(g2)
+
+	print('-------- test 3 --------')
+	m = re.match(r"(?P<first_name>\w+) (?P<last_name>\w+)", "Malcolm Reynolds")
+	g_first_name = m.group('first_name')
+	g_last_name = m.group('last_name')
+	print(g_first_name)
+	print(g_last_name)
+	d = m.groupdict()
+	print(d['first_name'])
+	print(d['last_name'])
+	```
+
+	每个使用`()`括起来的表达式可以被 group 捕捉。
+
+	`group(0)`是整个表达式，`group(1)`是第一个括号对应的字符串，`group(2)`是第二个括号对应的字符串。
+
+	`groups()`以 tuple 的形式给出`group()`的结果。注意这里索引是从 1 开始的。
+
+	使用`(?P<var_name>...)`可以为子匹配命名，然后使用`group('<name>')`获得。
+
+	`groupdict()`以字典的形式返回命名匹配。如果表达式中没有命名子匹配，那么字典为空。
+
+
 * python hash
 
 	直接用`hash()`函数就可以计算出各个 python 内置对象的哈希值。

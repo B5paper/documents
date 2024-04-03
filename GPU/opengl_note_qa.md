@@ -1063,6 +1063,164 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 
 [unit]
 [u_0]
+使用 element draw 画一个 cube。
+[u_1]
+`main.cpp`:
+
+```c
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+GLuint load_shader(const char *vert_shader_path, const char *frag_shader_path)
+{
+    GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    FILE *f = fopen(vert_shader_path, "r");
+    fseek(f, 0, SEEK_END);
+    size_t len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *shader_src = (char*) malloc(len);
+    fread(shader_src, len, 1, f);
+    glShaderSource(vert_shader, 1, &shader_src, (const GLint *)&len);
+    glCompileShader(vert_shader);
+    free(shader_src);
+    fclose(f);
+    f = fopen(frag_shader_path, "r");
+    fseek(f, 0, SEEK_END);
+    len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    shader_src = (char*) malloc(len);
+    fread(shader_src, len, 1, f);
+    glShaderSource(frag_shader, 1, &shader_src, (const GLint *)&len);
+    glCompileShader(frag_shader);
+    free(shader_src);
+    fclose(f);
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vert_shader);
+    glAttachShader(prog, frag_shader);
+    glLinkProgram(prog);
+    glDetachShader(prog, vert_shader);
+    glDetachShader(prog, frag_shader);
+    glDeleteShader(vert_shader);
+    glDeleteShader(frag_shader);
+    return prog;
+}
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(700, 500, "hello", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+    GLuint prog_id = load_shader("vert.glsl", "frag.glsl");
+    glUseProgram(prog_id);
+
+    float vtxs[] = {
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, 0.5,
+        -0.5, 0.5, 0.5,
+        -0.5, 0.5, -0.5,
+        0.5, -0.5, -0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5
+    };
+
+    uint32_t inds[][3] = {
+        1, 2, 0,
+        3, 0, 2,
+        1, 5, 6,
+        1, 6, 2,
+        5, 4, 6,
+        4, 7, 6,
+        0, 3, 7,
+        0, 7, 4,
+        6, 3, 2,
+        6, 7, 3,
+        1, 0, 5,
+        5, 0, 4
+    };
+
+    GLuint vtx_buf, ind_buf;
+    glGenBuffers(1, &vtx_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+    glGenBuffers(1, &ind_buf);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ind_buf);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(inds), inds, GL_STATIC_DRAW);
+
+    glClearColor(0, 0, 0, 0);
+    glEnableVertexAttribArray(0);
+    while (glfwWindowShouldClose(window) != GLFW_TRUE)
+    {
+        glClear(GL_COLOR_BUFFER_BIT0_QCOM);
+
+        glUseProgram(prog_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ind_buf);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, NULL);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+		
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+    }
+    return 0;
+}
+```
+
+`vert.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+
+void main()
+{
+    gl_Position = vec4(pos, 1);
+}
+```
+
+`frag.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(0.5, 0.8, 0.5);
+}
+```
+
+`Makefile`:
+
+```makefile
+main: main.cpp
+	g++ -g main.cpp -lglfw -lGLEW -lGL -o main
+```
+
+compile:
+
+```bash
+make
+```
+
+run:
+
+```bash
+./main
+```
+
+[unit]
+[u_0]
 请画一个彩色正方体，并使之绕 y 轴旋转。
 [u_1]
 `main.cpp`:

@@ -1,5 +1,99 @@
 # Operating System Note
 
+## cache
+
+* 1:1 生产者与消费者实现
+
+	```cpp
+	#include <boost/interprocess/sync/interprocess_semaphore.hpp>
+	using namespace boost::interprocess;
+	using ip_sem = interprocess_semaphore;
+	#include <thread>
+	using std::thread;
+	#include <iostream>
+	using std::cout, std::endl;
+	using std::ref;
+	#include <time.h>
+
+	struct QueueStat
+	{
+		ip_sem empty;
+		ip_sem full;
+		ip_sem mtx;
+
+		QueueStat():
+			empty(1), full(0), mtx(1)
+		{ }
+	};
+
+	void consumer(QueueStat &qstat, char *msg, size_t len, size_t &idx)
+	{
+		while (idx < 100)
+		{
+			qstat.full.wait();
+			qstat.mtx.wait();
+
+			printf("consumer: ");
+			printf("%s\n", msg);
+			memset(msg, 0, len);
+
+			qstat.mtx.post();
+			qstat.empty.post();
+		}
+	}
+
+	void producer(QueueStat &qstat, char *msg, size_t &len, size_t &idx)
+	{
+		while (idx < 100)
+		{
+			qstat.empty.wait();
+			qstat.mtx.wait();
+
+			printf("producer: %ld\n", idx);
+			sprintf(msg, "%ld: hello", idx);
+			len = strlen(msg);
+			++idx;
+
+			qstat.mtx.post();
+			qstat.full.post();
+		}
+	}
+
+	int main()
+	{
+		const size_t buf_len = 128;
+		char *buf = (char*)malloc(buf_len);
+		QueueStat que_stat;
+		thread thds[2];
+		size_t len = 0;
+		size_t idx = 0;
+		thds[0] = thread(consumer, ref(que_stat), buf, ref(len), ref(idx));
+		thds[1] = thread(producer, ref(que_stat), buf, ref(len), ref(idx));
+		size_t start_time = clock();
+		for (int i = 0; i < 2; ++i)
+		{
+			thds[i].join();
+		}
+		size_t end_time = clock();
+		size_t duration = end_time - start_time;
+		printf("clock counter: %ld\n", duration);
+		free(buf);
+		return 0;
+	}
+	```
+
+* 生产者消费者模式
+
+	假设 P 是“消耗”操作，V 是“赋值”操作，P 对应 wait，V 对应 signal，或 post。
+
+	在进入队列时，如果`P(mtx)`写在`P(empty)`之前，会发生死锁。
+
+	比如，当 empty = 0, full = 1 时，如果 producer 先执行了`P(mtx)`，此时 consumer 被阻塞在`P(mtx)`处，然后又因为`empty = 0`，所以 producer 被阻塞在`P(empty)`处。这样两个对象都陷入了阻塞。 
+
+	缓存问题：是否有一个 routine 可以调试到同步问题中的所有 bug？
+
+## note
+
 操作系统用来管理硬件和软件。
 
 命令接口（允许用户直接使用）：

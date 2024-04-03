@@ -1,5 +1,19 @@
 # kubernetes notes
 
+## cache
+
+* Get a Shell to a Running Container
+
+	`kubectl exec --stdin --tty shell-demo -- /bin/bash`
+
+	`--`是防止把参数`/bin/bash`传给`kubectl`。
+
+	如果一个 pod 有多个 container，可以使用这个：
+
+	`kubectl exec -i -t my-pod --container main-app -- /bin/bash`
+
+## note
+
 Learning materials:
 
 1. <https://www.bluematador.com/blog/safely-removing-pods-from-a-kubernetes-node>

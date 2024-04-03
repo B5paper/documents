@@ -2,6 +2,82 @@
 
 ## cached
 
+* renderpass 像是一个 container，一层封装，向内为 shader 提供资源，向外与外部资源对接。
+
+* vulkan 画三角形步骤
+
+	1. 初始化 glfw 环境
+
+	2. 创建 vk instance, debug messenger
+
+	3. selece physical device
+
+	4. create device and queue
+
+	5. create surface, get surface info
+
+	6. create swapchain, get swapchain info
+
+	7. create shader module
+
+	8. create render pass
+
+	9. creaet pipeline
+
+	10. create buffer, allocate memory, write data
+
+	11. create command pool, allocate command buffer
+
+	12. create fence, semaphore
+
+	13. create image view, frame buffer
+
+	14. record command, submit command
+
+	15. queue present
+
+	16. release resources
+
+* `VkSubpassDescription`中`pInputAttachments`的作用
+
+	subpass description 的定义如下:
+
+	```c
+	typedef struct VkSubpassDescription {
+		VkSubpassDescriptionFlags       flags;
+		VkPipelineBindPoint             pipelineBindPoint;
+		uint32_t                        inputAttachmentCount;
+		const VkAttachmentReference*    pInputAttachments;
+		uint32_t                        colorAttachmentCount;
+		const VkAttachmentReference*    pColorAttachments;
+		const VkAttachmentReference*    pResolveAttachments;
+		const VkAttachmentReference*    pDepthStencilAttachment;
+		uint32_t                        preserveAttachmentCount;
+		const uint32_t*                 pPreserveAttachments;
+	} VkSubpassDescription;
+	```
+
+	`pInputAttachments` is a pointer to an array of VkAttachmentReference structures defining the input attachments for this subpass and their layouts.
+
+	Each element of the `pInputAttachments` array corresponds to an input attachment index in a fragment shader.
+
+	Each element of the `pColorAttachments` array corresponds to an output location in the shader.
+
+	这里解释得比较清楚了，如果需要对 shader 输入一些图片，那么就使用`pInputAttachments`。如果 shader 需要输出一些图片，那么就使用`pColorAttachments`。这里的 attachmnet 并不指实际的资源，而是对 renderpass 的一种描述，表示这里该有一个资源，用于和 shader 对接。
+
+	比如画三角形的代码，由于没有用到输入图片，所以只定义了 color atachments：
+
+	```cpp
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+	```
+
 * vulkan `VkAttachmentStoreOp`
 
 	syntax:

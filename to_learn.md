@@ -1,3 +1,9 @@
+1. lambda 表达式与函数指针
+
+    <https://www.geeksforgeeks.org/lambda-expressions-vs-function-pointers/>
+
+    假如一个 lambda 表达式 capture 了一些外部变量，那么该怎么写它的函数指针？
+
 1. 使用 go 语言调用 containerd 的接口：<https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
 
 1. `unknown service runtime.v1.RuntimeService`: <https://github.com/containerd/containerd/discussions/6616>
@@ -17,8 +23,6 @@
     1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
 
 1. git 相关
-
-    Squash: <https://www.internalpointers.com/post/squash-commits-into-one-git>
 
     reset: <https://www.atlassian.com/git/tutorials/undoing-changes/git-reset>
 
@@ -257,12 +261,6 @@
         1. <https://stackoverflow.com/questions/4786663/limits-for-floating-point-types>
 
         1. <https://stackoverflow.com/questions/48630106/what-are-the-actual-min-max-values-for-float-and-double-c>
-        
-    1. lambda 表达式与函数指针
-
-        <https://www.geeksforgeeks.org/lambda-expressions-vs-function-pointers/>
-
-        假如一个 lambda 表达式 capture 了一些外部变量，那么该怎么写它的函数指针？
 
     1. Don't inherit from standard types
 

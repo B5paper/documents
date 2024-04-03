@@ -8,6 +8,15 @@ Official site: <https://cimg.eu/index.html>
 
 **CImg 的 rgb 是分开的三个通道，并不是一个像素一个像素排列的！**
 
+## cache
+
+* cimg 在处理 png 图片时，只能按`uint8_t`处理
+
+	读取时的数值为`0 ~ 255`，保存图片时的数据也必须得是`0 ~ 255`。
+
+	`Img<float>`只是改变中间存储格式变成 float，不变性读取和保存的整数要求。
+
+
 ## 将 png 图片转换成 array 形式
 
 `main.cpp`:

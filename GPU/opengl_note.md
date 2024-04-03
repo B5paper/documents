@@ -312,6 +312,8 @@ g++ -g main.cpp -lglfw -lGLEW -lGL -o main
 
 可以看到，整个三角形被渲染成了绿色。
 
+下面是画一个三角形的代码：
+
 ```cpp
 #include <stdio.h>
 #include <stdlib.h>
@@ -567,7 +569,13 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 g++ -g shader.cpp main.cpp -lGLEW -lglfw  -lGL -lGLU
 ```
 
-## Coordinates
+## Functions and topics
+
+此标题下以 example 和话题的形式，讨论用到的基本技术以及细节。
+
+此部分不作 API 式的详细参考。
+
+### Coordinates
 
 OpenGL 通常使用一个四元向量`(x, y, z, w)`表示一个点的坐标或一个方向向量。
 
@@ -681,7 +689,7 @@ print(a.T.dot(b))
 
 2. 按列向量的方式填充$M$。
 
-#### 常用变换矩阵
+### 常用变换矩阵
 
 常用的几种变换矩阵：
 
@@ -908,7 +916,7 @@ print(a.T.dot(b))
 	glm::vec4 myTransformedVector = myModelMatrix * myOriginalVector;
 	```
 
-#### 常用坐标系
+### 常用坐标系
 
 OpenGL 的坐标系为了方便指定，有几个专有名词，分别是 Model coordinates，World coordinates，Camera coordinates。
 
@@ -1054,7 +1062,7 @@ OpenGL 的坐标系为了方便指定，有几个专有名词，分别是 Model 
 
 	这样我们就得到了最终的渲染结果。
 
-#### MVP matrix
+### MVP matrix
 
 将 Model matrix，View matrix 以及 Perpective matrix 合并起来，可以得到综合变换的矩阵：MVP Matrix：
 
@@ -1134,6 +1142,186 @@ c_h:
 	> […]luckily for us, a 4x4 matrix can represent this projection : Actually, this is not correct. A perspective transformation is not affine, and as such, can’t be represented entirely by a matrix. After beeing multiplied by the ProjectionMatrix, homogeneous coordinates are divided by their own W component. This W component happens to be -Z (because the projection matrix has been crafted this way). This way, points that are far away from the origin are divided by a big Z; their X and Y coordinates become smaller; points become more close to each other, objects seem smaller; and this is what gives the perspective. This transformation is done in hardware, and is not visible in the shader.
 
 为什么我们花这么大力气计算出了 MVP 矩阵，却只将它作用在一个向量上，而不是用它来乘一个$4 \times n$的矩阵？因为 GPU 会自动并行化处理每个顶点，我们在 shader 中只需要将 MVP 矩阵作用在每个点上就可以了。这就是并行的力量！
+
+### Draw triangles using indices
+
+This is also called element draw, or VBO drawing.
+
+example:
+
+`main.cpp`:
+
+```c
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+GLuint load_shader(const char *vert_shader_path, const char *frag_shader_path)
+{
+    GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    FILE *f = fopen(vert_shader_path, "r");
+    fseek(f, 0, SEEK_END);
+    size_t len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *shader_src = (char*) malloc(len);
+    fread(shader_src, len, 1, f);
+    glShaderSource(vert_shader, 1, &shader_src, (const GLint *)&len);
+    glCompileShader(vert_shader);
+    free(shader_src);
+    fclose(f);
+    f = fopen(frag_shader_path, "r");
+    fseek(f, 0, SEEK_END);
+    len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    shader_src = (char*) malloc(len);
+    fread(shader_src, len, 1, f);
+    glShaderSource(frag_shader, 1, &shader_src, (const GLint *)&len);
+    glCompileShader(frag_shader);
+    free(shader_src);
+    fclose(f);
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vert_shader);
+    glAttachShader(prog, frag_shader);
+    glLinkProgram(prog);
+    glDetachShader(prog, vert_shader);
+    glDetachShader(prog, frag_shader);
+    glDeleteShader(vert_shader);
+    glDeleteShader(frag_shader);
+    return prog;
+}
+
+int main()
+{
+    glfwInit();
+    GLFWwindow *window = glfwCreateWindow(700, 500, "hello", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glewInit();
+    GLuint prog_id = load_shader("vert.glsl", "frag.glsl");
+    glUseProgram(prog_id);
+
+    float vtxs[] = {
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, 0.5,
+        -0.5, 0.5, 0.5,
+        -0.5, 0.5, -0.5,
+        0.5, -0.5, -0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5
+    };
+
+    uint32_t inds[][3] = {
+        1, 2, 0,
+        3, 0, 2,
+        1, 5, 6,
+        1, 6, 2,
+        5, 4, 6,
+        4, 7, 6,
+        0, 3, 7,
+        0, 7, 4,
+        6, 3, 2,
+        6, 7, 3,
+        1, 0, 5,
+        5, 0, 4
+    };
+
+    GLuint vtx_buf, ind_buf;
+    glGenBuffers(1, &vtx_buf);
+    glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vtxs), vtxs, GL_STATIC_DRAW);
+    glGenBuffers(1, &ind_buf);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ind_buf);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(inds), inds, GL_STATIC_DRAW);
+
+    glClearColor(0, 0, 0, 0);
+    glEnableVertexAttribArray(0);
+    while (glfwWindowShouldClose(window) != GLFW_TRUE)
+    {
+        glClear(GL_COLOR_BUFFER_BIT0_QCOM);
+
+        glUseProgram(prog_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vtx_buf);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ind_buf);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, NULL);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+		
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+    }
+    return 0;
+}
+```
+
+`vert.glsl`:
+
+```glsl
+#version 330 core
+
+layout(location = 0) in vec3 pos;
+
+void main()
+{
+    gl_Position = vec4(pos, 1);
+}
+```
+
+`frag.glsl`:
+
+```glsl
+#version 330 core
+
+out vec3 color;
+
+void main()
+{
+    color = vec3(0.5, 0.8, 0.5);
+}
+```
+
+`Makefile`:
+
+```makefile
+main: main.cpp
+	g++ -g main.cpp -lglfw -lGLEW -lGL -o main
+```
+
+compile:
+
+```bash
+make
+```
+
+run:
+
+```bash
+./main
+```
+
+output:
+
+<div style='text-align:center'>
+<img width=700 src='../Reference_resources/ref_6/pic_1.png'>
+</div>
+
+其中，
+
+`float vtxs[]`不再像前面那样描述三角形顶点，而是只描述立方体的 12 个顶点。
+
+`uint32_t inds[][3]`用于使用索引描述每一个三角形。
+
+顶点索引对应的 target 为`GL_ELEMENT_ARRAY_BUFFER`，不要写成`GL_ARRAY_BUFFER`。其他的 buffer 创建过程与数据传输过程与 vertex 完全相同。
+
+在 draw 过程中，我们首先 bind array buffer，对其进行解释，然后再 bind element array buffer，不需要对其解释。
+
+最后使用`glDrawElements()`绘制就可以了，区别于以前的`glDrawArrays()`。
+
+可以看到，这个输出效果其实看不出来这是一个立方体，要想让它看起来更像一个立方体，还需要加上旋转和色彩。
 
 ## GLSL
 

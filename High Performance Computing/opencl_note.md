@@ -12,6 +12,75 @@ Ref:
 
 ## cache
 
+* opencl read image 提供了各种内置函数，可以将图片读取成浮点数形式，还可以读取成整数形式
+
+	可以以整数坐标获取像素值，还可以以浮点数坐标获取像素值。
+
+* opencl miscellaneous functions
+
+	* shuffle 可以给一个 vector 排序
+
+		比如这段代码会把`1, 2, 3, 4`变成`4, 3, 2, 1`：
+
+		```c
+		kernel void test_shuffle(global float4 *out)
+		{
+			uint4 mask = (uint4)(3, 2, 1, 0);
+			float4 a = (float4)(1, 2, 3, 4);
+			float4 r = shuffle(a, mask);
+			*out = r;
+		}
+		```
+
+		`shuffle()`主要是将`a`按顺序赋给`r`的`mask`索引处的值。
+
+		问题：如果是取`a`在`mask`索引处的值赋给`r`，那么和上面的描述相比有什么不同？
+
+		```c
+		kernel void test_shuffle(global float8 *out)
+		{
+			uint8 mask = (uint8)(3, 2, 1, 0, 7, 6, 5, 4);
+			float4 a = (float4)(1, 2, 3, 4), b = (float4)(5, 6, 7, 8);
+			float8 r = shuffle2(a, b, mask);
+			*out = r;
+		}
+		```
+
+		上面代码输出为
+
+		```
+		4.00, 3.00, 2.00, 1.00, 8.00, 7.00, 6.00, 5.00
+		```
+
+		> The elements of the input vectors are numbered from left to right across one or both of the vectors. For this purpose, the number of elements in a vector is given by vec_step(gentypem).
+
+		根据这个描述，看起来如果有 3 元素的向量，那么它被对待成 4 元素。
+
+	* `vec_step()`可以返回指定向量或数据类型包含的元素个数
+
+		example:
+
+		```opencl
+		kernel void test_shuffle(global int *out)
+		{
+			float vec_1;
+			float2 vec_2;
+			float3 vec_3;
+			float4 vec_4;
+			int elm_num_1 = vec_step(vec_1);  // 1
+			int elm_num_2 = vec_step(vec_2);  // 2
+			int elm_num_3 = vec_step(vec_3);  // 4
+			int elm_num_4 = vec_step(vec_4);  // 4
+
+			out[0] = elm_num_1;
+			out[1] = elm_num_2;
+			out[2] = elm_num_3;
+			out[3] = elm_num_4;
+		}
+		```
+
+		注意，`float3`其实有 4 个元素。
+
 * opencl build-in functions
 
 	syntax:
