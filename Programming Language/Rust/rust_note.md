@@ -1,5 +1,43 @@
 # Rust Note
 
+## cache
+
+* rust err 中最好返回`String`
+
+* rust 中`&mut <type>`，需要使用`*`解引用后才能得到值
+
+    这一点和 c++ 不太一样，c++ 中的引用只是一个别名，不需要`*`解引用。
+
+* rust: can't borrow from a `Weak`
+
+    ref: <https://stackoverflow.com/questions/34821389/borrowing-from-weakt>
+
+* 无论是 c++ 还是 rust，在标准库中都不能直接 terminate 一个线程。
+
+    要么从让线程自己退出，要么让主进程退出。
+
+    在 c++ 中强制`delete`一个`thread`对象，会导致主程序立即崩溃。
+
+* `let line = line.strip_suffix('\n').unwrap_or(line);`
+
+    rust 中可以这么用`unwrap_or()`。
+
+    `unwrap_of_default()`返回的是这个类型的默认值，比如 0 或空字符串等。
+
+* 可以用`cargo add <package_name>`在`Cargo.toml`里添加一个新的 dependency
+
+* rust 的`std::time`基本只能拿来计时用，不能用于处理日期方面的东西
+
+    如果要处理日期相关，必须用`chrono`库。
+
+* rust 中`into_xxx`通常是将自身所有权转换成另一个对象的类型，`xxx()`则通常只是 borrow。
+
+* cargo config aliyun mirror
+
+    <https://developer.aliyun.com/mirror/crates.io-index/>
+
+## note
+
 系统编程指的是编写：
 
 * 操作系统

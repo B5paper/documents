@@ -2,6 +2,27 @@
 
 ## cache
 
+* git 启动 interactive rebase mode
+
+    首先使用`git rebase --interactive HEAD~N`，或者`git rebase -i HEAD~N`进入交互式 rebase 模式。
+
+    这表示从 HEAD commit 开始算起，将最近的 N 个 commit 合并成一个。
+
+    进入交互模式后，将需要 squash 的 commit 改成这个样式：
+
+    ```
+    pick d94e78 Prepare the workbench for feature Z     --- older commit
+    s 4e9baa Cool implementation 
+    s afb581 Fix this and that  
+    s 643d0e Code cleanup
+    s 87871a I'm ready! 
+    s 0c3317 Whoops, not yet... 
+    s 871adf OK, feature Z is fully implemented      --- newer commit
+    ```
+
+    保存后退出，commit 会自动合并，然后提示是否修改 comment，可以改可以不改。再保存退出，就完成了。
+
+
 * git merge two branches
 
 	将 master branch merge 到 development branch:

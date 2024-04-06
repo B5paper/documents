@@ -16,6 +16,10 @@ apt install libglew-dev libglfw3-dev
 apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev
 ```
 
+## cache
+
+* shader 版本标识必须写成`#version 330 core`, 不能写成`#version core 330`.
+
 ## Triangle (Quick start)
 
 ### GLFW Window

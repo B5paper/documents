@@ -481,3 +481,13 @@ recreational adj. 娱乐的，消遣的
 informative prn. [ɪnˈfɔːrmətɪv] adj. 信息丰富的
 
 conformance n. 一致
+
+delegate vt. 授权，委托
+
+segregate vt. 分开，隔离
+
+monolithic prn. [ˌmɑnəˈlɪθɪk] adj. 整体的，庞大的
+
+oblige prn. [əˈblaɪdʒ] vt. 强制，强迫 eg. I am obliged to make frequent reference to the other elements of the kernel and therefore to other chapters
+
+anisotropic prn. [ˌænaɪsə'trɒpɪk] adj. 各向异性的

@@ -370,6 +370,10 @@ sudo apt install libvulkan-dev
 sudo apt install vulkan-validationlayers-dev spirv-tools
 ```
 
+`vulkan-tools`包含了`vkcube`。
+
+`vulkan-validationlayers-dev`包含了 validation layer，不然无法在程序中启用 validation layer。
+
 测试：
 
 ```bash
