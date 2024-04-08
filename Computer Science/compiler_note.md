@@ -1,50 +1,122 @@
 # compiler note
 
-## cached
+## cache
 
-* compiler: 二义性
+* question: 对于图 2-4，如果输入了两个`-`，即`--`，那么并不会在 10 处终止，但是根据最长匹配原则，又不能只匹配一个`-`就停下。该如何解释这个矛盾？
 
-	如果给定一套文法，根据一定的推导规则，推导出来了两套语法树，那么就认为这套文法有二义性。
+* $\bold{edge}(s, c)$ 的解释
 
-	消除二义性的方法是在文法中再引入一些非终结符，从而赋予不同的非终结符结合优先级。另外在推导规则上，可以总是遵循从左到右。
+	$s$是集合中的一个元素，或者说是状态机有向图中的一个节点。
 
-* compiler 终结符，非终结符，与推导
+	$c$是一条边对应的字母，或者条件。
 
-	凡是写成$\text{left} \rightarrow \text{right}$的，都可以将左边的符号用右边替换。
+	$\bold{edge}(s, c)$指的是从状态$s$沿着标有$c$的边可到达的所有 NFA 节点的集合。
 
-	终结符（terminal）：指 id, print, num, `.`, `+`, `()`, `:=`, `;`
+	$\bold{edge}(s, c)$是**节点的集合**。
 
-	终结符对应到具体单词或者运算符
+	example:
 
-	非终结符（nonterminal）：指`S`，`E`，`L`这些
+	<div style='text-align:center'>
+	<img src='./pics/2024.03.15/pic_1.jpg'>
+	</div>
 
-	非终结符是为了分析使用的，创造的抽象符号。
+	在上图中，$\bold{edge}(1, c) = \{2, 4\}$
 
-* `{a, b}`中不包含连续字符串`baa`的正则表达式
+* $\bold{closure}(S)$的解释
 
-	$a*(b(abb*)*(a|\epsilon))*(b|\epsilon)$
+	对于状态集合$S$，$\bold{closure}(S)$是满足如下条件的最小集合$T$：
 
-	一些构造正则表达式的经验：
+	$T = S\cup\left( \bigcup\limits_{s \in T} \bold{edge}(s, \epsilon) \right)$
 
-	1. a 不连续出现的情况的匹配指的是匹配所有a不连续出现的非重叠字符串。
+	其实这个表示的就是从$S$出发，能通过空字符串条件达到的所有状态。
 
-		也就是说，不是只匹配整个字符串，每个不重叠子串也应该被匹配到。
+	注意，这里对$T$的定义使用了递归。我们从$S$出发，经过$\epsilon$边，到达一些状态，再从这些状态出发，再经过$\epsilon$边，到达一些新的状态，这样不断迭代下去，直到算法停止。这个递归挺新颖的。
 
-		如果出现了不被匹配的子串，那么正则表达式可以自动将子串拆开匹配。
+	使用伪代码描述上面的公式，就是
 
-		比如`aab`，要求不出现连续的`a`，那么正则就应该匹配成`a`，`ab`。
+	$\begin{aligned}
+	&T \leftarrow S \\
+	&\bold{repeat}\ T' \leftarrow T \\
+	&\hphantom{asdf} T \leftarrow T' \cup \left(\bigcup_{s \in T'} \bold{edge}(s, \epsilon) \right) \\
+	&\bold{until}\ T = T'
+	\end{aligned}$
 
-	2. 在需要匹配的模式出现前，为模式的出现创造前提条件
+* lex/flex hello world program
 
-		比如一个匹配要求不出现`abb`，那么`a`的前面必定是`b*`，所以正则的第一个位置填`b*`。
+	`count_num.lex`:
 
-	3. 只写可以出现的，不写不可能出现的
+	```lex
+	%{
+	int digit_count = 0;
+	%}
 
-	cached question:
+	%%
+	[0-9]+ {digit_count++;}
+	. {}
+	\n {return 0;}
+	%%
 
-	1. 为什么正则表达式无法应用以树为代表的分析方式？
+	int yywrap(){}
 
-		为什么不可以把正则表达式看作是一个树的展开？
+	int main()
+	{
+		yylex();
+		printf("total %d numbers.\n", digit_count);
+		return 0;
+	}
+	```
+
+	使用 lex/flex 程序处理：
+
+	```bash
+	flex count_num.lex
+	```
+
+	此时会生成一个`lex.yy.c`文件。
+
+	然后再调用`gcc`编译器：
+
+	```bash
+	gcc lex.yy.c -o count_num
+	```
+
+	执行：
+
+	```
+	./count_num
+	```
+
+	此时会进入 stdin 模式等待输入。
+
+	input:
+
+	```
+	123 345 hehe #@!
+	```
+
+	按 enter 键后，输出为
+
+	```
+	total 2 numbers.
+	```
+
+	flex tutorial: <https://www.geeksforgeeks.org/flex-fast-lexical-analyzer-generator/>
+
+	flex project site: <https://github.com/westes/flex>
+
+	unread:
+	
+	1. <https://begriffs.com/posts/2021-11-28-practical-parsing.html>
+
+	2. <https://web.mit.edu/gnu/doc/html/flex_1.html>
+
+* compiler 最长匹配
+
+    在最长匹配时，需要保存三个状态位置，一个是本次匹配的起始位置，一个是上次的终态位置，还有一个是当前位置。
+
+    如果下一个位置找不到有限状态机的出口边，那么就认为此次匹配结束，上次终态的位置为最终匹配结果，并以此更新起始位置。
+
+    如果下一个位置找到了状态机对应的出口边，并且没有终态，那么继续往后找；如果找到了终态，那么更新上次终态的位置。
 
 * 编译原理图 2-3
 
@@ -60,9 +132,7 @@
 
     ID 那个图，是否包含了 IF 的情况？
 
-
-
-## notes
+## 词法
 
 ### 正则表达式 regular expression
 
@@ -177,6 +247,33 @@ examples:
 
     解释：这个连续出现$a$表示至少出现 2 次。也就是说，至少有一个$aa$出现，且$aa$出现的前置条件可以是$a$，也可以是$b$。因此前置条件写成$(a | b)^*$，后置条件并不会对题目要求产生影响，因此可以是任意字符串，所以填$(a | b)^*$。
 
+
+* `{a, b}`中不包含连续字符串`baa`的正则表达式
+
+	$a*(b(abb*)*(a|\epsilon))*(b|\epsilon)$
+
+	一些构造正则表达式的经验：
+
+	1. a 不连续出现的情况的匹配指的是匹配所有a不连续出现的非重叠字符串。
+
+		也就是说，不是只匹配整个字符串，每个不重叠子串也应该被匹配到。
+
+		如果出现了不被匹配的子串，那么正则表达式可以自动将子串拆开匹配。
+
+		比如`aab`，要求不出现连续的`a`，那么正则就应该匹配成`a`，`ab`。
+
+	2. 在需要匹配的模式出现前，为模式的出现创造前提条件
+
+		比如一个匹配要求不出现`abb`，那么`a`的前面必定是`b*`，所以正则的第一个位置填`b*`。
+
+	3. 只写可以出现的，不写不可能出现的
+
+	cached question:
+
+	1. 为什么正则表达式无法应用以树为代表的分析方式？
+
+		为什么不可以把正则表达式看作是一个树的展开？
+
 ### nfa
 
 **非确定有限自动机（NFA, non-definite finite automata）**
@@ -203,13 +300,11 @@ examples:
 
 有一些算法可以总是猜对执行哪条边，方法是遍历一遍字符串，看看局部的转换条件是否被包含在 nfa 中。
 
-**cache**
+### bison and flex
 
 lex 可以将正则表达式转换成执行相应的代码。
 
 flex 节省了 dfa 需要存储的状态，从而可以运行得更快。
-
-### bison and flex
 
 使用 bison 和 flex 创建一个简易计算器。
 
@@ -323,6 +418,26 @@ make
 ```
 
 表示编译器运行成功。
+
+### 文法
+
+#### 二义性
+
+如果给定一套文法，根据一定的推导规则，推导出来了两套语法树，那么就认为这套文法有二义性。
+
+消除二义性的方法是在文法中再引入一些非终结符，从而赋予不同的非终结符结合优先级。另外在推导规则上，可以总是遵循从左到右。
+
+#### 终结符，非终结符，与推导
+
+凡是写成$\text{left} \rightarrow \text{right}$的，都可以将左边的符号用右边替换。
+
+终结符（terminal）：指 id, print, num, `.`, `+`, `()`, `:=`, `;`
+
+终结符对应到具体单词或者运算符
+
+非终结符（nonterminal）：指`S`，`E`，`L`这些
+
+非终结符是为了分析使用的，创造的抽象符号。
 
 ## 课后习题
 

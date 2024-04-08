@@ -3069,3 +3069,117 @@
 * Garnet is a new remote cache-store from Microsoft Research
 
     <https://github.com/microsoft/garnet>
+
+* slint 相关
+
+    * slint 的 github repo
+
+        <https://github.com/slint-ui/slint>
+
+        主要是看看 example
+
+    * slint language 的 doc
+
+        <https://releases.slint.dev/1.5.1/docs/slint/src/introduction/>
+
+    * 多线程的一个 example
+
+        <https://releases.slint.dev/1.5.1/docs/rust/slint/fn.invoke_from_event_loop>
+
+* plotters 相关
+
+    * plotters crate doc
+
+        <https://docs.rs/plotters/latest/plotters/index.html>
+
+    * plotters github repo
+
+        <https://github.com/plotters-rs/plotters>
+
+* How do I iterate over a Split<&Str>
+
+    <https://users.rust-lang.org/t/how-do-i-iterate-over-a-split-str/56464>
+
+* How to debug with VSCode and pipe command
+
+    <https://stackoverflow.com/questions/54052909/how-to-debug-with-vscode-and-pipe-command>
+
+* gdb - debugging with piped input (not arguments) [duplicate]
+
+    <https://stackoverflow.com/questions/8422259/gdb-debugging-with-piped-input-not-arguments>
+
+* Reset stdin after reading from pipe
+
+    <https://stackoverflow.com/questions/76999756/reset-stdin-after-reading-from-pipe>
+
+* How to check for EOF with `read_line()`?
+
+    <https://stackoverflow.com/questions/27475113/how-to-check-for-eof-with-read-line>
+
+* Linux xargs 命令 
+
+    <https://www.runoob.com/linux/linux-comm-xargs.html>
+
+* vscode, how to launch and debug program that reads from a pipeline?
+
+    <https://stackoverflow.com/questions/64168648/vscode-how-to-launch-and-debug-program-that-reads-from-a-pipeline>
+
+* Module std::thread
+
+    <https://doc.rust-lang.org/std/thread/>
+
+* 基于 Send 和 Sync 的线程安全
+
+    <https://course.rs/advance/concurrency-with-threads/send-sync.html>
+
+* Trait std::io::BufRead
+
+    <https://doc.rust-lang.org/std/io/trait.BufRead.html#>
+
+* Struct std::process::Child
+
+    <https://doc.rust-lang.org/std/process/struct.Child.html>
+
+* Crate regex
+
+    <https://docs.rs/regex/latest/regex/>
+
+* rust Parsing and Displaying
+
+    <https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#parse-string-into-datetime-struct>
+
+* bce ce
+
+    <https://www.google.com/search?channel=fs&client=ubuntu-sn&q=bce+ce>
+
+* rust Send and Sync
+
+    <https://doc.rust-lang.org/nomicon/send-and-sync.html>
+
+* How can I use Vim as a hex editor? [duplicate]
+
+    <https://vi.stackexchange.com/questions/2232/how-can-i-use-vim-as-a-hex-editor>
+
+* How to add users to vboxusers to enable USB usage
+
+    <https://askubuntu.com/questions/377778/how-to-add-users-to-vboxusers-to-enable-usb-usage>
+
+* How to List Users in Linux
+
+    <https://www.howtogeek.com/803907/linux-list-users/>
+
+* Linux List All Users In The System Command
+
+    <https://www.cyberciti.biz/faq/linux-list-users-command/>
+
+* qemu doc
+
+    <https://www.qemu.org/docs/master/system/invocation.html>
+
+* The libvirt project
+
+    <https://libvirt.org/index.html>
+
+* virtual box PCI Passthrough
+
+    <https://docs.oracle.com/en/virtualization/virtualbox/6.0/admin/pcipassthrough.html>

@@ -814,6 +814,8 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
 `git branch --set-upstream-to=origin/main`可以设置当前 branch 对应的 remote branch。
 
+当 remote 的 branch 不存在时，这个命令无法使用。必须先使用`git push -u`将 local 的 branch push 到 remote branch。
+
 ## git remote
 
 `git remote`只涉及到 url，不涉及到下面的 branch。
