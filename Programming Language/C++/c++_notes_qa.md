@@ -79,7 +79,7 @@ without const
 [idx]
 2
 [u_0]
-使用 fstream 按行读取文件，不保存每行末尾的換行符`\r`，`\n`。
+使用 fstream 按行读取文件，将所有内容保存到 string lines 中
 [u_1]
 ```cpp
 #include <string>

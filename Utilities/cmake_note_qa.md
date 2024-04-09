@@ -164,16 +164,3 @@ target_link_libraries(main mymath)
 set(hello_msg "hello world")
 message(${hello_msg})
 ```
-
-[unit]
-[u_0]
-使用`greeting_msg="hello world" cmake ..` 执行 cmake，打印出环境变量`greeting_msg`，并且设置一个新的环境变量`aaa=bbb`
-[u_1]
-(empty)
-
-[unit]
-[u_0]
-使用 if 语句，当变量`a`的值为`haha`时输出`hello`，当变量`a`的值为`hehe`时输出`world`。
-先让`a`的值为`haha`，再让`a`的值为`hehe`，分别执行 if 语句。
-[u_1]
-(empty)
