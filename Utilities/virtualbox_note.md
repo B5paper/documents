@@ -1,5 +1,11 @@
 # VirtualBox Note
 
+**cache**
+
+* virtual box 使用 efi 启动的 iso 光盘
+
+    virtual box 7.0.1 目前默认是从 MBR 启动引导，如果需要其他的方式启动引导，需要根据开机提示按键，或者在刚启动虚拟机时就一直按 del 键，进入 bios 和启动引导界面。
+
 ## Problem Shooting
 
 1. win11 hyper-v compatibility

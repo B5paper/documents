@@ -1,9 +1,3 @@
-1. lambda 表达式与函数指针
-
-    <https://www.geeksforgeeks.org/lambda-expressions-vs-function-pointers/>
-
-    假如一个 lambda 表达式 capture 了一些外部变量，那么该怎么写它的函数指针？
-
 1. 使用 go 语言调用 containerd 的接口：<https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
 
 1. `unknown service runtime.v1.RuntimeService`: <https://github.com/containerd/containerd/discussions/6616>
@@ -23,8 +17,6 @@
     1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
 
 1. git 相关
-
-    reset: <https://www.atlassian.com/git/tutorials/undoing-changes/git-reset>
 
     rebase: <https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase#:~:text=What%20is%20git%20rebase%3F,of%20a%20feature%20branching%20workflow.>
 
@@ -3183,3 +3175,51 @@
 * virtual box PCI Passthrough
 
     <https://docs.oracle.com/en/virtualization/virtualbox/6.0/admin/pcipassthrough.html>
+
+* <https://www.internalpointers.com/>
+
+    一个博客，没什么很新的东西，但是讲得很细，偶尔可以看看。
+
+* Convert std::time::SystemTime to chrono::datetime::DateTime
+
+    <https://users.rust-lang.org/t/convert-std-time-systemtime-to-chrono-datetime-datetime/7684/1>
+
+* How to get Timestamp of the current Date and time in Rust
+
+    <https://stackoverflow.com/questions/57707966/how-to-get-timestamp-of-the-current-date-and-time-in-rust>
+
+* Struct timer::Timer
+
+    <https://docs.rs/timer/latest/timer/struct.Timer.html>
+
+* impl Write cannot be sent between threads safely
+
+    <https://stackoverflow.com/questions/76255387/impl-write-cannot-be-sent-between-threads-safely>
+
+* Rust. Best way to share state for many threads #773
+
+    <https://github.com/slint-ui/slint/discussions/773>
+
+* Rust解决Bug错误“error: future cannot be sent between threads safely”
+
+    <https://blog.csdn.net/Da_zhenzai/article/details/133161570>
+
+* How to deal with a type not implementing "Send"? 
+
+    <https://www.reddit.com/r/rust/comments/xuh3r9/how_to_deal_with_a_type_not_implementing_send/>
+
+* Unsafe Rust
+
+    <https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html>
+
+* [SOLVED] How to Move non-Send Between Threads (or an alternative)
+
+    <https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928>
+
+* pass a variable to function, is it copied/pass by reference? 
+
+    <https://www.reddit.com/r/rust/comments/ny57n3/pass_a_variable_to_function_is_it_copiedpass_by/>
+
+* Can I detach a rust thread?
+
+    <https://stackoverflow.com/questions/72958580/can-i-detach-a-rust-thread>

@@ -91,17 +91,17 @@ using namespace std;
 string read_file(string file_path)
 {
     string file_content;
-    ifstream ifs(file_path);  // ifstream，默认打开文件的模式是 ios::read，因此不需要再指定
+    ifstream ifs(file_path);
     if (!ifs.is_open())
     {
         cout << "fail to open file: " << file_path << endl;
     }
     string line;
-    while (ifs.good())  // 如果遇到文件末尾，ifs.good() 会返回 false
+    while (ifs.good())
     {
-        getline(ifs, line);  // 每次读取一行，line 的末尾不包含 \n
+        getline(ifs, line);
         file_content.append(line);
-        file_content.push_back('\n');  // 手动添加 \n
+        file_content.push_back('\n');
     }
     return file_content;
 }
