@@ -10,6 +10,97 @@ github repo: <https://github.com/slint-ui/slint>
 
 ## cache
 
+* slint 下拉菜单
+
+    slint 下拉菜单组件叫做`ComboBox`
+
+    其属性有：
+
+    * `current-index`: (in-out int): The index of the selected value (-1 if no value is selected)
+
+        `current-index`从 0 开始计数。
+
+    * `current-value`: (in-out string): The currently selected text
+
+    * `enabled`: (in bool): Defaults to true. When false, the combobox can’t be interacted with
+
+    * `has-focus`: (out bool): Set to true when the combobox has keyboard focus.
+
+    * `model` (in [string]): The list of possible values
+
+    callbacks:
+
+    * `selected(string)`: A value was selected from the combo box. The argument is the currently selected value.
+
+    Example:
+
+    ```slint
+    import { ComboBox } from "std-widgets.slint";
+    export component Example inherits Window {
+        width: 200px;
+        height: 130px;
+        ComboBox {
+            y: 0px;
+            width: self.preferred-width;
+            height: self.preferred-height;
+            model: ["first", "second", "third"];
+            current-value: "first";
+        }
+    }
+    ```
+
+    自己写的一个 example:
+
+    `main.rs`:
+
+    ```rs
+    slint::slint! {
+        import { AppWindow } from "ui.slint";
+    }
+
+    fn combo_box_selected(s: slint::SharedString, idx: i32) {
+        println!("selected {s}, index: {idx}");
+    }
+
+    fn main() {
+        let app = AppWindow::new().unwrap();
+        app.on_combo_box_selected(combo_box_selected);
+        app.run().unwrap();
+    }
+    ```
+
+    `ui.sint`:
+
+    ```slint
+    import { Button, VerticalBox, ComboBox } from "std-widgets.slint";
+
+    export component AppWindow inherits Window {
+        in-out property<int> counter: 42;
+        callback request-increase-value();
+        callback combo_box_selected(string, int);
+        VerticalBox {
+            Text {
+                text: "Counter: \{root.counter}";
+            }
+            Button {
+                text: "Increase value";
+                clicked => {
+                    root.request-increase-value();
+                }
+            }
+            combo_box := ComboBox {
+                model: ["first", "second", "third"];
+                selected(val) => {
+                    combo_box_selected(val, self.current-index);
+                }
+            }
+            Rectangle {
+                height: 100px;
+            }
+        }
+    }
+    ```
+
 * slint 中 function 要求定义函数体，callback 不要求定义函数体
 
 * slint 中 Image 不可以跨线程，只能用`SharedPixelBuffer`存储数据跨线程，然后再在 slint 所在的线程里转换成`Image`。

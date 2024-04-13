@@ -1,6 +1,8 @@
 # VirtualBox Note
 
-**cache**
+## cache
+
+* virtual box 中，开机时使用 esc 进入 bios。
 
 * virtual box 使用 efi 启动的 iso 光盘
 

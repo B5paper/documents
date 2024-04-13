@@ -491,3 +491,5 @@ monolithic prn. [ˌmɑnəˈlɪθɪk] adj. 整体的，庞大的
 oblige prn. [əˈblaɪdʒ] vt. 强制，强迫 eg. I am obliged to make frequent reference to the other elements of the kernel and therefore to other chapters
 
 anisotropic prn. [ˌænaɪsə'trɒpɪk] adj. 各向异性的
+
+spam n. 垃圾邮件

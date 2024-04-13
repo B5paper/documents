@@ -2,6 +2,50 @@
 
 ## cache
 
+* git reset note
+
+    * `git reset`与`git checkout`相似
+    
+        `git checkout`只移动 head ref，不移动 branch ref，执行完后会出现 detach 状态。
+
+        `git reset`会同时移动 head ref 和 branch ref。
+
+        两者不同之处如下图所示：
+
+        <img width=700 src='../../Reference_resources/ref_8/pic_0.jpg'>
+
+        (不清楚 branch ref 是什么意思)
+
+    * `git reset`有三种模式，`--mixed`,`--soft`和`--hard`
+
+        其中，`--soft`表示只改变 commit history，不改变 staging area (staging index) 和 working directory.
+
+        `--mixed`表示同时改变 commit history 和 staging area，不改变 working directory。
+
+        由于 staging area 被改变，所以有可能有些文件被变成 untracked 状态。
+
+        `--hard`表示同时改变这三者。
+
+    * 如果不指定模式和 commit id，`git reset`会默认加上`git reset --mixed HEAD`
+
+        由此可以推断，`git reset`直接执行，表示丢弃 staging area 中的所有内容，同时不改变 working area 中的内容。
+
+        `git reset --soft` will do nothing。
+
+        `git reset ＜file＞`: Remove the specified file from the staging area, but leave the working directory unchanged. This unstages a file without overwriting any changes.
+
+    * 可以使用`git ls-file -s`列出 staging area 中的一些文件
+
+        `-s`表示`--staged`，可以打印出文件的 hash value。
+
+        如果不写`-s`，那么只输出文件的路径，不输出 hash 值。
+
+    * `git reset --hard HEAD~2`: The git reset HEAD~2 command moves the current branch backward by two commits, effectively removing the two snapshots we just created from the project history.
+
+        这样可以 removing 一些 commits。
+
+    * 由于 git reset 可能会删除一些 commit，而这些 commits 可能被别人引用，所以最好不要在 public repo 上执行这个。如果有回滚 commit 的需求，可以使用`git revert`。
+
 * git 启动 interactive rebase mode
 
     首先使用`git rebase --interactive HEAD~N`，或者`git rebase -i HEAD~N`进入交互式 rebase 模式。

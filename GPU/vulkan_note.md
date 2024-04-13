@@ -2,6 +2,35 @@
 
 ## cached
 
+* vulkan create sampler 的一个 example
+
+    ```cpp
+        VkSamplerCreateInfo samp_crt_info{};
+        samp_crt_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samp_crt_info.magFilter = VK_FILTER_LINEAR;
+        samp_crt_info.minFilter = VK_FILTER_LINEAR;
+        samp_crt_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samp_crt_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samp_crt_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samp_crt_info.anisotropyEnable = VK_TRUE;
+        samp_crt_info.maxAnisotropy = 4;
+        samp_crt_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samp_crt_info.unnormalizedCoordinates = VK_FALSE;
+        samp_crt_info.compareEnable = VK_FALSE;
+        samp_crt_info.compareOp = VK_COMPARE_OP_ALWAYS;
+        samp_crt_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samp_crt_info.mipLodBias = 0.0f;
+        samp_crt_info.minLod = 0;
+        samp_crt_info.maxLod = 0;
+        VkSampler samp;
+        VkResult result = vkCreateSampler(dev, &samp_crt_info, NULL, &samp);
+        if (result != VK_SUCCESS) {
+            printf("fail to create sampler\n");
+            exit(-1);
+        }
+        printf("successfully create a sampler\n");
+    ```
+
 * renderpass 像是一个 container，一层封装，向内为 shader 提供资源，向外与外部资源对接。
 
 * vulkan 画三角形步骤

@@ -4,6 +4,129 @@
 
 ## cached
 
+* 有关 mem 对象的生存周期分配
+
+    如果两个 mem 对象互相依赖，那么它们应该被一个更大的对象管理，由这个更大的对象控制它们的生命周期。
+
+* c/c++ 中，变量名/对象实体其实代表的是内存地址，对内存地址操作肯定是最快，效率最高的
+
+    把各种对象映射成使用字符串索引，虽然降低了效率，但是提高了便利性。
+
+* c++ 中，对`operator[]`加 template 并不能像想象中一样可以这么写：
+
+    ```cpp
+    my_vec<float>[3] = 4.0f;
+    ```
+
+    反而会非常麻烦：
+
+    ```cpp
+    // emplementation
+    template<typename T>
+    T& operator[](size_t idx) {
+        return *((T*)mem+idx);
+    }
+    
+    // usage
+    buf_mem.operator[]<float>(0) = 1.0f;
+    ```
+
+    此时还不如定义一个普通函数。
+
+* c++ 中，如果 piecewise construct 一个`vector<string, pair<string, MyClass>>`，该怎么传递参数？
+
+* c++ lambda and function pointer
+
+    An example of lambda expression:
+
+    ```cpp
+    #include <stdio.h>
+
+    int main()
+    {
+        auto print_val = [](int val) -> int {
+            printf("hello, %d\n", val);
+            return 1;
+        };
+        int rtv = print_val(3);
+        printf("return value: %d\n", rtv);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, 3
+    return value: 1
+    ```
+
+    the return value type of `-> int` is optional. You can miss it and the compiler will help you complete it.
+
+    But you can't give a wrong type for return value. The compiler g++ will throw error if your return type hint is not identical to the real return value.
+
+    The syntax of capture list:
+
+    * `[ ]`: Capture nothing.
+
+    * `[ = ]`: Capture everything by value. It gives only read access.
+
+    * `[ & ]`: Capture everything by reference. It gives both read and write access.
+
+    * `[ =, & x]`: Capture everything by value, and x variable by reference.
+
+    * `[ =x, & ]`: Capture everything by reference, and x by value.
+
+    function pointer:
+
+    ```cpp
+    #include <stdio.h>
+
+    void print_ab(int a, int b) {
+        printf("a = %d, b = %d\n", a, b);
+    }
+
+    int main()
+    {
+        void (*func)(int, int) = print_ab;
+        func(1, 2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    a = 1, b = 2
+    ```
+
+    capture list example:
+
+    ```cpp
+    #include <stdio.h>
+
+    int main()
+    {
+        int x = 0, a = 1, b = 2;
+        auto test_fun = [=, &x]() {
+            printf("%d + %d = %d\n", a, b, a + b);
+            x++;
+        };
+        test_fun();
+        printf("x is %d\n", x);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1 + 2 = 3
+    x is 1
+    ```
+
+    A lambda function with a non-empty capture list can't be converted to a C-style function pointer.
+
 * c++ 模板函数多参数
 
 	对于`Args...args`，是可以无参数传递的。但如果是`(T arg, Args...args)`，这样就不行了，要求至少有一个参数。

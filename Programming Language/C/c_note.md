@@ -4,6 +4,10 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 有时间了看看。
 
+## cache
+
+* `memcpy()`在`<memory.h>`中，不在`<memory>`中，也不在`<stdlib.h>`中
+
 ## Hello world
 
 file `hello.c`:

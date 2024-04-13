@@ -1,5 +1,15 @@
 # Computer Network Note
 
+## cache
+
+* 路由表
+
+    如果在路由表里只填网络接口，destination ip/network 和子网掩码，不填 gateway，那么说明对于指定的 ip/网段使用指定的 interface 进行收发包。
+
+    `0.0.0.0`指任意 ip，其对应的子网掩码为`0.0.0.0`。
+
+## note
+
 网络字节序：
 
 小端法：高位存高地址，低位存低地址

@@ -18,6 +18,12 @@ apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
 
 ## cache
 
+* glx 的一个 example，见`ref_7`
+
+* 猜测：
+
+    glx 才是 opengl 和 x window system 对接的接口。glew, glxew 都是对 glx 的封装。
+
 * shader 版本标识必须写成`#version 330 core`, 不能写成`#version core 330`.
 
 ## Triangle (Quick start)

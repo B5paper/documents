@@ -2,6 +2,29 @@
 
 ## cache
 
+* rust 中启动一个子进程：
+
+    ```rust
+    std::process::Command::new("cat")
+        .arg("test.txt")
+        .spawn().expect("fail to start the process");
+    ```
+
+* rust 中的`drop`
+
+    假如现在有 3 个变量`a`, `b`, `c`，其中`b`使用了`a`的引用，但是后面`c`也想用`a`，那么可以使用`drop()`把`b` drop 掉，返回`a`的所有权：
+
+    ```rs
+    fn test() {
+        let a = A::new();
+        let b = B::new();
+        let c = C::new();
+        b.use(&mut a);
+        drop(b);
+        c.get_ownership(a);
+    }
+    ```
+
 * rust err 中最好返回`String`
 
 * rust 中`&mut <type>`，需要使用`*`解引用后才能得到值

@@ -12,8 +12,6 @@
 
 1. A namespace is stuck in the Terminating state
 
-    1. <https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=console-namespace-is-stuck-in-terminating-state>
-
     1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
 
 1. git 相关
@@ -3223,3 +3221,91 @@
 * Can I detach a rust thread?
 
     <https://stackoverflow.com/questions/72958580/can-i-detach-a-rust-thread>
+
+* Getting started with qemu 
+
+    <https://drewdevault.com/2018/09/10/Getting-started-with-qemu.html>
+
+* How To Use QEMU From the Linux Command-Line
+
+    <https://www.baeldung.com/linux/qemu-from-terminal>
+
+* 常用分支预测方案
+
+    <https://zhuanlan.zhihu.com/p/453349162>
+
+* An Introduction to CUDA/OpenCL and Graphics Processors
+
+    <https://people.eecs.berkeley.edu/~demmel/cs267_Spr13/Lectures/CatanzaroIntroToGPUs.pdf>
+
+* Jenkins linking to my local git repository
+
+    <https://stackoverflow.com/questions/10498554/jenkins-linking-to-my-local-git-repository>
+
+* The Embedded Rust Book: QEMU
+
+    <https://docs.rust-embedded.org/book/start/qemu.html>
+
+* What's a good source to learn about QEMU? [closed]
+
+    <https://stackoverflow.com/questions/155109/whats-a-good-source-to-learn-about-qemu>
+
+* 深入了解iommu系列一：iommu硬件架构和驱动初始化
+
+    <https://zhuanlan.zhihu.com/p/492749752>
+
+* 深度剖析IOMMU与VFIO技术架构
+
+    <https://zhuanlan.zhihu.com/p/550698319>
+
+* 再议 IOMMU
+
+    <https://zhuanlan.zhihu.com/p/610416847>
+
+* linux开启IOMMU方法
+
+    <https://huaweicloud.csdn.net/654861de91098a1041274b85.html>
+
+* What is IOMMU; How to check IOMMU is enabled? 
+
+    <https://www.goglides.dev/bkpandey/what-is-iommu-how-to-check-iommu-is-enabled-1p7c#google_vignette>
+
+* Cannot be shared between threads safely
+
+    <https://users.rust-lang.org/t/cannot-be-shared-between-threads-safely/49146>
+
+* Struct slint_interpreter::ComponentInstance
+
+    <https://releases.slint.dev/1.5.1/docs/rust/slint_interpreter/struct.componentinstance>
+
+* Struct slint::Image
+
+    <https://releases.slint.dev/1.5.1/docs/rust/slint/struct.image>
+
+* How do I convert a string to f32?
+
+    <https://stackoverflow.com/questions/28234518/how-do-i-convert-a-string-to-f32>
+
+* rust: Static items
+
+    <https://doc.rust-lang.org/reference/items/static-items.html>
+
+* Crate slint_build
+
+    <https://docs.rs/slint-build/latest/slint_build/>
+
+* Crate anyhow
+
+    <https://docs.rs/anyhow/latest/anyhow/>
+
+* Module std::fmt
+
+    <https://doc.rust-lang.org/std/fmt/>
+
+* Crate ringbuffer
+
+    <https://docs.rs/ringbuffer/latest/ringbuffer/>
+
+* How to sign-off commits¶
+
+    <https://volunteer.coscup.org/docs/dev/how-to-signoff/>
