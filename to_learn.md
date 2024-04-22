@@ -74,12 +74,6 @@
 
     1. Multiple commands syntax: <https://www.gnu.org/software/sed/manual/html_node/Multiple-commands-syntax.html>
 
-1. `tar: file changed as we read it`
-
-    tar 在打包目录时，要求目录中的文件不能有改动。如果还没来得及打包的文件被修改，那么就会报错。
-
-    <https://stackoverflow.com/questions/20318852/tar-file-changed-as-we-read-it>
-
 1. k8s 相关：
 
     How to delete kubernetes stuck CRD deletion: <https://rogulski.it/blog/kubernetes-stuck-resource-action/>
@@ -3309,3 +3303,47 @@
 * How to sign-off commits¶
 
     <https://volunteer.coscup.org/docs/dev/how-to-signoff/>
+
+* 并不太短的CUDA入门（The Not So Short Introduction to CUDA）
+
+    <https://zhuanlan.zhihu.com/p/690880124>
+
+* cmodel 模拟器开发
+
+    <https://www.cnblogs.com/wujianming-110117/p/14798009.html>
+
+* SMMU内核驱动分析
+
+    <https://crab2313.github.io/post/smmu/>
+
+* Linux IOMMU Support
+
+    <https://www.kernel.org/doc/Documentation/Intel-IOMMU.txt>
+
+* Welcome to GPUPerfAPI’s documentation!
+
+    <https://gpuperfapi.readthedocs.io/en/latest/>
+
+* glXCreateContext — create a new GLX rendering context
+
+    <https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glXCreateContext.xml>
+
+* OpenGL，glx,glaux,glut，freeglut,glew，glfw，mesa
+
+    <https://blog.csdn.net/yuexiaxiaoxi27172319/article/details/51924670>
+
+* Network configuration /etc/config/network
+
+    <https://openwrt.org/docs/guide-user/network/network_configuration>
+
+* Multiple public IPs on WAN
+
+    <https://forum.openwrt.org/t/multiple-public-ips-on-wan/66947>
+
+* Untagged vs. Tagged VLAN: What’s the Difference?
+
+    <https://jumpcloud.com/blog/untagged-vs-tagged-vlan>
+
+* What DNS servers am I using?
+
+    <https://unix.stackexchange.com/questions/28941/what-dns-servers-am-i-using>

@@ -1,6 +1,6 @@
 # Apache Note
 
-列出当前加载的 mode：`apachectl -t -D DUMP_MODULES`
+列出当前加载的 modules：`apachectl -t -D DUMP_MODULES`
 
 log 文件：`/var/log/apache2/error.log`，`/var/log/apache2/access.log`
 
@@ -10,7 +10,7 @@ log 文件：`/var/log/apache2/error.log`，`/var/log/apache2/access.log`
 
 Apache 是一个 web server，同类型的 web server 还有 nginx 等。这些 web server 只能处理静态页面的跳转，当前端提交一个表单（form）或发送请求（ajax 等）时，web server 无法处理。为了处理表单请求，就引入了 cgi 的概念。
 
-cgi 是一种协议，协议指定了 cgi 程序通过标准输入输出 + 环境变量与 web server 交互，与所以 cgi 程序与语言无关。
+cgi 是一种协议，协议指定了 cgi 程序通过标准输入输出 + 环境变量与 web server 交互，所以 cgi 程序与语言无关。
 
 下面是调用一个 cgi 程序的详细过程：
 
@@ -25,8 +25,8 @@ cgi 是一种协议，协议指定了 cgi 程序通过标准输入输出 + 环�
 
 * 与请求相关的环境变量：
 
-    |Name|Description|
-    |-|-|
+    | Name | Description |
+    | - | - |
     | `REQUEST_METHOD` | 服务器与 cgi 程序之间的信息传输方式，比如`POST` |
     | `QUERY_STRING` | 采用 get 时所传输的信息，比如`name=hgp&id=1` |
     | `CONTENT_LENGTH` | stdio 中的有效信息长度 |
@@ -39,6 +39,7 @@ cgi 是一种协议，协议指定了 cgi 程序通过标准输入输出 + 环�
 * 与服务器相关的环境变量
 
     | Name | Description |
+    | - | - |
     | `GATEWAY_INTERFACE` | 服务器所实现的 cgi 版本 |
     | `SERVER_NAME` | 服务器的 ip 或名字 |
     | `SERVER_PORT` | 主机的端口号 |
@@ -47,6 +48,7 @@ cgi 是一种协议，协议指定了 cgi 程序通过标准输入输出 + 环�
 * 与客户端相关的环境变量
 
     | Name | Description |
+    | - | - |
     | `REMOTE_ADDR` | 客户机的主机名 |
     | `REMOTE_HOST` | 客户机的 ip 地址 |
     | `ACCEPT` | 列出能被请求接受的应答方式，比如`image/gif;image/jpeg` |
@@ -220,7 +222,7 @@ AddHandler fcgid-script .fcgi
 
 官网：<https://fastcgi-archives.github.io/>
 
-安装：`sudo apt install libfcig-dev`
+安装：`sudo apt install libfcgi-dev`
 
 我们使用 c 写一个 fastcgi 程序（注意，必须是纯 c，用了 iostream 之类后，会出现 Internal Error）：
 
