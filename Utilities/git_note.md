@@ -631,6 +631,14 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     `git push [-f] [--set-upstream] [remote_name [local_branch][:remote_branch]]`
 
+    `git push --set-upstream`与`git push -u`等价。
+
+    create a new branch: `git checkout -b branch_name`
+
+    list local branch the corredponding remote branch: `git branch -vv`
+
+    如果不清楚 remote branch 的情况，可以直接使用`git push -u origin HEAD`。这样就等同于`git push --set-upstream origin/HEAD HEAD`
+
 * git rebase
 
     1. 找到最后一个没有问题的 commit，并执行`git rebase`：
@@ -793,6 +801,8 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
     Ref: <https://www.geeksforgeeks.org/git-difference-between-git-revert-checkout-and-reset/>
 
     有时间了看看 ref。
+
+    设置当前 branch 的 remote branch: `git checkout --track origin/dev`
 
 * `git restore`
 

@@ -1,3 +1,23 @@
+1. awk
+
+    1. <https://www.gnu.org/software/gawk/manual/html_node/Comments.html>
+
+1. git 相关
+
+    rebase: <https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase#:~:text=What%20is%20git%20rebase%3F,of%20a%20feature%20branching%20workflow.>
+
+    branch: <https://www.atlassian.com/git/tutorials/using-branches#:~:text=In%20Git%2C%20branches%20are%20a,branch%20to%20encapsulate%20your%20changes.>
+
+    设置 upstream，并 fork: <https://www.freecodecamp.org/news/how-to-sync-your-fork-with-the-original-git-repository/>
+
+    Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
+
+    Pull a certain branch from the remote server: <https://stackoverflow.com/questions/1709177/pull-a-certain-branch-from-the-remote-server>
+
+    How to stop container in containerd/ctr: <https://stackoverflow.com/questions/67171982/how-to-stop-container-in-containerd-ctr>
+
+    Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
+
 1. 使用 go 语言调用 containerd 的接口：<https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
 
 1. `unknown service runtime.v1.RuntimeService`: <https://github.com/containerd/containerd/discussions/6616>
@@ -13,30 +33,6 @@
 1. A namespace is stuck in the Terminating state
 
     1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
-
-1. git 相关
-
-    rebase: <https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase#:~:text=What%20is%20git%20rebase%3F,of%20a%20feature%20branching%20workflow.>
-
-    branch: <https://www.atlassian.com/git/tutorials/using-branches#:~:text=In%20Git%2C%20branches%20are%20a,branch%20to%20encapsulate%20your%20changes.>
-
-    set upstream branch: <https://devconnected.com/how-to-set-upstream-branch-on-git/>
-
-    设置 upstream，并 fork: <https://www.freecodecamp.org/news/how-to-sync-your-fork-with-the-original-git-repository/>
-
-    Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
-
-    Pull a certain branch from the remote server: <https://stackoverflow.com/questions/1709177/pull-a-certain-branch-from-the-remote-server>
-
-    How to stop container in containerd/ctr: <https://stackoverflow.com/questions/67171982/how-to-stop-container-in-containerd-ctr>
-
-    Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
-
-1. awk
-
-    1. <https://www.gnu.org/software/gawk/manual/html_node/Quoting.html>
-
-    1. <https://www.gnu.org/software/gawk/manual/html_node/Comments.html>
 
 1. bash
 
@@ -3347,3 +3343,47 @@
 * What DNS servers am I using?
 
     <https://unix.stackexchange.com/questions/28941/what-dns-servers-am-i-using>
+
+* 吴恩达 全球人工智能教育领导者，DeepLearning.AI创始人
+
+    <https://www.zhihu.com/people/wu-en-da-89>
+
+* How do I confirm that VFIO is working in 20.04?
+
+    <https://askubuntu.com/questions/1247058/how-do-i-confirm-that-vfio-is-working-in-20-04>
+
+* Parse Command Line Arguments in Bash
+
+    <https://www.baeldung.com/linux/bash-parse-command-line-arguments>
+
+* Panda3D is an open-source, completely free-to-use engine for realtime 3D games, visualizations, simulations, experiments
+
+    <https://www.panda3d.org/>
+
+* Git中submodule的使用
+
+    <https://zhuanlan.zhihu.com/p/87053283>
+
+* Performance Profiling (GPU-Graph)
+
+    <https://www.mindspore.cn/mindinsight/docs/en/r1.8/performance_profiling_gpu.html>
+
+* Optimizing GPU performance
+
+    <https://developer.apple.com/documentation/xcode/optimizing-gpu-performance>
+
+* Charming - A Rust Visualization Library
+
+    <https://github.com/yuankunzhang/charming>
+
+* charts-rs is a charting library for rust. It's simple and fast.
+
+    <https://github.com/vicanso/charts-rs>
+
+* Apache ECharts is a free, powerful charting and visualization library
+
+    <https://github.com/apache/echarts>
+
+* plotly.rs: A plotting library for Rust powered by Plotly.js.
+
+    <https://github.com/plotly/plotly.rs>
