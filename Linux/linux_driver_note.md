@@ -105,13 +105,13 @@ drwxr-xr-x 16 root root 4.0K  2月 18 09:31 kernel
 
 int hello_init(void)
 {
-    printk("<1>""hello my module\n");
+    printk(KERN_INFO "hello my module\n");
     return 0;
 }
 
 void hello_exit(void)
 {
-    printk("<1>""bye bye!\n");
+    printk(KERN_INFO "bye bye!\n");
 }
 
 module_init(hello_init);

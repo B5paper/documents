@@ -1,7 +1,3 @@
-1. awk
-
-    1. <https://www.gnu.org/software/gawk/manual/html_node/Comments.html>
-
 1. git 相关
 
     rebase: <https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase#:~:text=What%20is%20git%20rebase%3F,of%20a%20feature%20branching%20workflow.>
@@ -3387,3 +3383,25 @@
 * plotly.rs: A plotting library for Rust powered by Plotly.js.
 
     <https://github.com/plotly/plotly.rs>
+
+* The Clojure Programming Language
+
+    Clojure is a dynamic, general-purpose programming language, combining the approachability and interactive development of a scripting language with an efficient and robust infrastructure for multithreaded programming.
+
+    <https://clojure.org/>
+
+* DPDK内存篇: 深入学习 IOVA
+
+    <https://zhuanlan.zhihu.com/p/616499732>
+
+* The Linux Kernel documentation
+
+    <https://docs.kernel.org/index.html>
+
+* dlopen(3) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man3/dlopen.3.html>
+
+* Linux Commands
+
+    <https://www.mediacollege.com/linux/command/linux-command.html>

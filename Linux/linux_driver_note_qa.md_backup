@@ -1,10 +1,8 @@
 # Linux Driver Note QA
 
 [unit]
-[idx]
-0
-[id]
-40735460710940864
+[title]
+内核模块的加载与卸载
 [u_0]
 请写出一个最小版本的 linux 内核模块代码及 Makefile，对其进行编译，并检测是否能成功加载及退出。
 [u_1]
@@ -46,10 +44,8 @@ default:
 卸载：`sudo rmmod hello_world`
 
 [unit]
-[idx]
-1
-[id]
-40741716463024864
+[title]
+模块参数的使用
 [u_0]
 分别注册整型，字符串，以及数组作为模块参数，并检验是否注册成功。使用回调函数对参数值进行监视，并检测其改变。
 [u_1]
@@ -92,10 +88,6 @@ MODULE_LICENSE("GPL");
 `echo 1 > /sys/module/hello_world/parameters/m_int`
 
 [unit]
-[idx]
-2
-[id]
-40743422786851680
 [u_0]
 解释`module_param_array()`中各个参数的作用。
 [u_1]
@@ -106,20 +98,14 @@ Syntax:
 其中，`name`为数组名，`type`为数组的元素类型，`num`是一个指针，当我们使用命令行传递模块参数时，`module_param_array()`会自动计算数组中元素的个数，并将元素数量存储到这个变量中，这个指针也可以直接填`NULL`，`permissions`指的是参数文件的权限。
 
 [unit]
-[idx]
-3
-[id]
-40745064547074240
+[title]
+模块符号的导出
 [u_0]
 内核模块符号导出。（是否能导出变量，数组，字符串？）
 [u_1]
 (empty)
 
 [unit]
-[idx]
-4
-[id]
-40746586403460328
 [u_0]
 请使用静态方式申请设备号。
 [u_1]
@@ -148,20 +134,12 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
-[idx]
-5
-[id]
-40748043696242144
 [u_0]
 请使用动态方法申请设备号。
 [u_1]
 (empty)
 
 [unit]
-[idx]
-6
-[id]
-40749489459808928
 [u_0]
 请写出添加及删除 cdev 的最小代码。
 [u_1]
@@ -236,20 +214,14 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
-[idx]
-7
-[id]
-40751045903840144
+[deps]
+内核模块的加载与卸载
 [u_0]
 如何手动创建 cdev 设备文件？
 [u_1]
 (empty)
 
 [unit]
-[idx]
-8
-[id]
-40752482444034880
 [u_0]
 如何使用代码创建 cdev 设备文件？
 [u_1]
@@ -285,30 +257,18 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
-[idx]
-9
-[id]
-40753902843328560
 [u_0]
 请使用代码测试 cdev 是否成功。
 [u_1]
 (empty)
 
 [unit]
-[idx]
-10
-[id]
-40755314019250200
 [u_0]
 写出`printk()`的所有消息类型，并解释其含义。
 [u_1]
 (empty)
 
 [unit]
-[idx]
-11
-[id]
-40756729806857856
 [u_0]
 写出`printk()`的常用替代函数。
 [u_1]
@@ -319,20 +279,12 @@ MODULE_LICENSE("GPL");
 * `pr_warn()` – Print a warning-level message.
 
 [unit]
-[idx]
-12
-[id]
-40758265498301992
 [u_0]
 实现通过用户空间的`read()`和`write()`函数与内核空间交换数据。
 [u_1]
 (empty)
 
 [unit]
-[idx]
-13
-[id]
-40759699732653720
 [u_0]
 `struct file_operations`中`open`函数的原型是什么？解释各个参数的含义。
 [u_1]
@@ -345,10 +297,6 @@ int m_open(struct inode *inode, struct file *file_ptr);
 （目前两个参数都用不到，所以不知道是啥意思）
 
 [unit]
-[idx]
-14
-[id]
-40761094767674296
 [u_0]
 `struct file_operations`中`read`函数的原型是什么？解释各个参数的含义。
 [u_1]
@@ -361,10 +309,6 @@ long int m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *of
 （目前各个参数都用不到，所以不知道是什么意思）
 
 [unit]
-[idx]
-15
-[id]
-40762499026066904
 [u_0]
 写出`struct file_operations`中的常用字段。
 [u_1]
