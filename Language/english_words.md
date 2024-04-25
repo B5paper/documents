@@ -493,3 +493,7 @@ oblige prn. [əˈblaɪdʒ] vt. 强制，强迫 eg. I am obliged to make frequent
 anisotropic prn. [ˌænaɪsə'trɒpɪk] adj. 各向异性的
 
 spam n. 垃圾邮件
+
+malicious prn. [məˈlɪʃəs] adj. 恶意的，敌意的
+
+facilitate prn. [fəˈsɪlɪteɪt] v. 促进; 使便利

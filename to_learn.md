@@ -1,7 +1,5 @@
 1. git 相关
 
-    rebase: <https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase#:~:text=What%20is%20git%20rebase%3F,of%20a%20feature%20branching%20workflow.>
-
     branch: <https://www.atlassian.com/git/tutorials/using-branches#:~:text=In%20Git%2C%20branches%20are%20a,branch%20to%20encapsulate%20your%20changes.>
 
     设置 upstream，并 fork: <https://www.freecodecamp.org/news/how-to-sync-your-fork-with-the-original-git-repository/>
@@ -3405,3 +3403,15 @@
 * Linux Commands
 
     <https://www.mediacollege.com/linux/command/linux-command.html>
+
+* 【技术精讲】来自于AMD GPUOpen的UE5性能指南
+
+    <https://zhuanlan.zhihu.com/p/668422900>
+
+* GoVCL是完全开源的、免费的、跨平台Go语言GUI库。核心绑定自Lazarus创建的通用跨平台GUI库liblcl
+
+    <https://z-kit.cc/>
+
+* Fyne is an easy-to-use UI toolkit and app API written in Go.
+
+    <https://github.com/fyne-io/fyne>
