@@ -3415,3 +3415,39 @@
 * Fyne is an easy-to-use UI toolkit and app API written in Go.
 
     <https://github.com/fyne-io/fyne>
+
+* 大模型检索增强生成（RAG）有哪些好用的技巧？
+
+    <https://www.zhihu.com/question/625481187/answer/3309968693>
+
+* devenv.sh - Fast, Declarative, Reproducible, and Composable Developer Environments
+
+    <https://github.com/cachix/devenv>
+
+* 算法数据结构——线段树（Segment Tree）精讲及python实现
+
+    <https://blog.csdn.net/zy_dreamer/article/details/131040325>
+
+* 超详解线段树(浅显易懂,几乎涵盖所有线段树类型讲解,匠心之作,图文并茂)
+
+    <https://blog.csdn.net/weq2011/article/details/128791426>
+
+* cmake：交叉编译
+
+    <https://zhuanlan.zhihu.com/p/100367053>
+
+* How to develop Linux Kernel Module with vscode without incorrect error detection
+
+    <https://stackoverflow.com/questions/58386640/how-to-develop-linux-kernel-module-with-vscode-without-incorrect-error-detection>
+
+* How to develop Linux Kernel Module with vscode without incorrect error detection
+
+    <https://devpress.csdn.net/cloud/6325a0056213ca4d56909c1b.html>
+
+* 使用VSCode进行linux内核代码阅读和开发
+
+    <https://blog.csdn.net/xhnmdlfl/article/details/117911630>
+
+* Fundamentals of 802.1Q VLAN Tagging 
+
+    <https://documentation.meraki.com/General_Administration/Tools_and_Troubleshooting/Fundamentals_of_802.1Q_VLAN_Tagging>

@@ -497,3 +497,7 @@ spam n. 垃圾邮件
 malicious prn. [məˈlɪʃəs] adj. 恶意的，敌意的
 
 facilitate prn. [fəˈsɪlɪteɪt] v. 促进; 使便利
+
+arbitration prn. [ˌɑːrbɪˈtreɪʃn] n. 仲裁
+
+transaction n. 事务
