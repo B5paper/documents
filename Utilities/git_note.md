@@ -2,6 +2,24 @@
 
 ## cache
 
+* `git rebase`非交互模式，当遇到文件冲突时，不会让用户去处理 conflict，把不同的 commit 合并成一个，创建一个 merge commit，而是先把 upstream 的 commit 全都照搬过来，然后再把 local 的 commit 叠加到上面
+
+    在非交互模式下，常用的语法为`git rebase <upstream>/<remote_branch> [<local_branch>]`。
+
+    首先要保证有一个有效的 remote:
+
+    `git remote add <new_name> <remote_path/url>`
+
+    然后拉取一下信息，不然找不到 main branch：`git fetch`
+
+    然后设置当前 branch 的 upstream:
+
+    `git branch --set-upstream-to=origin/main`
+
+    最后就可以直接运行`git rebase`了。
+
+    以后每次需要`git rebase`前，都要先`git fetch`一次，拿到 upstream 的信息。
+
 * git reset note
 
     * `git reset`与`git checkout`相似

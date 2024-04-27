@@ -1,2 +1,0 @@
-# Linux Socket Programming Note
-

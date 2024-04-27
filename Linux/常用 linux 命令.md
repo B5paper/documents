@@ -1,5 +1,21 @@
 # Linux
 
+## cache
+
+* 如果 virtual box 虚拟机在 mount host 目录时报错
+
+    ```
+    mount: /home/hlc/hlc_host: wrong fs type, bad option, bad superblock on HLC, missing codepage or helper program, or other error.
+    ```
+
+    那么很有可能是`mount`命令的`-o umask=0002`设置得不对，不写这个`umask`参数就好了。`-o uid=xxxx`，`-o gid=xxxx`可以正常使用。
+
+* virtual box 在 port forwarding 的时候，1024 以下的端口需要 root 权限
+
+    但是 virtual box guest machine 通常不是以 root 方式启动的，所以 port forwarding 的时候需要选择 1024 以上的端口。
+
+## note
+
 * fdisk
 
 * mkfs

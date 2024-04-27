@@ -6,6 +6,33 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 没有办法知道 enum 中有几个元素，C 有一些比较特别的写法可以提供便捷：
+
+    ```cpp
+    #include <iostream>
+
+    enum MyEnum {
+        mem_1 = 0,
+        mem_2,
+        mem_3,
+        NUM_MYENUM_MEMBERS
+    };
+
+    int main()
+    {
+        printf("the number of MyEnum is %d\n", NUM_MYENUM_MEMBERS);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    the number of MyEnum is 3
+    ```
+
+    另外，`sizeof(MyEnum)`无法得到整个`MyEnum`的大小，只会得到单个元素（即`int`类型）所占的大小。通常为 4 字节。
+
 * `memcpy()`在`<memory.h>`中，不在`<memory>`中，也不在`<stdlib.h>`中
 
 ## Hello world
