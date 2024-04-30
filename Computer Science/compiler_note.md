@@ -25,7 +25,7 @@
 	example:
 
 	<div style='text-align:center'>
-	<img src='./pics/2024.03.15/pic_1.jpg'>
+	<img src='../Reference_resources/ref_9/pics/2024.03.15/pic_1.jpg'>
 	</div>
 
 	在上图中，$\bold{edge}(1, c) = \{2, 4\}$

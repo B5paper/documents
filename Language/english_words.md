@@ -501,3 +501,5 @@ facilitate prn. [fəˈsɪlɪteɪt] v. 促进; 使便利
 arbitration prn. [ˌɑːrbɪˈtreɪʃn] n. 仲裁
 
 transaction n. 事务
+
+synonymous adj. 同义的，同义词的

@@ -1,7 +1,5 @@
 1. git 相关
 
-    branch: <https://www.atlassian.com/git/tutorials/using-branches#:~:text=In%20Git%2C%20branches%20are%20a,branch%20to%20encapsulate%20your%20changes.>
-
     设置 upstream，并 fork: <https://www.freecodecamp.org/news/how-to-sync-your-fork-with-the-original-git-repository/>
 
     Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
@@ -11,22 +9,6 @@
     How to stop container in containerd/ctr: <https://stackoverflow.com/questions/67171982/how-to-stop-container-in-containerd-ctr>
 
     Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
-
-1. 使用 go 语言调用 containerd 的接口：<https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
-
-1. `unknown service runtime.v1.RuntimeService`: <https://github.com/containerd/containerd/discussions/6616>
-
-1. k8s taint and tolerations: 
-
-    1. <https://www.densify.com/kubernetes-autoscaling/kubernetes-taints/>
-
-    1. <https://kubernetes.io/docs/reference/labels-annotations-taints/>
-
-    1. <https://stackoverflow.com/questions/56614136/how-to-remove-kube-taints-from-worker-nodes-taints-node-kubernetes-io-unreachab>
-
-1. A namespace is stuck in the Terminating state
-
-    1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
 
 1. bash
 
@@ -63,6 +45,23 @@
     1. <https://stackoverflow.com/questions/46970466/how-to-replace-only-last-match-in-a-line-with-sed>
 
     1. Multiple commands syntax: <https://www.gnu.org/software/sed/manual/html_node/Multiple-commands-syntax.html>
+
+1. 使用 go 语言调用 containerd 的接口：<https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
+
+1. `unknown service runtime.v1.RuntimeService`: <https://github.com/containerd/containerd/discussions/6616>
+
+1. k8s taint and tolerations: 
+
+    1. <https://www.densify.com/kubernetes-autoscaling/kubernetes-taints/>
+
+    1. <https://kubernetes.io/docs/reference/labels-annotations-taints/>
+
+    1. <https://stackoverflow.com/questions/56614136/how-to-remove-kube-taints-from-worker-nodes-taints-node-kubernetes-io-unreachab>
+
+1. A namespace is stuck in the Terminating state
+
+    1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
+
 
 1. k8s 相关：
 
@@ -3451,3 +3450,47 @@
 * Fundamentals of 802.1Q VLAN Tagging 
 
     <https://documentation.meraki.com/General_Administration/Tools_and_Troubleshooting/Fundamentals_of_802.1Q_VLAN_Tagging>
+
+* Clang++ missing C++ header?
+
+    <https://gatowololo.github.io/blog/clangmissingheaders/>
+
+* Add/Change/Set the custom resolution of your display using xrandr on Ubuntu 18.04 — {In a minute}
+
+    <https://medium.com/@AbhiXpert/add-change-the-custom-resolution-of-your-display-using-xrandr-on-ubuntu-18-04-in-a-minute-338caec6e29>
+
+* Linux umask命令
+
+    <https://www.runoob.com/linux/linux-comm-umask.html>
+
+* How do the likely/unlikely macros in the Linux kernel work and what is their benefit?
+
+    <https://stackoverflow.com/questions/109710/how-do-the-likely-unlikely-macros-in-the-linux-kernel-work-and-what-is-their-ben>
+
+* just is a handy way to save and run project-specific commands.
+
+    <https://github.com/casey/just>
+
+* clvk is a conformant implementation of OpenCL 3.0 on top of Vulkan using clspv as the compiler.
+
+    <https://github.com/kpet/clvk>
+
+* AMD Common Language Runtime contains source codes for AMD's compute languages runtimes: HIP and OpenCL™.
+
+    <https://github.com/ROCm/clr>
+
+* IDR: ID Radix
+
+    <http://www.biscuitos.cn/blog/IDR/>
+
+* Linux - Kernel Module 编译过程拆解
+
+    <https://zhuanlan.zhihu.com/p/650437168>
+
+* egui: an easy-to-use GUI in pure Rust
+
+    <https://github.com/emilk/egui>
+
+* mold: A Modern Linker
+
+    <https://github.com/rui314/mold>

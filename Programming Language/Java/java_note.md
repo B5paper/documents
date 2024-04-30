@@ -943,7 +943,8 @@ public class Test {
 有两种方法创建子线程：
 
 1. 继承`Thread`
-1. 实现`Runnable`接口，然后使用`public Thread(Runnable target)`或`public Thread(Runnable target, String name)`将其作为成员。
+
+2. 实现`Runnable`接口，然后使用`public Thread(Runnable target)`或`public Thread(Runnable target, String name)`将其作为成员。
 
 通常推荐使用第二种方法，这种有两个优点：
 
@@ -1208,7 +1209,4 @@ public class Test {
     1. cglib
 
     1. log4j
-
-
-
 

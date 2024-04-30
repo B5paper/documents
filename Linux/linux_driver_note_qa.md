@@ -107,16 +107,6 @@ Syntax:
 
 [unit]
 [idx]
-3
-[id]
-40745064547074240
-[u_0]
-内核模块符号导出。（是否能导出变量，数组，字符串？）
-[u_1]
-(empty)
-
-[unit]
-[idx]
 4
 [id]
 40746586403460328
@@ -146,16 +136,6 @@ module_init(hello)
 module_exit(bye)
 MODULE_LICENSE("GPL");
 ```
-
-[unit]
-[idx]
-5
-[id]
-40748043696242144
-[u_0]
-请使用动态方法申请设备号。
-[u_1]
-(empty)
 
 [unit]
 [idx]
@@ -237,16 +217,6 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-7
-[id]
-40751045903840144
-[u_0]
-如何手动创建 cdev 设备文件？
-[u_1]
-(empty)
-
-[unit]
-[idx]
 8
 [id]
 40752482444034880
@@ -286,26 +256,6 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-9
-[id]
-40753902843328560
-[u_0]
-请使用代码测试 cdev 是否成功。
-[u_1]
-(empty)
-
-[unit]
-[idx]
-10
-[id]
-40755314019250200
-[u_0]
-写出`printk()`的所有消息类型，并解释其含义。
-[u_1]
-(empty)
-
-[unit]
-[idx]
 11
 [id]
 40756729806857856
@@ -317,16 +267,6 @@ MODULE_LICENSE("GPL");
 * `pr_debug()` – Print a debug-level message conditionally.
 * `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
 * `pr_warn()` – Print a warning-level message.
-
-[unit]
-[idx]
-12
-[id]
-40758265498301992
-[u_0]
-实现通过用户空间的`read()`和`write()`函数与内核空间交换数据。
-[u_1]
-(empty)
 
 [unit]
 [idx]
