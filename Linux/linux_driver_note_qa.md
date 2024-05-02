@@ -318,3 +318,35 @@ struct file_operations
     int (*release) (struct inode *, struct file *);
 };
 ```
+
+[unit]
+[u_0]
+使用命令创建设备文件。
+[u_1]
+可以使用`mknod`创建设备文件：
+
+```bash
+sudo mknod -m 666 /dev/hlc_dev c 255 0
+```
+
+最后两个参数分别是主设备号和次设备号。
+
+测试：
+
+```bash
+cat /dev/hlc_dev
+```
+
+查看输出：
+
+```bash
+sudo dmesg
+```
+
+output:
+
+```
+[ 7716.807868] in m_open()...
+[ 7716.807889] in m_read()...
+[ 7716.807905] in m_release()...
+```

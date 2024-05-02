@@ -418,6 +418,12 @@
 
 * [v] reorg  20 mins 04/25
 
+* [v] reorg 30 mins 04/28
+
+    feedback:
+
+    1. java 的 note 大部分已经空间化了，没有什么需要 reorg 的
+
 ## qa
 
 cached:
@@ -478,6 +484,14 @@ Tasks:
 
 * [ ] 调研 qa 程序执行`/main.py --list /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`的 bug
 
+* [ ] qa 4 units 20 mins
+
+    feedback:
+
+    1. 修复 bug:
+
+        `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -509,6 +523,10 @@ tasks:
 * [v] cache tabs 10 mins 04/25
 
 * [v] process 1 url 30 mins 04/25
+
+* [v] cache tabs 10 mins 04/28
+
+* [v] process 1 url 30 mins 04/28
 
 ## GPU Perf
 
@@ -626,7 +644,7 @@ tasks:
 
     1. 排除 pcie 相关的信号
 
-* [ ] virt: 调研虚拟机带负载强制关机再重启后的卡死问题
+* [v] virt: 调研虚拟机带负载强制关机再重启后的卡死问题
 
     主要看各个 buffer 是否有残留
 
@@ -1085,6 +1103,8 @@ tasks:
     2. 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
 
 * [ ] 调研`kzalloc`, `kfree`
+
+* [v] 调研 dmesg 记录到文件 30 mins
 
 ## OpenGL
 

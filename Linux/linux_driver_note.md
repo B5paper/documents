@@ -963,7 +963,7 @@ int my_cdev_open(struct inode *inode, struct file *flip)
     
 }
 
-int my_cdev_read()
+ssize_t my_cdev_read()
 {
 
 }
