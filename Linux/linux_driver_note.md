@@ -4,6 +4,138 @@ Ref:
 
 * <https://embetronicx.com/tutorials/linux/device-drivers/>
 
+## cache
+
+* 在 insmod 时报错`module verification failed: signature and/or required key missing - tainting kernel`
+
+    可以直接在 makefile 开头添加一行：`CONFIG_MODULE_SIG=n`解决。
+
+    虽然在 insmod 时还会有提示，但是可以正常加载驱动。
+
+    更完善的解决办法可以参考这个：<https://stackoverflow.com/questions/24975377/kvm-module-verification-failed-signature-and-or-required-key-missing-taintin>
+
+    如果 kernel 不是 singed 的，那么也可以不用加`CONFIG_MODULE_SIG=n`这一行。
+
+* 似乎在安装`apt install build-essential`的时候，就会安装 kernel 相关的 herders 和预编译库
+
+* `ktime_get_seconds()`可以获得系统启动后过去了多少时间
+
+    `ktime_get_real_seconds()`可以获得 utc 时间，但是需要其他库/函数转换成人类可读时间。
+
+    与时间相关的函数都在`linux/timekeeping.h`头文件中。
+
+    如果需要 formatted output time，可以参考这篇：<https://www.kernel.org/doc/html/latest/core-api/printk-formats.html#time-and-date>
+
+    与时间相关的函数与简要说明：<https://www.kernel.org/doc/html/latest/core-api/timekeeping.html>
+
+    ref: <https://stackoverflow.com/questions/55566038/how-can-i-print-current-time-in-kernel>
+
+* 对于 parameter 数组，在`cat`的时候，可以看到它是以`,`分隔的一些数字
+
+    ```bash
+    sudo bash -c "cat m_vec"
+    ```
+
+    output:
+
+    ```
+    1,2,3
+    ```
+
+    如果写入的数据多于数组的容量，会报错：
+
+    ```bash
+    sudo bash -c "echo 2,3,4,5,6 > m_vec"
+    ```
+    
+    ```
+    bash: line 1: echo: write error: Invalid argument
+    ```
+
+    导致写入失败。
+
+    如果写入的数据少于数组的容量，则会自动在指针中写入具体有几个元素。
+
+
+* 读取与写入 kernel module parameter 时，需要 root 权限的解决办法
+
+    ```bash
+    sudo bash -c "cat param_name"
+    sudo bash -c "echo some_val > param_name"
+    ```
+
+* linux kernel module 开发 vscode 的配置
+
+    `c_cpp_properties.json`:
+
+    ```json
+    {
+        "configurations": [
+            {
+                "name": "Linux",
+                "includePath": [
+                    "${workspaceFolder}/**",
+                    "/usr/src/linux-headers-6.5.0-18-generic/include/",
+                    "/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
+                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
+                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
+                ],
+                "defines": [
+                    "KBUILD_MODNAME=\"hello\"",
+                    "__GNUC__",
+                    "__KERNEL__",
+                    "MODULE"
+                ],
+                "compilerPath": "/usr/bin/gcc",
+                "cStandard": "gnu17",
+                "cppStandard": "c++17",
+                "intelliSenseMode": "linux-gcc-x64"
+            }
+        ],
+        "version": 4
+    }
+    ```
+
+    `includePath`里新增的 include path 和`defines`里的四个宏，任何一个都不能少，不然 vscode 就会在代码里划红线报错。
+
+    下面是一个没有报错的 example code:
+
+    `hello.c`:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/ktime.h>
+
+    int m_int = 5;
+    module_param(m_int, int, S_IRUSR | S_IWUSR);
+
+    int hello_init(void)
+    {
+        printk(KERN_INFO "hello my module\n");
+        struct timespec64 ts64;
+        ktime_get_ts64(&ts64);
+        time64_t seconds = ktime_get_real_seconds();
+        long nanoseconds = ts64.tv_nsec;
+        printk(KERN_INFO "on init, current time: %ld seconds\n", seconds);
+        return 0;
+    }
+
+    void hello_exit(void)
+    {
+        printk(KERN_INFO "bye bye!\n");
+        struct timespec64 ts64;
+        ktime_get_ts64(&ts64);
+        time64_t seconds = ts64.tv_sec;
+        long nanoseconds = ts64.tv_nsec;
+        printk(KERN_INFO "on exit, current time: %ld seconds\n", seconds);
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
 ## Introduction
 
 ### 驱动开发环境的搭建
@@ -272,6 +404,8 @@ clean:
 （如果还是无法`insmod`，或许需要取消 secure boot：<https://askubuntu.com/questions/762254/why-do-i-get-required-key-not-available-when-install-3rd-party-kernel-modules>）
 
 ### 日志消息打印
+
+* `printk()`如果不加`\n`，那么不会在`dmesg`中立即刷新。
 
 **`printk()`**
 
@@ -1117,19 +1251,161 @@ Example: `sudo mknod -m 666 /dev/etx_device c 246 0`
 
 **Automatically Creating Device File**
 
-The automatic creation of device files can be handled with `udev`. `Udev` is the device manager for the Linux kernel that creates/removes device nodes in the `/dev` directory dynamically. Just follow the below steps.
+The automatic creation of device files can be handled with `udev`. `udev` is the device manager for the Linux kernel that creates/removes device nodes in the `/dev` directory dynamically. Just follow the below steps.
 
-Include the header file `linux/device.h` and `linux/kdev_t.h`
-Create the struct `Class`
-Create `Device` with the `class` which is created by the above step
+1. Include the header file `linux/device.h` and `linux/kdev_t.h`
 
-使用代码创建 cdev 设备文件：
+2. Create the struct `class`
 
-需要头文件：
+3. Create `device` with the `class` which is created by the above step
 
-```c
+example:
+
+`hello.c`
+
+```cpp
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
 #include <linux/device.h>
+
+dev_t dev_id;  // 设备号
+struct cdev cdev;  // cdev handle
+const char *cdev_name = "hlc_dev";
+struct class *dev_cls;  // device class, registered at /sys/class
+struct device *dev;  // device file handle
+
+int m_open(struct inode *inode, struct file *file_ptr)
+{
+    printk(KERN_INFO "in m_open()...\n");
+    return 0;
+}
+
+int m_release(struct inode *inod, struct file *file_ptr)
+{
+    printk(KERN_INFO "in m_release()...\n");
+    return 0;
+}
+
+ssize_t m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *offset)
+{
+    printk(KERN_INFO "in m_read()...\n");
+    return 0;
+}
+
+ssize_t m_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
+{
+    printk(KERN_INFO "in m_write()...\n");
+    return 0;
+}
+
+ssize_t m_ioctl(struct file *file_ptr, unsigned int, unsigned long)
+{
+    printk(KERN_INFO "in m_ioctl()...\n");
+    return 0;
+}
+
+struct file_operations m_ops = {
+    .owner = THIS_MODULE,
+    .open = m_open,
+    .release = m_release,
+    .read = m_read,
+    .write = m_write,
+    .unlocked_ioctl = m_ioctl
+};
+
+int hlc_module_init(void)
+{
+    printk(KERN_INFO "init hlc module\n");
+    dev_id = MKDEV(255, 0);
+    register_chrdev_region(dev_id, 1, "hlc cdev driver");
+    cdev_init(&cdev, &m_ops);
+    cdev_add(&cdev, dev_id, 1);
+    dev_cls = class_create("hlc_dev_cls");
+    if (IS_ERR(dev_cls))
+    {
+        printk(KERN_INFO "fail to create device class.\n");
+    }
+    dev = device_create(dev_cls, NULL, dev_id, NULL, "hlc_dev");
+    if (IS_ERR(dev))
+    {
+        printk(KERN_INFO "fail to create device.\n");
+    }
+    return 0;
+}
+
+void hlc_module_exit(void)
+{
+    printk(KERN_INFO "exit hlc module!\n");
+    device_destroy(dev_cls, dev_id);
+    class_destroy(dev_cls);
+    cdev_del(&cdev);
+    unregister_chrdev_region(dev_id, 1);
+}
+
+module_init(hlc_module_init);
+module_exit(hlc_module_exit);
+MODULE_LICENSE("GPL");
 ```
+
+`Makefile`:
+
+```makefile
+KERNEL_DIR=/usr/src/linux-headers-6.5.0-28-generic
+obj-m  +=  hello.o
+default:
+	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
+
+clean:
+	rm -f *.mod *.o *.order *.symvers *.cmd
+```
+
+compile:
+
+```bash
+make
+```
+
+run:
+
+```bash
+sudo insmod hello.ko
+```
+
+`dmesg` output:
+
+```
+[ 4976.473176] init hlc module
+```
+
+`ls /sys/class/ | grep hlc` output:
+
+```
+hlc_dev_cls
+```
+
+`ls /dev/ | grep hlc` output:
+
+```
+hlc_dev
+```
+
+run `sudo bash -c "cat /dev/hlc_dev"`, then `dmesg` output:
+
+```
+[ 5021.619227] in m_open()...
+[ 5021.619251] in m_read()...
+[ 5021.619269] in m_release()...
+```
+
+exit:
+
+```bash
+sudo rmmod hello
+```
+
+Explanation:
 
 1. Create the class
 
@@ -1147,11 +1423,11 @@ Create `Device` with the `class` which is created by the above step
 
     This is used to create a struct class pointer that can then be used in calls to class_device_create. The return value can be checked using IS_ERR() macro.
 
-销毁设备类：
+    销毁设备类：
 
-```c
-void class_destroy(struct class *cls);
-```
+    ```c
+    void class_destroy(struct class *cls);
+    ```
 
 * `device_create`
 
