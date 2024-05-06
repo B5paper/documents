@@ -350,3 +350,35 @@ output:
 [ 7716.807889] in m_read()...
 [ 7716.807905] in m_release()...
 ```
+
+[unit]
+[u_0]
+写出动态申请设备号并注销的完整代码。
+[u_1]
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/fs.h>
+
+dev_t dev_region;
+const char *dev_region_name = "hlc dev region";
+
+int mod_init(void)
+{
+    printk(KERN_INFO "in mod_init() ...\n");
+    alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
+    printk(KERN_INFO "allocate device region.\n");
+    return 0;
+}
+
+void mod_exit(void)
+{
+    printk(KERN_INFO "in mod_exit() ...\n");
+    unregister_chrdev_region(dev_region, 1);
+    printk(KERN_INFO "unregistered device region.\n");
+}
+
+module_init(mod_init);
+module_exit(mod_exit);
+MODULE_LICENSE("GPL");
+```

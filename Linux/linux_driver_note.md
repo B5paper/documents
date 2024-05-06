@@ -87,78 +87,6 @@ Ref:
     sudo bash -c "echo some_val > param_name"
     ```
 
-* linux kernel module 开发 vscode 的配置
-
-    `c_cpp_properties.json`:
-
-    ```json
-    {
-        "configurations": [
-            {
-                "name": "Linux",
-                "includePath": [
-                    "${workspaceFolder}/**",
-                    "/usr/src/linux-headers-6.5.0-18-generic/include/",
-                    "/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
-                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
-                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
-                ],
-                "defines": [
-                    "KBUILD_MODNAME=\"hello\"",
-                    "__GNUC__",
-                    "__KERNEL__",
-                    "MODULE"
-                ],
-                "compilerPath": "/usr/bin/gcc",
-                "cStandard": "gnu17",
-                "cppStandard": "c++17",
-                "intelliSenseMode": "linux-gcc-x64"
-            }
-        ],
-        "version": 4
-    }
-    ```
-
-    `includePath`里新增的 include path 和`defines`里的四个宏，任何一个都不能少，不然 vscode 就会在代码里划红线报错。
-
-    下面是一个没有报错的 example code:
-
-    `hello.c`:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/ktime.h>
-
-    int m_int = 5;
-    module_param(m_int, int, S_IRUSR | S_IWUSR);
-
-    int hello_init(void)
-    {
-        printk(KERN_INFO "hello my module\n");
-        struct timespec64 ts64;
-        ktime_get_ts64(&ts64);
-        time64_t seconds = ktime_get_real_seconds();
-        long nanoseconds = ts64.tv_nsec;
-        printk(KERN_INFO "on init, current time: %ld seconds\n", seconds);
-        return 0;
-    }
-
-    void hello_exit(void)
-    {
-        printk(KERN_INFO "bye bye!\n");
-        struct timespec64 ts64;
-        ktime_get_ts64(&ts64);
-        time64_t seconds = ts64.tv_sec;
-        long nanoseconds = ts64.tv_nsec;
-        printk(KERN_INFO "on exit, current time: %ld seconds\n", seconds);
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
 ## Introduction
 
 ### 驱动开发环境的搭建
@@ -292,6 +220,80 @@ default:
 如果输出的最后几行有`[ 2793.700004] <1>hello my module`，那么就说明驱动运行成功了。
 
 最后卸载驱动：`sudo rmmod hello_world`。
+
+### vscode config
+
+* linux kernel module 开发 vscode 的配置
+
+    `c_cpp_properties.json`:
+
+    ```json
+    {
+        "configurations": [
+            {
+                "name": "Linux",
+                "includePath": [
+                    "${workspaceFolder}/**",
+                    "/usr/src/linux-headers-6.5.0-18-generic/include/",
+                    "/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
+                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
+                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
+                ],
+                "defines": [
+                    "KBUILD_MODNAME=\"hello\"",
+                    "__GNUC__",
+                    "__KERNEL__",
+                    "MODULE"
+                ],
+                "compilerPath": "/usr/bin/gcc",
+                "cStandard": "gnu17",
+                "cppStandard": "c++17",
+                "intelliSenseMode": "linux-gcc-x64"
+            }
+        ],
+        "version": 4
+    }
+    ```
+
+    `includePath`里新增的 include path 和`defines`里的四个宏，任何一个都不能少，不然 vscode 就会在代码里划红线报错。
+
+    下面是一个没有报错的 example code:
+
+    `hello.c`:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/ktime.h>
+
+    int m_int = 5;
+    module_param(m_int, int, S_IRUSR | S_IWUSR);
+
+    int hello_init(void)
+    {
+        printk(KERN_INFO "hello my module\n");
+        struct timespec64 ts64;
+        ktime_get_ts64(&ts64);
+        time64_t seconds = ktime_get_real_seconds();
+        long nanoseconds = ts64.tv_nsec;
+        printk(KERN_INFO "on init, current time: %ld seconds\n", seconds);
+        return 0;
+    }
+
+    void hello_exit(void)
+    {
+        printk(KERN_INFO "bye bye!\n");
+        struct timespec64 ts64;
+        ktime_get_ts64(&ts64);
+        time64_t seconds = ts64.tv_sec;
+        long nanoseconds = ts64.tv_nsec;
+        printk(KERN_INFO "on exit, current time: %ld seconds\n", seconds);
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
 
 ### 交叉编译
 
@@ -856,6 +858,61 @@ obj-m += xxx.o xxx_2.o
 
 ## 设备驱动
 
+### cache
+
+* 通过代码测试设备文件
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <fcntl.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <unistd.h>
+
+    int main()
+    {
+        char ch = 0;
+        char buf[10] = {};
+
+        int fd = open("/dev/hello_dev", O_RDWR);
+        if (fd == -1)
+        {
+            perror("open");
+            exit(-1);
+        }
+
+        printf("open successed! fd = %d\n", fd);
+
+        while (1) {
+            ch = getchar();
+            getchar();
+
+            if (ch == 'q')
+                break;
+            switch(ch)
+            {
+                case 'r':
+                    read(fd, buf, 0);
+                    break;
+                case 'w':
+                    write(fd, buf, 0);
+                    break;
+                default:
+                    printf("error input\n");
+            }
+        }
+    }
+    ```
+
+* 合并注册设备号和注册 cdev:
+
+    ```c
+    int register_chrdev(unsigned int major, const char *name, const struct file_operations *fops);
+    ```
+
+    当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
+
 ### 设备类型
 
 linux 设备：
@@ -928,7 +985,29 @@ dev_t m_dev_num = MKDEV(220,0);
 
 1. 静态申请（Statically allocating）
 
-    首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如 220。根据设备个数分配次设备号，一般从 0 开始。
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/fs.h>
+
+    dev_t dev = MKDEV(220, 0);
+
+    int hlc_mod_init(void)
+    {
+        printk("load my module\n");
+
+        // allocate a device number
+        register_chrdev_region(dev, 1, "hlc_dev");
+        printk(KERN_INFO "hlc dev, major = %d, minor = %d\n", MAJOR(dev), MINOR(dev));
+        return 0;
+    }
+    ```
+
+    上述代码中，使用`MKDEV(220, 0)`构造了一个设备号。构造方法是，首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如`220`。然后根据设备个数分配次设备号，一般从`0`开始。
+
+    `register_chrdev_region()`用于静态申请设备号。这个函数运行成功后，可以使用`cat /proc/devices`看到注册成功的设备号名称`220 hlc_dev`。
 
     Syntax:
 
@@ -948,22 +1027,44 @@ dev_t m_dev_num = MKDEV(220,0);
 
     * `name`: 设备号在内核中对应的名称
 
+    Return value:
+
     返回 0 表示成功，返回非 0 表示失败。
 
-    Example:
+2. 动态申请（Dynamically Allocating）
+
+    动态申请指通过`alloc_chrdev_region()`向内核申请设备号。
+
+    example:
 
     ```c
-    dev_t dev = MKDEV(235, 0);
-    register_chrdev_region(dev, 1, "my driver");
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/fs.h>
+
+    dev_t dev_region;
+    const char *dev_region_name = "hlc dev region";
+
+    int mod_init(void)
+    {
+        printk(KERN_INFO "in mod_init() ...\n");
+        int rtv = alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
+        if (rtv != 0) {
+            printk(KERN_INFO "alloc_chrdev_region() error code: %d\n", rtv);
+        }
+        printk(KERN_INFO "successfully allocate device region. major: %d, minor: %d\n",
+            MAJOR(dev_region), MINOR(dev_region));
+        return 0;
+    }
     ```
 
- 2. 动态申请（Dynamically Allocating）
-
-    通过`alloc_chrdev_region`向内核申请
+    syntax:
 
     ```c
     int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
     ```
+
+    alloc_chrdev_region - register a range of char device numbers
 
     header file: `<linux/fs.h>`
 
@@ -975,12 +1076,16 @@ dev_t m_dev_num = MKDEV(220,0);
 
     * `count`: 设备号个数
 
+    Return value:
+
+    Returns zero or a negative error code.
+
 **注销设备号**
 
 不再使用设备号需要注销：
 
 ```c
-unregister_chrdev_region(dev_t from, unsigned count);
+void unregister_chrdev_region(dev_t from, unsigned count);
 ```
 
 header file: `<linux/fs.h>`
@@ -993,8 +1098,6 @@ params:
 
 一般在卸载模块的时候释放设备号。The usual place to call `unregister_chrdev_region` would be in your module’s cleanup function (Exit Function).
 
-动态申请得到的设备号，释放的方法和静态申请一致。
-
 Example:
 
 ```c
@@ -1002,39 +1105,36 @@ Example:
 #include <linux/module.h>
 #include <linux/fs.h>
 
-dev_t dev = MKDEV(220, 0);
+dev_t dev_region;
+const char *dev_region_name = "hlc dev region";
 
-int hello_init(void)
+int mod_init(void)
 {
-    printk("load my module\n");
-
-    // allocate a device number
-    register_chrdev_region(dev, 1, "hlc_dev");
-    printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+    printk(KERN_INFO "in mod_init() ...\n");
+    alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
+    printk(KERN_INFO "allocate device region.\n");
     return 0;
 }
 
-void hello_exit(void)
+void mod_exit(void)
 {
-    unregister_chrdev_region(dev, 1);
-    printk("unload my module\n");
+    printk(KERN_INFO "in mod_exit() ...\n");
+    unregister_chrdev_region(dev_region, 1);
+    printk(KERN_INFO "unregistered device region.\n");
 }
 
-module_init(hello_init);
-module_exit(hello_exit);
+module_init(mod_init);
+module_exit(mod_exit);
 MODULE_LICENSE("GPL");
 ```
 
-```c
-// ...
+output:
 
-dev_t dev = 0;
-if ((alloc_chrdev_region(&dev, 0, 1, "Embetronicx_Dev")) < 0){
-        printk(KERN_INFO "Cannot allocate major number for device 1\n");
-        return -1;
-}
-
-// ...
+```
+[ 6790.673894] in mod_init() ...
+[ 6790.673896] allocate device region.
+[ 6796.788756] in mod_exit() ...
+[ 6796.788764] unregistered device region.
 ```
 
 **Difference between static and dynamic method**
@@ -1046,6 +1146,14 @@ With the Dynamic method, you are telling the kernel that how many device numbers
 Partially to avoid conflict with other device drivers, it’s considered preferable to use the Dynamic method function, which will dynamically allocate the device numbers for you.
 
 The disadvantage of dynamic assignment is that you can’t create the device nodes in advance, because the major number assigned to your module will vary. For normal use of the driver, this is hardly a problem, because once the number has been assigned, you can read it from /proc/devices.
+
+注：
+
+1. 这个资源的名字叫设备号（device number），但是相关的函数却都是 device region 相关。
+
+    是不是 device number 有歧义，一方面表示设备号，一方面又表示设备的个数，所以把改了？
+
+    然后设备号的类型还是`dev_t`，有点像 device type。既不含 number 信息，也不含 region 信息，还容易和后面的`device`类型弄混。不清楚为什么要这么起名，可能是为了向上兼容吧。
 
 ### cdev 设备驱动
 
@@ -1346,13 +1454,11 @@ int hlc_module_init(void)
     cdev_init(&cdev, &m_ops);
     cdev_add(&cdev, dev_id, 1);
     dev_cls = class_create("hlc_dev_cls");
-    if (IS_ERR(dev_cls))
-    {
+    if (IS_ERR(dev_cls)) {
         printk(KERN_INFO "fail to create device class.\n");
     }
     dev = device_create(dev_cls, NULL, dev_id, NULL, "hlc_dev");
-    if (IS_ERR(dev))
-    {
+    if (IS_ERR(dev)) {
         printk(KERN_INFO "fail to create device.\n");
     }
     return 0;
@@ -1430,7 +1536,7 @@ sudo rmmod hello
 
 Explanation:
 
-1. Create the class
+* Create the class
 
     This will create the struct class for our device driver. It will create a structure under `/sys/class/`. 创建的设备类在`/sys/class`目录下。
 
@@ -1498,172 +1604,9 @@ Explanation:
     void device_destroy(struct class *class, dev_t devt)
     ```
 
-内核中指针了一些宏，用于判断指针是否出错。
+### user mode program for device file
 
-```c
-IS_ERR(指针)  // 返回真表示出错
-IS_ERR_OR_NULL(指针)  // 
-PTR_ERR(指针)  // 将出错的指针转换成错误码
-ERR_PTR(错误码)  // 将错误码转换成指针
-```
-
-Example：
-
-```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple linux driver (Automatically Creating a Device file)
-*
-*  \author     EmbeTronicX
-*
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-*******************************************************************************/
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <linux/err.h>
-#include <linux/device.h>
- 
-dev_t dev = 0;
-static struct class *dev_class;
- 
-/*
-** Module init function
-*/
-static int __init hello_world_init(void)
-{
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0)
-        {
-            pr_err("Cannot allocate major number for device\n");
-            return -1;
-        }
-        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating struct class*/
-        dev_class = class_create(THIS_MODULE,"etx_class");
-        if(IS_ERR(dev_class)){
-            pr_err("Cannot create the struct class for device\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))) {
-            pr_err("Cannot create the Device\n");
-            goto r_device;
-        }
-        pr_info("Kernel Module Inserted Successfully...\n");
-        return 0;
- 
-r_device:
-        class_destroy(dev_class);
-r_class:
-        unregister_chrdev_region(dev,1);
-        return -1;
-}
- 
-/*
-** Module exit function
-*/
-static void __exit hello_world_exit(void)
-{
-    device_destroy(dev_class,dev);
-    class_destroy(dev_class);
-    unregister_chrdev_region(dev, 1);
-    pr_info("Kernel Module Removed Successfully...\n");
-}
- 
-module_init(hello_world_init);
-module_exit(hello_world_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4c29212e29383e2322252f340c2b212d2520622f2321">[email protected]</a>>");
-MODULE_DESCRIPTION("Simple linux driver (Automatically Creating a Device file)");
-MODULE_VERSION("1.2");
-```
-
-Linux 中的错误处理使用`goto`：
-
-```c
-// stop 1
-if (出错) {
-    goto 标签1；
-}
-
-// step 2
-if（出错） {
-    goto 标签2；
-}
-
-// step 3
-if (出错) {
-    goto 标签3;
-}
-
-标签3;
-    复原第2步
-标签2;
-    复原第1步
-标签1;
-    return 错误码;
-```
-
-合并注册设备号和注册 cdev:
-
-```c
-int register_chrdev(unsigned int major, const char *name, const struct file_operations *fops);
-```
-
-当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
-
-通过代码测试设备文件：
-
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include<sys/types.h>
-#include <unistd.h>
-
-int main()
-{
-    char ch = 0;
-    char buf[10] = {};
-
-    int fd = open("/dev/hello_dev", O_RDWR);
-    if (fd == -1)
-    {
-        perror("open");
-        exit(-1);
-    }
-
-    printf("open successed! fd = %d\n", fd);
-
-    while (1) {
-        ch = getchar();
-        getchar();
-
-        if (ch == 'q')
-            break;
-        switch(ch)
-        {
-            case 'r':
-                read(fd, buf, 0);
-                break;
-            case 'w':
-                write(fd, buf, 0);
-                break;
-            default:
-                printf("error input\n");
-        }
-    }
-}
-```
+### cache
 
 * ioctl 接口
 

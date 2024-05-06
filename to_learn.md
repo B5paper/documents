@@ -3494,3 +3494,39 @@
 * mold: A Modern Linker
 
     <https://github.com/rui314/mold>
+
+* llm-action  
+
+    LLM训练实战
+
+    下面汇总了我在大模型实践中训练相关的所有教程。从6B到65B，从全量微调到高效微调（LoRA，QLoRA，P-Tuning v2），再到RLHF（基于人工反馈的强化学习）。
+
+    <https://github.com/liguodongiot/llm-action>
+
+* -serial pty in qemu, how to open?
+
+    <https://stackoverflow.com/questions/20190116/serial-pty-in-qemu-how-to-open>
+
+* screen /dev/pts/<num> of a VM never has correct stty settings
+
+    <https://unix.stackexchange.com/questions/619887/screen-dev-pts-num-of-a-vm-never-has-correct-stty-settings>
+
+* Web based Go GUI
+
+    <https://golangr.com/gui>
+
+* Gio UI: Cross-Platform GUI for Go
+
+    <https://gioui.org/>
+
+* Valkey is a high-performance data structure server that primarily serves key/value workloads. 
+
+    <https://github.com/valkey-io/valkey>
+
+* Xournal++ (/ˌzɚnl̟ˌplʌsˈplʌs/) is an open-source and cross-platform note-taking software that is fast, flexible, and functional.
+
+    <https://xournalpp.github.io/>
+
+* Rnote is an open-source vector-based drawing app for sketching, handwritten notes and to annotate documents and pictures. 
+
+    <https://github.com/flxzt/rnote>

@@ -19,7 +19,7 @@ kernel void add(global const int *A, global const int *B, global int *C)
 [unit]
 [title]
 向量相加
-[deps]
+[dep]
 向量相加 kernel
 [u_0]
 请写一个向量相加的主程序。
