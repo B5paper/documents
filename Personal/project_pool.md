@@ -36,6 +36,44 @@
 
 ## cached
 
+* python regular expression sync
+
+* cached tasK: 写一个接收 cgtn 广播的 python 程序，实现断线自动重连
+
+* `ls`命令中`-d`的作用
+
+    `ls -lh <dir>`默认会显示`dir`文件夹里的所有目录和文件，但是如果我只想显示`dir`这个文件夹本身的信息该怎么办？
+
+    `ls -lh ./ | grep <dir>`这样太麻烦了，这时候可以用`-d`命令：
+
+    `ls -lhd <dir>`
+
+    这样就能显示目录`<dir>`本身的信息了。
+
+    也可以使用`ls -lhd .`或`ls -lhd`显示当前目录的信息。
+
+* 基于 dfs 的学习法，每次遇到无法理解的问题就卡在那里，浪费很多时间。或者是都能理解，但是非常非常不常用，进入到陌生的领域。或者说虽然有用，但是需要做实验验证才能完全理解，但是这时没有完善的实验条件。或者虽然是有用的知识，并且可以做实验，但是与目标任务无关。显然基于 dfs 的学习法是有问题的，我们不可能把一本书/一套视频/一个网站全部看完才去看另一个信息源。
+
+    基于 bfs 的学习法才是正确的方法，遇到问题就停下来，看看其他地方，每次都只看自己可以看懂的，有用的，螺旋积累知识。
+
+    虽然这么说，但是 dfs 仍然是必要的，难以理解的东西可能稍微往后看一点就能理解了，或者复杂的东西稍微推导一下就看明白了。
+
+    这两者的平衡目前还是需要靠直觉去把控。
+
+* 使用命令行将文件移入回收站
+
+    `gio trash [FILE1] [FILE2]`
+
+* 笔记中想法、批注的更新该如何表示？
+
+    必须要保留旧的想法记录，因为这样可以形成一串思考线索，不然只能看到最终的思考结果。
+
+* 有一些知识、猜想、推理是正确但暂未理解的，即发现它只在一个陌生的上下文里正确，但是暂时或永远无法对到已有的知识体系上
+
+    这种知识是否应该写入到笔记中？
+
+* 如果一段资料，有 50% 和当前任务相关，另外 50% 和当前任务无关，但是也是还算有用的知识，那么这另外的 50% 是否应该继续学下去
+
 * 无法否认，对于需要频繁交互才能继续下去的任务，目前仍然是主要靠直觉和“灵机一动”推动任务进行，并没有什么其他比较好的方式
 
 * 将笔记未经验证的部分作为 cache 抽离出来也是非常重要的
@@ -424,6 +462,22 @@
 
     1. java 的 note 大部分已经空间化了，没有什么需要 reorg 的
 
+* [v] reorg 30 mins 05/03
+
+    feedback:
+
+    1. 清理了 latex 和 opengl 的笔记，但是这两份笔记只有几行，并没有什么需要整理的
+
+        最好还是先让程序扫描一遍目录，然后根据规则排除一些文件，然后再跟上一次使用的数据库做对比，看看新扫描的增加了哪些文件，缺少了哪些文件，手动确认是否更新数据库。
+
+        然后根据更新完的数据库，重新计算每个文件被选中的概率权重，最后根据权重，随机选择一个文件。
+
+        如果被选中的文件没有什么好 reorg 的，那么可以手动调低权重，让它下次出现的概率变低。
+
+        如果一个文件整理完后，发现还有许多要整理的地方，那么就手动升高其权重，增加它出现的概率。
+
+        其实降低别某一个文件概率就是变相地升高其他文件的概率，所以也可以不去设置手动调高概率。
+
 ## qa
 
 cached:
@@ -484,13 +538,27 @@ Tasks:
 
 * [ ] 调研 qa 程序执行`/main.py --list /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`的 bug
 
-* [ ] qa 4 units 20 mins
+* [v] qa 4 units 20 mins
 
     feedback:
 
     1. 修复 bug:
 
         `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
+
+* [v] qa 4 units 05/03
+
+    答对题数：2/4
+
+    feedback:
+
+    1. 增加 linux driver qa:
+
+        配置 vscode 的内核驱动开发环境
+
+    2. 误删了 random_exam_py 文件夹，需要重写
+
+        记得用 git 保存到 remote 仓库
 
 ## cache tabs / process urls
 
@@ -945,9 +1013,73 @@ resources:
 
 1. <https://www.gnu.org/software/gawk/manual/html_node/index.html#SEC_Contents>
 
-## linux kernel driver
+## linux driver
 
 cache:
+
+* 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
+
+    主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
+
+* 为什么写`MKDEV()`时可以填`MKDEV(255, 0)`, `MKDEV(220, 0)`
+
+    怎么保证 255, 220 这些数字不与其他冲突？
+
+    答：可以用`cat /proc/devices`查看已经注册过的设备
+
+* cached tasks
+
+    调研函数：
+
+    `pci_enable_device`, `dev_set_drvdata`
+
+    `pci_resource_start`, `pci_resource_len`, `pci_ioremap_bar`
+
+    `pci_set_master`, `dma_set_mask`, `pci_ioremap_wc_bar`
+
+    调研：`iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
+
+    `dev_to_node`, `kzalloc_node`, `spin_lock_init`
+
+    `mutex_lock`, `mutex_unlock`, `mutex_destroy`
+
+    `idr_init_base`
+
+    `kfree`, `dev_info`
+
+    调研：
+
+    `writel`, `BUG()`, `readq`, `writeq`, `pci_read_config_dword`, `pci_find_ext_capability`
+
+    `readl`, 
+
+    * `pci_register_driver()`这个也是内核调用，有时间了看下含义
+
+    调研一下`KBUILD_MODNAME`的含义。
+
+    * 需要调研的函数
+
+        * `spin_unlock_irqrestore()`
+
+        * `dev_get_drvdata()`
+
+        * `mdev_register_device()`
+
+    * 调研 linux kernel 函数
+
+        `mdev_get_drvdata()`
+
+        `copy_from_user()`
+
+        `BIT()`
+
+* 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
+
+    如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
+
+* 可以使用`dmesg -e`显示消息的大致时间戳
+
+* `module_param_array()`中的数组长度参数只有在 write 数据的时候才会被改变
 
 resources:
 
@@ -990,6 +1122,24 @@ tasks:
         一旦任务启动就不能再轻易看手机。可以写一个程序控制一下。
 
         保持在执行任务时的注意力。
+
+* [v] linux driver: sync 30 mins 05/03
+
+    feedback:
+
+    1. 复习了用代码创建 device file，并实验成功，在`/dev`下看到了创建出来了 device 文件。
+
+        一般都是用代码去创建文件吧，不需要`mknod`。把这个作为需要知道的知识就可以了，重点还是用代码创建。
+
+        接下来整理一下使用 goto 进行错误处理。
+
+    2. 如果使用 goto 处理了错误，还会调用 exit_module 吗？
+
+        如果 init_module() 返回 -1， module 会被成功加载吗？
+
+    3. 中间多次未看到实验结果，因为另一个 terminal 没有登录 ssh
+
+        有没有什么办法可以避免这个问题？
 
 ## OpenGL
 
@@ -1262,6 +1412,24 @@ cache:
 * vim 中的 redo 是哪个？
 
 ## 正则表达式
+
+cache:
+
+* python 里`print()`指定`end=None`仍然会打印换行符，只有指定`end=''`才会不打印换行
+
+* python 里`re`正则表达式匹配的都是字符串，而`^`代表字符串的开头，并不代表一行的开始
+
+    因此使用`^`去匹配每行的开始，其实是有问题的，只能匹配到一次。
+
+* python 的`re`模块不支持非固定长度的 look behind 的匹配
+
+    比如，`(?<+\[.*\]).*`，这个表达式本意是想向前匹配一个`[]`括号，括号中的内容任意，但不能有換行符。
+
+    比如`[hello]this is the world`，想匹配到的内容是`this is the world`。
+
+    但是上面的匹配是不允许的，因为 look behind 时，要匹配的内容是一个非固定长度字符串。
+
+    具体来说可能是因为实现起来太复杂，具体可参考这里：<https://stackoverflow.com/questions/9030305/regular-expression-lookbehind-doesnt-work-with-quantifiers-or>
 
 ## 数学 Mathematics
 

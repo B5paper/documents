@@ -6,6 +6,27 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* c/c++ 中都不允许两个指针直接相加
+
+    但是 c 将指针显式转换为整数，可以使用指针 + 整数，或整数 + 整数。
+
+* `printf()`的格式化
+
+    使用`%x`打印十六进制数时，不会在前面加上`0x`。如果需要加上前缀，可以使用`%#010x`。不清楚这个 spec 是在哪写的。ref: <https://stackoverflow.com/questions/14733761/printf-formatting-for-hexadecimal>
+
+    `%d`打印的是 integer，`%ld`打印的是 long integer，注意这些都是 signed 值。
+
+    `%u`打印的是 unsigned integer，`%lu`打印的是 unsigned long integer。
+
+    单独一个`%l`没有什么意义。
+
+    long 类型是 64 位，int 类型是 32 位。如果用打印 int 类型的命令打印 long 类型，那么会截取低 32 位打印。
+
+    如果使用打印 signed 的命令打印 unsigned 类型，那么由于对最高位的处理不同，可能会出现负数。
+
+    `printf()`打印不同颜色的字体：<https://blog.csdn.net/qq_41673920/article/details/80334557/>
+
+
 * 没有办法知道 enum 中有几个元素，C 有一些比较特别的写法可以提供便捷：
 
     ```cpp

@@ -1,3 +1,7 @@
+# PCIe Note
+
+## cache
+
 * pcie 的功能
 
     pcie 的全称是 peripheral component internet express
@@ -42,10 +46,6 @@
     | PCIe 5 | ~4 GB/s |
     | PCIe 6 | ~8 GB/s |
 
-* 笔记中想法、批注的更新该如何表示？
-
-    必须要保留旧的想法记录，因为这样可以形成一串思考线索，不然只能看到最终的思考结果。
-
 * pcie 每个 simplex path 的时钟信号采用 common clock，即外部的一个时钟，同时给两个 device 发送时钟信号。
 
     不同代的 pcie 有不同的 PLL，CDR （Clock & Data Recovery）。
@@ -59,9 +59,3 @@
 * 相同频率的电磁波会产生干扰，这种现象叫做 EMI (eletromagnetic interference)
 
 * 经过调制的时钟信号会产生更宽的频谱，从而减小 EMI 干扰
-
-* 有一些知识、猜想、推理是正确但暂未理解的，即发现它只在一个陌生的上下文里正确，但是暂时或永远无法对到已有的知识体系上
-
-    这种知识是否应该写入到笔记中？
-
-* 如果一段资料，有 50% 和当前任务相关，另外 50% 和当前任务无关，但是也是还算有用的知识，那么这另外的 50% 是否应该继续学下去

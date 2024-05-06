@@ -4,6 +4,54 @@
 
 ## cached
 
+* c++ 中初始化 struct 的方法
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    struct AAA {
+        int val_a;
+        long val_b;
+    };
+
+    struct AAA a {
+
+    };
+
+    struct AAA b = {
+
+    };
+
+    struct AAA c {
+        .val_a = 1
+    };
+
+    struct AAA d = {
+        .val_a = 2
+    };
+
+    int main()
+    {
+        cout << a.val_a << endl;
+        cout << b.val_a << endl;
+        cout << c.val_a << endl;
+        cout << d.val_a << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0
+    0
+    1
+    2
+    ```
+
+    在 c 与 gnuc 中，由于不支持初始化列表（initialization list），所以不支持`struct AAA a { };`这样的初始化方法，但是支持加`=`的初始化方法。
+
 * 有关 mem 对象的生存周期分配
 
     如果两个 mem 对象互相依赖，那么它们应该被一个更大的对象管理，由这个更大的对象控制它们的生命周期。

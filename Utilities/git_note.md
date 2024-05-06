@@ -2,6 +2,45 @@
 
 ## cache
 
+* git 中 checkout new branch 是什么意思？为什么说`git branch <branch>`只创建新 branch，不 check out new branch？
+
+    猜测：chekcout 指的很可能是切换 branch
+
+* git 其实是用了很多的磁盘空间来实现更灵活的版本管理
+
+* git branch
+
+    `git brahc`等价于`git branch --list`
+
+    `git branch <branch>`创建一个新 branch
+
+    `git branch -d <branch>`删除一个 branche
+
+    This is a “safe” operation in that Git prevents you from deleting the branch if it has unmerged changes.
+
+    `git branch -D <branch>`: Force delete the specified branch
+
+    `git branch -m <branch>`: Rename the current branch to `＜branch＞`
+
+    `git branch -a`: List all remote branches. 
+
+    add a new remote branch and push the local branch to remote branch:
+
+    ```bash
+    git remote add <new-remote-repo> https://bitbucket.com/user/repo.git
+    git push <new-remote-repo> crazy-experiment~
+    ```
+
+    delete a remote branch:
+
+    `git push origin --delete crazy-experiment`
+
+    or
+
+    `git push origin :crazy-experiment`
+
+    这一个比较令人困惑，其实他是给 remote 发送一个 delete signal，从而让远程删除 branch
+
 * `git rebase`非交互模式，当遇到文件冲突时，不会让用户去处理 conflict，把不同的 commit 合并成一个，创建一个 merge commit，而是先把 upstream 的 commit 全都照搬过来，然后再把 local 的 commit 叠加到上面
 
     在非交互模式下，常用的语法为`git rebase <upstream>/<remote_branch> [<local_branch>]`。

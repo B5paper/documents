@@ -6,6 +6,29 @@ Ref:
 
 ## cache
 
+* cdev 的 ops 函数原型中，`read`，`write`，`unloacked_ioctl`的返回值类型都是`ssize_t`，对应的是`long`。
+
+* `pci_set_drvdata()`与`pci_get_drvdata()`用于获取/设置设备驱动私有数据
+
+    syntax:
+
+    ```c
+    void *pci_get_drvdata(struct pci_dev *pdev);
+    void pci_set_drvdata(struct pci_dev *pdev, void *data);
+    ```
+
+    It is a convenient way for example to save a pointer to a local dynamically allocated device context in the device probe callback and then retrieve it back with pci_get_drvdata in the device remove callback and do a proper cleanup of the context.
+
+* `printk()`中指针地址的打印
+
+    `%p`打印的并不是真实地址，而是经过处理的地址
+
+    `%px`打印的是原始地址值，不经过处理。
+
+    `%pK`是按配置文件打印值，更具体的用法可以参考这里：<https://blog.csdn.net/zqwone/article/details/127057245>
+
+    <https://www.kernel.org/doc/Documentation/printk-formats.txt>
+
 * 在 insmod 时报错`module verification failed: signature and/or required key missing - tainting kernel`
 
     可以直接在 makefile 开头添加一行：`CONFIG_MODULE_SIG=n`解决。
