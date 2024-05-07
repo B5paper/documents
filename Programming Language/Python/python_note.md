@@ -2,55 +2,6 @@
 
 ## cached
 
-* python 正则表达式中，空格不需要转义
-
-	比如使用`(.+), (.+)`去匹配`hello, world`，得到的 group 1 为`hello`，group 2 为`world`，空格被正确匹配了。
-
-* python 正则表达式中，group 的用法
-
-	```python
-	import re
-
-	string = 'hello, world'
-	patstr = '(.+), (.+)'
-	pat = re.compile(patstr)
-	m = pat.search(string)
-
-	print('-------- test 1 --------')
-	g0 = m.group(0)
-	print(g0)
-	g1 = m.group(1)
-	print(g1)
-	g2 = m.group(2)
-	print(g2)
-
-	print('-------- test 2 --------')
-	g1, g2 = m.groups()
-	print(g1)
-	print(g2)
-
-	print('-------- test 3 --------')
-	m = re.match(r"(?P<first_name>\w+) (?P<last_name>\w+)", "Malcolm Reynolds")
-	g_first_name = m.group('first_name')
-	g_last_name = m.group('last_name')
-	print(g_first_name)
-	print(g_last_name)
-	d = m.groupdict()
-	print(d['first_name'])
-	print(d['last_name'])
-	```
-
-	每个使用`()`括起来的表达式可以被 group 捕捉。
-
-	`group(0)`是整个表达式，`group(1)`是第一个括号对应的字符串，`group(2)`是第二个括号对应的字符串。
-
-	`groups()`以 tuple 的形式给出`group()`的结果。注意这里索引是从 1 开始的。
-
-	使用`(?P<var_name>...)`可以为子匹配命名，然后使用`group('<name>')`获得。
-
-	`groupdict()`以字典的形式返回命名匹配。如果表达式中没有命名子匹配，那么字典为空。
-
-
 * python hash
 
 	直接用`hash()`函数就可以计算出各个 python 内置对象的哈希值。
@@ -73,81 +24,6 @@
 
 	每次运行程序，即使对相同的字符串，哈希值也不同。不清楚为什么。
 
-* python regular expression
-
-	example 1:
-
-	```python
-	import re
-	txt = 'hello, world'
-	pat_1 = re.compile('world')
-	m = pat_1.search(txt)
-	start_pos = m.start()
-	end_pos = m.end()
-	selected_txt = txt[start_pos:end_pos]
-	print(selected_txt)  # world
-	```
-
-	python 中使用正则表达式可以使用`re`模块，其中`re.compile()`表示将正则表达式编译成一段小程序（应该是转换成有限状态机）。
-
-	`pat_1.search()`表示从指定位置开始匹配，返回一个`Match`对象，`Match`对象保存了匹配结果，包括开始和结尾位置，group 情况之类的。
-
-	`search()`区别于`match()`，`match()`表示从头开始匹配。
-
-	example 2:
-
-	```python
-	txt = 'abcbacaccba'
-	pat_2 = re.compile('a.{2}')
-	for m in pat_2.finditer(txt):
-		start_pos = m.start()
-		end_pos = m.end()
-		selected_txt = txt[start_pos:end_pos]
-		print(selected_txt)  # [abc, aca]
-	```
-
-	这个例子中，使用`pat_2.finditer()`
-
-	example 3:
-
-	```python
-	txt = \
-	'''
-	[unit]
-	hello
-	world
-	[unit]
-	hehe
-	haha
-	'''
-	pat_3 = re.compile('\[unit\](.|\n)*?(?=\[unit\]|\Z)')
-	for m in pat_3.finditer(txt):
-		start_pos = m.start()
-		end_pos = m.end()
-		selected_txt = txt[start_pos:end_pos]
-		print(selected_txt)
-	```
-
-	output:
-
-	```
-	[unit]
-	hello
-	world
-
-	[unit]
-	hehe
-	haha
-	```
-
-	其中`(?=...)`表示匹配括号中的表达式，但是不选中。这个操作叫 forward lookahead。
-
-	`*?`表示最近匹配，在所有符合条件的表达式中，找到最短的。
-
-	可以使用这个网站对正则表达式 debug: <https://regex101.com/>
-
-	目前不清楚`findall()`怎么个用法。
-
 * python 获取内核时间
 
 	```python
@@ -157,22 +33,6 @@
 	```
 
 	这两个函数可以返回浮点数作为时间。经过测试，这俩函数的返回值基本都是递增的。可以放心用。
-
-* python 正则表达式中有关汉字的处理
-
-	一个匹配表达式是：
-
-	```python
-	patstr_hanzi = r'[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U000323af\ufa0e\ufa0f\ufa11\ufa13\ufa14\ufa1f\ufa21\ufa23\ufa24\ufa27\ufa28\ufa29\u3006\u3007][\ufe00-\ufe0f\U000e0100-\U000e01ef]?'
-	```
-
-	其他的匹配方法可以参考这个回答：<https://stackoverflow.com/questions/2718196/find-all-chinese-text-in-a-string-using-python-and-regex>
-
-* python 正则表达式中，方括号`[]`里不能有点号`.`，只能有`a-z`，数字，标点符号之类的。
-
-	点号`.`可以匹配除了`\n`之外的任意一个字符。如果想匹配包括`\n`在内的所有字符，可以使用`(.|\n)`，用括号和或运算将这两个结合起来。
-
-* python 正则中，可以使用`\A`匹配字符串的开头，使用`\Z`匹配末尾。
 
 * python 常用的 format 语法
 
@@ -207,6 +67,151 @@
 在上海使用上交的镜像比较快：<https://mirrors.sjtug.sjtu.edu.cn/docs/pypi/web/simple>
 
 临时使用：`pip install -i https://mirror.sjtu.edu.cn/pypi/web/simple numpy`
+
+## regular expression
+
+### cache
+
+* python 正则表达式中有关汉字的处理
+
+	一个匹配表达式是：
+
+	```python
+	patstr_hanzi = r'[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U000323af\ufa0e\ufa0f\ufa11\ufa13\ufa14\ufa1f\ufa21\ufa23\ufa24\ufa27\ufa28\ufa29\u3006\u3007][\ufe00-\ufe0f\U000e0100-\U000e01ef]?'
+	```
+
+	其他的匹配方法可以参考这个回答：<https://stackoverflow.com/questions/2718196/find-all-chinese-text-in-a-string-using-python-and-regex>
+
+* python 正则表达式中，方括号`[]`里不能有点号`.`，只能有`a-z`，数字，标点符号之类的。
+
+	点号`.`可以匹配除了`\n`之外的任意一个字符。如果想匹配包括`\n`在内的所有字符，可以使用`(.|\n)`，用括号和或运算将这两个结合起来。
+
+* python 正则中，可以使用`\A`匹配字符串的开头，使用`\Z`匹配末尾。
+
+* python 正则表达式中，空格不需要转义
+
+	比如使用`(.+), (.+)`去匹配`hello, world`，得到的 group 1 为`hello`，group 2 为`world`，空格被正确匹配了。
+
+### search and match
+
+example:
+
+```python
+import re
+txt = 'hello, world'
+pat_1 = re.compile('world')
+m = pat_1.search(txt)
+start_pos = m.start()
+end_pos = m.end()
+selected_txt = txt[start_pos:end_pos]
+print(selected_txt)  # world
+```
+
+python 中使用正则表达式可以使用`re`模块，其中`re.compile()`表示将正则表达式编译成一段小程序（应该是转换成有限状态机）。
+
+`pat_1.search()`表示从指定位置开始匹配，返回一个`Match`对象，`Match`对象保存了匹配结果，包括开始和结尾位置，group 情况之类的。
+
+`search()`区别于`match()`，`match()`表示从头开始匹配。
+
+### finditer
+
+example 1:
+
+```python
+txt = 'abcbacaccba'
+pat_2 = re.compile('a.{2}')
+for m in pat_2.finditer(txt):
+	start_pos = m.start()
+	end_pos = m.end()
+	selected_txt = txt[start_pos:end_pos]
+	print(selected_txt)  # [abc, aca]
+```
+
+这个例子中，使用`pat_2.finditer()`
+
+example 2:
+
+```python
+txt = \
+'''
+[unit]
+hello
+world
+[unit]
+hehe
+haha
+'''
+pat_3 = re.compile('\[unit\](.|\n)*?(?=\[unit\]|\Z)')
+for m in pat_3.finditer(txt):
+	start_pos = m.start()
+	end_pos = m.end()
+	selected_txt = txt[start_pos:end_pos]
+	print(selected_txt)
+```
+
+output:
+
+```
+[unit]
+hello
+world
+
+[unit]
+hehe
+haha
+```
+
+其中`(?=...)`表示匹配括号中的表达式，但是不选中。这个操作叫 forward lookahead。
+
+`*?`表示最近匹配，在所有符合条件的表达式中，找到最短的。
+
+可以使用这个网站对正则表达式 debug: <https://regex101.com/>
+
+目前不清楚`findall()`怎么个用法。
+
+### group
+
+```python
+import re
+
+string = 'hello, world'
+patstr = '(.+), (.+)'
+pat = re.compile(patstr)
+m = pat.search(string)
+
+print('-------- test 1 --------')
+g0 = m.group(0)
+print(g0)
+g1 = m.group(1)
+print(g1)
+g2 = m.group(2)
+print(g2)
+
+print('-------- test 2 --------')
+g1, g2 = m.groups()
+print(g1)
+print(g2)
+
+print('-------- test 3 --------')
+m = re.match(r"(?P<first_name>\w+) (?P<last_name>\w+)", "Malcolm Reynolds")
+g_first_name = m.group('first_name')
+g_last_name = m.group('last_name')
+print(g_first_name)
+print(g_last_name)
+d = m.groupdict()
+print(d['first_name'])
+print(d['last_name'])
+```
+
+每个使用`()`括起来的表达式可以被 group 捕捉。
+
+`group(0)`是整个表达式，`group(1)`是第一个括号对应的字符串，`group(2)`是第二个括号对应的字符串。
+
+`groups()`以 tuple 的形式给出`group()`的结果。注意这里索引是从 1 开始的。
+
+使用`(?P<var_name>...)`可以为子匹配命名，然后使用`group('<name>')`获得。
+
+`groupdict()`以字典的形式返回命名匹配。如果表达式中没有命名子匹配，那么字典为空。
 
 ## Miscellaneous
 

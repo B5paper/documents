@@ -42,21 +42,7 @@
 
     保持在执行任务时的注意力。
 
-* python regular expression sync
-
 * cached tasK: 写一个接收 cgtn 广播的 python 程序，实现断线自动重连
-
-* `ls`命令中`-d`的作用
-
-    `ls -lh <dir>`默认会显示`dir`文件夹里的所有目录和文件，但是如果我只想显示`dir`这个文件夹本身的信息该怎么办？
-
-    `ls -lh ./ | grep <dir>`这样太麻烦了，这时候可以用`-d`命令：
-
-    `ls -lhd <dir>`
-
-    这样就能显示目录`<dir>`本身的信息了。
-
-    也可以使用`ls -lhd .`或`ls -lhd`显示当前目录的信息。
 
 * 基于 dfs 的学习法，每次遇到无法理解的问题就卡在那里，浪费很多时间。或者是都能理解，但是非常非常不常用，进入到陌生的领域。或者说虽然有用，但是需要做实验验证才能完全理解，但是这时没有完善的实验条件。或者虽然是有用的知识，并且可以做实验，但是与目标任务无关。显然基于 dfs 的学习法是有问题的，我们不可能把一本书/一套视频/一个网站全部看完才去看另一个信息源。
 
@@ -66,19 +52,19 @@
 
     这两者的平衡目前还是需要靠直觉去把控。
 
-* 使用命令行将文件移入回收站
-
-    `gio trash [FILE1] [FILE2]`
-
 * 笔记中想法、批注的更新该如何表示？
 
     必须要保留旧的想法记录，因为这样可以形成一串思考线索，不然只能看到最终的思考结果。
+
+    2024/05/07/00: 有两个形式可以参考，一个是邮件列表 forward，另一个是贴吧。目前先采用贴吧的形式，使用日期加冒号作为新一个批注的开始，每次都只追加，不修改，不删除。如果遇到必须解决的问题再修改这个形式。同一天的不同想法使用最后两位数字进行区分。
 
 * 有一些知识、猜想、推理是正确但暂未理解的，即发现它只在一个陌生的上下文里正确，但是暂时或永远无法对到已有的知识体系上
 
     这种知识是否应该写入到笔记中？
 
 * 如果一段资料，有 50% 和当前任务相关，另外 50% 和当前任务无关，但是也是还算有用的知识，那么这另外的 50% 是否应该继续学下去
+
+    2024/05/07/00: 不应该学，应该缓存起来。然后让缓存资料留一个随机检测的通道，隔段时间就再来看看这段知识是否是必要的。如果缓存的难度（比如视频，纸质书籍）比较大，该怎么办？
 
 * 无法否认，对于需要频繁交互才能继续下去的任务，目前仍然是主要靠直觉和“灵机一动”推动任务进行，并没有什么其他比较好的方式
 
@@ -89,8 +75,6 @@
 * 这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
 
 * 调研`git bisect`
-
-* linux kernel 6.5 以上不太稳定，不要随便 apt upgrade
 
 * sync 只提出了标准，但是没有提出该如何 sync
 
@@ -121,8 +105,6 @@
     只机械地整理资料不思考，就不会消耗脑力。只有消耗脑力才能学到东西。这里提供一些消耗脑力的常见问题，需要时可以尝试应用。
 
 * [ ] 调研 compute shader
-
-* [ ] param 被写入 module 中时，module 是如何感知到的？
 
 * [ ] java 找 package 去哪里找？
 
@@ -484,6 +466,12 @@
 
         其实降低别某一个文件概率就是变相地升高其他文件的概率，所以也可以不去设置手动调高概率。
 
+* [v] reorg 30 mins 05/06
+
+    feedback:
+
+    1. 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
+
 ## qa
 
 cached:
@@ -524,17 +512,7 @@ cached:
 
 Tasks:
 
-* [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
-
 * 在 vim 中根据正则表达式搜索指定索引所在的位置
-
-* [v] qa 4 个
-
-* [v] qa 4 units 40 mins
-
-* [v] qa 4 units
-
-* [v] qa 4 units  20 mins
 
 * [v] qa 4 units 04/25  20 mins
 
@@ -566,6 +544,16 @@ Tasks:
 
         记得用 git 保存到 remote 仓库
 
+* [x] qa 4 units 05/06
+
+    feedback:
+
+    1. 没法 qa 了，先修复 qa 的 python 程序。
+
+* [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
+
+* [ ] 调研 qa unit 中 dep 功能
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -593,6 +581,10 @@ tasks:
 * [v] cache tabs 10 mins 04/28
 
 * [v] process 1 url 30 mins 04/28
+
+* [v] cache tabs 05/06
+
+* [v] process 1 url 05/06
 
 ## GPU Perf
 
@@ -692,11 +684,21 @@ tasks:
 
     主要看各个 buffer 是否有残留
 
-* [ ] 调研中断的处理过程
+* [v] 调研中断的处理过程
 
     猜想：如果虚拟机卡死，那么一定存在一个命令发送完后，接收不到下一个中断
 
     假设的模型：pcie 发送包 -> 等待中断 -> pcie 接收包
+
+    feedback:
+
+    3. 调研 kmd 中设备的创建流程，中断设置以及 pcie 配置
+
+    4. 调研 kmd 中的地址转换，尝试使用 mmio 读取 gpu 中寄存器的值
+
+    5. pci 的中断向量配置本身很简单，现在需要先 sync 一些 pci 驱动的知识
+
+    6. 调研 msix 的含义
 
 * [ ] 调研 pci_register_driver 等相关的 pci 驱动知识
 
@@ -1013,6 +1015,22 @@ resources:
 
 cache:
 
+* 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
+
+* [ ] param 被写入 module 中时，module 是如何感知到的？
+
+    2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
+
+* 调研：
+    
+    `pci_msix_vec_count`, `pci_find_capability`, `pci_alloc_irq_vectors`,
+
+    `pci_irq_vector`, `request_irq`
+
+* 调研
+    
+    `kthread_should_stop`, `msleep`, `likely`, `unlikely`, `orderly_poweroff`
+
 * 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
 
     主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
@@ -1083,16 +1101,6 @@ resources:
 
 tasks:
 
-* [v] sync
-
-    feedback:
-
-    2. 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
-
-* [ ] 调研`kzalloc`, `kfree`
-
-* [v] 调研 dmesg 记录到文件 30 mins
-
 * [v] 调研`pci_set_drvdata`
 
     feedback:
@@ -1103,29 +1111,33 @@ tasks:
 
 * [v] linux driver sync
 
-    feedback:
-
-    2. 调研一下 qa unit 中 dep 的写法，修一下 bug
-
-        争取这次把 dep 机制引入
-
 * [v] linux driver: sync 30 mins 05/03
 
     feedback:
 
-    1. 复习了用代码创建 device file，并实验成功，在`/dev`下看到了创建出来了 device 文件。
-
-        一般都是用代码去创建文件吧，不需要`mknod`。把这个作为需要知道的知识就可以了，重点还是用代码创建。
-
-        接下来整理一下使用 goto 进行错误处理。
-
-    2. 如果使用 goto 处理了错误，还会调用 exit_module 吗？
-
-        如果 init_module() 返回 -1， module 会被成功加载吗？
-
     3. 中间多次未看到实验结果，因为另一个 terminal 没有登录 ssh
 
         有没有什么办法可以避免这个问题？
+
+* [v] linux driver sync 05/06
+
+    feedback:
+
+    1. what have been done:
+    
+        1. 整理了 linux module driver 中的 goto 错误处理代码风格
+    
+        2. 在笔记中切分了设备驱动的 note 和 cache 两部分
+
+        3. 整理了`alloc_chrdev_region()`动态申请设备号的用法，并增加了一个 qa
+
+* [ ] linux driver sync
+
+    主要是看 ioctl 相关的内容，可以尝试整理并测试。
+
+    然后是看`Data exchange between kernel space and user space`
+
+* [ ] 调研`kzalloc`, `kfree`
 
 ## OpenGL
 
@@ -1416,6 +1428,10 @@ cache:
     但是上面的匹配是不允许的，因为 look behind 时，要匹配的内容是一个非固定长度字符串。
 
     具体来说可能是因为实现起来太复杂，具体可参考这里：<https://stackoverflow.com/questions/9030305/regular-expression-lookbehind-doesnt-work-with-quantifiers-or>
+
+tasks:
+
+* [ ] python regular expression sync
 
 ## 数学 Mathematics
 

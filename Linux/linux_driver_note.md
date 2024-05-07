@@ -1217,7 +1217,7 @@ params:
 void cdev_del(struct cdev *p)
 ```
 
-Examples:
+Example:
 
 ```c
 dev_t dev;  // 设备号
@@ -1736,179 +1736,6 @@ fields:
 
     This operation is invoked when the file structure is being released. Like open, release can be NULL.
 
-Examples:
-
-```c
-static struct file_operations fops =
-{
-.owner          = THIS_MODULE,
-.read           = etx_read,
-.write          = etx_write,
-.open           = etx_open,
-.release        = etx_release,
-};
-```
-
-Complete example:
-
-```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple Linux device driver (File Operations)
-*
-*  \author     EmbeTronicX
-*
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-*******************************************************************************/
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <linux/err.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-
-dev_t dev = 0;
-static struct class *dev_class;
-static struct cdev etx_cdev;
-
-/*
-** Function Prototypes
-*/
-static int      __init etx_driver_init(void);
-static void     __exit etx_driver_exit(void);
-static int      etx_open(struct inode *inode, struct file *file);
-static int      etx_release(struct inode *inode, struct file *file);
-static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
-static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
-
-static struct file_operations fops =
-{
-    .owner      = THIS_MODULE,
-    .read       = etx_read,
-    .write      = etx_write,
-    .open       = etx_open,
-    .release    = etx_release,
-};
-
-/*
-** This function will be called when we open the Device file
-*/
-static int etx_open(struct inode *inode, struct file *file)
-{
-        pr_info("Driver Open Function Called...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we close the Device file
-*/
-static int etx_release(struct inode *inode, struct file *file)
-{
-        pr_info("Driver Release Function Called...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we read the Device file
-*/
-static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
-{
-        pr_info("Driver Read Function Called...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we write the Device file
-*/
-static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
-{
-        pr_info("Driver Write Function Called...!!!\n");
-        return len;
-}
-
-/*
-** Module Init function
-*/
-static int __init etx_driver_init(void)
-{
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                pr_err("Cannot allocate major number\n");
-                return -1;
-        }
-        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
-
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            pr_err("Cannot add the device to the system\n");
-            goto r_class;
-        }
-
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            pr_err("Cannot create the struct class\n");
-            goto r_class;
-        }
-
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            pr_err("Cannot create the Device 1\n");
-            goto r_device;
-        }
-        pr_info("Device Driver Insert...Done!!!\n");
-      return 0;
-
-r_device:
-        class_destroy(dev_class);
-r_class:
-        unregister_chrdev_region(dev,1);
-        return -1;
-}
-
-/*
-** Module exit function
-*/
-static void __exit etx_driver_exit(void)
-{
-        device_destroy(dev_class,dev);
-        class_destroy(dev_class);
-        cdev_del(&etx_cdev);
-        unregister_chrdev_region(dev, 1);
-        pr_info("Device Driver Remove...Done!!!\n");
-}
-
-module_init(etx_driver_init);
-module_exit(etx_driver_exit);
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple Linux device driver (File Operations)");
-MODULE_VERSION("1.3");
-```
-
-执行`dmesg`的输出：
-
-```
-
-```
-
-执行`cat > /dev/etx_device`：`cat `command will open the driver, read the driver, and close the driver. So if I do `cat` to our driver, it should call the open, read, and release functions. Just check.
-
-此时执行`dmesg`的输出：
-
-```
-
-```
-
-Instead of doing `echo` and `cat` command in the terminal you can also use `open()`, `read()`, `write()`, `close()` system calls from user-space applications.
-
 ## Data exchange between kernel space and user space
 
 Using this driver we can send strings or data to the kernel device driver using the write function. It will store that string in the kernel space. Then when I read the device file, it will send the data which is written by write by function to the userspace application.
@@ -1974,331 +1801,53 @@ Parameters:
 
 * `*objp` – pointer returned by `kmalloc`
 
-* `copy_from_user()`
+从用户态向内核态写入数据：
 
-    Syntax:
+`copy_from_user()`
 
-    ```c
-    unsigned long copy_from_user(void *to, const void __user *from, unsigned long  n);
-    ```
+header file: `#include <linux/uaccess.h>`
 
-    to – Destination address, in the kernel space
-
-
-    from – The source address in the user space
-
-    n – Number of bytes to copy
-
-    Returns number of bytes that could not be copied. On success, this will be zero.
-
-* `copy_to_user()`
-
-    Syntax:
-
-    ```c
-    unsigned long copy_to_user(const void __user *to, const void *from, unsigned long  n);
-    ```
-
-    This function is used to Copy a block of data into userspace (Copy data from kernel space to user space).
-
-    Parameters:
-
-    `to` – Destination address, in the user space
-
-    `from` – The source address in the kernel space
-
-    `n` – Number of bytes to copy
-
-    Returns number of bytes that could not be copied. On success, this will be zero.
-
-Example:
+syntax:
 
 ```c
-static int etx_open(struct inode *inode, struct file *file)
-{
-        /*Creating Physical memory*/
-        if((kernel_buffer = kmalloc(mem_size , GFP_KERNEL)) == 0){
-            printk(KERN_INFO "Cannot allocate memory in kernel\n");
-            return -1;
-        }
-        printk(KERN_INFO "Device File Opened...!!!\n");
-        return 0;
-}
-
-static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
-{
-        copy_from_user(kernel_buffer, buf, len);
-        printk(KERN_INFO "Data Write : Done!\n");
-        return len;
-}
-
-static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
-{
-        copy_to_user(buf, kernel_buffer, mem_size);
-        printk(KERN_INFO "Data Read : Done!\n");
-        return mem_size;
-}
-
-static int etx_release(struct inode *inode, struct file *file)
-{
-        kfree(kernel_buffer);
-        printk(KERN_INFO "Device File Closed...!!!\n");
-        return 0;
-}
+unsigned long copy_from_user(void *to, const void __user *from, unsigned long n);
 ```
 
-Full driver code:
+parameters:
+
+* `to` – Destination address, in the kernel space
+
+* `from` – The source address in the user space
+
+* `n` – Number of bytes to copy
+
+Returns number of bytes that could not be copied. On success, this will be zero.
+
+从内核态向用户态写入数据：
+
+`copy_to_user()`
+
+Syntax:
 
 ```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple Linux device driver (Real Linux Device Driver)
-*
-*  \author     EmbeTronicX
-*
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-*******************************************************************************/
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-#include<linux/slab.h>                 //kmalloc()
-#include<linux/uaccess.h>              //copy_to/from_user()
-#include <linux/err.h>
- 
-
-#define mem_size        1024           //Memory Size
- 
-dev_t dev = 0;
-static struct class *dev_class;
-static struct cdev etx_cdev;
-uint8_t *kernel_buffer;
-
-/*
-** Function Prototypes
-*/
-static int      __init etx_driver_init(void);
-static void     __exit etx_driver_exit(void);
-static int      etx_open(struct inode *inode, struct file *file);
-static int      etx_release(struct inode *inode, struct file *file);
-static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
-static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
-
-
-/*
-** File Operations structure
-*/
-static struct file_operations fops =
-{
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .release        = etx_release,
-};
- 
-/*
-** This function will be called when we open the Device file
-*/
-static int etx_open(struct inode *inode, struct file *file)
-{
-        pr_info("Device File Opened...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we close the Device file
-*/
-static int etx_release(struct inode *inode, struct file *file)
-{
-        pr_info("Device File Closed...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we read the Device file
-*/
-static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
-{
-        //Copy the data from the kernel space to the user-space
-        if( copy_to_user(buf, kernel_buffer, mem_size) )
-        {
-                pr_err("Data Read : Err!\n");
-        }
-        pr_info("Data Read : Done!\n");
-        return mem_size;
-}
-
-/*
-** This function will be called when we write the Device file
-*/
-static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
-{
-        //Copy the data to kernel space from the user-space
-        if( copy_from_user(kernel_buffer, buf, len) )
-        {
-                pr_err("Data Write : Err!\n");
-        }
-        pr_info("Data Write : Done!\n");
-        return len;
-}
-
-/*
-** Module Init function
-*/
-static int __init etx_driver_init(void)
-{
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                pr_info("Cannot allocate major number\n");
-                return -1;
-        }
-        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
- 
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            pr_info("Cannot add the device to the system\n");
-            goto r_class;
-        }
- 
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            pr_info("Cannot create the struct class\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            pr_info("Cannot create the Device 1\n");
-            goto r_device;
-        }
-        
-        /*Creating Physical memory*/
-        if((kernel_buffer = kmalloc(mem_size , GFP_KERNEL)) == 0){
-            pr_info("Cannot allocate memory in kernel\n");
-            goto r_device;
-        }
-        
-        strcpy(kernel_buffer, "Hello_World");
-        
-        pr_info("Device Driver Insert...Done!!!\n");
-        return 0;
- 
-r_device:
-        class_destroy(dev_class);
-r_class:
-        unregister_chrdev_region(dev,1);
-        return -1;
-}
-
-/*
-** Module exit function
-*/
-static void __exit etx_driver_exit(void)
-{
-  kfree(kernel_buffer);
-        device_destroy(dev_class,dev);
-        class_destroy(dev_class);
-        cdev_del(&etx_cdev);
-        unregister_chrdev_region(dev, 1);
-        pr_info("Device Driver Remove...Done!!!\n");
-}
- 
-module_init(etx_driver_init);
-module_exit(etx_driver_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple Linux device driver (Real Linux Device Driver)");
-MODULE_VERSION("1.4");
+unsigned long copy_to_user(const void __user *to, const void *from, unsigned long  n);
 ```
 
-User space application code:
+This function is used to Copy a block of data into userspace (Copy data from kernel space to user space).
 
-```c
-/***************************************************************************//**
-*  \file       test_app.c
-*
-*  \details    Userspace application to test the Device driver
-*
-*  \author     EmbeTronicX
-*
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-*******************************************************************************/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+Parameters:
 
-int8_t write_buf[1024];
-int8_t read_buf[1024];
+* `to` – Destination address, in the user space
 
-int main()
-{
-        int fd;
-        char option;
-        printf("*********************************\n");
-        printf("*******WWW.EmbeTronicX.com*******\n");
+* `from` – The source address in the kernel space
 
-        fd = open("/dev/etx_device", O_RDWR);
-        if(fd < 0) {
-                printf("Cannot open device file...\n");
-                return 0;
-        }
+* `n` – Number of bytes to copy
 
-        while(1) {
-                printf("****Please Enter the Option******\n");
-                printf("        1. Write               \n");
-                printf("        2. Read                 \n");
-                printf("        3. Exit                 \n");
-                printf("*********************************\n");
-                scanf(" %c", &option);
-                printf("Your Option = %c\n", option);
-                
-                switch(option) {
-                        case '1':
-                                printf("Enter the string to write into driver :");
-                                scanf("  %[^\t\n]s", write_buf);
-                                printf("Data Writing ...");
-                                write(fd, write_buf, strlen(write_buf)+1);
-                                printf("Done!\n");
-                                break;
-                        case '2':
-                                printf("Data Reading ...");
-                                read(fd, read_buf, 1024);
-                                printf("Done!\n\n");
-                                printf("Data = %s\n\n", read_buf);
-                                break;
-                        case '3':
-                                close(fd);
-                                exit(1);
-                                break;
-                        default:
-                                printf("Enter Valid option = %c\n",option);
-                                break;
-                }
-        }
-        close(fd);
-}
-```
+Returns number of bytes that could not be copied. On success, this will be zero.
 
-这里只需要正常编译就可以了：
+example:
 
-```bash
-gcc -o test_app test_app.c
-```
+(empty)
 
 Note: Instead of using user space application, you can use echo and cat command.
 
@@ -2331,7 +1880,7 @@ There are some steps involved to use IOCTL.
     #define "ioctl name" __IOX("magic number","command number","argument type")
     ```
 
-    where IOX can be :
+    where IOX can be:
 
     * `IO`: an ioctl with no parameters
     * `IOW`: an ioctl with write parameters (copy_from_user)
@@ -2347,7 +1896,7 @@ There are some steps involved to use IOCTL.
 * Write IOCTL function in the driver
 
     ```c
-    int  ioctl(struct inode *inode,struct file *file,unsigned int cmd,unsigned long arg)
+    int ioctl(struct inode *inode,struct file *file,unsigned int cmd,unsigned long arg)
     ```
 
     * `inode`: is the inode number of the file being worked on.
@@ -2365,25 +1914,25 @@ There are some steps involved to use IOCTL.
     */
     static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     {
-            switch(cmd) {
-                    case WR_VALUE:
-                            if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
-                            {
-                                    pr_err("Data Write : Err!\n");
-                            }
-                            pr_info("Value = %d\n", value);
-                            break;
-                    case RD_VALUE:
-                            if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
-                            {
-                                    pr_err("Data Read : Err!\n");
-                            }
-                            break;
-                    default:
-                            pr_info("Default\n");
-                            break;
-            }
-            return 0;
+        switch(cmd) {
+            case WR_VALUE:
+                if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+                {
+                    pr_err("Data Write : Err!\n");
+                }
+                pr_info("Value = %d\n", value);
+                break;
+            case RD_VALUE:
+                if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+                {
+                    pr_err("Data Read : Err!\n");
+                }
+                break;
+            default:
+                pr_info("Default\n");
+                break;
+        }
+        return 0;
     }
 
     /*
@@ -2391,12 +1940,12 @@ There are some steps involved to use IOCTL.
     */
     static struct file_operations fops =
     {
-            .owner          = THIS_MODULE,
-            .read           = etx_read,
-            .write          = etx_write,
-            .open           = etx_open,
-            .unlocked_ioctl = etx_ioctl,
-            .release        = etx_release,
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .unlocked_ioctl = etx_ioctl,
+        .release        = etx_release,
     };
     ```
 
@@ -2405,7 +1954,7 @@ There are some steps involved to use IOCTL.
     ```c
     #define WR_VALUE _IOW('a','a',int32_t*)
     #define RD_VALUE _IOR('a','b',int32_t*)
-    ```  
+    ```
 
 * Use the IOCTL system call in a Userspace
 
@@ -2424,23 +1973,12 @@ There are some steps involved to use IOCTL.
 
     ```c
     ioctl(fd, WR_VALUE, (int32_t*) &number); 
-
     ioctl(fd, RD_VALUE, (int32_t*) &value);
     ```
 
 Driver full code:
 
 ```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple Linux device driver (IOCTL)
-*
-*  \author     EmbeTronicX
-*
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-*******************************************************************************/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -2448,8 +1986,8 @@ Driver full code:
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
-#include<linux/slab.h>                 //kmalloc()
-#include<linux/uaccess.h>              //copy_to/from_user()
+#include<linux/slab.h>                 // kmalloc()
+#include<linux/uaccess.h>              // copy_to/from_user()
 #include <linux/ioctl.h>
 #include <linux/err.h>
  
@@ -2528,25 +2066,25 @@ static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, 
 */
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-         switch(cmd) {
-                case WR_VALUE:
-                        if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
-                        {
-                                pr_err("Data Write : Err!\n");
-                        }
-                        pr_info("Value = %d\n", value);
-                        break;
-                case RD_VALUE:
-                        if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
-                        {
-                                pr_err("Data Read : Err!\n");
-                        }
-                        break;
-                default:
-                        pr_info("Default\n");
-                        break;
-        }
-        return 0;
+    switch(cmd) {
+        case WR_VALUE:
+            if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+            {
+                pr_err("Data Write : Err!\n");
+            }
+            pr_info("Value = %d\n", value);
+            break;
+        case RD_VALUE:
+            if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+            {
+                pr_err("Data Read : Err!\n");
+            }
+            break;
+        default:
+            pr_info("Default\n");
+            break;
+    }
+    return 0;
 }
  
 /*
@@ -2596,11 +2134,11 @@ r_class:
 */
 static void __exit etx_driver_exit(void)
 {
-        device_destroy(dev_class,dev);
-        class_destroy(dev_class);
-        cdev_del(&etx_cdev);
-        unregister_chrdev_region(dev, 1);
-        pr_info("Device Driver Remove...Done!!!\n");
+    device_destroy(dev_class,dev);
+    class_destroy(dev_class);
+    cdev_del(&etx_cdev);
+    unregister_chrdev_region(dev, 1);
+    pr_info("Device Driver Remove...Done!!!\n");
 }
  
 module_init(etx_driver_init);
@@ -2615,16 +2153,6 @@ MODULE_VERSION("1.5");
 User program full code:
 
 ```c
-/***************************************************************************//**
-*  \file       test_app.c
-*
-*  \details    Userspace application to test the Device driver
-*
-*  \author     EmbeTronicX
-*
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-*******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2632,36 +2160,34 @@ User program full code:
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include<sys/ioctl.h>
+#include <sys/ioctl.h>
  
 #define WR_VALUE _IOW('a','a',int32_t*)
 #define RD_VALUE _IOR('a','b',int32_t*)
  
 int main()
 {
-        int fd;
-        int32_t value, number;
-        printf("*********************************\n");
-        printf("*******WWW.EmbeTronicX.com*******\n");
- 
-        printf("\nOpening Driver\n");
-        fd = open("/dev/etx_device", O_RDWR);
-        if(fd < 0) {
-                printf("Cannot open device file...\n");
-                return 0;
-        }
- 
-        printf("Enter the Value to send\n");
-        scanf("%d",&number);
-        printf("Writing Value to Driver\n");
-        ioctl(fd, WR_VALUE, (int32_t*) &number); 
- 
-        printf("Reading Value from Driver\n");
-        ioctl(fd, RD_VALUE, (int32_t*) &value);
-        printf("Value is %d\n", value);
- 
-        printf("Closing Driver\n");
-        close(fd);
+    int fd;
+    int32_t value, number;
+
+    printf("\nOpening Driver\n");
+    fd = open("/dev/etx_device", O_RDWR);
+    if(fd < 0) {
+        printf("Cannot open device file...\n");
+        return 0;
+    }
+
+    printf("Enter the Value to send\n");
+    scanf("%d",&number);
+    printf("Writing Value to Driver\n");
+    ioctl(fd, WR_VALUE, (int32_t*) &number);
+
+    printf("Reading Value from Driver\n");
+    ioctl(fd, RD_VALUE, (int32_t*) &value);
+    printf("Value is %d\n", value);
+
+    printf("Closing Driver\n");
+    close(fd);
 }
 ```
 

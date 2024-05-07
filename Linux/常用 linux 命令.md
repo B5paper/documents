@@ -2,6 +2,24 @@
 
 ## cache
 
+* linux kernel 6.5 以上不太稳定，不要随便 apt upgrade
+
+* 使用命令行将文件移入回收站
+
+    `gio trash [FILE1] [FILE2]`
+
+* `ls`命令中`-d`的作用
+
+    `ls -lh <dir>`默认会显示`dir`文件夹里的所有目录和文件，但是如果我只想显示`dir`这个文件夹本身的信息该怎么办？
+
+    `ls -lh ./ | grep <dir>`这样太麻烦了，这时候可以用`-d`命令：
+
+    `ls -lhd <dir>`
+
+    这样就能显示目录`<dir>`本身的信息了。
+
+    也可以使用`ls -lhd .`或`ls -lhd`显示当前目录的信息。
+
 * 如果 virtual box 虚拟机在 mount host 目录时报错
 
     ```
