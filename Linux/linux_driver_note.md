@@ -2335,16 +2335,6 @@ And you can remove the complete parent directory using `proc_remove(struct proc_
 Complete Driver Source Code:
 
 ```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple Linux device driver (procfs)
-*
-*  \author     EmbeTronicX
-* 
-*  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-*
-* *******************************************************************************/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -2352,10 +2342,10 @@ Complete Driver Source Code:
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
-#include<linux/slab.h>                 //kmalloc()
-#include<linux/uaccess.h>              //copy_to/from_user()
+#include <linux/slab.h>                 //kmalloc()
+#include <linux/uaccess.h>              //copy_to/from_user()
 #include <linux/ioctl.h>
-#include<linux/proc_fs.h>
+#include <linux/proc_fs.h>
 #include <linux/err.h>
 
 /* 
@@ -2537,25 +2527,25 @@ static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, 
 */
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-         switch(cmd) {
-                case WR_VALUE:
-                        if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
-                        {
-                                pr_err("Data Write : Err!\n");
-                        }
-                        pr_info("Value = %d\n", value);
-                        break;
-                case RD_VALUE:
-                        if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
-                        {
-                                pr_err("Data Read : Err!\n");
-                        }
-                        break;
-                default:
-                        pr_info("Default\n");
-                        break;
-        }
-        return 0;
+    switch(cmd) {
+        case WR_VALUE:
+            if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+            {
+                pr_err("Data Write : Err!\n");
+            }
+            pr_info("Value = %d\n", value);
+            break;
+        case RD_VALUE:
+            if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+            {
+                pr_err("Data Read : Err!\n");
+            }
+            break;
+        default:
+            pr_info("Default\n");
+            break;
+    }
+    return 0;
 }
  
 /*
@@ -2563,54 +2553,54 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 */
 static int __init etx_driver_init(void)
 {
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                pr_info("Cannot allocate major number\n");
-                return -1;
-        }
-        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
- 
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            pr_info("Cannot add the device to the system\n");
-            goto r_class;
-        }
- 
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            pr_info("Cannot create the struct class\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            pr_info("Cannot create the Device 1\n");
-            goto r_device;
-        }
-        
-        /*Create proc directory. It will create a directory under "/proc" */
-        parent = proc_mkdir("etx",NULL);
-        
-        if( parent == NULL )
-        {
-            pr_info("Error creating proc entry");
-            goto r_device;
-        }
-        
-        /*Creating Proc entry under "/proc/etx/" */
-        proc_create("etx_proc", 0666, parent, &proc_fops);
- 
-        pr_info("Device Driver Insert...Done!!!\n");
-        return 0;
+    /*Allocating Major number*/
+    if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+            pr_info("Cannot allocate major number\n");
+            return -1;
+    }
+    pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+    /*Creating cdev structure*/
+    cdev_init(&etx_cdev,&fops);
+
+    /*Adding character device to the system*/
+    if((cdev_add(&etx_cdev,dev,1)) < 0){
+        pr_info("Cannot add the device to the system\n");
+        goto r_class;
+    }
+
+    /*Creating struct class*/
+    if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+        pr_info("Cannot create the struct class\n");
+        goto r_class;
+    }
+
+    /*Creating device*/
+    if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+        pr_info("Cannot create the Device 1\n");
+        goto r_device;
+    }
+    
+    /*Create proc directory. It will create a directory under "/proc" */
+    parent = proc_mkdir("etx",NULL);
+    
+    if( parent == NULL )
+    {
+        pr_info("Error creating proc entry");
+        goto r_device;
+    }
+    
+    /*Creating Proc entry under "/proc/etx/" */
+    proc_create("etx_proc", 0666, parent, &proc_fops);
+
+    pr_info("Device Driver Insert...Done!!!\n");
+    return 0;
  
 r_device:
-        class_destroy(dev_class);
+    class_destroy(dev_class);
 r_class:
-        unregister_chrdev_region(dev,1);
-        return -1;
+    unregister_chrdev_region(dev,1);
+    return -1;
 }
  
 /*
@@ -2684,7 +2674,7 @@ There are 3 important steps in Waitqueue.
 
         ```c
         wait_queue_head_t wq;
-        init_waitqueue_head (&wq);
+        init_waitqueue_head(&wq);
         ```
 
 1. Queuing (Put the Task to sleep until the event comes)
@@ -2865,16 +2855,6 @@ driver code:
 * Waitqueue created by Static Method
 
     ```c
-    /***************************************************************************//**
-    *  \file       driver.c
-    *
-    *  \details    Simple linux driver (Waitqueue Static method)
-    *
-    *  \author     EmbeTronicX
-    *
-    *  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-    *
-    *******************************************************************************/
     #include <linux/kernel.h>
     #include <linux/init.h>
     #include <linux/module.h>
@@ -2928,19 +2908,18 @@ driver code:
     */
     static int wait_function(void *unused)
     {
-            
-            while(1) {
-                    pr_info("Waiting For Event...\n");
-                    wait_event_interruptible(wait_queue_etx, wait_queue_flag != 0 );
-                    if(wait_queue_flag == 2) {
-                            pr_info("Event Came From Exit Function\n");
-                            return 0;
-                    }
-                    pr_info("Event Came From Read Function - %d\n", ++read_count);
-                    wait_queue_flag = 0;
+        while(1) {
+            pr_info("Waiting For Event...\n");
+            wait_event_interruptible(wait_queue_etx, wait_queue_flag != 0 );
+            if(wait_queue_flag == 2) {
+                pr_info("Event Came From Exit Function\n");
+                return 0;
             }
-            do_exit(0);
-            return 0;
+            pr_info("Event Came From Read Function - %d\n", ++read_count);
+            wait_queue_flag = 0;
+        }
+        do_exit(0);
+        return 0;
     }
 
     /*
@@ -2948,8 +2927,8 @@ driver code:
     */
     static int etx_open(struct inode *inode, struct file *file)
     {
-            pr_info("Device File Opened...!!!\n");
-            return 0;
+        pr_info("Device File Opened...!!!\n");
+        return 0;
     }
 
     /*
@@ -2957,8 +2936,8 @@ driver code:
     */
     static int etx_release(struct inode *inode, struct file *file)
     {
-            pr_info("Device File Closed...!!!\n");
-            return 0;
+        pr_info("Device File Closed...!!!\n");
+        return 0;
     }
 
     /*
@@ -2966,10 +2945,10 @@ driver code:
     */
     static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
     {
-            pr_info("Read Function\n");
-            wait_queue_flag = 1;
-            wake_up_interruptible(&wait_queue_etx);
-            return 0;
+        pr_info("Read Function\n");
+        wait_queue_flag = 1;
+        wake_up_interruptible(&wait_queue_etx);
+        return 0;
     }
 
     /*
@@ -2977,8 +2956,8 @@ driver code:
     */
     static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
     {
-            pr_info("Write function\n");
-            return len;
+        pr_info("Write function\n");
+        return len;
     }
     
     /*
@@ -2986,47 +2965,47 @@ driver code:
     */
     static int __init etx_driver_init(void)
     {
-            /*Allocating Major number*/
-            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                    pr_info("Cannot allocate major number\n");
-                    return -1;
-            }
-            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-    
-            /*Creating cdev structure*/
-            cdev_init(&etx_cdev,&fops);
-            etx_cdev.owner = THIS_MODULE;
-            etx_cdev.ops = &fops;
-    
-            /*Adding character device to the system*/
-            if((cdev_add(&etx_cdev,dev,1)) < 0){
-                pr_info("Cannot add the device to the system\n");
-                goto r_class;
-            }
-    
-            /*Creating struct class*/
-            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-                pr_info("Cannot create the struct class\n");
-                goto r_class;
-            }
-    
-            /*Creating device*/
-            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-                pr_info("Cannot create the Device 1\n");
-                goto r_device;
-            }
-    
-            //Create the kernel thread with name 'mythread'
-            wait_thread = kthread_create(wait_function, NULL, "WaitThread");
-            if (wait_thread) {
-                    pr_info("Thread Created successfully\n");
-                    wake_up_process(wait_thread);
-            } else
-                    pr_info("Thread creation failed\n");
-    
-            pr_info("Device Driver Insert...Done!!!\n");
-            return 0;
-    
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+            pr_info("Cannot allocate major number\n");
+            return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+        etx_cdev.owner = THIS_MODULE;
+        etx_cdev.ops = &fops;
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_info("Cannot add the device to the system\n");
+            goto r_class;
+        }
+
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_info("Cannot create the struct class\n");
+            goto r_class;
+        }
+
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_info("Cannot create the Device 1\n");
+            goto r_device;
+        }
+
+        //Create the kernel thread with name 'mythread'
+        wait_thread = kthread_create(wait_function, NULL, "WaitThread");
+        if (wait_thread) {
+            pr_info("Thread Created successfully\n");
+            wake_up_process(wait_thread);
+        } else
+            pr_info("Thread creation failed\n");
+
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
+
     r_device:
             class_destroy(dev_class);
     r_class:
@@ -3039,13 +3018,13 @@ driver code:
     */ 
     static void __exit etx_driver_exit(void)
     {
-            wait_queue_flag = 2;
-            wake_up_interruptible(&wait_queue_etx);
-            device_destroy(dev_class,dev);
-            class_destroy(dev_class);
-            cdev_del(&etx_cdev);
-            unregister_chrdev_region(dev, 1);
-            pr_info("Device Driver Remove...Done!!!\n");
+        wait_queue_flag = 2;
+        wake_up_interruptible(&wait_queue_etx);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
     }
     
     module_init(etx_driver_init);
@@ -3060,16 +3039,6 @@ driver code:
 * Waitqueue created by Dynamic Method
 
     ```c
-    /****************************************************************************//**
-    *  \file       driver.c
-    *
-    *  \details    Simple linux driver (Waitqueue Dynamic method)
-    *
-    *  \author     EmbeTronicX
-    *
-    *  \Tested with Linux raspberrypi 5.10.27-v7l-embetronicx-custom+
-    *
-    *******************************************************************************/
     #include <linux/kernel.h>
     #include <linux/init.h>
     #include <linux/module.h>
@@ -3110,30 +3079,29 @@ driver code:
     */
     static struct file_operations fops =
     {
-            .owner          = THIS_MODULE,
-            .read           = etx_read,
-            .write          = etx_write,
-            .open           = etx_open,
-            .release        = etx_release,
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
     };
     
     /*
     ** Thread function
     */
     static int wait_function(void *unused)
-    {
-            
-            while(1) {
-                    pr_info("Waiting For Event...\n");
-                    wait_event_interruptible(wait_queue_etx, wait_queue_flag != 0 );
-                    if(wait_queue_flag == 2) {
-                            pr_info("Event Came From Exit Function\n");
-                            return 0;
-                    }
-                    pr_info("Event Came From Read Function - %d\n", ++read_count);
-                    wait_queue_flag = 0;
+    { 
+        while(1) {
+            pr_info("Waiting For Event...\n");
+            wait_event_interruptible(wait_queue_etx, wait_queue_flag != 0 );
+            if(wait_queue_flag == 2) {
+                pr_info("Event Came From Exit Function\n");
+                return 0;
             }
-            return 0;
+            pr_info("Event Came From Read Function - %d\n", ++read_count);
+            wait_queue_flag = 0;
+        }
+        return 0;
     }
     
     /*
@@ -3141,8 +3109,8 @@ driver code:
     */ 
     static int etx_open(struct inode *inode, struct file *file)
     {
-            pr_info("Device File Opened...!!!\n");
-            return 0;
+        pr_info("Device File Opened...!!!\n");
+        return 0;
     }
 
     /*
@@ -3150,8 +3118,8 @@ driver code:
     */
     static int etx_release(struct inode *inode, struct file *file)
     {
-            pr_info("Device File Closed...!!!\n");
-            return 0;
+        pr_info("Device File Closed...!!!\n");
+        return 0;
     }
 
     /*
@@ -3159,10 +3127,10 @@ driver code:
     */
     static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
     {
-            pr_info("Read Function\n");
-            wait_queue_flag = 1;
-            wake_up_interruptible(&wait_queue_etx);
-            return 0;
+        pr_info("Read Function\n");
+        wait_queue_flag = 1;
+        wake_up_interruptible(&wait_queue_etx);
+        return 0;
     }
 
     /*
@@ -3170,8 +3138,8 @@ driver code:
     */
     static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
     {
-            pr_info("Write function\n");
-            return len;
+        pr_info("Write function\n");
+        return len;
     }
 
     /*
@@ -3179,53 +3147,53 @@ driver code:
     */
     static int __init etx_driver_init(void)
     {
-            /*Allocating Major number*/
-            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                    pr_info("Cannot allocate major number\n");
-                    return -1;
-            }
-            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_info("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_info("Cannot add the device to the system\n");
+            goto r_class;
+        }
+
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_info("Cannot create the struct class\n");
+            goto r_class;
+        }
     
-            /*Creating cdev structure*/
-            cdev_init(&etx_cdev,&fops);
-    
-            /*Adding character device to the system*/
-            if((cdev_add(&etx_cdev,dev,1)) < 0){
-                pr_info("Cannot add the device to the system\n");
-                goto r_class;
-            }
-    
-            /*Creating struct class*/
-            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-                pr_info("Cannot create the struct class\n");
-                goto r_class;
-            }
-    
-            /*Creating device*/
-            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-                pr_info("Cannot create the Device 1\n");
-                goto r_device;
-            }
-            
-            //Initialize wait queue
-            init_waitqueue_head(&wait_queue_etx);
-    
-            //Create the kernel thread with name 'mythread'
-            wait_thread = kthread_create(wait_function, NULL, "WaitThread");
-            if (wait_thread) {
-                    pr_info("Thread Created successfully\n");
-                    wake_up_process(wait_thread);
-            } else
-                    pr_info("Thread creation failed\n");
-    
-            pr_info("Device Driver Insert...Done!!!\n");
-            return 0;
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_info("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        
+        //Initialize wait queue
+        init_waitqueue_head(&wait_queue_etx);
+
+        // Create the kernel thread with name 'mythread'
+        wait_thread = kthread_create(wait_function, NULL, "WaitThread");
+        if (wait_thread) {
+            pr_info("Thread Created successfully\n");
+            wake_up_process(wait_thread);
+        } else
+            pr_info("Thread creation failed\n");
+
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
     
     r_device:
-            class_destroy(dev_class);
+        class_destroy(dev_class);
     r_class:
-            unregister_chrdev_region(dev,1);
-            return -1;
+        unregister_chrdev_region(dev,1);
+        return -1;
     }
 
     /*
@@ -3233,13 +3201,13 @@ driver code:
     */
     static void __exit etx_driver_exit(void)
     {
-            wait_queue_flag = 2;
-            wake_up_interruptible(&wait_queue_etx);
-            device_destroy(dev_class,dev);
-            class_destroy(dev_class);
-            cdev_del(&etx_cdev);
-            unregister_chrdev_region(dev, 1);
-            pr_info("Device Driver Remove...Done!!!\n");
+        wait_queue_flag = 2;
+        wake_up_interruptible(&wait_queue_etx);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
     }
     
     module_init(etx_driver_init);
@@ -3736,14 +3704,6 @@ Intel processors handle interrupt using IDT (Interrupt Descriptor Table).  The I
 Example:
 
 ```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Interrupt Example
-*
-*  \author     EmbeTronicX
-*
-*******************************************************************************/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -3751,19 +3711,20 @@ Example:
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
-#include<linux/slab.h>                 //kmalloc()
-#include<linux/uaccess.h>              //copy_to/from_user()
-#include<linux/sysfs.h> 
-#include<linux/kobject.h> 
+#include <linux/slab.h>                 //kmalloc()
+#include <linux/uaccess.h>              //copy_to/from_user()
+#include <linux/sysfs.h> 
+#include <linux/kobject.h> 
 #include <linux/interrupt.h>
 #include <asm/io.h>
 #include <linux/err.h>
 #define IRQ_NO 11
 
 //Interrupt handler for IRQ 11. 
-static irqreturn_t irq_handler(int irq,void *dev_id) {
-  printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
-  return IRQ_HANDLED;
+static irqreturn_t irq_handler(int irq, void *dev_id)
+{
+    printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+    return IRQ_HANDLED;
 }
 
 volatile int etx_value = 0;
@@ -3794,125 +3755,125 @@ struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store
  
 static struct file_operations fops =
 {
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .release        = etx_release,
+    .owner          = THIS_MODULE,
+    .read           = etx_read,
+    .write          = etx_write,
+    .open           = etx_open,
+    .release        = etx_release,
 };
  
 static ssize_t sysfs_show(struct kobject *kobj, 
                 struct kobj_attribute *attr, char *buf)
 {
-        printk(KERN_INFO "Sysfs - Read!!!\n");
-        return sprintf(buf, "%d", etx_value);
+    printk(KERN_INFO "Sysfs - Read!!!\n");
+    return sprintf(buf, "%d", etx_value);
 }
 
 static ssize_t sysfs_store(struct kobject *kobj, 
                 struct kobj_attribute *attr,const char *buf, size_t count)
 {
-        printk(KERN_INFO "Sysfs - Write!!!\n");
-        sscanf(buf,"%d",&etx_value);
-        return count;
+    printk(KERN_INFO "Sysfs - Write!!!\n");
+    sscanf(buf,"%d",&etx_value);
+    return count;
 }
 
 static int etx_open(struct inode *inode, struct file *file)
 {
-        printk(KERN_INFO "Device File Opened...!!!\n");
-        return 0;
+    printk(KERN_INFO "Device File Opened...!!!\n");
+    return 0;
 }
  
 static int etx_release(struct inode *inode, struct file *file)
 {
-        printk(KERN_INFO "Device File Closed...!!!\n");
-        return 0;
+    printk(KERN_INFO "Device File Closed...!!!\n");
+    return 0;
 }
  
 static ssize_t etx_read(struct file *filp, 
                 char __user *buf, size_t len, loff_t *off)
 {
-        printk(KERN_INFO "Read function\n");
-        asm("int $0x3B");  // Corresponding to irq 11
-        return 0;
+    printk(KERN_INFO "Read function\n");
+    asm("int $0x3B");  // Corresponding to irq 11
+    return 0;
 }
 
 static ssize_t etx_write(struct file *filp, 
                 const char __user *buf, size_t len, loff_t *off)
 {
-        printk(KERN_INFO "Write Function\n");
-        return len;
+    printk(KERN_INFO "Write Function\n");
+    return len;
 }
  
 static int __init etx_driver_init(void)
 {
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                printk(KERN_INFO "Cannot allocate major number\n");
-                return -1;
-        }
-        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
- 
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            printk(KERN_INFO "Cannot add the device to the system\n");
-            goto r_class;
-        }
- 
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            printk(KERN_INFO "Cannot create the struct class\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            printk(KERN_INFO "Cannot create the Device 1\n");
-            goto r_device;
-        }
- 
-        /*Creating a directory in /sys/kernel/ */
-        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
- 
-        /*Creating sysfs file for etx_value*/
-        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
-                printk(KERN_INFO"Cannot create sysfs file......\n");
-                goto r_sysfs;
-        }
-        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
-            printk(KERN_INFO "my_device: cannot register IRQ ");
-                    goto irq;
-        }
-        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+    /*Allocating Major number*/
+    if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0) {
+            printk(KERN_INFO "Cannot allocate major number\n");
+            return -1;
+    }
+    printk(KERN_INFO "Major = %d Minor = %d \n", MAJOR(dev), MINOR(dev));
+
+    /*Creating cdev structure*/
+    cdev_init(&etx_cdev,&fops);
+
+    /*Adding character device to the system*/
+    if((cdev_add(&etx_cdev,dev,1)) < 0) {
+        printk(KERN_INFO "Cannot add the device to the system\n");
+        goto r_class;
+    }
+
+    /*Creating struct class*/
+    if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+        printk(KERN_INFO "Cannot create the struct class\n");
+        goto r_class;
+    }
+
+    /*Creating device*/
+    if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+        printk(KERN_INFO "Cannot create the Device 1\n");
+        goto r_device;
+    }
+
+    /*Creating a directory in /sys/kernel/ */
+    kobj_ref = kobject_create_and_add("etx_sysfs", kernel_kobj);
+
+    /*Creating sysfs file for etx_value*/
+    if(sysfs_create_file(kobj_ref,&etx_attr.attr)) {
+            printk(KERN_INFO"Cannot create sysfs file......\n");
+            goto r_sysfs;
+    }
+    if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+        printk(KERN_INFO "my_device: cannot register IRQ ");
+                goto irq;
+    }
+    printk(KERN_INFO "Device Driver Insert...Done!!!\n");
     return 0;
 
 irq:
-        free_irq(IRQ_NO,(void *)(irq_handler));
+    free_irq(IRQ_NO,(void *)(irq_handler));
 
 r_sysfs:
-        kobject_put(kobj_ref); 
-        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    kobject_put(kobj_ref); 
+    sysfs_remove_file(kernel_kobj, &etx_attr.attr);
  
 r_device:
-        class_destroy(dev_class);
+    class_destroy(dev_class);
 r_class:
-        unregister_chrdev_region(dev,1);
-        cdev_del(&etx_cdev);
-        return -1;
+    unregister_chrdev_region(dev,1);
+    cdev_del(&etx_cdev);
+    return -1;
 }
  
 static void __exit etx_driver_exit(void)
 {
-        free_irq(IRQ_NO,(void *)(irq_handler));
-        kobject_put(kobj_ref); 
-        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
-        device_destroy(dev_class,dev);
-        class_destroy(dev_class);
-        cdev_del(&etx_cdev);
-        unregister_chrdev_region(dev, 1);
-        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+    free_irq(IRQ_NO,(void *)(irq_handler));
+    kobject_put(kobj_ref); 
+    sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    device_destroy(dev_class,dev);
+    class_destroy(dev_class);
+    cdev_del(&etx_cdev);
+    unregister_chrdev_region(dev, 1);
+    printk(KERN_INFO "Device Driver Remove...Done!!!\n");
 }
  
 module_init(etx_driver_init);
@@ -4013,8 +3974,8 @@ uname -r
  
 //Interrupt handler for IRQ 11. 
 static irqreturn_t irq_handler(int irq,void *dev_id) {
-  printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
-  return IRQ_HANDLED;
+    printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+    return IRQ_HANDLED;
 }
  
  
@@ -4039,129 +4000,129 @@ static ssize_t etx_write(struct file *filp,
  
 /*************** Sysfs Fuctions **********************/
 static ssize_t sysfs_show(struct kobject *kobj, 
-                struct kobj_attribute *attr, char *buf);
+        struct kobj_attribute *attr, char *buf);
 static ssize_t sysfs_store(struct kobject *kobj, 
-                struct kobj_attribute *attr,const char *buf, size_t count);
+        struct kobj_attribute *attr,const char *buf, size_t count);
  
 struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
  
 static struct file_operations fops =
 {
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .release        = etx_release,
+    .owner          = THIS_MODULE,
+    .read           = etx_read,
+    .write          = etx_write,
+    .open           = etx_open,
+    .release        = etx_release,
 };
  
 static ssize_t sysfs_show(struct kobject *kobj, 
                 struct kobj_attribute *attr, char *buf)
 {
-        printk(KERN_INFO "Sysfs - Read!!!\n");
-        return sprintf(buf, "%d", etx_value);
+    printk(KERN_INFO "Sysfs - Read!!!\n");
+    return sprintf(buf, "%d", etx_value);
 }
  
 static ssize_t sysfs_store(struct kobject *kobj, 
                 struct kobj_attribute *attr,const char *buf, size_t count)
 {
-        printk(KERN_INFO "Sysfs - Write!!!\n");
-        sscanf(buf,"%d",&etx_value);
-        return count;
+    printk(KERN_INFO "Sysfs - Write!!!\n");
+    sscanf(buf,"%d",&etx_value);
+    return count;
 }
  
 static int etx_open(struct inode *inode, struct file *file)
 {
-        printk(KERN_INFO "Device File Opened...!!!\n");
-        return 0;
+    printk(KERN_INFO "Device File Opened...!!!\n");
+    return 0;
 }
  
 static int etx_release(struct inode *inode, struct file *file)
 {
-        printk(KERN_INFO "Device File Closed...!!!\n");
-        return 0;
+    printk(KERN_INFO "Device File Closed...!!!\n");
+    return 0;
 }
  
 static ssize_t etx_read(struct file *filp, 
                 char __user *buf, size_t len, loff_t *off)
 {
-        struct irq_desc *desc;
+    struct irq_desc *desc;
 
-        printk(KERN_INFO "Read function\n");
-        desc = irq_to_desc(11);
-        if (!desc) 
-        {
-            return -EINVAL;
-        }
-        __this_cpu_write(vector_irq[59], desc);
-        asm("int $0x3B");  // Corresponding to irq 11
-        return 0;
+    printk(KERN_INFO "Read function\n");
+    desc = irq_to_desc(11);
+    if (!desc) 
+    {
+        return -EINVAL;
+    }
+    __this_cpu_write(vector_irq[59], desc);
+    asm("int $0x3B");  // Corresponding to irq 11
+    return 0;
 }
 
 static ssize_t etx_write(struct file *filp, 
                 const char __user *buf, size_t len, loff_t *off)
 {
-        printk(KERN_INFO "Write Function\n");
-        return len;
+    printk(KERN_INFO "Write Function\n");
+    return len;
 }
  
 static int __init etx_driver_init(void)
 {
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                printk(KERN_INFO "Cannot allocate major number\n");
-                return -1;
-        }
-        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
- 
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            printk(KERN_INFO "Cannot add the device to the system\n");
-            goto r_class;
-        }
- 
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            printk(KERN_INFO "Cannot create the struct class\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            printk(KERN_INFO "Cannot create the Device 1\n");
-            goto r_device;
-        }
- 
-        /*Creating a directory in /sys/kernel/ */
-        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
- 
-        /*Creating sysfs file for etx_value*/
-        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
-                printk(KERN_INFO"Cannot create sysfs file......\n");
-                goto r_sysfs;
-        }
-        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
-            printk(KERN_INFO "my_device: cannot register IRQ ");
-                    goto irq;
-        }
-        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+    /*Allocating Major number*/
+    if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+            printk(KERN_INFO "Cannot allocate major number\n");
+            return -1;
+    }
+    printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+    /*Creating cdev structure*/
+    cdev_init(&etx_cdev,&fops);
+
+    /*Adding character device to the system*/
+    if((cdev_add(&etx_cdev,dev,1)) < 0){
+        printk(KERN_INFO "Cannot add the device to the system\n");
+        goto r_class;
+    }
+
+    /*Creating struct class*/
+    if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+        printk(KERN_INFO "Cannot create the struct class\n");
+        goto r_class;
+    }
+
+    /*Creating device*/
+    if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+        printk(KERN_INFO "Cannot create the Device 1\n");
+        goto r_device;
+    }
+
+    /*Creating a directory in /sys/kernel/ */
+    kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+
+    /*Creating sysfs file for etx_value*/
+    if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+            printk(KERN_INFO"Cannot create sysfs file......\n");
+            goto r_sysfs;
+    }
+    if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+        printk(KERN_INFO "my_device: cannot register IRQ ");
+                goto irq;
+    }
+    printk(KERN_INFO "Device Driver Insert...Done!!!\n");
     return 0;
  
 irq:
-        free_irq(IRQ_NO,(void *)(irq_handler));
+    free_irq(IRQ_NO,(void *)(irq_handler));
  
 r_sysfs:
-        kobject_put(kobj_ref); 
-        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    kobject_put(kobj_ref); 
+    sysfs_remove_file(kernel_kobj, &etx_attr.attr);
  
 r_device:
-        class_destroy(dev_class);
+    class_destroy(dev_class);
 r_class:
-        unregister_chrdev_region(dev,1);
-        cdev_del(&etx_cdev);
-        return -1;
+    unregister_chrdev_region(dev,1);
+    cdev_del(&etx_cdev);
+    return -1;
 }
  
 static void __exit etx_driver_exit(void)
@@ -4232,7 +4193,8 @@ DECLARE_WORK(workqueue,workqueue_fn);
 Schedule work to the Workqueue
 The below functions are used to allocate the work to the queue.
 
-Schedule_work
+`schedule_work`
+
 This function puts a job in the kernel-global workqueue if it was not already queued and leaves it in the same position on the kernel-global workqueue otherwise.
 
 int schedule_work( struct work_struct *work );
@@ -4280,13 +4242,13 @@ delay– number of jiffies to wait or 0 for immediate execution
 Delete work from workqueue
 There are also a number of helper functions that you can use to flush or cancel work on work queues. To flush a particular work item and block until the work is complete, you can make a call to flush_work. All work on a given work queue can be completed using a call to flush_work. In both cases, the caller blocks until the operation are complete. To flush the kernel-global work queue, call flush_scheduled_work.
 
-int flush_work( struct work_struct *work );
-void flush_scheduled_work( void );
+`int flush_work( struct work_struct *work );`
+`void flush_scheduled_work( void );`
 Cancel Work from workqueue
 You can cancel work if it is not already executing in a handler. A call to cancel_work_sync will terminate the work in the queue or block until the callback has finished (if the work is already in progress in the handler). If the work is delayed, you can use a call to cancel_delayed_work_sync.
 
-int cancel_work_sync( struct work_struct *work );
-int cancel_delayed_work_sync( struct delayed_work *dwork );
+`int cancel_work_sync( struct work_struct *work );`
+`int cancel_delayed_work_sync( struct delayed_work *dwork );`
 Check the workqueue
 Finally, you can find out whether a work item is pending (not yet executed by the handler) with a call to work_pending or delayed_work_pending.
 
@@ -4297,14 +4259,6 @@ Finally, you can find out whether a work item is pending (not yet executed by th
 Example:
 
 ```c
-/***************************************************************************//**
-*  \file       driver.c
-*
-*  \details    Simple Linux device driver (Global Workqueue - Static method)
-*
-*  \author     EmbeTronicX
-*
-*******************************************************************************/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -4312,10 +4266,10 @@ Example:
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
-#include<linux/slab.h>                 //kmalloc()
-#include<linux/uaccess.h>              //copy_to/from_user()
-#include<linux/sysfs.h> 
-#include<linux/kobject.h> 
+#include <linux/slab.h>                 //kmalloc()
+#include <linux/uaccess.h>              //copy_to/from_user()
+#include <linux/sysfs.h> 
+#include <linux/kobject.h> 
 #include <linux/interrupt.h>
 #include <asm/io.h>
 #include <linux/workqueue.h>            // Required for workqueues
@@ -4332,16 +4286,16 @@ DECLARE_WORK(workqueue,workqueue_fn);
 /*Workqueue Function*/
 void workqueue_fn(struct work_struct *work)
 {
-        printk(KERN_INFO "Executing Workqueue Function\n");
+    printk(KERN_INFO "Executing Workqueue Function\n");
 }
  
  
 //Interrupt handler for IRQ 11. 
 static irqreturn_t irq_handler(int irq,void *dev_id) {
-        printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
-        schedule_work(&workqueue);
-        
-        return IRQ_HANDLED;
+    printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+    schedule_work(&workqueue);
+    
+    return IRQ_HANDLED;
 }
  
  
@@ -4452,48 +4406,48 @@ static ssize_t etx_write(struct file *filp,
 */
 static int __init etx_driver_init(void)
 {
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                printk(KERN_INFO "Cannot allocate major number\n");
-                return -1;
-        }
-        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
- 
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            printk(KERN_INFO "Cannot add the device to the system\n");
-            goto r_class;
-        }
- 
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            printk(KERN_INFO "Cannot create the struct class\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            printk(KERN_INFO "Cannot create the Device 1\n");
-            goto r_device;
-        }
- 
-        /*Creating a directory in /sys/kernel/ */
-        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
- 
-        /*Creating sysfs file for etx_value*/
-        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
-                printk(KERN_INFO"Cannot create sysfs file......\n");
-                goto r_sysfs;
-        }
-        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
-            printk(KERN_INFO "my_device: cannot register IRQ ");
-                    goto irq;
-        }
-        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
-        return 0;
+    /*Allocating Major number*/
+    if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+            printk(KERN_INFO "Cannot allocate major number\n");
+            return -1;
+    }
+    printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+    /*Creating cdev structure*/
+    cdev_init(&etx_cdev,&fops);
+
+    /*Adding character device to the system*/
+    if((cdev_add(&etx_cdev,dev,1)) < 0){
+        printk(KERN_INFO "Cannot add the device to the system\n");
+        goto r_class;
+    }
+
+    /*Creating struct class*/
+    if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+        printk(KERN_INFO "Cannot create the struct class\n");
+        goto r_class;
+    }
+
+    /*Creating device*/
+    if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+        printk(KERN_INFO "Cannot create the Device 1\n");
+        goto r_device;
+    }
+
+    /*Creating a directory in /sys/kernel/ */
+    kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+
+    /*Creating sysfs file for etx_value*/
+    if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+            printk(KERN_INFO"Cannot create sysfs file......\n");
+            goto r_sysfs;
+    }
+    if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+        printk(KERN_INFO "my_device: cannot register IRQ ");
+                goto irq;
+    }
+    printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+    return 0;
  
 irq:
         free_irq(IRQ_NO,(void *)(irq_handler));

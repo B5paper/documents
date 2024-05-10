@@ -1222,6 +1222,27 @@ int main()
 }
 ```
 
+强制类型转换：
+
+```c
+int test(char *msg, int val)
+{
+    return 0;
+}
+
+void *test_2(int *val, float bbb)
+{
+    return 0;
+}
+
+int main()
+{
+    int (*pfn)(char*, int) = test;
+    pfn = (int(*)(char *, int)) test_2;
+    return 0;
+}
+```
+
 让函数返回一个函数指针：
 
 ```cpp

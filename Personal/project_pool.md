@@ -520,7 +520,13 @@ Tasks:
 
     1. 3 pass, 1 fail
 
-* [ ] 调研 qa 程序执行`/main.py --list /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`的 bug
+* [x] 调研 qa 程序执行`/main.py --list /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`的 bug
+
+    feedback:
+
+    1. 由于 qa 的程序已经換了，所以这个任务不再成立
+
+    2. 为 qa 工具增加`--list`功能
 
 * [v] qa 4 units 20 mins
 
@@ -1131,13 +1137,52 @@ tasks:
 
         3. 整理了`alloc_chrdev_region()`动态申请设备号的用法，并增加了一个 qa
 
-* [ ] linux driver sync
+* [v] linux driver sync
 
     主要是看 ioctl 相关的内容，可以尝试整理并测试。
 
     然后是看`Data exchange between kernel space and user space`
 
 * [ ] 调研`kzalloc`, `kfree`
+
+* [v] linux driver 调研 data exchange between user space and kernel space
+
+    feedback:
+
+    1. 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
+
+        见`ref_11`。
+
+        * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
+
+        * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
+
+            `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
+
+        * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
+
+        * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
+
+    2. kernel 中的内存管理感觉是个问题
+
+        假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
+
+        如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
+
+* [v] 调研 ioctl
+
+    feedback:
+
+    1. 实现了 ioctl 读取与写入数据，见`ref_12`
+
+        output:
+
+        ```
+        successfully write data by ioctl
+        read value: 123
+        ```
+
+    2. 不太明白为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
 
 ## OpenGL
 
@@ -1431,7 +1476,7 @@ cache:
 
 tasks:
 
-* [ ] python regular expression sync
+* [v] python regular expression sync
 
 ## 数学 Mathematics
 
