@@ -36,6 +36,102 @@
 
 ## cached
 
+* 換句说说可以翻译成 in other words
+
+* projects
+
+    1. high performance ray tracing
+
+        highlights:
+
+        * opencl BVH intersection
+
+        * linear algebra
+
+            * rotate, fov, projection
+
+        * performance
+
+            * memory allocation
+
+                copy one part of the calculation task a time
+
+                reduce the copy operation as much as possible
+
+            * copy data from global memory to local memory
+
+            * multi thread, mutex, task assignment
+
+        * modern c++, asynchronos mechanism
+
+        * distributed
+
+            * task dispatching
+
+            * serializaing
+
+            * tcp socket / asynchronous
+
+            shortages:
+
+            * dispatch by dynamic workload
+
+    2. debug zengine
+
+        highlights:
+
+        * vulkan api
+
+        * common used shaders
+
+        * debug tricks
+
+            copy image buffer from gpu to cpu
+
+    3. performance analysing
+
+        profiling GPU register to get performance count
+
+        hilights:
+
+        * GPU rendering process
+
+        low lights:
+
+        * a lack of optimizing
+
+    4. virtualization
+
+        highlights:
+
+        * linux driver
+
+        * mmio, soc, FW config
+
+* to complete:
+
+    1. modern c++, rewrite the ray tracing program
+
+    2. linux driver, irq, pcie, dma mechanism
+
+    3. performance analyzing
+
+    4. vulkan compute shader
+
+* 10 亿以上重资产的创业能不能盈利和宏观经济有关
+
+* 遇到这样一种情况，假如`A = [1, 100]`，`B = [rand(1, 100) * 10] U [100, 1000]`，要理解某个知识，需要 B 中的各个知识点
+
+    但是 B 中的资料需要到 A 中去查。
+
+    如果把 A 从头到尾看一遍，那么需要大量的时间。但是不看 A 就无法理解 B 所需要的知识。
+
+    这样的情况比较难处理。
+
+* qa 频率可以降低到每周一次
+
+* ibus 中的`mod`键是 alt 键
+
 * 看手机的时间定在完成一项任务后，或者至少离上次看手机过去 xxx 分钟后
 
     一旦任务启动就不能再轻易看手机。可以写一个程序控制一下。
@@ -656,6 +752,12 @@ tasks:
 
 cache:
 
+* virt leraning roadmap
+
+    1. 对Linux kernel有全面了解，关键模块有理解（走读kernel源码，对流程有印象）。推荐书籍：深入Linux内核架构（+1）或者深入理解LINUX内核。
+
+    2. hypervisor虚拟化, Intel的《系统虚拟化》，很老很实用，看Qemu，KVM，Xen代码。4.容器虚拟化，读cgroup,lxc,docker代码。
+
 * 英文网站上对 iommu 的介绍很少，只有 linux kernel docs 上的资料多一些，另外就是一些零散的 ppt slides。
 
     知乎上对 iommu 的介绍很多。
@@ -1020,6 +1122,24 @@ resources:
 ## linux driver
 
 cache:
+
+* linux 的 interruptible sleep 是如何实现的？
+
+* 调研这三个头文件
+
+    ```c
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    ```
+
+* 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
+
+* 不明白`file_operations`中`.owner`有什么用
+
+* `__init`和`__exit`的作用？
+
+* 调研`pr_info`, `pr_err`, `__init`, `MODULE_VERSION`, `MODULE_AUTHOR`, `MODULE_DESCRIPTION`
 
 * 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
 

@@ -2,6 +2,18 @@
 
 ## cached
 
+* python 的`rstrip()`不会做 in-place 修改，需要赋值才能修改
+
+* python 中的`re`似乎不认为`\A`是一个字符
+
+    因为`re.compile(r'(?<=\n|\A)\[.*\](.|\n)*?(?=\[.*\]\n|\Z)')`会报错：
+
+    `look-behind requires fixed-width pattern`
+
+    这样只能把写法改成
+
+    `re.compile(r'((?<=\n)|(?<=\A))\[.*\](.|\n)*?(?=\[.*\]\n|\Z)')`才能正常运行。
+
 * python hash
 
 	直接用`hash()`函数就可以计算出各个 python 内置对象的哈希值。
@@ -71,6 +83,44 @@
 ## regular expression
 
 ### cache
+
+* 如果一个字符串后面有很多`\n`，但是想清除多余的换行，只保留一个，可以用下面的正则表达式：
+
+    `.*?\n(?=\n*)`
+
+    比如匹配字符串`aaabb\n\n\n\n`，它的匹配结果是`aaabb\n`。
+
+    这个情形常用于匹配文件里有许多空行，比如
+
+    ```
+    [config_1]
+    aaa
+    bbb
+
+
+
+    [config_2]
+    ccc
+    ```
+
+    这两个 config 之间的空行太多，可以用正则表达式只匹配一个换行。
+
+    （潜在问题：如果最后一行只有`\Z`，没有`\n`，没办法匹配到，该怎么办）
+
+* python 的 lambda 表达式中不能有`return`，最后一行的表达式就是返回值
+
+    比如`lambda x: True if x == 1 else False`，这个函数的返回值类型就是`bool`。
+
+* python 中使用`re`模块时，为了避免在 python 字符串的规则处理，通常需要加一个`r`：
+
+    `re_pats['pat_unit'] = re.compile(r'\[unit\](.|\n)*?(?=\[unit\]|\Z)')`
+
+    如果不加`r`，会运行时报错：
+
+    ```
+    /home/hlc/Documents/Projects/stochastic_exam_py/main.py:22: SyntaxWarning: invalid escape sequence '\['
+    re_pats['pat_unit'] = re.compile('\[unit\](.|\n)*?(?=\[unit\]|\Z)')
+    ```
 
 * python 正则表达式中有关汉字的处理
 

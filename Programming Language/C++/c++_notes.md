@@ -4,6 +4,31 @@
 
 ## cached
 
+* 创建一个`vector`数组
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vecs[3];
+        vecs[0].resize(5);
+        vecs[1].resize(5, 0);
+        vecs[2].assign(5, 0);
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int elm: vecs[i])
+            {
+                cout << elm << ", ";
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
 * c++ 中初始化 struct 的方法
 
     ```cpp
