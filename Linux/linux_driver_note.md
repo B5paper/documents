@@ -6,211 +6,7 @@ Ref:
 
 ## cache
 
-* Interrupts Flags
-
-    * `IRQF_DISABLED`
-
-    * `IRQF_SAMPLE_RANDOM`
-
-    * `IRQF_TIMER`
-
-    * `IRQF_SHARED`
-
-        this flag enables one irq number matches multiple irq handler.
-
-        (do the handlers run one by one, or run simultaneously, or under a random order?)
-
-* `request_irq()` cannot be called from interrupt context (other situations where code cannot block), because it can block.
-
-* handler function syntax:
-
-    ```c
-    irqreturn_t irq_handler(int irq, void *dev_id, struct pt_regs *regs)
-    ```
-
-    * `dev_id`
-
-        this pointer is used to identify different devices.
-
-        when the interruption occurs, one irq number may be conrresponding to multiple devices.
-
-        Or, in other words, one irq number is shared by multiple devices.
-
-        Thus there must be a unique identification value to distinct different devices.
-
-        A common practice is to use the driver's structure pointer.
-
-    * return a `irqreturn_t` type value
-
-        the return value `IRQ_HANDLED` means it process irq successfully.
-
-        the return value `IRQ_NONE` means the handler function fails to process the irq.
-
-* irq 将一个整数和一个 handler function 相 map。
-
-    有一些整数的含义是被预定的，比如`1`代表的是键盘中断。
-
-* what should be cautioned when writing interrupt handler
-
-    * Interrupt handlers can not enter sleep, so to avoid calls to some functions which has sleep.
-
-    * When the interrupt handler has part of the code to enter the critical section, use spinlocks lock, rather than mutexes. Because if it can’t take mutex it will go to sleep until it takes the mute.
-
-    * Interrupt handlers can not exchange data with the userspace.The interrupt handlers must be executed as soon as possible. To ensure this, it is best to split the implementation into two parts, the top half and the bottom half. The top half of the handler will get the job done as soon as possible and then work late on the bottom half, which can be done with softirq or tasklet or workqueue.
-
-    * Interrupt handlers can not be called repeatedly. When a handler is already executing, its corresponding IRQ must be disabled until the handler is done.
-
-        maybe this means the hander can't be recursively invoked.
-
-    * Interrupt handlers can be interrupted by higher authority handlers. If you want to avoid being interrupted by a highly qualified handler, you can mark the interrupt handler as a fast handler. However, if too many are marked as fast handlers, the performance of the system will be degraded because the interrupt latency will be longer.
-
-* 一个可用的 keyboard interrupt handler，见`ref_14`
-
-    打开`dmesg`日志，在 insmod 后，每次按下键盘都会打印中断函数的处理消息：
-
-    ```
-    [ 1234.381119] intrpt: loading out-of-tree module taints kernel.
-    [ 1234.381123] intrpt: module verification failed: signature and/or required key missing - tainting kernel
-    [ 1234.381522] ------------[ cut here ]------------
-    [ 1234.381523] Trying to free already-free IRQ 1
-    [ 1234.381527] WARNING: CPU: 0 PID: 2691 at kernel/irq/manage.c:1893 __free_irq+0x1a6/0x310
-    [ 1234.381533] Modules linked in: intrpt(OE+) vboxsf intel_rapl_msr snd_intel8x0 intel_rapl_common snd_ac97_codec ac97_bus intel_uncore_frequency_common snd_pcm snd_seq_midi snd_seq_midi_event binfmt_misc snd_rawmidi crct10dif_pclmul polyval_clmulni polyval_generic ghash_clmulni_intel sha256_ssse3 sha1_ssse3 aesni_intel crypto_simd cryptd nls_iso8859_1 joydev snd_seq rapl input_leds snd_seq_device snd_timer vmwgfx drm_ttm_helper snd ttm serio_raw drm_kms_helper soundcore vboxguest mac_hid sch_fq_codel msr parport_pc ppdev lp parport drm efi_pstore ip_tables x_tables autofs4 hid_generic usbhid hid crc32_pclmul psmouse ahci libahci video i2c_piix4 e1000 wmi pata_acpi
-    [ 1234.381561] CPU: 0 PID: 2691 Comm: insmod Tainted: G           OE      6.5.0-28-generic #29~22.04.1-Ubuntu
-    [ 1234.381563] Hardware name: innotek GmbH VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006
-    [ 1234.381564] RIP: 0010:__free_irq+0x1a6/0x310
-    [ 1234.381566] Code: 50 32 00 00 49 8b be 88 01 00 00 e8 74 ec 02 00 49 8b 7f 30 e8 0b 9c 22 00 eb 35 8b 75 d0 48 c7 c7 40 2d d6 88 e8 5a af f4 ff <0f> 0b 48 8b 75 c8 4c 89 e7 e8 5c d6 f8 00 49 8b 46 40 48 8b 40 78
-    [ 1234.381568] RSP: 0018:ffffb0238399fac0 EFLAGS: 00010046
-    [ 1234.381569] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-    [ 1234.381571] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-    [ 1234.381571] RBP: ffffb0238399faf8 R08: 0000000000000000 R09: 0000000000000000
-    [ 1234.381572] R10: 0000000000000000 R11: 0000000000000000 R12: ffff95f3801688a4
-    [ 1234.381573] R13: ffff95f380168960 R14: ffff95f380168800 R15: ffff95f382d72b00
-    [ 1234.381574] FS:  00007d6eb84b3c40(0000) GS:ffff95f39bc00000(0000) knlGS:0000000000000000
-    [ 1234.381576] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-    [ 1234.381577] CR2: 00006172fb59f520 CR3: 000000002f81a000 CR4: 00000000000506f0
-    [ 1234.381580] Call Trace:
-    [ 1234.381581]  <TASK>
-    [ 1234.381583]  ? show_regs+0x6d/0x80
-    [ 1234.381587]  ? __warn+0x89/0x160
-    [ 1234.381589]  ? __free_irq+0x1a6/0x310
-    [ 1234.381591]  ? report_bug+0x17e/0x1b0
-    [ 1234.381594]  ? handle_bug+0x46/0x90
-    [ 1234.381597]  ? exc_invalid_op+0x18/0x80
-    [ 1234.381598]  ? asm_exc_invalid_op+0x1b/0x20
-    [ 1234.381602]  ? __free_irq+0x1a6/0x310
-    [ 1234.381604]  free_irq+0x32/0x80
-    [ 1234.381606]  ? __pfx_init_module+0x10/0x10 [intrpt]
-    [ 1234.381609]  init_module+0x39/0x70 [intrpt]
-    [ 1234.381612]  do_one_initcall+0x5e/0x340
-    [ 1234.381616]  do_init_module+0x68/0x260
-    [ 1234.381619]  load_module+0xb85/0xcd0
-    [ 1234.381621]  ? security_kernel_post_read_file+0x75/0x90
-    [ 1234.381624]  init_module_from_file+0x96/0x100
-    [ 1234.381626]  ? init_module_from_file+0x96/0x100
-    [ 1234.381629]  idempotent_init_module+0x11c/0x2b0
-    [ 1234.381631]  __x64_sys_finit_module+0x64/0xd0
-    [ 1234.381633]  do_syscall_64+0x5b/0x90
-    [ 1234.381636]  ? ksys_mmap_pgoff+0x120/0x270
-    [ 1234.381638]  ? exit_to_user_mode_prepare+0x30/0xb0
-    [ 1234.381639]  ? syscall_exit_to_user_mode+0x37/0x60
-    [ 1234.381641]  ? do_syscall_64+0x67/0x90
-    [ 1234.381642]  ? exit_to_user_mode_prepare+0x30/0xb0
-    [ 1234.381643]  ? syscall_exit_to_user_mode+0x37/0x60
-    [ 1234.381645]  ? do_syscall_64+0x67/0x90
-    [ 1234.381646]  entry_SYSCALL_64_after_hwframe+0x6e/0xd8
-    [ 1234.381648] RIP: 0033:0x7d6eb7d1e88d
-    [ 1234.381658] Code: 5b 41 5c c3 66 0f 1f 84 00 00 00 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 73 b5 0f 00 f7 d8 64 89 01 48
-    [ 1234.381659] RSP: 002b:00007fff0d23a4d8 EFLAGS: 00000246 ORIG_RAX: 0000000000000139
-    [ 1234.381661] RAX: ffffffffffffffda RBX: 00006172fbf127a0 RCX: 00007d6eb7d1e88d
-    [ 1234.381662] RDX: 0000000000000000 RSI: 00006172fb5aacd2 RDI: 0000000000000003
-    [ 1234.381662] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
-    [ 1234.381663] R10: 0000000000000003 R11: 0000000000000246 R12: 00006172fb5aacd2
-    [ 1234.381664] R13: 00006172fbf12760 R14: 00006172fb5a9888 R15: 00006172fbf128b0
-    [ 1234.381665]  </TASK>
-    [ 1234.381666] ---[ end trace 0000000000000000 ]---
-    [ 1234.468732] Scan Code 40 Released.
-    [ 1237.372783] Scan Code 40 Released.
-    [ 1237.428975] Scan Code 40 Released.
-    [ 1237.429958] Scan Code 40 Released.
-    [ 1237.501143] Scan Code 40 Released.
-    [ 1237.548031] Scan Code 40 Released.
-    [ 1237.596222] Scan Code 40 Released.
-    [ 1237.612977] Scan Code 40 Released.
-    [ 1237.700977] Scan Code 40 Released.
-    [ 1237.716093] Scan Code 40 Released.
-    [ 1237.780960] Scan Code 40 Released.
-    [ 1237.851931] Scan Code 40 Released.
-    [ 1237.924812] Scan Code 40 Released.
-    [ 1237.947605] Scan Code 40 Released.
-    [ 1238.028965] Scan Code 40 Released.
-    [ 1238.029951] Scan Code 40 Released.
-    ```
-
-    在执行`sudo rmmod intrpt`后，系统会直接卡死。因为我们在代码里覆盖了系统原本处理键盘中断的 handler。
-
-    具体的原因在程序注释里也有说明。
-
 * `close()`函数在 unistd 中
-
-* linux kernel 中 wait queue 的使用
-
-    核心的几个类型和函数：
-
-    ```c
-    wait_queue_head_t
-
-    ```
-
-    通常使用一个额外的线程来处理 wait queue，防止 init module 之类被阻塞。
-
-    ```c
-    #include <linux/kthread.h>
-
-    struct task_struct *wait_thread = kthread_create(print_msg, NULL, "print_msg");
-    if (wait_thread) {
-        pr_info("wake up process\n");
-        wake_up_process(wait_thread);
-    }
-    ```
-
-    初始化 wait queue:
-
-    ```c
-    wait_queue_head_t wq;
-    int condi = 1;
-
-    void init_wq() {
-        init_waitqueue_head(&wq);
-    }
-    
-    int print_msg(void *unused)
-    {
-        pr_info("wait condition variable...\n");
-        wait_event_interruptible(wq, condi == 2);
-        pr_info("condi is %d, hello, world\n", condi);
-        condi = 1;
-        pr_info("rechange condi to 1\n");
-        return 0;
-    }
-    ```
-
-    触发：
-
-    ```c
-    ssize_t h_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
-    {
-        pr_info("in h_write()...\n");
-        copy_from_user(&condi, buf, sizeof(condi));
-        wake_up_interruptible(&wq);
-        return sizeof(condi);
-    }
-    ```
-
-    可以看到，当改变变量值后，还需要手动通知一下 wait queue，wait queue 才能判断是否往下走。
-
-    经实验，如果不满足`condi == 2`的条件，即使`wake_up_interruptible()`也无法让程序继续往下走。
-
-    详细的 example: 见`ref_13`
 
 * 一个带错误处理的 udev 驱动，见`ref_10`
 
@@ -3974,11 +3770,340 @@ There are two steps to creating and using sysfs.
     cat /sys/kernel/etx_sysfs/etx_value
     ```
 
+## wait queue
+
+wait queue 类似于用户态编程的 condition variable，用于控制同步。
+
+
+核心的几个类型和函数：
+
+```c
+wait_queue_head_t
+```
+
+通常使用一个额外的线程来处理 wait queue，防止 init module 之类被阻塞。
+
+```c
+#include <linux/kthread.h>
+
+struct task_struct *wait_thread = kthread_create(print_msg, NULL, "print_msg");
+if (wait_thread) {
+    pr_info("wake up process\n");
+    wake_up_process(wait_thread);
+}
+```
+
+初始化 wait queue:
+
+```c
+wait_queue_head_t wq;
+int condi = 1;
+
+void init_wq() {
+    init_waitqueue_head(&wq);
+}
+
+int print_msg(void *unused)
+{
+    pr_info("wait condition variable...\n");
+    wait_event_interruptible(wq, condi == 2);
+    pr_info("condi is %d, hello, world\n", condi);
+    condi = 1;
+    pr_info("rechange condi to 1\n");
+    return 0;
+}
+```
+
+触发：
+
+```c
+ssize_t h_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
+{
+    pr_info("in h_write()...\n");
+    copy_from_user(&condi, buf, sizeof(condi));
+    wake_up_interruptible(&wq);
+    return sizeof(condi);
+}
+```
+
+可以看到，当改变变量值后，还需要手动通知一下 wait queue，wait queue 才能判断是否往下走。
+
+经实验，如果不满足`condi == 2`的条件，即使`wake_up_interruptible()`也无法让程序继续往下走。
+
+详细的 example: 见`ref_13`
+
 ## Interrupts
+
+### cache
+
+* Interrupts Flags
+
+    * `IRQF_DISABLED`
+
+    * `IRQF_SAMPLE_RANDOM`
+
+    * `IRQF_TIMER`
+
+    * `IRQF_SHARED`
+
+        this flag enables one irq number matches multiple irq handler.
+
+        (do the handlers run one by one, or run simultaneously, or under a random order?)
+
+* `request_irq()` cannot be called from interrupt context (other situations where code cannot block), because it can block.
+
+* irq 将一个整数和一个 handler function 相 map。
+
+    有一些整数的含义是被预定的，比如`1`代表的是键盘中断。
+
+* what should be cautioned when writing interrupt handler
+
+    * Interrupt handlers can not enter sleep, so to avoid calls to some functions which has sleep.
+
+    * When the interrupt handler has part of the code to enter the critical section, use spinlocks lock, rather than mutexes. Because if it can’t take mutex it will go to sleep until it takes the mute.
+
+    * Interrupt handlers can not exchange data with the userspace.The interrupt handlers must be executed as soon as possible. To ensure this, it is best to split the implementation into two parts, the top half and the bottom half. The top half of the handler will get the job done as soon as possible and then work late on the bottom half, which can be done with softirq or tasklet or workqueue.
+
+    * Interrupt handlers can not be called repeatedly. When a handler is already executing, its corresponding IRQ must be disabled until the handler is done.
+
+        maybe this means the hander can't be recursively invoked.
+
+    * Interrupt handlers can be interrupted by higher authority handlers. If you want to avoid being interrupted by a highly qualified handler, you can mark the interrupt handler as a fast handler. However, if too many are marked as fast handlers, the performance of the system will be degraded because the interrupt latency will be longer.
+
+* handler function syntax:
+
+    ```c
+    irqreturn_t irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+    ```
+
+    * `dev_id`
+
+        this pointer is used to identify different devices.
+
+        when the interruption occurs, one irq number may be conrresponding to multiple devices.
+
+        Or, in other words, one irq number is shared by multiple devices.
+
+        Thus there must be a unique identification value to distinct different devices.
+
+        A common practice is to use the driver's structure pointer.
+
+    * return a `irqreturn_t` type value
+
+        the return value `IRQ_HANDLED` means it process irq successfully.
+
+        the return value `IRQ_NONE` means the handler function fails to process the irq.
 
 special functions called interrupt handlers (ISR)
 
 In Linux, interrupt signals are the distraction that diverts the processor to a new activity outside of the normal flow of execution. This new activity is called interrupt handler or interrupt service routine (ISR) and that distraction is Interrupts.
+
+example:
+
+a keyboard interrupter handler
+
+```c
+/*
+ *  intrpt.c - An interrupt handler.
+ *
+ *  Copyright (C) 2001 by Peter Jay Salzman
+ */
+
+/* 
+ * The necessary header files 
+ */
+
+/* 
+ * Standard in kernel modules 
+ */
+#include <linux/kernel.h>	/* We're doing kernel work */
+#include <linux/module.h>	/* Specifically, a module */
+#include <linux/sched.h>
+#include <linux/workqueue.h>
+#include <linux/interrupt.h>	/* We want an interrupt */
+#include <asm/io.h>
+
+#define MY_WORK_QUEUE_NAME "WQsched.c"
+
+static struct workqueue_struct *my_workqueue;
+
+/* 
+ * This will get called by the kernel as soon as it's safe
+ * to do everything normally allowed by kernel modules.
+ */
+static void got_char(void *scancode)
+{
+	printk(KERN_INFO "Scan Code %x %s.\n",
+	       (int)*((char *)scancode) & 0x7F,
+	       *((char *)scancode) & 0x80 ? "Released" : "Pressed");
+}
+
+/* 
+ * This function services keyboard interrupts. It reads the relevant
+ * information from the keyboard and then puts the non time critical
+ * part into the work queue. This will be run when the kernel considers it safe.
+ */
+irqreturn_t irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+{
+	/* 
+	 * This variables are static because they need to be
+	 * accessible (through pointers) to the bottom half routine.
+	 */
+	static int initialised = 0;
+	static unsigned char scancode;
+	static struct work_struct task;
+	unsigned char status;
+
+	/* 
+	 * Read keyboard status
+	 */
+	status = inb(0x64);
+	scancode = inb(0x60);
+
+	if (initialised == 0) {
+		INIT_WORK(&task, (void(*)(struct work_struct *))got_char);
+		// INIT_WORK(&task, got_char, &scancode);
+		initialised = 1;
+	} else {
+		DECLARE_WORK(task, (void(*)(struct work_struct *))got_char);
+		// PREPARE_WORK(&task, got_char);
+		// PREPARE_WORK(&task, got_char, &scancode);
+	}
+
+	queue_work(my_workqueue, &task);
+
+	return IRQ_HANDLED;
+}
+
+/* 
+ * Initialize the module - register the IRQ handler 
+ */
+int init_module()
+{
+	my_workqueue = create_workqueue(MY_WORK_QUEUE_NAME);
+
+	/* 
+	 * Since the keyboard handler won't co-exist with another handler,
+	 * such as us, we have to disable it (free its IRQ) before we do
+	 * anything.  Since we don't know where it is, there's no way to
+	 * reinstate it later - so the computer will have to be rebooted
+	 * when we're done.
+	 */
+	free_irq(1, NULL);
+
+	/* 
+	 * Request IRQ 1, the keyboard IRQ, to go to our irq_handler.
+	 * SA_SHIRQ means we're willing to have othe handlers on this IRQ.
+	 * SA_INTERRUPT can be used to make the handler into a fast interrupt.
+	 */
+	return request_irq(1,	/* The number of the keyboard IRQ on PCs */
+			   (void*)irq_handler,	/* our handler */
+			   IRQF_SHARED, "test_keyboard_irq_handler",
+			   (void *)(irq_handler));
+}
+
+/* 
+ * Cleanup 
+ */
+void cleanup_module()
+{
+	/* 
+	 * This is only here for completeness. It's totally irrelevant, since
+	 * we don't have a way to restore the normal keyboard interrupt so the
+	 * computer is completely useless and has to be rebooted.
+	 */
+	free_irq(1, NULL);
+}
+
+/* 
+ * some work_queue related functions are just available to GPL licensed Modules
+ */
+MODULE_LICENSE("GPL");
+```
+
+打开`dmesg`日志，在 insmod 后，每次按下键盘都会打印中断函数的处理消息：
+
+```
+[ 1234.381119] intrpt: loading out-of-tree module taints kernel.
+[ 1234.381123] intrpt: module verification failed: signature and/or required key missing - tainting kernel
+[ 1234.381522] ------------[ cut here ]------------
+[ 1234.381523] Trying to free already-free IRQ 1
+[ 1234.381527] WARNING: CPU: 0 PID: 2691 at kernel/irq/manage.c:1893 __free_irq+0x1a6/0x310
+[ 1234.381533] Modules linked in: intrpt(OE+) vboxsf intel_rapl_msr snd_intel8x0 intel_rapl_common snd_ac97_codec ac97_bus intel_uncore_frequency_common snd_pcm snd_seq_midi snd_seq_midi_event binfmt_misc snd_rawmidi crct10dif_pclmul polyval_clmulni polyval_generic ghash_clmulni_intel sha256_ssse3 sha1_ssse3 aesni_intel crypto_simd cryptd nls_iso8859_1 joydev snd_seq rapl input_leds snd_seq_device snd_timer vmwgfx drm_ttm_helper snd ttm serio_raw drm_kms_helper soundcore vboxguest mac_hid sch_fq_codel msr parport_pc ppdev lp parport drm efi_pstore ip_tables x_tables autofs4 hid_generic usbhid hid crc32_pclmul psmouse ahci libahci video i2c_piix4 e1000 wmi pata_acpi
+[ 1234.381561] CPU: 0 PID: 2691 Comm: insmod Tainted: G           OE      6.5.0-28-generic #29~22.04.1-Ubuntu
+[ 1234.381563] Hardware name: innotek GmbH VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006
+[ 1234.381564] RIP: 0010:__free_irq+0x1a6/0x310
+[ 1234.381566] Code: 50 32 00 00 49 8b be 88 01 00 00 e8 74 ec 02 00 49 8b 7f 30 e8 0b 9c 22 00 eb 35 8b 75 d0 48 c7 c7 40 2d d6 88 e8 5a af f4 ff <0f> 0b 48 8b 75 c8 4c 89 e7 e8 5c d6 f8 00 49 8b 46 40 48 8b 40 78
+[ 1234.381568] RSP: 0018:ffffb0238399fac0 EFLAGS: 00010046
+[ 1234.381569] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[ 1234.381571] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[ 1234.381571] RBP: ffffb0238399faf8 R08: 0000000000000000 R09: 0000000000000000
+[ 1234.381572] R10: 0000000000000000 R11: 0000000000000000 R12: ffff95f3801688a4
+[ 1234.381573] R13: ffff95f380168960 R14: ffff95f380168800 R15: ffff95f382d72b00
+[ 1234.381574] FS:  00007d6eb84b3c40(0000) GS:ffff95f39bc00000(0000) knlGS:0000000000000000
+[ 1234.381576] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1234.381577] CR2: 00006172fb59f520 CR3: 000000002f81a000 CR4: 00000000000506f0
+[ 1234.381580] Call Trace:
+[ 1234.381581]  <TASK>
+[ 1234.381583]  ? show_regs+0x6d/0x80
+[ 1234.381587]  ? __warn+0x89/0x160
+[ 1234.381589]  ? __free_irq+0x1a6/0x310
+[ 1234.381591]  ? report_bug+0x17e/0x1b0
+[ 1234.381594]  ? handle_bug+0x46/0x90
+[ 1234.381597]  ? exc_invalid_op+0x18/0x80
+[ 1234.381598]  ? asm_exc_invalid_op+0x1b/0x20
+[ 1234.381602]  ? __free_irq+0x1a6/0x310
+[ 1234.381604]  free_irq+0x32/0x80
+[ 1234.381606]  ? __pfx_init_module+0x10/0x10 [intrpt]
+[ 1234.381609]  init_module+0x39/0x70 [intrpt]
+[ 1234.381612]  do_one_initcall+0x5e/0x340
+[ 1234.381616]  do_init_module+0x68/0x260
+[ 1234.381619]  load_module+0xb85/0xcd0
+[ 1234.381621]  ? security_kernel_post_read_file+0x75/0x90
+[ 1234.381624]  init_module_from_file+0x96/0x100
+[ 1234.381626]  ? init_module_from_file+0x96/0x100
+[ 1234.381629]  idempotent_init_module+0x11c/0x2b0
+[ 1234.381631]  __x64_sys_finit_module+0x64/0xd0
+[ 1234.381633]  do_syscall_64+0x5b/0x90
+[ 1234.381636]  ? ksys_mmap_pgoff+0x120/0x270
+[ 1234.381638]  ? exit_to_user_mode_prepare+0x30/0xb0
+[ 1234.381639]  ? syscall_exit_to_user_mode+0x37/0x60
+[ 1234.381641]  ? do_syscall_64+0x67/0x90
+[ 1234.381642]  ? exit_to_user_mode_prepare+0x30/0xb0
+[ 1234.381643]  ? syscall_exit_to_user_mode+0x37/0x60
+[ 1234.381645]  ? do_syscall_64+0x67/0x90
+[ 1234.381646]  entry_SYSCALL_64_after_hwframe+0x6e/0xd8
+[ 1234.381648] RIP: 0033:0x7d6eb7d1e88d
+[ 1234.381658] Code: 5b 41 5c c3 66 0f 1f 84 00 00 00 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 73 b5 0f 00 f7 d8 64 89 01 48
+[ 1234.381659] RSP: 002b:00007fff0d23a4d8 EFLAGS: 00000246 ORIG_RAX: 0000000000000139
+[ 1234.381661] RAX: ffffffffffffffda RBX: 00006172fbf127a0 RCX: 00007d6eb7d1e88d
+[ 1234.381662] RDX: 0000000000000000 RSI: 00006172fb5aacd2 RDI: 0000000000000003
+[ 1234.381662] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[ 1234.381663] R10: 0000000000000003 R11: 0000000000000246 R12: 00006172fb5aacd2
+[ 1234.381664] R13: 00006172fbf12760 R14: 00006172fb5a9888 R15: 00006172fbf128b0
+[ 1234.381665]  </TASK>
+[ 1234.381666] ---[ end trace 0000000000000000 ]---
+[ 1234.468732] Scan Code 40 Released.
+[ 1237.372783] Scan Code 40 Released.
+[ 1237.428975] Scan Code 40 Released.
+[ 1237.429958] Scan Code 40 Released.
+[ 1237.501143] Scan Code 40 Released.
+[ 1237.548031] Scan Code 40 Released.
+[ 1237.596222] Scan Code 40 Released.
+[ 1237.612977] Scan Code 40 Released.
+[ 1237.700977] Scan Code 40 Released.
+[ 1237.716093] Scan Code 40 Released.
+[ 1237.780960] Scan Code 40 Released.
+[ 1237.851931] Scan Code 40 Released.
+[ 1237.924812] Scan Code 40 Released.
+[ 1237.947605] Scan Code 40 Released.
+[ 1238.028965] Scan Code 40 Released.
+[ 1238.029951] Scan Code 40 Released.
+```
+
+在执行`sudo rmmod intrpt`后，系统会直接卡死。因为我们在代码里覆盖了系统原本处理键盘中断的 handler。
+
+具体的原因在程序注释里也有说明。
 
 **Polling vs Interrupts**
 

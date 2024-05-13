@@ -1990,6 +1990,239 @@ public:
 
 1. 官方题解 2，使用两个一维数组保存结果（击败 45%，还没看）
 
+#### 吃掉 N 个橘子的最少天数
+
+厨房里总共有 n 个橘子，你决定每一天选择如下方式之一吃这些橘子：
+
+    吃掉一个橘子。
+    如果剩余橘子数 n 能被 2 整除，那么你可以吃掉 n/2 个橘子。
+    如果剩余橘子数 n 能被 3 整除，那么你可以吃掉 2*(n/3) 个橘子。
+
+每天你只能从以上 3 种方案中选择一种方案。
+
+请你返回吃掉所有 n 个橘子的最少天数。
+
+ 
+
+示例 1：
+
+输入：n = 10
+输出：4
+解释：你总共有 10 个橘子。
+第 1 天：吃 1 个橘子，剩余橘子数 10 - 1 = 9。
+第 2 天：吃 6 个橘子，剩余橘子数 9 - 2*(9/3) = 9 - 6 = 3。（9 可以被 3 整除）
+第 3 天：吃 2 个橘子，剩余橘子数 3 - 2*(3/3) = 3 - 2 = 1。
+第 4 天：吃掉最后 1 个橘子，剩余橘子数 1 - 1 = 0。
+你需要至少 4 天吃掉 10 个橘子。
+
+示例 2：
+
+输入：n = 6
+输出：3
+解释：你总共有 6 个橘子。
+第 1 天：吃 3 个橘子，剩余橘子数 6 - 6/2 = 6 - 3 = 3。（6 可以被 2 整除）
+第 2 天：吃 2 个橘子，剩余橘子数 3 - 2*(3/3) = 3 - 2 = 1。（3 可以被 3 整除）
+第 3 天：吃掉剩余 1 个橘子，剩余橘子数 1 - 1 = 0。
+你至少需要 3 天吃掉 6 个橘子。
+
+示例 3：
+
+输入：n = 1
+输出：1
+
+示例 4：
+
+输入：n = 56
+输出：6
+
+ 
+
+提示：
+
+    1 <= n <= 2*10^9
+
+
+分析：
+
+刚开始从`n`往前想不太好想，因为`n`往前走可能吃一半，也可能吃 2/3，剩下 1/3 n，还有可能直接减 1。
+
+这个时候其实有一些树的影子了，以 n 为 root，然后每次分叉小于等于 3 个子树，必须保证每个子节点是个整数，这个子树才能存在。比如`n = 11`的时候，显然不可能直接构造一个 n / 2 = 5.5 的子节点。
+
+如果我们生成一棵树，然后找通向叶子节点的最短路径就可以了。
+
+代码：
+
+1. 递归（指数级时间复杂度）
+
+    使用递归可以很方便地从顶向底构造出一棵树。
+
+    ```cpp
+    int get_ans_4(int n)
+    {
+        if (n == 1)
+            return 1;
+        return min(
+            get_ans_4(n - 1),
+            min(
+                n % 2 == 0 ? get_ans_4(n / 2) : INT32_MAX,
+                n % 3 == 0 ? get_ans_4(n / 3) : INT32_MAX 
+            )
+        ) + 1;
+    }
+    ```
+
+    这个方法明显复杂度太高，做了许多重复计算。
+
+2. 记忆化递归
+
+    ```cpp
+    unordered_map<int, int> m{{1, 1}};
+    int get_ans_4(int n)
+    {
+        if (n == 1)
+            return 1;
+
+        if (m.find(n) != m.end())
+            return m[n];
+
+        int min_val = min(
+            get_ans_4(n - 1),
+            min(
+                n % 2 == 0 ? get_ans_4(n / 2) : INT32_MAX,
+                n % 3 == 0 ? get_ans_4(n / 3) : INT32_MAX 
+            )
+        ) + 1;
+
+        m[n] = min_val;
+        return min_val;
+    }
+    ```
+
+    这个可以提升不少速度，但是仍会爆栈。
+
+3. 动态规划（正向） 超时
+
+    对于`n`我们没法直接求出来，但是可以从 1 开始试几个简单的。
+
+    当`n = 1`时，直接吃 1 个橘子就可以了，花费 1 天。
+
+    `n = 2`时，可以使用`2 = 1 + 1`，也可以第 1 天吃 1 个，第 2 天吃`2 / 2 = 1`个。
+
+    `n = 3`时，可以第 1 天吃 1 个，第 2 天吃`3 * 2 / 3 = 2`个。连吃 3 天 1 个肯定效率比较低。
+
+    至此我们发现，从数字`1`开始，我们对它的操作可以是`* 2`，也可以是`* 3`，还可以是`+ 1`。那么问题可以转化成，每次从这 3 个操作中随机选一样，到`n`时的最小操作次数是多少？
+
+    由此我们可以写出代码：
+
+    ```cpp
+    int get_ans_1(int n)
+    {
+        int ans = 0;
+        vector<int> min_day_along_n(n+1, INT32_MAX);
+        min_day_along_n[1] = 1;        
+        for (int i = 1; i <= n; ++i)
+        {
+            if (i + 1 <= n)
+                min_day_along_n[i+1] = min(min_day_along_n[i+1], min_day_along_n[i] + 1);
+            if (i * 2 <= n)
+                min_day_along_n[i*2] = min(min_day_along_n[i*2], min_day_along_n[i] + 1);
+            if (i * 3 <= n)
+                min_day_along_n[i*3] = min(min_day_along_n[i*3], min_day_along_n[i] + 1);
+        }
+
+        ans = min_day_along_n[n];
+        return ans;
+    }
+    ```
+
+    正向的动态规划，由于可能会数组越界，所以我们对索引进行了限制。
+
+    这里“正向的动态规划”的含义是，每次根据当前位置的结果（最优），去更新它的下一个可能选择的结果数值。由于每个位置只保留最优结果，所以可能会发生覆盖。
+
+    这样需要从 1 一直遍历到 n，时间复杂度是`O(n)`。仍然会超时。
+
+4. 动态规划（逆向） 超时
+
+    另外一种动态规划的思路是，每次在更新当前位置的值时，向前去找可能到达当前位置的上一个值。
+
+    ```cpp
+    int get_ans_2(int n)
+    {
+        vector<int> min_day_along_n(n+1, INT32_MAX);
+        min_day_along_n[1] = 1;
+        for (int i = 2; i <= n; ++i)
+        {
+            min_day_along_n[i] = min(
+                min_day_along_n[i-1] + 1,
+                min(
+                    i % 2 == 0 ? min_day_along_n[i / 2] + 1 : INT32_MAX,
+                    i % 3 == 0 ? min_day_along_n[i / 3] + 1 : INT32_MAX
+                )
+            );
+        }
+        return min_day_along_n[n];
+    }
+    ```
+
+    这种方式的时间复杂度也是`O(n)`，因此也会超时。
+
+5. 官方答案 1，剪枝
+
+    其实是一种贪心的想法，对于逆向的动态规划，每次按`-1`走肯定是最慢的，如果能通过一到两次的`-1`找到一个可以`/2`或者`/3`的值，那么就可以获得一次“跳跃”加速。
+
+    ```cpp
+    class Solution {
+    private:
+        unordered_map<int, int> memo;
+
+    public:
+        int minDays(int n) {
+            if (n <= 1) {
+                return n;
+            }
+            if (memo.count(n)) {
+                return memo[n];
+            }
+            return memo[n] = min(n % 2 + 1 + minDays(n / 2), n % 3 + 1 + minDays(n / 3));
+        }
+    };
+    ```
+
+    这种方法的效率可以提升近一千倍。
+
+6. 官方答案 2，bfs
+
+    目前还不是很懂，有空了看看。
+
+    ```cpp
+    using PII = pair<int, int>;
+
+    class Solution {
+    public:
+        int minDays(int n) {
+            priority_queue<PII, vector<PII>, greater<PII>> q;
+            unordered_set<int> visited;
+            q.emplace(0, n);
+            int ans = 0;
+            while (true) {
+                auto [days, rest] = q.top();
+                q.pop();
+                if (visited.count(rest)) {
+                    continue;
+                }
+                visited.insert(rest);
+                if (rest == 1) {
+                    ans = days + 1;
+                    break;
+                }
+                q.emplace(days + rest % 2 + 1, rest / 2);
+                q.emplace(days + rest % 3 + 1, rest / 3);
+            }
+            return ans;
+        }
+    };
+    ```
+
 ### 一些心得
 
 动态规划的题目可分为下面几类：
@@ -32793,7 +33026,7 @@ sr = 1, sc = 1, newColor = 2
     };
     ```
 
-1. 同样是多源 bsf。不过这次看作 bfs 向外渲染的次数。
+1. 同样是多源 bfs，不过这次看作 bfs 向外渲染的次数。
 
     ```c++
     class Solution {
@@ -32843,6 +33076,88 @@ sr = 1, sc = 1, newColor = 2
         }
     };
     ```
+
+1. bfs，更直观一些
+
+    这道题明显是以坏橘子源点，向外扩散，只需要求往外扩散了几次，就能得到答案。
+
+    但是问题是题目有几个特殊情况。一是扩散完了，但是仍有好橘子没有被影响到，这种情况下返回 -1；
+
+    二是没有坏橘子，也没有好橘子，这种情况返回 0。
+
+    ```cpp
+    class Solution {
+    public:
+        int orangesRotting(vector<vector<int>>& grid) {
+            int m = grid.size(), n = grid[0].size();
+            queue<pair<int, int>> que;
+            for (int i = 0; i < m; ++i)
+            {
+                for (int j = 0; j < n; ++j)
+                {
+                    if (grid[i][j] == 2)
+                    {
+                        que.push({i, j});
+                    }
+                }
+            }
+
+            int dx[4] = {-1, 1, 0, 0};
+            int dy[4] = {0, 0, -1, 1};
+            int rx, ry, x, y;
+            int ans = 0;
+            bool find_new = false;
+            while (!que.empty())
+            {
+                find_new = false;
+                int que_len = que.size();
+                for (int i = 0; i < que_len; ++i)
+                {
+                    rx = que.front().first;
+                    ry = que.front().second;
+                    que.pop();
+                    for (int j = 0; j < 4; ++j)
+                    {
+                        x = rx + dx[j];
+                        y = ry + dy[j];
+                        
+                        if (x >= 0 && x < m && y >= 0 && y < n &&
+                            grid[x][y] == 1)
+                        {
+                            grid[x][y] = 2;
+                            que.push({x, y});
+                            find_new = true;
+                        }
+                    }
+                }
+                if (find_new)
+                    ++ans;
+            }
+
+            for (int i = 0; i < m; ++i)
+            {
+                for (int j = 0; j < n; ++j)
+                {
+                    if (grid[i][j] == 1)
+                    {
+                        return -1;
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    假如我们没有`find_new`变量，在`while()`里直接`++ans`，那么实际上扩散是有可能不发生的，因为同一个位置可能被索引到多次，从而被添加到 queue 中多次。
+
+    假如一个位置将在当前轮中被处理，但是在被处理之前又被加入到了 queue 中，相当于进入了下一轮，那么它在下一轮中就不会被处理，从而下一轮从这个位置的扩散不会发生。
+
+    如果下一轮中的所有位置都不需要被处理，那么下一轮就一次扩散也不会发生。
+
+    因此 while 循环“一轮”不等于发生一次“扩散”。
+
+    如果我们引入`find_new`变量，每次只在需要扩散时才增加`ans`，这样答案就对了。
 
 #### 岛屿数量
 

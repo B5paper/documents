@@ -3530,3 +3530,43 @@
 * Rnote is an open-source vector-based drawing app for sketching, handwritten notes and to annotate documents and pictures. 
 
     <https://github.com/flxzt/rnote>
+
+* docker.sh 是用 Shell 写的一个简易的 docker，支持以下功能：
+
+    <https://github.com/pandengyang/docker.sh>
+
+* Ollama: Get up and running with large language models locally.
+
+    <https://github.com/ollama/ollama>
+
+* Kolmogorov-Arnold Networks (KANs)
+
+    <https://github.com/KindXiaoming/pykan>
+
+* angr Management: This is the GUI for angr. Launch it and analyze some binaries!
+
+    <https://github.com/angr/angr-management>
+
+* cpufp
+
+    This is a cpu tool for benchmarking the peak performance of floating-points and AI ISAs.
+
+    <https://github.com/pigirons/cpufp>
+
+* xsync
+
+    Concurrent data structures for Go. Aims to provide more scalable alternatives for some of the data structures from the standard sync package, but not only.
+
+    <https://github.com/puzpuzpuz/xsync>
+
+* AnKi 3D engine is a Linux, Windows and Android opensource game engine that runs on Vulkan.
+
+    <https://github.com/godlikepanos/anki-3d-engine>
+
+* lerobot: State-of-the-art Machine Learning for real-world robotics
+
+    <https://github.com/huggingface/lerobot>
+
+* StoryDiffusion can create a magic story by generating consistent images and videos. Our work mainly has two parts:
+
+    <https://github.com/HVision-NKU/StoryDiffusion>
