@@ -36,7 +36,11 @@
 
 ## cached
 
-* 換句说说可以翻译成 in other words
+* 经常出现 terminal 没有登录虚拟机 ssh 的情况
+
+    有没有什么办法可以避免这个问题？
+
+* 換句话说可以翻译成 in other words
 
 * projects
 
@@ -1181,8 +1185,6 @@ cache:
 
     `dev_to_node`, `kzalloc_node`, `spin_lock_init`
 
-    `mutex_lock`, `mutex_unlock`, `mutex_destroy`
-
     `idr_init_base`
 
     `kfree`, `dev_info`
@@ -1235,36 +1237,6 @@ tasks:
 
         先看 qa，再看网站
 
-* [v] linux driver sync
-
-* [v] linux driver: sync 30 mins 05/03
-
-    feedback:
-
-    3. 中间多次未看到实验结果，因为另一个 terminal 没有登录 ssh
-
-        有没有什么办法可以避免这个问题？
-
-* [v] linux driver sync 05/06
-
-    feedback:
-
-    1. what have been done:
-    
-        1. 整理了 linux module driver 中的 goto 错误处理代码风格
-    
-        2. 在笔记中切分了设备驱动的 note 和 cache 两部分
-
-        3. 整理了`alloc_chrdev_region()`动态申请设备号的用法，并增加了一个 qa
-
-* [v] linux driver sync
-
-    主要是看 ioctl 相关的内容，可以尝试整理并测试。
-
-    然后是看`Data exchange between kernel space and user space`
-
-* [ ] 调研`kzalloc`, `kfree`
-
 * [v] linux driver 调研 data exchange between user space and kernel space
 
     feedback:
@@ -1303,6 +1275,10 @@ tasks:
         ```
 
     2. 不太明白为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
+
+* [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
+
+* [ ] 调研`kzalloc`, `kfree`
 
 ## OpenGL
 
