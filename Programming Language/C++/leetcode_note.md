@@ -6503,6 +6503,172 @@ people[i] 中的每个技能是 req_skills 中的技能
 
     我们还可以用单调栈再对它优化，从后向前遍历，栈顶存更大的值的索引，如果栈顶的值大于`arr[i]`，那么就从栈顶弹出元素。如果我们找到了符合要求的`i`，那么就可以立即从栈顶拿到小于`arr[i]`，并且最大的元素的索引。
 
+### 完成所有任务需要的最少轮数
+
+给你一个下标从 0 开始的整数数组 tasks ，其中 tasks[i] 表示任务的难度级别。在每一轮中，你可以完成 2 个或者 3 个 相同难度级别 的任务。
+
+返回完成所有任务需要的 最少 轮数，如果无法完成所有任务，返回 -1 。
+
+ 
+
+示例 1：
+
+输入：tasks = [2,2,3,3,2,4,4,4,4,4]
+输出：4
+解释：要想完成所有任务，一个可能的计划是：
+- 第一轮，完成难度级别为 2 的 3 个任务。 
+- 第二轮，完成难度级别为 3 的 2 个任务。 
+- 第三轮，完成难度级别为 4 的 3 个任务。 
+- 第四轮，完成难度级别为 4 的 2 个任务。 
+可以证明，无法在少于 4 轮的情况下完成所有任务，所以答案为 4 。
+示例 2：
+
+输入：tasks = [2,3,3]
+输出：-1
+解释：难度级别为 2 的任务只有 1 个，但每一轮执行中，只能选择完成 2 个或者 3 个相同难度级别的任务。因此，无法完成所有任务，答案为 -1 。
+ 
+
+提示：
+
+1 <= tasks.length <= 105
+1 <= tasks[i] <= 109
+
+代码：
+
+1. 排序，看作一个动态规划
+
+    根据题意，任务没有先后顺序，所以我们可以排序。然后对于某个位置`i`处的最小轮数`f(i)`，我们可以往前找`f(i-2)`，`f(i-3)`，如果能找到，那么有`f(i) = min(f(i-2), f(i-3)) + 1`。
+
+    如果其中一个找不到，那么就只能走另一个。如果两个都找不到，那么说明无论如何也无法到达`i`位置处，返回`-1`。
+
+    我们可以看出这是一个树的后序遍历，只不过这棵树不是二叉树，有些子树可能不存在。
+
+    由此可写出代码：
+
+    ```cpp
+    class Solution {
+    public:
+        int recu(vector<int> &ts, int pos)
+        {
+            if (pos == -1)
+                return 0;
+            if (pos <= 0)
+                return INT32_MAX;
+            if (pos == 1)
+            {
+                if (ts[0] == ts[1]) return 1;
+                else return INT32_MAX;
+            }
+            int val_2 = INT32_MAX, val_3 = INT32_MAX;
+            if (pos >= 1 && ts[pos - 1] == ts[pos])
+            {
+                val_2 = recu(ts, pos - 2);
+            }
+            if (pos >= 2 && ts[pos - 2] == ts[pos - 1] &&
+                ts[pos - 1] == ts[pos])
+            {
+                val_3 = recu(ts, pos - 3);
+            }
+            if (val_2 == INT32_MAX && val_3 == INT32_MAX)
+            {
+                return INT32_MAX;
+            }
+            return min(val_2, val_3) + 1;
+        }
+
+        int minimumRounds(vector<int>& tasks) {
+            int ans = 0;
+            sort(tasks.begin(), tasks.end());
+            ans = recu(tasks, tasks.size() - 1);
+            if (ans == INT32_MAX) return -1;
+            return ans;
+        }
+    };
+    ```
+
+    为了避免重复计算，记忆已经计算过的值：
+
+    ```cpp
+    class Solution {
+    public:
+        unordered_map<int, int> m;
+        int recu(vector<int> &ts, int pos)
+        {
+            if (pos == -1)
+                return 0;
+            if (pos <= 0)
+                return INT32_MAX;
+            if (pos == 1)
+            {
+                if (ts[0] == ts[1]) return 1;
+                else return INT32_MAX;
+            }
+            if (m.find(pos) != m.end())
+                return m[pos];
+            int val_2 = INT32_MAX, val_3 = INT32_MAX;
+            if (pos >= 1 && ts[pos - 1] == ts[pos])
+            {
+                val_2 = recu(ts, pos - 2);
+            }
+            if (pos >= 2 && ts[pos - 2] == ts[pos - 1] &&
+                ts[pos - 1] == ts[pos])
+            {
+                val_3 = recu(ts, pos - 3);
+            }
+            if (val_2 == INT32_MAX && val_3 == INT32_MAX)
+            {
+                return INT32_MAX;
+            }
+            int rtn = min(val_2, val_3) + 1;
+            m[pos] = rtn;
+            return rtn;
+        }
+
+        int minimumRounds(vector<int>& tasks) {
+            int ans = 0;
+            sort(tasks.begin(), tasks.end());
+            ans = recu(tasks, tasks.size() - 1);
+            if (ans == INT32_MAX) return -1;
+            return ans;
+        }
+    };
+    ```
+
+    但是即使这样，也会超时。
+
+    疑问：是否可以用打表式的动态规划做这道题？
+
+2. 官方答案，贪心
+
+    ```cpp
+    class Solution {
+    public:
+        int minimumRounds(vector<int>& tasks) {
+            unordered_map<int, int> cnt;
+            for (int t : tasks) {
+                cnt[t]++;
+            }
+            int res = 0;
+            for (auto [_, v] : cnt) {
+                if (v == 1) {
+                    return -1;
+                } else if (v % 3 == 0) {
+                    res += v / 3;
+                } else {
+                    res += v / 3 + 1;
+                }
+            }
+            return res;
+        }
+    };
+    ```
+
+    由于顺序不重要，大小也不重要，所以先做一个统计。
+
+    统计完成后，每个任务都应该按 -2 或 -3 处理完。
+
+    每次尽量按 -3 处理，如果 -3 处理完后只剩下一个，那么按 -2 处理。
+
 ## 数组
 
 ### 两数之和
