@@ -31945,6 +31945,33 @@ public:
 };
 ```
 
+2. 后来又写的
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> twoSum(vector<int>& numbers, int target) {
+            int p1 = 0, p2 = numbers.size() - 1;
+            int sum;
+            while (p1 <= p2)
+            {
+                sum = numbers[p1] + numbers[p2];
+                if (sum < target)
+                    ++p1;
+                else if (sum > target)
+                    --p2;
+                else
+                    return {p1 + 1, p2 + 1};
+            }
+            return {};
+        }
+    };
+    ```
+
+    用了初始化列表，所以看起来简洁了许多。
+
+3. 另外一种方式是使用二分查找，加快双指针的效率
+
 #### 反转字符串中的单词 III
 
 给定一个字符串，你需要反转字符串中每个单词的字符顺序，同时仍保留空格和单词的初始顺序。
