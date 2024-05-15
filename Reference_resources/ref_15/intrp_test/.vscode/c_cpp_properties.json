@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/src/linux-headers-6.5.0-18-generic/include/",
+                "/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
+                "/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
+                "/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
+            ],
+            "defines": [
+                "KBUILD_MODNAME=\"hello\"",
+                "__GNUC__",
+                "__KERNEL__",
+                "MODULE"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,1 @@
+savedcmd_/home/hlc/Documents/Projects/intrp_test/intrp.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/hlc/Documents/Projects/intrp_test/intrp.ko /home/hlc/Documents/Projects/intrp_test/intrp.o /home/hlc/Documents/Projects/intrp_test/intrp.mod.o;  make -f ./arch/x86/Makefile.postlink /home/hlc/Documents/Projects/intrp_test/intrp.ko

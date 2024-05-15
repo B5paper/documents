@@ -1,0 +1,1 @@
+savedcmd_/home/hlc/Documents/Projects/intrp_test/Module.symvers :=  scripts/mod/modpost -m -a      -o /home/hlc/Documents/Projects/intrp_test/Module.symvers -T /home/hlc/Documents/Projects/intrp_test/modules.order -i Module.symvers -e 

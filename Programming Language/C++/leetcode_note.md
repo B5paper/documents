@@ -31919,31 +31919,110 @@ public:
 
 代码：
 
-可以用双指针，也可以用二分查找。不过推荐双指针，因为实现简单。
+1. 可以用双指针，也可以用二分查找。不过推荐双指针，因为实现简单。
 
-如果要在有序数组中找到和为定值的两个数，那么可以用双指针。为什么双指针一定能找到解？我们可以做这样的证明：
+    如果要在有序数组中找到和为定值的两个数，那么可以用双指针。为什么双指针一定能找到解？我们可以做这样的证明：
 
-假设有这样的数组：`[a ... b ... c, d ... e ... f]`，我们要找的解为`[b, e]`。双指针分别从`a`，`f`开始向内遍历，总会有一侧指针先到达`b`或者先到达`e`。我们假设右侧指针先到达`e`，此时左侧指针一定在`b`的左边（假如左侧指针在`b`上，或到了`b`的右边，那么就和我们的假设相违背了。），此时左侧指针指向的元素与右侧指针指向的元素之和是小于 target 的。根据算法，此时只能继续移动左侧指针，直到和等于 target。因此双指针法一定会找到正确的两个数。
+    假设有这样的数组：`[a ... b ... c, d ... e ... f]`，我们要找的解为`[b, e]`。双指针分别从`a`，`f`开始向内遍历，总会有一侧指针先到达`b`或者先到达`e`。我们假设右侧指针先到达`e`，此时左侧指针一定在`b`的左边（假如左侧指针在`b`上，或到了`b`的右边，那么就和我们的假设相违背了。），此时左侧指针指向的元素与右侧指针指向的元素之和是小于 target 的。根据算法，此时只能继续移动左侧指针，直到和等于 target。因此双指针法一定会找到正确的两个数。
 
-（我只能证明双指针是正确的，但没办法知道它是怎么通过线性和非线性思维被想出来的）
+    （我只能证明双指针是正确的，但没办法知道它是怎么通过线性和非线性思维被想出来的）
 
-```c++
-class Solution {
-public:
-    vector<int> twoSum(vector<int>& numbers, int target) {
-        int l = 0, r = numbers.size() - 1;
-        int sum;
-        while (l < r)
-        {
-            sum = numbers[l] + numbers[r];
-            if (sum == target) return vector<int>({l+1, r+1});
-            else if (sum > target) --r;
-            else ++l;
+    ```c++
+    class Solution {
+    public:
+        vector<int> twoSum(vector<int>& numbers, int target) {
+            int l = 0, r = numbers.size() - 1;
+            int sum;
+            while (l < r)
+            {
+                sum = numbers[l] + numbers[r];
+                if (sum == target) return vector<int>({l+1, r+1});
+                else if (sum > target) --r;
+                else ++l;
+            }
+            return vector<int>();
         }
-        return vector<int>();
+    };
+    ```
+
+2. 下面是一个错误的代码，希望通过二分法找到两个值，但是失败了
+
+    为什么二分法会失败？
+
+    ```cpp
+    vector<int> get_ans_2(vector<int> &nums, int target)
+    {
+        int p1 = 0, p2 = nums.size() - 1;
+        while (p1 <= p2)
+        {
+            int sum = nums[p1] + nums[p2];
+            if (sum < target)
+            {
+                // 先让左侧的索引走到两个索引的中间
+                // 如果和大于 target，说明走多了，需要往回折返，在 p1 和 cur 中间再找一个位置
+                // 如果和小于 target，说明走少了，需要再往前走，在 cur 和 p2 中间再找一个位置
+                // 如果和恰好等于 target，那么就可以直接返回了
+                // 最终退出循环的条件是 p1 在 m 位置，和小于 target，在 m+1 位置，和大于 target
+                // 那么就可以取 p1 为 m
+                int p = p1 + (p2 - p1) / 2;
+                while (true)
+                {
+                    int s = nums[p] + nums[p2];
+                    if (s > target)
+                    {
+                        p = p1 + (p - p1) / 2;
+                    }
+                    else if (s < target)
+                    {
+                        p = p + (p2 - p) / 2;
+                    }
+                    else
+                        return {p, p2};
+                    printf("p = %d\n", p);
+                    if (nums[p] + nums[p2] < target && nums[p+1] + nums[p2] > target)
+                    {
+                        p1 = p;
+                        break;
+                    }
+                }
+            }
+            else if (sum > target)
+            {
+                int p = p1 + (p2 - p1) / 2;
+                while (true)
+                {
+                    int s = nums[p1] + nums[p];
+                    if (s > target)
+                    {
+                        p = p1 + (p - p1) / 2;
+                    }
+                    else if (s < target)
+                    {
+                        p = p + (p2 - p) / 2;
+                    }
+                    else
+                        return {p1, p};
+                    if (nums[p1] + nums[p] > target && nums[p1] + nums[p-1] < target)
+                    {
+                        p2 = p;
+                        break;
+                    } 
+                }
+            }
+            else
+                return {p1, p2};
+        }
+        return {};
     }
-};
-```
+    ```
+
+    想法是，对于 p2，先让 p1 在 p1 和 p2 间二分查找，找到使得和大于 target 时，p1 的最小值。
+
+    然后固定 p1，让 p2 在 p1 和 p2 间二分查找，找到使得和小于 target 时，p2 的最大值。
+
+    就这样迭代循环，直到让 p1 和 p2 都找到正确的值。
+
+    这个算法是否有问题？或者说，算法没问题，代码有问题？
 
 2. 后来又写的
 
