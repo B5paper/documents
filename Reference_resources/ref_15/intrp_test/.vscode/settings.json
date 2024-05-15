@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "ktime.h": "c",
+        "init.h": "c",
+        "build_bug.h": "c",
+        "compiler.h": "c",
+        "jiffies.h": "c",
+        "minmax.h": "c",
+        "cache.h": "c",
+        "kernel.h": "c",
+        "const.h": "c",
+        "err.h": "c",
+        "vermagic.h": "c",
+        "export-internal.h": "c"
+    }
+}
