@@ -287,8 +287,12 @@ drwxr-xr-x 16 root root 4.0K  2月 18 09:31 kernel
 如果使用的是 Ubuntu 系统，下载源码可以在`apt`里下载：
 
 ```bash
-
+apt-cache search linux-source
 ```
+
+使用`uname -r`查看当前内核的版本，找到对应的版本。
+
+编译内核需要用到`flex`, `bison`, `libssh-dev`, `libelf-dev`
 
 1. 编译内核（在 Ubuntu 22.04 下编译）
 

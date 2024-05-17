@@ -503,3 +503,5 @@ arbitration prn. [ˌɑːrbɪˈtreɪʃn] n. 仲裁
 transaction n. 事务
 
 synonymous adj. 同义的，同义词的
+
+distract v. 分散，使分心
