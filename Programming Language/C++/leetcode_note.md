@@ -22965,6 +22965,10 @@ s and t 仅包含小写字母
     };
     ```
 
+    这个解法的思路是，遍历所有的字符串，建立一个字符串到它所在的分组索引的映射`m`，对于每个字符串`str`，遍历`m`找与它异位的字符串，如果能找到，那么就直接把`str`放到对应的分组里，如果找不到，那么就新建一个分组。
+
+    显然这是一个二重循环，复杂度`O(n^2)`。
+
 1. 官方给的方法一，将排序后的字符串作为哈希的键
 
     ```c++
@@ -23065,6 +23069,49 @@ s and t 仅包含小写字母
         }
     };
     ```
+
+1. 自己写的数组计数，击败 5%
+
+    ```cpp
+    class Solution {
+    public:
+        vector<vector<string>> groupAnagrams(vector<string>& strs) {
+            vector<vector<string>> ans;
+            vector<array<int, 26>> cnts;
+            bool exist;
+            for (int i = 0; i < strs.size(); ++i)
+            {
+                string &str = strs[i];
+                array<int, 26> cnt = {0};
+                exist = false;
+                for (char c: str)
+                {
+                    cnt[c - 'a']++;
+                }
+                for (int j = 0; j < cnts.size(); ++j)
+                {
+                    if (cnt == cnts[j])
+                    {
+                        exist = true;
+                        ans[j].push_back(str);
+                        break;
+                    }
+                }
+                if (!exist)
+                {
+                    cnts.push_back(cnt);
+                    ans.push_back({});
+                    ans.back().push_back(str);
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    使用 26 个字母中各个字符出现的次数来表示一组字符串的特征，对于每个字符串，都先抽取特征，再遍历一遍已有特征，看看是否有匹配。
+    
+    时间复杂度`O(nm)`，其中`n`是字符串的个数，`m`是特征的个数。
 
 ### 字符串相乘
 

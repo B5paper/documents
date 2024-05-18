@@ -1363,32 +1363,6 @@ params:
 void cdev_del(struct cdev *p)
 ```
 
-Example:
-
-```c
-dev_t dev;  // 设备号
-struct cdev my_cdev;  // 声明 cdev
-
-int my_cdev_open(struct inode *inode, struct file *flip)
-{
-    
-}
-
-ssize_t my_cdev_read()
-{
-
-}
-
-struct file_operations cdd_fops = {  // GNU C 额外语法，选择性地初始化
-    .owner = THIS_MODULE,
-    .open = my_cdev_open,
-    .read = my_cdev_read,
-    .write = cdd_write,
-    .unlocked_ioctl = cdd_ioctl,  // ioctl 接口
-    .release = cdd_release,  // 对应用户 close 接口
-};
-```
-
 `inode`是文件的节点结构，用来存储文件静态信息。文件创建时，内核中就会有一个 inode 结构
 
 `lsmod`除了可以列出当前已经加载的模块，还可以显示模块之间的依赖关系。
@@ -1749,6 +1723,83 @@ Explanation:
     ```c
     void device_destroy(struct class *class, dev_t devt)
     ```
+
+一个更加简洁的版本（没有添加错误处理，以及函数是否正常运行的判断）：
+
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/cdev.h>
+#include <linux/fs.h>
+#include <linux/device.h>
+
+dev_t dev_num;
+struct cdev my_cdev;
+struct class *dev_cls;
+struct device *dev;
+
+int m_open(struct inode *inode, struct file *file);
+int m_release(struct inode *inode, struct file *file);
+ssize_t m_read(struct file *file, char __user *buf, size_t size, loff_t *offset);
+ssize_t m_write(struct file *file, const char __user *buf, size_t size, loff_t *offset);
+
+struct file_operations fops = {
+    .open = m_open,
+    .release = m_release,
+    .read = m_read,
+    .write = m_write
+};
+
+int init_mod(void)
+{
+    pr_info("in init_mod()...\n");
+    alloc_chrdev_region(&dev_num, 0, 1, "hlc_dev_num");
+    cdev_init(&my_cdev, &fops);
+    cdev_add(&my_cdev, dev_num, 1);
+    dev_cls = class_create("hlc_dev_cls");
+    dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
+    pr_info("init hlc module done.\n");
+    return 0;
+}
+
+void exit_mod(void)
+{
+    pr_info("in exit_mod()...\n");
+    device_destroy(dev_cls, dev_num);
+    class_destroy(dev_cls);
+    cdev_del(&my_cdev);
+    unregister_chrdev_region(dev_num, 1);
+    pr_info("exit hlc module done.\n");
+}
+
+module_init(init_mod);
+module_exit(exit_mod);
+MODULE_LICENSE("GPL");
+
+int m_open(struct inode *inode, struct file *file)
+{
+    pr_info("in m_open()...\n");
+    return 0;
+}
+
+int m_release(struct inode *inode, struct file *file)
+{
+    pr_info("in m_release()...\n");
+    return 0;
+}
+
+ssize_t m_read(struct file *file, char __user *buf, size_t size, loff_t *offset)
+{
+    pr_info("in m_read()...\n");
+    return 0;
+}
+
+ssize_t m_write(struct file *file, const char __user *buf, size_t size, loff_t *offset)
+{
+    pr_info("in m_write()...\n");
+    return 0;
+}
+```
 
 ### user mode program for device file
 
