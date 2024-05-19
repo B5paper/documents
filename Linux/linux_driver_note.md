@@ -6,6 +6,945 @@ Ref:
 
 ## cache
 
+* `request_irq()`
+
+    header: `#include <linux/interrupt.h>`
+
+* `struct work_struct`
+
+    header: `#include <linux/workqueue.h>`
+
+* `__this_cpu_write()`
+
+    header: `asm/hw_irq.h`
+
+* 一个可用的`INIT_WORK()`的代码，见`ref_17`
+
+    测试：
+
+    ```bash
+    make
+    sudo insmod wque.ko
+    sudo cat /dev/hlc_dev
+    ```
+
+    `dmesg` output:
+
+    ```
+    [25350.311799] init hlc module done.
+    [25366.856255] in m_open()...
+    [25366.856262] in m_read()...
+    [25366.856265] in irq_handler()...
+    [25366.856272] in m_release()...
+    [25366.856312] in work_queue_fn()...
+    [25414.842921] in exit_mod()...
+    [25414.843190] exit hlc module done.
+    ```
+
+    explanation:
+
+    1. 在创建`work_struct`对象的时候，需要我们自己申请内存，要么就直接创建全局变量，不能只创建一个指针。
+
+        代码中使用`struct work_struct work_item;`创建了个全局对象。
+
+        这一点和`class_create()`，`device_create()`挺不一样的，这两个函数都是只返回指针，内存由操作系统管理。
+
+    2. `INIT_WORK()`需要将`work_struct`的指针传进去：
+    
+        `INIT_WORK(&work_item, work_queue_fn);`
+
+    3. `schedule_work()`传的也是指针：
+
+        `schedule_work(&work_item);`
+
+    4. 这份代码不包含函数返回值检测和异常处理，所以比较简洁。
+
+* work queue 的一个 example
+
+    ```c
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include<linux/slab.h>                 //kmalloc()
+    #include<linux/uaccess.h>              //copy_to/from_user()
+    #include<linux/sysfs.h> 
+    #include<linux/kobject.h> 
+    #include <linux/interrupt.h>
+    #include <asm/io.h>
+    #include <linux/workqueue.h>            // Required for workqueues
+    #include <linux/err.h>
+    #include <asm/hw_irq.h>
+
+    #define IRQ_NO 11
+
+
+    void workqueue_fn(struct work_struct *work); 
+
+    /*Creating work by Static Method */
+    DECLARE_WORK(workqueue,workqueue_fn);
+
+    /*Workqueue Function*/
+    void workqueue_fn(struct work_struct *work)
+    {
+        printk(KERN_INFO "Executing Workqueue Function\n");
+    }
+
+
+    //Interrupt handler for IRQ 11. 
+    static irqreturn_t irq_handler(int irq,void *dev_id) {
+    printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+    bool ret = schedule_work(&workqueue);
+    if (!ret)
+    {
+        pr_info("fail to schedule work\n");
+    }
+    else
+    {
+        pr_info("successfully schedule work\n");
+    }
+        
+    return IRQ_HANDLED;
+    }
+
+
+    volatile int etx_value = 0;
+
+
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
+    struct kobject *kobj_ref;
+
+    /*
+    ** Function Prototypes
+    */
+    static int __init etx_driver_init(void);
+    static void __exit etx_driver_exit(void);
+
+    /*************** Driver Fuctions **********************/
+    static int etx_open(struct inode *inode, struct file *file);
+    static int etx_release(struct inode *inode, struct file *file);
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len,loff_t * off);
+    static ssize_t etx_write(struct file *filp, 
+                    const char *buf, size_t len, loff_t * off);
+
+    /*************** Sysfs Fuctions **********************/
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf);
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count);
+
+    struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+
+    /*
+    ** File operation sturcture
+    */
+    static struct file_operations fops =
+    {
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
+    };
+
+    /*
+    ** This function will be called when we read the sysfs file
+    */ 
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf)
+    {
+        printk(KERN_INFO "Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
+    }
+
+    /*
+    ** This function will be called when we write the sysfsfs file
+    */
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count)
+    {
+        printk(KERN_INFO "Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
+    }
+
+    /*
+    ** This function will be called when we open the Device file
+    */  
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+        printk(KERN_INFO "Device File Opened...!!!\n");
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we close the Device file
+    */  
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+        printk(KERN_INFO "Device File Closed...!!!\n");
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we read the Device file
+    */
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len, loff_t *off)
+    {
+        pr_info("Read function\n");
+        struct irq_desc *desc;
+        desc = irq_to_desc(11);
+        if (!desc)
+                return -EINVAL;
+        __this_cpu_write(vector_irq[59], desc);
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we write the Device file
+    */
+    static ssize_t etx_write(struct file *filp, 
+                    const char __user *buf, size_t len, loff_t *off)
+    {
+        printk(KERN_INFO "Write Function\n");
+        return len;
+    }
+
+    /*
+    ** Module Init function
+    */
+    static int __init etx_driver_init(void)
+    {
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                printk(KERN_INFO "Cannot allocate major number\n");
+                return -1;
+        }
+        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+        printk(KERN_INFO "Cannot add the device to the system\n");
+        goto r_class;
+        }
+
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create("etx_class"))){
+        printk(KERN_INFO "Cannot create the struct class\n");
+        goto r_class;
+        }
+
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+        printk(KERN_INFO "Cannot create the Device 1\n");
+        goto r_device;
+        }
+
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                printk(KERN_INFO"Cannot create sysfs file......\n");
+                goto r_sysfs;
+        }
+        if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+        printk(KERN_INFO "my_device: cannot register IRQ ");
+                goto irq;
+        }
+        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+
+    irq:
+        free_irq(IRQ_NO,(void *)(irq_handler));
+
+    r_sysfs:
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+
+    r_device:
+        class_destroy(dev_class);
+    r_class:
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
+    }
+
+    /*
+    ** Module exit function
+    */
+
+    static void __exit etx_driver_exit(void)
+    {
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+    }
+
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("Simple Linux device driver (Global Workqueue - Static method)");
+    MODULE_VERSION("1.10");
+    ```
+
+    需要的头文件：
+
+    `#include <linux/workqueue.h>`
+
+    ```c
+    void workqueue_fn(struct work_struct *work); 
+    DECLARE_WORK(workqueue,workqueue_fn);
+    ```
+
+    用宏创建一个变量`workqueue`，让其与一个函数产生关联。
+
+    `schedule_work(&workqueue);`
+
+    让`workqueue`对应的线程函数从睡眠状态唤醒，并放入主队列进行执行。
+
+    `dmesg` output:
+
+    ```
+    [ 1789.389643] Major = 240 Minor = 0
+    [ 1789.390326] Device Driver Insert...Done!!!
+    [ 1802.603002] Device File Opened...!!!
+    [ 1802.603029] Read function
+    [ 1802.603040] Shared IRQ: Interrupt Occurred
+    [ 1802.603048] successfully schedule work
+    [ 1802.603058] Executing Workqueue Function
+    [ 1802.603085] Device File Closed...!!!
+    ```
+
+    可以看到，可以通过 work queue，控制线程的休眠和唤醒。
+
+    疑问：
+
+    1. 当 work queue 对应的函数执行完毕时，是否线程会自动进入休眠？
+
+        猜想：应该会自动进入休眠。不然函数执行完了也没有其他什么事可做。
+
+        不过还有一种可能，即线程死亡，每次 schedule work 都重新创建一个新的线程。
+
+        休眠-唤醒，和死亡-重建，哪个是对的？
+
+    2. work queue 和 wait event 有什么不同？
+
+        work queue 可以用`schedule_work()`唤醒（或新建）一个线程，wait event 可以使用`wake_up()`唤醒一个线程，这两都有什么不一样？
+
+* vscode 中有时 tab 会变成 8 个空格，可以关闭这个设置：
+
+    `Editor: Detect Indentation`
+
+* `flush_work()`可以阻塞等待指定的 work，直到 work 完成。
+
+    syntax:
+
+    `int flush_work( struct work_struct *work );`
+
+    `flush_scheduled_work()`可以等待全局共享的 work queue 完成。
+
+    example: 见`ref_16`
+
+    执行`cat /dev/etx_device`后，可以看到`dmesg`的输出：
+
+    ```
+    [ 6195.143524] Major = 240 Minor = 0 
+    [ 6195.143595] Device Driver Insert...Done!!!
+    [ 6214.544080] Device File Opened...!!!
+    [ 6214.544095] Read function
+    [ 6214.544101] Shared IRQ: Interrupt Occurred
+    [ 6214.544104] successfully schedule work
+    [ 6214.544105] block flush scheduled work
+    [ 6214.544107] BUG: scheduling while atomic: cat/12786/0x00010001
+    [ 6214.544110] Modules linked in: hello(OE) tls(E) intel_rapl_msr(E) intel_rapl_common(E) intel_uncore_frequency_common(E) snd_intel8x0(E) binfmt_misc(E) snd_ac97_codec(E) ac97_bus(E) crct10dif_pclmul(E) polyval_clmulni(E) polyval_generic(E) ghash_clmulni_intel(E) nls_iso8859_1(E) snd_pcm(E) sha256_ssse3(E) sha1_ssse3(E) aesni_intel(E) crypto_simd(E) cryptd(E) joydev(E) snd_seq_midi(E) rapl(E) snd_seq_midi_event(E) snd_rawmidi(E) input_leds(E) vmwgfx(E) snd_seq(E) serio_raw(E) drm_ttm_helper(E) snd_seq_device(E) snd_timer(E) snd(E) ttm(E) soundcore(E) drm_kms_helper(E) vboxguest(E) mac_hid(E) sch_fq_codel(E) msr(E) parport_pc(E) ppdev(E) drm(E) lp(E) parport(E) efi_pstore(E) ip_tables(E) x_tables(E) autofs4(E) hid_generic(E) usbhid(E) crc32_pclmul(E) hid(E) psmouse(E) ahci(E) libahci(E) i2c_piix4(E) e1000(E) pata_acpi(E) video(E) wmi(E) [last unloaded: hello(OE)]
+    [ 6214.544151] CPU: 2 PID: 12786 Comm: cat Tainted: G        W  OE      6.5.13 #4
+    [ 6214.544154] Hardware name: innotek GmbH VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006
+    [ 6214.544155] Call Trace:
+    [ 6214.544157]  <IRQ>
+    [ 6214.544159]  dump_stack_lvl+0x48/0x70
+    [ 6214.544165]  dump_stack+0x10/0x20
+    [ 6214.544166]  __schedule_bug+0x64/0x80
+    [ 6214.544169]  __schedule+0x100c/0x15f0
+    [ 6214.544174]  schedule+0x68/0x110
+    [ 6214.544176]  schedule_timeout+0x151/0x160
+    [ 6214.544181]  __wait_for_common+0x92/0x190
+    [ 6214.544183]  ? __pfx_schedule_timeout+0x10/0x10
+    [ 6214.544185]  wait_for_completion+0x24/0x40
+    [ 6214.544188]  __flush_workqueue+0x133/0x3e0
+    [ 6214.544190]  ? vprintk_default+0x1d/0x30
+    [ 6214.544194]  irq_handler+0x55/0x80 [hello]
+    [ 6214.544199]  __handle_irq_event_percpu+0x4f/0x1b0
+    [ 6214.544201]  handle_irq_event+0x39/0x80
+    [ 6214.544204]  handle_edge_irq+0x8c/0x250
+    [ 6214.544207]  __common_interrupt+0x52/0x110
+    [ 6214.544209]  common_interrupt+0x9f/0xb0
+    [ 6214.544212]  </IRQ>
+    [ 6214.544212]  <TASK>
+    [ 6214.544213]  asm_common_interrupt+0x27/0x40
+    [ 6214.544217] RIP: 0010:etx_read+0x2e/0x50 [hello]
+    [ 6214.544221] Code: 00 55 48 c7 c7 db 12 99 c0 48 89 e5 e8 0b 90 08 d8 bf 0b 00 00 00 e8 61 fa 08 d8 48 85 c0 74 14 65 48 89 05 fc de 70 3f cd 3b <31> c0 5d 31 ff c3 cc cc cc cc 48 c7 c0 ea ff ff ff 5d 31 ff c3 cc
+    [ 6214.544223] RSP: 0018:ffffacfb01fe7d98 EFLAGS: 00000286
+    [ 6214.544225] RAX: ffff8a8b00205200 RBX: 0000000000020000 RCX: 0000000000000000
+    [ 6214.544226] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+    [ 6214.544227] RBP: ffffacfb01fe7d98 R08: 0000000000000000 R09: 0000000000000000
+    [ 6214.544228] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+    [ 6214.544229] R13: ffff8a8a52457700 R14: ffffacfb01fe7e50 R15: 000077e41adfe000
+    [ 6214.544232]  ? etx_read+0x1f/0x50 [hello]
+    [ 6214.544235]  vfs_read+0xb4/0x320
+    [ 6214.544238]  ? __handle_mm_fault+0xb88/0xc70
+    [ 6214.544242]  ksys_read+0x67/0xf0
+    [ 6214.544244]  __x64_sys_read+0x19/0x30
+    [ 6214.544245]  x64_sys_call+0x192c/0x2570
+    [ 6214.544248]  do_syscall_64+0x56/0x90
+    [ 6214.544250]  ? exit_to_user_mode_prepare+0x39/0x190
+    [ 6214.544253]  ? irqentry_exit_to_user_mode+0x17/0x20
+    [ 6214.544255]  ? irqentry_exit+0x43/0x50
+    [ 6214.544256]  ? exc_page_fault+0x95/0x1b0
+    [ 6214.544259]  entry_SYSCALL_64_after_hwframe+0x73/0xdd
+    [ 6214.544261] RIP: 0033:0x77e41ab147e2
+    [ 6214.544263] Code: c0 e9 b2 fe ff ff 50 48 8d 3d 8a b4 0c 00 e8 a5 1d 02 00 0f 1f 44 00 00 f3 0f 1e fa 64 8b 04 25 18 00 00 00 85 c0 75 10 0f 05 <48> 3d 00 f0 ff ff 77 56 c3 0f 1f 44 00 00 48 83 ec 28 48 89 54 24
+    [ 6214.544264] RSP: 002b:00007ffdc7545928 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+    [ 6214.544266] RAX: ffffffffffffffda RBX: 0000000000020000 RCX: 000077e41ab147e2
+    [ 6214.544267] RDX: 0000000000020000 RSI: 000077e41adfe000 RDI: 0000000000000003
+    [ 6214.544268] RBP: 000077e41adfe000 R08: 000077e41adfd010 R09: 000077e41adfd010
+    [ 6214.544269] R10: 0000000000000022 R11: 0000000000000246 R12: 0000000000022000
+    [ 6214.544270] R13: 0000000000000003 R14: 0000000000020000 R15: 0000000000020000
+    [ 6214.544272]  </TASK>
+    [ 6214.544277] Executing Workqueue Function
+    [ 6214.544278] i: 1
+    [ 6214.544278] i: 2
+    [ 6214.544279] i: 3
+    [ 6214.544279] i: 4
+    [ 6214.544279] i: 5
+    [ 6214.544280] i: 6
+    [ 6214.544280] i: 7
+    [ 6214.544281] i: 8
+    [ 6214.544281] i: 9
+    [ 6214.544282] i: 10
+    [ 6214.544287] work queue flushed!
+    [ 6214.544304] cat[12786]: segfault at 77e41aa89210 ip 000077e41aa89210 sp 00007ffdc7545a68 error 14 in libc.so.6[77e41aa28000+195000] likely on CPU 2 (core 2, socket 0)
+    [ 6214.544313] Code: Unable to access opcode bytes at 0x77e41aa891e6.
+    [ 6214.544325] BUG: scheduling while atomic: cat/12786/0x7fff0001
+    [ 6214.544326] Modules linked in: hello(OE) tls(E) intel_rapl_msr(E) intel_rapl_common(E) intel_uncore_frequency_common(E) snd_intel8x0(E) binfmt_misc(E) snd_ac97_codec(E) ac97_bus(E) crct10dif_pclmul(E) polyval_clmulni(E) polyval_generic(E) ghash_clmulni_intel(E) nls_iso8859_1(E) snd_pcm(E) sha256_ssse3(E) sha1_ssse3(E) aesni_intel(E) crypto_simd(E) cryptd(E) joydev(E) snd_seq_midi(E) rapl(E) snd_seq_midi_event(E) snd_rawmidi(E) input_leds(E) vmwgfx(E) snd_seq(E) serio_raw(E) drm_ttm_helper(E) snd_seq_device(E) snd_timer(E) snd(E) ttm(E) soundcore(E) drm_kms_helper(E) vboxguest(E) mac_hid(E) sch_fq_codel(E) msr(E) parport_pc(E) ppdev(E) drm(E) lp(E) parport(E) efi_pstore(E) ip_tables(E) x_tables(E) autofs4(E) hid_generic(E) usbhid(E) crc32_pclmul(E) hid(E) psmouse(E) ahci(E) libahci(E) i2c_piix4(E) e1000(E) pata_acpi(E) video(E) wmi(E) [last unloaded: hello(OE)]
+    [ 6214.544347] CPU: 2 PID: 12786 Comm: cat Tainted: G        W  OE      6.5.13 #4
+    [ 6214.544349] Hardware name: innotek GmbH VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006
+    [ 6214.544349] Call Trace:
+    [ 6214.544350]  <TASK>
+    [ 6214.544351]  dump_stack_lvl+0x48/0x70
+    [ 6214.544353]  dump_stack+0x10/0x20
+    [ 6214.544354]  __schedule_bug+0x64/0x80
+    [ 6214.544355]  __schedule+0x100c/0x15f0
+    [ 6214.544357]  schedule+0x68/0x110
+    [ 6214.544359]  schedule_timeout+0x151/0x160
+    [ 6214.544361]  __wait_for_common+0x92/0x190
+    [ 6214.544363]  ? __pfx_schedule_timeout+0x10/0x10
+    [ 6214.544364]  wait_for_completion_state+0x21/0x50
+    [ 6214.544366]  call_usermodehelper_exec+0x188/0x1c0
+    [ 6214.544370]  do_coredump+0xa35/0x1680
+    [ 6214.544374]  ? do_dec_rlimit_put_ucounts+0x6b/0xd0
+    [ 6214.544377]  get_signal+0x97b/0xae0
+    [ 6214.544379]  arch_do_signal_or_restart+0x2f/0x270
+    [ 6214.544381]  ? __bad_area_nosemaphore+0x147/0x2e0
+    [ 6214.544384]  exit_to_user_mode_prepare+0x11b/0x190
+    [ 6214.544386]  irqentry_exit_to_user_mode+0x9/0x20
+    [ 6214.544387]  irqentry_exit+0x43/0x50
+    [ 6214.544388]  exc_page_fault+0x95/0x1b0
+    [ 6214.544390]  asm_exc_page_fault+0x27/0x30
+    [ 6214.544392] RIP: 0033:0x77e41aa89210
+    [ 6214.544395] Code: Unable to access opcode bytes at 0x77e41aa891e6.
+    [ 6214.544395] RSP: 002b:00007ffdc7545a68 EFLAGS: 00010246
+    [ 6214.544396] RAX: 000077e41ac1b868 RBX: 0000000000000000 RCX: 0000000000000004
+    [ 6214.544397] RDX: 0000000000000001 RSI: 0000000000000000 RDI: 000077e41ac1b780
+    [ 6214.544398] RBP: 000077e41ac1b780 R08: 000077e41adfd000 R09: 000077e41adfd010
+    [ 6214.544399] R10: 0000000000000022 R11: 0000000000000246 R12: 000077e41ac1a838
+    [ 6214.544400] R13: 0000000000000000 R14: 000077e41ac1bee8 R15: 000077e41ac1bf00
+    [ 6214.544401]  </TASK>
+    [ 6214.552103] Device File Closed...!!!
+    ```
+
+    虽然有一些报错输出，但是可以看到这一段还是按照顺序执行的：
+
+    ```
+    [ 6214.544277] Executing Workqueue Function
+    [ 6214.544278] i: 1
+    [ 6214.544278] i: 2
+    [ 6214.544279] i: 3
+    [ 6214.544279] i: 4
+    [ 6214.544279] i: 5
+    [ 6214.544280] i: 6
+    [ 6214.544280] i: 7
+    [ 6214.544281] i: 8
+    [ 6214.544281] i: 9
+    [ 6214.544282] i: 10
+    [ 6214.544287] work queue flushed!
+    ```
+
+    由于从 1 到 10 没有中断，所以确实发生了等待。
+
+    将代码中的`flush_scheduled_work();`換成`flush_work(&workqueue);`后，同样适用。
+
+    ref:
+
+    1. <http://juniorprincewang.github.io/2018/11/20/Linux%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E4%B9%8Bworkqueue/>
+
+    2. <https://embetronicx.com/tutorials/linux/device-drivers/workqueue-in-linux-kernel/>
+
+* 对于新版内核，由于我们不知道第一个 irq vector 的地址，所以只能重新编译内核
+
+    `intrp.c`:
+
+    ```c
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include<linux/slab.h>                 //kmalloc()
+    #include<linux/uaccess.h>              //copy_to/from_user()
+    #include<linux/sysfs.h> 
+    #include<linux/kobject.h> 
+    #include <linux/interrupt.h>
+    #include <linux/irqnr.h>
+    #include <asm/io.h>
+    #include <linux/err.h>
+    #include <asm/hw_irq.h>
+    #define IRQ_NO 11
+    //Interrupt handler for IRQ 11. 
+    static irqreturn_t irq_handler(int irq,void *dev_id) {
+            printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+            return IRQ_HANDLED;
+    }
+    volatile int etx_value = 0;
+    
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
+    struct kobject *kobj_ref;
+    
+    static int __init etx_driver_init(void);
+    static void __exit etx_driver_exit(void);
+    /*************** Driver Fuctions **********************/
+    static int etx_open(struct inode *inode, struct file *file);
+    static int etx_release(struct inode *inode, struct file *file);
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len,loff_t * off);
+    static ssize_t etx_write(struct file *filp, 
+                    const char *buf, size_t len, loff_t * off);
+    /*************** Sysfs Fuctions **********************/
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf);
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count);
+    struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+    
+    static struct file_operations fops =
+    {
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .release        = etx_release,
+    };
+    
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf)
+    {
+            printk(KERN_INFO "Sysfs - Read!!!\n");
+            return sprintf(buf, "%d", etx_value);
+    }
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count)
+    {
+            printk(KERN_INFO "Sysfs - Write!!!\n");
+            sscanf(buf,"%d",&etx_value);
+            return count;
+    }
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+            printk(KERN_INFO "Device File Opened...!!!\n");
+            return 0;
+    }
+    
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+            printk(KERN_INFO "Device File Closed...!!!\n");
+            return 0;
+    }
+
+    // extern struct irq_desc* vector_irq;
+    
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len, loff_t *off)
+    {
+         printk(KERN_INFO "Read function\n");
+        struct irq_desc *desc;
+        desc = irq_to_desc(11);
+        if (!desc)
+        {
+                return -EINVAL;
+        }
+        __this_cpu_write(vector_irq[59], desc);
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+    }
+    static ssize_t etx_write(struct file *filp, 
+                    const char __user *buf, size_t len, loff_t *off)
+    {
+            printk(KERN_INFO "Write Function\n");
+            return len;
+    }
+
+    
+    static int __init etx_driver_init(void)
+    {
+            /*Allocating Major number*/
+            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                    printk(KERN_INFO "Cannot allocate major number\n");
+                    return -1;
+            }
+            printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+    
+            /*Creating cdev structure*/
+            cdev_init(&etx_cdev,&fops);
+    
+            /*Adding character device to the system*/
+            if((cdev_add(&etx_cdev,dev,1)) < 0){
+                printk(KERN_INFO "Cannot add the device to the system\n");
+                goto r_class;
+            }
+    
+            /*Creating struct class*/
+            if(IS_ERR(dev_class = class_create("etx_class"))){
+                printk(KERN_INFO "Cannot create the struct class\n");
+                goto r_class;
+            }
+    
+            /*Creating device*/
+            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+                printk(KERN_INFO "Cannot create the Device 1\n");
+                goto r_device;
+            }
+    
+            /*Creating a directory in /sys/kernel/ */
+            kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+    
+            /*Creating sysfs file for etx_value*/
+            if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                    printk(KERN_INFO"Cannot create sysfs file......\n");
+                    goto r_sysfs;
+            }
+            if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+                printk(KERN_INFO "my_device: cannot register IRQ ");
+                        goto irq;
+            }
+            printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+    irq:
+            free_irq(IRQ_NO,(void *)(irq_handler));
+    r_sysfs:
+            kobject_put(kobj_ref); 
+            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    
+    r_device:
+            class_destroy(dev_class);
+    r_class:
+            unregister_chrdev_region(dev,1);
+            cdev_del(&etx_cdev);
+            return -1;
+    }
+    
+    static void __exit etx_driver_exit(void)
+    {
+            free_irq(IRQ_NO,(void *)(irq_handler));
+            kobject_put(kobj_ref); 
+            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+            device_destroy(dev_class,dev);
+            class_destroy(dev_class);
+            cdev_del(&etx_cdev);
+            unregister_chrdev_region(dev, 1);
+            printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+    }
+    
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    其中`#include <linux/irqnr.h>`用于提供`irq_to_desc()`函数的声明。
+
+    如果此时直接编译，会看到 undefined symbol 的 error 输出。这时我们需要重新编译内核。
+
+    首先是下载内核，可以直接使用`apt-get download linux-source`，这个命令下载的内核版本不一定是最新版，可能是刚装系统时的内核版本。
+    
+    还可以搜索目前可用的版本：
+
+    `apt-cache search linux-source`
+
+    ref: <https://askubuntu.com/questions/159833/how-do-i-get-the-kernel-source-code>
+
+    源码会被下载到`/usr/src`中，分别是一个`.tar.bz2`的压缩包的 symbolic link，和一个已经解压缩的目录，比如`linux-source-6.5.0`。
+
+    我们直接对这个`.tar.bz`的文件解压缩，就能在`/usr/src`下得到内核源码。
+
+    进入目录后，执行`cp -v /boot/config-$(uname -r) .confi`（可能是备份一下配置文件？）
+
+    编译内核前还需要安装几个依赖库：
+
+    `apt-get install bison flex libssl-dev libelf-dev`
+
+    如果安装得不够，在 make 的时候会报错，按照提示安装就可以了。
+
+    接下来找到`arch/x86/kernel/irq.c`文件，在最后添加一行：
+
+    ```c
+    EXPORT_SYMBOL (vector_irq);
+    ```
+
+    然后找到`kernel/irq/irqdesc.c`文件，注意这个文件中有两个`irq_to_desc()`函数的定义，我们在 379 行附近找到一个，添加上 export symbol:
+
+    ```c
+    struct irq_desc *irq_to_desc(unsigned int irq) 
+    {
+            return mtree_load(&sparse_irqs, irq);
+    }
+    EXPORT_SYMBOL(irq_to_desc);
+    ```
+
+    另外一个定义在 609 行附近，这个函数已经被 export symbol 过了，我们就不用管了。
+
+    这两个函数定义是被宏控制的，实际编译的时候根据`#ifdef`之类的命令，只会生效一次。由于不知道具体是哪个生效，所以直接把两个处定义都 export 了。
+
+    接下来执行：
+
+    ```bash
+    make oldconfig
+    make menuconfig
+    ```
+
+    基本什么都不用改，保存后退出就可以了。
+
+    然后`sudo vim .config`，把 system tructed keys 之类的清空，不然一会编译会报错：
+
+    ```conf
+    CONFIG_SYSTEM_TRUSTED_KEYRING=y
+    CONFIG_SYSTEM_TRUSTED_KEYS=""
+    ```
+
+    ref:
+    
+    1. <https://blog.csdn.net/m0_47696151/article/details/121574718>
+
+    2. <https://blog.csdn.net/qq_36393978/article/details/118157426>
+
+    接下来就可以开始编译了：
+
+    ```bash
+    sudo make -j4
+    ```
+
+    4 线程编译大概要花 20 多分钟。
+
+    编译好后执行：
+    
+    ```bash
+    sudo make modules_install
+    sudo make install
+    ```
+
+    然后更新引导：
+
+    ```bash
+    sudo update-initramfs -c -k 6.5.0
+    sudo update-grub
+    ```
+
+    这里的`6.5.0`将来会变成`uname -r`的输出。
+
+    最后重启系统：`reboot`，就大功告成了。
+
+    接下来我们正常编译 kernel module，然后`insmode`，再进入`/dev`目录下，执行测试命令：
+
+    ```bash
+    sudo cat /dev/etx_device
+    ```
+
+    此时可以看到`dmesg` output:
+
+    ```
+    [   39.678202] intrp: loading out-of-tree module taints kernel.
+    [   39.678390] Major = 240 Minor = 0
+    [   39.678709] Device Driver Insert...Done!!!
+    [   79.901307] Device File Opened...!!!
+    [   79.901314] Read function
+    [   79.901317] Shared IRQ: Interrupt Occurred
+    [   79.901322] Device File Closed...!!!
+    ```
+
+    中断触发成功。
+
+* kernel module 编译时出现 undefine symbol 是因为没有 export symbol
+
+    ref: <https://blog.csdn.net/choumin/article/details/127094429>
+
+* kbuild　添加自定义的 .o　文件
+
+    ```makefile
+    obj-m += haha.o
+    haha-src := my_proc.c
+    haha-objs := my_proc.o relative/path/to/hehe.o
+    ```
+
+    ref: <https://stackoverflow.com/questions/22150812/linking-kernel-module-with-a-static-lib>
+
+    注意，在`xxx-objs`中使用的路径，都是相对于当前目录的路径。
+
+* kbuild doc
+
+    <https://docs.kernel.org/kbuild/makefiles.html>
+
+* kbuild add extra flags to compiler
+
+    <https://stackoverflow.com/questions/54118602/how-to-set-preprocessor-directives-in-makefile-for-kernel-module-build-target>
+
+* 一个可用的 irq 软中断程序，见`ref_15`
+
+    在编译完，`insmod`之后，可以使用`sudo cat /dev/etx_device`触发中断，然后可以看到`dmesg`里显示：
+
+    ```
+    [12575.759721] intrp: loading out-of-tree module taints kernel.
+    [12575.759724] intrp: module verification failed: signature and/or required key missing - tainting kernel
+    [12575.760032] Major = 240 Minor = 0 
+    [12575.760356] Device Driver Insert...Done!!!
+    [12715.415083] Device File Opened...!!!
+    [12715.415103] Read function
+    [12715.415107] __common_interrupt: 1.59 No irq handler for vector
+    [12715.415119] Device File Closed...!!!
+    ```
+
+    11 号中断是保留中断，没有默认用途，因此用户可以去自定义。
+
+    代码中比较难理解的是`asm("int $0x3B");  // Corresponding to irq 11`这一句。
+
+    我们可以打开`/usr/src/linux-headers-6.5.0-28-generic/arch/x86/include/asm/irq_vectors.h`文件，查到
+
+    `#define FIRST_EXTERNAL_VECTOR           0x20`
+
+    不清楚`#define IRQ0_VECTOR (FIRST_EXTERNAL_VECTOR + 0x10)`这一步是怎么来的。
+
+    最后还需要加上我们的中断号`11`，即`0x20 + 0x10 + 11 = 0x3B`，
+
+    这诚是`asm("int $0x3B");`的由来。
+
+* typical IRQ assignments for a PC
+
+    | IRQ number | Device |
+    | - | - |
+    | 0 | System timer |
+    | 1 | Keyboard (PS/2) |
+    | 2 | Cascade from IRQ 9 |
+    | 3 | COM port 2 or 4 |
+    | 4 | COM port 1 or 3 |
+    | 5 | Parallel (printer) port 2 or sound cards |
+    | 6 | Floppy drive controller |
+    | 7 | Parallel (printer) port 1 |
+    | 8 | Real-time clock |
+    | 9 | Video |
+    | 10 | Open |
+    | 11 | Open |
+    | 12 | Mouse (PS/2) |
+    | 13 | Coprocessor |
+    | 14 | Primary IDE controller (hard drives) |
+    | 15 | Secondary IDE controller (hard drives) |
+
+    ref: <https://www.techtarget.com/whatis/definition/IRQ-interrupt-request>
+
+* 页表用于将虚拟地址映射到物理地址
+
+    首先将物理地址按照 4 KB 进行分区，然后对每个小区间进行编号。
+
+    目前的 linux 指针是 8 个字节，即 64 位。但是虚拟地址并不需要 64 位，只用到了其中的 48 位。
+
+    其中 4 KB = 4 * 1024 Bytes = 2^2 * 2^10 Bytes = 2^12 Bytes，为了索引到每个字节，至少需要 12 位。
+
+    因此虚拟地址就分为两部分，一部分是前半段`48 - 12 = 36`位用于定位页表的 entry，一部分是后半段`12`位偏移，用于在 4KB 的 entry 中定位到具体的字节。
+
+    在 linux 中可以用命令`getconf PAGESIZE`查看页表每个 entry 的字节数。
+
+    ref:
+
+    1. <https://blog.csdn.net/m0_51717456/article/details/124256870>
+
+    2. <https://www.cnblogs.com/chaozhu/p/10191575.html>
+
+    3. <https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch07s04.html>
+
+    4. <https://medium.com/@aravindchetla/kmalloc-v-s-vmalloc-13cb60746bcc>
+
+    5. <https://www.kernel.org/doc/html/v5.0/core-api/mm-api.html#c.vmalloc>
+
+    6. <https://www.kernel.org/doc/html/v5.0/core-api/memory-allocation.html>
+
+
+* `vmalloc()`可以将不连续的物理地址通过链表的形式映射成连续的虚拟内存地址。
+
+    头文件：`#include <linux/vmalloc.h>`
+
+    ```c
+    void *vaddr = vmalloc(1024);
+    vfree(vaddr);
+    ```
+
+* `kthread_run()`
+
+    创建并唤醒该线程。
+    
+    等价于先调用`kthread_create()`，再调用`wake_up_process()`唤醒线程。
+
+    `kthread_run()`不是一个函数，而是一个宏。
+
+    syntax:
+
+    ```c
+    kthread_run(threadfn, data, namefmt, ...)
+    ```
+
+* `wait_event()`
+
+    `wait_event()`是一个宏。
+
+    syntax: `wait_event(wq, condition)`
+
+    休眠，直到`condition`为真，无法被手动打断。
+
+    队列中的 wait queue 被标记为`TASK_UNINTERRUPTIBLE`。
+
+* `wait_event()`和`wake_up()`传入的都是 wait queue head，即使 entry 加入到了 queue 里，也是处理 head。
+
+    猜想： wait queue 在 wait 时，会将与之相关联的 thread 休眠。
+
+    证据：`DECLARE_WAITQUEUE(wait_task,current);`将 wait entry 和 thread 相关联。
+
 * `close()`函数在 unistd 中
 
 * 一个带错误处理的 udev 驱动，见`ref_10`

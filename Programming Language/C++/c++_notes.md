@@ -4,6 +4,123 @@
 
 ## cached
 
+* `array<int, 26> arr;`没有 clear 的功能，有两种方式可以实现赋值
+
+    1. 使用初始化赋值
+
+        ```cpp
+        array<int, 26> arr = {1};  // 将 26 个数据都赋值为 1
+        ```
+
+        这个初始化方法在 for 中仍然适用。
+
+    2. 使用`fill()`赋值
+
+        ```cpp
+        array<int, 26> arr;
+        arr.fill(3);  // 将 26 个数据赋值为 3
+        ```
+
+    如果在 for 中声明变量，但是不初始化，那么并不会每次都赋初始值：
+
+    ```cpp
+    for (int i = 0; i < 5; ++i)
+    {
+        array<int, 10> arr;
+        for (int num: arr)
+        {
+            printf("%d, ", num);
+        }
+        arr[i] = i;
+        putchar('\n');
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 32512, -394097016, 32512, -394983164, 32512, -394096808, 32512, 
+    0, 2, 3, 32512, -394097016, 32512, -394983164, 32512, -394096808, 32512, 
+    0, 1, 3, 32512, -394097016, 32512, -394983164, 32512, -394096808, 32512, 
+    0, 1, 2, 32512, -394097016, 32512, -394983164, 32512, -394096808, 32512, 
+    0, 1, 2, 3, -394097016, 32512, -394983164, 32512, -394096808, 32512,
+    ```
+
+    `array<>`没有`fill()`和`assign()`方法。
+
+* `vector<int[26]> v;`实际存放的是`int*`指针，具体的 26 个 int 的存储空间需要自己去申请
+
+    因此没有办法做到`v.push_back()`这种事，同样地，`v.push_back({})`，`v.push_back({1, 2, 3})`，`v.push_back(int[26])`这些也都无法实现。
+
+    但是可以使用`vector<array<int, 26>> v;`实现存放数组的功能。
+
+* c++ 中 unordered_map 无法使用`vector<int>`之类的数据作为 key，但是可以作为 value
+
+    也无法使用`array<>`作为 key。
+
+    如果需要这些数据类型作为 key，需要自己写哈希函数和比较函数。
+
+* c/c++ 函数的声明与定义不在同一个文件的编译方法
+
+    `aaa.h`:
+
+    ```cpp
+    extern int add(int a, int b);
+    ```
+
+    `bbb.cpp`:
+
+    ```cpp
+    int add(int a, int b)
+    {
+        return a + b;
+    }
+    ```
+    
+    `main.cpp`:
+
+    ```cpp
+    #include "aaa.h"
+    #include <stdio.h>
+
+    int main()
+    {
+        int a = 1, b = 2;
+        int c = add(a, b);
+        printf("%d + %d = %d\n", a, b, c);
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.cpp bbb.o
+        g++ -g main.cpp bbb.o -o main
+    ```
+
+    测试了下，对于非内核态的普通 c++ 程序，可以把`aaa.h`里的`extern`去掉。
+
+    看来只要提供有函数定义的的`.o`文件，就可以通过编译。
+
+    内核态的程序不清楚。
+
+* c++ 中函数指针支持`vector`等类型
+
+    example:
+
+    ```cpp
+    int (*get_ans)(vector<int> &&) = get_ans_1;
+    ```
+
+* c++ 中不可以使用一个 vector 去初始化一个 queue
+
+    也不可以使用 vector 的迭代器 begin(), end() 去初始化一个 queue
+
+    queue 没有 assign() 功能，也没有 resize() 功能。
+
+    queue 不支持初始化列表。
+
 * 创建一个`vector`数组
 
     ```cpp

@@ -6,6 +6,46 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 在 c 语言中计算浮点数级的 duration
+
+    ```c
+    #include <time.h>
+    #include <stdio.h>
+
+    void spend_time()
+    {
+        int a = 1, b = 2, c;
+        for (int i = 0; i < 1000; ++i)
+        {
+            for (int j = 0; j < 1000; ++j)
+            {
+                for (int k = 0; k < 100; ++k)
+                {
+                    c = a + b;
+                }
+            }
+        }
+    }
+
+    int main()
+    {
+        timespec tmspec_1, tmspec_2;
+        timespec_get(&tmspec_1, TIME_UTC);
+        spend_time();
+        timespec_get(&tmspec_2, TIME_UTC);
+        time_t secs = tmspec_2.tv_sec - tmspec_1.tv_sec;
+        long nano_secs = tmspec_2.tv_nsec - tmspec_1.tv_nsec;
+        printf("duration: %ld secs + %ld nano secs\n", secs, nano_secs);
+        float fsecs = (float) secs + ((float) nano_secs / 1000 / 1000 / 1000);
+        printf("duration: %f secs\n", fsecs);
+        return 0;
+    }
+    ```
+
+    主要是这个`timespec_get()`函数的使用。注意不要忘了`TIME_UTC`，否则得到的结果不正确。
+
+    ref: <https://en.cppreference.com/w/c/chrono/timespec_get>
+
 * c/c++ 中都不允许两个指针直接相加
 
     但是 c 将指针显式转换为整数，可以使用指针 + 整数，或整数 + 整数。

@@ -36,6 +36,18 @@
 
 ## cached
 
+* dfs 学习的两个常用方法
+
+    1. 栈式（链式）问题回溯
+
+    2. 猜想，假设，跳跃
+
+* 调研
+
+    `create_workqueue`, `inb`, 
+    
+    `INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
+
 * 经常出现 terminal 没有登录虚拟机 ssh 的情况
 
     有没有什么办法可以避免这个问题？
