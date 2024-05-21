@@ -8405,22 +8405,134 @@ public:
 
 代码：
 
-```c++
-class Solution {
-public:
-    int maxArea(vector<int>& height) {
-        int left = 0, right = height.size() - 1;
-        int res = 0;
-        while (left < right)
-        {
-            res = max(min(height[left], height[right]) * (right - left), res);
-            if (height[left] < height[right]) ++left;
-            else --right;
+1. 首先想到的是暴力解法双循环
+
+    将任意一个位置`i`作为起点，然后遍历`i+1`一直到数组末尾，找一个终点，不断计算面积，然后比较其和最大面积谁大。
+
+    ```cpp
+    class Solution {
+    public:
+        int maxArea(vector<int>& height) {
+            int max_area = 0;
+            for (int i = 0; i < height.size(); ++i)
+            {
+                int h1 = height[i];
+                for (int j = i+1; j < height.size(); ++j)
+                {
+                    int h2 = height[j];
+                    int area = (j - i) * min(h1, h2);
+                    max_area = max(area, max_area);
+                }
+            }
+            return max_area;
         }
-        return res;
-    }
-};
-```
+    };
+    ```
+
+    这个方法当然会超时。
+
+2. 我们研究一下有没有可以剪枝的地方
+
+    对于已经找到的一组`(i, j, h1, h2, area)`，`i`不变时，`j`一定是最优解。
+
+    这时再增加`i`，如果`h1`变得越来越低，那么就没必要再遍历`j`了。
+
+    假如根据上次的`j`再向右找解，由于我们知道上次的`j`已经是最优解，所以右侧的`j`与当前的`i`肯定比最优解差一点。而随着`i`的增加，`h1`的降低，面积只会越来越小。因此`j`右侧的就不用再找了。
+
+    对于`j`左侧，同理，`j - 1`会减小，再加上`h1`减小，面积也只会越来越小。
+
+    综上，如果`h1`变小，那么没必要再遍历`j`了。由此写出代码：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxArea(vector<int>& height) {
+            int max_area = 0;
+            int hl = -1, hr = -1;
+            for (int i = 0; i < height.size(); ++i)
+            {
+                int h1 = height[i];
+                if (h1 < hl)
+                    continue;
+                for (int j = i+1; j < height.size(); ++j)
+                {
+                    int h2 = height[j];
+                    int area = (j - i) * min(h1, h2);
+                    if (area > max_area)
+                    {
+                        max_area = area;
+                        hl = h1;
+                        hr = h2;
+                    }
+                }
+            }
+            return max_area;
+        }
+    };
+    ```
+
+    可以感受到，这其中似乎有一种不等式传递的感觉。有空了深入探索一下。
+
+    这个方法只能击败 5%。
+
+    我们可以对称地想，对于最优的`i`，将`j`从右往左搜索，如果`j`对应的`h2`越来越小，那么也可以跳过这些`j`：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxArea(vector<int>& height) {
+            int max_area = 0;
+            int hl = -1, hr = -1;
+            for (int i = 0; i < height.size(); ++i)
+            {
+                int h1 = height[i];
+                if (h1 < hl)
+                    continue;
+                for (int j = height.size() - 1; j > i; --j)
+                {
+                    int h2 = height[j];
+                    if (h2 < hr)
+                        continue;
+                    int area = (j - i) * min(h1, h2);
+                    if (area > max_area)
+                    {
+                        max_area = area;
+                        hl = h1;
+                        hr = h2;
+                    }
+                }
+            }
+            return max_area;
+        }
+    };
+    ```
+
+    由于跳过的是内循环，所以其实对效率影响不大。
+
+3. 官方答案：双指针
+
+    ```c++
+    class Solution {
+    public:
+        int maxArea(vector<int>& height) {
+            int left = 0, right = height.size() - 1;
+            int res = 0;
+            while (left < right)
+            {
+                res = max(min(height[left], height[right]) * (right - left), res);
+                if (height[left] < height[right]) ++left;
+                else --right;
+            }
+            return res;
+        }
+    };
+    ```
+
+    核心思路是对撞双指针，然后每次都变动较短的一边。
+
+    目前并不清楚是怎么想到双指针的。官方给出的解也是突然跳出来的，直接证明双指针的正确性，并没有解析是怎么优化得来的。
+
+    （或许可以像方法二中那样思考，不断地变换固定左边界和右边界，自然地推导出双指针？）
 
 ### 接雨水
 
