@@ -8831,6 +8831,78 @@ public:
     };
     ```
 
+5. 一个朴素但行不通的方法的尝试：找凹槽
+
+    我们在遍历数组的时候，可以想象在下山和上山。每经历过一个下坡和上坡，都会形成一个凹槽，这个凹槽里一定可以接到雨水。那我们只需要找到这些凹槽，再叠加每个凹槽接到的雨水的面积就可以了。
+
+    为了记录初始化、下坡和上坡的状态，我们可以使用一个变量来模拟状态机：
+
+    ```cpp
+    int get_ans(vector<int> &nums)
+    {
+        int ans = 0;
+        int l = 0, r = l + 1;
+        int state = 0;  // 1 for down, 2 for up
+        bool downed = false;
+        int concave_count = 0;
+        while (r < nums.size())
+        {
+            if (state == 0)
+            {
+                if (nums[r] < nums[r-1])
+                {
+                    state = 1;
+                    downed = true;
+                    l = r - 1;
+                    ++r;
+                    continue;
+                }
+                ++r;
+                continue;
+            }
+
+            if (state == 1)
+            {
+                if (nums[r] <= nums[r-1])
+                    state = 1;
+                else
+                    state = 2;
+                ++r;
+                continue;
+            }
+
+            if (state == 2)
+            {
+                if (nums[r] >= nums[r-1])
+                    state = 2;
+                else
+                {
+                    state = 1;
+                    concave_count++;
+                    l = r - 1;
+                }
+                ++r;
+                continue;
+            }
+        }
+
+        if (downed && state == 2)
+        {
+            concave_count++;
+        }
+        ans = concave_count;
+        return ans;
+    }
+    ```
+
+    但是这样的理解其实是不准确的，如果遇到`w`形的凹槽（中间两个小的，包含在一个大的里），是算一个凹槽（一个大的），还是两个凹槽（两个小的），还是三个凹槽（一大两小）？
+
+    这道题其实有点像括号的匹配，在下降沿时做记录，在上升沿时计算横向长度，抵消下降沿的记录。
+
+    之所以想成这样，根本原因可能是没有想到各种凹槽的情况。
+
+    联想节点：凹槽 - 单调栈
+
 ### 判定是否互为字符重排
 
 给定两个字符串 s1 和 s2，请编写一个程序，确定其中一个字符串的字符重新排列后，能否变成另一个字符串。
@@ -32727,57 +32799,182 @@ ans.val = 3, ans.next.val = 4, ans.next.next.val = 5, 以及 ans.next.next.next 
 
 代码：
 
-对数组排序，然后将某个数`nums[i]`的相反数作为`target`，只需要在剩下的数组中找到两个数和为`target`就可以了。问题就转化成`两数之和 II - 输入有序数组`。此时可以用双指针搜索。
+1. 对数组排序，然后将某个数`nums[i]`的相反数作为`target`，只需要在剩下的数组中找到两个数和为`target`就可以了。问题就转化成`两数之和 II - 输入有序数组`。此时可以用双指针搜索。
 
-```c++
-class Solution {
-public:
-    vector<vector<int>> threeSum(vector<int>& nums) {
-        vector<vector<int>> ans;
-        sort(nums.begin(), nums.end());
-        int left, right, target;
-        int n = nums.size();  // 注意这里啊，假如 nums.size() == 0，到了下面 nums.size() - 1 会变成一个很大的数，这里做了 unsigned 到 signed 的转换，才能保证不错！所以这里很重要。
-        int start = 0;
-        while (start < n - 2)  // 因为后面要用到 nums[left]，nums[left+1] 以及 nums[right]，nums[right-1]，所以至少需要 3 个数。其实也可以写成 start < n，因为下面的 while (left < right) 保证了不会出问题。只不过在剪枝时，要写成
-        // if (left < n - 1 && nums[left] + nums[left+1] > target ||
-        //     right > start + 1 && nums[right] + nums[right-1] < target)
-        // {
-        //     do ++start; 
-        //     while (start < n && nums[start] == nums[start-1]);
-        //     continue;
-        // }
-        {
-            left = start + 1;
-            right = nums.size() - 1;
-            target = -nums[start];
-            if (num[start] > 0) return ans; // 剪枝
-            if (nums[start]+nums[left]+nums[left+1] > 0 ||
-                nums[start]+nums[right]+nums[right-1] < 0)   // 剪枝
+    ```c++
+    class Solution {
+    public:
+        vector<vector<int>> threeSum(vector<int>& nums) {
+            vector<vector<int>> ans;
+            sort(nums.begin(), nums.end());
+            int left, right, target;
+            int n = nums.size();  // 注意这里啊，假如 nums.size() == 0，到了下面 nums.size() - 1 会变成一个很大的数，这里做了 unsigned 到 signed 的转换，才能保证不错！所以这里很重要。
+            int start = 0;
+            while (start < n - 2)  // 因为后面要用到 nums[left]，nums[left+1] 以及 nums[right]，nums[right-1]，所以至少需要 3 个数。其实也可以写成 start < n，因为下面的 while (left < right) 保证了不会出问题。只不过在剪枝时，要写成
+            // if (left < n - 1 && nums[left] + nums[left+1] > target ||
+            //     right > start + 1 && nums[right] + nums[right-1] < target)
+            // {
+            //     do ++start; 
+            //     while (start < n && nums[start] == nums[start-1]);
+            //     continue;
+            // }
             {
-                do ++start; while (start < n && nums[start] == nums[start-1]);
-                continue;
-            }
-            
-            while (left < right)
-            {
-                if (nums[left] + nums[right] == target)
+                left = start + 1;
+                right = nums.size() - 1;
+                target = -nums[start];
+                if (num[start] > 0) return ans; // 剪枝
+                if (nums[start]+nums[left]+nums[left+1] > 0 ||
+                    nums[start]+nums[right]+nums[right-1] < 0)   // 剪枝
                 {
-                    ans.push_back(vector<int>({nums[start], nums[left], nums[right]}));
-                    do ++left; while (left < right && nums[left] == nums[left-1]);
+                    do ++start; while (start < n && nums[start] == nums[start-1]);
+                    continue;
                 }
-                else if (nums[left] + nums[right] < target)  // 若相加偏小，则向右移动左指针
-                    do ++left; while (left < right && nums[left] == nums[left-1]);  // 略过重复项，注意 left < right 这个细节，不然左指针会跑到数组末尾
-                else  // 若相加偏大，则向左移动右指针
-                    do --right; while (left < right && nums[right] == nums[right+1]);
+                
+                while (left < right)
+                {
+                    if (nums[left] + nums[right] == target)
+                    {
+                        ans.push_back(vector<int>({nums[start], nums[left], nums[right]}));
+                        do ++left; while (left < right && nums[left] == nums[left-1]);
+                    }
+                    else if (nums[left] + nums[right] < target)  // 若相加偏小，则向右移动左指针
+                        do ++left; while (left < right && nums[left] == nums[left-1]);  // 略过重复项，注意 left < right 这个细节，不然左指针会跑到数组末尾
+                    else  // 若相加偏大，则向左移动右指针
+                        do --right; while (left < right && nums[right] == nums[right+1]);
+                }
+                do ++start; while (start < n && nums[start] == nums[start-1]);
             }
-            do ++start; while (start < n && nums[start] == nums[start-1]);
+            return ans;
+        }
+    };
+    ```
+
+    问题：这道题如果不排序，可以使用回溯算法做出来吗？
+
+2. 刚拿到题目时，我们可以用直觉写出最暴力的解法
+
+    ```cpp
+    vector<vector<int>> get_ans(vector<int> &nums)
+    {
+        vector<vector<int>> ans;
+        for (int i = 0; i < nums.size(); ++i)
+        {
+            for (int j = i + 1 ; j < nums.size(); ++j)
+            {
+                for (int k = j + 1; k < nums.size(); ++k)
+                {
+                    if (nums[i] + nums[j] + nums[k] != 0)
+                        continue;
+                    bool exist = false;
+                    for (int p = 0; p < ans.size(); ++p)
+                    {
+                        vector<int> vec_1 = ans[p];
+                        vector<int> vec_2 = {nums[i], nums[j], nums[k]};
+                        sort(vec_1.begin(), vec_1.end());
+                        sort(vec_2.begin(), vec_2.end());
+                        if (vec_1 == vec_2)
+                        {
+                            exist = true;
+                            break;
+                        }
+                    }
+                    if (!exist)
+                    {
+                        ans.push_back({nums[i], nums[j], nums[k]});
+                    }
+                }
+            }
         }
         return ans;
     }
-};
-```
+    ```    
 
-问题：这道题如果不排序，可以使用回溯算法做出来吗？
+3. 对于防止重复搜索的问题，可以使用排序进行优化
+
+    这样就把`nums`分隔成了一个区间一个区间。区间中的数字都相等。`i`, `j`, `k`可以同时出现在一个区间，但是单独对`i`来说，如果需要移动，那么就直接走到下一个区间。`j`, `k`也同理。这样就避免了对重复数字的搜索，保证每次搜索到的都是不同的组合。
+
+    ```cpp
+    class Solution {
+    public:
+        vector<vector<int>> threeSum(vector<int>& nums) {
+            vector<vector<int>> ans;
+            sort(nums.begin(), nums.end());
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                if (i > 0 && nums[i] == nums[i-1])
+                    continue;
+                for (int j = i + 1; j < nums.size(); ++j)
+                {
+                    if (j > i + 1 && nums[j] == nums[j-1])
+                        continue;
+                    for (int k = j + 1; k < nums.size(); ++k)
+                    {
+                        if (k > j + 1 && nums[k] == nums[k-1])
+                            continue;
+                        if (nums[i] + nums[j] + nums[k] != 0)
+                            continue;
+                        ans.push_back({nums[i], nums[j], nums[k]});
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    为了让`i, j, k`每次都移动到新的区间，我们可以使用是否包含重复数字来判断`i`, `j`, `k`仍在当前区间内。
+
+    但是当`i, j, k`当到一个新区间时，周围可能有重复数字，这种情况是允许的。比如`[1, 1, 1, 1, 2, 2]`，`i, j, k`可能指向前三个 1。为了排除这种情况，在代码中使用`i > 0`，`j > i + 1`，`k > j + 1`跳过这些状态。
+
+    `i > 0`不光排除了`i`的初始化状态，也防止了出现数组越界。由于`j`的初始值为`i + 1`，至少比 1 大，所以不会数组越界。
+
+    排除初始化状态还可以用 bool 值记忆状态，比如创建`bool j_init, k_init;`记忆`i`和`j`是否初到一个区间。
+
+    这个方法可以通过大部分测试用例，但是仍然超时。
+
+    排序不光解决了重复搜索的问题，还解决了搜索到的结果有重复值的问题。
+
+    如果只优化“搜索到的结果有重复值”，思路可以转向哈希表。`unordered_set<>`没有对`vector<int>`类型的实现，需要自己定义哈希函数。但是由于搜索到的三数之和恒为 0，所以没办法定义`hash_val = (nums[i] + nums[j] + nums[k]) % 100;`这样的哈希函数。并且在做比较的时候，由于没有类似集合的操作，仍然需要排序来判断是否相等。
+
+    综上，哈希表的效率更低，可能比暴力方法还低，没有实现的必要。
+
+4. 对于已经排序的数组，可以使用二分查找提高效率
+
+    ```cpp
+    vector<vector<int>> get_ans(vector<int> &nums)
+    {
+        vector<vector<int>> ans;
+        sort(nums.begin(), nums.end());
+        for (int i = 0; i < nums.size(); ++i)
+        {
+            if (i > 0 && nums[i] == nums[i-1])
+                continue;
+            for (int j = i + 1 ; j < nums.size(); ++j)
+            {
+                if (j > i + 1 && nums[j] == nums[j-1])
+                    continue;
+                int target = 0 - nums[i] - nums[j];
+                int l = j + 1, r = nums.size() - 1;
+                while (l <= r)
+                {
+                    int m = l + (r - l) / 2;
+                    if (nums[m] < target)
+                        l = m + 1;
+                    else if (nums[m] > target)
+                        r = m - 1;
+                    else
+                    {
+                        ans.push_back({nums[i], nums[j], nums[m]});
+                        break;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+    ```
+
+    这个方法只能击败 7%。
 
 #### 乘积小于K的子数组
 
