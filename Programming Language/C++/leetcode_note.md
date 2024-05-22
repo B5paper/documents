@@ -255,6 +255,35 @@ public:
     };
     ```
 
+1. 自己又写的 swap 版本，击败 6%
+
+    ```cpp
+    class Solution {
+    public:
+        void moveZeroes(vector<int>& nums) {
+            int p1 = 0, p2 = 1;
+            int n = nums.size();
+            while (true)
+            {
+                while (p1 < n && nums[p1] != 0) ++p1;
+                if (p1 == n) break;
+                p2 = p1 + 1;
+                while (p2 < n && nums[p2] == 0) ++p2;
+                if (p2 == n) break;
+                swap(nums[p1], nums[p2]);
+            }
+        }
+    };
+    ```
+
+    最初的想法是，让两个指针，一左一右，左边的指针负责找有 0 的位置，右边的指针负责找非 0 的位置，两个指针都找到之后，只需要让这两个数交换位置就可以了。
+
+    这里`p2 = p1 + 1;`非常重要，否则的话假如有`[1,2,0]`这样的数据，可能出现`p1`指向数字`0`，`p2`指向数字`1`的情况。
+
+    但是这样也增加了很多重复的搜索，比如`p1 = 3`，`p2 = 100`，其实`p2`只需要从 100 继续往后搜索就可以了，但是由于`p1`太靠前，`p2`还得重新回到`p2 = 4`开始搜索。
+
+    （怎样防止重复搜索呢？有空了想一下。）
+
 #### 解码字母到整数映射
 
 给你一个字符串 s，它由数字（'0' - '9'）和 '#' 组成。我们希望按下述规则将 s 映射为一些小写英文字符：
@@ -7591,7 +7620,120 @@ public:
 
 代码：
 
-1. 使用散列表 + 剪枝
+1. 题目的意思显然是不让用排序，那首先我们写一个暴力的思路，即三重循环搜索
+
+    对于数组中的每一个数，我们都假设它是一个连续子序列的起点，然后开始尝试向后搜索，直到找不到为止。
+
+    ```cpp
+    int get_ans(vector<int> &nums)
+    {
+        int max_len = 1;
+        for (int i = 0; i < nums.size(); ++i)
+        {
+            int start = nums[i];
+            int cur = start + 1;
+            bool found = true;
+            int len = 1;
+            while (found)
+            {
+                found = false;
+                for (int j = 0; j < nums.size(); ++j)
+                {
+                    if (nums[j] == cur)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                {
+                    ++len;
+                    ++cur;
+                }
+            }
+            max_len = max(len, max_len);
+        }
+        return max_len;
+    }
+    ```
+
+    对于每个起点，向后搜索每一个数时，都需要重新遍历数组。假设一共有 m 个连续序列的区间，序列平均长度为 v，数组的总长度为 n，那么时间复杂度就是`O(mvn)`。
+
+    假如所有数字都不连续，即`v = 1`，那么`m = n`，时间复杂度为`O(n^2)`。
+
+    假如整个区间只有一个连续序列，即`m = 1`，那么`v = n`，时间复杂度为`O(n^2)`。
+
+2. 为了提高搜索效率，可以将数据都存入哈希表中
+
+    ```cpp
+    int get_ans(vector<int> &nums)
+    {
+        unordered_set<int> s;
+        for (int num: nums)
+            s.insert(num);
+        int max_len = 1;
+        for (int i = 0; i < nums.size(); ++i)
+        {
+            int start = nums[i];
+            int cur = start + 1;
+            int len = 1;
+            while (s.find(cur) != s.end())
+            {
+                ++len;
+                ++cur;
+            }
+            max_len = max(len, max_len);
+        }
+        return max_len;
+    }
+    ```
+
+    这样就省去了最内层的遍历，我们只需要对于每个起始位置的数字，在向后搜索时，都从哈希表里找就可以了。
+
+    此时的时间复杂度为`O(n + mv)`。
+
+3. 由于我们每次都从一个假定的起始位置向后搜索，所以实际上是做了许多重复的搜索的
+
+    比如数组`[5, 3, 1, 2, 4]`，从`1`开始搜索了`[2, 3, 4, 5]`；从 2 开始又搜索了`[3, 4, 5]`，从 3 开始搜索了`[4, 5]`，从 4 开始搜索了`[5]`。
+
+    为了避免这些重复搜索，对于序列`[a, ..., b, ..., c]`，假设我们刚开始遇到的是`b`，那么先向前搜索到`a`，再向后搜索到`c`。这样只需要搜索一遍就可以找到整个序列。对于已经搜索过的数字，我们也将它们存在哈希表里，防止被二次搜索。
+
+    ```cpp
+    int get_ans(vector<int> &nums)
+    {
+        unordered_set<int> s, vis;
+        for (int num: nums)
+            s.insert(num);
+        int max_len = 1;
+        for (int i = 0; i < nums.size(); ++i)
+        {
+            if (vis.find(nums[i]) != vis.end())
+                continue;
+            int start = nums[i];
+            int pre = start - 1;
+            int nex = start + 1;
+            while (s.find(pre) != s.end())
+            {
+                vis.insert(pre);
+                --pre;
+            }
+            while (s.find(nex) != s.end())
+            {
+                vis.insert(nex);
+                ++nex;
+            }
+            int len = (nex - 1) - (pre + 1) + 1;
+            max_len = max(len, max_len);
+        }
+        return max_len;
+    }
+    ```
+
+    这份代码可以通过，但只能击败 5%.
+
+    目前还不清楚官方答案是怎么想出来的，功力没有达到。
+
+4. 官方答案，使用散列表 + 剪枝
 
     ```c++
     class Solution {
