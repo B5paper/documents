@@ -2034,10 +2034,10 @@ Refs:
 Syntax:
 
 ```c
-gentype n vload n(size_t offset,
+gentypen vloadn(size_t offset,
                   const gentype *p)
 
-gentype n vload n(size_t offset,
+gentypen vloadn(size_t offset,
                   const constant gentype *p)
 
 void vstore n(gentype n data,

@@ -993,6 +993,8 @@ Tasks:
 
 cached:
 
+* 使用`async_work_group_copy()`可以实现将数据从 global 复制到 local 吗？如果能那么速度比直接使用指针解引用快多少？
+
 * opengl `请画一个彩色正方体，并使之绕 y 轴旋转。`
 
     修改 dep，先按 ind 画出正方体。
