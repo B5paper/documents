@@ -12,6 +12,335 @@ Ref:
 
 ## cache
 
+* 求 sum 的 reduce 算法
+
+    example code 见`ref_20`。
+
+    这个代码的想法是只申请一个 work group，把 global memory 上的数据全部拷贝到 local memory 上。然后利用 local memory 的快速访问进行归约。
+
+    经过测试，在当前的 gpu 上，work group size 最大为 256。再大会发生 opencl kernel 启动失败的情况。
+
+    是一个 work group 中默认有 256 个 work item 线程，还是软件定义了一个虚拟的最大值？
+
+    显然正常情况下一个`arr`的 length 会远远大于 256，那么该怎么改代码，使得其对无论多大的 length 都有效？
+
+* 或许可以使用`clGetKernelArgInfo()`得到 kernel function 的参数类型信息，从而动态判断是否将某个字符串类型的参数转换成 opencl memory buffer。
+
+    example code:
+
+    ```cpp
+    int ret;
+    cl_kernel_arg_address_qualifier addr_qlf;
+    ret = clGetKernelArgInfo(kernel, cur_arg_idx, CL_KERNEL_ARG_ADDRESS_QUALIFIER, sizeof(addr_qlf), &addr_qlf, NULL);
+    if (ret != CL_SUCCESS)
+    {
+        printf("fail to get kernel arg info\n");
+        exit(-1);
+    }
+    if (addr_qlf == CL_KERNEL_ARG_ADDRESS_LOCAL)
+    {
+        OclLocalBuf &local_buf = ocl_env->local_bufs[arg];
+        ret = clSetKernelArg(kernel, cur_arg_idx, local_buf.size, NULL);
+    }
+    ```
+
+* opencl 中 local memory 的使用可以提高显存访问效率
+
+    ```opencl
+    kernel void mat_mul_ocl_mem_opt(global float *M_A, global float *M_B, global float *output,
+        const uint n_row_A, const uint n_col_A, const uint n_col_B,
+        local float *vec_B)
+    {
+        size_t glb_id = get_global_id(0);
+        size_t grp_id = get_group_id(0);
+        size_t loc_id = get_local_id(0);
+        size_t grp_size = get_local_size(0);
+        size_t num_grps = n_row_A / grp_size;
+        size_t micro_len = n_col_A / grp_size;
+
+        // copy from global to private
+        private float vec_A[1024];
+        for (int i = 0; i < n_col_A; ++i)
+            vec_A[i] = M_A[glb_id * n_col_A + i];  // M_A 的第 glb_id 行，第 i 列
+        
+        for (int i = 0; i < n_col_B; ++i)
+        {
+            // copy from global to local shared
+            for (int j = 0; j < micro_len; ++j)
+            {
+                vec_B[loc_id * micro_len + j] = M_B[(loc_id * micro_len + j) * n_col_B + i];
+            }
+            barrier(CLK_LOCAL_MEM_FENCE);
+            // calc vector dot product, and store the result into global memory
+            float prod_sum = 0.0f;
+            for (int k = 0; k < n_col_A; ++k)
+                prod_sum += vec_A[k] * vec_B[k];
+            output[glb_id * n_col_B + i] = prod_sum;   
+        }
+    }
+    ```
+
+    ```cpp
+    void test_mat_mul_ocl_mem_opt(float A[], float B[], float C[],
+        int n_row_A, int n_col_A, int n_col_B, bool disp_mat)
+    {
+        init_ocl_env("./kernels.cl", {"mat_mul_ocl_mem_opt"});
+        int elm_num_A = n_row_A * n_col_A;
+        int elm_num_B = n_col_A * n_col_B;
+        int elm_num_C = n_row_A * n_col_B;
+        add_buf("A", sizeof(float), elm_num_A);
+        add_buf("B", sizeof(float), elm_num_B);
+        add_buf("C", sizeof(float), elm_num_C);
+        global_ocl_env->add_local_buf("vec_B", sizeof(float), 1024);
+
+        timeit_ms("start");
+        write_buf("A", A);
+        write_buf("B", B);
+        run_kern("mat_mul_ocl_mem_opt",
+            {(size_t) n_row_A}, {(size_t) n_row_A / 8},
+            "A", "B", "C", n_row_A, n_col_A, n_col_B,
+            "vec_B");
+        read_buf(C, "C");
+        float dur_ms = timeit_ms("end");
+
+        if (disp_mat)
+        {
+            printf("A:\n");
+            print_mat(A, n_row_A, n_col_A);
+            putchar('\n');
+            printf("B:\n");
+            print_mat(B, n_col_A, n_col_B);
+            putchar('\n');
+            printf("C:\n");
+            print_mat(C, n_row_A, n_col_B);
+            putchar('\n');
+        }
+
+        printf("time duration: %.3f ms\n", dur_ms);
+        exit_ocl_env();
+    }
+    ```
+
+    对于`A[1024][1024]`与`B[1024][1024]`的矩阵相乘，使用 2d 版本的 opencl 算子，速度可以达到`364.218 ms`，但是使用上面的代码，速度可以达到`27.263 ms`。
+
+    上面的 opencl 算子将矩阵 A 按行分成几个 block（上面的代码是分成了 8 个 block），对于矩阵 B，每次都拷贝一列到 local mem，然后让每个 block 去和矩阵 B 的一列做矩阵乘法，并保存计算结果。每个 work item 负责一个 bloack。
+
+    几个关键点：
+
+    1. 要想使用 local memory (在 cuda 里叫 shared memory)，必须在 kernel 函数的参数里加上使用`local`修饰的指针
+
+        比如上面代码里的`local float *vec_B`。
+
+    2. 在 host 程序上，使用下面的方式为 local memory 分配显存
+
+        ```cpp
+        clSetKernelArg(kernel, cur_arg_idx, buf_size, NULL);
+        ```
+
+        其中`buf_size`指的是 local mem 占用多少字节，第四个参数填`NULL`。
+
+    3. 由于是使用 group 里的所有 work item 将全局显存`B`中的数据搬到 local memory，所以还需要加一个 barrier，保证 group 里所有的 work item 都完成任务
+
+        ```cpp
+        barrier(CLK_LOCAL_MEM_FENCE);
+        ```
+
+    4. 程序有时候会出现计算错误的情况，目前不清楚是怎么回事
+
+* opencl 中通常二维的 work size 比一维的 work size 要快
+
+    ```opencl
+    kernel void mat_mul(global float *M_A, global float *M_B, global float *output,
+        const uint n_row_A, const uint n_col_A, const uint n_col_B)
+    {
+        size_t gid = get_global_id(0);
+        for (uint p = 0; p < n_col_B; ++p)
+        {
+            float prod_sum = 0.0f;
+            for (uint k = 0; k < n_col_A; ++k)
+            {
+                prod_sum += M_A[gid * n_col_A + k] * M_B[k * n_col_B + p];
+            }
+            output[gid * n_col_B + p] = prod_sum;
+        }
+    }
+
+    kernel void mat_mul_2d(global float *M_A, global float *M_B, global float *output,
+        const uint n_row_A, const uint n_col_A, const uint n_col_B)
+    {
+        size_t gid_0 = get_global_id(0);
+        size_t gid_1 = get_global_id(1);
+        float prod_sum = 0.0f;
+        for (uint k = 0; k < n_col_A; ++k)
+        {
+            prod_sum += M_A[gid_0 * n_col_A + k] * M_B[k * n_col_B + gid_1];
+        }
+        output[gid_0 * n_col_B + gid_1] = prod_sum;
+    }
+    ```
+
+    上面的两个矩阵乘法算子，`mat_mul()`是将第一个矩阵的行拆成`n_row_A`份，然后让矩阵`A`的一秆和矩阵`B`的每一列相乘，算出输出矩阵`C`的结果。`mat_mul_2d()`是将第一个矩阵`A`拆成`n_row_A`行，将`B`拆成`n_col_B`列，然后再做向量点积，计算出结果。
+
+    对应的 cpp 代码：
+
+    ```cpp
+    void test_mat_mul_ocl(float A[], float B[], float C[],
+        int n_row_A, int n_col_A, int n_col_B, bool disp_mat)
+    {
+        init_ocl_env("./kernels.cl", {"mat_mul"});
+        int elm_num_A = n_row_A * n_col_A;
+        int elm_num_B = n_col_A * n_col_B;
+        int elm_num_C = n_row_A * n_col_B;
+        add_buf("A", sizeof(float), elm_num_A);
+        add_buf("B", sizeof(float), elm_num_B);
+        add_buf("C", sizeof(float), elm_num_C);
+        timeit_ms("start");
+        write_buf("A", A);
+        write_buf("B", B);
+        run_kern("mat_mul", {(size_t) n_row_A}, "A", "B", "C",
+            n_row_A, n_col_A, n_col_B);
+        read_buf(C, "C");
+        float dur_ms = timeit_ms("end");
+
+        if (disp_mat)
+        {
+            printf("A:\n");
+            print_mat(A, n_row_A, n_col_A);
+            putchar('\n');
+            printf("B:\n");
+            print_mat(B, n_col_A, n_col_B);
+            putchar('\n');
+            printf("C:\n");
+            print_mat(C, n_row_A, n_col_B);
+            putchar('\n');
+        }
+        printf("time duration: %.3f ms\n", dur_ms);
+        exit_ocl_env();
+    }
+
+    void test_mat_mul_2d(float A[], float B[], float C[],
+        int n_row_A, int n_col_A, int n_col_B, bool disp_mat)
+    {
+        init_ocl_env("./kernels.cl", {"mat_mul_2d"});
+        int elm_num_A = n_row_A * n_col_A;
+        int elm_num_B = n_col_A * n_col_B;
+        int elm_num_C = n_row_A * n_col_B;
+        add_buf("A", sizeof(float), elm_num_A);
+        add_buf("B", sizeof(float), elm_num_B);
+        add_buf("C", sizeof(float), elm_num_C);
+        timeit_ms("start");
+        write_buf("A", A);
+        write_buf("B", B);
+        run_kern("mat_mul_2d", {(size_t) 1024, (size_t) 1024},
+            "A", "B", "C", n_row_A, n_col_A, n_col_B);
+        read_buf(C, "C");
+        float dur_ms = timeit_ms("end");
+
+        if (disp_mat)
+        {
+            printf("A:\n");
+            print_mat(A, n_row_A, n_col_A);
+            putchar('\n');
+            printf("B:\n");
+            print_mat(B, n_col_A, n_col_B);
+            putchar('\n');
+            printf("C:\n");
+            print_mat(C, n_row_A, n_col_B);
+            putchar('\n');
+        }
+        printf("time duration: %.3f ms\n", dur_ms);
+        exit_ocl_env();
+    }
+    ```
+
+* opencl 算子中的 global memory 访问会降低速度
+
+    比如，对于这样一段 opencl 代码：
+
+    ```opencl
+    kernel void mat_mul(global float *M_A, global float *M_B, global float *output,
+        const uint n_row_A, const uint n_col_A, const uint n_col_B)
+    {
+        size_t gid = get_global_id(0);
+        for (uint p = 0; p < n_col_B; ++p)
+        {
+            float prod_sum = 0.0f;
+            for (uint k = 0; k < n_col_A; ++k)
+            {
+                prod_sum += M_A[gid * n_col_A + k] * M_B[k * n_col_B + p];
+            }
+            output[gid * n_col_B + p] = prod_sum;
+        }
+    }
+    ```
+
+    ```cpp
+    void test_mat_mul_ocl(float A[], float B[], float C[],
+        int n_row_A, int n_col_A, int n_col_B, bool disp_mat)
+    {
+        init_ocl_env("./kernels.cl", {"mat_mul"});
+        int elm_num_A = n_row_A * n_col_A;
+        int elm_num_B = n_col_A * n_col_B;
+        int elm_num_C = n_row_A * n_col_B;
+        add_buf("A", sizeof(float), elm_num_A);
+        add_buf("B", sizeof(float), elm_num_B);
+        add_buf("C", sizeof(float), elm_num_C);
+        timeit_ms("start");
+        write_buf("A", A);
+        write_buf("B", B);
+        run_kern("mat_mul", {(size_t) n_row_A}, "A", "B", "C",
+            n_row_A, n_col_A, n_col_B);
+        read_buf(C, "C");
+        float dur_ms = timeit_ms("end");
+        printf("time duration: %.3f ms\n", dur_ms);
+        exit_ocl_env();
+    }
+    ```
+
+    当`n_row_A = 1024`, `n_col_A = 1024`, `n_col_B = 1024`时，运行时间为`655.946 ms`。
+
+    但是如果把 opencl 代码改成
+
+    ```opencl
+    kernel void mat_mul(global float *M_A, global float *M_B, global float *output,
+        const uint n_row_A, const uint n_col_A, const uint n_col_B)
+    {
+        size_t gid = get_global_id(0);
+        for (uint p = 0; p < n_col_B; ++p)
+        {
+            output[gid * n_col_B + p] = 0.0f;
+            for (uint k = 0; k < n_col_A; ++k)
+            {
+                output[gid * n_col_B + p] += M_A[gid * n_col_A + k] * M_B[k * n_col_B + p];
+            }
+        }
+    }
+    ```
+
+    运行时间就变成了`1311.735 ms`。可以看出运行时间是之前的两倍。
+
+    `output`是放在 global 上的显存，每次对它的访问都有时延。但是当我们使用一个`private`值`prod_sum`存储计算的中间结果时，访问速度就会快很多。
+
+    （理论上`private`和`global`的显存都放在 device memorty 里，但是为什么访问速度不一样？）
+
+* opencl programming guide 中，矩阵乘法 matrix multiplication 的 example，其索引二维数组的方式很可能是错的
+
+    对于一个 shape 为`M x N`的数组`float A[M][N]`，设`i`为行索引，`j`为列索引，那么索引方式应该为
+
+    ```cpp
+    *(A + i * N + j);  // A[i][j]
+    ```
+
+    显然如果`i`的范围为`0 ~ M-1`，和`M`相关，那么说到第`i`行时，就应该让`i`去乘`N`。
+
+    但是书上的`i`的取值和`M`相关，`i`乘的也同样是`M`，这肯定是有问题的。
+
+    猜想：如果从一个维度中取索引，那么就应该让它乘其他所有维度的长度的乘积。
+
+* opencl 中 global work size 的每个维度的长度，都必须是 local work size 的对应维度长度的整数倍
+
+    如果无法被恰好分成整数倍，多余的数据必须重新调用一次 ndrange。
+
 * opencl read image 提供了各种内置函数，可以将图片读取成浮点数形式，还可以读取成整数形式
 
 	可以以整数坐标获取像素值，还可以以浮点数坐标获取像素值。

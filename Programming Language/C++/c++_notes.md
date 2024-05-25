@@ -4,6 +4,85 @@
 
 ## cached
 
+* c++ piecewise construct 中添加多个类型时，不同构造函数参数数量的处理：
+
+    ```cpp
+    void add_local_buf(string buf_name, int elm_size, int elm_num)
+    {
+        int buf_size = elm_size * elm_num;
+        local_bufs.emplace(
+            piecewise_construct,
+            forward_as_tuple(buf_name),
+            forward_as_tuple(buf_name, elm_size, elm_num, ctx)
+        );
+    }
+    ```
+
+* `remove_const_t<>`作用于指针时，移除的是指针的`const`
+
+    example:
+
+    `remove_const_t<const char *const>`，移除的其实是第二个`const`。
+
+* c++ 中 template 无法和`typeid()`合用
+
+    ```cpp
+    template<typename T, typename...Args>
+    void _set_args(OclKern &kern, T arg, Args...args)
+    {
+        if (typeid(arg) == typeid(const char*) ||
+            typeid(arg) == typeid(char*) ||
+            typeid(arg) == typeid(string))
+        {
+            OclBuf &buf = global_ocl_env->bufs.at(arg);
+            kern.sa(buf);
+        }
+        else
+        {
+            kern.sa(arg);
+        }
+        _set_args(kern, args...);
+    }
+    ```
+
+    比如这段代码，在编译时期就会出错。编译器不走 if, else 分支，只看类型是否匹配。
+
+    应该改成这样的：
+
+    ```cpp
+    template<typename T, typename...Args>
+    enable_if_t<is_same_v<T, const char*>, void>
+    _set_args(OclKern &kern, T arg, Args...args)
+    {
+        OclBuf &buf = global_ocl_env->bufs.at(arg);
+        kern.sa(buf);
+        _set_args(kern, args...);
+    }
+
+    template<typename T, typename...Args>
+    enable_if_t<!is_same_v<T, const char*>, void>
+    _set_args(OclKern &kern, T arg, Args...args)
+    {
+        kern.sa(arg);
+        _set_args(kern, args...);
+    }
+    ```
+
+    这样在编译时期就能走对应的通路。
+
+    (这个功能叫什么？它和模板函数的重载，特化，有什么不同？可以不使用模板实现吗？)
+
+    注意这个模板函数只匹配了`const char*`这一种类型，如果未来有`string`，`char*`等类型，还需要用`conjunction_v<>`等命令去匹配。
+
+* `unique_ptr`释放其所掌握的指针：
+
+    ```cpp
+    OclEnv *p_ocl_env = global_ocl_env.release();
+    delete p_ocl_env;
+    ```
+
+    注意只有`unique_ptr`有这个功能，`shared_ptr`没有这个功能。
+
 * `array<int, 26> arr;`没有 clear 的功能，有两种方式可以实现赋值
 
     1. 使用初始化赋值

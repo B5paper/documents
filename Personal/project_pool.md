@@ -36,6 +36,12 @@
 
 ## cached
 
+* 不要忽略题目的暴力写法
+
+    暴力写法是基础。
+
+    在写出暴力写法的基础上，再去分析改进。这样的技能才是通用的。
+
 * dfs 学习的两个常用方法
 
     1. 栈式（链式）问题回溯
@@ -584,6 +590,14 @@
 
     1. 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
 
+* [v] reorg 30 mins 05/20
+
+    feedback:
+
+    1. 在随机选择时，必须把权重加上
+
+        权重的不平衡性太大了。
+
 ## qa
 
 cached:
@@ -671,6 +685,18 @@ Tasks:
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
 * [ ] 调研 qa unit 中 dep 功能
+
+* [v] qa 4 units 05/20
+
+    feedback:
+
+    1. opencl 向量相加基本模板
+
+        1. 在两次使用函数得到资源列表时，容易忘写第二次
+
+        2. 总是忘写`clBuildProgram()`
+
+        3. `fseek()`里第二个参数和第三个参数的位置写反了
 
 ## cache tabs / process urls
 
@@ -993,6 +1019,18 @@ Tasks:
 
 cached:
 
+* cached question:
+
+    * 不同 shape 的矩阵，分别使用 cpu, gpu 计算，哪个速度更快一些？是否有一些估算方法？能否总结出一套经验公式估计不同操作的时间？
+
+    * 对于 1025 等无法被 2 整除的 size，该如何处理多余的量？
+
+    * 由于 local memory 的大小无法在运行时改变，该如何才能设置一个合理的值？
+
+* opencl 好像有个 sub group 的概念，这个是干嘛用的？
+
+* 尝试 opencl 的 aync 写法。
+
 * 使用`async_work_group_copy()`可以实现将数据从 global 复制到 local 吗？如果能那么速度比直接使用指针解引用快多少？
 
 * opengl `请画一个彩色正方体，并使之绕 y 轴旋转。`
@@ -1293,6 +1331,16 @@ tasks:
 * [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
 
 * [ ] 调研`kzalloc`, `kfree`
+
+* [v] 调研 workqueue
+
+    feedback:
+
+    1. `device_create()`和`device_add()`有什么区别？
+
+        `device_del()`和`device_destroy()`有什么区别？
+
+* [v] 调研 linked list
 
 ## OpenGL
 
