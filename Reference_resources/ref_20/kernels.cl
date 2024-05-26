@@ -7,7 +7,7 @@ kernel void gsum(global float *arr, global float *output, const int arr_len,
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int i = 1; i < glb_size; i *= 2)
     {
-        if (loc_id  % (2 * i)  == 0)
+        if (loc_id % (2 * i) == 0)
         {
             loc_arr[loc_id] += loc_arr[loc_id + i];
         }
