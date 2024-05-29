@@ -2772,6 +2772,39 @@ $$
 
     或者可以这样想：假如我们前面已经准备了一段数组，对于新来的一个数，如果旧数组+新数还没有新数本身大，那我就可以认为旧数组还不如这一个新数，可以把旧数组舍弃掉了。（假设数组是`[..., a, b, c, d, ...]`，现在我们发现`c`是符合要求的新元素，这时候有没有可能从`c`开始向前取元素组成新数组？假如我们取了`[b, c]`，那么`b`不符合我们之前的要求，因此`[..., a]`的和大于等于 0，又因为`c`是符合要求的，所以`[..., a, b]`的和一定是小于 0 的，因此`b`一定小于 0，因此`b`对`[b, c]`的贡献是负值，可以删掉。如果取`[..., b, c]`作为新数组，我们可以把`[..., b]`看作`b'`，一定小于 0。可以验证下这个结论）
 
+    又写了一遍：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxSubArray(vector<int>& nums) {
+            int max_sum = INT32_MIN;
+            int sum = 0;
+            bool valid_arr = false;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                sum += nums[i];
+                valid_arr = true;
+                if (sum < 0)
+                {
+                    max_sum = max(sum, max_sum);
+                    sum = 0;
+                    valid_arr = false;
+                }
+                if (valid_arr)
+                    max_sum = max(sum, max_sum);
+            }
+            return max_sum;
+        }
+    };
+    ```
+
+    什么时候更新返回值？其实一共有两种情况，一种是负数数组，一种是正数数组。负数数组有两种，一种是刚开始就是负数，一个数构成负数数组，另一种是刚开始是正数，然后随着累加突然变成了负数。因为`max_sum`有可能是负数，所以这两种都可能是最大的负数数组，因此需要更新`max_sum`。
+
+    问题是更新完`max_sum`后，`sum`已经不再代表一个有效数组了，因此我们使用`valid_arr`来控制是否更新`max_sum`。
+
+    前面的方法利用了语句顺序隐藏了这个问题，看起来很简洁，但是不好理解。
+
 1. 前缀和（超时）
 
     做这道题的时候，我的第一反应是前槡和，可是超时了。
@@ -2831,6 +2864,127 @@ $$
         }
     };
     ```
+
+1. 线性思考
+
+    首先按题意写一个暴力双循环：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxSubArray(vector<int>& nums) {
+            int max_sum = INT32_MIN;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                int sum = 0;
+                for (int j = i; j < nums.size(); ++j)
+                {
+                    sum += nums[j];
+                    max_sum = max(max_sum, sum);
+                }
+            }
+            return max_sum;
+        }
+    };
+    ```
+
+    这样肯定是超时的，能不能优化一下搜索区间？`j`似乎没有什么可优化的，`i`呢？
+
+    假如有一个数组`[-2, -1, 3, 4, 5]`，另一个数组`[3, 4, 5]`，是不是第二个数组的值更大一些？
+
+    那么我们其实可以跳过`nums[i]`为负的值，直到`nums[i]`为正，再开始`j`的循环。
+
+    代码如下：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxSubArray(vector<int>& nums) {
+            int max_sum = nums[0];
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                int sum = 0;
+                max_sum = max(max_sum, nums[i]);
+                if (nums[i] < 0)
+                    continue;
+                for (int j = i; j < nums.size(); ++j)
+                {
+                    sum += nums[j];
+                    max_sum = max(max_sum, sum);
+                }
+            }
+            return max_sum;
+        }
+    };
+    ```
+
+    依然超时。
+
+    这时我们想到，既然数组的开头不能有负数，那么数组的末尾是不是也不能有负数？
+
+    这样需要跳过`nums[j]`为负的值，比如数组`[-3, -2, -4, 3, 5, 4, -1, -2]`，我们只需要统计`[3, 5, 4]`的和就可以了。
+
+    ```cpp
+    class Solution {
+    public:
+        int maxSubArray(vector<int>& nums) {
+            int max_sum = nums[0];
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                int sum = 0;
+                max_sum = max(max_sum, nums[i]);
+                if (nums[i] < 0)
+                    continue;
+                for (int j = nums.size() - 1; j > i; --j)
+                {
+                    if (nums[j] < 0)
+                        continue;
+                    sum = 0;
+                    for (int k = i; k <= j; ++k)
+                    {
+                        sum += nums[k];
+                    }
+                    max_sum = max(max_sum, sum);
+                }
+            }
+            return max_sum;
+        }
+    };
+    ```
+
+    这样写肯定也是超时的，因为多加了一层循环。我们马上想到可以用前缀和快速计算一段数组的和，优化掉这层循环：
+
+    ```cpp
+    class Solution {
+    public:
+        int maxSubArray(vector<int>& nums) {
+            int max_sum = nums[0];
+            vector<int> presum(nums.size());
+            presum[0] = nums[0];
+            for (int i = 1; i < nums.size(); ++i)
+                presum[i] = presum[i-1] + nums[i];
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                int sum = 0;
+                max_sum = max(max_sum, nums[i]);
+                if (nums[i] < 0)
+                    continue;
+                for (int j = nums.size() - 1; j > i; --j)
+                {
+                    if (nums[j] < 0)
+                        continue;
+                    sum = presum[j] - presum[i] + nums[i];
+                    max_sum = max(max_sum, sum);
+                }
+            }
+            return max_sum;
+        }
+    };
+    ```
+
+    即使这样，也是超时的。
+
+    线性思考到这里就结束了，虽然超时，但是仍是一段有意义的思考。
 
 #### 最长递增子序列
 
@@ -13444,7 +13598,21 @@ public:
 
 代码：
 
+1. 一个线性思考
+
+    如果数组中只有一个数，那么返回`true`。
+
+    如果有两个及以上的数，让指针`p`在链表中一边反转链表，一边寻找`[a, a]`模式或`[a, b, a]`模式。如果找不到，那么返回`false`。
+
+    如果找到，那么让`p1`指向第一个`a`，`p2`指向第二个`a`。让`p1`往回走，`p2`继续向前走，判断`p1->val`与`p2->val`是否相等。如果不相等，或者没有同时走到尾，那么返回`false`。
+
+    其余情况返回`true`。
+
+    现在困难点在找`[a, a]`模式或`[a, b, a]`模式上，因为要保证从`p`节点开始至少有两个，或三个节点存在，分类讨论的情况比较多。不清楚这个问题该怎么解决。
+
 1. 将链表中的值复制到数组中，然后用双指针
+
+    （线性思考）
 
     ```c++
     /**
@@ -13476,6 +13644,8 @@ public:
         }
     };
     ```
+
+    cpu 击败 36%, mem 击败 20%
 
 1. 递归（官方给的答案）
 
@@ -22743,6 +22913,37 @@ public:
 
     感觉这个版本的逻辑是最好的了。
 
+    后来又写的：
+
+    ```cpp
+    class Solution {
+    public:
+        bool isValid(string s) {
+            stack<int> stk;
+            for (int i = 0; i < s.size(); ++i)
+            {
+                if (s[i] == '(' || s[i] == '[' || s[i] == '{')
+                    stk.push(s[i]);
+                else
+                {
+                    if (stk.empty()) return false;
+                    if (s[i] == ')' && stk.top() != '(') return false;
+                    if (s[i] == ']' && stk.top() != '[') return false;
+                    if (s[i] == '}' && stk.top() != '{') return false;
+                    stk.pop();
+                }
+            }
+            if (!stk.empty())
+                return false;
+            return true;
+        }
+    };
+    ```
+
+    其实前面的代码的`else`可以去掉。因为假如进入了`if`分支，那么直接就`return false;`了，如果不进入`if`分支，那么下一个`if`也是避免不了要继续判断的。这样分析下来，`else`就毫无用处了。
+
+    另外需要注意，访问一个元素的前提是容器/数组中要有这个元素，在使用`top()`，`[i]`等方式取元素之前，首先要判空。
+
 ## 堆
 
 ### 数据流中的中位数
@@ -29889,6 +30090,74 @@ public:
     };
     ```
 
+    后来又写的，每次都创建新的 node：
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode() : val(0), next(nullptr) {}
+    *     ListNode(int x) : val(x), next(nullptr) {}
+    *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+            ListNode *p1 = l1, *p2 = l2;
+            ListNode *dummy_head = new ListNode;
+            ListNode *p = dummy_head;
+            int carry = 0;
+            int cur_digit = 0;
+            int s;
+            while (p1 && p2)
+            {
+                p->next = new ListNode;
+                s = p1->val + p2->val + carry;
+                carry = s / 10;
+                cur_digit = s % 10;
+                p->next->val = cur_digit;
+                p = p->next;
+                p1 = p1->next;
+                p2 = p2->next;
+            }
+
+            while (p1)
+            {
+                p->next = new ListNode;
+                s = p1->val + carry;
+                carry = s / 10;
+                cur_digit = s % 10;
+                p->next->val = cur_digit;
+                p = p->next;
+                p1 = p1->next;
+            }
+
+            while (p2)
+            {
+                p->next = new ListNode;
+                s = p2->val + carry;
+                carry = s / 10;
+                cur_digit = s % 10;
+                p->next->val = cur_digit;
+                p = p->next;
+                p2 = p2->next;
+            }
+
+            if (carry)
+            {
+                p->next = new ListNode;
+                p->next->val = 1;
+            }
+            return dummy_head->next;
+        }
+    };
+    ```
+
+    有可能不使用 dummy head 完成吗？
+
 1. 后来又写的，简洁版
 
     ```c++
@@ -30435,6 +30704,82 @@ arr 所含的整数 各不相同 。
     ```
 
     由于即使将较小的数据移动到末尾，最终在比较的时候，仍是较大的那个获胜，所以其实可以不用将小的参与后面的比较了。
+
+### 找出出现至少三次的最长特殊子字符串 I
+
+给你一个仅由小写英文字母组成的字符串 s 。
+
+如果一个字符串仅由单一字符组成，那么它被称为 特殊 字符串。例如，字符串 "abc" 不是特殊字符串，而字符串 "ddd"、"zz" 和 "f" 是特殊字符串。
+
+返回在 s 中出现 至少三次 的 最长特殊子字符串 的长度，如果不存在出现至少三次的特殊子字符串，则返回 -1 。
+
+子字符串 是字符串中的一个连续 非空 字符序列。
+
+ 
+
+示例 1：
+
+输入：s = "aaaa"
+输出：2
+解释：出现三次的最长特殊子字符串是 "aa" ：子字符串 "aaaa"、"aaaa" 和 "aaaa"。
+可以证明最大长度是 2 。
+
+示例 2：
+
+输入：s = "abcdef"
+输出：-1
+解释：不存在出现至少三次的特殊子字符串。因此返回 -1 。
+
+示例 3：
+
+输入：s = "abcaba"
+输出：1
+解释：出现三次的最长特殊子字符串是 "a" ：子字符串 "abcaba"、"abcaba" 和 "abcaba"。
+可以证明最大长度是 1 。
+
+ 
+
+提示：
+
+    3 <= s.length <= 50
+    s 仅由小写英文字母组成。
+
+
+代码：
+
+1. 线性思考
+
+    ```cpp
+    class Solution {
+    public:
+        int maximumLength(string s) {
+            unordered_map<string, int> m;
+            unordered_map<string, int> cnts;
+            for (int i = 0; i < s.size(); ++i)
+            {
+                for (int j = i; j < s.size(); ++j)
+                {
+                    if (s[j] != s[i])
+                        break;
+                    int len = j - i + 1;
+                    string substr = s.substr(i, len);
+                    cnts[substr] += 1;
+                    int str_len = m[substr];
+                    m[substr] = max(str_len, len);
+                }
+            }
+            int ans = -1;
+            for (auto &[str, cnt]: cnts)
+            {
+                if (cnt >= 3)
+                {
+                    ans = max(m[str], ans);
+                }
+            }
+            return ans;
+        }
+    };
+    ```
 
 ## 基本算法
 
