@@ -3894,3 +3894,93 @@
     * <https://www.nersc.gov/assets/Uploads/SC14OpenCLTutorialNotes.pdf>
 
     * <http://wrigstad.com/upmarc-ss14/simon3.pdf>
+
+    * <https://www.intel.com/content/www/us/en/support/programmable/support-resources/design-examples/horizontal/matrix-multiplication.html>
+
+    * <https://cnugteren.github.io/tutorial/pages/page1.html>
+
+    * <https://github.com/KhronosGroup/OpenCL-Guide>
+
+    * <https://github.com/DragonFlyBSD/DragonFlyBSD>
+
+    * <https://github.com/koverstreet/bcachefs>
+
+    * <https://github.com/it-ebooks-0/geektime-books>
+
+    * <https://github.com/OpenBMB/MiniCPM-V>
+
+    * <https://zhuanlan.zhihu.com/p/567662038>
+
+    * <https://zhuanlan.zhihu.com/p/698737562>
+
+    * <https://zhuanlan.zhihu.com/p/642416997>
+
+    * <https://www.zhihu.com/question/22196181/answer/3504458215>
+
+    * <https://registry.khronos.org/OpenCL/sdk/2.2/docs/man/html/clGetKernelArgInfo.html>
+
+    * <https://github.com/joernio/joern>
+
+    * <https://github.com/it-ebooks-0/geektime-books>
+
+    * <https://www.geeks3d.com/20210719/gravitymark-quick-test-opengl-vulkan-and-direct3d12/>
+
+    * <https://docs.kernel.org/admin-guide/sysrq.html>
+
+    * <https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/04/iommu-introduction>
+
+    * <https://docs.kernel.org/driver-api/vfio.html>
+
+    * <https://docs.kernel.org/userspace-api/iommufd.html>
+
+    * <https://docs.kernel.org/driver-api/vfio-mediated-device.html>
+
+    * <https://blog.3mdeb.com/2021/2021-01-13-iommu/>
+
+    * <https://docs.kernel.org/PCI/pci.html>
+
+    * <https://xillybus.com/tutorials/pci-express-tlp-pcie-primer-tutorial-guide-1>
+
+    * <https://olegkutkov.me/2021/01/07/writing-a-pci-device-driver-for-linux/>
+
+    * <https://www.youtube.com/watch?v=454KPcO95jY>
+
+    * <http://www.verien.com/pcie-primer.html>
+
+    * <https://unix.stackexchange.com/questions/89227/how-can-dmesg-content-be-logged-into-a-file>
+
+    * <https://github.com/hongye612430/awesome-programming-books-1/blob/master/linux/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3linux%E5%86%85%E6%A0%B8%EF%BC%88%E7%AC%AC%E4%B8%89%E7%89%88%EF%BC%89.pdf>
+
+    * <https://z-library.se/book/18076903/83f5d5/%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%B4%A2linux%E7%B3%BB%E7%BB%9F%E8%99%9A%E6%8B%9F%E5%8C%96%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0.html>
+
+    * <https://github.com/sysprog21/vwifi>
+
+    * <https://github.com/hugsy/gef>
+
+    * <https://github.com/NVIDIA/nccl>
+
+    * <https://github.com/limingth/NCCL>
+
+    * <https://github.com/muriloboratto/NCCL>
+
+    * <https://github.com/1duo/mpi-nccl-tests>
+
+    * <https://github.com/godlikepanos/anki-3d-engine>
+
+    * <https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator>
+
+    * <https://developer.nvidia.com/nccl>
+
+    * <https://zhuanlan.zhihu.com/p/426978026>
+
+    * <https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf>
+
+    * <https://github.com/bootlin/training-materials>
+
+    * <https://blog.csdn.net/weixin_42730667/article/details/96117450>
+
+    * <https://github.com/sschaetz/nvidia-opencl-examples/blob/master/OpenCL/src/oclReduction/oclReduction_kernel.cl>
+
+    * <https://github.com/tgfrerer/island>
+
+    * <https://comp.anu.edu.au/courses/acceleratorsHPC/slides/Synchronization.pdf>
