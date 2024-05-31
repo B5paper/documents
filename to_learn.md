@@ -3570,3 +3570,327 @@
 * StoryDiffusion can create a magic story by generating consistent images and videos. Our work mainly has two parts:
 
     <https://github.com/HVision-NKU/StoryDiffusion>
+
+* lastday cache
+
+    * <https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch10.html>
+
+    * <https://singlelogin.re/s/linux%20device%20drivers>
+
+    * <https://singlelogin.re/book/2737194/a6358a/linux-device-drivers.html>
+
+    * <https://tldp.org/LDP/lkmpg/2.6/html/x1256.html>
+
+    * <https://linux-kernel-labs.github.io/refs/heads/master/lectures/interrupts.html>
+
+    * <https://github.com/ANSANJAY/InterruptHandlinginKernel>
+
+    * <https://github.com/sysprog21/simrupt>
+
+    * <https://mpitutorial.com/tutorials/mpi-scatter-gather-and-allgather/>
+
+    * <https://github.com/chaosblade-io/chaosblade>
+
+    * <https://github.com/ragapp/ragapp>
+
+    * <https://github.com/coreweave/kubernetes-cloud>
+
+    * <https://docs.coreweave.com/welcome-to-coreweave/readme>
+
+    * <https://github.com/GPUOpen-Drivers/llpc>
+
+    * <https://github.com/kubeflow/arena?tab=readme-ov-file>
+
+    * <https://github.com/linux-rdma/rdma-core>
+
+    * <https://github.com/openucx/ucc>
+
+    * <https://github.com/lucidrains/vit-pytorch>
+
+* lastday cache 2
+
+    * <https://www.khronos.org/opengl/wiki/Getting_Started#Writing_an_OpenGL_Application>
+
+    * <https://github.com/krrishnarraj/clpeak>
+
+    * <https://github.com/KhronosGroup/OpenCL-CLHPP>
+
+    * <https://www.kernel.org/doc/html/next/core-api/memory-allocation.html>
+
+    * <https://stackoverflow.com/questions/34188369/easiest-way-to-use-dma-in-linux>
+
+    * <https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch15.html>
+
+    * <https://docs.kernel.org/core-api/dma-api-howto.html>
+
+    * <https://github.com/rayshi14/RDMA>
+
+    * <https://github.com/AmrElsersy/DMA_GUI>
+
+    * <https://github.com/XiaoningLiu/rdma/tree/master/rdma_code>
+
+    * <https://blog.csdn.net/u014618114/article/details/103331261>
+
+    * <https://unix.stackexchange.com/questions/472223/whats-the-use-of-having-a-kernel-part-in-the-virtual-memory-space-of-linux-proc>
+
+    * <https://developer.ibm.com/articles/control-linux-kernel-extensions/>
+
+    * <https://sysprog21.github.io/lkmpg/>
+
+    * <https://www.kernel.org/doc/html/next/process/coding-style.html>
+
+    * <https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html>
+
+    * <https://gcc.gnu.org/onlinedocs/cpp/Object-like-Macros.html>
+
+    * <https://github.com/apple/corenet>
+
+    * <https://zhuanlan.zhihu.com/p/663673864>
+
+    * <https://www.cnblogs.com/Rainingday/p/12618715.html>
+
+    * <https://blog.csdn.net/sheng__jun/article/details/78189951>
+
+    * <https://blog.csdn.net/qq_37858386/article/details/112984578>
+
+    * <https://blog.csdn.net/houxiaoni01/article/details/121468354?spm=1001.2101.3001.6650.16&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-16-121468354-blog-112984578.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-16-121468354-blog-112984578.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=25>
+
+    * <https://blog.csdn.net/hz5034/article/details/79790074>
+
+    * <https://www.kernel.org/doc/html/v5.7/core-api/idr.html>
+
+    * <https://openbenchmarking.org/test/pts/furmark>
+
+    * <https://github.com/vkmark/vkmark>
+
+    * <https://github.com/flame/blislab>
+
+    * <https://github.com/openai/openai-gemm>
+
+    * <https://github.com/google/gemmlowp>
+
+    * <https://riptutorial.com/cplusplus/example/16706/type-relations-with-std--is-same-t--t->
+
+    * <https://en.cppreference.com/w/cpp/types/is_same>
+
+    * <https://stackoverflow.com/questions/12321949/explicitly-deleting-a-shared-ptr>
+
+    * <https://en.cppreference.com/w/cpp/memory/unique_ptr/reset>
+
+    * <https://developer.download.nvidia.com/CUDA/training/NVIDIA_GPU_Computing_Webinars_Best_Practises_For_OpenCL_Programming.pdf>
+
+    * <https://blog.csdn.net/10km/article/details/51636072>
+
+    * <https://stackoverflow.com/questions/3957125/questions-about-global-and-local-work-size>
+
+    * <https://community.khronos.org/t/local-memory-allocation-inside-kernel-with-passed-variable/7098>
+
+* cache 3
+
+    * <https://embetronicx.com/?s=linux+drivers>
+
+    * <https://embetronicx.com/linux-device-driver-tutorials/>
+
+    * <https://embetronicx.com/tutorials/linux/device-drivers/linux-device-driver-tutorial-part-17-linked-list-in-linux-kernel/>
+
+    * <https://embetronicx.com/tutorials/linux/device-drivers/example-linked-list-in-linux-kernel/>
+
+    * <https://zhuanlan.zhihu.com/p/696843432>
+
+    * <https://www.ired.team/miscellaneous-reversing-forensics/windows-kernel-internals/interrupt-descriptor-table-idt>
+
+    * <https://wiki.osdev.org/Interrupt_Descriptor_Table>
+
+    * <https://oi-wiki.org/basic/prefix-sum/#%E5%B7%AE%E5%88%86>
+
+    * <https://oi-wiki.org/intro/about/>
+
+    * <https://portablecl.org/>
+
+    * <https://github.com/langgenius/dify>
+
+    * <https://github.com/VinciGit00/Scrapegraph-ai>
+
+    * <https://blog.csdn.net/lightningcs/article/details/131013756>
+
+    * <https://stackoverflow.com/questions/8251226/irq-to-desc-undefined>
+
+    * <https://blog.csdn.net/dreamInTheWorld/article/details/107466778>
+
+    * <https://zhuanlan.zhihu.com/p/363279693>
+
+    * <https://blog.csdn.net/u012503639/article/details/107933857>
+
+    * <https://triton-lang.org/main/getting-started/tutorials/01-vector-add.html>
+
+    * <https://github.com/pciutils/pciutils>
+
+    * <https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch09s03.html>
+
+* cache 4
+
+    * <https://blog.csdn.net/eidolon_foot/article/details/136400689>
+
+    * <https://blog.csdn.net/qq_40309341/article/details/113256341>
+
+    * <https://www.unix.com/man-page/suse/9/unregister_chrdev_region/>
+
+    * <https://elixir.bootlin.com/linux/latest/ident/unregister_chrdev_region>
+
+    * <https://blog.csdn.net/u011981341/article/details/126173063>
+
+    * <https://blog.csdn.net/s2603898260/article/details/102673486>
+
+    * <https://blog.csdn.net/ZHONGCAI0901/article/details/120348014>
+
+    * <https://blog.csdn.net/Soar_dream/article/details/51537498>
+
+    * <https://github.com/HazyResearch/ThunderKittens>
+
+* cache 5
+
+    * <https://zhuanlan.zhihu.com/p/496060255>
+
+    * <https://www.zhihu.com/people/coolboy-88>
+
+    * <https://www.zhihu.com/column/c_1108400140804726784>
+
+    * <https://www.zhihu.com/question/19735293/answer/1575643329>
+
+    * <https://zhuanlan.zhihu.com/p/428907459>
+
+    * <https://www.zhihu.com/people/scratchlab>
+
+    * <https://www.zhihu.com/search?type=content&q=iova>
+
+    * <https://www.zhihu.com/people/nan-gui-72-90-50>
+
+    * <https://zhuanlan.zhihu.com/p/655085029>
+
+    * <https://zhuanlan.zhihu.com/p/375970474>
+
+    * <https://www.zhihu.com/people/huiweics/posts>
+
+    * <https://zhuanlan.zhihu.com/p/373517974>
+
+    * <https://www.zhihu.com/people/modugoudaner/posts>
+
+    * <https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html?highlight=amd_iommu>
+
+    * <https://brieflyx.me/2020/qemu/qemu-new-helper/>
+
+    * <https://sysprogs.com/VisualKernel/tutorials/kgdb/>
+
+    * <https://github.com/Arc-Compute/Mdev-GPU>
+
+    * <https://dioxuslabs.com/>
+
+    * <https://releases.slint.dev/1.5.1/docs/slint/src/language/widgets/combobox>
+
+    * <https://github.com/NVIDIA/cuCollections>
+
+    * <https://github.com/hugsy/gef>
+
+    * <https://github.com/osandov/drgn>
+
+    * <https://github.com/gojue/ebpf-slide>
+
+    * <https://github.com/valkey-io/valkey>
+
+    * <https://docs.rs/numpy/latest/numpy/>
+
+    * <https://git-scm.com/book/en/v2/Git-Tools-Submodules>
+
+    * <https://github.com/lTbgykio/Books-Free-Books>
+
+    * <https://blog.csdn.net/bdfpxsfh/article/details/129473944>
+
+    * <https://github.com/Joylei/plotters-iced>
+
+    * <https://docs.nvidia.com/cuda/profiler-users-guide/>
+
+    * <https://www.gtk.org/docs/installations/windows>
+
+    * <https://medium.com/@navaneethrvce/debugging-your-linux-kernel-module-21bf8a8728ba>
+
+    * <https://github.com/nihui/vkpeak>
+
+    * <https://github.com/rjodinchr/vulkan-shader-profiler>
+
+    * <https://github.com/KhronosGroup/Vulkan-Profiles?tab=readme-ov-file>
+
+    * <https://github.com/KhronosGroup/Vulkan-Profiles/blob/main/OVERVIEW.md>
+
+    * <https://github.com/azhirnov/glsl_trace>
+
+    * <https://github.com/KhronosGroup/Vulkan-Profiles>
+
+    * <https://github.com/lstalmir/VulkanProfiler>
+
+    * <https://github.com/shihchinw/awesome-mobile-graphics>
+
+    * <https://www.lunarg.com/wp-content/uploads/2022/08/Vulkan-SDK-Tools-to-Use-and-Create-Vulkan-Profiles-AUG-SIGGRAPH-2022.pdf>
+
+    * <https://github.com/KhronosGroup/MoltenVK>
+
+    * <https://github.com/google/vulkan-performance-layers>
+
+    * <https://github.com/datoviz/datoviz>
+
+    * <https://github.com/google/swiftshader>
+
+    * <https://github.com/ARM-software/vulkan_best_practice_for_mobile_developers>
+
+    * <https://github.com/RippeR37/GL_vs_VK>
+
+    * <https://github.com/gscept/nebula>
+
+    * <https://github.com/shg8/3DGS.cpp>
+
+    * <https://github.com/cjmcv/hpc>
+
+    * <https://zhuanlan.zhihu.com/p/686281571>
+
+    * <https://www.zhihu.com/people/yidi-xie-de-ji-yi>
+
+    * <https://zhuanlan.zhihu.com/p/635305142>
+
+    * <https://www.zhihu.com/question/424430509/answer/2475086208>
+
+    * <https://zhuanlan.zhihu.com/p/487583258>
+
+    * <https://www.zhihu.com/question/458044829/answer/3423114058>
+
+    * <https://zhuanlan.zhihu.com/p/362575905>
+
+    * <https://zhuanlan.zhihu.com/p/24873235>
+
+    * <https://zhuanlan.zhihu.com/p/339592354>
+
+    * <https://github.com/Noeda/rllama>
+
+    * <https://github.com/charles-lunarg/vk-bootstrap>
+
+    * <https://github.com/yifengyou/learn-kvm?tab=readme-ov-file>
+
+    * <https://zhuanlan.zhihu.com/p/619143952>
+
+    * <https://zhuanlan.zhihu.com/p/673063690>
+
+    * <https://zhuanlan.zhihu.com/p/693497304>
+
+    * <https://www.cnblogs.com/arnoldlu/p/7211249.html>
+
+    * <https://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&tn=baidu&wd=%E9%93%BE%E8%A1%A8%E5%BF%AB%E6%8E%92&fenlei=256&rsv_pq=0xa65f98010006bbd8&rsv_t=89e4ryOpGY98YZAYyM0I1c8AAiULSk7szHpEKbK776u3BZeZPHRaQT%2BK91Xt&rqlang=en&rsv_dl=ib&rsv_enter=1&rsv_sug3=14&rsv_sug1=11&rsv_sug7=100&rsv_sug2=0&rsv_btype=i&inputT=988&rsv_sug4=988>
+
+    * <https://github.com/Jessicahust/KVM/blob/master/%E7%B3%BB%E7%BB%9F%E8%99%9A%E6%8B%9F%E5%8C%96%EF%BC%9A%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0.pdf>
+
+    * <https://github.com/changkun/modern-cpp-tutorial>
+
+    * <https://developer.nvidia.com/blog/cutlass-linear-algebra-cuda/>
+
+    * <https://github.com/NVIDIA/cutlass>
+
+    * <https://www.nersc.gov/assets/Uploads/SC14OpenCLTutorialNotes.pdf>
+
+    * <http://wrigstad.com/upmarc-ss14/simon3.pdf>
