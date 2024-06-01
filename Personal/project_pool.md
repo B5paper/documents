@@ -36,6 +36,28 @@
 
 ## cached
 
+* c++ `isdigit()`判断一个字符是否为数字
+
+* performance 的工具
+
+    * `timeit_ms()`
+
+        区间计时。
+
+    * 需要热启动的框架
+
+        `init_env()`, `timeit_ms_N()`, `exit_env()`
+
+        calculate mean time consumption and std.
+
+        warm up time and dextroy env time
+
+    * 随机填充一个数组/矩阵
+
+    * 标准参考答案
+
+* c++ 类中是否有办法让引用作为成员变量？
+
 * 不要忽略题目的暴力写法
 
     暴力写法是基础。
@@ -1125,6 +1147,8 @@ cached:
 
 * [v] 改进一下 simple opencl，`add_buf()`同时申请显存和内存。
 
+* [v] 调研 reduce sum, reduce max
+
 * [ ] 调研
 
 ## 算法 algorithms 与 leetcode
@@ -1164,6 +1188,8 @@ tasks:
 * [ ] P24 ~ 25, 解释 step table 1.1, 1.2, 1.3
 
 * [ ] 解释 P29 1.3.3 asymptotic notation $\Omega$, $\Theta$
+
+* [v] leetcode 1 题  05/25
 
 ## awk
 
@@ -1555,6 +1581,8 @@ cache:
 	1. [v] 重装系统，安装 virtual box
 
 	1. [ ] 创建一些虚拟机
+
+* [v] 调研 nccl
 
 ## 微积分
 
