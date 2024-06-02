@@ -30785,6 +30785,115 @@ arr 所含的整数 各不相同 。
     };
     ```
 
+### 分糖果
+
+Alice 有 n 枚糖，其中第 i 枚糖的类型为 candyType[i] 。Alice 注意到她的体重正在增长，所以前去拜访了一位医生。
+
+医生建议 Alice 要少摄入糖分，只吃掉她所有糖的 n / 2 即可（n 是一个偶数）。Alice 非常喜欢这些糖，她想要在遵循医生建议的情况下，尽可能吃到最多不同种类的糖。
+
+给你一个长度为 n 的整数数组 candyType ，返回： Alice 在仅吃掉 n / 2 枚糖的情况下，可以吃到糖的 最多 种类数。
+
+ 
+
+示例 1：
+
+输入：candyType = [1,1,2,2,3,3]
+输出：3
+解释：Alice 只能吃 6 / 2 = 3 枚糖，由于只有 3 种糖，她可以每种吃一枚。
+
+示例 2：
+
+输入：candyType = [1,1,2,3]
+输出：2
+解释：Alice 只能吃 4 / 2 = 2 枚糖，不管她选择吃的种类是 [1,2]、[1,3] 还是 [2,3]，她只能吃到两种不同类的糖。
+
+示例 3：
+
+输入：candyType = [6,6,6,6]
+输出：1
+解释：Alice 只能吃 4 / 2 = 2 枚糖，尽管她能吃 2 枚，但只能吃到 1 种糖。
+
+ 
+
+提示：
+
+    n == candyType.length
+    2 <= n <= 104
+    n 是一个偶数
+    -105 <= candyType[i] <= 105
+
+代码：
+
+1. 排序 + 找不重复的元素
+
+    按题意要求，最多只能吃`n / 2`个糖果。在遍历糖果时，每遇到不同类型的就吃一顆。
+
+    那我们直接用代码模拟这个过程。先对糖果的类型进行排序，然后判断当前糖果是否和下一个糖果相同。
+
+    代码如下：
+
+    ```cpp
+    class Solution {
+    public:
+        int distributeCandies(vector<int>& candyType) {
+            int n = candyType.size();
+            int half_n = n / 2;
+            int ans = 1;
+            sort(candyType.begin(), candyType.end());
+            int p = 1;
+            --half_n;
+            while (p < n && half_n)
+            {
+                if (candyType[p] != candyType[p-1])
+                {
+                    ++ans;
+                    --half_n;
+                }
+                ++p;
+                while (p < n && candyType[p] == candyType[p-1])
+                    ++p;
+            }
+            return ans;
+        }
+    };
+    ```
+
+    这个方法效率很高，击败了 94%。
+
+    这个方法里有一个细节，我们的想法是让一个指针遍历所有数组，判断当前数字和下一个数字是否相等，如果不相等，说明遇到了不同类型的糖果；如果相等，那么说明还在同一个类型的糖果上，必须找到下一个边界。
+
+    假如让`p`从`0`开始，比如写出这样的代码：
+
+    ```cpp
+    int get_types(vector<int> &vec)
+    {
+        int N = 0;
+        for (int i = 0; i < vec.size() - 1; ++i)
+        {
+            if (vec[i+1] != vec[i])
+                ++N;
+        }
+        return N;
+    }
+    ```
+
+    这段代码其实只能检测“跳变”，或者说“阶跃”，而无法检测不同的数字个数。
+
+    由于跳变比数字个数少一，所以我们把`N`加上`1`，就是数字类型个数了。
+
+2. 官方答案，使用哈希表统计个数
+
+    ```cpp
+    class Solution {
+    public:
+        int distributeCandies(vector<int> &candyType) {
+            return min(unordered_set<int>(candyType.begin(), candyType.end()).size(), candyType.size() / 2);
+        }
+    };
+    ```
+
+    哈希表直接就能统计糖果类型数量。
+
 ## 基本算法
 
 ### 二分查找
