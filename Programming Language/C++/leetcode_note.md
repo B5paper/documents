@@ -699,6 +699,73 @@ F(N) = F(N - 1) + F(N - 2), 其中 N > 1.
     };
     ```
 
+2. 线性思考
+
+    首先我们知道对于一个楼梯`n`，它可以是`n-1`的总数加上`n-2`的总数。
+
+    因此可以写出这样的代码：
+
+    ```cpp
+    class Solution {
+    public:
+        int climbStairs(int n) {
+            if (n == 1) return 1;
+            if (n == 2) return 2;
+            return climbStairs(n-1) + climbStairs(n-2);
+        }
+    };
+    ```
+
+    这个写法需要注意的问题是：
+
+    **`f(n) = f(n-1) + f(n-2)`总是在`n >= 3`时才生效。**
+
+    对于其他情况我们需要特殊处理。
+
+    由于这个过程是一个二叉树的后序遍历，是把一棵二叉树展开的过程，因此需要
+
+    接下来我们尝试使用哈希表加速：
+
+    ```cpp
+    class Solution {
+    public:
+        unordered_map<int, int> m;
+        int climbStairs(int n) {
+            if (m.find(n) != m.end())
+                return m.at(n);
+            if (n == 1) return 1;
+            if (n == 2) return 2;
+            int rtn = climbStairs(n-1) + climbStairs(n-2);
+            m[n] = rtn;
+            return rtn;
+        }
+    };
+    ```
+
+    提问：记忆法+递归需要做多少步计算？
+
+    最后即我们的数组法，自底向上：
+
+    ```cpp
+    class Solution {
+    public:
+        int climbStairs(int n) {
+            if (n == 1) return 1;
+            if (n == 2) return 2;
+            vector<int> v(n+1, 0);
+            v[1] = 1;
+            v[2] = 2;
+            for (int i = 3; i <= n; ++i)
+            {
+                v[i] = v[i-1] + v[i-2];
+            }
+            return v[n];
+        }
+    };
+    ```
+
+    这里仍然需要对`n == 1`和`n == 2`的情况特殊处理。
+
 #### 使用最小花费爬楼梯
 
 数组的每个下标作为一个阶梯，第 i 个阶梯对应着一个非负数的体力花费值 cost[i]（下标从 0 开始）。
@@ -25188,6 +25255,102 @@ numMatrix.sumRegion(1, 2, 2, 4); // return 12 (蓝色矩形框的元素总和)
 
 代码：
 
+1. 线性思考
+
+    首先我们上暴力双重循环：
+
+    ```cpp
+    class Solution {
+    public:
+        int subarraySum(vector<int>& nums, int k) {
+            int ans = 0;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                for (int j = i; j < nums.size(); ++j)
+                {
+                    int sum = 0;
+                    for (int p = i; p <= j; ++p)
+                    {
+                        sum += nums[p];
+                    }
+                    if (sum == k)
+                        ++ans;
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    然后我们想一想可以优化的地方。
+    
+    由于数组由整数构成，所以即使当前和大于或小于 k，后面还是有可能等于 k。无法从这个角度进行剪枝。
+
+    对于`p`的求和优化，可以使用前缀和：
+
+    ```cpp
+    class Solution {
+    public:
+        int subarraySum(vector<int>& nums, int k) {
+            vector<int> presum(nums.size());
+            presum[0] = nums[0];
+            for (int i = 1; i < nums.size(); ++i)
+                presum[i] = presum[i-1] + nums[i];
+            int ans = 0;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                for (int j = i; j < nums.size(); ++j)
+                {
+                    int sum = 0;
+                    sum = presum[j] - presum[i] + nums[i];
+                    if (sum == k)
+                        ++ans;
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    这个方法仍会超时。
+
+    如果我们把一段数组之和拆成 presum 中找两个数，使得两个数之差为 k，那么这个问题就可以转化成“两数之和”。
+
+    我们可能会马上写出这样的代码：
+
+    ```cpp
+    class Solution {
+    public:
+        int subarraySum(vector<int>& nums, int k) {
+            vector<int> presum(nums.size());
+            unordered_map<int, int> presum_cnt;
+            presum[0] = nums[0];
+            presum_cnt[nums[0]] = 1;
+            for (int i = 1; i < nums.size(); ++i)
+            {
+                presum[i] = presum[i-1] + nums[i];
+                presum_cnt[presum[i]]++;
+            }
+            int ans = 0;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                int presum_target = k + presum[i] - nums[i];
+                if (presum_cnt.find(presum_target) != presum_cnt.end())
+                {
+                    ans += presum_cnt[presum_target];
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+
+    但是这个代码是错的。因为我们要找的两个 presum，是有先后顺序的，`presum_target`出现的位置，必须等于`i`或者在`i`的后面。
+
+    线性思考至此停止。
+
+    答案中的哈希表 + 前缀和将 presum 作为右侧，反而使用哈希表去找左侧，很好地解决了这个“有序”问题。不清楚这个方法是怎么想出来的。
+
 1. 前缀和（超时）
 
     注意这道题中数组中元素可以为负值，因此不能用滑动窗口，又因为要求子数组必须连续，所以不能用动态规划。最后只剩下前缀和可以用了。如果遇到需要反复查询的操作，需要用到哈希表。而且在查询时似乎不能用二分查找，因为二分查找要求数组有序。
@@ -30893,6 +31056,119 @@ Alice 有 n 枚糖，其中第 i 枚糖的类型为 candyType[i] 。Alice 注意
     ```
 
     哈希表直接就能统计糖果类型数量。
+
+### 分糖果 II
+
+排排坐，分糖果。
+
+我们买了一些糖果 candies，打算把它们分给排好队的 n = num_people 个小朋友。
+
+给第一个小朋友 1 颗糖果，第二个小朋友 2 颗，依此类推，直到给最后一个小朋友 n 颗糖果。
+
+然后，我们再回到队伍的起点，给第一个小朋友 n + 1 颗糖果，第二个小朋友 n + 2 颗，依此类推，直到给最后一个小朋友 2 * n 颗糖果。
+
+重复上述过程（每次都比上一次多给出一颗糖果，当到达队伍终点后再次从队伍起点开始），直到我们分完所有的糖果。注意，就算我们手中的剩下糖果数不够（不比前一次发出的糖果多），这些糖果也会全部发给当前的小朋友。
+
+返回一个长度为 num_people、元素之和为 candies 的数组，以表示糖果的最终分发情况（即 ans[i] 表示第 i 个小朋友分到的糖果数）。
+
+ 
+
+示例 1：
+
+输入：candies = 7, num_people = 4
+输出：[1,2,3,1]
+解释：
+第一次，ans[0] += 1，数组变为 [1,0,0,0]。
+第二次，ans[1] += 2，数组变为 [1,2,0,0]。
+第三次，ans[2] += 3，数组变为 [1,2,3,0]。
+第四次，ans[3] += 1（因为此时只剩下 1 颗糖果），最终数组变为 [1,2,3,1]。
+
+示例 2：
+
+输入：candies = 10, num_people = 3
+输出：[5,2,3]
+解释：
+第一次，ans[0] += 1，数组变为 [1,0,0]。
+第二次，ans[1] += 2，数组变为 [1,2,0]。
+第三次，ans[2] += 3，数组变为 [1,2,3]。
+第四次，ans[0] += 4，最终数组变为 [5,2,3]。
+
+ 
+
+提示：
+
+    1 <= candies <= 10^9
+    1 <= num_people <= 1000
+
+代码：
+
+1. 自己写的，暴力模拟
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> distributeCandies(int candies, int num_people) {
+            vector<int> ans(num_people, 0);
+            int n = candies;
+            int p = 0;
+            int dispatch_num = 1;
+            int real_disp;
+            while (n)
+            {
+                real_disp = min(n, dispatch_num);
+                ans[p] += real_disp;
+                ++dispatch_num;
+                ++p;
+                if (p == num_people)
+                    p = 0;
+                n -= real_disp;
+            }
+            return ans;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 首先我们不知道要循环的轮数，因此一定是使用 while。
+
+    2. 由于这个涉及到了循环发糖，有两种解决方案，一种是使用`%`取模，一种是使用`if`判断是否到达末尾，如果到达末尾，则清零。
+
+        由于使用`%`可能有溢出的风险，所以这里直接使用了`if`。
+
+    3. 边界问题
+
+        若最后剩的糖数不够`n+1`，那么直接把剩余的糖都发出去。我们无法直接判断这个边界什么时候会发生，因此使用`min()`每次都比较一下。
+
+2. 官方题解，数学公式
+
+    ```cpp
+    class Solution {
+    public:
+        vector<int> distributeCandies(int candies, int num_people) {
+            int n = num_people;
+            // how many people received complete gifts
+            int p = (int)(sqrt(2 * candies + 0.25) - 0.5);
+            int remaining = (int)(candies - (p + 1) * p * 0.5);
+            int rows = p / n, cols = p % n;
+
+            vector<int> d(n, 0);
+            for (int i = 0; i < n; ++i) {
+                // complete rows
+                d[i] = (i + 1) * rows + (int)(rows * (rows - 1) * 0.5) * n;
+                // cols in the last row
+                if (i < cols) {
+                    d[i] += i + 1 + rows * n;
+                }
+            }
+            // remaining candies 
+            d[cols] += remaining;
+            return d;
+        }
+    };
+    ```
+
+    这道题用数学公式写起来还是挺复杂的，有时间了看看。
 
 ## 基本算法
 

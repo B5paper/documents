@@ -3984,3 +3984,15 @@
     * <https://github.com/tgfrerer/island>
 
     * <https://comp.anu.edu.au/courses/acceleratorsHPC/slides/Synchronization.pdf>
+
+* The Triton backend for PyTorch
+
+    <https://github.com/triton-inference-server/pytorch_backend>
+
+* ToonCrafter: Generative Cartoon Interpolation
+
+    <https://github.com/ToonCrafter/ToonCrafter>
+
+* Omost is a project to convert LLM's coding capability to image generation (or more accurately, image composing) capability.
+
+    <https://github.com/lllyasviel/Omost>
