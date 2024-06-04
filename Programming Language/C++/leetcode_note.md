@@ -9812,6 +9812,84 @@ public:
     };
     ```
 
+    后面又写的，是完全按照这个思路来的：
+
+    ```cpp
+    class Solution {
+    public:
+        void setZeroes(vector<vector<int>>& matrix) {
+            int n_row = matrix.size();
+            int n_col = matrix[0].size();
+            bool zero_first_row = false, zero_first_col = false;
+            for (int i = 0; i < n_row; ++i)
+            {
+                if (matrix[i][0] == 0)
+                    zero_first_col = true;
+            }
+            for (int j = 0; j < n_col; ++j)
+            {
+                if (matrix[0][j] == 0)
+                    zero_first_row = true;
+            }
+
+            for (int i = 0; i < n_row; ++i)
+            {
+                for (int j = 0; j < n_col; ++j)
+                {
+                    if (matrix[i][j] == 0)
+                    {
+                        matrix[0][j] = 0;
+                        matrix[i][0] = 0;
+                    }
+                }
+            }
+
+            for (int i = 1; i < n_row; ++i)
+            {
+                if (matrix[i][0] == 0)
+                {
+                    for (int j = 1; j < n_col; ++j)
+                    {
+                        matrix[i][j] = 0;
+                    }
+                }
+            }
+
+            for (int j = 1; j < n_col; ++j)
+            {
+                if (matrix[0][j] == 0)
+                {
+                    for (int i = 1; i < n_row; ++i)
+                    {
+                        matrix[i][j] = 0;
+                    }
+                }
+            }
+
+            if (zero_first_col)
+            {
+                for (int i = 0; i < n_row; ++i)
+                {
+                    matrix[i][0] = 0;
+                }
+            }
+            if (zero_first_row)
+            {
+                for (int j = 0; j < n_col; ++j)
+                {
+                    matrix[0][j] = 0;
+                }
+            }
+        }
+    };
+    ```
+
+    感觉这道题考察的是一个数据依赖的问题，我们可以将清零的坐标缓存到第一行，第一列，但是是否清零第一行，第一列，又取决于第一行/第一列原有的数据，这个不能被覆盖，必须提前存起来。
+
+    注意到第一行有 0 被清零只影响到第 1 行，第 1 列有 0 被清零只影响第 1 列。因此还需要额外两个变量来存储这个状态。
+
+    这个数据依赖的问题，或许可以扩展到环形缓冲区，环形数组，反转链表？
+
 ### 有效的数独
 
 请你判断一个 9 x 9 的数独是否有效。只需要 根据以下规则 ，验证已经填入的数字是否有效即可。
@@ -12679,49 +12757,153 @@ nums 严格 递增
     };
     ```
 
+    这种方法可能涉及到约瑟夫环的问题，比想象中要复杂许多。
+
 ### 环形链表
 
-给定一个链表，判断链表中是否有环。
+给你一个链表的头节点 head ，判断链表中是否有环。
 
-如果链表中存在环，则返回 true 。 否则，返回 false 。
+如果链表中有某个节点，可以通过连续跟踪 next 指针再次到达，则链表中存在环。 为了表示给定链表中的环，评测系统内部使用整数 pos 来表示链表尾连接到链表中的位置（索引从 0 开始）。注意：pos 不作为参数进行传递 。仅仅是为了标识链表的实际情况。
+
+如果链表中存在环 ，则返回 true 。 否则，返回 false 。
+
+ 
+
+示例 1：
+
+输入：head = [3,2,0,-4], pos = 1
+输出：true
+解释：链表中有一个环，其尾部连接到第二个节点。
+
+示例 2：
+
+输入：head = [1,2], pos = 0
+输出：true
+解释：链表中有一个环，其尾部连接到第一个节点。
+
+示例 3：
+
+输入：head = [1], pos = -1
+输出：false
+解释：链表中没有环。
+
+ 
+
+提示：
+
+    链表中节点的数目范围是 [0, 104]
+    -105 <= Node.val <= 105
+    pos 为 -1 或者链表中的一个 有效索引 。
+
+ 
+
+进阶：你能用 O(1)（即，常量）内存解决此问题吗？
+
 
 代码：
 
-可以用哈希表，也可以用快慢指针。
+1. 线性思考
 
-```c++
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode(int x) : val(x), next(NULL) {}
- * };
- */
-class Solution {
-public:
-    bool hasCycle(ListNode *head) {
-        if (!head || !head->next) return false;
-        ListNode *p1 = head, *p2 = head;
-        do  // 如果使用 while 的话，刚开始 p1 和 p2 都位于 head 处，循环不会执行
-        {
-            p1 = p1->next;
-            if (p2 && p2->next) p2 = p2->next->next;  // 因为 p2 比 p1 走得快，所以只需要判断 p2 是否走到尾就可以了
-            else return false;
-        } while (p1 != p2);
+    我们需要记忆一个节点是否之前出现过，首先想到哈希表。
 
-        // 不想用 do while 的话也可以用下面这种写法
-        // ListNode *p1 = head, *p2 = head->next;
-        // while (p1 != p2)
-        // {
-        //     p1 = p1->next;
-        //     if (p2 && p2->next) p2 = p2->next->next;
-        //     else return false;
-        // }
-        return true;
-    }
-};
-```
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        bool hasCycle(ListNode *head) {
+            unordered_set<ListNode*> s;
+            ListNode *p = head;
+            while (p)
+            {
+                if (s.find(p) != s.end())
+                    return true;
+                s.insert(p);
+                p = p->next;
+            }
+            return false;
+        }
+    };
+    ```
+
+    注意题目并没有说每个节点的`val`各不相同，因此必须使用`ListNode*`作为哈希表存储的值。
+
+2. 快慢指针。
+
+    ```c++
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        bool hasCycle(ListNode *head) {
+            if (!head || !head->next) return false;
+            ListNode *p1 = head, *p2 = head;
+            do  // 如果使用 while 的话，刚开始 p1 和 p2 都位于 head 处，循环不会执行
+            {
+                p1 = p1->next;
+                if (p2 && p2->next) p2 = p2->next->next;  // 因为 p2 比 p1 走得快，所以只需要判断 p2 是否走到尾就可以了
+                else return false;
+            } while (p1 != p2);
+
+            // 不想用 do while 的话也可以用下面这种写法
+            // ListNode *p1 = head, *p2 = head->next;
+            // while (p1 != p2)
+            // {
+            //     p1 = p1->next;
+            //     if (p2 && p2->next) p2 = p2->next->next;
+            //     else return false;
+            // }
+            return true;
+        }
+    };
+    ```
+
+    后来又写的，这样比较清晰一点：
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode(int x) : val(x), next(NULL) {}
+    * };
+    */
+    class Solution {
+    public:
+        bool hasCycle(ListNode *head) {
+            if (!head)
+                return false;
+            ListNode *p1 = head, *p2 = head->next;
+            if (!p2)  // 在走第二次之前保证 p2 有效
+                return false;
+            p2 = p2->next;
+            while (p1 && p2)
+            {
+                if (p1 == p2)
+                    return true;
+                p1 = p1->next;
+                p2 = p2->next;
+                if (!p2)  // 在走第二次之前保证 p2 有效
+                    return false;
+                p2 = p2->next;
+            }
+            return false;
+        }
+    };
+    ```
 
 ### 反转链表
 
@@ -15491,6 +15673,40 @@ lists[i].length 的总和不超过 10^4
     };
     ```
 
+    后来又写的：
+
+    ```cpp
+    /**
+    * Definition for a binary tree node.
+    * struct TreeNode {
+    *     int val;
+    *     TreeNode *left;
+    *     TreeNode *right;
+    *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+    * };
+    */
+    class Solution {
+    public:
+        void mid_order(vector<int> &ans, TreeNode *root)
+        {
+            if (!root) return;
+            if (root->left) mid_order(ans, root->left);
+            ans.push_back(root->val);
+            if (root->right) mid_order(ans, root->right);
+        }
+
+        vector<int> inorderTraversal(TreeNode* root) {
+            vector<int> ans;
+            mid_order(ans, root);
+            return ans;
+        }
+    };
+    ```
+
+    可以看出，关于究竟是在进行递归前对特殊条件（空节点）进行特殊处理，还是在进入递归函数后，在函数的入口处对特殊情况进行特殊处理，我还没考虑好。
+
 1. 迭代，栈
 
     ```c++
@@ -16556,6 +16772,84 @@ public:
     1. 第一棵子树的左子树和第二棵子树的右子树互为镜像，且第一棵子树的右子树和第二棵子树的左子树互为镜像。
 
 代码：
+
+1. 线性思考
+
+    对称，意味着用一半的数据，就能镜像补全另一半的数据。
+
+    我们如果能有办法让一棵树序列化，然后将树镜像一下，再求一遍这棵树的序列化，对比两次序列化的结果，是否就能判断一棵树是对称的？
+
+    代码：
+
+    ```cpp
+    /**
+    * Definition for a binary tree node.
+    * struct TreeNode {
+    *     int val;
+    *     TreeNode *left;
+    *     TreeNode *right;
+    *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+    * };
+    */
+    class Solution {
+    public:
+        void mirror(TreeNode *root)
+        {
+            if (!root)
+                return;
+            swap(root->left, root->right);
+            mirror(root->left);
+            mirror(root->right);
+        }
+
+        void traverse_pre(vector<int> &nums, TreeNode *root)
+        {
+            if (!root)
+            {
+                nums.push_back(-200);
+                return;
+            }
+            nums.push_back(root->val);
+            traverse_pre(nums, root->left);
+            traverse_pre(nums, root->right);
+        }
+
+        void traverse_mid(vector<int> &nums, TreeNode *root)
+        {
+            if (!root)
+            {
+                nums.push_back(-200);
+                return;
+            }
+            traverse_mid(nums, root->left);
+            nums.push_back(root->val);
+            traverse_mid(nums, root->right);
+        }
+
+        bool isSymmetric(TreeNode* root) {
+            vector<int> nums_1_pre, nums_1_mid, nums_2_pre, nums_2_mid;
+            traverse_pre(nums_1_pre, root);
+            traverse_mid(nums_1_mid, root);
+            mirror(root);
+            traverse_pre(nums_2_pre, root);
+            traverse_mid(nums_2_mid, root);
+            if (nums_1_pre == nums_2_pre &&
+                nums_1_mid == nums_2_mid)
+            {
+                return true;
+            }
+            return false;
+        }
+    };
+    ```
+
+    因为不确定是否使用先序遍历就可以唯一地确定一棵树，所以这里同时使用了先序遍历和中序遍历。
+
+    另一个想法是同时先序遍历左子树和右子树，左子树先遍历左节点，再遍历右节点，右子树先遍历右节点，再遍历左节点，如果节点的值不相等，那么肯定是不对称，否则就是对称。
+
+    这道题的本质是对一棵树遍历再次，或者说同时遍历两棵树。并不是简单地一次遍历。
 
 1. 递归
 
@@ -21708,6 +22002,121 @@ bSTIterator.hasNext(); // 返回 False
         }
     };
     ```
+
+### 路径总和 III
+
+给定一个二叉树的根节点 root ，和一个整数 targetSum ，求该二叉树里节点值之和等于 targetSum 的 路径 的数目。
+
+路径 不需要从根节点开始，也不需要在叶子节点结束，但是路径方向必须是向下的（只能从父节点到子节点）。
+
+ 
+
+示例 1：
+
+输入：root = [10,5,-3,3,2,null,11,3,-2,null,1], targetSum = 8
+输出：3
+解释：和等于 8 的路径有 3 条，如图所示。
+
+示例 2：
+
+输入：root = [5,4,8,11,null,13,4,7,2,null,null,5,1], targetSum = 22
+输出：3
+
+ 
+
+提示:
+
+    二叉树的节点个数的范围是 [0,1000]
+    -109 <= Node.val <= 109 
+    -1000 <= targetSum <= 1000 
+
+
+代码：
+
+1. 先来个暴力解法，遍历每一段路径
+
+    ```cpp
+    /**
+    * Definition for a binary tree node.
+    * struct TreeNode {
+    *     int val;
+    *     TreeNode *left;
+    *     TreeNode *right;
+    *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+    *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+    * };
+    */
+    class Solution {
+    public:
+        int ans;
+        int targetSum;
+
+        void traverse_end(TreeNode *root, int target, long path_sum)
+        {
+            if (!root) return;
+            path_sum += root->val;
+            if (path_sum == target)
+                ++ans;
+            traverse_end(root->left, target, path_sum);
+            traverse_end(root->right, target, path_sum);
+        }
+
+        void traverse_start(TreeNode *root)
+        {
+            if (!root) return;
+            traverse_end(root, targetSum, 0);
+            traverse_start(root->left);
+            traverse_start(root->right);
+        }
+
+        int pathSum(TreeNode* root, int targetSum) {
+            ans = 0;
+            this->targetSum = targetSum;
+            traverse_start(root);
+            return ans;
+        }
+    };
+    ```
+
+    这段代码用了两次先序遍历，第一次先序遍历定位 path 的起点，第二段先序遍历定位 path 的终点，这样就可以暴力遍历所有情况。
+
+    因为 test case 中数据太大，`path_sum`被设置成了`long`，这一点其实不太重要。
+
+2. 官方答案，前缀和
+
+    ```cpp
+    class Solution {
+    public:
+        unordered_map<long long, int> prefix;
+
+        int dfs(TreeNode *root, long long curr, int targetSum) {
+            if (!root) {
+                return 0;
+            }
+
+            int ret = 0;
+            curr += root->val;
+            if (prefix.count(curr - targetSum)) {
+                ret = prefix[curr - targetSum];
+            }
+
+            prefix[curr]++;
+            ret += dfs(root->left, curr, targetSum);
+            ret += dfs(root->right, curr, targetSum);
+            prefix[curr]--;
+
+            return ret;
+        }
+
+        int pathSum(TreeNode* root, int targetSum) {
+            prefix[0] = 1;
+            return dfs(root, 0, targetSum);
+        }
+    };
+    ```
+
+    没看，来不及看了。
 
 ## 栈
 
@@ -35001,6 +35410,10 @@ sr = 1, sc = 1, newColor = 2
         }
     };
     ```
+
+    这个 dfs 本质上就是一个四叉树，采用的遍历方法是先序遍历。
+
+    由于在`dfs()`入口处进行了检查，所以不会出现重复搜索的问题。
 
 #### 省份数量
 
