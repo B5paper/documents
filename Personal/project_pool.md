@@ -36,7 +36,11 @@
 
 ## cached
 
-* c++ `isdigit()`判断一个字符是否为数字
+* 应该对个人系统建立一个项目进行复习
+
+	每次随机选择一个文件，跳转到随机一行，往下读 20 mins
+
+* cached tasK: 调研 u 盘里的资料
 
 * performance 的工具
 
@@ -55,8 +59,6 @@
     * 随机填充一个数组/矩阵
 
     * 标准参考答案
-
-* c++ 类中是否有办法让引用作为成员变量？
 
 * 不要忽略题目的暴力写法
 
@@ -79,78 +81,6 @@
 * 经常出现 terminal 没有登录虚拟机 ssh 的情况
 
     有没有什么办法可以避免这个问题？
-
-* 換句话说可以翻译成 in other words
-
-* projects
-
-    1. high performance ray tracing
-
-        highlights:
-
-        * opencl BVH intersection
-
-        * linear algebra
-
-            * rotate, fov, projection
-
-        * performance
-
-            * memory allocation
-
-                copy one part of the calculation task a time
-
-                reduce the copy operation as much as possible
-
-            * copy data from global memory to local memory
-
-            * multi thread, mutex, task assignment
-
-        * modern c++, asynchronos mechanism
-
-        * distributed
-
-            * task dispatching
-
-            * serializaing
-
-            * tcp socket / asynchronous
-
-            shortages:
-
-            * dispatch by dynamic workload
-
-    2. debug zengine
-
-        highlights:
-
-        * vulkan api
-
-        * common used shaders
-
-        * debug tricks
-
-            copy image buffer from gpu to cpu
-
-    3. performance analysing
-
-        profiling GPU register to get performance count
-
-        hilights:
-
-        * GPU rendering process
-
-        low lights:
-
-        * a lack of optimizing
-
-    4. virtualization
-
-        highlights:
-
-        * linux driver
-
-        * mmio, soc, FW config
 
 * to complete:
 
@@ -237,8 +167,6 @@
 * linaro 是 arm 发起的开源非盈利组织，主要做物联网方向
 
     可以在这个页面<https://www.linaro.org/downloads/>找 arm gcc 编译器的下载。
-
-* cached tasK: 调研 u 盘里的资料
 
 * 对材料的思考：名词解释，名词联想（在图中，联想一个节点相连接的其他节点）
 
@@ -378,9 +306,7 @@
 
 * [ ] 增加 git 的 qa
 
-* 应该对个人系统建立一个项目进行复习
 
-	每次随机选择一个文件，跳转到随机一行，往下读 20 mins
 
 * 在调研时，可以将笔记分成几个部分
 
@@ -526,18 +452,6 @@
 
 ## cached questions
 
-* [v] 思考 qa 的 dependency 机制
-
-    dependency:
-
-    1. [v] 需要先拿到每个 unit 对应的索引号
-
-        1. [v] 需要先学会用 flex 做词法分析
-
-            自己用代码写状态机去解析文件格式太累了，如果用 flex 的话可以大大提高效率。
-    
-    自动化的 dep 检测或许是不需要的。只要能记录就可以了，然后去手动搜索。
-
 * 如果遇到的知识是条目式的，没有理解难度，但是数量比较大，是否该将其列入到记忆任务中？还是说调研时先跳过？
 
     * append (2024.03.21)
@@ -572,17 +486,7 @@
 
 * random select 时，将 projects 文件夹也包含进去
 
-* [v] reorg 30 mins
-
-* [v] reorg 30 mins
-
-* [v] reorg 30 mins
-
-* [v] reorg 30 mins 04/24
-
 * [v] 调研 sync 的含义
-
-* [v] reorg  20 mins 04/25
 
 * [v] reorg 30 mins 04/28
 
@@ -662,47 +566,19 @@ Tasks:
 
 * 在 vim 中根据正则表达式搜索指定索引所在的位置
 
-* [v] qa 4 units 04/25  20 mins
+* [ ] 为 qa 工具增加`--list`功能
 
-    feedback:
+* [ ] 修复 bug:
 
-    1. 3 pass, 1 fail
-
-* [x] 调研 qa 程序执行`/main.py --list /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`的 bug
-
-    feedback:
-
-    1. 由于 qa 的程序已经換了，所以这个任务不再成立
-
-    2. 为 qa 工具增加`--list`功能
-
-* [v] qa 4 units 20 mins
-
-    feedback:
-
-    1. 修复 bug:
-
-        `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
+    `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
 
 * [v] qa 4 units 05/03
 
     答对题数：2/4
 
-    feedback:
+* [ ] 增加 linux driver qa:
 
-    1. 增加 linux driver qa:
-
-        配置 vscode 的内核驱动开发环境
-
-    2. 误删了 random_exam_py 文件夹，需要重写
-
-        记得用 git 保存到 remote 仓库
-
-* [x] qa 4 units 05/06
-
-    feedback:
-
-    1. 没法 qa 了，先修复 qa 的 python 程序。
+    配置 vscode 的内核驱动开发环境
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 

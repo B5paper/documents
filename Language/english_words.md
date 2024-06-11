@@ -507,3 +507,5 @@ synonymous adj. 同义的，同义词的
 distract v. 分散，使分心
 
 intercepts n. 截距
+
+in other words phrase. 換句话说

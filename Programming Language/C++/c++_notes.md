@@ -4,6 +4,12 @@
 
 ## cached
 
+* c++ `isdigit()`判断一个`char`字符是否为数字
+
+    目前只要`#include <iostream>`，就可以使用`std::isdigit()`。
+
+    不清楚初始的时候出自哪里。
+
 * c++ piecewise construct 中添加多个类型时，不同构造函数参数数量的处理：
 
     ```cpp
