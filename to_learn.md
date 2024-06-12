@@ -3996,3 +3996,22 @@
 * Omost is a project to convert LLM's coding capability to image generation (or more accurately, image composing) capability.
 
     <https://github.com/lllyasviel/Omost>
+* V-Express: Conditional Dropout for Progressive Training of Portrait Video Generation
+
+    <https://github.com/tencent-ailab/V-Express>
+
+* AWS OFI NCCL
+
+    <https://github.com/aws/aws-ofi-nccl>
+
+* libfabric
+
+    <https://github.com/ofiwg/libfabric>
+
+* tinyobjloader in C
+
+    <https://github.com/syoyo/tinyobjloader-c>
+
+* This repository lists static analysis tools for all programming languages, build tools, config files and more.
+
+    <https://github.com/analysis-tools-dev/static-analysis>
