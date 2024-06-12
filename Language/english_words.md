@@ -509,3 +509,19 @@ distract v. 分散，使分心
 intercepts n. 截距
 
 in other words phrase. 換句话说
+
+dispense v. 分配，提供
+
+preclude v. 阻止，排除
+
+compel v. 强迫
+
+transduction v. 转换，变频
+
+eschew v. 避开，回避
+
+albeit conj. 虽然，即使
+
+counteract v. 抵制
+
+abstractive adj. 摘要式的
