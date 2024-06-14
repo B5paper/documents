@@ -832,9 +832,9 @@ Ref:
 
     如果此时直接编译，会看到 undefined symbol 的 error 输出。这时我们需要重新编译内核。
 
-    首先是下载内核，可以直接使用`apt-get download linux-source`，这个命令下载的内核版本不一定是最新版，可能是刚装系统时的内核版本。
+    首先是下载内核，可以直接使用`apt-get download linux-source`，这个命令下载的内核版本通常会有问题。
     
-    还可以搜索目前可用的版本：
+    我们可以先搜索目前可下载的版本：
 
     `apt-cache search linux-source`
 
