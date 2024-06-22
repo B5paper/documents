@@ -44,7 +44,7 @@
 
     <https://www.zhihu.com/question/39309195/answer/2993073221>
 
-* 虚拟化 vfio 和UIO 区别
+* 虚拟化 vfio 和 UIO 区别
 
     <https://zhuanlan.zhihu.com/p/544076987>
 
@@ -667,6 +667,12 @@ tasks:
 * [v] cache tabs 05/06
 
 * [v] process 1 url 05/06
+
+## rdma
+
+* [ ] 调研 rdma
+
+* [ ] 调研 rdma tests
 
 ## GPU Perf
 
