@@ -2,6 +2,38 @@
 
 ## cache
 
+* windows 上 virtual box 无法启动嵌套 kvm 解决方法
+
+    ```powershell
+    PS C:\Users\hlc\VirtualBox VMs> D:\Softwares\VirtualBox\VBoxManage.exe list vms
+    ```
+
+    output:
+
+    ```
+    "Ubuntu 20.04" {d8054d31-1c97-4ec1-946f-da7246cb03f4}
+    "Ubuntu_2204" {86b4978b-45f8-40ff-848f-6094d1d89560}
+    "Ubuntu_2204 _origin" {041fad56-26f1-4505-9f11-79098883357f}
+    ```
+
+    modify the vm nested virtualization feature:
+
+    ```powershell
+    PS C:\Users\hlc\VirtualBox VMs> D:\Softwares\VirtualBox\VBoxManage.exe modifyvm "Ubuntu_2204 _origin" --nested-hw-virt on
+    ```
+
+    运行后可以看到 vm 管理界面里嵌套虚拟化的对勾 v 已经开启了。
+
+    此时进入虚拟机，运行`lsmod | grep kvm`可以看到
+
+    ```
+    kvm_intel       487424  0
+    kvm            1409024  1 kvm_intel
+    irqbypass        12288  1 kvm
+    ```
+
+    说明虚拟机中 kvm 启动成功。
+
 * virtual box 中，开机时使用 esc 进入 bios。
 
 * virtual box 使用 efi 启动的 iso 光盘

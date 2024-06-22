@@ -1,25 +1,3 @@
-* sshfs 将 window dir 挂载到 linux 中
-
-    `sshfs <user>:<ip_addr>:/D:shared_folder /path/to/local_dir`
-
-* kernel 编译库的安装与 kernel 镜像的安装
-
-    `apt install linux-header-5.19.0-50-generic`只是安装 linux kernel header 文件，使得可以编译 kmd，但是并不能在 grub 里添加一个新内核选项。
-
-    `apt install linux-image-xxx`这样才能给系统增加一个新 kernel。
-
-    `/lib/modules`以及`/usr/src`下的其实是`apt install linux-modules-xxx`安装的。
-
-* 修改 grub 便得其可以读秒
-
-    打开`/etc/default/grub`文件，
-
-    使用`#`注释掉`GRUB_TIMEOUT_STYLE=hidden`，
-
-    将`GRUB_TIMEOUT=0`修改为`GRUB_TIMEOUT=5`。
-
-    使用`sudo update-grub`使之生效。
-
 * 安装顺序
 
     kernel version: 5.19.0-50-generic

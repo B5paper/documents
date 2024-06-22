@@ -1,5 +1,57 @@
 # Libvirt Note
 
+## cache
+
+* 可以用`qemu-img info <file>`查看 qcow2 文件的真实大小。
+
+    `ls -lh <file>`只要看到 qcow2 文件虚拟的大小。
+
+    `qcow2`只增大，不缩小，因此一个虚拟大小为 120G 的 qcow2 文件，实际占用磁盘可能有 40G，进入虚拟机系统后使用`df -h`看到的占用可能只有 20G。
+
+* linux 5.19.x 的内核无法识别最新版 qemu (2024.06.20 测试) 提供的默认显卡 QXL, VGA，导致`/dev`目录下没有`dri`目录，自然也没有显卡设备。因此无法启动 wayland 桌面，也无法启动 x11 桌面。
+
+    解决办法是使用 qemu 提供的 virtio 虚拟显卡。
+
+* libvirt 默认的 disk image 存放位置是`/var/lib/libvirt/images`
+
+* 5.19.0 的 kernel 在 qemu 下无法启动桌面，主要是因为`/dev/dri`没有被创建
+
+    很有可能是这个版本的内核无法识别 qemu 提供的显卡。
+
+* 关闭一个虚拟机：`virsh destroy aaa`
+
+* 删除一个虚拟机，并且删除 virtual disk image: `virsh undefine aaa --remove-all-storage`
+
+* console 模式下可以运行的安装命令：
+
+    ```
+    hlc@hlc-VirtualBox:/home/libvirt-qemu$ virt-install --name aaa --memory 2048 --vcpus 2 --disk size=20 --location https://mirror.sjtu.edu.cn/ubuntu/dists/focal/main/installer-amd64/ --os-variant ubuntu22.04 --nographics -x 'console=ttyS0'
+    ```
+
+    注：
+
+    * `--cdrom`默认没有 console 输出，因此只能用于图形系统。`--location`可以设置 console 输出，因此可以在文字操作系统下安装一些 live server 版的系统。
+
+    * 这个命令中的`--location`选用了 network url，目前可以正常安装。ubuntu focal 是最后一版可以通过 url 安装的 ubuntu 系统，下个版本 jammy 已经不支持了。
+
+    * `-x 'console=ttyS0'`与`--location`搭配使用可以让输出重定向到 console。
+
+    * `--location`的参数改成 iso 时，会报错目录错误。如果将 iso 先 mount 到本地目录，再使用 mount 的目录进行安装，那么会最终进入到 initramfs 中，无法找到可以挂载的磁盘 dev。
+
+    * 网上的大部分方案，在使用`--location` + iso 时，都是用的 centos 镜像，所以很有可能 centos 的 iso 可以通过`--location`安装成功。但是为什么 ubuntu 的 iso 不行，不清楚。有时间了可以去看下 virt-manager 的开源代码实现：<https://github.com/virt-manager/virt-manager>
+
+* virt-manager 在启动时需要`service libvirtd start`
+
+* 如果 libvirt 没有 iso 权限，那么可以把`libvirt-qemu`加入到用户组里：`sudo usermod -a -G hlc libvirt-qemu`
+
+* 文字操作系统模式下，无法安装操作系统的图形版本，比如 ubuntu desktop, linux mint 等。
+
+* 列出正在运行的虚拟机：`virsh list`
+
+    列出所有的虚拟机：`virsh list --all`
+
+## note
+
 使用 console 连接到虚拟机：`virsh console <domain>`
 
 查看电脑是否支持虚拟化：`grep -E 'svm|vmx' /proc/cpuinfo`

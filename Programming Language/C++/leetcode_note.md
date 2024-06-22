@@ -2457,7 +2457,7 @@ public:
 };
 ```
 
-#### 正则表达式匹配
+### 正则表达式匹配
 
 ```
 请实现一个函数用来匹配包括'.'和'*'的正则表达式。
@@ -2510,7 +2510,7 @@ public:
 
 ```
 
-#### 最长公共子序列（LCS）
+### 最长公共子序列（LCS）
 
 分析：
 
@@ -2621,7 +2621,7 @@ $$
     };
     ```
 
-#### 两个字符串的删除操作
+### 两个字符串的删除操作
 
 给定两个单词 word1 和 word2，找到使得 word1 和 word2 相同所需的最小步数，每步可以删除任意一个字符串中的一个字符。
 
@@ -6120,7 +6120,7 @@ n == values.length
     };
     ```
 
-#### 最小的必要团队
+### 最小的必要团队
 
 作为项目经理，你规划了一份需求的技能清单 req_skills，并打算从备选人员名单 people 中选出些人组成一个「必要团队」（ 编号为 i 的备选人员 people[i] 含有一份该备选人员掌握的技能列表）。
 
@@ -6252,6 +6252,24 @@ people[i] 中的每个技能是 req_skills 中的技能
         }
     };
     ```
+
+### 数组的最大美丽值
+
+看到这道题，首先想到的暴力解法是用回溯法拿到一个组合，然后计算这个组合中每个数对应的区间，比如`nums[i]`，其对应的区间为`[nums[i] - k, nums[i] + k]`。
+
+拿到所有的区间后，取交集，若交集存在，那么记录组合的元素个数为`len`，并尝试更新答案：`ans = max(ans, len);`。
+
+遍历组合时，先从元素个数为 1 的组合开始，然后不断增加元素个数，直到遍历到全集。
+
+这道题容易让人想到动态规划，因为这个问题其实相当于对于一个区间，我们是否选择把它加进来求交集。关于空位选择，总是让人想到背包问题。而背包问题就是用动态规划解的。
+
+但是这道题无法用动态规划解决。主要问题是难以找到一个合适的最优子问题。
+
+假如最优子问题是：若已知以`nums[i]`结尾的数组的解，如何求以`nums[i+1]`结尾的解？我们马上可以举出反例：`nums = [0, 0, 0, 1, 1, 1, 1]`，根据前 3 个元素，永远也无法得知全局的最优解。那么我们能不能以已知`start = nums[i], end = nums[j]`这段数组的解，去求其他子数组的最优解？也不能，比如`[0, 0, 1, 1, 1, 2, 2, 2, 2]`，知道`[nums[2], nums[4]]`的解为 3 对于全局最优解毫无帮助。
+
+这些想法还算比较常用的，暂时也想不到其他什么动态规划方法了。
+
+由此我们可以引申出一个问题：同样是树的展开，为什么有的问题可以使用动态规划解决，这种问题就不行？是否在树展开的过程中，某些条件不满足，导致了动态规划无法使用？
 
 ## 贪心
 
@@ -39620,6 +39638,141 @@ graph[i] 是一个从节点 i 可以访问的所有节点的列表（即从节�
     但这样还是不对，因为题目并没有说`n-1`号节点是叶子节点。再把改成`if (cur_node == graph.size() - 1)`。这次终于对了，但是只击败了 7%。
 
     如果我们中途不创建新的 vector，只进行 push back，到最后返回答案的时候 reverse 一下，应该会快一些。
+
+#### 在带权树网络中统计可连接服务器对数目
+
+给你一棵无根带权树，树中总共有 n 个节点，分别表示 n 个服务器，服务器从 0 到 n - 1 编号。同时给你一个数组 edges ，其中 edges[i] = [ai, bi, weighti] 表示节点 ai 和 bi 之间有一条双向边，边的权值为 weighti 。再给你一个整数 signalSpeed 。
+
+如果两个服务器 a ，b 和 c 满足以下条件，那么我们称服务器 a 和 b 是通过服务器 c 可连接的 ：
+
+    a < b ，a != c 且 b != c 。
+    从 c 到 a 的距离是可以被 signalSpeed 整除的。
+    从 c 到 b 的距离是可以被 signalSpeed 整除的。
+    从 c 到 b 的路径与从 c 到 a 的路径没有任何公共边。
+
+请你返回一个长度为 n 的整数数组 count ，其中 count[i] 表示通过服务器 i 可连接 的服务器对的 数目 。
+
+
+
+示例 1：
+
+输入：edges = [[0,1,1],[1,2,5],[2,3,13],[3,4,9],[4,5,2]], signalSpeed = 1
+输出：[0,4,6,6,4,0]
+解释：由于 signalSpeed 等于 1 ，count[c] 等于所有从 c 开始且没有公共边的路径对数目。
+在输入图中，count[c] 等于服务器 c 左边服务器数目乘以右边服务器数目。
+
+示例 2：
+
+输入：edges = [[0,6,3],[6,5,3],[0,3,1],[3,2,7],[3,1,6],[3,4,2]], signalSpeed = 3
+输出：[2,0,0,0,0,0,2]
+解释：通过服务器 0 ，有 2 个可连接服务器对(4, 5) 和 (4, 6) 。
+通过服务器 6 ，有 2 个可连接服务器对 (4, 5) 和 (0, 5) 。
+所有服务器对都必须通过服务器 0 或 6 才可连接，所以其他服务器对应的可连接服务器对数目都为 0 。
+
+
+
+提示：
+
+    2 <= n <= 1000
+    edges.length == n - 1
+    edges[i].length == 3
+    0 <= ai, bi < n
+    edges[i] = [ai, bi, weighti]
+    1 <= weighti <= 106
+    1 <= signalSpeed <= 106
+    输入保证 edges 构成一棵合法的树。
+
+
+线性思考：
+
+根据题意，我们只需要将每个节点作为根节点，然后挑出它的两个子树，遍历两个子树的每个节点，计算路径之和，如果路径之和可以被`signalSpeed`整除，那么就将根节点的答案计数加一。
+
+为了根据每个节点快速找到与其连接的节点，可以将题目给出的 edge 信息修改为链表形式。
+
+目前写到这里写不下去了：
+
+```cpp
+class Solution {
+public:
+    void traverse()
+    {
+
+    }
+
+    void process_root(unordered_map<int, vector<pair<int, int>>> &graph, int root_node)
+    {
+        auto &linked_nodes = graph[root_node];
+        for (int i = 0; i < linked_nodes.size(); ++i)
+        {
+            for (int j = i + 1; j < linked_nodes.size(); ++j)
+            {
+                traverse()
+            }
+        }
+    }
+
+    vector<int> countPairsOfConnectableServers(vector<vector<int>>& edges, int signalSpeed) {
+        unordered_map<int, vector<pair<int, int>>> graph;
+        for (vector<int> &e: edges)
+        {
+            graph[e[0]].push_back({e[1], e[2]});
+            graph[e[1]].push_back({e[0], e[2]});
+        }
+        for (auto &[key, val]: graph)
+        {
+            int root_node = key;
+
+        }
+    }
+};
+```
+
+或许应该嵌套式地搜索，不应该用两个 for 循环。因为使用两个 for 循环只能定位子树，不容易定位节点。我们最终还是要落脚到节点路径长度上的。
+
+官方答案：
+
+```cpp
+class Solution {
+public:
+    vector<int> countPairsOfConnectableServers(vector<vector<int>>& edges, int signalSpeed) {
+        int n = edges.size() + 1;
+        vector<vector<pair<int, int>>> graph(n);
+        
+        for (auto e : edges) {
+            graph[e[0]].emplace_back(e[1], e[2]);
+            graph[e[1]].emplace_back(e[0], e[2]);
+        }
+        function<int(int, int, int)> dfs = [&](int p, int root, int curr) -> int {
+            int res = 0;
+            if (curr == 0) {
+                res++;
+            }
+            for (auto &[v, cost] : graph[p]) {
+                if (v != root) {
+                    res += dfs(v, p, (curr + cost) % signalSpeed);
+                }
+            }
+            return res;
+        };
+        
+        vector<int> res(n);
+        for (int i = 0; i < n; i++) {
+            int pre = 0;
+            for (auto &[v, cost] : graph[i]) {
+                int cnt = dfs(v, i, cost % signalSpeed);
+                res[i] += pre * cnt;
+                pre += cnt;
+            }
+        }
+        return res;
+    }
+};
+```
+
+可以看到官方答案用了许多技巧，首先是 edge 数加一等于节点数。
+
+其它的也没怎么看懂，感觉有点难。
+
 
 
 ## 各种算法中需要注意的细节

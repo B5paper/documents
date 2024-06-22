@@ -36,6 +36,46 @@
 
 ## cached
 
+* 如何为一个用户增加指定目录的各种权限？
+
+* isoinfo 在 genisoimage 包中
+
+* 对于一个新手来说，该如何入门dpdk ?
+
+    <https://www.zhihu.com/question/39309195/answer/2993073221>
+
+* 虚拟化 vfio 和UIO 区别
+
+    <https://zhuanlan.zhihu.com/p/544076987>
+
+    这篇对 iommu 讲得挺深入的
+
+* 深入理解 Linux 调度（GPU）虚拟化
+
+    <https://www.sohu.com/a/494587210_121124377>
+
+    介绍了一些背景，写得挺不错的，通俗易懂。有时间了把复制下来。
+
+* 节点的独立分解
+
+    1. 使用多种语义场景对节点的含义坐标进行定位
+
+        <div>
+        <img src='../../Reference_resources/ref_24/pics/pic_1.png'>
+        </div>
+
+    2. 调节单节点的值，保证在调整的过程中其他节点不受影响
+
+        <div>
+        <img src='../../Reference_resources/ref_24/pics/pic_2.png'>
+        </div>
+
+    3. 复杂网络的映射
+
+        <div>
+        <img src='../../Reference_resources/ref_24/pics/pic_3.png'>
+        </div>
+
 * 应该对个人系统建立一个项目进行复习
 
 	每次随机选择一个文件，跳转到随机一行，往下读 20 mins

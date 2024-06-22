@@ -4,6 +4,64 @@
 
 ## cached
 
+* 一些面向对象设计的问题
+
+    * 若类`B`依赖`A`，但`B`并不拥有`A`，那么如何保证在`B`有效时`A`一定有效，且`A`发生改变后`B`能使用`A`改变后的值？
+
+    * 如果`A`，`B`结合起来才能实现某些功能，功能的实现放到`C`中，那么`C`该如何设计才能满足这个要求？
+
+        方案 1：`A`，`B`作为`C`的成员。不可以，因为`A`，`B`也可以独立完成一些功能。
+
+        方案 2：`C`保存`A`，`B`的指针，但是会有失效的问题。
+
+        方案 3：`C`保存`A`，`B`的智能指针。
+
+        方案 4：创建一个类`D`，`D`负责维护`A`，`B`，`C`的依赖关系。
+
+* c++ class member as a reference
+
+    ```cpp
+    #include <stdio.h>
+
+    class A
+    {
+        public:
+        A(int &val_1, int val_2)
+        :ref_1(val_1), ref_2(val_2) {
+            
+        }
+        int &ref_1;
+        int &ref_2;
+    };
+
+    int main()
+    {
+        int val_1 = 3;
+        int val_2 = 3;
+        A a(val_1, val_2);
+        printf("a.ref_1: %d\n", a.ref_1);
+        a.ref_1 = 2;
+        printf("after changing a.ref_1, val_1: %d\n", val_1);
+        printf("a.ref_2: %d\n", a.ref_2);
+        a.ref_2 = 2;
+        printf("after changing a.ref_2, val_2: %d\n", val_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    a.ref_1: 3
+    after changing a.ref_1, val_1: 2
+    a.ref_2: 3
+    after changing a.ref_2, val_2: 3
+    ```
+
+    Reference must be assigned a value when the object created if it serves as a class member.
+
+    The reference member can accept a rvalue: `A a(val_1, 3);`
+
 * c++ `isdigit()`判断一个`char`字符是否为数字
 
     目前只要`#include <iostream>`，就可以使用`std::isdigit()`。
