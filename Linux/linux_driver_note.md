@@ -645,300 +645,7 @@ Ref:
 
     2. <https://embetronicx.com/tutorials/linux/device-drivers/workqueue-in-linux-kernel/>
 
-* 对于新版内核，由于我们不知道第一个 irq vector 的地址，所以只能重新编译内核
 
-    `intrp.c`:
-
-    ```c
-    #include <linux/kernel.h>
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/kdev_t.h>
-    #include <linux/fs.h>
-    #include <linux/cdev.h>
-    #include <linux/device.h>
-    #include<linux/slab.h>                 //kmalloc()
-    #include<linux/uaccess.h>              //copy_to/from_user()
-    #include<linux/sysfs.h> 
-    #include<linux/kobject.h> 
-    #include <linux/interrupt.h>
-    #include <linux/irqnr.h>
-    #include <asm/io.h>
-    #include <linux/err.h>
-    #include <asm/hw_irq.h>
-    #define IRQ_NO 11
-    //Interrupt handler for IRQ 11. 
-    static irqreturn_t irq_handler(int irq,void *dev_id) {
-            printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
-            return IRQ_HANDLED;
-    }
-    volatile int etx_value = 0;
-    
-    dev_t dev = 0;
-    static struct class *dev_class;
-    static struct cdev etx_cdev;
-    struct kobject *kobj_ref;
-    
-    static int __init etx_driver_init(void);
-    static void __exit etx_driver_exit(void);
-    /*************** Driver Fuctions **********************/
-    static int etx_open(struct inode *inode, struct file *file);
-    static int etx_release(struct inode *inode, struct file *file);
-    static ssize_t etx_read(struct file *filp, 
-                    char __user *buf, size_t len,loff_t * off);
-    static ssize_t etx_write(struct file *filp, 
-                    const char *buf, size_t len, loff_t * off);
-    /*************** Sysfs Fuctions **********************/
-    static ssize_t sysfs_show(struct kobject *kobj, 
-                    struct kobj_attribute *attr, char *buf);
-    static ssize_t sysfs_store(struct kobject *kobj, 
-                    struct kobj_attribute *attr,const char *buf, size_t count);
-    struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
-    
-    static struct file_operations fops =
-    {
-            .owner          = THIS_MODULE,
-            .read           = etx_read,
-            .write          = etx_write,
-            .open           = etx_open,
-            .release        = etx_release,
-    };
-    
-    static ssize_t sysfs_show(struct kobject *kobj, 
-                    struct kobj_attribute *attr, char *buf)
-    {
-            printk(KERN_INFO "Sysfs - Read!!!\n");
-            return sprintf(buf, "%d", etx_value);
-    }
-    static ssize_t sysfs_store(struct kobject *kobj, 
-                    struct kobj_attribute *attr,const char *buf, size_t count)
-    {
-            printk(KERN_INFO "Sysfs - Write!!!\n");
-            sscanf(buf,"%d",&etx_value);
-            return count;
-    }
-    static int etx_open(struct inode *inode, struct file *file)
-    {
-            printk(KERN_INFO "Device File Opened...!!!\n");
-            return 0;
-    }
-    
-    static int etx_release(struct inode *inode, struct file *file)
-    {
-            printk(KERN_INFO "Device File Closed...!!!\n");
-            return 0;
-    }
-
-    // extern struct irq_desc* vector_irq;
-    
-    static ssize_t etx_read(struct file *filp, 
-                    char __user *buf, size_t len, loff_t *off)
-    {
-         printk(KERN_INFO "Read function\n");
-        struct irq_desc *desc;
-        desc = irq_to_desc(11);
-        if (!desc)
-        {
-                return -EINVAL;
-        }
-        __this_cpu_write(vector_irq[59], desc);
-        asm("int $0x3B");  // Corresponding to irq 11
-        return 0;
-    }
-    static ssize_t etx_write(struct file *filp, 
-                    const char __user *buf, size_t len, loff_t *off)
-    {
-            printk(KERN_INFO "Write Function\n");
-            return len;
-    }
-
-    
-    static int __init etx_driver_init(void)
-    {
-            /*Allocating Major number*/
-            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                    printk(KERN_INFO "Cannot allocate major number\n");
-                    return -1;
-            }
-            printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-    
-            /*Creating cdev structure*/
-            cdev_init(&etx_cdev,&fops);
-    
-            /*Adding character device to the system*/
-            if((cdev_add(&etx_cdev,dev,1)) < 0){
-                printk(KERN_INFO "Cannot add the device to the system\n");
-                goto r_class;
-            }
-    
-            /*Creating struct class*/
-            if(IS_ERR(dev_class = class_create("etx_class"))){
-                printk(KERN_INFO "Cannot create the struct class\n");
-                goto r_class;
-            }
-    
-            /*Creating device*/
-            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-                printk(KERN_INFO "Cannot create the Device 1\n");
-                goto r_device;
-            }
-    
-            /*Creating a directory in /sys/kernel/ */
-            kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
-    
-            /*Creating sysfs file for etx_value*/
-            if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
-                    printk(KERN_INFO"Cannot create sysfs file......\n");
-                    goto r_sysfs;
-            }
-            if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
-                printk(KERN_INFO "my_device: cannot register IRQ ");
-                        goto irq;
-            }
-            printk(KERN_INFO "Device Driver Insert...Done!!!\n");
-        return 0;
-    irq:
-            free_irq(IRQ_NO,(void *)(irq_handler));
-    r_sysfs:
-            kobject_put(kobj_ref); 
-            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
-    
-    r_device:
-            class_destroy(dev_class);
-    r_class:
-            unregister_chrdev_region(dev,1);
-            cdev_del(&etx_cdev);
-            return -1;
-    }
-    
-    static void __exit etx_driver_exit(void)
-    {
-            free_irq(IRQ_NO,(void *)(irq_handler));
-            kobject_put(kobj_ref); 
-            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
-            device_destroy(dev_class,dev);
-            class_destroy(dev_class);
-            cdev_del(&etx_cdev);
-            unregister_chrdev_region(dev, 1);
-            printk(KERN_INFO "Device Driver Remove...Done!!!\n");
-    }
-    
-    module_init(etx_driver_init);
-    module_exit(etx_driver_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    其中`#include <linux/irqnr.h>`用于提供`irq_to_desc()`函数的声明。
-
-    如果此时直接编译，会看到 undefined symbol 的 error 输出。这时我们需要重新编译内核。
-
-    首先是下载内核，可以直接使用`apt-get download linux-source`，这个命令下载的内核版本通常会有问题。
-    
-    我们可以先搜索目前可下载的版本：
-
-    `apt-cache search linux-source`
-
-    ref: <https://askubuntu.com/questions/159833/how-do-i-get-the-kernel-source-code>
-
-    源码会被下载到`/usr/src`中，分别是一个`.tar.bz2`的压缩包的 symbolic link，和一个已经解压缩的目录，比如`linux-source-6.5.0`。
-
-    我们直接对这个`.tar.bz`的文件解压缩，就能在`/usr/src`下得到内核源码。
-
-    进入目录后，执行`cp -v /boot/config-$(uname -r) .confi`（可能是备份一下配置文件？）
-
-    编译内核前还需要安装几个依赖库：
-
-    `apt-get install bison flex libssl-dev libelf-dev`
-
-    如果安装得不够，在 make 的时候会报错，按照提示安装就可以了。
-
-    接下来找到`arch/x86/kernel/irq.c`文件，在最后添加一行：
-
-    ```c
-    EXPORT_SYMBOL (vector_irq);
-    ```
-
-    然后找到`kernel/irq/irqdesc.c`文件，注意这个文件中有两个`irq_to_desc()`函数的定义，我们在 379 行附近找到一个，添加上 export symbol:
-
-    ```c
-    struct irq_desc *irq_to_desc(unsigned int irq) 
-    {
-            return mtree_load(&sparse_irqs, irq);
-    }
-    EXPORT_SYMBOL(irq_to_desc);
-    ```
-
-    另外一个定义在 609 行附近，这个函数已经被 export symbol 过了，我们就不用管了。
-
-    这两个函数定义是被宏控制的，实际编译的时候根据`#ifdef`之类的命令，只会生效一次。由于不知道具体是哪个生效，所以直接把两个处定义都 export 了。
-
-    接下来执行：
-
-    ```bash
-    make oldconfig
-    make menuconfig
-    ```
-
-    基本什么都不用改，保存后退出就可以了。
-
-    然后`sudo vim .config`，把 system tructed keys 之类的清空，不然一会编译会报错：
-
-    ```conf
-    CONFIG_SYSTEM_TRUSTED_KEYRING=y
-    CONFIG_SYSTEM_TRUSTED_KEYS=""
-    ```
-
-    ref:
-    
-    1. <https://blog.csdn.net/m0_47696151/article/details/121574718>
-
-    2. <https://blog.csdn.net/qq_36393978/article/details/118157426>
-
-    接下来就可以开始编译了：
-
-    ```bash
-    sudo make -j4
-    ```
-
-    4 线程编译大概要花 20 多分钟。
-
-    编译好后执行：
-    
-    ```bash
-    sudo make modules_install
-    sudo make install
-    ```
-
-    然后更新引导：
-
-    ```bash
-    sudo update-initramfs -c -k 6.5.0
-    sudo update-grub
-    ```
-
-    这里的`6.5.0`将来会变成`uname -r`的输出。
-
-    最后重启系统：`reboot`，就大功告成了。
-
-    接下来我们正常编译 kernel module，然后`insmode`，再进入`/dev`目录下，执行测试命令：
-
-    ```bash
-    sudo cat /dev/etx_device
-    ```
-
-    此时可以看到`dmesg` output:
-
-    ```
-    [   39.678202] intrp: loading out-of-tree module taints kernel.
-    [   39.678390] Major = 240 Minor = 0
-    [   39.678709] Device Driver Insert...Done!!!
-    [   79.901307] Device File Opened...!!!
-    [   79.901314] Read function
-    [   79.901317] Shared IRQ: Interrupt Occurred
-    [   79.901322] Device File Closed...!!!
-    ```
-
-    中断触发成功。
 
 * kernel module 编译时出现 undefine symbol 是因为没有 export symbol
 
@@ -1855,6 +1562,10 @@ module_param_array(param_arr, int, NULL, 0755);
     正常情况下还是使用`S_IWUSR`这些标志位吧。
 
 2. `0775`前面这个`0`必须加上，不然会编译报错。目前不清楚是为什么。
+
+    * [2024.06.29] 可能是因为 755 是八进制，C 语言里表示八进制数需要在前加上 0
+
+        不加 0 表示的是 10 进制数，那就表示七百七十五了，二进制肯定和 0775 不一样。
 
 3. `unsigned short`定义的变量，在`module_param()`中注册模块参数时，必须使用`ushort`作为类型。
 
@@ -3122,7 +2833,7 @@ example:
 
 (empty)
 
-Note: Instead of using user space application, you can use echo and cat command.
+Note: Instead of using user space application, you can use `echo` and `cat` command.
 
 ## ioctl
 
@@ -5747,6 +5458,305 @@ MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
 MODULE_DESCRIPTION("A simple device driver - Interrupts");
 MODULE_VERSION("1.9");
 ```
+
+### 一个可用的 interrupt example
+
+这个 example 使用 ead device file 触发中断。需要重新编译内核。
+
+* 对于新版内核，由于我们不知道第一个 irq vector 的地址，所以只能重新编译内核
+
+    `intrp.c`:
+
+    ```c
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include<linux/slab.h>                 //kmalloc()
+    #include<linux/uaccess.h>              //copy_to/from_user()
+    #include<linux/sysfs.h> 
+    #include<linux/kobject.h> 
+    #include <linux/interrupt.h>
+    #include <linux/irqnr.h>
+    #include <asm/io.h>
+    #include <linux/err.h>
+    #include <asm/hw_irq.h>
+    #define IRQ_NO 11
+    //Interrupt handler for IRQ 11. 
+    static irqreturn_t irq_handler(int irq,void *dev_id) {
+            printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+            return IRQ_HANDLED;
+    }
+    volatile int etx_value = 0;
+    
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
+    struct kobject *kobj_ref;
+    
+    static int __init etx_driver_init(void);
+    static void __exit etx_driver_exit(void);
+    /*************** Driver Fuctions **********************/
+    static int etx_open(struct inode *inode, struct file *file);
+    static int etx_release(struct inode *inode, struct file *file);
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len,loff_t * off);
+    static ssize_t etx_write(struct file *filp, 
+                    const char *buf, size_t len, loff_t * off);
+    /*************** Sysfs Fuctions **********************/
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf);
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count);
+    struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+    
+    static struct file_operations fops =
+    {
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .release        = etx_release,
+    };
+    
+    static ssize_t sysfs_show(struct kobject *kobj, 
+                    struct kobj_attribute *attr, char *buf)
+    {
+            printk(KERN_INFO "Sysfs - Read!!!\n");
+            return sprintf(buf, "%d", etx_value);
+    }
+    static ssize_t sysfs_store(struct kobject *kobj, 
+                    struct kobj_attribute *attr,const char *buf, size_t count)
+    {
+            printk(KERN_INFO "Sysfs - Write!!!\n");
+            sscanf(buf,"%d",&etx_value);
+            return count;
+    }
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+            printk(KERN_INFO "Device File Opened...!!!\n");
+            return 0;
+    }
+    
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+            printk(KERN_INFO "Device File Closed...!!!\n");
+            return 0;
+    }
+
+    // extern struct irq_desc* vector_irq;
+    
+    static ssize_t etx_read(struct file *filp, 
+                    char __user *buf, size_t len, loff_t *off)
+    {
+         printk(KERN_INFO "Read function\n");
+        struct irq_desc *desc;
+        desc = irq_to_desc(11);
+        if (!desc)
+        {
+                return -EINVAL;
+        }
+        __this_cpu_write(vector_irq[59], desc);
+        asm("int $0x3B");  // Corresponding to irq 11
+        return 0;
+    }
+    static ssize_t etx_write(struct file *filp, 
+                    const char __user *buf, size_t len, loff_t *off)
+    {
+            printk(KERN_INFO "Write Function\n");
+            return len;
+    }
+
+    
+    static int __init etx_driver_init(void)
+    {
+            /*Allocating Major number*/
+            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                    printk(KERN_INFO "Cannot allocate major number\n");
+                    return -1;
+            }
+            printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+    
+            /*Creating cdev structure*/
+            cdev_init(&etx_cdev,&fops);
+    
+            /*Adding character device to the system*/
+            if((cdev_add(&etx_cdev,dev,1)) < 0){
+                printk(KERN_INFO "Cannot add the device to the system\n");
+                goto r_class;
+            }
+    
+            /*Creating struct class*/
+            if(IS_ERR(dev_class = class_create("etx_class"))){
+                printk(KERN_INFO "Cannot create the struct class\n");
+                goto r_class;
+            }
+    
+            /*Creating device*/
+            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+                printk(KERN_INFO "Cannot create the Device 1\n");
+                goto r_device;
+            }
+    
+            /*Creating a directory in /sys/kernel/ */
+            kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+    
+            /*Creating sysfs file for etx_value*/
+            if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+                    printk(KERN_INFO"Cannot create sysfs file......\n");
+                    goto r_sysfs;
+            }
+            if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
+                printk(KERN_INFO "my_device: cannot register IRQ ");
+                        goto irq;
+            }
+            printk(KERN_INFO "Device Driver Insert...Done!!!\n");
+        return 0;
+    irq:
+            free_irq(IRQ_NO,(void *)(irq_handler));
+    r_sysfs:
+            kobject_put(kobj_ref); 
+            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+    
+    r_device:
+            class_destroy(dev_class);
+    r_class:
+            unregister_chrdev_region(dev,1);
+            cdev_del(&etx_cdev);
+            return -1;
+    }
+    
+    static void __exit etx_driver_exit(void)
+    {
+            free_irq(IRQ_NO,(void *)(irq_handler));
+            kobject_put(kobj_ref); 
+            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+            device_destroy(dev_class,dev);
+            class_destroy(dev_class);
+            cdev_del(&etx_cdev);
+            unregister_chrdev_region(dev, 1);
+            printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+    }
+    
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    其中`#include <linux/irqnr.h>`用于提供`irq_to_desc()`函数的声明。
+
+    如果此时直接编译，会看到 undefined symbol 的 error 输出。这时我们需要重新编译内核。
+
+    首先是下载内核，可以直接使用`apt-get download linux-source`，这个命令下载的内核版本通常会有问题。
+    
+    我们可以先搜索目前可下载的版本：
+
+    `apt-cache search linux-source`
+
+    ref: <https://askubuntu.com/questions/159833/how-do-i-get-the-kernel-source-code>
+
+    源码会被下载到`/usr/src`中，分别是一个`.tar.bz2`的压缩包的 symbolic link，和一个已经解压缩的目录，比如`linux-source-6.5.0`。
+
+    我们直接对这个`.tar.bz`的文件解压缩，就能在`/usr/src`下得到内核源码。
+
+    进入目录后，执行`cp -v /boot/config-$(uname -r) .confi`（可能是备份一下配置文件？）
+
+    编译内核前还需要安装几个依赖库：
+
+    `apt-get install bison flex libssl-dev libelf-dev`
+
+    如果安装得不够，在 make 的时候会报错，按照提示安装就可以了。
+
+    接下来找到`arch/x86/kernel/irq.c`文件，在最后添加一行：
+
+    ```c
+    EXPORT_SYMBOL (vector_irq);
+    ```
+
+    然后找到`kernel/irq/irqdesc.c`文件，注意这个文件中有两个`irq_to_desc()`函数的定义，我们在 379 行附近找到一个，添加上 export symbol:
+
+    ```c
+    struct irq_desc *irq_to_desc(unsigned int irq) 
+    {
+            return mtree_load(&sparse_irqs, irq);
+    }
+    EXPORT_SYMBOL(irq_to_desc);
+    ```
+
+    另外一个定义在 609 行附近，这个函数已经被 export symbol 过了，我们就不用管了。
+
+    这两个函数定义是被宏控制的，实际编译的时候根据`#ifdef`之类的命令，只会生效一次。由于不知道具体是哪个生效，所以直接把两个处定义都 export 了。
+
+    接下来执行：
+
+    ```bash
+    make oldconfig
+    make menuconfig
+    ```
+
+    基本什么都不用改，保存后退出就可以了。
+
+    然后`sudo vim .config`，把 system tructed keys 之类的清空，不然一会编译会报错：
+
+    ```conf
+    CONFIG_SYSTEM_TRUSTED_KEYRING=y
+    CONFIG_SYSTEM_TRUSTED_KEYS=""
+    ```
+
+    ref:
+    
+    1. <https://blog.csdn.net/m0_47696151/article/details/121574718>
+
+    2. <https://blog.csdn.net/qq_36393978/article/details/118157426>
+
+    接下来就可以开始编译了：
+
+    ```bash
+    sudo make -j4
+    ```
+
+    4 线程编译大概要花 20 多分钟。
+
+    编译好后执行：
+    
+    ```bash
+    sudo make modules_install
+    sudo make install
+    ```
+
+    然后更新引导：
+
+    ```bash
+    sudo update-initramfs -c -k 6.5.0
+    sudo update-grub
+    ```
+
+    这里的`6.5.0`将来会变成`uname -r`的输出。
+
+    最后重启系统：`reboot`，就大功告成了。
+
+    接下来我们正常编译 kernel module，然后`insmode`，再进入`/dev`目录下，执行测试命令：
+
+    ```bash
+    sudo cat /dev/etx_device
+    ```
+
+    此时可以看到`dmesg` output:
+
+    ```
+    [   39.678202] intrp: loading out-of-tree module taints kernel.
+    [   39.678390] Major = 240 Minor = 0
+    [   39.678709] Device Driver Insert...Done!!!
+    [   79.901307] Device File Opened...!!!
+    [   79.901314] Read function
+    [   79.901317] Shared IRQ: Interrupt Occurred
+    [   79.901322] Device File Closed...!!!
+    ```
+
+    中断触发成功。
 
 ### Work queue
 
