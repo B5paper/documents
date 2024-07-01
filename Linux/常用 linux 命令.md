@@ -2,6 +2,40 @@
 
 ## cache
 
+* 使用 scp 传输文件最好只传输 10 分钟以内，不然可能会导致传输中断
+
+* 使用 scp 最好只移动 tar 文件，不要使用`-r`移动整个文件夹
+
+    因为不同系统对处理 unicode 字符的方式有差异，可能会导致某些文件名不被识别从而被忽略。
+
+* GNOME Cheatsheet/FAQ
+
+    <https://wiki.garudalinux.org/en/gnome-cheatsheet>
+
+* 可以使用`/var/log/kern.log`查看 kernel log
+
+    （未验证）
+
+    猜想：这个或许等同于`dmesg `。
+
+* create alternatives
+
+    比如将 cc 编译器改换成 gcc-12：
+
+    `sudo update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 10`
+
+    manually config:
+
+    `sudo update-alternatives --config cc`
+
+    此时会出来一个列表，可以手动选择。
+
+    检测是否生效：
+
+    `cc --version`
+
+    ref: <https://www.baeldung.com/linux/update-alternatives-command>
+
 * ubuntu 中将 firefox 设置成使用系统代理，然后再去改变系统代理时，会立即生效，不需要重启 firefox。
 
 * 系统启动的 log: `/var/log/syslog`

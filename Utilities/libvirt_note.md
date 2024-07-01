@@ -2,6 +2,48 @@
 
 ## cache
 
+* qemu 启动虚拟机命令
+
+    `qemu-system-x86_64 -name aaa -accel tcg -vga virtio -m 4096 -smp 8 -hda ./ccc.qcow2`
+
+* `virt-sparsify`包含在工具包`guestfs-tools`中
+
+    安装：`sudo apt install guestfs-tools`
+
+* 将 qcow2 文件放在 virtual box shared folder 里，不太会影响启动的 qemu 虚拟机的性能。
+
+* shrink the qemu `.qcow2` file size
+
+    `qemu-img convert -p -O qcow2 /path/to/source.qcow2 /path/to/dest.qcow2`
+
+    其中`-p`是显示进度条，最好不要省略。
+
+* 在 virt-namanger 新建虚拟机时报错`Error: No active connection to Installed on`
+
+    解决办法：
+
+    查看下面文件的用户权限：
+
+    `ls -lh /var/run/libvirt/libvirt-sock`
+
+    可以看到其属于`libvirt`用户组。
+
+    我们把当前用户加入到`libvirt`用户组：
+
+    `sudo usermod -a -G libvirt hlc`
+
+    然后重启系统即可。
+
+    经测试，只运行`logout`是不够的。必须重启才行。
+
+* libvirt / virt-manager 的一个文档
+
+    <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/virtualization_deployment_and_administration_guide/sect-virsh-delete>
+
+* ubuntu server with libvirt
+
+    <https://ubuntu.com/server/docs/libvirt>
+
 * 可以用`qemu-img info <file>`查看 qcow2 文件的真实大小。
 
     `ls -lh <file>`只要看到 qcow2 文件虚拟的大小。

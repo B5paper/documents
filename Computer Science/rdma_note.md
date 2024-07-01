@@ -2,6 +2,271 @@
 
 ## cache
 
+* 一开始一直 rdma read/write 不成功，主要是因为 send wr 的 opcode 没写对
+
+* 在调用`getopt()`后，rdma qp 就无法创建成功了
+
+* 即使 get cq event 也不代表数据发送完了
+
+    在 get cq event 后突然结束程序，对方仍然有可能没有收到数据
+
+* rdma server 有 server cm id，还有 client cm id
+
+    rdma client 只有一个 cm id
+
+* 如果一方没有 post recv wr，另一方就直接 post send wr，那么发送的数据会丢失，而且 send 方还会返回 cq event
+
+* 不`rdma_connect()`就无法 post send，但是可以 post recv
+
+* 不处理 cm event 也无法 post send
+
+* 如果一个 mr 有 remote 操作，那么它的内存必须在堆上申请
+
+* metadata 只需要 local write access 就可以了
+
+    真正的 buffer 才需要 remote read/write access
+
+* `ibv_req_notify_cq()`是必须的，不然真不通知了
+
+* 启动 rdma 需要配置的内核和环境
+
+    ```bash
+    sudo modprobe ib_core
+    sudo modprobe rdma_ucm
+    sudo modprobe siw
+    sudo rdma link add siw0 type siw netdev enp0s3
+    sudo rdma link add siw0_lo type siw netdev lo
+    ```
+
+    可以使用`ibv_devices`命令列出可用的 ib device。
+
+* rdma 会做一部分的内存管理，通常 get xxx event 的时候会内部申请内存，在 ack xxx event 的时候会释放内存
+
+* sge 保存本地的一块内存地址，sge 随 wr 发送出去后，如果是 recv wr，remote 会将数据写到 sge 里。如果是 send wr，会把 sge 指定内存的数据发送到 remote
+
+* `ibv_get_cq_event()`会从 completion channel 中 pick 一个 active cq
+
+    这个看起来有点像 epoll
+
+* reap v. 获得
+
+* wr 只能操作 mr 中的数据，或者说 wr 操作的对象是 mr
+
+* qp 放在 client cm id 中，但是 cq 不在
+
+* `struct sockaddr`是 16 个字节，前 2 个字节表示 socket 类型（family），后面 14 个字节是具体地址信息，但是没有被定义
+
+    `struct sockaddr_in`专指 internet 的 socket，同样是 16 个字节，但是只用到了前 8 个字节，后面 8 个字节用 0 补齐。前 8 个字节里，前 2 个字节是 socket 类型（family），接下来 2 个字节是 port，再接下来的 4 个字节是 addr。
+
+    `sockaddr_in`的 family 类型通常是`AF_INET`，表示互联网的 socket 类型。
+
+* `rdma_create_id()`会分配`struct rdma_cm_id`的内存，所以只返回一个指针。
+
+* `rdma_buffer_alloc()`不是一个内置函数
+
+    只有`ibv_reg_mr()`是 ib 的内置函数，具体的内存需要自己 malloc 管理。
+
+
+* ib 完全没有 mac 的概念，roce 底层是 mac，在 mac 上又模拟了一套 rdma 的接口，ethernet 则完全走 tcp/ip 这套协议
+
+* rdma server end flow
+
+    1. `rdma_create_event_channel()`
+
+        cm event channel
+
+    1. `rdma_create_id()`
+
+        server cm id
+
+    1. `rdma_bind_addr()`
+
+        bind server cm id with socket addr
+
+    1. `rdma_listen()`
+
+        specify server cm id and max client numbers
+
+        不会在这里阻塞。
+
+    1. `rdma_get_cm_event()`
+
+        在这里阻塞，等待 client 连接事件的发生。
+
+    1. `rdma_ack_cm_event()`
+
+        客户端确认处理完 cm event。
+
+        这个 ack 信息会发给 client 吗？
+
+    1. `ibv_alloc_pd()`
+
+        从这里开始，准备 server 端的缓冲区，用于接收 client 端的数据
+
+    1. `ibv_create_comp_channel()`
+
+        创建 cq channel，从 cq channel 中才能创建 cq
+
+    1. `ibv_create_cq()`
+
+        这里会指定一些 capacity 等属性，从 cq channel 中创建一个 cq。
+
+    1. `ibv_req_notify_cq()`
+
+        this function requests a notification when the next Work Completion of a requested type is added to the CQ.
+
+    1. `rdma_create_qp()`
+
+        创建 queue pair。
+
+    1. `rdma_buffer_register()`
+
+        把用 malloc 申请的内存注册到 pd 中，pd 会返回一个 mr。
+
+        这里注册的是 receive buffer。
+
+        目前看起来，这里接收的是 client metadata attr。
+
+    1. `ibv_post_recv()`
+
+        等待 client 发送消息。这里 client 会把 clinet 端准备的 buffer 信息发过来。
+
+        post a linked list of wr to the receive queue.
+
+        这个看起来是把一个 wr 放到 recv queue 里，如果任务完成，那么就在 cq 里生成一个事件？
+
+    1. `rdma_accept()`
+
+        正式接收 clinet 的 connection。
+
+    1. `rdma_get_cm_event()`
+
+        不清楚前面已经有了`rdma_accept()`，为啥这里还有 event。
+
+        可能是为了等待 client 的 ack？
+
+    1. `rdma_ack_cm_event()`
+
+        client 发送一个`RDMA_CM_EVENT_ESTABLISHED` event 过来，这里 server 再返回一个 ack。
+
+        到此为止，连接就算正式建立了。
+
+        不过，ack 等于发送消息吗？还是说只需要确定处理事件就可以了？
+
+    1. `ibv_get_cq_event()`
+
+        建立连接后第一件事，等待 client 发送他的 metadata info。
+
+        前面调用了`ibv_post_recv()`，这里拿到第一条收到的消息。
+
+        这个消息应该是 client 要求 server 端准备的内存的需求信息。
+
+    1. `ibv_req_notify_cq()`
+
+        尝试处理更多的消息。
+
+    1. `ibv_poll_cq()`
+
+        应该是从 cq 中 pop 出来一些 item。
+
+    1. `ibv_ack_cq_events()`
+
+        确认。
+
+    1. `rdma_buffer_alloc()`
+
+        从 pd 中申请 mr。
+
+        这里写了三个权限`IBV_ACCESS_LOCAL_WRITE`, `IBV_ACCESS_REMOTE_READ`, `IBV_ACCESS_REMOTE_WRITE`.
+
+        看起来 pd 有两种使用方式，一种是自己申请内存，然后 register 到 pd 中，另一种就是直接调用`rdma_buffer_alloc()`，从 pd 中申请内存。
+
+    1. `rdma_buffer_register()`
+
+        将 server end buffer info 注册到 pd 中，过一会要把这个发给 client。
+
+        这个信息叫做 server metadata。
+
+    1. `ibv_post_send()`
+
+        将 send 的 wr 发送到 send queue 中。
+
+        这里发送的是 server metadata。
+
+    1. `process_work_completion_events()`
+
+        看起来`ibv_req_notify_cq()`只会 notify 一次？
+
+        这个函数主要调用了
+
+        `ibv_get_cq_event()`
+
+        `ibv_req_notify_cq()`
+
+        `ibv_poll_cq()`
+
+        `ibv_ack_cq_events()`
+
+        这些函数。
+
+* 基于 iwarp 的 rdma 编程总结
+
+    * pd (protection domain) 是一个内存保护区域，我们先手动 malloc 内存，然后把这块内存**注册**到这个 pd 里，这样就可以防止其他 channel 使用这块内存
+
+    * 当需要使用内存时，再从 pd 中申请内存，指定内存的长度和读写权限，pd 会返回一个内存地址。
+
+    * rdma 的异步机制是使用 3 个 queue，第一个 queue 是 cq (completion queue)，用于记录发生了什么事件，第二个、第三个 queue 分别是 send queue 和 receive queue，组成一个 qp (queue pair)，作为收发消息的缓冲区。
+
+        这样我们先阻塞等待 cq 中产生事件，有了事件我们就去对应的缓冲区中处理数据就可以了。
+
+    * post send 和 post receive 用于刚建立连接后，马上交换双方的缓冲区信息，知道双方接收数据的能力以及缓冲区地址等等。
+
+* 有关 rdma 的资料调研
+
+    * 三种主流 rdma 协议对比：
+
+        * Infiniband
+        
+            支持 RDMA 的新一代网络协议。网卡（NIC）和交换机是定制的，贵。使用 udp 传输数据。在链路层上做了改动，从而保证了 udp 的可靠性，效率高。
+
+        * RoCE
+        
+            一个允许在以太网上执行 RDMA 的网络协议。其较低的网络标头是以太网标头，其较高的网络标头（包括数据）是InfiniBand标头。 这支持在标准以太网基础设施（交换机）上使用RDMA。 只有网卡应该是特殊的，支持RoCE。
+
+        * iWARP
+        
+            一个允许在 TCP 上执行 RDMA 的网络协议。 IB和RoCE中存在的功能在iWARP中不受支持。 这支持在标准以太网基础设施（交换机）上使用RDMA。 只有网卡应该是特殊的，并且支持iWARP（如果使用CPU卸载），否则所有iWARP堆栈都可以在SW中实现，并且丧失了大部分RDMA性能优势。
+
+    * verbs 指的是 rdma 软件和硬件的接口
+
+    * IB 代表厂商：Mellanox 40Gbps
+
+    * iWARP 代表厂商：Chelsio 10Gbps
+
+    * Mellanox 40Gbps, Emulex 10/40Gbps
+
+    * RNIC: 指的是支持 rdma 的网卡
+
+    * user 交互的对象与交互方法
+
+        * connections
+
+            user 通过 connection management 与之交互
+
+        * queues
+
+            user 通过`send`和`recv`与之交互。
+
+        * keys
+
+            user 通过 node, lkey, rkey, addr 与之交互。
+
+        * memory space
+
+            user 通过 memory management 与之交互
+
+    * rdma 中有 cached page table entry (cached ptes)，页表用于将虚拟页面映射到相应的物理页面
+
 * rdma client code note
 
     * `clinet_prepare_connection()`

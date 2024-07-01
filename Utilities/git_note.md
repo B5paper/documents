@@ -2,6 +2,12 @@
 
 ## cache
 
+* 列出 git repo 中所有的 remote branches
+
+    * `git branch -r`，或者`git branch --remote
+    
+    * `git ls-remote`
+
 * git 中 checkout new branch 是什么意思？为什么说`git branch <branch>`只创建新 branch，不 check out new branch？
 
     猜测：chekcout 指的很可能是切换 branch

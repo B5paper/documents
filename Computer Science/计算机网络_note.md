@@ -2,6 +2,18 @@
 
 ## cache
 
+* NIC 指网卡，Network interface controller
+
+* max 地址表示为 12 个十六进制数
+
+* MTU (maxmimum transmission unit，最大传输单元)指的是数据链路层上能通过的最大负载的大小，单位为字节
+
+    标准心碎网的 MTU 为 1500。
+
+    如果 IP 层有数据包要发送，而数据包的长度超过了 MTU，IP 层就要对数据包进行分片（fragmentation）操作。
+
+* 缓存（cache）使用的是静态随机存储（static random access memory, SRAM）
+
 * 路由表
 
     如果在路由表里只填网络接口，destination ip/network 和子网掩码，不填 gateway，那么说明对于指定的 ip/网段使用指定的 interface 进行收发包。

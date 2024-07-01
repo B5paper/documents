@@ -36,6 +36,84 @@
 
 ## cached
 
+* 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
+
+    如果一个函数要求参数传入一个指针，那么说明函数只负责填充 struct 的字段，由用户负责 struct 的内存管理
+
+* 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
+
+    <https://www.zhihu.com/question/659607083>
+
+* 香山 riscv 源代码 repo
+
+    <https://gitee.com/OpenXiangShan/XiangShan/>
+
+* [ ] 调研 git reset 查看不同版本的 linux kernel version
+
+* Theseus is a new OS written from scratch in Rust to experiment with novel OS structure
+
+    <https://www.theseus-os.com/Theseus/book/index.html#introduction-to-theseus>
+
+    用 rust 写的操作系统，有时间了看看。
+
+* cached tabs
+
+    * Use virt-install to install VMs from the command line
+
+        <https://www.techtarget.com/searchitoperations/tip/Use-virt-install-to-install-VMs-from-the-command-line>
+
+    * KVM Guest installed from console. But how to get to the guest's console?
+
+        <https://serverfault.com/questions/257962/kvm-guest-installed-from-console-but-how-to-get-to-the-guests-console>
+
+    * qemu+kvm, unhelpful virt-install --location error
+
+        <https://askubuntu.com/questions/1380671/qemukvm-unhelpful-virt-install-location-error>
+
+    * How to Quickly Extract an ISO Image in Linux
+
+        <https://www.baeldung.com/linux/iso-quick-extract>
+
+    * If I mount the ISO where is the kernel initrd for the OS installer
+
+        <https://askubuntu.com/questions/1011794/if-i-mount-the-iso-where-is-the-kernel-initrd-for-the-os-installer>
+
+    * Install VM from command line with virt-install
+
+        <https://unix.stackexchange.com/questions/207090/install-vm-from-command-line-with-virt-install>
+
+    * How to mount an ISO image/file under Linux
+
+        <https://www.cyberciti.biz/tips/how-to-mount-iso-image-under-linux.html>
+
+    * virsh ssh into a guest vm
+
+        <https://askubuntu.com/questions/576437/virsh-ssh-into-a-guest-vm>
+
+    * Boot drops to a (initramfs) prompts/busybox
+
+        <https://askubuntu.com/questions/137655/boot-drops-to-a-initramfs-prompts-busybox>
+
+    * Error when installing: "unable to find a medium containing a live file system"
+
+        <https://askubuntu.com/questions/15425/error-when-installing-unable-to-find-a-medium-containing-a-live-file-system>
+
+    * qemu+kvm, unhelpful virt-install --location error
+
+        <https://askubuntu.com/questions/1380671/qemukvm-unhelpful-virt-install-location-error>
+
+    * Virtual Machine Manager
+
+        <https://ubuntu.com/server/docs/virtual-machine-manager>
+
+    * virt-install: boot from specific kernel/initrd just for install
+
+        <https://dustymabe.com/2020/01/30/virt-install-boot-from-specific-kernel/initrd-just-for-install/>
+
+    * Manage virtual machines with virt-manager
+
+        <https://virt-manager.org/>
+
 * 如何为一个用户增加指定目录的各种权限？
 
 * isoinfo 在 genisoimage 包中
@@ -662,9 +740,57 @@ tasks:
 
 ## rdma
 
+* [v] 将 ccc.qcow2 镜像上传到 server 上，尝试运行
+
+* [v] 写完 c-s test case
+
+    feedback:
+
+    * 调研 sge 含义
+
+    * 调研`qp_type`都有哪些，调研`IBV_QPT_RC`
+
+    * 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
+
+* [ ] sync rdma
+
+* [ ] 调研 rdma repo 中 pcie driver
+
+* [ ] 调研 verbs 的对接方法
+
+* [ ] 看 rdma tutorial
+
 * [v] 调研 rdma
 
 * [v] 调研 rdma tests
+
+* [v] 调研 IB 相关
+
+* [v] 调研 OFED 相关
+
+    feedback:
+
+    1. 调研`rdma-core`仓库，和`perftest`仓库
+
+    2. 调研 linux kernl 中 rdma 相关仓库
+
+    3. 调研 iwarp 实现的 ibverbs 
+
+* [ ] 调研 ib verbs
+
+* [ ] 调研 spdx
+
+* [ ] 调研 mana
+
+* [v] 调研 rdma-example
+
+* [v] 调研 rdma 的 client server 通信流程
+
+* [v] 调研基于 ib 和基于 ethernet 的 verbs 实现有什么不同
+
+* [v] 写一个简单版的 client server 通信代码
+
+    要求能看到 message，只要能基于 iwarp 跑通就行。
 
 ## qemu
 

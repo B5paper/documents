@@ -1,5 +1,15 @@
 # Windows Note
 
+## cache
+
+* windows 自带的 openssh-server，似乎只能把 public key 放到
+
+    `c:/ProgramData/ssh/authorized_keys`中才能生效。
+
+    放到`~/.ssh/authorized_keys`中不行。
+
+## note
+
 修改 cmd 的编码为 UTF-8：<https://blog.csdn.net/mantou_riji/article/details/122313517>
 
 修改 powershell 的编码为 UTF-8：<https://blog.csdn.net/sxzlc/article/details/104880570>

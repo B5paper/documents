@@ -1,3 +1,19 @@
+# Nvidia driver note
+
+## cache
+
+* 查看 nvidia driver 的版本
+
+    （未验证）
+
+    `nvidia-smi` 
+
+    `cat /proc/driver/nvidia/version `
+
+    `modinfo nvidia|grep version:`
+
+    `nvidia-smi --query-gpu=driver_version --format=csv,noheader --id=0`
+
 * 安装顺序
 
     kernel version: 5.19.0-50-generic

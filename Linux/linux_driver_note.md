@@ -6,6 +6,22 @@ Ref:
 
 ## cache
 
+* 如果 module param 的权限是`S_IWUSR | S_IRUSR`，那么我们使用`sudo insmod <module_file>`加载模块时，`/sys/module/<module_name>/parameters`下的文件的 owner 和 group 都是 root
+
+    此时`S_IWUSR | S_IRUSR`指的是 root:root 具有读写权限，其它用户没有任何权限。
+
+* chrdev 指的是 char device，不是 children device
+
+* `linux/cdev.h`跟 char device 驱动相关
+
+    `linux/device.h`跟`/dev/`下的设备文件相关
+
+* 直接使用`mknod`创建设备文件时，没有看到`/sys/class`下生成对应的文件夹，说明可以不需要 class 直接创建 device 文件
+
+    有时间试一试把`device_create()`中的 class 设置为 NULL，看能不能成功创建 device 文件并正常使用。
+
+    * [2024.06.29] 似乎不可以，如果将`device_create()`中的 class 设置为`NULL`，那么函数会成功执行，但是`/dev`中没有生成设备文件
+
 * linked list 的一个 example
 
     见`ref_19`

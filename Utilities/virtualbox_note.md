@@ -2,6 +2,16 @@
 
 ## cache
 
+* 公司的电脑是因为启用了 windows hypervisor 虚拟化平台 feature，所以 virtual box 无法使用 kvm 特性。
+
+    把 hypervisor 禁用就好了。
+
+* virtual box enter BIOS
+
+    select EFI option
+
+    possible keys: F12, F2, Esc, F8, Del
+
 * windows 上 virtual box 无法启动嵌套 kvm 解决方法
 
     ```powershell
