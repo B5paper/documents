@@ -746,11 +746,21 @@ tasks:
 
     feedback:
 
-    * 调研 sge 含义
+    * [v] 调研 sge 含义
 
     * 调研`qp_type`都有哪些，调研`IBV_QPT_RC`
 
     * 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
+
+* [v] 调研 rdma-example
+
+* [v] 调研 rdma 的 client server 通信流程
+
+* [v] 调研基于 ib 和基于 ethernet 的 verbs 实现有什么不同
+
+* [v] 写一个简单版的 client server 通信代码
+
+    要求能看到 message，只要能基于 iwarp 跑通就行。
 
 * [ ] sync rdma
 
@@ -759,12 +769,6 @@ tasks:
 * [ ] 调研 verbs 的对接方法
 
 * [ ] 看 rdma tutorial
-
-* [v] 调研 rdma
-
-* [v] 调研 rdma tests
-
-* [v] 调研 IB 相关
 
 * [v] 调研 OFED 相关
 
@@ -781,16 +785,6 @@ tasks:
 * [ ] 调研 spdx
 
 * [ ] 调研 mana
-
-* [v] 调研 rdma-example
-
-* [v] 调研 rdma 的 client server 通信流程
-
-* [v] 调研基于 ib 和基于 ethernet 的 verbs 实现有什么不同
-
-* [v] 写一个简单版的 client server 通信代码
-
-    要求能看到 message，只要能基于 iwarp 跑通就行。
 
 ## qemu
 
