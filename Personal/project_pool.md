@@ -36,6 +36,8 @@
 
 ## cached
 
+* [ ] git stash 恢复
+
 * 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
 
     如果一个函数要求参数传入一个指针，那么说明函数只负责填充 struct 的字段，由用户负责 struct 的内存管理
@@ -740,6 +742,58 @@ tasks:
 
 ## rdma
 
+### cache
+
+* rdma repo
+
+    调研一下 makefile 中 KERNEL，BINARY 这些变量的含义。是否还有其他的特殊变量
+
+* 调研`ENOMEM`
+
+* 调研`spin_lock_init()`，自旋锁相关
+
+* 调研`bitmap_zalloc()`, `bitmap_free()`
+
+* 调研`spin_lock_irqsave()`, `spin_unlock_irqrestore()`
+
+* 调研`find_first_zero_bit()`
+
+* 调研`bitmap_set()`, `bitmap_clear()`
+
+* 调研`dma_alloc_coherent()`, `dma_free_coherent()`
+
+* 调研`ida_alloc()`, `ida_free()`
+
+* 调研`dma_addr_t`类型
+
+* 调研`usleep_range()`
+
+* 调研`dev_err()`
+
+* 调研`debugfs_create_dir()`, `debugfs_remove()`
+
+* 调研`rcu_read_lock()`, `rcu_read_unlock()`
+
+* 调研`list_for_each_netry_rcu()`
+
+* 调研`pci_rq_vector()`, `spic_lock_init()`, `INIT_LIST_HEAD()`
+
+* 调研`snprintf()`, `pci_name()`, `request_irq()`
+
+* 调研`pci_enable_msic_range()`
+
+* 调研`pci_iounmap()`, `pci_set_drvdata()`, `pci_enable_device()`, `pci_request_regions()`, `pci_set_master()`, `dma_set_mask_and_coherent()`, `pci_ioremap_bar()`
+
+* 调研`module_pci_driver()`, `MODULE_DEVICE_TABLE()`
+
+* 调研`container_of()`
+
+* 调研`module_auxiliary_driver()`, `auxiliary_device`
+
+* 调研`ib_device_ops`
+
+### tasks
+
 * [v] 将 ccc.qcow2 镜像上传到 server 上，尝试运行
 
 * [v] 写完 c-s test case
@@ -766,7 +820,7 @@ tasks:
 
 * [ ] 调研 rdma repo 中 pcie driver
 
-* [ ] 调研 verbs 的对接方法
+* [v] 调研 verbs 的对接方法
 
 * [ ] 看 rdma tutorial
 
@@ -785,6 +839,8 @@ tasks:
 * [ ] 调研 spdx
 
 * [ ] 调研 mana
+
+* [ ] 调研 poc-a pcie 地址映射和寄存器配置流程
 
 ## qemu
 

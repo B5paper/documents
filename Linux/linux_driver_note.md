@@ -6,6 +6,129 @@ Ref:
 
 ## cache
 
+* sysfs 编程
+
+    使用`kobject_create_and_add()`在`/sys`中创建文件夹，使用`sysfs_create_file()`创建文件。
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/sysfs.h>
+
+    #define MAX_BUF_SIZE 20
+    char my_sysfs_node_buf[MAX_BUF_SIZE] = "hello, sysfs dev\n";
+
+    ssize_t my_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+    {
+        return sprintf(buf, my_sysfs_node_buf);
+    }
+
+    ssize_t my_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+    {
+        return snprintf(my_sysfs_node_buf, MAX_BUF_SIZE, "%s", buf);
+    }
+
+    struct kobject *kobj;
+    struct kobj_attribute kobj_attr;
+
+    int init_mod(void)
+    {
+        kobj = kobject_create_and_add("hlc_kobj", NULL);
+        if (!kobj)
+        {
+            printk(KERN_INFO "fail to create and add kobject\n");
+            goto KOBjECT_CREATE_AND_ADD_ERROR;
+        }
+        pr_info("successfully create and add kobject\n");
+
+        kobj_attr.attr.name = "my_kobj_node";
+        kobj_attr.attr.mode = 0666;
+        kobj_attr.show = my_show;
+        kobj_attr.store = my_store;
+        int ret = sysfs_create_file(kobj, &kobj_attr.attr);
+        if (ret != 0)
+        {
+            printk(KERN_INFO "fail to create sysfs file");
+            goto SYSFS_CREATE_FILE_ERROR;
+        }
+        pr_info("successfully create sysfs file\n");
+        return 0;
+
+    SYSFS_CREATE_FILE_ERROR:
+        kobject_put(kobj);
+    KOBjECT_CREATE_AND_ADD_ERROR:
+        return -1;
+    }
+
+    void exit_mod(void)
+    {
+        sysfs_remove_file(kobj, &kobj_attr.attr);
+        kobject_put(kobj);
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+    运行：
+
+    ```bash
+    sudo insmod my_sysfs.ko
+    ```
+
+    测试：
+
+    1. 进入`/sys`目录，可以看到一个`hlc_kobj`文件夹
+
+    2. `cd /sys/hlc_kobj`，可以看到里面有个`my_kobj_node`文件。
+
+    3. 读写测试
+
+        ```
+        hlc@hlc-VirtualBox:/sys/hlc_kobj$ cat my_kobj_node 
+        hello, sysfs dev
+        hlc@hlc-VirtualBox:/sys/hlc_kobj$ echo "hello, world" > my_kobj_node 
+        hlc@hlc-VirtualBox:/sys/hlc_kobj$ cat my_kobj_node 
+        hello, world
+        hlc@hlc-VirtualBox:/sys/hlc_kobj$ echo "01234567890123456789012345" > my_kobj_node 
+        hlc@hlc-VirtualBox:/sys/hlc_kobj$ cat my_kobj_node 
+        0123456789012345678hlc@hlc-VirtualBox:/sys/hlc_kobj$ 
+        ```
+
+    说明：
+
+    * 上述代码中，`struct kobj_attribute kobj_attr;`不能写成局部变量，否则会丢失函数指针信息，导致调用`show()`或`store()`时失败。
+
+    * 使用`kobject_create_and_add()`创建文件夹，使用`kobject_put()`删除文件夹。
+
+        使用`sysfs_create_file()`创建文件，使用`sysfs_remove_file()`删除文件。
+
+        注意创建目录、文件和删除目录、文件都要遵循递归关系，不然会报错。
+
+    * 可以使用`__ATTR()`宏快速创建 attribute:
+
+        ```c
+        struct kobj_attribute kobj_attr = __ATTR(my_kobj_node, 0664, my_show, my_sotre);
+        ```
+
+        但是有几个需要注意的地方：
+
+        1. 第一个参数是字符串，但是不需要加双引号
+
+        2. 第二个参数是权限，但是其他用户不允许有写权限。这个宏会做检查。如果其他用户有写权限，不能通过编译。
+
+        3. 必须在结构体初始化的时候调用，不允许这样写：
+
+            ```c
+            struct kobj_attribute kobj_attr;
+            kobj_attr = __ATTR(my_kobj_node, 0664, my_show, my_sotre);
+            ```
+
+    * 如果需要创建嵌套目录，只需要将`kobject_create_and_add()`的第二个参数写成 parent object 的指针就可以了。
+
 * 如果 module param 的权限是`S_IWUSR | S_IRUSR`，那么我们使用`sudo insmod <module_file>`加载模块时，`/sys/module/<module_name>/parameters`下的文件的 owner 和 group 都是 root
 
     此时`S_IWUSR | S_IRUSR`指的是 root:root 具有读写权限，其它用户没有任何权限。
