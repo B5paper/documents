@@ -816,7 +816,7 @@ tasks:
 
     要求能看到 message，只要能基于 iwarp 跑通就行。
 
-* [ ] sync rdma
+* [v] 调研 rdma repo 中 pcie driver
 
 * [ ] 调研 rdma repo 中 pcie driver
 
@@ -826,9 +826,15 @@ tasks:
 
 * [v] 调研 OFED 相关
 
-    feedback:
+* [ ] 调研`qp_type`都有哪些，调研`IBV_QPT_RC`
 
-    1. 调研`rdma-core`仓库，和`perftest`仓库
+* [ ] 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
+
+* [ ] sync rdma
+
+* [ ] 看 rdma tutorial
+
+* [ ] 调研`rdma-core`仓库，和`perftest`仓库
 
     2. 调研 linux kernl 中 rdma 相关仓库
 
