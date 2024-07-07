@@ -4015,3 +4015,25 @@
 * This repository lists static analysis tools for all programming languages, build tools, config files and more.
 
     <https://github.com/analysis-tools-dev/static-analysis>
+
+* openat(2) - Linux man page
+
+    <https://linux.die.net/man/2/openat>
+
+* sysfs interface common for all infiniband devices
+
+    <https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-class-infiniband>
+
+    IB sysfs ABI.
+
+* InfiniBand
+
+    <https://docs.kernel.org/5.19/infiniband/index.html>
+
+* rdma-link(8) — Linux manual page
+
+    <https://www.man7.org/linux/man-pages/man8/rdma-link.8.html>
+
+* Configuring InfiniBand and RDMA networks
+
+    <https://docs.redhat.com/es/documentation/red_hat_enterprise_linux/9/html-single/configuring_infiniband_and_rdma_networks/index>
