@@ -2,6 +2,115 @@
 
 ## cache
 
+* rdma tutorial
+
+    ref: <https://github.com/jcxue/RDMA-Tutorial>
+
+    这个代码写得不算很好。
+
+    这份代码使用 socket 交换 metadata 信息，并且使用 socket 做同步。
+
+    这份代码完全没有用到`rdma_create_event_channel()`之类的函数，即没有使用 rdma connection management agent (rdma cma)。
+
+* port 相关的数据放在`ib_device` -> `ib_port_data`中。
+
+    大部分的数据都是参数，属性，状态相关的。并没有功能相关的数据。
+
+* `struct rdma_id_private`这个是干嘛用的？
+
+* restrack 指的是 resource tracking
+
+* `struct ib_device`是一个实体结构体，不是一个类型占位。
+
+* test:
+
+    `rdma-core` project 中，`libverbs/examples`里有挺多测试程序的源代码。
+
+    可以拿来测试 ib verbs 基本功能。
+
+* `struct ib_device_ops`在`include/rdma/ib_verbs.h`中，里面定义了一些 rdma-core 所需的 callback function
+
+* sq psn
+
+    `sq_psn`: a 24 bits value of the Packet Sequence Number of the sent packets for any QP.
+
+* rts 指的是 read to send
+
+    qps 指的是 queue pair state
+
+    rtr: ready to receive state
+
+    sqd: send queue drain state
+
+    sqe: send queue error state
+
+    err: error state
+
+    drain: 耗尽
+
+* rdma qp type
+
+    In RDMA, there are several QP types. They can be represented by: XY
+
+    X can be:
+
+    **Reliable**: There is a guarantee that messages are delivered at most once, in order and without corruption.
+
+    **Unreliable**: There isn't any guarantee that the messages will be delivered or about the order of the packets.
+
+    In RDMA, every packet has a CRC and corrupted packets are being dropped (for any transport type). The Reliability of a QP transport type refers to the whole message reliability.
+
+    Y can be:
+
+    **Connected**: one QP send/receive with exactly one QP
+
+    **Unconnected**: one QP send/receive with any QP
+
+    因此 qp type 其实被分为 RC, UC, UD (Unreliable Datagram) 这三种。
+
+    Ref: <https://www.rdmamojo.com/2013/06/01/which-queue-pair-type-to-use/>
+
+* `ibv_create_qp()`
+
+    header file: `#include <infiniband/verbs.h>`
+
+    syntax:
+
+    ```c
+    struct ibv_qp *ibv_create_qp(struct ibv_pd *pd,
+        struct ibv_qp_init_attr *qp_init_attr);
+
+    int ibv_destroy_qp(struct ibv_qp *qp);
+    ```
+
+    ```c
+    struct ibv_qp_init_attr {
+        void *qp_context;
+        struct ibv_cq *send_cq;
+        struct ibv_cq *recv_cq;
+        struct ibv_srq *srq;
+        struct ibv_qp_cap cap;
+        enum ibv_qp_type qp_type;
+        int sq_sig_all;
+    };
+
+    struct ibv_qp_cap {
+        uint32_t max_send_wr;
+        uint32_t max_recv_wr;
+        uint32_t max_send_sge;
+        uint32_t max_recv_sge;
+        uint32_t max_inline_data;
+    }
+    ```
+
+    Ref: <https://man7.org/linux/man-pages/man3/ibv_create_qp.3.html>
+
+    可以看到`qp_type`是一个`enum ibv_qp_type`的枚举值。
+
+    文档中常用的有三个值：`IBV_QPT_RC`, `IBV_QPT_UC`, `IBV_QPT_UD`
+
+    Ref: <https://www.rdmamojo.com/2012/12/21/ibv_create_qp/>
+
 * 一开始一直 rdma read/write 不成功，主要是因为 send wr 的 opcode 没写对
 
 * 在调用`getopt()`后，rdma qp 就无法创建成功了
@@ -65,7 +174,6 @@
 * `rdma_buffer_alloc()`不是一个内置函数
 
     只有`ibv_reg_mr()`是 ib 的内置函数，具体的内存需要自己 malloc 管理。
-
 
 * ib 完全没有 mac 的概念，roce 底层是 mac，在 mac 上又模拟了一套 rdma 的接口，ethernet 则完全走 tcp/ip 这套协议
 
@@ -729,3 +837,111 @@ Ref:
 1. <https://zhuanlan.zhihu.com/p/679909155>
 
 2. <https://www.zhihu.com/people/fei-su-fs>
+
+## auxiliary device
+
+* aux driver 是通过 id table 中的 name 与主 module 取得联系。
+
+    证明：
+
+    先执行主 module，aux driver 可以正常运行 init 函数和 exit 函数。
+
+    不运行主 module，直接运行 aux driver，init 函数和 exit 函数不会被执行。
+
+## umd
+
+### cache
+
+* `ibv_poll_cq()`被定义在`verbs.h`头文件里
+
+    因为它算是 umd，所以这个函数没有在 linux source code 里实现
+
+* 猜测：`ibv_poll_cq()`是非阻塞式的，`ibv_get_cq_event()`是阻塞式的
+
+* rdma-core 中，`libibverbs/examples/devinfo.c`使用的 ib verbs 主要有 2 个：
+
+    * `ibv_get_device_list()`, `ibv_free_device_list()`
+
+    * `ibv_get_device_name()`
+
+    * `ibv_open_device()`, `ibv_close_device()`
+
+    * `ibv_query_device_ex()`
+
+    * `ibv_read_sysfs_file()`
+
+    * `ibv_query_port()`
+
+    * `ibv_query_gid()`
+
+    * `ibv_query_gid_type()`
+
+### note
+
+## rdma cma
+
+RDMA Connection Management Agent 相关。
+
+### cache
+
+* `rdma_cm_id`中的`port_num`指的是 physical port 的编号（不是总数），因为这个赋值发生在`rdma_for_each_port()`中
+
+* `rdma_bind_addr()`里比较重要的函数只有`rdma_bind_addr_dst()`这一个。
+
+* `cma_acquire_dev_by_src_ip()`：
+
+    这个函数先根据 ipv4 算出一个 gid （使用一个非随机的固定算法），然后再对`cma_device`进行枚举。
+    
+    `cma_device`是一个 list node，每个`cma_device`里都有一个`ib_device`。
+
+    然后对`ib_device`的 port 进行枚举，从 port 拿到 gid 信息，比对是否和前面算出来的 gid 相同。
+
+    如果相同，那么就记录下`ib_device`信息，port 信息。
+
+    似乎是通过 ip 找到 net dev (可能是 ethernet dev)，然后对接到 aux driver，就算是结束了。
+
+    一些重要的函数：
+
+    * `rdma_ip2gid()`
+
+    * `rdma_protocol_roce()`
+
+    * `cma_validate_port()`
+
+    * `cma_bind_sgid_attr()`
+
+    * `cma_attach_to_dev()`
+
+* `rdma_bind_addr_dst()`里比较重要的几个函数
+
+    * `cma_comp_exch()`
+
+    * `cma_check_linklocal()`
+
+    * `cma_translate_addr()`
+
+    * `cma_acquire_dev_by_src_ip()`
+
+    * `cma_dst_addr()`
+
+    * `cma_get_port()`
+
+    * `rdma_restrack_add()`
+
+* initiator depth
+
+    > responder_resources
+    >
+        > The maximum number of outstanding RDMA read and atomic operations that the local side will accept from the remote side. Applies only to RDMA_PS_TCP. This value must be less than or equal to the local RDMA device attribute max_qp_rd_atom and remote RDMA device attribute max_qp_init_rd_atom. The remote endpoint can adjust this value when accepting the connection. 
+        
+    > initiator_depth
+    >
+        > The maximum number of outstanding RDMA read and atomic operations that the local side will have to the remote side. Applies only to RDMA_PS_TCP. This value must be less than or equal to the local RDMA device attribute max_qp_init_rd_atom and remote RDMA device attribute max_qp_rd_atom. The remote endpoint can adjust this value when accepting the connection. 
+
+    ref: <https://linux.die.net/man/3/rdma_connect>
+
+    这两个参数文档资料太少了，可能还得需要从代码或者书本里获取相关的信息。
+
+### note
+
+## bottom anchor

@@ -4037,3 +4037,95 @@
 * Configuring InfiniBand and RDMA networks
 
     <https://docs.redhat.com/es/documentation/red_hat_enterprise_linux/9/html-single/configuring_infiniband_and_rdma_networks/index>
+
+* `ibv_req_notify_cq()`
+
+    <https://www.rdmamojo.com/2013/02/22/ibv_req_notify_cq/>
+
+* `ibv_post_recv`
+
+    <https://www.ibm.com/docs/ja/aix/7.1?topic=management-ibv-post-recv>
+
+* `ibv_post_recv()`
+
+    <https://www.rdmamojo.com/2013/02/02/ibv_post_recv/>
+
+* `ibv_poll_cq()`
+
+    <https://www.rdmamojo.com/2013/02/15/ibv_poll_cq/>
+
+* `rdma_resolve_addr`
+
+    <https://www.ibm.com/docs/it/aix/7.1?topic=operations-rdma-resolve-addr>
+
+* difference in behaviour between declaration in .pyd and .pyx files
+
+    <https://stackoverflow.com/questions/53943215/difference-in-behaviour-between-declaration-in-pyd-and-pyx-files>
+
+* Definition of def, cdef and cpdef in Cython
+
+    <https://stackoverflow.com/questions/28362009/definition-of-def-cdef-and-cpdef-in-cython>
+
+* Python Project - ImportError: No module named XXX?
+
+    <https://stackoverflow.com/questions/19155709/python-project-importerror-no-module-named-xxx>
+
+* Python - Packages
+
+    <https://www.tutorialspoint.com/python/python_packages.htm>
+
+* ImportError: cannot import name '...' from 'collections' using Python 3.10
+
+    <https://stackoverflow.com/questions/69381312/importerror-cannot-import-name-from-collections-using-python-3-10>
+
+* How to load all modules in a folder?
+
+    <https://stackoverflow.com/questions/1057431/how-to-load-all-modules-in-a-folder>
+
+* 'ImportError: No module named ...' when trying to import pyx file to Jupyter
+
+    <https://stackoverflow.com/questions/55282877/importerror-no-module-named-when-trying-to-import-pyx-file-to-jupyter>
+
+* ibv_post_srq_recv()
+
+    <https://www.rdmamojo.com/2013/02/08/ibv_post_srq_recv/>
+
+* ibv_modify_qp()
+
+    <https://www.rdmamojo.com/2013/01/12/ibv_modify_qp/>
+
+* Memory Management APIs
+
+    <https://www.kernel.org/doc/html/next/core-api/mm-api.html#c.kmalloc>
+
+* Memory Allocation Guide
+
+    <https://www.kernel.org/doc/html/next/core-api/memory-allocation.html#memory-allocation>
+
+* ID Allocation
+
+    <https://docs.kernel.org/core-api/idr.html>
+
+* int ida_alloc(struct ida *ida, gfp_t gfp)
+
+    <https://docs.kernel.org/core-api/idr.html#c.ida_alloc>
+
+* IDA usage
+
+    <https://www.kernel.org/doc/html/v4.18/core-api/idr.html#ida-usage>
+
+* void put_device(struct device *dev)
+
+    <https://docs.kernel.org/driver-api/infrastructure.html#c.put_device>
+
+* libnl  3.2.24-rc1
+
+    <https://www.infradead.org/~tgr/libnl/doc/api/index.html>
+
+* How to search tag by name in GIT?
+
+    <https://stackoverflow.com/questions/49111231/how-to-search-tag-by-name-in-git>
+
+* rdma_resolve_addr(3) - Linux man page
+
+    <https://linux.die.net/man/3/rdma_resolve_addr>

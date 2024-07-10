@@ -36,6 +36,12 @@
 
 ## cached
 
+* `gfp_t`指的是需要 alloc 的内存类型
+
+    常用的是`GFP_KERNEL`。其他的用法在文档里有详细说明。
+
+    参见`kmalloc()`文档。
+
 * [ ] git stash 恢复
 
 * 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
@@ -744,6 +750,26 @@ tasks:
 
 ### cache
 
+* 调研 rdma link
+
+* mana 中的 gid 是如何计算的？
+
+* 调研
+
+    * `rdma_create_event_channel()`
+
+    * `rdma_create_id()`
+
+    * `rdma_listen()`
+
+* RDMA exmaple
+
+    <https://github.com/animeshtrivedi/rdma-example?tab=readme-ov-file>
+
+    实现了一个使用 verbs 实现的 client server 模型。
+
+    还给出了基于 iWARP 的 rdma 的安装方法。
+
 * rdma repo
 
     调研一下 makefile 中 KERNEL，BINARY 这些变量的含义。是否还有其他的特殊变量
@@ -790,27 +816,33 @@ tasks:
 
 * 调研`module_auxiliary_driver()`, `auxiliary_device`
 
-* 调研`ib_device_ops`
+* 调研`be64toh()`, `endian.h`
+
+* 调研 ibv ping pong
+
+    Error: `No space left on device`
 
 ### tasks
-
-* [v] 调研 rdma repo 中 pcie driver
-
-* [v] 调研 verbs 的对接方法
-
-* [v] 调研 OFED 相关
-
-* [v] 调研 ibv aux driver，假驱动
 
 * [v] 调研`ibv_devices`, `ibv_devinfo`的调用链
 
 * [v] 调研`qp_type`都有哪些，调研`IBV_QPT_RC`
 
-* [ ] 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
+* [v] 调研 rdma cm 建立连接的过程
+
+* [v] 调研 rdma tutorial
+
+* [v] 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
+
+* [v] 尝试填充 query_device 各个字段
+
+* [v] 调研 ibv_poll()
+
+* [v] 调研不依赖 rdma cm 的 event
+
+* [ ] 实现基于 socket + ibv 的 c-s，对比甚佳于 cma + ibv 的 c-s
 
 * [ ] 调研 rdma repo 中 pcie driver
-
-* [ ] 调研 rdma tutorial
 
 * [ ] sync rdma
 
