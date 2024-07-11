@@ -2,6 +2,16 @@
 
 ## cache
 
+* 无论是 rxe，还是 siw，都无法在不依赖 rdma_cma 的情况下创建 qp。因为他们没有真正的 qp。
+
+    siw 目前是让 rdma_cma 维护一个 socket，伪装成 qp 的形态。
+
+    在`ibv_modify_qp()`时，rdma cma 内部维护了一套专门针对 siw 设计的 qp attr 和 mask。这套 qp attr 和 mask 与标准的 ibv 的 qp attr 和 mask 不兼容，如果在 rdma cma 外部使用`ibv_modify_qp()`对 siw 的 qp 强行修改，那么可能会有内存读写错误导致系统直接崩溃。
+
+    对于 rxe，不知道是 rdma cma 维护了什么机制，但是肯定也不是真正的 qp。
+
+    只有硬件支持 qp 的网卡，才能使用`ibv_modify_qp()`进行属性修改。比如 mellanox 的网卡。
+
 * rdma tutorial
 
     ref: <https://github.com/jcxue/RDMA-Tutorial>

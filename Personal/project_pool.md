@@ -36,6 +36,8 @@
 
 ## cached
 
+* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
+
 * `gfp_t`指的是需要 alloc 的内存类型
 
     常用的是`GFP_KERNEL`。其他的用法在文档里有详细说明。
@@ -749,6 +751,8 @@ tasks:
 ## rdma
 
 ### cache
+
+* [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
 * 调研 rdma link
 
