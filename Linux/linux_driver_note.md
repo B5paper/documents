@@ -3019,7 +3019,7 @@ There are some steps involved to use IOCTL.
 * Write IOCTL function in the driver
 
     ```c
-    int ioctl(struct inode *inode,struct file *file,unsigned int cmd,unsigned long arg)
+    int ioctl(struct inode *inode, struct file *file, unsigned int cmd,unsigned long arg)
     ```
 
     * `inode`: is the inode number of the file being worked on.
