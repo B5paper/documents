@@ -6,6 +6,14 @@ Ref:
 
 ## cache
 
+* ioctl 是阻塞执行的
+
+* linux driver 中的 read 返回的是已经处理的字节数
+
+    如果返回的未处理的字节数大于 0，那么`cat`会无限循环调用 read 读取数据。
+
+    如果 write 函数返回的字节数小于需要处理的字节数，那么`echo xxx > /dev/hlc_dev`也会无限循环调用 write 写入数据。
+
 * sysfs 编程
 
     使用`kobject_create_and_add()`在`/sys`中创建文件夹，使用`sysfs_create_file()`创建文件。

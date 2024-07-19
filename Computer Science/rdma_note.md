@@ -2,6 +2,56 @@
 
 ## cache
 
+* `ibv_get_device_list()`, `ibv_open_device()`这些函数都属于 umd 的内容
+
+    通过与 sysfs 交互返回信息。
+
+* umd 通过 ioctl 调用 kmd 中定义好的接口函数
+
+    包括 create qp，create cq 这些
+
+* ib core 是通过下面的代码访问到 port 相关的属性/数据的
+
+    `device->port_data[port_num].pkey_list`
+
+* `ib_setup_device_attrs()`只有修改 device attr 函数指针的功能，并没有创建 sysfs 文件
+
+    猜测：可以先创建 sysfs 文件，然后再修改 attr 函数指针，可以立即生效
+
+* mlnx sysfs 的创建过程
+
+    * `ib_register_device())`
+
+        这个函数调用了`ib_setup_port_attrs()`
+
+    * `ib_setup_port_attrs()`
+
+        这个函数会创建`"ports"`文件夹，然后对每个 port，调用`setup_port()`创建更多 sysfs 文件
+
+    * `setup_port()`
+
+        在这个函数中会创建 sysfs group
+
+* 重启 ib 驱动
+
+    `service openibd restart`
+
+* 将 port 从 initializing 状态转变成 active 状态
+
+    `service opensmd restart`
+
+* 当 note 1 remote write node 2 的 buffer 时，node 2 无法使用`ibv_poll_cq()`拿到 wc。
+
+    即使在 node 2 使用 post recv wr，也无法感知到 node 1 remote write 的操作。`ibv_poll_cq()`不会返回任何东西。
+
+* remote write 时，只有将 wr 的 flags 设置成`IBV_SEND_SIGNALED`，才能在`ibv_poll_cq()`时收到 wc。
+
+* qp 很有可能是通过 qp num 和 lid 建立连接通路的。
+
+* 很长时间没跑通，最后终于跑通了，是因为 device 设置的不对
+
+* max send wr 设置成 1 才可以成功创建 qp
+
 * 无论是 rxe，还是 siw，都无法在不依赖 rdma_cma 的情况下创建 qp。因为他们没有真正的 qp。
 
     siw 目前是让 rdma_cma 维护一个 socket，伪装成 qp 的形态。
@@ -955,3 +1005,9 @@ RDMA Connection Management Agent 相关。
 ### note
 
 ## bottom anchor
+
+## problem shooting
+
+* `failed status transport retry counter exceeded`
+
+    报这种错就是数据包没发出去，原因可能有很多，比如 port 不是 active 状态，qp num 设置错误，对端机器配置有问题等等。

@@ -828,8 +828,6 @@ tasks:
 
 ### tasks
 
-* [v] 调研`ibv_devices`, `ibv_devinfo`的调用链
-
 * [v] 调研`qp_type`都有哪些，调研`IBV_QPT_RC`
 
 * [v] 调研 rdma cm 建立连接的过程
@@ -837,10 +835,6 @@ tasks:
 * [v] 调研 rdma tutorial
 
 * [v] 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
-
-* [v] 尝试填充 query_device 各个字段
-
-* [v] 调研 ibv_poll()
 
 * [v] 调研不依赖 rdma cm 的 event
 
