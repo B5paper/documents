@@ -16,7 +16,7 @@
 
 * git branch
 
-    `git brahc`等价于`git branch --list`
+    `git branch`等价于`git branch --list`
 
     `git branch <branch>`创建一个新 branch
 
@@ -46,6 +46,20 @@
     `git push origin :crazy-experiment`
 
     这一个比较令人困惑，其实他是给 remote 发送一个 delete signal，从而让远程删除 branch
+
+    本地创建完 branch 后，需要把它推向 remote end:
+
+    ```bash
+    git checkout <local_branch_name>
+    git push -u <remote_name> <remote_brnahc_name>
+    ```
+
+    比如：
+
+    ```bash
+    git checkout hlc_my_branch
+    git push -u origin hlc_my_branch
+    ```
 
 * `git rebase`非交互模式，当遇到文件冲突时，不会让用户去处理 conflict，把不同的 commit 合并成一个，创建一个 merge commit，而是先把 upstream 的 commit 全都照搬过来，然后再把 local 的 commit 叠加到上面
 

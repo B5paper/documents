@@ -1248,7 +1248,11 @@ apt-cache search linux-source
 
     这种方法会在内核源码目录创建一个`.config`文件。使用这个 config 编译起来比较快，可能是因为有点选项没选上吧。
 
-    单核编译可以用`makd`，多线程编译可以使用`makd -j16`（使用 16 线程编译）。
+    单核编译可以用`make`，多线程编译可以使用`make -j16`（使用 16 线程编译）。
+
+    然后`sudo make modules_install`
+
+    最后`sudo make install`
 
 ### hello, world 驱动
 
