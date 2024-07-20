@@ -4234,7 +4234,31 @@
 
     <https://github.com/animeshtrivedi/rdma-example/tree/master>
 
+* radix tree
 
+    * Linux Radix Tree 详解
+
+        <https://juejin.cn/post/7190267533302169637>
+
+    * Linux 内核之radix tree(基数树) 图文介绍
+
+        <https://zhuanlan.zhihu.com/p/533338300>
+
+    * Linux内核Radix Tree（一）
+
+        <https://www.cnblogs.com/mingziday/p/3969269.html>
+
+    * Linux内核Radix Tree（二）
+
+        <https://www.cnblogs.com/mingziday/p/3969274.html>
+
+    * Linux内核Radix Tree（三）：API介绍
+
+        <https://www.cnblogs.com/mingziday/p/3969276.html>
+
+    * 数据结构之Radix Tree
+
+        <https://ivanzz1001.github.io/records/post/data-structure/2018/11/18/ds-radix-tree>
 
 
 
