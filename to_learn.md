@@ -4189,3 +4189,52 @@
 * How to setup SoftiWARP on Ubuntu 18.04 and Ubuntu 22 and run an RDMA server-client example
 
     <https://github.com/animeshtrivedi/blog/blob/master/post/2019-06-26-siw.md>
+
+* RDMA-Tutorial
+
+    <https://github.com/jcxue/RDMA-Tutorial>
+
+* Programming Examples Using IBV Verbs
+
+    <https://docs.nvidia.com/networking/display/rdmaawareprogrammingv17/programming+examples+using+ibv+verbs>
+
+* Writing a PCI device driver for Linux
+
+    <https://olegkutkov.me/2021/01/07/writing-a-pci-device-driver-for-linux/>
+
+* Bus-Independent Device Accesses
+
+    <https://www.kernel.org/doc/html/v4.16/driver-api/device-io.html>
+
+* [ewg] iWarp - Failed to modify RC QP to RTS
+
+    <https://lists.openfabrics.org/pipermail/ewg/2011-April/016498.html>
+
+* Git checkout tag
+
+    <https://graphite.dev/guides/git-checkout-tag>
+
+* How to Restore a Git Stash
+
+    <https://phoenixnap.com/kb/git-restore-stash>
+
+* RDMA-example-application
+
+    <https://github.com/linzino7/RDMA-example-application/tree/master>
+
+* ibv_poll_cq()
+
+    <https://www.rdmamojo.com/2013/02/15/ibv_poll_cq/>
+
+* "libtoolize not found" - linux dependency
+
+    <https://github.com/beakerbrowser/beaker/issues/54>
+
+* rdma-example
+
+    <https://github.com/animeshtrivedi/rdma-example/tree/master>
+
+
+
+
+
