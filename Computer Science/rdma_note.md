@@ -2,22 +2,6 @@
 
 ## cache
 
-* `ibv_get_device_list()`, `ibv_open_device()`这些函数都属于 umd 的内容
-
-    通过与 sysfs 交互返回信息。
-
-* umd 通过 ioctl 调用 kmd 中定义好的接口函数
-
-    包括 create qp，create cq 这些
-
-* ib core 是通过下面的代码访问到 port 相关的属性/数据的
-
-    `device->port_data[port_num].pkey_list`
-
-* `ib_setup_device_attrs()`只有修改 device attr 函数指针的功能，并没有创建 sysfs 文件
-
-    猜测：可以先创建 sysfs 文件，然后再修改 attr 函数指针，可以立即生效
-
 * mlnx sysfs 的创建过程
 
     * `ib_register_device())`
@@ -72,10 +56,6 @@
 
     这份代码完全没有用到`rdma_create_event_channel()`之类的函数，即没有使用 rdma connection management agent (rdma cma)。
 
-* port 相关的数据放在`ib_device` -> `ib_port_data`中。
-
-    大部分的数据都是参数，属性，状态相关的。并没有功能相关的数据。
-
 * `struct rdma_id_private`这个是干嘛用的？
 
 * restrack 指的是 resource tracking
@@ -93,20 +73,6 @@
 * sq psn
 
     `sq_psn`: a 24 bits value of the Packet Sequence Number of the sent packets for any QP.
-
-* rts 指的是 read to send
-
-    qps 指的是 queue pair state
-
-    rtr: ready to receive state
-
-    sqd: send queue drain state
-
-    sqe: send queue error state
-
-    err: error state
-
-    drain: 耗尽
 
 * rdma qp type
 
@@ -130,66 +96,11 @@
 
     Ref: <https://www.rdmamojo.com/2013/06/01/which-queue-pair-type-to-use/>
 
-* `ibv_create_qp()`
-
-    header file: `#include <infiniband/verbs.h>`
-
-    syntax:
-
-    ```c
-    struct ibv_qp *ibv_create_qp(struct ibv_pd *pd,
-        struct ibv_qp_init_attr *qp_init_attr);
-
-    int ibv_destroy_qp(struct ibv_qp *qp);
-    ```
-
-    ```c
-    struct ibv_qp_init_attr {
-        void *qp_context;
-        struct ibv_cq *send_cq;
-        struct ibv_cq *recv_cq;
-        struct ibv_srq *srq;
-        struct ibv_qp_cap cap;
-        enum ibv_qp_type qp_type;
-        int sq_sig_all;
-    };
-
-    struct ibv_qp_cap {
-        uint32_t max_send_wr;
-        uint32_t max_recv_wr;
-        uint32_t max_send_sge;
-        uint32_t max_recv_sge;
-        uint32_t max_inline_data;
-    }
-    ```
-
-    Ref: <https://man7.org/linux/man-pages/man3/ibv_create_qp.3.html>
-
-    可以看到`qp_type`是一个`enum ibv_qp_type`的枚举值。
-
-    文档中常用的有三个值：`IBV_QPT_RC`, `IBV_QPT_UC`, `IBV_QPT_UD`
-
-    Ref: <https://www.rdmamojo.com/2012/12/21/ibv_create_qp/>
-
 * 一开始一直 rdma read/write 不成功，主要是因为 send wr 的 opcode 没写对
 
 * 在调用`getopt()`后，rdma qp 就无法创建成功了
 
-* 即使 get cq event 也不代表数据发送完了
 
-    在 get cq event 后突然结束程序，对方仍然有可能没有收到数据
-
-* rdma server 有 server cm id，还有 client cm id
-
-    rdma client 只有一个 cm id
-
-* 如果一方没有 post recv wr，另一方就直接 post send wr，那么发送的数据会丢失，而且 send 方还会返回 cq event
-
-* 不`rdma_connect()`就无法 post send，但是可以 post recv
-
-* 不处理 cm event 也无法 post send
-
-* 如果一个 mr 有 remote 操作，那么它的内存必须在堆上申请
 
 * metadata 只需要 local write access 就可以了
 
@@ -852,6 +763,20 @@ CM 指的是 connection management
 
 MR 指的是 memory region
 
+* rts 指的是 read to send
+
+    qps 指的是 queue pair state
+
+    rtr: ready to receive state
+
+    sqd: send queue drain state
+
+    sqe: send queue error state
+
+    err: error state
+
+    drain: 耗尽
+
 ## mellanox OFED
 
 OFED 指的是 OpenFabrics Enterprise Distribution，这是一组 IB 的开源驱动，除了提供核心驱动，还实现了其他很多辅助功能库。底层实现了 IB 协议，往上又基于 IB 协议开发了别的协议，用于和上层 app 对接，这些 app 有 MPI，NFS 等。
@@ -898,7 +823,84 @@ Ref:
 
 2. <https://www.zhihu.com/people/fei-su-fs>
 
-## auxiliary device
+## app
+
+### cache
+
+* 即使 get cq event 也不代表数据发送完了
+
+    在 get cq event 后突然结束程序，对方仍然有可能没有收到数据
+
+* rdma server 有 server cm id，还有 client cm id
+
+    rdma client 只有一个 cm id
+
+* 如果一方没有 post recv wr，另一方就直接 post send wr，那么发送的数据会丢失，而且 send 方还会返回 cq event
+
+* 不`rdma_connect()`就无法 post send，但是可以 post recv
+
+* 不处理 cm event 也无法 post send
+
+* 如果一个 mr 有 remote 操作，那么它的内存必须在堆上申请
+
+* `ibv_create_qp()`
+
+    header file: `#include <infiniband/verbs.h>`
+
+    syntax:
+
+    ```c
+    struct ibv_qp *ibv_create_qp(struct ibv_pd *pd,
+        struct ibv_qp_init_attr *qp_init_attr);
+
+    int ibv_destroy_qp(struct ibv_qp *qp);
+    ```
+
+    ```c
+    struct ibv_qp_init_attr {
+        void *qp_context;
+        struct ibv_cq *send_cq;
+        struct ibv_cq *recv_cq;
+        struct ibv_srq *srq;
+        struct ibv_qp_cap cap;
+        enum ibv_qp_type qp_type;
+        int sq_sig_all;
+    };
+
+    struct ibv_qp_cap {
+        uint32_t max_send_wr;
+        uint32_t max_recv_wr;
+        uint32_t max_send_sge;
+        uint32_t max_recv_sge;
+        uint32_t max_inline_data;
+    }
+    ```
+
+    Ref: <https://man7.org/linux/man-pages/man3/ibv_create_qp.3.html>
+
+    可以看到`qp_type`是一个`enum ibv_qp_type`的枚举值。
+
+    文档中常用的有三个值：`IBV_QPT_RC`, `IBV_QPT_UC`, `IBV_QPT_UD`
+
+    Ref: <https://www.rdmamojo.com/2012/12/21/ibv_create_qp/>
+
+### note
+
+## kmd
+
+### cache
+
+* port 相关的数据放在`ib_device` -> `ib_port_data`中。
+
+    大部分的数据都是参数，属性，状态相关的。并没有功能相关的数据。
+
+* ib core 是通过下面的代码访问到 port 相关的属性/数据的
+
+    `device->port_data[port_num].pkey_list`
+
+* `ib_setup_device_attrs()`只有修改 device attr 函数指针的功能，并没有创建 sysfs 文件
+
+    猜测：可以先创建 sysfs 文件，然后再修改 attr 函数指针，可以立即生效
 
 * aux driver 是通过 id table 中的 name 与主 module 取得联系。
 
@@ -908,9 +910,172 @@ Ref:
 
     不运行主 module，直接运行 aux driver，init 函数和 exit 函数不会被执行。
 
+### note
+
 ## umd
 
 ### cache
+
+* ib umd 里需要填充`static const struct verbs_context_ops mlx5_ctx_common_ops`这个结构体中的函数指针
+
+    这个结构体被框架提供的`verbs_set_ops()`调用。
+
+    `verbs_set_ops()`被`mlx5_set_context()`调用。
+
+    `mlx5_alloc_context()`
+
+    `static const struct verbs_device_ops mlx5_dev_ops = {`
+
+    `PROVIDER_DRIVER(mlx5, mlx5_dev_ops);`
+
+* 一些 ioctl 的返回数据的结构体放在`rdma-core/build/include/kernel-abi/mlx5-abi.h`中
+
+* `ibv_open_device()`实际调用的是`verbs_open_device()`
+
+    open device 是 core 直接实现好的，函数名是`verbs_open_device()`，直接去访问 cdev 文件。
+
+* `ibv_get_device_list()`, `ibv_open_device()`这些函数都属于 umd 的内容
+
+    通过与 sysfs 交互返回信息。
+
+* `ibv_get_device_list()`
+
+    这个函数定义在`rdma-core/libibverbs/device.c`文件中，函数的原型是：
+
+    ```c
+    LATEST_SYMVER_FUNC(ibv_get_device_list, 1_1, "IBVERBS_1.1",
+            struct ibv_device **,
+            int *num)
+    {
+        // ...
+    }
+    ```
+
+    可以看到它用宏的方式定义了版本号之类的，直接就是一个 abi 接口。
+
+    这个函数主要调用了`ibverbs_get_device_list()`，其定义在`rdma-core/libibverbs/init.c`文件中，函数原型是：
+
+    ```c
+    int ibverbs_get_device_list(struct list_head *device_list);
+    ```
+
+    这个函数的代码主要逻辑如下：
+
+    1. 通过`find_sysfs_devs_nl()`去 sysfs 中找 device
+
+        这个过程会获取 driver id
+
+    2. 如果没有找到 device，那么调用`find_sysfs_devs()`继续去 sysfs 中找 device
+
+    3. 调用`try_all_drivers()`去匹配合适的 umd driver
+
+    4. 如果没有匹配成功，那么就调用`load_drivers()`加载所有已知的 driver
+    
+    5. 最后再次调用`try_all_drivers()`去匹配 driver
+
+* `load_drivers()`的代码逻辑
+
+    `load_drivers()`定义在`rdma-core/libibverbs/dynamic_driver.c`中，函数原型为：
+
+    ```c
+    void load_drivers(void);
+    ```
+
+    可以看到，它不接收任何参数。说明它只在固定路径找驱动。
+
+    函数逻辑：
+
+    1. 调用`read_config();`，在宏`IBV_CONFIG_DIR`指定的路径读取 config 文件列表
+
+        `IBV_CONFIG_DIR`宏被定义在`rdma-core/build/include/config.h`中。
+
+        默认的路径在`rdma-core/build/etc/libibverbs.d`下，文件列表为：
+
+        ```
+        hlc@hlc-VirtualBox:~/Documents/Projects/rdma-core/build/etc/libibverbs.d$ ls
+        bnxt_re.driver    hns.driver         mlx5.driver    siw.driver
+        cxgb4.driver      ipathverbs.driver  mthca.driver   sonc.driver
+        efa.driver        irdma.driver       ocrdma.driver  vmw_pvrdma.driver
+        erdma.driver      mana.driver        qedr.driver
+        hfi1verbs.driver  mlx4.driver        rxe.driver
+        ```
+
+        文件内容也都比较简单：
+
+        ```
+        hlc@hlc-VirtualBox:~/Documents/Projects/rdma-core/build/etc/libibverbs.d$ cat mlx5.driver 
+        driver /home/hlc/Documents/Projects/rdma-core/build/lib/libmlx5
+        hlc@hlc-VirtualBox:~/Documents/Projects/rdma-core/build/etc/libibverbs.d$ cat mana.driver 
+        driver /home/hlc/Documents/Projects/rdma-core/build/lib/libmana
+        ```
+
+        这些文件都是在`rdma-core`项目 build 的时候自动生成的。
+
+        读取的结果会被放在全局链表`driver_name_list`中。
+
+    2. 遍历 name list，对每个 entry 调用`load_driver()`，使用`dlopen()`加载各家驱动的`.so`文件
+
+        这个函数定义在`rdma-core/libibverbs/dynamic_driver.c`中，目前的定义为
+
+        ```c
+        #define VERBS_PROVIDER_SUFFIX "-rdmav34.so"
+        ```
+
+        这里会使用宏`VERBS_PROVIDER_SUFFIX`对 so 文件名再做一次修饰。比如`libsonc`会变成`libsonc-rdmav34.so`
+
+        宏定义在`rdma-core/build/include/config.h`中。
+
+* `try_all_drivers()`的代码逻辑
+
+    `try_all_drivers()`定义在`rdma-core/libibverbs/init.c`中，函数原型为
+
+    ```c
+    static void try_all_drivers(struct list_head *sysfs_list,
+                    struct list_head *device_list,
+                    unsigned int *num_devices);
+    ```
+
+    函数逻辑：
+
+    1. 遍历所有的 sysfs 入口，对于每个 sysfs entry，都调用`try_drivers()`
+
+    `try_drivers()`定义在`rdma-core/libibverbs/init.c`中，函数原型为：
+
+    ```c
+    static struct verbs_device *try_drivers(struct verbs_sysfs_dev *sysfs_dev);
+    ```
+
+    代码逻辑：
+
+    1. 遍历所有的 driver，如果 sysfs dev 的 driver id 不为`RDMA_DRIVER_UNKNOWN`，那么先调用`match_driver_id()`去匹配 driver，如果匹配失败，才调用`try_driver()`去匹配
+
+    2. 如果 sysfs dev 的 driver id 为`RDMA_DRIVER_UNKNOWN`，那么在遍历 driver 时，直接通过`try_driver()`进行匹配
+
+    这里的 driver id 是之前在`find_sysfs_devs_nl()`里获取的。
+
+* `try_driver()`的逻辑
+
+    `try_driver()`定义在`dma-core/libibverbs/init.c`中，函数原型为：
+
+    ```c
+    static struct verbs_device *try_driver(const struct verbs_device_ops *ops, struct verbs_sysfs_dev *sysfs_dev);
+    ```
+
+    函数逻辑：
+    
+    1. `match_device()`
+
+        查看 driver 和 device 是否匹配，如果匹配失败就直接退出
+
+    2. 如果匹配成功，则调用 umd driver 中的`alloc_device()`为`struct verbs_device *vdev;`分配内存。并将 ops 对接到`vdev`上：
+
+        ```c
+        struct verbs_device *vdev;
+        vdev = ops->alloc_device(sysfs_dev);
+        vdev->ops = ops;
+        ```
+
+    后面的事基本不需要我们操心了，我们只需要知道到这里为止，我们的 ops 就能被调用就可以了。
 
 * `ibv_poll_cq()`被定义在`verbs.h`头文件里
 
@@ -937,6 +1102,22 @@ Ref:
     * `ibv_query_gid_type()`
 
 ### note
+
+所有`ibv_`开头的函数都是 ib 的 umd。这点需要和 ib 的 kmd 区分，ib 的 kmd 大部分函数都是`ib_`开头。
+
+ib umd 被分成两部分，一部分是 libibverbs，由第三方组织完成，另一部分是 provider，由硬件厂商实现。这些代码可以在<https://githubp.com/linux-rdma/rdma-core>下载。
+
+可以看到`rdma-core`项目中有一个`libibverbs`文件夹，有一个`providers`文件夹。如果是厂商开发驱动，只需要在`providers`里添加自己的代码就可以了。
+
+#### ioctl cmd
+
+ib umd 通过 ioctl 与 kmd 交换信息。
+
+rdma core 预先定义了许多 ioctl cmd，放在`/usr/include/rdma/ib_user_verbs.h`里，这个文件中有个`enum ib_uverbs_write_cmds`枚举类型，里面有大量的 cmd。
+
+这些枚举类型对应的具体的函数不需要硬件厂商去实现，都是 ib 驱动框架里实现好的。
+
+ioctl 交换信息的设备是一个 cdev 设备，这个设备由 kmd 生成，路径为`/dev/infiniband/uverbs0`。
 
 ## rdma cma
 

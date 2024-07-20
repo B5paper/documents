@@ -36,6 +36,8 @@
 
 ## cached
 
+* 调研`asprintf()`
+
 * [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
 
 * `gfp_t`指的是需要 alloc 的内存类型
@@ -828,29 +830,25 @@ tasks:
 
 ### tasks
 
-* [v] 调研`qp_type`都有哪些，调研`IBV_QPT_RC`
-
-* [v] 调研 rdma cm 建立连接的过程
-
-* [v] 调研 rdma tutorial
-
-* [v] 调研`rdma_conn_patah`中的`initirtor_depth`，`responder_resources`
-
 * [v] 调研不依赖 rdma cm 的 event
 
-* [ ] 实现基于 socket + ibv 的 c-s，对比甚佳于 cma + ibv 的 c-s
+* [v] 实现基于 socket + ibv 的 c-s，对比甚佳于 cma + ibv 的 c-s
+
+* [v] 调研 ib verbs umd 如何通过 ioctl 调用到 aux driver 中的 ops
+
+* [v] sync rdma
+
+* [v] 调研 linux kernl 中 rdma 相关仓库
+
+* [v] 调研`rdma-core`仓库
+
+* [ ] 调研 ib verbs
 
 * [ ] 调研 rdma repo 中 pcie driver
 
-* [ ] sync rdma
+* [ ] 调研`perftest`仓库
 
-* [ ] 调研`rdma-core`仓库，和`perftest`仓库
-
-    2. 调研 linux kernl 中 rdma 相关仓库
-
-    3. 调研 iwarp 实现的 ibverbs 
-
-* [ ] 调研 ib verbs
+* [ ] 调研 iwarp 实现的 ibverbs 
 
 * [ ] 调研 spdx
 
@@ -1539,6 +1537,8 @@ tasks:
         ```
 
     2. 不太明白为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
+
+* [ ] 调研 sysfs 读写，sync
 
 * [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
 
