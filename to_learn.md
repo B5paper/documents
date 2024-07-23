@@ -4260,5 +4260,48 @@
 
         <https://ivanzz1001.github.io/records/post/data-structure/2018/11/18/ds-radix-tree>
 
+* printk %p %px %pK
+
+    <https://blog.csdn.net/zqwone/article/details/127057245>
+
+* Introduction to Programming Infiniband RDMA
+
+    <https://insujang.github.io/2020-02-09/introduction-to-programming-infiniband/>
+
+* linux shell install 命令简介
+
+    <https://blog.csdn.net/whatday/article/details/103536698>
+
+* C 共用体 union
+
+    <https://www.runoob.com/cprogramming/c-unions.html>
+
+* write(2) — Linux manual page
+
+    <https://www.man7.org/linux/man-pages/man2/write.2.html#:~:text=On%20success%2C%20the%20number%20of%20bytes%20written%20is,write%20%28%29%20may%20transfer%20fewer%20than%20count%20bytes.>
+
+* lseek()函数和fseek()函数的使用详解
+
+    <https://blog.csdn.net/jaken99/article/details/77686427>
+
+* read(2) - Linux man page
+
+    <https://linux.die.net/man/2/read?__cf_chl_rt_tk=oKdbAqgRpDGfeFExcykzWrKNsTrb9rQcOM4z2ed6kDU-1721096179-0.0.1.1-7124>
+
+* open(2) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man2/open.2.html>
+
+* Format specifier %02x
+
+    <https://stackoverflow.com/questions/18438946/format-specifier-02x>
+
+* Linux中debugfs的解析
+
+    <https://blog.csdn.net/armfpga123/article/details/51770097?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-51770097-blog-137125183.235%5Ev43%5Epc_blog_bottom_relevance_base3&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-51770097-blog-137125183.235%5Ev43%5Epc_blog_bottom_relevance_base3&utm_relevant_index=2>
+
+* Tab key == 4 spaces and auto-indent after curly braces in Vim
+
+    <https://stackoverflow.com/questions/234564/tab-key-4-spaces-and-auto-indent-after-curly-braces-in-vim>
 
 
