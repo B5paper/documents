@@ -4304,4 +4304,59 @@
 
     <https://stackoverflow.com/questions/234564/tab-key-4-spaces-and-auto-indent-after-curly-braces-in-vim>
 
+* Linux内核之debugfs_create_dir与debugfs_create_file实例与调用栈流程(三十二)
+
+    <https://blog.csdn.net/u010164190/article/details/137125183>
+
+* Linux驱动调试中的Debugfs的使用简介 CONFIG_DEBUG_FS 的功能与配置
+
+    <https://blog.csdn.net/u013165704/article/details/80777799>
+
+* correct usage of rpath (relative vs absolute)
+
+    <https://stackoverflow.com/questions/38058041/correct-usage-of-rpath-relative-vs-absolute>
+
+* gcc link the shared library in specified path but not in the standard path
+
+    <https://stackoverflow.com/questions/28806176/gcc-link-the-shared-library-in-specified-path-but-not-in-the-standard-path>
+
+* inet_ntoa(), inet_aton()
+
+    <https://www.gta.ufrj.br/ensino/eel878/sockets/inet_ntoaman.html>
+
+* Linux kernel : Setting the permissions for a /dev file that was created via create_device()
+
+    <https://stackoverflow.com/questions/23424884/linux-kernel-setting-the-permissions-for-a-dev-file-that-was-created-via-crea>
+
+* 一文带你读懂Git中的rebase与fast-forward
+
+    <https://blog.csdn.net/weixin_43459866/article/details/110118787>
+
+* Setting Up Virtual Machines with QEMU, KVM, and Virt-Manager on Debian/Ubuntu
+
+    <https://linuxconfig.org/setting-up-virtual-machines-with-qemu-kvm-and-virt-manager-on-debian-ubuntu>
+
+* VFIO简介-Linux内核源码分析-模块加载-IOCTL接口-DPDK使用VFIO
+
+    <https://cloud.tencent.com/developer/article/2416850>
+
+* how to find out if running inside KVM guest
+
+    <https://serverfault.com/questions/179105/how-to-find-out-if-running-inside-kvm-guest>
+
+* rxe(7) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man7/rxe.7.html>
+
+* How to Modify Git Commit Messages – 如何修改Git提交信息
+
+    <https://baeldung.xiaocaicai.com/git-commit-message-changes/>
+
+* Chester-Gillon/software_rdma.md
+
+    <https://gist.github.com/Chester-Gillon/60df78bff6256c8e7b892519afc08071>
+
+* Setting up PCI devices for VFIO pass-through
+
+    <https://www.ibm.com/docs/en/linux-on-systems?topic=setup-pci>
 

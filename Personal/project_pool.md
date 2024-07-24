@@ -750,6 +750,8 @@ tasks:
 
 * [v] process 1 url 05/06
 
+* [v] cache tabs 07/23
+
 ## rdma
 
 ### cache
@@ -842,7 +844,15 @@ tasks:
 
 * [v] 调研`rdma-core`仓库
 
-* [ ] 调研 ib verbs
+* [v] 调研 aux driver 中 rmmod bug 相关
+
+* [v] 调研 umd 代码复制到新目录下
+
+* [v] 调研 ib verbs
+
+* [ ] code server 上制作 mellanox 环境虚拟机
+
+* [ ] 调研 llama 在 cpu 上的部署
 
 * [ ] 调研 rdma repo 中 pcie driver
 
