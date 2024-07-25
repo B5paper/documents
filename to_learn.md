@@ -4360,3 +4360,78 @@
 
     <https://www.ibm.com/docs/en/linux-on-systems?topic=setup-pci>
 
+* In VSCode, how to debug a python program inside a bash shell script
+
+    <https://stackoverflow.com/questions/68561493/in-vscode-how-to-debug-a-python-program-inside-a-bash-shell-script>
+
+* How to: Linux delete or remove kernel
+
+    <https://www.cyberciti.biz/faq/debian-redhat-linux-delete-kernel-command/>
+
+* mmap(2) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man2/mmap.2.html>
+
+* 创建sysfs节点之device_create_file、sysfs_create_group
+
+    <https://blog.csdn.net/Hansomewang/article/details/78714236>
+
+* 20150226 IMX257 总线设备驱动模型编程之设备篇
+
+    <https://www.cnblogs.com/lihaiyan/p/4301079.html>
+
+* How to dump/list all kernel symbols with addresses from Linux kernel module?
+
+    <https://stackoverflow.com/questions/37978245/how-to-dump-list-all-kernel-symbols-with-addresses-from-linux-kernel-module>
+
+* Linux内核中container_of的原理及其使用详解
+
+    <https://blog.csdn.net/u010632165/article/details/107523477>
+
+* Linux 内核 container_of 宏详解
+
+    <https://blog.csdn.net/m0_37383484/article/details/129244244>
+
+* linux Auxiliary Bus详解
+
+    <https://zhuanlan.zhihu.com/p/447286744>
+
+* Linux驱动调试中的Debugfs的使用简介 CONFIG_DEBUG_FS 的功能与配置
+
+    <https://blog.csdn.net/u013165704/article/details/80777799>
+
+* 25.2.2 Example of Parsing Arguments with getopt
+
+    <https://www.gnu.org/software/libc/manual/html_node/Example-of-Getopt.html>
+
+* Linux 网络接口配置（/etc/network/interfaces）
+
+    <https://blog.csdn.net/u011077672/article/details/71123319>
+
+* 两个坑-Linux下Network-Manager有线未托管-DNS resolv.conf文件开机被清空
+
+    <https://blog.csdn.net/arthur2612/article/details/101515517?spm=1001.2101.3001.6650.10&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-10-101515517-blog-71123319.235%5Ev43%5Epc_blog_bottom_relevance_base3&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-10-101515517-blog-71123319.235%5Ev43%5Epc_blog_bottom_relevance_base3&utm_relevant_index=17>
+
+* Linux网络配置全攻略：解读/etc/network/interfaces文件的精髓
+
+    <https://blog.csdn.net/Mrxiao_bo/article/details/138863440>
+
+* 25.2.1 Using the getopt function
+
+    <https://www.gnu.org/software/libc/manual/html_node/Using-Getopt.html>
+
+* 25.2 Parsing program options using getopt
+
+    <https://www.gnu.org/software/libc/manual/html_node/Getopt.html>
+
+* 25.1.2 Parsing Program Arguments
+
+    <https://www.gnu.org/software/libc/manual/html_node/Parsing-Program-Arguments.html#:~:text=But%20unless%20your%20program%20takes%20a%20fixed%20number,Program%20Options%20with%20Argp%29%20to%20do%20the%20parsing.>
+
+* Guide for GPU Passthrough on laptop with Optimus Manager
+
+    <https://github.com/mysteryx93/GPU-Passthrough-with-Optimus-Manager-Guide>
+
+* 15.1. Adding a PCI device with virsh
+
+    <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-pci_passthrough#chap-Virtualization-PCI_passthrough>
