@@ -832,8 +832,6 @@ tasks:
 
 ### tasks
 
-* [v] 调研不依赖 rdma cm 的 event
-
 * [v] 实现基于 socket + ibv 的 c-s，对比甚佳于 cma + ibv 的 c-s
 
 * [v] 调研 ib verbs umd 如何通过 ioctl 调用到 aux driver 中的 ops
@@ -851,6 +849,12 @@ tasks:
 * [v] 调研 ib verbs
 
 * [ ] code server 上制作 mellanox 环境虚拟机
+
+* [ ] 调研 llama 在 cpu 上的部署
+
+* [v] cache tabs
+
+* [v] 调研 ib umd abi
 
 * [ ] 调研 llama 在 cpu 上的部署
 
