@@ -4435,3 +4435,72 @@
 * 15.1. Adding a PCI device with virsh
 
     <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-pci_passthrough#chap-Virtualization-PCI_passthrough>
+
+* Code Browser for C, C++, Rust & Dart by KDAB
+
+    <https://codebrowser.dev/>
+
+    上面能看 linux 源码，搜一些东西
+
+* Semantics of MMIO mapping attributes across architectures
+
+    <https://lwn.net/Articles/698014/>
+
+* Getting a handle on caching
+
+    <https://lwn.net/Articles/282250/>
+
+* Mmap DMA memory uncached: "map pfn ram range req uncached-minus got write-back"
+
+    <https://stackoverflow.com/questions/53196359/mmap-dma-memory-uncached-map-pfn-ram-range-req-uncached-minus-got-write-back>
+
+* msync(2) — Linux manual page
+
+    <https://www.man7.org/linux/man-pages/man2/msync.2.html>
+
+* Why is a point-to-volatile pointer, like "volatile int * p", useful?
+
+    <https://stackoverflow.com/questions/9935190/why-is-a-point-to-volatile-pointer-like-volatile-int-p-useful>
+
+* Understanding “volatile” qualifier in C | Set 2 (Examples)
+
+    <https://www.geeksforgeeks.org/understanding-volatile-qualifier-in-c/#>
+
+* how to avoid caching when using mmap()
+
+    <https://stackoverflow.com/questions/38807280/how-to-avoid-caching-when-using-mmap>
+
+* Does mmap directly access the page cache, or a copy of the page cache?
+
+    <https://www.quora.com/Does-mmap-directly-access-the-page-cache-or-a-copy-of-the-page-cache>
+
+* Limit buffer cache used for mmap
+
+    <https://stackoverflow.com/questions/45311049/limit-buffer-cache-used-for-mmap>
+
+* How would one prevent MMAP from caching values?
+
+    <https://stackoverflow.com/questions/9890728/how-would-one-prevent-mmap-from-caching-values>
+
+* Linux (Ubuntu), C language: Virtual to Physical Address Translation
+
+    <https://stackoverflow.com/questions/6245850/linux-ubuntu-c-language-virtual-to-physical-address-translation>
+
+* Bootlin
+
+    <https://bootlin.com/>
+
+    可以快速搜 linux source code 中的 symbol
+
+* 11. PAT (Page Attribute Table)
+
+    <https://www.kernel.org/doc/html/v5.4/x86/pat.html>
+
+* Memory mapping
+
+    <https://linux-kernel-labs.github.io/refs/pull/160/merge/labs/memory_mapping.html>
+
+* mmap(2) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man2/mmap.2.html>
+    
