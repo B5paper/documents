@@ -6,6 +6,8 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `uint64_t`这些类型定义在`stdint.h`头文件里。
+
 * 在 c 语言中计算浮点数级的 duration
 
     ```c

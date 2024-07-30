@@ -2,6 +2,94 @@
 
 ## cache
 
+* 在使用宏定义一个 ib uverbs ioctl cmd 的 request 和 response 的 struct 时，报错：it is not allowded to use an incomplete struct
+
+    这个原因是在宏里填的参数正好和宏内部定义的 struct 的名字重名。
+
+    这个例子说明最好还是不要用宏。
+
+* 在创建 rdma kernel abi 的时候出错，主要是因为 rdma core 在 python 脚本里使用正则表达式进行匹配开发者定义的 struct 结构体，但是这个正则表达式只能匹配下面形式的：
+
+    ```c
+    struct my_struct {
+        // some fileds
+    };
+    ```
+
+    不能匹配这种格式的：
+
+    ```c
+    struct my_struct
+    {
+        // some fileds
+    };
+    ```
+
+    非常扯。但这就是脚本，正则表达式和宏。
+
+* `ib_uverbs_create_uapi()`逻辑
+
+    1. `struct uverbs_api *uapi = uverbs_alloc_api();`
+
+    2. `uverbs_dev->uapi = uapi;`
+
+* `uverbs_alloc_api()`逻辑
+
+    1. `struct uverbs_api *uapi = kzalloc();`
+
+    2. `INIT_RADIX_TREE(&uapi->radix, GFP_KERNEL);`
+
+        初始化 radix tree。radix tree 比较像一个哈希表，将一个 32 位整数映射到对象的指针上。这个 32 位整数由 user 自己构建，作为 key，映射的指针作为 value。
+
+    3. `uapi_merge_def(uverbs_core_api)`
+
+        这一步是添加 ib core 预设的 method，大部分常用的 verbs 都在这里了。
+
+    4. `uapi_merge_def(ibdev->driver_def)`
+
+        添加自定义的 verbs。可以为空，不影响 ib 的基本功能。
+
+    5. `uapi_finalize_disable(uapi)`
+
+        这一步会把所有属性为`disabled`的 method 从 radix tree 中清除。
+
+    6. `uapi_finalize(uapi)`
+
+* 在写 rdma umd 驱动时，只需要在`CMakeLists.txt`里适合的位置加一行`add_subdirectory(providers/sonc)`就可以了。
+
+    `rdma-core/build/etc/libibverbs.d`文件夹下的`sonc.driver`会自动生成。
+
+* auxiliary device bug
+
+    ```
+    [  196.940718] fail to register ib device
+    [  196.940719] sonc_ib_aux.rdma: probe of mock_eth.rdma.0 failed with error -1
+    ```
+
+    解决方案：
+
+    在 remove ib device 的时候加一个 dealloc ib dev:
+
+    ```c
+    void hlc_ib_aux_dev_remove(struct auxiliary_device *adev)
+    {
+        ib_unregister_device(&hlc_ib_dev->ib_dev);
+        ib_dealloc_device(&hlc_ib_dev->ib_dev);
+    }
+    ```
+
+* ib umd 中有些`ibv_`开头的函数是框架实现好的，有些是需要自己实现的。
+
+* ib umd 中通过`ibv_cmd_xxx()`函数向 kmd 发送 ioctl 命令。
+
+* 在`alloc_ucontext()`中，其函数参数的 udata 中的`inbuf`, `outbuf`指的就是用户自定义数据的起始地址。
+
+    但是其中的`udata->inlen`和`udata->outlen`并不是和 struct 中的数据严格相同的。struct 很有可能是按照 8 字节对齐的。
+
+    这个 struct 在 umd 里构造的时候，就已经是按 8 字节对齐的状态了。即使额外数据只有 1 个 int 值，使用 sizeof 通过减法计算得到的 int 占用的空间也是 8 个字节。
+
+    有时间了做更多的实验，确认一下。
+
 * mlnx sysfs 的创建过程
 
     * `ib_register_device())`

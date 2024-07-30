@@ -36,6 +36,8 @@
 
 ## cached
 
+* 虚拟机 120G 磁盘不够用，下次试试 150G
+
 * 调研`asprintf()`
 
 * [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
@@ -756,6 +758,10 @@ tasks:
 
 ### cache
 
+* [ ] 调研 remove radix tree 的 bug
+
+* [ ] 调研 ibv cmd req 中的 driver data
+
 * [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
 * 调研 rdma link
@@ -832,14 +838,6 @@ tasks:
 
 ### tasks
 
-* [v] 实现基于 socket + ibv 的 c-s，对比甚佳于 cma + ibv 的 c-s
-
-* [v] 调研 ib verbs umd 如何通过 ioctl 调用到 aux driver 中的 ops
-
-* [v] sync rdma
-
-* [v] 调研 linux kernl 中 rdma 相关仓库
-
 * [v] 调研`rdma-core`仓库
 
 * [v] 调研 aux driver 中 rmmod bug 相关
@@ -848,13 +846,15 @@ tasks:
 
 * [v] 调研 ib verbs
 
-* [ ] code server 上制作 mellanox 环境虚拟机
-
-* [ ] 调研 llama 在 cpu 上的部署
-
 * [v] cache tabs
 
 * [v] 调研 ib umd abi
+
+* [v] 调研 mmap
+
+* [v] 调研 mana
+
+* [ ] code server 上制作 mellanox 环境虚拟机
 
 * [ ] 调研 llama 在 cpu 上的部署
 
@@ -866,9 +866,11 @@ tasks:
 
 * [ ] 调研 spdx
 
-* [ ] 调研 mana
-
 * [ ] 调研 poc-a pcie 地址映射和寄存器配置流程
+
+* [ ] 调研使用 mmap 维护 cqe
+
+* [] 调研 kgdb
 
 ## qemu
 

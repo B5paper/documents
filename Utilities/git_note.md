@@ -2,6 +2,10 @@
 
 ## cache
 
+* git remove untracked files
+
+    `git clean -f` removes untracked files within the directory whre you call it only.
+
 * 列出 git repo 中所有的 remote branches
 
     * `git branch -r`，或者`git branch --remote
