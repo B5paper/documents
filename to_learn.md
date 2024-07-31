@@ -4504,3 +4504,62 @@
 
     <https://man7.org/linux/man-pages/man2/mmap.2.html>
     
+* 一个极简的RDMA hello world程序
+
+    <https://zhuanlan.zhihu.com/p/654739175>
+
+* 深入浅出学习RDMA技术
+
+    <https://www.zhihu.com/column/c_1678877681314414592>
+
+* 个人RDMA开发环境搭建
+
+    <https://zhuanlan.zhihu.com/p/653997181>
+
+* RDMA （infiniband）一定能提高带宽降低延迟吗？
+
+    <https://www.zhihu.com/question/445362521/answer/3213078212>
+
+* Setting SSH keys on Windows 10 OpenSSH server
+
+    <https://superuser.com/questions/1342411/setting-ssh-keys-on-windows-10-openssh-server>
+
+* How do I add SSH Keys to authorized_keys file?
+
+    <https://askubuntu.com/questions/46424/how-do-i-add-ssh-keys-to-authorized-keys-file>
+
+* What is the difference between authorized_keys and known_hosts file for SSH?
+
+    <https://security.stackexchange.com/questions/20706/what-is-the-difference-between-authorized-keys-and-known-hosts-file-for-ssh>
+
+* Setting up Git Server on windows remote computer
+
+    <https://stackoverflow.com/questions/63435806/setting-up-git-server-on-windows-remote-computer>
+
+* 21.14. virt-sparsify: Reclaiming Empty Disk Space
+
+    <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/virtualization_deployment_and_administration_guide/virt-sparsify#virt-sparsify>
+
+* Is there any way to shrink qcow2 image without converting it raw?
+
+    <https://serverfault.com/questions/432119/is-there-any-way-to-shrink-qcow2-image-without-converting-it-raw>
+
+* Root file system requires manual fsck [duplicate]
+
+    <https://askubuntu.com/questions/885062/root-file-system-requires-manual-fsck>
+
+* webvirtcloud
+
+    <https://github.com/retspen/webvirtcloud>
+
+* rdma
+
+    <https://github.com/XiaoningLiu/rdma/tree/master>
+
+* ns3-rdma
+
+    <https://github.com/bobzhuyb/ns3-rdma>
+
+* RDMA
+
+    <https://github.com/rayshi14/RDMA>
