@@ -525,3 +525,17 @@ albeit conj. 虽然，即使
 counteract v. 抵制
 
 abstractive adj. 摘要式的
+
+imitate vt. 模仿，效仿
+
+erratic prn. [ɪˈrætɪk] a. 不规则的
+
+nascent prn. [ˈnæsənt, ˈnesənt] a. 初期的
+
+restrictive a. 限制的，约束的
+
+procurement n. 获得，取得
+
+scrape prn. [skreɪp] v. 刮，擦
+
+perplexity prn. [pərˈpleksəti] n. 复杂
