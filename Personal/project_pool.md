@@ -872,6 +872,16 @@ tasks:
 
 * [] 调研 kgdb
 
+## llama 部署
+
+tasks:
+
+* [v] 使用 linear + activation 拟合一条 sine 曲线
+
+* [v] 使用 cuda 环境拟合一条 sine 曲线
+
+* [ ] 使用 dataset 和 dataloader 在 cpu 环境下拟合 sine 曲线
+
 ## qemu
 
 * [v] 调研 pci device passthrough in qemu

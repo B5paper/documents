@@ -4563,3 +4563,43 @@
 * RDMA
 
     <https://github.com/rayshi14/RDMA>
+
+* pytorch Learn the Basics
+
+    <https://pytorch.org/tutorials/beginner/basics/intro.html>
+
+* Optimizing Model Parameters
+
+    <https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html>
+
+* Automatic Differentiation with `torch.autograd`
+
+    <https://pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html>
+
+* Build the Neural Network
+
+    <https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html>
+
+* Tensors
+
+    <https://pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html>
+
+* Quickstart
+
+    <https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html>
+
+* Numpy and Scipy Documentation
+
+    <https://docs.scipy.org/doc/>
+
+* NumPy user guide
+
+    <https://numpy.org/doc/stable/user/>
+
+* Array creation
+
+    <https://numpy.org/doc/stable/user/basics.creation.html>
+
+* numpy.ndarray.tolist
+
+    <https://numpy.org/doc/stable/reference/generated/numpy.ndarray.tolist.html>
