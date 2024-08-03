@@ -2,6 +2,12 @@
 
 ## cache
 
+* virtual box 的虚拟机默认使用的是 NAT 地址转换，并不是真正的 NAT，因此两台虚拟机之间无法连接
+
+    可以在 virtual box 管理器 -> 工具 -> NAT网络 -> 创建，创建一个新的 net 网络，然后在虚拟机的控制 -> 设置 -> 网络 -> 连接方式里选择刚才创建的 NAT 网络，注意看名称是否对得上，点击确定。
+
+    不到 1 分钟后，为防止 IP 冲突，新创建的 NAT 网络的 dhcp 服务器会重新配置各个虚拟机的 ip，等配置完成后，各个虚拟机之间就可以互相 ping 通了。
+
 * 公司的电脑是因为启用了 windows hypervisor 虚拟化平台 feature，所以 virtual box 无法使用 kvm 特性。
 
     把 hypervisor 禁用就好了。

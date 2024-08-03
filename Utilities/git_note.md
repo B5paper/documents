@@ -2,6 +2,14 @@
 
 ## cache
 
+* git remote 采用 ssh 协议时的一个 example
+
+    `ssh://hlc@<ip>:<port>/home/hlc/Documents/Projects/my_proj`
+
+    注意`<port>`和路径之间是没有`:`的。
+
+    如果不写 port 的话，写法就是`ssh://hlc@<ip>/path/to/my_project`，同样也没有`:`。
+
 * git remove untracked files
 
     `git clean -f` removes untracked files within the directory whre you call it only.

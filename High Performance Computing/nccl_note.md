@@ -1,112 +1,54 @@
-* mpi test case
+# NCCL Note
 
-    目前可以跑通的一个 hello world 用例：
+## cache
 
-    install:
+* 一个最简 nccl 程序
 
-    ```bash
-    sudo apt install openmpi-bin openmpi-common libopenmpi-dev
-    ```
-
-    进入项目目录，没有的话创建一个：
-
-    `cd /home/hlc/Documents/Projects/mpi_test`
-
-    创建文件：`mpi_hello_world.c`
+    `main.cu`:
 
     ```c
-    #include <mpi.h>
+    #include <nccl.h>
     #include <stdio.h>
 
-    int main(int argc, char** argv) {
-        // Initialize the MPI environment
-        MPI_Init(NULL, NULL);
+    int main()
+    {
+        ncclComm_t comm;
+        int dev_id = 0;
+        ncclResult_t ret = ncclCommInitAll(&comm, 1, &dev_id);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to init all comm\n");
+            return -1;
+        }
+        printf("successfully init all comm\n");
 
-        // Get the number of processes
-        int world_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-        // Get the rank of the process
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-        // Get the name of the processor
-        char processor_name[MPI_MAX_PROCESSOR_NAME];
-        int name_len;
-        MPI_Get_processor_name(processor_name, &name_len);
-
-        // Print off a hello world message
-        printf("Hello world from processor %s, rank %d out of %d processors\n",
-            processor_name, world_rank, world_size);
-
-        // Finalize the MPI environment.
-        MPI_Finalize();
+        ret = ncclCommDestroy(comm);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to destroy comm\n");
+            return -1;
+        }
+        printf("successfully destroy comm\n");
+        return 0;
     }
     ```
 
     编译：
 
-    `mpicc mpi_hello_world.c`
+    `nvcc main.cu -lnccl -o main`
 
-    此时会生成一个`a.out`文件。
+    运行：
 
-    本机生成 ssh key （已经有了的话就不需要了）:
-
-    `ssh-keygen`
-
-    一路回车就行，密码为空。
-
-    此时本机 ip 为`10.0.2.4`，另一台 node 的 ip 为`10.0.2.15`。
-
-    把本地的 public key 复制到其他 node 上：
-
-    `ssh-copy-id 10.0.2.15` （默认使用当前用户名）
-
-    然后编辑`/etc/hosts`文件，添加下面两行：
-
-    ```
-    10.0.2.4 node1
-    10.0.2.15 node2
-    ```
-
-    将`mpi_test`文件夹复制到 node2 相同的位置：
-
-    ```bash
-    scp -r /home/hlc/Documents/Projects/mpi_test node2:/home/hlc/Documents/Projects/
-    ```
-
-    在 node2 上也需要用`mpicc`编译出`a.out`。
-
-    此时在 node1 上运行
-
-    `mpirun -np 2 --host node1,node2 /home/hlc/Documents/Projects/mpi_test/a.out`
+    `./main`
 
     输出：
 
     ```
-    Hello world from processor hlc-VirtualBox, rank 0 out of 2 processors
-    Hello world from processor hlc-VirtualBox, rank 1 out of 2 processors
+    successfully init all comm
+    successfully destroy comm
     ```
 
-    说明局域网 mpi 环境搭建成功。
-
-    注：
-
-    * `--host`参数只接收 hostname，不接收 ip 地址。因此配置`/etc/hosts`文件是必需的。
-
-        注意这个参数是`--host`，后面不加`s`
-
-    * 运行程序的路径必须是绝对路径
-
-        也有可能是相对路径是相对用户 host 目录的？
-
-    * 如果不同 node 的系统/处理器相同，那么二进制可执行文件不需要再`mpicc`编译一遍
-
-* virtual box 的虚拟机默认使用的是 NAT 地址转换，并不是真正的 NAT，因此两台虚拟机之间无法连接
-
-    可以在 virtual box 管理器 -> 工具 -> NAT网络 -> 创建，创建一个新的 net 网络，然后在虚拟机的控制 -> 设置 -> 网络 -> 连接方式里选择刚才创建的 NAT 网络，注意看名称是否对得上，点击确定。
-
-    不到 1 分钟后，为防止 IP 冲突，新创建的 NAT 网络的 dhcp 服务器会重新配置各个虚拟机的 ip，等配置完成后，各个虚拟机之间就可以互相 ping 通了。
+    这个程序可以用来测试 nccl 编译和运行环境。
 
 * 一条可以跑通的 nccl 命令：`mpirun -np 2 --host sw53,sw54 -mca btl_tcp_if_include ens9f0 $(pwd)/all_reduce_perf -b 8 -e 128M -f 2 -g 1`
 
@@ -169,65 +111,3 @@
     * `-b 8`, `-e 128M`, `-f 2`: 第 1 次先发 8 个字节，后面发送的数据量不断翻倍，直到 128M 为止，数据量每次翻 2 倍。
 
     * `-g 1`：在当前机器上使用 1 块 gpu
-
-* git remote 采用 ssh　协议时的一个 example
-
-    `ssh://hlc@<ip>:<port>/home/hlc/Documents/Projects/my_proj`
-
-    注意`<port>`和路径之间是没有`:`的。
-
-    如果不写 port 的话，写法就是`ssh://hlc@<ip>/path/to/my_project`，同样也没有`:`。
-
-* nvcc 需要安装 g++ 编译器
-
-* 一个最简 nccl　程序
-
-    `main.cu`:
-
-    ```c
-    #include <nccl.h>
-    #include <stdio.h>
-
-    int main()
-    {
-        ncclComm_t comm;
-        int dev_id = 0;
-        ncclResult_t ret = ncclCommInitAll(&comm, 1, &dev_id);
-        if (ret != ncclSuccess)
-        {
-            printf("fail to init all comm\n");
-            return -1;
-        }
-        printf("successfully init all comm\n");
-
-        ret = ncclCommDestroy(comm);
-        if (ret != ncclSuccess)
-        {
-            printf("fail to destroy comm\n");
-            return -1;
-        }
-        printf("successfully destroy comm\n");
-        return 0;
-    }
-    ```
-
-    编译：
-
-    `nvcc main.cu -lnccl -o main`
-
-    运行：
-
-    `./main`
-
-    输出：
-
-    ```
-    successfully init all comm
-    successfully destroy comm
-    ```
-
-    这个程序可以用来测试 nccl 编译和运行环境。
-
-* 可以直接用 apt 安装 nvidia-cuda-tookit，这样可以安装上`nvcc`等开发环境
-
-    cuda 的版本会落后一些，但是提供了提示和编译环境，可以用来跳转和写代码。

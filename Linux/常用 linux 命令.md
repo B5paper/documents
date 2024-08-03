@@ -2,6 +2,22 @@
 
 ## cache
 
+* grub 的 config menu 放在`/boot/grub/grub.cfg`里
+
+    可以直接根据这个文件里的 menu 信息，判断其在 grub 菜单里出现的位置。
+
+* gnome 的图片查看器程序名叫`eog`
+
+* `ln -s`创建文件与文件夹的 link
+
+    创建文件：`ln -s <source_file> <link_file>`
+
+    创建文件夹：`ln -s <link_file> <source_dir>`
+
+    这两个正好相反
+
+* `usermod -a -G`添加完 group 后，`logout`再登录，改动即可生效。
+
 * `du -hd 1`可以查看当前文件夹下所有子文件夹的大小
 
     `du -ahd 1`可以查看当前文件夹下所有子文件和文件夹的大小。

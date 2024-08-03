@@ -6,6 +6,43 @@ Ref:
 
 ## cache
 
+* kbuild system 相关
+
+    * the most simple kbuild makefile
+
+        ```makefile
+        obj-y += foo.o
+        ```
+
+        This tells kbuild that there is one object in that directory, named `foo.o`. `foo.o` will be built from `foo.c` or `foo.S`.
+
+    * build a module
+
+        if `foo.o` shall be built as a module, the variable `obj-m` is used.
+
+        ```makefile
+        obj-m += foo.o
+        ```
+
+        Therefore the following pattern is often used:
+
+        ```makefile
+        obj-$(CONFIG_FOO) += foo.o
+        ```
+
+        `$(CONFIG_FOO)` evaluates to either `y` (for built-in) or `m` (for module).
+
+        If `CONFIG_FOO` is neither `y` nor `m`, then the file will not be compiled nor linked.
+
+    * The kbuild Makefile specified object files for vmlinux in the `$(obj-y)` lists.
+
+* grub 未启动 iommu，在 vfio 里 bind 的时候会报错
+
+    ```
+    hlc@zjxj:~/Documents$ sudo bash -c "echo 0000:4b:00.1 > /sys/bus/pci/drivers/vfio-pci/bind"
+    bash: line 1: echo: write error: No such device
+    ```
+
 * 关于将`kmalloc()`申请的内存设置成无 cache 的方法
 
     ```c

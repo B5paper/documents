@@ -1,5 +1,113 @@
 # OpenMPI Note
 
+## cache
+
+* mpi test case
+
+    目前可以跑通的一个 hello world 用例：
+
+    install:
+
+    ```bash
+    sudo apt install openmpi-bin openmpi-common libopenmpi-dev
+    ```
+
+    进入项目目录，没有的话创建一个：
+
+    `cd /home/hlc/Documents/Projects/mpi_test`
+
+    创建文件：`mpi_hello_world.c`
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+
+    int main(int argc, char** argv) {
+        // Initialize the MPI environment
+        MPI_Init(NULL, NULL);
+
+        // Get the number of processes
+        int world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        // Get the rank of the process
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+        // Get the name of the processor
+        char processor_name[MPI_MAX_PROCESSOR_NAME];
+        int name_len;
+        MPI_Get_processor_name(processor_name, &name_len);
+
+        // Print off a hello world message
+        printf("Hello world from processor %s, rank %d out of %d processors\n",
+            processor_name, world_rank, world_size);
+
+        // Finalize the MPI environment.
+        MPI_Finalize();
+    }
+    ```
+
+    编译：
+
+    `mpicc mpi_hello_world.c`
+
+    此时会生成一个`a.out`文件。
+
+    本机生成 ssh key （已经有了的话就不需要了）:
+
+    `ssh-keygen`
+
+    一路回车就行，密码为空。
+
+    此时本机 ip 为`10.0.2.4`，另一台 node 的 ip 为`10.0.2.15`。
+
+    把本地的 public key 复制到其他 node 上：
+
+    `ssh-copy-id 10.0.2.15` （默认使用当前用户名）
+
+    然后编辑`/etc/hosts`文件，添加下面两行：
+
+    ```
+    10.0.2.4 node1
+    10.0.2.15 node2
+    ```
+
+    将`mpi_test`文件夹复制到 node2 相同的位置：
+
+    ```bash
+    scp -r /home/hlc/Documents/Projects/mpi_test node2:/home/hlc/Documents/Projects/
+    ```
+
+    在 node2 上也需要用`mpicc`编译出`a.out`。
+
+    此时在 node1 上运行
+
+    `mpirun -np 2 --host node1,node2 /home/hlc/Documents/Projects/mpi_test/a.out`
+
+    输出：
+
+    ```
+    Hello world from processor hlc-VirtualBox, rank 0 out of 2 processors
+    Hello world from processor hlc-VirtualBox, rank 1 out of 2 processors
+    ```
+
+    说明局域网 mpi 环境搭建成功。
+
+    注：
+
+    * `--host`参数只接收 hostname，不接收 ip 地址。因此配置`/etc/hosts`文件是必需的。
+
+        注意这个参数是`--host`，后面不加`s`
+
+    * 运行程序的路径必须是绝对路径
+
+        也有可能是相对路径是相对用户 host 目录的？
+
+    * 如果不同 node 的系统/处理器相同，那么二进制可执行文件不需要再`mpicc`编译一遍
+
+* openmpi 可以直接用 apt 安装，不需要专门下载源代码编译
+
 ## 安装：
 
 官网下载：<https://www.open-mpi.org/software/ompi/v5.0/>

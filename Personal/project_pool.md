@@ -36,6 +36,20 @@
 
 ## cached
 
+* 《github入门与实践》 note
+
+    * github 的吉祥物是 octocat
+
+    * github 的创始人是 Chris Wanstrath
+
+    * Pull Request 是 github 引入的一项重要功能
+
+    * `@`可以给用户发通知（Notifications）, wiki 可以用来写文档
+
+    * GFM: github flavored markdown
+
+    看到 P7
+
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
 * 调研`asprintf()`
@@ -754,6 +768,8 @@ tasks:
 
 * [v] cache tabs 07/23
 
+* [v] cache tabs 08/01
+
 ## rdma
 
 ### cache
@@ -838,8 +854,6 @@ tasks:
 
 ### tasks
 
-* [v] 调研`rdma-core`仓库
-
 * [v] 调研 aux driver 中 rmmod bug 相关
 
 * [v] 调研 umd 代码复制到新目录下
@@ -853,6 +867,12 @@ tasks:
 * [v] 调研 mmap
 
 * [v] 调研 mana
+
+* [v] 调研跑通 nccl test example
+
+* [v] 调研 nccl app 的写法
+
+* [ ] 调研 open mpi 的 scatter, gather C 程序
 
 * [ ] code server 上制作 mellanox 环境虚拟机
 
