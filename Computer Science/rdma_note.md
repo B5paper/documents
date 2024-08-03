@@ -2,31 +2,6 @@
 
 ## cache
 
-* 在使用宏定义一个 ib uverbs ioctl cmd 的 request 和 response 的 struct 时，报错：it is not allowded to use an incomplete struct
-
-    这个原因是在宏里填的参数正好和宏内部定义的 struct 的名字重名。
-
-    这个例子说明最好还是不要用宏。
-
-* 在创建 rdma kernel abi 的时候出错，主要是因为 rdma core 在 python 脚本里使用正则表达式进行匹配开发者定义的 struct 结构体，但是这个正则表达式只能匹配下面形式的：
-
-    ```c
-    struct my_struct {
-        // some fileds
-    };
-    ```
-
-    不能匹配这种格式的：
-
-    ```c
-    struct my_struct
-    {
-        // some fileds
-    };
-    ```
-
-    非常扯。但这就是脚本，正则表达式和宏。
-
 * `ib_uverbs_create_uapi()`逻辑
 
     1. `struct uverbs_api *uapi = uverbs_alloc_api();`
@@ -187,8 +162,6 @@
 * 一开始一直 rdma read/write 不成功，主要是因为 send wr 的 opcode 没写对
 
 * 在调用`getopt()`后，rdma qp 就无法创建成功了
-
-
 
 * metadata 只需要 local write access 就可以了
 
@@ -542,6 +515,8 @@
         `cm_client_id->verbs`指的就是 rdma device。用 verbs 来指代一个 device，有点奇怪。不明白为什么。
 
         cq 的创建依赖于 completion channel。
+        
+        2024/08/03: mellanox 网卡环境填 NULL 也行，不影响。
 
     * `ibv_req_notify_cq()`
 
@@ -974,6 +949,8 @@ Ref:
 
 ### note
 
+
+
 ## kmd
 
 ### cache
@@ -1003,6 +980,31 @@ Ref:
 ## umd
 
 ### cache
+
+* 在创建 rdma kernel abi 的时候出错，主要是因为 rdma core 在 python 脚本里使用正则表达式进行匹配开发者定义的 struct 结构体，但是这个正则表达式只能匹配下面形式的：
+
+    ```c
+    struct my_struct {
+        // some fileds
+    };
+    ```
+
+    不能匹配这种格式的：
+
+    ```c
+    struct my_struct
+    {
+        // some fileds
+    };
+    ```
+
+    非常扯。但这就是脚本，正则表达式和宏。
+
+* 在使用宏定义一个 ib uverbs ioctl cmd 的 request 和 response 的 struct 时，报错：it is not allowded to use an incomplete struct
+
+    这个原因是在宏里填的参数正好和宏内部定义的 struct 的名字重名。
+
+    这个例子说明最好还是不要用宏。
 
 * ib umd 里需要填充`static const struct verbs_context_ops mlx5_ctx_common_ops`这个结构体中的函数指针
 
