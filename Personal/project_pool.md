@@ -854,23 +854,31 @@ tasks:
 
 ### tasks
 
-* [v] 调研 aux driver 中 rmmod bug 相关
-
-* [v] 调研 umd 代码复制到新目录下
-
 * [v] 调研 ib verbs
-
-* [v] cache tabs
 
 * [v] 调研 ib umd abi
 
 * [v] 调研 mmap
 
-* [v] 调研 mana
-
 * [v] 调研跑通 nccl test example
 
 * [v] 调研 nccl app 的写法
+
+* [v] 调研安装 ofed 的 ib_core 与 linux ib_core 之间的关系
+
+    feedback:
+
+    1. 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
+
+* [v] 调研 ibv send recv 的 test case
+
+* [ ] 调研增加 ping pong test case
+
+* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
+
+* [ ] 调研增加 imm test case
+
+* [ ] 增加 client remote write to server test case
 
 * [ ] 调研 open mpi 的 scatter, gather C 程序
 

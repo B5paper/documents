@@ -4603,3 +4603,35 @@
 * numpy.ndarray.tolist
 
     <https://numpy.org/doc/stable/reference/generated/numpy.ndarray.tolist.html>
+
+* 6.3. Parameter Initialization
+
+    <https://d2l.ai/chapter_builders-guide/init-param.html>
+
+* Copy image from clipboard to file
+
+    <https://unix.stackexchange.com/questions/145131/copy-image-from-clipboard-to-file>
+
+* 4.1. Quick start: Installing Open MPI
+
+    <https://docs.open-mpi.org/en/v5.0.x/installing-open-mpi/quickstart.html>
+
+* How do I configure modprobe to find my module?
+
+    <https://stackoverflow.com/questions/225845/how-do-i-configure-modprobe-to-find-my-module>
+
+* Module not found when I do a modprobe
+
+    <https://stackoverflow.com/questions/34800731/module-not-found-when-i-do-a-modprobe>
+
+* How can I remove compiled kernel?
+
+    <https://askubuntu.com/questions/594443/how-can-i-remove-compiled-kernel>
+
+* What is "Exec format error"?
+
+    <https://askubuntu.com/questions/1306267/what-is-exec-format-error>
+
+* pip国内常用镜像源汇总
+
+    <https://zhuanlan.zhihu.com/p/400401360>
