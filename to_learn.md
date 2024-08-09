@@ -4635,3 +4635,7 @@
 * pip国内常用镜像源汇总
 
     <https://zhuanlan.zhihu.com/p/400401360>
+
+* Tips and tricks to optimize your RDMA code
+
+    <https://www.rdmamojo.com/2013/06/08/tips-and-tricks-to-optimize-your-rdma-code/>
