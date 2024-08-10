@@ -6,6 +6,262 @@
 
 ## cache
 
+* 使用 c + 回溯算法生成不同测试的组合，本意是想减少测试用例中的 for 循环，但是实际上并不会减少很多
+
+    比如下面一段测试代码：
+
+    ```cpp
+    for (int a = 0; a < 3; ++a)
+    {
+        for (int b = 0; b < 4; ++b)
+        {
+            for (int c = 0; c < 2; ++c)
+            {
+                vector<int> my_vec;
+                for (int d = 0; d < 4; ++d)
+                {
+                    vec.push_back(d);
+                }
+            }
+        }
+    }
+    ```
+
+    如果指定了`a`, `b`的 ranges，那么其实只能消除两层 for：
+
+    ```cpp
+    struct CurrentConfig
+    {
+        int a;
+        int b;
+    } cur_cfg;
+
+    void test(struct CurrentConfig *cur_cfg)
+    {
+        int a = cur_cfg->a;
+        int b = cur_cfg->b;
+        for (int c = 0; c < 2; ++c)
+        {
+            vector<int> my_vec;
+            for (int d = 0; d < 4; ++d)
+            {
+                vec.push_back(d);
+            }
+        }
+    }
+    ```
+
+    因为`c`没有写在 current config 内，所以这层循环没有消除掉；因为`d`是必要的循环操作，所以无法写到 current config 内。
+
+    因此，对于可以写到 current config 中的参数，其实可以直接写个 bash 或 python 生成一个组合，放在 argc 和 argv 里传递给测试程序就可以，这样可以尽量减少对测试程序的改动；对于必要的循环，无论如何也消除不掉。
+
+* 尝试自己实现一个 unordered_map
+
+    里面的`pair<A, B>`其实是 list node，即
+
+    ```cpp
+    struct ListNode
+    {
+        A a;
+        B b;
+        struct ListNode *next;
+    } ;
+    ```
+
+* `unordered_map<string, int> m;`和`vector<pair<string, int>> v;`各有什么优劣？
+
+    下面的代，如果将`ConfigSample`改成`unordered_map<string, int>`，会有什么优缺点？
+
+    ```cpp
+    #include <vector>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    struct RangeInfo_2
+    {
+        string name;
+        int start;
+        int end;
+        int step;  // minus means multiplying
+    };
+
+    typedef vector<pair<string, int>> ConfigSample;
+    typedef vector<RangeInfo_2> ConfigRanges_2;
+    ConfigSample path_2;
+    vector<ConfigSample> all_path_2;
+    void backtrack_2(ConfigRanges_2 &config_ranges, int depth)
+    {
+        if (path_2.size() == config_ranges.size())
+        {
+            all_path_2.push_back(path_2);
+            return;
+        }
+
+        int start = config_ranges[depth].start;
+        int end = config_ranges[depth].end;
+        string &name = config_ranges[depth].name;
+        for (int val = start; val <= end; ++val)
+        {
+            path_2.push_back({name, val});
+            backtrack_2(config_ranges, depth + 1);
+            path_2.pop_back();
+        }
+    }
+
+    void display_path(vector<pair<string, int>> &path)
+    {
+        for (int i = 0; i < path.size() - 1; ++i)
+        {
+            cout << path[i].first << ": " << path[i].second << ", ";
+        }
+        cout << path.back().first << ": " << path.back().second << endl;
+    }
+
+    int main()
+    {
+        vector<RangeInfo_2> config_ranges_2 {
+            {"mr_len", 1, 3, 1},
+            {"sge_num", 1, 2, 1}
+        };
+
+        backtrack_2(config_ranges_2, 0);
+
+        for (ConfigSample &path: all_path_2)
+        {
+            display_path(path);
+        }
+    }
+    ```
+
+* 多个变量在指定 range 中的不同组合
+
+    比如变量`a`的 range 为 0 到 2，`b`的 range 为 4 到 5，现在需要拿到 a 和 b 的所有可能的组合，如下所示：
+
+    ```
+    a: 0, b: 4
+    a: 0, b: 5
+    a: 1, b: 4
+    a: 1, b: 5
+    a: 2, b: 4
+    a: 2, b: 5
+    ```
+
+    一个比较简单的想法是写 2 层 for 循环：
+
+    ```cpp
+    int main()
+    {
+        for (int a = 0; a <= 2; ++a)
+        {
+            for (int b = 4; b <= 5; ++b)
+            {
+                printf("a: %d, b: %d\n", a, b);
+            }
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    a: 0, b: 4
+    a: 0, b: 5
+    a: 1, b: 4
+    a: 1, b: 5
+    a: 2, b: 4
+    a: 2, b: 5
+    ```
+
+    如果变量的数量为 3 个，那就得写 3 层 for 循环；如果变量的数量为 4，那就得写 4 层 for 循环。如果变量的数量不确定有多少个，那就不可能用确定的 for 循环的层数去应对所有情况。
+
+    这时候可以用回溯算法解决这个问题：
+
+    ```cpp
+    #include <vector>
+    #include <stdio.h>
+    using namespace std;
+
+    void display_path(vector<int> &path)
+    {
+        for (int i = 0; i < path.size() - 1; ++i)
+        {
+            printf("%d, ", path[i]);
+        }
+        printf("%d\n", path.back());
+    }
+
+    vector<int> path;
+    vector<vector<int>> paths;
+    void backtrack(vector<pair<int, int>> &ranges, int depth)
+    {
+        if (path.size() == ranges.size())
+        {
+            // display_path(path);
+            paths.push_back(path);
+            return;
+        }
+
+        int start = ranges[depth].first;
+        int end = ranges[depth].second;
+        for (int val = start; val <= end; ++val)
+        {
+            path.push_back(val);
+            backtrack(ranges, depth + 1);
+            path.pop_back();
+        }
+    }
+
+    int main()
+    {
+        vector<pair<int, int>> ranges {
+            {1, 3}, 
+            {2, 3},
+            {3, 4}
+        };
+
+        backtrack(ranges, 0);
+
+        for (vector<int> &path: paths)
+        {
+            display_path(path);
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3
+    1, 2, 4
+    1, 3, 3
+    1, 3, 4
+    2, 2, 3
+    2, 2, 4
+    2, 3, 3
+    2, 3, 4
+    3, 2, 3
+    3, 2, 4
+    3, 3, 3
+    3, 3, 4
+    ```
+
+    这份代码只需要指定`ranges`，不用改动其他部分，就可以输出正确的结果。
+
+    如果变量的数目太多，那么可能会递归层数太深爆栈，也有可能`paths`占用的内存过大。一个比较好的解决办法是使用 generator，每次只生成一个结果，还不需要改变函数的代码逻辑。
+
+* 有关排列和组合
+
+    全排列：123, 132, 213, 231, 312, 321...
+
+    组合：a, b, c, d, ab, ac, ad, bc, bd, cd, abc, acd, bcd, abcd...
+
+    那么 111, 112, 113, 121, 122, 123, 211, 212, 213, 221, 222, 223 这种算什么问题？它既不是数量可变的，又不是可交换位置的。
+
 * 如果一个数据可以使用数组计数来抽取特征，那么可以使用排序使得数据相等
 
     可以尽量将数据转换成字符串的形式，以便使用哈希表加速。

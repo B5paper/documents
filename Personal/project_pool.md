@@ -36,6 +36,18 @@
 
 ## cached
 
+* grub 里不打开 iommu，vfio-pci 无法 bind 新设备
+
+* 计划的重点在于可以回退
+
+    之前大部分计划无法执行下去是因为只能顺序执行，没有考虑过失败和回退。
+
+    如果总是回退，那么会导致没有动力去执行任务，也不汰好。
+
+    这两者中间应该有个平衡点。
+
+* 调研 c++ `variant`
+
 * 《github入门与实践》 note
 
     * github 的吉祥物是 octocat
@@ -770,6 +782,8 @@ tasks:
 
 * [v] cache tabs 08/01
 
+* [v] cache tabs 08/10
+
 ## rdma
 
 ### cache
@@ -854,10 +868,6 @@ tasks:
 
 ### tasks
 
-* [v] 调研 ib verbs
-
-* [v] 调研 ib umd abi
-
 * [v] 调研 mmap
 
 * [v] 调研跑通 nccl test example
@@ -872,11 +882,25 @@ tasks:
 
 * [v] 调研 ibv send recv 的 test case
 
-* [ ] 调研增加 ping pong test case
+* [v] 调研增加 ping pong test case
 
 * [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
 
-* [ ] 调研增加 imm test case
+* [x] 调研增加 imm test case
+
+    feedback:
+
+    1. imm data 只是一个 32 位的数据，用不到
+
+* [v] 调研 openmpi 的 nfs
+
+    feedback:
+
+    1. 调研`adduser`和`useradd`有什么不同？
+
+    2. 调研`ssh-add`，`ssh-agent`的作用
+
+* [v] 调研增加 inline test case
 
 * [ ] 增加 client remote write to server test case
 

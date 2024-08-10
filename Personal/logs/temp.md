@@ -25,7 +25,3 @@
     * `DECLARE_WORK(workqueue,workqueue_fn);`
 
 * `virsh nodedev-dettach pci_0000_b1_00_0` e3
-
-    `10de:1db6`
-
-* max cqe

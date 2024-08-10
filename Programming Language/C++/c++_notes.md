@@ -6163,6 +6163,114 @@ pa in A destructor
 
 ## Coroutine 协程
 
+### cache
+
+* 一个 c++ coroutine 的例子
+
+    ```cpp
+    struct MyCoroutine {
+        struct promise_type {
+            char ch;
+            MyCoroutine get_return_object() {
+                return MyCoroutine(coroutine_handle<promise_type>::from_promise(*this));
+            }
+            suspend_always initial_suspend() {return {}; }
+            suspend_never final_suspend() noexcept {return {};}
+            void return_void() {}
+            void unhandled_exception() {}
+            suspend_always yield_value(char &ch) {
+                this->ch = ch;
+                return {};
+            }
+        };
+
+        coroutine_handle<promise_type> h;
+        MyCoroutine(coroutine_handle<promise_type> h): h(h) {}
+        ~MyCoroutine() {
+            h.destroy();
+        }
+
+        char operator()() {
+            h();
+            return h.promise().ch;
+        }
+    };
+
+    MyCoroutine myCoroutine()
+    {
+        static string msg = "hello";
+        for (int i = 0; i < 5; ++i)
+        {
+            co_yield msg[i];
+        }
+        co_return;
+    }
+
+    int main()
+    {
+        MyCoroutine next_ch = myCoroutine();
+        for (int i = 0; i < 5; ++i)
+            cout << next_ch() << endl;
+        return 0;
+    }
+    ```
+
+    编译：
+
+    ```bash
+    g++ -std=c++20 -g main.cpp -o main
+    ```
+
+    运行：
+
+    ```
+    ./main
+    ```
+
+    输出：
+
+    ```
+    h
+    e
+    l
+    l
+    o
+    ```
+
+    说明：
+
+    * 一个普通`struct`中需要包含一个叫`promise_type`的 struct，他们互相协同工作，才能完成协程的功能。
+
+    * `MyCoroutine myCoroutine()`表示这个函数返回（创建）一个`MyCoroutine`对象。
+    
+        这个对象在刚被创建的时候，就调用了`initial_suspend()`函数。由于`initial_suspend()`被`suspend_always`修饰，所以执行完这个函数后，就停了下来。
+
+        我们在调用`myCoroutine()`时，并没有去执行函数中的内容，而是去创建了一个`MyCoroutine`对象，这点与普通的函数调用不同，其实挺别扭的。但是由于函数的返回值是`MyCoroutine`，又刚好对接到传统 c++ 的类型语法检查。
+
+    * 在调用`next_ch()`后，`operator()`开始被执行，`h();`表示继续执行`myCoroutine()`
+
+        函数执行到`co_yield`语句后，进入`yield_value()`。这个执行完后，则会停下来，继续执行`return h.promise().ch;`，此时会返回一个值。
+
+    * `co_yield msg[i];`等价于调用`yield_value()`
+
+        这个函数通常算一些数据，然后给存起来，存起来的结果后面由`operator()`返回。
+
+        这个过程可以使用 move 语义加速。
+
+    * `myCoroutine()`函数其实相当于托管给了`coroutine_handle`，由这个 handle 来控制函数的执行流程。
+
+        这个 handle 同时保存了 promise 的信息和协程函数的信息。因此它扮演了很重要的角色。
+
+    * c++ 23 有`generator`模板类，非常好用，今明两天目前的 gcc-12 还没实现。
+
+    ref: <https://en.cppreference.com/w/cpp/language/coroutines>
+
+* c++ coroutine 在 c 中是否有更简单的方式手动实现？
+
+    c++ 的协程，c 的手动实现，切换线程实现协程，哪个的效率更高？
+
+### note
+
 A coroutine is any function that contains a `co_return`, `co_yield` or `co_await`.
 
 协程主要用来处理单线程异步操作。和 JavaScript 挺像的。
@@ -6876,6 +6984,36 @@ in A destructor, val: 1
 in B destructor, val: 2
 ```
 
+### extern C
+
+### cache
+
+* 如果一个函数同时在`extern "C"`和`extern "C"`以外的区域声明或定义，那么它会被编译器视为定义了两次
+
+* gcc 编译器编译 g++ 编译器编译出来的`.o`文件，会报错没有 c++ 标准库。如果只链接 g++ 编译出来的`.so`文件，则没有问题。
+
+* gcc 编译器不识别`extern "C"`, g++ 才识别
+
+    所以如果一个头文件被 c 和 c++ 共用，那么可以这样写：
+
+    ```cpp
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+
+    void func_1(int aaa);
+    int func_2(char *bbb);
+    // ....
+
+    #ifdef __cplusplus
+    }
+    #endif
+    ```
+
+    ref: <https://stackoverflow.com/questions/43602910/extern-c-causing-an-error-expected-before-string-constant>
+
+### note
+
 ## gcc attribute
 
 ```cpp
@@ -6959,7 +7097,6 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
     sizeof(parr)  // 8
     sizeof(arr)  // 3 * 4 = 12
     ```
-
 
 1. 内存分区模型
 

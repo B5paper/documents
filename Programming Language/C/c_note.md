@@ -6,6 +6,117 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 关于颜色写两个常用的函数
+
+    ```c
+    void print_ok_msg(const char *msg)
+    {
+        printf("[" "\x1b[32m" "\x1b[1m" "OK" "\x1b[0m" "]");
+        printf(" ");
+        puts(msg);
+    }
+
+    void print_err_msg(const char *msg)
+    {
+        printf("[" "\x1b[31m" "\x1b[1m" "Error" "\x1b[0m" "]");
+        printf(" ");
+        puts(msg);
+    }
+    ```
+
+    这样就可以很方便地输出
+
+    ```
+    [OK] hello world
+    [Error] asdfsdfasdf
+    ```
+
+    这样的格式了。其中`OK`是绿色的，`Error`是红色的。
+
+* c 语言输出多种颜色的字符
+
+    ```c
+    #include <stdio.h>
+
+    #define ANSI_RESET_ALL          "\x1b[0m"
+
+    #define ANSI_COLOR_BLACK        "\x1b[30m"
+    #define ANSI_COLOR_RED          "\x1b[31m"
+    #define ANSI_COLOR_GREEN        "\x1b[32m"
+    #define ANSI_COLOR_YELLOW       "\x1b[33m"
+    #define ANSI_COLOR_BLUE         "\x1b[34m"
+    #define ANSI_COLOR_MAGENTA      "\x1b[35m"
+    #define ANSI_COLOR_CYAN         "\x1b[36m"
+    #define ANSI_COLOR_WHITE        "\x1b[37m"
+
+    #define ANSI_BACKGROUND_BLACK   "\x1b[40m"
+    #define ANSI_BACKGROUND_RED     "\x1b[41m"
+    #define ANSI_BACKGROUND_GREEN   "\x1b[42m"
+    #define ANSI_BACKGROUND_YELLOW  "\x1b[43m"
+    #define ANSI_BACKGROUND_BLUE    "\x1b[44m"
+    #define ANSI_BACKGROUND_MAGENTA "\x1b[45m"
+    #define ANSI_BACKGROUND_CYAN    "\x1b[46m"
+    #define ANSI_BACKGROUND_WHITE   "\x1b[47m"
+
+    #define ANSI_STYLE_BOLD         "\x1b[1m"
+    #define ANSI_STYLE_ITALIC       "\x1b[3m"
+    #define ANSI_STYLE_UNDERLINE    "\x1b[4m"
+
+    int main(int argc, const char **argv)
+    {
+        puts("## Print color ##");
+        printf("=> " ANSI_COLOR_BLACK   "This text is BLACK!"   ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_RED     "This text is RED!"     ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_GREEN   "This text is GREEN!"   ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_YELLOW  "This text is YELLOW!"  ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_BLUE    "This text is BLUE!"    ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_MAGENTA "This text is MAGENTA!" ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_CYAN    "This text is CYAN!"    ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_COLOR_WHITE   "This text is WHITE!"   ANSI_RESET_ALL "\n");
+
+        puts("\n## Print style ##");
+        printf("=> " ANSI_STYLE_BOLD        "This text is BOLD!"      ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_STYLE_ITALIC      "This text is ITALIC!"    ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_STYLE_UNDERLINE   "This text is UNDERLINE!" ANSI_RESET_ALL "\n");
+
+        puts("\n## Print background ##");
+        printf("=> " ANSI_BACKGROUND_BLACK   "This BG is BLACK!"   ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_RED     "This BG is RED!"     ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_GREEN   "This BG is GREEN!"   ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_YELLOW  "This BG is YELLOW!"  ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_BLUE    "This BG is BLUE!"    ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_MAGENTA "This BG is MAGENTA!" ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_CYAN    "This BG is CYAN!"    ANSI_RESET_ALL "\n");
+        printf("=> " ANSI_BACKGROUND_WHITE   "This BG is WHITE!"   ANSI_RESET_ALL "\n");
+
+        return 0;
+    }
+    ```
+
+    说明；
+
+    * 不同选项间可以互相组合
+
+    * 这里的 black 其实不是黑色，而是深灰色，white 也不是纯白，而是浅灰
+
+* C 语言的接口基本都是 handle pointer, 全是数据是 struct
+
+    如果 C 对接 C++ 接口时还要写 linked list，那就太麻烦了
+
+    C 接口的函数设计也基本只能设计成`my_func(type_pointer *type, args)`的形式。
+
+    这里的 type pointer 如果想偷情的话可以直接设置成`void*`，如果需要有一个类型提示的话可以设置成`MyStruct *`这样的，但是`MyStruct`如果同时也是 c++ 代码里的类型，那么就会冲突。
+
+    这里想到的几个解决方案：
+
+    * c++ 代码里使用`class _MyStruct`避免和 C 接口冲突
+
+    * c++ 代码使用 namespace
+
+    * c 语言接口再另起一套名字，比如`MyStruct`变成`MyCStruct`之类的
+
+        由于名字是稀缺资源，所以这个方案其实并不是太好。
+
 * `uint64_t`这些类型定义在`stdint.h`头文件里。
 
 * 在 c 语言中计算浮点数级的 duration

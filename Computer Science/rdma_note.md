@@ -2,6 +2,40 @@
 
 ## cache
 
+* `IBV_SEND_INLINE`是一个用于 send 和 remote write 的 flag。使用了这个 flag 后，由 cpu 读写内存，而不是 ib device，因此不会去检查 lkey。
+
+* 创建 qp 失败是因为 qp init attr 有些参数没有 memset 为 0
+
+    modify qp 失败也是同样的的原因
+
+* `send_wr.next`如果没有的话必须填`NULL`，不然会报错
+
+* 一个 ibv 的 post send, post recv 的 example 代码
+
+    见`ref_27`
+
+* 如果一个 mr 没有 local write access，那么在 post recv 的时候会失败
+
+* ib device 可以给自己发送数据（数据可以不走出物理网线）
+
+* `qp_attr.ah_attr`中的`is_global`是必要的，设置不一致会导致无法发送数据。
+
+    `sl`和`src_path_bits`不清楚。
+
+* 必须 qp 和 mr 都有 remote write 的 access flag，才能成功 remote write.
+
+* 在 modify qp 的时候，必须将`qp_access_flags`设置为包含`IBV_ACCESS_REMOTE_WRITE`的 flag，才能接收对方的 remote write 请求。
+
+    `qp_access_flags`设置成 0 表示没有任何权限。
+
+* 两个 ib device 进行 p2p 通信时，`lid`和`qp_num`的信息是必须要交换的，否则会发送数据不成功
+
+* `qp_num`的值可以随便设置，不影响 rtr 的成功
+
+* `IBV_QP_AV`的意思是 Use the value of `attr->ah_attr`
+
+* mellanox 的驱动会自带一个 openmpi，并且在安装驱动时要求删除系统上已经安装的 openmpi
+
 * `ib_uverbs_create_uapi()`逻辑
 
     1. `struct uverbs_api *uapi = uverbs_alloc_api();`

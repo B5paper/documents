@@ -2,6 +2,62 @@
 
 ## cache
 
+* mpi 使用 nfs
+
+    * master
+    
+        1. 安装 nfs server: `sudo apt install nfs-kernel-server`
+
+        2. 创建一个普通目录：
+
+            ```bash
+            cd ~
+            mkdir nfs_shared
+            ```
+
+        3. 配置 nfs
+
+            `sudo vim /etc/exports`
+
+            添加一行：
+
+            ```
+            /home/hlc/nfs_shared *(rw,sync,no_root_squash,no_subtree_check)
+            ```
+
+            应用配置：
+
+            `sudo exportfs -a`
+
+        4. 把可执行文件或者工程目录放到`nfs_shared`目录下
+
+            `cp -r ~/Documents/Projects/mpi_test ~/nfs_shared`
+
+    * worker
+    
+        1. 安装 nfs: `sudo apt install nfs-common`
+
+        2. 创建空目录
+
+            ```bash
+            cd ~
+            mkdir nfs_shared
+            ```
+
+        3. mount
+
+            ```bash
+            sudo mount -t nfs master_node:/home/hlc/nfs_shared ~/nfs_shared
+            ```
+
+        说明：
+
+        * mount 时，remote 路径必须用绝对路径，既不能用`master_node:nfs_shared`，也不能用`master_node:~/nfs_shared`
+
+        * 创建空目录`nfs_shared`时，其所在的目录必须和 master 保持一致，不然在 mpirun 时会找不到可执行程序
+
+        * `master_node`可以是 hostname，也可以是 ip 地址，但不能是`<user_name>@<hostname>`或者`<user_name>@<ip_addr>`，因为 nfs 用的根本不是 ssh 协议。
+
 * mpi test case
 
     目前可以跑通的一个 hello world 用例：
