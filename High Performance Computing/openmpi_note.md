@@ -168,7 +168,15 @@
 
 * openmpi 可以直接用 apt 安装，不需要专门下载源代码编译
 
-## 安装：
+## 安装
+
+### 使用 apt 安装
+
+```bash
+sudo apt-get install libopenmpi-dev
+```
+
+### 从源码编译安装
 
 官网下载：<https://www.open-mpi.org/software/ompi/v5.0/>
 
@@ -204,7 +212,7 @@ export PATH=$PATH:/home/hlc/Softwares/openmpi/bin
 
 `main.cpp`:
 
-```python
+```cpp
 #include <mpi.h>
 #include <stdio.h>
 

@@ -36,8 +36,6 @@
 
 ## cached
 
-* grub 里不打开 iommu，vfio-pci 无法 bind 新设备
-
 * 计划的重点在于可以回退
 
     之前大部分计划无法执行下去是因为只能顺序执行，没有考虑过失败和回退。
@@ -45,8 +43,6 @@
     如果总是回退，那么会导致没有动力去执行任务，也不汰好。
 
     这两者中间应该有个平衡点。
-
-* 调研 c++ `variant`
 
 * 《github入门与实践》 note
 
@@ -74,7 +70,7 @@
 
     参见`kmalloc()`文档。
 
-* [ ] git stash 恢复
+
 
 * 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
 
@@ -762,14 +758,6 @@ Tasks:
 
 tasks:
 
-* [v] cache tabs  10 mins 04/25
-
-* [v] process 1 url  30 mins 04/25
-
-* [v] cache tabs 10 mins 04/25
-
-* [v] process 1 url 30 mins 04/25
-
 * [v] cache tabs 10 mins 04/28
 
 * [v] process 1 url 30 mins 04/28
@@ -787,10 +775,6 @@ tasks:
 ## rdma
 
 ### cache
-
-* [ ] 调研 remove radix tree 的 bug
-
-* [ ] 调研 ibv cmd req 中的 driver data
 
 * [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
@@ -884,8 +868,6 @@ tasks:
 
 * [v] 调研增加 ping pong test case
 
-* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
-
 * [x] 调研增加 imm test case
 
     feedback:
@@ -902,11 +884,23 @@ tasks:
 
 * [v] 调研增加 inline test case
 
+* [v] 调研 remove radix tree 的 bug
+
+    feedback:
+
+    1. ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
+
+        可以在 ib verbs mask 列表里看到少了这几个 mask。
+
+* [v] code server 上制作 mellanox 环境虚拟机
+
+* [ ] 调研 ibv cmd req 中的 driver data
+
+* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
+
 * [ ] 增加 client remote write to server test case
 
 * [ ] 调研 open mpi 的 scatter, gather C 程序
-
-* [ ] code server 上制作 mellanox 环境虚拟机
 
 * [ ] 调研 llama 在 cpu 上的部署
 
@@ -1411,8 +1405,6 @@ cached:
 
 * [v] 调研 reduce sum, reduce max
 
-* [ ] 调研
-
 ## 算法 algorithms 与 leetcode
 
 cache:
@@ -1844,7 +1836,7 @@ cache:
 
 	1. [v] 重装系统，安装 virtual box
 
-	1. [ ] 创建一些虚拟机
+	1. [v] 创建一些虚拟机
 
 * [v] 调研 nccl
 
@@ -1855,6 +1847,8 @@ cache:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 cache:
+
+* [ ] 调研 c++ `variant`
 
 * 存储 image 可以有两种方式
 
@@ -1939,6 +1933,8 @@ tasks:
 * [ ] 调研第八章 多元函数微分法及其应用
 
 ## 其他
+
+* [v] git stash 恢复
 
 * c++ 版本的 opencl 入门
 

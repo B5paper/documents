@@ -2,6 +2,8 @@
 
 ## cache
 
+* grub 里不打开 iommu，vfio-pci 无法 bind 新设备
+
 * grub 的 config menu 放在`/boot/grub/grub.cfg`里
 
     可以直接根据这个文件里的 menu 信息，判断其在 grub 菜单里出现的位置。
