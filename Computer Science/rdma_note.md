@@ -2,95 +2,6 @@
 
 ## cache
 
-* `IBV_SEND_INLINE`是一个用于 send 和 remote write 的 flag。使用了这个 flag 后，由 cpu 读写内存，而不是 ib device，因此不会去检查 lkey。
-
-* 创建 qp 失败是因为 qp init attr 有些参数没有 memset 为 0
-
-    modify qp 失败也是同样的的原因
-
-* `send_wr.next`如果没有的话必须填`NULL`，不然会报错
-
-* 一个 ibv 的 post send, post recv 的 example 代码
-
-    见`ref_27`
-
-* 如果一个 mr 没有 local write access，那么在 post recv 的时候会失败
-
-* ib device 可以给自己发送数据（数据可以不走出物理网线）
-
-* `qp_attr.ah_attr`中的`is_global`是必要的，设置不一致会导致无法发送数据。
-
-    `sl`和`src_path_bits`不清楚。
-
-* 必须 qp 和 mr 都有 remote write 的 access flag，才能成功 remote write.
-
-* 在 modify qp 的时候，必须将`qp_access_flags`设置为包含`IBV_ACCESS_REMOTE_WRITE`的 flag，才能接收对方的 remote write 请求。
-
-    `qp_access_flags`设置成 0 表示没有任何权限。
-
-* 两个 ib device 进行 p2p 通信时，`lid`和`qp_num`的信息是必须要交换的，否则会发送数据不成功
-
-* `qp_num`的值可以随便设置，不影响 rtr 的成功
-
-* `IBV_QP_AV`的意思是 Use the value of `attr->ah_attr`
-
-* mellanox 的驱动会自带一个 openmpi，并且在安装驱动时要求删除系统上已经安装的 openmpi
-
-* `ib_uverbs_create_uapi()`逻辑
-
-    1. `struct uverbs_api *uapi = uverbs_alloc_api();`
-
-    2. `uverbs_dev->uapi = uapi;`
-
-* `uverbs_alloc_api()`逻辑
-
-    1. `struct uverbs_api *uapi = kzalloc();`
-
-    2. `INIT_RADIX_TREE(&uapi->radix, GFP_KERNEL);`
-
-        初始化 radix tree。radix tree 比较像一个哈希表，将一个 32 位整数映射到对象的指针上。这个 32 位整数由 user 自己构建，作为 key，映射的指针作为 value。
-
-    3. `uapi_merge_def(uverbs_core_api)`
-
-        这一步是添加 ib core 预设的 method，大部分常用的 verbs 都在这里了。
-
-    4. `uapi_merge_def(ibdev->driver_def)`
-
-        添加自定义的 verbs。可以为空，不影响 ib 的基本功能。
-
-    5. `uapi_finalize_disable(uapi)`
-
-        这一步会把所有属性为`disabled`的 method 从 radix tree 中清除。
-
-    6. `uapi_finalize(uapi)`
-
-* 在写 rdma umd 驱动时，只需要在`CMakeLists.txt`里适合的位置加一行`add_subdirectory(providers/sonc)`就可以了。
-
-    `rdma-core/build/etc/libibverbs.d`文件夹下的`sonc.driver`会自动生成。
-
-* auxiliary device bug
-
-    ```
-    [  196.940718] fail to register ib device
-    [  196.940719] sonc_ib_aux.rdma: probe of mock_eth.rdma.0 failed with error -1
-    ```
-
-    解决方案：
-
-    在 remove ib device 的时候加一个 dealloc ib dev:
-
-    ```c
-    void hlc_ib_aux_dev_remove(struct auxiliary_device *adev)
-    {
-        ib_unregister_device(&hlc_ib_dev->ib_dev);
-        ib_dealloc_device(&hlc_ib_dev->ib_dev);
-    }
-    ```
-
-* ib umd 中有些`ibv_`开头的函数是框架实现好的，有些是需要自己实现的。
-
-* ib umd 中通过`ibv_cmd_xxx()`函数向 kmd 发送 ioctl 命令。
-
 * 在`alloc_ucontext()`中，其函数参数的 udata 中的`inbuf`, `outbuf`指的就是用户自定义数据的起始地址。
 
     但是其中的`udata->inlen`和`udata->outlen`并不是和 struct 中的数据严格相同的。struct 很有可能是按照 8 字节对齐的。
@@ -920,9 +831,35 @@ Ref:
 
 2. <https://www.zhihu.com/people/fei-su-fs>
 
+## installation
+
+* mellanox 的驱动会自带一个 openmpi，并且在安装驱动时要求删除系统上已经安装的 openmpi
+
 ## app
 
 ### cache
+
+* 如果一个 mr 没有 local write access，那么在 post recv 的时候会失败
+
+* ib device 可以给自己发送数据（数据可以不走出物理网线）
+
+* `qp_attr.ah_attr`中的`is_global`是必要的，设置不一致会导致无法发送数据。
+
+    `sl`和`src_path_bits`不清楚。
+
+* 必须 qp 和 mr 都有 remote write 的 access flag，才能成功 remote write.
+
+* 在 modify qp 的时候，必须将`qp_access_flags`设置为包含`IBV_ACCESS_REMOTE_WRITE`的 flag，才能接收对方的 remote write 请求。
+
+    `qp_access_flags`设置成 0 表示没有任何权限。
+
+* 两个 ib device 进行 p2p 通信时，`lid`和`qp_num`的信息是必须要交换的，否则会发送数据不成功
+
+* `qp_num`的值可以随便设置，不影响 rtr 的成功
+
+* `IBV_QP_AV`的意思是 Use the value of `attr->ah_attr`
+
+* `IBV_SEND_INLINE`是一个用于 send 和 remote write 的 flag。使用了这个 flag 后，由 cpu 读写内存，而不是 ib device，因此不会去检查 lkey。
 
 * 即使 get cq event 也不代表数据发送完了
 
@@ -983,11 +920,45 @@ Ref:
 
 ### note
 
+* `send_wr.next`如果没有的话必须填`NULL`，不然会报错
 
+### problems shooting
+
+* 创建 qp 失败是因为 qp init attr 有些参数没有 memset 为 0
+
+    modify qp 失败也是同样的的原因
 
 ## kmd
 
 ### cache
+
+* `ib_uverbs_create_uapi()`逻辑
+
+    1. `struct uverbs_api *uapi = uverbs_alloc_api();`
+
+    2. `uverbs_dev->uapi = uapi;`
+
+* `uverbs_alloc_api()`逻辑
+
+    1. `struct uverbs_api *uapi = kzalloc();`
+
+    2. `INIT_RADIX_TREE(&uapi->radix, GFP_KERNEL);`
+
+        初始化 radix tree。radix tree 比较像一个哈希表，将一个 32 位整数映射到对象的指针上。这个 32 位整数由 user 自己构建，作为 key，映射的指针作为 value。
+
+    3. `uapi_merge_def(uverbs_core_api)`
+
+        这一步是添加 ib core 预设的 method，大部分常用的 verbs 都在这里了。
+
+    4. `uapi_merge_def(ibdev->driver_def)`
+
+        添加自定义的 verbs。可以为空，不影响 ib 的基本功能。
+
+    5. `uapi_finalize_disable(uapi)`
+
+        这一步会把所有属性为`disabled`的 method 从 radix tree 中清除。
+
+    6. `uapi_finalize(uapi)`
 
 * port 相关的数据放在`ib_device` -> `ib_port_data`中。
 
@@ -1011,9 +982,38 @@ Ref:
 
 ### note
 
+### problems shooting
+
+* auxiliary device bug
+
+    ```
+    [  196.940718] fail to register ib device
+    [  196.940719] sonc_ib_aux.rdma: probe of mock_eth.rdma.0 failed with error -1
+    ```
+
+    解决方案：
+
+    在 remove ib device 的时候加一个 dealloc ib dev:
+
+    ```c
+    void hlc_ib_aux_dev_remove(struct auxiliary_device *adev)
+    {
+        ib_unregister_device(&hlc_ib_dev->ib_dev);
+        ib_dealloc_device(&hlc_ib_dev->ib_dev);
+    }
+    ```
+
 ## umd
 
 ### cache
+
+* ib umd 中有些`ibv_`开头的函数是框架实现好的，有些是需要自己实现的。
+
+* ib umd 中通过`ibv_cmd_xxx()`函数向 kmd 发送 ioctl 命令。
+
+* 在写 rdma umd 驱动时，只需要在`CMakeLists.txt`里适合的位置加一行`add_subdirectory(providers/sonc)`就可以了。
+
+    `rdma-core/build/etc/libibverbs.d`文件夹下的`sonc.driver`会自动生成。
 
 * 在创建 rdma kernel abi 的时候出错，主要是因为 rdma core 在 python 脚本里使用正则表达式进行匹配开发者定义的 struct 结构体，但是这个正则表达式只能匹配下面形式的：
 

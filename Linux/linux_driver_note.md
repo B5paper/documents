@@ -6,6 +6,12 @@ Ref:
 
 ## cache
 
+* `gfp_t`指的是需要 alloc 的内存类型
+
+    常用的是`GFP_KERNEL`。其他的用法在文档里有详细说明。
+
+    参见`kmalloc()`文档。
+
 * kbuild system 相关
 
     * the most simple kbuild makefile
