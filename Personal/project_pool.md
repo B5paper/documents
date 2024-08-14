@@ -846,33 +846,17 @@ tasks:
 
 * [v] 调研 mmap
 
-* [v] 调研跑通 nccl test example
-
-* [v] 调研 nccl app 的写法
-
 * [v] 调研安装 ofed 的 ib_core 与 linux ib_core 之间的关系
 
     feedback:
 
     1. 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
 
-* [v] 调研 ibv send recv 的 test case
-
-* [v] 调研增加 ping pong test case
-
-* [x] 调研增加 imm test case
-
-    feedback:
-
-    1. imm data 只是一个 32 位的数据，用不到
-
 * [v] 调研 openmpi 的 nfs
 
-    feedback:
+* [ ] 调研`ssh-add`，`ssh-agent`的作用
 
-    1. 调研`adduser`和`useradd`有什么不同？
-
-    2. 调研`ssh-add`，`ssh-agent`的作用
+* [ ] 调研`adduser`和`useradd`有什么不同？
 
 * [v] 调研增加 inline test case
 
@@ -885,6 +869,60 @@ tasks:
         可以在 ib verbs mask 列表里看到少了这几个 mask。
 
 * [v] code server 上制作 mellanox 环境虚拟机
+
+* [x] 调研 open mpi 的 scatter, gather C 程序
+
+    21:03 ~ 22:11
+
+* [v] 调研 open mpi 的 scatter, gather C 程序
+
+    15：39 ～ 18:27
+
+* [v] 调研 open mpi 的 send, recv 程序
+
+* [v] 调研 open mpi 的 ping pong 程序
+
+* [ ] 调研 open mpi 的 ring 程序
+
+    <https://mpitutorial.com/tutorials/mpi-send-and-receive/>
+
+* [v] sync rdma ibv
+
+    20:54 ~ 21:39
+
+* [v] 调研 nccl 打开 debug，配置 buffer 到 32KB
+
+    09:43 ~ 11:49
+
+* [v] 调研 mpirun `--host`是否可以指定 ip address
+
+    feedback:
+
+    1. ip address 可以在 qemu 虚拟机里运行成功,并且 qemu 虚拟机只支持 ip address,不支持 host name
+
+    2. 猜测可能可 ifconfig 显示的网卡顺序有关
+
+    3. [ ] 调研是否可以调整 ifconfig 显示的网卡顺序
+
+    4. [ ] 调研是否可以在 mpi 中指定通信网卡
+
+* [v] 修改 umd，增加 sge_num 为 0 的情况
+
+* [v] 调研 attach ＋ process id 调试普通 mpi 程序
+
+* [v] 调研增加 imm test case
+
+* [ ] 调研 nccl 单步调试环境
+
+    feedback:
+
+    2. [ ] 调研 vscode debug cuda 程序
+
+    3. [ ] 调研 vscode debug nccl 程序
+
+    4. [ ] 调研 nccl 程序使用自己编译的库启动
+
+* [ ] 调研 nccl app
 
 * [ ] 调研 ibv cmd req 中的 driver data
 
