@@ -946,11 +946,11 @@ tasks:
 
 * [ ] 调研将 imm 改成 config 模式
 
+* [ ] 调研 vscode debug cuda 程序
+
 * [ ] 调研 nccl 单步调试环境
 
     feedback:
-
-    2. [ ] 调研 vscode debug cuda 程序
 
     3. [ ] 调研 vscode debug nccl 程序
 

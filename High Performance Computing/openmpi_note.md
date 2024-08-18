@@ -2,7 +2,7 @@
 
 ## cache
 
-* vscode + gdb attch + mpi program debugging
+* vscode + gdb attach + mpi program debugging
 
     1. add `launch.json`:
 
