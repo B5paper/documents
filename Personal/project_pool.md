@@ -36,6 +36,28 @@
 
 ## cached
 
+* 有关 gcc 编译顺序的猜想
+
+    * 猜想：结尾是`.o`，`.so`以及`-lxxx`的顺序，假如 A 依赖 B，那么`B`应该在`A`后面，即`gcc A B -o a.out`
+
+    * 猜想：所有`.o`文件必须写在`.so`的前面，`-lxxx`也属于`.so`文件
+
+* 调研的目的不是完成任务，而是要有输出
+
+* 如果可以使用“猜想”去解释一个现象，那么就可以进入实验阶段
+
+    如果可以无法作出“猜想”，只知道哪个方向可能提供更多的信息，那么只能是“调研”
+
+    无法作出猜想的阶段，都只是收集信息的阶段。目标就是为了作出猜想。
+
+* 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
+
+* 一个任务无法完成的交换
+
+    * 必须要完成其他前置任务，依赖任务
+
+* 未经证实的，对概念的一个可能提解释被称为一个猜想。
+
 * 计划的重点在于可以回退
 
     之前大部分计划无法执行下去是因为只能顺序执行，没有考虑过失败和回退。
@@ -842,37 +864,29 @@ tasks:
 
     Error: `No space left on device`
 
+* 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
+
+    * 2024/08/15: 如果需要換系统内核，并重新安装 ofed 驱动，那么需要将 ofed 源码从 tar 里重新解压出来。因为在之前编译 dkms 时，在源码目录里生成一些文件，这些文件会导致驱动无法加载成功
+
+* ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
+
+        可以在 ib verbs mask 列表里看到少了这几个 mask。
+
 ### tasks
 
-* [v] 调研 mmap
+* [v] 调研删掉 script 中的 AV mask
 
-* [v] 调研安装 ofed 的 ib_core 与 linux ib_core 之间的关系
+    13:19 ~ 13:40
 
     feedback:
 
-    1. 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
+    * 如果需要对不同设备，函数做出不同的行为，一种方法增加一个`enum`类型的函数参数，判断调用者的情况。另一种方法是增加一个编译宏，然后使用`#ifdef xxx`来检测，这样可以在编译时判断调用函数的主体的情况。
 
-* [v] 调研 openmpi 的 nfs
+        为了只编译一份 lib 就适用多种情况，目前采用的是`enum`方案。
 
 * [ ] 调研`ssh-add`，`ssh-agent`的作用
 
 * [ ] 调研`adduser`和`useradd`有什么不同？
-
-* [v] 调研增加 inline test case
-
-* [v] 调研 remove radix tree 的 bug
-
-    feedback:
-
-    1. ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
-
-        可以在 ib verbs mask 列表里看到少了这几个 mask。
-
-* [v] code server 上制作 mellanox 环境虚拟机
-
-* [x] 调研 open mpi 的 scatter, gather C 程序
-
-    21:03 ~ 22:11
 
 * [v] 调研 open mpi 的 scatter, gather C 程序
 
@@ -885,10 +899,6 @@ tasks:
 * [ ] 调研 open mpi 的 ring 程序
 
     <https://mpitutorial.com/tutorials/mpi-send-and-receive/>
-
-* [v] sync rdma ibv
-
-    20:54 ~ 21:39
 
 * [v] 调研 nccl 打开 debug，配置 buffer 到 32KB
 
@@ -906,11 +916,35 @@ tasks:
 
     4. [ ] 调研是否可以在 mpi 中指定通信网卡
 
+* [v] 调研 mpirun 指定 hostname 与 ip addr 的 bug
+
+    feedback:
+
+    1. 这个很大可能是因为 route 的顺序
+
 * [v] 修改 umd，增加 sge_num 为 0 的情况
 
 * [v] 调研 attach ＋ process id 调试普通 mpi 程序
 
 * [v] 调研增加 imm test case
+
+* [v] 调研将 rdma umd 中 zero cqe 的 log 改为：
+
+    1. 当成功 poll 到 cqe 时，显示在这之前 poll zero cqe 多少次，并且清零 zero cqe 的计数
+
+    2. 没有 poll 到 cqe 时，每 1000 次显示一次结果
+
+    feedback:
+
+    1. 这个格式挺好的，可以作为以后空操作打 log 的参考
+
+* [v] 总结 umd 的难点
+
+* [ ] cache tabs
+
+* [ ] 调研将 remote write 改成 script 模式
+
+* [ ] 调研将 imm 改成 config 模式
 
 * [ ] 调研 nccl 单步调试环境
 
@@ -924,6 +958,8 @@ tasks:
 
 * [ ] 调研 nccl app
 
+* [ ] 调研 makefile 的 submodule
+
 * [ ] 调研 ibv cmd req 中的 driver data
 
 * [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
@@ -931,6 +967,8 @@ tasks:
 * [ ] 增加 client remote write to server test case
 
 * [ ] 调研 open mpi 的 scatter, gather C 程序
+
+* [ ] 调研 llama 部署
 
 * [ ] 调研 llama 在 cpu 上的部署
 

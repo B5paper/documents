@@ -2,6 +2,25 @@
 
 ## cache
 
+* 一个可以运行的 nccl test 命令
+
+    ```bash
+    nccl_tests_path=/home/hlc/Documents/Projects/nccl-tests
+    mpirun -np 2 --host node1,node2 -mca btl_tcp_if_include enp0s3 -x NCCL_DEBUG=TRACE -x NCCL_BUFFSIZE=32768 ${nccl_tests_path}/build/all_reduce_perf -b 8 -e 128M -f 2 -g 1
+    ```
+
+    说明：
+
+    * `CCL_DEBUG`必须设置成`TRACE`才能看到 nccl 运行时的详细的信息。设置成`INFO`不行。
+
+    * `NCCL_BUFFSIZE`可以设置 cpu memory buffer 的大小
+
+        这个默认为`4194304`,即 4MB.
+
+        `32768`对应的是 32KB.
+
+    * `-g 1`表示 nccl 在本 node 上只使用一块 gpu.
+
 * 一个最简 nccl 程序
 
     `main.cu`:
