@@ -4639,3 +4639,161 @@
 * Tips and tricks to optimize your RDMA code
 
     <https://www.rdmamojo.com/2013/06/08/tips-and-tricks-to-optimize-your-rdma-code/>
+
+* Open MPI Tutorial
+
+    <https://usc-rc.github.io/tutorials/open-mpi>
+
+* Authorization required, but no authorization protocol specified
+
+    <https://github.com/open-mpi/ompi/issues/11553>
+
+* TensorRT-LLM
+
+    <https://github.com/NVIDIA/TensorRT-LLM?tab=readme-ov-file>
+
+* rdma_connect
+
+    <https://www.ibm.com/docs/en/aix/7.2?topic=operations-rdma-connect>
+
+* How to extend my root (/) partition?
+
+    <https://askubuntu.com/questions/492054/how-to-extend-my-root-partition>
+
+* Using NCCL is similar to using any other library in your code:
+
+    <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage.html>
+
+* reddits
+
+    * <https://www.reddit.com/r/archlinux/comments/pqh626/how_do_i_increase_the_size_of_my_root_partition/>
+
+    * <https://www.reddit.com/r/linux4noobs/comments/lu1plx/hi_i_get_this_authorization_required_but_no/>
+
+* GPT-2 PyTorch Implementation
+
+    <https://github.com/affjljoo3581/GPT2>
+
+* gpt-2
+
+    <https://github.com/openai/gpt-2>
+
+* Understanding LSTM Networks
+
+    <https://colah.github.io/posts/2015-08-Understanding-LSTMs/>
+
+* 人人都能看懂的LSTM
+
+    <https://zhuanlan.zhihu.com/p/32085405>
+
+* torch.sigmoid() 与 torch.nn.Sigmoid() 对比 python
+
+    <https://blog.csdn.net/qq_39938666/article/details/88809726>
+
+* Attach to running processes with the Visual Studio debugger
+
+    <https://learn.microsoft.com/en-us/visualstudio/debugger/attach-to-running-processes-with-the-visual-studio-debugger?view=vs-2022#BKMK_Scenarios>
+
+* VScode configuration for MPI arguments
+
+    <https://stackoverflow.com/questions/76845901/vscode-configuration-for-mpi-arguments>
+
+* Debug MPI program with Visual Studio Code
+
+    <https://iamsorush.com/posts/debug-mpi-vs-code/>
+
+* How do I debug an MPI program?
+
+    <https://stackoverflow.com/questions/329259/how-do-i-debug-an-mpi-program>
+
+* Socket Timeout — An Important and Sometimes Complicated Issue with Python
+
+    <https://medium.com/pipedrive-engineering/socket-timeout-an-important-but-not-simple-issue-with-python-4bb3c58386b4>
+
+* How to set a socket connection timeout
+
+    <https://www.codeproject.com/Tips/168704/How-to-set-a-socket-connection-timeout>
+
+* Using select(..) on client
+
+    <https://stackoverflow.com/questions/19062754/using-select-on-client>
+
+* Using select() for non-blocking sockets to connect always returns 1
+
+    <https://stackoverflow.com/questions/11286094/using-select-for-non-blocking-sockets-to-connect-always-returns-1>
+
+* Alexey-N-Chernyshov/client.c
+
+    <https://gist.github.com/Alexey-N-Chernyshov/4634731>
+
+* connect(2) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man2/connect.2.html>
+
+* How to get its own IP address with a socket address?
+
+    <https://stackoverflow.com/questions/15914790/how-to-get-its-own-ip-address-with-a-socket-address>
+
+* How can I get to know the IP address for interfaces in C?
+
+    <https://stackoverflow.com/questions/4139405/how-can-i-get-to-know-the-ip-address-for-interfaces-in-c>
+
+* getifaddrs(3) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man3/getifaddrs.3.html>
+
+* Creating a Communicator
+
+    <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/communicators.html>
+
+* The examples in this section provide an overall view of how to use NCCL in various environments, combining one or multiple techniques:
+
+    <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/examples.html#example-1-single-process-single-thread-multiple-devices>
+
+* Group Calls
+
+    <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/groups.html>
+
+* [C/C++]大小端字节序转换程序
+
+    <https://www.cnblogs.com/wuyepeng/p/9833273.html>
+
+* C++20 coroutines cheat sheet
+
+    <https://gist.github.com/polytypic/17ff7693d27d8ccf53ee47beaa166f45>
+
+* 浅谈C++20 协程那点事儿 
+
+    <https://www.developers.pub/article/1274187>
+
+* C++|并发|libco协程剖析
+
+    <https://cloud.tencent.com/developer/article/1903624>
+
+* vLLM: A faster inference pipeline for LLMs paper explained
+
+    <https://athekunal.medium.com/vllm-a-faster-inference-pipeline-for-llms-paper-explained-2e5c9855438a>
+
+* DEBUG=1 compilation fails with nccl 2.16.2
+
+    <https://github.com/NVIDIA/nccl/issues/775>
+
+* How can I gdb attach to a process running in a docker container?
+
+    <https://stackoverflow.com/questions/21395106/how-can-i-gdb-attach-to-a-process-running-in-a-docker-container>
+
+* How can I gdb attach to a process running in a docker container?
+
+    <https://stackoverflow.com/questions/21395106/how-can-i-gdb-attach-to-a-process-running-in-a-docker-container>
+
+* Debug containerized apps
+
+    <https://code.visualstudio.com/docs/containers/debug-common>
+
+* docker debug
+
+    <https://docs.docker.com/reference/cli/docker/debug/>
+
+* a reddit url
+
+    <https://www.reddit.com/r/archlinux/comments/ww9fa2/problems_with_dkms_modules_and_kernel_519x_gcc_122/>

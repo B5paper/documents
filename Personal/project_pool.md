@@ -872,33 +872,31 @@ tasks:
 
         可以在 ib verbs mask 列表里看到少了这几个 mask。
 
-### tasks
+* 如果需要对不同设备，函数做出不同的行为，一种方法增加一个`enum`类型的函数参数，判断调用者的情况。另一种方法是增加一个编译宏，然后使用`#ifdef xxx`来检测，这样可以在编译时判断调用函数的主体的情况。
 
-* [v] 调研删掉 script 中的 AV mask
+    为了只编译一份 lib 就适用多种情况，目前采用的是`enum`方案。
 
-    13:19 ~ 13:40
+* mpirun 使用 hostname 和 ip addr 的两个注意事项
 
-    feedback:
+    * 如果使用 hostname，那么是去`~/.ssh/config`文件中找对应的配置，连接 ssh 
 
-    * 如果需要对不同设备，函数做出不同的行为，一种方法增加一个`enum`类型的函数参数，判断调用者的情况。另一种方法是增加一个编译宏，然后使用`#ifdef xxx`来检测，这样可以在编译时判断调用函数的主体的情况。
-
-        为了只编译一份 lib 就适用多种情况，目前采用的是`enum`方案。
+    * 如果使用 ip addr，那么 route 的路由顺序不对可能会导致无法连通
 
 * [ ] 调研`ssh-add`，`ssh-agent`的作用
 
 * [ ] 调研`adduser`和`useradd`有什么不同？
 
-* [v] 调研 open mpi 的 scatter, gather C 程序
+### tasks
 
-    15：39 ～ 18:27
+* [v] 调研将 rdma umd 中 zero cqe 的 log 改为：
 
-* [v] 调研 open mpi 的 send, recv 程序
+    1. 当成功 poll 到 cqe 时，显示在这之前 poll zero cqe 多少次，并且清零 zero cqe 的计数
 
-* [v] 调研 open mpi 的 ping pong 程序
+    2. 没有 poll 到 cqe 时，每 1000 次显示一次结果
 
-* [ ] 调研 open mpi 的 ring 程序
+    feedback:
 
-    <https://mpitutorial.com/tutorials/mpi-send-and-receive/>
+    1. 这个格式挺好的，可以作为以后空操作打 log 的参考
 
 * [v] 调研 nccl 打开 debug，配置 buffer 到 32KB
 
@@ -916,45 +914,23 @@ tasks:
 
     4. [ ] 调研是否可以在 mpi 中指定通信网卡
 
-* [v] 调研 mpirun 指定 hostname 与 ip addr 的 bug
-
-    feedback:
-
-    1. 这个很大可能是因为 route 的顺序
-
-* [v] 修改 umd，增加 sge_num 为 0 的情况
-
 * [v] 调研 attach ＋ process id 调试普通 mpi 程序
-
-* [v] 调研增加 imm test case
-
-* [v] 调研将 rdma umd 中 zero cqe 的 log 改为：
-
-    1. 当成功 poll 到 cqe 时，显示在这之前 poll zero cqe 多少次，并且清零 zero cqe 的计数
-
-    2. 没有 poll 到 cqe 时，每 1000 次显示一次结果
-
-    feedback:
-
-    1. 这个格式挺好的，可以作为以后空操作打 log 的参考
 
 * [v] 总结 umd 的难点
 
-* [ ] cache tabs
+* [v] 调研将 remote write 改成 script 模式
 
-* [ ] 调研将 remote write 改成 script 模式
+* [v] 调研将 imm 改成 config 模式
 
-* [ ] 调研将 imm 改成 config 模式
+* [v] 调研 vscode debug cuda 程序
 
-* [ ] 调研 vscode debug cuda 程序
-
-* [ ] 调研 nccl 单步调试环境
+* [v] 调研 nccl 单步调试环境
 
     feedback:
 
-    3. [ ] 调研 vscode debug nccl 程序
+    3. [v] 调研 vscode debug nccl 程序
 
-    4. [ ] 调研 nccl 程序使用自己编译的库启动
+    4. [v] 调研 nccl 程序使用自己编译的库启动
 
 * [ ] 调研 nccl app
 
