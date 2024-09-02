@@ -2,6 +2,133 @@
 
 ## cache
 
+* mpi ring
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int main(int argc, char** argv) {
+        MPI_Init(NULL, NULL);
+
+        int world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+        int token = 0;
+        int ret;
+        if (world_rank == 0)
+        {
+            token = 12345;
+        }
+        else
+        {
+            token = -1;
+            ret = MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (ret != 0)
+            {
+                printf("rank %d fail to recv\n", world_rank);
+                return -1;
+            }
+            printf("rank %d received token %d from %d\n", world_rank, token, world_rank - 1);
+        }
+
+        ret = MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+        if (ret != 0)
+        {
+            printf("rank %d fail to send\n", world_rank);
+            return -1;
+        }
+
+        if (world_rank == 0)
+        {
+            token = -1;
+            ret = MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (ret != 0)
+            {
+                printf("rank %d fail to recv\n", world_rank);
+                return -1;
+            }
+            printf("rank %d received token %d from %d\n", world_rank, token, world_size - 1);
+        }
+
+        MPI_Finalize();
+        return 01;
+    }
+    ```
+
+    run:
+
+    ```bash
+    mpirun -np 2 --host node1,node2 ./main
+    ```
+
+    output:
+
+    ```
+    rank 0 received token 12345 from 1
+    rank 1 received token 12345 from 0
+    ```
+
+    说明：
+
+    * rank 0 会首先在`MPI_Send()`处等其他进程，其他进程会在`MPI_Recv()`处等上一个进程。
+
+        等 rank 0 send, rank 1 recv 成功后，rank 0 在`MPI_Recv()`处等待，rank 1 则在`MPI_Send()`处开始和 rank 2 同步。以此类推。
+
+        这个过程如下图所示：
+
+        <div style='text-align:center'>
+        <img width=700 src='../../Reference_resources/ref_28/pic_1.png'>
+        </div>
+
+    * 下面这段代码似乎也能实现 ring 功能，并且更简洁
+
+        ```c
+        #include <mpi.h>
+        #include <stdio.h>
+        #include <unistd.h>
+
+        int main(int argc, char** argv) {
+            MPI_Init(NULL, NULL);
+
+            int world_size;
+            MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+            int world_rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+            int token = 0;
+            int ret;
+            if (world_rank == 0)
+            {
+                token = 12345;
+                MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+            }
+            else
+            {
+                MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                printf("rank %d received token %d from rank %d\n", world_rank, token, world_rank - 1);
+            }
+
+            if (world_rank == 0)
+            {
+                MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                printf("rank %d received token %d from rank %d\n", world_rank, token, world_size - 1);
+            }
+            else
+            {
+                MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+            }
+
+            MPI_Finalize();
+            return 0;
+        }
+        ```
+
 * vscode + gdb attach + mpi program debugging
 
     1. add `launch.json`:

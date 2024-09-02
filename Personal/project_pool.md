@@ -36,6 +36,23 @@
 
 ## cached
 
+* 将 net 大小端的 32 位 addr 转换成 string
+
+    ```c
+    #include <arpa/inet.h>
+
+    char addr_str[16] = {0};
+    inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, addr_str, 16);
+    ```
+    
+* `select()`会更新 timeout 的值，更新的值为`total timeout - blocking time`
+
+* gcc 与 g++
+
+    `gcc -g client.c ../rdma/tests/ibv_tests/utils/sock.o -o client`这个命令可以通过编译，但是把 gcc 換成 g++ 就不行。
+
+* 如果 nfs server 在 export 目录软链接其他路径的目录/文件，那么 client 的 nfs 目录里的软链接会链到 client 的文件目录上，不会读取 server 的软链接的内容
+
 * 有关 gcc 编译顺序的猜想
 
     * 猜想：结尾是`.o`，`.so`以及`-lxxx`的顺序，假如 A 依赖 B，那么`B`应该在`A`后面，即`gcc A B -o a.out`
@@ -772,8 +789,6 @@ Tasks:
 
 tasks:
 
-* [v] cache tabs 10 mins 04/28
-
 * [v] process 1 url 30 mins 04/28
 
 * [v] cache tabs 05/06
@@ -785,6 +800,8 @@ tasks:
 * [v] cache tabs 08/01
 
 * [v] cache tabs 08/10
+
+* [v] cache tabs 08/30
 
 ## rdma
 
@@ -886,6 +903,8 @@ tasks:
 
 * [ ] 调研`adduser`和`useradd`有什么不同？
 
+* reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
+
 ### tasks
 
 * [v] 调研将 rdma umd 中 zero cqe 的 log 改为：
@@ -920,7 +939,17 @@ tasks:
 
 * [v] 调研将 remote write 改成 script 模式
 
+    feedback:
+
+    1. send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
+
+    2. mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
+
 * [v] 调研将 imm 改成 config 模式
+
+    feedback:
+
+    1. [ ] 调研 imm 拆分多 qp 的 send 和 recv 过程，使得可以并行 send，并行 recv
 
 * [v] 调研 vscode debug cuda 程序
 
@@ -931,6 +960,34 @@ tasks:
     3. [v] 调研 vscode debug nccl 程序
 
     4. [v] 调研 nccl 程序使用自己编译的库启动
+
+* [v] 调研 open mpi 的 ring 程序
+
+    <https://mpitutorial.com/tutorials/mpi-send-and-receive/>
+
+    feedback:
+
+    1. ln 是否能创建文件夹的 hard link?
+
+    2. mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
+
+    3. 接下来学习：<https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+* [v] 调研 vscode debug cuda 程序
+
+* [v] 调研 nccl app debug
+
+* [v] 调研 nccl all reduce debug, imm 和 recv 数量对不上的问题
+
+* [v] 调研 gdb attch + test case 在 umd 中 hit 断点
+
+    feedback:
+
+    1. 在 mpi 启动 nccl 程序时，gdb attch 无法击中 umd 的断点
+
+* [ ] 调研 pytorch 调用 nccl wrapper function
+
+* [ ] 调研 vllm nccl debug environment
 
 * [ ] 调研 nccl app
 

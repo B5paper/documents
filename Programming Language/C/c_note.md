@@ -6,6 +6,31 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 指针数组
+
+    指针是`int *a`，指针的数组就变成了`int **aa;`，可以使用`aa[i]`或`*aa + i`访问到每一个指针。
+
+    如果需要在函数里创建一个指针的数组，那么函数的参数就变成了`int ***aaa`，常见的 code 如下：
+
+    ```c
+    void alloc_pointer_arr(int ***aaa, int num)
+    {
+        *aaa = malloc(sizeof(int *) * num);
+    }
+
+    void free_pointer_arr(int **aa)
+    {
+        free(aa);
+    }
+
+    int main()
+    {
+        int **aa;
+        alloc_pointer_arr(&aa, 3);
+        return 0;
+    }
+    ```
+
 * 关于颜色写两个常用的函数
 
     ```c
