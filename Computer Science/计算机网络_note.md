@@ -2,6 +2,17 @@
 
 ## cache
 
+* `select()`会更新 timeout 的值，更新的值为`total timeout - blocking time`
+
+* 将 net 大小端的 32 位 addr 转换成 string
+
+    ```c
+    #include <arpa/inet.h>
+
+    char addr_str[16] = {0};
+    inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, addr_str, 16);
+    ```
+
 * 无法确定 client / server 身份时的一个解决方案
 
     我们让 node 0 交替地充当 client 和 server 的角色，让 node 1 也交替地充当 clinet 和 server 的角色，如下图所示：

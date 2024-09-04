@@ -36,28 +36,7 @@
 
 ## cached
 
-* 将 net 大小端的 32 位 addr 转换成 string
-
-    ```c
-    #include <arpa/inet.h>
-
-    char addr_str[16] = {0};
-    inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, addr_str, 16);
-    ```
-    
-* `select()`会更新 timeout 的值，更新的值为`total timeout - blocking time`
-
-* gcc 与 g++
-
-    `gcc -g client.c ../rdma/tests/ibv_tests/utils/sock.o -o client`这个命令可以通过编译，但是把 gcc 換成 g++ 就不行。
-
 * 如果 nfs server 在 export 目录软链接其他路径的目录/文件，那么 client 的 nfs 目录里的软链接会链到 client 的文件目录上，不会读取 server 的软链接的内容
-
-* 有关 gcc 编译顺序的猜想
-
-    * 猜想：结尾是`.o`，`.so`以及`-lxxx`的顺序，假如 A 依赖 B，那么`B`应该在`A`后面，即`gcc A B -o a.out`
-
-    * 猜想：所有`.o`文件必须写在`.so`的前面，`-lxxx`也属于`.so`文件
 
 * 调研的目的不是完成任务，而是要有输出
 
@@ -99,7 +78,7 @@
 
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
-* 调研`asprintf()`
+* [ ] 调研`asprintf()`
 
 * [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
 
@@ -185,7 +164,7 @@
 
 * isoinfo 在 genisoimage 包中
 
-* 对于一个新手来说，该如何入门dpdk ?
+* 对于一个新手来说，该如何入门 dpdk ?
 
     <https://www.zhihu.com/question/39309195/answer/2993073221>
 
@@ -709,6 +688,24 @@
 
         权重的不平衡性太大了。
 
+* [v] reorg project pool 09/04
+
+* [v] 调研 reorg
+
+    feedback:
+
+    * [ ] 调研 python 中的 hashset
+
+    * [ ] 调研 pathon 中的 path concatenate
+
+    * [ ] 调研 python 中不同 path 的变体如何判断是相同 path
+
+        比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
+
+    * [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
+
+    * [ ] 调研 git ignore 的实现原理
+
 ## qa
 
 cached:
@@ -905,53 +902,27 @@ tasks:
 
 * reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
 
+* 对于主动采样操作的 log 格式参考
+
+    1. 当成功 poll 到 valid event 时，显示在这之前 poll empty event 多少次，并且清零 empty event 的计数
+
+    2. 没有 poll 到 valid event 时，每 1000 次显示一次结果
+
+* send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
+
+* mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
+
+* mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
+
+* [ ] ln 是否能创建文件夹的 hard link?
+
 ### tasks
 
-* [v] 调研将 rdma umd 中 zero cqe 的 log 改为：
-
-    1. 当成功 poll 到 cqe 时，显示在这之前 poll zero cqe 多少次，并且清零 zero cqe 的计数
-
-    2. 没有 poll 到 cqe 时，每 1000 次显示一次结果
+* [v] 调研 imm 拆分多 qp 的 send 和 recv 过程，使得可以并行 send，并行 recv
 
     feedback:
 
-    1. 这个格式挺好的，可以作为以后空操作打 log 的参考
-
-* [v] 调研 nccl 打开 debug，配置 buffer 到 32KB
-
-    09:43 ~ 11:49
-
-* [v] 调研 mpirun `--host`是否可以指定 ip address
-
-    feedback:
-
-    1. ip address 可以在 qemu 虚拟机里运行成功,并且 qemu 虚拟机只支持 ip address,不支持 host name
-
-    2. 猜测可能可 ifconfig 显示的网卡顺序有关
-
-    3. [ ] 调研是否可以调整 ifconfig 显示的网卡顺序
-
-    4. [ ] 调研是否可以在 mpi 中指定通信网卡
-
-* [v] 调研 attach ＋ process id 调试普通 mpi 程序
-
-* [v] 总结 umd 的难点
-
-* [v] 调研将 remote write 改成 script 模式
-
-    feedback:
-
-    1. send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
-
-    2. mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
-
-* [v] 调研将 imm 改成 config 模式
-
-    feedback:
-
-    1. [ ] 调研 imm 拆分多 qp 的 send 和 recv 过程，使得可以并行 send，并行 recv
-
-* [v] 调研 vscode debug cuda 程序
+    1. 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
 
 * [v] 调研 nccl 单步调试环境
 
@@ -961,29 +932,17 @@ tasks:
 
     4. [v] 调研 nccl 程序使用自己编译的库启动
 
-* [v] 调研 open mpi 的 ring 程序
-
-    <https://mpitutorial.com/tutorials/mpi-send-and-receive/>
-
-    feedback:
-
-    1. ln 是否能创建文件夹的 hard link?
-
-    2. mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
-
-    3. 接下来学习：<https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
-
-* [v] 调研 vscode debug cuda 程序
-
-* [v] 调研 nccl app debug
-
-* [v] 调研 nccl all reduce debug, imm 和 recv 数量对不上的问题
-
 * [v] 调研 gdb attch + test case 在 umd 中 hit 断点
 
     feedback:
 
     1. 在 mpi 启动 nccl 程序时，gdb attch 无法击中 umd 的断点
+
+* [v] rdma 调研 destroy context 时 free dev 的 bug
+
+* [ ] 调研 openmpi tutorial: <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+* [ ] 调研`perftest`仓库
 
 * [ ] 调研 pytorch 调用 nccl wrapper function
 
@@ -1006,8 +965,6 @@ tasks:
 * [ ] 调研 llama 在 cpu 上的部署
 
 * [ ] 调研 rdma repo 中 pcie driver
-
-* [ ] 调研`perftest`仓库
 
 * [ ] 调研 iwarp 实现的 ibverbs 
 
