@@ -690,13 +690,15 @@
 
 * [v] reorg project pool 09/04
 
+* [v] 调研 pathon 中的 path concatenate
+
+    17:28 ~ 18.02
+
 * [v] 调研 reorg
 
     feedback:
 
     * [ ] 调研 python 中的 hashset
-
-    * [ ] 调研 pathon 中的 path concatenate
 
     * [ ] 调研 python 中不同 path 的变体如何判断是相同 path
 
@@ -986,6 +988,34 @@ tasks:
 
 * [ ] 使用 dataset 和 dataloader 在 cpu 环境下拟合 sine 曲线
 
+## kicad + npspice
+
+### tasks
+
+* [v] 调研 kicad 仿真电阻分压电路
+
+    14:01 ~ 16:53
+
+    feedback:
+
+    1. guideline 可以参考这个：<https://www.instructables.com/Simulating-a-KiCad-Circuit/>，讲得挺详细的
+
+    2. cached tabs:
+
+        * SPICE Simulation
+
+            <https://www.kicad.org/discover/spice/>
+
+    3. deps
+
+        1. [ ] ngspice 仿真出一个简单的网表
+
+            <https://ngspice.sourceforge.io/ngspice-tutorial.html>
+
+        2. [ ] 学习 kicad 的 tutorial
+
+* [ ] 调研 sbt
+
 ## qemu
 
 * [v] 调研 pci device passthrough in qemu
@@ -1156,7 +1186,7 @@ resources:
 
 * 《操作系统设计与实现》
 
-tasks:
+### tasks
 
 * [v] 看 linux 内核那本书
 

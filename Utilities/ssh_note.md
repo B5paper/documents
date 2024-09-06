@@ -32,6 +32,66 @@ Learning materials:
 
 在远程机吕上把公钥写到`authorized_keys`文件里面：`cat ~/id_rsa.pub >> ~/.ssh/authorized_keys`
 
+## Installation
+
+安装 openssh-server:
+
+`sudo apt install openssh-server`
+
+查看服务列表：
+
+`service --status-all`
+
+output:
+
+```
+ [ + ]  acpid
+ [ - ]  alsa-utils
+ [ - ]  anacron
+ [ + ]  apparmor
+ [ + ]  apport
+ [ + ]  avahi-daemon
+ [ - ]  bluetooth
+ [ - ]  console-setup.sh
+ [ + ]  cron
+ [ + ]  cups
+ [ + ]  cups-browsed
+ [ + ]  dbus
+ [ + ]  gdm3
+ [ - ]  grub-common
+ [ - ]  hwclock.sh
+ [ + ]  irqbalance
+ [ + ]  kerneloops
+ [ - ]  keyboard-setup.sh
+ [ + ]  kmod
+ [ - ]  nfs-common
+ [ + ]  nfs-kernel-server
+ [ + ]  openvpn
+ [ - ]  plymouth
+ [ + ]  plymouth-log
+ [ + ]  procps
+ [ - ]  pulseaudio-enable-autospawn
+ [ + ]  rpcbind
+ [ - ]  rsync
+ [ - ]  saned
+ [ - ]  speech-dispatcher
+ [ - ]  spice-vdagent
+ [ + ]  ssh
+ [ + ]  ubuntu-fan
+ [ + ]  udev
+ [ + ]  ufw
+ [ + ]  unattended-upgrades
+ [ - ]  uuidd
+ [ - ]  whoopsie
+ [ - ]  x11-common
+```
+
+看到有` [ + ]  ssh`，说明 ssh 服务启动成功。
+
+启动 ssh 服务：
+
+`service ssh start`
+
 ## connect to a ssh server through a jump/intermediary server
 
 Ref: <https://www.cyberciti.biz/faq/linux-unix-ssh-proxycommand-passing-through-one-host-gateway-server/>
@@ -184,10 +244,24 @@ To tell the ssh client to ignore all of the options specified in the ssh configu
 
 ## Problem shooting
 
-1. `debug1: Local version string SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.1`
+* `debug1: Local version string SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.1`
 
     `Connection closed by UNKNOWN port 65535`
 
     Usually it's the network problem. Please check `~/.ssh/config` if there is any unexpected config.
 
     Also please check proxy configs.
+
+* 启动服务`ssh`时，报错`sshd: no hostkeys available -- exiting`
+
+    需要进入`/etc/ssh`文件夹下生成 rsa 的公钥：
+
+    `ssh-keygen -A`
+
+    然后再启动`ssh`就可以了：`sudo service ssh start`。
+
+* 客户端登录`ssh`时，报错`no hostkeys available`
+
+    需要在服务器端修改配置文件`/etc/ssh/sshd_config`，把`PasswordAuthentication`改成`yes`。
+
+    此时用`sudo service ssh restart`重启服务好像也没用，可能需要重启系统才行。

@@ -288,91 +288,6 @@ Ref:
 
     * [2024.06.29] 似乎不可以，如果将`device_create()`中的 class 设置为`NULL`，那么函数会成功执行，但是`/dev`中没有生成设备文件
 
-* linked list 的一个 example
-
-    见`ref_19`
-
-    output:
-
-    ```
-    [24310.834664] in init_mod()...
-    [24310.834666] traverse list:
-    [24310.834667] 3
-    [24310.834667] 2
-    [24310.834668] 1
-    [24310.834668] 4
-    [24310.834668] list len: 4
-    [24319.849530] in exit_mod()...
-    ```
-
-    说明：
-
-    1. 头文件：`#include <linux/list.h>`
-
-    2. `struct list_head`只包含两个成员，一个是`prev`，一个是`next`
-
-        所以 linux kernel 中的链表其实是个双向链表。
-
-    3. 我们在构建自定义的链表数据结构的时候，需要把`struct list_head`作为一个成员：
-
-        ```c
-        struct ListNode {
-            struct list_head head;
-            int my_data;
-        };
-        ```
-
-    4. `INIT_LIST_HEAD(&lst_head);`用于初始化一个链表头，主要功能就是让 next 和 prev 都指向自己。
-
-        注意这个 list head 不是定义在`ListNode`之中的，它只是一个 head，不存储数据。
-
-        linux 想象中的链表是这样的：
-
-        `list_head` -> `ListNode` -> `ListNode` -> `ListNode` -> `...`
-
-        因此`list_head`只是一个链表头，本身不算一个完整的节点。在执行遍历等操作时，`list_head`都不会被访问到。
-
-    5. `list_add(&node_1.head, &lst_head);`
-
-        在`lst_head`后添加一个新节点`node_1`。
-
-        对于后面的`node_2`，`node_3`等，由于每次都是在`lst_head`后面添加，所以其实是倒序添加的：
-
-        ```
-        lst_head
-        lst_head -> 1
-        lst_head -> 2 -> 1
-        lst_head -> 3 -> 2 -> 1
-        ```
-
-    6. `list_add_tail(&node_4.head, &lst_head);`是在链表的末尾添加 node 4:
-
-        ```
-        lst_head -> 3 -> 2 -> 1 -> 4
-        ```
-
-    7. 遍历时，通过给定自定义类型的指针和`lsit_head`在自定义类型中的名称来进行遍历
-
-        ```c
-        struct ListNode {
-            struct list_head head;
-            int my_data;
-        };
-
-        // ...
-
-        struct ListNode *cur;
-        list_for_each_entry(cur, &lst_head, head) {
-            pr_info("%d\n", cur->my_data);
-        }
-        ```
-
-        可以看到，`cur`是用户自己提供的指针，用来访问当前遍历到的节点；`&lst_head`是链表头，`head`是`struct list_head`成员在用户自定义类型`ListNode`里的名字。
-
-        `list_for_each_entry()`是一个宏，将宏展开可以看到它是如何确定每个`cur`的地址的。主要是根据`offset(head)`找到`head`的相对偏移，然后根据`head`的相对偏移再结合`head`的地址，找到`ListNode`的起始地址，这个地址就是`cur`的值。
-
-    8. 遍历的输出为`3, 2, 1, 4`，链表长度为`4`，说明在遍历时并没有访问到`lst_head`。
-
 * 使用自己创建的 work queue 的一个 example
 
     见`ref_18`。
@@ -7116,7 +7031,158 @@ If you want to use your own dedicated workqueue you should create a workqueue us
 
 If you don’t want to create any own workqueue, you can use kernel global workqueue. In that condition, you can use schedule_work function to put your work to global workqueue.
 
-## Linked list
+## 常用数据结构
+
+* cache
+
+    * linked list 的一个 example
+
+        ```c
+        #include <linux/init.h>
+        #include <linux/module.h>
+        #include <linux/list.h>
+
+        struct ListNode {
+            struct list_head head;
+            int my_data;
+        };
+
+        struct list_head lst_head;
+
+        int init_mod(void)
+        {
+            pr_info("in init_mod()...\n");
+            INIT_LIST_HEAD(&lst_head);
+            struct ListNode node_1 = {
+                .my_data = 1
+            };
+            struct ListNode node_2 = {
+                .my_data = 2
+            };
+            struct ListNode node_3 = {
+                .my_data = 3
+            };
+            struct ListNode node_4 = {
+                .my_data = 4
+            };
+            list_add(&node_1.head, &lst_head);
+            list_add(&node_2.head, &lst_head);
+            list_add(&node_3.head, &lst_head);
+            list_add_tail(&node_4.head, &lst_head);
+            struct ListNode *cur;
+            int len_count = 0;
+            pr_info("traverse list:\n");
+            list_for_each_entry(cur, &lst_head, head) {
+                pr_info("%d\n", cur->my_data);
+                ++len_count;
+            }
+            pr_info("list len: %d\n", len_count);
+            return 0;
+        }
+
+        void exit_mod(void)
+        {
+            pr_info("in exit_mod()...\n");
+        }
+
+        module_init(init_mod);
+        module_exit(exit_mod);
+        MODULE_LICENSE("GPL");
+        ```
+
+        makefile:
+
+        ```makefile
+        KERN_DIR=/usr/src/linux-source-6.5.0/linux-source-6.5.0
+        obj-m += lnk_lst.o
+        default:
+            $(MAKE) -C $(KERN_DIR) M=$(PWD) modules
+        clean:
+            rm -f *.o *.ko
+        ```
+
+        output:
+
+        ```
+        [24310.834664] in init_mod()...
+        [24310.834666] traverse list:
+        [24310.834667] 3
+        [24310.834667] 2
+        [24310.834668] 1
+        [24310.834668] 4
+        [24310.834668] list len: 4
+        [24319.849530] in exit_mod()...
+        ```
+
+        说明：
+
+        1. 头文件：`#include <linux/list.h>`
+
+        2. `struct list_head`只包含两个成员，一个是`prev`，一个是`next`
+
+            所以 linux kernel 中的链表其实是个双向链表。
+
+        3. 我们在构建自定义的链表数据结构的时候，需要把`struct list_head`作为一个成员：
+
+            ```c
+            struct ListNode {
+                struct list_head head;
+                int my_data;
+            };
+            ```
+
+        4. `INIT_LIST_HEAD(&lst_head);`用于初始化一个链表头，主要功能就是让 next 和 prev 都指向自己。
+
+            注意这个 list head 不是定义在`ListNode`之中的，它只是一个 head，不存储数据。
+
+            linux 想象中的链表是这样的：
+
+            `list_head` -> `ListNode` -> `ListNode` -> `ListNode` -> `...`
+
+            因此`list_head`只是一个链表头，本身不算一个完整的节点。在执行遍历等操作时，`list_head`都不会被访问到。
+
+        5. `list_add(&node_1.head, &lst_head);`
+
+            在`lst_head`后添加一个新节点`node_1`。
+
+            对于后面的`node_2`，`node_3`等，由于每次都是在`lst_head`后面添加，所以其实是倒序添加的：
+
+            ```
+            lst_head
+            lst_head -> 1
+            lst_head -> 2 -> 1
+            lst_head -> 3 -> 2 -> 1
+            ```
+
+        6. `list_add_tail(&node_4.head, &lst_head);`是在链表的末尾添加 node 4:
+
+            ```
+            lst_head -> 3 -> 2 -> 1 -> 4
+            ```
+
+        7. 遍历时，通过给定自定义类型的指针和`lsit_head`在自定义类型中的名称来进行遍历
+
+            ```c
+            struct ListNode {
+                struct list_head head;
+                int my_data;
+            };
+
+            // ...
+
+            struct ListNode *cur;
+            list_for_each_entry(cur, &lst_head, head) {
+                pr_info("%d\n", cur->my_data);
+            }
+            ```
+
+            可以看到，`cur`是用户自己提供的指针，用来访问当前遍历到的节点；`&lst_head`是链表头，`head`是`struct list_head`成员在用户自定义类型`ListNode`里的名字。
+
+            `list_for_each_entry()`是一个宏，将宏展开可以看到它是如何确定每个`cur`的地址的。主要是根据`offset(head)`找到`head`的相对偏移，然后根据`head`的相对偏移再结合`head`的地址，找到`ListNode`的起始地址，这个地址就是`cur`的值。
+
+        8. 遍历的输出为`3, 2, 1, 4`，链表长度为`4`，说明在遍历时并没有访问到`lst_head`。
+
+### Linked list
 
 Linux implement a Doubly Linked List, which is defined in `/lib/modules/$(uname -r)/build/include/linux/list.h`.
 
@@ -7808,6 +7874,8 @@ test:
 cat /dev/etx_device
 echo 10 > /dev/etx_device
 ```
+
+### Radix Tree
 
 ## Thread
 
