@@ -2,6 +2,8 @@
 
 ## cache
 
+* git 先`get fetch <remote_name>:<remote_branch>`，再`git checkout <remote_branch>`，就可以自动把 remote branch 同步到本地一个新的 branch 了。
+
 * git remote 采用 ssh 协议时的一个 example
 
     `ssh://hlc@<ip>:<port>/home/hlc/Documents/Projects/my_proj`

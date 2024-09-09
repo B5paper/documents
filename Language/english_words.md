@@ -541,3 +541,9 @@ scrape prn. [skreɪp] v. 刮，擦
 perplexity prn. [pərˈpleksəti] n. 复杂
 
 departure n. 离开，启程，离职
+
+quirk n. 怪癖
+
+hiccup prn. [ˈhɪkəp] n. 暂时性的小问题
+
+* counterpart n. 对应的事物

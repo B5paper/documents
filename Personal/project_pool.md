@@ -36,6 +36,8 @@
 
 ## cached
 
+* [ ] 调研：同一个 so 文件中的全局变量和 static 局部变量，被不同 app 调用时，是共享的还是独立的？假如是共享的，那么如果一个 so 文件使用 nfs 进行 share，在两个 node 上分别起一个 app 调用 so，其中的全局变量是共享的还独立的？
+
 * 如果 nfs server 在 export 目录软链接其他路径的目录/文件，那么 client 的 nfs 目录里的软链接会链到 client 的文件目录上，不会读取 server 的软链接的内容
 
 * 调研的目的不是完成任务，而是要有输出
@@ -708,6 +710,14 @@
 
     * [ ] 调研 git ignore 的实现原理
 
+* [v] reorg 30 mins
+
+    12:50 ~ 13:28
+
+    feedback:
+
+    1. 在 linux driver note 中，linked list 已经被学过两遍了，有时间 sync 一下，整理成 qa
+
 ## qa
 
 cached:
@@ -944,6 +954,8 @@ tasks:
 
 * [ ] 调研 openmpi tutorial: <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
+* [v] 调研 mlnx ce4 跑通 test case
+
 * [ ] 调研`perftest`仓库
 
 * [ ] 调研 pytorch 调用 nccl wrapper function
@@ -988,7 +1000,79 @@ tasks:
 
 * [ ] 使用 dataset 和 dataloader 在 cpu 环境下拟合 sine 曲线
 
+## riscv
+
+* [ ] 调研 chisel 的编译和项目开发环境
+
 ## kicad + npspice
+
+### cache
+
+* ngspice 仿真电路
+
+    install: `sudo apt install ngspice`
+
+    仿真一个简单的电阻分压电路：
+
+    1. 新建工程目录，新建一个文件：
+
+        `netlist_1.cir`:
+
+        ```ngspice
+        voltage divider netlist
+        V1 in 0 1
+        R1 in out 1k
+        R2 out 0 2k
+        .end
+        ```
+
+    2. 启动 ngspice，进入命令行界面
+
+        `ngspice`
+
+        ```
+        (base) hlc@hlc-VirtualBox:~/Documents/Projects/ngspice_test$ ngspice
+        ******
+        ** ngspice-36 : Circuit level simulation program
+        ** The U. C. Berkeley CAD Group
+        ** Copyright 1985-1994, Regents of the University of California.
+        ** Copyright 2001-2020, The ngspice team.
+        ** Please get your ngspice manual from http://ngspice.sourceforge.net/docs.html
+        ** Please file your bug-reports at http://ngspice.sourceforge.net/bugrep.html
+        ** Creation Date: Mon Mar 11 21:44:53 UTC 2024
+        ******
+        ngspice 1 -> 
+        ```
+
+    3. 使用`source`加载网表文件
+
+        ```bash
+
+        ```
+
+* kicad note
+
+    * install
+
+        ```bash
+        sudo apt install kicad
+        ```
+
+* ngspice note
+
+    * install
+
+        ```bash
+        sudo apt install ngspicd
+        ```
+
+    * ngspice official site
+
+        <https://ngspice.sourceforge.io/tutorials.html>
+
+* wikipedia 上列出的常用 spice 的资料
+
+    * <https://en.wikipedia.org/wiki/List_of_free_electronics_circuit_simulators>
 
 ### tasks
 
@@ -1013,6 +1097,14 @@ tasks:
             <https://ngspice.sourceforge.io/ngspice-tutorial.html>
 
         2. [ ] 学习 kicad 的 tutorial
+
+* [v] 调研 ngspice 仿真一个简单电路
+
+    14:08 ~ 
+
+    feedback:
+
+    1. [ ] 调研 gpulot
 
 * [ ] 调研 sbt
 
