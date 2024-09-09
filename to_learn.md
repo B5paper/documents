@@ -5137,3 +5137,59 @@
 * linux驱动之mmap地址映射
 
     <https://blog.csdn.net/qq_40684669/article/details/127893147>
+
+* python Data Structures
+
+    <https://docs.python.org/3/tutorial/datastructures.html>
+
+* Python Set Methods
+
+    <https://www.toppr.com/guides/python-guide/references/methods-and-functions/methods/set/python-set-methods/>
+
+* HashSets and HashTables in Python
+
+    <https://www.askpython.com/python/examples/hashsets-and-hashtables-in-python>
+
+* Hash Map in Python
+
+    <https://www.geeksforgeeks.org/hash-map-in-python/>
+
+* Hash Map in Python
+
+    <https://stackoverflow.com/questions/8703496/hash-map-in-python>
+
+* Is there a way to get Cache Hit/Miss ratios for block devices in Linux?
+
+    <https://serverfault.com/questions/157612/is-there-a-way-to-get-cache-hit-miss-ratios-for-block-devices-in-linux>
+
+* Linux Page Cache Hit Ratio
+
+    <https://www.brendangregg.com/blog/2014-12-31/linux-page-cache-hit-ratio.html>
+
+* Getting Started with sbt
+
+    <https://www.scala-sbt.org/release/docs/Getting-Started.html>
+
+* root package
+
+    <https://www.chisel-lang.org/api/latest/#chisel3.util.package>
+
+* Installing sbt on Linux
+
+    <https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html>
+
+* fast_obj
+
+    <https://github.com/thisistherk/fast_obj>
+
+* Install sbt on ubuntu [closed]
+
+    <https://stackoverflow.com/questions/13711395/install-sbt-on-ubuntu>
+
+* Chisel: A Modern Hardware Design Language 
+
+    <https://github.com/chipsalliance/chisel?tab=readme-ov-file>
+
+* Chisel Tutorials (Release branch)
+
+    <https://github.com/ucb-bar/chisel-tutorial>
