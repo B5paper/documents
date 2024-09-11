@@ -546,4 +546,6 @@ quirk n. 怪癖
 
 hiccup prn. [ˈhɪkəp] n. 暂时性的小问题
 
-* counterpart n. 对应的事物
+counterpart n. 对应的事物
+
+simultaneous a. 同时发生的

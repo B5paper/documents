@@ -5193,3 +5193,33 @@
 * Chisel Tutorials (Release branch)
 
     <https://github.com/ucb-bar/chisel-tutorial>
+
+* 贝叶斯相关
+
+    * A Guide to Inferencing With Bayesian Network in Python
+
+        <https://analyticsindiamag.com/a-guide-to-inferencing-with-bayesian-network-in-python/>
+
+    * How To Implement Bayesian Networks In Python? – Bayesian Networks Explained With Examples
+
+        <https://www.edureka.co/blog/bayesian-networks/>
+
+    * BBN: Bayesian Belief Networks — How to Build Them Effectively in Python
+
+        <https://towardsdatascience.com/bbn-bayesian-belief-networks-how-to-build-them-effectively-in-python-6b7f93435bba>
+
+    * 2. Bayesian Network
+
+        <https://pgmpy.org/detailed_notebooks/2.%20Bayesian%20Networks.html>
+
+    * Dynamic Bayesian networks - an introduction
+
+        <https://www.bayesserver.com/docs/introduction/dynamic-bayesian-networks/>
+
+    * User interface
+
+        <https://www.bayesserver.com/docs/>
+
+* MicroTeX
+
+    <https://github.com/NanoMichael/MicroTeX>
