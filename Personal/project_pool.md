@@ -42,7 +42,11 @@
 
     这种现象可以被称为概念的禁锢。
 
-* [ ] 调研：同一个 so 文件中的全局变量和 static 局部变量，被不同 app 调用时，是共享的还是独立的？假如是共享的，那么如果一个 so 文件使用 nfs 进行 share，在两个 node 上分别起一个 app 调用 so，其中的全局变量是共享的还独立的？
+* [v] 调研：同一个 so 文件中的全局变量和 static 局部变量，被不同 app 调用时，是共享的还是独立的？假如是共享的，那么如果一个 so 文件使用 nfs 进行 share，在两个 node 上分别起一个 app 调用 so，其中的全局变量是共享的还独立的？
+
+    feedback:
+
+    1. 对于每个程序来说，so 文件中的全局变量都是独立的, 函数中的 static 变量也是独立的
 
 * 如果 nfs server 在 export 目录软链接其他路径的目录/文件，那么 client 的 nfs 目录里的软链接会链到 client 的文件目录上，不会读取 server 的软链接的内容
 
@@ -818,6 +822,10 @@ tasks:
 
 * [v] cache tabs 08/30
 
+* [v] cache tabs 30 mins  09/10
+
+    11:35 ~ 11:45
+
 ## rdma
 
 ### cache
@@ -934,33 +942,75 @@ tasks:
 
 * [ ] ln 是否能创建文件夹的 hard link?
 
+* [ ] 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
+
 ### tasks
-
-* [v] 调研 imm 拆分多 qp 的 send 和 recv 过程，使得可以并行 send，并行 recv
-
-    feedback:
-
-    1. 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
-
-* [v] 调研 nccl 单步调试环境
-
-    feedback:
-
-    3. [v] 调研 vscode debug nccl 程序
-
-    4. [v] 调研 nccl 程序使用自己编译的库启动
-
-* [v] 调研 gdb attch + test case 在 umd 中 hit 断点
-
-    feedback:
-
-    1. 在 mpi 启动 nccl 程序时，gdb attch 无法击中 umd 的断点
-
-* [v] rdma 调研 destroy context 时 free dev 的 bug
 
 * [ ] 调研 openmpi tutorial: <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
-* [v] 调研 mlnx ce4 跑通 test case
+* [v] 调研 mlnx cx4 跑通 test case
+
+* [v] 调研 mellanox 网卡启动 roce 协议
+
+    feedback:
+
+    1. <https://docs.nvidia.com/networking/display/mlnxofedv531001/ethernet+interface(base)>指出，ports of connectx-4 adapter cards and above can be individually configured to work as infiniband or ethernet ports.
+
+        if you wish to change the port type, use the mlxconfig script after the driver is loaded.
+
+        这个配置方案说是在<https://www.mellanox.com>上，但是这个网站目前已经失效了。
+
+    2. ofed installer 中似乎没有配置 roce 的相关文档和脚本
+
+    3. 设置 cma default roce mode: <https://enterprise-support.nvidia.com/s/article/howto-set-the-default-roce-mode-when-using-rdma-cm>
+
+        看起来是更改 cma 的默认 roce 设备的。在我们的 test case 里，直接使用 open device 打开指定设备，不存在默认设备这一说。因此应该和这个默认设备配置关系不大。
+
+    4. 一个可能有用的网站：<https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/configuring_infiniband_and_rdma_networks/configuring-roce_configuring-infiniband-and-rdma-networks#configuring-roce_configuring-infiniband-and-rdma-networks>
+
+    5. 可能有用的一组命令
+
+        `mlxconfig`, 
+
+        ```
+        (base) hlc@zjxj:~$ mlx
+        mlxburn                mlxfwstress            mlxptrace
+        mlxburn_old            mlxfwstress_ext        mlxptrace_ext
+        mlxcableimgen          mlxgearbox             mlxptrace_int
+        mlxcables              mlxi2c                 mlxreg
+        mlxcables_ext          mlxlink                mlxreg_ext
+        mlxconfig              mlxlink_ext            mlxtokengenerator
+        mlxdpa                 mlxlink_plane_wrapper  mlxtrace
+        mlxdump                mlxmcg                 mlxtrace_ext
+        mlxdump_ext            mlxmdio                mlxuptime
+        mlx_fs_dump            mlxpci                 mlxvpd
+        mlxfwmanager           mlxphyburn             
+        mlxfwreset             mlxprivhost
+        ```
+
+        上面是`mlx`开头的一组命令，可能有用。
+
+    6. 目前看到的信息是 cx5 的网卡支持的协议有 ib 和 roce v1，cx4 网卡支持的协议是 roce v2。
+
+* [v] 调研 nccl 是否能不跳过 mr 的注册  30 mins
+
+    只通过修改宏和环境变量来满足要求
+
+    feedback:
+
+    1. nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
+
+        添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
+
+    2. 下次试试将 nccl 中的宏恢复原样，只添加环境变量，是否还能跑通 test case。
+
+* [ ] 调研在 mpi 启动 nccl 程序时，gdb attch 无法击中 umd 的断点的情况
+
+    猜想：
+
+    1. 可能和某一层代码没有用`-g`编译有关
+
+    2. 可能和使用 cuda-gdb 而没使用标准版 gdb 有关
 
 * [ ] 调研`perftest`仓库
 
