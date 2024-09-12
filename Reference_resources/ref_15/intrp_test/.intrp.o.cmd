@@ -1,8 +1,8 @@
-savedcmd_/home/hlc/Documents/Projects/intrp_test/intrp.o := gcc-12 -Wp,-MMD,/home/hlc/Documents/Projects/intrp_test/.intrp.o.d -nostdinc -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/compiler-version.h -include ./include/linux/kconfig.h -I./ubuntu/include -include ./include/linux/compiler_types.h -D__KERNEL__ -fmacro-prefix-map=./= -std=gnu11 -fshort-wchar -funsigned-char -fno-common -fno-PIE -fno-strict-aliasing -Wall -Wundef -Werror=implicit-function-declaration -Werror=implicit-int -Werror=return-type -Werror=strict-prototypes -Wno-format-security -Wno-trigraphs -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -fcf-protection=none -m64 -falign-jumps=1 -falign-loops=1 -mno-80387 -mno-fp-ret-in-387 -mpreferred-stack-boundary=3 -mskip-rax-setup -mtune=generic -mno-red-zone -mcmodel=kernel -Wno-sign-compare -fno-asynchronous-unwind-tables -mindirect-branch=thunk-extern -mindirect-branch-register -mindirect-branch-cs-prefix -mfunction-return=thunk-extern -fno-jump-tables -mharden-sls=all -fpatchable-function-entry=16,16 -fno-delete-null-pointer-checks -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-address-of-packed-member -O2 -fno-allow-store-data-races -Wframe-larger-than=1024 -fstack-protector-strong -Wno-main -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-dangling-pointer -fno-omit-frame-pointer -fno-optimize-sibling-calls -ftrivial-auto-var-init=zero -fno-stack-clash-protection -fzero-call-used-regs=used-gpr -pg -mrecord-mcount -mfentry -DCC_USING_FENTRY -falign-functions=16 -Wvla -Wno-pointer-sign -Wcast-function-type -Wno-stringop-truncation -Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized -Wno-array-bounds -Wno-alloc-size-larger-than -Wimplicit-fallthrough=5 -fno-strict-overflow -fno-stack-check -fconserve-stack -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -Wno-packed-not-aligned -g -gdwarf-5  -fsanitize=bounds-strict -fsanitize=shift -fsanitize=bool -fsanitize=enum  -DMODULE  -DKBUILD_BASENAME='"intrp"' -DKBUILD_MODNAME='"intrp"' -D__KBUILD_MODNAME=kmod_intrp -c -o /home/hlc/Documents/Projects/intrp_test/intrp.o /home/hlc/Documents/Projects/intrp_test/intrp.c   ; ./tools/objtool/objtool --hacks=jump_label --hacks=noinstr --hacks=skylake --retpoline --rethunk --sls --stackval --static-call --uaccess --prefix=16   --module /home/hlc/Documents/Projects/intrp_test/intrp.o
+savedcmd_/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o := gcc-12 -Wp,-MMD,/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/.intrp.o.d -nostdinc -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/compiler-version.h -include ./include/linux/kconfig.h -I./ubuntu/include -include ./include/linux/compiler_types.h -D__KERNEL__ -fmacro-prefix-map=./= -std=gnu11 -fshort-wchar -funsigned-char -fno-common -fno-PIE -fno-strict-aliasing -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -fcf-protection=none -m64 -falign-jumps=1 -falign-loops=1 -mno-80387 -mno-fp-ret-in-387 -mpreferred-stack-boundary=3 -mskip-rax-setup -mtune=generic -mno-red-zone -mcmodel=kernel -Wno-sign-compare -fno-asynchronous-unwind-tables -mindirect-branch=thunk-extern -mindirect-branch-register -mindirect-branch-cs-prefix -mfunction-return=thunk-extern -fno-jump-tables -mharden-sls=all -fpatchable-function-entry=16,16 -fno-delete-null-pointer-checks -O2 -fno-allow-store-data-races -fstack-protector-strong -fno-omit-frame-pointer -fno-optimize-sibling-calls -ftrivial-auto-var-init=zero -fno-stack-clash-protection -fzero-call-used-regs=used-gpr -pg -mrecord-mcount -mfentry -DCC_USING_FENTRY -falign-functions=16 -fno-strict-overflow -fno-stack-check -fconserve-stack -Wall -Wundef -Werror=implicit-function-declaration -Werror=implicit-int -Werror=return-type -Werror=strict-prototypes -Wno-format-security -Wno-trigraphs -Wno-frame-address -Wno-address-of-packed-member -Wmissing-declarations -Wmissing-prototypes -Wframe-larger-than=1024 -Wno-main -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-dangling-pointer -Wvla -Wno-pointer-sign -Wcast-function-type -Wno-stringop-overflow -Wno-array-bounds -Wno-alloc-size-larger-than -Wimplicit-fallthrough=5 -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -Wenum-conversion -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-restrict -Wno-packed-not-aligned -Wno-format-overflow -Wno-format-truncation -Wno-stringop-truncation -Wno-override-init -Wno-missing-field-initializers -Wno-type-limits -Wno-shift-negative-value -Wno-maybe-uninitialized -Wno-sign-compare -g -gdwarf-5  -fsanitize=bounds-strict -fsanitize=shift -fsanitize=bool -fsanitize=enum  -DMODULE  -DKBUILD_BASENAME='"intrp"' -DKBUILD_MODNAME='"intrp"' -D__KBUILD_MODNAME=kmod_intrp -c -o /home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o /home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.c   ; ./tools/objtool/objtool --hacks=jump_label --hacks=noinstr --hacks=skylake --retpoline --rethunk --sls --stackval --static-call --uaccess --prefix=16   --module /home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o
 
-source_/home/hlc/Documents/Projects/intrp_test/intrp.o := /home/hlc/Documents/Projects/intrp_test/intrp.c
+source_/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o := /home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.c
 
-deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
+deps_/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o := \
   include/linux/compiler-version.h \
     $(wildcard include/config/CC_VERSION_TEXT) \
   include/linux/kconfig.h \
@@ -14,11 +14,14 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/PAHOLE_HAS_BTF_TAG) \
     $(wildcard include/config/FUNCTION_ALIGNMENT) \
     $(wildcard include/config/CC_IS_GCC) \
+    $(wildcard include/config/X86_64) \
+    $(wildcard include/config/ARM64) \
     $(wildcard include/config/HAVE_ARCH_COMPILER_H) \
     $(wildcard include/config/CC_HAS_ASM_INLINE) \
   include/linux/compiler_attributes.h \
   include/linux/compiler-gcc.h \
     $(wildcard include/config/RETPOLINE) \
+    $(wildcard include/config/GCC_ASM_GOTO_OUTPUT_WORKAROUND) \
     $(wildcard include/config/ARCH_USE_BUILTIN_BSWAP) \
     $(wildcard include/config/SHADOW_CALL_STACK) \
     $(wildcard include/config/KCOV) \
@@ -39,8 +42,16 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/const.h \
   include/vdso/const.h \
   include/uapi/linux/const.h \
-  include/linux/limits.h \
-  include/uapi/linux/limits.h \
+  include/linux/array_size.h \
+  include/linux/compiler.h \
+    $(wildcard include/config/TRACE_BRANCH_PROFILING) \
+    $(wildcard include/config/PROFILE_ALL_BRANCHES) \
+    $(wildcard include/config/OBJTOOL) \
+  arch/x86/include/generated/asm/rwonce.h \
+  include/asm-generic/rwonce.h \
+  include/linux/kasan-checks.h \
+    $(wildcard include/config/KASAN_GENERIC) \
+    $(wildcard include/config/KASAN_SW_TAGS) \
   include/linux/types.h \
     $(wildcard include/config/HAVE_UID16) \
     $(wildcard include/config/UID16) \
@@ -63,26 +74,18 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/X86_32) \
   arch/x86/include/uapi/asm/posix_types_64.h \
   include/uapi/asm-generic/posix_types.h \
+  include/linux/kcsan-checks.h \
+    $(wildcard include/config/KCSAN) \
+    $(wildcard include/config/KCSAN_WEAK_MEMORY) \
+    $(wildcard include/config/KCSAN_IGNORE_ATOMICS) \
+  include/linux/limits.h \
+  include/uapi/linux/limits.h \
   include/vdso/limits.h \
   include/linux/linkage.h \
     $(wildcard include/config/ARCH_USE_SYM_ANNOTATIONS) \
   include/linux/stringify.h \
   include/linux/export.h \
     $(wildcard include/config/MODVERSIONS) \
-    $(wildcard include/config/MODULES) \
-  include/linux/compiler.h \
-    $(wildcard include/config/TRACE_BRANCH_PROFILING) \
-    $(wildcard include/config/PROFILE_ALL_BRANCHES) \
-    $(wildcard include/config/OBJTOOL) \
-  arch/x86/include/generated/asm/rwonce.h \
-  include/asm-generic/rwonce.h \
-  include/linux/kasan-checks.h \
-    $(wildcard include/config/KASAN_GENERIC) \
-    $(wildcard include/config/KASAN_SW_TAGS) \
-  include/linux/kcsan-checks.h \
-    $(wildcard include/config/KCSAN) \
-    $(wildcard include/config/KCSAN_WEAK_MEMORY) \
-    $(wildcard include/config/KCSAN_IGNORE_ATOMICS) \
   arch/x86/include/asm/linkage.h \
     $(wildcard include/config/CALL_PADDING) \
     $(wildcard include/config/RETHUNK) \
@@ -91,7 +94,6 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/UML) \
   arch/x86/include/asm/ibt.h \
     $(wildcard include/config/X86_KERNEL_IBT) \
-    $(wildcard include/config/X86_64) \
   include/linux/container_of.h \
   include/linux/build_bug.h \
   include/linux/bitops.h \
@@ -112,6 +114,7 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   arch/x86/include/asm/bitops.h \
     $(wildcard include/config/X86_CMOV) \
   arch/x86/include/asm/rmwcc.h \
+  include/linux/args.h \
   include/asm-generic/bitops/sched.h \
   arch/x86/include/asm/arch_hweight.h \
   arch/x86/include/asm/cpufeatures.h \
@@ -135,6 +138,7 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/X86_SGX) \
     $(wildcard include/config/XEN_PV) \
     $(wildcard include/config/INTEL_TDX_GUEST) \
+    $(wildcard include/config/X86_USER_SHADOW_STACK) \
   include/asm-generic/bitops/const_hweight.h \
   include/asm-generic/bitops/instrumented-atomic.h \
   include/linux/instrumented.h \
@@ -202,11 +206,13 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/HAVE_ARCH_JUMP_LABEL_RELATIVE) \
   arch/x86/include/asm/jump_label.h \
     $(wildcard include/config/HAVE_JUMP_LABEL_HACK) \
+  include/linux/sprintf.h \
   include/linux/static_call_types.h \
     $(wildcard include/config/HAVE_STATIC_CALL) \
     $(wildcard include/config/HAVE_STATIC_CALL_INLINE) \
   include/linux/instruction_pointer.h \
   include/linux/module.h \
+    $(wildcard include/config/MODULES) \
     $(wildcard include/config/SYSFS) \
     $(wildcard include/config/MODULES_TREE_LOOKUP) \
     $(wildcard include/config/LIVEPATCH) \
@@ -225,6 +231,7 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/CONSTRUCTORS) \
     $(wildcard include/config/FUNCTION_ERROR_INJECTION) \
   include/linux/list.h \
+    $(wildcard include/config/LIST_HARDENED) \
     $(wildcard include/config/DEBUG_LIST) \
   include/linux/poison.h \
     $(wildcard include/config/ILLEGAL_POINTER_VALUE) \
@@ -268,22 +275,6 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/X86_MEM_ENCRYPT) \
   include/linux/cc_platform.h \
     $(wildcard include/config/ARCH_HAS_CC_PLATFORM) \
-  arch/x86/include/uapi/asm/bootparam.h \
-  include/linux/screen_info.h \
-  include/uapi/linux/screen_info.h \
-  include/linux/apm_bios.h \
-  include/uapi/linux/apm_bios.h \
-  include/uapi/linux/ioctl.h \
-  arch/x86/include/generated/uapi/asm/ioctl.h \
-  include/asm-generic/ioctl.h \
-  include/uapi/asm-generic/ioctl.h \
-  include/linux/edd.h \
-  include/uapi/linux/edd.h \
-  arch/x86/include/asm/ist.h \
-  arch/x86/include/uapi/asm/ist.h \
-  include/video/edid.h \
-    $(wildcard include/config/X86) \
-  include/uapi/video/edid.h \
   arch/x86/include/asm/math_emu.h \
   arch/x86/include/asm/ptrace.h \
     $(wildcard include/config/PARAVIRT) \
@@ -364,19 +355,20 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/DEBUG_PER_CPU_MAPS) \
     $(wildcard include/config/CPUMASK_OFFSTACK) \
   include/linux/bitmap.h \
+  include/linux/errno.h \
+  include/uapi/linux/errno.h \
+  arch/x86/include/generated/uapi/asm/errno.h \
+  include/uapi/asm-generic/errno.h \
+  include/uapi/asm-generic/errno-base.h \
   include/linux/find.h \
   include/linux/string.h \
     $(wildcard include/config/BINARY_PRINTF) \
     $(wildcard include/config/FORTIFY_SOURCE) \
   include/linux/err.h \
-  arch/x86/include/generated/uapi/asm/errno.h \
-  include/uapi/asm-generic/errno.h \
-  include/uapi/asm-generic/errno-base.h \
-  include/linux/errno.h \
-  include/uapi/linux/errno.h \
   include/linux/overflow.h \
   include/uapi/linux/string.h \
   include/linux/fortify-string.h \
+  include/linux/bitmap-str.h \
   include/linux/atomic.h \
   arch/x86/include/asm/atomic.h \
   arch/x86/include/asm/cmpxchg.h \
@@ -406,6 +398,10 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   arch/x86/include/asm/msr.h \
   arch/x86/include/asm/cpumask.h \
   arch/x86/include/uapi/asm/msr.h \
+  include/uapi/linux/ioctl.h \
+  arch/x86/include/generated/uapi/asm/ioctl.h \
+  include/asm-generic/ioctl.h \
+  include/uapi/asm-generic/ioctl.h \
   arch/x86/include/asm/shared/msr.h \
   include/linux/tracepoint-defs.h \
   arch/x86/include/asm/special_insns.h \
@@ -416,11 +412,13 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/PREEMPT_TRACER) \
     $(wildcard include/config/DEBUG_IRQFLAGS) \
     $(wildcard include/config/TRACE_IRQFLAGS_SUPPORT) \
+  include/linux/irqflags_types.h \
   include/linux/cleanup.h \
   arch/x86/include/asm/irqflags.h \
   arch/x86/include/asm/fpu/types.h \
   arch/x86/include/asm/vmxfeatures.h \
   arch/x86/include/asm/vdso/processor.h \
+  arch/x86/include/asm/shstk.h \
   include/linux/personality.h \
   include/uapi/linux/personality.h \
   arch/x86/include/asm/tsc.h \
@@ -430,36 +428,39 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/uidgid.h \
     $(wildcard include/config/MULTIUSER) \
     $(wildcard include/config/USER_NS) \
+  include/linux/uidgid_types.h \
   include/linux/highuid.h \
   include/linux/buildid.h \
     $(wildcard include/config/CRASH_CORE) \
-  include/linux/mm_types.h \
-    $(wildcard include/config/HAVE_ALIGNED_STRUCT_PAGE) \
-    $(wildcard include/config/MEMCG) \
-    $(wildcard include/config/USERFAULTFD) \
-    $(wildcard include/config/PER_VMA_LOCK) \
-    $(wildcard include/config/ANON_VMA_NAME) \
+  include/linux/kmod.h \
+  include/linux/umh.h \
+  include/linux/gfp.h \
+    $(wildcard include/config/HIGHMEM) \
+    $(wildcard include/config/ZONE_DMA) \
+    $(wildcard include/config/ZONE_DMA32) \
+    $(wildcard include/config/ZONE_DEVICE) \
+    $(wildcard include/config/COMPACTION) \
+    $(wildcard include/config/CONTIG_ALLOC) \
+  include/linux/mmzone.h \
+    $(wildcard include/config/ARCH_FORCE_MAX_ORDER) \
+    $(wildcard include/config/CMA) \
+    $(wildcard include/config/MEMORY_ISOLATION) \
+    $(wildcard include/config/ZSMALLOC) \
+    $(wildcard include/config/UNACCEPTED_MEMORY) \
     $(wildcard include/config/SWAP) \
     $(wildcard include/config/NUMA_BALANCING) \
-    $(wildcard include/config/SCHED_MM_CID) \
-    $(wildcard include/config/HAVE_ARCH_COMPAT_MMAP_BASES) \
-    $(wildcard include/config/MEMBARRIER) \
-    $(wildcard include/config/AIO) \
-    $(wildcard include/config/MMU_NOTIFIER) \
     $(wildcard include/config/TRANSPARENT_HUGEPAGE) \
-    $(wildcard include/config/ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH) \
-    $(wildcard include/config/HUGETLB_PAGE) \
-    $(wildcard include/config/IOMMU_SVA) \
-    $(wildcard include/config/KSM) \
     $(wildcard include/config/LRU_GEN) \
-  include/linux/mm_types_task.h \
-    $(wildcard include/config/SPLIT_PTLOCK_CPUS) \
-    $(wildcard include/config/ARCH_ENABLE_SPLIT_PMD_PTLOCK) \
-  arch/x86/include/asm/tlbbatch.h \
-  include/linux/auxvec.h \
-  include/uapi/linux/auxvec.h \
-  arch/x86/include/uapi/asm/auxvec.h \
-  include/linux/kref.h \
+    $(wildcard include/config/LRU_GEN_STATS) \
+    $(wildcard include/config/LRU_GEN_WALKS_MMU) \
+    $(wildcard include/config/MEMCG) \
+    $(wildcard include/config/MEMORY_HOTPLUG) \
+    $(wildcard include/config/MEMORY_FAILURE) \
+    $(wildcard include/config/PAGE_EXTENSION) \
+    $(wildcard include/config/DEFERRED_STRUCT_PAGE_INIT) \
+    $(wildcard include/config/HAVE_MEMORYLESS_NODES) \
+    $(wildcard include/config/SPARSEMEM_EXTREME) \
+    $(wildcard include/config/HAVE_ARCH_PFN_VALID) \
   include/linux/spinlock.h \
     $(wildcard include/config/PREEMPTION) \
   include/linux/preempt.h \
@@ -485,7 +486,6 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/llist.h \
     $(wildcard include/config/ARCH_HAVE_NMI_SAFE_CMPXCHG) \
   arch/x86/include/asm/smp.h \
-    $(wildcard include/config/X86_LOCAL_APIC) \
     $(wildcard include/config/DEBUG_NMI_SELFTEST) \
   arch/x86/include/generated/asm/mmiowb.h \
   include/asm-generic/mmiowb.h \
@@ -530,7 +530,53 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/INLINE_WRITE_UNLOCK_IRQ) \
     $(wildcard include/config/INLINE_READ_UNLOCK_IRQRESTORE) \
     $(wildcard include/config/INLINE_WRITE_UNLOCK_IRQRESTORE) \
+  include/linux/list_nulls.h \
+  include/linux/wait.h \
+  include/linux/seqlock.h \
+  include/linux/mutex.h \
+    $(wildcard include/config/DEBUG_MUTEXES) \
+  include/linux/osq_lock.h \
+  include/linux/debug_locks.h \
+  include/linux/mutex_types.h \
+    $(wildcard include/config/MUTEX_SPIN_ON_OWNER) \
+  include/linux/seqlock_types.h \
+  include/linux/nodemask.h \
+  include/linux/nodemask_types.h \
+  include/linux/random.h \
+    $(wildcard include/config/VMGENID) \
+  include/uapi/linux/random.h \
+  include/linux/irqnr.h \
+  include/uapi/linux/irqnr.h \
+  include/linux/prandom.h \
+  include/linux/once.h \
+  include/linux/pageblock-flags.h \
+    $(wildcard include/config/HUGETLB_PAGE) \
+    $(wildcard include/config/HUGETLB_PAGE_SIZE_VARIABLE) \
+  include/linux/page-flags-layout.h \
+  include/generated/bounds.h \
+  include/linux/mm_types.h \
+    $(wildcard include/config/HAVE_ALIGNED_STRUCT_PAGE) \
+    $(wildcard include/config/USERFAULTFD) \
+    $(wildcard include/config/ANON_VMA_NAME) \
+    $(wildcard include/config/PER_VMA_LOCK) \
+    $(wildcard include/config/SCHED_MM_CID) \
+    $(wildcard include/config/HAVE_ARCH_COMPAT_MMAP_BASES) \
+    $(wildcard include/config/MEMBARRIER) \
+    $(wildcard include/config/AIO) \
+    $(wildcard include/config/MMU_NOTIFIER) \
+    $(wildcard include/config/ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH) \
+    $(wildcard include/config/IOMMU_MM_DATA) \
+    $(wildcard include/config/KSM) \
+  include/linux/mm_types_task.h \
+    $(wildcard include/config/SPLIT_PTLOCK_CPUS) \
+    $(wildcard include/config/ARCH_ENABLE_SPLIT_PMD_PTLOCK) \
+  arch/x86/include/asm/tlbbatch.h \
+  include/linux/auxvec.h \
+  include/uapi/linux/auxvec.h \
+  arch/x86/include/uapi/asm/auxvec.h \
+  include/linux/kref.h \
   include/linux/refcount.h \
+  include/linux/refcount_types.h \
   include/linux/rbtree.h \
   include/linux/rbtree_types.h \
   include/linux/rcupdate.h \
@@ -559,19 +605,12 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/rwsem.h \
     $(wildcard include/config/RWSEM_SPIN_ON_OWNER) \
     $(wildcard include/config/DEBUG_RWSEMS) \
-  include/linux/osq_lock.h \
   include/linux/completion.h \
   include/linux/swait.h \
-  include/linux/wait.h \
-  include/uapi/linux/wait.h \
   include/linux/uprobes.h \
     $(wildcard include/config/UPROBES) \
   arch/x86/include/asm/uprobes.h \
   include/linux/notifier.h \
-  include/linux/mutex.h \
-    $(wildcard include/config/MUTEX_SPIN_ON_OWNER) \
-    $(wildcard include/config/DEBUG_MUTEXES) \
-  include/linux/debug_locks.h \
   include/linux/srcu.h \
     $(wildcard include/config/TINY_SRCU) \
     $(wildcard include/config/NEED_SRCU_NMI_SAFE) \
@@ -592,16 +631,16 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/debugobjects.h \
     $(wildcard include/config/DEBUG_OBJECTS) \
     $(wildcard include/config/DEBUG_OBJECTS_FREE) \
+  include/linux/timer_types.h \
+  include/linux/workqueue_types.h \
   include/linux/rcu_segcblist.h \
   include/linux/srcutree.h \
   include/linux/rcu_node_tree.h \
     $(wildcard include/config/RCU_FANOUT) \
     $(wildcard include/config/RCU_FANOUT_LEAF) \
-  include/linux/page-flags-layout.h \
-  include/generated/bounds.h \
-  include/linux/seqlock.h \
   include/linux/percpu_counter.h \
   include/linux/percpu.h \
+    $(wildcard include/config/RANDOM_KMALLOC_CACHES) \
     $(wildcard include/config/NEED_PER_CPU_PAGE_FIRST_CHUNK) \
   include/linux/mmdebug.h \
     $(wildcard include/config/DEBUG_VM) \
@@ -609,40 +648,6 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/DEBUG_VM_PGFLAGS) \
   arch/x86/include/asm/mmu.h \
     $(wildcard include/config/MODIFY_LDT_SYSCALL) \
-  include/linux/kmod.h \
-  include/linux/umh.h \
-  include/linux/gfp.h \
-    $(wildcard include/config/HIGHMEM) \
-    $(wildcard include/config/ZONE_DMA) \
-    $(wildcard include/config/ZONE_DMA32) \
-    $(wildcard include/config/ZONE_DEVICE) \
-    $(wildcard include/config/CONTIG_ALLOC) \
-  include/linux/mmzone.h \
-    $(wildcard include/config/ARCH_FORCE_MAX_ORDER) \
-    $(wildcard include/config/CMA) \
-    $(wildcard include/config/MEMORY_ISOLATION) \
-    $(wildcard include/config/ZSMALLOC) \
-    $(wildcard include/config/UNACCEPTED_MEMORY) \
-    $(wildcard include/config/LRU_GEN_STATS) \
-    $(wildcard include/config/MEMORY_HOTPLUG) \
-    $(wildcard include/config/COMPACTION) \
-    $(wildcard include/config/MEMORY_FAILURE) \
-    $(wildcard include/config/PAGE_EXTENSION) \
-    $(wildcard include/config/DEFERRED_STRUCT_PAGE_INIT) \
-    $(wildcard include/config/HAVE_MEMORYLESS_NODES) \
-    $(wildcard include/config/SPARSEMEM_EXTREME) \
-    $(wildcard include/config/HAVE_ARCH_PFN_VALID) \
-  include/linux/list_nulls.h \
-  include/linux/nodemask.h \
-  include/linux/random.h \
-    $(wildcard include/config/VMGENID) \
-  include/uapi/linux/random.h \
-  include/linux/irqnr.h \
-  include/uapi/linux/irqnr.h \
-  include/linux/prandom.h \
-  include/linux/once.h \
-  include/linux/pageblock-flags.h \
-    $(wildcard include/config/HUGETLB_PAGE_SIZE_VARIABLE) \
   include/linux/page-flags.h \
     $(wildcard include/config/ARCH_USES_PG_UNCACHED) \
     $(wildcard include/config/PAGE_IDLE_FLAG) \
@@ -650,6 +655,8 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/HUGETLB_PAGE_OPTIMIZE_VMEMMAP) \
   include/linux/local_lock.h \
   include/linux/local_lock_internal.h \
+  include/linux/zswap.h \
+    $(wildcard include/config/ZSWAP) \
   include/linux/memory_hotplug.h \
     $(wildcard include/config/HAVE_ARCH_NODEDATA_EXTENSION) \
     $(wildcard include/config/ARCH_HAS_ADD_PAGES) \
@@ -666,11 +673,26 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/SCHED_MC_PRIO) \
   arch/x86/include/asm/mpspec.h \
     $(wildcard include/config/EISA) \
+    $(wildcard include/config/X86_LOCAL_APIC) \
     $(wildcard include/config/X86_MPPARSE) \
   arch/x86/include/asm/mpspec_def.h \
   arch/x86/include/asm/x86_init.h \
+  arch/x86/include/uapi/asm/bootparam.h \
+  include/linux/screen_info.h \
+  include/uapi/linux/screen_info.h \
+  include/linux/apm_bios.h \
+  include/uapi/linux/apm_bios.h \
+  include/linux/edd.h \
+  include/uapi/linux/edd.h \
+  arch/x86/include/asm/ist.h \
+  arch/x86/include/uapi/asm/ist.h \
+  include/video/edid.h \
+    $(wildcard include/config/X86) \
+  include/uapi/video/edid.h \
   arch/x86/include/asm/apicdef.h \
   include/asm-generic/topology.h \
+  include/linux/cpu_smt.h \
+    $(wildcard include/config/HOTPLUG_SMT) \
   include/linux/sysctl.h \
     $(wildcard include/config/SYSCTL) \
   include/uapi/linux/sysctl.h \
@@ -679,20 +701,69 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/ARCH_HAVE_ELF_PROT) \
   arch/x86/include/asm/elf.h \
     $(wildcard include/config/X86_X32_ABI) \
-  arch/x86/include/asm/user.h \
-  arch/x86/include/asm/user_64.h \
-  arch/x86/include/asm/fsgsbase.h \
-  arch/x86/include/asm/vdso.h \
-  include/uapi/linux/elf.h \
-  include/uapi/linux/elf-em.h \
-  include/linux/kobject.h \
-    $(wildcard include/config/UEVENT_HELPER) \
-    $(wildcard include/config/DEBUG_KOBJECT_RELEASE) \
-  include/linux/sysfs.h \
-  include/linux/kernfs.h \
-    $(wildcard include/config/KERNFS) \
-  include/linux/idr.h \
-  include/linux/radix-tree.h \
+  arch/x86/include/asm/ia32.h \
+  include/linux/compat.h \
+    $(wildcard include/config/ARCH_HAS_SYSCALL_WRAPPER) \
+    $(wildcard include/config/COMPAT_OLD_SIGACTION) \
+    $(wildcard include/config/ODD_RT_SIGACTION) \
+  include/linux/sem.h \
+    $(wildcard include/config/SYSVIPC) \
+  include/uapi/linux/sem.h \
+  include/linux/ipc.h \
+  include/linux/rhashtable-types.h \
+  include/uapi/linux/ipc.h \
+  arch/x86/include/generated/uapi/asm/ipcbuf.h \
+  include/uapi/asm-generic/ipcbuf.h \
+  arch/x86/include/uapi/asm/sembuf.h \
+  include/linux/sem_types.h \
+  include/linux/socket.h \
+  arch/x86/include/generated/uapi/asm/socket.h \
+  include/uapi/asm-generic/socket.h \
+  arch/x86/include/generated/uapi/asm/sockios.h \
+  include/uapi/asm-generic/sockios.h \
+  include/uapi/linux/sockios.h \
+  include/linux/uio.h \
+    $(wildcard include/config/ARCH_HAS_COPY_MC) \
+  include/uapi/linux/uio.h \
+  include/uapi/linux/socket.h \
+  include/uapi/linux/if.h \
+  include/uapi/linux/libc-compat.h \
+  include/uapi/linux/hdlc/ioctl.h \
+  include/linux/fs.h \
+    $(wildcard include/config/READ_ONLY_THP_FOR_FS) \
+    $(wildcard include/config/FS_POSIX_ACL) \
+    $(wildcard include/config/SECURITY) \
+    $(wildcard include/config/CGROUP_WRITEBACK) \
+    $(wildcard include/config/IMA) \
+    $(wildcard include/config/FILE_LOCKING) \
+    $(wildcard include/config/FSNOTIFY) \
+    $(wildcard include/config/FS_ENCRYPTION) \
+    $(wildcard include/config/FS_VERITY) \
+    $(wildcard include/config/EPOLL) \
+    $(wildcard include/config/UNICODE) \
+    $(wildcard include/config/QUOTA) \
+    $(wildcard include/config/FS_DAX) \
+    $(wildcard include/config/BLOCK) \
+  include/linux/wait_bit.h \
+  include/linux/kdev_t.h \
+  include/uapi/linux/kdev_t.h \
+  include/linux/dcache.h \
+  include/linux/rculist.h \
+    $(wildcard include/config/PROVE_RCU_LIST) \
+  include/linux/rculist_bl.h \
+  include/linux/list_bl.h \
+  include/linux/bit_spinlock.h \
+  include/linux/lockref.h \
+    $(wildcard include/config/ARCH_USE_CMPXCHG_LOCKREF) \
+  include/linux/stringhash.h \
+    $(wildcard include/config/DCACHE_WORD_ACCESS) \
+  include/linux/hash.h \
+    $(wildcard include/config/HAVE_ARCH_HASH) \
+  include/linux/path.h \
+  include/linux/list_lru.h \
+    $(wildcard include/config/MEMCG_KMEM) \
+  include/linux/shrinker.h \
+    $(wildcard include/config/SHRINKER_DEBUG) \
   include/linux/xarray.h \
     $(wildcard include/config/XARRAY_MULTI) \
   include/linux/sched/mm.h \
@@ -717,6 +788,7 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/PSI) \
     $(wildcard include/config/PAGE_OWNER) \
     $(wildcard include/config/EVENTFD) \
+    $(wildcard include/config/ARCH_HAS_CPU_PASID) \
     $(wildcard include/config/CPU_SUP_INTEL) \
     $(wildcard include/config/TASK_DELAY_ACCT) \
     $(wildcard include/config/ARCH_HAS_SCALED_CPUTIME) \
@@ -724,7 +796,6 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/POSIX_CPUTIMERS) \
     $(wildcard include/config/POSIX_CPU_TIMERS_TASK_WORK) \
     $(wildcard include/config/KEYS) \
-    $(wildcard include/config/SYSVIPC) \
     $(wildcard include/config/DETECT_HUNG_TASK) \
     $(wildcard include/config/IO_URING) \
     $(wildcard include/config/AUDIT) \
@@ -742,7 +813,6 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/FUNCTION_GRAPH_TRACER) \
     $(wildcard include/config/BCACHE) \
     $(wildcard include/config/VMAP_STACK) \
-    $(wildcard include/config/SECURITY) \
     $(wildcard include/config/BPF_SYSCALL) \
     $(wildcard include/config/GCC_PLUGIN_STACKLEAK) \
     $(wildcard include/config/X86_MCE) \
@@ -751,53 +821,18 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/ARCH_HAS_PARANOID_L1D_FLUSH) \
     $(wildcard include/config/RV) \
     $(wildcard include/config/USER_EVENTS) \
-    $(wildcard include/config/ARCH_TASK_STRUCT_ON_STACK) \
     $(wildcard include/config/PREEMPT_NONE) \
     $(wildcard include/config/PREEMPT_VOLUNTARY) \
-    $(wildcard include/config/DEBUG_RSEQ) \
   include/uapi/linux/sched.h \
-  include/linux/pid.h \
-  include/linux/rculist.h \
-    $(wildcard include/config/PROVE_RCU_LIST) \
-  include/linux/sem.h \
-  include/uapi/linux/sem.h \
-  include/linux/ipc.h \
-  include/linux/rhashtable-types.h \
-  include/uapi/linux/ipc.h \
-  arch/x86/include/generated/uapi/asm/ipcbuf.h \
-  include/uapi/asm-generic/ipcbuf.h \
-  arch/x86/include/uapi/asm/sembuf.h \
+  include/linux/pid_types.h \
   include/linux/shm.h \
-  include/uapi/linux/shm.h \
-  include/uapi/asm-generic/hugetlb_encode.h \
-  arch/x86/include/uapi/asm/shmbuf.h \
-  include/uapi/asm-generic/shmbuf.h \
   arch/x86/include/asm/shmparam.h \
   include/linux/kmsan_types.h \
-  include/linux/plist.h \
-    $(wildcard include/config/DEBUG_PLIST) \
-  include/linux/hrtimer.h \
-    $(wildcard include/config/HIGH_RES_TIMERS) \
-    $(wildcard include/config/TIME_LOW_RES) \
-    $(wildcard include/config/TIMERFD) \
-  include/linux/hrtimer_defs.h \
-  include/linux/timerqueue.h \
-  include/linux/seccomp.h \
+  include/linux/plist_types.h \
+  include/linux/hrtimer_types.h \
+  include/linux/timerqueue_types.h \
+  include/linux/seccomp_types.h \
     $(wildcard include/config/SECCOMP) \
-    $(wildcard include/config/HAVE_ARCH_SECCOMP_FILTER) \
-    $(wildcard include/config/SECCOMP_FILTER) \
-    $(wildcard include/config/CHECKPOINT_RESTORE) \
-    $(wildcard include/config/SECCOMP_CACHE_DEBUG) \
-  include/uapi/linux/seccomp.h \
-  arch/x86/include/asm/seccomp.h \
-  arch/x86/include/asm/unistd.h \
-  arch/x86/include/uapi/asm/unistd.h \
-  arch/x86/include/generated/uapi/asm/unistd_64.h \
-  arch/x86/include/generated/asm/unistd_64_x32.h \
-  arch/x86/include/generated/asm/unistd_32_ia32.h \
-  arch/x86/include/asm/ia32_unistd.h \
-  include/asm-generic/seccomp.h \
-  include/uapi/linux/unistd.h \
   include/linux/resource.h \
   include/uapi/linux/resource.h \
   arch/x86/include/generated/uapi/asm/resource.h \
@@ -814,12 +849,10 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/uapi/asm-generic/signal-defs.h \
   arch/x86/include/uapi/asm/siginfo.h \
   include/uapi/asm-generic/siginfo.h \
-  include/linux/syscall_user_dispatch.h \
+  include/linux/syscall_user_dispatch_types.h \
   include/linux/task_io_accounting.h \
     $(wildcard include/config/TASK_IO_ACCOUNTING) \
-  include/linux/posix-timers.h \
-  include/linux/alarmtimer.h \
-    $(wildcard include/config/RTC_CLASS) \
+  include/linux/posix-timers_types.h \
   include/uapi/linux/rseq.h \
   include/linux/kcsan.h \
   include/linux/rv.h \
@@ -831,52 +864,8 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/sync_core.h \
     $(wildcard include/config/ARCH_HAS_SYNC_CORE_BEFORE_USERMODE) \
   arch/x86/include/asm/sync_core.h \
-  include/linux/kobject_ns.h \
-  include/linux/moduleparam.h \
-    $(wildcard include/config/ALPHA) \
-    $(wildcard include/config/IA64) \
-    $(wildcard include/config/PPC64) \
-  include/linux/rbtree_latch.h \
-  include/linux/error-injection.h \
-  include/asm-generic/error-injection.h \
-  arch/x86/include/asm/module.h \
-    $(wildcard include/config/UNWINDER_ORC) \
-  include/asm-generic/module.h \
-    $(wildcard include/config/HAVE_MOD_ARCH_SPECIFIC) \
-    $(wildcard include/config/MODULES_USE_ELF_REL) \
-    $(wildcard include/config/MODULES_USE_ELF_RELA) \
-  include/linux/kdev_t.h \
-  include/uapi/linux/kdev_t.h \
-  include/linux/fs.h \
-    $(wildcard include/config/READ_ONLY_THP_FOR_FS) \
-    $(wildcard include/config/FS_POSIX_ACL) \
-    $(wildcard include/config/CGROUP_WRITEBACK) \
-    $(wildcard include/config/IMA) \
-    $(wildcard include/config/FILE_LOCKING) \
-    $(wildcard include/config/FSNOTIFY) \
-    $(wildcard include/config/FS_ENCRYPTION) \
-    $(wildcard include/config/FS_VERITY) \
-    $(wildcard include/config/EPOLL) \
-    $(wildcard include/config/UNICODE) \
-    $(wildcard include/config/QUOTA) \
-    $(wildcard include/config/FS_DAX) \
-    $(wildcard include/config/BLOCK) \
-  include/linux/wait_bit.h \
-  include/linux/dcache.h \
-  include/linux/rculist_bl.h \
-  include/linux/list_bl.h \
-  include/linux/bit_spinlock.h \
-  include/linux/lockref.h \
-    $(wildcard include/config/ARCH_USE_CMPXCHG_LOCKREF) \
-  include/linux/stringhash.h \
-    $(wildcard include/config/DCACHE_WORD_ACCESS) \
-  include/linux/hash.h \
-    $(wildcard include/config/HAVE_ARCH_HASH) \
-  include/linux/path.h \
-  include/linux/list_lru.h \
-    $(wildcard include/config/MEMCG_KMEM) \
-  include/linux/shrinker.h \
-    $(wildcard include/config/SHRINKER_DEBUG) \
+  include/linux/radix-tree.h \
+  include/linux/pid.h \
   include/linux/capability.h \
   include/uapi/linux/capability.h \
   include/linux/semaphore.h \
@@ -908,13 +897,14 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   arch/x86/include/asm/uaccess.h \
     $(wildcard include/config/CC_HAS_ASM_GOTO_OUTPUT) \
     $(wildcard include/config/CC_HAS_ASM_GOTO_TIED_OUTPUT) \
-    $(wildcard include/config/ARCH_HAS_COPY_MC) \
     $(wildcard include/config/X86_INTEL_USERCOPY) \
   include/linux/mmap_lock.h \
   arch/x86/include/asm/smap.h \
   arch/x86/include/asm/extable.h \
     $(wildcard include/config/BPF_JIT) \
   arch/x86/include/asm/tlbflush.h \
+  include/linux/mmu_notifier.h \
+  include/linux/interval_tree.h \
   arch/x86/include/asm/invpcid.h \
   arch/x86/include/asm/pti.h \
   arch/x86/include/asm/pgtable.h \
@@ -954,6 +944,15 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/IOMMUFD) \
     $(wildcard include/config/WATCH_QUEUE) \
   include/linux/ratelimit.h \
+  include/linux/posix-timers.h \
+  include/linux/alarmtimer.h \
+    $(wildcard include/config/RTC_CLASS) \
+  include/linux/hrtimer.h \
+    $(wildcard include/config/HIGH_RES_TIMERS) \
+    $(wildcard include/config/TIME_LOW_RES) \
+    $(wildcard include/config/TIMERFD) \
+  include/linux/hrtimer_defs.h \
+  include/linux/timerqueue.h \
   include/linux/rcu_sync.h \
   include/linux/delayed_call.h \
   include/linux/uuid.h \
@@ -967,17 +966,16 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/mount.h \
   include/linux/mnt_idmapping.h \
   include/linux/slab.h \
-    $(wildcard include/config/DEBUG_SLAB) \
+    $(wildcard include/config/SLUB_DEBUG) \
     $(wildcard include/config/SLUB_TINY) \
     $(wildcard include/config/FAILSLAB) \
     $(wildcard include/config/KFENCE) \
-    $(wildcard include/config/SLAB) \
-    $(wildcard include/config/SLUB) \
   include/linux/percpu-refcount.h \
   include/linux/kasan.h \
     $(wildcard include/config/KASAN_STACK) \
     $(wildcard include/config/KASAN_VMALLOC) \
   include/linux/kasan-enabled.h \
+  include/linux/kasan-tags.h \
   include/uapi/linux/fs.h \
   include/linux/quota.h \
     $(wildcard include/config/QUOTA_NETLINK_INTERFACE) \
@@ -987,8 +985,50 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/linux/dqblk_qtree.h \
   include/linux/projid.h \
   include/uapi/linux/quota.h \
+  include/uapi/linux/aio_abi.h \
+  include/uapi/linux/unistd.h \
+  arch/x86/include/asm/unistd.h \
+  arch/x86/include/uapi/asm/unistd.h \
+  arch/x86/include/generated/uapi/asm/unistd_64.h \
+  arch/x86/include/generated/asm/unistd_64_x32.h \
+  arch/x86/include/generated/asm/unistd_32_ia32.h \
+  arch/x86/include/asm/compat.h \
+  include/linux/sched/task_stack.h \
+    $(wildcard include/config/DEBUG_STACK_USAGE) \
+  include/uapi/linux/magic.h \
+  arch/x86/include/asm/user32.h \
+  include/asm-generic/compat.h \
+    $(wildcard include/config/COMPAT_FOR_U64_ALIGNMENT) \
+  arch/x86/include/asm/syscall_wrapper.h \
+  arch/x86/include/asm/user.h \
+  arch/x86/include/asm/user_64.h \
+  arch/x86/include/asm/fsgsbase.h \
+  arch/x86/include/asm/vdso.h \
+  include/uapi/linux/elf.h \
+  include/uapi/linux/elf-em.h \
+  include/linux/kobject.h \
+    $(wildcard include/config/UEVENT_HELPER) \
+    $(wildcard include/config/DEBUG_KOBJECT_RELEASE) \
+  include/linux/sysfs.h \
+  include/linux/kernfs.h \
+    $(wildcard include/config/KERNFS) \
+  include/linux/idr.h \
+  include/linux/kobject_ns.h \
+  include/linux/moduleparam.h \
+    $(wildcard include/config/ALPHA) \
+    $(wildcard include/config/PPC64) \
+  include/linux/rbtree_latch.h \
+  include/linux/error-injection.h \
+  include/asm-generic/error-injection.h \
+  arch/x86/include/asm/module.h \
+    $(wildcard include/config/UNWINDER_ORC) \
+  include/asm-generic/module.h \
+    $(wildcard include/config/HAVE_MOD_ARCH_SPECIFIC) \
+    $(wildcard include/config/MODULES_USE_ELF_REL) \
+    $(wildcard include/config/MODULES_USE_ELF_RELA) \
   include/linux/cdev.h \
   include/linux/device.h \
+    $(wildcard include/config/HAS_IOMEM) \
     $(wildcard include/config/GENERIC_MSI_IRQ) \
     $(wildcard include/config/ENERGY_MODEL) \
     $(wildcard include/config/PINCTRL) \
@@ -996,6 +1036,7 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/DMA_DECLARE_COHERENT) \
     $(wildcard include/config/DMA_CMA) \
     $(wildcard include/config/SWIOTLB) \
+    $(wildcard include/config/SWIOTLB_DYNAMIC) \
     $(wildcard include/config/ARCH_HAS_SYNC_DMA_FOR_DEVICE) \
     $(wildcard include/config/ARCH_HAS_SYNC_DMA_FOR_CPU) \
     $(wildcard include/config/ARCH_HAS_SYNC_DMA_FOR_CPU_ALL) \
@@ -1064,16 +1105,16 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
   include/asm-generic/early_ioremap.h \
     $(wildcard include/config/GENERIC_EARLY_IOREMAP) \
   arch/x86/include/asm/shared/io.h \
-  include/asm-generic/iomap.h \
-    $(wildcard include/config/HAS_IOPORT_MAP) \
-  include/asm-generic/pci_iomap.h \
-    $(wildcard include/config/PCI) \
-    $(wildcard include/config/NO_GENERIC_PCI_IOPORT_MAP) \
-    $(wildcard include/config/GENERIC_PCI_IOMAP) \
   include/asm-generic/io.h \
     $(wildcard include/config/GENERIC_IOMAP) \
     $(wildcard include/config/TRACE_MMIO_ACCESS) \
     $(wildcard include/config/GENERIC_IOREMAP) \
+    $(wildcard include/config/HAS_IOPORT_MAP) \
+  include/asm-generic/iomap.h \
+  include/asm-generic/pci_iomap.h \
+    $(wildcard include/config/PCI) \
+    $(wildcard include/config/NO_GENERIC_PCI_IOPORT_MAP) \
+    $(wildcard include/config/GENERIC_PCI_IOMAP) \
   include/linux/logic_pio.h \
     $(wildcard include/config/INDIRECT_PIO) \
   include/linux/fwnode.h \
@@ -1083,8 +1124,8 @@ deps_/home/hlc/Documents/Projects/intrp_test/intrp.o := \
     $(wildcard include/config/HAVE_ARCH_HUGE_VMAP) \
   arch/x86/include/asm/pgtable_areas.h \
 
-/home/hlc/Documents/Projects/intrp_test/intrp.o: $(deps_/home/hlc/Documents/Projects/intrp_test/intrp.o)
+/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o: $(deps_/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o)
 
-$(deps_/home/hlc/Documents/Projects/intrp_test/intrp.o):
+$(deps_/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o):
 
-/home/hlc/Documents/Projects/intrp_test/intrp.o: $(wildcard ./tools/objtool/objtool)
+/home/hlc/Documents/documents/Reference_resources/ref_15/intrp_test/intrp.o: $(wildcard ./tools/objtool/objtool)

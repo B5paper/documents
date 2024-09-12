@@ -1,4 +1,4 @@
-KERNEL_DIR=/usr/src/linux-headers-6.5.0-28-generic
+KERNEL_DIR=/lib/modules/6.8.0-40-generic/build
 obj-m  +=  intrp.o
 default:
 	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules

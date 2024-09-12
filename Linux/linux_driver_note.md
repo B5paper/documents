@@ -842,8 +842,6 @@ Ref:
 
     2. <https://embetronicx.com/tutorials/linux/device-drivers/workqueue-in-linux-kernel/>
 
-
-
 * kernel module 编译时出现 undefine symbol 是因为没有 export symbol
 
     ref: <https://blog.csdn.net/choumin/article/details/127094429>
@@ -5215,7 +5213,7 @@ The bottom half is used to process data, letting the top half to deal with new i
 
 Intel processors handle interrupt using IDT (Interrupt Descriptor Table).  The IDT consists of 256 entries with each entry corresponding to a vector and of 8 bytes. All the entries are a pointer to the interrupt handling function. The CPU uses IDTR to point to IDT. The relation between those two can be depicted as below,
 
-Example:
+### An interrupt example with sysfs
 
 ```c
 #include <linux/kernel.h>
@@ -5662,7 +5660,7 @@ MODULE_VERSION("1.9");
 
 ### 一个可用的 interrupt example
 
-这个 example 使用 ead device file 触发中断。需要重新编译内核。
+这个 example 使用 read device file 触发中断。需要重新编译内核。
 
 * 对于新版内核，由于我们不知道第一个 irq vector 的地址，所以只能重新编译内核
 
