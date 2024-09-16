@@ -728,6 +728,16 @@
 
     1. 在 linux driver note 中，linked list 已经被学过两遍了，有时间 sync 一下，整理成 qa
 
+* [v]  reorg 30 mins
+
+    12:59 ~ 15:52
+
+    feedback:
+
+    1. [ ] 调研：实现一个仅使用 read device 触发的中断程序
+
+    2. [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
+
 ## qa
 
 cached:

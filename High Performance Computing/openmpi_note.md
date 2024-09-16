@@ -2,133 +2,6 @@
 
 ## cache
 
-* mpi ring
-
-    ```c
-    #include <mpi.h>
-    #include <stdio.h>
-    #include <unistd.h>
-
-    int main(int argc, char** argv) {
-        MPI_Init(NULL, NULL);
-
-        int world_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-        int token = 0;
-        int ret;
-        if (world_rank == 0)
-        {
-            token = 12345;
-        }
-        else
-        {
-            token = -1;
-            ret = MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (ret != 0)
-            {
-                printf("rank %d fail to recv\n", world_rank);
-                return -1;
-            }
-            printf("rank %d received token %d from %d\n", world_rank, token, world_rank - 1);
-        }
-
-        ret = MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
-        if (ret != 0)
-        {
-            printf("rank %d fail to send\n", world_rank);
-            return -1;
-        }
-
-        if (world_rank == 0)
-        {
-            token = -1;
-            ret = MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (ret != 0)
-            {
-                printf("rank %d fail to recv\n", world_rank);
-                return -1;
-            }
-            printf("rank %d received token %d from %d\n", world_rank, token, world_size - 1);
-        }
-
-        MPI_Finalize();
-        return 01;
-    }
-    ```
-
-    run:
-
-    ```bash
-    mpirun -np 2 --host node1,node2 ./main
-    ```
-
-    output:
-
-    ```
-    rank 0 received token 12345 from 1
-    rank 1 received token 12345 from 0
-    ```
-
-    说明：
-
-    * rank 0 会首先在`MPI_Send()`处等其他进程，其他进程会在`MPI_Recv()`处等上一个进程。
-
-        等 rank 0 send, rank 1 recv 成功后，rank 0 在`MPI_Recv()`处等待，rank 1 则在`MPI_Send()`处开始和 rank 2 同步。以此类推。
-
-        这个过程如下图所示：
-
-        <div style='text-align:center'>
-        <img width=700 src='../../Reference_resources/ref_28/pic_1.png'>
-        </div>
-
-    * 下面这段代码似乎也能实现 ring 功能，并且更简洁
-
-        ```c
-        #include <mpi.h>
-        #include <stdio.h>
-        #include <unistd.h>
-
-        int main(int argc, char** argv) {
-            MPI_Init(NULL, NULL);
-
-            int world_size;
-            MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-            int world_rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-            int token = 0;
-            int ret;
-            if (world_rank == 0)
-            {
-                token = 12345;
-                MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
-            }
-            else
-            {
-                MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                printf("rank %d received token %d from rank %d\n", world_rank, token, world_rank - 1);
-            }
-
-            if (world_rank == 0)
-            {
-                MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                printf("rank %d received token %d from rank %d\n", world_rank, token, world_size - 1);
-            }
-            else
-            {
-                MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
-            }
-
-            MPI_Finalize();
-            return 0;
-        }
-        ```
-
 * vscode + gdb attach + mpi program debugging
 
     1. add `launch.json`:
@@ -219,155 +92,6 @@
 
         Press F5, the program will continue to next breakpoint.
 
-* mpi ping pong
-
-    `main.c`:
-
-    ```c
-    #include <mpi.h>
-    #include <stdio.h>
-
-    int main(int argc, char** argv)
-    {
-        MPI_Init(NULL, NULL);
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-        // suppose there are only two nodes 
-        int ping_pong_id = 0;
-        const int max_ping_pong_id = 5;
-        int peer_rank;
-        if (world_rank == 0)
-            peer_rank = 1;
-        else
-            peer_rank = 0;
-        while (ping_pong_id <= max_ping_pong_id)
-        {
-            if (world_rank == ping_pong_id % 2)
-            {
-                MPI_Send(&ping_pong_id, 1, MPI_INT, peer_rank, 0, MPI_COMM_WORLD);
-                printf("process %d sent number %d\n", world_rank, ping_pong_id);
-            }
-            else
-            {
-                MPI_Recv(&ping_pong_id, 1, MPI_INT, peer_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                printf("process %d received number %d\n", world_rank, ping_pong_id);
-            }
-            ping_pong_id++;
-        }
-
-        MPI_Finalize();
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    process 0 sent number 0
-    process 0 received number 1
-    process 0 sent number 2
-    process 1 received number 0
-    process 0 received number 3
-    process 0 sent number 4
-    process 1 sent number 1
-    process 1 received number 2
-    process 0 received number 5
-    process 1 sent number 3
-    process 1 received number 4
-    process 1 sent number 5
-    ```
-
-    说明：
-
-    * 使用`ping_pong_id`去控制 node 是进入 send 模式还是进入 recv 模式。
-
-        由于`ping_pong_id`每个进程有一份独立的值，不是进程间共享，所以不用担心加锁之类的问题。
-
-    * 输出并不是先打印完 process 0 才打印 process 1，因此可以排除并不是先打印 self node 的 output，再从别的 node 把 output 传输过来，append 到已经打印的输出上。
-
-        由于输出也不是严格按照 node 0, node 1 的交替顺序，所以也可以排除 printf 是严格按照代码顺序输出的。
-
-        猜测：mpi 每隔随机的一段时间，就去别的 node 上把标准输出传输到当前 node 上并输出。
-
-* mpi send and recv
-
-    `main.c`:
-
-    ```c
-    #include <mpi.h>
-    #include <stdio.h>
-
-    int main(int argc, char** argv)
-    {
-        MPI_Init(NULL, NULL);
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-        int number;
-        if (world_rank == 0) {
-            number = 54321;
-            MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
-            printf("process 0 sent number %d\n", number);
-        } else if (world_rank == 1) {
-            MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,
-                    MPI_STATUS_IGNORE);
-            printf("process 1 received number %d from process 0\n",
-                number);
-        }
-
-        MPI_Finalize();
-        return 0;
-    }
-    ```
-
-    compile:
-
-    ```bash
-    mpicc main.c -o main
-    ```
-
-    run:
-
-    ```
-    mpirun -np 2 --host node1,node2 --mca btl_tcp_if_include enp0s3 ./main
-    ```
-
-    output:
-
-    ```
-    process 0 sent number 54321
-    process 1 received number 54321 from process 0
-    ```
-
-    说明：
-
-    * 在运行时必须指定`--mca btl_tcp_if_include enp0s3`才能执行成功。否则 mpi 会找`ifconfig`列出来的第一个 network interface 尝试数据传输。
-
-    * `MPI_Send()`, `MPI_Recv()`
-
-        syntax:
-
-        ```c
-        int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
-
-        int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status);
-        ```
-
-        `count`指的是元素的个数，不是 buffer length。`datatype`是 mpi 提前定义好的一些基本数据类型，常用的有
-
-        | MPI datatype | C equivalent |
-        | - | - |
-        | MPI_INT | int |
-        | MPI_LONG | long int |
-        | MPI_FLOAT | float |
-        | MPI_BYTE | char |
-
-        `dest`指的是 destination 的 rank。
-
-        `tag`目前不知道是什么意思，直接填 0 就行。
-
-    * send 和 recv 都是阻塞式的。
 
 * mpi hello world program
 
@@ -766,3 +490,287 @@ resource:
 
 * <https://mpitutorial.com/tutorials/running-an-mpi-cluster-within-a-lan/>
 
+## send recv
+
+### send recv
+
+`main.c`:
+
+```c
+#include <mpi.h>
+#include <stdio.h>
+
+int main(int argc, char** argv)
+{
+    MPI_Init(NULL, NULL);
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    int number;
+    if (world_rank == 0) {
+        number = 54321;
+        MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        printf("process 0 sent number %d\n", number);
+    } else if (world_rank == 1) {
+        MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,
+                MPI_STATUS_IGNORE);
+        printf("process 1 received number %d from process 0\n",
+            number);
+    }
+
+    MPI_Finalize();
+    return 0;
+}
+```
+
+compile:
+
+```bash
+mpicc main.c -o main
+```
+
+run:
+
+```
+mpirun -np 2 --host node1,node2 --mca btl_tcp_if_include enp0s3 ./main
+```
+
+output:
+
+```
+process 0 sent number 54321
+process 1 received number 54321 from process 0
+```
+
+说明：
+
+* 在运行时必须指定`--mca btl_tcp_if_include enp0s3`才能执行成功。否则 mpi 会找`ifconfig`列出来的第一个 network interface 尝试数据传输。
+
+* `MPI_Send()`, `MPI_Recv()`
+
+    syntax:
+
+    ```c
+    int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
+
+    int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status);
+    ```
+
+    `count`指的是元素的个数，不是 buffer length。`datatype`是 mpi 提前定义好的一些基本数据类型，常用的有
+
+    | MPI datatype | C equivalent |
+    | - | - |
+    | MPI_INT | int |
+    | MPI_LONG | long int |
+    | MPI_FLOAT | float |
+    | MPI_BYTE | char |
+
+    `dest`指的是 destination 的 rank。
+
+    `tag`目前不知道是什么意思，直接填 0 就行。
+
+* send 和 recv 都是阻塞式的。
+
+### ping pong
+
+* mpi ping pong
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+
+    int main(int argc, char** argv)
+    {
+        MPI_Init(NULL, NULL);
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+        // suppose there are only two nodes 
+        int ping_pong_id = 0;
+        const int max_ping_pong_id = 5;
+        int peer_rank;
+        if (world_rank == 0)
+            peer_rank = 1;
+        else
+            peer_rank = 0;
+        while (ping_pong_id <= max_ping_pong_id)
+        {
+            if (world_rank == ping_pong_id % 2)
+            {
+                MPI_Send(&ping_pong_id, 1, MPI_INT, peer_rank, 0, MPI_COMM_WORLD);
+                printf("process %d sent number %d\n", world_rank, ping_pong_id);
+            }
+            else
+            {
+                MPI_Recv(&ping_pong_id, 1, MPI_INT, peer_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                printf("process %d received number %d\n", world_rank, ping_pong_id);
+            }
+            ping_pong_id++;
+        }
+
+        MPI_Finalize();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    process 0 sent number 0
+    process 0 received number 1
+    process 0 sent number 2
+    process 1 received number 0
+    process 0 received number 3
+    process 0 sent number 4
+    process 1 sent number 1
+    process 1 received number 2
+    process 0 received number 5
+    process 1 sent number 3
+    process 1 received number 4
+    process 1 sent number 5
+    ```
+
+    说明：
+
+    * 使用`ping_pong_id`去控制 node 是进入 send 模式还是进入 recv 模式。
+
+        由于`ping_pong_id`每个进程有一份独立的值，不是进程间共享，所以不用担心加锁之类的问题。
+
+    * 输出并不是先打印完 process 0 才打印 process 1，因此可以排除并不是先打印 self node 的 output，再从别的 node 把 output 传输过来，append 到已经打印的输出上。
+
+        由于输出也不是严格按照 node 0, node 1 的交替顺序，所以也可以排除 printf 是严格按照代码顺序输出的。
+
+        猜测：mpi 每隔随机的一段时间，就去别的 node 上把标准输出传输到当前 node 上并输出。
+
+### ring
+
+猜想：ring 本质上是实现了一种流水线，除了最后一次 message 需要 pass 所有的 node，其他的 message 总是可以流水线（pipeline）的方式在 node 间被传递。
+
+猜想 2：message 的数量越多，ring 处理的效率越高。
+
+```c
+#include <mpi.h>
+#include <stdio.h>
+#include <unistd.h>
+
+int main(int argc, char** argv) {
+    MPI_Init(NULL, NULL);
+
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    int token = 0;
+    int ret;
+    if (world_rank == 0)
+    {
+        token = 12345;
+    }
+    else
+    {
+        token = -1;
+        ret = MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (ret != 0)
+        {
+            printf("rank %d fail to recv\n", world_rank);
+            return -1;
+        }
+        printf("rank %d received token %d from %d\n", world_rank, token, world_rank - 1);
+    }
+
+    ret = MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+    if (ret != 0)
+    {
+        printf("rank %d fail to send\n", world_rank);
+        return -1;
+    }
+
+    if (world_rank == 0)
+    {
+        token = -1;
+        ret = MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (ret != 0)
+        {
+            printf("rank %d fail to recv\n", world_rank);
+            return -1;
+        }
+        printf("rank %d received token %d from %d\n", world_rank, token, world_size - 1);
+    }
+
+    MPI_Finalize();
+    return 01;
+}
+```
+
+run:
+
+```bash
+mpirun -np 2 --host node1,node2 ./main
+```
+
+output:
+
+```
+rank 0 received token 12345 from 1
+rank 1 received token 12345 from 0
+```
+
+说明：
+
+* rank 0 会首先在`MPI_Send()`处等其他进程，其他进程会在`MPI_Recv()`处等上一个进程。
+
+    等 rank 0 send, rank 1 recv 成功后，rank 0 在`MPI_Recv()`处等待，rank 1 则在`MPI_Send()`处开始和 rank 2 同步。以此类推。
+
+    这个过程如下图所示：
+
+    <div style='text-align:center'>
+    <img width=700 src='../../Reference_resources/ref_28/pic_1.png'>
+    </div>
+
+* 下面这段代码似乎也能实现 ring 功能，并且更简洁
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int main(int argc, char** argv) {
+        MPI_Init(NULL, NULL);
+
+        int world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+        int token = 0;
+        int ret;
+        if (world_rank == 0)
+        {
+            token = 12345;
+            MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+        }
+        else
+        {
+            MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            printf("rank %d received token %d from rank %d\n", world_rank, token, world_rank - 1);
+        }
+
+        if (world_rank == 0)
+        {
+            MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            printf("rank %d received token %d from rank %d\n", world_rank, token, world_size - 1);
+        }
+        else
+        {
+            MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+        }
+
+        MPI_Finalize();
+        return 0;
+    }
+    ```
