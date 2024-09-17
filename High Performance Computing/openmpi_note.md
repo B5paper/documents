@@ -774,3 +774,9 @@ rank 1 received token 12345 from 0
         return 0;
     }
     ```
+
+## Examples
+
+### hello world
+
+### send recv
