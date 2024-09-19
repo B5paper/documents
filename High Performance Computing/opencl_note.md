@@ -12,6 +12,24 @@ Ref:
 
 ## cache
 
+* `CL_MEM_COPY_HOST_PTR`
+
+    如果需要在创建 buffer 时就把数据从 host 上复制到 buffer 里，那么可以这样写：
+
+    ```cpp
+    cl_mem buf_rand_seed_vbuf = clCreateBuffer(my_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, ray_count * sizeof(cl_long), random_seeds, &ret);
+    ```
+
+    此时会把`random_seeds`中的数据写入到 buffer 中。
+
+* set arg
+
+    猜测 set arg 的行为是在内存中开辟一个栈，存储一些数据，这些数据为作为 kernel 的参数。这些数据通常有两大类，一类是`cl_mem`，另一类是`cl_float3`，`cl_int`之类的数值。
+
+    猜测 set arg 是按值复制，所以不用担心数值类的局部变量消失后参数失效的问题。由于`cl_mem`是个指针，如果不显式释放，其对应的 buffer （即显存）也不会被释放，所以也不用担心`cl_mem`失效。
+
+    综上，一个`kernel`在整个程序的生命周期中，只需要设置一次 arg 就可以了。后面只需要 writer buffer, nd range kernel 就会触发计算。
+
 * warm up 对 gpu 计算的影响
 
     可能是因为在创建`OclEnv`的时候对 opencl 环境进行了初始化，但是在析构`OclEnv`对象时，并没有 destroy opencl 环境，而是只 release buffer。导致了 warm up 占用的时间比较长。
@@ -2627,26 +2645,6 @@ int main()
 }
 ```
 
-## time based note
-
-1. `CL_MEM_COPY_HOST_PTR`
-
-    如果需要在创建 buffer 时就把数据从 host 上复制到 buffer 里，那么可以这样写：
-
-    ```cpp
-    cl_mem buf_rand_seed_vbuf = clCreateBuffer(my_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, ray_count * sizeof(cl_long), random_seeds, &ret);
-    ```
-
-    此时会把`random_seeds`中的数据写入到 buffer 中。
-
-1. set arg
-
-    猜测 set arg 的行为是在内存中开辟一个栈，存储一些数据，这些数据为作为 kernel 的参数。这些数据通常有两大类，一类是`cl_mem`，另一类是`cl_float3`，`cl_int`之类的数值。
-
-    猜测 set arg 是按值复制，所以不用担心数值类的局部变量消失后参数失效的问题。由于`cl_mem`是个指针，如果不显式释放，其对应的 buffer （即显存）也不会被释放，所以也不用担心`cl_mem`失效。
-
-    综上，一个`kernel`在整个程序的生命周期中，只需要设置一次 arg 就可以了。后面只需要 writer buffer, nd range kernel 就会触发计算。
-
 ## opencl kernel programming (OpenCL Language)
 
 opencl kernel 里可以执行`printf()`，并且这个函数还是 atomic 的
@@ -3196,6 +3194,87 @@ opencl 的 kernel 语言支持 c++ 了，看起来是以 c++17 为标准，舍�
 <https://www.khronos.org/opencl/assets/CXX_for_OpenCL.html>
 
 有时间了看下，感觉我应该用不到。
+
+## Examples
+
+### vector add
+
+## ocl simple
+
+### vector add
+
+`kernels.cl`:
+
+```cl
+kernel void vec_add(global float *A, global float *B, global float *C)
+{
+    size_t gid = get_global_id(0);
+    C[gid] = A[gid] + B[gid];
+}
+```
+
+`main.cpp`:
+
+```cpp
+#include "../ocl_simple/simple_ocl.hpp"
+
+int main()
+{
+    init_ocl_env("./kernels.cl", {"vec_add"});
+    int vec_len = 4;
+    float *A = (float*) add_buf_mem("A", sizeof(float), vec_len);
+    float *B = (float*) add_buf_mem("B", sizeof(float), vec_len);
+    float *C = (float*) add_buf_mem("C", sizeof(float), vec_len);
+    for (int i = 0; i < vec_len; ++i)
+    {
+        A[i] = random() % 10;
+        B[i] = random() % 10;
+    }
+    sync_cpu_to_gpu({"A", "B"});
+    run_kern("vec_add", {(size_t) vec_len}, "A", "B", "C");
+    sync_gpu_to_cpu({"C"});
+    for (int i = 0; i < vec_len; ++i)
+    {
+        printf("%.1f + %.1f = %.1f\n", A[i], B[i], C[i]);
+    }
+    return 0;
+}
+```
+
+`Makefile`:
+
+```makefile
+main: main.cpp
+	g++ -g main.cpp -lOpenCL -o main
+
+clean:
+	rm -f main
+```
+
+compile: `make`
+
+run: `./main`
+
+output:
+
+```
+opencl device name: pthread-13th Gen Intel(R) Core(TM) i7-1360P
+9.0 + 9.0 = 18.0
+5.0 + 6.0 = 11.0
+0.0 + 8.0 = 8.0
+2.0 + 9.0 = 11.0
+[Warning] destroy ocl env
+release mem: B
+release mem: C
+release mem: A
+release ocl buffer: B
+release ocl buffer: C
+release ocl buffer: A
+```
+
+说明：
+
+* 使用 cpu 跑 opencl 时，需要把`simple_ocl.hpp`中的`clGetDeviceIDs()`函数的第二个参数改为`CL_DEVICE_TYPE_ALL`
 
 ## Problems shooting
 

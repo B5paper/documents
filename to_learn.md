@@ -5223,3 +5223,79 @@
 * MicroTeX
 
     <https://github.com/NanoMichael/MicroTeX>
+
+* Where can I find the iptables log file, and how can I change its location?
+
+    <https://askubuntu.com/questions/348439/where-can-i-find-the-iptables-log-file-and-how-can-i-change-its-location>
+
+* iptables command in Linux with Examples
+
+    <https://www.geeksforgeeks.org/iptables-command-in-linux-with-examples/>
+
+* Understanding IPTables, NAT, Conntrack and Similar Tools (With Resources to Help)
+
+    <https://aembit.io/blog/understanding-iptables-nat-conntrack-and-similar-tools-with-resources-to-help/#:~:text=The%20NAT%20functionality%20in%20iptables,NAT%20rules%20defined%20in%20iptables.>
+
+* Bridged network
+
+    <https://jamielinux.com/docs/libvirt-networking-handbook/bridged-network.html>
+
+* Network XML format
+
+    <https://libvirt.org/formatnetwork.html>
+
+* This page provides an introduction to the common networking configurations used by libvirt based applications.
+
+    <https://wiki.libvirt.org/Networking.html>
+
+* Modifying existing route entry in linux
+
+    <https://unix.stackexchange.com/questions/245208/modifying-existing-route-entry-in-linux>
+
+* linux ip 转发设置 ip_forward、ip_forward与路由转发
+
+    <https://blog.csdn.net/li_101357/article/details/78416813>
+
+* KVM Networking - NAT & Host-Only
+
+    <https://amoldighe.github.io/2017/12/20/kvm-networking/>
+
+* Help setting up bridged mode and host nat on libvirt QEMU/KVM
+
+    <https://www.reddit.com/r/archlinux/comments/f9qmx9/help_setting_up_bridged_mode_and_host_nat_on/?rdt=57824>
+
+* Bridged Host-VM Network
+
+    <https://briantward.github.io/bridge-host-vm/>
+
+* Network bridge
+
+    <https://wiki.archlinux.org/title/Network_bridge>
+
+* Qemu, virt-manager and bridge network
+
+    <https://forum.endeavouros.com/t/qemu-virt-manager-and-bridge-network/45005>
+
+* What is the meaning of 0.0.0.0 as a gateway?
+
+    <https://unix.stackexchange.com/questions/94018/what-is-the-meaning-of-0-0-0-0-as-a-gateway>
+
+* LinuxVirt: MacVTap
+
+    <https://virt.kernelnewbies.org/MacVTap>
+
+* Using the MacVTap driver
+
+    <https://www.ibm.com/docs/en/linux-on-systems?topic=choices-using-macvtap-driver>
+
+* ethtool
+
+    <https://wangchujiang.com/linux-command/c/ethtool.html>
+
+* Macvtap
+
+    <https://wiki.archlinux.org/title/Macvtap>
+
+* QEMU Host Only Networking
+
+    <https://www.kevindiaz.dev/blog/qemu-host-only-networking.html>

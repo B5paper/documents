@@ -954,53 +954,57 @@ tasks:
 
 * [ ] 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
 
+* <https://docs.nvidia.com/networking/display/mlnxofedv531001/ethernet+interface(base)>指出，ports of connectx-4 adapter cards and above can be individually configured to work as infiniband or ethernet ports.
+
+    if you wish to change the port type, use the mlxconfig script after the driver is loaded.
+
+    这个配置方案说是在<https://www.mellanox.com>上，但是这个网站目前已经失效了。
+
+* ofed installer 中似乎没有配置 roce 的相关文档和脚本
+
+* 设置 cma default roce mode: <https://enterprise-support.nvidia.com/s/article/howto-set-the-default-roce-mode-when-using-rdma-cm>
+
+    看起来是更改 cma 的默认 roce 设备的。在我们的 test case 里，直接使用 open device 打开指定设备，不存在默认设备这一说。因此应该和这个默认设备配置关系不大。
+
+* mellanox 网卡配置 roce, 一个可能有用的网站
+
+    <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/configuring_infiniband_and_rdma_networks/configuring-roce_configuring-infiniband-and-rdma-networks#configuring-roce_configuring-infiniband-and-rdma-networks>
+
+* mellanox 网卡配置 roce, 可能有用的一组命令
+
+    `mlxconfig`, 
+
+    ```
+    (base) hlc@zjxj:~$ mlx
+    mlxburn                mlxfwstress            mlxptrace
+    mlxburn_old            mlxfwstress_ext        mlxptrace_ext
+    mlxcableimgen          mlxgearbox             mlxptrace_int
+    mlxcables              mlxi2c                 mlxreg
+    mlxcables_ext          mlxlink                mlxreg_ext
+    mlxconfig              mlxlink_ext            mlxtokengenerator
+    mlxdpa                 mlxlink_plane_wrapper  mlxtrace
+    mlxdump                mlxmcg                 mlxtrace_ext
+    mlxdump_ext            mlxmdio                mlxuptime
+    mlx_fs_dump            mlxpci                 mlxvpd
+    mlxfwmanager           mlxphyburn             
+    mlxfwreset             mlxprivhost
+    ```
+
+    上面是`mlx`开头的一组命令，可能有用。
+
+* 目前看到的信息是 cx5 的网卡支持的协议有 ib 和 roce v1，cx4 网卡支持的协议是 roce v2。
+
 ### tasks
 
-* [ ] 调研 openmpi tutorial: <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
-
-* [v] 调研 mlnx cx4 跑通 test case
-
-* [v] 调研 mellanox 网卡启动 roce 协议
+* [v] 调研 openmpi tutorial: <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
     feedback:
 
-    1. <https://docs.nvidia.com/networking/display/mlnxofedv531001/ethernet+interface(base)>指出，ports of connectx-4 adapter cards and above can be individually configured to work as infiniband or ethernet ports.
+    1. 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
-        if you wish to change the port type, use the mlxconfig script after the driver is loaded.
+    2. 调研使用`MPI_ERROR`接收未知长度数据
 
-        这个配置方案说是在<https://www.mellanox.com>上，但是这个网站目前已经失效了。
-
-    2. ofed installer 中似乎没有配置 roce 的相关文档和脚本
-
-    3. 设置 cma default roce mode: <https://enterprise-support.nvidia.com/s/article/howto-set-the-default-roce-mode-when-using-rdma-cm>
-
-        看起来是更改 cma 的默认 roce 设备的。在我们的 test case 里，直接使用 open device 打开指定设备，不存在默认设备这一说。因此应该和这个默认设备配置关系不大。
-
-    4. 一个可能有用的网站：<https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/configuring_infiniband_and_rdma_networks/configuring-roce_configuring-infiniband-and-rdma-networks#configuring-roce_configuring-infiniband-and-rdma-networks>
-
-    5. 可能有用的一组命令
-
-        `mlxconfig`, 
-
-        ```
-        (base) hlc@zjxj:~$ mlx
-        mlxburn                mlxfwstress            mlxptrace
-        mlxburn_old            mlxfwstress_ext        mlxptrace_ext
-        mlxcableimgen          mlxgearbox             mlxptrace_int
-        mlxcables              mlxi2c                 mlxreg
-        mlxcables_ext          mlxlink                mlxreg_ext
-        mlxconfig              mlxlink_ext            mlxtokengenerator
-        mlxdpa                 mlxlink_plane_wrapper  mlxtrace
-        mlxdump                mlxmcg                 mlxtrace_ext
-        mlxdump_ext            mlxmdio                mlxuptime
-        mlx_fs_dump            mlxpci                 mlxvpd
-        mlxfwmanager           mlxphyburn             
-        mlxfwreset             mlxprivhost
-        ```
-
-        上面是`mlx`开头的一组命令，可能有用。
-
-    6. 目前看到的信息是 cx5 的网卡支持的协议有 ib 和 roce v1，cx4 网卡支持的协议是 roce v2。
+* [v] 调研 mellanox 网卡启动 roce 协议
 
 * [v] 调研 nccl 是否能不跳过 mr 的注册  30 mins
 
@@ -1025,6 +1029,8 @@ tasks:
 * [ ] 调研`perftest`仓库
 
 * [ ] 调研 pytorch 调用 nccl wrapper function
+
+* [v] 调研 libvirt 网桥
 
 * [ ] 调研 vllm nccl debug environment
 
@@ -1174,17 +1180,23 @@ tasks:
 
 * [ ] 调研 sbt
 
+
+
 ## qemu
+
+### cache
+
+* PCI passthrough of devices with QEMU
+
+    <https://www.theseus-os.com/Theseus/book/running/virtual_machine/pci_passthrough.html>
+
+### task
 
 * [v] 调研 pci device passthrough in qemu
 
     feedback:
 
     1. 看起来大部分的实现方案是 qemu VFIO + host IOMMU，由于目前手头没有可以支持 iommu 的机器，所以暂时先收集了一些资料
-
-        * PCI passthrough of devices with QEMU
-
-            <https://www.theseus-os.com/Theseus/book/running/virtual_machine/pci_passthrough.html>
 
         * PCI passthrough via OVMF
 
