@@ -738,6 +738,12 @@
 
     2. [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
+* [v] reorg 09/21
+
+    feedback:
+
+    1. 调研 deb 创建安装包
+
 ## qa
 
 cached:
@@ -835,6 +841,8 @@ tasks:
 * [v] cache tabs 30 mins  09/10
 
     11:35 ~ 11:45
+
+* [v] cache tabs 09/21
 
 ## rdma
 
@@ -1179,8 +1187,6 @@ tasks:
     1. [ ] 调研 gpulot
 
 * [ ] 调研 sbt
-
-
 
 ## qemu
 
@@ -1553,7 +1559,17 @@ Tasks:
 
 ## OpenCL 学习 [1]
 
-cached:
+参考资料：
+
+1. pdf 电子书《pdfcoffee.com_opencl-programming-guidepdf-pdf-free》
+
+2. 其他网上的资料
+
+基本的东西会了，剩下的系统地看一看吧，查漏补缺。
+
+重点看一看内置函数。
+
+### cache
 
 * cached question:
 
@@ -1611,41 +1627,23 @@ cached:
 
 * 如果有多个`xxx.cl`程序组成一个大的项目，host 又该如何编译？
 
-参考资料：
+* 中值滤波算子已经完成代码，详见`ref_5`。
 
-1. pdf 电子书《pdfcoffee.com_opencl-programming-guidepdf-pdf-free》
+    同样一张图片执行中值滤波，cpu 使用的 clock 时间为 13163，gpu 使用的时间为 1137。
 
-2. 其他网上的资料
+### 任务列表：
 
-基本的东西会了，剩下的系统地看一看吧，查漏补缺。
+* [ ] 下载一本数字图像处理的书比较好，网上找的资料太碎片了
 
-重点看一看内置函数。
+* [ ] 单通道图像求中值的代码可以参考`ref_0`
 
-任务列表：
+    下次可以直接试试单张图片。
 
-* [o] 写一个中值滤波算子，用前面学到的内置函数
+* [o] 使用 cpu 实现中值滤波
 
-    dependency:
+    目前只写完了读取图片。见`ref_3`。
 
-    1. [v] 调研中值滤波的数学算法
-
-        feedback:
-
-        1. 下载一本数字图像处理的书比较好，网上找的资料太碎片了
-
-        2. 单通道图像求中值的代码可以参考`ref_0`
-
-            下次可以直接试试单张图片。
-
-    2. [o] 使用 cpu 实现中值滤波
-
-        目前只写完了读取图片。见`ref_3`。
-
-	3. 应该 sync 一下 opencl
-
-	4. 已经完成代码，详见`ref_5`。
-
-		同样一张图片执行中值滤波，cpu 使用的 clock 时间为 13163，gpu 使用的时间为 1137。
+* [ ] sync 一下 opencl
 
 * [v] 调研第 5 章 current progress: P201 Image Read and Write Functions
 
@@ -1659,9 +1657,13 @@ cached:
 
 		需要看 chapter 8: images and samplers
 
-* [v] 改进一下 simple opencl，`add_buf()`同时申请显存和内存。
-
 * [v] 调研 reduce sum, reduce max
+
+* [v] 调研虚拟机内运行 opencl
+
+    feedback:
+
+    1. 调研`simple_ocl.hpp`中获取设备的逻辑改为优先 GPU，没有 GPU 可使用时，再使用 CPU
 
 ## 算法 algorithms 与 leetcode
 
