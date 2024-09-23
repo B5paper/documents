@@ -2,6 +2,418 @@
 
 ## cache
 
+* mpi status example code
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    int main()
+    {
+        int ret = MPI_Init(NULL, NULL);
+        if (ret != 0)
+        {
+            printf("fail to init mpi, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] init mpi.\n");
+
+        int world_size;
+        ret = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        if (ret != 0)
+        {
+            printf("fail to get comm world isze, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] get world size: %d.\n", world_size);
+
+        int rank;
+        ret = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        if (ret != 0)
+        {
+            printf("fail to get rank, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] get rank: %d.\n", rank);
+
+        char buf[20] = {0};
+        if (rank == 0)
+        {
+            char *msg = "hello from rank 0";
+            size_t msg_len = strlen(msg);
+            size_t min_len;
+            if (msg_len > 19)
+                min_len = 19;
+            else
+                min_len = msg_len;
+            strncpy(buf, msg, min_len);
+            ret = MPI_Send(buf, 20, MPI_CHAR, 1, 0, MPI_COMM_WORLD);
+            if (ret != 0)
+            {
+                printf("fail to send data, ret: %d\n", ret);
+                return -1;
+            }
+            printf("[OK] send buf to rank 1:\n" "\t%s\n", buf);
+        }
+        else if (rank == 1)
+        {
+            MPI_Status status;
+            ret = MPI_Recv(buf, 20, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            if (ret != 0)
+            {
+                printf("fail to recv data, ret: %d\n", ret);
+                return -1;
+            }
+            int count;
+            MPI_Get_count(&status, MPI_CHAR, &count);
+            printf("recv status:\n" "\tsource: %d, tag: %d, count: %d\n",
+                status.MPI_SOURCE,
+                status.MPI_TAG,
+                count
+            );
+            printf("[OK] recv buf from rank 0:\n" "\t%s\n", buf);
+        }
+        else
+        {
+            printf("unknown rank: %d\n", rank);
+            return -1;
+        }
+
+        ret = MPI_Finalize();
+        if (ret != 0)
+        {
+            printf("fail to finalize mpi, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] finalize mpi.\n");
+        
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.c
+        mpicc -g main.c -o main
+
+    clean:
+        rm -f main
+
+    ```
+
+    compile: `make`
+
+    run: `mpirun -n 2 --host 10.0.2.15,10.0.2.4 ./main`
+
+    output:
+
+    ```
+    [OK] init mpi.
+    [OK] get world size: 2.
+    [OK] get rank: 0.
+    [OK] init mpi.
+    [OK] get world size: 2.
+    [OK] get rank: 1.
+    [OK] send buf to rank 1:
+        hello from rank 0
+    recv status:
+        source: 0, tag: 0, count: 20
+    [OK] recv buf from rank 0:
+        hello from rank 0
+    [OK] finalize mpi.
+    [OK] finalize mpi.
+    ```
+
+    说明：
+
+    * 这段代码仅使用了 status 中的 source, tag, count 这三个信息，没有用到 error 信息。error 信息可以用于 recv 未知数量的数据。
+
+* openmpi send recv code example
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    int main()
+    {
+        int ret = MPI_Init(NULL, NULL);
+        if (ret != 0)
+        {
+            printf("fail to init mpi, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] init mpi.\n");
+
+        int world_size;
+        ret = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        if (ret != 0)
+        {
+            printf("fail to get comm world isze, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] get world size: %d.\n", world_size);
+
+        int rank;
+        ret = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        if (ret != 0)
+        {
+            printf("fail to get rank, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] get rank: %d.\n", rank);
+
+        char buf[20] = {0};
+        if (rank == 0)
+        {
+            char *msg = "hello from rank 0";
+            size_t msg_len = strlen(msg);
+            size_t min_len;
+            if (msg_len > 19)
+                min_len = 19;
+            else
+                min_len = msg_len;
+            strncpy(buf, msg, min_len);
+            ret = MPI_Send(buf, 20, MPI_CHAR, 1, 0, MPI_COMM_WORLD);
+            if (ret != 0)
+            {
+                printf("fail to send data, ret: %d\n", ret);
+                return -1;
+            }
+            printf("[OK] send buf to rank 1:\n" "\t%s\n", buf);
+        }
+        else if (rank == 1)
+        {
+            ret = MPI_Recv(buf, 20, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (ret != 0)
+            {
+                printf("fail to recv data, ret: %d\n", ret);
+                return -1;
+            }
+            printf("[OK] recv buf from rank 0:\n" "\t%s\n", buf);
+        }
+        else
+        {
+            printf("unknown rank: %d\n", rank);
+            return -1;
+        }
+
+        ret = MPI_Finalize();
+        if (ret != 0)
+        {
+            printf("fail to finalize mpi, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] finalize mpi.\n");
+        
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.c
+        mpicc -g main.c -o main
+
+    clean:
+        rm -f main
+    ```
+
+    compile: `make`
+
+    run: `mpirun -n 2 --host 10.0.2.4,10.0.2.15 ./main`
+
+    output:
+
+    ```
+    [OK] init mpi.
+    [OK] get world size: 2.
+    [OK] get rank: 0.
+    [OK] init mpi.
+    [OK] get world size: 2.
+    [OK] get rank: 1.
+    [OK] send buf to rank 1:
+        hello from rank 0
+    [OK] recv buf from rank 0:
+        hello from rank 0
+    [OK] finalize mpi.
+    [OK] finalize mpi.
+    ```
+
+    说明：
+
+    * 代码中`printf("[OK] send buf to rank 1:\n" "\t%s\n", buf);`将两行的 printf 合成一行写，是因为两台 node 的 printf 并没有执行顺序的保证，为了避免输出混乱，就把 buf 和 prompt 使用同一个 printf 输出了。
+    
+        如果将 printf 写成下面的形式：
+
+        ```c
+        // ...
+                printf("[OK] send buf to rank 1:\n");
+                printf("\t%s\n", buf);
+        // ...
+                printf("[OK] recv buf from rank 0:\n");
+                printf("\t%s\n", buf);
+        // ...
+        ```
+
+        那么运行程序可能会得到下面的输出：
+
+        ```
+        [OK] init mpi.
+        [OK] get world size: 2.
+        [OK] get rank: 1.
+        [OK] recv buf from rank 0:
+        [OK] init mpi.
+        [OK] get world size: 2.
+        [OK] get rank: 0.
+        [OK] send buf to rank 1:
+            hello from rank 0
+            hello from rank 0
+        [OK] finalize mpi.
+        [OK] finalize mpi.
+        ```
+
+* 一个基于 LAN 的 openmpi hello world 程序
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        int ret = MPI_Init(NULL, NULL);
+        if (ret != 0)
+        {
+            printf("fail to init mpi, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] init mpi.\n");
+
+        int world_size;
+        ret = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        if (ret != 0)
+        {
+            printf("fail to get comm world isze, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] get world size: %d.\n", world_size);
+
+        int rank;
+        ret = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        if (ret != 0)
+        {
+            printf("fail to get rank, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] get rank: %d.\n", rank);
+
+        ret = MPI_Finalize();
+        if (ret != 0)
+        {
+            printf("fail to finalize mpi, ret: %d\n", ret);
+            return -1;
+        }
+        printf("[OK] finalize mpi.\n");
+        
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.c
+        mpicc -g main.c -o main
+
+    clean:
+        rm -f main
+    ```
+
+    compile:
+
+    `make`
+
+    run & output:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/nfs_shared/mpi_hello_world$ mpirun --tag-output -n 2 --host 10.0.2.4,10.0.2.15 ./main
+    [1,0]<stdout>:[OK] init mpi.
+    [1,0]<stdout>:[OK] get world size: 2.
+    [1,0]<stdout>:[OK] get rank: 0.
+    [1,1]<stdout>:[OK] init mpi.
+    [1,1]<stdout>:[OK] get world size: 2.
+    [1,1]<stdout>:[OK] get rank: 1.
+    [1,1]<stdout>:[OK] finalize mpi.
+    [1,0]<stdout>:[OK] finalize mpi.
+    (base) hlc@hlc-VirtualBox:~/nfs_shared/mpi_hello_world$ 
+    ```
+
+    说明：
+
+    * world size 指的是所有 node 上的所有进程的数量总和，rand 指的是当前进程在 world size 中的索引。
+
+    * `-n 2`可以省略，此时每个 host 上默认只起一个进程
+
+    * 可以使用`pirun -n 3 --host 10.0.2.4:2,10.0.2.15 ./main`指定`10.0.2.4`上起 2 个进程，`10.0.2.15`上默认起一个进程。当然，此处的`-n 3`也可以省略。
+
+        对于`-n <N> --host <ip_1>:<N_1>,<ip_2>:<N_2>`形式指定的进程数量，如果`N != N_1 + N_2`，那么会报错。如果`<N_1>`或`<N_2>`没被指定，那么默认值为 1.
+
+* 关于`mpirun`的参数`--host`无法使用 ip 的问题
+
+    在有些机器上，使用`mpirun -n 2 --host 10.0.2.4,10.0.2.15 ./main`运行 mpi app 时，程序会无反应，最终连接超时。
+
+    这是因为当前机器没有配置好 ssh 相关信息。
+
+    解决方案：
+
+    假如现在有 node 1, node 2 两台机器，
+    
+    1. 首先在 node 1 上使用 ssh 登陆 node 2，使得 node 2 的信息被记录在 node 1 的`~/.ssh/known_hosts`文件中。
+
+    2. 在 node 2 上执行`ssh-copy-id <user>@<node_1_ipv4_addr>`，将 node 2 的 ssh public key 复制到 node 1 上（具体是添加到 node 1 的`~/.ssh/authorized_keys`文件里）。
+
+    此时再运行``mpirun -n 2 --host 10.0.2.4,10.0.2.15 ./main``，程序即可正常执行。
+
+* openmpi app 的 vscode 配置
+
+    使用`sudo apt install libopenmpi-dev`安装的 openmpi 包，其库文件和头文件在`/usr/lib/x86_64-linux-gnu/openmpi`目录下，这个目录不是`gcc`的默认搜索目录，因此直接在`main.c`中写`#include <mpi.h>`，会提示找不到头文件。
+
+    但是由于 openmpi 的 app 通常不使用 gcc 编译，而使用`mpicc`编译，因此只需要在 vscode 的 c/c++ 配置文件中，把编译器路径改成`/usr/bin/mpicc`即可。
+
+    配置文件如下：
+
+    `c_cpp_properties.json`:
+
+    ```json
+    {
+        "configurations": [
+            {
+                "name": "Linux",
+                "includePath": [
+                    "${workspaceFolder}/**"
+                ],
+                "defines": [],
+                "compilerPath": "/usr/bin/mpicc",
+                "cStandard": "c17",
+                "cppStandard": "gnu++17",
+                "intelliSenseMode": "linux-gcc-x64"
+            }
+        ],
+        "version": 4
+    }
+    ```
+
+    此时再返回`main.c`文件中，可以看到`#include <mpi.h>`已经没有报错。
+
 * vscode + gdb attach + mpi program debugging
 
     1. add `launch.json`:

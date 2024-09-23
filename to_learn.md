@@ -5299,3 +5299,23 @@
 * QEMU Host Only Networking
 
     <https://www.kevindiaz.dev/blog/qemu-host-only-networking.html>
+
+* 解决SSH no matching host key type found 问题
+
+    <https://blog.alanwei.com/blog/2022/01/24/ssh-no-matching-host-key-type-found/>
+
+* Interrupt Handling
+
+    <https://static.lwn.net/images/pdf/LDD3/ch10.pdf>
+
+* Linux Device Drivers, Third Edition
+
+    <https://lwn.net/Kernel/LDD3/>
+
+* The Linux driver implementer’s API guide
+
+    <https://www.kernel.org/doc/html/v4.12/driver-api/index.html>
+
+* Device Drivers
+
+    <https://www.kernel.org/doc/html/v6.1/driver-api/driver-model/driver.html>

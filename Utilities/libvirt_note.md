@@ -2,6 +2,79 @@
 
 ## cache
 
+* pci 设备透传到 qemu 虚拟机内
+
+    1. 在 bios 开启 VT-d 功能
+
+    2. 在 grub 中打开 iommu
+
+        `sudo vim /etc/default/grub`
+
+        在`GRUB_CMDLIND_LINUX_DEFAULT`或`GRUB_CMDLINE_LINUX`中添加`intel_iommu=on`。这两个变量里只需要选择其中一个添加就可以了。
+
+        假如选择的是`GRUB_CMDLINE_LINUX_DEFAULT`，那么最终的结果可能如下所示：
+
+        ```
+        GRUB_DEFAULT=0
+        GRUB_TIMEOUT_STYLE=hidden
+        GRUB_TIMEOUT=0
+        GRUB_DISTRIBUTOR='lsb_release -i -s 2> /dev/null || echo Debian'
+        GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on"
+        GRUB_CMDLINE_LINUX=""
+        ```
+
+        使 grub 生效：`sudo update-grub`
+
+        重启系统：`reboot`
+
+    3. 启动`vfio-pci`内核态驱动
+
+        `sudo modprobe vfio-pci`
+
+        查看是否加载成功：
+
+        `lsmod | grep vfio`
+
+        如果没有任何输出，那么加载驱动失败。有输出说明加载成功。
+
+    4. 解綁待透传设备的驱动
+
+        以 nvidia 为例：
+
+        首先查看设备是否在使用中：`lspci -v | less`，搜索`nvidia`，看到
+
+        ```
+        Kernel driver in use: nvidia
+        ```
+
+        说明`nvidia`驱动正占用该设备。
+
+        对于非显卡的普通设备，比如网卡设备，可以进入对应的 driver 下，把 pcie 编号 unbind 一下。
+
+        对于显卡设备，因为桌面图形环境总是占用显卡，所以要么把`nvidia`，`noveau`等驱动放到 blacklist 里，要么`sudo systemctl set-default multi-user.target`，进入文字系统。这两种方式都需要重启系统。
+
+        此时重新执行`lspci -v | less`，看到对应的 pci 设备的 kernel driver in use 字段为空，说明设备未和任何驱动绑定。
+
+    5. add vfio-pci new id
+
+        这里以 nvidia 为例：
+
+        `lspci -nn | grep -i nvidia`
+
+        输出：
+
+        ```
+        b1:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 32GB] [10de:1db6] (rev a1)
+        ```
+
+        进入`/sys/bus/pci/drivers/vfio-pci`文件夹，执行：
+
+        `echo "10de 1db6" | sudo tee new_id`
+
+        此时再使用`lspci -v`检查 nvidia 的 driver 占用情况，可以看到它变成了 vfio-pci。
+
+    6. 在 qemu 中直接添加 pci device 即可
+
 * qemu 启动虚拟机命令
 
     `qemu-system-x86_64 -name aaa -accel tcg -vga virtio -m 4096 -smp 8 -hda ./ccc.qcow2`

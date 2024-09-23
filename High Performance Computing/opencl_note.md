@@ -12,6 +12,14 @@ Ref:
 
 ## cache
 
+* 在 cpu 上运行 opencl
+
+    安装库：`sudo apt install libpocl2`
+
+    如果需要编译代码，还需要安装头文件：`sudo apt install opencl-headers`
+
+    实测 windows 10 host + i7-1360P + virtual box 虚拟机 + Ubuntu 22.04 可以正常运行。
+
 * `CL_MEM_COPY_HOST_PTR`
 
     如果需要在创建 buffer 时就把数据从 host 上复制到 buffer 里，那么可以这样写：

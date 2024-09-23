@@ -18,6 +18,22 @@ apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
 
 ## cache
 
+* mesa 实现了 cpu 版本的 opengl
+
+* `glxinfo`在`mesa-utils` package 中
+
+    `glxdemo`, `glxgears`, `glxheads`是三个 test 程序，可以测试系统中 opengl 是否正确安装。
+
+    ubuntu 22.04 虚拟机中默认已经安装了 mesa。
+
+    opengl performance benchmark:
+
+    `sudo apt install glmark2`
+
+    运行：
+
+    `glmark2`
+
 * copy from other notes
 
 	安装与编译环境测试：<http://www.codebind.com/linux-tutorials/install-opengl-ubuntu-linux/>

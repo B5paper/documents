@@ -2,6 +2,28 @@
 
 本篇笔记主要记录一些和 linux 相关的配置细节。
 
+## cache
+
+* sudo 与环境变量
+
+    * 环境变量加到`sudo`前面，环境变量不生效：
+
+        `http_proxy=xxx https_proxy=xxx sudo curl www.google.com`
+
+    * 环境变量加到`sudo`后面才生效：
+
+        `sudo http_proxy=xxx https_proxy=xxx curl www.google.com`
+
+* kmd 添加 blacklist
+
+    在`/etc/modprobe.d`目录下创建文件：
+
+    `blacklist-<kmd_name>.conf`:
+
+    ```conf
+    blacklist <kmd_name>
+    ```
+
 ## 解决中文的“门”字显示的问题
 
 在`/etc/fonts/conf.d/64-language-selector-prefer.conf `文件中，把各个字体中`<family>Noto Sans CJK SC</family>`放到其它字体的最前面即可。
