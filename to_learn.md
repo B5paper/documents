@@ -5431,3 +5431,39 @@
 * Processing is a flexible software sketchbook and a language for learning how to code. 
 
     <https://processing.org>
+
+* c++ gui library
+
+    * <https://www.zhihu.com/question/563769404/answer/2801566453>
+
+* c++ library
+
+    * <https://zhuanlan.zhihu.com/p/148535682>
+
+    * <https://docs.pocoproject.org/current/00200-GettingStarted.html>
+
+    * <https://www.zhihu.com/question/51134387/answer/386066052>
+
+    * <https://www.boost.org>
+
+* b 站视频
+
+    * 一个 up，讲各种算法的：<https://space.bilibili.com/3493129550301982>
+
+* b-tree <https://www.cnblogs.com/qixinbo/p/11048269.html>
+
+* c 语言中的十六进制字面量：<https://www.includehelp.com/c/hexadecimal-literals.aspx>
+
+* 二叉树的序列化和反序列化：<https://www.geeksforgeeks.org/serialize-deserialize-binary-tree/>
+
+* leetcode rating list: <https://zerotrac.github.io/leetcode_problem_rating/#/>
+
+* c 语言字符串中的特殊字符（escape sequence）：<https://en.cppreference.com/w/cpp/language/escape>
+
+* 英特尔的编程资料
+
+    <https://www.intel.com/content/www/us/en/developer/overview.html#gs.uqrhw4>
+
+    <https://www.intel.com/content/www/us/en/resources-documentation/developer.html>
+
+* 有关计算机科学的 wiki: <https://wiki.osdev.org/Main_Page>
