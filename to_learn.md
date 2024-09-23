@@ -5319,3 +5319,115 @@
 * Device Drivers
 
     <https://www.kernel.org/doc/html/v6.1/driver-api/driver-model/driver.html>
+
+* 开始使用 ZRender
+
+    <https://ecomfe.github.io/zrender-doc/public/>
+
+* How to visualize/plot a graph in C++?
+
+    <https://stackoverflow.com/questions/19641196/how-to-visualize-plot-a-graph-in-c>
+
+* 特征 Trait
+
+    <https://course.rs/basic/trait/trait.html#通过-derive-派生特征>
+
+* leetcode/linkList/easy/reverse_list/src/lib.rs
+
+    <https://github.com/zhangyuang/leetcode/blob/master/linkList/easy/reverse_list/src/lib.rs>
+
+* trait, 通过例子学 Rust 中文版
+
+    <https://rustwiki.org/zh-CN/rust-by-example/generics/gen_trait.html>
+
+* Why can Cell in Rust only be used for Copy and not Clone types?
+
+    <https://stackoverflow.com/questions/39667868/why-can-cell-in-rust-only-be-used-for-copy-and-not-clone-types>
+
+* philipjkim/iter_test.rs
+
+    <https://gist.github.com/philipjkim/98bc460d31773255fd2b20780a73b742>
+
+* Graphviz
+
+    <https://www.graphviz.org>
+
+* The Julia Programming Language
+
+    <https://julialang.org>
+
+* Using Cell and replace() to trick the compiler, instead of RefCell
+
+    <https://www.reddit.com/r/rust/comments/h7m5h8/using_cell_and_replace_to_trick_the_compiler/>
+
+* How do I fix the error "type annotations needed" when creating a closure that uses the try operator?
+
+    <https://stackoverflow.com/questions/51476828/how-do-i-fix-the-error-type-annotations-needed-when-creating-a-closure-that-us>
+
+* type annotations needed for `&Borrowed`
+
+    <https://stackoverflow.com/questions/69216874/type-annotations-needed-for-borrowed>
+
+* Cytoscape.js
+
+    <https://github.com/cytoscape/cytoscape.js>
+
+* A complete library of OpenACC materials that includes a collection of video tutorials, guides, online courses, books and more.
+
+    <https://www.openacc.org/resources>
+
+* 3.3. Producing Dynamic Graphs with PyVis
+
+    <https://python-textbook.pythonhumanities.com/06_sna/06_01_04_pyvis_basics.html>
+
+* Network Visualisation Also called: Network Graphs, Network Graph, Network Mapping
+
+    <https://datavizproject.com/data-type/network-visualisation/>
+
+* Graphviz
+
+    <https://graphviz.org>
+
+* NetworkX is a Python package for the creation, manipulation, and study of the structure, dynamics, and functions of complex networks.
+
+    <https://networkx.org>
+
+* Software for Complex Networks
+
+    <https://networkx.org/documentation/stable/index.html#>
+
+* 7 Network Visualization and Aesthetics
+
+    <https://bookdown.org/markhoff/social_network_analysis/network-visualization-and-aesthetics.html>
+
+* Interactive network visualizations
+
+    <https://pyvis.readthedocs.io/en/latest/>
+
+* Network visualization: A detailed guide
+
+    <https://cambridge-intelligence.com/why-visualize-networks/>
+
+* The list of free graph visualization applications
+
+    <https://elise-deux.medium.com/list-of-free-graph-visualization-applications-9c4ff5c1b3cd>
+
+* Static and dynamic network visualization with R
+
+    <https://kateto.net/network-visualization>
+
+* Chapter 5 Advanced Network Visualization
+
+    <https://yunranchen.github.io/intro-net-r/advanced-network-visualization.html>
+
+* Gephi is the leading visualization and exploration software
+
+    <https://gephi.org>
+
+* Network Graphs in Python
+
+    <https://plotly.com/python/network-graphs/>
+
+* Processing is a flexible software sketchbook and a language for learning how to code. 
+
+    <https://processing.org>
