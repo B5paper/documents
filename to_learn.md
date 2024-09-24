@@ -5467,3 +5467,59 @@
     <https://www.intel.com/content/www/us/en/resources-documentation/developer.html>
 
 * 有关计算机科学的 wiki: <https://wiki.osdev.org/Main_Page>
+
+* 计算机网络-以太网链路聚合
+
+<https://zhuanlan.zhihu.com/p/679496515>
+
+* H3C 交换机常见配置问题FAQ-6W102
+
+    <https://www.h3c.com/cn/Service/Document_Software/Document_Center/Home/Switches/00-Public/Quick_Starts/FAQ/H3C_CJWT_FAQ_Long/?CHID=560342#_Toc107479941>
+
+* H3C 交换机常见配置问题FAQ-6W102
+
+    <https://www.h3c.com/cn/Service/Document_Software/Document_Center/Home/Switches/00-Public/Quick_Starts/FAQ/H3C_CJWT_FAQ_Long/?CHID=560342>
+
+* H3C光模块和光链路运维指导书-6W100
+
+    <https://www.h3c.com/cn/d_202208/1666054_30005_0.htm>
+
+* AI超算下的光互联：光模块、AOC与DAC
+
+    <https://new.qq.com/rain/a/20230709A03JMC00>
+
+* Mellanox ConnectX-5 Infiniband + LR4 Transceivers = 10GBit/s SDR?!
+
+    <https://forums.servethehome.com/index.php?threads/mellanox-connectx-5-infiniband-lr4-transceivers-10gbit-s-sdr.35776/>
+
+* 21张图详解交换机MAC地址表的五大要素：MAC地址、VLAN、出接口等 
+
+    <https://www.sohu.com/a/488645722_121206653>
+
+* Bootlin Live #0, live video podcast on embedded Linux
+
+    <https://bootlin.com/>
+
+* How to Change MAC Address in Linux
+
+    <https://beebom.com/how-change-mac-address-linux/>
+
+* Bootlin Elixir Cross Referencer
+
+    <https://elixir.bootlin.com/linux/v5.19/A/ident/ib_device_ops>
+
+* The Elixir Cross Referencer
+
+    <https://github.com/bootlin/elixir>
+
+* Elixir Cross Referencer: new way to browse kernel sources
+
+    <https://bootlin.com/blog/elixir/>
+
+* How to Change Your MAC Address on Linux
+
+    <https://www.makeuseof.com/how-to-change-mac-address-on-linux/>
+
+* 光模块简介
+
+    <https://cshihong.github.io/2020/08/16/%E5%85%89%E6%A8%A1%E5%9D%97%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/>

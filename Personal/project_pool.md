@@ -860,6 +860,8 @@ tasks:
 
 * [v] cache tabs 09/21
 
+* [v] cache tabs 09/23
+
 ## rdma
 
 ### cache
@@ -1057,6 +1059,160 @@ tasks:
         假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。
 
         即使 hit 了`debug_valid.c`文件的断点，程序暂停时上一层和下一层暂停的代码行上下文。
+
+* [v] 调研 mlnx port 强制速率协商
+
+    feedback:
+
+    1. `ibstat`或`ibstatus`可以得到当前协商的速率
+
+    2. `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
+
+    3. `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
+
+    4. 尝试将 link rate 强制修改为 EDR
+
+        `sudo mlxlink -d mlx5_0 --link_mode_force -s EDR`
+
+        output:
+
+        ```
+        Operational Info
+        ----------------
+        State                              : Active 
+        Physical state                     : LinkUp 
+        Speed                              : IB-SDR 
+        Width                              : 4x 
+        FEC                                : No FEC 
+        Loopback Mode                      : No Loopback 
+        Auto Negotiation                   : ON 
+
+        Supported Info
+        --------------
+        Enabled Link Speed                 : 0x00000001 (SDR) 
+        Supported Cable Speed              : 0x00000001 (SDR) 
+
+        Troubleshooting Info
+        --------------------
+        Status Opcode                      : 0 
+        Group Opcode                       : N/A 
+        Recommendation                     : No issue was observed 
+
+        Tool Information
+        ----------------
+        Firmware Version                   : 16.35.3502 
+        MFT Version                        : mft 4.28.0-92 
+
+        Configuring Port Speeds...
+        
+
+        Errors
+        ------
+        Sending PTYS (Configuring port speeds) raised the following exception: EDR is not supported by Device!
+        Supported Speeds Are: SDR
+        ```
+
+    5. 尝试将速率强制修改为 SDR
+
+        `sudo mlxlink -d mlx5_0 --link_mode_force -s SDR`
+
+        output:
+
+        ```
+        Operational Info
+        ----------------
+        State                              : Active 
+        Physical state                     : LinkUp 
+        Speed                              : IB-SDR 
+        Width                              : 4x 
+        FEC                                : No FEC 
+        Loopback Mode                      : No Loopback 
+        Auto Negotiation                   : ON 
+
+        Supported Info
+        --------------
+        Enabled Link Speed                 : 0x00000001 (SDR) 
+        Supported Cable Speed              : 0x00000001 (SDR) 
+
+        Troubleshooting Info
+        --------------------
+        Status Opcode                      : 0 
+        Group Opcode                       : N/A 
+        Recommendation                     : No issue was observed 
+
+        Tool Information
+        ----------------
+        Firmware Version                   : 16.35.3502 
+        MFT Version                        : mft 4.28.0-92 
+
+        Configuring Port Speeds...
+        
+
+        Errors
+        ------
+        Sending PTYS (Configuring port speeds) raised the following exception: Invalid speed configurations
+        ```
+
+    6. 使用 vscode 调试 sudo 程序
+
+        核心是需要 gdb 由 sudo 启动。
+
+        可以在`launch.json`里加一行：
+
+        `"miDebuggerPath": "/home/hlc/.local/bin/sudo_gdb.sh"`
+
+        `sudo_gdb.sh`里只要写一行：
+
+        ```bash
+        #!/bin/bash
+        sudo gdb "$@"
+        ```
+
+        然后`sudo chmod +x sudo_gdb.sh`。
+
+        接着在 vscode 的 intergrated terminal 里输入`sudo echo 1`，正常输入密码。此时这个 terminal 里，root 权限会持续开启一段时间，使用`sudo`运行其他程序不需要再输入密码。
+
+        这个时候就可以在 vscode 里运行 F5 调试程序了。
+
+    7. 有时间可以追一追为什么 cable 不支持高速率。
+
+    8. cache
+
+        * mellanox 的 firmware:
+
+            <https://network.nvidia.com/support/firmware/nic/>
+
+        * Firmware Management
+
+            <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
+
+        * NVIDIA Firmware Tools (MFT) 
+
+            <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
+
+        * How to debug programs with "sudo" in VSCODE
+
+            <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+
+        * How can i change to ib card speed from IB-SDR to IB-QDR?
+
+            <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
+
+        * NVIDIA Firmware Tools (MFT) 
+
+            <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
+
+        * NVIDIA ConnectX-7 Adapter Cards User Manual
+
+            <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
+
+        * IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
+
+            <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
+
+        * Set a upper bandwidth limit for Infiniband HCAs
+
+            <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
 
 * [ ] 调研`perftest`仓库
 
