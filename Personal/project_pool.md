@@ -656,28 +656,6 @@
 
 ## reorg
 
-* [ ] 建立一个文档索引表，写一个 python 程序，每次随机选择一个文件，跳转到随机一行
-
-	feedback:
-
-	3. 目前没有包含子目录
-
-		比较好的办法是先收集目录，再排除 ignore 目录，再收集文件，再排除 ignore 文件，
-
-		最后直接根据文件的路径随机选择一个。
-
-	4. 在项目管理中加上这个项目，系统的自检查
-
-* [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
-
-* [ ] python 判断两个路径是否等价，包括相对路径，绝对路径，文件，目录
-
-* [ ] 为 reorg 程序增加指定文件的随机一行的功能
-
-* random select 时，将 projects 文件夹也包含进去
-
-* [v] 调研 sync 的含义
-
 * [v] reorg 30 mins 04/28
 
     feedback:
@@ -720,19 +698,25 @@
 
     17:28 ~ 18.02
 
-* [v] 调研 reorg
+* [ ] 在项目管理中加上这个项目，系统的自检查
 
-    feedback:
+* [ ] 为 reorg 程序增加指定文件的随机一行的功能
 
-    * [ ] 调研 python 中的 hashset
+* [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-    * [ ] 调研 python 中不同 path 的变体如何判断是相同 path
+* [ ] python 判断两个路径是否等价，包括相对路径，绝对路径，文件，目录
 
-        比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
+* [ ] random select 时，将 projects 文件夹也包含进去
 
-    * [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
+* [ ] 调研 python 中的 hashset
 
-    * [ ] 调研 git ignore 的实现原理
+* [ ] 调研 python 中不同 path 的变体如何判断是相同 path
+
+    比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
+
+* [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
+
+* [ ] 调研 git ignore 的实现原理
 
 * [v] reorg 30 mins
 
@@ -742,7 +726,7 @@
 
     1. 在 linux driver note 中，linked list 已经被学过两遍了，有时间 sync 一下，整理成 qa
 
-* [v]  reorg 30 mins
+* [v] reorg 30 mins
 
     12:59 ~ 15:52
 
@@ -838,11 +822,7 @@ Tasks:
 
 * 处理 url 的时间比想象中要长，每一条大概需要 30 mins
 
-tasks:
-
-* [v] process 1 url 30 mins 04/28
-
-* [v] cache tabs 05/06
+### tasks
 
 * [v] process 1 url 05/06
 
@@ -870,7 +850,7 @@ tasks:
 
 * 调研 rdma link
 
-* mana 中的 gid 是如何计算的？
+* [v] mana 中的 gid 是如何计算的？
 
 * 调研
 
@@ -1020,29 +1000,21 @@ tasks:
 
 * 目前看到的信息是 cx5 的网卡支持的协议有 ib 和 roce v1，cx4 网卡支持的协议是 roce v2。
 
+* nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
+
+    添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
+
 ### tasks
 
-* [v] 调研 openmpi tutorial: <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+* [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+* [ ] 调研使用`MPI_ERROR`接收未知长度数据
+
+* [v] 调研将 nccl 中的宏恢复原样，只添加环境变量，是否还能跑通 test case。
 
     feedback:
 
-    1. 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
-
-    2. 调研使用`MPI_ERROR`接收未知长度数据
-
-* [v] 调研 mellanox 网卡启动 roce 协议
-
-* [v] 调研 nccl 是否能不跳过 mr 的注册  30 mins
-
-    只通过修改宏和环境变量来满足要求
-
-    feedback:
-
-    1. nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
-
-        添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
-
-    2. 下次试试将 nccl 中的宏恢复原样，只添加环境变量，是否还能跑通 test case。
+    1. 不可以。有些宏的修改环境变量无法覆盖到。
 
 * [v] 调研在 mpi 启动 nccl 程序时，gdb attch 无法击中 umd 的断点的情况
 
@@ -1214,13 +1186,13 @@ tasks:
 
             <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
 
+* [v] 调研 libvirt 网桥
+
 * [ ] 调研`perftest`仓库
 
 * [ ] 调研 pytorch 调用 nccl wrapper function
 
-* [v] 调研 libvirt 网桥
-
-* [ ] 调研 vllm nccl debug environment
+* [ ] 调研 docker 中 app 的调试方法
 
 * [ ] 调研 nccl app
 

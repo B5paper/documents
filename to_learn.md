@@ -1,7 +1,5 @@
 1. git 相关
 
-    设置 upstream，并 fork: <https://www.freecodecamp.org/news/how-to-sync-your-fork-with-the-original-git-repository/>
-
     Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
 
     Pull a certain branch from the remote server: <https://stackoverflow.com/questions/1709177/pull-a-certain-branch-from-the-remote-server>
@@ -5523,3 +5521,83 @@
 * 光模块简介
 
     <https://cshihong.github.io/2020/08/16/%E5%85%89%E6%A8%A1%E5%9D%97%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/>
+
+* Compiler Explorer is an interactive tool that lets you type code in one window and see the results of its compilation in another window.
+
+    <https://godbolt.org/>
+
+* imFile: A full-featured download manager
+
+    <https://github.com/imfile-io/imfile-desktop>
+
+* Web browsers are ubiquitous, but how do they work? This book explains, building a basic but complete web browser, from networking to JavaScript, in a couple thousand lines of Python.
+
+    <https://browser.engineering/>
+
+* 贝塞尔曲线入门
+
+    <https://pomax.github.io/bezierinfo/zh-CN/index.html>
+
+* A friendly introduction to assembly for high-level programmers — Hello
+
+    <https://shikaan.github.io/assembly/x86/guide/2024/09/08/x86-64-introduction-hello.html>
+
+* 说透缓存一致性与内存屏障
+
+    <https://www.cnblogs.com/chanmufeng/p/16523365.html>
+
+* 一篇就学会vim
+
+    <https://blog.liugezhou.online/030-%E4%B8%80%E7%AF%87%E5%B0%B1%E5%AD%A6%E4%BC%9Avim/>
+
+* introduction to probability for computing, Author: Prof. Mor Harchol-Balter
+
+    <https://www.cs.cmu.edu/~harchol/Probability/book.html>
+
+* PARALLEL COMPUTING
+
+    <https://gfxcourses.stanford.edu/cs149/fall23>
+
+    <https://gfxcourses.stanford.edu/cs149/fall24>
+
+* TiledCUDA is a highly efficient kernel template library designed to elevate CUDA C’s level of abstraction for processing tiles. 
+
+    <https://github.com/TiledTensor/TiledCUDA>
+
+* rich，一个无敌的 Python 库！
+
+    专为在命令行中创建美观的输出而设计。它支持丰富的文本样式、彩色输出、进度条、表格和日志等功能
+
+    <https://segmentfault.com/a/1190000045316974>
+
+* Hello 👋, we are sysxplore, exploring DevOps, Cloud and Linux. 
+
+    <https://sysxplore.com/>
+
+* supertree - Interactive Decision Tree Visualization
+
+    <https://github.com/mljar/supertree>
+
+* 高性能调度系统设计总结
+
+    <https://new.qq.com/rain/a/20240830A0801800>
+
+* MiniTorch is a diy teaching library for machine learning engineers who wish to learn about the internal concepts underlying deep learning systems.
+
+    <https://minitorch.github.io/>
+
+* modern unix tool list
+
+    <https://notes.billmill.org/computer_usage/cli_tips_and_tools/modern_unix_tool_list.html>
+
+* Artificial LIfe ENvironment (ALIEN) is an artificial life simulation tool based on a specialized 2D particle engine in CUDA for soft bodies and fluids.
+
+    <https://github.com/chrxh/alien>
+
+* 现代C++并发编程教程
+
+    <https://mq-b.github.io/ModernCpp-ConcurrentProgramming-Tutorial/#%E7%8E%B0%E4%BB%A3c-%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E6%95%99%E7%A8%8B>
+
+* 《现代CPU性能分析与优化》
+
+    <https://weedge.github.io/perf-book-cn/zh/>
