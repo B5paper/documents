@@ -5599,3 +5599,47 @@
 * 《现代CPU性能分析与优化》
 
     <https://weedge.github.io/perf-book-cn/zh/>
+
+* inet_pton(3) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man3/inet_pton.3.html>
+
+*  Welcome to the Community Computer Vision Course
+
+    <https://huggingface.co/learn/computer-vision-course/unit0/welcome/welcome>
+
+* Agents in Software Engineering: Survey, Landscape, and Vision
+
+    <https://arxiv.org/abs/2409.09030>
+
+* binsider: Analyze ELF binaries like a boss 😼🕵️‍♂️ 
+
+    <https://github.com/orhun/binsider>
+
+* Python Cookbook 3rd Edition Documentation
+
+    <https://python3-cookbook.readthedocs.io/zh-cn/latest/>
+
+* Writing an OS in Rust
+
+    <https://os.phil-opp.com/zh-CN/>
+
+* dataease: 🔥 人人可用的开源 BI 工具，Tableau、帆软的开源替代。 
+
+    <https://github.com/dataease/dataease>
+
+* Cron Jobs on Linux - Comprehensive Guide with Examples
+
+    <https://ittavern.com/cron-jobs-on-linux-comprehensive-guide/>
+
+* archbase: 教科书《计算机体系结构基础》（胡伟武等，第三版）的开源版本 
+
+    <https://github.com/foxsen/archbase>
+
+* 基础篇| 全网最全详解12个大模型推理框架
+
+    <https://blog.csdn.net/z551646/article/details/141754395>
+
+* From Python to Numpy
+
+    <https://www.labri.fr/perso/nrougier/from-python-to-numpy/>
