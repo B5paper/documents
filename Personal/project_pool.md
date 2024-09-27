@@ -656,33 +656,25 @@
 
 ## reorg
 
-* [v] reorg 30 mins 04/28
+### cache
 
-    feedback:
+* java 的 note 大部分已经空间化了，没有什么需要 reorg 的
 
-    1. java 的 note 大部分已经空间化了，没有什么需要 reorg 的
+* 清理了 latex 和 opengl 的笔记，但是这两份笔记只有几行，并没有什么需要整理的
 
-* [v] reorg 30 mins 05/03
+    最好还是先让程序扫描一遍目录，然后根据规则排除一些文件，然后再跟上一次使用的数据库做对比，看看新扫描的增加了哪些文件，缺少了哪些文件，手动确认是否更新数据库。
 
-    feedback:
+    然后根据更新完的数据库，重新计算每个文件被选中的概率权重，最后根据权重，随机选择一个文件。
 
-    1. 清理了 latex 和 opengl 的笔记，但是这两份笔记只有几行，并没有什么需要整理的
+    如果被选中的文件没有什么好 reorg 的，那么可以手动调低权重，让它下次出现的概率变低。
 
-        最好还是先让程序扫描一遍目录，然后根据规则排除一些文件，然后再跟上一次使用的数据库做对比，看看新扫描的增加了哪些文件，缺少了哪些文件，手动确认是否更新数据库。
+    如果一个文件整理完后，发现还有许多要整理的地方，那么就手动升高其权重，增加它出现的概率。
 
-        然后根据更新完的数据库，重新计算每个文件被选中的概率权重，最后根据权重，随机选择一个文件。
+    其实降低别某一个文件概率就是变相地升高其他文件的概率，所以也可以不去设置手动调高概率。
 
-        如果被选中的文件没有什么好 reorg 的，那么可以手动调低权重，让它下次出现的概率变低。
+* [ ] 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
 
-        如果一个文件整理完后，发现还有许多要整理的地方，那么就手动升高其权重，增加它出现的概率。
-
-        其实降低别某一个文件概率就是变相地升高其他文件的概率，所以也可以不去设置手动调高概率。
-
-* [v] reorg 30 mins 05/06
-
-    feedback:
-
-    1. 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
+### tasks
 
 * [v] reorg 30 mins 05/20
 
@@ -697,6 +689,10 @@
 * [v] 调研 pathon 中的 path concatenate
 
     17:28 ~ 18.02
+
+* [v] reorg 09/24
+
+* [ ] 调研 mpi 如何给不同的 node 配置不同的环境变量？
 
 * [ ] 在项目管理中加上这个项目，系统的自检查
 
@@ -824,14 +820,6 @@ Tasks:
 
 ### tasks
 
-* [v] process 1 url 05/06
-
-* [v] cache tabs 07/23
-
-* [v] cache tabs 08/01
-
-* [v] cache tabs 08/10
-
 * [v] cache tabs 08/30
 
 * [v] cache tabs 30 mins  09/10
@@ -842,11 +830,51 @@ Tasks:
 
 * [v] cache tabs 09/23
 
+* [v] cache tabs 09/25
+
+    feedback:
+
+    * cached tabs
+
+        * The Swiss Army knife for 802.11, BLE, HID, CAN-bus, IPv4 and IPv6 networks reconnaissance and MITM attacks. 
+
+            <https://github.com/bettercap/bettercap>
+
+        * Flex Engine is a personal game engine I began work on in early 2017.
+
+            <https://github.com/ajweeks/FlexEngine>
+
+* [v] process 1 url 09/25
+
+    feedback:
+
+    1. 未处理完，有时间接着处理这个 url
+
+* [v] cache tabs 09/26
+
+    10:24 ~ 11:00
+
+* [v] process 1 url 09/26
+
+    Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
+
+    feedback:
+
+    1. 在 github 里创建新 branch 两种方法
+
+        1. 进入 branch 界面，点 new branch
+
+        2. 在 branch 下拉菜单的搜索框里写 branch name，然后会有 create new branch 的提示
+
+        必须有 repo 的 push 权限才能创建新 branch
+
+    2. 在 issue 界面里可以为一个 issue 创建一个 branch
+
 ## rdma
 
 ### cache
 
-* [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
+
 
 * 调研 rdma link
 
@@ -1005,6 +1033,22 @@ Tasks:
     添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
 
 ### tasks
+
+* [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
+
+    feedback:
+
+    1. dependency
+
+        1. [ ] 调研 socket programming
+
+    2. [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
+
+    3. [ ] 使用正常的 shutdown / close，socket 是否还会在 TIMEOUT 时间内 fail to bind?
+
+        feedback:
+
+        1. shutdown 和 close 都无法立即重新将同一个 fd bind 到一个 address + port 上
 
 * [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
@@ -1188,7 +1232,15 @@ Tasks:
 
 * [v] 调研 libvirt 网桥
 
-* [ ] 调研`perftest`仓库
+* [v] 调研`perftest`仓库
+
+    feedback:
+
+    1. sync socket programming
+
+    2. 调研 PCI relaxed ordering 
+
+    3. 调研`fprintf(stderr," Internal error, existing.\n");`的用法
 
 * [ ] 调研 pytorch 调用 nccl wrapper function
 
