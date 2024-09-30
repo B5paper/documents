@@ -1,7 +1,5 @@
 1. git 相关
 
-    Pull a certain branch from the remote server: <https://stackoverflow.com/questions/1709177/pull-a-certain-branch-from-the-remote-server>
-
     How to stop container in containerd/ctr: <https://stackoverflow.com/questions/67171982/how-to-stop-container-in-containerd-ctr>
 
     Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
@@ -5643,3 +5641,31 @@
 * From Python to Numpy
 
     <https://www.labri.fr/perso/nrougier/from-python-to-numpy/>
+
+* Performance Analysis of Deep Learning Workloads on Leading-edge Systems
+
+    <https://www.osti.gov/servlets/purl/1571428>
+
+* Creating A Simple Udp Client Server Application In C 
+
+    <https://mohitmishra786.github.io/chessman/2024/09/25/Creating-a-Simple-UDP-Client-Server-Application-in-C.html>
+
+* Scientific Visualization: Python + Matplotlib
+
+    <https://github.com/rougier/scientific-visualization-book>
+
+* show-me: A visual and transparent alternative to open-source ChatGPT O1 
+
+    <https://github.com/marlaman/show-me>
+
+* Zulip – 一款企业级功能丰富的团队协作开源即时通讯工具 
+
+    <https://kkkshare.com/2024/09/09/zulip-yi-kuan-qi-ye-ji-gong-neng-feng-fu-de-tuan-dui-xie-zuo-kai-yuan-ji-shi-tong-xun-gong-ju/>
+
+* 专业 Emacs 入门
+
+    <https://pavinberg.github.io/emacs-book/zh/>
+
+* pr_debug、dev_dbg等动态调试三
+
+    <https://www.cnblogs.com/pengdonglin137/p/4622460.html>

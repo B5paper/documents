@@ -692,6 +692,18 @@
 
 * [v] reorg 09/24
 
+* [v] reorg 30 mins 09/30
+
+    feedback:
+
+    1. deps
+
+        1. [ ] 调研 markdown previewer
+
+            要求能显示数学公式
+
+        2. [ ] 调研 electron
+
 * [ ] 调研 mpi 如何给不同的 node 配置不同的环境变量？
 
 * [ ] 在项目管理中加上这个项目，系统的自检查
@@ -870,11 +882,15 @@ Tasks:
 
     2. 在 issue 界面里可以为一个 issue 创建一个 branch
 
+* [v] cache tabs 09/27
+
+* [v] cache tabs 09/30
+
+* [v] process 1 url
+
 ## rdma
 
 ### cache
-
-
 
 * 调研 rdma link
 
@@ -1034,21 +1050,19 @@ Tasks:
 
 ### tasks
 
+* [v] 调研 socket programming
+
 * [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
     feedback:
-
-    1. dependency
-
-        1. [ ] 调研 socket programming
-
-    2. [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
 
     3. [ ] 使用正常的 shutdown / close，socket 是否还会在 TIMEOUT 时间内 fail to bind?
 
         feedback:
 
         1. shutdown 和 close 都无法立即重新将同一个 fd bind 到一个 address + port 上
+
+* [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
 
 * [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
@@ -1241,6 +1255,14 @@ Tasks:
     2. 调研 PCI relaxed ordering 
 
     3. 调研`fprintf(stderr," Internal error, existing.\n");`的用法
+
+* [v] 调研 cuda 与 host mem 的通信速率
+
+* [v] 调研 switch 上的 perftest
+
+    feedback:
+
+    1. 差不多能跑到 97 Gb/s
 
 * [ ] 调研 pytorch 调用 nccl wrapper function
 
