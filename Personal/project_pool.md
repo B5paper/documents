@@ -36,6 +36,10 @@
 
 ## cached
 
+* perftest 会编译生成一些 binary，其中比较有用的几个：
+
+    `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
+
 * 假设 node 1 上有 vm 1，node 2 上有 vm 2。vm 1 无法 ping 通 vm 2 可能是因为只设置了 node 1 上的路由表，没有设置 node 2 上的路由表
 
     猜想：可能是 vm 1 缎带 vm 2 发送完 icmp 数据包后，vm 2 回复 icmp 包时，找不到 vm 1 所在的网段如何路由过去。

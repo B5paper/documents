@@ -2,6 +2,42 @@
 
 ## cache
 
+* 将 remote branch fork 到 local branch
+
+    假设 remote 的 name 是`origin`，那么
+
+    ```bash
+    git fetch origin
+    git branch <local_branch_name> origin/<remote_branch_name>
+    git checkout <local_branch_name>
+    ```
+
+    对于已经存在的 local branch，可以使用`git pull`只拉取指定的 branch：
+
+    ```bash
+    git pull {repo} {remotebranchname}:{localbranchname}
+
+    git pull origin xyz:xyz
+    ```
+
+    其他介绍的方法并不是很优雅，比如`git pull origin branch_2`，其实是先执行`git fetch`，再执行`git merge origin/branch_2`，这样是把`origin/branch_2` merge 到`branch_1`上。
+
+    如果使用`git branch branch_2`，再执行`git pull origin branch_2`，那么相当于从`branch_1` fork 出了一份`branch_2`，然后再 merge remote branch_2。本质上相当于将 branch_2 的内容强行 merge 到 branch_1 上。这样也不太优雅。
+
+* 使用 commit 1 merge commit 2，如果 commit 1 领先 commit 2，那么 commit 1 没有变化
+
+    如果 commit 1 和 commit 2 是 diverge 状态，并且修改的是同一行，或者相邻的几行，那么在执行`git merge`时会显示冲突（conflict）状态。
+
+    如果两个 branch 是 diverge 状态，并且在相邻较远的两段代码上有不同，那么会不会有 conflict 状态？
+
+* git merge 会保存 branch 的所有 commit history
+
+* `git merge origin/master`可以 merge remote branch
+
+* 假如 HEAD 在 branch test 上，那么无法用`git branch -d test`删除 test branch
+
+    即，无法删除当前所在分支。
+
 * git 先`get fetch <remote_name>:<remote_branch>`，再`git checkout <remote_branch>`，就可以自动把 remote branch 同步到本地一个新的 branch 了。
 
 * git remote 采用 ssh 协议时的一个 example
