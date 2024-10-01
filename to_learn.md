@@ -5669,3 +5669,69 @@
 * pr_debug、dev_dbg等动态调试三
 
     <https://www.cnblogs.com/pengdonglin137/p/4622460.html>
+
+* MarkText
+
+    A simple and elegant markdown editor, available for Linux, macOS and Windows. 
+
+    <https://github.com/marktext/marktext>
+
+* Marker
+
+    An open-source, user-friendly UI for viewing and editing markdown files
+
+    <https://github.com/tk04/Marker>
+
+* Marker
+
+    Marker is a markdown editor for linux made with GTK+-3.0
+
+    <https://github.com/fabiocolacio/Marker>
+
+* RavEngine
+
+    <https://github.com/RavEngine/RavEngine>
+
+* nCine
+
+    nCine is a cross-platform 2D game engine.
+
+    <https://github.com/nCine/nCine>
+
+* Pake
+
+    Turn any webpage into a desktop app with Rust with ease.
+
+    <https://github.com/tw93/Pake>
+
+* Marked
+
+    <https://github.com/markedjs/marked>
+
+* Awesome Markdown Editors & (Pre)viewers
+
+    <https://github.com/mundimark/awesome-markdown-editors>
+
+* KeenWrite
+
+    A free, open-source, cross-platform desktop Markdown editor that can produce beautifully typeset PDFs.
+
+    <https://gitlab.com/DaveJarvis/KeenWrite>
+
+* Markdown Viewers for the Linux Command Line
+
+    <https://www.adamsdesk.com/posts/linux-markdown-viewers/>
+
+* Inlyne - a GPU powered, browserless, markdown + html viewer
+
+    <https://github.com/Inlyne-Project/inlyne>
+
+* Frogmouth
+
+    <https://github.com/textualize/frogmouth?tab=readme-ov-file>
+
+* bat
+
+    A cat(1) clone with syntax highlighting and Git integration. 
+
+    <https://github.com/sharkdp/bat>

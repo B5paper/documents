@@ -1048,25 +1048,29 @@ Tasks:
 
     添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
 
+* 对于多层依赖的库和 app 文件，编译时在哪一个文件上加`-g`，调试时就只能 hit 到哪个文件的断点。
+
+    假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。
+
+    即使 hit 了`debug_valid.c`文件的断点，程序暂停时上一层和下一层暂停的代码行上下文。
+
+* `ibstat`或`ibstatus`可以得到当前协商的速率
+
+* `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
+
+* `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
+
 ### tasks
 
-* [v] 调研 socket programming
+* [v] 调研 libvirt 网桥
 
-* [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
+* [v] 使用正常的 shutdown / close，socket 是否还会在 TIMEOUT 时间内 fail to bind?
 
     feedback:
 
-    3. [ ] 使用正常的 shutdown / close，socket 是否还会在 TIMEOUT 时间内 fail to bind?
+    1. shutdown 和 close 都无法立即重新将同一个 fd bind 到一个 address + port 上
 
-        feedback:
-
-        1. shutdown 和 close 都无法立即重新将同一个 fd bind 到一个 address + port 上
-
-* [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
-
-* [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
-
-* [ ] 调研使用`MPI_ERROR`接收未知长度数据
+* [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
 * [v] 调研将 nccl 中的宏恢复原样，只添加环境变量，是否还能跑通 test case。
 
@@ -1074,31 +1078,9 @@ Tasks:
 
     1. 不可以。有些宏的修改环境变量无法覆盖到。
 
-* [v] 调研在 mpi 启动 nccl 程序时，gdb attch 无法击中 umd 的断点的情况
-
-    猜想：
-
-    1. 可能和某一层代码没有用`-g`编译有关
-
-    2. 可能和使用 cuda-gdb 而没使用标准版 gdb 有关
-
-    feedback:
-
-    1. 对于多层依赖的库和 app 文件，编译时在哪一个文件上加`-g`，调试时就只能 hit 到哪个文件的断点。
-    
-        假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。
-
-        即使 hit 了`debug_valid.c`文件的断点，程序暂停时上一层和下一层暂停的代码行上下文。
-
 * [v] 调研 mlnx port 强制速率协商
 
     feedback:
-
-    1. `ibstat`或`ibstatus`可以得到当前协商的速率
-
-    2. `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
-
-    3. `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
 
     4. 尝试将 link rate 强制修改为 EDR
 
@@ -1204,7 +1186,7 @@ Tasks:
 
         这个时候就可以在 vscode 里运行 F5 调试程序了。
 
-    7. 有时间可以追一追为什么 cable 不支持高速率。
+    7. [ ] 调研为什么 cable 不支持高速率。
 
     8. cache
 
@@ -1244,18 +1226,6 @@ Tasks:
 
             <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
 
-* [v] 调研 libvirt 网桥
-
-* [v] 调研`perftest`仓库
-
-    feedback:
-
-    1. sync socket programming
-
-    2. 调研 PCI relaxed ordering 
-
-    3. 调研`fprintf(stderr," Internal error, existing.\n");`的用法
-
 * [v] 调研 cuda 与 host mem 的通信速率
 
 * [v] 调研 switch 上的 perftest
@@ -1264,7 +1234,53 @@ Tasks:
 
     1. 差不多能跑到 97 Gb/s
 
-* [ ] 调研 pytorch 调用 nccl wrapper function
+* [ ] 调研网线速率协商问题
+
+* [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
+
+* [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+* [ ] 调研使用`MPI_ERROR`接收未知长度数据
+
+* [ ] sync socket programming
+
+* [ ] 调研 PCI relaxed ordering 
+
+* [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
+
+* [v] 调研`perftest`仓库
+
+* [v] 调研 pytorch 调用 nccl wrapper function
+
+    feedback:
+
+    1. 调研 diff 命令的用法
+
+    2. 目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
+
+    3. 调研 pynccl 的用法
+
+    4. 看起来比较重要的几段代码
+
+        ```python
+        with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+            self.pynccl_comm.send(tensor, dst=self.ranks[dst])
+        ```
+
+        ```python
+        with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+            self.pynccl_comm.recv(tensor, src=self.ranks[src])
+        ```
+
+        ```python
+        pynccl_comm = self.pynccl_comm
+        if pynccl_comm is not None and not pynccl_comm.disabled:
+            pynccl_comm.send(tensor, dst)
+        else:
+            with xxxx
+
+        # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
+        ```
 
 * [ ] 调研 docker 中 app 的调试方法
 
