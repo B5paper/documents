@@ -46,8 +46,6 @@ apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
 
 	debian 配置 OpenGL 环境：<https://medium.com/geekculture/a-beginners-guide-to-setup-opengl-in-linux-debian-2bfe02ccd1e>
 
-* glx 的一个 example，见`ref_7`
-
 * 猜测：
 
     glx 才是 opengl 和 x window system 对接的接口。glew, glxew 都是对 glx 的封装。

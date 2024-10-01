@@ -1,9 +1,3 @@
-1. git 相关
-
-    How to stop container in containerd/ctr: <https://stackoverflow.com/questions/67171982/how-to-stop-container-in-containerd-ctr>
-
-    Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
-
 1. bash
 
     1. <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -56,7 +50,6 @@
 
     1. <https://stackoverflow.com/questions/55935173/kubernetes-pods-stuck-with-in-terminating-state>
 
-
 1. k8s 相关：
 
     How to delete kubernetes stuck CRD deletion: <https://rogulski.it/blog/kubernetes-stuck-resource-action/>
@@ -64,6 +57,8 @@
     image pull backoff 可能的原因：<https://www.airplane.dev/blog/kubernetes-imagepullbackoff>
 
     遇到需要先 login，再 pull image 的情况：<https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/>
+
+    How to stop container in containerd/ctr: <https://stackoverflow.com/questions/67171982/how-to-stop-container-in-containerd-ctr>
 
 * docker relatives
 
@@ -5735,3 +5730,61 @@
     A cat(1) clone with syntax highlighting and Git integration. 
 
     <https://github.com/sharkdp/bat>
+
+* THE INSIDE STORY ON SHARED LIBRARIES AND DYNAMIC LOADING
+
+    <https://cseweb.ucsd.edu/~gbournou/CSE131/the_inside_story_on_shared_libraries_and_dynamic_loading.pdf>
+
+* CUDA - Pinned Memory vs. Pageable Memory Tradeoffs
+
+    <https://stackoverflow.com/questions/50184146/cuda-pinned-memory-vs-pageable-memory-tradeoffs>
+
+* How to share global variables in a shared library(.so) across instances of the same process that use the shared library in Linux?
+
+    <https://stackoverflow.com/questions/1780461/how-to-share-global-variables-in-a-shared-library-so-across-instances-of-the-s>
+
+* Linux C++ 开发9 - 手把手教你使用gprof性能分析工具
+
+    <https://segmentfault.com/a/1190000045314734>
+
+* Local_Knowledge_Graph
+
+    <https://github.com/punnerud/Local_Knowledge_Graph>
+
+* 命令行功夫
+
+    <https://member.selfhostedserver.com/kungfu/>
+
+* siyuan
+
+    A privacy-first, self-hosted, fully open source personal knowledge management software, written in typescript and golang. 
+
+    <https://github.com/siyuan-note/siyuan>
+
+* windows-api-function-cheatsheets
+
+    <https://github.com/7etsuo/windows-api-function-cheatsheets>
+
+* Diffusion Models Are Real-Time Game Engines
+
+    <https://gamengen.github.io/>
+
+* The Matrix Calculus You Need For Deep Learning
+
+    <https://explained.ai/matrix-calculus/index.html>
+
+* Why am I writing a Rust compiler in C?
+
+    <https://notgull.net/announcing-dozer/>
+
+* 顺序与链式二叉树的原理、应用与实现(万字长文)
+
+    <https://www.cnblogs.com/DSCL-ing/p/18344162>
+
+* Writing a Linux Debugger Part 1: Setup
+
+    <https://blog.tartanllama.xyz/writing-a-linux-debugger-setup/>
+
+* Modern Microprocessors: A 90-Minute Guide!
+
+    <https://www.lighterra.com/papers/modernmicroprocessors/>

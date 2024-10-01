@@ -1,3 +1,12 @@
+# GLX Note
+
+glx 提供了 opengl 和 windows　交互的接口，主要是 framebuffer 的创建和交换。
+
+## hello world
+
+`main.cpp`:
+
+```c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -281,3 +290,25 @@ int main(int argc, char* argv[])
 
   return 0;
 }
+```
+
+Makefile:
+
+```makefile
+main: main.cpp
+	g++ -o main main.cpp -lGL -lX11
+```
+
+compile:
+
+`make`
+
+run:
+
+`./main`
+
+Effect:
+
+<div style='text-align:center'>
+<img src='./pics/glx_note/pic_1.png'>
+</div>
