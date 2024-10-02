@@ -36,6 +36,12 @@
 
 ## cached
 
+* 调研 Computer algebra system
+
+    <https://en.wikipedia.org/wiki/Computer_algebra_system#>
+
+    自动求导、符号求导等相关知识可能和这个概念有关。
+
 * perftest 会编译生成一些 binary，其中比较有用的几个：
 
     `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
@@ -678,7 +684,15 @@
 
 * [ ] 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
 
+* 使用`{ }`表示 task 是一个长期任务，每次分派任务时，都从这个长期任务里派生出一个短时间任务，直到长期任务被完成为止
+
+    其实这样的任务也可以单独开一个项目来追踪。
+
 ### tasks
+
+* { } windows 文件整理
+
+    目前主要整理`D:\Documents\xdx_res`, `D:\shared_folder\ai_resources`, `D:\shared_folder\Downloads`, `D:\Documents\res_processing`这四个文件夹。
 
 * [v] reorg 30 mins 05/20
 
