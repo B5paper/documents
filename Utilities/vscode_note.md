@@ -1,5 +1,26 @@
 # VSCode Note
 
+* 使用 vscode 调试 sudo 程序
+
+    核心是需要 gdb 由 sudo 启动。
+
+    可以在`launch.json`里加一行：
+
+    `"miDebuggerPath": "/home/hlc/.local/bin/sudo_gdb.sh"`
+
+    `sudo_gdb.sh`里只要写一行：
+
+    ```bash
+    #!/bin/bash
+    sudo gdb "$@"
+    ```
+
+    然后`sudo chmod +x sudo_gdb.sh`。
+
+    接着在 vscode 的 intergrated terminal 里输入`sudo echo 1`，正常输入密码。此时这个 terminal 里，root 权限会持续开启一段时间，使用`sudo`运行其他程序不需要再输入密码。
+
+    这个时候就可以在 vscode 里运行 F5 调试程序了。
+
 * vscode attach 不需要输入 root 的方法
 
     ```bash

@@ -42,75 +42,9 @@
 
     自动求导、符号求导等相关知识可能和这个概念有关。
 
-* perftest 会编译生成一些 binary，其中比较有用的几个：
-
-    `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
-
-* 假设 node 1 上有 vm 1，node 2 上有 vm 2。vm 1 无法 ping 通 vm 2 可能是因为只设置了 node 1 上的路由表，没有设置 node 2 上的路由表
-
-    猜想：可能是 vm 1 缎带 vm 2 发送完 icmp 数据包后，vm 2 回复 icmp 包时，找不到 vm 1 所在的网段如何路由过去。
-
-    可以将 node 1 上的路由表新添加一项：vm 2 所在网段的 gateway 为 node 2 的 ip；在 node 2 上的路由表上也新加一条：vm 1 所在网段的 gateway 为 node 1 的 ip。这样就能 ping 通了。
-
-* 每份笔记中应该专门开一个 examples 区域，整理详细的 example
-
-    在笔记正文中出现的 example 只需要专注详解原理就行了，可以只是代码片段，也可以不检查返回值，不进行错误处理。
-
-    example 区域中的 example，需要在追求简洁的基础上，增加一些返回值判断和错误处理，有完整可编译运行的代码，并且有运行的输出。
-
-    问题：qa 中的代码片段该归属于哪一种？
-
-* 假如 A 是一个节点，所有的联系都是从 B, C, D ... 指向 A，从 A 起始没有任何向外的边，那么 A 就很难被发现了。
-
-    相反，如果有连接从其他节点指向 A，哪怕只有一条，也终究会被搜索到。
-
-    这种现象可以被称为概念的禁锢。
-
-* [v] 调研：同一个 so 文件中的全局变量和 static 局部变量，被不同 app 调用时，是共享的还是独立的？假如是共享的，那么如果一个 so 文件使用 nfs 进行 share，在两个 node 上分别起一个 app 调用 so，其中的全局变量是共享的还独立的？
-
-    feedback:
-
-    1. 对于每个程序来说，so 文件中的全局变量都是独立的, 函数中的 static 变量也是独立的
-
-* 如果 nfs server 在 export 目录软链接其他路径的目录/文件，那么 client 的 nfs 目录里的软链接会链到 client 的文件目录上，不会读取 server 的软链接的内容
-
-* 调研的目的不是完成任务，而是要有输出
-
-* 如果可以使用“猜想”去解释一个现象，那么就可以进入实验阶段
-
-    如果可以无法作出“猜想”，只知道哪个方向可能提供更多的信息，那么只能是“调研”
-
-    无法作出猜想的阶段，都只是收集信息的阶段。目标就是为了作出猜想。
-
 * 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
 
-* 一个任务无法完成的交换
-
-    * 必须要完成其他前置任务，依赖任务
-
-* 未经证实的，对概念的一个可能提解释被称为一个猜想。
-
-* 计划的重点在于可以回退
-
-    之前大部分计划无法执行下去是因为只能顺序执行，没有考虑过失败和回退。
-
-    如果总是回退，那么会导致没有动力去执行任务，也不汰好。
-
-    这两者中间应该有个平衡点。
-
-* 《github入门与实践》 note
-
-    * github 的吉祥物是 octocat
-
-    * github 的创始人是 Chris Wanstrath
-
-    * Pull Request 是 github 引入的一项重要功能
-
-    * `@`可以给用户发通知（Notifications）, wiki 可以用来写文档
-
-    * GFM: github flavored markdown
-
-    看到 P7
+* 当我们说一个任务无法完成时，意味着我们必须要完成其他前置任务，依赖任务
 
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
@@ -138,83 +72,9 @@
 
     用 rust 写的操作系统，有时间了看看。
 
-* cached tabs
-
-    * Use virt-install to install VMs from the command line
-
-        <https://www.techtarget.com/searchitoperations/tip/Use-virt-install-to-install-VMs-from-the-command-line>
-
-    * KVM Guest installed from console. But how to get to the guest's console?
-
-        <https://serverfault.com/questions/257962/kvm-guest-installed-from-console-but-how-to-get-to-the-guests-console>
-
-    * qemu+kvm, unhelpful virt-install --location error
-
-        <https://askubuntu.com/questions/1380671/qemukvm-unhelpful-virt-install-location-error>
-
-    * How to Quickly Extract an ISO Image in Linux
-
-        <https://www.baeldung.com/linux/iso-quick-extract>
-
-    * If I mount the ISO where is the kernel initrd for the OS installer
-
-        <https://askubuntu.com/questions/1011794/if-i-mount-the-iso-where-is-the-kernel-initrd-for-the-os-installer>
-
-    * Install VM from command line with virt-install
-
-        <https://unix.stackexchange.com/questions/207090/install-vm-from-command-line-with-virt-install>
-
-    * How to mount an ISO image/file under Linux
-
-        <https://www.cyberciti.biz/tips/how-to-mount-iso-image-under-linux.html>
-
-    * virsh ssh into a guest vm
-
-        <https://askubuntu.com/questions/576437/virsh-ssh-into-a-guest-vm>
-
-    * Boot drops to a (initramfs) prompts/busybox
-
-        <https://askubuntu.com/questions/137655/boot-drops-to-a-initramfs-prompts-busybox>
-
-    * Error when installing: "unable to find a medium containing a live file system"
-
-        <https://askubuntu.com/questions/15425/error-when-installing-unable-to-find-a-medium-containing-a-live-file-system>
-
-    * qemu+kvm, unhelpful virt-install --location error
-
-        <https://askubuntu.com/questions/1380671/qemukvm-unhelpful-virt-install-location-error>
-
-    * Virtual Machine Manager
-
-        <https://ubuntu.com/server/docs/virtual-machine-manager>
-
-    * virt-install: boot from specific kernel/initrd just for install
-
-        <https://dustymabe.com/2020/01/30/virt-install-boot-from-specific-kernel/initrd-just-for-install/>
-
-    * Manage virtual machines with virt-manager
-
-        <https://virt-manager.org/>
-
 * 如何为一个用户增加指定目录的各种权限？
 
 * isoinfo 在 genisoimage 包中
-
-* 对于一个新手来说，该如何入门 dpdk ?
-
-    <https://www.zhihu.com/question/39309195/answer/2993073221>
-
-* 虚拟化 vfio 和 UIO 区别
-
-    <https://zhuanlan.zhihu.com/p/544076987>
-
-    这篇对 iommu 讲得挺深入的
-
-* 深入理解 Linux 调度（GPU）虚拟化
-
-    <https://www.sohu.com/a/494587210_121124377>
-
-    介绍了一些背景，写得挺不错的，通俗易懂。有时间了把复制下来。
 
 * 节点的独立分解
 
@@ -240,7 +100,7 @@
 
 	每次随机选择一个文件，跳转到随机一行，往下读 20 mins
 
-* cached tasK: 调研 u 盘里的资料
+* [ ] 调研 u 盘里的资料
 
 * performance 的工具
 
@@ -291,16 +151,6 @@
     3. performance analyzing
 
     4. vulkan compute shader
-
-* 10 亿以上重资产的创业能不能盈利和宏观经济有关
-
-* 遇到这样一种情况，假如`A = [1, 100]`，`B = [rand(1, 100) * 10] U [100, 1000]`，要理解某个知识，需要 B 中的各个知识点
-
-    但是 B 中的资料需要到 A 中去查。
-
-    如果把 A 从头到尾看一遍，那么需要大量的时间。但是不看 A 就无法理解 B 所需要的知识。
-
-    这样的情况比较难处理。
 
 * qa 频率可以降低到每周一次
 
@@ -402,16 +252,6 @@
 
     是否还有其他的计算范式未被发现呢？
 
-* 恶性竞争
-
-    假如有两个公司 A 和 B，A 做的是热门泡沫方向，B 做的是扎实工作方向，结果 A 能融到资，B 融不到钱，最终 B 倒闭，A 最后也会因为泡沫破裂而倒闭。
-
-    对融资公司来说，B 可能投资几年都什么起色，但是投资 A 可能有 10% 的机率挣大钱。理性的人可能会按比重分配资产投资，但是不要低估人性的贪婪，为了赌这一点很低的可能性，投资公司可能会加杠杆梭哈。
-
-    假如有三家投资公司 C, D, E，这三家都投了 A 所在的行业，已知这个行业一定有一个胜出者，其实就是 C, D, E 在下注赌。C, D, E 都觉得最幸运的应该是自己，假如自己不跟注，那么挣钱的就一定会是别的两家投资公司。这样很不甘心。
-
-    最终的结局是所有公司都赔了，每个环节的最优选择，导致了全局的最坏结果，非常讽刺。
-
 * connection 非常重要
 
     必须有一些必做的任务，可以通向以前的问题，以前的缓存，以前的记忆，以前的工程。
@@ -436,7 +276,7 @@
 
     使任务串行，一个非常大的挑战就是在规定的时间内使用手机，在执行任务时不看。
 
-* 调研一下 zig
+* 调研 zig
 
 * cached task: 将 projects 加入 reorg 中
 
@@ -506,8 +346,6 @@
 
 * [ ] 增加 git 的 qa
 
-
-
 * 在调研时，可以将笔记分成几个部分
 
 	* 猜测（或者假设）
@@ -531,8 +369,6 @@
     虽然使用任务管理系统可以达到很高的工作效率，但是一天的工作量并不是很大。
 
     猜测主要原因是浪费了很多的可利用时间，比如吃饭，走路，挤地铁等等。如果把这些时间拿来思考 cached questions，那么就有可能大量地提高工作量。
-
-
 
 * 是否该引入每周的计划预期？
 
@@ -688,25 +524,31 @@
 
     其实这样的任务也可以单独开一个项目来追踪。
 
+* 在随机选择时，必须把权重加上
+
+    权重的不平衡性太大了。
+
 ### tasks
 
 * { } windows 文件整理
 
     目前主要整理`D:\Documents\xdx_res`, `D:\shared_folder\ai_resources`, `D:\shared_folder\Downloads`, `D:\Documents\res_processing`这四个文件夹。
 
-* [v] reorg 30 mins 05/20
+* { } 《github入门与实践》
 
-    feedback:
+    * github 的吉祥物是 octocat
 
-    1. 在随机选择时，必须把权重加上
+    * github 的创始人是 Chris Wanstrath
 
-        权重的不平衡性太大了。
+    * Pull Request 是 github 引入的一项重要功能
+
+    * `@`可以给用户发通知（Notifications）, wiki 可以用来写文档
+
+    * GFM: github flavored markdown
+
+    看到 P7
 
 * [v] reorg project pool 09/04
-
-* [v] 调研 pathon 中的 path concatenate
-
-    17:28 ~ 18.02
 
 * [v] reorg 09/24
 
@@ -719,10 +561,6 @@
         1. [ ] 调研 markdown previewer
 
             要求能显示数学公式
-
-        2. [ ] 调研 electron
-
-* [ ] 调研 mpi 如何给不同的 node 配置不同的环境变量？
 
 * [ ] 在项目管理中加上这个项目，系统的自检查
 
@@ -769,6 +607,12 @@
     1. 调研 deb 创建安装包
 
 * [v] reorg 09/23
+
+* [v] reorg 10/01
+
+    feedback:
+
+    1. 调研`glXQueryVersion()`出自哪个头文件
 
 ## qa
 
@@ -850,12 +694,6 @@ Tasks:
 
 ### tasks
 
-* [v] cache tabs 08/30
-
-* [v] cache tabs 30 mins  09/10
-
-    11:35 ~ 11:45
-
 * [v] cache tabs 09/21
 
 * [v] cache tabs 09/23
@@ -905,6 +743,50 @@ Tasks:
 * [v] cache tabs 09/30
 
 * [v] process 1 url
+
+* [v] cache tabs 10/01
+
+* [o] process 1 url 10/01
+
+    Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
+
+    feedback:
+
+    1. 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
+
+    2. 调研`git revert`的用法
+
+    3. 调研`git reflog`
+
+    4. 调研`ORIG_HEAD`, `git show ORIG_HEAD`
+
+    5. 调研`git update-ref `
+
+    6. 调研`git log --graph --all --oneline --decorate`
+
+## markdown renderer
+
+tasks:
+
+* [v] 调研 electron
+
+    feedback:
+
+    1. 调研 js
+
+    2. 调研 electron 中的 lifecycle, emitter
+
+        <https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app>
+
+## Machine Learning
+
+* [v] 调研《Python机器学习》
+
+    feedback:
+
+    1. 调研 三维的 Swiss Roll
+
+    2. 目前看到 pdf P37，1.3.1 数据预处理
 
 ## rdma
 
@@ -1078,181 +960,53 @@ Tasks:
 
 * `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
 
+* mellanox 的 firmware:
+
+    <https://network.nvidia.com/support/firmware/nic/>
+
+* Firmware Management
+
+    <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
+
+* NVIDIA Firmware Tools (MFT) 
+
+    <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
+
+* How to debug programs with "sudo" in VSCODE
+
+    <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+
+* How can i change to ib card speed from IB-SDR to IB-QDR?
+
+    <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
+
+* NVIDIA Firmware Tools (MFT) 
+
+    <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
+
+* NVIDIA ConnectX-7 Adapter Cards User Manual
+
+    <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
+
+* IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
+
+    <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
+
+* Set a upper bandwidth limit for Infiniband HCAs
+
+    <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
+
+* switch 上的 perftest 差不多能跑到 97 Gb/s
+
 ### tasks
-
-* [v] 调研 libvirt 网桥
-
-* [v] 使用正常的 shutdown / close，socket 是否还会在 TIMEOUT 时间内 fail to bind?
-
-    feedback:
-
-    1. shutdown 和 close 都无法立即重新将同一个 fd bind 到一个 address + port 上
 
 * [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
-* [v] 调研将 nccl 中的宏恢复原样，只添加环境变量，是否还能跑通 test case。
-
-    feedback:
-
-    1. 不可以。有些宏的修改环境变量无法覆盖到。
-
 * [v] 调研 mlnx port 强制速率协商
 
-    feedback:
+* [v] 调研`perftest`仓库
 
-    4. 尝试将 link rate 强制修改为 EDR
-
-        `sudo mlxlink -d mlx5_0 --link_mode_force -s EDR`
-
-        output:
-
-        ```
-        Operational Info
-        ----------------
-        State                              : Active 
-        Physical state                     : LinkUp 
-        Speed                              : IB-SDR 
-        Width                              : 4x 
-        FEC                                : No FEC 
-        Loopback Mode                      : No Loopback 
-        Auto Negotiation                   : ON 
-
-        Supported Info
-        --------------
-        Enabled Link Speed                 : 0x00000001 (SDR) 
-        Supported Cable Speed              : 0x00000001 (SDR) 
-
-        Troubleshooting Info
-        --------------------
-        Status Opcode                      : 0 
-        Group Opcode                       : N/A 
-        Recommendation                     : No issue was observed 
-
-        Tool Information
-        ----------------
-        Firmware Version                   : 16.35.3502 
-        MFT Version                        : mft 4.28.0-92 
-
-        Configuring Port Speeds...
-        
-
-        Errors
-        ------
-        Sending PTYS (Configuring port speeds) raised the following exception: EDR is not supported by Device!
-        Supported Speeds Are: SDR
-        ```
-
-    5. 尝试将速率强制修改为 SDR
-
-        `sudo mlxlink -d mlx5_0 --link_mode_force -s SDR`
-
-        output:
-
-        ```
-        Operational Info
-        ----------------
-        State                              : Active 
-        Physical state                     : LinkUp 
-        Speed                              : IB-SDR 
-        Width                              : 4x 
-        FEC                                : No FEC 
-        Loopback Mode                      : No Loopback 
-        Auto Negotiation                   : ON 
-
-        Supported Info
-        --------------
-        Enabled Link Speed                 : 0x00000001 (SDR) 
-        Supported Cable Speed              : 0x00000001 (SDR) 
-
-        Troubleshooting Info
-        --------------------
-        Status Opcode                      : 0 
-        Group Opcode                       : N/A 
-        Recommendation                     : No issue was observed 
-
-        Tool Information
-        ----------------
-        Firmware Version                   : 16.35.3502 
-        MFT Version                        : mft 4.28.0-92 
-
-        Configuring Port Speeds...
-        
-
-        Errors
-        ------
-        Sending PTYS (Configuring port speeds) raised the following exception: Invalid speed configurations
-        ```
-
-    6. 使用 vscode 调试 sudo 程序
-
-        核心是需要 gdb 由 sudo 启动。
-
-        可以在`launch.json`里加一行：
-
-        `"miDebuggerPath": "/home/hlc/.local/bin/sudo_gdb.sh"`
-
-        `sudo_gdb.sh`里只要写一行：
-
-        ```bash
-        #!/bin/bash
-        sudo gdb "$@"
-        ```
-
-        然后`sudo chmod +x sudo_gdb.sh`。
-
-        接着在 vscode 的 intergrated terminal 里输入`sudo echo 1`，正常输入密码。此时这个 terminal 里，root 权限会持续开启一段时间，使用`sudo`运行其他程序不需要再输入密码。
-
-        这个时候就可以在 vscode 里运行 F5 调试程序了。
-
-    7. [ ] 调研为什么 cable 不支持高速率。
-
-    8. cache
-
-        * mellanox 的 firmware:
-
-            <https://network.nvidia.com/support/firmware/nic/>
-
-        * Firmware Management
-
-            <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
-
-        * NVIDIA Firmware Tools (MFT) 
-
-            <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
-
-        * How to debug programs with "sudo" in VSCODE
-
-            <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
-
-        * How can i change to ib card speed from IB-SDR to IB-QDR?
-
-            <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
-
-        * NVIDIA Firmware Tools (MFT) 
-
-            <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
-
-        * NVIDIA ConnectX-7 Adapter Cards User Manual
-
-            <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
-
-        * IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
-
-            <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
-
-        * Set a upper bandwidth limit for Infiniband HCAs
-
-            <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
-
-* [v] 调研 cuda 与 host mem 的通信速率
-
-* [v] 调研 switch 上的 perftest
-
-    feedback:
-
-    1. 差不多能跑到 97 Gb/s
-
-* [ ] 调研网线速率协商问题
+* [ ] 调研为什么 cable 不支持高速率
 
 * [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
 
@@ -1265,8 +1019,6 @@ Tasks:
 * [ ] 调研 PCI relaxed ordering 
 
 * [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
-
-* [v] 调研`perftest`仓库
 
 * [v] 调研 pytorch 调用 nccl wrapper function
 
@@ -1532,6 +1284,22 @@ tasks:
 
         ref: <https://serverfault.com/questions/432119/is-there-any-way-to-shrink-qcow2-image-without-converting-it-raw>
 
+## 分布式计算调研
+
+tasks:
+
+* [p] 调研分布式计算，MPI，grpc
+
+	dependency:
+
+	1. [v] 重装系统，安装 virtual box
+
+	1. [v] 创建一些虚拟机
+
+* [v] 调研 nccl
+
+* [ ] 调研 mpi 如何给不同的 node 配置不同的环境变量？
+
 ## GPU Perf
 
 cache:
@@ -1695,6 +1463,7 @@ Tasks:
 * [ ] 解释 3.2 预测分析和递归下降
 
 * [ ] 调研，3.2.2 构造一个预测分析器
+
 
 ## Vulkan 学习 [0]
 
@@ -2348,17 +2117,7 @@ cache:
 
 ## 调研 meson, ninja
 
-## 分布式计算调研
 
-* [p] 调研分布式计算，MPI，grpc
-
-	dependency:
-
-	1. [v] 重装系统，安装 virtual box
-
-	1. [v] 创建一些虚拟机
-
-* [v] 调研 nccl
 
 ## 微积分
 
