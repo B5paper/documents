@@ -42,46 +42,6 @@
 
     自动求导、符号求导等相关知识可能和这个概念有关。
 
-* perftest 会编译生成一些 binary，其中比较有用的几个：
-
-    `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
-
-* 假设 node 1 上有 vm 1，node 2 上有 vm 2。vm 1 无法 ping 通 vm 2 可能是因为只设置了 node 1 上的路由表，没有设置 node 2 上的路由表
-
-    猜想：可能是 vm 1 缎带 vm 2 发送完 icmp 数据包后，vm 2 回复 icmp 包时，找不到 vm 1 所在的网段如何路由过去。
-
-    可以将 node 1 上的路由表新添加一项：vm 2 所在网段的 gateway 为 node 2 的 ip；在 node 2 上的路由表上也新加一条：vm 1 所在网段的 gateway 为 node 1 的 ip。这样就能 ping 通了。
-
-* 每份笔记中应该专门开一个 examples 区域，整理详细的 example
-
-    在笔记正文中出现的 example 只需要专注详解原理就行了，可以只是代码片段，也可以不检查返回值，不进行错误处理。
-
-    example 区域中的 example，需要在追求简洁的基础上，增加一些返回值判断和错误处理，有完整可编译运行的代码，并且有运行的输出。
-
-    问题：qa 中的代码片段该归属于哪一种？
-
-* 假如 A 是一个节点，所有的联系都是从 B, C, D ... 指向 A，从 A 起始没有任何向外的边，那么 A 就很难被发现了。
-
-    相反，如果有连接从其他节点指向 A，哪怕只有一条，也终究会被搜索到。
-
-    这种现象可以被称为概念的禁锢。
-
-* [v] 调研：同一个 so 文件中的全局变量和 static 局部变量，被不同 app 调用时，是共享的还是独立的？假如是共享的，那么如果一个 so 文件使用 nfs 进行 share，在两个 node 上分别起一个 app 调用 so，其中的全局变量是共享的还独立的？
-
-    feedback:
-
-    1. 对于每个程序来说，so 文件中的全局变量都是独立的, 函数中的 static 变量也是独立的
-
-* 如果 nfs server 在 export 目录软链接其他路径的目录/文件，那么 client 的 nfs 目录里的软链接会链到 client 的文件目录上，不会读取 server 的软链接的内容
-
-* 调研的目的不是完成任务，而是要有输出
-
-* 如果可以使用“猜想”去解释一个现象，那么就可以进入实验阶段
-
-    如果可以无法作出“猜想”，只知道哪个方向可能提供更多的信息，那么只能是“调研”
-
-    无法作出猜想的阶段，都只是收集信息的阶段。目标就是为了作出猜想。
-
 * 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
 
 * 当我们说一个任务无法完成时，意味着我们必须要完成其他前置任务，依赖任务
@@ -564,21 +524,17 @@
 
     其实这样的任务也可以单独开一个项目来追踪。
 
-### tasks
-
-* { } windows 文件整理
-
-    目前主要整理`D:\Documents\xdx_res`, `D:\shared_folder\ai_resources`, `D:\shared_folder\Downloads`, `D:\Documents\res_processing`这四个文件夹。
-
-* [v] reorg 30 mins 05/20
-
 * 在随机选择时，必须把权重加上
 
     权重的不平衡性太大了。
 
 ### tasks
 
-* [ ] 《github入门与实践》
+* { } windows 文件整理
+
+    目前主要整理`D:\Documents\xdx_res`, `D:\shared_folder\ai_resources`, `D:\shared_folder\Downloads`, `D:\Documents\res_processing`这四个文件夹。
+
+* { } 《github入门与实践》
 
     * github 的吉祥物是 octocat
 
@@ -594,10 +550,6 @@
 
 * [v] reorg project pool 09/04
 
-* [v] 调研 pathon 中的 path concatenate
-
-    17:28 ~ 18.02
-
 * [v] reorg 09/24
 
 * [v] reorg 30 mins 09/30
@@ -609,8 +561,6 @@
         1. [ ] 调研 markdown previewer
 
             要求能显示数学公式
-
-
 
 * [ ] 在项目管理中加上这个项目，系统的自检查
 
