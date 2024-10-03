@@ -2,6 +2,93 @@
 
 ## cache
 
+* mlnx 尝试将速率强制修改为 SDR
+
+    `sudo mlxlink -d mlx5_0 --link_mode_force -s SDR`
+
+    output:
+
+    ```
+    Operational Info
+    ----------------
+    State                              : Active 
+    Physical state                     : LinkUp 
+    Speed                              : IB-SDR 
+    Width                              : 4x 
+    FEC                                : No FEC 
+    Loopback Mode                      : No Loopback 
+    Auto Negotiation                   : ON 
+
+    Supported Info
+    --------------
+    Enabled Link Speed                 : 0x00000001 (SDR) 
+    Supported Cable Speed              : 0x00000001 (SDR) 
+
+    Troubleshooting Info
+    --------------------
+    Status Opcode                      : 0 
+    Group Opcode                       : N/A 
+    Recommendation                     : No issue was observed 
+
+    Tool Information
+    ----------------
+    Firmware Version                   : 16.35.3502 
+    MFT Version                        : mft 4.28.0-92 
+
+    Configuring Port Speeds...
+    
+
+    Errors
+    ------
+    Sending PTYS (Configuring port speeds) raised the following exception: Invalid speed configurations
+    ```
+
+* mlnx 尝试将 link rate 强制修改为 EDR
+
+    `sudo mlxlink -d mlx5_0 --link_mode_force -s EDR`
+
+    output:
+
+    ```
+    Operational Info
+    ----------------
+    State                              : Active 
+    Physical state                     : LinkUp 
+    Speed                              : IB-SDR 
+    Width                              : 4x 
+    FEC                                : No FEC 
+    Loopback Mode                      : No Loopback 
+    Auto Negotiation                   : ON 
+
+    Supported Info
+    --------------
+    Enabled Link Speed                 : 0x00000001 (SDR) 
+    Supported Cable Speed              : 0x00000001 (SDR) 
+
+    Troubleshooting Info
+    --------------------
+    Status Opcode                      : 0 
+    Group Opcode                       : N/A 
+    Recommendation                     : No issue was observed 
+
+    Tool Information
+    ----------------
+    Firmware Version                   : 16.35.3502 
+    MFT Version                        : mft 4.28.0-92 
+
+    Configuring Port Speeds...
+    
+
+    Errors
+    ------
+    Sending PTYS (Configuring port speeds) raised the following exception: EDR is not supported by Device!
+    Supported Speeds Are: SDR
+    ```
+
+* perftest 会编译生成一些 binary，其中比较有用的几个：
+
+    `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
+
 * 在`alloc_ucontext()`中，其函数参数的 udata 中的`inbuf`, `outbuf`指的就是用户自定义数据的起始地址。
 
     但是其中的`udata->inlen`和`udata->outlen`并不是和 struct 中的数据严格相同的。struct 很有可能是按照 8 字节对齐的。

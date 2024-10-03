@@ -6,6 +6,8 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 对于每个程序来说，so 文件中的全局变量都是独立的, 函数中的 static 变量也是独立的
+
 * 指针数组
 
     指针是`int *a`，指针的数组就变成了`int **aa;`，可以使用`aa[i]`或`*aa + i`访问到每一个指针。

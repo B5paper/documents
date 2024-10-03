@@ -1,7 +1,5 @@
 1. bash
 
-    1. <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
-
     1. <https://www.baeldung.com/linux/last-directory-file-from-file-path>
 
     1. <https://stackoverflow.com/questions/11226322/how-to-concatenate-two-strings-to-build-a-complete-path>
@@ -5788,3 +5786,145 @@
 * Modern Microprocessors: A 90-Minute Guide!
 
     <https://www.lighterra.com/papers/modernmicroprocessors/>
+
+* 【Windows篇】Telnet指令介绍以及telnet测试端口连接示例_telnet windows
+
+    <https://blog.csdn.net/2401_84563220/article/details/138643299>
+
+* rsync, article 3: How does rsync work? (2022)
+
+    <https://michael.stapelberg.ch/posts/2022-07-02-rsync-how-does-it-work/>
+
+* The Four Horsemen of network communication
+
+    <https://www.superdurszlak.dev/posts/the-four-horsemen-of-network-communication/>
+
+* 【vbers】ibv_post_send|IBV_SEND_SOLICITED|RDMA
+
+    <https://blog.csdn.net/bandaoyu/article/details/113253052>
+
+* gdb调试的插件安装——gef插件
+
+    <https://blog.csdn.net/Britney_dark/article/details/127911209>
+
+*  Lecture Notes on Operating Systems 
+
+    <https://pages.cs.wisc.edu/~solomon/cs537-old/last/notes.html>
+
+* Rust Atomics and Locks
+    
+    <https://marabos.nl/atomics/>
+
+* 一些关键词
+
+    * 若依
+
+        一个基于 java 的后台管理系统框架
+
+    * crontab
+
+        linux 中计划任务相关的一个小工具
+
+    * uio generic
+
+        uio 驱动框架
+
+    * emeditor
+
+        口碑比较好的一个文件编辑器
+
+    * co yield
+
+        协程相关的关键字
+
+    * mkl
+
+        intel 的一个数学加速库
+
+* 常用于密码学中的算法
+
+    <https://introspelliam.github.io/2018/03/26/crypto/%E5%B8%B8%E7%94%A8%E4%BA%8E%E5%AF%86%E7%A0%81%E5%AD%A6%E4%B8%AD%E7%9A%84%E7%AE%97%E6%B3%95/>
+
+* 蛮荆 个人博客，k8s 相关
+
+    <https://dbwu.tech/posts/>
+
+* 高并发系统的艺术：如何在流量洪峰中游刃有余 
+
+    <https://mp.weixin.qq.com/s/OBtrHvYj5QuoZPapr4DJ5w>
+
+* MiniOB 介绍¶
+
+    <https://oceanbase.github.io/miniob/>
+
+* Use virt-install to install VMs from the command line
+
+    <https://www.techtarget.com/searchitoperations/tip/Use-virt-install-to-install-VMs-from-the-command-line>
+
+* KVM Guest installed from console. But how to get to the guest's console?
+
+    <https://serverfault.com/questions/257962/kvm-guest-installed-from-console-but-how-to-get-to-the-guests-console>
+
+* qemu+kvm, unhelpful virt-install --location error
+
+    <https://askubuntu.com/questions/1380671/qemukvm-unhelpful-virt-install-location-error>
+
+* How to Quickly Extract an ISO Image in Linux
+
+    <https://www.baeldung.com/linux/iso-quick-extract>
+
+* If I mount the ISO where is the kernel initrd for the OS installer
+
+    <https://askubuntu.com/questions/1011794/if-i-mount-the-iso-where-is-the-kernel-initrd-for-the-os-installer>
+
+* Install VM from command line with virt-install
+
+    <https://unix.stackexchange.com/questions/207090/install-vm-from-command-line-with-virt-install>
+
+* How to mount an ISO image/file under Linux
+
+    <https://www.cyberciti.biz/tips/how-to-mount-iso-image-under-linux.html>
+
+* virsh ssh into a guest vm
+
+    <https://askubuntu.com/questions/576437/virsh-ssh-into-a-guest-vm>
+
+* Boot drops to a (initramfs) prompts/busybox
+
+    <https://askubuntu.com/questions/137655/boot-drops-to-a-initramfs-prompts-busybox>
+
+* Error when installing: "unable to find a medium containing a live file system"
+
+    <https://askubuntu.com/questions/15425/error-when-installing-unable-to-find-a-medium-containing-a-live-file-system>
+
+* qemu+kvm, unhelpful virt-install --location error
+
+    <https://askubuntu.com/questions/1380671/qemukvm-unhelpful-virt-install-location-error>
+
+* Virtual Machine Manager
+
+    <https://ubuntu.com/server/docs/virtual-machine-manager>
+
+* virt-install: boot from specific kernel/initrd just for install
+
+    <https://dustymabe.com/2020/01/30/virt-install-boot-from-specific-kernel/initrd-just-for-install/>
+
+* Manage virtual machines with virt-manager
+
+    <https://virt-manager.org/>
+
+* 对于一个新手来说，该如何入门 dpdk ?
+
+    <https://www.zhihu.com/question/39309195/answer/2993073221>
+
+* 虚拟化 vfio 和 UIO 区别
+
+    <https://zhuanlan.zhihu.com/p/544076987>
+
+    这篇对 iommu 讲得挺深入的
+
+* 深入理解 Linux 调度（GPU）虚拟化
+
+    <https://www.sohu.com/a/494587210_121124377>
+
+    介绍了一些背景，写得挺不错的，通俗易懂。有时间了把复制下来。
