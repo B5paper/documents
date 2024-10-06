@@ -1,7 +1,5 @@
 1. bash
 
-    1. <https://www.baeldung.com/linux/last-directory-file-from-file-path>
-
     1. <https://stackoverflow.com/questions/11226322/how-to-concatenate-two-strings-to-build-a-complete-path>
 
     1. <https://linuxhint.com/trim_string_bash/>
@@ -5928,3 +5926,35 @@
     <https://www.sohu.com/a/494587210_121124377>
 
     介绍了一些背景，写得挺不错的，通俗易懂。有时间了把复制下来。
+
+* Bengio精简了传统RNN，性能可与Transformer媲美 
+
+    <https://mp.weixin.qq.com/s?__biz=MzIzNjc1NzUzMw==&mid=2247752145&idx=1&sn=ab925b4cd0410e51f86e831c3652e21f&chksm=e8dfaea3dfa827b5e7e1d23fd6fb7483a3e39aafe96bb204da911def4893e59647a47c71225d&token=515455951&lang=zh_CN#rd>
+
+* DevOps Guide - Development to Production all configurations with basic notes to debug efficiently. 
+
+    <https://github.com/Tikam02/DevOps-Guide>
+
+* [虚拟化]vfio_pci驱动框架
+
+    <https://zhuanlan.zhihu.com/p/678359408?utm_id=0>
+
+* 30天自制C++服务器，包含教程和源代码 
+
+    <https://github.com/yuesong-feng/30dayMakeCppServer>
+
+* "Probabilistic Machine Learning: Advanced Topics" by Kevin Murphy.
+
+    <https://github.com/probml/pml2-book>
+
+* TCP 可靠传输实现原理 - 1.确认和重传 
+
+    <https://mp.weixin.qq.com/s/k8IqzMLe2crCMmMQ-0fHdA>
+
+* Fast Multidimensional Matrix Multiplication on CPU from Scratch
+
+    <https://siboehm.com/articles/22/Fast-MMM-on-CPU>
+
+* Implementing and Improving Skiplists
+
+    <https://mattjhall.co.uk/posts/skiplists.html>

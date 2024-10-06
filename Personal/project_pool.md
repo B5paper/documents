@@ -614,6 +614,16 @@
 
     1. 调研`glXQueryVersion()`出自哪个头文件
 
+* [v] reorg 10.03
+
+* [o] process 1 url  10.03
+
+    <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
+
+    feedback:
+
+    1. 这个 url 未处理结束，下次继续处理
+
 ## qa
 
 cached:
@@ -764,6 +774,8 @@ Tasks:
 
     6. 调研`git log --graph --all --oneline --decorate`
 
+* [v] cache tabs 10.03
+
 ## markdown renderer
 
 tasks:
@@ -780,21 +792,45 @@ tasks:
 
 ## Machine Learning
 
-* [v] 调研《Python机器学习》
+### tasks
+
+* { } 调研《Python机器学习》
 
     feedback:
 
-    1. 调研 三维的 Swiss Roll
+    1. 目前看到 pdf P52 2.2 使用Python实现感知器学习算法
 
-    2. 目前看到 pdf P37，1.3.1 数据预处理
+* [ ] 调研 三维的 Swiss Roll
+
+* [v] 调研《Python机器学习》
+
+* [v] 尝试使用 python + numpy 实现一个感知器函数
+
+* [ ] 调研论文
+
+    1. A Logical Calculus of the Ideas Immanent in Nervous Activity
+
+    2. The Perceptron,a Perceiving and Recognizing Automaton
+
+* [ ] 调研`\mathbf`
+
+* [ ] 调研 numpy ndarray 的`.item()` method
+
+* [ ] 调研 Zico Kolte Linear Algebra Review and Referen
+
+* [ ] 调研牛顿法求导法迭代找一个函数的极值
+
+    可能和数值计算方法和凸优化有关
+
+* [ ] 调研证明书上给出的优化方法和求导法本质上相同
+
+* [v] 调研《Python机器学习》
 
 ## rdma
 
 ### cache
 
 * 调研 rdma link
-
-* [v] mana 中的 gid 是如何计算的？
 
 * 调研
 
