@@ -2,6 +2,8 @@
 
 ## cached
 
+* pip 更新一个包： `pip install <package> --upgrade`
+
 * python 可以使用`os.path`处理和路径相关的字符串
 
     ```python

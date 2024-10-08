@@ -1,5 +1,17 @@
 # VSCode Note
 
+* 防止 vscode 里 tab 键做太多段落自动对齐的工作：
+
+    取消 use tab stops
+
+* vscode 关闭自动补全引号：
+
+    auto closing quotes 设置成 never
+
+* vscode 关闭自动补全括号：
+
+    auto closing brackets 设置成 never
+
 * 使用 vscode 调试 sudo 程序
 
     核心是需要 gdb 由 sudo 启动。

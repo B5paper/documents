@@ -5958,3 +5958,11 @@
 * Implementing and Improving Skiplists
 
     <https://mattjhall.co.uk/posts/skiplists.html>
+
+* The Swiss Army knife for 802.11, BLE, HID, CAN-bus, IPv4 and IPv6 networks reconnaissance and MITM attacks. 
+
+    <https://github.com/bettercap/bettercap>
+
+* Flex Engine is a personal game engine I began work on in early 2017.
+
+    <https://github.com/ajweeks/FlexEngine>

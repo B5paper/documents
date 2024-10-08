@@ -2,6 +2,67 @@
 
 glx 提供了 opengl 和 windows　交互的接口，主要是 framebuffer 的创建和交换。
 
+## cache
+
+* glx 程序结构
+
+    1. `Display *display = XOpenDisplay()`
+
+        拿到 display
+
+    2. `GLXFBConfig* fbc = glXChooseFBConfig()`
+
+        拿到 framebuffer configs
+
+    3. `XVisualInfo *vi = glXGetVisualFromFBConfig()`
+
+        拿到 visual
+
+    4. `swa.colormap = cmap = XCreateColormap( )`
+
+        拿到 colormap
+
+    5. `Window win = XCreateWindow( )`
+
+        创建 window
+
+    6. `XStoreName( display, win, "GL 3.0 Window" );`
+
+        更改 window 名字
+
+    7. `XMapWindow( display, win );`
+
+        map window, 不知道干嘛用的
+
+    8. `ctx = glXCreateContextAttribsARB()`
+
+        create OpenGL 3.0 context
+
+    9. `glXMakeCurrent( display, win, ctx );`
+
+        make context current
+
+    10. `glClearColor( 0, 0.5, 1, 1 );`
+
+    11. invoke opengl functions and draw buffers
+
+        ```c
+        glClearColor( 0, 0.5, 1, 1 );
+        glClear( GL_COLOR_BUFFER_BIT );
+        glXSwapBuffers ( display, win );
+        ```
+
+    12. clear buffers
+
+        ```c
+        glXMakeCurrent( display, 0, 0 );
+        glXDestroyContext( display, ctx );
+
+        XDestroyWindow( display, win );
+        XFreeColormap( display, cmap );
+        XCloseDisplay( display );
+        ```
+
 ## hello world
 
 `main.cpp`:

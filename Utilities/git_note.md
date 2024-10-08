@@ -2,6 +2,20 @@
 
 ## cache
 
+* 清除 git proxy
+
+    ```bash
+    git config --global --unset http.proxy
+    git config --global --unset https.proxy
+    ```
+
+* how to reset the remote branch to a specific commit in git
+
+    ```bash
+    git reset --hard <commit-hash>
+    git push -f origin master
+    ```
+
 * 将 remote branch fork 到 local branch
 
     假设 remote 的 name 是`origin`，那么

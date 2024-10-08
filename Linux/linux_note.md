@@ -4,6 +4,10 @@
 
 ## cache
 
+* Linux filesystems don’t allow a slash (/) to be a part of a filename or directory name.
+
+    In Linux, a directory path string often ends with a slash, such as “/tmp/dir/target/“. 
+
 * sudo 与环境变量
 
     * 环境变量加到`sudo`前面，环境变量不生效：

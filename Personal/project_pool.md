@@ -36,6 +36,29 @@
 
 ## cached
 
+* 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
+
+    ```bash
+    sed 's.*/##' <<< "/tmp/dir/target"
+    target
+
+    awk -F'/' '{print $NF}' <<< "/tmp/dir/target"
+    target
+
+    grep -o '[^/]*$' <<< "/tmp/dir/target" 
+    target
+    ```
+
+    也可以直接使用 bash 脚本：
+
+    ```bash
+    INPUT="/tmp/dir/target"
+    echo ${INPUT#*/}
+    target
+    ```
+
+* bandwagon KiwiVM address: <https://bwh88.net/clientarea.php>
+
 * 调研 Computer algebra system
 
     <https://en.wikipedia.org/wiki/Computer_algebra_system#>
@@ -624,6 +647,8 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
+* [v] reorg 10.06
+
 ## qa
 
 cached:
@@ -704,49 +729,9 @@ Tasks:
 
 ### tasks
 
-* [v] cache tabs 09/21
-
-* [v] cache tabs 09/23
-
-* [v] cache tabs 09/25
-
-    feedback:
-
-    * cached tabs
-
-        * The Swiss Army knife for 802.11, BLE, HID, CAN-bus, IPv4 and IPv6 networks reconnaissance and MITM attacks. 
-
-            <https://github.com/bettercap/bettercap>
-
-        * Flex Engine is a personal game engine I began work on in early 2017.
-
-            <https://github.com/ajweeks/FlexEngine>
-
-* [v] process 1 url 09/25
-
-    feedback:
-
-    1. 未处理完，有时间接着处理这个 url
-
-* [v] cache tabs 09/26
-
-    10:24 ~ 11:00
-
 * [v] process 1 url 09/26
 
     Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
-
-    feedback:
-
-    1. 在 github 里创建新 branch 两种方法
-
-        1. 进入 branch 界面，点 new branch
-
-        2. 在 branch 下拉菜单的搜索框里写 branch name，然后会有 create new branch 的提示
-
-        必须有 repo 的 push 权限才能创建新 branch
-
-    2. 在 issue 界面里可以为一个 issue 创建一个 branch
 
 * [v] cache tabs 09/27
 
@@ -776,19 +761,33 @@ Tasks:
 
 * [v] cache tabs 10.03
 
+* [v] cache tabs 10.06
+
+* [o] process 1 url 10.06
+
+    <https://www.baeldung.com/linux/last-directory-file-from-file-path>
+
+    feedback:
+
+    1. deps
+
+        1. awk, sed
+
+    2. 没处理完，有时间了接着处理
+
+    3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
+
 ## markdown renderer
 
 tasks:
 
+* [ ] 调研 js
+
+* [ ] 调研 electron 中的 lifecycle, emitter
+
+    <https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app>
+
 * [v] 调研 electron
-
-    feedback:
-
-    1. 调研 js
-
-    2. 调研 electron 中的 lifecycle, emitter
-
-        <https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app>
 
 ## Machine Learning
 
@@ -806,11 +805,11 @@ tasks:
 
 * [v] 尝试使用 python + numpy 实现一个感知器函数
 
+* [ ] 调研论文 The Perceptron,a Perceiving and Recognizing Automaton
+
 * [ ] 调研论文
 
     1. A Logical Calculus of the Ideas Immanent in Nervous Activity
-
-    2. The Perceptron,a Perceiving and Recognizing Automaton
 
 * [ ] 调研`\mathbf`
 
@@ -822,9 +821,47 @@ tasks:
 
     可能和数值计算方法和凸优化有关
 
+    feedback:
+
+    1. 凸优化似乎主要讲的是线性规划，多目标优化，梯度下降之类的
+
+    2. 考虑一个最简单的情况：寻找$y = x^2$的最小值，初始位置为$x = -1.5$
+
+    3. 不需要考虑系统地学一门课程，可以先考虑从零散的方法学起来，再慢慢整理成系统的知识
+
+        因为书籍本来也不是直接成型的，而是一篇论文一篇论文积累起来的。
+
+    4. 调研 Stephen Boyd - 《Convex Optimization》
+
 * [ ] 调研证明书上给出的优化方法和求导法本质上相同
 
 * [v] 调研《Python机器学习》
+
+## Mathematics
+
+resources:
+
+1. 《高等数学》同济大学应用数学系
+
+tasks:
+
+* [ ] 调研第八章 多元函数微分法及其应用
+
+* [v] 调研矩阵论
+
+    feedback:
+
+    1. 调研 Amir Beck
+
+    2. cached
+
+        * ML-Prerequests: 机器学习的预备知识（矩阵论，概率论，凸优化等）
+
+            <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+
+        * ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
+
+            <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
 
 ## rdma
 
@@ -2237,15 +2274,7 @@ tasks:
 
 * [v] python regular expression sync
 
-## 数学 Mathematics
 
-resources:
-
-1. 《高等数学》同济大学应用数学系
-
-tasks:
-
-* [ ] 调研第八章 多元函数微分法及其应用
 
 ## 其他
 
