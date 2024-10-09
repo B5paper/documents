@@ -2,8 +2,6 @@
 
     1. <https://stackoverflow.com/questions/11226322/how-to-concatenate-two-strings-to-build-a-complete-path>
 
-    1. <https://linuxhint.com/trim_string_bash/>
-
     1. Bash Case Statement: <https://linuxize.com/post/bash-case-statement/>
 
     1. Boolean variables in a shell script?: <https://stackoverflow.com/questions/2953646/how-can-i-declare-and-use-boolean-variables-in-a-shell-script>
@@ -5966,3 +5964,85 @@
 * Flex Engine is a personal game engine I began work on in early 2017.
 
     <https://github.com/ajweeks/FlexEngine>
+
+* Writing a Bootloader Part 1
+
+    <http://3zanders.co.uk/2017/10/13/writing-a-bootloader/>
+
+* A Guide to Parsing: Algorithms and Terminology
+
+    <https://tomassetti.me/guide-parsing-algorithms-terminology/>
+
+* linux 常用命令与 bash 脚本
+
+    <https://billie66.github.io/TLCL/book/>
+
+* Transformer Math 101
+
+    <https://blog.eleuther.ai/transformer-math/>
+
+* Windows API Function Cheatsheets
+
+    <https://github.com/7etsuo/windows-api-function-cheatsheets>
+
+* maestro: Unix-like kernel written in Rust 
+
+    <https://github.com/maestro-os/maestro>
+
+* A Visual Guide to Quantization
+
+    <https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-quantization>
+
+* Fast scientific notes with just your keyboard.
+
+    <https://www.stempad.io/>
+
+* ubuntu20 kvm显卡直通实验-a4000
+
+    <https://blog.csdn.net/jinwu18/article/details/130726993>
+
+* 做国产CPU主板方案，PCIe设备经常遇到一些无法识别设备的情况，应该用什么思路排查问题？
+
+    <https://www.zhihu.com/question/650059205/answer/3483143353?utm_id=0>
+
+* linux network performance ultimate guide
+
+    <https://ntk148v.github.io/posts/linux-network-performance-ultimate-guide/#network-performance-tuning>
+
+* Reverse Engineering For Everyone! 
+
+    <https://0xinfection.github.io/reversing/>
+
+* Two Threads, One Core: How Simultaneous Multithreading Works Under the Hood
+
+    <https://blog.codingconfessions.com/p/simultaneous-multithreading>
+
+* flash-linux0.11-talk
+
+    你管这破玩意叫操作系统源码 — 像小说一样品读 Linux 0.11 核心代码 
+
+    <https://github.com/dibingfa/flash-linux0.11-talk>
+
+* coros: An easy-to-use and fast library for task-based parallelism, utilizing coroutines. 
+
+    <https://github.com/mtmucha/coros>
+
+* Probability and Statistics - The Science of Uncertainty, Second Edition
+
+    <https://utstat.toronto.edu/mikevans/jeffrosenthal/>
+
+* 【PCIE】基于PCIE4C的数据传输（四）——使用MSIX中断
+
+    <https://blog.csdn.net/qq_45434284/article/details/138546171>
+
+* netdata: Architected for speed. Automated for easy. Monitoring and troubleshooting, transformed! 
+
+    <https://github.com/netdata/netdata>
+
+* 【趣话计算机底层技术】一个故事看懂CPU的SIMD技术
+
+    <https://www.cnblogs.com/xuanyuan/p/16048303.html>
+
+* 向量数据库
+
+    <https://guangzhengli.com/blog/zh/vector-database/>
