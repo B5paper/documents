@@ -1,3 +1,29 @@
+* qemu network config
+
+    * KVM Networking - NAT & Host-Only
+
+        <https://amoldighe.github.io/2017/12/20/kvm-networking/>
+
+    * Help setting up bridged mode and host nat on libvirt QEMU/KVM
+
+        <https://www.reddit.com/r/archlinux/comments/f9qmx9/help_setting_up_bridged_mode_and_host_nat_on/?rdt=57824>
+
+    * Bridged Host-VM Network
+
+        <https://briantward.github.io/bridge-host-vm/>
+
+    * Network bridge
+
+        <https://wiki.archlinux.org/title/Network_bridge>
+
+    * Qemu, virt-manager and bridge network
+
+        <https://forum.endeavouros.com/t/qemu-virt-manager-and-bridge-network/45005>
+
+    * QEMU Host Only Networking
+
+        <https://www.kevindiaz.dev/blog/qemu-host-only-networking.html>
+
 1. bash
 
     1. <https://stackoverflow.com/questions/11226322/how-to-concatenate-two-strings-to-build-a-complete-path>
@@ -5239,26 +5265,6 @@
 
     <https://blog.csdn.net/li_101357/article/details/78416813>
 
-* KVM Networking - NAT & Host-Only
-
-    <https://amoldighe.github.io/2017/12/20/kvm-networking/>
-
-* Help setting up bridged mode and host nat on libvirt QEMU/KVM
-
-    <https://www.reddit.com/r/archlinux/comments/f9qmx9/help_setting_up_bridged_mode_and_host_nat_on/?rdt=57824>
-
-* Bridged Host-VM Network
-
-    <https://briantward.github.io/bridge-host-vm/>
-
-* Network bridge
-
-    <https://wiki.archlinux.org/title/Network_bridge>
-
-* Qemu, virt-manager and bridge network
-
-    <https://forum.endeavouros.com/t/qemu-virt-manager-and-bridge-network/45005>
-
 * What is the meaning of 0.0.0.0 as a gateway?
 
     <https://unix.stackexchange.com/questions/94018/what-is-the-meaning-of-0-0-0-0-as-a-gateway>
@@ -5278,10 +5284,6 @@
 * Macvtap
 
     <https://wiki.archlinux.org/title/Macvtap>
-
-* QEMU Host Only Networking
-
-    <https://www.kevindiaz.dev/blog/qemu-host-only-networking.html>
 
 * 解决SSH no matching host key type found 问题
 
@@ -6046,3 +6048,39 @@
 * 向量数据库
 
     <https://guangzhengli.com/blog/zh/vector-database/>
+
+* An Introduction to Speculative Optimization in V8
+
+    <https://ponyfoo.com/articles/an-introduction-to-speculative-optimization-in-v8>
+
+* git-flight-rules
+
+    <https://github.com/k88hudson/git-flight-rules>
+
+* forfun-os
+
+    <https://github.com/croakexciting/forfun-os>
+
+* chibicc
+
+    <https://github.com/rui314/chibicc>
+
+* Bash-Oneliner
+
+    <https://github.com/onceupon/Bash-Oneliner>
+
+* GoogleTest
+
+    <https://github.com/google/googletest>
+
+* 现代密码学简介
+
+    <https://github.com/Evian-Zhang/Introduction-to-modern-cryptography>
+
+* How Computers Work: Processor and Main Memory 
+
+    <https://fastchip.net/howcomputerswork/p1.html>
+
+* Anatomy of the Linux device driver model 
+
+    <https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2018/06/10/linux-device-driver-model>

@@ -71,7 +71,11 @@
 
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
-* [ ] 调研`asprintf()`
+* [v] 调研`asprintf()`
+
+    feedback:
+
+    1. 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
 
 * [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
 
@@ -571,9 +575,13 @@
 
     看到 P7
 
-* [v] reorg project pool 09/04
+* [o] process 1 url  10.03
 
-* [v] reorg 09/24
+    <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
+
+    feedback:
+
+    1. 这个 url 未处理结束，下次继续处理
 
 * [v] reorg 30 mins 09/30
 
@@ -605,49 +613,31 @@
 
 * [ ] 调研 git ignore 的实现原理
 
+* [ ] sync: linux driver note 中，linked list
+
 * [v] reorg 30 mins
 
     12:50 ~ 13:28
 
-    feedback:
+* [ ] 调研：实现一个仅使用 read device 触发的中断程序
 
-    1. 在 linux driver note 中，linked list 已经被学过两遍了，有时间 sync 一下，整理成 qa
+* [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
 * [v] reorg 30 mins
 
     12:59 ~ 15:52
 
-    feedback:
+* [ ] 调研 deb 创建安装包
 
-    1. [ ] 调研：实现一个仅使用 read device 触发的中断程序
-
-    2. [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
+* [ ] 调研`glXQueryVersion()`出自哪个头文件
 
 * [v] reorg 09/21
 
-    feedback:
-
-    1. 调研 deb 创建安装包
-
-* [v] reorg 09/23
-
 * [v] reorg 10/01
 
-    feedback:
-
-    1. 调研`glXQueryVersion()`出自哪个头文件
-
-* [v] reorg 10.03
-
-* [o] process 1 url  10.03
-
-    <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
-
-    feedback:
-
-    1. 这个 url 未处理结束，下次继续处理
-
 * [v] reorg 10.06
+
+* [v] reorg 10.09
 
 ## qa
 
@@ -729,16 +719,6 @@ Tasks:
 
 ### tasks
 
-* [v] process 1 url 09/26
-
-    Creating and deleting branches within your repository: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository>
-
-* [v] cache tabs 09/27
-
-* [v] cache tabs 09/30
-
-* [v] process 1 url
-
 * [v] cache tabs 10/01
 
 * [o] process 1 url 10/01
@@ -777,7 +757,39 @@ Tasks:
 
     3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
 
+* [v] cache tabs 10.08
+
+* [o] process 1 url 10.09
+
+    <https://linuxhint.com/trim_string_bash/>
+
+    feedback:
+
+    1. 未处理完，在处理之前需要先 sync bash
+
+    2. 虽然
+
+        ```bash
+        a="hello, world"
+        b=${a%world}  # hello, 
+        ```
+
+        可以 trim `world`，但是如果是
+
+        ```bash
+        a="hello, worldworld"
+        b=${a%%world}  # hello, world
+        ```
+
+        那么只能删减一个 world。
+        
+        该如何删减全部的两个 world？
+
+* [v] cache tabs 10.09
+
 ## markdown renderer
+
+使用 electron + markdown parser + mathjax 实现 markdoen renderer。
 
 tasks:
 
@@ -807,9 +819,7 @@ tasks:
 
 * [ ] 调研论文 The Perceptron,a Perceiving and Recognizing Automaton
 
-* [ ] 调研论文
-
-    1. A Logical Calculus of the Ideas Immanent in Nervous Activity
+* [ ] 调研论文 A Logical Calculus of the Ideas Immanent in Nervous Activity
 
 * [ ] 调研`\mathbf`
 
@@ -862,6 +872,10 @@ tasks:
         * ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
 
             <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+
+## gpu driver
+
+* [v] 制作 ubuntu 24.04 qemu image
 
 ## rdma
 
@@ -1081,7 +1095,7 @@ tasks:
 
 * [ ] 调研为什么 cable 不支持高速率
 
-* [ ] 调研 C 语言打印 16 进制数字，`%08x`的含义
+* [v] 调研 C 语言打印 16 进制数字，`%08x`的含义
 
 * [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
@@ -1281,57 +1295,53 @@ tasks:
 
     <https://www.theseus-os.com/Theseus/book/running/virtual_machine/pci_passthrough.html>
 
+* PCI passthrough via OVMF
+
+    <https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF>
+
+* GPU passthrough with libvirt qemu kvm
+
+    <https://wiki.gentoo.org/wiki/GPU_passthrough_with_libvirt_qemu_kvm>
+
+* QEMU/virtual machines with GPU pass through even possible on Debian based system? 
+
+    <https://www.reddit.com/r/linux4noobs/comments/15vtwgt/qemuvirtual_machines_with_gpu_pass_through_even/>
+
+* Non-GPU PCI Passthrough 
+
+    <https://www.reddit.com/r/VFIO/comments/rivik0/nongpu_pci_passthrough/>
+
+* QEMU Virtual Machine PCIe Device Passthrough Using vfio-pci 
+
+    <https://null-src.com/posts/qemu-vfio-pci/>
+
+* Chapter 15. PCI passthrough
+
+    <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-pci_passthrough>
+
+* Configuring pass-through PCI devices
+
+    <https://www.ibm.com/docs/en/linux-on-systems?topic=vfio-pass-through-pci>
+
+* Assigning Host Devices to Virtual Machines
+
+    <https://documentation.suse.com/smart/virtualization-cloud/html/vm-assign-pci-device/index.html>
+
+* VFIO Device Passthrough Principles (2)
+
+    <https://www.openeuler.org/en/blog/wxggg/2020-11-29-vfio-passthrough-2.html>
+
+* lisovy/qemu_pci_pass_through.txt
+
+    <https://gist.github.com/lisovy/1f737b1db2af55a153ea>
+
+* qemu VM device passthrough using VFIO, the code analysis 
+
+    <https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/31/vfio-passthrough>
+
 ### task
 
 * [v] 调研 pci device passthrough in qemu
-
-    feedback:
-
-    1. 看起来大部分的实现方案是 qemu VFIO + host IOMMU，由于目前手头没有可以支持 iommu 的机器，所以暂时先收集了一些资料
-
-        * PCI passthrough via OVMF
-
-            <https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF>
-
-        * GPU passthrough with libvirt qemu kvm
-        
-            <https://wiki.gentoo.org/wiki/GPU_passthrough_with_libvirt_qemu_kvm>
-
-        * QEMU/virtual machines with GPU pass through even possible on Debian based system? 
-
-            <https://www.reddit.com/r/linux4noobs/comments/15vtwgt/qemuvirtual_machines_with_gpu_pass_through_even/>
-
-        * Non-GPU PCI Passthrough 
-
-            <https://www.reddit.com/r/VFIO/comments/rivik0/nongpu_pci_passthrough/>
-
-        * QEMU Virtual Machine PCIe Device Passthrough Using vfio-pci 
-
-            <https://null-src.com/posts/qemu-vfio-pci/>
-
-        * Chapter 15. PCI passthrough
-
-            <https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-pci_passthrough>
-
-        * Configuring pass-through PCI devices
-
-            <https://www.ibm.com/docs/en/linux-on-systems?topic=vfio-pass-through-pci>
-
-        * Assigning Host Devices to Virtual Machines
-
-            <https://documentation.suse.com/smart/virtualization-cloud/html/vm-assign-pci-device/index.html>
-
-        * VFIO Device Passthrough Principles (2)
-
-            <https://www.openeuler.org/en/blog/wxggg/2020-11-29-vfio-passthrough-2.html>
-
-        * lisovy/qemu_pci_pass_through.txt
-
-            <https://gist.github.com/lisovy/1f737b1db2af55a153ea>
-
-        * qemu VM device passthrough using VFIO, the code analysis 
-
-            <https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/31/vfio-passthrough>
 
 * [v] 公司电脑开启 kvm feature
 
@@ -1351,11 +1361,9 @@ tasks:
 
 * [v] 调研 shrink qcow2 image
 
-    feedback:
+* [ ] 调研 virt-sparsify
 
-    1. 调研 virt-sparsify
-
-        ref: <https://serverfault.com/questions/432119/is-there-any-way-to-shrink-qcow2-image-without-converting-it-raw>
+    ref: <https://serverfault.com/questions/432119/is-there-any-way-to-shrink-qcow2-image-without-converting-it-raw>
 
 ## 分布式计算调研
 
