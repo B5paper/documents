@@ -2,6 +2,16 @@
 
 ## cache
 
+* github 的吉祥物是 octocat
+
+* github 的创始人是 Chris Wanstrath
+
+* Pull Request 是 github 引入的一项重要功能
+
+* `@`可以给用户发通知（Notifications）, wiki 可以用来写文档
+
+* GFM: github flavored markdown
+
 * 在 github 里创建新 branch 两种方法
 
     1. 进入 branch 界面，点 new branch

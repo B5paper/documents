@@ -382,3 +382,93 @@ module_init(mod_init);
 module_exit(mod_exit);
 MODULE_LICENSE("GPL");
 ```
+
+[unit]
+[u_0]
+请写一个使用 linked list 的程序，在链表头部插入 1, 2, 3，并遍历输出。
+[u_1]
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/list.h>
+
+int init_mod(void);
+void exit_mod(void);
+
+typedef struct ListNode
+{
+    struct list_head head;
+    int val;
+} ListNode;
+
+int init_mod(void)
+{
+    pr_info("in hello_init()\n");
+
+    struct list_head lst_head;
+    INIT_LIST_HEAD(&lst_head);
+    ListNode node_1 = {
+        .val = 1
+    };
+    struct ListNode node_2 = {
+        .val = 2
+    };
+    ListNode node_3 = {
+        .val = 3
+    };
+    list_add(&node_1.head, &lst_head);
+    list_add(&node_2.head, &lst_head);
+    list_add(&node_3.head, &lst_head);
+    ListNode *cur;
+    int len_cnt = 0;
+    list_for_each_entry(cur, &lst_head, head)
+    {
+        printk(KERN_INFO "%d\n", cur->val);
+        ++len_cnt;
+    }
+    pr_info("len cnt: %d\n", len_cnt);
+    return 0;
+}
+
+void exit_mod(void)
+{
+    pr_info("in hello_exit()\n");
+}
+
+module_init(init_mod);
+module_exit(exit_mod);
+MODULE_LICENSE("GPL");
+```
+
+dmesg output:
+
+```
+[ 6687.347700] in hello_init()
+[ 6687.347706] 3
+[ 6687.347708] 2
+[ 6687.347709] 1
+[ 6687.347710] len cnt: 3
+[ 6692.841747] in hello_exit()
+```
+
+[unit]
+[u_0]
+配置 vscode 的内核驱动开发环境, 使得 hello world 程序下无静态报错。
+[u_1]
+include paths:
+
+```json
+"/usr/src/linux-headers-6.5.0-18-generic/include/",
+"/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
+"/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
+"/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
+```
+
+compiler macros:
+
+```
+KBUILD_MODNAME=\"hello\"
+__GNUC__
+__KERNEL__
+MODULE
+```

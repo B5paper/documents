@@ -6084,3 +6084,51 @@
 * Anatomy of the Linux device driver model 
 
     <https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2018/06/10/linux-device-driver-model>
+
+* The Linux Kernel Module Programming Guide
+
+    <https://sysprog21.github.io/lkmpg/>
+
+* CADmium: A Local-First CAD Program Built for the Browser
+
+    <https://mattferraro.dev/posts/cadmium>
+
+* LLVM IR入门指南
+
+    <https://evian-zhang.github.io/llvm-ir-tutorial/>
+
+* 傅里叶变换交互式入门
+
+    <https://www.jezzamon.com/fourier/zh-cn.html>
+
+* DiscoGrad
+
+    <https://github.com/DiscoGrad/DiscoGrad>
+
+* compiler-notes
+
+    编译原理讲义
+
+    <https://github.com/NiuTrans/compiler-notes>
+
+* babylon: High-Performance C++ Fundamental Library 
+
+    <https://github.com/baidu/babylon>
+
+* The AWK Programming Language (AWK 程序设计语言, awkbook) 中文翻译, LaTeX 排版 
+
+    <https://github.com/wuzhouhui/awk>
+
+* A Survey of Large Language Models in Finance (FinLLMs)
+
+    <https://github.com/adlnlp/FinLLMs>
+
+* 什么是AI分布式训练通信优化库AIACC-ACSpeed
+
+    <https://help.aliyun.com/zh/egs/what-is-aiacc-acspeed>
+
+* gputasker
+
+    An awesome gpu tasks scheduler. 轻量好用的GPU机群任务调度工具。觉得有用可以点个star 
+
+    <https://github.com/cnstark/gputasker>

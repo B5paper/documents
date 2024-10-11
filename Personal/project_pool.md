@@ -287,14 +287,6 @@
 
     目前这些必做的任务就是 reorg 和 qa。
 
-* 如果看到一个名词没有任何头绪，那么就去*调研*它
-
-    比如当天的任务，如果没有头绪，那么就*调研***当天的任务**。
-
-    比如某个项目，如果不知道怎么开展，那么就去*调研*这个项目。
-
-    如果对于某个任务，忘了它是怎么开始的，想不起来和它相关的所有东西，那么就去调研这个任务。
-
 * 串行的任务执行对提高效率非常重要，因为大脑频繁切换任务会降低效率
 
     可能训练汉语／英语文字阅读也是必要的。
@@ -305,7 +297,7 @@
 
 * 调研 zig
 
-* cached task: 将 projects 加入 reorg 中
+* [ ] 将 projects 加入 reorg 中
 
 * 要想对一个东西有熟悉的理解和熟练的运用，必须将它作为更复杂的东西的一部分
 
@@ -313,7 +305,7 @@
 
     目前的方案是全部判为未完成，在第二天重新从项目管理系统中获取新的任务，不再考虑这些任务。
 
-* cached task: 写一个数字图像处理库，暂时不包含深度学习
+* [ ] 写一个数字图像处理库，暂时不包含深度学习
 
 * 如果在任务列表里只说了“调研”，没有明确的调研任务，那么就是从 resource，笔记，qa，搜索，多方面开始调研。
 
@@ -400,16 +392,6 @@
 * 是否该引入每周的计划预期？
 
     目前只完成了每天的计划列表，但是每周完成的任务量太少。
-
-* 应该建立一个 reference resources 目录，把所有的引用资源都放到这里
-
-    如果每个目录下都是从`ref_0`编号，移动笔记时就会混乱。
-
-    如果统一管理 reference，就不会出现这个问题。
-
-    可以从`ref_0`一直编号到`ref_100`，随着 ref 不断被处理，再删掉`ref_0`重新开始。
-
-    每次删除的时候，可以在 documents 里用`grep`搜索`ref_0`保证没有被引用的地方。
 
 * 无序列表（cache）的弱排序
 
@@ -563,16 +545,6 @@
 
 * { } 《github入门与实践》
 
-    * github 的吉祥物是 octocat
-
-    * github 的创始人是 Chris Wanstrath
-
-    * Pull Request 是 github 引入的一项重要功能
-
-    * `@`可以给用户发通知（Notifications）, wiki 可以用来写文档
-
-    * GFM: github flavored markdown
-
     看到 P7
 
 * [o] process 1 url  10.03
@@ -583,15 +555,9 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [v] reorg 30 mins 09/30
+* [ ] 调研 markdown previewer
 
-    feedback:
-
-    1. deps
-
-        1. [ ] 调研 markdown previewer
-
-            要求能显示数学公式
+    要求能显示数学公式
 
 * [ ] 在项目管理中加上这个项目，系统的自检查
 
@@ -603,7 +569,7 @@
 
 * [ ] random select 时，将 projects 文件夹也包含进去
 
-* [ ] 调研 python 中的 hashset
+* [v] 调研 python 中的 hashset
 
 * [ ] 调研 python 中不同 path 的变体如何判断是相同 path
 
@@ -614,10 +580,6 @@
 * [ ] 调研 git ignore 的实现原理
 
 * [ ] sync: linux driver note 中，linked list
-
-* [v] reorg 30 mins
-
-    12:50 ~ 13:28
 
 * [ ] 调研：实现一个仅使用 read device 触发的中断程序
 
@@ -631,13 +593,23 @@
 
 * [ ] 调研`glXQueryVersion()`出自哪个头文件
 
-* [v] reorg 09/21
-
 * [v] reorg 10/01
 
 * [v] reorg 10.06
 
 * [v] reorg 10.09
+
+* [v] reorg 10.10
+
+    feedback:
+
+    1. reorg 应该分三类
+
+        * project pool
+
+        * documents
+
+        * projects
 
 ## qa
 
@@ -677,6 +649,14 @@ cached:
 
 * 把 vim 加入到每日 qa 中
 
+* opencl 向量相加基本模板
+
+    1. 在两次使用函数得到资源列表时，容易忘写第二次
+
+    2. 总是忘写`clBuildProgram()`
+
+    3. `fseek()`里第二个参数和第三个参数的位置写反了
+
 Tasks:
 
 * 在 vim 中根据正则表达式搜索指定索引所在的位置
@@ -701,35 +681,25 @@ Tasks:
 
 * [v] qa 4 units 05/20
 
-    feedback:
-
-    1. opencl 向量相加基本模板
-
-        1. 在两次使用函数得到资源列表时，容易忘写第二次
-
-        2. 总是忘写`clBuildProgram()`
-
-        3. `fseek()`里第二个参数和第三个参数的位置写反了
-
 ## cache tabs / process urls
 
 * 需要消化 cached urls
 
 * 处理 url 的时间比想象中要长，每一条大概需要 30 mins
 
+* 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
+
 ### tasks
 
 * [v] cache tabs 10/01
+
+* [ ] 调研`git revert`的用法
 
 * [o] process 1 url 10/01
 
     Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
 
     feedback:
-
-    1. 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
-
-    2. 调研`git revert`的用法
 
     3. 调研`git reflog`
 
@@ -738,8 +708,6 @@ Tasks:
     5. 调研`git update-ref `
 
     6. 调研`git log --graph --all --oneline --decorate`
-
-* [v] cache tabs 10.03
 
 * [v] cache tabs 10.06
 
@@ -786,6 +754,8 @@ Tasks:
         该如何删减全部的两个 world？
 
 * [v] cache tabs 10.09
+
+* [v] cache tabs 10.11
 
 ## markdown renderer
 
@@ -872,6 +842,8 @@ tasks:
         * ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
 
             <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+
+* [v] 调研线性代数
 
 ## gpu driver
 
@@ -1364,6 +1336,18 @@ tasks:
 * [ ] 调研 virt-sparsify
 
     ref: <https://serverfault.com/questions/432119/is-there-any-way-to-shrink-qcow2-image-without-converting-it-raw>
+
+* [o] 调研 qemu 命令行如何使用 bridge
+
+    feedback:
+
+    1. 调研 qemu network config
+
+        * <https://amoldighe.github.io/2017/12/20/kvm-networking/>
+
+    2. 在 virtualbox 7.0 启动的虚拟机 ubuntu 22.04 中使用命令行 qemu 启动 ubuntu 22.04 虚拟机时，需要指定`-vga std`，或者直接省略这个配置。选用`-vga virtio`和`-vga qxl`都会出现鼠标位置偏移的问题。
+
+        有可能是 virtualbox 7.0 虚拟机 ubuntu 22.04 开启了 scaling 125%，但是不确定。
 
 ## 分布式计算调研
 
