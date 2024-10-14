@@ -2,93 +2,7 @@
 
 ## cache
 
-* 清除 git proxy
-
-    ```bash
-    git config --global --unset http.proxy
-    git config --global --unset https.proxy
-    ```
-
-* how to reset the remote branch to a specific commit in git
-
-    ```bash
-    git reset --hard <commit-hash>
-    git push -f origin master
-    ```
-
-* 将 remote branch fork 到 local branch
-
-    假设 remote 的 name 是`origin`，那么
-
-    ```bash
-    git fetch origin
-    git branch <local_branch_name> origin/<remote_branch_name>
-    git checkout <local_branch_name>
-    ```
-
-    对于已经存在的 local branch，可以使用`git pull`只拉取指定的 branch：
-
-    ```bash
-    git pull {repo} {remotebranchname}:{localbranchname}
-
-    git pull origin xyz:xyz
-    ```
-
-    其他介绍的方法并不是很优雅，比如`git pull origin branch_2`，其实是先执行`git fetch`，再执行`git merge origin/branch_2`，这样是把`origin/branch_2` merge 到`branch_1`上。
-
-    如果使用`git branch branch_2`，再执行`git pull origin branch_2`，那么相当于从`branch_1` fork 出了一份`branch_2`，然后再 merge remote branch_2。本质上相当于将 branch_2 的内容强行 merge 到 branch_1 上。这样也不太优雅。
-
-* 使用 commit 1 merge commit 2，如果 commit 1 领先 commit 2，那么 commit 1 没有变化
-
-    如果 commit 1 和 commit 2 是 diverge 状态，并且修改的是同一行，或者相邻的几行，那么在执行`git merge`时会显示冲突（conflict）状态。
-
-    如果两个 branch 是 diverge 状态，并且在相邻较远的两段代码上有不同，那么会不会有 conflict 状态？
-
-* git merge 会保存 branch 的所有 commit history
-
-* `git merge origin/master`可以 merge remote branch
-
-* 假如 HEAD 在 branch test 上，那么无法用`git branch -d test`删除 test branch
-
-    即，无法删除当前所在分支。
-
-* git 先`get fetch <remote_name>:<remote_branch>`，再`git checkout <remote_branch>`，就可以自动把 remote branch 同步到本地一个新的 branch 了。
-
-* git remote 采用 ssh 协议时的一个 example
-
-    `ssh://hlc@<ip>:<port>/home/hlc/Documents/Projects/my_proj`
-
-    注意`<port>`和路径之间是没有`:`的。
-
-    如果不写 port 的话，写法就是`ssh://hlc@<ip>/path/to/my_project`，同样也没有`:`。
-
-* git remove untracked files
-
-    `git clean -f` removes untracked files within the directory whre you call it only.
-
-* 列出 git repo 中所有的 remote branches
-
-    * `git branch -r`，或者`git branch --remote
-    
-    * `git ls-remote`
-
-* git 中 checkout new branch 是什么意思？为什么说`git branch <branch>`只创建新 branch，不 check out new branch？
-
-    猜测：chekcout 指的很可能是切换 branch
-
-* git 其实是用了很多的磁盘空间来实现更灵活的版本管理
-
 * git branch
-
-    `git branch`等价于`git branch --list`
-
-    `git branch <branch>`创建一个新 branch
-
-    `git branch -d <branch>`删除一个 branche
-
-    This is a “safe” operation in that Git prevents you from deleting the branch if it has unmerged changes.
-
-    `git branch -D <branch>`: Force delete the specified branch
 
     `git branch -m <branch>`: Rename the current branch to `＜branch＞`
 
@@ -207,23 +121,6 @@
 
     保存后退出，commit 会自动合并，然后提示是否修改 comment，可以改可以不改。再保存退出，就完成了。
 
-
-* git merge two branches
-
-	将 master branch merge 到 development branch:
-
-	```bash
-	git checkout development
-	git merge master
-	```
-
-	or
-
-	```bash
-	git checkout development
-	git rebase master
-	```
-
 * 查看 git repo 是超前还是落后
 
 	* `git status -sb`
@@ -253,54 +150,11 @@
 
 		It would be best to do a git fetch before checking the branches, though, otherwise your determination of whether or not you need to pull will be out of date. You'll also want to verify that each branch you check has a remote tracking branch. You can use git for-each-ref --format='%(upstream:short)' refs/heads/<branch> to do that. That command will return the remote tracking branch of <branch> or the empty string if it doesn't have one. Somewhere on SO there's a different version which will return an error if the branch doesn't haven't a remote tracking branch, which may be more useful for your purpose.
 
-* 使用`git rebase`合并多个 commit
 
-	```bash
-	# 从HEAD版本开始往过去数3个版本
-	$ git rebase -i HEAD~3
-
-	# 从指定版本开始交互式合并（不包含此版本）
-	$ git rebase -i [commitid]
-	```
-
-	说明：
-
-	* `-i（--interactive）`：弹出交互式的界面进行编辑合并
-
-	* `[commitid]`：要合并多个版本之前的版本号，注意：[commitid] 本身不参与合并
-
-	指令解释（交互编辑时使用）：
-
-    p, pick = use commit
-    r, reword = use commit, but edit the commit message
-    e, edit = use commit, but stop for amending
-    s, squash = use commit, but meld into previous commit
-    f, fixup = like "squash", but discard this commit's log message
-    x, exec = run command (the rest of the line) using shell
-    d, drop = remove commit
-
-	合并完成后，推送远程：
-
-	```bash
-	$ git push --force origin master
-	```
-
-	冲突解决
-	
-	在 git rebase 过程中，可能会存在冲突，此时就需要解决冲突。
-
-	```bash
-	# 查看冲突
-	$ git status
-
-	# 解决冲突之后，本地提交
-	$ git add .
-
-	# rebase 继续
-	$ git rebase --continue
-	```
 
 ## notes
+
+* git 其实是用了很多的磁盘空间来实现更灵活的版本管理
 
 Some materials to learn:
 
@@ -365,6 +219,32 @@ working directory 中的每个文件都有两种状态：tracked 或 untracked�
 
 ## Configs
 
+### cache
+
+显示当前的所有配置：`git config --list --show-origin`
+
+`--show-origin`表示显示来源的配置文件。
+
+还可以通过`git config <key>`显示一个指定 key 的值：`git config user.name`
+
+proxy:
+
+```bash
+git config --global http.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
+git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
+```
+
+修改默认编辑器：`git config --global core.editor emacs`
+
+* 清除 git proxy
+
+    ```bash
+    git config --global --unset http.proxy
+    git config --global --unset https.proxy
+    ```
+
+### note
+
 git 的配置文件有三个位置：
 
 * `/etc/gitconfig`
@@ -418,6 +298,61 @@ man git-<verb>
 ```bash
 git help config
 ```
+
+### .gitignore rules
+
+可以在项目目录下创建一个`.gitignore`来忽视一些文件。文件规则：
+
+* Blank lines or lines starting with `#` are ignored.
+
+* Standard glob patterns work.
+
+    An asterisk (`*`) matches zero or more characters;
+
+    `[abc]` matches any character inside the brackets;
+
+    a question mark (`?`) matches a single character;
+
+    brackets enclosing characters separated by a hyphen (`[0-9]`) matches any character between them.
+
+    You can also use two asterisks to match nested directories: `a/**/z` would match `a/z`, `a/b/z`, `a/b/c/z`, and so on.
+
+* You can start patterns with a forward slash (/) to avoid recursivity.
+
+* You can end patterns with a forward slash (/) to specify a directory.
+
+* You can negate a pattern by starting it with an exclamation point (!)
+
+Example 1:
+
+```gitignore
+*.[oa]
+*~
+```
+
+Example 2:
+
+```gitignore
+# no .a files
+*.a
+
+# but do track lib.a, even though you're ignoring .a files above
+!lib.a
+
+# only ignore the TODO file in the current director, not subdir/TODO
+/TODO
+
+# ignore all files in the build/ directory
+build/
+
+# ignore doc/notes.txt, but not doc/server/arch.txt
+doc/*.txt
+
+# ignore all .pdf files in the doc/ directory
+doc/**/*.pdf
+```
+
+[如果直接输入`TODO`的话，会递归地匹配所有的 TODO 文件吗？]
 
 ## Basic operations
 
@@ -496,61 +431,6 @@ git help config
     `git add Documentation/\*.txt`: Adds content from all `*.txt` files under Documentation directory and its subdirectories. The asterisk `*` is used to escape from shell.
 
     `git add git-*.sh`: Add content from all `git-*.sh` files in current directory, not its subdirectories.
-
-## .gitignore rules
-
-可以在项目目录下创建一个`.gitignore`来忽视一些文件。文件规则：
-
-* Blank lines or lines starting with `#` are ignored.
-
-* Standard glob patterns work.
-
-    An asterisk (`*`) matches zero or more characters;
-
-    `[abc]` matches any character inside the brackets;
-
-    a question mark (`?`) matches a single character;
-
-    brackets enclosing characters separated by a hyphen (`[0-9]`) matches any character between them.
-
-    You can also use two asterisks to match nested directories: `a/**/z` would match `a/z`, `a/b/z`, `a/b/c/z`, and so on.
-
-* You can start patterns with a forward slash (/) to avoid recursivity.
-
-* You can end patterns with a forward slash (/) to specify a directory.
-
-* You can negate a pattern by starting it with an exclamation point (!)
-
-Example 1:
-
-```gitignore
-*.[oa]
-*~
-```
-
-Example 2:
-
-```gitignore
-# no .a files
-*.a
-
-# but do track lib.a, even though you're ignoring .a files above
-!lib.a
-
-# only ignore the TODO file in the current director, not subdir/TODO
-/TODO
-
-# ignore all files in the build/ directory
-build/
-
-# ignore doc/notes.txt, but not doc/server/arch.txt
-doc/*.txt
-
-# ignore all .pdf files in the doc/ directory
-doc/**/*.pdf
-```
-
-[如果直接输入`TODO`的话，会递归地匹配所有的 TODO 文件吗？]
 
 ## Other operations
 
@@ -661,23 +541,6 @@ git log --since="2 years 1 day 3 minutes ago"
 `git log --all`：查看所有 branch 的记录
 
 `git reflog`：查看包括`reset --hard`之类的修改记录
-
-## config
-
-显示当前的所有配置：`git config --list --show-origin`
-
-`--show-origin`表示显示来源的配置文件。
-
-还可以通过`git config <key>`显示一个指定 key 的值：`git config user.name`
-
-proxy:
-
-```bash
-git config --global http.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
-git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
-```
-
-修改默认编辑器：`git config --global core.editor emacs`
 
 ## 一些操作
 
@@ -1005,11 +868,169 @@ git config --global https.proxy http://proxyUsername:proxyPassword@proxy.server.
 
     * `-n`, `--no-commit`: Passing this option will prevent git revert from creating a new commit that inverses the target commit. Instead of creating the new commit this option will add the inverse changes to the Staging Index and Working Directory. 只改变文件内容，不提交 commit
 
-## git branch
+## Commit
+
+* git remove untracked files
+
+    `git clean -f` removes untracked files within the directory whre you call it only.
+
+## Merge
+
+### cache
+
+* 使用 commit 1 merge commit 2，如果 commit 1 领先 commit 2，那么 commit 1 没有变化
+
+    如果 commit 1 和 commit 2 是 diverge 状态，并且修改的是同一行，或者相邻的几行，那么在执行`git merge`时会显示冲突（conflict）状态。
+
+    如果两个 branch 是 diverge 状态，并且在相邻较远的两段代码上有不同，那么会不会有 conflict 状态？
+
+* git merge 会保存 branch 的所有 commit history
+
+* `git merge origin/master`可以 merge remote branch
+
+## Branch
+
+### cache
+
+`git branch -D <branch>`: Force delete the specified branch
+
+* `git branch -d <branch>`删除一个 branch
+
+    This is a “safe” operation in that Git prevents you from deleting the branch if it has unmerged changes.
+
+* `git branch <new_branch_name>`创建一个新 branch，但不切换到新创建的 branch
+
+* `git branch`等价于`git branch --list`
+
+* git 先`get fetch <remote_name>:<remote_branch>`，再`git checkout <remote_branch>`，就可以自动把 remote branch 同步到本地一个新的 branch 了。
+
+* 假如 HEAD 在 branch test 上，那么无法用`git branch -d test`删除 test branch
+
+    即，无法删除当前所在分支。
+
+* 将 remote branch fork 到 local branch
+
+    假设 remote 的 name 是`origin`，那么
+
+    ```bash
+    git fetch origin
+    git branch <local_branch_name> origin/<remote_branch_name>
+    git checkout <local_branch_name>
+    ```
+
+    对于已经存在的 local branch，可以使用`git pull`只拉取指定的 branch：
+
+    ```bash
+    git pull {repo} {remotebranchname}:{localbranchname}
+
+    git pull origin xyz:xyz
+    ```
+
+    其他介绍的方法并不是很优雅，比如`git pull origin branch_2`，其实是先执行`git fetch`，再执行`git merge origin/branch_2`，这样是把`origin/branch_2` merge 到`branch_1`上。
+
+    如果使用`git branch branch_2`，再执行`git pull origin branch_2`，那么相当于从`branch_1` fork 出了一份`branch_2`，然后再 merge remote branch_2。本质上相当于将 branch_2 的内容强行 merge 到 branch_1 上。这样也不太优雅。
+
+* how to reset the remote branch to a specific commit in git
+
+    ```bash
+    git reset --hard <commit-hash>
+    git push -f origin master
+    ```
+
+### note
 
 `git branch --set-upstream-to=origin/main`可以设置当前 branch 对应的 remote branch。
 
 当 remote 的 branch 不存在时，这个命令无法使用。必须先使用`git push -u`将 local 的 branch push 到 remote branch。
+
+## Remote
+
+### cache
+
+* git remote 采用 ssh 协议时的一个 example
+
+    `ssh://hlc@<ip>:<port>/home/hlc/Documents/Projects/my_proj`
+
+    注意`<port>`和路径之间是没有`:`的。
+
+    如果不写 port 的话，写法就是`ssh://hlc@<ip>/path/to/my_project`，同样也没有`:`。
+
+## Rebase
+
+* 使用`git rebase`合并多个 commit
+
+	```bash
+	# 从HEAD版本开始往过去数3个版本
+	$ git rebase -i HEAD~3
+
+	# 从指定版本开始交互式合并（不包含此版本）
+	$ git rebase -i [commitid]
+	```
+
+	说明：
+
+	* `-i（--interactive）`：弹出交互式的界面进行编辑合并
+
+	* `[commitid]`：要合并多个版本之前的版本号，注意：[commitid] 本身不参与合并
+
+	指令解释（交互编辑时使用）：
+
+    p, pick = use commit
+    r, reword = use commit, but edit the commit message
+    e, edit = use commit, but stop for amending
+    s, squash = use commit, but meld into previous commit
+    f, fixup = like "squash", but discard this commit's log message
+    x, exec = run command (the rest of the line) using shell
+    d, drop = remove commit
+
+	合并完成后，推送远程：
+
+	```bash
+	$ git push --force origin master
+	```
+
+	冲突解决
+	
+	在 git rebase 过程中，可能会存在冲突，此时就需要解决冲突。
+
+	```bash
+	# 查看冲突
+	$ git status
+
+	# 解决冲突之后，本地提交
+	$ git add .
+
+	# rebase 继续
+	$ git rebase --continue
+	```
+
+## Topics
+
+### merge, branch
+
+* git merge two branches
+
+	将 master branch merge 到 development branch:
+
+	```bash
+	git checkout development
+	git merge master
+	```
+
+	or
+
+	```bash
+	git checkout development
+	git rebase master
+	```
+
+### remote, branch
+
+* 列出 git repo 中所有的 remote branches
+
+    * `git branch -r`，或者`git branch --remote
+    
+    * `git ls-remote`
 
 ## git remote
 
