@@ -2,6 +2,14 @@
 
 ## cache
 
+* ubuntu 24.04.01 在 virtual box 7.0 里安装时，需要
+
+    1. 显示里选择 VBoxSVGA
+
+    2. iso installer 里选 graphics safe 模式
+
+    不然安装界面和启动界面都会花屏。
+
 * virtual box 的虚拟机默认使用的是 NAT 地址转换，并不是真正的 NAT，因此两台虚拟机之间无法连接
 
     可以在 virtual box 管理器 -> 工具 -> NAT网络 -> 创建，创建一个新的 net 网络，然后在虚拟机的控制 -> 设置 -> 网络 -> 连接方式里选择刚才创建的 NAT 网络，注意看名称是否对得上，点击确定。

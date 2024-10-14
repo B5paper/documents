@@ -2,6 +2,18 @@
 
 ## cache
 
+* 删除`ln -s`创建的文件夹
+
+    ```bash
+    mkdir test_1
+    ln -s test_1 test_2
+    rm test_2/  # fail
+    rmdir test_2/  # fail
+    rm test_2  # OK
+    ```
+
+    `rm test_2`后面不能加`/`。
+
 * grub 里不打开 iommu，vfio-pci 无法 bind 新设备
 
 * grub 的 config menu 放在`/boot/grub/grub.cfg`里

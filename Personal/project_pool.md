@@ -565,7 +565,7 @@
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [ ] python 判断两个路径是否等价，包括相对路径，绝对路径，文件，目录
+* [v] python 判断两个路径是否等价，包括相对路径，绝对路径，文件，目录
 
 * [ ] random select 时，将 projects 文件夹也包含进去
 
@@ -579,7 +579,37 @@
 
 * [ ] 调研 git ignore 的实现原理
 
-* [ ] sync: linux driver note 中，linked list
+* [v] sync: linux driver note 中，linked list
+
+    10:22 ~ 13:30
+
+    feedback:
+
+    1. 一开始的时候编译不出来，是因为`obj-m`写成了`odj-m`
+
+    2. gcc 12 要求所有函数必须有声明，不然会报 warning:
+
+        ```
+        make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
+        make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
+        warning: the compiler differs from the one used to build the kernel
+          The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+          You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+          CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
+        /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
+            4 | int hello_init(void)
+              |     ^~~~~~~~~~
+        /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
+           10 | void hello_exit(void)
+              |      ^~~~~~~~~~
+          MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
+          LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
+          BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
+        Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
+        make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
+        ```
+
+    3. `list_add()`是在指定 node 后添加 node
 
 * [ ] 调研：实现一个仅使用 read device 触发的中断程序
 
@@ -671,7 +701,7 @@ Tasks:
 
     答对题数：2/4
 
-* [ ] 增加 linux driver qa:
+* [v] 增加 linux driver qa:
 
     配置 vscode 的内核驱动开发环境
 
@@ -754,6 +784,8 @@ Tasks:
         该如何删减全部的两个 world？
 
 * [v] cache tabs 10.09
+
+* [v] cache tabs 10.10
 
 * [v] cache tabs 10.11
 
@@ -1348,6 +1380,18 @@ tasks:
     2. 在 virtualbox 7.0 启动的虚拟机 ubuntu 22.04 中使用命令行 qemu 启动 ubuntu 22.04 虚拟机时，需要指定`-vga std`，或者直接省略这个配置。选用`-vga virtio`和`-vga qxl`都会出现鼠标位置偏移的问题。
 
         有可能是 virtualbox 7.0 虚拟机 ubuntu 22.04 开启了 scaling 125%，但是不确定。
+
+* [v] 调研 ubuntu 24.04 自定义内核对 qemu vga 的支持
+
+    feedback:
+
+    1. 如果在编译内核时使用 ctrl + C 或者关机强制中断，那么第二次继续编译的时候有可能会编译不通过，此时可以`make clean -f`，再去编译就好了。
+
+    2. 使用自己编译的 6.8.0 内核后，使用`qemu-system-x86-64`启动虚拟机时，使用`-vga std`或`-vga virtio`都可以启动起来，但是会黑屏几分钟。
+
+        看起来像是内核在等什么东西，目前不清楚。
+
+    3. 可以调研下内核源码中 menuconfig 中有什么支持 vga 的选项
 
 ## 分布式计算调研
 

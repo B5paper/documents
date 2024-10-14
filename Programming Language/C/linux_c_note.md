@@ -4,6 +4,74 @@ Linux 下的 C 语言编程。
 
 ## cache
 
+* `asprintf()`
+
+    `asprintf()`是 GNU 的 C 标准库的一个 extension，同时做了`malloc()`和`sprintf()`的工作。
+
+    syntax:
+
+    ```c
+    #include <stdio.h>
+
+    int asprintf(char **restrict strp, const char *restrict fmt, ...);
+    int vasprintf(char **restrict strp, const char *restrict fmt,
+                    va_list ap);
+    ```
+
+    return value:
+
+    return the string length if succeed, return `-1` if fail.
+
+    note:
+
+    This pointer should be passed to free(3) to release the allocated storage when it is no longer needed.
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <string.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        char *buf;
+        int ret = asprintf(&buf, "hello, %s", "world");
+        if (ret < 0)
+        {
+            printf("fail to asprintf, ret: %d\n", ret);
+            return -1;
+        }
+        int len = strlen(buf);
+        printf("ret: %d, len: %d\n", ret, len);
+        free(buf);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    ret: 12, len: 12
+    ```
+
+    compile output:
+
+    ```
+    gcc -g main.c -o main
+    main.c: In function ‘main’:
+    main.c:8:15: warning: implicit declaration of function ‘asprintf’; did you mean ‘vsprintf’? [-Wimplicit-function-declaration]
+        8 |     int ret = asprintf(&buf, "hello, %s", "world");
+        |               ^~~~~~~~
+        |               vsprintf
+    ```
+
+    说明：
+
+    1. 似乎头文件不是 gnu c 的头文件，是标准 c 的头文件，导致写代码时没有函数参数提示，但是能正常编译和执行。
+
+        正常写 c 语言程序不建议使用这个函数。
+
 * `getopt()`
 
     linux 中处理 argc, argv 的函数。

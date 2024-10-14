@@ -2,6 +2,81 @@
 
 ## cached
 
+* python 中的`set()`, an example:
+
+    ```python
+    def main():
+        s = set()
+        s.add(1)
+        s.add(2)
+        if 1 in s:
+            print('1 is in set')
+        else:
+            print('1 is not in set')
+
+        s.add('hello')
+        s.add('world')
+        if 'hello' in s:
+            print('hello is in set')
+        else:
+            print('hello is not in set')
+
+        s.add([1, 2, 3])
+
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    1 is in set
+    hello is in set
+    Traceback (most recent call last):
+      File "/home/hlc/Documents/Projects/python_test/main.py", line 22, in <module>
+        main()
+      File "/home/hlc/Documents/Projects/python_test/main.py", line 17, in main
+        s.add([1, 2, 3])
+    TypeError: unhashable type: 'list'
+    ```
+
+    可以看出来，`set()`比较像哈希表，只有 hashable 的对象才可以添加到 set 里，其他的不行。
+
+    想判断一个对象是否在 set 里，可以使用`in`关键字。
+
+* python 中的`os.path.samefile()`可以判断两个 path 是否相同
+
+    ```python
+    import os
+
+    def main():
+        is_same = os.path.samefile('/home/hlc/Documents/Projects/python_test', '././../python_test')
+        if is_same:
+            print('is same')
+        else:
+            print("is not same")
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    is same
+    ```
+
+    说明：
+
+    1. `samefile()`既可以处理文件夹，也可以处理文件。并且对绝对路径和相对路径不敏感。
+
+    2. `samefile()`要求输入的路径必须是存在的。
+
+    3. `ln -s`创建的软链接和原文件/目录被会`samefile()`判定为同一文件/目录。
+
 * pip 更新一个包： `pip install <package> --upgrade`
 
 * python 可以使用`os.path`处理和路径相关的字符串

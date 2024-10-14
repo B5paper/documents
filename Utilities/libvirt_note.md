@@ -2,6 +2,18 @@
 
 ## cache
 
+* ubuntu 24.04.01 在 virt-manager 4.0.0, qemu-system-x86_64 6.2.0 (Debian 1:6.2-dfsg-2ubuntu6.21) 环境下，在 install 阶段指定 ubuntu iso 镜像，virt-manager 可以正确识别，也可以顺利安装，进入系统后也正常显示。
+
+    video qxl 使用的是 qxl。
+
+* ubuntu 24.04.01 在 qemu + virt manager 里安装时，需要
+
+    1. video vga 选择 VGA
+
+        选 QXL 和 Virtio 都会花屏
+
+    2. iso installer 选 graphics safe
+
 * pci 设备透传到 qemu 虚拟机内
 
     1. 在 bios 开启 VT-d 功能
