@@ -6132,3 +6132,101 @@
     An awesome gpu tasks scheduler. 轻量好用的GPU机群任务调度工具。觉得有用可以点个star 
 
     <https://github.com/cnstark/gputasker>
+
+* How to use SSH to run a local shell script on a remote machine?
+
+    <https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-local-shell-script-on-a-remote-machine>
+
+* 10.6. Launching with SSH
+
+    <https://docs.open-mpi.org/en/v5.0.x/launching-apps/ssh.html>
+
+* tt-metal
+
+    TT-NN operator library, and TT-Metalium low level kernel programming model. 
+
+    <https://github.com/tenstorrent/tt-metal/>
+
+* Basic Data Structures and Algorithms
+
+    <https://algo-ds.com/>
+
+* Build Your Own Text Editor
+
+    <https://viewsourcecode.org/snaptoken/kilo/>
+
+* lm.rs
+
+    Minimal LLM inference in Rust 
+
+    <https://github.com/samuel-vitorino/lm.rs>
+
+* vecdb
+
+    Toy vector database written in c99. 
+
+    <https://github.com/montyanderson/vecdb>
+
+* Rust Design Patterns
+
+    <https://rust-unofficial.github.io/patterns/>
+
+* ML Code Challenges
+
+    <https://www.deep-ml.com/>
+
+* posting
+
+    The modern API client that lives in your terminal. 
+
+    <https://github.com/darrenburns/posting>
+
+* Read the newest State of AI report
+
+    <https://retool.com/blog/state-of-ai-h1-2024>
+
+* LLMs-from-scratch
+
+    Implementing a ChatGPT-like LLM in PyTorch from scratch, step by step 
+
+    <https://github.com/rasbt/LLMs-from-scratch>
+
+* barco: Linux containers from scratch in C. 
+
+    <https://github.com/lucavallin/barco>
+
+* 怎么用apt命令下载内核源码给出步骤
+
+    <https://linuxcpp.0voice.com/?id=39737>
+
+* How can I add a user as a new sudoer using the command line?
+
+    <https://askubuntu.com/questions/7477/how-can-i-add-a-user-as-a-new-sudoer-using-the-command-line>
+
+* Certificate for gnome-remote-desktop
+
+    <https://serverfault.com/questions/1160308/certificate-for-gnome-remote-desktop>
+
+    有时间了学习一下 openssh 命令的用法
+
+* How do I disable Wayland to use RealVNC Connect? 
+
+    <https://help.realvnc.com/hc/en-us/articles/4417193011857-How-do-I-disable-Wayland-to-use-RealVNC-Connect#is-wayland-supported--0-0>
+
+    禁用 wayland 的方法
+
+* How to Disable Unattended-Upgrades on Ubuntu 24.04
+
+    <https://ubuntushell.com/disable-unattended-upgrades-in-ubuntu/>
+
+* How Do I Check What PCI Devices Are Connected On My Linux System?
+
+    <https://www.namehero.com/blog/how-do-i-check-what-pci-devices-are-connected-on-my-linux-system/>
+
+* How can I understand the device topology?
+
+    <https://superuser.com/questions/1768544/how-can-i-understand-the-device-topology>
+
+* In Linux, is there a way to find out which PCI card is plugged into which PCI slot?
+
+    <https://stackoverflow.com/questions/25908782/in-linux-is-there-a-way-to-find-out-which-pci-card-is-plugged-into-which-pci-sl>

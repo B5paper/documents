@@ -2,6 +2,10 @@
 
 ## cache
 
+* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
+
+    使用 compute_70 可以跑通。
+
 * 一个可以运行的 nccl test 命令
 
     ```bash

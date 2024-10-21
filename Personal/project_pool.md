@@ -36,6 +36,30 @@
 
 ## cached
 
+* [ ] 调研`select`的用法
+
+* 笔记的结构
+
+    先记录单个独立主题，再记录 topic，topic 中是多个独立主题的组合
+
+* 如果学新概念/知识时，所有的新概念都可以从已知的知识轻松推导出来，那么就称这种学习过程为线性学习
+
+    如果在学习一块新知识时，新知识中的一部分或全部无法通过已知概念推导出来，那么就称这种学习过程为非线性学习
+
+* 非线性学习的一些方法
+
+    * 总会有一些东西是可以一眼看懂的（从旧知识中推导出来），对这些一眼可以看懂的知识进行条目化总结。
+
+        sync 这些新概念，直到可以用它们解释其他的新知识
+
+    * 猜想-验证，对于无法理解的概念，先给出自己的一个猜想的解释，然后做出一些预测，再去验证，最后修正自己的猜想
+
+        难点在于，有时候需要同时对大量的新概念提出猜想，变量过多，不容易修正自己的猜想。
+
+    * 孤岛信息的连结
+
+        如果有一段一两句话的知识点，虽然看不懂，但是可能在新知识体系中有用，不需要理解，但是需要知道它出现过，以后可能用得到，这种孤岛信息可以选择性地收集起来，以备后面使用。
+
 * 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
 
     ```bash
@@ -641,6 +665,8 @@
 
         * projects
 
+* [v] reorg: documents 10.14
+
 ## qa
 
 cached:
@@ -710,6 +736,8 @@ Tasks:
 * [ ] 调研 qa unit 中 dep 功能
 
 * [v] qa 4 units 05/20
+
+* [v] qa 1 unit 10.14
 
 ## cache tabs / process urls
 
@@ -788,6 +816,8 @@ Tasks:
 * [v] cache tabs 10.10
 
 * [v] cache tabs 10.11
+
+* [v] cache tabs 10.14
 
 ## markdown renderer
 
@@ -880,6 +910,110 @@ tasks:
 ## gpu driver
 
 * [v] 制作 ubuntu 24.04 qemu image
+
+* [o] 调研 nvidia p2p
+
+    feedback:
+
+    1. 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+
+    2. 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+    3. 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用
+
+* [v] 调研 nccl p2p
+
+    feedback:
+
+    1. nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+    2. [ ] 调研 vscode 多线程 debug
+
+    3. 目前看起来是在`ncclTopoCheckP2p()`处失败的
+
+* [v] 调研 pci host bridge
+
+    feedback:
+
+    1. 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+
+        目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
+
+        这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+
+    2. 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+
+        其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
+
+        显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
+
+        目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
+
+    3. `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+
+        `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
+
+    4. `ncclTransports`在五处地方被使用
+    
+        1. `proxyConnInit()`未被调用
+
+        2. `proxyFree()`：未调用
+
+        3. `ncclProxyConnect()`：未调用
+
+        4. `selectTransport()`：调用
+
+        5. `ncclTopoComputePaths()`
+
+        说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+        猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+    5. cached tabs
+
+        * NCCL源码解析①：初始化及ncclUniqueId的产生
+
+            <https://zhuanlan.zhihu.com/p/614746112>
+
+        * NCCL源码解析②：Bootstrap网络连接的建立
+
+            <https://zhuanlan.zhihu.com/p/620499558>
+
+        * NCCL源码解析③：机器内拓扑分析
+
+            <https://zhuanlan.zhihu.com/p/625606436>
+
+        * NCCL源码解析④：建图过程
+
+            <https://zhuanlan.zhihu.com/p/640812018>
+
+        * NCCL源码解析⑥：Channel搜索
+
+            <https://zhuanlan.zhihu.com/p/653440728>
+
+        * NCCL源码解析⑦：机器间Channel连接
+
+            <https://zhuanlan.zhihu.com/p/658868934>
+
+        * NCCL的不足，集合通信库初步调研 NCCL、BCCL、TCCL、ACCL、HCCL
+
+            <https://blog.csdn.net/lianghuaju/article/details/139470668>
+
+    6. cached tabs
+
+        vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
+
+    7. 多线程调试时锁定单线程
+
+        GDB scheduler-locking 命令详解
+
+        <https://www.cnblogs.com/pugang/p/7698772.html>
+
+    8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
+
+        <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
+
+* [v] 调研 HPC 通信 ppt
 
 ## rdma
 

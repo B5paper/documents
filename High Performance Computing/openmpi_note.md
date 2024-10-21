@@ -2,6 +2,109 @@
 
 ## cache
 
+* 一个动态分配内存的矩阵乘法 c 语言程序 demo
+
+    ```c
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    typedef enum bool
+    {
+        false = 0,
+        true
+    } bool;
+
+    void alloc_matrix(float ***M, size_t nrow, size_t ncol, bool assign_rand_val)
+    {
+        *M = malloc(nrow * sizeof(float *));
+        for (size_t i = 0; i < nrow; ++i)
+            *(*M + i) = malloc(ncol * sizeof(float));
+
+        if (assign_rand_val == false)
+            return;
+
+        for (size_t i = 0; i < nrow; ++i)
+        {
+            for (size_t j = 0; j < ncol; ++j)
+            {
+                // (*M)[i][j] = (float) (rand() % 5);
+                *(*(*M + i) + j) = (float) (rand() % 5);
+            }
+        }
+    }
+
+    void free_matrix(float **M, size_t ncol)
+    {
+        for (size_t i = 0; i < ncol; ++i)
+            free(M[i]);
+        free(M);
+    }
+
+    void print_matrix(float **M, size_t nrow, size_t ncol)
+    {
+        for (size_t i = 0; i < nrow; ++i)
+        {
+            for (size_t j = 0; j < ncol; ++j)
+            {
+                printf("%.0f, ", *(*(M + i) + j));
+            }
+            putchar('\n');
+        }
+    }
+
+    int main()
+    {
+        float **A, **B, **C;
+        size_t nrow_A = 4, ncol_A = 2;
+        size_t nrow_B = 2, ncol_B = 3;
+        size_t nrow_C = nrow_A, ncol_C = ncol_B;
+
+        alloc_matrix(&A, nrow_A, ncol_A, true);
+        printf("matrix A:\n");
+        print_matrix(A, nrow_A, ncol_A);
+        putchar('\n');
+
+        alloc_matrix(&B, nrow_B, ncol_B, true);
+        printf("matrix B:\n");
+        print_matrix(B, nrow_B, ncol_B);
+        putchar('\n');
+
+        alloc_matrix(&C, nrow_C, ncol_C, false);
+
+        for (size_t row = 0; row < nrow_C; ++row)
+        {
+            for (size_t col = 0; col < ncol_C; ++col)
+            {
+                C[row][col] = 0;
+                for (size_t k = 0; k < ncol_A; ++k)
+                {
+                    C[row][col] += A[row][k] * B[k][col];
+                }
+            }
+        }
+
+        printf("matrix C = A.dot(B):\n");
+        print_matrix(C, nrow_C, ncol_C);
+
+        return 0;
+    }
+    ```
+
+    说明：
+
+    1. 为什么`(*M)[i][j]`仍然可以访问到元素，但是以前的例子都是在给函数传参数的时候，使用`M[][3]`之类的方式，才能正常访问数组的元素，这两者有什么不同？
+
+    2. 是否可以定义指向数组的指针，比如
+
+        ```c
+        int arr[3];
+        int[] *parr = &arr;
+        ```
+
+    3. c 语言中的`rand()`函数在`stdlib.h`中声明。`size_t`类型在`stddef.h`中定义。
+    
+        由于`stdlib.h`包含了`stddef.h`，所以如果定义了`stdlib.h`，就不需要再写`#include <stddef.h>`了。
+
 * mpi status example code
 
     `main.c`:
