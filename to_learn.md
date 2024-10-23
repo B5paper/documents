@@ -44,10 +44,6 @@
 
         <https://blog.csdn.net/freege9/article/details/77987536>
 
-    * Bash遍历字符串列表-腾讯云开发者社区-腾讯云
-
-        <https://cloud.tencent.com/developer/article/1805119>
-
 1. sed
 
     1. <https://stackoverflow.com/questions/46970466/how-to-replace-only-last-match-in-a-line-with-sed>

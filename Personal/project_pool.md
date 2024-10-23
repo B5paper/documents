@@ -16,12 +16,6 @@
 
 不做任务执行系统，就没有顿挫的感觉，就不可能有高效率。只与项目池打交道，会产生无穷无尽的任务，从而无法分辨任务的边界，导致效率越来越低。
 
-* 需要一个 graph 工具，建立不同的东西之间的连接
-
-    stack 工具只适合任务的 trace
-
-* 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
-
 * 每天在使用项目管理系统获得新任务之前，都必须将之前的每日任务列表进度同步到任务管理系统中，并加上`[processed]`标记
 
     因为任务执行系统会改变项目管理系统中的内容
@@ -34,7 +28,13 @@
 
 * log 不应该与 task 放在同一个文件里，翻来翻去太费时间
 
-## cached
+## cache
+
+* 需要一个 graph 工具，建立不同的东西之间的连接
+
+    stack 工具只适合任务的 trace
+
+* 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
 
 * [ ] 调研`select`的用法
 
@@ -95,17 +95,9 @@
 
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
-* [v] 调研`asprintf()`
-
-    feedback:
-
-    1. 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
+* [ ] 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
 
 * [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
-
-* 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
-
-    如果一个函数要求参数传入一个指针，那么说明函数只负责填充 struct 的字段，由用户负责 struct 的内存管理
 
 * 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
 
@@ -115,8 +107,6 @@
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
 
-* [ ] 调研 git reset 查看不同版本的 linux kernel version
-
 * Theseus is a new OS written from scratch in Rust to experiment with novel OS structure
 
     <https://www.theseus-os.com/Theseus/book/index.html#introduction-to-theseus>
@@ -124,6 +114,8 @@
     用 rust 写的操作系统，有时间了看看。
 
 * 如何为一个用户增加指定目录的各种权限？
+
+* [ ] 调研 git reset 查看不同版本的 linux kernel version
 
 * isoinfo 在 genisoimage 包中
 
@@ -196,8 +188,6 @@
 * to complete:
 
     1. modern c++, rewrite the ray tracing program
-
-    2. linux driver, irq, pcie, dma mechanism
 
     3. performance analyzing
 
@@ -320,8 +310,6 @@
     使任务串行，一个非常大的挑战就是在规定的时间内使用手机，在执行任务时不看。
 
 * 调研 zig
-
-* [ ] 将 projects 加入 reorg 中
 
 * 要想对一个东西有熟悉的理解和熟练的运用，必须将它作为更复杂的东西的一部分
 
@@ -561,7 +549,43 @@
 
     权重的不平衡性太大了。
 
+* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
+
+* gcc 12 要求所有函数必须有声明，不然会报 warning:
+
+    ```
+    make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
+    make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
+    warning: the compiler differs from the one used to build the kernel
+      The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
+        4 | int hello_init(void)
+          |     ^~~~~~~~~~
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
+       10 | void hello_exit(void)
+          |      ^~~~~~~~~~
+      MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
+      LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
+      BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
+    Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
+    make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
+    ```
+
+* reorg 应该分三类
+
+    * project pool
+
+    * documents
+
+    * projects
+
 ### tasks
+
+* { } reorg: projects
+
+* { } reorg: documents
 
 * { } windows 文件整理
 
@@ -579,21 +603,35 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [ ] 调研 markdown previewer
+* [v] sync: linux driver note 中，linked list
+
+    10:22 ~ 13:30
+
+    feedback:
+
+    3. `list_add()`是在指定 node 后添加 node
+
+* [v] reorg 30 mins
+
+    12:59 ~ 15:52
+
+* [v] reorg 10.09
+
+* [v] reorg 10.10
+
+* [v] reorg: documents 10.14
+
+* [v] 调研 markdown previewer
 
     要求能显示数学公式
 
-* [ ] 在项目管理中加上这个项目，系统的自检查
+* [v] 在项目管理中加上这个项目，系统的自检查
+
+* [v] random select 时，将 projects 文件夹也包含进去
 
 * [ ] 为 reorg 程序增加指定文件的随机一行的功能
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
-
-* [v] python 判断两个路径是否等价，包括相对路径，绝对路径，文件，目录
-
-* [ ] random select 时，将 projects 文件夹也包含进去
-
-* [v] 调研 python 中的 hashset
 
 * [ ] 调研 python 中不同 path 的变体如何判断是相同 path
 
@@ -603,69 +641,13 @@
 
 * [ ] 调研 git ignore 的实现原理
 
-* [v] sync: linux driver note 中，linked list
-
-    10:22 ~ 13:30
-
-    feedback:
-
-    1. 一开始的时候编译不出来，是因为`obj-m`写成了`odj-m`
-
-    2. gcc 12 要求所有函数必须有声明，不然会报 warning:
-
-        ```
-        make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
-        make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
-        warning: the compiler differs from the one used to build the kernel
-          The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-          You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-          CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
-        /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
-            4 | int hello_init(void)
-              |     ^~~~~~~~~~
-        /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
-           10 | void hello_exit(void)
-              |      ^~~~~~~~~~
-          MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
-          LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
-          BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
-        Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
-        make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
-        ```
-
-    3. `list_add()`是在指定 node 后添加 node
-
 * [ ] 调研：实现一个仅使用 read device 触发的中断程序
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
-* [v] reorg 30 mins
-
-    12:59 ~ 15:52
-
 * [ ] 调研 deb 创建安装包
 
 * [ ] 调研`glXQueryVersion()`出自哪个头文件
-
-* [v] reorg 10/01
-
-* [v] reorg 10.06
-
-* [v] reorg 10.09
-
-* [v] reorg 10.10
-
-    feedback:
-
-    1. reorg 应该分三类
-
-        * project pool
-
-        * documents
-
-        * projects
-
-* [v] reorg: documents 10.14
 
 ## qa
 
@@ -735,8 +717,6 @@ Tasks:
 
 * [ ] 调研 qa unit 中 dep 功能
 
-* [v] qa 4 units 05/20
-
 * [v] qa 1 unit 10.14
 
 ## cache tabs / process urls
@@ -749,17 +729,15 @@ Tasks:
 
 ### tasks
 
-* [v] cache tabs 10/01
-
 * [ ] 调研`git revert`的用法
+
+* [ ] 调研`git reflog`
 
 * [o] process 1 url 10/01
 
     Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
 
     feedback:
-
-    3. 调研`git reflog`
 
     4. 调研`ORIG_HEAD`, `git show ORIG_HEAD`
 
@@ -782,8 +760,6 @@ Tasks:
     2. 没处理完，有时间了接着处理
 
     3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
-
-* [v] cache tabs 10.08
 
 * [o] process 1 url 10.09
 
