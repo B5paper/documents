@@ -885,27 +885,29 @@ tasks:
 
 ## gpu driver
 
-* [v] 制作 ubuntu 24.04 qemu image
+### cache
+
+* 调试记录
+
+    * 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+
+    * 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+    * 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+
+    * nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+    * 目前看起来是在`ncclTopoCheckP2p()`处失败的
+
+### tasks
 
 * [o] 调研 nvidia p2p
 
-    feedback:
-
-    1. 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
-
-    2. 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
-
-    3. 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用
+* [v] 调研 vscode 多线程 debug
 
 * [v] 调研 nccl p2p
 
-    feedback:
-
-    1. nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
-
-    2. [ ] 调研 vscode 多线程 debug
-
-    3. 目前看起来是在`ncclTopoCheckP2p()`处失败的
+* [v] 调研 HPC 通信 ppt
 
 * [v] 调研 pci host bridge
 
@@ -989,7 +991,6 @@ tasks:
 
         <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
 
-* [v] 调研 HPC 通信 ppt
 
 ## rdma
 
