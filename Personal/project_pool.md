@@ -595,6 +595,8 @@
 
     看到 P7
 
+* [ ] 在 virtual box 里安装 150G 的 ubuntu 24.04 虚拟机
+
 * [o] process 1 url  10.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -648,6 +650,14 @@
 * [ ] 调研 deb 创建安装包
 
 * [ ] 调研`glXQueryVersion()`出自哪个头文件
+
+* [v] reorg: documents
+
+    deps:
+
+    2. 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
+
+    3. 调研 hugging face，看看比 mmdetection 多了什么东西
 
 ## qa
 
@@ -794,6 +804,86 @@ Tasks:
 * [v] cache tabs 10.11
 
 * [v] cache tabs 10.14
+
+* [v] cache tabs 10.23
+
+    cached tabs:
+
+    * what is load-store communication model in PCIe?
+    
+        <https://electronics.stackexchange.com/questions/527587/what-is-load-store-communication-model-in-pcie>
+
+    * scale up域的拓扑
+
+        <https://zhuanlan.zhihu.com/p/708991795>
+
+    * 片间互联学习
+
+        <https://zhuanlan.zhihu.com/p/1417863271>
+
+    * scale up/out语义的特点
+
+        <https://zhuanlan.zhihu.com/p/708996966>
+
+    * RISC-V指令集讲解（6）load/store指令
+
+        <https://zhuanlan.zhihu.com/p/394876584>
+
+    * NVidia GPU指令集架构-寄存器
+
+        <https://zhuanlan.zhihu.com/p/688616037>
+
+    * AI System & AI Infra
+
+        <https://github.com/chenzomi12/AISystem>
+
+    * NVSHMEM: OPENSHMEM FOR GPU-CENTRIC COMMUNICATION
+
+        <http://www.openshmem.org/site/sites/default/site_files/SC2017-BOF-NVIDIA.pdf>
+
+    * NVIDIA NVSHMEM
+
+        <https://docs.nvidia.com/nvshmem/index.html>
+
+    * Introduction to Clos Network
+
+        <https://web.stanford.edu/class/ee384y/Handouts/clos_networks.pdf>
+
+    * Can You Really Compare Clos to Chassis when running AI applications? 
+
+        <https://drivenets.com/blog/can-you-really-compare-clos-to-chassis-when-running-ai-applications/>
+
+    * Infinity Fabric (IF) - AMD 
+
+        <https://en.wikichip.org/wiki/amd/infinity_fabric>
+
+    * Meta Lingua: a lean, efficient, and easy-to-hack codebase to research LLMs. 
+
+        <https://github.com/facebookresearch/lingua>
+
+    * How to debug the Linux kernel with GDB and QEMU?
+
+        <https://stackoverflow.com/questions/11408041/how-to-debug-the-linux-kernel-with-gdb-and-qemu>
+
+    * GDB+QEMU调试内核模块(实践篇)
+
+        <https://www.cnblogs.com/powerrailgun/p/12161295.html>
+
+    * qemu debug 输出 qemu gdb调试
+
+        <https://blog.51cto.com/u_16213559/11347864>
+
+    * 在qemu平台使用gdb调试程序
+
+        <https://blog.csdn.net/weixin_42031299/article/details/135028500>
+
+* [o] process 1 url  10.23
+
+    <https://cloud.tencent.com/developer/article/1805119>
+
+    Deps:
+
+    1. 建立 bash note qa
 
 ## markdown renderer
 
@@ -991,6 +1081,37 @@ tasks:
 
         <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
 
+* [v] 调研 load, store, atomic
+
+    feedback:
+
+    1. nccl 中`prims_ll.h`文件里有挺多 load, store 相关的函数，但是整个 nccl 中关于 atomic 的函数并不多。由此推断 nccl 很有可能不包含 load, store, atomic 的通信功能
+
+    2. csdn 上大部分文章只介绍了 nvlink 的作用和速度，并没有介绍协议细节
+
+    3. 看起来比较有用的几个网站
+
+        * SCALING WITH DENSE NODES
+
+            <http://nowlab.cse.ohio-state.edu/static/media/workshops/presentations/exacomm17/exacomm17-invited-talk-chris-newburn.pdf>
+
+        * NVSHMEM Memory Model
+
+            <https://docs.nvidia.com/nvshmem/api/gen/mem-model.html>
+
+        * Load/Store over ETH 乎？
+
+            <https://zhuanlan.zhihu.com/p/717851262>
+
+        * HotChip2024后记: 谈谈加速器互联及ScaleUP为什么不能用RDMA 
+
+            <https://mp.weixin.qq.com/s/qLRC3dv4E93LwWXtuhQcsw>
+
+        * AI fabric is a bus or a network？
+
+            <https://zhuanlan.zhihu.com/p/708602042>
+
+* [v] 调研 qemu gdb server
 
 ## rdma
 
