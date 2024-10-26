@@ -131,15 +131,19 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## Variables
 
-定义，使用变量：
+Example:
 
 ```bash
 #!/usr/bin/bash
-variable=value
-echo $variable
+my_var=value
+echo $my_var
 ```
 
-等号前后不能有空格。bash 对大小写敏感。如果`value`中有空格，可以使用单引号`'`或双引号`"`将它们括起来。
+* 在定义变量时，等号前后不能有空格
+
+* bash 对大小写敏感
+
+如果`value`中有空格，可以使用单引号`'`或双引号`"`将它们括起来。
 
 单引号不对字符串转义修改，双引号允许你对字符串中的内容替换。
 
@@ -155,13 +159,11 @@ echo $variable
 
     Ref: <https://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash>
 
-**export**
+* 可以用`export`导出一个变量，使得一个新的脚本在执行时，以值传递到新脚本中：
 
-可以用`export`导出一个变量，使得一个新的脚本在执行时，以值传递到新脚本中：
+    `export var1`
 
-`export var1`
-
-因为是按值传递，所以原脚本中的`var1`与新脚本中的`var1`修改一个并不会影响另外一个。
+    因为是按值传递，所以原脚本中的`var1`与新脚本中的`var1`修改一个并不会影响另外一个。
 
 ## User input
 

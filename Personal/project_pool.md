@@ -30,6 +30,26 @@
 
 ## cache
 
+* 任务完不成应该分两种情况处理，一种是有极大可能完成，只不过时间不够，另一种是还在调研搜集信息阶段，不清楚是否能完。显然这两种情况的处理方式应该是不同的。
+
+* 在准备去执行一项任务时，不应该考虑当前状态是否为最佳，而应该考虑当前状态是否满足最低要求
+
+* 不可能存在静态的平衡，只可能出现动态的平衡
+
+    打乒乓球时要求每打完一拍都要快速“归位”，以做好迎接下一拍的准备，那么生活中是否有一些 routine，可以保证在执行下一项任务前，可以精神饱满，不饿不渴不累，周围没有杂音干扰，注意力可以快速且长期地集中？
+    
+    比如在学习某篇论文之前，先睡 30 分，再运动 20 分，再吃一点东西，再喝几口水，做完这样的 routine 后，再全身心阅读论文？或者每晚睡够 8 个小时，早上晨跑，吃早饭，10 点喝一次水，中午吃完饭午休，晚上按时睡觉，这样来保证上午 8 点到 11 点一定精力充沛，下午 2 点到 6 点，晚上 7 点到 9 点一定精力充沛。我觉得这样的静态平衡是不可能做到的。
+
+    取而代之的静态方案是，在一项任务的末尾开始考虑与下一项任务的衔接，如果渴了就喝水，如果饿了就吃点零食，如果特别困就去睡觉。在一项任务开始之前，也可以简易地收拾下周围环境，保证接下来 30 ～ 40 分可以注意力集中。这样的动态平衡目前看来是比较好的解决方案。
+
+* 形式与环境不是本质，但是极大程度影响了本质的发现过程
+
+    在 win 系统下，多桌面不方便，所以很难快速地切换任务，也很难给一个任务独立的工作空间，更不可能栈式地递归展开依赖任务，因此在 win 上很难形成像现在一样的任务管理系统。
+
+    虽然说多桌面不是任务管理和时间规划的本质，但是它促进了效率较高的任务管理方式的发现。
+
+    因此改善办公环境，尝试一些新的环境的改变可能会带来一些变化。
+
 * 需要一个 graph 工具，建立不同的东西之间的连接
 
     stack 工具只适合任务的 trace
@@ -989,27 +1009,13 @@ tasks:
 
     * 目前看起来是在`ncclTopoCheckP2p()`处失败的
 
-### tasks
-
-* [o] 调研 nvidia p2p
-
-* [v] 调研 vscode 多线程 debug
-
-* [v] 调研 nccl p2p
-
-* [v] 调研 HPC 通信 ppt
-
-* [v] 调研 pci host bridge
-
-    feedback:
-
-    1. 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+    * 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
 
         目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
 
         这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
 
-    2. 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+    * 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
 
         其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
 
@@ -1017,11 +1023,11 @@ tasks:
 
         目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
 
-    3. `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+    * `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
 
         `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
 
-    4. `ncclTransports`在五处地方被使用
+    * `ncclTransports`在五处地方被使用
     
         1. `proxyConnInit()`未被调用
 
@@ -1036,6 +1042,42 @@ tasks:
         说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
 
         猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+    * nccl 中`prims_ll.h`文件里有挺多 load, store 相关的函数，但是整个 nccl 中关于 atomic 的函数并不多。由此推断 nccl 很有可能不包含 load, store, atomic 的通信功能
+
+* vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
+
+* GDB scheduler-locking 命令详解
+
+    <https://www.cnblogs.com/pugang/p/7698772.html>
+
+* csdn 上大部分文章只介绍了 nvlink 的作用和速度，并没有介绍协议细节
+
+* load, store 看起来比较有用的几个网站
+
+    * SCALING WITH DENSE NODES
+
+        <http://nowlab.cse.ohio-state.edu/static/media/workshops/presentations/exacomm17/exacomm17-invited-talk-chris-newburn.pdf>
+
+    * NVSHMEM Memory Model
+
+        <https://docs.nvidia.com/nvshmem/api/gen/mem-model.html>
+
+    * Load/Store over ETH 乎？
+
+        <https://zhuanlan.zhihu.com/p/717851262>
+
+    * HotChip2024后记: 谈谈加速器互联及ScaleUP为什么不能用RDMA 
+
+        <https://mp.weixin.qq.com/s/qLRC3dv4E93LwWXtuhQcsw>
+
+    * AI fabric is a bus or a network？
+
+        <https://zhuanlan.zhihu.com/p/708602042>
+
+### tasks
+
+* [v] 调研 pci host bridge
 
     5. cached tabs
 
@@ -1067,51 +1109,119 @@ tasks:
 
             <https://blog.csdn.net/lianghuaju/article/details/139470668>
 
-    6. cached tabs
-
-        vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
-
-    7. 多线程调试时锁定单线程
-
-        GDB scheduler-locking 命令详解
-
-        <https://www.cnblogs.com/pugang/p/7698772.html>
-
     8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
 
         <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
 
 * [v] 调研 load, store, atomic
 
+* [v] 调研 qemu gdb server
+
+* [ ] 调研 tenstorrent
+
+* [v] 调研 load, store, atomic
+
     feedback:
 
-    1. nccl 中`prims_ll.h`文件里有挺多 load, store 相关的函数，但是整个 nccl 中关于 atomic 的函数并不多。由此推断 nccl 很有可能不包含 load, store, atomic 的通信功能
+    1. [ ] 调研制作 docker image
 
-    2. csdn 上大部分文章只介绍了 nvlink 的作用和速度，并没有介绍协议细节
+        1. 透传一个 nvidia device 可以成功跑通 cuda test
+        
+        2. 透传两个 nvidia gpu，调研是否能跑通 nccl
+        
+        3. 调研 2 个 gpu 的通信方式
 
-    3. 看起来比较有用的几个网站
+            1. shared host memory
 
-        * SCALING WITH DENSE NODES
+            2. pcie p2p
 
-            <http://nowlab.cse.ohio-state.edu/static/media/workshops/presentations/exacomm17/exacomm17-invited-talk-chris-newburn.pdf>
+            3. socket
 
-        * NVSHMEM Memory Model
+            4. nvlink
 
-            <https://docs.nvidia.com/nvshmem/api/gen/mem-model.html>
+* [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
 
-        * Load/Store over ETH 乎？
+    feedback:
 
-            <https://zhuanlan.zhihu.com/p/717851262>
+    1. 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
 
-        * HotChip2024后记: 谈谈加速器互联及ScaleUP为什么不能用RDMA 
+        修改它调用的是`nvmlDeviceGetP2PStatus()`函数，这个函数似乎是个外部库函数。
 
-            <https://mp.weixin.qq.com/s/qLRC3dv4E93LwWXtuhQcsw>
+        可能是因为虚拟机里不支持 pcie p2p，可以在实体机上试一下。
 
-        * AI fabric is a bus or a network？
+    2. 实体机上可以跑通 p2p
 
-            <https://zhuanlan.zhihu.com/p/708602042>
+        两种模式都可以跑通：
 
-* [v] 调研 qemu gdb server
+        1. P2P/CUMEM/CE
+
+        2. P2P/direct pointer
+
+        跑不通的模式：
+
+        1. SHM/direct/direct
+
+* [v] 调研 nccl p2p
+
+    feedback:
+
+    1. `p2pCanConnect()`的流程是怎样的？
+
+        在`ncclTopoCheckP2p()`返回后，`ret`直接返回 0，导致没有往下走。
+
+    2. 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
+
+        nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
+
+        1. thread 79, g = 0, p = 1
+
+        2. thread 80, g = 0, p = 1
+
+        3. thread 79, g = 1, p = 0
+
+        4. thread 80, g = 1, p = 0
+
+        5. thread 79, g = 0, p = 1
+
+            这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
+
+        6. thread 80, g = 0, p = 1
+
+        7. thread 79, g = 1, p = 0
+
+        8. thread 80, g = 1, p = 0
+
+        9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
+
+        10. thread 37, 
+
+        11. thread 37, c = 1
+
+        12. thread 36, c = 1
+
+        13. thread 36, c = 0
+
+            从这里开始，调用`selectTransport<1>()`
+
+        14. thread 37, c = 0
+
+        15. thread 36, c = 1
+
+        16. thread 37, c = 1
+
+    3. c 为什么会从 0 循环到 1？
+
+        因为`sendMask ＝ 3`，只有低 2 位为 1.
+
+        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
+
+    4. 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
+
+        是否可以让其他线程也运行，但只在当前线程触发断点？
+
+    5. `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
+
+        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
 
 ## rdma
 

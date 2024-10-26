@@ -1,5 +1,11 @@
 # Ssh Note
 
+## cache
+
+* 命令行启动的 qemu 使用 X11 forward 时似乎不会产生内存泄漏
+
+## note
+
 Learning materials:
 
 1. <https://www.ssh.com/academy/ssh/config>
