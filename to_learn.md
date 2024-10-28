@@ -6226,3 +6226,37 @@
 * In Linux, is there a way to find out which PCI card is plugged into which PCI slot?
 
     <https://stackoverflow.com/questions/25908782/in-linux-is-there-a-way-to-find-out-which-pci-card-is-plugged-into-which-pci-sl>
+
+* nccl 相关
+
+    * NCCL源码解析①：初始化及ncclUniqueId的产生
+
+        <https://zhuanlan.zhihu.com/p/614746112>
+
+    * NCCL源码解析②：Bootstrap网络连接的建立
+
+        <https://zhuanlan.zhihu.com/p/620499558>
+
+    * NCCL源码解析③：机器内拓扑分析
+
+        <https://zhuanlan.zhihu.com/p/625606436>
+
+    * NCCL源码解析④：建图过程
+
+        <https://zhuanlan.zhihu.com/p/640812018>
+
+    * NCCL源码解析⑥：Channel搜索
+
+        <https://zhuanlan.zhihu.com/p/653440728>
+
+    * NCCL源码解析⑦：机器间Channel连接
+
+        <https://zhuanlan.zhihu.com/p/658868934>
+
+    * NCCL的不足，集合通信库初步调研 NCCL、BCCL、TCCL、ACCL、HCCL
+
+        <https://blog.csdn.net/lianghuaju/article/details/139470668>
+
+* gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
+
+    <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>

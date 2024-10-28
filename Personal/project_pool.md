@@ -997,23 +997,11 @@ tasks:
 
 ### cache
 
-* 调试记录
-
-    * 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
-
-    * 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+* nccl 调试记录
 
     * 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
 
-    * nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
-
-    * 目前看起来是在`ncclTopoCheckP2p()`处失败的
-
-    * 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
-
-        目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
-
-        这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+    * nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie.
 
     * 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
 
@@ -1075,79 +1063,40 @@ tasks:
 
         <https://zhuanlan.zhihu.com/p/708602042>
 
+
+* 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
+
+    修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
+
 ### tasks
 
 * [v] 调研 pci host bridge
-
-    5. cached tabs
-
-        * NCCL源码解析①：初始化及ncclUniqueId的产生
-
-            <https://zhuanlan.zhihu.com/p/614746112>
-
-        * NCCL源码解析②：Bootstrap网络连接的建立
-
-            <https://zhuanlan.zhihu.com/p/620499558>
-
-        * NCCL源码解析③：机器内拓扑分析
-
-            <https://zhuanlan.zhihu.com/p/625606436>
-
-        * NCCL源码解析④：建图过程
-
-            <https://zhuanlan.zhihu.com/p/640812018>
-
-        * NCCL源码解析⑥：Channel搜索
-
-            <https://zhuanlan.zhihu.com/p/653440728>
-
-        * NCCL源码解析⑦：机器间Channel连接
-
-            <https://zhuanlan.zhihu.com/p/658868934>
-
-        * NCCL的不足，集合通信库初步调研 NCCL、BCCL、TCCL、ACCL、HCCL
-
-            <https://blog.csdn.net/lianghuaju/article/details/139470668>
-
-    8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
-
-        <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
-
-* [v] 调研 load, store, atomic
 
 * [v] 调研 qemu gdb server
 
 * [ ] 调研 tenstorrent
 
+* [ ] 调研制作 docker image
+
+    1. 透传一个 nvidia device 可以成功跑通 cuda test
+    
+    2. 透传两个 nvidia gpu，调研是否能跑通 nccl
+    
+    3. 调研 2 个 gpu 的通信方式
+
+        1. shared host memory
+
+        2. pcie p2p
+
+        3. socket
+
+        4. nvlink
+
 * [v] 调研 load, store, atomic
-
-    feedback:
-
-    1. [ ] 调研制作 docker image
-
-        1. 透传一个 nvidia device 可以成功跑通 cuda test
-        
-        2. 透传两个 nvidia gpu，调研是否能跑通 nccl
-        
-        3. 调研 2 个 gpu 的通信方式
-
-            1. shared host memory
-
-            2. pcie p2p
-
-            3. socket
-
-            4. nvlink
 
 * [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
 
     feedback:
-
-    1. 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
-
-        修改它调用的是`nvmlDeviceGetP2PStatus()`函数，这个函数似乎是个外部库函数。
-
-        可能是因为虚拟机里不支持 pcie p2p，可以在实体机上试一下。
 
     2. 实体机上可以跑通 p2p
 
@@ -1161,13 +1110,11 @@ tasks:
 
         1. SHM/direct/direct
 
+        在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
+
 * [v] 调研 nccl p2p
 
     feedback:
-
-    1. `p2pCanConnect()`的流程是怎样的？
-
-        在`ncclTopoCheckP2p()`返回后，`ret`直接返回 0，导致没有往下走。
 
     2. 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
 
