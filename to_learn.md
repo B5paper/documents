@@ -80,8 +80,6 @@
 
     1. dockerfile ref: <https://docs.docker.com/engine/reference/builder/>
 
-    1. dockerfile 中的 proxy 设置：<https://dev.to/zyfa/setup-the-proxy-for-dockerfile-building--4jc8>
-
     * docker rename
 
         <https://docs.docker.com/engine/reference/commandline/rename/>
@@ -6260,3 +6258,41 @@
 * gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
 
     <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
+
+* mellanox relatives
+
+    * mellanox 的 firmware:
+
+    <https://network.nvidia.com/support/firmware/nic/>
+
+    * Firmware Management
+
+        <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
+
+    * NVIDIA Firmware Tools (MFT) 
+
+        <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
+
+    * How to debug programs with "sudo" in VSCODE
+
+        <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+
+    * How can i change to ib card speed from IB-SDR to IB-QDR?
+
+        <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
+
+    * NVIDIA Firmware Tools (MFT) 
+
+        <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
+
+    * NVIDIA ConnectX-7 Adapter Cards User Manual
+
+        <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
+
+    * IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
+
+        <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
+
+    * Set a upper bandwidth limit for Infiniband HCAs
+
+        <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>

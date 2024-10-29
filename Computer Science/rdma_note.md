@@ -2,6 +2,18 @@
 
 ## cache
 
+* `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
+
+* `ibstat`或`ibstatus`可以得到当前协商的速率
+
+* `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
+
+* send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
+
+* mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
+
+* reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
+
 * mlnx 尝试将速率强制修改为 SDR
 
     `sudo mlxlink -d mlx5_0 --link_mode_force -s SDR`

@@ -56,7 +56,7 @@
 
 * 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
 
-* [ ] 调研`select`的用法
+
 
 * 笔记的结构
 
@@ -101,8 +101,6 @@
     target
     ```
 
-* bandwagon KiwiVM address: <https://bwh88.net/clientarea.php>
-
 * 调研 Computer algebra system
 
     <https://en.wikipedia.org/wiki/Computer_algebra_system#>
@@ -117,7 +115,7 @@
 
 * [ ] 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
 
-* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
+
 
 * 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
 
@@ -505,10 +503,6 @@
 
 * note 的每个 item 也尽量控制得短一些，类似代码的函数长度
 
-* 以后再做 c++ 的 qa，要么写一点点语法，要么就是做题
-
-* 找一个 c++ 学习资料，系统学一下比较好
-
 * 学习资源的调研主要用于完成下面几件事情
 
     1. 发现学习资源里，是否有需要做实验验证的地方，是否可以用实验验证他说的，是否有可以用实验澄清的模糊不清的表达
@@ -569,30 +563,6 @@
 
     权重的不平衡性太大了。
 
-* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
-
-* gcc 12 要求所有函数必须有声明，不然会报 warning:
-
-    ```
-    make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
-    make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
-    warning: the compiler differs from the one used to build the kernel
-      The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-      You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-      CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
-    /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
-        4 | int hello_init(void)
-          |     ^~~~~~~~~~
-    /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
-       10 | void hello_exit(void)
-          |      ^~~~~~~~~~
-      MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
-      LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
-      BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
-    Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
-    make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
-    ```
-
 * reorg 应该分三类
 
     * project pool
@@ -625,45 +595,25 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [v] sync: linux driver note 中，linked list
-
-    10:22 ~ 13:30
-
-    feedback:
-
-    3. `list_add()`是在指定 node 后添加 node
-
-* [v] reorg 30 mins
-
-    12:59 ~ 15:52
-
-* [v] reorg 10.09
-
-* [v] reorg 10.10
-
 * [v] reorg: documents 10.14
 
 * [v] 调研 markdown previewer
 
     要求能显示数学公式
 
-* [v] 在项目管理中加上这个项目，系统的自检查
-
 * [v] random select 时，将 projects 文件夹也包含进去
+
+* [v] 调研 python 中不同 path 的变体如何判断是相同 path
+
+    比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
 
 * [ ] 为 reorg 程序增加指定文件的随机一行的功能
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [ ] 调研 python 中不同 path 的变体如何判断是相同 path
-
-    比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
-
 * [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
 
 * [ ] 调研 git ignore 的实现原理
-
-* [ ] 调研：实现一个仅使用 read device 触发的中断程序
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
@@ -678,6 +628,32 @@
     2. 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
     3. 调研 hugging face，看看比 mmdetection 多了什么东西
+
+* [v] reorg: documents
+
+    feedback:
+
+    1. [ ] 增加 cimg note qa，并加入 test collect 里
+
+        1. 增加 qa unit，打开图片，获取指定位置的像素 rgb 值
+
+        2. 保存图片
+
+        可以参考`ref_5`
+
+* [v] reorg: project pool: nccl 调试记录
+
+    feedback:
+
+    1. deps: 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
+
+        deps:
+        
+        * [v] 配置 iptables
+
+    2. deps: gdb remote server
+
+    3. [ ] 增加 docker note qa，并加入 test collec 中
 
 ## qa
 
@@ -749,6 +725,8 @@ Tasks:
 
 * [v] qa 1 unit 10.14
 
+* [v] qa: 2 units 10.28
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -791,13 +769,19 @@ Tasks:
 
     3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
 
+* [v] sync bash
+
+    feedback:
+
+    1. 调研 bash 的数组
+
+        使用 for 循环打印字符串数组中的所有单词，每个单词一行
+
 * [o] process 1 url 10.09
 
     <https://linuxhint.com/trim_string_bash/>
 
     feedback:
-
-    1. 未处理完，在处理之前需要先 sync bash
 
     2. 虽然
 
@@ -1264,19 +1248,13 @@ tasks:
 
 * [ ] 调研`ssh-add`，`ssh-agent`的作用
 
-* [ ] 调研`adduser`和`useradd`有什么不同？
-
-* reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
+* [v] 调研`adduser`和`useradd`有什么不同？
 
 * 对于主动采样操作的 log 格式参考
 
     1. 当成功 poll 到 valid event 时，显示在这之前 poll empty event 多少次，并且清零 empty event 的计数
 
     2. 没有 poll 到 valid event 时，每 1000 次显示一次结果
-
-* send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
-
-* mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
 
 * mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
 
@@ -1324,113 +1302,51 @@ tasks:
 
 * 目前看到的信息是 cx5 的网卡支持的协议有 ib 和 roce v1，cx4 网卡支持的协议是 roce v2。
 
-* nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
-
-    添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
-
-* 对于多层依赖的库和 app 文件，编译时在哪一个文件上加`-g`，调试时就只能 hit 到哪个文件的断点。
-
-    假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。
-
-    即使 hit 了`debug_valid.c`文件的断点，程序暂停时上一层和下一层暂停的代码行上下文。
-
-* `ibstat`或`ibstatus`可以得到当前协商的速率
-
-* `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
-
-* `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
-
-* mellanox 的 firmware:
-
-    <https://network.nvidia.com/support/firmware/nic/>
-
-* Firmware Management
-
-    <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
-
-* NVIDIA Firmware Tools (MFT) 
-
-    <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
-
-* How to debug programs with "sudo" in VSCODE
-
-    <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
-
-* How can i change to ib card speed from IB-SDR to IB-QDR?
-
-    <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
-
-* NVIDIA Firmware Tools (MFT) 
-
-    <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
-
-* NVIDIA ConnectX-7 Adapter Cards User Manual
-
-    <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
-
-* IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
-
-    <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
-
-* Set a upper bandwidth limit for Infiniband HCAs
-
-    <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
-
 * switch 上的 perftest 差不多能跑到 97 Gb/s
+
+* vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
+
+    看起来比较重要的几段代码：
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.send(tensor, dst=self.ranks[dst])
+    ```
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.recv(tensor, src=self.ranks[src])
+    ```
+
+    ```python
+    pynccl_comm = self.pynccl_comm
+    if pynccl_comm is not None and not pynccl_comm.disabled:
+        pynccl_comm.send(tensor, dst)
+    else:
+        with xxxx
+
+    # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
+    ```
 
 ### tasks
 
-* [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
-
-* [v] 调研 mlnx port 强制速率协商
-
-* [v] 调研`perftest`仓库
+* [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
 * [ ] 调研为什么 cable 不支持高速率
-
-* [v] 调研 C 语言打印 16 进制数字，`%08x`的含义
 
 * [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
 * [ ] 调研使用`MPI_ERROR`接收未知长度数据
 
-* [ ] sync socket programming
-
 * [ ] 调研 PCI relaxed ordering 
 
 * [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
 
+* [ ] 调研 diff 命令的用法
+
+* [ ] 调研 pynccl 的用法
+
 * [v] 调研 pytorch 调用 nccl wrapper function
-
-    feedback:
-
-    1. 调研 diff 命令的用法
-
-    2. 目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
-
-    3. 调研 pynccl 的用法
-
-    4. 看起来比较重要的几段代码
-
-        ```python
-        with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-            self.pynccl_comm.send(tensor, dst=self.ranks[dst])
-        ```
-
-        ```python
-        with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-            self.pynccl_comm.recv(tensor, src=self.ranks[src])
-        ```
-
-        ```python
-        pynccl_comm = self.pynccl_comm
-        if pynccl_comm is not None and not pynccl_comm.disabled:
-            pynccl_comm.send(tensor, dst)
-        else:
-            with xxxx
-
-        # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
-        ```
 
 * [ ] 调研 docker 中 app 的调试方法
 
@@ -1440,15 +1356,9 @@ tasks:
 
 * [ ] 调研 ibv cmd req 中的 driver data
 
-* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
-
 * [ ] 增加 client remote write to server test case
 
 * [ ] 调研 open mpi 的 scatter, gather C 程序
-
-* [ ] 调研 llama 部署
-
-* [ ] 调研 llama 在 cpu 上的部署
 
 * [ ] 调研 rdma repo 中 pcie driver
 
@@ -1462,7 +1372,7 @@ tasks:
 
 * [] 调研 kgdb
 
-## llama 部署
+## AI deploy
 
 tasks:
 
@@ -1471,6 +1381,12 @@ tasks:
 * [v] 使用 cuda 环境拟合一条 sine 曲线
 
 * [ ] 使用 dataset 和 dataloader 在 cpu 环境下拟合 sine 曲线
+
+* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
+
+* [ ] 调研 llama 部署
+
+* [ ] 调研 llama 在 cpu 上的部署
 
 ## riscv
 
@@ -2146,6 +2062,32 @@ resources:
 
 cache:
 
+* `list_add()`是在指定 node 后添加 node
+
+* gcc 12 要求所有函数必须有声明，不然会报 warning:
+
+    ```
+    make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
+    make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
+    warning: the compiler differs from the one used to build the kernel
+      The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
+        4 | int hello_init(void)
+          |     ^~~~~~~~~~
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
+       10 | void hello_exit(void)
+          |      ^~~~~~~~~~
+      MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
+      LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
+      BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
+    Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
+    make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
+    ```
+
+* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
+
 * linux 的 interruptible sleep 是如何实现的？
 
 * 调研这三个头文件
@@ -2310,6 +2252,14 @@ tasks:
         `device_del()`和`device_destroy()`有什么区别？
 
 * [v] 调研 linked list
+
+* [ ] 调研`select`的用法
+
+* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
+
+* [ ] 调研：实现一个仅使用 read device 触发的中断程序
+
+* [ ] sync socket programming
 
 ## OpenGL
 
@@ -2524,6 +2474,10 @@ cache:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 cache:
+
+* 以后再做 c++ 的 qa，要么写一点点语法，要么就是做题
+
+* 找一个 c++ 学习资料，系统学一下比较好
 
 * [ ] 调研 c++ `variant`
 
