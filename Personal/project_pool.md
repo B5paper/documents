@@ -655,6 +655,10 @@
 
     3. [ ] 增加 docker note qa，并加入 test collec 中
 
+* [v] reorg: project pool  10.29
+
+    14:20 ~ 14:48
+
 ## qa
 
 cached:
@@ -726,6 +730,12 @@ Tasks:
 * [v] qa 1 unit 10.14
 
 * [v] qa: 2 units 10.28
+
+* [v] qa: 2 units 10.29
+
+    12:42 ~ 13:04
+
+    正确率：1/2
 
 ## cache tabs / process urls
 
@@ -888,6 +898,14 @@ Tasks:
     Deps:
 
     1. 建立 bash note qa
+
+* [v] cache tabs  10.29
+
+    13:39 ~ 13:55
+
+* [v] process 1 urls  10.29
+
+    14:03 ~ 14:19
 
 ## markdown renderer
 
@@ -1153,6 +1171,14 @@ tasks:
     5. `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
 
         `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
+
+* [v] 调研 50 机器上的 nccl 调试
+
+    feedback:
+
+    1. 50 机器物理机上仍需要在`paths.cc`文件中的`ncclTopoCheckP2p()`函数里添加`path->type = PATH_PIX;`，重新编译 nccl，才能使用 pcie p2p，否则只设置 nccl 环境变量无法跑通 p2p.
+
+        同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
 ## rdma
 
