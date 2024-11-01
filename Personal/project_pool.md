@@ -36,6 +36,106 @@
 
 ## cached
 
+* `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
+
+    如果在`apt update`时无法访问这个 ip 的 80 端口，可以考虑在`/etc/apt/source.list`里把这一行注释掉。
+
+* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
+
+    使用 compute_70 可以跑通。
+
+* cached tabs
+
+    * How to use SSH to run a local shell script on a remote machine?
+
+        <https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-local-shell-script-on-a-remote-machine>
+
+    * 10.6. Launching with SSH
+
+        <https://docs.open-mpi.org/en/v5.0.x/launching-apps/ssh.html>
+
+    * tt-metal
+
+        TT-NN operator library, and TT-Metalium low level kernel programming model. 
+
+        <https://github.com/tenstorrent/tt-metal/>
+
+    * Basic Data Structures and Algorithms
+
+        <https://algo-ds.com/>
+
+    * Build Your Own Text Editor
+
+        <https://viewsourcecode.org/snaptoken/kilo/>
+
+    * lm.rs
+
+        Minimal LLM inference in Rust 
+
+        <https://github.com/samuel-vitorino/lm.rs>
+
+    * vecdb
+
+        Toy vector database written in c99. 
+
+        <https://github.com/montyanderson/vecdb>
+
+    * Rust Design Patterns
+
+        <https://rust-unofficial.github.io/patterns/>
+
+    * ML Code Challenges
+
+        <https://www.deep-ml.com/>
+
+    * posting
+
+        The modern API client that lives in your terminal. 
+
+        <https://github.com/darrenburns/posting>
+
+    * Read the newest State of AI report
+
+        <https://retool.com/blog/state-of-ai-h1-2024>
+
+    * LLMs-from-scratch
+
+        Implementing a ChatGPT-like LLM in PyTorch from scratch, step by step 
+
+        <https://github.com/rasbt/LLMs-from-scratch>
+
+    * barco: Linux containers from scratch in C. 
+
+        <https://github.com/lucavallin/barco>
+
+    * 怎么用apt命令下载内核源码给出步骤
+
+        <https://linuxcpp.0voice.com/?id=39737>
+
+* 笔记的结构
+
+    先记录单个独立主题，再记录 topic，topic 中是多个独立主题的组合
+
+* 如果学新概念/知识时，所有的新概念都可以从已知的知识轻松推导出来，那么就称这种学习过程为线性学习
+
+    如果在学习一块新知识时，新知识中的一部分或全部无法通过已知概念推导出来，那么就称这种学习过程为非线性学习
+
+* 非线性学习的一些方法
+
+    * 总会有一些东西是可以一眼看懂的（从旧知识中推导出来），对这些一眼可以看懂的知识进行条目化总结。
+
+        sync 这些新概念，直到可以用它们解释其他的新知识
+
+    * 猜想-验证，对于无法理解的概念，先给出自己的一个猜想的解释，然后做出一些预测，再去验证，最后修正自己的猜想
+
+        难点在于，有时候需要同时对大量的新概念提出猜想，变量过多，不容易修正自己的猜想。
+
+    * 孤岛信息的连结
+
+        如果有一段一两句话的知识点，虽然看不懂，但是可能在新知识体系中有用，不需要理解，但是需要知道它出现过，以后可能用得到，这种孤岛信息可以选择性地收集起来，以备后面使用。
+
+* vscode 中，取消了 tab stop 后，还是会有 tab 缩进 2 个空格的现象，这时候还需要取消 Detect Indentation
+
 * 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
 
     ```bash
@@ -547,6 +647,10 @@
 
     看到 P7
 
+* { } reorg: documents
+
+* { } reorg: projects
+
 * [o] process 1 url  10.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -641,6 +745,8 @@
 
         * projects
 
+* [v] reorg: documents  10.14
+
 ## qa
 
 cached:
@@ -710,6 +816,8 @@ Tasks:
 * [ ] 调研 qa unit 中 dep 功能
 
 * [v] qa 4 units 05/20
+
+* [v] qa 1 unit  10.14
 
 ## cache tabs / process urls
 
@@ -788,6 +896,8 @@ Tasks:
 * [v] cache tabs 10.10
 
 * [v] cache tabs 10.11
+
+* [v] cache tabs  10.14
 
 ## markdown renderer
 
@@ -880,6 +990,155 @@ tasks:
 ## gpu driver
 
 * [v] 制作 ubuntu 24.04 qemu image
+
+## HPC comm
+
+* [o] 调研 nvidia p2p
+
+    feedback:
+
+    1. 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+
+    2. 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+    3. 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用
+
+* [v] 调研 nccl p2p
+
+    feedback:
+
+    1. nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+    2. [ ] 调研 vscode 多线程 debug
+
+    3. 目前看起来是在`ncclTopoCheckP2p()`处失败的
+
+* [v] 调研 pci host bridge
+
+    feedback:
+
+    1. 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+
+        目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
+
+        这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+
+    2. 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+
+        其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
+
+        显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
+
+        目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
+
+    3. `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+
+        `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
+
+    4. `ncclTransports`在五处地方被使用
+    
+        1. `proxyConnInit()`未被调用
+
+        2. `proxyFree()`：未调用
+
+        3. `ncclProxyConnect()`：未调用
+
+        4. `selectTransport()`：调用
+
+        5. `ncclTopoComputePaths()`
+
+        说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+        猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+    5. cached tabs
+
+        * NCCL源码解析①：初始化及ncclUniqueId的产生
+
+            <https://zhuanlan.zhihu.com/p/614746112>
+
+        * NCCL源码解析②：Bootstrap网络连接的建立
+
+            <https://zhuanlan.zhihu.com/p/620499558>
+
+        * NCCL源码解析③：机器内拓扑分析
+
+            <https://zhuanlan.zhihu.com/p/625606436>
+
+        * NCCL源码解析④：建图过程
+
+            <https://zhuanlan.zhihu.com/p/640812018>
+
+        * NCCL源码解析⑥：Channel搜索
+
+            <https://zhuanlan.zhihu.com/p/653440728>
+
+        * NCCL源码解析⑦：机器间Channel连接
+
+            <https://zhuanlan.zhihu.com/p/658868934>
+
+        * NCCL的不足，集合通信库初步调研 NCCL、BCCL、TCCL、ACCL、HCCL
+
+            <https://blog.csdn.net/lianghuaju/article/details/139470668>
+
+    6. cached tabs
+
+        vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
+
+    7. 多线程调试时锁定单线程
+
+        GDB scheduler-locking 命令详解
+
+        <https://www.cnblogs.com/pugang/p/7698772.html>
+
+    8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
+
+        <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
+
+* [o] 调研 HPC 通信 ppt
+
+    feedback:
+
+    1. guideline
+
+        1. optimizing an matrix multiplying task
+
+            * OpenMP
+
+                多线程，不支持多进程，多 node
+
+                不支持 avx512 等 SIMD 指令，不支持 GPU，不支持 MKL，BLAS 等数学运算库
+
+            * OpenMPI
+
+                设计一系列集合通信原语（collective communication primitives），支持更大的集群。
+
+                scatter, gather, reduce, all scatter, all gather, all reduce, broadcast
+
+                Barrier
+
+                重新优化矩阵乘法的代码
+
+                OpenMPI 使用 socket 进行多进程，多 node 通信。
+
+                OpenMPI 支持网络拓扑探测，找到通信效率最高的拓扑，常用拓扑结构为 ring 和 tree（ring 为什么更优？）
+
+            * 集合通信与深度学习
+
+                训练时梯度的依赖（all reduce）, inference 时的计算（send recv）
+
+        2. NCCL 与 chunk pipeline
+
+            nccl 是在 OpenMPI 的基础上提出 chunk pipeline 的方法，使得传输效率更高。
+
+            nccl 的主要拓展：
+
+            * openmpi 只支持 socket 进行跨进程，跨节点通信，nccl 增加了 pcie p2p, shared host memory, infiniband rdma, gpu direct rdma, nvlink, nvswitch 的支持
+
+            * openmpi 调用操作系统的 socket 接口，效率较低，nccl 采用多线程异步 + 主动 poll 事件的方式，不处理中断，使计算任务、事件处理和数据传输三者代码隔离，效率更高，通常会几个 cpu 线程跑满
+
+            * openmpi 的数据传输和计算任务放在一起，nccl 由于做了异步代码隔离，所以可以起多个线程多个 channel 进行通信，使得 cpu 性能不会成为瓶颈
+
 
 ## rdma
 
