@@ -2,6 +2,10 @@
 
 ## cache
 
+* `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
+
+    如果在`apt update`时无法访问这个 ip 的 80 端口，可以考虑在`/etc/apt/source.list`里把这一行注释掉。
+
 * apt 只下载不安装 deb 包：
 
     apt 下载的包会被默认放到`/var/cache/apt/archives`目录下。

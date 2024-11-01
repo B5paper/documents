@@ -44,10 +44,6 @@
 
         <https://blog.csdn.net/freege9/article/details/77987536>
 
-    * Bash遍历字符串列表-腾讯云开发者社区-腾讯云
-
-        <https://cloud.tencent.com/developer/article/1805119>
-
 1. sed
 
     1. <https://stackoverflow.com/questions/46970466/how-to-replace-only-last-match-in-a-line-with-sed>
@@ -83,8 +79,6 @@
 * docker relatives
 
     1. dockerfile ref: <https://docs.docker.com/engine/reference/builder/>
-
-    1. dockerfile 中的 proxy 设置：<https://dev.to/zyfa/setup-the-proxy-for-dockerfile-building--4jc8>
 
     * docker rename
 
@@ -6132,3 +6126,173 @@
     An awesome gpu tasks scheduler. 轻量好用的GPU机群任务调度工具。觉得有用可以点个star 
 
     <https://github.com/cnstark/gputasker>
+
+* How to use SSH to run a local shell script on a remote machine?
+
+    <https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-local-shell-script-on-a-remote-machine>
+
+* 10.6. Launching with SSH
+
+    <https://docs.open-mpi.org/en/v5.0.x/launching-apps/ssh.html>
+
+* tt-metal
+
+    TT-NN operator library, and TT-Metalium low level kernel programming model. 
+
+    <https://github.com/tenstorrent/tt-metal/>
+
+* Basic Data Structures and Algorithms
+
+    <https://algo-ds.com/>
+
+* Build Your Own Text Editor
+
+    <https://viewsourcecode.org/snaptoken/kilo/>
+
+* lm.rs
+
+    Minimal LLM inference in Rust 
+
+    <https://github.com/samuel-vitorino/lm.rs>
+
+* vecdb
+
+    Toy vector database written in c99. 
+
+    <https://github.com/montyanderson/vecdb>
+
+* Rust Design Patterns
+
+    <https://rust-unofficial.github.io/patterns/>
+
+* ML Code Challenges
+
+    <https://www.deep-ml.com/>
+
+* posting
+
+    The modern API client that lives in your terminal. 
+
+    <https://github.com/darrenburns/posting>
+
+* Read the newest State of AI report
+
+    <https://retool.com/blog/state-of-ai-h1-2024>
+
+* LLMs-from-scratch
+
+    Implementing a ChatGPT-like LLM in PyTorch from scratch, step by step 
+
+    <https://github.com/rasbt/LLMs-from-scratch>
+
+* barco: Linux containers from scratch in C. 
+
+    <https://github.com/lucavallin/barco>
+
+* 怎么用apt命令下载内核源码给出步骤
+
+    <https://linuxcpp.0voice.com/?id=39737>
+
+* How can I add a user as a new sudoer using the command line?
+
+    <https://askubuntu.com/questions/7477/how-can-i-add-a-user-as-a-new-sudoer-using-the-command-line>
+
+* Certificate for gnome-remote-desktop
+
+    <https://serverfault.com/questions/1160308/certificate-for-gnome-remote-desktop>
+
+    有时间了学习一下 openssh 命令的用法
+
+* How do I disable Wayland to use RealVNC Connect? 
+
+    <https://help.realvnc.com/hc/en-us/articles/4417193011857-How-do-I-disable-Wayland-to-use-RealVNC-Connect#is-wayland-supported--0-0>
+
+    禁用 wayland 的方法
+
+* How to Disable Unattended-Upgrades on Ubuntu 24.04
+
+    <https://ubuntushell.com/disable-unattended-upgrades-in-ubuntu/>
+
+* How Do I Check What PCI Devices Are Connected On My Linux System?
+
+    <https://www.namehero.com/blog/how-do-i-check-what-pci-devices-are-connected-on-my-linux-system/>
+
+* How can I understand the device topology?
+
+    <https://superuser.com/questions/1768544/how-can-i-understand-the-device-topology>
+
+* In Linux, is there a way to find out which PCI card is plugged into which PCI slot?
+
+    <https://stackoverflow.com/questions/25908782/in-linux-is-there-a-way-to-find-out-which-pci-card-is-plugged-into-which-pci-sl>
+
+* nccl 相关
+
+    * NCCL源码解析①：初始化及ncclUniqueId的产生
+
+        <https://zhuanlan.zhihu.com/p/614746112>
+
+    * NCCL源码解析②：Bootstrap网络连接的建立
+
+        <https://zhuanlan.zhihu.com/p/620499558>
+
+    * NCCL源码解析③：机器内拓扑分析
+
+        <https://zhuanlan.zhihu.com/p/625606436>
+
+    * NCCL源码解析④：建图过程
+
+        <https://zhuanlan.zhihu.com/p/640812018>
+
+    * NCCL源码解析⑥：Channel搜索
+
+        <https://zhuanlan.zhihu.com/p/653440728>
+
+    * NCCL源码解析⑦：机器间Channel连接
+
+        <https://zhuanlan.zhihu.com/p/658868934>
+
+    * NCCL的不足，集合通信库初步调研 NCCL、BCCL、TCCL、ACCL、HCCL
+
+        <https://blog.csdn.net/lianghuaju/article/details/139470668>
+
+* gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
+
+    <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
+
+* mellanox relatives
+
+    * mellanox 的 firmware:
+
+    <https://network.nvidia.com/support/firmware/nic/>
+
+    * Firmware Management
+
+        <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
+
+    * NVIDIA Firmware Tools (MFT) 
+
+        <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
+
+    * How to debug programs with "sudo" in VSCODE
+
+        <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+
+    * How can i change to ib card speed from IB-SDR to IB-QDR?
+
+        <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
+
+    * NVIDIA Firmware Tools (MFT) 
+
+        <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
+
+    * NVIDIA ConnectX-7 Adapter Cards User Manual
+
+        <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
+
+    * IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
+
+        <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
+
+    * Set a upper bandwidth limit for Infiniband HCAs
+
+        <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>

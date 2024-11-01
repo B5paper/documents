@@ -1,3 +1,5 @@
+* bandwagon KiwiVM address: <https://bwh88.net/clientarea.php>
+
 * v2ray http config
 
     v2ray 配置文件的模板：

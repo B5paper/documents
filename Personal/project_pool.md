@@ -16,12 +16,6 @@
 
 不做任务执行系统，就没有顿挫的感觉，就不可能有高效率。只与项目池打交道，会产生无穷无尽的任务，从而无法分辨任务的边界，导致效率越来越低。
 
-* 需要一个 graph 工具，建立不同的东西之间的连接
-
-    stack 工具只适合任务的 trace
-
-* 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
-
 * 每天在使用项目管理系统获得新任务之前，都必须将之前的每日任务列表进度同步到任务管理系统中，并加上`[processed]`标记
 
     因为任务执行系统会改变项目管理系统中的内容
@@ -34,7 +28,57 @@
 
 * log 不应该与 task 放在同一个文件里，翻来翻去太费时间
 
-## cached
+## cache
+
+* 任务完不成应该分两种情况处理，一种是有极大可能完成，只不过时间不够，另一种是还在调研搜集信息阶段，不清楚是否能完。显然这两种情况的处理方式应该是不同的。
+
+* 在准备去执行一项任务时，不应该考虑当前状态是否为最佳，而应该考虑当前状态是否满足最低要求
+
+* 不可能存在静态的平衡，只可能出现动态的平衡
+
+    打乒乓球时要求每打完一拍都要快速“归位”，以做好迎接下一拍的准备，那么生活中是否有一些 routine，可以保证在执行下一项任务前，可以精神饱满，不饿不渴不累，周围没有杂音干扰，注意力可以快速且长期地集中？
+    
+    比如在学习某篇论文之前，先睡 30 分，再运动 20 分，再吃一点东西，再喝几口水，做完这样的 routine 后，再全身心阅读论文？或者每晚睡够 8 个小时，早上晨跑，吃早饭，10 点喝一次水，中午吃完饭午休，晚上按时睡觉，这样来保证上午 8 点到 11 点一定精力充沛，下午 2 点到 6 点，晚上 7 点到 9 点一定精力充沛。我觉得这样的静态平衡是不可能做到的。
+
+    取而代之的静态方案是，在一项任务的末尾开始考虑与下一项任务的衔接，如果渴了就喝水，如果饿了就吃点零食，如果特别困就去睡觉。在一项任务开始之前，也可以简易地收拾下周围环境，保证接下来 30 ～ 40 分可以注意力集中。这样的动态平衡目前看来是比较好的解决方案。
+
+* 形式与环境不是本质，但是极大程度影响了本质的发现过程
+
+    在 win 系统下，多桌面不方便，所以很难快速地切换任务，也很难给一个任务独立的工作空间，更不可能栈式地递归展开依赖任务，因此在 win 上很难形成像现在一样的任务管理系统。
+
+    虽然说多桌面不是任务管理和时间规划的本质，但是它促进了效率较高的任务管理方式的发现。
+
+    因此改善办公环境，尝试一些新的环境的改变可能会带来一些变化。
+
+* 需要一个 graph 工具，建立不同的东西之间的连接
+
+    stack 工具只适合任务的 trace
+
+* 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
+
+
+
+* 笔记的结构
+
+    先记录单个独立主题，再记录 topic，topic 中是多个独立主题的组合
+
+* 如果学新概念/知识时，所有的新概念都可以从已知的知识轻松推导出来，那么就称这种学习过程为线性学习
+
+    如果在学习一块新知识时，新知识中的一部分或全部无法通过已知概念推导出来，那么就称这种学习过程为非线性学习
+
+* 非线性学习的一些方法
+
+    * 总会有一些东西是可以一眼看懂的（从旧知识中推导出来），对这些一眼可以看懂的知识进行条目化总结。
+
+        sync 这些新概念，直到可以用它们解释其他的新知识
+
+    * 猜想-验证，对于无法理解的概念，先给出自己的一个猜想的解释，然后做出一些预测，再去验证，最后修正自己的猜想
+
+        难点在于，有时候需要同时对大量的新概念提出猜想，变量过多，不容易修正自己的猜想。
+
+    * 孤岛信息的连结
+
+        如果有一段一两句话的知识点，虽然看不懂，但是可能在新知识体系中有用，不需要理解，但是需要知道它出现过，以后可能用得到，这种孤岛信息可以选择性地收集起来，以备后面使用。
 
 * `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
 
@@ -157,8 +201,6 @@
     target
     ```
 
-* bandwagon KiwiVM address: <https://bwh88.net/clientarea.php>
-
 * 调研 Computer algebra system
 
     <https://en.wikipedia.org/wiki/Computer_algebra_system#>
@@ -171,17 +213,9 @@
 
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
-* [v] 调研`asprintf()`
+* [ ] 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
 
-    feedback:
 
-    1. 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
-
-* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
-
-* 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
-
-    如果一个函数要求参数传入一个指针，那么说明函数只负责填充 struct 的字段，由用户负责 struct 的内存管理
 
 * 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
 
@@ -191,8 +225,6 @@
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
 
-* [ ] 调研 git reset 查看不同版本的 linux kernel version
-
 * Theseus is a new OS written from scratch in Rust to experiment with novel OS structure
 
     <https://www.theseus-os.com/Theseus/book/index.html#introduction-to-theseus>
@@ -200,6 +232,8 @@
     用 rust 写的操作系统，有时间了看看。
 
 * 如何为一个用户增加指定目录的各种权限？
+
+* [ ] 调研 git reset 查看不同版本的 linux kernel version
 
 * isoinfo 在 genisoimage 包中
 
@@ -272,8 +306,6 @@
 * to complete:
 
     1. modern c++, rewrite the ray tracing program
-
-    2. linux driver, irq, pcie, dma mechanism
 
     3. performance analyzing
 
@@ -396,8 +428,6 @@
     使任务串行，一个非常大的挑战就是在规定的时间内使用手机，在执行任务时不看。
 
 * 调研 zig
-
-* [ ] 将 projects 加入 reorg 中
 
 * 要想对一个东西有熟悉的理解和熟练的运用，必须将它作为更复杂的东西的一部分
 
@@ -573,10 +603,6 @@
 
 * note 的每个 item 也尽量控制得短一些，类似代码的函数长度
 
-* 以后再做 c++ 的 qa，要么写一点点语法，要么就是做题
-
-* 找一个 c++ 学习资料，系统学一下比较好
-
 * 学习资源的调研主要用于完成下面几件事情
 
     1. 发现学习资源里，是否有需要做实验验证的地方，是否可以用实验验证他说的，是否有可以用实验澄清的模糊不清的表达
@@ -637,7 +663,19 @@
 
     权重的不平衡性太大了。
 
+* reorg 应该分三类
+
+    * project pool
+
+    * documents
+
+    * projects
+
 ### tasks
+
+* { } reorg: projects
+
+* { } reorg: documents
 
 * { } windows 文件整理
 
@@ -651,6 +689,8 @@
 
 * { } reorg: projects
 
+* [ ] 在 virtual box 里安装 150G 的 ubuntu 24.04 虚拟机
+
 * [o] process 1 url  10.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -659,91 +699,69 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [ ] 调研 markdown previewer
+* [v] reorg: documents 10.14
+
+* [v] 调研 markdown previewer
 
     要求能显示数学公式
 
-* [ ] 在项目管理中加上这个项目，系统的自检查
+* [v] random select 时，将 projects 文件夹也包含进去
+
+* [v] 调研 python 中不同 path 的变体如何判断是相同 path
+
+    比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
 
 * [ ] 为 reorg 程序增加指定文件的随机一行的功能
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [v] python 判断两个路径是否等价，包括相对路径，绝对路径，文件，目录
-
-* [ ] random select 时，将 projects 文件夹也包含进去
-
-* [v] 调研 python 中的 hashset
-
-* [ ] 调研 python 中不同 path 的变体如何判断是相同 path
-
-    比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
-
 * [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
 
 * [ ] 调研 git ignore 的实现原理
 
-* [v] sync: linux driver note 中，linked list
-
-    10:22 ~ 13:30
-
-    feedback:
-
-    1. 一开始的时候编译不出来，是因为`obj-m`写成了`odj-m`
-
-    2. gcc 12 要求所有函数必须有声明，不然会报 warning:
-
-        ```
-        make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
-        make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
-        warning: the compiler differs from the one used to build the kernel
-          The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-          You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-          CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
-        /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
-            4 | int hello_init(void)
-              |     ^~~~~~~~~~
-        /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
-           10 | void hello_exit(void)
-              |      ^~~~~~~~~~
-          MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
-          LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
-          BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
-        Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
-        make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
-        ```
-
-    3. `list_add()`是在指定 node 后添加 node
-
-* [ ] 调研：实现一个仅使用 read device 触发的中断程序
-
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
-
-* [v] reorg 30 mins
-
-    12:59 ~ 15:52
 
 * [ ] 调研 deb 创建安装包
 
 * [ ] 调研`glXQueryVersion()`出自哪个头文件
 
-* [v] reorg 10/01
+* [v] reorg: documents
 
-* [v] reorg 10.06
+    deps:
 
-* [v] reorg 10.09
+    2. 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
-* [v] reorg 10.10
+    3. 调研 hugging face，看看比 mmdetection 多了什么东西
+
+* [v] reorg: documents
 
     feedback:
 
-    1. reorg 应该分三类
+    1. [ ] 增加 cimg note qa，并加入 test collect 里
 
-        * project pool
+        1. 增加 qa unit，打开图片，获取指定位置的像素 rgb 值
 
-        * documents
+        2. 保存图片
 
-        * projects
+        可以参考`ref_5`
+
+* [v] reorg: project pool: nccl 调试记录
+
+    feedback:
+
+    1. deps: 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
+
+        deps:
+        
+        * [v] 配置 iptables
+
+    2. deps: gdb remote server
+
+    3. [ ] 增加 docker note qa，并加入 test collec 中
+
+* [v] reorg: project pool  10.29
+
+    14:20 ~ 14:48
 
 * [v] reorg: documents  10.14
 
@@ -815,7 +833,15 @@ Tasks:
 
 * [ ] 调研 qa unit 中 dep 功能
 
-* [v] qa 4 units 05/20
+* [v] qa 1 unit 10.14
+
+* [v] qa: 2 units 10.28
+
+* [v] qa: 2 units 10.29
+
+    12:42 ~ 13:04
+
+    正确率：1/2
 
 * [v] qa 1 unit  10.14
 
@@ -829,17 +855,15 @@ Tasks:
 
 ### tasks
 
-* [v] cache tabs 10/01
-
 * [ ] 调研`git revert`的用法
+
+* [ ] 调研`git reflog`
 
 * [o] process 1 url 10/01
 
     Resetting remote to a certain commit: <https://stackoverflow.com/questions/5816688/resetting-remote-to-a-certain-commit>
 
     feedback:
-
-    3. 调研`git reflog`
 
     4. 调研`ORIG_HEAD`, `git show ORIG_HEAD`
 
@@ -863,15 +887,19 @@ Tasks:
 
     3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
 
-* [v] cache tabs 10.08
+* [v] sync bash
+
+    feedback:
+
+    1. 调研 bash 的数组
+
+        使用 for 循环打印字符串数组中的所有单词，每个单词一行
 
 * [o] process 1 url 10.09
 
     <https://linuxhint.com/trim_string_bash/>
 
     feedback:
-
-    1. 未处理完，在处理之前需要先 sync bash
 
     2. 虽然
 
@@ -897,7 +925,95 @@ Tasks:
 
 * [v] cache tabs 10.11
 
-* [v] cache tabs  10.14
+* [v] cache tabs 10.14
+
+* [v] cache tabs 10.23
+
+    cached tabs:
+
+    * what is load-store communication model in PCIe?
+    
+        <https://electronics.stackexchange.com/questions/527587/what-is-load-store-communication-model-in-pcie>
+
+    * scale up域的拓扑
+
+        <https://zhuanlan.zhihu.com/p/708991795>
+
+    * 片间互联学习
+
+        <https://zhuanlan.zhihu.com/p/1417863271>
+
+    * scale up/out语义的特点
+
+        <https://zhuanlan.zhihu.com/p/708996966>
+
+    * RISC-V指令集讲解（6）load/store指令
+
+        <https://zhuanlan.zhihu.com/p/394876584>
+
+    * NVidia GPU指令集架构-寄存器
+
+        <https://zhuanlan.zhihu.com/p/688616037>
+
+    * AI System & AI Infra
+
+        <https://github.com/chenzomi12/AISystem>
+
+    * NVSHMEM: OPENSHMEM FOR GPU-CENTRIC COMMUNICATION
+
+        <http://www.openshmem.org/site/sites/default/site_files/SC2017-BOF-NVIDIA.pdf>
+
+    * NVIDIA NVSHMEM
+
+        <https://docs.nvidia.com/nvshmem/index.html>
+
+    * Introduction to Clos Network
+
+        <https://web.stanford.edu/class/ee384y/Handouts/clos_networks.pdf>
+
+    * Can You Really Compare Clos to Chassis when running AI applications? 
+
+        <https://drivenets.com/blog/can-you-really-compare-clos-to-chassis-when-running-ai-applications/>
+
+    * Infinity Fabric (IF) - AMD 
+
+        <https://en.wikichip.org/wiki/amd/infinity_fabric>
+
+    * Meta Lingua: a lean, efficient, and easy-to-hack codebase to research LLMs. 
+
+        <https://github.com/facebookresearch/lingua>
+
+    * How to debug the Linux kernel with GDB and QEMU?
+
+        <https://stackoverflow.com/questions/11408041/how-to-debug-the-linux-kernel-with-gdb-and-qemu>
+
+    * GDB+QEMU调试内核模块(实践篇)
+
+        <https://www.cnblogs.com/powerrailgun/p/12161295.html>
+
+    * qemu debug 输出 qemu gdb调试
+
+        <https://blog.51cto.com/u_16213559/11347864>
+
+    * 在qemu平台使用gdb调试程序
+
+        <https://blog.csdn.net/weixin_42031299/article/details/135028500>
+
+* [o] process 1 url  10.23
+
+    <https://cloud.tencent.com/developer/article/1805119>
+
+    Deps:
+
+    1. 建立 bash note qa
+
+* [v] cache tabs  10.29
+
+    13:39 ~ 13:55
+
+* [v] process 1 urls  10.29
+
+    14:03 ~ 14:19
 
 ## markdown renderer
 
@@ -989,7 +1105,188 @@ tasks:
 
 ## gpu driver
 
-* [v] 制作 ubuntu 24.04 qemu image
+### cache
+
+* nccl 调试记录
+
+    * 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+
+    * nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie.
+
+    * 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+
+        其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
+
+        显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
+
+        目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
+
+    * `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+
+        `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
+
+    * `ncclTransports`在五处地方被使用
+    
+        1. `proxyConnInit()`未被调用
+
+        2. `proxyFree()`：未调用
+
+        3. `ncclProxyConnect()`：未调用
+
+        4. `selectTransport()`：调用
+
+        5. `ncclTopoComputePaths()`
+
+        说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+        猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+    * nccl 中`prims_ll.h`文件里有挺多 load, store 相关的函数，但是整个 nccl 中关于 atomic 的函数并不多。由此推断 nccl 很有可能不包含 load, store, atomic 的通信功能
+
+* vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
+
+* GDB scheduler-locking 命令详解
+
+    <https://www.cnblogs.com/pugang/p/7698772.html>
+
+* csdn 上大部分文章只介绍了 nvlink 的作用和速度，并没有介绍协议细节
+
+* load, store 看起来比较有用的几个网站
+
+    * SCALING WITH DENSE NODES
+
+        <http://nowlab.cse.ohio-state.edu/static/media/workshops/presentations/exacomm17/exacomm17-invited-talk-chris-newburn.pdf>
+
+    * NVSHMEM Memory Model
+
+        <https://docs.nvidia.com/nvshmem/api/gen/mem-model.html>
+
+    * Load/Store over ETH 乎？
+
+        <https://zhuanlan.zhihu.com/p/717851262>
+
+    * HotChip2024后记: 谈谈加速器互联及ScaleUP为什么不能用RDMA 
+
+        <https://mp.weixin.qq.com/s/qLRC3dv4E93LwWXtuhQcsw>
+
+    * AI fabric is a bus or a network？
+
+        <https://zhuanlan.zhihu.com/p/708602042>
+
+
+* 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
+
+    修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
+
+### tasks
+
+* [v] 调研 pci host bridge
+
+* [v] 调研 qemu gdb server
+
+* [ ] 调研 tenstorrent
+
+* [ ] 调研制作 docker image
+
+    1. 透传一个 nvidia device 可以成功跑通 cuda test
+    
+    2. 透传两个 nvidia gpu，调研是否能跑通 nccl
+    
+    3. 调研 2 个 gpu 的通信方式
+
+        1. shared host memory
+
+        2. pcie p2p
+
+        3. socket
+
+        4. nvlink
+
+* [v] 调研 load, store, atomic
+
+* [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
+
+    feedback:
+
+    2. 实体机上可以跑通 p2p
+
+        两种模式都可以跑通：
+
+        1. P2P/CUMEM/CE
+
+        2. P2P/direct pointer
+
+        跑不通的模式：
+
+        1. SHM/direct/direct
+
+        在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
+
+* [v] 调研 nccl p2p
+
+    feedback:
+
+    2. 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
+
+        nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
+
+        1. thread 79, g = 0, p = 1
+
+        2. thread 80, g = 0, p = 1
+
+        3. thread 79, g = 1, p = 0
+
+        4. thread 80, g = 1, p = 0
+
+        5. thread 79, g = 0, p = 1
+
+            这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
+
+        6. thread 80, g = 0, p = 1
+
+        7. thread 79, g = 1, p = 0
+
+        8. thread 80, g = 1, p = 0
+
+        9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
+
+        10. thread 37, 
+
+        11. thread 37, c = 1
+
+        12. thread 36, c = 1
+
+        13. thread 36, c = 0
+
+            从这里开始，调用`selectTransport<1>()`
+
+        14. thread 37, c = 0
+
+        15. thread 36, c = 1
+
+        16. thread 37, c = 1
+
+    3. c 为什么会从 0 循环到 1？
+
+        因为`sendMask ＝ 3`，只有低 2 位为 1.
+
+        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
+
+    4. 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
+
+        是否可以让其他线程也运行，但只在当前线程触发断点？
+
+    5. `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
+
+        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
+
+* [v] 调研 50 机器上的 nccl 调试
+
+    feedback:
+
+    1. 50 机器物理机上仍需要在`paths.cc`文件中的`ncclTopoCheckP2p()`函数里添加`path->type = PATH_PIX;`，重新编译 nccl，才能使用 pcie p2p，否则只设置 nccl 环境变量无法跑通 p2p.
+
+        同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
 ## HPC comm
 
@@ -1234,19 +1531,13 @@ tasks:
 
 * [ ] 调研`ssh-add`，`ssh-agent`的作用
 
-* [ ] 调研`adduser`和`useradd`有什么不同？
-
-* reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
+* [v] 调研`adduser`和`useradd`有什么不同？
 
 * 对于主动采样操作的 log 格式参考
 
     1. 当成功 poll 到 valid event 时，显示在这之前 poll empty event 多少次，并且清零 empty event 的计数
 
     2. 没有 poll 到 valid event 时，每 1000 次显示一次结果
-
-* send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
-
-* mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
 
 * mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
 
@@ -1294,113 +1585,51 @@ tasks:
 
 * 目前看到的信息是 cx5 的网卡支持的协议有 ib 和 roce v1，cx4 网卡支持的协议是 roce v2。
 
-* nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
-
-    添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
-
-* 对于多层依赖的库和 app 文件，编译时在哪一个文件上加`-g`，调试时就只能 hit 到哪个文件的断点。
-
-    假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。
-
-    即使 hit 了`debug_valid.c`文件的断点，程序暂停时上一层和下一层暂停的代码行上下文。
-
-* `ibstat`或`ibstatus`可以得到当前协商的速率
-
-* `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
-
-* `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
-
-* mellanox 的 firmware:
-
-    <https://network.nvidia.com/support/firmware/nic/>
-
-* Firmware Management
-
-    <https://docs.nvidia.com/networking/software/firmware-management/index.html#mft>
-
-* NVIDIA Firmware Tools (MFT) 
-
-    <https://docs.nvidia.com/networking/display/mftv421/mlxlink+utility>
-
-* How to debug programs with "sudo" in VSCODE
-
-    <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
-
-* How can i change to ib card speed from IB-SDR to IB-QDR?
-
-    <https://forums.developer.nvidia.com/t/how-can-i-change-to-ib-card-speed-from-ib-sdr-to-ib-qdr/206512>
-
-* NVIDIA Firmware Tools (MFT) 
-
-    <https://docs.nvidia.com/networking/display/mftv422/using+mlxconfig#Usingmlxconfig-UsingmlxconfigtoSetIB/ETHParameters>
-
-* NVIDIA ConnectX-7 Adapter Cards User Manual
-
-    <https://docs.nvidia.com/networking/display/connectx7vpi/setting+high-speed-port+link+type>
-
-* IBPORTSTATE - handle port (physical) state and link speed of an InfiniBand port
-
-    <https://manpages.ubuntu.com/manpages/focal/en/man8/ibportstate.8.html>
-
-* Set a upper bandwidth limit for Infiniband HCAs
-
-    <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
-
 * switch 上的 perftest 差不多能跑到 97 Gb/s
+
+* vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
+
+    看起来比较重要的几段代码：
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.send(tensor, dst=self.ranks[dst])
+    ```
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.recv(tensor, src=self.ranks[src])
+    ```
+
+    ```python
+    pynccl_comm = self.pynccl_comm
+    if pynccl_comm is not None and not pynccl_comm.disabled:
+        pynccl_comm.send(tensor, dst)
+    else:
+        with xxxx
+
+    # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
+    ```
 
 ### tasks
 
-* [o] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
-
-* [v] 调研 mlnx port 强制速率协商
-
-* [v] 调研`perftest`仓库
+* [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
 * [ ] 调研为什么 cable 不支持高速率
-
-* [v] 调研 C 语言打印 16 进制数字，`%08x`的含义
 
 * [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
 * [ ] 调研使用`MPI_ERROR`接收未知长度数据
 
-* [ ] sync socket programming
-
 * [ ] 调研 PCI relaxed ordering 
 
 * [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
 
+* [ ] 调研 diff 命令的用法
+
+* [ ] 调研 pynccl 的用法
+
 * [v] 调研 pytorch 调用 nccl wrapper function
-
-    feedback:
-
-    1. 调研 diff 命令的用法
-
-    2. 目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
-
-    3. 调研 pynccl 的用法
-
-    4. 看起来比较重要的几段代码
-
-        ```python
-        with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-            self.pynccl_comm.send(tensor, dst=self.ranks[dst])
-        ```
-
-        ```python
-        with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-            self.pynccl_comm.recv(tensor, src=self.ranks[src])
-        ```
-
-        ```python
-        pynccl_comm = self.pynccl_comm
-        if pynccl_comm is not None and not pynccl_comm.disabled:
-            pynccl_comm.send(tensor, dst)
-        else:
-            with xxxx
-
-        # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
-        ```
 
 * [ ] 调研 docker 中 app 的调试方法
 
@@ -1410,15 +1639,9 @@ tasks:
 
 * [ ] 调研 ibv cmd req 中的 driver data
 
-* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
-
 * [ ] 增加 client remote write to server test case
 
 * [ ] 调研 open mpi 的 scatter, gather C 程序
-
-* [ ] 调研 llama 部署
-
-* [ ] 调研 llama 在 cpu 上的部署
 
 * [ ] 调研 rdma repo 中 pcie driver
 
@@ -1432,7 +1655,7 @@ tasks:
 
 * [] 调研 kgdb
 
-## llama 部署
+## AI deploy
 
 tasks:
 
@@ -1441,6 +1664,12 @@ tasks:
 * [v] 使用 cuda 环境拟合一条 sine 曲线
 
 * [ ] 使用 dataset 和 dataloader 在 cpu 环境下拟合 sine 曲线
+
+* [ ] 调研 v100 部署 pytorch 的小模型（CV or NLP）
+
+* [ ] 调研 llama 部署
+
+* [ ] 调研 llama 在 cpu 上的部署
 
 ## riscv
 
@@ -2116,6 +2345,32 @@ resources:
 
 cache:
 
+* `list_add()`是在指定 node 后添加 node
+
+* gcc 12 要求所有函数必须有声明，不然会报 warning:
+
+    ```
+    make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
+    make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
+    warning: the compiler differs from the one used to build the kernel
+      The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
+        4 | int hello_init(void)
+          |     ^~~~~~~~~~
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
+       10 | void hello_exit(void)
+          |      ^~~~~~~~~~
+      MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
+      LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
+      BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
+    Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
+    make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
+    ```
+
+* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
+
 * linux 的 interruptible sleep 是如何实现的？
 
 * 调研这三个头文件
@@ -2280,6 +2535,14 @@ tasks:
         `device_del()`和`device_destroy()`有什么区别？
 
 * [v] 调研 linked list
+
+* [ ] 调研`select`的用法
+
+* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
+
+* [ ] 调研：实现一个仅使用 read device 触发的中断程序
+
+* [ ] sync socket programming
 
 ## OpenGL
 
@@ -2494,6 +2757,10 @@ cache:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 cache:
+
+* 以后再做 c++ 的 qa，要么写一点点语法，要么就是做题
+
+* 找一个 c++ 学习资料，系统学一下比较好
 
 * [ ] 调研 c++ `variant`
 

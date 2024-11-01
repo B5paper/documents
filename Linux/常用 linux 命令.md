@@ -217,9 +217,13 @@
 
 * `chmod`, `chown`
 
-创建新用户：`sudo adduser hlc`
+* 新建用户
 
-* 添加用户
+    * `sudo adduser hlc`
+
+        执行`adduser`命令后会进入一小段交互，填写密码，Full Name, Room Number, Work Phone, Home Phone, Other。密码如果小于 8 位，会警告，但不会报错。其他的数据都可以为空，用回车直接跳过。
+
+        `adduser`会在`/home`目录下为用户创建一个文件夹，并且将用户的默认 shell 设置为 bash。
 
     * `sudo useradd -m <user_name>`
 
@@ -247,10 +251,14 @@
 
         Ref: <https://linuxize.com/post/how-to-create-users-in-linux-using-the-useradd-command/>
 
+        如果直接执行`sudo useradd <username>`，那么不会在`/home`目录下创建用户文件夹，不会设置用户密码（可以在有 sudo 权限的其他用户环境下，使用`sudo su <username>`登录新用户），新用户的默认 shell 是`sh`。
+
+* 用户组
+
     * add a user to sudoers group
 
         ```bash
-        sudo usermod -aG sudo username
+        sudo usermod -a G sudo <username>
         ```
 
         其中`-a`表示 add，`G`表示 group。
@@ -258,6 +266,8 @@
         Ref: <https://linuxize.com/post/how-to-add-user-to-sudoers-in-ubuntu/>
 
         当前用户需要重新登陆后才能生效。
+
+* 修改用户配置
 
     * change the login shell
 

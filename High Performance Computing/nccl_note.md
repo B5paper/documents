@@ -2,6 +2,38 @@
 
 ## cache
 
+* nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
+
+    添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
+
+* nccl pcie 检查调用栈
+
+    * `ncclAsyncJobMain()`
+
+        * `commAlloc()`
+
+            * `ncclNvmlDeviceGetHandleByPciBusId()`
+
+                * `ncclNvmlEnsureInitialized()`
+
+                    * `pfn_nvmlDeviceGetP2PStatus()`
+
+        * `ncclCommInitRankFunc()`
+
+            * `initTransportsRank()`
+
+                * `ncclTopoComputePaths()`
+
+                    * `ncclTopoCheckP2p()`
+
+                    * `p2pCanConnect()`
+
+                        * `ncclTopoCheckP2p()`
+
+* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
+
+    使用 compute_70 可以跑通。
+
 * 一个可以运行的 nccl test 命令
 
     ```bash

@@ -1,5 +1,7 @@
 # VSCode Note
 
+* vscode 中，取消了 tab stop 后，还是会有 tab 缩进 2 个空格的现象，这时候还需要取消 Detect Indentation
+
 * 防止 vscode 里 tab 键做太多段落自动对齐的工作：
 
     取消 use tab stops

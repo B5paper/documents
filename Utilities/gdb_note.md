@@ -1,6 +1,14 @@
 # Gdb Note
 
-<https://interrupt.memfault.com/blog/advanced-gdb>
+## cache
+
+* 对于多层依赖的库和 app 文件，编译时在哪一个文件上加`-g`，调试时就只能 hit 到哪个文件的断点。
+
+    假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。
+
+    即使 hit 了`debug_valid.c`文件的断点，程序暂停时上一层和下一层暂停的代码行上下文。
+
+* <https://interrupt.memfault.com/blog/advanced-gdb>
 
 * `file <exe_path>`
 
