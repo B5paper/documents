@@ -2,6 +2,8 @@
 
 ## cache
 
+* virtual box 7.0 + ubuntu 24.04 必须关闭 EFI 才能正常启动
+
 * ubuntu 24.04.01 在 virtual box 7.0 里安装时，需要
 
     1. 显示里选择 VBoxSVGA

@@ -155,7 +155,7 @@ TAG 指的是镜像 image 的版本。默认
     如果在使用 image 创建 container 时，使用的 command 是`bash`，那么可以使用
 
     ```bash
-    sudo docker start -ia <container_id>
+    docker start -ia <container_id>
     ```
 
     重新启动容器，并进入 bash 界面。（测试好像只用`-i`也可以，但是只用`-a`的话会有 bug）
@@ -173,7 +173,7 @@ TAG 指的是镜像 image 的版本。默认
     Example:
 
     ```bash
-    sudo docker exec -it c8dadfb9dc6c bash
+    docker exec -it c8dadfb9dc6c bash
     ```
 
 * 停止容器：`docker stop <container_id>`
