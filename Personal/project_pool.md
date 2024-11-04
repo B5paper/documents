@@ -30,6 +30,18 @@
 
 ## cache
 
+* 对抗与平衡
+
+    假如失去了两种力量的对抗，那么就失去了方向。我们选择前进，其实指的并不是失去对抗后往前乱走，而是找到了新的平衡点后，从旧的平衡点迁移到新的平衡点，在新的平衡点处继续进行对抗。
+
+* 佛教的我执与哥德尔不完备定理
+
+    哥德尔不完备定理指出，在公理体系内，存在真且无法被证明的命题。佛教讲究无相，从不执着于众生相，一直到放下我执，在我执这里有一个自我执涉。假如说了“放下我执”，那么大家对我执就有了语言的相，总是想起这一句话；假如不说“放下我执”，那么大家又不知道该怎么做。密教选择不说，靠跨越语言、跨越文字的个人领悟；显教选择说，虽然语言逻辑上没问题，但是我执又很难放下了。
+
+    由此可见，佛教的难题其实就是哥德尔不完备定理的一个体现。正因如此，佛才说：“不可说。”说出来就不灵了。
+
+* 晚上吃饭不要吃到撑，不然会特别困，几乎没有精力继续学习。吃个半饱就可以了。
+
 * 任务完不成应该分两种情况处理，一种是有极大可能完成，只不过时间不够，另一种是还在调研搜集信息阶段，不清楚是否能完。显然这两种情况的处理方式应该是不同的。
 
 * 在准备去执行一项任务时，不应该考虑当前状态是否为最佳，而应该考虑当前状态是否满足最低要求
@@ -55,8 +67,6 @@
     stack 工具只适合任务的 trace
 
 * 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
-
-
 
 * 笔记的结构
 
@@ -214,8 +224,6 @@
 * 虚拟机 120G 磁盘不够用，下次试试 150G
 
 * [ ] 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
-
-
 
 * 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
 
@@ -685,11 +693,7 @@
 
     看到 P7
 
-* { } reorg: documents
-
-* { } reorg: projects
-
-* [ ] 在 virtual box 里安装 150G 的 ubuntu 24.04 虚拟机
+* [v] 在 virtual box 里安装 150G 的 ubuntu 24.04 虚拟机
 
 * [o] process 1 url  10.03
 
@@ -698,8 +702,6 @@
     feedback:
 
     1. 这个 url 未处理结束，下次继续处理
-
-* [v] reorg: documents 10.14
 
 * [v] 调研 markdown previewer
 
@@ -725,45 +727,33 @@
 
 * [ ] 调研`glXQueryVersion()`出自哪个头文件
 
-* [v] reorg: documents
+* [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
-    deps:
-
-    2. 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
-
-    3. 调研 hugging face，看看比 mmdetection 多了什么东西
+* [ ] 调研 hugging face，看看比 mmdetection 多了什么东西
 
 * [v] reorg: documents
 
-    feedback:
+* [ ] 增加 cimg note qa，并加入 test collect 里
 
-    1. [ ] 增加 cimg note qa，并加入 test collect 里
+    1. 增加 qa unit，打开图片，获取指定位置的像素 rgb 值
 
-        1. 增加 qa unit，打开图片，获取指定位置的像素 rgb 值
+    2. 保存图片
 
-        2. 保存图片
+    可以参考`ref_5`
 
-        可以参考`ref_5`
+* [v] reorg: documents
+
+* [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
+
+* [v] gdb remote server
+
+* [ ] 增加 docker note qa，并加入 test collec 中
 
 * [v] reorg: project pool: nccl 调试记录
-
-    feedback:
-
-    1. deps: 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
-
-        deps:
-        
-        * [v] 配置 iptables
-
-    2. deps: gdb remote server
-
-    3. [ ] 增加 docker note qa，并加入 test collec 中
 
 * [v] reorg: project pool  10.29
 
     14:20 ~ 14:48
-
-* [v] reorg: documents  10.14
 
 ## qa
 
@@ -833,8 +823,6 @@ Tasks:
 
 * [ ] 调研 qa unit 中 dep 功能
 
-* [v] qa 1 unit 10.14
-
 * [v] qa: 2 units 10.28
 
 * [v] qa: 2 units 10.29
@@ -870,8 +858,6 @@ Tasks:
     5. 调研`git update-ref `
 
     6. 调研`git log --graph --all --oneline --decorate`
-
-* [v] cache tabs 10.06
 
 * [o] process 1 url 10.06
 
@@ -1107,6 +1093,8 @@ tasks:
 
 ### cache
 
+* 测试了下，51 机器上 rdma + v100 vllm demo 环境已经挂了。看来 fpga 并不能做到长期稳定
+
 * nccl 调试记录
 
     * 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
@@ -1179,8 +1167,6 @@ tasks:
     修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
 
 ### tasks
-
-* [v] 调研 pci host bridge
 
 * [v] 调研 qemu gdb server
 
@@ -1288,37 +1274,73 @@ tasks:
 
         同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
+* [v] 调研 openshmem
+
+    feedback:
+
+    1. 官网<http://openshmem.org/site/>
+
+    2. openmpi doc 中的 openshmem 部分
+
+        <https://docs.open-mpi.org/en/main/man-openshmem/man3/OpenSHMEM.3.html>
+
+        看到了 put, get，没有看到 load, store。
+
+    3. Manage Your Memory Address Space with OpenSHMEM*
+
+        <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
+
+        英特尔的 tech blog，讲的 openshmem 入门知识。看起来废话不多，比较精练。
+
+    4. shmem4py: High-Performance One-Sided Communication for Python Applications
+
+        <https://dl.acm.org/doi/pdf/10.1145/3624062.3624602>
+
+        openshmem 的 python wrapper，这是一篇论文，里面有 example，可以参考一下
+
+    5. Cray OpenSHMEMX
+
+        <https://cray-openshmemx.readthedocs.io/en/latest/index.html>
+
+        cray openshmemx 的 doc。
+
+        为什么这里多了一个 X，对 openshmem 扩展了什么？
+
+    6. oshcc -- Open SHMEM C wrapper compiler
+
+        <https://manpages.ubuntu.com/manpages/lunar/man1/oshcc.1.html>
+
+        看来 osh 就是 shmem 的简称？
+
+    7. 关于 openshmem 报错问题，可以试下 ubuntu 22.04 系统
+
+* 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+
+* 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+* 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+
+* nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+* 目前看起来是在`ncclTopoCheckP2p()`处失败的
+
+* 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+
+    目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
+
+    这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+
 ## HPC comm
 
 * [o] 调研 nvidia p2p
 
-    feedback:
-
-    1. 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
-
-    2. 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
-
-    3. 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用
+* [v] 调研 vscode 多线程 debug
 
 * [v] 调研 nccl p2p
-
-    feedback:
-
-    1. nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
-
-    2. [ ] 调研 vscode 多线程 debug
-
-    3. 目前看起来是在`ncclTopoCheckP2p()`处失败的
 
 * [v] 调研 pci host bridge
 
     feedback:
-
-    1. 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
-
-        目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
-
-        这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
 
     2. 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
 
@@ -1394,49 +1416,6 @@ tasks:
 
 * [o] 调研 HPC 通信 ppt
 
-    feedback:
-
-    1. guideline
-
-        1. optimizing an matrix multiplying task
-
-            * OpenMP
-
-                多线程，不支持多进程，多 node
-
-                不支持 avx512 等 SIMD 指令，不支持 GPU，不支持 MKL，BLAS 等数学运算库
-
-            * OpenMPI
-
-                设计一系列集合通信原语（collective communication primitives），支持更大的集群。
-
-                scatter, gather, reduce, all scatter, all gather, all reduce, broadcast
-
-                Barrier
-
-                重新优化矩阵乘法的代码
-
-                OpenMPI 使用 socket 进行多进程，多 node 通信。
-
-                OpenMPI 支持网络拓扑探测，找到通信效率最高的拓扑，常用拓扑结构为 ring 和 tree（ring 为什么更优？）
-
-            * 集合通信与深度学习
-
-                训练时梯度的依赖（all reduce）, inference 时的计算（send recv）
-
-        2. NCCL 与 chunk pipeline
-
-            nccl 是在 OpenMPI 的基础上提出 chunk pipeline 的方法，使得传输效率更高。
-
-            nccl 的主要拓展：
-
-            * openmpi 只支持 socket 进行跨进程，跨节点通信，nccl 增加了 pcie p2p, shared host memory, infiniband rdma, gpu direct rdma, nvlink, nvswitch 的支持
-
-            * openmpi 调用操作系统的 socket 接口，效率较低，nccl 采用多线程异步 + 主动 poll 事件的方式，不处理中断，使计算任务、事件处理和数据传输三者代码隔离，效率更高，通常会几个 cpu 线程跑满
-
-            * openmpi 的数据传输和计算任务放在一起，nccl 由于做了异步代码隔离，所以可以起多个线程多个 channel 进行通信，使得 cpu 性能不会成为瓶颈
-
-
 ## rdma
 
 ### cache
@@ -1511,39 +1490,11 @@ tasks:
 
     Error: `No space left on device`
 
-* 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
-
-    * 2024/08/15: 如果需要換系统内核，并重新安装 ofed 驱动，那么需要将 ofed 源码从 tar 里重新解压出来。因为在之前编译 dkms 时，在源码目录里生成一些文件，这些文件会导致驱动无法加载成功
-
-* ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
-
-        可以在 ib verbs mask 列表里看到少了这几个 mask。
-
-* 如果需要对不同设备，函数做出不同的行为，一种方法增加一个`enum`类型的函数参数，判断调用者的情况。另一种方法是增加一个编译宏，然后使用`#ifdef xxx`来检测，这样可以在编译时判断调用函数的主体的情况。
-
-    为了只编译一份 lib 就适用多种情况，目前采用的是`enum`方案。
-
-* mpirun 使用 hostname 和 ip addr 的两个注意事项
-
-    * 如果使用 hostname，那么是去`~/.ssh/config`文件中找对应的配置，连接 ssh 
-
-    * 如果使用 ip addr，那么 route 的路由顺序不对可能会导致无法连通
-
-* [ ] 调研`ssh-add`，`ssh-agent`的作用
-
-* [v] 调研`adduser`和`useradd`有什么不同？
-
 * 对于主动采样操作的 log 格式参考
 
     1. 当成功 poll 到 valid event 时，显示在这之前 poll empty event 多少次，并且清零 empty event 的计数
 
     2. 没有 poll 到 valid event 时，每 1000 次显示一次结果
-
-* mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
-
-* [ ] ln 是否能创建文件夹的 hard link?
-
-* [ ] 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
 
 * <https://docs.nvidia.com/networking/display/mlnxofedv531001/ethernet+interface(base)>指出，ports of connectx-4 adapter cards and above can be individually configured to work as infiniband or ethernet ports.
 
@@ -1587,55 +1538,13 @@ tasks:
 
 * switch 上的 perftest 差不多能跑到 97 Gb/s
 
-* vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
-
-    看起来比较重要的几段代码：
-
-    ```python
-    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-        self.pynccl_comm.send(tensor, dst=self.ranks[dst])
-    ```
-
-    ```python
-    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-        self.pynccl_comm.recv(tensor, src=self.ranks[src])
-    ```
-
-    ```python
-    pynccl_comm = self.pynccl_comm
-    if pynccl_comm is not None and not pynccl_comm.disabled:
-        pynccl_comm.send(tensor, dst)
-    else:
-        with xxxx
-
-    # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
-    ```
-
 ### tasks
 
 * [ ] 调研：`ibv_get_cq_event()`会不会消耗`ibv_poll_cq()`的 wc？
 
 * [ ] 调研为什么 cable 不支持高速率
 
-* [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
-
-* [ ] 调研使用`MPI_ERROR`接收未知长度数据
-
-* [ ] 调研 PCI relaxed ordering 
-
-* [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
-
-* [ ] 调研 diff 命令的用法
-
-* [ ] 调研 pynccl 的用法
-
-* [v] 调研 pytorch 调用 nccl wrapper function
-
-* [ ] 调研 docker 中 app 的调试方法
-
-* [ ] 调研 nccl app
-
-* [ ] 调研 makefile 的 submodule
+* [ ] 调研 PCI relaxed ordering
 
 * [ ] 调研 ibv cmd req 中的 driver data
 
@@ -1645,7 +1554,7 @@ tasks:
 
 * [ ] 调研 rdma repo 中 pcie driver
 
-* [ ] 调研 iwarp 实现的 ibverbs 
+* [ ] 调研 iwarp 实现的 ibverbs
 
 * [ ] 调研 spdx
 
@@ -1653,7 +1562,7 @@ tasks:
 
 * [ ] 调研使用 mmap 维护 cqe
 
-* [] 调研 kgdb
+* [ ] 调研 kgdb
 
 ## AI deploy
 

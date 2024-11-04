@@ -2,6 +2,43 @@
 
 ## cache
 
+* ssh 反向代理
+
+    * 下面这三条命令等价
+    
+        * `ssh -R 8822:127.0.0.1:8822 <user>@<host_addr>`
+
+        * `ssh -R *:8822:127.0.0.1:8822 <user>@<host_addr>`
+
+        * `ssh -R 0.0.0.0:8822:127.0.0.1:8822 <user>@<host_addr>｀
+
+        这三条命令都是从远程 host 的任意地址的 8822 端口向本地的 127.0.0.1 的 8822 端口开一条 tunnel。
+
+        如果在登陆时有提示：
+
+        ```
+        SIOCSIFADDR: Operation not permitted
+        SIOCSIFFLAGS: Operation not permitted
+        SIOCSIFNETMASK: Operation not permitted
+        SIOCADDRT: Operation not permitted
+        ```
+
+        这些提示不影响反射代理的功能。
+
+        如果`/etc/ssh/sshd_config`文件中的`GatewayPorts yes`没有打开，那么只能转发远程 host 的`127.0.0.1`的 8822 端口，无法 bind 其他地址。
+
+    * 如果使用`-R`转发远程机器的端口，那么其他的远程机器也可以使用这个端口完成和外界的通信。
+
+        比如现在有 host A, B, C 三台机器，先用 A 连接 B：
+
+        host A: `ssh -R 8822:127.0.0.1:8822 <user>@<host_B_addr>`
+
+        此时访问 B 任意 ipv4 的 8822 端口，都会被转发到 A 的 127.0.0.1:8822 端口。
+
+        我们在 host A 上起一个 tcp server: `nc -l 8822`
+
+        然后在 host C 上执行`nc <host_B_addr> 8822`，即可成功连接到 host A 上的 tcp server。输入 message 并按回车，可以看到 host A 上的回显。
+
 * 命令行启动的 qemu 使用 X11 forward 时似乎不会产生内存泄漏
 
 ## note

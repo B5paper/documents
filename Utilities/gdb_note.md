@@ -2,6 +2,61 @@
 
 ## cache
 
+* gdb 远程调试
+
+    1. 安装 gdbserver
+
+        `sudo apt install gdbserver`
+
+    2. 在 host A 上创建新目录，写入下面的文件
+
+        `main.c`:
+
+        ```c
+        #include <stdio.h>
+
+        int main()
+        {
+            printf("hello from gdb server\n");
+            return 0;
+        }
+        ```
+
+        编译：`gcc -g main.c -o main`
+
+    3. 在 host A 上使用 gdbserver 运行`main`
+
+        `gdbserver :5432 ./main`
+
+    4. 在 host B 上启动 gdb，加载符号表
+
+        `gdb`
+
+        ```
+        (gdb) symbol-file ./main
+        Reading symbols from ./main...
+        ```
+
+        这里的`./main`必须和 host A 上编译出来的相同才行。
+
+    5. 在 host B 上执行
+
+        `(gdb) target remote  <host_A_ipv4>:4321`
+
+        根据提示操作，即可开始调试。
+
+        ```
+        (gdb) c
+        Continuing.
+        Reading /lib/x86_64-linux-gnu/libc.so.6 from remote target...
+
+        Breakpoint 1, main () at main.c:6
+        6	    return 0;
+        (gdb) 
+        ```
+
+        这中间可能需要联网下载一些符号表。（如果是断网条件下，这些符号表该如何获得？）
+
 * 对于多层依赖的库和 app 文件，编译时在哪一个文件上加`-g`，调试时就只能 hit 到哪个文件的断点。
 
     假如这个文件为`debug_valid.c`，如果这个文件的上一层和下一层库/app在编译时没有加上`-g`参数，那么就无法 hit 断点。

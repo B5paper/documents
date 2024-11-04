@@ -1,5 +1,13 @@
 # VSCode Note
 
+## cache
+
+* vscode `Ctrl` + `Shift` + `O` 可以跳转到 symbol，也可以使用 `Ctrl` + `T` 跳转。
+
+    `Ctrl` + `Shift` + `O`只搜索当前文件，`ctrl` + `t`会搜索 work space 下的所有文件。
+
+    ref: <https://code.visualstudio.com/docs/editor/editingevolved>
+
 * vscode 中，取消了 tab stop 后，还是会有 tab 缩进 2 个空格的现象，这时候还需要取消 Detect Indentation
 
 * 防止 vscode 里 tab 键做太多段落自动对齐的工作：
@@ -205,4 +213,6 @@
     另一种方法是设置权限：`user_name ALL=(ALL) NOPASSWD:/usr/bin/gdb`，可以直接让 gdb 获得 root 权限。
 
     Ref: <https://stackoverflow.com/questions/40033311/how-to-debug-programs-with-sudo-in-vscode>
+
+## note
 

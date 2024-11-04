@@ -1243,7 +1243,7 @@ rank 1 received token 12345 from 0
     这个过程如下图所示：
 
     <div style='text-align:center'>
-    <img width=700 src='../../Reference_resources/ref_28/pic_1.png'>
+    <img width=700 src='../Reference_resources/ref_28/pic_1.png'>
     </div>
 
 * 下面这段代码似乎也能实现 ring 功能，并且更简洁

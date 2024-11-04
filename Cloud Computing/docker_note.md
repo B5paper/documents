@@ -37,6 +37,43 @@ registry mirror configuration:
 aaaa
 ```
 
+## cache
+
+* docker build 时添加代理的两种方式
+
+    * 直接在命令里加
+
+        `docker build --build-arg http_proxy=http://10.239.4.80:913 --build-arg https_proxy=http://10.239.4.80:913 .`
+
+    * 在 dockerfile 的 ENV 里加
+
+        `ENV http_proxy 10.239.4.80:913`
+
+        不太推荐这种，因为同一个 dockerfile 可能会被复制到不同的机器上运行，其他的机器上不一定有当前的代理环境。
+
+* docker daemon 设置代理后，在 pull image 时如果有 TLS handshake timeout，很可能是因为代理无法访问境外网站。
+
+* docker 中的 container 代理其实是在 container 中设置环境变量
+
+    `/home/hlc/.docker/config.json`中的代理配置本质上是在 container 内设置`http_proxy`，`https_proxy`，`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`等这几个环境变量。
+
+    ref: <https://docs.docker.com/engine/cli/proxy/>
+
+    container 内部的网络可以和 host 互相 ping 通，container 也可以直接访问到外网。
+
+* docker container 的 ip 与 host 不同。
+
+* dockerd 因为 iptables 而启动失败时的解决方案
+
+    ```bash
+    sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+    sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
+    sudo dockerd &
+    ```
+
+    ref: <https://github.com/microsoft/WSL/issues/6655>
+
 ## 有关 docker service
 
 一些命令：

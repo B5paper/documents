@@ -2,6 +2,16 @@
 
 ## cache
 
+* 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
+
+* 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
+
+    * 2024/08/15: 如果需要換系统内核，并重新安装 ofed 驱动，那么需要将 ofed 源码从 tar 里重新解压出来。因为在之前编译 dkms 时，在源码目录里生成一些文件，这些文件会导致驱动无法加载成功
+
+* ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
+
+    可以在 ib verbs mask 列表里看到少了这几个 mask。
+
 * `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
 
 * `ibstat`或`ibstatus`可以得到当前协商的速率

@@ -6296,3 +6296,11 @@
     * Set a upper bandwidth limit for Infiniband HCAs
 
         <https://serverfault.com/questions/770435/set-a-upper-bandwidth-limit-for-infiniband-hcas>
+
+* How to Use Your GPU in a Docker Container
+
+    <https://blog.roboflow.com/use-the-gpu-in-docker/>
+
+* Enable GPU access with Docker Compose
+
+    <https://docs.docker.com/compose/how-tos/gpu-support/>
