@@ -755,6 +755,18 @@
 
     14:20 ~ 14:48
 
+* [v] reorg: documents
+
+    13:11 ~ 13:45
+
+    feedback:
+
+    1. 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
+
+* [v] reorg: project pool
+
+    13:46 ~ 14:08
+
 ## qa
 
 cached:
@@ -832,6 +844,12 @@ Tasks:
     正确率：1/2
 
 * [v] qa 1 unit  10.14
+
+* [v] qa 2 unit
+
+    feedback:
+
+    1. 假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
 ## cache tabs / process urls
 
@@ -1166,9 +1184,33 @@ tasks:
 
     修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
 
-### tasks
+* 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
 
-* [v] 调研 qemu gdb server
+* 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+* 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+
+* nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+* 目前看起来是在`ncclTopoCheckP2p()`处失败的
+
+* 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+
+    目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
+
+    这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+
+* 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+
+    其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
+
+    显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
+
+    目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
+
+* vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
+
+### tasks
 
 * [ ] 调研 tenstorrent
 
@@ -1187,8 +1229,6 @@ tasks:
         3. socket
 
         4. nvlink
-
-* [v] 调研 load, store, atomic
 
 * [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
 
@@ -1314,41 +1354,23 @@ tasks:
 
     7. 关于 openshmem 报错问题，可以试下 ubuntu 22.04 系统
 
-* 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+* [v] 调研 gdb 远程调试 nccl
 
-* 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+    feedback:
 
-* 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+    1. cuda 12.4 在编译的时候必须使用 compute 80，使用 compute 70 无法正常运行
 
-* nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+    2. 224 机器的 nccl 调用了 ibv 相关的函数，为什么？
 
-* 目前看起来是在`ncclTopoCheckP2p()`处失败的
+    3. 224 机器的 nvlink p2p 流程似乎和 pcie p2p 差不多，目前看不出来有什么不一样
 
-* 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
-
-    目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
-
-    这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+    4. 可以先禁用 mellanox，排除干扰因素，再仔细追一下 nvlink p2p 和 pcie p2p 的不同
 
 ## HPC comm
-
-* [o] 调研 nvidia p2p
-
-* [v] 调研 vscode 多线程 debug
-
-* [v] 调研 nccl p2p
 
 * [v] 调研 pci host bridge
 
     feedback:
-
-    2. 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
-
-        其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
-
-        显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
-
-        目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
 
     3. `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
 
@@ -1400,10 +1422,6 @@ tasks:
 
             <https://blog.csdn.net/lianghuaju/article/details/139470668>
 
-    6. cached tabs
-
-        vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
-
     7. 多线程调试时锁定单线程
 
         GDB scheduler-locking 命令详解
@@ -1413,8 +1431,6 @@ tasks:
     8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
 
         <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
-
-* [o] 调研 HPC 通信 ppt
 
 ## rdma
 
