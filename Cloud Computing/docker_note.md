@@ -10,8 +10,6 @@ Learning materials:
 
 1. awesome docker: <https://github.com/veggiemonk/awesome-docker>
 
-
-
 官网：<https://docs.docker.com/>
 
 docker hub:
@@ -19,23 +17,6 @@ docker hub:
 username: hhlc
 email: liucheng.hu@intel.com
 password: hlc695230
-
-安装：`sudo apt install docker.io`
-
-卸载：
-
-```
-systemctl stop docker
-apt purge docker.io
-rm -rf /var/lib/docker
-rm -rf /var/lib/containerd
-```
-
-registry mirror configuration:
-
-```
-aaaa
-```
 
 ## cache
 
@@ -74,26 +55,55 @@ aaaa
 
     ref: <https://github.com/microsoft/WSL/issues/6655>
 
-## 有关 docker service
-
-一些命令：
-
-* 启动：`systemctl start docker`
-* 停止：`systemctl stop docker`
-* 重启：`systemctl restart docker`
-* 查看 docker 状态：`systemctl status docker`
-* 开机启动：`systemctl enable docker`
 * 查看 docker 概要信息：`docker info`
+
 * 查看 docker 总体帮助文件：`docker --help`
+
 * 查看 docker 命令帮助文档：`docker 具体命令 --help`
 
-TAG 指的是镜像 image 的版本。默认
+## 安装
 
-## 有关镜像（image）
+* ubuntu 上可以直接使用 apt 进行安装
+
+    `sudo apt install docker.io`
+
+* 将当前用户添加到`docker`用户组：
+
+    `sudo usermod -a -G docker hlc`
+
+测试是否可以正常使用：`docker run hello-world`
+
+* 卸载
+
+    ```
+    systemctl stop docker
+    apt purge docker.io
+    rm -rf /var/lib/docker
+    rm -rf /var/lib/containerd
+    ```
+
+## docker service
+
+`docker` service 使用 systemd 托管，因此 systemd 的命令都适用于 docker。
+
+比如最常用的重启 docker：`systemctl restart docker`，查看 docker 状态：`systemctl status docker`。
+
+也可以使用`service docker status`实现同样的效果。
+
+* 在`docker pull`拉取镜像时，实际上是 docker service 去拉取镜像，因此如果要配置代理，需要配置 docke service 的代理：
+
+    官网给出了具体教程：<https://docs.docker.com/config/daemon/systemd/#httphttps-proxy>。
+
+    The configs in `~/.docker/config.json` will impact on the proxy of all containers. Besides, the proxy address in the file should be the ip address of virtual ethernet interface `docker0` rather than `127.0.0.1`, because the `127.0.0.1` inside the container is different from `127.0.0.1` on the host.
+
+    如果要设置 build image 以及 run container 时的代理，可以参考：<https://docs.docker.com/network/proxy/>
+
+## 镜像 Image
 
 * 列出主机本地上的镜像：`docker images`（等同于`sudo docker image ls`, `sudo docker image list`）
 
     * `docker images -a`：列出本地所有镜像（含历史映像层）
+
     * `docker images -q`：只显示镜像 ID
 
 * 从[docker.io](docker.io)里搜索镜像：`docker search [option] <image_name>`
@@ -126,9 +136,9 @@ TAG 指的是镜像 image 的版本。默认
 
     删除所有 images：`docker rmi -f $(docker images -qa)`
 
-虚悬镜像：仓库名，标签都是`<none>`的镜像。俗称 dangling image。
+* 虚悬镜像：仓库名，标签都是`<none>`的镜像。俗称 dangling image。
 
-## 有关容器（container）
+## 容器 Container
 
 * 从镜像启动一个容器：`docker run [options] <image_name> [command]`
 
@@ -305,13 +315,7 @@ docker 挂载主机目录访问如果出现`cannot open directory: Permisson den
     character_set_server = utf8
     ```
 
-1. proxy
 
-    在 registry 中 pull image 时，代理的设置需要在 docker service 中配置，因为摘取镜像这个动作是 service 干的，不是 client 干的。官网也给出了具体教程：<https://docs.docker.com/config/daemon/systemd/#httphttps-proxy>。
-
-    The configs in `~/.docker/config.json` will impact on the proxy of all containers. Besides, the proxy address in the file should be the ip address of virtual ethernet interface `docker0` rather than `127.0.0.1`, because the `127.0.0.1` inside the container is different from `127.0.0.1` on the host.
-
-    如果要设置 build image 以及 run container 时的代理，可以参考：<https://docs.docker.com/network/proxy/>
 
 1. restart a stopped docker container
 
