@@ -33,3 +33,7 @@
     ·scikit-learn 0.15.2
     ·matplotlib 1.4.0
     ·pandas 0.15.2
+
+* openmpi 版的 openshmem 的 api reference
+
+    <https://docs.open-mpi.org/en/v5.0.x/man-openshmem/man3/index.html>
