@@ -693,8 +693,6 @@
 
     看到 P7
 
-* [v] 在 virtual box 里安装 150G 的 ubuntu 24.04 虚拟机
-
 * [o] process 1 url  10.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -703,15 +701,15 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [v] 调研 markdown previewer
-
-    要求能显示数学公式
-
-* [v] random select 时，将 projects 文件夹也包含进去
-
 * [v] 调研 python 中不同 path 的变体如何判断是相同 path
 
     比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
+
+* [v] reorg: documents
+
+* [v] reorg: documents
+
+* [v] gdb remote server
 
 * [ ] 为 reorg 程序增加指定文件的随机一行的功能
 
@@ -731,8 +729,6 @@
 
 * [ ] 调研 hugging face，看看比 mmdetection 多了什么东西
 
-* [v] reorg: documents
-
 * [ ] 增加 cimg note qa，并加入 test collect 里
 
     1. 增加 qa unit，打开图片，获取指定位置的像素 rgb 值
@@ -741,11 +737,7 @@
 
     可以参考`ref_5`
 
-* [v] reorg: documents
-
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
-
-* [v] gdb remote server
 
 * [ ] 增加 docker note qa，并加入 test collec 中
 
@@ -766,6 +758,12 @@
 * [v] reorg: project pool
 
     13:46 ~ 14:08
+
+* [v] reorg: documents
+
+    21:13 ~ 21:33
+
+* [v] reorg: project pool
 
 ## qa
 
@@ -815,25 +813,9 @@ cached:
 
 Tasks:
 
-* 在 vim 中根据正则表达式搜索指定索引所在的位置
-
-* [ ] 为 qa 工具增加`--list`功能
-
-* [ ] 修复 bug:
-
-    `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
-
-* [v] qa 4 units 05/03
-
-    答对题数：2/4
-
 * [v] 增加 linux driver qa:
 
     配置 vscode 的内核驱动开发环境
-
-* [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
-
-* [ ] 调研 qa unit 中 dep 功能
 
 * [v] qa: 2 units 10.28
 
@@ -843,13 +825,27 @@ Tasks:
 
     正确率：1/2
 
-* [v] qa 1 unit  10.14
+* 在 vim 中根据正则表达式搜索指定索引所在的位置
+
+* [ ] 为 qa 工具增加`--list`功能
+
+* [ ] 修复 bug:
+
+    `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
+
+* [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
+
+* [ ] 调研 qa unit 中 dep 功能
 
 * [v] qa 2 unit
 
     feedback:
 
     1. 假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
+
+* [v] qa: 2 unit
+
+    答对数目：0/2
 
 ## cache tabs / process urls
 
@@ -891,13 +887,11 @@ Tasks:
 
     3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
 
+* [ ] 调研 bash 的数组
+
+    使用 for 循环打印字符串数组中的所有单词，每个单词一行
+
 * [v] sync bash
-
-    feedback:
-
-    1. 调研 bash 的数组
-
-        使用 for 循环打印字符串数组中的所有单词，每个单词一行
 
 * [o] process 1 url 10.09
 
@@ -922,14 +916,6 @@ Tasks:
         那么只能删减一个 world。
         
         该如何删减全部的两个 world？
-
-* [v] cache tabs 10.09
-
-* [v] cache tabs 10.10
-
-* [v] cache tabs 10.11
-
-* [v] cache tabs 10.14
 
 * [v] cache tabs 10.23
 
@@ -1045,8 +1031,6 @@ tasks:
 
 * [ ] 调研 三维的 Swiss Roll
 
-* [v] 调研《Python机器学习》
-
 * [v] 尝试使用 python + numpy 实现一个感知器函数
 
 * [ ] 调研论文 The Perceptron,a Perceiving and Recognizing Automaton
@@ -1076,8 +1060,6 @@ tasks:
     4. 调研 Stephen Boyd - 《Convex Optimization》
 
 * [ ] 调研证明书上给出的优化方法和求导法本质上相同
-
-* [v] 调研《Python机器学习》
 
 ## Mathematics
 
@@ -1303,6 +1285,56 @@ tasks:
 
     4. 可以先禁用 mellanox，排除干扰因素，再仔细追一下 nvlink p2p 和 pcie p2p 的不同
 
+* [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
+
+    feedback:
+
+    1. 设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
+
+    2. 如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
+
+        启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
+
+    3. `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
+
+    4. 仔细单步调了一下，看不出来 nvlink 的 p2p 和 pcie 的 p2p 有什么不一样。线索中断了。
+
+* [v] 调研 openshmem app
+
+* [v] cache tabs
+
+    feedback:
+
+    * cached tabs
+
+        * Unified Communication X
+
+            <https://openucx.org/>
+
+            <https://github.com/openucx>
+
+        * OpenFAM（fabric-attached memory）介绍
+
+            <https://zhuanlan.zhihu.com/p/665471217>
+
+        * Memory Sharing with CXL: Hardware and Software Design Approaches——论文阅读
+
+            <https://zhuanlan.zhihu.com/p/694498989>
+
+        * osss-ucx
+
+            <https://github.com/openshmem-org/osss-ucx/>
+
+        * Welcome to OpenSHMEM 
+
+            <http://openshmem.org/site/>
+
+            <https://github.com/openshmem-org>
+
+        * UCX学习(一)
+
+            <https://zhuanlan.zhihu.com/p/710878933>
+
 ## HPC comm
 
 * [v] 调研 pci host bridge
@@ -1364,6 +1396,10 @@ tasks:
     8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
 
         <https://blog.csdn.net/xiaoshengsinian/article/details/130151878?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ECtr-1-130151878-blog-140669886.235%5Ev43%5Epc_blog_bottom_relevance_base4&utm_relevant_index=1>
+
+## 概率图 Probability Graph
+
+* { } sync 贝叶斯网
 
 ## rdma
 
