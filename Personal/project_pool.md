@@ -765,6 +765,22 @@
 
 * [v] reorg: project pool
 
+* [v] reorg: documents 30 mins 11.07
+
+    10:48 ~ 11:00
+
+    feedback:
+
+    1. [ ] 增加一项功能：是否答对，并将结果记录到 qa 中。
+
+        如果一个 unit 答对的频率较高，那么它被选择的概率变小。
+
+        如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
+
+* [v] reorg: project pool 30 mins
+
+    10:04 ~ 10:34
+
 ## qa
 
 cached:
@@ -846,6 +862,10 @@ Tasks:
 * [v] qa: 2 unit
 
     答对数目：0/2
+
+* [v] qa: 2 unit 11.07
+
+    答对题数：2 / 2
 
 ## cache tabs / process urls
 
@@ -1004,6 +1024,8 @@ Tasks:
 * [v] process 1 urls  10.29
 
     14:03 ~ 14:19
+
+* [v] cache tabs 11.07
 
 ## markdown renderer
 
@@ -1334,6 +1356,8 @@ tasks:
         * UCX学习(一)
 
             <https://zhuanlan.zhihu.com/p/710878933>
+
+* [v] 调研 openshmem app
 
 ## HPC comm
 

@@ -6304,3 +6304,75 @@
 * Enable GPU access with Docker Compose
 
     <https://docs.docker.com/compose/how-tos/gpu-support/>
+
+* Project Name: PNNL HPDA Sparse-BLAS
+
+    <https://github.com/pnnl/s-blas>
+
+* Kokkos Remote Spaces
+
+    <https://github.com/kokkos/kokkos-remote-spaces>
+
+* A multi-level tensor algebra superoptimizer 
+
+    <https://github.com/mirage-project/mirage>
+
+* This repository is used to store the CUDA lab codes for the course "Hetegeneous Parallel Programming". 
+
+    <https://github.com/RuinanLin/hetegeneous_parallel_programming>
+
+* TensorRT-LLM provides users with an easy-to-use Python API to define Large Language Models (LLMs) and build TensorRT engines t
+
+    <https://github.com/NVIDIA/TensorRT-LLM/tree/f6821ee393be6ec92234f9bb47a4b09f6738050b>
+
+* The Berkeley Container Library 
+
+    <https://github.com/berkeley-container-library/bcl>
+
+* nvshmem-db
+
+    <https://github.com/TheCodeinator/nvshmem-db>
+
+* ATOS: Multi-GPU dynamic scheduler using PGAS style cross-GPU communication 
+
+    <https://github.com/owensgroup/ATOS>
+
+* Flux: Flux is a fast communication-overlapping library for tensor parallelism on GPUs.
+
+    <https://github.com/bytedance/flux>
+
+* SC24 Tutorial: Efficient Distributed GPU Programming for Exascale
+
+    <https://github.com/FZJ-JSC/tutorial-multi-gpu>
+
+* Apache TVM is a compiler stack for deep learning systems. 
+
+    <https://github.com/apache/tvm>
+
+* Remote debugging with GDB
+
+    <https://developers.redhat.com/blog/2015/04/28/remote-debugging-with-gdb>
+
+* Remote GDB debugging
+
+    <https://stackoverflow.com/questions/3512961/remote-gdb-debugging>
+
+* ROC_SHMEM intra-kernel networking runtime for AMD dGPUs on the ROCm platform. 
+
+    <https://github.com/ROCm/ROC_SHMEM>
+
+* Unified Collective Communication Library 
+
+    <https://github.com/openucx/ucc>
+
+* openshmem examples
+
+    <https://github.com/openshmem-org/openshmem-examples>
+
+    虽然 star 不多，但大部分都能跑通
+
+* Multi GPU Programming Models
+
+    This project implements the well known multi GPU Jacobi solver with different multi GPU Programming Models
+
+    <https://github.com/NVIDIA/multi-gpu-programming-models>
