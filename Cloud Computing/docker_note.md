@@ -20,6 +20,16 @@ password: hlc695230
 
 ## cache
 
+* docker 配置代理
+
+    `/etc/systemd/system/docker.service.d/http-proxy.conf`:
+
+    ```conf
+    [Service]
+    Environment="HTTP_PROXY=http://192.168.56.1:10809"
+    Environment="HTTPS_PROXY=http://192.168.56.1:10809"
+    ```
+
 * docker build 时添加代理的两种方式
 
     * 直接在命令里加

@@ -30,6 +30,54 @@
 
 ## cache
 
+* c 语言中 static 全局变量和不加 static 的全局变量有什么不同？
+
+* `stdio.h`中的`puts(char *msg)`可以打印一个字符串并自动换行。
+
+* 笔记与中间结果
+
+    有些需要记录的内容明显是中间结果而不是笔记，如果把中间结果当成笔记来记，那么在归类的时候就不知道该把归类到什么地方去。
+
+    中间过程只是记录，不是结论，因此很难复用。这些不应该出现在笔记里。
+
+* [ ] 调研 pynccl 的用法
+
+* [ ] 调研 docker 中 app 的调试方法
+
+* [ ] 调研 makefile 的 submodule
+
+* [ ] 调研 diff 命令的用法
+
+* [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
+
+* vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
+
+    看起来比较重要的几段代码：
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.send(tensor, dst=self.ranks[dst])
+    ```
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.recv(tensor, src=self.ranks[src])
+    ```
+
+    ```python
+    pynccl_comm = self.pynccl_comm
+    if pynccl_comm is not None and not pynccl_comm.disabled:
+        pynccl_comm.send(tensor, dst)
+    else:
+        with xxxx
+
+    # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
+    ```
+
+* [ ] ln 是否能创建文件夹的 hard link?
+
+* [ ] 调研`ssh-add`，`ssh-agent`的作用
+
 * 对抗与平衡
 
     假如失去了两种力量的对抗，那么就失去了方向。我们选择前进，其实指的并不是失去对抗后往前乱走，而是找到了新的平衡点后，从旧的平衡点迁移到新的平衡点，在新的平衡点处继续进行对抗。
@@ -781,6 +829,16 @@
 
     10:04 ~ 10:34
 
+* [v] reorg: documents 30 mins
+
+* [v] qa 3 unit
+
+    正确率：3 / 3
+
+    feedback:
+
+    1. 本轮中不能出现选过的 unit
+
 ## qa
 
 cached:
@@ -1358,6 +1416,22 @@ tasks:
             <https://zhuanlan.zhihu.com/p/710878933>
 
 * [v] 调研 openshmem app
+
+* [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
+
+* [ ] 调研 nccl app
+
+* [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+* [ ] 调研使用`MPI_ERROR`接收未知长度数据
+
+* [v] 调研 openshmem app，尝试实现一个矩阵乘法
+
+    feedback:
+
+    1. 调研一下`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
+
+* [v] 调研 nvshmem 是否能在 224 机器上跑通
 
 ## HPC comm
 

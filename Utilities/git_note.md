@@ -2,6 +2,8 @@
 
 ## cache
 
+* git clone 支持`http_proxy`和`https_proxy`环境变量
+
 * git branch
 
     `git branch -m <branch>`: Rename the current branch to `＜branch＞`

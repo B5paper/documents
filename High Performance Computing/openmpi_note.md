@@ -2,6 +2,14 @@
 
 ## cache
 
+* mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
+
+* mpirun 使用 hostname 和 ip addr 的两个注意事项
+
+    * 如果使用 hostname，那么是去`~/.ssh/config`文件中找对应的配置，连接 ssh 
+
+    * 如果使用 ip addr，那么 route 的路由顺序不对可能会导致无法连通
+
 * 一个动态分配内存的矩阵乘法 c 语言程序 demo
 
     ```c

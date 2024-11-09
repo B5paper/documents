@@ -4,6 +4,10 @@
 
 ## cache
 
+* ubuntu 24.04 virtual box 虚拟机非常不稳定，经常用着用着就突然卡死
+
+    大概率是 ubuntu 的问题。
+
 * ubuntu 给用户设置短密码
 
     `sudo passwd <username>`
