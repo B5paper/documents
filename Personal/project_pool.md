@@ -30,6 +30,14 @@
 
 ## cache
 
+* [ ] 调研 meson, ninja
+
+* 多线程调试时锁定单线程
+
+    GDB scheduler-locking 命令详解
+
+    <https://www.cnblogs.com/pugang/p/7698772.html>
+
 * c 语言中 static 全局变量和不加 static 的全局变量有什么不同？
 
 * `stdio.h`中的`puts(char *msg)`可以打印一个字符串并自动换行。
@@ -749,14 +757,6 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [v] 调研 python 中不同 path 的变体如何判断是相同 path
-
-    比如`./test`, `/home/hlc/Projects/test`, `test`, `../outside_test/test`，这些应该都等于相同的路径
-
-* [v] reorg: documents
-
-* [v] reorg: documents
-
 * [v] gdb remote server
 
 * [ ] 为 reorg 程序增加指定文件的随机一行的功能
@@ -849,8 +849,6 @@ cached:
 
 * opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
-* 在做检测时，写出 unit 出自哪里
-
 * 一个 qa 文件里所有的 unit 平分 1
 
     然后每次遇到熟悉的 unit，可以让这个 unit 的权重减少 n% (暂定 10%)，然后重新分配所有权重，总和仍然是 1
@@ -925,6 +923,8 @@ Tasks:
 
     答对题数：2 / 2
 
+* [ ] 在做检测时，写出 unit 出自哪里
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -965,11 +965,13 @@ Tasks:
 
     3. 这篇博客的思维方式也很好，先处理简单的情况，再处理 corner case，下次学习一下
 
+* [o] process 1 url  10.23
+
+    <https://cloud.tencent.com/developer/article/1805119>
+
 * [ ] 调研 bash 的数组
 
     使用 for 循环打印字符串数组中的所有单词，每个单词一行
-
-* [v] sync bash
 
 * [o] process 1 url 10.09
 
@@ -995,89 +997,7 @@ Tasks:
         
         该如何删减全部的两个 world？
 
-* [v] cache tabs 10.23
-
-    cached tabs:
-
-    * what is load-store communication model in PCIe?
-    
-        <https://electronics.stackexchange.com/questions/527587/what-is-load-store-communication-model-in-pcie>
-
-    * scale up域的拓扑
-
-        <https://zhuanlan.zhihu.com/p/708991795>
-
-    * 片间互联学习
-
-        <https://zhuanlan.zhihu.com/p/1417863271>
-
-    * scale up/out语义的特点
-
-        <https://zhuanlan.zhihu.com/p/708996966>
-
-    * RISC-V指令集讲解（6）load/store指令
-
-        <https://zhuanlan.zhihu.com/p/394876584>
-
-    * NVidia GPU指令集架构-寄存器
-
-        <https://zhuanlan.zhihu.com/p/688616037>
-
-    * AI System & AI Infra
-
-        <https://github.com/chenzomi12/AISystem>
-
-    * NVSHMEM: OPENSHMEM FOR GPU-CENTRIC COMMUNICATION
-
-        <http://www.openshmem.org/site/sites/default/site_files/SC2017-BOF-NVIDIA.pdf>
-
-    * NVIDIA NVSHMEM
-
-        <https://docs.nvidia.com/nvshmem/index.html>
-
-    * Introduction to Clos Network
-
-        <https://web.stanford.edu/class/ee384y/Handouts/clos_networks.pdf>
-
-    * Can You Really Compare Clos to Chassis when running AI applications? 
-
-        <https://drivenets.com/blog/can-you-really-compare-clos-to-chassis-when-running-ai-applications/>
-
-    * Infinity Fabric (IF) - AMD 
-
-        <https://en.wikichip.org/wiki/amd/infinity_fabric>
-
-    * Meta Lingua: a lean, efficient, and easy-to-hack codebase to research LLMs. 
-
-        <https://github.com/facebookresearch/lingua>
-
-    * How to debug the Linux kernel with GDB and QEMU?
-
-        <https://stackoverflow.com/questions/11408041/how-to-debug-the-linux-kernel-with-gdb-and-qemu>
-
-    * GDB+QEMU调试内核模块(实践篇)
-
-        <https://www.cnblogs.com/powerrailgun/p/12161295.html>
-
-    * qemu debug 输出 qemu gdb调试
-
-        <https://blog.51cto.com/u_16213559/11347864>
-
-    * 在qemu平台使用gdb调试程序
-
-        <https://blog.csdn.net/weixin_42031299/article/details/135028500>
-
-* [o] process 1 url  10.23
-
-    <https://cloud.tencent.com/developer/article/1805119>
-
-    Deps:
-
-    1. 建立 bash note qa
-
-* [v] cache tabs  10.29
-
-    13:39 ~ 13:55
+* [ ] 建立 bash note qa
 
 * [v] process 1 urls  10.29
 
@@ -1209,6 +1129,40 @@ tasks:
 
 * vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
 
+* `ncclTransports`在五处地方被使用
+
+    1. `proxyConnInit()`未被调用
+
+    2. `proxyFree()`：未调用
+
+    3. `ncclProxyConnect()`：未调用
+
+    4. `selectTransport()`：调用
+
+    5. `ncclTopoComputePaths()`
+
+    说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+    猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+* 实体机上可以跑通 p2p
+
+    两种模式都可以跑通：
+
+    1. P2P/CUMEM/CE
+
+    2. P2P/direct pointer
+
+    跑不通的模式：
+
+    1. SHM/direct/direct
+
+    在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
+
+* cuda 12.4 在编译的时候必须使用 compute 80，使用 compute 70 无法正常运行
+
+    好像 compute 70, 80, 90 分别对应三种不同的 nv gpu 架构。
+
 ### tasks
 
 * [ ] 调研 tenstorrent
@@ -1230,22 +1184,6 @@ tasks:
         4. nvlink
 
 * [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
-
-    feedback:
-
-    2. 实体机上可以跑通 p2p
-
-        两种模式都可以跑通：
-
-        1. P2P/CUMEM/CE
-
-        2. P2P/direct pointer
-
-        跑不通的模式：
-
-        1. SHM/direct/direct
-
-        在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
 
 * [v] 调研 nccl p2p
 
@@ -1317,14 +1255,6 @@ tasks:
 
     feedback:
 
-    1. 官网<http://openshmem.org/site/>
-
-    2. openmpi doc 中的 openshmem 部分
-
-        <https://docs.open-mpi.org/en/main/man-openshmem/man3/OpenSHMEM.3.html>
-
-        看到了 put, get，没有看到 load, store。
-
     3. Manage Your Memory Address Space with OpenSHMEM*
 
         <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
@@ -1354,16 +1284,6 @@ tasks:
     7. 关于 openshmem 报错问题，可以试下 ubuntu 22.04 系统
 
 * [v] 调研 gdb 远程调试 nccl
-
-    feedback:
-
-    1. cuda 12.4 在编译的时候必须使用 compute 80，使用 compute 70 无法正常运行
-
-    2. 224 机器的 nccl 调用了 ibv 相关的函数，为什么？
-
-    3. 224 机器的 nvlink p2p 流程似乎和 pcie p2p 差不多，目前看不出来有什么不一样
-
-    4. 可以先禁用 mellanox，排除干扰因素，再仔细追一下 nvlink p2p 和 pcie p2p 的不同
 
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
 
@@ -1425,11 +1345,9 @@ tasks:
 
 * [ ] 调研使用`MPI_ERROR`接收未知长度数据
 
+* [ ] 调研一下`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
+
 * [v] 调研 openshmem app，尝试实现一个矩阵乘法
-
-    feedback:
-
-    1. 调研一下`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
 * [v] 调研 nvshmem 是否能在 224 机器上跑通
 
@@ -1438,22 +1356,6 @@ tasks:
 * [v] 调研 pci host bridge
 
     feedback:
-
-    4. `ncclTransports`在五处地方被使用
-    
-        1. `proxyConnInit()`未被调用
-
-        2. `proxyFree()`：未调用
-
-        3. `ncclProxyConnect()`：未调用
-
-        4. `selectTransport()`：调用
-
-        5. `ncclTopoComputePaths()`
-
-        说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
-
-        猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
 
     5. cached tabs
 
@@ -1484,12 +1386,6 @@ tasks:
         * NCCL的不足，集合通信库初步调研 NCCL、BCCL、TCCL、ACCL、HCCL
 
             <https://blog.csdn.net/lianghuaju/article/details/139470668>
-
-    7. 多线程调试时锁定单线程
-
-        GDB scheduler-locking 命令详解
-
-        <https://www.cnblogs.com/pugang/p/7698772.html>
 
     8. gdb+vscode进行调试12——使用gdb调试多线程 如何实现只对某个线程断点，其他线程正常运行
 
@@ -1823,9 +1719,13 @@ tasks:
 
     <https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/31/vfio-passthrough>
 
-### task
+* 如果在编译内核时使用 ctrl + C 或者关机强制中断，那么第二次继续编译的时候有可能会编译不通过，此时可以`make clean -f`，再去编译就好了。
 
-* [v] 调研 pci device passthrough in qemu
+* 使用自己编译的 6.8.0 内核后，使用`qemu-system-x86-64`启动虚拟机时，使用`-vga std`或`-vga virtio`都可以启动起来，但是会黑屏几分钟。
+
+    看起来像是内核在等什么东西，目前不清楚。
+
+### task
 
 * [v] 公司电脑开启 kvm feature
 
@@ -1865,27 +1765,11 @@ tasks:
 
     feedback:
 
-    1. 如果在编译内核时使用 ctrl + C 或者关机强制中断，那么第二次继续编译的时候有可能会编译不通过，此时可以`make clean -f`，再去编译就好了。
-
-    2. 使用自己编译的 6.8.0 内核后，使用`qemu-system-x86-64`启动虚拟机时，使用`-vga std`或`-vga virtio`都可以启动起来，但是会黑屏几分钟。
-
-        看起来像是内核在等什么东西，目前不清楚。
-
     3. 可以调研下内核源码中 menuconfig 中有什么支持 vga 的选项
 
 ## 分布式计算调研
 
 tasks:
-
-* [p] 调研分布式计算，MPI，grpc
-
-	dependency:
-
-	1. [v] 重装系统，安装 virtual box
-
-	1. [v] 创建一些虚拟机
-
-* [v] 调研 nccl
 
 * [ ] 调研 mpi 如何给不同的 node 配置不同的环境变量？
 
@@ -1894,6 +1778,10 @@ tasks:
 cache:
 
 * 调研算子的优化
+
+* 无论是 windows 还是 ubuntu，rgp 都无法正常启动。
+
+    尝试了各种 app，rgp 都无法 capture profiling。
 
 tasks:
 
@@ -1920,12 +1808,6 @@ tasks:
     看看用法，跑一些渲染，ai 应用，尝试性能改进。
 
 * [v] 调研 rgp
-
-    feedback:
-
-    1. 无论是 windows 还是 ubuntu，rgp 都无法正常启动。
-
-        尝试了各种 app，rgp 都无法 capture profiling。
 
 * [ ] 调研 glx
 
@@ -1989,10 +1871,6 @@ resources:
 
     * Microkernels 的 os 都有哪些？
 
-* [v] virt: 调研虚拟机带负载强制关机再重启后的卡死问题
-
-    主要看各个 buffer 是否有残留
-
 * [v] 调研中断的处理过程
 
     猜想：如果虚拟机卡死，那么一定存在一个命令发送完后，接收不到下一个中断
@@ -2052,7 +1930,6 @@ Tasks:
 * [ ] 解释 3.2 预测分析和递归下降
 
 * [ ] 调研，3.2.2 构造一个预测分析器
-
 
 ## Vulkan 学习 [0]
 
@@ -2296,10 +2173,6 @@ cache:
     如果既需要知道某个 node 有哪些边，又需要快速查询两个 node 之间是否相连，可以同时使用这两种结构。
 
 tasks:
-
-* [v] 做一道图论题
-
-* [v] 调研算法 resource
 
 * [v] 调研《fundamentals of computer algorithms》
 
@@ -2738,12 +2611,6 @@ cache:
 
 1. 调研 modprobe 和 depmod 的作用，并写代码实践
 
-## 调研 meson, ninja
-
-
-
-## 微积分
-
 ## C/C++
 
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
@@ -2827,7 +2694,6 @@ cache:
 tasks:
 
 * [v] python regular expression sync
-
 
 
 ## 其他

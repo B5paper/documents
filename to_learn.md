@@ -6376,3 +6376,71 @@
     This project implements the well known multi GPU Jacobi solver with different multi GPU Programming Models
 
     <https://github.com/NVIDIA/multi-gpu-programming-models>
+
+* what is load-store communication model in PCIe?
+
+    <https://electronics.stackexchange.com/questions/527587/what-is-load-store-communication-model-in-pcie>
+
+* scale up域的拓扑
+
+    <https://zhuanlan.zhihu.com/p/708991795>
+
+* 片间互联学习
+
+    <https://zhuanlan.zhihu.com/p/1417863271>
+
+* scale up/out语义的特点
+
+    <https://zhuanlan.zhihu.com/p/708996966>
+
+* RISC-V指令集讲解（6）load/store指令
+
+    <https://zhuanlan.zhihu.com/p/394876584>
+
+* NVidia GPU指令集架构-寄存器
+
+    <https://zhuanlan.zhihu.com/p/688616037>
+
+* AI System & AI Infra
+
+    <https://github.com/chenzomi12/AISystem>
+
+* NVSHMEM: OPENSHMEM FOR GPU-CENTRIC COMMUNICATION
+
+    <http://www.openshmem.org/site/sites/default/site_files/SC2017-BOF-NVIDIA.pdf>
+
+* NVIDIA NVSHMEM
+
+    <https://docs.nvidia.com/nvshmem/index.html>
+
+* Introduction to Clos Network
+
+    <https://web.stanford.edu/class/ee384y/Handouts/clos_networks.pdf>
+
+* Can You Really Compare Clos to Chassis when running AI applications? 
+
+    <https://drivenets.com/blog/can-you-really-compare-clos-to-chassis-when-running-ai-applications/>
+
+* Infinity Fabric (IF) - AMD 
+
+    <https://en.wikichip.org/wiki/amd/infinity_fabric>
+
+* Meta Lingua: a lean, efficient, and easy-to-hack codebase to research LLMs. 
+
+    <https://github.com/facebookresearch/lingua>
+
+* How to debug the Linux kernel with GDB and QEMU?
+
+    <https://stackoverflow.com/questions/11408041/how-to-debug-the-linux-kernel-with-gdb-and-qemu>
+
+* GDB+QEMU调试内核模块(实践篇)
+
+    <https://www.cnblogs.com/powerrailgun/p/12161295.html>
+
+* qemu debug 输出 qemu gdb调试
+
+    <https://blog.51cto.com/u_16213559/11347864>
+
+* 在qemu平台使用gdb调试程序
+
+    <https://blog.csdn.net/weixin_42031299/article/details/135028500>

@@ -4,6 +4,10 @@
 
     <https://docs.open-mpi.org/en/v5.0.x/man-openshmem/man3/index.html>
 
+    <https://docs.open-mpi.org/en/main/man-openshmem/man3/OpenSHMEM.3.html>
+
+* 官网: <http://openshmem.org/site/>
+
 ## cache
 
 * openshmem example: broadcast
