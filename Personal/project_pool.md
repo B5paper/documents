@@ -30,6 +30,8 @@
 
 ## cache
 
+* [v] 调研使用 vscode 的 gdb pipe 使用方法
+
 * [ ] 调研 meson, ninja
 
 * 多线程调试时锁定单线程
@@ -759,7 +761,7 @@
 
 * [v] gdb remote server
 
-* [ ] 为 reorg 程序增加指定文件的随机一行的功能
+* [v] 为 reorg 程序增加指定文件的随机一行的功能
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
@@ -838,6 +840,14 @@
     feedback:
 
     1. 本轮中不能出现选过的 unit
+
+* [v] reorg projects 30 mins 11.10
+
+* [x] 调研《github入门与实践》
+
+    feedback:
+
+    1. 找不到 pdf 文件在哪...
 
 ## qa
 
@@ -969,9 +979,13 @@ Tasks:
 
     <https://cloud.tencent.com/developer/article/1805119>
 
-* [ ] 调研 bash 的数组
+* [v] 调研 bash 的数组
 
     使用 for 循环打印字符串数组中的所有单词，每个单词一行
+
+    feedback:
+
+    1. 调研 bash array <https://www.gnu.org/software/bash/manual/html_node/Arrays.html>
 
 * [o] process 1 url 10.09
 
@@ -1060,6 +1074,14 @@ tasks:
     4. 调研 Stephen Boyd - 《Convex Optimization》
 
 * [ ] 调研证明书上给出的优化方法和求导法本质上相同
+
+* [v] 调研《Python机器学习》 11.10
+
+    feedback:
+
+    1. 看到 P54
+
+    2. 不清楚为什么`self.w_ = np.zeros(1 + X.shape[1])`要`1 +`。
 
 ## Mathematics
 
@@ -1350,6 +1372,8 @@ tasks:
 * [v] 调研 openshmem app，尝试实现一个矩阵乘法
 
 * [v] 调研 nvshmem 是否能在 224 机器上跑通
+
+* [ ] 调研 nccl p2p 的调用流程
 
 ## HPC comm
 
