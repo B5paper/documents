@@ -1375,6 +1375,8 @@ tasks:
 
 * [ ] 调研 nccl p2p 的调用流程
 
+* [v] 调研 openshmem app 11.11
+
 ## HPC comm
 
 * [v] 调研 pci host bridge
