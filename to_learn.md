@@ -6444,3 +6444,31 @@
 * 在qemu平台使用gdb调试程序
 
     <https://blog.csdn.net/weixin_42031299/article/details/135028500>
+
+* Unified Communication X
+
+    <https://openucx.org/>
+
+    <https://github.com/openucx>
+
+* OpenFAM（fabric-attached memory）介绍
+
+    <https://zhuanlan.zhihu.com/p/665471217>
+
+* Memory Sharing with CXL: Hardware and Software Design Approaches——论文阅读
+
+    <https://zhuanlan.zhihu.com/p/694498989>
+
+* osss-ucx
+
+    <https://github.com/openshmem-org/osss-ucx/>
+
+* Welcome to OpenSHMEM 
+
+    <http://openshmem.org/site/>
+
+    <https://github.com/openshmem-org>
+
+* UCX学习(一)
+
+    <https://zhuanlan.zhihu.com/p/710878933>

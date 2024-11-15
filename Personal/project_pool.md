@@ -1185,7 +1185,13 @@ tasks:
 
     好像 compute 70, 80, 90 分别对应三种不同的 nv gpu 架构。
 
+* 50 机器物理机上仍需要在`paths.cc`文件中的`ncclTopoCheckP2p()`函数里添加`path->type = PATH_PIX;`，重新编译 nccl，才能使用 pcie p2p，否则只设置 nccl 环境变量无法跑通 p2p.
+
+    同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
+
 ### tasks
+
+* [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
 
 * [ ] 调研 tenstorrent
 
@@ -1205,55 +1211,13 @@ tasks:
 
         4. nvlink
 
-* [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
-
 * [v] 调研 nccl p2p
 
     feedback:
 
-    2. 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
-
-        nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
-
-        1. thread 79, g = 0, p = 1
-
-        2. thread 80, g = 0, p = 1
-
-        3. thread 79, g = 1, p = 0
-
-        4. thread 80, g = 1, p = 0
-
-        5. thread 79, g = 0, p = 1
-
-            这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
-
-        6. thread 80, g = 0, p = 1
-
-        7. thread 79, g = 1, p = 0
-
-        8. thread 80, g = 1, p = 0
-
-        9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
-
-        10. thread 37, 
-
-        11. thread 37, c = 1
-
-        12. thread 36, c = 1
-
-        13. thread 36, c = 0
-
-            从这里开始，调用`selectTransport<1>()`
-
-        14. thread 37, c = 0
-
-        15. thread 36, c = 1
-
-        16. thread 37, c = 1
-
     3. c 为什么会从 0 循环到 1？
 
-        因为`sendMask ＝ 3`，只有低 2 位为 1.
+        因为`sendMask = 3`，只有低 2 位为 1.
 
         看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
 
@@ -1266,12 +1230,6 @@ tasks:
         `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
 
 * [v] 调研 50 机器上的 nccl 调试
-
-    feedback:
-
-    1. 50 机器物理机上仍需要在`paths.cc`文件中的`ncclTopoCheckP2p()`函数里添加`path->type = PATH_PIX;`，重新编译 nccl，才能使用 pcie p2p，否则只设置 nccl 环境变量无法跑通 p2p.
-
-        同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
 * [v] 调研 openshmem
 
@@ -1303,8 +1261,6 @@ tasks:
 
         看来 osh 就是 shmem 的简称？
 
-    7. 关于 openshmem 报错问题，可以试下 ubuntu 22.04 系统
-
 * [v] 调研 gdb 远程调试 nccl
 
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
@@ -1325,39 +1281,11 @@ tasks:
 
 * [v] cache tabs
 
-    feedback:
-
-    * cached tabs
-
-        * Unified Communication X
-
-            <https://openucx.org/>
-
-            <https://github.com/openucx>
-
-        * OpenFAM（fabric-attached memory）介绍
-
-            <https://zhuanlan.zhihu.com/p/665471217>
-
-        * Memory Sharing with CXL: Hardware and Software Design Approaches——论文阅读
-
-            <https://zhuanlan.zhihu.com/p/694498989>
-
-        * osss-ucx
-
-            <https://github.com/openshmem-org/osss-ucx/>
-
-        * Welcome to OpenSHMEM 
-
-            <http://openshmem.org/site/>
-
-            <https://github.com/openshmem-org>
-
-        * UCX学习(一)
-
-            <https://zhuanlan.zhihu.com/p/710878933>
-
 * [v] 调研 openshmem app
+
+* [v] 调研 openshmem app，尝试实现一个矩阵乘法
+
+* [v] 调研 nvshmem 是否能在 224 机器上跑通
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
 
@@ -1369,13 +1297,25 @@ tasks:
 
 * [ ] 调研一下`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
-* [v] 调研 openshmem app，尝试实现一个矩阵乘法
-
-* [v] 调研 nvshmem 是否能在 224 机器上跑通
-
 * [ ] 调研 nccl p2p 的调用流程
 
 * [v] 调研 openshmem app 11.11
+
+* [v] openshmem 尝试实现 4 pe 矩阵乘法
+
+* [v] 调研 shmem 全程多进程收发数据的矩阵乘法，并测速
+
+    feedback:
+
+    1. 在服务器上部署环境，再次测速，避免笔记本cpu降频的干扰
+
+* [v] 调研跑通 nvshmem example
+
+    feedback:
+
+    1. 调研 nvshmem API，重点看 n_pes 相关的函数和说明
+
+* [v] 调研 mpi 实现矩阵乘法
 
 ## HPC comm
 

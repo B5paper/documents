@@ -2,6 +2,46 @@
 
 ## cache
 
+* 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
+
+    nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
+
+    1. thread 79, g = 0, p = 1
+
+    2. thread 80, g = 0, p = 1
+
+    3. thread 79, g = 1, p = 0
+
+    4. thread 80, g = 1, p = 0
+
+    5. thread 79, g = 0, p = 1
+
+        这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
+
+    6. thread 80, g = 0, p = 1
+
+    7. thread 79, g = 1, p = 0
+
+    8. thread 80, g = 1, p = 0
+
+    9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
+
+    10. thread 37, 
+
+    11. thread 37, c = 1
+
+    12. thread 36, c = 1
+
+    13. thread 36, c = 0
+
+        从这里开始，调用`selectTransport<1>()`
+
+    14. thread 37, c = 0
+
+    15. thread 36, c = 1
+
+    16. thread 37, c = 1
+
 * 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
 
     修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
