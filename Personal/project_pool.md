@@ -1279,10 +1279,6 @@ tasks:
 
 * [v] 调研 openshmem app
 
-* [v] cache tabs
-
-* [v] 调研 openshmem app
-
 * [v] 调研 openshmem app，尝试实现一个矩阵乘法
 
 * [v] 调研 nvshmem 是否能在 224 机器上跑通
@@ -1298,8 +1294,6 @@ tasks:
 * [ ] 调研一下`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
 * [ ] 调研 nccl p2p 的调用流程
-
-* [v] 调研 openshmem app 11.11
 
 * [v] openshmem 尝试实现 4 pe 矩阵乘法
 
