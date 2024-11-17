@@ -4,6 +4,10 @@
 
 ## cache
 
+* 下载 ubuntu 时选择 Alternative downloads -> Other images and mirrors -> All Ubuntu mirrors 可以列出所有的镜像网站
+
+    国内镜像南京大学的速度挺不错的。拉满可以到 5.5 MB/s。
+
 * ubuntu 24.04 virtual box 虚拟机非常不稳定，经常用着用着就突然卡死
 
     大概率是 ubuntu 的问题。

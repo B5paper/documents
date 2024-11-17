@@ -2,6 +2,164 @@
 
 ## cache
 
+* mpi 实现的矩阵乘法
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+    #include <openmpi/mpi.h>
+    #include <stdlib.h>
+    #include "../shmem_matmul/matmul.h"
+    #include "../shmem_matmul/timeit.h"
+    #include <memory.h>
+
+    int main()
+    {
+        MPI_Init(NULL, NULL);
+
+        int ret;
+
+        int world_size;
+        int rank;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        int mat_N = 2048;
+        if (mat_N % world_size != 0)
+        {
+            printf("mat_N %% world_size != 0\n");
+            return -1;
+        }
+
+        int *A = malloc(mat_N * mat_N * sizeof(int));
+        int *B = malloc(mat_N * mat_N * sizeof(int));
+        int *C = malloc(mat_N * mat_N * sizeof(int));
+        int *C_ref = malloc(mat_N * mat_N * sizeof(int));
+
+        for (int i = 0; i < mat_N; ++i)
+        {
+            for (int j = 0; j < mat_N; ++j)
+            {
+                A[i * mat_N + j] = rand() % 5;
+                B[i * mat_N + j] = rand() % 5;
+            }
+        }
+
+        // if (rank == 0)
+        // {
+        //     printf("rank 0, A:\n");
+        //     for (int i = 0; i < mat_N; ++i)
+        //     {
+        //         for (int j = 0; j < mat_N; ++j)
+        //         {
+        //             printf("%d, ", A[i * mat_N + j]);
+        //         }
+        //         printf("\n");
+        //     }
+        // }
+        // MPI_Barrier(MPI_COMM_WORLD);
+
+        int A_rank_nrows = mat_N / world_size;
+
+        int *A_rank = malloc(A_rank_nrows * mat_N * sizeof(int));
+        int *B_rank = malloc(mat_N * mat_N * sizeof(int));
+        int *C_rank = malloc(A_rank_nrows * mat_N * sizeof(int));
+
+        timeit(TIMEIT_START, NULL);
+        MPI_Scatter(A, A_rank_nrows * mat_N, MPI_INT, A_rank, A_rank_nrows * mat_N, MPI_INT, 0, MPI_COMM_WORLD);
+        // if (rank == 0)
+        //     memcpy(A_rank, A, A_rank_nrows * mat_N * sizeof(int));
+
+        if (rank == 0)
+            MPI_Bcast(B, mat_N * mat_N, MPI_INT, 0, MPI_COMM_WORLD);
+        else
+            MPI_Bcast(B_rank, mat_N * mat_N, MPI_INT, 0, MPI_COMM_WORLD);
+        if (rank == 0)
+            memcpy(B_rank, B, mat_N * mat_N * sizeof(int));
+
+        // printf("rank %d, A_rank: %d, %d, %d, %d, %d, %d, %d, %d\n", rank, A_rank[0], A_rank[1], A_rank[2], A_rank[3], A_rank[4], A_rank[5], A_rank[6], A_rank[7]);
+
+        matmul_i32(A_rank, B_rank, C_rank, A_rank_nrows, mat_N, mat_N);
+
+        // MPI_Gather(A_rank, A_rank_nrows * mat_N, MPI_INT, A, A_rank_nrows * mat_N, MPI_INT, 0, MPI_COMM_WORLD);
+        // MPI_Gather(B_rank, mat_N * mat_N, MPI_INT, B, mat_N * mat_N, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Gather(C_rank, A_rank_nrows * mat_N, MPI_INT, C, A_rank_nrows * mat_N, MPI_INT, 0, MPI_COMM_WORLD);
+        // if (rank == 0)
+        // {
+        //     memcpy(C, C_rank, A_rank_nrows * mat_N * sizeof(int));
+        // }
+        timeit(TIMEIT_END, NULL);
+        float fsecs;
+        timeit(TIMEIT_GET_SEC, &fsecs);
+        if (rank == 0)
+            printf("mpi 4 np, calc time consumption: %.2f secs\n", fsecs);
+
+        if (rank == 0)
+        {
+            timeit(TIMEIT_START, NULL);
+            matmul_i32(A, B, C_ref, mat_N, mat_N, mat_N);
+            // printf("C_ref:\n");
+            // print_mat(C_ref, mat_N, mat_N);
+            // printf("C:\n");
+            // print_mat(C, mat_N, mat_N);
+            timeit(TIMEIT_END, NULL);
+            timeit(TIMEIT_GET_SEC, &fsecs);
+            printf("mpi 1 np, calc time consumption: %.2f secs\n", fsecs);
+        }
+        
+        if (rank == 0)
+        {
+            ret = compare_arr_i32(C, C_ref, mat_N * mat_N);
+            if (ret != 0)
+                return -1;
+            printf("all results are correct.\n");
+        }
+
+        free(A_rank);
+        free(B_rank);
+        free(C_rank);
+        free(A);
+        free(B);
+        free(C);
+        free(C_ref);
+        MPI_Finalize();
+        return 0;
+    }
+    ```
+
+    compile: `mpicc -g main.c -o main`
+
+    run: `mpirun -np 4 ./main`
+
+    output:
+
+    ```
+    mpi 4 np, calc time consumption: 29.01 secs
+    mpi 1 np, calc time consumption: 74.96 secs
+    all results are correct.
+    ```
+
+    ```
+    mpi 4 np, calc time consumption: 20.19 secs
+    mpi 1 np, calc time consumption: 108.67 secs
+    all results are correct.
+    ```
+
+    ```
+    mpi 4 np, calc time consumption: 28.73 secs
+    mpi 1 np, calc time consumption: 59.83 secs
+    all results are correct.
+    ```
+
+    看起来 mpi 也并没有好到哪去。最优数据不如 shmem，同样也不够稳定。
+
+    mpi 在跑单核时，其他核的占用率为 0，说明在阻塞等待。但是跑出来的单核性能仍然高出不使用 mpi 运行的单核程序，说明 shmem 的单核性能也不一定是受 mem io 抢占的影响。
+
+    猜想：
+
+    1. mpi 程序中不应该出现 memcpy 函数，如果能想办法不使用这个，性能应该还会再高一点。
+
 * mpi tutorial 的 github repo: <https://github.com/mpitutorial/mpitutorial/tree/gh-pages>
 
 * mpirun 使用 hostname 和 ip addr 的两个注意事项

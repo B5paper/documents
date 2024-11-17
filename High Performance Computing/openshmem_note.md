@@ -10,6 +10,693 @@
 
 ## cache
 
+* openshmem 矩阵乘法版本 2
+
+    `main.c`:
+
+    ```c
+    #include <openmpi/shmem.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include "../shmem_matmul/timeit.h"
+    #include "../shmem_matmul/matmul.h"
+
+    int main()
+    {
+        shmem_init();
+        int my_pe = shmem_my_pe();
+        int n_pes = shmem_n_pes();
+
+        int mat_N = 2048;
+        if (mat_N % n_pes != 0)
+        {
+            printf("mat_N %% n_pes != 0\n");
+            return -1;
+        }
+
+        int A_pe_nrow = mat_N / n_pes;
+
+        int *A = (int*) shmem_malloc(mat_N * mat_N * sizeof(int));
+        int *B = (int*) shmem_malloc(mat_N * mat_N * sizeof(int));
+        int *C = (int*) shmem_malloc(mat_N * mat_N * sizeof(int));
+        int *C_ref = (int*) shmem_malloc(mat_N * mat_N * sizeof(int));
+
+        if (my_pe == 0)
+        {
+            for (int i = 0; i < mat_N * mat_N; ++i)
+            {
+                A[i] = rand() % 5;
+                B[i] = rand() % 5;
+            }
+        }
+
+        int *A_pe = (int*) shmem_malloc(A_pe_nrow * mat_N * sizeof(int));
+        int *B_pe = (int*) shmem_malloc(mat_N * mat_N * sizeof(int));
+        int *C_pe = (int*) shmem_malloc(A_pe_nrow * mat_N * sizeof(int));
+
+        timeit(TIMEIT_START, NULL);
+        shmem_get32(A_pe, A + my_pe * A_pe_nrow * mat_N, A_pe_nrow * mat_N, 0);
+        shmem_get32(B_pe, B, mat_N * mat_N, 0);
+        // shmem_barrier_all();
+
+        matmul_i32(A_pe, B_pe, C_pe, A_pe_nrow, mat_N, mat_N);
+        // shmem_barrier_all();
+
+        shmem_put32(C + my_pe * A_pe_nrow * mat_N, C_pe, A_pe_nrow * mat_N, 0);
+        // shmem_barrier_all();
+        timeit(TIMEIT_END, NULL);
+        float fsecs;
+        timeit(TIMEIT_GET_SEC, &fsecs);
+        if (my_pe == 0)
+            printf("shmem 4 pe, calc time consumption: %.2f secs\n", fsecs);
+
+        if (my_pe == 0)
+        {
+            timeit(TIMEIT_START, NULL);
+            matmul_i32(A, B, C_ref, mat_N, mat_N, mat_N);
+            timeit(TIMEIT_END, NULL);
+            timeit(TIMEIT_GET_SEC, &fsecs);
+            printf("shmem 1 pe, calc time consumption: %.2f secs\n", fsecs);
+        }
+        
+        if (my_pe == 0)
+        {
+            timeit(TIMEIT_START, NULL);
+            int ret = compare_arr_i32(C, C_ref, mat_N * mat_N);
+            if (ret != 0)
+                return -1;
+            timeit(TIMEIT_END, NULL);
+            timeit(TIMEIT_GET_SEC, &fsecs);
+            printf("shmem 1 pe, check result time consumption: %.2f secs\n", fsecs);
+            printf("all results are correct.\n");
+        }
+
+        shmem_free(A_pe);
+        shmem_free(B_pe);
+        shmem_free(C_pe);
+        shmem_free(A);
+        shmem_free(B);
+        shmem_free(C);
+        shmem_free(C_ref);
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.c
+        /home/hlc/Documents/Projects/openmpi-5.0.5/bin/bin/oshcc -g main.c -o main
+
+    clean:
+        rm -f main
+    ```
+
+    run: `/home/hlc/Documents/Projects/openmpi-5.0.5/bin/bin/oshrun -np 4 ./main`
+
+    output:
+
+    ```
+    shmem 4 pe, calc time consumption: 11.19 secs
+    shmem 1 pe, calc time consumption: 139.43 secs
+    shmem 1 pe, check result time consumption: 0.01 secs
+    all results are correct.
+    ```
+
+    ```
+    shmem 4 pe, calc time consumption: 28.12 secs
+    shmem 1 pe, calc time consumption: 73.77 secs
+    shmem 1 pe, check result time consumption: 0.01 secs
+    all results are correct.
+    ```
+
+    ```
+    shmem 4 pe, calc time consumption: 12.44 secs
+    shmem 1 pe, calc time consumption: 53.05 secs
+    shmem 1 pe, check result time consumption: 0.00 secs
+    all results are correct.
+    ```
+
+    这个 example 把所有的内存都分配在 symmetric 空间，不再有单 pe 分配数据，以及单 pe 分配数据时，其他 pe 抢占内存 IO 的情况，从而不再有 app 代码的性能瓶颈。代价是申请的内存变大，会有用不到的情况。
+
+    可以看到 11.19 秒基本已经是 4 进程优化的性能极限了，说明 shmem 确实比较有潜力。
+
+    多次运行程序后，输出并不稳定，可能是笔记本电脑降频的影响。
+
+    猜想：
+
+    1. shmem 的程序会优先把 mem io 占满，如果 pe 没事可做，会不停地抢占式地 poll 状态
+
+* 尝试 pe 主动拿数据
+
+    ```c
+    #include <stdio.h>
+    #include <shmem.h>
+
+    static long data2;
+
+    int main()
+    {
+        shmem_init();
+        int my_pe = shmem_my_pe();
+        int n_pes = shmem_n_pes();
+        
+        static int *data = NULL;
+        if (my_pe == 0)
+        {
+            data = shmem_malloc(sizeof(int));
+            *data = my_pe;
+            data2 = data;
+            printf("data: %p\n", data);
+        }
+        printf("pe %d, &data2: %p\n", my_pe, &data2);
+        shmem_put64(&data2, &data2, 0, 1);
+        shmem_barrier_all();
+        printf("pe %d, data2: %p\n", my_pe, data2);
+
+        printf("pe %d, here\n", my_pe);
+        static int buf = -1;
+        // data = data2;
+        data = 0xff0000d0;
+        shmem_get32(&buf, data, 1, 0);
+
+        printf("pe %d, buf: %d\n", my_pe, buf);
+
+        if (my_pe == 0)
+        {
+            shmem_free(data);
+        }
+
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    pe 1, &data2: 0x5ba6b6c46020
+    data: 0xff0000d0
+    pe 0, &data2: 0x5afff1a88020
+    pe 0, data2: 0xff0000d0
+    pe 0, here
+    pe 0, buf: 0
+    pe 1, data2: (nil)
+    pe 1, here
+    pe 1, buf: 0
+
+    ```
+
+    输出完后，会卡住。不清楚原因。
+
+* openshmem 矩阵乘法性能测试第一版
+
+    参见`ref_31`。
+
+    output:
+
+    ```
+    shmem 4 process(es), time consumption: 24.70 secs
+    cpu 1 process, time consumption: 151.37 secs
+    result check, time consumption: 0.01 secs
+    all results are correct.
+
+    cpu 1 process, time consumption: 53.70 secs
+    ```
+
+    这个程序使用 pe 0 先将数据分发给其他 pe，然后开始计算，计算完成后，pe 0 再将数据收集回来。shmem 的 time consumption 包含了数据传输过程和计算过程。
+
+    4 核的 24.7 秒相对于单核的 53.7 秒，只提高了 2 倍速度，说明通信占用了很长时间。能否让多个 pe 主动去拿 pe 0 中的数据？
+
+    shmem 下的单进程只跑了 151 秒，时间是正常单进程的 3 倍，打开 top 后，看到在执行`if (my_pe == 0)`代码块时，其他的 3 个 pe 进程全部跑满，说明进程在主动 poll 数据，把内存 IO 占满，导致 pe 0 在处理数据时效率低下，最终导致整个程序的效率低下。 
+
+    暂时的结论：
+
+    1. shmem 对 user 的编程能力要求很高，如果 user 把 app 设计得非常得当，那么 shmem 的性能和 mpi 几乎相同。但是如果 user 的编程能力不够，app 设计得不好，那么 shmem 的下限会非常低。
+
+* 猜想：openshmem 中，main() 中的函数作为 atomic 函数。
+
+    猜想是错的。
+
+* shmem 中的 broadcast 与 collect 等函数，是每个 pe 各自执行一次，还是许多个 pe 共同执行一次？
+
+    目前看来是多个 pe 共同执行一次，因为如果执行下面的代码，程序会卡住：
+
+    ```c
+    if (me != 3)
+        shmem_collect32(arr, pe_arr, 3, 0, 0, 4, pSync);
+    ```
+
+* openshmem example: collect 64
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+    #include <string.h>
+    #include <shmem.h>
+
+    static long pSync[SHMEM_COLLECT_SYNC_SIZE];
+    static long src[4] = { 11, 12, 13, 14 };
+    #define DST_SIZE 20
+    static long dst[DST_SIZE];
+
+    int npes;
+    int me;
+
+    static void show_dst(char *tag)
+    {
+        int i;
+        printf("%8s: dst[%d/%d] =", tag, me, npes);
+        for (i = 0; i < DST_SIZE; i += 1) {
+            printf(" %ld", dst[i]);
+        }
+        printf("\n");
+    }
+
+    int main()
+    {
+        shmem_init();
+        npes = shmem_n_pes();
+        me = shmem_my_pe();
+
+        for (int i = 0; i < DST_SIZE; i++)
+            dst[i] = -1;
+
+        for (int i = 0; i < SHMEM_COLLECT_SYNC_SIZE; i += 1)
+            pSync[i] = SHMEM_SYNC_VALUE;
+
+        shmem_barrier_all();
+        shmem_collect64(dst, src, me + 1, 0, 0, npes, pSync);
+        shmem_barrier_all();
+        show_dst("AFTER");
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    AFTER: dst[2/4] = 11 11 12 11 12 13 11 12 13 14 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+    AFTER: dst[1/4] = 11 11 12 11 12 13 11 12 13 14 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+    AFTER: dst[3/4] = 11 11 12 11 12 13 11 12 13 14 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+    AFTER: dst[0/4] = 11 11 12 11 12 13 11 12 13 14 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+    ```
+
+    collect 的 64 位版本原版，其他没什么可说的，唯一需要注意的地方是这里使用的是`SHMEM_COLLECT_SYNC_SIZE`，在程序里被展开为`3`。
+
+* openshmem example: collect
+
+    ```c
+    #include <stdio.h>
+    #include <shmem.h>
+
+    #define ARR_SIZE 12
+
+    long pSync[SHMEM_BCAST_SYNC_SIZE];
+    int pe_arr[3];
+    int arr[ARR_SIZE];
+
+    int main()
+    {
+        shmem_init();
+        int npes = shmem_n_pes();
+        int me = shmem_my_pe();
+
+        for (int i = 0; i < ARR_SIZE; ++i)
+            arr[i] = -1;
+
+        for (int i = 0; i < 3; ++i)
+            pe_arr[i] = me * 3 + i;
+            
+        for (int i = 0; i < SHMEM_BCAST_SYNC_SIZE; i += 1)
+            pSync[i] = SHMEM_SYNC_VALUE;
+        shmem_barrier_all();
+
+        for (int i = 0; i < npes; ++i)
+        {
+            if (me == i)
+            {
+                printf("before collect, pe %d: ", me);
+                for (int j = 0; j < 12; ++j)
+                    printf("%d, ", arr[j]);
+                putchar('\n');
+            }
+        }
+        shmem_barrier_all();
+
+        shmem_collect32(arr, pe_arr, 3, 0, 0, 4, pSync);
+
+        for (int i = 0; i < npes; ++i)
+        {
+            if (me == i)
+            {
+                printf("after collect, pe %d: ", me);
+                for (int j = 0; j < 12; ++j)
+                    printf("%d, ", arr[j]);
+                putchar('\n');
+            }
+        }
+
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    compile: `oshcc -g main.c -o main`
+
+    run: `oshrun -np 4 ./main`
+
+    output:
+
+    ```
+    before collect, pe 0: -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+    before collect, pe 3: -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+    after collect, pe 3: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+    after collect, pe 0: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+    before collect, pe 1: -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+    after collect, pe 1: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+    before collect, pe 2: -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+    after collect, pe 2: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+    ```
+
+    这个程序申请了个总数组`arr`，一共放 12 个数据。然后每个 pe 都申请了一个小数组`pe_arr`，放 3 个数据。这个程序一共起 4 个 pe，目标是用 collect 函数把每个 pe 的 3 个数据收集到`arr`中。
+
+    注意在`collect32()`中，使用的`pSync`仍是`SHMEM_BCAST_SYNC_SIZE`。
+
+* openshmem example: cache
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+    #include <shmem.h>
+
+    long var;
+
+    int main()
+    {
+        shmem_init();
+        
+        shmem_clear_cache_inv();
+        shmem_set_cache_inv();
+        shmem_clear_cache_line_inv(&var);
+        shmem_set_cache_line_inv(&var);
+        shmem_udcflush();
+        shmem_udcflush_line(&var);
+
+        shmem_clear_cache_inv();
+        shmem_set_cache_inv();
+        shmem_clear_cache_line_inv(&var);
+        shmem_set_cache_line_inv(&var);
+        shmem_udcflush();
+        shmem_udcflush_line(&var);
+
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    调用了两遍 cache 相关的函数，没有输出，不清楚有什么用。
+
+* openshmem example: broadcast 4
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+    #include <shmem.h>
+
+    long pSync[SHMEM_BCAST_SYNC_SIZE];
+
+    int main()
+    {
+        static long source[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        int nlong = 8;
+
+        shmem_init();
+        int me = shmem_my_pe();
+
+        long *target = (long *) shmem_malloc(8 * sizeof(long));
+
+        for (int i = 0; i < SHMEM_BCAST_SYNC_SIZE; i += 1)
+            pSync[i] = SHMEM_SYNC_VALUE;
+        shmem_barrier_all();
+
+        shmem_broadcast64(target, source, nlong, 0, 0, 1, 2, pSync);
+
+        shmem_barrier_all();
+
+        for (int i = 0; i < 8; i++) {
+            printf("%d: target[%d] = %ld\n", me, i, target[i]);
+        }
+
+        shmem_free(target);
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    compile: `oshcc -g main.c -o main`
+
+    run: `oshrun -np 4 ./main`
+
+    output:
+
+    ```
+    1: target[0] = 0
+    3: target[0] = 0
+    3: target[1] = 0
+    3: target[2] = 0
+    3: target[3] = 0
+    3: target[4] = 0
+    3: target[5] = 0
+    3: target[6] = 0
+    3: target[7] = 0
+    0: target[0] = 0
+    0: target[1] = 0
+    0: target[2] = 0
+    0: target[3] = 0
+    0: target[4] = 0
+    0: target[5] = 0
+    0: target[6] = 0
+    0: target[7] = 0
+    1: target[1] = 0
+    1: target[2] = 0
+    1: target[3] = 0
+    1: target[4] = 0
+    1: target[5] = 0
+    1: target[6] = 0
+    1: target[7] = 0
+    2: target[0] = 1
+    2: target[1] = 2
+    2: target[2] = 3
+    2: target[3] = 4
+    2: target[4] = 5
+    2: target[5] = 6
+    2: target[6] = 7
+    2: target[7] = 8
+    ```
+
+    start pe 为 0，stride 设置为 1，pe size 设置为 2，那么就是从 0 开始，每间隔 1 个 pe 选 1 个，最终选到的结果为 pe 0, 2。又因为 0 是 root pe，所以最终只有 pe 2 接收到广播的数据。
+
+    注：
+
+    1. 原代码中写的是
+
+        ```c
+        if ((me % 2) == 0) {
+            shmem_broadcast64(target, source, nlong, 0, 0, 1, 2, pSync);
+        }
+        ```
+
+        不知道这个`me % 2 == 0`是想实现什么效果。
+
+* openshmem example: broadcast 3
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+    #include <shmem.h>
+
+    long pSync[SHMEM_BCAST_SYNC_SIZE];
+
+    int main(void)
+    {
+        static long source[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        int nlong = 8;
+
+        shmem_init();
+        int me = shmem_my_pe();
+
+        long *target = (long *) shmem_malloc(8 * sizeof(long));
+
+        for (int i = 0; i < SHMEM_BCAST_SYNC_SIZE; i += 1)
+            pSync[i] = SHMEM_SYNC_VALUE;
+        shmem_barrier_all();
+
+        shmem_broadcast64(target, source, nlong, 1, 0, 0, 4, pSync);
+
+        for (int i = 0; i < 8; i++)
+            printf("%d: target[%d] = %ld\n", me, i, target[i]);
+        shmem_barrier_all();
+
+        shmem_free(target);
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    compile: `oshcc -g main.c -o main`
+
+    run: `oshrun -np 6 ./main`
+
+    output:
+
+    ```
+    1: target[0] = 0
+    0: target[0] = 1
+    0: target[1] = 2
+    0: target[2] = 3
+    0: target[3] = 4
+    0: target[4] = 5
+    0: target[5] = 6
+    0: target[6] = 7
+    0: target[7] = 8
+    2: target[0] = 1
+    2: target[1] = 2
+    2: target[2] = 3
+    2: target[3] = 4
+    2: target[4] = 5
+    2: target[5] = 6
+    2: target[6] = 7
+    2: target[7] = 8
+    5: target[0] = 0
+    5: target[1] = 0
+    5: target[2] = 0
+    5: target[3] = 0
+    5: target[4] = 0
+    5: target[5] = 0
+    5: target[6] = 0
+    5: target[7] = 0
+    4: target[0] = 0
+    4: target[1] = 0
+    4: target[2] = 0
+    4: target[3] = 0
+    4: target[4] = 0
+    4: target[5] = 0
+    4: target[6] = 0
+    4: target[7] = 0
+    3: target[0] = 1
+    3: target[1] = 2
+    3: target[2] = 3
+    3: target[3] = 4
+    3: target[4] = 5
+    3: target[5] = 6
+    3: target[6] = 7
+    3: target[7] = 8
+    1: target[1] = 0
+    1: target[2] = 0
+    1: target[3] = 0
+    1: target[4] = 0
+    1: target[5] = 0
+    1: target[6] = 0
+    1: target[7] = 0
+    ```
+
+    这个测试用例改了 root pe，也指定了 pe size，看起来像是专门测这两项功能的。
+
+    在 run 的时候指定`-np 6`，稍微比代码中的 pe size 4 大一点，可以看到，pe 1, 4, 5 的数据都是 0。说明 broadcast 的规则是这样的：从 start pe 开始，往后数 pe size 个 pe 做 broadcast，同时排除 root pe。
+
+* openshmem example: broadcast 2
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+    #include <shmem.h>
+
+    long pSync[SHMEM_BCAST_SYNC_SIZE];
+
+    int main(void)
+    {
+        static long source[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        int nlong = 8;
+
+        shmem_init();
+        int me = shmem_my_pe();
+        int npes = shmem_n_pes();
+
+        long *target = (long *) shmem_malloc(8 * sizeof(long));
+
+        for (int i = 0; i < SHMEM_BCAST_SYNC_SIZE; i += 1)
+            pSync[i] = SHMEM_SYNC_VALUE;
+        shmem_barrier_all();
+
+        shmem_broadcast64(target, source, nlong, 0, 0, 0, npes, pSync);
+
+        for (int i = 0; i < 8; i++) {
+            printf("%d: target[%d] = %ld\n", me, i, target[i]);
+        }
+
+        shmem_free(target);
+        shmem_finalize();
+        return 0;
+    }
+    ```
+
+    compile: `oshcc -g main.c -o main`
+
+    run: `oshrun -np 4 ./main`
+
+    output:
+
+    ```
+    0: target[0] = 0
+    1: target[0] = 1
+    1: target[1] = 2
+    1: target[2] = 3
+    1: target[3] = 4
+    1: target[4] = 5
+    1: target[5] = 6
+    1: target[6] = 7
+    1: target[7] = 8
+    3: target[0] = 1
+    3: target[1] = 2
+    3: target[2] = 3
+    3: target[3] = 4
+    3: target[4] = 5
+    3: target[5] = 6
+    3: target[6] = 7
+    3: target[7] = 8
+    2: target[0] = 1
+    2: target[1] = 2
+    2: target[2] = 3
+    2: target[3] = 4
+    2: target[4] = 5
+    2: target[5] = 6
+    2: target[6] = 7
+    2: target[7] = 8
+    0: target[1] = 0
+    0: target[2] = 0
+    0: target[3] = 0
+    0: target[4] = 0
+    0: target[5] = 0
+    0: target[6] = 0
+    0: target[7] = 0
+    ```
+
+    可以看到，pe 0 的数据仍是 0，其他 pe 的数据都被 source 的数据做了广播。由此说明 broadcast 只是从 root 出发，并不会把数据发给 root。
+
+    注：
+
+    1. `SHMEM_BCAST_SYNC_SIZE`在程序中被扩展为 2，为什么？
+
+    2. 理论上各个 pe 执行的顺序应该完全乱序才对，为什么看起来 output 比较有序？
+
 * openshmem example: broadcast
 
     `main.c`:

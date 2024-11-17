@@ -4,6 +4,26 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash array 使用小括号来定义：`arr=(elm_1 elm_2 elm_3)`
+
+* bash array 使用`[]`作为下标，并从 0 开始索引，`${arr[0]}`, `${arr[1]}`
+
+* 当使用`@`或`*`作为索引时，会索引数组中的所有元素：`${arr[@]}`, `${arr[*]}`
+
+* 使用`${#arr[@]}`或`${#arr[*]}`可以获得数组的长度
+
+* bash 中打印数组中的字符串，每个一行
+
+    ```bash
+    arr=(hello world nihao zaijian)
+    arr_len=${#arr[@]}
+    i=0
+    while [ $i -lt $arr_len ] ; do
+        echo ${arr[i]}
+        i=$((i+1))
+    done
+    ```
+
 * bash escape single quote
 
     下面是 bash 中使用单引号组成的字符串的 example 和解释：
