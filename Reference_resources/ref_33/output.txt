@@ -1,0 +1,29 @@
+there are totally 2 cuda devices
+
+test 1:
+successfully comm init all
+all reduce sum start...
+nccl all reduce ended.
+all reduce time: 27.69 secs
+start calc...
+end calc.
+vec add time: 27.71 secs
+cuda dev resource free
+
+test 2:
+successfully comm init all
+all reduce sum start...
+start calc...
+nccl all reduce ended.
+end calc.
+all reduce and vec add time: 55.35 secs
+cuda dev resource free
+
+test 3:
+successfully comm init all
+all reduce sum start...
+start calc...
+nccl all reduce ended.
+end calc.
+all reduce and vec add time: 27.71 secs
+cuda dev resource free
