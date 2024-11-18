@@ -779,10 +779,6 @@
 
     1. 这个 url 未处理结束，下次继续处理
 
-* [v] gdb remote server
-
-* [v] 为 reorg 程序增加指定文件的随机一行的功能
-
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
 * [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
@@ -809,49 +805,27 @@
 
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
 
-* [ ] 增加 docker note qa，并加入 test collec 中
+* [v] 增加 docker note qa，并加入 test collec 中
 
-* [v] reorg: project pool: nccl 调试记录
-
-* [v] reorg: project pool  10.29
-
-    14:20 ~ 14:48
+* [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
 
 * [v] reorg: documents
 
     13:11 ~ 13:45
 
-    feedback:
-
-    1. 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
-
 * [v] reorg: project pool
 
     13:46 ~ 14:08
 
-* [v] reorg: documents
+* [ ] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
-    21:13 ~ 21:33
+    如果一个 unit 答对的频率较高，那么它被选择的概率变小。
 
-* [v] reorg: project pool
+    如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
 
 * [v] reorg: documents 30 mins 11.07
 
     10:48 ~ 11:00
-
-    feedback:
-
-    1. [ ] 增加一项功能：是否答对，并将结果记录到 qa 中。
-
-        如果一个 unit 答对的频率较高，那么它被选择的概率变小。
-
-        如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
-
-* [v] reorg: project pool 30 mins
-
-    10:04 ~ 10:34
-
-* [v] reorg: documents 30 mins
 
 * [v] qa 3 unit
 
@@ -871,7 +845,7 @@
 
 ## qa
 
-cached:
+### cached
 
 * 使用 bfs 算法对 qa units 从易到难检测
 
@@ -913,21 +887,9 @@ cached:
 
     3. `fseek()`里第二个参数和第三个参数的位置写反了
 
-Tasks:
+### Tasks
 
-* [v] 增加 linux driver qa:
-
-    配置 vscode 的内核驱动开发环境
-
-* [v] qa: 2 units 10.28
-
-* [v] qa: 2 units 10.29
-
-    12:42 ~ 13:04
-
-    正确率：1/2
-
-* 在 vim 中根据正则表达式搜索指定索引所在的位置
+* [ ] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
 
 * [ ] 为 qa 工具增加`--list`功能
 
@@ -939,15 +901,9 @@ Tasks:
 
 * [ ] 调研 qa unit 中 dep 功能
 
+* [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
+
 * [v] qa 2 unit
-
-    feedback:
-
-    1. 假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
-
-* [v] qa: 2 unit
-
-    答对数目：0/2
 
 * [v] qa: 2 unit 11.07
 
@@ -1003,13 +959,11 @@ Tasks:
 
     <https://cloud.tencent.com/developer/article/1805119>
 
+* [ ] 调研 bash array <https://www.gnu.org/software/bash/manual/html_node/Arrays.html>
+
 * [v] 调研 bash 的数组
 
     使用 for 循环打印字符串数组中的所有单词，每个单词一行
-
-    feedback:
-
-    1. 调研 bash array <https://www.gnu.org/software/bash/manual/html_node/Arrays.html>
 
 * [o] process 1 url 10.09
 
@@ -1215,13 +1169,19 @@ tasks:
 
 * [v] 调研 nccl app
 
-    deps:
+* Manage Your Memory Address Space with OpenSHMEM*
 
-    1. 使用 cuda 实现矩阵乘法
+    <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
+
+    英特尔的 tech blog，讲的 openshmem 入门知识。看起来废话不多，比较精练。
+
+* 224 机器，设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
 
 ### tasks
 
-* [v] 调研 nccl p2p NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED 出现的原因
+* [v] 调研 50 机器上的 nccl 调试
+
+* [v] 调研 gdb 远程调试 nccl
 
 * [ ] 调研 tenstorrent
 
@@ -1259,17 +1219,9 @@ tasks:
 
         `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
 
-* [v] 调研 50 机器上的 nccl 调试
-
 * [v] 调研 openshmem
 
     feedback:
-
-    3. Manage Your Memory Address Space with OpenSHMEM*
-
-        <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
-
-        英特尔的 tech blog，讲的 openshmem 入门知识。看起来废话不多，比较精练。
 
     4. shmem4py: High-Performance One-Sided Communication for Python Applications
 
@@ -1291,13 +1243,9 @@ tasks:
 
         看来 osh 就是 shmem 的简称？
 
-* [v] 调研 gdb 远程调试 nccl
-
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
 
     feedback:
-
-    1. 设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
 
     2. 如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
 
@@ -1307,11 +1255,9 @@ tasks:
 
     4. 仔细单步调了一下，看不出来 nvlink 的 p2p 和 pcie 的 p2p 有什么不一样。线索中断了。
 
-* [v] 调研 openshmem app
-
-* [v] 调研 openshmem app，尝试实现一个矩阵乘法
-
 * [v] 调研 nvshmem 是否能在 224 机器上跑通
+
+* [v] openshmem 尝试实现 4 pe 矩阵乘法
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
 
@@ -1325,13 +1271,7 @@ tasks:
 
 * [ ] 调研 nccl p2p 的调用流程
 
-* [v] openshmem 尝试实现 4 pe 矩阵乘法
-
 * [v] 调研 shmem 全程多进程收发数据的矩阵乘法，并测速
-
-    feedback:
-
-    1. 在服务器上部署环境，再次测速，避免笔记本cpu降频的干扰
 
 * [v] 调研跑通 nvshmem example
 
@@ -1340,6 +1280,16 @@ tasks:
     1. 调研 nvshmem API，重点看 n_pes 相关的函数和说明
 
 * [v] 调研 mpi 实现矩阵乘法
+
+* [v] 调研 nccl 中异步
+
+* [v] 调研 cuda 实现 vec add
+
+    fedback:
+
+    1. 见`ref_32`
+
+* [ ] 使用 cuda 实现矩阵乘法
 
 ## HPC comm
 

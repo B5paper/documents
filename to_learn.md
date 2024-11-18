@@ -6472,3 +6472,89 @@
 * UCX学习(一)
 
     <https://zhuanlan.zhihu.com/p/710878933>
+
+* 以GPU为中心的通信
+
+    <https://zhuanlan.zhihu.com/p/843517897>
+
+* 【UEC的宏伟目标】UEC 朝着 v1.0 规范集迈进
+
+    <https://zhuanlan.zhihu.com/p/691186577>
+
+* CXL论文阅读笔记整理（持续更新）
+
+    <https://zhuanlan.zhihu.com/p/673281189>
+
+* N-Ways to Multi-GPU Programming
+
+    <https://github.com/openhackathons-org/nways_multi_gpu>
+
+* Sample Codes using NVSHMEM on Multi-GPU
+
+    <https://github.com/muriloboratto/NVSHEMEM/tree/master>
+
+* 挑战英伟达NVLink，英特尔、AMD等8巨头联手组建UALink新标准
+
+    <https://zhuanlan.zhihu.com/p/701419868>
+
+* How to monitor memory IO on Linux
+
+    <https://superuser.com/questions/1506679/how-to-monitor-memory-io-on-linux>
+
+* LBANN: Livermore Big Artificial Neural Network Toolkit
+
+    <https://github.com/LLNL/lbann>
+
+* cugraph-gnn
+
+    <https://github.com/rapidsai/cugraph-gnn>
+
+* DiskNet
+
+    Official implementation for "Predicting Long-term Dynamics of Complex Networks via Identifying Skeleton in Hyperbolic Space" (KDD2024) 
+
+    <https://github.com/tsinghua-fib-lab/DiskNet>
+
+* MSCCL++
+
+    <https://github.com/microsoft/mscclpp>
+
+* intentrace is a strace for everyone, intentrace works similarly to strace in that it intercepts and records the system calls
+
+    <https://github.com/sectordistrict/intentrace>
+
+* OSB: Oak Ridge OpenSHMEM Benchmarks
+
+    <https://github.com/ornl-languages/osb>
+
+* GDRCopy: A low-latency GPU memory copy library based on NVIDIA GPUDirect RDMA technology.
+
+    <https://github.com/NVIDIA/gdrcopy>
+
+* Predicting Long-term Dynamics of Complex Networks via Identifying Skeleton in Hyperbolic Space
+
+    <https://dl.acm.org/doi/10.1145/3637528.3671968>
+
+* NcEngine
+
+    NcEngine: 3D game engine written in modern C++ and Vulkan 
+
+    <https://github.com/NcStudios/NcEngine>
+
+* LimonEngine
+
+    Limon is a multi platform 3D game engine mainly focusing on first person games. Focus of its development is ease of use and ease of study.
+
+    <https://github.com/enginmanap/limonEngine>
+
+* DXRPathTracer
+
+    A (very) simple path tracer implemented using DirectX Ray Tracing (DXR) 
+
+    <https://github.com/TheRealMJP/DXRPathTracer>
+
+* The Data Engineering Handbook
+
+    This repo has all the resources you need to become an amazing data engineer!
+
+    <https://github.com/DataExpert-io/data-engineer-handbook>
