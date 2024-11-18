@@ -6,6 +6,16 @@ official site: <https://eigen.tuxfamily.org/index.php?title=Main_Page>
 
 tutorial: <https://eigen.tuxfamily.org/dox/GettingStarted.html>
 
+## cache
+
+* 可以直接使用 apt 安装这个库
+
+    `apt install libeigen3-dev`
+
+    在包含头文件时，则需要使用`#include <eigen3/Eigen/Dense>`
+
+## note
+
 eigen 是一个头文件库，不需要编译，只要设置好 include 目录就可以了。
 
 Example:
