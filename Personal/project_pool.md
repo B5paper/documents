@@ -781,7 +781,54 @@
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [ ] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
+* [v] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
+
+    feedback:
+
+    1. 调研`os.listdir()`
+
+    2. 调研`pathlib`
+
+    3. 没有什么特别好的方法，比较常见的办法是`os.walk()`遍历，然后判断文件/文件夹是否存在。想了想，这种方法比较适合只搜索一次就结束的。
+
+        如果不知道绝对路径，并且需要多次搜索，一个想法是构建出一棵树，再构建一个哈希表映射文件/文件夹字符串到 node 指针，然后不断找这个 node 的 parent，看另一个 node 是否会成为这个 parent。
+
+        如果已知两个文件（夹）的绝对路径，那么直接 compare 一下就可以了。如果前 n 个字符都相等，并且较长的字符串的下一个字符是`/`，则说明有包含关系。
+
+        一个实现如下：
+
+        ```py
+        import os
+
+        def main():
+            path_1 = './mydir_1'
+            path_2 = './mydir_1/mydir_2'
+            node_1 = os.path.abspath(path_1)
+            node_2 = os.path.abspath(path_2)
+            min_len = min(len(node_1), len(node_2))
+            max_len = max(len(node_1), len(node_2))
+            for i in range(min_len):
+                if node_1[i] != node_2[i]:
+                    print('not included')
+                    return
+            if len(node_2) > len(node_1) and node_2[min_len] == '/':
+                print('included')
+            if len(node_1) > len(node_2) and node_1[min_len] == '/':
+                print('included')
+            
+            return
+
+        if __name__ == '__main__':
+            main()
+        ```
+
+        output:
+
+        ```
+        included
+        ```
+
+        边界条件还需要再测测。
 
 * [ ] 调研 git ignore 的实现原理
 
@@ -843,6 +890,10 @@
 
     1. 找不到 pdf 文件在哪...
 
+* [v] reorg: documents 11.18
+
+* [v] reorg: project pool 11.18
+
 ## qa
 
 ### cached
@@ -856,10 +907,6 @@
 * 一个 qa 文件里所有的 unit 平分 1
 
     然后每次遇到熟悉的 unit，可以让这个 unit 的权重减少 n% (暂定 10%)，然后重新分配所有权重，总和仍然是 1
-
-* 需要给每个 unit 设置一个比重，在抽取随机数时按比重抽取
-
-    感觉比较熟悉的，之前重复出现过的 unit，可以把比重设置得低一点
 
 * cmake qa:
 
@@ -914,6 +961,16 @@
 * [v] qa: 4 unit  11.17
 
     正确率：4 / 4
+
+* [v] qa: 4 units
+
+    feedback:
+
+    1. [ ] 在同一次 test 中，不能出现重复的 unit
+
+* [ ] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
+
+    感觉比较熟悉的，之前重复出现过的 unit，可以把比重设置得低一点
 
 ## cache tabs / process urls
 
@@ -989,13 +1046,15 @@
         
         该如何删减全部的两个 world？
 
-* [ ] 建立 bash note qa
+* [v] 建立 bash note qa
 
 * [v] process 1 urls  10.29
 
     14:03 ~ 14:19
 
 * [v] cache tabs 11.07
+
+* [v] cache tabs
 
 ## markdown renderer
 
@@ -1167,8 +1226,6 @@ tasks:
 
     同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
-* [v] 调研 nccl app
-
 * Manage Your Memory Address Space with OpenSHMEM*
 
     <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
@@ -1177,9 +1234,13 @@ tasks:
 
 * 224 机器，设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
 
-### tasks
+* shmem4py: High-Performance One-Sided Communication for Python Applications
 
-* [v] 调研 50 机器上的 nccl 调试
+    <https://dl.acm.org/doi/pdf/10.1145/3624062.3624602>
+
+    openshmem 的 python wrapper，这是一篇论文，里面有 example，可以参考一下
+
+### tasks
 
 * [v] 调研 gdb 远程调试 nccl
 
@@ -1220,14 +1281,6 @@ tasks:
         `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
 
 * [v] 调研 openshmem
-
-    feedback:
-
-    4. shmem4py: High-Performance One-Sided Communication for Python Applications
-
-        <https://dl.acm.org/doi/pdf/10.1145/3624062.3624602>
-
-        openshmem 的 python wrapper，这是一篇论文，里面有 example，可以参考一下
 
     5. Cray OpenSHMEMX
 
@@ -1291,6 +1344,10 @@ tasks:
 
 * [ ] 使用 cuda 实现矩阵乘法
 
+* [v] 实现`timeit_2()`，测试通信和计算在时间中的占比占比
+
+* [v] 调研：在服务器上再跑一遍 shmem 和 mpi 的矩阵乘法性能
+
 ## HPC comm
 
 * [v] 调研 pci host bridge
@@ -1334,6 +1391,12 @@ tasks:
 ## 概率图 Probability Graph
 
 * { } sync 贝叶斯网
+
+## 控制
+
+* { } 调研《控制之美》
+
+* [v] 调研《控制之美》
 
 ## rdma
 
