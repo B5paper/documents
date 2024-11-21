@@ -950,12 +950,6 @@
 
 * [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
-* [v] qa 2 unit
-
-* [v] qa: 2 unit 11.07
-
-    答对题数：2 / 2
-
 * [ ] 在做检测时，写出 unit 出自哪里
 
 * [v] qa: 4 unit  11.17
@@ -968,9 +962,36 @@
 
     1. [ ] 在同一次 test 中，不能出现重复的 unit
 
-* [ ] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
+* [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
     感觉比较熟悉的，之前重复出现过的 unit，可以把比重设置得低一点
+
+    feedback:
+
+    1. 调研 python 处理 csv 文件
+
+    2. 调研 python type hint
+
+    3. py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
+
+    4. 调研 python 的去重功能（unique）
+
+        ```py
+        arr_1 = ['a', 'b', 'c', 'a']
+        arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}]
+        ```
+
+        比如这种数据该如何去重？
+
+        目前的做法是`arr = list(set(arr))`，是否还有更好的办法？
+
+    5. 目前只实现了给每个 qa file 增加一个比重，并且保证在选择时，采样不到重复的 qa file
+
+        或许应该实现 qa file 可以相同，但是 unit 需要保证不同？
+
+* [v] qa 4 units 11.20
+
+    正确率：1 / 4
 
 ## cache tabs / process urls
 
@@ -1046,12 +1067,6 @@
         
         该如何删减全部的两个 world？
 
-* [v] 建立 bash note qa
-
-* [v] process 1 urls  10.29
-
-    14:03 ~ 14:19
-
 * [v] cache tabs 11.07
 
 * [v] cache tabs
@@ -1078,7 +1093,9 @@ tasks:
 
     feedback:
 
-    1. 目前看到 pdf P52 2.2 使用Python实现感知器学习算法
+    1. 目前看到 pdf P54
+
+    2. 不清楚为什么`self.w_ = np.zeros(1 + X.shape[1])`要`1 +`。
 
 * [ ] 调研 三维的 Swiss Roll
 
@@ -1114,12 +1131,6 @@ tasks:
 
 * [v] 调研《Python机器学习》 11.10
 
-    feedback:
-
-    1. 看到 P54
-
-    2. 不清楚为什么`self.w_ = np.zeros(1 + X.shape[1])`要`1 +`。
-
 ## Mathematics
 
 resources:
@@ -1151,8 +1162,6 @@ tasks:
 ## gpu driver
 
 ### cache
-
-* 测试了下，51 机器上 rdma + v100 vllm demo 环境已经挂了。看来 fpga 并不能做到长期稳定
 
 * vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
 
