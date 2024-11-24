@@ -2,6 +2,8 @@
 
 ## cache
 
+* 如果 vscode 中在编辑 makefile 时，tab 键总是插入 4 个空格而不是 tab，可以在 vscode setting 里把 Detect indentation 选项关了再打开一次就好了
+
 * vscode 的 pipe 模式
 
     vscode 可以在`launch.json`中设置 pipe 模式，通过 ssh 在 remote host 上调用 gdb，再把 gdb 的输入输出重定向到 local host，从而不需要在 remote host 上安装 vscode，也不需要安装任何 vscode 插件，即可远程调试程序。

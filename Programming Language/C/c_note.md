@@ -6,6 +6,198 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* int32 max 差不多是 2 * 10^9 多一点
+
+* C 语言中使用指针获取数组中的成员
+
+    我们考虑这样一个 example
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    typedef struct Buf
+    {
+        float *addr;
+        int num_elm;
+        char name[20];
+    } Buf;
+
+    int main()
+    {
+        int num_bufs = 4;
+        Buf *bufs = malloc(num_bufs * sizeof(Buf));
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf buf = bufs[i];
+            buf.num_elm = 3;
+            buf.addr = malloc(buf.num_elm * sizeof(float));
+            for (int j = 0; j < buf.num_elm; ++j)
+                buf.addr[j] = i + j;
+            sprintf(buf.name, "buffer %d", i);
+        }
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf buf = bufs[i];
+            printf("buf name: %s\n", buf.name);
+            for (int j = 0; j < buf.num_elm; ++j)
+                printf("%.1f, ", buf.addr[j]);
+            putchar('\n');
+        }
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf buf = bufs[i];
+            free(buf.addr);
+        }
+        free(bufs);
+        return 0;
+    }
+    ```
+
+    其输出为
+
+    ```
+    buf name: 
+
+    buf name: 
+
+    buf name: 
+
+    buf name: 
+
+    ```
+
+    明显是有问题的。
+
+    为了避免在 for 中频繁地使用`bufs[i]`来访问成员，我们自作聪明地使用`Buf buf = bufs[i];`来拿到一个元素。观察`struct Buf`中的成员，要么是指针，要么是值，浅复制完全满足我们的需求，所以以为按值拷贝是没问题的。
+
+    但是在第一次对`bufs`中的成员的成员赋值时，我们实际上赋值的是一个副本。这样就导致了输出错误。
+
+    在 C 中可以使用指针来完成这个功能：
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    typedef struct Buf
+    {
+        float *addr;
+        int num_elm;
+        char name[20];
+    } Buf;
+
+    int main()
+    {
+        int num_bufs = 4;
+        Buf *bufs = malloc(num_bufs * sizeof(Buf));
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf *buf = &bufs[i];
+            buf->num_elm = 3;
+            buf->addr = malloc(buf->num_elm * sizeof(float));
+            for (int j = 0; j < buf->num_elm; ++j)
+                buf->addr[j] = i + j;
+            sprintf(buf->name, "buffer %d", i);
+        }
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf buf = bufs[i];
+            printf("buf name: %s\n", buf.name);
+            for (int j = 0; j < buf.num_elm; ++j)
+                printf("%.1f, ", buf.addr[j]);
+            putchar('\n');
+        }
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf buf = bufs[i];
+            free(buf.addr);
+        }
+        free(bufs);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    buf name: buffer 0
+    0.0, 1.0, 2.0, 
+    buf name: buffer 1
+    1.0, 2.0, 3.0, 
+    buf name: buffer 2
+    2.0, 3.0, 4.0, 
+    buf name: buffer 3
+    3.0, 4.0, 5.0,
+    ```
+
+    这次的结果就正确了。
+
+    在 c++ 中，通常用引用拿到成员，因此不会遇到这个问题：
+
+    ```cpp
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    typedef struct Buf
+    {
+        float *addr;
+        int num_elm;
+        char name[20];
+    } Buf;
+
+    int main()
+    {
+        int num_bufs = 4;
+        Buf *bufs = (Buf*) malloc(num_bufs * sizeof(Buf));
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf &buf = bufs[i];
+            buf.num_elm = 3;
+            buf.addr = (float*) malloc(buf.num_elm * sizeof(float));
+            for (int j = 0; j < buf.num_elm; ++j)
+                buf.addr[j] = i + j;
+            sprintf(buf.name, "buffer %d", i);
+        }
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf &buf = bufs[i];
+            printf("buf name: %s\n", buf.name);
+            for (int j = 0; j < buf.num_elm; ++j)
+                printf("%.1f, ", buf.addr[j]);
+            putchar('\n');
+        }
+
+        for (int i = 0; i < num_bufs; ++i)
+        {
+            Buf &buf = bufs[i];
+            free(buf.addr);
+        }
+        free(bufs);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    buf name: buffer 0
+    0.0, 1.0, 2.0, 
+    buf name: buffer 1
+    1.0, 2.0, 3.0, 
+    buf name: buffer 2
+    2.0, 3.0, 4.0, 
+    buf name: buffer 3
+    3.0, 4.0, 5.0,
+    ```
+
+    总结：C 语言的 for 循环中，如果不想使用索引，尽量使用指针拿到数组的元素，不要使用值复制。
+
 * 如果一个函数返回一个指针，或者要求参数传入二级指针，那么说明是由这个函数负责相关结构体的内存申请与释放
 
     如果一个函数要求参数传入一个指针，那么说明函数只负责填充 struct 的字段，由用户负责 struct 的内存管理

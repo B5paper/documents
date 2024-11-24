@@ -30,6 +30,18 @@
 
 ## cache
 
+* [ ] 调研 virtual box 的虚拟机如何使用两块显示器／如何开两个 display 窗口／如何登录另一个 linux 窗口
+
+* 调研写一个计时 ＋ 闹钟工具
+
+* 如果使用 https 克隆 github repo 失败，可以试试 ssh
+
+* [ ] 调研 cuda gdb
+
+* 包絡面
+
+    我们的状态有时是波峰，有时是波谷，系统的作用就是在波峰上制作一张包絡面，使得我们的状态几乎总是沿着波峰前进。
+
 * 有关景物所引发的思考
 
     假如我们被要求看到一个景物后，联想到随机一件事。那么这件事很大概率是在我们心里与景物联系最紧密的。因此分析我们联想到的内容，就可以分析我们的心理状态。有点像罗夏测试。反过来想，我们也可以把所想强行融合到景物上，对景物进行主观改造。
@@ -894,6 +906,14 @@
 
 * [v] reorg: project pool 11.18
 
+* [v] reorg: documents
+
+    feedback:
+
+    1. [ ] 增加正则表达式的 qa
+
+    2. [ ] 增加英语单词的 qa
+
 ## qa
 
 ### cached
@@ -956,11 +976,9 @@
 
     正确率：4 / 4
 
+* [ ] 在同一次 test 中，不能出现重复的 unit
+
 * [v] qa: 4 units
-
-    feedback:
-
-    1. [ ] 在同一次 test 中，不能出现重复的 unit
 
 * [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
@@ -992,6 +1010,12 @@
 * [v] qa 4 units 11.20
 
     正确率：1 / 4
+
+* [x] qa: 4 units 11.21
+
+    feedback:
+
+    1. [ ] sync bash
 
 ## cache tabs / process urls
 
@@ -1249,15 +1273,31 @@ tasks:
 
     openshmem 的 python wrapper，这是一篇论文，里面有 example，可以参考一下
 
+* nccl app 中需要调研的点
+
+    * `cudaSetDevice()`
+
+    * `cudaStreamCreate()`
+
 ### tasks
 
 * [v] 调研 gdb 远程调试 nccl
 
-* [ ] 调研 tenstorrent
+* [v] 调研 tenstorrent
+
+    feedback:
+
+    1. 调研 cuda 编程手册，尤其是 tile 相关的
+
+    2. 调研 riscv 模拟／仿真，调研指令集如何扩展
+
+    3. tenstorrent 使用分布式的处理器和内存，强调互联，文档给得不是很全，可以直接看代码。
+
+        或许可以从 pytorch 接入那部分开始看，但是首先需要弄明白 pytorch 模型的保存格式。
+
+* [ ] 调研制作 docker image: 透传一个 nvidia device 可以成功跑通 cuda test
 
 * [ ] 调研制作 docker image
-
-    1. 透传一个 nvidia device 可以成功跑通 cuda test
     
     2. 透传两个 nvidia gpu，调研是否能跑通 nccl
     
@@ -1317,8 +1357,6 @@ tasks:
 
     4. 仔细单步调了一下，看不出来 nvlink 的 p2p 和 pcie 的 p2p 有什么不一样。线索中断了。
 
-* [v] 调研 nvshmem 是否能在 224 机器上跑通
-
 * [v] openshmem 尝试实现 4 pe 矩阵乘法
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
@@ -1356,6 +1394,24 @@ tasks:
 * [v] 实现`timeit_2()`，测试通信和计算在时间中的占比占比
 
 * [v] 调研：在服务器上再跑一遍 shmem 和 mpi 的矩阵乘法性能
+
+* [v] 调研 vllm 中 nccl 的用法
+
+    feedback:
+
+    1. 调研 py 调用 C 库函数
+
+    2. vllm 的 pynccl 主要 wrapper 了 all reduce, send, recv 三个函数，all reduce 的算子似乎是直接调用 pytorch 的算子，并没有额外实现一版。
+
+        传入参数中有 cuda stream，但是没有看到 sync 的函数。因此理论上是支持异步的，不知道具体怎么个调用法。
+
+    3. 调研 py 类型提示`group: Union[ProcessGroup, StatelessProcessGroup]`
+
+    4. async 相关的可能在`cuda_wrapper.py`里
+
+        这里面可以重点看下`cudaDeviceSynchronize()`是怎么 wrapper 的，在哪里调用的。
+
+    5. 调研 cuda 函数`cudaIpcGetMemHandle`, `cudaIpcOpenMemHandle`
 
 ## HPC comm
 

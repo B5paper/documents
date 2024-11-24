@@ -2,6 +2,50 @@
 
 ## cached
 
+* 考虑下面一个场景，在 py 里，给定`lst_A`, `lst_B`，如何在不使用 for 的情况下得到`lst_C`？
+
+    ```py
+    lst_A = [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}]
+    lst_B = [3, 4]
+    lst_C = [{'a': 1, 'b': 3}, {'a': 2, 'b': 4}]
+    ```
+
+* python 里，如果想从 iterable 里抽取一些信息，可以使用列表推导式
+
+    ```py
+    weights = [qa_file_info['weight'] for qa_file_info in qa_file_infos]
+    weight_sum = sum(weights)
+    ```
+
+    目前没有找到其他比较好的方法
+
+* python re
+
+    finditer 可以不 compile pattern 直接用
+
+    ```python
+    import re
+
+    def main():
+        txt = 'abcbacaccba'
+        for m in re.finditer('a.{2}', txt):
+            start_pos = m.start()
+            end_pos = m.end()
+            selected_txt = txt[start_pos:end_pos]
+            print(selected_txt)
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    abc
+    aca
+    ```
+
 * python 中的`set()`, an example:
 
     ```python

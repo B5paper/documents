@@ -6,6 +6,39 @@ Ref:
 
 ## cache
 
+* ubuntu 24.04 + 6.8.1 kernel 编译 hello world module 相对以前的变化
+
+    * vscode 的 c/c++ json 配置如下
+
+        ```json
+        {
+            "configurations": [
+                {
+                    "name": "Linux",
+                    "includePath": [
+                        "${workspaceFolder}/**",
+                        "/usr/src/linux-source-6.8.0/include",
+                        "/usr/src/linux-source-6.8.0/arch/x86/include/generated",
+                        "/usr/src/linux-source-6.8.0/arch/x86/include"
+                    ],
+                    "defines": [
+                        "__KERNEL__",
+                        "MODULE"
+                    ],
+                    "compilerPath": "/usr/bin/gcc",
+                    "cStandard": "c17",
+                    "cppStandard": "gnu++17",
+                    "intelliSenseMode": "linux-gcc-x64"
+                }
+            ],
+            "version": 4
+        }
+        ```
+
+        可以看到，好像没有 hwe 相关的文件夹了，另外 arch 文件夹使用的是`x86`，不是`x86_64`。
+
+    * `init_module()`函数在`linux/module.h`中被定义了，但是`exit_module()`没有被定义。
+
 * 如果需要对不同设备，函数做出不同的行为，一种方法增加一个`enum`类型的函数参数，判断调用者的情况。另一种方法是增加一个编译宏，然后使用`#ifdef xxx`来检测，这样可以在编译时判断调用函数的主体的情况。
 
     为了只编译一份 lib 就适用多种情况，目前采用的是`enum`方案。
