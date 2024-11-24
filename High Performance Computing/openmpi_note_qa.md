@@ -12,31 +12,17 @@
 
 int main()
 {
-    int ret = MPI_Init(NULL, NULL);
-    if (ret != 0)
-    {
-        printf("fail to init mpi\n");
-        return -1;
-    }
-    printf("successfully init mpi\n");
+    MPI_Init(NULL, NULL);
+
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     int rank;
-    ret = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (ret != 0)
-    {
-        printf("fail to get world rank\n");
-        return -1;
-    }
-    printf("successfully get world rank: %d\n", rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    ret = MPI_Finalize();
-    if (ret != 0)
-    {
-        printf("fail to finalize mpi\n");
-        return -1;
-    }
-    printf("successfully finalize mpi\n");
-    
+    printf("rank %d of world size: %d\n", rank ,world_size);
+
+    MPI_Finalize();
     return 0;
 }
 ```
@@ -55,16 +41,8 @@ main: main.c
 output:
 
 ```
-successfully init mpi
-successfully get world rank: 1
-successfully init mpi
-successfully get world rank: 2
-successfully init mpi
-successfully get world rank: 3
-successfully init mpi
-successfully get world rank: 0
-successfully finalize mpi
-successfully finalize mpi
-successfully finalize mpi
-successfully finalize mpi
+rank 2 of world size: 4
+rank 3 of world size: 4
+rank 0 of world size: 4
+rank 1 of world size: 4
 ```
