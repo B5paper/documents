@@ -914,6 +914,30 @@
 
     2. [ ] 增加英语单词的 qa
 
+* [v] reorg: documents
+
+    feedback:
+
+    1. 系统地学一遍 pytorch
+
+        resources:
+
+        1. Welcome to PyTorch Tutorials
+
+            <https://pytorch.org/tutorials/>
+
+            主要看 learn the basics 和 learning pytorch with examples
+
+        2. PyTorch documentation
+
+            <https://pytorch.org/docs/stable/index.html>
+
+            可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
+
+    2. 在 10 个 epoch 内拟合一条 sin 曲线
+
+    3. [v] 在 50 机器上部署一个 pytorch 环境
+
 ## qa
 
 ### cached
@@ -960,9 +984,51 @@
 
 * [ ] 为 qa 工具增加`--list`功能
 
-* [ ] 修复 bug:
+* [v] 修复 bug:
 
     `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
+
+    feedback:
+
+    1. 基于正则表达式的 py 版本的随机检测项目没有实现 create id 功能。需要先实现。
+
+    2. [ ] 为 stochastic_exam_py 项目实现`--update-idx`功能
+
+        正常的`[idx]`数据段如下所示：
+
+        ```conf
+        [unit]
+        [idx]
+        0
+        [u_0]
+        xxx
+        [u_1]
+        xxxx
+        ```
+
+        idx 从 0 开始编号。
+        
+        解析`[unit]`数据，如果`[idx]`已经存在，那么检测其是否正确，如果正确则不处理。如果不正确则替换为正确的。如果不存在则增加一个。然后将所有数据重新写回文件中。
+
+    3. [ ] 为 stochastic_exam_py 项目实现`--create-id`功能
+
+        正常的 id 如下所示：
+
+        ```conf
+        [unit]
+        [idx]
+        0
+        [id]
+        asdf3894y923ofsifd
+        [u_0]
+        xxx
+        [u_1]
+        xxxx
+        ```
+
+        这里的 id 是对日期时间生成的哈希编码，除了确定 unit 的唯一性外，没有别的作用。这个主要用于别的 unit 在指定 deps 时，指定的 unit。
+
+        方法：首先 parse unit，如果 id 不存在那么根据当前的日期、时间以及 cpu clock 数创建一个，如果存在，则跳过。
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
@@ -1016,6 +1082,22 @@
     feedback:
 
     1. [ ] sync bash
+
+* [v] qa: 4 units
+
+    正确率: 3 / 4
+
+    feedback:
+
+    1. 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
+
+    2. 在一个新的电脑环境上，执行 qa 的前提是有一个可以测试的环境，这个环境的搭建也必须作为 qa 的一部分，并且作为 qa 的 dep 项
+
+    3. 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
+
+    4. 每次降低权重时直接在原 qa 权重上除以 2，然后重新分配权重。增加权重同理，乘 2.
+
+    5. 在 2204 虚拟机上搭建 vk 开发环境
 
 ## cache tabs / process urls
 
@@ -1281,8 +1363,6 @@ tasks:
 
 ### tasks
 
-* [v] 调研 gdb 远程调试 nccl
-
 * [v] 调研 tenstorrent
 
     feedback:
@@ -1373,13 +1453,9 @@ tasks:
 
 * [v] 调研 shmem 全程多进程收发数据的矩阵乘法，并测速
 
+* [ ] 调研 nvshmem API，重点看 n_pes 相关的函数和说明
+
 * [v] 调研跑通 nvshmem example
-
-    feedback:
-
-    1. 调研 nvshmem API，重点看 n_pes 相关的函数和说明
-
-* [v] 调研 mpi 实现矩阵乘法
 
 * [v] 调研 nccl 中异步
 
@@ -1412,6 +1488,26 @@ tasks:
         这里面可以重点看下`cudaDeviceSynchronize()`是怎么 wrapper 的，在哪里调用的。
 
     5. 调研 cuda 函数`cudaIpcGetMemHandle`, `cudaIpcOpenMemHandle`
+
+* [v] 调研 nvlink
+
+    13:36 ~ 14:42
+
+    feedback:
+
+    1. 在 nccl `op128.h`中的所有函数都设置了断点，没有看到任何一个断点被 hit，说明 load store 相关的函数都没有被调用到
+
+    2. 一些可能的新方向
+
+        * [ ] 调研 nccl 中的 asm 语句 <https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html#constraints>
+
+        * [ ] 调研 nccl app，看看文档或 api 中有无 load store 相关的信息
+
+            看起来 load store 很可能和 LL，LL128，以及 network 相关，可以重点留意下这几个方向。
+
+    3. [ ] 尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
+
+    4. [ ] 继续调研 nccl 源码，看是否有 put get 相关的函数
 
 ## HPC comm
 

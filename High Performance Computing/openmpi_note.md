@@ -1,5 +1,7 @@
 # OpenMPI Note
 
+Doc: <https://docs.open-mpi.org/en/v5.0.x/>
+
 ## cache
 
 * mpi 实现的矩阵乘法
@@ -1184,19 +1186,21 @@ resource:
 int main(int argc, char** argv)
 {
     MPI_Init(NULL, NULL);
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     int number;
-    if (world_rank == 0) {
+    if (rank == 0)
+    {
         number = 54321;
         MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
-        printf("process 0 sent number %d\n", number);
-    } else if (world_rank == 1) {
-        MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,
-                MPI_STATUS_IGNORE);
-        printf("process 1 received number %d from process 0\n",
-            number);
+        printf("rank %d sent number %d\n", rank, number);
+    }
+    else if (rank == 1)
+    {
+        MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        printf("rank %d received number %d from rank 0\n", rank, number);
     }
 
     MPI_Finalize();
@@ -1219,8 +1223,8 @@ mpirun -np 2 --host node1,node2 --mca btl_tcp_if_include enp0s3 ./main
 output:
 
 ```
-process 0 sent number 54321
-process 1 received number 54321 from process 0
+rank 0 sent number 54321
+rank 1 received number 54321 from rank 0
 ```
 
 说明：
@@ -1456,8 +1460,156 @@ rank 1 received token 12345 from 0
     }
     ```
 
+## API Reference
+
+API Index: <https://docs.open-mpi.org/en/v5.0.x/man-openmpi/man3/index.html>
+
+* `MPI_Send()`
+
+    `MPI_Send` performs a standard-mode, blocking send.
+
+    syntax:
+
+    ```c
+    #include <mpi.h>
+
+    int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+    ```
+
+    parameters:
+
+    * `buf`: Initial address of send buffer (choice).
+
+    * `count`: Number of elements in send buffer (nonnegative integer).
+
+        注：相当于`num_elm`的作用。
+
+    * `datatype`: Datatype of each send buffer element (handle).
+
+    * `dest`: Rank of destination (integer).
+
+    * `tag`: Message tag (integer).
+
+        注：目前 tag 一般标注为 0.
+
+    * `comm`: Communicator (handle).
+
+* `MPI_Recv()`
+
+    syntax:
+
+    ```c
+    #include <mpi.h>
+
+    int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
+         int source, int tag, MPI_Comm comm, MPI_Status *status)
+    ```
+
+    parameters:
+
+    * `count`: Maximum number of elements to receive (integer).
+
+    * `datatype`: Datatype of each receive buffer entry (handle).
+
+    * `source`: Rank of source (integer).
+
+    * `tag`: Message tag (integer).
+
+    * `comm`: Communicator (handle).
+
+    * `buf`: Initial address of receive buffer (choice).
+
+    * `status`: Status object (status).
+
+    * `ierror`: Fortran only: Error status (integer).
+
 ## Examples
 
 ### hello world
 
+`main.c`:
+
+```c
+#include <mpi.h>
+#include <stdio.h>
+
+int main()
+{
+    MPI_Init(NULL, NULL); 
+
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    printf("hello mpi, from rank %d of %d\n", rank, world_size);
+
+    MPI_Finalize();
+}
+```
+
+compile: `mpicc -g main.c -o main`
+
+run: `mpirun -np 2 ./main`
+
+output:
+
+```
+hello mpi, from rank 0 of 2
+hello mpi, from rank 1 of 2
+```
+
 ### send recv
+
+已知接收数据的大小：
+
+`main.c`:
+
+```c
+#include <mpi.h>
+#include <stdio.h>
+
+int main(int argc, char** argv)
+{
+    MPI_Init(NULL, NULL);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int number;
+    if (rank == 0)
+    {
+        number = 123;
+        MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        printf("rank %d sent number %d\n", rank, number);
+    }
+    else if (rank == 1)
+    {
+        MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        printf("rank %d received number %d from rank 0\n", rank, number);
+    }
+
+    MPI_Finalize();
+    return 0;
+}
+```
+
+`Makefile`:
+
+```makefile
+main: main.c
+	mpicc -g main.c -o main
+
+```
+
+compile: `make`
+
+run: `mpirun -np 2 ./main`
+
+output:
+
+```
+rank 0 sent number 123
+rank 1 received number 123 from rank 0
+```
