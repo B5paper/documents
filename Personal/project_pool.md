@@ -1363,13 +1363,13 @@ tasks:
 
 ### tasks
 
+* [ ] 调研 cuda 编程手册，尤其是 tile 相关的
+
+* [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
+
 * [v] 调研 tenstorrent
 
     feedback:
-
-    1. 调研 cuda 编程手册，尤其是 tile 相关的
-
-    2. 调研 riscv 模拟／仿真，调研指令集如何扩展
 
     3. tenstorrent 使用分布式的处理器和内存，强调互联，文档给得不是很全，可以直接看代码。
 
@@ -1435,15 +1435,33 @@ tasks:
 
     3. `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
 
-    4. 仔细单步调了一下，看不出来 nvlink 的 p2p 和 pcie 的 p2p 有什么不一样。线索中断了。
-
 * [v] openshmem 尝试实现 4 pe 矩阵乘法
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
 
 * [ ] 调研 nccl app
 
-* [ ] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+* [v] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+    feedback:
+
+    1. 调研 mpi err handler，这个概念是否可以认为是 c 版本的 c++ try catch 错误捕捉机制？
+
+    2. add reference 也应该先放到 cache 里，再添加到 note 里。不然无法保证写入 note 里的都是经过验证的。
+    
+    3. 调研`MPI_Get_count()`, `MPI_Probe()`, `MPI_Cancel()`，增加 example 和 ref doc
+
+    4. 调研`MPI_ANY_SOURCE`, `MPI_ANY_TAG`，写 example 验证其功能
+
+    5. 调研<https://www.mpi-forum.org/docs/>
+
+    6. 未处理完，需要继续处理 Using MPI_Probe to find out the message size
+
+        <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
+
+        这个可能是防止 mpi recv 报错，每次先看一下有多少数据，提前分配好内存，再去 mpi recv 接收数据。
+
+        （如果 recv 端的 buffer 有限，无法一次接收完，该怎么办？是否有循环接收的机制？）
 
 * [ ] 调研使用`MPI_ERROR`接收未知长度数据
 
@@ -1508,6 +1526,8 @@ tasks:
     3. [ ] 尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
 
     4. [ ] 继续调研 nccl 源码，看是否有 put get 相关的函数
+
+* [v] 尝试在 50 机器上跑通知乎上的 cuda pcie p2p
 
 ## HPC comm
 
