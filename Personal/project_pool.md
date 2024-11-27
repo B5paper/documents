@@ -30,6 +30,8 @@
 
 ## cache
 
+* [ ] 调研 v2ray 按域名选择流量出口
+
 * [ ] 调研 virtual box 的虚拟机如何使用两块显示器／如何开两个 display 窗口／如何登录另一个 linux 窗口
 
 * 调研写一个计时 ＋ 闹钟工具
@@ -793,54 +795,13 @@
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
+* [ ] 调研`os.listdir()`
+
 * [v] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
 
     feedback:
 
-    1. 调研`os.listdir()`
-
     2. 调研`pathlib`
-
-    3. 没有什么特别好的方法，比较常见的办法是`os.walk()`遍历，然后判断文件/文件夹是否存在。想了想，这种方法比较适合只搜索一次就结束的。
-
-        如果不知道绝对路径，并且需要多次搜索，一个想法是构建出一棵树，再构建一个哈希表映射文件/文件夹字符串到 node 指针，然后不断找这个 node 的 parent，看另一个 node 是否会成为这个 parent。
-
-        如果已知两个文件（夹）的绝对路径，那么直接 compare 一下就可以了。如果前 n 个字符都相等，并且较长的字符串的下一个字符是`/`，则说明有包含关系。
-
-        一个实现如下：
-
-        ```py
-        import os
-
-        def main():
-            path_1 = './mydir_1'
-            path_2 = './mydir_1/mydir_2'
-            node_1 = os.path.abspath(path_1)
-            node_2 = os.path.abspath(path_2)
-            min_len = min(len(node_1), len(node_2))
-            max_len = max(len(node_1), len(node_2))
-            for i in range(min_len):
-                if node_1[i] != node_2[i]:
-                    print('not included')
-                    return
-            if len(node_2) > len(node_1) and node_2[min_len] == '/':
-                print('included')
-            if len(node_1) > len(node_2) and node_1[min_len] == '/':
-                print('included')
-            
-            return
-
-        if __name__ == '__main__':
-            main()
-        ```
-
-        output:
-
-        ```
-        included
-        ```
-
-        边界条件还需要再测测。
 
 * [ ] 调研 git ignore 的实现原理
 
@@ -864,8 +825,6 @@
 
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
 
-* [v] 增加 docker note qa，并加入 test collec 中
-
 * [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
 
 * [v] reorg: documents
@@ -881,10 +840,6 @@
     如果一个 unit 答对的频率较高，那么它被选择的概率变小。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
-
-* [v] reorg: documents 30 mins 11.07
-
-    10:48 ~ 11:00
 
 * [v] qa 3 unit
 
@@ -914,25 +869,25 @@
 
     2. [ ] 增加英语单词的 qa
 
+* [ ] 系统地学一遍 pytorch
+
+    resources:
+
+    1. Welcome to PyTorch Tutorials
+
+        <https://pytorch.org/tutorials/>
+
+        主要看 learn the basics 和 learning pytorch with examples
+
+    2. PyTorch documentation
+
+        <https://pytorch.org/docs/stable/index.html>
+
+        可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
+
 * [v] reorg: documents
 
     feedback:
-
-    1. 系统地学一遍 pytorch
-
-        resources:
-
-        1. Welcome to PyTorch Tutorials
-
-            <https://pytorch.org/tutorials/>
-
-            主要看 learn the basics 和 learning pytorch with examples
-
-        2. PyTorch documentation
-
-            <https://pytorch.org/docs/stable/index.html>
-
-            可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
     2. 在 10 个 epoch 内拟合一条 sin 曲线
 
@@ -960,8 +915,6 @@
 
 目前的 qa 项目： vulkan, c++, vim, cmake, makefile
 
-目前已经完成随机笔记文件的选择，工程目录在`Documents/Projects/rand_select_py`，但是还有一些缺点，后面迭代改进。
-
 * 感觉 bash, makefile, cmake, sed, awk, vim 这几个都是挺重要的，把 qa 加上去吧，每天练习
 
 * qa 的每个 unit 设计不应过于复杂。如果实际检测时间超过 30 mins，那么需要拆开。
@@ -984,13 +937,31 @@
 
 * [ ] 为 qa 工具增加`--list`功能
 
+* [ ] 为 stochastic_exam_py 项目实现`--create-id`功能
+
+    正常的 id 如下所示：
+
+    ```conf
+    [unit]
+    [idx]
+    0
+    [id]
+    asdf3894y923ofsifd
+    [u_0]
+    xxx
+    [u_1]
+    xxxx
+    ```
+
+    这里的 id 是对日期时间生成的哈希编码，除了确定 unit 的唯一性外，没有别的作用。这个主要用于别的 unit 在指定 deps 时，指定的 unit。
+
+    方法：首先 parse unit，如果 id 不存在那么根据当前的日期、时间以及 cpu clock 数创建一个，如果存在，则跳过。
+
 * [v] 修复 bug:
 
     `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
 
     feedback:
-
-    1. 基于正则表达式的 py 版本的随机检测项目没有实现 create id 功能。需要先实现。
 
     2. [ ] 为 stochastic_exam_py 项目实现`--update-idx`功能
 
@@ -1009,26 +980,6 @@
         idx 从 0 开始编号。
         
         解析`[unit]`数据，如果`[idx]`已经存在，那么检测其是否正确，如果正确则不处理。如果不正确则替换为正确的。如果不存在则增加一个。然后将所有数据重新写回文件中。
-
-    3. [ ] 为 stochastic_exam_py 项目实现`--create-id`功能
-
-        正常的 id 如下所示：
-
-        ```conf
-        [unit]
-        [idx]
-        0
-        [id]
-        asdf3894y923ofsifd
-        [u_0]
-        xxx
-        [u_1]
-        xxxx
-        ```
-
-        这里的 id 是对日期时间生成的哈希编码，除了确定 unit 的唯一性外，没有别的作用。这个主要用于别的 unit 在指定 deps 时，指定的 unit。
-
-        方法：首先 parse unit，如果 id 不存在那么根据当前的日期、时间以及 cpu clock 数创建一个，如果存在，则跳过。
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
@@ -1083,6 +1034,8 @@
 
     1. [ ] sync bash
 
+* [v] 在 2204 虚拟机上搭建 vk 开发环境
+
 * [v] qa: 4 units
 
     正确率: 3 / 4
@@ -1097,7 +1050,9 @@
 
     4. 每次降低权重时直接在原 qa 权重上除以 2，然后重新分配权重。增加权重同理，乘 2.
 
-    5. 在 2204 虚拟机上搭建 vk 开发环境
+* [v] qa: 4 units 11.26
+
+    正确率： 3 / 4
 
 ## cache tabs / process urls
 
@@ -1528,6 +1483,18 @@ tasks:
     4. [ ] 继续调研 nccl 源码，看是否有 put get 相关的函数
 
 * [v] 尝试在 50 机器上跑通知乎上的 cuda pcie p2p
+
+* [v] 调研 linux nvidia kmd 中与 nvlink 相关的部分
+
+    feedback:
+
+    1. 在 nvidia open source kdm 里面有 nvlink, nvswitch 相关的代码
+
+        <https://github.com/NVIDIA/open-gpu-kernel-modules>
+
+    2. 入口函数`nv.c`: `nvlink_drivers_init(void)`
+
+        `nvlink_linux.c`: `int __init nvlink_core_init(void)`
 
 ## HPC comm
 

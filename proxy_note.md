@@ -1,3 +1,9 @@
+# proxy note
+
+这里存放与 proxy 相关的技巧，软件，笔记。
+
+## cache
+
 * bandwagon KiwiVM address: <https://bwh88.net/clientarea.php>
 
 * v2ray http config
