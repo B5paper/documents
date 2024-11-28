@@ -893,6 +893,10 @@
 
     3. [v] 在 50 机器上部署一个 pytorch 环境
 
+* [v] reorg: documents 30 mins 11.27
+
+    10:46 ~ 10:59
+
 ## qa
 
 ### cached
@@ -1053,6 +1057,20 @@
 * [v] qa: 4 units 11.26
 
     正确率： 3 / 4
+
+* [v] 增加 v2ray note qa
+
+    feedback:
+
+    1. 如果一些知识点正处于 cache 状态，未变成基于空间结构的数据，但是任务中又要用到，任务会依赖一些 qa，该怎么办？
+
+    2. 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
+
+* [x] qa: 4 units 11.27
+
+    12:15 ~ 13:00
+
+    正确率：1 / 4
 
 ## cache tabs / process urls
 
@@ -1495,6 +1513,16 @@ tasks:
     2. 入口函数`nv.c`: `nvlink_drivers_init(void)`
 
         `nvlink_linux.c`: `int __init nvlink_core_init(void)`
+
+* [v] 调研正则表达式
+
+    看看已经记了多少笔记，能否 sync 增加 qa
+
+    如果一切准备就绪，可以去写英语单词的 parser
+
+    feedback:
+
+    1. 正则表达式的内容很少，需要从头开始构建 note
 
 ## HPC comm
 
