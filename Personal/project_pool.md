@@ -897,6 +897,12 @@
 
     10:46 ~ 10:59
 
+* [v] reorg: documents 30 mins 11.28
+
+    feedback:
+
+    1. 看起来，`ref_14`对应的问题是：对于一个数字 n，给定一系列数字`arr = [a, b, c, ...]`，现在从 arr 中选取 m 个数字，使得这 m 个数字的和为 n。现在需要使得 m 最小，如果无法找到 m 个数字和为 n，那么 m 取 -1。
+
 ## qa
 
 ### cached
@@ -961,29 +967,27 @@
 
     方法：首先 parse unit，如果 id 不存在那么根据当前的日期、时间以及 cpu clock 数创建一个，如果存在，则跳过。
 
+* [ ] 为 stochastic_exam_py 项目实现`--update-idx`功能
+
+    正常的`[idx]`数据段如下所示：
+
+    ```conf
+    [unit]
+    [idx]
+    0
+    [u_0]
+    xxx
+    [u_1]
+    xxxx
+    ```
+
+    idx 从 0 开始编号。
+    
+    解析`[unit]`数据，如果`[idx]`已经存在，那么检测其是否正确，如果正确则不处理。如果不正确则替换为正确的。如果不存在则增加一个。然后将所有数据重新写回文件中。
+
 * [v] 修复 bug:
 
     `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
-
-    feedback:
-
-    2. [ ] 为 stochastic_exam_py 项目实现`--update-idx`功能
-
-        正常的`[idx]`数据段如下所示：
-
-        ```conf
-        [unit]
-        [idx]
-        0
-        [u_0]
-        xxx
-        [u_1]
-        xxxx
-        ```
-
-        idx 从 0 开始编号。
-        
-        解析`[unit]`数据，如果`[idx]`已经存在，那么检测其是否正确，如果正确则不处理。如果不正确则替换为正确的。如果不存在则增加一个。然后将所有数据重新写回文件中。
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
@@ -1071,6 +1075,18 @@
     12:15 ~ 13:00
 
     正确率：1 / 4
+
+* [v] qa: 4 units
+
+    正确率： 2 / 4
+
+    feedback:
+
+    1. 当前的 qa 缺少重复环节，一天基本只能记一遍，无法达到巩固的效果
+
+    2. 在 qa 时，显示 unit 的 idx，方便去修改
+
+    3. 必须增加 dep 功能了，不然 qa 没法进行下去
 
 ## cache tabs / process urls
 
@@ -1523,6 +1539,32 @@ tasks:
     feedback:
 
     1. 正则表达式的内容很少，需要从头开始构建 note
+
+* [o] 整理使用 cuda async copy p2p 的代码
+
+    要求如下：
+
+    1. 使用 nvml 判断当前日环境是否支持 nvlink
+
+    1. 判断当前环境是否支持 p2p copy
+
+    1. 不 enable p2p，直接使用 p2p copy，测速
+
+    1. enable p2p，使用 p2p copy，测速
+
+    feedback:
+
+    1. 调研 cuda event，cuda api
+
+    1. 为什么 cuda malloc 的 va 可以区分不同的设备？
+
+    1. timeit 增加  TIMEIT_END_WITH_SECS
+
+* [ ] 调研 nvlink 的 kmd，尤其是 ioctl 里的各种命令，尝试找到 mmio 配置寄存器的地方
+
+* [ ] 调研 sglang，尝试跑通 example
+
+* [ ] 调研 linux ubuntu 环境下，nvidia 的 profiling 工具，比如 nsight 之类的
 
 ## HPC comm
 
