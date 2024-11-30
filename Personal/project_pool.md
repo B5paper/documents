@@ -921,22 +921,6 @@
 
     2. [ ] 增加英语单词的 qa
 
-* [ ] 系统地学一遍 pytorch
-
-    resources:
-
-    1. Welcome to PyTorch Tutorials
-
-        <https://pytorch.org/tutorials/>
-
-        主要看 learn the basics 和 learning pytorch with examples
-
-    2. PyTorch documentation
-
-        <https://pytorch.org/docs/stable/index.html>
-
-        可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
-
 * [v] reorg: documents
 
     feedback:
@@ -1247,6 +1231,24 @@ tasks:
     1. 目前看到 pdf P54
 
     2. 不清楚为什么`self.w_ = np.zeros(1 + X.shape[1])`要`1 +`。
+
+* { } 调研 pytorch
+
+    系统地学一遍 pytorch
+
+    resources:
+
+    1. Welcome to PyTorch Tutorials
+
+        <https://pytorch.org/tutorials/>
+
+        主要看 learn the basics 和 learning pytorch with examples
+
+    2. PyTorch documentation
+
+        <https://pytorch.org/docs/stable/index.html>
+
+        可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
 * [ ] 调研 三维的 Swiss Roll
 
