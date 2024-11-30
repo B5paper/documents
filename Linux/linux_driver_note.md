@@ -6,6 +6,62 @@ Ref:
 
 ## cache
 
+* linux 6.8.0 vscode hello world 无静态报错的配置是这样的：
+
+    ```json
+    {
+        "configurations": [
+            {
+                "name": "Linux",
+                "includePath": [
+                    "${workspaceFolder}/**",
+                    "/usr/src/linux-headers-6.8.0-49-generic/include",
+                    "/usr/src/linux-headers-6.8.0-49-generic/arch/x86/include",
+                    "/usr/src/linux-headers-6.8.0-49-generic/arch/x86/include/generated"
+                ],
+                "compilerPath": "/usr/bin/clang-11",
+                "cStandard": "c17",
+                "cppStandard": "c++14",
+                "intelliSenseMode": "linux-clang-x64",
+                "defines": [
+                    "__KERNEL__",
+                    "MODULE"
+                ]
+            }
+        ],
+        "version": 4
+    }
+    ```
+
+    看起来是没有了 hwe 文件夹。
+
+    `__KERNEL__`对应的宏是`module_init()`, `module_exit`, `MODULE_LICENSE()`。
+
+    `MODULE`对应的宏是`MODULE_LICENSE()`。
+
+    hello world 程序：
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+
+    int init_mod(void)
+    {
+        printk("hello hlc module\n");
+        return 0;
+    }
+
+    void exit_mod(void)
+    {
+        printk("exit hlc module\n");
+        return;
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
 * ubuntu 24.04 + 6.8.1 kernel 编译 hello world module 相对以前的变化
 
     * vscode 的 c/c++ json 配置如下

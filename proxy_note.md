@@ -4,6 +4,83 @@
 
 ## cache
 
+* v2ray http 转 socks example
+
+    ```json
+    {
+      "log": {
+        "loglevel": "warning"
+      },
+      "inbounds": [{
+        "port": 1080,
+        "listen": "127.0.0.1",
+        "protocol": "http"
+      }],
+      "outbounds": [{
+        "protocol": "socks",
+        "settings": {
+        	"servers": [
+    	    {
+    	        "address": "127.0.0.1",
+    	        "port": 4321
+    	    }
+    	]
+        },
+        "tag": "direct"
+      }],
+      "policy": {
+        "levels": {
+          "0": {"uplinkOnly": 0}
+        }
+      }
+    }
+    ```
+
+* v2ray socks config
+
+    outbound config
+
+    ```json
+    {
+      "servers": [{
+        "address": "127.0.0.1",
+        "port": 1234,
+        "users": [
+          {
+            "user": "test user",
+            "pass": "test pass",
+            "level": 0
+          }
+        ]
+      }]
+    }
+    ```
+
+    inbound config
+
+    ```json
+    {
+      "auth": "noauth",
+      "accounts": [
+        {
+          "user": "my-username",
+          "pass": "my-password"
+        }
+      ],
+      "udp": false,
+      "ip": "127.0.0.1",
+      "userLevel": 0
+    }
+    ```
+
+    `auth: "noauth" | "password"`
+
+    当开启 UDP 时，V2Ray 需要知道本机的 IP 地址。默认值为"127.0.0.1"。
+
+    socks 不对数据加密，因此不适合公网传输。
+
+    这里的 inbound confg 和 outbound config 分别对应 inbound / outbound 中的 setting 项。
+
 * bandwagon KiwiVM address: <https://bwh88.net/clientarea.php>
 
 * v2ray http config

@@ -2,6 +2,23 @@
 
 ## cached
 
+* py 中可以使用`datetime`包拿到当前的日期和时间
+
+    ```py
+    cur_datetime = datetime.datetime.now()
+    year_str = str(cur_datetime.year)
+    ```
+
+    datetime 最小可以拿到秒和微秒的数据（macrosecond）。
+
+* py 中`hash()`得出的结果有时候为负值，可以使用`ctypes`包把转换成正值
+
+    ```py
+    hash_int = hash(datetime_str)
+    if hash_int < 0:
+        hash_int = ctypes.c_ulong(hash_int).value
+    ```
+
 * python path 判断一个文件夹是否包含另一个文件/文件夹
 
     没有什么特别好的方法，比较常见的办法是`os.walk()`遍历，然后判断文件/文件夹是否存在。想了想，这种方法比较适合只搜索一次就结束的。

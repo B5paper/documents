@@ -4,6 +4,213 @@ Doc: <https://docs.open-mpi.org/en/v5.0.x/>
 
 ## cache
 
+* mpi send 端 cnt 大于 recv 端函数参数指定的 cnt，此时会报错
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main(int argc, char** argv)
+    {
+        MPI_Init(NULL, NULL);
+
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        int num_elm_buf = 8;
+        int *buf = malloc(num_elm_buf * sizeof(int));
+        if (rank == 0)
+        {
+            buf[0] = 123;
+            buf[1] = 456;
+            buf[2] = 789;
+            int send_cnt = 3;
+            MPI_Send(buf, send_cnt, MPI_INT, 1, 0, MPI_COMM_WORLD);
+            printf("rank %d sent %d numbers:\n", rank, send_cnt);
+            printf("\tdata: ");
+            for (int i = 0; i < send_cnt; ++i)
+                printf("%d, ", buf[i]);
+            putchar('\n');
+        }
+        else if (rank == 1)
+        {
+            MPI_Status status;
+            int recv_cnt = 2;
+            MPI_Recv(buf, recv_cnt, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+            printf("rank %d received data:\n", rank);
+            printf("\tMPI_SOURCE: %d\n", status.MPI_SOURCE);
+            printf("\tMPI_TAG: %d\n", status.MPI_TAG);
+            printf("\tMPI_ERROR: %d\n", status.MPI_ERROR);
+
+            int count;
+            MPI_Get_count(&status, MPI_INT, &count);
+            printf("\tcount: %d\n", count);
+
+            printf("\tdata: ");
+            for (int i = 0; i < count; ++i)
+                printf("%d, ", buf[i]);
+            putchar('\n');
+        }
+
+        MPI_Finalize();
+        return 0;
+    }
+    ```
+
+    compile: `mpicc -g main.c -o main`
+
+    run: `mpirun -np 2 ./main`
+
+    output:
+
+    ```
+    rank 0 sent 3 numbers:
+    	data: 123, 456, 789, 
+    [hlc-VirtualBox:148979] *** An error occurred in MPI_Recv
+    [hlc-VirtualBox:148979] *** reported by process [3888447489,1]
+    [hlc-VirtualBox:148979] *** on communicator MPI_COMM_WORLD
+    [hlc-VirtualBox:148979] *** MPI_ERR_TRUNCATE: message truncated
+    [hlc-VirtualBox:148979] *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort,
+    [hlc-VirtualBox:148979] ***    and potentially your MPI job)
+    ```
+
+* mpi send 数据长度小于 recv 端 buffer 长度
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main(int argc, char** argv)
+    {
+        MPI_Init(NULL, NULL);
+
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        int num_elm_buf = 8;
+        int *buf = malloc(num_elm_buf * sizeof(int));
+        if (rank == 0)
+        {
+            buf[0] = 123;
+            buf[1] = 456;
+            int send_cnt = 2;
+            MPI_Send(buf, send_cnt, MPI_INT, 1, 0, MPI_COMM_WORLD);
+            printf("rank %d sent %d numbers:\n", rank, send_cnt);
+            printf("\tdata: ");
+            for (int i = 0; i < send_cnt; ++i)
+                printf("%d, ", buf[i]);
+            putchar('\n');
+        }
+        else if (rank == 1)
+        {
+            MPI_Status status;
+            MPI_Recv(buf, num_elm_buf, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+            printf("rank %d received data:\n", rank);
+            printf("\tMPI_SOURCE: %d\n", status.MPI_SOURCE);
+            printf("\tMPI_TAG: %d\n", status.MPI_TAG);
+            printf("\tMPI_ERROR: %d\n", status.MPI_ERROR);
+
+            int count;
+            MPI_Get_count(&status, MPI_INT, &count);
+            printf("\tcount: %d\n", count);
+
+            printf("\tdata: ");
+            for (int i = 0; i < count; ++i)
+                printf("%d, ", buf[i]);
+            putchar('\n');
+        }
+
+        MPI_Finalize();
+        return 0;
+    }
+    ```
+
+    compile: `mpicc -g main.c -o main`
+
+    run: `mpirun -np 2 ./main`
+
+    output:
+
+    ```
+    rank 1 received data:
+    	MPI_SOURCE: 0
+    	MPI_TAG: 0
+    	MPI_ERROR: 0
+    	count: 2
+    	data: 123, 456, 
+    rank 0 sent 2 numbers:
+    	data: 123, 456,
+    ```
+
+    可以看到，如果 recv 端预留的 buffer 长度大于 send 端发送的数据长度时，只能使用`MPI_Get_count()`得到 send 端发送的数据长度。
+
+* 有关 mpi receive 需要验证的描述
+
+    * mpi recv 使用 any source 和 any tag 时，可以接收任何 source rank，任何 tag 的数据
+
+    * 当 mpi recv 接收任何数据时，可以使用 mpi status 获得具体来源数据
+
+    * 如果 recv 的 buffer 长度大于 send 的 buffer 长度，那么 recv 会提前返回，真实的长度需要 mpi get count 函数才能获得
+
+    * 如果 recv 的 buffer 长度小于 send 的 buffer 长度，那么 recv 会报错，并把 error 信息写入到 status 内
+
+* mpi status 的使用
+
+    `main.c`:
+
+    ```c
+    #include <mpi.h>
+    #include <stdio.h>
+
+    int main(int argc, char** argv)
+    {
+        MPI_Init(NULL, NULL);
+
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        int number;
+        if (rank == 0)
+        {
+            number = 123;
+            MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+            printf("rank %d sent number %d\n", rank, number);
+        }
+        else if (rank == 1)
+        {
+            MPI_Status status;
+            MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+            printf("rank %d received number %d from rank 0\n", rank, number);
+            printf("\tMPI_SOURCE: %d\n", status.MPI_SOURCE);
+            printf("\tMPI_TAG: %d\n", status.MPI_TAG);
+            printf("\tMPI_ERROR: %d\n", status.MPI_ERROR);
+        }
+
+        MPI_Finalize();
+        return 0;
+    }
+    ```
+
+    compile: `mpicc -g main.c -o main`
+
+    run: `mpirun -np 2 ./main`
+
+    output:
+
+    ```
+    rank 0 sent number 123
+    rank 1 received number 123 from rank 0
+    	MPI_SOURCE: 0
+    	MPI_TAG: 0
+    	MPI_ERROR: 0
+    ```
+
 * mpi 实现的矩阵乘法
 
     `main.c`:

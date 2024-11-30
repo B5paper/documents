@@ -2,6 +2,18 @@
 
 ## cache
 
+* ssh 设置 socks 代理
+
+    `ssh -X -C -p 39147 -D 4321 -o ServerAliveInterval=60 <user>@<ip_addr>`
+
+    `-D 4321`表示监听本地`127.0.0.1:4321`，作为 socks server port
+
+    `-o ServerAliveInterval=60`表示 keep alive，不然一段时间不操作，ssh 会自动退出
+
+    socks 不对通信数据加密，比较适合局域网，不太适合公网。
+
+    `-C`：压缩传输的数据，减小通信量。实测了下，对 cpu 的负荷较小，也不太影响延迟。
+
 * ssh 反向代理
 
     * 下面这三条命令等价

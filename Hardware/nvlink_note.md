@@ -1,18 +1,6 @@
-* 一些想法：
+# NVLink Note
 
-    * 一个会跳舞的机器人 -> 一个机器人游乐园/农场
-
-    * 一个机械肾脏科技公司
-
-    * 一家动画公司，探索情感的控制与释放
-
-    * 一个人文科学研究所
-
-* 224 机器上，8 个 A100，6 个 nvidia bridge，任意 2 个 A100 之间都通过 12 根 nvlink 相连，简称 NV12。每根 nvlink 提供 25 GB/s 的单向带宽，12 根一共是 12 * 25 = 300 GB/s。
-
-    实测任意两个 a100 之间的单向通信速率差不多是 275 GB/s。
-
-    nvlink 支持全双工，实测任意两个 a100 之间的双向带宽是 515 GB/s 左右。
+## cache
 
 * 使用 nvml 判断任意两个 cuda device 是否可以通过 nvlink 连接
 
@@ -146,60 +134,10 @@
         dev id 0, link id: 14, enabled
         ```
 
-* 假如把 pcie p2p 和 nvlink p2p 都看作 peer access 能力，那么可以使用`cudaDeviceCanAccessPeer()`判断两个 dev 是否可以通过 pcie/nvlink 进行 p2p 互联
+* 224 机器上，8 个 A100，6 个 nvidia bridge，任意 2 个 A100 之间都通过 12 根 nvlink 相连，简称 NV12。每根 nvlink 提供 25 GB/s 的单向带宽，12 根一共是 12 * 25 = 300 GB/s。
 
-    example:
+    实测任意两个 a100 之间的单向通信速率差不多是 275 GB/s。
 
-    `main.cu`:
+    nvlink 支持全双工，实测任意两个 a100 之间的双向带宽是 515 GB/s 左右。
 
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-
-    int main()
-    {
-        int deviceCount;
-        cudaGetDeviceCount(&deviceCount);
-
-        for (int i = 0; i < deviceCount; ++i)
-        {
-            for (int j = 0; j < deviceCount; ++j)
-            {
-                if (i != j)
-                {
-                    int canAccessPeer = 0;
-                    cudaDeviceCanAccessPeer(&canAccessPeer, i, j);
-                    if (canAccessPeer)
-                    {
-                        printf("dev peer access %d - %d, OK\n", i, j);
-                    }
-                    else 
-                    {
-                        printf("dev peer access %d - %d, Error\n", i, j);
-                    }
-                }
-            }
-        }
-
-        return 0;
-    }
-    ```
-
-    compile: `nvcc -g main.cu -L/usr/local/cuda-12.1/lib64 -lcudart -o main`
-
-    run: `./main`
-
-    output:
-
-    ```
-    dev peer access 0 - 1, OK
-    dev peer access 1 - 0, OK
-    ```
-
-* 两种稳定：基于循环反馈的稳定，基于多吸引子的稳定
-
-* `nvidia-smi -lms 100`可以第隔 100 ms 输出一次结果
-
-    类似地，`nvidia-smi -l 1`可以每隔 1 s 输出一次结果
-
-    也可以`nvidia-smi -l`，这样的话，每隔 2 秒输出一次结果
+## note

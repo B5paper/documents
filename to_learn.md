@@ -6558,3 +6558,15 @@
     This repo has all the resources you need to become an amazing data engineer!
 
     <https://github.com/DataExpert-io/data-engineer-handbook>
+
+* How to convert signed to unsigned integer in python
+
+    <https://stackoverflow.com/questions/20766813/how-to-convert-signed-to-unsigned-integer-in-python>
+
+* PyCUDA: Pythonic Access to CUDA, with Arrays and Algorithms
+
+    <https://github.com/inducer/pycuda>
+
+* Python Datetime
+
+    <https://www.w3schools.com/python/python_datetime.asp>
