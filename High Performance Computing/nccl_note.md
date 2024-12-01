@@ -2,6 +2,10 @@
 
 ## cache
 
+* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
+
+    使用 compute_70 可以跑通。
+
 * cuda 和 nccl 可以使用不同的 stream 异步执行 commands 队列
 
     ref: `ref_33`

@@ -238,78 +238,6 @@
 
     如果在`apt update`时无法访问这个 ip 的 80 端口，可以考虑在`/etc/apt/source.list`里把这一行注释掉。
 
-* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
-
-    使用 compute_70 可以跑通。
-
-* cached tabs
-
-    * How to use SSH to run a local shell script on a remote machine?
-
-        <https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-local-shell-script-on-a-remote-machine>
-
-    * 10.6. Launching with SSH
-
-        <https://docs.open-mpi.org/en/v5.0.x/launching-apps/ssh.html>
-
-    * tt-metal
-
-        TT-NN operator library, and TT-Metalium low level kernel programming model. 
-
-        <https://github.com/tenstorrent/tt-metal/>
-
-    * Basic Data Structures and Algorithms
-
-        <https://algo-ds.com/>
-
-    * Build Your Own Text Editor
-
-        <https://viewsourcecode.org/snaptoken/kilo/>
-
-    * lm.rs
-
-        Minimal LLM inference in Rust 
-
-        <https://github.com/samuel-vitorino/lm.rs>
-
-    * vecdb
-
-        Toy vector database written in c99. 
-
-        <https://github.com/montyanderson/vecdb>
-
-    * Rust Design Patterns
-
-        <https://rust-unofficial.github.io/patterns/>
-
-    * ML Code Challenges
-
-        <https://www.deep-ml.com/>
-
-    * posting
-
-        The modern API client that lives in your terminal. 
-
-        <https://github.com/darrenburns/posting>
-
-    * Read the newest State of AI report
-
-        <https://retool.com/blog/state-of-ai-h1-2024>
-
-    * LLMs-from-scratch
-
-        Implementing a ChatGPT-like LLM in PyTorch from scratch, step by step 
-
-        <https://github.com/rasbt/LLMs-from-scratch>
-
-    * barco: Linux containers from scratch in C. 
-
-        <https://github.com/lucavallin/barco>
-
-    * 怎么用apt命令下载内核源码给出步骤
-
-        <https://linuxcpp.0voice.com/?id=39737>
-
 * 笔记的结构
 
     先记录单个独立主题，再记录 topic，topic 中是多个独立主题的组合
@@ -331,8 +259,6 @@
     * 孤岛信息的连结
 
         如果有一段一两句话的知识点，虽然看不懂，但是可能在新知识体系中有用，不需要理解，但是需要知道它出现过，以后可能用得到，这种孤岛信息可以选择性地收集起来，以备后面使用。
-
-* vscode 中，取消了 tab stop 后，还是会有 tab 缩进 2 个空格的现象，这时候还需要取消 Detect Indentation
 
 * 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
 
@@ -386,8 +312,6 @@
 * 如何为一个用户增加指定目录的各种权限？
 
 * [ ] 调研 git reset 查看不同版本的 linux kernel version
-
-* isoinfo 在 genisoimage 包中
 
 * 节点的独立分解
 
@@ -847,13 +771,13 @@
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [ ] 调研`os.listdir()`
+* [v] 调研`os.listdir()`
+
+    14:52 ~ 15:09 (17 mins)
+
+* [ ] 调研`pathlib`
 
 * [v] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
-
-    feedback:
-
-    2. 调研`pathlib`
 
 * [ ] 调研 git ignore 的实现原理
 
@@ -878,14 +802,6 @@
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
 
 * [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
-
-* [v] reorg: documents
-
-    13:11 ~ 13:45
-
-* [v] reorg: project pool
-
-    13:46 ~ 14:08
 
 * [ ] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
@@ -939,6 +855,20 @@
 
     1. 看起来，`ref_14`对应的问题是：对于一个数字 n，给定一系列数字`arr = [a, b, c, ...]`，现在从 arr 中选取 m 个数字，使得这 m 个数字的和为 n。现在需要使得 m 最小，如果无法找到 m 个数字和为 n，那么 m 取 -1。
 
+* [v] reorg: documents 30 mins  12.01
+
+    16:21 ~ 16:48
+
+    feedback:
+
+    1. 将 project pool 中常用到的 pdf 等 resources 打包成 zip，发送到邮箱里
+
+    2. 为 stochastic exam 增加`--check <qa_file>`功能，检查是否每个 unit 都有 idx, id。
+
+    deps:
+
+    1. 找到贝叶斯网引论 pdf，上传到邮箱里
+
 ## qa
 
 ### cached
@@ -977,53 +907,11 @@
 
     3. `fseek()`里第二个参数和第三个参数的位置写反了
 
+* 在一个新的电脑环境上，执行 qa 的前提是有一个可以测试的环境，这个环境的搭建也必须作为 qa 的一部分，并且作为 qa 的 dep 项
+
 ### Tasks
 
 * [ ] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
-
-* [v] 为 qa 工具增加`--list`功能
-
-* [v] 为 stochastic_exam_py 项目实现`--create-id`功能
-
-    正常的 id 如下所示：
-
-    ```conf
-    [unit]
-    [idx]
-    0
-    [id]
-    asdf3894y923ofsifd
-    [u_0]
-    xxx
-    [u_1]
-    xxxx
-    ```
-
-    这里的 id 是对日期时间生成的哈希编码，除了确定 unit 的唯一性外，没有别的作用。这个主要用于别的 unit 在指定 deps 时，指定的 unit。
-
-    方法：首先 parse unit，如果 id 不存在那么根据当前的日期、时间以及 cpu clock 数创建一个，如果存在，则跳过。
-
-* [v] 为 stochastic_exam_py 项目实现`--update-idx`功能
-
-    正常的`[idx]`数据段如下所示：
-
-    ```conf
-    [unit]
-    [idx]
-    0
-    [u_0]
-    xxx
-    [u_1]
-    xxxx
-    ```
-
-    idx 从 0 开始编号。
-    
-    解析`[unit]`数据，如果`[idx]`已经存在，那么检测其是否正确，如果正确则不处理。如果不正确则替换为正确的。如果不存在则增加一个。然后将所有数据重新写回文件中。
-
-* [v] 修复 bug:
-
-    `python3 main.py --create-id /home/hlc/Documents/documents/Linux/linux_driver_note_qa.md`
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
@@ -1072,15 +960,9 @@
 
         或许应该实现 qa file 可以相同，但是 unit 需要保证不同？
 
-* [v] qa 4 units 11.20
-
-    正确率：1 / 4
+* [ ] sync bash
 
 * [x] qa: 4 units 11.21
-
-    feedback:
-
-    1. [ ] sync bash
 
 * [v] 在 2204 虚拟机上搭建 vk 开发环境
 
@@ -1091,8 +973,6 @@
     feedback:
 
     1. 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
-
-    2. 在一个新的电脑环境上，执行 qa 的前提是有一个可以测试的环境，这个环境的搭建也必须作为 qa 的一部分，并且作为 qa 的 dep 项
 
     3. 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
@@ -1127,6 +1007,18 @@
     2. 在 qa 时，显示 unit 的 idx，方便去修改
 
     3. 必须增加 dep 功能了，不然 qa 没法进行下去
+
+* [v] qa: 4 units  12.01
+
+    15:11 ~ 16:10 (59 mins)
+
+    正确率：3 / 4
+
+    feedback:
+
+    1. exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
+
+    2. 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
 
 ## cache tabs / process urls
 
@@ -1173,10 +1065,6 @@
     <https://cloud.tencent.com/developer/article/1805119>
 
 * [ ] 调研 bash array <https://www.gnu.org/software/bash/manual/html_node/Arrays.html>
-
-* [v] 调研 bash 的数组
-
-    使用 for 循环打印字符串数组中的所有单词，每个单词一行
 
 * [o] process 1 url 10.09
 
@@ -1408,9 +1296,29 @@ tasks:
 
     * `cudaStreamCreate()`
 
+* 224 机器如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
+
+    启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
+
 ### tasks
 
-* [ ] 调研 cuda 编程手册，尤其是 tile 相关的
+* [v] 调研 cuda 编程手册，尤其是 tile 相关的
+
+    17:13 ~ 17:44 (31 mins)
+
+    feedback:
+
+    1. excel 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).
+
+    2. 调研 FORTRAN, DirectCompute, OpenACC.
+
+    3. cuda programming guide website: <https://docs.nvidia.com/cuda/cuda-c-programming-guide/>
+
+        目前看到了 2.2. Thread Hierarchy
+
+        看起来，cuda programming 应该成为一个 project 或长期项目
+
+        前面的内容与认知大体相同，没有什么很新的概念。
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
 
@@ -1475,10 +1383,6 @@ tasks:
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
 
     feedback:
-
-    2. 如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
-
-        启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
 
     3. `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
 
@@ -1624,7 +1528,82 @@ tasks:
 
 * [ ] 调研 linux ubuntu 环境下，nvidia 的 profiling 工具，比如 nsight 之类的
 
-* [ ] 调研 cuda gdb
+* [v] 调研 cuda gdb
+
+    17:53 ~ 18:10 (17 mins)
+
+    feedback:
+
+    1. 在 50 机器上写如下程序
+
+        `main.cu`:
+
+        ```cpp
+        #include <cuda.h>
+        #include <stdlib.h>
+        #include <stdio.h>
+
+        __global__ void vec_add(float *A, float *B, float *C)
+        {
+            int id = blockIdx.x;
+            C[id] = A[id] + B[id];
+        }
+
+        int main()
+        {
+            float *h_A, *h_B, *h_C;
+            h_A = (float*) malloc(8 * sizeof(float));
+            h_B = (float*) malloc(8 * sizeof(float));
+            h_C = (float*) malloc(8 * sizeof(float));
+            for (int i = 0; i < 8; ++i)
+            {
+                h_A[i] = rand() % 10;
+                h_B[i] = rand() % 10;
+            }
+            float *A, *B, *C;
+            cudaMalloc(&A, 8 * sizeof(float));
+            cudaMalloc(&B, 8 * sizeof(float));
+            cudaMalloc(&C, 8 * sizeof(float));
+            cudaMemcpy(A, h_A, 8 * sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(B, h_B, 8 * sizeof(float), cudaMemcpyHostToDevice);
+            vec_add<<<8, 1>>>(A, B, C);
+            cudaMemcpy(h_C, C, 8 * sizeof(float), cudaMemcpyDeviceToHost);
+            for (int i = 0; i < 8; ++i)
+            {
+                printf("%.1f + %.1f = %.1f\n", h_A[i], h_B[i], h_C[i]);
+            }
+            return 0;
+        }
+        ```
+
+        `Makefile`:
+
+        ```makefile
+        main: main.cu
+        	nvcc -g -I../cuda-samples-12.1/Common -o main main.cu
+
+        clean:
+        	rm -f main
+        ```
+
+        在 vscode 中，使用如下`launch.json`:
+
+        ```json
+        {
+            // Use IntelliSense to learn about possible attributes.
+            // Hover to view descriptions of existing attributes.
+            // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+            "version": "0.2.0",
+            "configurations": [{
+                "name": "CUDA C++: Launch",
+                "type": "cuda-gdb",
+                "request": "launch",
+                "program": "${workspaceFolder}/main"
+            }]
+        }
+        ```
+
+        在`vec_add()`中设置断点后，F5 运行无法 hit 断点。目前不清楚原因。
 
 ## HPC comm
 

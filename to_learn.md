@@ -6570,3 +6570,69 @@
 * Python Datetime
 
     <https://www.w3schools.com/python/python_datetime.asp>
+
+* How to use SSH to run a local shell script on a remote machine?
+
+    <https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-local-shell-script-on-a-remote-machine>
+
+* 10.6. Launching with SSH
+
+    <https://docs.open-mpi.org/en/v5.0.x/launching-apps/ssh.html>
+
+* tt-metal
+
+    TT-NN operator library, and TT-Metalium low level kernel programming model. 
+
+    <https://github.com/tenstorrent/tt-metal/>
+
+* Basic Data Structures and Algorithms
+
+    <https://algo-ds.com/>
+
+* Build Your Own Text Editor
+
+    <https://viewsourcecode.org/snaptoken/kilo/>
+
+* lm.rs
+
+    Minimal LLM inference in Rust 
+
+    <https://github.com/samuel-vitorino/lm.rs>
+
+* vecdb
+
+    Toy vector database written in c99. 
+
+    <https://github.com/montyanderson/vecdb>
+
+* Rust Design Patterns
+
+    <https://rust-unofficial.github.io/patterns/>
+
+* ML Code Challenges
+
+    <https://www.deep-ml.com/>
+
+* posting
+
+    The modern API client that lives in your terminal. 
+
+    <https://github.com/darrenburns/posting>
+
+* Read the newest State of AI report
+
+    <https://retool.com/blog/state-of-ai-h1-2024>
+
+* LLMs-from-scratch
+
+    Implementing a ChatGPT-like LLM in PyTorch from scratch, step by step 
+
+    <https://github.com/rasbt/LLMs-from-scratch>
+
+* barco: Linux containers from scratch in C. 
+
+    <https://github.com/lucavallin/barco>
+
+* 怎么用apt命令下载内核源码给出步骤
+
+    <https://linuxcpp.0voice.com/?id=39737>
