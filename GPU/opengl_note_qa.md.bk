@@ -1,8 +1,6 @@
 # OpenGL Note QA
 
 [unit]
-[idx]
-0
 [id]
 10175408170782164787
 [u_0]
@@ -37,8 +35,6 @@ gcc main.c -lglfw -o main
 ```
 
 [unit]
-[idx]
-1
 [id]
 17615227673157741391
 [u_0]
@@ -78,8 +74,6 @@ gcc main.c -lglfw -o main
 出现一个黑色窗口，按 Esc 键退出。
 
 [unit]
-[idx]
-2
 [id]
 12480646872078650310
 [u_0]
@@ -106,8 +100,6 @@ Return values:
 (empty)
 
 [unit]
-[idx]
-3
 [id]
 4498036700096178731
 [u_0]
@@ -135,8 +127,6 @@ Parameters:
 * `buffer`: Specifies the name (buffer 的 id) of a buffer object.
 
 [unit]
-[idx]
-4
 [id]
 1615906985900560229
 [u_0]
@@ -181,8 +171,6 @@ Parameters:
 	（不懂）
 
 [unit]
-[idx]
-5
 [id]
 15696206482972186253
 [u_0]
@@ -236,8 +224,6 @@ gcc main.c -lGLEW -lglfw -lGL -o main
 ```
 
 [unit]
-[idx]
-6
 [id]
 2602484170240035815
 [u_0]
@@ -254,8 +240,6 @@ GLuint glCreateShader(GLenum shaderType);
 常用的`shaderType`有`GL_VERTEX_SHADER`，`GL_FRAGMENT_SHADER`，`GL_COMPUTE_SHADER`。
 
 [unit]
-[idx]
-7
 [id]
 15343687093620688823
 [u_0]
@@ -299,8 +283,6 @@ Parameters:
 	通常填 NULL.
 
 [unit]
-[idx]
-8
 [id]
 5367645532390850488
 [u_0]
@@ -349,8 +331,6 @@ GLuint load_program(const char *vtx_shader_path, const char *frag_shader_path)
 ```
 
 [unit]
-[idx]
-9
 [id]
 1303461315170448729
 [u_0]
@@ -639,8 +619,6 @@ g++ main.cpp -lGLEW -lglfw -lGL -o main
 ```
 
 [unit]
-[idx]
-10
 [id]
 6830221305588743284
 [u_0]
@@ -667,8 +645,6 @@ int main()
 ```
 
 [unit]
-[idx]
-11
 [id]
 14602347469257254644
 [u_0]
@@ -815,8 +791,6 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 ```
 
 [unit]
-[idx]
-12
 [id]
 2132882187463045625
 [u_0]
@@ -1114,8 +1088,6 @@ g++ -g main.cpp -lGLEW -lglfw -lGL -o main
 （当前目录下需有一张`img.bmp`图片）
 
 [unit]
-[idx]
-13
 [id]
 10974252160941913367
 [u_0]
@@ -1276,8 +1248,6 @@ run:
 ```
 
 [unit]
-[idx]
-14
 [id]
 3080680593169757685
 [u_0]
@@ -1569,8 +1539,6 @@ int main()
 ```
 
 [unit]
-[idx]
-15
 [id]
 17321698291596183455
 [u_0]

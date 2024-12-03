@@ -1,8 +1,6 @@
 # Docker Note QA
 
 [unit]
-[idx]
-0
 [id]
 6362350047929645109
 [u_0]
@@ -11,8 +9,6 @@ docker run 启动一个镜像，并进入 bash
 `docker run -it <image>:<tag> <command>`
 
 [unit]
-[idx]
-1
 [id]
 11182387183404132538
 [u_0]
@@ -21,8 +17,6 @@ docker run 启动一个镜像，并进入 bash
 `docker start -ia <container_name>`
 
 [unit]
-[idx]
-2
 [id]
 15644948504462002486
 [u_0]
@@ -31,8 +25,6 @@ docker run 启动一个镜像，并进入 bash
 `docker exec -it <container_name> <command>`
 
 [unit]
-[idx]
-3
 [id]
 4420774242792228039
 [u_0]
@@ -41,8 +33,6 @@ docker run 启动一个镜像，并进入 bash
 `docker ps`
 
 [unit]
-[idx]
-4
 [id]
 16774027880631328205
 [u_0]

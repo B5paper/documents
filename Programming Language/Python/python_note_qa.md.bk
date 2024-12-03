@@ -1,8 +1,6 @@
 # python note qa
 
 [unit]
-[idx]
-0
 [id]
 4736547633077087663
 [u_0]
@@ -20,8 +18,6 @@ print(selected_txt)  # world
 ```
 
 [unit]
-[idx]
-1
 [id]
 12689219962269567440
 [u_0]
@@ -31,8 +27,6 @@ python 的`re`模块中，`search()`和`match()`有什么异同？
 `search()`和`match()`都会返回一个`Match`类型的对象作为匹配结果。
 
 [unit]
-[idx]
-2
 [id]
 1466556649037686683
 [u_0]

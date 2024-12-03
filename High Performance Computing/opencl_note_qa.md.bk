@@ -1,8 +1,6 @@
 # OpenCL Note QA
 
 [unit]
-[idx]
-0
 [id]
 14478250887424664638
 [u_0]
@@ -19,8 +17,6 @@ kernel void add(global const int *A, global const int *B, global int *C)
 ```
 
 [unit]
-[idx]
-1
 [id]
 16249396656935708140
 [u_0]

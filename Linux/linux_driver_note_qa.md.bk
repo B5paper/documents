@@ -107,7 +107,7 @@ Syntax:
 
 [unit]
 [idx]
-3
+4
 [id]
 40746586403460328
 [u_0]
@@ -139,7 +139,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-4
+6
 [id]
 40749489459808928
 [u_0]
@@ -217,7 +217,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-5
+8
 [id]
 40752482444034880
 [u_0]
@@ -256,7 +256,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-6
+11
 [id]
 40756729806857856
 [u_0]
@@ -270,7 +270,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-7
+13
 [id]
 40759699732653720
 [u_0]
@@ -286,7 +286,7 @@ int m_open(struct inode *inode, struct file *file_ptr);
 
 [unit]
 [idx]
-8
+14
 [id]
 40761094767674296
 [u_0]
@@ -302,7 +302,7 @@ long int m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *of
 
 [unit]
 [idx]
-9
+15
 [id]
 40762499026066904
 [u_0]
@@ -320,8 +320,6 @@ struct file_operations
 ```
 
 [unit]
-[idx]
-10
 [id]
 5737746927749468565
 [u_0]
@@ -356,8 +354,6 @@ output:
 ```
 
 [unit]
-[idx]
-11
 [id]
 4188117425824722713
 [u_0]
@@ -392,8 +388,6 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
-[idx]
-12
 [id]
 199112764048893592
 [u_0]
@@ -464,8 +458,6 @@ dmesg output:
 ```
 
 [unit]
-[idx]
-13
 [id]
 15625035695245153604
 [u_0]
