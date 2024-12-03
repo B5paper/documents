@@ -747,6 +747,8 @@
 
     * projects
 
+* qa test 中不能出现选过的 unit
+
 ### tasks
 
 * { } reorg: projects
@@ -785,7 +787,13 @@
 
 * [ ] 调研 deb 创建安装包
 
-* [ ] 调研`glXQueryVersion()`出自哪个头文件
+* [v] 调研`glXQueryVersion()`出自哪个头文件
+
+    feedback:
+    
+    1. grep 搜索结果显示出自`/usr/include/GL/glx.h`中。
+
+    2. ref: <https://www.ibm.com/docs/ro/aix/7.1?topic=environment-glxqueryversion-subroutine>
 
 * [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
@@ -813,21 +821,11 @@
 
     正确率：3 / 3
 
-    feedback:
-
-    1. 本轮中不能出现选过的 unit
-
-* [v] reorg projects 30 mins 11.10
-
 * [x] 调研《github入门与实践》
 
     feedback:
 
     1. 找不到 pdf 文件在哪...
-
-* [v] reorg: documents 11.18
-
-* [v] reorg: project pool 11.18
 
 * [v] reorg: documents
 
@@ -837,13 +835,9 @@
 
     2. [ ] 增加英语单词的 qa
 
+* [ ] 在 10 个 epoch 内拟合一条 sin 曲线
+
 * [v] reorg: documents
-
-    feedback:
-
-    2. 在 10 个 epoch 内拟合一条 sin 曲线
-
-    3. [v] 在 50 机器上部署一个 pytorch 环境
 
 * [v] reorg: documents 30 mins 11.27
 
@@ -909,6 +903,12 @@
 
 * 在一个新的电脑环境上，执行 qa 的前提是有一个可以测试的环境，这个环境的搭建也必须作为 qa 的一部分，并且作为 qa 的 dep 项
 
+* 每次降低权重时直接在原 qa 权重上除以 2，然后重新分配权重。增加权重同理，乘 2.
+
+* 如果一些知识点正处于 cache 状态，未变成基于空间结构的数据，但是任务中又要用到，任务会依赖一些 qa，该怎么办？
+
+* 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
+
 ### Tasks
 
 * [ ] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
@@ -925,21 +925,15 @@
 
 * [ ] 在做检测时，写出 unit 出自哪里
 
-* [v] qa: 4 unit  11.17
-
-    正确率：4 / 4
-
 * [ ] 在同一次 test 中，不能出现重复的 unit
 
-* [v] qa: 4 units
+* [ ] 调研 python 处理 csv 文件
 
 * [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
     感觉比较熟悉的，之前重复出现过的 unit，可以把比重设置得低一点
 
     feedback:
-
-    1. 调研 python 处理 csv 文件
 
     2. 调研 python type hint
 
@@ -962,33 +956,21 @@
 
 * [ ] sync bash
 
-* [x] qa: 4 units 11.21
-
 * [v] 在 2204 虚拟机上搭建 vk 开发环境
+
+* [ ] 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
+
+* [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
 * [v] qa: 4 units
 
     正确率: 3 / 4
-
-    feedback:
-
-    1. 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
-
-    3. 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
-
-    4. 每次降低权重时直接在原 qa 权重上除以 2，然后重新分配权重。增加权重同理，乘 2.
 
 * [v] qa: 4 units 11.26
 
     正确率： 3 / 4
 
 * [v] 增加 v2ray note qa
-
-    feedback:
-
-    1. 如果一些知识点正处于 cache 状态，未变成基于空间结构的数据，但是任务中又要用到，任务会依赖一些 qa，该怎么办？
-
-    2. 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
 
 * [x] qa: 4 units 11.27
 
@@ -1019,6 +1001,10 @@
     1. exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
     2. 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
+
+* [v] qa: 4 units  12.01
+
+    正确率： 2 / 4
 
 ## cache tabs / process urls
 
@@ -1172,6 +1158,256 @@ tasks:
 
 * [v] 调研《Python机器学习》 11.10
 
+* [v] 调研 <https://pytorch.org/tutorials/>
+
+    feedback:
+
+    1. 目前看到<https://pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html>
+
+    2. `main.py`未处理完，临时记录放在`temp.md`文件中
+
+        理论上可以自己写一个 mnist 数据集的训练、测试代码了。
+
+    3. 可以跑通的 pytorch example
+
+        ```py
+        import torch as t
+        import torch
+        from torch import nn
+        from torch.utils.data import DataLoader
+        from torchvision import datasets
+        from torchvision.transforms import ToTensor
+
+        # Get cpu, gpu or mps device for training.
+        device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps"
+            if torch.backends.mps.is_available()
+            else "cpu"
+        )
+        print(f"Using {device} device")
+
+        def train(dataloader, model, loss_fn, optimizer):
+            size = len(dataloader.dataset)
+            model.train()
+            for batch, (X, y) in enumerate(dataloader):
+                X, y = X.to(device), y.to(device)
+
+                # Compute prediction error
+                pred = model(X)
+                loss = loss_fn(pred, y)
+
+                # Backpropagation
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+
+                if batch % 100 == 0:
+                    loss, current = loss.item(), (batch + 1) * len(X)
+                    print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
+        def test(dataloader, model, loss_fn):
+            size = len(dataloader.dataset)
+            num_batches = len(dataloader)
+            model.eval()
+            test_loss, correct = 0, 0
+            with torch.no_grad():
+                for X, y in dataloader:
+                    X, y = X.to(device), y.to(device)
+                    pred = model(X)
+                    test_loss += loss_fn(pred, y).item()
+                    correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+            test_loss /= num_batches
+            correct /= size
+            print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+
+        def main():
+            training_data = datasets.FashionMNIST(
+                root="data",
+                train=True,
+                download=True,
+                transform=ToTensor(),
+            )
+
+            test_data = datasets.FashionMNIST(
+                root="data",
+                train=False,
+                download=True,
+                transform=ToTensor(),
+            )
+
+            batch_size = 64
+
+            # Create data loaders.
+            train_dataloader = DataLoader(training_data, batch_size=batch_size)
+            test_dataloader = DataLoader(test_data, batch_size=batch_size)
+
+            for X, y in test_dataloader:
+                print(f"Shape of X [N, C, H, W]: {X.shape}")
+                print(f"Shape of y: {y.shape} {y.dtype}")
+                break
+
+            # Define model
+            class NeuralNetwork(nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.flatten = nn.Flatten()
+                    self.linear_relu_stack = nn.Sequential(
+                        nn.Linear(28*28, 512),
+                        nn.ReLU(),
+                        nn.Linear(512, 512),
+                        nn.ReLU(),
+                        nn.Linear(512, 10)
+                    )
+
+                def forward(self, x):
+                    x = self.flatten(x)
+                    logits = self.linear_relu_stack(x)
+                    return logits
+
+            model = NeuralNetwork().to(device)
+            print(model)
+
+            loss_fn = nn.CrossEntropyLoss()
+            optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+
+            epochs = 5
+            for t in range(epochs):
+                print(f"Epoch {t+1}\n-------------------------------")
+                train(train_dataloader, model, loss_fn, optimizer)
+                test(test_dataloader, model, loss_fn)
+            print("Done!")
+
+            torch.save(model.state_dict(), "model.pth")
+            print("Saved PyTorch Model State to model.pth")
+
+            model = NeuralNetwork().to(device)
+            model.load_state_dict(torch.load("model.pth", weights_only=True))
+
+            classes = [
+                "T-shirt/top",
+                "Trouser",
+                "Pullover",
+                "Dress",
+                "Coat",
+                "Sandal",
+                "Shirt",
+                "Sneaker",
+                "Bag",
+                "Ankle boot",
+            ]
+
+            model.eval()
+            x, y = test_data[0][0], test_data[0][1]
+            with torch.no_grad():
+                x = x.to(device)
+                pred = model(x)
+                predicted, actual = classes[pred[0].argmax(0)], classes[y]
+                print(f'Predicted: "{predicted}", Actual: "{actual}"')
+
+            return
+
+        if __name__ == '__main__':
+            main()
+        ```
+
+        output:
+
+        ```
+        Using cuda device
+        Shape of X [N, C, H, W]: torch.Size([64, 1, 28, 28])
+        Shape of y: torch.Size([64]) torch.int64
+        NeuralNetwork(
+          (flatten): Flatten(start_dim=1, end_dim=-1)
+          (linear_relu_stack): Sequential(
+            (0): Linear(in_features=784, out_features=512, bias=True)
+            (1): ReLU()
+            (2): Linear(in_features=512, out_features=512, bias=True)
+            (3): ReLU()
+            (4): Linear(in_features=512, out_features=10, bias=True)
+          )
+        )
+        Epoch 1
+        -------------------------------
+        loss: 2.301282  [   64/60000]
+        loss: 2.282217  [ 6464/60000]
+        loss: 2.261925  [12864/60000]
+        loss: 2.257128  [19264/60000]
+        loss: 2.247277  [25664/60000]
+        loss: 2.211387  [32064/60000]
+        loss: 2.218867  [38464/60000]
+        loss: 2.184250  [44864/60000]
+        loss: 2.178685  [51264/60000]
+        loss: 2.146116  [57664/60000]
+        Test Error: 
+         Accuracy: 52.2%, Avg loss: 2.137231 
+
+        Epoch 2
+        -------------------------------
+        loss: 2.150523  [   64/60000]
+        loss: 2.139497  [ 6464/60000]
+        loss: 2.077158  [12864/60000]
+        loss: 2.098047  [19264/60000]
+        loss: 2.051788  [25664/60000]
+        loss: 1.977449  [32064/60000]
+        loss: 2.012526  [38464/60000]
+        loss: 1.926008  [44864/60000]
+        loss: 1.933322  [51264/60000]
+        loss: 1.853627  [57664/60000]
+        Test Error: 
+         Accuracy: 60.0%, Avg loss: 1.850576 
+
+        Epoch 3
+        -------------------------------
+        loss: 1.884275  [   64/60000]
+        loss: 1.859825  [ 6464/60000]
+        loss: 1.733056  [12864/60000]
+        loss: 1.781410  [19264/60000]
+        loss: 1.680241  [25664/60000]
+        loss: 1.617407  [32064/60000]
+        loss: 1.645341  [38464/60000]
+        loss: 1.538832  [44864/60000]
+        loss: 1.571115  [51264/60000]
+        loss: 1.457203  [57664/60000]
+        Test Error: 
+         Accuracy: 62.4%, Avg loss: 1.475583 
+
+        Epoch 4
+        -------------------------------
+        loss: 1.537457  [   64/60000]
+        loss: 1.513721  [ 6464/60000]
+        loss: 1.354834  [12864/60000]
+        loss: 1.441262  [19264/60000]
+        loss: 1.327532  [25664/60000]
+        loss: 1.310910  [32064/60000]
+        loss: 1.334382  [38464/60000]
+        loss: 1.248879  [44864/60000]
+        loss: 1.292152  [51264/60000]
+        loss: 1.186263  [57664/60000]
+        Test Error: 
+         Accuracy: 64.9%, Avg loss: 1.212287 
+
+        Epoch 5
+        -------------------------------
+        loss: 1.276597  [   64/60000]
+        loss: 1.273734  [ 6464/60000]
+        loss: 1.098410  [12864/60000]
+        loss: 1.221964  [19264/60000]
+        loss: 1.097947  [25664/60000]
+        loss: 1.114543  [32064/60000]
+        loss: 1.145893  [38464/60000]
+        loss: 1.072613  [44864/60000]
+        loss: 1.119054  [51264/60000]
+        loss: 1.029024  [57664/60000]
+        Test Error: 
+         Accuracy: 66.1%, Avg loss: 1.050324 
+
+        Done!
+        Saved PyTorch Model State to model.pth
+        Predicted: "Ankle boot", Actual: "Ankle boot"
+        ```
+
 ## Mathematics
 
 resources:
@@ -1300,6 +1536,18 @@ tasks:
 
     启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
 
+* nccl 调试时的 temp 中间结果
+
+    * c 为什么会从 0 循环到 1？
+
+        因为`sendMask = 3`，只有低 2 位为 1.
+
+        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
+
+    * `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
+
+        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
+
 ### tasks
 
 * [v] 调研 cuda 编程手册，尤其是 tile 相关的
@@ -1350,19 +1598,9 @@ tasks:
 
     feedback:
 
-    3. c 为什么会从 0 循环到 1？
-
-        因为`sendMask = 3`，只有低 2 位为 1.
-
-        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
-
     4. 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
 
         是否可以让其他线程也运行，但只在当前线程触发断点？
-
-    5. `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
-
-        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
 
 * [v] 调研 openshmem
 
@@ -1477,8 +1715,6 @@ tasks:
     3. [ ] 尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
 
     4. [ ] 继续调研 nccl 源码，看是否有 put get 相关的函数
-
-* [v] 尝试在 50 机器上跑通知乎上的 cuda pcie p2p
 
 * [v] 调研 linux nvidia kmd 中与 nvlink 相关的部分
 
@@ -1604,6 +1840,28 @@ tasks:
         ```
 
         在`vec_add()`中设置断点后，F5 运行无法 hit 断点。目前不清楚原因。
+
+* [v] 调研 cuda gdb
+
+    17:16 ~ 17:36
+
+    feedback:
+
+    1. <https://docs.nvidia.com/cuda/cuda-gdb/index.html>目前看到 3.3.2. Multi-GPU Debugging
+
+    2. 关于`CUDA_VISIBLE_DEVICES`的疑问：假如在启动 cuda-gdb 之前指定这个环境变量，host code 只能看到指定的 device；假如在启动 cuda-gdb 后，改变`CUDA_VISIBLE_DEVICES`，是否只会在指定的 device 上 hit 到断点？
+
+    3. 调研 CUDA Quick Start Guide
+    
+        <https://docs.nvidia.com/cuda/cuda-quick-start-guide/>
+
+    4. nvidia 的 cuda gdb 似乎是开源的，有时间了调研一下
+
+        <https://github.com/NVIDIA/cuda-gdb>
+
+    5. 未解决的问题
+
+        cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
 
 ## HPC comm
 

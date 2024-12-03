@@ -228,7 +228,7 @@
     `Makefile`:
 
     ```makefile
-    man: main.c
+    main: main.c
         nvcc -g -I/home/huliucheng/Documents/Projects/nccl/build/include main.c -L/home/huliucheng/Documents/Projects/nccl/build/lib -lnccl -o main
 
     clean:
