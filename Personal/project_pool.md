@@ -136,7 +136,7 @@
 
     中间过程只是记录，不是结论，因此很难复用。这些不应该出现在笔记里。
 
-* [ ] 调研 pynccl 的用法
+
 
 * [ ] 调研 docker 中 app 的调试方法
 
@@ -863,6 +863,14 @@
 
     1. 找到贝叶斯网引论 pdf，上传到邮箱里
 
+* [v] reorg: documents 30 mins
+
+    feedback:
+
+    1. 贝叶斯网引论下载到`Documents/Projects/book`目录里了。还下载了些其他书，有时间了看看
+
+    2. 贝叶斯网的笔记不应该太简洁，应该在概念下给出大量 example，给出注释，给出引申的猜想。
+
 ## qa
 
 ### cached
@@ -1005,6 +1013,43 @@
 * [v] qa: 4 units  12.01
 
     正确率： 2 / 4
+
+* [v] 调研 qa test 增加功能：
+
+    在工程目录下增加`qa_db.txt`文件，每次 qa test 结束后，输入`save`向此文件中写入类似如下的格式：
+
+    ```
+    [date-time]
+    2024-12-01 16:20
+    [units]
+    /path/to/qa_file_1,2956213572395325
+    /path/to/qa_file_2,2342343294235
+    /path/to/qa_file_3,723649235873223
+    /path/to/qa_file_4,47567435623432
+
+    [date-time]
+    2024-11-30 13:35
+    [units]
+    xxx
+    xxxx
+    ...
+    ```
+
+    总是保持最新的日期在最上面。
+
+    在每天需要复习的时候，使用`python main.py --review`进入 exam 模式，复习当天的 units。
+
+    目前可以先手动录入`qa_db.txt`文件，程序只负责解析和 review。
+
+    deps:
+
+    1. [v] 把 randexam 改成 selected_units 的形式
+
+    2. [v] 在 randexam 开始之前，对 qa file collect 文件中的所有 qa file 进行 check，检查 id 和 idx 是否完整
+
+    feedback:
+
+    1. [ ] 增加`python main.py --review`功能，复习当天的 units。
 
 ## cache tabs / process urls
 
@@ -1862,6 +1907,24 @@ tasks:
     5. 未解决的问题
 
         cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
+
+* [v] 构建一个 nccl test case，使用 cuda-gdb 检查 nccl src 中 kernel 是否被调用
+
+    feedback:
+
+    1. 是否可以使用 template 写 cuda kernel。如果可以，是否可以打断点
+
+    2. 如何使用类似 cudaLaunchKernel() 调用 cuda kernel，是否可以打断点
+
+    3. nccl 目前使用 cudaLaunchKernel() + 模板的方式调用 kernel，断点无法被 hit
+
+* [v] 调研 pynccl 的用法
+
+    feedback:
+
+    1. 调研 python 中 ctypes 的用法
+
+    2. 目前看到`tests/test_1_init.py`的 53 行
 
 ## HPC comm
 
