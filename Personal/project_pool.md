@@ -871,6 +871,10 @@
 
     2. 贝叶斯网的笔记不应该太简洁，应该在概念下给出大量 example，给出注释，给出引申的猜想。
 
+* [v] reorg: documents 30 mins
+
+    10:14 ~ 10:27
+
 ## qa
 
 ### cached
@@ -1014,6 +1018,8 @@
 
     正确率： 2 / 4
 
+* [ ] 增加`python main.py --review`功能，复习当天的 units。
+
 * [v] 调研 qa test 增加功能：
 
     在工程目录下增加`qa_db.txt`文件，每次 qa test 结束后，输入`save`向此文件中写入类似如下的格式：
@@ -1047,9 +1053,15 @@
 
     2. [v] 在 randexam 开始之前，对 qa file collect 文件中的所有 qa file 进行 check，检查 id 和 idx 是否完整
 
-    feedback:
+* [v] qa: 4 units
 
-    1. [ ] 增加`python main.py --review`功能，复习当天的 units。
+    正确率： 1 / 4
+
+    deps:
+
+    1. [v] 在 ubuntu 2204 虚拟机上增加 opengl 开发环境
+
+    2. [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
 ## cache tabs / process urls
 
@@ -1908,11 +1920,15 @@ tasks:
 
         cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
 
-* [v] 构建一个 nccl test case，使用 cuda-gdb 检查 nccl src 中 kernel 是否被调用
+* [v] 调研是否可以使用 template 写 cuda kernel。如果可以，是否可以打断点
 
     feedback:
 
-    1. 是否可以使用 template 写 cuda kernel。如果可以，是否可以打断点
+    1. 让大模型帮忙写了几段代码，无论是 template, cudaLaunchKernel，还是`__global__`修饰，`__device__`修饰，都是可以打断点的 
+
+* [v] 构建一个 nccl test case，使用 cuda-gdb 检查 nccl src 中 kernel 是否被调用
+
+    feedback:
 
     2. 如何使用类似 cudaLaunchKernel() 调用 cuda kernel，是否可以打断点
 
@@ -1925,6 +1941,44 @@ tasks:
     1. 调研 python 中 ctypes 的用法
 
     2. 目前看到`tests/test_1_init.py`的 53 行
+
+* [v] 调研 cuda gdb
+
+    feedback:
+
+    1. 其他的 cuda kernel 都可以正常断点，但是 nccl 中的 kernel 无法打断点。
+
+        start gdb:
+
+        `LD_LIBRARY_PATH=/home/huliucheng/Documents/Projects/nccl/build/lib NCCL_DEBUG=INFO NCCL_MAX_NCHANNELS=1 NCCL_SHM_DISABLE=1 /usr/local/cuda/bin/cuda-gdb --args /home/huliucheng/Documents/Projects/nccl_test_3/main`
+
+        output 如下：
+
+        ```
+        assign cuda mem data for dev 1
+        cu dev 0:
+        	cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+        	cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+        cu dev 1:
+        	cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+        	cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+        [New Thread 0x7fffc3250000 (LWP 54269)]
+        [New Thread 0x7fffc3a51000 (LWP 54270)]
+        [New Thread 0x7fff598fe000 (LWP 54271)]
+        zjxj:54233:54270 [0] NCCL INFO Channel 00/0 : 1[1] -> 0[0] [receive] via NET/Socket/1
+        zjxj:54233:54270 [0] NCCL INFO Channel 00/0 : 0[0] -> 1[1] [send] via NET/Socket/1
+        [New Thread 0x7fff589fc000 (LWP 54272)]
+        zjxj:54233:54269 [1] NCCL INFO Channel 00/0 : 0[0] -> 1[1] [receive] via NET/Socket/2
+        zjxj:54233:54269 [1] NCCL INFO Channel 00/0 : 1[1] -> 0[0] [send] via NET/Socket/2
+        zjxj:54233:54270 [0] NCCL INFO Connected all rings
+        zjxj:54233:54269 [1] NCCL INFO Connected all rings
+        [Thread 0x7fffc3a51000 (LWP 54270) exited]
+        [Thread 0x7fffc3250000 (LWP 54269) exited]
+        [Switching focus to CUDA kernel 0, grid 2, block (0,0,0), thread (0,0,0), device 1, sm 0, warp 1, lane 0]
+
+        ```
+
+        会一直在这里卡着。
 
 ## HPC comm
 
