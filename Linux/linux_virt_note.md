@@ -21,3 +21,11 @@
     iommu 实际上使得 dma 成为可能。
 
     ref: <https://michael2012z.medium.com/iommu-b59e2dc320bd>
+
+* iommu 的新理解
+
+    假如 device 希望向 host memory 读写数据，device 希望的方式是看到一块连续的内存，根据起始地址和偏移地址直接写就可以了。但是 host memory 通常是不连续的，因为内存是 user 使用`malloc()`申请的，在 linux kernel 里实际上给他分配的是不连续的页表（page），对应的是不连续的物理内存。linux kernel 做了一层封装，使得 user 看到的地址是连续的。
+
+    现在 device 也希望看到连续的 host 内存地址，这样比较好处理。iommu 的需求就出现了：把不连续的 host memory 对 device 映射为连续的 memory。
+
+    iommu 的基本映射任务完成后，由于给 device 的是虚拟地址，所以也顺带增加了内存访问保护，内存隔离等的功能。
