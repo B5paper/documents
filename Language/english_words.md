@@ -551,3 +551,5 @@ counterpart n. 对应的事物
 simultaneous a. 同时发生的
 
 subtle prn. [ˈsʌtl] a. 微妙的，敏感的
+
+as opposed to sth. phrase. 与 ... 相对，而不是

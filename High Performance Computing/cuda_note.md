@@ -2,6 +2,55 @@
 
 ## cache
 
+* nvcc 编译不同的架构支持`-gencode arch=compute_70,code=sm_70`
+
+    如果硬件是 80 的兼容性，那么这个硬件支持使用 70 兼容性编译出来的 code。
+
+    相反，如果硬件是 70 的兼容性，那么它跑不起来使用 80 兼容性编译出来的 code.
+
+* cuda-gdb hit 断点时，可以使用`info cuda kernels`查看当前的 kernel 函数，sm，block, grid, device 使用情况等信息。
+
+* nvcc 加上`-g`后支持 host code 调试，加上`-G`后支持 cuda kernel code 调试
+
+* cuda kernel example
+
+    ```cpp
+    // Kernel definition
+    __global__ void VecAdd(float* A, float* B, float* C)
+    {
+        int i = threadIdx.x;
+        C[i] = A[i] + B[i];
+    }
+
+    int main()
+    {
+        ...
+        // Kernel invocation with N threads
+        VecAdd<<<1, N>>>(A, B, C);
+        ...
+    }
+    ```
+
+    cuda 编程模型是 c++ 的一个扩展。
+
+    cuda kernel 前面要加上`__global__`。（为什么不是加`__device__`？）
+
+* 每个 cuda kernel 在运行时对应一个 cuda thread，不是 block，也不是 sm
+
+* SMs - Streaming Multiprocessors
+
+* 在 cuda 中，软件使用的 block 会被 cuda 根据实际的物理 block 数重新排布
+
+    比如软件定义 8 个 block 一起计算，如果 card 0 只有 2 个 sm，那么程序会变成 2 个 block 2 个 block 执行，一共执行 4 轮；如果 card 1 有 4 个 sm，那么程序会变成 4 个 block 4 个 block 执行，一共执行 2 轮。
+
+    这个能力被官网称作 Automatic Scalability。
+
+    注：这里的 block 可能指的并不是 thread，一个 block 可能会包含多个 thread。
+
+* 官网介绍的 cuda 的核心三个抽象
+
+    At its core are three key abstractions — a hierarchy of thread groups, shared memories, and barrier synchronization — that are simply exposed to the programmer as a minimal set of language extensions.
+
 * 假如把 pcie p2p 和 nvlink p2p 都看作 peer access 能力，那么可以使用`cudaDeviceCanAccessPeer()`判断两个 dev 是否可以通过 pcie/nvlink 进行 p2p 互联
 
     example:

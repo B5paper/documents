@@ -30,6 +30,34 @@
 
 ## cache
 
+* 如果 doc 或者资料里只有一部分是能看懂的，其他的看不懂，那么在写笔记时只记录看懂的，做过实验验证的，不懂的另起新的调研 task／项目
+
+* 假如感觉每天完成 task 困难，那么在 reorg 和 qa 后，只设立 1 个 task，这样总能完成吧。
+
+* 关于 dl 的一些问题
+
+    * 问题 1: 假如底层的卷积实现的是 filter，中层的卷积实现的也是 filter，那么是否可以认为卷积神经网络只是在匹配模式，并没有做出创新的能力？
+
+    * 问题 2：假如单靠 filter 就可以实现思维，那么 filter 的数量，size 与 depth 是否存在一个最小的必须值？
+
+    * 问题 3：假如思维的底层确实是 filter，那么是否存在区别于 SGD 的优化方法？因为大脑不做反向传播。
+
+    * 问题 4：创新是否是可以分解的，是否也可以被 filter 模仿？
+
+* incontext learning 与复杂系统的猜想
+
+    猜想：假如大模型可以靠 inference 完成复杂问题的推理，那么说明大模型在训练时不光学到了指定词组/句子后的可能模式，还学到了不同知识节点之间的复杂相互作用关系。
+
+    验证：假如只保留复杂关系，对前端表示做替换，那么不影响最终的输出结果。
+
+* 有关化学物质帮助度过临时的困境
+
+    虽然说奶茶和咖啡只是临时兴奋神经，假如有一天状态非常不好，喝了咖啡后可以有精神地干完一件事，这件事后来会影响到人生的进程，那么是否可以认为“治标”和“治本”同样重要？
+
+    命题：治本很重要，治标则填平了生活中每天的沟壑，也是非常重要的。
+
+* 想法：用摄像头判断自己在执行一项 tasks 时拿起手机的次数
+
 * 非线性项目
 
     如果完成一个项目用到的知识无法全部从 qa 和 note 中得到，并且这个项目有时间约束，那么这个项目就是一个非线性项目。
@@ -135,8 +163,6 @@
     有些需要记录的内容明显是中间结果而不是笔记，如果把中间结果当成笔记来记，那么在归类的时候就不知道该把归类到什么地方去。
 
     中间过程只是记录，不是结论，因此很难复用。这些不应该出现在笔记里。
-
-
 
 * [ ] 调研 docker 中 app 的调试方法
 
@@ -896,6 +922,8 @@
     1. [ ] 构建数据集以及数据集的代码
 
         先从 sin, cos 入手，再做鸢尾花，葡萄洒等传统机器学习数据集，再做 mnist, minist-fashion，再然后是自然语言数据集，最后是综合数据集，比如视频，imagenet 等。
+
+* [v] reorg: documents 30 mins  12.06
 
 ## qa
 
@@ -2065,7 +2093,40 @@ tasks:
 
     4. 调研：cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
 
-    5. 调研 224 机器上的 nccl cuda-gdb 情况，是否需要等很长时间
+* [v] 在 224 机器上尝试断点 nccl
+
+    feedback:
+
+    1. 224 机器上的 nccl cuda-gdb 依然很慢，起码需要半个小时以上才能 hit 断点
+
+    2. 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
+
+        在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
+
+    3. 在`ld_volatile_global()`中设置断点，经过半个多小时后，断点被 hit
+
+        看到的调用栈如下：
+
+        ```
+        ld_volatile_global() - op128.h:295
+        Primitives::loadStepValue() - prims_simple.h:106 -> 116
+        Primitives::loadRecvConn() - prims_simple.h:477 -> 496
+        Primitives::Primitives() - prims_simple.h:574 -> 646
+        RunWorkBatch::run() - common.h:280 -> ?
+        RunWorkBatch<AllReduce_Sum_f32_RING_SIMPLE>.run() -> build/obj/device/gensrc/all_reduce_sum_f32.cu:15
+        ncclKernelMain() - common.h:312 -> 369
+        AllReduce_Sum_f32_RING_LL build/obj/device/gensrc/all_reduce_sum_f32.cu:3
+        ```
+
+        hit 断点时，output 界面仍有 perf data 输出，但 bandwith 等数据都是 0. 说明 perf data 和 ld_volatile_global() 可能是异步执行的，并且 perf data 可能会用到 ld volatile global 的数据。
+
+    4. 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
+
+        同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
+
+        很可能是 8 bytes - 1048576 bytes 这个范围内。
+
+    5. nccl 很可能起了 46183 个 device 线程
 
 ## HPC comm
 

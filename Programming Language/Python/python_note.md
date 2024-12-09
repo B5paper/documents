@@ -2,6 +2,117 @@
 
 ## cached
 
+* python `pathlib` 列出指定目录下的所有子目录
+
+    ```python
+    from pathlib import Path
+
+    def main():
+        aaa = '.'
+        cur_path = Path(aaa)
+        child_dirs = [x for x in cur_path.iterdir() if x.is_dir()]
+        print(child_dirs)
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    [PosixPath('test_dir_2'), PosixPath('test_dir_1'), PosixPath('.test_dir_3')]
+    ```
+
+    说明隐藏文件夹也可以列出来。
+
+    `x`是`Path`类型的实例。
+
+* python format 基础用法
+
+    ```python
+    def main():
+        # 基础用法，{} 占位，参数按 position 顺序填
+        s_1 = 'hello, {}, {}'.format('world', 42)
+        print(s_1)  # hello, world, 42
+
+        # 按 key-value 的形式填
+        world = 'world'
+        forty_two = 42
+        s_2 = 'hello, {s_world}, {num_forty_two}'.format(s_world=world, num_forty_two=forty_two)
+        print(s_2)  # hello, world, 42
+
+        # {} 占位对应 position parameter，字符串点位对应 key-value prarmeter
+        s_3 = 'hello, {s_world}, {}'.format(forty_two, s_world=world)
+        print(s_3)  # hello, world, 42
+
+        # 指定占位顺序
+        s_4 = '{2}, {1}, {0}'.format(forty_two, world, 'hello')
+        print(s_4)  # hello, world, 42
+
+        # 格式化
+        year = 2024
+        s_5 = '{year:08d}'.format(year=year)
+        print(s_5)  # 00002024
+        return
+    ```
+
+* py 可以直接用`in`判断一个 key 是否在一个 dict 中
+
+    ```py
+    a = {}
+    a[1] = 2
+    a['3'] = 4
+    if 1 in a:
+        print('1 in a')
+    if '3' in a:
+        print("'3' in a")
+    ```
+
+    output:
+
+    ```
+    1 in a
+    '3' in a
+    ```
+
+* py 中使用`with open('xxx', 'w') as f:`打开的文件无法使用`f.read()`，会报错，只有使用`'w+'`打开才可以
+
+    有时间了找找更多的资料。
+
+* py 中`aaa: str`不能定义一个变量，只能声明
+
+* py 中的`os.listdir()`可以列出指定文件夹下的所有文件和文件夹的名称
+
+    ```python
+    import os
+
+    def main():
+        path = '.'
+        dirs = os.listdir(path)
+        print(dirs)
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    ['main.py', '你好.txt', '再见', 'test_dir']
+    ```
+
+    说明：
+
+    1. `path`可以包含中文，python 可以正常处理。
+
+    2. `listdir()`给出的是一个`list[str]`，无法区分列出的 name 是一个文件还是文件夹。
+
+    3. 如果`path`是一个`.`，那么表示`main.py`所在的文件夹
+
+    4. 如果 path 是一个无效路径，那么 python 会直接报错
+
 * py 中可以使用`datetime`包拿到当前的日期和时间
 
     ```py

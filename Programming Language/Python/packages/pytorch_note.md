@@ -2,6 +2,10 @@
 
 ## cache
 
+* pytorch 使用 datasets 下载数据集时，可以使用`export http_proxy=xxx`指定代理
+
+* `from torchvision import datasets`, datasets 默认会把数据下载到当前文件夹下
+
 * 使用 pip 安装 cuda 12.1 版本的 pytorch，至少要下载 2.8G 的数据
 
 * 使用 pytorch 在 20 个 epoch 内尝试对 sin 曲线过拟合

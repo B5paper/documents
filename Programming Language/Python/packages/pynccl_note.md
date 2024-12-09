@@ -1,13 +1,4 @@
-* github 按 ssh 方式 clone 不会走 git config 设置的代理，会直接连 github.com 的 22 端口
-
-    如果 A 机器通过 B 机器的代理，使用 https 方式进行 git clone 时失败，那么说明 B 机器也无法连接到 github。
-
-    A 机器报错如下：
-
-    ```
-    Cloning into 'pynccl'...
-    fatal: unable to access 'https://github.com/lancelee82/pynccl.git/': gnutls_handshake() failed: The TLS connection was non-properly terminated.
-    ```
+# pynccl note
 
 * pynccl 的一个 example
 
@@ -56,28 +47,3 @@
     `type_arr_2_c_int(0, 1)`看起来有点像 c 语言里的变量/数组定义 + 初始化。
 
     `cast(dev_ids, POINTER(c_int))`有点像将数组的名字转换为指定的指针。
-
-* py 中`aaa: str`不能定义一个变量，只能声明
-
-* py 可以直接用`in`判断一个 key 是否在一个 dict 中
-
-    ```py
-    a = {}
-    a[1] = 2
-    a['3'] = 4
-    if 1 in a:
-        print('1 in a')
-    if '3' in a:
-        print("'3' in a")
-    ```
-
-    output:
-
-    ```
-    1 in a
-    '3' in a
-    ```
-
-* py 中使用`with open('xxx', 'w') as f:`打开的文件无法使用`f.read()`，会报错，只有使用`'w+'`打开才可以
-
-    有时间了找找更多的资料。

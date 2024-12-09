@@ -2,6 +2,17 @@
 
 ## cache
 
+* github 按 ssh 方式 clone 不会走 git config 设置的代理，会直接连 github.com 的 22 端口
+
+    如果 A 机器通过 B 机器的代理，使用 https 方式进行 git clone 时失败，那么说明 B 机器也无法连接到 github。
+
+    A 机器报错如下：
+
+    ```
+    Cloning into 'pynccl'...
+    fatal: unable to access 'https://github.com/lancelee82/pynccl.git/': gnutls_handshake() failed: The TLS connection was non-properly terminated.
+    ```
+
 * github 的吉祥物是 octocat
 
 * github 的创始人是 Chris Wanstrath
