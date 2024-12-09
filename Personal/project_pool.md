@@ -1671,27 +1671,62 @@ tasks:
 
         `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
 
+* excel v. 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).
+
+* 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
+
+    是否可以让其他线程也运行，但只在当前线程触发断点？
+
+* 使用 b address `(cuda-gdb) b *0x7ffe85823040`会导致直接 cuda-gdb 直接报错退出。
+
+    ```
+    (cuda-gdb) b *0x7ffe85823040
+    Breakpoint 3 at 0x7ffe85823040
+    (cuda-gdb) c
+    Continuing.
+    warning: Cuda API error detected: cuLaunchKernelEx returned (0x190)
+
+
+    zjxj:55959:55959 [1] enqueue.cc:1451 NCCL WARN Cuda failure 400 'invalid resource handle'
+    zjxj:55959:55959 [1] NCCL INFO group.cc:231 -> 1
+    zjxj:55959:55959 [1] NCCL INFO group.cc:453 -> 1
+    zjxj:55959:55959 [1] NCCL INFO group.cc:546 -> 1
+    zjxj:55959:55959 [1] NCCL INFO group.cc:101 -> 1
+    fail to group end
+    [Thread 0x7fff590fd000 (LWP 55998) exited]
+    [Thread 0x7fff598fe000 (LWP 55997) exited]
+    [Thread 0x7fff615ac000 (LWP 55994) exited]
+    [Thread 0x7fff61dad000 (LWP 55993) exited]
+    [Thread 0x7fffc0dff000 (LWP 55992) exited]
+    [Thread 0x7fffc924a000 (LWP 55991) exited]
+    [Thread 0x7fffc2a4f000 (LWP 55990) exited]
+    [Thread 0x7fffc8a49000 (LWP 55985) exited]
+    [Thread 0x7fffc9b3d000 (LWP 55983) exited]
+    [Thread 0x7fffd4909000 (LWP 55963) exited]
+    [Inferior 1 (process 55959) exited with code 0377]
+    ```
+
 ### tasks
+
+* { } cuda programming guide
+
+    cuda programming guide website: <https://docs.nvidia.com/cuda/cuda-c-programming-guide/>
+
+    目前看到了 2.2. Thread Hierarchy
+
+    看起来，cuda programming 应该成为一个 project 或长期项目
+
+    前面的内容与认知大体相同，没有什么很新的概念。
+
+* [ ] 调研 FORTRAN, DirectCompute, OpenACC.
 
 * [v] 调研 cuda 编程手册，尤其是 tile 相关的
 
     17:13 ~ 17:44 (31 mins)
 
-    feedback:
-
-    1. excel 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).
-
-    2. 调研 FORTRAN, DirectCompute, OpenACC.
-
-    3. cuda programming guide website: <https://docs.nvidia.com/cuda/cuda-c-programming-guide/>
-
-        目前看到了 2.2. Thread Hierarchy
-
-        看起来，cuda programming 应该成为一个 project 或长期项目
-
-        前面的内容与认知大体相同，没有什么很新的概念。
-
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
+
+* [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
 
 * [v] 调研 tenstorrent
 
@@ -1718,12 +1753,6 @@ tasks:
         4. nvlink
 
 * [v] 调研 nccl p2p
-
-    feedback:
-
-    4. 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
-
-        是否可以让其他线程也运行，但只在当前线程触发断点？
 
 * [v] 调研 openshmem
 
@@ -2000,11 +2029,11 @@ tasks:
 
     3. nccl 目前使用 cudaLaunchKernel() + 模板的方式调用 kernel，断点无法被 hit
 
+* [ ] 调研 python 中 ctypes 的用法
+
 * [v] 调研 pynccl 的用法
 
     feedback:
-
-    1. 调研 python 中 ctypes 的用法
 
     2. 目前看到`tests/test_1_init.py`的 53 行
 
@@ -2055,35 +2084,6 @@ tasks:
     2. 在 nccl 中自己写 kernel；显式写 comm kernel，不使用 nccl 中的 template
 
     feedback:
-
-    1. 使用 b address `(cuda-gdb) b *0x7ffe85823040`会导致直接 cuda-gdb 直接报错退出。
-
-        ```
-        (cuda-gdb) b *0x7ffe85823040
-        Breakpoint 3 at 0x7ffe85823040
-        (cuda-gdb) c
-        Continuing.
-        warning: Cuda API error detected: cuLaunchKernelEx returned (0x190)
-
-
-        zjxj:55959:55959 [1] enqueue.cc:1451 NCCL WARN Cuda failure 400 'invalid resource handle'
-        zjxj:55959:55959 [1] NCCL INFO group.cc:231 -> 1
-        zjxj:55959:55959 [1] NCCL INFO group.cc:453 -> 1
-        zjxj:55959:55959 [1] NCCL INFO group.cc:546 -> 1
-        zjxj:55959:55959 [1] NCCL INFO group.cc:101 -> 1
-        fail to group end
-        [Thread 0x7fff590fd000 (LWP 55998) exited]
-        [Thread 0x7fff598fe000 (LWP 55997) exited]
-        [Thread 0x7fff615ac000 (LWP 55994) exited]
-        [Thread 0x7fff61dad000 (LWP 55993) exited]
-        [Thread 0x7fffc0dff000 (LWP 55992) exited]
-        [Thread 0x7fffc924a000 (LWP 55991) exited]
-        [Thread 0x7fffc2a4f000 (LWP 55990) exited]
-        [Thread 0x7fffc8a49000 (LWP 55985) exited]
-        [Thread 0x7fffc9b3d000 (LWP 55983) exited]
-        [Thread 0x7fffd4909000 (LWP 55963) exited]
-        [Inferior 1 (process 55959) exited with code 0377]
-        ```
 
     2. 在模板函数`ncclKernelMain()`入口处下断点，等 cuda-gdb 运行半个小时才可以 hit 断点。
 

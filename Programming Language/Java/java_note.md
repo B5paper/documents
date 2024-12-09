@@ -35,12 +35,28 @@ ubuntu 安装 java: <https://www.cnblogs.com/ziyue7575/p/13898610.html>。（我
 
 hello world 程序：
 
+`Test.java`:
+
 ```java
 public class Test {
     public static void main(String[] args) {
         System.out.println("Hello world!");
     }
 }
+```
+
+compile:
+
+`javac Test.java`
+
+run:
+
+`java Test`
+
+output:
+
+```
+Hello world!
 ```
 
 一个`.java`文件内可以定义多个类，但是`public class`类名必须和文件名保持一致。
