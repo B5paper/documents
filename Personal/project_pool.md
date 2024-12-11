@@ -925,6 +925,12 @@
 
 * [v] reorg: documents 30 mins  12.06
 
+* [v] reorg: documents 30 mins
+
+* [v] reorg: documents 30 mins 12.11
+
+    10:00 ~ 
+
 ## qa
 
 ### cached
@@ -1068,7 +1074,13 @@
 
     正确率： 2 / 4
 
-* [ ] 增加`python main.py --review`功能，复习当天的 units。
+* [v] 增加`python main.py --review`功能，复习当天的 units
+
+    10:55 ~ 13:58
+
+    feedback:
+
+    1. 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
 
 * [v] 调研 qa test 增加功能：
 
@@ -1128,6 +1140,10 @@
     2. [ ] fix bug: 保存最新 qa record 时，不能删除旧的
 
     3. 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
+
+* [v] qa: 4 units
+
+    正确率： 2 / 4
 
 ## cache tabs / process urls
 
@@ -2127,6 +2143,26 @@ tasks:
         很可能是 8 bytes - 1048576 bytes 这个范围内。
 
     5. nccl 很可能起了 46183 个 device 线程
+
+* [v] 调研 nccl launch kernel 与 cudaMemcpyAsync() 的时机
+
+    feedback:
+
+    1. 初步判断 cuda memcpy 是复制 conn info 数据。
+
+    2. 调研`asm volatile("ld.volatile.global.u64 %0, [%1];" : "=l"(ans) : "l"(cvta_to_global(ptr)) : "memory");`命令
+
+    3. 调研 cuda 的 ptx 指令集
+
+        <https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-multimem-ld-reduce-multimem-st-multimem-red/>
+
+    4. 需要看断点的调用栈的上下文判断任务实际是如何执行的
+
+* [v] 调研 nccl 中`ld_volatile_global()`的上下文环境，分析这个函数为什么会被调用
+
+    feedback:
+
+    1. 目前初步看到的是 nccl 利用 gpu 的多线程，对单机多卡之间的数据通信进行优化
 
 ## HPC comm
 
