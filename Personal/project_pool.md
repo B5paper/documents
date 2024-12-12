@@ -1145,6 +1145,14 @@
 
     正确率： 2 / 4
 
+* [v] qa: 4 units  12.11
+
+    正确率：2 / 4
+
+    feedback:
+
+    1. 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1736,10 +1744,6 @@ tasks:
 
 * [ ] 调研 FORTRAN, DirectCompute, OpenACC.
 
-* [v] 调研 cuda 编程手册，尤其是 tile 相关的
-
-    17:13 ~ 17:44 (31 mins)
-
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
 
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
@@ -1767,8 +1771,6 @@ tasks:
         3. socket
 
         4. nvlink
-
-* [v] 调研 nccl p2p
 
 * [v] 调研 openshmem
 
@@ -2163,6 +2165,16 @@ tasks:
     feedback:
 
     1. 目前初步看到的是 nccl 利用 gpu 的多线程，对单机多卡之间的数据通信进行优化
+
+* [o] 调研 nccl 中 va 是何时被映射的
+
+    13:07 ~ 
+
+    feedback:
+
+    1. `cudaGetDevice`和`cuDeviceGet`有什么区别？
+
+    2. `cuda_runtime.h`和`cuda.h`有什么区别？
 
 ## HPC comm
 
