@@ -931,6 +931,10 @@
 
     10:00 ~ 
 
+* [v] reorg: documents 30 mins 12.12
+
+    10:44 ~ 11:10
+
 ## qa
 
 ### cached
@@ -991,7 +995,7 @@
 
 * [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
-* [ ] 在做检测时，写出 unit 出自哪里
+* [v] 在做检测时，写出 unit 出自哪里
 
 * [ ] 在同一次 test 中，不能出现重复的 unit
 
@@ -1152,6 +1156,8 @@
     feedback:
 
     1. 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
+
+* [v] qa: review 12.12
 
 ## cache tabs / process urls
 
@@ -1730,6 +1736,43 @@ tasks:
     [Inferior 1 (process 55959) exited with code 0377]
     ```
 
+* tenstorrent 使用分布式的处理器和内存，强调互联，文档给得不是很全，可以直接看代码。
+
+    或许可以从 pytorch 接入那部分开始看，但是首先需要弄明白 pytorch 模型的保存格式。
+
+* `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
+
+* 224 机器上的 nccl cuda-gdb 依然很慢，起码需要半个小时以上才能 hit 断点
+
+* 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
+
+    在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
+
+* 在`ld_volatile_global()`中设置断点，经过半个多小时后，断点被 hit
+
+    看到的调用栈如下：
+
+    ```
+    ld_volatile_global() - op128.h:295
+    Primitives::loadStepValue() - prims_simple.h:106 -> 116
+    Primitives::loadRecvConn() - prims_simple.h:477 -> 496
+    Primitives::Primitives() - prims_simple.h:574 -> 646
+    RunWorkBatch::run() - common.h:280 -> ?
+    RunWorkBatch<AllReduce_Sum_f32_RING_SIMPLE>.run() -> build/obj/device/gensrc/all_reduce_sum_f32.cu:15
+    ncclKernelMain() - common.h:312 -> 369
+    AllReduce_Sum_f32_RING_LL build/obj/device/gensrc/all_reduce_sum_f32.cu:3
+    ```
+
+    hit 断点时，output 界面仍有 perf data 输出，但 bandwith 等数据都是 0. 说明 perf data 和 ld_volatile_global() 可能是异步执行的，并且 perf data 可能会用到 ld volatile global 的数据。
+
+* 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
+
+    同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
+
+    很可能是 8 bytes - 1048576 bytes 这个范围内。
+
+* nccl 很可能起了 46183 个 device 线程
+
 ### tasks
 
 * { } cuda programming guide
@@ -1749,12 +1792,6 @@ tasks:
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
 
 * [v] 调研 tenstorrent
-
-    feedback:
-
-    3. tenstorrent 使用分布式的处理器和内存，强调互联，文档给得不是很全，可以直接看代码。
-
-        或许可以从 pytorch 接入那部分开始看，但是首先需要弄明白 pytorch 模型的保存格式。
 
 * [ ] 调研制作 docker image: 透传一个 nvidia device 可以成功跑通 cuda test
 
@@ -1789,10 +1826,6 @@ tasks:
         看来 osh 就是 shmem 的简称？
 
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
-
-    feedback:
-
-    3. `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
 
 * [v] openshmem 尝试实现 4 pe 矩阵乘法
 
@@ -1898,15 +1931,13 @@ tasks:
 
         `nvlink_linux.c`: `int __init nvlink_core_init(void)`
 
+* [ ] 构建正则表达式的 note 和 qa
+
 * [v] 调研正则表达式
 
     看看已经记了多少笔记，能否 sync 增加 qa
 
     如果一切准备就绪，可以去写英语单词的 parser
-
-    feedback:
-
-    1. 正则表达式的内容很少，需要从头开始构建 note
 
 * [o] 整理使用 cuda async copy p2p 的代码
 
@@ -2113,39 +2144,6 @@ tasks:
 
 * [v] 在 224 机器上尝试断点 nccl
 
-    feedback:
-
-    1. 224 机器上的 nccl cuda-gdb 依然很慢，起码需要半个小时以上才能 hit 断点
-
-    2. 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
-
-        在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
-
-    3. 在`ld_volatile_global()`中设置断点，经过半个多小时后，断点被 hit
-
-        看到的调用栈如下：
-
-        ```
-        ld_volatile_global() - op128.h:295
-        Primitives::loadStepValue() - prims_simple.h:106 -> 116
-        Primitives::loadRecvConn() - prims_simple.h:477 -> 496
-        Primitives::Primitives() - prims_simple.h:574 -> 646
-        RunWorkBatch::run() - common.h:280 -> ?
-        RunWorkBatch<AllReduce_Sum_f32_RING_SIMPLE>.run() -> build/obj/device/gensrc/all_reduce_sum_f32.cu:15
-        ncclKernelMain() - common.h:312 -> 369
-        AllReduce_Sum_f32_RING_LL build/obj/device/gensrc/all_reduce_sum_f32.cu:3
-        ```
-
-        hit 断点时，output 界面仍有 perf data 输出，但 bandwith 等数据都是 0. 说明 perf data 和 ld_volatile_global() 可能是异步执行的，并且 perf data 可能会用到 ld volatile global 的数据。
-
-    4. 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
-
-        同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
-
-        很可能是 8 bytes - 1048576 bytes 这个范围内。
-
-    5. nccl 很可能起了 46183 个 device 线程
-
 * [v] 调研 nccl launch kernel 与 cudaMemcpyAsync() 的时机
 
     feedback:
@@ -2175,6 +2173,26 @@ tasks:
     1. `cudaGetDevice`和`cuDeviceGet`有什么区别？
 
     2. `cuda_runtime.h`和`cuda.h`有什么区别？
+
+* [ ] 调研 cuda samples 代码
+
+* [v] 调研 cuda memory 相关 api
+
+* [v] cuda programming guide 30 mins
+
+    15:13 ~ 17:25
+
+    从 2.2. Thread Hierarchy 开始看
+
+    feedback:
+
+    1. 目前看到
+
+        > However, a kernel can be executed by multiple equally-shaped thread blocks
+
+    2. 是否有办法可以拿到 thread id？
+
+* [ ] 调研 nccl 中 va 是何时被映射的
 
 ## HPC comm
 
