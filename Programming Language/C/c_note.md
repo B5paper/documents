@@ -6,6 +6,61 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* C 语言`realloc()`
+
+    `realloc()`会释放一段内存，并申请一段新内存，并将旧内存中的数据尽可能多地复制到新内存中。
+
+    example:
+
+    `main.c`:
+
+    ```c
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        char *a = malloc(128);
+        printf("ptr a: %p\n", a);
+
+        for (int i = 0; i < 128; ++i)
+            a[i] = 123;
+
+        char *b = realloc(a, 256);
+        printf("after realloc:\n");
+        printf("ptr a: %p\n", a);
+        printf("ptr b: %p\n", b);
+
+        for (int i = 0; i < 256; ++i)
+            b[i] = 234;
+
+        free(b);
+        free(a);  // Error
+        return 0;
+    }
+    ```
+
+    compile: `gcc -g main.c -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    ptr a: 0x6517528f72a0
+    after realloc:
+    ptr a: 0x6517528f72a0
+    ptr b: 0x6517528f7740
+    free(): double free detected in tcache 2
+    Aborted (core dumped)
+    ```
+
+    由于`realloc()`已经释放了指针`a`，所以调用`free(a)`会报错。
+
+    `realloc()`并不是保留内存地址，仅扩大 size，而是既改变 addr，又扩大 size。
+
+    `realloc()`有可能 in-place 地扩大 size，但是并不保证总是这样。
+
 * int32 max 差不多是 2 * 10^9 多一点
 
 * C 语言中使用指针获取数组中的成员

@@ -2,6 +2,496 @@
 
 ## cache
 
+* `cudaSuccess`是 cuda runtime 里的枚举常量，`CUDA_SUCCESS`是 cuda umd 里的枚举常量
+
+* thread id 与 thread idx 并不是同一个东西
+
+    thread id 是 thread idx 的 flatten 版本。
+
+    对于一维的情况，`thread_id = thread idx`
+
+    对于二维 size 为`(dim_len_x, dim_len_y)`的情况，`thread_id = x + y * dim_len_x`
+
+    对于三维 size 为`(dim_len_x, dim_len_y, dim_len_z)`的情况，`thread_id = x + y * dim_len_x + z * dim_len_x * dim_len_z`
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #define dim_x 3
+    #define dim_y 4
+    #define dim_z 5
+
+    __global__ void vol_add(
+        int A[dim_x][dim_y][dim_z], 
+        int B[dim_x][dim_y][dim_z],
+        int C[dim_x][dim_y][dim_z])
+    {
+        int i = threadIdx.x;
+        int j = threadIdx.y;
+        int k = threadIdx.z;
+
+        C[i][j][k] = A[i][j][k] + B[i][j][k];
+    }
+
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        // int dim_x = 3, dim_y = 4, dim_z = 5;
+        int num_elm = dim_x * dim_y * dim_z;
+        int *host_buf_A = (int*) malloc(num_elm * sizeof(int));
+        int *host_buf_B = (int*) malloc(num_elm * sizeof(int));
+        int *host_buf_C = (int*) malloc(num_elm * sizeof(int));
+        for (int i = 0; i < num_elm; ++i)
+        {
+            host_buf_A[i] = rand() % 5;
+            host_buf_B[i] = rand() % 5;
+        }
+
+        int *dev_buf_A, *dev_buf_B, *dev_buf_C;
+        cudaError_t ret;
+        ret = cudaMalloc(&dev_buf_A, num_elm * sizeof(int));
+        if (ret != cudaSuccess)
+        {
+            printf("fail to cuda malloc dev buf A\n");
+            return -1;
+        }
+        printf("successfully cuda malloc dev buf A\n");
+
+        ret = cudaMalloc(&dev_buf_B, num_elm * sizeof(int));
+        if (ret != cudaSuccess)
+        {
+            printf("fail to cuda malloc dev buf B\n");
+            return -1;
+        }
+        printf("successfully cuda malloc dev buf B\n");
+
+        ret = cudaMalloc(&dev_buf_C, num_elm * sizeof(int));
+        if (ret != cudaSuccess)
+        {
+            printf("fail to cuda malloc dev buf C\n");
+            return -1;
+        }
+        printf("successfully cuda malloc dev buf C\n");
+
+        ret = cudaMemcpy(dev_buf_A, host_buf_A, num_elm * sizeof(int), cudaMemcpyHostToDevice);
+        if (ret != cudaSuccess)
+        {
+            printf("fail to cuda memcpy host buf A\n");
+            return -1;
+        }
+        printf("successfully cuda memcpy host buf A\n");
+
+        ret = cudaMemcpy(dev_buf_B, host_buf_B, num_elm * sizeof(int), cudaMemcpyHostToDevice);
+        if (ret != cudaSuccess)
+        {
+            printf("fail to cuda memcpy host buf B\n");
+            return -1;
+        }
+        printf("successfully cuda memcpy host buf B\n");
+
+        dim3 threads_per_block(dim_x, dim_y, dim_z);
+        vol_add<<<1, threads_per_block>>>(
+            (int (*)[4][5]) dev_buf_A, 
+            (int (*)[4][5]) dev_buf_B,
+            (int (*)[4][5]) dev_buf_C);
+
+        ret = cudaMemcpy(host_buf_C, dev_buf_C, num_elm * sizeof(int), cudaMemcpyDeviceToHost);
+        if (ret != cudaSuccess)
+        {
+            printf("fail to cuda memcpy host buf C\n");
+            return -1;
+        }
+        printf("successfully cuda memcpy host buf C\n");
+
+        printf("host buf A:\n");
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%d, ", host_buf_A[i]);
+        }
+        putchar('\n');
+
+        printf("host buf B:\n");
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%d, ", host_buf_B[i]);
+        }
+        putchar('\n');
+
+        printf("host buf C:\n");
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%d, ", host_buf_C[i]);
+        }
+        putchar('\n');
+
+        cudaFree(dev_buf_A);
+        cudaFree(dev_buf_B);
+        cudaFree(dev_buf_C);
+        free(host_buf_A);
+        free(host_buf_B);
+        free(host_buf_C);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g -G -o main main.cu`
+
+    run: `./main`
+
+    output:
+
+    ```
+    successfully cuda malloc dev buf A
+    successfully cuda malloc dev buf B
+    successfully cuda malloc dev buf C
+    successfully cuda memcpy host buf A
+    successfully cuda memcpy host buf B
+    successfully cuda memcpy host buf C
+    host buf A:
+    3, 2, 3, 1, 4, 2, 0, 3, 0, 2, 1, 2, 2, 2, 2, 4, 2, 4, 3, 1, 4, 1, 4, 3, 0, 3, 1, 1, 2, 1, 0, 4, 1, 1, 3, 4, 2, 4, 4, 3, 2, 1, 3, 3, 4, 2, 1, 4, 1, 4, 0, 4, 2, 2, 2, 2, 1, 1, 0, 4, 
+    host buf B:
+    1, 0, 0, 2, 1, 2, 4, 1, 1, 1, 3, 4, 0, 3, 0, 2, 3, 2, 1, 2, 3, 4, 2, 4, 0, 1, 0, 3, 0, 1, 0, 2, 0, 4, 2, 0, 0, 2, 4, 0, 3, 3, 4, 1, 4, 0, 3, 2, 1, 4, 0, 3, 1, 2, 2, 1, 0, 1, 4, 4, 
+    host buf C:
+    4, 2, 3, 3, 5, 4, 4, 4, 1, 3, 4, 6, 2, 5, 2, 6, 5, 6, 4, 3, 7, 5, 6, 7, 0, 4, 1, 4, 2, 2, 0, 6, 1, 5, 5, 4, 2, 6, 8, 3, 5, 4, 7, 4, 8, 2, 4, 6, 2, 8, 0, 7, 3, 4, 4, 3, 1, 2, 4, 8,
+    ```
+
+    看起来一个 block 是一个组织 thread 的方式。
+
+    每个 block 最大有 1024 个 thread。
+
+    如果我们只使用一维 thread，手动将`threadIdx.x`, `threadIdx.y`, `threadIdx.z`映射到一维的 idx 上，和直接使用 x, y, z 有什么不同？
+
+    说明：
+
+    1. `vol_add<<<numBlocks, threadsPerBlock>>>()`
+
+        `threadsPerBlock`可以是一个数字，也可以是`dim3`类型的变量。
+
+        如果数组中有 2 个元素或 3 个元素，那么必须使用`dim3`类型定义。
+
+* thread block: cuda 中指一维的多线程，二维的多线程或三维的多线程
+
+    vector, matrix, or volume 分别代表一维的数据，二维矩阵，三维体素
+
+* cuda low level memory operation example
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        cuInit(0);
+
+        int device_id = 0;
+
+        CUcontext ctx;
+        CUresult ret;
+        ret = cuCtxCreate(&ctx, 0, device_id);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to create cuda ctx\n");
+            return -1;
+        }
+        printf("successfully create cuda ctx\n");
+
+        CUmemGenericAllocationHandle handle;
+        size_t size = 4096;
+        CUmemAllocationProp prop{};
+        prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+        prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+        prop.location.id = device_id;
+        // prop.allocFlags.compressionType = CU_MEM_ALLOCATION_COMP_NONE;
+        unsigned long long flags = 0;
+
+        size_t granularity = 0;
+        cuMemGetAllocationGranularity(&granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+
+        size_t padded_size = max(size, granularity);
+        printf("granularity: %lu\n", granularity);
+        printf("padded size: %lu\n", padded_size);
+
+        ret = cuMemCreate(&handle, padded_size, &prop, flags);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to create cu mem\n");
+            return -1;
+        }
+        printf("successfully create cu mem\n");
+
+        CUdeviceptr ptr;
+        ret = cuMemAddressReserve(&ptr, padded_size, 0, 0, 0);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to reserve mem addr\n");
+            return -1;
+        }
+        printf("successfully reserve mem addr\n");
+        printf("\tptr: %p\n", (void*) ptr);
+        printf("\tsizeof(unsigned long long): %lu\n", sizeof(unsigned long long));
+
+        ret = cuMemMap(ptr, padded_size, 0, handle, 0);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to map mem\n");
+            return -1;
+        }
+        printf("successfully map mem\n");
+
+        ret = cuMemRelease(handle);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to release cu mem\n");
+            return -1;
+        }
+        printf("successfully release cu mem\n");
+
+        CUmemAccessDesc access_desc;
+        access_desc.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+        access_desc.location.id = device_id;
+        access_desc.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
+        ret = cuMemSetAccess(ptr, padded_size, &access_desc, 1);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to set mem access\n");
+            return -1;
+        }
+        printf("successfully set mem access\n");
+
+        int *host_mem = (int*) malloc(128 * sizeof(int));
+        if (!host_mem)
+        {
+            printf("fail to malloc host_mem\n");
+            return -1;
+        }
+        printf("successfully malloc host_mem\n");
+
+        ret = cuMemcpyHtoD(ptr, host_mem, 128 * sizeof(int));
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to memcpy h to d\n");
+            return -1;
+        }
+        printf("successfully memcpy h to d\n");
+
+        // for (int i = 0; i < 128; ++i)
+        // {
+        //     ((int*) ptr)[i] = i;
+        // }
+
+        ret = cuMemUnmap(ptr, padded_size);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to unmap mem\n");
+            return -1;
+        }
+        printf("successfully unmap mem\n");
+
+        ret = cuMemAddressFree(ptr, padded_size);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to free mem addr\n");
+            return -1;
+        }
+        printf("successfully free mem addr\n");
+
+        ret = cuCtxDestroy(ctx);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to destroy cuda ctx\n");
+            return -1;
+        }
+        printf("successfully destroy cuda ctx\n");
+
+        free(host_mem);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g main.cu -lcuda -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    successfully create cuda ctx
+    granularity: 2097152
+    padded size: 2097152
+    successfully create cu mem
+    successfully reserve mem addr
+    	ptr: 0x7f72fda00000
+    	sizeof(unsigned long long): 8
+    successfully map mem
+    successfully release cu mem
+    successfully set mem access
+    successfully malloc host_mem
+    successfully memcpy h to d
+    successfully unmap mem
+    successfully free mem addr
+    successfully destroy cuda ctx
+    ```
+
+    说明：
+
+    1. 不执行`cuInit(0);`，后面所有与 cuda 相关的函数都会执行失败
+
+    2. `cuCtxCreate()`是必须的，不然`cuMemcpyHtoD()`会失败
+
+    3. `cuMemMap()`之后马上就可以`cuMemRelease()`了，为什么？ release 不是释放显存的意思吗？
+
+    4. `cuMemAddressReserve()`应该是只分配了 va 地址范围，device 这时可能还不知道这个 va 范围是多少，也没有把 va 写入到 mmu 里。
+
+        device 在什么时候能看到其他 device 在 user space 的 va？这时候大概率就要写入 device 的 mmu 了。
+
+    5. `cuMemSetAccess()`必须执行，不然`cuMemcpyHtoD()`会失败
+
+    6. 只能使用`cuMemcpyHtoD()`将数据复制到 device 内，不能像 vulkan 那样 mmap 之后可以直接解引用赋值：
+
+        ```cpp
+        // for (int i = 0; i < 128; ++i)
+        // {
+        //     ((int*) ptr)[i] = i;  // segment fault
+        // }
+        ```
+
+* 使用`cuMemCreate()`申请 device memory
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        cuInit(0);
+
+        int device_id = 0;
+
+        CUmemGenericAllocationHandle handle;
+        size_t size = 4096;
+        CUmemAllocationProp prop{};
+        prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+        prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+        prop.location.id = device_id;
+        // prop.allocFlags.compressionType = CU_MEM_ALLOCATION_COMP_NONE;
+        unsigned long long flags = 0;
+
+        size_t granularity = 0;
+        cuMemGetAllocationGranularity(&granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+
+        size_t padded_size = max(size, granularity);
+        printf("granularity: %lu\n", granularity);
+        printf("padded size: %lu\n", padded_size);
+
+        CUresult ret;
+        ret = cuMemCreate(&handle, padded_size, &prop, flags);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to create cu mem\n");
+            return -1;
+        }
+        printf("successfully create cu mem\n");
+
+        ret = cuMemRelease(handle);
+        if (ret != CUDA_SUCCESS)
+        {
+            printf("fail to release cu mem\n");
+            return -1;
+        }
+        printf("successfully release cu mem\n");
+
+        return 0;
+    }
+    ```
+
+    compile:
+    
+    `nvcc -g main.cu -lcuda -o main`
+
+    run:
+
+    `./main`
+
+    output:
+
+    ```
+    granularity: 2097152
+    padded size: 2097152
+    successfully create cu mem
+    successfully release cu mem
+    ```
+
+    可以看到，`prop.type`, `prop.location.type`和`prop.location.id`是必填项，其他的项可以置 0。
+
+    当前 device 支持的最小显存申请大小为 2 MB。
+
+    说明：
+
+    1. 必须先执行`cuInit(0);`，`cuMemCreate()`才能成功返回。
+
+    1. `prop.type`只有一种选择。`cuda.h`中定义的 enum 如下：
+
+        ```cpp
+        /**
+        * Defines the allocation types available
+        */
+        typedef enum CUmemAllocationType_enum {
+            CU_MEM_ALLOCATION_TYPE_INVALID = 0x0,
+
+            /** This allocation type is 'pinned', i.e. cannot migrate from its current
+              * location while the application is actively using it
+              */
+            CU_MEM_ALLOCATION_TYPE_PINNED  = 0x1,
+            CU_MEM_ALLOCATION_TYPE_MAX     = 0x7FFFFFFF
+        } CUmemAllocationType;
+        ```
+
+    1. `prop.location.type`也只有一种选择，`cuda.h`中定义的 enum 如下：
+
+        ```cpp
+        /**
+         * Specifies the type of location
+         */
+        typedef enum CUmemLocationType_enum {
+            CU_MEM_LOCATION_TYPE_INVALID = 0x0,
+            CU_MEM_LOCATION_TYPE_DEVICE  = 0x1,  /**< Location is a device location, thus id is a device ordinal */
+            CU_MEM_LOCATION_TYPE_MAX     = 0x7FFFFFFF
+        } CUmemLocationType;
+        ```
+
+* 当 src 中有`cuda.h`的函数时，无论 src 的扩展名是`.cu`还是`.cpp`，`nvcc`都不会自动链接库`-lcuda`，需要手动添加:
+
+    `nvcc -g main.cu -lcuda -o main`
+
+    如果使用`gcc`编译，需要将扩展名改成`.c`，并且手动指定 include 目录：
+
+    `gcc -g main.c -I/usr/local/cuda/include -lcuda -o main`
+
+* `cuMemCreate()`之类的函数在`cuda.h`中，不在`cuda_runtime.h`中。
+
+    `cudaMalloc()`之类的函数在`cuda_runtime.h`中，不在`cuda.h`中。
+
+    看起来`cuda.h`比`cuda_runtime.h`更底层一点。
+
+* asm 基本语法
+
+    `asm("template-string" : "constraint"(output) : "constraint"(input)"));`
+
+    一个使用`vabsdiff4`命令的 example:
+
+    `asm("vabsdiff4.u32.u32.u32.add" " %0, %1, %2, %3;": "=r" (result):"r" (A), "r" (B), "r" (C));`
+
+    从例子中可以看出，前两个字符串应该是拼接在一起的完整命令：`"vabsdiff4.u32.u32.u32.add %0, %1, %2, %3;"`。根据后面的命令可以猜出，`=`表示需要写入的变量，其余的是需要读取的变量。`r`不清楚是什么意思。
+
 * nvcc 编译不同的架构支持`-gencode arch=compute_70,code=sm_70`
 
     如果硬件是 80 的兼容性，那么这个硬件支持使用 70 兼容性编译出来的 code。

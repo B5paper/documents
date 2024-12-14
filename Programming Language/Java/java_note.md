@@ -1,5 +1,76 @@
 # Java Note
 
+## cache
+
+* java 的条件判断必须是布尔值，不能隐匿转换
+
+    ```java
+    int cnt = 5;
+    while (cnt-- > 0) {  // OK
+        System.out.println("hello");
+    }
+
+    cnt = 5;
+    while (cnt--) {  // Error
+        System.out.println("world");
+    }
+    ```
+
+    compile:
+
+    `javac Test.java`
+
+    compiler output:
+
+    ```
+    Test.java:29: error: incompatible types: int cannot be converted to boolean
+            while (cnt--) {
+                      ^
+    1 error
+    ```
+
+* java 在进行损失精度的数值转换时，会在编译阶段会报错
+
+    example:
+
+    `Test.java`:
+
+    ```java
+    public class Test {
+        public static void main(String[] args) {
+            System.out.println("Hello world!");
+            int a = 1;
+            long b = a;
+            float c = a;
+            int d = c;
+            int e = b;
+        }
+    }
+    ```
+
+    compile:
+
+    `javac Test.java`
+
+    compile output:
+
+    ```
+    Test.java:7: error: incompatible types: possible lossy conversion from float to int
+            int d = c;
+                    ^
+    1 error
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/java_test$ javac Test.java 
+    Test.java:7: error: incompatible types: possible lossy conversion from float to int
+            int d = c;
+                    ^
+    Test.java:8: error: incompatible types: possible lossy conversion from long to int
+            int e = b;
+                    ^
+    2 errors
+    ```
+
+## note
+
 运行 java 程序需要 JRE (java runtime environment)，编译 java 程序需要 JDK。这两者都可以在 java 官网下载。
 
 Java 官网：<https://www.oracle.com/java/>
