@@ -2,6 +2,22 @@
 
 ## cached
 
+* python 里`print()`指定`end=None`仍然会打印换行符，只有指定`end=''`才会不打印换行
+
+* python 里`re`正则表达式匹配的都是字符串，而`^`代表字符串的开头，并不代表一行的开始
+
+    因此使用`^`去匹配每行的开始，其实是有问题的，只能匹配到一次。
+
+* python 的`re`模块不支持非固定长度的 look behind 的匹配
+
+    比如，`(?<+\[.*\]).*`，这个表达式本意是想向前匹配一个`[]`括号，括号中的内容任意，但不能有換行符。
+
+    比如`[hello]this is the world`，想匹配到的内容是`this is the world`。
+
+    但是上面的匹配是不允许的，因为 look behind 时，要匹配的内容是一个非固定长度字符串。
+
+    具体来说可能是因为实现起来太复杂，具体可参考这里：<https://stackoverflow.com/questions/9030305/regular-expression-lookbehind-doesnt-work-with-quantifiers-or>
+
 * python `pathlib` 列出指定目录下的所有子目录
 
     ```python

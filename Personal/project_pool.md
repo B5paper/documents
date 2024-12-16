@@ -833,8 +833,6 @@
         
             <https://www.datacamp.com/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation>
 
-* [v] 调研 python path 判断一个文件夹是否包含另一个文件/文件夹
-
 * [ ] 调研 git ignore 的实现原理
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
@@ -870,10 +868,6 @@
     如果一个 unit 答对的频率较高，那么它被选择的概率变小。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
-
-* [v] qa 3 unit
-
-    正确率：3 / 3
 
 * [x] 调研《github入门与实践》
 
@@ -950,6 +944,14 @@
 * [v] reorg: documents 30 mins 12.12
 
     10:44 ~ 11:10
+
+* [v] reorg: documents 30 mins
+
+    feedback:
+
+    1. powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
+
+        目前看完了`Working with objects`中的`Viewing object structure`。
 
 ## qa
 
@@ -1174,6 +1176,16 @@
     1. 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
 * [v] qa: review 12.12
+
+* [v] qa: 4 units 12.13
+
+    正确率：1 / 4
+
+    feedback:
+
+    1. [v] exam unit 后输入 d 显示 deps
+
+* [v] qa: review 12.13
 
 ## cache tabs / process urls
 
@@ -2209,6 +2221,18 @@ tasks:
     2. 是否有办法可以拿到 thread id？
 
 * [ ] 调研 nccl 中 va 是何时被映射的
+
+* [v] 调研 cuda mem peer access
+
+    feedback:
+
+    1. [ ] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
+
+* [ ] 调研 sglang start up
+
+* [ ] 调研 nccl 中 task planner 是如何组合 transport 和 launch kernel 的
+
+* [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
 
 ## HPC comm
 
@@ -3535,31 +3559,6 @@ cache:
 本项目的目标是学完 vim，可以使用 vim 代替 vscode 进行日常的代码开发和调试，以及文本文档的编辑。
 
 * vim 中的 redo 是哪个？
-
-## 正则表达式
-
-cache:
-
-* python 里`print()`指定`end=None`仍然会打印换行符，只有指定`end=''`才会不打印换行
-
-* python 里`re`正则表达式匹配的都是字符串，而`^`代表字符串的开头，并不代表一行的开始
-
-    因此使用`^`去匹配每行的开始，其实是有问题的，只能匹配到一次。
-
-* python 的`re`模块不支持非固定长度的 look behind 的匹配
-
-    比如，`(?<+\[.*\]).*`，这个表达式本意是想向前匹配一个`[]`括号，括号中的内容任意，但不能有換行符。
-
-    比如`[hello]this is the world`，想匹配到的内容是`this is the world`。
-
-    但是上面的匹配是不允许的，因为 look behind 时，要匹配的内容是一个非固定长度字符串。
-
-    具体来说可能是因为实现起来太复杂，具体可参考这里：<https://stackoverflow.com/questions/9030305/regular-expression-lookbehind-doesnt-work-with-quantifiers-or>
-
-tasks:
-
-* [v] python regular expression sync
-
 
 ## 其他
 

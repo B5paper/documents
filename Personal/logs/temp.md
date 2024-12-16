@@ -196,3 +196,19 @@
 
         如果不加`transform=`参数，拿到的数据是怎样的？
 
+* cuda 可能有用的关键字
+
+    `cudaPointerGetAttributes()`
+
+    `cudaMemcpyDefault`
+
+    > pointers returned by cudaHostAlloc() can be used directly from within kernels running on these devices 
+
+    `cudaHostGetDevicePointer()`
+
+    Portable Memory
+
+    Mapped Memory
+
+    `unifiedAddressing`, Device Enumeration
+
