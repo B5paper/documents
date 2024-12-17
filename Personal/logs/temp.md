@@ -198,8 +198,6 @@
 
 * cuda 可能有用的关键字
 
-    `cudaPointerGetAttributes()`
-
     `cudaMemcpyDefault`
 
     > pointers returned by cudaHostAlloc() can be used directly from within kernels running on these devices 
@@ -212,3 +210,56 @@
 
     `unifiedAddressing`, Device Enumeration
 
+* meeting log
+
+    ```
+    cudaEnablePeerAccess()
+
+
+    __global__ void vec_add(float *A)
+    {
+        int x = threadIdx.x;
+        A[x]++;
+    }
+
+    use p2p:
+
+    1. nvlink
+
+        load peer deivce memory ptr (need verify)   20s
+
+        p2p cudaMemcpy(dev0, dev1)  concurrently?   20s
+
+    2. pcie
+
+    no p2p:
+
+    1. shm: shared host memory
+
+    2. **socket**, ib nic
+
+        1. load device memory (current device)    LL / LL128 / SIMPLE (?)
+
+        2. host memory buffer
+
+        3. socket transfer buffer
+
+        4. another device copy data from socket buffer to device buffer
+
+    channel 0: p2p device 0 -> device 1
+    channel 1: no p2p devcie 0 -> host -> device 1
+    channel 2: 
+
+    int main()
+    {
+        cudaSetDevice(0);
+        float *buf_0 = cudaMalloc(8 * sizeof(float));
+
+        cudaEnablePeerAccess(1, 0);
+
+        cudaSetDevice(1);
+        vec_add<<<1, 8>>>(buf_0);
+
+        return 0;
+    }
+    ```

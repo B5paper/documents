@@ -953,6 +953,8 @@
 
         目前看完了`Working with objects`中的`Viewing object structure`。
 
+* [v] reorg: documents 30 mins 12.16
+
 ## qa
 
 ### cached
@@ -1186,6 +1188,20 @@
     1. [v] exam unit 后输入 d 显示 deps
 
 * [v] qa: review 12.13
+
+* [v] qa: 4 units  12.16
+
+    正确率：3 / 4
+
+    feedback:
+
+    1. 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
+
+        没有`glewInit()`，`glCreateShader()`会立即返回失败。
+
+    2. 调研 exam 时显示 unit 的 id 和 idx
+
+* [v] qa: review 12.16
 
 ## cache tabs / process urls
 
@@ -1563,6 +1579,24 @@ tasks:
 
 * nccl 很可能起了 46183 个 device 线程
 
+* Cray OpenSHMEMX
+
+    <https://cray-openshmemx.readthedocs.io/en/latest/index.html>
+
+    cray openshmemx 的 doc。
+
+    为什么这里多了一个 X，对 openshmem 扩展了什么？
+
+* oshcc -- Open SHMEM C wrapper compiler
+
+    <https://manpages.ubuntu.com/manpages/lunar/man1/oshcc.1.html>
+
+    看来 osh 就是 shmem 的简称？
+
+* nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
+
+* 让大模型帮忙写了几段代码，无论是 template, cudaLaunchKernel，还是`__global__`修饰，`__device__`修饰，都是可以打断点的 
+
 ### tasks
 
 * { } cuda programming guide
@@ -1601,23 +1635,7 @@ tasks:
 
 * [v] 调研 openshmem
 
-    5. Cray OpenSHMEMX
-
-        <https://cray-openshmemx.readthedocs.io/en/latest/index.html>
-
-        cray openshmemx 的 doc。
-
-        为什么这里多了一个 X，对 openshmem 扩展了什么？
-
-    6. oshcc -- Open SHMEM C wrapper compiler
-
-        <https://manpages.ubuntu.com/manpages/lunar/man1/oshcc.1.html>
-
-        看来 osh 就是 shmem 的简称？
-
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
-
-* [v] openshmem 尝试实现 4 pe 矩阵乘法
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
 
@@ -1657,8 +1675,6 @@ tasks:
 
 * [v] 调研跑通 nvshmem example
 
-* [v] 调研 nccl 中异步
-
 * [v] 调研 cuda 实现 vec add
 
     fedback:
@@ -1668,8 +1684,6 @@ tasks:
 * [ ] 使用 cuda 实现矩阵乘法
 
 * [v] 实现`timeit_2()`，测试通信和计算在时间中的占比占比
-
-* [v] 调研：在服务器上再跑一遍 shmem 和 mpi 的矩阵乘法性能
 
 * [v] 调研 vllm 中 nccl 的用法
 
@@ -1694,8 +1708,6 @@ tasks:
     13:36 ~ 14:42
 
     feedback:
-
-    1. 在 nccl `op128.h`中的所有函数都设置了断点，没有看到任何一个断点被 hit，说明 load store 相关的函数都没有被调用到
 
     2. 一些可能的新方向
 
@@ -1722,12 +1734,6 @@ tasks:
         `nvlink_linux.c`: `int __init nvlink_core_init(void)`
 
 * [ ] 构建正则表达式的 note 和 qa
-
-* [v] 调研正则表达式
-
-    看看已经记了多少笔记，能否 sync 增加 qa
-
-    如果一切准备就绪，可以去写英语单词的 parser
 
 * [o] 整理使用 cuda async copy p2p 的代码
 
@@ -1856,10 +1862,6 @@ tasks:
 
 * [v] 调研是否可以使用 template 写 cuda kernel。如果可以，是否可以打断点
 
-    feedback:
-
-    1. 让大模型帮忙写了几段代码，无论是 template, cudaLaunchKernel，还是`__global__`修饰，`__device__`修饰，都是可以打断点的 
-
 * [v] 构建一个 nccl test case，使用 cuda-gdb 检查 nccl src 中 kernel 是否被调用
 
     feedback:
@@ -1932,8 +1934,6 @@ tasks:
 
     4. 调研：cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
 
-* [v] 在 224 机器上尝试断点 nccl
-
 * [v] 调研 nccl launch kernel 与 cudaMemcpyAsync() 的时机
 
     feedback:
@@ -1984,17 +1984,23 @@ tasks:
 
 * [ ] 调研 nccl 中 va 是何时被映射的
 
+* [ ] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
+
 * [v] 调研 cuda mem peer access
-
-    feedback:
-
-    1. [ ] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
 
 * [ ] 调研 sglang start up
 
 * [ ] 调研 nccl 中 task planner 是如何组合 transport 和 launch kernel 的
 
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
+
+* [v] 调研 nccl 中调用 cuda api 申请的显存的 va，与 load/store 相关的 va，是否为同一个 va？
+
+    feedback:
+
+    1. 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
+
+    2. nccl 中的 src 一直都是`0xfe`，`0x7ffe60c00000`，且每次都是相同的，可能和 cudaMalloc 还不太一样。
 
 ## HPC comm
 
