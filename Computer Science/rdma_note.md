@@ -2,115 +2,6 @@
 
 ## cache
 
-* 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
-
-* 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
-
-    * 2024/08/15: 如果需要換系统内核，并重新安装 ofed 驱动，那么需要将 ofed 源码从 tar 里重新解压出来。因为在之前编译 dkms 时，在源码目录里生成一些文件，这些文件会导致驱动无法加载成功
-
-* ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
-
-    可以在 ib verbs mask 列表里看到少了这几个 mask。
-
-* `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
-
-* `ibstat`或`ibstatus`可以得到当前协商的速率
-
-* `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
-
-* send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态
-
-* mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
-
-* reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
-
-* mlnx 尝试将速率强制修改为 SDR
-
-    `sudo mlxlink -d mlx5_0 --link_mode_force -s SDR`
-
-    output:
-
-    ```
-    Operational Info
-    ----------------
-    State                              : Active 
-    Physical state                     : LinkUp 
-    Speed                              : IB-SDR 
-    Width                              : 4x 
-    FEC                                : No FEC 
-    Loopback Mode                      : No Loopback 
-    Auto Negotiation                   : ON 
-
-    Supported Info
-    --------------
-    Enabled Link Speed                 : 0x00000001 (SDR) 
-    Supported Cable Speed              : 0x00000001 (SDR) 
-
-    Troubleshooting Info
-    --------------------
-    Status Opcode                      : 0 
-    Group Opcode                       : N/A 
-    Recommendation                     : No issue was observed 
-
-    Tool Information
-    ----------------
-    Firmware Version                   : 16.35.3502 
-    MFT Version                        : mft 4.28.0-92 
-
-    Configuring Port Speeds...
-    
-
-    Errors
-    ------
-    Sending PTYS (Configuring port speeds) raised the following exception: Invalid speed configurations
-    ```
-
-* mlnx 尝试将 link rate 强制修改为 EDR
-
-    `sudo mlxlink -d mlx5_0 --link_mode_force -s EDR`
-
-    output:
-
-    ```
-    Operational Info
-    ----------------
-    State                              : Active 
-    Physical state                     : LinkUp 
-    Speed                              : IB-SDR 
-    Width                              : 4x 
-    FEC                                : No FEC 
-    Loopback Mode                      : No Loopback 
-    Auto Negotiation                   : ON 
-
-    Supported Info
-    --------------
-    Enabled Link Speed                 : 0x00000001 (SDR) 
-    Supported Cable Speed              : 0x00000001 (SDR) 
-
-    Troubleshooting Info
-    --------------------
-    Status Opcode                      : 0 
-    Group Opcode                       : N/A 
-    Recommendation                     : No issue was observed 
-
-    Tool Information
-    ----------------
-    Firmware Version                   : 16.35.3502 
-    MFT Version                        : mft 4.28.0-92 
-
-    Configuring Port Speeds...
-    
-
-    Errors
-    ------
-    Sending PTYS (Configuring port speeds) raised the following exception: EDR is not supported by Device!
-    Supported Speeds Are: SDR
-    ```
-
-* perftest 会编译生成一些 binary，其中比较有用的几个：
-
-    `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
-
 * 在`alloc_ucontext()`中，其函数参数的 udata 中的`inbuf`, `outbuf`指的就是用户自定义数据的起始地址。
 
     但是其中的`udata->inlen`和`udata->outlen`并不是和 struct 中的数据严格相同的。struct 很有可能是按照 8 字节对齐的。
@@ -152,16 +43,6 @@
 * 很长时间没跑通，最后终于跑通了，是因为 device 设置的不对
 
 * max send wr 设置成 1 才可以成功创建 qp
-
-* 无论是 rxe，还是 siw，都无法在不依赖 rdma_cma 的情况下创建 qp。因为他们没有真正的 qp。
-
-    siw 目前是让 rdma_cma 维护一个 socket，伪装成 qp 的形态。
-
-    在`ibv_modify_qp()`时，rdma cma 内部维护了一套专门针对 siw 设计的 qp attr 和 mask。这套 qp attr 和 mask 与标准的 ibv 的 qp attr 和 mask 不兼容，如果在 rdma cma 外部使用`ibv_modify_qp()`对 siw 的 qp 强行修改，那么可能会有内存读写错误导致系统直接崩溃。
-
-    对于 rxe，不知道是 rdma cma 维护了什么机制，但是肯定也不是真正的 qp。
-
-    只有硬件支持 qp 的网卡，才能使用`ibv_modify_qp()`进行属性修改。比如 mellanox 的网卡。
 
 * rdma tutorial
 
@@ -220,20 +101,6 @@
 * metadata 只需要 local write access 就可以了
 
     真正的 buffer 才需要 remote read/write access
-
-* `ibv_req_notify_cq()`是必须的，不然真不通知了
-
-* 启动 rdma 需要配置的内核和环境
-
-    ```bash
-    sudo modprobe ib_core
-    sudo modprobe rdma_ucm
-    sudo modprobe siw
-    sudo rdma link add siw0 type siw netdev enp0s3
-    sudo rdma link add siw0_lo type siw netdev lo
-    ```
-
-    可以使用`ibv_devices`命令列出可用的 ib device。
 
 * rdma 会做一部分的内存管理，通常 get xxx event 的时候会内部申请内存，在 ack xxx event 的时候会释放内存
 
@@ -944,9 +811,17 @@ Ref:
 
 * mellanox 的驱动会自带一个 openmpi，并且在安装驱动时要求删除系统上已经安装的 openmpi
 
+* 如果需要換系统内核，并重新安装 ofed 驱动，那么需要将 ofed 源码从 tar 里重新解压出来。因为在之前编译 dkms 时，在源码目录里生成一些文件，这些文件会导致驱动无法加载成功
+
 ## app
 
 ### cache
+
+* reg mr 时，如果有 remote write 权限，那么必须有 local write 权限
+
+* mlnx 在 post send remote write 时，最大重传时间也是 4 秒左右
+
+* 在一个 cq 上申请多个 qp，对于每个 qp 都设置一个 post send 时，需要注意 max cqe 的数量是否够用，这个参数在 create cq 时需要填入。
 
 * 如果一个 mr 没有 local write access，那么在 post recv 的时候会失败
 
@@ -1040,6 +915,10 @@ Ref:
 ## kmd
 
 ### cache
+
+* ib core 默认没有把 post send, post recv 和 poll cq 放到 kmd 里，而是交由 umd 处理。
+
+    可以在 ib verbs mask 列表里看到少了这几个 mask。
 
 * `ib_uverbs_create_uapi()`逻辑
 
@@ -1352,6 +1231,34 @@ rdma core 预先定义了许多 ioctl cmd，放在`/usr/include/rdma/ib_user_ver
 
 ioctl 交换信息的设备是一个 cdev 设备，这个设备由 kmd 生成，路径为`/dev/infiniband/uverbs0`。
 
+## soft rdma
+
+soft rdma 与 ibv rdma 的原理实现与 app 差别比较大，这里专门讨论 siw, rxe 等 soft rdma。
+
+* 无论是 rxe，还是 siw，都无法在不依赖 rdma_cma 的情况下创建 qp。因为他们没有真正的 qp。
+
+    siw 目前是让 rdma_cma 维护一个 socket，伪装成 qp 的形态。
+
+    在`ibv_modify_qp()`时，rdma cma 内部维护了一套专门针对 siw 设计的 qp attr 和 mask。这套 qp attr 和 mask 与标准的 ibv 的 qp attr 和 mask 不兼容，如果在 rdma cma 外部使用`ibv_modify_qp()`对 siw 的 qp 强行修改，那么可能会有内存读写错误导致系统直接崩溃。
+
+    对于 rxe，不知道是 rdma cma 维护了什么机制，但是肯定也不是真正的 qp。
+
+    只有硬件支持 qp 的网卡，才能使用`ibv_modify_qp()`进行属性修改。比如 mellanox 的网卡。
+
+* `ibv_req_notify_cq()`是必须的，不然真不通知了
+
+* 启动 rdma 需要配置的内核和环境
+
+    ```bash
+    sudo modprobe ib_core
+    sudo modprobe rdma_ucm
+    sudo modprobe siw
+    sudo rdma link add siw0 type siw netdev enp0s3
+    sudo rdma link add siw0_lo type siw netdev lo
+    ```
+
+    可以使用`ibv_devices`命令列出可用的 ib device。
+
 ## rdma cma
 
 RDMA Connection Management Agent 相关。
@@ -1418,10 +1325,115 @@ RDMA Connection Management Agent 相关。
 
 ### note
 
-## bottom anchor
+## rdma dev 状态检测
+
+* `sudo ibportstate 1 1 query`可以看到设备能力，当前状态等的详细信息
+
+## cable 速率协商
+
+* `sudo ibportstate 1 1 espeed 1`，尝试将 ext speed 修改为 1。这里的 1 是 10 进制，会被转换成 2 进制去和驱动代码中的 mask 匹配。
+
+* `ibstat`或`ibstatus`可以得到当前协商的速率
+
+* mlnx 尝试将速率强制修改为 SDR
+
+    `sudo mlxlink -d mlx5_0 --link_mode_force -s SDR`
+
+    output:
+
+    ```
+    Operational Info
+    ----------------
+    State                              : Active 
+    Physical state                     : LinkUp 
+    Speed                              : IB-SDR 
+    Width                              : 4x 
+    FEC                                : No FEC 
+    Loopback Mode                      : No Loopback 
+    Auto Negotiation                   : ON 
+
+    Supported Info
+    --------------
+    Enabled Link Speed                 : 0x00000001 (SDR) 
+    Supported Cable Speed              : 0x00000001 (SDR) 
+
+    Troubleshooting Info
+    --------------------
+    Status Opcode                      : 0 
+    Group Opcode                       : N/A 
+    Recommendation                     : No issue was observed 
+
+    Tool Information
+    ----------------
+    Firmware Version                   : 16.35.3502 
+    MFT Version                        : mft 4.28.0-92 
+
+    Configuring Port Speeds...
+    
+
+    Errors
+    ------
+    Sending PTYS (Configuring port speeds) raised the following exception: Invalid speed configurations
+    ```
+
+* mlnx 尝试将 link rate 强制修改为 EDR
+
+    `sudo mlxlink -d mlx5_0 --link_mode_force -s EDR`
+
+    output:
+
+    ```
+    Operational Info
+    ----------------
+    State                              : Active 
+    Physical state                     : LinkUp 
+    Speed                              : IB-SDR 
+    Width                              : 4x 
+    FEC                                : No FEC 
+    Loopback Mode                      : No Loopback 
+    Auto Negotiation                   : ON 
+
+    Supported Info
+    --------------
+    Enabled Link Speed                 : 0x00000001 (SDR) 
+    Supported Cable Speed              : 0x00000001 (SDR) 
+
+    Troubleshooting Info
+    --------------------
+    Status Opcode                      : 0 
+    Group Opcode                       : N/A 
+    Recommendation                     : No issue was observed 
+
+    Tool Information
+    ----------------
+    Firmware Version                   : 16.35.3502 
+    MFT Version                        : mft 4.28.0-92 
+
+    Configuring Port Speeds...
+    
+
+    Errors
+    ------
+    Sending PTYS (Configuring port speeds) raised the following exception: EDR is not supported by Device!
+    Supported Speeds Are: SDR
+    ```
+
+## peformance test
+
+* perftest 会编译生成一些 binary，其中比较有用的几个：
+
+    `ib_write_bw`, `ib_write_lat`, `ib_send_bw`, `ib_send_lat`
+
+## examples
+
+1. hello world
 
 ## problem shooting
 
 * `failed status transport retry counter exceeded`
 
     报这种错就是数据包没发出去，原因可能有很多，比如 port 不是 active 状态，qp num 设置错误，对端机器配置有问题等等。
+
+* 先重新编译内核 5.19.17，然后再安装 ofed 的驱动（使用`--force-dkms`），然后再 insmod 自己的 ib aux driver，就没有兼容性的问题了
+
+* send 端在 poll cq 时，总是 poll 不到 cq，原因是 mlnx 网卡不是 active 状态

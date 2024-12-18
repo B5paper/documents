@@ -955,6 +955,10 @@
 
 * [v] reorg: documents 30 mins 12.16
 
+* [v] reorg: documents 30 mins  12.18
+
+    10:31 ~ 
+
 ## qa
 
 ### cached
@@ -1202,6 +1206,18 @@
     2. 调研 exam 时显示 unit 的 id 和 idx
 
 * [v] qa: review 12.16
+
+* [v] qa: 4 units  12:18
+
+    正确率：2 / 4
+
+    feedback:
+
+    1. 如果**大部分**的 qa file 正确率都很**高**，那么考虑扩充 units；如果大部分的 qa file 正确率都很低，那么调低高正确率 qa file 的选中概率
+
+    2. 如果单个 qa file 的正确率很高，那么降低它出现的概率
+
+* [v] qa: review  12.18
 
 ## cache tabs / process urls
 
@@ -1633,8 +1649,6 @@ tasks:
 
         4. nvlink
 
-* [v] 调研 openshmem
-
 * [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
@@ -1984,7 +1998,15 @@ tasks:
 
 * [ ] 调研 nccl 中 va 是何时被映射的
 
-* [ ] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
+* [o] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
+
+    deps:
+
+    1. [v] 调研`cudaPointerGetAttributes()`
+
+    2. [ ] 调研`cudaMemcpyDefault`
+
+    3. [ ] 调研`cudaHostAlloc()`
 
 * [v] 调研 cuda mem peer access
 
@@ -2001,6 +2023,31 @@ tasks:
     1. 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
 
     2. nccl 中的 src 一直都是`0xfe`，`0x7ffe60c00000`，且每次都是相同的，可能和 cudaMalloc 还不太一样。
+
+* [v] 调研 nccl 中的 va 为什么始终是`0x7ffe60c00000`
+
+    feedback:
+
+    1. nccl 中的 va 是 cuda malloc 时得到的
+
+        使用 gdb 运行程序，则 cuda malloc 返回的指针总是固定的：
+
+        ```
+        dev 0, buf A: 0x7ffe60a00000, buf B: 0x7ffe60a00200
+        dev 1, buf A: 0x7ffe60c00000, buf B: 0x7ffe60c00200
+        ```
+
+        正常运行程序，得到的指针则是随机的：
+
+        ```
+        dev 0, buf A: 0x7f7674a00000, buf B: 0x7f7674a00200
+        dev 1, buf A: 0x7f7674c00000, buf B: 0x7f7674c00200
+        ```
+
+        ```
+        dev 0, buf A: 0x7f1088a00000, buf B: 0x7f1088a00200
+        dev 1, buf A: 0x7f1088c00000, buf B: 0x7f1088c00200
+        ```
 
 ## HPC comm
 
