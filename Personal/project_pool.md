@@ -955,9 +955,17 @@
 
 * [v] reorg: documents 30 mins 12.16
 
-* [v] reorg: documents 30 mins  12.18
+* [v] reorg: documents 30 mins  12.17
 
     10:31 ~ 
+
+* [v] reorg: documents  12.18
+
+    11:00 ~ 11:20
+
+    feedback:
+
+    1. 彻底抛弃 note 的固定组织，目前的目标的是总是使用相对固定的松散组织
 
 ## qa
 
@@ -1207,7 +1215,7 @@
 
 * [v] qa: review 12.16
 
-* [v] qa: 4 units  12:18
+* [v] qa: 4 units  12:17
 
     正确率：2 / 4
 
@@ -1216,6 +1224,20 @@
     1. 如果**大部分**的 qa file 正确率都很**高**，那么考虑扩充 units；如果大部分的 qa file 正确率都很低，那么调低高正确率 qa file 的选中概率
 
     2. 如果单个 qa file 的正确率很高，那么降低它出现的概率
+
+* [v] qa: review  12.17
+
+* [v] qa: 4 units 12.18
+
+    正确率：3 / 4
+
+    feedback:
+
+    1. 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
+
+    2. 增添新 record 时，不删减以前的 record，每三天 review 一次。
+
+    3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
 * [v] qa: review  12.18
 
@@ -1619,19 +1641,81 @@ tasks:
 
     cuda programming guide website: <https://docs.nvidia.com/cuda/cuda-c-programming-guide/>
 
-    目前看到了 2.2. Thread Hierarchy
+    目前看到了
+
+    > However, a kernel can be executed by multiple equally-shaped thread blocks
 
     看起来，cuda programming 应该成为一个 project 或长期项目
 
     前面的内容与认知大体相同，没有什么很新的概念。
 
-* [ ] 调研 FORTRAN, DirectCompute, OpenACC.
+    1. [ ] 调研 cuda launch kernel 是否可以拿到 thread id
+
+* [v] 调研 FORTRAN, DirectCompute, OpenACC.
+
+    feedback:
+
+    1. DirectCompute 是微软推出的一项技术，用于在 DX10 and DX11 上跑 compute shader。
+
+        ref:
+        
+        1. <https://learn.microsoft.com/en-us/windows/win32/direct3d11/direct3d-11-advanced-stages-compute-shader>
+
+        1. <https://developer.download.nvidia.cn/compute/DevZone/docs/html/DirectCompute/doc/DirectCompute_Programming_Guide.pdf>
+
+        1. <https://www.intel.com/content/dam/develop/external/us/en/documents/directcompute-on-directx-10.pdf>
+
+        1. <https://gdcvault.com/play/1013698/Advanced-DirectX-11-DirectCompute-by>
+
+        1. <https://learn.microsoft.com/en-us/windows/win32/direct3d11/direct3d-11-advanced-stages-compute-create>
+
+        1. <https://web.eecs.utk.edu/~smarz1/projects/dc5.0/>
+
+        1. <https://logins.github.io/graphics/2020/10/31/D3D12ComputeShaders.html>
+
+        1. <https://gdcvault.com/play/1017624/Advanced-Visual-Effects-with-DirectX>
+
+    2. fortran 最近这几年又火起来了，官网很好看，看来有被精心维护
+
+        refs:
+
+        1. <https://fortran-lang.org/#>
+
+        1. <https://www.ibm.com/history/fortran>
+
+        1. <https://web.chem.ox.ac.uk/fortran/fortran1.html>
+
+        1. <https://www.intel.com/content/www/us/en/developer/tools/oneapi/fortran-compiler.html#gs.j7gmbw>
+
+        1. <https://www.tutorialspoint.com/fortran/index.htm>
+
+    3. OpenMP 只支持 cpu，OpenACC 与 OpenMP 相似，但是既支持 cpu，也支持 gpu
+
+        refs:
+
+        1. <https://www.openacc.org/>
+
+        2. <https://en.wikipedia.org/wiki/OpenACC>
+
+        3. <https://www.bu.edu/tech/files/2017/04/OpenACC-2017Spring.pdf>
+
+        4. <https://developer.nvidia.com/openacc>
+
+        5. <https://developer.nvidia.com/blog/getting-started-openacc/>
+
+        6. <https://github.com/OpenACC>
+
+        7. <https://www.bu.edu/tech/support/research/software-and-programming/gpu-computing/openacc-c/>
+
+        8. <https://ulhpc-tutorials.readthedocs.io/en/latest/gpu/openacc/basics/>
+
+        9. <https://enccs.github.io/OpenACC-CUDA-beginners/1.02_openacc-introduction/>
+
+        10. <https://gcc.gnu.org/onlinedocs/gfortran/OpenACC.html>
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
 
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
-
-* [v] 调研 tenstorrent
 
 * [ ] 调研制作 docker image: 透传一个 nvidia device 可以成功跑通 cuda test
 
@@ -1648,8 +1732,6 @@ tasks:
         3. socket
 
         4. nvlink
-
-* [v] 调研 224 机器禁用 rdma dev 后，看是否还有 ibv 函数的调用
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
 
@@ -1990,11 +2072,7 @@ tasks:
 
     feedback:
 
-    1. 目前看到
 
-        > However, a kernel can be executed by multiple equally-shaped thread blocks
-
-    2. 是否有办法可以拿到 thread id？
 
 * [ ] 调研 nccl 中 va 是何时被映射的
 
@@ -2048,6 +2126,12 @@ tasks:
         dev 0, buf A: 0x7f1088a00000, buf B: 0x7f1088a00200
         dev 1, buf A: 0x7f1088c00000, buf B: 0x7f1088c00200
         ```
+
+* [o] 调研 nccl 中的 task planner
+
+    feedback:
+
+    1. 尝试将 nccl 中的 kernel 提取出来手写一遍
 
 ## HPC comm
 
