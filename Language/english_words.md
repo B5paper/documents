@@ -553,3 +553,5 @@ simultaneous a. 同时发生的
 subtle prn. [ˈsʌtl] a. 微妙的，敏感的
 
 as opposed to sth. phrase. 与 ... 相对，而不是
+
+* excel v. 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).

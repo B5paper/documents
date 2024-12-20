@@ -2,6 +2,114 @@
 
 ## cache
 
+    1. 在 50 机器上写如下程序
+
+        `main.cu`:
+
+        ```cpp
+        #include <cuda.h>
+        #include <stdlib.h>
+        #include <stdio.h>
+
+        __global__ void vec_add(float *A, float *B, float *C)
+        {
+            int id = blockIdx.x;
+            C[id] = A[id] + B[id];
+        }
+
+        int main()
+        {
+            float *h_A, *h_B, *h_C;
+            h_A = (float*) malloc(8 * sizeof(float));
+            h_B = (float*) malloc(8 * sizeof(float));
+            h_C = (float*) malloc(8 * sizeof(float));
+            for (int i = 0; i < 8; ++i)
+            {
+                h_A[i] = rand() % 10;
+                h_B[i] = rand() % 10;
+            }
+            float *A, *B, *C;
+            cudaMalloc(&A, 8 * sizeof(float));
+            cudaMalloc(&B, 8 * sizeof(float));
+            cudaMalloc(&C, 8 * sizeof(float));
+            cudaMemcpy(A, h_A, 8 * sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(B, h_B, 8 * sizeof(float), cudaMemcpyHostToDevice);
+            vec_add<<<8, 1>>>(A, B, C);
+            cudaMemcpy(h_C, C, 8 * sizeof(float), cudaMemcpyDeviceToHost);
+            for (int i = 0; i < 8; ++i)
+            {
+                printf("%.1f + %.1f = %.1f\n", h_A[i], h_B[i], h_C[i]);
+            }
+            return 0;
+        }
+        ```
+
+        `Makefile`:
+
+        ```makefile
+        main: main.cu
+        	nvcc -g -I../cuda-samples-12.1/Common -o main main.cu
+
+        clean:
+        	rm -f main
+        ```
+
+        在 vscode 中，使用如下`launch.json`:
+
+        ```json
+        {
+            // Use IntelliSense to learn about possible attributes.
+            // Hover to view descriptions of existing attributes.
+            // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+            "version": "0.2.0",
+            "configurations": [{
+                "name": "CUDA C++: Launch",
+                "type": "cuda-gdb",
+                "request": "launch",
+                "program": "${workspaceFolder}/main"
+            }]
+        }
+        ```
+
+        在`vec_add()`中设置断点后，F5 运行无法 hit 断点。目前不清楚原因。
+
+        （2024.12.20）：目前看来，应该是编译时没加`-G`。
+
+* 224 机器上的 nccl cuda-gdb 依然很慢，起码需要半个小时以上才能 hit 断点
+
+* 使用 b address `(cuda-gdb) b *0x7ffe85823040`会导致直接 cuda-gdb 直接报错退出。
+
+    ```
+    (cuda-gdb) b *0x7ffe85823040
+    Breakpoint 3 at 0x7ffe85823040
+    (cuda-gdb) c
+    Continuing.
+    warning: Cuda API error detected: cuLaunchKernelEx returned (0x190)
+
+
+    zjxj:55959:55959 [1] enqueue.cc:1451 NCCL WARN Cuda failure 400 'invalid resource handle'
+    zjxj:55959:55959 [1] NCCL INFO group.cc:231 -> 1
+    zjxj:55959:55959 [1] NCCL INFO group.cc:453 -> 1
+    zjxj:55959:55959 [1] NCCL INFO group.cc:546 -> 1
+    zjxj:55959:55959 [1] NCCL INFO group.cc:101 -> 1
+    fail to group end
+    [Thread 0x7fff590fd000 (LWP 55998) exited]
+    [Thread 0x7fff598fe000 (LWP 55997) exited]
+    [Thread 0x7fff615ac000 (LWP 55994) exited]
+    [Thread 0x7fff61dad000 (LWP 55993) exited]
+    [Thread 0x7fffc0dff000 (LWP 55992) exited]
+    [Thread 0x7fffc924a000 (LWP 55991) exited]
+    [Thread 0x7fffc2a4f000 (LWP 55990) exited]
+    [Thread 0x7fffc8a49000 (LWP 55985) exited]
+    [Thread 0x7fffc9b3d000 (LWP 55983) exited]
+    [Thread 0x7fffd4909000 (LWP 55963) exited]
+    [Inferior 1 (process 55959) exited with code 0377]
+    ```
+
+* cuda 12.4 在编译的时候必须使用 compute 80，使用 compute 70 无法正常运行
+
+    好像 compute 70, 80, 90 分别对应三种不同的 nv gpu 架构。
+
 * `cudaSuccess`是 cuda runtime 里的枚举常量，`CUDA_SUCCESS`是 cuda umd 里的枚举常量
 
 * thread id 与 thread idx 并不是同一个东西

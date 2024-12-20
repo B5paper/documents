@@ -2,6 +2,60 @@
 
 ## cache
 
+* nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
+
+* nccl 很可能起了 46183 个 device 线程
+
+* nccl 调试时的 temp 中间结果
+
+    * c 为什么会从 0 循环到 1？
+
+        因为`sendMask = 3`，只有低 2 位为 1.
+
+        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
+
+    * `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
+
+        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
+
+* 224 机器如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
+
+    启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
+
+    * 224 机器，设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
+
+* 实体机上可以跑通 p2p
+
+    两种模式都可以跑通：
+
+    1. P2P/CUMEM/CE
+
+    2. P2P/direct pointer
+
+    跑不通的模式：
+
+    1. SHM/direct/direct
+
+    在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
+
+* `ncclTransports`在五处地方被使用
+
+    1. `proxyConnInit()`未被调用
+
+    2. `proxyFree()`：未调用
+
+    3. `ncclProxyConnect()`：未调用
+
+    4. `selectTransport()`：调用
+
+    5. `ncclTopoComputePaths()`
+
+    说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+    猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+* 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+
 * cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
 
     使用 compute_70 可以跑通。

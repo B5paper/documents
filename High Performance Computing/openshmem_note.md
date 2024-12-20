@@ -10,6 +10,32 @@
 
 ## cache
 
+* oshcc -- Open SHMEM C wrapper compiler
+
+    <https://manpages.ubuntu.com/manpages/lunar/man1/oshcc.1.html>
+
+    看来 osh 就是 shmem 的简称？
+
+* Cray OpenSHMEMX
+
+    <https://cray-openshmemx.readthedocs.io/en/latest/index.html>
+
+    cray openshmemx 的 doc。
+
+    为什么这里多了一个 X，对 openshmem 扩展了什么？
+
+* shmem4py: High-Performance One-Sided Communication for Python Applications
+
+    <https://dl.acm.org/doi/pdf/10.1145/3624062.3624602>
+
+    openshmem 的 python wrapper，这是一篇论文，里面有 example，可以参考一下
+
+* Manage Your Memory Address Space with OpenSHMEM*
+
+    <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
+
+    英特尔的 tech blog，讲的 openshmem 入门知识。看起来废话不多，比较精练。
+
 * openshmem 矩阵乘法版本 2
 
     `main.c`:

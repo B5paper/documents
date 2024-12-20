@@ -967,6 +967,8 @@
 
     1. 彻底抛弃 note 的固定组织，目前的目标的是总是使用相对固定的松散组织
 
+* [v] reorg: documents  30 mins
+
 ## qa
 
 ### cached
@@ -1241,6 +1243,12 @@
 
 * [v] qa: review  12.18
 
+* [v] qa: 4 units 12.19
+
+    正确率：3 / 4
+
+* [v] qa: review 12.19
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1467,126 +1475,23 @@ tasks:
 
         <https://zhuanlan.zhihu.com/p/708602042>
 
-* 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
-
 * vscode 多线程调试: <https://zhuanlan.zhihu.com/p/704723451>
-
-* `ncclTransports`在五处地方被使用
-
-    1. `proxyConnInit()`未被调用
-
-    2. `proxyFree()`：未调用
-
-    3. `ncclProxyConnect()`：未调用
-
-    4. `selectTransport()`：调用
-
-    5. `ncclTopoComputePaths()`
-
-    说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
-
-    猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
-
-* 实体机上可以跑通 p2p
-
-    两种模式都可以跑通：
-
-    1. P2P/CUMEM/CE
-
-    2. P2P/direct pointer
-
-    跑不通的模式：
-
-    1. SHM/direct/direct
-
-    在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
-
-* cuda 12.4 在编译的时候必须使用 compute 80，使用 compute 70 无法正常运行
-
-    好像 compute 70, 80, 90 分别对应三种不同的 nv gpu 架构。
 
 * 50 机器物理机上仍需要在`paths.cc`文件中的`ncclTopoCheckP2p()`函数里添加`path->type = PATH_PIX;`，重新编译 nccl，才能使用 pcie p2p，否则只设置 nccl 环境变量无法跑通 p2p.
 
     同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
-* Manage Your Memory Address Space with OpenSHMEM*
-
-    <https://community.intel.com/t5/Blogs/Tech-Innovation/Tools/Manage-Your-Memory-Address-Space-with-OpenSHMEM/post/1478126>
-
-    英特尔的 tech blog，讲的 openshmem 入门知识。看起来废话不多，比较精练。
-
-* 224 机器，设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
-
-* shmem4py: High-Performance One-Sided Communication for Python Applications
-
-    <https://dl.acm.org/doi/pdf/10.1145/3624062.3624602>
-
-    openshmem 的 python wrapper，这是一篇论文，里面有 example，可以参考一下
-
-* nccl app 中需要调研的点
-
-    * `cudaSetDevice()`
-
-    * `cudaStreamCreate()`
-
-* 224 机器如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
-
-    启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
-
-* nccl 调试时的 temp 中间结果
-
-    * c 为什么会从 0 循环到 1？
-
-        因为`sendMask = 3`，只有低 2 位为 1.
-
-        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
-
-    * `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
-
-        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
-
-* excel v. 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).
+* [ ] 调研`cudaStreamCreate()`
 
 * 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
 
     是否可以让其他线程也运行，但只在当前线程触发断点？
-
-* 使用 b address `(cuda-gdb) b *0x7ffe85823040`会导致直接 cuda-gdb 直接报错退出。
-
-    ```
-    (cuda-gdb) b *0x7ffe85823040
-    Breakpoint 3 at 0x7ffe85823040
-    (cuda-gdb) c
-    Continuing.
-    warning: Cuda API error detected: cuLaunchKernelEx returned (0x190)
-
-
-    zjxj:55959:55959 [1] enqueue.cc:1451 NCCL WARN Cuda failure 400 'invalid resource handle'
-    zjxj:55959:55959 [1] NCCL INFO group.cc:231 -> 1
-    zjxj:55959:55959 [1] NCCL INFO group.cc:453 -> 1
-    zjxj:55959:55959 [1] NCCL INFO group.cc:546 -> 1
-    zjxj:55959:55959 [1] NCCL INFO group.cc:101 -> 1
-    fail to group end
-    [Thread 0x7fff590fd000 (LWP 55998) exited]
-    [Thread 0x7fff598fe000 (LWP 55997) exited]
-    [Thread 0x7fff615ac000 (LWP 55994) exited]
-    [Thread 0x7fff61dad000 (LWP 55993) exited]
-    [Thread 0x7fffc0dff000 (LWP 55992) exited]
-    [Thread 0x7fffc924a000 (LWP 55991) exited]
-    [Thread 0x7fffc2a4f000 (LWP 55990) exited]
-    [Thread 0x7fffc8a49000 (LWP 55985) exited]
-    [Thread 0x7fffc9b3d000 (LWP 55983) exited]
-    [Thread 0x7fffd4909000 (LWP 55963) exited]
-    [Inferior 1 (process 55959) exited with code 0377]
-    ```
 
 * tenstorrent 使用分布式的处理器和内存，强调互联，文档给得不是很全，可以直接看代码。
 
     或许可以从 pytorch 接入那部分开始看，但是首先需要弄明白 pytorch 模型的保存格式。
 
 * `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
-
-* 224 机器上的 nccl cuda-gdb 依然很慢，起码需要半个小时以上才能 hit 断点
 
 * 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
 
@@ -1615,25 +1520,13 @@ tasks:
 
     很可能是 8 bytes - 1048576 bytes 这个范围内。
 
-* nccl 很可能起了 46183 个 device 线程
+* 让大模型帮忙写了几段代码，无论是 template, cudaLaunchKernel，还是`__global__`修饰，`__device__`修饰，都是可以打断点的
 
-* Cray OpenSHMEMX
+* 在模板函数`ncclKernelMain()`入口处下断点，等 cuda-gdb 运行半个小时才可以 hit 断点。
 
-    <https://cray-openshmemx.readthedocs.io/en/latest/index.html>
+    之后每 step 一步都需要几分钟到十几分钟不等的时间。
 
-    cray openshmemx 的 doc。
-
-    为什么这里多了一个 X，对 openshmem 扩展了什么？
-
-* oshcc -- Open SHMEM C wrapper compiler
-
-    <https://manpages.ubuntu.com/manpages/lunar/man1/oshcc.1.html>
-
-    看来 osh 就是 shmem 的简称？
-
-* nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
-
-* 让大模型帮忙写了几段代码，无论是 template, cudaLaunchKernel，还是`__global__`修饰，`__device__`修饰，都是可以打断点的 
+* 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
 
 ### tasks
 
@@ -1649,69 +1542,13 @@ tasks:
 
     前面的内容与认知大体相同，没有什么很新的概念。
 
-    1. [ ] 调研 cuda launch kernel 是否可以拿到 thread id
-
-* [v] 调研 FORTRAN, DirectCompute, OpenACC.
+* [v] 调研 cuda launch kernel 是否可以拿到 thread id
 
     feedback:
 
-    1. DirectCompute 是微软推出的一项技术，用于在 DX10 and DX11 上跑 compute shader。
+    1. 没有方法能直接拿到 thread id，只能通过 idx 计算得来
 
-        ref:
-        
-        1. <https://learn.microsoft.com/en-us/windows/win32/direct3d11/direct3d-11-advanced-stages-compute-shader>
-
-        1. <https://developer.download.nvidia.cn/compute/DevZone/docs/html/DirectCompute/doc/DirectCompute_Programming_Guide.pdf>
-
-        1. <https://www.intel.com/content/dam/develop/external/us/en/documents/directcompute-on-directx-10.pdf>
-
-        1. <https://gdcvault.com/play/1013698/Advanced-DirectX-11-DirectCompute-by>
-
-        1. <https://learn.microsoft.com/en-us/windows/win32/direct3d11/direct3d-11-advanced-stages-compute-create>
-
-        1. <https://web.eecs.utk.edu/~smarz1/projects/dc5.0/>
-
-        1. <https://logins.github.io/graphics/2020/10/31/D3D12ComputeShaders.html>
-
-        1. <https://gdcvault.com/play/1017624/Advanced-Visual-Effects-with-DirectX>
-
-    2. fortran 最近这几年又火起来了，官网很好看，看来有被精心维护
-
-        refs:
-
-        1. <https://fortran-lang.org/#>
-
-        1. <https://www.ibm.com/history/fortran>
-
-        1. <https://web.chem.ox.ac.uk/fortran/fortran1.html>
-
-        1. <https://www.intel.com/content/www/us/en/developer/tools/oneapi/fortran-compiler.html#gs.j7gmbw>
-
-        1. <https://www.tutorialspoint.com/fortran/index.htm>
-
-    3. OpenMP 只支持 cpu，OpenACC 与 OpenMP 相似，但是既支持 cpu，也支持 gpu
-
-        refs:
-
-        1. <https://www.openacc.org/>
-
-        2. <https://en.wikipedia.org/wiki/OpenACC>
-
-        3. <https://www.bu.edu/tech/files/2017/04/OpenACC-2017Spring.pdf>
-
-        4. <https://developer.nvidia.com/openacc>
-
-        5. <https://developer.nvidia.com/blog/getting-started-openacc/>
-
-        6. <https://github.com/OpenACC>
-
-        7. <https://www.bu.edu/tech/support/research/software-and-programming/gpu-computing/openacc-c/>
-
-        8. <https://ulhpc-tutorials.readthedocs.io/en/latest/gpu/openacc/basics/>
-
-        9. <https://enccs.github.io/OpenACC-CUDA-beginners/1.02_openacc-introduction/>
-
-        10. <https://gcc.gnu.org/onlinedocs/gfortran/OpenACC.html>
+* [v] 调研 FORTRAN, DirectCompute, OpenACC.
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
 
@@ -1861,79 +1698,6 @@ tasks:
 
     17:53 ~ 18:10 (17 mins)
 
-    feedback:
-
-    1. 在 50 机器上写如下程序
-
-        `main.cu`:
-
-        ```cpp
-        #include <cuda.h>
-        #include <stdlib.h>
-        #include <stdio.h>
-
-        __global__ void vec_add(float *A, float *B, float *C)
-        {
-            int id = blockIdx.x;
-            C[id] = A[id] + B[id];
-        }
-
-        int main()
-        {
-            float *h_A, *h_B, *h_C;
-            h_A = (float*) malloc(8 * sizeof(float));
-            h_B = (float*) malloc(8 * sizeof(float));
-            h_C = (float*) malloc(8 * sizeof(float));
-            for (int i = 0; i < 8; ++i)
-            {
-                h_A[i] = rand() % 10;
-                h_B[i] = rand() % 10;
-            }
-            float *A, *B, *C;
-            cudaMalloc(&A, 8 * sizeof(float));
-            cudaMalloc(&B, 8 * sizeof(float));
-            cudaMalloc(&C, 8 * sizeof(float));
-            cudaMemcpy(A, h_A, 8 * sizeof(float), cudaMemcpyHostToDevice);
-            cudaMemcpy(B, h_B, 8 * sizeof(float), cudaMemcpyHostToDevice);
-            vec_add<<<8, 1>>>(A, B, C);
-            cudaMemcpy(h_C, C, 8 * sizeof(float), cudaMemcpyDeviceToHost);
-            for (int i = 0; i < 8; ++i)
-            {
-                printf("%.1f + %.1f = %.1f\n", h_A[i], h_B[i], h_C[i]);
-            }
-            return 0;
-        }
-        ```
-
-        `Makefile`:
-
-        ```makefile
-        main: main.cu
-        	nvcc -g -I../cuda-samples-12.1/Common -o main main.cu
-
-        clean:
-        	rm -f main
-        ```
-
-        在 vscode 中，使用如下`launch.json`:
-
-        ```json
-        {
-            // Use IntelliSense to learn about possible attributes.
-            // Hover to view descriptions of existing attributes.
-            // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-            "version": "0.2.0",
-            "configurations": [{
-                "name": "CUDA C++: Launch",
-                "type": "cuda-gdb",
-                "request": "launch",
-                "program": "${workspaceFolder}/main"
-            }]
-        }
-        ```
-
-        在`vec_add()`中设置断点后，F5 运行无法 hit 断点。目前不清楚原因。
-
 * [v] 调研 cuda gdb
 
     17:16 ~ 17:36
@@ -1956,15 +1720,9 @@ tasks:
 
         cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
 
-* [v] 调研是否可以使用 template 写 cuda kernel。如果可以，是否可以打断点
-
 * [v] 构建一个 nccl test case，使用 cuda-gdb 检查 nccl src 中 kernel 是否被调用
 
-    feedback:
-
-    2. 如何使用类似 cudaLaunchKernel() 调用 cuda kernel，是否可以打断点
-
-    3. nccl 目前使用 cudaLaunchKernel() + 模板的方式调用 kernel，断点无法被 hit
+* [ ] 调研`cudaLaunchKernel()`调用 cuda kernel
 
 * [ ] 调研 python 中 ctypes 的用法
 
@@ -2020,16 +1778,6 @@ tasks:
 
     2. 在 nccl 中自己写 kernel；显式写 comm kernel，不使用 nccl 中的 template
 
-    feedback:
-
-    2. 在模板函数`ncclKernelMain()`入口处下断点，等 cuda-gdb 运行半个小时才可以 hit 断点。
-
-        之后每 step 一步都需要几分钟到十几分钟不等的时间。
-
-    3. 调研`cuLaunchKernelEx()`，为自己在 nccl 里写 kernel 做准备。
-
-    4. 调研：cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
-
 * [v] 调研 nccl launch kernel 与 cudaMemcpyAsync() 的时机
 
     feedback:
@@ -2044,49 +1792,23 @@ tasks:
 
     4. 需要看断点的调用栈的上下文判断任务实际是如何执行的
 
-* [v] 调研 nccl 中`ld_volatile_global()`的上下文环境，分析这个函数为什么会被调用
-
-    feedback:
-
-    1. 目前初步看到的是 nccl 利用 gpu 的多线程，对单机多卡之间的数据通信进行优化
-
 * [o] 调研 nccl 中 va 是何时被映射的
 
     13:07 ~ 
 
-    feedback:
-
-    1. `cudaGetDevice`和`cuDeviceGet`有什么区别？
-
-    2. `cuda_runtime.h`和`cuda.h`有什么区别？
+* [ ] 调研`cudaGetDevice`和`cuDeviceGet`有什么区别？
 
 * [ ] 调研 cuda samples 代码
 
 * [v] 调研 cuda memory 相关 api
 
-* [v] cuda programming guide 30 mins
-
-    15:13 ~ 17:25
-
-    从 2.2. Thread Hierarchy 开始看
-
-    feedback:
-
-
-
 * [ ] 调研 nccl 中 va 是何时被映射的
 
 * [o] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
 
-    deps:
+* [ ] 调研`cudaMemcpyDefault`
 
-    1. [v] 调研`cudaPointerGetAttributes()`
-
-    2. [ ] 调研`cudaMemcpyDefault`
-
-    3. [ ] 调研`cudaHostAlloc()`
-
-* [v] 调研 cuda mem peer access
+* [ ] 调研`cudaHostAlloc()`
 
 * [ ] 调研 sglang start up
 
@@ -2095,12 +1817,6 @@ tasks:
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
 
 * [v] 调研 nccl 中调用 cuda api 申请的显存的 va，与 load/store 相关的 va，是否为同一个 va？
-
-    feedback:
-
-    1. 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
-
-    2. nccl 中的 src 一直都是`0xfe`，`0x7ffe60c00000`，且每次都是相同的，可能和 cudaMalloc 还不太一样。
 
 * [v] 调研 nccl 中的 va 为什么始终是`0x7ffe60c00000`
 
@@ -2129,9 +1845,19 @@ tasks:
 
 * [o] 调研 nccl 中的 task planner
 
+* [ ] 尝试将 nccl 中的 kernel 提取出来手写一遍
+
+* [v] cuda programming guide
+
     feedback:
 
-    1. 尝试将 nccl 中的 kernel 提取出来手写一遍
+    1. 目前看到
+
+        > Threads within a block can cooperate by sharing data through some shared memory and by synchronizing their execution to coordinate memory accesses. 
+
+* [ ] 调研 cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
+
+* [ ] 调研`cuLaunchKernelEx()`，为自己在 nccl 里写 kernel 做准备。
 
 ## HPC comm
 
