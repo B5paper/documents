@@ -6,6 +6,8 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `stdio.h`中的`puts(char *msg)`可以打印一个字符串并自动换行。
+
 * C 语言`realloc()`
 
     `realloc()`会释放一段内存，并申请一段新内存，并将旧内存中的数据尽可能多地复制到新内存中。

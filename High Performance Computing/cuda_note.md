@@ -2,78 +2,631 @@
 
 ## cache
 
-    1. 在 50 机器上写如下程序
+* block 也可以被组织为一／二／三维的 grid。这么做主要为了适配需要计算的数据。通常数据的 dim length 是会超过 gpu 中流处理器的数量的
 
-        `main.cu`:
+    example:
 
-        ```cpp
-        #include <cuda.h>
-        #include <stdlib.h>
-        #include <stdio.h>
+    `main_3.cu`:
 
-        __global__ void vec_add(float *A, float *B, float *C)
+    ```cpp
+    __global__ void vec_add_blk(float *A, float *B)
+    {
+        int x = blockIdx.x * blockDim.x + threadIdx.x;
+        A[x] = A[x] + B[x];
+        printf("%d, %d, %d\n", blockDim.x, blockDim.y, blockDim.z);
+    }
+
+    int main()
+    {
+        float *cubuf_A, *cubuf_B;
+        cudaMalloc(&cubuf_A, 8 * sizeof(float));
+        cudaMalloc(&cubuf_B, 8 * sizeof(float));
+        float *buf_A, *buf_B;
+        buf_A = (float*) malloc(8 * sizeof(float));
+        buf_B = (float*) malloc(8 * sizeof(float));
+        for (int i = 0; i < 8; ++i)
         {
-            int id = blockIdx.x;
-            C[id] = A[id] + B[id];
+            buf_A[i] = rand() % 5;
+            buf_B[i] = rand() % 5;
         }
 
-        int main()
+        printf("buf A:\n");
+        for (int i = 0; i < 8; ++i)
+            printf("%.2f, ", buf_A[i]);
+        putchar('\n');
+
+        printf("buf B:\n");
+        for (int i = 0; i < 8; ++i)
+            printf("%.2f, ", buf_B[i]);
+        putchar('\n');
+
+        cudaMemcpy(cubuf_A, buf_A, 8 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(cubuf_B, buf_B, 8 * sizeof(float), cudaMemcpyHostToDevice);
+        // vec_add<<<1, 8>>>(cubuf_A, cubuf_B);
+        vec_add_blk<<<4, 2>>>(cubuf_A, cubuf_B);
+        cudaMemcpy(buf_A, cubuf_A, 8 * sizeof(float), cudaMemcpyDeviceToHost);
+        
+        printf("buf A:\n");
+        for (int i = 0; i < 8; ++i)
+            printf("%.2f, ", buf_A[i]);
+        putchar('\n');
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    buf A:
+    3.00, 2.00, 3.00, 1.00, 4.00, 2.00, 0.00, 3.00, 
+    buf B:
+    1.00, 0.00, 0.00, 2.00, 1.00, 2.00, 4.00, 1.00, 
+    2, 1, 1
+    2, 1, 1
+    2, 1, 1
+    2, 1, 1
+    2, 1, 1
+    2, 1, 1
+    2, 1, 1
+    2, 1, 1
+    buf A:
+    4.00, 2.00, 3.00, 3.00, 5.00, 4.00, 4.00, 4.00,
+    ```
+
+    可以看到`blockDim`其实就是每个维度的 length。
+
+    grid 有点像 batch 的概念，比如一个 shape 为`(20, 8, 4)`的数据，我既可以一次性处理，也可以拆分成 4 个`(5, 2, 1)`进行处理。前者的 grid 即为 1，后者的 grid 即为`(4, 4, 4)`。
+
+    如果拆成 grid 进行处理，那么在确定数组索引时，就需要用`int x = blockIdx.x * blockDim.x + threadIdx.x;`这种方式。
+
+    grid 与 grid 之间并不保证是并行执行的，可能是并行，也可能是串行。
+
+    > Thread blocks are required to execute independently: It must be possible to execute them in any order, in parallel or in series.
+
+* 一个 block (thread block) 中的 threads 数量是有限的，因为每个 block 会被绑定到一个 sm (streaming multiprocessor) 上，这个 block 中的所有 thread 都会在这个 sm 上执行。
+
+    > On current GPUs, a thread block may contain up to 1024 threads.
+
+    当前的 gpu，每个 block 最多有 1024 个 thread。
+
+* `cudaPointerGetAttributes()`用法
+
+    `main_6.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        float *cubuf;
+        cudaMalloc(&cubuf, 8 * sizeof(float));
+        
+        cudaPointerAttributes attr;
+        cudaPointerGetAttributes(&attr, cubuf);
+        printf("cubuf: %p\n", cubuf);
+        printf("attr.device: %d\n", attr.device);
+        printf("attr.devicePointer: %p\n", attr.devicePointer);
+        printf("attr.hostPointer: %p\n", attr.hostPointer);
+        printf("attr.type: %d\n", attr.type);
+        
+        cudaFree(cubuf);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g main_6.cu -o main_6`
+
+    run: `./main_6`
+
+    output:
+
+    ```
+    cubuf: 0x7fd3ffa00000
+    attr.device: 0
+    attr.devicePointer: 0x7fd3ffa00000
+    attr.hostPointer: (nil)
+    attr.type: 2
+    ```
+
+    可以看到，`cudaPointerGetAttributes()`可以拿到 ptr 的 device, addr，以及 type 这三个信息。
+
+    type 一共就 4 种：
+
+    ```cpp
+    /**
+     * CUDA memory types
+     */
+    enum __device_builtin__ cudaMemoryType
+    {
+        cudaMemoryTypeUnregistered = 0, /**< Unregistered memory */
+        cudaMemoryTypeHost         = 1, /**< Host memory */
+        cudaMemoryTypeDevice       = 2, /**< Device memory */
+        cudaMemoryTypeManaged      = 3  /**< Managed memory */
+    };
+    ```
+
+    如果传递给它的是`malloc()`申请的内存，则会返回 nil：
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        float *buf = (float*) malloc(8 * sizeof(float));
+
+        cudaPointerAttributes attr;
+        cudaError_t ret = cudaPointerGetAttributes(&attr, buf);
+        if (ret != cudaSuccess)
         {
-            float *h_A, *h_B, *h_C;
-            h_A = (float*) malloc(8 * sizeof(float));
-            h_B = (float*) malloc(8 * sizeof(float));
-            h_C = (float*) malloc(8 * sizeof(float));
-            for (int i = 0; i < 8; ++i)
-            {
-                h_A[i] = rand() % 10;
-                h_B[i] = rand() % 10;
-            }
-            float *A, *B, *C;
-            cudaMalloc(&A, 8 * sizeof(float));
-            cudaMalloc(&B, 8 * sizeof(float));
-            cudaMalloc(&C, 8 * sizeof(float));
-            cudaMemcpy(A, h_A, 8 * sizeof(float), cudaMemcpyHostToDevice);
-            cudaMemcpy(B, h_B, 8 * sizeof(float), cudaMemcpyHostToDevice);
-            vec_add<<<8, 1>>>(A, B, C);
-            cudaMemcpy(h_C, C, 8 * sizeof(float), cudaMemcpyDeviceToHost);
-            for (int i = 0; i < 8; ++i)
-            {
-                printf("%.1f + %.1f = %.1f\n", h_A[i], h_B[i], h_C[i]);
-            }
-            return 0;
+            printf("fail to get pointer attr, ret: %d\n", ret);
+            return -1;
         }
-        ```
+        printf("cubuf: %p\n", buf);
+        printf("attr.device: %d\n", attr.device);
+        printf("attr.devicePointer: %p\n", attr.devicePointer);
+        printf("attr.hostPointer: %p\n", attr.hostPointer);
+        printf("attr.type: %d\n", attr.type);
+        
+        free(buf);
+        return 0;
+    }
+    ```
 
-        `Makefile`:
+    output:
 
-        ```makefile
-        main: main.cu
-        	nvcc -g -I../cuda-samples-12.1/Common -o main main.cu
+    ```
+    cubuf: 0x561a01324520
+    attr.device: -2
+    attr.devicePointer: (nil)
+    attr.hostPointer: (nil)
+    attr.type: 0
+    ```
 
-        clean:
-        	rm -f main
-        ```
+    `cudaPointerGetAttributes()`还能对 range 进行判断：
 
-        在 vscode 中，使用如下`launch.json`:
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
 
-        ```json
+    int main()
+    {
+        float *cubuf;
+        cudaMalloc(&cubuf, 8 * sizeof(float));
+        
+        cudaPointerAttributes attr;
+        cudaPointerGetAttributes(&attr, cubuf + 7);
+        printf("cubuf: %p\n", cubuf + 7);
+        printf("attr.device: %d\n", attr.device);
+        printf("attr.devicePointer: %p\n", attr.devicePointer);
+        printf("attr.hostPointer: %p\n", attr.hostPointer);
+        printf("attr.type: %d\n", attr.type);
+        putchar('\n');
+
+        cudaPointerGetAttributes(&attr, cubuf + 8);
+        printf("cubuf: %p\n", cubuf + 8);
+        printf("attr.device: %d\n", attr.device);
+        printf("attr.devicePointer: %p\n", attr.devicePointer);
+        printf("attr.hostPointer: %p\n", attr.hostPointer);
+        printf("attr.type: %d\n", attr.type);
+        
+        cudaFree(cubuf);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf: 0x7f764ba0001c
+    attr.device: 0
+    attr.devicePointer: 0x7f764ba0001c
+    attr.hostPointer: (nil)
+    attr.type: 2
+
+    cubuf: 0x7f764ba00020
+    attr.device: -2
+    attr.devicePointer: (nil)
+    attr.hostPointer: (nil)
+    attr.type: 0
+    ```
+
+* 不需要 enable peer access，也可以使用`cudaMemcpy()`将数据从一个 device 复制到另一个 device
+
+    `main_5.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        cudaSetDevice(0);
+        float *cubuf_0;
+        cudaMalloc(&cubuf_0, 8 * sizeof(float));
+        cudaSetDevice(1);
+        float *cubuf_1;
+        cudaMalloc(&cubuf_1, 8 * sizeof(float));
+
+        // cudaSetDevice(0);
+        float *buf = (float*) malloc(8 * sizeof(float));
+        for (int i = 0; i < 8; ++i)
+            buf[i] = 123;
+        cudaMemcpy(cubuf_0, buf, 8 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaError_t ret;
+        ret = cudaMemcpy(cubuf_1, cubuf_0, 8 * sizeof(float), cudaMemcpyDeviceToDevice);
+        if (ret != cudaSuccess)
         {
-            // Use IntelliSense to learn about possible attributes.
-            // Hover to view descriptions of existing attributes.
-            // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-            "version": "0.2.0",
-            "configurations": [{
-                "name": "CUDA C++: Launch",
-                "type": "cuda-gdb",
-                "request": "launch",
-                "program": "${workspaceFolder}/main"
-            }]
+            printf("fail to cuda memcpy cubuf_0 to cubuf_1\n");
+            return -1;
         }
-        ```
 
-        在`vec_add()`中设置断点后，F5 运行无法 hit 断点。目前不清楚原因。
+        // cudaSetDevice(1);
+        cudaMemcpy(buf, cubuf_1, 8 * sizeof(float), cudaMemcpyDeviceToHost);
+        for (int i = 0; i < 8; ++i)
+            printf("%.1f, ", buf[i]);
+        putchar('\n');
 
-        （2024.12.20）：目前看来，应该是编译时没加`-G`。
+        cudaFree(cubuf_0);
+        cudaFree(cubuf_1);
+        free(buf);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g main_5.cu -o main_5`
+
+    run: `./main_5`
+
+    output:
+
+    ```
+    123.0, 123.0, 123.0, 123.0, 123.0, 123.0, 123.0, 123.0,
+    ```
+
+    如果 enable peer access，则可以直接在 launch kernel 时，使用 peer device 的指针，省去了 cuda memcpy 将数据从当前 deivce 复制到 peer device 的步骤。
+
+    说明：
+
+    1. `cudaMemcpy()`不需要显式用`cudaSetDevice()`指定 device。看起来只要有能辨别 device 的信息（比如指针，device id），就不需要显式指定 device。
+
+* cuda 不同进程间的 va 分配情况
+
+    运行下面的程序 10 次，
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        cudaSetDevice(0);
+        int *cubuf_0;
+        cudaMalloc(&cubuf_0, 8 * sizeof(float));
+        printf("cubuf 0: %p\n", cubuf_0);
+
+        cudaSetDevice(1);
+        int *cubuf_1;
+        cudaMalloc(&cubuf_1, 8 * sizeof(float));
+        printf("cubuf 1: %p\n", cubuf_1);
+
+        cudaFree(cubuf_0);
+        cudaFree(cubuf_1);
+        return 0;
+    }
+    ```
+
+    输出如下：
+
+    ```
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f0907a00000
+    cubuf 1: 0x7f08f3a00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f8a47a00000
+    cubuf 1: 0x7f8a2fa00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f68ada00000
+    cubuf 1: 0x7f6893a00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f441da00000
+    cubuf 1: 0x7f4403a00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f4d47a00000
+    cubuf 1: 0x7f4d2fa00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f8063a00000
+    cubuf 1: 0x7f8049a00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f8277a00000
+    cubuf 1: 0x7f825fa00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f1857a00000
+    cubuf 1: 0x7f183fa00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7f8197a00000
+    cubuf 1: 0x7f817fa00000
+    (base) huliucheng@zjxj:~/Documents/Projects/cumem_test$ ./main_4
+    cubuf 0: 0x7fefe5a00000
+    cubuf 1: 0x7fefcba00000
+    ```
+
+    可以看到，所有的 va 都以`0x7f`开头，后续的两位 16 进制数是根据进程随机分配的，再往后两位不固定，再往后一位总是`a`。
+
+* cuda 在同一个进程里分配的 va range 相同
+
+    `main_4.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        int num_round = 5;
+        for (int i = 0; i < num_round; ++i)
+        {
+            printf("round: %d\n", i);
+
+            cudaSetDevice(0);
+            int *cubuf_0;
+            cudaMalloc(&cubuf_0, 8 * sizeof(float));
+            printf("cubuf 0: %p\n", cubuf_0);
+
+            cudaSetDevice(1);
+            int *cubuf_1;
+            cudaMalloc(&cubuf_1, 8 * sizeof(float));
+            printf("cubuf 1: %p\n", cubuf_1);
+
+            cudaFree(cubuf_0);
+            cudaFree(cubuf_1);
+
+            putchar('\n');
+        }
+
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g main_4.cu -o main_4`
+
+    run: `./main_4`
+
+    output:
+
+    ```
+    round: 0
+    cubuf 0: 0x7ff44da00000
+    cubuf 1: 0x7ff433a00000
+
+    round: 1
+    cubuf 0: 0x7ff433a00000
+    cubuf 1: 0x7ff433c00000
+
+    round: 2
+    cubuf 0: 0x7ff433a00000
+    cubuf 1: 0x7ff433c00000
+
+    round: 3
+    cubuf 0: 0x7ff433a00000
+    cubuf 1: 0x7ff433c00000
+
+    round: 4
+    cubuf 0: 0x7ff433a00000
+    cubuf 1: 0x7ff433c00000
+    ```
+
+    注释掉`cudaFree()`，代码变为
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        int num_round = 5;
+        for (int i = 0; i < num_round; ++i)
+        {
+            printf("round: %d\n", i);
+
+            cudaSetDevice(0);
+            int *cubuf_0;
+            cudaMalloc(&cubuf_0, 8 * sizeof(float));
+            printf("cubuf 0: %p\n", cubuf_0);
+
+            cudaSetDevice(1);
+            int *cubuf_1;
+            cudaMalloc(&cubuf_1, 8 * sizeof(float));
+            printf("cubuf 1: %p\n", cubuf_1);
+
+            // cudaFree(cubuf_0);
+            // cudaFree(cubuf_1);
+
+            putchar('\n');
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    round: 0
+    cubuf 0: 0x7fa897a00000
+    cubuf 1: 0x7fa883a00000
+
+    round: 1
+    cubuf 0: 0x7fa897a00200
+    cubuf 1: 0x7fa883a00200
+
+    round: 2
+    cubuf 0: 0x7fa897a00400
+    cubuf 1: 0x7fa883a00400
+
+    round: 3
+    cubuf 0: 0x7fa897a00600
+    cubuf 1: 0x7fa883a00600
+
+    round: 4
+    cubuf 0: 0x7fa897a00800
+    cubuf 1: 0x7fa883a00800
+    ```
+
+    可以看到，地址每次都增加`0x200`，猜测 page size 为 512 Byte。
+
+    cu mem 的最小显存分配粒度为 2M，为什么这里可以做到 512 Byte？
+
+* cuda peer access
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __global__ void arr_inc_1(float *arr)
+    {
+        int i = threadIdx.x;
+        arr[i] += 1;
+    }
+
+    int main()
+    {    
+        float* p0;
+        cudaSetDevice(0);
+        cudaMalloc(&p0, 4 * sizeof(float));
+        cudaMemset(&p0, 0, 4 * sizeof(float));
+        // vec_add<<<1, 4>>>(p0);
+
+        cudaSetDevice(1);
+        int canAccessPeer;
+        cudaDeviceCanAccessPeer(&canAccessPeer, 0, 1);
+        if (!canAccessPeer)
+        {
+            printf("fail to access peer 0\n");
+            return -1;
+        }
+        cudaDeviceEnablePeerAccess(0, 0);
+        arr_inc_1<<<1, 4>>>(p0);
+
+        cudaSetDevice(0);
+        float buf[4] = {0};
+        cudaMemcpy(buf, p0, 4 * sizeof(float), cudaMemcpyDeviceToHost);
+
+        for (int i = 0; i < 4; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+
+        cudaFree(p0);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g main.cu -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    1.0, 1.0, 1.0, 1.0,
+    ```
+
+    我们在 dev 0 上申请显存，然后在 dev 1 上 enable dev 0 的 peer access，再在 dev 1 上 launch kernel，用的数据是 dev 0 上的数据，最后把 dev 0 里的数据拿出来，可以看到是正确的结果。
+
+    说明：
+
+    1. `cudaDeviceEnablePeerAccess(0, 0);`表示从当前 device （由`cudaSetDevice(1);`设定）可以获取 remote device (dev 0) 上的数据，是单向链路。而不是 dev 0 的数据可以由任何其他 dev 获取。
+
+    2. 根据官网资料，peer access 可能走的是 pcie 或 nvlink
+
+        > Depending on the system properties, specifically the PCIe and/or NVLINK topology, devices are able to address each other’s memory
+
+        是否可以走网络或者 host 中转？目前不清楚。
+
+        这里的 peer access 似乎更关注虚拟地址的处理，而不是底层通路。
+
+    3. 根据官网资料，一个 dev 似乎最多能 peer access 8 个其他 dev
+
+        > On non-NVSwitch enabled systems, each device can support a system-wide maximum of eight peer connections.
+
+* 在 50 机器上写如下程序
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    __global__ void vec_add(float *A, float *B, float *C)
+    {
+        int id = blockIdx.x;
+        C[id] = A[id] + B[id];
+    }
+
+    int main()
+    {
+        float *h_A, *h_B, *h_C;
+        h_A = (float*) malloc(8 * sizeof(float));
+        h_B = (float*) malloc(8 * sizeof(float));
+        h_C = (float*) malloc(8 * sizeof(float));
+        for (int i = 0; i < 8; ++i)
+        {
+            h_A[i] = rand() % 10;
+            h_B[i] = rand() % 10;
+        }
+        float *A, *B, *C;
+        cudaMalloc(&A, 8 * sizeof(float));
+        cudaMalloc(&B, 8 * sizeof(float));
+        cudaMalloc(&C, 8 * sizeof(float));
+        cudaMemcpy(A, h_A, 8 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(B, h_B, 8 * sizeof(float), cudaMemcpyHostToDevice);
+        vec_add<<<8, 1>>>(A, B, C);
+        cudaMemcpy(h_C, C, 8 * sizeof(float), cudaMemcpyDeviceToHost);
+        for (int i = 0; i < 8; ++i)
+        {
+            printf("%.1f + %.1f = %.1f\n", h_A[i], h_B[i], h_C[i]);
+        }
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.cu
+    	nvcc -g -I../cuda-samples-12.1/Common -o main main.cu
+
+    clean:
+    	rm -f main
+    ```
+
+    在 vscode 中，使用如下`launch.json`:
+
+    ```json
+    {
+        // Use IntelliSense to learn about possible attributes.
+        // Hover to view descriptions of existing attributes.
+        // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+        "version": "0.2.0",
+        "configurations": [{
+            "name": "CUDA C++: Launch",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}/main"
+        }]
+    }
+    ```
+
+    在`vec_add()`中设置断点后，F5 运行无法 hit 断点。目前不清楚原因。
+
+    （2024.12.20）：目前看来，应该是编译时没加`-G`。
 
 * 224 机器上的 nccl cuda-gdb 依然很慢，起码需要半个小时以上才能 hit 断点
 

@@ -1,5 +1,33 @@
 # Matplotlib Note
 
+## cache
+
+* matplotlib hello world example
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    def main():
+        x = np.linspace(0, 2 * np.pi, 200)
+        y = np.sin(x)
+        fig, ax = plt.subplots()
+        ax.plot(x, y)
+        plt.show()
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    画一条 sin 曲线。
+
+    说明：
+
+    1. `x`与`y`的 shape 都为`(200, )`
+
+    2. `ax.plot()`只接收 shape 为`(N, )`或者`(N, 1)`的 array，不接收其他 shape 的数据，比如`(1, N)`。
+
 ## 3D plot
 
 ### draw a 3d figure
