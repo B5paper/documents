@@ -442,7 +442,7 @@ substantial adj. 大量的
 
 attenuation n. 减少，衰减
 
-* lexical adj. 词法的
+lexical adj. 词法的
 
 other than 除...以外
 
@@ -554,20 +554,20 @@ subtle prn. [ˈsʌtl] a. 微妙的，敏感的
 
 as opposed to sth. phrase. 与 ... 相对，而不是
 
-* excel v. 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).
+excel v. 擅长 eg. While the CPU is designed to excel at executing a sequence of operations, called a thread, as fast as possible and can execute a few tens of these threads in parallel, the GPU is designed to excel at executing thousands of them in parallel (amortizing the slower single-thread performance to achieve greater throughput).
 
-* debut prn. [deɪˈbjuː] n. 首次登台，初次露面 eg. The creation of FORTRAN, which debuted in 1957, marked a significant stage in the development of computer programming languages.
+debut prn. [deɪˈbjuː] n. 首次登台，初次露面 eg. The creation of FORTRAN, which debuted in 1957, marked a significant stage in the development of computer programming languages.
 
-* arduous prn. [ˈɑːrdʒuəs] adj. 艰巨的 eg. Frustration with the arduous nature of such programming led Backus to search for a simpler, more accessible way to communicate with computers.
+arduous prn. [ˈɑːrdʒuəs] adj. 艰巨的 eg. Frustration with the arduous nature of such programming led Backus to search for a simpler, more accessible way to communicate with computers.
 
-* algebraic adj. 代数的
+algebraic adj. 代数的
 
-* laboriously prn. [ləˈbɔrɪəslɪ] adv. 艰苦地
+laboriously prn. [ləˈbɔrɪəslɪ] adv. 艰苦地
 
-* coterie prn. [ˈkoʊtəri] n. （有共同兴趣的）小集团
+coterie prn. [ˈkoʊtəri] n. （有共同兴趣的）小集团
 
-* interdisciplinary prn. [ˌɪntərˈdɪsəplɪneri] adj. 跨学科的
+interdisciplinary prn. [ˌɪntərˈdɪsəplɪneri] adj. 跨学科的
 
-* contrastive prn. [kənˈtræstɪv] adj. 对比的
+contrastive prn. [kənˈtræstɪv] adj. 对比的
 
-* granularity prn. [grænjʊ'lærɪtɪ] n. 粒度
+granularity prn. [grænjʊ'lærɪtɪ] n. 粒度
