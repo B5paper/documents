@@ -12,15 +12,15 @@
 
 * question: 对于图 2-4，如果输入了两个`-`，即`--`，那么并不会在 10 处终止，但是根据最长匹配原则，又不能只匹配一个`-`就停下。该如何解释这个矛盾？
 
-* $\bold{edge}(s, c)$ 的解释
+* $\mathbf{edge}(s, c)$ 的解释
 
 	$s$是集合中的一个元素，或者说是状态机有向图中的一个节点。
 
 	$c$是一条边对应的字母，或者条件。
 
-	$\bold{edge}(s, c)$指的是从状态$s$沿着标有$c$的边可到达的所有 NFA 节点的集合。
+	$\mathbf{edge}(s, c)$指的是从状态$s$沿着标有$c$的边可到达的所有 NFA 节点的集合。
 
-	$\bold{edge}(s, c)$是**节点的集合**。
+	$\mathbf{edge}(s, c)$是**节点的集合**。
 
 	example:
 
@@ -28,13 +28,13 @@
 	<img src='../Reference_resources/ref_9/pics/2024.03.15/pic_1.jpg'>
 	</div>
 
-	在上图中，$\bold{edge}(1, c) = \{2, 4\}$
+	在上图中，$\mathbf{edge}(1, c) = \{2, 4\}$
 
-* $\bold{closure}(S)$的解释
+* $\mathbf{closure}(S)$的解释
 
-	对于状态集合$S$，$\bold{closure}(S)$是满足如下条件的最小集合$T$：
+	对于状态集合$S$，$\mathbf{closure}(S)$是满足如下条件的最小集合$T$：
 
-	$T = S\cup\left( \bigcup\limits_{s \in T} \bold{edge}(s, \epsilon) \right)$
+	$T = S\cup\left( \bigcup\limits_{s \in T} \mathbf{edge}(s, \epsilon) \right)$
 
 	其实这个表示的就是从$S$出发，能通过空字符串条件达到的所有状态。
 
@@ -44,9 +44,9 @@
 
 	$\begin{aligned}
 	&T \leftarrow S \\
-	&\bold{repeat}\ T' \leftarrow T \\
-	&\hphantom{asdf} T \leftarrow T' \cup \left(\bigcup_{s \in T'} \bold{edge}(s, \epsilon) \right) \\
-	&\bold{until}\ T = T'
+	&\mathbf{repeat}\ T' \leftarrow T \\
+	&\hphantom{asdf} T \leftarrow T' \cup \left(\bigcup_{s \in T'} \mathbf{edge}(s, \epsilon) \right) \\
+	&\mathbf{until}\ T = T'
 	\end{aligned}$
 
 * lex/flex hello world program
@@ -148,7 +148,7 @@
 
 * 符号（symbol）
 
-    symbol $\bold a$ 可以匹配任意包含$\bold a$的字符串。
+    symbol $\mathbf a$ 可以匹配任意包含$\mathbf a$的字符串。
 
 * 可选（alternation）
 

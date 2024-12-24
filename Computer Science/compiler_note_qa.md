@@ -26,3 +26,50 @@
 
     如果一个字符串是由$M$中的字符串经零至多次联结运算的结果，则该字符串属于$M^*$。
 
+[unit]
+[u_0]
+写一个 flex 程序，统计输入中的 number 数量。
+[u_1]
+```lex
+%{
+int digit_count = 0;
+%}
+
+%%
+[0-9]+ {digit_count++;}
+. {}
+\n {return 0;}
+%%
+
+int yywrap(){}
+
+int main()
+{
+	yylex();
+	printf("total %d numbers.\n", digit_count);
+	return 0;
+}
+```
+
+compile:
+
+```bash
+flex count_num.lex
+gcc lex.yy.c -o count_num
+```
+
+run:
+
+`./count_num`
+
+input example:
+
+```
+123 345 hehe #@!
+```
+
+output:
+
+```
+total 2 numbers.
+```

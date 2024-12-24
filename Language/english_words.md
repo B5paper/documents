@@ -426,7 +426,7 @@ numeral n. 数字，数词
 
 anomaly n. 异常，反常
 
-in addition to 除...外（还）
+in addition to phrase. 除...外（还）
 
 precise adj. 清晰的，精密的
 
@@ -444,13 +444,13 @@ attenuation n. 减少，衰减
 
 lexical adj. 词法的
 
-other than 除...以外
+other than phrase. 除...以外
 
 coverage n. 覆盖范围
 
 reciprocal prn. [rɪˈsɪprəkl] adj. 相互的，倒数的
 
-consecutive adj 连续的
+consecutive adj. 连续的
 
 pedagogy prn. [ˈpedəɡɑːdʒi] n. 教育学，教学法
 

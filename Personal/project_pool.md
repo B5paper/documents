@@ -146,7 +146,7 @@
 
     <https://www.cnblogs.com/pugang/p/7698772.html>
 
-* c 语言中 static 全局变量和不加 static 的全局变量有什么不同？
+* [v] c 语言中 static 全局变量和不加 static 的全局变量有什么不同？
 
 * 笔记与中间结果
 
@@ -703,7 +703,43 @@
 
     其实降低别某一个文件概率就是变相地升高其他文件的概率，所以也可以不去设置手动调高概率。
 
-* [ ] 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
+* [o] 使用 python ＋ re 写一个英语单词的 parser，每次随机检测指定数量个单词，保存索引，后面每次复习时检测上次抽取的单词 + 融合前几次抽取的单词，时间越久的单词出现的概率越小。
+
+    feedback:
+    
+    1. 尝试了下，直接写 parser 有难度，目前可以用这种方式
+
+        ```python
+        def main_2():
+            txt = 'endeavour prn. [ɪnˈdevər] v. 努力'
+            pat_pronunciation = r'(?<= )prn\..+'
+            pat_explanation = r'(?<= )v\..+'
+
+            m = re.search(pat_pronunciation, txt)
+            if m is None:
+                print('fail to match')
+                return
+            selected_txt = txt[m.start():m.end()]
+            print(selected_txt)
+
+            m = re.search(pat_explanation, selected_txt)
+            if m is None:
+                print('fail to match exp')
+                return
+            selected_txt = selected_txt[m.start():m.end()]
+            print(selected_txt)
+
+            return
+        ```
+
+        output:
+
+        ```
+        prn. [ɪnˈdevər] v. 努力
+        v. 努力
+        ```
+
+        这样只需要每次都只处理最前面的一点就可以了。生成多个 pat，用 for 轮流检测。
 
 * 使用`{ }`表示 task 是一个长期任务，每次分派任务时，都从这个长期任务里派生出一个短时间任务，直到长期任务被完成为止
 
@@ -732,6 +768,8 @@
 * { } reorg: projects
 
 * { } reorg: documents
+
+* { } reorg: english words
 
 * { } windows 文件整理
 
@@ -1137,6 +1175,12 @@
 
 * [v] qa: review 12.19
 
+* [v] qa: 2 units 12.23
+
+    正确率：2 / 4
+
+* [v] qa: review 12.23
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1420,6 +1464,8 @@ tasks:
 
 * 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
 
+* cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
+
 ### tasks
 
 * { } cuda programming guide
@@ -1435,10 +1481,6 @@ tasks:
     前面的内容与认知大体相同，没有什么很新的概念。
 
 * [v] 调研 cuda launch kernel 是否可以拿到 thread id
-
-    feedback:
-
-    1. 没有方法能直接拿到 thread id，只能通过 idx 计算得来
 
 * [v] 调研 FORTRAN, DirectCompute, OpenACC.
 

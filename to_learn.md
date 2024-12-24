@@ -6636,3 +6636,43 @@
 * 怎么用apt命令下载内核源码给出步骤
 
     <https://linuxcpp.0voice.com/?id=39737>
+
+* Reference mdspan implementation
+
+    C++ 的 mdspan 标准库的实现参考。
+
+    <https://github.com/kokkos/mdspan>
+
+    A Gentle Introduction to mdspan:
+
+    <https://github.com/kokkos/mdspan/wiki/A-Gentle-Introduction-to-mdspan>
+
+* SAMURAI: Adapting Segment Anything Model for Zero-Shot Visual Tracking with Motion-Aware Memory
+
+    <https://github.com/yangchris11/samurai>
+
+* Official inference repo for FLUX.1 models 
+
+    <https://github.com/black-forest-labs/flux>
+
+    一个 ai 图片生成的 repo。
+
+* DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model
+
+    <https://github.com/deepseek-ai/DeepSeek-V2>
+
+* LateX公式编辑器-妈叔出品 
+
+    <https://github.com/QianJianTech/LaTeXLive>
+
+* 手撸一下 GPU D2D 实现（PCIE 版）
+
+    <https://zhuanlan.zhihu.com/p/2847929235>
+
+* LaTeX公式编辑器
+
+    <https://www.latexlive.com/>
+
+* 6.15. Peer Device Memory Access
+
+    <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__PEER.html>
