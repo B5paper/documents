@@ -267,5 +267,3 @@
 * nccl record
 
     * 禁用 shm 后，会调用`AllReduce_Sum_f32_RING_SIMPLE`
-
-    * 

@@ -769,7 +769,13 @@
 
 * { } reorg: documents
 
-* { } reorg: english words
+* { } reorg: english words 12.24
+
+    feedback:
+
+    1. 感觉还是写成一个 pat 比较好
+
+    2. 由于 word 后面可能跟 prn.，也可能跟 exp.，所以 word 本身在哪结尾无法风开始就确定，需要先确定 prn. 和 exp.，再选一个较小的 start 作为 word 的 end。或者如果发现有 prn. 则直接用 prn. 的 start 作为 word 的 end，如果没有 prn，则使用 exp 的 start 作为 word 的 end。
 
 * { } windows 文件整理
 
@@ -894,6 +900,14 @@
     11:00 ~ 11:20
 
 * [v] reorg: documents  30 mins
+
+* [v] reorg: documents 30 mins  12.24
+
+    14:22 ~ 14:52
+
+    feedback:
+
+    1. 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
 
 ## qa
 
@@ -1468,21 +1482,17 @@ tasks:
 
 ### tasks
 
-* { } cuda programming guide
+* { } cuda programming guide 12.24
 
     cuda programming guide website: <https://docs.nvidia.com/cuda/cuda-c-programming-guide/>
 
-    目前看到了
+    目前看到
 
-    > However, a kernel can be executed by multiple equally-shaped thread blocks
+    > Threads within a block can cooperate by sharing data through some shared memory and by synchronizing their execution to coordinate memory accesses. 
 
-    看起来，cuda programming 应该成为一个 project 或长期项目
+    feedback:
 
-    前面的内容与认知大体相同，没有什么很新的概念。
-
-* [v] 调研 cuda launch kernel 是否可以拿到 thread id
-
-* [v] 调研 FORTRAN, DirectCompute, OpenACC.
+    1. 调研`cudaMalloc3D()`, `cudaMalloc3DArray()`, `cudaMallocArray()`
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
 
@@ -1530,27 +1540,15 @@ tasks:
 
         （如果 recv 端的 buffer 有限，无法一次接收完，该怎么办？是否有循环接收的机制？）
 
-* [ ] 调研使用`MPI_ERROR`接收未知长度数据
+* [ ] 调研`MPI_ERROR`
 
-* [ ] 调研一下`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
+* [ ] 调研`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
 * [ ] 调研 nccl p2p 的调用流程
 
-* [v] 调研 shmem 全程多进程收发数据的矩阵乘法，并测速
-
 * [ ] 调研 nvshmem API，重点看 n_pes 相关的函数和说明
 
-* [v] 调研跑通 nvshmem example
-
-* [v] 调研 cuda 实现 vec add
-
-    fedback:
-
-    1. 见`ref_32`
-
 * [ ] 使用 cuda 实现矩阵乘法
-
-* [v] 实现`timeit_2()`，测试通信和计算在时间中的占比占比
 
 * [v] 调研 vllm 中 nccl 的用法
 
@@ -1654,8 +1652,6 @@ tasks:
 
         cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
 
-* [v] 构建一个 nccl test case，使用 cuda-gdb 检查 nccl src 中 kernel 是否被调用
-
 * [ ] 调研`cudaLaunchKernel()`调用 cuda kernel
 
 * [ ] 调研 python 中 ctypes 的用法
@@ -1706,11 +1702,7 @@ tasks:
 
 * [v] 调研 cuda gdb，hit nccl kernel 中的断点
 
-    可能尝试的方向：
-
-    1. b address
-
-    2. 在 nccl 中自己写 kernel；显式写 comm kernel，不使用 nccl 中的 template
+* [ ] 在 nccl 中自己写 kernel；显式写 comm kernel，不使用 nccl 中的 template
 
 * [v] 调研 nccl launch kernel 与 cudaMemcpyAsync() 的时机
 

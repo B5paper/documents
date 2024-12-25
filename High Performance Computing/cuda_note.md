@@ -2,6 +2,10 @@
 
 ## cache
 
+* cuda 实现 vec add
+
+    见`ref_32`
+
 * block 也可以被组织为一／二／三维的 grid。这么做主要为了适配需要计算的数据。通常数据的 dim length 是会超过 gpu 中流处理器的数量的
 
     example:
