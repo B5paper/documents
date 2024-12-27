@@ -909,6 +909,10 @@
 
     1. 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
 
+* [v] reorg: documents 30 mins 12.26
+
+    10:17 ~ 10:47
+
 ## qa
 
 ### cached
@@ -1194,6 +1198,12 @@
     正确率：2 / 4
 
 * [v] qa: review 12.23
+
+* [v] qa: 2 units 12.25
+
+    正确率：1/2
+
+* [v] qa: review 12.25
 
 ## cache tabs / process urls
 
@@ -1482,17 +1492,27 @@ tasks:
 
 ### tasks
 
-* { } cuda programming guide 12.24
+* { } cuda programming guide 12.25
+
+    10:16 ~ 14:31
 
     cuda programming guide website: <https://docs.nvidia.com/cuda/cuda-c-programming-guide/>
 
     目前看到
 
-    > Threads within a block can cooperate by sharing data through some shared memory and by synchronizing their execution to coordinate memory accesses. 
+    > Shared Memory gives an example of using shared memory. In addition to `__syncthreads()`
 
     feedback:
 
-    1. 调研`cudaMalloc3D()`, `cudaMalloc3DArray()`, `cudaMallocArray()`
+    1. 调研`cudaMalloc3DArray()`, `cudaMallocArray()`
+
+* { } 调研 cuda gdb
+
+    <https://docs.nvidia.com/cuda/cuda-gdb/index.html>
+    
+    目前看到 3.3.2. Multi-GPU Debugging
+
+* [ ] 调研`cudaMalloc3D()`
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
 
@@ -1540,9 +1560,28 @@ tasks:
 
         （如果 recv 端的 buffer 有限，无法一次接收完，该怎么办？是否有循环接收的机制？）
 
-* [ ] 调研`MPI_ERROR`
+* [v] 调研`MPI_ERROR`
 
-* [ ] 调研`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
+    feedback:
+    
+    1. mpi error 只是一个 enum status，本身不能动态判断来了多少数据。
+
+        常用的几个 enum：
+
+        | Error name | Value | Description |
+        | - | - | - |
+        | `MPI_SUCCESS` | 0 | Successful return code. |
+        | `MPI_ERR_BUFFER` | 1 | Invalid buffer pointer. |
+        | `MPI_ERR_COUNT` | 2 | Invalid count argument. |
+        | ... | ... | ... |
+
+        ref:
+
+        1. <https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Errors.3.html>
+
+        2. <https://learn.microsoft.com/en-us/message-passing-interface/mpi-error>
+
+* [v] 调研`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
 * [ ] 调研 nccl p2p 的调用流程
 
@@ -1628,15 +1667,9 @@ tasks:
 
 * [v] 调研 cuda gdb
 
-    17:53 ~ 18:10 (17 mins)
-
-* [v] 调研 cuda gdb
-
     17:16 ~ 17:36
 
     feedback:
-
-    1. <https://docs.nvidia.com/cuda/cuda-gdb/index.html>目前看到 3.3.2. Multi-GPU Debugging
 
     2. 关于`CUDA_VISIBLE_DEVICES`的疑问：假如在启动 cuda-gdb 之前指定这个环境变量，host code 只能看到指定的 device；假如在启动 cuda-gdb 后，改变`CUDA_VISIBLE_DEVICES`，是否只会在指定的 device 上 hit 到断点？
 
@@ -1652,7 +1685,7 @@ tasks:
 
         cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
 
-* [ ] 调研`cudaLaunchKernel()`调用 cuda kernel
+* [v] 调研`cudaLaunchKernel()`调用 cuda kernel
 
 * [ ] 调研 python 中 ctypes 的用法
 
@@ -1700,8 +1733,6 @@ tasks:
 
         会一直在这里卡着。
 
-* [v] 调研 cuda gdb，hit nccl kernel 中的断点
-
 * [ ] 在 nccl 中自己写 kernel；显式写 comm kernel，不使用 nccl 中的 template
 
 * [v] 调研 nccl launch kernel 与 cudaMemcpyAsync() 的时机
@@ -1718,19 +1749,11 @@ tasks:
 
     4. 需要看断点的调用栈的上下文判断任务实际是如何执行的
 
-* [o] 调研 nccl 中 va 是何时被映射的
-
-    13:07 ~ 
-
 * [ ] 调研`cudaGetDevice`和`cuDeviceGet`有什么区别？
 
 * [ ] 调研 cuda samples 代码
 
-* [v] 调研 cuda memory 相关 api
-
 * [ ] 调研 nccl 中 va 是何时被映射的
-
-* [o] 调研 cuda programming guide 中 3.2.10. Unified Virtual Address Space
 
 * [ ] 调研`cudaMemcpyDefault`
 
@@ -1752,44 +1775,11 @@ tasks:
 
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
 
-* [v] 调研 nccl 中调用 cuda api 申请的显存的 va，与 load/store 相关的 va，是否为同一个 va？
-
 * [v] 调研 nccl 中的 va 为什么始终是`0x7ffe60c00000`
-
-    feedback:
-
-    1. nccl 中的 va 是 cuda malloc 时得到的
-
-        使用 gdb 运行程序，则 cuda malloc 返回的指针总是固定的：
-
-        ```
-        dev 0, buf A: 0x7ffe60a00000, buf B: 0x7ffe60a00200
-        dev 1, buf A: 0x7ffe60c00000, buf B: 0x7ffe60c00200
-        ```
-
-        正常运行程序，得到的指针则是随机的：
-
-        ```
-        dev 0, buf A: 0x7f7674a00000, buf B: 0x7f7674a00200
-        dev 1, buf A: 0x7f7674c00000, buf B: 0x7f7674c00200
-        ```
-
-        ```
-        dev 0, buf A: 0x7f1088a00000, buf B: 0x7f1088a00200
-        dev 1, buf A: 0x7f1088c00000, buf B: 0x7f1088c00200
-        ```
 
 * [o] 调研 nccl 中的 task planner
 
 * [ ] 尝试将 nccl 中的 kernel 提取出来手写一遍
-
-* [v] cuda programming guide
-
-    feedback:
-
-    1. 目前看到
-
-        > Threads within a block can cooperate by sharing data through some shared memory and by synchronizing their execution to coordinate memory accesses. 
 
 * [ ] 调研 cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
 

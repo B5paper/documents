@@ -2,6 +2,27 @@
 
 ## cache
 
+* nccl 中的 va 是 cuda malloc 时得到的
+
+    使用 gdb 运行程序，则 cuda malloc 返回的指针总是固定的：
+
+    ```
+    dev 0, buf A: 0x7ffe60a00000, buf B: 0x7ffe60a00200
+    dev 1, buf A: 0x7ffe60c00000, buf B: 0x7ffe60c00200
+    ```
+
+    正常运行程序，得到的指针则是随机的：
+
+    ```
+    dev 0, buf A: 0x7f7674a00000, buf B: 0x7f7674a00200
+    dev 1, buf A: 0x7f7674c00000, buf B: 0x7f7674c00200
+    ```
+
+    ```
+    dev 0, buf A: 0x7f1088a00000, buf B: 0x7f1088a00200
+    dev 1, buf A: 0x7f1088c00000, buf B: 0x7f1088c00200
+    ```
+
 * nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
 
 * nccl 很可能起了 46183 个 device 线程
