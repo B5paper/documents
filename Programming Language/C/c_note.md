@@ -6,6 +6,216 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `uint64_t`在`stdint.h`里，不在`stddef.h`里。
+
+* `printf()`使用`"%[-][N]s"`可以指定补全空格
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        printf("%8s\n", "hel");
+        printf("%-8s\n", "hel");
+        printf("%8s\n", "hello, world");
+        printf("%-8s\n", "hello, world");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+         hel
+    hel     
+    hello, world
+    hello, world
+    ```
+
+    `%8s`会在字符串的左侧补全空格，使得空格 + 字符串的总长度为 8 个字符。`%-8s`则会在字符串的右侧补全空格。`-`表示左对齐。
+
+    如果字符串的长度超过 8 个字符，则会忽视对齐要求，按照字符串的实际长度输出。
+
+* `printf()`格式化打印小数
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        double val = 12.345;
+        printf("%f\n", val);
+        printf("%10f\n", val);
+        printf("%-10f\n", val);
+        printf("%.2f\n", val);
+        printf("%10.2f\n", val);
+        return 0;
+    }
+    
+    output:
+
+    ```
+    12.345000
+     12.345000
+    12.345000 
+    12.35
+         12.35
+    ```
+
+    * `%f`: 整数部分不删减，小数部分保留 6 位，如果小数位数不够则补 0，如果多于 6 位则按下面的方法舍入：
+
+        从小数部分的第 7 位开始往后截取，设截取的数字为`x`，若`x <= 500...`，则舍去；若`x > 5000...`，则进位。
+
+        比如`0.12345645`，会被转换为`0.123456`;`0.1234565`，会被转换为`0.123456`；`0.12345651`，会被转换为`0.123457`。
+
+        这个也有可能是用二进制数做截断的，目前还不清楚原理。
+
+    * `%10f`: 首先将小数部分保留 6 位，然后判断整数部分 + 小数点 + 小数部分如果小于 10 个字符，则在最左侧补 0，补够 10 个字符。如果大于等于 10 个字符，则按实际的小数输出。
+
+    * `%-10f`: 行为同`%10f`，但是往右侧补空格。
+
+    * `%.2f`: 把小数部分保留两位，整数部分不限制。
+
+    * `%10.2f`: 把小数部分保留 2 位，整体（整数部分 + 小数点 + 小数部分）一共凑够 10 位，如果小数不够 10 位，则在左侧添 0。如果大于等于 10 位，则按实际小数输出。
+
+* `printf()`格式化打印整数
+
+    `%-8d`: 在整数的右侧补空格，直到凑够 8 个字符。如果整数的字符数大于等于 8，则如实输出。
+
+* `printf()`使用`*`替代格式中的常数
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        int val = 123;
+        for (int i = 0; i < 8; ++i)
+            printf("%*d\n", i, val);
+
+        float fval = 12.3;
+        for (int i = 4; i < 7; ++i)
+        {
+            for (int j = 0; j < 4; ++j)
+            {
+                printf("i = %d, j = %d: %*.*f\n", i, j, i, j, fval);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    123
+    123
+    123
+    123
+     123
+      123
+       123
+        123
+    i = 4, j = 0:   12
+    i = 4, j = 1: 12.3
+    i = 4, j = 2: 12.30
+    i = 4, j = 3: 12.300
+    i = 5, j = 0:    12
+    i = 5, j = 1:  12.3
+    i = 5, j = 2: 12.30
+    i = 5, j = 3: 12.300
+    i = 6, j = 0:     12
+    i = 6, j = 1:   12.3
+    i = 6, j = 2:  12.30
+    i = 6, j = 3: 12.300
+    ```
+
+* c 语言中 static global variable 的含义
+
+    假如现在想在一个`.c`文件中使用另一个`.c`文件中定义的变量，通常可以用下面的方式：
+
+    `main.c`:
+
+    ```c
+    #include <stdio.h>
+
+    extern int val;
+
+    int main()
+    {
+        printf("val: %d\n", val);
+        return 0;
+    }
+    ```
+
+    `aaa.c`:
+
+    ```c
+    int val = 34;
+    ```
+
+    compile: `gcc -g main.c aaa.c -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    val: 34
+    ```
+
+    上面的例子展示了，`main.c`中并没有定义`val`的值，但是从`aaa.c`中拿到了`val`的值。
+
+    如果我们删掉`main.c`中的`extern`：
+
+    `main.c`:
+
+    ```
+    #include <stdio.h>
+
+    int val;
+
+    int main()
+    {
+        printf("val: %d\n", val);
+        return 0;
+    }
+    ```
+
+    则会编译时报错：
+
+    ```
+    gcc -g main.c aaa.c -o main
+    /usr/bin/ld: /tmp/ccDKlEoA.o:/home/hlc/Documents/Projects/c_test/aaa.c:1: multiple definition of `val'; /tmp/cc6LTykz.o:/home/hlc/Documents/Projects/c_test/main.c:3: first defined here
+    collect2: error: ld returned 1 exit status
+    make: *** [Makefile:2: main] Error 1
+    ```
+
+    如果此时我们不想让`main.c`拿到`val`的值，可以在`aaa.c`中给`val`加上`static`：
+
+    `aaa.c`:
+
+    ```c
+    static int val = 34;
+    ```
+
+    此时会编译时报错：
+
+    ```
+    gcc -g main.c aaa.c -o main
+    /usr/bin/ld: /tmp/ccpwcbKt.o: warning: relocation against `val' in read-only section `.text'
+    /usr/bin/ld: /tmp/ccpwcbKt.o: in function `main':
+    /home/hlc/Documents/Projects/c_test/main.c:7: undefined reference to `val'
+    /usr/bin/ld: warning: creating DT_TEXTREL in a PIE
+    collect2: error: ld returned 1 exit status
+    make: *** [Makefile:2: main] Error 1
+    ```
+
+    总结：可以用`extern`将别的`.c`文件中的变量引入到当前`.c`文件中，如果不想让别人引用自己的全局变量，可以在全局变量／函数前加`static`。`.h`文件可以看作直接写入到`.c`文件的代码，没有额外的核心作用。
+
 * `stdio.h`中的`puts(char *msg)`可以打印一个字符串并自动换行。
 
 * C 语言`realloc()`

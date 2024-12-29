@@ -2,6 +2,8 @@
 
 ## cache
 
+* `\bold`无法被 vscode 和 markdown preview 渲染插件识别，可以使用`\mathbf`来指定正粗体。
+
 * vscode 中，取消了 tab stop 后，还是会有 tab 缩进 2 个空格的现象，这时候还需要取消 Detect Indentation
 
 * 如果 vscode 中在编辑 makefile 时，tab 键总是插入 4 个空格而不是 tab，可以在 vscode setting 里把 Detect indentation 选项关了再打开一次就好了

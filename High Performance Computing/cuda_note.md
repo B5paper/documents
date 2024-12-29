@@ -2,6 +2,628 @@
 
 ## cache
 
+* `cudaLaunchKernel()` example 2
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    void assign_cubuf_rand_int(float *cubuf, size_t num_elm)
+    {
+        float *buf = (float*) malloc(num_elm * sizeof(float));
+        for (size_t i = 0; i < num_elm; ++i)
+        {
+            buf[i] = rand() % 5;
+        }
+        cudaMemcpy(cubuf, buf, num_elm * sizeof(float), cudaMemcpyHostToDevice);
+        free(buf);
+    }
+
+    void print_cubuf(float *cubuf, size_t num_elm)
+    {
+        float *buf = (float*) malloc(num_elm * sizeof(float));
+        cudaMemcpy(buf, cubuf, num_elm * sizeof(float), cudaMemcpyDeviceToHost);
+        for (size_t i = 0; i < num_elm; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+        free(buf);
+    }
+
+    __global__ void vec_add(float *A, float *B, float *C)
+    {
+        int x = blockIdx.x * blockDim.x + threadIdx.x;
+        C[x] = A[x] + B[x];
+    }
+
+    int main()
+    {
+        float *cubuf_A, *cubuf_B, *cubuf_C;
+        cudaMalloc(&cubuf_A, 8 * sizeof(float));
+        cudaMalloc(&cubuf_B, 8 * sizeof(float));
+        cudaMalloc(&cubuf_C, 8 * sizeof(float));
+
+        assign_cubuf_rand_int(cubuf_A, 8);
+        assign_cubuf_rand_int(cubuf_B, 8);
+
+        puts("cubuf_A:");
+        print_cubuf(cubuf_A, 8);
+        puts("cubuf_B:");
+        print_cubuf(cubuf_B, 8);
+
+        // void *args[3] = {&cubuf_A, &cubuf_B, &cubuf_C};
+        void **args = (void**) malloc(3 * sizeof(void*));
+        args[0] = &cubuf_A;
+        args[1] = &cubuf_B;
+        args[2] = &cubuf_C;
+        cudaLaunchKernel((const void *) vec_add, dim3(2, 1, 1), dim3(4, 1, 1), args, 0, NULL);
+        // cudaStreamSynchronize(stream);
+        cudaDeviceSynchronize();
+
+        puts("cubuf_C:");
+        print_cubuf(cubuf_C, 8);
+
+        cudaFree(cubuf_A);
+        cudaFree(cubuf_B);
+        cudaFree(cubuf_C);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf_A:
+    3.0, 1.0, 2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 
+    cubuf_B:
+    4.0, 1.0, 2.0, 2.0, 0.0, 4.0, 3.0, 1.0, 
+    cubuf_C:
+    7.0, 2.0, 4.0, 2.0, 3.0, 4.0, 4.0, 3.0,
+    ```
+
+* `cudaLaunchKernel()`的 example
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    void assign_cubuf_rand_int(float *cubuf, size_t num_elm)
+    {
+        float *buf = (float*) malloc(num_elm * sizeof(float));
+        for (size_t i = 0; i < num_elm; ++i)
+        {
+            buf[i] = rand() % 5;
+        }
+        cudaMemcpy(cubuf, buf, num_elm * sizeof(float), cudaMemcpyHostToDevice);
+        free(buf);
+    }
+
+    void print_cubuf(float *cubuf, size_t num_elm)
+    {
+        float *buf = (float*) malloc(num_elm * sizeof(float));
+        cudaMemcpy(buf, cubuf, num_elm * sizeof(float), cudaMemcpyDeviceToHost);
+        for (size_t i = 0; i < num_elm; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+        free(buf);
+    }
+
+    __global__ void vec_add(float *A, float *B, float *C)
+    {
+        int x = threadIdx.x;
+        C[x] = A[x] + B[x];
+    }
+
+    int main()
+    {
+        float *cubuf_A, *cubuf_B, *cubuf_C;
+        cudaMalloc(&cubuf_A, 8 * sizeof(float));
+        cudaMalloc(&cubuf_B, 8 * sizeof(float));
+        cudaMalloc(&cubuf_C, 8 * sizeof(float));
+
+        assign_cubuf_rand_int(cubuf_A, 8);
+        assign_cubuf_rand_int(cubuf_B, 8);
+
+        puts("cubuf_A:");
+        print_cubuf(cubuf_A, 8);
+        puts("cubuf_B:");
+        print_cubuf(cubuf_B, 8);
+
+        cudaStream_t stream;
+        cudaStreamCreate(&stream);
+
+        void *args[3] = {&cubuf_A, &cubuf_B, &cubuf_C};
+        // void **args = (void**) malloc(3 * sizeof(void*));
+        // args[0] = &cubuf_A;
+        // args[1] = &cubuf_B;
+        // args[2] = &cubuf_C;
+        cudaLaunchKernel((const void *) vec_add, 1, 8, args, 0, stream);
+        cudaStreamSynchronize(stream);
+
+        puts("cubuf_C:");
+        print_cubuf(cubuf_C, 8);
+
+        cudaFree(cubuf_A);
+        cudaFree(cubuf_B);
+        cudaFree(cubuf_C);
+        cudaStreamDestroy(stream);
+
+        return 0;
+    }
+    ```
+
+    compile:
+
+    `nvcc -g -G main.cu -o main`
+
+    run:
+
+    `./main`
+
+    output:
+
+    ```
+    cubuf_A:
+    3.0, 1.0, 2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 
+    cubuf_B:
+    4.0, 1.0, 2.0, 2.0, 0.0, 4.0, 3.0, 1.0, 
+    cubuf_C:
+    7.0, 2.0, 4.0, 2.0, 3.0, 4.0, 4.0, 3.0, 
+    ```
+
+    `cudaLaunchKernel()`，第一个参数是 kernel 函数地址，需要用`(const void *)`或`(void *)`类型转换一下，第二个参数是 grid dim，可以指定`dim3`，如果是一维的，直接指定 scalar 就可以了，第三个参数是 block dim，同参数二。
+
+    第四个参数是 kernel 函数的参数列表，虽然指定的类型是`void**`，即`void*`的数组，但是实际传递的并不是 buffer 的 va，而是 buffer va 的 va。可以看到`void *args[3] = {&cubuf_A, &cubuf_B, &cubuf_C};`里，对`cubuf_A`等`float*`类型的变量又多加了一层取地址。不加这个会报 segment fault。
+
+    第 5 个参数直接填 0 就可以，目前用不到。
+
+    第 6 个参数可以填 stream，也可以填`NULL`，只不过这时要用`cudaDeviceSynchronize();`来阻塞等待 kernel launch。
+
+* cuda shared memory 优化矩阵乘法的一个例子
+
+    `main_4.cu`:
+
+    ```cpp
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <cuda_runtime.h>
+
+    #define BLOCK_SIZE 4
+
+    typedef struct {
+        int width;
+        int height;
+        int stride;
+        float* elements;
+    } Matrix;
+
+    __global__ void MatMulKernel(const Matrix, const Matrix, Matrix);
+
+    void assign_mat_rand_int(float *m, int n_rows, int n_cols)
+    {
+        for (int i = 0; i < n_rows; ++i)
+        {
+            for (int j = 0; j < n_cols; ++j)
+            {
+                m[i * n_cols + j] = rand() % 5;
+            }
+        }
+    }
+
+    void display_mat(float *mat, int n_rows, int n_cols)
+    {
+        for (int i = 0; i < n_rows; ++i)
+        {
+            for (int j = 0; j < n_cols; ++j)
+            {
+                printf("%.1f, ", mat[i * n_cols + j]);
+            }
+            putchar('\n');
+        }
+    }
+
+    int main()
+    {
+        Matrix A, B, C;
+        A.width = 8;
+        A.height = 8;
+        A.elements = (float*) malloc(A.width * A.height * sizeof(float));
+        B.width = 8;
+        B.height = 8;
+        B.elements = (float*) malloc(B.width * B.height * sizeof(float));
+        C.width = 8;
+        C.height = 8;
+        C.elements = (float*) malloc(C.width * C.height * sizeof(float));
+
+        assign_mat_rand_int(A.elements, A.height, A.width);
+        assign_mat_rand_int(B.elements, B.height, B.width);
+
+        puts("A:");
+        display_mat(A.elements, A.height, A.width);
+        puts("B:");
+        display_mat(B.elements, B.height, B.width);
+
+        Matrix d_A;
+        d_A.width = d_A.stride = A.width;
+        d_A.height = A.height;
+        size_t size = A.width * A.height * sizeof(float);
+        cudaMalloc(&d_A.elements, size);
+        cudaMemcpy(d_A.elements, A.elements, size, cudaMemcpyHostToDevice);
+
+        Matrix d_B;
+        d_B.width = d_B.stride = B.width; d_B.height = B.height;
+        size = B.width * B.height * sizeof(float);
+        cudaMalloc(&d_B.elements, size);
+        cudaMemcpy(d_B.elements, B.elements, size, cudaMemcpyHostToDevice);
+
+        Matrix d_C;
+        d_C.width = d_C.stride = C.width;
+        d_C.height = C.height;
+        size = C.width * C.height * sizeof(float);
+        cudaMalloc(&d_C.elements, size);
+
+        dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
+        dim3 dimGrid(B.width / dimBlock.x, A.height / dimBlock.y);
+        MatMulKernel<<<dimGrid, dimBlock>>>(d_A, d_B, d_C);
+
+        cudaMemcpy(C.elements, d_C.elements, size, cudaMemcpyDeviceToHost);
+
+        puts("C:");
+        display_mat(C.elements, C.height, C.width);
+
+        cudaFree(d_A.elements);
+        cudaFree(d_B.elements);
+        cudaFree(d_C.elements);
+        free(A.elements);
+        free(B.elements);
+        free(C.elements);
+
+        return 0;
+    }
+
+    __device__ float GetElement(const Matrix A, int row, int col)
+    {
+        return A.elements[row * A.stride + col];
+    }
+
+    __device__ void SetElement(Matrix A, int row, int col, float value)
+    {
+        A.elements[row * A.stride + col] = value;
+    }
+
+     __device__ Matrix GetSubMatrix(Matrix A, int row, int col)
+    {
+        Matrix Asub;
+        Asub.width    = BLOCK_SIZE;
+        Asub.height   = BLOCK_SIZE;
+        Asub.stride   = A.stride;
+        Asub.elements = &A.elements[A.stride * BLOCK_SIZE * row + BLOCK_SIZE * col];
+        return Asub;
+    }
+
+     __global__ void MatMulKernel(Matrix A, Matrix B, Matrix C)
+    {
+        int blockRow = blockIdx.y;
+        int blockCol = blockIdx.x;
+        Matrix Csub = GetSubMatrix(C, blockRow, blockCol);
+        float Cvalue = 0;
+        int row = threadIdx.y;
+        int col = threadIdx.x;
+        for (int m = 0; m < (A.width / BLOCK_SIZE); ++m)
+        {
+            Matrix Asub = GetSubMatrix(A, blockRow, m);
+            Matrix Bsub = GetSubMatrix(B, m, blockCol);
+            __shared__ float As[BLOCK_SIZE][BLOCK_SIZE];
+            __shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE];
+            As[row][col] = GetElement(Asub, row, col);
+            Bs[row][col] = GetElement(Bsub, row, col);
+            __syncthreads();
+            for (int e = 0; e < BLOCK_SIZE; ++e)
+                Cvalue += As[row][e] * Bs[e][col];
+            __syncthreads();
+        }
+        SetElement(Csub, row, col, Cvalue);
+    }
+    ```
+
+    compile: `nvcc -g -G main_4.cu -o main_4`
+
+    run: `./main_4`
+
+    output:
+
+    ```
+    A:
+    3.0, 1.0, 2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 
+    4.0, 1.0, 2.0, 2.0, 0.0, 4.0, 3.0, 1.0, 
+    0.0, 1.0, 2.0, 1.0, 1.0, 3.0, 2.0, 4.0, 
+    2.0, 0.0, 2.0, 3.0, 2.0, 0.0, 4.0, 2.0, 
+    2.0, 3.0, 4.0, 2.0, 3.0, 1.0, 1.0, 2.0, 
+    4.0, 3.0, 1.0, 4.0, 4.0, 2.0, 3.0, 4.0, 
+    0.0, 0.0, 3.0, 1.0, 1.0, 0.0, 1.0, 3.0, 
+    2.0, 0.0, 1.0, 1.0, 0.0, 0.0, 4.0, 2.0, 
+    B:
+    1.0, 0.0, 1.0, 4.0, 3.0, 2.0, 4.0, 0.0, 
+    2.0, 0.0, 4.0, 2.0, 4.0, 4.0, 3.0, 0.0, 
+    2.0, 3.0, 1.0, 3.0, 3.0, 4.0, 3.0, 1.0, 
+    4.0, 4.0, 2.0, 0.0, 1.0, 3.0, 4.0, 2.0, 
+    1.0, 1.0, 4.0, 4.0, 0.0, 0.0, 4.0, 3.0, 
+    2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 
+    1.0, 0.0, 1.0, 1.0, 0.0, 4.0, 4.0, 4.0, 
+    0.0, 4.0, 1.0, 2.0, 2.0, 1.0, 1.0, 0.0, 
+    C:
+    13.0, 17.0, 24.0, 37.0, 23.0, 24.0, 39.0, 15.0, 
+    29.0, 22.0, 26.0, 37.0, 34.0, 47.0, 54.0, 22.0, 
+    19.0, 30.0, 24.0, 28.0, 25.0, 33.0, 35.0, 18.0, 
+    24.0, 28.0, 24.0, 30.0, 19.0, 39.0, 52.0, 30.0, 
+    30.0, 32.0, 39.0, 45.0, 38.0, 46.0, 57.0, 22.0, 
+    39.0, 41.0, 52.0, 56.0, 43.0, 56.0, 80.0, 35.0, 
+    12.0, 26.0, 13.0, 20.0, 16.0, 22.0, 24.0, 12.0, 
+    12.0, 15.0, 11.0, 19.0, 14.0, 29.0, 33.0, 19.0,
+    ```
+
+    这个例子先按行切第一个矩阵，按列切第二个矩阵，切完后，再将第一个子矩阵竖着切成一小块一小块，每一个小块都是边长为`BLOCK_SIZE`的小正方形。用`m`来标记当前进行到了第几个小正方形。
+
+    `__shared__`关键字来申请 shared memory，用来存放小正方形。`GetElement()`用于往小正方形中填充数据，每个线程填充一个元素。
+
+    `e`用于标记小正方形单行/单列的各个元素序号。因为直接使用的二维坐标来标记线程，所以相当于脱掉了矩阵乘法三层循环的外面两层。
+
+    `__syncthreads();`用于做线程同步，每次等矩阵数据加载完成，或矩阵乘法计算完成后，翥需要同步一下。
+
+* cuda 实现矩阵乘法的一个例子
+
+    由 cuda programming guide 里的一个 example 改编而来。
+
+    `main_3.cu`:
+
+    ```cpp
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <cuda_runtime.h>
+
+    // Matrices are stored in row-major order:
+    // M(row, col) = *(M.elements + row * M.width + col)
+    typedef struct {
+        int width;
+        int height;
+        float* elements;
+    } Matrix;
+
+    #define BLOCK_SIZE 4  // threads per block
+
+    __global__ void MatMulKernel(const Matrix mat_1, const Matrix mat_2, Matrix mat_out);
+
+    void assign_mat_rand_int(float *m, int n_rows, int n_cols)
+    {
+        for (int i = 0; i < n_rows; ++i)
+        {
+            for (int j = 0; j < n_cols; ++j)
+            {
+                m[i * n_cols + j] = rand() % 5;
+            }
+        }
+    }
+
+    void display_mat(float *mat, int n_rows, int n_cols)
+    {
+        for (int i = 0; i < n_rows; ++i)
+        {
+            for (int j = 0; j < n_cols; ++j)
+            {
+                printf("%.1f, ", mat[i * n_cols + j]);
+            }
+            putchar('\n');
+        }
+    }
+
+    int main()
+    {
+        Matrix A, B, C;
+        A.width = 8;
+        A.height = 8;
+        A.elements = (float*) malloc(A.width * A.height * sizeof(float));
+        B.width = 8;
+        B.height = 8;
+        B.elements = (float*) malloc(B.width * B.height * sizeof(float));
+        C.width = 8;
+        C.height = 8;
+        C.elements = (float*) malloc(C.width * C.height * sizeof(float));
+
+        assign_mat_rand_int(A.elements, A.height, A.width);
+        assign_mat_rand_int(B.elements, B.height, B.width);
+
+        puts("A:");
+        display_mat(A.elements, A.height, A.width);
+        puts("B:");
+        display_mat(B.elements, B.height, B.width);
+
+        Matrix d_A;
+        d_A.width = A.width; d_A.height = A.height;
+        size_t size = A.width * A.height * sizeof(float);
+        cudaMalloc(&d_A.elements, size);
+        cudaMemcpy(d_A.elements, A.elements, size, cudaMemcpyHostToDevice);
+
+        Matrix d_B;
+        d_B.width = B.width; d_B.height = B.height;
+        size = B.width * B.height * sizeof(float);
+        cudaMalloc(&d_B.elements, size);
+        cudaMemcpy(d_B.elements, B.elements, size, cudaMemcpyHostToDevice);
+
+        Matrix d_C;
+        d_C.width = C.width; d_C.height = C.height;
+        size = C.width * C.height * sizeof(float);
+        cudaMalloc(&d_C.elements, size);
+
+        dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
+        dim3 dimGrid(B.width / dimBlock.x, A.height / dimBlock.y);
+        MatMulKernel<<<dimGrid, dimBlock>>>(d_A, d_B, d_C);
+
+        cudaMemcpy(C.elements, d_C.elements, size,cudaMemcpyDeviceToHost);
+
+        puts("C:");
+        display_mat(C.elements, C.height, C.width);
+
+        cudaFree(d_A.elements);
+        cudaFree(d_B.elements);
+        cudaFree(d_C.elements);
+        free(A.elements);
+        free(B.elements);
+        free(C.elements);
+
+        return 0;
+    }
+
+    __global__ void MatMulKernel(Matrix A, Matrix B, Matrix C)
+    {
+        float Cvalue = 0;
+        int row = blockIdx.y * blockDim.y + threadIdx.y;
+        int col = blockIdx.x * blockDim.x + threadIdx.x;
+        for (int e = 0; e < A.width; ++e)
+            Cvalue += A.elements[row * A.width + e] * B.elements[e * B.width + col];
+        C.elements[row * C.width + col] = Cvalue;
+    }
+    ```
+
+    compile: `nvcc -g -G main_3.cu -o main_3`
+
+    run: `./main_3`
+
+    output:
+
+    ```
+    A:
+    3.0, 1.0, 2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 
+    4.0, 1.0, 2.0, 2.0, 0.0, 4.0, 3.0, 1.0, 
+    0.0, 1.0, 2.0, 1.0, 1.0, 3.0, 2.0, 4.0, 
+    2.0, 0.0, 2.0, 3.0, 2.0, 0.0, 4.0, 2.0, 
+    2.0, 3.0, 4.0, 2.0, 3.0, 1.0, 1.0, 2.0, 
+    4.0, 3.0, 1.0, 4.0, 4.0, 2.0, 3.0, 4.0, 
+    0.0, 0.0, 3.0, 1.0, 1.0, 0.0, 1.0, 3.0, 
+    2.0, 0.0, 1.0, 1.0, 0.0, 0.0, 4.0, 2.0, 
+    B:
+    1.0, 0.0, 1.0, 4.0, 3.0, 2.0, 4.0, 0.0, 
+    2.0, 0.0, 4.0, 2.0, 4.0, 4.0, 3.0, 0.0, 
+    2.0, 3.0, 1.0, 3.0, 3.0, 4.0, 3.0, 1.0, 
+    4.0, 4.0, 2.0, 0.0, 1.0, 3.0, 4.0, 2.0, 
+    1.0, 1.0, 4.0, 4.0, 0.0, 0.0, 4.0, 3.0, 
+    2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 
+    1.0, 0.0, 1.0, 1.0, 0.0, 4.0, 4.0, 4.0, 
+    0.0, 4.0, 1.0, 2.0, 2.0, 1.0, 1.0, 0.0, 
+    C:
+    13.0, 17.0, 24.0, 37.0, 23.0, 24.0, 39.0, 15.0, 
+    29.0, 22.0, 26.0, 37.0, 34.0, 47.0, 54.0, 22.0, 
+    19.0, 30.0, 24.0, 28.0, 25.0, 33.0, 35.0, 18.0, 
+    24.0, 28.0, 24.0, 30.0, 19.0, 39.0, 52.0, 30.0, 
+    30.0, 32.0, 39.0, 45.0, 38.0, 46.0, 57.0, 22.0, 
+    39.0, 41.0, 52.0, 56.0, 43.0, 56.0, 80.0, 35.0, 
+    12.0, 26.0, 13.0, 20.0, 16.0, 22.0, 24.0, 12.0, 
+    12.0, 15.0, 11.0, 19.0, 14.0, 29.0, 33.0, 19.0,
+    ```
+
+    这个 example 是对 A 矩阵横着切，B 矩阵竖着切，每个 kernel 只计算一行/一列。通过 grid 保证所有的行/列都会被覆盖到。
+
+* cuda 中同一 block 中的 thread 可以有共享显存（shared memory），这个共享显存通常是 L1 cache
+
+* 3d grid 的使用
+
+    `main_3.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    #define N_0 16
+    #define N_1 4
+    #define N_2 8
+
+    __global__ void volume_add(float A[N_0][N_1][N_2], float B[N_0][N_1][N_2])
+    {
+        int x = blockIdx.x * blockDim.x + threadIdx.x;
+        int y = blockIdx.y * blockDim.y + threadIdx.y;
+        int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+        A[x][y][z] = A[x][y][z] + B[x][y][z];
+    }
+
+    int main()
+    {
+        float *cubuf_A, *cubuf_B;
+        cudaMalloc(&cubuf_A, N_0 * N_1 * N_2 * sizeof(float));
+        cudaMalloc(&cubuf_B, N_0 * N_1 * N_2 * sizeof(float));
+
+        float buf_A[N_0][N_1][N_2];
+        float buf_B[N_0][N_1][N_2];
+        for (int i = 0; i < N_0; ++i)
+        {
+            for (int j = 0; j < N_1; ++j)
+            {
+                for (int k = 0; k < N_2; ++k)
+                {
+                    buf_A[i][j][k] = rand() % 5;
+                    buf_B[i][j][k] = rand() % 5;
+                }
+            }
+        }
+
+        size_t num_elm = N_0 * N_1 * N_2;
+
+        printf("buf A:\n");
+        for (int i = 0; i < num_elm; ++i)
+            printf("%.1f, ", buf_A[i / (N_1 * N_2)][i / N_2 % N_1][i % N_2]);
+        putchar('\n');
+
+        printf("buf B:\n");
+        for (int i = 0; i < num_elm; ++i)
+            printf("%.1f, ", buf_B[i / (N_1 * N_2)][i / N_2 % N_1][i % N_2]);
+        putchar('\n');
+
+        cudaMemcpy(cubuf_A, buf_A, num_elm * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(cubuf_B, buf_B, num_elm * sizeof(float), cudaMemcpyHostToDevice);
+        
+        dim3 thread_per_block(2, 2, 2);
+        dim3 block_per_grid(8, 2, 4);
+        volume_add<<<block_per_grid, thread_per_block>>>((float(*)[N_1][N_2]) cubuf_A, (float(*)[N_1][N_2]) cubuf_B);
+        cudaMemcpy(buf_A, cubuf_A, num_elm * sizeof(float), cudaMemcpyDeviceToHost);
+        
+        printf("buf A:\n");
+        for (int i = 0; i < num_elm; ++i)
+            printf("%.1f, ", buf_A[i / (N_1 * N_2)][i / N_2 % N_1][i % N_2]);
+        putchar('\n');
+
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g -G main_3.cu -o main_3`
+
+    run: `./main_3`
+
+    output:
+
+    ```
+    buf A:
+    3.0, 2.0, 3.0, 1.0, 4.0, ...
+    buf B:
+    1.0, 0.0, 0.0, 2.0, 1.0, ...
+    buf A:
+    4.0, 2.0, 3.0, 3.0, 5.0, ...
+    ```
+
+    可以看到，我们的线程组总是`(2, 2, 2)`，但是每个 grid 中有`(8, 2, 4)`个 block，一共 1 个 grid。
+
+    同一个 block 中的多个 threads 是保证并行执行的，但是 block 与 block 之间并不保证并行。
+
+    其实 grid 中的 block 有点像 batch 的感觉。
+
 * cuda 实现 vec add
 
     见`ref_32`

@@ -2,6 +2,127 @@
 
 ## cached
 
+* python 中的定义提前
+
+    ```python
+    aaa = 'my_aaa'
+
+    def main():
+        aaa = aaa.rstrip()
+    ```
+
+* `re.finditer()`的使用时机
+
+    当同一个模式（pattern）在一个字符串中轮番出现多次时，可以使用`re.finditer()`一个接一个地查找。
+
+* python 中的`strip()`并不是删除指定字符串，而是删除在指定字符集中的字符
+
+    ```python
+    def main():
+        txt = 'hello, world'
+        bbb = txt.lstrip('leoh')
+        print(bbb)
+    ```
+
+    output:
+
+    ```
+    , world
+    ```
+
+    可以使用`removeprefix()`移除指定字符串。
+
+* `txt = 'hello, world'`匹配` world`（`world`前有个空格）
+
+    我们先想到，用直接匹配法是否能匹配到？
+
+    ```python
+    import re
+
+    def main():
+        txt = 'hello, world'
+        pat = r' world'
+        m = re.search(pat, txt)
+        if m is None:
+            print('fail to match')
+            return
+        selected_txt = txt[m.start():m.end()]
+        print(selected_txt)
+        return
+    ```
+
+    output:
+
+    ```
+     world
+    ```
+
+    可以看到使用直接匹配法可以成功匹配。并且说明`pat`中的空格也是有意义的，
+
+    尝试将`pat`中的空格替换为`\ `，依然可以正常匹配，说明空格的转义不影响其含义。
+
+    尝试将`re.search()`替换为`re.match()`，输出如下：
+
+    ```
+    fail to match
+    ```
+
+    说明`match()`只能从头开始匹配，如果匹配失败则返回空。
+
+    另外一个想法是使用`[ world]+`进行匹配，理论上所有包含的字母都在这里面了，是没有问题的，然而实际写出的程序是这样的：
+
+    ```python
+    import re
+
+    def main():
+        txt = 'hello, world'
+        pat = r'[ world]+'
+        fail_to_match = True
+        for m in re.finditer(pat, txt):
+            fail_to_match = False
+            selected_txt = txt[m.start():m.end()]
+            print(selected_txt)
+        if fail_to_match:
+            print('fail to match')   
+        return
+    ```
+
+    output:
+
+    ```
+    llo
+     world
+    ```
+
+    可以看到，`finditer()`会从头开始尝试匹配，先匹配到`llo`，然后才匹配到` world`。如果使用`search()`匹配，那么只返回`llo`。
+
+    将`pat`改为`pat = r'[\ world]+'`，输出不变。说明在`[]`内，空格` `和转义空格`\ `的含义相同。
+
+    `[]`中的逗号`,`直接代表逗号，并不是分隔，将`pat`改为`pat = r'[,\ world]+'`后，输出为`llo, world`。
+
+    如果我们将空格放在外面，则可第一次就匹配成功：
+
+    ```python
+    import re
+
+    def main():
+        txt = 'hello, world'
+        pat = r' [a-z]+'
+        m = re.search(pat, txt)
+        if m is None:
+            print('fail to match')
+            return
+        selected_txt = txt[m.start():m.end()]
+        print(selected_txt)
+        return
+    ```
+
+    output:
+
+    ```
+     world
+    ```
+
 * python 里`print()`指定`end=None`仍然会打印换行符，只有指定`end=''`才会不打印换行
 
 * python 里`re`正则表达式匹配的都是字符串，而`^`代表字符串的开头，并不代表一行的开始
