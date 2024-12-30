@@ -206,8 +206,6 @@
 
 * [ ] 调研`ssh-add`，`ssh-agent`的作用
 
-
-
 * 晚上吃饭不要吃到撑，不然会特别困，几乎没有精力继续学习。吃个半饱就可以了。
 
 * 任务完不成应该分两种情况处理，一种是有极大可能完成，只不过时间不够，另一种是还在调研搜集信息阶段，不清楚是否能完。显然这两种情况的处理方式应该是不同的。
@@ -1800,6 +1798,42 @@ tasks:
 * [ ] 调研 cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
 
 * [ ] 调研`cuLaunchKernelEx()`，为自己在 nccl 里写 kernel 做准备。
+
+* [o] 调研 LL 协议的最简实现
+
+    feedback:
+
+    1. [ ] 调研 cuda `__shared__`
+
+    2. 一个能跑通的`__shared__` example:
+
+        ```cpp
+        #include <cuda_runtime.h>
+        #include <stdio.h>
+
+        __shared__ int val;
+
+        __global__ void test_kern()
+        {
+            val = 123;
+            printf("%d\n", val);
+        }
+
+        int main()
+        {
+            test_kern<<<1, 1>>>();
+            cudaDeviceSynchronize();
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        123
+        ```
+
+    3. [ ] 调研 cuda 中的 warp 概念
 
 ## HPC comm
 
