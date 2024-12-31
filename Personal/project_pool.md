@@ -1219,6 +1219,12 @@
 
 * [v] qa: review 12.25
 
+* [v] qa: 2 units 12.30
+
+    正确率：1 / 2
+
+* [v] qa: review 12.30
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1504,9 +1510,26 @@ tasks:
 
 * cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
 
+* mpi error 只是一个 enum status，本身不能动态判断来了多少数据。
+
+    常用的几个 enum：
+
+    | Error name | Value | Description |
+    | - | - | - |
+    | `MPI_SUCCESS` | 0 | Successful return code. |
+    | `MPI_ERR_BUFFER` | 1 | Invalid buffer pointer. |
+    | `MPI_ERR_COUNT` | 2 | Invalid count argument. |
+    | ... | ... | ... |
+
+    ref:
+
+    1. <https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Errors.3.html>
+
+    2. <https://learn.microsoft.com/en-us/message-passing-interface/mpi-error>
+
 ### tasks
 
-* { } cuda programming guide 12.25
+* { } cuda programming guide 12.30
 
     10:16 ~ 14:31
 
@@ -1514,11 +1537,15 @@ tasks:
 
     目前看到
 
-    > Shared Memory gives an example of using shared memory. In addition to `__syncthreads()`
+    > 2.2.1. Thread Block Clusters
 
     feedback:
 
     1. 调研`cudaMalloc3DArray()`, `cudaMallocArray()`
+
+    1. [ ] 调研 C 中的二维数组，是一维数组的 transpose，还是一堆不连续的一维数组？
+
+    1. [ ] 调研：是否可以将`n_rows`, `n_cols`作为 typename，从而用模板的方式实现任意类型，任意 size 的矩阵乘法？
 
 * { } 调研 cuda gdb
 
@@ -1575,25 +1602,6 @@ tasks:
         （如果 recv 端的 buffer 有限，无法一次接收完，该怎么办？是否有循环接收的机制？）
 
 * [v] 调研`MPI_ERROR`
-
-    feedback:
-    
-    1. mpi error 只是一个 enum status，本身不能动态判断来了多少数据。
-
-        常用的几个 enum：
-
-        | Error name | Value | Description |
-        | - | - | - |
-        | `MPI_SUCCESS` | 0 | Successful return code. |
-        | `MPI_ERR_BUFFER` | 1 | Invalid buffer pointer. |
-        | `MPI_ERR_COUNT` | 2 | Invalid count argument. |
-        | ... | ... | ... |
-
-        ref:
-
-        1. <https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Errors.3.html>
-
-        2. <https://learn.microsoft.com/en-us/message-passing-interface/mpi-error>
 
 * [v] 调研`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
