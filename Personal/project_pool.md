@@ -1843,6 +1843,12 @@ tasks:
 
     3. [ ] 调研 cuda 中的 warp 概念
 
+* [o] 尝试抽取 nccl kernel
+
+    feedback:
+
+    1. 调研 cuda shmem
+
 ## HPC comm
 
 * [v] 调研 pci host bridge
