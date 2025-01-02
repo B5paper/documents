@@ -2,6 +2,34 @@
 
 ## cache
 
+* 一个能跑通的`__shared__` example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __shared__ int val;
+
+    __global__ void test_kern()
+    {
+        val = 123;
+        printf("%d\n", val);
+    }
+
+    int main()
+    {
+        test_kern<<<1, 1>>>();
+        cudaDeviceSynchronize();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    123
+    ```
+
 * nccl 中的 va 是 cuda malloc 时得到的
 
     使用 gdb 运行程序，则 cuda malloc 返回的指针总是固定的：

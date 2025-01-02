@@ -927,6 +927,10 @@
 
     10:17 ~ 10:47
 
+* [v] reorg: documents 30 mins  01.01
+
+    16:23 ~ 17:49
+
 ## qa
 
 ### cached
@@ -1553,6 +1557,22 @@ tasks:
     
     目前看到 3.3.2. Multi-GPU Debugging
 
+* { } 抽取 nccl LL 协议
+
+    feedback:
+
+    1. [ ] 调研 cuda shmem
+
+    2. 不使用 simple 协议，把 primitives 改成 ll 协议
+
+    3. [ ] 调研 cuda `__shared__`
+
+    4. [ ] 调研 cuda 中的 warp 概念
+
+* [o] 尝试抽取 nccl kernel
+
+* [v] 尝试抽取 nccl kernel 40 mins
+
 * [ ] 调研`cudaMalloc3D()`
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
@@ -1600,10 +1620,6 @@ tasks:
         这个可能是防止 mpi recv 报错，每次先看一下有多少数据，提前分配好内存，再去 mpi recv 接收数据。
 
         （如果 recv 端的 buffer 有限，无法一次接收完，该怎么办？是否有循环接收的机制？）
-
-* [v] 调研`MPI_ERROR`
-
-* [v] 调研`printf("%-8d %ld\n", me, target[i]);`这个函数的用法
 
 * [ ] 调研 nccl p2p 的调用流程
 
@@ -1808,46 +1824,6 @@ tasks:
 * [ ] 调研`cuLaunchKernelEx()`，为自己在 nccl 里写 kernel 做准备。
 
 * [o] 调研 LL 协议的最简实现
-
-    feedback:
-
-    1. [ ] 调研 cuda `__shared__`
-
-    2. 一个能跑通的`__shared__` example:
-
-        ```cpp
-        #include <cuda_runtime.h>
-        #include <stdio.h>
-
-        __shared__ int val;
-
-        __global__ void test_kern()
-        {
-            val = 123;
-            printf("%d\n", val);
-        }
-
-        int main()
-        {
-            test_kern<<<1, 1>>>();
-            cudaDeviceSynchronize();
-            return 0;
-        }
-        ```
-
-        output:
-
-        ```
-        123
-        ```
-
-    3. [ ] 调研 cuda 中的 warp 概念
-
-* [o] 尝试抽取 nccl kernel
-
-    feedback:
-
-    1. 调研 cuda shmem
 
 ## HPC comm
 
