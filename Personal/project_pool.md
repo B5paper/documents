@@ -879,12 +879,6 @@
 
 * [ ] 在 10 个 epoch 内拟合一条 sin 曲线
 
-* [v] reorg: documents 30 mins 11.28
-
-* [v] reorg: documents 30 mins  12.01
-
-    16:21 ~ 16:48
-
 * [ ] 将 project pool 中常用到的 pdf 等 resources 打包成 zip，发送到邮箱里
 
 * [ ] 为 stochastic exam 增加`--check <qa_file>`功能，检查是否每个 unit 都有 idx, id。
@@ -899,21 +893,9 @@
 
     2. 贝叶斯网的笔记不应该太简洁，应该在概念下给出大量 example，给出注释，给出引申的猜想。
 
-* [v] reorg: documents 30 mins
-
-    16:08 ~ 16:32
-
-* [v] reorg: documents 30 mins
-
 * [ ] powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
 
     目前看完了`Working with objects`中的`Viewing object structure`。
-
-* [v] reorg: documents  12.18
-
-    11:00 ~ 11:20
-
-* [v] reorg: documents  30 mins
 
 * [v] reorg: documents 30 mins  12.24
 
@@ -922,10 +904,6 @@
     feedback:
 
     1. 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
-
-* [v] reorg: documents 30 mins 12.26
-
-    10:17 ~ 10:47
 
 * [v] reorg: documents 30 mins  01.01
 
@@ -1563,7 +1541,7 @@ tasks:
 
     1. [ ] 调研 cuda shmem
 
-    2. 不使用 simple 协议，把 primitives 改成 ll 协议
+    2. [ ] 不使用 simple 协议，把 primitives 改成 ll 协议
 
     3. [ ] 调研 cuda `__shared__`
 
