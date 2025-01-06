@@ -6,6 +6,29 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 长度为 0 的数组
+
+    ```c
+    #include <stdio.h>
+
+    int main()
+    {
+        int acc[0];
+        printf("%lu\n", sizeof(acc));
+        printf("%p\n", acc);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0
+    0x7fff7d10a164
+    ```
+
+    可以看到，并不会分配内存，只会创建一个指针。自定义类也是一样的情况，不会调用构造和析构。
+
 * `uint64_t`在`stdint.h`里，不在`stddef.h`里。
 
 * `printf()`使用`"%[-][N]s"`可以指定补全空格

@@ -2,6 +2,196 @@
 
 ## cache
 
+* cuda 线程不同步的一个现象
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    #define N 64
+
+    __global__ void test_kern(float *vec)
+    {
+        int x = threadIdx.x;
+
+        float val = 0;
+        for (int i = 0; i <= x; ++i)
+        {
+            val += vec[i];
+        }
+        vec[x] = val;
+        // __syncthreads();
+
+        printf("thread %d, val %.1f\n", x, vec[N - 1]);
+    }
+
+    int main()
+    {
+        // int N = 32;
+        float *buf = (float*) malloc(N * sizeof(float));
+        for (int i = 0; i < N; ++i)
+            buf[i] = i;
+        float *cubuf;
+        cudaMalloc(&cubuf, sizeof(float) * N);
+        cudaMemcpy(cubuf, buf, sizeof(float) * N, cudaMemcpyHostToDevice);
+
+        test_kern<<<1, N>>>(cubuf);
+        cudaDeviceSynchronize();
+
+        free(buf);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g -G main.cu -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    thread 0, val 63.0
+    thread 1, val 63.0
+    thread 2, val 63.0
+    thread 3, val 63.0
+    thread 4, val 63.0
+    thread 5, val 63.0
+    thread 6, val 63.0
+    thread 7, val 63.0
+    thread 8, val 63.0
+    thread 9, val 63.0
+    thread 10, val 63.0
+    thread 11, val 63.0
+    thread 12, val 63.0
+    thread 13, val 63.0
+    thread 14, val 63.0
+    thread 15, val 63.0
+    thread 16, val 63.0
+    thread 17, val 63.0
+    thread 18, val 63.0
+    thread 19, val 63.0
+    thread 20, val 63.0
+    thread 21, val 63.0
+    thread 22, val 63.0
+    thread 23, val 63.0
+    thread 24, val 63.0
+    thread 25, val 63.0
+    thread 26, val 63.0
+    thread 27, val 63.0
+    thread 28, val 63.0
+    thread 29, val 63.0
+    thread 30, val 63.0
+    thread 31, val 63.0
+    thread 32, val 2016.0
+    thread 33, val 2016.0
+    thread 34, val 2016.0
+    thread 35, val 2016.0
+    thread 36, val 2016.0
+    thread 37, val 2016.0
+    thread 38, val 2016.0
+    thread 39, val 2016.0
+    thread 40, val 2016.0
+    thread 41, val 2016.0
+    thread 42, val 2016.0
+    thread 43, val 2016.0
+    thread 44, val 2016.0
+    thread 45, val 2016.0
+    thread 46, val 2016.0
+    thread 47, val 2016.0
+    thread 48, val 2016.0
+    thread 49, val 2016.0
+    thread 50, val 2016.0
+    thread 51, val 2016.0
+    thread 52, val 2016.0
+    thread 53, val 2016.0
+    thread 54, val 2016.0
+    thread 55, val 2016.0
+    thread 56, val 2016.0
+    thread 57, val 2016.0
+    thread 58, val 2016.0
+    thread 59, val 2016.0
+    thread 60, val 2016.0
+    thread 61, val 2016.0
+    thread 62, val 2016.0
+    thread 63, val 2016.0
+    ```
+
+    将` // __syncthreads();`取消注释后，重新编译运行，输出为
+
+    ```
+    thread 0, val 2016.0
+    thread 1, val 2016.0
+    thread 2, val 2016.0
+    thread 3, val 2016.0
+    thread 4, val 2016.0
+    thread 5, val 2016.0
+    thread 6, val 2016.0
+    thread 7, val 2016.0
+    thread 8, val 2016.0
+    thread 9, val 2016.0
+    thread 10, val 2016.0
+    thread 11, val 2016.0
+    thread 12, val 2016.0
+    thread 13, val 2016.0
+    thread 14, val 2016.0
+    thread 15, val 2016.0
+    thread 16, val 2016.0
+    thread 17, val 2016.0
+    thread 18, val 2016.0
+    thread 19, val 2016.0
+    thread 20, val 2016.0
+    thread 21, val 2016.0
+    thread 22, val 2016.0
+    thread 23, val 2016.0
+    thread 24, val 2016.0
+    thread 25, val 2016.0
+    thread 26, val 2016.0
+    thread 27, val 2016.0
+    thread 28, val 2016.0
+    thread 29, val 2016.0
+    thread 30, val 2016.0
+    thread 31, val 2016.0
+    thread 32, val 2016.0
+    thread 33, val 2016.0
+    thread 34, val 2016.0
+    thread 35, val 2016.0
+    thread 36, val 2016.0
+    thread 37, val 2016.0
+    thread 38, val 2016.0
+    thread 39, val 2016.0
+    thread 40, val 2016.0
+    thread 41, val 2016.0
+    thread 42, val 2016.0
+    thread 43, val 2016.0
+    thread 44, val 2016.0
+    thread 45, val 2016.0
+    thread 46, val 2016.0
+    thread 47, val 2016.0
+    thread 48, val 2016.0
+    thread 49, val 2016.0
+    thread 50, val 2016.0
+    thread 51, val 2016.0
+    thread 52, val 2016.0
+    thread 53, val 2016.0
+    thread 54, val 2016.0
+    thread 55, val 2016.0
+    thread 56, val 2016.0
+    thread 57, val 2016.0
+    thread 58, val 2016.0
+    thread 59, val 2016.0
+    thread 60, val 2016.0
+    thread 61, val 2016.0
+    thread 62, val 2016.0
+    thread 63, val 2016.0
+    ```
+
+    我们根据不同 thread 编号的大小，让 thread 执行长度不同的任务，然后让所有 thread 取一个只有当所有 thread 都算完才能得到的结果。
+
+    可以看到，0 到 31 号 thread 取到了相同的值，但是是错的；32 到 63 号 thread 取得的值相同，并且是正确的。加上`__syncthreads();`后，所有的值都是正确的。
+
 * `cudaLaunchKernel()` example 2
 
     ```cpp
