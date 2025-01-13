@@ -4,6 +4,331 @@
 
 ## cached
 
+* 类是模板，成员函数也是模板的类内实现和类外实现
+
+    ```cpp
+    #include <stdio.h>
+
+    template<typename T>
+    struct Printer
+    {
+        T val;
+
+        template<typename P>
+        void print_type_size(P func_val)
+        {
+            int size_val = sizeof(T);
+            int size_func_val = sizeof(P);
+            printf("val size: %d, func val size: %d\n",
+                size_val, size_func_val);
+        }
+
+        template<typename P>
+        void print_type_size_2(P func_val);
+    };
+
+    int main()
+    {
+        Printer<float> printer;
+        printer.print_type_size(123);
+        printer.print_type_size<double>(123);
+        printer.print_type_size_2<long>(456);
+        return 0;
+    }
+
+    template<typename T>
+    template<typename P>
+    void Printer<T>::print_type_size_2(P func_val)
+    {
+        int size_val = sizeof(T);
+        int size_func_val = sizeof(P);
+        printf("in print 2, val size: %d, func val size: %d\n",
+            size_val, size_func_val);
+    }
+    ```
+
+    output:
+
+    ```
+    val size: 4, func val size: 4
+    val size: 4, func val size: 8
+    in print 2, val size: 4, func val size: 8
+    ```
+
+    在外部实现函数时，必须写两个`template`:
+
+    ```cpp
+    template<typename T>
+    template<typename P>
+    ```
+
+    不能这样写：
+
+    `template<typename T, typename P>`
+
+    也不能把 T 和 P 的顺序搞反。
+
+* 特化的模板类里的模板函数，使用特化模板类参数，不能使用通用模板类的模板参数
+
+    ```cpp
+    #include <stdio.h>
+
+    template<typename T>
+    struct Printer
+    {
+        T val;
+
+        template<typename P>
+        void print_type_size(P func_val)
+        {
+            int size_val = sizeof(T);
+            int size_func_val = sizeof(P);
+            printf("val size: %d, func val size: %d\n",
+                size_val, size_func_val);
+        }
+    };
+
+    template<typename T>
+    struct BytePack
+    {
+        static const int size = sizeof(T);
+        T val;
+    };
+
+    template<typename T>
+    struct Printer<BytePack<T>>
+    {
+        // template<typename P>
+        // void print_val(BytePack<T> bytes, P val)
+        // {
+        //     printf("in specialized Printer, bytes val: %d, bytes size: %d, val: %d\n",
+        //         BytePack<T>::size, bytes.val, val);
+        // }
+
+        template<typename P>
+        void print_val(BytePack<T> bytes, P val);
+    };
+
+    int main()
+    {
+        Printer<float> printer;
+        printer.print_type_size<double>(123);
+        Printer<BytePack<long>> printer_2;
+        BytePack<long> bytes;
+        bytes.val = 456;
+        printer_2.print_val(bytes, 789);
+        return 0;
+    }
+
+    template<typename T>
+    template<typename P>
+    void Printer<BytePack<T>>::print_val(BytePack<T> bytes, P val)
+    {
+        printf("in specialized Printer, bytes val: %ld, bytes size: %d, val: %d\n",
+            bytes.val, BytePack<T>::size, val);
+    }
+    ```
+
+    output:
+
+    ```
+    val size: 4, func val size: 8
+    in specialized Printer, bytes val: 456, bytes size: 8, val: 789
+    ```
+
+* 函数的默认参数
+
+    ```cpp
+    #include <stdio.h>
+
+    void print_aligned(int width = 10);
+    void print_aligned_2(int width);
+
+    void print_aligned_2(int width = 10)
+    {
+        printf("%*s\n", width, "world");
+    }
+
+    // void print_aligned_3(int width = 15);
+
+    // Error !
+    // void print_aligned_3(int width = 10)
+    // {
+    //     printf("%*s\n", width, "world");
+    // }
+
+    int main()
+    {
+        printf("0123456789\n");
+        print_aligned();
+        print_aligned_2();
+        // print_aligned_3();
+        return 0;
+    }
+
+    void print_aligned(int width)
+    {
+        printf("%*s\n", width, "hello");
+    }
+
+    // Error !
+    // void print_aligned_2(int width = 10)
+    // {
+    //     printf("%*s\n", width, "world");
+    // }
+    ```
+
+    output:
+
+    ```
+    0123456789
+         hello
+         world
+    ```
+
+    函数的默认参数可以只出现在声明里，也可以只出现在定义里，但是出现在定义里时，必须比函数被调用的时机要早。
+
+    默认参数不可以同时出现在声明和定义里，否则会编译时报错。
+
+    类成员函数同理。
+
+* 类外定义的函数进行类内成员初始化，写法与类内没什么不同
+
+    ```cpp
+    #include <stdio.h>
+
+    template<typename T>
+    struct MyType
+    {
+        T val;
+
+        MyType(T &input_val);
+    };
+
+    template<typename T>
+    MyType<T>::MyType(T &input_val): val(input_val)
+    {
+        printf("val is %d\n", val);
+    }
+
+    int main()
+    {
+        int val = 123;
+        MyType<int> my_type(val);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val is 123
+    ```
+
+* 模板参数分别是默认，特化为内置类型，特化为模板类的类模板声明与函数的实现方式
+
+    ```cpp
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    template<typename T>
+    struct BytePack
+    {
+        static const int size = sizeof(T);
+    };
+
+    template<typename ValType>
+    struct Printer
+    {
+        // void print_bytes()
+        // {
+        //     printf("in default Printer, type size: %lu bytes\n", sizeof(ValType));
+        // }
+
+        void print_bytes();
+    };
+
+    template<>
+    struct Printer<float>
+    {
+        // void print_bytes()
+        // {
+        //     printf("in specialized float class, size: %lu bytes\n", sizeof(float));
+        // }
+
+        void print_bytes();
+    };
+
+    template<typename T>
+    struct Printer<BytePack<T>>
+    {
+        // void print_bytes()
+        // {
+        //     printf("type T size: %d bytes\n", BytePack<T>::size);
+        // }
+
+        void print_bytes();
+    };
+
+    int main()
+    {
+        Printer<BytePack<float>> printer;
+        printer.print_bytes();
+
+        Printer<float> printer_2;
+        printer_2.print_bytes();
+
+        Printer<long long> printer_3;
+        printer_3.print_bytes();
+
+        return 0;
+    }
+
+    template<typename ValType>
+    void Printer<ValType>::print_bytes()
+    {
+        printf("in default Printer, type size: %lu bytes\n", sizeof(ValType));
+    }
+
+    void Printer<float>::print_bytes()
+    {
+        printf("in specialized float class, size: %lu bytes\n", sizeof(float));
+    }
+
+    template<typename T>
+    void Printer<BytePack<T>>::print_bytes()
+    {
+        printf("in specialized BytePack<T> class, type T size: %d bytes\n", BytePack<T>::size);
+    }
+    ```
+
+    output:
+
+    ```
+    in specialized BytePack<T> class, type T size: 4 bytes
+    in specialized float class, size: 4 bytes
+    in default Printer, type size: 8 bytes
+    ```
+
+    可以看到，根据 main 函数中传入的不同类型，分别走不同的模板类调用成员函数。
+
+    当特化类型为内置类型`float`时，类声明前使用了`template<>`，而函数的实现前不可以加`template<>`。
+
+* 模板函数
+
+    允许模板函数重载（函数名相同，但是被认为是不同的函数），无论模板参数不同还是函数参数不同都可以，
+
+    唯一要求是可以推导出来最合适的匹配
+
+    如果无法推导必须使用 <> 指定类型
+
+    `template func_name<type>()`是模板的实例化
+
+    `template<> func_name<type>()`是模板的特化
+
+* 使用`typeid()`判断模板参数`T`的类型会编译时报 warning
+
 * 关于数值类型模板参数与 if 展开
 
     有时我们会写这样的函数：

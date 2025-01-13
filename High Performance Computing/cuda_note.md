@@ -2,6 +2,35 @@
 
 ## cache
 
+* 当 cuda kernel 中 printf 过多时，会出现乱码
+
+    下面是截取的一段逐渐乱码的过程：
+
+    ```
+    after Unroll, Unroll: 4, BytePerPack: 16
+    after Unroll, Unroll: 4, BytePerPack: 16
+    after Unroll, Unroll: 4, BytePerPack: 16
+    after Unroll, Unroll: 4, BytePerPack: 16
+    after UnMoll, Unroll: 4, BytePerPack: 16
+    after UnMill, Unroll: 4, BytePerPack: 16
+    after UnMinS, Unroll: 4, BytePerPack: 16
+    after UnMinSrcUnroll: 4, BytePerPack: 16
+    after UnMinSrcs:roll: 4, BytePerPack: 16
+    after UnMinSrcs: %: 4, BytePerPack: 16
+    after UnMinSrcs: 4, MinDstytePerPack: 16
+    after UnMinSrcs: 4, MinDsts: PerPack: 16
+    after UnMinSrcs: 4, MinDsts: 16rPack: 1702127201
+    after UnMinSrcs: 4, MinDsts: 16, Byk: 1702127201
+    after UnMinSrcs: 4, MinDsts: 16, ByteP1702127201
+    after UnMinSrcs: 4, MinDsts: 16, BytePer
+    after UnMinSrcs: 4, MinDsts: 16, BytePerPacafter UnMinSrcs: 4, MinDsts: 16, BytePerPack:after UnMinSrcs: 4, MinDsts: 16, BytePerPack: after UnMinSrcs: 4, MinDsts: 16, BytePerPack: %after UnMinSrcs: 4, MinDsts: 16, BytePerPack: 1702127201
+    after UnMinSrcs: 1, MinDsts: 16, BytePerPack: 1702127201
+    ^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^P^PMinSrcs: 1, MinDsts: 1, BytePerPack: 16
+    MinSrcs: 1, MinDsts: 1, BytePerPack: 16
+    MinSrcs: 1, MinDsts: 1, BytePerPack: 16
+    MinSrcs: 1, MinDsts: 1, BytePerPack: 16
+    ```
+
 * cuda 线程不同步的一个现象
 
     `main.cu`:

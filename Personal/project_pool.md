@@ -30,6 +30,18 @@
 
 ## cache
 
+* 描述，猜想，问题与实验
+
+    * 实验由对比，或推理加实验的方式组成，并且有结论，是最强的证据
+
+    * 描述是充满可能性的表达
+
+    * 猜想是一个无端的可能性
+
+    * 问题是完全的不确定性
+
+    探索的部分可以由这几部分记录。
+
 * 滚动的齿轮
 
     假如有很多个减速齿轮耦合在一起，最外面的齿轮转动比较快，那么最里面的齿轮转动很慢。拿这点和探索类比，我们在探索未知时先收集简单的规则和知识，组成集合$S_1$，然后再根据$S_1$的内容，再次遍历 resource，得到新的规则，修改旧的规则，组成集合$S_2$，像这样将集合$S$越滚越大，直到可以解释所有的 resource。有那么多的学科，那么多的社会规则，但是这套探索的方法在很多时候都行之有效。我们可以认为这种方法是最里面的齿轮。
@@ -1016,16 +1028,6 @@
 
 * [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
-* [v] qa: 4 units
-
-    正确率: 3 / 4
-
-* [v] qa: 4 units 11.26
-
-    正确率： 3 / 4
-
-* [v] 增加 v2ray note qa
-
 * [x] qa: 4 units 11.27
 
     12:15 ~ 13:00
@@ -1139,18 +1141,6 @@
 
     1. 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
-* [v] qa: review 12.12
-
-* [v] qa: 4 units 12.13
-
-    正确率：1 / 4
-
-    feedback:
-
-    1. [v] exam unit 后输入 d 显示 deps
-
-* [v] qa: review 12.13
-
 * [v] qa: 4 units  12.16
 
     正确率：3 / 4
@@ -1189,18 +1179,6 @@
 
     3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
-* [v] qa: review  12.18
-
-* [v] qa: 4 units 12.19
-
-    正确率：3 / 4
-
-* [v] qa: review 12.19
-
-* [v] qa: 2 units 12.23
-
-    正确率：2 / 4
-
 * [v] qa: review 12.23
 
 * [v] qa: 2 units 12.25
@@ -1214,6 +1192,8 @@
     正确率：1 / 2
 
 * [v] qa: review 12.30
+
+* [v] qa: 2 units 01.06
 
 ## cache tabs / process urls
 
@@ -1545,6 +1525,28 @@ tasks:
 
 * { } 抽取 nccl LL 协议
 
+    tmp:
+
+    * nccl tmp
+
+        run work batch (dev func) -> run work coll -> run ring/tree -> prims
+
+    * `BytePack<16>`如何处理返回值类型？
+
+    * work 是一个什么样的类型？
+
+    * `reduceCopyPacks()`是最底层负责干活的函数了，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
+
+        数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
+
+    * 问题：在一个 unroll 中如何处理无法使用一个完整 warp 处理的数据？
+
+        unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
+
+    * 问题：Unroll 先是 4，后是 1，这样设计有什么用处？Unroll 为 1 时是怎么处理的？
+
+    * 问题： aligned 的条件是什么？
+
     feedback:
 
     1. [ ] 调研 cuda shmem
@@ -1553,7 +1555,9 @@ tasks:
 
     3. [ ] 调研 cuda `__shared__`
 
-    4. [ ] 调研 cuda 中的 warp 概念
+    4. [v] 调研 cuda 中的 warp 概念
+
+    1. [v] 调研`#pragma unroll 1`
 
 * [o] 尝试抽取 nccl kernel
 
