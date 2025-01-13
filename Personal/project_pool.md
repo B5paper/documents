@@ -30,6 +30,8 @@
 
 ## cache
 
+* 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
+
 * 描述，猜想，问题与实验
 
     * 实验由对比，或推理加实验的方式组成，并且有结论，是最强的证据
@@ -303,8 +305,6 @@
 
 * 当我们说一个任务无法完成时，意味着我们必须要完成其他前置任务，依赖任务
 
-* 虚拟机 120G 磁盘不够用，下次试试 150G
-
 * [ ] 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
 
 * 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
@@ -314,12 +314,6 @@
 * 香山 riscv 源代码 repo
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
-
-* Theseus is a new OS written from scratch in Rust to experiment with novel OS structure
-
-    <https://www.theseus-os.com/Theseus/book/index.html#introduction-to-theseus>
-
-    用 rust 写的操作系统，有时间了看看。
 
 * 如何为一个用户增加指定目录的各种权限？
 
@@ -344,10 +338,6 @@
         <div>
         <img src='../../Reference_resources/ref_24/pics/pic_3.png'>
         </div>
-
-* 应该对个人系统建立一个项目进行复习
-
-	每次随机选择一个文件，跳转到随机一行，往下读 20 mins
 
 * [ ] 调研 u 盘里的资料
 
@@ -441,7 +431,7 @@
 
 * 这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
 
-* 调研`git bisect`
+* [ ] 调研`git bisect`
 
 * sync 只提出了标准，但是没有提出该如何 sync
 
@@ -797,6 +787,14 @@
 
 * 彻底抛弃 note 的固定组织，目前的目标的是总是使用相对固定的松散组织
 
+* pathlib --- 面向对象的文件系统路径
+
+    <https://docs.python.org/zh-cn/3.13/library/pathlib.html>
+
+* A Comprehensive Guide to Using pathlib in Python For File System Manipulation
+
+    <https://www.datacamp.com/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation>
+
 ### tasks
 
 * { } reorg: projects
@@ -829,23 +827,7 @@
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [v] 调研`os.listdir()`
-
-    14:52 ~ 15:09 (17 mins)
-
 * [v] 调研`pathlib`
-
-    feedback:
-
-    1. resources
-
-        * pathlib --- 面向对象的文件系统路径
-        
-            <https://docs.python.org/zh-cn/3.13/library/pathlib.html>
-
-        * A Comprehensive Guide to Using pathlib in Python For File System Manipulation
-        
-            <https://www.datacamp.com/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation>
 
 * [ ] 调研 git ignore 的实现原理
 
@@ -920,10 +902,6 @@
 * [v] reorg: documents 30 mins  12.24
 
     14:22 ~ 14:52
-
-    feedback:
-
-    1. 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
 
 * [v] reorg: documents 30 mins  01.01
 
