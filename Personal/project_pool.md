@@ -1527,9 +1527,9 @@ tasks:
 
     tmp:
 
-    * nccl tmp
+    * 调用流程分析
 
-        run work batch (dev func) -> run work coll -> run ring/tree -> prims
+        run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
 
     * `BytePack<16>`如何处理返回值类型？
 
@@ -1539,11 +1539,9 @@ tasks:
 
         数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
 
-    * 问题：在一个 unroll 中如何处理无法使用一个完整 warp 处理的数据？
+    * 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
 
         unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
-
-    * 问题：Unroll 先是 4，后是 1，这样设计有什么用处？Unroll 为 1 时是怎么处理的？
 
     * 问题： aligned 的条件是什么？
 
