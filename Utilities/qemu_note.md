@@ -2,6 +2,8 @@
 
 ## cache
 
+* 虚拟机 120G 磁盘不够用，150G 比较好
+
 * qemu + gdb 调试 kernel module 代码
 
     1. 制作 qemu 虚拟机镜像，以 ubuntu 24.04 为例

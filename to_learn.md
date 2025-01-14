@@ -6676,3 +6676,9 @@
 * 6.15. Peer Device Memory Access
 
     <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__PEER.html>
+
+* Theseus is a new OS written from scratch in Rust to experiment with novel OS structure
+
+    <https://www.theseus-os.com/Theseus/book/index.html#introduction-to-theseus>
+
+    用 rust 写的操作系统，有时间了看看。
