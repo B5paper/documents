@@ -4784,6 +4784,97 @@ Other resources:
 
 1. <https://leimao.github.io/blog/CPP-Traits/>
 
+### 在使用 trait 时，可以使用 static const 成员避免创建对象
+
+```cpp
+#include <stdio.h>
+#include <vector>
+#include <iostream>
+using namespace std;
+
+class MyType {};
+
+enum Types
+{
+    tp_float,
+    tp_int,
+    tp_my_type,
+    tp_unkonwn_type
+};
+
+template<typename T>
+struct type_traits
+{
+    static const Types type = tp_unkonwn_type;
+};
+
+template<>
+struct type_traits<float>
+{
+    static const Types type = Types::tp_float;
+};
+
+template<>
+struct type_traits<int>
+{
+    static const Types type = Types::tp_int;
+};
+
+template<>
+struct type_traits<MyType>
+{
+    static const Types type = Types::tp_my_type;
+};
+
+template<typename T>
+class Container
+{
+    public:
+    Container(T obj) {
+        if (type_traits<T>::type == Types::tp_float) {
+            cout << "this is a float type" << endl;
+        } else if (type_traits<T>::type == Types::tp_int) {
+            cout << "this is a int type" << endl;
+        } else if (type_traits<T>::type == Types::tp_my_type) {
+            cout << "this is a MyType type" << endl;
+        } else {
+            cout << "unknown type" << endl;
+        }
+        vec.push_back(obj);
+    }
+
+    vector<T> vec;
+};
+
+int main()
+{
+    float val_1 = 1;
+    int val_2 = 2;
+    MyType val_3;
+    double val_4 = 1;
+    Container c_1(val_1);
+    Container c_2(val_2);
+    Container c_3(val_3);
+    Container c_4(val_4);
+    return 0;
+}
+```
+
+output:
+
+```
+this is a float type
+this is a int type
+this is a MyType type
+unknown type
+```
+
+注：
+
+1. trait 本质还是使用模板的特化路径选择，只不过把这个过程提前了，从而可以在正常的函数里直接使用 enum 来选择 if 分支
+
+2. 如果不使用 trait，或许只能使用`typeid()`了。trait 是在编译时做选择，`typeid`是在运行时做选择，还不太一样。
+
 ### 使用 traits 技术使模板对指定的类型生效
 
 ```cpp
