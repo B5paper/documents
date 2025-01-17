@@ -30,6 +30,26 @@
 
 ## cache
 
+* 输入与输出
+
+    输入的信息越多，就越乱。猜想：可以使用输出来平衡。可以是文字，也可以是绘画，音乐等。
+
+* 断点的行数和实际断到的函数不对应，猜想可能的原因是模板函数在展开时行数无法完全对应
+
+* 电脑前集中注意力的方法
+
+    1. 解释看到的每一个词语/代码变量的意思，如果可以解释，那么解释一句话/一行代码是什么意思。如果又可以解释，那么尝试解释一段话/一段代码的含义以及为什么要写这段话/这段代码。
+
+    2. 如果在解释的过程中遇到困难，那么尝试去解决问题
+
+    3. 如果代码都可以解释，那么尝试复现代码，重写一遍
+
+* 未知概念的非线性搜索范围
+
+    一个初步的方案：假如概念 1 没有理解，可以暂时跳过，继续看后面的东西。假如看到了概念 2，概念 2 依赖于概念 1，概念 3 也依赖概念 1，但是概念 3 与概念 2 是独立的，那么可以借助概念 2 和 3 理解概念 1. 假如概念 4 依赖概念 2，而概念 2 还没弄明白，那么就应该停止了。
+
+* 推理 nccl 有点像玩扫雷
+
 * 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
 
 * 描述，猜想，问题与实验
@@ -1522,6 +1542,72 @@ tasks:
         unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
 
     * 问题： aligned 的条件是什么？
+
+    * nccl tmp
+
+        * `ld_volatile_global()`在两个地方被调用
+        
+            1. `Primitives::loadStepValue()`
+
+                用于加载 peer connection 的 info
+
+                * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
+
+                * 有可能 step 是异步处理，所以需要 volatile 加载数据
+
+            2. reduce copy
+
+                用于取 payload 数据。
+
+        * 每个 chunk 中包含有多个 slice，每个 slice, 中包含有多个 step，每个 step 又有 stepSize
+
+            这个和 warp, hunk 又是什么关系？
+
+        * load step value 是否和这里的 step 有关系？
+
+        * waitPeer()  ->  here 3, 4, 5, 7
+
+            waitPeer 的机制是怎样的？是死循环等待条件吗？看起来不像。
+
+        * `st_relaxed_sys_global()`由`postPeer()`调用
+
+        * `postPeer()`和`waitPeer()`分别有什么作用？
+
+        * `genericOp()`的 DirectSend1, DirectRecv1, Send, Recv 只可能取 0 或 1
+
+            当 send 或 direct send 时，SrcBuf 为 Input，当 send from output 时，SrcBuf 为 Output。无论是哪一种 send，DstBuf 总为 -1。
+
+            当 copy send / direct copy send 时，SrcBuf 和 DstBuf 都会被填，分别被填 Input 和 Output。
+            
+            看来 Input 和 Output 分别指明了 SrcBuf 和 DstBuf 的用途，并没有其他特别的含义。问题：这样模板化有什么好处？
+
+            Input 和 Output 在 Primitives 类中被写死。无论是哪种协议，Input 总为 0，Output 总为 1.
+
+            当 recvSend 时，SrcBuf 和 DstBuf 都是 -1，看起来是不做缓存，接收到数据后直接再传输出去？
+
+        * DirectSend 一定是 Send，Send 不一定是 DirectSend。Recv 同理。
+
+        * conn 是 struct ncclConnInfo 类型的对象，被赋值的地方为`conn = &peer->recv[connIndex];`
+
+            问题：`peer`是什么？`peer->recv`在何时被赋值？
+
+        * redop 就是 redfn，都在`src/device/reduce_kernel.h`里
+
+            常用的有`FuncSum`，`FuncCopy`等。
+
+        * IntBytes 用来指定使用什么 int 类型，比如可以指定为`size_t`，`int`, `long`等等。
+
+            目前看来指定为`size_t`后，不影响功能。
+
+        * 调研 redArg 是否可以拆开
+
+            redArg 似乎没有被用上，即使设置成 0 也没有什么 bug 产生。
+
+        * `PreOpSrcs` 的实测大小是多少？
+
+            这个似乎也用不到。
+
+        * byte pack 相关的都在`op128.h`里，ld st 相关的东西也在`op128.h`里
 
     feedback:
 
