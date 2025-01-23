@@ -2,6 +2,80 @@
 
 ## cache
 
+* cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
+
+* cuda 中`__shfl_down_sync()`的含义
+
+    syntax:
+
+    ```cpp
+    T __shfl_down_sync(unsigned mask, T var, unsigned int delta, int width=warpSize);
+    ```
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void my_kern(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        elm_type val = __shfl_down_sync(0xffffffff, cubuf_1[tid], 4);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        my_kern<elm_type>(cubuf_1, num_elm);
+
+        sum_reduce<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.cu
+    	nvcc -g -G main.cu -o main
+
+    clean:
+    	rm -f main
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    3.0, 1.0, 2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 4.0, 1.0, 2.0, 2.0, 0.0, 4.0, 3.0, 1.0, 0.0, 1.0, 2.0, 1.0, 1.0, 3.0, 2.0, 4.0, 2.0, 0.0, 2.0, 3.0, 2.0, 0.0, 4.0, 2.0, specialized as float
+    cubuf 2:
+    3.0, 0.0, 1.0, 2.0, 4.0, 1.0, 2.0, 2.0, 0.0, 4.0, 3.0, 1.0, 0.0, 1.0, 2.0, 1.0, 1.0, 3.0, 2.0, 4.0, 2.0, 0.0, 2.0, 3.0, 2.0, 0.0, 4.0, 2.0, 2.0, 0.0, 4.0, 2.0, specialized as float
+    ```
+
+    可以看到，`cubuf 2`中的第 1 个元素`3.0`，是`cubuf 1`中的第 5 个元素；`cubuf 2`中的第 2 个元素`0.0`，是`cubuf 1`中的第 6 个元素。以此类推。
+
+    `__shfl_down_sync()`的作用是每个线程出一个数据`val`，然后 thread 在 warp 内进行交换数据，函数的返回值就是交换完后得到的数据。
+
 * 当 cuda kernel 中 printf 过多时，会出现乱码
 
     下面是截取的一段逐渐乱码的过程：

@@ -577,3 +577,7 @@ coordinate v. (使)协调; 搭配 eg. Threads within a block can cooperate by sh
 partake vi. 参加，参与 eg. A hunk is the amount of contiguous data a warp consumes per loop iteration assuming all threads partake.
 
 unroll v. 展开，铺开
+
+synergy n. 协同，配合
+
+haptic a. 触觉的

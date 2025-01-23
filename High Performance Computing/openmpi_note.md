@@ -4,6 +4,23 @@ Doc: <https://docs.open-mpi.org/en/v5.0.x/>
 
 ## cache
 
+* mpi error 只是一个 enum status，本身不能动态判断来了多少数据。
+
+    常用的几个 enum：
+
+    | Error name | Value | Description |
+    | - | - | - |
+    | `MPI_SUCCESS` | 0 | Successful return code. |
+    | `MPI_ERR_BUFFER` | 1 | Invalid buffer pointer. |
+    | `MPI_ERR_COUNT` | 2 | Invalid count argument. |
+    | ... | ... | ... |
+
+    ref:
+
+    1. <https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Errors.3.html>
+
+    2. <https://learn.microsoft.com/en-us/message-passing-interface/mpi-error>
+
 * mpi send 端 cnt 大于 recv 端函数参数指定的 cnt，此时会报错
 
     `main.c`:

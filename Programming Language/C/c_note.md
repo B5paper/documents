@@ -6,6 +6,16 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* printf 中的数据解析
+
+    如果一个 long (64位) 数据类型，在填 format 时写成了`%d`，那么有可能导致后续的数据解析错误。
+
+    ```c
+    long a = 1, b = 2;
+    int c = 3;
+    printf("%d, %d, %d\n", a, b, c);  // Error output
+    ```
+
 * 长度为 0 的数组
 
     ```c

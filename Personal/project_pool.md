@@ -30,6 +30,22 @@
 
 ## cache
 
+* 猜想：存在仅靠在当前水平下的猜想（构造假设空间）和假设推断无法彻底弄明白的复杂系统。
+
+    假如复杂系统中有逻辑的简并，那么有很大概率无法搞明白它原本想表达的含义。
+
+    假如这个猜想为真，那么我们在尝试解开复杂系统时，应该首先以明显的类比为手段，如果这个手段不好用，再尝试看看有没有明显的猜想，如果都没有，最后再尝试构建假设空间和猜想。
+
+    如果这一套尝试都不奏效，那么 dfs 就到此停止。此时应该去看一看其他内容，增加信息源等等。
+
+* 概念漫步
+
+* 尽管现在做的努力都是尽量让所有非线性的行为变成线性，但是真当所有行为都变成线性时，又怀念非线性的失重感，尝试在线性之外找到非线性的领域
+
+* 可解构与复杂性
+
+    假如一个复杂的模块可以被解构成子模块，那么我们就认为它是简单的，是复杂性可降解的。但是还存在一些模块，无法被解构为子模块，当我们想处理这样的模块时，必须把这个模块相关的所有内容都加载到缓存中，这样的模块越不可解构，复杂性越高。
+
 * 输入与输出
 
     输入的信息越多，就越乱。猜想：可以使用输出来平衡。可以是文字，也可以是绘画，音乐等。
@@ -1389,6 +1405,54 @@ tasks:
 
 * [v] 调研线性代数
 
+## CCL
+
+### cache
+
+* cuda 中的 kernel 无论是 template 形式, 用 cudaLaunchKernel 启动，还是`__global__`修饰，`__device__`修饰，都是可以打断点的。nccl 中用的都是 cuda kernel，因此也是可以使用 cuda gdb 打断点的。通常 hit 一次断点需要 30 分钟以上，目前不清楚原因。
+
+* 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
+
+    在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
+
+    2025/01/23/00: 其实这个只是非宏实现，其他的都是宏定义的 ld volitile global，所以没有 printf 输出。
+
+* `ld_volatile_global()`在两个地方被调用
+
+    1. `Primitives::loadStepValue()`
+
+        用于加载 peer connection 的 info
+
+        * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
+
+        * 有可能 step 是异步处理，所以需要 volatile 加载数据
+
+        * `st_relaxed_sys_global()`由`postPeer()`调用
+
+    2. reduce copy
+
+        用于取 payload 数据。
+
+* nccl 数据传输的调用流程
+
+    run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
+
+    * `Primitives<> prims`由`RunWorkColl()` -> `runRing()`创建
+
+* `reduceCopyPacks()`是最底层负责干活的函数，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
+
+    数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
+
+* 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
+
+    unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
+
+### tasks
+
+* [v] 调研 `__any_sync()`, `__ballot_sync()`
+
+* [ ] 调研`barrierAny()`, `barrier_red_or()`
+
 ## gpu driver
 
 ### cache
@@ -1441,10 +1505,6 @@ tasks:
 
 * `initTransportsRank()`这个看起来挺重要的。`p2pSendSetup()`这个也比较重要。`ncclTransportP2pSetup()`这个看起来也很重要。
 
-* 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
-
-    在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
-
 * 在`ld_volatile_global()`中设置断点，经过半个多小时后，断点被 hit
 
     看到的调用栈如下：
@@ -1468,32 +1528,7 @@ tasks:
 
     很可能是 8 bytes - 1048576 bytes 这个范围内。
 
-* 让大模型帮忙写了几段代码，无论是 template, cudaLaunchKernel，还是`__global__`修饰，`__device__`修饰，都是可以打断点的
-
-* 在模板函数`ncclKernelMain()`入口处下断点，等 cuda-gdb 运行半个小时才可以 hit 断点。
-
-    之后每 step 一步都需要几分钟到十几分钟不等的时间。
-
 * 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
-
-* cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
-
-* mpi error 只是一个 enum status，本身不能动态判断来了多少数据。
-
-    常用的几个 enum：
-
-    | Error name | Value | Description |
-    | - | - | - |
-    | `MPI_SUCCESS` | 0 | Successful return code. |
-    | `MPI_ERR_BUFFER` | 1 | Invalid buffer pointer. |
-    | `MPI_ERR_COUNT` | 2 | Invalid count argument. |
-    | ... | ... | ... |
-
-    ref:
-
-    1. <https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Errors.3.html>
-
-    2. <https://learn.microsoft.com/en-us/message-passing-interface/mpi-error>
 
 ### tasks
 
@@ -1525,89 +1560,119 @@ tasks:
 
     tmp:
 
-    * 调用流程分析
-
-        run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
-
     * `BytePack<16>`如何处理返回值类型？
+
+        * [ ] 调研：模板函数可以通过返回值类型选择特化吗？
 
     * work 是一个什么样的类型？
 
-    * `reduceCopyPacks()`是最底层负责干活的函数了，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
-
-        数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
-
-    * 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
-
-        unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
-
     * 问题： aligned 的条件是什么？
 
-    * nccl tmp
+    * 每个 chunk 中包含有多个 slice，每个 slice, 中包含有多个 step，每个 step 又有 stepSize
 
-        * `ld_volatile_global()`在两个地方被调用
+        这个和 warp, hunk 又是什么关系？
+
+    * load step value 是否和这里的 step 有关系？
+
+    * waitPeer()  ->  here 3, 4, 5, 7
+
+        waitPeer 的机制是怎样的？是死循环等待条件吗？看起来不像。
+
+    * `postPeer()`和`waitPeer()`分别有什么作用？
+
+    * `genericOp()`的 DirectSend1, DirectRecv1, Send, Recv 取 0 或 1, SrcBuf, DstBuf 取 0，1 或 -1，Input 总为 0，Output 总为 1
+
+    * 当 send 或 direct send 时，SrcBuf 为 Input，当 send from output 时，SrcBuf 为 Output。无论是哪一种 send，DstBuf 总为 -1。
+
+        当 copy send / direct copy send 时，SrcBuf 和 DstBuf 都会被填，分别被填 Input 和 Output。
         
-            1. `Primitives::loadStepValue()`
+        看来 Input 和 Output 分别指明了 SrcBuf 和 DstBuf 的用途，并没有其他特别的含义。问题：这样模板化有什么好处？
 
-                用于加载 peer connection 的 info
+        Input 和 Output 在 Primitives 类中被写死。无论是哪种协议，Input 总为 0，Output 总为 1.
 
-                * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
+        当 recvSend 时，SrcBuf 和 DstBuf 都是 -1，看起来是不做缓存，接收到数据后直接再传输出去？
 
-                * 有可能 step 是异步处理，所以需要 volatile 加载数据
+    * DirectSend 一定是 Send，Send 不一定是 DirectSend。Recv 同理。
 
-            2. reduce copy
+    * conn 是 struct ncclConnInfo 类型的对象，被赋值的地方为`conn = &peer->recv[connIndex];`
 
-                用于取 payload 数据。
+        问题：`peer`是什么？`peer->recv`在何时被赋值？
 
-        * 每个 chunk 中包含有多个 slice，每个 slice, 中包含有多个 step，每个 step 又有 stepSize
+    * redop 就是 redfn，都在`src/device/reduce_kernel.h`里
 
-            这个和 warp, hunk 又是什么关系？
+        常用的有`FuncSum`，`FuncCopy`等。
 
-        * load step value 是否和这里的 step 有关系？
+    * IntBytes 用来指定使用什么 int 类型，比如可以指定为`size_t`，`int`, `long`等等。
 
-        * waitPeer()  ->  here 3, 4, 5, 7
+        目前看来指定为`size_t`后，不影响功能。
 
-            waitPeer 的机制是怎样的？是死循环等待条件吗？看起来不像。
+    * 调研 redArg 是否可以拆开
 
-        * `st_relaxed_sys_global()`由`postPeer()`调用
+        redArg 似乎没有被用上，即使设置成 0 也没有什么 bug 产生。
 
-        * `postPeer()`和`waitPeer()`分别有什么作用？
+    * `PreOpSrcs` 的实测大小是多少？
 
-        * `genericOp()`的 DirectSend1, DirectRecv1, Send, Recv 只可能取 0 或 1
+        这个似乎也用不到。
 
-            当 send 或 direct send 时，SrcBuf 为 Input，当 send from output 时，SrcBuf 为 Output。无论是哪一种 send，DstBuf 总为 -1。
+    * byte pack 相关的都在`op128.h`里，ld st 相关的东西也在`op128.h`里
 
-            当 copy send / direct copy send 时，SrcBuf 和 DstBuf 都会被填，分别被填 Input 和 Output。
-            
-            看来 Input 和 Output 分别指明了 SrcBuf 和 DstBuf 的用途，并没有其他特别的含义。问题：这样模板化有什么好处？
+    * 一个函数同时有类模板参数和函数模板参数，该如何调用？
 
-            Input 和 Output 在 Primitives 类中被写死。无论是哪种协议，Input 总为 0，Output 总为 1.
+        比如 struct 中的 static 成员函数？
 
-            当 recvSend 时，SrcBuf 和 DstBuf 都是 -1，看起来是不做缓存，接收到数据后直接再传输出去？
+    * 当 redop 是 copy 时，multi src 和 multi dst 该如何处理？
 
-        * DirectSend 一定是 Send，Send 不一定是 DirectSend。Recv 同理。
+    * sendPeers 和 recvPeers 中填的是什么内容？是 rank 号吗？
 
-        * conn 是 struct ncclConnInfo 类型的对象，被赋值的地方为`conn = &peer->recv[connIndex];`
+    * 断点 + cuda gdb print 发现 ring->prev 和 ring->next 都是 0
 
-            问题：`peer`是什么？`peer->recv`在何时被赋值？
+        2025/01/23/00: 存疑。记得有一次看到 ring->prev 是 0，ring->next 是 1
 
-        * redop 就是 redfn，都在`src/device/reduce_kernel.h`里
+    * `Primitives -> setDataPtrs()`的作用？看起来有点像是通过网络拿到 peer 的信息后，填写当前 primitive 扮演的 role 所对应的 buffer 地址。
 
-            常用的有`FuncSum`，`FuncCopy`等。
+    * Input 总为 0，Output 总为 1，那么 SrcBuf 和 DstBuf 又是在哪赋的值？
 
-        * IntBytes 用来指定使用什么 int 类型，比如可以指定为`size_t`，`int`, `long`等等。
+        在`genericOp` -> `send() / recv()`时赋的模板参数值，并且被赋为 Input 或 Output。
 
-            目前看来指定为`size_t`后，不影响功能。
+        * 猜想：每一个 primitive 有两块 buffer，一个叫 src，另一个叫 dst，这两块 buffer 可能不在当前 primitive 上。根据不同的 role，猜测两块 buffer 的作用如下：
 
-        * 调研 redArg 是否可以拆开
+            * `send()` -> `genericOp<0, 0, 0, 1, Input, -1>(inpIx, -1, eltN, false);`
 
-            redArg 似乎没有被用上，即使设置成 0 也没有什么 bug 产生。
+                src 作为 input，dst 没有用到。从 src 读数据，直接走 transport 层发出去。
 
-        * `PreOpSrcs` 的实测大小是多少？
+            * `sendFromOutput()` -> `genericOp<0, 0, 0, 1, Output, -1>(outIx, -1, eltN, false);`
 
-            这个似乎也用不到。
+                src 作为 output，函数的名称又叫 send from output，那么能想到的一种解释是 src 不在当前 device 上，可能是 peer device 的 output，我们直接从它的 output 读数据，并走 transport 层发送。
 
-        * byte pack 相关的都在`op128.h`里，ld st 相关的东西也在`op128.h`里
+            * `recv()` -> `genericOp<0, 0, 1, 0, -1, Output>(-1, outIx, eltN, postOp);`
+
+                没有用到 src buf，说明从 transport 层拿到数据后，直接写入到 dst buffer 里。
+
+            * `directRecvCopy()` -> `genericOp<1, 0, 1, 0, -1, Output>(inpIx, outIx, eltN, /*postOp=*/false);`
+
+                这个比较奇怪，src buf 没用上，但是 inpIx 用上了。那我们猜测它是从 transport 层把数据复制到 dst buffer。
+
+            * `copySend()` -> `genericOp<0, 0, 0, 1, Input, Output>(inpIx, outIx, eltN, postOp);`
+
+                input 和 output 都用到了，是否可以理解为直接使用 cuda memcpy 把数据从 src 搬运到 dst？
+
+            * `recvSend()` -> `genericOp<0, 0, 1, 1, -1, -1>(-1, -1, eltN, postOp);`
+
+                input 和 output 都没用到，说明是从 transport 层拿到数据后，直接发送给另一个 transport 层，不把数据存储到 gpu memory 里。
+
+            * `recvCopySend()` -> `genericOp<0, 0, 1, 1, -1, Output>(-1, outIx, eltN, postOp);`
+
+                input 没用上，input idx 也没用上，那么这个和`directRecvCopy()`有什么区别？
+
+                凡是有 copy 的，output 都会用到。
+
+        * 要求`if (Dst)`才会填`ncclShmem.groups[group].dsts[0]`的内容，但是`Dst`之前是 0，说明 dsts 的数据在前面就已经被填了。
+
+        * Send 任务要求至少有一个 dst ptr，这个 dst ptr 默认是 next gpu 的 buffer，如果用户提供了 DstBuf，则额外增加一个 dst ptr；
+        
+            同理，Recv 任务要求至少有一个 src ptr，这个 src ptr 默认是 prev gpu 的 buffer，如果用户提供了 SrcBuf，则额外增加一个 src ptr。
+
+        * 如果填写了多个 src ptr 或 dst ptr，不一定会用到所有的 ptr
 
     feedback:
 
@@ -1620,10 +1685,6 @@ tasks:
     4. [v] 调研 cuda 中的 warp 概念
 
     1. [v] 调研`#pragma unroll 1`
-
-* [o] 尝试抽取 nccl kernel
-
-* [v] 尝试抽取 nccl kernel 40 mins
 
 * [ ] 调研`cudaMalloc3D()`
 
