@@ -4,6 +4,53 @@
 
 ## cached
 
+* c++ 模板无法通过隐式推断根据返回值类型推断模板参数
+
+    ```cpp
+    #include <stdio.h>
+
+    template <typename T>
+    T add(int a, int b)
+    {
+        return a + b;
+    }
+
+    template<>
+    float add(int a, int b)
+    {
+        printf("specialized as float\n");
+        return a + b;
+    }
+
+    template<>
+    int add(int a, int b)
+    {
+        printf("specialized as int\n");
+        return a + b;
+    }
+
+    int main()
+    {
+        int a, b;
+        a = 1;
+        b = 2;
+        float c = add<float>(a, b);
+        int d = add<int>(a, b);
+        // int d = add(a, b);  // error
+        //  float c = add<int>(a, b);  // ok
+        printf("c: %.1f, d: %d\n", c, d);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    specialized as float
+    specialized as int
+    c: 3.0, d: 3
+    ```
+
 * C++ 中，当一个指针由`float*`转换为`void*`时，必须加上强制类型转换`(void*)`。使用隐式类型转换编译器会报错。
 
 * 类是模板，成员函数也是模板的类内实现和类外实现

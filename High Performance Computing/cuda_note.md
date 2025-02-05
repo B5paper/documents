@@ -2,6 +2,491 @@
 
 ## cache
 
+* `__all_sync()`
+
+    原理与`__any_sync()`相似，当一个 warp 中每个线程提供的值都为 1 时，则返回 1，否则返回 0.
+
+    syntax:
+
+    ```cpp
+    __any_sync(unsigned mask, predicate);
+    ```
+
+    example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        int predicate = tid;
+        elm_type ret = __all_sync(0xffffffff, predicate);
+        cubuf_1[tid] = ret;
+        predicate = 1;
+        ret = __all_sync(0xffffffff, predicate);
+        cubuf_2[tid] = ret;
+    }
+
+    int main()
+    {
+        using elm_type = int;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as int
+    cubuf 2:
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, specialized as int
+    ```
+
+* `__ballot_sync()`
+
+    每个线程给定一个值 val，`__ballot_sync()`返回一个 32 位数 ret，如果 val 为非 0，假如 lane id 为`tid`，则将 ret 值的第`tid`位置 1，否则置 0。
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2, elm_type *cubuf_3)
+    {
+        int tid = threadIdx.x;
+        int predicate = tid % 2;
+        unsigned ret = __ballot_sync(0xffffffff, predicate);
+        cubuf_1[tid] = ret;
+        predicate = 1;
+        ret = __ballot_sync(0xffffffff, predicate);
+        cubuf_2[tid] = ret;
+        predicate = 0;
+        ret = __ballot_sync(0xffffffff, predicate);
+        cubuf_3[tid] = ret;
+    }
+
+    int main()
+    {
+        using elm_type = unsigned int;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2, *cubuf_3;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_3, num_elm * sizeof(elm_type));
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2, cubuf_3);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        printf("cubuf 3:\n");
+        print_cubuf<elm_type>(cubuf_3, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        cudaFree(cubuf_3);
+        return 0;
+    }
+    ``` 
+
+    output:
+
+    ```
+    cubuf 1:
+    2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, specialized as unsigned int
+    cubuf 2:
+    4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, specialized as unsigned int
+    cubuf 3:
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as unsigned int
+    ```
+
+    `2863311530`的二进制为`1010 1010 1010 1010 1010 1010 1010 1010`, `4294967295`的二进制为`1111 1111 1111 1111 1111 1111 1111 1111`。
+
+* `__shfl_xor_sync()`中，当`laneMask ＝ 3`时，会 4 个元素一组倒序取值
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void my_kern(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        elm_type val = __shfl_xor_sync(0xffffffff, cubuf_1[tid], 3);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
+
+        my_kern<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    3.0, 2.0, 1.0, 0.0, 7.0, 6.0, 5.0, 4.0, 11.0, 10.0, 9.0, 8.0, 15.0, 14.0, 13.0, 12.0, 19.0, 18.0, 17.0, 16.0, 23.0, 22.0, 21.0, 20.0, 27.0, 26.0, 25.0, 24.0, 31.0, 30.0, 29.0, 28.0, specialized as float
+    ```
+
+    目前不明白是啥原理。
+
+    当`laneMask = 7`时，会 8 个一组反转：
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0, 8.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0, 16.0, 31.0, 30.0, 29.0, 28.0, 27.0, 26.0, 25.0, 24.0, specialized as float
+    ```
+
+* shift 与 reduce
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        elm_type val = cubuf_1[tid];
+        for (int laneMask = 16; laneMask >= 1; laneMask /= 2)
+            val += __shfl_xor_sync(0xffffffff, val, laneMask);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, specialized as float
+    ```
+
+    将`__shfl_xor_sync()`改成`__shfl_xor_sync()`，也可以实现类似的效果，输出如下：
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    496.0, 512.0, 528.0, 544.0, 560.0, 576.0, 592.0, 608.0, 624.0, 640.0, 656.0, 672.0, 688.0, 704.0, 720.0, 736.0, 752.0, 768.0, 784.0, 800.0, 816.0, 832.0, 848.0, 864.0, 880.0, 896.0, 912.0, 928.0, 944.0, 960.0, 976.0, 992.0, specialized as float
+    ```
+
+    其中`cubuf_2`只有第一个数字是有效的，其他的都是无效数字。
+
+    如果使用`__shfl_up_sync()`，则最终累加的结果在最后一个：
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    0.0, 16.0, 32.0, 48.0, 64.0, 80.0, 96.0, 112.0, 128.0, 144.0, 160.0, 176.0, 192.0, 208.0, 224.0, 240.0, 256.0, 272.0, 288.0, 304.0, 320.0, 336.0, 352.0, 368.0, 384.0, 400.0, 416.0, 432.0, 448.0, 464.0, 480.0, 496.0, specialized as float
+    ```
+
+* `__any_sync()`
+
+    syntax:
+
+    ```cpp
+    __any_sync(unsigned mask, predicate);
+    ```
+
+    在一个 warp 32 个线程中，每个线程提供一个元素`predicate`，只要有一个是非 0，那么`__any_sync()`返回非 0 值（实测为 1）。
+
+    example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        int predicate = tid;
+        elm_type ret = __any_sync(0xffffffff, predicate);
+        cubuf_1[tid] = ret;
+        predicate = 0;
+        ret = __any_sync(0xffffffff, predicate);
+        cubuf_2[tid] = ret;
+    }
+
+    int main()
+    {
+        using elm_type = int;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, specialized as int
+    cubuf 2:
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as int
+    ```
+
+* `T __shfl_sync(unsigned mask, T var, int srcLane, int width=warpSize);`
+
+    手动指定`srcLane`，从`srcLane`拿数据。
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void my_kern(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        elm_type val = __shfl_sync(0xffffffff, cubuf_1[tid], tid+2);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
+
+        my_kern<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, 0.0, 1.0, specialized as float
+    ```
+
+    可以看到，这里是可以循环取值的。
+
+* `__shfl_up_sync()`
+
+    `__shfl_up_sync()`的作用与`__shfl_down_sync()`相似，只不过是向左 shift。
+
+    syntax:
+
+    ```cpp
+    T __shfl_up_sync(unsigned mask, T var, unsigned int delta, int width=warpSize);
+    ```
+
+* `__shfl_xor_sync()`
+
+    syntax:
+
+    ```cpp
+    T __shfl_xor_sync(unsigned mask, T var, int laneMask, int width=warpSize);
+    ```
+
+    如果`laneMask`是偶数，那么按`laneMask`个元素左右交换数据。
+
+    example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void my_kern(elm_type *cubuf_1, elm_type *cubuf_2, int laneMask)
+    {
+        int tid = threadIdx.x;
+        elm_type val = __shfl_xor_sync(0xffffffff, cubuf_1[tid], laneMask);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
+
+        int laneMask = 2;
+        my_kern<elm_type><<<1, 32>>>(cubuf_1, cubuf_2, laneMask);
+        cudaDeviceSynchronize();
+
+        printf("laneMask = %d:\n", laneMask);
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        laneMask = 4;
+        my_kern<elm_type><<<1, 32>>>(cubuf_1, cubuf_2, laneMask);
+        cudaDeviceSynchronize();
+
+        putchar('\n');
+        printf("laneMask = %d:\n", laneMask);
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    laneMask = 2:
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    2.0, 3.0, 0.0, 1.0, 6.0, 7.0, 4.0, 5.0, 10.0, 11.0, 8.0, 9.0, 14.0, 15.0, 12.0, 13.0, 18.0, 19.0, 16.0, 17.0, 22.0, 23.0, 20.0, 21.0, 26.0, 27.0, 24.0, 25.0, 30.0, 31.0, 28.0, 29.0, specialized as float
+
+    laneMask = 4:
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    4.0, 5.0, 6.0, 7.0, 0.0, 1.0, 2.0, 3.0, 12.0, 13.0, 14.0, 15.0, 8.0, 9.0, 10.0, 11.0, 20.0, 21.0, 22.0, 23.0, 16.0, 17.0, 18.0, 19.0, 28.0, 29.0, 30.0, 31.0, 24.0, 25.0, 26.0, 27.0, specialized as float
+    ```
+
+    如果将`laneMask`设置为 5，则会出现比较混乱的结果：
+
+    ```
+    laneMask = 5:
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    5.0, 4.0, 7.0, 6.0, 1.0, 0.0, 3.0, 2.0, 13.0, 12.0, 15.0, 14.0, 9.0, 8.0, 11.0, 10.0, 21.0, 20.0, 23.0, 22.0, 17.0, 16.0, 19.0, 18.0, 29.0, 28.0, 31.0, 30.0, 25.0, 24.0, 27.0, 26.0, specialized as float
+    ```
+
+    目前不知道原因。
+
 * cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
 
 * cuda 中`__shfl_down_sync()`的含义

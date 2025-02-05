@@ -6682,3 +6682,15 @@
     <https://www.theseus-os.com/Theseus/book/index.html#introduction-to-theseus>
 
     用 rust 写的操作系统，有时间了看看。
+
+* RDMA and SHARP plugins for nccl library 
+
+    <https://github.com/Mellanox/nccl-rdma-sharp-plugins>
+
+    不知道有啥用，sharp 这个词好像在哪听说过。
+
+* 十进制转二进制
+
+    <https://www.imathtool.com/jisuanqi/decimal-binary/>
+
+    debug 的时候会用到。
