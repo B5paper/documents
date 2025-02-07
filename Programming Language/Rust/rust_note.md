@@ -3619,9 +3619,9 @@ crate
 
 * 绝对路径（absolute path）
 
-    若被调用函数和调用函数在同一个`create`中，那么可以使用以`create`为根的绝对路径。
+    若被调用函数和调用函数在同一个`crate`中，那么可以使用以`crate`为根的绝对路径。
 
-    `create::front_of_house::hosting::add_to_waitlist();`
+    `crate::front_of_house::hosting::add_to_waitlist();`
 
 * 相对路径（relative path）
 

@@ -815,6 +815,10 @@
 
     <https://www.datacamp.com/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation>
 
+* `glXQueryVersion()`, grep 搜索结果显示出自`/usr/include/GL/glx.h`中。
+
+    ref: <https://www.ibm.com/docs/ro/aix/7.1?topic=environment-glxqueryversion-subroutine>
+
 ### tasks
 
 * { } reorg: projects
@@ -847,8 +851,6 @@
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [v] 调研`pathlib`
-
 * [ ] 调研 git ignore 的实现原理
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
@@ -856,12 +858,6 @@
 * [ ] 调研 deb 创建安装包
 
 * [v] 调研`glXQueryVersion()`出自哪个头文件
-
-    feedback:
-    
-    1. grep 搜索结果显示出自`/usr/include/GL/glx.h`中。
-
-    2. ref: <https://www.ibm.com/docs/ro/aix/7.1?topic=environment-glxqueryversion-subroutine>
 
 * [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
@@ -926,6 +922,35 @@
 * [v] reorg: documents 30 mins  01.01
 
     16:23 ~ 17:49
+
+* [v] reorg: documents 30 mins 02.06
+
+    feedback:
+
+    1. bootstrap 下载完后，解压出来文件，可以只使用 header 文件，也可以先编译成 .so，再在编译 main 时链接。（模板类无法实例化，如何编译？）
+
+        可以在 vscode cpp config 的 include path 里添加 bootstrap 的路径，比如`/home/hlc/Documents/Projects/boost_1_87_0`，即可在 main 代码中使用 header file 而不报错：
+
+        `#include <boost/interprocess/sync/interprocess_semaphore.hpp>`
+
+        在编译时需要加上编译参数：`-I/home/hlc/Documents/Projects/boost_1_87_0`
+
+        如果需要编译`.so`文件，可以先运行`./bootstrap.sh`，再运行`./b2`。此时即会开始编译，编译完成后会有提示：
+
+        ```
+        ...updated 641 targets...
+
+
+        The Boost C++ Libraries were successfully built!
+
+        The following directory should be added to compiler include paths:
+
+            /home/hlc/Documents/Projects/boost_1_87_0
+
+        The following directory should be added to linker library paths:
+
+            /home/hlc/Documents/Projects/boost_1_87_0/stage/lib
+        ```
 
 ## qa
 
@@ -1151,8 +1176,6 @@
 
     2. 调研 exam 时显示 unit 的 id 和 idx
 
-* [v] qa: review 12.16
-
 * [v] qa: 4 units  12:17
 
     正确率：2 / 4
@@ -1162,8 +1185,6 @@
     1. 如果**大部分**的 qa file 正确率都很**高**，那么考虑扩充 units；如果大部分的 qa file 正确率都很低，那么调低高正确率 qa file 的选中概率
 
     2. 如果单个 qa file 的正确率很高，那么降低它出现的概率
-
-* [v] qa: review  12.17
 
 * [v] qa: 4 units 12.18
 
@@ -1176,12 +1197,6 @@
     2. 增添新 record 时，不删减以前的 record，每三天 review 一次。
 
     3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
-
-* [v] qa: review 12.23
-
-* [v] qa: 2 units 12.25
-
-    正确率：1/2
 
 * [v] qa: review 12.25
 
@@ -1210,6 +1225,22 @@
         5. 记得读取 shader 文件中的内容
 
         6. `glDrawElements()`中填的是使用的 index 的数量，如果画三角形，那么必须为 3 的倍数
+
+* [v] qa: review 02.06
+
+    feedback:
+
+    1. hint point
+
+        1. flex 程序中，初始化的调用是`yylex();`，不是`yyflex();`
+
+        2. 在 glfw get key 之前，需要`glfwPollEvents();`
+
+        3. 在进入 while 循环前，必须执行`glEnableVertexAttribArray(0);`
+
+    2. [ ] `使用 element draw 画一个 cube`增加 deps:
+
+        1. load shader
 
 ## cache tabs / process urls
 
@@ -1417,8 +1448,6 @@ tasks:
 
 ### cache
 
-* cuda 中的 kernel 无论是 template 形式, 用 cudaLaunchKernel 启动，还是`__global__`修饰，`__device__`修饰，都是可以打断点的。nccl 中用的都是 cuda kernel，因此也是可以使用 cuda gdb 打断点的。通常 hit 一次断点需要 30 分钟以上，目前不清楚原因。
-
 * 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
 
     在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
@@ -1457,17 +1486,25 @@ tasks:
 
 ### tasks
 
+* { } 调研 ptx 指令集
+
+    resources:
+
+    1. <https://docs.nvidia.com/cuda/parallel-thread-execution/>
+
+    current progress:
+
+    (empty)
+
 * [v] 调研 `__any_sync()`, `__ballot_sync()`
 
-* [ ] 调研`barrierAny()`, `barrier_red_or()`
+* [ ] 调研`barrierAny()`
 
 * [o] 调研`asm volatile("barrier.sync.aligned`
 
     feedback:
 
     1. ptx 中没有直接对应的指令，不如从头看整个 ptx 指令集
-
-* [v] 调研`__syncwarp()`
 
 * [o] 调研 barrier red or
 
@@ -1527,7 +1564,23 @@ tasks:
 
     同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
-* [ ] 调研`cudaStreamCreate()`
+* [v] 调研`cudaStreamCreate()`
+
+    feedback:
+
+    1. [ ] 调研`cudaStreamBeginCapture()`, `cudaStreamBeginCaptureToGraph()`, `cudaStreamEndCapture()`
+
+    2. cuda stream management
+
+        <https://docs.nvidia.com/cuda/archive/9.1/cuda-runtime-api/group__CUDART__STREAM.html>
+
+        一共没几个函数，有空了可以看看，找找 example。
+
+    3. 简单看下 cuda stream csdn 上的资料
+
+        <https://blog.csdn.net/huikougai2799/article/details/106135203>
+
+        <http://turing.une.edu.au/~cosc330/lectures/display_notes.php?lecture=22>
 
 * 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
 
@@ -1714,11 +1767,11 @@ tasks:
 
     2. [ ] 不使用 simple 协议，把 primitives 改成 ll 协议
 
-    3. [ ] 调研 cuda `__shared__`
+    3. [v] 调研 cuda `__shared__`
 
-    4. [v] 调研 cuda 中的 warp 概念
+        feedback:
 
-    1. [v] 调研`#pragma unroll 1`
+        1. [ ] 调研`extern __shared__ xxx;`申请动态的 shard 数据
 
 * [ ] 调研`cudaMalloc3D()`
 
@@ -1971,6 +2024,8 @@ tasks:
 * [ ] 调研`cuLaunchKernelEx()`，为自己在 nccl 里写 kernel 做准备。
 
 * [o] 调研 LL 协议的最简实现
+
+* [ ] 调研：对于同一个 warp 中的不同线程，汇编中的`%1`，`%2`等寄存器对于这些线程来说是相同的吗？
 
 ## HPC comm
 

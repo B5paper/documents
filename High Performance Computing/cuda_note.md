@@ -2,6 +2,8 @@
 
 ## cache
 
+* cuda 中的 kernel 无论是 template 形式, 用 cudaLaunchKernel 启动，还是`__global__`修饰，`__device__`修饰，都是可以打断点的。nccl 中用的都是 cuda kernel，因此也是可以使用 cuda gdb 打断点的。通常 hit 一次断点需要 30 分钟以上，目前不清楚原因。
+
 * `__all_sync()`
 
     原理与`__any_sync()`相似，当一个 warp 中每个线程提供的值都为 1 时，则返回 1，否则返回 0.
