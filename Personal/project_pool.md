@@ -1496,6 +1496,22 @@ tasks:
 
     (empty)
 
+* { } 调研 nccl 最小可验证集
+
+    基于 socket + shm, simple protocol 实现 send, recv, reduce copy，实现拓扑功能，实现 ring。
+
+    目前的项目：
+
+    * `ptx_test`用于做 ptx 指令的实验，解决 reduce copy 中常见的 sync 机制，以及 load step value 时的 sync 机制；重写 load / store 相关的指令
+
+    * `kern_nccl_test`：从 work batch, prims, reduce copy 等几个 layer 进行 kernel 功能的验证。因为有些混乱，所以慢慢可能要放弃这个工程。
+
+    * `reduce_copy_test`: 专门拿来测 reduce copy，目前可以跑通。
+
+    * `nccl_asymptotic_reproduce`: 由于前面的项目代码比较混乱，所以这里创建了一个渐近功能测试。最底层是 load store asm 级别的测试，再往上是 reduce copy，再往上是 prims，再往上是 work 等等。
+
+        目前在致力于建设这个模块。
+
 * [v] 调研 `__any_sync()`, `__ballot_sync()`
 
 * [ ] 调研`barrierAny()`
