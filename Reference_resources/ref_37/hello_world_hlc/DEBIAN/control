@@ -1,0 +1,5 @@
+Package: hello-from-hlc
+Version: 0.2
+Maintainer: Hu Liucheng
+Architecture: all
+Description: hello world
