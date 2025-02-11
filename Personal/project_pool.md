@@ -855,7 +855,7 @@
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
-* [ ] 调研 deb 创建安装包
+* [v] 调研 deb 创建安装包
 
 * [v] 调研`glXQueryVersion()`出自哪个头文件
 
@@ -951,6 +951,8 @@
 
             /home/hlc/Documents/Projects/boost_1_87_0/stage/lib
         ```
+
+* [v] reorg: documents 30 mins 02.07
 
 ## qa
 
@@ -1242,6 +1244,12 @@
 
         1. load shader
 
+* [v] qa: 2 units  02.07
+
+    正确率：1 / 2
+
+* [v] qa: review  02.10
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1494,7 +1502,11 @@ tasks:
 
     current progress:
 
-    (empty)
+    目前看到
+
+    <https://docs.nvidia.com/cuda/parallel-thread-execution/#kernel-function-parameters>
+
+    5.1.6.1. Kernel Function Parameters
 
 * { } 调研 nccl 最小可验证集
 
@@ -1512,7 +1524,9 @@ tasks:
 
         目前在致力于建设这个模块。
 
-* [v] 调研 `__any_sync()`, `__ballot_sync()`
+    feedback:
+
+    1. 目前已完成 load 相关的指令集的编译与运行
 
 * [ ] 调研`barrierAny()`
 
@@ -1580,23 +1594,21 @@ tasks:
 
     同时，不能设置`NCCL_P2P_LEVEL`环境变量。把它设置为`PIX`也跑不通。
 
+* [ ] 调研`cudaStreamBeginCapture()`, `cudaStreamBeginCaptureToGraph()`, `cudaStreamEndCapture()`
+
+* cuda stream management
+
+    <https://docs.nvidia.com/cuda/archive/9.1/cuda-runtime-api/group__CUDART__STREAM.html>
+
+    一共没几个函数，有空了可以看看，找找 example。
+
+* 简单看下 cuda stream csdn 上的资料
+
+    <https://blog.csdn.net/huikougai2799/article/details/106135203>
+
+    <http://turing.une.edu.au/~cosc330/lectures/display_notes.php?lecture=22>
+
 * [v] 调研`cudaStreamCreate()`
-
-    feedback:
-
-    1. [ ] 调研`cudaStreamBeginCapture()`, `cudaStreamBeginCaptureToGraph()`, `cudaStreamEndCapture()`
-
-    2. cuda stream management
-
-        <https://docs.nvidia.com/cuda/archive/9.1/cuda-runtime-api/group__CUDART__STREAM.html>
-
-        一共没几个函数，有空了可以看看，找找 example。
-
-    3. 简单看下 cuda stream csdn 上的资料
-
-        <https://blog.csdn.net/huikougai2799/article/details/106135203>
-
-        <http://turing.une.edu.au/~cosc330/lectures/display_notes.php?lecture=22>
 
 * 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
 
@@ -1624,12 +1636,6 @@ tasks:
     ```
 
     hit 断点时，output 界面仍有 perf data 输出，但 bandwith 等数据都是 0. 说明 perf data 和 ld_volatile_global() 可能是异步执行的，并且 perf data 可能会用到 ld volatile global 的数据。
-
-* 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
-
-    同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
-
-    很可能是 8 bytes - 1048576 bytes 这个范围内。
 
 * 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
 
@@ -1662,10 +1668,6 @@ tasks:
 * { } 抽取 nccl LL 协议
 
     tmp:
-
-    * `BytePack<16>`如何处理返回值类型？
-
-        * [v] 调研：模板函数可以通过返回值类型选择特化吗？
 
     * work 是一个什么样的类型？
 
@@ -1861,19 +1863,13 @@ tasks:
 
     5. 调研 cuda 函数`cudaIpcGetMemHandle`, `cudaIpcOpenMemHandle`
 
+* [ ] 调研 nccl 中的 asm 语句 <https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html#constraints>
+
 * [v] 调研 nvlink
 
     13:36 ~ 14:42
 
     feedback:
-
-    2. 一些可能的新方向
-
-        * [ ] 调研 nccl 中的 asm 语句 <https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html#constraints>
-
-        * [ ] 调研 nccl app，看看文档或 api 中有无 load store 相关的信息
-
-            看起来 load store 很可能和 LL，LL128，以及 network 相关，可以重点留意下这几个方向。
 
     3. [ ] 尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
 
@@ -1938,8 +1934,6 @@ tasks:
     5. 未解决的问题
 
         cuda-gdb 如何切换 kernel 线程？如何 schedule lock 到一个线程上？
-
-* [v] 调研`cudaLaunchKernel()`调用 cuda kernel
 
 * [ ] 调研 python 中 ctypes 的用法
 
@@ -2029,11 +2023,7 @@ tasks:
 
 * [ ] 调研 pytorch load/save 支持哪些格式，`.pth`的格式
 
-* [v] 调研 nccl 中的 va 为什么始终是`0x7ffe60c00000`
-
 * [o] 调研 nccl 中的 task planner
-
-* [ ] 尝试将 nccl 中的 kernel 提取出来手写一遍
 
 * [ ] 调研 cuda-gdb 当进入 cuda kernel 代码中后，是否还能查看 host code 的变量
 
