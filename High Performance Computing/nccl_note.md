@@ -2,6 +2,14 @@
 
 ## cache
 
+* 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
+
+    同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
+
+    很可能是 8 bytes - 1048576 bytes 这个范围内。
+
+    * 2025/02/11/01: 确实没有用到，因为调用的是宏定义的 load 函数。`ld_volatile_global()`也很有可能不是加载数据用的，而是加载配置用的（step value）。
+
 * 基于 reduce copy 可以跑通的 all reduce
 
     见`ref_36`。
