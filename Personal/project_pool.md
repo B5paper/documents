@@ -1528,6 +1528,14 @@ tasks:
 
     1. 目前已完成 load 相关的指令集的编译与运行
 
+        目前已完成两卡之间的 reduce opy，但是需要打开 p2p 功能才行。
+
+    1. c++ 模板函数在调用时如何调用到偏特化的实现？
+
+    1. 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转。
+
+    1. 如何实现 device - host 的数据传输？
+
 * [ ] 调研`barrierAny()`
 
 * [o] 调研`asm volatile("barrier.sync.aligned`
