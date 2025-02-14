@@ -954,6 +954,16 @@
 
 * [v] reorg: documents 30 mins 02.07
 
+* [v] reorg: documents 30 mins
+
+    feedback:
+
+    1. 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假。
+
+    2. aria2 的源代码使用的是 c++ 11，主要用了 class 和智能指针，有时间了学习下
+
+    3. aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
+
 ## qa
 
 ### cached
@@ -1046,8 +1056,6 @@
         或许应该实现 qa file 可以相同，但是 unit 需要保证不同？
 
 * [ ] sync bash
-
-* [v] 在 2204 虚拟机上搭建 vk 开发环境
 
 * [ ] 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
 
@@ -1154,10 +1162,6 @@
 
     3. 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
 
-* [v] qa: 4 units
-
-    正确率： 2 / 4
-
 * [v] qa: 4 units  12.11
 
     正确率：2 / 4
@@ -1200,16 +1204,6 @@
 
     3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
-* [v] qa: review 12.25
-
-* [v] qa: 2 units 12.30
-
-    正确率：1 / 2
-
-* [v] qa: review 12.30
-
-* [v] qa: 2 units 01.06
-
 * [v] qa: 2 units 02.05
 
     feedback:
@@ -1249,6 +1243,16 @@
     正确率：1 / 2
 
 * [v] qa: review  02.10
+
+* [v] 调研 qa review 增加 clear 功能
+
+    默认情况下 append，当手动指定 clear 后，清空文件。这样可以保持一周的 review 量。
+
+    feedback:
+
+    1. [ ] 记录每个 uni 的多个历史完成时间，如果平均时间大于 N 分钟，那么标记该 unit 应该被拆分成 deps。
+
+    2. [ ] 调研 mysql
 
 ## cache tabs / process urls
 
@@ -1504,9 +1508,9 @@ tasks:
 
     目前看到
 
-    <https://docs.nvidia.com/cuda/parallel-thread-execution/#kernel-function-parameters>
+    <https://docs.nvidia.com/cuda/parallel-thread-execution/#device-function-parameters>
 
-    5.1.6.1. Kernel Function Parameters
+    5.1.6.4. Device Function Parameters 
 
 * { } 调研 nccl 最小可验证集
 
@@ -1524,17 +1528,29 @@ tasks:
 
         目前在致力于建设这个模块。
 
+    cache:
+
+    * 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
+
     feedback:
 
     1. 目前已完成 load 相关的指令集的编译与运行
 
         目前已完成两卡之间的 reduce opy，但是需要打开 p2p 功能才行。
 
-    1. c++ 模板函数在调用时如何调用到偏特化的实现？
+    1. 使用 asm 做 load store，似乎真没有比直接解引用或数组索引快多少。
 
-    1. 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转。
-
+        或许单机多卡的跨卡通信上 asm 有优势？
+        
     1. 如何实现 device - host 的数据传输？
+
+    1. 目前看到无法是否禁用 shm，在已知的 host alloc 和 malloc 中，都没有 4M buffer 的申请。shm 有可能走的 fifo buffer。但是 socket 也没有 4M buffer申请，有点奇怪。
+
+    1. 打印 cuda host alloc 的地址，打印 reduce copy 中的 dst 和 src 的地址，作对比，如果 src/dst 在 host alloc 的地址范围内，那么说明确实使用 host alloc 确定的 uva。否则什么也确定不了。
+
+        socket send 的时候也可以打印下地址看看。
+
+        使用自定义的 test case，在 cuda malloc 时打印出两个 deivce 的 addr 范围。
 
 * [ ] 调研`barrierAny()`
 
