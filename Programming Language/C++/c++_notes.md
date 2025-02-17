@@ -4,6 +4,109 @@
 
 ## cached
 
+* cuda 中，使用 struct 辅助实现偏特化
+
+    因为 c++ 不允许模板函数的偏特化，所以我们使用 struct 辅助一下。
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include "../utils/cumem_hlc.h"
+    #include "../utils/timeit.h"
+
+    enum Op
+    {
+        op_sum,
+        op_minus
+    };
+
+    template<typename T, Op op>
+    struct Calc;
+
+    template<typename T>
+    struct Calc<T, op_sum>
+    {
+        __device__ static void do_calc(T *a, T *b, T *out)
+        {
+            *out = *a + *b; 
+        }
+    };
+
+    template<typename T>
+    struct Calc<T, op_minus>
+    {
+        __device__ static void do_calc(T *a, T *b, T *out)
+        {
+            *out = *a - *b;
+        }
+    };
+
+    template<typename T, Op op>
+    __global__ void do_calc(T *a, T *b, T *out)
+    {
+        Calc<T, op>::do_calc(a, b, out);
+    }
+
+    int main()
+    {
+        float *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, sizeof(float));
+        cudaMalloc(&cubuf_2, sizeof(float));
+        assign_cubuf_rand_int(cubuf_1, 1);
+        assign_cubuf_rand_int(cubuf_2, 1);
+        print_cubuf(cubuf_1, 1);
+        print_cubuf(cubuf_2, 1);
+        do_calc<float, op_sum><<<1, 1>>>(cubuf_1, cubuf_2, cubuf_1);
+        cudaDeviceSynchronize();
+        printf("after:\n");
+        print_cubuf(cubuf_1, 1);
+        print_cubuf(cubuf_2, 1);
+        return 0;
+    }
+    ```
+
+    compile: `vcc -g -G main.cu -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    3.0, specialized as float
+    1.0, specialized as float
+    after:
+    4.0, specialized as float
+    1.0, specialized as float
+    ```
+
+* c/cpp 似乎没法直接把一个 val 转换成一个 class/union 的对象，但是可以通过指针转换 + 解引用来完成
+
+    ```cpp
+    #include <stdio.h>
+
+    union MyUnion
+    {
+        float val;
+        char spices[4];
+    };
+
+    int main()
+    {
+        float val = 123;
+        // MyUnion val_union = (MyUnion) val;  // Error
+        MyUnion val_union = *(MyUnion*) &val;
+        printf("val_union.val: %f\n", val_union.val);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val_union.val: 123.000000
+    ```
+
 * c++ 模板无法通过隐式推断根据返回值类型推断模板参数
 
     ```cpp

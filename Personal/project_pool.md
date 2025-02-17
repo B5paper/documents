@@ -30,6 +30,30 @@
 
 ## cache
 
+* 交互式地阅读材料并不能解决效率逐渐降低的问题，只能缓解。如果想要解决，还是得靠真正的输出。
+
+* dfs 停止的条件
+
+    阅读材料时，每次开始认为是一个 block，每遇到一个无法解释的点，则记 uncomprehensive point +1，记录够 N 个后，则认为这个 block 到此已经无法再理解了。可以尝试从下面开始，或者往下跳几段/几章，开始一个新的 block。如果新的 block 也无法理解，则记录 uncomprehensive block +1，攒够 N_2 个后，则认为整个 material 是无法理解的。
+
+* 对于当前节点，必须反复提问自己：上一个节点在哪里？我是从哪里来的？
+
+* 概念重定义
+
+    对于一个所有概念都清晰定义的系统，如果剔除某个概念 A 的定义，只保留其他概念对 A 的使用，那么根据这些使用的描述，我们能从什么程度上反推出 A 的定义？
+
+    example:
+
+    > 为了获得高带宽，shared Memory被分成32（对应warp中的thread）个相等大小的内存块，他们可以被同时访问。不同的CC版本，shared memory以不同的模式映射到不同的块（稍后详解）。如果warp访问shared Memory，对于每个bank只访问不多于一个内存地址，那么只需要一次内存传输就可以了，否则需要多次传输，因此会降低内存带宽的使用。
+
+    上面是某个博客的一段文字，其中用到了 bank 的概念，但是并没有给出 bank 的定义。我们是否能仅通过类似这样描述性的文字，推测出 bank 的定义或含义？
+
+* 遗忘点
+
+    每次 qa 时，把遗忘点记录下来，再针对遗忘点进行巩固，或许效果会好些。
+
+    这些遗忘点可以作为 hint，在回忆时，优先看 hint，如果看 hint 回忆不起来，再看 material。
+
 * 关于自适应
 
     对于一个 token 序列，我们希望找到和它相关的其他 token，一个直观的想法是对 token 的集合进行遍历，计算 token 相和度，给定一个阈值然后筛选（或者直接排序），选出合适的 token。此时阈值成为了一个超参数，无法做到真正的自适应。但是现代的做法是直接使用两个矩阵相乘，计算出了任意两个 token 的相和度。
@@ -1495,6 +1519,16 @@ tasks:
 * 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
 
     unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
+
+* nccl tmp
+
+    * 多卡之间如何 reduce copy?
+
+    * 如何动态确定多 srcs / dst?
+
+    * cu host alloc 的调用路径
+
+        `ncclAsyncJobMain()` -> `ncclCommInitRankFunc()` -> `initTransportsRank()` -> `devCommSetup()` -> `devCommSetup()` -> `ncclCudaHostCalloc()`
 
 ### tasks
 

@@ -2,6 +2,14 @@
 
 ## cache
 
+* `git revert`可以以提交 commit 的形式向前回退一个 commit。
+
+    `git revert HEAD`，必须要加上`HEAD`，否则无法 work。
+
+    `git revert <commit-id>`可以 revert 到指定 commit 的前一个 commit。
+
+    一个 revert 提交的 commit 也可以被 revert。
+
 * git clone 支持`http_proxy`和`https_proxy`环境变量
 
 * git branch

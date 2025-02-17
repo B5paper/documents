@@ -2,6 +2,527 @@
 
 ## cache
 
+* cuda 中代码对函数进行偏特化时，`nvcc`的报错
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include "../utils/cumem_hlc.h"
+    #include "../utils/timeit.h"
+
+    enum Op
+    {
+        op_sum,
+        op_minus
+    };
+
+    template<typename T, Op op>
+    __global__ void do_calc(T *a, T *b, T *out);
+
+    template<typename T>
+    __global__ void do_calc<T, op_sum>(T *a, T *b, T *out)
+    {
+        *out = *a + *b; 
+    }
+
+    template<typename T>
+    __global__ void do_calc<T, op_minus>(T *a, T *b, T *out)
+    {
+        *out = *a - *b;
+    }
+
+    int main()
+    {
+        float *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, sizeof(float));
+        cudaMalloc(&cubuf_2, sizeof(float));
+        assign_cubuf_rand_int(cubuf_1, 1);
+        assign_cubuf_rand_int(cubuf_2, 1);
+        print_cubuf(cubuf_1, 1);
+        print_cubuf(cubuf_2, 1);
+        do_calc<float, op_sum><<<1, 1>>>(cubuf_1, cubuf_2, cubuf_1);
+        cudaDeviceSynchronize();
+        printf("after:\n");
+        print_cubuf(cubuf_1, 1);
+        print_cubuf(cubuf_2, 1);
+        return 0;
+    }
+    ```
+
+    compile: `nvcc -g -G main.cu -o main`
+
+    compiling output:
+
+    ```
+    main_9.cu(21): error: function template "do_calc(T *, T *, T *)" has already been defined
+      __attribute__((global)) void do_calc<T, op_minus>(T *a, T *b, T *out)
+                                   ^
+
+    1 error detected in the compilation of "main_9.cu".
+    ```
+
+    nvcc 编译器认为函数不能有偏特化，因此去找函数`do_calc()`的第一个实现，结果在代码中找到的是`do_calc<T, op_sum>()`。后来又找到了`do_calc<T, op_minus>()`的实现，因此就认为是重复定义了`do_calc()`，所以报错。
+
+* `cvta_to_global()`会将`T*`转换成`uintptr_t`, `uintptr_t`有点像`void*`，其他类型的地址都可以转成这个类型，方便处理。
+
+* ptx tmp
+
+    * 在 ptx 中使用多个 const bank
+
+        ```asm
+        .extern .const[2] .b32 const_buffer[];
+        ```
+
+        看起来是将`.const[2]`的地址赋给`const_buffer`。
+
+        ```asm
+        .extern .const[2] .b32 const_buffer[];
+        ld.const[2].b32  %r1, [const_buffer+4]; // load second word
+        ```
+
+        这个看上去是从`const_buffer+4`处，取一个`.b32`值。看来即使有了地址，`.const[2]`这些 bank 信息还是不能省。
+
+    * Use `ld.global`, `st.global`, and `atom.global` to access global variables.
+
+    * The local state space (.local) is typically standard memory with cache. Use ld.local and st.local to access local variables.
+
+        loadl memory 是缓存吗？为什么其他地方说和全局变量一样，是片外的？
+
+    * 关于 .local memory，如果架构支持 stack，那么 .local memory 被存在 stack 中，如果没有 stack，那么 .local variable 被存在 fixed address 中，因此函数也不支持递归调用。
+
+    * Additional sub-qualifiers ::entry or ::func can be specified on instructions with .param state space to indicate whether the address refers to kernel function parameter or device function parameter.
+
+        看来`__global__` kernel 和`__device__` kernel 的作用还不一样。
+
+        `::entry`和`::func`并没有默认情况，只有根据上下文指令而自动指定。比如`st.param`会对应到`st.param::func`，`isspacep.param`会对应到`isspacep.param::entry`。
+
+    * `.param`可能会被映射到 register, stack 或 global memory 上，这一点我们无法确定，具体位置在哪需要参考 ABI 的实现。
+
+* ptx asm, `ld`相关指令的注意事项
+
+    `ld`一个字节的代码：
+
+    ```cpp
+    template<>
+    __device__ __forceinline__ BytePack<1> ld_volatile_global<1>(uintptr_t *ptr)
+    {
+        uint32_t ans;
+        asm("ld.volatile.global.b8 %0, [%1];" : "=r"(ans) : "l"(ptr));
+        return *(BytePack<1>*) &ans;
+    }
+    ```
+
+    由于这里实现的是`ld_volatile_global()`模板函数的一个特化，要求返回值类型和参数类型的**形式**要和原函数声明一样，因此返回值选用了`BytePack<ElmSize>`，这样可以返回不定长的值，而输入参数使用了`uniptr_t *`，由于指针的长度总是固定的（64 位），所以不需要变长类型，直接统一使用`uniptr_t*`了。
+
+    而且`uniptr_t *`也是下面 asm 命令的要求，`"l"(ptr)`，ptr 的约束必须为`l`，不然编译通不过。
+
+    函数中声明了一个`uint32_t ans;`的变量，这个也是 asm 的要求，`.b8`指令对应的`ans`必须为 32 位。不然编译不通过。因为是 32 位，所以 constraint 使用的是`r`。后面会详细讨论 constraint 相关。
+
+    接下来看 asm 指令，`.b8`的`ld`指令，读 1 个字节，但是`ans`是 32 位，`ptr`是 64 位的指针。说明可能硬件上可能取 32 位数据的前 8 位当作 1 个字节来用。
+
+    return 时使用了强制类型转换。直接`return (BytePack<1>) ans;`显然是编译不过去的。如果写成
+
+    ```cpp
+        BytePack<1> ret;
+        ret.native = ans;
+        return ret;
+    ```
+
+    这样又显得繁琐，并且创建了一个中间变量。所以最终选择直接做类型转换。
+
+* ptx tmp
+
+    * PTX is case sensitive and uses lowercase for keywords.
+
+    * ptx 语句有两种，一种是 directive，另一种是 instruction
+
+        常见的 directive 如下：
+
+        ```
+                .reg     .b32 r1, r2;
+                .global  .f32  array[N];
+
+        start:  mov.b32   r1, %tid.x;
+                shl.b32   r1, r1, 2;          // shift thread id by 2 bits
+                ld.global.b32 r2, array[r1];  // thread[tid] gets array[tid]
+                add.f32   r2, r2, 0.5;        // add 1/2
+        ```
+
+        常见的 insrruction 如下：
+
+        `abs`, `cvta`, `membar`
+
+    * identifier
+
+        ptx 中的 identifier 与 c/c++ 中的相似。
+
+        regular expression:
+
+        ```
+        followsym:   [a-zA-Z0-9_$]
+        identifier:  [a-zA-Z]{followsym}* | {[_$%]{followsym}+
+        ```
+
+    * Predefined Identifiers
+
+        ptx 预定义了一些常量。常用的常量：
+
+        `%clock`, `%laneid`, `%lanemask_gt`
+
+    * integer 有 signed 和 unsigned 之分，以 64 位为例，分别表示为`.s64`, `.u64`
+
+    * 整型的字面量  Integer literals
+
+        常见的格式如下：
+
+        ```
+        hexadecimal literal:  0[xX]{hexdigit}+U?
+        octal literal:        0{octal digit}+U?
+        binary literal:       0[bB]{bit}+U?
+        decimal literal       {nonzero-digit}{digit}*U?
+        ```
+
+    * floating point
+
+        ptx 支持使用十六进制数按照 IEEE 754 格式精确表示浮点数。
+
+        ```
+        0[fF]{hexdigit}{8}      // single-precision floating point
+        0[dD]{hexdigit}{16}     // double-precision floating point
+        ```
+
+        example:
+
+        ```asm
+        mov.f32  $f3, 0F3f800000;       //  1.0
+        ```
+
+    * A state space is a storage area with particular characteristics.
+
+        常用的 state space:
+
+        * `.reg`: Registers, fast.
+
+        * `.sreg`: Special registers. Read-only; pre-defined; platform-specific.
+
+            The special register (.sreg) state space holds predefined, platform-specific registers, such as grid, cluster, CTA, and thread parameters, clock counters, and performance monitoring registers. All special registers are predefined.
+
+        * `.const`: Shared, read-only memory.
+
+        * `.global`: Global memory, shared by all threads.
+
+        * `.local`: Local memory, private to each thread.
+
+        * `.param`: Kernel parameters, defined per-grid; or Function or local parameters, defined per-thread.
+
+        * `.shared`: Addressable memory, defined per CTA, accessible to all threads in the cluster throughout the lifetime of the CTA that defines it.
+
+        * `.tex`: Global texture memory (deprecated).
+
+    * The constant (.const) state space is a read-only memory initialized by the host. Constant memory is accessed with a `ld.const` instruction.
+
+    * Constant memory is restricted in size, currently limited to 64 KB which can be used to hold statically-sized constant variables.
+
+        常量的空间竟然有 64 KB，感觉还是比较大的。
+
+    * There is an additional 640 KB of constant memory, organized as ten independent 64 KB regions. The driver may allocate and initialize constant buffers in these regions and pass pointers to the buffers as kernel function parameters.
+
+        没有明白这个是啥意思，猜测：默认的字面量和 const 变量都是存在 64 KB 的 constant memory 中，如果有额外的大量常量数据的需要，比如传入一个世界地图的数据之类的，可以在驱动层面额外申请，并且显式地把数据写入进去。推论：640 KB 的 constant memory 是所有 sm 共享的。
+
+* ptx tmp
+
+    * The NVIDIA GPU architecture is built around a scalable array of multithreaded Streaming Multiprocessors (SMs).
+
+    * A multiprocessor consists of multiple Scalar Processor (SP) cores, a multithreaded instruction unit, and on-chip shared memory. It implements a single-instruction barrier synchronization.
+
+        The multiprocessor maps each thread to one scalar processor core, and each scalar thread executes independently with its own instruction address and register state. 
+
+        每个 sp 对应一个线程吗？
+
+    * The multiprocessor SIMT unit creates, manages, schedules, and executes threads in groups of parallel threads called warps. (This term originates from weaving, the first parallel thread technology.)
+
+        simt unit 指的是管理多个 sp 的组件吗？
+
+    * When a multiprocessor is given one or more thread blocks to execute, it splits them into warps that get scheduled by the SIMT unit.
+
+        SM 拿到 blocks，SM 将 blocks 分成多个 warps。每个 warp 对应一个 simt unit.
+
+    * At every instruction issue time, the SIMT unit selects a warp that is ready to execute and issues the next instruction to the active threads of the warp.
+
+        warp 和 simt unit 并不是绑定的关系，simt unit 会动态选择准备就绪的 warp 进行处理。
+
+        一个 warp 中的 threads 也不是都为 active 状态，可能只有部分是 active 状态。（猜测这里的 active 和 if 条件语句有关）
+
+    * A warp executes one common instruction at a time, so full efficiency is realized when all threads of a warp agree on their execution path. If threads of a warp diverge via a data-dependent conditional branch, the warp serially executes each branch path taken, disabling threads that are not on that path, and when all paths complete, the threads converge back to the same execution path. Branch divergence occurs only within a warp; 
+
+        如果一个 warp 中的多个 thread 根据 if 语句发生了 diverge，一部分 threads 走 branch 1，另一部分 threads 走 branch 2，那么 warp 会先执行 branch 1 的代码，再执行 branch 2 的代码，最后再把所有 threads 合并到一起，执行 common 代码。
+
+        显然，最坏的情况是 branch 1 上有 N - 1 个 threads，而 branch 2 上只有 1 个 thread，并且 branch 2 的代码很长。为了这一个 thread，其他 thread 要等很长时间，彻底破坏了 simt 的优势。
+
+    * How many blocks a multiprocessor can process at once depends on how many registers per thread and how much shared memory per block are required for a given kernel since the multiprocessor’s registers and shared memory are split among all the threads of the batch of blocks. 
+
+        看来 sm 中的寄存器和 shared memory 的数量是有限的，根据这些资源的占用情况，动态决定一个 sm 能同时处理多少个 block。
+
+        推论：或者是编译，或者是固件，一定有个地方会计算 sm 中寄存器资源的占用情况，并在 dispatch 任务时会根据这些占用情况进行派发。
+
+    * 从 vulta 架构开始，引入了 Independent Thread Scheduling，此时不再以 warp + mask 的形式进行线程调度，提高了灵活性。
+
+        目前并不清楚这点是怎么 work 的，有时间了再看。
+
+    * on-chip memory
+
+        片上内存，速度快。一共有 4 种。
+
+        * register，每个 thread 独占。
+
+        * shared memory, 位置在 sm 上，逻辑上 block 共享
+
+        * read-only constant cache，位置在 sm 上，逻辑情况未知
+
+        * read-only texture cache，位置在 sm 上，逻辑情况未知
+
+* ptx tmp
+
+    * Cooperative thread arrays (CTAs) implement CUDA thread blocks
+
+    * The Parallel Thread Execution (PTX) programming model is explicitly parallel:
+
+    * The thread identifier is a three-element vector tid, (with elements tid.x, tid.y, and tid.z) 
+
+    * Each CTA has a 1D, 2D, or 3D shape specified by a three-element vector ntid (with elements ntid.x, ntid.y, and ntid.z).
+
+    * Threads within a CTA execute in SIMT (single-instruction, multiple-thread) fashion in groups called warps.
+
+    * A warp is a maximal subset of threads from a single CTA
+
+        不懂这句什么意思
+
+    * PTX includes a run-time immediate constant, WARP_SZ
+
+        warp size
+
+    * Cluster is a group of CTAs that run concurrently or in parallel and can synchronize and communicate with each other via shared memory. 
+
+        一个 cluster 由多个 warp 组成，多个 warp 之间可以共享内存。
+
+    * Cluster-wide barriers can be used to synchronize all the threads within the cluster. 
+
+        cluster-wide 并不是拿来同步 cluster 的，而是拿来同步 cluster 中的 thread 的
+
+        不同 cluster 之间的 thread 无法同步，也无法通信。
+
+    * Each CTA in a cluster has a unique CTA identifier within its cluster (cluster_ctaid).
+
+        cta 在 cluster 中有独立的 id 来标识。
+
+    * Each cluster of CTAs has 1D, 2D or 3D shape specified by the parameter cluster_nctaid
+
+        cluster 也可以按 1d, 2d, 3d 组合。这里只提供了一个`cluster_nctaid`，不同维度的 id 该如何获取？
+
+    * Each CTA in the cluster also has a unique CTA identifier (cluster_ctarank) across all dimensions. total number of CTAs across all the dimensions in the cluster is specified by cluster_nctarank.
+
+        这个应该是把 dimension flatten 后得到的 id
+
+    * Threads may read and use these values through predefined, read-only special registers %cluster_ctaid, %cluster_nctaid, %cluster_ctarank, %cluster_nctarank.
+
+    * Each cluster has a unique cluster identifier (clusterid) within a grid of clusters. Each grid of clusters has a 1D, 2D , or 3D shape specified by the parameter nclusterid. Each grid also has a unique temporal grid identifier (gridid). Threads may read and use these values through predefined, read-only special registers %tid, %ntid, %clusterid, %nclusterid, and %gridid.
+
+        cluster id 的标识，没啥可说的，和 thread id 差不多。
+
+    * Each CTA has a unique identifier (ctaid) within a grid. Each grid of CTAs has 1D, 2D, or 3D shape specified by the parameter nctaid. Thread may use and read these values through predefined, read-only special registers %ctaid and %nctaid.
+
+         cta 在 grid 中的 id 标识，注意这个是区别于 cluster 的。
+
+    * Grids may be launched with dependencies between one another
+
+        不同 grid 之间可以指定依赖关系后串行执行。这个依赖关系和 cuda graph 相关。
+
+    * ach thread has a private local memory. Each thread block (CTA) has a shared memory visible to all threads of the block and to all active blocks in the cluster and with the same lifetime as the block. Finally, all threads have access to the same global memory.
+
+        其他的都比较清楚，唯一不清楚的是，shared memory 是每个 cta 有一份，还是一个 cluster 中只有一份？
+
+    * Constant and texture memory are read-only; surface memory is readable and writable.
+
+    * The global, constant, param, texture, and surface state spaces are optimized for different memory usages.
+
+    * texture and surface memory is cached, and within the same kernel call, the cache is not kept coherent with respect to global memory writes and surface memory writes,
+
+        texture 和 surface 总是读缓存里的数据，因此如果在一个 kernel 调用内先存入新的值，再立即去读取值，很有可能读出的值并不是存入的值。
+
+    * The global, constant, and texture state spaces are persistent across kernel launches by the same application.
+
+        不懂这个是啥意思。
+
+        前面一直没提到过 param memory 是干什么用的，有什么特性。
+
+* 当`__shared__`在 kernel 外声明时，依然有基本功能：被`__shared__`修饰的数据，只在同一个 block 中相冋，并且只能被同一个 block 中的 thread 访问
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __shared__ int a;
+
+    __global__ void my_kern()
+    {
+        if (threadIdx.x == 0)
+        {
+            a = blockIdx.x;
+        }
+        __syncthreads();
+        if (threadIdx.x == 1)
+        {
+            printf("in block %d, a = %d\n", blockIdx.x, a);
+        }
+    }
+
+    int main()
+    {
+        my_kern<<<2, 32>>>();
+        cudaDeviceSynchronize();
+        return 0;
+    }
+    ```
+
+    compile: `nvcc main.cu -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    in block 0, a = 0
+    in block 1, a = 1
+    ```
+
+    可以看到，不同 block 访问到的 shared 数据不同。
+
+* cuda stream
+
+    `__host__ ​cudaError_t cudaStreamCreate ( cudaStream_t* pStream ) `
+
+    在当前 host thread 最新的 context 上创建一个 stream。
+
+    如果当前 host thread 没有 context，那么在 device 的 primary context 上创建一个 stream，并将这个 context 作为当前 host thread 的 context.
+
+    销毁 stream:
+
+    `__host__ ​ __device__ ​cudaError_t cudaStreamDestroy ( cudaStream_t stream ) `
+
+* True 和 False 被称作 guard predicate
+
+* `@{!}p    instruction;`被称作 Predicated execution.
+
+    当`{!}p`为 true 时，才执行 instruction，否则不执行。
+
+    example:
+
+    ```asm
+        setp.eq.f32  p,y,0;     // is y zero?
+    @!p div.f32      ratio,x,y  // avoid division by zero
+
+    @q  bra L23;                // conditional branch
+    ```
+
+* `bra`跳转
+
+    ```asm
+    @p   bra{.uni}  tgt;           // tgt is a label
+         bra{.uni}  tgt;           // unconditional branch
+    ```
+
+    `bra.uni` is guaranteed to be non-divergent, i.e. all active threads in a warp that are currently executing this instruction have identical values for the guard predicate and branch target.
+
+    这个可能的含义是当所有线程的`p`或`tgt`都一致时，才使用`.uni`。（什么时候`tgt`会不一致？如果`p`或`tgt`不一致，但是使用了`.uni`，会报什么错？）
+
+    `bra`看起来像是 branch 的缩写。
+
+* `bar{.cta}, barrier{.cta}`
+
+    barrier
+
+    同步 cta 中的线程。猜想：cta 为一种用于同步的资源，当线程运行到 barrier 后停下，当所有线程都运行到 barrier 后，由 cta 唤醒线程继续运行。每个 cta 有 16 个用于同步的资源，编号为 0 到 15.
+
+    > The optional .cta qualifier simply indicates CTA-level applicability of the barrier and it doesn’t change the semantics of the instruction.
+
+    看上去 cta 只是一个提示词，无论使用还是不使用都不影响功能。
+
+    * `barrier{.cta}.sync{.aligned}      a{, b};`
+
+        `.sync`表示当参与 barrier 的线程到达这条指令后，等待其他线程。
+
+        `a`表示使用第几个 cta，可取值为 0 到 15.
+
+        `b`表示有多少线程参与 barrier，这个数必须是 warp size 的整数倍。如果不指定`b`，则所有参与 barrier 的 thread 所在的 warp，都会进入 barrier。
+
+        这里的`.aligned`与`.cta`同理，都只是一个提示词，不具备实际功能。
+
+    * `barrier{.cta}.arrive{.aligned}    a, b;`
+
+        与`.sync`相对，`.arrive`不会阻塞 thread。它似乎仅用于标记这里有个 barrier。
+
+        官网举的例子是 producer-consumer 模型，整个过程分为两步：
+        
+        1. 一部分 thread 作为 producer 执行`barrier.arrive`，另一部分 thread 作为 consumer 执行`barrier.sync`等待 producer 生产出资源
+
+        2. 刚才作为 producer 的 threads 执行`barrier.sync`等待 consumer 消耗资源，而刚才作为 consumer 的 threads 执行`barrier.arrive`消耗资源
+
+        目前没有看到实际的 example。
+
+        注意，在`.arrive`中，`b`必须指定。（为什么？）
+
+    * `barrier{.cta}.red.popc{.aligned}.u32  d, a{, b}, {!}c;`
+
+        `.red`表示 reduce，`.popc`表示 population-count，`d`表示目标寄存器，`c`表示谓词（predicate）。
+
+        `.popc`表示统计`c`中有多少个 true，并把结果存储到寄存器`d`中。
+
+    * `barrier{.cta}.red.op{.aligned}.pred   p, a{, b}, {!}c;`
+
+        其中的`.op`可以为`.and`，也可以为`.or`，分别用于判断`c`是否全为 true，或只有部分为 true。将判断的结果存储到寄存器`p`中。
+
+* `__syncwarp()`
+
+    syntax:
+
+    `void __syncwarp(unsigned mask=0xffffffff);`
+
+    只是一个普通的基于 warp 的同步函数，没有什么特别的。`mask`用于指定进入同步的线程。
+
+* `.reg .pred p;`是一个声明变量的语句，`.reg`表示是寄存器空间，`.pred`表示 predicate (谓词)，可能是用于条件分支的，相当于 if 语句。
+
+    example:
+
+    ```c
+    if (i < n)
+        j = j + 1;
+    ```
+
+    上面的 c 代码等价于下面这两种 ptx 代码：
+
+    ```asm
+          setp.lt.s32  p, i, n;    // p = (i < n)
+    @p    add.s32      j, j, 1;    // if i < n, add 1 to j
+    ```
+
+    ```asm
+          setp.lt.s32  p, i, n;    // compare i to n
+    @!p   bra  L1;                 // if False, branch over
+          add.s32      j, j, 1;
+    L1:     ...
+    ```
+
+* `.step`用于比较大小，并将结果存放到指定寄存器中
+
+    ```asm
+    setp.lt.s32  p|q, a, b;  // p = (a < b); q = !(a < b);
+    ```
+
 * cuda 中的 kernel 无论是 template 形式, 用 cudaLaunchKernel 启动，还是`__global__`修饰，`__device__`修饰，都是可以打断点的。nccl 中用的都是 cuda kernel，因此也是可以使用 cuda gdb 打断点的。通常 hit 一次断点需要 30 分钟以上，目前不清楚原因。
 
 * `__all_sync()`
@@ -3225,3 +3746,74 @@
     cuda 的版本会落后一些，但是提供了提示和编译环境，可以用来跳转和写代码。
 
 * nvcc 需要安装 g++ 编译器
+
+## ptx
+
+### cache
+
+* `.param` state space 是可寻址（addressable）的，只读（read-only）的。
+
+* The kernel parameter variables are shared across all CTAs from all clusters within a grid.
+
+    这里的 grid 只是编程上的概念，并不是硬件上的概念。在 grid 上共享，那么它在硬件的什么地方？在 global memory 上吗？
+
+* `ld.param`可以将 param 的数据加载到寄存器里，`mov`可以将 param 的地址加载到寄存器里
+
+    examples:
+
+    ```asm
+    .entry foo ( .param .b32 N, .param .align 8 .b8 buffer[64] )
+    {
+        .reg .u32 %n;
+        .reg .f64 %d;
+
+        ld.param.u32 %n, [N];
+        ld.param.f64 %d, [buffer];
+        ...
+    ```
+
+    ```asm
+    .entry bar ( .param .b32 len )
+    {
+        .reg .u32 %ptr, %n;
+
+        mov.u32      %ptr, len;
+        ld.param.u32 %n, [%ptr];
+        ...
+    ```
+
+* Kernel function parameters may represent normal data values, or they may hold addresses to objects in constant, global, local, or shared state spaces.
+
+    `.param`变量可能会来自不同的地址空间，在 ptx 汇编中，需要提供它来自哪个 state space。
+
+    但是上面的 example 并没有提供 state space，为什么？
+
+* The current implementation does not allow creation of generic pointers to constant variables (cvta.const) in programs that have pointers to constant buffers passed as kernel parameters.
+
+    generic pointers 不允许指向常数变量，有专门的`cvta.const`指令创建指向 const 变量的指针。
+
+* `.ptr`可以为`.param`添加额外的属性（attribute），这里的属性主要有两种，一个是`.space`，另一个是`.align`。
+
+    语法如下：
+
+    ```asm
+    .param .type .ptr .space .align N  varname
+    .param .type .ptr        .align N  varname
+
+    .space = { .const, .global, .local, .shared };
+    ```
+
+    `.align`表示 4 字节对齐（aligned to a 4 byte boundary.）。
+
+    example:
+
+    ```asm
+    .entry foo ( .param .u32 param1,
+                 .param .u32 .ptr.global.align 16 param2,
+                 .param .u32 .ptr.const.align 8 param3,
+                 .param .u32 .ptr.align 16 param4  // generic address
+                                                   // pointer
+    ) { .. }
+    ```
+
+    这个形式看起来比较像一个函数，`.param`标记了一个参数的开始。是否存在不是`.param`的参数？或者说，当一个参数不被`.param`标记时，是否会报错？

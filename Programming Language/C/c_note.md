@@ -6,6 +6,24 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* c 使用`a+`向文件中追加内容
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    int main()
+    {
+        FILE *f = fopen("aaa.txt", "a+");
+        char *str = "hello, world\n";
+        size_t str_len = strlen(str);  // 13
+        printf("str len: %lu\n", str_len);
+        fwrite(str, str_len, 1, f);
+        fclose(f);
+    }
+    ```
+
 * printf 中的数据解析
 
     如果一个 long (64位) 数据类型，在填 format 时写成了`%d`，那么有可能导致后续的数据解析错误。
