@@ -988,6 +988,8 @@
 
     3. aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
 
+* [v] reorg: documents 30 mins 02.19
+
 ## qa
 
 ### cached
@@ -1277,6 +1279,26 @@
     1. [ ] 记录每个 uni 的多个历史完成时间，如果平均时间大于 N 分钟，那么标记该 unit 应该被拆分成 deps。
 
     2. [ ] 调研 mysql
+
+* [ ] 调研：unit 增加 hint 字段，显示完`[u_0]`后，输入`h`显示一条 hint 
+
+    或许应该把 d 命令和 h 命令合成一个功能？
+
+* [ ] qa: exam 中调换 clear previous qa_record 和 save this exam record 的位置
+
+* [ ] qa: 增加 openshmem 的 qa
+
+* [v] qa: 2 units 02.19
+
+    正确率： 1 / 2
+
+    feedback:
+
+    1. hint
+
+        1. flex 程序，先是`%{ %}`，再`%% %%`
+
+        2. `yywrap()`, `yylex()`中间没有下划线
 
 ## cache tabs / process urls
 
@@ -2090,6 +2112,8 @@ tasks:
 * [o] 调研 LL 协议的最简实现
 
 * [ ] 调研：对于同一个 warp 中的不同线程，汇编中的`%1`，`%2`等寄存器对于这些线程来说是相同的吗？
+
+* [v] 调研 netlink，ibverbs，fifo，准备面试题
 
 ## HPC comm
 
@@ -2942,6 +2966,10 @@ tasks:
 
 * [v] leetcode 1 题  05/25
 
+* [ ] 调研：大于等于指定元素的第一个元素的二分查找写法
+
+    以及小于等于指定元素的第一个元素的二分查找写法
+
 ## awk
 
 cache:
@@ -3410,6 +3438,14 @@ cache:
     ```
 
     有空了研究一下这段代码，分析一下利弊。
+
+* [ ] 调研：c++ `lower_bound()`, `upper_bound()`作用
+    
+    以及如果找不到元素或元素在数组边界时的情况
+
+* [ ] 调研：c++ 迭代器为什么`upper_bound()`的返回值减去`lower_bound()`的返回值等于数组的长度？
+
+* [ ] 调研 c++ 迭代器，increase 相关
 
 ## Vim
 
