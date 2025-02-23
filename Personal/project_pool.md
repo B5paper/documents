@@ -1300,6 +1300,27 @@
 
         2. `yywrap()`, `yylex()`中间没有下划线
 
+* [v] qa: 2 units 02.14
+
+    正确率：0 / 2
+
+    feedback:
+
+    1. hint
+        
+        1. 获取 key 按键时，函数叫 glfw get key, 不叫 glfw key press
+
+    1. 创建一个`qa_utils`文件下，下设`opengl`, `opencl`等文件夹，文件夹中再设`triangle.c`, `vec_add.c`等文件或文件夹，与 dep 任务相对应。
+
+        最好可以把功能写成`.h`的形式，在使用时直接`#include "qa_utils/opengl/load_shader.h"`就可以。
+
+        实在写不成`.h`的形式，再写成`.c`或`.cpp`的形式，如果连这种形式也写不成，就创建文件夹工程目录。
+
+        dep 不一定要实现完整工程，只需要写出核心的逻辑就可以。
+
+    1. exam 程序应该先打印 deps，如果有 deps，必须依赖 deps 进行开发
+
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1608,6 +1629,11 @@ tasks:
 
         使用自定义的 test case，在 cuda malloc 时打印出两个 deivce 的 addr 范围。
 
+
+    1. 目前可以确定，在 shm 禁用的情况下，数据是通过 socket 传输的，socket 的 buffer size 是 128 KB，但是这个数据并不一定是 malloc 时正好 malloc 128 KB，而可能根据 nccl 环境变量`NCCL_P2P_NET_CHUNKSIZE`得到的。
+
+        目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
+
 * [ ] 调研`barrierAny()`
 
 * [o] 调研`asm volatile("barrier.sync.aligned`
@@ -1633,6 +1659,8 @@ tasks:
     feedback:
 
     1. 目前只看到`barrier.red.or.pred p`。
+
+* [ ] 调研 nccl 中的 asm 语句 <https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html#constraints>
 
 ## gpu driver
 
@@ -2114,6 +2142,10 @@ tasks:
 * [ ] 调研：对于同一个 warp 中的不同线程，汇编中的`%1`，`%2`等寄存器对于这些线程来说是相同的吗？
 
 * [v] 调研 netlink，ibverbs，fifo，准备面试题
+
+* [ ] 调研 hugging face，看看比 mmdetection 多了什么东西
+
+
 
 ## HPC comm
 
