@@ -6,6 +6,12 @@
 
 一个可能的教程：<https://wiki.openttd.org/en/Archive/Compilation%20and%20Ports/Compiling%20on%20Windows%20using%20MSYS2>
 
+## cache
+
+* 长时间不使用 msys2 或 pacman 时，需要使用`pacman -Sy pacman`更新 packman 的数据库。
+
+## note
+
 MSYS2 似乎提供了多个编译环境，原理好像是为每个编译环境建立了一个文件夹，然后文件夹里有配套的各种二进制文件。
 
 如果我们想要用 mingw64 环境下的编译器，可以先打开 msys2 mingw64，然后
