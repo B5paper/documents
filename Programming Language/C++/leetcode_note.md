@@ -30541,6 +30541,83 @@ public:
     };
     ```
 
+* 有序数组中出现次数超过25%的元素
+
+    给你一个非递减的 有序 整数数组，已知这个数组中恰好有一个整数，它的出现次数超过数组元素总数的 25%。
+
+    请你找到并返回这个整数
+
+    
+
+    示例：
+
+    输入：arr = [1,2,2,6,6,6,6,7,10]
+    输出：6
+    
+
+    提示：
+
+    1 <= arr.length <= 10^4
+    0 <= arr[i] <= 10^5
+
+    代码：
+
+    1. 自己写的，直接统计，超过 25% 就返回
+
+        ```cpp
+        class Solution {
+        public:
+            int findSpecialInteger(vector<int>& arr) {
+                int val = arr[0];
+                int cnt = 1;
+                int cnt_1_4 = arr.size() / 4;
+                if (cnt > cnt_1_4)
+                    return val;
+                for (int i = 1; i < arr.size(); ++i)
+                {
+                    if (arr[i] == val)
+                    {
+                        ++cnt;
+                        if (cnt > cnt_1_4)
+                            return val;
+                        continue;
+                    }
+                    val = arr[i];
+                    cnt = 1;
+                }
+                return 0;
+            }
+        };
+        ```
+
+        每次遇到不同的值就更新`val`，重新开始统计。如果当前值`arr[i]`与上一个值`val`相等，那么增加计数`cnt`，如果`cnt`超过 25%，那么直接返回。
+
+    2. 官方的思路
+
+        因为这个数至少占 25%，所以我们可以考虑头末端元素加四分位点，它一定会在这些位置出现至少一次。我们只需要对这 5 个位置的元素通过二分查找，找到上界和下界的位置，然后计算长度即可。
+
+        ```cpp
+        class Solution {
+        public:
+            int findSpecialInteger(vector<int>& arr) {
+                int n = arr.size();
+                int span = n / 4 + 1;
+                for (int i = 0; i < n; i += span) {
+                    auto iter_l = lower_bound(arr.begin(), arr.end(), arr[i]);
+                    auto iter_r = upper_bound(arr.begin(), arr.end(), arr[i]);
+                    if (iter_r - iter_l >= span) {
+                        return arr[i];
+                    }
+                }
+                return -1;
+            }
+        };
+        ```
+
+        说明：
+
+        1. 这个有点像抽屉原理，我们可以把连续的一段元素想象成一个小滑块，将整个数组连续化，然后再离散化，考虑边界条件。
+
 ### 下一个排列
 
 实现获取 下一个排列 的函数，算法需要将给定数字序列重新排列成字典序中下一个更大的排列。
@@ -32540,6 +32617,133 @@ public:
             return l;
         }
     };
+    ```
+
+### 区间内查询数字的频率
+
+请你设计一个数据结构，它能求出给定子数组内一个给定值的 频率 。
+
+子数组中一个值的 频率 指的是这个子数组中这个值的出现次数。
+
+请你实现 RangeFreqQuery 类：
+
+RangeFreqQuery(int[] arr) 用下标从 0 开始的整数数组 arr 构造一个类的实例。
+int query(int left, int right, int value) 返回子数组 arr[left...right] 中 value 的 频率 。
+一个 子数组 指的是数组中一段连续的元素。arr[left...right] 指的是 nums 中包含下标 left 和 right 在内 的中间一段连续元素。
+
+
+
+示例 1：
+
+输入：
+["RangeFreqQuery", "query", "query"]
+[[[12, 33, 4, 56, 22, 2, 34, 33, 22, 12, 34, 56]], [1, 2, 4], [0, 11, 33]]
+输出：
+[null, 1, 2]
+
+解释：
+RangeFreqQuery rangeFreqQuery = new RangeFreqQuery([12, 33, 4, 56, 22, 2, 34, 33, 22, 12, 34, 56]);
+rangeFreqQuery.query(1, 2, 4); // 返回 1 。4 在子数组 [33, 4] 中出现 1 次。
+rangeFreqQuery.query(0, 11, 33); // 返回 2 。33 在整个子数组中出现 2 次。
+
+
+提示：
+
+1 <= arr.length <= 105
+1 <= arr[i], value <= 104
+0 <= left <= right < arr.length
+调用 query 不超过 105 次。
+
+
+解答：
+
+1. 自己写的，超出内存限制
+
+    最简单的想法是遍历 left, right 区间，然后统计就可以了。但是这样效率很低。低在哪里？主要是上一次统计过的数据，下次还要再统计。看到有区间长度，通常的做法是使用前缀和，这样只需要统计一遍就可以了，后面直接用减法就能得到结果。
+
+    ```cpp
+    class RangeFreqQuery {
+    public:
+        RangeFreqQuery(vector<int>& arr) {
+            for (int i = 0; i < arr.size(); ++i)
+            {
+                int val = arr[i];
+                if (m.find(val) != m.end())
+                {
+                    m[val][i] = 1;
+                }
+                else
+                {
+                    m.insert(make_pair(val, vector<int>(arr.size())));
+                    m[val][i] = 1;
+                }
+            }
+            for (auto iter = m.begin(); iter != m.end(); ++iter)
+            {
+                auto &vec = iter->second;
+                for (int i = 1; i < vec.size(); ++i)
+                {
+                    vec[i] = vec[i] + vec[i-1];
+                }
+            }
+        }
+        
+        int query(int left, int right, int value) {
+            if (m.find(value) == m.end())
+                return 0;
+            auto &presum = m[value];
+            if (left > 0)
+                return presum[right] - presum[left-1];
+            else
+                return presum[right];
+        }
+
+        unordered_map<int, vector<int>> m;
+    };
+
+    /**
+    * Your RangeFreqQuery object will be instantiated and called as such:
+    * RangeFreqQuery* obj = new RangeFreqQuery(arr);
+    * int param_1 = obj->query(left,right,value);
+    */
+    ```
+
+2. 看了答案思路后，又自己写的
+
+    答案的思路和自己想的差不多，为了省内存，把前缀和改成了稀疏数组，由于稀疏数组保持有序，所以可以两次二分查找，计算区间内的左右界，然后统计区间内的元素即可。
+
+    ```cpp
+    class RangeFreqQuery {
+    public:
+        RangeFreqQuery(vector<int>& arr) {
+            for (int i = 0; i < arr.size(); ++i)
+            {
+                int val = arr[i];
+                if (m.find(val) == m.end())
+                {
+                    m.insert(make_pair(val, vector<int>()));
+                }
+                m[val].push_back(i);
+            }
+        }
+        
+        int query(int left, int right, int value) {
+            if (m.find(value) == m.end())
+                return 0;
+            vector<int> &vec = m[value];
+            auto lb = lower_bound(vec.begin(), vec.end(), left);
+            auto ub = upper_bound(vec.begin(), vec.end(), right);
+            return ub - lb;
+        }
+
+        unordered_map<int, vector<int>> m;
+    };
+
+    /**
+    * Your RangeFreqQuery object will be instantiated and called as such:
+    * RangeFreqQuery* obj = new RangeFreqQuery(arr);
+    * int param_1 = obj->query(left,right,value);
+    */
     ```
 
 ### 冒泡排序

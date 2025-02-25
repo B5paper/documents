@@ -6,6 +6,151 @@
 
 ## cache
 
+* 跳表的 search 功能
+
+    整个跳表的功能比较复杂，今天只看了`search()`函数。
+
+    下面是对`search()`函数的解析：
+
+    ```c
+    bool search(int target) {
+        SkiplistNode *curr = this->head;
+        // 这里的 level 应该改成 num_levels 比较好
+        for (int i = level - 1; i >= 0; i--) {
+            // 如果当前节点的下一个节点存在，那么判断下一个节点是否小于 target
+            // 若小于 target，继续往右搜索
+            // 这样得到的当前节点 curr 就是在所有小于 target 的数中，最大的那个
+            // 即 curr < target <= curr->forward
+            while (curr->forward[i] && curr->forward[i]->val < target) {
+                curr = curr->forward[i];
+            }
+            // 当搜索停止后，由于 for 的作用，i 会自然加 1
+            // 因此在下一轮循环时，会跳到下一层搜索
+        }
+        // 此时 curr 已经搜索到了最底层，再向右走一个元素，
+        // 这个元素要么等于，要么大于 target，当然也有可能是 NULL
+        curr = curr->forward[0];
+        if (curr && curr->val == target) {
+            return true;
+        } 
+        return false;
+    }
+    ```
+
+    自己盲写的一版：
+
+    ```cpp
+    bool search(int target)
+    {
+        SkiplistNode *cur = head;
+        for (int cur_layer = level - 1; cur_layer >= 0; --cur_layer)
+        {
+            while (cur->forward[cur_layer]
+                && cur->forward[cur_layer]->val < target)
+            {
+                cur = cur->forward[cur_layer];
+            }
+        }
+        cur = cur->forward[0];
+        if (!cur)
+            return false;
+        if (cur->val != target)
+            return false;
+        return true;
+    }
+    ```
+
+    回头再研究下`add()`。
+
+    对应的 leetcode 题目是`1206. 设计跳表`。
+
+    ref: <https://oi-wiki.org/ds/skiplist/>
+
+* 对跳表（skip list）的理解
+
+    跳表有点像从海底长出来的海草，又有点像马里奥里的管道迷宫。节点有可能纵跨多层，最底层则包含所有元素。
+
+    我们从最顶层开始向右搜索，每次遇到 right bound 就向下走一层（为什么总能保证在遇到 right bound 时，总是有向下的通道？），直到走到最底层。最底层的 right bound，要么正好是我们要找到数字，要么就说明我们要找的元素不存在。（为什么在最底层一定可以做出判断是否遇到？有没有可能在上面几层就遇到 target？）
+
+* 有关元素的递推性质
+
+    将每个元素替换为右侧最大元素
+
+    给你一个数组 arr ，请你将每个元素用它右边最大的元素替换，如果是最后一个元素，用 -1 替换。
+
+    完成所有替换操作后，请你返回这个数组。
+
+    示例 1：
+
+    输入：arr = [17,18,5,4,6,1]
+    输出：[18,6,6,6,1,-1]
+    解释：
+    - 下标 0 的元素 --> 右侧最大元素是下标 1 的元素 (18)
+    - 下标 1 的元素 --> 右侧最大元素是下标 4 的元素 (6)
+    - 下标 2 的元素 --> 右侧最大元素是下标 4 的元素 (6)
+    - 下标 3 的元素 --> 右侧最大元素是下标 4 的元素 (6)
+    - 下标 4 的元素 --> 右侧最大元素是下标 5 的元素 (1)
+    - 下标 5 的元素 --> 右侧没有其他元素，替换为 -1
+    示例 2：
+
+    输入：arr = [400]
+    输出：[-1]
+    解释：下标 0 的元素右侧没有其他元素。
+    
+
+    提示：
+
+    1 <= arr.length <= 104
+    1 <= arr[i] <= 105
+
+    代码：
+
+    1. 自己写的
+
+        ```cpp
+        class Solution {
+        public:
+            vector<int> replaceElements(vector<int>& arr) {
+                int max_val = -1;
+                vector<int> ans(arr.size());
+                for (int i = arr.size() - 1; i >= 0; --i)
+                {
+                    ans[i] = max_val;
+                    if (arr[i] > max_val)
+                    {
+                        max_val = arr[i];
+                    }
+                }
+                return ans;
+            }
+        };
+        ```
+
+    1. 官方答案
+
+        ```cpp
+        class Solution {
+        public:
+            vector<int> replaceElements(vector<int>& arr) {
+                int n = arr.size();
+                vector<int> ans(n);
+                ans[n - 1] = -1;
+                for (int i = n - 2; i >= 0; --i) {
+                    ans[i] = max(ans[i + 1], arr[i + 1]);
+                }
+                return ans;
+            }
+        };
+        ```
+
+    题目本身并不难，也很容易做对。但是注意到官方答案并没有使用单独一个变量`max_val`，而是使用了`max(ans[i + 1], arr[i + 1])`这样的递推式。
+
+    是否有可能在其他题目中，某个数组的元素满足某种性质，从而可以使用递推关系得到简便的答案，我们不得而知。现在我们来看当前这道题：`ans[i+1]`本身就表示了`arr[i+2]`及之后的所有数的最大值，让它和`arr[i+1]`比较，便能得到`arr[i+1]`及之后的所有数的最大值。`ans[i]`表示的正好是`arr[i+1]`及之后的所有数的最大值，因此可由`max(ans[i+1], arr[i+1])`得到。
+
+    接下来考虑边界，当`arr[i+1]`为最后一个元素时，`ans[i+1]`为`-1`，`ans[i]`可以正常计算，没有问题。但此时`i`最大取值为`arr.size() - 2`，不能取到最后一个。若`ans[i]`为最后一个元素，后面的`i+1`肯定越界，因此`i`不能取到最后一个。这样`ans[i]`作为最后一个元素时，必须单独计算。幸好题目直接指定其为`-1`。
+
+    可以看出来，整个过程还是比较费脑子的。
+
 * 使用 c + 回溯算法生成不同测试的组合，本意是想减少测试用例中的 for 循环，但是实际上并不会减少很多
 
     比如下面一段测试代码：

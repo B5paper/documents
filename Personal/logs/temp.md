@@ -267,3 +267,119 @@
 * nccl record
 
     * 禁用 shm 后，会调用`AllReduce_Sum_f32_RING_SIMPLE`
+
+* ccl 面试
+
+    * 之前接触过集合通信库吗？gather, scatter, all reduce 这些听说过吗？都分别有什么作用？
+
+    * c++ 了解过吧，模板了解过吧
+
+        * 使用递归对一个数组进行 reduce，不允许使用 if else，不能有 for 循环
+
+            ```cpp
+            #include <iostream>
+            using namespace std;
+
+            template<typename T, int ElmSize>
+            struct SumReduce
+            {
+                static T sum_reduce(T *src)
+                {
+                    return SumReduce<T, ElmSize / 2>::sum_reduce(src) + 
+                        SumReduce<T, ElmSize - ElmSize / 2>::sum_reduce(src + ElmSize / 2);
+                }
+            };
+
+            template<typename T>
+            struct SumReduce<T, 1>
+            {
+                static T sum_reduce(T *src)
+                {
+                    return *src;
+                }
+            };
+
+            template<typename T>
+            struct SumReduce<T, 2>
+            {
+                static T sum_reduce(T *src)
+                {
+                    return src[0] + src[1];
+                }
+            };
+
+            template<typename T>
+            struct SumReduce<T, 0>
+            {
+                static T sum_reduce(T *src)
+                {
+                    return 0;
+                }
+            };
+
+            int main()
+            {
+                using my_type = int;
+                my_type arr[] ={1, 2, 3, 4, 5, 6};
+                const int num_elm = sizeof(arr) / sizeof(my_type);
+                my_type s = SumReduce<my_type, num_elm>::sum_reduce(arr);
+                printf("s: %d\n", s);
+                return 0;
+            }
+            ```
+
+        * nccl 中大量使用特化/偏特化，好处是什么？
+
+    * reduce
+
+        * （听说过），现在考虑一个简单的矩阵乘法的加速，目前已经实现了 send, recv, gather, scatter, sum reduce, 请你把这段代码改写成使用 ccl 加速的计算方式。如果这个矩阵不平衡，无法被整数切分，该如何处理？
+
+            ```cpp
+            #include <stdio.h>
+            #include <stdlib.h>
+
+            void broadcast(int *buf, int num_elms);
+            void scatter(int *send_buf, int *recv_buf, int num_elms, int root);
+            void gather(int *send_buf, int *recv_buf, int num_elms, int root);
+            void sum_reduce(int *send_buf, int *recv_buf, int num_elms, int root);
+            void all_gather(int *send_buf, int *recv_buf, int num_elms, int root);
+            void all_sum_reduce(int *send_buf, int *recv_buf, int num_elms, int root);
+            void all_to_all(int *send_buf, int *recv_buf, int num_elms);
+
+            int main()
+            {
+                int num_rows_A = 1024, num_cols_A = 1024;
+                int num_rows_B = 1024, num_cols_B = 1024;
+                int num_rows_C = num_rows_A, num_cols_C = num_cols_B;
+                int *mat_A = (int*) malloc(num_rows_A * num_cols_A * sizeof(int));
+                int *mat_B = (int*) malloc(num_rows_B * num_cols_B * sizeof(int));
+                int *mat_C = (int*) malloc(num_rows_C * num_cols_C * sizeof(int));
+
+                int rank;
+                int world_size;
+
+                int span_len = 2;
+                scatter(mat_A, mat_A + rank * span_len * num_cols_A,
+                    span_len * num_cols_A, 0);
+                broadcast(mat_B, mat_B, num_rows_B * num_cols_B);
+                matmul(mat_A + rank * span_len * num_cols_A, mat_B,
+                    mat_C + rank * span_len * num_cols_C);
+                gather(mat_C, mat_C + rank * span_len * num_cols_C,
+                    span_len * num_cols_C, 0);
+                return 0;
+            }
+            ```
+
+            如果无法整数切分，最后一个 block 稍大一些，使用 if else 额外处理。也可以用更小的切分粒度 + while 循环 + 抢占式任务，也可以将最后一个 block 单独再切分处理。
+
+        * （顺利做出），现在我们考虑一个深度神经网络，对于这个网络，假如每个 block 放在一个 node 上，一共有 8 个 node，请你设计出尽可能高性能的拓扑方案。
+
+    * cuda 了解过是吧，shared data 用过吗，有什么用？`#pragma unroll`了解过吗，大概可以节省多个条汇编指令？
+
+        nccl 的 reduce copy 中，为什么按 hunk 处理？为什么 hunk 中一个线程处理 4 个元素？把这个数值设置得更大或者更小，有什么影响？bank conflict 听说过吗？
+
+        基于 warp 的 ptx sync 指令都有哪些？为什么 ptx 更快？
+
+        p2p 的通信和通过 host 中转，哪个更快，为什么？
+
+    * 异步机制，现在有了一段 poll 实现的异步事件代码，请你分析下它可能在哪出现死锁 

@@ -2,6 +2,14 @@
 
 ## cache
 
+* 可以确认 socket 的 buffer 使用的是 cuda host alloc
+
+    与 user 申请的数据对应的地址为`0x7fccafc00000`，查询 nccl 中所有的 buffer 的 addr，有一个`in ncclCudaHostCallocDebug(), host alloc size: 8388608, ptr: 0x7fccafa00000`，将`0x7fccafa00000`与`8388608`相加得到`7FCCB0200000`，由此可以看出`0x7fccafc00000`在这段内存里。
+
+    这个用于 socket 的 buffer size 为 8M，nccl 运行的整个过程中，一共申请了 2 个 8M 的 buffer，猜测可能是因为每个 gpu 算一个 rank，每个 rank 上都要有一个 buffer。
+
+    官网中的环境变量没有 8M 或 8388608 相关的字段，说明这个 buffer 大小在官网看来不受环境变量控制。
+
 * 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
 
     同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。

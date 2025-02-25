@@ -30,6 +30,26 @@
 
 ## cache
 
+* 如果有 new task，可以添加到当日的 task list 里，但是必须添加`[new]`标记
+
+    比如：
+
+    ```
+    * [ ] task 1
+    
+    * [ ] task 2
+
+    ...
+
+    * [new] new task 1
+
+    * [new] new task 2
+
+    ...
+    ```
+
+    添加到当日的 task list，可以防止
+
 * 交互式地阅读材料并不能解决效率逐渐降低的问题，只能缓解。如果想要解决，还是得靠真正的输出。
 
 * dfs 停止的条件
@@ -1320,6 +1340,11 @@
 
     1. exam 程序应该先打印 deps，如果有 deps，必须依赖 deps 进行开发
 
+* [v] qa: review 02.21
+
+    hint:
+
+    1. bind buffer 时，target 是`GL_ARRAY_BUFFER`，不是`GL_VERTEX_ARRAY`。
 
 ## cache tabs / process urls
 
