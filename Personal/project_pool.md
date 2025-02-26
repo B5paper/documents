@@ -1659,6 +1659,18 @@ tasks:
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
+* [v] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv
+
+    feedback:
+
+    1. 调研常见的基于 poll 的异步事件中心的写法
+
+    2. 尝试使用全局 fd + poll 的方式实现等待的功能
+
+    3. 在单机上跑通后，需要在两个 node 上跑通。
+
+* [ ] 调研 bootstrap 机制
+
 * [ ] 调研`barrierAny()`
 
 * [o] 调研`asm volatile("barrier.sync.aligned`
@@ -2170,7 +2182,7 @@ tasks:
 
 * [ ] 调研 hugging face，看看比 mmdetection 多了什么东西
 
-
+* [v] 调研如何解决计算，通信，存储资源碎片化的问题
 
 ## HPC comm
 
