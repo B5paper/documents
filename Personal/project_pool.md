@@ -1659,6 +1659,18 @@ tasks:
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
+* { } 尝试使用全局 fd + poll 的方式实现等待的功能
+
+    feedback:
+
+    1. 可以在线程中打开新的线程吗？
+
+    deps:
+
+    1. [v] 调研 poll serv fd 与 client sock fd 建立连接
+
+    1. [ ] 调研 poll serv sock fd 与 client sock fd 收发信息
+
 * [v] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv
 
     feedback:
@@ -1672,6 +1684,8 @@ tasks:
 * [ ] 调研 bootstrap 机制
 
 * [ ] 调研`barrierAny()`
+
+* [v] 调研 pthread
 
 * [o] 调研`asm volatile("barrier.sync.aligned`
 

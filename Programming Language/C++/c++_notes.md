@@ -4,6 +4,10 @@
 
 ## cached
 
+* c++ 中，如果没有自定义的构造函数，那么只能使用`MyStruct{xxx, yyy}`来初始化对象，不能使用`MyStruct(xxx, yyy)`初始化对象。
+
+* c++ 代码中的`obj_1 == obj_2`会调用到`operator==()`，两个`struct`对象不能比大小，也不能默认按值判断相等。
+
 * cuda 中，使用 struct 辅助实现偏特化
 
     因为 c++ 不允许模板函数的偏特化，所以我们使用 struct 辅助一下。
