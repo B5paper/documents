@@ -1346,6 +1346,8 @@
 
     1. bind buffer 时，target 是`GL_ARRAY_BUFFER`，不是`GL_VERTEX_ARRAY`。
 
+* [v] qa: 2 units 03.03
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1665,11 +1667,17 @@ tasks:
 
     1. 可以在线程中打开新的线程吗？
 
+    1. socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
+
     deps:
 
     1. [v] 调研 poll serv fd 与 client sock fd 建立连接
 
-    1. [ ] 调研 poll serv sock fd 与 client sock fd 收发信息
+    1. [v] 调研 poll serv sock fd 与 client sock fd 收发信息
+
+        feedback:
+
+        1. 可以在一个 thread 中打开另一个 thread 吗？
 
 * [v] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv
 
