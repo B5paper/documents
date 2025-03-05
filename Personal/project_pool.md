@@ -1645,8 +1645,6 @@ tasks:
     1. 使用 asm 做 load store，似乎真没有比直接解引用或数组索引快多少。
 
         或许单机多卡的跨卡通信上 asm 有优势？
-        
-    1. 如何实现 device - host 的数据传输？
 
     1. 目前看到无法是否禁用 shm，在已知的 host alloc 和 malloc 中，都没有 4M buffer 的申请。shm 有可能走的 fifo buffer。但是 socket 也没有 4M buffer申请，有点奇怪。
 
@@ -1665,19 +1663,15 @@ tasks:
 
     feedback:
 
-    1. 可以在线程中打开新的线程吗？
-
     1. socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
+
+    1. [ ] 调研 inet_pton 的返回值
 
     deps:
 
-    1. [v] 调研 poll serv fd 与 client sock fd 建立连接
+    1. [v] 一个 cond signal，是否可以通知两个及以上的 cond wait？
 
-    1. [v] 调研 poll serv sock fd 与 client sock fd 收发信息
-
-        feedback:
-
-        1. 可以在一个 thread 中打开另一个 thread 吗？
+* [ ] 可以在一个 thread 中打开另一个 thread 吗？
 
 * [v] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv
 
@@ -1685,9 +1679,23 @@ tasks:
 
     1. 调研常见的基于 poll 的异步事件中心的写法
 
-    2. 尝试使用全局 fd + poll 的方式实现等待的功能
-
     3. 在单机上跑通后，需要在两个 node 上跑通。
+
+* [v] 猜想：cond 如果先 signal，再 wait，仍能正常运行
+
+    feedback:
+
+    1. 不能。
+
+* [ ] 如果 rdma 中使用的是 va + offset，那么还可以 remote write 吗？此时该如何查表？
+
+* [ ] 如果在 cond wait 的时候 destroy mutex，是否会导致程序出错？
+
+* [ ] 在 for 和 while 中`int a = 0;`，然后再修改`a`的值，`a`第二次循环时是 0 还是修改过的值？
+
+    同理，在循环中`MyClass my_obj;`，是否会多次调用构造函数和析构函数？
+
+* [ ] 调研：可以在一个 thread 中打开另一个 thread 吗？
 
 * [ ] 调研 bootstrap 机制
 
