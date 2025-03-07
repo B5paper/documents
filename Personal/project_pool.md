@@ -1667,6 +1667,10 @@ tasks:
 
     1. [ ] 调研 inet_pton 的返回值
 
+    1. shutdown socket 后再立即运行程序，仍会出现 fail to bind 的现象。
+
+        猜测：如果 server 端先 shutdown cli fd / serv fd，client 端再 shutdown cli fd，那么仍会导致无法 bind。
+
     deps:
 
     1. [v] 一个 cond signal，是否可以通知两个及以上的 cond wait？
