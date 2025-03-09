@@ -6694,3 +6694,133 @@
     <https://www.imathtool.com/jisuanqi/decimal-binary/>
 
     debug 的时候会用到。
+
+* Clay (short for C Layout) is a high performance 2D UI layout library.
+
+    <https://github.com/nicbarker/clay>
+
+* Physically Based Rendering
+
+    An implementation of physically based shading model & image based lighting in various graphics APIs.
+
+    <https://github.com/Nadrin/PBR>
+
+* robot control & simulation
+
+    * 9、教程-1在Webots中的第一个仿真
+
+        <https://www.cnblogs.com/gary-guo/p/17585099.html>
+
+    * Genesis: A generative world for general-purpose robotics & embodied AI learning.
+
+        <https://github.com/Genesis-Embodied-AI/Genesis>
+
+    * 机器人避障不再“智障”：HEIGHT——拥挤复杂环境下机器人导航的新架构
+
+        <https://zhuanlan.zhihu.com/p/17527812018>
+
+    * Webots的使用教程（一）：基础知识与操作
+
+        <https://blog.csdn.net/weixin_51825055/article/details/137931041>
+
+    * Webots使用笔记
+
+        <https://zhuanlan.zhihu.com/p/386678576>
+
+    * Robotics simulation services
+
+        <https://www.cyberbotics.com>
+
+    * Webots Robot Simulator
+
+        <https://github.com/cyberbotics/webots>
+
+* 量化交易相关
+
+    * 量化交易你挣钱了吗？
+
+        <https://www.zhihu.com/question/57578526/answer/46280589154>
+
+    * 个人做量化交易靠谱吗？
+
+        <https://www.zhihu.com/question/329206671/answer/2116073573>
+
+    * 量化入门，书籍推荐！
+
+        <https://zhuanlan.zhihu.com/p/655618193>
+
+    * 量化交易2年半，我做了什么
+
+        <https://zhuanlan.zhihu.com/p/116120264>
+
+    * 懂机器学习如何入门量化交易？
+
+        <https://www.zhihu.com/question/442308593/answer/3167066315>
+
+* gpu 与 ai 相关
+
+    * NVIDIA GPGPU(三）- 新时代
+
+        <https://zhuanlan.zhihu.com/p/680195269>
+
+    * RoPE可能是LLM时代的Resnet
+
+        <https://zhuanlan.zhihu.com/p/641865355>
+
+    * 他们掰开神经元，终于让大模型9.8大于9.11了：神秘创业公司，开源AI「洗脑」工具
+
+        <https://www.aiyzh.com/aishow/1768/>
+
+    * NVIDIA CUDA-X  GPU 加速库
+
+        <https://developer.nvidia.cn/gpu-accelerated-libraries>
+
+    * SGLang的Expert Parallel特性解读
+
+        <https://zhuanlan.zhihu.com/p/17790182311>
+
+    * 为什么GPU Direct RDMA不能使用IOMMU？
+
+        <https://zhuanlan.zhihu.com/p/701605928>
+
+    * [MLSys 入门向] 做12道题，快速上手Triton！
+
+        <https://zhuanlan.zhihu.com/p/5964285807>
+
+    * RLHF 常见的思维误区
+
+        <https://zhuanlan.zhihu.com/p/17657567877>
+
+    * 【nvidia CUDA 高级编程】NVSHMEM 直方图——复制式方法
+
+        <https://blog.csdn.net/qq_31985307/article/details/128596808>
+
+    * [OMPI users] Using OpenSHMEM with Shared Memory
+
+        <https://users.open-mpi.narkive.com/SHm6ze9R/ompi-using-openshmem-with-shared-memory>
+
+    * NVSHMEM安装及使用
+
+        <https://blog.csdn.net/jkjgj/article/details/142066495>
+
+    * deepseek技术解读(1)-彻底理解MLA（Multi-Head Latent Attention）
+
+        <https://zhuanlan.zhihu.com/p/16730036197>
+
+    * Triton写算子入门
+
+        <https://zhuanlan.zhihu.com/p/887257776>
+
+    * 【AI编译器】MLIR（5）— 定义一个Dialect
+
+        <https://zhuanlan.zhihu.com/p/13849742404>
+
+    * cutlass源码导读（2）——Gemm的计算流程
+
+        <https://zhuanlan.zhihu.com/p/592689326>
+
+* Minimal bgfx "hello world" example
+
+    This doesn't use the bgfx example framework. GLFW is used for windowing. There are separate single and multithreaded examples.
+
+    <https://github.com/jpcy/bgfx-minimal-example>
