@@ -2,6 +2,52 @@
 
 ## cached
 
+* c++ 中`string`的几种构造方式
+
+    除了移动构造 move 没有给出例子，其他的都给出了例子。
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    int main()
+    {
+        string str("hello, world");  // from c-string (4)  string (const char* s);
+        cout << string(str) << endl;  // copy (2)  string (const string& str);
+        cout << string(str, 0, 5) << endl;  // substring (3)  string (const string& str, size_t pos, size_t len = npos);
+        cout << string(str, 7) << endl;    
+        cout << string("hello, world", 5) << endl;  // from buffer (5)  string (const char* s, size_t n);
+        cout << string(5, 'a') << endl;  // fill (6)  string (size_t n, char c);
+        vector<char> vec{'a', 'b', 'c', 'd', 'e'};
+        cout << string(vec.begin(), vec.end()) << endl;  // range (7)	template <class InputIterator>  string  (InputIterator first, InputIterator last);
+        char buf[64] = {'e', 'd', 'c', 'b', 'a'};
+        cout << string(&buf[0], &buf[5]) << endl;  // range (7)	template <class InputIterator>  string  (InputIterator first, InputIterator last);
+        cout << string{'h', 'e', 'l', 'l', 'o'} << endl;  // initializer list (8)  string (initializer_list<char> il);
+        
+        // 另外有一个移动构造函数 move (9)	string (string&& str) noexcept; 未在这里写出
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world
+    hello
+    world
+    hello
+    aaaaa
+    abcde
+    edcba
+    hello
+    ```
+
+    使用`string()`构造出的其实是一个匿名对象，交由`<<`运算符处理时，相当于处理了右值引用。
+
+    可以重点记下 substring 和 range 的用法。
+
 * c++ `find()`
 
     c++ 中的`find()`是线性搜索，在使用时需要加上`#include <algorithm>`头文件。

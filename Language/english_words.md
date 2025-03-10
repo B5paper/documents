@@ -582,6 +582,8 @@ synergy n. 协同，配合
 
 haptic a. 触觉的
 
-* seldom adv. 很少 eg. however, substantial performance improvements can be realized by taking care that the code seldom requires threads in a warp to diverge.
+seldom adv. 很少 eg. however, substantial performance improvements can be realized by taking care that the code seldom requires threads in a warp to diverge.
 
-* coalesce prn. [ˌkoʊəˈles] v. 联合，合并 eg. Vector architectures, on the other hand, require the software to coalesce loads into vectors and manage divergence manually.
+coalesce prn. [ˌkoʊəˈles] v. 联合，合并 eg. Vector architectures, on the other hand, require the software to coalesce loads into vectors and manage divergence manually.
+
+cuisine prn. [kwɪˈziːn] n. 烹饪，菜肴

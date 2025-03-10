@@ -4,6 +4,40 @@
 
 ## cached
 
+* c++ 中`decltype`的用法
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        int a = 3;
+        decltype(a) b = 5;
+        cout << "b is " << b << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    b is 5
+    ```
+
+    在`decltype(expression)`中，当`expression`是一个变量名时，`decltype`会推导出该变量的类型，当`expression`是一个函数调用时，`decltype`会推导出该函数的返回值类型。当`expression`是一个表达式时，`decltype`会推导出该表达式的类型。
+
+    example:
+
+    ```
+    int x = 5;
+    int& y = x;
+    decltype(x) z1 = x;  // z1 is a int
+    decltype(y) z2 = y;  // z2 is a int&
+    decltype(x + y) z3 = x + y;  // z3 is a int
+    decltype(std::cout << ｘ) z4 = std::cout << x;  // z4 is a std::ostream&
+    ```
+
 * c++ 中，如果没有自定义的构造函数，那么只能使用`MyStruct{xxx, yyy}`来初始化对象，不能使用`MyStruct(xxx, yyy)`初始化对象。
 
 * c++ 代码中的`obj_1 == obj_2`会调用到`operator==()`，两个`struct`对象不能比大小，也不能默认按值判断相等。

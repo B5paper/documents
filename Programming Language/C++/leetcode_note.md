@@ -1155,6 +1155,180 @@ Problems that use unusual methematics.
 
 ## 动态规划（dynamic programming）
 
+### 分割回文串 II
+
+给你一个字符串 s，请你将 s 分割成一些子串，使每个子串都是回文串。
+
+返回符合要求的 最少分割次数 。
+
+
+
+示例 1：
+
+输入：s = "aab"
+输出：1
+解释：只需一次分割就可将 s 分割成 ["aa","b"] 这样两个回文子串。
+示例 2：
+
+输入：s = "a"
+输出：0
+示例 3：
+
+输入：s = "ab"
+输出：1
+
+
+提示：
+
+1 <= s.length <= 2000
+s 仅由小写英文字母组成
+
+
+解法：
+
+1. 自己写的解法 1，超时
+
+    最朴素的想法是对于字符串`s`，遍历所有切割的位置`cut_pos`，这样`s`被分成子串`s_1`，`s_2`以及两个子串中间多切的一刀。如果我们知道`s_1`，`s_2`最小的切割次数，那么就可以得到`s`的切割次数为`num_cut(s, cut_pos) = f(s_1) + f(s_2) + 1`，通过对`cur_pos`遍历，即可得到最小值`f(s)`为`f(s) = min_{cut_pos} num_cut(s, cut_pos)`。当然，如果`s`本身就是回文串，那么最小切割次数就为 0。
+
+    关于遍历方法，首先想到的是外循环指定`start_pos`，内循环指定`end_pos`，但是很快发现这种方法行不通，因为上层计算所依赖的是中间某一段的子串，这个子串不一定从`start_pos`开始。这样外循环就只能是对子串的长度`len`遍历，内循环则对`start_pos`遍历，再由`start_pos + len - 1`计算出`end_pos`。
+
+    ```cpp
+    class Solution {
+    public:
+        bool is_reverse_echo(string &s, int start_pos, int len)
+        {
+            int i = start_pos, j = start_pos + len - 1;
+            while (i < j)
+            {
+                if (s[i] != s[j])
+                    return false;
+                ++i;
+                --j;
+            }
+            return true;
+        }
+        
+        int minCut(string s) {
+            int str_len = s.size();
+            vector<vector<int>> min_num_cut_records(str_len, vector<int>(str_len, str_len+1));
+            // min_num_cut_records[i][j] 表示 s[i] ~ s[j] 最小的切割数
+            for (int len = 1; len <= str_len; ++len)
+            {        
+                for (int i = 0; i < str_len; ++i)
+                {
+                    if (i + len - 1 > str_len - 1)
+                        break;
+                    if (is_reverse_echo(s, i, len))
+                    {
+                        min_num_cut_records[i][i+len-1] = 0;
+                        continue;
+                    }
+                    for (int j = i; j < i + len - 1; ++j)
+                    {
+                        int num_cut = min_num_cut_records[i][j] + min_num_cut_records[j+1][i+len-1] + 1;
+                        if (num_cut < min_num_cut_records[i][i+len-1])
+                        {
+                            min_num_cut_records[i][i+len-1] = num_cut;
+                        }
+                    }
+                }
+            }
+            return min_num_cut_records[0][str_len-1];
+        }
+    };
+    ```
+
+1. 自己写的解法 2，超时
+
+    在解法 1 中，每次判断一段子串是否为回文串都需要调用一下函数`is_reverse_echo()`，效率太低。我们可以用动态规划的方式找出所有的回文串，这样只需要查表就可以了。
+
+    ```cpp
+    class Solution {
+    public:  
+        int minCut(string s) {
+            int str_len = s.size();
+            vector<vector<int>> reverse_echo_records(
+                str_len, vector<int>(str_len, false)
+            );  // reverse_echo_records[i][j] 表示 s[i] ~ s[j] 是否为回文串
+            vector<vector<int>> min_num_cut_records(str_len, vector<int>(str_len, str_len+1));
+            // min_num_cut_records[i][j] 表示 s[i] ~ s[j] 最小的切割数
+
+            for (int i = 0; i < str_len; ++i)
+            {
+                reverse_echo_records[i][i] = true;
+                if (i < str_len - 1 && s[i] == s[i+1])
+                    reverse_echo_records[i][i+1] = true;
+            }
+
+            for (int len = 1; len <= str_len; ++len)
+            {        
+                for (int i = 0; i < str_len; ++i)
+                {
+                    if (i + len - 1 > str_len - 1)
+                        break;
+                    if (len <= 2 && reverse_echo_records[i][i+len-1])
+                    {
+                        min_num_cut_records[i][i+len-1] = 0;
+                    }
+                    else if (reverse_echo_records[i+1][i+len-2] && s[i] == s[i+len-1])
+                    {
+                        min_num_cut_records[i][i+len-1] = 0;
+                        reverse_echo_records[i][i+len-1] = true;
+                        continue;
+                    }
+                    for (int j = i; j < i + len - 1; ++j)
+                    {
+                        int num_cut = min_num_cut_records[i][j] + min_num_cut_records[j+1][i+len-1] + 1;
+                        if (num_cut < min_num_cut_records[i][i+len-1])
+                        {
+                            min_num_cut_records[i][i+len-1] = num_cut;
+                        }
+                    }
+                }
+            }
+            return min_num_cut_records[0][str_len-1];
+        }
+    };
+    ```
+
+    能想到这里差不多是我能力极限了，但仍然超时，没有办法。
+
+1. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        int minCut(string s) {
+            int n = s.size();
+            vector<vector<int>> g(n, vector<int>(n, true));
+
+            for (int i = n - 1; i >= 0; --i) {
+                for (int j = i + 1; j < n; ++j) {
+                    g[i][j] = (s[i] == s[j]) && g[i + 1][j - 1];
+                }
+            }
+
+            vector<int> f(n, INT_MAX);
+            for (int i = 0; i < n; ++i) {
+                if (g[0][i]) {
+                    f[i] = 0;
+                }
+                else {
+                    for (int j = 0; j < i; ++j) {
+                        if (g[j + 1][i]) {
+                            f[i] = min(f[i], f[j] + 1);
+                        }
+                    }
+                }
+            }
+
+            return f[n - 1];
+        }
+    };
+    ```
+
+    官方答案似乎不是以`len`作为外循环进行动态规划，而是以`end_pos`作为外循环进行动态规划。目前我看不懂。
+
 ### 钢链切割问题
 
 > 钢条切割问题：不同长度的钢条有不同的售价，现给定一个长度为`n`的钢条，给定不同长度钢条的售价，求如何切割，使得售价之和最大？
@@ -18939,6 +19113,198 @@ public:
     };
     ```
 
+### 设计食物评分系统
+
+设计一个支持下述操作的食物评分系统：
+
+修改 系统中列出的某种食物的评分。
+返回系统中某一类烹饪方式下评分最高的食物。
+实现 FoodRatings 类：
+
+FoodRatings(String[] foods, String[] cuisines, int[] ratings) 初始化系统。食物由 foods、cuisines 和 ratings 描述，长度均为 n 。
+foods[i] 是第 i 种食物的名字。
+cuisines[i] 是第 i 种食物的烹饪方式。
+ratings[i] 是第 i 种食物的最初评分。
+void changeRating(String food, int newRating) 修改名字为 food 的食物的评分。
+String highestRated(String cuisine) 返回指定烹饪方式 cuisine 下评分最高的食物的名字。如果存在并列，返回 字典序较小 的名字。
+注意，字符串 x 的字典序比字符串 y 更小的前提是：x 在字典中出现的位置在 y 之前，也就是说，要么 x 是 y 的前缀，或者在满足 x[i] != y[i] 的第一个位置 i 处，x[i] 在字母表中出现的位置在 y[i] 之前。
+
+
+
+示例：
+
+输入
+["FoodRatings", "highestRated", "highestRated", "changeRating", "highestRated", "changeRating", "highestRated"]
+[[["kimchi", "miso", "sushi", "moussaka", "ramen", "bulgogi"], ["korean", "japanese", "japanese", "greek", "japanese", "korean"], [9, 12, 8, 15, 14, 7]], ["korean"], ["japanese"], ["sushi", 16], ["japanese"], ["ramen", 16], ["japanese"]]
+输出
+[null, "kimchi", "ramen", null, "sushi", null, "ramen"]
+
+解释
+FoodRatings foodRatings = new FoodRatings(["kimchi", "miso", "sushi", "moussaka", "ramen", "bulgogi"], ["korean", "japanese", "japanese", "greek", "japanese", "korean"], [9, 12, 8, 15, 14, 7]);
+foodRatings.highestRated("korean"); // 返回 "kimchi"
+                                    // "kimchi" 是分数最高的韩式料理，评分为 9 。
+foodRatings.highestRated("japanese"); // 返回 "ramen"
+                                    // "ramen" 是分数最高的日式料理，评分为 14 。
+foodRatings.changeRating("sushi", 16); // "sushi" 现在评分变更为 16 。
+foodRatings.highestRated("japanese"); // 返回 "sushi"
+                                    // "sushi" 是分数最高的日式料理，评分为 16 。
+foodRatings.changeRating("ramen", 16); // "ramen" 现在评分变更为 16 。
+foodRatings.highestRated("japanese"); // 返回 "ramen"
+                                    // "sushi" 和 "ramen" 的评分都是 16 。
+                                    // 但是，"ramen" 的字典序比 "sushi" 更小。
+
+
+提示：
+
+1 <= n <= 2 * 104
+n == foods.length == cuisines.length == ratings.length
+1 <= foods[i].length, cuisines[i].length <= 10
+foods[i]、cuisines[i] 由小写英文字母组成
+1 <= ratings[i] <= 108
+foods 中的所有字符串 互不相同
+在对 changeRating 的所有调用中，food 是系统中食物的名字。
+在对 highestRated 的所有调用中，cuisine 是系统中 至少一种 食物的烹饪方式。
+最多调用 changeRating 和 highestRated 总计 2 * 104 次
+
+
+解法：
+
+1. 自己想的，超时
+
+    这道题有点像维护一个小型的数据库，这个数据库有三列，`food`, `cuisine`, `rating`。由于题目允许在任何时候 modify，所以这是一个 query 和 modify 交替进行的过程。似乎在暗示我们需要在 modify 时就尽量做一些排序的工作，把时间平均到每一次 modify 中。
+
+    下面的解法并没有在 modify 时做手脚，而是在每次 query 时，先 filter 出来符合要求的 entities，然后按 rating 降序排列，如果有 rating 相同的，再按 name 升序排列，得到最终的结果。
+
+    ```cpp
+    class FoodRatings {
+    public:
+        unordered_map<string, int> m;
+        vector<tuple<string, string, int>> v;  // (string food, string cuisine, int rating)
+
+        FoodRatings(vector<string>& foods, vector<string>& cuisines, vector<int>& ratings) {
+            for (int i = 0; i < foods.size(); ++i)
+            {
+                v.push_back(make_tuple(foods[i], cuisines[i], ratings[i]));
+                m[foods[i]] = i;
+            }   
+        }
+        
+        void changeRating(string food, int newRating) {
+            int idx = m[food];
+            get<2>(v[idx]) = newRating;
+        }
+        
+        string highestRated(string cuisine) {
+            vector<pair<string, int>> v_copy;
+            for (int i = 0; i < v.size(); ++i)
+            {
+                if (get<1>(v[i]) == cuisine)
+                    v_copy.push_back(make_pair(get<0>(v[i]), get<2>(v[i])));
+            }
+            sort(v_copy.begin(), v_copy.end(),
+                [](pair<string, int> &p_1, pair<string, int> &p_2) {
+                if (p_1.second > p_2.second)
+                    return true;
+                return false;
+            });
+            int max_rating = v_copy[0].second;
+            vector<string> v_copy_2;
+            for (int i = 0; i < v_copy.size(); ++i)
+            {
+                if (v_copy[i].second == max_rating)
+                {
+                    v_copy_2.push_back(v_copy[i].first);
+                    continue;
+                }
+                break;
+            }
+            sort(v_copy_2.begin(), v_copy_2.end());
+            return v_copy_2[0];
+        }
+    };
+
+    /**
+    * Your FoodRatings object will be instantiated and called as such:
+    * FoodRatings* obj = new FoodRatings(foods, cuisines, ratings);
+    * obj->changeRating(food,newRating);
+    * string param_2 = obj->highestRated(cuisine);
+    */
+    ```
+
+1. 官方答案，平衡树
+
+    没时间看。
+
+    ```cpp
+    class FoodRatings {
+        unordered_map<string, pair<int, string>> foodMap;
+        unordered_map<string, set<pair<int, string>>> ratingMap;
+        int n;
+
+    public:
+        FoodRatings(vector<string>& foods, vector<string>& cuisines, vector<int>& ratings) {
+            n = foods.size();
+            for (int i = 0; i < n; ++i) {
+                auto &food = foods[i], &cuisine = cuisines[i];
+                int rating = ratings[i];
+                foodMap[food] = {rating, cuisine};
+                ratingMap[cuisine].emplace(n - rating, food);
+            }
+        }
+
+        void changeRating(string food, int newRating) {
+            auto& [rating, cuisine] = foodMap[food];
+            auto& s = ratingMap[cuisine];
+            s.erase({n - rating, food});
+            s.emplace(n - newRating, food);
+            rating = newRating;
+        }
+
+        string highestRated(string cuisine) { 
+            return ratingMap[cuisine].begin()->second; 
+        }
+    };
+    ```
+
+1. 官方答案，懒删除堆
+
+    没时间看。
+
+    ```cpp
+    class FoodRatings {
+        unordered_map<string, pair<int, string>> foodMap;
+        unordered_map<string, priority_queue<pair<int, string>, vector<pair<int, string>>, greater<>>> ratingMap;
+        int n;
+
+    public:
+        FoodRatings(vector<string>& foods, vector<string>& cuisines,
+                    vector<int>& ratings) {
+            n = foods.size();
+            for (int i = 0; i < n; ++i) {
+                auto &food = foods[i], &cuisine = cuisines[i];
+                int rating = ratings[i];
+                foodMap[food] = {rating, cuisine};
+                ratingMap[cuisine].emplace(n - rating, food);
+            }
+        }
+
+        void changeRating(string food, int newRating) {
+            auto& [rating, cuisine] = foodMap[food];
+            ratingMap[cuisine].emplace(n - newRating, food);
+            rating = newRating;
+        }
+
+        string highestRated(string cuisine) {
+            auto& q = ratingMap[cuisine];
+            auto& [rating, food] = q.top();
+            while (n - rating != foodMap[food].first) {
+                q.pop();
+            }
+            return q.top().second;
+        }
+    };
+    ```
+
 ### 二叉搜索树的第k大节点
 
 给定一棵二叉搜索树，请找出其中第k大的节点。
@@ -27817,6 +28183,132 @@ public:
 ```
 
 ## 纯逻辑模拟，找规律
+
+### 驼峰式匹配
+
+给你一个字符串数组 queries，和一个表示模式的字符串 pattern，请你返回一个布尔数组 answer 。只有在待查项 queries[i] 与模式串 pattern 匹配时， answer[i] 才为 true，否则为 false。
+
+如果可以将 小写字母 插入模式串 pattern 得到待查询项 queries[i]，那么待查询项与给定模式串匹配。您可以在模式串中的任何位置插入字符，也可以选择不插入任何字符。
+
+
+
+示例 1：
+
+输入：queries = ["FooBar","FooBarTest","FootBall","FrameBuffer","ForceFeedBack"], pattern = "FB"
+输出：[true,false,true,true,false]
+示例：
+"FooBar" 可以这样生成："F" + "oo" + "B" + "ar"。
+"FootBall" 可以这样生成："F" + "oot" + "B" + "all".
+"FrameBuffer" 可以这样生成："F" + "rame" + "B" + "uffer".
+示例 2：
+
+输入：queries = ["FooBar","FooBarTest","FootBall","FrameBuffer","ForceFeedBack"], pattern = "FoBa"
+输出：[true,false,true,false,false]
+解释：
+"FooBar" 可以这样生成："Fo" + "o" + "Ba" + "r".
+"FootBall" 可以这样生成："Fo" + "ot" + "Ba" + "ll".
+示例 3：
+
+输入：queries = ["FooBar","FooBarTest","FootBall","FrameBuffer","ForceFeedBack"], pattern = "FoBaT"
+输出：[false,true,false,false,false]
+解释： 
+"FooBarTest" 可以这样生成："Fo" + "o" + "Ba" + "r" + "T" + "est".
+
+
+提示：
+
+1 <= pattern.length, queries.length <= 100
+1 <= queries[i].length <= 100
+queries[i] 和 pattern 由英文字母组成
+
+    
+解法：
+
+1. 自己写的，击败 100%
+
+    模拟法，对于 pattern 中的每一个字符，都在 query 中找对应的字符。如果找到，那么就 query 和 pattern 同时往后移动一个索引，直到最后。
+    
+    但是题目又要求只能插入小写，不能插入大写，所以在 query 中搜索到大写字符时，也需要强制停下来和 pattern 做对比。
+
+    有两种情况对导致对比中止：
+
+    1. 搜索到 query 中的大写字符，发现其与 pattern 中对应位置的字符不相等
+
+    2. query 已搜索结束，但是 pattern 并没有搜索结束
+
+    这两种情况都说明不匹配。
+
+    ```cpp
+    class Solution {
+    public:
+        vector<bool> camelMatch(vector<string>& queries, string pattern) {
+            vector<bool> ans(queries.size(), true);
+            for (int i = 0; i < queries.size(); ++i)
+            {
+                string &query = queries[i];
+                int k = 0;
+                for (int j = 0; j < pattern.size(); ++j)
+                {
+                    while (k < query.size() && pattern[j] != query[k] &&
+                        'a' <= query[k] && query[k] <= 'z')
+                    {
+                        ++k;
+                    }
+                    if (k == query.size() ||
+                        query[k] != pattern[j])
+                    {
+                        ans[i] = false;
+                        break;
+                    }
+                    ++k;
+                }
+                while (k < query.size() && 'a' <= query[k] && query[k] <= 'z')
+                    ++k;
+                if (k != query.size())
+                    ans[i] =false;
+                
+            }
+            return ans;
+        }
+    };
+    ```
+
+    再遇到字符串匹配型的题目，可以以较短的字符串为基础，去搜索较长的字符串。
+
+    因为是`false`作为中止条件退出，所以将`ans`初始化为`true`，也是一个小技巧。
+
+2. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        vector<bool> camelMatch(vector<string>& queries, string pattern) {
+            int n = queries.size();
+            vector<bool> res(n, true);
+            for (int i = 0; i < n; i++) {
+                int p = 0;
+                for (auto c : queries[i]) {
+                    if (p < pattern.size() && pattern[p] == c) {
+                        p++;
+                    } else if (isupper(c)) {
+                        res[i] = false;
+                        break;
+                    }
+                }
+                if (p < pattern.size()) {
+                    res[i] = false;
+                }
+            }
+            return res;
+        }
+    };
+    ```
+
+    官方答案的思路和我们相似，对于 query 中的每个字符，如果其和 pattern 相同，那么对比下一位。如果不同，那么判断其是否为大写，如果是大写，那么说明不匹配。最后才判断 pattern 是否被匹配完。
+
+    这个思路和我们作为 base 的字符串刚好相反，我们是用 pattern 作为 base，官方答案是以 query 作为 base。目前不清楚如何判这两者的深刻联系。
+
+3. 拓展：可以用 c++ 正则表达式试一下
 
 ### 从1到n整数中1出现的次数
 

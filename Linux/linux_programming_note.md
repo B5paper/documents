@@ -6,6 +6,321 @@
 
 ## cache
 
+* close socket 的注意事项
+
+    * server 与 client 任意一端 shutdown(cli_fd)，对端如果处于`recv()`状态，`recv()`的返回值都为 0.
+
+    * server 端发起`shutdown(cli_fd)`，client `recv()` 0 长度 buffer 后，`shutdown(cli_fd)`，此时 server 端再`shutdown(serv_fd)`，socket 仍无法正常退出，表现为 server 重新启动时，无法立即重新绑定 ip: port。
+
+        因此，close connection 必须由 client 端先发起，才能正常关闭 socket。
+
+* socket 关闭后可以立即 bind 的条件
+
+    通常情况下一个 socket server 断开连接后，如果没有正确清理资源，那么会导致 server socket fd 无法立即 bind 到同一个 address 上，需要等大概半分钟才行。但是如果资源清理得当，是可以立即 bind 的，下面是条件：
+
+    1. server 执行`accept()`, client 执行`connect()`，此时连接建立。
+
+    2. client 执行`shutdown(cli_fd, SHUT_RDWR);`
+
+    3. server 执行`shutdown(serv_fd, SHUT_RDWR);`
+
+    4. 此时若关闭 server 程序，并立即重新启动 server，那么`serv_fd`可以成功 bind 到相同的 socket address 上。
+
+    说明：
+
+    1. 若第一步没有执行完成，连接没有建立，那么 server 可立即重新 bind
+
+    2. 若连接已经建立，那么要求 client 执行`shutdown()`必须要在 server 之前。若 server 在 client 之前执行`shutdown(cli_fd, SHUT_RDWR);`, `shutdown(serv_fd, SHUT_RDWR);`，那么依然会无法重新 bind
+
+    3. server 可以执行`shutdown(cli_fd, SHUT_RDWR);`，也可以不执行，不影响结果。
+
+    总之，需要 client 主动发起 close，server 这边才能正常处理。
+
+* 使用 pthread cond broadcast 通知所有的 cond
+
+    `main.c`:
+
+    ```c
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    pthread_cond_t cond;
+    pthread_mutex_t mtx;
+
+    void* thd_func(void *arg)
+    {
+        pthread_t thd = pthread_self();
+        printf("thd %lu in thd_func()...\n", thd);
+        pthread_mutex_lock(&mtx);
+        pthread_cond_wait(&cond, &mtx);
+        pthread_mutex_unlock(&mtx);
+        printf("thd %lu exit thd_func().\n", thd);
+        return NULL;
+    }
+
+    int main()
+    {
+        pthread_mutex_init(&mtx, NULL);
+        pthread_cond_init(&cond, NULL);
+
+        pthread_t thds[2];
+        int num_thds = 2; 
+        for (int i = 0; i < num_thds; ++i)
+        {
+            pthread_create(&thds[i], NULL, thd_func, NULL);
+        }
+        
+        printf("start sleep...\n");
+        sleep(2);
+        printf("end sleep.\n");
+
+        pthread_mutex_lock(&mtx);
+        pthread_cond_broadcast(&cond);
+        pthread_mutex_unlock(&mtx);
+
+        for (int i = 0; i < num_thds; ++i)
+        {
+            pthread_join(thds[i], NULL);
+        }
+        return 0;
+    }
+    ```
+
+    compile: `gcc -g main.c -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    thd 133889997669952 in thd_func()...
+    thd 133889987184192 in thd_func()...
+    start sleep...
+    end sleep.
+    thd 133889987184192 exit thd_func().
+    thd 133889997669952 exit thd_func().
+    ```
+
+    如果将`pthread_cond_broadcast()`換成`pthread_cond_signal()`，那么只会通知两个线程 cond wait 的其中一个，输出如下：
+
+    ```
+    start sleep...
+    thd 135955300222528 in thd_func()...
+    thd 135955289736768 in thd_func()...
+    end sleep.
+    thd 135955300222528 exit thd_func().
+
+    ```
+
+    可以看到，程序在这个地方卡住。
+
+* pthread cond 中，如果先 signal，再 wait，那么 signal 是无效的。
+
+    `main.c`:
+
+    ```c
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    pthread_mutex_t mtx;
+    pthread_cond_t cond;
+
+    void* thread_func(void *arg)
+    {
+        printf("in thread_func()...\n");
+        pthread_mutex_lock(&mtx);
+        pthread_cond_signal(&cond);
+        pthread_mutex_unlock(&mtx);
+        printf("exit thread_func().\n");
+        return NULL;
+    }
+
+    int main()
+    {
+        pthread_mutex_init(&mtx, NULL);
+        pthread_cond_init(&cond, NULL);
+
+        pthread_t thd;
+        pthread_create(&thd, NULL, thread_func, NULL);
+
+        printf("start sleep ...\n");
+        sleep(2);
+        printf("end sleep.\n");
+
+        pthread_mutex_lock(&mtx);
+        pthread_cond_wait(&cond, &mtx);
+        pthread_mutex_unlock(&mtx);
+
+        pthread_join(thd, NULL);
+
+        pthread_cond_destroy(&cond);
+        pthread_mutex_destroy(&mtx);
+        return 0;
+    }
+    ```
+
+    compile: `gcc -g main.c -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    start sleep ...
+    in thread_func()...
+    exit thread_func().
+    end sleep.
+
+    ```
+
+    程序会在这里卡住。可见正常的执行顺序应该是必须保证先 wait，后 signal。
+
+    如果是先 signal 后就算立即进入了阻塞状态，比如`listen() -> signal -> accept()`，其他线程在 signal 后 wait，也会因为无法等到 signal 而永远阻塞。
+
+    如果有一个什么机制，可以记录 signal 已经出现过了就好了。一个最简单的想法是用一个变量：
+
+    ```c
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    pthread_mutex_t mtx;
+    pthread_cond_t cond;
+    int cond_val = 0;
+
+    void* thread_func(void *arg)
+    {
+        printf("in thread_func()...\n");
+        pthread_mutex_lock(&mtx);
+        cond_val = 1;
+        pthread_cond_signal(&cond);
+        pthread_mutex_unlock(&mtx);
+        printf("exit thread_func().\n");
+        return NULL;
+    }
+
+    int main()
+    {
+        pthread_mutex_init(&mtx, NULL);
+        pthread_cond_init(&cond, NULL);
+
+        pthread_t thd;
+        pthread_create(&thd, NULL, thread_func, NULL);
+
+        printf("start sleep ...\n");
+        sleep(2);
+        printf("end sleep.\n");
+
+        pthread_mutex_lock(&mtx);
+        if (cond_val == 0)
+            pthread_cond_wait(&cond, &mtx);
+        pthread_mutex_unlock(&mtx);
+
+        pthread_join(thd, NULL);
+
+        pthread_cond_destroy(&cond);
+        pthread_mutex_destroy(&mtx);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    start sleep ...
+    in thread_func()...
+    exit thread_func().
+    end sleep.
+    ```
+
+    此时程序即可正常结束。
+
+    只有当`cond_val`为 0 时才去等待，当`cond_val`为 1 时，说明 signal 已经被触发过了。这样无论是 wait 先执行，还是 signal 先执行，都能保证子线程的 mutex 创造的临界区的下一条指令，一定先于主线程临界区的下一条指令执行。
+
+    （这里使用了一个条件变量，可以保证一个线程先于另一个线程执行，那么如果使用多个 cond，或者多个 cond_var，或者多个 cond_val 的取值，是否可以实现让两个线程到达 barrier 后，同步开始执行？）
+
+* socket 编程时，如果 server 端在退出程序前对 serv fd 进行了`shutdown()`，那么重新启动程序后可以立即 bind 同一个 ip 和 port。
+
+* 当 client 主动 shutdown socket 时，`poll()`会收到一个正常的`POLLIN`事件。
+
+* linux socket 编程中，如果 client 端主动发起`shutdown()`，那么 server 端在等待`recv()`时，会收到一条长度为 0 的数据，即`recv()`的返回值为`0`。
+
+    example:
+
+    `server.c`:
+
+    ```c
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    int main()
+    {
+        int serv_fd = socket(AF_INET, SOCK_STREAM, 0);
+        uint16_t listen_port = 6543;
+        uint32_t listen_addr_ipv4 = INADDR_ANY;
+
+        struct sockaddr_in serv_addr;
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = listen_addr_ipv4;
+        serv_addr.sin_port = htons(listen_port);
+        bind(serv_fd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
+
+        listen(serv_fd, 5);
+        printf("start to listen...\n");
+
+        struct sockaddr_in cli_addr;
+        socklen_t cli_addr_len = sizeof(cli_addr);
+        int cli_fd = accept(serv_fd, (struct sockaddr*) &cli_addr, &cli_addr_len);
+
+        char buf[64] = {0};
+        size_t buf_len = 64;
+        ssize_t bytes_recv = recv(cli_fd, buf, buf_len, 0);
+        if (bytes_recv <= 0)
+        {
+            printf("fail to recv, bytes_recv: %ld\n", bytes_recv);
+            return -1;
+        }
+        printf("recv buf: %s\n", buf);
+
+        bytes_recv = recv(cli_fd, buf, buf_len, 0);
+        if (bytes_recv <= 0)
+        {
+            printf("fail to recv, bytes_recv: %ld\n", bytes_recv);
+            return -1;
+        }
+        printf("recv buf: %s\n", buf);
+
+        shutdown(cli_fd, SHUT_RDWR);
+        shutdown(serv_fd, SHUT_RDWR);
+
+        return 0;
+    }
+    ```
+
+    run:
+
+    `./server`, `./client`
+
+    server output:
+
+    ```
+    start to listen...
+    recv buf: hello, world
+    fail to recv, bytes_recv: 0
+    ```
+
+    client output:
+
+    ```
+    [OK] connect to server 127.0.0.1: 6543
+    [OK] send buf: hello, world
+    ```
+
 * 使用 poll 接收一个 client 的 socket connection
 
     `main.c`:

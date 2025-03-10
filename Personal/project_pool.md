@@ -30,6 +30,8 @@
 
 ## cache
 
+* 如果一个任务被标记为`o`（有思路，但未完成），那么应该在任务池中将其修改为一个长期任务`{ }`。
+
 * 如果有 new task，可以添加到当日的 task list 里，但是必须添加`[new]`标记
 
     比如：
@@ -1600,6 +1602,8 @@ tasks:
 
         `ncclAsyncJobMain()` -> `ncclCommInitRankFunc()` -> `initTransportsRank()` -> `devCommSetup()` -> `devCommSetup()` -> `ncclCudaHostCalloc()`
 
+* pthread cond 如果先 signal，再 wait，那么无法正常运行
+
 ### tasks
 
 * { } 调研 ptx 指令集
@@ -1654,42 +1658,29 @@ tasks:
 
         使用自定义的 test case，在 cuda malloc 时打印出两个 deivce 的 addr 范围。
 
-
     1. 目前可以确定，在 shm 禁用的情况下，数据是通过 socket 传输的，socket 的 buffer size 是 128 KB，但是这个数据并不一定是 malloc 时正好 malloc 128 KB，而可能根据 nccl 环境变量`NCCL_P2P_NET_CHUNKSIZE`得到的。
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
-* { } 尝试使用全局 fd + poll 的方式实现等待的功能
+* [ ] 调研 socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
 
-    feedback:
+* [ ] 调研 inet_pton 的返回值
 
-    1. socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
+* {v} 尝试使用全局 fd + poll 的方式实现等待的功能
 
-    1. [ ] 调研 inet_pton 的返回值
+* [ ] 如果未建立连接就 send / recv，或者如果建立了连接后，但是对方没有 send / recv 时就 recv / send，会发生什么？
 
-    1. shutdown socket 后再立即运行程序，仍会出现 fail to bind 的现象。
+* [v] 调研增加 clear socket fds 的异步等待机制。
 
-        猜测：如果 server 端先 shutdown cli fd / serv fd，client 端再 shutdown cli fd，那么仍会导致无法 bind。
+* [ ] 调研：可以在一个 thread 中打开另一个 thread 吗？
 
-    deps:
-
-    1. [v] 一个 cond signal，是否可以通知两个及以上的 cond wait？
-
-* [ ] 可以在一个 thread 中打开另一个 thread 吗？
+* [ ] 调研常见的基于 poll 的异步事件中心的写法
 
 * [v] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv
 
     feedback:
 
-    1. 调研常见的基于 poll 的异步事件中心的写法
-
-    3. 在单机上跑通后，需要在两个 node 上跑通。
-
-* [v] 猜想：cond 如果先 signal，再 wait，仍能正常运行
-
-    feedback:
-
-    1. 不能。
+    1. [ ] 在单机上跑通后，需要在两个 node 上跑通。
 
 * [ ] 如果 rdma 中使用的是 va + offset，那么还可以 remote write 吗？此时该如何查表？
 
