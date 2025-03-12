@@ -1072,8 +1072,6 @@
 
 * [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
-* [v] 在做检测时，写出 unit 出自哪里
-
 * [ ] 在同一次 test 中，不能出现重复的 unit
 
 * [ ] 调研 python 处理 csv 文件
@@ -1109,12 +1107,6 @@
 
 * [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
-* [x] qa: 4 units 11.27
-
-    12:15 ~ 13:00
-
-    正确率：1 / 4
-
 * [v] qa: 4 units
 
     正确率： 2 / 4
@@ -1123,9 +1115,9 @@
 
     1. 当前的 qa 缺少重复环节，一天基本只能记一遍，无法达到巩固的效果
 
-    2. 在 qa 时，显示 unit 的 idx，方便去修改
+    1. 必须增加 dep 功能了，不然 qa 没法进行下去
 
-    3. 必须增加 dep 功能了，不然 qa 没法进行下去
+* [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
 * [v] qa: 4 units  12.01
 
@@ -1135,13 +1127,7 @@
 
     feedback:
 
-    1. exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
-
-    2. 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
-
-* [v] qa: 4 units  12.01
-
-    正确率： 2 / 4
+    1. 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
 
 * [v] 增加`python main.py --review`功能，复习当天的 units
 
@@ -1184,15 +1170,7 @@
 
     2. [v] 在 randexam 开始之前，对 qa file collect 文件中的所有 qa file 进行 check，检查 id 和 idx 是否完整
 
-* [v] qa: 4 units
-
-    正确率： 1 / 4
-
-    deps:
-
-    1. [v] 在 ubuntu 2204 虚拟机上增加 opengl 开发环境
-
-    2. [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
+* [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
 * [v] qa: 4 units
 
@@ -1210,13 +1188,7 @@
 
     3. 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
 
-* [v] qa: 4 units  12.11
-
-    正确率：2 / 4
-
-    feedback:
-
-    1. 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
+* [ ] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
 * [v] qa: 4 units  12.16
 
@@ -1349,6 +1321,22 @@
     1. bind buffer 时，target 是`GL_ARRAY_BUFFER`，不是`GL_VERTEX_ARRAY`。
 
 * [v] qa: 2 units 03.03
+
+* [v] qa: 1 unit 03.10
+
+* [v] qa: review 30 mins
+
+    feedback:
+
+    1. `glDrawArrays()`完后，还需要`glfwSwapBuffers()`才能显示内容。
+
+    2. `alloc_chrdev_region()`时，第二个参数是 start，第三个参数才是 num dev。
+
+    3. flex 程序在 init 时，是`yylex();`，不是`yyflex();`
+
+    4. 在`\n {return 0;}`规则时，是`return 0;`，不是`return;`
+
+    4. 重新进入已经 stop 的容器，使用的是`docker start`，不是直接`docker -ia`。
 
 ## cache tabs / process urls
 
@@ -1662,15 +1650,19 @@ tasks:
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
-* [ ] 调研 socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
+* [ ] 调研 rank 的分配过程
 
-* [ ] 调研 inet_pton 的返回值
+* [ ] 调研 bootstrap 机制
 
-* {v} 尝试使用全局 fd + poll 的方式实现等待的功能
+* [ ] 调研 epoll
+
+* [ ] 调研`recvmsg()`, `recvmmsg()`
+
+* [v] 调研 socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
+
+* [v] 调研 inet_pton 的返回值
 
 * [ ] 如果未建立连接就 send / recv，或者如果建立了连接后，但是对方没有 send / recv 时就 recv / send，会发生什么？
-
-* [v] 调研增加 clear socket fds 的异步等待机制。
 
 * [ ] 调研：可以在一个 thread 中打开另一个 thread 吗？
 
@@ -1692,11 +1684,7 @@ tasks:
 
 * [ ] 调研：可以在一个 thread 中打开另一个 thread 吗？
 
-* [ ] 调研 bootstrap 机制
-
 * [ ] 调研`barrierAny()`
-
-* [v] 调研 pthread
 
 * [o] 调研`asm volatile("barrier.sync.aligned`
 

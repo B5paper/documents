@@ -26,9 +26,7 @@
 
     创建文件：`ln -s <source_file> <link_file>`
 
-    创建文件夹：`ln -s <link_file> <source_dir>`
-
-    这两个正好相反
+    创建文件夹：`ln -s <source_dir> <link_file>`
 
 * `usermod -a -G`添加完 group 后，`logout`再登录，改动即可生效。
 
