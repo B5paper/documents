@@ -1338,6 +1338,10 @@
 
     4. 重新进入已经 stop 的容器，使用的是`docker start`，不是直接`docker -ia`。
 
+* [v] qa: 1 unit  03.12
+
+    正确率： 0 / 1
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1650,9 +1654,25 @@ tasks:
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
-* [ ] 调研 rank 的分配过程
+* [ ] 调研`pthread_once()`
 
-* [ ] 调研 bootstrap 机制
+* [v] 调研 rank 的分配过程
+
+    feedback:
+
+    1. 目前看到 nccl 的 rank 是由 mpi 分配的，并未给 gpu 分配 rank。一个 rank 上的 gpu 按照 dev 0, dev 1 等方式进行区分。
+
+* [ ] 调研 nccl app 的写法
+
+* [ ] 调研 xml parser
+
+* [v] 调研 bootstrap 机制
+
+    feedback:
+
+    1. 调研 unique id 的生成方式，以及这个 id 有什么用？
+
+    1. tcp 如何在 listen 时，bind 一个未使用过的 port？或者如何让系统自动分配一个 port？
 
 * [ ] 调研 epoll
 
