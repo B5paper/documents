@@ -6824,3 +6824,61 @@
     This doesn't use the bgfx example framework. GLFW is used for windowing. There are separate single and multithreaded examples.
 
     <https://github.com/jpcy/bgfx-minimal-example>
+
+* How to Implement Performance Metrics in CUDA C++
+
+    <https://developer.nvidia.com/blog/even-easier-introduction-cuda/>
+
+* How to Query Device Properties and Handle Errors in CUDA C++
+
+    <https://developer.nvidia.com/blog/how-query-device-properties-and-handle-errors-cuda-cc/>
+
+* How to Optimize Data Transfers in CUDA C++
+
+    <https://developer.nvidia.com/blog/how-optimize-data-transfers-cuda-cc/>
+
+* How to Overlap Data Transfers in CUDA C++
+
+    <https://developer.nvidia.com/blog/how-overlap-data-transfers-cuda-cc/>
+
+* How to Access Global Memory Efficiently in CUDA C++
+
+    <https://developer.nvidia.com/blog/how-access-global-memory-efficiently-cuda-c-kernels/>
+
+* Using Shared Memory in CUDA C++
+
+    <https://developer.nvidia.com/blog/using-shared-memory-cuda-cc/>
+
+* An Efficient Matrix Transpose in CUDA C++
+
+    <https://developer.nvidia.com/blog/efficient-matrix-transpose-cuda-cc/>
+
+* Finite Difference Methods in CUDA C++, Part 1
+
+    <https://developer.nvidia.com/blog/finite-difference-methods-cuda-cc-part-1/>
+
+* Finite Difference Methods in CUDA C++, Part 2
+
+    <https://developer.nvidia.com/blog/finite-difference-methods-cuda-c-part-2/>
+
+* Accelerated Ray Tracing in One Weekend with CUDA
+
+    <https://developer.nvidia.com/blog/accelerated-ray-tracing-cuda/>
+
+* <https://developer.nvidia.com/blog/>
+
+* bilinear interp
+
+    * Bilinear interpolation
+
+        <https://eng.aurelienpierre.com/2020/03/bilinear-interpolation-on-images-stored-as-python-numpy-ndarray/>
+
+    * Python - Bilinear image interpolation
+
+        <https://stackoverflow.com/questions/25060379/python-bilinear-image-interpolation>
+
+    * scipy.signal.bilinear
+
+        <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.bilinear.html>
+
+    * 

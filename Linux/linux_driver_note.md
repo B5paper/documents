@@ -5958,7 +5958,7 @@ MODULE_VERSION("1.9");
 
     编译内核前还需要安装几个依赖库：
 
-    `apt-get install bison flex libssl-dev libelf-dev`
+    `apt-get install bison flex libssl-dev libelf-dev libncurses-dev`
 
     如果安装得不够，在 make 的时候会报错，按照提示安装就可以了。
 

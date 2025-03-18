@@ -30,6 +30,18 @@
 
 ## cache
 
+* 千恋万花 PC中文破解版
+
+    <http://www.kkx.net/game/68263.html>
+
+* 调研 linux `time` command
+
+    `time ./my_app`
+
+    调研`nvprof ./vector_add`如何给出性能数据
+
+    调研`cudaMallocManaged(&x, N*sizeof(float));`
+
 * 如果一个任务被标记为`o`（有思路，但未完成），那么应该在任务池中将其修改为一个长期任务`{ }`。
 
 * 如果有 new task，可以添加到当日的 task list 里，但是必须添加`[new]`标记

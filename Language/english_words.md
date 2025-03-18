@@ -587,3 +587,5 @@ seldom adv. 很少 eg. however, substantial performance improvements can be real
 coalesce prn. [ˌkoʊəˈles] v. 联合，合并 eg. Vector architectures, on the other hand, require the software to coalesce loads into vectors and manage divergence manually.
 
 cuisine prn. [kwɪˈziːn] n. 烹饪，菜肴
+
+compliant adj. 遵从的，一致的 eg. Every PCI compliant device should implement a basic set of register – configuration registers.

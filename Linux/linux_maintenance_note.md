@@ -1,3 +1,11 @@
+# Linux Maintenance Note
+
+这里主要记录 linux 相关的命令，配置，主题为运维。
+
+这里不记录编程相关，操作系统原理相关。
+
+## cache
+
 * linux host name 相关
 
     * 显示当前的 host name: `hostname`
@@ -37,3 +45,5 @@
     * ubuntu 中，可以通过 settings -> about 修改 hostname。
 
     * 临时修改 hostname: `sudo hostname new-hostname` （未测试过）
+
+## note

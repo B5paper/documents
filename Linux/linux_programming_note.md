@@ -6,6 +6,355 @@
 
 ## cache
 
+* `pthread_once()`的用法
+
+    `pthread_once()`可以保证在多线程环境下，指定的函数可以只被执行一次。
+
+    原型：
+
+    ```c
+    int pthread_once(
+        pthread_once_t *once_control,
+        void (*init_routine)()
+    );
+    ```
+
+    example:
+
+    `main.c`:
+
+    ```c
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int global_cnt = 0;
+
+    pthread_once_t once_var = PTHREAD_ONCE_INIT;
+    void thd_once_func()
+    {
+        ++global_cnt;
+    }
+
+    void* thd_func(void *arg)
+    {
+        pthread_once(&once_var, thd_once_func);
+        return NULL;
+    }
+
+    int main()
+    {
+        pthread_t thds[5];
+        int num_thds = 5;
+        for (int i = 0; i < num_thds; ++i)
+        {
+            pthread_create(&thds[i], NULL, thd_func, NULL);
+        }
+
+        for (int i = 0; i < num_thds; ++i)
+        {
+            pthread_join(thds[i], NULL);
+        }
+
+        printf("global cnt: %d\n", global_cnt);
+
+        return 0;
+    }
+    ```
+
+    compile: `gcc -g main.c -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    global cnt: 1
+    ```
+
+    说明：
+
+    1. `pthread_once()`靠`once_control`来控制只执行一次`init_routine()`函数。
+
+    1. `once_control`的初始值必须为`PTHREAD_ONCE_INIT`。
+
+        `PTHREAD_ONCE_INIT`对应的整数值为 0。经实验，如果将`once_control`初始值设置为`1`，那么程序将卡住。如果`once_control`被设置为除了 0, 1 以外的任何值，那么`init_routine()`将一次都不会被执行。
+
+    1. `init_routine()`的返回值为`void`，参数列表也为`void`（无参数）。
+
+        因此这个函数主要是拿来初始化一些全局变量，比如 mutex，cond 之类的。
+
+    1. 这个功能可以使用 mutex 和 cond 完成吗？
+
+        首先，如果使用 mutex 或 cond，我们必须让 mutex 或 cond 在每个线程/进程中都要初始化，因为当在多台机器上启动多个进程时，我们完全无法掌控进程启动的先后顺序。
+
+        其次，我们无法使用 cond，因为我们不知道哪个线程用来 wait，哪个线程用来 signal。这样我们只剩下 mutex 可以用了，但是事实证明 mutex 也不好使。
+
+        我们可以写出下面的反例代码：
+
+        ```c
+        #include <pthread.h>
+        #include <stdio.h>
+        #include <unistd.h>
+        #include <unistd.h>
+
+        int global_cnt = 0;
+
+        pthread_mutex_t mtx;
+        int cond_var = 0;
+
+        void* thd_func(void *arg)
+        {
+            pthread_mutex_init(&mtx, NULL);
+
+            pthread_mutex_lock(&mtx);
+            sleep(1);
+            if (cond_var == 0)
+            {
+                global_cnt++;
+                cond_var = 1;
+            }
+            pthread_mutex_unlock(&mtx);
+
+            pthread_mutex_destroy(&mtx);  
+
+            return NULL;
+        }
+
+        int main()
+        {
+            pthread_t thds[5];
+            int num_thds = 5;
+            for (int i = 0; i < num_thds; ++i)
+            {
+                pthread_create(&thds[i], NULL, thd_func, NULL);
+            }
+            
+            for (int i = 0; i < num_thds; ++i)
+            {
+                pthread_join(thds[i], NULL);
+            }
+
+            printf("global cnt: %d\n", global_cnt);
+
+            return 0;
+        }
+        ```
+
+        运行程序，会直接卡死。
+
+        当一个线程中 mtx 被 lock 后，另一个线程对 mtx 进行 init，那么第二个线程也可以顺利 lock。这样就导致了结果出错。
+
+        这样一来，大部分线索就断了，不清楚`pthread_once()`是如何实现的。猜测可能用了`pthread_mutex_trylock()`之类的方法。
+
+* `inet_pton()`的返回值
+
+    返回 1 表示函数调用成功，返回 0 表示字符串不符合规范，返回 -1 表示 address family 不识别，并会设置`errno`的值。
+
+    example:
+
+    `main.c`:
+
+    ```c
+    #include <arpa/inet.h>
+    #include <stdio.h>
+    #include <errno.h>
+
+    int main()
+    {
+        int ret;
+        int buf;
+
+        ret = inet_pton(AF_INET, "127.0.0.1", &buf);
+        printf("test 1, ret: %d, buf: %d, errno: %d\n", ret, buf, errno);
+
+        ret = inet_pton(AF_INET, "127.001", &buf);
+        printf("test 2, ret: %d, buf: %d, errno: %d\n", ret, buf, errno);
+
+        ret = inet_pton(123, "127.0.0.1", &buf);
+        printf("test 3, ret: %d, buf: %d, errno: %d\n", ret, buf, errno);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    test 1, ret: 1, buf: 16777343, errno: 0
+    test 2, ret: 0, buf: 16777343, errno: 0
+    test 3, ret: -1, buf: 16777343, errno: 97
+    ```
+
+* `recv(sockfd, buf, len, flags);`等价于`recvfrom(sockfd, buf, len, flags, NULL, NULL);`
+
+* 一个标准的 udp socket 的写法
+
+    `server.c`:
+
+    ```c
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <stdio.h>
+    #include <errno.h>  // errno
+    #include <unistd.h>  // close()
+
+    int main()
+    {
+        int serv_fd = socket(AF_INET, SOCK_DGRAM, 0);
+        if (serv_fd < 0)
+        {
+            printf("fail to create serv fd, ret: %d\n", serv_fd);
+            return -1;
+        }
+        printf("successfully create serv fd %d\n", serv_fd);
+        
+        struct sockaddr_in serv_addr;
+        serv_addr.sin_family = AF_INET;
+        const char *serv_ip_str = "127.0.0.1";
+        int ret = inet_pton(AF_INET, serv_ip_str, &serv_addr.sin_addr.s_addr);
+        if (ret < 0)
+        {
+            printf("fail to convert ip str %s to int\n", serv_ip_str);
+            return -1;
+        }
+        int serv_port = 1234;
+        serv_addr.sin_port = htons(serv_port);
+        ret = bind(serv_fd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
+        if (ret < 0)
+        {
+            printf("fail to bind serv fd: %d\n", serv_fd);
+            return -1;
+        }
+        printf("successfully bind serv fd %d to addr %s: %d\n",
+            serv_fd, serv_ip_str, serv_port);
+
+        char buf[256];
+        size_t buf_len = 256;
+        struct sockaddr_in cli_addr;
+        socklen_t addr_len = sizeof(cli_addr);
+        ssize_t bytes_recv = recvfrom(serv_fd, buf, buf_len, 0,
+            (struct sockaddr*) &cli_addr, &addr_len);
+        if (bytes_recv <= 0)
+        {
+            printf("fail to recv, ret: %ld, errno: %d\n", bytes_recv, errno);
+            return -1;
+        }
+        char cli_ip_str[16] = {0};
+        inet_ntop(AF_INET, &cli_addr.sin_addr, cli_ip_str, 16);
+        uint16_t cli_port = ntohs(cli_addr.sin_port);
+        printf("recv %ld bytes from %s, port %u:\n",
+            bytes_recv, cli_ip_str, cli_port);
+        printf("\t%s\n", buf);
+        
+        close(serv_fd);
+        return 0;
+    }
+    ```
+
+    `client.c`:
+
+    ```c
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <stdio.h>
+    #include <errno.h>  // errno
+    #include <unistd.h>  // close()
+
+    int main()
+    {
+        int cli_fd = socket(AF_INET, SOCK_DGRAM, 0);
+        if (cli_fd < 0)
+        {
+            printf("fail to create cli sock fd\n");
+            return -1;
+        }
+        printf("create cli fd: %d\n", cli_fd);
+
+        struct sockaddr_in serv_addr;
+        serv_addr.sin_family = AF_INET;
+        const char *serv_ip_str = "127.0.0.1";
+        int ret = inet_pton(AF_INET, serv_ip_str, &serv_addr.sin_addr);
+        if (ret < 0)
+        {
+            printf("fail to convert serv ip str %s to int, ret: %d\n", serv_ip_str, ret);
+            return -1;
+        }
+        int serv_port = 1234;
+        serv_addr.sin_port = htons(serv_port);
+
+        char buf[128] = "hello from client";
+        size_t buf_len = 128;
+        ssize_t bytes_send = sendto(cli_fd, buf, buf_len, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+        if (bytes_send <= 0)
+        {
+            printf("fail to send, ret: %ld, errno: %d\n", bytes_send, errno);
+            return -1;
+        }
+        printf("send %ld bytes\n", bytes_send);
+
+        close(cli_fd);
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    all: server client
+
+    server: server.c
+    	gcc -g server.c -o server
+
+    client: client.c
+    	gcc -g client.c -o client
+
+    clean:
+    	rm -f server client
+    ```
+
+    compile: `make`
+
+    run:
+
+    1. `./server`
+
+    2. `./client`
+
+    output:
+
+    * server end
+
+        ```
+        successfully create serv fd 3
+        successfully bind serv fd 3 to addr 127.0.0.1: 1234
+        recv 128 bytes from 127.0.0.1, port 60160:
+        	hello from client
+        ```
+
+    * client end
+
+        ```
+        create cli fd: 3
+        send 128 bytes
+        ```
+
+    说明：
+
+    1. 由于是 udp，所以 server 端不需要 listen，也不需要 accept，但是需要 bind。
+
+    1. server 调用`recvfrom()`后，会进入阻塞状态，接收到 client 的信息后，连接即断开。因此`recvfrom()`不会返回 0. （如果 client 发送 length 为 0 的信息，这个函数会不会返回 0 呢？）
+
+    1. 如果 server 没有调用`recvfrom()`，client 直接发送`sendto()`，那么 client 端依然会返回发送成功。并且 client 端没有办法知道`sendto()`的消息是否成功发送到 server。
+
+    1. 如果 server 端准备的 buffer length 有限，那么 client 端的`sendto()`依然会显示所有的 buffer 都发送成功，剩余的 server 没有收到的数据会被 drop。
+
+    1. 因为 udp 是无连接的，所以不需要`shutdown()`关闭连接，但是仍然需要`close(fd)`回收进程的 fd 资源。
+
+    1. 因为上述的`./server`和`./client`是不同的进程，所以`fd`都是从 3 开始分配，互不影响
+
+    1. `recvfrom()`和`sendto()`的参数 flag 对 udp 没有什么影响，通常置 0 就可以。
+
 * close socket 的注意事项
 
     * server 与 client 任意一端 shutdown(cli_fd)，对端如果处于`recv()`状态，`recv()`的返回值都为 0.
