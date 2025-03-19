@@ -1600,7 +1600,7 @@ tasks:
 
     * 多卡之间如何 reduce copy?
 
-    * 如何动态确定多 srcs / dst?
+    * 如何动态确定多 srcs / dsts?
 
     * cu host alloc 的调用路径
 
@@ -1666,7 +1666,7 @@ tasks:
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
-* [ ] 调研`pthread_once()`
+* [v] 调研`pthread_once()`
 
 * [v] 调研 rank 的分配过程
 
@@ -1676,23 +1676,25 @@ tasks:
 
 * [ ] 调研 nccl app 的写法
 
-* [ ] 调研 xml parser
-
-* [v] 调研 bootstrap 机制
+* [O] 调研 qemu 添加 pci 设备
 
     feedback:
 
-    1. 调研 unique id 的生成方式，以及这个 id 有什么用？
+    1. [ ] 调研 qemu 使用`-kernel` + qemu gdb server 进行 debug
 
-    1. tcp 如何在 listen 时，bind 一个未使用过的 port？或者如何让系统自动分配一个 port？
+* [ ] 调研`realpath()`, `tolower()`
+
+* [v] 调研 xml parser
+
+* [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
+
+* [ ] 调研 tcp 如何在 listen 时，bind 一个未使用过的 port？或者如何让系统自动分配一个 port？
+
+* [v] 调研 bootstrap 机制
 
 * [ ] 调研 epoll
 
 * [ ] 调研`recvmsg()`, `recvmmsg()`
-
-* [v] 调研 socket 中的`recv()`, `recvfrom()`, `recvmsg()`, `recvmmsg()`有什么区别？ 
-
-* [v] 调研 inet_pton 的返回值
 
 * [ ] 如果未建立连接就 send / recv，或者如果建立了连接后，但是对方没有 send / recv 时就 recv / send，会发生什么？
 
@@ -1700,11 +1702,7 @@ tasks:
 
 * [ ] 调研常见的基于 poll 的异步事件中心的写法
 
-* [v] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv
-
-    feedback:
-
-    1. [ ] 在单机上跑通后，需要在两个 node 上跑通。
+* [ ] 尝试使用 cuda host malloc 实现基于 host 中转的 send / recv，需要在两个 node 上跑通。   
 
 * [ ] 如果 rdma 中使用的是 va + offset，那么还可以 remote write 吗？此时该如何查表？
 
@@ -1797,8 +1795,6 @@ tasks:
     <https://blog.csdn.net/huikougai2799/article/details/106135203>
 
     <http://turing.une.edu.au/~cosc330/lectures/display_notes.php?lecture=22>
-
-* [v] 调研`cudaStreamCreate()`
 
 * 在 gdb 设置 schedule locking 时，其他线程会被 freeze。
 

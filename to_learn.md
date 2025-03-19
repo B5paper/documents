@@ -6881,4 +6881,86 @@
 
         <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.bilinear.html>
 
-    * 
+* ArrayFire: a general purpose GPU library. 
+
+    <https://github.com/arrayfire/arrayfire>
+
+* P2P peer-to-peer on NVIDIA RTX 2080Ti vs GTX 1080Ti GPUs
+
+    <https://www.pugetsystems.com/labs/hpc/p2p-peer-to-peer-on-nvidia-rtx-2080ti-vs-gtx-1080ti-gpus-1331/>
+
+* awesome-cuda/comm/d2d/pAPullAndPushMemcpy.cu
+
+    <https://github.com/shenh10/awesome-cuda/blob/master/comm/d2d/pAPullAndPushMemcpy.cu>
+
+* How to Optimize Data Transfers in CUDA C/C++
+
+    <https://developer.nvidia.com/blog/how-optimize-data-transfers-cuda-cc/>
+
+* nvidia developer Performance Analysis Tools
+
+    <https://developer.nvidia.com/performance-analysis-tools>
+
+* NVIDIA Visual Profiler
+
+    <https://developer.nvidia.com/nvidia-visual-profiler>
+
+* NVIDIA Nsight Systems
+
+    <https://developer.nvidia.com/nsight-systems>
+
+* CUDA Profiling Tools Interface
+
+    <https://developer.nvidia.com/cuda-profiling-tools-interface>
+
+* How to copy memory between different gpus in cuda
+
+    <https://stackoverflow.com/questions/31628041/how-to-copy-memory-between-different-gpus-in-cuda>
+
+* Peer-to-peer Memory Copy with NVLink: CUDA Feature Testing
+
+    <https://codingbyexample.com/2020/09/14/p2p-memcpy-with-nvlink/>
+
+* Introducing Low-Level GPU Virtual Memory Management
+
+    <https://developer.nvidia.com/blog/introducing-low-level-gpu-virtual-memory-management/>
+
+* CUDA Toolkit
+
+    <https://developer.nvidia.com/cuda-toolkit>
+
+* 6.1. Device Management, cuda runtime api
+
+    <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html#group__CUDART__DEVICE_1g1bf9d625a931d657e08db2b4391170f0>
+
+* NVIDIA Linux open GPU kernel module source 
+
+    <https://github.com/NVIDIA/open-gpu-kernel-modules>
+
+* NvLink or PCIe, how to specify the interconnect?
+
+    <https://stackoverflow.com/questions/53174224/nvlink-or-pcie-how-to-specify-the-interconnect>
+
+* NVLink学习
+
+    <https://zhuanlan.zhihu.com/p/718832292>
+
+* An efficient C++17 GPU numerical computing library with Python-like syntax 
+
+    <https://github.com/NVIDIA/MatX>
+
+* Official repository for LTX-Video 
+
+    LTX-Video is the first DiT-based video generation model that can generate high-quality videos in real-time.
+
+    <https://github.com/Lightricks/LTX-Video>
+
+* Lighthouse 2 framework for real-time ray tracing 
+
+    <https://github.com/jbikker/lighthouse2>
+
+* libguestfs
+
+    tools for accessing and modifying virtual machine disk images
+
+    <https://libguestfs.org/>
