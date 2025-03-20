@@ -1430,9 +1430,9 @@
         
         该如何删减全部的两个 world？
 
-* [v] cache tabs 11.07
-
 * [v] cache tabs
+
+* [v] cache tabs 03.20
 
 ## markdown renderer
 
@@ -1676,6 +1676,8 @@ tasks:
 
 * [ ] 调研 nccl app 的写法
 
+* [v] 调研 qemu 使用`-kernel`，`-initrd`启动系统
+
 * [O] 调研 qemu 添加 pci 设备
 
     feedback:
@@ -1684,13 +1686,15 @@ tasks:
 
 * [ ] 调研`realpath()`, `tolower()`
 
+    `realpath()`是否可以保证线程安全？
+
+* [P] 调研 topo xml 的生成
+
 * [v] 调研 xml parser
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 
 * [ ] 调研 tcp 如何在 listen 时，bind 一个未使用过的 port？或者如何让系统自动分配一个 port？
-
-* [v] 调研 bootstrap 机制
 
 * [ ] 调研 epoll
 
