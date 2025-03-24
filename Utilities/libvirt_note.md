@@ -2,6 +2,18 @@
 
 ## cache
 
+* `virt-sparsify`有可能会用到 root 权限，看 log 似乎会扫描 host 上的`/boot`目录下的 kernel 文件，并做一个复制操作。
+
+* `virt-sparsify`的使用
+
+    `virt-sparsify --tmp <tmp_dir_path> ./old_disk_img.qcow2 ./new_disk_img.qcow2`
+
+    `virt-sparsify`在运行过程中，需要一个和原 disk img 差不多大的 tmp 空间保存临时数据，我们可以使用`--tmp`参数将 tmp 文件保存到指定的目录下。这个 tmp 文件的文件名是随机生成的，不用担心产生文件覆盖，因此也可以把 tmp 目录设置为当前目录。
+
+    如果磁盘空间不够用，可以使用`--inplace`参数，这样不会产生 tmp 文件。
+
+* 首次安装完`virt-manager`后，似乎不会直接自动启动`libvirt`。重启了系统后，`libvirt` daemon 才会启动。不清楚是否有安装完后，手动直接启动的方式。
+
 * ubuntu 24.04.01 在 virt-manager 4.0.0, qemu-system-x86_64 6.2.0 (Debian 1:6.2-dfsg-2ubuntu6.21) 环境下，在 install 阶段指定 ubuntu iso 镜像，virt-manager 可以正确识别，也可以顺利安装，进入系统后也正常显示。
 
     video qxl 使用的是 qxl。

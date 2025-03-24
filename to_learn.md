@@ -6964,3 +6964,7 @@
     tools for accessing and modifying virtual machine disk images
 
     <https://libguestfs.org/>
+
+* Taichi Lang is an open-source, imperative, parallel programming language for high-performance numerical computation. 
+
+    <https://github.com/taichi-dev/taichi>

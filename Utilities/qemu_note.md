@@ -2,6 +2,58 @@
 
 ## cache
 
+* qemu 使用`-kernel`指定内核启动虚拟机
+
+    `qemu-system-x86_64 -accel kvm -m 4096 -smp 4 -hda ./ubuntu22.04-for-pci.qcow2 -kernel /boot/vmlinuz-6.2.16 -initrd /boot/initrd.img-6.2.16 -append "root=/dev/sda3"`
+
+    说明：
+
+    * `-hda ./ubuntu22.04-for-pci.qcow2`表示加入磁盘，但是进入操作系统后，具体的磁盘设备不一定是`/dev/hda`，也有可能是`/dev/sda`，对应的分区为`/dev/sda0`，`/dev/sda1`，`/dev/sda2`，...。
+
+    * `-kernel /boot/vmlinuz-6.2.16`表示使用 host 上的`/boot/vmlinuz-6.2.16`内核。
+    
+        看网上介绍说这个内核是使用 gzip 压缩过的，未压缩的版本应该是 vmlinux。不清楚具体是怎么压缩的。
+
+        这个参数也可以替换为
+        
+        `-kernel /usr/src/linux-source-6.2.0/arch/x86/boot/bzImage`
+        
+        或者
+        
+        `-kernel /usr/src/linux-source-6.2.0/arch/x86/boot/compressed/vmlinux.bin`
+
+    * `-initrd /boot/initrd.img-6.2.16`是可选参数，可以不写。
+
+        据说是因为`-hda`中有了 initrd，所以才不需要指定`-initrd`，具体情况不太清楚。
+
+    * `-append "root=/dev/sda3"`：`-append`表示添加 linux kernel command line，`root=`表示将磁盘的哪个分区挂载到`/`目录上。
+
+    * 6.2.16 的 kernel 在 guest 中启动后，systemd 会读取`/etc`，`/usr/lib`等目录下的配置，继续 load module，比如`autofs4`等。因此 guest 的`/lib/modules`中也必须有编译好的`6.2.16`目录，用来加载这些额外的 module。
+
+        否则 systemd 会报错找不到 module，guest 系统会进入 emergency 模式。
+
+* 使用`qemu-system-x86_64 -accel kvm -m 4096 -smp 4 -hda ./xxx.qcow2 -kernel /boot/vmlinuz-6.8.0-52-generic -append "root=/dev/sda3"`可以启动系统，但是使用自己编译的内核`vmlinuz-6.2.16`无法启动系统
+
+    使用自己编译的`vmlinuz-6.2.16`内核时，遇到的问题有：
+
+    * `lp`, `ppdev`, `parport_pc` module 加载失败
+
+        经搜索发现其在`/etc/modules-load.d/cups-filters.conf`中，将这三行注释掉即可
+
+    * `msr` module 加载失败
+
+        经搜索发现其在`/usr/lib/modules-load.d/fwupd-msr.conf`中，将其注释掉即可。
+
+        以上这些模块都是由`modules-load.d` service 去启动的，可以使用`man modules-load.d`查看更多帮助。与此相关的 service 还有`systemd-modules-load`, `systemd-modules-load.service,`。
+
+    * fail to mount `/boot/efi`
+
+        不清空怎么解决。理论上使用自定义的`-kernel`和`-initrd`，就不再需要 efi 了，但是进入系统后仍要加载 efi，有可能是读到了`/etc`中的某些配置，所以才在内核启动完后，继续 modprob 一些 module。
+
+* virtual box 中，在 libvirt 的 pool 中创建 qcow2 disk，如果 pool 的目录在 windows 的 shared folder 中，那么会在初始化时实际分配指定大小的磁盘空间。
+
+    此时使用`qemu-img convert`进行转换，那么这个 qcow2 文件会被缩小到 200 KB 左右，并且不影响使用。在转换期间，磁盘占用并未有显著增加，说明转换过程中的 tmp 文件，可能和磁盘中的实际文件占用大小有关，并不是转换 150 GB 的磁盘就需要 150 GB 的 temp 空间。
+
 * 虚拟机 120G 磁盘不够用，150G 比较好
 
 * qemu + gdb 调试 kernel module 代码

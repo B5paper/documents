@@ -6,6 +6,113 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `fgets()`用法及注意事项
+
+    syntax:
+
+    ```c
+    char* fgets(char *s, int n, FILE *stream);
+    ```
+
+    读取文件中的内容，遇到`\0`或者`\n`时返回，数据存到`s`中，并返回`s`。
+    
+    `n`表示`s`的长度。由于`s`的最后一个字节要存储`\0`，所以`fgets()`一共要从文件读取`n - 1`个字节。
+
+    example:
+
+    ```c
+    #include <string.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        FILE *f = fopen("test.txt", "wb");
+        fwrite("hello\0world\n", 12, 1, f);
+        fclose(f);
+
+        f = fopen("test.txt", "r");
+        char buf[128] = {0};
+        char *ret = fgets(buf, 13, f);
+        fclose(f);
+
+        printf("%p, %s\n", buf, buf);
+        printf("%p, %s\n", ret, ret);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0x7ffcf977aa70, hello
+    0x7ffcf977aa70, hello
+    ```
+
+    可以看到，要求`fgets()`读 13 个字节，但是只读了 5 个有效字符，再加一个`\0`，相当于读了 6 个字节。
+
+    `fwrite()`指定的 size `12`是字符串的长度，不带末尾的`\0`。如果强行写 13 个字节带上`\0`，那么文件会出错，vscode 中显示为一个红色出错位。
+
+    example 2:
+
+    ```c
+    #include <string.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        FILE *f = fopen("test.txt", "wb");
+        fwrite("hello\nworld\n", 12, 1, f);
+        fclose(f);
+
+        f = fopen("test.txt", "r");
+        char buf[128] = {0};
+        char *ret = fgets(buf, 12, f);
+        fclose(f);
+
+        printf("%p, %s\n", buf, buf);
+        printf("%p, %s\n", ret, ret);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0x7fff78ddd800, hello
+
+    0x7fff78ddd800, hello
+
+    ```
+
+    可以看到，要求`fgets()`读 12 - 1 = 11 个字符，但是实际只读了 6 个字符，这 6 个字符中包含`\n`。
+
+* `fgetc()`读取文件，遇到`\0`退出
+
+    ```cpp
+    f = fopen("test.txt", "r");
+    string str;
+    char ch;
+    while (true)
+    {
+        ch = fgetc(f);
+        if (feof(f) || ch == '\0')
+            break;
+        str.push_back(ch); 
+    }
+    putchar('\n');
+    fclose(f);
+    ```
+
+    说明：
+
+    * `feof()`返回一个 bool 值，如果为`true`，则说明“当前位置”是文件的结尾。
+
+        而当前位置是`fgetc()`调用过后的位置，所以必须先调用`fgetc()`，再调用`feof()`判断是否到结尾，如果未到结尾，再做后处理。
+
+    * 由于不知道在何处会遇到`\0`，所以无法提前知道`str`的长度，因此只能使用`push_back()`的方式动态添加字符。
+
 * c 使用`a+`向文件中追加内容
 
     ```c

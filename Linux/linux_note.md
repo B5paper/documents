@@ -4,6 +4,16 @@
 
 ## cache
 
+* 在 qemu 里编译内核，并`make install`后，新编译的内核并没有作为 grub 的默认选择，而是被放在了 grub 菜单的最下面。
+
+    看起来`make install`并不能保证新编译的内核是默认选项。
+
+* 编译内核时，CC 过程比较占 CPU，LD 过程不占 CPU。
+
+* 编译 linux kernel 时，需要把 value 变成空字符串的两个 config
+
+    `CONFIG_SYSTEM_TRUSTED_KEYS=""`, `CONFIG_SYSTEM_REVOCATION_KEYS=""`
+
 * Linux filesystems don’t allow a slash (/) to be a part of a filename or directory name.
 
     In Linux, a directory path string often ends with a slash, such as “/tmp/dir/target/“. 

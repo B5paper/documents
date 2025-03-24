@@ -382,4 +382,129 @@
 
         p2p 的通信和通过 host 中转，哪个更快，为什么？
 
-    * 异步机制，现在有了一段 poll 实现的异步事件代码，请你分析下它可能在哪出现死锁 
+    * 异步机制，现在有了一段 poll 实现的异步事件代码，请你分析下它可能在哪出现死锁
+
+* nccl analysis tmp
+
+    * `comm->rank`为当前进程被分配到的 mpi rank （猜测）
+
+    * `comm->peerInfo[]`是第一轮 bootstrap all gather 后拿到的所有信息
+    
+    * `comm->nRanks`这些 rank 不一定都在同一个 host 上，因此后面有`if (comm->peerInfo[i].hostHash == comm->peerInfo[comm->rank].hostHash)`保证每个 host 只处理当前 host 上的 rank
+
+    * 如果处理到了当前进程，那么为当前进程赋值`localRank`，这个 idx 统一根据`nLocalRanks`的计数来分配
+
+        ```c
+        if (i == comm->rank)
+          localRank = nLocalRanks;
+        ```
+
+    * `localRanks[nLocalRanks++] = i;`
+
+        无论是否遇到当前进程，只要这个 rank 还在当前 host 上，那么就为`nLocalRanks`加 1，并且把`i`从`comm->nRanks`中拿出来。
+
+    * 整体看来，bootstrap all gather 交换完信息后，一共会有`nRanks`个 rank，并且得到一个数组`comm->peerInfo[]`，但是这些 rank 不一定在同一个 host 上，`peerInfo[]`也可能是乱序的。
+
+        比如`nRanks`为`5`，`peerInfo[]`可能是下面这样的：
+    
+        ```
+        peerInfo[0]
+        host_hash_1
+
+        peerInfo[1]
+        host_hash_0
+
+        peerInfo[2]
+        host_hash_0
+
+        peerInfo[3]
+        host_hash_1
+
+        peerInfo[4]
+        host_hash_0
+        ```
+
+        目前还已知`comm->rank`表示当前进程的 rank，现在我希望得到这样的结果：
+
+        ```
+        host 0:
+        nLocalRanks[3] = {1, 2, 4};
+
+        host 1:
+        nLocalRanks[2] = {0, 3};
+        ```
+
+        此时便需要写出 nccl 的代码：
+
+        ```c
+        NCCLCHECK(ncclCalloc(&localRanks, comm->nRanks));
+        for (int i = 0; i < comm->nRanks; i++) {
+          if (comm->peerInfo[i].hostHash == comm->peerInfo[comm->rank].hostHash) {
+            if (i == comm->rank)
+              localRank = nLocalRanks;
+            localRanks[nLocalRanks++] = i;
+          }
+        }
+        ```
+
+        注意，`localRank`并不是从 0 ~ 4 中取值，而是只计算当前 host 上的 rank 数，取值范围为`host 0: 0 ~ 2`，`host 1: 0 ~ 1`。
+
+* nccl app
+
+    * nccl 提供的控制模式
+
+        * single-threaded control of all GPUs
+
+        * multi-threaded, for example, using one thread per GPU
+
+        * multi-process, for example, MPI
+
+    * Each CUDA device is identified within the communication group by a zero-based index or rank. 
+
+        看来每个 group 内的 rank 是从 0 开始分配，并且唯一的，但是 group 与 group 内的 rank 是互相独立的。
+
+    * When creating a communicator, a unique rank between 0 and n-1 has to be assigned to each of the n CUDA devices which are part of the communicator.
+
+        猜测：在当前进程创建 communicator 后，当前 host 的所有 device 会被编号为 0 到 n - 1。
+
+    * Using the same CUDA device multiple times as different ranks of the same NCCL communicator is not supported and may lead to hangs.
+
+        在不同的 communicator 中，同一个 deivce 是否会有不同的 rank？
+
+    * Given a static mapping of ranks to CUDA devices, the ncclCommInitRank(), ncclCommInitRankConfig() and ncclCommInitAll() functions will create communicator objects, each communicator object being associated to a fixed rank and CUDA device.
+
+        cuda device，rank 和 communicator 是一一映射关系。
+
+        每次 init 的时候，cuda dev 都会被映射到相同的 rank 上吗？
+
+    * Before calling ncclCommInitRank(), you need to first create a unique object which will be used by all processes and threads to synchronize and understand they are part of the same communicator. This is done by calling the ncclGetUniqueId() function.
+
+        这个 unique id 其实就是 ip + bus id 了。
+
+    * The ncclGetUniqueId() function returns an ID which has to be broadcast to all participating threads and processes using any CPU communication system, for example, passing the ID pointer to multiple threads, or broadcasting it to other processes using MPI or another parallel environment using, for example, sockets.
+
+        看他这个介绍，mpi 只是可选项之一，是否如果只调用 thread，那么就不会用到 mpi？
+
+    * You can also call the ncclCommInitAll operation to create n communicator objects at once within a single process. As it is limited to a single process, this function does not permit inter-node communication. ncclCommInitAll is equivalent to calling a combination of ncclGetUniqueId and ncclCommInitRank.
+
+        猜想：inter-node 可能是跨 host 通信的意思。
+
+        看起来`ncclCommInitAll()`是在一个进程上拿到所有 device 的 rank 的意思。
+
+    * The following sample code is a simplified implementation of ncclCommInitAll.
+
+        ```cpp
+        ncclResult_t ncclCommInitAll(ncclComm_t* comm, int ndev, const int* devlist) {
+          ncclUniqueId Id;
+          ncclGetUniqueId(&Id);
+          ncclGroupStart();
+          for (int i=0; i<ndev; i++) {
+            cudaSetDevice(devlist[i]);
+            ncclCommInitRank(comm+i, ndev, Id, i);
+          }
+          ncclGroupEnd();
+        }
+        ```
+
+        `ncclCommInitRank()`接收了个`ndev`参数，猜测可能是为每个`comm`，都创建长度为`ndev`的数组，保存 peer devs 的信息。而`Id`和`i`，则分别作为 bus id 和 dev rank 信息。
+

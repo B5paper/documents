@@ -2,6 +2,74 @@
 
 ## cache
 
+* nccl 中 xml 的内存申请
+
+    nccl 中与 xml 相关的 struct 如下：
+
+    ```cpp
+    struct ncclXmlNode {
+        char name[MAX_STR_LEN+1];
+        struct {
+            char key[MAX_STR_LEN+1];
+            char value[MAX_STR_LEN+1];
+        } attrs[MAX_ATTR_COUNT+1];  // Need an extra one to consume extra params
+        int nAttrs;
+        int type;
+        struct ncclXmlNode* parent;
+        struct ncclXmlNode* subs[MAX_SUBS];
+        int nSubs;
+    };
+
+    struct ncclXml {
+        int maxIndex, maxNodes;
+        struct ncclXmlNode nodes[1];
+    };
+    ```
+
+    可以看到`ncclXml`里记录了`maxNodes`，即`nodes`数组的最大长度，`maxIndex`即目前`nodes`的实际长度，而`nodes`数组其实是实际子 nodes 的起始地址。
+
+    `struct ncclXmlNode nodes[1];`这样的写法，是想既申请一个节点，作为 xml 的 root node，又可以将`nodes`作为指针，增加偏移指向 child nodes。
+
+    下面是 nccl 里内存申请相关的函数：
+
+    ```cpp
+    static size_t xmlMemSize(int maxNodes) {
+      return offsetof(struct ncclXml, nodes) + sizeof(struct ncclXmlNode)*maxNodes;
+    }
+
+    static ncclResult_t xmlAlloc(struct ncclXml** xml, int maxNodes) {
+      char* mem;
+      NCCLCHECK(ncclCalloc(&mem, xmlMemSize(maxNodes)));
+      *xml = (struct ncclXml*)mem;
+      (*xml)->maxNodes = maxNodes;
+      return ncclSuccess;
+    }
+    ```
+
+    可以看到，`xmlMemSize()`在计算 size 时，`offsetof(struct ncclXml, nodes)`计算的是 header 部分，`sizeof(struct ncclXmlNode)*maxNodes`统计的是 child nodes 所占的 size。
+
+    这样的写法，有点像：
+
+    ```c
+    struct MyXml
+    {
+        header member var 1;
+        header member var 2;
+        header member var 3;
+        ...
+        root node 0;
+        ----------------------
+        child node 1;
+        child node 2;
+        child node 3;
+        ...
+    };
+    ```
+
+    这样即可将一个大小可动态变化的 struct 写成静态的第 1 部分和动态的第 2 部分。
+
+    是否有 feedback？未想到。
+
 * 可以确认 socket 的 buffer 使用的是 cuda host alloc
 
     与 user 申请的数据对应的地址为`0x7fccafc00000`，查询 nccl 中所有的 buffer 的 addr，有一个`in ncclCudaHostCallocDebug(), host alloc size: 8388608, ptr: 0x7fccafa00000`，将`0x7fccafa00000`与`8388608`相加得到`7FCCB0200000`，由此可以看出`0x7fccafc00000`在这段内存里。
@@ -166,282 +234,6 @@
     ref: `ref_33`
 
     猜想：stream 有点像 vulkan 里的 queue。 queue 中每完成一项任务，device 就用中断上报一次 completion。 
-
-* nccl all reduce example
-
-    `main.c`:
-
-    ```c
-    #include <stdlib.h>
-    #include <stdio.h>
-    #include <nccl.h>
-    #include <cuda_runtime.h>
-
-    // resources on a cuda device
-    typedef struct
-    {
-        float *cubuf_A;
-        float *cubuf_B;
-        cudaStream_t cu_stream;
-    } CudevRes;
-
-    void print_vec_cuf32(void *cubuf, int num_elm)
-    {
-        float *buf = (float*) malloc(num_elm * sizeof(float));
-        cudaError_t cu_ret;
-        cu_ret = cudaMemcpy(buf, cubuf, num_elm * sizeof(float), cudaMemcpyDeviceToHost);
-        if (cu_ret != cudaSuccess)
-        {
-            printf("fail to cuda memcpy\n");
-            exit(-1);
-        }
-        for (int i = 0; i < num_elm; ++i)
-        {
-            printf("%.1f, ", buf[i]);
-        }
-        putchar('\n');
-        free(buf);
-    }
-
-    void print_vec_f32(float *buf, int num_elm)
-    {
-        for (int i = 0; i < num_elm; ++i)
-        {
-            printf("%.1f, ", buf[i]);
-        }
-        putchar('\n');
-    }
-
-    int main()
-    {
-        int cu_dev_cnt;
-        cudaGetDeviceCount(&cu_dev_cnt);
-        printf("there are totally %d cuda devices\n", cu_dev_cnt);
-
-        // int cur_cu_dev_id;
-        // cudaGetDevice(&cur_cu_dev_id);
-        // printf("current cuda device: %d\n", cur_cu_dev_id);
-
-        int num_cuda_devs = 2;
-
-        ncclComm_t *nccl_comms = malloc(num_cuda_devs * sizeof(ncclComm_t));
-        int *cuda_dev_ids = malloc(num_cuda_devs * sizeof(int));
-        for (int i = 0; i < num_cuda_devs; ++i)
-            cuda_dev_ids[i] = i;
-        cudaError_t cu_ret = ncclCommInitAll(nccl_comms, num_cuda_devs, cuda_dev_ids);
-        if (cu_ret != cudaSuccess)
-        {
-            printf("fail to comm init all\n");
-            return -1;
-        }
-        printf("successfully comm init all\n");
-
-        int num_elms = 8;
-
-        float *buf_A_dev_0 = malloc(num_elms * sizeof(float));
-        float *buf_A_dev_1 = malloc(num_elms * sizeof(float));
-        float *buf_B = malloc(num_elms * sizeof(float));
-        for (int i = 0; i < num_elms; ++i)
-        {
-            buf_A_dev_0[i] = rand() % 5;
-            buf_A_dev_1[i] = rand() % 5;
-            buf_B[i] = rand() % 5;
-        }
-        for (int i = 0; i < num_elms; ++i)
-        {
-            buf_B[i] = buf_A_dev_0[i] + buf_A_dev_1[i];
-        }
-
-        printf("buf_A_dev_0:\n");
-        print_vec_f32(buf_A_dev_0, num_elms);
-
-        printf("buf_A_dev_1:\n");
-        print_vec_f32(buf_A_dev_1, num_elms);
-
-        printf("buf_B:\n");
-        print_vec_f32(buf_B, num_elms);
-
-        putchar('\n');
-
-        CudevRes *cudev_reses = malloc(num_cuda_devs * sizeof(CudevRes));
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            CudevRes *cudev_res = &cudev_reses[i];
-
-            cu_ret = cudaSetDevice(i);
-            if (cu_ret != cudaSuccess)
-                printf("fail to set cuda device %d\n", i);
-
-            cu_ret = cudaMalloc((void**) &cudev_res->cubuf_A, num_elms * sizeof(float));
-            if (cu_ret != cudaSuccess)
-                printf("fail to malloc buf A on cuda dev %d\n", i);
-
-            cu_ret = cudaMalloc((void**) &cudev_res->cubuf_B, num_elms * sizeof(float));
-            if (cu_ret != cudaSuccess)
-                printf("fail to malloc buf B on cuda dev %d\n", i);
-
-            cu_ret = cudaStreamCreate(&cudev_res->cu_stream);
-            if (cu_ret != cudaSuccess)
-                printf("fail to create cuda stream on dev %d\n", i);
-
-            printf("allocate resources from cuda device %d\n", i);
-
-            if (i == 0)
-                cu_ret = cudaMemcpy(cudev_res->cubuf_A, buf_A_dev_0, num_elms * sizeof(float), cudaMemcpyHostToDevice);
-            else if (i == 1)
-                cu_ret = cudaMemcpy(cudev_res->cubuf_A, buf_A_dev_1, num_elms * sizeof(float), cudaMemcpyHostToDevice);
-            else
-            {
-                printf("error\n");
-                return -1;
-            }
-            if (cu_ret != cudaSuccess)
-            {
-                printf("fail to cudaMemcpy buf A\n");
-                return -1;
-            }
-
-            cu_ret = cudaMemset(cudev_res->cubuf_B, 0, num_elms * sizeof(float));
-            if (cu_ret != cudaSuccess)
-            {
-                printf("fail to cudaMemset buf B\n");
-                return -1;
-            }
-
-            printf("assign cuda mem data for dev %d\n", i);
-        }
-
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            cudaSetDevice(i);
-            printf("cu dev %d:\n", i);
-            printf("\tcubuf_A: ");
-            print_vec_cuf32(cudev_reses[i].cubuf_A, num_elms);
-            printf("\tcubuf_B: ");
-            print_vec_cuf32(cudev_reses[i].cubuf_B, num_elms);
-        }
-
-        ncclGroupStart();
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            CudevRes cudev_res = cudev_reses[i];
-            cudaSetDevice(i);
-            cu_ret = ncclAllReduce(cudev_res.cubuf_A, cudev_res.cubuf_B, num_elms, ncclFloat, ncclSum, nccl_comms[i], cudev_res.cu_stream);
-            if (cu_ret != cudaSuccess)
-            {
-                printf("fail to all recude\n");
-                return -1;
-            }
-        }
-        cu_ret = ncclGroupEnd();
-        if (cu_ret != cudaSuccess)
-        {
-            printf("fail to group end\n");
-            return -1;
-        }
-        printf("nccl all reduce group ended\n");
-
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            CudevRes cudev_res = cudev_reses[i];
-            cudaSetDevice(i);
-            cudaStreamSynchronize(cudev_res.cu_stream);
-        }
-        printf("cuda stream synchronized\n");
-
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            cudaSetDevice(i);
-            printf("cu dev %d:\n", i);
-            printf("\tcubuf_A: ");
-            print_vec_cuf32(cudev_reses[i].cubuf_A, num_elms);
-            printf("\tcubuf_B: ");
-            print_vec_cuf32(cudev_reses[i].cubuf_B, num_elms);
-        }
-
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            cudaSetDevice(i);
-            CudevRes cudev_res = cudev_reses[i];
-            cudaFree(cudev_res.cubuf_A);
-            cudaFree(cudev_res.cubuf_B);
-            cudaStreamDestroy(cudev_res.cu_stream);
-        }
-        printf("cuda dev resource free\n");
-
-        for (int i = 0; i < num_cuda_devs; ++i)
-        {
-            ncclCommDestroy(nccl_comms[i]);
-        }
-
-        free(nccl_comms);
-        free(cuda_dev_ids);
-        return 0;
-    }
-    ```
-
-    `Makefile`:
-
-    ```makefile
-    main: main.c
-        nvcc -g -I/home/huliucheng/Documents/Projects/nccl/build/include main.c -L/home/huliucheng/Documents/Projects/nccl/build/lib -lnccl -o main
-
-    clean:
-        rm -f main
-    ```
-
-    `run.sh`:
-
-    ```sh
-    #!/bin/bash
-
-    export LD_LIBRARY_PATH=/home/huliucheng/Documents/Projects/nccl/build/lib:${LD_LIBRARY_PATH}
-
-    ./main
-    ```
-
-    compile: `make`
-
-    run: `./run.sh`
-
-    output:
-
-    ```
-    there are totally 2 cuda devices
-    successfully comm init all
-    buf_A_dev_0:
-    3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
-    buf_A_dev_1:
-    1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
-    buf_B:
-    4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
-
-    allocate resources from cuda device 0
-    assign cuda mem data for dev 0
-    allocate resources from cuda device 1
-    assign cuda mem data for dev 1
-    cu dev 0:
-        cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
-        cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-    cu dev 1:
-        cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
-        cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-    nccl all reduce group ended
-    cuda stream synchronized
-    cu dev 0:
-        cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
-        cubuf_B: 4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
-    cu dev 1:
-        cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
-        cubuf_B: 4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
-    cuda dev resource free
-    ```
-
-    可以看到，all reduce sum 把不同 device 上的 src 处的数据相加，然后把结果同步到两个 device 的 dst 显存上。
-
-* 创建 communicator 时，nccl 会创建 rank，这个 rank 代表一个 device，不代表一个进程
-
-    > Using the same CUDA device multiple times as different ranks of the same NCCL communicator is not supported and may lead to hangs.
 
 * nccl 声称实现的通信原语
 
@@ -1231,54 +1023,6 @@
 
     * `-g 1`表示 nccl 在本 node 上只使用一块 gpu.
 
-* 一个最简 nccl 程序
-
-    `main.cu`:
-
-    ```c
-    #include <nccl.h>
-    #include <stdio.h>
-
-    int main()
-    {
-        ncclComm_t comm;
-        int dev_id = 0;
-        ncclResult_t ret = ncclCommInitAll(&comm, 1, &dev_id);
-        if (ret != ncclSuccess)
-        {
-            printf("fail to init all comm\n");
-            return -1;
-        }
-        printf("successfully init all comm\n");
-
-        ret = ncclCommDestroy(comm);
-        if (ret != ncclSuccess)
-        {
-            printf("fail to destroy comm\n");
-            return -1;
-        }
-        printf("successfully destroy comm\n");
-        return 0;
-    }
-    ```
-
-    编译：
-
-    `nvcc main.cu -lnccl -o main`
-
-    运行：
-
-    `./main`
-
-    输出：
-
-    ```
-    successfully init all comm
-    successfully destroy comm
-    ```
-
-    这个程序可以用来测试 nccl 编译和运行环境。
-
 * 一条可以跑通的 nccl 命令：`mpirun -np 2 --host sw53,sw54 -mca btl_tcp_if_include ens9f0 $(pwd)/all_reduce_perf -b 8 -e 128M -f 2 -g 1`
 
     output:
@@ -1340,3 +1084,335 @@
     * `-b 8`, `-e 128M`, `-f 2`: 第 1 次先发 8 个字节，后面发送的数据量不断翻倍，直到 128M 为止，数据量每次翻 2 倍。
 
     * `-g 1`：在当前机器上使用 1 块 gpu
+
+## note
+
+### app
+
+#### cache
+
+* 一个最简 nccl 程序
+
+    `main.cu`:
+
+    ```c
+    #include <nccl.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        ncclComm_t comm;
+        int dev_id = 0;
+        ncclResult_t ret = ncclCommInitAll(&comm, 1, &dev_id);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to init all comm\n");
+            return -1;
+        }
+        printf("successfully init all comm\n");
+
+        ret = ncclCommDestroy(comm);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to destroy comm\n");
+            return -1;
+        }
+        printf("successfully destroy comm\n");
+        return 0;
+    }
+    ```
+
+    编译：
+
+    `nvcc main.cu -lnccl -o main`
+
+    运行：
+
+    `./main`
+
+    输出：
+
+    ```
+    successfully init all comm
+    successfully destroy comm
+    ```
+
+    这个程序可以用来测试 nccl 编译和运行环境。
+
+* 创建 communicator 时，nccl 会创建 rank，这个 rank 代表一个 device，不代表一个进程
+
+    > Using the same CUDA device multiple times as different ranks of the same NCCL communicator is not supported and may lead to hangs.
+
+* nccl all reduce example
+
+    `main.c`:
+
+    ```c
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <nccl.h>
+    #include <cuda_runtime.h>
+
+    // resources on a cuda device
+    typedef struct
+    {
+        float *cubuf_A;
+        float *cubuf_B;
+        cudaStream_t cu_stream;
+    } CudevRes;
+
+    void print_vec_cuf32(void *cubuf, int num_elm)
+    {
+        float *buf = (float*) malloc(num_elm * sizeof(float));
+        cudaError_t cu_ret;
+        cu_ret = cudaMemcpy(buf, cubuf, num_elm * sizeof(float), cudaMemcpyDeviceToHost);
+        if (cu_ret != cudaSuccess)
+        {
+            printf("fail to cuda memcpy\n");
+            exit(-1);
+        }
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+        free(buf);
+    }
+
+    void print_vec_f32(float *buf, int num_elm)
+    {
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+    }
+
+    int main()
+    {
+        int cu_dev_cnt;
+        cudaGetDeviceCount(&cu_dev_cnt);
+        printf("there are totally %d cuda devices\n", cu_dev_cnt);
+
+        // int cur_cu_dev_id;
+        // cudaGetDevice(&cur_cu_dev_id);
+        // printf("current cuda device: %d\n", cur_cu_dev_id);
+
+        int num_cuda_devs = 2;
+
+        ncclComm_t *nccl_comms = malloc(num_cuda_devs * sizeof(ncclComm_t));
+        int *cuda_dev_ids = malloc(num_cuda_devs * sizeof(int));
+        for (int i = 0; i < num_cuda_devs; ++i)
+            cuda_dev_ids[i] = i;
+        cudaError_t cu_ret = ncclCommInitAll(nccl_comms, num_cuda_devs, cuda_dev_ids);
+        if (cu_ret != cudaSuccess)
+        {
+            printf("fail to comm init all\n");
+            return -1;
+        }
+        printf("successfully comm init all\n");
+
+        int num_elms = 8;
+
+        float *buf_A_dev_0 = malloc(num_elms * sizeof(float));
+        float *buf_A_dev_1 = malloc(num_elms * sizeof(float));
+        float *buf_B = malloc(num_elms * sizeof(float));
+        for (int i = 0; i < num_elms; ++i)
+        {
+            buf_A_dev_0[i] = rand() % 5;
+            buf_A_dev_1[i] = rand() % 5;
+            buf_B[i] = rand() % 5;
+        }
+        for (int i = 0; i < num_elms; ++i)
+        {
+            buf_B[i] = buf_A_dev_0[i] + buf_A_dev_1[i];
+        }
+
+        printf("buf_A_dev_0:\n");
+        print_vec_f32(buf_A_dev_0, num_elms);
+
+        printf("buf_A_dev_1:\n");
+        print_vec_f32(buf_A_dev_1, num_elms);
+
+        printf("buf_B:\n");
+        print_vec_f32(buf_B, num_elms);
+
+        putchar('\n');
+
+        CudevRes *cudev_reses = malloc(num_cuda_devs * sizeof(CudevRes));
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            CudevRes *cudev_res = &cudev_reses[i];
+
+            cu_ret = cudaSetDevice(i);
+            if (cu_ret != cudaSuccess)
+                printf("fail to set cuda device %d\n", i);
+
+            cu_ret = cudaMalloc((void**) &cudev_res->cubuf_A, num_elms * sizeof(float));
+            if (cu_ret != cudaSuccess)
+                printf("fail to malloc buf A on cuda dev %d\n", i);
+
+            cu_ret = cudaMalloc((void**) &cudev_res->cubuf_B, num_elms * sizeof(float));
+            if (cu_ret != cudaSuccess)
+                printf("fail to malloc buf B on cuda dev %d\n", i);
+
+            cu_ret = cudaStreamCreate(&cudev_res->cu_stream);
+            if (cu_ret != cudaSuccess)
+                printf("fail to create cuda stream on dev %d\n", i);
+
+            printf("allocate resources from cuda device %d\n", i);
+
+            if (i == 0)
+                cu_ret = cudaMemcpy(cudev_res->cubuf_A, buf_A_dev_0, num_elms * sizeof(float), cudaMemcpyHostToDevice);
+            else if (i == 1)
+                cu_ret = cudaMemcpy(cudev_res->cubuf_A, buf_A_dev_1, num_elms * sizeof(float), cudaMemcpyHostToDevice);
+            else
+            {
+                printf("error\n");
+                return -1;
+            }
+            if (cu_ret != cudaSuccess)
+            {
+                printf("fail to cudaMemcpy buf A\n");
+                return -1;
+            }
+
+            cu_ret = cudaMemset(cudev_res->cubuf_B, 0, num_elms * sizeof(float));
+            if (cu_ret != cudaSuccess)
+            {
+                printf("fail to cudaMemset buf B\n");
+                return -1;
+            }
+
+            printf("assign cuda mem data for dev %d\n", i);
+        }
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            cudaSetDevice(i);
+            printf("cu dev %d:\n", i);
+            printf("\tcubuf_A: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_A, num_elms);
+            printf("\tcubuf_B: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_B, num_elms);
+        }
+
+        ncclGroupStart();
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            CudevRes cudev_res = cudev_reses[i];
+            cudaSetDevice(i);
+            cu_ret = ncclAllReduce(cudev_res.cubuf_A, cudev_res.cubuf_B, num_elms, ncclFloat, ncclSum, nccl_comms[i], cudev_res.cu_stream);
+            if (cu_ret != cudaSuccess)
+            {
+                printf("fail to all recude\n");
+                return -1;
+            }
+        }
+        cu_ret = ncclGroupEnd();
+        if (cu_ret != cudaSuccess)
+        {
+            printf("fail to group end\n");
+            return -1;
+        }
+        printf("nccl all reduce group ended\n");
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            CudevRes cudev_res = cudev_reses[i];
+            cudaSetDevice(i);
+            cudaStreamSynchronize(cudev_res.cu_stream);
+        }
+        printf("cuda stream synchronized\n");
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            cudaSetDevice(i);
+            printf("cu dev %d:\n", i);
+            printf("\tcubuf_A: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_A, num_elms);
+            printf("\tcubuf_B: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_B, num_elms);
+        }
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            cudaSetDevice(i);
+            CudevRes cudev_res = cudev_reses[i];
+            cudaFree(cudev_res.cubuf_A);
+            cudaFree(cudev_res.cubuf_B);
+            cudaStreamDestroy(cudev_res.cu_stream);
+        }
+        printf("cuda dev resource free\n");
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            ncclCommDestroy(nccl_comms[i]);
+        }
+
+        free(nccl_comms);
+        free(cuda_dev_ids);
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.c
+        nvcc -g -I/home/huliucheng/Documents/Projects/nccl/build/include main.c -L/home/huliucheng/Documents/Projects/nccl/build/lib -lnccl -o main
+
+    clean:
+        rm -f main
+    ```
+
+    `run.sh`:
+
+    ```sh
+    #!/bin/bash
+
+    export LD_LIBRARY_PATH=/home/huliucheng/Documents/Projects/nccl/build/lib:${LD_LIBRARY_PATH}
+
+    ./main
+    ```
+
+    compile: `make`
+
+    run: `./run.sh`
+
+    output:
+
+    ```
+    there are totally 2 cuda devices
+    successfully comm init all
+    buf_A_dev_0:
+    3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+    buf_A_dev_1:
+    1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+    buf_B:
+    4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
+
+    allocate resources from cuda device 0
+    assign cuda mem data for dev 0
+    allocate resources from cuda device 1
+    assign cuda mem data for dev 1
+    cu dev 0:
+        cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+        cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+    cu dev 1:
+        cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+        cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+    nccl all reduce group ended
+    cuda stream synchronized
+    cu dev 0:
+        cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+        cubuf_B: 4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
+    cu dev 1:
+        cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+        cubuf_B: 4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
+    cuda dev resource free
+    ```
+
+    可以看到，all reduce sum 把不同 device 上的 src 处的数据相加，然后把结果同步到两个 device 的 dst 显存上。
+
+#### note

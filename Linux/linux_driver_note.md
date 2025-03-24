@@ -6,6 +6,18 @@ Ref:
 
 ## cache
 
+* `/sys/class/pci_bus/0000:00/device/0000:00:00.0`中每个 attr 文件的 size 都是 4096
+
+    比如这个目录下的`class`，`device`等，虽然有效内容也就几十个字节，但是使用
+
+    ```c
+    FILE *f = fopen(path, "r");
+    fseek(f, 0, SEEK_END);
+    int len = ftell(f);
+    ```
+
+    得到的`len`，值为`4906`。
+
 * linux 6.8.0 vscode hello world 无静态报错的配置是这样的：
 
     ```json
