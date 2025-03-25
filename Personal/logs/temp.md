@@ -508,3 +508,45 @@
 
         `ncclCommInitRank()`接收了个`ndev`参数，猜测可能是为每个`comm`，都创建长度为`ndev`的数组，保存 peer devs 的信息。而`Id`和`i`，则分别作为 bus id 和 dev rank 信息。
 
+* nccl xml
+
+    ```c
+    if (comm->MNNVL) {
+        // Ensure that we have enough room when fusing topos from multiple nodes.
+        free(xml);
+        NCCLCHECK(xmlAlloc(&xml, nLocalRanks*NCCL_TOPO_XML_MAX_NODES));
+    } else {
+        // In the intra-node case there's no need to enlarge the topo xml.
+        xml->maxIndex = 0;
+        free(localRanks);
+    }
+    ```
+
+    不清楚这个`comm->MNNVL`是干嘛用的，疑似是发现了多个 host。如果有多个 host，那么就认为在 current node 上申请的 xml 的内存不够用（为什么不够用？前面在申请时，是按 max nodes 申请的内存吗？），全部释放掉再申请个新的。
+
+    如果发现所有的 comm rank 都是在同一个 node 上的，那么认为为 xml 预留的空间够用，`xml->maxIndex = 0;`相当于移动了栈顶指针，效果上等价于释放数据。`free(localRanks);`不清楚干嘛用的，可能是如果发现 comm 都在同一个 host 上，那么 localRanks 就是无意义的。
+
+* `ncclTopoFuseXml()`
+
+    ```c
+    ncclResult_t ncclTopoFuseXml(struct ncclXml* dst, struct ncclXml* src) {
+      struct ncclXmlNode* topNodeDst;
+      NCCLCHECK(xmlFindTag(dst, "system", &topNodeDst));
+
+      if (topNodeDst == NULL) {
+        xmlAddTree(dst, NULL, src->nodes);
+        return ncclSuccess;
+      }
+
+      struct ncclXmlNode* topNodeSrc;
+      NCCLCHECK(xmlFindTag(src, "system", &topNodeSrc));
+
+      NCCLCHECK(xmlTopoFuseXmlRecursive(dst, topNodeDst, topNodeSrc));
+
+      return ncclSuccess;
+    }
+    ```
+
+    如果`dst`是个空的 xml，那么把`src`的 xml 直接添加到`dst`里。
+
+    如果`dst`非空，那么找到`src`中的`system` tag，
