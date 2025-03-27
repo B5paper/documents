@@ -550,3 +550,217 @@
     如果`dst`是个空的 xml，那么把`src`的 xml 直接添加到`dst`里。
 
     如果`dst`非空，那么找到`src`中的`system` tag，
+
+* driver 17 years interview
+
+* [v] 准备面试题
+
+    feedback:
+
+    * linux kernel
+    
+        简述一下零拷贝原理。
+        
+        中断如何处理？（上下两部分）
+
+        调试：
+        
+        简述一下如何使用 ftrace (查看函数上下文：function_graph)
+        
+        kgdb (`echo g > /proc/sysrq-trigger`, `gdb ./vmlinux 内核映像`, `break do_init_module`, `add-symbol-file内核模块名 .text段基地址 -s .data .data段基址 -s .bss .bss段基址`) 
+        
+        qemu gdb (-S -s)
+        
+        ebpf 了解吗？
+        
+        是否使用过 gdb 调试 coredump 文件？
+        
+        libdrm 显存管理了解吗？
+    
+        页表共用时，dma 的 iova 只接收 4K 对齐的地址，此时可能会有哪些问题？（1. 数据的覆盖；2. free 时不能全部释放）
+
+    * 指令集：riscv 中的 -fPIC 功能有什么实现的思路？
+    
+        arm 中的自旋锁和互拆锁，汇编是如何实现的？
+
+    * rdma: 简述一下 rdma app 的写法；为什么使用 poll，不使用中断？mmap 后，如果用户态进程销毁，内核态如何清空资源？
+
+    * gdb 原理是什么？gpu debug 搞过吗？
+
+    * nccl: 做题。
+
+    * 简述一下生产者消费者模型，简述一下订阅者，分发者模式
+
+    项目：
+
+    * 事件驱动，简述一下 poll, epoll 原理？协程听说过吗？调度器的 policy 是静态的还是动态的？如何实现 load balance？是否接触过 nvidia 的 nsight 软件，简述下可能的实现原理？
+
+    * 简述一下 all reduce 的实现原理，简述 broadcast 的实现原理，简述 ReduceScatter 的作用？目前上层软件比如 vllm, sglang，都只调用到了 send / recv / all reduce 这三个函数，为什么？简述下什么是 AI 任务，如何分析 dependency？是否接触过计算算子，通信算子？numa 该如何优化？是否接触过 tvm，图优化？接口是 mlnx 写好的，为什么还要定义？rdma 网卡是否支持 roce v1/v2？ ABI 是干嘛用的？
+
+    * 简介一下sev, sgx原理，各有什么优劣？是否听说过 libos? occlum, gramine? 简介下 fuzz 的原理？是否挖到了 cve？linux 中还有什么手段判断内存泄漏？(valgrind, gcc -ggdb3)
+
+* nccl app
+
+    * 使用 unique id + init rank 的方式进行初始化
+
+        ```cpp
+        #include <nccl.h>
+        #include <cuda_runtime.h>
+        #include <stdio.h>
+
+        int main()
+        {
+            ncclUniqueId uni_id;
+            ncclResult_t ret;
+            ret = ncclGetUniqueId(&uni_id);
+            if (ret != ncclSuccess)
+            {
+                printf("fail to get unique id\n");
+                return -1;
+            }
+            printf("get unique id: %lu\n", uni_id);
+
+            ncclComm_t comms[2];
+            int dev_indices[2] = {0, 1};
+
+            ncclGroupStart();
+            for (int i = 0; i < 2; i++) {
+                cudaSetDevice(dev_indices[i]);
+                ncclCommInitRank(&comms[i], 2, uni_id, i);
+            }
+            ncclGroupEnd();
+
+            for (int i = 0; i < 2; ++i)
+            {
+                cudaSetDevice(dev_indices[i]);
+                cudaDeviceSynchronize();
+            }
+
+            for (int i = 0; i < 2; ++i)
+            {
+                printf("comms[%d]: %p\n", i, comms[i]);
+            }
+
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        get unique id: 512
+        comms[0]: 0x55fd1f29f6c0
+        comms[1]: 0x55fd1f33cf20
+        ```
+
+    * 使用`ncclCommInitRankConfig()`进行带参数的初始化
+
+        ```cpp
+        ncclConfig_t config = NCCL_CONFIG_INITIALIZER;
+        config.blocking = 0;
+        config.minCTAs = 4;
+        config.maxCTAs = 16;
+        config.cgaClusterSize = 2;
+        config.netName = "Socket";
+
+        // ...
+
+        ncclGroupStart();
+        for (int i = 0; i < 2; i++)
+        {
+            cudaSetDevice(dev_indices[i]);
+            ncclCommInitRankConfig(&comms[i], 2, uni_id, i, &config);
+        }
+        ncclGroupEnd();
+        ```
+
+        这里，`NCCL_CONFIG_INITIALIZER`并不是一个枚举，而是一个宏，写了 struct 初始化的一些字段。
+
+    * The `ncclCommInitRankScalable()` function enables the creation of a NCCL communicator using many ncclUniqueIds.
+
+        看起来这个函数可以指定多个 unique id，但是 unique id 其实是标识 host　的，使用多个 host 又有什么用？
+
+        试了下，这个功能在目前的版本里没有，好像是新加上去的。
+
+    * doc 里说使用这个函数判断一个 rank 是否应该产生一个 unique id
+
+        ```cpp
+        bool rankHasRoot(const int rank, const int nRanks, const int nIds) {
+          const int rmr = nRanks % nIds;
+          const int rpr = nRanks / nIds;
+          const int rlim = rmr * (rpr+1);
+          if (rank < rlim) {
+            return !(rank % (rpr + 1));
+          } else {
+            return !((rank - rlim) % rpr);
+          }
+        }
+        ```
+
+        For example, if 3 ncclUniqueIds are to be distributed accross 7 NCCL ranks, the first ncclUniqueId will be associated to ranks 0-2, while the others will be associated to ranks 3-4, and 5-6. This function will therefore return true on rank 0, 3, and 5, and false otherwise.
+
+        Note: only the first ncclUniqueId will be used to create the communicator hash id, which is used to identify the communicator in the log file and in the replay tool.
+
+        不清楚这个干嘛用的，创建这么多 unique id 有什么用。
+
+    * Using multiple NCCL communicators concurrently
+
+        根据 doc 上的资料，在 cuda 12.3 之前，
+
+        ```cpp
+        cudaGraphLaunch(graph1, stream1); // all ranks do this first
+        cudaGraphLaunch(graph2, stream2); // and this second
+        ```
+
+        是按顺序执行的，底层使用的是 cuda graph。
+
+        从 cuda 12.3 开始，这两个语句是并行执行的，底层使用的是 completion events。
+
+* topo system
+
+    * nccl 中的 topo node 只有四种：gpu, net, cpu, pci
+
+        目前不清楚 pci 中的`uint64_t device;`成员是干嘛用的，可能是 bus id？
+
+        每个 node 上都可以对接 nvlink。（net 该怎么对接？）
+
+        link 相关的结构体只有三个信息：
+
+        ```cpp
+        struct TopoLink
+        {
+            int type;
+            float bw;
+            struct TopoNode *peer_node;  // remNode
+        };
+        ```
+        
+        看起来这里设计的 link，可以从任意一种 topo node 走到另外任意一种 topo node。不清楚 net 与 net 之间是怎么走的。
+
+        每个节点都包含一个固定长度的`TopoLinkList*`数组，数组中的每个元素分别对应不同的类型：
+
+        ```cpp
+        enum {
+            GPU = 0,
+            PCI = 1,
+            NVS = 2,
+            CPU = 3, // Actually NUMA domains
+            NIC = 4,
+            NET = 5,
+            NCCL_TOPO_NODE_TYPES
+        };
+        ```
+
+        目前不知道这个干嘛用的。
+
+        `TopoLinkList`的 struct 为：
+
+        ```cpp
+        struct TopoLinkList
+        {
+            vector<TopoLink*> list;  // NCCL_TOPO_MAX_HOPS 256 * 7
+            int count;
+            float bw;
+            int type;
+        };
+        ```

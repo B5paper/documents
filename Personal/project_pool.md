@@ -929,6 +929,14 @@
 
     看到 P7
 
+* [v] reorg: nccl  30 mins
+
+    14:03 ~ 14:26
+
+    feedback:
+
+    1. 从 cache 中整理出了 nccl app 相关的笔记，但是只有 3 条，太少了，需要额外再添加些
+
 * [o] process 1 url  10.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -1638,6 +1646,8 @@ tasks:
 
 * pthread cond 如果先 signal，再 wait，那么无法正常运行
 
+* 目前看到 nccl 的 rank 是由 mpi 分配的，并未给 gpu 分配 rank。一个 rank 上的 gpu 按照 dev 0, dev 1 等方式进行区分。
+
 ### tasks
 
 * { } 调研 ptx 指令集
@@ -1696,17 +1706,15 @@ tasks:
 
         目前在 host alloc 和 malloc 中没看到这个 buffer addr。这个 buffer addr 的后 5 位总是 0，猜测可能做了 align alloc。
 
-* [v] 调研`pthread_once()`
+* [P] 调研 nccl app 的写法
 
-* [v] 调研 rank 的分配过程
+    14:30 ~ 17:29
 
     feedback:
 
-    1. 目前看到 nccl 的 rank 是由 mpi 分配的，并未给 gpu 分配 rank。一个 rank 上的 gpu 按照 dev 0, dev 1 等方式进行区分。
+    1. 自定义版的 nccl 有太多 debug 输出，因此重新编译了原版的 nccl，搭建了 nccl test case 调试环境。
 
-* [ ] 调研 nccl app 的写法
-
-* [v] 调研 qemu 使用`-kernel`，`-initrd`启动系统
+    1. 目前 53 机器不走代理，因此只能访问国内网站。如果 50 机器需要访问 github，可以用笔记本 ssh -R 反向代理。
 
 * [O] 调研 qemu 添加 pci 设备
 
@@ -1718,9 +1726,29 @@ tasks:
 
     `realpath()`是否可以保证线程安全？
 
-* [P] 调研 topo xml 的生成
+* [v] 调研 topo xml 的生成
 
-* [v] 调研 xml parser
+    feedback:
+
+    * [ ] 调研常用 c 标准库，linux 常用库
+
+    * [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
+
+    * [ ] 调研`feof()`, `ferror()`
+
+    * [ ] 调研`strtol()`
+
+    * [ ] 调研 c++ string 与 int, float 的转换，调研 c string 与 int float 的转换
+
+    * 调研`__cpuid()`
+
+    * 调研`attr_val.erase(attr_val.back());`为什么可以 work？
+
+    * 搞明白了从`comm->peerInfo[]`中拿到当前 host 所需要的 rank 的过程
+
+        接下来该分配`nLocalRanks`大小的 xml 空间，并对本机上的 xml 进行 fuse
+
+* [v] 调研对本机上的 xml 进行 fuse
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 
@@ -2010,6 +2038,8 @@ tasks:
         feedback:
 
         1. [ ] 调研`extern __shared__ xxx;`申请动态的 shard 数据
+
+* [v] 准备面试题
 
 * [ ] 调研`cudaMalloc3D()`
 
