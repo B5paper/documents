@@ -929,10 +929,9 @@ int main()
         Example:
 
         ```cpp
-        // find_if example
-        #include <iostream>     // std::cout
+        #include <iostream
         #include <algorithm>    // std::find_if
-        #include <vector>       // std::vector
+        #include <vector>
 
         bool IsOdd (int i) {
             return ((i%2)==1);

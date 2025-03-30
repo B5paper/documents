@@ -6968,3 +6968,73 @@
 * Taichi Lang is an open-source, imperative, parallel programming language for high-performance numerical computation. 
 
     <https://github.com/taichi-dev/taichi>
+
+* o1复现的一点点心得
+
+    <https://zhuanlan.zhihu.com/p/13872128423>
+
+* 《Engineering a Compiler》(编译器设计)一书哪里可以找到答案？
+
+    <https://www.zhihu.com/question/42959090/answer/95244166>
+
+* 学习编译原理有什么好的书籍?
+
+    <https://www.zhihu.com/question/315313590/answer/2867602898>
+
+* 如何想学点编译原理,又不想直接看龙虎之类的书籍，太多理论，干燥?
+
+    <https://www.zhihu.com/question/265364484/answer/293645562>
+
+* Programming Language with LLVM [1/20] Introduction to LLVM IR and tools
+
+    <https://www.youtube.com/watch?v=Lvc8qx8ukOI>
+
+* Android原生开发全面指南
+
+    <https://baijiahao.baidu.com/s?id=1824789708618511106&wfr=spider&for=pc>
+
+* 从零开始写一个Hypervisor [十三]
+
+    <https://zhuanlan.zhihu.com/p/16916936790>
+
+* CPU Benchmarks
+
+    <https://www.cpubenchmark.net/cpu_list.php>
+
+* EM算法存在的意义是什么？
+
+    <https://www.zhihu.com/question/40797593/answer/275171156>
+
+* Welcome to OSDev.org
+
+    <https://wiki.osdev.org/Expanded_Main_Page>
+
+* 如何评价2025年求真书院pi节挑战赛试题？
+
+    <https://www.zhihu.com/question/15015951025/answer/125088635890>
+
+* 王道计算机考研 操作系统
+
+    <https://www.bilibili.com/video/BV1YE411D7nH/?p=8&vd_source=39781faaf2433372c59bdb80774d648e>
+
+* OSDev.org
+
+    The Place to Start for Operating System Developers
+
+    <https://forum.osdev.org>
+
+* How can I install MinGW-w64 and MSYS2?
+
+    <https://stackoverflow.com/questions/30069830/how-can-i-install-mingw-w64-and-msys2>
+
+* 卡尔曼滤波 Kalman Filter 之美在于什么？
+
+    <https://www.zhihu.com/question/281995386/answer/16951584203>
+
+* 开发入门第一个android app
+
+    <https://blog.csdn.net/weixin_43129806/article/details/145864032>
+
+* three.js 3D 空间图
+
+    <https://threejs.org/examples/#webgl_buffergeometry_drawrange>
