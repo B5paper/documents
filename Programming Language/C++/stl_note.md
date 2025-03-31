@@ -2,6 +2,702 @@
 
 ## cached
 
+* `find_if_not()`的使用逻辑与`find_if()`相似，只不过变成寻找第一个不满足条件的元素
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    #include <algorithm>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vec{2, 5, 3, 4, 5, 1};
+        int val = 2;
+        vector<int>::iterator iter = find_if_not(vec.begin(), vec.end(), [&](int obj){
+            if (obj == val)
+                return true;
+            return false;
+        });
+        if (iter == vec.end())
+        {
+            cout << "fail to find the element not equal to " << val << endl;
+            return 0;
+        }
+        int idx = distance(vec.begin(), iter);
+        cout << "the elm " << *iter << " is not equal to " << val << ", idx: " << idx << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    the elm 5 is not equal to 2, idx: 1
+    ```
+
+* `find_if()`
+
+    syntax:
+
+    ```cpp
+    template<class InputIt, class UnaryPred>
+    InputIt find_if(InputIt first, InputIt last, UnaryPred p);
+
+    template<class ExecutionPolicy, class ForwardIt, class UnaryPred>
+    ForwardIt find_if(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPred p);
+    ```
+
+    可以看到，第 2 个 syntax 多了一个`policy`，目前不知道这个参数是干嘛用的。
+
+    example:
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    #include <algorithm>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vec{2, 3, 1, 5, 4};
+        int val = 5;
+        auto iter = find_if(vec.begin(), vec.end(), [val](int &obj){
+            if (obj == val)
+                return true;
+            return false;
+        });
+        if (iter == vec.end())
+        {
+            cout << "fail to find " << val << endl;
+            return 0;
+        }
+        int pos = distance(vec.begin(), iter);
+        cout << val << " is at index " << pos << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    5 is at index 3
+    ```
+
+    说明：
+
+    * lambda 表达式中的`int &obj`可以写成`int obj`, `const int &obj`, `const int obj`，效果都一样的。
+
+    * lambda 表达式的捕捉列表`[val]`可以写成`[&val]`, `[&]`, `[=]`
+
+    * 如果`vec`中有多个符合要求元素，那么会返回找到的第 1 个元素的迭代器。
+
+        如果需要找到所有符合要求的元素，可以这样写：
+
+        ```cpp
+        #include <vector>
+        #include <iostream>
+        #include <algorithm>
+        using namespace std;
+
+        int main()
+        {
+            vector<int> vec{2, 3, 5, 5, 4, 5};
+            int val = 5;
+            auto iter = find_if(vec.begin(), vec.end(), [&](int &obj) {
+                if (obj == val)
+                    return true;
+                return false;
+            });
+            if (iter == vec.end())
+            {
+                cout << "fail to find " << val << endl;
+                return 0;
+            }
+            int pos = distance(vec.begin(), iter);
+            cout << val << " is at index " << pos << endl;
+            while (true)
+            {
+                iter = find_if(iter + 1, vec.end(), [&](int &obj) {
+                    if (obj == val)
+                        return true;
+                    return false;
+                });
+                if (iter == vec.end())
+                    break;
+                pos = distance(vec.begin(), iter);
+                cout << val << " is at index " << pos << endl;
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        5 is at index 2
+        5 is at index 3
+        5 is at index 5
+        ```
+
+        比较核心的一句是循环执行`iter = find_if(iter + 1, ...`，直到结尾。
+
+    * `find_if()`可以处理任意具有迭代器的容器
+
+        ```cpp
+        #include <vector>
+        #include <iostream>
+        #include <algorithm>
+        using namespace std;
+
+        int main()
+        {
+            string str{"hello, world"};
+            char ch = 'l';
+            auto iter = find_if(str.begin(), str.end(), [=](char obj) {
+                if (obj == ch)
+                    return true;
+                return false;
+            });
+            if (iter == str.end())
+            {
+                cout << "fail to find " << ch << endl;
+                return 0;
+            }
+            int pos = distance(str.begin(), iter);
+            cout << ch << " is at index " << pos << endl;
+            while (true)
+            {
+                iter = find_if(iter + 1, str.end(), [=](char obj) {
+                    if (obj == ch)
+                        return true;
+                    return false;
+                });
+                if (iter == str.end())
+                    break;
+                pos = distance(str.begin(), iter);
+                cout << ch << " is at index " << pos << endl;
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        l is at index 2
+        l is at index 3
+        l is at index 10
+        ```
+
+    * 问题：对于自定义的容器，该如何为其实现迭代器，并对接到`find()`等算法上？
+
+* c++ 中`string`插入一个字符时，不支持`str.insert(int pos, char c)`的形式，只支持`str.insert(iterator iter, char c)`，因此需要用这种方式插入字符：
+
+    ```cpp
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string str{"helloworld"};
+        int pos = 5;
+        str.insert(str.begin() + pos, ' ');
+        cout << str << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello world
+    ```
+
+    其原型为
+
+    ```cpp
+    iterator insert (const_iterator p, char c);
+    ```
+
+    `insert()`可以解释为，在迭代器`p`所在的元素之前插入`c`；也可以解释为，使得迭代器`p`位置处的字符为`c`，同时不破坏原字符串前后的有序关系。
+
+    除了这种方式，还可以使用 fill 的方式：
+
+    ```cpp
+    string& insert (size_t pos,   size_t n, char c);
+    iterator insert (const_iterator p, size_t n, char c);
+    ```
+
+    example:
+
+    ```cpp
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string str{"helloworld"};
+        int pos = 5;
+        str.insert(pos, 1, ' ');
+        cout << str << endl;
+        pos = 11;
+        str.insert(str.begin() + pos, 1, '!');
+        cout << str << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello world
+    hello world!
+    ```
+
+* 有关指向`vector<>`的指针的变动的临时解决方案
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct MyStruc
+    {
+        int val;
+        vector<MyStruc> vec;
+        MyStruc *parent;
+
+        MyStruc(const MyStruc &obj_src)
+        {
+            val = obj_src.val;
+            vec = obj_src.vec;
+            parent = obj_src.parent;
+            for (auto &struc: vec)
+            {
+                struc.parent = this;
+            }
+        }
+
+        MyStruc(int &val, vector<MyStruc> &&vec, MyStruc * &&parent)
+            : val(val), vec(vec), parent(parent) { }
+    };
+
+    int main()
+    {
+        int num_outer = 10, num_inner = 5;
+        printf("num_outer: %d, num_innter: %d\n", num_outer, num_inner);
+
+        vector<MyStruc> strucs;
+
+        for (int i = 0; i < num_outer; ++i)
+        {
+            strucs.push_back({i, {}, NULL});
+            for (int j = 0; j < num_inner; ++j)
+            {
+                strucs[i].vec.push_back({j, {}, &strucs[i]});
+                printf("strucs[i].vec[j].parent: %p, &strucs[i]: %p\n",
+                    strucs[i].vec[j].parent, &strucs[i]);
+            }
+        }
+
+        for (int i = 0; i < num_outer; ++i)
+        {
+            for (int j = 0; j < num_inner; ++j)
+            {
+                if (strucs[i].vec[j].parent != &strucs[i])
+                {
+                    printf("i = %d, j = %d, parent is not corrent\n", i, j);
+                    printf("strucs[i].vec[j].parent: %p, &strucs[i]: %p\n",
+                        strucs[i].vec[j].parent, &strucs[i]);
+                    return 0;
+                }
+            }
+        }
+        printf("all parents are correct.\n");
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    num_outer: 10, num_innter: 5
+    strucs[i].vec[j].parent: 0x6529294682c0, &strucs[i]: 0x6529294682c0
+    strucs[i].vec[j].parent: 0x6529294682c0, &strucs[i]: 0x6529294682c0
+    strucs[i].vec[j].parent: 0x6529294682c0, &strucs[i]: 0x6529294682c0
+    strucs[i].vec[j].parent: 0x6529294682c0, &strucs[i]: 0x6529294682c0
+    strucs[i].vec[j].parent: 0x6529294682c0, &strucs[i]: 0x6529294682c0
+    strucs[i].vec[j].parent: 0x652929468348, &strucs[i]: 0x652929468348
+    strucs[i].vec[j].parent: 0x652929468348, &strucs[i]: 0x652929468348
+    strucs[i].vec[j].parent: 0x652929468348, &strucs[i]: 0x652929468348
+    strucs[i].vec[j].parent: 0x652929468348, &strucs[i]: 0x652929468348
+    strucs[i].vec[j].parent: 0x652929468348, &strucs[i]: 0x652929468348
+    strucs[i].vec[j].parent: 0x6529294683d0, &strucs[i]: 0x6529294683d0
+    strucs[i].vec[j].parent: 0x6529294683d0, &strucs[i]: 0x6529294683d0
+    strucs[i].vec[j].parent: 0x6529294683d0, &strucs[i]: 0x6529294683d0
+    strucs[i].vec[j].parent: 0x6529294683d0, &strucs[i]: 0x6529294683d0
+    strucs[i].vec[j].parent: 0x6529294683d0, &strucs[i]: 0x6529294683d0
+    strucs[i].vec[j].parent: 0x6529294683f8, &strucs[i]: 0x6529294683f8
+    strucs[i].vec[j].parent: 0x6529294683f8, &strucs[i]: 0x6529294683f8
+    strucs[i].vec[j].parent: 0x6529294683f8, &strucs[i]: 0x6529294683f8
+    strucs[i].vec[j].parent: 0x6529294683f8, &strucs[i]: 0x6529294683f8
+    strucs[i].vec[j].parent: 0x6529294683f8, &strucs[i]: 0x6529294683f8
+    strucs[i].vec[j].parent: 0x652929468af0, &strucs[i]: 0x652929468af0
+    strucs[i].vec[j].parent: 0x652929468af0, &strucs[i]: 0x652929468af0
+    strucs[i].vec[j].parent: 0x652929468af0, &strucs[i]: 0x652929468af0
+    strucs[i].vec[j].parent: 0x652929468af0, &strucs[i]: 0x652929468af0
+    strucs[i].vec[j].parent: 0x652929468af0, &strucs[i]: 0x652929468af0
+    strucs[i].vec[j].parent: 0x652929468b18, &strucs[i]: 0x652929468b18
+    strucs[i].vec[j].parent: 0x652929468b18, &strucs[i]: 0x652929468b18
+    strucs[i].vec[j].parent: 0x652929468b18, &strucs[i]: 0x652929468b18
+    strucs[i].vec[j].parent: 0x652929468b18, &strucs[i]: 0x652929468b18
+    strucs[i].vec[j].parent: 0x652929468b18, &strucs[i]: 0x652929468b18
+    strucs[i].vec[j].parent: 0x652929468b40, &strucs[i]: 0x652929468b40
+    strucs[i].vec[j].parent: 0x652929468b40, &strucs[i]: 0x652929468b40
+    strucs[i].vec[j].parent: 0x652929468b40, &strucs[i]: 0x652929468b40
+    strucs[i].vec[j].parent: 0x652929468b40, &strucs[i]: 0x652929468b40
+    strucs[i].vec[j].parent: 0x652929468b40, &strucs[i]: 0x652929468b40
+    strucs[i].vec[j].parent: 0x652929468b68, &strucs[i]: 0x652929468b68
+    strucs[i].vec[j].parent: 0x652929468b68, &strucs[i]: 0x652929468b68
+    strucs[i].vec[j].parent: 0x652929468b68, &strucs[i]: 0x652929468b68
+    strucs[i].vec[j].parent: 0x652929468b68, &strucs[i]: 0x652929468b68
+    strucs[i].vec[j].parent: 0x652929468b68, &strucs[i]: 0x652929468b68
+    strucs[i].vec[j].parent: 0x6529294691f0, &strucs[i]: 0x6529294691f0
+    strucs[i].vec[j].parent: 0x6529294691f0, &strucs[i]: 0x6529294691f0
+    strucs[i].vec[j].parent: 0x6529294691f0, &strucs[i]: 0x6529294691f0
+    strucs[i].vec[j].parent: 0x6529294691f0, &strucs[i]: 0x6529294691f0
+    strucs[i].vec[j].parent: 0x6529294691f0, &strucs[i]: 0x6529294691f0
+    strucs[i].vec[j].parent: 0x652929469218, &strucs[i]: 0x652929469218
+    strucs[i].vec[j].parent: 0x652929469218, &strucs[i]: 0x652929469218
+    strucs[i].vec[j].parent: 0x652929469218, &strucs[i]: 0x652929469218
+    strucs[i].vec[j].parent: 0x652929469218, &strucs[i]: 0x652929469218
+    strucs[i].vec[j].parent: 0x652929469218, &strucs[i]: 0x652929469218
+    all parents are correct.
+    ```
+
+    `vector<>`在自动重新分配内存时，会调用元素的拷贝构造函数，我们为了填充正确的`parent`，需要自定义拷贝构造函数。思路是遍历成员`vector<>`中的所有元素，使之指向当前`struct`。
+
+    由于自定义了拷贝构造函数，所以默认的构造函数失效，而`initializer_list`又会用到默认构造函数（为什么？），所以我们还需要再简单实现一下默认构造函数。
+
+    ```cpp
+    MyStruc(int &val, vector<MyStruc> &&vec, MyStruc *&&parent)
+        : val(val), vec(vec), parent(parent) { }
+    ```
+
+    由于我们在下面代码的初始化列表中使用的是`{i, {}, NULL}`，即左值，右值，右值，因此默认构造函数的参数列表也对应为 左值引用，右值引用，右值引用。
+
+* `vector`与指针混用时，指针可能失效
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct MyStruc
+    {
+        int val;
+        vector<MyStruc> vec;
+        MyStruc *parent;
+    };
+
+    int main()
+    {
+        int num_outer = 5, num_inner = 1;
+        printf("num_outer: %d, num_innter: %d\n", num_outer, num_inner);
+
+        vector<MyStruc> strucs;
+        // strucs.reserve(10);
+
+        for (int i = 0; i < num_outer; ++i)
+        {
+            strucs.push_back({i, {}, NULL});
+            for (int j = 0; j < num_inner; ++j)
+            {
+                strucs[i].vec.push_back({j, {}, &strucs[i]});
+                printf("strucs[i].vec[j].parent: %p, &strucs[i]: %p\n",
+                    strucs[i].vec[j].parent, &strucs[i]);
+            }
+        }
+
+        for (int i = 0; i < num_outer; ++i)
+        {
+            for (int j = 0; j < num_inner; ++j)
+            {
+                if (strucs[i].vec[j].parent != &strucs[i])
+                {
+                    printf("i = %d, j = %d, parent is not corrent\n", i, j);
+                    printf("strucs[i].vec[j].parent: %p, &strucs[i]: %p\n",
+                        strucs[i].vec[j].parent, &strucs[i]);
+                    return 0;
+                }
+            }
+        }
+        printf("all parents are correct.\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    num_outer: 5, num_innter: 1
+    strucs[i].vec[j].parent: 0x58b9e1ef72c0, &strucs[i]: 0x58b9e1ef72c0
+    strucs[i].vec[j].parent: 0x58b9e1ef7348, &strucs[i]: 0x58b9e1ef7348
+    strucs[i].vec[j].parent: 0x58b9e1ef73d0, &strucs[i]: 0x58b9e1ef73d0
+    strucs[i].vec[j].parent: 0x58b9e1ef73f8, &strucs[i]: 0x58b9e1ef73f8
+    strucs[i].vec[j].parent: 0x58b9e1ef7530, &strucs[i]: 0x58b9e1ef7530
+    i = 0, j = 0, parent is not corrent
+    strucs[i].vec[j].parent: 0x58b9e1ef72c0, &strucs[i]: 0x58b9e1ef7490
+    ```
+
+    将`// strucs.reserve(10);`这行注释取消掉后，输出为：
+
+    ```
+    num_outer: 5, num_innter: 1
+    strucs[i].vec[j].parent: 0x59a3456902c0, &strucs[i]: 0x59a3456902c0
+    strucs[i].vec[j].parent: 0x59a3456902e8, &strucs[i]: 0x59a3456902e8
+    strucs[i].vec[j].parent: 0x59a345690310, &strucs[i]: 0x59a345690310
+    strucs[i].vec[j].parent: 0x59a345690338, &strucs[i]: 0x59a345690338
+    strucs[i].vec[j].parent: 0x59a345690360, &strucs[i]: 0x59a345690360
+    all parents are correct.
+    ```
+
+    由此可见，当`parent`指针指向`vector<>`中的元素时，由于`vector`会动态释放申请内存，所以`parent`有可能变成野指针。
+
+    智能指针是否可以解决这个问题？如果智能指针也不行，那么如何实现`parent`这个功能？
+
+* `find()`在`<algorithm>`库中，主要功能是线性搜索
+
+    如果传给`find()`的是自定义的 struct，那么需要重载`operator==`，此时`operator==()`的参数必须有`const`修饰。如果只是用`==`比较两个 struct 对象是否相等的话就不需要`const`。目前不清楚为什么。
+
+    example:
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    struct Substruc
+    {
+        string val_1;
+        int val_2;
+    };
+
+    struct MyStruc
+    {
+        int val_1;
+        string val_2;
+        Substruc sub_struc;
+
+        bool operator==(const MyStruc &obj_2)  // 这里必须有 const
+        {
+            if (this->val_1 == obj_2.val_1
+                && this->val_2 == obj_2.val_2
+                && this->sub_struc.val_1 == obj_2.sub_struc.val_1
+                && this->sub_struc.val_2 == obj_2.sub_struc.val_2
+            )
+                return true;
+            return false;
+        }
+    };
+
+    int main()
+    {
+        vector<MyStruc> vec;
+
+        vec.push_back({3, "3", {"3", 3}});
+        vec.push_back({1, "1", {"1", 1}});
+        vec.push_back({2, "2", {"2", 2}});
+
+        MyStruc val{1, "1", {"1", 1}};
+        auto iter = find(vec.begin(), vec.end(), val);
+        cout << "idx: " << distance(vec.begin(), iter) << ", " << iter->val_1 << endl;
+        
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    idx: 1, 1
+    ```
+
+    `find()`还支持传入匿名对象：
+
+    `auto iter = find(vec.begin(), vec.end(), MyStruc{1, "1", {"1", 1}});`
+
+    但是`find()`不支持直接传入初始化列表：
+
+    `auto iter = find(vec.begin(), vec.end(), {1, "1", {"1", 1}});` -> error，目前不清楚为什么。
+
+    如果重载全局`operator==`，那么第一个参数可以不加 const，但是第二个参数必须加 const：
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    struct Substruc
+    {
+        string val_1;
+        int val_2;
+    };
+
+    struct MyStruc
+    {
+        int val_1;
+        string val_2;
+        Substruc sub_struc;
+    };
+
+    // 通过 find() 间接调用 == 时，operator==() 的第二个参数必须加 const,
+    // 第一个参数可以不加
+    bool operator==(MyStruc &obj_1, const MyStruc &obj_2)
+    {
+        if (obj_1.val_1 == obj_2.val_1
+            && obj_1.val_2 == obj_2.val_2
+            && obj_1.sub_struc.val_1 == obj_2.sub_struc.val_1
+            && obj_1.sub_struc.val_2 == obj_2.sub_struc.val_2
+        )
+            return true;
+        return false;
+    }
+
+    int main()
+    {
+        vector<MyStruc> vec;
+
+        vec.push_back({3, "3", {"3", 3}});
+        vec.push_back({1, "1", {"1", 1}});
+        vec.push_back({2, "2", {"2", 2}});
+
+        MyStruc val{1, "1", {"1", 1}};
+        auto iter = find(vec.begin(), vec.end(), val);
+        cout << "idx: " << distance(vec.begin(), iter) << ", " << iter->val_1 << endl;
+        
+        return 0;
+    }
+    ```
+
+* `lower_bound()`与各种类型
+
+    ```cpp
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    #include <unordered_set>
+    #include <map>
+    using namespace std;
+
+    int main()
+    {
+        int value = 4;
+
+        // test 1, vector<int>
+        vector<int> vec{1, 2, 3, 4, 5, 4, 3, 2};
+        auto iter = lower_bound(vec.begin(), vec.end(), value);
+        int idx = distance(vec.begin(), iter);
+        cout << "idx: " << idx << ", " << "val: " << *iter << endl;
+
+        // test 2, unordered_set<int>
+        unordered_set<int> m_set{1, 2, 3, 4, 5,};
+        auto iter_2 = lower_bound(m_set.begin(), m_set.end(), value);
+        idx = distance(m_set.begin(), iter_2);
+        cout << "idx: " << idx << endl;
+        // cout << "idx: " << idx << ", " << "val: " << *iter_2  << endl;
+
+        // test 3, vector<pait<int, string>>
+        vector<pair<int, string>> str_pairs {
+            {4, "this is 4"},
+            {1, "this is 1"},
+            {2, "this is 2"},
+            {3, "this is 3"}
+        };
+        pair<int, string> value_2 = {4, "this is 4321"};
+        auto iter_3 = lower_bound(str_pairs.begin(), str_pairs.end(), value_2,
+            [](pair<int, string> &p_1, const pair<int, string> &p_2) {
+                if (p_1.first < p_2.first)
+                    return true;
+                return false;
+            }
+        );
+        idx = distance(str_pairs.begin(), iter_3);
+        cout << "idx: " << idx << ", " << "val: " << iter_3->first << ", " << iter_3->second << endl;
+
+        // test 4, map<int, string>
+        map<int, string> m_map {
+            {1, "this is 1"},
+            {2, "this is 2"},
+            {3, "this is 3"},
+            {4, "this is 4"}
+        };
+        pair<int, string> value_3 = {4, "aaa"};
+        auto iter_4 = lower_bound(m_map.begin(), m_map.end(), value_3,
+            [](const pair<int, string> &p_1, const pair<int, string> &p_2){
+                if (p_1.first < p_2.first)
+                    return true;
+                return false;
+            }
+        );
+        idx = distance(m_map.begin(), iter_4);
+        cout << "idx: " << idx << ", " << "val: " << iter_4->first << ", " << iter_4->second << endl;
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    idx: 3, val: 4
+    idx: 5
+    idx: 4, val: -1414812757,
+    idx: 3, val: 4, this is 4
+    ```
+
+    `lower_bound()`的作用有两种描述：
+
+    1. 找到大于等于`value`的第一个元素的迭代器。
+
+    2. 找到一个迭代器，在此 insert `value`后，使得原数组仍然保持有序。
+
+    `lower_bound()`使用二分查找法查找元素，因此要求原数组中的元素有序。
+
+    说明：
+
+    * `lower_bound()`返回的并不是下标，而是迭代器，可以使用`distance()`找到迭代器对应的下标
+
+    * `unordered_set<>`哈希表无法使用`lower_bound()`，强行`*iter`会报错 segment fault
+
+    * 如果容器中存储的是复合结构，比如`pair<>`，那么需要自己实现 comp 函数。test 3 中，lambda 表达式的第一个参数可以不是 const 引用，但是第二个参数必须是 const 引用，否则无法通过编译。目前不清楚原因。
+
+    * test 4 中，lambda 表达式的两个参数都要求为 const 引用。目前不清楚原因。
+
+    * 可以看到，由于`map`在存数据时，总是有序的，所以 test 3 找到的值是错的，而 test 4 找到的值是对的
+
+    * 除了使用 lambda 表达式外，还可以使用 struct 函数，或`std::function`，或者为自定义对象实现`operator<`，目前还不清楚怎么用。
+
+    * `value`除了可以是值，左值对象，还可以是右值对象：
+
+        ```cpp
+        auto iter_3 = lower_bound(str_pairs.begin(), str_pairs.end(), pair<int, string>{4, "this is 4321"},
+            [](pair<int, string> &p_1, const pair<int, string> &p_2) {
+                if (p_1.first < p_2.first)
+                    return true;
+                return false;
+            }
+        );
+        ```
+
 * c++ 中`string`的几种构造方式
 
     除了移动构造 move 没有给出例子，其他的都给出了例子。

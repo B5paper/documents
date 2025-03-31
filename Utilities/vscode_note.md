@@ -2,6 +2,8 @@
 
 ## cache
 
+* vscode 可以使用 ctrl + shift + B 编译，使用 F5 启动 debug。
+
 * `\bold`无法被 vscode 和 markdown preview 渲染插件识别，可以使用`\mathbf`来指定正粗体。
 
 * vscode 中，取消了 tab stop 后，还是会有 tab 缩进 2 个空格的现象，这时候还需要取消 Detect Indentation

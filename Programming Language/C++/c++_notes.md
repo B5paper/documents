@@ -4,6 +4,550 @@
 
 ## cached
 
+* cpp 中当 struct 自定义了构造函数后，就无法再使用`.xxx = yyy;`初始化了。
+
+* 右值引用可以转换成 const 左值引用，说明右值引用有与左值引用相似的特性，那么为什么右值引用要求不能修改被引用对象的值呢？
+
+* 关于指针，左值，右值
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    void print_val_1(int *&p)
+    {
+        cout << *p << endl;
+    }
+
+    void print_val_2(int *&&p)
+    {
+        cout << *p << endl;
+    }
+
+    void print_val_3(int *const &p)
+    {
+        cout << *p << endl;
+    }
+
+    int main()
+    {
+        int val = 123;
+        int *pval = &val;
+
+        // pval 是个左值，可以直接走左值引用
+        print_val_1(pval);
+        // &val 是个匿名对象，是个右值，可以正常走右值引用
+        print_val_2(&val);
+        // &val 是右值，可以自动转换成 const 左值引用
+        print_val_3(&val);
+        
+        // move 可以把左值转换成右值引用，这样就可以走右值引用的通道了
+        print_val_2(move(pval));
+        // pval 本身就是左值，当然可以走到左值引用的通道
+        print_val_3(pval);
+
+        // move 将左值 pval 转换成右值引用，但是右值引用又可以自动转换成左值引用，
+        // 因此走 print_val_3() 这条通道也是没问题的
+        print_val_3(move(pval));
+
+        return 0;
+    }
+    ```
+
+* 有关指针，引用，与`const`
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    void test_1()
+    {
+        int a = 123;
+
+        const int *pa = &a;
+        cout << a << endl;
+        // *pa = 456;  // error
+        // pa 指向 const int 类型，因此不能修改值
+
+        int *const pa_2 = &a;
+        *pa_2 = 456;
+        cout << a << endl;
+        // pa_2 指向 int 类型，因此可以使用 *pa_2 修改值
+        // 但是 pa_2 不能再指向其他对象，不允许使用 pa_2 = xxx; 修改 pa_2
+
+        // int *const pa_3;  // error
+        // const 指针必须在初始化时赋值，否则会报错
+
+        int &ra = a;
+        ra = 789;
+        cout << a << endl;
+
+        const int &ra_2 = a;
+        // ra_2 = 123;  // error
+        // ra_2 指向 const int 类型，因此无法修改值
+
+        // int &const ra_3 = a;  // error
+        // 不允许创建 const 引用
+    }
+
+    void test_2()
+    {
+        int a = 123;
+        int *pa = &a;
+
+        int *&rpa = pa;
+        *rpa = 456;
+        cout << a << endl;
+
+        const int *cpa = &a;
+        // const int *&rpa_2 = pa;  // error
+        // pa 是指向 int 的指针，const int *& 要求指针指向 const int 类型，
+        // 因此 error
+        const int *&rpa_2 = cpa;
+        // *cpa = 789;  // error
+        // 显然 const int * 无法修改原对象的值
+
+        int *const &rpa_3 = pa;
+        *rpa_3 = 789;
+        cout << a << endl;
+        // 由于引用的特殊性，rpa_3 本身就无法再被赋值，因此这里的 const 没有用处
+
+        // int **ppa_4 = &rpa_3;  // error
+        // 如果没有前面的 int *const 保证，我们这里就可以拿到 pa 的地址，然后使用
+        // *ppa_4 = &a; 修改 pa 所指向的对象
+        // 由此可见，T *const & 的主要作用是防止指针指向其他对象
+    }
+
+    int main()
+    {
+        cout << "test 1:" << endl;
+        test_1();
+
+        cout << endl;
+
+        cout << "test 2:" << endl;
+        test_2();
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    test 1:
+    123
+    456
+    789
+
+    test 2:
+    456
+    789
+    ```
+
+    使用`T *const p = xxx;`定义的指针，一方面无法改变其指向，比如`p = yyy;`；另一方面也无法对其取址后赋值给更高权限的二级指针，比如：`T **pp = &p`，但是如果二级指针保证不改变一级指针的内容，那么是允许的：`T *const *pp = &p;`。
+
+* 无论 c 还是 c++，`struct`对象都不允许直接比较相等，即使 struct 内都是内置类型（比如`float`, `int`）也不行。
+
+    如果需要比较相等，C 中需要自己实现全局函数，C++ 中可以重载`operator==`。
+
+    c++ example:
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    struct TestStruc
+    {
+        int val_1;
+        string val_2;
+
+        bool operator==(TestStruc &obj_2)  // const TestStruc & is not necessray
+        {
+            if (val_1 == obj_2.val_1 &&
+                val_2 == obj_2.val_2
+            )
+                return true;
+            return false;
+        }
+    };
+
+    int main()
+    {
+        TestStruc obj_1{1, "hello"};
+        TestStruc obj_2{1, "hello"};
+        bool result = obj_1 == obj_2;
+        cout << result << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1
+    ```
+
+    c++ example 2:
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    struct TestStruc
+    {
+        int val_1;
+        string val_2;
+    };
+
+    bool operator==(TestStruc &obj_1, TestStruc &obj_2)
+    {
+        if (obj_1.val_1 == obj_2.val_1 &&
+            obj_2.val_2 == obj_2.val_2
+        )
+            return true;
+        return false;
+    }
+
+    int main()
+    {
+        TestStruc obj_1{1, "hello"};
+        TestStruc obj_2{1, "hello"};
+        bool result = obj_1 == obj_2;
+        cout << result << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1
+    ```
+
+* c++ 对新 struct 进行初始化时，允许使用`.xxx = vvv`的方式，但是必须按照成员的顺序，不能乱序
+
+    examples:
+
+    * 不写`.xxx`进行初始化
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <vector>
+        #include <unordered_map>
+        using namespace std;
+
+        ostream& operator<<(ostream &ost, vector<int> &vec)
+        {
+            for (int i = 0; i < vec.size(); ++i)
+            {
+                if (i < vec.size() - 1)
+                {
+                    cout << vec[i] << ", ";
+                }
+                else
+                {
+                    cout << vec[i];
+                }
+            }
+            return ost;
+        }
+
+        ostream& operator<<(ostream &ost, unordered_map<string, int> &m)
+        {
+            cout << "{";
+            int cnt = 0;
+            for (auto iter = m.begin(); iter != m.end(); ++iter)
+            {
+                cout << "\"" << iter->first << "\"" << ": " << iter->second;
+                cnt++;
+                if (cnt < m.size())
+                {
+                    cout << ", ";
+                }
+            }
+            cout << "}";
+            return ost;
+        }
+
+        struct MyClass
+        {
+            int val_1;
+            string val_2;
+            vector<int> val_3;
+            unordered_map<string, int> val_4;
+        };
+
+        int main()
+        {
+            MyClass my_obj {
+                123,
+                "hello",
+                {1, 2, 3, 4},
+                {
+                    {"hello", 1},
+                    {"world", 2}
+                }
+            };
+
+            cout << "val_1: " << my_obj.val_1 << endl;
+            cout << "val_2: " << my_obj.val_2 << endl;
+            cout << "val_3: " << my_obj.val_3 << endl;
+            cout << "val_4: " << my_obj.val_4 << endl;
+
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        val_1: 123
+        val_2: hello
+        val_3: 1, 2, 3, 4
+        val_4: {"world": 2, "hello": 1}
+        ```
+
+    * 使用`.xxx`进行初始化
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <vector>
+        #include <unordered_map>
+        using namespace std;
+
+        ostream& operator<<(ostream &ost, vector<int> &vec)
+        {
+            for (int i = 0; i < vec.size(); ++i)
+            {
+                if (i < vec.size() - 1)
+                {
+                    cout << vec[i] << ", ";
+                }
+                else
+                {
+                    cout << vec[i];
+                }
+            }
+            return ost;
+        }
+
+        ostream& operator<<(ostream &ost, unordered_map<string, int> &m)
+        {
+            cout << "{";
+            int cnt = 0;
+            for (auto iter = m.begin(); iter != m.end(); ++iter)
+            {
+                cout << "\"" << iter->first << "\"" << ": " << iter->second;
+                cnt++;
+                if (cnt < m.size())
+                {
+                    cout << ", ";
+                }
+            }
+            cout << "}";
+            return ost;
+        }
+
+        struct MyClass
+        {
+            int val_1;
+            string val_2;
+            vector<int> val_3;
+            unordered_map<string, int> val_4;
+        };
+
+        int main()
+        {
+            MyClass my_obj {
+                .val_1 = 123,
+                .val_2 = "hello",
+                .val_3 = {1, 2, 3, 4},
+                .val_4 = {
+                    {"hello", 1},
+                    {"world", 2}
+                }
+            };
+
+            cout << "val_1: " << my_obj.val_1 << endl;
+            cout << "val_2: " << my_obj.val_2 << endl;
+            cout << "val_3: " << my_obj.val_3 << endl;
+            cout << "val_4: " << my_obj.val_4 << endl;
+
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        val_1: 123
+        val_2: hello
+        val_3: 1, 2, 3, 4
+        val_4: {"world": 2, "hello": 1}
+        ```
+
+    * 使用`.xxx`选择性地初始化
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <vector>
+        #include <unordered_map>
+        using namespace std;
+
+        ostream& operator<<(ostream &ost, vector<int> &vec)
+        {
+            for (int i = 0; i < vec.size(); ++i)
+            {
+                if (i < vec.size() - 1)
+                {
+                    cout << vec[i] << ", ";
+                }
+                else
+                {
+                    cout << vec[i];
+                }
+            }
+            return ost;
+        }
+
+        ostream& operator<<(ostream &ost, unordered_map<string, int> &m)
+        {
+            cout << "{";
+            int cnt = 0;
+            for (auto iter = m.begin(); iter != m.end(); ++iter)
+            {
+                cout << "\"" << iter->first << "\"" << ": " << iter->second;
+                cnt++;
+                if (cnt < m.size())
+                {
+                    cout << ", ";
+                }
+            }
+            cout << "}";
+            return ost;
+        }
+
+        struct MyClass
+        {
+            int val_1;
+            string val_2;
+            vector<int> val_3;
+            unordered_map<string, int> val_4;
+        };
+
+        int main()
+        {
+            MyClass my_obj {
+                .val_2 = "hello",
+                .val_4 = {
+                    {"hello", 1},
+                    {"world", 2}
+                }
+            };
+
+            cout << "val_1: " << my_obj.val_1 << endl;
+            cout << "val_2: " << my_obj.val_2 << endl;
+            cout << "val_3: " << my_obj.val_3 << endl;
+            cout << "val_4: " << my_obj.val_4 << endl;
+
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        val_1: 0
+        val_2: hello
+        val_3: 
+        val_4: {"world": 2, "hello": 1}
+        ```
+
+    * 乱序（out of order）初始化，报错
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <vector>
+        #include <unordered_map>
+        using namespace std;
+
+        ostream& operator<<(ostream &ost, vector<int> &vec)
+        {
+            for (int i = 0; i < vec.size(); ++i)
+            {
+                if (i < vec.size() - 1)
+                {
+                    cout << vec[i] << ", ";
+                }
+                else
+                {
+                    cout << vec[i];
+                }
+            }
+            return ost;
+        }
+
+        ostream& operator<<(ostream &ost, unordered_map<string, int> &m)
+        {
+            cout << "{";
+            int cnt = 0;
+            for (auto iter = m.begin(); iter != m.end(); ++iter)
+            {
+                cout << "\"" << iter->first << "\"" << ": " << iter->second;
+                cnt++;
+                if (cnt < m.size())
+                {
+                    cout << ", ";
+                }
+            }
+            cout << "}";
+            return ost;
+        }
+
+        struct MyClass
+        {
+            int val_1;
+            string val_2;
+            vector<int> val_3;
+            unordered_map<string, int> val_4;
+        };
+
+        int main()
+        {
+            MyClass my_obj {
+                .val_4 = {
+                    {"hello", 1},
+                    {"world", 2}
+                },
+                .val_2 = "hello"
+            };
+
+            cout << "val_1: " << my_obj.val_1 << endl;
+            cout << "val_2: " << my_obj.val_2 << endl;
+            cout << "val_3: " << my_obj.val_3 << endl;
+            cout << "val_4: " << my_obj.val_4 << endl;
+
+            return 0;
+        }
+        ```
+
+        compile output:
+
+        ```
+        g++ -g main.cpp -I/home/hlc/Documents/Projects/boost_1_87_0 -o main
+        main.cpp: In function ‘int main()’:
+        main.cpp:56:5: error: designator order for field ‘MyClass::val_2’ does not match declaration order in ‘MyClass’
+           56 |     };
+              |     ^
+        make: *** [Makefile:2: main] Error 1
+        ```
+
 * c++ 中`decltype`的用法
 
     ```cpp

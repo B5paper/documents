@@ -1,5 +1,42 @@
 # Interview Questions
 
+## cache
+
+* 使用 c++ template partial specialization 实现 reduce
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    template<typename T, int NumElm>
+    struct GetSum
+    {
+        static T get_sum(T *arr)
+        {
+            return GetSum<T, NumElm / 2>::get_sum(arr) + GetSum<T, NumElm - NumElm / 2>::get_sum(arr + NumElm / 2);
+        }
+    };
+
+    template<typename T>
+    struct GetSum<T, 1>
+    {
+        static T get_sum(T *arr)
+        {
+            return *arr;
+        }
+    };
+
+    int main()
+    {
+        using type = float;
+        type arr[] = {1, 2, 3, 4, 5,};
+        const int arr_len = sizeof(arr) / sizeof(type);
+        type reduce_sum = GetSum<type, arr_len>::get_sum(arr);
+        cout << "reduce sum: " << reduce_sum << endl;
+        return 0;
+    }
+    ```
+
 ## nccl
 
 1. 之前接触过 nccl 吗？看过源码吗？
