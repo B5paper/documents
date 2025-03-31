@@ -7117,3 +7117,100 @@
 
     <https://github.com/microsoft/typescript-go>
 
+* How to change font size in VS Code sidebar?
+
+    <https://stackoverflow.com/questions/51456526/how-to-change-font-size-in-vs-code-sidebar>
+
+* The Linux Kernel Archives 
+
+    <https://www.kernel.org/>
+
+* Linux Kernel - How to obtain a particular version (right upto SUBLEVEL)
+
+    <https://stackoverflow.com/questions/28136815/linux-kernel-how-to-obtain-a-particular-version-right-upto-sublevel>
+
+* How do I get the kernel source code?
+
+    <https://askubuntu.com/questions/159833/how-do-i-get-the-kernel-source-code>
+
+* Configuring a cgroup driver
+
+    <https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/>
+
+* How can I compile & run assembly in Ubuntu 18.04?
+
+    <https://askubuntu.com/questions/1064619/how-can-i-compile-run-assembly-in-ubuntu-18-04>
+
+* 如何在Linux下写汇编
+
+    <https://blog.csdn.net/xiao_yi_xiao/article/details/120746421>
+
+* Getting started with containerd
+
+    <https://mobyproject.org/blog/2017/08/15/containerd-getting-started/>
+
+* OpenCL 3.0 Reference Guide
+
+    <https://www.khronos.org/files/opencl30-reference-guide.pdf>
+
+* An introduction to C++ Traits
+
+    <https://accu.org/journals/overload/9/43/frogley_442/>
+
+* The OpenCL™ Specification
+
+    <https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_API.html>
+
+* Programming OpenCL Kernels
+
+    <https://github.com/KhronosGroup/OpenCL-Guide/blob/main/chapters/programming_opencl_kernels.md>
+
+* Trying to install OpenCL on VM
+
+    <https://stackoverflow.com/questions/27996996/trying-to-install-opencl-on-vm>
+
+* The Mesa 3D Graphics Library
+
+    <https://www.mesa3d.org/>
+
+* cmake 相关
+
+    * find_package
+
+        <https://cmake.org/cmake/help/latest/command/find_package.html>
+
+    * CMake: config mode of find_package command (examples) 
+
+        <https://github.com/forexample/package-example/tree/master>
+
+    * CMake: Print out all accessible variables in a script
+
+        <https://stackoverflow.com/questions/9298278/cmake-print-out-all-accessible-variables-in-a-script>
+
+    * Using Dependencies Guide¶
+
+        <https://cmake.org/cmake/help/latest/guide/using-dependencies/index.html#guide:Using%20Dependencies%20Guide>
+
+    * CMake: find_package()
+
+        <https://wiki.hanzheteng.com/development/cmake/cmake-find_package>
+
+    * What use is find_package() when you need to specify CMAKE_MODULE_PATH?
+
+        <https://stackoverflow.com/questions/20746936/what-use-is-find-package-when-you-need-to-specify-cmake-module-path>
+
+    * Finding Packages
+
+        <https://hsf-training.github.io/hsf-training-cmake-webpage/09-findingpackages/index.html>
+
+    * how to print the value inside a variable in cmakelist.txt
+
+        <https://stackoverflow.com/questions/54802203/how-to-print-the-value-inside-a-variable-in-cmakelist-txt>
+
+    * Finding Packages
+
+        <https://cmake.org/cmake/help/book/mastering-cmake/chapter/Finding%20Packages.html>
+
+    * Use find_package and Find.cmake modules
+
+        <https://riptutorial.com/cmake/example/22950/use-find-package-and-find-package--cmake-modules>
