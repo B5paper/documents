@@ -7038,3 +7038,82 @@
 * three.js 3D 空间图
 
     <https://threejs.org/examples/#webgl_buffergeometry_drawrange>
+
+* How do I use valgrind to find memory leaks?
+
+    <https://stackoverflow.com/questions/5134891/how-do-i-use-valgrind-to-find-memory-leaks>
+
+* 深入浅出GPU优化系列：reduce优化
+
+    <https://zhuanlan.zhihu.com/p/426978026>
+
+* ebpf真的有这么强大吗？
+
+    <https://www.zhihu.com/question/530525662/answer/3035335792>
+
+* 一文看懂eBPF、eBPF的使用（超详细）
+
+    <https://zhuanlan.zhihu.com/p/480811707>
+
+* 如何通过Core Dump和GDB快速定位程序崩溃根因：从内存溢出到死锁，一文带你玩转调试
+
+    <https://zhuanlan.zhihu.com/p/15119520584>
+
+* 段错误调试神器（core dump）
+
+    <https://zhuanlan.zhihu.com/p/545542762>
+
+* 如何理解 Linux 原生跟踪工具 Ftrace 的原理？
+
+    <https://www.zhihu.com/question/563216703/answer/3122981976>
+
+* sendfile(2) — Linux manual page
+
+    <https://man7.org/linux/man-pages/man2/sendfile.2.html>
+
+* 面试官：说一下零拷贝技术的实现原理？
+
+    <https://zhuanlan.zhihu.com/p/680320670>
+
+* error: non-aggregate type 'Circle' cannot be initialized with an initializer list
+
+    <https://stackoverflow.com/questions/29908431/error-non-aggregate-type-circle-cannot-be-initialized-with-an-initializer-lis>
+
+* 【C++ | 移动构造函数】C++11的 移动构造函数 详解及例子代码
+
+    <https://blog.csdn.net/wkd_007/article/details/139633287>
+
+* 6.22. Execution Control
+
+    This section describes the execution control functions of the low-level CUDA driver application programming interface.
+
+    <https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html>
+
+* virt-sparsify - Make a virtual machine disk sparse
+
+    <https://libguestfs.org/virt-sparsify.1.html>
+
+* How to make a virtual machine disk sparse
+
+    <https://ravada.readthedocs.io/en/latest/docs/How_to_make_virtual_machine_sparse.html>
+
+* Failed to mount /boot/efi
+
+    <https://askubuntu.com/questions/286108/failed-to-mount-boot-efi>
+
+* How to boot EFI kernel using QEMU (kvm)?
+
+    <https://unix.stackexchange.com/questions/52996/how-to-boot-efi-kernel-using-qemu-kvm>
+
+* systemd-modules-load.service
+
+    <https://www.freedesktop.org/software/systemd/man/latest/systemd-modules-load.service.html>
+
+* Failed to lookup alias 'lp': Function not implemented
+
+    <https://askubuntu.com/questions/814642/failed-to-lookup-alias-lp-function-not-implemented>
+
+* typescript-go
+
+    <https://github.com/microsoft/typescript-go>
+
