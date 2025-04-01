@@ -764,3 +764,94 @@
             int type;
         };
         ```
+
+* nccl `ncclTopoComputePaths()` 调研
+
+    `ncclTopoSetPaths()`说是进行 bfs 搜索，但是只有两层循环，没有 queue 或者递归，看起来比较像从 cpu, gpu, nic 等出发，搜索第一层能到达的 node
+
+    对于无法 p2p 直接的 gpu，寻找其共同的 cpu，并使用`addInterStep()`添加 cpu 中转。
+
+    `ncclTransports` struct obj 提供了不同 transport 的统一 api。此时会调用`canConnect()`判断`srcInfo`和`dstInfo`能否连通。
+
+    `ncclPeerInfo`如下：
+
+    ```cpp
+    struct ncclPeerInfo {
+      int rank;
+      int cudaDev;
+      int nvmlDev;
+      int gdrSupport;
+      uint64_t hostHash;
+      uint64_t pidHash;
+      dev_t shmDev;
+      int64_t busId;
+      struct ncclComm* comm;
+      int cudaCompCap;
+      // MNNVL support
+      nvmlGpuFabricInfoV_t fabricInfo;
+      int cuMemSupport;
+    };
+    ```
+
+    dst 由外层循环控制，src 由内层循环控制。
+
+    接下来处理 nic，对于每个 nic，遍历 gpu，这个可能拿来判断是否使用 gpu direct rdma
+
+    如果不能使用 gpu direct rdma，那么使用 nic - cpu - nic 做中转，同样地，使用`addInterStep()`添加中间节点。
+
+* nccl tmp
+
+    ```cpp
+    ncclResult_t ncclTopoConnectNodes(struct ncclTopoNode* node, struct ncclTopoNode* remNode, int type, float bw) {
+      // Aggregate links into higher bw for NVLink
+      struct ncclTopoLink* link;
+      for (link = node->links; link - node->links != NCCL_TOPO_MAX_LINKS && link->remNode; link++) {
+        if (link->remNode == remNode && link->type == type) break;
+      }
+
+      // ...
+    }
+    ```
+
+    `NCCL_TOPO_MAX_LINKS`宏展开是 128，这个遍历看起来是从头开始遍历，要么到达最大容量`NCCL_TOPO_MAX_LINKS`后停止，要么`link->remNode`为空时停止。因此前面使用数组已经分配了`link`的空间，所以在数组范围内`link`一定都不为空。
+
+    `if (link->remNode == remNode && link->type == type) break;`这行拿来找指定的 remote node 以及指定的 link type。
+
+    ```cpp
+    link->type = type;
+    link->remNode = remNode;
+    link->bw += bw;
+    ```
+
+    对于所有连接到指定 remote node 的 local link，增加其 bindwidth。前两行其实是冗余的。
+
+    往上走一层我们可以看到`ncclTopoConnectNodes(cpu1, cpu2, LINK_SYS, bw);`，说明 local link 是 cpu 1 上的 link，而 remote node 就是 cpu 2，link type 为`LINK_SYS`。
+
+    ```cpp
+    // Sort links in BW descending order
+    struct ncclTopoLink linkSave;
+    memcpy(&linkSave, link, sizeof(struct ncclTopoLink));
+    while (link != node->links) {
+        if ((link-1)->bw >= linkSave.bw)
+            break;
+        memcpy(link, link-1, sizeof(struct ncclTopoLink));
+        link--;
+    }
+    memcpy(link, &linkSave, sizeof(struct ncclTopoLink));
+    ```
+
+    这个是从尾向前遍历，因为要用到`link - 1`，所以当遍历完第 2 个节点后停下，第 1 个节点单独处理。
+
+    1, 2, 3, 4, 5
+
+    `linkSave` -> 5
+
+    `link - 1` -> 4
+
+    `link` -> 4, `link - 1` -> 3
+
+    1, 2, 3, 4, 4 => 5, 1, 2, 3, 4
+
+    不清楚这段代码干嘛用的。既没有做到倒序排序，也没有做到保持原序。
+
+    看起来比较像，对于`cpu_node_2`，让当前`cpu_node_1`的 link 向前找到一个合适的位置。

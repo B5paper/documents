@@ -1482,6 +1482,10 @@
 
 * [v] cache tabs 03.20
 
+* [v] cache tabs
+
+    10:00 ~ 10:33
+
 ## markdown renderer
 
 使用 electron + markdown parser + mathjax 实现 markdoen renderer。
@@ -1601,8 +1605,6 @@ tasks:
         * ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
 
             <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
-
-* [v] 调研线性代数
 
 ## CCL
 
@@ -1735,6 +1737,8 @@ tasks:
     feedback:
 
     1. 调研`strtoull()`
+
+    1. 调研 emplace() 和 emplace_back() 的区别
 
 * [O] 调研 qemu 添加 pci 设备
 

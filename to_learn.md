@@ -7214,3 +7214,113 @@
     * Use find_package and Find.cmake modules
 
         <https://riptutorial.com/cmake/example/22950/use-find-package-and-find-package--cmake-modules>
+
+* How to print a null-terminated string with newlines without showing backslash escapes in gdb?
+
+    <https://stackoverflow.com/questions/1530736/how-to-print-a-null-terminated-string-with-newlines-without-showing-backslash-es>
+
+* C++：提高篇： 栈-寄存器和函数状态：windows X86-64寄存器介绍
+
+    <https://blog.csdn.net/u013620306/article/details/128997421>
+
+* CBW/CWDE/CDQE扩展指令
+
+    <https://blog.csdn.net/hnwyllmm/article/details/78426491>
+
+* vscode gcc反汇编、查看寄存器
+
+    <https://blog.csdn.net/u010703935/article/details/132778049>
+
+* vscode调试 反汇编c/c++ 查看汇编代码gdb/lldb
+
+    <https://blog.csdn.net/weixin_43356770/article/details/135320408>
+
+* oneflow 相关
+
+    * nccl source code analysis
+    
+        <https://mp.weixin.qq.com/mp/appmsgalbum?__biz=MzU5ODY2MTk3Nw==&action=getalbum&album_id=2838087426819653634&subscene=159&subscene=21&scenenote=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzU5ODY2MTk3Nw%3D%3D%26mid%3D2247491943%26idx%3D1%26sn%3Dea34ee85365bb85ff18305289c364029%26chksm%3Dfe426f51c935e647b2449251d41649b3a46b6123e87f9d842abb8cb4c35b0fbac2eaa6237c3d%26scene%3D21%23wechat_redirect&nolastread=1#wechat_redirect>
+
+    * OneFlow
+
+        <https://www.zhihu.com/org/oneflow-17/columns>
+
+    * 深度学习&OneFlow
+
+        <https://www.zhihu.com/column/c_1304791204853678080>
+
+* inet_pton()和inet_ntop()函数详解
+
+    <https://blog.csdn.net/zyy617532750/article/details/58595700>
+
+* 【Linux 内核网络协议栈源码剖析】recvfrom 函数剖析
+
+    <https://cloud.tencent.com/developer/article/2108396>
+
+* Linux-C UDP简单例子
+
+    <https://blog.51cto.com/u_13047740/5681231>
+
+* How to check if a UDP packet is sent at transmitter
+
+    <https://stackoverflow.com/questions/12302476/how-to-check-if-a-udp-packet-is-sent-at-transmitter>
+
+* Programming with UDP sockets 
+
+    <https://people.cs.rutgers.edu/~pxk/417/notes/sockets/udp.html>
+
+* What is SOCK_DGRAM and SOCK_STREAM?
+
+    <https://stackoverflow.com/questions/5815675/what-is-sock-dgram-and-sock-stream>
+
+* socket编程：recv/send 和 recv/recvfrom返回值及处理
+
+    <https://blog.csdn.net/wangquan1992/article/details/104759665>
+
+* linux内核态与用户态通信方式
+
+    <https://zhuanlan.zhihu.com/p/695460334>
+
+* 每个程序员都应该知道的 CPU 知识：NUMA
+
+    <https://zhuanlan.zhihu.com/p/336365600>
+
+* NUMA 的平衡和调度
+
+    <https://zhuanlan.zhihu.com/p/488116143>
+
+* NUMA架构：CPU和内存性能瓶颈的终结者！
+
+    <https://zhuanlan.zhihu.com/p/671049271>
+
+* 不了解NUMA，就看不懂Linux内核
+
+    <https://zhuanlan.zhihu.com/p/675117214>
+
+* 浅解NUMA机制
+
+    <https://zhuanlan.zhihu.com/p/67558970>
+
+* 一篇文章读懂dpdk——dpdk原理详解
+
+    <https://blog.csdn.net/2401_86353562/article/details/141131001>
+
+* PCIe MSI-x中断问题总结
+
+    <https://zhuanlan.zhihu.com/p/312999116>
+
+* SR-IOV学习笔记
+
+    <https://zhuanlan.zhihu.com/p/707403223>
+
+* IO半虚拟化-Virtio学习笔记
+
+    <https://zhuanlan.zhihu.com/p/708650849>
+
+* 设备虚拟化之VFIO原理和使用方式
+
+    <https://zhuanlan.zhihu.com/p/655085029>
+
+* virtio —— 一种 Linux I/O 半虚拟化框架 [译]
+
+    <https://zhuanlan.zhihu.com/p/642100699>
