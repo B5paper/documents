@@ -1412,13 +1412,9 @@
 
 ### tasks
 
-* [v] 调研`git revert`的用法
+* [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
 
-    feedback:
-
-    1. 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
-
-    2. 调研`git cherry-pick`
+* [ ] 调研`git cherry-pick`
 
 * [ ] 调研`git reflog`
 
@@ -1485,6 +1481,8 @@
 * [v] cache tabs
 
     10:00 ~ 10:33
+
+* [v] cache tabs 04.01
 
 ## markdown renderer
 
@@ -1731,6 +1729,24 @@ tasks:
     1. 目前 53 机器不走代理，因此只能访问国内网站。如果 50 机器需要访问 github，可以用笔记本 ssh -R 反向代理。
 
     1. 调研`ncclCommGetAsyncError()`
+
+* [v] 调研复现`ncclTopoConnectCpus()`
+
+* [v] 调研`ncclTopoSortSystem()`
+
+    13:31 ~ 14:34
+
+* [v] 调研`ncclTopoComputePaths()`
+
+    13:49 ~ 14:48
+
+    feedback:
+
+    1. [ ] 调研`ncclTopoSetPaths()`
+
+    1. [ ] 调研`addInterStep()`
+
+    1. [ ] 调研尝试复现`ncclTopoComputePaths()`
 
 * [P] 调研 xml 反序列化
 

@@ -855,3 +855,182 @@
     不清楚这段代码干嘛用的。既没有做到倒序排序，也没有做到保持原序。
 
     看起来比较像，对于`cpu_node_2`，让当前`cpu_node_1`的 link 向前找到一个合适的位置。
+
+    5, 4, 2, 1, 3 => 5, 4, 3, 2, 1
+
+    4, 5, 2, 1, 3 => 4, 5, 3, 2, 1
+
+    由上面的例子可以看出，首先把要处理的数据`x`放在末尾，然后倒着向前找，直到找到第一个比`x`大的数`y`，最后将`x`放到`y`的后面，退出。再向前的数据则不去处理。
+
+    边界条件：如果搜索整个数组都没有找到比`x`大的值，那么说明`x`是数组中最大的，将其放到最前面。
+
+    * cpu node 的 links 是在什么时候被填充的？
+
+        看起来比较像在`ncclTopoAddNvLinks()`里填充。这个是个递归调用的函数。
+
+    * 为什么只有 cpu link 的 connect，没有 gpu link 的 connect？
+
+    * link type
+
+        ```cpp
+        // We want link types and path types to match as much as possible
+        #define LINK_LOC 0
+        #define LINK_NVL 1
+        // Skipping 2 for PATH_NVB
+        #define LINK_PCI 3
+        // Skipping 4 for PATH_PXB
+        // Skipping 5 for PATH_PXN
+        // Skipping 6 for PATH_PHB
+        #define LINK_SYS 7
+        #define LINK_NET 8
+        ```
+
+        实测每个 cpu 有 3 个 link，有两个 type 为`LINK_LOC`，还有一个 type 为`LINK_PCI`。
+
+        看来 topo system 里的 link 指的不是 nvlink，而是 graph 里的 edge。
+
+    * sort link
+
+        ```cpp
+        static ncclResult_t ncclTopoSort(struct ncclTopoNode* node, struct ncclTopoNode* upNode) {
+          // Shift all links to have upLink as last link
+          if (upNode) {
+            int l=0;
+            while (node->links[l].remNode != upNode) l++;
+            struct ncclTopoLink upLink;
+            memcpy(&upLink, node->links+l, sizeof(struct ncclTopoLink));
+            while (node->links[l+1].remNode) {
+              memcpy(node->links+l, node->links+l+1, sizeof(struct ncclTopoLink));
+              l++;
+            }
+            memcpy(node->links+l, &upLink, sizeof(struct ncclTopoLink));
+          }
+
+          // ...
+        }
+        ```
+
+        node 1 -> link 1 -> node 2 -> link 2
+
+        目前看来，上述代码中的`upLink`指的就是 link 1，它相对于 node 2 来说是上游的 link，因此被称为 up link。
+
+        代码中的`upNode`指的当然是 node 1。
+
+        上述代码发现`upLink`后，将其移动到 node 2 所有 links 的最后一位。目前不知道这个是干嘛用的。
+
+    * getPath
+
+        ```cpp
+        static ncclResult_t getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path) {
+          for (int i=0; i<system->nodes[t].count; i++) {
+            if (system->nodes[t].nodes[i].id == id) {
+              *path = node->paths[t]+i;
+              return ncclSuccess;
+            }
+          }
+          WARN("Could not find node of type %d id %lx", t, id);
+          return ncclInternalError;
+        }
+        ```
+
+        这个函数的传入参数`t`应该是 type 的意思，比如`GPU`, `CPU`, `NIC`。
+
+        对 system 中指定 type 的 nodes 进行搜索，如果 id 相符，那么将 path 赋值为 system 中所有 paths 对应索引的 path，并返回。
+
+        由此可见，system 中的数据排布大概是这样的：
+
+        ```cpp
+        system:
+            nodes:
+                CPU:
+                    nodes: 0, 1, 2, 3, 4, ...
+                    CPU 0:
+                        paths: GPU, PCI, NVS, CPU, ...
+                    CPU 1:
+                        paths: GPU, PCI, NVS, CPU, ...
+                    ...
+                GPU:
+                    nodes: 0, 1, 2, 3, 4, ...
+                    GPU 0:
+                        paths: GPU, PCI, NVS, CPU, ...
+                    GPU 1:
+                        paths: GPU, PCI, NVS, CPU, ...
+                    ...
+                NIC:
+                    0, 1, 2, 3, 4, ...
+            paths:
+                0, 1, 2, 3, 4, ...
+        ```
+
+        path 的种类一共这么多种：
+
+        ```cpp
+        #define NCCL_TOPO_NODE_TYPES 7
+        #define GPU 0
+        #define PCI 1
+        #define NVS 2
+        #define CPU 3 // Actually NUMA domains
+        #define NIC 4
+        #define NET 5
+        ```
+
+        这正好是 node 的类型。可见 node 的类型与 path 的类型是相同的。
+
+    * `ncclTopoSetPaths()`
+
+        每个 node 都有多种 path，这里的 path 是个`ncclTopoLinkList`，其内容如下：
+
+        ```cpp
+        struct ncclTopoLinkList {
+          struct ncclTopoLink* list[NCCL_TOPO_MAX_HOPS];
+          int count;
+          float bw;
+          int type;
+        };
+        ```
+
+        可以看到 path 中包含了一个 link list，还有个 type。这个 type 一共有如下几种：
+
+        ```cpp
+        // We want link types and path types to match as much as possible
+        #define LINK_LOC 0
+        #define LINK_NVL 1
+        // Skipping 2 for PATH_NVB
+        #define LINK_PCI 3
+        // Skipping 4 for PATH_PXB
+        // Skipping 5 for PATH_PXN
+        // Skipping 6 for PATH_PHB
+        #define LINK_SYS 7
+        #define LINK_NET 8
+        extern const char* topoLinkTypeStr[];
+
+        // Local (myself)
+        #define PATH_LOC 0
+
+        // Connection traversing NVLink
+        #define PATH_NVL 1
+
+        // Connection through NVLink using an intermediate GPU
+        #define PATH_NVB 2
+
+        // Connection traversing at most a single PCIe bridge
+        #define PATH_PIX 3
+
+        // Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+        #define PATH_PXB 4
+
+        // Connection between a GPU and a NIC using an intermediate GPU. Used to enable rail-local, aggregated network send/recv operations.
+        #define PATH_PXN 5
+
+        // Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+        #define PATH_PHB 6
+
+        // Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+        #define PATH_SYS 7
+
+        // Connection through the network
+        #define PATH_NET 8
+
+        // Disconnected
+        #define PATH_DIS 9
+        ```
