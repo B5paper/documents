@@ -1034,3 +1034,26 @@
         // Disconnected
         #define PATH_DIS 9
         ```
+
+* nccl tmp
+
+    * `getPath()`
+
+        ```cpp
+        static ncclResult_t getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path) {
+          for (int i=0; i<system->nodes[t].count; i++) {
+            if (system->nodes[t].nodes[i].id == id) {
+              *path = node->paths[t]+i;
+              return ncclSuccess;
+            }
+          }
+          WARN("Could not find node of type %d id %lx", t, id);
+          return ncclInternalError;
+        }
+        ```
+
+        `node->paths[t]`是个`ncclTopoLinkList*`，但是每个 node 里 path 只有几种类型，每个类型存储一个 path 指针，这个指针，其实是一个 path 数组，由于数组的长度需要在运行时动态确定，所以后面会有 malloc 填充这个指针。
+
+        实测过程中发现`i = 0`。如果非 0 的话，需要重新评估这个功能。
+
+    * `TopoLinkList`、`TopoNodeList`与`TopoNodeSet`有什么不同？

@@ -1736,13 +1736,15 @@ tasks:
 
     13:31 ~ 14:34
 
+* [ ] 调研`ncclTopoSetPaths()`
+
 * [v] 调研`ncclTopoComputePaths()`
 
     13:49 ~ 14:48
 
     feedback:
 
-    1. [ ] 调研`ncclTopoSetPaths()`
+    1. 
 
     1. [ ] 调研`addInterStep()`
 
