@@ -1412,13 +1412,9 @@
 
 ### tasks
 
-* [v] 调研`git revert`的用法
+* [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
 
-    feedback:
-
-    1. 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
-
-    2. 调研`git cherry-pick`
+* [ ] 调研`git cherry-pick`
 
 * [ ] 调研`git reflog`
 
@@ -1481,6 +1477,12 @@
 * [v] cache tabs
 
 * [v] cache tabs 03.20
+
+* [v] cache tabs
+
+    10:00 ~ 10:33
+
+* [v] cache tabs 04.01
 
 ## markdown renderer
 
@@ -1601,8 +1603,6 @@ tasks:
         * ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
 
             <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
-
-* [v] 调研线性代数
 
 ## CCL
 
@@ -1730,11 +1730,33 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
+* [v] 调研复现`ncclTopoConnectCpus()`
+
+* [v] 调研`ncclTopoSortSystem()`
+
+    13:31 ~ 14:34
+
+* [ ] 调研`ncclTopoSetPaths()`
+
+* [v] 调研`ncclTopoComputePaths()`
+
+    13:49 ~ 14:48
+
+    feedback:
+
+    1. 
+
+    1. [ ] 调研`addInterStep()`
+
+    1. [ ] 调研尝试复现`ncclTopoComputePaths()`
+
 * [P] 调研 xml 反序列化
 
     feedback:
 
     1. 调研`strtoull()`
+
+    1. 调研 emplace() 和 emplace_back() 的区别
 
 * [O] 调研 qemu 添加 pci 设备
 
