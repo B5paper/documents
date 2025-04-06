@@ -2,6 +2,257 @@
 
 ## cached
 
+* `sort()`对数组排序时，末尾迭代器需要填数组最后一个元素的后一位的指针
+
+    example:
+
+    ```cpp
+    #include <algorithm>
+    #include <vector>
+    #include <iostream>
+    using namespace std;
+
+    void print_arr(int arr[], int len)
+    {
+        for (int i = 0; i < len; ++i)
+        {
+            printf("%d, ", arr[i]);
+        }
+        putchar('\n');
+    }
+
+    int main()
+    {
+        int arr[] = {4, 5, 2, 1, 3};
+        int arr_len = 5;
+        print_arr(arr, arr_len);
+
+        sort(&arr[0], &arr[arr_len - 1], [](int &obj_1, int &obj_2){
+            if (obj_1 > obj_2)
+                return true;
+            return false;
+        });
+        print_arr(arr, arr_len);
+
+        sort(&arr[0], &arr[arr_len], [](int &obj_1, int &obj_2){
+            if (obj_1 > obj_2)
+                return true;
+            return false;
+        });
+        print_arr(arr, arr_len);
+        
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    4, 5, 2, 1, 3, 
+    5, 4, 2, 1, 3, 
+    5, 4, 3, 2, 1,
+    ```
+
+* partial sort
+
+    `partial_sort()`可以找到数组中前`n`个最大/最小的值，并对其进行排序。
+
+    > Rearranges elements such that the range `[first, middle)` contains the sorted `middle − first` smallest elements in the range `[first, last)`.
+
+    syntax:
+
+    ```cpp
+    template< class RandomIt >
+    void partial_sort( RandomIt first, RandomIt middle, RandomIt last );
+
+    template< class RandomIt, class Compare >
+    void partial_sort( RandomIt first, RandomIt middle, RandomIt last, Compare comp );
+    ```
+
+    example:
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    #include <algorithm>
+    using namespace std;
+
+    void print_vec(vector<int> &vec)
+    {
+        for (int i = 0; i < vec.size(); ++i)
+        {
+            cout << vec[i] << ", ";
+        }
+        cout << endl;
+    }
+
+    int main()
+    {
+        vector<int> vec{5, 4, 2, 1, 3};
+        print_vec(vec);
+        int n = 3;
+        cout << "n = " << n << endl;
+        partial_sort(vec.begin(), vec.begin() + n, vec.end());
+        print_vec(vec);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    5, 4, 2, 1, 3,
+    n = 3
+    1, 2, 3, 5, 4,
+    ```
+
+    可以看到 middle 的迭代器是不被包含的。当`n = 3`时，只对最小的 3 个数进行排序。
+
+    `partial_sort()`也支持自定义 compare 函数：
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    #include <algorithm>
+    using namespace std;
+
+    void print_vec(vector<int> &vec)
+    {
+        for (int i = 0; i < vec.size(); ++i)
+        {
+            cout << vec[i] << ", ";
+        }
+        cout << endl;
+    }
+
+    int main()
+    {
+        vector<int> vec{3, 1, 2, 5, 4};
+        print_vec(vec);
+        int n = 3;
+        cout << "n = " << n << endl;
+        partial_sort(vec.begin(), vec.begin() + n, vec.end(),
+            [](int &a, int &b) {
+                if (a > b)
+                    return true;
+                return false;
+            }
+        );
+        print_vec(vec);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    3, 1, 2, 5, 4,
+    n = 3
+    5, 4, 3, 1, 2,
+    ```
+
+    注：
+
+    * 如果是比较简单的小于/大于功能，compare 使用的 lambda 表达式可以替换为`less()`或`greater()`。
+
+        或者`less{}`，`greater{}`，用初始化列表创建匿名对象。
+
+    问题：
+    
+    1. 如果想找到第`k`小/大的数，是否有算法比 partial sort 更快？
+
+    1. 除了前面的两个 syntax，还有加入 policy 模板参数的 syntax，不知道干嘛用的
+
+        ```cpp
+        template< class ExecutionPolicy, class RandomIt >
+        void partial_sort( ExecutionPolicy&& policy, RandomIt first, RandomIt middle, RandomIt last );
+
+        template< class ExecutionPolicy, class RandomIt, class Compare >
+        void partial_sort( ExecutionPolicy&& policy, RandomIt first, RandomIt middle, RandomIt last, Compare comp );
+        ```
+
+    1. 调研`nth_element()`, `partial_sort_copy()`, `stable_sort()`, `ranges::partial_sort()`
+
+* lower bound, upper bound
+
+    `lower_bound()`是找到**大于等于**指定元素的第一个元素，`upper_bound()`找到**大于**指定元素的第一个元素。
+
+    ```cpp
+    #include <vector>
+    #include <iostream>
+    #include <algorithm>
+    using namespace std;
+
+    int find_lower_upper_bound(vector<int> &vec, int val)
+    {
+        auto iter = lower_bound(vec.begin(), vec.end(), val);
+        if (iter == vec.end())
+        {
+            cout << "fail to find lower bound" << endl;
+            return -1;
+        }
+        int idx = distance(vec.begin(), iter);
+        cout << "lower bound idx: " << idx << ", val: " << *iter << endl;
+
+        iter = upper_bound(vec.begin(), vec.end(), val);
+        if (iter == vec.end())
+        {
+            cout << "fail to find upper bound" << endl;
+            return -1;
+        }
+        idx = distance(vec.begin(), iter);
+        cout << "upper bound idx: " << idx << ", val: " << *iter << endl;
+
+        return 0;
+    }
+
+    int main()
+    {
+        vector<int> vec{1, 2, 3, 4, 4, 6, 7};
+        for (int elm: vec)
+            cout << elm << ", ";
+        cout << endl << endl;
+
+        int val = 4;
+        cout << "val: " << val << endl;
+        find_lower_upper_bound(vec, val);
+        cout << endl;
+
+        val = 5;
+        cout << "val: " << val << endl;
+        find_lower_upper_bound(vec, val);
+        cout << endl;
+
+        val = 7;
+        cout << "val: " << val << endl;
+        find_lower_upper_bound(vec, val);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 4, 4, 6, 7,
+
+    val: 4
+    lower bound idx: 3, val: 4
+    upper bound idx: 5, val: 6
+
+    val: 5
+    lower bound idx: 5, val: 6
+    upper bound idx: 5, val: 6
+
+    val: 7
+    lower bound idx: 6, val: 7
+    fail to find upper bound
+    ```
+
+    注意，`lower_bound()`和`upper_bound()`都是使用二分查找法，要求原数组有序。
+
+    问题：如果`vec`是从小到大排列，我想找到小于等于`val`的第一个数，以及小于`val`的第一个数，该怎么办？如果`vec`已经是从大到小排列，又该如何找大于等于`val`的第一个作业君，大于`val`的第一个数；以及小于等于`val`的第一个数，小于`val`的第一个数。
+
 * `find_if_not()`的使用逻辑与`find_if()`相似，只不过变成寻找第一个不满足条件的元素
 
     ```cpp
