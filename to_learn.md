@@ -7324,3 +7324,27 @@
 * virtio —— 一种 Linux I/O 半虚拟化框架 [译]
 
     <https://zhuanlan.zhihu.com/p/642100699>
+
+* pytorch 线性回归拟合sin函数
+
+    <https://blog.csdn.net/qq_44886601/article/details/129784312>
+
+* A Vulkan Render Engine
+
+    <https://github.com/beaumanvienna/vulkan>
+
+* Cauldron
+
+    A simple framework for rapid prototyping on Vulkan or DirectX12.
+
+    <https://github.com/GPUOpen-LibrariesAndSDKs/Cauldron>
+
+* Sparky Game Engine
+
+    Sparky is a cross-platform, high performance game engine currently in development. This readme will be updated with more info eventually.
+
+    <https://github.com/TheCherno/Sparky>
+
+* STL算法 | 查找函数 find()、二分查找binary_search/upper_bound、子序列查找search
+
+    <https://blog.csdn.net/weixin_43919932/article/details/113865482>
