@@ -1746,25 +1746,15 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
-* [v] 调研复现`ncclTopoConnectCpus()`
-
-* [v] 调研`ncclTopoSortSystem()`
-
-    13:31 ~ 14:34
-
 * [ ] 调研`ncclTopoSetPaths()`
+
+* [ ] 调研`addInterStep()`
+
+* [ ] 调研尝试复现`ncclTopoComputePaths()`
 
 * [v] 调研`ncclTopoComputePaths()`
 
     13:49 ~ 14:48
-
-    feedback:
-
-    1. 
-
-    1. [ ] 调研`addInterStep()`
-
-    1. [ ] 调研尝试复现`ncclTopoComputePaths()`
 
 * [P] 调研 xml 反序列化
 
@@ -1784,15 +1774,15 @@ tasks:
 
     `realpath()`是否可以保证线程安全？
 
+* [ ] 调研常用 c 标准库，linux 常用库
+
+* [ ] 调研`feof()`, `ferror()`
+
 * [v] 调研 topo xml 的生成
 
     feedback:
 
-    * [ ] 调研常用 c 标准库，linux 常用库
-
     * [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
-
-    * [ ] 调研`feof()`, `ferror()`
 
     * [ ] 调研`strtol()`
 
@@ -1805,8 +1795,6 @@ tasks:
     * 搞明白了从`comm->peerInfo[]`中拿到当前 host 所需要的 rank 的过程
 
         接下来该分配`nLocalRanks`大小的 xml 空间，并对本机上的 xml 进行 fuse
-
-* [v] 调研对本机上的 xml 进行 fuse
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 

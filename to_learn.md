@@ -7348,3 +7348,69 @@
 * STL算法 | 查找函数 find()、二分查找binary_search/upper_bound、子序列查找search
 
     <https://blog.csdn.net/weixin_43919932/article/details/113865482>
+
+* Ray
+
+    Embeddable cross-platform semi-realtime physically based renderer.
+
+    <https://github.com/sergcpp/Ray>
+
+* Oryol
+
+    A small, portable and extensible C++ 3D coding framework 
+
+    <https://github.com/floooh/oryol>
+
+* The Python GTK+ 3 Tutorial
+
+    <https://python-gtk-3-tutorial.readthedocs.io/en/latest/index.html>
+
+    Getting Started: <https://python-gtk-3-tutorial.readthedocs.io/en/latest/introduction.html>
+
+* 6.11. Memory Management
+
+    nvidia umd
+
+    <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY.html#group__CUDART__MEMORY_1ge8d5c17670f16ac4fc8fcb4181cb490c>
+
+* Shadows
+
+    A sample app that demonstrates several techniques for rendering real-time shadow maps 
+
+    <https://github.com/TheRealMJP/Shadows>
+
+* STORM: Synthesis of Topic Outlines through Retrieval and Multi-perspective Question Asking
+
+    <https://github.com/stanford-oval/storm>
+
+* Pathway Live Data Framework
+
+    Python ETL framework for stream processing, real-time analytics, LLM pipelines, and RAG.
+
+    <https://github.com/pathwaycom/pathway>
+
+* HRE :: Hybrid (Clustered Forward/Deferred) Rendering Engine
+
+    <https://github.com/Angelo1211/HybridRenderingEngine>
+
+* PBR
+
+    An implementation of physically based shading & image based lighting in D3D11, D3D12, Vulkan, and OpenGL 4. 
+
+    <https://github.com/Nadrin/PBR>
+
+* Playwright Tools for MCP 
+
+    A Model Context Protocol (MCP) server that provides browser automation capabilities using Playwright. This server enables LLMs to interact with web pages through structured accessibility snapshots, bypassing the need for screenshots or visually-tuned models.
+
+    <https://github.com/microsoft/playwright-mcp>
+
+* UI-TARS Desktop
+
+    A GUI Agent application based on UI-TARS(Vision-Language Model) that allows you to control your computer using natural language. 
+
+    <https://github.com/bytedance/UI-TARS-desktop>
+
+* GDB scheduler-locking 命令详解
+
+    <https://www.cnblogs.com/pugang/p/7698772.html>

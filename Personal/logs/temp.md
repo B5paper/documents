@@ -1057,3 +1057,27 @@
         实测过程中发现`i = 0`。如果非 0 的话，需要重新评估这个功能。
 
     * `TopoLinkList`、`TopoNodeList`与`TopoNodeSet`有什么不同？
+
+* nccl tmp
+
+    ```cpp
+    static ncclResult_t ncclTopoSetPaths(struct ncclTopoNode* baseNode, struct ncclTopoSystem* system) {
+      if (baseNode->paths[baseNode->type] == NULL) {
+        NCCLCHECK(ncclCalloc(baseNode->paths+baseNode->type, system->nodes[baseNode->type].count));
+      }
+
+      // ...
+    }
+    ```
+
+    每个 topo node 下有多种类型的 path，每种类型 path 又有多条 path 实例，每条 path 其实是一个 topo node list。
+
+    从`baseNode->paths+baseNode->type`可以看出，每个 node 只处理和当前 node 类型相同的 path。并且申请的内存大小是根据 topo system 中的数据确定的。
+
+    因此每个 node 下的 path 可能是这样的：
+
+    ```
+    cpu 0 -> cpu 1 -> cpu 2 -> cpu 3
+    ```
+
+    这其中并没有 gpu，nic 相关的。
