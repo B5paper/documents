@@ -1060,24 +1060,108 @@
 
 * nccl tmp
 
-    ```cpp
-    static ncclResult_t ncclTopoSetPaths(struct ncclTopoNode* baseNode, struct ncclTopoSystem* system) {
-      if (baseNode->paths[baseNode->type] == NULL) {
-        NCCLCHECK(ncclCalloc(baseNode->paths+baseNode->type, system->nodes[baseNode->type].count));
-      }
+    * path
 
-      // ...
-    }
-    ```
+        ```cpp
+        static ncclResult_t ncclTopoSetPaths(struct ncclTopoNode* baseNode, struct ncclTopoSystem* system) {
+          if (baseNode->paths[baseNode->type] == NULL) {
+            NCCLCHECK(ncclCalloc(baseNode->paths+baseNode->type, system->nodes[baseNode->type].count));
+          }
 
-    每个 topo node 下有多种类型的 path，每种类型 path 又有多条 path 实例，每条 path 其实是一个 topo node list。
+          // ...
+        }
+        ```
 
-    从`baseNode->paths+baseNode->type`可以看出，每个 node 只处理和当前 node 类型相同的 path。并且申请的内存大小是根据 topo system 中的数据确定的。
+        每个 topo node 下有多种类型的 path，每种类型的 path 又有多条 path 实例，每条 path 其实是一个 topo node list。
 
-    因此每个 node 下的 path 可能是这样的：
+        从`baseNode->paths+baseNode->type`可以看出，每个 node 只处理和当前 node 类型相同的 path。并且申请的内存大小是根据 topo system 中的数据确定的。
 
-    ```
-    cpu 0 -> cpu 1 -> cpu 2 -> cpu 3
-    ```
+        因此每个 node 下的 path 可能是这样的：
 
-    这其中并没有 gpu，nic 相关的。
+        ```
+        cpu 0 -> cpu 1 -> cpu 2 -> cpu 3
+        ```
+
+        这其中并没有 gpu，nic 相关的。
+
+    * get path
+
+        ```cpp
+        static ncclResult_t getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path) {
+          for (int i=0; i<system->nodes[t].count; i++) {
+            if (system->nodes[t].nodes[i].id == id) {
+              *path = node->paths[t]+i;
+              return ncclSuccess;
+            }
+          }
+          WARN("Could not find node of type %d id %lx", t, id);
+          return ncclInternalError;
+        }
+        ```
+
+        从`*path = node->paths[t]+i;`可以看出，每个 node 下，对应 node type 的 path 的数量是 system 中对应 node type 的 node 数量。并且每个 node 都可以映射到一条 path 上。
+
+        比如 topo system 中，cpu 类型的 node 有 cpu_0, cpu_1, cpu_2, cpu_3，共 4 个 cpu。那么，在 cpu 0 中，其 cpu 类型的 path 一共有 4 条，并且每条 path 都可以映射到一个 cpu node 上：
+
+        ```
+        path_0 -> cpu_0
+        path_1 -> cpu_1
+        path_2 -> cpu_2
+        path_3 -> cpu_3
+        ```
+
+        每条 path 又是一个 link list，其中有多个 link，每个 link 都有一个 target node 属性。
+
+    * `ncclTopoCreateNode()`
+
+        ```cpp
+        ncclResult_t ncclTopoCreateNode(struct ncclTopoSystem* system, struct ncclTopoNode** node, int type, uint64_t id) {
+          if (system->nodes[type].count == NCCL_TOPO_MAX_NODES) {
+            WARN("Error : tried to create too many nodes of type %d", type);
+            return ncclInternalError;
+          }
+          struct ncclTopoNode* n = system->nodes[type].nodes+system->nodes[type].count;
+          system->nodes[type].count++;
+          n->type = type;
+          n->id = id;
+          if (type == GPU) {
+            n->gpu.dev = NCCL_TOPO_UNDEF;
+            n->gpu.rank = NCCL_TOPO_UNDEF;
+            // ...
+          }
+          // ...
+        }
+        ```
+
+        因为 nccl 中是提前把数组中元素申请好的，所以靠增加 count 计数来表示目前使用了多少个数组元素，模拟内存分配的过程。
+
+    * `ncclTopoAddPci()`
+
+        ```cpp
+        ncclResult_t ncclTopoAddPci(struct ncclXmlNode* xmlPci, struct ncclTopoSystem* system, struct ncclTopoNode* parent, int systemId) {
+          const char* str;
+
+          int type;
+          NCCLCHECK(xmlGetAttrStr(xmlPci, "class", &str));
+          NCCLCHECK(kvConvertToInt(str, &type, kvDictPciClass));
+
+          int64_t busId;
+          NCCLCHECK(xmlGetAttrStr(xmlPci, "busid", &str));
+          NCCLCHECK(busIdToInt64(str, &busId));
+
+          struct ncclTopoNode* node = NULL;
+          struct ncclXmlNode* xmlGpu = NULL;
+          NCCLCHECK(xmlGetSub(xmlPci, "gpu", &xmlGpu));
+          if (xmlGpu != NULL) {
+            type = GPU;
+            int index;
+            // ...
+          }
+          // ...
+        }
+        ```
+
+        这里的 add pci，实际上是从 xml 的 pci tag 中，解析出来此 pci 上具体是个什么设备，可能是 gpu，可能是 nic，也可能是另一个 pci。
+
+        解析完后，将实际的 device 对接到 parent topo node 上（目前看来 parent topo node 是 cpu）。
+    

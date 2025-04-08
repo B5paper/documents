@@ -7414,3 +7414,81 @@
 * GDB scheduler-locking 命令详解
 
     <https://www.cnblogs.com/pugang/p/7698772.html>
+
+* Get Started With Nsight Systems
+
+    <https://developer.nvidia.com/nsight-systems/get-started>
+
+* PCIe Gen 4 vs. Gen 3 Slots, Speeds
+
+    <https://www.trentonsystems.com/en-gb/blog/pcie-gen4-vs-gen3-slots-speeds>
+
+* ssh 相关
+
+    * http proxy over ssh, not socks
+
+        <https://superuser.com/questions/280129/http-proxy-over-ssh-not-socks>
+
+    * Create a SOCKS proxy on a Linux server with SSH to bypass content filters
+
+        <https://ma.ttias.be/socks-proxy-linux-ssh-bypass-content-filters/>
+
+    * Keep SSH session alive [closed]
+
+        <https://stackoverflow.com/questions/25084288/keep-ssh-session-alive>
+
+* SAMURAI: Adapting Segment Anything Model for Zero-Shot Visual Tracking with Motion-Aware Memory
+
+    <https://github.com/yangchris11/samurai>
+
+* HRE :: Hybrid (Clustered Forward/Deferred) Rendering Engine
+
+    <https://github.com/Angelo1211/HybridRenderingEngine>
+
+* Using Memory Segments to Describe the GPU Address Space
+
+    <https://learn.microsoft.com/en-us/windows-hardware/drivers/display/using-memory-segments-to-describe-the-gpu-address-space>
+
+* Intra-Node/Inter-Node Communication on the Leonardo CINECA Cluster - Booster Partition
+
+    <https://github.com/y3rbiadit0/intra-inter-node-research>
+
+* HIPIFY
+
+    <https://github.com/ROCm/HIPIFY>
+
+* CUDA进阶第四篇-如何实时获得GPU各种资源利用率（NVML）
+
+    <https://blog.csdn.net/litdaguang/article/details/52181322>
+
+* NVIDIA Management Library (NVML)
+
+    <https://developer.nvidia.com/management-library-nvml>
+
+    <https://docs.nvidia.com/deploy/nvml-api/index.html>
+
+    4.19. NvLink Methods
+
+    <https://docs.nvidia.com/deploy/nvml-api/group__NvLink.html#group__NvLink>
+
+    4.22. Field Value Queries
+
+    <https://docs.nvidia.com/deploy/nvml-api/group__nvmlFieldValueQueries.html#group__nvmlFieldValueQueries_1g0b02941a262ee4327eb82831f91a1bc0>
+
+* vk_raytrace
+
+    Ray tracing glTF scene with Vulkan 
+
+    <https://github.com/nvpro-samples/vk_raytrace>
+
+* Nabla-Examples-and-Tests
+
+    <https://github.com/Devsh-Graphics-Programming/Nabla-Examples-and-Tests>
+
+* Linux 下利用 Valgrind 进行内存调试
+
+    <https://zhuanlan.zhihu.com/p/9100549621>
+
+* 通过RISC-V指令支持CUDA的基本思路
+
+    <https://zhuanlan.zhihu.com/p/9181670704>

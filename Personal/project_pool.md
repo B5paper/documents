@@ -30,6 +30,22 @@
 
 ## cache
 
+* [P] 调研 tk app 开发
+
+    10:14 ~ 11:01
+
+    尝试实现一个定时器
+
+    feedback:
+
+    1. 中文版教程：<https://blog.csdn.net/vor234/article/details/134761002>
+
+    1. 英文版教程
+
+        * <https://tkdocs.com/>
+
+        * <https://tkdocs.com/tutorial/install.html>
+
 * 力扣题：为什么做智力题无法从前往后递推，打家劫舍就可以？智力题的递归该怎么写？记忆化搜索该怎么写？总结智力题的双重循环搜索和从前往后的剪枝。强行单循环从前往后搜索的解法就不看了。
 
 * 必要的 bfs 与非线性
@@ -1500,6 +1516,10 @@
 
 * [v] cache tabs 04.01
 
+* [v] cache tabs 04.08
+
+    09:37 ~ 10:00
+
 ## markdown renderer
 
 使用 electron + markdown parser + mathjax 实现 markdoen renderer。
@@ -1746,7 +1766,21 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研`ncclTopoSetPaths()`
+* [P] 重新整理`ncclTopoGetSystem()`，给出接口
+
+    12:35 ~ 15:54
+
+    feedback:
+
+    1. 将 xml 的处理抽离了出去，目前已经实现了`add_child_tag()`, `print_xml()`, 简单的 deserialize, `find_child_tag_with_attr()`, `merge_tags()`
+
+        目前未实现可以处理嵌套 tag 的 deserialize。
+
+    1. 接下来可能需要加上 sysfs file 的读取，path 的处理，cpu affinity, cpu id 的处理等。这些功能比较零散，可以放到 misc 或 utils 里实现。
+
+* [P] 调研尝试实现`ncclTopoSetPaths()`
+
+    16:57 ~ 18:41
 
 * [ ] 调研`addInterStep()`
 
@@ -1778,19 +1812,19 @@ tasks:
 
 * [ ] 调研`feof()`, `ferror()`
 
+* [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
+
+* [ ] 调研`strtol()`
+
+* [ ] 调研 c++ string 与 int, float 的转换，调研 c string 与 int float 的转换
+
+* [ ] 调研`__cpuid()`
+
 * [v] 调研 topo xml 的生成
 
     feedback:
 
-    * [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
-
-    * [ ] 调研`strtol()`
-
-    * [ ] 调研 c++ string 与 int, float 的转换，调研 c string 与 int float 的转换
-
-    * 调研`__cpuid()`
-
-    * 调研`attr_val.erase(attr_val.back());`为什么可以 work？
+    * [ ] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
 
     * 搞明白了从`comm->peerInfo[]`中拿到当前 host 所需要的 rank 的过程
 
