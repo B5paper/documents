@@ -815,16 +815,6 @@
 
     `NCCL_TOPO_MAX_LINKS`宏展开是 128，这个遍历看起来是从头开始遍历，要么到达最大容量`NCCL_TOPO_MAX_LINKS`后停止，要么`link->remNode`为空时停止。因此前面使用数组已经分配了`link`的空间，所以在数组范围内`link`一定都不为空。
 
-    `if (link->remNode == remNode && link->type == type) break;`这行拿来找指定的 remote node 以及指定的 link type。
-
-    ```cpp
-    link->type = type;
-    link->remNode = remNode;
-    link->bw += bw;
-    ```
-
-    对于所有连接到指定 remote node 的 local link，增加其 bindwidth。前两行其实是冗余的。
-
     往上走一层我们可以看到`ncclTopoConnectNodes(cpu1, cpu2, LINK_SYS, bw);`，说明 local link 是 cpu 1 上的 link，而 remote node 就是 cpu 2，link type 为`LINK_SYS`。
 
     ```cpp
@@ -852,8 +842,6 @@
 
     1, 2, 3, 4, 4 => 5, 1, 2, 3, 4
 
-    不清楚这段代码干嘛用的。既没有做到倒序排序，也没有做到保持原序。
-
     看起来比较像，对于`cpu_node_2`，让当前`cpu_node_1`的 link 向前找到一个合适的位置。
 
     5, 4, 2, 1, 3 => 5, 4, 3, 2, 1
@@ -867,6 +855,8 @@
     * cpu node 的 links 是在什么时候被填充的？
 
         看起来比较像在`ncclTopoAddNvLinks()`里填充。这个是个递归调用的函数。
+
+        * (2025.04.08,00) cpu node 的 link 并不是物理的 link，而是拓扑图里的 edge，因此并不是只在 add nvlinks 函数里填充。目前看来，应该是在`ncclTopoConnectNodes()`里被填充。
 
     * 为什么只有 cpu link 的 connect，没有 gpu link 的 connect？
 
@@ -1164,4 +1154,40 @@
         这里的 add pci，实际上是从 xml 的 pci tag 中，解析出来此 pci 上具体是个什么设备，可能是 gpu，可能是 nic，也可能是另一个 pci。
 
         解析完后，将实际的 device 对接到 parent topo node 上（目前看来 parent topo node 是 cpu）。
+
+
+    * `ncclTopoConnectNodes()`
+
+        ```cpp
+        ncclResult_t ncclTopoConnectNodes(struct ncclTopoNode* node, struct ncclTopoNode* remNode, int type, float bw) {
+          // Aggregate links into higher bw for NVLink
+          struct ncclTopoLink* link;
+          for (link = node->links; link - node->links != NCCL_TOPO_MAX_LINKS && link->remNode; link++) {
+            if (link->remNode == remNode && link->type == type) break;
+          }
+          if (link - node->links == NCCL_TOPO_MAX_LINKS) {
+            WARN("Error : too many Topo links (max %d)", NCCL_TOPO_MAX_LINKS);
+            return ncclInternalError;
+          }
+          if (link->remNode == NULL) node->nlinks++;
+          link->type = type;
+          link->remNode = remNode;
+          link->bw += bw;
+          // ...
+        }
+        ```
+
+        每个 topo node 中有默认创建的最大 128 条 link，每条 link 包含一个 remote topo node （或者可以理解为 target topo node, dst topo node, peer topo node 等），这些 link 并不构成单向链表（path 是 link 组成的 list，因此 path 构成单向链表）。
+
+        上述代码对 node 的 link 数组进行遍历，若有 link 指向`remNode`，说明之已经添加过这条 link，现在又被要求添加这条 link，说明 node 和 remNode 之间不止有一条 link，这种情况只有可能是多条 nvlink。后续在处理这种情况时，我们看到它使用`link->bw += bw;`累加 bindwidth，聚合 nvlink 的带宽。
+
+        若找不到 link 指向`remNode`，说明这条 link 还没被创建，此时使用`node->nlinks++;`使指针递增一位，模仿 malloc 的效果。然后使用
+
+        ```cpp
+        link->type = type;
+        link->remNode = remNode;
+        link->bw += bw;
+        ```
+
+        对这条新创建的 link 进行初始化。
     
