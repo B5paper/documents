@@ -1520,6 +1520,10 @@
 
     09:37 ~ 10:00
 
+* [v] cache tabs 04.09
+
+    09:29 ~ 09:53
+
 ## markdown renderer
 
 使用 electron + markdown parser + mathjax 实现 markdoen renderer。
@@ -1766,6 +1770,14 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
+* [v] 实现可以处理嵌套 tag 的 deserialize
+
+    feedback:
+
+    1. 写递归还是有点难度，可以先将一个完整结构分成 2 部分或 3 部分，然后分别写出 2 部分或 3 部分的处理方式，比如第 2 部分需要遍历，第 3 部分需要给出当前的 position 等。如果在第 2 部分需要遍历，那么判断下是先序遍历还是后序遍历（先遍历完子节点再处理当前节点）。
+
+        做题时候的后序遍历，通常是使用 int 来返回一个值。实际项目中，如果遍历子节点时需要用到 parent 信息，而且又需要返回一些处理完后的信息，那么函数的设计就比较复杂了。这个时候究竟应该以 parent 的角度遍历子节点，还是在递归的开头直接处理当前节点，如果遇到空节点则返回？这个问题有时间了可以讨论下。
+
 * [P] 重新整理`ncclTopoGetSystem()`，给出接口
 
     12:35 ~ 15:54
@@ -1790,13 +1802,11 @@ tasks:
 
     13:49 ~ 14:48
 
+* [ ] 调研`strtoull()`
+
+* [ ] 调研 emplace() 和 emplace_back() 的区别
+
 * [P] 调研 xml 反序列化
-
-    feedback:
-
-    1. 调研`strtoull()`
-
-    1. 调研 emplace() 和 emplace_back() 的区别
 
 * [O] 调研 qemu 添加 pci 设备
 

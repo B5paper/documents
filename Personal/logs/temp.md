@@ -1155,7 +1155,6 @@
 
         解析完后，将实际的 device 对接到 parent topo node 上（目前看来 parent topo node 是 cpu）。
 
-
     * `ncclTopoConnectNodes()`
 
         ```cpp
@@ -1190,4 +1189,8 @@
         ```
 
         对这条新创建的 link 进行初始化。
+
+    * system id 的含义
+
+        一个 topo system 可能存了好多个 host hash，每个 host hash 对应一个 host。如果我想找到指定的 host，那么其对应的数组索引 idx 就是 system id。
     
