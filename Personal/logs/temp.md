@@ -1193,4 +1193,7 @@
     * system id 的含义
 
         一个 topo system 可能存了好多个 host hash，每个 host hash 对应一个 host。如果我想找到指定的 host，那么其对应的数组索引 idx 就是 system id。
-    
+
+    * `ncclTopoCreateNode()`
+
+        这个函数模仿 malloc 的功能。
