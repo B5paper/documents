@@ -4,6 +4,8 @@
 
 ## cached
 
+* `uint64_t`在 C++ 的`<cstdint>`头文件中
+
 * 有关移位 + 类型转换
 
     ```cpp

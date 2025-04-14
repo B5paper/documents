@@ -2,6 +2,64 @@
 
 ## cached
 
+* c++ 中，如果`stol()`无法解析，那么会直接抛出异常
+
+    ```cpp
+    int main()
+    {
+        string str = "h123";
+        long val = stol(str, NULL, 10);
+        cout << val << endl;
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    terminate called after throwing an instance of 'std::invalid_argument'
+      what():  stol
+    Aborted (core dumped)
+    ```
+
+* c++ 的 unordered map 的 operator[] 似乎不支持返回 const 引用
+
+    ```cpp
+    struct MyStruc
+    {
+        unordered_map<string, string> attrs;
+    };
+
+    void test(const MyStruc &struc)
+    {
+        const string &val_1 = struc.attrs["key_1"];  // compile error
+        const string &val_2 = struc.attrs.at("key_2");  // OK
+    }
+
+    int main()
+    {
+        MyStruc struc {
+            {
+                {"key_1", "hello"},
+                {"key_2", "world"}
+            }
+        };
+
+        for (auto iter = struc.attrs.begin(); iter != struc.attrs.end(); ++iter)
+        {
+            cout << iter->first << ": " << iter->second << endl;
+        }
+        putchar('\n');
+
+        test(struc);
+
+        return 0;
+    }
+    ```
+
+    可能是考虑到`[]`不处理异常，而确实有可能 unordered map 中找不到 key 值，从而不知道返回什么。而`at()`是处理异常的，因此如果找不到 key，直接抛出异常就可以了。
+
 * `sort()`对数组排序时，末尾迭代器需要填数组最后一个元素的后一位的指针
 
     example:

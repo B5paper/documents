@@ -1197,3 +1197,9 @@
     * `ncclTopoCreateNode()`
 
         这个函数模仿 malloc 的功能。
+
+    * `ncclGetSystemId()`
+
+        这个函数不只是搜索已有的 host hashes，而且还当 host hashed 不存在时，创建一个新的位置，并将当前要查询的 host hash 填入其中，并返回指向当前 host hash 的索引。
+
+        功能有点像 c++ 中 unordered map 的`operator[]`查询。

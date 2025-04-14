@@ -30,6 +30,24 @@
 
 ## cache
 
+* 写递归还是有点难度，可以先将一个完整结构分成 2 部分或 3 部分，然后分别写出 2 部分或 3 部分的处理方式，比如第 2 部分需要遍历，第 3 部分需要给出当前的 position 等。如果在第 2 部分需要遍历，那么判断下是先序遍历还是后序遍历（先遍历完子节点再处理当前节点）。
+
+    做题时候的后序遍历，通常是使用 int 来返回一个值。实际项目中，如果遍历子节点时需要用到 parent 信息，而且又需要返回一些处理完后的信息，那么函数的设计就比较复杂了。这个时候究竟应该以 parent 的角度遍历子节点，还是在递归的开头直接处理当前节点，如果遇到空节点则返回？这个问题有时间了可以讨论下。
+
+* 调试
+
+    debug 只靠 gdb 不太够，有时候还需要对源码做修改。
+
+* 嵌套 if 的使用时机
+
+    写 if 时首先想到如何设置条件能快速退出这个 if。如果发现快速退出 if 后，需要 goto 跳转到其他地方，那么说明这个 if 必须要嵌套了。
+
+* 每天必须花固定时间看书，以此减少电子设备的接触。因为电子设备提供的信息源过多，会导致注意力经常被分散，无法集中精神。书籍提供的信息相对较少，但是更深入，理论上有助于长期集中注意力。
+
+* 重新强调一遍，退出任务时保证 stack 干净非常重要。桌面、床铺等日常环境同样如此。
+
+* 给出一个定时器，到达时间后停下来做任务总结。未到时间就想停下则需要锻炼注意力。
+
 * [P] 调研 tk app 开发
 
     10:14 ~ 11:01
@@ -1150,6 +1168,12 @@
 
 * 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
 
+* 如果**大部分**的 qa file 正确率都很**高**，那么考虑扩充 units；如果大部分的 qa file 正确率都很低，那么调低高正确率 qa file 的选中概率
+
+* 如果单个 qa file 的正确率很高，那么降低它出现的概率
+
+* 必须增加 dep 功能了，不然 qa 没法进行下去
+
 ### Tasks
 
 * [ ] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
@@ -1203,13 +1227,9 @@
 
     正确率： 2 / 4
 
-    feedback:
-
-    1. 当前的 qa 缺少重复环节，一天基本只能记一遍，无法达到巩固的效果
-
-    1. 必须增加 dep 功能了，不然 qa 没法进行下去
-
 * [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
+
+* [ ] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
 
 * [v] qa: 4 units  12.01
 
@@ -1217,50 +1237,11 @@
 
     正确率：3 / 4
 
-    feedback:
-
-    1. 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
+* [ ] 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
 
 * [v] 增加`python main.py --review`功能，复习当天的 units
 
     10:55 ~ 13:58
-
-    feedback:
-
-    1. 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
-
-* [v] 调研 qa test 增加功能：
-
-    在工程目录下增加`qa_db.txt`文件，每次 qa test 结束后，输入`save`向此文件中写入类似如下的格式：
-
-    ```
-    [date-time]
-    2024-12-01 16:20
-    [units]
-    /path/to/qa_file_1,2956213572395325
-    /path/to/qa_file_2,2342343294235
-    /path/to/qa_file_3,723649235873223
-    /path/to/qa_file_4,47567435623432
-
-    [date-time]
-    2024-11-30 13:35
-    [units]
-    xxx
-    xxxx
-    ...
-    ```
-
-    总是保持最新的日期在最上面。
-
-    在每天需要复习的时候，使用`python main.py --review`进入 exam 模式，复习当天的 units。
-
-    目前可以先手动录入`qa_db.txt`文件，程序只负责解析和 review。
-
-    deps:
-
-    1. [v] 把 randexam 改成 selected_units 的形式
-
-    2. [v] 在 randexam 开始之前，对 qa file collect 文件中的所有 qa file 进行 check，检查 id 和 idx 是否完整
 
 * [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
@@ -1298,12 +1279,6 @@
 
     正确率：2 / 4
 
-    feedback:
-
-    1. 如果**大部分**的 qa file 正确率都很**高**，那么考虑扩充 units；如果大部分的 qa file 正确率都很低，那么调低高正确率 qa file 的选中概率
-
-    2. 如果单个 qa file 的正确率很高，那么降低它出现的概率
-
 * [v] qa: 4 units 12.18
 
     正确率：3 / 4
@@ -1318,43 +1293,11 @@
 
 * [v] qa: 2 units 02.05
 
-    feedback:
+* [ ] `使用 element draw 画一个 cube`增加 deps:
 
-    1. opengl routine 遗忘点
-
-        1. 先 init glfw，再 init glew
-
-        2. bind buffer 时，先有`GL_ARRAY_BUFFER`，再有`GL_ELEMENT_ARRAY_BUFFER`.
-
-        3. enable 的是 vertex attrib array, vertex 在位置 1，attrib 在位置 2，array 在位置 3
-
-        4. 解释 array buffer 时，使用的是 vertex attrib pointer，vertex 在位置 1，attrib 在位置 2，pointer 在位置 3
-
-        5. 记得读取 shader 文件中的内容
-
-        6. `glDrawElements()`中填的是使用的 index 的数量，如果画三角形，那么必须为 3 的倍数
+    1. load shader
 
 * [v] qa: review 02.06
-
-    feedback:
-
-    1. hint point
-
-        1. flex 程序中，初始化的调用是`yylex();`，不是`yyflex();`
-
-        2. 在 glfw get key 之前，需要`glfwPollEvents();`
-
-        3. 在进入 while 循环前，必须执行`glEnableVertexAttribArray(0);`
-
-    2. [ ] `使用 element draw 画一个 cube`增加 deps:
-
-        1. load shader
-
-* [v] qa: 2 units  02.07
-
-    正确率：1 / 2
-
-* [v] qa: review  02.10
 
 * [v] 调研 qa review 增加 clear 功能
 
@@ -1378,23 +1321,11 @@
 
     正确率： 1 / 2
 
-    feedback:
-
-    1. hint
-
-        1. flex 程序，先是`%{ %}`，再`%% %%`
-
-        2. `yywrap()`, `yylex()`中间没有下划线
-
 * [v] qa: 2 units 02.14
 
     正确率：0 / 2
 
     feedback:
-
-    1. hint
-        
-        1. 获取 key 按键时，函数叫 glfw get key, 不叫 glfw key press
 
     1. 创建一个`qa_utils`文件下，下设`opengl`, `opencl`等文件夹，文件夹中再设`triangle.c`, `vec_add.c`等文件或文件夹，与 dep 任务相对应。
 
@@ -1408,31 +1339,7 @@
 
 * [v] qa: review 02.21
 
-    hint:
-
-    1. bind buffer 时，target 是`GL_ARRAY_BUFFER`，不是`GL_VERTEX_ARRAY`。
-
-* [v] qa: 2 units 03.03
-
-* [v] qa: 1 unit 03.10
-
 * [v] qa: review 30 mins
-
-    feedback:
-
-    1. `glDrawArrays()`完后，还需要`glfwSwapBuffers()`才能显示内容。
-
-    2. `alloc_chrdev_region()`时，第二个参数是 start，第三个参数才是 num dev。
-
-    3. flex 程序在 init 时，是`yylex();`，不是`yyflex();`
-
-    4. 在`\n {return 0;}`规则时，是`return 0;`，不是`return;`
-
-    4. 重新进入已经 stop 的容器，使用的是`docker start`，不是直接`docker -ia`。
-
-* [v] qa: 1 unit  03.12
-
-    正确率： 0 / 1
 
 ## cache tabs / process urls
 
@@ -1505,14 +1412,6 @@
         那么只能删减一个 world。
         
         该如何删减全部的两个 world？
-
-* [v] cache tabs
-
-* [v] cache tabs 03.20
-
-* [v] cache tabs
-
-    10:00 ~ 10:33
 
 * [v] cache tabs 04.01
 
@@ -1648,11 +1547,7 @@ tasks:
 
 ### cache
 
-* 通过 printf 法，看到`op128.h`文件里主要调用的是`ld_volatile_global()`
-
-    在 print 的 log 中，`in ld_volatile_global()...`与 nccl 的 perf 数据交替出现，数据测试没有问题，说明在传输数据过程中确实用到了`ld_volatile_global()`
-
-    2025/01/23/00: 其实这个只是非宏实现，其他的都是宏定义的 ld volitile global，所以没有 printf 输出。
+* `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
 
 * `ld_volatile_global()`在两个地方被调用
 
@@ -1770,13 +1665,11 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
+* [v] 给 xml 功能提 pr
+
+* [v] 调研：如果一个 obj 是 const 引用，那么其 unordered map 的成员如何使用`[]`?
+
 * [v] 实现可以处理嵌套 tag 的 deserialize
-
-    feedback:
-
-    1. 写递归还是有点难度，可以先将一个完整结构分成 2 部分或 3 部分，然后分别写出 2 部分或 3 部分的处理方式，比如第 2 部分需要遍历，第 3 部分需要给出当前的 position 等。如果在第 2 部分需要遍历，那么判断下是先序遍历还是后序遍历（先遍历完子节点再处理当前节点）。
-
-        做题时候的后序遍历，通常是使用 int 来返回一个值。实际项目中，如果遍历子节点时需要用到 parent 信息，而且又需要返回一些处理完后的信息，那么函数的设计就比较复杂了。这个时候究竟应该以 parent 的角度遍历子节点，还是在递归的开头直接处理当前节点，如果遇到空节点则返回？这个问题有时间了可以讨论下。
 
 * [P] 重新整理`ncclTopoGetSystem()`，给出接口
 
@@ -1793,6 +1686,10 @@ tasks:
 * [P] 调研尝试实现`ncclTopoSetPaths()`
 
     16:57 ~ 18:41
+
+    feedback:
+
+    1. 调研 c++ string 使用正则表达式
 
 * [ ] 调研`addInterStep()`
 
