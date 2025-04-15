@@ -1203,3 +1203,26 @@
         这个函数不只是搜索已有的 host hashes，而且还当 host hashed 不存在时，创建一个新的位置，并将当前要查询的 host hash 填入其中，并返回指向当前 host hash 的索引。
 
         功能有点像 c++ 中 unordered map 的`operator[]`查询。
+
+    * `ncclResult_t ncclTopoAddGpu(struct ncclXmlNode* xmlGpu, struct ncclTopoSystem* system, struct ncclTopoNode* gpu);`
+
+        这个函数参数中有`system`，在函数体实现中并没有用到这个，只是根据 xml tag 的相关字段，填充了 topo node 的相关数据。
+
+    * topo system add nic
+
+        ```cpp
+        if (strcmp(node->name, "nic") == 0) {
+          struct ncclTopoNode* nic = NULL;
+          NCCLCHECK(ncclTopoGetNode(system, &nic, NIC, 0));
+          if (nic == NULL) {
+            NCCLCHECK(ncclTopoCreateNode(system, &nic, NIC, NCCL_TOPO_ID(systemId, 0)));
+            NCCLCHECK(ncclTopoConnectNodes(cpu, nic, LINK_PCI, LOC_BW));
+            NCCLCHECK(ncclTopoConnectNodes(nic, cpu, LINK_PCI, LOC_BW));
+          }
+          NCCLCHECK(ncclTopoAddNic(node, system, nic, systemId));
+        }
+        ```
+
+        这个在`ncclTopoGetNode()`最后一个参数 id 处填了个 0，是表示一个 system 下只有一个 nic tag 吗？
+
+        `ncclTopoCreateNode()`给出的 local id 也恒为 0。不清楚为什么。
