@@ -1226,3 +1226,12 @@
         这个在`ncclTopoGetNode()`最后一个参数 id 处填了个 0，是表示一个 system 下只有一个 nic tag 吗？
 
         `ncclTopoCreateNode()`给出的 local id 也恒为 0。不清楚为什么。
+
+    * system id and bit shift
+
+        ```cpp
+        // (uint64_t) is necessary, or shifing will occured on a 32 bit register
+        // ((uint64_t) system_id << 56) is necessary, or expression 56) + numa_id will be calculated first
+        system_id = 1;
+        uint64_t topo_id = ((uint64_t) system_id << 56) + numa_id;
+        ```
