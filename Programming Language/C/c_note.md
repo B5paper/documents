@@ -241,6 +241,7 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
         printf("%10.2f\n", val);
         return 0;
     }
+    ```
     
     output:
 

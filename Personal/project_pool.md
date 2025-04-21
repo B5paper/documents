@@ -1669,11 +1669,29 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
-* [v] 给 xml 功能提 pr
+* [ ] 调研实现`topo_system_add_pci()`
+
+* [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
+
+* [ ] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？
+
+* [v] 完善`topo_system_add_pci()`，实现 nic 的处理功能，嵌套处理 pci 暂不实现
+
+* [v] 调研尝试实现`topo_system_add_cpu()`
+
+    deps:
+
+    1. [v] 调研尝试实现在 topo system 中添加 host hashes
+
+    1. [v] 调研实现`topo_system_add_gpu()`
+
+    1. [v] 调研实现`topo_system_connect_nodes()`
+
+* [ ] 调研 string view
+
+* [ ] 实现自己缩进的 logging system
 
 * [v] 调研：如果一个 obj 是 const 引用，那么其 unordered map 的成员如何使用`[]`?
-
-* [v] 实现可以处理嵌套 tag 的 deserialize
 
 * [P] 重新整理`ncclTopoGetSystem()`，给出接口
 
