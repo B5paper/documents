@@ -1235,3 +1235,14 @@
         system_id = 1;
         uint64_t topo_id = ((uint64_t) system_id << 56) + numa_id;
         ```
+
+    * insert pci node
+
+        ```cpp
+        for (int s = parent->nSubs; s > subIndex; s--) parent->subs[s] = parent->subs[s-1];
+        parent->subs[subIndex] = pciNode;
+        ```
+
+        reserve a placeholder for pci node.
+
+        why use `subIndex` as the index of pci node? answer: nccl has to Keep PCI sub devices ordered by PCI Bus ID
