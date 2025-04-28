@@ -591,3 +591,7 @@ cuisine prn. [kwɪˈziːn] n. 烹饪，菜肴
 compliant adj. 遵从的，一致的 eg. Every PCI compliant device should implement a basic set of register – configuration registers.
 
 aggregate adj. 总数的，总计的，总体的 eg. aggregate class 聚合类
+
+endorsement n 赞同
+
+prone adj. 易于 ... 的 eg. FTPS supports both active and passive modes, which further complicates firewall configurations and is prone to problems.
