@@ -2,6 +2,31 @@
 
 ## cache
 
+* vscode 中，使用`-exec p`打印字符串数组，会把`\000`也打印出来
+
+    ```cpp
+    #include <stdio.h>
+
+    int main()
+    {
+        char str[16] = "hello";
+        printf("%s\n", str);
+        return 0;
+    }
+    ```
+
+    在`return 0;`前下断点，在 vscode debug console 中调用`-exec p str`，输出如下：
+
+    ```
+    $1 = "hello\000\000\000\000\000\000\000\000\000\000"
+    ```
+
+    而正常的 terminal 中，`printf()`的输出如下：
+
+    ```
+    hello
+    ```
+
 * vscode 可以使用 ctrl + shift + B 编译，使用 F5 启动 debug。
 
 * `\bold`无法被 vscode 和 markdown preview 渲染插件识别，可以使用`\mathbf`来指定正粗体。

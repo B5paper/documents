@@ -4,6 +4,34 @@
 
 ## cached
 
+* cpp 中，引用的地址就是原对象的地址
+
+    ```cpp
+    #include <string>
+    #include <stdio.h>
+    using namespace std;
+
+    void print_pointer(string &str)
+    {
+        printf("in print_pointer(), %p\n", &str);
+    }
+
+    int main()
+    {
+        string str = "hello, world";
+        printf("in main(), %p\n", &str);
+        print_pointer(str);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    in main(), 0x7ffd8a8531d0
+    in print_pointer(), 0x7ffd8a8531d0
+    ```
+
 * `uint64_t`在 C++ 的`<cstdint>`头文件中
 
 * 有关移位 + 类型转换

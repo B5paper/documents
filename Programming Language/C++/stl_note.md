@@ -2,6 +2,203 @@
 
 ## cached
 
+* `string`会比较 string 中的全部字符，不止是有效字符
+
+    ```cpp
+    #include <string>
+    #include <stdio.h>
+    using namespace std;
+
+    int main()
+    {
+        string str_1;
+        str_1.resize(24, 0);
+        sprintf(str_1.data(), "hello");
+
+        string str_2;
+        str_2.resize(16, 0);
+        sprintf(str_2.data(), "hello");
+
+        if (str_1 == str_2) {
+            printf("str_1 == str_2\n");
+        } else {
+            printf("str_1 != str_2\n");
+        }
+
+        string str_3;
+        str_3.resize(16, 0);
+        sprintf(str_3.data(), "hello");
+        str_3[str_3.size() - 1] = '1';
+
+        if (str_2 == str_3) {
+            printf("str_2 == str_3\n");
+        } else {
+            printf("str_2 != str_3\n");
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    str_1 != str_2
+    str_2 != str_3
+    ```
+
+    上面代码中，`str_1`和`str_2`的长度不同因此不相等，`str_2`与`str_3`虽然长度相同，并且有效字符也相同，但是存在非有效字符不同的情况，因此也不相等。
+
+    使用`cout`输出三个字符串：
+
+    ```cpp
+    cout << str_1 << endl;
+    cout << str_2 << endl;
+    cout << str_3 << endl;
+    ```
+
+    output:
+
+    ```
+    hello
+    hello
+    hello1
+    ```
+
+* cpp 中，对 string 进行`clear()`，会使其`size()`变为 0，但是`capacity()`不会改变。
+
+    ```cpp
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string str{"hello, world"};
+        cout << str.size() << endl;
+        str.clear();
+        cout << str << endl;
+        cout << str.size() << endl;
+        cout << str.capacity() << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    12
+
+    0
+    15
+    ```
+
+* cpp 中，使用自定义的`operator[]`可以实现使用`[]`取 const 元素的功能
+
+    ```cpp
+    #include <unordered_map>
+    #include <string>
+    #include <iostream>
+    #include <initializer_list>
+    using namespace std;
+
+    struct MyStruct
+    {
+        MyStruct(const initializer_list<pair<const char*, const char*>> &init_list)
+        {
+            for (auto &entry : init_list)
+            {
+                m.emplace(entry.first, entry.second);
+            }
+        }
+
+        const string& operator[](const string &key) const
+        {
+            return m.at(key);
+        }
+
+        unordered_map<string, string> m;
+    };
+
+
+    int main()
+    {
+        const MyStruct obj
+        {
+            {"hello", "val_1"},
+            {"world", "val_2"}
+        };
+
+        string key = "hello";
+        // const string &val = obj.m[key];  // compiling error
+        const string &val = obj[key];
+        cout << "key: " << key << ", val: " << val << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    key: hello, val: val_1
+    ```
+
+    需要在`const string& operator[](const string &key)`后面加上`const`，才能在`main()`中使用`obj[key]`的方式返回成员的 const 引用。
+
+    说明：
+
+    * 即使在`operator[]()`后加了`const`，标记这是一个 const 函数，依然无法使用`return m[key];`返回`const string&`。
+
+        翻看`unordered_map`源码可发现，`operator[]`的实现方式如下：
+
+        ```cpp
+        mapped_type&
+        operator[](const key_type& __k)
+        { return _M_h[__k]; }
+
+        mapped_type&
+        operator[](key_type&& __k)
+        { return _M_h[std::move(__k)]; }
+        ```
+
+        可以看到并不是一个`const`函数，因此虽然函数返回的是`const Type&`，保证不会在函数外修改，但是有可能在`operator[]()`中对 const 成员进行修改，这是编译器不允许的。
+
+        而源码中`at()`函数的实现如下：
+
+        ```cpp
+        mapped_type&
+        at(const key_type& __k)
+        { return _M_h.at(__k); }
+
+        const mapped_type&
+        at(const key_type& __k) const
+        { return _M_h.at(__k); }
+        ```
+
+        当返回非 const 引用时，`at()`函数不是 const 的；当返回 const 引用时，`at()`函数是 const 的。这样就保证了无论外面是需要 const 引用，还是非 const 引用，`at()`都可以正常工作。
+
+* 在`vector`存指针，并通过指针建立复杂的拓扑关系，并不是一个明智的选择
+
+    假如现在有两个 vector:
+
+    ```
+    0, 1, 2, 3
+
+    4, 5, 6, 7
+    ```
+
+    其中每个元素通过指针的方式建立拓扑，连接关系如下：
+
+    ```
+    0 -> 5 -> 2 -> 7 -> 3 -> 6 -> 1 -> 4
+    ```
+
+    假如现在在 vector 1 中添加新的元素`8, 9, 10, 11, 12`，此时肯定会触发 vector 1 的扩容，那么 vector 2 中元素所指向的 vector 1 中的元素的指针全都会失效。
+
+    vector 1 扩容时，其中的每个元素都会被调用拷贝构造函数，copy constructor。这是元素唯一知道扩容的消息，按道理此时应该通知 vector 2 中的元素，重新构建新的 next 指针。但是由于链表是单向的，vector 1 中的元素无法快速定位到其在 vector 1 中的 prev 元素，比如元素 2，我们可以快速找到 2 的 next 元素为 7，但是无法直接找到 2 的 prev 元素为 5。此时我们只能遍历 vector 2，找到所有指向 2 的元素。这样会导致效率低下。
+
+    一种更好的解决方案是在建立拓扑关系时，使用索引，而不是指针。只有当我们保证没有 realloc 时，才使用指针建立拓扑。
+
 * c++ 中，如果`stol()`无法解析，那么会直接抛出异常
 
     ```cpp
