@@ -7496,3 +7496,41 @@
 * google c++ coding style
 
     <https://zh-google-styleguide.readthedocs.io/en/latest/index.html>
+
+* cpp 20 coroutine 协程
+
+    * C++20 协程学习
+
+        <https://zhuanlan.zhihu.com/p/571509492>
+
+    * C++20 四大特性之一：Module 特性详解
+
+        <https://segmentfault.com/a/1190000040479687>
+
+    * C++20的这些新特性，你都知道吗？
+
+        <https://zhuanlan.zhihu.com/p/591585189>
+
+    * C++20 Coroutines — Complete* Guide
+
+        <https://itnext.io/c-20-coroutines-complete-guide-7c3fc08db89d>
+
+    * My tutorial and take on C++20 coroutines
+
+        <https://www.scs.stanford.edu/~dm/blog/c++-coroutines.html>
+
+    * c++20的协程该怎么使用?
+
+        <https://www.zhihu.com/question/405668774/answer/1862778877>
+
+    * Coroutines in C/C++
+
+        <https://www.geeksforgeeks.org/coroutines-in-c-cpp/>
+    
+* [c++11]我理解的右值引用、移动语义和完美转发
+
+    <https://www.jianshu.com/p/d19fc8447eaa/>
+
+* ACM模式输入输出攻略 | C++篇
+
+    <https://www.nowcoder.com/discuss/460145181203931136?sourceSSR=search>
