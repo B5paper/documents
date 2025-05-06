@@ -1,4 +1,64 @@
-* 调研 c++ string 从指定位置开始 assign 另一个字符串
+# sftp note
+
+## cache
+
+* sshfs 与 sftp 的关系
+
+    Sshfs is a network file system for Linux that runs over the SFTP protocol. 
+
+* ftps 与 sftp 的关系
+
+    FTPS is basically the old ftp protocol run over SSL (Secure Sockets Layer) or TLS (Transport Layer Security).
+
+* sftp implements
+
+    * `pysftp` is a Python implementation
+
+        <https://pypi.python.org/pypi/pysftp>
+
+    * `Paramiko` is another Python implementation
+
+        <http://docs.paramiko.org/en/2.2/api/sftp.html>
+
+    * `pkg/sftp` is a Go language implementation
+
+        <https://github.com/pkg/sftp>
+
+    * `libssh` is a C implementation of the protocol
+
+        <https://www.libssh.org/>
+
+    * `libssh2` is another C implementation of the protocol
+
+        <https://www.libssh2.org/>
+
+    * `Rebex SFTP` is a .NET (C#) implementation
+
+        <https://www.rebex.net/sftp.net/default.aspx>
+
+    * `phpseclib` is another PHP implementation
+
+        <http://phpseclib.sourceforge.net/>
+
+    * `SmartFTP` is an ActiveX component
+
+        <https://www.smartftp.com/en-us/ftplib>
+
+    * `JCraft JSch` is a Java implementation
+
+        <http://www.jcraft.com/jsch/>
+
+    * `SSHJ` is another Java implementation
+
+        <https://github.com/hierynomus/sshj>
+
+    * `List of SFTP Client Libraries =nofollow`
+
+        <http://www.sftp.net/client-libraries>
+
+    * `Comparison of Commons VFS, SSHJ and JSch Libraries for SFTP Support`
+
+        <https://medium.com/@ldclakmal/comparison-of-commons-vfs-sshj-and-jsch-libraries-for-sftp-support-cd5a0db2fbce>
 
 * sftp
 
@@ -71,58 +131,6 @@
 
     * 没有`ldir`命令，只有`dir`命令。
 
-* Sshfs is a network file system for Linux that runs over the SFTP protocol. 
-
-* sftp implements
-
-    * `pysftp` is a Python implementation
-
-        <https://pypi.python.org/pypi/pysftp>
-
-    * `Paramiko` is another Python implementation
-
-        <http://docs.paramiko.org/en/2.2/api/sftp.html>
-
-    * `pkg/sftp` is a Go language implementation
-
-        <https://github.com/pkg/sftp>
-
-    * `libssh` is a C implementation of the protocol
-
-        <https://www.libssh.org/>
-
-    * `libssh2` is another C implementation of the protocol
-
-        <https://www.libssh2.org/>
-
-    * `Rebex SFTP` is a .NET (C#) implementation
-
-        <https://www.rebex.net/sftp.net/default.aspx>
-
-    * `phpseclib` is another PHP implementation
-
-        <http://phpseclib.sourceforge.net/>
-
-    * `SmartFTP` is an ActiveX component
-
-        <https://www.smartftp.com/en-us/ftplib>
-
-    * `JCraft JSch` is a Java implementation
-
-        <http://www.jcraft.com/jsch/>
-
-    * `SSHJ` is another Java implementation
-
-        <https://github.com/hierynomus/sshj>
-
-    * `List of SFTP Client Libraries =nofollow`
-
-        <http://www.sftp.net/client-libraries>
-
-    * `Comparison of Commons VFS, SSHJ and JSch Libraries for SFTP Support`
-
-        <https://medium.com/@ldclakmal/comparison-of-commons-vfs-sshj-and-jsch-libraries-for-sftp-support-cd5a0db2fbce>
-
 * sftp protocol, requests and responses
 
     Operations or packet types supported by the protocol include:
@@ -183,8 +191,4 @@
 
     EXTENDED_REPLY: sends a vendor-specific response from server to client.
 
-* FTPS is basically the old ftp protocol run over SSL (Secure Sockets Layer) or TLS (Transport Layer Security).
-
-* <https://www.ssh.com/academy/ssh/client>
-
-    ssh 相关的概念、术语和解释，讲得比较系统，有时间了看看，了解下为什么 ssh 要这样设计。
+## note

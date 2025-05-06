@@ -2,6 +2,10 @@
 
 ## cache
 
+* <https://www.ssh.com/academy/ssh/client>
+
+    ssh 相关的概念、术语和解释，讲得比较系统，有时间了看看，了解下为什么 ssh 要这样设计。
+
 * ssh 设置 socks 代理
 
     `ssh -X -C -p 39147 -D 4321 -o ServerAliveInterval=60 <user>@<ip_addr>`

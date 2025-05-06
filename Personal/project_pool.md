@@ -1669,7 +1669,11 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研实现`topo_system_add_pci()`
+* [v] 调研实现`<system></system><system></system>`多 system tag 的反序列化
+
+* [v] 调研实现 ccl local resource support
+
+* [v] 调研实现`topo_system_add_pci()`
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
@@ -1691,19 +1695,7 @@ tasks:
 
 * [ ] 实现自己缩进的 logging system
 
-* [v] 调研：如果一个 obj 是 const 引用，那么其 unordered map 的成员如何使用`[]`?
-
-* [P] 重新整理`ncclTopoGetSystem()`，给出接口
-
-    12:35 ~ 15:54
-
-    feedback:
-
-    1. 将 xml 的处理抽离了出去，目前已经实现了`add_child_tag()`, `print_xml()`, 简单的 deserialize, `find_child_tag_with_attr()`, `merge_tags()`
-
-        目前未实现可以处理嵌套 tag 的 deserialize。
-
-    1. 接下来可能需要加上 sysfs file 的读取，path 的处理，cpu affinity, cpu id 的处理等。这些功能比较零散，可以放到 misc 或 utils 里实现。
+* [v] 重新整理`ncclTopoGetSystem()`，给出接口
 
 * [P] 调研尝试实现`ncclTopoSetPaths()`
 
@@ -1725,7 +1717,7 @@ tasks:
 
 * [ ] 调研 emplace() 和 emplace_back() 的区别
 
-* [P] 调研 xml 反序列化
+* [v] 调研 xml 反序列化
 
 * [O] 调研 qemu 添加 pci 设备
 
@@ -1749,15 +1741,9 @@ tasks:
 
 * [ ] 调研`__cpuid()`
 
+* [ ] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
+
 * [v] 调研 topo xml 的生成
-
-    feedback:
-
-    * [ ] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
-
-    * 搞明白了从`comm->peerInfo[]`中拿到当前 host 所需要的 rank 的过程
-
-        接下来该分配`nLocalRanks`大小的 xml 空间，并对本机上的 xml 进行 fuse
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 
@@ -3571,6 +3557,12 @@ cache:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 cache:
+
+* `(void) getHostName(hostHash, sizeof(hostHash), '\0');`
+
+    前面这个`(void)`是干嘛用的？
+
+* 调研`snprintf(node->attrs[index].value, MAX_STR_LEN, "%#lx", value);`中`%#`的用法
 
 * 以后再做 c++ 的 qa，要么写一点点语法，要么就是做题
 

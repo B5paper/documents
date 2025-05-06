@@ -1102,6 +1102,8 @@
 
         每条 path 又是一个 link list，其中有多个 link，每个 link 都有一个 target node 属性。
 
+        `*path = node->paths[t]+i;`: 这里的`i`指的是 nodes 中第 i 个 node，但是 i 也被用到了这里 path 上，说明 path 的排序也是按照 node 的顺序来的，那么很有可能每条 path 的第一个 node 是 path 起始的 node。这样的话，这行代码的含义就可以为：每个 node 只处理从自己开始的那条 path。
+
     * `ncclTopoCreateNode()`
 
         ```cpp
@@ -1246,3 +1248,88 @@
         reserve a placeholder for pci node.
 
         why use `subIndex` as the index of pci node? answer: nccl has to Keep PCI sub devices ordered by PCI Bus ID
+
+* nccl tmp
+
+    * base node
+    
+        ```cpp
+        static ncclResult_t ncclTopoSetPaths(struct ncclTopoNode* baseNode, struct ncclTopoSystem* system) {
+        ```
+
+        目前的 base node 是对 cpu 类型的 node 进行遍历。
+
+    * get path
+
+        ```cpp
+        getPath(system, node, baseNode->type, baseNode->id, &path);
+        ```
+
+        可以看到，`getPath()`在被调用时，指定了 node，又指定了 base node，其含义为搜索 topo system，找到以 base node 的位置，由于以指定 node 开始的 path 的索引与 topo node 在 topo system 中的索引一致，所以我们便可以在 node 中定位以 base node 开头的 path 的索引。
+
+        example:
+
+        topo system 中 topo node 的排布如下：
+
+        ```
+        topo_system:
+
+        cpu:
+        cpu_node_0
+        cpu_node_1
+
+        gpu:
+        gpu_node_0
+        gpu_node_1
+        gpu_node_2
+        gpu_node_3
+
+        ...
+        ```
+
+        `cpu_node_0`的 path 排布如下：
+
+        ```
+        path:
+
+        cpu:
+        cpu_node_0 -> gpu_node_0 -> gpu_node_1
+        cpu_node_1 -> gpu_node_1 -> gpu_node_2
+
+        gpu:
+        gpu_node_0 -> cpu_node_0 -> cpu_node_1
+        gpu_node_1 -> cpu_node_1 -> cpu_node_0
+        gpu_node_2 -> cpu_node_0 -> cpu_node_1
+        gpu_node_3 -> cpu_node_1 -> cpu_node_0
+
+        ...
+        ```
+
+        假如我现在想在`cpu_node_0`中，找到以`cpu_node_1`开头的 path，但是我现在只有`cpu_node_1`的`topo_id`，那么我可以根据这个 id，在 topo system 中找到其对应的索引，然后根据这个索引在`cpu_node_0`的 paths 中找到对应的 path。
+
+    * topo path 不是只搜索同类型的 node 之间的连接
+
+        ```cpp
+        NCCLCHECK(ncclCalloc(remNode->paths+baseNode->type, system->nodes[baseNode->type].count));
+        ```
+
+        这个 alloc 代码，size 使用的是`system->nodes[baseNode->type].count`，表示从各个 node 开始的 path。还是可以连接到其他类型的 node 的。
+
+    * topo path
+
+        前面好像说得不对，path 是个 edge list，并不是个 node list。
+
+        ```cpp
+        if ((remPath->bw == 0 || remPath->count > path->count) && remPath->bw < bw) {
+          // Find reverse link
+          for (int l=0; l<remNode->nlinks; l++) {
+            if (remNode->links[l].remNode == node && remNode->links[l].type == link->type) {
+              remPath->list[0] = remNode->links+l;
+              break;
+            }
+          }
+        ```
+
+        上面的 example 明确指出了，path 的第一个 edge 填的是从当前 node (remNode) 出发，指向指定 node (node) 的 edge。
+
+        这里看来，remPath 的第一个 node 为 nex node，与 path_base_node_to_nex 的含义不同，矛盾。不清楚为什么。

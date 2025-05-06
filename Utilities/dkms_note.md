@@ -1,6 +1,118 @@
-* ai 的回答不可能替代人的理解
+# dkms note
 
-    猜想：人的理解的本质是将新知识的每一个概念节点与脑中已有的旧知识的大量概念节点进行匹配，最终可以对某个现象做出解释，预测，并且有能力验证。新概念的融入要求不能对既有的知识体系引入矛盾。由于这个过程一定是需要人亲自完成的，所以 ai 并不能缩短这一过程的时间。ai 可以提供信息源，可以提高匹配过程的效率，但是无法真正地取代匹配。因此 ai 的回答不可能替代人的理解。
+## cache
+
+* dkms match
+
+    如果你在`6.8.0-58-generic` kernel 上已经安装好了`dkms_test`这个 module，那么只需要执行`dkms match --templatekernel 6.8.0-58-generic -k 6.8.0-57-generic`，就可以将其安装到`6.8.0-57-generic` kernel 上。
+
+    但是运行的时候报错了：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/dkms_test$ dkms status
+    dkms_test/1.0, 6.8.0-58-generic, x86_64: installed
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/dkms_test$ sudo dkms match --templatekernel 6.8.0-58-generic -k 6.8.0-57-generic
+
+    Matching modules in kernel: 6.8.0-57-generic (x86_64)
+    to the configuration of kernel: 6.8.0-58-generic (x86_64)
+
+    Kernel preparation unnecessary for this kernel. Skipping...
+    Module:  dkms_test/1.0
+    Version: 6.8.0-58-generic
+
+    Building & Installing this module/version:
+    Error! Could not find module source directory.
+    Directory: /usr/src/dkms_test/1.0-6.8.0-58-generic does not exist.
+    ```
+
+    dkms 可以通过`/usr/src/dkms_test/1.0-6.8.0-58-generic`这种方式找到对应的源代码目录吗？之前看到的都是`/usr/src/dkms_test-1.0`这样的。是 dkms 的代码长期没人维护，导致这个搜索方式变动？还是 dkms 有两套搜索源码的方式？
+
+*  Kernel/DkmsDriverPackage
+
+    dkms 创建 deb 包。
+
+    <https://help.ubuntu.com/community/Kernel/DkmsDriverPackage>
+
+* ubuntu dkms man page
+
+    <https://manpages.ubuntu.com/manpages/trusty/man8/dkms.8.html>
+
+* dkms 的 conf 文件中，各个变量的含义
+
+    example:
+
+    `dkms.conf`:
+
+    ```conf
+    MAKE="make -C src/ KERNELDIR=/lib/modules/${kernelver}/build"
+    CLEAN="make -C src/ clean"
+    BUILT_MODULE_NAME=awesome
+    BUILT_MODULE_LOCATION=src/
+    PACKAGE_NAME=awesome
+    PACKAGE_VERSION=1.1
+    REMAKE_INITRD=yes
+    ```
+
+    * `MAKE`: 如何构建此 module
+
+    * `CLEAN`: 如何 clean 此 module
+
+    * `BUILT_MODULE_NAME`: 指定需要 insmod 的`.ko`文件的不带后缀的名称。一个工程目录下可能会编译出来多个`.ko`或`.o`文件，这里指定需要加载的 module。
+
+    * `BUILT_MODULE_LOCATION`: 指定在哪找编译生成的`.ko`文件。因此前面的`MAKE`命令不一定把`.ko`生成在当前文件夹。
+
+    * `PACKAGE_NAME`, `PACKAGE_VERSION`: 不清楚这两个是干嘛用的。ubuntu help page 上的解释是
+
+        > The name and version DKMS should associate with the module(s). 
+
+        这个解释说了等于没说。
+
+    * `REMAKE_INITRD`，官方解释为
+
+        > To remake the initrd image after installing the module. 
+
+* dkms 移除 module 的 example
+
+    与 install 相反的是 uninstall:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ sudo dkms uninstall -m dkms_test -v 1.0
+    Module dkms_test-1.0 for kernel 6.8.0-58-generic (x86_64).
+    Before uninstall, this module version was ACTIVE on this kernel.
+
+    dkms_test.ko:
+     - Uninstallation
+       - Deleting from: /lib/modules/6.8.0-58-generic/updates/dkms/
+     - Original module
+       - No original module was found for this module on this kernel.
+       - Use the dkms install command to reinstall any previous module version.
+
+    depmod...
+    ```
+
+    此时的 status 为：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ dkms status
+    dkms_test/1.0, 6.8.0-58-generic, x86_64: built
+    sipu/1.0.0, 6.8.0-58-generic, x86_64: installed
+    ```
+
+    如果需要在 dkms 中移除一个 module，则可以使用`remove`:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ sudo dkms remove -m dkms_test -v 1.0
+    Module dkms_test-1.0 for kernel 6.8.0-58-generic (x86_64).
+    This module version was INACTIVE for this kernel.
+    depmod...
+    Deleting module dkms_test-1.0 completely from the DKMS tree.
+    (base) hlc@hlc-VirtualBox:~$ dkms status
+    (base) hlc@hlc-VirtualBox:~$ 
+    ```
+
+    在执行`dkms remove`时，会自动执行`dkms uninstall`。
+
+    此时`dkms_test` module 完全从`/var/lib/dkms`中被移除，但是`/usr/src/dkms_test-1.0`仍保持存在。
 
 * dkms example
 
@@ -178,53 +290,6 @@
         [  788.580519] dkms_test: module verification failed: signature and/or required key missing - tainting kernel
         ```
 
-* insmod 时报错
+## note
 
-    在`insmod`时报错`insmod: ERROR: could not insert module dkms_test.ko: Invalid module format`。
-    
-    经检查，`uname -r`查看的 kernel 版本与编译时 Makefile 里指定的 kernel 的版本相同，又查看`/boot`目录，`ls -lh`看到`initrd.img-xxxx`,`vmlinuz-xxxx`, `System.map-xxx`这三个文件的最后一次修改的日期都比较旧，说明最近没有被替换。
-
-    最终发现是 gcc 的版本变了，默认版本的`gcc`在几分钟之内从`gcc-11`升级到了`gcc-12`。很有可能当前内核是`gcc-11`编译的，而编译新 ko 时，使用了`gcc-12`，导致版本不一致。
-
-* dkms 移除 module 的 example
-
-    与 install 相反的是 uninstall:
-
-    ```
-    (base) hlc@hlc-VirtualBox:~$ sudo dkms uninstall -m dkms_test -v 1.0
-    Module dkms_test-1.0 for kernel 6.8.0-58-generic (x86_64).
-    Before uninstall, this module version was ACTIVE on this kernel.
-
-    dkms_test.ko:
-     - Uninstallation
-       - Deleting from: /lib/modules/6.8.0-58-generic/updates/dkms/
-     - Original module
-       - No original module was found for this module on this kernel.
-       - Use the dkms install command to reinstall any previous module version.
-
-    depmod...
-    ```
-
-    此时的 status 为：
-
-    ```
-    (base) hlc@hlc-VirtualBox:~$ dkms status
-    dkms_test/1.0, 6.8.0-58-generic, x86_64: built
-    sipu/1.0.0, 6.8.0-58-generic, x86_64: installed
-    ```
-
-    如果需要在 dkms 中移除一个 module，则可以使用`remove`:
-
-    ```
-    (base) hlc@hlc-VirtualBox:~$ sudo dkms remove -m dkms_test -v 1.0
-    Module dkms_test-1.0 for kernel 6.8.0-58-generic (x86_64).
-    This module version was INACTIVE for this kernel.
-    depmod...
-    Deleting module dkms_test-1.0 completely from the DKMS tree.
-    (base) hlc@hlc-VirtualBox:~$ dkms status
-    (base) hlc@hlc-VirtualBox:~$ 
-    ```
-
-    在执行`dkms remove`时，会自动执行`dkms uninstall`。
-
-    此时`dkms_test` module 完全从`/var/lib/dkms`中被移除，但是`/usr/src/dkms_test-1.0`仍保持存在。
+install: `sudo apt install dkms`

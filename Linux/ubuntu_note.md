@@ -4,6 +4,10 @@
 
 ## cache
 
+* ubuntu 的官方帮助网站
+
+    <https://help.ubuntu.com/>
+
 * ubuntu 可以使用 ctrl + alt + 左箭头／右箭头 切换虚拟桌面。也可以使用 win/super + page up / page down 切换虚拟桌面。
 
 * 下载 ubuntu 时选择 Alternative downloads -> Other images and mirrors -> All Ubuntu mirrors 可以列出所有的镜像网站

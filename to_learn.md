@@ -7492,3 +7492,7 @@
 * 通过RISC-V指令支持CUDA的基本思路
 
     <https://zhuanlan.zhihu.com/p/9181670704>
+
+* google c++ coding style
+
+    <https://zh-google-styleguide.readthedocs.io/en/latest/index.html>

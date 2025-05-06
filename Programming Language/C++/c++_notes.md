@@ -4,6 +4,8 @@
 
 ## cached
 
+* 调研 c++ string 从指定位置开始 assign 另一个字符串
+
 * cpp 中，引用的地址就是原对象的地址
 
     ```cpp

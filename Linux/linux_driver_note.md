@@ -6,6 +6,14 @@ Ref:
 
 ## cache
 
+* insmod 时报错
+
+    在`insmod`时报错`insmod: ERROR: could not insert module dkms_test.ko: Invalid module format`。
+    
+    经检查，`uname -r`查看的 kernel 版本与编译时 Makefile 里指定的 kernel 的版本相同，又查看`/boot`目录，`ls -lh`看到`initrd.img-xxxx`,`vmlinuz-xxxx`, `System.map-xxx`这三个文件的最后一次修改的日期都比较旧，说明最近没有被替换。
+
+    最终发现是 gcc 的版本变了，默认版本的`gcc`在几分钟之内从`gcc-11`升级到了`gcc-12`。很有可能当前内核是`gcc-11`编译的，而编译新 ko 时，使用了`gcc-12`，导致版本不一致。
+
 * `/sys/class/pci_bus/0000:00/device/0000:00:00.0`中每个 attr 文件的 size 都是 4096
 
     比如这个目录下的`class`，`device`等，虽然有效内容也就几十个字节，但是使用
