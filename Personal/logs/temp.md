@@ -1265,7 +1265,7 @@
         getPath(system, node, baseNode->type, baseNode->id, &path);
         ```
 
-        可以看到，`getPath()`在被调用时，指定了 node，又指定了 base node，其含义为搜索 topo system，找到以 base node 的位置，由于以指定 node 开始的 path 的索引与 topo node 在 topo system 中的索引一致，所以我们便可以在 node 中定位以 base node 开头的 path 的索引。
+        可以看到，`getPath()`在被调用时，指定了 node，又指定了 base node，其含义为搜索 topo system，找到 base node 的位置，由于指定 node 开始的 path 的索引与 topo node 在 topo system 中的索引一致，所以我们便可以在 node 中定位以 base node 开头的 path 的索引。
 
         example:
 
@@ -1333,3 +1333,515 @@
         上面的 example 明确指出了，path 的第一个 edge 填的是从当前 node (remNode) 出发，指向指定 node (node) 的 edge。
 
         这里看来，remPath 的第一个 node 为 nex node，与 path_base_node_to_nex 的含义不同，矛盾。不清楚为什么。
+
+* set path
+
+    node list output:
+
+    ```
+    round cnt: 0
+    node idx: 0
+            cpu node
+            ptr: 0x7ffe78426dd0, id: 1
+            edge info, num: 4
+                    edge 0, remNode 0x7ffe784b55d8, type: nic, id 0
+                    edge 1, remNode 0x7ffe7827b5b8, type: gpu, id 724992
+                    edge 2, remNode 0x7ffe7827bea0, type: gpu, id 929792
+                    edge 3, remNode 0x7ffe784276b8, type: cpu, id 0
+
+    path info:
+    node type: gpu
+    node idx: 0, type: gpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: gpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: pci
+
+    node type: nvs
+
+    node type: cpu
+    node idx: 0, type: cpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 0
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: cpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 7, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: nic
+    node idx: 0, type: nic
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: nic
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            (empty)
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: net
+    node idx: 0, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            (empty)
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            (empty)
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 2, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            (empty)
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    ```
+
+    ```
+    round cnt: 1
+    node idx: 0
+            nic node
+            ptr: 0x7ffe784b55d8, id: 0
+            edge info, num: 3
+                    edge 0, remNode 0x7ffe78543de0, type: net, id 1
+                    edge 1, remNode 0x7ffe785446c8, type: net, id 2
+                    edge 2, remNode 0x7ffe78426dd0, type: cpu, id 1
+
+    node idx: 1
+            gpu node
+            ptr: 0x7ffe7827b5b8, id: 724992
+            edge info, num: 1
+                    edge 0, remNode 0x7ffe78426dd0, type: cpu, id 1
+
+    node idx: 2
+            gpu node
+            ptr: 0x7ffe7827bea0, id: 929792
+            edge info, num: 1
+                    edge 0, remNode 0x7ffe78426dd0, type: cpu, id 1
+
+    node idx: 3
+            cpu node
+            ptr: 0x7ffe784276b8, id: 0
+            edge info, num: 2
+                    edge 0, remNode 0x7ffe78426dd0, type: cpu, id 1
+                    edge 1, remNode 0x7ffe784b5ec0, type: nic, id 200704
+
+    path info:
+    node type: gpu
+    node idx: 0, type: gpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: gpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: pci
+
+    node type: nvs
+
+    node type: cpu
+    node idx: 0, type: cpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 0
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: cpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 7, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: nic
+    node idx: 0, type: nic
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: nic
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 2
+                edge idx: 0, edge type: 3, next node: 0x7ffe784276b8, node type: cpu, id: 0, 
+                edge idx: 1, edge type: 7, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: net
+    node idx: 0, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 2
+                edge idx: 0, edge type: 8, next node: 0x7ffe784b55d8, node type: nic, id: 0, 
+                edge idx: 1, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+            path_node_idx: 2, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 2
+                edge idx: 0, edge type: 8, next node: 0x7ffe784b55d8, node type: nic, id: 0, 
+                edge idx: 1, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+            path_node_idx: 2, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 2, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            (empty)
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    ```
+
+    ```
+    round cnt: 2
+    node idx: 0
+            net node
+            ptr: 0x7ffe78543de0, id: 1
+            edge info, num: 1
+                    edge 0, remNode 0x7ffe784b55d8, type: nic, id 0
+
+    node idx: 1
+            net node
+            ptr: 0x7ffe785446c8, id: 2
+            edge info, num: 1
+                    edge 0, remNode 0x7ffe784b55d8, type: nic, id 0
+
+    node idx: 2
+            nic node
+            ptr: 0x7ffe784b5ec0, id: 200704
+            edge info, num: 2
+                    edge 0, remNode 0x7ffe78544fb0, type: net, id 0
+                    edge 1, remNode 0x7ffe784276b8, type: cpu, id 0
+
+    path info:
+    node type: gpu
+    node idx: 0, type: gpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: gpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: pci
+
+    node type: nvs
+
+    node type: cpu
+    node idx: 0, type: cpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 0
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: cpu
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 7, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: nic
+    node idx: 0, type: nic
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 1
+                edge idx: 0, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: nic
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 2
+                edge idx: 0, edge type: 3, next node: 0x7ffe784276b8, node type: cpu, id: 0, 
+                edge idx: 1, edge type: 7, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+
+    node type: net
+    node idx: 0, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 2
+                edge idx: 0, edge type: 8, next node: 0x7ffe784b55d8, node type: nic, id: 0, 
+                edge idx: 1, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+            path_node_idx: 2, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 1, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 2
+                edge idx: 0, edge type: 8, next node: 0x7ffe784b55d8, node type: nic, id: 0, 
+                edge idx: 1, edge type: 3, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+            path_node_idx: 2, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    node idx: 2, type: net
+        path node type: gpu
+            (empty)
+        path node type: pci
+            (empty)
+        path node type: nvs
+            (empty)
+        path node type: cpu
+            path_node_idx: 0, num edges: 3
+                edge idx: 0, edge type: 8, next node: 0x7ffe784b5ec0, node type: nic, id: 200704, 
+                edge idx: 1, edge type: 3, next node: 0x7ffe784276b8, node type: cpu, id: 0, 
+                edge idx: 2, edge type: 7, next node: 0x7ffe78426dd0, node type: cpu, id: 1, 
+            path_node_idx: 1, num edges: 0
+            path_node_idx: 2, num edges: 0
+        path node type: nic
+            (empty)
+        path node type: net
+            (empty)
+    ```
