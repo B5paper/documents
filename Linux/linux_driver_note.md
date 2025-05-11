@@ -5962,11 +5962,13 @@ MODULE_VERSION("1.9");
 
     如果此时直接编译，会看到 undefined symbol 的 error 输出。这时我们需要重新编译内核。
 
-    首先是下载内核，可以直接使用`apt-get download linux-source`，这个命令下载的内核版本通常会有问题。
+    首先是下载内核，可以直接使用`sudo apt-get install linux-source`，这个命令下载的内核版本通常会有问题。
     
     我们可以先搜索目前可下载的版本：
 
     `apt-cache search linux-source`
+
+    如果使用`apt-get download linux-source`，那么会在当前目录下载一个`.deb`文件。
 
     ref: <https://askubuntu.com/questions/159833/how-do-i-get-the-kernel-source-code>
 
