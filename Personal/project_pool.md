@@ -1427,6 +1427,8 @@
 
     09:29 ~ 09:53
 
+* [v] cache tabs 05.12
+
 ## markdown renderer
 
 使用 electron + markdown parser + mathjax 实现 markdoen renderer。
@@ -1697,13 +1699,17 @@ tasks:
 
 * [v] 重新整理`ncclTopoGetSystem()`，给出接口
 
-* [P] 调研尝试实现`ncclTopoSetPaths()`
+* [O] 调研尝试实现`ncclTopoSetPaths()`
 
     16:57 ~ 18:41
 
     feedback:
 
     1. 调研 c++ string 使用正则表达式
+
+    1. 调研 magic enum
+
+    1. 调研 是否有指向数组的引用？
 
 * [ ] 调研`addInterStep()`
 

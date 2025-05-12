@@ -2360,3 +2360,38 @@
         path node type: net
             (empty)
     ```
+
+* reverse link
+
+    ```cpp
+    if ((remPath->bw == 0 || remPath->count > path->count) && remPath->bw < bw) {
+      // Find reverse link
+      for (int l=0; l<remNode->nlinks; l++) {
+        if (remNode->links[l].remNode == node && remNode->links[l].type == link->type) {
+          remPath->list[0] = remNode->links+l;
+          break;
+        }
+      }
+      // ...
+    }
+    ```
+
+    `path`表示从当前 node 走向 base node 的路径。
+
+    `remNode`是当前 node 通过 link 指向的下一个 node，即 node --link--> remNode。
+
+    `remPath`是`remNode`指向 base node 的路径。
+
+    目前通过 base node 一路搜索过来的情况是这样的：base node -> ... -> node --link--> rem node。注意，这条链路是单向的，base node 能走到 node，走到 rem node，不代表 node / rem node 也能原路返回。
+
+    现在我们开始分析 if 语句中条件的含义：
+
+    * `remPath->bw == 0`: 表示 rem node 找不到返回 base node 的 path。
+
+    * `remPath->count > path->count`: 表示 rem node 走到 base node 的路径比 node 走到 base node 的路径长。
+
+        如果把这里的大于号改成小于号，即 rem node 到 base node 的路径比 node 到 base node 的路径更短，那么就没必要找 reverse link 了，我们直接走 rem path 返回就可以。事实上 nccl 也是这么做的。
+
+    结合上下文，我们可以推测出，当 rem node 找不到返回 base node 的路径，或者说，找到了，但是路径比从 node 返回的路径长，那么就选择找到一条 rem node 到 node 的边，并通过 node 返回 base node，即 rem node --rem_link--> node -> ... -> base node。
+
+    * `remPath->bw < bw`：这个比较好理解了，只有当 rem path 的带宽小于 path 的带宽，我们才尝试 reverse link -> path 的个组合的带宽是否有可能大于 rem path 的带宽。如果 rem path 的带宽本身比 path 的带宽大，那么就不考虑 path 和 rem path 上节点的数量了。

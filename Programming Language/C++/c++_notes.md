@@ -4,6 +4,86 @@
 
 ## cached
 
+* cpp 初始化 struct / class 中的 static 变量时，必须这样写：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    struct MyStruc
+    {
+        static int aaa;
+    };
+
+    int MyStruc::aaa = 123;
+
+    int main()
+    {
+        printf("aaa: %d\n", MyStruc::aaa);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    aaa: 123
+    ```
+
+* cpp decltype
+
+    `auto`要求变量必须初始化，而`decltype`不要求。因为`auto`是根据变量的初始值来推导出变量类型的，而`decltype`可以写成下面的形式：
+
+    ```cpp
+    decltype(exp) varname;
+    ```
+
+    当`decltype`作用于函数时，函数并没有被调用：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int my_func(int a, int b)
+    {
+        printf("in my_func()...\n");
+        return a + b;
+    }
+
+    int main()
+    {
+        decltype(my_func(1, 2)) c = 123;
+        printf("c = %d\n", c);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    c = 123
+    ```
+
+    如果使用`()`包裹一个变量，或者在`decltype()`中填返回左值的表达式，就会被推导成引用：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        int a = 1, b = 2;
+        // decltype((a)) c = 3;  // error, c is a int&
+        // decltype(b = a + b) c = 3;  // error, c is a int&
+        decltype(3) c = 3;  // ok, c is a int
+        decltype(a + b) d = 3;  // ok, d is a int
+        decltype((a + b)) e = 3;  // ok, e is a int
+        return 0;
+    }
+    ```
+
+* define 是`#define new old`, typedef 是`typedef old new;`，与 define 正好相反
+
 * 调研 c++ string 从指定位置开始 assign 另一个字符串
 
 * cpp 中，引用的地址就是原对象的地址
