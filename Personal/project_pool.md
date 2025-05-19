@@ -1671,33 +1671,21 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
-* [v] 调研实现`<system></system><system></system>`多 system tag 的反序列化
-
-* [v] 调研实现 ccl local resource support
-
-* [v] 调研实现`topo_system_add_pci()`
-
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
 * [ ] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？
-
-* [v] 完善`topo_system_add_pci()`，实现 nic 的处理功能，嵌套处理 pci 暂不实现
-
-* [v] 调研尝试实现`topo_system_add_cpu()`
-
-    deps:
-
-    1. [v] 调研尝试实现在 topo system 中添加 host hashes
-
-    1. [v] 调研实现`topo_system_add_gpu()`
-
-    1. [v] 调研实现`topo_system_connect_nodes()`
 
 * [ ] 调研 string view
 
 * [ ] 实现自己缩进的 logging system
 
-* [v] 重新整理`ncclTopoGetSystem()`，给出接口
+* [v] 调研 extended vertex + extended graph
+
+    feedback:
+
+    1. [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
+
+    1. [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
 
 * [O] 调研尝试实现`ncclTopoSetPaths()`
 
@@ -1715,21 +1703,53 @@ tasks:
 
 * [ ] 调研尝试复现`ncclTopoComputePaths()`
 
-* [v] 调研`ncclTopoComputePaths()`
-
-    13:49 ~ 14:48
-
-* [ ] 调研`strtoull()`
+* [ ] 调研`strtoull()`, `strtol()`
 
 * [ ] 调研 emplace() 和 emplace_back() 的区别
-
-* [v] 调研 xml 反序列化
 
 * [O] 调研 qemu 添加 pci 设备
 
     feedback:
 
     1. [ ] 调研 qemu 使用`-kernel` + qemu gdb server 进行 debug
+
+* [v] 调研基于 vertex + pointer + id 对实现 graph 和 bfs 有什么影响
+
+    feedback:
+
+    1. 应该以功能为评价标准，来考察形式
+
+        一个图常用的几个功能：
+
+        * 初始化，一次性导入大量节点和边，IO；添加、删除少量节点，添加、删除边
+
+        * bfs, dfs 搜索 path
+
+        * dijkstra, floyd 算法，旅行商问题
+
+        * query
+        
+            * 一个节点的边
+
+            * 2 个节点之间是否有边，如果有边，边的权重是多少
+            
+            * 两个节点之间的 path
+
+        * print graph
+
+            vert 0 -> 1, 2, 3
+
+            vert 1 -> 2, 4
+
+            vert 2 -> 5
+
+            vert 3 -> 5
+
+            vert 4 -> 5
+
+            vert 5 -> 6
+
+    1. 调研构建 graph 的 benchmark
 
 * [ ] 调研`realpath()`, `tolower()`
 
@@ -1741,15 +1761,11 @@ tasks:
 
 * [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
 
-* [ ] 调研`strtol()`
-
 * [ ] 调研 c++ string 与 int, float 的转换，调研 c string 与 int float 的转换
 
 * [ ] 调研`__cpuid()`
 
 * [ ] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
-
-* [v] 调研 topo xml 的生成
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 

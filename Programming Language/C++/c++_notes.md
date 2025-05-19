@@ -4,6 +4,118 @@
 
 ## cached
 
+* initializer list 本质是右值
+
+    ```cpp
+    #include <unordered_map>
+    #include <string>
+    #include <utility>
+    #include <cstdio>
+    using namespace std;
+
+    enum Color {
+        RED,
+        BLUE,
+        GREEN,
+        YELLOW
+    };
+
+    struct LookupTable {
+        unordered_map<Color, string> lut;
+        // 这里必须加 const，因为 main() 中给出的列表是右值，
+        // 我们必须使用 const 左值，或者直接使用右值引用来接收它
+        explicit LookupTable(const initializer_list<
+            pair<Color, string>> &init_list) {
+            for (auto iter = init_list.begin(); iter != init_list.end(); ++iter) {
+                lut.emplace(iter->first, iter->second);
+            }
+        }
+        const string& operator[](const Color &color) const {
+            return lut.at(color);
+        }
+    };
+
+    LookupTable Color_Id_To_String {
+        {RED, "red"},
+        {BLUE, "blue"},
+        {GREEN, "green"},
+        {YELLOW, "yellow"}
+    };
+
+    int main() {
+        Color color = GREEN;
+        printf("color is %s\n", Color_Id_To_String[color].c_str());
+        return 0;
+    }
+
+    ```
+
+    output:
+
+    ```
+    color is green
+    ```
+
+* 如果一个模板类的基类仍是模板类，那么必须使用`this`指针才能访问到基类中的成员
+
+    ```cpp
+    #include <cstdio>
+    using namespace std;
+
+    template<typename T>
+    struct BaseClass {
+        T val;
+        void print_msg() {
+            printf("hello from base class, val: %d\n", val);
+        }
+    };
+
+    template<typename T>
+    struct MyClass: public BaseClass<T> {
+        void invoke_func_from_base_class(T input_val) {
+            // val = input_val;  // error
+            // print_msg();  // error
+            this->val = input_val;
+            this->print_msg();
+        }
+    };
+
+    int main() {
+        MyClass<int> obj;
+        obj.invoke_func_from_base_class(123);
+        return 0;
+    }
+    ```
+
+    如果基类的类型在编译时期就已经确定，那么可以不使用 this 指针：
+
+    ```cpp
+    #include <cstdio>
+    using namespace std;
+
+    template<typename T>
+    struct BaseClass {
+        T val;
+        void print_msg() {
+            printf("hello from base class, val: %d\n", val);
+        }
+    };
+
+    template<typename T>
+    struct MyClass: public BaseClass<int> {
+        void invoke_func_from_base_class(T input_val) {
+            val = input_val;  // ok
+            print_msg();  // ok
+        }
+    };
+
+    int main() {
+        MyClass<int> obj;
+        obj.invoke_func_from_base_class(123);
+        return 0;
+    }
+    ```
+
 * cpp 初始化 struct / class 中的 static 变量时，必须这样写：
 
     ```cpp
