@@ -30,6 +30,19 @@
 
 ## cache
 
+* 调研 c++ string 从指定位置开始 assign 另一个字符串
+
+* 数据库书籍
+
+    * 《数据库系统概念》（Database System Concepts）作者：Abraham Silberschatz, Henry F. Korth, S. Sudarshan。这本书是数据库领域的权威教材，适合初学者入门。
+
+    * 《数据库管理系统》（Database Management Systems）作者：Raghu Ramakrishnan, Johannes Gehrke。它详细介绍了数据库系统的关键概念和技术，适合作为深入学习的教材。
+
+    * 《数据库系统实现》（Database System Implementation）作者：Hector Garcia-Molina, Jeffrey D. Ullman, Jennifer Widom。如果你想了解数据库系统的内部工作原理，这本书非常合适。
+
+    * 《数据库系统概论》（An Introduction to Database Systems）作者：C.J. Date。这是另一本经典的数据库教材，内容详尽。
+    如果你是中文读者，《数据库原理及应用》作者：王珊、萨师煊，这本教材结合了理论与实践，通过实例讲解数据库的设计和开发过程。
+
 * 容错
 
     学术界的科研容错率太低，如果有类似科技树的东西来指引科研的成就和成功率，哪些方向做过了，哪些没做过，那么我们就可以做出选择，对于不想做出重大贡献的科研人员，只需要选择成就较低、成功率比较高的 branch 进行研究即可；对于有志向的科学家，则可以选择成功率更低，难度更大的 branch。很可惜这样的指引几乎不存在。经常有人错估了难度，导致研究出了东西时，发现别人都做过了。

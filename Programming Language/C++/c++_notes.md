@@ -196,8 +196,6 @@
 
 * define 是`#define new old`, typedef 是`typedef old new;`，与 define 正好相反
 
-* 调研 c++ string 从指定位置开始 assign 另一个字符串
-
 * cpp 中，引用的地址就是原对象的地址
 
     ```cpp
