@@ -7534,3 +7534,51 @@
 * ACM模式输入输出攻略 | C++篇
 
     <https://www.nowcoder.com/discuss/460145181203931136?sourceSSR=search>
+
+* hybrid-rendering
+
+    A Vulkan sample that demonstrates a Rasterization and Ray Tracing Hybrid Rendering Pipeline.
+
+    <https://github.com/diharaw/hybrid-rendering>
+
+* shadesmar
+
+    An IPC library that uses the system's shared memory to pass messages. Supports publish-subscribe and RPC.
+
+    <https://github.com/Squadrick/shadesmar>
+
+* ipc-shm
+
+    The Linux IPCF Shared Memory Driver enables communication over shared memory with an RTOS application running on a different core of the same processor.
+
+    <https://github.com/nxp-auto-linux/ipc-shm>
+
+* ChinaTextbook
+
+    所有小初高、大学PDF教材。
+
+    <https://github.com/TapXWorld/ChinaTextbook>
+
+* Game Engines with Source: Learning from the best
+
+    <https://github.com/redorav/public_source_engines>
+
+* About Logical Volume Management (LVM)
+
+    <https://documentation.ubuntu.com/server/explanation/storage/about-lvm/index.html>
+
+* How to manage logical volumes
+
+    <https://documentation.ubuntu.com/server/how-to/storage/manage-logical-volumes/#manage-logical-volumes>
+
+* II-Agent: a new open-source framework to build and deploy intelligent agents
+
+    <https://github.com/Intelligent-Internet/ii-agent>
+
+* Script to change current directory (cd, pwd)
+
+    <https://unix.stackexchange.com/questions/27139/script-to-change-current-directory-cd-pwd>
+
+* Webots User Guide
+
+    <https://cyberbotics.com/doc/guide/installation-procedure>
