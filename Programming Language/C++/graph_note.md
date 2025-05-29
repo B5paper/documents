@@ -345,8 +345,16 @@
 
     * `static int recur_search_path_first_match(Vertex *vert) {`:
 
-        这个函数只要找到一条路径就直接返回。由于递归调用本身就保存了一条 path，所以我们只需要在函数退出时把这条 path 保存下来，再后再做一遍反序就可以了。
+        这个函数只要找到一条路径就直接返回。由于函数的递归调用本身就相当于 stack，保存了一条 path，所以我们只需要在函数退出时把这条 path 保存下来，再后再做一遍反序就可以了。
 
         如果需要回溯，显然这个 trick 没法用，因为只有所有函数都返回时，才能拿到完整的 path，这样我们就来不及比较多条 path 了。
+
+    * `static int recur_search_path_min_dist`:
+
+        递归终止条件`if (vert == vert_dst)`会遍历一遍 path，计算 dist 的和，然后与存储的最小值比较。这里有 2 个问题：
+
+        1. 每次都从 0 开始累加 dist，效率较低，其实可以每次往 path 里增减 edge 的时候，dist 也做对应的增减，这样 dist 时刻都是计算好的。
+
+        2. `tmp_path`存储的是节点，不是边，而 dist 是边的属性，所以每次都要根据 nex_vert 找到对应的 edge，再得到 dist，效率低下。根据 edge 找 nex vert 比较方便，而根据 nex vert 反过来找 edge 比较困难。因此 path 还是保存成 edge 比较好。
 
 ## note

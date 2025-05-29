@@ -8916,115 +8916,7 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
 
 1. 全局变量的使用
 
-    在一个头文件`my_lib.h`里声明全局变量：`extern int aaa;`
-
-    在另一个实现文件`my_lib.cpp`里初始化全局变量：`int aaa = 3;`，或者直接`int aaa;`。记得要在`my_lib.cpp`中包含头文件`#include "my_lib.h"`。
-
-    最后在需要使用全局变量的地方包含头文件`my_lib.h`就可以了。比如在`main.cpp`中，
-
-    ```cpp
-    #include "my_lib.h"
-
-    int main()
-    {
-        int b = aaa;
-        return 0;
-    }
-    ``` 
-
-    关于编译：
-
-    `my_lib.o`和`main.o`的编译互不影响，可以分开来编译：
-
-    ```bash
-    g++ -c my_lib.cpp -o my_lib.o
-    g++ -c main.cpp -o main.o
-    g++ my_lib.o main.o -o main
-    ```
-
-    当然也可以合在一起编译：
-
-    ```bash
-    g++ my_lib.cpp main.cpp -o main
-    ```
-
-    如果全局变量是一个 C++ class 的实例，那么在初始化时允许调用自定义的构造函数。
-
-    Example:
-
-    `main.cpp`:
-
-    ```cpp
-    #include <iostream>
-    #include "test.h"
-    using namespace std;
-
-    int main()
-    {
-        cout << "val: " << a.m_val << endl;
-        return 0;
-    }
-    ```
-
-    `test.h`:
-
-    ```cpp
-    class A
-    {
-        public:
-        A(int val): m_val(val) {}
-        int m_val;
-    };
-
-    extern A a;
-    ```
-
-    `test.cpp`:
-
-    ```cpp
-    #include "test.h"
-
-    A a(3);
-    ```
-
-    编译：
-
-    ```bash
-    g++ test.h test.cpp main.cpp -o main
-    ```
-
-    运行：
-
-    ```bash
-    ./main
-    ```
-
-    输出：
-
-    ```
-    val: 3
-    ```
-
-    但是如果我们在`test.cpp`中使用`A a;`定义变量，就无法通过编译：
-
-    ```
-    test.cpp:3:3: error: no matching function for call to ‘A::A()’
-        3 | A a;
-        |   ^
-    In file included from test.cpp:1:
-    test.h:4:5: note: candidate: ‘A::A(int)’
-        4 |     A(int val): m_val(val) {}
-        |     ^
-    test.h:4:5: note:   candidate expects 1 argument, 0 provided
-    test.h:1:7: note: candidate: ‘constexpr A::A(const A&)’
-        1 | class A
-        |       ^
-    test.h:1:7: note:   candidate expects 1 argument, 0 provided
-    test.h:1:7: note: candidate: ‘constexpr A::A(A&&)’
-    test.h:1:7: note:   candidate expects 1 argument, 0 provided
-    ```
-
-    可以看到，如果没有实现对应的构造函数，那么是没办法定义变量的。
+    如果我们对全局变量的 class 实现了自定义的构造函数，那么我们就无法无参数地初始化全局变量了。
 
     对应的解决办法是使用指针/智能指针，并在`test.cpp`中维护相关的内存：
 
@@ -9101,6 +8993,8 @@ Ref: <https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
     ```
 
     可以看到，其实没有什么比较好的方法。还需要额外借助几个函数来完成初始化和销毁的工作。
+
+    * 2025052900: 如果对 class 使用了自定义构造函数导致无法默认构造，那么使用new 或者智能指针就可以默认构造了吗？
 
 1. `getchar()`在 windows 下和 linux 下的表现
 
