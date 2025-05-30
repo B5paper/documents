@@ -7582,3 +7582,7 @@
 * Webots User Guide
 
     <https://cyberbotics.com/doc/guide/installation-procedure>
+
+* c++ 11 introduction
+
+    <https://c.biancheng.net/view/7751.html>

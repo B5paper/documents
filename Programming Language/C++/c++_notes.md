@@ -4,6 +4,363 @@
 
 ## cached
 
+* 如果一个全局变量是 const 变量，那么它默认是 static 的。此时如果直接在其他文件里`exteran const GlobalVarType global_val;`引用到这个全局变量，编译器会报错变量未定义。
+
+    解决方案是在给全局变量定义时，加上`extern`关键字。
+
+    example:
+
+    ```cpp
+    extern const GlobalVar<string> global_var {
+        "hello, world"
+    };
+    ```
+
+    这样就可以在别的文件里，使用`extern const GlobalVar<string> global_var;`引用到这个变量了。
+
+* c++ 使用别的文件中的全局变量
+
+    比如在`global_var.h`中声明了个结构体`struct GlobalVar {};`，在`global_var.cpp`中想定义个全局变量，让`user_1.cpp`，`user_2.cpp`都用到这个全局变量，那么可以这样写：
+
+    `global_var.h`:
+
+    ```cpp
+    #ifndef GLOBAL_VAR_H
+    #define GLOBAL_VAR_H
+
+    struct GlobalVar {
+        int val_int;
+        const char *val_str;
+    };
+
+    #endif
+    ```
+
+    `global_var.cpp`:
+
+    ```cpp
+    #include "global_var.h"
+
+    GlobalVar global_var {
+        123,
+        "hello, world"
+    };
+    ```
+
+    `user_1.h`:
+
+    ```cpp
+    #ifndef USER_1_H
+    #define USER_1_H
+
+    int user_1_print_global_var_int();
+
+    #endif
+    ```
+
+    `user_1.cpp`:
+
+    ```cpp
+    #include <stdio.h>
+    #include "user_1.h"
+    #include "global_var.h"
+
+    extern GlobalVar global_var;
+
+    int user_1_print_global_var_int() {
+        printf("in user_1, global var int: %d\n", global_var.val_int);
+        return 0;
+    }
+    ```
+
+    `user_2.h`:
+
+    ```cpp
+    #ifndef USER_2_H
+    #define USER_2_H
+
+    int user_2_print_global_var_str();
+
+    #endif
+    ```
+
+    `user_2.cpp`:
+
+    ```cpp
+    #include <stdio.h>
+    #include "user_2.h"
+    #include "global_var.h"
+
+    extern GlobalVar global_var;
+
+    int user_2_print_global_var_str() {
+        printf("in user_2, global val str: %s\n", global_var.val_str);
+        return 0;
+    }
+    ```
+
+    `main.cpp`:
+
+    ```cpp
+    #include <stdio.h>
+    #include "user_1.h"
+    #include "user_2.h"
+    #include "global_var.h"
+
+    extern GlobalVar global_var;
+
+    int main() {
+        user_1_print_global_var_int();
+        user_2_print_global_var_str();
+
+        printf("in main(), global var:\n");
+        printf("    val int: %d\n", global_var.val_int);
+        printf("    val str: %s\n", global_var.val_str);
+
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.cpp user_1.o user_2.o global_var.o
+    	g++ -g main.cpp user_1.o user_2.o global_var.o -o main
+
+    global_var.o: global_var.h global_var.cpp
+    	g++ -g -c global_var.cpp -o global_var.o
+
+    user_1.o: user_1.h user_1.cpp
+    	g++ -g -c user_1.cpp -o user_1.o
+
+    user_2.o: user_2.h user_2.cpp
+    	g++ -g -c user_2.cpp -o user_2.o
+
+    clean:
+    	rm -f main *.o
+    ```
+
+    output:
+
+    ```
+    in user_1, global var int: 123
+    in user_2, global val str: hello, world
+    in main(), global var:
+        val int: 123
+        val str: hello, world
+    ```
+
+    其中，`extern`表示这个变量的定义不在当前`.cpp`文件中，而在其他`.cpp`或`.o`文件里。
+    
+    注意在 makefile 中，编译`user_1.o`和`user_2.o`时并没有用到`global_var.o`，在最后生成`main`，也就是 link 环节才会用到`global_var.o`。
+
+* 如果两个 struct 定义在不同的文件里，那么不可能在两个 struct 中互相包含对方的成员实体
+
+    example:
+
+    `header_1.h`:
+
+    ```cpp
+    #ifndef HEADER_1_H
+    #define HEADER_1_H
+
+    #include "header_2.h"
+
+    struct A {
+        int val_1;
+        float val_2;
+    };
+
+    #endif
+    ```
+
+    `header_2.h`:
+
+    ```cpp
+    #ifndef HEADER_2_H
+    #define HEADER_2_H
+
+    #include "header_1.h"
+
+    // struct A;
+
+    struct B {
+        int val_1;
+        double val_2;
+        A obj_a;
+    };
+
+    #endif
+    ```
+
+    `impl_1.cpp`:
+
+    ```cpp
+    #include "header_1.h"
+    ```
+
+    `impl_2.cpp`:
+
+    ```cpp
+    #include "header_2.h"
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    all: impl_1.o impl_2.o
+
+    impl_1.o: header_1.h impl_1.cpp
+    	g++ -g -c impl_1.cpp -o impl_1.o
+
+    impl_2.o: header_2.h impl_2.cpp
+    	g++ -g -c impl_2.cpp -o impl_2.o
+    ```
+
+    run:
+
+    `make`
+
+    output:
+
+    ```
+    g++ -g -c impl_1.cpp -o impl_1.o
+    In file included from header_1.h:4,
+                     from impl_1.cpp:1:
+    header_2.h:11:5: error: ‘A’ does not name a type
+       11 |     A obj_a;
+          |     ^
+    make: *** [Makefile:4: impl_1.o] Error 1
+    ```
+
+    报错的过程如下：
+
+    1. 根据 makefile 中的内容，先编译`impl_1.o`，此时会打开`impl_1.cpp`，读取`header_1.h`的内容
+
+    2. 在`header_1.h`中，当执行到`#include "header_2.h"`时，跳转去读`header_2.h`的内容
+
+    3. 在`header_2.h`中，又遇到了读取`header_1.h`的内容，但是由于有多重包含防范，所以不再读`header_1.h`的内容。继续往后走，`struct B`中定义了`A obj_a;`，编译器不知道这个`A`从哪来的，所以直接报错了。
+
+    这种问题被称为结构体相互依赖（Mutual Dependency），通常解决方案是使用指针代替实体：
+
+    `header_2.h`:
+
+    ```cpp
+    #ifndef HEADER_2_H
+    #define HEADER_2_H
+
+    #include "header_1.h"
+
+    struct A;
+
+    struct B {
+        int val_1;
+        double val_2;
+        A *obj_a;
+    };
+
+    #endif
+    ```
+
+    此时即可通过编译。
+
+    我们复盘下编译器的解析流程：
+
+    1. 根据 makefile 中的内容，先编译`impl_1.o`，此时会打开`impl_1.cpp`，读取`header_1.h`的内容
+
+    2. 在`header_1.h`中，当执行到`#include "header_2.h"`时，跳转去读`header_2.h`的内容
+
+    3. `header_2.h`又包含了`header_1.h`，此时不再读取`header_1.h`的内容，继续往下走，`struct A;`告诉编译器`A`是一个`struct`，继续往下走，`A *obj_a;`表示`B`中有一个`A`的指针，`B`不需要知道`sizeof(A)`，只需要知道`A*`占 8 个字节就可以了。对`B`的解析至此结束，通过编译。
+
+    `header_2.h`中声明`A`的行为`struct A;`叫前向声明（Forward Declaration）。
+
+* 如果两个 struct 互相依赖，那么即使把它们放到同一个文件里，也无法通过编译
+
+    `header_1.h`:
+
+    ```cpp
+    #ifndef HEADER_1_H
+    #define HEADER_1_H
+
+    struct B;
+
+    struct A {
+        int val_1;
+        float val_2;
+        B obj_b;
+    };
+
+    struct B {
+        int val_1;
+        double val_2;
+        A obj_a;
+    };
+
+    #endif
+    ```
+
+    `impl_1.cpp`:
+
+    ```cpp
+    #include "header_1.h"
+    ```
+
+    compile:
+
+    ```bash
+    g++ -g -c impl_1.cpp -o impl_1.o
+    ```
+
+    compile output:
+
+    ```
+    In file included from impl_1.cpp:1:
+    header_1.h:11:7: error: field ‘obj_b’ has incomplete type ‘B’
+       11 |     B obj_b;
+          |       ^~~~~
+    header_1.h:4:8: note: forward declaration of ‘struct B’
+        4 | struct B;
+          |        ^
+    make: *** [Makefile:4: impl_1.o] Error 1
+    ```
+
+* `decltype` and function
+
+    ```cpp
+    using FuncType = int(int&, int);
+    int add_to(int &des, int ori);
+    FuncType *pf = add_to;
+    int a = 4;
+    pf(a, 2);
+
+    decltype(add_to) *pf = add_to;
+    ```
+
+* `decltype`不会实际计算表达式的值，编译器分析表达式并得到它的类型
+
+    函数调用也算一种表达式，因此不必担心在使用`decltype`时真正执行了函数。
+
+    `decltype`加数组，不负责把数组转换成指针，所以其结果仍是数组。
+
+    ```cpp
+    int i = 42, *p = &i, &r = i;
+    decltype(*p) c = i;  // *p 是左值，c is a int&
+    decltype(r + 0) b;  // r + 0 是右值，b is a int
+    ```
+
+    `decltype(expr)`, 如果`expr`返回左值，那么`decltype`返回该类型的左值引用；如果`expr`返回右值，那么`decltype`返回表达式结果本来的类型。
+
+    ```cpp
+    int i = 42;
+    decltype((i)) ri = i;  // ri is a int&
+    int *p = &i;
+    decltype((p)) temp = p;  // temp is a int* &
+    ```
+
+* c++ 左值与右值
+
+    左值是指那些在表达式执行结束后依然存在的数据，也就是持久性的数据；右值是指那些在表达式执行结束后不再存在的数据，也就是临时性的数据。有一种很简单的方法来区分左值和右值，对表达式取地址，如果编译器不报错就为左值，否则为右值。
+
 * initializer list 本质是右值
 
     ```cpp

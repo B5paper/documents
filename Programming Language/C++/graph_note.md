@@ -2,6 +2,23 @@
 
 ## cache
 
+* graph organization
+
+    ```cpp
+    struct Edge {
+        int dist;  // distance
+    };
+
+    struct Graph {
+        vector<Vertex> verts;
+        vector<vector<Edge>> edges;
+    };
+    ```
+
+    如果用这种方式去组织 graph，那么如果有很多节点，但是边很少，那么`edges[i][j]`就可能为空，并且占用大量内存。
+
+    如果只是做题，edge 只有 distance 一个属性，那么使用`vector<vector<int>> edges;`其实是足够的，`0`代表节点之间没有边，其他正数表示有边，且数值直接表示距离。而且做题不考虑内存，只考虑时间，这样组织数据不影响解答。
+
 * 如果使用 index 来唯一地标记 vertex 和 edge，那么意味着它们不能被排序。如果只使用 idx 来标记 vertex，那么 edge 可以被排序，但 vertex 不能。
 
     opengl 中完全使用 idx 来标记 vertex, edge 以及 triange，所以输入数据、处理数据时，都不能对 entity 排序。好在图形处理也不需要排序。

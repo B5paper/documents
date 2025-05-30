@@ -1684,6 +1684,10 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
+* [ ] 调研 c++ thread 如何拿到线程函数的返回值？
+
+* [v] 调研 siccl 对接 smi, runtime
+
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
 * [ ] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？

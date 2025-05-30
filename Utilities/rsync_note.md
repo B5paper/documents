@@ -1,3 +1,7 @@
+# rsync note
+
+## cache
+
 * rsync
 
     `rsync -r local_dir <user>@<ip>:remote_parent_dir`
@@ -9,3 +13,5 @@
     这条命令会把本地的`local_dir`下的所有内容，复制到远程的`remote_dir`目录下。注意，这里的`/`代表目录中的内容，而不是目录本身。远程不会创建新文件夹。
 
     `rsync`默认不显示进度和已经复制的文件。
+
+## note

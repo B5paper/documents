@@ -2,6 +2,38 @@
 
 ## cached
 
+* c++ 如果 string 中`\0`后仍有字符，那么使用`str_2 = str_1`仍会保留末尾的无效字符，而`str_2 = str_1.c_str()`会清除无效字符。
+
+    example:
+
+    ```cpp
+    #include <cstring>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        string str_1;
+        str_1.resize(100);
+        strcpy(str_1.data(), "hello, world");
+
+        string str_2 = str_1;
+        cout << str_2.size() << endl;
+
+        str_2 = str_1.c_str();
+        cout << str_2.size() << endl;
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    100
+    12
+    ```
+
 * `string`会比较 string 中的全部字符，不止是有效字符
 
     ```cpp
