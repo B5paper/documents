@@ -7586,3 +7586,63 @@
 * c++ 11 introduction
 
     <https://c.biancheng.net/view/7751.html>
+
+* C++之constexpr详解
+
+    <https://blog.csdn.net/janeqi1987/article/details/103542802>
+
+* 有哪些非常经典的开源项目？
+
+    <https://www.zhihu.com/question/636803751/answer/1912104396759733879>
+
+* gcc是怎么实现OpenMP的？
+
+    <https://zhuanlan.zhihu.com/p/1911416379376108381>
+
+* 【C++】-fPIC 编译参数有啥用？
+
+    <https://zhuanlan.zhihu.com/p/709969977>
+
+* 什么是爬虫|Python爬虫的原理是什么
+
+    <https://cloud.tencent.com/developer/article/1934685>
+
+* What does an object look like in memory? [duplicate]
+
+    <https://stackoverflow.com/questions/12378271/what-does-an-object-look-like-in-memory>
+
+* How to get a method's address in a class?
+
+    <https://stackoverflow.com/questions/10231330/how-to-get-a-methods-address-in-a-class>
+
+* what does "error : a nonstatic member reference must be relative to a specific object" mean?
+
+    <https://stackoverflow.com/questions/9818515/what-does-error-a-nonstatic-member-reference-must-be-relative-to-a-specific-o>
+
+* Multithreading in C
+
+    <https://www.geeksforgeeks.org/multithreading-in-c/>
+
+* Packaged Task | Advanced C++ (Multithreading & Multiprocessing)
+
+    <https://www.geeksforgeeks.org/packaged-task-advanced-c-multithreading-multiprocessing/?ref=rp>
+
+* [高频题]Leetcode面试高频题分类刷题总结
+
+    <https://www.1point3acres.com/bbs/thread-849594-1-1.html>
+
+* leetcode精选高频hard题目
+
+    <https://blog.csdn.net/Worthy_Wang/article/details/113497518>
+
+* LeetCode 最经典的 100 道题目
+
+    <https://zhuanlan.zhihu.com/p/397575978>
+
+* Leetcode面试高频题分类刷题总结
+
+    <https://zhuanlan.zhihu.com/p/349940945>
+
+* 一款中英文严格按照 2:1 的开源 mono 字体
+
+    <https://github.com/subframe7536/Maple-font>

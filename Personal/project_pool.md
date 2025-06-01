@@ -30,8 +30,6 @@
 
 ## cache
 
-* 调研 c++ string 从指定位置开始 assign 另一个字符串
-
 * 数据库书籍
 
     * 《数据库系统概念》（Database System Concepts）作者：Abraham Silberschatz, Henry F. Korth, S. Sudarshan。这本书是数据库领域的权威教材，适合初学者入门。
@@ -984,6 +982,14 @@
 
     ref: <https://www.ibm.com/docs/ro/aix/7.1?topic=environment-glxqueryversion-subroutine>
 
+* 从 cache 中整理出了 nccl app 相关的笔记，但是只有 3 条，太少了，需要额外再添加些
+
+* 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假。
+
+* aria2 的源代码使用的是 c++ 11，主要用了 class 和智能指针，有时间了学习下
+
+* aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
+
 ### tasks
 
 * { } reorg: projects
@@ -1006,14 +1012,6 @@
 
     看到 P7
 
-* [v] reorg: nccl  30 mins
-
-    14:03 ~ 14:26
-
-    feedback:
-
-    1. 从 cache 中整理出了 nccl app 相关的笔记，但是只有 3 条，太少了，需要额外再添加些
-
 * [o] process 1 url  10.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -1027,10 +1025,6 @@
 * [ ] 调研 git ignore 的实现原理
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
-
-* [v] 调研 deb 创建安装包
-
-* [v] 调研`glXQueryVersion()`出自哪个头文件
 
 * [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
@@ -1060,13 +1054,9 @@
 
     1. 找不到 pdf 文件在哪...
 
-* [v] reorg: documents
+* [ ] 增加正则表达式的 qa
 
-    feedback:
-
-    1. [ ] 增加正则表达式的 qa
-
-    2. [ ] 增加英语单词的 qa
+* [ ] 增加英语单词的 qa
 
 * [ ] 在 10 个 epoch 内拟合一条 sin 曲线
 
@@ -1087,14 +1077,6 @@
 * [ ] powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
 
     目前看完了`Working with objects`中的`Viewing object structure`。
-
-* [v] reorg: documents 30 mins  12.24
-
-    14:22 ~ 14:52
-
-* [v] reorg: documents 30 mins  01.01
-
-    16:23 ~ 17:49
 
 * [v] reorg: documents 30 mins 02.06
 
@@ -1124,18 +1106,6 @@
 
             /home/hlc/Documents/Projects/boost_1_87_0/stage/lib
         ```
-
-* [v] reorg: documents 30 mins 02.07
-
-* [v] reorg: documents 30 mins
-
-    feedback:
-
-    1. 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假。
-
-    2. aria2 的源代码使用的是 c++ 11，主要用了 class 和智能指针，有时间了学习下
-
-    3. aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
 
 * [v] reorg: documents 30 mins 02.19
 
@@ -1191,6 +1161,8 @@
 
 * 必须增加 dep 功能了，不然 qa 没法进行下去
 
+* 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
+
 ### Tasks
 
 * [ ] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
@@ -1240,25 +1212,11 @@
 
 * [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
-* [v] qa: 4 units
-
-    正确率： 2 / 4
-
 * [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
 * [ ] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
 
-* [v] qa: 4 units  12.01
-
-    15:11 ~ 16:10 (59 mins)
-
-    正确率：3 / 4
-
 * [ ] 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
-
-* [v] 增加`python main.py --review`功能，复习当天的 units
-
-    10:55 ~ 13:58
 
 * [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
@@ -1292,29 +1250,19 @@
 
     2. 调研 exam 时显示 unit 的 id 和 idx
 
-* [v] qa: 4 units  12:17
-
-    正确率：2 / 4
-
 * [v] qa: 4 units 12.18
 
     正确率：3 / 4
 
     feedback:
 
-    1. 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
-
     2. 增添新 record 时，不删减以前的 record，每三天 review 一次。
 
     3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
-* [v] qa: 2 units 02.05
-
 * [ ] `使用 element draw 画一个 cube`增加 deps:
 
     1. load shader
-
-* [v] qa: review 02.06
 
 * [v] 调研 qa review 增加 clear 功能
 
@@ -1334,10 +1282,6 @@
 
 * [ ] qa: 增加 openshmem 的 qa
 
-* [v] qa: 2 units 02.19
-
-    正确率： 1 / 2
-
 * [v] qa: 2 units 02.14
 
     正确率：0 / 2
@@ -1353,8 +1297,6 @@
         dep 不一定要实现完整工程，只需要写出核心的逻辑就可以。
 
     1. exam 程序应该先打印 deps，如果有 deps，必须依赖 deps 进行开发
-
-* [v] qa: review 02.21
 
 * [v] qa: review 30 mins
 
@@ -1429,12 +1371,6 @@
         那么只能删减一个 world。
         
         该如何删减全部的两个 world？
-
-* [v] cache tabs 04.01
-
-* [v] cache tabs 04.08
-
-    09:37 ~ 10:00
 
 * [v] cache tabs 04.09
 
@@ -1683,10 +1619,6 @@ tasks:
     1. 目前 53 机器不走代理，因此只能访问国内网站。如果 50 机器需要访问 github，可以用笔记本 ssh -R 反向代理。
 
     1. 调研`ncclCommGetAsyncError()`
-
-* [ ] 调研 c++ thread 如何拿到线程函数的返回值？
-
-* [v] 调研 siccl 对接 smi, runtime
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
@@ -3595,7 +3527,7 @@ cache:
 
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
-cache:
+### cache
 
 * `(void) getHostName(hostHash, sizeof(hostHash), '\0');`
 
@@ -3606,8 +3538,6 @@ cache:
 * 以后再做 c++ 的 qa，要么写一点点语法，要么就是做题
 
 * 找一个 c++ 学习资料，系统学一下比较好
-
-* [ ] 调研 c++ `variant`
 
 * 存储 image 可以有两种方式
 
@@ -3651,6 +3581,12 @@ cache:
 
     有空了研究一下这段代码，分析一下利弊。
 
+### tasks
+
+* [ ] 调研 c++ string 从指定位置开始 assign 另一个字符串
+
+* [ ] 调研 c++ thread 如何拿到线程函数的返回值？
+
 * [ ] 调研：c++ `lower_bound()`, `upper_bound()`作用
     
     以及如果找不到元素或元素在数组边界时的情况
@@ -3658,6 +3594,8 @@ cache:
 * [ ] 调研：c++ 迭代器为什么`upper_bound()`的返回值减去`lower_bound()`的返回值等于数组的长度？
 
 * [ ] 调研 c++ 迭代器，increase 相关
+
+* [ ] 调研 c++ `variant`
 
 ## Vim
 
