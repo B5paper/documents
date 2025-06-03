@@ -1612,6 +1612,24 @@ tasks:
 
 * 目前看到 nccl 的 rank 是由 mpi 分配的，并未给 gpu 分配 rank。一个 rank 上的 gpu 按照 dev 0, dev 1 等方式进行区分。
 
+* graph 应该以功能为评价标准，来考察形式
+
+    一个图常用的几个功能：
+
+    * 初始化，一次性导入大量节点和边，I/O；添加、删除少量节点，添加、删除边
+
+    * bfs, dfs 搜索 path
+
+    * dijkstra, floyd 算法，旅行商问题
+
+    * query
+    
+        * 一个节点的边
+
+        * 2 个节点之间是否有边，如果有边，边的权重是多少
+        
+        * 两个节点之间的 path
+
 ### tasks
 
 * { } 调研 ptx 指令集
@@ -1730,43 +1748,9 @@ tasks:
 
     1. [ ] 调研 qemu 使用`-kernel` + qemu gdb server 进行 debug
 
+* [ ] 调研构建 graph 的 benchmark
+
 * [v] 调研基于 vertex + pointer + id 对实现 graph 和 bfs 有什么影响
-
-    feedback:
-
-    1. 应该以功能为评价标准，来考察形式
-
-        一个图常用的几个功能：
-
-        * 初始化，一次性导入大量节点和边，IO；添加、删除少量节点，添加、删除边
-
-        * bfs, dfs 搜索 path
-
-        * dijkstra, floyd 算法，旅行商问题
-
-        * query
-        
-            * 一个节点的边
-
-            * 2 个节点之间是否有边，如果有边，边的权重是多少
-            
-            * 两个节点之间的 path
-
-        * print graph
-
-            vert 0 -> 1, 2, 3
-
-            vert 1 -> 2, 4
-
-            vert 2 -> 5
-
-            vert 3 -> 5
-
-            vert 4 -> 5
-
-            vert 5 -> 6
-
-    1. 调研构建 graph 的 benchmark
 
 * [ ] 调研`realpath()`, `tolower()`
 
