@@ -1165,7 +1165,17 @@
 
 ### Tasks
 
-* [ ] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
+* [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
+
+    feedback:
+
+    1. <https://thevaluable.dev/regular-expression-basics-vim-grep/>
+
+        目前看到 Character Classes
+
+    2. 一些 gnu 工具入门级的 guideline，废话有点多
+
+        <https://thevaluable.dev>
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
@@ -1640,11 +1650,25 @@ tasks:
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
-* [ ] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？
+* [v] 调研 tsp 的 greedy python 代码
+
+    feedback:
+
+    1. 是否掌握一项技能，最好的判断方法是看能不能复现。
+
+    1. 调研`cudaMallocManaged()`
+
+* [v] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？
+
+    feedback:
+
+    1. ds 的输出为 GDB 显示的是 std::string 在 libstdc++（GCC 的标准库实现）中的内部结构，而非直接显示字符串内容。这是因为 GDB 默认以“结构体/类成员”的形式显示对象，而没有自动调用 std::string 的字符串解码逻辑。
+
+    2. 只有 local 变量窗口和 watch 变量窗口可以正确显示`const string &str`的内容，鼠标悬停无法直接显示。试了下默认的 lldb，比 gdb 更差，鼠标悬停时根本不解析`const string&`，只解析一些基本的 C 语言的数据结构。
 
 * [ ] 调研 string view
 
-* [ ] 实现自己缩进的 logging system
+* [v] 实现自己缩进的 logging system
 
 * [v] 调研 extended vertex + extended graph
 
