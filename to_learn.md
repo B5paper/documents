@@ -7646,3 +7646,29 @@
 * 一款中英文严格按照 2:1 的开源 mono 字体
 
     <https://github.com/subframe7536/Maple-font>
+
+* A modern OpenGL 3D rendering engine.
+
+    <https://github.com/htmlboss/OpenGL-Renderer>
+
+* cognee - Memory for AI Agents in 5 lines of code
+
+    <https://github.com/topoteretes/cognee>
+
+* Memvid - Video-Based AI Memory
+
+    <https://github.com/Olow304/memvid>
+
+    The lightweight, game-changing solution for AI memory at scale
+
+* Soso is a simple unix-like operating system written in Nasm assembly and mostly in C.
+
+    <https://github.com/ozkl/soso>
+
+* 阿里云公共DNS安全传输服务介绍（DoH/DoT）
+
+    <https://www.alidns.com/articles/6018321800a44d0e45e90d71>
+
+* Anthropic courses
+
+    <https://github.com/anthropics/courses>
