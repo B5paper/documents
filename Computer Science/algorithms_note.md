@@ -6,6 +6,187 @@
 
 ## cache
 
+* tsp problem greedy algorithm
+
+    python version:
+
+    ```python
+    #!/home/hlc/miniconda3/envs/torch/bin/python
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Greedy TSP算法
+    def greedy_tsp(distance_matrix, start_point):
+        n = len(distance_matrix)
+        visit_mask = [False] * n
+        path = [start_point]
+        visit_mask[start_point] = True
+        current_point = start_point
+        total_distance = 0  # 初始化总路径长度
+        
+        while len(path) < n:
+            next_point = None
+            min_dist = float('inf')
+            # n 定义为顶点的数量，由于每个顶点都与其他顶点有边，所以 n 又拿来作为边数
+            for i in range(n):
+                # 这里并没有用 i != self_idx 来跳过自身顶点，而是提前把自身顶点
+                # 放到了 visit_mask 里，然后根据 visit_mask 去跳过顶点，
+                # 这样也连带把自身顶点也跳过了
+                if not visit_mask[i] and distance_matrix[current_point][i] < min_dist:
+                    min_dist = distance_matrix[current_point][i]
+                    next_point = i
+            # 每次都从当前顶点的所有边中，选出到未经过顶点的最短的边
+            path.append(next_point)
+            visit_mask[next_point] = True
+            total_distance += min_dist  # 累加路径长度
+            current_point = next_point
+        
+        # 返回起点，并累加最后一段的距离
+        total_distance += distance_matrix[current_point][start_point]
+        path.append(start_point)  
+        
+        return path, total_distance
+
+    # 绘制路径
+    def draw_tsp_path_with_distances(path, distance_matrix, start_point):
+        # 生成节点的坐标，均匀分布在圆上
+        n = len(distance_matrix)
+        theta = np.linspace(0, 2 * np.pi, n, endpoint=False)
+        radius = 10
+        x = radius * np.cos(theta)
+        y = radius * np.sin(theta)
+
+        plt.figure(figsize=(12, 12))  # 图像放大至12x12
+        
+        # 绘制节点，扩大节点大小
+        plt.scatter(x, y, c='lightblue', s=3000, edgecolors='black', zorder=2)  # 节点扩大3倍
+        
+        # 标注节点编号，扩大字号
+        for i in range(n):
+            plt.text(x[i], y[i], str(i), fontsize=36, ha='center', va='center', color='black')  # 字号扩大3倍
+        
+        # 绘制路径并标注距离
+        for i in range(len(path) - 1):
+            start, end = path[i], path[i+1]
+            plt.plot([x[start], x[end]], [y[start], y[end]], 'r-', lw=6, zorder=1)  # 线宽扩大3倍
+            
+            # 计算线的中点，标注距离
+            mid_x = (x[start] + x[end]) / 2
+            mid_y = (y[start] + y[end]) / 2
+            dist = distance_matrix[start][end]
+            plt.text(mid_x, mid_y, f'{dist}', fontsize=30, color='blue', ha='center', va='center')  # 距离标注字号扩大3倍
+        
+        # 标注起点，扩大节点大小
+        plt.scatter(x[start_point], y[start_point], c='red', s=3000, edgecolors='black', zorder=3)  # 起点扩大3倍
+        
+        plt.title("TSP Path with Distances (Scaled)", fontsize=24)  # 标题字号扩大
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.axis('off')  # 关闭坐标轴
+        plt.show()
+
+    def main():
+        # 距离矩阵
+        distance_matrix = [
+            [0, 11, 8.4, 5.2, 4.8, 2.6],
+            [11, 0, 7.4, 4.2, 10.2, 12],
+            [8.4, 7.4, 0, 3.2, 6.4, 11],
+            [5.2, 4.2, 3.2, 0, 6, 7.8],
+            [4.8, 10.2, 6.4, 6, 0, 10.2],
+            [2.6, 12, 11, 7.8, 10.2, 0]
+        ]
+
+        # 开始点为0
+        start_point = 0
+        tour_path, tour_length = greedy_tsp(distance_matrix, start_point)
+
+        print("访问路径:", tour_path)
+        print("路径总长度:", tour_length)
+
+        # 绘制TSP路径
+        draw_tsp_path_with_distances(tour_path, distance_matrix, start_point)  # 包括最后一个回到起点的0
+
+    if __name__ == '__main__':
+        main()
+
+    ```
+
+    output:
+
+    ```
+    访问路径: [0, 5, 3, 2, 4, 1, 0]
+    路径总长度: 41.2
+    ```
+
+    另外还输出一张 graph 图片。
+
+    说明：
+
+    * `draw_tsp_path_with_distances()`画图函数比较有意思，没用到第三方的 layout 工具，是作者自己实现的一个简单圆形 layout。
+
+    * 如果在 greedy 时不选最短的，而选前 2 最短的，该如何写代码？是否可以达到比原来更好的效果？
+
+* 旅行商问题
+
+    Travelling salesman problem
+
+    给定一系列城市和每对城市之间的距离，求解访问每一座城市一次并回到起始城市的最短回路。
+
+    等价约束：
+
+    对于图$G = (V, A)$，其中$\lvert A \rvert = \lvert V \rvert \times (\lvert V \rvert - 1)$，这个看上像是从$V$中一个顶点出发，向着出了自身外的所有顶点构建边（edge）。
+
+    $c_{ij}$为顶点$i$到顶点$j$的边的成本（cost），其中$i, j \in A$。
+
+    根据以上定义，旅行商问题可以等价定义为如下公式：
+
+    $$\min \sum_{i, j \in A} c_{ij} x_{ij}$$
+
+    subject to:
+
+    $$\sum_{i \in V \setminus \{j\}} x_{ij} = 1, j \in V$$
+
+    (定义闭合回路)
+
+    $$\sum_{j \in V \setminus \{i\}} x_{ij} = 1, i \in V$$
+
+    (定义闭合回路，即任意顶点 i ，解回路中必有且仅有一条弧以其作为起点的同时有且仅有一条弧以其作为终点)
+
+    $$\sum_{i \in S} \sum_{j \in S} x_{ij} \geq 1, S \subsetneq V, \lvert S \rvert = 2$$
+
+    (保证解仅含一条闭合回路)
+
+    $$x_{ij} \in \{ 0, 1 \}, (i, j) \in A$$
+
+    (变量$x_{ij}$为二进制变量, 其等于 1 当仅当边$(i, j)$属于解回路)
+
+    目前不明白上面的条件是如何转化为旅行商问题的，也不清楚将上述条件输入到求解器里，是否可以求解出和回溯法得到的相同的解。
+
+    * 精确算法
+
+        * 暴力搜索（Brute Force Search） 通过计算所有可能的城市访问顺序，检查每一条路径，选择最短的路径。
+
+        * 动态规划（Dynamic Programming） 该方法通过子问题的递归求解，避免重复计算，利用如Held-Karp算法等，逐步构建全局最优解。
+
+        * 分支定界法（Branch and Bound） 该方法构造一个搜索树，每个节点表示当前城市的部分路径，通过上下界进行剪枝，减少搜索空间。
+
+        * 线性规划与割平面法（Linear Programming and Cutting Planes） 通过线性规划的松弛问题求解TSP，并使用割平面法来逐步排除不满足TSP约束的解。
+
+    * 近似算法
+
+        * 贪心算法（Greedy Algorithm） 从某一城市开始，每次选择离当前城市最近的未访问城市，直到所有城市被访问完。
+
+        * 最近邻算法（Nearest Neighbor Algorithm） 从某个城市开始，每次选择最近的未访问城市，直到访问所有城市。
+        2-Opt与3-Opt算法 通过交换路径中的两个或三个边来优化当前解，逐步改进路径。
+
+        * 模拟退火算法（Simulated Annealing） 通过模拟物理退火过程，从随机解开始，逐步降低搜索空间的“温度”，以跳出局部最优。
+
+        * 遗传算法（Genetic Algorithm） 遗传算法通过模拟生物进化的过程，使用选择、交叉和变异操作生成更优的解。
+
+        * 蚁群算法（Ant Colony Optimization, ACO） 模拟蚂蚁通过信息素引导寻找最短路径的过程，逐步寻找最优解。
+
+        * 粒子群优化（Particle Swarm Optimization, PSO） 该方法通过模拟鸟群的飞行轨迹，群体中的个体根据自身经验和群体经验来更新解。
+
 * 跳表的 search 功能
 
     整个跳表的功能比较复杂，今天只看了`search()`函数。

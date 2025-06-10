@@ -30,6 +30,18 @@
 
 ## cache
 
+* 英语句式
+
+    It’s not really a standard, but it’s considered as such by many.
+
+* 基于 nccl 调研的非线性学习心得
+
+    这个过程和扫雷有点像，都是从确定已知的信息开始，从内向外逐渐推测功能，做出猜想和假设，并做实验进行验证。
+
+    比如在 set_path() 函数中判断 path 的含义时，我们可以看懂并确定的代码时，每次搜索到一个 rem_node，都会搜索其 rem_link，当发现 rem_link 指向当前 node 时，就把 rem_link 添加到 rem_path 最开头的位置，并将 path 的内容添加到 rem_path 的后面。由此我们做出猜想：rem_path 的作用是从 rem_node 出发，终点为 base node 的 edge list。由于此猜想在后面的代码被多次验证，所以大概率是对的。由此我们还可以做出推断：与 rem_path 相对应，path 的作用是从当前 node 出发，指向 base node。这个推断再次被证明为对的，我们又可以做出推断：`getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path)`的作用是返回从`node`出发，指向 type 为`t`，topo id 为`id`的 node 的 path。
+
+    注意推断（inference）和评论（comment）的区别，推断可以推动理解的进展，评论只能发散思维，或者提出问题。推断的一个重要标志是通过实验验证猜想，而评论只需要说出感觉，重新叙述，提出问题，作出评价。
+
 * 数据库书籍
 
     * 《数据库系统概念》（Database System Concepts）作者：Abraham Silberschatz, Henry F. Korth, S. Sudarshan。这本书是数据库领域的权威教材，适合初学者入门。
@@ -1388,6 +1400,24 @@
 
 * [v] cache tabs 05.12
 
+* [P] cache tabs 06.04
+
+    feedback:
+
+    * <https://www.geeksforgeeks.org/binary-search/>
+
+        目前看到 Recursive Binary Search Algorithm:
+
+* [v] cache tabs 06.08
+
+    feedback:
+
+    1. [ ] 调研 boost 库的 lexical_cast
+
+    2. [ ] 调研 c++ `inner_product`, `adjacent_difference`
+    
+    3. [ ] 调研 c++ `reduce`, `ranges::fold_left`
+
 ## markdown renderer
 
 使用 electron + markdown parser + mathjax 实现 markdoen renderer。
@@ -1647,6 +1677,14 @@ tasks:
     1. 目前 53 机器不走代理，因此只能访问国内网站。如果 50 机器需要访问 github，可以用笔记本 ssh -R 反向代理。
 
     1. 调研`ncclCommGetAsyncError()`
+
+* [v] 调研在 136 上跑通 nccl test
+
+    feedback:
+
+    1. A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
+
+    1. vscode 在`launch.json`中没有设置`cwd`时，程序中的`./`表示用户目录。比如`/share_data/users/hlc`
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 

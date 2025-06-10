@@ -2,6 +2,10 @@
 
 ## cache
 
+* latex 有关集合包含的符号
+
+    $\subseteq$, $\subsetneq$, $\subsetneqq$
+
 * 转置的写法：`x^\intercal`，效果：$x^\intercal$
 
 ## note

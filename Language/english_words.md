@@ -599,3 +599,9 @@ prone adj. 易于 ... 的 eg. FTPS supports both active and passive modes, which
 fidget prn. [ˈfɪdʒɪt] vi. 摆弄 eg. The business of compiling from source, installing or fidgeting with rebuildable source RPMs has never been for the faint-of-heart.
 
 faint-of-heart n. 胆小鬼
+
+superfluous prn. [suːˈpɜːrfluəs] a. 多余的 eg. In the second case, std::move is superfluous.
+
+one-off adj. 一次性的 eg. That’s what we’ll focus on in this article: writing regular expressions for different one-off tasks.
+
+weird quirks 怪癖

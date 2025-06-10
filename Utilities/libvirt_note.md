@@ -95,7 +95,7 @@
 
         `echo "10de 1db6" | sudo tee new_id`
 
-        此时再使用`lspci -v`检查 nvidia 的 driver 占用情况，可以看到它变成了 vfio-pci。
+        此时再使用`lspci -v`检查 nvidia 的 driver 占用情况，可以看到它变成了 `vfio-pci`。
 
     6. 在 qemu 中直接添加 pci device 即可
 

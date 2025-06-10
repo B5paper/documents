@@ -2,6 +2,41 @@
 
 ## cache
 
+* cuda 的跨进程 vram 访问
+
+    见`ref_39`
+
+    compile: `make`
+
+    run:
+
+    `./server`
+
+    `./client`
+
+    output:
+
+    `server`:
+
+    ```
+    1, 4, 3, 1, 5, 1, 4, 0, specialized as int
+    sizeof handle: 64
+    cubuf: 0x7f53f1a00000
+    ```
+
+    `client`:
+
+    ```
+    cubuf 0x7f7fb9a00000
+    1, 4, 3, 1, 5, 1, 4, 0, specialized as int
+    cubuf 2: 0x7f7fb9c00000
+    1, 4, 3, 1, 5, 1, 4, 0, specialized as int
+    ```
+
+    可以看到 cuda 的 mem handle 是一个 64 字节的数据结构。在一个进程里申请的 memory 到另一个进程里使用时，需要以 handle 导入的方式拿到 va。不同进程里，同一块 memory 的 va 不相同。使用 handle 拿到的 va，仍然具有 device p2p y访存的能力，但是需要提前把 p2p 开关打开。
+
+    其中比较关键的两个函数为：`cudaIpcGetMemHandle()`, `cudaIpcOpenMemHandle()`。
+
 * cuda 中代码对函数进行偏特化时，`nvcc`的报错
 
     `main.cu`:

@@ -4,6 +4,110 @@
 
 ## cached
 
+* c++ and move
+
+    `move()`的作用是把左值引用转换成右值引用，包含在头文件`<utility>`中，其实现如下：
+
+    ```cpp
+    // (since C++11) (until C++14)
+    template< class T >
+    typename std::remove_reference<T>::type&& move(T&& t) noexcept;
+
+    // (since C++14)
+    template< class T >
+    constexpr std::remove_reference_t<T>&& move(T&& t) noexcept;
+    ```
+
+    通常情况下，如果我们临时构造出来一个对象，并将这个对象用于初始化容器中的一个元素时，会产生不必要的复制，比如`vec.push_back("hello, world");`, `vec.push_back({123, "hello"})`，另一个常见的例子是函数的返回值`vector<string> ret = get_strs();`。由于这些匿名对象在创建后很快会被释放，编译器会帮忙优化这个操作，在匿名对象创建完成后，直接将匿名对象的内存（指针）赋值给容器中的元素，这样就避免了容器中的元素又申请赋值一遍内存。
+
+    这些优化都是安全的，用户也很少能感知到。但是如果用户希望很明确地告诉编译器，自己创建的一个变量/对象后面用不到了，希望把这个对象的值快速赋给另一个对象，就需要用到`std::move()`函数了。由于用户创建的对象是一个左值，所以 c++ 库函数感知不到用户的意思，此时用户使用`move()`会将其类型转换为一个右值引用，c++ 库函数就知道用户不想保留这个值了。
+
+    example:
+
+    ```cpp
+    #include <vector>
+    #include <utility>
+    #include <string>
+    #include <stdio.h>
+    using namespace std;
+
+    void my_move_str_func(string &&str)
+    {
+        printf("in my_move_str_func, str: %s\n", str.c_str());
+    }
+
+    int main(void)
+    {
+        vector<string> strs;
+        string str = "hello, world";
+        // my_move_str_func(str);  // compile error
+        my_move_str_func(move(str));
+        printf("after my_move_str_func, str: %s\n", str.c_str());
+        strs.push_back(move(str));
+        printf("after vector push back right value ref, str: %s\n", str.c_str());
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    in my_move_str_func, str: hello, world
+    after my_move_str_func, str: hello, world
+    after vector push back right value ref, str:
+    ```
+
+    可以看到，用户的函数`my_move_str_func()`接收一个右值引用，但是函数内并没有操作`str`的内存，因此`main()`函数中，`str`正常输出。而`strs.push_back()`函数接收右值引用后，内部操作了`str`的内存，再回到`main()`函数，`str`已经无法正常显示了。此时`str`变成一个无效变量。
+
+    说明：
+
+    * 函数参数为右值引用时，实参只接收右值引用，不接收 const 左值引用。函数的参数为`const`左值引用时，既接收左值，又接收右值引用。
+
+    * 如果同时有 const 左值引用和右值引用作为参数的函数，那么优先调用右值引用版本。
+
+    * 左值和右值可以互相转换
+
+        一个右值作为参数传给函数后，它在函数内部就变成了左值，因为函数参数为它赋予了名字。
+
+        example:
+
+        ```cpp
+        #include <utility>
+        #include <string>
+        #include <stdio.h>
+        using namespace std;
+
+        void left_or_right_ref_test(string &str)
+        {
+            printf("str is left reference\n");
+        }
+
+        void left_or_right_ref_test(string &&str)
+        {
+            printf("str is right reference\n");
+        }
+
+        void my_move_str_func(string &&str)
+        {
+            printf("in my_move_str_func, str: %s\n", str.c_str());
+            left_or_right_ref_test(str);
+        }
+
+        int main(void)
+        {
+            string str = "hello, world";
+            my_move_str_func(move(str));
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        in my_move_str_func, str: hello, world
+        str is left reference
+        ```
+
 * 如果一个全局变量是 const 变量，那么它默认是 static 的。此时如果直接在其他文件里`exteran const GlobalVarType global_val;`引用到这个全局变量，编译器会报错变量未定义。
 
     解决方案是在给全局变量定义时，加上`extern`关键字。

@@ -1,5 +1,30 @@
 # vim note
 
+## cache
+
+* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
+
+    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
+
+    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
+
+* `grep -P`表示使用 PCRE 的 regex
+
+* vim 中搜索 metacharacter `.` 的帮助文档
+
+    `:help /\.`
+
+* PCRE, for Perl Compatible Regular Expression
+
+* vim 中有关 regex 的 help 命令
+
+    ```
+    :help pattern-searches
+    :help atom
+    ```
+
+## note
+
 vim config file: `~/.vimrc`
 
 vim is a modal editor, and has 3 modes:

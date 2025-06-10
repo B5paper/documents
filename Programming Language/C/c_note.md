@@ -6,6 +6,122 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* c 定长数据类型 in `<cstdint>`, reference
+
+    <https://en.cppreference.com/w/cpp/types/integer.html>
+
+* c 中的变长参数函数
+
+    example:
+
+    `main.c`:
+
+    ```cpp
+    #include <cstdarg>
+    #include <cstdio>
+
+    int indented_print(int stage, ...) {
+        for (int i = 0; i < stage; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                putchar(' ');
+            }
+        }
+
+        va_list args;
+        va_start(args, stage);
+        const char* format_str = va_arg(args, const char*);
+        vprintf(format_str, args);
+        va_end(args);
+        return 0;
+    }
+
+    int indented_print_2(int stage, const char *format_str, ...) {
+        for (int i = 0; i < stage; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                putchar(' ');
+            }
+        }
+
+        va_list args;
+        va_start(args, format_str);
+        vprintf(format_str, args);
+        va_end(args);
+        return 0;
+    }
+
+    int parse_args(int int_val, ...) {
+        printf("int val: %d\n", int_val);
+
+        va_list args;
+        va_start(args, int_val);
+
+        float float_val = va_arg(args, double);
+        printf("float val: %.2f\n", float_val);
+
+        const char *msg = va_arg(args, const char*);
+        printf("msg: %s\n", msg);
+
+        va_end(args);
+        return 0;
+    }
+
+    int main() {
+        indented_print(0, "this is a title:\n");
+        indented_print(1, "name: %s\n", "hlc");
+        indented_print(1, "age: %d\n", 29);
+        indented_print(1, "friends:\n");
+        indented_print(2, "1. Alice\n");
+        indented_print(2, "2. Bob\n");
+
+        indented_print_2(0, "title\n");
+        indented_print_2(1, "child_1\n");
+        indented_print_2(2, "child_2\n");
+
+        parse_args(123, 456.7, "hello, world");
+
+        return 0;
+    }
+    ```
+
+    compile:
+
+    `gcc main.c -o main`
+
+    run:
+
+    `./main`
+
+    output:
+
+    ```
+    this is a title:
+        name: hlc
+        age: 29
+        friends:
+            1. Alice
+            2. Bob
+    title
+        child_1
+            child_2
+    int val: 123
+    float val: 456.70
+    msg: hello, world
+    ```
+
+    C 变长参数函数使用三个点`...`来标记，使用几个宏函数来提取变长列表中的各个参数。以`parse_args()`为例，`va_list args;`定义`args`来表示变长参数，`va_start(args, int_val);`表示从`int_val`的下一个参数开始提取，接下来使用`float float_val = va_arg(args, double);`，`const char *msg = va_arg(args, const char*);`根据指定类型去从`args`中提取参数，最后调用`va_end(args);`释放资源，结束提取。使用这几个宏时，必须包含头文件`#include <cstdarg>`。
+
+    `indented_print()`和`indented_print_2()`则是使用嵌套变长参数函数实现了带缩进的 printf 函数。
+
+    说明：
+
+    1. 变长参数列表至少需要填一个参数，再写`...`，不能只写`...`，比如`my_print(...);`，否则`va_start()`的第二个参数没法填。
+
+    1. `va_arg(args, double);`在提取小数类型时，`va_arg()`只能填`double`，不能填`float`，否则会报错。
+
+    1. 嵌套调用变长参数函数时，`args`的含义为从已经解析的参数的下一个开始，传入内层函数中。另外内层 print 函数必须使用`vprintf()`，否则会报 segmentation fault 错误。这个函数是专门为内层变长参数函数准备的。
+
+    1. 如果无法一开始就确定所有参数的类型，通常做法是仿照`printf()`，第一个参数传字符串，字符串里包含后面参数类型的信息，比如`%d`,`%f`之类，在函数里只需要解析字符串就可以了。
+
 * 因为有补码，所以`int a = 0xffffffff;`并不是`INT32_MIN`，而是`-1`。而`INT32_MIN`的 16 进制是`0x80000000`。
 
 * 当`int32_t`类型的最高位为`1`时，C 语言中，若将其转换为`uint64_t`，那么高 32 位，以第 31 位（从 0 开始索引）都是`1`，`[30:0]`位仍保持原来的数据。
