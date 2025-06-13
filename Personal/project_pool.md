@@ -30,6 +30,8 @@
 
 ## cache
 
+* 是否掌握一项技能，最好的判断方法是看能不能复现。
+
 * 英语句式
 
     It’s not really a standard, but it’s considered as such by many.
@@ -1606,6 +1608,8 @@ tasks:
         
         * 两个节点之间的 path
 
+* A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
+
 ### tasks
 
 * { } 调研 ptx 指令集
@@ -1680,53 +1684,47 @@ tasks:
 
 * [v] 调研在 136 上跑通 nccl test
 
+* [v] 调研实现 recursively add pci tag
+
     feedback:
 
-    1. A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
+    1. [ ] 调研`std::stoull()`的第 2 个参数干嘛用的
 
-    1. vscode 在`launch.json`中没有设置`cwd`时，程序中的`./`表示用户目录。比如`/share_data/users/hlc`
+* [v] 写一个 vector 中元素的引用的地址改变的 example
+
+    递归添加元素，并 hold parent
+
+* [P] 调研实现`ncclTopoFlattenBcmSwitches()`
+
+    feedback:
+
+    1. [ ] 调研`memmove()`
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
+* [ ] 调研`cudaMallocManaged()`
+
 * [v] 调研 tsp 的 greedy python 代码
-
-    feedback:
-
-    1. 是否掌握一项技能，最好的判断方法是看能不能复现。
-
-    1. 调研`cudaMallocManaged()`
 
 * [v] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？
 
-    feedback:
-
-    1. ds 的输出为 GDB 显示的是 std::string 在 libstdc++（GCC 的标准库实现）中的内部结构，而非直接显示字符串内容。这是因为 GDB 默认以“结构体/类成员”的形式显示对象，而没有自动调用 std::string 的字符串解码逻辑。
-
-    2. 只有 local 变量窗口和 watch 变量窗口可以正确显示`const string &str`的内容，鼠标悬停无法直接显示。试了下默认的 lldb，比 gdb 更差，鼠标悬停时根本不解析`const string&`，只解析一些基本的 C 语言的数据结构。
-
 * [ ] 调研 string view
 
-* [v] 实现自己缩进的 logging system
+* [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
+
+* [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
 
 * [v] 调研 extended vertex + extended graph
 
-    feedback:
+* [ ] 调研 c++ string 使用正则表达式
 
-    1. [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
+* [ ] 调研 magic enum
 
-    1. [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
+* [ ] 调研 是否有指向数组的引用？
 
-* [O] 调研尝试实现`ncclTopoSetPaths()`
+* [v] 调研尝试实现`ncclTopoSetPaths()`
 
     16:57 ~ 18:41
-
-    feedback:
-
-    1. 调研 c++ string 使用正则表达式
-
-    1. 调研 magic enum
-
-    1. 调研 是否有指向数组的引用？
 
 * [ ] 调研`addInterStep()`
 
@@ -1743,8 +1741,6 @@ tasks:
     1. [ ] 调研 qemu 使用`-kernel` + qemu gdb server 进行 debug
 
 * [ ] 调研构建 graph 的 benchmark
-
-* [v] 调研基于 vertex + pointer + id 对实现 graph 和 bfs 有什么影响
 
 * [ ] 调研`realpath()`, `tolower()`
 

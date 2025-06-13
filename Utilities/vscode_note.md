@@ -2,6 +2,16 @@
 
 ## cache
 
+* vscode 在`launch.json`中没有设置`cwd`时，程序中的`./`表示用户目录。比如`/share_data/users/hlc`
+
+* 关于 vscode 中 gdb 调试 c++ 时，无法鼠标悬停显示`const string &str`的调研
+
+    1. ds 的输出为 GDB 显示的是 std::string 在 libstdc++（GCC 的标准库实现）中的内部结构，而非直接显示字符串内容。这是因为 GDB 默认以“结构体/类成员”的形式显示对象，而没有自动调用 std::string 的字符串解码逻辑。
+
+    2. 只有 local 变量窗口和 watch 变量窗口可以正确显示`const string &str`的内容，鼠标悬停无法直接显示。试了下默认的 lldb，比 gdb 更差，鼠标悬停时根本不解析`const string&`，只解析一些基本的 C 语言的数据结构。
+
+        重新看了下，只有`const string &str = xxx;`这一行里，`str`无法正常显示，在其他行里`str`在鼠标悬停时可以正常显示。
+
 * vscode 中，使用`-exec p`打印字符串数组，会把`\000`也打印出来
 
     ```cpp
