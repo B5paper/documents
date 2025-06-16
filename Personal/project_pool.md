@@ -30,6 +30,10 @@
 
 ## cache
 
+* [ ] 调研`partial_sum()`和`accumulate()`有什么区别？
+
+* [ ] 调研`ls -l`输出时，修改时间最近的排到最上面
+
 * 是否掌握一项技能，最好的判断方法是看能不能复现。
 
 * 英语句式
@@ -1682,49 +1686,29 @@ tasks:
 
     1. 调研`ncclCommGetAsyncError()`
 
-* [v] 调研在 136 上跑通 nccl test
+* [ ] 调研`std::stoull()`的第 2 个参数干嘛用的
 
 * [v] 调研实现 recursively add pci tag
 
-    feedback:
-
-    1. [ ] 调研`std::stoull()`的第 2 个参数干嘛用的
-
-* [v] 写一个 vector 中元素的引用的地址改变的 example
-
-    递归添加元素，并 hold parent
+* [ ] 调研`memmove()`
 
 * [P] 调研实现`ncclTopoFlattenBcmSwitches()`
-
-    feedback:
-
-    1. [ ] 调研`memmove()`
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
 * [ ] 调研`cudaMallocManaged()`
 
-* [v] 调研 tsp 的 greedy python 代码
-
-* [v] 调研：为什么 gdb 调试时，无法显示`const string &str`的值？
-
-* [ ] 调研 string view
+* [P] 调研 string view
 
 * [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
 
 * [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
-
-* [v] 调研 extended vertex + extended graph
 
 * [ ] 调研 c++ string 使用正则表达式
 
 * [ ] 调研 magic enum
 
 * [ ] 调研 是否有指向数组的引用？
-
-* [v] 调研尝试实现`ncclTopoSetPaths()`
-
-    16:57 ~ 18:41
 
 * [ ] 调研`addInterStep()`
 
