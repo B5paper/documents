@@ -1286,3 +1286,42 @@
     结合上下文，我们可以推测出，当 rem node 找不到返回 base node 的路径，或者说，找到了，但是路径比从 node 返回的路径长，那么就选择找到一条 rem node 到 node 的边，并通过 node 返回 base node，即 rem node --rem_link--> node -> ... -> base node。
 
     * `remPath->bw < bw`：这个比较好理解了，只有当 rem path 的带宽小于 path 的带宽，我们才尝试 reverse link -> path 的个组合的带宽是否有可能大于 rem path 的带宽。如果 rem path 的带宽本身比 path 的带宽大，那么就不考虑 path 和 rem path 上节点的数量了。
+
+* nccl 是可以处理 pci 中的多个 child tag 的
+
+    ```cpp
+    ncclResult_t ncclTopoAddPci(struct ncclXmlNode* xmlPci, struct ncclTopoSystem* system, struct ncclTopoNode* parent, int systemId, int numaId) {
+        // ...
+        for (int s=0; s<xmlPci->nSubs; s++) {
+          struct ncclXmlNode* xmlSubPci = xmlPci->subs[s];
+          if (strcmp(xmlSubPci->name, "pcilink") != 0) { // PCI links will be added later
+            NCCLCHECK(ncclTopoAddPci(xmlSubPci, system, node, systemId, numaId));
+          }
+        }
+        // ...
+    }
+    ```
+
+    `ncclTopoAddPci()`是 dfs 的结构，只有遇到 gpu 和 nic 时，才做 terminate 处理。由于 gpu/nic 可能和另一个 pci tag 并列，所以 child pci tag 并未放到函数末尾处理。
+
+    这里先处理了 pci tag 的子节点，处理完后才 connect 当前 pci tag 创建出来的 pci node 和 parent node，说明这是一个树的后序遍历。理论上先序遍历也可以达成一样的效果，后面可以试一下。
+
+* nccl 假设 pci 下要么只有一个 gpu 或一个 nic，要么只有另一个 pci，因此其递归终止的条件是解析当前节点，如果当前 pci 节点下有 gpu/nic，那么就停止递归。否则就认为当前节点下还有嵌套 pci，那么以当前节点为 parent pci 节点，遍历子节点，是非常常规的思路。
+
+    但是 siccl 的 pci 下可能有多个 gpu 节点，这样我们在解析到 pci 后，并不能停止解析当前 pci，还要继续解析下去，这样就导致 gpu 的解析和子 pci 的解析被放到了同一个循环下。如果解析到了子节点是 pci 节点，我们以当前 pci 节点作为 parent 节点，再添加子 pci 时，相当于没有跳过当前 pci node 的创建，tag 也往下走了一层。
+
+    按道理效果应该和直接递归调用是一样的。
+
+    可以试试在写全排列时，对于 n = x 的情况单独展开，是否和统一写在 for 里一样。
+
+    ```
+    <parent-pci 0>
+        <pci 1>
+            <pci 2>
+                <gpu>
+            <pci 3>
+                <gpu>
+            
+    ```
+
+    按照目前的方案，pci 1 检测到 pci 2 是 child pci tag，转到小循环开始处理。pci 1 作为 parent node，重新扫描所有的子 tag。但是我们需要注意到，在 pci 1 的外层大循环中，仍然会处理 pci 2 和 pci 3。此时当处理 pci 3 时，又进入小循环，pci 2 又被处理了一遍。nccl 之所以能写小循环，是因为它没有外层的大循环。
