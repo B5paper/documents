@@ -1684,15 +1684,31 @@ tasks:
 
     1. 目前 53 机器不走代理，因此只能访问国内网站。如果 50 机器需要访问 github，可以用笔记本 ssh -R 反向代理。
 
-    1. 调研`ncclCommGetAsyncError()`
+    1. [ ] 调研`ncclCommGetAsyncError()`
 
 * [ ] 调研`std::stoull()`的第 2 个参数干嘛用的
 
-* [v] 调研实现 recursively add pci tag
-
 * [ ] 调研`memmove()`
 
+* [ ] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
+
+    比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
+
 * [P] 调研实现`ncclTopoFlattenBcmSwitches()`
+
+    feedback:
+
+    1. 目前定位到 516096 节点的拓扑边多了一条指向 cpu 的节点，但是标准版 nccl 没有这条边。下一步可以增加 topo system add pci 的 cnt，方便快速定位。目前看来第 4 次 invoke 即会触发。
+
+    1. [ ] 为 topo system add pci 增加`invoke_cnt`变量，能快速定位到产生新 cpu 边处。
+
+    1. [ ] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
+
+    1. [ ] 调研 c++ 20 的 format。
+
+    1. `for (int s=0; s<system->nodes[PCI].count; s++) {`第一次调用后，pci node 数从 14 降低到 12，后面 siccl 的 pci node 数不再改变，而 nccl 经过几次调用过 pci node 数会降到 10，目前不清楚原因，需要进一步调试。
+
+        可以对比第一次调用后 topo system 里 pci node 信息以及 edge 信息。然后再单步调试，看可能在哪里有问题。
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
@@ -3554,6 +3570,10 @@ cache:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 ### cache
+
+* string view learning material:
+
+    <https://how.dev/answers/what-is-the-cpp-string-view-in-cpp-17>
 
 * `(void) getHostName(hostHash, sizeof(hostHash), '\0');`
 

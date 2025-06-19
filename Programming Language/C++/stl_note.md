@@ -2,6 +2,233 @@
 
 ## cached
 
+* c++ accumulate usage
+
+    `std::accumulate()`在头文件`<numeric>`中，不在`<algorithm>`，默认实现累加功能，用户也可以利用其实现累乘等自定义功能。
+
+    example:
+
+    ```cpp
+    #include <numeric>
+    #include <vector>
+    #include <stdio.h>
+    #include <functional>
+    using namespace std;
+
+    int prod_func(int a, int b)
+    {
+        return a * b;
+    }
+
+    int main()
+    {
+        int arr[5] = {1, 2, 3, 4, 5};
+        int s = accumulate(arr, arr + 5, 0);
+        printf("s = %d\n", s);
+
+        vector<int> vec{1, 2, 3, 4, 5};
+        s = accumulate(vec.begin(), vec.end(), 2);
+        printf("s = %d\n", s);
+
+        int p = accumulate(vec.begin(), vec.end(), 1, prod_func);
+        printf("p = %d\n", p);
+
+        auto custom_func_1 = [](int a, int b) {
+            return a * b;
+        };
+        int res = accumulate(vec.begin(), vec.end(), 1, custom_func_1);
+        printf("custom_func_1 res = %d\n", res);
+
+        function<int(int, int)> custom_func_2 = [](int a, int b) {
+            return a + b;
+        };
+        res = accumulate(vec.begin(), vec.end(), 1, custom_func_2);
+        printf("custom_func_2 res = %d\n", res);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    s = 15
+    s = 17
+    p = 120
+    custom_func_1 res = 120
+    custom_func_2 res = 16
+    ```
+
+    `accumulate()`第三个参数是个初始值，如果没有特别需求，填 0 就可以。
+
+    `prod_func`使用普通函数作为自定义函数，`custom_func_1`使用 lambda 表达式，`custom_func_2`使用 function 对象作为自定义函数。
+
+* string view
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    // #include <string_view>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        const char *c_str = "c hello, world";
+        string_view strv(c_str);
+        printf("%s\n", strv.begin());
+        cout << strv << endl;
+
+        string cpp_str{"cpp hello, world"};
+        string_view strv_2(cpp_str);
+        printf("%s\n", strv_2.begin());
+        printf("%s\n", strv_2.data());
+        cout << strv_2 << endl;
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    c hello, world
+    c hello, world
+    cpp hello, world
+    cpp hello, world
+    cpp hello, world
+    ```
+
+    说明：
+
+    1. `string_view()`没有接收`string`对象为参数的构造函数，不清楚`string_view strv_2(cpp_str);`是怎么通过编译并运行的。
+
+    2. `string_view`没有`.c_str()`方法，只有`.data()`和`.begin()`迭代器。比较奇怪的是迭代器是个 iterator 对象，但是仍能使用`%s` print 出字符串内容。
+
+* vector 扩容会导致引用失效
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    using namespace std;
+
+    struct Node
+    {
+        int val;
+    };
+
+    vector<Node> nodes;
+    int invoke_cnt = 0;
+    void recur_construct_chain(Node &parent)
+    {
+        invoke_cnt++;
+        if (invoke_cnt > 5)
+            return;
+        nodes.emplace_back();
+        Node &new_node = nodes.back();
+        new_node.val = nodes.size() - 1;
+        printf("new node %d, parent: %d\n", new_node.val, parent.val);
+        recur_construct_chain(new_node);
+    }
+
+    int main()
+    {
+        printf("test 1:\n");
+        nodes.reserve(3);
+        nodes.push_back({0});
+        recur_construct_chain(nodes[0]);
+        putchar('\n');
+
+        printf("test 2:\n");
+        invoke_cnt = 0;
+        nodes.clear();
+        nodes.shrink_to_fit();
+        nodes.reserve(10);
+        nodes.push_back({0});
+        recur_construct_chain(nodes[0]);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    test 1:
+    new node 1, parent: 0
+    new node 2, parent: 1
+    new node 3, parent: 277658299
+    new node 4, parent: 3
+    new node 5, parent: 4
+
+    test 2:
+    new node 1, parent: 0
+    new node 2, parent: 1
+    new node 3, parent: 2
+    new node 4, parent: 3
+    new node 5, parent: 4
+    ```
+
+    可以看到，在 test 1 中，我们 reseve 了 3 个元素，当新添加第 4 个元素（node 3）时，vector 发生了扩容，导致 parent 引用失效，输出了非法内存中的数值。
+
+    在 test 2 中，我们 reseve 了 10 个元素，大于需要的 6 个元素，vector 不发生扩容，因此 parent 都是正常的，没有失效。
+
+    在这两个例子中我们可以看出，即使使用引用拿到 vector 中的元素，当 vector 发生扩容或缩容时，也会发生引用失效的情况。
+
+    说明：
+
+    1. 调用完`nodes.clear()`后，必须调用`nodes.shrink_to_fit();`才能让 vector 的实际内存占用缩小到 0。
+
+        调用`nodes.reserve(0);`无法实现这个效果。
+
+    如果我们在 vector 中存储指针，便可以解决这个问题：
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    using namespace std;
+
+    struct Node
+    {
+        int val;
+    };
+
+    vector<Node*> nodes;
+    int invoke_cnt = 0;
+    void recur_construct_chain(Node &parent)
+    {
+        invoke_cnt++;
+        if (invoke_cnt > 5)
+            return;
+        nodes.push_back(new Node);
+        Node &new_node = *nodes.back();
+        new_node.val = nodes.size() - 1;
+        printf("new node %d, parent: %d\n", new_node.val, parent.val);
+        recur_construct_chain(new_node);
+    }
+
+    int main()
+    {
+        nodes.reserve(3);
+        nodes.push_back(new Node{0});
+        recur_construct_chain(*nodes[0]);
+        for (Node *node_ptr : nodes)
+            delete node_ptr;
+        putchar('\n');
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    new node 1, parent: 0
+    new node 2, parent: 1
+    new node 3, parent: 2
+    new node 4, parent: 3
+    new node 5, parent: 4
+    ```
+
 * 使用`partial_sum()`计算前缀和
 
     example:

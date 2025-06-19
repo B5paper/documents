@@ -2,6 +2,8 @@
 
 ## cached
 
+* python 字符串的`.rindex()`, `.rfind()`是从右边开始搜索，但是返回的索引仍然是从左边开始数的。
+
 * python 中的定义提前
 
     ```python
@@ -769,6 +771,107 @@ print(d['last_name'])
 使用`(?P<var_name>...)`可以为子匹配命名，然后使用`group('<name>')`获得。
 
 `groupdict()`以字典的形式返回命名匹配。如果表达式中没有命名子匹配，那么字典为空。
+
+## subprocess
+
+### cache
+
+* 使用`subprocess.run()`将子程序的 stdout 重定向到程序内部的内存
+
+    example:
+
+    ```py
+    import subprocess
+
+    def main():
+        ret = subprocess.run(['ls', '-lh'], capture_output=True, text=True)
+        print('stdout:')
+        print('{}'.format(ret.stdout))
+        print('stderr:')
+        print('{}'.format(ret.stderr))
+        print('ret code:')
+        print('{}'.format(ret.returncode))
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    stdout:
+    total 4.0K
+    -rw-rw-r-- 1 hlc hlc 327  6月 16 22:52 main.py
+
+    stderr:
+
+    ret code:
+    0
+    ```
+
+    这项功能只有`subprocess.run()`可以完成，无法使用`subprocess.call()`完成。
+
+    说明：
+
+    1. 如果不写`text=True`，那么`ret.stdout`等保存的内容是二进制内容`b'xxxx'`，中文等字符会被编码成 utf-8 格式的三个字节，比如`\xe6\x9c\x88`。
+
+* python subprocess
+
+    在一个进程中调用命令起另一个进程。
+
+    example:
+
+    ```py
+    import subprocess
+
+    def main():
+        ret = subprocess.call(['ls'])
+        print('ret: {}'.format(ret))
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    main.py
+    ret: 0
+    ```
+
+    如果需要加参数，那么可以在 list 里添加更多的元素：
+
+    `main.py`:
+
+    ```py
+    import subprocess
+
+    def main():
+        ret = subprocess.call(['ls', '-lh'])
+        print('ret: {}'.format(ret))
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    run:
+
+    `python main.py`
+
+    output:
+
+    ```
+    total 4.0K
+    -rw-rw-r-- 1 hlc hlc 155  6月 16 22:29 main.py
+    ret: 0
+    ```
+
+    需要注意的是，`['my_cmd', '-my_arg val']`和`['my_cmd', '-my_arg', 'val']`在大部分情况下功能相同，但是对一小部分软件来说是有区别的，这两种形式可能只有一种可以正确执行。
+
+### note
 
 ## Miscellaneous
 
