@@ -2,6 +2,22 @@
 
 ## cache
 
+* 如果使用 http/https 在 github 上 clone repo，那么设置`http.proxy`, `https.proxy`就足够。但是如果使用 ssh 在 github 上 clone repo，那么就需要配置 ssh 的代理
+
+    `~/.ssh/config`:
+
+    ```conf
+    Host github.com
+        Hostname github.com
+        ServerAliveInterval 55
+        ForwardAgent yes
+        ProxyCommand /usr/bin/corkscrew <replace_with_your_company_proxy_server> <3128> %h %p
+    ```
+
+    这个方法目前未验证。
+
+    ref: <https://gist.github.com/coin8086/7228b177221f6db913933021ac33bb92>
+
 * `git revert`可以以提交 commit 的形式向前回退一个 commit。
 
     `git revert HEAD`，必须要加上`HEAD`，否则无法 work。
