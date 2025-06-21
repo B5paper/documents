@@ -7688,3 +7688,49 @@
 * AC 自动机
 
     <https://oi-wiki.org/string/ac-automaton/>
+
+* A distribution of Nginx with some advanced features 
+
+    <https://github.com/alibaba/tengine>
+
+* socat
+
+    socat: Linux / UNIX TCP Port Forwarder
+
+    <https://www.cyberciti.biz/faq/linux-unix-tcp-port-forwarding/>
+
+* How to redirect output with subprocess in Python?
+
+    <https://stackoverflow.com/questions/4965159/how-to-redirect-output-with-subprocess-in-python>
+
+* How to open external programs in Python
+
+    <https://stackoverflow.com/questions/37238645/how-to-open-external-programs-in-python>
+
+* How To Write Linux PCI Drivers
+
+    <https://docs.kernel.org/PCI/pci.html#how-to-find-pci-devices-manually>
+
+* The Basic Device Structure
+
+    <https://www.kernel.org/doc/html/v5.5/driver-api/driver-model/device.html>
+
+    Linux Device Model
+
+    <https://linux-kernel-labs.github.io/refs/pull/190/merge/labs/device_model.html>
+
+    The Basic Device Structure
+
+    <https://docs.kernel.org/driver-api/driver-model/device.html>
+
+* Writing a PCI device driver for Linux
+
+    <https://olegkutkov.me/2021/01/07/writing-a-pci-device-driver-for-linux/>
+
+* 为什么高维空间下距离度量逐渐失效？
+
+    <https://www.zhihu.com/question/630891067/answer/3299831690>
+
+* vLLM源码阅读
+
+    <https://zhuanlan.zhihu.com/p/5085306075>

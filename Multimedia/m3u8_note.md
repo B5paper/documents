@@ -2,6 +2,13 @@
 
 ## cache
 
+* 使用 ffmpeg 将 ts 文件转换为 mp4 文件
+
+    ```bash
+    cat segment1_0_av.ts segment2_0_av.ts segment3_0_av.ts > all.ts
+    ffmpeg -i all.ts -acodec copy -vcodec copy all.mp4
+    ```
+
 * m3u8 中的 aes 解密
 
     下面是一些代码片段，无法直接运行，但是展示了解密 aes 的过程，可作为参考
