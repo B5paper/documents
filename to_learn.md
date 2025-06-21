@@ -7672,3 +7672,19 @@
 * Anthropic courses
 
     <https://github.com/anthropics/courses>
+
+* c++ 的一个基础知识网站，有时间可以系统过一遍基础
+
+    <https://www.tutorialspoint.com/cplusplus/index.htm>
+
+* C++异常处理（try catch throw）完全攻略
+
+    <https://c.biancheng.net/view/422.html>
+
+* Efficiently Generating a Number in a Range
+
+    <https://www.pcg-random.org/posts/bounded-rands.html>
+
+* AC 自动机
+
+    <https://oi-wiki.org/string/ac-automaton/>
