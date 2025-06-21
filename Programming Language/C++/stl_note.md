@@ -2,6 +2,119 @@
 
 ## cached
 
+* vector 中的元素删除
+
+    如果使用索引的话，可以在删除当前元素后，手动将索引减一。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vec{1, 2, 3, 4, 4, 4, 3};
+
+        for (int i = 0; i < vec.size(); ++i)
+        {
+            if (vec[i] == 4) {
+                vec.erase(vec.begin() + i);
+                --i;
+            }
+        }
+
+        for (int i = 0; i < vec.size(); ++i)
+        {
+            printf("%d, ", vec[i]);
+        }
+        putchar('\n');
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 3,
+    ```
+
+    如果使用迭代器，那么必须使用 while 循环：
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vec{1, 2, 3, 4, 4, 4, 3};
+
+        auto it = vec.begin();
+        while (it != vec.end())
+        {
+            if (*it == 4)
+            {
+                it = vec.erase(it);
+                continue;
+            }
+            ++it;
+        }
+
+        for (int i = 0; i < vec.size(); ++i)
+        {
+            printf("%d, ", vec[i]);
+        }
+        putchar('\n');
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 3,
+    ```
+
+    如果使用了 erase，那么就不需要再`++it`，其他情况都需要`++it`。这种处理方式或许也适合其他的容器，比如`map`。（如果 for 里使用`--it`，可能也可以支持 map？）
+
+    如果使用 for 循环，因为并不总是需要`++it`，所以会出错：
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    using namespace std;
+
+    int main()
+    {
+        vector<int> vec{1, 2, 3, 4, 4, 4, 3};
+
+        for (auto it = vec.begin(); it != vec.end(); ++it)
+        {
+            if (*it == 4) {
+                it = vec.erase(it);
+            }
+        }
+
+        for (int i = 0; i < vec.size(); ++i)
+        {
+            printf("%d, ", vec[i]);
+        }
+        putchar('\n');
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 4, 3,
+    ```
+
 * c++ accumulate usage
 
     `std::accumulate()`在头文件`<numeric>`中，不在`<algorithm>`，默认实现累加功能，用户也可以利用其实现累乘等自定义功能。

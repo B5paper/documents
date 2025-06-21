@@ -30,6 +30,12 @@
 
 ## cache
 
+* 之前似乎讨论过使用 idx 比使用指针好，具体细节是什么？
+
+* 如果两个过程细节不同，但是全局相同，那么对照实现起来非常麻烦，我们无法根据单步调试一行一行地照搬，必须整理了抽象的全过程，再去做实现
+
+    但是这个过程也是非常有意义的，全局相同，说明这两个过程的核心相同；过程不同，说明加入了噪声干扰和泛化。如果能对这两个过程进行研究，找到相同的核心和本质，还是可以提升自己的。
+
 * [ ] 调研`partial_sum()`和`accumulate()`有什么区别？
 
 * [ ] 调研`ls -l`输出时，修改时间最近的排到最上面
@@ -1694,7 +1700,7 @@ tasks:
 
     比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
 
-* [P] 调研实现`ncclTopoFlattenBcmSwitches()`
+* [v] 调研实现`ncclTopoFlattenBcmSwitches()`
 
     feedback:
 
@@ -1709,6 +1715,14 @@ tasks:
     1. `for (int s=0; s<system->nodes[PCI].count; s++) {`第一次调用后，pci node 数从 14 降低到 12，后面 siccl 的 pci node 数不再改变，而 nccl 经过几次调用过 pci node 数会降到 10，目前不清楚原因，需要进一步调试。
 
         可以对比第一次调用后 topo system 里 pci node 信息以及 edge 信息。然后再单步调试，看可能在哪里有问题。
+
+    1. [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
+
+* [v] 调研实现 topo system add nvlink
+
+    feedback:
+
+    1. [ ] 调研实现 topo system add silink
 
 * [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
@@ -3570,6 +3584,8 @@ cache:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 ### cache
+
+* [ ] 调研 c++ 的 enumerate
 
 * string view learning material:
 
