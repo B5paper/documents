@@ -1580,7 +1580,7 @@ zaijian
 
         注意，如果将上述命令替换为`./echo_stderr.sh 1> hello.txt`或`./echo_stderr.sh > hello.txt`，则仍会在屏幕中进行输出，`hello.txt`文件中不会有任何内容。
 
-    * `[descriptor]>& <descriptor>`
+    * `[descriptor_1]>& <descriptor_2>`
 
         将一个文件描述符重定向到另一个文件描述符。
 
@@ -1589,6 +1589,12 @@ zaijian
         `echo "helo, world" >& 2`
 
         将 stdout 重定向到 stderr。
+
+        注：
+
+        * `[descriptor_1]>&`这 3 个符号之间不能有空格，而`<descriptor_2>`之前可以有空格，也可以没有。
+
+        * 如果省略不写`[descriptor_1]`，那么`[descriptor_1]`默认为`1`。
 
     * `command &> filename`
 

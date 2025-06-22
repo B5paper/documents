@@ -7734,3 +7734,13 @@
 * vLLM源码阅读
 
     <https://zhuanlan.zhihu.com/p/5085306075>
+
+* 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
+
+    <https://www.zhihu.com/question/659607083>
+
+* 好像是个 c api 的文档
+
+    <https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html>
+
+    有时间了调研一下
