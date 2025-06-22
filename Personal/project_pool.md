@@ -1417,7 +1417,13 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研`std::stoull()`的第 2 个参数干嘛用的
+* { } 调研 string view
+
+* [ ] 调研`strtoull()`, `strtol()`
+
+    调研`std::stoull()`的第 2 个参数干嘛用的
+
+* [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
 * [ ] 调研`memmove()`
 
@@ -1425,35 +1431,23 @@ tasks:
 
     比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
 
+* [ ] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
+
+* [ ] 调研 c++ 20 的 format
+
+( [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
+
 * [v] 调研实现`ncclTopoFlattenBcmSwitches()`
 
     feedback:
 
-    1. 目前定位到 516096 节点的拓扑边多了一条指向 cpu 的节点，但是标准版 nccl 没有这条边。下一步可以增加 topo system add pci 的 cnt，方便快速定位。目前看来第 4 次 invoke 即会触发。
+    1. [v] 为 topo system add pci 增加`invoke_cnt`变量，能快速定位到产生新 cpu 边处。
 
-    1. [ ] 为 topo system add pci 增加`invoke_cnt`变量，能快速定位到产生新 cpu 边处。
-
-    1. [ ] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
-
-    1. [ ] 调研 c++ 20 的 format。
-
-    1. `for (int s=0; s<system->nodes[PCI].count; s++) {`第一次调用后，pci node 数从 14 降低到 12，后面 siccl 的 pci node 数不再改变，而 nccl 经过几次调用过 pci node 数会降到 10，目前不清楚原因，需要进一步调试。
-
-        可以对比第一次调用后 topo system 里 pci node 信息以及 edge 信息。然后再单步调试，看可能在哪里有问题。
-
-    1. [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
+* [ ] 调研实现 topo system add silink
 
 * [v] 调研实现 topo system add nvlink
 
-    feedback:
-
-    1. [ ] 调研实现 topo system add silink
-
-* [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
-
 * [ ] 调研`cudaMallocManaged()`
-
-* [P] 调研 string view
 
 * [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
 
@@ -1468,8 +1462,6 @@ tasks:
 * [ ] 调研`addInterStep()`
 
 * [ ] 调研尝试复现`ncclTopoComputePaths()`
-
-* [ ] 调研`strtoull()`, `strtol()`
 
 * [ ] 调研 emplace() 和 emplace_back() 的区别
 
