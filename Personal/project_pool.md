@@ -32,7 +32,7 @@
 
 * 之前似乎讨论过使用 idx 比使用指针好，具体细节是什么？
 
-* [ ] 调研`ls -l`输出时，修改时间最近的排到最上面
+* [v] 调研`ls -l`输出时，修改时间最近的排到最上面
 
 * 英语句式
 
@@ -834,6 +834,8 @@
 
 * [v] reorg: documents 30 mins 02.19
 
+* [v] reorg documents 06.22
+
 ## qa
 
 ### cached
@@ -1487,7 +1489,7 @@ tasks:
 
 * [ ] 调研`__cpuid()`
 
-* [ ] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
+* [v] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 
@@ -3513,7 +3515,13 @@ cache:
 
 ### tasks
 
-* [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
+* [ ] 调研：在 .h 文件里定义 edge type id to str 是否会引起多重定义的问题？
+
+* [v] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
+
+    feedback:
+
+    1. 简单试了下向 stdin 中写数据，似乎没有什么反应。
 
 * [ ] 调研`partial_sum()`和`accumulate()`有什么区别？
 
