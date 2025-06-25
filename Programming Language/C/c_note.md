@@ -6,6 +6,31 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 使用`fprintf()`向 stderr 输出内容
+
+    ```cpp
+    #include <stdio.h>
+
+    int main(int argc, const char **argv) {
+        fprintf(stderr, "hello, world\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world
+    ```
+
+    如何证明这是 stderr 的内容，而不是 stdout 的内容？我们已知`tee`命令可以把 stdout 的内容输出到文件里，而 stderr 的内容则不会写入到文件里，而是仅输出到 terminal。
+
+    执行`./main | tee out.txt`，`cat out.txt`，文件内容为空。
+
+    而执行`./main 2>& 1 | tee out.txt`，`cat out.txt`，可以看到文件内容：`hello, world`。
+
+    说明`fprintf(stderr, ...)`确实把输出写到了 stderr 中，而不是 stdout。
+
 * c 定长数据类型 in `<cstdint>`, reference
 
     <https://en.cppreference.com/w/cpp/types/integer.html>

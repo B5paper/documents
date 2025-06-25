@@ -4,6 +4,36 @@
 
 ## cached
 
+* c++ 中的 raw 字符串
+
+    c++ 可以使用`R"()"`设置 raw 字符串，字符串中的所有内容都不做解析，空白、换行和制表都不会被忽略。
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string str = R"(aaaa
+        hello,
+        world
+        \t
+        )";
+        cout << str << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    aaaa
+        hello,
+        world
+        \t
+    
+    ```
+
 * 如果设计了两个独立的 class，又需要两个 class 合作实现某个功能，那么目前先额外写一个全局函数来解决
 
     ```cpp
