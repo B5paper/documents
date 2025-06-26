@@ -1429,6 +1429,40 @@ tasks:
 
 * { } 调研 string view
 
+* [ ] 调研`fill_gpu_attrs()`函数中添加`target_dev_infos` extract info 的代码
+
+* {O} 适配 silink
+
+    目标是生成和 mock xml 相似的 xml
+
+    feedback:
+
+    1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
+
+    1. [ ] 调研在 qemu 上运行 local_res_test，配合 interface，生成一份 xml
+
+* [v] 调研当前的服务器资源
+
+* {O} 调研 qemu、arch model、驱动以及环境搭建
+
+    feedback:
+
+    1. [ ] 调研 set 命令，`set -e`, `set -o pipefail`
+
+    1. [ ] 调研 apt 包`sshpass`, `libboost-all-dev`, `libgoogle-glog-dev`
+
+    1. [ ] 调研 apt 包`libgtest-dev`, `libiberty-dev`
+
+    1. [ ] 调研`tee -a`
+
+    1. [ ] 调研`python3 -m venv`
+
+    1. [ ] 调研`>> $LOG_FILE 2>&1`
+
+    1. [ ] 调研`if [ ! -d sipu_sw ];`
+
+    1. [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
+
 * [ ] 调研`strtoull()`, `strtol()`
 
     调研`std::stoull()`的第 2 个参数干嘛用的
