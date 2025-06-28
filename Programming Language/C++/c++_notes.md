@@ -683,6 +683,15 @@
     aaa: 123
     ```
 
+    不能写成：
+
+    ```cpp
+    struct MyStruc
+    {
+        static int aaa = 1;
+    };
+    ```
+
 * cpp decltype
 
     `auto`要求变量必须初始化，而`decltype`不要求。因为`auto`是根据变量的初始值来推导出变量类型的，而`decltype`可以写成下面的形式：

@@ -898,6 +898,10 @@
 
 * 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
 
+* 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
+
+    没有`glewInit()`，`glCreateShader()`会立即返回失败。
+
 ### Tasks
 
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
@@ -965,35 +969,19 @@
 
 * [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
-* [v] qa: 4 units
+* 修改 opengl note qa 中的`请给一个三角形加上纹理贴图。`，在 glsl 代码前加上
 
-    正确率：2 / 4
+    `#version 330 core`
 
-    feedback:
+    否则跑不通。
 
-    1. 修改 opengl note qa 中的`请给一个三角形加上纹理贴图。`，在 glsl 代码前加上
+* [ ] fix bug: 保存最新 qa record 时，不能删除旧的
 
-        `#version 330 core`
-
-        否则跑不通。
-
-    2. [ ] fix bug: 保存最新 qa record 时，不能删除旧的
-
-    3. 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
+* 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
 
 * [ ] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
-* [v] qa: 4 units  12.16
-
-    正确率：3 / 4
-
-    feedback:
-
-    1. 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
-
-        没有`glewInit()`，`glCreateShader()`会立即返回失败。
-
-    2. 调研 exam 时显示 unit 的 id 和 idx
+* [ ] 调研 exam 时显示 unit 的 id 和 idx
 
 * [v] qa: 4 units 12.18
 
@@ -1431,6 +1419,10 @@ tasks:
 
 * [ ] 调研`fill_gpu_attrs()`函数中添加`target_dev_infos` extract info 的代码
 
+    deps:
+
+    1. 搭建 qemu 环境
+
 * {O} 适配 silink
 
     目标是生成和 mock xml 相似的 xml
@@ -1439,15 +1431,13 @@ tasks:
 
     1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
 
-    1. [ ] 调研在 qemu 上运行 local_res_test，配合 interface，生成一份 xml
+    1. [v] 调研在 qemu 上运行 local_res_test，配合 interface，生成一份 xml
 
-* [v] 调研当前的服务器资源
+[ ] 调研 set 命令，`set -e`, `set -o pipefail`
 
 * {O} 调研 qemu、arch model、驱动以及环境搭建
 
     feedback:
-
-    1. [ ] 调研 set 命令，`set -e`, `set -o pipefail`
 
     1. [ ] 调研 apt 包`sshpass`, `libboost-all-dev`, `libgoogle-glog-dev`
 
@@ -1479,17 +1469,7 @@ tasks:
 
 * [ ] 调研 c++ 20 的 format
 
-( [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
-
-* [v] 调研实现`ncclTopoFlattenBcmSwitches()`
-
-    feedback:
-
-    1. [v] 为 topo system add pci 增加`invoke_cnt`变量，能快速定位到产生新 cpu 边处。
-
-* [ ] 调研实现 topo system add silink
-
-* [v] 调研实现 topo system add nvlink
+* [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
 
 * [ ] 调研`cudaMallocManaged()`
 
@@ -1530,8 +1510,6 @@ tasks:
 * [ ] 调研 c++ string 与 int, float 的转换，调研 c string 与 int float 的转换
 
 * [ ] 调研`__cpuid()`
-
-* [v] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 

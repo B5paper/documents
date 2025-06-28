@@ -279,6 +279,8 @@
 
     1. `string_view()`没有接收`string`对象为参数的构造函数，不清楚`string_view strv_2(cpp_str);`是怎么通过编译并运行的。
 
+        2025/06/28/00: `string_view strv_2(cpp_str);`这个函数，vscode 在括号时使用`ctrl + shift + space`无法调出参数提示，而在上面的`string_view strv(c_str);`可以调出，不清楚为什么。vscode 的 c++ 扩展中，c++ 标准使用的是 c++ 17。
+
     2. `string_view`没有`.c_str()`方法，只有`.data()`和`.begin()`迭代器。比较奇怪的是迭代器是个 iterator 对象，但是仍能使用`%s` print 出字符串内容。
 
 * vector 扩容会导致引用失效

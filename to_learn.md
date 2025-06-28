@@ -7744,3 +7744,7 @@
     <https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html>
 
     有时间了调研一下
+
+* Lightweight coding agent that runs in your terminal 
+
+    <https://github.com/openai/codex>
