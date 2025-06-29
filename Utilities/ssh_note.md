@@ -2,6 +2,10 @@
 
 ## cache
 
+* 使用 scp + 跳板机传文件
+
+    `scp -P <target_host_port> -J <jump_host_user>@<jump_host_ip> -r <local_src_dir> <target_host_user>@<target_host_ip>:<dst_path>`
+
 * <https://www.ssh.com/academy/ssh/client>
 
     ssh 相关的概念、术语和解释，讲得比较系统，有时间了看看，了解下为什么 ssh 要这样设计。

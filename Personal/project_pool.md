@@ -1043,6 +1043,12 @@
 
 ### tasks
 
+* [v] cache tabs 06.29
+
+    feedback:
+
+    1. [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
+
 * [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
 
 * [ ] 调研`git cherry-pick`
@@ -1415,7 +1421,7 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* { } 调研 string view
+* {v} 调研 string view
 
 * [ ] 调研`fill_gpu_attrs()`函数中添加`target_dev_infos` extract info 的代码
 
@@ -1433,17 +1439,29 @@ tasks:
 
     1. [v] 调研在 qemu 上运行 local_res_test，配合 interface，生成一份 xml
 
-[ ] 调研 set 命令，`set -e`, `set -o pipefail`
+* [v] 调研 set 命令，`set -e`, `set -o pipefail`
+
+    feedback:
+
+    1. [ ] 调研 bash 的 trap 命令
+
+    1. [ ] qa: bash 30 mins
+
+* [ ] 调研`tee -a`
+
+* [ ] 调研 apt 包`sshpass`
+
+1. [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
 
 * {O} 调研 qemu、arch model、驱动以及环境搭建
 
     feedback:
 
-    1. [ ] 调研 apt 包`sshpass`, `libboost-all-dev`, `libgoogle-glog-dev`
+    1. [ ] 调研 apt 包`libboost-all-dev`
+    
+    1. [ ] 调研 apt 包`libgoogle-glog-dev`
 
     1. [ ] 调研 apt 包`libgtest-dev`, `libiberty-dev`
-
-    1. [ ] 调研`tee -a`
 
     1. [ ] 调研`python3 -m venv`
 
@@ -1451,13 +1469,17 @@ tasks:
 
     1. [ ] 调研`if [ ! -d sipu_sw ];`
 
-    1. [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
-
-* [ ] 调研`strtoull()`, `strtol()`
+* [v] 调研`strtoull()`, `strtol()`
 
     调研`std::stoull()`的第 2 个参数干嘛用的
 
-* [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
+    feedback:
+
+    1. [ ] 调研`from_chars()`, `atoi()`
+
+    1. [ ] 调研 c/c++ 中 8 进制和 2 进制的字面常量怎么写，有解析这样字符串的函数吗？
+
+* [v] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
 * [ ] 调研`memmove()`
 

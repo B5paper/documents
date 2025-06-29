@@ -4,6 +4,70 @@
 
 ## cached
 
+* copy constructor 起作用的时机
+
+    如果我们希望把 src_obj 的数据交给 dst_obj 管理，并且释放 src_obj，比如`dst_obj.add_child_obj(src_obj);`，那么有两种方案，一种是
+
+    ```cpp
+    dst_obj.add_child_obj(new Obj(src_obj));
+    // 此时可以放心 delete src_obj;
+    ```
+
+    另一种是
+
+    ```cpp
+    src_obj->parent = dst_obj;
+    dst_obj.child_objs.push_back(src_obj);
+    parent_of_src_obj.child_objs.erase(parent_of_src_obj.child_objs.begin() + src_obj_idx);
+    ```
+
+    上面代码中，`Obj(src_obj)`实际上是调用了 copy constructor，创建了一个新的实体，并释放了旧实体。
+
+    第二种方案是只移动了指针，并没有创建一个新的实体。
+
+* 树形结构的递归释放
+
+    如果一个 obj 里面管理有 child objs，那么 obj 在析构时不需要递归释放，只需要释放自己管理的 child objs 就可以了，程序会自动递归析构，完成递归释放的功能。
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Obj {
+        int id;
+        vector<Obj*> child_objs;
+
+        Obj* add_child_obj(int id) {
+            Obj *new_obj = new Obj;
+            new_obj->id = id;
+            child_objs.push_back(new_obj);
+            return new_obj;
+        }
+
+        ~Obj() {
+            for (Obj *child_obj : child_objs) {
+                delete child_obj;
+            }
+        }
+    };
+
+    int main() {
+        Obj root_obj;
+        root_obj.add_child_obj(0);
+        Obj *child_obj_1 = root_obj.add_child_obj(1);
+        child_obj_1->add_child_obj(0);
+        child_obj_1->add_child_obj(1);
+        Obj *child_obj_2 = child_obj_1->add_child_obj(2);
+        child_obj_2->add_child_obj(0);
+        child_obj_2->add_child_obj(1);
+        child_obj_1->add_child_obj(2);
+        return 0;
+    }
+    ```
+
+    可以看到，`～Obj()`并不是递归的。我们不需要考虑那么多，只负责自己这一部分就可以了。
+
 * c++ 中的 raw 字符串
 
     c++ 可以使用`R"()"`设置 raw 字符串，字符串中的所有内容都不做解析，空白、换行和制表都不会被忽略。
