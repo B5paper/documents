@@ -1421,13 +1421,9 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* {v} 调研 string view
+* [ ] 调研搭建 qemu 环境
 
-* [ ] 调研`fill_gpu_attrs()`函数中添加`target_dev_infos` extract info 的代码
-
-    deps:
-
-    1. 搭建 qemu 环境
+* [v] 调研`fill_gpu_attrs()`函数中添加`target_dev_infos` extract info 的代码
 
 * {O} 适配 silink
 
@@ -1437,13 +1433,11 @@ tasks:
 
     1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
 
-    1. [v] 调研在 qemu 上运行 local_res_test，配合 interface，生成一份 xml
+* [ ] 调研 bash 的 trap 命令
 
 * [v] 调研 set 命令，`set -e`, `set -o pipefail`
 
     feedback:
-
-    1. [ ] 调研 bash 的 trap 命令
 
     1. [ ] qa: bash 30 mins
 
@@ -1469,25 +1463,33 @@ tasks:
 
     1. [ ] 调研`if [ ! -d sipu_sw ];`
 
+* [ ] 调研`from_chars()`, `atoi()`
+
+* [ ] 调研 c/c++ 中 8 进制和 2 进制的字面常量怎么写，有解析这样字符串的函数吗？
+
 * [v] 调研`strtoull()`, `strtol()`
 
     调研`std::stoull()`的第 2 个参数干嘛用的
 
-    feedback:
-
-    1. [ ] 调研`from_chars()`, `atoi()`
-
-    1. [ ] 调研 c/c++ 中 8 进制和 2 进制的字面常量怎么写，有解析这样字符串的函数吗？
-
 * [v] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
 
-* [ ] 调研`memmove()`
+* [v] 调研`memmove()`
 
-* [ ] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
+* [v] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
 
     比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
 
-* [ ] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
+    feedback:
+
+    1. 调研`find . -type f -name '*config*.xml' -exec grep -l 'database' {} +`
+
+        调研`find . -type f -regex '.*/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}.*\.log' -exec grep -l 'error' {} +`
+
+        grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
+
+* [ ] 调研 find 不输出没有权限的文件
+
+* [v] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
 
 * [ ] 调研 c++ 20 的 format
 
@@ -1503,7 +1505,13 @@ tasks:
 
 * [ ] 调研 magic enum
 
-* [ ] 调研 是否有指向数组的引用？
+* [v] 调研 是否有指向数组的引用？
+
+    feedback:
+
+    1. 调研 c++ `extent`的用法。
+
+* [ ] vim 中如何实现撤销操作？
 
 * [ ] 调研`addInterStep()`
 
