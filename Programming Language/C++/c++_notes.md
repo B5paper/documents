@@ -4,6 +4,219 @@
 
 ## cached
 
+* 16 进制字符串解析
+
+    ```cpp
+    #include <stdio.h>
+    #include <iostream>
+    #include <stdlib.h>  // strtol()
+    #include <string>  // std::stoi()
+    using namespace std;
+
+    int main()
+    {
+        const char *str = "0x1234";
+
+        size_t idx;
+        int val_1 = std::stoi(str, &idx, 16);
+        printf("val_1: %d, idx: %lu\n", val_1, idx);
+
+        char *end_ptr;
+        int val_2 = strtol(str, &end_ptr, 16);
+        printf("val: %d, end ch: %c\n", val_2, *end_ptr);
+
+        const char *str_2 = "1234";
+
+        val_1 = std::stoi(str_2, &idx, 16);
+        printf("val_1: %d, idx: %lu\n", val_1, idx);
+
+        val_2 = strtol(str_2, &end_ptr, 16);
+        printf("val: %d, end ch: %c\n", val_2, *end_ptr);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val_1: 4660, idx: 6
+    val: 4660, end ch: 
+    val_1: 4660, idx: 4
+    val: 4660, end ch:
+    ```
+
+    `std::stoi()`和`strtol()`都可以正常解析带`0x`或不带`0x`的十六进制字符串。`x`对大小写不敏感，也可以写成`0X`。
+
+    `stoi()`第 2 个参数返回解析结束时的索引，相当于`end_ptr`的作用。
+
+* `stoi()`与`strtol()`的区别
+
+    `stoi()`是一个作用于`const string&`的 c++ 函数，在`<string>`头文件中。
+    
+    `strol()`是一个作用于 c style string 的 C 函数，在`<stdlib.h>`头文件中。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <iostream>
+    #include <stdlib.h>  // strtol()
+    #include <string>  // std::stoi()
+    using namespace std;
+
+    int main()
+    {
+        const char *str = "123, 456";
+
+        size_t idx;
+        int val_1 = std::stoi(str, &idx, 10);
+        printf("val_1: %d, idx: %lu\n", val_1, idx);
+
+        char *end_ptr;
+        int val_2 = strtol(str, &end_ptr, 10);
+        printf("val_2: %d, end ch: %c\n", val_2, *end_ptr);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val_1: 123, idx: 3
+    val_2: 123, end ch: ,
+    ```
+
+    两个函数都会从字符串起始位置开始尝试解析，直到遇到无效字符为止，返回遇到的第一个无效字符的位置。
+
+    如果一个有效的数字都解析不出来，那么`std::stoi()`会报 exception 退出程序。`strtol()`会返回 0，但并不会报错，用户只能通过判断`end_ptr`与 start ptr 是否相等来判断是否正常解析。
+
+* 在 struct 内初始化的变量，既可以是 const 的，也可以是非 const 的，但是不能是 static 的。
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    struct MyType {
+        string msg = "hello";
+        const int val = 456;
+    };
+
+    int main()
+    {
+        MyType a;
+        cout << a.msg << endl;
+        cout << a.val << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello
+    456
+    ```
+
+* c++ 中`override`表示此函数为覆盖基类的虚函数，编译器会检查此函数是否确实覆盖了基类虚函数，如果没有，则报错。`final`则表示此函数不应再被派生类的虚函数覆盖。
+
+* copy constructor 起作用的时机
+
+    如果我们希望把 src_obj 的数据交给 dst_obj 管理，并且释放 src_obj，比如`dst_obj.add_child_obj(src_obj);`，那么有两种方案，一种是
+
+    ```cpp
+    dst_obj.add_child_obj(new Obj(src_obj));
+    // 此时可以放心 delete src_obj;
+    ```
+
+    另一种是
+
+    ```cpp
+    src_obj->parent = dst_obj;
+    dst_obj.child_objs.push_back(src_obj);
+    parent_of_src_obj.child_objs.erase(parent_of_src_obj.child_objs.begin() + src_obj_idx);
+    ```
+
+    上面代码中，`Obj(src_obj)`实际上是调用了 copy constructor，创建了一个新的实体，并释放了旧实体。
+
+    第二种方案是只移动了指针，并没有创建一个新的实体。
+
+* 树形结构的递归释放
+
+    如果一个 obj 里面管理有 child objs，那么 obj 在析构时不需要递归释放，只需要释放自己管理的 child objs 就可以了，程序会自动递归析构，完成递归释放的功能。
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Obj {
+        int id;
+        vector<Obj*> child_objs;
+
+        Obj* add_child_obj(int id) {
+            Obj *new_obj = new Obj;
+            new_obj->id = id;
+            child_objs.push_back(new_obj);
+            return new_obj;
+        }
+
+        ~Obj() {
+            for (Obj *child_obj : child_objs) {
+                delete child_obj;
+            }
+        }
+    };
+
+    int main() {
+        Obj root_obj;
+        root_obj.add_child_obj(0);
+        Obj *child_obj_1 = root_obj.add_child_obj(1);
+        child_obj_1->add_child_obj(0);
+        child_obj_1->add_child_obj(1);
+        Obj *child_obj_2 = child_obj_1->add_child_obj(2);
+        child_obj_2->add_child_obj(0);
+        child_obj_2->add_child_obj(1);
+        child_obj_1->add_child_obj(2);
+        return 0;
+    }
+    ```
+
+    可以看到，`～Obj()`并不是递归的。我们不需要考虑那么多，只负责自己这一部分就可以了。
+
+* c++ 中的 raw 字符串
+
+    c++ 可以使用`R"()"`设置 raw 字符串，字符串中的所有内容都不做解析，空白、换行和制表都不会被忽略。
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string str = R"(aaaa
+        hello,
+        world
+        \t
+        )";
+        cout << str << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    aaaa
+        hello,
+        world
+        \t
+    
+    ```
+
 * 如果设计了两个独立的 class，又需要两个 class 合作实现某个功能，那么目前先额外写一个全局函数来解决
 
     ```cpp
@@ -651,6 +864,15 @@
 
     ```
     aaa: 123
+    ```
+
+    不能写成：
+
+    ```cpp
+    struct MyStruc
+    {
+        static int aaa = 1;
+    };
     ```
 
 * cpp decltype

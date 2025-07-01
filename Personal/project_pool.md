@@ -30,29 +30,21 @@
 
 ## cache
 
+* 滑坡
+
+    大部分企业总是贴着法律的最低标准生产，如果是没有法律监管的模糊地带，那么质量会低到不可想象。比如茶叶，卖树枝也是不违法的，所以低价茶叶里经常混有树枝。再比如小饭店，食材的劣质程度低到无法想象。当质量没有锚定点时，总是会不断地滑坡，直到达到法律的最低标准。是否有解决这个问题的思路？
+
+    即使是贵的东西，质量也有好有坏，与其害怕花更多的钱买质量更低的商品，不如直接买便宜的有法律标准保底的。这样就导致贵的东西卖不出去，质量无法提升。
+
+* 根据 cache 动态地创建出 project，似乎效果挺好的，比直接生成静态的平衡池效果要好。
+
 * 之前似乎讨论过使用 idx 比使用指针好，具体细节是什么？
 
-* 如果两个过程细节不同，但是全局相同，那么对照实现起来非常麻烦，我们无法根据单步调试一行一行地照搬，必须整理了抽象的全过程，再去做实现
-
-    但是这个过程也是非常有意义的，全局相同，说明这两个过程的核心相同；过程不同，说明加入了噪声干扰和泛化。如果能对这两个过程进行研究，找到相同的核心和本质，还是可以提升自己的。
-
-* [ ] 调研`partial_sum()`和`accumulate()`有什么区别？
-
-* [ ] 调研`ls -l`输出时，修改时间最近的排到最上面
-
-* 是否掌握一项技能，最好的判断方法是看能不能复现。
+* [v] 调研`ls -l`输出时，修改时间最近的排到最上面
 
 * 英语句式
 
     It’s not really a standard, but it’s considered as such by many.
-
-* 基于 nccl 调研的非线性学习心得
-
-    这个过程和扫雷有点像，都是从确定已知的信息开始，从内向外逐渐推测功能，做出猜想和假设，并做实验进行验证。
-
-    比如在 set_path() 函数中判断 path 的含义时，我们可以看懂并确定的代码时，每次搜索到一个 rem_node，都会搜索其 rem_link，当发现 rem_link 指向当前 node 时，就把 rem_link 添加到 rem_path 最开头的位置，并将 path 的内容添加到 rem_path 的后面。由此我们做出猜想：rem_path 的作用是从 rem_node 出发，终点为 base node 的 edge list。由于此猜想在后面的代码被多次验证，所以大概率是对的。由此我们还可以做出推断：与 rem_path 相对应，path 的作用是从当前 node 出发，指向 base node。这个推断再次被证明为对的，我们又可以做出推断：`getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path)`的作用是返回从`node`出发，指向 type 为`t`，topo id 为`id`的 node 的 path。
-
-    注意推断（inference）和评论（comment）的区别，推断可以推动理解的进展，评论只能发散思维，或者提出问题。推断的一个重要标志是通过实验验证猜想，而评论只需要说出感觉，重新叙述，提出问题，作出评价。
 
 * 数据库书籍
 
@@ -65,83 +57,7 @@
     * 《数据库系统概论》（An Introduction to Database Systems）作者：C.J. Date。这是另一本经典的数据库教材，内容详尽。
     如果你是中文读者，《数据库原理及应用》作者：王珊、萨师煊，这本教材结合了理论与实践，通过实例讲解数据库的设计和开发过程。
 
-* 容错
-
-    学术界的科研容错率太低，如果有类似科技树的东西来指引科研的成就和成功率，哪些方向做过了，哪些没做过，那么我们就可以做出选择，对于不想做出重大贡献的科研人员，只需要选择成就较低、成功率比较高的 branch 进行研究即可；对于有志向的科学家，则可以选择成功率更低，难度更大的 branch。很可惜这样的指引几乎不存在。经常有人错估了难度，导致研究出了东西时，发现别人都做过了。
-
-* 写递归还是有点难度，可以先将一个完整结构分成 2 部分或 3 部分，然后分别写出 2 部分或 3 部分的处理方式，比如第 2 部分需要遍历，第 3 部分需要给出当前的 position 等。如果在第 2 部分需要遍历，那么判断下是先序遍历还是后序遍历（先遍历完子节点再处理当前节点）。
-
-    做题时候的后序遍历，通常是使用 int 来返回一个值。实际项目中，如果遍历子节点时需要用到 parent 信息，而且又需要返回一些处理完后的信息，那么函数的设计就比较复杂了。这个时候究竟应该以 parent 的角度遍历子节点，还是在递归的开头直接处理当前节点，如果遇到空节点则返回？这个问题有时间了可以讨论下。
-
-* 调试
-
-    debug 只靠 gdb 不太够，有时候还需要对源码做修改。
-
-* 嵌套 if 的使用时机
-
-    写 if 时首先想到如何设置条件能快速退出这个 if。如果发现快速退出 if 后，需要 goto 跳转到其他地方，那么说明这个 if 必须要嵌套了。
-
 * 每天必须花固定时间看书，以此减少电子设备的接触。因为电子设备提供的信息源过多，会导致注意力经常被分散，无法集中精神。书籍提供的信息相对较少，但是更深入，理论上有助于长期集中注意力。
-
-* 重新强调一遍，退出任务时保证 stack 干净非常重要。桌面、床铺等日常环境同样如此。
-
-* 给出一个定时器，到达时间后停下来做任务总结。未到时间就想停下则需要锻炼注意力。
-
-* [P] 调研 tk app 开发
-
-    10:14 ~ 11:01
-
-    尝试实现一个定时器
-
-    feedback:
-
-    1. 中文版教程：<https://blog.csdn.net/vor234/article/details/134761002>
-
-    1. 英文版教程
-
-        * <https://tkdocs.com/>
-
-        * <https://tkdocs.com/tutorial/install.html>
-
-* 力扣题：为什么做智力题无法从前往后递推，打家劫舍就可以？智力题的递归该怎么写？记忆化搜索该怎么写？总结智力题的双重循环搜索和从前往后的剪枝。强行单循环从前往后搜索的解法就不看了。
-
-* 必要的 bfs 与非线性
-
-    对于有嵌套结构的材料，有两种方式可以尝试理解，一种是 dfs，另一种是 bfs。dfs 指的是首先关注材料的第一段话，第一句话，或关注代码的第一行函数，然后再层层展开，直到遇到不能理解的，要么去查资料，要么回退到上一层，并尝试向前/向后看一些，并给出猜想，由此再向后推进。
-
-    bfs 指的是先浏览材料整体，根据自己当前的水平和理解，给出各个模块的作用以及模块与模块之前联系的猜想。此时会大量使用非线性的技巧。
-
-    显然 dfs 更细致，更精确，但是如果非骨干的细节过多，会耽误对主干的理解。dfs 的周期通常很长，一个任务 pending 很多天无法完成，导致任务越积累越多。那么什么时候该用 bfs？如果是一个调研性质的任务，不需要强制实现，并且希望任务尽快收尾，那么就使用 bfs。如果某个任务需要强制实现，并且这个任务长期存在，那么就使用 dfs。
-
-* 浮躁
-
-    场景：地理上因为某块地有躁气，人们追求快而浮躁，就像在浮屠塔一样。此时有一个人初来乍到，被卷入纷争，不停地有人引诱，诈骗，躁动，疯狂，幸好这个人经受住了考验。离开此地后才发现这个地方向上冒着煞气or是个鬼城。这两个结局都挺不错的。
-
-    人的精神世界来自于对物质的态度，来自于与自然的共处，来自于人与人之间的关系处理，来自与社会的联结，来自于自己的思想。精神世界的广阔程度与物质世界不相上下。精神世界经受的考验也与物质世界经受的考验（饥饿，温度，劳累等）相当。
-
-* 与其专门准备一个下午去做一件事，不如把这件事分摊到每天。
-
-    想要专门腾出一段时间做一件事是困难的，通常会：想做事情 A，终于等到有空闲时间的机会了，这时候又觉得事情 B 更有意思，或者刚开始一会事情 A，又被突如其来的事情打断了。
-
-    况且连等到空闲时间的机会都很少，不是身体疲惫，就是精神不佳。实际上，我们大部分时间都是这样的状态，与其等到最佳的状态，不如适应不佳的状态。
-
-* 如果一个项目是有用的，那么最好的开始时间就是现在。
-
-    假如往后推迟了几天，就无法找到一个完美的开始时间，总是想着所有工作都准备就绪，所有状态都达到最佳，并且可以专心一下午，没有其他事情打扰，这样的情况可能只有 5% 的概念会出现。所以还不如直接现在就不完美地开始。将项目添加到任务管理系统里，并且保持追踪，这才是最佳的做法。
-
-* 没办法写成笔记的东西
-
-    * 寻找解决问题的灵感或对未知未来探索的过程
-
-        “探索”的过程不可写，首先写出来就会失去灵性，既受限于文字，也失去了“虚”的感觉；其次写下来的思考速度会变慢，书面表达的思考速度太慢了。
-
-        但是已经探索明白的，可能会形成方案的思路可以记录下来，作为一个待调研的思路。
-
-    * 临时的记录、中间步骤、中间猜想与中间结论
-
-        这种比较适合写到 tmp 中。比如记录一下目前的函数调用嵌套了多少层，要搜索的字符串的 start pos，某个对象的指针的值等。
-
-        其实写到 tmp 中也会拖慢思考速度，这种最适合的就是在脑子中临时记住。
 
 * 一个调研任务本身只是个调研，那么它是否需要区分 P, O, x, v 等状态？
 
@@ -159,57 +75,19 @@
 
     一个调研类型的任务有时无法被清空，并不能简单判定为完成或未完成，需要按上面的方法进行区分。
 
+* 如果一个任务被标记为`P`（有思路，但未完成），那么应该在任务池中将其修改为一个长期任务`{ }`。
+
+* 如果一个任务连续出现 2 次，3 次，依然没有完成，那么就可以考虑把这个任务变成一个长期任务
+
+* `{ }`类型的任务不应该另起一个`[ ]`任务，应该全部合并到`{ }`任务里
+
 * 千恋万花 PC中文破解版
 
     <http://www.kkx.net/game/68263.html>
 
-* 调研 linux `time` command
-
-    `time ./my_app`
-
-    调研`nvprof ./vector_add`如何给出性能数据
-
-    调研`cudaMallocManaged(&x, N*sizeof(float));`
-
-* 如果一个任务被标记为`o`（有思路，但未完成），那么应该在任务池中将其修改为一个长期任务`{ }`。
-
-* 如果有 new task，可以添加到当日的 task list 里，但是必须添加`[new]`标记
-
-    比如：
-
-    ```
-    * [ ] task 1
-    
-    * [ ] task 2
-
-    ...
-
-    * [new] new task 1
-
-    * [new] new task 2
-
-    ...
-    ```
-
-    添加到当日的 task list，可以防止
-
 * 交互式地阅读材料并不能解决效率逐渐降低的问题，只能缓解。如果想要解决，还是得靠真正的输出。
 
-* dfs 停止的条件
-
-    阅读材料时，每次开始认为是一个 block，每遇到一个无法解释的点，则记 uncomprehensive point +1，记录够 N 个后，则认为这个 block 到此已经无法再理解了。可以尝试从下面开始，或者往下跳几段/几章，开始一个新的 block。如果新的 block 也无法理解，则记录 uncomprehensive block +1，攒够 N_2 个后，则认为整个 material 是无法理解的。
-
 * 对于当前节点，必须反复提问自己：上一个节点在哪里？我是从哪里来的？
-
-* 概念重定义
-
-    对于一个所有概念都清晰定义的系统，如果剔除某个概念 A 的定义，只保留其他概念对 A 的使用，那么根据这些使用的描述，我们能从什么程度上反推出 A 的定义？
-
-    example:
-
-    > 为了获得高带宽，shared Memory被分成32（对应warp中的thread）个相等大小的内存块，他们可以被同时访问。不同的CC版本，shared memory以不同的模式映射到不同的块（稍后详解）。如果warp访问shared Memory，对于每个bank只访问不多于一个内存地址，那么只需要一次内存传输就可以了，否则需要多次传输，因此会降低内存带宽的使用。
-
-    上面是某个博客的一段文字，其中用到了 bank 的概念，但是并没有给出 bank 的定义。我们是否能仅通过类似这样描述性的文字，推测出 bank 的定义或含义？
 
 * 遗忘点
 
@@ -253,14 +131,6 @@
 
     3. 如果代码都可以解释，那么尝试复现代码，重写一遍
 
-* 未知概念的非线性搜索范围
-
-    一个初步的方案：假如概念 1 没有理解，可以暂时跳过，继续看后面的东西。假如看到了概念 2，概念 2 依赖于概念 1，概念 3 也依赖概念 1，但是概念 3 与概念 2 是独立的，那么可以借助概念 2 和 3 理解概念 1. 假如概念 4 依赖概念 2，而概念 2 还没弄明白，那么就应该停止了。
-
-* 推理 nccl 有点像玩扫雷
-
-* 非 cache 笔记（顺序笔记）的原则：假设自己对所有的概念都一无所知，又假设所有后续的笔记都依赖前面的笔记。
-
 * 描述，猜想，问题与实验
 
     * 实验由对比，或推理加实验的方式组成，并且有结论，是最强的证据
@@ -273,10 +143,6 @@
 
     探索的部分可以由这几部分记录。
 
-* 如果一个任务连续出现 2 次，3 次，依然没有完成，那么就可以考虑把这个任务变成一个长期任务
-
-* `{ }`类型的任务不应该另起一个`[ ]`任务，应该全部合并到`{ }`任务里
-
 * 假设生成 -> 内部自洽 -> 外部验证
 
     如果内洽与外延都是正确的，那么假设空间可以认为是一个等价映射。
@@ -286,20 +152,6 @@
 * [ ] 调研 matplotlib 画 surface
 
 * 对于已完成的 task，feedback 部分向下添加；对于未完成的 task，deps 部分向上添加
-
-* 我们的对抗并不是谁把任务做完，谁投入时间长谁就能取胜的，而是大家都把当前工作做到精致的情况下，继续对未来的可能性进行探索、冒险、赌博和选择。
-
-    按部就班的回答不会有奇迹。
-
-* 非线性变化
-
-    假如现在有一团热气流和冷气流相遇，如果在对气流一无所知的情况下去做仿真，大概率得到的结果是冷气流与热气流的温度逐渐趋于相同，锋面的温度变化最快，远端的温度变化最慢。我们大概率不能直接仿真出龙卷风，台风。
-
-    假如我们提前知道了冷暖气流相遇有可能出现台风，那么大概率会修改我们的仿真算法，使结果中一定几率出现台风。
-
-    对于云层也是一样，假如我们对云的知识一无所知，那么大概率只能仿真出一块一块的云，但是自然界有卷云、排成阵列的云、下击暴流的云，如果我们提前不知道这些概念，那么它们几乎不会在仿真里出现。
-
-    假如我们称冷暖空气的温度变化、天空中的白云为线性变化，台风、阵列云就是非线性变化，那么问题是：非线性变化是什么带来的？我们在仿真时如何才能尽可能地捕捉到这种变化？
 
 * 如果 doc 或者资料里只有一部分是能看懂的，其他的看不懂，那么在写笔记时只记录看懂的，做过实验验证的，不懂的另起新的调研 task／项目
 
@@ -329,10 +181,6 @@
 
 * 想法：用摄像头判断自己在执行一项 tasks 时拿起手机的次数
 
-* 非线性项目
-
-    如果完成一个项目用到的知识无法全部从 qa 和 note 中得到，并且这个项目有时间约束，那么这个项目就是一个非线性项目。
-
 * 必须增加时间的约束
 
     不可能只靠流程安排得到最优效率，因为假如一件任务的使用 30 分能完成 70%，60 分能完成 90%，我们可能更想要 70% 的完成度。除非持续有新的发现，随着时间增长，成果线性增长。
@@ -357,15 +205,9 @@
 
     分组对 parameter 进行灵敏度测试，观察 acc，找到最不灵敏的一组 param，此时 fix 其他 param，将这组 param re-init 重置，并开始训练。反复重复这个过程，直到模型整体的 acc 不再变化。
 
-* 挪瓦咖啡的加浓生椰拿铁太苦了
-
 * 数学在离散算法领域并不总是能帮上忙的，比如各种智能优化算法，神经网络算法
 
 * ai 的一个需要解决的问题是内部认识的协调性，我们的 target 可能并不总是在外部
-
-* 如果一个任务没有指定具体的类型，那么就默认认为它是个调研任务
-
-* 在开始一项任务前我们真的需要最佳状态吗？如果最小状态可以满足，那么就认为任务可以开始。
 
 * [ ] 调研 v2ray 按域名选择流量出口
 
@@ -379,10 +221,6 @@
 
     当变量名混乱有冲突，不好起新名字的时候可以尝试开一个新函数。
 
-* 对于一项任务，如果我们可以想象模拟出执行它的全过程，并可以预测所有可能的结果，那么它就不是一个“调研”
-
-    比如“记忆”，就不是一个调研；随机检测 qa 也不是一个调研。
-
 * [ ] 调研 meson, ninja
 
 * 多线程调试时锁定单线程
@@ -391,83 +229,15 @@
 
     <https://www.cnblogs.com/pugang/p/7698772.html>
 
-* [v] c 语言中 static 全局变量和不加 static 的全局变量有什么不同？
-
-* 笔记与中间结果
-
-    有些需要记录的内容明显是中间结果而不是笔记，如果把中间结果当成笔记来记，那么在归类的时候就不知道该把归类到什么地方去。
-
-    中间过程只是记录，不是结论，因此很难复用。这些不应该出现在笔记里。
-
 * [ ] 调研 docker 中 app 的调试方法
 
-* [ ] 调研 makefile 的 submodule
-
-* [ ] 调研 diff 命令的用法
-
-* [ ] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
-
-* vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
-
-    看起来比较重要的几段代码：
-
-    ```python
-    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-        self.pynccl_comm.send(tensor, dst=self.ranks[dst])
-    ```
-
-    ```python
-    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
-        self.pynccl_comm.recv(tensor, src=self.ranks[src])
-    ```
-
-    ```python
-    pynccl_comm = self.pynccl_comm
-    if pynccl_comm is not None and not pynccl_comm.disabled:
-        pynccl_comm.send(tensor, dst)
-    else:
-        with xxxx
-
-    # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
-    ```
-
-* [ ] ln 是否能创建文件夹的 hard link?
-
-* [ ] 调研`ssh-add`，`ssh-agent`的作用
-
 * 晚上吃饭不要吃到撑，不然会特别困，几乎没有精力继续学习。吃个半饱就可以了。
-
-* 任务完不成应该分两种情况处理，一种是有极大可能完成，只不过时间不够，另一种是还在调研搜集信息阶段，不清楚是否能完。显然这两种情况的处理方式应该是不同的。
-
-* 在准备去执行一项任务时，不应该考虑当前状态是否为最佳，而应该考虑当前状态是否满足最低要求
 
 * 需要一个 graph 工具，建立不同的东西之间的连接
 
     stack 工具只适合任务的 trace
 
 * 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
-
-* 笔记的结构
-
-    先记录单个独立主题，再记录 topic，topic 中是多个独立主题的组合
-
-* 如果学新概念/知识时，所有的新概念都可以从已知的知识轻松推导出来，那么就称这种学习过程为线性学习
-
-    如果在学习一块新知识时，新知识中的一部分或全部无法通过已知概念推导出来，那么就称这种学习过程为非线性学习
-
-* 非线性学习的一些方法
-
-    * 总会有一些东西是可以一眼看懂的（从旧知识中推导出来），对这些一眼可以看懂的知识进行条目化总结。
-
-        sync 这些新概念，直到可以用它们解释其他的新知识
-
-    * 猜想-验证，对于无法理解的概念，先给出自己的一个猜想的解释，然后做出一些预测，再去验证，最后修正自己的猜想
-
-        难点在于，有时候需要同时对大量的新概念提出猜想，变量过多，不容易修正自己的猜想。
-
-    * 孤岛信息的连结
-
-        如果有一段一两句话的知识点，虽然看不懂，但是可能在新知识体系中有用，不需要理解，但是需要知道它出现过，以后可能用得到，这种孤岛信息可以选择性地收集起来，以备后面使用。
 
 * `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
 
@@ -477,52 +247,15 @@
 
     先记录单个独立主题，再记录 topic，topic 中是多个独立主题的组合
 
-* 如果学新概念/知识时，所有的新概念都可以从已知的知识轻松推导出来，那么就称这种学习过程为线性学习
-
-    如果在学习一块新知识时，新知识中的一部分或全部无法通过已知概念推导出来，那么就称这种学习过程为非线性学习
-
-* 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
-
-    ```bash
-    sed 's.*/##' <<< "/tmp/dir/target"
-    target
-
-    awk -F'/' '{print $NF}' <<< "/tmp/dir/target"
-    target
-
-    grep -o '[^/]*$' <<< "/tmp/dir/target" 
-    target
-    ```
-
-    也可以直接使用 bash 脚本：
-
-    ```bash
-    INPUT="/tmp/dir/target"
-    echo ${INPUT#*/}
-    target
-    ```
-
 * 调研 Computer algebra system
 
     <https://en.wikipedia.org/wiki/Computer_algebra_system#>
 
     自动求导、符号求导等相关知识可能和这个概念有关。
 
-* 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
-
-* 当我们说一个任务无法完成时，意味着我们必须要完成其他前置任务，依赖任务
-
-* [ ] 有时间了调研一下`https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html`，这好像是个 c api 的文档
-
-* 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
-
-    <https://www.zhihu.com/question/659607083>
-
 * 香山 riscv 源代码 repo
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
-
-* 如何为一个用户增加指定目录的各种权限？
 
 * [ ] 调研 git reset 查看不同版本的 linux kernel version
 
@@ -566,28 +299,6 @@
 
     * 标准参考答案
 
-* 不要忽略题目的暴力写法
-
-    暴力写法是基础。
-
-    在写出暴力写法的基础上，再去分析改进。这样的技能才是通用的。
-
-* dfs 学习的两个常用方法
-
-    1. 栈式（链式）问题回溯
-
-    2. 猜想，假设，跳跃
-
-* 调研
-
-    `create_workqueue`, `inb`, 
-    
-    `INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
-
-* 经常出现 terminal 没有登录虚拟机 ssh 的情况
-
-    有没有什么办法可以避免这个问题？
-
 * to complete:
 
     1. modern c++, rewrite the ray tracing program
@@ -597,8 +308,6 @@
     4. vulkan compute shader
 
 * qa 频率可以降低到每周一次
-
-* ibus 中的`mod`键是 alt 键
 
 * 看手机的时间定在完成一项任务后，或者至少离上次看手机过去 xxx 分钟后
 
@@ -1133,6 +842,8 @@
 
 * [v] reorg: documents 30 mins 02.19
 
+* [v] reorg documents 06.22
+
 ## qa
 
 ### cached
@@ -1186,6 +897,10 @@
 * 必须增加 dep 功能了，不然 qa 没法进行下去
 
 * 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
+
+* 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
+
+    没有`glewInit()`，`glCreateShader()`会立即返回失败。
 
 ### Tasks
 
@@ -1254,35 +969,19 @@
 
 * [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
-* [v] qa: 4 units
+* 修改 opengl note qa 中的`请给一个三角形加上纹理贴图。`，在 glsl 代码前加上
 
-    正确率：2 / 4
+    `#version 330 core`
 
-    feedback:
+    否则跑不通。
 
-    1. 修改 opengl note qa 中的`请给一个三角形加上纹理贴图。`，在 glsl 代码前加上
+* [ ] fix bug: 保存最新 qa record 时，不能删除旧的
 
-        `#version 330 core`
-
-        否则跑不通。
-
-    2. [ ] fix bug: 保存最新 qa record 时，不能删除旧的
-
-    3. 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
+* 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
 
 * [ ] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
-* [v] qa: 4 units  12.16
-
-    正确率：3 / 4
-
-    feedback:
-
-    1. 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
-
-        没有`glewInit()`，`glCreateShader()`会立即返回失败。
-
-    2. 调研 exam 时显示 unit 的 id 和 idx
+* [ ] 调研 exam 时显示 unit 的 id 和 idx
 
 * [v] qa: 4 units 12.18
 
@@ -1343,6 +1042,12 @@
 * 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
 
 ### tasks
+
+* [v] cache tabs 06.29
+
+    feedback:
+
+    1. [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
 
 * [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
 
@@ -1554,6 +1259,30 @@ tasks:
 
 ### cache
 
+* vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
+
+    看起来比较重要的几段代码：
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.send(tensor, dst=self.ranks[dst])
+    ```
+
+    ```python
+    with self.pynccl_comm.change_state(enable=True, stream=torch.cuda.current_stream()):
+        self.pynccl_comm.recv(tensor, src=self.ranks[src])
+    ```
+
+    ```python
+    pynccl_comm = self.pynccl_comm
+    if pynccl_comm is not None and not pynccl_comm.disabled:
+        pynccl_comm.send(tensor, dst)
+    else:
+        with xxxx
+
+    # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
+    ```
+
 * `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
 
 * `ld_volatile_global()`在两个地方被调用
@@ -1692,43 +1421,93 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研`std::stoull()`的第 2 个参数干嘛用的
+* [ ] rsync 如何通过跳板机器发送文件？
 
-* [ ] 调研`memmove()`
+* [ ] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
 
-* [ ] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
+* [ ] grep 时如何显示前后 n 个的文本？
+
+* [v] 调研搭建 qemu 环境
+
+    feedback:
+
+    1. 60 机器上的 virt-manager 无法正常启动，qemu-system-x86_64 启动 qcow 图形界面太卡。如果使用无图形界面，速度应该会快一些。但是目前更好的办法是使用 54 机器开发。
+
+        2025/07/01/00: 54 机器环境不完整，最终还是到 60 机器上搭建 qemu 了。
+
+    1. 编译时报错：
+
+        ```
+        [229/231] Linking target tests/qtest/qos-test
+        [230/231] Linking target storage-daemon/qemu-storage-daemon
+        [231/231] Linking target qemu-system-x86_64
+        ert build fails
+        build fails
+        ```
+
+        原因：
+
+        依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
+
+    1. [v] 编译 kmd 驱动
+
+* {O} 适配 silink
+
+    目标是生成和 mock xml 相似的 xml
+
+    feedback:
+
+    1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
+
+* [P] 调研 bash 的 trap 命令
+
+* [ ] qa: bash 30 mins
+
+* [v] 调研 set 命令，`set -e`, `set -o pipefail`
+
+* [ ] 调研`tee -a`
+
+* [ ] 调研 apt 包`sshpass`
+
+* [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
+
+* [ ] 调研 apt 包`libboost-all-dev`
+
+* {O} 调研 qemu、arch model、驱动以及环境搭建
+
+    feedback:
+    
+    1. [ ] 调研 apt 包`libgoogle-glog-dev`
+
+    1. [ ] 调研 apt 包`libgtest-dev`, `libiberty-dev`
+
+    1. [ ] 调研`python3 -m venv`
+
+    1. [ ] 调研`>> $LOG_FILE 2>&1`
+
+    1. [ ] 调研`if [ ! -d sipu_sw ];`
+
+* [ ] 调研`from_chars()`, `atoi()`
+
+* [ ] 调研 c/c++ 中 8 进制和 2 进制的字面常量怎么写，有解析这样字符串的函数吗？
+
+* [ ] 调研`find . -type f -name '*config*.xml' -exec grep -l 'database' {} +`
+
+    调研`find . -type f -regex '.*/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}.*\.log' -exec grep -l 'error' {} +`
+
+    grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
+
+* [v] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
 
     比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
 
-* [v] 调研实现`ncclTopoFlattenBcmSwitches()`
+* [ ] 调研 find 不输出没有权限的文件
 
-    feedback:
+* [ ] 调研 c++ 20 的 format
 
-    1. 目前定位到 516096 节点的拓扑边多了一条指向 cpu 的节点，但是标准版 nccl 没有这条边。下一步可以增加 topo system add pci 的 cnt，方便快速定位。目前看来第 4 次 invoke 即会触发。
-
-    1. [ ] 为 topo system add pci 增加`invoke_cnt`变量，能快速定位到产生新 cpu 边处。
-
-    1. [ ] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
-
-    1. [ ] 调研 c++ 20 的 format。
-
-    1. `for (int s=0; s<system->nodes[PCI].count; s++) {`第一次调用后，pci node 数从 14 降低到 12，后面 siccl 的 pci node 数不再改变，而 nccl 经过几次调用过 pci node 数会降到 10，目前不清楚原因，需要进一步调试。
-
-        可以对比第一次调用后 topo system 里 pci node 信息以及 edge 信息。然后再单步调试，看可能在哪里有问题。
-
-    1. [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
-
-* [v] 调研实现 topo system add nvlink
-
-    feedback:
-
-    1. [ ] 调研实现 topo system add silink
-
-* [ ] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
+* [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
 
 * [ ] 调研`cudaMallocManaged()`
-
-* [P] 调研 string view
 
 * [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
 
@@ -1738,13 +1517,15 @@ tasks:
 
 * [ ] 调研 magic enum
 
-* [ ] 调研 是否有指向数组的引用？
+* [ ] 调研 c++ `extent`的用法。
+
+* [v] 调研 是否有指向数组的引用？
+
+* [ ] vim 中如何实现撤销操作？
 
 * [ ] 调研`addInterStep()`
 
 * [ ] 调研尝试复现`ncclTopoComputePaths()`
-
-* [ ] 调研`strtoull()`, `strtol()`
 
 * [ ] 调研 emplace() 和 emplace_back() 的区别
 
@@ -1769,8 +1550,6 @@ tasks:
 * [ ] 调研 c++ string 与 int, float 的转换，调研 c string 与 int float 的转换
 
 * [ ] 调研`__cpuid()`
-
-* [ ] 调研`attr_val.erase(attr_val.back());`为什么可以 work？
 
 * [ ] 调研 bootstrap 中 unique id 的生成方式，以及这个 id 有什么用？
 
@@ -2731,6 +2510,77 @@ tasks:
 
     3. 可以调研下内核源码中 menuconfig 中有什么支持 vga 的选项
 
+## GUI
+
+* [P] 调研 tk app 开发
+
+    10:14 ~ 11:01
+
+    尝试实现一个定时器
+
+    feedback:
+
+    1. 中文版教程：<https://blog.csdn.net/vor234/article/details/134761002>
+
+    1. 英文版教程
+
+        * <https://tkdocs.com/>
+
+        * <https://tkdocs.com/tutorial/install.html>
+
+## 操作系统 OS Linux 运维
+
+### cache
+
+* ibus 中的`mod`键是 alt 键
+
+* 经常出现 terminal 没有登录虚拟机 ssh 的情况
+
+    有没有什么办法可以避免这个问题？
+
+* 如何为一个用户增加指定目录的各种权限？
+
+* 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
+
+* 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
+
+    ```bash
+    sed 's.*/##' <<< "/tmp/dir/target"
+    target
+
+    awk -F'/' '{print $NF}' <<< "/tmp/dir/target"
+    target
+
+    grep -o '[^/]*$' <<< "/tmp/dir/target" 
+    target
+    ```
+
+    也可以直接使用 bash 脚本：
+
+    ```bash
+    INPUT="/tmp/dir/target"
+    echo ${INPUT#*/}
+    target
+    ```
+
+* [ ] ln 是否能创建文件夹的 hard link?
+
+* [ ] 调研`ssh-add`，`ssh-agent`的作用
+
+* [ ] 调研 makefile 的 submodule
+
+* [ ] 调研 diff 命令的用法
+
+* [ ] 调研 linux `time` command
+
+    `time ./my_app`
+
+    调研`nvprof ./vector_add`如何给出性能数据
+
+    调研`cudaMallocManaged(&x, N*sizeof(float));`
+
+### tasks
+
 ## 分布式计算调研
 
 tasks:
@@ -3128,6 +2978,14 @@ Tasks:
 
 cache:
 
+* 不要忽略题目的暴力写法
+
+    暴力写法是基础。
+
+    在写出暴力写法的基础上，再去分析改进。这样的技能才是通用的。
+
+* 力扣题：为什么做智力题无法从前往后递推，打家劫舍就可以？智力题的递归该怎么写？记忆化搜索该怎么写？总结智力题的双重循环搜索和从前往后的剪枝。强行单循环从前往后搜索的解法就不看了。
+
 * 做一道 leetcode 题差不多要一个小时
 
 * 图论里，如果已知一个 node，需要知道和这个 node 相连的边的情况，那么用链表是最优选择。
@@ -3177,6 +3035,12 @@ resources:
 ## linux driver
 
 cache:
+
+* 调研
+
+    `create_workqueue`, `inb`, 
+    
+    `INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 
 * `list_add()`是在指定 node 后添加 node
 
@@ -3585,6 +3449,72 @@ cache:
 
 ### cache
 
+* if 的使用时机
+
+    如果需要跳过一段代码，那么就必须使用 if。
+
+    ```cpp
+    int func() {
+        if (cond) {
+            // block 1
+        }
+
+        // block 2
+
+        return 0;
+    }
+    ```
+
+    如上面所示，效果是 block 1 选择性执行，block 2 必须执行。
+
+    如果不想把代码嵌套在`if`中，又免不了要用`goto`:
+
+    ```cpp
+    int func() {
+        if (!cond) {
+            goto block_2;
+        }
+
+        // block 1
+
+        block_2:
+        // block 2
+
+        return 0;
+    }
+    ```
+
+    非常麻烦，还不如把 block 1 直接嵌套进 if 里。
+
+    另外，使用 if break、if return 组合，可以减少嵌套层数：
+
+    ```cpp
+    int func() {
+        if (cond 1) {
+            return xx;
+        }
+
+        for (xxxx) {
+            if (cond 2) {
+                break;
+            }
+            // ...
+        }
+
+        // ...
+
+        return 0;
+    }
+    ```
+
+* 调试
+
+    debug 只靠 gdb 不太够，有时候还需要对源码做修改。
+
+* 写递归还是有点难度，可以先将一个完整结构分成 2 部分或 3 部分，然后分别写出 2 部分或 3 部分的处理方式，比如第 2 部分需要遍历，第 3 部分需要给出当前的 position 等。如果在第 2 部分需要遍历，那么判断下是先序遍历还是后序遍历（先遍历完子节点再处理当前节点）。
+
+    做题时候的后序遍历，通常是使用 int 来返回一个值。实际项目中，如果遍历子节点时需要用到 parent 信息，而且又需要返回一些处理完后的信息，那么函数的设计就比较复杂了。这个时候究竟应该以 parent 的角度遍历子节点，还是在递归的开头直接处理当前节点，如果遇到空节点则返回？这个问题有时间了可以讨论下。
+
 * [ ] 调研 c++ 的 enumerate
 
 * string view learning material:
@@ -3644,6 +3574,16 @@ cache:
     有空了研究一下这段代码，分析一下利弊。
 
 ### tasks
+
+* [ ] 调研：在 .h 文件里定义 edge type id to str 是否会引起多重定义的问题？
+
+* [v] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
+
+    feedback:
+
+    1. 简单试了下向 stdin 中写数据，似乎没有什么反应。
+
+* [ ] 调研`partial_sum()`和`accumulate()`有什么区别？
 
 * [ ] 调研 c++ string 从指定位置开始 assign 另一个字符串
 

@@ -2,6 +2,163 @@
 
 ## cached
 
+* `string_view`本质存储的是 begin pointer + length，并不是一个 null-terminated 的字符串，所以无法提供`.c_str()`。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string str {"hello, world"};
+        string_view strv(str.c_str(), 5);
+        cout << strv << endl;
+        printf("strv: %s\n", strv.data());
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello
+    strv: hello, world
+    ```
+
+    可以看到，`cout`能正常输出 string view 的内容，而`printf()`会寻找`\0`标记的字符串。
+
+* `string_view`的`.compare()`方法与`strcmp()`用法一致；`.substr()`返回的仍是`string_view`。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string_view strv_1 {"hello"};
+        string_view strv_2 {"hello"};
+        int ret = strv_1.compare(strv_2);
+        printf("ret: %d\n", ret);
+
+        string_view strv {"hello, world"};
+        string_view sub_strv = strv.substr(1, 5);
+        cout << "strv: " << strv << endl;
+        cout << "sub_strv: " << sub_strv << endl;
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    ret: 0
+    strv: hello, world
+    sub_strv: ello,
+    ```
+
+* c++20 中的`string_view`不再是 read only，具体增加了什么功能不太清楚。
+
+* 如果`string_view`指向的对象被销毁，那么`string_view`的内容是未定义的：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    string_view get_string_view()
+    {
+        string msg = "hello, world";
+        return string_view(msg);
+    }
+
+    int main()
+    {
+        string_view strv = get_string_view();
+        cout << strv << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    @��;�vH&�
+    ```
+
+* c++ stl 容器中的 erase
+
+    如果是顺序容器，比如 vector，那么`erase()`只支持传入 iterator 进行删除。比如要删第 1 个元素，那么就调用`vec.erase(vec.begin());`，如果要删除第 3 个元素，那么就调用`vec.erase(vec.begin() + 2)`。
+    
+    vector 的`erase()`无法通过传入元素引用的方式进行删除，比如`vec.erase(vec.back());`会编译报错。
+
+    如果是关联容器，比如`unordered_map`, `set`等，那么`erase()`既支持传入 iterator，也支持传入 key 的 const 左值引用：
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    #include <string>
+    #include <iostream>
+    #include <unordered_map>
+    #include <map>
+    using namespace std;
+
+    template<typename T>
+    void print(T &container) {
+        for (auto iter = container.begin(); iter != container.end(); ++iter) {
+            cout << *iter << ", ";
+        }
+        cout << endl;
+    }
+
+    ostream& operator<<(ostream &out, const pair<string, int> &p) {
+        printf("(%s, %d)", p.first.c_str(), p.second);
+        return out;
+    }
+
+    int main(int argc, const char **argv) {
+        unordered_map<string, int> vec {
+            {"hello", 1},
+            {"world", 2},
+            {"nihao", 3},
+            {"zaijian", 4}
+        };
+        vec.erase("hello");
+        print(vec);
+
+        multimap<string, int> m {
+            {"hello", 1},
+            {"world", 2},
+            {"hello", 3},
+        };
+        m.erase("hello");
+        print(m);
+        
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    (zaijian, 4), (nihao, 3), (world, 2), 
+    (world, 2), 
+    ```
+
+    但是关联容器没有`.back()`方法，因此调用`m.erase(m.back())`无从谈起。
+
+    如果是多 key 值容器，那么所有与传入参数相等的 key 都会被删除。
+
 * vector 中的元素删除
 
     如果使用索引的话，可以在删除当前元素后，手动将索引减一。
@@ -215,6 +372,8 @@
     说明：
 
     1. `string_view()`没有接收`string`对象为参数的构造函数，不清楚`string_view strv_2(cpp_str);`是怎么通过编译并运行的。
+
+        2025/06/28/00: `string_view strv_2(cpp_str);`这个函数，vscode 在括号时使用`ctrl + shift + space`无法调出参数提示，而在上面的`string_view strv(c_str);`可以调出，不清楚为什么。vscode 的 c++ 扩展中，c++ 标准使用的是 c++ 17。
 
     2. `string_view`没有`.c_str()`方法，只有`.data()`和`.begin()`迭代器。比较奇怪的是迭代器是个 iterator 对象，但是仍能使用`%s` print 出字符串内容。
 

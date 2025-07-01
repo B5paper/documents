@@ -7744,3 +7744,17 @@
     This is a repo with links to everything you'd ever want to learn about data engineering
 
     <https://github.com/DataExpert-io/data-engineer-handbook>
+    
+* 如何评价 2024 年阿里全球数学竞赛决赛试题？难度怎么样？
+
+    <https://www.zhihu.com/question/659607083>
+
+* 好像是个 c api 的文档
+
+    <https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.lib_ref/topic/a/asprintf.html>
+
+    有时间了调研一下
+
+* Lightweight coding agent that runs in your terminal 
+
+    <https://github.com/openai/codex>

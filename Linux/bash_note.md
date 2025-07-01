@@ -4,6 +4,118 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* `set -e`: 任何命令返回非零（失败）状态时，立即退出脚本
+
+    可以通过`set +e`关闭这一行为。
+
+    example:
+
+    ```bash
+    set -e
+    cd haha
+    echo hello
+    ```
+
+    (`haha`文件夹不存在)
+
+    output:
+
+    ```
+    main.sh: line 2: cd: haha: No such file or directory
+    ```
+
+    退出 bash 脚本后，`echo $?`的值为`1`。
+
+    ```bash
+    # set -e
+    cd haha
+    echo hello
+    ```
+
+    output:
+
+    ```
+    main.sh: line 2: cd: haha: No such file or directory
+    hello
+    ```
+
+    `set -e`等价于`set -o errexit`。
+
+* `set -u`: 遇到未定义的变量时，报错并退出（防止误用空变量）
+
+    example:
+
+    ```bash
+    set -u
+    echo "$my_var"
+    echo "hello"
+    ```
+
+    output:
+
+    ```
+    main.sh: line 2: my_var: unbound variable
+    ```
+
+    ```bash
+    # set -u
+    echo "$my_var"
+    echo "hello"
+    ```
+
+    output:
+
+    ```
+
+    hello
+    ```
+
+* `set -o pipefail`
+
+    管道命令`|`中任意一个子命令失败时，整个管道返回非零状态。
+    
+    example:
+
+    `main.sh`:
+
+    ```bash
+    set -o pipefail
+    cd haha | echo "hello"
+    echo $?
+    ```
+
+    run: `bash main.sh`
+
+    output:
+
+    ```
+    main.sh: line 2: cd: haha: No such file or directory
+    hello
+    1
+    ```
+
+    如果不设置`pipefail`，则只返回最后一个命令的状态：
+
+    ```bash
+    # set -o pipefail
+    cd haha | echo "hello"
+    echo $?
+    ```
+
+    run: `bash main.sh`
+
+    output:
+
+    ```
+    hello
+    main.sh: line 2: cd: haha: No such file or directory
+    0
+    ```
+
+    注意，`set -o pipefail`只改变了管道命令的返回值，并不会使 bash 脚本退出。
+
+    `set +o pipefail`可以关闭这个参数。
+
 * bash array 使用小括号来定义：`arr=(elm_1 elm_2 elm_3)`
 
 * bash array 使用`[]`作为下标，并从 0 开始索引，`${arr[0]}`, `${arr[1]}`
@@ -1580,7 +1692,7 @@ zaijian
 
         注意，如果将上述命令替换为`./echo_stderr.sh 1> hello.txt`或`./echo_stderr.sh > hello.txt`，则仍会在屏幕中进行输出，`hello.txt`文件中不会有任何内容。
 
-    * `[descriptor]>& <descriptor>`
+    * `[descriptor_1]>& <descriptor_2>`
 
         将一个文件描述符重定向到另一个文件描述符。
 
@@ -1589,6 +1701,12 @@ zaijian
         `echo "helo, world" >& 2`
 
         将 stdout 重定向到 stderr。
+
+        注：
+
+        * `[descriptor_1]>&`这 3 个符号之间不能有空格，而`<descriptor_2>`之前可以有空格，也可以没有。
+
+        * 如果省略不写`[descriptor_1]`，那么`[descriptor_1]`默认为`1`。
 
     * `command &> filename`
 
