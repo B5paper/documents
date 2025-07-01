@@ -7734,3 +7734,13 @@
 * vLLM源码阅读
 
     <https://zhuanlan.zhihu.com/p/5085306075>
+
+* irq相关（中断映射）
+
+    <https://zhuanlan.zhihu.com/p/1919708897725375628>
+
+* data-engineer-handbook
+
+    This is a repo with links to everything you'd ever want to learn about data engineering
+
+    <https://github.com/DataExpert-io/data-engineer-handbook>
