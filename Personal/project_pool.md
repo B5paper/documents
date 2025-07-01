@@ -1421,9 +1421,35 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研搭建 qemu 环境
+* [ ] rsync 如何通过跳板机器发送文件？
 
-* [v] 调研`fill_gpu_attrs()`函数中添加`target_dev_infos` extract info 的代码
+* [ ] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
+
+* [ ] grep 时如何显示前后 n 个的文本？
+
+* [v] 调研搭建 qemu 环境
+
+    feedback:
+
+    1. 60 机器上的 virt-manager 无法正常启动，qemu-system-x86_64 启动 qcow 图形界面太卡。如果使用无图形界面，速度应该会快一些。但是目前更好的办法是使用 54 机器开发。
+
+        2025/07/01/00: 54 机器环境不完整，最终还是到 60 机器上搭建 qemu 了。
+
+    1. 编译时报错：
+
+        ```
+        [229/231] Linking target tests/qtest/qos-test
+        [230/231] Linking target storage-daemon/qemu-storage-daemon
+        [231/231] Linking target qemu-system-x86_64
+        ert build fails
+        build fails
+        ```
+
+        原因：
+
+        依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
+
+    1. [v] 编译 kmd 驱动
 
 * {O} 适配 silink
 
@@ -1433,25 +1459,23 @@ tasks:
 
     1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
 
-* [ ] 调研 bash 的 trap 命令
+* [P] 调研 bash 的 trap 命令
+
+* [ ] qa: bash 30 mins
 
 * [v] 调研 set 命令，`set -e`, `set -o pipefail`
-
-    feedback:
-
-    1. [ ] qa: bash 30 mins
 
 * [ ] 调研`tee -a`
 
 * [ ] 调研 apt 包`sshpass`
 
-1. [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
+* [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
+
+* [ ] 调研 apt 包`libboost-all-dev`
 
 * {O} 调研 qemu、arch model、驱动以及环境搭建
 
     feedback:
-
-    1. [ ] 调研 apt 包`libboost-all-dev`
     
     1. [ ] 调研 apt 包`libgoogle-glog-dev`
 
@@ -1467,29 +1491,17 @@ tasks:
 
 * [ ] 调研 c/c++ 中 8 进制和 2 进制的字面常量怎么写，有解析这样字符串的函数吗？
 
-* [v] 调研`strtoull()`, `strtol()`
+* [ ] 调研`find . -type f -name '*config*.xml' -exec grep -l 'database' {} +`
 
-    调研`std::stoull()`的第 2 个参数干嘛用的
+    调研`find . -type f -regex '.*/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}.*\.log' -exec grep -l 'error' {} +`
 
-* [v] `strtoull()`在处理 16 进制时似乎可以接收`0x`开头的字符串，实际如何？可以接收不以`0x`开头的 16 进制字符串吗？如果是以`0X`开头呢？
-
-* [v] 调研`memmove()`
+    grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
 
 * [v] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
 
     比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
 
-    feedback:
-
-    1. 调研`find . -type f -name '*config*.xml' -exec grep -l 'database' {} +`
-
-        调研`find . -type f -regex '.*/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}.*\.log' -exec grep -l 'error' {} +`
-
-        grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
-
 * [ ] 调研 find 不输出没有权限的文件
-
-* [v] 调研 c 的可变参数函数的参数列表，是否可以使用 c++ 的类型，比如`string`, `string&`, `string*`等。
 
 * [ ] 调研 c++ 20 的 format
 
@@ -1505,11 +1517,9 @@ tasks:
 
 * [ ] 调研 magic enum
 
+* [ ] 调研 c++ `extent`的用法。
+
 * [v] 调研 是否有指向数组的引用？
-
-    feedback:
-
-    1. 调研 c++ `extent`的用法。
 
 * [ ] vim 中如何实现撤销操作？
 

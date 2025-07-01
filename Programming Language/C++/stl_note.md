@@ -2,6 +2,100 @@
 
 ## cached
 
+* `string_view`本质存储的是 begin pointer + length，并不是一个 null-terminated 的字符串，所以无法提供`.c_str()`。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string str {"hello, world"};
+        string_view strv(str.c_str(), 5);
+        cout << strv << endl;
+        printf("strv: %s\n", strv.data());
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello
+    strv: hello, world
+    ```
+
+    可以看到，`cout`能正常输出 string view 的内容，而`printf()`会寻找`\0`标记的字符串。
+
+* `string_view`的`.compare()`方法与`strcmp()`用法一致；`.substr()`返回的仍是`string_view`。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        string_view strv_1 {"hello"};
+        string_view strv_2 {"hello"};
+        int ret = strv_1.compare(strv_2);
+        printf("ret: %d\n", ret);
+
+        string_view strv {"hello, world"};
+        string_view sub_strv = strv.substr(1, 5);
+        cout << "strv: " << strv << endl;
+        cout << "sub_strv: " << sub_strv << endl;
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    ret: 0
+    strv: hello, world
+    sub_strv: ello,
+    ```
+
+* c++20 中的`string_view`不再是 read only，具体增加了什么功能不太清楚。
+
+* 如果`string_view`指向的对象被销毁，那么`string_view`的内容是未定义的：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    string_view get_string_view()
+    {
+        string msg = "hello, world";
+        return string_view(msg);
+    }
+
+    int main()
+    {
+        string_view strv = get_string_view();
+        cout << strv << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    @��;�vH&�
+    ```
+
 * c++ stl 容器中的 erase
 
     如果是顺序容器，比如 vector，那么`erase()`只支持传入 iterator 进行删除。比如要删第 1 个元素，那么就调用`vec.erase(vec.begin());`，如果要删除第 3 个元素，那么就调用`vec.erase(vec.begin() + 2)`。

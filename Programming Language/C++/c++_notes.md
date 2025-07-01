@@ -4,6 +4,125 @@
 
 ## cached
 
+* 16 进制字符串解析
+
+    ```cpp
+    #include <stdio.h>
+    #include <iostream>
+    #include <stdlib.h>  // strtol()
+    #include <string>  // std::stoi()
+    using namespace std;
+
+    int main()
+    {
+        const char *str = "0x1234";
+
+        size_t idx;
+        int val_1 = std::stoi(str, &idx, 16);
+        printf("val_1: %d, idx: %lu\n", val_1, idx);
+
+        char *end_ptr;
+        int val_2 = strtol(str, &end_ptr, 16);
+        printf("val: %d, end ch: %c\n", val_2, *end_ptr);
+
+        const char *str_2 = "1234";
+
+        val_1 = std::stoi(str_2, &idx, 16);
+        printf("val_1: %d, idx: %lu\n", val_1, idx);
+
+        val_2 = strtol(str_2, &end_ptr, 16);
+        printf("val: %d, end ch: %c\n", val_2, *end_ptr);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val_1: 4660, idx: 6
+    val: 4660, end ch: 
+    val_1: 4660, idx: 4
+    val: 4660, end ch:
+    ```
+
+    `std::stoi()`和`strtol()`都可以正常解析带`0x`或不带`0x`的十六进制字符串。`x`对大小写不敏感，也可以写成`0X`。
+
+    `stoi()`第 2 个参数返回解析结束时的索引，相当于`end_ptr`的作用。
+
+* `stoi()`与`strtol()`的区别
+
+    `stoi()`是一个作用于`const string&`的 c++ 函数，在`<string>`头文件中。
+    
+    `strol()`是一个作用于 c style string 的 C 函数，在`<stdlib.h>`头文件中。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <iostream>
+    #include <stdlib.h>  // strtol()
+    #include <string>  // std::stoi()
+    using namespace std;
+
+    int main()
+    {
+        const char *str = "123, 456";
+
+        size_t idx;
+        int val_1 = std::stoi(str, &idx, 10);
+        printf("val_1: %d, idx: %lu\n", val_1, idx);
+
+        char *end_ptr;
+        int val_2 = strtol(str, &end_ptr, 10);
+        printf("val_2: %d, end ch: %c\n", val_2, *end_ptr);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val_1: 123, idx: 3
+    val_2: 123, end ch: ,
+    ```
+
+    两个函数都会从字符串起始位置开始尝试解析，直到遇到无效字符为止，返回遇到的第一个无效字符的位置。
+
+    如果一个有效的数字都解析不出来，那么`std::stoi()`会报 exception 退出程序。`strtol()`会返回 0，但并不会报错，用户只能通过判断`end_ptr`与 start ptr 是否相等来判断是否正常解析。
+
+* 在 struct 内初始化的变量，既可以是 const 的，也可以是非 const 的，但是不能是 static 的。
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    struct MyType {
+        string msg = "hello";
+        const int val = 456;
+    };
+
+    int main()
+    {
+        MyType a;
+        cout << a.msg << endl;
+        cout << a.val << endl;
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello
+    456
+    ```
+
+* c++ 中`override`表示此函数为覆盖基类的虚函数，编译器会检查此函数是否确实覆盖了基类虚函数，如果没有，则报错。`final`则表示此函数不应再被派生类的虚函数覆盖。
+
 * copy constructor 起作用的时机
 
     如果我们希望把 src_obj 的数据交给 dst_obj 管理，并且释放 src_obj，比如`dst_obj.add_child_obj(src_obj);`，那么有两种方案，一种是
