@@ -1349,6 +1349,26 @@ tasks:
 
 * A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
 
+* 搭建 qemu 环境
+
+    * 60 机器上的 virt-manager 无法正常启动，qemu-system-x86_64 启动 qcow 图形界面太卡。如果使用无图形界面，速度应该会快一些。但是目前更好的办法是使用 54 机器开发。
+
+        2025/07/01/00: 54 机器环境不完整，最终还是到 60 机器上搭建 qemu 了。
+
+    * 编译时报错：
+
+        ```
+        [229/231] Linking target tests/qtest/qos-test
+        [230/231] Linking target storage-daemon/qemu-storage-daemon
+        [231/231] Linking target qemu-system-x86_64
+        ert build fails
+        build fails
+        ```
+
+        原因：
+
+        依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
+
 ### tasks
 
 * { } 调研 ptx 指令集
@@ -1427,29 +1447,9 @@ tasks:
 
 * [ ] grep 时如何显示前后 n 个的文本？
 
+* [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
+
 * [v] 调研搭建 qemu 环境
-
-    feedback:
-
-    1. 60 机器上的 virt-manager 无法正常启动，qemu-system-x86_64 启动 qcow 图形界面太卡。如果使用无图形界面，速度应该会快一些。但是目前更好的办法是使用 54 机器开发。
-
-        2025/07/01/00: 54 机器环境不完整，最终还是到 60 机器上搭建 qemu 了。
-
-    1. 编译时报错：
-
-        ```
-        [229/231] Linking target tests/qtest/qos-test
-        [230/231] Linking target storage-daemon/qemu-storage-daemon
-        [231/231] Linking target qemu-system-x86_64
-        ert build fails
-        build fails
-        ```
-
-        原因：
-
-        依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
-
-    1. [v] 编译 kmd 驱动
 
 * {O} 适配 silink
 
@@ -1459,11 +1459,9 @@ tasks:
 
     1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
 
-* [P] 调研 bash 的 trap 命令
+* [v] 调研 bash 的 trap 命令
 
 * [ ] qa: bash 30 mins
-
-* [v] 调研 set 命令，`set -e`, `set -o pipefail`
 
 * [ ] 调研`tee -a`
 
@@ -1473,13 +1471,13 @@ tasks:
 
 * [ ] 调研 apt 包`libboost-all-dev`
 
-* {O} 调研 qemu、arch model、驱动以及环境搭建
+* [ ] 调研 apt 包`libgoogle-glog-dev`
+
+* [ ] 调研 apt 包`libgtest-dev`, `libiberty-dev`
+
+* {v} 调研 qemu、arch model、驱动以及环境搭建
 
     feedback:
-    
-    1. [ ] 调研 apt 包`libgoogle-glog-dev`
-
-    1. [ ] 调研 apt 包`libgtest-dev`, `libiberty-dev`
 
     1. [ ] 调研`python3 -m venv`
 
@@ -1497,11 +1495,11 @@ tasks:
 
     grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
 
-* [v] 调研 grep 递归搜索当前文件夹下的所有符合正则表达式的子文件
+* [v] 调研 find 不输出没有权限的文件
 
-    比如`grep -r key_word info.txt`搜索当前文件夹以及子文件夹下的所有`info.txt`文件。
+    feedback:
 
-* [ ] 调研 find 不输出没有权限的文件
+    1. [ ] find 搜索时使用的是 regex 还是 glob？
 
 * [ ] 调研 c++ 20 的 format
 
@@ -1509,7 +1507,7 @@ tasks:
 
 * [ ] 调研`cudaMallocManaged()`
 
-* [ ] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
+* [v] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
 
 * [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
 
@@ -1519,15 +1517,13 @@ tasks:
 
 * [ ] 调研 c++ `extent`的用法。
 
-* [v] 调研 是否有指向数组的引用？
-
 * [ ] vim 中如何实现撤销操作？
 
 * [ ] 调研`addInterStep()`
 
 * [ ] 调研尝试复现`ncclTopoComputePaths()`
 
-* [ ] 调研 emplace() 和 emplace_back() 的区别
+* [v] 调研 emplace() 和 emplace_back() 的区别
 
 * [O] 调研 qemu 添加 pci 设备
 
