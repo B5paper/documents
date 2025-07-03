@@ -1441,15 +1441,27 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* [ ] rsync 如何通过跳板机器发送文件？
+* [v] rsync 如何通过跳板机器发送文件？
+
+    feedback:
+
+    1. 调研`ssh -A`
+
+    1. 调研 ssh 的 ProxyCommand
+
+        ```
+        ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
+        ```
+
+    1. 调研`rsync`的`--progress`, `--partial`
+
+    1. 调研`rsync -z`, `rsync --delete`
 
 * [ ] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
 
 * [ ] grep 时如何显示前后 n 个的文本？
 
 * [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
-
-* [v] 调研搭建 qemu 环境
 
 * {O} 适配 silink
 
@@ -1458,8 +1470,6 @@ tasks:
     feedback:
 
     1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
-
-* [v] 调研 bash 的 trap 命令
 
 * [ ] qa: bash 30 mins
 
@@ -1495,19 +1505,15 @@ tasks:
 
     grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
 
+* [ ] find 搜索时使用的是 regex 还是 glob？
+
 * [v] 调研 find 不输出没有权限的文件
-
-    feedback:
-
-    1. [ ] find 搜索时使用的是 regex 还是 glob？
 
 * [ ] 调研 c++ 20 的 format
 
 * [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
 
 * [ ] 调研`cudaMallocManaged()`
-
-* [v] 调研 struct 的构造函数里，是否可以使用多个 initializer_list
 
 * [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
 
@@ -1522,8 +1528,6 @@ tasks:
 * [ ] 调研`addInterStep()`
 
 * [ ] 调研尝试复现`ncclTopoComputePaths()`
-
-* [v] 调研 emplace() 和 emplace_back() 的区别
 
 * [O] 调研 qemu 添加 pci 设备
 
