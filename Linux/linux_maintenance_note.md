@@ -6,6 +6,50 @@
 
 ## cache
 
+* find 不输出没有权限的文件
+
+    find 对没有权限的文件会输出类似
+
+    ```
+    ...
+    find: ‘/proc/1188309/task/1188309/ns’: Permission denied
+    find: ‘/proc/1188309/fd’: Permission denied
+    find: ‘/proc/1188309/map_files’: Permission denied
+    find: ‘/proc/1188309/fdinfo’: Permission denied
+    find: ‘/proc/1188309/ns’: Permission denied
+    ...
+    ```
+
+    的信息。这些信息其实都是 stderr。因此可以考虑过滤掉 stderr 的输出：
+
+    `find <path> -name <pattern> 2>/dev/null`
+
+    example:
+
+    `find / -name hello 2>/dev/null`
+
+    output:
+
+    ```
+    /home/hlc/miniconda3/pkgs/tk-8.6.14-h39e8969_0/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/envs/torch/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/envs/vllm/lib/tk8.6/demos/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt4/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt3/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/hello
+    /home/hlc/Documents/Projects/chisel-tutorial/src/main/scala/hello
+    /home/hlc/Documents/Projects/makefile_test/hello
+    ```
+
+* sudo 与环境变量的关系
+
+    sudo 应该写在环境变量的前面。
+    
+    example:
+
+    `sudo http_proxy=http://127.0.0.1:8822 https_proxy=http://127,0,0,1:8822 apt update`
+
 * linux host name 相关
 
     * 显示当前的 host name: `hostname`

@@ -1,26 +1,6 @@
-* c++ 不允许对指针重载`==`，否则会造成指针的比较定义混淆
+# grep note
 
-    ```cpp
-    // OK
-    bool operator==(XmlTag &tag_1, const XmlTag &tag_2) {
-        //　...
-    }
-
-    // Error
-    bool operator==(const XmlTag *tag_1, const XmlTag *tag_2) {
-        //　...
-    }
-    ```
-
-    那么如果在`vector`里存指针，比如`vector<XmlTag*>`，该如何使用`std::find()`呢？
-
-* 必须使用 unique ptr 的场景
-
-    按传统的方式需要调用两次函数，第一次得到 num，然后用户 malloc 内存拿到 buffer，第二次调用函数往 buffer 里填数据。
-
-    如果在这里用 unique ptr，那么只需要调用一次函数就可以了，申请的内存也会自动释放。
-
-* 蜘蛛
+## cache
 
 * grep 搜索一行内同时出现多个关键字
 
@@ -101,3 +81,28 @@
     ```
 
     输出中所有的`hello`, `world`, `nihao`都被标红。
+
+* `grep`使用`-l`参数，可以只输出文件路径，不输出具体匹配了哪一行
+
+* grep 搜索子目录下的指定文件
+
+    `grep -r --include=<glob_exp> <reg_pattern> .`
+
+    这里使用`--include`来指定要搜索的文件名，可以使用等号，也可以把等号替换成空格。
+
+    注意`--include`使用的是通配符表达式，不是正则表达式。为了防止 bash 对输入内容进行转义，通常使用单引号`'<glob_exp>'`将通配符表达式包裹。
+
+    example:
+
+    `grep -r --include='hello*.txt' hello .`
+
+    output:
+
+    ```
+    ./dir_2/hello.txt:hello, world
+    ./dir_2/hello_w.txt:hello, world
+    ```
+
+    如果要指定多个通配符，那么可以指定多个`--include`参数。
+
+## note

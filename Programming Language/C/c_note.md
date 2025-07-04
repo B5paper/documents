@@ -6,6 +6,104 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* c 的变长参数函数无法处理 c++ 的类型
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <stdarg.h>
+    using namespace std;
+
+    void func(int a, ...) {
+        va_list args;
+        va_start(args, a);
+        string str = va_arg(args, string);
+        va_end(args);
+    }
+
+    int main() {
+        func(1, string("hello"));
+        return 0;
+    }
+    ```
+
+    在`va_arg(args, string);`这里会提示错误：
+
+    > a class type that cannot be trivially copied cannot be fetched by va_arg
+
+    但是处理指针是可以的：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <stdarg.h>
+    using namespace std;
+
+    void func(int a, ...) {
+        va_list args;
+        va_start(args, a);
+        string *str = va_arg(args, string*);
+        printf("%s\n", str->c_str());
+        va_end(args);
+    }
+
+    int main() {
+        string str {"hello, world"};
+        func(1, &str);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world
+    ```
+
+    引用也不能处理。
+
+* `memmove()`简介
+
+    `memmove()`在头文件`<string.h>`里，功能和`memcpy()`几乎相同，参数和`memcpy()`完全相同。
+
+    `memmove()`和`memcpy()`的区别是`memmove()`可以处理 dst 区间和 src 区间有交叠的情况，而`memcpy()`不做这个保证。
+
+    当 dst 区间和 src 区间有重叠时，`memmove()`可以保证当 src 区间的中后面的数据还没被处理时，不会被覆盖掉。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string.h>
+
+    int main() {
+        int arr_1[] = {1, 2, 3, 4, 5};
+        memcpy(&arr_1[1], &arr_1[0], sizeof(int) * 4);
+        for (int i = 0; i < 5; ++i) {
+            printf("%d, ", arr_1[i]);
+        }
+        putchar('\n');
+
+        int arr_2[] = {1, 2, 3, 4, 5};
+        memmove(&arr_2[1], &arr_2[0], sizeof(int) * 4);
+        for (int i = 0; i < 5; ++i) {
+            printf("%d, ", arr_2[i]);
+        }
+        putchar('\n');
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 1, 2, 3, 4, 
+    1, 1, 2, 3, 4, 
+    ```
+
+    可以看到，使用 linux 上的 gcc 11.4 编译，这两个函数的实际效果是一样的。
+
 * 使用`fprintf()`向 stderr 输出内容
 
     ```cpp

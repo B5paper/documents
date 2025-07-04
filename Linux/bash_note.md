@@ -4,6 +4,112 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 中常见信号与触发条件
+
+    | 信号名称 | 编号 |	触发条件 |
+    | - | - | - |
+    | `INT` | 2 | Ctrl + C 中断 |
+    | `TERM` | 15 | 默认的 kill 命令 |
+    | `EXIT` | 0 | 脚本退出时（非真实信号） |
+    | `ERR` | - | 命令执行失败时（非真实信号） |
+    | `DEBUG` | - | 每条命令执行后（非真实信号） |
+
+    example:
+
+    `main.sh`：
+
+    ```bash
+    trap "echo INT triggered!; exit 1" INT
+    trap "echo TERM triggered; exit 1" TERM
+    trap "echo EXIT triggered; exit 1" EXIT
+    trap "echo ERR triggered; exit 1" ERR
+    trap "echo DEBUG triggered" DEBUG
+
+    while true; do
+        echo "current time: $(date)"
+        sleep 1
+    done
+    ```
+
+    run: `bash main.sh`
+
+    使用不同的方式触发 signal 后，output 如下：
+
+    * `Ctrl` + `C`
+
+        ```
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:41:38 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:41:39 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:41:40 CST
+        DEBUG triggered
+        ^CDEBUG triggered
+        INT triggered!
+        DEBUG triggered
+        DEBUG triggered
+        EXIT triggered
+        DEBUG triggered
+        ```
+
+    * kill
+
+        ```
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:44:15 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:44:16 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:44:17 CST
+        DEBUG triggered
+        DEBUG triggered
+        TERM triggered
+        DEBUG triggered
+        DEBUG triggered
+        EXIT triggered
+        DEBUG triggered
+        ```
+
+    所有的信号对大小写不敏感，即`INT`和`int`是等价的，其他的同理。
+
+* bash 中的 trap 可以让用户指定函数或命令去处理 signal 信号
+
+    example:
+
+    `main.sh`:
+
+    ```bash
+    trap "echo manully terminated!; exit 1" INT
+
+    while true; do
+        echo "current time: $(date)"
+        sleep 1
+    done
+    ```
+
+    执行：`bash ./main.sh`，等待几秒后，按`Ctrl` + `C`。
+
+    output:
+
+    ```
+    current time: 2025年 06月 30日 星期一 13:03:09 CST
+    current time: 2025年 06月 30日 星期一 13:03:10 CST
+    current time: 2025年 06月 30日 星期一 13:03:11 CST
+    current time: 2025年 06月 30日 星期一 13:03:12 CST
+    ^Cmanully terminated!
+    ```
+
 * `set -e`: 任何命令返回非零（失败）状态时，立即退出脚本
 
     可以通过`set +e`关闭这一行为。

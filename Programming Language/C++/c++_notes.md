@@ -4,6 +4,281 @@
 
 ## cached
 
+* 必须使用 unique ptr 的场景
+
+    按传统的方式需要调用两次函数，第一次得到 num，然后用户 malloc 内存拿到 buffer，第二次调用函数往 buffer 里填数据。
+
+    如果在这里用 unique ptr，那么只需要调用一次函数就可以了，申请的内存也会自动释放。
+
+* c++ 不允许对指针重载`==`，否则会造成指针的比较定义混淆
+
+    ```cpp
+    // OK
+    bool operator==(XmlTag &tag_1, const XmlTag &tag_2) {
+        //　...
+    }
+
+    // Error
+    bool operator==(const XmlTag *tag_1, const XmlTag *tag_2) {
+        //　...
+    }
+    ```
+
+    那么如果在`vector`里存指针，比如`vector<XmlTag*>`，该如何使用`std::find()`呢？
+
+    2025/07/04/00: 或许可以使用`std::find_if()`，`find_if()`接收一个 lambda 表达式，这个匿名函数的参数可以为指针。
+
+* 由于`initializer_list`必须要指定模板类型，所以多个`initializer_list`是非常有必须的。
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+
+    struct MyObj {
+        vector<int> ints;
+        vector<string> strs;
+        MyObj(initializer_list<int> &&init_list_1,
+            initializer_list<string> &&init_list_2) {
+            for (int val : init_list_1) {
+                ints.push_back(val);
+            }
+            for (const string &str : init_list_2) {
+                strs.push_back(str);
+            }
+        }
+    };
+
+    int main()
+    {
+        MyObj obj {
+            {1, 2, 3},
+            {"hello", "world"},
+        };
+        for (int val : obj.ints) {
+            printf("%d, ", val);
+        }
+        putchar('\n');
+        for (string &str : obj.strs) {
+            printf("%s, ", str.c_str());
+        }
+        putchar('\n');
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 
+    hello, world, 
+    a: nihao
+    val: 456
+    ```
+
+* `emplace()`和`emplace_back()`
+
+    `emplace()`有点像`insert()`，需要指定要插入元素的位置的迭代器。`emplace_back()`则是在容器的末尾添加。
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    struct MyObj {
+        string msg;
+        int val;
+        MyObj(const string& m, int v) : msg(m), val(v) {}
+    };
+
+    int main() {
+        vector<MyObj> objs;
+        objs.emplace_back("hello", 123);
+        objs.emplace_back("world", 456);
+        objs.emplace(objs.begin() + 1, "nihao", 789);
+        for (int i = 0; i < objs.size(); ++i) {
+            printf("msg: %s, val: %d\n", objs[i].msg.c_str(), objs[i].val);
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    msg: hello, val: 123
+    msg: nihao, val: 789
+    msg: world, val: 456
+    ```
+
+    `emplace()`在构造元素时，需要调用构造函数，无法使用 c++ 的聚合构造功能。
+
+* c++ 中的结构体初始化
+
+    ```cpp
+    #include <stdio.h>
+    #include <vector>
+    #include <string>
+    #include <iostream>
+    using namespace std;
+
+    struct AAA {
+        string msg;
+        int val;
+    };
+
+    struct MyObj {
+        vector<int> ints;
+        vector<string> strs;
+        AAA a;
+    };
+
+    int main()
+    {
+        MyObj obj {
+            {1, 2, 3},
+            {"hello", "world"},
+            "nihao", 456  // {"nihao", 456}
+        };
+        for (int val : obj.ints) {
+            printf("%d, ", val);
+        }
+        putchar('\n');
+        for (string &str : obj.strs) {
+            printf("%s, ", str.c_str());
+        }
+        putchar('\n');
+        printf("a: %s\n", obj.a.msg.c_str());
+        printf("val: %d\n", obj.a.val);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 
+    hello, world, 
+    a: nihao
+    val: 456
+    ```
+
+    在没有自定义构造函数的情况下，仅需使用内嵌的大括号消除歧义，使可直接用大括号来初始化一个对象。内部的大括号也并不是必须的，`"nihao", 456`的写法和`{"nihao", 456}`的写法都是正确的。
+
+    目前并不清楚其原理。
+
+* c++ 中指向数组的引用
+
+    指向数组的引用可以保留数组的长度信息。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    using namespace std;
+
+    int main() {
+        int arr[] = {1, 2, 3, 4, 5};
+
+        int (&arr_r)[] = arr;
+        printf("arr_r[2]: %d\n", arr_r[2]);
+
+        // printf("sizeof(arr_r): %lu\n", sizeof(arr_r));  // error
+
+        int (&arr_r_2)[5] = arr;
+        printf("sizeof(arr_r_2): %lu\n", sizeof(arr_r_2));
+
+        int (&arr_r_3)[sizeof(arr) / sizeof(int)] = arr;
+        printf("sizeof(arr_r_3): %lu\n", sizeof(arr_r_3));
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    arr_r[2]: 3
+    sizeof(arr_r_2): 20
+    sizeof(arr_r_3): 20
+    ```
+
+    如果在初始化数组引用时，没有指定元素个数，那么在调用`sizeof(arr_r)`时会编译报错。
+
+    元素个数既可以手动指定，也可以使用`sizeof()`计算出来。如果指定的元素个数与原数组不相同，也会编译时报错。
+
+* 在函数参数中处理指向数组的引用
+
+    需要用类似`int (&arr_r)[5]`的方式传递参数，元素个数必须要填，否则会报错。
+
+    ```cpp
+    #include <stdio.h>
+    using namespace std;
+
+    void print_arr(int (&arr_r)[5]) {
+        int N = sizeof(arr_r) / sizeof(int);
+        for (int i = 0; i < N; ++i) {
+            printf("%d, ", arr_r[i]);
+        }
+        putchar('\n');
+
+        for (int val : arr_r) {
+            printf("%d, ", val);
+        }
+        putchar('\n');
+    }
+
+    int main() {
+        int arr[] = {1, 2, 3, 4, 5};
+        print_arr(arr);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 4, 5, 
+    1, 2, 3, 4, 5, 
+    ```
+
+    如果在模板中使用则更方便，不需要手动指定元素个数，元素个数可以自动推导出来：
+
+    ```cpp
+    #include <stdio.h>
+    using namespace std;
+
+    template<typename T, size_t N>
+    void print_arr(T (&arr_r)[N]) {
+        for (int i = 0; i < N; ++i) {
+            printf("%d, ", arr_r[i]);
+        }
+        putchar('\n');
+
+        for (int val : arr_r) {
+            printf("%d, ", val);
+        }
+        putchar('\n');
+    }
+
+    int main() {
+        int arr[] = {1, 2, 3, 4, 5};
+        print_arr(arr);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    1, 2, 3, 4, 5, 
+    1, 2, 3, 4, 5,
+    ```
+
 * 16 进制字符串解析
 
     ```cpp

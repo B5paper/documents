@@ -30,6 +30,34 @@
 
 ## cache
 
+* 蜘蛛
+
+    目前的工作模式，感觉比较像蜘蛛在织网。从已知的概念出发，一点点地，一圈一圈地向外扩展。
+
+* 无视 dep 的 ai
+
+    ai 出现前，每个任务必须找到它的 dep，把前置任务做完才能做当前任务。比如想要学习网络代理，那必须要学前置知识 ip，nat，socket 等等。但是启动代理可以只是 config 一下文件，然后输入几行命令，并不会用到所有的前置知识。没有 ai 的时候，只能一点点地学完前置网络知识，才能学习使用代理。在学习前置知识的时候，又不知道学多少是正好合适的，有可能不小心学多了。现在有了 ai，可以跳过大部分的前置知识，直击核心问题，这样就使得我们可以使用刚好合适的知识去解决问题，效率非常高。可以认为 ai 创建了一条绕过 dep 的 shortcut。
+
+* kpi 与可回退任务
+
+    很多的任务是不可回退的，比如必须发表 3 ~ 4 篇论文才能毕业，每年的 GDP 必须增长 N%，军舰下海必须一次成功，存款利率必须刚性兑付……如果我们实在完不成，那么就只能欺骗。如果想没有欺骗，那么就必须推行可回退的任务，我们每次反馈都如实上报，通过上层的机制进行调节，一个任务可以完成，也可以不完成。
+
+* 由于一天结束前可以会陆续地添加任务，所以 task 文件必须由第二天起处理。
+
+* 长短任务的双向分支
+
+    如果一个长线任务因为各种原因暂停，那么当前 work space 环境必须可以快速切换到另一个 branch 开始短线能完成的任务。
+
+    目前采用的方案是 ubuntu gnome 下，以 personal log 为中心虚拟桌面，向右创建新桌面是长线任务，向左创建新桌面是短线任务。
+
+    如果在长线任务的右边再创建新桌面用于短线任务，那么短线任务和 personal log 切换的时间就延长了许多，效率会变低。`root -> stack 1 -> stack 2`，我们可以认为长线任务为 stack 1，短线任务为 stack 2，由此可以看出 root 和 stack 2 之间的距离太长。但是如果换成`stack 2 <- root -> stack 1`，这样的形式就好多了。
+
+    这个 topic 有两个要点，一个是有一个长线任务时，只能派生一个短线任务，不能让任务多级嵌套，比如发现 task 1 blocked 的时候，去执行 task 2，而 task 2 被 blocked 时，去执行 task 3 ... 此时如果 task 1 可以恢复执行，那么 task 2，task 3 ... 的调度全都乱了。因此长线任务一个，短线任务也只保持一个，是最好的。
+
+    另一个要点是分支时，root 节点和每个 task 节点的切换效率必须要高，要求`task 1 <--> root`和`root <--> task 2`的效率都必须高，但是不要求`task 1 <--> task 2`的效率高。
+
+    如果能实现这样的工作环境，那么就有可能实现异步高效的任务执行。
+
 * 滑坡
 
     大部分企业总是贴着法律的最低标准生产，如果是没有法律监管的模糊地带，那么质量会低到不可想象。比如茶叶，卖树枝也是不违法的，所以低价茶叶里经常混有树枝。再比如小饭店，食材的劣质程度低到无法想象。当质量没有锚定点时，总是会不断地滑坡，直到达到法律的最低标准。是否有解决这个问题的思路？
@@ -1371,6 +1399,28 @@ tasks:
 
 ### tasks
 
+* [v] 调研 50 机器上的 nccl 环境
+
+* [ ] 调研：当初为什么放弃了 idx + type 的形式？
+
+* [v] 调研优化 print_path() 的输出
+
+* [v] 调研 nv comp 的 search path bfs 输出是否正确
+
+* [ ] 调研 siccl 在构建 gpu tag 时传入 uuid 或 bus id + micro id
+
+    不能传入 bus id，因为这样会构建两个或多个 gpu tag
+
+    目前的方案是在 merge tag 时，filter out smae tag，但是这个方案毕竟不够完美
+
+* [ ] 调研 filter out invalid silink
+
+* [ ] 调研`ssh -A`
+
+* [ ] 调研正则表达式中的`\|`
+
+    `grep "keyword1\|keyword2\|keyword3" file.txt`
+
 * { } 调研 ptx 指令集
 
     resources:
@@ -1445,8 +1495,6 @@ tasks:
 
     feedback:
 
-    1. 调研`ssh -A`
-
     1. 调研 ssh 的 ProxyCommand
 
         ```
@@ -1457,19 +1505,50 @@ tasks:
 
     1. 调研`rsync -z`, `rsync --delete`
 
-* [ ] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
-
-* [ ] grep 时如何显示前后 n 个的文本？
-
-* [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
-
-* {O} 适配 silink
-
-    目标是生成和 mock xml 相似的 xml
+* [v] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
 
     feedback:
 
-    1. [ ] 调研`xml_tag_to_topo_system()`中，可能需要删除 invalid silink。
+    1. 调研`grep -E`
+
+        写法：
+
+        `grep -E "keyword1|keyword2|keyword3" file.txt`
+
+    1. 调研`grep -v`
+
+        ```bash
+        # 搜索包含 keyword1 但不包含 keyword2 的行
+        grep "keyword1" file.txt | grep -v "keyword2"
+        ```
+
+    1. 调研`grep -c`
+
+        ```bash
+        # 统计包含任意关键字的行数
+        grep -c -E "keyword1|keyword2|keyword3" file.txt
+        ```
+
+    1. 调研`grep -A`
+
+        ```bash
+        # 显示匹配行及其后2行
+        grep -A 2 -E "keyword1|keyword2" file.txt
+        ```
+
+    1. 调研`grep -w`
+
+        > -w 选项匹配整个单词
+
+    1. 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
+
+* [ ] grep 时如何显示前后 n 行的文本？
+
+* [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
+
+* {v} 适配 silink
+
+    目标是生成和 mock xml 相似的 xml
 
 * [ ] qa: bash 30 mins
 
@@ -1485,15 +1564,13 @@ tasks:
 
 * [ ] 调研 apt 包`libgtest-dev`, `libiberty-dev`
 
+* [ ] 调研`python3 -m venv`
+
+* [ ] 调研`>> $LOG_FILE 2>&1`
+
+* [ ] 调研`if [ ! -d sipu_sw ];`
+
 * {v} 调研 qemu、arch model、驱动以及环境搭建
-
-    feedback:
-
-    1. [ ] 调研`python3 -m venv`
-
-    1. [ ] 调研`>> $LOG_FILE 2>&1`
-
-    1. [ ] 调研`if [ ! -d sipu_sw ];`
 
 * [ ] 调研`from_chars()`, `atoi()`
 
@@ -1506,8 +1583,6 @@ tasks:
     grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
 
 * [ ] find 搜索时使用的是 regex 还是 glob？
-
-* [v] 调研 find 不输出没有权限的文件
 
 * [ ] 调研 c++ 20 的 format
 
