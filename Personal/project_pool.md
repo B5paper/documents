@@ -1399,13 +1399,53 @@ tasks:
 
 ### tasks
 
-* [v] 调研 50 机器上的 nccl 环境
+* [ ] 调研 c++ `std::bind()`, `std::mem_fn()`, `std::reference_wrapper`
+
+* [P] 调研尝试实现 nv comp 的 compute path
+
+    feedback:
+
+    1. 目前确认
+
+        ```cpp
+          // Set direct paths to CPUs. We need them in many cases.
+          for (int c=0; c<system->nodes[CPU].count; c++) {
+            NCCLCHECK(ncclTopoSetPaths(system->nodes[CPU].nodes+c, system));
+          }
+        ```
+
+        后的输出，siccl 与 nccl 相同。
+
+        但是
+
+        ```cpp
+          // Set direct paths to GPUs.
+          for (int g=0; g<system->nodes[GPU].count; g++) {
+            NCCLCHECK(ncclTopoSetPaths(system->nodes[GPU].nodes+g, system));
+          }
+        ```
+
+        的输出与 siccl 不同。
+
+    1. 目前看到 siccl graph test 中
+
+        ```
+        ------ test 01: v100 2 gpus on machine 50 ------
+        gpu, num nodes: 2
+            idx 0, id 724992:
+                gpu 724992  --LINK_PCI-->  cpu 1
+                gpu 724992  --LINK_PCI-->  cpu 1  --LINK_PCI-->  gpu 929792  --LINK_PCI-->  cpu 1  --LINK_SYS-->  cpu 0
+
+            idx 1, id 929792:
+                gpu 929792  --LINK_PCI-->  cpu 1
+                gpu 929792  --LINK_PCI-->  cpu 1  --LINK_SYS-->  cpu 0
+        ```
+
+        看到 cpu 1 被搜索了 2 次？为什么？
+
+        2025/07/05/00: 目前看起来是因为 search path bfs 内部 base vert 的 type 写死了 CPU，但是按道理第二次搜索应该变成 GPU 才对。修改了之后 compute path 的输出就可以和 nccl 的输出一模一样了。
 
 * [ ] 调研：当初为什么放弃了 idx + type 的形式？
-
-* [v] 调研优化 print_path() 的输出
-
-* [v] 调研 nv comp 的 search path bfs 输出是否正确
 
 * [ ] 调研 siccl 在构建 gpu tag 时传入 uuid 或 bus id + micro id
 
@@ -1491,64 +1531,56 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
+* [ ] 调研 ssh 的 ProxyCommand
+
+    ```
+    ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
+    ```
+
+* [ ] 调研`rsync`的`--progress`, `--partial`
+
+* [ ] 调研`rsync -z`, `rsync --delete`
+
 * [v] rsync 如何通过跳板机器发送文件？
 
-    feedback:
+* [ ] 调研`grep -E`
 
-    1. 调研 ssh 的 ProxyCommand
+    写法：
 
-        ```
-        ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
-        ```
+    `grep -E "keyword1|keyword2|keyword3" file.txt`
 
-    1. 调研`rsync`的`--progress`, `--partial`
+* [ ] 调研`grep -v`
 
-    1. 调研`rsync -z`, `rsync --delete`
+    ```bash
+    # 搜索包含 keyword1 但不包含 keyword2 的行
+    grep "keyword1" file.txt | grep -v "keyword2"
+    ```
+
+* [ ] 调研`grep -c`
+
+    ```bash
+    # 统计包含任意关键字的行数
+    grep -c -E "keyword1|keyword2|keyword3" file.txt
+    ```
+
+* [ ] 调研`grep -A`
+
+    ```bash
+    # 显示匹配行及其后2行
+    grep -A 2 -E "keyword1|keyword2" file.txt
+    ```
+
+* [ ] 调研`grep -w`
+
+    > -w 选项匹配整个单词
+
+* [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
 * [v] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
-
-    feedback:
-
-    1. 调研`grep -E`
-
-        写法：
-
-        `grep -E "keyword1|keyword2|keyword3" file.txt`
-
-    1. 调研`grep -v`
-
-        ```bash
-        # 搜索包含 keyword1 但不包含 keyword2 的行
-        grep "keyword1" file.txt | grep -v "keyword2"
-        ```
-
-    1. 调研`grep -c`
-
-        ```bash
-        # 统计包含任意关键字的行数
-        grep -c -E "keyword1|keyword2|keyword3" file.txt
-        ```
-
-    1. 调研`grep -A`
-
-        ```bash
-        # 显示匹配行及其后2行
-        grep -A 2 -E "keyword1|keyword2" file.txt
-        ```
-
-    1. 调研`grep -w`
-
-        > -w 选项匹配整个单词
-
-    1. 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
 * [ ] grep 时如何显示前后 n 行的文本？
 
 * [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
-
-* {v} 适配 silink
-
-    目标是生成和 mock xml 相似的 xml
 
 * [ ] qa: bash 30 mins
 
@@ -1569,8 +1601,6 @@ tasks:
 * [ ] 调研`>> $LOG_FILE 2>&1`
 
 * [ ] 调研`if [ ! -d sipu_sw ];`
-
-* {v} 调研 qemu、arch model、驱动以及环境搭建
 
 * [ ] 调研`from_chars()`, `atoi()`
 
