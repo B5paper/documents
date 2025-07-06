@@ -1397,9 +1397,25 @@ tasks:
 
         依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
 
+* 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
+
 ### tasks
 
-* [ ] 调研 c++ `std::bind()`, `std::mem_fn()`, `std::reference_wrapper`
+* [ ] 调研`addInterStep()`
+
+* [ ] 调研尝试复现`ncclTopoComputePaths()`
+
+* [ ] grep 时如何显示前后 n 行的文本？
+
+* [ ] 调研`rsync -z`
+
+* [ ] 调研`ssh -A`
+
+* [ ] 调研 c++ `std::bind()`
+
+* [ ] 调研`std::mem_fn()`
+
+* [ ] 调研`std::reference_wrapper`
 
 * [P] 调研尝试实现 nv comp 的 compute path
 
@@ -1445,6 +1461,19 @@ tasks:
 
         2025/07/05/00: 目前看起来是因为 search path bfs 内部 base vert 的 type 写死了 CPU，但是按道理第二次搜索应该变成 GPU 才对。修改了之后 compute path 的输出就可以和 nccl 的输出一模一样了。
 
+    1. siccl 在 gpu 724992 的 path 输出上多了一条`gpu 724992  --LINK_PCI-->  cpu 1  --LINK_SYS-->  cpu 0  --LINK_PCI-->  nic 200704  --LINK_NET-->  net 0`。目前不清楚为什么。
+
+        目前初步定位到是 nccl 241 行`for (int path_node_idx = 0; path_node_idx < node_set->count;`出错了，这里不应该是 node_set，因为 node 和 path 所使用的 node set 应该是独立的。
+
+    1. 调研 gdb `call`命令调用函数
+
+    1. net idx 2 (net 0) -> round idx 3 -> vert idx 0 (cpu 1) -> edge idx 1 (gpu 724992)
+                         net 2, cpu 1                   nic 0
+                                                        gpu 724992
+                                                        gpu 929792
+                                                        cpu 0
+
+
 * [ ] 调研：当初为什么放弃了 idx + type 的形式？
 
 * [ ] 调研 siccl 在构建 gpu tag 时传入 uuid 或 bus id + micro id
@@ -1454,8 +1483,6 @@ tasks:
     目前的方案是在 merge tag 时，filter out smae tag，但是这个方案毕竟不够完美
 
 * [ ] 调研 filter out invalid silink
-
-* [ ] 调研`ssh -A`
 
 * [ ] 调研正则表达式中的`\|`
 
@@ -1490,10 +1517,6 @@ tasks:
     * `nccl_asymptotic_reproduce`: 由于前面的项目代码比较混乱，所以这里创建了一个渐近功能测试。最底层是 load store asm 级别的测试，再往上是 reduce copy，再往上是 prims，再往上是 work 等等。
 
         目前在致力于建设这个模块。
-
-    cache:
-
-    * 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
 
     feedback:
 
@@ -1539,9 +1562,7 @@ tasks:
 
 * [ ] 调研`rsync`的`--progress`, `--partial`
 
-* [ ] 调研`rsync -z`, `rsync --delete`
-
-* [v] rsync 如何通过跳板机器发送文件？
+* [ ] 调研`rsync --delete`
 
 * [ ] 调研`grep -E`
 
@@ -1576,10 +1597,6 @@ tasks:
 
 * [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
-* [v] grep 如何搜索包含多个关键字或包含多个关键字中的一个的文本？
-
-* [ ] grep 时如何显示前后 n 行的文本？
-
 * [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
 
 * [ ] qa: bash 30 mins
@@ -1587,8 +1604,6 @@ tasks:
 * [ ] 调研`tee -a`
 
 * [ ] 调研 apt 包`sshpass`
-
-* [ ] 在 60 机器上使用 virt-manager 创建一个 ubuntu 22.04 的镜像
 
 * [ ] 调研 apt 包`libboost-all-dev`
 
@@ -1616,11 +1631,9 @@ tasks:
 
 * [ ] 调研 c++ 20 的 format
 
-* [ ] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
+* [v] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
 
 * [ ] 调研`cudaMallocManaged()`
-
-* [ ] 调研为什么模板基类的成员在派生类中不是自动可见的
 
 * [ ] 调研 c++ string 使用正则表达式
 
@@ -1629,10 +1642,6 @@ tasks:
 * [ ] 调研 c++ `extent`的用法。
 
 * [ ] vim 中如何实现撤销操作？
-
-* [ ] 调研`addInterStep()`
-
-* [ ] 调研尝试复现`ncclTopoComputePaths()`
 
 * [O] 调研 qemu 添加 pci 设备
 
@@ -1679,8 +1688,6 @@ tasks:
 * [ ] 在 for 和 while 中`int a = 0;`，然后再修改`a`的值，`a`第二次循环时是 0 还是修改过的值？
 
     同理，在循环中`MyClass my_obj;`，是否会多次调用构造函数和析构函数？
-
-* [ ] 调研：可以在一个 thread 中打开另一个 thread 吗？
 
 * [ ] 调研`barrierAny()`
 
