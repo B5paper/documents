@@ -2,6 +2,42 @@
 
 ## cache
 
+* 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
+
+* A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
+
+* 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
+
+    unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
+
+* `reduceCopyPacks()`是最底层负责干活的函数，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
+
+    数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
+
+* nccl 数据传输的调用流程
+
+    run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
+
+    * `Primitives<> prims`由`RunWorkColl()` -> `runRing()`创建
+
+* `ld_volatile_global()`在两个地方被调用
+
+    1. `Primitives::loadStepValue()`
+
+        用于加载 peer connection 的 info
+
+        * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
+
+        * 有可能 step 是异步处理，所以需要 volatile 加载数据
+
+        * `st_relaxed_sys_global()`由`postPeer()`调用
+
+    2. reduce copy
+
+        用于取 payload 数据。
+
+* `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
+
 * nccl 中 xml 的内存申请
 
     nccl 中与 xml 相关的 struct 如下：

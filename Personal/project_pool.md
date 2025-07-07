@@ -30,6 +30,55 @@
 
 ## cache
 
+* 难以处理的问题
+
+    假如每个人都是正常人，家庭和睦，父母善终，那么就很好，基本不会遇到无法处理的事。但是有时候也会遇到难以处理的情况，比如父母是精神病人，打不得骂不得，还得需要承受发病，这种情况就是难以处理的情况，怎么做都不对。假如每个孩子都认真学习，正常上学，那样也很好，但是假如孩子从小就从不上学，每天逃课去网吧，父母也很难处理这样的情况，只能送到戒网中心。
+
+    为什么难以处理的问题难以处理？是什么在制约着我们去处理？又为什么我们遇到的常见事容易处理，是谁制定了常见的处理方式？
+
+* 概念不可能对接
+
+    假如个人的知识体系是一张图（graph），那么当个人想要学习新东西时，通常的做法是在已知的图节点上向外扩张。比如已知`ssh`是远程连接，那么进一步去学习`ssh -A`等参数。然而 ai 会直接从未知的节点构建出大量新节点，这些新节点并不一定和我们的知识体系完美对接，因此，完全依赖 ai 就相当于放弃了从自己的已知知识节点构造新节点。
+    
+    无论如何，学习的过程并不是直接找到问题的答案，而是从自己的知识节点一步一步构建出去，因此 ai 无法代替人类学习，这个对接过程还需要我们人类自己来，谁也无法帮你。
+
+* ai 跨越未知直达边界
+
+    在问 ai 问题时，我们可以直接拿到最新最主流的答案，这个答案中可能还有很多我们暂时无法理解的概念，但是我们已经可以知道，只有理解了这些概念，才能看懂答案，相当于我们知道了我们不知道什么。
+
+    如果没有 ai，我们通常只能根据自己的知识一点点拓展边界学新知识，直到自己能突然看懂或者弄明白某个问题的答案。我们可能积累了知识点 A, B, C, D, E, F, G，突然意识到使用知识 B, E, G 可以解决问题 Q。但是现在有了 AI，ai 告诉我们，要解决问题只需要用到 B, E 和 G，那我们只需要学习 b, e, g 就可以了，效率很高。
+
+    ```
+        a1    b1    c1    d1
+    P   a2    b2    c2    d2
+        a3    b3    c3    d3    Q
+              b4          d4
+    ```
+
+    假如 P 是我们当前的位置，Q 是问题的答案，如果没有 ai，我们先学 a1, a2, a3，再学 b1, b2, b3, b4，再学 c1, c2, c3，然后学 d1, d2, d3, d4，突然发现自己找到 Q 了。现在有了 ai，ai 告诉我们，要想找到 Q，只需要学 a3, b3, c3, d3，那么如果时间紧迫，我们只学这 4 个知识点就可以了。
+
+* ai 的联想与 see also
+
+    ai 的另一项优势是，向其提问一项问题，它可以提供很多的关键词，就像很多文档中的 see also 环节。
+    
+    很多时候，我们学习东西可能连关键词都不知道有什么，比如想做齿轮机械设计，那么该如何固定齿轮，轴如何套到齿轮上？这些知识在哪本书上，哪门学科里？通常我们很难根据这些问题反向找到答案，只能去图书馆或网络资料上碰运气，等一天恰好遇到了所需要的知识，才能正向找到我们提出的问题的答案。
+
+    再比如我们要设计变压器，那么漆包线该使用多粗的？该缠绕多少圈？书上只谈到匝数比，那么如果想升压到原来的两倍，初极线圈绕 1 圈，次极线圈绕 2 圈可行吗？如果不行，为什么？这些问题需要在哪本书里找到答案，我们也不清楚，只能把问题先暂存起来，等待哪一天恰好能找到答案，解答心中的疑惑。
+
+    有了 ai 就完全不一样了，ai 会提供与提问主题相关的各种延伸信息，这些 see also 可以告诉我们在解答完当前问题后，下一步该往哪走，目前又有什么最新的方案是更好的选择。这样可以使得学习效率增加许多倍。
+
+    我们不怕我们不知道什么，怕的是不知道我们不知道什么。传统资料的 see also 环节和现代的 ai 回答，则很大程度上解决了这个问题。
+
+* 冷兵器与 ai
+
+    虽然现代的热兵器性能已经碾压冷兵器，但是冷兵器依然有它的魅力，修炼刀法剑术，提升自己的境界始终是经久不衰的话题。两个持冷兵器的对手之间的交锋，并不只是看谁打倒了谁，交手过程中更是境界的比拼，在武学上花费的工夫的比拼。
+
+    传统的分析问题、拆解问题、转化问题、搜集资料、解决问题、整理笔记、复习回忆的过程就像冷兵器，我们需要修炼技能，提升自己的境界，而现代 ai 则直接对问题给出符合主流的完美解答，更像是热兵器，效率高，门槛低。
+
+    冷兵器的启动速度快，根据已有技能可以组合演化出更多技能，创造力强。热兵器启动速度慢，技能单一，无法快速组合出多种技能，但是杀伤力强。目前我们要做的就是不断地向 ai 汲取知识，转化为自己的冷兵器，同时在遇到自己搞不定的紧急问题时，又要求助于 ai 的热兵器，高效解决问题，不浪费时间。
+
+* task 的顶端是非常重要的一块区域，意味着高交互频率和快速跳转，不能长期被长期任务占据
+
 * 蜘蛛
 
     目前的工作模式，感觉比较像蜘蛛在织网。从已知的概念出发，一点点地，一圈一圈地向外扩展。
@@ -1071,6 +1120,8 @@
 
 ### tasks
 
+* [v] process tabs  30 mins 07.06
+
 * [v] cache tabs 06.29
 
     feedback:
@@ -1311,38 +1362,6 @@ tasks:
     # torch.distributed.send(tensor, self.ranks[dst], self.device_group)
     ```
 
-* `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
-
-* `ld_volatile_global()`在两个地方被调用
-
-    1. `Primitives::loadStepValue()`
-
-        用于加载 peer connection 的 info
-
-        * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
-
-        * 有可能 step 是异步处理，所以需要 volatile 加载数据
-
-        * `st_relaxed_sys_global()`由`postPeer()`调用
-
-    2. reduce copy
-
-        用于取 payload 数据。
-
-* nccl 数据传输的调用流程
-
-    run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
-
-    * `Primitives<> prims`由`RunWorkColl()` -> `runRing()`创建
-
-* `reduceCopyPacks()`是最底层负责干活的函数，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
-
-    数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
-
-* 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
-
-    unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
-
 * nccl tmp
 
     * 多卡之间如何 reduce copy?
@@ -1352,8 +1371,6 @@ tasks:
     * cu host alloc 的调用路径
 
         `ncclAsyncJobMain()` -> `ncclCommInitRankFunc()` -> `initTransportsRank()` -> `devCommSetup()` -> `devCommSetup()` -> `ncclCudaHostCalloc()`
-
-* pthread cond 如果先 signal，再 wait，那么无法正常运行
 
 * 目前看到 nccl 的 rank 是由 mpi 分配的，并未给 gpu 分配 rank。一个 rank 上的 gpu 按照 dev 0, dev 1 等方式进行区分。
 
@@ -1375,8 +1392,6 @@ tasks:
         
         * 两个节点之间的 path
 
-* A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
-
 * 搭建 qemu 环境
 
     * 60 机器上的 virt-manager 无法正常启动，qemu-system-x86_64 启动 qcow 图形界面太卡。如果使用无图形界面，速度应该会快一些。但是目前更好的办法是使用 54 机器开发。
@@ -1397,82 +1412,60 @@ tasks:
 
         依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
 
-* 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
+* set path nic 之后，siccl 与 nccl 输出一致。50 机器上没有 nvswitch，因此先跳过，后面在 135 机器上再测。
 
 ### tasks
 
+* [ ] 调研 magic enum
+
+* [ ] 调研 c++ `extent`的用法。
+
+* [ ] 调研 ssh 的 ProxyCommand
+
+    ```
+    ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
+    ```
+
+* [ ] 调研`rsync`的`--progress`, `--partial`
+
 * [ ] 调研`addInterStep()`
 
-* [ ] 调研尝试复现`ncclTopoComputePaths()`
+* [v] grep 时如何显示前后 n 行的文本？
 
-* [ ] grep 时如何显示前后 n 行的文本？
+* [v] 调研`rsync -z`
 
-* [ ] 调研`rsync -z`
+    feedback:
 
-* [ ] 调研`ssh -A`
+    1. `rsync`如何断点续传？
 
-* [ ] 调研 c++ `std::bind()`
+* [v] 调研`ssh -A`
+
+* [v] 调研 c++ `std::bind()`
+
+    feedback:
+
+    1. 调研成员函数的指针和普通函数的指针有何不同。
 
 * [ ] 调研`std::mem_fn()`
 
 * [ ] 调研`std::reference_wrapper`
 
-* [P] 调研尝试实现 nv comp 的 compute path
+* [ ] 调研 gdb `call`命令调用函数
+
+* [ ] 调研`ncclTopoCheckP2p()`
+
+* [O] 调研尝试实现 nv comp 的 compute path
 
     feedback:
 
-    1. 目前确认
+    1. 调研 compute path 进度向后推进 4 行
 
         ```cpp
-          // Set direct paths to CPUs. We need them in many cases.
-          for (int c=0; c<system->nodes[CPU].count; c++) {
-            NCCLCHECK(ncclTopoSetPaths(system->nodes[CPU].nodes+c, system));
-          }
-        ```
-
-        后的输出，siccl 与 nccl 相同。
-
-        但是
-
-        ```cpp
-          // Set direct paths to GPUs.
           for (int g=0; g<system->nodes[GPU].count; g++) {
-            NCCLCHECK(ncclTopoSetPaths(system->nodes[GPU].nodes+g, system));
-          }
+            for (int p=0; p<system->nodes[GPU].count; p++) {
+              int p2p;
+              NCCLCHECK(ncclTopoCheckP2p
         ```
-
-        的输出与 siccl 不同。
-
-    1. 目前看到 siccl graph test 中
-
-        ```
-        ------ test 01: v100 2 gpus on machine 50 ------
-        gpu, num nodes: 2
-            idx 0, id 724992:
-                gpu 724992  --LINK_PCI-->  cpu 1
-                gpu 724992  --LINK_PCI-->  cpu 1  --LINK_PCI-->  gpu 929792  --LINK_PCI-->  cpu 1  --LINK_SYS-->  cpu 0
-
-            idx 1, id 929792:
-                gpu 929792  --LINK_PCI-->  cpu 1
-                gpu 929792  --LINK_PCI-->  cpu 1  --LINK_SYS-->  cpu 0
-        ```
-
-        看到 cpu 1 被搜索了 2 次？为什么？
-
-        2025/07/05/00: 目前看起来是因为 search path bfs 内部 base vert 的 type 写死了 CPU，但是按道理第二次搜索应该变成 GPU 才对。修改了之后 compute path 的输出就可以和 nccl 的输出一模一样了。
-
-    1. siccl 在 gpu 724992 的 path 输出上多了一条`gpu 724992  --LINK_PCI-->  cpu 1  --LINK_SYS-->  cpu 0  --LINK_PCI-->  nic 200704  --LINK_NET-->  net 0`。目前不清楚为什么。
-
-        目前初步定位到是 nccl 241 行`for (int path_node_idx = 0; path_node_idx < node_set->count;`出错了，这里不应该是 node_set，因为 node 和 path 所使用的 node set 应该是独立的。
-
-    1. 调研 gdb `call`命令调用函数
-
-    1. net idx 2 (net 0) -> round idx 3 -> vert idx 0 (cpu 1) -> edge idx 1 (gpu 724992)
-                         net 2, cpu 1                   nic 0
-                                                        gpu 724992
-                                                        gpu 929792
-                                                        cpu 0
-
 
 * [ ] 调研：当初为什么放弃了 idx + type 的形式？
 
@@ -1554,14 +1547,6 @@ tasks:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研 ssh 的 ProxyCommand
-
-    ```
-    ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
-    ```
-
-* [ ] 调研`rsync`的`--progress`, `--partial`
-
 * [ ] 调研`rsync --delete`
 
 * [ ] 调研`grep -E`
@@ -1597,11 +1582,11 @@ tasks:
 
 * [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
-* [ ] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
+* [v] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
 
 * [ ] qa: bash 30 mins
 
-* [ ] 调研`tee -a`
+* [v] 调研`tee -a`
 
 * [ ] 调研 apt 包`sshpass`
 
@@ -1631,15 +1616,9 @@ tasks:
 
 * [ ] 调研 c++ 20 的 format
 
-* [v] 调研在添加完 cpu connection 后，topo system 的输出是否和 nccl 一致
-
 * [ ] 调研`cudaMallocManaged()`
 
 * [ ] 调研 c++ string 使用正则表达式
-
-* [ ] 调研 magic enum
-
-* [ ] 调研 c++ `extent`的用法。
 
 * [ ] vim 中如何实现撤销操作？
 
@@ -1800,6 +1779,10 @@ tasks:
 
 * 猜想：nccl 的底层通信可以走 host 中转，也可以走 pcie p2p，无论走哪种方式，一定是 launch kernel 去处理的通信，launch kernel 一定会直接处理 va。因此如果是 p2p 通信，那么这里的 va 就是 peer device bar 空间的 va；如果是走 host 中转，那么这里的 va 就是 host memory 的 va，此时 host memory 作为 buffer。
 
+* 在 nvidia open source kdm 里面有 nvlink, nvswitch 相关的代码
+
+    <https://github.com/NVIDIA/open-gpu-kernel-modules>
+
 ### tasks
 
 * { } cuda programming guide 12.30
@@ -1944,15 +1927,11 @@ tasks:
 
     1. [ ] 调研 cuda shmem
 
-    2. [ ] 不使用 simple 协议，把 primitives 改成 ll 协议
+    1. [ ] 不使用 simple 协议，把 primitives 改成 ll 协议
 
-    3. [v] 调研 cuda `__shared__`
+    1. [ ] 调研`extern __shared__ xxx;`申请动态的 shard 数据
 
-        feedback:
-
-        1. [ ] 调研`extern __shared__ xxx;`申请动态的 shard 数据
-
-* [v] 准备面试题
+    1. [v] 调研 cuda `__shared__`
 
 * [ ] 调研`cudaMalloc3D()`
 
@@ -1978,13 +1957,11 @@ tasks:
 
 * [ ] 调研 openmpi 对 mellanox, cuda, rocm 的支持
 
-* [ ] 调研 nccl app
+* [ ] 调研 mpi err handler，这个概念是否可以认为是 c 版本的 c++ try catch 错误捕捉机制？
 
 * [v] 调研`MPI_Probe`, <https://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/>
 
     feedback:
-
-    1. 调研 mpi err handler，这个概念是否可以认为是 c 版本的 c++ try catch 错误捕捉机制？
 
     2. add reference 也应该先放到 cache 里，再添加到 note 里。不然无法保证写入 note 里的都是经过验证的。
     
@@ -2006,27 +1983,29 @@ tasks:
 
 * [ ] 调研 nvshmem API，重点看 n_pes 相关的函数和说明
 
-* [ ] 使用 cuda 实现矩阵乘法
+* [v] 使用 cuda 实现矩阵乘法
+
+* [ ] 调研 py 调用 C 库函数
 
 * [v] 调研 vllm 中 nccl 的用法
 
     feedback:
 
-    1. 调研 py 调用 C 库函数
-
-    2. vllm 的 pynccl 主要 wrapper 了 all reduce, send, recv 三个函数，all reduce 的算子似乎是直接调用 pytorch 的算子，并没有额外实现一版。
+    1. vllm 的 pynccl 主要 wrapper 了 all reduce, send, recv 三个函数，all reduce 的算子似乎是直接调用 pytorch 的算子，并没有额外实现一版。
 
         传入参数中有 cuda stream，但是没有看到 sync 的函数。因此理论上是支持异步的，不知道具体怎么个调用法。
 
-    3. 调研 py 类型提示`group: Union[ProcessGroup, StatelessProcessGroup]`
+    1. 调研 py 类型提示`group: Union[ProcessGroup, StatelessProcessGroup]`
 
-    4. async 相关的可能在`cuda_wrapper.py`里
+    1. async 相关的可能在`cuda_wrapper.py`里
 
         这里面可以重点看下`cudaDeviceSynchronize()`是怎么 wrapper 的，在哪里调用的。
 
-    5. 调研 cuda 函数`cudaIpcGetMemHandle`, `cudaIpcOpenMemHandle`
+    1. 调研 cuda 函数`cudaIpcGetMemHandle`, `cudaIpcOpenMemHandle`
 
 * [ ] 调研 nccl 中的 asm 语句 <https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html#constraints>
+
+* [ ] 调研尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
 
 * [v] 调研 nvlink
 
@@ -2034,17 +2013,11 @@ tasks:
 
     feedback:
 
-    3. [ ] 尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
-
     4. [ ] 继续调研 nccl 源码，看是否有 put get 相关的函数
 
 * [v] 调研 linux nvidia kmd 中与 nvlink 相关的部分
 
     feedback:
-
-    1. 在 nvidia open source kdm 里面有 nvlink, nvswitch 相关的代码
-
-        <https://github.com/NVIDIA/open-gpu-kernel-modules>
 
     2. 入口函数`nv.c`: `nvlink_drivers_init(void)`
 
@@ -2078,13 +2051,13 @@ tasks:
 
 * [ ] 调研 linux ubuntu 环境下，nvidia 的 profiling 工具，比如 nsight 之类的
 
+* [ ] 调研关于`CUDA_VISIBLE_DEVICES`的疑问：假如在启动 cuda-gdb 之前指定这个环境变量，host code 只能看到指定的 device；假如在启动 cuda-gdb 后，改变`CUDA_VISIBLE_DEVICES`，是否只会在指定的 device 上 hit 到断点？
+
 * [v] 调研 cuda gdb
 
     17:16 ~ 17:36
 
     feedback:
-
-    2. 关于`CUDA_VISIBLE_DEVICES`的疑问：假如在启动 cuda-gdb 之前指定这个环境变量，host code 只能看到指定的 device；假如在启动 cuda-gdb 后，改变`CUDA_VISIBLE_DEVICES`，是否只会在指定的 device 上 hit 到断点？
 
     3. 调研 CUDA Quick Start Guide
     
@@ -2198,8 +2171,6 @@ tasks:
 
 * [ ] 调研 hugging face，看看比 mmdetection 多了什么东西
 
-* [v] 调研如何解决计算，通信，存储资源碎片化的问题
-
 ## HPC comm
 
 * [v] 调研 pci host bridge
@@ -2247,8 +2218,6 @@ tasks:
 ## 控制
 
 * { } 调研《控制之美》
-
-* [v] 调研《控制之美》
 
 ## rdma
 

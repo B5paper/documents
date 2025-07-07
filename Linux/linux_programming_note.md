@@ -6,6 +6,8 @@
 
 ## cache
 
+* pthread cond 如果先 signal，再 wait，那么无法正常运行
+
 * `pthread_once()`的用法
 
     `pthread_once()`可以保证在多线程环境下，指定的函数可以只被执行一次。
