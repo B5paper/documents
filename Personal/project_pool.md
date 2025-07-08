@@ -1430,31 +1430,58 @@ tasks:
 
 * [ ] 调研`addInterStep()`
 
-* [v] grep 时如何显示前后 n 行的文本？
+* [ ] 调研`rsync`如何断点续传？
 
-* [v] 调研`rsync -z`
+* [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
-    feedback:
-
-    1. `rsync`如何断点续传？
-
-* [v] 调研`ssh -A`
-
-* [v] 调研 c++ `std::bind()`
+* [v] 调研`std::mem_fn()`
 
     feedback:
 
-    1. 调研成员函数的指针和普通函数的指针有何不同。
-
-* [ ] 调研`std::mem_fn()`
+    1. [ ] 调研`std::invoke()`
 
 * [ ] 调研`std::reference_wrapper`
 
-* [ ] 调研 gdb `call`命令调用函数
+* [v] 调研 gdb `call`命令调用函数
 
-* [ ] 调研`ncclTopoCheckP2p()`
+    feedback:
 
-* [O] 调研尝试实现 nv comp 的 compute path
+    1. 调研 gdb 函数返回值
+
+        > 返回值：显示返回值（如 $1 = 5），可通过 $ 引用（如 call $1 + 10）。
+
+    1. 调研 gdb `(void)`用法
+
+        `(gdb) call (void) my_void_func()  # 忽略返回值
+        
+    1. 调研 gdb `/x`用法
+
+        `(gdb) call/x my_func()            # 十六进制显示结果`
+        
+    1. 调研 gdb `call system()`用法
+
+        `(gdb) call system("ls /tmp")      # 可能影响外部环境`
+
+    1. 调研 gdb `print my_func()`命令
+
+    1. 调研 gdb `x`命令
+
+    1. 调研 gdb call 调用构造函数和析构函数
+
+        ```
+        (gdb) call obj->method()
+        (gdb) call ptr->~MyClass()  # 析构函数
+        ```
+
+* {O} 调研`ncclTopoCheckP2p()`
+
+    deps:
+
+    1. [v] 调研`ncclGetLevel`
+
+    1. [ ] 调研`ncclParamIgnoreDisabledP2p`
+
+* {O} 调研尝试实现 nv comp 的 compute path
 
     feedback:
 
@@ -1477,9 +1504,13 @@ tasks:
 
 * [ ] 调研 filter out invalid silink
 
-* [ ] 调研正则表达式中的`\|`
+* [v] 调研正则表达式中的`\|`
 
     `grep "keyword1\|keyword2\|keyword3" file.txt`
+
+    feedback:
+
+    1. [ ] 调研`grep`如何搜索一个文件中的`\|`？
 
 * { } 调研 ptx 指令集
 
@@ -1582,11 +1613,7 @@ tasks:
 
 * [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
-* [v] 调研 string 不同 size，但内容和 \0 相同，那么他们相等吗？ 
-
 * [ ] qa: bash 30 mins
-
-* [v] 调研`tee -a`
 
 * [ ] 调研 apt 包`sshpass`
 
