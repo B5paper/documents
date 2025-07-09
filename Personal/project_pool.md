@@ -1416,9 +1416,27 @@ tasks:
 
 ### tasks
 
-* [ ] 调研 magic enum
+* [ ] 调研`rsync --delete`
 
-* [ ] 调研 c++ `extent`的用法。
+* [v] 调研 magic enum
+
+    feedback:
+
+    1. 调研 conan
+
+    1. 调研 cmake FetchContent_Declare
+
+    1. 调研“如果一个类实现了自定义构造函数，那么就无法再将其视作一个聚合类，也无法使用`{}`进行初始化”
+
+    1. 调研如果构造函数有多个参数，那么`explicit`有意义吗？
+
+    1. 调研 c++ `optional`
+
+* [v] 调研 c++ `extent`的用法。
+
+    feedback:
+
+    1. [ ] 调研 c++ 中如何知道数组有几个维度
 
 * [ ] 调研 ssh 的 ProxyCommand
 
@@ -1464,22 +1482,32 @@ tasks:
 
     1. 调研 gdb `print my_func()`命令
 
-    1. 调研 gdb `x`命令
+* [ ] 调研 gdb `x`命令
 
-    1. 调研 gdb call 调用构造函数和析构函数
+* [ ] 调研 gdb call 调用构造函数和析构函数
 
-        ```
-        (gdb) call obj->method()
-        (gdb) call ptr->~MyClass()  # 析构函数
-        ```
+    ```
+    (gdb) call obj->method()
+    (gdb) call ptr->~MyClass()  # 析构函数
+    ```
+
+* [ ] 调研完善 set_path()，使得 gpu vert idx 0 + gpu vert idx 1 时，compare 后的`path->type`为 6.
+
+* [v] 调研`ncclParamIgnoreDisabledP2p`
+
+    feedback:
+
+    1. 调研`ncclGetEnv()`
+
+    1. 调研`ncclLoadParam()`
+
+    1. 调研`NCCL_PARAM()`
 
 * {O} 调研`ncclTopoCheckP2p()`
 
     deps:
 
     1. [v] 调研`ncclGetLevel`
-
-    1. [ ] 调研`ncclParamIgnoreDisabledP2p`
 
 * {O} 调研尝试实现 nv comp 的 compute path
 
@@ -1508,9 +1536,7 @@ tasks:
 
     `grep "keyword1\|keyword2\|keyword3" file.txt`
 
-    feedback:
-
-    1. [ ] 调研`grep`如何搜索一个文件中的`\|`？
+* [ ] 调研`grep`如何搜索一个文件中的`\|`？
 
 * { } 调研 ptx 指令集
 
@@ -1577,8 +1603,6 @@ tasks:
     1. 目前 53 机器不走代理，因此只能访问国内网站。如果 50 机器需要访问 github，可以用笔记本 ssh -R 反向代理。
 
     1. [ ] 调研`ncclCommGetAsyncError()`
-
-* [ ] 调研`rsync --delete`
 
 * [ ] 调研`grep -E`
 
