@@ -1416,29 +1416,33 @@ tasks:
 
 ### tasks
 
+* {O} 调研`ncclTopoCheckP2p()`
+
+* [ ] 调研 apt 包`sshpass`
+
+* [ ] 调研`grep`如何搜索一个文件中的`\|`？
+
+* [ ] 调研 gdb `x`命令
+
 * [ ] 调研`rsync --delete`
 
 * [v] 调研 magic enum
 
-    feedback:
+* [ ] 调研 conan
 
-    1. 调研 conan
+* [ ] 调研 cmake FetchContent_Declare
 
-    1. 调研 cmake FetchContent_Declare
+* [ ] 调研“如果一个类实现了自定义构造函数，那么就无法再将其视作一个聚合类，也无法使用`{}`进行初始化”
 
-    1. 调研“如果一个类实现了自定义构造函数，那么就无法再将其视作一个聚合类，也无法使用`{}`进行初始化”
+* [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
-    1. 调研如果构造函数有多个参数，那么`explicit`有意义吗？
-
-    1. 调研 c++ `optional`
+* [ ] 调研 c++ `optional`
 
 * [v] 调研 c++ `extent`的用法。
 
-    feedback:
+* [ ] 调研 c++ 中如何知道数组有几个维度
 
-    1. [ ] 调研 c++ 中如何知道数组有几个维度
-
-* [ ] 调研 ssh 的 ProxyCommand
+* [v] 调研 ssh 的 ProxyCommand
 
     ```
     ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
@@ -1454,35 +1458,29 @@ tasks:
 
 * [v] 调研`std::mem_fn()`
 
-    feedback:
-
-    1. [ ] 调研`std::invoke()`
+* [ ] 调研`std::invoke()`
 
 * [ ] 调研`std::reference_wrapper`
 
 * [v] 调研 gdb `call`命令调用函数
 
-    feedback:
+* [ ] 调研 gdb 函数返回值
 
-    1. 调研 gdb 函数返回值
+    > 返回值：显示返回值（如 $1 = 5），可通过 $ 引用（如 call $1 + 10）。
 
-        > 返回值：显示返回值（如 $1 = 5），可通过 $ 引用（如 call $1 + 10）。
+* [ ] 调研 gdb `(void)`用法
 
-    1. 调研 gdb `(void)`用法
+    `(gdb) call (void) my_void_func()  # 忽略返回值
+    
+* [ ] 调研 gdb `/x`用法
 
-        `(gdb) call (void) my_void_func()  # 忽略返回值
-        
-    1. 调研 gdb `/x`用法
+    `(gdb) call/x my_func()            # 十六进制显示结果`
+    
+* [ ] 调研 gdb `call system()`用法
 
-        `(gdb) call/x my_func()            # 十六进制显示结果`
-        
-    1. 调研 gdb `call system()`用法
+    `(gdb) call system("ls /tmp")      # 可能影响外部环境`
 
-        `(gdb) call system("ls /tmp")      # 可能影响外部环境`
-
-    1. 调研 gdb `print my_func()`命令
-
-* [ ] 调研 gdb `x`命令
+* [ ] 调研 gdb `print my_func()`命令
 
 * [ ] 调研 gdb call 调用构造函数和析构函数
 
@@ -1491,23 +1489,21 @@ tasks:
     (gdb) call ptr->~MyClass()  # 析构函数
     ```
 
-* [ ] 调研完善 set_path()，使得 gpu vert idx 0 + gpu vert idx 1 时，compare 后的`path->type`为 6.
-
-* [v] 调研`ncclParamIgnoreDisabledP2p`
+* [v] 调研完善 set_path()，使得 gpu vert idx 0 + gpu vert idx 1 时，compare 后的`path->type`为 6.
 
     feedback:
 
-    1. 调研`ncclGetEnv()`
+    1. [v] 调研 getLocalCpu
 
-    1. 调研`ncclLoadParam()`
+    1. [ ] 调研 sched_setaffinity
 
-    1. 调研`NCCL_PARAM()`
+* [v] 调研`ncclParamIgnoreDisabledP2p`
 
-* {O} 调研`ncclTopoCheckP2p()`
+* [ ] 调研`ncclGetEnv()`
 
-    deps:
+* [ ] 调研`ncclLoadParam()`
 
-    1. [v] 调研`ncclGetLevel`
+* [ ] 调研`NCCL_PARAM()`
 
 * {O} 调研尝试实现 nv comp 的 compute path
 
@@ -1531,12 +1527,6 @@ tasks:
     目前的方案是在 merge tag 时，filter out smae tag，但是这个方案毕竟不够完美
 
 * [ ] 调研 filter out invalid silink
-
-* [v] 调研正则表达式中的`\|`
-
-    `grep "keyword1\|keyword2\|keyword3" file.txt`
-
-* [ ] 调研`grep`如何搜索一个文件中的`\|`？
 
 * { } 调研 ptx 指令集
 
@@ -1638,8 +1628,6 @@ tasks:
 * [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
 * [ ] qa: bash 30 mins
-
-* [ ] 调研 apt 包`sshpass`
 
 * [ ] 调研 apt 包`libboost-all-dev`
 
