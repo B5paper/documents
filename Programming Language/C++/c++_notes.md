@@ -4,6 +4,146 @@
 
 ## cached
 
+* c++ 中，如果一个构造函数被声明为`explicit`，那么就无法使用等号进行初始化，只能使用括号来初始化。
+
+    ```cpp
+    struct B;
+
+    struct A {
+        int val;
+        A() {}
+        explicit A(const B &b);
+    };
+
+    struct B {
+        int val;
+    };
+
+    A::A(const B &b) {
+        val = b.val;
+    }
+
+    int main() {
+        A a;
+        a.val = 123;
+        B b;
+        b.val = 456;
+
+        A c = b;  // Error
+        A d(b);  // OK
+
+        return 0;
+    }
+    ```
+
+    compiling output:
+
+    ```
+    main_5.cpp: In function ‘int main()’:
+    main_5.cpp:23:11: error: conversion from ‘B’ to non-scalar type ‘A’ requested
+       23 |     A c = b;  // Error
+          |           ^
+    make: *** [Makefile:4: main] Error 1
+    ```
+
+    如果不写`explicit`，则可正常通过编译：
+
+    ```cpp
+    struct B;
+
+    struct A {
+        int val;
+        A() {}
+        A(const B &b);
+    };
+
+    struct B {
+        int val;
+    };
+
+    A::A(const B &b) {
+        val = b.val;
+    }
+
+    int main() {
+        A a;
+        a.val = 123;
+        B b;
+        b.val = 456;
+
+        A c = b;  // OK
+        A d(b);  // OK
+
+        return 0;
+    }
+    ```
+
+* `const char*` / `char*`不能转换为`string&`，只能转换为`const string&`或`string&&`。
+
+* 使用`typename`告诉编译器当前的名字是个类型名
+
+    example:
+
+    如果直接编译下面的代码，是编译不通的：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <unordered_map>
+    using namespace std;
+
+    struct A {
+        typedef unordered_map<string, string> Dict;
+        Dict dict;
+    };
+
+    template<typename T>
+    struct B {
+        T::Dict dict_b;
+    };
+
+    int main() {
+        B<A> b;
+        return 0;
+    }
+    ```
+
+    编译输出：
+
+    ```
+    main_5.cpp:14:5: error: need ‘typename’ before ‘T::Dict’ because ‘T’ is a dependent scope
+       14 |     T::Dict dict_b;
+          |     ^
+          |     typename 
+    make: *** [Makefile:2: main] Error 1
+    ```
+
+    此时我们必须在`T::Dict dict_b;`前加一个`typename`，才能编译通过：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <unordered_map>
+    using namespace std;
+
+    struct A {
+        typedef unordered_map<string, string> Dict;
+        Dict dict;
+    };
+
+    template<typename T>
+    struct B {
+        typename T::Dict dict_b;
+    };
+
+    int main() {
+        B<A> b;
+        return 0;
+    }
+    ```
+
+    默认情况下，编译器认为依赖未知类型`T`的符号都是普通成员，而不是类型名。如果想告诉编译器这个符号是个类型，而不是成员变量或函数，那么必须使用`typename`。
+
 * 必须使用 unique ptr 的场景
 
     按传统的方式需要调用两次函数，第一次得到 num，然后用户 malloc 内存拿到 buffer，第二次调用函数往 buffer 里填数据。

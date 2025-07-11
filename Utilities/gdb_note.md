@@ -2,6 +2,12 @@
 
 ## cache
 
+* gdb 可以使用`call`命令调用函数，`(gdb) call func(param_1, param_2)`
+
+    被 call 的函数定义所在的文件必须使用`-g`编译才行。
+
+    可以使用`call <var_name> = <val>`给变量赋值。如果不使用`call`，直接写`<var_name> = <val>`会报错。
+
 * gdb 远程调试
 
     1. 安装 gdbserver

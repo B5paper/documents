@@ -2,6 +2,44 @@
 
 ## cache
 
+* `ssh -W <target_ip>:<port> <user>@<jump_ip>`
+
+    `ssh -W`表示登陆 jump host 的 ssh，并将当前窗口的所有 stdin, stdout 都转发到 target host 上。这个功能通常只能用于转发 ssh 数据。
+
+    如果`<target_ip>:<port>`被设置为 target host 上的`nc -l <port>`，那么会报错：
+
+    ```
+    channel 0: open failed: connect failed: Connection refused
+    stdio forwarding failed
+    ```
+
+    由此可见，这个命令可能并不是个通用命令，而是专门用于跳板机的 ssh 配套命令。
+
+    `<target_ip>`通常使用`%h`表示，`<port>`通常使用`%p`表示，这样可以直接匹配到需要连接的主机：
+
+    `ssh -o ProxyCommand="ssh -W %h:%p <user>@<jump_host>" <user>@<target_host>`
+
+    此时`%h`会被自动替换成`<target_host>`，而`%p`会被自动替换成`22`。
+    
+    跳板机的 sshd 需要开启`AllowTcpForwarding yes`，默认情况下是开启的。
+
+    `~/.ssh/config`的写法如下：
+
+    ```
+    Host target-host
+        HostName 目标主机真实IP
+        User 目标主机用户
+        ProxyCommand ssh -W %h:%p 跳板机用户@跳板机IP
+    ```
+
+* `ssh -A`选项的全称为 Agent Forwarding，对应的 ssh command 为`ForwardAgent`，可以将本地的 ssh 私钥（比如`id_rsa`）临时放到远端机器上。
+
+    假设我们当前的机器为`A`，需要登陆的机器为`C`，现在有个中间机器`B`。如果我们按通常方式`ssh <user>@<B_addr>`登陆到 B 机器，再使用`ssh <user>@<C_addr>`登陆到 C 机器，那么 C 会认为是 B 申请的登陆。假如 C 机器只存储了 A 的公钥，而不允许 B 登陆，那就只能使用`-A`选项了。
+
+    先使用`ssh -A <user>@<B_addr>`登陆到 B，再使用`ssh <user>@<C_addr>`登陆到 C，此时 C 会认为是 A 申请的登陆。
+
+    同理，使用跳板机参数`-J`时，也可以使用这个功能：`ssh -A -J <jump_user>@<jump_addr> <target_user>@<target_addr>`。
+
 * 使用 scp + 跳板机传文件
 
     `scp -P <target_host_port> -J <jump_host_user>@<jump_host_ip> -r <local_src_dir> <target_host_user>@<target_host_ip>:<dst_path>`

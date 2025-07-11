@@ -6,6 +6,98 @@
 
 ## cache
 
+* `rsync`中，src dir 的下面四种写法是等价的
+
+    `.`, `./`, `*`, `./*`
+
+* `rsync`中, `--progress`可以显示进度，`--partial`支持断点续传
+
+    `-P`则表示同时 enable `--progress --partial`。
+
+* grep 开启`-E`时，可以使用`|`匹配多个模式。
+
+    `grep -E haha\|hehe msg.txt`
+
+    `grep -E 'haha|hehe' msg.txt`
+
+    bash 会将`|`默认解释为管道，如果希望 bash 将`|`解释为字符`|`，那么要么在之前加`\`，要么使用单引号`''`。
+    
+    注：
+
+    1. 标准的正则表达式支持`|`，比如 python 的`re`模块。
+
+    1. `|`的前后不能有空格，或者说，空格不会被忽略。
+
+* `rsync -z`表示在传输过程中对要传输的文件进行压缩。如果传输过程文本文件比较多，可以使用`-z`大幅提高传输效率。
+
+* `tee -a`表示在文件末尾追加
+
+    如果文件不存在，则会创建文件。
+
+    echo 本身会在行尾加`\n`，因此不需要额外考虑`\n`。
+
+    ```bash
+    echo 'heloo' | tee -a log.txt
+    echo 'heloo' | tee -a log.txt
+    cat log.txt
+    ```
+
+    output:
+
+    ```
+    heloo
+    heloo
+    heloo
+    heloo
+    ```
+
+* grep 查看前后 n 行文本
+
+    * 向前 n 行：`grep -B n`
+
+    * 向后 n 行：`grep -A n`
+
+    * 前后各 n 行：`grep -C n`
+
+    其中 A 表示 after，B 表示 before，C 表示 context。
+
+    example:
+
+    `msg.txt`:
+
+    ```
+    hello, world, nihao, zaijian
+    123, 234, 345, 456, nihao
+    hello, 345
+    haha
+    hehesdf
+    aaaaa
+    bbb
+    ```
+
+    run: `grep -B 1 -A 2 345 msg.txt`
+
+    output:
+
+    ```
+    hello, world, nihao, zaijian
+    123, 234, 345, 456, nihao
+    hello, 345
+    haha
+    hehesdf
+    ```
+
+    run : `grep -C 1 345 msg.txt`
+
+    output:
+
+    ```
+    hello, world, nihao, zaijian
+    123, 234, 345, 456, nihao
+    hello, 345
+    haha
+    ```
+
 * find 不输出没有权限的文件
 
     find 对没有权限的文件会输出类似

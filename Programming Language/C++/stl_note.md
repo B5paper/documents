@@ -2,6 +2,265 @@
 
 ## cached
 
+* c++ `extent`简介
+
+    `extent`可以获取数组指定维度的 length。
+
+    ```cpp
+    #include <stdio.h>
+    #include <type_traits>
+    using namespace std;
+
+    int main() {
+        int arr[3][4][5];
+        int N_1 = extent_v<decltype(arr), 0>;
+        int N_2 = extent_v<decltype(arr), 1>;
+        int N_3 = extent_v<decltype(arr), 2>;
+        int N_4 = extent_v<decltype(arr), 3>;
+        int N_5 = extent_v<decltype(arr)>;
+        printf("N_1: %d, N_2: %d, N_3: %d, N_4: %d, N_5: %d\n",
+            N_1, N_2, N_3, N_4, N_5);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    N_1: 3, N_2: 4, N_3: 5, N_4: 0, N_5: 3
+    ```
+
+    如果我想知道数组有几个维度，下面的代码是不行的：
+
+    ```cpp
+    vector<int> N_s;
+    int dim_idx = 0;
+    while (true) {
+        int N = extent_v<decltype(arr), dim_idx>;  // error
+        if (N == 0) {
+            break;
+        }
+        N_s.push_back(N);
+    }
+    ```
+
+    由于`dim_idx`是个变量，而模板只能接受常量，所以会编译报错。
+
+    但是 c++ 仍然提供了几种方法拿到数组的维度数量，比如模板递归。
+
+* 从`string_view`构造`string`时，只能显式构造
+
+    ```cpp
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string_view my_strv = "hello, world";
+        string my_str = my_strv;  // error
+        string my_str_2(my_strv);  // ok
+        string my_str_2{my_strv};  // ok
+        return 0;
+    }
+    ```
+
+    compiling output:
+
+    ```
+    main_5.cpp: In function ‘int main()’:
+    main_5.cpp:6:21: error: conversion from ‘std::string_view’ {aka ‘std::basic_string_view<char>’} to non-scalar type ‘std::string’ {aka ‘std::__cxx11::basic_string<char>’} requested
+        6 |     string my_str = my_strv;  // error
+          |                     ^~~~~~~
+    make: *** [Makefile:4: main] Error 1
+    ```
+
+    我们看 std 库中 string 的头文件，有下面几行：
+
+    ```cpp
+      /**
+       *  @brief  Construct string from a string_view.
+       *  @param  __t  Source object convertible to string view.
+       *  @param  __a  Allocator to use (default is default allocator).
+       */
+      template<typename _Tp, typename = _If_sv<_Tp, void>>
+	_GLIBCXX20_CONSTEXPR
+	explicit
+	basic_string(const _Tp& __t, const _Alloc& __a = _Alloc())
+	: basic_string(__sv_wrapper(_S_to_string_view(__t)), __a) { }
+    ```
+
+    可以看到，`explicit`关键字就是元凶。
+
+    为什么要这样设计？用意和动机是什么？目前不清楚。
+
+* c++ 中`mem_fn()`可以将类的成员函数提取出来，做成一个可调用对象
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <functional>
+    using namespace std;
+
+    struct A {
+        int val;
+        void print_msg(const string &msg) {
+            printf("%s, %d\n", msg.c_str(), val);
+            ++val;
+        }
+    };
+
+    int main() {
+        auto A_print = mem_fn(&A::print_msg);
+        A obj;
+        obj.val = 42;
+        A_print(obj, "hello, world");
+        A_print(obj, "hello, world");
+        A_print(&obj, "hello, world");
+        A_print(&obj, "hello, world");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world, 42
+    hello, world, 43
+    hello, world, 44
+    hello, world, 45
+    ```
+
+    `mem_fn`在`<functional>`头文件中。
+
+    `mem_fn()`包装出来的函数，可接受原对象，可接受原对象的指针，还可接受智能指针。根据上面的例子可以看出，无论如何`mem_fn()`包装出来的函数都是按引用传递实例。
+
+* `mem_fn()`在返回成员变量时，返回的是引用
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <functional>
+    using namespace std;
+
+    struct A {
+        int val;
+    };
+
+    int main() {
+        auto get_A_val = mem_fn(&A::val);
+        A obj;
+        obj.val = 42;
+        int val = get_A_val(obj);
+        printf("val: %d\n", val);
+
+        int &val_ref = get_A_val(obj);
+        val_ref = 123;
+        printf("val: %d\n", obj.val);
+        
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val: 42
+    val: 123
+    ```
+
+* c++ bind
+
+    `bind()`在头文件`<functional>`中。
+
+    基本用法是绑定函数的参数，或者交换参数的顺序：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <functional>
+    using namespace std;
+
+    void print(const string &msg, int val) {
+        printf("%s, val: %d\n", msg.c_str(), val);
+    }
+
+    void add(int a, int b) {
+        printf("%d + %d = %d\n", a, b, a + b);
+    }
+
+    int main() {
+        print("hello", 42);
+        auto print_hello = bind(print, "hello", 42);
+        // std::_Bind<void (*(const char *, int))(const std::string &msg, int val)>
+        print_hello();
+
+        add(1, 2);
+        auto swap_add = bind(add, placeholders::_2, placeholders::_1);
+        swap_add(1, 2);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, val: 42
+    hello, val: 42
+    1 + 2 = 3
+    2 + 1 = 3
+    ```
+
+    由于 bind 返回的类型非常长（上面代码中的`std::_Bind<void (*(const char *, int))(const std::string &msg, int val)>`），所以通常使用`auto`来替代。
+
+    如果需要交换参数位置，可以使用`std::placeholders`中的`_1`, `_2`, ... 表示 bind 返回的函数的第 1 个参数，第 2 个参数。
+
+    `bind()`也支持类的成员函数，以及 lambda 表达式：
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <functional>
+    using namespace std;
+
+    struct MyClass {
+        string msg;
+
+        void print(const string &out_msg) {
+            printf("%s, %s\n", msg.c_str(), out_msg.c_str());
+        }
+    };
+
+    int main() {
+        MyClass obj{"hello"};
+        auto print_msg = bind(&MyClass::print, &obj, placeholders::_1);
+        print_msg("world");
+
+        int val = 42;
+        auto print_msg_2 = bind([val](const string &msg, int val_out) {
+            printf("%s, %d, %d\n", msg.c_str(), val, val_out);
+        }, "hello, world", placeholders::_1);
+        print_msg_2(123);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world
+    hello, world, 42, 123
+    ```
+
+    如果捕捉了外部变量，那么用普通方法是拿不到 lambda 表达式的指针的，但是我们可以使用 bind 或`std::function`拿到 lambda 表达式的可调用对象。
+
+    注：
+
+    1. `bind(&MyClass::print, &obj, placeholders::_1);`中，必须使用`&MyClass::print`和`&obj`，不能使用`MyClass::print`（普通函数的名字即为地址，成员函数的名字必须加`&`才能表示地址），不推荐使用`obj`（会按值传递`obj`对象）。
+
+    1. 由于使用了`bind()`，所以函数并不是当场调用的，而是有可能在对象销毁的时候才被调用，但是我们传进去的是对象的指针，所以指针有可能失效，`bind()`返回的可调用对象的调用也可能失败。
+
 * `string_view`本质存储的是 begin pointer + length，并不是一个 null-terminated 的字符串，所以无法提供`.c_str()`。
 
     example:
