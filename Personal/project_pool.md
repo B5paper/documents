@@ -1434,6 +1434,18 @@ tasks:
 
 ### tasks
 
+* {O} 调研实现 topo compute
+
+    feedback:
+
+    1. 调研`ncclTopoSearchRec()`
+
+    1. 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
+
+    1. 调研如果前面定义了`int gpu`，后面可以使用`TopoNode* gpu`重新定义吗？如果`int gpu`在函数参数里呢？
+
+    1. 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
+
 * {O} 调研尝试实现 nv comp 的 compute path
 
 * [ ] 调研 ssh 直接执行命令
@@ -1454,9 +1466,27 @@ tasks:
 
     1. [ ] 调研 NCCL_COLLNET 是干嘛用的
 
-* [ ] 调研 apt 包`sshpass`
+* [v] 调研 apt 包`sshpass`
 
-* [ ] 调研`grep`如何搜索一个文件中的`\|`？
+    feedback:
+
+    1. 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
+
+    1. 调研`tr`
+
+    1. 调研`pgrep`
+
+    1. 调研`expect`脚本
+
+* [v] 调研`grep`如何搜索一个文件中的`\|`？
+
+    feedback:
+
+    1. 调研`grep -F`
+
+    1. 调研`fgrep`
+
+    1. 调研`grep -n`
 
 * [ ] 调研 gdb `x`命令
 
@@ -1476,11 +1506,7 @@ tasks:
 
 * [v] 调研`rsync`的`--progress`, `--partial`
 
-    feedback:
-
-    1. 调研`rsync -v`, `--info=progress2`
-
-* [v] 调研`addInterStep()`
+* [ ] 调研`rsync -v`, `--info=progress2`
 
 * [ ] 调研`rsync`如何断点续传？
 
@@ -1516,8 +1542,6 @@ tasks:
     ```
 
 * [ ] 调研 sched_setaffinity
-
-* [v] 调研完善 set_path()，使得 gpu vert idx 0 + gpu vert idx 1 时，compare 后的`path->type`为 6.
 
 * [ ] 调研`ncclGetEnv()`
 
