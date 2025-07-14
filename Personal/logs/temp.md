@@ -1325,3 +1325,55 @@
     ```
 
     按照目前的方案，pci 1 检测到 pci 2 是 child pci tag，转到小循环开始处理。pci 1 作为 parent node，重新扫描所有的子 tag。但是我们需要注意到，在 pci 1 的外层大循环中，仍然会处理 pci 2 和 pci 3。此时当处理 pci 3 时，又进入小循环，pci 2 又被处理了一遍。nccl 之所以能写小循环，是因为它没有外层的大循环。
+
+* `ncclTopoGetLocal()`
+
+    `locals`是 node idx 的数组，`localCount`是数组的长度。
+
+    `locals`中的内容为`0, 1`，对应`localNets`。
+
+    第二次调用，`locals`中的内容为`0`，对应`localGpus`。
+
+    `net`一直为 1，`channelId`是外部传进来的，为 0。
+
+    `id`是个指针，刚传进来时是个未初始化的随机数，之后被赋值为 2。
+
+    看起来`net`只是为了选择`localNets[]`数组中的哪个元素。
+
+    `dev`是 net 的 dev，与 gpu 没有关系。外部传入的是 NULL，说明外部不需要这个参数，直接跳过不填。
+
+    `ncclTopoGetLocalNet()`的作用，猜测可能是根据指定的 gpu node（只能是 gpu，不能是其他），在已有的 net node 中，找到一个带宽最大，路径约束最严的 net node。
+
+* `ncclTopoGetLocalNet()`
+
+    反正要在函数内部调用`ncclTopoRankToIndex()`根据 rank 找到 gpu node idx，那么为什么不从一开始就传入 gpu node idx，或 gpu node 的指针？
+
+    为什么传入参数要引入`channelId`，有什么用？
+
+* `ncclTopoSelectNets()`
+
+    `localNets`是个数组，存放 net node 的 idx。数组长度为`localNetCount`。
+
+    循环中调用`ncclTopoGetLocalNet()`，只是改变 channel，其他的都不变。
+
+    第 1 次返回的`netId`为`2`，第 2 次返回的`netId`为`1`，第 3 次返回的`netId`为`2`。循环一共 3 次就停止，停止条件是`localNets`新添加的元素和第一个元素相等。退出循环时，`localNets`的长度`localNetCount`为 2.
+
+    猜想：可能会循环或对称分配 net 资源，当 net 资源被分配完（新分配的数据又重新回到开头）时，则停止分配。
+
+    看不懂
+
+    ```cpp
+      if (found == netCount)
+        nets[netCount++] = n;
+    ```
+
+    这个是什么意思。
+
+    ```cpp
+      // Then add others satisfying typeInter
+      for (int t=0; t <= typeInter; t++) {
+    ```
+
+    这里的`typeInter`为 3，是`graph->typeInter`传进来的。
+
+    最终函数返回时，`netCount`为 2，并将其赋值给函数参数`*netCountRet`。

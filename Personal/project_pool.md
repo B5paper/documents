@@ -1410,41 +1410,23 @@ tasks:
         
         * 两个节点之间的 path
 
-* 搭建 qemu 环境
-
-    * 60 机器上的 virt-manager 无法正常启动，qemu-system-x86_64 启动 qcow 图形界面太卡。如果使用无图形界面，速度应该会快一些。但是目前更好的办法是使用 54 机器开发。
-
-        2025/07/01/00: 54 机器环境不完整，最终还是到 60 机器上搭建 qemu 了。
-
-    * 编译时报错：
-
-        ```
-        [229/231] Linking target tests/qtest/qos-test
-        [230/231] Linking target storage-daemon/qemu-storage-daemon
-        [231/231] Linking target qemu-system-x86_64
-        ert build fails
-        build fails
-        ```
-
-        原因：
-
-        依赖未安装完全。需要照着 arch 组的文档安装 apt 和 python 的依赖。
-
 * set path nic 之后，siccl 与 nccl 输出一致。50 机器上没有 nvswitch，因此先跳过，后面在 135 机器上再测。
 
 ### tasks
 
+* [ ] 调研`ncclTopoGetLocalNet()`
+
+* [ ] 调研`ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount)`
+
+* [ ] 调研`ncclTopoSearchRec()`
+
 * {O} 调研实现 topo compute
 
-    feedback:
+* [ ] 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
 
-    1. 调研`ncclTopoSearchRec()`
+* [ ] 调研如果前面定义了`int gpu`，后面可以使用`TopoNode* gpu`重新定义吗？如果`int gpu`在函数参数里呢？
 
-    1. 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
-
-    1. 调研如果前面定义了`int gpu`，后面可以使用`TopoNode* gpu`重新定义吗？如果`int gpu`在函数参数里呢？
-
-    1. 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
+* [ ] 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
 
 * {O} 调研尝试实现 nv comp 的 compute path
 
@@ -1454,39 +1436,31 @@ tasks:
 
 * [ ] 调研 ssh ProxyJump
 
+* [ ] 调研 nc comp 为什么 p2p 返回 0，50 机器是否 p2p 返回 0，如果返回，为什么？
+
+    如果将 ignore disable p2p 设置为 1，是否还返回 0？
+
 * {O} 调研`ncclTopoCheckP2p()`
 
-    feedback:
-
-    1. [ ] 调研 nc comp 为什么 p2p 返回 0，50 机器是否 p2p 返回 0，如果返回，为什么？
-
-        如果将 ignore disable p2p 设置为 1，是否还返回 0？
-
-    1. [v] 调研 compute path 后的 path 是否和 siccl 的输出一致
-
-    1. [ ] 调研 NCCL_COLLNET 是干嘛用的
+* [ ] 调研 NCCL_COLLNET 是干嘛用的
 
 * [v] 调研 apt 包`sshpass`
 
-    feedback:
+* [ ] 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
 
-    1. 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
+* [ ] 调研`tr`
 
-    1. 调研`tr`
+* [ ] 调研`pgrep`
 
-    1. 调研`pgrep`
-
-    1. 调研`expect`脚本
+* [ ] 调研`expect`脚本
 
 * [v] 调研`grep`如何搜索一个文件中的`\|`？
 
-    feedback:
+* [ ] 调研`grep -F`
 
-    1. 调研`grep -F`
+* [ ] 调研`fgrep`
 
-    1. 调研`fgrep`
-
-    1. 调研`grep -n`
+* [ ] 调研`grep -n`
 
 * [ ] 调研 gdb `x`命令
 
@@ -1504,15 +1478,17 @@ tasks:
 
 * [ ] 调研 c++ 中如何知道数组有几个维度
 
-* [v] 调研`rsync`的`--progress`, `--partial`
-
 * [ ] 调研`rsync -v`, `--info=progress2`
 
 * [ ] 调研`rsync`如何断点续传？
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
-* [ ] 调研`std::invoke()`
+* [v] 调研`std::invoke()`
+
+    feedback:
+
+    1. 调研`std::visit`
 
 * [ ] 调研`std::reference_wrapper`
 
@@ -1520,9 +1496,15 @@ tasks:
 
     > 返回值：显示返回值（如 $1 = 5），可通过 $ 引用（如 call $1 + 10）。
 
-* [ ] 调研 gdb `(void)`用法
+* [v] 调研 gdb `(void)`用法
 
     `(gdb) call (void) my_void_func()  # 忽略返回值
+
+    feedback:
+
+    1. 调研`#define ASSERT(x) (void)(x)`中 void 的作用
+
+    1. 调研 gdb 中 p 命令调用函数`(gdb) p (void)printf("Hello, GDB\n")`
     
 * [ ] 调研 gdb `/x`用法
 
@@ -1541,7 +1523,21 @@ tasks:
     (gdb) call ptr->~MyClass()  # 析构函数
     ```
 
-* [ ] 调研 sched_setaffinity
+* [v] 调研 sched_setaffinity
+
+    feedback:
+
+    1. 调研`RLIMIT_NPROC`
+
+    1. 调研`sched_getaffinity()`
+
+    1. 调研`taskset`
+
+    1. 调研`std::atomic`
+
+    1. 调研`memory_order_relaxed`
+
+    1. 调研`numactl --hardware`
 
 * [ ] 调研`ncclGetEnv()`
 
@@ -1631,7 +1627,7 @@ tasks:
 
     `grep -E "keyword1|keyword2|keyword3" file.txt`
 
-* [ ] 调研`grep -v`
+* [v] 调研`grep -v`
 
     ```bash
     # 搜索包含 keyword1 但不包含 keyword2 的行
@@ -1660,7 +1656,7 @@ tasks:
 
 * [ ] qa: bash 30 mins
 
-* [ ] 调研 apt 包`libboost-all-dev`
+* [v] 调研 apt 包`libboost-all-dev`
 
 * [ ] 调研 apt 包`libgoogle-glog-dev`
 

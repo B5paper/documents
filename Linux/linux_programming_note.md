@@ -6,6 +6,208 @@
 
 ## cache
 
+* ai 生成的`sched_setaffinity()`的 example
+
+    `main.c`:
+
+    ```c
+    #define _GNU_SOURCE
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <pthread.h>
+    #include <sched.h>
+    #include <time.h>
+    #include <stdatomic.h>
+
+    #define MATRIX_SIZE 2048
+    #define NUM_THREADS 4
+
+    // 全局矩阵
+    double A[MATRIX_SIZE][MATRIX_SIZE];
+    double B[MATRIX_SIZE][MATRIX_SIZE];
+    double C[MATRIX_SIZE][MATRIX_SIZE];
+
+    // 线程参数
+    typedef struct {
+        int start_row;
+        int end_row;
+        int cpu_core; // 绑定的 CPU 核心
+    } ThreadArgs;
+
+    // 矩阵乘法（计算密集型任务）
+    void* matrix_multiply(void* arg) {
+        ThreadArgs* args = (ThreadArgs*)arg;
+        
+        // 如果指定了 CPU 核心，则绑定
+        if (args->cpu_core >= 0) {
+            cpu_set_t mask;
+            CPU_ZERO(&mask);
+            CPU_SET(args->cpu_core, &mask);
+            if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
+                perror("sched_setaffinity failed");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        // 计算矩阵乘法
+        for (int i = args->start_row; i < args->end_row; i++) {
+            for (int j = 0; j < MATRIX_SIZE; j++) {
+                C[i][j] = 0;
+                for (int k = 0; k < MATRIX_SIZE; k++) {
+                    C[i][j] += A[i][k] * B[k][j];
+                }
+            }
+        }
+        return NULL;
+    }
+
+    // 初始化矩阵
+    void init_matrices() {
+        for (int i = 0; i < MATRIX_SIZE; i++) {
+            for (int j = 0; j < MATRIX_SIZE; j++) {
+                A[i][j] = (double)rand() / RAND_MAX;
+                B[i][j] = (double)rand() / RAND_MAX;
+            }
+        }
+    }
+
+    // 运行测试（绑定或不绑定 CPU）
+    void run_test(int use_affinity) {
+        pthread_t threads[NUM_THREADS];
+        ThreadArgs args[NUM_THREADS];
+        int rows_per_thread = MATRIX_SIZE / NUM_THREADS;
+
+        // 初始化线程参数
+        for (int i = 0; i < NUM_THREADS; i++) {
+            args[i].start_row = i * rows_per_thread;
+            args[i].end_row = (i + 1) * rows_per_thread;
+            args[i].cpu_core = use_affinity ? i : -1; // -1 表示不绑定
+        }
+
+        // 创建线程
+        clock_t start = clock();
+        for (int i = 0; i < NUM_THREADS; i++) {
+            pthread_create(&threads[i], NULL, matrix_multiply, &args[i]);
+        }
+
+        // 等待线程完成
+        for (int i = 0; i < NUM_THREADS; i++) {
+            pthread_join(threads[i], NULL);
+        }
+        clock_t end = clock();
+
+        // 输出结果
+        double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
+        printf("%s CPU Affinity: Time = %.3f seconds\n",
+               use_affinity ? "With" : "Without", elapsed);
+    }
+
+    int main() {
+        // 初始化随机矩阵
+        init_matrices();
+
+        // 运行测试（绑定 CPU）
+        run_test(1);
+
+        // 运行测试（不绑定 CPU）
+        run_test(0);
+
+        return 0;
+    }
+    ```
+
+    compile:
+
+    `gcc main.c -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    With CPU Affinity: Time = 56.594 seconds
+    Without CPU Affinity: Time = 55.922 seconds
+    ```
+
+    实测绑定了 cpu 核的代码不一定比不绑定快。但是平均下来还是要快一点，设置 cpu affinity 大概能比不设置快 3%。
+
+    绑定 CPU 亲和性（affinity）能减少线程切换开销，提高缓存命中率。
+
+    说明：
+
+    1. 必须使用`gcc`编译，如果使用`g++`编译可能会报错。
+
+    1. 必须在`#include <sched.h>`前添加`#define _GNU_SOURCE`，因为`sched_setaffinity()`是 gnu 的扩展功能，不是 c 语言的标准功能。
+
+    1. warm up 对程序的输出影响较大，第一轮跑的测试通常会慢些，可以交换两种情况做多组测试，取平均值。
+
+    1. 如果 cpu 有超线程，将绑定的核设置为`0, 2, 4, 6`比设置为`0, 1, 2, 3`效果要好。
+
+* linux `sched_setaffinity()`的作用
+
+    `sched_setaffinity()`可以设置进程/线程的 cpu 亲和性。
+
+    函数原型与头文件:
+
+    ```c
+    #include <sched.h>
+    int sched_setaffinity(pid_t pid, size_t cpusetsize, const cpu_set_t *mask);
+    ```
+
+    parameters:
+
+    * `pid`：目标进程/线程的 PID。若为 0，表示当前调用线程。
+
+    * `cpusetsize`：mask 参数的大小（通常用`sizeof(cpu_set_t)`）。
+
+    * `mask`：指定 CPU 亲和性的位掩码（通过`CPU_SET`等宏操作）。
+
+    example 1:
+
+    ```c
+    cpu_set_t mask;
+    CPU_ZERO(&mask);       // 清空掩码
+    CPU_SET(2, &mask);     // 绑定到 CPU 核心 2
+
+    if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
+        perror("sched_setaffinity failed, errno: %d", errno);
+        exit(EXIT_FAILURE);
+    }
+    ```
+
+    example 2:
+
+    ```c
+    #include <sched.h>
+    #include <pthread.h>
+
+    void* thread_func(void* arg) {
+        int core_id = *(int*)arg;
+        cpu_set_t mask;
+        CPU_ZERO(&mask);
+        CPU_SET(core_id, &mask);
+        if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
+            perror("sched_setaffinity");
+        }
+        // do something
+        return NULL;
+    }
+
+    int main() {
+        pthread_t thread1, thread2;
+        int core1 = 0, core2 = 1;
+        pthread_create(&thread1, NULL, thread_func, &core1);
+        pthread_create(&thread2, NULL, thread_func, &core2);
+        pthread_join(thread1, NULL);
+        pthread_join(thread2, NULL);
+        return 0;
+    }
+    ```
+
+    说明：
+
+    1. `CPU_SET()`的第一个参数指的是 cpu 的逻辑核心编号，如果 cpu 支持超线程，那么有可能多个逻辑核心在同一个物理核心上，这样的话仍会造成资料竞争。
+
 * pthread cond 如果先 signal，再 wait，那么无法正常运行
 
 * `pthread_once()`的用法

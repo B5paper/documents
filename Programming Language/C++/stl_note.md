@@ -2,6 +2,50 @@
 
 ## cached
 
+* c++ invoke
+
+    `std::invoke()`用于调用各种函数，提供了较为统一的接口，通常用于框架级别的编程。
+
+    ```cpp
+    // 调用普通函数
+    int add(int a, int b) { return a + b; }
+    int sum = std::invoke(add, 2, 3); // 等价于 add(2, 3)
+
+    // 调用成员函数
+    struct Foo {
+        int bar(int x) { return x * 2; }
+    };
+    Foo obj;
+    int result = std::invoke(&Foo::bar, obj, 5); // 等价于 obj.bar(5)
+    int result = std::invoke(&Foo::bar, &obj, 5); // 等价于 obj->bar(5)
+
+    // 调用静态成员函数
+    struct Foo {
+        static int static_bar(int x) { return x + 1; }
+    };
+    int result = std::invoke(&Foo::static_bar, 10); // 等价于 Foo::static_bar(10)
+
+    // 获取成员变量
+    struct Foo {
+        int value = 42;
+    };
+    Foo obj;
+    int val = std::invoke(&Foo::value, obj); // 等价于 obj.value
+
+    // 调用函数对象（如 Lambda）
+    auto lambda = [](int x) { return x * x; };
+    int squared = std::invoke(lambda, 4); // 等价于 lambda(4)
+    ```
+
+    如果需要传递引用，则需要使用`ref()`或`cref()`：
+
+    ```cpp
+    Foo obj;
+    auto ref_call = std::invoke(&Foo::bar, std::ref(obj), 5); // 传递 obj 的引用
+    ```
+
+    （如果不使用`ref()`，会发生什么？）
+
 * c++ `extent`简介
 
     `extent`可以获取数组指定维度的 length。

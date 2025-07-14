@@ -6,6 +6,60 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* void 在 C 语言中的作用
+
+    对于有返回值的函数，在调用时如果想显式忽略其返回值，可以在调用函数前加`(void)`，如果不加，编译器有可能报 warning。
+
+    ```c
+    int get_ret_val() {
+        return 0;
+    }
+
+    int main() {
+        get_ret_val();
+        (void) get_ret_val();  // 显式忽略返回值
+        return 0;
+    }
+    ```
+
+    实际测试中，gcc / g++ 并没有报 warning。
+
+    对于 unused variable 同理，可以使用`(void) var_name;`消除编译器的 warning。
+
+    example:
+
+    ```c
+    int main() {
+        int aaa = 3;
+        return 0;
+    }
+    ```
+
+    compile:
+
+    ```
+    gcc -Wall main.c -o main
+    ```
+
+    compiling output:
+
+    ```
+    main.c: In function ‘main’:
+    main.c:2:9: warning: unused variable ‘aaa’ [-Wunused-variable]
+        2 |     int aaa = 3;
+          |         ^~~
+    ```
+
+    将代码改成下面的形式即可消除编译的 warning：
+
+    ```c
+    int main() {
+        int aaa = 3;
+        (void) aaa;
+        return 0;
+    }
+    ```
+
 * c 的变长参数函数无法处理 c++ 的类型
 
     ```cpp

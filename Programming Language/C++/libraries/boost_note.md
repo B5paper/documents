@@ -2,6 +2,18 @@
 
 boost 是一个 c++ template library，里面以头文件为主，只有少量库需要编译，大部分的库都不需要编译。
 
+## cache
+
+* `libboost-all-dev`
+
+    `apt install libboost-all-dev`
+
+    boost 的头文件会被安装到`/usr/include/boost`，预编译的 binary 会被安装到`/usr/lib/x86_64-linux-gnu/`。
+
+    在使用 boost 库并编译自己的代码时，可能需要`g++ main.cpp -lboost_thread -lboost_system`这样编译。
+
+    （仍然不太清楚，为什么 boost 主打 header only，但是仍有预编译的库？是否 header only 仅适用于模板库，预编译的库则是非模板库？）
+
 ## semaphore
 
 一个经典的例子，两个线程按顺序增加一个变量。这里用 semaphore 来模拟一个 mutex。
