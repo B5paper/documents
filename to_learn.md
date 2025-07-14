@@ -7758,3 +7758,19 @@
 * Lightweight coding agent that runs in your terminal 
 
     <https://github.com/openai/codex>
+
+* Starlette is a lightweight ASGI framework/toolkit, which is ideal for building async web services in Python.
+
+    <https://www.starlette.io/>
+
+* Uvicorn is an ASGI web server implementation for Python.
+
+    <https://www.uvicorn.org/>
+
+* A real-time global illumination implementation using voxel cone tracing. Implemented in C++ and GLSL. 
+
+    <https://github.com/Friduric/voxel-cone-tracing>
+
+* A vector graphics renderer for bgfx, based on ideas from NanoVG and ImDrawList (Dear ImGUI) 
+
+    <https://github.com/jdryg/vg-renderer>
