@@ -1138,6 +1138,10 @@
 
 ### tasks
 
+* [ ] 调研 rsync `--exclude`和`--include`的用法
+
+* [ ] 调研 rsync `--backup`的用法
+
 * [v] process tabs  30 mins 07.06
 
 * [v] cache tabs 06.29
@@ -1414,11 +1418,33 @@ tasks:
 
 ### tasks
 
+* [ ] 调研`ncclGetEnv()`
+
+* [ ] 调研`/etc/sudoers`
+
+* [ ] 调研 yum 常用命令
+
+* [ ] 调研 dnf 与 yum 的异同
+
 * [ ] 调研`ncclTopoGetLocalNet()`
 
-* [ ] 调研`ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount)`
+* [v] 调研`ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount)`
 
-* [ ] 调研`ncclTopoSearchRec()`
+* [ ] 调研`ncclTopoTrimSystem()`
+
+* [ ] 调研`ncclTopoSelectNets()`
+
+* [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
+
+* [v] 调研`ncclTopoSearchRec()`
+
+    feedback:
+
+    1. 函数参数为`int *index`，传入数据为`localNets+localNetCount`,其中`localNets`是`int*`, `localNetCount`是`int`，这个操作并不是把`int* + int`相加后生成一个匿名对象，再把匿名对象看作一个指针传入函数，而是将`localNets`看作一个数组，而`localNets+localNetCount`是对数组中某个元素取址。
+
+    1. 在 trim system 后，有些 net -> gpu 的 path 被清除掉了，影响到后面的 rint / tree 生成。
+
+    1. 因为这是一个调研任务，不是调研实现任务，所以可以直接完成
 
 * {O} 调研实现 topo compute
 
@@ -1430,7 +1456,11 @@ tasks:
 
 * {O} 调研尝试实现 nv comp 的 compute path
 
-* [ ] 调研 ssh 直接执行命令
+* [v] 调研 ssh 直接执行命令
+
+    feedback:
+
+    1. 调研为什么 sudo 需要`ssh -t`
 
 * [ ] 调研 ssh `-t`
 
@@ -1444,9 +1474,23 @@ tasks:
 
 * [ ] 调研 NCCL_COLLNET 是干嘛用的
 
-* [v] 调研 apt 包`sshpass`
+* [v] 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
 
-* [ ] 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
+    feedback:
+
+    1. 调研 tty ? 是什么意思
+
+    1. 调研`ps -e --forest`
+
+    1. 调研`ps aux`
+
+    1. 调研`strings`工具
+
+    1. 调研`/proc/<PID>/cmdline`
+
+    1. 调研`/proc/<PID>/status`
+
+    1. 调研`env KEY=value command`
 
 * [ ] 调研`tr`
 
@@ -1454,9 +1498,7 @@ tasks:
 
 * [ ] 调研`expect`脚本
 
-* [v] 调研`grep`如何搜索一个文件中的`\|`？
-
-* [ ] 调研`grep -F`
+* [v] 调研`grep -F`
 
 * [ ] 调研`fgrep`
 
@@ -1470,7 +1512,11 @@ tasks:
 
 * [ ] 调研 cmake FetchContent_Declare
 
-* [ ] 调研“如果一个类实现了自定义构造函数，那么就无法再将其视作一个聚合类，也无法使用`{}`进行初始化”
+    feedback:
+
+    1. 调研 cmake `ExternalProject`
+
+* [v] 调研“如果一个类实现了自定义构造函数，那么就无法再将其视作一个聚合类，也无法使用`{}`进行初始化”
 
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
@@ -1480,31 +1526,33 @@ tasks:
 
 * [ ] 调研`rsync -v`, `--info=progress2`
 
-* [ ] 调研`rsync`如何断点续传？
+* [v] 调研`rsync`如何断点续传？
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
 * [v] 调研`std::invoke()`
 
-    feedback:
-
-    1. 调研`std::visit`
+* [ ] 调研`std::visit`
 
 * [ ] 调研`std::reference_wrapper`
 
-* [ ] 调研 gdb 函数返回值
+* [v] 调研 gdb 函数返回值
 
     > 返回值：显示返回值（如 $1 = 5），可通过 $ 引用（如 call $1 + 10）。
+
+    feedback:
+
+    1. 调研 gdb `info registers`
+
+    1. 调研 gdb `set $my_var = $ `
 
 * [v] 调研 gdb `(void)`用法
 
     `(gdb) call (void) my_void_func()  # 忽略返回值
 
-    feedback:
+* [ ] 调研`#define ASSERT(x) (void)(x)`中 void 的作用
 
-    1. 调研`#define ASSERT(x) (void)(x)`中 void 的作用
-
-    1. 调研 gdb 中 p 命令调用函数`(gdb) p (void)printf("Hello, GDB\n")`
+* [ ] 调研 gdb 中 p 命令调用函数`(gdb) p (void)printf("Hello, GDB\n")`
     
 * [ ] 调研 gdb `/x`用法
 
@@ -1525,21 +1573,17 @@ tasks:
 
 * [v] 调研 sched_setaffinity
 
-    feedback:
+* [ ] 调研`RLIMIT_NPROC`
 
-    1. 调研`RLIMIT_NPROC`
+* [ ] 调研`sched_getaffinity()`
 
-    1. 调研`sched_getaffinity()`
+* [ ] 调研`taskset`
 
-    1. 调研`taskset`
+* [ ] 调研`std::atomic`
 
-    1. 调研`std::atomic`
+* [ ] 调研`memory_order_relaxed`
 
-    1. 调研`memory_order_relaxed`
-
-    1. 调研`numactl --hardware`
-
-* [ ] 调研`ncclGetEnv()`
+* [ ] 调研`numactl --hardware`
 
 * [ ] 调研`ncclLoadParam()`
 

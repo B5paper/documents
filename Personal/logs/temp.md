@@ -1377,3 +1377,100 @@
     这里的`typeInter`为 3，是`graph->typeInter`传进来的。
 
     最终函数返回时，`netCount`为 2，并将其赋值给函数参数`*netCountRet`。
+
+* nccl get env
+
+    ```cpp
+    const char *ncclGetEnv(const char *name) {
+      static pthread_once_t once = PTHREAD_ONCE_INIT;
+      pthread_once(&once, initEnv);
+      return getenv(name);
+    }
+    ```
+
+    nccl get env 使用 pthread 调用起一次`initEnv()`函数。
+
+    其内容如下：
+
+    ```cpp
+    void initEnv() {
+      char confFilePath[1024];
+      const char * userDir = userHomeDir();
+      if (userDir) {
+        sprintf(confFilePath, "%s/.nccl.conf", userDir);
+        setEnvFile(confFilePath);
+      }
+      sprintf(confFilePath, "/etc/nccl.conf");
+      setEnvFile(confFilePath);
+    }
+    ```
+
+    ```cpp
+    const char* userHomeDir() {
+      struct passwd *pwUser = getpwuid(getuid());
+      return pwUser == NULL ? NULL : pwUser->pw_dir;
+    }
+
+    void setEnvFile(const char* fileName) {
+      FILE * file = fopen(fileName, "r");
+      if (file == NULL) return;
+
+      char *line = NULL;
+      char envVar[1024];
+      char envValue[1024];
+      size_t n = 0;
+      ssize_t read;
+      while ((read = getline(&line, &n, file)) != -1) {
+        if (line[read-1] == '\n') line[read-1] = '\0';
+        int s=0; // Env Var Size
+        while (line[s] != '\0' && line[s] != '=') s++;
+        if (line[s] == '\0') continue;
+        strncpy(envVar, line, std::min(1023,s));
+        envVar[s] = '\0';
+        s++;
+        strncpy(envValue, line+s, 1023);
+        envValue[1023]='\0';
+        setenv(envVar, envValue, 0);
+        //printf("%s : %s->%s\n", fileName, envVar, envValue);
+      }
+      if (line) free(line);
+      fclose(file);
+    }
+    ```
+* `ncclTopoRemoveNode()`
+
+    ```cpp
+    ncclResult_t ncclTopoRemoveNode(struct ncclTopoSystem* system, int type, int index) {
+      struct ncclTopoNode* delNode = system->nodes[type].nodes+index;
+      for (int t=0; t<NCCL_TOPO_NODE_TYPES; t++) {
+        free(delNode->paths[t]);
+        for (int n=0; n<system->nodes[t].count; n++) {
+          struct ncclTopoNode* node = system->nodes[t].nodes+n;
+          if (node == delNode) continue;
+          for (int l=0; l<node->nlinks; l++) {
+            while (l<node->nlinks && node->links[l].remNode == delNode) {
+              memmove(node->links+l, node->links+l+1, (node->nlinks-l-1)*sizeof(struct ncclTopoLink));
+              node->nlinks--;
+            }
+            if (l<node->nlinks && node->links[l].remNode->type == type && node->links[l].remNode >= delNode) {
+              node->links[l].remNode--;
+            }
+          }
+        }
+      }
+      memmove(delNode, delNode+1, (system->nodes[type].count-index-1)*sizeof(struct ncclTopoNode));
+      system->nodes[type].count--;
+      return ncclSuccess;
+    }
+    ```
+
+    * `free(delNode->paths[t]);`，每个 path 类型里的数据是单独 malloc 的，亏你还能想到这个，这么分配内存，正常人早就忘了
+
+    * `struct ncclTopoNode* node = system->nodes[t].nodes+n;`，找到所有 node 的所有 edge，把里面指向 del node 的 edge 全都删了
+
+
+    * `node->links[l].remNode--;`：由于 node 都在连续内存里，所以删掉一个 node 后，会空出来一块，我们需要把后面的补上，而 rem node 存储的也是指针数据，由于前面做了补全操作，所以这里的指针都指向了错误的数据，必须向前移动一位才对。
+
+        siccl 里每个 node 都是单独 malloc 出来的，所以删除某个 node，不影响其他 node 的指针。
+
+    * `memmove(delNode, delNode+1, (system->nodes[type].count-index-1)*sizeof(struct ncclTopoNode));`：前面的准备工作做完了，现在删除 node。
