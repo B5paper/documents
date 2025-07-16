@@ -1418,7 +1418,17 @@ tasks:
 
 ### tasks
 
-* [ ] 调研`ncclGetEnv()`
+* [P] 调研`ncclGetEnv()`
+
+    feedback:
+
+    1. 调研`getuid()`, `getpwuid()`
+
+    1. 调研 C 语言`getline()`
+
+    1. 调研`setenv()`
+
+    1. 调研`getenv()`
 
 * [ ] 调研`/etc/sudoers`
 
@@ -1430,7 +1440,25 @@ tasks:
 
 * [v] 调研`ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount)`
 
-* [ ] 调研`ncclTopoTrimSystem()`
+* [O] 调研`ncclTopoTrimSystem()`
+
+    deps:
+
+    1. [v] 调研实现`ncclTopoGetLocalGpu()`
+
+    1. [v] 调研实现`NCCL_TOPO_ID_SYSTEM_ID()`
+
+    1. 调研实现`ncclTopoCheckGdr()`
+
+    1. [v] 调研实现`getLocalCpu()`
+
+    feedback:
+
+    1. 调研`ncclPxnDisable()`
+
+    1. 调研`ncclParamNetGdrRead()`
+
+    1. 调研`ncclGetLevel()`
 
 * [ ] 调研`ncclTopoSelectNets()`
 
