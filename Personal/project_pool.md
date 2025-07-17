@@ -1360,6 +1360,8 @@ tasks:
 
 ### cache
 
+* 如果一个任务是是调研任务，不是调研实现任务，那么在收集一些有用的信息，派生一些 dep / feedback 任务后，可以直接完成
+
 * vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
 
     看起来比较重要的几段代码：
@@ -1416,7 +1418,17 @@ tasks:
 
 * set path nic 之后，siccl 与 nccl 输出一致。50 机器上没有 nvswitch，因此先跳过，后面在 135 机器上再测。
 
+* 在 trim system 后，有些 net -> gpu 的 path 被清除掉了，影响到后面的 ring / tree 生成。
+
+* `ncclTopoSearchRec()`函数参数为`int *index`，传入数据为`localNets+localNetCount`,其中`localNets`是`int*`, `localNetCount`是`int`，这个操作并不是把`int* + int`相加后生成一个匿名对象，再把匿名对象看作一个指针传入函数，而是将`localNets`看作一个数组，而`localNets+localNetCount`是对数组中某个元素取址。
+
 ### tasks
+
+* [ ] 调研为什么 rsync 不需要像 cp 一样`-r`
+
+* [ ] 调研 ssh 如何 keep alive
+
+* [ ] 调研 vector `resize()`扩大或缩小会清空已经存在的元素吗？
 
 * [P] 调研`ncclGetEnv()`
 
@@ -1436,43 +1448,33 @@ tasks:
 
 * [ ] 调研 dnf 与 yum 的异同
 
-* [ ] 调研`ncclTopoGetLocalNet()`
-
-* [v] 调研`ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount)`
+* [O] 调研`ncclTopoGetLocalNet()`
 
 * [O] 调研`ncclTopoTrimSystem()`
 
     deps:
 
-    1. [v] 调研实现`ncclTopoGetLocalGpu()`
-
-    1. [v] 调研实现`NCCL_TOPO_ID_SYSTEM_ID()`
-
-    1. 调研实现`ncclTopoCheckGdr()`
-
-    1. [v] 调研实现`getLocalCpu()`
+    1. [ ] 调研实现`ncclTopoCheckGdr()`
 
     feedback:
 
-    1. 调研`ncclPxnDisable()`
+    1. nccl 中 node 中 path 的 dst node 与 system 中 path 的 dst node 是共享的，其中一个消失，另一个也会跟着消失。siccl 中 path 中的 edge list 是独占的，与 node 的变化无关，所以仅删除 node 无法影响到 path。
 
-    1. 调研`ncclParamNetGdrRead()`
+        推测：nccl 中 node 被删除，仅仅是 path 的 dst node 被删除，中间节点（intermediate note）依然存在，因此需要重新 compute path。
 
-    1. 调研`ncclGetLevel()`
+    1. 目前适配 trim system 的结果没有问题，但是不清楚为什么 trim，怎么 trim，trim 了哪些。后续可以看一下。
+
+* [ ] 调研`ncclPxnDisable()`
+
+* [ ] 调研`ncclParamNetGdrRead()`
+
+* [ ] 调研`ncclGetLevel()`
 
 * [ ] 调研`ncclTopoSelectNets()`
 
 * [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
 
 * [v] 调研`ncclTopoSearchRec()`
-
-    feedback:
-
-    1. 函数参数为`int *index`，传入数据为`localNets+localNetCount`,其中`localNets`是`int*`, `localNetCount`是`int`，这个操作并不是把`int* + int`相加后生成一个匿名对象，再把匿名对象看作一个指针传入函数，而是将`localNets`看作一个数组，而`localNets+localNetCount`是对数组中某个元素取址。
-
-    1. 在 trim system 后，有些 net -> gpu 的 path 被清除掉了，影响到后面的 rint / tree 生成。
-
-    1. 因为这是一个调研任务，不是调研实现任务，所以可以直接完成
 
 * {O} 调研实现 topo compute
 
@@ -1486,9 +1488,7 @@ tasks:
 
 * [v] 调研 ssh 直接执行命令
 
-    feedback:
-
-    1. 调研为什么 sudo 需要`ssh -t`
+* [ ] 调研为什么 sudo 需要`ssh -t`
 
 * [ ] 调研 ssh `-t`
 
@@ -1504,29 +1504,25 @@ tasks:
 
 * [v] 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
 
-    feedback:
+* [ ] 调研 tty ? 是什么意思
 
-    1. 调研 tty ? 是什么意思
+* [ ] 调研`ps -e --forest`
 
-    1. 调研`ps -e --forest`
+* [ ] 调研`ps aux`
 
-    1. 调研`ps aux`
+* [ ] 调研`strings`工具
 
-    1. 调研`strings`工具
+* [ ] 调研`/proc/<PID>/cmdline`
 
-    1. 调研`/proc/<PID>/cmdline`
+* [ ] 调研`/proc/<PID>/status`
 
-    1. 调研`/proc/<PID>/status`
-
-    1. 调研`env KEY=value command`
+* [ ] 调研`env KEY=value command`
 
 * [ ] 调研`tr`
 
 * [ ] 调研`pgrep`
 
 * [ ] 调研`expect`脚本
-
-* [v] 调研`grep -F`
 
 * [ ] 调研`fgrep`
 
@@ -1544,8 +1540,6 @@ tasks:
 
     1. 调研 cmake `ExternalProject`
 
-* [v] 调研“如果一个类实现了自定义构造函数，那么就无法再将其视作一个聚合类，也无法使用`{}`进行初始化”
-
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
 * [ ] 调研 c++ `optional`
@@ -1554,11 +1548,7 @@ tasks:
 
 * [ ] 调研`rsync -v`, `--info=progress2`
 
-* [v] 调研`rsync`如何断点续传？
-
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
-
-* [v] 调研`std::invoke()`
 
 * [ ] 调研`std::visit`
 
@@ -1570,13 +1560,9 @@ tasks:
 
     feedback:
 
-    1. 调研 gdb `info registers`
+* [ ] 调研 gdb `info registers`
 
-    1. 调研 gdb `set $my_var = $ `
-
-* [v] 调研 gdb `(void)`用法
-
-    `(gdb) call (void) my_void_func()  # 忽略返回值
+* [ ] 调研 gdb `set $my_var = $ `
 
 * [ ] 调研`#define ASSERT(x) (void)(x)`中 void 的作用
 
@@ -1598,8 +1584,6 @@ tasks:
     (gdb) call obj->method()
     (gdb) call ptr->~MyClass()  # 析构函数
     ```
-
-* [v] 调研 sched_setaffinity
 
 * [ ] 调研`RLIMIT_NPROC`
 
@@ -1699,13 +1683,6 @@ tasks:
 
     `grep -E "keyword1|keyword2|keyword3" file.txt`
 
-* [v] 调研`grep -v`
-
-    ```bash
-    # 搜索包含 keyword1 但不包含 keyword2 的行
-    grep "keyword1" file.txt | grep -v "keyword2"
-    ```
-
 * [ ] 调研`grep -c`
 
     ```bash
@@ -1727,8 +1704,6 @@ tasks:
 * [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
 * [ ] qa: bash 30 mins
-
-* [v] 调研 apt 包`libboost-all-dev`
 
 * [ ] 调研 apt 包`libgoogle-glog-dev`
 
