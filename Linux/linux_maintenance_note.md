@@ -6,6 +6,111 @@
 
 ## cache
 
+* `grep -F`表示不进行正则解析
+
+    example:
+
+    `grep -F "hello" content.txt`
+
+    只查找`hello`字符串。
+
+    `grep -F "a.*b" content.txt`
+
+    匹配`a.*b`字符串。
+
+    `grep -F`等价于`fgrep`。
+
+* `/proc/<PID>/environ`是一个在内存中的文件，以只读的形式存储了指定 PID 进程在启用时的环境变量信息
+
+    example:
+
+    `cat /proc/3273/environ`
+
+    output:
+
+    ```
+    SYSTEMD_EXEC_PID=2451SSH_AUTH_SOCK=/run/user/1000/keyring/sshSESSION_MANAGER=local/hlc-VirtualBox:@/tmp/.ICE-unix/2235,unix/hlc-VirtualBox:/tmp/.ICE-unix/2235GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/16e4c141_024c_4318_9398_96a803c31884LANG=en_US.UTF-8XDG_CURRENT_DESKTOP=ubuntu:GNOMEPWD=/home/hlcWAYLAND_DISPLAY=wayland-0LC_IDENTIFICATION=zh_CN.UTF-8IM_CONFIG_PHASE=1...
+    ```
+
+    其形式为`key=value`，环境变量之间使用`\0`间隔。
+
+    此文件为只读属性，无法修改。
+
+    可以将`\0`替换为`\n`，便于阅读：
+
+    `cat /proc/<PID>/environ | tr '\0' '\n'`
+
+    output:
+
+    ```
+    SYSTEMD_EXEC_PID=2451
+    SSH_AUTH_SOCK=/run/user/1000/keyring/ssh
+    SESSION_MANAGER=local/hlc-VirtualBox:@/tmp/.ICE-unix/2235,unix/hlc-VirtualBox:/tmp/.ICE-unix/2235
+    GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/16e4c141_024c_4318_9398_96a803c31884
+    LANG=en_US.UTF-8
+    XDG_CURRENT_DESKTOP=ubuntu:GNOME
+    PWD=/home/hlc
+    WAYLAND_DISPLAY=wayland-0
+    LC_IDENTIFICATION=zh_CN.UTF-8
+    IM_CONFIG_PHASE=1
+    ...
+    ```
+
+    说明：
+
+    1. `/proc/<PID>/environ`不是实时的，如果在程序中运行`setenv()`，那么此文件内容不会被改变。
+
+    1. 仅允许进程所有者或 root 用户读取（权限为`-r--------`）
+
+        这样看来，这个文件的用处似乎不大？
+
+* `sudo yum check-update`相当于`sudo apt update`
+
+* centos 加入 sudo 权限
+
+    `usermod -aG wheel 用户名`
+
+    在 centos 中，`wheel`组有 sudo 权限。
+
+* 解析`ps -ef`
+
+    ps 指的是 process status
+
+    `-e`：显示所有进程（包括其他用户的进程）。
+
+    `-f`：以完整格式（full-format）输出详细信息。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ps -ef
+    UID          PID    PPID  C STIME TTY          TIME CMD
+    root           1       0  0 09:50 ?        00:00:01 /sbin/init splash
+    root           2       0  0 09:50 ?        00:00:00 [kthreadd]
+    root           3       2  0 09:50 ?        00:00:00 [pool_workqueue_release]
+    root           4       2  0 09:50 ?        00:00:00 [kworker/R-rcu_g]
+    root           5       2  0 09:50 ?        00:00:00 [kworker/R-rcu_p]
+    root           6       2  0 09:50 ?        00:00:00 [kworker/R-slub_]
+    root           7       2  0 09:50 ?        00:00:00 [kworker/R-netns]
+    ...
+    ```
+
+    UID：进程所属用户。
+
+    PID：进程的唯一ID。
+
+    PPID：父进程ID。
+
+    C：CPU占用率。
+
+    STIME：进程启动时间。
+
+    TTY：启动进程的终端（?表示与终端无关，如守护进程）。
+
+    TIME：进程占用CPU总时间。
+
+    CMD：进程对应的完整命令或程序路径。
+
 * `rsync`中，src dir 的下面四种写法是等价的
 
     `.`, `./`, `*`, `./*`

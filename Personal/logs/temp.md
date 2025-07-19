@@ -1474,3 +1474,33 @@
         siccl 里每个 node 都是单独 malloc 出来的，所以删除某个 node，不影响其他 node 的指针。
 
     * `memmove(delNode, delNode+1, (system->nodes[type].count-index-1)*sizeof(struct ncclTopoNode));`：前面的准备工作做完了，现在删除 node。
+
+* `generate_coll_graph()`
+
+    * `crossNic`，不清楚干嘛用的，最终的值为 0，看起来像是没启用
+
+    * `ccMin`: V100 上，`ccMin`为 70.
+
+    * `nspeeds`: 目前为 19，`speedArray`目前为 48, 30, 28, ...
+
+* `check_p2p()`
+
+    当`vert_1`和`vert_2`相等时，`p2pLevel = PATH_PXB`,然后会在
+
+    ```cpp
+    if (path.type <= p2pLevel) {
+        p2p_active = 1;
+    }
+    ```
+
+    处，`p2p_active`变成 1. 此时`path.type = 0`。
+
+    当`vert_1`不等于`vert_2`时，上述代码处，`path.type = 6` (`PATH_PHB`)。这里的`path`是从`vert_1`指向`vert_2`。
+
+    之后在`check_p2p()`中的大部分的流程都被跳过。
+
+    50 机器的 p2p 同样返回 0.
+
+    只有当`p2p`为`1`时，才会检查`IGNORE_DISABLED_P2P`的值，否则这个环境变量没用。
+
+    `NCCL_P2P_DISABLE`的值似乎会影响是否强制关闭 p2p。

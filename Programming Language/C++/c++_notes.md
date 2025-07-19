@@ -4,6 +4,73 @@
 
 ## cached
 
+* c++ 中聚合类与初始化
+
+    如果一个类定义了构造函数，那么就无法自动初始化。
+
+    example:
+
+    ```cpp
+    #include <string>
+    using namespace std;
+
+    struct A {
+        string a;
+        int b;
+    };
+
+    int main() {
+        A obj_1({"hello", 123});
+        A obj_2{"hello", 123};
+        return 0;
+    }
+    ```
+
+    上面是个聚合类，两种方式都可以正常初始化。
+
+    ```cpp
+    #include <string>
+    using namespace std;
+
+    struct A {
+        string a;
+        int b;
+
+        A() {}
+    };
+
+    int main() {
+        A obj_1({"hello", 123});  // error
+        A obj_2{"hello", 123};  // error
+        return 0;
+    }
+    ```
+
+    由于没有对应的构造函数，上面的两种方式都会编译失败。
+
+    ```cpp
+    #include <string>
+    using namespace std;
+
+    struct A {
+        string a;
+        int b;
+
+        A() {}
+        A(string aa, int bb): a(aa), b(bb) {}
+    };
+
+    int main() {
+        A obj_1({"hello", 123});
+        A obj_2{"hello", 123};
+        return 0;
+    }
+    ```
+
+    上面补充了对应的构造函数，所以可以通过编译。
+
+    `A obj_1({"hello", 123});`的含义应该是先用`{}`去生成一个匿名对象，再把这个匿名对象通过移动构造函数传给`obj_1`。所以本质还是聚合类的初始化，并不是`{}`作为 initializer list 可以存放不同类型的元素。
+
 * c++ 中，如果一个构造函数被声明为`explicit`，那么就无法使用等号进行初始化，只能使用括号来初始化。
 
     ```cpp

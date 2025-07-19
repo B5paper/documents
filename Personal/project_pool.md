@@ -30,6 +30,8 @@
 
 ## cache
 
+* 可以尝试每次都让挑选出来的任务放到 task tag 的最上面，这样慢慢不重要的任务就会下沉
+
 * 在向任务管理系统整理任务时，所有 deps 的任务放到当前任务的上面，所有 feedback 的任务放到当前任务的下面。这样比较重要的任务就会慢慢浮上来，不重要的任务会沉到下面去。
 
 * 应该区分清楚调研任务和调研完成任务，调研任务只需要收集资料，弄清楚哪些是已知的，哪些是未知的，目前的阻力点在哪里，有哪些派生任务就可以了，通常是个可完成的任务。调研完成任务需要边调研边完成，通常是个长期任务，遇到 deps 需要先解决 deps 任务。
@@ -1424,6 +1426,8 @@ tasks:
 
 ### tasks
 
+* [ ] 调研 c++ elements gui 库
+
 * [ ] 调研为什么 rsync 不需要像 cp 一样`-r`
 
 * [ ] 调研 ssh 如何 keep alive
@@ -1474,23 +1478,49 @@ tasks:
 
 * [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
 
-* [v] 调研`ncclTopoSearchRec()`
-
 * {O} 调研实现 topo compute
 
 * [ ] 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
 
-* [ ] 调研如果前面定义了`int gpu`，后面可以使用`TopoNode* gpu`重新定义吗？如果`int gpu`在函数参数里呢？
+* [v] 调研如果前面定义了`int gpu`，后面可以使用`TopoNode* gpu`重新定义吗？如果`int gpu`在函数参数里呢？
+
+    feedback:
+
+    1. 应该是不可以的，编译器会报错：
+
+        ```
+        main_5.cpp: In function ‘void func(int)’:
+        main_5.cpp:8:12: error: declaration of ‘MyCls* aaa’ shadows a parameter
+            8 |     MyCls *aaa = (MyCls*) 0x01;
+              |            ^~~
+        main_5.cpp:7:15: note: ‘int aaa’ previously declared here
+            7 | void func(int aaa) {
+              |           ~~~~^~~
+        ```
 
 * [ ] 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
 
 * {O} 调研尝试实现 nv comp 的 compute path
 
-* [v] 调研 ssh 直接执行命令
-
 * [ ] 调研为什么 sudo 需要`ssh -t`
 
-* [ ] 调研 ssh `-t`
+* [v] 调研 ssh `-t`
+
+    feedback:
+
+    1. 调研`askpass`。
+
+    1. 调研`sudo -l`
+
+    1. 调研`sudo -v`
+
+    1. 调研`vim -X`非交互运行
+
+    1. 调研如果在非终端（非交互）模式下运行top、htop、tmux、screen 等工具，会发生什么
+
+    1. 调研`ed`
+
+    1. 调研` sudo -S`。
 
 * [ ] 调研 ssh ProxyJump
 
@@ -1501,8 +1531,6 @@ tasks:
 * {O} 调研`ncclTopoCheckP2p()`
 
 * [ ] 调研 NCCL_COLLNET 是干嘛用的
-
-* [v] 调研环境变量与`ps -ef`, `/proc/<PID>/environ`
 
 * [ ] 调研 tty ? 是什么意思
 
@@ -1536,9 +1564,7 @@ tasks:
 
 * [ ] 调研 cmake FetchContent_Declare
 
-    feedback:
-
-    1. 调研 cmake `ExternalProject`
+* [ ] 调研 cmake `ExternalProject`
 
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
@@ -1553,12 +1579,6 @@ tasks:
 * [ ] 调研`std::visit`
 
 * [ ] 调研`std::reference_wrapper`
-
-* [v] 调研 gdb 函数返回值
-
-    > 返回值：显示返回值（如 $1 = 5），可通过 $ 引用（如 call $1 + 10）。
-
-    feedback:
 
 * [ ] 调研 gdb `info registers`
 

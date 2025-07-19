@@ -2,6 +2,41 @@
 
 ## cached
 
+* `cmake FetchContent_Declare`
+
+    `FetchContent`可以从 github 直接源代码进行编译安装。
+
+    usage:
+
+    1. 声明依赖
+
+        ```cmake
+        include(FetchContent)  # 引入 FetchContent 模块
+
+        FetchContent_Declare(
+          <依赖名称>               # 自定义的依赖标识（如 googletest、fmt）
+          GIT_REPOSITORY <url>    # Git 仓库地址
+          GIT_TAG <commit/tag>    # 指定版本（如 v1.0.0、main）
+          # 其他可选参数（如下载方式、更新策略等）
+        )
+        ```
+
+    2. 下载并加载依赖
+
+        ```cmake
+        FetchContent_MakeAvailable(googletest)  # 下载并添加到构建
+        ```
+
+    3. 使用依赖
+
+        ```cmake
+        target_link_libraries(my_app PRIVATE gtest_main)
+        ```
+
+    `FetchContent_MakeAvailable()`会自动调用`add_subdirectory()`，使依赖库的`CMakeLists.txt`成为主项目的一部分，编译过程与主项目一致。
+
+    看起来，FetchContent 要求目标仓库最好也是一个 cmake 项目，如果不是，那么它最好以源码的形式就可以用，比如 header only 项目，可解释语言的项目（js, python）等。FetchContent 不参与编译的过程。
+
 * cmake 在搜索`cMakeLists.txt`时区分大小写，使用`cmakelists.txt`不行。
 
 ## notes

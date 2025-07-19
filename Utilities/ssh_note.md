@@ -2,6 +2,80 @@
 
 ## cache
 
+* ssh 与伪终端
+
+    `ssh user@addr`登陆后，会自动分配一个伪终端，进入交互式环境。`ssh user@addr command`则默认不会分配伪终端，因此不会进入交互式环境。但是有些命令需要伪终端的支持才能运行，比如`sudo`，此时我们可以使用`-t`强制分配伪终端：`ssh -t user@addr command`。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ssh hlc@10.133.1.54 "sudo ls"
+    hlc@10.133.1.54's password: 
+    sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+    sudo: a password is required
+    ```
+
+    使用`-t`，则需要再输入一遍密码：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ssh -t hlc@10.133.1.54 "sudo ls"
+    hlc@10.133.1.54's password: 
+    [sudo] password for hlc: 
+    add_proxy.sh  Documents   mpi_shared  perf_0924.tar.gz	Public	Softwares  work
+    Data	      Downloads   Music       perftest		rdma	Templates
+    Desktop       miniconda3  nfs_shared  Pictures		snap	Videos
+    Connection to 10.133.1.54 closed.
+    ```
+
+    如果使用 public key 登陆，而非密码登陆，那么非交互环境可以使用`sudo`。
+
+    所以说，sudo 无法运行，其实是因为输入 sudo 密码默认需要在交互环境里。如果 sudo 无需输入密码，或者经过配置，允许在非交互环境输入 sudo 密码，那么就不需要交互环境。
+
+* ssh 直接执行远程命令
+
+    `ssh <user>@<host> <command>`可以在登陆的时候直接在远程机器上执行命令，不显示欢迎信息。
+
+    example:
+
+    `ssh <user>@<host> ls`
+
+    output:
+
+    ```
+    04_local_res.cpp
+    Data
+    Desktop
+    Documents
+    Downloads
+    link_mnt_hlc_to_Data.sh
+    mlnx_perftest_log.txt
+    Music
+    nfs_shared
+    nvshmem_srcs.tar.gz
+    Pictures
+    Public
+    snap
+    Softwares
+    Templates
+    use-proxy.sh
+    Videos
+    Videos-link
+    ```
+
+    如果 command 里有空格，可以用双引号包起：
+
+    `ssh <user>@<host> "ls /tmp"`
+
+    如果使用**双引号**括起的命令里有变量`$VAR_NAME`，那么会被解析为本地变量。如果想将其解析为远程主机上的变量，那么需要使用**单引号**将 command 括起：
+
+    `ssh <user>@<host> 'echo $VAR_NAME'`
+
+    如果要执行多条命令，那么可以使用和 bash 相似的技巧：
+
+    * 用分号分隔：`ssh user@host "cmd1; cmd2"`
+
+    * 逻辑控制：`ssh user@host "ls /tmp && echo success || echo fail"`
+
 * `ssh -W <target_ip>:<port> <user>@<jump_ip>`
 
     `ssh -W`表示登陆 jump host 的 ssh，并将当前窗口的所有 stdin, stdout 都转发到 target host 上。这个功能通常只能用于转发 ssh 数据。
