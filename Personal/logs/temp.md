@@ -1483,6 +1483,38 @@
 
     * `nspeeds`: 目前为 19，`speedArray`目前为 48, 30, 28, ...
 
+    * `tmpGraph.typeIntra`会在
+
+        ```cpp
+        tmpGraph.typeIntra = ngpus == 1 ? PATH_LOC : PATH_NVL;
+        ```
+
+        被清空为 0，然后从 0 开始搜索
+
+    * `ncclTopoSearchRecNet()`几个关键点
+
+        1. `ncclTopoSelectNets()`先找到可用的 nets
+
+        2. 遍历所有 ntes，调用`ncclTopoSearchTryGpu()`找 gpu
+
+        3. `ncclTopoFollowPath()`是主要找 gpu 的函数，但是经常返回`gpu`空指针
+
+        4. 回退`bw`。
+
+    * 常用流程
+
+        1. `ncclTopoSearchRec()`开始搜索
+
+        2. 通过`if (tmpGraph.sameChannels == 1`再找一遍，同样类型的 path，第二次不再进入此分支
+
+        3. 进入`if (tmpGraph.typeIntra < maxTypeIntra`分支，使用`tmpGraph.typeIntra += 1;`放松对 path 的约束，并 goto search 继续搜索。
+
+            `tmpGraph.typeIntra`增大到 4 时不再增大，因为`maxTypeIntra`就是 4.
+
+        4. 进入`if (system->nodes[NET].count > 0`分支，`tmpGraph.typeInter`被增大到 4，并清空前面状态，重新 goto search 开始搜索。
+
+            `typeInter`依次变为 4, 5
+
 * `check_p2p()`
 
     当`vert_1`和`vert_2`相等时，`p2pLevel = PATH_PXB`,然后会在
