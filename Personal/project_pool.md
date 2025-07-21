@@ -1438,11 +1438,11 @@ tasks:
 
 ### tasks
 
-* [v] 调研在 50 机器上启动 vllm 跑通 qwen
+* [ ] 调研`getuid()`, `getpwuid()`
 
 * [ ] 调研为何 nccl `ncclTopoSearchRecNet()`中`net->id`为 1，siccl 中`net->id`为 2
 
-* [ ] 调研为何 siccl 疑似在`generate_coll_graph()`的
+* [v] 调研为何 siccl 疑似在`generate_coll_graph()`的
 
     ```cpp
     if (coll_graph.nChannels * coll_graph.bwInter >= topo_system.totalBw)
@@ -1453,41 +1453,47 @@ tasks:
 
     nccl 中 system->totalBw = 12, siccl 中 system->totalBw 为 0，为什么？
 
+    feedback:
+
+    1. 因为没有调用 search init 函数。
+
 * {O} 调研`generate_coll_graph()`
-
-* [ ] 调研 c++ elements gui 库
-
-* [ ] 调研为什么 rsync 不需要像 cp 一样`-r`
-
-* [v] 调研 ssh 如何 keep alive
 
     feedback:
 
-    1. 调研
+    1. [v] 调研为何 siccl 与 nccl 的`ncclTopoSelectNets()`得到的 nets 的元素顺序不同
 
-        ```bash
-        echo 60 > /proc/sys/net/ipv4/tcp_keepalive_time
-        echo 10 > /proc/sys/net/ipv4/tcp_keepalive_intvl
-        echo 3 > /proc/sys/net/ipv4/tcp_keepalive_probes
-        ```
+    1. 调研`ngpus`什么时候变成 1 的？
 
-        与其他系统的 tcp 配置
+* [ ] 调研 c++ elements gui 库
 
-    1. 调研
+* [v] 调研为什么 rsync 不需要像 cp 一样`-r`
 
-        ```bash
-        # 查看当前SSH连接参数（客户端）
-        ssh -vvv user@example.com 2>&1 | grep Keepalive
+* [v] 调研 ssh 如何 keep alive
 
-        # 服务端日志（需启用Debug模式）
-        tail -f /var/log/auth.log | grep Keepalive
-        ```
+* [ ] 调研
 
-* [ ] 调研 vector `resize()`扩大或缩小会清空已经存在的元素吗？
+    ```bash
+    echo 60 > /proc/sys/net/ipv4/tcp_keepalive_time
+    echo 10 > /proc/sys/net/ipv4/tcp_keepalive_intvl
+    echo 3 > /proc/sys/net/ipv4/tcp_keepalive_probes
+    ```
+
+    与其他系统的 tcp 配置
+
+* [ ] 调研
+
+    ```bash
+    # 查看当前SSH连接参数（客户端）
+    ssh -vvv user@example.com 2>&1 | grep Keepalive
+
+    # 服务端日志（需启用Debug模式）
+    tail -f /var/log/auth.log | grep Keepalive
+    ```
+
+* [v] 调研 vector `resize()`扩大或缩小会清空已经存在的元素吗？
 
 * [P] 调研`ncclGetEnv()`
-
-* [ ] 调研`getuid()`, `getpwuid()`
 
 * [ ] 调研 C 语言`getline()`
 
@@ -1503,11 +1509,9 @@ tasks:
 
 * [O] 调研`ncclTopoGetLocalNet()`
 
+* [ ] 调研实现`ncclTopoCheckGdr()`
+
 * [O] 调研`ncclTopoTrimSystem()`
-
-    deps:
-
-    1. [ ] 调研实现`ncclTopoCheckGdr()`
 
     feedback:
 
@@ -1527,23 +1531,13 @@ tasks:
 
 * [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
 
-* {v} 调研实现 topo compute
-
 * [ ] 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
 
-* [v] 调研如果前面定义了`int gpu`，后面可以使用`TopoNode* gpu`重新定义吗？如果`int gpu`在函数参数里呢？
-
-* [ ] 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
-
-* {v} 调研尝试实现 nv comp 的 compute path
-
-* [v] 调研为什么 sudo 需要`ssh -t`
-
-* [v] 调研 ssh `-t`
+* [v] 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
 
 * [ ] 调研`askpass`。
 
-* [ ] 调研`sudo -l`
+* [v] 调研`sudo -l`
 
 * [ ] 调研`sudo -v`
 
@@ -1555,15 +1549,13 @@ tasks:
 
 * [ ] 调研` sudo -S`。
 
-* [ ] 调研 ssh ProxyJump
+* [v] 调研 ssh ProxyJump
 
 * [v] 调研 nc comp 为什么 p2p 返回 0，50 机器是否 p2p 返回 0，如果返回，为什么？
 
     如果将 ignore disable p2p 设置为 1，是否还返回 0？
 
-    feedback:
-
-    1. 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
+* [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
 * {O} 调研`ncclTopoCheckP2p()`
 
@@ -1571,13 +1563,33 @@ tasks:
 
 * [ ] 调研 tty ? 是什么意思
 
-* [ ] 调研`ps -e --forest`
+* [v] 调研`ps -e --forest`
+
+    feedback:
+
+    1. 调研`pstree`
+
+    1. 调研`htop`
+
+    1. 调研`ps -e -o pid,cmd`
 
 * [ ] 调研`ps aux`
 
 * [ ] 调研`strings`工具
 
-* [ ] 调研`/proc/<PID>/cmdline`
+* [v] 调研`/proc/<PID>/cmdline`
+
+    feedback:
+
+    1. 调研`xargs -0`
+
+    1. 调研`ps -p <PID> -o cmd`
+
+    1. 调研`pgrep -a <PATTERN>`
+
+    1. 调研`/proc/<PID>/comm`
+
+    1. 调研`readlink /proc/1234/cwd`
 
 * [ ] 调研`/proc/<PID>/status`
 
@@ -1585,17 +1597,31 @@ tasks:
 
 * [v] 调研`tr`
 
-    feedback:
-
-    1. 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
+* [ ] 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
 
 * [ ] 调研`pgrep`
 
 * [ ] 调研`expect`脚本
 
-* [ ] 调研`fgrep`
+* [v] 调研`fgrep`
 
-* [ ] 调研`grep -n`
+    feedback:
+
+    1. 调研`type <command>`命令
+
+* [v] 调研`grep -n`
+
+* [ ] 调研`grep *.txt`使用通配符搜索多个文件，对比与`include file`有什么不同？
+
+* [ ] 调研`cut -d: -f1) app.log`
+
+* [ ] 调研`sed`, `awk`
+
+* [ ] 调研`vim +$(grep -n "error" app.log`
+
+* [ ] 调研`grep -c`
+
+* [ ] 调研`grep --color=auto`
 
 * [ ] 调研 gdb `x`命令
 
@@ -1625,7 +1651,27 @@ tasks:
 
 * [ ] 调研 gdb `set $my_var = $ `
 
-* [ ] 调研`#define ASSERT(x) (void)(x)`中 void 的作用
+* [v] 调研`#define ASSERT(x) (void)(x)`中 void 的作用
+
+    feedback:
+
+    1. 调研`Coverity`
+
+    1. 调研`Clang Static Analyzer`
+
+    1. `(void)`主要用于防止编译器给出 unused variable 的 warning。
+
+    1. 这个宏的作用有可能是
+
+        ```cpp
+        #ifdef DEBUG
+            #define ASSERT(x) assert(x)  // 调试阶段启用真实断言
+        #else
+            #define ASSERT(x) (void)(x) // 发布阶段无害化
+        #endif
+        ```
+
+        总之是占位符性质。
 
 * [ ] 调研 gdb 中 p 命令调用函数`(gdb) p (void)printf("Hello, GDB\n")`
     
@@ -1636,8 +1682,6 @@ tasks:
 * [ ] 调研 gdb `call system()`用法
 
     `(gdb) call system("ls /tmp")      # 可能影响外部环境`
-
-* [v] 调研 gdb `print my_func()`命令
 
 * [ ] 调研 gdb call 调用构造函数和析构函数
 

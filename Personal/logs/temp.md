@@ -1350,6 +1350,14 @@
 
     为什么传入参数要引入`channelId`，有什么用？
 
+    `net % localNetCount = 1`, `localNets = [0, 1]`
+
+    `system->nodes[NET][N]->id = {1, 2, 0}`，siccl, nccl 的值相同
+
+    nccl `net->id = 2, 1`
+
+    `nets = {1, 0}`, `localNets = {1, 0}`, `netCount = 2`
+
 * `ncclTopoSelectNets()`
 
     `localNets`是个数组，存放 net node 的 idx。数组长度为`localNetCount`。
@@ -1511,9 +1519,33 @@
 
             `tmpGraph.typeIntra`增大到 4 时不再增大，因为`maxTypeIntra`就是 4.
 
+            `maxTypeIntra`会随着`tmpGraph.typeInter`的增大而增大。
+
         4. 进入`if (system->nodes[NET].count > 0`分支，`tmpGraph.typeInter`被增大到 4，并清空前面状态，重新 goto search 开始搜索。
 
-            `typeInter`依次变为 4, 5
+            `typeInter`依次变为 4, 5, 6
+
+        5. `tmpGraph.typeInter = 6, tmpGraph.typeIntra = 0`时，退出 goto 循环。
+        
+            `tmpGraph.typeInter = PATH_PIX;`又将其设置为`3`。
+
+            退出循环的关键改变时，`graph->nChannels = 2`，不再是 0.
+
+            `ngpus`仍为 1，`tmpGraph.typeIntra`被设置为 0 (`PATH_LOC`)
+
+        6. 在`if (crossNic == 2 && tmpGraph.crossNic == 0)`分支处重新 goto search.
+
+            此后`tmpGraph.typeIntra`总是`0`，不再增加。`tmpGraph.typeInter`继续按`4, 5, 6`增加
+
+            这个分支有点像前面的 same channel，先搜索一遍，然后改变条件再搜索一遍。
+
+        7. `speedIndex = 16`, `tmpGraph.bwIntra`和`tmpGraph.bwInter`都被设置为`1.2`，然后进入 done 环节。
+
+    done 环节：
+
+    1. 在`if (pass == 2)`分支重新进入 goto search。
+
+    整体看来，topo compute 整个函数，有点像不断改变搜索条件，去反复搜索。
 
 * `check_p2p()`
 
@@ -1536,3 +1568,87 @@
     只有当`p2p`为`1`时，才会检查`IGNORE_DISABLED_P2P`的值，否则这个环境变量没用。
 
     `NCCL_P2P_DISABLE`的值似乎会影响是否强制关闭 p2p。
+
+* `ncclPxnDisable()`
+
+    ```cpp
+    // Net v4 plugins don't have non-blocking connect/accept. We can't therefore use
+    // remote proxies without risking deadlocks
+    int ncclPxnDisable(struct ncclComm* comm) {
+      static int pxnDisable = -1;
+      if (pxnDisable == -1) {
+        if (comm && ncclNetVersion(comm) == 4) {
+          INFO(NCCL_INIT, "PXN Disabled as plugin is v4");
+          pxnDisable = 1;
+        } else {
+          pxnDisable = ncclParamPxnDisable();
+        }
+      }
+      return pxnDisable;
+    }
+
+    int ncclNetVersion(struct ncclComm* comm) {
+      return
+        (comm->ncclNet == &ncclNet_v5_as_v8) ? 5 :
+        (comm->ncclNet == &ncclNet_v6_as_v8) ? 6 :
+        (comm->ncclNet == &ncclNet_v7_as_v8) ? 7 :
+        8;
+    }
+    ```
+
+    因为`ncclNetVersion()`不可能返回 4，所以`pxnDisable`总是由环境变量决定，目前这个值被设置为`0`，因此`ncclPxnDisable()`总是被设置为`0`。
+
+    目前仍不知道 pxn 是干嘛用的。有时间可以调研下`ncclTopoGetPxnRanks()`。
+
+    ```cpp
+    NCCL_PARAM(PxnDisable, "PXN_DISABLE", 0);
+
+    #define NCCL_PARAM(name, env, deftVal) \
+      int64_t ncclParam##name() { \
+        constexpr int64_t uninitialized = INT64_MIN; \
+        static_assert(deftVal != uninitialized, "default value cannot be the uninitialized value."); \
+        static int64_t cache = uninitialized; \
+        if (__builtin_expect(__atomic_load_n(&cache, __ATOMIC_RELAXED) == uninitialized, false)) { \
+          ncclLoadParam("NCCL_" env, deftVal, uninitialized, &cache); \
+        } \
+        return cache; \
+      }
+
+    void ncclLoadParam(char const* env, int64_t deftVal, int64_t uninitialized, int64_t* cache) {
+      static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+      pthread_mutex_lock(&mutex);
+      if (__atomic_load_n(cache, __ATOMIC_RELAXED) == uninitialized) {
+        const char* str = ncclGetEnv(env);
+        int64_t value = deftVal;
+        if (str && strlen(str) > 0) {
+          errno = 0;
+          value = strtoll(str, nullptr, 0);
+          if (errno) {
+            value = deftVal;
+            INFO(NCCL_ALL,"Invalid value %s for %s, using default %lld.", str, env, (long long)deftVal);
+          } else {
+            INFO(NCCL_ENV,"%s set by environment to %lld.", env, (long long)value);
+          }
+        }
+        __atomic_store_n(cache, value, __ATOMIC_RELAXED);
+      }
+      pthread_mutex_unlock(&mutex);
+    }
+
+    const char *ncclGetEnv(const char *name) {
+      static pthread_once_t once = PTHREAD_ONCE_INIT;
+      pthread_once(&once, initEnv);
+      return getenv(name);
+    }
+
+    void initEnv() {
+      char confFilePath[1024];
+      const char * userDir = userHomeDir();
+      if (userDir) {
+        sprintf(confFilePath, "%s/.nccl.conf", userDir);
+        setEnvFile(confFilePath);
+      }
+      sprintf(confFilePath, "/etc/nccl.conf");
+      setEnvFile(confFilePath);
+    }
+    ```
