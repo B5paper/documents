@@ -2,6 +2,94 @@
 
 ## cache
 
+* ssh 
+
+    使用跳板机连接到主机，等价于`-J`。其 ssh config 文件写法为
+
+    ```
+    Host <目标主机别名>
+        HostName <目标主机IP或域名>
+        User <用户名>
+        ProxyJump <跳板机用户名>@<跳板机IP或域名>
+    ```
+
+    也可以分开写：
+
+    ```
+    Host jump
+        HostName jump.example.com
+        User user_jump
+
+    Host target
+        HostName target.example.com
+        User user_target
+        ProxyJump jump  # 使用跳板机 "jump"
+    ```
+
+    多级跳板：
+
+    ```bash
+    ssh -J jump1,jump2,jump3 target
+    ```
+
+    ssh config:
+
+    ```
+    Host target
+        ProxyJump jump1,jump2,jump3
+    ```
+
+    如果跳板机的端口不是默认的 22 端口，那么可以这样配置：
+
+    ```bash
+    ssh -J user@jump-host:2222 user@target-host
+    ```
+
+    ```
+    # 配置跳板机
+    Host jump-host
+        HostName jump-host.example.com
+        User user_jump
+        Port 2222  # 指定非默认端口
+
+    # 配置目标主机（通过跳板机连接）
+    Host target-host
+        HostName target-host.example.com
+        User user_target
+        ProxyJump jump-host  # 自动使用 jump-host 的端口 2222
+    ```
+
+* 跳板机 英语 Bastion Host
+
+* ssh keep alive
+
+    有几种可选方案
+
+    1. 在 ssh client 的`~/.ssh/config`中配置
+
+        ```
+        Host *
+            ServerAliveInterval 60      # 每60秒发送一次心跳包
+            ServerAliveCountMax 3       # 连续3次无响应才断开
+        ```
+
+        其中`Host *`表示对所有主机生效，可替换为特定主机名（如`Host example.com`）
+
+    1. ssh client 使用命令行参数
+
+        ```bash
+        ssh -o ServerAliveInterval=60 user@example.com
+        ```
+
+    1. 在 ssh server 的`/etc/ssh/sshd_config`中配置
+
+        ```
+        ClientAliveInterval 60         # 每60秒检查一次客户端活动
+        ClientAliveCountMax 3          # 连续3次无响应后断开
+        ```
+
+        需要重启 ssh server。
+
 * ssh 与伪终端
 
     `ssh user@addr`登陆后，会自动分配一个伪终端，进入交互式环境。`ssh user@addr command`则默认不会分配伪终端，因此不会进入交互式环境。但是有些命令需要伪终端的支持才能运行，比如`sudo`，此时我们可以使用`-t`强制分配伪终端：`ssh -t user@addr command`。

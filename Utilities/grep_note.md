@@ -2,6 +2,10 @@
 
 ## cache
 
+* `grep -n`可以显示行号。行数从 1 开始计数。
+
+* `fgrep`与`grep -F`都表示 Fixed-string grep，`fgrep`是旧版 linux 的独立命令，不推荐使用。目前更推荐使用`grep -F`.
+
 * 使用`grep`搜索一个文件中的`\|`字符串
 
     * `grep '\\|' example.txt`

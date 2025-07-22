@@ -4,6 +4,95 @@
 
 ## cached
 
+* c++ `vector`调用`resize()`时，会保留尽可能多的已有元素，仅增加/删除需要改动的部分。
+
+    example:
+
+    ```cpp
+    #include <vector>
+    #include <stdio.h>
+    using namespace std;
+
+    void print_vec(vector<int> &vec) {
+        for (int i = 0; i < vec.size(); ++i) {
+            printf("%d, ", vec[i]);
+        }
+        putchar('\n');
+    }
+
+    int main() {
+        vector<int> vec{1, 2, 3};
+        vec.resize(10);
+        print_vec(vec);
+        vec[3] = 4;
+        vec[4] = 5;
+        vec.resize(2);
+        print_vec(vec);
+        return 0;
+    }
+    ```
+
+    可以看到，扩容时，仅在`vec`末尾补充 0，前面的`1, 2, 3`并未被修改。而在缩容时，`1, 2`也得到了保留。
+
+    如果在调用`resize()`时提供了`val`，那么使用`val`对新增元素进行初始化。
+
+    调用`resize()`时，如果申请了新的内存，将旧的元素的内容移动到新的内存上去，那么会调用移动构造函数或拷贝构造函数，旧的元素会调用析构函数进行销毁。具体的调用规则如下：
+
+    * 如果元素类型具有 noexcept 的移动构造函数，vector 会优先调用 移动构造函数（高效，避免不必要的拷贝）。
+
+    * 如果移动构造函数可能抛出异常（非 noexcept），vector 会保守地调用 拷贝构造函数（保证强异常安全性）。
+
+    * 如果元素类型不可移动（仅支持拷贝），强制使用 拷贝构造函数。
+
+* 关于 c++ 中数组名的赋值问题
+
+    如果数组名是函数参数，那么在函数内部，数组名可以被赋值为新的指针，如果数组名在函数外部，那么在函数内部无法修改数组名所指的内容：
+
+    ```cpp
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    void func(int arr[]) {
+        int *new_arr = (int*) malloc(sizeof(int) * 3);
+        new_arr[0] = 3;
+        new_arr[1] = 2;
+        new_arr[2] = 1;
+        arr = new_arr;
+        printf("%d, %d, %d\n", arr[0], arr[1], arr[2]);
+        free(new_arr);
+    }
+
+    void func_2(int *arr[]) {
+        int *new_arr = (int*) malloc(sizeof(int) * 3);
+        new_arr[0] = 3;
+        new_arr[1] = 2;
+        new_arr[2] = 1;
+        *arr = new_arr;
+        printf("%d, %d, %d\n", (*arr)[0], (*arr)[1], (*arr)[2]);
+        // free(new_arr);
+    }
+
+    int main() {
+        int arr[3] = {1, 2, 3};
+        func(arr);
+        printf("arr: %p, %d, %d, %d\n", arr, arr[0], arr[1], arr[2]);
+        func_2((int**) &arr);
+        printf("arr: %p, %d, %d, %d\n", arr, arr[0], arr[1], arr[2]);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    3, 2, 1
+    arr: 0x7fffc728817c, 1, 2, 3
+    3, 2, 1
+    arr: 0x7fffc728817c, -1680833888, 22371, 3
+    ```
+
+    在`func()`内部，`arr`的含义被成功改变，而在`func_2()`调用过后，`arr`的值仍保持和原来一样。
+
 * c++ 中聚合类与初始化
 
     如果一个类定义了构造函数，那么就无法自动初始化。

@@ -6,6 +6,164 @@
 
 ## cache
 
+* `/proc/<PID>/cmdline` 是 Linux 系统 伪文件系统（procfs） 中的一个特殊文件，用于 获取指定进程（PID）的完整命令行启动参数，以`\0`（空字符）分隔各个参数。
+
+    如果进程本身就是以相对路径启动的，比如`bash`，那么`cmdline`不会显示其绝对路径。
+
+    `cmdline`的结尾没有`\n`。
+
+    因为 cmdline 使用`\0`进行参数分隔，所以避免了很多字符转义的问题。
+
+* `sudo -l`
+
+    列出当前用户可以使用`sudo`执行哪些 root 操作。
+
+    `sudo -ll`可以列出更详细的输出。
+
+    `sudo -U user -l`可以查看其他用户的 root 权限。
+
+* `ps -f`
+
+    既显示完整信息，也显示完整 cmd（比如绝对路径）。否则只显示简略信息和 cmd 名称。
+
+    example:
+
+    ```bash
+    ps -a
+    ```
+
+    output:
+
+    ```
+        PID TTY          TIME CMD
+       2178 tty2     00:00:00 gnome-session-b
+     295495 pts/9    00:01:03 ssh
+     296484 pts/10   00:00:02 socat
+     489812 pts/3    00:00:00 ps
+    ```
+
+    ```bash
+    ps -af
+    ```
+
+    output:
+
+    ```
+    UID          PID    PPID  C STIME TTY          TIME CMD
+    hlc         2178    2174  0 7月19 tty2    00:00:00 /usr/libexec/gnome-session-b
+    hlc       295495  294700  0 7月19 pts/9   00:01:03 ssh -R 8825:127.0.0.1:8825 h
+    hlc       296484  296052  0 7月19 pts/10  00:00:02 socat TCP-LISTEN:8825,reusea
+    hlc       490526  487976  0 12:26 pts/3    00:00:00 ps -af
+    ```
+
+    可以看到，使用`-f`后，信息有截断，但是确实是完整路径。如果要显示未截断的完整信息，那么需要再加上`-l`参数。
+
+* `ps -e --forest`
+
+    * `-e`
+
+        显示所有进程（包括其他用户的进程），等同于`-A`。
+
+        `man ps`中的解释：
+
+        > -e     Select all processes.  Identical to -A.
+
+    * `--forest`
+
+        以树状缩进形式显示进程层级，清晰体现父子关系。
+
+        其输出中使用`\_`而不是`|_`，目前仍不清楚原因。
+
+* `tr`的用法
+
+    `tr`指的是 translate，通常用于字符替换
+
+    example:
+
+    ```bash
+    echo hello | tr a-z A-Z
+    ```
+
+    output:
+
+    ```
+    HELLO
+    ```
+
+    也可以删除字符：
+
+    ```bash
+    echo "hello 123 world" | tr -d 0-9
+    ```
+
+    output:
+
+    ```
+    hello  world
+    ```
+
+    还可以去重：
+
+    ```bash
+    echo hello | tr -s l
+    ```
+
+    output:
+
+    ```
+    helo
+    ```
+
+    这里的`-s`可能是 squash 的意思。
+
+    过滤（filter in，保留指定的字符）：
+
+    ```bash
+    echo "hello 123" | tr -cd 'a-z'
+    ```
+
+    output:
+
+    ```
+    hello
+    ```
+
+    output 末尾无换行符。`tr`只保留`a-z`小字字母字符。
+
+    这里的`-c`可能是补集（complementary）的意思
+
+    一一映射：
+
+    ```bash
+    echo abc | tr cba xzy
+    ```
+
+    output:
+
+    ```
+    yzx
+    ```
+
+    注：
+
+    1. `tr`在处理`\n`时。需要给`\n`加上引号（单引号双引号都可以），否则会被 bash 转义。
+
+        example:
+
+        ```bash
+        echo hello | tr '\n' N
+        ```
+
+        output:
+
+        ```
+        helloN
+        ```
+
+        output 后无换行。
+
+    1. `tr`只能处理单个字符，不能处理字符串和正则表达式。
+
 * `grep -F`表示不进行正则解析
 
     example:

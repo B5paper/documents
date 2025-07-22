@@ -1547,6 +1547,16 @@
 
     整体看来，topo compute 整个函数，有点像不断改变搜索条件，去反复搜索。
 
+* `ncclTopoFollowPath()`
+
+    在`if (mult == 1 && (path->type > type))`处，`path->type = 6`，`type = 3`，直接退出函数。
+
+    ```cpp
+    int type = intra ? graph->typeIntra : graph->typeInter;
+    ```
+
+    `ncclTopoSearchRecGpu()`中，`graph->nChannels--;`又使得 channel 数变成 0.ssss
+
 * `check_p2p()`
 
     当`vert_1`和`vert_2`相等时，`p2pLevel = PATH_PXB`,然后会在

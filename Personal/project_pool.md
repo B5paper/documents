@@ -30,6 +30,28 @@
 
 ## cache
 
+* 有关 nccl 任务更深的问题：
+
+    是否可以使用局部推理的方式，使一个复杂系统理解另一个复杂系统？
+
+* 我为什么是错的
+
+    在学习的过程中，有时候不想知道“你为什么是对的”，而是想知道“我为什么是错的”。
+
+* 机器人如果能像 riscv 活动一样有展台，那么一定会有很多的人前来询问带来流量。
+
+* 如果有临时的想法，那么只靠记录关键字无法回忆起当时的所有想法和情节，必须要把临时的想法记录成完成的一句话或一段话才可以。
+
+    前几天参加 riscv 活动，记录下了“一生一芯：任务拆分”这几个字，现在已经想不起来为什么要记录这几个词了，也想不起来当时冒出来什么 idea，什么想法。
+
+* 一种是不想干，一种是想干有能力但没途径，一种是想干但没能力
+
+* 如果暂时说不清原理，那就描述清楚条件、现象和过程。
+
+* 如果你无法解读比较大的 part，那么可以尝试解读比较小的 part，或者向后解读可以解读的 part，一个词，一句话，一张图，总有可以解读的部分。
+
+    这里的解读有两个意思，一是可以直接看懂，二是可以引发联想，提出猜想。
+
 * 可以尝试每次都让挑选出来的任务放到 task tag 的最上面，这样慢慢不重要的任务就会下沉
 
 * 在向任务管理系统整理任务时，所有 deps 的任务放到当前任务的上面，所有 feedback 的任务放到当前任务的下面。这样比较重要的任务就会慢慢浮上来，不重要的任务会沉到下面去。
@@ -1436,40 +1458,44 @@ tasks:
 
 * `ncclTopoSearchRec()`函数参数为`int *index`，传入数据为`localNets+localNetCount`,其中`localNets`是`int*`, `localNetCount`是`int`，这个操作并不是把`int* + int`相加后生成一个匿名对象，再把匿名对象看作一个指针传入函数，而是将`localNets`看作一个数组，而`localNets+localNetCount`是对数组中某个元素取址。
 
-### tasks
-
-* [ ] 调研`getuid()`, `getpwuid()`
-
-* [ ] 调研为何 nccl `ncclTopoSearchRecNet()`中`net->id`为 1，siccl 中`net->id`为 2
-
-* [v] 调研为何 siccl 疑似在`generate_coll_graph()`的
+* siccl 疑似在`generate_coll_graph()`的
 
     ```cpp
     if (coll_graph.nChannels * coll_graph.bwInter >= topo_system.totalBw)
         goto done;
     ```
 
-    处触发`goto done;`，而 nccl 并没有？
+    处触发`goto done;`，而 nccl 并没有。是因为 siccl 没有调用 search init 函数，导致 system->totalBw 为 0
 
-    nccl 中 system->totalBw = 12, siccl 中 system->totalBw 为 0，为什么？
+* C 语言/gdb 中，`(void)`主要用于防止编译器给出 unused variable 的 warning。
+
+### tasks
+
+* [ ] 调研`askpass`。
+
+* [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
+
+* [ ] 调研`getuid()`, `getpwuid()`
+
+* [v] 调研为何 nccl `ncclTopoSearchRecNet()`中`net->id`为 1，siccl 中`net->id`为 2
 
     feedback:
 
-    1. 因为没有调用 search init 函数。
+    1. 目前看来 siccl 和 nccl 的 net 输出都是相同的，net idx 都为 1，0, net id 总为 2, 1
 
 * {O} 调研`generate_coll_graph()`
 
-    feedback:
+    deps:
 
-    1. [v] 调研为何 siccl 与 nccl 的`ncclTopoSelectNets()`得到的 nets 的元素顺序不同
+    1. [ ] 调研`graph->nChannels `什么时候变成的 2？
+
+    feedback:
 
     1. 调研`ngpus`什么时候变成 1 的？
 
+    1. 调研`crossNic`什么时候变成的 2？
+
 * [ ] 调研 c++ elements gui 库
-
-* [v] 调研为什么 rsync 不需要像 cp 一样`-r`
-
-* [v] 调研 ssh 如何 keep alive
 
 * [ ] 调研
 
@@ -1491,15 +1517,17 @@ tasks:
     tail -f /var/log/auth.log | grep Keepalive
     ```
 
-* [v] 调研 vector `resize()`扩大或缩小会清空已经存在的元素吗？
+* {P} 调研`ncclGetEnv()`
 
-* [P] 调研`ncclGetEnv()`
+* [v] 调研 C 语言`getline()`
 
-* [ ] 调研 C 语言`getline()`
+* [v] 调研`setenv()`
 
-* [ ] 调研`setenv()`
+    feedback:
 
-* [ ] 调研`getenv()`
+    1. 调研`csh`, `tcsh`
+
+* [v] 调研`getenv()`
 
 * [ ] 调研`/etc/sudoers`
 
@@ -1521,7 +1549,11 @@ tasks:
 
     1. 目前适配 trim system 的结果没有问题，但是不清楚为什么 trim，怎么 trim，trim 了哪些。后续可以看一下。
 
-* [ ] 调研`ncclPxnDisable()`
+* [v] 调研`ncclPxnDisable()`
+
+    feedback:
+
+    1. 调研`ncclTopoGetPxnRanks()`
 
 * [ ] 调研`ncclParamNetGdrRead()`
 
@@ -1529,17 +1561,27 @@ tasks:
 
 * [ ] 调研`ncclTopoSelectNets()`
 
-* [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
+* [v] 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
 
-* [ ] 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
+    feedback:
 
-* [v] 调研是否可以给数组赋值，比如`int arr[] = (int*) 0x1234;`
+    1. 调研`do {} while(0)`，比如
 
-* [ ] 调研`askpass`。
+        ```cpp
+        #define PRINT_EACH(...) do { \
+            int arr[] = {__VA_ARGS__}; \
+            for (size_t i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) \
+                printf("%d ", arr[i]); \
+        } while(0)
+        ```
 
-* [v] 调研`sudo -l`
+    1. 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
 
-* [ ] 调研`sudo -v`
+    1. 调研`calloc()`
+
+    1. 调研`sizeof(void)`
+
+* [v] 调研`sudo -v`
 
 * [ ] 调研`vim -X`非交互运行
 
@@ -1548,12 +1590,6 @@ tasks:
 * [ ] 调研`ed`
 
 * [ ] 调研` sudo -S`。
-
-* [v] 调研 ssh ProxyJump
-
-* [v] 调研 nc comp 为什么 p2p 返回 0，50 机器是否 p2p 返回 0，如果返回，为什么？
-
-    如果将 ignore disable p2p 设置为 1，是否还返回 0？
 
 * [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
@@ -1565,13 +1601,11 @@ tasks:
 
 * [v] 调研`ps -e --forest`
 
-    feedback:
+* [ ] 调研`pstree`
 
-    1. 调研`pstree`
+* [ ] 调研`htop`
 
-    1. 调研`htop`
-
-    1. 调研`ps -e -o pid,cmd`
+* [ ] 调研`ps -e -o pid,cmd`
 
 * [ ] 调研`ps aux`
 
@@ -1579,23 +1613,19 @@ tasks:
 
 * [v] 调研`/proc/<PID>/cmdline`
 
-    feedback:
+* [ ] 调研`xargs -0`
 
-    1. 调研`xargs -0`
+* [ ] 调研`ps -p <PID> -o cmd`
 
-    1. 调研`ps -p <PID> -o cmd`
+* [ ] 调研`pgrep -a <PATTERN>`
 
-    1. 调研`pgrep -a <PATTERN>`
+* [ ] 调研`/proc/<PID>/comm`
 
-    1. 调研`/proc/<PID>/comm`
-
-    1. 调研`readlink /proc/1234/cwd`
+* [ ] 调研`readlink /proc/1234/cwd`
 
 * [ ] 调研`/proc/<PID>/status`
 
 * [ ] 调研`env KEY=value command`
-
-* [v] 调研`tr`
 
 * [ ] 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
 
@@ -1605,11 +1635,7 @@ tasks:
 
 * [v] 调研`fgrep`
 
-    feedback:
-
-    1. 调研`type <command>`命令
-
-* [v] 调研`grep -n`
+* [ ] 调研`type <command>`命令
 
 * [ ] 调研`grep *.txt`使用通配符搜索多个文件，对比与`include file`有什么不同？
 
@@ -1625,7 +1651,17 @@ tasks:
 
 * [ ] 调研 gdb `x`命令
 
-* [ ] 调研`rsync --delete`
+* [v] 调研`rsync --delete`
+
+    feedback:
+
+    1. 调研`rsync --exclude`
+
+    1. 调研`rsync -n`或`rsync --dry-run`
+
+    1. 调研`rsync --delete-excluded`
+
+    1. 调研`rsync --max-delete`
 
 * [ ] 调研 conan
 
@@ -1655,12 +1691,6 @@ tasks:
 
     feedback:
 
-    1. 调研`Coverity`
-
-    1. 调研`Clang Static Analyzer`
-
-    1. `(void)`主要用于防止编译器给出 unused variable 的 warning。
-
     1. 这个宏的作用有可能是
 
         ```cpp
@@ -1672,6 +1702,10 @@ tasks:
         ```
 
         总之是占位符性质。
+
+* [ ] 调研`Coverity`
+
+* [ ] 调研`Clang Static Analyzer`
 
 * [ ] 调研 gdb 中 p 命令调用函数`(gdb) p (void)printf("Hello, GDB\n")`
     
