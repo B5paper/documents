@@ -1547,6 +1547,86 @@
 
     整体看来，topo compute 整个函数，有点像不断改变搜索条件，去反复搜索。
 
+    `int ngpus = system->nodes[GPU].count;`，可以看到 trim system 后，`ngpus`总为 1.
+    
+* `ncclTopoSearchRecGpu()`
+
+    ```cpp
+    ncclResult_t ncclTopoSearchRecGpu(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, struct ncclTopoNode* gpu, int step, int backToNet, int backToFirstRank, int forcedOrder, int *time) {
+    ```
+
+    这是一个递归函数，通常由`ncclTopoSearchTryGpu()`发起调用。
+
+    * 所有`ncclTopoSearchTryGpu()`的调用，step 都是手动指定的 0.
+
+    * 第 5 个参数`step`, 在外部传入的变量名为`ngpus`.
+    
+        search rec gpu 递归调用，step 不再为 0, 而是 ngpus 或 step
+
+        search try gpu 调用 search rec gpu 时，step 是直接拿的外部传给 search try gpu 的值。
+
+    * ngpus 在 search rec gpu 的`int ngpus = system->nodes[GPU].count;`处被赋值。
+
+        既然这样，为什么有的 search rec gpu 递归调用时，step 仍为 0？
+
+    * `backToNet`的值不是固定的，有时为 0，有时为 -1
+
+    * 第一次进入 search rec gpu，传入的 step 为 0，第二次进入 search rec gpu，传入的 step 为 ngpus.
+
+    * `graph->intra[graph->nChannels * ngpus + step] = gpu->gpu.rank;`
+
+        这里的索引比较有意思。`nChannels`取值为 0，1，2，`ngpus`恒为`nodes[GPU]`的数量，即`1`，`step`显然就是中间路径了。
+
+        猜想：每个 channel 都预留了 ngpus 个中间节点的位置，step 则表示目前在填充哪一个中间节点。比如假如 ngpus = 3, 那么`intra`数组可能为`[[x, x, x], [x, x, x], [x, x, x], ...]`，如果此时 nchannel = 1, step = 0，那么修改的就是`[[x, x, x], [o, x, x], [x, x, x], ...]`这个位置的数据。
+
+    * 猜想`backToNet`是一个 border，如果`backToNet = -1`,那么在 path 里添加新 node
+
+    * `if (step == ngpus) {`
+
+        猜想这个可能是递归结束的条件，就像前面的数组，如果 ngpus 被填满，比如`[[o, o, o], [x, x, x], [x, x, x], ...]`，那么结束当前递归。
+
+    * `if (graph->nChannels < graph->maxChannels) {`
+
+        ```cpp
+        if (graph->nChannels < graph->maxChannels) {
+            NCCLCHECK(ncclTopoSearchRec(system, graph, saveGraph, time));
+        }
+        ```
+
+        这里不是递归调用自己，而是通过`ncclTopoSearchRec()`调用最外层的函数，再由`ncclTopoSearchRec()`去调用 search rec get -> search rec gpu。为什么要这样设计？   
+
+    * `nChannels`变成 1 后，`step`又从 0 开始
+
+    * 后续会在`ncclTopoSearchRecNet()`函数中，因为
+
+        ```cpp
+        if (net->net.bw < bw)
+            continue;
+        ```
+
+        而退出搜索。
+
+    * 两个 channel ，占用了两个 net node，是否意味着 channel 都是带宽确定的 path？
+
+* `ncclTopoSearchRec()`
+
+   1. `ncclTopoSearchRecNet()`
+   
+        ```cpp
+        ncclTopoSearchRecNet(system, graph, saveGraph, backToNet, backToFirstRank, time);
+        ```
+
+        `backToNet = 0`, `backToFirstRank = -1`
+
+        1. `ncclTopoSearchTryGpu()`
+
+            ```cpp
+            NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, FORCED_ORDER_PCI, &t, NET, n, 0));
+            ```
+
+            `step = 0`, `backToNet = 0`, `backToFirstRank = -1`
+
+
 * `ncclTopoFollowPath()`
 
     在`if (mult == 1 && (path->type > type))`处，`path->type = 6`，`type = 3`，直接退出函数。
@@ -1662,3 +1742,11 @@
       setEnvFile(confFilePath);
     }
     ```
+
+* trim system
+
+    * nccl 中 node 中 path 的 dst node 与 system 中 path 的 dst node 是共享的，其中一个消失，另一个也会跟着消失。siccl 中 path 中的 edge list 是独占的，与 node 的变化无关，所以仅删除 node 无法影响到 path。
+
+        推测：nccl 中 node 被删除，仅仅是 path 的 dst node 被删除，中间节点（intermediate note）依然存在，因此需要重新 compute path。
+
+    * 目前适配 trim system 的结果没有问题，但是不清楚。后续可以看一下。

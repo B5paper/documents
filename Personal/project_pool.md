@@ -1469,9 +1469,41 @@ tasks:
 
 * C 语言/gdb 中，`(void)`主要用于防止编译器给出 unused variable 的 warning。
 
+* 目前看来 siccl 和 nccl 的 net 输出都是相同的，net idx 都为 1，0, net id 总为 2, 1
+
 ### tasks
 
-* [ ] 调研`askpass`。
+* [ ] 调研`crontab`
+
+* [v] 调研`askpass`。
+
+    feedback:
+
+    1. 调研`ssh -o PreferredAuthentications=password`
+
+    1. 调研`git-credential-libsecret`
+
+    1. 调研`stty -echo  # 关闭回显`
+
+    1. 调研 bash `read password`
+
+    1. 调研`dmenu`
+
+    1. 调研`ksshaskpass`
+
+    1. 调研`GIT_ASKPASS`
+
+    1. 调研`setsid`
+
+    1. 调研`ssh -T`
+
+    1. 调研`disown`
+
+    1. 调研`strace`
+
+    1. 调研`gpg -dq ~/.ssh/password.gpg`
+
+    1. 调研`ssh -f`
 
 * [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
 
@@ -1479,21 +1511,37 @@ tasks:
 
 * [v] 调研为何 nccl `ncclTopoSearchRecNet()`中`net->id`为 1，siccl 中`net->id`为 2
 
+* [v] 调研`graph->nChannels `什么时候变成的 2？
+
     feedback:
 
-    1. 目前看来 siccl 和 nccl 的 net 输出都是相同的，net idx 都为 1，0, net id 总为 2, 1
+    1. 调用`ncclTopoSearchRec()`时，第二个参数是`&tmpGraph`, 第三个参数是`graph`，然而`ncclTopoSearchRec()`的参数列表是
+
+        `ncclResult_t ncclTopoSearchRec(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, int* time) {`
+
+        也就是说，在函数内部改变的，其实是`saveGraph`的`nChannels`。
+
+    1. 在`ncclTopoSearchRecNet() -> ncclTopoSearchTryGpu()`第一次调用时，channel 数就已经为 2 了。此时 net id = 1，后续会搜索 net id = 2 的情形。
+
+        有时候 net id 会变为 2，1.
+
+    1. `ncclTopoSearchRecGpu() -> graph->nChannels++;`
+    
+        `memcpy(saveGraph, graph, sizeof(struct ncclTopoGraph));`
+
+        应该是在这个位置`saveGraph`的 channel 变为 2 的
+
+    1. `ncclTopoSearchRecGpu()`是多层调用的，在最内部调用完`ncclTopoSearchRecNet()`后，channel 数就变成了 2.
+
+    1. `ncclTopoSearchRec()`中，`invoke_cnt = 33`, `depth = 3`
+
+        在这之前 nchannels 就已经是 2 了。
+
+* [ ] 调研`ngpus`什么时候变成 1 的？
+
+* [ ] 调研`crossNic`什么时候变成的 2？
 
 * {O} 调研`generate_coll_graph()`
-
-    deps:
-
-    1. [ ] 调研`graph->nChannels `什么时候变成的 2？
-
-    feedback:
-
-    1. 调研`ngpus`什么时候变成 1 的？
-
-    1. 调研`crossNic`什么时候变成的 2？
 
 * [ ] 调研 c++ elements gui 库
 
@@ -1519,15 +1567,9 @@ tasks:
 
 * {P} 调研`ncclGetEnv()`
 
-* [v] 调研 C 语言`getline()`
-
 * [v] 调研`setenv()`
 
-    feedback:
-
-    1. 调研`csh`, `tcsh`
-
-* [v] 调研`getenv()`
+* [ ] 调研`csh`, `tcsh`
 
 * [ ] 调研`/etc/sudoers`
 
@@ -1539,21 +1581,15 @@ tasks:
 
 * [ ] 调研实现`ncclTopoCheckGdr()`
 
-* [O] 调研`ncclTopoTrimSystem()`
+* {O} 调研`ncclTopoTrimSystem()`
 
     feedback:
 
-    1. nccl 中 node 中 path 的 dst node 与 system 中 path 的 dst node 是共享的，其中一个消失，另一个也会跟着消失。siccl 中 path 中的 edge list 是独占的，与 node 的变化无关，所以仅删除 node 无法影响到 path。
-
-        推测：nccl 中 node 被删除，仅仅是 path 的 dst node 被删除，中间节点（intermediate note）依然存在，因此需要重新 compute path。
-
-    1. 目前适配 trim system 的结果没有问题，但是不清楚为什么 trim，怎么 trim，trim 了哪些。后续可以看一下。
+    1. 调研为什么 trim，怎么 trim，trim 了哪些
 
 * [v] 调研`ncclPxnDisable()`
 
-    feedback:
-
-    1. 调研`ncclTopoGetPxnRanks()`
+* [ ] 调研`ncclTopoGetPxnRanks()`
 
 * [ ] 调研`ncclParamNetGdrRead()`
 
@@ -1565,23 +1601,21 @@ tasks:
 
     feedback:
 
-    1. 调研`do {} while(0)`，比如
+* [ ] 调研`do {} while(0)`，比如
 
-        ```cpp
-        #define PRINT_EACH(...) do { \
-            int arr[] = {__VA_ARGS__}; \
-            for (size_t i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) \
-                printf("%d ", arr[i]); \
-        } while(0)
-        ```
+    ```cpp
+    #define PRINT_EACH(...) do { \
+        int arr[] = {__VA_ARGS__}; \
+        for (size_t i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) \
+            printf("%d ", arr[i]); \
+    } while(0)
+    ```
 
-    1. 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
+* [ ] 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
 
-    1. 调研`calloc()`
+* [ ] 调研`calloc()`
 
-    1. 调研`sizeof(void)`
-
-* [v] 调研`sudo -v`
+* [ ] 调研`sizeof(void)`
 
 * [ ] 调研`vim -X`非交互运行
 
@@ -1599,8 +1633,6 @@ tasks:
 
 * [ ] 调研 tty ? 是什么意思
 
-* [v] 调研`ps -e --forest`
-
 * [ ] 调研`pstree`
 
 * [ ] 调研`htop`
@@ -1610,8 +1642,6 @@ tasks:
 * [ ] 调研`ps aux`
 
 * [ ] 调研`strings`工具
-
-* [v] 调研`/proc/<PID>/cmdline`
 
 * [ ] 调研`xargs -0`
 
@@ -1633,8 +1663,6 @@ tasks:
 
 * [ ] 调研`expect`脚本
 
-* [v] 调研`fgrep`
-
 * [ ] 调研`type <command>`命令
 
 * [ ] 调研`grep *.txt`使用通配符搜索多个文件，对比与`include file`有什么不同？
@@ -1653,15 +1681,13 @@ tasks:
 
 * [v] 调研`rsync --delete`
 
-    feedback:
+* [ ] 调研`rsync --exclude`
 
-    1. 调研`rsync --exclude`
+* [ ] 调研`rsync -n`或`rsync --dry-run`
 
-    1. 调研`rsync -n`或`rsync --dry-run`
+* [ ] 调研`rsync --delete-excluded`
 
-    1. 调研`rsync --delete-excluded`
-
-    1. 调研`rsync --max-delete`
+* [ ] 调研`rsync --max-delete`
 
 * [ ] 调研 conan
 
