@@ -1626,6 +1626,10 @@
 
             `step = 0`, `backToNet = 0`, `backToFirstRank = -1`
 
+    * `graph->intra`的值为`1, 1, 0, 0`
+
+    * 主要是三个函数在调来调去`ncclTopoSearchRecNet()`, `ncclTopoSearchRec()`, `ncclTopoSearchRecGpu()`
+
 
 * `ncclTopoFollowPath()`
 
