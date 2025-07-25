@@ -6,6 +6,52 @@
 
 ## cache
 
+* `ssh-askpass`简介
+
+    安装：`apt install ssh-askpass`
+
+    直接运行`./ssh-askpass`时，会弹出一个窗口，输入密码并按回车后，输入的内容会出现在 terminal 里。
+
+    `sudo`和`ssh`都可以使用`ssh-askpass`程序弹出 gui 输入密码。
+
+    以`sudo`为例，首先配置环境变量，然后使用`sudo -A <command>`激活：
+
+    ```bash
+    export SUDO_ASKPASS=/usr/bin/ssh-askpass
+    sudo -A -v
+    ```
+
+    此时在弹出的窗口中输入密码，terminal 不会回显。
+
+    如果未检测到环境变量，sudo 会报错：
+
+    `sudo: no askpass program specified, try setting SUDO_ASKPASS`
+
+    `ssh`使用`ssh-askpass`同样需要使用环境变量：
+
+    ```bash
+    export SSH_ASKPASS="/usr/bin/ssh-askpass"
+    ```
+
+    经验证，ssh 很难启动 askpass 弹窗，目前不清楚原因。
+
+* `sudo -v`用于延长 sudo 的密码缓存时间
+
+    `sudo`第一次缓存密码的时间为 15 分钟，执行`sudo -v`会重置这个计时器。
+
+    这里的`-v`代表 validate
+
+    通常在脚本开头检查权限，防止脚本因为 sudo 密码问题中断：
+
+    ```bash
+    if ! sudo -v; then
+        echo "Error: No sudo access or incorrect password."
+        exit 1
+    fi
+    ```
+
+    `sudo -k`可以清空密码缓存。执行`sudo -k`不需要 sudo 密码。
+
 * `/proc/<PID>/cmdline` 是 Linux 系统 伪文件系统（procfs） 中的一个特殊文件，用于 获取指定进程（PID）的完整命令行启动参数，以`\0`（空字符）分隔各个参数。
 
     如果进程本身就是以相对路径启动的，比如`bash`，那么`cmdline`不会显示其绝对路径。

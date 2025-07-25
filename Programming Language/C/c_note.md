@@ -6,6 +6,81 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `getline()`简介
+
+    `getline()`是 C 的一个 gpu 扩展函数，用于动态申请内存从文件或`stdin`读数据。
+
+    `getline()`在`<stdio.h>`头文件中。
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main() {
+        char *line = NULL;
+        size_t buffer_size = 0;
+        ssize_t n_bytes = getline(&line, &buffer_size, stdin);
+        printf("buffer size: %lu\n", buffer_size);
+        printf("echo bytes: %ld, %s", n_bytes, line);
+        free(line);
+        return 0;
+    }
+    ```
+
+    input:
+
+    ```
+    hello
+    ```
+
+    output:
+
+    ```
+    buffer size: 120
+    echo bytes: 6, hello
+    ```
+
+    当`getline()`读到文件结尾（EOF）时，会返回`-1`。
+
+    如果发现行的长度大于 120 个字节，那么`getline()`会调用`realloc()`改变 buffer size。
+
+    `getline()`会保留行末尾的`\n`。
+
+    用户必须手动`free(line);`释放内存。
+
+* 编译器内置宏`__FILE__`, `__LINE__`，分别表示当前文件名和行号
+
+* 可变参数宏
+
+    ```cpp
+    #include <stdio.h>
+
+    #define INFO(...) printf(__VA_ARGS__)
+    #define MSG(msg, val, ...) printf(__VA_ARGS__, msg, val)
+    // #define DBG(val_1, ..., val_2) printf(__VA_ARGS__, val_1, val_2);  // error
+
+    int main() {
+        INFO("hello, world, %d\n", 123);
+        MSG("nihao", 456, "msg: %s, %d\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world, 123
+    msg: nihao, 456
+    ```
+
+    其中`__VA_ARGS__`表示将`...`中的内容全部转移到当前位置。
+
+    `...`只能作为最后一个参数，不能作为中间参数或第一个参数。
+
+    `...`不能为空，如果可能为空，需要使用`##__VA_ARGS__`（GNU 扩展）或`__VA_OPT__`（C++20 支持）。
+
 * void 在 C 语言中的作用
 
     对于有返回值的函数，在调用时如果想显式忽略其返回值，可以在调用函数前加`(void)`，如果不加，编译器有可能报 warning。

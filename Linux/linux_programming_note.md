@@ -6,6 +6,72 @@
 
 ## cache
 
+* `getenv()`, `setenv()`, `unsetenv()`用法
+
+    这几个函数都是 c 语言中与环境变量相关的函数，在`<stdlib.h>`头文件中。
+
+    syntax:
+
+    ```cpp
+    #include <stdlib.h>
+    char *getenv(const char *name);
+    int unsetenv(const char *name);
+    int setenv(const char *name, const char *value, int overwrite);
+    ```
+
+    * `name`： 环境变量名。
+
+    * `value`： 要设置的值。
+
+    * `overwrite`： 若为 1，覆盖已存在的变量；若为 0，不覆盖。
+
+    返回值： 成功返回`0`，失败返回`-1`。
+
+    example:
+
+    ```cpp
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    int main() {
+        int ret = setenv("GREETING_MSG", "hello, world", 0);
+        if (ret != 0) {
+            printf("fail to set env\n");
+            return -1;
+        }
+        const char *greeting_msg = getenv("GREETING_MSG");
+        printf("greeting msg: %s\n", greeting_msg);
+
+        ret = setenv("GREETING_MSG", "nihao", 0);
+        if (ret != 0) {
+            printf("fail to set env\n");
+            return -1;
+        }
+        greeting_msg = getenv("GREETING_MSG");
+        printf("greeting msg: %s\n", greeting_msg);
+
+        ret = setenv("GREETING_MSG", "nihao", 1);
+        if (ret != 0) {
+            printf("fail to set env\n");
+            return -1;
+        }
+        greeting_msg = getenv("GREETING_MSG");
+        printf("greeting msg: %s\n", greeting_msg);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    greeting msg: hello, world
+    greeting msg: hello, world
+    greeting msg: nihao
+    ```
+
+    这几个函数都是 POSIX 扩展，不是 C 标准，需确保系统支持。
+
 * ai 生成的`sched_setaffinity()`的 example
 
     `main.c`:
