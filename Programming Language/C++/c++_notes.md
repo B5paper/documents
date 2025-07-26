@@ -300,6 +300,10 @@
 
     默认情况下，编译器认为依赖未知类型`T`的符号都是普通成员，而不是类型名。如果想告诉编译器这个符号是个类型，而不是成员变量或函数，那么必须使用`typename`。
 
+    下面这篇文章讲得很清楚：
+
+    <https://www.ibm.com/docs/en/zos/2.4.0?topic=only-typename-keyword-c>
+
 * 必须使用 unique ptr 的场景
 
     按传统的方式需要调用两次函数，第一次得到 num，然后用户 malloc 内存拿到 buffer，第二次调用函数往 buffer 里填数据。

@@ -2,6 +2,84 @@
 
 ## cached
 
+* 使用`unique_ptr`的时机
+
+    如果需要一个变长数组，又不知道变长数组的长度，那么通常需要调用两次函数，第一次得到长度，然后 malloc，第二次再填充数据：
+
+    ```cpp
+    int main() {
+        int num_objs;
+        fill_objs(NULL, &num_objs);
+        Obj *objs = (Obj*) malloc(sizeof(Obj) * num_objs);
+        fill_objs(objs, &num_objs);
+        return 0;
+    }
+    ```
+
+    使用 vector 也是一样的效果：
+
+    ```cpp
+    int main() {
+        int num_objs;
+        fill_objs(NULL, &num_objs);
+        vector<Obj> objs(num_objs);
+        fill_objs(objs.data(), &num_objs);
+        return 0;
+    }
+    ```
+
+    既然有了 c++ 和 vector，我们也可以一步完成这两个过程：
+
+    ```cpp
+    void fill_objs(vector<Obj> &objs) {
+        objs.resize(num_objs);
+        for (int i = 0; i < num_objs; ++i) {
+            objs[i] = xxx;
+        }
+
+        // or just use objs.push_back() instead
+    }
+    ```
+
+    如果数组中的元素是互相依赖的，需要元素的地址不能改变，那么就只能往 vector 里塞指针，我们只能在函数外部释放内存：
+
+    ```cpp
+    void fill_objs(vector<Obj*> &objs) {
+        objs.push_back(new Obj);
+        objs.push_back(new Obj);
+        objs[1].parent_ptr = objs[0];
+        // ...
+    }
+
+    int main() {
+        vector<Obj*> objs;
+        fill_objs(objs);
+        // ...
+        for (Obj* obj_ptr : objs) {
+            delete obj_ptr;
+        }
+    }
+    ```
+
+    可以看到，前面两个例子都能自动释放内存，但是到了这里需要手动释放内存，很麻烦。如果我不想手动释放内存呢？那么就只能使用`unique_ptr`了：
+
+    ```cpp
+    void fill_objs(vector<unique_ptr<Objs>> &objs) {
+        objs.push_back(new Obj);
+        objs.push_back(new Obj);
+        objs[1].parent_ptr = objs[0];
+        // ...
+    }
+
+    int main() {
+        vector<unique_ptr<Obj>> objs;
+        fill_objs(objs);
+        return 0;
+    }
+    ```
+
+    完美，当`objs`被销毁时，其中的指针被自动释放。
+
 * c++ invoke
 
     `std::invoke()`用于调用各种函数，提供了较为统一的接口，通常用于框架级别的编程。
@@ -134,6 +212,8 @@
     ```
 
     可以看到，`explicit`关键字就是元凶。
+
+    如果我们使用等号将`string_view`赋值给`string`，编译器会尝试隐式调用`string`的构造函数，但是发现`string`将对应的构造函数声明成了`explicit`，表示这个构造函数必须由用户显式地调用，所以编译器报错了。
 
     为什么要这样设计？用意和动机是什么？目前不清楚。
 

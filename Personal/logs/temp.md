@@ -1358,6 +1358,183 @@
 
     `nets = {1, 0}`, `localNets = {1, 0}`, `netCount = 2`
 
+    * 对下面代码的解析
+
+        ```cpp
+        int net = system->nodes[GPU][gpu]->gpu.dev;
+        if (isPow2(localNetCount)) {
+            net = mirrorBits(net, localNetCount);
+        }
+        // 假如网卡数量为 5，gpu 数量为 2，那么 div(5, 2) = 3
+        // 即前面每 3 张网卡服务 1 个 gpu，最后 1 个 gpu 由剩余网卡（2 张）负责
+        // 以 gpu 的视角来看，是这样的：
+        //      gpu_0                  gpu_1
+        //   /    |    \           /     |    \ 
+        // net0  net1  net2       net3  net4  NULL
+        // idx_0 idx_1 idx_2      idx_0  idx_1
+        // 那么 channelId % 3 的含义即为，当前 channel 对应的 net 的 idx
+        // net 前面被赋值的是 gpu 的 dev 号，现在 += 这个值，说明 gpu_1 由
+        // net[1, 2, 3] 负责，并非由上图的 net[3, 4] 负责。
+        net += channelId % div_up(localNetCount, localGpuCount);
+        ```
+
+        仿照这段逻辑写了个程序，代码和输出如下：
+
+        ```cpp
+        bool isPow2(int val) {
+            return (val & (val-1)) == 0;
+        }
+
+        int mirrorBits(int val, int pow2) {
+            int mirror = 0;
+            // mb 表示最高位的 1
+            for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+                // 如果 val 最低位为 1，那么 mirror 的最高位置 1
+                if (val & b) {
+                    // |= 保护除了最高位之外的其他位不被改变
+                    mirror |= mb;
+                }
+            }
+            return mirror;  // 0b110;
+        }
+
+        int div_up(int x, int y) {
+            return (x + y - 1) / y;
+        }
+
+        #include <stdio.h>
+
+        int main() {
+            int localNetCount = 8;
+            int localGpuCount = 4;
+            for (int channelId = 0; channelId < 6; ++channelId) {
+                for (int i = 0; i < localGpuCount; ++i) {
+                    int net = i;
+                    if (isPow2(localNetCount)) {
+                        net = mirrorBits(net, localNetCount);
+                    }
+                    net += channelId % div_up(localNetCount, localGpuCount);
+                    printf("gpu idx: %d, channel: %d, net: %d\n", i, channelId, net);
+                }
+                putchar('\n');
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        gpu idx: 0, channel: 0, net: 0
+        gpu idx: 1, channel: 0, net: 4
+        gpu idx: 2, channel: 0, net: 2
+        gpu idx: 3, channel: 0, net: 6
+
+        gpu idx: 0, channel: 1, net: 1
+        gpu idx: 1, channel: 1, net: 5
+        gpu idx: 2, channel: 1, net: 3
+        gpu idx: 3, channel: 1, net: 7
+
+        gpu idx: 0, channel: 2, net: 0
+        gpu idx: 1, channel: 2, net: 4
+        gpu idx: 2, channel: 2, net: 2
+        gpu idx: 3, channel: 2, net: 6
+
+        gpu idx: 0, channel: 3, net: 1
+        gpu idx: 1, channel: 3, net: 5
+        gpu idx: 2, channel: 3, net: 3
+        gpu idx: 3, channel: 3, net: 7
+
+        gpu idx: 0, channel: 4, net: 0
+        gpu idx: 1, channel: 4, net: 4
+        gpu idx: 2, channel: 4, net: 2
+        gpu idx: 3, channel: 4, net: 6
+
+        gpu idx: 0, channel: 5, net: 1
+        gpu idx: 1, channel: 5, net: 5
+        gpu idx: 2, channel: 5, net: 3
+        gpu idx: 3, channel: 5, net: 7
+        ```
+
+        可以看到，当`localNetCount`为偶数时，在每个 channel 里分配的 net，先是偶数，再是奇数。
+
+        如果`localNetCount`为奇数，为了更好地找规律，我们将程序修改如下：
+
+        ```cpp
+        bool isPow2(int val) {
+            return (val & (val-1)) == 0;
+        }
+
+        int mirrorBits(int val, int pow2) {
+            int mirror = 0;
+            // mb 表示最高位的 1
+            for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+                // 如果 val 最低位为 1，那么 mirror 的最高位置 1
+                if (val & b) {
+                    // |= 保护除了最高位之外的其他位不被改变
+                    mirror |= mb;
+                }
+            }
+            return mirror;  // 0b110;
+        }
+
+        int div_up(int x, int y) {
+            return (x + y - 1) / y;
+        }
+
+        #include <stdio.h>
+
+        int main() {
+            int localNetCount = 13;
+            int localGpuCount = 3;
+            for (int channelId = 0; channelId < 6; ++channelId) {
+                for (int i = 0; i < localGpuCount; ++i) {
+                    int net = i;
+                    if (isPow2(localNetCount)) {
+                        net = mirrorBits(net, localNetCount);
+                    }
+                    printf("gpu idx: %d, channel: %d, net before: %d, ", i, channelId, net);
+                    net += channelId % div_up(localNetCount, localGpuCount);
+                    printf("net after: %d\n", net);
+                }
+                putchar('\n');
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        gpu idx: 0, channel: 0, net before: 0, net after: 0
+        gpu idx: 1, channel: 0, net before: 1, net after: 1
+        gpu idx: 2, channel: 0, net before: 2, net after: 2
+
+        gpu idx: 0, channel: 1, net before: 0, net after: 1
+        gpu idx: 1, channel: 1, net before: 1, net after: 2
+        gpu idx: 2, channel: 1, net before: 2, net after: 3
+
+        gpu idx: 0, channel: 2, net before: 0, net after: 2
+        gpu idx: 1, channel: 2, net before: 1, net after: 3
+        gpu idx: 2, channel: 2, net before: 2, net after: 4
+
+        gpu idx: 0, channel: 3, net before: 0, net after: 3
+        gpu idx: 1, channel: 3, net before: 1, net after: 4
+        gpu idx: 2, channel: 3, net before: 2, net after: 5
+
+        gpu idx: 0, channel: 4, net before: 0, net after: 4
+        gpu idx: 1, channel: 4, net before: 1, net after: 5
+        gpu idx: 2, channel: 4, net before: 2, net after: 6
+
+        gpu idx: 0, channel: 5, net before: 0, net after: 0
+        gpu idx: 1, channel: 5, net before: 1, net after: 1
+        gpu idx: 2, channel: 5, net before: 2, net after: 2
+        ```
+
+        可以看到，net 在循环后移，增量为 0 ~ 4，正好 5 个，这里的 5 是从`13 / 3`并向上取整而来。
+
+        总体上这段代码是 gpu 和 net 的负载均衡策略。
+
 * `ncclTopoSelectNets()`
 
     `localNets`是个数组，存放 net node 的 idx。数组长度为`localNetCount`。

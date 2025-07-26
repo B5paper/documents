@@ -7774,3 +7774,19 @@
 * A vector graphics renderer for bgfx, based on ideas from NanoVG and ImDrawList (Dear ImGUI) 
 
     <https://github.com/jdryg/vg-renderer>
+
+* 浙江大学课程攻略共享计划 
+
+    <https://github.com/QSCTech/zju-icicles>
+
+* c++ 中模板类成员对模板参数的依赖
+
+    <https://en.cppreference.com/w/cpp/language/dependent_name.html>
+
+* A real-time global illumination implementation using voxel cone tracing. Implemented in C++ and GLSL. 
+
+    <https://github.com/Friduric/voxel-cone-tracing>
+
+* Modern OpenGL renderer written in C++17 
+
+    <https://github.com/htmlboss/OpenGL-Renderer>
