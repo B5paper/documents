@@ -30,6 +30,10 @@
 
 ## cache
 
+* 规律必须足够简单，才能被发现
+
+    分析一段代码，只看到二进制位变来变去，数学运算算来算去，但是不清楚这段代码的目的是什么。如果不看实现细节，只看这段代码的输入和输出，马上就分析出来这段代码的目的是 xxx。这是否说明，我们只能处理发现几种简单规律模式的发现，只给定细节无法推断出宏观的规律，只有当模式足够简单，我们才能提炼出模式？
+
 * 似乎大家接收的教育越多，待人接物就越有礼貌，行为习惯越符合规范的礼仪，谈吐和行为越趋近于相同。但是假如我们把不同性格、知识、爱好、习惯的人，都训练成同一知识、反应、思维和习惯，那么世界还会这样多姿多彩吗？还是说，我们永远无法把人们都训练成相同的人，无论是从现实的意义上（没有财力、精力维持这样的机构），还是从理想的意义上（人不可能被驯化，无论何时都保持自我）？
 
 * 恐怖的 AI
@@ -1503,6 +1507,22 @@ tasks:
 
 ### tasks
 
+* [new] 买 fpga 学习 pcie 设备及驱动
+
+    deps:
+
+    1. [ ] 学习 fpga 与基本 verilog 开发
+
+* [new] 调研 axi-dma 与 pci-dma 有何不同
+
+* [new] 调研 cuda memcheck tool / compute-sanitizer
+
+    res:
+
+    1. <https://stackoverflow.com/questions/75973717/where-is-cuda-memcheck#comment136638567_75973968>
+
+    1. <https://docs.nvidia.com/cuda/archive/9.1/cuda-memcheck/index.html>
+
 * [ ] 调研 git stash
 
 * [ ] 调研`crontab`
@@ -1533,15 +1553,31 @@ tasks:
 
     1. 调研`strace`
 
-    1. 调研`gpg -dq ~/.ssh/password.gpg`
+* [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
-    1. 调研`ssh -f`
+* [ ] 调研`ssh -f`
 
-* [ ] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
+* [v] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
+
+    feedback:
+
+    1. 当`net = 1`, `localNetCount = 2`, `localGpuCount = 1`时，根据下面的规律，可看出当`channel = 0`时，`net`最终算出来为`1`。
+
+        ```
+        gpu idx: 0, channel: 0, net before: 1, net after: 1
+
+        gpu idx: 0, channel: 1, net before: 1, net after: 2
+
+        gpu idx: 0, channel: 2, net before: 1, net after: 1
+
+        gpu idx: 0, channel: 3, net before: 1, net after: 2
+
+        gpu idx: 0, channel: 4, net before: 1, net after: 1
+
+        gpu idx: 0, channel: 5, net before: 1, net after: 2
+        ```
 
 * [ ] 调研`getuid()`, `getpwuid()`
-
-* [v] 调研为何 nccl `ncclTopoSearchRecNet()`中`net->id`为 1，siccl 中`net->id`为 2
 
 * [v] 调研`graph->nChannels `什么时候变成的 2？
 
@@ -1603,8 +1639,6 @@ tasks:
 
 * {P} 调研`ncclGetEnv()`
 
-* [v] 调研`setenv()`
-
 * [ ] 调研`csh`, `tcsh`
 
 * [ ] 调研`/etc/sudoers`
@@ -1623,8 +1657,6 @@ tasks:
 
     1. 调研为什么 trim，怎么 trim，trim 了哪些
 
-* [v] 调研`ncclPxnDisable()`
-
 * [ ] 调研`ncclTopoGetPxnRanks()`
 
 * [ ] 调研`ncclParamNetGdrRead()`
@@ -1632,10 +1664,6 @@ tasks:
 * [ ] 调研`ncclGetLevel()`
 
 * [ ] 调研`ncclTopoSelectNets()`
-
-* [v] 调研`#define ncclCalloc(...) ncclCallocDebug(__VA_ARGS__, __FILE__, __LINE__)`
-
-    feedback:
 
 * [ ] 调研`do {} while(0)`，比如
 
@@ -1714,8 +1742,6 @@ tasks:
 * [ ] 调研`grep --color=auto`
 
 * [ ] 调研 gdb `x`命令
-
-* [v] 调研`rsync --delete`
 
 * [ ] 调研`rsync --exclude`
 

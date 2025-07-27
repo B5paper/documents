@@ -7790,3 +7790,7 @@
 * Modern OpenGL renderer written in C++17 
 
     <https://github.com/htmlboss/OpenGL-Renderer>
+
+* A GPU benchmark tool for evaluating GPUs and CPUs on mixed operational intensity kernels (CUDA, OpenCL, HIP, SYCL, OpenMP) 
+
+    <https://github.com/ekondis/mixbench>

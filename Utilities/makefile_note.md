@@ -2,6 +2,47 @@
 
 ## cache
 
+* makefile 里，编译时依赖 a.o 和 b.o 文件，但是这两个文件不在当前目录里，如何在 g++ 命令里方便地把它们加上去？
+
+    目前有三种方案：
+
+    1. 创建一个`a.o`所在目录的路径变量，后面使用`${OBJ_DIR}/a.o`, `${OBJ_DIR}/b.o`的方式把它们添加到 g++ 的编译命令里：
+
+        ```makefile
+        OBJ_DIR = ../obj
+        OBJS = $(OBJ_DIR)/a.o $(OBJ_DIR)/b.o
+        TARGET = main
+
+        $(TARGET): $(OBJS)
+        	g++ $^ -o $@
+        ```
+
+        其中，
+
+        * `$^`：代表所有依赖文件（即`a.o`和`b.o`）
+
+        * `$@`：代表目标文件（即`main`）
+
+    2. 直接使用绝对路径
+
+        ```makefile
+        main: ../path/to/a.o ../another/path/to/b.o
+        	g++ $^ -o $@
+        ```
+
+    3. 使用`patsubst`命令做字符串替换
+
+        ```makefile
+        OBJ_NAMES = a b
+        OBJ_PATH = ../myobjs
+
+        # 使用 patsubst 函数将 a b 转换为 ../myobjs/a.o ../myobjs/b.o
+        OBJS = $(patsubst %,$(OBJ_PATH)/%.o,$(OBJ_NAMES))
+
+        main: $(OBJS)
+        	g++ $^ -o $@
+        ```
+
 * makefile 文件名可以是`Makefile`，也可以是`makefile`,但是不能是`makefilE`。
 
     也就是说，文件名只对第一个字母大小写不敏感。

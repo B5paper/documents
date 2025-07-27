@@ -4,6 +4,8 @@
 
 ## cache
 
+* 就算使用 v2ray client 本身启动代理，也需要在 server 端设置`V2RAY_VMESS_AEAD_FORCED=false`环境变量。
+
 * v2ray http 转 socks example
 
     ```json

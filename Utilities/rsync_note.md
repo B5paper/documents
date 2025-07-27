@@ -2,6 +2,8 @@
 
 ## cache
 
+* rsync 要求 local host 和 remote host 都安装有 rsync 才行。
+
 * `rsync --delete`
 
     删除目标目录中多余的文件，使其与源目录完全一致。
