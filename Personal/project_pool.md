@@ -1196,6 +1196,18 @@
 
 ### tasks
 
+* [v] process 1 url
+
+    feedback:
+
+    1. 调研`git rebase --onto`
+
+    1. 调研`git merge --no-ff`
+
+    1. 调研`git reset --soft`
+
+    1. 调研`git merge --squash`
+
 * [ ] 调研 rsync `--exclude`和`--include`的用法
 
 * [ ] 调研 rsync `--backup`的用法
@@ -1505,17 +1517,33 @@ tasks:
 
 * 目前看来 siccl 和 nccl 的 net 输出都是相同的，net idx 都为 1，0, net id 总为 2, 1
 
+* `ncclTopoGetLocalNet()`返回的 net id 是 1，因为当`net = 1`, `localNetCount = 2`, `localGpuCount = 1`时，根据下面的规律，可看出当`channel = 0`时，`net`最终算出来为`1`。
+
+        ```
+        gpu idx: 0, channel: 0, net before: 1, net after: 1
+
+        gpu idx: 0, channel: 1, net before: 1, net after: 2
+
+        gpu idx: 0, channel: 2, net before: 1, net after: 1
+
+        gpu idx: 0, channel: 3, net before: 1, net after: 2
+
+        gpu idx: 0, channel: 4, net before: 1, net after: 1
+
+        gpu idx: 0, channel: 5, net before: 1, net after: 2
+        ```
+
 ### tasks
 
-* [new] 买 fpga 学习 pcie 设备及驱动
+* [ ] 买 fpga 学习 pcie 设备及驱动
 
     deps:
 
     1. [ ] 学习 fpga 与基本 verilog 开发
 
-* [new] 调研 axi-dma 与 pci-dma 有何不同
+* [ ] 调研 axi-dma 与 pci-dma 有何不同
 
-* [new] 调研 cuda memcheck tool / compute-sanitizer
+* [ ] 调研 cuda memcheck tool / compute-sanitizer
 
     res:
 
@@ -1549,9 +1577,9 @@ tasks:
 
     1. 调研`ssh -T`
 
-    1. 调研`disown`
+* [ ] 调研`disown`
 
-    1. 调研`strace`
+* [ ] 调研`strace`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
@@ -1559,25 +1587,15 @@ tasks:
 
 * [v] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
 
+* [v] 调研`getuid()`, `getpwuid()`
+
     feedback:
 
-    1. 当`net = 1`, `localNetCount = 2`, `localGpuCount = 1`时，根据下面的规律，可看出当`channel = 0`时，`net`最终算出来为`1`。
+    1. 调研`chfn`
 
-        ```
-        gpu idx: 0, channel: 0, net before: 1, net after: 1
+    1. 调研`finger`
 
-        gpu idx: 0, channel: 1, net before: 1, net after: 2
-
-        gpu idx: 0, channel: 2, net before: 1, net after: 1
-
-        gpu idx: 0, channel: 3, net before: 1, net after: 2
-
-        gpu idx: 0, channel: 4, net before: 1, net after: 1
-
-        gpu idx: 0, channel: 5, net before: 1, net after: 2
-        ```
-
-* [ ] 调研`getuid()`, `getpwuid()`
+    1. 调研`strchr()`
 
 * [v] 调研`graph->nChannels `什么时候变成的 2？
 
@@ -1615,7 +1633,19 @@ tasks:
 
     1. 调研`ncclTopoCompareGraphs()`
 
-* [ ] 调研 c++ elements gui 库
+* [v] 调研 c++ elements gui 库
+
+    feedback:
+
+    1. 调研 elements 的 Design Aspects
+
+        <https://cycfi.github.io/elements/elements/aspects.html>
+
+    1. 调研 elements 的 layout
+
+        <http://cycfi.github.io/elements/elements/layout.html>
+
+    1. 主要就是这些资料来源，剩下的就是看代码了。
 
 * [ ] 调研
 
@@ -1637,13 +1667,24 @@ tasks:
     tail -f /var/log/auth.log | grep Keepalive
     ```
 
-* {P} 调研`ncclGetEnv()`
+* {v} 调研`ncclGetEnv()`
 
 * [ ] 调研`csh`, `tcsh`
 
-* [ ] 调研`/etc/sudoers`
+* [v] 调研`/etc/sudoers`
 
-* [ ] 调研 yum 常用命令
+    feedback:
+
+    1. 调研 sudoers 中的全局配置
+
+        ```
+        Defaults	env_reset
+        Defaults	mail_badpass
+        Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+        Defaults	use_pty
+        ```
+
+* [v] 调研 yum 常用命令
 
 * [ ] 调研 dnf 与 yum 的异同
 
@@ -1677,9 +1718,9 @@ tasks:
 
 * [ ] 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
 
-* [ ] 调研`calloc()`
+* [v] 调研`calloc()`
 
-* [ ] 调研`sizeof(void)`
+* [v] 调研`sizeof(void)`
 
 * [ ] 调研`vim -X`非交互运行
 
@@ -1687,7 +1728,7 @@ tasks:
 
 * [ ] 调研`ed`
 
-* [ ] 调研` sudo -S`。
+* [v] 调研` sudo -S`。
 
 * [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
@@ -1723,7 +1764,7 @@ tasks:
 
 * [ ] 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
 
-* [ ] 调研`pgrep`
+* [v] 调研`pgrep`
 
 * [ ] 调研`expect`脚本
 
@@ -1743,7 +1784,13 @@ tasks:
 
 * [ ] 调研 gdb `x`命令
 
-* [ ] 调研`rsync --exclude`
+* [v] 调研`rsync --exclude`
+
+    feedback:
+
+    1. 调研`rsync --filter`
+
+        `rsync -av --filter='protect /destination/keep_this.txt' /source/ /destination/`
 
 * [ ] 调研`rsync -n`或`rsync --dry-run`
 
@@ -1759,7 +1806,13 @@ tasks:
 
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
-* [ ] 调研 c++ `optional`
+* [v] 调研 c++ `optional`
+
+    feedback:
+
+    1. 调研`std::nullopt`
+
+    1. 调研`opt.then()`, `opt.transform()`
 
 * [ ] 调研 c++ 中如何知道数组有几个维度
 

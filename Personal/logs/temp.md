@@ -1330,6 +1330,12 @@
 
     `locals`是 node idx 的数组，`localCount`是数组的长度。
 
+    ```cpp
+    ncclResult_t ncclTopoGetLocal(struct ncclTopoSystem* system, int type, int index, int resultType, int** locals, int* localCount, int* pathType) {
+    ```
+
+    参数含义为，从`type, index`的 node 出发，在指向所有`resultType`类型的 node 的 path 中，找到 bw 最大的那几条 path。
+
     `locals`中的内容为`0, 1`，对应`localNets`。
 
     第二次调用，`locals`中的内容为`0`，对应`localGpus`。
@@ -1344,6 +1350,66 @@
 
     `ncclTopoGetLocalNet()`的作用，猜测可能是根据指定的 gpu node（只能是 gpu，不能是其他），在已有的 net node 中，找到一个带宽最大，路径约束最严的 net node。
 
+    * 两条 if 的写法
+
+        正常我们找最大值并保存，通常会这样写：
+
+        ```cpp
+        vector<int> max_vals;
+        int max_val;
+        for (int val : val_arr) {
+            if (val > max_val) {
+                max_vals.clear();
+                max_vals.push_back(val);
+                max_val = val;
+                continue;
+            }
+            if (val == max_val) {
+                max_vals.push_back(val);
+            }
+        }
+        ```
+
+        而 nccl 的写法是这样的：
+
+        ```cpp
+        if (paths[i].bw > maxBw || (paths[i].bw == maxBw && paths[i].type < minType)) {
+          maxBw = paths[i].bw;
+          minType = paths[i].type;
+          if (pathType)
+            *pathType = minType;
+          count = 0;  // 在这里清空临时存储的最大值
+        }
+        if (paths[i].bw == maxBw && paths[i].type == minType)
+            (*locals)[count++] = i;  // 在这里添加最大值
+        ```
+
+        对应上面的写法，为：
+
+        ```cpp
+        vector<int> max_vals;
+        int max_val;
+        for (int val : val_arr) {
+            if (val > max_val) {
+                max_vals.clear();
+                max_val = val;
+            }
+            if (val == max_val) {
+                max_vals.push_back(val);
+            }
+        }
+        ```
+
+        这样两个 if 的逻辑关系改成了互相关联，还是挺有意思的。
+
+    * `if (paths[i].bw > maxBw || (paths[i].bw == maxBw && paths[i].type < minType)) {`
+
+        根据这行代码可以看出，如果有 bw 更大的 path，那么优先找 bw 更大的。如果 bw 相等，那么找 path type 更小的（即约束更严的，尽量 p2p 的）
+
+    * `NCCLCHECK(ncclTopoGetLocal(system, GPU, gpu, NET, &localNets, &localNetCount, NULL));`
+
+        根据上面的分析，这行代码的作用就是，从`GPU`类型，index 为`gpu`的 node 出发，找到离`NET`类型节点 bw 最大的 path，或者 bw 相同时，paty type 最小的 path。
+
 * `ncclTopoGetLocalNet()`
 
     反正要在函数内部调用`ncclTopoRankToIndex()`根据 rank 找到 gpu node idx，那么为什么不从一开始就传入 gpu node idx，或 gpu node 的指针？
@@ -1357,6 +1423,10 @@
     nccl `net->id = 2, 1`
 
     `nets = {1, 0}`, `localNets = {1, 0}`, `netCount = 2`
+
+    * `ncclResult_t ncclTopoGetLocalNet(struct ncclTopoSystem* system, int rank, int channelId, int64_t* id, int* dev) {`
+
+        根据前后的分析，`ncclTopoGetLocalNet()`的作用是给定 gpu rank 和 channel，找出一个合适的、最优的网卡（或 net interface 接口）。
 
     * 对下面代码的解析
 
@@ -1535,6 +1605,16 @@
 
         总体上这段代码是 gpu 和 net 的负载均衡策略。
 
+    * 这段代码比较奇怪，从 gpu 开始找 net 的时候，搜索到的是全部符合条件的 net，但是从 net 反向搜索 gpu 时，只使用了第 1 个 net。这样下来，那就不一定其他 net 也能连到这些 gpu 了。然而后面又使用了所有 net 的 count，说明其他的 net 也会参与其中。这样就矛盾了。
+
+        目前只有两个解释：
+
+        1. `net[0]`可以代表其他的 net 的情况，不需要其他 net 重复搜索了。
+
+        2. `ncclTopoGetLocal()`函数不仅仅是为`ncclTopoGetLocalNet()`设计的，在其他地方也有调用到，所以输出才为数组的形式。如果只为`ncclTopoGetLocalNet()`设计，那么只给出第一条最佳 path 就可以了，不需要给出数组的形式。
+
+    * 目前看起来，不进行静态负载均衡应该影响不大。只有到时候实际程序跑起来，又有多网卡、多显卡的情况，才能尝试测试这里的静态负载均衡是否合理。
+
 * `ncclTopoSelectNets()`
 
     `localNets`是个数组，存放 net node 的 idx。数组长度为`localNetCount`。
@@ -1562,6 +1642,55 @@
     这里的`typeInter`为 3，是`graph->typeInter`传进来的。
 
     最终函数返回时，`netCount`为 2，并将其赋值给函数参数`*netCountRet`。
+
+    * 对 gpu rank 与 channel 的遍历
+
+        ```cpp
+          for (int g=0; g<system->nodes[GPU].count; g++) {
+            if (gpu != -1 && gpu != g) continue;
+            localNetCount = 0;
+            struct ncclTopoNode* gpu = system->nodes[GPU].nodes+g;
+            for (int c = 0; c<MAXCHANNELS; c++) {
+              int64_t netId;
+              print_path_1(system);
+              NCCLCHECK(ncclTopoGetLocalNet(system, gpu->gpu.rank, c, &netId, NULL));
+              // ...
+        ```
+
+        我们已知`ncclTopoGetLocalNet()`是根据 gpu rank 和 channel，找出最优的到 net 的 path，这里的两层 for，外层是对 gpu 进行遍历，内层是对 channel 进行遍历，刚好对应`ncclTopoGetLocalNet()`函数的作用。
+
+    * 有关 channel 与 net
+
+        ```cpp
+        for (int c = 0; c<MAXCHANNELS; c++) {
+          int64_t netId;
+          print_path_1(system);
+          NCCLCHECK(ncclTopoGetLocalNet(system, gpu->gpu.rank, c, &netId, NULL));
+          NCCLCHECK(ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount));
+          if (localNetCount > 0 && localNets[localNetCount] == localNets[0])
+            break;
+          localNetCount++;
+        }
+        // Append NICs to list
+        for (int i=0; i<localNetCount; i++) {
+          int n = localNets[i];
+          int found = 0;
+          while (nets[found] != n && found<netCount)
+            found++;
+          if (found == netCount)
+            nets[netCount++] = n;
+        }
+        ```
+
+        前面的`MAXCHANNELS`为 32，跳出第一个 for 走的是`break`语句，说明搜索到了重复的 local net，而`localNetCount`为 2，刚好对应 net node 为 2. 这似乎暗示每条 channel 都对应一个不同的 net，并不是一个 net 衍生出多条 channel。
+
+    * `nets`是外部传入的，`ncclTopoSelectNets()`会尝试往这个数组里 append 新的 net node 的 idx。
+
+    * `ncclResult_t ncclTopoSelectNets(struct ncclTopoSystem* system, int typeInter, int gpu, int* nets, int* netCountRet) {`
+
+        整体看来，`ncclTopoSelectNets()`似乎是往`nets`里添加新元素（即满足条件的 net node 的 idx）。
+
+        不清楚`typeInter`是干嘛用的。
 
 * nccl get env
 
@@ -1931,3 +2060,26 @@
         推测：nccl 中 node 被删除，仅仅是 path 的 dst node 被删除，中间节点（intermediate note）依然存在，因此需要重新 compute path。
 
     * 目前适配 trim system 的结果没有问题，但是不清楚。后续可以看一下。
+
+* `ncclTopoCompareGraphs()`
+
+    ```cpp
+    ncclResult_t ncclTopoCompareGraphs(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* refGraph, int* copy) {
+    ```
+
+    对比`graph`与`refGraph`哪个更好一点。
+
+    1. 如果`graph`的`nChannels * bwIntra` (bandwidth) 比`refGraph`大，那么将`copy`置 1.
+
+    2. 如果 bw 相等，那么如果`graph`的中转节点（`nHops`）比较少，那么将`copy`置 1.
+
+    当`copy`被置 1 时，下一步马上将`graph`复制到`saveGraph`中。
+
+    再接着，如果 channel 数搜索足够，那么将搜索时间设置为 -1，准备停止搜索：
+
+    ```cpp
+    if (graph->nChannels == graph->maxChannels)
+        *time = -1;
+    ```
+
+    那么问题来了，什么是 channel？从上面代码看，nchannels 能和 bwIntra 相乘，说明每一条 channel 都是一条 intra 通路。那么，inter 通路算一条 channel 吗？这里的 bw intra，是所有 intra 通路中，bw 的最小值，还是统一值，还是平均值？
