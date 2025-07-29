@@ -4,6 +4,37 @@
 
 ## cached
 
+* `sizeof(void)`
+
+    `sizeof(void)`本身无意义，gcc/g++ 可以通过编译，输出为`1`，但是会报 warning。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+
+    int main() {
+        size_t len_void = sizeof(void);
+        printf("len_void: %lu\n", len_void);
+        return 0;
+    }
+    ```
+
+    compile output:
+
+    ```
+    main_5.cpp: In function ‘int main()’:
+    main_5.cpp:4:23: warning: invalid application of ‘sizeof’ to a void type [-Wpointer-arith]
+        4 |     size_t len_void = sizeof(void);
+          |                       ^~~~~~~~~~~~
+    ```
+
+    output:
+
+    ```
+    len_void: 1
+    ```
+
 * c++ `vector`调用`resize()`时，会保留尽可能多的已有元素，仅增加/删除需要改动的部分。
 
     example:

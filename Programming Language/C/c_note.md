@@ -6,6 +6,43 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `calloc()`简介
+
+    头文件：`<stdlib.h>`
+
+    `calloc()`与`malloc()`相似，都是分配内存，只不过`calloc()`是按`elm_size * num_elm`的方式计算内存大小，并对内存数据进行置`0`，而`malloc()`使用`buf_size`计算内存大小，并保持内存数据的随机，不进行置`0`。
+
+    example:
+
+    ```cpp
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    int main() {
+        size_t num_elm = 5;
+        int *arr = (int*) calloc(sizeof(int), num_elm);
+        for (int i = 0; i < num_elm; ++i) {
+            printf("%d, ", arr[i]);
+        }
+        putchar('\n');
+        free(arr);
+        arr = (int*) malloc(sizeof(int) * num_elm);
+        for (int i = 0; i < num_elm; ++i) {
+            printf("%d, ", arr[i]);
+        }
+        putchar('\n');
+        free(arr);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0, 0, 0, 0, 0, 
+    -1140679150, 5, 0, 0, 0,
+    ```
+
 * `getline()`简介
 
     `getline()`是 C 的一个 gpu 扩展函数，用于动态申请内存从文件或`stdin`读数据。

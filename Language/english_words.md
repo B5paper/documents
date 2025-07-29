@@ -605,3 +605,7 @@ superfluous prn. [suːˈpɜːrfluəs] a. 多余的 eg. In the second case, std::
 one-off adj. 一次性的 eg. That’s what we’ll focus on in this article: writing regular expressions for different one-off tasks.
 
 weird quirks 怪癖
+
+be in flux 变化无常
+
+inch v. 缓慢地移动 eg. Please take note that Elements is still very much in flux as we are inching closer towards a version 1.0 release.

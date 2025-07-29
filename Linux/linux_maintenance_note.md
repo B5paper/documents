@@ -6,6 +6,333 @@
 
 ## cache
 
+* `pgrep`
+
+    `pgrep`可根据程序的名称快速找到 pid.
+
+    ```bash
+    pgrep firefox
+    ```
+
+    output:
+
+    ```
+    2301052
+    ```
+
+    `pgrep`通常可以和`kill`等命令连用：
+
+    `kill $(pgrep nginx)`
+
+    如果有多个进程实例，则会列出多个 pid:
+
+    ```bash
+    pgrep bash
+    ```
+
+    output:
+
+    ```
+    2740
+    3059
+    2293259
+    2294904
+    2328484
+    2529093
+    2618992
+    2754955
+    2792818
+    2823794
+    ```
+
+* `sudo -S`
+
+    用于从标准输入（stdin）读取密码，而非交互式终端提示.
+
+    `-S`等价于`--stdin`
+
+    example:
+
+    ```bash
+    echo "你的密码" | sudo -S command
+
+    cat password.txt | sudo -S apt update  # 从文件读取密码
+    ```
+
+    需要注意的是 echo 不会换行：
+
+    ```bash
+    echo xxx | sudo -S echo hello
+    ```
+
+    output:
+
+    ```
+    [sudo] password for hlc: hello
+    ```
+
+    似乎没有什么好的解决方案。
+
+* `yum list`和`yum search`的区别
+
+    * `yum list <package>`
+
+        精确列出匹配名称的软件包（包括已安装、可安装或可升级的版本）。
+
+        特点:
+
+        * 严格匹配包名：默认按完整名称匹配（支持通配符 *）。
+
+        * 显示详细信息：输出包含 包名、版本号、所属仓库（如是否已安装）。
+
+        * 不搜索描述：仅检查包名，不涉及软件包的描述或关键字。
+
+        example:
+
+        `yum list "nginx*"  # 列出所有名称以 `nginx` 开头的软件包`
+
+        output:
+
+        ```
+        nginx.x86_64    1.20.1-1.el7    @epel      # 已安装
+        nginx-module.x86_64 1.20.1-1.el7 updates    # 可升级
+        ```
+
+    * `yum search <package>`
+
+        通过关键字搜索软件包（匹配包名和描述信息）。
+
+        特点:
+
+        * 模糊搜索：同时匹配包名、描述、摘要中的关键字。
+
+        * 返回摘要：显示包名和简要描述，但不显示版本或仓库信息。
+
+        * 结果更广泛：可能包含名称不直接相关但描述匹配的包。
+
+        example:
+
+        `yum search "web server"  # 搜索描述或名称中包含 "web server" 的包`
+
+        output:
+
+        ```
+        nginx.x86_64 : High performance web server
+        httpd.x86_64 : Apache HTTP Server
+        ```
+
+* yum 简介
+
+    Yum（Yellowdog Updater Modified）
+
+    * 安装软件包
+
+        `yum install <package_name>`
+
+    * 安装本地 RPM 包（自动解决依赖）
+
+        `yum localinstall <path_to_rpm>`
+
+    * 升级单个软件包
+
+        `yum update <package_name>`
+
+    * 升级所有可升级软件包
+
+        `yum update`
+
+    * 检查可升级的软件包
+
+        `yum check-update`
+
+    * 搜索软件包（按名称/描述）
+
+        `yum search <keyword>`
+
+    * 列出已安装的软件包
+
+        `yum list installed`
+
+        `yum list`会显示仓库中所有可用的软件包（包括已安装和未安装的）。
+
+        `yum list available`仅列出可安装但尚未安装的软件包
+
+        `yum list updates`列出所有可升级的软件包
+
+        `yum list extras`列出已安装但不在仓库中的包（如手动安装的 RPM）
+
+        `yum list <package_name>`搜索特定软件包（支持通配符，如`yum list "nginx*"`）
+
+    查看软件包信息
+    yum info <package_name>
+
+    列出软件包的依赖
+    yum deplist <package_name>
+
+    查找提供特定文件的软件包
+    yum provides <file_path>
+
+    删除软件包（保留依赖）
+    yum remove <package_name>
+
+    删除无用依赖
+    yum autoremove
+
+    清理旧内核
+    yum remove $(rpm -q kernel | grep -v $(uname -r))
+
+    删除软件包（保留依赖）
+    yum remove <package_name>
+
+    删除无用依赖
+    yum autoremove
+
+    清理旧内核
+    yum remove $(rpm -q kernel | grep -v $(uname -r))
+
+    列出所有仓库
+    yum repolist all
+
+    启用/禁用仓库
+    yum-config-manager --enable/disablerepo <repo_name>
+
+    添加新仓库
+    yum-config-manager --add-repo <repo_url>
+
+    清理缓存（保留元数据）
+    yum clean packages
+
+    清理所有缓存（包括元数据）
+    yum clean all
+
+    重建缓存
+    yum makecache
+
+    查看历史操作
+    yum history
+
+* `/etc/sudoers`中，`@includedir /etc/sudoers.d`用于 加载`/etc/sudoers.d`目录下的所有配置文件
+
+    例如：
+
+    `/etc/sudoers.d/web_admins` -> 存放 Web 管理员的 sudo 权限
+
+    `/etc/sudoers.d/db_admins` -> 存放数据库管理员的 sudo 权限
+
+    在软件包安装时（如 Docker、Nginx），它们可能会自动在`/etc/sudoers.d/`下添加自己的规则。
+
+    修改`/etc/sudoers.d/`下的文件后，无需重启，sudo 会自动识别（但建议用`visudo -c`检查语法）。
+
+    文件名：不能包含`.`或`~`（避免读取临时文件或备份文件）。
+
+    权限：必须为 0440（root:root 可读，其他用户不可读），否则 sudo 会忽略它并报错.
+
+    ```bash
+    # 检查所有 sudoers 文件（包括 sudoers.d 下的）
+    sudo visudo -c
+    ```
+
+* `sudo`与`/etc/sudoers`
+
+    用户使用 sudo 执行的命令会被记录到`/var/log/auth.log`文件中。
+
+    比如用户执行`sudo echo hello`，日志的记录为
+
+    ```
+    Jul 27 14:38:16 hlc-VirtualBox sudo:      hlc : TTY=pts/5 ; PWD=/home/hlc/Documents/documents/Personal/logs ; USER=root ; COMMAND=/usr/bin/echo hello
+    Jul 27 14:38:16 hlc-VirtualBox sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=1000)
+    Jul 27 14:38:16 hlc-VirtualBox sudo: pam_unix(sudo:session): session closed for user root
+    ```
+
+    `/etc/sudoers`规定了用户使用 sudo 可以执行哪些命令。
+
+    通常使用`visudo`编辑这个文件，`visudo`可以在保存前进行语法检查，防止语法出错。
+
+    `sudoers`文件的语法为：
+
+    ```
+    user    HOST=(RUNAS_USER)    COMMANDS
+    %group  HOST=(RUNAS_USER)    COMMANDS
+    ```
+
+    其中，
+
+    * `user/%group`：用户名或%组名。
+
+    * `HOST`：允许使用 sudo 的主机名（通常设为`ALL`）。
+
+    * `(RUNAS_USER)`：可以切换的目标用户（如 `(root)`、`(ALL)`）。
+
+        通常设置为`(ALL:ALL)`或`(ALL)`。
+
+        * `(ALL)`: 允许用户以 任意用户身份（包括 root）执行命令。
+
+            ```bash
+            sudo -u root apt update    # 以 root 身份运行
+            sudo -u bob apt install xx # 以用户 bob 身份运行
+            ```
+
+        * `(root)`: 仅允许用户以 root 身份 执行命令（不能切换为其他用户）。
+
+            ```bash
+            sudo systemctl restart nginx      # 隐含 -u root
+            sudo -u alice systemctl start xx  # 报错（不允许）
+            ```
+
+        * `(ALL:ALL)`: 允许用户以 任意用户和任意用户组 身份执行命令（用户和组均可切换）。
+
+            `(RUNAS_USER:RUNAS_GROUP)`, 若省略`:GROUP`，默认使用目标用户的默认组。注意这个 group 的指定在后面，不在前面。
+
+            ```bash
+            sudo -u alice -g developers chmod 755 file
+            sudo -u root -g root chmod 600 /etc/shadow
+            ```
+
+    `COMMANDS`：允许执行的命令（绝对路径，`ALL`表示全部）。
+
+    example:
+
+    ```conf
+    alice   ALL=(root)    /usr/bin/apt      # alice 可以 root 身份运行 apt
+    %admin  ALL=(ALL)     ALL                # admin 组成员可执行任何命令
+    ```
+
+    使用别名（变量）：
+
+    ```conf
+    User_Alias     ADMINS = alice, bob
+    Host_Alias     SERVERS = 192.168.1.1
+    Runas_Alias    DEVS = tom
+    Cmnd_Alias     PKG_CMDS = /usr/bin/apt, /usr/bin/dpkg
+
+    ADMINS SERVERS=(DEVS) PKG_CMDS
+    ```
+
+    其他配置：
+
+    * `NOPASSWD`：执行命令无需密码
+
+        ```conf
+        bob    ALL=(root)    NOPASSWD: /usr/bin/systemctl
+        ```
+
+    * `!`排除命令：
+
+        ```conf
+        charlie ALL=(ALL) ALL, !/usr/bin/passwd root
+        ```
+
+    * 全局配置
+
+        通过`Defaults`设置全局行为，如：
+
+        ```conf
+        Defaults    env_keep += "HTTP_PROXY"   # 保留环境变量
+        Defaults    insults                    # 输错密码时显示“嘲讽”
+        ```
+
+    因为编辑这个文件可能会影响到当前虚拟机环境，所以上面的命令都没有验证过。
+
 * `ssh-askpass`简介
 
     安装：`apt install ssh-askpass`

@@ -2,6 +2,46 @@
 
 ## cache
 
+* `rsync --exclude`
+
+    `rsync --exclude=PATTERN`让 rsync 忽略匹配 PATTERN 的文件或目录，不进行同步。`PATTERN`可以是文件名、目录名（`PATTERN`需加`/`表示目录），或通配符模式（如`*.log`）。支持多次使用，排除多个不同规则。`PATTERN`作用于 src 目录。
+
+    `rsync -av --exclude-from='exclude-list.txt' /source/ /destination/`
+
+    `--exclude-from`表示从文件读取排除规则。
+
+    example:
+
+    `exclude-list.txt`:
+
+    ```
+    *.bak
+    /logs/
+    *.tmp
+    ```
+
+    排除隐藏文件：
+
+    `rsync -av --exclude='.*' /source/ /destination/`
+
+    优先级：
+
+    `--include`的优先级高于`--exclude`，可组合使用（如先排除再包含部分文件）。
+
+    * pattern 路径匹配细节
+
+        * 相对路径：
+
+            `PATTERN` 默认相对于 src 的路径。例如：
+
+            `--exclude='temp/'` -> 排除`src/temp/`。
+
+            `--exclude='/file.txt'` -> 排除`src/file.txt`（开头的 / 表示相对于 src 根）。
+
+        * 绝对路径无效：
+
+            若`PATTERN`是绝对路径（如`/home/user/file.txt`），rsync 会直接忽略（因为它始终相对于 src）。
+
 * rsync 要求 local host 和 remote host 都安装有 rsync 才行。
 
 * `rsync --delete`

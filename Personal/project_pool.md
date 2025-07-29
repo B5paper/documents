@@ -1535,6 +1535,45 @@ tasks:
 
 ### tasks
 
+* {O} 调研实现`topo_system_to_graph()`
+
+    feedback:
+
+    1. 调研如何 push_back unique_ptr
+
+    1. edge 存储 vert ptr 有一个小问题，即创建完一个 vert 后，可能无法创建其所有 edge，因为 edge 无法指向其他不存在的 vert。如果 edge 里存储的是 vert id 则没有这个问题。
+
+    1. 调研下面的 edge 是否可以作为聚合类？
+
+        ```cpp
+        template<typename _EdgeType>
+        struct BaseVertex {
+            int id;
+            vector<_EdgeType> edges;
+        };
+
+        struct BaseEdge {
+            // size_t nex_vert_idx;
+            BaseVertex<BaseEdge> *nex_vert;
+        };
+
+        struct Edge: public BaseEdge {
+            new_feature::EdgeType type;
+            float bw;
+        };
+
+        struct Vertex: public BaseVertex<Edge> {
+            uint64_t topo_id;
+            VertType type;
+        };
+
+        int main() {
+            Vertex vert;
+            vert.edges.emplace_back(&last_vert);
+            return 0;
+        }
+        ```
+
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
     deps:
@@ -1585,17 +1624,13 @@ tasks:
 
 * [ ] 调研`ssh -f`
 
-* [v] 调研`ncclTopoGetLocalNet()`返回的 net id 是 1，为什么？
-
 * [v] 调研`getuid()`, `getpwuid()`
 
-    feedback:
+* [ ] 调研`chfn`
 
-    1. 调研`chfn`
+* [ ] 调研`finger`
 
-    1. 调研`finger`
-
-    1. 调研`strchr()`
+* [ ] 调研`strchr()`
 
 * [v] 调研`graph->nChannels `什么时候变成的 2？
 
@@ -1623,15 +1658,25 @@ tasks:
 
         在这之前 nchannels 就已经是 2 了。
 
-* [ ] 调研`ngpus`什么时候变成 1 的？
+* [v] 调研`ngpus`什么时候变成 1 的？
+
+    feedback:
+
+    1. `ngpus`经过 trim system 后，就从 2 变成 1 了，后面一直是 1.
+
+        典型的计算方式为
+
+        `int ngpus = system->nodes[GPU].count;`
 
 * [ ] 调研`crossNic`什么时候变成的 2？
+
+* [v] 调研`ncclTopoCompareGraphs()`
 
 * {O} 调研`generate_coll_graph()`
 
     feedback:
 
-    1. 调研`ncclTopoCompareGraphs()`
+    1. 调研`ncclTopoSearchRecNet()`
 
 * [v] 调研 c++ elements gui 库
 
@@ -1667,8 +1712,6 @@ tasks:
     tail -f /var/log/auth.log | grep Keepalive
     ```
 
-* {v} 调研`ncclGetEnv()`
-
 * [ ] 调研`csh`, `tcsh`
 
 * [v] 调研`/etc/sudoers`
@@ -1684,11 +1727,7 @@ tasks:
         Defaults	use_pty
         ```
 
-* [v] 调研 yum 常用命令
-
 * [ ] 调研 dnf 与 yum 的异同
-
-* [O] 调研`ncclTopoGetLocalNet()`
 
 * [ ] 调研实现`ncclTopoCheckGdr()`
 
@@ -1718,17 +1757,11 @@ tasks:
 
 * [ ] 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
 
-* [v] 调研`calloc()`
-
-* [v] 调研`sizeof(void)`
-
 * [ ] 调研`vim -X`非交互运行
 
 * [ ] 调研如果在非终端（非交互）模式下运行top、htop、tmux、screen 等工具，会发生什么
 
 * [ ] 调研`ed`
-
-* [v] 调研` sudo -S`。
 
 * [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
@@ -1764,8 +1797,6 @@ tasks:
 
 * [ ] 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
 
-* [v] 调研`pgrep`
-
 * [ ] 调研`expect`脚本
 
 * [ ] 调研`type <command>`命令
@@ -1786,11 +1817,9 @@ tasks:
 
 * [v] 调研`rsync --exclude`
 
-    feedback:
+* [ ] 调研`rsync --filter`
 
-    1. 调研`rsync --filter`
-
-        `rsync -av --filter='protect /destination/keep_this.txt' /source/ /destination/`
+    `rsync -av --filter='protect /destination/keep_this.txt' /source/ /destination/`
 
 * [ ] 调研`rsync -n`或`rsync --dry-run`
 
@@ -1808,11 +1837,9 @@ tasks:
 
 * [v] 调研 c++ `optional`
 
-    feedback:
+* [ ] 调研`std::nullopt`
 
-    1. 调研`std::nullopt`
-
-    1. 调研`opt.then()`, `opt.transform()`
+* [ ] 调研`opt.then()`, `opt.transform()`
 
 * [ ] 调研 c++ 中如何知道数组有几个维度
 

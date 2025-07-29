@@ -2,6 +2,42 @@
 
 ## cached
 
+* c++ `optional`
+
+    头文件`#include <optional>`
+
+    example:
+
+    ```cpp
+    #include <optional>
+    #include <string>
+    #include <stdio.h>
+    using namespace std;
+
+    int main() {
+        optional<int> opt_1;  // 无值
+        optional<string> opt_2 = "hello, world";
+        optional<float> opt_3 = nullopt;  // 显式表示无值
+
+        printf("opt_1 has value: %d\n", opt_1.has_value());
+        printf("opt_2 has value: %d\n", opt_2.has_value());
+        printf("opt_3 has value: %d\n", opt_3.has_value());
+
+        int val = opt_1.value_or(1234);  // 如果无值则使用默认值 1234
+        string &str = opt_2.value();
+        printf("opt_1 value: %d\n", val);
+        printf("opt_2 value: %s\n", str.c_str());
+
+        return 0;
+    }
+    ```
+
+    其他常用函数：
+
+    * `.reset()`：重新设置为无值
+
+    * `opt.emplace("New String");  // 直接构造新值`：原地构造
+
 * 使用`unique_ptr`的时机
 
     如果需要一个变长数组，又不知道变长数组的长度，那么通常需要调用两次函数，第一次得到长度，然后 malloc，第二次再填充数据：

@@ -6,6 +6,106 @@
 
 ## cache
 
+* `getpwuid()`用法
+
+    根据 uid 去`/etc/passwd`中查询信息。
+
+    example:
+
+    ```
+    #include <unistd.h>
+    #include <pwd.h>
+    #include <stdio.h>
+
+    int main() {
+        uid_t uid = getuid();
+        printf("uid: %u\n", uid);
+        passwd* pwd = getpwuid(uid);
+        if (pwd == NULL) {
+            printf("fail to get pwuid\n");
+            return -1;
+        }
+        printf("pw_name: %s\n", pwd->pw_name);
+        printf("pw uid: %u\n", pwd->pw_uid);
+        printf("pw gid: %u\n", pwd->pw_gid);
+        printf("pw dir: %s\n", pwd->pw_dir);
+        printf("pw shell: %s\n", pwd->pw_shell);
+        printf("pw passwd: %s\n", pwd->pw_passwd);
+        printf("pw gecos: %s\n", pwd->pw_gecos);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    uid: 1000
+    pw_name: hlc
+    pw uid: 1000
+    pw gid: 1000
+    pw dir: /home/hlc
+    pw shell: /bin/bash
+    pw passwd: x
+    pw gecos: hlc,,,
+    ```
+
+    相似地，`getpwnam()`通过用户名查询用户信息。
+
+* `getuid()`等函数在头文件`<unistd.h>`中，返回当前用户的 uid。
+
+    example:
+
+    ```cpp
+    #include <unistd.h>
+    #include <stdio.h>
+
+    int main() {
+        uid_t uid = getuid();
+        printf("uid: %u\n", uid);
+        uid_t euid = geteuid();
+        printf("euid: %u\n", euid);
+        gid_t gid = getgid();
+        printf("gid: %u\n", gid);
+        gid_t egid = getegid();
+        printf("egid: %u\n", egid);
+        return 0;
+    }
+    ```
+
+    output:
+
+    普通运行：
+
+    ```
+    uid: 1000
+    euid: 1000
+    gid: 1000
+    egid: 1000
+    ```
+
+    使用`sudo ./main`运行：
+
+    ```
+    uid: 0
+    euid: 0
+    gid: 0
+    egid: 0
+    ```
+
+    可以看到，`uid`与`euid`目前没有什么区别。
+
+    可以运行命令`id`，看到类似的输出：
+
+    ```
+    uid=1000(hlc) gid=1000(hlc) groups=1000(hlc),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),109(kvm),122(lpadmin),135(lxd),136(sambashare),137(docker),140(libvirt)
+    ```
+
+    `sudo id`输出如下：
+
+    ```
+    uid=0(root) gid=0(root) groups=0(root)
+    ```
+
 * `getenv()`, `setenv()`, `unsetenv()`用法
 
     这几个函数都是 c 语言中与环境变量相关的函数，在`<stdlib.h>`头文件中。
