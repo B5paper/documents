@@ -1533,13 +1533,21 @@ tasks:
         gpu idx: 0, channel: 5, net before: 1, net after: 2
         ```
 
+* `ngpus`经过 trim system 后，就从 2 变成 1 了，后面一直是 1.
+
+    典型的计算方式为
+
+    `int ngpus = system->nodes[GPU].count;`
+
 ### tasks
 
-* {O} 调研实现`topo_system_to_graph()`
+* [ ] 调研`rm -rf *`如何删除隐藏文件/文件夹
+
+* [v] 调研如何 push_back unique_ptr
+
+* {v} 调研实现`topo_system_to_graph()`
 
     feedback:
-
-    1. 调研如何 push_back unique_ptr
 
     1. edge 存储 vert ptr 有一个小问题，即创建完一个 vert 后，可能无法创建其所有 edge，因为 edge 无法指向其他不存在的 vert。如果 edge 里存储的是 vert id 则没有这个问题。
 
@@ -1580,7 +1588,13 @@ tasks:
 
     1. [ ] 学习 fpga 与基本 verilog 开发
 
-* [ ] 调研 axi-dma 与 pci-dma 有何不同
+* [v] 调研 axi-dma 与 pci-dma 有何不同
+
+    feedback:
+
+    1. 调研 axi-dma MMIO
+
+    1. 调研 AXI4-Stream 
 
 * [ ] 调研 cuda memcheck tool / compute-sanitizer
 
@@ -1590,7 +1604,7 @@ tasks:
 
     1. <https://docs.nvidia.com/cuda/archive/9.1/cuda-memcheck/index.html>
 
-* [ ] 调研 git stash
+* [v] 调研 git stash
 
 * [ ] 调研`crontab`
 
@@ -1612,9 +1626,9 @@ tasks:
 
     1. 调研`GIT_ASKPASS`
 
-    1. 调研`setsid`
+* [ ] 调研`setsid`
 
-    1. 调研`ssh -T`
+* [ ] 调研`ssh -T`
 
 * [ ] 调研`disown`
 
@@ -1623,8 +1637,6 @@ tasks:
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
 * [ ] 调研`ssh -f`
-
-* [v] 调研`getuid()`, `getpwuid()`
 
 * [ ] 调研`chfn`
 
@@ -1660,23 +1672,11 @@ tasks:
 
 * [v] 调研`ngpus`什么时候变成 1 的？
 
-    feedback:
-
-    1. `ngpus`经过 trim system 后，就从 2 变成 1 了，后面一直是 1.
-
-        典型的计算方式为
-
-        `int ngpus = system->nodes[GPU].count;`
-
 * [ ] 调研`crossNic`什么时候变成的 2？
 
-* [v] 调研`ncclTopoCompareGraphs()`
+* [ ] 调研`ncclTopoSearchRecNet()`
 
 * {O} 调研`generate_coll_graph()`
-
-    feedback:
-
-    1. 调研`ncclTopoSearchRecNet()`
 
 * [v] 调研 c++ elements gui 库
 
@@ -1714,18 +1714,16 @@ tasks:
 
 * [ ] 调研`csh`, `tcsh`
 
+* [ ] 调研 sudoers 中的全局配置
+
+    ```
+    Defaults	env_reset
+    Defaults	mail_badpass
+    Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+    Defaults	use_pty
+    ```
+
 * [v] 调研`/etc/sudoers`
-
-    feedback:
-
-    1. 调研 sudoers 中的全局配置
-
-        ```
-        Defaults	env_reset
-        Defaults	mail_badpass
-        Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
-        Defaults	use_pty
-        ```
 
 * [ ] 调研 dnf 与 yum 的异同
 
@@ -1815,8 +1813,6 @@ tasks:
 
 * [ ] 调研 gdb `x`命令
 
-* [v] 调研`rsync --exclude`
-
 * [ ] 调研`rsync --filter`
 
     `rsync -av --filter='protect /destination/keep_this.txt' /source/ /destination/`
@@ -1834,8 +1830,6 @@ tasks:
 * [ ] 调研 cmake `ExternalProject`
 
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
-
-* [v] 调研 c++ `optional`
 
 * [ ] 调研`std::nullopt`
 
