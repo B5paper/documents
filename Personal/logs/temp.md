@@ -2083,3 +2083,151 @@
     ```
 
     那么问题来了，什么是 channel？从上面代码看，nchannels 能和 bwIntra 相乘，说明每一条 channel 都是一条 intra 通路。那么，inter 通路算一条 channel 吗？这里的 bw intra，是所有 intra 通路中，bw 的最小值，还是统一值，还是平均值？
+
+* `ncclTopoTrimSystem()`
+
+    * `int ngpus = system->nodes[GPU].count;`
+
+        这里是 4。在 v100 2 gpu 机器上，`ngpus`开始时是 2，经过 trim system 后变成 1.
+
+    * `NCCLCHECK(ncclCalloc(&domains, system->nodes[GPU].count));`
+
+        `domains`是一个 int 数组，长度为 ngpus。有可能要存 gpu 的 idx。
+
+    * `NCCLCHECKGOTO(ncclCalloc(&ids, system->nodes[GPU].count), ret, fail);`
+
+        `ids`是 int64_t 类型的数组，看来这个是用于存 topo id 的，和 domains 相对应。
+
+    * `domains[g] = std::min(domains[g], domains[p]);`
+
+        ```cpp
+          if (gpu->paths[GPU][p].type < PATH_NET) {
+            domains[g] = std::min(domains[g], domains[p]);
+          }
+        ```
+
+        如果 gpu g 到 gpu p 的 path 有不经过网卡的方案，那么 gpu g 的 domain 改成 g 和 p 中更小的 domain。
+
+        不清楚这一步想干嘛。
+
+        a100 4 gpu 环境里，`gpu->paths[GPU][p].type`的值是`1`（`PATH_NVL`）
+
+    * `myDomain = domains[g];`
+
+        ```cpp
+        if (gpu->gpu.rank == comm->rank)
+            myDomain = domains[g];
+        ```
+
+        如果 gpu 的 rank 刚好是当前进程分配到的 rank，那么将 my domain 赋值为 gpu g 的 domain。
+
+        看了下，my domain 前后并没有做输出，比较奇怪。
+
+    * 经过第一遍 for 循环后，domains 的值为
+
+        `domains = [0, 0, 0, 0]`
+
+        说明每个 gpu 都有到 gpu 0 的比 PATH_NET 更好的 path.
+
+        v100 2 gpu 中，`domains = [0, 1]`
+
+    * `if (domains[i] == myDomain)`
+
+        ```cpp
+          for (int i=0; i<ngpus; i++) {
+            if (domains[i] == myDomain)
+                continue;
+        ```
+
+        因为`domains`全是 0，所以在这里全部被 continue 跳过了。
+
+        这也直接导致了后面的`NCCLCHECKGOTO(ncclTopoRemoveNode(system, GPU, g), ret, fail);`未被执行，从而没有移除 gpu node。
+
+    * `NCCLCHECKGOTO(ncclTopoRemoveNode(system, NET, n), ret, fail);`
+
+        ```cpp
+          if (system->nodes[GPU].count == comm->nRanks) {
+            for (int n=system->nodes[NET].count-1; n>=0; n--)
+              NCCLCHECKGOTO(ncclTopoRemoveNode(system, NET, n), ret, fail);
+          }
+        ```
+
+        这里的`if`是什么意思，难道存在 count != nranks 的情况吗？如果前面有删除 gpu node 的动作，那么这里`system->nodes[GPU].count`就会比`comm->nRanks`小。反之，如果相等，那么说明所有的 gpu 都在同一个 domain 内，那么网卡节点就没什么用处了，因此会全部删掉。
+
+        由此可以推断：domain 的含义可能是有比 gpu 之间比网卡通信更优的路径的 gpu 组成的节点团。
+
+        for 循环中，net idx 使用倒序，不使用正序，是因为每次删除一个 net node，`system->nodes[NET].count`就会改变，减少 1，如果使用正序，
+
+        `for (int n = 0; n < xxx.count; ++n)`，假如现在`count = 2`，`n = 0`，删完 0 号节点后，`count = 1`, `++n`使得`n = 1`，这样不满足`n < xxx.count`，直接跳出循环了。那么漏掉了一个 node 没有处理。
+
+        由此看来，这段代码是想要删除所有的 net node，一个不留。由此我们还可以推断，这段代码可以写成
+
+        ```cpp
+        while (xxx.count) {
+            int n = 0;
+            remove_node(NET, 0);
+            // ...
+        }
+        ```
+
+        的形式。
+
+        `ncclTopoRemoveNode(system, NET, n)`这里移除的是 net，不是 gpu，与之前 log 的输出结果相符。
+
+    * `free(domains);`
+
+        ```cpp
+        exit:
+          free(domains);
+          if (ids)
+            free(ids);
+          return ret;
+        ```
+
+        `domains`和`ids`都被 free 掉了，说明这些数据并不是用来输出的，my domain 也没动静了，说明 trim 完就结束了。
+
+        函数参数的 comm 只用到了 rank 和 nranks 这两个成员。
+
+    * `if (gpu->paths[GPU][p].type < PATH_NET)`
+
+        ```cpp
+        for (int p=0; p<g; p++) {
+          if (gpu->paths[GPU][p].type < PATH_NET) {
+            domains[g] = std::min(domains[g], domains[p]);
+          }
+        }
+        ```
+
+        v100 2 gpu 环境里，`gpu->paths[GPU][p].type`正好就是`PATH_NET`（`int`值为`8`）。
+
+    * `if (gpu->id == ids[i])`
+
+        ```cpp
+          int ngpus = system->nodes[GPU].count;
+          for (int i=0; i<ngpus; i++) {
+            if (domains[i] == myDomain)
+                continue;
+            struct ncclTopoNode* gpu = NULL;
+            int g;
+            for (g=0; g<system->nodes[GPU].count /* This one varies over the loops */; g++) {
+              gpu = system->nodes[GPU].nodes+g;
+              if (gpu->id == ids[i])
+                break;
+              else
+                gpu=NULL;
+            }
+            if (gpu == NULL) {
+              WARN("Could not find id %lx", ids[i]);
+              free(domains);
+              free(ids);
+              return ncclInternalError;
+            }
+            NCCLCHECK(ncclTopoRemoveNode(system, GPU, g));
+          }
+        ```
+
+        找到`domains`数组中，不等于`myDomain`的元素的索引`i`，这个索引对应的 gpu，就是后面要删除的 gpu node。
+
+        由于删除 gpu node 后，其之后所有的 gpu 的 idx 都会失效，所以上面代码中，又用`i`定位到了`idss`中 gpu 的 id，又根据这个 id 找到 gpu node 真正的索引`g`，最后根据索引`g`删除掉对应的 gpu node。
+
+        总之是删除不等于`myDomain`的所有 gpu node。

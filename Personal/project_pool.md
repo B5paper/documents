@@ -30,6 +30,28 @@
 
 ## cache
 
+* 如果我们无法根据所有的信息做出假设，那么可以剔除大部分信息后，根据一两个点做出联想和假设
+
+    ```cpp
+    if (paths[i].bw > maxBw || (paths[i].bw == maxBw && paths[i].type < minType)) {
+      maxBw = paths[i].bw;
+      minType = paths[i].type;
+      if (pathType)
+        *pathType = minType;
+      count = 0;
+    }
+    ```
+
+    比如这段代码，我们仅根据`paths[i].bw > maxBw`，`count = 0;`判断出，这段可能是找最大值，找到比现有值更大的值，那么就清空数组。拿到这个猜想后，再根据这个猜想判断其他代码的含义，是否符合这个猜想。
+
+* 关于 A -> B -> C 的猜想
+
+    假如有一个新的概念 A，我们没有关于 A 的定义，只有 A 与其他元素交互的结果，我们希望根据这些线索推导出，或者说，尽量还原出 A 的定义。通常我们会先做出猜想：A 的含义是 B，如果含义为 B，那么现象 C 可以得到解释。但是我们又会寻找反例，现在有了现象 C_1，无法用含义 B 解释，或者说，如果使用 B 推导，应该出现 C_1_reverse，这个现象和 C_1 不相符，此时我们必须将 A 的含义 B 替换为 B_1，使用 B_1 后，现象 C 和现象 C_1 都能得到解释，那么我们认为 B_1 比 B 更接近 A 的真实含义。
+
+    使用这种方法，我们只能无限地让 B_n 接近 A，但是始终无法达到 A，因为我们不清楚未来是否还能找到反例。
+
+    另外，现象 C，C_1 不一定都是由 A 导致的，可能是多重因素共同导致的；能解释 A 的 B 也不止有 B 和 B_1 这两种，可能有很多很多种。这样就为寻找 B 的过程带来了很大的复杂度。
+
 * 规律必须足够简单，才能被发现
 
     分析一段代码，只看到二进制位变来变去，数学运算算来算去，但是不清楚这段代码的目的是什么。如果不看实现细节，只看这段代码的输入和输出，马上就分析出来这段代码的目的是 xxx。这是否说明，我们只能处理发现几种简单规律模式的发现，只给定细节无法推断出宏观的规律，只有当模式足够简单，我们才能提炼出模式？
@@ -1430,6 +1452,22 @@ tasks:
 
 ### cache
 
+* 使用索引作为 vert 的 id 不合适，因为如果先删除倒数第 2 个 vert，再添加一个 vert，那么倒数的两个 vert 就会拥有相同的 id。
+
+* topo edge 里 nex node 设置成指针的原因
+
+    ```cpp
+    struct TopoEdge {
+        EdgeType edge_type;
+        // int nex_node_idx;  // deprecated
+        TopoNode *nex_node = nullptr;
+        NodeType nex_node_type;
+        float bw = 0;
+    };
+    ```
+
+    在删除 node 时，其之后的所有 node idx 会失效，因此这里改成了指针。由于 node 是按`vector<Node*>`的方式存储的，所以删除或添加 node 后，其余 node 的指针不会因为 vector 的扩容/缩容而失效，edge 可以放心使用。
+
 * 如果前面定义了`int gpu`，后面不可以使用`TopoNode* gpu`重新定义，编译器会报错。`int gpu`定义在函数参数里也不行。
 
     ```
@@ -1540,6 +1578,54 @@ tasks:
     `int ngpus = system->nodes[GPU].count;`
 
 ### tasks
+
+* [O] 调研 siccl 是否能在 135 机器 4 卡环境上 work
+
+    feedback:
+
+    1. `LINK_NVL`的 bw 目前都低了一半
+
+    1. cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
+
+        因此导致的 edge 顺序也不对
+
+        cpu 0 -> cpu 1 同理。
+
+    1. compute path 后，nccl 的每个 gpu 都有连到 nvs 的 path，但是 siccl 没有
+
+        ```
+        gpu 565248 --> nvs 0
+        gpu 786432 --> nvs 0
+        gpu 798720 --> nvs 0
+        ```
+
+    1. [ ] 调研 nccl 在 trim system 后，并没有删除其他 rank 的 gpu，为什么？
+
+    1. 因为 trim system 后无法 print topo system，所以后续的 compute path 以及 generate coll graph 目前还没有测
+
+    1. gpu 1 -->SILINK--> swi 0 -->SILINK--> gpu 2
+
+        未来可能形成这种形式，swi 只是一个虚拟节点，但是可能会有多个 switch，比如 gpu 1 通过两层 switch 才连接到 gpu2，但是在拓扑层中，两层 switch 只表现为一个 swi 拓扑节点，这样一来，如果我们在统计 gpu 1 -> gpu 2 的延迟和带宽时，如果只计算两个 silink 的延迟，肯定有问题。
+
+        目前能想到的只有 3 点：
+
+        1. 如果直接放弃 swi 节点， 使用 gpu 1 --SILINK--> gpu 2，那么倒是可以解决不同物理拓扑下不同连接的不同延迟问题，但是 topo system 的表示比较复杂
+
+        2. 使用多个 gpu 互相印证：
+
+            测试 gpu 1 --> gpu 2 的延迟 d_1，得到 x + y = d_1
+
+            测试 gpu 1 --> gpu 3 的延迟 d_2，得到 x + z = d_2
+
+            此时我们得到 y - z = d_1 - d_2
+
+            测试 gpu 2 --> gpu 3 的延迟 d_3，得到 y + z = d_3
+
+            此时我们得到 2 * y = d_1 - d_2 + d_3，由此可分别解出 x, y, z
+
+            那么 x 就是 gpu 1 到 swi 0 的延迟，y 就是 gpu 2 到 swi 0 的延迟，z 就是 gpu 3 到 swi 0 的延迟。
+
+        3. 测试出 gpu 1 --> gpu 2 的延迟后，直接除以 2，作为 SILINK 1 和 SILINK 2 的延迟。
 
 * [ ] 调研`rm -rf *`如何删除隐藏文件/文件夹
 
