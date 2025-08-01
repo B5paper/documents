@@ -1577,29 +1577,79 @@ tasks:
 
     `int ngpus = system->nodes[GPU].count;`
 
+* edge 存储 vert ptr 有一个小问题，即创建完一个 vert 后，可能无法创建其所有 edge，因为 edge 无法指向其他不存在的 vert。如果 edge 里存储的是 vert id 则没有这个问题。
+
+* 调用`ncclTopoSearchRec()`时，第二个参数是`&tmpGraph`, 第三个参数是`graph`，然而`ncclTopoSearchRec()`的参数列表是
+
+    `ncclResult_t ncclTopoSearchRec(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, int* time) {`
+
+    也就是说，在函数内部改变的，其实是`saveGraph`的`nChannels`。
+
+* 在`ncclTopoSearchRecNet() -> ncclTopoSearchTryGpu()`第一次调用时，channel 数就已经为 2 了。此时 net id = 1，后续会搜索 net id = 2 的情形。
+
+    有时候 net id 会变为 2，1.
+
+* `ncclTopoSearchRecGpu() -> graph->nChannels++;`
+
+    `memcpy(saveGraph, graph, sizeof(struct ncclTopoGraph));`
+
+    应该是在这个位置`saveGraph`的 channel 变为 2 的
+
+* `ncclTopoSearchRecGpu()`是多层调用的，在最内部调用完`ncclTopoSearchRecNet()`后，channel 数就变成了 2.
+
+* `ncclTopoSearchRec()`中，`invoke_cnt = 33`, `depth = 3`
+
+    在这之前 nchannels 就已经是 2 了。
+
+* `#define ASSERT(x) (void)(x)`这个宏的作用有可能是
+
+    ```cpp
+    #ifdef DEBUG
+        #define ASSERT(x) assert(x)  // 调试阶段启用真实断言
+    #else
+        #define ASSERT(x) (void)(x) // 发布阶段无害化
+    #endif
+    ```
+
+    总之是占位符性质。
+
 ### tasks
+
+* [v] 调研 4 卡 print_path() segmentation fault 的原因
+
+    feedback:
+
+    1. trim system 时，本来就是只删除 node 和 edge，没有删除无效的 path，所以后面 print path 肯定有问题。如果换成 print topo system 就没有问题。后续经过第二次 compute path 后，再进行 print path 就没问题了。
+
+        总之，不是库代码的问题，是 test case 里不应该在 trim system 后调用 print path，相当于 print 函数市貌和错了。
+
+* [v] 调研 nccl 在 trim system 后，并没有删除其他 rank 的 gpu，为什么？
+
+    feedback:
+
+    1. 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
+
+    1. 这里的 domain 划归算法，或许未来可以用到 siccl 的 switch 节点发现上。
+
+* [ ] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
+
+* [ ] 调研 a100 4 gpu 上，为什么 cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
+
+    因此导致的 edge 顺序也不对
+
+    cpu 0 -> cpu 1 同理。
+
+* [ ] 调研 a100 4 gpu 下，为什么 compute path 后，nccl 的每个 gpu 都有连到 nvs 的 path，但是 siccl 没有
+
+    ```
+    gpu 565248 --> nvs 0
+    gpu 786432 --> nvs 0
+    gpu 798720 --> nvs 0
+    ```
 
 * [O] 调研 siccl 是否能在 135 机器 4 卡环境上 work
 
     feedback:
-
-    1. `LINK_NVL`的 bw 目前都低了一半
-
-    1. cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
-
-        因此导致的 edge 顺序也不对
-
-        cpu 0 -> cpu 1 同理。
-
-    1. compute path 后，nccl 的每个 gpu 都有连到 nvs 的 path，但是 siccl 没有
-
-        ```
-        gpu 565248 --> nvs 0
-        gpu 786432 --> nvs 0
-        gpu 798720 --> nvs 0
-        ```
-
-    1. [ ] 调研 nccl 在 trim system 后，并没有删除其他 rank 的 gpu，为什么？
 
     1. 因为 trim system 后无法 print topo system，所以后续的 compute path 以及 generate coll graph 目前还没有测
 
@@ -1629,44 +1679,38 @@ tasks:
 
 * [ ] 调研`rm -rf *`如何删除隐藏文件/文件夹
 
-* [v] 调研如何 push_back unique_ptr
-
 * {v} 调研实现`topo_system_to_graph()`
 
-    feedback:
+* [ ] 调研下面的 edge 是否可以作为聚合类？
 
-    1. edge 存储 vert ptr 有一个小问题，即创建完一个 vert 后，可能无法创建其所有 edge，因为 edge 无法指向其他不存在的 vert。如果 edge 里存储的是 vert id 则没有这个问题。
+    ```cpp
+    template<typename _EdgeType>
+    struct BaseVertex {
+        int id;
+        vector<_EdgeType> edges;
+    };
 
-    1. 调研下面的 edge 是否可以作为聚合类？
+    struct BaseEdge {
+        // size_t nex_vert_idx;
+        BaseVertex<BaseEdge> *nex_vert;
+    };
 
-        ```cpp
-        template<typename _EdgeType>
-        struct BaseVertex {
-            int id;
-            vector<_EdgeType> edges;
-        };
+    struct Edge: public BaseEdge {
+        new_feature::EdgeType type;
+        float bw;
+    };
 
-        struct BaseEdge {
-            // size_t nex_vert_idx;
-            BaseVertex<BaseEdge> *nex_vert;
-        };
+    struct Vertex: public BaseVertex<Edge> {
+        uint64_t topo_id;
+        VertType type;
+    };
 
-        struct Edge: public BaseEdge {
-            new_feature::EdgeType type;
-            float bw;
-        };
-
-        struct Vertex: public BaseVertex<Edge> {
-            uint64_t topo_id;
-            VertType type;
-        };
-
-        int main() {
-            Vertex vert;
-            vert.edges.emplace_back(&last_vert);
-            return 0;
-        }
-        ```
+    int main() {
+        Vertex vert;
+        vert.edges.emplace_back(&last_vert);
+        return 0;
+    }
+    ```
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -1676,11 +1720,9 @@ tasks:
 
 * [v] 调研 axi-dma 与 pci-dma 有何不同
 
-    feedback:
+* [ ] 调研 axi-dma MMIO
 
-    1. 调研 axi-dma MMIO
-
-    1. 调研 AXI4-Stream 
+* [ ] 调研 AXI4-Stream 
 
 * [ ] 调研 cuda memcheck tool / compute-sanitizer
 
@@ -1690,9 +1732,41 @@ tasks:
 
     1. <https://docs.nvidia.com/cuda/archive/9.1/cuda-memcheck/index.html>
 
-* [v] 调研 git stash
+* [v] 调研`crontab`
 
-* [ ] 调研`crontab`
+    feedback:
+
+    1. 调研 crontab 系统级定时任务
+
+    1. 调研`tail -f`
+
+    1. 调研`mail` command
+
+    1. 调研`mpg123`, `vlc`, `paplay`音乐播放器
+
+    1. 调研 crontab 播放音乐
+
+        ```conf
+        # 每天上午7:30播放音乐（后台静默运行）
+        30 7 * * * export DISPLAY=:0 && mpg123 -q ~/Music/alarm.mp3 >/dev/null 2>&1
+
+        # 工作日每小时播放一次（测试用）
+        0 * * * 1-5 export DISPLAY=:0 && mpg123 -q ~/Music/alert.mp3
+
+        30 7 * * * export DISPLAY=:0 && PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
+
+        30 7 * * * aplay ~/Music/alarm.wav  # 仅支持WAV格式
+
+        0 * * * * paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga
+
+        30 7 * * * cvlc --play-and-exit ~/Music/alarm.mp3
+
+        30 7 * * * ffplay -nodisp -autoexit ~/Music/alarm.mp3
+        ```
+
+        ```conf
+        env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
+        ```
 
 * [v] 调研`askpass`。
 
@@ -1708,9 +1782,9 @@ tasks:
 
     1. 调研`dmenu`
 
-    1. 调研`ksshaskpass`
+* [ ] 调研`ksshaskpass`
 
-    1. 调研`GIT_ASKPASS`
+* [ ] 调研`GIT_ASKPASS`
 
 * [ ] 调研`setsid`
 
@@ -1722,7 +1796,7 @@ tasks:
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
-* [ ] 调研`ssh -f`
+* [v] 调研`ssh -f`
 
 * [ ] 调研`chfn`
 
@@ -1732,32 +1806,6 @@ tasks:
 
 * [v] 调研`graph->nChannels `什么时候变成的 2？
 
-    feedback:
-
-    1. 调用`ncclTopoSearchRec()`时，第二个参数是`&tmpGraph`, 第三个参数是`graph`，然而`ncclTopoSearchRec()`的参数列表是
-
-        `ncclResult_t ncclTopoSearchRec(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, int* time) {`
-
-        也就是说，在函数内部改变的，其实是`saveGraph`的`nChannels`。
-
-    1. 在`ncclTopoSearchRecNet() -> ncclTopoSearchTryGpu()`第一次调用时，channel 数就已经为 2 了。此时 net id = 1，后续会搜索 net id = 2 的情形。
-
-        有时候 net id 会变为 2，1.
-
-    1. `ncclTopoSearchRecGpu() -> graph->nChannels++;`
-    
-        `memcpy(saveGraph, graph, sizeof(struct ncclTopoGraph));`
-
-        应该是在这个位置`saveGraph`的 channel 变为 2 的
-
-    1. `ncclTopoSearchRecGpu()`是多层调用的，在最内部调用完`ncclTopoSearchRecNet()`后，channel 数就变成了 2.
-
-    1. `ncclTopoSearchRec()`中，`invoke_cnt = 33`, `depth = 3`
-
-        在这之前 nchannels 就已经是 2 了。
-
-* [v] 调研`ngpus`什么时候变成 1 的？
-
 * [ ] 调研`crossNic`什么时候变成的 2？
 
 * [ ] 调研`ncclTopoSearchRecNet()`
@@ -1765,18 +1813,6 @@ tasks:
 * {O} 调研`generate_coll_graph()`
 
 * [v] 调研 c++ elements gui 库
-
-    feedback:
-
-    1. 调研 elements 的 Design Aspects
-
-        <https://cycfi.github.io/elements/elements/aspects.html>
-
-    1. 调研 elements 的 layout
-
-        <http://cycfi.github.io/elements/elements/layout.html>
-
-    1. 主要就是这些资料来源，剩下的就是看代码了。
 
 * [ ] 调研
 
@@ -1808,8 +1844,6 @@ tasks:
     Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
     Defaults	use_pty
     ```
-
-* [v] 调研`/etc/sudoers`
 
 * [ ] 调研 dnf 与 yum 的异同
 
@@ -1917,7 +1951,7 @@ tasks:
 
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
-* [ ] 调研`std::nullopt`
+* [v] 调研`std::nullopt`
 
 * [ ] 调研`opt.then()`, `opt.transform()`
 
@@ -1936,20 +1970,6 @@ tasks:
 * [ ] 调研 gdb `set $my_var = $ `
 
 * [v] 调研`#define ASSERT(x) (void)(x)`中 void 的作用
-
-    feedback:
-
-    1. 这个宏的作用有可能是
-
-        ```cpp
-        #ifdef DEBUG
-            #define ASSERT(x) assert(x)  // 调试阶段启用真实断言
-        #else
-            #define ASSERT(x) (void)(x) // 发布阶段无害化
-        #endif
-        ```
-
-        总之是占位符性质。
 
 * [ ] 调研`Coverity`
 
@@ -4155,6 +4175,16 @@ cache:
     有空了研究一下这段代码，分析一下利弊。
 
 ### tasks
+
+* [ ] 调研 elements 的 Design Aspects
+
+        <https://cycfi.github.io/elements/elements/aspects.html>
+
+* [ ] 调研 elements 的 layout
+
+        <http://cycfi.github.io/elements/elements/layout.html>
+
+* [ ] 调研 elements 的代码
 
 * [ ] 调研：在 .h 文件里定义 edge type id to str 是否会引起多重定义的问题？
 

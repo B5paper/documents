@@ -2231,3 +2231,87 @@
         由于删除 gpu node 后，其之后所有的 gpu 的 idx 都会失效，所以上面代码中，又用`i`定位到了`idss`中 gpu 的 id，又根据这个 id 找到 gpu node 真正的索引`g`，最后根据索引`g`删除掉对应的 gpu node。
 
         总之是删除不等于`myDomain`的所有 gpu node。
+
+* `ncclGetLevel()`
+
+    函数声明：
+
+    ```cpp
+    ncclResult_t ncclGetLevel(int* level, const char* disableEnv, const char* levelEnv) {
+    ```
+
+    * 外部调用是`ncclTopoCheckP2p()` --> `NCCLCHECK(ncclGetLevel(&ncclTopoUserP2pLevel, "NCCL_P2P_DISABLE", "NCCL_P2P_LEVEL"));`
+
+        `ncclTopoUserP2pLevel`为`-1`
+
+    * `const char* str = ncclGetEnv(disableEnv);`
+
+        `str`为空。看起来`str`的含义应该是环境变量的值，即`key=val`里的`val`。
+
+    * `*level = l >= 0 ? l : -2;`
+
+        前面的代码大部分被跳过，直接走到这一行。`l`目前的值为`-1`，所以`*level`最终为`-2`。
+
+    * `if (ncclTopoUserP2pLevel != -2) {`
+
+        ```cpp
+          // In general, use P2P whenever we can.
+          int p2pLevel = PATH_SYS;
+          // User override
+          if (ncclTopoUserP2pLevel == -1)
+            NCCLCHECK(ncclGetLevel(&ncclTopoUserP2pLevel, "NCCL_P2P_DISABLE", "NCCL_P2P_LEVEL"));
+          if (ncclTopoUserP2pLevel != -2) {
+            p2pLevel = ncclTopoUserP2pLevel;
+            goto compare;
+          }
+        ```
+
+        默认情况下`ncclTopoUserP2pLevel == -2`，所以直接跳过了第二个 if 语句。
+
+        `p2pLevel`也默认为`7` (`PATH_SYS`)。
+
+    * 如果设置`NCCL_P2P_DISABLE=0`，则有`disable = 0`，`l = -1`，走进下面的 if
+
+        说明如果用户不禁用 p2p，那么看用户是否给出 p2p level，如果没给出，那么仍走`*level = l >= 0 ? l : -2;`取默认值。
+
+    * 如果设置`NCCL_P2P_DISABLE=1`，那么`l = 0;`，此时跳过获取 p2p level 的过程，
+
+        ```cpp
+        if (l >= 0)
+            INFO(NCCL_ALL, "%s set by environment to %s", levelEnv, topoPathTypeStr[l]);
+        *level = l >= 0 ? l : -2;
+        ```
+
+        可以查看到
+
+        ```cpp
+        const char* topoPathTypeStr[] = { "LOC", "NVL", "NVB", "PIX", "PXB", "PXN", "PHB", "SYS", "NET", "DIS" };
+        ```
+
+        因此`topoPathTypeStr[0] = "LOC"`, `level = 0`
+
+        出函数后，会直接 goto 到 compare label 处：
+        
+        ```cpp
+        compare:
+          // Compute the PCI distance and compare with the p2pLevel.
+          if (path->type <= p2pLevel) {
+            *p2p = 1;
+          }
+        ```
+
+        若对于同一个 gpu，有`path->type = 0`，得到`*p2p = 1`。
+
+    * 如果设置`NCCL_P2P_DISABLE = 0`, `NCCL_P2P_LEVEL = 1`
+
+        此时会走到`if (strcmp(str, topoPathTypeStr[i]) == 0) {`进行判断，可以看到，这里比较的都是字符串，那么`NCCL_P2P_LEVEL = 1`就没有什么意义。
+
+        接着来到`if (oldLevel > maxOldLevel)`，这里经过比较后，`l`被设置为`3`。可见`NCCL_P2P_LEVEL`的数值与`l`的数值并不是相等对应的。
+
+    * 综合上面来看，`l = -1`表示用户没有设置是否使用 p2p，此时不对`l`设置默认值，而是将`level = -2`后，传出函数。`l = 0`表示用户禁用 p2p。`l`为其他正数值表示用户指定了 p2p level，但是`l`的值与用户设置的 p2p level 并不是一一对应的。
+
+        进而我们可以推测到`level`的含义：
+
+        `level`传进函数时是`-1`，表示初始值，如果函数内部`l`没有被赋值（总是`-1`），那么传出函数时，`level`的值为`-2`，表示用户没有特别设置。`level`为 0 表示用户禁用 p2p，为其他正值表示用户指定了 p2p level。
+
+        这里本来应该用 bool 值表示用户是否设置，用 int 值表示具体的值，但是这里使用了 int 值的正值和负值，分别表示了不同的含义。
