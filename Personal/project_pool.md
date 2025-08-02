@@ -30,6 +30,14 @@
 
 ## cache
 
+* 注意力测试
+
+    如果可以闭上眼睛默数 500 下，那么说明当前心无杂念，注意力可以集中。反之，则说明杂念太多，心不净。
+
+* 信息屏蔽
+
+    如果新增的信息量过大，那么我们在假设空间中寻找样本点时，会因为要考虑的东西过多而难以构造样本点。或者即使构造出假设与猜想，也没有精力或能力去验证。这样会导致整个思维系统无法运行。此时我们必须进行信息屏蔽，每天只选择性地接受一些自己可以处理的信息。就算根据局部信息得到的结论是错的也没有关系，因为整个思维系统的纠错机制最终会将错误的结论排除掉。
+
 * 如果我们无法根据所有的信息做出假设，那么可以剔除大部分信息后，根据一两个点做出联想和假设
 
     ```cpp
@@ -1452,6 +1460,10 @@ tasks:
 
 ### cache
 
+* graph 中的 vertex 不加 id 属性不好序列化
+
+    如果 vertex 间只有指针指来指去，那么在序列化的时候，就无法分辨两个 vertex 是否相同。
+
 * 使用索引作为 vert 的 id 不合适，因为如果先删除倒数第 2 个 vert，再添加一个 vert，那么倒数的两个 vert 就会拥有相同的 id。
 
 * topo edge 里 nex node 设置成指针的原因
@@ -1613,23 +1625,15 @@ tasks:
 
     总之是占位符性质。
 
+* nccl 在 trim system 中的 domain 划归算法，或许未来可以用到 siccl 的 switch 节点发现上。
+
 ### tasks
 
-* [v] 调研 4 卡 print_path() segmentation fault 的原因
+* [ ] 调研`grep -c`
 
-    feedback:
-
-    1. trim system 时，本来就是只删除 node 和 edge，没有删除无效的 path，所以后面 print path 肯定有问题。如果换成 print topo system 就没有问题。后续经过第二次 compute path 后，再进行 print path 就没问题了。
-
-        总之，不是库代码的问题，是 test case 里不应该在 trim system 后调用 print path，相当于 print 函数市貌和错了。
+* [ ] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
 
 * [v] 调研 nccl 在 trim system 后，并没有删除其他 rank 的 gpu，为什么？
-
-    feedback:
-
-    1. 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
-
-    1. 这里的 domain 划归算法，或许未来可以用到 siccl 的 switch 节点发现上。
 
 * [ ] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
 
@@ -1679,8 +1683,6 @@ tasks:
 
 * [ ] 调研`rm -rf *`如何删除隐藏文件/文件夹
 
-* {v} 调研实现`topo_system_to_graph()`
-
 * [ ] 调研下面的 edge 是否可以作为聚合类？
 
     ```cpp
@@ -1718,8 +1720,6 @@ tasks:
 
     1. [ ] 学习 fpga 与基本 verilog 开发
 
-* [v] 调研 axi-dma 与 pci-dma 有何不同
-
 * [ ] 调研 axi-dma MMIO
 
 * [ ] 调研 AXI4-Stream 
@@ -1734,53 +1734,49 @@ tasks:
 
 * [v] 调研`crontab`
 
-    feedback:
+* [ ] 调研 crontab 系统级定时任务
 
-    1. 调研 crontab 系统级定时任务
+* [ ] 调研`tail -f`
 
-    1. 调研`tail -f`
+* [ ] 调研`mail` command
 
-    1. 调研`mail` command
+* [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
-    1. 调研`mpg123`, `vlc`, `paplay`音乐播放器
+* [ ] 调研 crontab 播放音乐
 
-    1. 调研 crontab 播放音乐
+    ```conf
+    # 每天上午7:30播放音乐（后台静默运行）
+    30 7 * * * export DISPLAY=:0 && mpg123 -q ~/Music/alarm.mp3 >/dev/null 2>&1
 
-        ```conf
-        # 每天上午7:30播放音乐（后台静默运行）
-        30 7 * * * export DISPLAY=:0 && mpg123 -q ~/Music/alarm.mp3 >/dev/null 2>&1
+    # 工作日每小时播放一次（测试用）
+    0 * * * 1-5 export DISPLAY=:0 && mpg123 -q ~/Music/alert.mp3
 
-        # 工作日每小时播放一次（测试用）
-        0 * * * 1-5 export DISPLAY=:0 && mpg123 -q ~/Music/alert.mp3
+    30 7 * * * export DISPLAY=:0 && PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
 
-        30 7 * * * export DISPLAY=:0 && PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
+    30 7 * * * aplay ~/Music/alarm.wav  # 仅支持WAV格式
 
-        30 7 * * * aplay ~/Music/alarm.wav  # 仅支持WAV格式
+    0 * * * * paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga
 
-        0 * * * * paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga
+    30 7 * * * cvlc --play-and-exit ~/Music/alarm.mp3
 
-        30 7 * * * cvlc --play-and-exit ~/Music/alarm.mp3
+    30 7 * * * ffplay -nodisp -autoexit ~/Music/alarm.mp3
+    ```
 
-        30 7 * * * ffplay -nodisp -autoexit ~/Music/alarm.mp3
-        ```
-
-        ```conf
-        env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
-        ```
+    ```conf
+    env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
+    ```
 
 * [v] 调研`askpass`。
 
-    feedback:
+* [ ] 调研`ssh -o PreferredAuthentications=password`
 
-    1. 调研`ssh -o PreferredAuthentications=password`
+* [ ] 调研`git-credential-libsecret`
 
-    1. 调研`git-credential-libsecret`
+* [ ] 调研`stty -echo  # 关闭回显`
 
-    1. 调研`stty -echo  # 关闭回显`
+* [ ] 调研 bash `read password`
 
-    1. 调研 bash `read password`
-
-    1. 调研`dmenu`
+* [ ] 调研`dmenu`
 
 * [ ] 调研`ksshaskpass`
 
@@ -1788,7 +1784,11 @@ tasks:
 
 * [ ] 调研`setsid`
 
-* [ ] 调研`ssh -T`
+* [v] 调研`ssh -T`
+
+    feedback:
+
+    1. 调研 PTY 与 tty 有何不同
 
 * [ ] 调研`disown`
 
@@ -1796,23 +1796,17 @@ tasks:
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
-* [v] 调研`ssh -f`
-
-* [ ] 调研`chfn`
+* [v] 调研`chfn`
 
 * [ ] 调研`finger`
 
 * [ ] 调研`strchr()`
-
-* [v] 调研`graph->nChannels `什么时候变成的 2？
 
 * [ ] 调研`crossNic`什么时候变成的 2？
 
 * [ ] 调研`ncclTopoSearchRecNet()`
 
 * {O} 调研`generate_coll_graph()`
-
-* [v] 调研 c++ elements gui 库
 
 * [ ] 调研
 
@@ -1859,7 +1853,11 @@ tasks:
 
 * [ ] 调研`ncclParamNetGdrRead()`
 
-* [ ] 调研`ncclGetLevel()`
+* [v] 调研`ncclGetLevel()`
+
+    feedback:
+
+    1. 调研`ncclGetLevel()`中，old level 和 new level 是如何映射的
 
 * [ ] 调研`ncclTopoSelectNets()`
 
@@ -1927,8 +1925,6 @@ tasks:
 
 * [ ] 调研`vim +$(grep -n "error" app.log`
 
-* [ ] 调研`grep -c`
-
 * [ ] 调研`grep --color=auto`
 
 * [ ] 调研 gdb `x`命令
@@ -1951,8 +1947,6 @@ tasks:
 
 * [ ] 调研如果构造函数有多个参数，那么`explicit`有意义吗？
 
-* [v] 调研`std::nullopt`
-
 * [ ] 调研`opt.then()`, `opt.transform()`
 
 * [ ] 调研 c++ 中如何知道数组有几个维度
@@ -1968,8 +1962,6 @@ tasks:
 * [ ] 调研 gdb `info registers`
 
 * [ ] 调研 gdb `set $my_var = $ `
-
-* [v] 调研`#define ASSERT(x) (void)(x)`中 void 的作用
 
 * [ ] 调研`Coverity`
 
@@ -2133,8 +2125,6 @@ tasks:
     grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
 
 * [ ] find 搜索时使用的是 regex 还是 glob？
-
-* [ ] 调研 c++ 20 的 format
 
 * [ ] 调研`cudaMallocManaged()`
 
@@ -4175,6 +4165,8 @@ cache:
     有空了研究一下这段代码，分析一下利弊。
 
 ### tasks
+
+* [ ] 调研 c++ 20 的 format
 
 * [ ] 调研 elements 的 Design Aspects
 

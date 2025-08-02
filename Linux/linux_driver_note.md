@@ -6,6 +6,20 @@ Ref:
 
 ## cache
 
+* AXI-DMA
+
+    AXI（Advanced eXtensible Interface）
+
+    axi 是 ARM 提出的片上互连协议，用于 fpga 和 soc。比如 FPGA 与处理器（如 ARM Cortex）之间的数据搬运。
+
+* PCI-DMA
+
+    PCI/PCIe（Peripheral Component Interconnect Express）
+
+    需要 低延迟、芯片内通信 → AXI-DMA。
+
+    需要 高带宽、跨设备通信 → PCI-DMA。
+
 * insmod 时报错
 
     在`insmod`时报错`insmod: ERROR: could not insert module dkms_test.ko: Invalid module format`。

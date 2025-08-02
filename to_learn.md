@@ -1,3 +1,115 @@
+* url cache 2025.08.02
+
+    * How do I write a "pointer to const" type trait?
+
+        <https://stackoverflow.com/questions/37370261/how-do-i-write-a-pointer-to-const-type-trait>
+
+    * String literal
+
+        <https://en.cppreference.com/w/cpp/language/string_literal.html>
+
+    * CPU_SET(3) — Linux manual page
+
+        <https://man7.org/linux/man-pages/man3/CPU_SET.3.html>
+
+    * Bus:Device.Function (BDF) Notation
+
+        <https://wiki.xenproject.org/wiki/Bus:Device.Function_(BDF)_Notation>
+
+    * Linux设备模型7
+
+        <https://blog.csdn.net/zouhaicheng/article/details/144294805>
+
+    * vscode cpplint extension 
+
+        <https://github.com/secularbird/cpplint-extension>
+
+    * Static code checker for C++ 
+
+        <https://github.com/cpplint/cpplint>
+
+    * C/C++预处理指令
+
+        <https://www.cnblogs.com/zi-xing/p/4550246.html>
+
+    * #if, #elif, #else, and #endif directives (C/C++)
+
+        <https://learn.microsoft.com/en-us/cpp/preprocessor/hash-if-hash-elif-hash-else-and-hash-endif-directives-c-cpp?view=msvc-170>
+
+    * Linux Poll 使用方法和实现
+
+        <https://blog.csdn.net/zhuxiaoping54532/article/details/51701549>
+
+    * poll机制的工作原理及流程与select类似
+
+        <https://book.itheima.net/course/223/1277519158031949826/1277529226395787267>
+
+    * Compact bash prompt when using a directory tree / filename
+
+        <https://unix.stackexchange.com/questions/266256/compact-bash-prompt-when-using-a-directory-tree-filename>
+
+    * Linux command to print directory structure in the form of a tree [closed]
+
+        <https://stackoverflow.com/questions/3455625/linux-command-to-print-directory-structure-in-the-form-of-a-tree>
+
+    * linux netlink通信机制
+
+        <https://www.cnblogs.com/wenqiang/p/6306727.html>
+
+    * 深入了解Linux netlink机制：实现高性能网络通信
+
+        <https://zhuanlan.zhihu.com/p/674645856>
+
+    * linux内核：netlink实现原理分析
+
+        <https://zhuanlan.zhihu.com/p/703570419>
+
+    * A simple screen parsing tool towards pure vision based GUI agent 
+
+        <https://github.com/microsoft/OmniParser?tab=readme-ov-file>
+
+    * GEF - GDB Enhanced Features for exploit devs & reversers 
+
+        <https://github.com/bata24/gef>
+
+    * Foundations-of-LLMs
+
+        <https://github.com/ZJU-LLMs/Foundations-of-LLMs>
+
+    * C 库函数 - fopen()
+
+        <https://www.runoob.com/cprogramming/c-function-fopen.html>
+
+    * 浅谈NCCL Proxy线程
+
+        <https://blog.csdn.net/shanleo1986/article/details/137777787>
+
+    * why cuda kernel can access host memory?
+
+        <https://stackoverflow.com/questions/69060025/why-cuda-kernel-can-access-host-memory>
+
+    * A high speed C++17 Vulkan game engine 
+
+        <https://github.com/EQMG/Acid>
+
+    * A Simple Unix-like operating system 
+
+        <https://github.com/ozkl/soso>
+
+    * s1: Simple test-time scaling 
+
+        <https://github.com/simplescaling/s1>
+
+    * Cross-Platform High Performance 2D/3D game engine for people like me who like to write code. 
+
+        <https://github.com/TheCherno/Sparky>
+
+    * Model Context Protocol
+
+        MCP
+
+        <https://github.com/modelcontextprotocol>
+
 * qemu network config
 
     * KVM Networking - NAT & Host-Only
@@ -7794,3 +7906,11 @@
 * A GPU benchmark tool for evaluating GPUs and CPUs on mixed operational intensity kernels (CUDA, OpenCL, HIP, SYCL, OpenMP) 
 
     <https://github.com/ekondis/mixbench>
+
+* git cherry-pick 教程
+
+    <https://www.ruanyifeng.com/blog/2020/04/git-cherry-pick.html>
+
+* c++ std::format
+
+    <https://en.cppreference.com/w/cpp/utility/format/format.html>

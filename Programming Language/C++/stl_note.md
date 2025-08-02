@@ -2,6 +2,130 @@
 
 ## cached
 
+* nullopt 有点像 optional 版本的 nullptr
+
+    ```cpp
+    std::optional<int> opt1 = std::nullopt; // 初始化为空
+    opt1 = 42;                             // 赋有效值
+    opt1 = std::nullopt;                   // 重置为空
+
+    if (opt1 == std::nullopt) { /* 处理无值情况 */ }
+    // 或等价于：
+    if (!opt1.has_value()) { /* 同上 */ }
+    ```
+
+    `nullopt`本质是空类型的常量：
+
+    ```cpp
+    struct nullopt_t { /* 空实现 */ };
+    inline constexpr nullopt_t nullopt{}; // 全局常量
+    ```
+
+    `nullopt_t`是一个标记类型（Tag Type），仅用于表示“无值”状态，不存储任何数据。
+
+    `nullopt`是该类型的常量实例。
+
+    在`optional`模板类实现时，单独为 nullopt 做了条函数重载的通路：
+
+    ```cpp
+    template<typename T>
+    class optional {
+    public:
+        // 从 nullopt 构造（设置为“无值”状态）
+        optional(nullopt_t) noexcept : has_value_(false) {}
+
+        // 从 nullopt 赋值
+        optional& operator=(nullopt_t) noexcept {
+            reset(); // 内部重置为无值
+            return *this;
+        }
+    };
+    ```
+
+    思考：为什么不使用模板的特化，而是使用函数重载来实现这个功能？
+
+* `make_unique()`
+
+    `make_unique()`会自动调用`new`，因此我们只需要传入构造函数的参数就可以了。
+
+    ```cpp
+    // C++14 后推荐使用 make_unique（更安全，避免显式 new）
+    unique_ptr<int> ptr2 = std::make_unique<int>(100);
+    ```
+
+* `unique_ptr`的特点
+
+    1. 不能复制：`unique_ptr`禁止拷贝构造和拷贝赋值（保证独占性）。
+
+    2. 可以移动：通过`std::move`转移所有权。
+
+        ```cpp
+        auto ptr3 = std::move(ptr1);  // ptr1 变为 nullptr，所有权转移给 ptr3
+        ```
+
+    资源的释放与重置：
+
+    ```cpp
+    ptr3.reset();           // 释放资源并将 ptr3 置为 nullptr
+    ptr3.reset(new int(5)); // 释放旧资源，管理新资源
+    ```
+
+    资源访问：
+
+    ```cpp
+    if (ptr2) {                     // 检查是否持有资源
+        std::cout << *ptr2 << "\n"; // 解引用访问数据
+        std::cout << ptr2.get() << "\n"; // 获取原始指针（谨慎使用）
+    }
+    ```
+
+    ```cpp
+    ptr.release()  // 返回原始指针并放弃管理权（需手动释放）。
+    ```
+
+* `unique_ptr`自定义删除器
+
+    默认使用 delete 释放资源，但支持自定义删除器（如文件句柄、C 风格数组等）：
+
+    ```cpp
+    // 使用 lambda 自定义删除器
+    auto fileDeleter = [](FILE* f) { fclose(f); };
+    std::unique_ptr<FILE, decltype(fileDeleter)> filePtr(fopen("test.txt", "r"), fileDeleter);
+
+    // 管理动态数组（自动调用 delete[]）
+    std::unique_ptr<int[]> arrPtr(new int[10]{1, 2, 3});
+    ```
+
+* 只要`unique_ptr`被销毁，都会释放它管理的指针
+
+    ```cpp
+    #include <memory>
+    #include <stdio.h>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int *val = new int;
+        *val = 123;
+        {
+            unique_ptr<int> ptr(val);
+        }
+        printf("val: %d\n", *val);  // 2057505187
+
+        val = new int;
+        *val = 456;
+        {
+            vector<unique_ptr<int>> vec;
+            vec.push_back(unique_ptr<int>(val));
+        }
+        printf("val: %d\n", *val);  // -63012009
+
+        return 0;
+    }
+    ```
+
+    可以看到，无论是直接创建`unique_ptr`，还是在`vector`中添加`unique_ptr`，只要`unique_ptr`被析构，它就会释放指针。
+
 * c++ `optional`
 
     头文件`#include <optional>`

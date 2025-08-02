@@ -2,6 +2,103 @@
 
 ## cache
 
+* `ssh -T`
+
+    建立 ssh 连接后，不分配终端。
+
+    此时 remote host 的 sshd 会启动一个 bash 程序，将 ssh client 的输入直接输入到 bash 进程，然后将 bash 的输出拿出来发送给 ssh client。
+
+    在 remote host 上执行`ps -aux | grep ssh`，可以看到有 pty 为 ? 的一条输出：
+
+    `hlc      4171601  0.0  0.0  12976  4212 ?        Ss   16:21   0:00 -bash`
+
+    由于不分配终端，所以交互式程序无法正常运行，比如 vim，sudo, 上下左右键。
+
+    下面是运行 sudo 的报错：
+
+    ```
+    sudo echo hello
+    sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+    sudo: a password is required
+    ```
+
+    如果`ssh`命令里既有`-t`，也有`-T`那么以后面一个为准：
+
+    * `ssh -T -t`: 分配终端
+
+    * `ssh -t -T`: 不分配终端
+
+    ai 给出的 bash 启动时的具体行为（未验证）：
+
+    有 PTY 时：bash 会以交互模式启动（加载 ~/.bashrc 等），支持作业控制、行编辑等。
+
+    无 PTY 时（-T）：bash 以非交互模式启动（类似 bash -c "command"），仅读取 ~/.bash_profile 或 ~/.bash_login（依赖配置），且直接执行命令后退出。
+
+    目前不知道这个有啥用，感觉没啥用。
+
+* `ssh -f`
+
+    如果`ssh -f`后边没有跟 command 命令，那么 ssh 会报错：
+
+    > Cannot fork into background without a command to execute.
+
+    但是有时候我们想让 ssh 放到后台，又希望它执行`-L`或`-R`之类的端口转发，又没有什么特别想执行的 command，此时可以配合`-N`选项实现这个目的.
+
+    `ssh -fN -L 1234:127.0.0.1:1234 hlc@xx.xxx.xx.xx`
+
+    目前不清楚这样做是否有 keep alive 的功能。
+
+    如果只有`-f -L`，没有`-N`，那么同样会报错：
+
+    > Cannot fork into background without a command to execute.
+
+* `ssh -f`将 ssh 放到后台，并执行远程命令，输出到 stdout。
+
+    `-f`表示 fork。
+
+    example:
+
+    ` ssh -f <user>@<addr> ls`
+
+    output:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ssh -f hlc@xx.xxx.xx.xx ls
+    (base) hlc@hlc-VirtualBox:~$ 04_local_res.cpp
+    Data
+    Desktop
+    Documents
+    Downloads
+    link_mnt_hlc_to_Data.sh
+    mlnx_perftest_log.txt
+    Music
+    nfs_shared
+    nvshmem_srcs.tar.gz
+    Pictures
+    Public
+    ...
+    
+    ```
+
+    可以看到，ssh 先被挂到后台后，才输出的远程机器的`ls`内容。
+
+    如果不加`-f`，则会先输出远程`ls`的内容后，才退出 ssh，如下：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ssh hlc@xx.xxx.xx.xxx ls
+    04_local_res.cpp
+    Data
+    Desktop
+    Documents
+    Downloads
+    link_mnt_hlc_to_Data.sh
+    mlnx_perftest_log.txt
+    Music
+    nfs_shared
+    ...
+    (base) hlc@hlc-VirtualBox:~$ 
+    ```
+
 * ssh 
 
     使用跳板机连接到主机，等价于`-J`。其 ssh config 文件写法为

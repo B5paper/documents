@@ -6,6 +6,209 @@
 
 ## cache
 
+* `chfn`
+
+    chfn（Change Finger）用于修改用户信息.
+
+    syntax:
+
+    ```
+    chfn [选项] [用户名]
+    ```
+
+    * `-f`或`--full-name`: 修改全名
+
+    * `-o`或`--office`: 设置办公室地址
+
+    * `-p`或`--office-phone`: 设置办公电话
+
+    * `-h`或`--home-phone`: 设置家庭电话
+
+    example:
+
+    * `chfn`
+
+        交互式运行。
+
+    * `chfn -f "Jane Smith" johndoe`
+
+        将用户`johndoe`的 name 修改为`Jane Smith`.
+
+    修改的信息存储在`/etc/passwd`的`GECOS`字段，可通过`finger`命令查看。
+
+    `finger`需要使用 apt 安装：`apt install finger`
+
+    `chfn`这个命令在现代 linux 中已经不怎么用了。
+
+* crontab examples
+
+    * `0 * * * * /path/script.sh`
+        
+        每小时整点执行
+
+    * `*/10 * * * * date >> /tmp/log`
+    
+        每 10 分钟记录当前时间
+
+    * `0 2 * * * /backup.sh`
+    
+        每天凌晨 2 点执行备份
+
+    * `0 0 * * 1 tar -zcf /backup/weekly.tar.gz /data`
+    
+        每周一零点压缩备份
+
+    * `@reboot /path/start_service.sh`
+    
+        系统启动时执行
+
+    * `* * * * * /path/to/command`
+
+        每分钟执行一次
+
+    * `*/5 * * * * /path/to/command`
+
+        每5分钟执行一次
+
+    * `30 * * * * /path/to/command`
+
+        每小时的第30分钟执行
+
+    * `0 2 * * * /path/to/command`
+
+        每天凌晨2点执行
+
+    * `0 3 * * 1 /path/to/command`
+
+        每周一凌晨3点执行
+
+    * `0 12 1 * * /path/to/command`
+
+        每月1号中午12点执行
+
+    * `* * * * * /path/to/script.sh >> /var/log/script.log 2>&1`
+
+        将输出追加到日志文件（避免邮件通知）
+
+    * `* * * * * /path/to/command > /dev/null 2>&1`
+
+        丢弃所有输出（静默执行）
+
+    * `0 0 * * * rm -rf /tmp/*`
+
+        每天凌晨清理临时文件
+
+    * `0 2 * * 0 mysqldump -u root -pPASSWORD dbname > /backup/db.sql`
+
+        每周日备份数据库
+
+    * `*/30 * * * * /usr/sbin/ntpdate pool.ntp.org`
+
+        每30分钟同步时间（需安装ntpdate）
+
+    * `0 9 * * * echo "Daily meeting at 9:30!" | wall`
+
+        每天9点提醒自己（写入终端）
+
+    * `0 * * * * df -h > /home/user/disk_usage.log`
+
+        每小时检查磁盘空间
+
+    * `@reboot /path/to/startup_script.sh`
+
+        系统重启后执行
+
+    * `0 17 * * 1-5 echo "End of workday" | mail -s "Reminder" user@example.com`
+
+        工作日（周一到周五）下午5点发邮件
+
+    * `*/10 * * * * sleep $((RANDOM \% 60)) && /path/to/command`
+
+        随机延迟执行（避免任务集中触发）
+
+    * `0 9-18 * * 1-5 /path/to/work_script.sh`
+
+        每周一到周五，上午9点到下午6点，每小时执行一次
+
+    * `59 23 28-31 * * [ "$(date +\%d -d tomorrow)" = "01" ] && /path/to/monthly_task.sh`
+
+        每月最后一天23:59执行
+    
+    * `* * * * * /path/to/command | mail -s "Cron Debug" your@email.com`
+
+        通过日志或临时邮件检查任务是否运行
+
+
+* crontab 其他常用命令
+
+    * `crontab -l`
+        
+        列出当前用户的所有定时任务
+
+        其实就是列出 config 文件的所有内容，类似于 cat。
+
+    * `crontab -r`
+    
+        删除当前用户的所有定时任务（谨慎使用！）
+
+    * `crontab -u user`
+    
+        管理员专用：管理其他用户的任务（如`-e`, `-l`, `-r`）
+
+* crontab
+
+    `crontab`可以定时执行一些命令，在 ubuntu 系统上默认装有。
+
+    `crontab -e`编辑定时任务的配置文件。
+
+    配置文件的格式：
+
+    ```
+    * * * * * command_to_execute
+    │ │ │ │ │
+    │ │ │ │ └── 星期几 (0-7, 0和7均代表周日)
+    │ │ │ └──── 月份 (1-12)
+    │ │ └────── 日 (1-31)
+    │ └──────── 小时 (0-23)
+    └────────── 分钟 (0-59)
+    ```
+
+    * `*`：任意值（如 `* * * * *` 表示每分钟）
+
+    * `,`：分隔多个时间（如 `0,15,30 * * * *` 表示每小时的 0、15、30 分）
+
+    * `-`：范围（如 `0 9-17 * * *` 表示每天 9点到17点整点）
+
+    * `/`：间隔（如 `*/5 * * * *` 表示每 5 分钟）
+
+    example:
+
+    ```
+    # 每分钟执行一次
+    * * * * * date
+    ```
+
+    使用`crontab -e`编辑任务后无需重启服务，修改会自动生效。
+
+    output:
+
+    `/var/log/syslog`:
+
+    ```
+    Jul 31 16:08:23 hlc-VirtualBox crontab[3437117]: (hlc) BEGIN EDIT (hlc)
+    Jul 31 16:08:26 hlc-VirtualBox crontab[3437117]: (hlc) REPLACE (hlc)
+    Jul 31 16:08:26 hlc-VirtualBox crontab[3437117]: (hlc) END EDIT (hlc)
+    Jul 31 16:09:01 hlc-VirtualBox cron[689]: (hlc) RELOAD (crontabs/hlc)
+    Jul 31 16:09:01 hlc-VirtualBox CRON[3437888]: (hlc) CMD (date)
+    Jul 31 16:09:01 hlc-VirtualBox CRON[3437887]: (CRON) info (No MTA installed, discarding output)
+    ```
+
+    cron 默认会通过邮件发送命令的输出，但系统没有安装邮件传输代理（MTA）（如 sendmail、postfix 或 exim4），所以输出被丢弃。
+
+    通常会让 cron 的输出重定向到日志文件：
+
+    `* * * * * date >> /tmp/cron_date.log 2>&1`
+
 * `pgrep`
 
     `pgrep`可根据程序的名称快速找到 pid.

@@ -2,6 +2,70 @@
 
 ## cache
 
+* 多次 git stash 所发生的
+
+    当连续执行多次 git stash 后，stash 栈中会按顺序存储多次暂存的记录（最新的是 stash@{0}，之前的是 stash@{1}、stash@{2} 等）。
+
+    stash 栈的变化：
+
+    * `git stash apply stash@{1}`：仅应用改动，stash@{1} 仍保留在栈中。
+
+    * `git stash pop stash@{1}`：应用改动并删除 stash@{1}，后续的 stash@{0} 会重新编号为 stash@{0}。
+
+    由于 git stash 后，工作目录总是会会恢复最后一次 commit 的内容，所以多次 stash 的操作互相独立，五不干扰，没有依赖关系。
+
+    如果执行多次 git stash pop，那么 stash 的内容会互相叠加，如果有冲突，需要用户处理冲突。
+
+* git stash 只暂存两个地方的文件
+
+    1. 已经使用 git add 添加过的文件
+
+    2. 在 working directory 中，并且之前有 tracing 的文件
+
+    如果一个文件是新创建的，并且没有使用 git add 添加到 staging area，那么 git stash 不会暂存这个文件。
+
+    （如果一个文件既被 git add 添加到了 staging are，又被在 working directory 中做了修改，那么 git stash 存储后，在 git stash pop 时会恢复两个区域的记录吗，还是只恢复一个？）
+
+* git stash show 与 git stash list
+
+    `git stash show`只显示最后一次 stash 的文件修改增删行数信息。`git stash list`会列出所有 stash 的修改记录。
+
+* git stash 可临时保存工作区和暂存区中的更改，不产生 commit
+
+    `git stash`等价于`git stash push -m "可选说明文字"  # 推荐添加备注方便识别`
+
+    查看 stash 记录：`git stash list`
+
+    恢复最近一次的 stash（并保留 stash 记录）: `git stash apply`
+
+    恢复指定某条记录：`git stash apply stash@{n}  # n 为 stash 编号`
+
+    恢复并删除对应的 stash 记录: `git stash pop stash@{n}  # 默认弹出最近的（stash@{0}）
+    
+    只保存工作目录的修改（不包含已暂存的文件）：`git stash push --keep-index`
+
+    包含未跟踪的文件（如新创建的文件）：`git stash -u  # 或 --include-untracked`
+
+    删除某条 stash 记录：
+    
+    `git stash drop stash@{n}  # 删除指定记录`
+
+    `git stash clear           # 清空所有 stash`
+
+    查看 stash 的改动内容：`git stash show stash@{n} -p  # -p 显示详细差异`
+
+* `git stash`常用场景
+
+    * 切换分支时保存未提交的修改：
+
+        ```bash
+        git stash
+        git checkout other-branch
+        # 处理其他任务后回到原分支
+        git checkout original-branch
+        git stash pop
+        ```
+
 * 如果使用 http/https 在 github 上 clone repo，那么设置`http.proxy`, `https.proxy`就足够。但是如果使用 ssh 在 github 上 clone repo，那么就需要配置 ssh 的代理
 
     `~/.ssh/config`:
