@@ -1,3 +1,255 @@
+* url cache 2025.08.03
+
+    * Introduction to the NVIDIA DGX A100 System
+
+        <https://docs.nvidia.com/dgx/dgxa100-user-guide/introduction-to-dgxa100.html>
+
+    * vg-renderer
+
+        A vector graphics renderer for bgfx, based on ideas from NanoVG and ImDrawList (Dear ImGUI)
+
+        <https://github.com/jdryg/vg-renderer>
+
+    * kyanos
+
+        Kyanos is a networking analysis tool using eBPF. It can visualize the time packets spend in the kernel, capture requests/responses, makes troubleshooting more efficient. 
+
+        <https://github.com/hengyoush/kyanos>
+
+    * aisuite
+
+        Simple, unified interface to multiple Generative AI providers 
+
+        <https://github.com/andrewyng/aisuite>
+
+    * 持续强化学习(continue reinforcement learning)近期工作整理
+
+        <https://zhuanlan.zhihu.com/p/9054571855>
+
+    * 自底向上理解cute
+
+        <https://zhuanlan.zhihu.com/p/8225904566>
+
+    * Claude 3.5两小时暴虐50多名专家，编程10倍速飙升！但8小时曝出惊人短板
+
+        <https://zhuanlan.zhihu.com/p/8744198969>
+
+    * 什么样的神经科学/心理学涉及到图论（Graph Theory）和拓扑学（Topology）呢?
+
+        <https://www.zhihu.com/question/425251066/answer/3101895337>
+
+    * 动手Attention优化3：理解Bank Conflict及Cutlass Swizzle
+
+        <https://zhuanlan.zhihu.com/p/9840919069>
+
+    * 从AMD HIP分析CUDA流的实现
+
+        <https://zhuanlan.zhihu.com/p/9727179585>
+
+    * When to use the POLLOUT event of the poll C function?
+
+        <https://stackoverflow.com/questions/12170037/when-to-use-the-pollout-event-of-the-poll-c-function>
+
+    * pthread_cond_wait() — Wait on a condition variable
+
+        <https://www.ibm.com/docs/en/zos/2.4.0?topic=functions-pthread-cond-wait-wait-condition-variable>
+
+    * When to use pthread condition variables?
+
+        <https://stackoverflow.com/questions/20772476/when-to-use-pthread-condition-variables>
+
+    * Introduction to pThread
+
+        <http://www.cse.cuhk.edu.hk/~ericlo/teaching/os/lab/9-PThread/Introduction.html>
+
+    * Thread Management Functions in C
+
+        <https://www.geeksforgeeks.org/c/thread-functions-in-c-c/>
+
+    * POSIX thread (pthread) libraries
+
+        <https://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/www/pthreads.html>
+
+    * C++ 多线程编程（二）：pthread的基本使用
+
+        <https://immortalqx.github.io/2021/12/05/cpp-notes-4/>
+
+    * C++ 多线程编程（一）：std::thread的使用
+
+        <https://immortalqx.github.io/2021/12/04/cpp-notes-3/>
+
+    * pthread_cond_wait 为什么需要传递 mutex 参数？
+
+        <https://www.zhihu.com/question/24116967/answer/507224988>
+
+    * How to get thread id of a pthread in linux c program?
+
+        <https://stackoverflow.com/questions/21091000/how-to-get-thread-id-of-a-pthread-in-linux-c-program>
+
+    * Ray tracing on GPU systems 
+
+        <https://github.com/RayTracing/gpu-tracing>
+
+    * xml.c
+
+        Simple XML subset parser comparable to glib's Markup parser, but without any dependencies in one self contained file. 
+
+        <https://github.com/ooxi/xml.c/tree/master>
+
+    * libxml2
+
+        libxml2 is an XML toolkit implemented in C, originally developed for the GNOME Project.
+
+        <https://github.com/GNOME/libxml2/tree/master>
+
+    * Using Condition Variables
+
+        <https://docs.oracle.com/cd/E19455-01/806-5257/6je9h032r/index.html>
+
+    * EveryRay-Rendering-Engine
+
+        Robust real-time rendering engine on DX11, DX12 with many advanced graphical features for quick prototyping 
+
+        <https://github.com/steaklive/EveryRay-Rendering-Engine>
+
+    * TerrainEngine-OpenGL
+
+        <https://github.com/fede-vaccaro/TerrainEngine-OpenGL>
+
+    * LibrePCB
+
+        <https://librepcb.org/>
+
+    * Multisim Alternatives
+
+        <https://alternativeto.net/software/multisim/>
+
+    * ragflow
+
+        RAGFlow is an open-source RAG (Retrieval-Augmented Generation) engine based on deep document understanding. 
+
+        <https://github.com/infiniflow/ragflow>
+
+    * fritzing-app
+
+        The Fritzing application is an Electronic Design Automation software with a low entry barrier, 
+
+        <https://github.com/fritzing/fritzing-app>
+
+    *  Five EmbedDev
+
+        <https://five-embeddev.com/riscv-user-isa-manual/Priv-v1.12/intro.html>
+
+    * CUDA共享内存操作(__shared__关键字)
+
+        <https://blog.csdn.net/BOBOyspa/article/details/88642858>
+
+    * CUDA SHARED MEMORY
+
+        <https://www.cnblogs.com/1024incn/p/4605502.html>
+
+    * PTX ISA 之 同步指令 bar & membar
+
+        <https://blog.csdn.net/dark5669/article/details/60791828>
+
+    * Memory Model and Synchronization Primitive - Part 1: Memory Barrier 
+
+        <https://www.alibabacloud.com/blog/memory-model-and-synchronization-primitive---part-1-memory-barrier_597460>
+
+    * git-revert - 还原某些现有提交
+
+        <https://git-scm.com/docs/git-revert/zh_HANS-CN>
+
+    * git revert 用法 
+
+        <https://www.cnblogs.com/0616--ataozhijia/p/3709917.html>
+
+    * CUDA中的Warp Shuffle
+
+        <https://blog.csdn.net/kunhe0512/article/details/125492263>
+
+    * NVIDIA NCCL 源码学习（十一）- ring allreduce
+
+        <https://blog.csdn.net/KIDGIN7439/article/details/133313791>
+
+    * Using CUDA Warp-Level Primitives
+
+        <https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/>
+
+    * Using Shared Memory in CUDA C/C++
+
+        <https://developer.nvidia.com/blog/using-shared-memory-cuda-cc/>
+
+    * NCCL Source Code Study
+
+        <https://main-horse.github.io/series/nccl-source-code-study/>
+
+    * VirtualBox to use dual monitors
+
+        <https://superuser.com/questions/109485/virtualbox-to-use-dual-monitors>
+
+    * Remove VirtualBox Guest Additions from a VM that has already been migrated to Hyper V
+
+        <https://superuser.com/questions/1432429/remove-virtualbox-guest-additions-from-a-vm-that-has-already-been-migrated-to-hy>
+
+    * 腾讯机智团队分享--AllReduce算法的前世今生
+
+        <https://zhuanlan.zhihu.com/p/79030485>
+
+    * 兰瑞Frank
+
+        <https://www.zhihu.com/people/lan-rui-19-93/posts>
+
+    * How to use the NVIDIA MIG technology on GPU Instances
+
+        <https://www.scaleway.com/en/docs/gpu/how-to/use-nvidia-mig-technology/>
+
+    * MIG User Guide
+
+        <https://docs.nvidia.com/datacenter/tesla/mig-user-guide/#virtualization>
+
+    * Open MPI doc
+
+        <https://docs.open-mpi.org/en/v5.0.1/quickstart.html>
+
+    * dkms 相关
+
+        * <https://manpages.ubuntu.com/manpages/focal/man8/dkms.8.html>
+
+        * <https://github.com/dell/dkms>
+
+        * <https://wiki.archlinux.org/title/Dynamic_Kernel_Module_Support>
+
+        * <https://www.baeldung.com/linux/dynamic-kernel-module-support>
+
+        * <https://e3.pages.esss.lu.se/kb/guide/articles/9_dynamic_kernel_module_support.html>
+
+        * <https://help.ubuntu.com/community/Kernel/DkmsDriverPackage#Configure_DKMS>
+
+        * <https://github.com/dell/dkms/blob/main/test/dkms_test-1.0/dkms.conf>
+
+        * <https://blog.csdn.net/ldswfun/article/details/131554905>
+
+        * <https://www.xmodulo.com/build-kernel-module-dkms-linux.html>
+
+        * <https://www.clearlinux.org/clear-linux-documentation/guides/kernel/kernel-modules-dkms.html>
+
+    * makefile submodule 相关
+
+        * <https://stackoverflow.com/questions/9249757/recursive-make-in-subdirectories>
+
+        * <https://www.gnu.org/software/make/manual/make.html#Recursion>
+
+        * <https://developer.skao.int/en/latest/howto/integrate-cicd-make.html>
+
+        * <https://stackoverflow.com/questions/20176202/makefile-with-multiple-submodules>
+
+    * A2A
+    
+        An open protocol enabling communication and interoperability between opaque agentic applications. 
+
+        <https://github.com/a2aproject/A2A>
+
 * url cache 2025.08.02
 
     * How do I write a "pointer to const" type trait?

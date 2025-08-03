@@ -417,7 +417,10 @@ read var1
 #!/bin/bash
 read -p 'Username: ' uservar
 read -sp 'Password: ' passvar
+echo
 ```
+
+这里加`echo`是因为`-s`会抑制回车换行。
 
 读取多个变量：`read var1 var2 var3`。在输入变量时，变量之间使用空格分隔。如果输入的变量数大于指定的变量数，那么会把多余的输入都存储到最后一个输入中。如果输入的变量少于指定的变量，那么多余的变量会保持空白。
 

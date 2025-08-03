@@ -2,6 +2,34 @@
 
 ## cache
 
+* 一个能跑通的`__shared__` example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __shared__ int val;
+
+    __global__ void test_kern()
+    {
+        val = 123;
+        printf("%d\n", val);
+    }
+
+    int main()
+    {
+        test_kern<<<1, 1>>>();
+        cudaDeviceSynchronize();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    123
+    ```
+
 * cuda 的跨进程 vram 访问
 
     见`ref_39`

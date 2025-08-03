@@ -1226,6 +1226,28 @@
 
 ### tasks
 
+* [v] process 1 tab
+
+    feedback:
+
+    1. nvidia-smi
+
+        <https://www.chenshaowen.com/blog/basic-usage-of-nvidia-smi.html>
+
+        未处理完，目前看到了
+
+        > 常用参数
+
+    1. a100 spec
+
+        <https://datacrunch.io/blog/nvidia-a100-gpu-specs-price-and-alternatives>
+
+        未处理完，目前看到了
+
+        > A100 Data Sheet Comparison vs V100 and H100
+
+        不明白 TPCs 是什么意思。
+
 * [v] process 1 url
 
     feedback:
@@ -1629,11 +1651,11 @@ tasks:
 
 ### tasks
 
+* [ ] 调研 how to delete merge info from a commit
+
 * [ ] 调研`grep -c`
 
 * [ ] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
-
-* [v] 调研 nccl 在 trim system 后，并没有删除其他 rank 的 gpu，为什么？
 
 * [ ] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
 
@@ -1681,9 +1703,9 @@ tasks:
 
         3. 测试出 gpu 1 --> gpu 2 的延迟后，直接除以 2，作为 SILINK 1 和 SILINK 2 的延迟。
 
-* [ ] 调研`rm -rf *`如何删除隐藏文件/文件夹
+* [v] 调研`rm -rf *`如何删除隐藏文件/文件夹
 
-* [ ] 调研下面的 edge 是否可以作为聚合类？
+* [v] 调研下面的 edge 是否可以作为聚合类？
 
     ```cpp
     template<typename _EdgeType>
@@ -1732,8 +1754,6 @@ tasks:
 
     1. <https://docs.nvidia.com/cuda/archive/9.1/cuda-memcheck/index.html>
 
-* [v] 调研`crontab`
-
 * [ ] 调研 crontab 系统级定时任务
 
 * [ ] 调研`tail -f`
@@ -1766,8 +1786,6 @@ tasks:
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
 
-* [v] 调研`askpass`。
-
 * [ ] 调研`ssh -o PreferredAuthentications=password`
 
 * [ ] 调研`git-credential-libsecret`
@@ -1786,9 +1804,7 @@ tasks:
 
 * [v] 调研`ssh -T`
 
-    feedback:
-
-    1. 调研 PTY 与 tty 有何不同
+* [ ] 调研 PTY 与 tty 有何不同
 
 * [ ] 调研`disown`
 
@@ -1800,7 +1816,23 @@ tasks:
 
 * [ ] 调研`finger`
 
-* [ ] 调研`strchr()`
+* [v] 调研`strchr()`
+
+    feedback:
+
+    * 调研`strrchr()`
+
+        查找字符的最后一次出现位置。
+
+    * `strstr()`
+    
+        查找子字符串。
+
+    * 调研`wchar_t`，`wcschr()`
+
+    * 调研`setlocale()`
+
+    * 调研`ICU`或`libiconv`
 
 * [ ] 调研`crossNic`什么时候变成的 2？
 
@@ -1855,13 +1887,11 @@ tasks:
 
 * [v] 调研`ncclGetLevel()`
 
-    feedback:
-
-    1. 调研`ncclGetLevel()`中，old level 和 new level 是如何映射的
+* [ ] 调研`ncclGetLevel()`中，old level 和 new level 是如何映射的
 
 * [ ] 调研`ncclTopoSelectNets()`
 
-* [ ] 调研`do {} while(0)`，比如
+* [v] 调研`do {} while(0)`，比如
 
     ```cpp
     #define PRINT_EACH(...) do { \
@@ -4207,6 +4237,28 @@ cache:
 本项目的目标是学完 vim，可以使用 vim 代替 vscode 进行日常的代码开发和调试，以及文本文档的编辑。
 
 * vim 中的 redo 是哪个？
+
+## urls
+
+### cache
+
+### tasks
+
+#### processing
+
+* { } 旅行商问题（枚举，回溯，动态规划，贪心，分支界限）
+
+    <https://blog.csdn.net/m0_64372178/article/details/134541003>
+
+    feedback:
+
+    1. 2025.08.03 目前看到
+
+        > 暴力枚举
+        > 
+        > 使用 dfs 枚举每一个点，不适用剪枝的话就是暴力枚举法
+
+#### tracking
 
 ## 其他
 

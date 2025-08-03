@@ -2,189 +2,72 @@
 
 ## cache
 
-* 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
+* `comm->rank`是当前进程被分配到的 mpi rank （猜测）
 
-* A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
+* `comm->peerInfo[]`是第一轮 bootstrap all gather 后拿到的所有信息
 
-* 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
+* `comm->nRanks`这些 rank 不一定都在同一个 host 上，因此后面有`if (comm->peerInfo[i].hostHash == comm->peerInfo[comm->rank].hostHash)`保证每个 host 只处理当前 host 上的 rank
 
-    unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
-
-* `reduceCopyPacks()`是最底层负责干活的函数，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
-
-    数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
-
-* nccl 数据传输的调用流程
-
-    run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
-
-    * `Primitives<> prims`由`RunWorkColl()` -> `runRing()`创建
-
-* `ld_volatile_global()`在两个地方被调用
-
-    1. `Primitives::loadStepValue()`
-
-        用于加载 peer connection 的 info
-
-        * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
-
-        * 有可能 step 是异步处理，所以需要 volatile 加载数据
-
-        * `st_relaxed_sys_global()`由`postPeer()`调用
-
-    2. reduce copy
-
-        用于取 payload 数据。
-
-* `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
-
-* nccl 中 xml 的内存申请
-
-    nccl 中与 xml 相关的 struct 如下：
-
-    ```cpp
-    struct ncclXmlNode {
-        char name[MAX_STR_LEN+1];
-        struct {
-            char key[MAX_STR_LEN+1];
-            char value[MAX_STR_LEN+1];
-        } attrs[MAX_ATTR_COUNT+1];  // Need an extra one to consume extra params
-        int nAttrs;
-        int type;
-        struct ncclXmlNode* parent;
-        struct ncclXmlNode* subs[MAX_SUBS];
-        int nSubs;
-    };
-
-    struct ncclXml {
-        int maxIndex, maxNodes;
-        struct ncclXmlNode nodes[1];
-    };
-    ```
-
-    可以看到`ncclXml`里记录了`maxNodes`，即`nodes`数组的最大长度，`maxIndex`即目前`nodes`的实际长度，而`nodes`数组其实是实际子 nodes 的起始地址。
-
-    `struct ncclXmlNode nodes[1];`这样的写法，是想既申请一个节点，作为 xml 的 root node，又可以将`nodes`作为指针，增加偏移指向 child nodes。
-
-    下面是 nccl 里内存申请相关的函数：
-
-    ```cpp
-    static size_t xmlMemSize(int maxNodes) {
-      return offsetof(struct ncclXml, nodes) + sizeof(struct ncclXmlNode)*maxNodes;
-    }
-
-    static ncclResult_t xmlAlloc(struct ncclXml** xml, int maxNodes) {
-      char* mem;
-      NCCLCHECK(ncclCalloc(&mem, xmlMemSize(maxNodes)));
-      *xml = (struct ncclXml*)mem;
-      (*xml)->maxNodes = maxNodes;
-      return ncclSuccess;
-    }
-    ```
-
-    可以看到，`xmlMemSize()`在计算 size 时，`offsetof(struct ncclXml, nodes)`计算的是 header 部分，`sizeof(struct ncclXmlNode)*maxNodes`统计的是 child nodes 所占的 size。
-
-    这样的写法，有点像：
+* 如果处理到了当前进程，那么为当前进程赋值`localRank`，这个 idx 统一根据`nLocalRanks`的计数来分配
 
     ```c
-    struct MyXml
-    {
-        header member var 1;
-        header member var 2;
-        header member var 3;
-        ...
-        root node 0;
-        ----------------------
-        child node 1;
-        child node 2;
-        child node 3;
-        ...
-    };
+    if (i == comm->rank)
+      localRank = nLocalRanks;
     ```
 
-    这样即可将一个大小可动态变化的 struct 写成静态的第 1 部分和动态的第 2 部分。
+* `localRanks[nLocalRanks++] = i;`
 
-    是否有 feedback？未想到。
+    无论是否遇到当前进程，只要这个 rank 还在当前 host 上，那么就为`nLocalRanks`加 1，并且把`i`从`comm->nRanks`中拿出来。
 
-* 可以确认 socket 的 buffer 使用的是 cuda host alloc
+* 整体看来，bootstrap all gather 交换完信息后，一共会有`nRanks`个 rank，并且得到一个数组`comm->peerInfo[]`，但是这些 rank 不一定在同一个 host 上，`peerInfo[]`也可能是乱序的。
 
-    与 user 申请的数据对应的地址为`0x7fccafc00000`，查询 nccl 中所有的 buffer 的 addr，有一个`in ncclCudaHostCallocDebug(), host alloc size: 8388608, ptr: 0x7fccafa00000`，将`0x7fccafa00000`与`8388608`相加得到`7FCCB0200000`，由此可以看出`0x7fccafc00000`在这段内存里。
-
-    这个用于 socket 的 buffer size 为 8M，nccl 运行的整个过程中，一共申请了 2 个 8M 的 buffer，猜测可能是因为每个 gpu 算一个 rank，每个 rank 上都要有一个 buffer。
-
-    官网中的环境变量没有 8M 或 8388608 相关的字段，说明这个 buffer 大小在官网看来不受环境变量控制。
-
-* 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
-
-    同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
-
-    很可能是 8 bytes - 1048576 bytes 这个范围内。
-
-    * 2025/02/11/01: 确实没有用到，因为调用的是宏定义的 load 函数。`ld_volatile_global()`也很有可能不是加载数据用的，而是加载配置用的（step value）。
-
-* 基于 reduce copy 可以跑通的 all reduce
-
-    见`ref_36`。
-
-    output:
+    比如`nRanks`为`5`，`peerInfo[]`可能是下面这样的：
 
     ```
-    the first 8 elms:
-    cubuf_1: 1.0, 4.0, 3.0, 1.0, 5.0, 1.0, 4.0, 0.0, specialized as float
-    cubuf_2: 3.0, 0.0, 2.0, 1.0, 1.0, 2.0, 5.0, 5.0, specialized as float
-    after launch, the first 8 elms:
-    cubuf_1: 4.0, 4.0, 5.0, 2.0, 6.0, 3.0, 9.0, 5.0, specialized as float
-    cubuf_2: 4.0, 4.0, 5.0, 2.0, 6.0, 3.0, 9.0, 5.0, specialized as float
-    in compare_buf_cubuf(), specialized as float
-    in compare_buf_cubuf(), specialized as float
-    all results are correct
+    peerInfo[0]
+    host_hash_1
+
+    peerInfo[1]
+    host_hash_0
+
+    peerInfo[2]
+    host_hash_0
+
+    peerInfo[3]
+    host_hash_1
+
+    peerInfo[4]
+    host_hash_0
     ```
 
-    问题：
+    目前还已知`comm->rank`表示当前进程的 rank，现在我希望得到这样的结果：
 
-    1. 什么时候`Apply_Reduce::reduce()`中的 half 会被调用到？
+    ```
+    host 0:
+    nLocalRanks[3] = {1, 2, 4};
 
-    2. `MultimemSrcs`, `MultimemDsts`在何时被调用？
+    host 1:
+    nLocalRanks[2] = {0, 3};
+    ```
 
-    3. 尝试将 Unroll 加上去，看是如何处理 hunk 的
+    此时便需要写出 nccl 的代码：
 
-    4. 16 字节的数据是如何被处理的？
-
-    5. while 循环如何触发？while 中的 break 什么时候能删掉？
-
-    6. `aligned`何时被触发？
-
-    说明：
-
-    1. `cvta_to_global()`目前看来没有对 va 地址作任何改变
-
-* 一个能跑通的`__shared__` example:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-
-    __shared__ int val;
-
-    __global__ void test_kern()
-    {
-        val = 123;
-        printf("%d\n", val);
-    }
-
-    int main()
-    {
-        test_kern<<<1, 1>>>();
-        cudaDeviceSynchronize();
-        return 0;
+    ```c
+    NCCLCHECK(ncclCalloc(&localRanks, comm->nRanks));
+    for (int i = 0; i < comm->nRanks; i++) {
+      if (comm->peerInfo[i].hostHash == comm->peerInfo[comm->rank].hostHash) {
+        if (i == comm->rank)
+          localRank = nLocalRanks;
+        localRanks[nLocalRanks++] = i;
+      }
     }
     ```
 
-    output:
+    注意，`localRank`并不是从 0 ~ 4 中取值，而是只计算当前 host 上的 rank 数，取值范围为`host 0: 0 ~ 2`，`host 1: 0 ~ 1`。
 
-    ```
-    123
-    ```
+* nccl 禁用 shm 后，会调用`AllReduce_Sum_f32_RING_SIMPLE`
+
+* 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
 
 * nccl 中的 va 是 cuda malloc 时得到的
 
@@ -206,8 +89,6 @@
     dev 0, buf A: 0x7f1088a00000, buf B: 0x7f1088a00200
     dev 1, buf A: 0x7f1088c00000, buf B: 0x7f1088c00200
     ```
-
-* nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
 
 * nccl 很可能起了 46183 个 device 线程
 
@@ -243,22 +124,6 @@
 
     在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
 
-* `ncclTransports`在五处地方被使用
-
-    1. `proxyConnInit()`未被调用
-
-    2. `proxyFree()`：未调用
-
-    3. `ncclProxyConnect()`：未调用
-
-    4. `selectTransport()`：调用
-
-    5. `ncclTopoComputePaths()`
-
-    说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
-
-    猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
-
 * 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
 
 * cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
@@ -289,73 +154,9 @@
 
     * all-to-all
 
-* 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
-
-    nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
-
-    1. thread 79, g = 0, p = 1
-
-    2. thread 80, g = 0, p = 1
-
-    3. thread 79, g = 1, p = 0
-
-    4. thread 80, g = 1, p = 0
-
-    5. thread 79, g = 0, p = 1
-
-        这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
-
-    6. thread 80, g = 0, p = 1
-
-    7. thread 79, g = 1, p = 0
-
-    8. thread 80, g = 1, p = 0
-
-    9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
-
-    10. thread 37, 
-
-    11. thread 37, c = 1
-
-    12. thread 36, c = 1
-
-    13. thread 36, c = 0
-
-        从这里开始，调用`selectTransport<1>()`
-
-    14. thread 37, c = 0
-
-    15. thread 36, c = 1
-
-    16. thread 37, c = 1
-
 * 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
 
     修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
-
-* `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
-
-    `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
-
-* 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
-
-    目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
-
-    这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
-
-* 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
-
-    其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
-
-    显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
-
-    目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
-
-* 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
-
-* 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
-
-* nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
 
 * 目前看起来是在`ncclTopoCheckP2p()`处失败的
 
@@ -1000,64 +801,199 @@
 
     `NVIDIA_VISIBLE_DEVICES`也不行。
 
-* nccl p2p 在开始数据传输任务后，host 端在 while 循环中进行 poll 检查 sockfd 状态，除此之外无显式的 send recv 操作，说明 p2p 确实是由 device 侧发起的数据搬运操作。
-
-    p2p 模式下，cpu 单核仍会跑满，但是这个是主动循环 poll sockfd 事件导致的，并不是内核在读写 host memory。
-
-    猜测可能是 host 申请一个 sockfd，然后把相关的 buffer 地址以及对应的权限交给 gpu. gpu 走 pcie p2p 和其他 gpu 进行通信，当通信完成后，gpu 会回填这个 sockfd 的 buffer，这个 buffer 里包含了 fd 的状态，代表事件已经完成。host 侧则通过轮询（也不是轮询，其实就是 poll）这个 fd 判断事件是否完成。
-
-    （如果使用 poll，按道理 cpu 应该占用率为零才对，为什么仍会占用 100%？可能是 timeout 设置为 0？不清楚，有时间了看看。）
-
 * nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
 
     添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
 
-* nccl pcie 检查调用栈
+## note
 
-    * `ncclAsyncJobMain()`
+### compile and install
 
-        * `commAlloc()`
+#### cache
 
-            * `ncclNvmlDeviceGetHandleByPciBusId()`
-
-                * `ncclNvmlEnsureInitialized()`
-
-                    * `pfn_nvmlDeviceGetP2PStatus()`
-
-        * `ncclCommInitRankFunc()`
-
-            * `initTransportsRank()`
-
-                * `ncclTopoComputePaths()`
-
-                    * `ncclTopoCheckP2p()`
-
-                    * `p2pCanConnect()`
-
-                        * `ncclTopoCheckP2p()`
+* A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
 
 * cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
 
     使用 compute_70 可以跑通。
 
-* 一个可以运行的 nccl test 命令
+#### note
 
-    ```bash
-    nccl_tests_path=/home/hlc/Documents/Projects/nccl-tests
-    mpirun -np 2 --host node1,node2 -mca btl_tcp_if_include enp0s3 -x NCCL_DEBUG=TRACE -x NCCL_BUFFSIZE=32768 ${nccl_tests_path}/build/all_reduce_perf -b 8 -e 128M -f 2 -g 1
+### app
+
+#### cache
+
+* 使用 unique id + init rank 的方式进行初始化
+
+    ```cpp
+    #include <nccl.h>
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        ncclUniqueId uni_id;
+        ncclResult_t ret;
+        ret = ncclGetUniqueId(&uni_id);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to get unique id\n");
+            return -1;
+        }
+        printf("get unique id: %lu\n", uni_id);
+
+        ncclComm_t comms[2];
+        int dev_indices[2] = {0, 1};
+
+        ncclGroupStart();
+        for (int i = 0; i < 2; i++) {
+            cudaSetDevice(dev_indices[i]);
+            ncclCommInitRank(&comms[i], 2, uni_id, i);
+        }
+        ncclGroupEnd();
+
+        for (int i = 0; i < 2; ++i)
+        {
+            cudaSetDevice(dev_indices[i]);
+            cudaDeviceSynchronize();
+        }
+
+        for (int i = 0; i < 2; ++i)
+        {
+            printf("comms[%d]: %p\n", i, comms[i]);
+        }
+
+        return 0;
+    }
     ```
 
-    说明：
+    output:
 
-    * `CCL_DEBUG`必须设置成`TRACE`才能看到 nccl 运行时的详细的信息。设置成`INFO`不行。
+    ```
+    get unique id: 512
+    comms[0]: 0x55fd1f29f6c0
+    comms[1]: 0x55fd1f33cf20
+    ```
 
-    * `NCCL_BUFFSIZE`可以设置 cpu memory buffer 的大小
+* 使用`ncclCommInitRankConfig()`进行带参数的初始化
 
-        这个默认为`4194304`,即 4MB.
+    ```cpp
+    ncclConfig_t config = NCCL_CONFIG_INITIALIZER;
+    config.blocking = 0;
+    config.minCTAs = 4;
+    config.maxCTAs = 16;
+    config.cgaClusterSize = 2;
+    config.netName = "Socket";
 
-        `32768`对应的是 32KB.
+    // ...
 
-    * `-g 1`表示 nccl 在本 node 上只使用一块 gpu.
+    ncclGroupStart();
+    for (int i = 0; i < 2; i++)
+    {
+        cudaSetDevice(dev_indices[i]);
+        ncclCommInitRankConfig(&comms[i], 2, uni_id, i, &config);
+    }
+    ncclGroupEnd();
+    ```
+
+    这里，`NCCL_CONFIG_INITIALIZER`并不是一个枚举，而是一个宏，写了 struct 初始化的一些字段。
+
+* The `ncclCommInitRankScalable()` function enables the creation of a NCCL communicator using many ncclUniqueIds.
+
+    看起来这个函数可以指定多个 unique id，但是 unique id 其实是标识 host　的，使用多个 host 又有什么用？
+
+    试了下，这个功能在目前的版本里没有，好像是新加上去的。
+
+* doc 里说使用这个函数判断一个 rank 是否应该产生一个 unique id
+
+    ```cpp
+    bool rankHasRoot(const int rank, const int nRanks, const int nIds) {
+      const int rmr = nRanks % nIds;
+      const int rpr = nRanks / nIds;
+      const int rlim = rmr * (rpr+1);
+      if (rank < rlim) {
+        return !(rank % (rpr + 1));
+      } else {
+        return !((rank - rlim) % rpr);
+      }
+    }
+    ```
+
+    For example, if 3 ncclUniqueIds are to be distributed accross 7 NCCL ranks, the first ncclUniqueId will be associated to ranks 0-2, while the others will be associated to ranks 3-4, and 5-6. This function will therefore return true on rank 0, 3, and 5, and false otherwise.
+
+    Note: only the first ncclUniqueId will be used to create the communicator hash id, which is used to identify the communicator in the log file and in the replay tool.
+
+    不清楚这个干嘛用的，创建这么多 unique id 有什么用。
+
+* Using multiple NCCL communicators concurrently
+
+    根据 doc 上的资料，在 cuda 12.3 之前，
+
+    ```cpp
+    cudaGraphLaunch(graph1, stream1); // all ranks do this first
+    cudaGraphLaunch(graph2, stream2); // and this second
+    ```
+
+    是按顺序执行的，底层使用的是 cuda graph。
+
+    从 cuda 12.3 开始，这两个语句是并行执行的，底层使用的是 completion events。
+
+* nccl 提供的控制模式
+
+    * single-threaded control of all GPUs
+
+    * multi-threaded, for example, using one thread per GPU
+
+    * multi-process, for example, MPI
+
+* Each CUDA device is identified within the communication group by a zero-based index or rank. 
+
+    看来每个 group 内的 rank 是从 0 开始分配，并且唯一的，但是 group 与 group 内的 rank 是互相独立的。
+
+* When creating a communicator, a unique rank between 0 and n-1 has to be assigned to each of the n CUDA devices which are part of the communicator.
+
+    猜测：在当前进程创建 communicator 后，当前 host 的所有 device 会被编号为 0 到 n - 1。
+
+* Using the same CUDA device multiple times as different ranks of the same NCCL communicator is not supported and may lead to hangs.
+
+    在不同的 communicator 中，同一个 deivce 是否会有不同的 rank？
+
+* Given a static mapping of ranks to CUDA devices, the ncclCommInitRank(), ncclCommInitRankConfig() and ncclCommInitAll() functions will create communicator objects, each communicator object being associated to a fixed rank and CUDA device.
+
+    cuda device，rank 和 communicator 是一一映射关系。
+
+    每次 init 的时候，cuda dev 都会被映射到相同的 rank 上吗？
+
+* Before calling ncclCommInitRank(), you need to first create a unique object which will be used by all processes and threads to synchronize and understand they are part of the same communicator. This is done by calling the ncclGetUniqueId() function.
+
+    这个 unique id 其实就是 ip + bus id 了。
+
+* The ncclGetUniqueId() function returns an ID which has to be broadcast to all participating threads and processes using any CPU communication system, for example, passing the ID pointer to multiple threads, or broadcasting it to other processes using MPI or another parallel environment using, for example, sockets.
+
+    看他这个介绍，mpi 只是可选项之一，是否如果只调用 thread，那么就不会用到 mpi？
+
+* You can also call the ncclCommInitAll operation to create n communicator objects at once within a single process. As it is limited to a single process, this function does not permit inter-node communication. ncclCommInitAll is equivalent to calling a combination of ncclGetUniqueId and ncclCommInitRank.
+
+    猜想：inter-node 可能是跨 host 通信的意思。
+
+    看起来`ncclCommInitAll()`是在一个进程上拿到所有 device 的 rank 的意思。
+
+* The following sample code is a simplified implementation of ncclCommInitAll.
+
+    ```cpp
+    ncclResult_t ncclCommInitAll(ncclComm_t* comm, int ndev, const int* devlist) {
+      ncclUniqueId Id;
+      ncclGetUniqueId(&Id);
+      ncclGroupStart();
+      for (int i=0; i<ndev; i++) {
+        cudaSetDevice(devlist[i]);
+        ncclCommInitRank(comm+i, ndev, Id, i);
+      }
+      ncclGroupEnd();
+    }
+    ```
+
+    `ncclCommInitRank()`接收了个`ndev`参数，猜测可能是为每个`comm`，都创建长度为`ndev`的数组，保存 peer devs 的信息。而`Id`和`i`，则分别作为 bus id 和 dev rank 信息。
 
 * 一条可以跑通的 nccl 命令：`mpirun -np 2 --host sw53,sw54 -mca btl_tcp_if_include ens9f0 $(pwd)/all_reduce_perf -b 8 -e 128M -f 2 -g 1`
 
@@ -1121,11 +1057,24 @@
 
     * `-g 1`：在当前机器上使用 1 块 gpu
 
-## note
+* 一个可以运行的 nccl test 命令
 
-### app
+    ```bash
+    nccl_tests_path=/home/hlc/Documents/Projects/nccl-tests
+    mpirun -np 2 --host node1,node2 -mca btl_tcp_if_include enp0s3 -x NCCL_DEBUG=TRACE -x NCCL_BUFFSIZE=32768 ${nccl_tests_path}/build/all_reduce_perf -b 8 -e 128M -f 2 -g 1
+    ```
 
-#### cache
+    说明：
+
+    * `CCL_DEBUG`必须设置成`TRACE`才能看到 nccl 运行时的详细的信息。设置成`INFO`不行。
+
+    * `NCCL_BUFFSIZE`可以设置 cpu memory buffer 的大小
+
+        这个默认为`4194304`,即 4MB.
+
+        `32768`对应的是 32KB.
+
+    * `-g 1`表示 nccl 在本 node 上只使用一块 gpu.
 
 * 一个最简 nccl 程序
 
@@ -1450,5 +1399,549 @@
     ```
 
     可以看到，all reduce sum 把不同 device 上的 src 处的数据相加，然后把结果同步到两个 device 的 dst 显存上。
+
+#### note
+
+### topo
+
+#### cache
+
+* `TopoLinkList`、`TopoNodeList`与`TopoNodeSet`有什么不同？
+
+* `ncclTopoSetPaths()`
+
+    每个 node 都有多种 path，这里的 path 是个`ncclTopoLinkList`，其内容如下：
+
+    ```cpp
+    struct ncclTopoLinkList {
+      struct ncclTopoLink* list[NCCL_TOPO_MAX_HOPS];
+      int count;
+      float bw;
+      int type;
+    };
+    ```
+
+    可以看到 path 中包含了一个 link list，还有个 type。这个 type 一共有如下几种：
+
+    ```cpp
+    // Local (myself)
+    #define PATH_LOC 0
+
+    // Connection traversing NVLink
+    #define PATH_NVL 1
+
+    // Connection through NVLink using an intermediate GPU
+    #define PATH_NVB 2
+
+    // Connection traversing at most a single PCIe bridge
+    #define PATH_PIX 3
+
+    // Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+    #define PATH_PXB 4
+
+    // Connection between a GPU and a NIC using an intermediate GPU. Used to enable rail-local, aggregated network send/recv operations.
+    #define PATH_PXN 5
+
+    // Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+    #define PATH_PHB 6
+
+    // Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+    #define PATH_SYS 7
+
+    // Connection through the network
+    #define PATH_NET 8
+
+    // Disconnected
+    #define PATH_DIS 9
+    ```
+
+    每个 topo node 下有多种类型的 path，每种类型的 path 又有多条 path 实例，每条 path 其实是一个 topo path list。
+
+    从`baseNode->paths+baseNode->type`可以看出，每个 node 只处理和当前 node 类型相同的 path。并且申请的内存大小是根据 topo system 中的数据确定的。
+
+    因此每个 node 下的 path 可能是这样的：
+
+    ```
+    cpu 0 -> cpu 1 -> cpu 2 -> cpu 3
+    ```
+
+    这其中并没有 gpu，nic 相关的。
+
+    2025053100: 上述代码表示“如果未初始化从 base node 出发，到 base node 类型的 path，那么将所有 base node 类型的 path 都初始化一下”。这个初始化实际上是为后面 bfs 的种子轮搜索服务的。前面的推理明显是完全错误的，错误原因一是将 base node 泛化为了所有 node，其实应该只能推断出在这里对 base node 类型的 path 做了申请内存和初始化，但是不知道拿来干嘛的；二是没有做实验验证`cpu 0 -> cpu 1 -> cpu 2 -> cpu 3`是否正确，如果验证了马上发现 path 中会有多种 node，那么前面的推理就被全部推翻了。由此我们得到的启示是：如果想要做出推断，那么必须做实验。
+
+* getPath
+
+    ```cpp
+    static ncclResult_t getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path) {
+      for (int i=0; i<system->nodes[t].count; i++) {
+        if (system->nodes[t].nodes[i].id == id) {
+          *path = node->paths[t]+i;
+          return ncclSuccess;
+        }
+      }
+      WARN("Could not find node of type %d id %lx", t, id);
+      return ncclInternalError;
+    }
+    ```
+
+    这个函数的传入参数`t`应该是 type 的意思，比如`GPU`, `CPU`, `NIC`。
+
+    返回从`node`出发，指向节点类型为`t`，节点 id 为`id`的 path。
+
+* `ncclTopoConnectNodes()`
+
+    ```cpp
+    ncclResult_t ncclTopoConnectNodes(struct ncclTopoNode* node, struct ncclTopoNode* remNode, int type, float bw) {
+      // Aggregate links into higher bw for NVLink
+      struct ncclTopoLink* link;
+      for (link = node->links; link - node->links != NCCL_TOPO_MAX_LINKS && link->remNode; link++) {
+        if (link->remNode == remNode && link->type == type) break;
+      }
+
+      // ...
+    }
+    ```
+
+    `NCCL_TOPO_MAX_LINKS`宏展开是 128，这个遍历看起来是从头开始遍历，要么到达最大容量`NCCL_TOPO_MAX_LINKS`后停止，要么`link->remNode`为空时停止。因此前面使用数组已经分配了`link`的空间，所以在数组范围内`link`一定都不为空。
+
+    往上走一层我们可以看到`ncclTopoConnectNodes(cpu1, cpu2, LINK_SYS, bw);`，说明 local link 是 cpu 1 上的 link，而 remote node 就是 cpu 2，link type 为`LINK_SYS`。
+
+    ```cpp
+    // Sort links in BW descending order
+    struct ncclTopoLink linkSave;
+    memcpy(&linkSave, link, sizeof(struct ncclTopoLink));
+    while (link != node->links) {
+        if ((link-1)->bw >= linkSave.bw)
+            break;
+        memcpy(link, link-1, sizeof(struct ncclTopoLink));
+        link--;
+    }
+    memcpy(link, &linkSave, sizeof(struct ncclTopoLink));
+    ```
+
+    这个是从尾向前遍历，因为要用到`link - 1`，所以当遍历完第 2 个节点后停下，第 1 个节点单独处理。
+
+    1, 2, 3, 4, 5
+
+    `linkSave` -> 5
+
+    `link - 1` -> 4
+
+    `link` -> 4, `link - 1` -> 3
+
+    1, 2, 3, 4, 4 => 5, 1, 2, 3, 4
+
+    看起来比较像，对于`cpu_node_2`，让当前`cpu_node_1`的 link 向前找到一个合适的位置。
+
+    5, 4, 2, 1, 3 => 5, 4, 3, 2, 1
+
+    4, 5, 2, 1, 3 => 4, 5, 3, 2, 1
+
+    由上面的例子可以看出，首先把要处理的数据`x`放在末尾，然后倒着向前找，直到找到第一个比`x`大的数`y`，最后将`x`放到`y`的后面，退出。再向前的数据则不去处理。
+
+    边界条件：如果搜索整个数组都没有找到比`x`大的值，那么说明`x`是数组中最大的，将其放到最前面。
+
+    * cpu node 的 links 是在什么时候被填充的？
+
+        看起来比较像在`ncclTopoAddNvLinks()`里填充。这个是个递归调用的函数。
+
+        * (2025.04.08,00) cpu node 的 link 并不是物理的 link，而是拓扑图里的 edge，因此并不是只在 add nvlinks 函数里填充。目前看来，应该是在`ncclTopoConnectNodes()`里被填充。
+
+    * 为什么只有 cpu link 的 connect，没有 gpu link 的 connect？
+
+    * link type
+
+        ```cpp
+        // We want link types and path types to match as much as possible
+        #define LINK_LOC 0
+        #define LINK_NVL 1
+        // Skipping 2 for PATH_NVB
+        #define LINK_PCI 3
+        // Skipping 4 for PATH_PXB
+        // Skipping 5 for PATH_PXN
+        // Skipping 6 for PATH_PHB
+        #define LINK_SYS 7
+        #define LINK_NET 8
+        ```
+
+        实测每个 cpu 有 3 个 link，有两个 type 为`LINK_LOC`，还有一个 type 为`LINK_PCI`。
+
+        看来 topo system 里的 link 指的不是 nvlink，而是 graph 里的 edge。
+
+* nccl 中的 topo node 只有四种：gpu, net, cpu, pci
+
+    目前不清楚 pci 中的`uint64_t device;`成员是干嘛用的，可能是 bus id？
+
+    每个 node 上都可以对接 nvlink。（net 该怎么对接？）
+
+    link 相关的结构体只有三个信息：
+
+    ```cpp
+    struct TopoLink
+    {
+        int type;
+        float bw;
+        struct TopoNode *peer_node;  // remNode
+    };
+    ```
+    
+    这里的`TopoLink`即为拓扑边，其实翻译成 edge 更恰当。`peer_node`, `remNode`就是从当前 node 出发的下一跳 node。
+
+    这里的`int type;`类型指的是拓扑边的类型，不是下个节点的类型。
+
+    每个节点都包含一个固定长度的`TopoLinkList*`数组，数组中的每个元素分别对应不同的类型：
+
+    ```cpp
+    enum {
+        GPU = 0,
+        PCI = 1,
+        NVS = 2,
+        CPU = 3, // Actually NUMA domains
+        NIC = 4,
+        NET = 5,
+        NCCL_TOPO_NODE_TYPES
+    };
+    ```
+
+    每个节点朝别的所有类型的节点都有 path，这里的 path 类型即 dst 节点的类型。
+
+    `TopoLinkList`的 struct 为：
+
+    ```cpp
+    struct TopoLinkList
+    {
+        vector<TopoLink*> list;  // NCCL_TOPO_MAX_HOPS 256 * 7
+        int count;
+        float bw;
+        int type;
+    };
+    ```
+
+    这里的`list`是由一系列 topo link (edge) 组成的 path。
+
+    其中的`int type;`指的是 path type。
+
+    每个类型存储一个 path 指针，这个指针，其实是一个 path 数组，由于数组的长度需要在运行时动态确定，所以后面会有 malloc 填充这个指针。
+
+* `ncclTopoFuseXml()`
+
+    ```c
+    ncclResult_t ncclTopoFuseXml(struct ncclXml* dst, struct ncclXml* src) {
+      struct ncclXmlNode* topNodeDst;
+      NCCLCHECK(xmlFindTag(dst, "system", &topNodeDst));
+
+      if (topNodeDst == NULL) {
+        xmlAddTree(dst, NULL, src->nodes);
+        return ncclSuccess;
+      }
+
+      struct ncclXmlNode* topNodeSrc;
+      NCCLCHECK(xmlFindTag(src, "system", &topNodeSrc));
+
+      NCCLCHECK(xmlTopoFuseXmlRecursive(dst, topNodeDst, topNodeSrc));
+
+      return ncclSuccess;
+    }
+    ```
+
+    如果`dst`是个空的 xml，那么把`src`的 xml 直接添加到`dst`里。
+
+    如果`dst`非空，那么找到`src`中的`system` tag，
+
+* nccl xml
+
+    ```c
+    if (comm->MNNVL) {
+        // Ensure that we have enough room when fusing topos from multiple nodes.
+        free(xml);
+        NCCLCHECK(xmlAlloc(&xml, nLocalRanks*NCCL_TOPO_XML_MAX_NODES));
+    } else {
+        // In the intra-node case there's no need to enlarge the topo xml.
+        xml->maxIndex = 0;
+        free(localRanks);
+    }
+    ```
+
+    不清楚这个`comm->MNNVL`是干嘛用的，疑似是发现了多个 host。如果有多个 host，那么就认为在 current node 上申请的 xml 的内存不够用（为什么不够用？前面在申请时，是按 max nodes 申请的内存吗？），全部释放掉再申请个新的。
+
+    如果发现所有的 comm rank 都是在同一个 node 上的，那么认为为 xml 预留的空间够用，`xml->maxIndex = 0;`相当于移动了栈顶指针，效果上等价于释放数据。`free(localRanks);`不清楚干嘛用的，可能是如果发现 comm 都在同一个 host 上，那么 localRanks 就是无意义的。
+
+* 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+* 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+
+    目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
+
+    这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+
+* nccl 中 xml 的内存申请
+
+    nccl 中与 xml 相关的 struct 如下：
+
+    ```cpp
+    struct ncclXmlNode {
+        char name[MAX_STR_LEN+1];
+        struct {
+            char key[MAX_STR_LEN+1];
+            char value[MAX_STR_LEN+1];
+        } attrs[MAX_ATTR_COUNT+1];  // Need an extra one to consume extra params
+        int nAttrs;
+        int type;
+        struct ncclXmlNode* parent;
+        struct ncclXmlNode* subs[MAX_SUBS];
+        int nSubs;
+    };
+
+    struct ncclXml {
+        int maxIndex, maxNodes;
+        struct ncclXmlNode nodes[1];
+    };
+    ```
+
+    可以看到`ncclXml`里记录了`maxNodes`，即`nodes`数组的最大长度，`maxIndex`即目前`nodes`的实际长度，而`nodes`数组其实是实际子 nodes 的起始地址。
+
+    `struct ncclXmlNode nodes[1];`这样的写法，是想既申请一个节点，作为 xml 的 root node，又可以将`nodes`作为指针，增加偏移指向 child nodes。
+
+    下面是 nccl 里内存申请相关的函数：
+
+    ```cpp
+    static size_t xmlMemSize(int maxNodes) {
+      return offsetof(struct ncclXml, nodes) + sizeof(struct ncclXmlNode)*maxNodes;
+    }
+
+    static ncclResult_t xmlAlloc(struct ncclXml** xml, int maxNodes) {
+      char* mem;
+      NCCLCHECK(ncclCalloc(&mem, xmlMemSize(maxNodes)));
+      *xml = (struct ncclXml*)mem;
+      (*xml)->maxNodes = maxNodes;
+      return ncclSuccess;
+    }
+    ```
+
+    可以看到，`xmlMemSize()`在计算 size 时，`offsetof(struct ncclXml, nodes)`计算的是 header 部分，`sizeof(struct ncclXmlNode)*maxNodes`统计的是 child nodes 所占的 size。
+
+    这样的写法，有点像：
+
+    ```c
+    struct MyXml
+    {
+        header member var 1;
+        header member var 2;
+        header member var 3;
+        ...
+        root node 0;
+        ----------------------
+        child node 1;
+        child node 2;
+        child node 3;
+        ...
+    };
+    ```
+
+    这样即可将一个大小可动态变化的 struct 写成静态的第 1 部分和动态的第 2 部分。
+
+    是否有 feedback？未想到。
+
+#### note
+
+### communication operator
+
+#### cache
+
+* 基于 reduce copy 可以跑通的 all reduce
+
+    见`ref_36`。
+
+    output:
+
+    ```
+    the first 8 elms:
+    cubuf_1: 1.0, 4.0, 3.0, 1.0, 5.0, 1.0, 4.0, 0.0, specialized as float
+    cubuf_2: 3.0, 0.0, 2.0, 1.0, 1.0, 2.0, 5.0, 5.0, specialized as float
+    after launch, the first 8 elms:
+    cubuf_1: 4.0, 4.0, 5.0, 2.0, 6.0, 3.0, 9.0, 5.0, specialized as float
+    cubuf_2: 4.0, 4.0, 5.0, 2.0, 6.0, 3.0, 9.0, 5.0, specialized as float
+    in compare_buf_cubuf(), specialized as float
+    in compare_buf_cubuf(), specialized as float
+    all results are correct
+    ```
+
+    问题：
+
+    1. 什么时候`Apply_Reduce::reduce()`中的 half 会被调用到？
+
+    2. `MultimemSrcs`, `MultimemDsts`在何时被调用？
+
+    3. 尝试将 Unroll 加上去，看是如何处理 hunk 的
+
+    4. 16 字节的数据是如何被处理的？
+
+    5. while 循环如何触发？while 中的 break 什么时候能删掉？
+
+    6. `aligned`何时被触发？
+
+    说明：
+
+    1. `cvta_to_global()`目前看来没有对 va 地址作任何改变
+
+* 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
+
+    同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
+
+    很可能是 8 bytes - 1048576 bytes 这个范围内。
+
+    * 2025/02/11/01: 确实没有用到，因为调用的是宏定义的 load 函数。`ld_volatile_global()`也很有可能不是加载数据用的，而是加载配置用的（step value）。
+
+* nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
+
+* `ld_volatile_global()`在两个地方被调用
+
+    1. `Primitives::loadStepValue()`
+
+        用于加载 peer connection 的 info
+
+        * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
+
+        * 有可能 step 是异步处理，所以需要 volatile 加载数据
+
+        * `st_relaxed_sys_global()`由`postPeer()`调用
+
+    2. reduce copy
+
+        用于取 payload 数据。
+
+* `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
+
+* 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
+
+    unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
+
+* `reduceCopyPacks()`是最底层负责干活的函数，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
+
+    数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
+
+* nccl 数据传输的调用流程
+
+    run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
+
+    * `Primitives<> prims`由`RunWorkColl()` -> `runRing()`创建
+
+#### note
+
+### transport layer
+
+#### cache
+
+* 可以确认 socket 的 buffer 使用的是 cuda host alloc
+
+    与 user 申请的数据对应的地址为`0x7fccafc00000`，查询 nccl 中所有的 buffer 的 addr，有一个`in ncclCudaHostCallocDebug(), host alloc size: 8388608, ptr: 0x7fccafa00000`，将`0x7fccafa00000`与`8388608`相加得到`7FCCB0200000`，由此可以看出`0x7fccafc00000`在这段内存里。
+
+    这个用于 socket 的 buffer size 为 8M，nccl 运行的整个过程中，一共申请了 2 个 8M 的 buffer，猜测可能是因为每个 gpu 算一个 rank，每个 rank 上都要有一个 buffer。
+
+    官网中的环境变量没有 8M 或 8388608 相关的字段，说明这个 buffer 大小在官网看来不受环境变量控制。
+
+* nccl pcie 检查调用栈
+
+    * `ncclAsyncJobMain()`
+
+        * `commAlloc()`
+
+            * `ncclNvmlDeviceGetHandleByPciBusId()`
+
+                * `ncclNvmlEnsureInitialized()`
+
+                    * `pfn_nvmlDeviceGetP2PStatus()`
+
+        * `ncclCommInitRankFunc()`
+
+            * `initTransportsRank()`
+
+                * `ncclTopoComputePaths()`
+
+                    * `ncclTopoCheckP2p()`
+
+                    * `p2pCanConnect()`
+
+                        * `ncclTopoCheckP2p()`
+
+* nccl p2p 在开始数据传输任务后，host 端在 while 循环中进行 poll 检查 sockfd 状态，除此之外无显式的 send recv 操作，说明 p2p 确实是由 device 侧发起的数据搬运操作。
+
+    p2p 模式下，cpu 单核仍会跑满，但是这个是主动循环 poll sockfd 事件导致的，并不是内核在读写 host memory。
+
+    猜测可能是 host 申请一个 sockfd，然后把相关的 buffer 地址以及对应的权限交给 gpu. gpu 走 pcie p2p 和其他 gpu 进行通信，当通信完成后，gpu 会回填这个 sockfd 的 buffer，这个 buffer 里包含了 fd 的状态，代表事件已经完成。host 侧则通过轮询（也不是轮询，其实就是 poll）这个 fd 判断事件是否完成。
+
+    （如果使用 poll，按道理 cpu 应该占用率为零才对，为什么仍会占用 100%？可能是 timeout 设置为 0？不清楚，有时间了看看。）
+
+* nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+* 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+
+* 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+
+    其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
+
+    显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
+
+    目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
+
+* `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+
+    `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
+
+* 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
+
+    nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
+
+    1. thread 79, g = 0, p = 1
+
+    2. thread 80, g = 0, p = 1
+
+    3. thread 79, g = 1, p = 0
+
+    4. thread 80, g = 1, p = 0
+
+    5. thread 79, g = 0, p = 1
+
+        这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
+
+    6. thread 80, g = 0, p = 1
+
+    7. thread 79, g = 1, p = 0
+
+    8. thread 80, g = 1, p = 0
+
+    9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
+
+    10. thread 37, 
+
+    11. thread 37, c = 1
+
+    12. thread 36, c = 1
+
+    13. thread 36, c = 0
+
+        从这里开始，调用`selectTransport<1>()`
+
+    14. thread 37, c = 0
+
+    15. thread 36, c = 1
+
+    16. thread 37, c = 1
+
+* `ncclTransports`在五处地方被使用
+
+    1. `proxyConnInit()`未被调用
+
+    2. `proxyFree()`：未调用
+
+    3. `ncclProxyConnect()`：未调用
+
+    4. `selectTransport()`：调用
+
+    5. `ncclTopoComputePaths()`
+
+    说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+    猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
 
 #### note

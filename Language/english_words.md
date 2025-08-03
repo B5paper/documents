@@ -609,3 +609,15 @@ weird quirks 怪癖
 be in flux 变化无常
 
 inch v. 缓慢地移动 eg. Please take note that Elements is still very much in flux as we are inching closer towards a version 1.0 release.
+
+compelling adj. 令人信服的 eg. The most compelling evidence for this so far has been the extensive use of pre-trained word embeddings to improve performance on a range of NLP tasks.
+
+consensus prn. [kənˈsensəs] n. 共识，一致看法 eg. Second, there is no consensus on the most effective way to transfer these learned representations to the target task.
+
+syntactic a. 句法的 eg. For our model architecture, we use the Transformer, which has been shown to perform strongly on various tasks such as machine translation, document generation, and syntactic parsing.
+
+linguistic a. 语言的，语言学的 eg. We also analyzed zero-shot behaviors of the pre-trained model on four different settings and demonstrate that it acquires useful linguistic knowledge for downstream tasks.
+
+corpus n. 语料库
+
+grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of Linguistic Acceptability (CoLA) contains expert judgements on whether a sentence is grammatical or not, and tests the innate linguistic bias of trained models.
