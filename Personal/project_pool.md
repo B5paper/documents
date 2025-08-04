@@ -30,6 +30,8 @@
 
 ## cache
 
+* 如果一个任务是是调研任务，不是调研实现任务，那么在收集一些有用的信息，派生一些 dep / feedback 任务后，可以直接完成
+
 * 注意力测试
 
     如果可以闭上眼睛默数 500 下，那么说明当前心无杂念，注意力可以集中。反之，则说明杂念太多，心不净。
@@ -908,6 +910,10 @@
 
 ### tasks
 
+* [v] reorg projects
+
+* [v] reorg documents
+
 * { } reorg: projects
 
 * { } reorg: documents
@@ -1226,6 +1232,24 @@
 
 ### tasks
 
+* [v] cache tabs
+
+    feedback:
+
+    1. 调研 Floyd最短路径
+
+    1. 调研图的遍历
+
+    1. 调研通过矩阵幂计算路径数量
+
+    1. 调研度矩阵
+
+    1. 调研拉普拉斯矩阵
+
+    1. 调研图神经网络
+
+    1. 调研Dijkstra
+
 * [v] process 1 tab
 
     feedback:
@@ -1376,6 +1400,150 @@ tasks:
 
 ### tasks
 
+* [v] 调研 decoder-only 架构
+
+    feedback:
+
+    1. 调研 rnn 与 nlp 入门级的训练数据集
+
+    1. 调研带自回归的 Encoder-Decoder 架构
+
+    1. 调研掩码自注意力（Masked Self-Attention）
+
+    1. 调研 LLaMA， BERT, T5, BART
+
+    1. 调研论文
+
+        * Improving Language Understanding by Generative Pre-Training (Radford et al., 2018)
+
+            GPT-1
+
+        * Language Models are Few-Shot Learners (GPT-3, Brown et al., 2020)
+
+        * LLaMA: Open and Efficient Foundation Language Models (Meta, 2023)
+
+        * Attention Is All You Need (Vaswani et al., 2017)
+
+            提出 Encoder-Decoder 架构，但解码器使用掩码自注意力实现自回归生成。
+
+        * BART: Denoising Sequence-to-Sequence Pre-training (Lewis et al., 2019)
+
+            结合双向编码器 + 自回归解码器的预训练框架。
+
+        * T5: Text-to-Text Transfer Transformer* (Raffel et al., 2020)
+
+            统一任务为文本生成，采用 Encoder-Decoder 自回归架构。
+
+        * Encoder-Agnostic Adaptation for Conditional Language Generation (Edunov et al., 2020)
+
+            分析 Encoder-Decoder 与 Decoder-Only 在生成任务中的差异。
+
+        * The Trade-offs of Large Scale Language Models (Bender et al., 2021)
+
+            讨论不同架构的计算效率与生成质量权衡。
+
+    1. 调研掩码自注意力相关论文
+
+        * Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context (Dai et al., 2019)
+
+            提出相对位置编码，改进 Decoder 的长期依赖建模。
+
+        * Generating Long Sequences with Sparse Transformers (Child et al., 2019)
+
+            讨论掩码注意力的稀疏化扩展。
+
+    1. 调研数学基础
+
+        自回归生成的数学基础：
+
+        * Neural Autoregressive Distribution Estimation (Larochelle & Murray, 2011)
+
+            早期关于自回归概率建模的理论。
+
+        * Decoder-Only 的扩展应用：
+
+            Zero-Shot Text-to-Image Generation (DALL·E, Ramesh et al., 2021)
+
+                将 Decoder-Only 架构用于跨模态生成。
+
+* [v] 调研 yoshua bengio 和他的贝叶斯推理与神经网络
+
+    feedback:
+
+    1. 调研 VAE with a VampPrior, Jakub M. Tomczak, Max Welling
+
+        <https://arxiv.org/abs/1705.07120>
+
+    1. 调研 Towards Causal Representation Learning, Bernhard Schölkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, Yoshua Bengio
+
+        <https://arxiv.org/abs/2102.11107>
+
+    1. 调研 Generative Adversarial Networks
+
+    1. 调研 Sticking the Landing: Simple, Lower-Variance Gradient Estimators for Variational Inference
+
+    1. 调研下面这句话展开的含义
+    
+        > 传统机器学习（如深度学习）擅长拟合数据相关性（P(Y|X)），但无法回答干预性（P(Y|do(X))）或反事实（What if?）问题。
+
+    1. 调研下面几个基本因果算法
+    
+        * 结构因果模型（SCM）（Pearl, 2009）
+
+        * 潜在结果框架（Rubin Causal Model）
+
+        * 因果发现算法（如PC算法、神经因果模型）
+
+    1. 调研贝叶斯派的常用算法
+
+        变分推断（VI）（如VAE）
+
+        马尔可夫链蒙特卡洛（MCMC）
+
+        概率图模型（PGM）
+
+    1. 调研因果推断的未来几个方向
+
+        神经因果模型（如Neural Causal Models）
+
+        因果表征学习（Bengio团队重点方向）
+
+        因果强化学习（如DeepMind的“因果RL”）
+
+        基于梯度的因果结构学习（如DAG-GNN）
+
+        因果发现+自监督学习（如ICRL, 2023）
+
+        鲁棒因果估计（如Double Machine Learning）
+
+        因果迁移学习（跨领域因果泛化）
+
+        扩散模型+贝叶斯优化（如Diffusion Bayesian Networks）
+
+        量子计算加速（如量子MCMC）
+
+        稀疏贝叶斯学习（如Bayesian Pruning）
+
+        概率Transformer（如Bayesian Attention）
+
+        Judea Pearl 的 Do-Calculus
+
+        Bengio 的 因果生成模型
+
+        主动因果学习（Active Causal Learning）
+
+        多模态数据融合（如结合文本、图像、时间序列）
+
+        近似推断的优化（如Normalizing Flows）
+
+        硬件加速（TPU/GPU定制化计算）
+
+        AutoML + 因果（如AutoCausal）
+
+        因果AI的可视化工具（如DoWhy库的推广）
+
+    1. 调研标准化工具链（如Pyro、TensorFlow Probability的普及）
+
 * { } 调研《Python机器学习》
 
     feedback:
@@ -1514,8 +1682,6 @@ tasks:
           |           ~~~~^~~
     ```
 
-* 如果一个任务是是调研任务，不是调研实现任务，那么在收集一些有用的信息，派生一些 dep / feedback 任务后，可以直接完成
-
 * vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
 
     看起来比较重要的几段代码：
@@ -1653,7 +1819,7 @@ tasks:
 
 * [ ] 调研 how to delete merge info from a commit
 
-* [ ] 调研`grep -c`
+* [v] 调研`grep -c`
 
 * [ ] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
 
@@ -1756,7 +1922,21 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研`tail -f`
+* [v] 调研`tail -f`
+
+    feedback:
+
+    1. 调研`lseek()`
+
+    1. 调研`stat()`
+
+    1. 调研`inotify`
+
+    1. 调研`read()`与`fread()`有何不同
+
+        同理，调研`open()`和`fopen()`有何不同
+
+    1. 调研`less`命令
 
 * [ ] 调研`mail` command
 
@@ -1792,7 +1972,33 @@ tasks:
 
 * [ ] 调研`stty -echo  # 关闭回显`
 
-* [ ] 调研 bash `read password`
+* [v] 调研 bash `read password`
+
+    feedback:
+
+    1. 调研`read -t`
+
+    1. 调研 password 的星号掩码
+
+        ```bash
+        #!/bin/bash
+
+        stty -echo  # 关闭回显
+        unset password
+        prompt="Enter password: "
+        while IFS= read -p "$prompt" -r -s -n1 char; do
+            if [[ $char == $'\0' ]]; then  # 回车键结束
+                break
+            fi
+            prompt='*'
+            password+="$char"
+        done
+        stty echo  # 恢复回显
+        echo
+        echo "Password: [hidden]"
+        ```
+
+    1. 调研 openssl, gpg
 
 * [ ] 调研`dmenu`
 
@@ -2118,6 +2324,10 @@ tasks:
     # 统计包含任意关键字的行数
     grep -c -E "keyword1|keyword2|keyword3" file.txt
     ```
+
+    feedback:
+
+    1. 调研`grep -o`
 
 * [ ] 调研`grep -A`
 
