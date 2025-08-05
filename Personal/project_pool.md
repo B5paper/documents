@@ -30,6 +30,48 @@
 
 ## cache
 
+* 参考资料与缓存
+
+    对于无法一次处理完的资料，必须使用缓存。
+
+    很多资料（resource）的结构是类似字典的方式（比如博客里写的 linux command 的教程，会列出类似`man`文档里的对参数的详细解释），通常我们可以线性理解，但是每次只能理解一点，因为记忆力有限。
+
+    此时必须把参考资料缓存起来，或者保存 url，或者保存内容，然后每天尝试理解/记忆一点。
+
+    因此，缓存的作用就是一个桥梁，将不适合吸收的参考资料慢慢转换成适配当前的知识图谱的知识。
+
+* 境界不可能突然提升。境界的提升需要与自己作战，自己又不可能被轻易打败，所以境界不可能突然提升。
+
+* 面对面交流与网络交流的误会更少，能面对面交流的情况不要隔着网络交流。
+
+* 感觉公司的风水不好，无法静下心来，容易增加攻击性，容易上头，容易情绪极端。
+
+* ai 视频确实恐怖，但是另外一种ai正确却毫无生气，比如微博里的ai水军，回复要么是重复问题，要么是重复感叹，要么是毫无情感的赞美，他们的回复虽然正确，但是没有灵气，也没有情绪波动。
+
+* 正是经历了多次人事变动，才能固化下来自己的方法论，变得稳定。这个过程有点像深度学习的增广变换。但是想到大多数人经历足够长的时间和足够多的事情后，都可以完成这个过程，其实这种能力也不算稀罕。
+
+* lavazza 的森林汤力美式 agosto，是苏打气泡水 + 美式。感觉一般偏下。
+
+* 红楼梦前文线索充足，情节复杂，甚至多次预演暗示结局，但是仅靠前八十回仍无法推测后二十八回的情节，是否意味着对于一个复杂系统，我们无法靠部分规律推测出全貌？
+
+* 如果有突然冒出来的想法，还是停下手头的事先记录想法比较好，后面忘了就再也想不起来了。
+
+* 现代中国教育轻而易举改变了我们对红楼的认知，那么是否还有别的领域被篡改或教得不好呢？
+
+* 即使癸酉癸酉本的各种线索都确凿无疑，仍有许多人坚持自己的想法不肯承认其真实性，说明真的有人只相信自己愿意相信的，即使真相已经在面前。
+
+* 百度百科对金簪雪里埋的解析基本就是瞎解析，这是否说明很多的解析和赏析都是瞎解读，语文很多时候都不可靠？
+
+* 古人对人物的不同性格观察得如此细致，远远超越了现在的 mbti，这是否也说明我对人的性格观察得太少，以为所有人都是想学习知识做出科研贡献
+
+* 幸亏当初没好好学，在背红楼梦意义的时候，只是机械记忆了表现封建统治下家族的兴衰，也没有去深究，现在看来，当初这种认识都是完全错误的，幸好当时没有好好学。
+
+* 伏笔与回环
+
+    如果一个伏笔在一百章之后仍能回收，那么有可能是先写了结局，再去前面剧情埋伏笔，也有可能前面写了段无用剧情，后面注意到了这个剧情，再在结尾添加一段，把伏笔圆上。无论如何，都暗示我们写埋有伏笔的小说，线性地从前写到后一定是不可能的，必须经过反复的负反馈，把逻辑调理通顺，把伏笔都尽数回收。
+
+* 如果多人合作，那么负责区域划分必须明确
+
 * 如果一个任务是是调研任务，不是调研实现任务，那么在收集一些有用的信息，派生一些 dep / feedback 任务后，可以直接完成
 
 * 注意力测试
@@ -1815,21 +1857,104 @@ tasks:
 
 * nccl 在 trim system 中的 domain 划归算法，或许未来可以用到 siccl 的 switch 节点发现上。
 
+* gpu 1 -->SILINK--> swi 0 -->SILINK--> gpu 2
+
+    未来可能形成这种形式，swi 只是一个虚拟节点，但是可能会有多个 switch，比如 gpu 1 通过两层 switch 才连接到 gpu2，但是在拓扑层中，两层 switch 只表现为一个 swi 拓扑节点，这样一来，如果我们在统计 gpu 1 -> gpu 2 的延迟和带宽时，如果只计算两个 silink 的延迟，肯定有问题。
+
+    目前能想到的只有 3 点：
+
+    1. 如果直接放弃 swi 节点， 使用 gpu 1 --SILINK--> gpu 2，那么倒是可以解决不同物理拓扑下不同连接的不同延迟问题，但是 topo system 的表示比较复杂
+
+    2. 使用多个 gpu 互相印证：
+
+        测试 gpu 1 --> gpu 2 的延迟 d_1，得到 x + y = d_1
+
+        测试 gpu 1 --> gpu 3 的延迟 d_2，得到 x + z = d_2
+
+        此时我们得到 y - z = d_1 - d_2
+
+        测试 gpu 2 --> gpu 3 的延迟 d_3，得到 y + z = d_3
+
+        此时我们得到 2 * y = d_1 - d_2 + d_3，由此可分别解出 x, y, z
+
+        那么 x 就是 gpu 1 到 swi 0 的延迟，y 就是 gpu 2 到 swi 0 的延迟，z 就是 gpu 3 到 swi 0 的延迟。
+
+    3. 测试出 gpu 1 --> gpu 2 的延迟后，直接除以 2，作为 SILINK 1 和 SILINK 2 的延迟。
+
+
 ### tasks
 
-* [ ] 调研 how to delete merge info from a commit
+* [ ] 调研除了 nccl 外的其他 ccl 库
 
-* [v] 调研`grep -c`
+* [v] 调研 siccl comm 算子的改动
 
-* [ ] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
+    feedback:
+
+    1. 主要是增加了 iohub, peg 等 xml tag 和 attr 的支持，其他的基本保持不变
+
+* [v] 调研 how to delete merge info from a commit
+
+* [v] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
+
+    feedback:
+
+    1. 在`compute_path()`函数中的
+
+        ```cpp
+        PeerInfo* dstInfo = &comm.peerInfo[topo_system.nodes[GPU][vert_idx_1]->gpu.rank];
+        for (int p = 0; p < topo_system.nodes[GPU].size(); p++) {
+            if (p == vert_idx_1) {
+                continue;
+            }
+            PeerInfo* srcInfo = &comm.peerInfo[topo_system.nodes[GPU][p]->gpu.rank];
+            int p2p = 0;
+            // ncclTransports[TRANSPORT_P2P]->canConnect(&p2p, system, NULL, srcInfo, dstInfo);
+            if (p2p == 0) {
+                int shm = 0;
+                // NCCLCHECK(ncclTransports[TRANSPORT_SHM]->canConnect(&shm, system, NULL, srcInfo, dstInfo));
+                if (shm == 0) {
+                    // Mark this peer as inaccessible. We'll trim it later.
+                    topo_system.nodes[GPU][p]->paths[GPU][vert_idx_1].type = PATH_NET;
+                }
+            }
+        }
+        ```
+
+        这里没有对 p2p 和 shm 进行检测，导致进入了`if (shm == 0)`分支。
 
 * [ ] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
 
-* [ ] 调研 a100 4 gpu 上，为什么 cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
+* [v] 调研 a100 4 gpu 上，为什么 cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
 
     因此导致的 edge 顺序也不对
 
     cpu 0 -> cpu 1 同理。
+
+    feedback:
+
+    1. `xml_tag_to_topo_system()`中的`topo_system_connect_nodes()`之前的 bw 计算得不对，这个 bw 是根据 cpu model 计算出来的。16 指的是 amd 的 cpu。
+
+    1. `ncclTopoSearchRecGpu()`中的
+
+        ```cpp
+        } else if (step == backToFirstRank) {
+            // Find first GPU and loop back to it
+            int p;
+            ret = system->find_node((size_t*) &p, GPU, graph->intra[graph->nChannels*ngpus]);
+            if (ret != 0) {
+                printf("fail to find gpu node\n");
+                return -1;
+            }
+            // getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);
+            TopoNode* firstGpu;
+            ncclTopoFollowPath(system, graph, GPU, g, GPU, p, 1, &firstGpu);
+            if (firstGpu) {
+                ncclTopoSearchRecGpu(system, graph, saveGraph, firstGpu, step+1, backToNet, -1, forcedOrder, time);
+                ncclTopoFollowPath(system, graph, GPU, g, GPU, p, -1, &firstGpu);
+            }
+        ```
+
+        其中`getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);`这个函数看起来应该是使用 gpu 的 dev id 找到 gpu 的 idx。如果这个假设是对的，那么`graph->intra`存储的就应该是 dev id（待验证）。并且……想不起来了。
 
 * [ ] 调研 a100 4 gpu 下，为什么 compute path 后，nccl 的每个 gpu 都有连到 nvs 的 path，但是 siccl 没有
 
@@ -1839,68 +1964,13 @@ tasks:
     gpu 798720 --> nvs 0
     ```
 
-* [O] 调研 siccl 是否能在 135 机器 4 卡环境上 work
+* {O} 调研 siccl 是否能在 135 机器 4 卡环境上 work
 
     feedback:
 
     1. 因为 trim system 后无法 print topo system，所以后续的 compute path 以及 generate coll graph 目前还没有测
 
-    1. gpu 1 -->SILINK--> swi 0 -->SILINK--> gpu 2
-
-        未来可能形成这种形式，swi 只是一个虚拟节点，但是可能会有多个 switch，比如 gpu 1 通过两层 switch 才连接到 gpu2，但是在拓扑层中，两层 switch 只表现为一个 swi 拓扑节点，这样一来，如果我们在统计 gpu 1 -> gpu 2 的延迟和带宽时，如果只计算两个 silink 的延迟，肯定有问题。
-
-        目前能想到的只有 3 点：
-
-        1. 如果直接放弃 swi 节点， 使用 gpu 1 --SILINK--> gpu 2，那么倒是可以解决不同物理拓扑下不同连接的不同延迟问题，但是 topo system 的表示比较复杂
-
-        2. 使用多个 gpu 互相印证：
-
-            测试 gpu 1 --> gpu 2 的延迟 d_1，得到 x + y = d_1
-
-            测试 gpu 1 --> gpu 3 的延迟 d_2，得到 x + z = d_2
-
-            此时我们得到 y - z = d_1 - d_2
-
-            测试 gpu 2 --> gpu 3 的延迟 d_3，得到 y + z = d_3
-
-            此时我们得到 2 * y = d_1 - d_2 + d_3，由此可分别解出 x, y, z
-
-            那么 x 就是 gpu 1 到 swi 0 的延迟，y 就是 gpu 2 到 swi 0 的延迟，z 就是 gpu 3 到 swi 0 的延迟。
-
-        3. 测试出 gpu 1 --> gpu 2 的延迟后，直接除以 2，作为 SILINK 1 和 SILINK 2 的延迟。
-
-* [v] 调研`rm -rf *`如何删除隐藏文件/文件夹
-
-* [v] 调研下面的 edge 是否可以作为聚合类？
-
-    ```cpp
-    template<typename _EdgeType>
-    struct BaseVertex {
-        int id;
-        vector<_EdgeType> edges;
-    };
-
-    struct BaseEdge {
-        // size_t nex_vert_idx;
-        BaseVertex<BaseEdge> *nex_vert;
-    };
-
-    struct Edge: public BaseEdge {
-        new_feature::EdgeType type;
-        float bw;
-    };
-
-    struct Vertex: public BaseVertex<Edge> {
-        uint64_t topo_id;
-        VertType type;
-    };
-
-    int main() {
-        Vertex vert;
-        vert.edges.emplace_back(&last_vert);
-        return 0;
-    }
-    ```
+        2025/08/05/00: 目前 trim ssytem 与 print topo system 都已正常
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -1924,19 +1994,17 @@ tasks:
 
 * [v] 调研`tail -f`
 
-    feedback:
+* [ ] 调研`lseek()`
 
-    1. 调研`lseek()`
+* [ ] 调研`stat()`
 
-    1. 调研`stat()`
+* [ ] 调研`inotify`
 
-    1. 调研`inotify`
+* [ ] 调研`read()`与`fread()`有何不同
 
-    1. 调研`read()`与`fread()`有何不同
+    同理，调研`open()`和`fopen()`有何不同
 
-        同理，调研`open()`和`fopen()`有何不同
-
-    1. 调研`less`命令
+* [ ] 调研`less`命令
 
 * [ ] 调研`mail` command
 
@@ -1974,31 +2042,29 @@ tasks:
 
 * [v] 调研 bash `read password`
 
-    feedback:
+* [ ] 调研`read -t`
 
-    1. 调研`read -t`
+* [ ] 调研 password 的星号掩码
 
-    1. 调研 password 的星号掩码
+    ```bash
+    #!/bin/bash
 
-        ```bash
-        #!/bin/bash
+    stty -echo  # 关闭回显
+    unset password
+    prompt="Enter password: "
+    while IFS= read -p "$prompt" -r -s -n1 char; do
+        if [[ $char == $'\0' ]]; then  # 回车键结束
+            break
+        fi
+        prompt='*'
+        password+="$char"
+    done
+    stty echo  # 恢复回显
+    echo
+    echo "Password: [hidden]"
+    ```
 
-        stty -echo  # 关闭回显
-        unset password
-        prompt="Enter password: "
-        while IFS= read -p "$prompt" -r -s -n1 char; do
-            if [[ $char == $'\0' ]]; then  # 回车键结束
-                break
-            fi
-            prompt='*'
-            password+="$char"
-        done
-        stty echo  # 恢复回显
-        echo
-        echo "Password: [hidden]"
-        ```
-
-    1. 调研 openssl, gpg
+* [ ] 调研 openssl, gpg
 
 * [ ] 调研`dmenu`
 
@@ -2008,8 +2074,6 @@ tasks:
 
 * [ ] 调研`setsid`
 
-* [v] 调研`ssh -T`
-
 * [ ] 调研 PTY 与 tty 有何不同
 
 * [ ] 调研`disown`
@@ -2018,27 +2082,23 @@ tasks:
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
-* [v] 调研`chfn`
-
 * [ ] 调研`finger`
 
 * [v] 调研`strchr()`
 
-    feedback:
+* [ ] 调研`strrchr()`
 
-    * 调研`strrchr()`
+    查找字符的最后一次出现位置。
 
-        查找字符的最后一次出现位置。
+* [ ] `strstr()`
 
-    * `strstr()`
-    
-        查找子字符串。
+    查找子字符串。
 
-    * 调研`wchar_t`，`wcschr()`
+* [ ] 调研`wchar_t`，`wcschr()`
 
-    * 调研`setlocale()`
+* [ ] 调研`setlocale()`
 
-    * 调研`ICU`或`libiconv`
+* [ ] 调研`ICU`或`libiconv`
 
 * [ ] 调研`crossNic`什么时候变成的 2？
 
@@ -2091,21 +2151,9 @@ tasks:
 
 * [ ] 调研`ncclParamNetGdrRead()`
 
-* [v] 调研`ncclGetLevel()`
-
 * [ ] 调研`ncclGetLevel()`中，old level 和 new level 是如何映射的
 
 * [ ] 调研`ncclTopoSelectNets()`
-
-* [v] 调研`do {} while(0)`，比如
-
-    ```cpp
-    #define PRINT_EACH(...) do { \
-        int arr[] = {__VA_ARGS__}; \
-        for (size_t i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) \
-            printf("%d ", arr[i]); \
-    } while(0)
-    ```
 
 * [ ] 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
 

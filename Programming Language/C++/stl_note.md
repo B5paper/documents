@@ -2,6 +2,32 @@
 
 ## cached
 
+* `emplace_back()`如果使用默认构造函数，那么必须参数为空：
+
+    `my_vec.emplace_back()`
+
+    如果函数中有参数，那么会被传递给自定义的构造函数：
+
+    `my_vec.emplace_back(1, 2, 3);  // 需要自定义构造函数支持`
+
+* c++ `std::format`
+
+    `std::format`是 c++ 20 支持的特性。头文件：`<format>`
+
+    example:
+
+    ```cpp
+    #include <format>
+    #include <iostream>
+
+    int main() {
+        std::string message = std::format("Hello, {}!", "world");
+        std::cout << message; 
+    }
+    ```
+
+    g++ 11.4 目前不支持该特性，无法编译通过。
+
 * nullopt 有点像 optional 版本的 nullptr
 
     ```cpp

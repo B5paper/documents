@@ -1298,6 +1298,8 @@
     整体看来，topo compute 整个函数，有点像不断改变搜索条件，去反复搜索。
 
     `int ngpus = system->nodes[GPU].count;`，可以看到 trim system 后，`ngpus`总为 1.
+
+    `graph->intra`中存储的是 gpu 的 rank。
     
 * `ncclTopoSearchRecGpu()`
 

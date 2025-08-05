@@ -2,6 +2,10 @@
 
 ## cache
 
+* gdb 锁定线程
+
+    `set scheduler-locking on`
+
 * gdb 中的`call`与`print`（`p`）都支持调用函数，唯一的不同是，`call func()`调用函数时，如果`func()`有返回值，那么返回值被记录到`$N`临时变量中，如果没有返回值（`void`类型），那么不记录`$N`。使用`p func()`时，即使`func()`返回值为 void，也会出现类似`$1 = void`的提示信息。
 
 * gdb 中`p $rax`可以查看函数的返回值。

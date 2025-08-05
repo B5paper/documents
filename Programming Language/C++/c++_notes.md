@@ -4,6 +4,42 @@
 
 ## cached
 
+* c++ 中模板类和基类为模板类的模板类，都可以作为聚合类
+
+    ```cpp
+    #include <vector>
+    #include <stdio.h>
+    #include <unordered_map>
+    using namespace std;
+
+    template<typename T>
+    struct VertexBase {
+        int id;
+        T type;
+    };
+
+    template<typename T, typename P>
+    struct Vertex: public VertexBase<T> {
+        P msg;
+    };
+
+    int main() {
+        VertexBase<int> vert_base{1, 2};
+        Vertex<int, const char*> vert{1, 2, "haha"};
+        printf("id: %d, type: %d, msg: %s\n", vert.id, vert.type, vert.msg);
+        
+        vector<VertexBase<int>> base_verts;
+        // base_verts.emplace_back(3, 4);  // error
+        vector<Vertex<int, const char*>> verts;
+        // verts.emplace_back(1, 2, "hello");  // error
+        return 0;
+    }
+    ```
+
+    但是`emplace()`和`emplace_back()`，需要类必须自定义构造函数来支持。
+
+    如果调用`base_verts.push_back({3, 4});`，那么本质是先用`{3, 4}`聚合构造（Aggregate Initialization）了一个对象，然后调用`push_back()`的重载版本，此时如果`VertexBase`有移动构造函数，那么调用`push_back(VertexBase&&)`，并调用`VertexBase`的移动构造函数，如果没有，那么调用`push_back(const VertexBase&)`，并调用`VertexBase`的拷贝构造函数。
+
 * `sizeof(void)`
 
     `sizeof(void)`本身无意义，gcc/g++ 可以通过编译，输出为`1`，但是会报 warning。

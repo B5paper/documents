@@ -6,6 +6,107 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `do { ... } while(0)`
+
+    常用场景：
+
+    1. 构造单条语句，通常用在宏里，可以把多条代码打包成一条。
+
+        ```c
+        #define LOG(msg) do { \
+            printf("[LOG] %s\n", msg); \
+            write_to_file(msg); \
+        } while(0)
+
+        // 使用
+        if (error)
+            LOG("Error occurred");  // 安全展开为单语句
+        else
+            recover();
+        ```
+
+        注：`LOG("Error occurred");`整体才算一个单语句，如果不加`;`则不算单语句，会报错。
+
+        如果不加`do while`，则有：
+
+        ```c
+        #define LOG(msg) { printf("[LOG] %s\n", msg); write_to_file(msg); }
+
+        // 展开后：
+        if (error)
+            { printf(...); write_to_file(...); };  // 结尾分号导致 else 语法错误！
+        else
+            recover();
+        ```
+
+        其中，`{ printf(...); write_to_file(...); }`表示一条语句，其后的`;`表示第二条语句。
+
+    1. 需要用`break`的场景
+
+        * 替换`goto`语句：
+
+            ```c
+            int func() {
+                do {
+                    if (step1_failed) break;
+                    if (step2_failed) break;
+                    // ...成功逻辑...
+                    return 0;
+                } while(0);
+
+                // 统一错误处理
+                cleanup();
+                return -1;
+            }
+            ```
+
+        * 简化 if 的逻辑
+
+            ```c
+            do {
+                // 只执行一次的复杂逻辑
+                if (condition) break;
+                // ...其他代码...
+            } while(0);
+            ```
+
+* `strchr()`
+
+    找到一个字符串中某个字符第一次出现的位置。
+
+    头文件：`#include <string.h>`
+
+    syntax:
+
+    ```c
+    const char *strchr(const char *str, int c);
+    char *strchr(char *str, int c);
+    ```
+
+    example:
+
+    ```cpp
+    #include <string.h>
+    #include <stdio.h>
+
+    int main() {
+        const char *msg = "hello, world";
+        const char *pos = strchr(msg, 'w');
+        printf("idx: %ld, ch: %c\n", pos - msg, *pos);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    idx: 7, ch: w
+    ```
+
+    如果未找到，返回`NULL`。
+
+    `strchr()`不支持中文。
+
 * `calloc()`简介
 
     头文件：`<stdlib.h>`
