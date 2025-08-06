@@ -2,6 +2,29 @@
 
 ## cache
 
+* `grep -c`
+
+    `grep -c "pattern" filename`
+
+    只显示行数，不显示内容。
+
+    如果统计多个文件，则分别显示行数：
+
+    `grep -c "GET" access.log access.log.1`
+
+    output:
+
+    ```
+    access.log: 1200
+    access.log.1: 800
+    ```
+
+    说明：
+
+    1. 单行多次匹配：`-c`只统计行数，即使一行中多次匹配模式，仍计为`1`。
+
+        如需统计所有匹配次数（非行数），可用`grep -o "pattern" | wc -l`。
+
 * `grep -n`可以显示行号。行数从 1 开始计数。
 
 * `fgrep`与`grep -F`都表示 Fixed-string grep，`fgrep`是旧版 linux 的独立命令，不推荐使用。目前更推荐使用`grep -F`.

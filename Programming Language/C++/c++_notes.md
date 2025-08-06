@@ -4,6 +4,18 @@
 
 ## cached
 
+* 如果前面定义了`int gpu`，后面不可以使用`TopoNode* gpu`重新定义，编译器会报错。`int gpu`定义在函数参数里也不行。
+
+    ```
+    main_5.cpp: In function ‘void func(int)’:
+    main_5.cpp:8:12: error: declaration of ‘MyCls* aaa’ shadows a parameter
+        8 |     MyCls *aaa = (MyCls*) 0x01;
+          |            ^~~
+    main_5.cpp:7:15: note: ‘int aaa’ previously declared here
+        7 | void func(int aaa) {
+          |           ~~~~^~~
+    ```
+
 * c++ 中模板类和基类为模板类的模板类，都可以作为聚合类
 
     ```cpp

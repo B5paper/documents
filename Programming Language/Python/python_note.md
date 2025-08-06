@@ -2,6 +2,19 @@
 
 ## cached
 
+* $\infty$在 python 中的表示
+
+    可以使用`float('inf')`表示无穷大。
+
+    ```python
+    # Python 示例（用 float('inf') 表示 ∞）
+    adj_matrix = [
+        [0, 2, float('inf')],
+        [2, 0, 3],
+        [float('inf'), 3, 0]
+    ]
+    ```
+
 * python 字符串的`.rindex()`, `.rfind()`是从右边开始搜索，但是返回的索引仍然是从左边开始数的。
 
 * python 中的定义提前

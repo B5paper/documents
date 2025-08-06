@@ -30,6 +30,28 @@
 
 ## cache
 
+* 文字与大模型
+
+    大模型并没有展示创建概念这一过程，文字中的很多概念与抽象是人们事先已经创建好的，大模型只是做了适配。
+
+* 根据之前的笔记记录的对未知概念的推断过程，可以得出，凡是有推翻之前错误的假设的情况，总是因为发现了新的证据，新的证据更强，更清晰，歧义更少
+
+* process url 的方法
+
+    网页资源的几个特性：
+
+    1. 参考价值通常有 tutorial, see also, reference, news 这四个方面
+
+    1. 不一定能全部理解，原因可能是线性内容 + 每天能理解的时间有限，也可能是有非线性内容
+
+    1. 可能会滚动更新
+
+    1. 可能会消失，网页被删除
+
+    因此需要把每个网页资源都作为一个长期项目，每次处理一点，记录下当前的位置和进度。等网页内容全部处理完成时，开始定期 tracking 网页，检查是否有滚动更新。
+
+* 总以为我们是在赌浪头，原来他们是从一座浪尖到另一座浪尖
+
 * 参考资料与缓存
 
     对于无法一次处理完的资料，必须使用缓存。
@@ -952,6 +974,49 @@
 
 ### tasks
 
+* [v] reorg project: `main_4.cpp`, `DynamicGraph`
+
+    feedback:
+
+    1. `unordered_map<int, int> id_to_idx_table;`
+
+        优点：
+
+        1. 可以根据 id 快速找到 idx，进而可以找到 ptr
+
+        1. 已知 ptr，可以拿到 id，进而找到 idx
+
+        缺点：
+
+        1. 删除节点时，idx 会变动，必须重新构建 table
+
+        2. 已知 ptr 无法
+
+    1. 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
+
+    1. 调研自定义哈希函数的写法
+
+        ```cpp
+        struct VertexPtrHash {
+            size_t operator()(const pair<Vertex*, Vertex*> &src_dst) const {
+                return std::hash<void*>()(src_dst.first) ^
+                    std::hash<void*>()(src_dst.second);
+            }
+        };
+        // <<src, dst>, path>
+        unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
+        ```
+
+    1. table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
+
+        部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
+
+    1. reorg project: `main_3.cpp`
+
+    1. reorg project: `main_2.cpp`
+
+    1. reorg project: `main.cpp`
+
 * [v] reorg projects
 
 * [v] reorg documents
@@ -1692,38 +1757,6 @@ tasks:
 
 ### cache
 
-* graph 中的 vertex 不加 id 属性不好序列化
-
-    如果 vertex 间只有指针指来指去，那么在序列化的时候，就无法分辨两个 vertex 是否相同。
-
-* 使用索引作为 vert 的 id 不合适，因为如果先删除倒数第 2 个 vert，再添加一个 vert，那么倒数的两个 vert 就会拥有相同的 id。
-
-* topo edge 里 nex node 设置成指针的原因
-
-    ```cpp
-    struct TopoEdge {
-        EdgeType edge_type;
-        // int nex_node_idx;  // deprecated
-        TopoNode *nex_node = nullptr;
-        NodeType nex_node_type;
-        float bw = 0;
-    };
-    ```
-
-    在删除 node 时，其之后的所有 node idx 会失效，因此这里改成了指针。由于 node 是按`vector<Node*>`的方式存储的，所以删除或添加 node 后，其余 node 的指针不会因为 vector 的扩容/缩容而失效，edge 可以放心使用。
-
-* 如果前面定义了`int gpu`，后面不可以使用`TopoNode* gpu`重新定义，编译器会报错。`int gpu`定义在函数参数里也不行。
-
-    ```
-    main_5.cpp: In function ‘void func(int)’:
-    main_5.cpp:8:12: error: declaration of ‘MyCls* aaa’ shadows a parameter
-        8 |     MyCls *aaa = (MyCls*) 0x01;
-          |            ^~~
-    main_5.cpp:7:15: note: ‘int aaa’ previously declared here
-        7 | void func(int aaa) {
-          |           ~~~~^~~
-    ```
-
 * vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
 
     看起来比较重要的几段代码：
@@ -1819,8 +1852,6 @@ tasks:
 
     `int ngpus = system->nodes[GPU].count;`
 
-* edge 存储 vert ptr 有一个小问题，即创建完一个 vert 后，可能无法创建其所有 edge，因为 edge 无法指向其他不存在的 vert。如果 edge 里存储的是 vert id 则没有这个问题。
-
 * 调用`ncclTopoSearchRec()`时，第二个参数是`&tmpGraph`, 第三个参数是`graph`，然而`ncclTopoSearchRec()`的参数列表是
 
     `ncclResult_t ncclTopoSearchRec(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, int* time) {`
@@ -1881,48 +1912,43 @@ tasks:
 
     3. 测试出 gpu 1 --> gpu 2 的延迟后，直接除以 2，作为 SILINK 1 和 SILINK 2 的延迟。
 
+* a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1，是因为在`compute_path()`函数中的
+
+    ```cpp
+    PeerInfo* dstInfo = &comm.peerInfo[topo_system.nodes[GPU][vert_idx_1]->gpu.rank];
+    for (int p = 0; p < topo_system.nodes[GPU].size(); p++) {
+        if (p == vert_idx_1) {
+            continue;
+        }
+        PeerInfo* srcInfo = &comm.peerInfo[topo_system.nodes[GPU][p]->gpu.rank];
+        int p2p = 0;
+        // ncclTransports[TRANSPORT_P2P]->canConnect(&p2p, system, NULL, srcInfo, dstInfo);
+        if (p2p == 0) {
+            int shm = 0;
+            // NCCLCHECK(ncclTransports[TRANSPORT_SHM]->canConnect(&shm, system, NULL, srcInfo, dstInfo));
+            if (shm == 0) {
+                // Mark this peer as inaccessible. We'll trim it later.
+                topo_system.nodes[GPU][p]->paths[GPU][vert_idx_1].type = PATH_NET;
+            }
+        }
+    }
+    ```
+
+    这里没有对 p2p 和 shm 进行检测，导致进入了`if (shm == 0)`分支。
 
 ### tasks
 
+* [ ] 调研 mpv 播放器
+
 * [ ] 调研除了 nccl 外的其他 ccl 库
-
-* [v] 调研 siccl comm 算子的改动
-
-    feedback:
-
-    1. 主要是增加了 iohub, peg 等 xml tag 和 attr 的支持，其他的基本保持不变
-
-* [v] 调研 how to delete merge info from a commit
 
 * [v] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
 
+* [v] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
+
     feedback:
 
-    1. 在`compute_path()`函数中的
-
-        ```cpp
-        PeerInfo* dstInfo = &comm.peerInfo[topo_system.nodes[GPU][vert_idx_1]->gpu.rank];
-        for (int p = 0; p < topo_system.nodes[GPU].size(); p++) {
-            if (p == vert_idx_1) {
-                continue;
-            }
-            PeerInfo* srcInfo = &comm.peerInfo[topo_system.nodes[GPU][p]->gpu.rank];
-            int p2p = 0;
-            // ncclTransports[TRANSPORT_P2P]->canConnect(&p2p, system, NULL, srcInfo, dstInfo);
-            if (p2p == 0) {
-                int shm = 0;
-                // NCCLCHECK(ncclTransports[TRANSPORT_SHM]->canConnect(&shm, system, NULL, srcInfo, dstInfo));
-                if (shm == 0) {
-                    // Mark this peer as inaccessible. We'll trim it later.
-                    topo_system.nodes[GPU][p]->paths[GPU][vert_idx_1].type = PATH_NET;
-                }
-            }
-        }
-        ```
-
-        这里没有对 p2p 和 shm 进行检测，导致进入了`if (shm == 0)`分支。
-
-* [ ] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
+    1. 因为添加 nvlink 时，bw 没有乘 count
 
 * [v] 调研 a100 4 gpu 上，为什么 cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
 
@@ -1956,21 +1982,15 @@ tasks:
 
         其中`getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);`这个函数看起来应该是使用 gpu 的 dev id 找到 gpu 的 idx。如果这个假设是对的，那么`graph->intra`存储的就应该是 dev id（待验证）。并且……想不起来了。
 
-* [ ] 调研 a100 4 gpu 下，为什么 compute path 后，nccl 的每个 gpu 都有连到 nvs 的 path，但是 siccl 没有
-
-    ```
-    gpu 565248 --> nvs 0
-    gpu 786432 --> nvs 0
-    gpu 798720 --> nvs 0
-    ```
-
-* {O} 调研 siccl 是否能在 135 机器 4 卡环境上 work
+* {v} 调研 siccl 是否能在 135 机器 4 卡环境上 work
 
     feedback:
 
     1. 因为 trim system 后无法 print topo system，所以后续的 compute path 以及 generate coll graph 目前还没有测
 
         2025/08/05/00: 目前 trim ssytem 与 print topo system 都已正常
+
+    1. 目前看起来完全正常。设置 ring 模式 generate coll graph，一共生成 12 个 channel，intra 数据都是 0, 1, 2, 3，inter 数据则都为 0.
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -1991,8 +2011,6 @@ tasks:
     1. <https://docs.nvidia.com/cuda/archive/9.1/cuda-memcheck/index.html>
 
 * [ ] 调研 crontab 系统级定时任务
-
-* [v] 调研`tail -f`
 
 * [ ] 调研`lseek()`
 
@@ -2040,8 +2058,6 @@ tasks:
 
 * [ ] 调研`stty -echo  # 关闭回显`
 
-* [v] 调研 bash `read password`
-
 * [ ] 调研`read -t`
 
 * [ ] 调研 password 的星号掩码
@@ -2084,8 +2100,6 @@ tasks:
 
 * [ ] 调研`finger`
 
-* [v] 调研`strchr()`
-
 * [ ] 调研`strrchr()`
 
     查找字符的最后一次出现位置。
@@ -2104,7 +2118,7 @@ tasks:
 
 * [ ] 调研`ncclTopoSearchRecNet()`
 
-* {O} 调研`generate_coll_graph()`
+* {v} 调研`generate_coll_graph()`
 
 * [ ] 调研
 
