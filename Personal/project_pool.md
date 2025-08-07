@@ -30,6 +30,14 @@
 
 ## cache
 
+* 过于强势的人不适合合作，让其单打独斗又不如组建团队稳定，因此不要和强势的人往来
+
+* 关于接项目
+
+    最好少接或者不接项目，实在不行了再去做项目。因为这样才能随时把项目丢出去脱身。总之不要主动去揽活。
+
+* `ssize_t`是`long`
+
 * 文字与大模型
 
     大模型并没有展示创建概念这一过程，文字中的很多概念与抽象是人们事先已经创建好的，大模型只是做了适配。
@@ -1938,17 +1946,17 @@ tasks:
 
 ### tasks
 
+* [ ] 调研`crossNic`什么时候变成的 2？
+
+* [ ] 调研`ncclTopoSearchRecNet()`
+
+* [ ] 调研 siccl + silink 的 compute path 搜索
+
+* [v] 写一份 siccl topo layer 第一版文档
+
 * [ ] 调研 mpv 播放器
 
 * [ ] 调研除了 nccl 外的其他 ccl 库
-
-* [v] 调研 a100 4 gpu 环境为什么 gpu 到 gpu 的 path type 是 8 而不是 1
-
-* [v] 调研 a100 4 gpu 环境下，`LINK_NVL`的 bw 为什么低了一半，并修复
-
-    feedback:
-
-    1. 因为添加 nvlink 时，bw 没有乘 count
 
 * [v] 调研 a100 4 gpu 上，为什么 cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
 
@@ -1982,16 +1990,6 @@ tasks:
 
         其中`getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);`这个函数看起来应该是使用 gpu 的 dev id 找到 gpu 的 idx。如果这个假设是对的，那么`graph->intra`存储的就应该是 dev id（待验证）。并且……想不起来了。
 
-* {v} 调研 siccl 是否能在 135 机器 4 卡环境上 work
-
-    feedback:
-
-    1. 因为 trim system 后无法 print topo system，所以后续的 compute path 以及 generate coll graph 目前还没有测
-
-        2025/08/05/00: 目前 trim ssytem 与 print topo system 都已正常
-
-    1. 目前看起来完全正常。设置 ring 模式 generate coll graph，一共生成 12 个 channel，intra 数据都是 0, 1, 2, 3，inter 数据则都为 0.
-
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
     deps:
@@ -2012,9 +2010,26 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研`lseek()`
+* [v] 调研`lseek()`
 
-* [ ] 调研`stat()`
+    feedback:
+
+    1. 调研`mmap()`
+
+        ```cpp
+        #include <sys/mman.h>
+        void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+        ```
+
+* [v] 调研`stat()`
+
+    feedback:
+
+    1. 调研 fstat() → 通过文件描述符（fd）获取信息
+
+    1. 调研 lstat() → 不跟随符号链接（获取链接本身信息）
+
+    1. 调研`[ -f file ]`
 
 * [ ] 调研`inotify`
 
@@ -2024,7 +2039,11 @@ tasks:
 
 * [ ] 调研`less`命令
 
-* [ ] 调研`mail` command
+* [v] 调研`mail` command
+
+    feedback:
+
+    1. 调研`<`与`<<<`区别
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
@@ -2052,13 +2071,19 @@ tasks:
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
 
-* [ ] 调研`ssh -o PreferredAuthentications=password`
+* [v] 调研`ssh -o PreferredAuthentications=password`
 
 * [ ] 调研`git-credential-libsecret`
 
 * [ ] 调研`stty -echo  # 关闭回显`
 
-* [ ] 调研`read -t`
+* [v] 调研`read -t`
+
+    feedback:
+
+    * 调研`timeout`命令
+
+        `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
 
 * [ ] 调研 password 的星号掩码
 
@@ -2104,21 +2129,19 @@ tasks:
 
     查找字符的最后一次出现位置。
 
-* [ ] `strstr()`
+* [v] `strstr()`
 
     查找子字符串。
+
+    feedback:
+
+    1. 调研`memmem()`
 
 * [ ] 调研`wchar_t`，`wcschr()`
 
 * [ ] 调研`setlocale()`
 
 * [ ] 调研`ICU`或`libiconv`
-
-* [ ] 调研`crossNic`什么时候变成的 2？
-
-* [ ] 调研`ncclTopoSearchRecNet()`
-
-* {v} 调研`generate_coll_graph()`
 
 * [ ] 调研
 
