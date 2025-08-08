@@ -1761,3 +1761,67 @@
         `level`传进函数时是`-1`，表示初始值，如果函数内部`l`没有被赋值（总是`-1`），那么传出函数时，`level`的值为`-2`，表示用户没有特别设置。`level`为 0 表示用户禁用 p2p，为其他正值表示用户指定了 p2p level。
 
         这里本来应该用 bool 值表示用户是否设置，用 int 值表示具体的值，但是这里使用了 int 值的正值和负值，分别表示了不同的含义。
+
+* 待做
+
+    * LLDP（Link Layer Discovery Protocol）可以用于发现多层交换机
+
+    * Mesh拓扑是否适合gpu和高性能计算？
+
+        支持动态路由协议（如OSPF、BGP），可实现最优路径选择和负载均衡，避免拥塞。
+
+    * NCCL 默认不动态切换物理路径，而是在初始化阶段根据拓扑探测（如GPU-NIC绑定、节点间网络连接）静态分配Channel。
+
+        无运行时动态重路由：如果某条物理路径故障，NCCL 不会自动切换到其他可用路径，而是直接报错
+
+        NCCL假设高性能环境（如数据中心级RDMA网络），链路故障概率低，动态切换收益有限。
+
+        每个 Channel 会绑定到具体的硬件链路（如 GPU 之间的 NVLink、网卡的 RDMA 端口等），但 NCCL 不动态切换这些绑定（运行时固定）。
+
+        是否有动态路径切换的可能？
+
+    * MPI（如OpenMPI）	支持（如动态路由协议）
+
+    * shared edge
+
+    * nccl 多节点：根据网卡数量和带宽分配 Channel（如 8 个 GPU 跨节点时，可能分配 4 个 Channel 到 2 张 100Gbps 网卡）。
+
+        说明每个 channel 只会分配一条 edge 的一部分带宽，不是全部分配完
+
+    * 调研 tree channel:
+
+        Tree AllReduce：Channel 用于构建树状路径（如双树算法避免拥塞）。
+
+    * 版本差异：NCCL 2.12+ 对 Channel 选择有显著优化（建议使用最新版本）。
+
+    * 调研 修改 src/channel.cc 中的 ncclChannelCompute 或 ncclTransportP2pSetup，使其支持 运行时重新绑定传输路径。
+
+    * 我们的产品可能存在不稳定的情况
+
+    * 在 src/graph.cc 中增加 动态拓扑调整（如检测到某条 NVLink 或 InfiniBand 路径故障时，切换到备用路径）。
+
+    * 增加类似 ncclCommUpdateChannel() 的 API，允许用户手动触发 Channel 重选。
+
+    * mpi 的动态感知策略
+
+        1. 模块化路由框架 (PMRQ, Pseudo-Modular Routing Framework)
+
+            * 可插拔路由模块：OpenMPI 将路由功能抽象为独立的组件，允许在运行时根据网络拓扑和流量模式动态选择路由算法（如最小路径、自适应路由等）。
+
+        1. 动态拓扑感知 (Topology Awareness)
+
+            网络探测：通过ompi_coll（集合通信库）定期收集网络状态（延迟、带宽、拥塞），反馈给路由引擎。
+
+            拓扑映射：利用hwloc库识别物理拓扑（NUMA节点、交换机层级），结合MPI_Cart_create等API优化虚拟拓扑映射。
+
+        3. 自适应路由协议 (Adaptive Routing)
+
+            运行时调整：基于实时网络数据（如丢包率、队列深度），动态切换路由策略。例如：
+
+                最小路径路由（静态拓扑下使用Dijkstra算法）。
+
+                拥塞规避路由（动态重定向流量到低负载路径）。
+
+            协议实现：通过ompi_mpool（内存池）和bcol（基本集合操作）模块协作，减少动态路由的计算开销。
+
+        分层决策：局部路由（节点内）与全局路由（跨节点）分离，降低复杂度。
