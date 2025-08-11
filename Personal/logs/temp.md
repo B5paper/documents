@@ -1825,3 +1825,150 @@
             协议实现：通过ompi_mpool（内存池）和bcol（基本集合操作）模块协作，减少动态路由的计算开销。
 
         分层决策：局部路由（节点内）与全局路由（跨节点）分离，降低复杂度。
+
+    * 调研 Magnum IO
+
+    * 调研 DeepSpeed使用了通信计算交错(overlap)技术
+
+    * 不可能通过改变 channel 中节点顺序或调整 chunk size 的方式对 ring all reduce 进行优化
+
+        因为 ring all reduce 底层实现是 reduce scatter + all gather，这要求所有的 gpu 必须同步处理 chunk。因为同步，所以 channel 中 gpu 的顺序没有影响。因为 gpu 同时处理 chunk，所以要求 chunk 的大小必须一致。
+
+    * 调研 Rabenseifner's算法（混合Reduce-Scatter+AllGather）
+
+    * 调研 BlueConnect拓扑
+
+    * 调研 BytePS的push-pull架构
+
+    * 调研 gpu 之间的 silink p2p 连接
+
+    * 调研使用Tree拓扑（二叉树/三叉树）实现 all reduce
+
+    * 调研Halving-Doubling拓扑
+
+    * 调研2D/3D-Torus拓扑(网格拓扑)
+
+    * Mesh、Hypercube
+
+    * 将AllReduce的通信流量均匀分散到所有可用NVLink上。
+
+    * 任务队列与 async 提交
+
+    * 底层的 silink 物理链路直接暴露上来，可以增加更多优化的空间
+
+    * 如果无法根据负载通过 channel 和 chunk 优化 ring all reduce，那么是否可以改变底层实现 all reduce 的方案来优化？比如 tree, mesh 等。
+
+    * 实时决策开销：
+
+        动态选择Channel需要快速收集链路状态（如延迟、带宽），可能引入微秒级开销。
+
+        解决方案：异步监控（后台线程定期采样）+ 轻量级决策算法（如基于阈值的启发式规则）。
+
+    * NVLink链路故障或性能下降
+
+        场景：
+
+            物理损坏（如NVLink线缆松动）、硬件错误（如GPU内存ECC错误导致NVLink降速）、固件Bug。
+
+        动态优化的价值：
+
+            自动降级到PCIe：避免训练中断（对大模型任务尤其关键）。
+
+            部分容错：例如8条NVLink中1条损坏，动态屏蔽故障链路，继续使用剩余7条。
+
+    * 通过nvidia-smi nvlink --bandwidth检测占用率
+
+    * 一级交换机与二级交换机之间如果连接多条网线，那么是否可以提升带宽
+
+    * nvswitch spec
+
+        Volta (V100)	第一代NVSwitch	6条NVLink/GPU	300 GB/s（双向）	交换芯片吞吐瓶颈
+
+        Ampere (A100)	第二代NVSwitch	12条NVLink/GPU	600 GB/s（双向）	更优，但仍受仲裁开销影响
+
+        Hopper (H100)	第三代NVSwitch	18条NVLink/GPU	900 GB/s（双向）	更接近理论值
+
+    * 在 print channel 时打印当前 channel 之间的 link 类型和带宽
+
+    * 如果仅需要跑通，那么整个项目简单，争来争去没有意义
+
+        个人对集合通信没什么很大的兴趣，目标是能用就行，所以后续维护也没什么动力
+
+        个人性格是浅尝辄止，不太喜欢深挖某个领域，没有成为哪个领域专家的想法
+
+        之前的计划是做一个对算法友好的topo底层数据结构，让算法后期去优化，动态选择，目前算法的意思似乎是不想继续支持，对性能也没什么兴趣，如果我们组能继续出人维护这件事情，还可以继续做
+
+    * 非全连接 NVLink
+
+        ```
+        GPU 0 ── NVLink ── GPU 1 ── NVLink ── GPU 2  
+         │                   │                   │  
+        NVLink            NVLink             NVLink  
+         │                   │                   │  
+        GPU 3 ── NVLink ── GPU 4 ── NVLink ── GPU 5  
+        ```
+
+    * PCIe 4.0 x16 ≈ 64GB/s, PCIe延迟 ~1µs
+
+    *  冗余路径
+
+    * NCCL 的中转（Multi-hop）通信
+
+    * 交换机的多物理链路聚合
+
+        * LACP（802.3ad）, MLAG（多机箱链路聚合）
+
+            交换机需支持 LACP/MLAG，且两端配置一致。
+
+            流量按哈希算法（如源/目的IP）分布到多条链路。
+
+        * LACP哈希算法的局限性
+
+            若流量哈希键（如源/目的IP/端口）过于集中，可能导致部分链路利用率低（如所有流量哈希到同一条链路）。
+
+            优化：使用更细粒度的哈希键（如 五元组+流ID）。
+
+    * nccl 搜索到的 ring channel 结果为 0，1，2，3，4，5，6，7，那如果我想在 0, 1, 2, 3 上执行 all reduce 该怎么办？
+
+        答：再创建一个新的 communicator
+
+    * spine-leaf链路
+    
+        在spine-leaf链路上进行负载均衡可能对性能有帮助。
+
+    * 具体的物理路径由交换机的ECMP(Equal Cost Multi-Path)或其他负载均衡算法决定
+
+    * 根据实际带宽动态调整chunk大小，这个可能有一定的收益
+
+    * 可用性提升显著：从小时级故障恢复降低到秒级
+
+    * 调研replica group
+
+    * claude 写的一个可能的 channel 动态监控模块
+
+        ```cpp
+        struct ChannelMonitor {
+            float bandwidth_utilization[MAX_CHANNELS];
+            int latency_ms[MAX_CHANNELS]; 
+            bool channel_health[MAX_CHANNELS];
+            
+            void updateMetrics();
+            int selectOptimalChannel(int src, int dst);
+        };
+        ```
+
+    * 大规模Transformer训练
+
+        MoE模型：专家路由导致不均匀的通信模式
+        流水线并行：不同stage的通信需求差异大
+        预期收益：5-15%的通信效率提升
+
+    * 重要 feature: channel 重绑定
+
+        1. 如果 silink 失效了，切换到 ib，如果 ib 失效了，切换到 socket
+
+        1. 如果 silink 只生效了几根，那么和 ib 共同分担流量
+
+        1. 如果单个 peg 的 silink 失效，那么走 dnoc + 另一个 peg 的 silink
+
+    * depleted prn. [dɪ'plɪtɪd] a. 废弃的
