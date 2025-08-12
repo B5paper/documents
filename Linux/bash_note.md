@@ -4,6 +4,18 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* `read -t`用于设置读取输入的超时时间
+
+    `read -t <秒数> [变量名]`
+
+    parameters:
+
+    * `-t`：指定超时时间（单位：秒，支持小数如 0.5）。
+
+    * 变量名（可选）：存储用户输入的内容，默认存入 REPLY 变量。
+
+    若用户在 -t 指定的时间内未输入，read 会立即结束，并返回 非0 状态码（表示超时）。
+
 * bash 中常见信号与触发条件
 
     | 信号名称 | 编号 |	触发条件 |

@@ -6,6 +6,100 @@
 
 ## cache
 
+* `stat()`用于获得文件属性
+
+    example:
+
+    ```c
+    #include <sys/stat.h>
+
+    struct stat file_info;
+    stat("filename", &file_info);  // 获取文件信息
+    ```
+
+    struct stat 成员：
+
+    st_mode → 文件类型和权限
+
+    st_size → 文件大小
+
+    st_uid / st_gid → 所有者/组 ID
+
+    st_atime / st_mtime / st_ctime → 访问/修改/状态变更时间
+
+    典型应用场景
+
+        检查文件是否存在（stat() 返回 0 成功，-1 失败）
+
+        监控文件变化（比较 st_mtime）
+
+        权限管理（检查 st_mode 是否符合要求）
+
+* 常用的 posix 函数
+
+    这些函数由 posix 提供（比如 linux）。
+
+    `open()`：头文件`<fcntl.h>`
+
+    `read()`, `close()`：头文件`<unistd.h>`
+
+    ```cpp
+    #include <stdio.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    using namespace std;
+
+    int main() {
+        int ret;
+        const char *file_path = "msg.txt";
+        int fd = open(file_path, O_RDONLY);
+        if (fd == -1) {
+            printf("fail to open %s\n", file_path);
+            return -1;
+        }
+
+        char buf[128];
+        ssize_t bytes_read = read(fd, buf, 128);
+        if (bytes_read < 0) {
+            printf("fail to read, ret: %ld\n", bytes_read);
+            return -1;
+        }
+        printf("read bytes: %ld, msg: %s\n", bytes_read, buf);
+
+        ret = close(fd);
+        if (ret != 0) {
+            printf("fail to close fd: %d\n", fd);
+            return -1;
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    read bytes: 15, msg: hello
+    world
+    123
+    ```
+
+    `lseek()`类似于`fseek()`，头文件：`<unistd.h>`, example:
+
+    ```cpp
+    off_t new_off = lseek(fd, 1, SEEK_SET);
+    ```
+
+    成功时返回新的文件偏移量（从文件开头计算的字节数）。
+    
+    失败时返回 -1，并设置 errno（如 EBADF 表示无效文件描述符）。
+
+    ```cpp
+    off_t pos = lseek(fd, 0, SEEK_CUR); // 返回当前位置
+    ```
+
+    管道、套接字等不支持随机访问，调用会失败。
+
 * `getpwuid()`用法
 
     根据 uid 去`/etc/passwd`中查询信息。

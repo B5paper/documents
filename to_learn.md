@@ -1,3 +1,231 @@
+* url cache 2025.08.13
+
+    * The-Modern-Vulkan-Cookbook
+
+        <https://github.com/PacktPublishing/The-Modern-Vulkan-Cookbook>
+
+    * 🦙 Rama (ラマ) is a modular service framework for the 🦀 Rust language to move and transform your network packets.
+
+        <https://github.com/plabayo/rama?tab=readme-ov-file>
+
+        <https://ramaproxy.org/book/why_rama>
+
+    * 大学低年级本科生如何对TCS（理论计算机科学）有一个初步的了解呢?
+
+        <https://www.zhihu.com/question/6058492519/answer/69977140179>
+
+    * 《原神》也使用 KCP 进行传输加速
+
+        <https://zhuanlan.zhihu.com/p/606724318>
+
+    * VSCode insert tab character manually
+
+        <https://stackoverflow.com/questions/45566785/vscode-insert-tab-character-manually>
+
+    * How to copy to clipboard in Vim?
+
+        <https://stackoverflow.com/questions/3961859/how-to-copy-to-clipboard-in-vim>
+
+    * Awesome-ML-SYS-Tutorial
+
+        <https://github.com/zhaochenyang20/Awesome-ML-SYS-Tutorial>
+
+    * FrontierMath
+
+        <https://epoch.ai/frontiermath/the-benchmark>
+
+    * U3D is a open source, lightweight, cross-platform 2D and 3D game engine implemented in C++ and released under the MIT license.
+
+        <https://github.com/u3d-community/U3D>
+
+    * This is the repository for the Pragma Game Engine
+
+        <https://github.com/Silverlan/pragma>
+
+    * Mesh: Compacting Memory Management for C/C++
+
+        <https://github.com/plasma-umass/Mesh>
+
+    * AI Hedge Fund
+
+        <https://github.com/virattt/ai-hedge-fund>
+
+    * NS-3 simulator for RDMA
+
+        <https://github.com/bobzhuyb/ns3-rdma>
+
+    * 有什么理论复杂但是实现简单的算法？
+
+        <https://www.zhihu.com/question/27940474/answer/935653880>
+
+    * Ray Collective Communication Lib
+
+        <https://docs.ray.io/en/latest/ray-more-libs/ray-collective.html>
+
+    * How do I pass a command line argument while starting up GDB in Linux? [duplicate]
+
+        <https://stackoverflow.com/questions/14494957/how-do-i-pass-a-command-line-argument-while-starting-up-gdb-in-linux>
+
+    * Memory Layout of C Programs
+
+        <https://www.geeksforgeeks.org/c/memory-layout-of-c-program/>
+
+    * CosyVoice
+
+        Multi-lingual large voice generation model, providing inference, training and deployment full-stack ability. 
+
+        <https://github.com/FunAudioLLM/CosyVoice>
+
+    * gpu_direct_rdma_access
+
+        example code for using DC QP for providing RDMA READ and WRITE operations to remote GPU memory 
+
+        <https://github.com/Mellanox/gpu_direct_rdma_access>
+
+    * CUDA虚拟内存管理
+
+        <https://blog.csdn.net/kunhe0512/article/details/128951128>
+
+    * Unified Memory for CUDA Beginners
+
+        <https://developer.nvidia.com/blog/unified-memory-cuda-beginners/>
+
+    * MSCCL：如何运行自定义集合通信算法
+
+        <https://blog.csdn.net/m0_51900768/article/details/137976863>
+
+    * 速通NCCL Protocol
+
+        <https://zhuanlan.zhihu.com/p/699178659>
+
+    * Nvidia nccl源码解读，有没有详细的介绍？
+
+        <https://www.zhihu.com/question/462770136/answer/3495272550>
+
+    * zzk again
+
+        <https://www.zhihu.com/people/mardino>
+
+    * Snoopie: A Multi-GPU Communication Profiler and Visualizer
+
+        <https://dl.acm.org/doi/fullHtml/10.1145/3650200.3656597>
+
+    * Structured 3D Latents for Scalable and Versatile 3D Generation
+
+        <https://github.com/microsoft/TRELLIS>
+
+    * NcEngine: 3D game engine written in modern C++ and Vulkan 
+
+        <https://github.com/NcStudios/NcEngine>
+
+    * FlashInfer
+
+        <https://docs.flashinfer.ai/installation.html>
+
+    * SGLang is a fast serving framework for large language models and vision language models. 
+
+        <https://github.com/sgl-project/sglang>
+
+    * HunyuanVideo: A Systematic Framework For Large Video Generation Model
+
+        <https://github.com/Tencent-Hunyuan/HunyuanVideo>
+
+    * a smol course
+
+        This is a practical course on aligning language models for your specific use case. 
+
+        <https://github.com/huggingface/smol-course>
+
+    * MatX - GPU-Accelerated Numerical Computing in Modern C++
+
+        <https://github.com/NVIDIA/MatX>
+
+    * How to break on assembly instruction at a given address in gdb?
+
+        <https://stackoverflow.com/questions/5459581/how-to-break-on-assembly-instruction-at-a-given-address-in-gdb>
+
+    * VkFFT - Vulkan/CUDA/HIP/OpenCL/Level Zero/Metal Fast Fourier Transform library
+
+        <https://github.com/DTolm/VkFFT>
+
+    * fallocate(2) — Linux manual page
+
+        <https://man7.org/linux/man-pages/man2/fallocate.2.html>
+
+    * Hierarchical Reasoning Model Official Release 
+
+        <https://github.com/sapientinc/HRM>
+
+    * libcwalk - path library for C/C++
+
+        <https://github.com/likle/cwalk>
+
+    * libcpath
+
+        <https://github.com/libyal/libcpath>
+
+    * chdir() in C language with Examples
+
+        <https://www.geeksforgeeks.org/linux-unix/chdir-in-c-language-with-examples/>
+
+    * The Linux Bootdisk HOWTO: Building a root filesystem
+
+        <https://tldp.org/HOWTO/Bootdisk-HOWTO/buildroot.html>
+
+    * Check pci information on Linux sysfs
+
+        <https://blog.csdn.net/alex_mianmian/article/details/87359213>
+
+    * Linux Tools: The Meaning of Dot
+
+        <https://www.linux.com/training-tutorials/linux-tools-meaning-dot/>
+
+    * The kernel’s command-line parameters
+
+        <https://www.kernel.org/doc/html/v4.14/admin-guide/kernel-parameters.html>
+
+    * 设备树与/sys/bus/platform/devices与/sys/devices目录关系
+
+        <https://blog.csdn.net/qq_43306777/article/details/138512296>
+
+    * Differences Between vmlinux, vmlinuz, vmlinux.bin, zimage, and bzimage
+    
+        <https://www.baeldung.com/linux/kernel-images>
+
+    * Is vmlinuz and bzImage really the same?
+
+        <https://unix.stackexchange.com/questions/197225/is-vmlinuz-and-bzimage-really-the-same>
+
+    * Register super/win key press in qemu
+
+        <https://superuser.com/questions/1652822/register-super-win-key-press-in-qemu>
+
+    * QEMU for Beginner and Advanced
+
+        <https://hackmd.io/@MarconiJiang/qemu_beginner>
+
+    * Platform Device Drivers
+
+        <https://blog.csdn.net/liyucheng987/article/details/115681191>
+
+    * PCI-SIG
+
+        <https://pcisig.com/>
+
+    * nvcomp
+
+        nvCOMP is a CUDA library that features generic compression interfaces to enable developers to use high-performance GPU compressors and decompressors in their applications.
+
+        <https://github.com/NVIDIA/nvcomp>
+
+    * Getting Git to work with a proxy server - fails with "Request timed out"
+
+        <https://stackoverflow.com/questions/783811/getting-git-to-work-with-a-proxy-server-fails-with-request-timed-out>
+
+    * Ladybird is a truly independent web browser, using a novel engine based on web standards.
+
+        <https://github.com/LadybirdBrowser/ladybird>
+
 * url cache 2025.08.03
 
     * Introduction to the NVIDIA DGX A100 System

@@ -30,6 +30,14 @@
 
 ## cache
 
+* AXI DMA MMIO
+
+    MMIO 允许 CPU 通过读写特定内存地址来配置和控制 DMA 控制器
+
+* 成就感很强的情况是一群人从零开始摸索，慢慢找到规律，取得成就的过程。
+
+    其实玩游戏也是一样的道理，最开心的时候是大家都不会玩的时候。
+
 * 过于强势的人不适合合作，让其单打独斗又不如组建团队稳定，因此不要和强势的人往来
 
 * 关于接项目
@@ -1944,15 +1952,37 @@ tasks:
 
     这里没有对 p2p 和 shm 进行检测，导致进入了`if (shm == 0)`分支。
 
+* `xml_tag_to_topo_system()`中的`topo_system_connect_nodes()`之前的 bw 计算得不对，这个 bw 是根据 cpu model 计算出来的。16 指的是 amd 的 cpu。
+
+* `ncclTopoSearchRecGpu()`中的
+
+    ```cpp
+    } else if (step == backToFirstRank) {
+        // Find first GPU and loop back to it
+        int p;
+        ret = system->find_node((size_t*) &p, GPU, graph->intra[graph->nChannels*ngpus]);
+        if (ret != 0) {
+            printf("fail to find gpu node\n");
+            return -1;
+        }
+        // getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);
+        TopoNode* firstGpu;
+        ncclTopoFollowPath(system, graph, GPU, g, GPU, p, 1, &firstGpu);
+        if (firstGpu) {
+            ncclTopoSearchRecGpu(system, graph, saveGraph, firstGpu, step+1, backToNet, -1, forcedOrder, time);
+            ncclTopoFollowPath(system, graph, GPU, g, GPU, p, -1, &firstGpu);
+        }
+    ```
+
+    其中`getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);`这个函数看起来应该是使用 gpu 的 dev id 找到 gpu 的 idx。如果这个假设是对的，那么`graph->intra`存储的就应该是 dev id（待验证）。并且……想不起来了。
+
 ### tasks
 
 * [ ] 调研`crossNic`什么时候变成的 2？
 
 * [ ] 调研`ncclTopoSearchRecNet()`
 
-* [ ] 调研 siccl + silink 的 compute path 搜索
-
-* [v] 写一份 siccl topo layer 第一版文档
+* [v] 调研 siccl + silink 的 compute path 搜索
 
 * [ ] 调研 mpv 播放器
 
@@ -1964,39 +1994,17 @@ tasks:
 
     cpu 0 -> cpu 1 同理。
 
-    feedback:
-
-    1. `xml_tag_to_topo_system()`中的`topo_system_connect_nodes()`之前的 bw 计算得不对，这个 bw 是根据 cpu model 计算出来的。16 指的是 amd 的 cpu。
-
-    1. `ncclTopoSearchRecGpu()`中的
-
-        ```cpp
-        } else if (step == backToFirstRank) {
-            // Find first GPU and loop back to it
-            int p;
-            ret = system->find_node((size_t*) &p, GPU, graph->intra[graph->nChannels*ngpus]);
-            if (ret != 0) {
-                printf("fail to find gpu node\n");
-                return -1;
-            }
-            // getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);
-            TopoNode* firstGpu;
-            ncclTopoFollowPath(system, graph, GPU, g, GPU, p, 1, &firstGpu);
-            if (firstGpu) {
-                ncclTopoSearchRecGpu(system, graph, saveGraph, firstGpu, step+1, backToNet, -1, forcedOrder, time);
-                ncclTopoFollowPath(system, graph, GPU, g, GPU, p, -1, &firstGpu);
-            }
-        ```
-
-        其中`getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);`这个函数看起来应该是使用 gpu 的 dev id 找到 gpu 的 idx。如果这个假设是对的，那么`graph->intra`存储的就应该是 dev id（待验证）。并且……想不起来了。
-
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
     deps:
 
     1. [ ] 学习 fpga 与基本 verilog 开发
 
-* [ ] 调研 axi-dma MMIO
+* [v] 调研 axi-dma MMIO
+
+    feedback:
+
+    1. 调研在 kmd 上使用 mmio
 
 * [ ] 调研 AXI4-Stream 
 
@@ -2010,26 +2018,22 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
+* [ ] 调研`mmap()`
+
+    ```cpp
+    #include <sys/mman.h>
+    void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+    ```
+
 * [v] 调研`lseek()`
-
-    feedback:
-
-    1. 调研`mmap()`
-
-        ```cpp
-        #include <sys/mman.h>
-        void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-        ```
 
 * [v] 调研`stat()`
 
-    feedback:
+* [ ] 调研 fstat() → 通过文件描述符（fd）获取信息
 
-    1. 调研 fstat() → 通过文件描述符（fd）获取信息
+* [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
-    1. 调研 lstat() → 不跟随符号链接（获取链接本身信息）
-
-    1. 调研`[ -f file ]`
+* [ ] 调研`[ -f file ]`
 
 * [ ] 调研`inotify`
 
@@ -2041,9 +2045,7 @@ tasks:
 
 * [v] 调研`mail` command
 
-    feedback:
-
-    1. 调研`<`与`<<<`区别
+* [ ] 调研`<`与`<<<`区别
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
@@ -2071,19 +2073,15 @@ tasks:
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
 
-* [v] 调研`ssh -o PreferredAuthentications=password`
-
 * [ ] 调研`git-credential-libsecret`
 
 * [ ] 调研`stty -echo  # 关闭回显`
 
 * [v] 调研`read -t`
 
-    feedback:
+* [ ] 调研`timeout`命令
 
-    * 调研`timeout`命令
-
-        `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
+    `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
 
 * [ ] 调研 password 的星号掩码
 
@@ -2133,9 +2131,7 @@ tasks:
 
     查找子字符串。
 
-    feedback:
-
-    1. 调研`memmem()`
+* [ ] 调研`memmem()`
 
 * [ ] 调研`wchar_t`，`wcschr()`
 

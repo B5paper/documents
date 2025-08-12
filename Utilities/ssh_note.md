@@ -2,6 +2,12 @@
 
 ## cache
 
+* `ssh -o PreferredAuthentications=password`
+
+    强制使用 password 进行 ssh 登录。
+
+    需确保目标服务器的 /etc/ssh/sshd_config 中启用了 PasswordAuthentication yes。
+
 * `ssh -T`
 
     建立 ssh 连接后，不分配终端。

@@ -6,6 +6,16 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `strstr()`
+
+    syntax:
+
+    ```cpp
+    #include <string.h>
+
+    char *strstr(const char *str, const char *sub_str);
+    ```
+
 * `do { ... } while(0)`
 
     常用场景：
