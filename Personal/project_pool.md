@@ -1355,6 +1355,8 @@
 
 ### tasks
 
+* [v] process tabs
+
 * [v] cache tabs
 
     feedback:
@@ -1982,17 +1984,9 @@ tasks:
 
 * [ ] 调研`ncclTopoSearchRecNet()`
 
-* [v] 调研 siccl + silink 的 compute path 搜索
-
 * [ ] 调研 mpv 播放器
 
 * [ ] 调研除了 nccl 外的其他 ccl 库
-
-* [v] 调研 a100 4 gpu 上，为什么 cpu 1 -> cpu 0 的 link sys 的 bw 不对，135 机器上是 16，siccl 是 5000
-
-    因此导致的 edge 顺序也不对
-
-    cpu 0 -> cpu 1 同理。
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -2002,9 +1996,7 @@ tasks:
 
 * [v] 调研 axi-dma MMIO
 
-    feedback:
-
-    1. 调研在 kmd 上使用 mmio
+* [ ] 调研在 kmd 上使用 mmio
 
 * [ ] 调研 AXI4-Stream 
 
@@ -2025,25 +2017,33 @@ tasks:
     void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
     ```
 
-* [v] 调研`lseek()`
-
-* [v] 调研`stat()`
-
 * [ ] 调研 fstat() → 通过文件描述符（fd）获取信息
 
 * [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
 * [ ] 调研`[ -f file ]`
 
-* [ ] 调研`inotify`
+* [v] 调研`inotify`
 
-* [ ] 调研`read()`与`fread()`有何不同
+    feedback:
+
+    1. 调研`inotify_init()`, `inotify_add_watch()`
+
+    1. 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
+
+    1. 调研 rsync 如何实时同步文件
+
+        如果其中有个目录是远程目录，那么可以同步文件吗？
+
+* [v] 调研`read()`与`fread()`有何不同
 
     同理，调研`open()`和`fopen()`有何不同
 
-* [ ] 调研`less`命令
+    feedback:
 
-* [v] 调研`mail` command
+    1. 调研 POSIX 标准
+
+* [ ] 调研`less`命令
 
 * [ ] 调研`<`与`<<<`区别
 
@@ -2076,8 +2076,6 @@ tasks:
 * [ ] 调研`git-credential-libsecret`
 
 * [ ] 调研`stty -echo  # 关闭回显`
-
-* [v] 调研`read -t`
 
 * [ ] 调研`timeout`命令
 
@@ -2126,10 +2124,6 @@ tasks:
 * [ ] 调研`strrchr()`
 
     查找字符的最后一次出现位置。
-
-* [v] `strstr()`
-
-    查找子字符串。
 
 * [ ] 调研`memmem()`
 

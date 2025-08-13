@@ -1,5 +1,35 @@
 * url cache 2025.08.13
 
+    * How to extract a zip file to a specific folder?
+
+        <https://askubuntu.com/questions/520546/how-to-extract-a-zip-file-to-a-specific-folder>
+
+    * python格式化字符串的三种方法（%，format，f-string)
+
+        <https://blog.csdn.net/zjbyough/article/details/96466658>
+
+    * Python - 字符串格式化详解（%、format） 
+
+        <https://www.cnblogs.com/poloyy/p/12443158.html>
+
+    * books
+
+        <https://github.com/wwkenwong/book/tree/master>
+
+    * 侯捷C++ Type traits（类型萃取
+
+        <https://www.cnblogs.com/youxin/p/3304394.html>
+
+    * Linux Device Drivers, Third Edition
+
+        <https://lwn.net/Kernel/LDD3/>
+
+    * Writing a PCI device driver for Linux
+
+        <https://olegkutkov.me/2021/01/07/writing-a-pci-device-driver-for-linux/>
+
+* url cache 2025.08.12
+
     * The-Modern-Vulkan-Cookbook
 
         <https://github.com/PacktPublishing/The-Modern-Vulkan-Cookbook>
