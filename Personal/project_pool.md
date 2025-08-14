@@ -1355,6 +1355,8 @@
 
 ### tasks
 
+* [v] cache tabs
+
 * [v] process tabs
 
 * [v] cache tabs
@@ -1980,11 +1982,23 @@ tasks:
 
 ### tasks
 
+* [ ] 调研如何使用`open()`创建新文件，如果旧文件存在，则覆盖旧文件？ 
+
+* [ ] 调研 netstat 或 ss
+
+* [ ] 调研`ip route get`
+
+* [ ] 调研`ethtool`
+
+* [ ] 调研`OneCCL`, `RCCL`, `Gloo`
+
+* [ ] 调研 SCCL 的动态路径选择和故障恢复机制
+
 * [ ] 调研`crossNic`什么时候变成的 2？
 
 * [ ] 调研`ncclTopoSearchRecNet()`
 
-* [ ] 调研 mpv 播放器
+* [v] 调研 mpv 播放器
 
 * [ ] 调研除了 nccl 外的其他 ccl 库
 
@@ -1993,8 +2007,6 @@ tasks:
     deps:
 
     1. [ ] 学习 fpga 与基本 verilog 开发
-
-* [v] 调研 axi-dma MMIO
 
 * [ ] 调研在 kmd 上使用 mmio
 
@@ -2017,7 +2029,15 @@ tasks:
     void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
     ```
 
-* [ ] 调研 fstat() → 通过文件描述符（fd）获取信息
+* [v] 调研 fstat() → 通过文件描述符（fd）获取信息
+
+    feedback:
+
+    1. 调研`stat()`
+
+    1. 调研`fileno()`
+
+    1. 调研`lstat()`
 
 * [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
@@ -2025,27 +2045,23 @@ tasks:
 
 * [v] 调研`inotify`
 
-    feedback:
+* [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
-    1. 调研`inotify_init()`, `inotify_add_watch()`
+* [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
 
-    1. 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
+* [ ] 调研 rsync 如何实时同步文件
 
-    1. 调研 rsync 如何实时同步文件
-
-        如果其中有个目录是远程目录，那么可以同步文件吗？
+    如果其中有个目录是远程目录，那么可以同步文件吗？
 
 * [v] 调研`read()`与`fread()`有何不同
 
     同理，调研`open()`和`fopen()`有何不同
 
-    feedback:
-
-    1. 调研 POSIX 标准
+* [ ] 调研 POSIX 标准
 
 * [ ] 调研`less`命令
 
-* [ ] 调研`<`与`<<<`区别
+* [v] 调研`<`与`<<<`区别
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
@@ -2075,7 +2091,7 @@ tasks:
 
 * [ ] 调研`git-credential-libsecret`
 
-* [ ] 调研`stty -echo  # 关闭回显`
+* [v] 调研`stty -echo  # 关闭回显`
 
 * [ ] 调研`timeout`命令
 
@@ -2109,7 +2125,7 @@ tasks:
 
 * [ ] 调研`GIT_ASKPASS`
 
-* [ ] 调研`setsid`
+* [v] 调研`setsid`
 
 * [ ] 调研 PTY 与 tty 有何不同
 
@@ -2119,9 +2135,9 @@ tasks:
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
-* [ ] 调研`finger`
+* [v] 调研`finger`
 
-* [ ] 调研`strrchr()`
+* [v] 调研`strrchr()`
 
     查找字符的最后一次出现位置。
 
@@ -2198,7 +2214,7 @@ tasks:
 
 * [ ] 调研 tty ? 是什么意思
 
-* [ ] 调研`pstree`
+* [v] 调研`pstree`
 
 * [ ] 调研`htop`
 
