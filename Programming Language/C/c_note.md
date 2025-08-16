@@ -6,6 +6,34 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `strrchr()`
+
+    从右往左搜索指定字符的位置。
+
+    example:
+
+    ```cpp
+    #include <string.h>
+    #include <stdio.h>
+
+    int main() {
+        const char *msg = "hello, world";
+        const char *pos_ptr = strrchr(msg, 'r');
+        if (pos_ptr == NULL) {
+            printf("fail to find pos\n");
+            return -1;
+        }
+        printf("%c is at pos %ld\n", *pos_ptr, pos_ptr - msg);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    r is at pos 9
+    ```
+
 * `strstr()`
 
     syntax:

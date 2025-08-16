@@ -1,0 +1,79 @@
+# mpv note
+
+## cache
+
+* mpv 支持查看视频、音频和图片
+
+    ```bash
+    mpv 文件名.mp4          # 播放视频
+    mpv 音乐.mp3           # 播放音频
+    mpv 图片.jpg           # 查看图片（支持翻页）
+    mpv https://视频链接    # 直接播放在线视频（如 YouTube、直播流）
+    mpv 文件1 文件2 文件3   # 顺序播放多个文件
+    mpv --shuffle *.mp3    # 随机播放当前目录下的音频
+    ```
+
+    常用快捷键
+
+    空格	暂停/继续
+    → / ←	快进/快退 5 秒
+    ↑ / ↓	快进/快退 1 分钟
+    f	全屏切换
+    q	退出（保留进度）
+    Q	强制退出（不保存进度）
+    9 / 0	音量减/增
+    m	静音切换
+    s	截图（保存到当前目录）
+
+    高级功能
+
+    * 字幕与音轨
+
+        ```bash
+        mpv --sub-file=字幕.srt 视频.mp4    # 加载外挂字幕
+        mpv --audio-file=音频.mka 视频.mkv  # 加载外部音轨
+        ```
+
+        播放时按`j`切换字幕，`#`切换音轨。
+
+    * 倍速播放
+
+        ```bash
+        mpv --speed=2.0 视频.mp4   # 2倍速播放
+        ```
+
+        播放时按`[`和`]`动态调整速度。
+
+    * 无界面模式（后台播放音频）
+
+        ```bash
+        mpv --no-video 视频.mp4    # 仅播放音频
+        ```
+
+    * 循环播放
+
+        ```bash
+        mpv --loop=3 视频.mp4      # 循环播放3次
+        mpv --loop=inf 音乐.mp3    # 无限循环
+        ```
+
+    * 自定义配置
+
+        编辑`~/.config/mpv/mpv.conf`文件（如不存在则新建）：
+
+        ```conf
+        # 示例配置
+        vo=gpu                         # 使用GPU加速
+        save-position-on-quit=yes      # 退出时保存进度
+        sub-auto=fuzzy                 # 自动加载相似名字幕
+        ```
+
+    其他实用选项（未验证）
+
+    * 硬件解码：`--hwdec=auto`（启用显卡硬解，降低CPU占用）。
+
+    * 最小化启动：`mpv --no-border --ontop 视频.mp4`（无边框置顶窗口）。
+
+    * 截图不带字幕：`mpv --screenshot-format=png --vf=subtitles=off`。
+
+## note

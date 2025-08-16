@@ -6,6 +6,195 @@
 
 ## cache
 
+* `fstat()`用于获取文件的状态信息，比如文件大小、权限、时间戳等
+
+    头文件：`<sys/stat.h>`
+
+    syntax:
+
+    ```cpp
+    int fstat(int fd, struct stat *buf);
+    ```
+
+    参数：
+
+        fd：已打开文件的文件描述符（通过 open()、fileno() 等获取）。
+
+        buf：指向 struct stat 的指针，用于存储文件状态信息。
+
+    返回值：
+
+        成功返回 0，失败返回 -1 并设置 errno。
+
+    `struct stat`中的常用成员：
+
+    * `st_mode`: 文件类型和权限（如 S_ISREG() 判断是否为普通文件）
+
+    * `st_size`: 文件大小（字节）
+
+    * `st_uid`: 文件所有者的用户ID
+    
+    * `st_gid`: 文件所属组的组ID
+
+    * `st_atime`: 最后访问时间（Access Time）
+
+    * `st_mtime`: 最后修改时间（Modify Time）
+
+    * `st_ctime`: 最后状态变更时间（Change Time）
+
+    example:
+
+    ```cpp
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/stat.h>
+    #include <stdio.h>
+
+    int main() {
+        int fd = open("msg.txt", O_RDONLY);
+
+        struct stat my_stat;
+        int ret = fstat(fd, &my_stat);
+        if (ret != 0) {
+            printf("fail to fstat()...\n");
+            return -1;
+        }
+
+        printf("file size: %lu\n", my_stat.st_size);
+
+        if (S_ISREG(my_stat.st_mode)) {
+            printf("This is a regular file.\n");
+        } else if (S_ISDIR(my_stat.st_mode)) {
+            printf("This is a directory.\n");
+        }
+
+        ret = close(fd);
+        if (ret != 0) {
+            printf("fail to close fd: %d\n", fd);
+            return -1;
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    file size: 15
+    This is a regular file.
+    ```
+
+* `open()`
+
+    头文件：`#include <fcntl.h> `
+
+    syntax:
+
+    ```c
+    int open(const char *pathname, int flags, mode_t mode);  // mode 仅在创建文件时使用
+    ```
+
+    打开文件：
+
+    ```c
+    int fd = open("msg_1.txt", O_RDONLY);
+    if (fd < 0) {
+        printf("fail to open file, ret: %d\n", fd);
+        return -1;
+    }
+    ```
+
+    创建新文件：
+
+    ```c
+    int fd = open("newfile.txt", O_CREAT, 0644); // 创建文件并设置权限 -rw-r--r--
+    ```
+
+    如果使用`O_CREAT`创建文件时没有加第三个参数设置权限，那么创建出来的文件会被加上`s`权限，导致无法正常打开。
+
+    如果文件存在，则不会覆盖。
+
+    如果不想使用`0644`权限创建文件，那么可以使用
+
+    `int fd = open("msg_1.txt", O_CREAT | O_RDWR);`
+
+    `O_RDWR`不能使用`O_RDONLY`或`O_WRONLY`，否则会加上`s`权限。同样地，如果文件存在，则不会覆盖。
+
+    `open()`的其他 flag （未验证）：
+
+    O_RDONLY：只读
+
+    O_WRONLY：只写
+
+    O_RDWR：读写
+
+    O_APPEND：追加写入
+
+    O_TRUNC：清空文件（如果已存在）
+
+    O_NONBLOCK：非阻塞模式（常用于设备文件或管道）
+
+* `read()`是 posix 标准提供的函数，是系统调用
+
+    头文件`<unistd.h>`
+
+    syntax:
+
+    ```cpp
+    ssize_t read(int fd, void *buf, size_t count);
+    ```
+
+    * `fd`：文件描述符（如通过 open() 打开的文件）。
+
+    * `buf`：存储读取数据的缓冲区。
+
+    * `count`：请求读取的字节数。
+
+    返回值：
+
+    返回实际读取的字节数（ssize_t），可能小于请求的 count（如文件末尾）。
+
+    返回 -1 表示错误（需检查 errno）。
+
+    `fread()`是 C 语言提供的函数，是对系统调用的封装
+    
+    头文件`<stdio.h>`
+
+    syntax:
+
+    ```cpp
+    size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+    ```
+
+    * `ptr`：存储数据的缓冲区。
+
+    * `size`：每个数据项的字节大小（如 sizeof(int)）。
+
+    * `nmemb`：要读取的数据项数量。
+
+    * `stream`：`FILE*`类型的指针。
+
+    返回值：
+
+    返回成功读取的 数据项数量（size_t），而非字节数。
+
+    若返回值小于 nmemb，可能到达文件末尾（feof()）或出错（ferror()）。
+
+    * 缓冲机制（未验证）
+
+        * `read()`
+
+            * 无缓冲：直接调用内核接口，每次调用触发一次系统调用，效率较低（频繁小数据读取时）。
+
+            * 适合需要精细控制或高性能的场景（如大块数据读取）。
+
+        * `fread()`
+
+            * 带缓冲：C 标准库在用户空间维护缓冲区，减少系统调用次数（如多次小数据读取会合并为一次系统调用）。
+
+            * 适合常规文件操作（如文本/二进制文件逐块读取）。
+
 * `stat()`用于获得文件属性
 
     example:

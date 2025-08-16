@@ -1982,6 +1982,10 @@ tasks:
 
 ### tasks
 
+* [v] 调研 switch scale-up 互联的文档
+
+* [v] 完善文档
+
 * [ ] 调研如何使用`open()`创建新文件，如果旧文件存在，则覆盖旧文件？ 
 
 * [ ] 调研 netstat 或 ss
@@ -1997,8 +2001,6 @@ tasks:
 * [ ] 调研`crossNic`什么时候变成的 2？
 
 * [ ] 调研`ncclTopoSearchRecNet()`
-
-* [v] 调研 mpv 播放器
 
 * [ ] 调研除了 nccl 外的其他 ccl 库
 
@@ -2022,28 +2024,34 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研`mmap()`
+* [v] 调研`mmap()`
 
     ```cpp
     #include <sys/mman.h>
     void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
     ```
 
-* [v] 调研 fstat() → 通过文件描述符（fd）获取信息
-
     feedback:
 
-    1. 调研`stat()`
+    1. 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
 
-    1. 调研`fileno()`
+    1. 调研 mmap() 的匿名映射模式
 
-    1. 调研`lstat()`
+    1. 调研 msync()
+
+    1. 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
+
+* [v] 调研 fstat() → 通过文件描述符（fd）获取信息
+
+* [ ] 调研`stat()`
+
+* [ ] 调研`fileno()`
+
+* [ ] 调研`lstat()`
 
 * [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
 * [ ] 调研`[ -f file ]`
-
-* [v] 调研`inotify`
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -2053,15 +2061,9 @@ tasks:
 
     如果其中有个目录是远程目录，那么可以同步文件吗？
 
-* [v] 调研`read()`与`fread()`有何不同
-
-    同理，调研`open()`和`fopen()`有何不同
-
 * [ ] 调研 POSIX 标准
 
-* [ ] 调研`less`命令
-
-* [v] 调研`<`与`<<<`区别
+* [v] 调研`less`命令
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
@@ -2089,9 +2091,7 @@ tasks:
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
 
-* [ ] 调研`git-credential-libsecret`
-
-* [v] 调研`stty -echo  # 关闭回显`
+* [v] 调研`git-credential-libsecret`
 
 * [ ] 调研`timeout`命令
 
@@ -2125,8 +2125,6 @@ tasks:
 
 * [ ] 调研`GIT_ASKPASS`
 
-* [v] 调研`setsid`
-
 * [ ] 调研 PTY 与 tty 有何不同
 
 * [ ] 调研`disown`
@@ -2134,12 +2132,6 @@ tasks:
 * [ ] 调研`strace`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
-
-* [v] 调研`finger`
-
-* [v] 调研`strrchr()`
-
-    查找字符的最后一次出现位置。
 
 * [ ] 调研`memmem()`
 
@@ -2213,8 +2205,6 @@ tasks:
 * [ ] 调研 NCCL_COLLNET 是干嘛用的
 
 * [ ] 调研 tty ? 是什么意思
-
-* [v] 调研`pstree`
 
 * [ ] 调研`htop`
 

@@ -6,6 +6,172 @@
 
 ## cache
 
+* `stty -echo`
+
+    关闭回显。
+
+    ```bash
+    stty -echo  # 关闭回显
+    read -p "Enter password: " password
+    stty echo   # 恢复回显
+    echo        # 换行（避免密码输入后的提示符紧贴上一行）
+    ```
+
+* `stty`
+
+    set teletype, or set terminal
+
+    常用功能：
+
+    * 查看当前终端设置: `stty -a`
+
+    * 关闭回显（输入不显示，如输入密码时）: `stty -echo`
+
+    * 恢复回显：`stty echo`
+
+    * 禁用控制字符（如 Ctrl+C 中断信号）：`stty intr undef  # 取消 Ctrl+C 的中断功能`
+
+    * 将退格键（Backspace）设为删除前一个字符: `stty erase ^H`
+
+    * 如果终端因错误配置导致乱码或无响应，可通过重置恢复：`stty sane`
+
+    * 禁止终端显示输入内容：`stty -echo; read -s; stty echo`
+
+    stty 的配置是临时性的，仅对当前终端会话有效。
+
+* `setsid`
+
+    创建一个新的会话（session）并在此会话中运行指定的命令，使该进程完全脱离当前终端（terminal）的控制
+
+    即使关闭当前终端窗口或退出登录，通过 setsid 启动的进程仍会继续在后台运行（不会被 SIGHUP 信号终止）。
+
+    新进程会成为会话首进程（session leader），且拥有新的进程组 ID（PGID），与原有终端完全无关。
+
+    example:
+
+    * `setsid your_command &`
+
+        后台运行守护进程（daemon）, 适用于需要长期运行的服务（如自定义脚本或服务）。
+
+    * `setsid tail -f /var/log/syslog`
+
+        即使终端关闭，进程也不会退出
+
+    * 替代 nohup 的更彻底方案
+
+        nohup 仅忽略 SIGHUP 信号，而 setsid 直接脱离终端会话。
+
+        ```bash
+        # 启动一个完全脱离终端的进程（日志重定向到文件）
+        setsid your_command > /var/log/command.log 2>&1 &
+        ```
+
+* `<`, `<<`和`<<<`
+
+    1. <（标准输入重定向）
+
+        用于将文件内容作为命令的标准输入。
+
+        ```bash
+        command < file.txt
+        ```
+
+        （将 file.txt 的内容传递给 command 作为输入）
+
+    1. <<（Here Document）
+
+        用于在脚本中直接嵌入多行输入，直到遇到指定的结束标记（delimiter）。
+
+        ```bash
+        command << EOF
+        line 1
+        line 2
+        EOF
+        ```
+
+    1. <<<（Here String）
+
+        用于将单个字符串（而不是文件或多行文本）作为命令的标准输入。
+
+        ```bash
+        command <<< "string"
+        ```
+
+* `pstree`
+
+    `pstree`可以以树状结构显示 ps 的内容。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ pstree 
+    systemd─┬─ModemManager───2*[{ModemManager}]
+            ├─NetworkManager───2*[{NetworkManager}]
+            ├─accounts-daemon───2*[{accounts-daemon}]
+            ├─acpid
+            ├─avahi-daemon───avahi-daemon
+            ├─blkmapd
+            ├─colord───2*[{colord}]
+    ```
+
+    其中数字表示多个相同的进程/线程。
+
+    常用参数：
+
+    * `-c` 选项禁用合并
+
+    * `-p`：显示进程的 PID。
+
+    * `-n`：按 PID 数字排序（默认按进程名排序）。
+
+    * `-a`：显示进程的完整命令行参数。
+
+    * `pstree [username]`: 查看某用户启动的进程树
+
+    * `-A`: 使用 ASCII 字符绘制树（兼容性更好）
+
+* `finger`是一个早期的网络工具，用于查询系统上的用户信息，现代系统默认禁用
+
+* inotify
+
+    `inotifywait`默认不被安装，需要手动安装:
+
+    ```
+    Command 'inotifywait' not found, but can be installed with:
+    sudo apt install inotify-tools
+    ```
+
+    example:
+
+    `inotifywait -m test_1/`
+
+    此时在`test_1`中执行`ls`，则`inotifywait`的输出为：
+
+    ```
+    Setting up watches.
+    Watches established.
+    test_1/ OPEN,ISDIR 
+    test_1/ ACCESS,ISDIR 
+    test_1/ CLOSE_NOWRITE,CLOSE,ISDIR
+    ```
+
+    继续执行`touch haha.txt`，则有输出：
+
+    ```
+    test_1/ CREATE haha.txt
+    test_1/ OPEN haha.txt
+    test_1/ ATTRIB haha.txt
+    test_1/ CLOSE_WRITE,CLOSE haha.txt
+    ```
+
+    此时 cpu 几乎没有占用。
+
+    未验证的限制：
+
+    * 不适用于远程文件系统（如 NFS）。
+
+    * 监控大量文件时可能耗尽 inotify 的 watch 句柄（需调整 /proc/sys/fs/inotify/max_user_watches）。
+
 * `stat filename  # 查看文件详细信息`
 
 * `mail`发送邮件
