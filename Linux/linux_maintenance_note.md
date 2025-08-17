@@ -6,6 +6,49 @@
 
 ## cache
 
+* `git-credential-libsecret`可以将 git 凭据存储在`libsecret`密钥管理服务中。
+
+    需要系统安装 libsecret，还需要 git 去配置，略显复杂。有需求了再看。
+
+* `less`
+
+    less 用于分页查看。
+
+    syntax:
+
+    ```bash
+    less [选项] 文件名
+    ```
+
+    常用选项：
+
+        -N：显示行号。
+
+        -i：忽略搜索时的大小写（除非搜索词包含大写字母）。
+
+        -F：若文件可一屏显示，直接退出（类似 cat）。
+
+        -S：禁用自动换行（超长行需左右滚动查看）。
+
+        `less +F growing_file.log`: 类似 `tail -f`，按 `Ctrl+C` 退出跟踪模式
+
+    交互式操作
+    快捷键	功能
+    空格 / f	向下翻一页
+    b	向上翻一页
+    Enter	向下翻一行
+    /关键词	向前搜索（按 n 跳转到下一个）
+    ?关键词	向后搜索（按 N 跳转到上一个）
+    g	跳转到文件首行
+    G	跳转到文件末行
+    :n	查看下一个文件（多文件打开时）
+    :p	查看上一个文件
+    q	退出 less
+
+    按 v 键可在当前光标位置启动默认编辑器（如 vi）编辑文件。
+
+    使用 & 过滤显示匹配行（如 &error 只显示含 "error" 的行）。
+
 * `stty -echo`
 
     关闭回显。
@@ -387,6 +430,10 @@
     * `0 17 * * 1-5 echo "End of workday" | mail -s "Reminder" user@example.com`
 
         工作日（周一到周五）下午5点发邮件
+
+    * `0 * * * 1-5 /path/to/command`
+
+        工作日每小时执行一次
 
     * `*/10 * * * * sleep $((RANDOM \% 60)) && /path/to/command`
 

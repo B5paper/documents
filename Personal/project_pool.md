@@ -1982,11 +1982,11 @@ tasks:
 
 ### tasks
 
-* [v] 调研 switch scale-up 互联的文档
+* [ ] 调研 find 搜索时使用的是 regex 还是 glob？
 
-* [v] 完善文档
+* [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
-* [ ] 调研如何使用`open()`创建新文件，如果旧文件存在，则覆盖旧文件？ 
+* [v] 调研如何使用`open()`创建新文件，如果旧文件存在，则覆盖旧文件？ 
 
 * [ ] 调研 netstat 或 ss
 
@@ -2003,16 +2003,6 @@ tasks:
 * [ ] 调研`ncclTopoSearchRecNet()`
 
 * [ ] 调研除了 nccl 外的其他 ccl 库
-
-* [ ] 买 fpga 学习 pcie 设备及驱动
-
-    deps:
-
-    1. [ ] 学习 fpga 与基本 verilog 开发
-
-* [ ] 调研在 kmd 上使用 mmio
-
-* [ ] 调研 AXI4-Stream 
 
 * [ ] 调研 cuda memcheck tool / compute-sanitizer
 
@@ -2031,25 +2021,17 @@ tasks:
     void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
     ```
 
-    feedback:
+* [ ] 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
 
-    1. 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
+* [ ] 调研 mmap() 的匿名映射模式
 
-    1. 调研 mmap() 的匿名映射模式
+* [ ] 调研 msync()
 
-    1. 调研 msync()
-
-    1. 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
-
-* [v] 调研 fstat() → 通过文件描述符（fd）获取信息
+* [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
 * [ ] 调研`stat()`
 
 * [ ] 调研`fileno()`
-
-* [ ] 调研`lstat()`
-
-* [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
 * [ ] 调研`[ -f file ]`
 
@@ -2062,8 +2044,6 @@ tasks:
     如果其中有个目录是远程目录，那么可以同步文件吗？
 
 * [ ] 调研 POSIX 标准
-
-* [v] 调研`less`命令
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
@@ -2091,13 +2071,11 @@ tasks:
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
 
-* [v] 调研`git-credential-libsecret`
-
 * [ ] 调研`timeout`命令
 
     `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
 
-* [ ] 调研 password 的星号掩码
+* [v] 调研 password 的星号掩码
 
     ```bash
     #!/bin/bash
@@ -2117,6 +2095,18 @@ tasks:
     echo "Password: [hidden]"
     ```
 
+    feedback:
+
+    1. 调研`read -n1`的作用
+
+    1. 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
+
+    1. 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
+
+    1. `read -r`以及有哪些常见的反斜杠转义字符？
+
+    1. 调研`od -c`的作用
+
 * [ ] 调研 openssl, gpg
 
 * [ ] 调研`dmenu`
@@ -2133,7 +2123,11 @@ tasks:
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
-* [ ] 调研`memmem()`
+* [v] 调研`memmem()`
+
+    feedback:
+
+    1. 调研 Boyer-Moore 算法
 
 * [ ] 调研`wchar_t`，`wcschr()`
 
@@ -2272,7 +2266,19 @@ tasks:
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
-* [ ] 调研`std::visit`
+* [P] 调研`std::visit`
+
+    deps:
+
+    1. 调研`std::variant`
+    
+    1. 调研`std::any`
+
+    1. 调研`std::holds_alternative`
+
+    1. 调研`std::get_if`, `std::get`
+
+    1. 调研 c++ 泛型 lambda
 
 * [ ] 调研`std::reference_wrapper`
 
@@ -2399,16 +2405,14 @@ tasks:
 
     `grep -E "keyword1|keyword2|keyword3" file.txt`
 
-* [ ] 调研`grep -c`
+* [v] 调研`grep -c`
 
     ```bash
     # 统计包含任意关键字的行数
     grep -c -E "keyword1|keyword2|keyword3" file.txt
     ```
 
-    feedback:
-
-    1. 调研`grep -o`
+* [ ] 调研`grep -o`
 
 * [ ] 调研`grep -A`
 
@@ -2444,8 +2448,6 @@ tasks:
     调研`find . -type f -regex '.*/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}.*\.log' -exec grep -l 'error' {} +`
 
     grep 在匹配文件名时，只支持 glob，如果想使用 regex 匹配文件名，那么必须将 find 和 grep 结合起来使用。
-
-* [ ] find 搜索时使用的是 regex 还是 glob？
 
 * [ ] 调研`cudaMallocManaged()`
 
@@ -4080,7 +4082,61 @@ resources:
 
 * Linux Kernel Development, 3rd Edition
 
-tasks:
+### tasks
+
+* [ ] 买 fpga 学习 pcie 设备及驱动
+
+    deps:
+
+    1. [ ] 学习 fpga 与基本 verilog 开发
+
+* [ ] 调研 AXI4-Stream 
+
+* [O] 调研在 kmd 上使用 mmio
+
+    feedback:
+
+    1. 调研`pci_resource_start()`
+
+    1. 调研平台设备（Platform Device）
+
+    1. 调研`screen`命令
+
+    1. 调研QEMU的edu设备
+
+    1. 还是要从嵌入式开发板看起。
+
+        如果直接上 pc，那么比较简单的是 pci转串口（16550 uart）的驱动，网卡驱动，SATA控制器（块设备驱动）
+
+        比较复杂的是 fpga pcie 开发板
+
+        那么还不如先看看 arm 开发板的常见驱动写法，再转到更复杂的 pcie。
+
+    1. 调研《Linux Device Drivers》，《PCI Express System Architecture》
+
+    1. 调研 linux 的`drivers/pci/`目录
+
+    1. 调研 linux `drivers/misc/`可能有简单PCI驱动示例
+
+    1. 调研`setpci`命令
+
+    1. 调研`minicom`命令
+
+    1. 调研`picocom`工具
+
+* [ ] 调研 qemu edu driver
+
+    尝试跑通 example
+
+    example: <https://github.com/kokol16/EDU-driver/tree/main>
+
+    doc: <https://www.qemu.org/docs/master/specs/edu.html>
+
+    res: <https://jklincn.com/posts/qemu-edu-driver/>
+
+* [ ] 调研 I2C 驱动
+
+* [ ] 调研 nccl graph 中 sameChannels 的含义
 
 * [v] 调研`pci_set_drvdata`
 

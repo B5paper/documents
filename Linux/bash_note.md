@@ -4,6 +4,60 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 中输入密码显示为星号（`*`）的模板代码
+
+    ```bash
+    stty -echo  # 关闭回显
+    unset password
+    prompt="Enter password: "
+    while IFS= read -p "$prompt" -r -s -n1 char; do
+        if [[ $char == $'\0' ]]; then  # 回车键结束
+            break
+        fi
+        prompt='*'
+        password+="$char"
+    done
+    stty echo  # 恢复回显
+    echo
+    echo "Password: [hidden]"
+    ```
+
+    效果：
+
+    ```
+    Enter password: **********
+    Password: [hidden]
+    ```
+
+* IFS 与 read
+
+    `IFS`指的是 Internal Field Separator，可以决定`read`是否过滤用户输入的前缀、后缀空格。
+
+    ```bash
+    read -p "input something: " msg
+    echo "$msg"
+
+    IFS= read -p "input something: " msg
+    echo "$msg"
+    ```
+
+    交互输入与输出：
+
+    ```
+    input something:     hello world
+    hello world
+    input something:     hello world
+        hello world
+    ```
+
+    其中，`IFS= read -p "input something: " msg`等价于`IFS="" read -p "input something: " msg`，或`IFS='' read -p "input something: " msg`，即为空。
+
+    `IFS`的默认值为`IFS=" \t\n"`（空格，制表，换行）。
+
+    `echo "$msg"`是为了将`msg`内容解释为一个字符串。假如`msg`值为`    hello`，那么`echo $msg`就变成`echo     hello`，输出为`hello`。而`echo "$msg"`则为`echo "    hello"`，输出为`    hello`。
+
+    `IFS= read`仅作用于当前命令`read`，当`read`执行完后，`IFS`又恢复默认值。
+
 * `read -t`用于设置读取输入的超时时间
 
     `read -t <秒数> [变量名]`

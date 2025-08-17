@@ -2,6 +2,141 @@
 
 ## cached
 
+* `std::visit`
+
+    `std::visit`可以根据当前存储的实际类型，动态调用对应的处理逻辑。
+
+    example:
+
+    ```cpp
+    #include <variant>
+    #include <iostream>
+    #include <string>
+
+    int main() {
+        std::variant<int, float, std::string> v = "Hello";
+
+        // 定义一个访问器（可以是 lambda、函数对象或普通函数）
+        auto visitor = [](auto&& arg) {
+            std::cout << arg << std::endl;
+        };
+
+        std::visit(visitor, v); // 输出：Hello
+    }
+    ```
+
+    output:
+
+    ```
+    Hello
+    ```
+
+    * `visitor`是一个泛型 lambda，可以处理 variant 的所有可能类型。
+
+    * `std::visit`自动检测`v`当前存储的类型，并调用对应的逻辑。
+
+* vector 扩容导致指针失效一例
+
+    ```cpp
+    #include <vector>
+    #include <stdio.h>
+    using namespace std;
+
+    //    1
+    //  2   3
+    // 4 5 6 7
+
+    struct Node_1 {
+        int val;
+        vector<Node_1> left_right;
+    };
+
+    void test_1() {
+        Node_1 root_node;
+        vector<Node_1*> node_records;
+        root_node.val = 0;
+        node_records.push_back(&root_node);
+
+        // left node
+        root_node.left_right.emplace_back();
+        Node_1 *left_ptr = &root_node.left_right.back();
+        left_ptr->val = 1;
+        node_records.push_back(left_ptr);
+
+        // right node
+        root_node.left_right.emplace_back();
+        Node_1 *right_ptr = &root_node.left_right.back();
+        right_ptr->val = 2;
+        node_records.push_back(right_ptr);
+
+        printf("node: ");
+        for (Node_1 * node_ptr : node_records) {
+            printf("%d, ", node_ptr->val);
+        }
+        putchar('\n');
+    }
+
+    struct Node_2 {
+        int val;
+        vector<Node_2*> left_right;
+
+        ~Node_2() {
+            for (Node_2 *node_ptr : left_right) {
+                delete node_ptr;
+            }
+        }
+    };
+
+    void test_2() {
+        Node_2 root_node;
+        vector<Node_2*> node_records;
+
+        root_node.val = 0;
+        node_records.push_back(&root_node);
+
+        // left node
+        root_node.left_right.push_back(new Node_2);
+        Node_2 *left_ptr = root_node.left_right.back();
+        left_ptr->val = 1;
+        node_records.push_back(left_ptr);
+
+        // right node
+        root_node.left_right.push_back(new Node_2);
+        Node_2 *right_ptr = root_node.left_right.back();
+        right_ptr->val = 2;
+        node_records.push_back(right_ptr);
+
+        printf("node: ");
+        for (Node_2 * node_ptr : node_records) {
+            printf("%d, ", node_ptr->val);
+        }
+        putchar('\n');
+    }
+
+    int main() {
+        printf("test 1:\n");
+        test_1();
+        printf("test 2:\n");
+        test_2();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    test 1:
+    node: 0, -2113935744, 2, 
+    test 2:
+    node: 0, 1, 2, 
+    ```
+
+    `test_1()`使用 Node_1 中的 vector 存储树叶子节点的实体而不是指针，导致在 vector 扩容时元素的地址改变，如果这个时候外部也需要临时地存储一下各个节点的指针，那么就会出错。可以看到 test 1 输出的 val 值，第 2 个明显是错的。
+
+    `test_2()`使用 Node_2 中的 vecotr 存储叶子节点的指针，不存在上述问题。唯一需要注意的地方就是`Node_2`需要写析构函数释放内存。
+
+    在`test_1()`中，`node_records`是否可以不存储指针而去存储 idx？不可以，因为`Node_1`是树状结构，不是扁平一维数组结构。
+
 * `emplace_back()`如果使用默认构造函数，那么必须参数为空：
 
     `my_vec.emplace_back()`

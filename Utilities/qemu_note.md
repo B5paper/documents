@@ -2,6 +2,12 @@
 
 ## cache
 
+* qemu edu: `-device edu`
+
+* qemu 虚拟机将内部的 22 端口映射到外部的 2222 端口
+
+    `qemu-system-x86_64 -accel kvm -m 8192 -smp 8 -hda ./ccc.qcow2 -netdev user,id=mynet0,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=mynet0`
+
 * qemu 使用`-kernel`指定内核启动虚拟机
 
     `qemu-system-x86_64 -accel kvm -m 4096 -smp 4 -hda ./ubuntu22.04-for-pci.qcow2 -kernel /boot/vmlinuz-6.2.16 -initrd /boot/initrd.img-6.2.16 -append "root=/dev/sda3"`

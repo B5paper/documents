@@ -621,3 +621,5 @@ linguistic a. 语言的，语言学的 eg. We also analyzed zero-shot behaviors 
 corpus n. 语料库
 
 grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of Linguistic Acceptability (CoLA) contains expert judgements on whether a sentence is grammatical or not, and tests the innate linguistic bias of trained models.
+
+* factorial n. 阶乘

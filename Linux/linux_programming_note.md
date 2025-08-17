@@ -6,6 +6,142 @@
 
 ## cache
 
+* `open()`的文件覆盖问题
+
+    使用 `open()`函数创建新文件时，在旧文件存在的情况下，如果 flag 中仅有`O_CREAT`，那么不会覆盖旧文件，直接打开现有文件。如果 flag 为`O_CREAT | O_EXCL`，则打开失败，如果文件不存在，则创建新文件。如果 flag 为`O_CREAT | O_TRUNC`，则会覆盖旧文件。
+
+    总结：
+
+    * 默认不覆盖：仅用`O_CREAT`会保留旧文件内容。
+
+    * 禁止覆盖：`O_EXCL`确保文件不存在时才创建。
+
+    * 显式覆盖：`O_TRUNC`强制清空旧文件。
+
+* `memmem()`
+
+    用于在一段内存中搜索指定内容的位置。
+
+    syntax:
+
+    ```c
+    #include <string.h>
+
+    void *memmem(const void *haystack, size_t haystacklen,
+                 const void *needle, size_t needlelen);
+    ```
+
+    example:
+
+    ```cpp
+    #include <string.h>
+    #include <stdio.h>
+
+    int main() {
+        char buf[128] = {'n', 'i', '\0', 'h', 'a', 'o', '\0', 1, 2, 3};
+        char sub[3] = {'o', '\0', 1};
+        char *pos = (char*) memmem(buf, 128, sub, 3);
+        for (int i = 0; i < 3; ++i) {
+            printf("%d, ", *(pos+i));
+        }
+        putchar('\n');
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    111, 0, 1,
+    ```
+
+* `mmap()`
+
+    `mmap()`是 linux 的系统调用，可以把文件映射到内存空间。
+
+    syntax:
+
+    ```cpp
+    #include <sys/mman.h>
+    void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+    ```
+
+    参数说明：
+
+    * `addr`：建议映射的起始地址（通常为 NULL，由内核决定）。
+
+    * `length`：映射区域的长度。
+
+    * `prot`：保护权限（如 PROT_READ | PROT_WRITE）。
+
+    * `flags`：映射类型（如 MAP_SHARED 或 MAP_PRIVATE）。
+
+    * `fd`：文件描述符（匿名映射时设为 -1）。
+
+    * `offset`：文件偏移量（通常为 0）。
+
+    example:
+
+    ```cpp
+    #include <sys/mman.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <errno.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    int main() {
+        int fd = open("msg.txt", O_RDWR);
+        if (fd < 0) {
+            printf("fail to open file, errno: %d\n", errno);
+            return -1;
+        }
+
+        int ret;
+        const char *msg = "hello, world\n";
+        size_t msg_len;
+
+        void *addr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (addr == NULL) {
+            printf("fail to mmap\n");
+            goto MMAP_FAILED;
+        }
+
+        msg_len = strlen(msg);
+
+        memcpy(addr, msg, msg_len);
+
+        munmap(addr, 4096);
+
+    MMAP_FAILED:
+        ret = close(fd);
+        if (ret != 0) {
+            printf("fail to close fd\n");
+            return -1;
+        }
+        return 0;
+    }
+    ```
+
+    `msg.txt`:
+
+    ```
+    hello
+    world
+    nihao
+    zaijian
+    ```
+
+    运行代码后的`msg.txt`:
+
+    ```
+    hello, world
+    ihao
+    zaijian
+    ```
+
+    如果将`memcpy()`改成`strcpy()`，则会在文件中写入`\0`，导致文件被写入不可解析的字符。
+
 * `fstat()`用于获取文件的状态信息，比如文件大小、权限、时间戳等
 
     头文件：`<sys/stat.h>`

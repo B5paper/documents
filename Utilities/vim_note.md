@@ -2,6 +2,12 @@
 
 ## cache
 
+* vim 取消行号的方法
+
+    `:set nonu`
+
+    `:set nu!`
+
 * vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
 
     在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。

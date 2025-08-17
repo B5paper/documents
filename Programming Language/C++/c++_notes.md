@@ -4,6 +4,131 @@
 
 ## cached
 
+* 在`struct`中，`add_elm()`成员函数应该返回引用还是返回指针？
+
+    ```cpp
+    #include <vector>
+    using namespace std;
+
+    struct MyElm {
+        int val;
+    };
+
+    struct MyStruc {
+        vector<MyElm*> elms;
+
+        MyElm& add_elm_1() {
+            elms.push_back(new MyElm);
+            return *elms.back();
+        }
+
+        MyElm* add_elm_2() {
+            elms.push_back(new MyElm);
+            return elms.back();
+        }
+
+        ~MyStruc() {
+            for (MyElm *elm : elms) {
+                delete elm;
+            }
+        }
+    };
+
+    int main() {
+        MyStruc struc;
+
+        for (int i = 0; i < 3; ++i) {
+            MyElm &elm = struc.add_elm_1();  // ok
+            elm.val = i;
+        }
+
+        MyElm &elm_1 = struc.add_elm_1();
+        elm_1.val = 3;
+        // MyElm &elm_1 = struc.add_elm_1();  // error
+
+        MyElm *elm_ptr = nullptr;
+        elm_ptr = struc.add_elm_2();
+        elm_ptr->val = 4;
+        elm_ptr = struc.add_elm_2();  // ok
+        elm_ptr->val = 5;
+
+        return 0;
+    }
+    ```
+
+    如果在循环中，那么反复对引用赋值是可以的。如果在循环外，无法用新引用的定义覆盖旧引用。但是指针没这个问题。整体看来，指针更灵活一些。
+
+* const 全局变量不会有冲突
+
+    `src_1.cpp`:
+
+    ```cpp
+    int global_val = 123;
+    ```
+
+    `src_2.cpp`:
+
+    ```cpp
+    #include <stdio.h>
+
+    int global_val = 456;
+
+    int main() {
+        printf("global val: %d\n", global_val);
+        return 0;
+    }
+    ```
+
+    compile:
+
+    `g++ src_1.cpp src_2.cpp -o main`
+
+    compiling output:
+
+    ```
+    /usr/bin/ld: /tmp/ccAXjHwL.o:(.data+0x0): multiple definition of `global_val'; /tmp/ccozWBXZ.o:(.data+0x0): first defined here
+    collect2: error: ld returned 1 exit status
+    ```
+
+    可以看到，如果不同的实现文件里有相同名称的全局变量，那么会编译时报错。
+
+    如果全局变量是 const 的，那么不会有这个问题。
+
+    `src_1.cpp`:
+
+    ```cpp
+    const int global_val = 123;
+    ```
+
+    `src_2.cpp`:
+
+    ```cpp
+    #include <stdio.h>
+
+    int global_val = 456;
+
+    int main() {
+        printf("global val: %d\n", global_val);
+        return 0;
+    }
+    ```
+
+    compile:
+
+    `g++ src_1.cpp src_2.cpp -o main`
+
+    run:
+
+    `./main`
+
+    output:
+
+    ```
+    global val: 456
+    ```
+
+    这是因为 const 全局变量都会被自动添加`private`属性。
+
 * 如果前面定义了`int gpu`，后面不可以使用`TopoNode* gpu`重新定义，编译器会报错。`int gpu`定义在函数参数里也不行。
 
     ```

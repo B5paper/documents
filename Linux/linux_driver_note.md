@@ -6,6 +6,103 @@ Ref:
 
 ## cache
 
+* mmio
+
+    mmio - Memory-Mapped I/O, 内存映射 I/O
+
+    可能有用的资料集合：
+
+    * ioremap 映射地址
+
+        ```c
+        #include <linux/io.h>
+
+        void __iomem *mmio_base;
+
+        // 映射物理地址到内核虚拟地址
+        mmio_base = ioremap(phys_addr, size);
+        if (!mmio_base) {
+            pr_err("Failed to ioremap MMIO region\n");
+            return -ENOMEM;
+        }
+        ```
+
+        phys_addr：设备的物理基地址。
+
+        size：要映射的区域大小（字节）。
+
+        __iomem：标记指针指向的是 MMIO 空间（避免直接访问）。
+
+    * 读写 MMIO 寄存器
+
+        ```c
+        #include <linux/io.h>
+
+        // 读取 32 位寄存器
+        u32 val = readl(mmio_base + offset);
+
+        // 写入 32 位寄存器
+        writel(new_val, mmio_base + offset);
+        ```
+
+        位宽	读操作	写操作
+        8-bit	readb()	writeb()
+        16-bit	readw()	writew()
+        32-bit	readl()	writel()
+        64-bit	readq()	writeq()
+
+    * 解除映射
+
+        ```c
+        iounmap(mmio_base);
+        ```
+
+    * example
+
+        ```c
+        #include <linux/module.h>
+        #include <linux/pci.h>
+        #include <linux/io.h>
+
+        void __iomem *mmio_base;
+
+        static int my_pci_probe(struct pci_dev *dev, const struct pci_device_id *id) {
+            // 获取 BAR0 的物理地址和长度
+            phys_addr_t bar0_phys = pci_resource_start(dev, 0);
+            size_t bar0_size = pci_resource_len(dev, 0);
+
+            // 映射 MMIO
+            mmio_base = ioremap(bar0_phys, bar0_size);
+            if (!mmio_base) {
+                pr_err("Failed to ioremap BAR0\n");
+                return -ENOMEM;
+            }
+
+            // 示例：读取第一个寄存器
+            u32 reg_val = readl(mmio_base);
+            pr_info("MMIO Register 0: 0x%08X\n", reg_val);
+
+            return 0;
+        }
+
+        static void my_pci_remove(struct pci_dev *dev) {
+            if (mmio_base) {
+                iounmap(mmio_base);
+            }
+        }
+
+        static struct pci_driver my_pci_driver = {
+            .name = "my_pci_driver",
+            .id_table = my_pci_ids,  // 需定义 PCI 设备 ID 表
+            .probe = my_pci_probe,
+            .remove = my_pci_remove,
+        };
+
+        module_pci_driver(my_pci_driver);
+        ```
+
+    * 如果寄存器访问需要严格顺序，使用 rmb() / wmb() / mb() 或 readl_relaxed() / writel_relaxed()（无屏障版本）
+
 * AXI-DMA
 
     AXI（Advanced eXtensible Interface）
