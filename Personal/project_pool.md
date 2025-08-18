@@ -1982,13 +1982,15 @@ tasks:
 
 ### tasks
 
-* [ ] 调研 find 搜索时使用的是 regex 还是 glob？
+* [v] 调研 find 搜索时使用的是 regex 还是 glob？
 
-* [ ] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
+* [v] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
 
-* [v] 调研如何使用`open()`创建新文件，如果旧文件存在，则覆盖旧文件？ 
+* [v] 调研 netstat 或 ss
 
-* [ ] 调研 netstat 或 ss
+    feedback:
+
+    1. 调研`ss`
 
 * [ ] 调研`ip route get`
 
@@ -2014,13 +2016,6 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [v] 调研`mmap()`
-
-    ```cpp
-    #include <sys/mman.h>
-    void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-    ```
-
 * [ ] 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
 
 * [ ] 调研 mmap() 的匿名映射模式
@@ -2029,11 +2024,11 @@ tasks:
 
 * [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
-* [ ] 调研`stat()`
+* [v] 调研`stat()`
 
 * [ ] 调研`fileno()`
 
-* [ ] 调研`[ -f file ]`
+* [v] 调研`[ -f file ]`
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -2047,7 +2042,7 @@ tasks:
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
 
-* [ ] 调研 crontab 播放音乐
+* [v] 调研 crontab 播放音乐
 
     ```conf
     # 每天上午7:30播放音乐（后台静默运行）
@@ -2070,6 +2065,18 @@ tasks:
     ```conf
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
+
+    feedback:
+
+    1. 在 crontab 中，无法通过 mpv 播放音乐
+
+        即使设置`DISPLAY=:0`和`DBUS_SESSION_BUS_ADDRESS`也不行。根据日志看起来像是 alsa 初始化失败。
+
+        使用`mpv --ao=pulse`选择 pulse audio 也不行，日志提示未找到 pulse audio 的驱动。
+
+        除了 mpv，其他的方案未尝试。
+
+    1. 调研`aplay`，`paplay`, `cvlc`, `ffplay`
 
 * [ ] 调研`timeout`命令
 
@@ -2095,17 +2102,15 @@ tasks:
     echo "Password: [hidden]"
     ```
 
-    feedback:
+* [ ] 调研`read -n1`的作用
 
-    1. 调研`read -n1`的作用
+* [ ] 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
 
-    1. 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
+* [ ] 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
 
-    1. 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
+* [ ] `read -r`以及有哪些常见的反斜杠转义字符？
 
-    1. `read -r`以及有哪些常见的反斜杠转义字符？
-
-    1. 调研`od -c`的作用
+* [ ] 调研`od -c`的作用
 
 * [ ] 调研 openssl, gpg
 
@@ -2117,7 +2122,11 @@ tasks:
 
 * [ ] 调研 PTY 与 tty 有何不同
 
-* [ ] 调研`disown`
+* [v] 调研`disown`
+
+    feedback:
+
+    1. 调研`huponexit`
 
 * [ ] 调研`strace`
 
@@ -2125,9 +2134,7 @@ tasks:
 
 * [v] 调研`memmem()`
 
-    feedback:
-
-    1. 调研 Boyer-Moore 算法
+* [ ] 调研 Boyer-Moore 算法
 
 * [ ] 调研`wchar_t`，`wcschr()`
 
@@ -2405,14 +2412,13 @@ tasks:
 
     `grep -E "keyword1|keyword2|keyword3" file.txt`
 
-* [v] 调研`grep -c`
+* [v] 调研`grep -o`
 
-    ```bash
-    # 统计包含任意关键字的行数
-    grep -c -E "keyword1|keyword2|keyword3" file.txt
-    ```
+    feedback:
 
-* [ ] 调研`grep -o`
+    1. 调研`grep -z`处理跨行文本
+
+    1. 调研`wc -l`
 
 * [ ] 调研`grep -A`
 
@@ -4193,13 +4199,9 @@ resources:
 
 * [v] 调研 workqueue
 
-    feedback:
+* [ ] 调研`device_create()`和`device_add()`有什么区别？
 
-    1. `device_create()`和`device_add()`有什么区别？
-
-        `device_del()`和`device_destroy()`有什么区别？
-
-* [v] 调研 linked list
+    `device_del()`和`device_destroy()`有什么区别？
 
 * [ ] 调研`select`的用法
 
