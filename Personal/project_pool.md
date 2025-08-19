@@ -1852,19 +1852,19 @@ tasks:
 
 * `ncclTopoGetLocalNet()`返回的 net id 是 1，因为当`net = 1`, `localNetCount = 2`, `localGpuCount = 1`时，根据下面的规律，可看出当`channel = 0`时，`net`最终算出来为`1`。
 
-        ```
-        gpu idx: 0, channel: 0, net before: 1, net after: 1
+    ```
+    gpu idx: 0, channel: 0, net before: 1, net after: 1
 
-        gpu idx: 0, channel: 1, net before: 1, net after: 2
+    gpu idx: 0, channel: 1, net before: 1, net after: 2
 
-        gpu idx: 0, channel: 2, net before: 1, net after: 1
+    gpu idx: 0, channel: 2, net before: 1, net after: 1
 
-        gpu idx: 0, channel: 3, net before: 1, net after: 2
+    gpu idx: 0, channel: 3, net before: 1, net after: 2
 
-        gpu idx: 0, channel: 4, net before: 1, net after: 1
+    gpu idx: 0, channel: 4, net before: 1, net after: 1
 
-        gpu idx: 0, channel: 5, net before: 1, net after: 2
-        ```
+    gpu idx: 0, channel: 5, net before: 1, net after: 2
+    ```
 
 * `ngpus`经过 trim system 后，就从 2 变成 1 了，后面一直是 1.
 
@@ -1982,19 +1982,13 @@ tasks:
 
 ### tasks
 
-* [v] 调研 find 搜索时使用的是 regex 还是 glob？
-
-* [v] 调研 lstat() → 不跟随符号链接（获取链接本身信息）
-
 * [v] 调研 netstat 或 ss
 
-    feedback:
-
-    1. 调研`ss`
+* [ ] 调研`ss`
 
 * [ ] 调研`ip route get`
 
-* [ ] 调研`ethtool`
+* [v] 调研`ethtool`
 
 * [ ] 调研`OneCCL`, `RCCL`, `Gloo`
 
@@ -2016,7 +2010,13 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
+* [v] 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
+
+    feedback:
+
+    1. 调研什么是写时复制（COW）
+
+    1. 调研`fork()`
 
 * [ ] 调研 mmap() 的匿名映射模式
 
@@ -2024,11 +2024,13 @@ tasks:
 
 * [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
-* [v] 调研`stat()`
+* [v] 调研`fileno()`
 
-* [ ] 调研`fileno()`
+    feedback:
 
-* [v] 调研`[ -f file ]`
+    1. 调研`fsync()`, `fcntl()`
+
+    1. 调研多路复用（select/poll/epoll）中的多路是什么含义
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -2066,41 +2068,19 @@ tasks:
     env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
     ```
 
-    feedback:
+* [ ] 在 crontab 中，无法通过 mpv 播放音乐
 
-    1. 在 crontab 中，无法通过 mpv 播放音乐
+    即使设置`DISPLAY=:0`和`DBUS_SESSION_BUS_ADDRESS`也不行。根据日志看起来像是 alsa 初始化失败。
 
-        即使设置`DISPLAY=:0`和`DBUS_SESSION_BUS_ADDRESS`也不行。根据日志看起来像是 alsa 初始化失败。
+    使用`mpv --ao=pulse`选择 pulse audio 也不行，日志提示未找到 pulse audio 的驱动。
 
-        使用`mpv --ao=pulse`选择 pulse audio 也不行，日志提示未找到 pulse audio 的驱动。
+    除了 mpv，其他的方案未尝试。
 
-        除了 mpv，其他的方案未尝试。
-
-    1. 调研`aplay`，`paplay`, `cvlc`, `ffplay`
+* [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
 
 * [ ] 调研`timeout`命令
 
     `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
-
-* [v] 调研 password 的星号掩码
-
-    ```bash
-    #!/bin/bash
-
-    stty -echo  # 关闭回显
-    unset password
-    prompt="Enter password: "
-    while IFS= read -p "$prompt" -r -s -n1 char; do
-        if [[ $char == $'\0' ]]; then  # 回车键结束
-            break
-        fi
-        prompt='*'
-        password+="$char"
-    done
-    stty echo  # 恢复回显
-    echo
-    echo "Password: [hidden]"
-    ```
 
 * [ ] 调研`read -n1`的作用
 
@@ -2124,15 +2104,11 @@ tasks:
 
 * [v] 调研`disown`
 
-    feedback:
-
-    1. 调研`huponexit`
+* [ ] 调研`huponexit`
 
 * [ ] 调研`strace`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
-
-* [v] 调研`memmem()`
 
 * [ ] 调研 Boyer-Moore 算法
 
@@ -2414,11 +2390,9 @@ tasks:
 
 * [v] 调研`grep -o`
 
-    feedback:
+* [ ] 调研`grep -z`处理跨行文本
 
-    1. 调研`grep -z`处理跨行文本
-
-    1. 调研`wc -l`
+* [ ] 调研`wc -l`
 
 * [ ] 调研`grep -A`
 
@@ -3954,7 +3928,21 @@ resources:
 
 ## linux driver
 
-cache:
+### cache
+
+* 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
+
+    见`ref_11`。
+
+    * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
+
+    * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
+
+        `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
+
+    * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
+
+    * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
 
 * 调研
 
@@ -4011,12 +3999,6 @@ cache:
 * [ ] param 被写入 module 中时，module 是如何感知到的？
 
     2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
-
-* 调研：
-    
-    `pci_msix_vec_count`, `pci_find_capability`, `pci_alloc_irq_vectors`,
-
-    `pci_irq_vector`, `request_irq`
 
 * 调研
     
@@ -4090,25 +4072,29 @@ resources:
 
 ### tasks
 
+* 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
+    
+* 调研`pci_msix_vec_count`
+
+* 调研`pci_find_capability`
+
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
     deps:
 
     1. [ ] 学习 fpga 与基本 verilog 开发
 
-* [ ] 调研 AXI4-Stream 
+* [ ] 调研 AXI4-Stream
+
+* [ ] 调研`pci_resource_start()`
+
+* [ ] qa: linux driver 30 mins
 
 * [O] 调研在 kmd 上使用 mmio
 
     feedback:
 
-    1. 调研`pci_resource_start()`
-
     1. 调研平台设备（Platform Device）
-
-    1. 调研`screen`命令
-
-    1. 调研QEMU的edu设备
 
     1. 还是要从嵌入式开发板看起。
 
@@ -4130,7 +4116,13 @@ resources:
 
     1. 调研`picocom`工具
 
-* [ ] 调研 qemu edu driver
+* [ ] 调研`screen`命令
+
+* [ ] 调研`pci_enable_device()`作用
+
+* [ ] 调研`pci_request_region()`
+
+* [O] 调研 qemu edu driver
 
     尝试跑通 example
 
@@ -4139,6 +4131,37 @@ resources:
     doc: <https://www.qemu.org/docs/master/specs/edu.html>
 
     res: <https://jklincn.com/posts/qemu-edu-driver/>
+
+    feedback:
+
+    1. 执行后输出为
+
+        ```
+        Factorial: 0
+        Stored d027828c : Hello World
+        Loaded 8e8fa6b0 : 
+        Stored d0278288 : Wat
+        Loaded 8e8fa6b0 :
+        ```
+
+        按道理`Factorial`应该是`8! = 40320`才对。
+
+    1. `test`打开`/dev/edu`设备失败，看起来是驱动没加载好
+
+    1. 调研`static int __init edu_init(void)`中的`__init`
+
+    1. 调研在`MKDEV()`前，哪些设备号是已经被占用的？
+
+    1. 使用`sudo mknod /dev/edu c 241 0`创建`/dev/edu`后，使用`sudo ./test`可以得到输出：
+
+        ```
+        Factorial: 40320
+        Stored 4e2d733c : Hello World
+        Loaded 4d0416b0 : Hello World
+
+        ```
+
+        但是到这里整个 qemu 会卡住。目前不清楚原因。
 
 * [ ] 调研 I2C 驱动
 
@@ -4155,20 +4178,6 @@ resources:
 * [v] linux driver 调研 data exchange between user space and kernel space
 
     feedback:
-
-    1. 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
-
-        见`ref_11`。
-
-        * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
-
-        * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
-
-            `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
-
-        * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
-
-        * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
 
     2. kernel 中的内存管理感觉是个问题
 

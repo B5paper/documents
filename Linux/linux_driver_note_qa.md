@@ -101,9 +101,9 @@ MODULE_LICENSE("GPL");
 [u_1]
 Syntax:
 
-`module_param_array(name, type, int *num, permissions);`
+`module_param_array(name, type, nump, perm);`
 
-其中，`name`为数组名，`type`为数组的元素类型，`num`是一个指针，当我们使用命令行传递模块参数时，`module_param_array()`会自动计算数组中元素的个数，并将元素数量存储到这个变量中，这个指针也可以直接填`NULL`，`permissions`指的是参数文件的权限。
+其中，`name`为数组名，`type`为数组的元素类型，`nump`是一个指针，当我们使用命令行传递模块参数时，`module_param_array()`会自动计算数组中元素的个数，并将元素数量存储到这个变量中，这个指针也可以直接填`NULL`，`perm`指的是参数文件的权限。
 
 [unit]
 [idx]
@@ -118,17 +118,18 @@ Syntax:
 #include <linux/module.h>
 #include <linux/fs.h>
 
+dev_t dev_num = MKDEV(255, 0);
+
 int hello(void)
 {
     printk(KERN_WARNING "hello my module\n");
-    dev_t dev_num = MKDEV(255, 0);
     register_chrdev_region(dev_num, 1, "my driver");
     return 0;
 }
 
 void bye(void)
 {
-    unregister_chrdev_region(MKDEV(255, 0), 1);
+    unregister_chrdev_region(dev_num, 1);
     printk("goodbye my module\n");
 }
 
