@@ -2286,6 +2286,8 @@ obj-m += xxx.o xxx_2.o
 
     当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
 
+    如果`major`填 0，那么返回值为自动分配的 major （未验证）
+
 ### 设备类型
 
 linux 设备：
