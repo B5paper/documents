@@ -6,6 +6,23 @@ Ref:
 
 ## cache
 
+* `major = register_chrdev(0, "edu", &file_ops);`
+
+    `register_chrdev`的第一个参数填 0 时，会自动分配一个 region 号。比如 edu 设备就分到了`241`号：
+
+    `cat /proc/devices`:
+
+    ```
+    ...
+    202 cpu/msr
+    204 ttyMAX
+    226 drm
+    241 edu
+    242 ttyDBC
+    243 bsg
+    ...
+    ```
+
 * mmio
 
     mmio - Memory-Mapped I/O, 内存映射 I/O

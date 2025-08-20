@@ -2,6 +2,25 @@
 
 ## cache
 
+* `grep -o`
+
+    `-o`等价于`--only-matching`，仅输出匹配到的文本部分（而非整行）
+
+    如果一行中有多个匹配项，`-o`会将每个匹配项单独输出为一行
+
+    example:
+
+    ```bash
+    echo "abc123def456" | grep -o "[0-9]\+"
+    ```
+
+    output:
+
+    ```
+    123
+    456
+    ```
+
 * `grep -c`
 
     `grep -c "pattern" filename`

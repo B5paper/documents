@@ -1216,6 +1216,176 @@
 
 ### Tasks
 
+* [v] qa: linux driver 30 mins
+
+    feedback:
+
+    1. makefile 中，`$(VAR)`和`${VAR}`有什么不同？
+
+    1. makefile 中，变量与定义间是否允许有空格？
+
+        `KERNEL_DIR=/usr/xxx`
+
+    1. makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
+
+    1. `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
+
+    1. `printk("<1>""hello my module\n");`是否等价于`printk(KERN_INFO "xxx")`?
+
+    1. `charp`在哪个头文件中？
+
+    1. `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
+
+    1. `module_param_call()`
+
+    1. `module_param_named()`
+
+    1. `module_param_string()`
+
+    1. `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
+
+        ```
+        [ 4358.400458] Attribute m_arr: Invalid permissions 0755
+        ```
+
+        为什么？
+
+    1. 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
+
+        `0766`不可以，`0755`可以。
+
+    1. `register_chrdev_region()`与`register_chrdev()`有何不同？
+
+    1. `unregister_module_notifier()`
+
+    1. linux driver unit idx 3 增加查看 dev class 的方法
+
+    1. `unlocked_ioctl`与`compat_ioctl`有何不同？
+
+    1. 调研`read`, `read_iter`, `splice_read`
+
+    1. `class_create_file()`
+
+    1. unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
+
+    1. `pr_err_once()`
+
+    1. `device_create_file()`
+
+    1. `class_device_destructor()`
+
+    1. `class_dev_iter`
+
+    1. qa 里增加完整的 cdev + dev file 的 example
+
+        ```c
+        #include <linux/init.h>
+        #include <linux/module.h>
+        #include <linux/fs.h>
+        #include <linux/cdev.h>
+        #include <linux/device.h>
+
+        int m_open(struct inode *, struct file *) {
+            pr_info("in m_open()...\n");
+            return 0;
+        }
+
+        int m_release(struct inode *, struct file *) {
+            pr_info("in m_release()...\n");
+            return 0;
+        }
+
+        ssize_t m_read(struct file *, char __user *, size_t, loff_t *) {
+            pr_info("in m_read()...\n");
+            return 0;
+        }
+
+        ssize_t m_write(struct file *, const char __user *, size_t, loff_t *) {
+            pr_info("in m_write()...\n");
+            return 0;
+        }
+
+        long m_unlocked_ioctl(struct file *, unsigned int, unsigned long) {
+            pr_info("in m_unlocked_ioctl()...\n");
+            return 0;
+        }
+
+        dev_t dev_num;
+        const char *dev_region_name = "hlc dev";
+        struct cdev chdev;
+        const struct file_operations chdev_ops = {
+            .open = m_open,
+            .release = m_release,
+            .read = m_read,
+            .write = m_write,
+            .unlocked_ioctl = m_unlocked_ioctl
+        };
+        struct class *dev_cls;
+        struct device *dev;
+
+        int hello_init(void) {
+            pr_info("hello my module\n");
+            int ret = alloc_chrdev_region(&dev_num, 0, 1, dev_region_name);
+            if (ret != 0) {
+                pr_info("fail to register chrdev region\n");
+                return -1;
+            }
+
+            cdev_init(&chdev, &chdev_ops);
+            ret = cdev_add(&chdev, dev_num, 1);
+            if (ret != 0) {
+                pr_info("fail to add cdev\n");
+                goto CDEV_ADD_FAILED;
+            }
+
+            dev_cls = class_create("hlc dev cls");
+            if (dev_cls == NULL) {
+                pr_err("fail to create class\n");
+                goto CLASS_CREATE_FAILED;
+            }
+            dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
+            if (dev == NULL) {
+                pr_err("fail to create device\n");
+                goto DEVICE_CREATE_FAILED;
+            }
+            return 0;
+
+        DEVICE_CREATE_FAILED:
+            class_destroy(dev_cls);
+        CLASS_CREATE_FAILED:
+            cdev_del(&chdev);
+        CDEV_ADD_FAILED:
+            unregister_chrdev_region(dev_num, 1);
+            return -1;
+        }
+
+        void hello_exit(void) {
+            pr_info("exit my module\n");
+            device_destroy(dev_cls, dev_num);
+            class_destroy(dev_cls);
+            cdev_del(&chdev);
+            unregister_chrdev_region(dev_num, 1);
+        }
+
+        module_init(hello_init);
+        module_exit(hello_exit);
+        MODULE_LICENSE("GPL");
+        ```
+
+    1. `device_create()`与`device_add()`有何不同？
+
+    1. `device_attach()`
+
+    1. `linux/list_lru.h`, `linux/list_sort.h`
+
+    1. `list_add_rcu()`, `list_lru_add()`
+
+    1. `kmalloc_array()`, `kmalloc_caches()`
+
+    1. `kmalloc()`未释放的内存，在 module 结束后会被释放吗？
+
+        如果不能，该如何正确释放？
+
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
 
     feedback:
@@ -1846,8 +2016,6 @@ tasks:
 
     处触发`goto done;`，而 nccl 并没有。是因为 siccl 没有调用 search init 函数，导致 system->totalBw 为 0
 
-* C 语言/gdb 中，`(void)`主要用于防止编译器给出 unused variable 的 warning。
-
 * 目前看来 siccl 和 nccl 的 net 输出都是相同的，net idx 都为 1，0, net id 总为 2, 1
 
 * `ncclTopoGetLocalNet()`返回的 net id 是 1，因为当`net = 1`, `localNetCount = 2`, `localGpuCount = 1`时，根据下面的规律，可看出当`channel = 0`时，`net`最终算出来为`1`。
@@ -1982,13 +2150,13 @@ tasks:
 
 ### tasks
 
-* [v] 调研 netstat 或 ss
-
 * [ ] 调研`ss`
 
-* [ ] 调研`ip route get`
+* [v] 调研`ip route get`
 
-* [v] 调研`ethtool`
+    feedback:
+
+    1. 调研`ip rule`
 
 * [ ] 调研`OneCCL`, `RCCL`, `Gloo`
 
@@ -2012,13 +2180,15 @@ tasks:
 
 * [v] 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
 
+* [ ] 调研什么是写时复制（COW）
+
+* [ ] 调研`fork()`
+
+* [v] 调研 mmap() 的匿名映射模式
+
     feedback:
 
-    1. 调研什么是写时复制（COW）
-
-    1. 调研`fork()`
-
-* [ ] 调研 mmap() 的匿名映射模式
+    1. 调研`RLIMIT_DATA`
 
 * [ ] 调研 msync()
 
@@ -2026,11 +2196,9 @@ tasks:
 
 * [v] 调研`fileno()`
 
-    feedback:
+* [ ] 调研`fsync()`, `fcntl()`
 
-    1. 调研`fsync()`, `fcntl()`
-
-    1. 调研多路复用（select/poll/epoll）中的多路是什么含义
+* [ ] 调研多路复用（select/poll/epoll）中的多路是什么含义
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -2043,30 +2211,6 @@ tasks:
 * [ ] 调研 POSIX 标准
 
 * [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
-
-* [v] 调研 crontab 播放音乐
-
-    ```conf
-    # 每天上午7:30播放音乐（后台静默运行）
-    30 7 * * * export DISPLAY=:0 && mpg123 -q ~/Music/alarm.mp3 >/dev/null 2>&1
-
-    # 工作日每小时播放一次（测试用）
-    0 * * * 1-5 export DISPLAY=:0 && mpg123 -q ~/Music/alert.mp3
-
-    30 7 * * * export DISPLAY=:0 && PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
-
-    30 7 * * * aplay ~/Music/alarm.wav  # 仅支持WAV格式
-
-    0 * * * * paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga
-
-    30 7 * * * cvlc --play-and-exit ~/Music/alarm.mp3
-
-    30 7 * * * ffplay -nodisp -autoexit ~/Music/alarm.mp3
-    ```
-
-    ```conf
-    env -i DISPLAY=:0 PULSE_SERVER=unix:/run/user/$(id -u)/pulse/native mpg123 ~/Music/alarm.mp3
-    ```
 
 * [ ] 在 crontab 中，无法通过 mpv 播放音乐
 
@@ -2101,8 +2245,6 @@ tasks:
 * [ ] 调研`GIT_ASKPASS`
 
 * [ ] 调研 PTY 与 tty 有何不同
-
-* [v] 调研`disown`
 
 * [ ] 调研`huponexit`
 
@@ -2387,8 +2529,6 @@ tasks:
     写法：
 
     `grep -E "keyword1|keyword2|keyword3" file.txt`
-
-* [v] 调研`grep -o`
 
 * [ ] 调研`grep -z`处理跨行文本
 
@@ -4018,9 +4158,7 @@ resources:
 
     调研函数：
 
-    `pci_enable_device`, `dev_set_drvdata`
-
-    `pci_resource_start`, `pci_resource_len`, `pci_ioremap_bar`
+    `dev_set_drvdata`, `pci_resource_len`, `pci_ioremap_bar`
 
     `pci_set_master`, `dma_set_mask`, `pci_ioremap_wc_bar`
 
@@ -4088,7 +4226,7 @@ resources:
 
 * [ ] 调研`pci_resource_start()`
 
-* [ ] qa: linux driver 30 mins
+* [v] qa: linux driver 30 mins
 
 * [O] 调研在 kmd 上使用 mmio
 

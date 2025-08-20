@@ -6,6 +6,95 @@
 
 ## cache
 
+* `mmap()`的`MAP_SHARED`模式与`MAP_PRIVATE`模式
+
+    在 shared 模式中，对映射内存的修改会同步到实际文件（如果映射的是文件），其他进程映射同一文件时能看到变更。内存的写操作可能触发文件系统的 I/O（取决于回写策略）。
+
+    在 private 模式中，对映射内存的修改永远不会同步到文件，而是创建进程私有的写时复制（Copy-on-Write, COW）副本。
+
+    （因为不会写多进程程序，所以这里先不写 example）
+
+    MAP_SHARED 的同步可能引入 I/O 延迟，MAP_PRIVATE 的 COW 机制可能导致内存分裂。（什么是内存分裂？）
+
+* `stat()`
+
+    头文件：`#include <sys/stat.h>`
+
+    syntax:
+
+    ```c
+    int stat(const char *restrict pathname,
+            struct stat *restrict statbuf);
+    ```
+
+    返回文件信息。
+
+    这个函数和`fstat()`唯一区别是，`fstat()`使用的是`fd`，而`stat()`使用的是文件路径。
+
+* `lstat()`
+
+    如果路径指向符号链接，`lstat()`返回的是符号链接本身的信息（如链接文件的大小、权限等），而`stat()`会处理链接指向的文件。
+
+    syntax:
+
+    ```c
+    #include <sys/stat.h>
+    int lstat(const char *pathname, struct stat *statbuf);
+    ```
+
+    example:
+
+    ```c
+    #include <sys/stat.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int check_link_file(const char *file_path) {
+        struct stat my_stat;
+        int ret = lstat(file_path, &my_stat);
+        if (ret != 0) {
+            printf("fail to run fstat()\n");
+            return -1;
+        }
+
+        if (S_ISLNK(my_stat.st_mode)) {
+            printf("%s is a link file\n", file_path);
+        } else {
+            printf("%s is not a link file\n", file_path);
+        }
+
+        return 0;
+    }
+
+    int main() {
+        const char *file_paths[2] = {
+            "msg.txt",
+            "msg_link.txt"
+        };
+
+        int ret = check_link_file(file_paths[0]);
+        if (ret != 0) {
+            printf("fail to check link file: %s\n", file_paths[0]);
+            return -1;
+        }
+
+        ret = check_link_file(file_paths[1]);
+        if (ret != 0) {
+            printf("fail to check link file: %s\n", file_paths[1]);
+            return -1;
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    msg.txt is not a link file
+    msg_link.txt is a link file
+    ```
+
 * `open()`的文件覆盖问题
 
     使用 `open()`函数创建新文件时，在旧文件存在的情况下，如果 flag 中仅有`O_CREAT`，那么不会覆盖旧文件，直接打开现有文件。如果 flag 为`O_CREAT | O_EXCL`，则打开失败，如果文件不存在，则创建新文件。如果 flag 为`O_CREAT | O_TRUNC`，则会覆盖旧文件。

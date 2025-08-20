@@ -4,6 +4,22 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* `[ -f file ]`
+
+    检查文件是否存在且为普通文件，等价于`test -f file`
+
+    如果 file 是符号链接，-f 会检查链接指向的目标文件是否为普通文件（跟随链接）
+
+    其他常见文件测试选项
+    选项	作用
+    -e file	文件/目录是否存在（不检查类型）。
+    -d file	是否为目录。
+    -L file	是否为符号链接。
+    -s file	文件是否存在且大小大于0字节。
+    -r file	文件是否可读。
+    -w file	文件是否可写。
+    -x file	文件是否可执行。
+
 * bash 中输入密码显示为星号（`*`）的模板代码
 
     ```bash

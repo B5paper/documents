@@ -6,6 +6,226 @@
 
 ## cache
 
+* `ethtool`
+
+    install: `sudo apt install ethtool`
+
+    * 查看网卡基本信息: `ethtool <网卡名>`
+    
+        `ethtool enp0s3`
+
+        output:
+
+        ```
+        Settings for enp0s3:
+        	Supported ports: [ TP ]
+        	Supported link modes:   10baseT/Half 10baseT/Full
+        	                        100baseT/Half 100baseT/Full
+        	                        1000baseT/Full
+        	Supported pause frame use: No
+        	Supports auto-negotiation: Yes
+        	Supported FEC modes: Not reported
+        	Advertised link modes:  10baseT/Half 10baseT/Full
+        	                        100baseT/Half 100baseT/Full
+        	                        1000baseT/Full
+        	Advertised pause frame use: No
+        	Advertised auto-negotiation: Yes
+        	Advertised FEC modes: Not reported
+        	Speed: 1000Mb/s
+        	Duplex: Full
+        	Auto-negotiation: on
+        	Port: Twisted Pair
+        	PHYAD: 0
+        	Transceiver: internal
+        	MDI-X: off (auto)
+        netlink error: Operation not permitted
+                Current message level: 0x00000007 (7)
+                                       drv probe link
+        	Link detected: yes
+        ```
+
+    * 查看驱动信息: `ethtool -i <网卡名>`
+
+        `ethtool -i enp0s3`
+
+        output:
+
+        ```
+        driver: e1000
+        version: 6.8.0-65-generic
+        firmware-version: 
+        expansion-rom-version: 
+        bus-info: 0000:00:03.0
+        supports-statistics: yes
+        supports-test: yes
+        supports-eeprom-access: yes
+        supports-register-dump: yes
+        supports-priv-flags: no
+        ```
+
+    * 查看统计信息: `ethtool -S <网卡名>`
+
+        `ethtool -S enp0s3`
+
+        output:
+
+        ```
+        NIC statistics:
+             rx_packets: 7599541
+             tx_packets: 3763596
+             rx_bytes: 7471543776
+             tx_bytes: 5835620961
+             rx_broadcast: 40
+             tx_broadcast: 6
+             rx_multicast: 0
+             tx_multicast: 828
+             rx_errors: 0
+             tx_errors: 0
+             tx_dropped: 0
+             multicast: 0
+             collisions: 0
+             rx_length_errors: 0
+             rx_over_errors: 0
+             rx_crc_errors: 0
+             rx_frame_errors: 0
+             rx_no_buffer_count: 0
+             rx_missed_errors: 0
+             tx_aborted_errors: 0
+             tx_carrier_errors: 0
+             tx_fifo_errors: 0
+             tx_heartbeat_errors: 0
+             tx_window_errors: 0
+             tx_abort_late_coll: 0
+             tx_deferred_ok: 0
+             tx_single_coll_ok: 0
+             tx_multi_coll_ok: 0
+             tx_timeout_count: 0
+             tx_restart_queue: 0
+             rx_long_length_errors: 0
+             rx_short_length_errors: 0
+             rx_align_errors: 0
+             tx_tcp_seg_good: 1456528
+             tx_tcp_seg_failed: 0
+             rx_flow_control_xon: 0
+             rx_flow_control_xoff: 0
+             tx_flow_control_xon: 0
+             tx_flow_control_xoff: 0
+             rx_long_byte_count: 7471543776
+             rx_csum_offload_good: 0
+             rx_csum_offload_errors: 0
+             alloc_rx_buff_failed: 0
+             tx_smbus: 0
+             rx_smbus: 0
+             dropped_smbus: 0
+        ```
+
+    其他还有些功能，目前看上去用处不大。如果专业做网卡这块了再去了解。
+
+* glob 匹配
+
+    * 匹配任意字符（包括空字符）。
+
+    ? 匹配单个字符。
+
+    [abc] 匹配 a、b 或 c。
+
+* `find`的匹配模式
+
+    -name 和 -iname： 使用 glob 模式，按文件名匹配。`-iname`表示大小写不敏感。
+
+    -regex 和 -iregex：使用正则表达式。正则匹配的是完整路径（如 ./dir/file.txt），而非仅文件名。
+
+    其他匹配方式:
+
+    * -path：类似 -name，但匹配完整路径（使用 glob 语法）。
+
+    * -perm、-size 等：按权限、大小等属性匹配，与正则/glob 无关。
+
+* `stat <file_path>`
+
+    输出文件的基本信息。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ stat xml_log_4_gpu.txt
+      File: xml_log_4_gpu.txt
+      Size: 7311      	Blocks: 16         IO Block: 4096   regular file
+    Device: 802h/2050d	Inode: 938640      Links: 1
+    Access: (0664/-rw-rw-r--)  Uid: ( 1000/     hlc)   Gid: ( 1000/     hlc)
+    Access: 2025-08-03 09:42:13.930462794 +0800
+    Modify: 2025-06-06 09:55:17.893493034 +0800
+    Change: 2025-06-06 09:55:17.893493034 +0800
+     Birth: 2025-06-05 16:56:25.016703429 +0800
+    ```
+
+* `netstat`
+
+    `netstat -a`: 显示所有连接
+
+    `netstat -s`: 显示统计摘要
+
+    `netstat -r`: 查看系统的路由表信息
+
+    `netstat -i`: 显示网络接口的配置和流量统计
+
+    `netstat -tuln`: 列出所有处于监听（LISTEN）状态的端口
+
+    `netstat -tulnp`: 查看占用端口的进程ID（PID）和程序名（需管理员权限）
+
+    常用参数：
+
+    * `-a`: 显示所有连接和监听端口。
+
+    * `-n`: 以数字形式显示地址和端口（禁用DNS解析）。
+
+    * `-t/-u`: 仅显示TCP/UDP连接。
+
+    * `-p`: 显示进程信息（Linux）。
+
+    * `-o`: 显示进程ID（Windows）。
+
+    * `-r`: 显示路由表。
+
+    * `-s`: 显示协议统计信息。
+
+* `disown`
+
+    `disown`将指定作业从 Shell 的作业列表中删除，但进程仍继续运行。
+
+    常见用法：
+
+    ```bash
+    disown <jobspec>      # 移除指定作业（如 %1）
+    disown -a             # 移除所有作业
+    disown -r             # 仅移除运行中的作业
+    disown -h             # 将任务保留在 job list 但对其屏蔽 SIGHUP 信号（推荐用法）
+    ```
+
+    启动后台任务后使用 disown -h，即使退出 Shell 也不终止进程（类似 nohup 效果）。
+
+    disown 不会自动重定向输出
+
+    被 disown 的进程仍属于当前用户，但会变成孤儿进程（由 init/systemd 接管）
+
+    example:
+
+    ```
+    $ long_task &       # 启动后台任务
+    $ disown -h %1      # 屏蔽 SIGHUP 并移除作业
+    $ exit              # 退出 Shell，任务继续运行
+    ```
+
+    被 disown 解除绑定的任务，无法使用`kill <PID>`的方式结束（为什么？），但可以通过`kill -kill <PID>`结束任务。
+
+* 符号链接本身的大小是其指向的路径字符串的长度
+
+    example:
+
+    ```
+    lrwxrwxrwx 1 hlc hlc    7  8月 17 13:34 msg_link.txt -> msg.txt
+    ```
+
 * `git-credential-libsecret`可以将 git 凭据存储在`libsecret`密钥管理服务中。
 
     需要系统安装 libsecret，还需要 git 去配置，略显复杂。有需求了再看。

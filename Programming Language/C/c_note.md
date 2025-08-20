@@ -6,6 +6,51 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* C 语言/gdb 中，`(void)`主要用于防止编译器给出 unused variable 的 warning。
+
+* `fileno()`可以获得`FILE*`指针对应的 fd
+
+    syntax:
+
+    ```c
+    #include <stdio.h>
+    int fd = fileno(file_ptr);
+    ```
+
+    example:
+
+    ```c
+    #include <stdio.h>
+
+    int main() {
+        FILE *f = fopen("msg.txt", "rw");
+        if (f == NULL) {
+            printf("fail to open file\n");
+            return -1;
+        }
+
+        int fd = fileno(f);
+        printf("fd is %d\n", fd);
+
+        fclose(f);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    fd is 3
+    ```
+
+    标准流的描述符：
+
+    ```c
+    fileno(stdin)  == 0;  // STDIN_FILENO
+    fileno(stdout) == 1;  // STDOUT_FILENO
+    fileno(stderr) == 2;  // STDERR_FILENO
+    ```
+
 * `strrchr()`
 
     从右往左搜索指定字符的位置。

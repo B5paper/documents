@@ -2,6 +2,258 @@
 
 ## cache
 
+* `mirrorBits()`
+
+    ```cpp
+    int mirrorBits(int val, int pow2) {
+        int mirror = 0;
+        // mb 表示最高位的 1
+        for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+            // 如果 val 最低位为 1，那么 mirror 的最高位置 1
+            if (val & b) {
+                // |= 保护除了最高位之外的其他位不被改变
+                mirror |= mb;
+            }
+        }
+        return mirror;  //0b110;
+    }
+    ```
+
+    * `pow2`用二进制表示为 1, 10, 100, 1000, 10000, 100000, ... 这样就既指定了位宽，又标记了最高位的 1，后面只需要将 pow2 的 1 一步一步往右移就可以了
+
+    * 假如 pow2 = 8 = 0b1000，那么 val 的最大值就为 pow2 - 1 = 7 = 0b0111, val 的取值范围为 0 ~ 7
+
+    * 此时如果 val = 0b0011，那么就把低位的 1 翻折到高位去，0b0110，注意并不是 0b1100，否则就超过 val 的最大可能取值了
+
+        同理，如果 val = 0b0001，那么 mirror = 0b0100
+
+        如果 val = 0b0111，那么 mirror 不变，仍为 mirror = 0b0111。
+    
+    * 整体看来，`mirrorBits()`的功能是把`....xxxx`翻转到`.xxxx...`
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        using namespace std;
+
+        int mirrorBits(int val, int pow2) {
+            int mirror = 0;
+            for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+                if (val & b) {
+                    mirror |= mb;
+                }
+            }
+            return mirror;
+        }
+
+        void print_binary(int val) {
+            string str;
+            while (val) {
+                str.push_back(val % 2 ? '1' : '0');
+                val >>= 1;
+            }
+            int left = 0, right = str.size() - 1;
+            while (left < right) {
+                swap(str[left], str[right]);
+                ++left;
+                --right;
+            }
+            printf("%s", str.c_str());
+        }
+
+        int main() {
+            for (int pow2 = 2; pow2 <= 32; pow2 *= 2) {
+                printf("pow2: ");
+                print_binary(pow2);
+                putchar('\n');
+                for (int val = 1; val < pow2; ++val) {
+                    int mirror_val = mirrorBits(val, pow2);
+                    printf("    ");
+                    print_binary(val);
+                    printf(" -> ");
+                    print_binary(mirror_val);
+                    putchar('\n');
+                }
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        pow2: 10
+            1 -> 1
+        pow2: 100
+            1 -> 10
+            10 -> 1
+            11 -> 11
+        pow2: 1000
+            1 -> 100
+            10 -> 10
+            11 -> 110
+            100 -> 1
+            101 -> 101
+            110 -> 11
+            111 -> 111
+        pow2: 10000
+            1 -> 1000
+            10 -> 100
+            11 -> 1100
+            100 -> 10
+            101 -> 1010
+            110 -> 110
+            111 -> 1110
+            1000 -> 1
+            1001 -> 1001
+            1010 -> 101
+            1011 -> 1101
+            1100 -> 11
+            1101 -> 1011
+            1110 -> 111
+            1111 -> 1111
+        pow2: 100000
+            1 -> 10000
+            10 -> 1000
+            11 -> 11000
+            100 -> 100
+            101 -> 10100
+            110 -> 1100
+            111 -> 11100
+            1000 -> 10
+            1001 -> 10010
+            1010 -> 1010
+            1011 -> 11010
+            1100 -> 110
+            1101 -> 10110
+            1110 -> 1110
+            1111 -> 11110
+            10000 -> 1
+            10001 -> 10001
+            10010 -> 1001
+            10011 -> 11001
+            10100 -> 101
+            10101 -> 10101
+            10110 -> 1101
+            10111 -> 11101
+            11000 -> 11
+            11001 -> 10011
+            11010 -> 1011
+            11011 -> 11011
+            11100 -> 111
+            11101 -> 10111
+            11110 -> 1111
+            11111 -> 11111
+        ```
+
+        实际结果与前面猜想相同。
+
+* 判断`val`是否为 2 的整数幂
+
+    如果 val 是 2 的整数次幂（1, 2, 4, 8, 16, ...），则返回 true
+
+    ```cpp
+    bool isPow2(int val) {
+        return (val & (val-1)) == 0;
+    }
+    ```
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+
+    bool isPow2(int val) {
+        return (val & (val-1)) == 0;
+    }
+
+    int main() {
+        for (int i = 0; i <= 32; ++i) {
+            if (isPow2(i)) {
+                printf("val = %d, true\n", i);
+            } else {
+                printf("val = %d, false\n", i);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val = 0, true
+    val = 1, true
+    val = 2, true
+    val = 3, false
+    val = 4, true
+    val = 5, false
+    val = 6, false
+    val = 7, false
+    val = 8, true
+    val = 9, false
+    val = 10, false
+    val = 11, false
+    val = 12, false
+    val = 13, false
+    val = 14, false
+    val = 15, false
+    val = 16, true
+    val = 17, false
+    val = 18, false
+    val = 19, false
+    val = 20, false
+    val = 21, false
+    val = 22, false
+    val = 23, false
+    val = 24, false
+    val = 25, false
+    val = 26, false
+    val = 27, false
+    val = 28, false
+    val = 29, false
+    val = 30, false
+    val = 31, false
+    val = 32, true
+    ```
+
+* `ncclNvmlDevicePairs`在 nvml 中，是个 (32, 32) 的数组，其中填充了任意两个 gpu dev 之间的 p2p status，这样看来，dev 其实就是设备的物理编号，nccl 中和 nvml 中保持相同的含义，nvml 只处理设备的物理编号。
+
+    相关代码：
+    
+    ```cpp
+    // ...
+    status = ncclNvmlDevicePairs[indexes[i-1]][indexes[i-0]].p2pStatusRead;
+    // ...
+    ```
+
+* nccl 中`hops`表示的是，从当前节点出发，需要经过`hops`个节点，才能到达指定节点。
+
+    比如 vert 0 -> vert 1 -> vert 2 -> vert 3，那么 vert 0 到 vert 3 的`hops`就是 3。
+
+    ```cpp
+    int hops = gpu_to_cpu_paths[cpu_vert_idx].edge_list.size();
+    ```
+
+* nccl `add_inter_step`
+
+    为什么在`add_inter_step()`时，两个 gpu 之间一定要经过 cpu？ nic / net 是一定经过 cpu 的，host 中转也一定经过 cpu，如果中间节点是 pci，那`p2p_active == 0`就不成立了。nvlink 更不可能，所以一定要经过 cpu
+
+    ```cpp
+    ret = add_inter_step(topo_system, CPU,
+        cpu_idx, GPU, vert_idx_2, GPU, vert_idx_1);
+    ```
+
+* `rank`是对`peerInfo`的编号
+
+    ```cpp
+    PeerInfo* dstInfo = &comm.peerInfo[topo_system.nodes[GPU][vert_idx_1]->gpu.rank];
+    ```
+
+    从这里可以看出，rank 是对 peerInfo 的编号。对比前面的，我们知道 dev 是物理编号。
+
 * `comm->rank`是当前进程被分配到的 mpi rank （猜测）
 
 * `comm->peerInfo[]`是第一轮 bootstrap all gather 后拿到的所有信息
