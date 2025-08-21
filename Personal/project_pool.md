@@ -30,6 +30,14 @@
 
 ## cache
 
+* [new] 调研如何判断一个新的 example 是否已经在 qa 文件中
+
+    可能的方向：向量数据库，llm + rag
+
+    目标是在 qa file 中找到与 example 相似或相近的 unit
+
+* [new] 如何使用模板（卷积）的方式识别缺陷？
+
 * AXI DMA MMIO
 
     MMIO 允许 CPU 通过读写特定内存地址来配置和控制 DMA 控制器
@@ -2150,13 +2158,13 @@ tasks:
 
 ### tasks
 
-* [ ] 调研`ss`
+* [ ] 调研 nccl graph 中 sameChannels 的含义
+
+* [v] 调研`ss`
 
 * [v] 调研`ip route get`
 
-    feedback:
-
-    1. 调研`ip rule`
+* [ ] 调研`ip rule`
 
 * [ ] 调研`OneCCL`, `RCCL`, `Gloo`
 
@@ -2178,23 +2186,17 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [v] 调研`mmap()`的 MAP_SHARED 模式与 MAP_PRIVATE 模式
-
 * [ ] 调研什么是写时复制（COW）
 
 * [ ] 调研`fork()`
 
 * [v] 调研 mmap() 的匿名映射模式
 
-    feedback:
-
-    1. 调研`RLIMIT_DATA`
+* [ ] 调研`RLIMIT_DATA`
 
 * [ ] 调研 msync()
 
 * [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
-
-* [v] 调研`fileno()`
 
 * [ ] 调研`fsync()`, `fcntl()`
 
@@ -2226,7 +2228,11 @@ tasks:
 
     `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
 
-* [ ] 调研`read -n1`的作用
+* [v] 调研`read -n1`的作用
+
+    feedback:
+
+    1. 调研 bash 中的`REPLY`变量
 
 * [ ] 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
 
@@ -2315,7 +2321,7 @@ tasks:
 
 * [ ] 调研如果在非终端（非交互）模式下运行top、htop、tmux、screen 等工具，会发生什么
 
-* [ ] 调研`ed`
+* [v] 调研`ed`
 
 * [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
@@ -2532,7 +2538,11 @@ tasks:
 
 * [ ] 调研`grep -z`处理跨行文本
 
-* [ ] 调研`wc -l`
+* [v] 调研`wc -l`
+
+    feedback:
+
+    1. `wc`是否可以统计汉字的字节数，单词数？
 
 * [ ] 调研`grep -A`
 
@@ -4086,7 +4096,7 @@ resources:
 
 * 调研
 
-    `create_workqueue`, `inb`, 
+    `inb`, 
     
     `INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 
@@ -4210,11 +4220,45 @@ resources:
 
 ### tasks
 
-* 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
-    
-* 调研`pci_msix_vec_count`
+* [ ] 调研`create_workqueue`
 
-* 调研`pci_find_capability`
+* [v] linux list
+
+    feedback:
+
+    1. `list_for_each_entry_safe()`, `list_for_each_safe()`, `list_entry()`, `list_for_each_entry()`
+
+    1. `list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+
+    1. 如何获取 list 的长度（有多少个节点）？
+
+    1. 调研`LIST_HEAD_INIT()`
+
+    1. `list_empty()`
+
+    1. 高级用法
+
+        链表拼接：list_splice(), list_splice_tail(), list_splice_init()
+
+        移动元素：list_move(), list_move_tail()
+
+        旋转链表：list_rotate_left()
+
+        分割链表：list_cut_position()
+
+    1. 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
+
+    1. `list_add_tail()`
+
+    1. `list_first_entry()`, `list_next_entry()`
+
+    1. `DEFINE_SPINLOCK()`
+
+* [ ] 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
+    
+* [ ] 调研`pci_msix_vec_count`
+
+* [ ] 调研`pci_find_capability`
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -4224,9 +4268,17 @@ resources:
 
 * [ ] 调研 AXI4-Stream
 
-* [ ] 调研`pci_resource_start()`
+* [v] 调研`pci_resource_start()`
 
-* [v] qa: linux driver 30 mins
+    feedback:
+
+    1. `pci_resource_len()`
+
+    1. `ioremap()`, `devm_ioremap()`, `iounmap()`
+
+    1. 内核的虚拟地址是如何构成的？
+
+    1. inb(), outb(), inl(), outl()
 
 * [O] 调研在 kmd 上使用 mmio
 
@@ -4256,7 +4308,15 @@ resources:
 
 * [ ] 调研`screen`命令
 
-* [ ] 调研`pci_enable_device()`作用
+* [v] 调研`pci_enable_device()`作用
+
+    feedback:
+
+    1. `pci_request_regions()`
+
+    1. `dev_err()`
+
+    1. 调研驱动程序的`.remove()`和`.shutdown()`函数
 
 * [ ] 调研`pci_request_region()`
 
@@ -4269,6 +4329,16 @@ resources:
     doc: <https://www.qemu.org/docs/master/specs/edu.html>
 
     res: <https://jklincn.com/posts/qemu-edu-driver/>
+
+    deps:
+
+    1. `dma_set_mask_and_coherent()`
+
+    1. `pci_iomap()`
+
+    1. `pci_set_master()`
+
+    1. reorg: linux driver `request_irq()`
 
     feedback:
 
@@ -4284,12 +4354,6 @@ resources:
 
         按道理`Factorial`应该是`8! = 40320`才对。
 
-    1. `test`打开`/dev/edu`设备失败，看起来是驱动没加载好
-
-    1. 调研`static int __init edu_init(void)`中的`__init`
-
-    1. 调研在`MKDEV()`前，哪些设备号是已经被占用的？
-
     1. 使用`sudo mknod /dev/edu c 241 0`创建`/dev/edu`后，使用`sudo ./test`可以得到输出：
 
         ```
@@ -4301,9 +4365,27 @@ resources:
 
         但是到这里整个 qemu 会卡住。目前不清楚原因。
 
-* [ ] 调研 I2C 驱动
+    1. `depmod`
 
-* [ ] 调研 nccl graph 中 sameChannels 的含义
+    1. `udev`, uevent, systemd-udevd
+
+    1. vscode 里`pci_register_driver()`会报 warning：
+
+        > unrecognized tokenC/C++(7)
+
+        在`pci.h`里，`pci_create_slot()`也会报 warning:
+
+        > declaration is incompatible with "struct pci_slot *pci_create_slot(struct pci_bus *parent, int slot_nr, const char *name, struct hotplug_slot *hotplug)" (declared at line 1129)C/C++(147)
+
+        上面两个仅报 warning，但是不影响编译。
+
+    1. `register_chrdev()`
+
+* [ ] 调研`static int __init edu_init(void)`中的`__init`
+
+* [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
+
+* [ ] 调研 I2C 驱动
 
 * [v] 调研`pci_set_drvdata`
 
@@ -4317,7 +4399,7 @@ resources:
 
     feedback:
 
-    2. kernel 中的内存管理感觉是个问题
+    1. kernel 中的内存管理感觉是个问题
 
         假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
 
@@ -4343,8 +4425,6 @@ resources:
 * [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
 
 * [ ] 调研`kzalloc`, `kfree`
-
-* [v] 调研 workqueue
 
 * [ ] 调研`device_create()`和`device_add()`有什么区别？
 
