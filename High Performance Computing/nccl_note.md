@@ -2,6 +2,30 @@
 
 ## cache
 
+* 向上取整
+
+    ```cpp
+    #define DIVUP(x, y) \
+        (((x)+(y)-1)/(y))
+
+    int div_up(int x, int y) {
+        return (x + y - 1) / y;
+    }
+    ```
+
+    上述代码实现了 x / y 向上取整，如果 x 正好是 y 的整数倍，那么不向上取整。
+
+    这个算法还挺巧妙的，如果写成
+    
+    ```cpp
+    if (x % y == 0)
+        res = x / y;
+    else
+        res = x / y + 1;
+    ```
+
+    那么就太复杂了，没有 (x + y - 1) / y 简单。目前不清楚这个算法是怎么想出来的。
+
 * `mirrorBits()`
 
     ```cpp

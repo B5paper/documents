@@ -6,6 +6,158 @@
 
 ## cache
 
+* `ss`
+
+    Socket Statistics，可以查看当前的 tcp, udp 连接。
+
+    ss 直接从内核空间获取信息，而 netstat 需要遍历许多 /proc 下的文件，效率较低。（未验证）
+
+    netstat 在很多 Linux 发行版中已被标记为“已废弃”，官方推荐使用 ss 和 ip 命令（未验证）
+
+    常用选项：
+
+    * `-t`: 显示 tcp 连接
+
+    * `-u`：显示 udp 连接
+
+    * `-l`：显示 listening socket
+
+    * `-a`：显示所有连接，包括监听和非监听的
+
+    * `-p`：显示对应的进程
+
+    * `-n`：以数字形式显示端口和地址，不尝试解析域名和服务名
+
+    常用组合：
+
+    `ss -tln`
+
+    output:
+
+    ```
+    State   Recv-Q   Send-Q     Local Address:Port      Peer Address:Port  Process  
+    LISTEN  0        64               0.0.0.0:43673          0.0.0.0:*              
+    LISTEN  0        4096             0.0.0.0:35661          0.0.0.0:*              
+    LISTEN  0        64               0.0.0.0:2049           0.0.0.0:*              
+    LISTEN  0        4096             0.0.0.0:52865          0.0.0.0:*              
+    LISTEN  0        128              0.0.0.0:22             0.0.0.0:*              
+    LISTEN  0        4096             0.0.0.0:111            0.0.0.0:*              
+    LISTEN  0        128            127.0.0.1:631            0.0.0.0:*              
+    LISTEN  0        4096           127.0.0.1:39255          0.0.0.0:*              
+    LISTEN  0        4096             0.0.0.0:45865          0.0.0.0:*              
+    LISTEN  0        4096       127.0.0.53%lo:53             0.0.0.0:*              
+    LISTEN  0        4096             0.0.0.0:46147          0.0.0.0:*              
+    LISTEN  0        32         192.168.122.1:53             0.0.0.0:*              
+    LISTEN  0        64                  [::]:2049              [::]:*              
+    LISTEN  0        128                [::1]:631               [::]:*              
+    LISTEN  0        64                  [::]:44879             [::]:*              
+    LISTEN  0        128                 [::]:22                [::]:*              
+    LISTEN  0        4096                [::]:111               [::]:*              
+    LISTEN  0        4096                [::]:55635             [::]:*              
+    LISTEN  0        4096                [::]:54891             [::]:*              
+    LISTEN  0        4096                [::]:38721             [::]:*              
+    LISTEN  0        4096                [::]:54351             [::]:*
+    ```
+
+    过滤连接（未验证）：
+
+    * 查看所有已建立的 TCP 连接：
+
+        `ss -t state established`
+
+    * 查看所有处于 TIME-WAIT 状态的连接（通常是大量短连接后出现的状态）：
+
+        `ss -t state time-wait`
+
+    * 查看所有已建立连接的 IPv4 HTTP (端口 80) 连接：
+
+        `ss -t '( dport = :http or sport = :http )'`
+
+    * 或者使用数字端口：
+
+        `ss -t '( dport = :80 or sport = :80 )'`
+
+* `wc -l [file_1] [file_2] [file_3] ...`
+
+    统计给定文件或输入流中的行数，即统计`\n`的数量。
+
+    word count
+
+    * `-w`: 统计单词数
+
+    * `-c`：统计字节数
+
+    * `-m`：统计字符数
+
+* `read -n1`
+
+    从标准输入中读取一个（且仅一个）字符，然后立即结束读取，无需用户按回车键
+
+    注意这里`-n`后跟的是一，不是`l`。相当于`read -n 1`。
+
+    `-n N`: 读取 N 个字符后立即返回，不再等待回车键
+
+* `ed`
+
+    `ed`是个很老的文本编辑器。
+
+    example:
+
+    `test.txt`:
+
+    ```
+    Hello world
+    This is a test.
+    Goodbye
+    ```
+
+    我们想将 “world” 替换为 “universe”。
+
+    ```
+    # 1. 用 ed 打开文件
+    ed test.txt
+
+    # 2. 此时 ed 在命令模式，没有任何提示。我们先显示所有内容（,p 表示从第一行到最后一行打印）
+    ,p
+    Hello world
+    This is a test.
+    Goodbye
+
+    # 3. 使用替换命令。s/旧字符串/新字符串/
+    # 首先搜索包含 ‘world’ 的行（/pattern/），然后对其执行替换命令
+    /world/ s/world/universe/
+
+    # 4. 再次查看修改后的内容（‘’代表当前行）
+    p
+    Hello universe
+
+    # 5. 保存并退出
+    w
+    q
+    ```
+
+    example:
+
+    `echo $'#!/bin/ed\n,w\nq' | ed test.txt > /dev/null`
+
+    向 ed 发送命令 `,w`（写入文件）和 `q`（退出）
+
+* `ip route get <dst_ip>`可以显示访问`dst_ip`是从本机的哪个路由表出去
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ip route get 223.5.5.5
+    223.5.5.5 via 10.0.2.1 dev enp0s3 src 10.0.2.4 uid 1000 
+        cache
+    ```
+
+    其中`via 10.0.2.1`表示网关（下一跳的地址），`dev enp0s3`表示使用的网卡设备，`src 10.0.2.4`表示源地址。
+
+    `ip route get <dst_ip> from <src_ip>`可以指定源地址。
+
+    ip route get 仅本地查询，不发送真实数据包。
+
 * `ethtool`
 
     install: `sudo apt install ethtool`

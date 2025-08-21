@@ -6,6 +6,437 @@ Ref:
 
 ## cache
 
+* `MODULE_DEVICE_TABLE()`功能（未验证）
+
+    一个宏，将 id table 的设备 ID 与 driver 注册到全局信息中。
+
+    depmod 会读取所有已安装模块中的 MODULE_DEVICE_TABLE 信息，提取出每个模块所支持的设备ID。depmod 将这些信息生成一个全局的“设备-模块”映射数据库文件，通常是 /lib/modules/$(uname -r)/modules.alias 和 modules.dep
+
+    udev 会查询由 depmod 生成的 modules.alias 数据库，根据设备的标识符查找与之匹配的模块名称，然后调用 modprobe 命令来自动加载对应的内核模块。
+
+    相当于如果没有`MODULE_DEVICE_TABLE()`，那么只能手动 insmod 或 modprobe 来加载驱动，不能让系统自动加载驱动。
+
+* kmd 中`__FUNCTION__`表示当前函数的字符串，可以辅助打印 log 信息
+
+    ```c
+    pr_info("in %s()...\n", __FUNCTION__);
+    ```
+
+* simple pci driver example
+
+    下面是加载 pci driver 的一个最简示例，probe 和 remove 都是空函数，无实际功能。
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/pci.h>
+
+    static struct pci_device_id pci_id_table[] = {
+        { PCI_DEVICE(0x1234, 0x11e8) },
+        {0,}
+    };
+
+    static int edu_probe(struct pci_dev *device, const struct pci_device_id *device_id) {
+    	pr_info("in edu_probe()...\n");
+    	return 0;
+    }
+
+    static void edu_remove(struct pci_dev *device) {
+        pr_info("in edu_remove()...\n");
+    }
+
+    struct pci_driver pci_driver = {
+    	.name = "edu",
+    	.id_table = pci_id_table,
+    	.probe = edu_probe,
+    	.remove = edu_remove
+    };
+
+    int hello_init(void) {
+        pr_info("int hello_init()...\n");
+
+        int ret = pci_register_driver(&pci_driver);
+        if (ret != 0) {
+            pr_err("fail to register pci driver\n");
+            goto PCI_REGISTER_DRIVER_FAILED;
+        }
+        
+        return 0;
+
+    PCI_REGISTER_DRIVER_FAILED:
+        return -1;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        pci_unregister_driver(&pci_driver);
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg:
+
+    ```
+    [  473.423543] int hello_init()...
+    [  473.423621] in edu_probe()...
+    [  481.947618] in hello_exit()...
+    [  481.947709] in edu_remove()...
+    ```
+
+    其中`PCI_DEVICE(0x1234, 0x11e8)`比较重要，qemu edu device 的 pci 号就是`1234:11e8`。如果`PCI_DEVICE()`中 pci id 填写错误，那么将不会加载 pci 驱动，dmesg 不会有`in edu_probe()...`和`in edu_remove()...`的输出。
+
+* 内核代码只能操作虚拟地址，不能直接使用物理地址。（未验证）
+
+* 操作 pci 寄存器的 routine
+
+    1. `pci_enable_device()`
+
+    2. `pci_resource_start()`, `pci_resource_len()`, `pci_resource_flags()`
+
+    3. `ioremap()`, `devm_ioremap()`
+
+    4. 读写寄存器
+
+    5. `iounmap()`, 禁用设备。
+
+* `pci_enable_device()`作用（未验证）
+
+    主要是对操作系统内核和 pci 设备进行一些配置，使得后续可以正常使用 pci 设备。
+
+    1. 管理PCI电源状态
+
+        将设备从可能的低功耗状态（例如 D3hot）切换到全功能状态（D0）
+
+    2. 声明驱动对 pci 设备的所有权
+    
+        主要是设备的I/O端口和内存区域，防止和其他驱动程序冲突
+
+    3. 启用总线主控（Bus Mastering）
+
+        在设备的PCI配置空间中设置“Bus Master Enable”位。它允许 device 通过 dma 访问 host 上的内存。
+
+    4. 启用内存和I/O空间访问
+
+        在设备的PCI配置空间中设置 Memory Space Enable 和 I/O Space Enable 位
+
+        解除了PCI总线对设备响应地址访问的封锁, CPU 可以通过读写设备的 BAR 所定义的地址范围来与设备通信
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+    {
+        int err;
+
+        // 首先，启用PCI设备
+        err = pci_enable_device(pdev);
+        if (err) {
+            dev_err(&pdev->dev, "Failed to enable device\n");
+            return err;
+        }
+
+        // 启用设备后，才能安全地执行以下操作：
+        // 1. 设置DMA掩码 (pci_set_dma_mask)
+        // 2. 获取资源地址 (pci_resource_start)
+        // 3. 映射内存区域 (pci_ioremap_bar)
+        // 4. 申请IRQ中断 (pci_request_irq)
+        // ... 其他设备初始化操作 ...
+
+        return 0; // 成功
+    }
+    ```
+
+    可以使用`pci_disable_device()`进行反向操作，禁用 pci dev。
+
+* `pci_register_driver()`是一个宏
+
+* `pci_resource_start()`
+
+    （未验证）
+
+    用于获取 PCI 设备某个资源（如内存地址空间或I/O端口空间）的起始地址。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    resource_size_t pci_resource_start(struct pci_dev *pdev, int bar);
+    ```
+
+    参数 pdev：指向目标PCI设备的指针。
+
+    参数 bar：基址寄存器（BAR）的索引号，通常从0到5。
+
+    返回值：一个 resource_size_t 类型（通常是64位或32位整数）的值，表示该资源区域的起始物理地址。
+
+    example:
+
+    ```c
+    struct pci_dev *pdev; // 假设已初始化的设备结构体
+    int bar = 0;          // 我们想使用第一个BAR
+    resource_size_t start, len;
+    void __iomem *io_addr; // 指向映射后虚拟地址的指针
+
+    // 1. 获取资源的物理起始地址和长度
+    start = pci_resource_start(pdev, bar);
+    len = pci_resource_len(pdev, bar);
+
+    // 2. 检查资源是否有效且存在
+    if (!start || !len) {
+        // 错误处理
+    }
+
+    // 3. 将物理地址映射到内核虚拟地址空间
+    io_addr = ioremap(start, len);
+    if (!io_addr) {
+        // 映射失败处理
+    }
+
+    // 4. 现在可以通过 io_addr 来读写设备了
+    // 例如：writel(0x12345678, io_addr + REG_OFFSET);
+    //        value = readl(io_addr + STATUS_REG);
+
+    // 5. (在驱动退出时) 取消映射
+    iounmap(io_addr);
+    ```
+
+* `LIST_HEAD()`与`INIT_LIST_HEAD()`
+
+    `LIST_HEAD()`是一个宏，在编译时展开，帮你定义变量，并做好初始化：
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    static LIST_HEAD(lst_head);
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            // ...
+    ```
+
+    其中，`static LIST_HEAD(lst_head);`做了如下几件事：
+    
+    1. 定义变量`struct list_head lst_head;`
+
+    2. 将`lst_head`的`next`和`prev`都指向自己
+
+    3. 由于是全局变量，所以声明为`static`的，防止和其他文件里的变量冲突。
+
+    `INIT_LIST_HEAD()`是一个函数，其定义如下：
+
+    ```c
+    static inline void INIT_LIST_HEAD(struct list_head *list)
+    {
+    	WRITE_ONCE(list->next, list);
+    	WRITE_ONCE(list->prev, list);
+    }
+    ```
+
+    通常配合外部的`struct list_head xxx;`使用：
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            // ...
+    ```
+
+* 使用`list_for_each_entry_safe()`释放 list node 的内存
+
+    list 依然是借 device 触发，关键代码如下：
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            list_add(&new_node->node_head, &lst_head);
+        }
+        return 0;
+    }
+
+    int m_release(struct inode *, struct file *) {
+        pr_info("in m_release()...\n");
+        struct my_node *cur_node, *tmp_node;
+        int node_idx = 0;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, node_head) {
+            pr_info("node %d, val: %d\n", node_idx++, cur_node->val);
+            list_del(&cur_node->node_head);
+            kfree(cur_node);
+        }
+
+        return 0;
+    }
+    ```
+
+    注意这里不能使用`list_for_each_entry()`，必须使用`list_for_each_entry_safe()`，否则会运行时报错。
+
+    `list_for_each_entry()`会直接使用当前节点`cur_node`访问到下一个节点，但是在我们的例子中，当前节点`cur_node`已经通过`kfree(cur_node);`释放掉了，所以会报错。`list_for_each_entry_safe()`则会使用`tmp_node`在`cur_node`被释放前，保存指向下个节点的指针，所以不会报错。
+
+* `list_add_tail()`有可能是在 list 尾部添加新节点
+
+    如果是，那么随着 list 长度增加，添加新节点会越来越费时。
+
+* linux list
+
+    linux list 添加新节点是倒序添加的：
+
+    1. 初始状态
+
+        ```
+        head
+        ```
+
+    2. 添加第一个节点 0
+
+        ```
+        head -> 0
+        ```
+
+    3. 添加第二个节点 1
+
+        ```
+        head -> 1 -> 0
+        ```
+
+    4. 添加第三个节点 2
+
+        ```
+        head -> 2 -> 1 -> 0
+        ```
+
+    此时我们再使用`struct list_head`去遍历，得到的输出即为`2, 1, 0`。
+
+* `struct list_head`是每次从尾部添加新节点，并不会每次遍历到最后一个节点才添加新节点
+
+    example:
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            list_add(&new_node->node_head, &lst_head);
+        }
+        return 0;
+    }
+
+    int m_release(struct inode *, struct file *) {
+        pr_info("in m_release()...\n");
+        struct my_node *cur_node;
+        int node_idx = 0;
+        list_for_each_entry(cur_node, &lst_head, node_head) {
+            pr_info("node %d, val: %d\n", node_idx++, cur_node->val);
+        }
+
+        return 0;
+    }
+    ```
+
+    run: `sudo cat /dev/hlc_dev`
+
+    dmesg output:
+
+    ```
+    [13574.844808] in m_open()...
+    [13574.844916] in m_read()...
+    [13574.844954] in m_release()...
+    [13574.844956] node 0, val: 2
+    [13574.844961] node 1, val: 1
+    [13574.844964] node 2, val: 0
+    ```
+
+* `list_add()`两个参数都是`struct list_head*`
+
+* cdev 和`cdev_init()`, `cdev_add()`相关，涉及到 open, release, read, write, ioctl 等操作；device 和`class_create()`, `device_create()`相关，涉及到`/dev/xxxx`设备文件的创建。
+
+    可以看出，cdev 和 device 本身没有依赖关系，它们通过设备号`dev_t dev_num`关联到一起。
+
+* `ssize_t`是`long`
+
+* kernel parameter array 元素个数越界与不足
+
+    如果提供的元素个数超过数组 size，那么会报错：
+
+    `int m_arr[3];`
+
+    ```
+    test@Ubuntu22:/sys/module/hello/parameters$ echo "1,2,3,4" | sudo tee ./m_arr 
+    1,2,3,4
+    tee: ./m_arr: Invalid argument
+    ```
+
+    如果提供的元素个数不足，那么剩余元素保持原来的值：
+
+    ```
+    test@Ubuntu22:/sys/module/hello/parameters$ echo "4,5" | sudo tee ./m_arr 
+    4,5
+    test@Ubuntu22:/sys/module/hello/parameters$ sudo cat m_arr 
+    4,5,3
+    ```
+
+* kernel parameter 由于 user 是 root，所以实际上权限设置为`S_IRUSR | S_IWUSR`，普通用户仍无法读写
+
+    ```c
+    module_param(m_int, int, S_IRUSR | S_IWUSR);
+    module_param(m_str, charp, S_IRUSR | S_IWUSR);
+    module_param_array(m_arr, int, NULL, 0755);
+    ```
+
+    ```
+    test@Ubuntu22:/sys/module/hello/parameters$ ls -lh
+    total 0
+    -rw-r--r-- 1 root root 4.0K  8月 19 14:48 m_arr
+    -rw------- 1 root root 4.0K  8月 19 14:48 m_int
+    -rw------- 1 root root 4.0K  8月 19 14:48 m_str
+    ```
+
 * `major = register_chrdev(0, "edu", &file_ops);`
 
     `register_chrdev`的第一个参数填 0 时，会自动分配一个 region 号。比如 edu 设备就分到了`241`号：

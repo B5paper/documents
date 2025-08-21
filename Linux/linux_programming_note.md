@@ -6,6 +6,48 @@
 
 ## cache
 
+* `mmap()`匿名映射
+
+    匿名映射 Anonymous Mapping
+
+    匿名映射不与磁盘文件关联，直接分配虚拟内存供进程使用
+
+    example:
+
+    ```cpp
+    #include <sys/mman.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    int main() {
+        void *buf = mmap(NULL, 1024, PROT_READ | PROT_WRITE,
+            MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        if (buf == NULL) {
+            printf("fail to mmap\n");
+            return -1;
+        }
+
+        strcpy((char*) buf, "hello, world");
+
+        printf("msg: %s\n", (char*) buf);
+      
+        int ret = munmap(buf, 1024);
+        if (ret != 0) {
+            printf("fail to munmap\n");
+            return -1;
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    msg: hello, world
+    ```
+
+    这个似乎可以拿来替换`malloc()`，如果是 shared 模式还可以在进程间通信。
+
 * `mmap()`的`MAP_SHARED`模式与`MAP_PRIVATE`模式
 
     在 shared 模式中，对映射内存的修改会同步到实际文件（如果映射的是文件），其他进程映射同一文件时能看到变更。内存的写操作可能触发文件系统的 I/O（取决于回写策略）。
