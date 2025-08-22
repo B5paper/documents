@@ -319,8 +319,6 @@
 
 * 之前似乎讨论过使用 idx 比使用指针好，具体细节是什么？
 
-* [v] 调研`ls -l`输出时，修改时间最近的排到最上面
-
 * 英语句式
 
     It’s not really a standard, but it’s considered as such by many.
@@ -2164,11 +2162,15 @@ tasks:
 
 ### tasks
 
+* [ ] 调研是否其他地方用到了 topo id
+
+* [ ] 调研调用 runtime 的函数
+
+* [ ] 以 uuid 为入口重构 topo layer 代码
+
+* [v] 处理 chip id 问题
+
 * [ ] 调研 nccl graph 中 sameChannels 的含义
-
-* [v] 调研`ss`
-
-* [v] 调研`ip route get`
 
 * [ ] 调研`ip rule`
 
@@ -2192,19 +2194,7 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研什么是写时复制（COW）
-
-* [ ] 调研`fork()`
-
-* [v] 调研 mmap() 的匿名映射模式
-
-* [ ] 调研`RLIMIT_DATA`
-
-* [ ] 调研 msync()
-
-* [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
-
-* [ ] 调研`fsync()`, `fcntl()`
+* [v] 调研 msync()
 
 * [ ] 调研多路复用（select/poll/epoll）中的多路是什么含义
 
@@ -2236,9 +2226,7 @@ tasks:
 
 * [v] 调研`read -n1`的作用
 
-    feedback:
-
-    1. 调研 bash 中的`REPLY`变量
+* [ ] 调研 bash 中的`REPLY`变量
 
 * [ ] 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
 
@@ -2327,8 +2315,6 @@ tasks:
 
 * [ ] 调研如果在非终端（非交互）模式下运行top、htop、tmux、screen 等工具，会发生什么
 
-* [v] 调研`ed`
-
 * [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
 * {O} 调研`ncclTopoCheckP2p()`
@@ -2403,19 +2389,17 @@ tasks:
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
+* [ ] 调研`std::variant`
+
+* [ ] 调研`std::any`
+
+* [ ] 调研`std::holds_alternative`
+
+* [ ] 调研`std::get_if`, `std::get`
+
+* [ ] 调研 c++ 泛型 lambda
+
 * [P] 调研`std::visit`
-
-    deps:
-
-    1. 调研`std::variant`
-    
-    1. 调研`std::any`
-
-    1. 调研`std::holds_alternative`
-
-    1. 调研`std::get_if`, `std::get`
-
-    1. 调研 c++ 泛型 lambda
 
 * [ ] 调研`std::reference_wrapper`
 
@@ -2546,9 +2530,7 @@ tasks:
 
 * [v] 调研`wc -l`
 
-    feedback:
-
-    1. `wc`是否可以统计汉字的字节数，单词数？
+* [ ] `wc`是否可以统计汉字的字节数，单词数？
 
 * [ ] 调研`grep -A`
 
@@ -4174,7 +4156,7 @@ resources:
 
     调研函数：
 
-    `dev_set_drvdata`, `pci_resource_len`, `pci_ioremap_bar`
+    `dev_set_drvdata`, `pci_ioremap_bar`
 
     `pci_set_master`, `dma_set_mask`, `pci_ioremap_wc_bar`
 
@@ -4182,17 +4164,13 @@ resources:
 
     `dev_to_node`, `kzalloc_node`, `spin_lock_init`
 
-    `idr_init_base`
-
-    `kfree`, `dev_info`
+    `idr_init_base`, `dev_info`
 
     调研：
 
     `writel`, `BUG()`, `readq`, `writeq`, `pci_read_config_dword`, `pci_find_ext_capability`
 
     `readl`, 
-
-    * `pci_register_driver()`这个也是内核调用，有时间了看下含义
 
     调研一下`KBUILD_MODNAME`的含义。
 
@@ -4226,39 +4204,49 @@ resources:
 
 ### tasks
 
+* [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
+
+* [ ] 调研`fsync()`, `fcntl()`
+
+* [ ] 调研什么是写时复制（COW）
+
+* [ ] 调研`fork()`
+
+* [ ] 调研`RLIMIT_DATA`
+
+* [ ] 调研`pci_register_driver()`
+
 * [ ] 调研`create_workqueue`
+
+* [ ] 调研`list_add_tail()`
 
 * [v] linux list
 
-    feedback:
+* [ ] 调研`list_for_each_entry_safe()`, `list_for_each_safe()`, `list_entry()`, `list_for_each_entry()`
 
-    1. `list_for_each_entry_safe()`, `list_for_each_safe()`, `list_entry()`, `list_for_each_entry()`
+* [ ] 调研`list_del_init()`, `list_del_rcu()`, `list_lru_del()`
 
-    1. `list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+* [ ] 调研 如何获取 list 的长度（有多少个节点）？
 
-    1. 如何获取 list 的长度（有多少个节点）？
+* [ ] 调研`LIST_HEAD_INIT()`
 
-    1. 调研`LIST_HEAD_INIT()`
+* [ ] 调研`list_empty()`
 
-    1. `list_empty()`
+* [ ] 调研 list 高级用法
 
-    1. 高级用法
+    链表拼接：list_splice(), list_splice_tail(), list_splice_init()
 
-        链表拼接：list_splice(), list_splice_tail(), list_splice_init()
+    移动元素：list_move(), list_move_tail()
 
-        移动元素：list_move(), list_move_tail()
+    旋转链表：list_rotate_left()
 
-        旋转链表：list_rotate_left()
+    分割链表：list_cut_position()
 
-        分割链表：list_cut_position()
+* [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
 
-    1. 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
+* [ ] 调研`list_first_entry()`, `list_next_entry()`
 
-    1. `list_add_tail()`
-
-    1. `list_first_entry()`, `list_next_entry()`
-
-    1. `DEFINE_SPINLOCK()`
+* [ ] 调研`DEFINE_SPINLOCK()`
 
 * [ ] 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
     
@@ -4276,15 +4264,13 @@ resources:
 
 * [v] 调研`pci_resource_start()`
 
-    feedback:
+* [ ] 调研`pci_resource_len()`
 
-    1. `pci_resource_len()`
+* [ ] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
 
-    1. `ioremap()`, `devm_ioremap()`, `iounmap()`
+* [ ] 调研 内核的虚拟地址是如何构成的？
 
-    1. 内核的虚拟地址是如何构成的？
-
-    1. inb(), outb(), inl(), outl()
+* [ ] 调研 inb(), outb(), inl(), outl()
 
 * [O] 调研在 kmd 上使用 mmio
 
@@ -4316,15 +4302,17 @@ resources:
 
 * [v] 调研`pci_enable_device()`作用
 
+* [ ] 调研`pci_request_regions()`
+
+* [ ] 调研`dev_err()`
+
+* [ ] 调研驱动程序的`.remove()`和`.shutdown()`函数
+
+* [v] 调研`pci_request_region()`
+
     feedback:
 
-    1. `pci_request_regions()`
-
-    1. `dev_err()`
-
-    1. 调研驱动程序的`.remove()`和`.shutdown()`函数
-
-* [ ] 调研`pci_request_region()`
+    1. 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
 
 * [O] 调研 qemu edu driver
 
@@ -4387,7 +4375,7 @@ resources:
 
     1. `register_chrdev()`
 
-* [ ] 调研`static int __init edu_init(void)`中的`__init`
+* [v] 调研`static int __init edu_init(void)`中的`__init`
 
 * [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
 
@@ -4777,6 +4765,8 @@ cache:
     有空了研究一下这段代码，分析一下利弊。
 
 ### tasks
+
+* [ ] 为什么`vector<unique_ptr<XmlTag>> root_tags;`无法`root_tags.push_back(new XmlTag);`，但是可以`root_tags.emplace_back(new XmlTag);`？
 
 * [ ] 调研 c++ 20 的 format
 

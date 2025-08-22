@@ -2103,228 +2103,275 @@ default:
 
 ## 内核模块
 
-内核模块编程注意事项：
+* 内核模块编程注意事项：
 
-1. 不能使用 C 库和 C 标准头文件
-1. 使用 GNU C （在 ANSI C 上加了些语法）
-1. 没有内存保护机制
-1. 不能处理浮点运算
-1. 注意并发互斥和可移植性
+    * 不能使用 C 库和 C 标准头文件
+
+    * 使用 GNU C （在 ANSI C 上加了些语法）
+
+    * 没有内存保护机制
+
+    * 不能处理浮点运算
+
+    * 注意并发互斥和可移植性
 
 ### 内核模块的加载与卸载
 
-**内核模块的加载函数与卸载函数**
+* 内核模块的加载与卸载
 
-需要包含头文件
+    example:
 
-```cpp
-#include <linux/init.h>
-#include <linux/module.h>
-```
-
-Syntax:
-
-1. 加载函数（Init function）
+    `hello_world.c`：
 
     ```c
-    static int __init hello_world_init(void)  // __init 并不是必要的。它代表什么意思？
-    {
-        return 0;  // 返回 0 表示加载成功
+    #include <linux/init.h>
+    #include <linux/module.h>
+
+    int hello_init(void) {
+        printk(KERN_INFO "hello my module\n");
+        return 0;
     }
-    module_init(hello_world_init);  // 使用宏来注册加载函数
+
+    void hello_exit(void) {
+        printk(KERN_INFO "bye bye!\n");
+    }
+
+    module_init(hello_init);  // 这一行和下一行的分号都不是必要的，为什么？
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");  // 不加这行的话，无法通过编译。MODULE_LICENSE 必须大写，不然无法通过编译。这一行末尾的分号是必要的，为什么？
     ```
 
-2. 卸载函数（Exit function）
+    其中加载函数（init function）与制裁函数（exit function）的原型为：
 
     ```c
-    void __exit hello_world_exit(void)  // __exit 也不是必要的，它代表什么含义？
-    {
+    static int __init hello_init(void) {
+        return 0;
+    }
+
+    void __exit hello_exit(void) {
 
     }
-    module_exit(hello_world_exit);  // 使用宏来注册卸载函数
+
+    module_init(hello_init);  // 使用宏来注册加载函数
+    module_exit(hello_exit);  // 使用宏来注册卸载函数
     ```
 
-**有关模块加载与卸载的一个 Example**
+    init function 返回 0 表示加载成功。
 
-`hello_world.c`：
+    说明：
 
-```c
-#include <linux/init.h>
-#include <linux/module.h>
+    1. `hello_init()`与`hello_exit()`参数列表中的`void`不可省略，不然无法通过编译.
 
-int hello_init(void)  // 参数列表中的 void 不可省略，不然无法通过编译.
-{
-    printk(KERN_INFO "hello my module\n");
-    return 0;
-}
+* 在内核模块中添加额外信息
 
-void hello_exit(void)  // exit 不需要返回值
-{
-    printk(KERN_INFO "bye bye!\n");
-}
+    ```c
+    #include<linux/kernel.h>  // 这个头文件有什么用？
+    #include<linux/init.h>
+    #include<linux/module.h>
 
-module_init(hello_init);  // 这一行和下一行的分号都不是必要的，为什么？
-module_exit(hello_exit);
-MODULE_LICENSE("GPL");  // 不加这行的话，无法通过编译。MODULE_LICENSE 必须大写，不然无法通过编译。这一行末尾的分号是必要的，为什么？
-```
+    static int __init hello_world_init(void) {
+        printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
+        return 0;
+    }
 
-另外一个 example:
+    static void __exit hello_world_exit(void) {
+        printk(KERN_INFO "Kernel Module Removed Successfully...\n");
+    }
+     
+    module_init(hello_world_init);
+    module_exit(hello_world_exit);
+     
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("A simple hello world driver");
+    MODULE_VERSION("2:1.0");
+    ```
 
-```c
-#include<linux/kernel.h>  // 这个头文件有什么用？
-#include<linux/init.h>
-#include<linux/module.h>
+* makefile 写法
 
-static int __init hello_world_init(void)  // __init 是什么意思？
-{
-    printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
-    return 0;
-}
+    `Makefile`：
 
-static void __exit hello_world_exit(void)  // __exit 是什么意思？
-{
-    printk(KERN_INFO "Kernel Module Removed Successfully...\n");
-}
- 
-module_init(hello_world_init);
-module_exit(hello_world_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("A simple hello world driver");
-MODULE_VERSION("2:1.0");
-```
+    ```Makefile
+    KERNEL_DIR=/usr/src/linux-headers-5.19.0-32-generic
+    obj-m += hello_world.o
+    default:
+    	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
+    ```
 
-接着，我们写 Makefile：
+    另外一个 makefile 的 example:
 
-```Makefile
-KERNEL_DIR=/usr/src/linux-headers-5.19.0-32-generic
-obj-m += hello_world.o
-default:
-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
-```
+    ```Makefile
+    obj-m += hello_world.o
+     
+    ifdef ARCH
+      KDIR = /home/embetronicx/BBG/tmp/lib/modules/5.10.65/build
+    else
+      KDIR = /lib/modules/$(shell uname -r)/build  # 为什么要在前面加上 shell
+    endif
+     
+    all:
+      make -C $(KDIR)  M=$(shell pwd) modules  # $(PWD) 和 $(shell pwd) 有什么不同
+     
+    clean:
+      make -C $(KDIR)  M=$(shell pwd) clean  # KDIR 是个变量，为什么要给它加上 $() ？
+    ```
 
-另外一个 makefile 的 example:
+    然后在当前文件夹下运行`make`，会生成`hello_world.ko`文件。这个文件就是我们需要的内核模块文件，ko 代表 kernel object。
 
-```Makefile
-obj-m += hello_world.o
- 
-ifdef ARCH
-  KDIR = /home/embetronicx/BBG/tmp/lib/modules/5.10.65/build
-else
-  KDIR = /lib/modules/$(shell uname -r)/build  # 为什么要在前面加上 shell
-endif
- 
-all:
-  make -C $(KDIR)  M=$(shell pwd) modules  # $(PWD) 和 $(shell pwd) 有什么不同
- 
-clean:
-  make -C $(KDIR)  M=$(shell pwd) clean  # KDIR 是个变量，为什么要给它加上 $() ？
-```
+* 加载内核模块
 
-然后在当前文件夹下运行`make`，会生成`hello_world.ko`文件。这个文件就是我们需要的内核模块文件，ko 代表 kernel object。
+    此时可以使用`sudo insmod hello_world.ko`插入模块，使用`sudo rmmod hello_world`移除模块，`sudo lsmod`查看已经加载的模块，`sudo dmesg`查看日志输出。
 
-此时可以使用`sudo insmod hello_world.ko`插入模块，使用`sudo rmmod hello_world`移除模块，`sudo lsmod`查看已经加载的模块，`sudo dmesg`查看日志输出。
+    （如果还是无法`insmod`，或许需要取消 secure boot：<https://askubuntu.com/questions/762254/why-do-i-get-required-key-not-available-when-install-3rd-party-kernel-modules>）
 
-（如果还是无法`insmod`，或许需要取消 secure boot：<https://askubuntu.com/questions/762254/why-do-i-get-required-key-not-available-when-install-3rd-party-kernel-modules>）
+* 模块信息
+
+    除了添加`MODULE_LICENSE()`外，可选的添加信息有：
+
+    * `MODULE_AUTHOR`: 模块作者
+
+        Example: `MODULE_AUTHOR("hlc")`
+
+    * `MODULE_VERSION`: 模块版本
+      
+        Example: `MODULE_VERSION("1.0")`
+
+    * `MODULE_DESCRIPTION`：模块描述
+
+        Example: `MODULE_DESCRIPTION("this is my first module")`
+
+    获得模块的一些信息：`modinfo hello_world_module.ko`
 
 ### 日志消息打印
 
-* `printk()`如果不加`\n`，那么不会在`dmesg`中立即刷新。
+* `printk()`
 
-**`printk()`**
+    内核模块中可以使用函数`printk()`将消息打印到日志中，用法和`printf()`几乎相同。
 
-内核模块中可以使用函数`printk()`将消息打印到日志中，用法和`printf()`几乎相同。
+    syntax:
 
-```c
-printk("hello my module\n");
-```
+    ```c
+    printk("hello my module\n");
+    ```
 
-`printk()`可打印的消息有不同的级别，我们可以在字符串前使用下面的宏字符串进行修饰：
+    `printk()`如果不加`\n`，则不会在`dmesg`中立即刷新。
 
-* `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
+    `printk()`可打印的消息有不同的级别，我们可以在字符串前使用下面的宏字符串进行修饰：
 
-* `KERN_ALERT`: A situation requiring immediate action.
+    * `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
 
-* `KERN_CRIT`: Critical conditions are often related to serious hardware or software failures.
+    * `KERN_ALERT`: A situation requiring immediate action.
 
-* `KERN_ERR`: Used to report error conditions; device drivers often use KERN_ERR to report hardware difficulties.
+    * `KERN_CRIT`: Critical conditions are often related to serious hardware or software failures.
 
-* `KERN_WARNING`: Warnings about problematic situations that do not, in themselves, create serious problems with the system.
+    * `KERN_ERR`: Used to report error conditions; device drivers often use KERN_ERR to report hardware difficulties.
 
-* `KERN_NOTICE`: Situations that are normal, but still worthy of note. A number of security-related conditions are reported at this level.
+    * `KERN_WARNING`: Warnings about problematic situations that do not, in themselves, create serious problems with the system.
 
-* `KERN_INFO`: Informational messages. Many drivers print information about the hardware they find at startup time at this level.
+    * `KERN_NOTICE`: Situations that are normal, but still worthy of note. A number of security-related conditions are reported at this level.
 
-* `KERN_DEBUG`: Used for debugging messages.
+    * `KERN_INFO`: Informational messages. Many drivers print information about the hardware they find at startup time at this level.
 
-Example:
+    * `KERN_DEBUG`: Used for debugging messages.
 
-```c
-printk(KERN_INFO "this is a info level log");
-printk(KERN_WARNING "this is a warning level log");
-printk("this is a non-level log")
-```
+    Example:
 
-经实际测试，如果不加日志级别，那么为白色粗字，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
+    ```c
+    printk(KERN_INFO "this is a info level log");
+    printk(KERN_WARNING "this is a warning level log");
+    printk("this is a non-level log")
+    ```
 
-**默认打印级别**
+    经实际测试，如果不加日志级别，那么为白色粗字，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
 
-上面的日志级别可以对应到数字 0 - 7，如果不指定日志级别，那么就是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
+* `pr_xxxx()`系列
 
-可以参考这几个网站的资料：
+    In the newer Linux kernels, you can use the APIs below instead of this `printk`.
 
-1. <http://www.jyguagua.com/?p=708>
+    * `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
+    * `pr_cont()` – Continues a previous log message in the same line.
+    * `pr_debug()` – Print a debug-level message conditionally.
+    * `pr_warn()` – Print a warning-level message.
+    * `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
 
-2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
+    经实测，`pr_info()`为正常白字，`pr_cont()`为白字加粗，`pr_debug()`没有输出，`pr_warn()`为白字加粗，`pr_err()`为红字。
 
-我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
+* 默认打印级别
 
-第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
+    上面的日志级别可以对应到数字 0 - 7，如果不指定日志级别，那么就是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
 
-第二个数为`printk()`的默认打印级别。
+    可以参考这几个网站的资料：
 
-修改内核的默认打印级别（即修改第 1 个数）：
+    1. <http://www.jyguagua.com/?p=708>
 
-`echo 5 > /proc/sys/kernel/printk`
+    2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
 
-（现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
+    我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
 
-**`printk`的替代函数**
+    第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
 
-In the newer Linux kernels, you can use the APIs below instead of this `printk`.
+    第二个数为`printk()`的默认打印级别。
 
-* `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
-* `pr_cont()` – Continues a previous log message in the same line.
-* `pr_debug()` – Print a debug-level message conditionally.
-* `pr_warn()` – Print a warning-level message.
-* `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
+    修改内核的默认打印级别（即修改第 1 个数）：
 
-经实测，`pr_info()`为正常白字，`pr_cont()`为白字加粗，`pr_debug()`没有输出，`pr_warn()`为白字加粗，`pr_err()`为红字。
+    `echo 5 > /proc/sys/kernel/printk`
 
-### 模块信息
+    （现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
 
-除了添加`MODULE_LICENSE()`外，可选的添加信息有：
+### 模块参数（Module Parameters）
 
-* `MODULE_AUTHOR`: 模块作者
+* a simple example
 
-    Example: `MODULE_AUTHOR("hlc")`
+    ```c
+    int param_int = 10;
+    unsigned short param_ushort = 20;
+    char *param_string = "hello";
+    int param_arr[3] = {100, 200, 300};
 
-* `MODULE_VERSION`: 模块版本
-  
-    Example: `MODULE_VERSION("1.0")`
+    module_param(param_int, int, 0775);
+    module_param(param_ushort, ushort, 0);
+    module_param(param_string, charp, 0644);
+    module_param_array(param_arr, int, NULL, 0755);
 
-* `MODULE_DESCRIPTION`：模块描述
+    int modparam_init(void)  // 这是一个普通函数，函数的名字可以随便改
+    {
+        pr_info("param_int = %d\n", param_int);
+        pr_info("param_ushort = %hu\n", param_ushort);
+        pr_info("param_string = %s\n", param_string);
+        pr_info("param_arr = %d %d %d\n", param_arr[0], param_arr[1], param_arr[2]);
+        return 0;
+    }
+    ```
 
-    Example: `MODULE_DESCRIPTION("this is my first module")`
+    说明：
 
-获得模块的一些信息：`modinfo hello_world_module.ko`
+    1. 这里的`0775`并不是和 linux 文件权限一一对应。使用`0775`作为权限后，得到的参数文件的权限如下所示：
 
-### 模块参数（Module Parameters Macros）
+        ```
+        -rw-rw-r-- 1 root root 4096  5月 16 10:52 /sys/module/hello_world/parameters/a
+        ```
 
-Module Parameters Macros：
+        因为这个数字和 linux 文件的权限并不是对应关系，所以使用`0776`，`0777`，`777`等作为参数时会编译报错。
+
+        正常情况下还是使用`S_IWUSR`这些标志位吧。
+
+    2. `0775`前面这个`0`必须加上，不然会编译报错。目前不清楚是为什么。
+
+        * [2024.06.29] 可能是因为 755 是八进制，C 语言里表示八进制数需要在前加上 0
+
+            不加 0 表示的是 10 进制数，那就表示七百七十五了，二进制肯定和 0775 不一样。
+
+    3. `unsigned short`定义的变量，在`module_param()`中注册模块参数时，必须使用`ushort`作为类型。
+
+        在`module_param()`中填`unsigned short`会编译报错。
+
+        如果使用`typedef unsigned short us;`，然后在`module_param()`中填`us`，同样也会编译报错。
+
+    4. 如果数组没有被初始化，或初始化的元素数量不够，那么元素的默认值都是 0。
 
 * `module_param();`
+
+    这种函数被称为 Module Parameters Macro。
 
     `module_param(name, type, perm);`
 
@@ -2408,57 +2455,6 @@ Module Parameters Macros：
 
 Examples:
 
-```c
-int param_int = 10;
-unsigned short param_ushort = 20;
-char *param_string = "hello";
-int param_arr[3] = {100, 200, 300};
-
-module_param(param_int, int, 0775);
-module_param(param_ushort, ushort, 0);
-module_param(param_string, charp, 0644);
-module_param_array(param_arr, int, NULL, 0755);
-```
-
-说明：
-
-1. 这里的`0775`并不是和 linux 文件权限一一对应。使用`0775`作为权限后，得到的参数文件的权限如下所示：
-
-    ```
-    -rw-rw-r-- 1 root root 4096  5月 16 10:52 /sys/module/hello_world/parameters/a
-    ```
-
-    因为这个数字和 linux 文件的权限并不是对应关系，所以使用`0776`，`0777`，`777`等作为参数时会编译报错。
-
-    正常情况下还是使用`S_IWUSR`这些标志位吧。
-
-2. `0775`前面这个`0`必须加上，不然会编译报错。目前不清楚是为什么。
-
-    * [2024.06.29] 可能是因为 755 是八进制，C 语言里表示八进制数需要在前加上 0
-
-        不加 0 表示的是 10 进制数，那就表示七百七十五了，二进制肯定和 0775 不一样。
-
-3. `unsigned short`定义的变量，在`module_param()`中注册模块参数时，必须使用`ushort`作为类型。
-
-    在`module_param()`中填`unsigned short`会编译报错。
-
-    如果使用`typedef unsigned short us;`，然后在`module_param()`中填`us`，同样也会编译报错。
-
-4. 如果数组没有被初始化，或初始化的元素数量不够，那么元素的默认值都是 0。
-
-打印模块参数：
-
-```c
-int modparam_init(void)  // 这是一个普通函数，函数的名字可以随便改
-{
-    printk("param_int = %d\n", param_int);
-    printk("param_ushort = %hu\n", param_ushort);
-    printk("param_string = %s\n", param_string);
-    printk("param_arr = %d %d %d'n", param_arr[0], param_arr[1], param_arr[2]);
-    return 0;
-}
-```
-
 **在命令行中传递模块参数**
 
 ```bash
@@ -2520,20 +2516,20 @@ module_param_array(arr_valueETX, int, NULL, S_IRUSR|S_IWUSR);      // Array of i
 /*----------------------Module_param_cb()--------------------------------*/
 int notify_param(const char *val, const struct kernel_param *kp)
 {
-        // param_set_int 好像是把字符串转换成 int
-        int res = param_set_int(val, kp); // Use helper for write variable
-        if(res==0) {
-                printk(KERN_INFO "Call back function called...\n");
-                printk(KERN_INFO "New value of cb_valueETX = %d\n", cb_valueETX);
-                return 0;
-        }
-        return -1;
+    // param_set_int 好像是把字符串转换成 int
+    int res = param_set_int(val, kp); // Use helper for write variable
+    if(res==0) {
+        printk(KERN_INFO "Call back function called...\n");
+        printk(KERN_INFO "New value of cb_valueETX = %d\n", cb_valueETX);
+        return 0;
+    }
+    return -1;
 }
  
 const struct kernel_param_ops my_param_ops = 
 {
-        .set = &notify_param, // Use our setter ...
-        .get = &param_get_int, // .. and standard getter
+    .set = &notify_param, // Use our setter ...
+    .get = &param_get_int, // .. and standard getter
 };
  
 module_param_cb(cb_valueETX, &my_param_ops, &cb_valueETX, S_IRUGO|S_IWUSR );
@@ -2544,14 +2540,14 @@ module_param_cb(cb_valueETX, &my_param_ops, &cb_valueETX, S_IRUGO|S_IWUSR );
 */
 static int __init hello_world_init(void)
 {
-        int i;
-        printk(KERN_INFO "ValueETX = %d  \n", valueETX);
-        printk(KERN_INFO "cb_valueETX = %d  \n", cb_valueETX);
-        printk(KERN_INFO "NameETX = %s \n", nameETX);
-        for (i = 0; i < (sizeof arr_valueETX / sizeof (int)); i++) {
-                printk(KERN_INFO "Arr_value[%d] = %d\n", i, arr_valueETX[i]);
-        }
-        printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
+    int i;
+    printk(KERN_INFO "ValueETX = %d  \n", valueETX);
+    printk(KERN_INFO "cb_valueETX = %d  \n", cb_valueETX);
+    printk(KERN_INFO "NameETX = %s \n", nameETX);
+    for (i = 0; i < (sizeof arr_valueETX / sizeof (int)); i++) {
+            printk(KERN_INFO "Arr_value[%d] = %d\n", i, arr_valueETX[i]);
+    }
+    printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
     return 0;
 }
 
@@ -2719,78 +2715,94 @@ obj-m += xxx.o xxx_2.o
 
     如果`major`填 0，那么返回值为自动分配的 major （未验证）
 
-### 设备类型
+### note
 
-linux 设备：
+* linux 设备类型
 
-1. 字符设备
+    常见的有字符设备，块设备和网络设备。
 
-    按字节流访问，一般是按顺序访问
+    1. 字符设备
 
-    绝大多数设备都是字符设备。比如 led 按键 串口 传感器 LCD
+        按字节流访问，一般是按顺序访问
 
-    字符设备的驱动通过字符设备文件来访问
+        绝大多数设备都是字符设备。比如 led，按键，串口，传感器，LCD
 
-1. 块设备
+        字符设备的驱动通过字符设备文件来访问
 
-    按数据块访问，块的大小固定，通常是 4k，具有随机访问能力
+    1. 块设备
 
-    内存，磁盘，SD卡，U盘
+        按数据块访问，块的大小固定，通常是 4k，具有随机访问能力
 
-    块设备驱动通过块设备文件来访问
+        内存，磁盘，SD卡，U盘
 
-1. 网络设备
+        块设备驱动通过块设备文件来访问
 
-    一般只代表网卡设备。
+    1. 网络设备
 
-    驱动实现要结合网络协议栈（TCP/IP）
+        一般只代表网卡设备。
 
-    访问网络设备不通过文件，通过套接字（网络通信地址）访问
+        驱动实现要结合网络协议栈（TCP/IP）
 
-In fact, all device drivers that are neither storage nor network device drivers are some type of character driver.
+        访问网络设备不通过文件，通过套接字（网络通信地址）访问
 
-字符设备驱动的访问：
+    In fact, all device drivers that are neither storage nor network device drivers are some type of character driver.
 
-驱动是沟通硬件和上层应用的媒介，字符设备驱动通过字符设备文件来访问，Linux 中所有的设备文件存放在`/dev`中，在用户层访问设备文件和普通文件的方法是没有区别的。Linux 操作系统实际上是通过设备号来找到对应的字符设备驱动（怎么找？）。
+    字符设备驱动的访问：
 
-一个设备文件需要实现和普通文件相同的方法：
+    驱动是沟通硬件和上层应用的媒介，字符设备驱动通过字符设备文件来访问，Linux 中所有的设备文件存放在`/dev`中，在用户层访问设备文件和普通文件的方法是没有区别的。Linux 操作系统实际上是通过设备号来找到对应的字符设备驱动（怎么找？）。
 
-`open, close, read, write, lseek, ioctl, mmap, stat`
+    一个设备文件需要实现和普通文件相同的方法：
 
-### 设备号
+    `open, close, read, write, lseek, ioctl, mmap, stat`
 
-**构造设备号**
+* 设备号
 
-设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
+    设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
 
-The `dev_t` type (defined in `<linux/types.h>`) is used to hold device numbers—both the major and minor parts. `dev_t` is a 32-bit quantity with 12 bits set aside for the major number and 20 for the minor number.
+    The `dev_t` type (defined in `<linux/types.h>`) is used to hold device numbers—both the major and minor parts. `dev_t` is a 32-bit quantity with 12 bits set aside for the major number and 20 for the minor number.
 
-主设备号用来区分不同类型的设备，次设备号用于区分设备的实例。
+    主设备号用来区分不同类型的设备，次设备号用于区分设备的实例。
 
-在`/proc/devices`文件中可以查找到设备号与对应的设备类型。
+    在`/proc/devices`文件中可以查找到设备号与对应的设备类型。
 
-内核中提供了操作设备号的宏：
+    内核中提供了操作设备号的宏：
 
-```c
-MAJOR(设备号);  // 通过设备号获取主设备号  MAJOR(dev_t dev);
-MINOR(设备号);  // 通过设备号获取次设备号  MINOR(dev_t dev);
-MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造设备号  MKDEV(int major, int minor);
-```
+    ```c
+    MAJOR(设备号);  // 通过设备号获取主设备号  MAJOR(dev_t dev);
+    MINOR(设备号);  // 通过设备号获取次设备号  MINOR(dev_t dev);
+    MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造设备号  MKDEV(int major, int minor);
+    ```
 
-这些宏都是位运算，有空可以看看。
+    这些宏都是位运算，有空可以看看。
 
-Example:
+* 申请设备号
 
-```c
-dev_t m_dev_num = MKDEV(220,0);
-```
+    设备号在内核中属于资源，需要向内核申请。
 
-**申请设备号**
+    syntax:
 
-设备号在内核中属于资源，需要向内核申请。有两种申请方式，一种是静态申请，一种是动态申请。
+    ```c
+    #include <linux/fs.h>
 
-1. 静态申请（Statically allocating）
+    int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
+    ```
 
+    alloc_chrdev_region - register a range of char device numbers
+
+    params:
+
+    * `dev`: 设备号的地址
+
+    * `baseminor`: 起始次设备号
+
+    * `count`: 设备号个数
+
+    * `name`: device region 的名称
+
+    Return value:
+
+    Returns zero or a negative error code.
+    
     example:
 
     ```c
@@ -2798,30 +2810,33 @@ dev_t m_dev_num = MKDEV(220,0);
     #include <linux/module.h>
     #include <linux/fs.h>
 
-    dev_t dev = MKDEV(220, 0);
+    dev_t dev_region;
+    const char *dev_region_name = "hlc dev region";
 
-    int hlc_mod_init(void)
-    {
-        printk("load my module\n");
-
-        // allocate a device number
-        register_chrdev_region(dev, 1, "hlc_dev");
-        printk(KERN_INFO "hlc dev, major = %d, minor = %d\n", MAJOR(dev), MINOR(dev));
+    int mod_init(void) {
+        printk(KERN_INFO "in mod_init() ...\n");
+        int rtv = alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
+        if (rtv != 0) {
+            pr_info("fail to alloc_chrdev_region(), ret: %d\n", rtv);
+        }
+        printk(KERN_INFO "successfully allocate device region. major: %d, minor: %d\n",
+            MAJOR(dev_region), MINOR(dev_region));
         return 0;
     }
     ```
+    
+* 静态申请设备号
 
-    上述代码中，使用`MKDEV(220, 0)`构造了一个设备号。构造方法是，首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如`220`。然后根据设备个数分配次设备号，一般从`0`开始。
+    有两种申请方式，一种是静态申请（Statically allocating），一种是动态申请（Dynamically Allocating）。
 
-    `register_chrdev_region()`用于静态申请设备号。这个函数运行成功后，可以使用`cat /proc/devices`看到注册成功的设备号名称`220 hlc_dev`。
+    我们可以使用`register_chrdev_region()`静态申请设备号。
 
     Syntax:
 
     ```c
+    #include <linux/fs.h>
     register_chrdev_region(dev_t from, unsigned count, const char *name);
     ```
-
-    Header file: `<linux/fs.h>`
 
     Params:
 
@@ -2837,10 +2852,6 @@ dev_t m_dev_num = MKDEV(220,0);
 
     返回 0 表示成功，返回非 0 表示失败。
 
-2. 动态申请（Dynamically Allocating）
-
-    动态申请指通过`alloc_chrdev_region()`向内核申请设备号。
-
     example:
 
     ```c
@@ -2848,43 +2859,22 @@ dev_t m_dev_num = MKDEV(220,0);
     #include <linux/module.h>
     #include <linux/fs.h>
 
-    dev_t dev_region;
-    const char *dev_region_name = "hlc dev region";
+    dev_t dev = MKDEV(220, 0);
 
-    int mod_init(void)
+    int hlc_mod_init(void)
     {
-        printk(KERN_INFO "in mod_init() ...\n");
-        int rtv = alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
-        if (rtv != 0) {
-            printk(KERN_INFO "alloc_chrdev_region() error code: %d\n", rtv);
-        }
-        printk(KERN_INFO "successfully allocate device region. major: %d, minor: %d\n",
-            MAJOR(dev_region), MINOR(dev_region));
+        printk(KERN_INFO "load my module\n");
+
+        // allocate a device number
+        register_chrdev_region(dev, 1, "hlc_dev");
+        printk(KERN_INFO "hlc dev, major = %d, minor = %d\n", MAJOR(dev), MINOR(dev));
         return 0;
     }
     ```
 
-    syntax:
+    上述代码中，使用`MKDEV(220, 0)`构造了一个设备号。构造方法是，首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如`220`。然后根据设备个数分配次设备号，一般从`0`开始。
 
-    ```c
-    int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
-    ```
-
-    alloc_chrdev_region - register a range of char device numbers
-
-    header file: `<linux/fs.h>`
-
-    params:
-
-    * `dev`: 设备号的地址
-
-    * `baseminor`: 起始次设备号
-
-    * `count`: 设备号个数
-
-    Return value:
-
-    Returns zero or a negative error code.
+    `register_chrdev_region()`用于静态申请设备号。这个函数运行成功后，可以使用`cat /proc/devices`看到注册成功的设备号名称`220 hlc_dev`。
 
 **注销设备号**
 
@@ -2963,7 +2953,7 @@ The disadvantage of dynamic assignment is that you can’t create the device nod
 
 ### cdev 设备驱动
 
-cdev 在内核中代表一个字符设备驱动。
+cdev 在内核中代表一个字符设备驱动。(char device)
 
 ```c
 struct cdev {
@@ -3874,12 +3864,12 @@ static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 */
 static struct file_operations fops =
 {
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .unlocked_ioctl = etx_ioctl,
-        .release        = etx_release,
+    .owner          = THIS_MODULE,
+    .read           = etx_read,
+    .write          = etx_write,
+    .open           = etx_open,
+    .unlocked_ioctl = etx_ioctl,
+    .release        = etx_release,
 };
 
 /*
@@ -3887,8 +3877,8 @@ static struct file_operations fops =
 */
 static int etx_open(struct inode *inode, struct file *file)
 {
-        pr_info("Device File Opened...!!!\n");
-        return 0;
+    pr_info("Device File Opened...!!!\n");
+    return 0;
 }
 
 /*
@@ -3896,8 +3886,8 @@ static int etx_open(struct inode *inode, struct file *file)
 */
 static int etx_release(struct inode *inode, struct file *file)
 {
-        pr_info("Device File Closed...!!!\n");
-        return 0;
+    pr_info("Device File Closed...!!!\n");
+    return 0;
 }
 
 /*
@@ -3905,8 +3895,8 @@ static int etx_release(struct inode *inode, struct file *file)
 */
 static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
 {
-        pr_info("Read Function\n");
-        return 0;
+    pr_info("Read Function\n");
+    return 0;
 }
 
 /*
@@ -3914,8 +3904,8 @@ static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t 
 */
 static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
 {
-        pr_info("Write function\n");
-        return len;
+    pr_info("Write function\n");
+    return len;
 }
 
 /*
@@ -4465,17 +4455,17 @@ r_class:
 */
 static void __exit etx_driver_exit(void)
 {
-        /* Removes single proc entry */
-        //remove_proc_entry("etx/etx_proc", parent);
-        
-        /* remove complete /proc/etx */
-        proc_remove(parent);
-        
-        device_destroy(dev_class,dev);
-        class_destroy(dev_class);
-        cdev_del(&etx_cdev);
-        unregister_chrdev_region(dev, 1);
-        pr_info("Device Driver Remove...Done!!!\n");
+    /* Removes single proc entry */
+    //remove_proc_entry("etx/etx_proc", parent);
+    
+    /* remove complete /proc/etx */
+    proc_remove(parent);
+    
+    device_destroy(dev_class,dev);
+    class_destroy(dev_class);
+    cdev_del(&etx_cdev);
+    unregister_chrdev_region(dev, 1);
+    pr_info("Device Driver Remove...Done!!!\n");
 }
  
 module_init(etx_driver_init);
@@ -5329,11 +5319,11 @@ There are two steps to creating and using sysfs.
     */
     static struct file_operations fops =
     {
-            .owner          = THIS_MODULE,
-            .read           = etx_read,
-            .write          = etx_write,
-            .open           = etx_open,
-            .release        = etx_release,
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .release        = etx_release,
     };
 
     /*
@@ -5342,8 +5332,8 @@ There are two steps to creating and using sysfs.
     static ssize_t sysfs_show(struct kobject *kobj, 
                     struct kobj_attribute *attr, char *buf)
     {
-            pr_info("Sysfs - Read!!!\n");
-            return sprintf(buf, "%d", etx_value);
+        pr_info("Sysfs - Read!!!\n");
+        return sprintf(buf, "%d", etx_value);
     }
 
     /*
@@ -5352,9 +5342,9 @@ There are two steps to creating and using sysfs.
     static ssize_t sysfs_store(struct kobject *kobj, 
                     struct kobj_attribute *attr,const char *buf, size_t count)
     {
-            pr_info("Sysfs - Write!!!\n");
-            sscanf(buf,"%d",&etx_value);
-            return count;
+        pr_info("Sysfs - Write!!!\n");
+        sscanf(buf,"%d",&etx_value);
+        return count;
     }
 
     /*
@@ -5371,8 +5361,8 @@ There are two steps to creating and using sysfs.
     */ 
     static int etx_release(struct inode *inode, struct file *file)
     {
-            pr_info("Device File Closed...!!!\n");
-            return 0;
+        pr_info("Device File Closed...!!!\n");
+        return 0;
     }
     
     /*
@@ -5381,8 +5371,8 @@ There are two steps to creating and using sysfs.
     static ssize_t etx_read(struct file *filp, 
                     char __user *buf, size_t len, loff_t *off)
     {
-            pr_info("Read function\n");
-            return 0;
+        pr_info("Read function\n");
+        return 0;
     }
 
     /*
@@ -5391,8 +5381,8 @@ There are two steps to creating and using sysfs.
     static ssize_t etx_write(struct file *filp, 
                     const char __user *buf, size_t len, loff_t *off)
     {
-            pr_info("Write Function\n");
-            return len;
+        pr_info("Write Function\n");
+        return len;
     }
     
     /*
@@ -5400,55 +5390,56 @@ There are two steps to creating and using sysfs.
     */
     static int __init etx_driver_init(void)
     {
-            /*Allocating Major number*/
-            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                    pr_info("Cannot allocate major number\n");
-                    return -1;
-            }
-            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-    
-            /*Creating cdev structure*/
-            cdev_init(&etx_cdev,&fops);
-    
-            /*Adding character device to the system*/
-            if((cdev_add(&etx_cdev,dev,1)) < 0){
-                pr_info("Cannot add the device to the system\n");
-                goto r_class;
-            }
-    
-            /*Creating struct class*/
-            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-                pr_info("Cannot create the struct class\n");
-                goto r_class;
-            }
-    
-            /*Creating device*/
-            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-                pr_info("Cannot create the Device 1\n");
-                goto r_device;
-            }
-    
-            /*Creating a directory in /sys/kernel/ */
-            kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
-    
-            /*Creating sysfs file for etx_value*/
-            if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_info("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_info("Cannot add the device to the system\n");
+            goto r_class;
+        }
+
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_info("Cannot create the struct class\n");
+            goto r_class;
+        }
+
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_info("Cannot create the Device 1\n");
+            goto r_device;
+        }
+
+        /*Creating a directory in /sys/kernel/ */
+        kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
+
+        /*Creating sysfs file for etx_value*/
+        if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
                     pr_err("Cannot create sysfs file......\n");
                     goto r_sysfs;
         }
-            pr_info("Device Driver Insert...Done!!!\n");
-            return 0;
+
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
     
     r_sysfs:
-            kobject_put(kobj_ref); 
-            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
     
     r_device:
-            class_destroy(dev_class);
+        class_destroy(dev_class);
     r_class:
-            unregister_chrdev_region(dev,1);
-            cdev_del(&etx_cdev);
-            return -1;
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
     }
 
     /*
@@ -5456,13 +5447,13 @@ There are two steps to creating and using sysfs.
     */
     static void __exit etx_driver_exit(void)
     {
-            kobject_put(kobj_ref); 
-            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
-            device_destroy(dev_class,dev);
-            class_destroy(dev_class);
-            cdev_del(&etx_cdev);
-            unregister_chrdev_region(dev, 1);
-            pr_info("Device Driver Remove...Done!!!\n");
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
     }
     
     module_init(etx_driver_init);
@@ -5551,6 +5542,172 @@ ssize_t h_write(struct file *file_ptr, const char __user *buf, size_t size, loff
 
 ### cache
 
+* 调研 irq example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/sched.h>
+    #include <linux/workqueue.h>
+    #include <linux/interrupt.h>
+    #include <asm/io.h>
+
+    #define MY_WORK_QUEUE_NAME "WQsched.c"
+
+    static struct workqueue_struct *my_workqueue;
+
+    static void got_char(void *scancode)
+    {
+    	printk(KERN_INFO "Scan Code %x %s.\n",
+    	       (int)*((char *)scancode) & 0x7F,
+    	       *((char *)scancode) & 0x80 ? "Released" : "Pressed");
+    }
+
+    irqreturn_t irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+    {
+    	/* 
+    	 * This variables are static because they need to be
+    	 * accessible (through pointers) to the bottom half routine.
+    	 */
+    	static int initialised = 0;
+    	static unsigned char scancode;
+    	static struct work_struct task;
+    	unsigned char status;
+
+    	/* 
+    	 * Read keyboard status
+    	 */
+    	status = inb(0x64);
+    	scancode = inb(0x60);
+
+    	if (initialised == 0) {
+    		INIT_WORK(&task, (void(*)(struct work_struct *))got_char);
+    		// INIT_WORK(&task, got_char, &scancode);
+    		initialised = 1;
+    	} else {
+    		DECLARE_WORK(task, (void(*)(struct work_struct *))got_char);
+    		// PREPARE_WORK(&task, got_char);
+    		// PREPARE_WORK(&task, got_char, &scancode);
+    	}
+
+    	queue_work(my_workqueue, &task);
+
+    	return IRQ_HANDLED;
+    }
+
+    int hello_init(void) {
+        pr_info("int hello_init()...\n");
+        my_workqueue = create_workqueue(MY_WORK_QUEUE_NAME);
+        free_irq(1, NULL);
+        int ret = request_irq(1, (void*) irq_handler, IRQF_SHARED,
+            "test_keyboard_irq_handler", (void*) irq_handler);
+        if (ret != 0) {
+            pr_info("fail to request irq\n");
+            return -1;
+        }
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        free_irq(1, NULL);
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    打开`dmesg`日志，在 insmod 后，每次按下键盘都会打印中断函数的处理消息：
+
+    ```
+    [ 1234.381119] intrpt: loading out-of-tree module taints kernel.
+    [ 1234.381123] intrpt: module verification failed: signature and/or required key missing - tainting kernel
+    [ 1234.381522] ------------[ cut here ]------------
+    [ 1234.381523] Trying to free already-free IRQ 1
+    [ 1234.381527] WARNING: CPU: 0 PID: 2691 at kernel/irq/manage.c:1893 __free_irq+0x1a6/0x310
+    [ 1234.381533] Modules linked in: intrpt(OE+) vboxsf intel_rapl_msr snd_intel8x0 intel_rapl_common snd_ac97_codec ac97_bus intel_uncore_frequency_common snd_pcm snd_seq_midi snd_seq_midi_event binfmt_misc snd_rawmidi crct10dif_pclmul polyval_clmulni polyval_generic ghash_clmulni_intel sha256_ssse3 sha1_ssse3 aesni_intel crypto_simd cryptd nls_iso8859_1 joydev snd_seq rapl input_leds snd_seq_device snd_timer vmwgfx drm_ttm_helper snd ttm serio_raw drm_kms_helper soundcore vboxguest mac_hid sch_fq_codel msr parport_pc ppdev lp parport drm efi_pstore ip_tables x_tables autofs4 hid_generic usbhid hid crc32_pclmul psmouse ahci libahci video i2c_piix4 e1000 wmi pata_acpi
+    [ 1234.381561] CPU: 0 PID: 2691 Comm: insmod Tainted: G           OE      6.5.0-28-generic #29~22.04.1-Ubuntu
+    [ 1234.381563] Hardware name: innotek GmbH VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006
+    [ 1234.381564] RIP: 0010:__free_irq+0x1a6/0x310
+    [ 1234.381566] Code: 50 32 00 00 49 8b be 88 01 00 00 e8 74 ec 02 00 49 8b 7f 30 e8 0b 9c 22 00 eb 35 8b 75 d0 48 c7 c7 40 2d d6 88 e8 5a af f4 ff <0f> 0b 48 8b 75 c8 4c 89 e7 e8 5c d6 f8 00 49 8b 46 40 48 8b 40 78
+    [ 1234.381568] RSP: 0018:ffffb0238399fac0 EFLAGS: 00010046
+    [ 1234.381569] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+    [ 1234.381571] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+    [ 1234.381571] RBP: ffffb0238399faf8 R08: 0000000000000000 R09: 0000000000000000
+    [ 1234.381572] R10: 0000000000000000 R11: 0000000000000000 R12: ffff95f3801688a4
+    [ 1234.381573] R13: ffff95f380168960 R14: ffff95f380168800 R15: ffff95f382d72b00
+    [ 1234.381574] FS:  00007d6eb84b3c40(0000) GS:ffff95f39bc00000(0000) knlGS:0000000000000000
+    [ 1234.381576] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+    [ 1234.381577] CR2: 00006172fb59f520 CR3: 000000002f81a000 CR4: 00000000000506f0
+    [ 1234.381580] Call Trace:
+    [ 1234.381581]  <TASK>
+    [ 1234.381583]  ? show_regs+0x6d/0x80
+    [ 1234.381587]  ? __warn+0x89/0x160
+    [ 1234.381589]  ? __free_irq+0x1a6/0x310
+    [ 1234.381591]  ? report_bug+0x17e/0x1b0
+    [ 1234.381594]  ? handle_bug+0x46/0x90
+    [ 1234.381597]  ? exc_invalid_op+0x18/0x80
+    [ 1234.381598]  ? asm_exc_invalid_op+0x1b/0x20
+    [ 1234.381602]  ? __free_irq+0x1a6/0x310
+    [ 1234.381604]  free_irq+0x32/0x80
+    [ 1234.381606]  ? __pfx_init_module+0x10/0x10 [intrpt]
+    [ 1234.381609]  init_module+0x39/0x70 [intrpt]
+    [ 1234.381612]  do_one_initcall+0x5e/0x340
+    [ 1234.381616]  do_init_module+0x68/0x260
+    [ 1234.381619]  load_module+0xb85/0xcd0
+    [ 1234.381621]  ? security_kernel_post_read_file+0x75/0x90
+    [ 1234.381624]  init_module_from_file+0x96/0x100
+    [ 1234.381626]  ? init_module_from_file+0x96/0x100
+    [ 1234.381629]  idempotent_init_module+0x11c/0x2b0
+    [ 1234.381631]  __x64_sys_finit_module+0x64/0xd0
+    [ 1234.381633]  do_syscall_64+0x5b/0x90
+    [ 1234.381636]  ? ksys_mmap_pgoff+0x120/0x270
+    [ 1234.381638]  ? exit_to_user_mode_prepare+0x30/0xb0
+    [ 1234.381639]  ? syscall_exit_to_user_mode+0x37/0x60
+    [ 1234.381641]  ? do_syscall_64+0x67/0x90
+    [ 1234.381642]  ? exit_to_user_mode_prepare+0x30/0xb0
+    [ 1234.381643]  ? syscall_exit_to_user_mode+0x37/0x60
+    [ 1234.381645]  ? do_syscall_64+0x67/0x90
+    [ 1234.381646]  entry_SYSCALL_64_after_hwframe+0x6e/0xd8
+    [ 1234.381648] RIP: 0033:0x7d6eb7d1e88d
+    [ 1234.381658] Code: 5b 41 5c c3 66 0f 1f 84 00 00 00 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 73 b5 0f 00 f7 d8 64 89 01 48
+    [ 1234.381659] RSP: 002b:00007fff0d23a4d8 EFLAGS: 00000246 ORIG_RAX: 0000000000000139
+    [ 1234.381661] RAX: ffffffffffffffda RBX: 00006172fbf127a0 RCX: 00007d6eb7d1e88d
+    [ 1234.381662] RDX: 0000000000000000 RSI: 00006172fb5aacd2 RDI: 0000000000000003
+    [ 1234.381662] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+    [ 1234.381663] R10: 0000000000000003 R11: 0000000000000246 R12: 00006172fb5aacd2
+    [ 1234.381664] R13: 00006172fbf12760 R14: 00006172fb5a9888 R15: 00006172fbf128b0
+    [ 1234.381665]  </TASK>
+    [ 1234.381666] ---[ end trace 0000000000000000 ]---
+    [ 1234.468732] Scan Code 40 Released.
+    [ 1237.372783] Scan Code 40 Released.
+    [ 1237.428975] Scan Code 40 Released.
+    [ 1237.429958] Scan Code 40 Released.
+    [ 1237.501143] Scan Code 40 Released.
+    [ 1237.548031] Scan Code 40 Released.
+    [ 1237.596222] Scan Code 40 Released.
+    [ 1237.612977] Scan Code 40 Released.
+    [ 1237.700977] Scan Code 40 Released.
+    [ 1237.716093] Scan Code 40 Released.
+    [ 1237.780960] Scan Code 40 Released.
+    [ 1237.851931] Scan Code 40 Released.
+    [ 1237.924812] Scan Code 40 Released.
+    [ 1237.947605] Scan Code 40 Released.
+    [ 1238.028965] Scan Code 40 Released.
+    [ 1238.029951] Scan Code 40 Released.
+    ```
+
+    在执行`sudo rmmod intrpt`后，系统会直接卡死。因为我们在代码里覆盖了系统原本处理键盘中断的 handler。
+
+    具体的原因在程序注释里也有说明。
+
+    feedback:
+
+    1. 调研`INIT_WORK()`, `DECLARE_WORK()`
+
+    1. 调研`queue_work()`, `create_workqueue()`
+
 * Interrupts Flags
 
     * `IRQF_DISABLED`
@@ -5613,212 +5770,6 @@ special functions called interrupt handlers (ISR)
 
 In Linux, interrupt signals are the distraction that diverts the processor to a new activity outside of the normal flow of execution. This new activity is called interrupt handler or interrupt service routine (ISR) and that distraction is Interrupts.
 
-example:
-
-a keyboard interrupter handler
-
-```c
-/*
- *  intrpt.c - An interrupt handler.
- *
- *  Copyright (C) 2001 by Peter Jay Salzman
- */
-
-/* 
- * The necessary header files 
- */
-
-/* 
- * Standard in kernel modules 
- */
-#include <linux/kernel.h>	/* We're doing kernel work */
-#include <linux/module.h>	/* Specifically, a module */
-#include <linux/sched.h>
-#include <linux/workqueue.h>
-#include <linux/interrupt.h>	/* We want an interrupt */
-#include <asm/io.h>
-
-#define MY_WORK_QUEUE_NAME "WQsched.c"
-
-static struct workqueue_struct *my_workqueue;
-
-/* 
- * This will get called by the kernel as soon as it's safe
- * to do everything normally allowed by kernel modules.
- */
-static void got_char(void *scancode)
-{
-	printk(KERN_INFO "Scan Code %x %s.\n",
-	       (int)*((char *)scancode) & 0x7F,
-	       *((char *)scancode) & 0x80 ? "Released" : "Pressed");
-}
-
-/* 
- * This function services keyboard interrupts. It reads the relevant
- * information from the keyboard and then puts the non time critical
- * part into the work queue. This will be run when the kernel considers it safe.
- */
-irqreturn_t irq_handler(int irq, void *dev_id, struct pt_regs *regs)
-{
-	/* 
-	 * This variables are static because they need to be
-	 * accessible (through pointers) to the bottom half routine.
-	 */
-	static int initialised = 0;
-	static unsigned char scancode;
-	static struct work_struct task;
-	unsigned char status;
-
-	/* 
-	 * Read keyboard status
-	 */
-	status = inb(0x64);
-	scancode = inb(0x60);
-
-	if (initialised == 0) {
-		INIT_WORK(&task, (void(*)(struct work_struct *))got_char);
-		// INIT_WORK(&task, got_char, &scancode);
-		initialised = 1;
-	} else {
-		DECLARE_WORK(task, (void(*)(struct work_struct *))got_char);
-		// PREPARE_WORK(&task, got_char);
-		// PREPARE_WORK(&task, got_char, &scancode);
-	}
-
-	queue_work(my_workqueue, &task);
-
-	return IRQ_HANDLED;
-}
-
-/* 
- * Initialize the module - register the IRQ handler 
- */
-int init_module()
-{
-	my_workqueue = create_workqueue(MY_WORK_QUEUE_NAME);
-
-	/* 
-	 * Since the keyboard handler won't co-exist with another handler,
-	 * such as us, we have to disable it (free its IRQ) before we do
-	 * anything.  Since we don't know where it is, there's no way to
-	 * reinstate it later - so the computer will have to be rebooted
-	 * when we're done.
-	 */
-	free_irq(1, NULL);
-
-	/* 
-	 * Request IRQ 1, the keyboard IRQ, to go to our irq_handler.
-	 * SA_SHIRQ means we're willing to have othe handlers on this IRQ.
-	 * SA_INTERRUPT can be used to make the handler into a fast interrupt.
-	 */
-	return request_irq(1,	/* The number of the keyboard IRQ on PCs */
-			   (void*)irq_handler,	/* our handler */
-			   IRQF_SHARED, "test_keyboard_irq_handler",
-			   (void *)(irq_handler));
-}
-
-/* 
- * Cleanup 
- */
-void cleanup_module()
-{
-	/* 
-	 * This is only here for completeness. It's totally irrelevant, since
-	 * we don't have a way to restore the normal keyboard interrupt so the
-	 * computer is completely useless and has to be rebooted.
-	 */
-	free_irq(1, NULL);
-}
-
-/* 
- * some work_queue related functions are just available to GPL licensed Modules
- */
-MODULE_LICENSE("GPL");
-```
-
-打开`dmesg`日志，在 insmod 后，每次按下键盘都会打印中断函数的处理消息：
-
-```
-[ 1234.381119] intrpt: loading out-of-tree module taints kernel.
-[ 1234.381123] intrpt: module verification failed: signature and/or required key missing - tainting kernel
-[ 1234.381522] ------------[ cut here ]------------
-[ 1234.381523] Trying to free already-free IRQ 1
-[ 1234.381527] WARNING: CPU: 0 PID: 2691 at kernel/irq/manage.c:1893 __free_irq+0x1a6/0x310
-[ 1234.381533] Modules linked in: intrpt(OE+) vboxsf intel_rapl_msr snd_intel8x0 intel_rapl_common snd_ac97_codec ac97_bus intel_uncore_frequency_common snd_pcm snd_seq_midi snd_seq_midi_event binfmt_misc snd_rawmidi crct10dif_pclmul polyval_clmulni polyval_generic ghash_clmulni_intel sha256_ssse3 sha1_ssse3 aesni_intel crypto_simd cryptd nls_iso8859_1 joydev snd_seq rapl input_leds snd_seq_device snd_timer vmwgfx drm_ttm_helper snd ttm serio_raw drm_kms_helper soundcore vboxguest mac_hid sch_fq_codel msr parport_pc ppdev lp parport drm efi_pstore ip_tables x_tables autofs4 hid_generic usbhid hid crc32_pclmul psmouse ahci libahci video i2c_piix4 e1000 wmi pata_acpi
-[ 1234.381561] CPU: 0 PID: 2691 Comm: insmod Tainted: G           OE      6.5.0-28-generic #29~22.04.1-Ubuntu
-[ 1234.381563] Hardware name: innotek GmbH VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006
-[ 1234.381564] RIP: 0010:__free_irq+0x1a6/0x310
-[ 1234.381566] Code: 50 32 00 00 49 8b be 88 01 00 00 e8 74 ec 02 00 49 8b 7f 30 e8 0b 9c 22 00 eb 35 8b 75 d0 48 c7 c7 40 2d d6 88 e8 5a af f4 ff <0f> 0b 48 8b 75 c8 4c 89 e7 e8 5c d6 f8 00 49 8b 46 40 48 8b 40 78
-[ 1234.381568] RSP: 0018:ffffb0238399fac0 EFLAGS: 00010046
-[ 1234.381569] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-[ 1234.381571] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-[ 1234.381571] RBP: ffffb0238399faf8 R08: 0000000000000000 R09: 0000000000000000
-[ 1234.381572] R10: 0000000000000000 R11: 0000000000000000 R12: ffff95f3801688a4
-[ 1234.381573] R13: ffff95f380168960 R14: ffff95f380168800 R15: ffff95f382d72b00
-[ 1234.381574] FS:  00007d6eb84b3c40(0000) GS:ffff95f39bc00000(0000) knlGS:0000000000000000
-[ 1234.381576] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[ 1234.381577] CR2: 00006172fb59f520 CR3: 000000002f81a000 CR4: 00000000000506f0
-[ 1234.381580] Call Trace:
-[ 1234.381581]  <TASK>
-[ 1234.381583]  ? show_regs+0x6d/0x80
-[ 1234.381587]  ? __warn+0x89/0x160
-[ 1234.381589]  ? __free_irq+0x1a6/0x310
-[ 1234.381591]  ? report_bug+0x17e/0x1b0
-[ 1234.381594]  ? handle_bug+0x46/0x90
-[ 1234.381597]  ? exc_invalid_op+0x18/0x80
-[ 1234.381598]  ? asm_exc_invalid_op+0x1b/0x20
-[ 1234.381602]  ? __free_irq+0x1a6/0x310
-[ 1234.381604]  free_irq+0x32/0x80
-[ 1234.381606]  ? __pfx_init_module+0x10/0x10 [intrpt]
-[ 1234.381609]  init_module+0x39/0x70 [intrpt]
-[ 1234.381612]  do_one_initcall+0x5e/0x340
-[ 1234.381616]  do_init_module+0x68/0x260
-[ 1234.381619]  load_module+0xb85/0xcd0
-[ 1234.381621]  ? security_kernel_post_read_file+0x75/0x90
-[ 1234.381624]  init_module_from_file+0x96/0x100
-[ 1234.381626]  ? init_module_from_file+0x96/0x100
-[ 1234.381629]  idempotent_init_module+0x11c/0x2b0
-[ 1234.381631]  __x64_sys_finit_module+0x64/0xd0
-[ 1234.381633]  do_syscall_64+0x5b/0x90
-[ 1234.381636]  ? ksys_mmap_pgoff+0x120/0x270
-[ 1234.381638]  ? exit_to_user_mode_prepare+0x30/0xb0
-[ 1234.381639]  ? syscall_exit_to_user_mode+0x37/0x60
-[ 1234.381641]  ? do_syscall_64+0x67/0x90
-[ 1234.381642]  ? exit_to_user_mode_prepare+0x30/0xb0
-[ 1234.381643]  ? syscall_exit_to_user_mode+0x37/0x60
-[ 1234.381645]  ? do_syscall_64+0x67/0x90
-[ 1234.381646]  entry_SYSCALL_64_after_hwframe+0x6e/0xd8
-[ 1234.381648] RIP: 0033:0x7d6eb7d1e88d
-[ 1234.381658] Code: 5b 41 5c c3 66 0f 1f 84 00 00 00 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 73 b5 0f 00 f7 d8 64 89 01 48
-[ 1234.381659] RSP: 002b:00007fff0d23a4d8 EFLAGS: 00000246 ORIG_RAX: 0000000000000139
-[ 1234.381661] RAX: ffffffffffffffda RBX: 00006172fbf127a0 RCX: 00007d6eb7d1e88d
-[ 1234.381662] RDX: 0000000000000000 RSI: 00006172fb5aacd2 RDI: 0000000000000003
-[ 1234.381662] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
-[ 1234.381663] R10: 0000000000000003 R11: 0000000000000246 R12: 00006172fb5aacd2
-[ 1234.381664] R13: 00006172fbf12760 R14: 00006172fb5a9888 R15: 00006172fbf128b0
-[ 1234.381665]  </TASK>
-[ 1234.381666] ---[ end trace 0000000000000000 ]---
-[ 1234.468732] Scan Code 40 Released.
-[ 1237.372783] Scan Code 40 Released.
-[ 1237.428975] Scan Code 40 Released.
-[ 1237.429958] Scan Code 40 Released.
-[ 1237.501143] Scan Code 40 Released.
-[ 1237.548031] Scan Code 40 Released.
-[ 1237.596222] Scan Code 40 Released.
-[ 1237.612977] Scan Code 40 Released.
-[ 1237.700977] Scan Code 40 Released.
-[ 1237.716093] Scan Code 40 Released.
-[ 1237.780960] Scan Code 40 Released.
-[ 1237.851931] Scan Code 40 Released.
-[ 1237.924812] Scan Code 40 Released.
-[ 1237.947605] Scan Code 40 Released.
-[ 1238.028965] Scan Code 40 Released.
-[ 1238.029951] Scan Code 40 Released.
-```
-
-在执行`sudo rmmod intrpt`后，系统会直接卡死。因为我们在代码里覆盖了系统原本处理键盘中断的 handler。
-
-具体的原因在程序注释里也有说明。
 
 **Polling vs Interrupts**
 
@@ -6489,29 +6440,29 @@ MODULE_VERSION("1.9");
             printk(KERN_INFO "Device Driver Insert...Done!!!\n");
         return 0;
     irq:
-            free_irq(IRQ_NO,(void *)(irq_handler));
+        free_irq(IRQ_NO,(void *)(irq_handler));
     r_sysfs:
-            kobject_put(kobj_ref); 
-            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
     
     r_device:
-            class_destroy(dev_class);
+        class_destroy(dev_class);
     r_class:
-            unregister_chrdev_region(dev,1);
-            cdev_del(&etx_cdev);
-            return -1;
+        unregister_chrdev_region(dev,1);
+        cdev_del(&etx_cdev);
+        return -1;
     }
     
     static void __exit etx_driver_exit(void)
     {
-            free_irq(IRQ_NO,(void *)(irq_handler));
-            kobject_put(kobj_ref); 
-            sysfs_remove_file(kernel_kobj, &etx_attr.attr);
-            device_destroy(dev_class,dev);
-            class_destroy(dev_class);
-            cdev_del(&etx_cdev);
-            unregister_chrdev_region(dev, 1);
-            printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+        free_irq(IRQ_NO,(void *)(irq_handler));
+        kobject_put(kobj_ref); 
+        sysfs_remove_file(kernel_kobj, &etx_attr.attr);
+        device_destroy(dev_class,dev);
+        class_destroy(dev_class);
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
     }
     
     module_init(etx_driver_init);
@@ -6556,7 +6507,7 @@ MODULE_VERSION("1.9");
     ```c
     struct irq_desc *irq_to_desc(unsigned int irq) 
     {
-            return mtree_load(&sparse_irqs, irq);
+        return mtree_load(&sparse_irqs, irq);
     }
     EXPORT_SYMBOL(irq_to_desc);
     ```
