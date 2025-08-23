@@ -6,6 +6,34 @@
 
 ## cache
 
+* `msync()`
+
+    （未验证）
+
+    将内存中的内容写回到文件。
+
+    操作系统会不定期将`mmap()`内存中的内容写回到文件，但是如果我们对进程间同步的要求较高，那么就需要手动`msync()`。
+
+    syntax:
+
+    ```c
+    #include <sys/mman.h>
+
+    int msync(void *addr, size_t length, int flags);
+    ```
+
+    其中`flags`可取值如下：
+
+    * `MS_SYNC`：回写完成后函数返回。
+
+    * `MS_ASYNC`：发出回写命令，函数立即返回。
+
+    * `MS_INVALIDATE`：通知其他进程的映射副本失效，使其他进程重新读取文件内容。
+
+    如果是匿名映射，那么`msync()`无意义。
+
+    进程 A 和 B 同时以 shared 模式 mmap 一个文件，进程 A 修改文件，进程 B 并不会定期重新读取文件，除非遇到`MS_INVALIDATE`的`msync()`。
+
 * `mmap()`匿名映射
 
     匿名映射 Anonymous Mapping

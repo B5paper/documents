@@ -30,13 +30,19 @@
 
 ## cache
 
-* [new] 调研如何判断一个新的 example 是否已经在 qa 文件中
+* 我们的目标究竟是在认知限制下的梦想的满足，还是超越限制，追求绝对理性的目标？
+
+    在时代赋予的认识限制下，我们可以认为自己做到了认知的最高点就达到了幸福，比如结婚生子，老有所养，家庭和睦；比如登陆火星，建造飞船，探索太空。大部分人也都这样幸福着。但是还有些人追求理性的边界，追求从虚无到有的过程，追求对认知的重新定义，求而不得往往十分痛苦。所以似乎认知越少，越幸福？
+
+    如果我们追求的就是幸福，那为什么不刻意减少自己的认知呢？
+
+* [ ] 调研如何判断一个新的 example 是否已经在 qa 文件中
 
     可能的方向：向量数据库，llm + rag
 
     目标是在 qa file 中找到与 example 相似或相近的 unit
 
-* [new] 如何使用模板（卷积）的方式识别缺陷？
+* [ ] 如何使用模板（卷积）的方式识别缺陷？
 
 * process url 的方法
 
@@ -837,6 +843,22 @@
 * aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
 
 ### tasks
+
+* [O] reorg linux driver
+
+    关注中断部分，增加 qa unit
+
+    feedback:
+
+    1. 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
+
+    1. 调研`request_threaded_irq()`
+
+    1. 调研 8259A
+
+    1. 调研 IRQ 2 与 irq 1 的级联中断
+
+    1. 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
 
 * [v] reorg project: `main_4.cpp`, `DynamicGraph`
 
@@ -2000,9 +2022,19 @@ tasks:
 
 ### tasks
 
+* [ ] 修改 siccl makefile
+
+* [ ] 调研可视化的方案
+
 * [ ] 调研是否其他地方用到了 topo id
 
-* [ ] 调研调用 runtime 的函数
+* [v] 调研调用 runtime 的函数
+
+    feedback:
+
+    1. 为什么`grep -r siDeviceGet(`不能有左小括号？
+
+    1. 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
 
 * [ ] 以 uuid 为入口重构 topo layer 代码
 
@@ -2360,8 +2392,6 @@ tasks:
 
 * [ ] 调研`grep -z`处理跨行文本
 
-* [v] 调研`wc -l`
-
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 
 * [ ] 调研`grep -A`
@@ -2419,7 +2449,11 @@ tasks:
 
 * [ ] 调研常用 c 标准库，linux 常用库
 
-* [ ] 调研`feof()`, `ferror()`
+* [v] 调研`feof()`, `ferror()`
+
+    feedback:
+
+    * 调研`perror()`
 
 * [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
 
@@ -3926,30 +3960,6 @@ resources:
     
     `INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 
-* `list_add()`是在指定 node 后添加 node
-
-* gcc 12 要求所有函数必须有声明，不然会报 warning:
-
-    ```
-    make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
-    make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
-    warning: the compiler differs from the one used to build the kernel
-      The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-      You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
-      CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
-    /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
-        4 | int hello_init(void)
-          |     ^~~~~~~~~~
-    /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
-       10 | void hello_exit(void)
-          |      ^~~~~~~~~~
-      MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
-      LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
-      BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
-    Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
-    make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
-    ```
-
 * linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
 
 * linux 的 interruptible sleep 是如何实现的？
@@ -3964,7 +3974,7 @@ resources:
 
 * 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
 
-* 调研`pr_info`, `pr_err`, `__init`, `MODULE_VERSION`, `MODULE_AUTHOR`, `MODULE_DESCRIPTION`
+* 调研`MODULE_VERSION`, `MODULE_AUTHOR`, `MODULE_DESCRIPTION`
 
 * 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
 
@@ -3979,12 +3989,6 @@ resources:
 * 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
 
     主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
-
-* 为什么写`MKDEV()`时可以填`MKDEV(255, 0)`, `MKDEV(220, 0)`
-
-    怎么保证 255, 220 这些数字不与其他冲突？
-
-    答：可以用`cat /proc/devices`查看已经注册过的设备
 
 * cached tasks
 
@@ -4002,9 +4006,7 @@ resources:
 
     调研：
 
-    `writel`, `BUG()`, `readq`, `writeq`, `pci_read_config_dword`, `pci_find_ext_capability`
-
-    `readl`, 
+    `readl`, `writel`, `BUG()`, `readq`, `writeq`, `pci_read_config_dword`, `pci_find_ext_capability`
 
     调研一下`KBUILD_MODNAME`的含义。
 
@@ -4030,13 +4032,22 @@ resources:
 
 * 可以使用`dmesg -e`显示消息的大致时间戳
 
-* `module_param_array()`中的数组长度参数只有在 write 数据的时候才会被改变
-
 resources:
 
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
+
+* [ ] 调研为什么 rsync 不加 -r 会 skip
+
+    ```
+    siorigin@q35:~/Documents/Projects$ rsync -v siccl_2/ mkeac@10.193.64.60:/share_data/to_lizi/sipu_runtime/siccl_2
+    mkeac@10.193.64.60's password: 
+    skipping directory .
+
+    sent 17 bytes  received 12 bytes  8.29 bytes/sec
+    total size is 0  speedup is 0.00
+    ```
 
 * [ ] 调研`file_operations`中`.owner`有什么用
 
@@ -4082,7 +4093,29 @@ resources:
 
 * [ ] 调研`DEFINE_SPINLOCK()`
 
-* [ ] 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
+* [v] 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
+
+    feedback:
+
+    1. 调研高级可编程中断控制器（APIC）, IO-APIC
+
+    1. 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
+
+    1. `platform_get_irq()()`, `pci_alloc_irq_vectors()`
+
+    1. 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
+
+    1. 调研中断描述符表（IDT）
+
+    1. 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
+
+    1. 调研`irq_handler()`的原型
+
+    1. 调研`pci_irq_vector()`
+
+    1. 调研`pci_alloc_irq_vectors`
+
+    1. 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
     
 * [ ] 调研`pci_msix_vec_count`
 
@@ -4140,9 +4173,7 @@ resources:
 
 * [v] 调研`pci_request_region()`
 
-    feedback:
-
-    1. 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
+* [ ] 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
 
 * [O] 调研 qemu edu driver
 

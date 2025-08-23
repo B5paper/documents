@@ -6,6 +6,103 @@ Ref:
 
 ## cache
 
+* `module_param_array()`中的数组长度参数只有在 write 数据的时候才会被改变
+
+* gcc 12 要求所有函数必须有声明，不然会报 warning:
+
+    ```
+    make -C /usr/src/linux-headers-6.8.0-40-generic M=/home/hlc/Documents/Projects/linked_list_test modules
+    make[1]: Entering directory '/usr/src/linux-headers-6.8.0-40-generic'
+    warning: the compiler differs from the one used to build the kernel
+      The kernel was built by: x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      You are using:           gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0
+      CC [M]  /home/hlc/Documents/Projects/linked_list_test/hello.o
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:4:5: warning: no previous prototype for ‘hello_init’ [-Wmissing-prototypes]
+        4 | int hello_init(void)
+          |     ^~~~~~~~~~
+    /home/hlc/Documents/Projects/linked_list_test/hello.c:10:6: warning: no previous prototype for ‘hello_exit’ [-Wmissing-prototypes]
+       10 | void hello_exit(void)
+          |      ^~~~~~~~~~
+      MODPOST /home/hlc/Documents/Projects/linked_list_test/Module.symvers
+      LD [M]  /home/hlc/Documents/Projects/linked_list_test/hello.ko
+      BTF [M] /home/hlc/Documents/Projects/linked_list_test/hello.ko
+    Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
+    make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
+    ```
+
+* `list_add()`是在指定 node 后添加 node
+
+* 为什么写`MKDEV()`时可以填`MKDEV(255, 0)`, `MKDEV(220, 0)`
+
+    怎么保证 255, 220 这些数字不与其他冲突？
+
+    答：可以用`cat /proc/devices`查看已经注册过的设备
+
+* `static int __init edu_init(void)`中的`__init`
+
+    （未验证）
+
+    作用是标记此函数只执行一次，后续可以将此函数占用的资源释放。
+
+    编译器会把`__init`函数的代码段放到`.init.text`中，把`__initdata`的变量放到`.init.data`中。当函数执行完成后，操作系统会调用`free_initmem()`，释放这两个 init 段中的内存，释放出空间。
+
+    `__exit`标记的函数，如果 module 被静态编译进了内核，那么类似`edu_exit(void)`的函数将永不会被调用，这些函数会被直接丢弃。
+
+* `pci_request_region()`
+
+    （未验证）
+
+    I/O 端口地址和内存地址都是操作系统的资源，当检测到 pci 设备时，pci 设备需要向操作系统申请这些资源，并映射到 pci 设备上，才能正常工作。
+
+    这个申请资源的动作，即`pci_request_region()`。
+
+    syntax:
+
+    ```c
+    int pci_request_region(struct pci_dev *pdev, int bar, const char *res_name);
+    ```
+
+    * `res_name`： 一个字符串标识符，通常为驱动名，用于在资源树中标识该资源的所有者（在 /proc/ioports 或 /proc/iomem 中可以看到）。
+
+    其逆操作函数为`pci_release_region()`。
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+    {
+        int ret;
+        ...
+        // 首先启用设备
+        ret = pci_enable_device(pdev);
+        if (ret) {
+            dev_err(&pdev->dev, "Enable device failed\n");
+            return ret;
+        }
+
+        // 然后请求设备的某个区域（例如 BAR 0）
+        ret = pci_request_region(pdev, 0, "my_nic_driver");
+        if (ret) {
+            dev_err(&pdev->dev, "Request region for BAR0 failed\n");
+            pci_disable_device(pdev); // 失败则禁用设备
+            return ret;
+        }
+
+        // 请求成功，现在可以安全地映射和使用这个区域了
+        my_priv->ioaddr = pci_iomap(pdev, 0, 0);
+        ...
+    }
+
+    static void my_driver_remove(struct pci_dev *pdev)
+    {
+        ...
+        // 在移除时，按相反顺序释放资源
+        pci_iounmap(pdev, my_priv->ioaddr); // 取消映射
+        pci_release_region(pdev, 0);        // 释放区域
+        pci_disable_device(pdev);           // 禁用设备
+    }
+    ```
+
 * `MODULE_DEVICE_TABLE()`功能（未验证）
 
     一个宏，将 id table 的设备 ID 与 driver 注册到全局信息中。
