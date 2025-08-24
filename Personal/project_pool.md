@@ -30,6 +30,29 @@
 
 ## cache
 
+* 笔记中，综合性的 example 应该放到一个 topic 的开头，如果可以解释清楚综合性的 topic，那么就没有必要再看 topic 的细节了，这样可以节省时间。
+
+    ```
+    topic 1
+        -- synthetic example
+        -- detal 1
+        -- detal 2
+        ...
+    topic 2
+        -- synthetic example
+        -- detal 1
+            -- synthetic example
+            -- detal 1.1
+            -- detal 1.2
+            ...
+        -- detal 2
+        ...
+    ```
+
+* 倒钩
+
+    新的知识/概念必须要像倒钩一样对接到已有的概念上，才能说“学会”。没有这个对接的过程，那么仅仅是编织出的一块独立的钢丝网而已。
+
 * 我们的目标究竟是在认知限制下的梦想的满足，还是超越限制，追求绝对理性的目标？
 
     在时代赋予的认识限制下，我们可以认为自己做到了认知的最高点就达到了幸福，比如结婚生子，老有所养，家庭和睦；比如登陆火星，建造飞船，探索太空。大部分人也都这样幸福着。但是还有些人追求理性的边界，追求从虚无到有的过程，追求对认知的重新定义，求而不得往往十分痛苦。所以似乎认知越少，越幸福？
@@ -842,7 +865,23 @@
 
 * aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
 
+* `unordered_map<int, int> id_to_idx_table;`
+
+    优点：
+
+    1. 可以根据 id 快速找到 idx，进而可以找到 ptr
+
+    1. 已知 ptr，可以拿到 id，进而找到 idx
+
+    缺点：
+
+    1. 删除节点时，idx 会变动，必须重新构建 table
+
+    2. 已知 ptr 无法快速找到 idx（如果 idx 的目的是找到 entity，那么找不到 idx 也无所谓了吧）
+
 ### tasks
+
+* [ ] 调研 8259A
 
 * [O] reorg linux driver
 
@@ -850,62 +889,36 @@
 
     feedback:
 
-    1. 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
-
-    1. 调研`request_threaded_irq()`
-
-    1. 调研 8259A
-
     1. 调研 IRQ 2 与 irq 1 的级联中断
 
     1. 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
 
 * [v] reorg project: `main_4.cpp`, `DynamicGraph`
 
-    feedback:
+* [ ] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
 
-    1. `unordered_map<int, int> id_to_idx_table;`
+* [ ] 调研自定义哈希函数的写法
 
-        优点：
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*> &src_dst) const {
+            return std::hash<void*>()(src_dst.first) ^
+                std::hash<void*>()(src_dst.second);
+        }
+    };
+    // <<src, dst>, path>
+    unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
+    ```
 
-        1. 可以根据 id 快速找到 idx，进而可以找到 ptr
+* [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
-        1. 已知 ptr，可以拿到 id，进而找到 idx
+    部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
-        缺点：
+* [ ] reorg project: `main_3.cpp`
 
-        1. 删除节点时，idx 会变动，必须重新构建 table
+* [ ] reorg project: `main_2.cpp`
 
-        2. 已知 ptr 无法
-
-    1. 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
-
-    1. 调研自定义哈希函数的写法
-
-        ```cpp
-        struct VertexPtrHash {
-            size_t operator()(const pair<Vertex*, Vertex*> &src_dst) const {
-                return std::hash<void*>()(src_dst.first) ^
-                    std::hash<void*>()(src_dst.second);
-            }
-        };
-        // <<src, dst>, path>
-        unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
-        ```
-
-    1. table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
-
-        部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
-
-    1. reorg project: `main_3.cpp`
-
-    1. reorg project: `main_2.cpp`
-
-    1. reorg project: `main.cpp`
-
-* [v] reorg projects
-
-* [v] reorg documents
+* [ ] reorg project: `main.cpp`
 
 * { } reorg: projects
 
@@ -1086,175 +1099,19 @@
 
 ### Tasks
 
+* [ ] makefile 中，`$(VAR)`和`${VAR}`有什么不同？
+
+* [ ] makefile 中，变量与定义间是否允许有空格？
+
+    `KERNEL_DIR=/usr/xxx`
+
+* [ ] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
+
+* [ ] linux driver unit idx 3 增加查看 dev class 的方法
+
+* [ ] 调研`read`, `read_iter`, `splice_read`
+
 * [v] qa: linux driver 30 mins
-
-    feedback:
-
-    1. makefile 中，`$(VAR)`和`${VAR}`有什么不同？
-
-    1. makefile 中，变量与定义间是否允许有空格？
-
-        `KERNEL_DIR=/usr/xxx`
-
-    1. makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
-
-    1. `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
-
-    1. `printk("<1>""hello my module\n");`是否等价于`printk(KERN_INFO "xxx")`?
-
-    1. `charp`在哪个头文件中？
-
-    1. `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
-
-    1. `module_param_call()`
-
-    1. `module_param_named()`
-
-    1. `module_param_string()`
-
-    1. `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
-
-        ```
-        [ 4358.400458] Attribute m_arr: Invalid permissions 0755
-        ```
-
-        为什么？
-
-    1. 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
-
-        `0766`不可以，`0755`可以。
-
-    1. `register_chrdev_region()`与`register_chrdev()`有何不同？
-
-    1. `unregister_module_notifier()`
-
-    1. linux driver unit idx 3 增加查看 dev class 的方法
-
-    1. `unlocked_ioctl`与`compat_ioctl`有何不同？
-
-    1. 调研`read`, `read_iter`, `splice_read`
-
-    1. `class_create_file()`
-
-    1. unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
-
-    1. `pr_err_once()`
-
-    1. `device_create_file()`
-
-    1. `class_device_destructor()`
-
-    1. `class_dev_iter`
-
-    1. qa 里增加完整的 cdev + dev file 的 example
-
-        ```c
-        #include <linux/init.h>
-        #include <linux/module.h>
-        #include <linux/fs.h>
-        #include <linux/cdev.h>
-        #include <linux/device.h>
-
-        int m_open(struct inode *, struct file *) {
-            pr_info("in m_open()...\n");
-            return 0;
-        }
-
-        int m_release(struct inode *, struct file *) {
-            pr_info("in m_release()...\n");
-            return 0;
-        }
-
-        ssize_t m_read(struct file *, char __user *, size_t, loff_t *) {
-            pr_info("in m_read()...\n");
-            return 0;
-        }
-
-        ssize_t m_write(struct file *, const char __user *, size_t, loff_t *) {
-            pr_info("in m_write()...\n");
-            return 0;
-        }
-
-        long m_unlocked_ioctl(struct file *, unsigned int, unsigned long) {
-            pr_info("in m_unlocked_ioctl()...\n");
-            return 0;
-        }
-
-        dev_t dev_num;
-        const char *dev_region_name = "hlc dev";
-        struct cdev chdev;
-        const struct file_operations chdev_ops = {
-            .open = m_open,
-            .release = m_release,
-            .read = m_read,
-            .write = m_write,
-            .unlocked_ioctl = m_unlocked_ioctl
-        };
-        struct class *dev_cls;
-        struct device *dev;
-
-        int hello_init(void) {
-            pr_info("hello my module\n");
-            int ret = alloc_chrdev_region(&dev_num, 0, 1, dev_region_name);
-            if (ret != 0) {
-                pr_info("fail to register chrdev region\n");
-                return -1;
-            }
-
-            cdev_init(&chdev, &chdev_ops);
-            ret = cdev_add(&chdev, dev_num, 1);
-            if (ret != 0) {
-                pr_info("fail to add cdev\n");
-                goto CDEV_ADD_FAILED;
-            }
-
-            dev_cls = class_create("hlc dev cls");
-            if (dev_cls == NULL) {
-                pr_err("fail to create class\n");
-                goto CLASS_CREATE_FAILED;
-            }
-            dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
-            if (dev == NULL) {
-                pr_err("fail to create device\n");
-                goto DEVICE_CREATE_FAILED;
-            }
-            return 0;
-
-        DEVICE_CREATE_FAILED:
-            class_destroy(dev_cls);
-        CLASS_CREATE_FAILED:
-            cdev_del(&chdev);
-        CDEV_ADD_FAILED:
-            unregister_chrdev_region(dev_num, 1);
-            return -1;
-        }
-
-        void hello_exit(void) {
-            pr_info("exit my module\n");
-            device_destroy(dev_cls, dev_num);
-            class_destroy(dev_cls);
-            cdev_del(&chdev);
-            unregister_chrdev_region(dev_num, 1);
-        }
-
-        module_init(hello_init);
-        module_exit(hello_exit);
-        MODULE_LICENSE("GPL");
-        ```
-
-    1. `device_create()`与`device_add()`有何不同？
-
-    1. `device_attach()`
-
-    1. `linux/list_lru.h`, `linux/list_sort.h`
-
-    1. `list_add_rcu()`, `list_lru_add()`
-
-    1. `kmalloc_array()`, `kmalloc_caches()`
-
-    1. `kmalloc()`未释放的内存，在 module 结束后会被释放吗？
-
-        如果不能，该如何正确释放？
 
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
 
@@ -1397,61 +1254,51 @@
 
 * [v] cache tabs
 
-* [v] process tabs
+* [ ] 调研 Floyd最短路径
 
-* [v] cache tabs
+* [ ] 调研图的遍历
 
-    feedback:
+* [ ] 调研通过矩阵幂计算路径数量
 
-    1. 调研 Floyd最短路径
+* [ ] 调研度矩阵
 
-    1. 调研图的遍历
+* [ ] 调研拉普拉斯矩阵
 
-    1. 调研通过矩阵幂计算路径数量
+* [ ] 调研图神经网络
 
-    1. 调研度矩阵
-
-    1. 调研拉普拉斯矩阵
-
-    1. 调研图神经网络
-
-    1. 调研Dijkstra
+* [ ] 调研Dijkstra
 
 * [v] process 1 tab
 
-    feedback:
+* [ ] nvidia-smi
 
-    1. nvidia-smi
+    <https://www.chenshaowen.com/blog/basic-usage-of-nvidia-smi.html>
 
-        <https://www.chenshaowen.com/blog/basic-usage-of-nvidia-smi.html>
+    未处理完，目前看到了
 
-        未处理完，目前看到了
+    > 常用参数
 
-        > 常用参数
+* [ ] a100 spec
 
-    1. a100 spec
+    <https://datacrunch.io/blog/nvidia-a100-gpu-specs-price-and-alternatives>
 
-        <https://datacrunch.io/blog/nvidia-a100-gpu-specs-price-and-alternatives>
+    未处理完，目前看到了
 
-        未处理完，目前看到了
+    > A100 Data Sheet Comparison vs V100 and H100
 
-        > A100 Data Sheet Comparison vs V100 and H100
-
-        不明白 TPCs 是什么意思。
+    不明白 TPCs 是什么意思。
 
 * [v] process 1 url
 
-    feedback:
+* [ ] 调研`git rebase --onto`
 
-    1. 调研`git rebase --onto`
+* [ ] 调研`git merge --no-ff`
 
-    1. 调研`git merge --no-ff`
+* [ ] 调研`git reset --soft`
 
-    1. 调研`git reset --soft`
+* [ ] 调研`git merge --squash`
 
-    1. 调研`git merge --squash`
-
-* [ ] 调研 rsync `--exclude`和`--include`的用法
+* [ ] 调研 rsync `--exclude`的用法
 
 * [ ] 调研 rsync `--backup`的用法
 
@@ -1529,8 +1376,6 @@
 
     09:29 ~ 09:53
 
-* [v] cache tabs 05.12
-
 * [P] cache tabs 06.04
 
     feedback:
@@ -1548,20 +1393,6 @@
     2. [ ] 调研 c++ `inner_product`, `adjacent_difference`
     
     3. [ ] 调研 c++ `reduce`, `ranges::fold_left`
-
-## markdown renderer
-
-使用 electron + markdown parser + mathjax 实现 markdoen renderer。
-
-tasks:
-
-* [ ] 调研 js
-
-* [ ] 调研 electron 中的 lifecycle, emitter
-
-    <https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app>
-
-* [v] 调研 electron
 
 ## Machine Learning
 
@@ -1817,8 +1648,6 @@ tasks:
 
 ### cache
 
-* 之前似乎讨论过使用 idx 比使用指针好，具体细节是什么？
-
 * vllm pynccl 中目前看来改动的文件是`/home/test/miniconda3/envs/vllm/lib/python3.10/site-packages/vllm/distributed/parallel_state.py`
 
     看起来比较重要的几段代码：
@@ -2028,13 +1857,11 @@ tasks:
 
 * [ ] 调研是否其他地方用到了 topo id
 
+* [ ] 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
+
 * [v] 调研调用 runtime 的函数
 
-    feedback:
-
-    1. 为什么`grep -r siDeviceGet(`不能有左小括号？
-
-    1. 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
+* [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
 
 * [ ] 以 uuid 为入口重构 topo layer 代码
 
@@ -2062,15 +1889,27 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研多路复用（select/poll/epoll）中的多路是什么含义
+* [v] 调研多路复用（select/poll/epoll）中的多路是什么含义
+
+    feedback:
+
+    1. 调研`epoll`的用法
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
 * [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
 
-* [ ] 调研 rsync 如何实时同步文件
+* [v] 调研 rsync 如何实时同步文件
 
     如果其中有个目录是远程目录，那么可以同步文件吗？
+
+    feedback:
+
+    1. 调研`ssh-copy-id -i`
+
+    1. 调研`lsyncd`
+
+        这个工具似乎是 inotifywait 和 rsync 的结合，是个比较成熟的工具。
 
 * [ ] 调研 POSIX 标准
 
@@ -2112,7 +1951,11 @@ tasks:
 
 * [ ] 调研`huponexit`
 
-* [ ] 调研`strace`
+* [v] 调研`strace`
+
+    feedback:
+
+    1. `openat()`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
@@ -3100,8 +2943,6 @@ tasks:
 
 * 调研`module_pci_driver()`, `MODULE_DEVICE_TABLE()`
 
-* 调研`container_of()`
-
 * 调研`module_auxiliary_driver()`, `auxiliary_device`
 
 * 调研`be64toh()`, `endian.h`
@@ -3513,8 +3354,6 @@ tasks:
 
         * 调研使用 slint interpreter 索引到子组件
 
-* [v] 调研： gpu performance profiling
-
 * [v] 调研 amd gpa: <https://gpuopen.com/gpuperfapi/>
 
     看看用法，跑一些渲染，ai 应用，尝试性能改进。
@@ -3542,6 +3381,20 @@ tasks:
 * [ ] 处理`slint/examples/plotter`中的代码
 
     reset 成原来的样子
+
+## markdown renderer
+
+使用 electron + markdown parser + mathjax 实现 markdoen renderer。
+
+tasks:
+
+* [ ] 调研 js
+
+* [ ] 调研 electron 中的 lifecycle, emitter
+
+    <https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app>
+
+* [v] 调研 electron
 
 ## GPU virt
 
@@ -3838,7 +3691,7 @@ Tasks:
 
     同样一张图片执行中值滤波，cpu 使用的 clock 时间为 13163，gpu 使用的时间为 1137。
 
-### 任务列表：
+### 任务列表
 
 * [ ] 下载一本数字图像处理的书比较好，网上找的资料太碎片了
 
@@ -4038,6 +3891,70 @@ resources:
 
 ### tasks
 
+* [ ] `device_create()`与`device_add()`有何不同？
+
+* [ ] `device_attach()`
+
+* [ ] `linux/list_lru.h`, `linux/list_sort.h`
+
+* [ ] `list_add_rcu()`, `list_lru_add()`
+
+* [ ] `kmalloc_array()`, `kmalloc_caches()`
+
+* [ ] `kmalloc()`未释放的内存，在 module 结束后会被释放吗？
+
+    如果不能，该如何正确释放？
+
+* [ ] `class_create_file()`
+
+* [ ] unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
+
+* [ ] `pr_err_once()`
+
+* [ ] `device_create_file()`
+
+* [ ] `class_device_destructor()`
+
+* [ ] `class_dev_iter`
+
+* [ ] `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
+
+* [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
+
+    `0766`不可以，`0755`可以。
+
+* [ ] `register_chrdev_region()`与`register_chrdev()`有何不同？
+
+* [ ] `unregister_module_notifier()`
+
+* [ ] `unlocked_ioctl`与`compat_ioctl`有何不同？
+
+* [ ] `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
+
+    ```
+    [ 4358.400458] Attribute m_arr: Invalid permissions 0755
+    ```
+
+    为什么？
+
+* [ ] `printk("<1>""hello my module\n");`是否等价于`printk(KERN_INFO "xxx")`?
+
+* [ ] `charp`在哪个头文件中？
+
+* [ ] `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
+
+* [ ] `module_param_call()`
+
+* [ ] `module_param_named()`
+
+* [ ] `module_param_string()`
+
+* [ ] 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
+
+* [ ] 调研`request_threaded_irq()`
+
+* [ ] 调研`fprintf(stderr, "Fork failed!\n");`是否可以`fprintf(stdout, xxx)`，如果`fprintf(stdin, xxx)`会发生什么？
+
 * [ ] 调研为什么 rsync 不加 -r 会 skip
 
     ```
@@ -4049,15 +3966,41 @@ resources:
     total size is 0  speedup is 0.00
     ```
 
-* [ ] 调研`file_operations`中`.owner`有什么用
+* [v] 调研`file_operations`中`.owner`有什么用
 
 * [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
-* [ ] 调研`fsync()`, `fcntl()`
+* [v] 调研`fsync()`, `fcntl()`
+
+    feedback:
+
+    1. 调研`fdatasync()`
+
+    1. `setvbuf()`, `setbuf()`
+
+    1. `sync()`
+
+    1. `fflush()`是否基本等价于调用系统调用`write()`？
+
+    1. 页面缓存（Page Cache）
+
+    1. radix tree
+
+    1. `dup2()`
 
 * [ ] 调研什么是写时复制（COW）
 
-* [ ] 调研`fork()`
+* [v] 调研`fork()`
+
+    feedback:
+
+    1. 调研`std::mutex`, `std::async`
+
+    1. 调研`exec()`
+
+    1. 调研`getpid()`, `getppid()`
+
+    1. 调研`dup()`
 
 * [ ] 调研`RLIMIT_DATA`
 
@@ -4067,56 +4010,72 @@ resources:
 
 * [ ] 调研`list_add_tail()`
 
-* [ ] 调研`list_for_each_entry_safe()`, `list_for_each_safe()`, `list_entry()`, `list_for_each_entry()`
+* [ ] 调研`list_for_each_safe()`, `list_entry()`
 
-* [ ] 调研`list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+* [v] 调研`list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+
+    feedback:
+
+    1. `LIST_POISON1`, `LIST_POISON2`
+
+    1. 调研如何多线程读写同一个链表，比如一个线程在循环遍历，另一个在随机添加/删除节点。
+
+    1. 调研 rcu 链表
+
+    1. 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
 
 * [ ] 调研 如何获取 list 的长度（有多少个节点）？
 
-* [ ] 调研`LIST_HEAD_INIT()`
+* [v] 调研`LIST_HEAD_INIT()`
 
 * [ ] 调研`list_empty()`
 
-* [ ] 调研 list 高级用法
+* [ ] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
 
-    链表拼接：list_splice(), list_splice_tail(), list_splice_init()
+* [ ] 调研链表移动元素：list_move(), list_move_tail()
 
-    移动元素：list_move(), list_move_tail()
+* [ ] 调研旋转链表：list_rotate_left()
 
-    旋转链表：list_rotate_left()
-
-    分割链表：list_cut_position()
+* [ ] 调研分割链表：list_cut_position()
 
 * [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
 
-* [ ] 调研`list_first_entry()`, `list_next_entry()`
+* [v] 调研`list_first_entry()`, `list_next_entry()`
+
+    feedback:
+
+    1. `container_of()`
+
+    1. `list_next()`
+
+    1. `list_empty()`
+
+    1. `list_entry()`
 
 * [ ] 调研`DEFINE_SPINLOCK()`
 
 * [v] 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
 
-    feedback:
+* [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
 
-    1. 调研高级可编程中断控制器（APIC）, IO-APIC
+* [ ] 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
 
-    1. 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
+* [ ] `platform_get_irq()()`, `pci_alloc_irq_vectors()`
 
-    1. `platform_get_irq()()`, `pci_alloc_irq_vectors()`
+* [ ] 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
 
-    1. 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
+* [ ] 调研中断描述符表（IDT）
 
-    1. 调研中断描述符表（IDT）
+* [ ] 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
 
-    1. 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
+* [ ] 调研`irq_handler()`的原型
 
-    1. 调研`irq_handler()`的原型
+* [ ] 调研`pci_irq_vector()`
 
-    1. 调研`pci_irq_vector()`
+* [ ] 调研`pci_alloc_irq_vectors`
 
-    1. 调研`pci_alloc_irq_vectors`
+* [ ] 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
 
-    1. 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
-    
 * [ ] 调研`pci_msix_vec_count`
 
 * [ ] 调研`pci_find_capability`
@@ -4151,17 +4110,17 @@ resources:
 
         那么还不如先看看 arm 开发板的常见驱动写法，再转到更复杂的 pcie。
 
-    1. 调研《Linux Device Drivers》，《PCI Express System Architecture》
+* [ ] 调研《Linux Device Drivers》，《PCI Express System Architecture》
 
-    1. 调研 linux 的`drivers/pci/`目录
+* [ ] 调研 linux 的`drivers/pci/`目录
 
-    1. 调研 linux `drivers/misc/`可能有简单PCI驱动示例
+* [ ] 调研 linux `drivers/misc/`可能有简单PCI驱动示例
 
-    1. 调研`setpci`命令
+* [ ] 调研`setpci`命令
 
-    1. 调研`minicom`命令
+* [ ] 调研`minicom`命令
 
-    1. 调研`picocom`工具
+* [ ] 调研`picocom`工具
 
 * [ ] 调研`screen`命令
 
@@ -4171,9 +4130,13 @@ resources:
 
 * [ ] 调研驱动程序的`.remove()`和`.shutdown()`函数
 
-* [v] 调研`pci_request_region()`
-
 * [ ] 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
+
+1. [ ] `dma_set_mask_and_coherent()`
+
+1. [ ] `pci_iomap()`
+
+1. [ ] `pci_set_master()`
 
 * [O] 调研 qemu edu driver
 
@@ -4187,13 +4150,7 @@ resources:
 
     deps:
 
-    1. `dma_set_mask_and_coherent()`
-
-    1. `pci_iomap()`
-
-    1. `pci_set_master()`
-
-    1. reorg: linux driver `request_irq()`
+    1. [v] reorg: linux driver `request_irq()`
 
     feedback:
 
@@ -4234,7 +4191,7 @@ resources:
 
         上面两个仅报 warning，但是不影响编译。
 
-    1. `register_chrdev()`
+* [ ] `register_chrdev()`
 
 * [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
 
@@ -4277,7 +4234,23 @@ resources:
 
 * [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
 
-* [ ] 调研`kzalloc`, `kfree`
+* [v] 调研`kzalloc`, `kfree`
+
+    feedback:
+
+    1. `kzalloc_node()`
+
+    1. `kvzalloc()`
+
+    1. `kfree_rcu()`
+
+    1. `kfree_bulk()`
+
+    1. `kfree_const()`
+
+    1. `kfree_sensitive()`
+
+    1. `kvfree()`
 
 * [ ] 调研`device_create()`和`device_add()`有什么区别？
 

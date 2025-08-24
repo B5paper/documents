@@ -6,6 +6,200 @@ Ref:
 
 ## cache
 
+* 如果在注册 irq X 的 handler 1 时设置为 shared，那么后面注册 irq X 的 handler 2 时也设置为 shared，可以注册成功，有 irq X 的中断时，两个 handler 都会调用
+
+    未验证。
+
+    处理程序的责任：
+
+        每个处理程序被调用时，会接收到 irq 号和注册时提供的 dev_id 作为参数。
+
+        处理程序必须检查这个中断是否是发给它的设备的。它需要通过读取设备的某个状态寄存器来判断。
+
+        如果中断是它的：它处理中断，然后返回 IRQ_HANDLED。
+
+        如果中断不是它的：它什么都不做，立刻返回 IRQ_NONE。
+
+        这种检查机制是共享中断能够工作的基础，确保每个驱动只处理属于自己的设备产生的中断。
+
+* irq 1 在 request_irq 时是非 shared 的，所以再次注册 irq 1 的 handler 时，会失败
+
+* 常用 irq
+
+    IRQ 分为两大类：标准硬件预设 IRQ 和 动态分配 IRQ。
+
+    1. 标准硬件预设 IRQ (Legacy IRQs)
+
+        * IRQ 0: 系统定时器 (System timer)
+        
+            由主板上的定时器芯片使用，不可更改。
+
+            目前仍在使用。
+
+        * IRQ 1: 键盘控制器 (Keyboard)
+            
+            专用于 PS/2 键盘。
+
+            目前仍在使用。
+
+        * IRQ 2: 级联中断 (Cascade to IRQ 9)
+        
+            用于连接第二个中断控制器 (PIC)，实际请求会重定向到 IRQ 9。
+
+        * IRQ 3: 串行端口 COM2 (Serial port COM2/COM4)
+        
+            旧式串口。
+
+            目前未在使用。
+
+        * IRQ 4: 串行端口 COM1 (Serial port COM1/COM3)
+        
+            旧式串口。
+
+            目前未在使用。
+
+        * IRQ 5: 声卡 / 并行端口 LPT2 (Sound card / LPT2)
+        
+            在没有 LPT2 的系统中，常被 PCI 声卡等设备使用。
+
+            目前未在使用。
+
+        * IRQ 6: 软盘控制器 (Floppy disk controller)
+        
+            专用于软驱。
+
+            目前未在使用。
+
+        * IRQ 7:
+        
+            并行端口 LPT1 (Parallel port LPT1)
+            
+            打印机端口。
+
+            目前未在使用。
+
+        * IRQ 8: 实时时钟 (Real-time clock, RTC)
+        
+            由 CMOS 时钟使用。
+
+            目前仍在使用。
+
+        * IRQ 9: 重定向的 IRQ2 / ACPI
+        
+            接收来自 IRQ2 的级联中断，也常用于 ACPI 系统事件。
+
+            目前正在使用。
+
+        * IRQ 12: PS/2 鼠标 (PS/2 Mouse)
+        
+            专用于 PS/2 鼠标接口。
+
+            目前仍在使用。
+
+        * IRQ 13: 数学协处理器 (Math coprocessor)
+        
+            用于 x87 FPU 错误异常。
+
+            目前未在使用。
+
+        * IRQ 14: 主 IDE 通道 (Primary ATA channel)
+        
+            用于连接在主 IDE 通道上的硬盘或光驱。
+
+            目前仍在使用。
+
+        * IRQ 15
+        
+            次 IDE 通道 (Secondary ATA channel)	用于连接在次 IDE 通道上的硬盘或光驱。
+
+            目前仍在使用。
+
+    2. 动态分配 IRQ
+
+        IRQ 号动态分配，中断共享非常普遍，多个 PCI 设备可以共享同一个 IRQ 线。
+
+        从 irq 16 开始及以上的基本都是动态分配的。
+
+    `cat /proc/interrupts`输出:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ cat /proc/interrupts
+               CPU0       CPU1       CPU2       CPU3       
+      0:        121          0          0          0   IO-APIC   2-edge      timer
+      1:          0          0          0      27426   IO-APIC   1-edge      i8042
+      8:          0          0          0          0   IO-APIC   8-edge      rtc0
+      9:          0          0          0          0   IO-APIC   9-fasteoi   acpi
+     12:          0      90214          0          0   IO-APIC  12-edge      i8042
+     14:          0          0          0          0   IO-APIC  14-edge      ata_piix
+     15:          0          0          0      25200   IO-APIC  15-edge      ata_piix
+     18:          0          0          0          1   IO-APIC  18-fasteoi   vmwgfx
+     19:          0          0         57     529522   IO-APIC  19-fasteoi   ehci_hcd:usb2, enp0s3
+     20:          0          0     157288          0   IO-APIC  20-fasteoi   vboxguest
+     21:          0      15104     560519          0   IO-APIC  21-fasteoi   ahci[0000:00:0d.0], snd_intel8x0
+     22:         27          0          0          0   IO-APIC  22-fasteoi   ohci_hcd:usb1
+    NMI:          0          0          0          0   Non-maskable interrupts
+    LOC:   19816261    6719703    6819970    6554434   Local timer interrupts
+    SPU:          0          0          0          0   Spurious interrupts
+    PMI:          0          0          0          0   Performance monitoring interrupts
+    IWI:         35         22         15          9   IRQ work interrupts
+    RTR:          0          0          0          0   APIC ICR read retries
+    RES:     124747     132009     186545     193448   Rescheduling interrupts
+    CAL:    5551069    6766045    5986573    5687906   Function call interrupts
+    TLB:     891238     897723     909639     929551   TLB shootdowns
+    TRM:          0          0          0          0   Thermal event interrupts
+    THR:          0          0          0          0   Threshold APIC interrupts
+    DFR:          0          0          0          0   Deferred Error APIC interrupts
+    MCE:          0          0          0          0   Machine check exceptions
+    MCP:         78         78         78         78   Machine check polls
+    ERR:          0
+    MIS:       4066
+    PIN:          0          0          0          0   Posted-interrupt notification event
+    NPI:          0          0          0          0   Nested posted-interrupt event
+    PIW:          0          0          0          0   Posted-interrupt wakeup event
+    ```
+
+    其中 CPU 表示每个 CPU 核心对中断的处理次数，`IO-APIC`表示中断控制器类型，最后一栏`timer`之类的表示该中断对应的设备名。
+
+* `request_irq()`
+
+    内核注册一个中断处理程序（中断服务例程，ISR）
+
+    中断号（IRQ）
+
+    将一个具体的中断号（irq）与驱动程序提供的中断处理函数（handler）绑定起来
+
+    syntax:
+
+    ```c
+    #include <linux/interrupt.h>
+
+    int request_irq(unsigned int irq,
+                    irq_handler_t handler,
+                    unsigned long flags,
+                    const char *name,
+                    void *dev_id);
+    ```
+
+    * `flags`:
+
+        * `IRQF_SHARED`：允许多个设备共享同一个中断线。
+
+        * `IRQF_ONESHOT`：中断在处理完毕后需要重新显式启用（用于线程化中断）。
+
+        * `IRQF_TIMER`：标记为定时器中断，以便系统在处理电源管理时特殊考虑。
+
+    * `name`
+
+        通常为设备名，用于在`/proc/interrupts`中标识这个中断的拥有者
+
+    * `dev_id`
+
+        提供一个唯一指针，用于区分是哪个设备触发了中断
+
+        通常指向一个代表设备的结构体（如 struct device 或自定义的私有数据）
+
+        在 irq handler 中，会被作为函数参数传入。
+
 * `module_param_array()`中的数组长度参数只有在 write 数据的时候才会被改变
 
 * gcc 12 要求所有函数必须有声明，不然会报 warning:
@@ -1199,18 +1393,18 @@ Ref:
 
     //Interrupt handler for IRQ 11. 
     static irqreturn_t irq_handler(int irq,void *dev_id) {
-    printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
-    bool ret = schedule_work(&workqueue);
-    if (!ret)
-    {
-        pr_info("fail to schedule work\n");
-    }
-    else
-    {
-        pr_info("successfully schedule work\n");
-    }
-        
-    return IRQ_HANDLED;
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+        bool ret = schedule_work(&workqueue);
+        if (!ret)
+        {
+            pr_info("fail to schedule work\n");
+        }
+        else
+        {
+            pr_info("successfully schedule work\n");
+        }
+            
+        return IRQ_HANDLED;
     }
 
 
@@ -1328,8 +1522,8 @@ Ref:
     {
         /*Allocating Major number*/
         if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                printk(KERN_INFO "Cannot allocate major number\n");
-                return -1;
+            printk(KERN_INFO "Cannot allocate major number\n");
+            return -1;
         }
         printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
 
@@ -1338,20 +1532,20 @@ Ref:
 
         /*Adding character device to the system*/
         if((cdev_add(&etx_cdev,dev,1)) < 0){
-        printk(KERN_INFO "Cannot add the device to the system\n");
-        goto r_class;
+            printk(KERN_INFO "Cannot add the device to the system\n");
+            goto r_class;
         }
 
         /*Creating struct class*/
         if(IS_ERR(dev_class = class_create("etx_class"))){
-        printk(KERN_INFO "Cannot create the struct class\n");
-        goto r_class;
+            printk(KERN_INFO "Cannot create the struct class\n");
+            goto r_class;
         }
 
         /*Creating device*/
         if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-        printk(KERN_INFO "Cannot create the Device 1\n");
-        goto r_device;
+            printk(KERN_INFO "Cannot create the Device 1\n");
+            goto r_device;
         }
 
         /*Creating a directory in /sys/kernel/ */
@@ -1359,12 +1553,12 @@ Ref:
 
         /*Creating sysfs file for etx_value*/
         if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
-                printk(KERN_INFO"Cannot create sysfs file......\n");
-                goto r_sysfs;
+            printk(KERN_INFO"Cannot create sysfs file......\n");
+            goto r_sysfs;
         }
         if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
-        printk(KERN_INFO "my_device: cannot register IRQ ");
-                goto irq;
+            printk(KERN_INFO "my_device: cannot register IRQ ");
+            goto irq;
         }
         printk(KERN_INFO "Device Driver Insert...Done!!!\n");
         return 0;

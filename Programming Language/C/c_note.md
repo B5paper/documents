@@ -6,6 +6,99 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `ferror()`
+
+    正常读取文件内容时，如果遇到意外问题，比如磁盘空间不足、硬件故障、权限问题，那么会设置内部的 err 标记，`ferror()`用于检测这个标记。如果要重置这个标记，需要手动调用`clearerr()`。
+
+    返回值	如果错误标识符被设置，返回非零值（真）；否则返回 0（假）
+
+* `feof()`
+
+    `feof()`会判断是否到达文件尾，当上次读取失败后，它会返回 true。
+
+    当使用 fread(), fgetc(), fgets(), fscanf() 等函数读取文件时，如果读取到最后一个字符，那么会读取失败，此时会设置一个内部的“文件结束标识符”。`feof(stdin)`的作用就是去检查这个标识符有没有被设置。
+
+    正确用法：
+
+    ```c
+    #include <stdio.h>
+
+    int main() {
+        FILE *fp = fopen("example.txt", "r");
+        if (fp == NULL) {
+            perror("Error opening file");
+            return 1;
+        }
+
+        char buffer[100];
+        // 循环读取，直到fread读不到完整数据
+        while (fread(buffer, sizeof(char), sizeof(buffer), fp) > 0) {
+            // 处理数据...
+            printf("%s", buffer);
+        }
+
+        // 循环结束后，用feof判断是否成功到达文件末尾
+        if (feof(fp)) {
+            printf("Reached the end of file successfully.\n");
+        } else {
+            printf("An error occurred during reading.\n");
+        }
+
+        fclose(fp);
+        return 0;
+    }
+    ```
+
+    错误用法：
+
+    ```c
+    while (!feof(fp)) { // 在读取之前就判断，此时标识符可能还没被设置
+        fread(...);     // 这次读取可能已经失败了，但循环还会再执行一次
+        // ...          // 导致最后一次处理的是无效数据
+    }
+    ```
+
+    `fgetc()`也是相似的用法：
+
+    1. 方法一
+
+        ```c
+        FILE *fp = fopen("test.txt", "r");
+        if (fp == NULL) {
+            // 错误处理
+            return;
+        }
+
+        int c;  // 注意：必须是 int，不能是 char！
+        while ((c = fgetc(fp)) != EOF) {
+            putchar(c);  // 处理读取到的字符
+        }
+
+        // 如果需要，可以在这里用 feof() 判断结束原因
+        if (feof(fp)) {
+            printf("\n成功到达文件末尾");
+        } else {
+            printf("\n读取过程中发生错误");
+        }
+
+        fclose(fp);
+        ```
+
+    1. 方法二
+
+        ```c
+        int c;
+        while (1) {
+            c = fgetc(fp);
+            if (c == EOF) {
+                break;  // 遇到EOF立即退出
+            }
+            putchar(c);  // 处理有效字符
+        }
+        ```
+
+    这两种都是正确的。
+
 * C 语言/gdb 中，`(void)`主要用于防止编译器给出 unused variable 的 warning。
 
 * `fileno()`可以获得`FILE*`指针对应的 fd

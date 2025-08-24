@@ -101,13 +101,13 @@ MODULE_LICENSE("GPL");
 [u_1]
 Syntax:
 
-`module_param_array(name, type, int *num, permissions);`
+`module_param_array(name, type, nump, perm);`
 
-其中，`name`为数组名，`type`为数组的元素类型，`num`是一个指针，当我们使用命令行传递模块参数时，`module_param_array()`会自动计算数组中元素的个数，并将元素数量存储到这个变量中，这个指针也可以直接填`NULL`，`permissions`指的是参数文件的权限。
+其中，`name`为数组名，`type`为数组的元素类型，`nump`是一个指针，当我们使用命令行传递模块参数时，`module_param_array()`会自动计算数组中元素的个数，并将元素数量存储到这个变量中，这个指针也可以直接填`NULL`，`perm`指的是参数文件的权限。
 
 [unit]
 [idx]
-4
+3
 [id]
 40746586403460328
 [u_0]
@@ -118,17 +118,18 @@ Syntax:
 #include <linux/module.h>
 #include <linux/fs.h>
 
+dev_t dev_num = MKDEV(255, 0);
+
 int hello(void)
 {
     printk(KERN_WARNING "hello my module\n");
-    dev_t dev_num = MKDEV(255, 0);
     register_chrdev_region(dev_num, 1, "my driver");
     return 0;
 }
 
 void bye(void)
 {
-    unregister_chrdev_region(MKDEV(255, 0), 1);
+    unregister_chrdev_region(dev_num, 1);
     printk("goodbye my module\n");
 }
 
@@ -139,7 +140,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-6
+4
 [id]
 40749489459808928
 [u_0]
@@ -217,7 +218,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-8
+5
 [id]
 40752482444034880
 [u_0]
@@ -256,7 +257,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-11
+6
 [id]
 40756729806857856
 [u_0]
@@ -270,7 +271,7 @@ MODULE_LICENSE("GPL");
 
 [unit]
 [idx]
-13
+7
 [id]
 40759699732653720
 [u_0]
@@ -286,7 +287,7 @@ int m_open(struct inode *inode, struct file *file_ptr);
 
 [unit]
 [idx]
-14
+8
 [id]
 40761094767674296
 [u_0]
@@ -302,7 +303,7 @@ long int m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *of
 
 [unit]
 [idx]
-15
+9
 [id]
 40762499026066904
 [u_0]
@@ -320,6 +321,8 @@ struct file_operations
 ```
 
 [unit]
+[idx]
+10
 [id]
 5737746927749468565
 [u_0]
@@ -354,6 +357,8 @@ output:
 ```
 
 [unit]
+[idx]
+11
 [id]
 4188117425824722713
 [u_0]
@@ -388,6 +393,8 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
+[idx]
+12
 [id]
 199112764048893592
 [u_0]
@@ -458,6 +465,8 @@ dmesg output:
 ```
 
 [unit]
+[idx]
+13
 [id]
 15625035695245153604
 [u_0]
@@ -479,5 +488,105 @@ KBUILD_MODNAME=\"hello\"
 __GNUC__
 __KERNEL__
 MODULE
+```
+
+[unit]
+[idx]
+14
+[u_0]
+写一个程序实现 cdev 的基本 file operations，并且自动创建 dev file 节点。
+[u_1]
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+
+int m_open(struct inode *, struct file *) {
+    pr_info("in m_open()...\n");
+    return 0;
+}
+
+int m_release(struct inode *, struct file *) {
+    pr_info("in m_release()...\n");
+    return 0;
+}
+
+ssize_t m_read(struct file *, char __user *, size_t, loff_t *) {
+    pr_info("in m_read()...\n");
+    return 0;
+}
+
+ssize_t m_write(struct file *, const char __user *, size_t, loff_t *) {
+    pr_info("in m_write()...\n");
+    return 0;
+}
+
+long m_unlocked_ioctl(struct file *, unsigned int, unsigned long) {
+    pr_info("in m_unlocked_ioctl()...\n");
+    return 0;
+}
+
+dev_t dev_num;
+const char *dev_region_name = "hlc dev";
+struct cdev chdev;
+const struct file_operations chdev_ops = {
+    .open = m_open,
+    .release = m_release,
+    .read = m_read,
+    .write = m_write,
+    .unlocked_ioctl = m_unlocked_ioctl
+};
+struct class *dev_cls;
+struct device *dev;
+
+int hello_init(void) {
+    pr_info("hello my module\n");
+    int ret = alloc_chrdev_region(&dev_num, 0, 1, dev_region_name);
+    if (ret != 0) {
+        pr_info("fail to register chrdev region\n");
+        return -1;
+    }
+
+    cdev_init(&chdev, &chdev_ops);
+    ret = cdev_add(&chdev, dev_num, 1);
+    if (ret != 0) {
+        pr_info("fail to add cdev\n");
+        goto CDEV_ADD_FAILED;
+    }
+
+    dev_cls = class_create("hlc dev cls");
+    if (dev_cls == NULL) {
+        pr_err("fail to create class\n");
+        goto CLASS_CREATE_FAILED;
+    }
+    dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
+    if (dev == NULL) {
+        pr_err("fail to create device\n");
+        goto DEVICE_CREATE_FAILED;
+    }
+    return 0;
+
+DEVICE_CREATE_FAILED:
+    class_destroy(dev_cls);
+CLASS_CREATE_FAILED:
+    cdev_del(&chdev);
+CDEV_ADD_FAILED:
+    unregister_chrdev_region(dev_num, 1);
+    return -1;
+}
+
+void hello_exit(void) {
+    pr_info("exit my module\n");
+    device_destroy(dev_cls, dev_num);
+    class_destroy(dev_cls);
+    cdev_del(&chdev);
+    unregister_chrdev_region(dev_num, 1);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL");
 ```
 

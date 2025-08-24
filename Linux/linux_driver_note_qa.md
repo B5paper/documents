@@ -490,3 +490,105 @@ __KERNEL__
 MODULE
 ```
 
+[unit]
+[idx]
+14
+[id]
+7941022488153863586
+[u_0]
+写一个程序实现 cdev 的基本 file operations，并且自动创建 dev file 节点。
+[u_1]
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+
+int m_open(struct inode *, struct file *) {
+    pr_info("in m_open()...\n");
+    return 0;
+}
+
+int m_release(struct inode *, struct file *) {
+    pr_info("in m_release()...\n");
+    return 0;
+}
+
+ssize_t m_read(struct file *, char __user *, size_t, loff_t *) {
+    pr_info("in m_read()...\n");
+    return 0;
+}
+
+ssize_t m_write(struct file *, const char __user *, size_t, loff_t *) {
+    pr_info("in m_write()...\n");
+    return 0;
+}
+
+long m_unlocked_ioctl(struct file *, unsigned int, unsigned long) {
+    pr_info("in m_unlocked_ioctl()...\n");
+    return 0;
+}
+
+dev_t dev_num;
+const char *dev_region_name = "hlc dev";
+struct cdev chdev;
+const struct file_operations chdev_ops = {
+    .open = m_open,
+    .release = m_release,
+    .read = m_read,
+    .write = m_write,
+    .unlocked_ioctl = m_unlocked_ioctl
+};
+struct class *dev_cls;
+struct device *dev;
+
+int hello_init(void) {
+    pr_info("hello my module\n");
+    int ret = alloc_chrdev_region(&dev_num, 0, 1, dev_region_name);
+    if (ret != 0) {
+        pr_info("fail to register chrdev region\n");
+        return -1;
+    }
+
+    cdev_init(&chdev, &chdev_ops);
+    ret = cdev_add(&chdev, dev_num, 1);
+    if (ret != 0) {
+        pr_info("fail to add cdev\n");
+        goto CDEV_ADD_FAILED;
+    }
+
+    dev_cls = class_create("hlc dev cls");
+    if (dev_cls == NULL) {
+        pr_err("fail to create class\n");
+        goto CLASS_CREATE_FAILED;
+    }
+    dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
+    if (dev == NULL) {
+        pr_err("fail to create device\n");
+        goto DEVICE_CREATE_FAILED;
+    }
+    return 0;
+
+DEVICE_CREATE_FAILED:
+    class_destroy(dev_cls);
+CLASS_CREATE_FAILED:
+    cdev_del(&chdev);
+CDEV_ADD_FAILED:
+    unregister_chrdev_region(dev_num, 1);
+    return -1;
+}
+
+void hello_exit(void) {
+    pr_info("exit my module\n");
+    device_destroy(dev_cls, dev_num);
+    class_destroy(dev_cls);
+    cdev_del(&chdev);
+    unregister_chrdev_region(dev_num, 1);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL");
+```
+
