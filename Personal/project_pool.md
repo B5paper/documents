@@ -1851,15 +1851,19 @@ tasks:
 
 ### tasks
 
-* [ ] 修改 siccl makefile
+* [v] 修改 siccl makefile
+
+    feedback:
+
+    1. `$(MAKE)`与`make`有什么不同？
+
+    1. gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
 
 * [ ] 调研可视化的方案
 
 * [ ] 调研是否其他地方用到了 topo id
 
 * [ ] 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
-
-* [v] 调研调用 runtime 的函数
 
 * [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
 
@@ -1891,9 +1895,7 @@ tasks:
 
 * [v] 调研多路复用（select/poll/epoll）中的多路是什么含义
 
-    feedback:
-
-    1. 调研`epoll`的用法
+* [ ] 调研`epoll`的用法
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -1903,13 +1905,11 @@ tasks:
 
     如果其中有个目录是远程目录，那么可以同步文件吗？
 
-    feedback:
+* [ ] 调研`ssh-copy-id -i`
 
-    1. 调研`ssh-copy-id -i`
+* [ ] 调研`lsyncd`
 
-    1. 调研`lsyncd`
-
-        这个工具似乎是 inotifywait 和 rsync 的结合，是个比较成熟的工具。
+    这个工具似乎是 inotifywait 和 rsync 的结合，是个比较成熟的工具。
 
 * [ ] 调研 POSIX 标准
 
@@ -1953,9 +1953,7 @@ tasks:
 
 * [v] 调研`strace`
 
-    feedback:
-
-    1. `openat()`
+* [ ] `openat()`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
@@ -2096,7 +2094,11 @@ tasks:
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
-* [ ] 调研`std::variant`
+* [v] 调研`std::variant`
+
+    feedback:
+
+    1. `std::get_if<T>()`
 
 * [ ] 调研`std::any`
 
@@ -3891,13 +3893,34 @@ resources:
 
 ### tasks
 
+* [ ] 调研`device_create()`和`device_add()`有什么区别？
+
+    `device_del()`和`device_destroy()`有什么区别？
+
+* [ ] 调研 qemu 串口
+
+    ```bash
+    -serial mon:stdio \  # 将监视器和串口都重定向到 stdio
+    -append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台
+    ```
+
+* [ ] 调研 ls 相关
+
+    `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
+
+    `ls -alht`, `ls -lhR`
+
+* [ ] 调研 makefile 中 target 的执行机制
+
 * [ ] `device_create()`与`device_add()`有何不同？
 
 * [ ] `device_attach()`
 
 * [ ] `linux/list_lru.h`, `linux/list_sort.h`
 
-* [ ] `list_add_rcu()`, `list_lru_add()`
+* [ ] `list_add_rcu()`
+
+* [ ] `list_lru_add()`
 
 * [ ] `kmalloc_array()`, `kmalloc_caches()`
 
@@ -3966,69 +3989,101 @@ resources:
     total size is 0  speedup is 0.00
     ```
 
-* [v] 调研`file_operations`中`.owner`有什么用
+* [v] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
-* [ ] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
+    feedback:
+
+    1. `vm_area_struct()`
+
+    1. 调研 PTE（Page Table entry）, 进程的页表
+
+    1. 后备存储（Backing Store）
+
+    1. 什么是虚拟页？和物理页有什么不同？
 
 * [v] 调研`fsync()`, `fcntl()`
 
+* [ ] 调研`fdatasync()`
+
+* [ ] `setvbuf()`, `setbuf()`
+
+* [ ] `sync()`
+
+* [ ] `fflush()`是否基本等价于调用系统调用`write()`？
+
+* [ ] 页面缓存（Page Cache）
+
+* [ ] radix tree
+
+* [ ] `dup2()`
+
+* [v] 调研什么是写时复制（COW）
+
     feedback:
 
-    1. 调研`fdatasync()`
+    1. Btrfs、ZFS的COW机制
 
-    1. `setvbuf()`, `setbuf()`
-
-    1. `sync()`
-
-    1. `fflush()`是否基本等价于调用系统调用`write()`？
-
-    1. 页面缓存（Page Cache）
-
-    1. radix tree
-
-    1. `dup2()`
-
-* [ ] 调研什么是写时复制（COW）
+    1. 页帧分配、页表管理、换入换出（Swapping）
 
 * [v] 调研`fork()`
 
-    feedback:
+* [ ] 调研`std::mutex`
 
-    1. 调研`std::mutex`, `std::async`
+* [ ] `std::async`
 
-    1. 调研`exec()`
+* [ ] 调研`exec()`
 
-    1. 调研`getpid()`, `getppid()`
+* [ ] 调研`getpid()`, `getppid()`
 
-    1. 调研`dup()`
+* [ ] 调研`dup()`
 
 * [ ] 调研`RLIMIT_DATA`
 
-* [ ] 调研`pci_register_driver()`
-
-* [ ] 调研`create_workqueue`
-
-* [ ] 调研`list_add_tail()`
-
-* [ ] 调研`list_for_each_safe()`, `list_entry()`
-
-* [v] 调研`list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+* [v] 调研`pci_register_driver()`
 
     feedback:
 
-    1. `LIST_POISON1`, `LIST_POISON2`
+    1. 调研`ACPI`
 
-    1. 调研如何多线程读写同一个链表，比如一个线程在循环遍历，另一个在随机添加/删除节点。
+    1. MSI-X中断
 
-    1. 调研 rcu 链表
+    1. 调研IO队列是什么（可能和NVMe控制器相关）
 
-    1. 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
+* [ ] 调研`create_workqueue`
 
-* [ ] 调研 如何获取 list 的长度（有多少个节点）？
+* [v] 调研`list_add_tail()`
+
+* [v] 调研`list_for_each_safe()`, `list_entry()`
+
+    feedback:
+
+    1. 调研`container_of()`或`list_entry()`的实现，尝试手动实现一下
+
+    1. 调研 linux 中的完成量（completion）
+
+* [v] 调研`list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+
+* [ ] `LIST_POISON1`, `LIST_POISON2`
+
+* [ ] 调研如何多线程读写同一个链表，比如一个线程在循环遍历，另一个在随机添加/删除节点。
+
+* [ ] 调研 rcu 链表
+
+* [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
+
+* [v] 调研 如何获取 list 的长度（有多少个节点）？
+
+    feedback:
+
+    1. `spin_lock()`, `spin_unlock()`
+
+    1. `list_is_singular()`
+
+    1. `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
 * [v] 调研`LIST_HEAD_INIT()`
 
-* [ ] 调研`list_empty()`
+* [v] 调研`list_empty()`
 
 * [ ] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
 
@@ -4042,25 +4097,19 @@ resources:
 
 * [v] 调研`list_first_entry()`, `list_next_entry()`
 
-    feedback:
+* [ ] `container_of()`
 
-    1. `container_of()`
-
-    1. `list_next()`
-
-    1. `list_empty()`
-
-    1. `list_entry()`
+* [ ] `list_next()`
 
 * [ ] 调研`DEFINE_SPINLOCK()`
-
-* [v] 调研`pci_irq_vector`，`pci_alloc_irq_vectors`,`request_irq`
 
 * [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
 
 * [ ] 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
 
-* [ ] `platform_get_irq()()`, `pci_alloc_irq_vectors()`
+* [ ] `platform_get_irq()`
+
+* [ ] `pci_alloc_irq_vectors()`
 
 * [ ] 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
 
@@ -4074,11 +4123,29 @@ resources:
 
 * [ ] 调研`pci_alloc_irq_vectors`
 
-* [ ] 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
+* [v] 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
+
+    feedback:
+
+    1. [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
+
+    1. [ ] `free_irq()`为什么需要传入 dev_id？其返回值`void*`又是什么含义？
 
 * [ ] 调研`pci_msix_vec_count`
 
-* [ ] 调研`pci_find_capability`
+* [v] 调研`pci_find_capability`
+
+    feedback:
+
+    1. Root Port, Switch, Endpoint
+
+    1. `pci_msi_enabled()`
+
+    1. `pcie_get_readrq()`
+
+    1. `pci_enable_msix_range()`
+
+    1. `dev_info()`
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -4147,10 +4214,6 @@ resources:
     doc: <https://www.qemu.org/docs/master/specs/edu.html>
 
     res: <https://jklincn.com/posts/qemu-edu-driver/>
-
-    deps:
-
-    1. [v] reorg: linux driver `request_irq()`
 
     feedback:
 
@@ -4236,25 +4299,19 @@ resources:
 
 * [v] 调研`kzalloc`, `kfree`
 
-    feedback:
+* [ ] `kzalloc_node()`
 
-    1. `kzalloc_node()`
+* [ ] `kvzalloc()`
 
-    1. `kvzalloc()`
+* [ ] `kfree_rcu()`
 
-    1. `kfree_rcu()`
+* [ ] `kfree_bulk()`
 
-    1. `kfree_bulk()`
+* [ ] `kfree_const()`
 
-    1. `kfree_const()`
+* [ ] `kfree_sensitive()`
 
-    1. `kfree_sensitive()`
-
-    1. `kvfree()`
-
-* [ ] 调研`device_create()`和`device_add()`有什么区别？
-
-    `device_del()`和`device_destroy()`有什么区别？
+* [ ] `kvfree()`
 
 * [ ] 调研`select`的用法
 
