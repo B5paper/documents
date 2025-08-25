@@ -6,6 +6,28 @@
 
 ## cache
 
+* strace
+
+    strace 可以记录一个进程在运行时与内核之间的所有系统调用（system calls）和接收到的信号（signals）
+
+    example:
+
+    ```bash
+    strace ls
+    ```
+
+    常用方式（未验证）：
+
+    * `strace <command>`：跟踪一个命令的执行。
+
+    * `strace -p <pid>`：附着到一个正在运行的进程上进行跟踪。
+
+    * `strace -e trace=<type>`：只跟踪特定类型的系统调用，如 strace -e trace=open,read ls 只跟踪 open 和 read 调用。
+
+    * `strace -o output.txt`：将输出重定向到文件，便于分析。
+
+    * `strace -c`：在程序结束后生成一个统计报告，显示各个系统调用的次数、时间和错误。
+
 * `ss`
 
     Socket Statistics，可以查看当前的 tcp, udp 连接。

@@ -2,6 +2,26 @@
 
 ## cache
 
+* qemu 无图形界面启动
+
+    * 方案一
+    
+        `-nographic`
+
+    * 方案二（未验证）
+
+        `-display none`
+
+* 强制关闭 qemu
+
+    （未验证）
+
+    强制退出：要强制终止 QEMU 进程，回到终端，可以先按下 Ctrl + A，松开后再按 X。
+
+    * Ctrl + A 然后 X：立即终止 QEMU（相当于杀进程）。
+
+    * Ctrl + A 然后 C：可以在 QEMU 监视器控制台和客户机串口控制台之间切换（用于更高级的操作）。
+
 * qemu edu: `-device edu`
 
 * qemu 虚拟机将内部的 22 端口映射到外部的 2222 端口

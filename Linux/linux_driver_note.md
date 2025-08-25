@@ -6,6 +6,798 @@ Ref:
 
 ## cache
 
+* `list_for_each()`
+
+    对`struct list_head`进行遍历，如果需要拿到外部 struct 的指针，那么需要手动调用`container_of()`。
+
+    syntax:
+
+    ```c
+    list_for_each(pos, head)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+    #include <linux/pci.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add_tail(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add_tail(&new_node->list_head, &lst_head);
+
+        struct list_head *cur_head;
+        list_for_each(cur_head, &lst_head) {
+            pr_info("node val: %d\n", container_of(cur_head, struct my_list_node, list_head)->val);
+        }
+
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 3736.286051] in hello_init()...
+    [ 3736.286191] node val: 123
+    [ 3736.286198] node val: 456
+    [ 3743.204415] in hello_exit()...
+    ```
+
+    `list_for_each_safe()`为`list_for_each()`的删除节点版本。
+
+* `list_entry()`
+
+    `list_entry()`和`container_of()`完全等价，用于从成员成员拿到外部 struct 的指针。
+
+    syntax:
+
+    ```c
+    list_entry(ptr, type, member)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+    #include <linux/pci.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add_tail(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add_tail(&new_node->list_head, &lst_head);
+
+        struct my_list_node *cur_node;
+        struct list_head *cur_head;
+        list_for_each(cur_head, &lst_head) {
+            cur_node = list_entry(cur_head, struct my_list_node, list_head);
+            pr_info("node val: %d\n", cur_node->val);
+        }
+
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 4057.550524] in hello_init()...
+    [ 4057.550644] node val: 123
+    [ 4057.550650] node val: 456
+    [ 4063.035152] in hello_exit()...
+    ```
+
+* linux 内核没有提供方法直接得到链表的长度，需要我们自己实现。
+
+    ```c
+    #include <linux/list.h>
+
+    int list_node_count(struct list_head *head)
+    {
+        int count = 0;
+        struct list_head *pos;
+
+        // 使用 list_for_each 遍历链表，每到一个节点计数器加一
+        list_for_each(pos, head) {
+            count++;
+        }
+
+        return count;
+    }
+    ```
+
+* `list_empty()`
+
+    判断链表是否为空。
+
+    list_empty() 原理：它检查头节点的 next 指针是否指向它自己。
+
+    ```c
+    // list_empty 的典型实现
+    #define list_empty(head) ((head)->next == (head))
+    ```
+
+    `list_empty()`只能作用于已经初始化的链表。
+
+    一个被删除且未被重新 init 的节点调用 list_empty() 不会返回真。
+
+* irq 11 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/interrupt.h>
+
+    irqreturn_t my_irq_handler(int irq, void *dev_id) {
+        pr_info("in my_irq_handler()...\n");
+        pr_info("irq: %d, dev_id: %p\n", irq, dev_id);
+        return IRQ_HANDLED;
+    }
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        int ret = request_irq(11, my_irq_handler, IRQF_SHARED, "hlc irq", my_irq_handler);
+        if (ret != 0) {
+            pr_err("fail to request irq\n");
+            return -1;
+        }
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        free_irq(11, my_irq_handler);
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    `cat /proc/interrupts ` output:
+
+    ```
+    test@Ubuntu22:~/Documents/Projects/driver_test$ cat /proc/interrupts 
+               CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+      0:         33          0          0          0          0          0          0          0   IO-APIC   2-edge      timer
+      1:         11          0          0          0          0          0          0          0   IO-APIC   1-edge      i8042
+      6:          0          0          3          0          0          0          0          0   IO-APIC   6-edge      floppy
+      7:          0          0          0          1          0          0          0          0   IO-APIC   7-edge      parport0
+      8:          0          1          0          0          0          0          0          0   IO-APIC   8-edge      rtc0
+      9:          0          0          0          0          0          0          0          0   IO-APIC   9-fasteoi   acpi
+     11:          0          0          0          0          0          0          0          0   IO-APIC  11-fasteoi   hlc irq
+     12:          0          0          0          0          0          0          0         15   IO-APIC  12-edge      i8042
+    ```
+
+* `pci_find_capability()`
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_find_capability(struct pci_dev *dev, int cap);
+    ```
+
+    * `int cap_id`：要查找的能力类型的标识符（一个字节的 ID，如 0x10 代表 PCIe）。
+
+    函数会从 PCI 配置空间的能力列表指针（Capabilities Pointer register，偏移量 `0x34`）开始，遍历整个能力链表。
+
+    返回值：
+
+    成功：如果找到了与 cap_id 匹配的能力项，则返回该能力结构在 PCI 配置空间中的偏移地址（例如，0x100）。驱动程序可以利用这个地址来读取或写入该能力结构中的具体寄存器（如配置 MSI 中断向量数、地址和数据）。
+
+    失败：如果遍历完整个链表都没有找到指定的能力，或者设备根本不支持能力列表，则返回 0。
+
+* pci capabilities list
+
+    每个 node 代表一个 capabiiility，node 的大小并不固定，只有前两个字节是固定的。
+
+    字节 0：Capability ID - 唯一标识能力的类型（如 0x01 是电源管理，0x10 是 PCIe）。
+
+    字节 1：Next Capability Pointer - 指向下一个能力结构在配置空间中的偏移地址。这个指针将所有的能力节点链接在一起，形成链表。
+
+    从字节 2 开始，驱动程序通过查询 Capability ID 来确定该如何解析后续的字节。详细的格式由 pci sig 维护。程序可以通过`pci_read_config_byte()`, `pci_read_config_word()`, `pci_read_config_dword()`来读取。开发者应该尽量使用更高级的接口，不要直接读取这些字节。
+
+    常见的 pci capability id 与其对应的 struct:
+
+    * `PCI_CAP_ID_MSI` (`0x05`): 消息信号中断
+
+        MSI 结构有两种常见形式：32位和64位地址格式。
+
+        * 最小形式 (32位地址, 1个向量)：
+
+            偏移 0x00: Capability ID (0x05) + Next Pointer
+
+            偏移 0x02: Message Control Register
+
+            偏移 0x04: Message Address Register (低32位)
+
+            偏移 0x08: Message Data Register
+
+            总长度: 10 字节 (从链表指针开始算起的结构体大小)
+
+        * 扩展形式 (64位地址, 多个向量)：
+
+            包含最小形式的所有寄存器...
+
+            偏移 0x08: Message Address Register (高32位)
+
+            偏移 0x0C: Message Data Register
+
+            偏移 0x10: Mask Bits Register (可选)
+
+            偏移 0x14: Pending Bits Register (可选)
+
+            总长度: 可达 24 字节或更多
+
+    * `PCI_CAP_ID_MSIX` (`0x11`): 消息信号中断
+
+    * `PCI_CAP_ID_PM` (`0x01`): 电源管理
+
+    * `PCI_CAP_ID_EXP` (`0x10`): PCIe 特性
+
+        PCI Express Capabilities Register
+
+        Device Capabilities Register
+
+        Device Status and Control Register
+
+        Link Capabilities Register
+
+        Link Status and Control Register
+
+        Slot Capabilities Register (如果适用)
+
+        ...
+
+        总长度: 通常至少是 20 字节（对于端点设备），对于根端口或交换设备会更长
+
+    * `PCI_CAP_ID_VNDR` (`0x09`): 虚拟通道
+
+* MSI (Message Signaled Interrupts)
+
+* 完整的 pci capability list
+
+    可参考`uapi/linux/pci_regs.h`。
+
+    | 常量 | 值 | 描述 |
+    | - | - | - |
+    | PCI_CAP_ID_PM | 0x01 | 电源管理 (Power Management) |
+    | PCI_CAP_ID_AGP | 0x02 | 加速图形端口 (Accelerated Graphics Port) |
+    | PCI_CAP_ID_VPD | 0x03 | 重要产品数据 (Vital Product Data) |
+    | PCI_CAP_ID_SLOTID | 0x04 | 插槽识别 (Slot Identification) |
+    | PCI_CAP_ID_MSI | 0x05 | 消息信号中断 (Message Signaled Interrupts) |
+    | PCI_CAP_ID_CHSWP | 0x06 | 热插拔 (CompactPCI Hot-Swap) |
+    | PCI_CAP_ID_PCIX | 0x07 | PCI-X |
+    | PCI_CAP_ID_HT | 0x08 | HyperTransport |
+    | PCI_CAP_ID_VNDR | 0x09 | 厂商特定信息 (Vendor-Specific) |
+    | PCI_CAP_ID_DBG | 0x0A | 调试端口 (Debug port) |
+    | PCI_CAP_ID_CCRC | 0x0B | 紧凑型PCI中央资源控制 (CompactPCI CRC) |
+    | PCI_CAP_ID_SHPC | 0x0C | 标准热插拔控制器 (Standard Hot-Plug Controller) |
+    | PCI_CAP_ID_SSVID | 0x0D | 子系统厂商ID (Subsystem Vendor/Device ID) |
+    | PCI_CAP_ID_AGP3 | 0x0E | AGP 8x |
+    | PCI_CAP_ID_SECDEV | 0x0F | 安全设备 (Secure Device) |
+    | PCI_CAP_ID_EXP | 0x10 | PCI Express (这是最常用的之一) |
+    | PCI_CAP_ID_MSIX | 0x11 | MSI-X 中断 (这是最常用的之一) |
+    | PCI_CAP_ID_SATA | 0x12 | SATA 数据/配置索引 |
+    | PCI_CAP_ID_AF | 0x13 | 高级功能 (Advanced Features) |
+
+* `list_add_tail()`
+
+    在链表尾部添加元素。
+
+    syntax:
+
+    ```c
+    static inline void list_add_tail(struct list_head *new, struct list_head *head)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add_tail(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add_tail(&new_node->list_head, &lst_head);
+
+        struct my_list_node *cur_node;
+        list_for_each_entry(cur_node, &lst_head, list_head) {
+            pr_info("node val: %d\n", cur_node->val);
+        }
+        
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [  488.597973] in hello_init()...
+    [  488.597977] node val: 123
+    [  488.597981] node val: 456
+    [  495.047735] in hello_exit()...
+    ```
+
+    如果链表越来越长，`list_add_tail()`的速度不会变慢，因为 linux 中的链表是双向循环链表，head 节点的 prev 即指向尾节点。
+
+* `pci_register_driver()`
+
+    `pci_register_driver()`是一个宏，用于向内核注册 pci 设备驱动。
+
+    syntax:
+
+    ```c
+    int pci_register_driver(struct pci_driver *driver);
+    ```
+
+    `struct pci_driver`中比较重要的字段如下：
+
+    * `.name`： 驱动程序的名称。
+
+    * `.id_table`： 它指向一个`pci_device_id`数组，这个数组列出了该驱动程序所能支持的所有PCI设备的厂商ID（Vendor ID）和设备ID（Device ID）。用来进行设备匹配。
+
+    * `.probe`: 用于驱动初始化
+
+    * `.remove`: probe 的逆过程
+
+    * `.shutdown`: 不知道干嘛用的
+
+    在注册过程中，内核的PCI子系统会立刻遍历当前系统中所有已发现的PCI设备。
+
+    注册成功后，内核会在`/sys/bus/pci/drivers/`目录下创建一个以驱动程序命名的新目录（例如`/sys/bus/pci/drivers/e1000e/`）。
+
+    其逆函数为`pci_unregister_driver()`.
+
+* `list_next_entry()`
+
+    根据当前 node 指针，拿到下一个 node 的指针。
+
+    ```syntax
+    ptr = list_next_entry(pos, member)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+        struct my_list_node *node = list_first_entry(&lst_head, struct my_list_node, list_head);
+        pr_info("first entry val: %d\n", node->val);
+        node = list_next_entry(node, list_head);
+        pr_info("next entry val: %d\n", node->val);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [16486.123036] in hello_init()...
+    [16486.123155] first entry val: 456
+    [16486.123160] next entry val: 123
+    [16492.787828] in hello_exit()...
+    ```
+
+    可以看到，`list_first_entry()`传进去的是`list_head`，而`list_next_entry()`传进去的是我们自己的 node struct。
+
+    与其对应的宏为`list_prev_entry()`。
+
+* `kzalloc()`
+
+    申请内存，并将内存置 0.
+
+* `list_first_entry()`
+
+    给定`struct list_head*`指针，拿到
+
+    syntax:
+
+    ```c
+    #include <linux/list.h>
+
+    list_first_entry(ptr, type, member)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+        struct my_list_node *node = list_first_entry(&lst_head, struct my_list_node, list_head);
+        pr_info("first entry val: %d\n", node->val);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [13557.594168] in hello_init()...
+    [13557.594275] first entry val: 456
+    [13564.272870] in hello_exit()...
+    ```
+
+    与其对应的宏为`list_last_entry()`。
+
+* `file_operations`中的`.owner`主要用于引用计数，防止内核模块在仍被进程使用（即其代码正在执行）时被意外卸载
+
+    `struct module *owner`通常被设置为`THIS_MODULE`
+
+    当进程打开一个设备文件时，内核内部会调用 try_module_get(module) 来尝试增加该模块的引用计数。
+
+    当进程关闭设备文件时，内核会调用 module_put(module) 来减少模块的引用计数。
+
+    当执行 rmmod 命令时，内核会检查目标模块的引用计数。如果计数大于 0（表示还有进程正在使用该模块提供的功能），卸载操作会失败并提示 Module XXX is in use。只有当引用计数为 0 时，卸载才会成功进行。
+
+    linux 内核中有些 module 是永久存在的，不需要被卸载，为了区分哪些需要计数，哪些不需要，内核通过`struct module*`指针来判断。对于内置的 module，`.owner`为`NULL`。
+
+* `LIST_HEAD_INIT()`
+
+    `LIST_HEAD_INIT()`展开为
+
+    ```c
+    #define LIST_HEAD_INIT(name) { &(name), &(name) }
+    ```
+
+    可以看到，主要是完成链表的静态初始化功能，将头节点指向自身。
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head = LIST_HEAD_INIT(lst_head);
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            pr_info("del node val: %d\n", cur_node->val);
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 2938.473855] in hello_init()...
+    [ 2941.209560] in hello_exit()...
+    [ 2941.209570] del node val: 456
+    [ 2941.209575] del node val: 123
+    ```
+
+* `list_del_init()`
+
+    删除完节点后，将此节点的 prev 和 next 指向自身。
+
+    syntax:
+
+    ```c
+    #include <linux/list.h>
+
+    void list_del_init(struct list_head *entry)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head = LIST_HEAD_INIT(lst_head);
+    LIST_HEAD(lst_head_2);
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del_init(&cur_node->list_head);
+            list_add(&cur_node->list_head, &lst_head_2);
+        }
+        
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head_2, list_head) {
+            pr_info("del node val: %d\n", cur_node->val);
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 4285.077823] in hello_init()...
+    [ 4290.003627] in hello_exit()...
+    [ 4290.003719] del node val: 123
+    [ 4290.003754] del node val: 456
+    ```
+
+    这个函数通常用于将一个节点从一个链表中取出来，并准备好将它添加到另一个链表中。
+
+    实测将上述代码中的`list_del_init()`替换成`list_del()`后，没有什么区别。
+
+    `list_del()`将节点取出后，会将节点的`next`, `prev`设置为`LIST_POISON1`和`LIST_POISON2`；`list_del_init()`将节点取出后，会将节点的`next`, `prev`都指向自身。
+
+* 将`struct list_head`内嵌到用户定义的`struct ListNode`中，可能是 linux c 没有泛型和模板的无奈之举
+
+    如果内核直接实现
+
+    ```c
+    struct ListNode {
+        struct ListNode *prev, *next;
+        void *user_data;
+        size_t user_data_len;
+    }
+    ```
+
+    那么`kmalloc()`时无法把`user_data`的内存分出来，用户需要自己管理这块内存，而且还可能涉及到浅复制，深复制的问题。
+
+    如果内核想实现
+
+    ```cpp
+    template<typename T>
+    void list_add(T *list_head, T *new_node) {
+        T *tmp_node = list_head->next;
+        list_head->next = new_node;
+        new_node->next = tmp_node;
+        new_node->prev = list_head;
+    }
+    ```
+
+    那么又没有模板机制。
+
+    综合考虑，还是内嵌的方式最合适。
+
+* `list_del_rcu()`
+
+    RCU - Read-Copy-Update
+
+    用于无锁删除链表中的节点。
+
+    （未验证）
+
+    多线程访问链表的情况下，`list_del()`在删除节点时，通常需要加锁保护。但是加锁会降低性能，如果想无锁删除节点，那么就需要用到`list_del_rcu()`。`list_del_rcu()`会先修改被删除节点前一个节点的 next 指针，然后调用 synchronize_rcu() 或 kfree_rcu() 等函数等待宽限期（Grace Period），确保所有在删除操作前开始的读临界区都结束后，才安全地释放该节点的内存。
+
+    在宽限期结束前，可能仍有读者正在遍历链表并访问该节点的数据。由于 prev 指针未被修改，这些读者可以继续安全地向前遍历链表，而不会因为节点被删除而崩溃（不会遇到 LIST_POISON）。（为什么 reader 可以访问 prev 就不会崩溃？）
+
+    适用于读多写少的链表。
+
+    example:
+
+    ```c
+    // 假设一个RCU保护的链表
+    struct my_data {
+        int value;
+        struct list_head list;
+    };
+
+    // 写者删除节点
+    void delete_node(struct my_data *node)
+    {
+        spin_lock(&write_lock); // 写者之间仍需同步
+        list_del_rcu(&node->list); // 1. 从链表逻辑删除
+        spin_unlock(&write_lock);
+
+        // 2. 等待所有读者离开宽限期
+        synchronize_rcu(); 
+
+        // 3. 现在安全地释放内存
+        kfree(node);
+    }
+
+    // 读者遍历链表（无锁！）
+    void reader(void)
+    {
+        struct my_data *node;
+
+        rcu_read_lock(); // 标记进入RCU读临界区
+        list_for_each_entry_rcu(node, &my_list, list) {
+            // 安全地访问 node->value，即使它正被删除
+            printk("%d\n", node->value);
+        }
+        rcu_read_unlock(); // 标记离开读临界区
+    }
+    ```
+
 * 如果在注册 irq X 的 handler 1 时设置为 shared，那么后面注册 irq X 的 handler 2 时也设置为 shared，可以注册成功，有 irq X 的中断时，两个 handler 都会调用
 
     未验证。

@@ -2,6 +2,119 @@
 
 ## cache
 
+* makefile 中的子文件夹与`.PHONY`
+
+    假如当前的工程目录为：
+
+    ```
+    - proj
+        my_lib.h
+        my_lib.cpp
+        Makefile
+        - tests
+            xxx.h
+            xxx.cpp
+            Makefile
+        - imported_libs
+            yyy.h
+            yyy.cpp
+            Makefile
+    ```
+
+    如果我们希望`proj`文件夹中的 makefile 可以进入到子文件夹`tests`和`imported_libs`中执行 make 进行子模块的编译，那么我们写出的`proj/Makefile`文件可能是这样的：
+
+    ```makefile
+    all: libs imported_libs tests
+    	@echo "in all target"
+
+    libs:
+    	@echo "in libs target"
+    	touch libs.txt
+    	# g++ -c my_lib.cpp -o my_lib.o
+
+    imported_libs:
+    	@echo "in imported_libs target"
+    	$(MAKE) -C imported_libs
+
+    tests:
+    	@echo "in tests target"
+    	$(MAKE) -C tests
+
+    clean:
+    	$(MAKE) -C tests clean
+    	$(MAKE) -C imported_libs clean
+    	rm -f libs.txt
+    ```
+
+    `make`输出如下：
+
+    ```
+    in libs target
+    touch libs.txt
+    # g++ -c my_lib.cpp -o my_lib.o
+    in all target
+    ```
+
+    可以看到虽然``all`的依赖目标中包含有`imported_libs`和`tests`，但是这两个根本没执行。因此已经有同名的文件夹存在。
+
+    此时需要`.PHONY`来解决这个问题：
+
+    ```makefile
+    .PHONY: tests imported_libs
+
+    all: libs imported_libs tests
+    	@echo "in all target"
+
+    libs:
+    	@echo "in libs target"
+    	touch libs.txt
+    	# g++ -c my_lib.cpp -o my_lib.o
+
+    imported_libs:
+    	@echo "in imported_libs target"
+    	$(MAKE) -C imported_libs
+
+    tests:
+    	@echo "in tests target"
+    	$(MAKE) -C tests
+
+    clean:
+    	$(MAKE) -C tests clean
+    	$(MAKE) -C imported_libs clean
+    	rm -f libs.txt
+    ```
+
+    `make`的 output:
+
+    ```
+    in libs target
+    touch libs.txt
+    # g++ -c my_lib.cpp -o my_lib.o
+    in imported_libs target
+    make -C imported_libs
+    make[1]: Entering directory '/home/hlc/Documents/Projects/makefile_test/imported_libs'
+    in imported_libs dir...
+    touch imported_libs.txt
+    make[1]: Leaving directory '/home/hlc/Documents/Projects/makefile_test/imported_libs'
+    in tests target
+    make -C tests
+    make[1]: Entering directory '/home/hlc/Documents/Projects/makefile_test/tests'
+    in tests dir...
+    touch tests.txt
+    make[1]: Leaving directory '/home/hlc/Documents/Projects/makefile_test/tests'
+    in all target
+    ```
+
+* makefile 中的依赖机制
+
+    1. `target`如果没有依赖项，那么检测名为`target`的文件/文件夹是否存在，若不存在，则执行`target`，否则不执行
+
+    2. 若`target`有依赖项`dep`，那么判断`dep`文件是否比`target`新，如果是，那么执行`target`，如果`dep`只是目标，不是文件，那么无论`dep`是否执行，总是认为`dep`比`target`新
+
+    3. 如果有`.phony: target dep`存在，那么认为`target`和`dep`都只是目标，不是文件
+
+* makefile 中的`export`
+
 * makefile 里，编译时依赖 a.o 和 b.o 文件，但是这两个文件不在当前目录里，如何在 g++ 命令里方便地把它们加上去？
 
     目前有三种方案：

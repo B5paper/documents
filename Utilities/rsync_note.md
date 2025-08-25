@@ -2,6 +2,93 @@
 
 ## cache
 
+* `rsync`本身不可实时同步目录，只能配合`inotifywait`实现实时同步
+
+    (未验证)
+
+    1. 使用 bash 实现
+
+        ```bash
+        #!/bin/bash
+
+        # 定义源目录和目标服务器目录
+        SOURCE_DIR="/path/to/source/dir/"
+        TARGET_DIR="/path/to/target/dir/"
+        REMOTE_USER="username"
+        REMOTE_HOST="remote_server_ip"
+
+        # 开始监控 inotifywait
+        inotifywait -mrq --timefmt '%Y-%m-%d %H:%M:%S' --format '%T %w%f %e' \
+          -e create,delete,modify,move,attrib \
+          ${SOURCE_DIR} | while read time file event
+        do
+          echo "-----"
+          echo "Event: $event"
+          echo "File: $file"
+          echo "Time: $time"
+
+          # 触发 rsync 同步
+          # 注意：这里使用了 --delete 选项，如果源端删除了文件，目标端也会删除。
+          # 如果不希望这样，请移除 --delete 选项。
+          rsync -avz --delete ${SOURCE_DIR} ${REMOTE_USER}@${REMOTE_HOST}:${TARGET_DIR}
+
+          # 可选：输出同步完成时间
+          echo "Sync completed at: $(date +'%Y-%m-%d %H:%M:%S')"
+          echo "-----"
+        done
+        ```
+
+        参数详解：
+
+        inotifywait:
+
+            -m: --monitor，持续监控，而不是触发一次就退出。
+
+            -r: --recursive，递归监控目录。
+
+            -q: --quiet，减少不必要的输出。
+
+            --timefmt: 指定时间格式。
+
+            --format: 指定事件输出格式。
+
+            -e: 指定要监控的事件，最重要的一些事件包括：
+
+                create (文件/目录创建)
+
+                delete (文件/目录删除)
+
+                modify (文件内容修改)
+
+                move (文件/目录移动)
+
+                attrib (文件属性变化，如权限、时间戳)
+
+        rsync:
+
+            -a: --archive，归档模式，保持所有文件属性，等同于 -rlptgoD。
+
+            -v: --verbose，输出详细信息。
+
+            -z: --compress，传输时压缩，节省带宽。
+
+            --delete: 谨慎使用。让目标端和源端保持完全一致，源端删除的文件，目标端也会删除。
+
+        运行：
+
+        ```bash
+        chmod +x live_sync.sh
+        # 前台运行
+        ./live_sync.sh
+
+        # 或者放入后台运行，并将输出重定向到日志文件
+        nohup ./live_sync.sh > live_sync.log 2>&1 &
+        ```
+
+    2. 使用`lsyncd`
+
+    综合看来，`rsync`本身没法同步，自己写 bash 太麻烦，要不直接用`lsyncd`，要不直接用 nfs，或 sshfs。（有空可以调研下 nfs, sshfs, lsyncd 底层同步机制的区别）
+
 * `rsync --exclude`
 
     `rsync --exclude=PATTERN`让 rsync 忽略匹配 PATTERN 的文件或目录，不进行同步。`PATTERN`可以是文件名、目录名（`PATTERN`需加`/`表示目录），或通配符模式（如`*.log`）。支持多次使用，排除多个不同规则。`PATTERN`作用于 src 目录。

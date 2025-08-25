@@ -6,6 +6,284 @@
 
 ## cache
 
+* 写时复制（Copy-On-Write, COW）
+
+    只有在真正需要写入（修改）数据时，才会去复制一份副本。在此之前，所有对象（或进程）共享同一份原始数据。
+
+    `fork()`使用了 cow 机制，因此可快速创建一个新进程。
+
+    在调用`fork()`时，内核会把当前进程的所有内存 page 改成只读权限，如果旧进程或新进程尝试往内存写入数据，那么会触发页错误（Page Fault），此时内核会把这一页数据复制一份新的，供尝试写入数据的进程使用。
+
+    每个进程尝试写入数据，都会触发一次 page fault。所以如果新旧进程都写入了数据，那么目前会有三份数据：
+
+    1. P：最初的共享数据（如果再无其他进程共享，它可能会被回收）。
+
+    2. P_father：父进程的私有副本，包含了父进程的修改。
+
+    3. P_child：子进程的私有副本，包含了子进程的修改（基于最初的数据，而非父进程修改后的数据）。
+
+    写时复制（COW）的操作粒度通常是一个内存页（Page）。
+
+* `munmap()`主要用于释放进程的虚拟地址。
+
+    如果 mmap() 映射的是文件，那么`munmap()`会在解除映射时把数据写回文件。
+
+* `mmap()`内部原理
+
+    将进程的一段 va　映射到某个对象上（文件，或内存），程序访问这段虚拟内存时，操作系统通过缺页异常（Page Fault）来自动完成数据的加载和同步。
+
+    mmap 可以实现延迟加载（Lazy Loading）：调用 mmap 时，操作系统并不会立即将整个文件内容读入物理内存。它只是在内核中为进程创建一个数据结构（Linux 中是 `vm_area_struct`），记录下这个映射关系（例如：虚拟地址范围 0x4000 - 0x5000 对应文件 a.txt 的偏移 0 - 4096 字节）。这个过程非常快，消耗资源极少，并且与文件大小无关。真正的数据加载发生在程序首次访问对应的内存地址时。
+
+    虚拟内存区域（VMA - Virtual Memory Area）
+
+    `vm_area_struct`:
+
+    vm_start, vm_end: 这段映射的起始和结束虚拟地址。
+
+    vm_file: 被映射的文件。
+
+    vm_pgoff: 文件中的偏移量（以页为单位）。
+
+    vm_flags: 权限标志（如可读、可写、私有映射、共享映射）。
+
+    进程访问 va 时，MMU 触发一个 缺页异常（Page Fault），CPU 从用户态陷入内核态。内核找到 va 对应的 vma，然后根据 vma 找到对应的文件，将文件内容按 page size （4KB）读到 page 中（数据在物理内存里），然后更新进程的页表，建立 virtual page 到 physical page 的映射。
+
+    此时返回到用户态，并重新执行那条触发异常的指令。
+
+    此后进程读写的都是 physical page 中的内容，此物理页被内核标记为脏页（dirty），意味着它比磁盘上的文件内容更新。
+
+    最终，内核的 pdflush（页回写）守护进程会在后台自动将“脏页”写回到磁盘文件中，以保持数据同步。应用程序也可以主动调用 msync() 来强制立即同步数据。
+
+* 多路复用（select/poll/epoll）中的多路指的是独立的I/O流或连接通道，通常指指大量的网络 socket 连接，复用指的是复用同一个线程/进程。
+
+    多路复用 - multiplexing
+
+* 如果在 fork 前父进程打开了一个文件，拿到一个 fd，那么在 fork 后，父进程的 fd 和子进程的 fd 相同，并且共享同一组状态数据，比如 offset 等
+
+    但是一个进程 close 了 fd，并不会使另一个进程 read 数据失败，因为 fd 采用引用计数机制。
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+
+    int main() {
+        int fd = open("msg.txt", O_RDONLY);
+        if (fd < 0) {
+            printf("fail to open file\n");
+            return -1;
+        }
+        char buf[16] = {0};
+
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            fprintf(stderr, "fail to fork\n");
+            return -1;
+        } else if (pid > 0) {
+            sleep(2);  // 主进程等待子进程读取文件数据
+        }
+
+        ssize_t bytes_read = read(fd, buf, 10);
+        if (bytes_read < 10) {
+            printf("fail to read\n");
+            return -1;
+        }
+
+        printf("buf: [%s]\n", buf);
+
+        if (pid == 0) {
+            int ret = close(fd);
+            if (ret != 0) {
+                printf("fail to close fd\n");
+                return -1;
+            }
+        } else {
+            sleep(2);  // 主进程等子进程关闭 fd 后，再尝试读数据
+            bytes_read = read(fd, buf, 5);
+            buf[5] = '\0';
+            printf("buf from parent process: [%s]\n", buf);
+            int ret = close(fd);
+            if (ret != 0) {
+                printf("fail to close fd\n");
+                return -1;
+            }
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    buf: [hello, wor]
+    buf: [ld, nihao,]
+    buf from parent process: [ zaij]
+    ```
+
+* `read(int fd, void *buf, size_t count);`读取的是 count 个字节，不会把`bus[count - 1]`设置为`\0`。
+
+* `fsync()`
+
+    将系统缓冲区中的内容写入到磁盘，阻塞等待。
+
+    syntax:
+
+    ```c
+    #include <unistd.h>
+
+    int fsync(int fd);
+    ```
+
+* fwrite() 相比系统调用 write() 增加了缓冲区，write() 在操作系统中也使用了缓冲区，这两个缓冲区还是一回事
+
+    `fwrite()`的缓冲区是 C 运行时库（比如 glibc）设置的缓冲区，目的是减少系统调用。存在于进程的地址空间中，进程结束即消失。与此相关的`fflush()`本质是强制进行一次`write()`系统调用。
+
+    `write()`的缓冲区 (page cache) 由操作系统提供，由所有进程、所有 fd 共享。
+
+* `fcntl()`
+
+    对文件描述符 fd 下发各种 control 命令。
+
+    syntax:
+
+    ```c
+    #include <fcntl.h>
+
+    int fcntl(int fd, int cmd, ... /* arg */ );
+    ```
+
+    常用功能（未验证）：
+
+    * 复制文件描述符 (F_DUPFD, F_DUPFD_CLOEXEC)
+
+        复制一个已有的文件描述符，创建一个新的描述符指向同一个文件。
+
+        `fcntl(old_fd, F_DUPFD, new_fd);`
+
+        比较智障的是，这个新复制的 new_fd 和 old_fd 共享同一个 fd struct，因此文件的 offset 仍是共享的。
+
+    * 获取/设置文件描述符标志 (F_GETFD, F_SETFD)
+
+        FD_CLOEXEC（Close-on-Execute），设置此标志后，当进程执行 exec() 系列函数加载新程序时，该文件描述符会被自动关闭，防止它被意外继承到新程序中。
+
+        如果一个文件在打开时是 read only，那么后续不可以通过 fcntl() 改成 rdwr。fcntl() 的 F_SETFL 命令无法改变文件的访问模式（Access Mode）。
+
+        可以改变的几个标记：
+
+        O_APPEND：强制每次写入都追加到文件末尾。
+
+        O_NONBLOCK：设置为非阻塞模式。
+
+        O_ASYNC：启用信号驱动I/O。
+
+        O_DIRECT：尝试最小化缓存效应。
+
+    * 获取/设置文件状态标志 (F_GETFL, F_SETFL)
+
+    * 管理文件锁 (F_GETLK, F_SETLK, F_SETLKW)
+
+        作用：对文件区域施加建议性锁 (Advisory Lock)。
+
+        F_GETLK：检查是否可以加锁。
+
+        F_SETLK：尝试加锁（非阻塞，如果冲突立即返回错误）。
+
+        F_SETLKW：尝试加锁（阻塞，如果冲突则等待直到锁可用）。
+
+        这是一种“建议性”锁，意味着它只对同样使用 fcntl() 检查锁的进程有效。如果一个进程不检查锁直接读写，锁是无法阻止它的。
+
+    * 信号驱动I/O (F_SETOWN, F_GETOWN, F_SETSIG, F_GETSIG)
+
+        设置当文件描述符上发生I/O事件（例如数据可读）时，应该接收信号的进程或进程组。这是实现异步I/O的一种传统方式。
+
+    整体看下来，`fcntl()`用处不大，处理的基本都是边角料情况。等用到了再说。
+
+* `fork()`创建的是新的进程，不是新的线程，所以父进程与子进程的内存都是独立的
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int main() {
+        int val = 0;
+
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            fprintf(stderr, "fail to fork\n");
+            return -1;
+        } else if (pid == 0) {
+            val = 456;
+        } else {
+            val = 123;
+        }
+
+        printf("val is %d\n", val);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val is 123
+    val is 456
+    ```
+
+* `fork()`
+
+    复制当前进程的资源，创建一个新的子进程。
+
+    syntax:
+
+    ```c
+    #include <unistd.h>
+
+    pid_t fork(void);
+    ```
+
+    如果返回值为 0，那么说明当前的进程已经来到了子进程，如果返回值为非 0，那么说明当前的进程仍是父进程。
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int main() {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            fprintf(stderr, "fail to fork\n");
+            return -1;
+        } else if (pid == 0) {  // pic == 0 means this is a child process
+            printf("my pid: %d, my parent pid :%d\n", getpid(), getppid());
+        } else {  // parent process
+            printf("my pid: %d, my child pid: %d\n", getpid(), pid);
+        }
+
+        printf("a greeting from parent process and child process\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    my pid: 886283, my child pid: 886284
+    a greeting from parent process and child process
+    my pid: 886284, my parent pid :886283
+    a greeting from parent process and child process
+    ```
+
+    操作系统内核会为子进程创建一个新的 PCB，用于调度。
+
 * `msync()`
 
     （未验证）

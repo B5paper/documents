@@ -2,6 +2,20 @@
 
 ## cache
 
+* ssh config 中 HostName 和 Host
+
+    Host 用于指定一个别名或模式，HostName 是实际的服务器地址。
+
+    example:
+
+    `~/.ssh/config`:
+
+    ```conf
+    Host myserver
+        HostName example.com
+        User alice
+    ```
+
 * `ssh -o PreferredAuthentications=password`
 
     强制使用 password 进行 ssh 登录。

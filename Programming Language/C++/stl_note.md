@@ -2,6 +2,95 @@
 
 ## cached
 
+* `std::variant`
+
+    `std::variant`是 c++ 17　的特性。
+
+    std::variant 是一个类型安全的联合体（union）。它的作用是在一个变量中，安全地持有和管理多种可能类型中的一种。
+
+    syntax:
+
+    ```cpp
+    #include <variant>
+
+    template< class... Types >
+    class variant;
+    ```
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <variant>
+    #include <string>
+    #include <vector>
+    #include <iostream>
+    using namespace std;
+
+    using MyVariant = std::variant<int, float, string>;
+    // typedef std::variant<int, float, std::string> MyVariant;
+
+    struct MyVisitor {
+        void operator()(int i) const {
+            std::cout << "Got an int: " << i << '\n';
+        }
+        void operator()(float f) const {
+            std::cout << "Got a float: " << f << '\n';
+        }
+        void operator()(const std::string& s) const {
+            std::cout << "Got a string: " << s << '\n';
+        }
+    };
+
+    int main() {
+        vector<MyVariant> values = { 3.14f, "Hello world", 42 };
+
+        for (const auto& v : values) {
+            std::visit(MyVisitor{}, v);
+        }
+
+        for (int i = 0; i < values.size(); ++i) {
+            // cout << values[i] << endl;  // error
+        }
+
+        // get<1> means values[0] is a float type
+        cout << get<1>(values[0]) << endl;
+        // get<2> means values[1] is a string type
+        cout << get<2>(values[1]) << endl;
+        // get<0> means values[2] is a int type
+        cout << get<0>(values[2]) << endl;
+
+        try {
+            MyVariant v = 10;
+            string s = get<string>(v);  // 错误！ v 存的是 int
+        } catch (const std::bad_variant_access& e) {
+            cout << "Caught exception: " << e.what() << '\n';
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Got a float: 3.14
+    Got a string: Hello world
+    Got an int: 42
+    3.14
+    Hello world
+    42
+    Caught exception: std::get: wrong index for variant
+    ```
+
+    访问 variant 的方法通常为`std::get()`或`std::visit()`。如果类型错误，会抛出`std::bad_variant_access`异常。
+
+    说明：
+
+    1. 使用`using`和使用`typedef`效果一样的。
+
+    1. `get<0>`里的`0`指的是`std::variant<int, float, string>`里的第 0 个类型。
+
 * `std::visit`
 
     `std::visit`可以根据当前存储的实际类型，动态调用对应的处理逻辑。
