@@ -1864,17 +1864,15 @@ tasks:
 
 * [v] 修改 siccl makefile
 
-    feedback:
+* [ ] `$(MAKE)`与`make`有什么不同？
 
-    1. `$(MAKE)`与`make`有什么不同？
-
-    1. gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
+* [ ] gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
 
 * [ ] 调研可视化的方案
 
 * [ ] 调研是否其他地方用到了 topo id
 
-* [ ] 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
+* [v] 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
 
 * [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
 
@@ -1904,17 +1902,11 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [v] 调研多路复用（select/poll/epoll）中的多路是什么含义
-
 * [ ] 调研`epoll`的用法
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
 * [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
-
-* [v] 调研 rsync 如何实时同步文件
-
-    如果其中有个目录是远程目录，那么可以同步文件吗？
 
 * [ ] 调研`ssh-copy-id -i`
 
@@ -1961,8 +1953,6 @@ tasks:
 * [ ] 调研 PTY 与 tty 有何不同
 
 * [ ] 调研`huponexit`
-
-* [v] 调研`strace`
 
 * [ ] `openat()`
 
@@ -2107,9 +2097,7 @@ tasks:
 
 * [v] 调研`std::variant`
 
-    feedback:
-
-    1. `std::get_if<T>()`
+* [ ] `std::get_if<T>()`
 
 * [ ] 调研`std::any`
 
@@ -2307,9 +2295,7 @@ tasks:
 
 * [v] 调研`feof()`, `ferror()`
 
-    feedback:
-
-    * 调研`perror()`
+* [ ] 调研`perror()`
 
 * [ ] c++ 中, string + char * 得到的是什么？如果改变运算顺序，char* + char* + string，又会得到什么？
 
@@ -3904,6 +3890,10 @@ resources:
 
 ### tasks
 
+* [ ] `kvzalloc()`
+
+* [ ] `kvfree()`
+
 * [ ] 调研`device_create()`和`device_add()`有什么区别？
 
     `device_del()`和`device_destroy()`有什么区别？
@@ -3923,7 +3913,15 @@ resources:
 
 * [ ] 调研 makefile 中 target 的执行机制
 
-* [ ] `device_create()`与`device_add()`有何不同？
+* [v] `device_create()`与`device_add()`有何不同？
+
+    feedback:
+
+    1. `device_create_file()`
+
+    1. 总线设备、平台设备
+
+    1. `device_register()`
 
 * [ ] `device_attach()`
 
@@ -3943,7 +3941,7 @@ resources:
 
 * [ ] unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
 
-* [ ] `pr_err_once()`
+* [v] `pr_err_once()`
 
 * [ ] `device_create_file()`
 
@@ -3957,7 +3955,7 @@ resources:
 
     `0766`不可以，`0755`可以。
 
-* [ ] `register_chrdev_region()`与`register_chrdev()`有何不同？
+* [v] `register_chrdev_region()`与`register_chrdev()`有何不同？
 
 * [ ] `unregister_module_notifier()`
 
@@ -3971,7 +3969,7 @@ resources:
 
     为什么？
 
-* [ ] `printk("<1>""hello my module\n");`是否等价于`printk(KERN_INFO "xxx")`?
+* [v] `printk("<1>""hello my module\n");`是否等价于`printk(KERN_INFO "xxx")`?
 
 * [ ] `charp`在哪个头文件中？
 
@@ -4002,17 +4000,13 @@ resources:
 
 * [v] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
-    feedback:
+* [ ] `vm_area_struct()`
 
-    1. `vm_area_struct()`
+* [ ] 调研 PTE（Page Table entry）, 进程的页表
 
-    1. 调研 PTE（Page Table entry）, 进程的页表
+* [ ] 后备存储（Backing Store）
 
-    1. 后备存储（Backing Store）
-
-    1. 什么是虚拟页？和物理页有什么不同？
-
-* [v] 调研`fsync()`, `fcntl()`
+* [ ] 什么是虚拟页？和物理页有什么不同？
 
 * [ ] 调研`fdatasync()`
 
@@ -4030,13 +4024,9 @@ resources:
 
 * [v] 调研什么是写时复制（COW）
 
-    feedback:
+* [ ] Btrfs、ZFS的COW机制
 
-    1. Btrfs、ZFS的COW机制
-
-    1. 页帧分配、页表管理、换入换出（Swapping）
-
-* [v] 调研`fork()`
+* [ ] 页帧分配、页表管理、换入换出（Swapping）
 
 * [ ] 调研`std::mutex`
 
@@ -4052,27 +4042,19 @@ resources:
 
 * [v] 调研`pci_register_driver()`
 
-    feedback:
+* [ ] 调研`ACPI`
 
-    1. 调研`ACPI`
+* [ ] MSI-X中断
 
-    1. MSI-X中断
-
-    1. 调研IO队列是什么（可能和NVMe控制器相关）
+* [ ] 调研IO队列是什么（可能和NVMe控制器相关）
 
 * [ ] 调研`create_workqueue`
 
-* [v] 调研`list_add_tail()`
-
 * [v] 调研`list_for_each_safe()`, `list_entry()`
 
-    feedback:
+* [ ] 调研`container_of()`或`list_entry()`的实现，尝试手动实现一下
 
-    1. 调研`container_of()`或`list_entry()`的实现，尝试手动实现一下
-
-    1. 调研 linux 中的完成量（completion）
-
-* [v] 调研`list_del_init()`, `list_del_rcu()`, `list_lru_del()`
+* [ ] 调研 linux 中的完成量（completion）
 
 * [ ] `LIST_POISON1`, `LIST_POISON2`
 
@@ -4084,17 +4066,11 @@ resources:
 
 * [v] 调研 如何获取 list 的长度（有多少个节点）？
 
-    feedback:
+* [ ] `spin_lock()`, `spin_unlock()`
 
-    1. `spin_lock()`, `spin_unlock()`
+* [ ] `list_is_singular()`
 
-    1. `list_is_singular()`
-
-    1. `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
-
-* [v] 调研`LIST_HEAD_INIT()`
-
-* [v] 调研`list_empty()`
+* [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
 * [ ] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
 
@@ -4105,10 +4081,6 @@ resources:
 * [ ] 调研分割链表：list_cut_position()
 
 * [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
-
-* [v] 调研`list_first_entry()`, `list_next_entry()`
-
-* [ ] `container_of()`
 
 * [ ] `list_next()`
 
@@ -4136,27 +4108,25 @@ resources:
 
 * [v] 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
 
-    feedback:
+* [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
 
-    1. [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
-
-    1. [ ] `free_irq()`为什么需要传入 dev_id？其返回值`void*`又是什么含义？
+* [ ] `free_irq()`为什么需要传入 dev_id？其返回值`void*`又是什么含义？
 
 * [ ] 调研`pci_msix_vec_count`
 
 * [v] 调研`pci_find_capability`
 
-    feedback:
+* [ ] Root Port, Switch, Endpoint
 
-    1. Root Port, Switch, Endpoint
+* [ ] `pci_msi_enabled()`
 
-    1. `pci_msi_enabled()`
+* [ ] `pcie_get_readrq()`
 
-    1. `pcie_get_readrq()`
+* [ ] `pci_enable_msix_range()`
 
-    1. `pci_enable_msix_range()`
+* [ ] `dev_info()`
 
-    1. `dev_info()`
+* [ ] 调研`dev_err()`
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -4203,8 +4173,6 @@ resources:
 * [ ] 调研`screen`命令
 
 * [ ] 调研`pci_request_regions()`
-
-* [ ] 调研`dev_err()`
 
 * [ ] 调研驱动程序的`.remove()`和`.shutdown()`函数
 
@@ -4265,8 +4233,6 @@ resources:
 
         上面两个仅报 warning，但是不影响编译。
 
-* [ ] `register_chrdev()`
-
 * [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
 
 * [ ] 调研 I2C 驱动
@@ -4308,11 +4274,7 @@ resources:
 
 * [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
 
-* [v] 调研`kzalloc`, `kfree`
-
 * [ ] `kzalloc_node()`
-
-* [ ] `kvzalloc()`
 
 * [ ] `kfree_rcu()`
 
@@ -4321,8 +4283,6 @@ resources:
 * [ ] `kfree_const()`
 
 * [ ] `kfree_sensitive()`
-
-* [ ] `kvfree()`
 
 * [ ] 调研`select`的用法
 

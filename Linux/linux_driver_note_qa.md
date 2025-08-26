@@ -237,7 +237,7 @@ int load_my_driver(void)
 {
     printk("load my driver\n");
     alloc_chrdev_region(&dev, 0, 1, "etx_dev");
-    dev_class = class_create(THIS_MODULE, "etx_class");
+    dev_class = class_create("etx_class");
     device_create(dev_class, NULL, dev, NULL, "etx_device");
     return 0;
 }
