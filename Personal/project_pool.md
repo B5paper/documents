@@ -1862,8 +1862,6 @@ tasks:
 
 ### tasks
 
-* [v] 修改 siccl makefile
-
 * [ ] `$(MAKE)`与`make`有什么不同？
 
 * [ ] gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
@@ -1871,8 +1869,6 @@ tasks:
 * [ ] 调研可视化的方案
 
 * [ ] 调研是否其他地方用到了 topo id
-
-* [v] 调研如何找到 sipu driver 里`siDeviceGet()`函数的`.so`库文件
 
 * [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
 
@@ -1940,7 +1936,15 @@ tasks:
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
 
-* [ ] 调研`od -c`的作用
+* [v] 调研`od -c`的作用
+
+    feedback:
+
+    1. `od -x`
+
+    1. `od -t x<N>`
+
+    1. `od -c`
 
 * [ ] 调研 openssl, gpg
 
@@ -2094,8 +2098,6 @@ tasks:
 * [ ] 调研`rsync -v`, `--info=progress2`
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
-
-* [v] 调研`std::variant`
 
 * [ ] `std::get_if<T>()`
 
@@ -3890,13 +3892,27 @@ resources:
 
 ### tasks
 
+* [ ] `pci_alloc_irq_vectors()`
+
+* [ ] `device_create_file()`
+
 * [ ] `kvzalloc()`
 
 * [ ] `kvfree()`
 
-* [ ] 调研`device_create()`和`device_add()`有什么区别？
+* [v] 调研`device_create()`和`device_add()`有什么区别？
 
     `device_del()`和`device_destroy()`有什么区别？
+
+    feedback:
+
+    1. `class_find_device()`
+
+    1. `device_unregister()`
+
+    1. `put_device()`
+
+    1. `device_initialize()`
 
 * [ ] 调研 qemu 串口
 
@@ -3915,13 +3931,9 @@ resources:
 
 * [v] `device_create()`与`device_add()`有何不同？
 
-    feedback:
+* [ ] 总线设备、平台设备
 
-    1. `device_create_file()`
-
-    1. 总线设备、平台设备
-
-    1. `device_register()`
+* [ ] `device_register()`
 
 * [ ] `device_attach()`
 
@@ -3939,11 +3951,7 @@ resources:
 
 * [ ] `class_create_file()`
 
-* [ ] unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
-
-* [v] `pr_err_once()`
-
-* [ ] `device_create_file()`
+* [v] unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
 
 * [ ] `class_device_destructor()`
 
@@ -3954,8 +3962,6 @@ resources:
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
     `0766`不可以，`0755`可以。
-
-* [v] `register_chrdev_region()`与`register_chrdev()`有何不同？
 
 * [ ] `unregister_module_notifier()`
 
@@ -3968,8 +3974,6 @@ resources:
     ```
 
     为什么？
-
-* [v] `printk("<1>""hello my module\n");`是否等价于`printk(KERN_INFO "xxx")`?
 
 * [ ] `charp`在哪个头文件中？
 
@@ -3985,7 +3989,7 @@ resources:
 
 * [ ] 调研`request_threaded_irq()`
 
-* [ ] 调研`fprintf(stderr, "Fork failed!\n");`是否可以`fprintf(stdout, xxx)`，如果`fprintf(stdin, xxx)`会发生什么？
+* [v] 调研`fprintf(stderr, "Fork failed!\n");`是否可以`fprintf(stdout, xxx)`，如果`fprintf(stdin, xxx)`会发生什么？
 
 * [ ] 调研为什么 rsync 不加 -r 会 skip
 
@@ -3997,8 +4001,6 @@ resources:
     sent 17 bytes  received 12 bytes  8.29 bytes/sec
     total size is 0  speedup is 0.00
     ```
-
-* [v] 调研 munmap()，为什么需要这个？以及 mmap 的内部原理？
 
 * [ ] `vm_area_struct()`
 
@@ -4022,13 +4024,11 @@ resources:
 
 * [ ] `dup2()`
 
-* [v] 调研什么是写时复制（COW）
-
 * [ ] Btrfs、ZFS的COW机制
 
 * [ ] 页帧分配、页表管理、换入换出（Swapping）
 
-* [ ] 调研`std::mutex`
+* [v] 调研`std::mutex`
 
 * [ ] `std::async`
 
@@ -4040,8 +4040,6 @@ resources:
 
 * [ ] 调研`RLIMIT_DATA`
 
-* [v] 调研`pci_register_driver()`
-
 * [ ] 调研`ACPI`
 
 * [ ] MSI-X中断
@@ -4049,8 +4047,6 @@ resources:
 * [ ] 调研IO队列是什么（可能和NVMe控制器相关）
 
 * [ ] 调研`create_workqueue`
-
-* [v] 调研`list_for_each_safe()`, `list_entry()`
 
 * [ ] 调研`container_of()`或`list_entry()`的实现，尝试手动实现一下
 
@@ -4063,8 +4059,6 @@ resources:
 * [ ] 调研 rcu 链表
 
 * [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
-
-* [v] 调研 如何获取 list 的长度（有多少个节点）？
 
 * [ ] `spin_lock()`, `spin_unlock()`
 
@@ -4082,17 +4076,19 @@ resources:
 
 * [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
 
-* [ ] `list_next()`
+* [v] `list_next()`
 
 * [ ] 调研`DEFINE_SPINLOCK()`
 
 * [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
 
-* [ ] 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
+* [v] 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
+
+    feedback:
+
+    1. `devm_request_irq()`
 
 * [ ] `platform_get_irq()`
-
-* [ ] `pci_alloc_irq_vectors()`
 
 * [ ] 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
 
@@ -4102,19 +4098,31 @@ resources:
 
 * [ ] 调研`irq_handler()`的原型
 
-* [ ] 调研`pci_irq_vector()`
+* [v] 调研`pci_irq_vector()`
 
-* [ ] 调研`pci_alloc_irq_vectors`
+    feedback:
 
-* [v] 写一个 irq 11 的 request_irq example，不需要触发中断，只需要能跑通就可以
+    1. `pci_get_device()`
+
+    1. `pci_get_domain_bus_and_slot()`
+
+    1. `pci_alloc_irq_vectors()`
+
+    1. `dev->msix_entries`
+
+    1. `pci_dev->irq`
+
+    1. 设备不再通过改变电压电平来请求中断，而是直接向内存中的一个特定地址写入一个特定的“消息”（一个数据字）来发起中断。操作系统如何感知这个内存的变化？
+
+    1. `disable_irq()`, `enable_irq()`
+
+    1. `pci_dev_msi_enabled()`
 
 * [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
 
 * [ ] `free_irq()`为什么需要传入 dev_id？其返回值`void*`又是什么含义？
 
 * [ ] 调研`pci_msix_vec_count`
-
-* [v] 调研`pci_find_capability`
 
 * [ ] Root Port, Switch, Endpoint
 
