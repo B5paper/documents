@@ -1972,3 +1972,13 @@
         1. 如果单个 peg 的 silink 失效，那么走 dnoc + 另一个 peg 的 silink
 
     * depleted prn. [dɪ'plɪtɪd] a. 废弃的
+
+* 切换 lizi 环境
+
+    ```bash
+    cd /home/siorigin/proj/siccl
+    conda activate torch_dev
+    cd src/graph && make -j
+    cd ../../ && make -j
+    cd example && make -j
+    ```

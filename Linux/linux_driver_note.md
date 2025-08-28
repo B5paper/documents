@@ -6,6 +6,131 @@ Ref:
 
 ## cache
 
+* `device_add()`
+
+    将设备添加到内核中，底层函数。
+
+    syntax:
+
+    ```c
+    device_add(struct device *dev)
+    ```
+
+    功能：
+
+    1. 绑定驱动：将设备（dev）与可能匹配的驱动程序进行绑定（通过调用驱动的 probe 函数）。
+
+    2. 创建 sysfs 条目：在 sysfs 文件系统（通常是 /sys）中为该设备创建对应的目录和属性文件。
+
+    3. 发送 uevent：向用户空间发送一个 “add” 事件的 uevent。用户空间的守护进程（如 udev 或 mdev）会监听这些事件，并根据规则文件（如 udev 规则）来创建设备节点（/dev/下的文件）或执行其他操作。
+
+* `device_create()`
+
+    添加设备的 high-level 函数，通常用于添加字符设备。
+
+    syntax:
+
+    ```c
+    device_create(struct class *cls, struct device *parent, dev_t devt, void *drvdata, const char *fmt, ...);
+    ```
+
+    功能：
+
+    1. 内部创建 device 结构体：它首先调用 device_create_vargs()，该函数内部会分配并初始化一个 struct device。
+
+    2. 设置关键属性：它会将这个新设备关联到指定的类 (cls)、父设备 (parent) 和设备号 (devt)。
+
+    3. 调用 device_add()：在内部，它最终会调用 device_add() 来完成将设备添加到内核的核心工作。
+
+    4. 触发设备节点创建：因为它将设备关联到了一个类（cls），而该类在创建时（class_create()）已经注册了一个 dev_uevent 回调函数。这个回调函数会在 uevent 中提供 DEVTYPE、MAJOR、MINOR 等关键信息。用户空间的 udev 看到这些信息后，就会自动在 /dev/ 下创建设备节点。通常节点名就是类名加上次设备号（例如 /dev/myclass0）。
+
+* `pr_err_once()`
+
+    如果多次调用到这个函数，那么它只输出一次，防止 dmesg 刷屏。
+
+    其内部有一个 bool 标志位，标记此函数之前是否被执行。
+
+    * `pr_emerg_once()`
+        
+        KERN_EMERG 系统可能即将崩溃
+
+    * `pr_alert_once()`
+        
+        KERN_ALERT 需要立即行动
+
+    * `pr_crit_once()`
+    
+        KERN_CRIT 临界条件
+
+    * `pr_err_once()`
+        
+        KERN_ERR 错误条件
+
+    * `pr_warn_once()`
+        
+        KERN_WARNING 警告条件
+
+    * `pr_notice_once()`
+    
+        KERN_NOTICE 正常但重要的事件
+
+    * `pr_info_once()`
+    
+        KERN_INFO 提示信息
+
+    * `pr_debug_once()`
+    
+        KERN_DEBUG 调试信息（依赖配置）
+
+* `register_chrdev()`与`register_chrdev_region()`
+
+    `register_chrdev()`的目的是兼容旧驱动，标记为 deprecated。
+
+    `register_chrdev_region()`的功能是申请设备号，是现代推荐使用的函数，在内核 2.6 版本引入。
+
+* `register_chrdev_region()`后，可以在 /sys/dev/char/ 或 /sys/devices/ 下创建清晰的设备结构。（未验证）
+
+* 内核中日志等级的定义
+
+    ```c
+    #include <linux/kern_levels.h>
+
+    #define KERN_SOH    "\001"  /* ASCII Start Of Header */
+    #define KERN_SOH_ASCII  '\001'
+
+    #define KERN_EMERG      KERN_SOH "0" /* system is unusable */
+    #define KERN_ALERT      KERN_SOH "1" /* action must be taken immediately */ 
+    #define KERN_CRIT       KERN_SOH "2" /* critical conditions */
+    #define KERN_ERR        KERN_SOH "3" /* error conditions */
+    #define KERN_WARNING    KERN_SOH "4" /* warning conditions */
+    #define KERN_NOTICE     KERN_SOH "5" /* normal but significant condition */
+    #define KERN_INFO       KERN_SOH "6" /* informational */
+    #define KERN_DEBUG      KERN_SOH "7" /* debug-level messages */
+    ```
+
+    所以下面四种写法都是等价的：
+
+    ```c
+    pr_info("hello world\n");
+    printk(KERN_INFO "hello, world\n");
+    printk("\0016" "hello, world\n");
+    printk("\0016hello, world\n");
+    ```
+
+    `printk("<6>" "hello, world\n");`这种写法目前已被淘汰，内核不支持。
+
+* `device_add()`与`device_create()`
+
+    `device_add()`是一个基本函数，`device_create()`是一个便捷的封装函数，其中包含了对`device_add()`的调用。
+
+    头文件：`<linux/device.h>`
+
+    `device_add()`仅仅是将 dev 对象添加到内核中，`device_create()`除此之外还在`/dev`目录下创建设备节点。
+
+    如果我们需要手动在`/dev`下创建节点，需要调用`device_create_file()`。
+
+    `device_add()`需要外部传递一个`struct device`对象，而`device_create()`会在函数内部创建一个`struct device`对象。
+
 * `list_for_each()`
 
     对`struct list_head`进行遍历，如果需要拿到外部 struct 的指针，那么需要手动调用`container_of()`。

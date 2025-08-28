@@ -1938,13 +1938,11 @@ tasks:
 
 * [v] 调研`od -c`的作用
 
-    feedback:
+* [ ] `od -x`
 
-    1. `od -x`
+* [ ] `od -t x<N>`
 
-    1. `od -t x<N>`
-
-    1. `od -c`
+* [ ] `od -c`
 
 * [ ] 调研 openssl, gpg
 
@@ -3886,17 +3884,46 @@ resources:
 
 * 可以使用`dmesg -e`显示消息的大致时间戳
 
+* kernel 中的内存管理感觉是个问题
+
+    假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
+
+    如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
+
+
 resources:
 
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
 
-* [ ] `pci_alloc_irq_vectors()`
+* [ ] `pci_request_region()`, `pci_request_regions()`
+
+* [ ] `dma_set_mask_and_coherent()`
+
+* [ ] `pci_iomap()`
+
+* [ ] `pci_set_master()`
+
+* [ ] `device->irq`
+
+* [v] `pci_alloc_irq_vectors()`
+
+    feedback:
+
+    1. `request_irq()`
+
+    1. `free_irq()`
+
+    1. `irq_set_affinity_hint()`
+
+    1. `INIT_WORK()`, `cancel_work_sync()`
+
+    1. `pci_release_regions()`
 
 * [ ] `device_create_file()`
 
-* [ ] `kvzalloc()`
+* [v] `kvzalloc()`
 
 * [ ] `kvfree()`
 
@@ -3904,15 +3931,13 @@ resources:
 
     `device_del()`和`device_destroy()`有什么区别？
 
-    feedback:
+* [ ] `class_find_device()`
 
-    1. `class_find_device()`
+* [ ] `device_unregister()`
 
-    1. `device_unregister()`
+* [ ] `put_device()`
 
-    1. `put_device()`
-
-    1. `device_initialize()`
+* [ ] `device_initialize()`
 
 * [ ] 调研 qemu 串口
 
@@ -3929,8 +3954,6 @@ resources:
 
 * [ ] 调研 makefile 中 target 的执行机制
 
-* [v] `device_create()`与`device_add()`有何不同？
-
 * [ ] 总线设备、平台设备
 
 * [ ] `device_register()`
@@ -3945,13 +3968,15 @@ resources:
 
 * [ ] `kmalloc_array()`, `kmalloc_caches()`
 
-* [ ] `kmalloc()`未释放的内存，在 module 结束后会被释放吗？
+* [v] `kmalloc()`未释放的内存，在 module 结束后会被释放吗？
 
     如果不能，该如何正确释放？
 
-* [ ] `class_create_file()`
+    feedback:
 
-* [v] unit idx 5，新版本 kernel 不需要`class_create()`里输入`THIS_MODULE`
+    1. `devm_kmalloc()`, `devm_kzalloc()`
+
+* [ ] `class_create_file()`
 
 * [ ] `class_device_destructor()`
 
@@ -3988,8 +4013,6 @@ resources:
 * [ ] 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
 
 * [ ] 调研`request_threaded_irq()`
-
-* [v] 调研`fprintf(stderr, "Fork failed!\n");`是否可以`fprintf(stdout, xxx)`，如果`fprintf(stdin, xxx)`会发生什么？
 
 * [ ] 调研为什么 rsync 不加 -r 会 skip
 
@@ -4034,7 +4057,7 @@ resources:
 
 * [ ] 调研`exec()`
 
-* [ ] 调研`getpid()`, `getppid()`
+* [v] 调研`getpid()`, `getppid()`
 
 * [ ] 调研`dup()`
 
@@ -4042,7 +4065,7 @@ resources:
 
 * [ ] 调研`ACPI`
 
-* [ ] MSI-X中断
+* [v] MSI-X中断
 
 * [ ] 调研IO队列是什么（可能和NVMe控制器相关）
 
@@ -4076,17 +4099,13 @@ resources:
 
 * [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
 
-* [v] `list_next()`
-
 * [ ] 调研`DEFINE_SPINLOCK()`
 
 * [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
 
 * [v] 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
 
-    feedback:
-
-    1. `devm_request_irq()`
+* [ ] `devm_request_irq()`
 
 * [ ] `platform_get_irq()`
 
@@ -4102,21 +4121,17 @@ resources:
 
     feedback:
 
-    1. `pci_get_device()`
+* [ ] `pci_get_device()`
 
-    1. `pci_get_domain_bus_and_slot()`
+* [ ] `pci_get_domain_bus_and_slot()`
 
-    1. `pci_alloc_irq_vectors()`
+* [ ] `dev->msix_entries`
 
-    1. `dev->msix_entries`
+* [ ] `pci_dev->irq`
 
-    1. `pci_dev->irq`
+* [ ] `disable_irq()`, `enable_irq()`
 
-    1. 设备不再通过改变电压电平来请求中断，而是直接向内存中的一个特定地址写入一个特定的“消息”（一个数据字）来发起中断。操作系统如何感知这个内存的变化？
-
-    1. `disable_irq()`, `enable_irq()`
-
-    1. `pci_dev_msi_enabled()`
+* [ ] `pci_dev_msi_enabled()`
 
 * [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
 
@@ -4247,21 +4262,11 @@ resources:
 
 * [v] 调研`pci_set_drvdata`
 
-    feedback:
+* [ ] 还是先把 linux driver 开发看完比较好
 
-    1. 还是先把 linux driver 开发看完比较好
-
-        先看 qa，再看网站
+    先看 qa，再看网站
 
 * [v] linux driver 调研 data exchange between user space and kernel space
-
-    feedback:
-
-    1. kernel 中的内存管理感觉是个问题
-
-        假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
-
-        如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
 
 * [v] 调研 ioctl
 
@@ -4633,6 +4638,8 @@ cache:
     有空了研究一下这段代码，分析一下利弊。
 
 ### tasks
+
+* [v] 函数声明处加`static`是否有意义？
 
 * [ ] 为什么`vector<unique_ptr<XmlTag>> root_tags;`无法`root_tags.push_back(new XmlTag);`，但是可以`root_tags.emplace_back(new XmlTag);`？
 
