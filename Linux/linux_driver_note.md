@@ -6,6 +6,321 @@ Ref:
 
 ## cache
 
+* MSI-X（Message Signaled Interrupts eXtended）是一种基于消息的中断机制。它允许设备（如网卡、GPU、NVMe SSD）通过向CPU写入一个特定的数据（消息）到特定的内存地址来请求中断，而不是使用传统的、基于专用引脚（IRQ线）的中断。
+
+    系统软件（操作系统）会分配一块内存区域，称为 MSI-X Table。这个表中的每一项（Entry）都对应一个中断向量，包含：
+
+    * 消息地址（Message Address）：中断消息要写入的目标地址。这个地址隐含了中断要发送给哪个CPU核心。
+
+    * 消息数据（Message Data）：一个唯一的数据值，用来标识是哪个中断向量被触发。
+
+    * 掩码位（Mask Bit）：用于临时禁用该中断。
+
+    * Pending Bit：记录中断是否已发出但尚未被处理。
+
+    虽然设备触发MSI-X的行为是一次内存写入，但整个系统（CPU、芯片组、内存控制器）被设计为能识别这次特殊的写入操作，并将其无缝地转换为一个中断信号送达CPU核心。
+
+    MSI-X消息中指定的目标地址（Message Address） 并不指向普通的DRAM内存位置。它指向一个由CPU和芯片组预留的、特殊的物理地址范围。这个范围是专门用于处理消息信号中断的。
+
+    芯片组通过内部的中断控制器（在现代x86系统中是APIC）架构，将一个“虚拟”的中断信号直接发送到步骤2a中确定的目标CPU核心。
+
+    CPU核心收到这个信号后，会立即中断当前正在执行的指令流（当然，会在合理的边界处），并根据收到的向量号，去查找自己的中断描述符表（IDT），找到并执行对应的中断服务程序（ISR）。
+
+    msix 中断并不是 cpu 轮询指定内存实现的，而是通过芯片组识别 pcie 事务类型实现的。
+    
+    msix 中断本质就是一次 pcie 事务（Transaction）。
+    
+    pcie 事务可能有很多类型：
+
+    Memory Read
+
+    Memory Write
+
+    I/O Read
+
+    I/O Write
+
+    Message
+
+    MSI 对应的事务为 Memory Write，而 msix 对应的事务为 Message (Message Signaled Interrupt)
+
+    如果芯片组识别出来 pcie 事务是 message，又发现其写入的内存地址是为 MSI 中断信号预留的、特定的地址区域，那么就可以确认这是一个 msix 中断。
+
+* `pci_alloc_irq_vectors()`
+
+    为指定的 PCI 设备申请和分配一组中断向量（Interrupt Vectors）。
+
+    syntax:
+
+    ```c
+    int pci_alloc_irq_vectors(struct pci_dev *dev, unsigned int min_vecs, unsigned int max_vecs, unsigned int flags);
+    ```
+
+    * `min_vecs`：驱动至少需要多少个中断向量。
+
+    * `max_vecs`：驱动最多希望申请多少个中断向量。
+
+    * `flags`：指定中断类型和行为的标志。最重要的标志是：
+
+        * `PCI_IRQ_MSIX`：请求使用 MSI-X 中断。
+
+        * `PCI_IRQ_MSI`：请求使用 MSI 中断。
+
+        * `PCI_IRQ_LEGACY`：请求使用传统引脚中断（如 INTA#）。
+
+        * `PCI_IRQ_ALL_TYPES`：尝试任何可用的类型（通常的用法）。
+
+        * `PCI_IRQ_AFFINITY`：提示内核这些中断可以设置 CPU 亲和性（绑定到特定 CPU 核心）。
+
+        各个 flag 可以使用`|`组合。你组合多个类型，内核会按性能从高到低的顺序（通常是 MSI-X -> MSI -> Legacy）自动选择可用的最佳类型。
+
+    return value:
+
+    分配成功则返回 实际分配到的中断数量。分配失败则返回一个负的错误码。
+
+    配对函数：`pci_free_irq_vectors()`
+
+    example:
+
+    * 尝试所有中断类型，并提示亲和性：
+
+        `int nvecs = pci_alloc_irq_vectors(pdev, 1, 32, PCI_IRQ_ALL_TYPES | PCI_IRQ_AFFINITY);`
+
+        驱动表示它兼容任何硬件支持的中断模式，并且它设计为能够利用多CPU核心的优势。
+
+    * 只尝试 MSI-X 或传统中断，不尝试 MSI
+
+        `int nvecs = pci_alloc_irq_vectors(pdev, 1, 8, PCI_IRQ_MSIX | PCI_IRQ_LEGACY);`
+        
+        可能因为驱动在某些硬件上发现 MSI 实现有bug，或者功能需求上 MSI-X 是首选，如果不行则回退到最稳定的传统模式。
+
+    * 只使用 MSI，并要求亲和性
+
+        `int nvecs = pci_alloc_irq_vectors(pdev, 2, 2, PCI_IRQ_MSI | PCI_IRQ_AFFINITY);`
+
+        只想使用 MSI 机制，并且希望中断能分布在不同的CPU上。
+
+    example:
+
+    ```c
+    // 1. 分配中断向量（假设申请了4个）
+    nvec = pci_alloc_irq_vectors(pdev, 4, 4, PCI_IRQ_MSIX);
+    if (nvec < 0) {
+        // 错误处理
+    }
+
+    // 2. 为每一个向量注册中断处理程序
+    for (i = 0; i < nvec; i++) {
+        // 注意：这里的 i 就是索引号
+        ret = pci_request_irq(pdev, i, /* 索引i对应MSI-X表条目i */
+                             my_interrupt_handler, // 中断处理函数
+                             NULL, // dev_id
+                             "my-driver:rx%d", i); // 中断名称
+        if (ret) {
+            // 错误处理
+        }
+    }
+    ```
+
+* `vmalloc()`
+
+    分配一块虚拟地址连续，物理地址不一定连续的内存。
+
+    syntax:
+
+    ```c
+    #include <linux/vmalloc.h>
+
+    void *vmalloc(unsigned long size);
+    ```
+
+    配对函数：`vfree()`
+
+    初始值清零版本：`vzalloc()`
+
+* `kvzalloc()`
+
+    首先尝试像`kzalloc()`一样分配物理连续的内存。如果分配失败，它会自动回退到 `vzalloc()`的方式，分配虚拟连续的内存。并将内存内容初始化为 0.
+
+    syntax:
+
+    ```c
+    #include <linux/slab.h>
+
+    void *kzalloc(size, flags);
+    ```
+
+    配对函数：`kvfree()`
+
+    感觉这个函数没啥用。什么情况需要优先使用连续物理内存，如果物理内存不连续也无所谓？想不到。
+
+* kmalloc() 在内核空间分配的内存，如果在模块退出函数（module_exit）中没有被显式地使用 kfree() 释放，那么这些内存将永远地泄露，直到系统重启。
+
+    `vmalloc()`同理。
+
+* `cat /proc/interrupts`的最后一栏即`request_irq()`中填的 name
+
+    ```c
+    request_irq(11, irq_handler, IRQF_SHARED, "hlc irq", irq_handler);
+    ```
+
+    ```
+     11:          0          0          0          0          0          0          0          0   IO-APIC  11-fasteoi   hlc irq
+    ```
+
+* 没有`list_next()`这个函数。
+
+* `device_destroy()`是`device_create()`的反函数，`device_del()`是`device_add()`的反函数。
+
+* `fprintf(stdin, ...)`和`fscanf(stdout, ...)`一样，都是未定义行为。可能会导致程序崩溃。
+
+* MSI-X是MSI的增强版，其主要增强就是支持更多的中断向量（MSI最多32个，MSI-X可达2048个）。
+
+* cpu 的中断向量
+
+    向量 0-31 通常预留给异常（如除零错误、页故障）和不可屏蔽中断（NMI）。
+
+    向量 32-255 留给用户定义的可屏蔽中断，也就是来自外部硬件设备的中断。
+
+    irq 是操作系统抽象的概念，部分映射与 cpu 中断向量号相同，其余的不同。
+
+    具体的 cpu 中断向量映射情况：
+
+    * 32以下：CPU保留向量（0-31用于异常、NMI等）
+
+    * 32-47：传统PIC映射区（IRQ0-15）
+
+    * 现代 MSI-X：通常是一对一映射（每个Linux IRQ有独立CPU向量）
+
+    * 现代 INTx：可能多对一映射（多个Linux IRQ共享CPU向量）
+
+    由于单个 cpu 的中断向量只有 256 个，而 msix 最多可能有 2048 个中断向量，所以cpu 中的一个中断向量，可能会分时复用地处理多个 msix 的中断向量。
+
+    如果 pc 上有多个 cpu 节点，那么 msix 可能将中断注册到多个 cpu 中断向量上以做负载均衡。
+
+* 中断服务程序（ISR）即中断处理函数
+
+* 为什么使用`request_irq(irq, handler_func)`，而不是`request_vector_idx(idx, handler_func)`？
+
+    假如 vector idx 对于每个设备来说从 0 开始编号，或者对于每个 module 来说从 0 开始编号，那么问题来了，如果一个 module 里有多个 pci 设备，每个设备的中断都是从 0 开始编号，那么`request_vector_idx(0, handler_func)`究竟指的是哪个设备的中断？如果对于 module 从 0 开始编号，那么如果多个 module 共同管理一个设备，那么应该以哪个 module 的编号为准？
+
+    有一些 module 没有维护 device，注册的中断可能是软中断，或定时器中断，那么基于 device 编号就彻底不能用了。
+
+    这样看来，将 irq 与中断向量作映射，作为全局资源进行管理，似乎是比较合理的解决方式。
+
+* 操作系统中断与 pci msix 的交互流程
+
+    1. module 调用`iv = pci_irq_vector(pdev, idx)`向操作系统申请到 msix 中第`idx`个中断的中断向量（由操作系统进行分配）
+
+    2. module 调用`request_irq(iv, handler_func, ...)`将中断处理函数的地址写入到 IDT 中
+
+    3. 向 msix 第`idx`号中断的配置空间中写入中断向量`iv`的数值
+
+        操作系统将一个目标地址和一个数据值写入设备PCI配置空间中的MSI-X相关寄存器（每个中断向量都有自己的一套地址/数据寄存器）。
+
+        目标地址：指向CPU中断控制器的端口（例如x86上的Local APIC的地址）。
+
+        数据值：这个数据值就是分配给这个特定中断向量的CPU中断向量号（例如 0x41）。
+
+    4. pci 每次发起中断时，由 msix 向特定的内存中写入中断向量`iv`，操作系统感知到后，由`iv`在 IDT 中找到对应的中断函数，对中断进行处理。
+
+* 中断向量，IDT 与 irq
+
+    操作系统维护一张全局的中断描述符表 (IDT, Interrupt Descriptor Table)，其本质为一个数组，存储的是中断处理函数的地址，比如
+
+    ```
+    ...
+    IDT[0x40] = irq_handler_func_40()
+    IDT[0x41] = irq_handler_func_41()
+    IDT[0x42] = irq_handler_func_42()
+    IDT[0X43] = irq_handler_func_43()
+    ...
+    ```
+    
+    其中数组的索引`0x40`, `0x41`, ... 即为中断向量 (Interrupt Vector)（号）。
+
+    关于中断向量的解释（未验证）：
+    
+    1. 解释一：中断向量这个词最开始由 intel 这些 cpu 制造商引入，这里的“向量”是从硬件设计者的角度考虑的，倾向于表示这是一个矢量，一个路标，一个指引，告诉你中断处理函数在这里。
+
+    2. 解释二：当一个PCI设备使用MSI或MSI-X时，它不再只有一个IRQ号，而是有一组IRQ号（一个“向量”）。
+
+    由于 IDT 是全局的，但是每个驱动可能只想关心自己的中断向量，不想关心别人的，那么我们希望将 IDT 看作一个资源池，每个驱动向操作系统申请中断向量，并从 0 开始编号，得到中断向量索引(Vector Index)：
+
+    ```
+    ...
+    IDT[0x40] = irq_handler_func_40(), driver xxx, vector idx 0
+    IDT[0x41] = irq_handler_func_41(), driver yyy, vector idx 0
+    IDT[0x42] = irq_handler_func_42(), driver yyy, vector idx 1
+    IDT[0X43] = irq_handler_func_43(), driver xxx, vector idx 1
+    ...
+    ```
+
+    其中的`vector idx 0`, `vector idx 1`, ... 这些即为中断向量索引。
+
+    操作系统为了便于管理，将中断向量与全局资源 irq (Interrupt ReQuest) 进行一一映射，从而使得 module 可以基于 irq 注册中断处理函数。
+
+    ```
+    ...
+    IDT[0x40] = irq_handler_func_40(), driver xxx, vector idx 0, irq 233
+    IDT[0x41] = irq_handler_func_41(), driver yyy, vector idx 0, irq 234
+    IDT[0x42] = irq_handler_func_42(), driver yyy, vector idx 1, irq 235
+    IDT[0X43] = irq_handler_func_43(), driver xxx, vector idx 1, irq 236
+    ...
+    ```
+
+* `pci_irq_vector()`
+
+    获取一个 PCI 设备上某个特定 MSI-X 或 MSI 中断向量的 Linux 内核IRQ编号（中断号）。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_irq_vector(struct pci_dev *dev, unsigned int nr);
+    ```
+
+    * `nr`: MSI-X Table中中断条目的索引，索引从 0 开始
+
+        `nr`的范围为`[0, dev->msix_cnt - 1]`或`[0, dev->msi_cnt - 1]`
+
+    return value:
+
+    返回一个大于等于 0 的值，表示PCI设备第 nr 个中断向量对应的 Linux 内核 IRQ 编号（中断号）
+
+    如果失败，该函数返回一个错误码（负值）。
+
+    调用 pci_irq_vector() 之前，必须已经成功地为PCI设备分配了MSI或MSI-X中断向量。这通常是通过 pci_alloc_irq_vectors() 函数完成的。
+
+    example:
+
+    假设你正在为一个支持MSI-X的PCI设备编写驱动程序。该设备申请了3个中断向量：
+
+        索引0：用于接收数据包
+
+        索引1：用于发送数据包完成
+
+        索引2：用于报告错误
+
+    ```c
+    // 注册索引0（接收）的中断处理函数
+    irq_rx = pci_irq_vector(pdev, 0);
+    request_irq(irq_rx, my_rx_handler, 0, "my_driver_rx", my_data);
+
+    // 注册索引1（发送）的中断处理函数
+    irq_tx = pci_irq_vector(pdev, 1);
+    request_irq(irq_tx, my_tx_handler, 0, "my_driver_tx", my_data);
+
+    // 注册索引2（错误）的中断处理函数
+    irq_err = pci_irq_vector(pdev, 2);
+    request_irq(irq_err, my_err_handler, 0, "my_driver_err", my_data);
+    ```
+
+    对于传统的引脚中断（INTx），通常使用 pci_dev->irq 来获取设备唯一的IRQ编号。
+
+    对于MSI/MSI-X，必须使用`pci_irq_vector(dev, n)`来获取第n个中断的 IRQ 编号。`pci_dev->irq`在这个场景下可能没有意义或已被重用。
+
 * `device_add()`
 
     将设备添加到内核中，底层函数。

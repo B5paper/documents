@@ -2,6 +2,8 @@
 
 ## cached
 
+* std::mutex 不能被复制或移动，通常作为全局变量或类的成员变量使用。
+
 * `std::variant`
 
     `std::variant`是 c++ 17　的特性。

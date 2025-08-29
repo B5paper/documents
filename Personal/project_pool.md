@@ -30,6 +30,10 @@
 
 ## cache
 
+* 如果多人合作一个项目，那么从一开始就要多交流，否则容易后面对接不起来。
+
+* 关于 irq 的启示：可以使用全局资源解除模块与模块之间的耦合
+
 * 本来夏天应该比较热，体力消耗快，不想学，学习效率低，但是真到了夏天，反而往公司跑得更
 勤了，可能是因为慢慢习惯了恶劣环境，抗压能力更强了。不过也有可能是公司有空调，条件相对还舒适。
 
@@ -1862,6 +1866,18 @@ tasks:
 
 ### tasks
 
+* [v] 完成 siccl 环境搭建
+
+* [O] 完成 siccl shim 层
+
+    feedback:
+
+    1. 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
+
+    1. [ ] 增加 sio comm 和 nccl comm 的转换
+
+    1. [ ] 增加 sio graph 和 nccl graph 的转换
+
 * [ ] `$(MAKE)`与`make`有什么不同？
 
 * [ ] gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
@@ -1904,7 +1920,7 @@ tasks:
 
 * [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
 
-* [ ] 调研`ssh-copy-id -i`
+* [v] 调研`ssh-copy-id -i`
 
 * [ ] 调研`lsyncd`
 
@@ -1935,8 +1951,6 @@ tasks:
 * [ ] 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
-
-* [v] 调研`od -c`的作用
 
 * [ ] `od -x`
 
@@ -3897,6 +3911,10 @@ resources:
 
 ### tasks
 
+* [ ] 调研 panas，polars
+
+* [ ] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
+
 * [ ] `pci_request_region()`, `pci_request_regions()`
 
 * [ ] `dma_set_mask_and_coherent()`
@@ -3909,27 +3927,15 @@ resources:
 
 * [v] `pci_alloc_irq_vectors()`
 
-    feedback:
+* [ ] `request_irq()`, `free_irq()`
 
-    1. `request_irq()`
+* [ ] `irq_set_affinity_hint()`
 
-    1. `free_irq()`
+* [ ] `INIT_WORK()`, `cancel_work_sync()`
 
-    1. `irq_set_affinity_hint()`
-
-    1. `INIT_WORK()`, `cancel_work_sync()`
-
-    1. `pci_release_regions()`
+* [ ] `pci_release_regions()`
 
 * [ ] `device_create_file()`
-
-* [v] `kvzalloc()`
-
-* [ ] `kvfree()`
-
-* [v] 调研`device_create()`和`device_add()`有什么区别？
-
-    `device_del()`和`device_destroy()`有什么区别？
 
 * [ ] `class_find_device()`
 
@@ -3972,9 +3978,7 @@ resources:
 
     如果不能，该如何正确释放？
 
-    feedback:
-
-    1. `devm_kmalloc()`, `devm_kzalloc()`
+* [ ] `devm_kmalloc()`, `devm_kzalloc()`
 
 * [ ] `class_create_file()`
 
@@ -4051,21 +4055,15 @@ resources:
 
 * [ ] 页帧分配、页表管理、换入换出（Swapping）
 
-* [v] 调研`std::mutex`
-
 * [ ] `std::async`
 
 * [ ] 调研`exec()`
-
-* [v] 调研`getpid()`, `getppid()`
 
 * [ ] 调研`dup()`
 
 * [ ] 调研`RLIMIT_DATA`
 
 * [ ] 调研`ACPI`
-
-* [v] MSI-X中断
 
 * [ ] 调研IO队列是什么（可能和NVMe控制器相关）
 
@@ -4103,8 +4101,6 @@ resources:
 
 * [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
 
-* [v] 调研`cat /proc/interrupts`的最后一栏是否是`request_irq()`中填的 name？
-
 * [ ] `devm_request_irq()`
 
 * [ ] `platform_get_irq()`
@@ -4115,11 +4111,13 @@ resources:
 
 * [ ] 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
 
-* [ ] 调研`irq_handler()`的原型
-
-* [v] 调研`pci_irq_vector()`
+* [v] 调研`irq_handler()`的原型
 
     feedback:
+
+    1. 中断流处理程序（flow handler）
+
+* [v] 调研`pci_irq_vector()`
 
 * [ ] `pci_get_device()`
 
@@ -4141,15 +4139,29 @@ resources:
 
 * [ ] Root Port, Switch, Endpoint
 
-* [ ] `pci_msi_enabled()`
+* [v] `pci_msi_enabled()`
 
-* [ ] `pcie_get_readrq()`
+* [v] `pcie_get_readrq()`
 
-* [ ] `pci_enable_msix_range()`
+    feedback:
 
-* [ ] `dev_info()`
+    1. `pci_info()`
 
-* [ ] 调研`dev_err()`
+* [v] `pci_enable_msix_range()`
+
+    feedback:
+
+    1. `pci_enable_msix()`
+
+* [v] `dev_info()`
+
+    feedback:
+
+    1. `/var/log/messages`
+
+    1. `/var/log/syslog`
+
+    1. `journalctl`
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -4159,7 +4171,19 @@ resources:
 
 * [ ] 调研 AXI4-Stream
 
-* [ ] 调研`pci_resource_len()`
+* [v] 调研`pci_resource_len()`
+
+    feedback:
+
+    1. `__iomem`
+
+    1. `request_mem_region()`
+
+    1. `ioremap()`
+
+    1. `release_mem_region()`
+
+    1. `pci_resource_flags()`
 
 * [ ] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
 
@@ -4194,8 +4218,6 @@ resources:
 * [ ] 调研`picocom`工具
 
 * [ ] 调研`screen`命令
-
-* [ ] 调研`pci_request_regions()`
 
 * [ ] 调研驱动程序的`.remove()`和`.shutdown()`函数
 
@@ -4265,8 +4287,6 @@ resources:
 * [ ] 还是先把 linux driver 开发看完比较好
 
     先看 qa，再看网站
-
-* [v] linux driver 调研 data exchange between user space and kernel space
 
 * [v] 调研 ioctl
 

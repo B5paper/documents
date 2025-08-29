@@ -6,6 +6,91 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `static`只能加在函数的实现前，不能加在函数的声明前。
+
+    如果`static`加在头文件的函数声明前，那么将不再检查`xx.c`或`xx.cpp`中的内容，并认为这个函数只有函数头，没有函数体。
+
+    example:
+
+    ```cpp
+    // lib_1.h
+    static int add(int a, int b);
+
+    // lib_1.cpp
+    #include "lib_1.h"
+
+    int add(int a, int b) {
+        return a + b;
+    }
+
+    // lib_2.h
+    int sum(int a, int b, int c);
+
+    // lib_2.cpp
+    #include "lib_1.h"
+    #include "lib_2.h"
+
+    int sum(int a, int b, int c) {
+        return add(add(a, b), c);
+    }
+
+    // main.cpp
+    #include "lib_1.h"
+    #include "lib_2.h"
+    #include "stdio.h"
+
+    int main() {
+        int a = 1, b = 2;
+        int c = add(a, b);
+        printf("%d + %d = %d\n", a, b, c);
+
+        int d = sum(a, b, c);
+        printf("%d + %d + %d = %d\n", a, b, c, d);
+        return 0;
+    }
+    ```
+
+    Makefile:
+
+    ```makefile
+    all: main
+
+    lib_1.o: lib_1.h lib_1.cpp
+    	g++ -g -c lib_1.cpp -o lib_1.o
+
+    lib_2.o: lib_2.h lib_2.cpp
+    	g++ -g -c lib_2.cpp -o lib_2.o
+
+    main: main.cpp lib_1.o lib_2.o
+    	g++ -g main.cpp lib_1.o lib_2.o -o main
+
+    clean:
+    	rm -f lib_1.o lib_2.o main
+    ```
+
+    `make` output:
+
+    ```
+    g++ -g -c lib_1.cpp -o lib_1.o
+    g++ -g -c lib_2.cpp -o lib_2.o
+    In file included from lib_2.cpp:1:
+    lib_1.h:1:12: warning: ‘int add(int, int)’ used but never defined
+        1 | static int add(int a, int b);
+          |            ^~~
+    g++ -g main_3.cpp lib_1.o lib_2.o -o main
+    In file included from main_3.cpp:1:
+    lib_1.h:1:12: warning: ‘int add(int, int)’ used but never defined
+        1 | static int add(int a, int b);
+          |            ^~~
+    /usr/bin/ld: /tmp/cck01kxj.o: in function `main':
+    /home/hlc/Documents/Projects/cpp_test/main_3.cpp:7: undefined reference to `add(int, int)'
+    /usr/bin/ld: lib_2.o: in function `sum(int, int, int)':
+    /home/hlc/Documents/Projects/cpp_test/lib_2.cpp:5: undefined reference to `add(int, int)'
+    /usr/bin/ld: /home/hlc/Documents/Projects/cpp_test/lib_2.cpp:5: undefined reference to `add(int, int)'
+    collect2: error: ld returned 1 exit status
+    make: *** [Makefile:10: main] Error 1
+    ```
+
 * C 语言中，字符串以`\`开头接三位 8 进制数，表示一个字节的 8 进制数字，比如`"\101"`表示`8^2 + 1 = 17`
 
     字符串以`\x`开头接两位 16 进制数，表示一个字节的 16 进制数，比如`"\x41"`表示`4 * 16 + 1 = 65`。

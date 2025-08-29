@@ -6,6 +6,32 @@
 
 ## cache
 
+* `od`命令
+
+    od（Octal Dump），用于以各种格式显示文件的内容，通常用于查看或诊断文件中那些不可打印的字符（如控制字符、换行符、空字符等）。
+
+    * `od -c`: 将文件的每个字节（byte）解释为 ASCII 字符或转义序列，并以更可读的形式输出。
+
+    example:
+
+    `msg.txt`:
+
+    ```
+    hello, world
+    nihao
+    zaijian
+    ```
+
+    `od -c msg.txt` output:
+
+    ```
+    0000000   h   e   l   l   o   ,       w   o   r   l   d  \n   n   i   h
+    0000020   a   o  \n   z   a   i   j   i   a   n  \n
+    0000033
+    ```
+
+    前面的偏移是 8 进制。
+
 * strace
 
     strace 可以记录一个进程在运行时与内核之间的所有系统调用（system calls）和接收到的信号（signals）
