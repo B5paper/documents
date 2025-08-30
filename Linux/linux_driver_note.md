@@ -6,6 +6,213 @@ Ref:
 
 ## cache
 
+* `dev_info()`
+
+    输出一条附加了设备信息（如设备名称、地址等）的提示性消息.
+
+    syntax:
+
+    ```c
+    #include <linux/device.h>
+
+    int dev_info(const struct device *dev, const char *fmt, ...);
+    ```
+
+    它不仅仅打印用户提供的格式化字符串，还会自动前缀与设备相关的信息。
+
+    对于 PCI 设备 (struct pci_dev *)，前缀通常是 [设备驱动名] 0000:03:00.0: 。
+
+    对于 USB 设备 (struct usb_device *)，前缀可能包含制造商和产品信息。
+
+    对于平台设备 (struct device *)，通常是设备树节点名或平台设备名。
+
+    同类函数：
+
+    dev_emerg()	KERN_EMERG	系统不可用，紧急消息
+    dev_alert()	KERN_ALERT	需要立即采取行动
+    dev_crit()	KERN_CRIT	临界状态，严重硬件错误
+    dev_err()	KERN_ERR	错误状态，操作失败
+    dev_warn()	KERN_WARNING	警告信息，可能有问题
+    dev_info()	KERN_INFO	信息性消息，正常状态（最常用）
+    dev_dbg()	KERN_DEBUG	调试消息，默认不打印，需开启动态调试
+
+* `pci_resource_len()`
+
+    获取指定 PCI 设备某个资源（如内存区域或 I/O 端口区域）的长度或大小。
+
+    获取指定 bar 空间的字节数。bar 0 ~ bar 5
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    resource_size_t pci_resource_len(struct pci_dev *dev, int bar);
+    ```
+
+    在调用 pci_resource_len() 或 pci_resource_start() 之前，必须成功调用 pci_enable_device()。否则，获取到的资源信息可能是无效的。
+    
+* irq_handler
+
+    syntax:
+
+    `irqreturn_t irq_handler(int irq, void *dev_id);`
+
+    返回值必须是`IRQ_HANDLED`或`IRQ_NONE`
+
+    该函数运行在中断上下文中，因此其执行不能阻塞（不能睡眠、不能调用可能引起调度的函数如 kmalloc(..., GFP_KERNEL)、不能执行耗时操作）。
+
+* `pci_msi_enabled()`
+
+    检查一个 PCI 设备是否已经成功启用并配置了 MSI 或 MSI-X 中断模式.
+
+    它通过检查该设备结构体中的内部标志位（例如 msi_enabled 或 msix_enabled）来判断状态。
+
+    返回值：
+
+        如果设备已经启用了 MSI 或 MSI-X 模式中的任何一种，则函数返回 true（非零值）。
+
+        如果设备没有启用 MSI 或 MSI-X（即仍然在使用传统的引脚中断），则函数返回 false（0）。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    static inline bool pci_msi_enabled(struct pci_dev *pdev);
+    ```
+
+    example:
+
+    ```c
+    #include <linux/pci.h> // 必须包含这个头文件
+
+    // 假设在你的驱动探测函数中
+    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+    {
+        int ret;
+
+        // ... 设备初始化、使能等操作 ...
+
+        // 尝试启用MSI中断模式
+        ret = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_MSI);
+        if (ret < 0) {
+            dev_err(&pdev->dev, "Failed to enable MSI interrupts, using legacy.\n");
+            // 通常这里会回退到传统中断
+        }
+
+        // 检查设备当前是否使用了MSI
+        if (pci_msi_enabled(pdev)) {
+            dev_info(&pdev->dev, "Device is using MSI interrupts.\n");
+            // 进行MSI模式特有的设置
+        } else {
+            dev_info(&pdev->dev, "Device is using legacy INTx interrupts.\n");
+            // 进行传统中断模式特有的设置
+        }
+
+        // ... 其他初始化代码 ...
+        return 0;
+    }
+    ```
+
+* `pcie_get_readrq()`
+
+    获取指定 PCI Express (PCIe) 设备的最大读请求大小（Maximum Read Request Size, MRRS）。
+
+    设备读取 host 内存时，单个读请求数据包所能请求的最大数据量。
+
+    该函数通过读取设备 PCI 配置空间中 “PCI Express 能力结构” 的特定字段来获取这个值。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pcie_get_readrq(struct pci_dev *dev);
+    ```
+
+    返回值：
+
+    成功时，返回设备当前配置的 最大读请求大小 (MRRS)，单位为字节。这是一个离散值，通常是以下之一：128, 256, 512, 1024, 2048, 4096。
+
+	如果发生错误（例如设备不支持 PCIe 能力），函数可能返回一个错误码（负值），但通常实现会返回一个安全的最小值（如 128）。
+
+    配对函数：`pcie_set_readrq()`
+
+* `pcie_set_readrq()`
+
+    内核进行检查和钳制（Clamping）：
+
+        内核首先会检查请求的 size 值是否合法（是否是 128, 256, 512, 1024, 2048, 4096 中的一个）。
+
+        最关键的一步：内核会查询 PCIe 设备的 “Device Capabilities” 寄存器。这个寄存器由硬件定义，明确说明了该设备自身支持的 MRRS 有哪些。
+
+        内核将比较软件的请求值和硬件支持的能力值，并最终选择一个不大于请求值且不超过硬件支持上限的值。这个过程就是“钳制”（Clamping）。
+
+        例如：
+
+            你请求设置 4096。
+
+            但设备能力寄存器显示其最大只支持到 1024。
+
+            内核最终会将该设备设置为 1024，而不是 4096。
+
+        内核将钳制后得到的最终值写入设备的 “Device Control” 寄存器。
+
+* `pci_enable_msix_range()`
+
+    为一个 PCI 设备申请并启用一组 MSI-X 中断向量，并允许指定一个期望的数量范围。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_enable_msix_range(struct pci_dev *dev,
+                              struct msix_entry *entries,
+                              int min_vecs,
+                              int max_vecs);
+    ```
+
+    * `entries`: 存储分配成功的中断向量信息。
+
+    返回值：
+
+    成功：返回一个正整数，表示实际分配的中断向量数量（这个值在 [min_vecs, max_vecs] 区间内）。
+
+    失败：返回一个负的错误码（如 -ENOSPC 表示无足够中断资源）。
+
+    example:
+
+    ```c
+    #define MIN_MSIX 2
+    #define MAX_MSIX 8
+
+    struct msix_entry entries[MAX_MSIX];
+    int nvecs;
+
+    // 尝试申请 MSI-X 中断，最少要2个，最多要8个。
+    nvecs = pci_enable_msix_range(pdev, entries, MIN_MSIX, MAX_MSIX);
+
+    if (nvecs < 0) {
+        // 申请失败，连2个都没有，可能需要回退到传统的MSI或INTx中断
+        dev_err(&pdev->dev, "Failed to enable MSI-X. Error: %d\n", nvecs);
+        return nvecs;
+    } else {
+        // 申请成功，nvecs 是实际分配的数量
+        dev_info(&pdev->dev, "Enabled %d MSI-X vectors\n", nvecs);
+
+        // 接下来可以为每个 entries[i].vector 申请中断处理函数 (request_irq)
+        for (int i = 0; i < nvecs; i++) {
+            request_irq(entries[i].vector, my_handler, 0, dev_name(&pdev->dev), my_data);
+        }
+    }
+    ```
+
+    配对函数：`pci_disable_msix()`
+
+    此函数目前已逐渐被`pci_alloc_irq_vectors()`（来自Linux 4.10）所取代。
+
 * MSI-X（Message Signaled Interrupts eXtended）是一种基于消息的中断机制。它允许设备（如网卡、GPU、NVMe SSD）通过向CPU写入一个特定的数据（消息）到特定的内存地址来请求中断，而不是使用传统的、基于专用引脚（IRQ线）的中断。
 
     系统软件（操作系统）会分配一块内存区域，称为 MSI-X Table。这个表中的每一项（Entry）都对应一个中断向量，包含：
@@ -1489,6 +1696,12 @@ Ref:
     ```
 
     * `res_name`： 一个字符串标识符，通常为驱动名，用于在资源树中标识该资源的所有者（在 /proc/ioports 或 /proc/iomem 中可以看到）。
+
+    返回值：
+
+        0: 表示申请成功。
+
+        非 0（错误码）: 表示申请失败（例如资源不存在或已被占用）。
 
     其逆操作函数为`pci_release_region()`。
 

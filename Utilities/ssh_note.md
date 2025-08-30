@@ -2,6 +2,16 @@
 
 ## cache
 
+* `ssh-copy-id -i`
+
+    ssh-copy-id 命令会默认将本地用户的所有公钥文件（通常是 ~/.ssh/id_rsa.pub, ~/.ssh/id_ed25519.pub 等）都复制到远程服务器.
+
+    `-i` (`--identity`) 表示只拷贝指定的 pub key。
+
+    example:
+
+    `ssh-copy-id -i ~/.ssh/my_key.pub user@remote_server`
+
 * ssh config 中 HostName 和 Host
 
     Host 用于指定一个别名或模式，HostName 是实际的服务器地址。

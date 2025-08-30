@@ -1870,13 +1870,19 @@ tasks:
 
 * [O] 完成 siccl shim 层
 
+    deps:
+
+    1. [v] 通过编译
+
+    1. [ ] 替换 get system
+
     feedback:
 
     1. 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
 
-    1. [ ] 增加 sio comm 和 nccl comm 的转换
+    1. [v] 增加 sio comm 和 nccl comm 的转换
 
-    1. [ ] 增加 sio graph 和 nccl graph 的转换
+    1. [v] 增加 sio graph 和 nccl graph 的转换
 
 * [ ] `$(MAKE)`与`make`有什么不同？
 
@@ -3840,8 +3846,6 @@ resources:
 
 * 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
 
-* 调研`MODULE_VERSION`, `MODULE_AUTHOR`, `MODULE_DESCRIPTION`
-
 * 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
 
 * [ ] param 被写入 module 中时，module 是如何感知到的？
@@ -3860,15 +3864,13 @@ resources:
 
     调研函数：
 
-    `dev_set_drvdata`, `pci_ioremap_bar`
-
-    `pci_set_master`, `dma_set_mask`, `pci_ioremap_wc_bar`
+    `pci_ioremap_bar`, `pci_set_master`, `dma_set_mask`, `pci_ioremap_wc_bar`
 
     调研：`iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
 
     `dev_to_node`, `kzalloc_node`, `spin_lock_init`
 
-    `idr_init_base`, `dev_info`
+    `idr_init_base`
 
     调研：
 
@@ -3879,8 +3881,6 @@ resources:
     * 需要调研的函数
 
         * `spin_unlock_irqrestore()`
-
-        * `dev_get_drvdata()`
 
         * `mdev_register_device()`
 
@@ -3911,7 +3911,11 @@ resources:
 
 ### tasks
 
-* [ ] 调研 panas，polars
+* [ ] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
+
+* [ ] 调研`dev_get_drvdata()`, `dev_set_drvdata`
+
+* [ ] 调研 pandas，polars
 
 * [ ] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
 
@@ -3924,8 +3928,6 @@ resources:
 * [ ] `pci_set_master()`
 
 * [ ] `device->irq`
-
-* [v] `pci_alloc_irq_vectors()`
 
 * [ ] `request_irq()`, `free_irq()`
 
@@ -3973,10 +3975,6 @@ resources:
 * [ ] `list_lru_add()`
 
 * [ ] `kmalloc_array()`, `kmalloc_caches()`
-
-* [v] `kmalloc()`未释放的内存，在 module 结束后会被释放吗？
-
-    如果不能，该如何正确释放？
 
 * [ ] `devm_kmalloc()`, `devm_kzalloc()`
 
@@ -4087,7 +4085,21 @@ resources:
 
 * [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
-* [ ] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
+* [v] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
+
+    feedback:
+
+    1. `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
+
+    1. `list_move()`
+
+    1. `list_cut_position()`
+
+    1. 即使是公开的常用知识，deepseek 也有可能瞎编。目前验证的方式有两种
+
+        1. 手动写代码验证
+
+        2. 参考其他 ai 的回答，互相印证
 
 * [ ] 调研链表移动元素：list_move(), list_move_tail()
 
@@ -4113,11 +4125,7 @@ resources:
 
 * [v] 调研`irq_handler()`的原型
 
-    feedback:
-
-    1. 中断流处理程序（flow handler）
-
-* [v] 调研`pci_irq_vector()`
+* [ ] 中断流处理程序（flow handler）
 
 * [ ] `pci_get_device()`
 
@@ -4139,29 +4147,21 @@ resources:
 
 * [ ] Root Port, Switch, Endpoint
 
-* [v] `pci_msi_enabled()`
-
 * [v] `pcie_get_readrq()`
 
-    feedback:
-
-    1. `pci_info()`
+* [ ] `pci_info()`
 
 * [v] `pci_enable_msix_range()`
 
-    feedback:
-
-    1. `pci_enable_msix()`
+* [ ] `pci_enable_msix()`
 
 * [v] `dev_info()`
 
-    feedback:
+* [ ] `/var/log/messages`
 
-    1. `/var/log/messages`
+* [ ] `/var/log/syslog`
 
-    1. `/var/log/syslog`
-
-    1. `journalctl`
+* [ ] `journalctl`
 
 * [ ] 买 fpga 学习 pcie 设备及驱动
 
@@ -4173,19 +4173,15 @@ resources:
 
 * [v] 调研`pci_resource_len()`
 
-    feedback:
+* [ ] `__iomem`
 
-    1. `__iomem`
+* [ ] `request_mem_region()`
 
-    1. `request_mem_region()`
+* [ ] `ioremap()`
 
-    1. `ioremap()`
+* [ ] `release_mem_region()`
 
-    1. `release_mem_region()`
-
-    1. `pci_resource_flags()`
-
-* [ ] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
+* [ ] `pci_resource_flags()`
 
 * [ ] 调研 内核的虚拟地址是如何构成的？
 
@@ -4281,8 +4277,6 @@ resources:
 * [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
 
 * [ ] 调研 I2C 驱动
-
-* [v] 调研`pci_set_drvdata`
 
 * [ ] 还是先把 linux driver 开发看完比较好
 
