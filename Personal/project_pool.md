@@ -30,6 +30,12 @@
 
 ## cache
 
+* 即使是公开的常用知识，deepseek 也有可能瞎编。目前验证的方式有两种
+
+    1. 手动写代码验证
+
+    2. 参考其他 ai 的回答，互相印证
+
 * 如果多人合作一个项目，那么从一开始就要多交流，否则容易后面对接不起来。
 
 * 关于 irq 的启示：可以使用全局资源解除模块与模块之间的耦合
@@ -1866,23 +1872,15 @@ tasks:
 
 ### tasks
 
-* [v] 完成 siccl 环境搭建
-
 * [O] 完成 siccl shim 层
 
     deps:
 
-    1. [v] 通过编译
-
-    1. [ ] 替换 get system
+    1. [v] 替换 get system  
 
     feedback:
 
     1. 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
-
-    1. [v] 增加 sio comm 和 nccl comm 的转换
-
-    1. [v] 增加 sio graph 和 nccl graph 的转换
 
 * [ ] `$(MAKE)`与`make`有什么不同？
 
@@ -2119,7 +2117,7 @@ tasks:
 
 * [ ] `std::get_if<T>()`
 
-* [ ] 调研`std::any`
+* [v] 调研`std::any`
 
 * [ ] 调研`std::holds_alternative`
 
@@ -3919,7 +3917,13 @@ resources:
 
 * [ ] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
 
-* [ ] `pci_request_region()`, `pci_request_regions()`
+* [v] `pci_request_region()`, `pci_request_regions()`
+
+    feedback:
+
+    1. `/proc/ioports`
+
+    1. `/proc/iomem`
 
 * [ ] `dma_set_mask_and_coherent()`
 
@@ -3939,7 +3943,7 @@ resources:
 
 * [ ] `device_create_file()`
 
-* [ ] `class_find_device()`
+* [v] `class_find_device()`
 
 * [ ] `device_unregister()`
 
@@ -3962,7 +3966,15 @@ resources:
 
 * [ ] 调研 makefile 中 target 的执行机制
 
-* [ ] 总线设备、平台设备
+* [v] 总线设备、平台设备
+
+    feedback:
+
+    1. 调研 USB 协议
+
+    1. 调研 I2C 协议
+
+    1. 调研 SPI 协议
 
 * [ ] `device_register()`
 
@@ -3984,7 +3996,13 @@ resources:
 
 * [ ] `class_dev_iter`
 
-* [ ] `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
+* [v] `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
+
+    feedback:
+
+    1. `kstrdup()`
+
+    1. `strdup()`
 
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
@@ -4002,7 +4020,7 @@ resources:
 
     为什么？
 
-* [ ] `charp`在哪个头文件中？
+* [v] `charp`在哪个头文件中？
 
 * [ ] `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
 
@@ -4012,7 +4030,7 @@ resources:
 
 * [ ] `module_param_string()`
 
-* [ ] 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
+* [v] 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
 
 * [ ] 调研`request_threaded_irq()`
 
@@ -4087,19 +4105,11 @@ resources:
 
 * [v] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
 
-    feedback:
+* [ ] `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
 
-    1. `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
+* [ ] `list_move()`
 
-    1. `list_move()`
-
-    1. `list_cut_position()`
-
-    1. 即使是公开的常用知识，deepseek 也有可能瞎编。目前验证的方式有两种
-
-        1. 手动写代码验证
-
-        2. 参考其他 ai 的回答，互相印证
+* [ ] `list_cut_position()`
 
 * [ ] 调研链表移动元素：list_move(), list_move_tail()
 
@@ -4123,8 +4133,6 @@ resources:
 
 * [ ] 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
 
-* [v] 调研`irq_handler()`的原型
-
 * [ ] 中断流处理程序（flow handler）
 
 * [ ] `pci_get_device()`
@@ -4147,15 +4155,9 @@ resources:
 
 * [ ] Root Port, Switch, Endpoint
 
-* [v] `pcie_get_readrq()`
-
 * [ ] `pci_info()`
 
-* [v] `pci_enable_msix_range()`
-
 * [ ] `pci_enable_msix()`
-
-* [v] `dev_info()`
 
 * [ ] `/var/log/messages`
 
@@ -4170,8 +4172,6 @@ resources:
     1. [ ] 学习 fpga 与基本 verilog 开发
 
 * [ ] 调研 AXI4-Stream
-
-* [v] 调研`pci_resource_len()`
 
 * [ ] `__iomem`
 
