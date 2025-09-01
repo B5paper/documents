@@ -30,6 +30,8 @@
 
 ## cache
 
+* 如果一个 task 查 note 时发现之前调研过，那么就意味着该对 note 进行 qa 了。如果一个 task 在 project pool 中被提起两次，那么将其合并为一次，并放到 project tasks 的最上面。
+
 * 即使是公开的常用知识，deepseek 也有可能瞎编。目前验证的方式有两种
 
     1. 手动写代码验证
@@ -1872,11 +1874,21 @@ tasks:
 
 ### tasks
 
+* [v] 替换 compute path
+
+    feedback:
+
+    1. c2c path (gpu -> eth -> gpu) 被 dnoc 顶替掉了，注意一下
+
+* [v] 替换 get system
+
+    feedback:
+
+    1. [v] 替换 generate coll graph
+
+    1. [v] 进行 topo system 和 graph 的转换
+
 * [O] 完成 siccl shim 层
-
-    deps:
-
-    1. [v] 替换 get system  
 
     feedback:
 
@@ -1924,8 +1936,6 @@ tasks:
 
 * [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
 
-* [v] 调研`ssh-copy-id -i`
-
 * [ ] 调研`lsyncd`
 
     这个工具似乎是 inotifywait 和 rsync 的结合，是个比较成熟的工具。
@@ -1944,9 +1954,15 @@ tasks:
 
 * [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
 
-* [ ] 调研`timeout`命令
+* [v] 调研`timeout`命令
 
     `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
+
+    feedback:
+
+    1. 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
+
+    1. 调研使用 bash 实现一个定时器任务管理工具
 
 * [ ] 调研 bash 中的`REPLY`变量
 
@@ -2116,8 +2132,6 @@ tasks:
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
 * [ ] `std::get_if<T>()`
-
-* [v] 调研`std::any`
 
 * [ ] 调研`std::holds_alternative`
 
@@ -3919,11 +3933,9 @@ resources:
 
 * [v] `pci_request_region()`, `pci_request_regions()`
 
-    feedback:
+* [ ] `/proc/ioports`
 
-    1. `/proc/ioports`
-
-    1. `/proc/iomem`
+* [ ] `/proc/iomem`
 
 * [ ] `dma_set_mask_and_coherent()`
 
@@ -3943,20 +3955,50 @@ resources:
 
 * [ ] `device_create_file()`
 
-* [v] `class_find_device()`
-
 * [ ] `device_unregister()`
 
 * [ ] `put_device()`
 
 * [ ] `device_initialize()`
 
-* [ ] 调研 qemu 串口
+* [v] 调研 qemu 串口
 
     ```bash
     -serial mon:stdio \  # 将监视器和串口都重定向到 stdio
     -append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台
     ```
+
+    feedback:
+
+    1. `-serial mon:pty`
+
+    1. `minicom`
+
+    1. `-serial mon:/path/to/file`
+
+        `-serial file:<filename>`
+
+    1. `-serial mon:tcp:0.0.0.0:2345,server,nowait`
+
+        `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
+
+    1. `telnet <host-ip> 2345`
+
+    1. `-serial mon:unix:/path/to/socketfile,server,nowait`
+
+        `-serial unix:<path>[,server|,client][,nowait]`
+
+    1. `-serial mon:null`
+
+    1. `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
+
+    1. `-serial vc[:WxH]`
+
+    1. `-serial pipe:<basename>`
+
+    1. `-serial null`
+
+    1. `-serial chardev:<id>`
 
 * [ ] 调研 ls 相关
 
@@ -3968,13 +4010,11 @@ resources:
 
 * [v] 总线设备、平台设备
 
-    feedback:
+* [ ] 调研 USB 协议
 
-    1. 调研 USB 协议
+* [ ] 调研 I2C 协议
 
-    1. 调研 I2C 协议
-
-    1. 调研 SPI 协议
+* [ ] 调研 SPI 协议
 
 * [ ] `device_register()`
 
@@ -3998,11 +4038,9 @@ resources:
 
 * [v] `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
 
-    feedback:
+* [ ] `kstrdup()`
 
-    1. `kstrdup()`
-
-    1. `strdup()`
+* [ ] `strdup()`
 
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
@@ -4020,8 +4058,6 @@ resources:
 
     为什么？
 
-* [v] `charp`在哪个头文件中？
-
 * [ ] `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
 
 * [ ] `module_param_call()`
@@ -4029,8 +4065,6 @@ resources:
 * [ ] `module_param_named()`
 
 * [ ] `module_param_string()`
-
-* [v] 调研`linux/kernel.h`有什么用，`MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`是否出自这个头文件？
 
 * [ ] 调研`request_threaded_irq()`
 
@@ -4057,7 +4091,7 @@ resources:
 
 * [ ] `setvbuf()`, `setbuf()`
 
-* [ ] `sync()`
+* [v] `sync()`
 
 * [ ] `fflush()`是否基本等价于调用系统调用`write()`？
 
@@ -4097,13 +4131,27 @@ resources:
 
 * [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
 
-* [ ] `spin_lock()`, `spin_unlock()`
+* [v] `spin_lock()`, `spin_unlock()`
+
+    feedback:
+
+    1. `spin_trylock()`
+
+    1. `spin_lock_irq()`, `spin_unlock_irq()`
+
+    1. `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
+
+    1. 给出一个造成 spin lock 死锁的代码
+
+    1. `spin_lock_bh()`, `spin_unlock_bh()`
+
+    1. `struct task_struct`
+
+    1. `schedule()`
 
 * [ ] `list_is_singular()`
 
 * [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
-
-* [v] 调研链表拼接：list_splice(), list_splice_tail(), list_splice_init()
 
 * [ ] `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
 

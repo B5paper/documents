@@ -6,6 +6,263 @@ Ref:
 
 ## cache
 
+* `charp`定义在`<linux/moduleparam.h>`中
+
+* `MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`定义在`<linux/module.h>`里
+
+    `<linux/module.h>`专门为内核模块提供接口：
+
+    * 模块信息宏：MODULE_AUTHOR(), MODULE_DESCRIPTION(), MODULE_LICENSE(), MODULE_VERSION()
+
+    * 模块入口/出口：module_init(), module_exit()
+
+    * 模块依赖：MODULE_ALIAS(), MODULE_FIRMWARE() 等
+
+    example:
+
+    ```c
+    #include <linux/module.h>   // MODULE_* 宏和 module_init/exit 在这里
+    #include <linux/kernel.h>   // printk/pr_info, min/max 等
+
+    MODULE_AUTHOR("Liucheng Hu");
+    MODULE_DESCRIPTION("My first Linux kernel module");
+    MODULE_VERSION("1.0");
+    MODULE_LICENSE("GPL");
+
+    static int __init my_module_init(void)
+    {
+        pr_info("Hello, kernel!\n");
+        return 0;
+    }
+
+    static void __exit my_module_exit(void)
+    {
+        pr_info("Goodbye, kernel!\n");
+    }
+
+    module_init(my_module_init);
+    module_exit(my_module_exit);
+    ```
+
+* `linux/kernel.h`的作用
+
+    1. 常用宏定义
+
+        包含很多内核开发里会用到的 通用宏，比如：
+
+        * min(), max()
+
+        * clamp(), roundup(), rounddown()
+
+        * DIV_ROUND_UP() 等
+
+        这些宏在写驱动或内核代码时非常常见。
+
+    2. 打印函数
+
+        提供了内核日志输出接口：
+
+        * printk()
+
+        * pr_info(), pr_err(), pr_warn() 等封装
+
+        用来在内核日志（dmesg）里打印调试信息。
+
+    3. 类型转换辅助
+
+        一些和内核类型、数据处理相关的工具宏，比如：
+
+        * container_of()（通过结构体成员指针得到整个结构体指针）。
+
+    4. 内核通用函数声明
+
+        包含一些在内核里常用的函数声明，例如：
+
+        * simple_strtol(), simple_strtoul()（字符串转数字，已逐渐被 kstrto*() 系列替代）。
+
+        * print_hex_dump()（调试时打印十六进制数据）。
+
+* `param_get_charp()`
+
+    从一个内核模块参数中获取其字符串类型的值（即 char 指针类型的值），并返回这个指针的副本。
+
+    syntax:
+
+    ```c
+    int param_get_charp(char *buffer, const struct kernel_param *kp);
+    ```
+
+    return val:
+
+    返回成功写入到 buffer 中的字节数。如果发生错误，则返回一个负的错误代码。
+
+    这个函数其实是一个回调函数：
+
+    ```c
+    struct kernel_param_ops param_ops_charp = {
+        .set  = param_set_charp,
+        .get  = param_get_charp,
+        .free = param_free_charp,
+    };
+    ```
+
+    * `.set = param_set_charp()`（设置参数时分配内存）
+
+    * `.get = param_get_charp()`（读取参数时拷贝字符串）
+
+    * `.free = param_free_charp()`（释放内存）
+
+    该函数不会直接返回模块参数变量本身所存储的指针，而是会返回这个指针的一个 “副本”。它会为参数所指向的原始字符串重新分配一块内核内存，并将字符串内容复制到这块新内存中。因此在使用完成后，需要调用配对函数`param_free_charp()`释放内存。此函数本质就是调用了`kfree()`。
+
+    `param_get_charp()`这个函数由内核自动调用，不需要用户手动调用。当用户从 sysfs 里读取参数（比如 cat /sys/module/mymodule/parameters/my_param）时，内核会自动调用。
+
+    用户只需要写`module_param()`就可以了：
+
+    ```c
+    static char *my_param = "default";
+    module_param(my_param, charp, 0644);
+    ```
+
+* auxiliary bus
+
+    （未验证）
+
+    一个父设备（Physical Device）可以创建多个 auxiliary devices（辅助设备），但这些 auxiliary devices 都注册在同一个、内核全局唯一的 auxiliary bus（即 auxiliary_bus_type）上。
+
+* 平台设备 (Platform Device)
+
+    直接映射到系统地址空间、通常集成在处理器芯片内部或直接挂在本地总线上的设备。
+
+    平台总线（platform_bus_type）是一个虚拟的总线，这个总线是内核创建的一个抽象，用于统一管理这些无法被自动发现的设备。
+
+    CPU 无法通过扫描总线来发现它们。系统需要预先知道它们的存在。
+
+    平台总线设备的详细信息（地址、中断号等）必须静态地提供给内核。提供方式主要有两种：
+
+    1. 设备树 (Device Tree)：在现代嵌入式系统中（如 ARM、RISC-V），这是主流方式。Bootloader 会将一个描述硬件拓扑结构的设备树二进制文件（.dtb）传递给内核。内核解析后，会自动创建对应的平台设备。
+
+    2. 板级文件 (Board File)：在旧的内核或x86系统中，通常在架构相关的C代码中硬编码 (platform_device_register())。
+
+    platform device examples:
+
+    * 处理器内部的UART控制器（串口）。
+
+    * 系统内部的硬件定时器。
+
+    * GPIO控制器。
+
+    * 集成在SoC上的I2C控制器、SPI控制器本身（注意：这些控制器是平台设备，而挂在其上的从设备是I2C/SPI设备）。
+
+    * 内存映射的LED或按键。
+
+    平台设备的驱动匹配过程依赖于名称：
+
+    1. 设备源（设备树或板级文件）会指定一个设备的名称（例如 "serial8250"）。
+
+    2. 平台驱动会声明自己支持的设备名称（例如 "serial8250"）。
+
+    3. 平台总线核心负责将同名设备和驱动进行匹配。
+
+    4.  匹配成功后，调用驱动的 probe 函数。
+
+* 总线设备 (Bus Device)
+
+    所有通过某种可枚举、有标准探测协议的总线连接到系统的设备。
+
+    总线设备的总线都是有形的，这些设备通过物理上真实存在的、有明确标准的总线连接到处理器（CPU）。
+
+    example:
+
+    * PCI/PCIe：网卡、显卡、声卡、存储控制器等。
+
+    * USB：U盘、键盘、鼠标、摄像头等。
+
+    * I2C：各种传感器（温度、湿度）、EEPROM 存储器等。
+
+    * SPI：Flash 存储器、显示屏控制器等。
+
+    系统（内核）可以在启动时或运行时（热插拔）通过总线协议主动去枚举发现这些设备。例如，PCI 总线可以通过配置空间读取设备的厂商ID和设备ID。
+
+    总线设备的驱动匹配模型：
+
+    1. 总线驱动枚举设备，并创建 struct device（或其子结构，如 struct pci_dev, struct usb_device）。
+
+    2. 设备注册到总线上。
+
+    3. 内核将设备的标识符（如 PCI 的 VID/DID）与已注册的驱动提供的标识符列表进行比对。
+
+    4. 找到匹配的驱动后，调用驱动的 probe 函数来初始化设备。
+
+* `pci_request_regions()`
+
+    一次性申请 PCI 设备的所有有效资源区间（即所有有效的 BARs），是 `pci_request_region()`的“批处理”版本。
+
+    syntax:
+
+    ```c
+    int pci_request_regions(struct pci_dev *pdev, const char *res_name);
+    ```
+
+    返回值：
+
+    * `0`: 表示所有有效的资源区域都申请成功。
+
+    * 非`0`（错误码）: 表示在申请任何一个BAR时失败。重要的是，如果失败，它会自动释放之前已经成功申请的所有BAR。这简化了错误处理。
+
+    在大多数情况下，应优先使用 pci_request_regions()。除非你明确知道驱动只需要且应该只占用某一个特定BAR，否则使用批量申请更安全、更省事。
+
+* 设备类 (struct class)
+
+    在 Linux 设备模型中，设备被分类管理，例如所有的输入设备（键盘、鼠标）属于 input 类，所有的块设备（硬盘、U盘）属于 block 类，所有的网络设备属于 net 类。
+
+    每个类都是一个 struct class 结构体，它包含了一个链表，链接着所有注册到该类的设备（struct device）。
+
+* `class_find_device()`
+
+    在一个指定的设备类（struct class）中，根据提供的匹配条件，遍历并找到第一个匹配的设备
+
+    syntax:
+
+    ```c
+    struct device *class_find_device(struct class *class,
+                                     struct device *start,
+                                     const void *data,
+                                     int (*match)(struct device *, const void *));
+    ```
+
+    start: 从哪个设备开始遍历（通常传入 NULL 表示从链表头开始）。
+
+    data: 传递给匹配函数的数据，用于比较（例如一个设备名称字符串、一个ID号等）。
+
+    match: 你自定义的匹配函数指针。
+
+    其中`match`为回调函数，当 dev 的数据匹配 data 时，返回 true (1)，否则返回 false (0).
+
+    example:
+
+    假设你有一个自定义的类 my_class，并且你知道某个设备的名称（例如 "my_special_device"），你想根据这个名字找到对应的设备指针。
+
+    ```c
+    static int my_match_by_name(struct device *dev, const void *data) {
+        const char *name = data;
+        // 检查设备的名字是否与传入的name相同
+        return (dev->kobj.name != NULL) && (strcmp(dev->kobj.name, name) == 0);
+    }
+
+    struct device *dev;
+    dev = class_find_device(my_class, NULL, "my_special_device", my_match_by_name);
+    if (dev) {
+        // 找到设备，可以进行操作
+        // ...
+        // 使用完后，通常需要调用 put_device() 来减少引用计数
+        put_device(dev);
+    } else {
+        // 设备未找到
+    }
+    ```
+
+    引用计数：class_find_device() 在找到设备后，会增加该设备的引用计数。这意味着你在使用完返回的设备指针后，必须调用 put_device() 来减少引用计数，否则该设备将永远无法被正确卸载，导致内存泄漏。
+
 * `list_splice()`
 
     通过修改指针，将一个链表合并到另一个链表。

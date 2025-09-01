@@ -2,6 +2,225 @@
 
 ## cached
 
+* `std::any`
+
+    std::any 是 C++17 标准库中引入的一个容器，它的作用是提供一种类型安全的方式来存储和操作任意类型的单个值。
+
+    向`std::any`容器中存储数据时，其元素类型必须满足可拷贝构造的要求。
+
+    为了优化性能，小的对象会直接存储在 std::any 自身的对象空间中，而大的对象则会存储在堆上。
+
+    常用操作：
+
+    * 存放值 (Emplacement): std::any a = 42; 或 std::any a = std::string("Hello");
+
+    * 判断是否有值: a.has_value()
+
+    * 获取值 (Retrieval):
+
+        * 安全获取 (推荐): 使用`std::any_cast<T>(my_any)`
+
+            如果类型 T 正确，返回存储值的副本。
+
+            如果类型不匹配，抛出 std::bad_any_cast。
+
+        * 获取指针: 使用`std::any_cast<T>(&my_any)`
+
+            如果类型 T 正确，返回一个指向存储值的指针 (T*)。
+
+            如果类型不匹配，返回 nullptr（不会抛出异常）。
+
+        * 获取引用：`std::any_cast<T&>(my_any)`
+
+    * 销毁/重置值: a.reset() 或 a = std::any{}
+
+    example:
+
+    ```cpp
+    #include <any>
+    #include <iostream>
+    #include <string>
+
+    int main() {
+        std::any anything;
+
+        // 存储一个整数
+        anything = 42;
+        // 安全地取出并使用
+        try {
+            int value = std::any_cast<int>(anything);
+            std::cout << "Integer: " << value << '\n'; // 输出: Integer: 42
+        } catch (const std::bad_any_cast& e) {
+            std::cout << "Wrong type!\n";
+        }
+
+        // 存储一个字符串
+        anything = std::string("Hello World");
+        // 通过指针方式安全地尝试获取
+        if (auto ptr = std::any_cast<std::string>(&anything)) {
+            std::cout << "String: " << *ptr << '\n'; // 输出: String: Hello World
+        }
+
+        // 尝试错误地获取
+        try {
+            double value = std::any_cast<double>(anything); // 这里存的是string，不是double
+            std::cout << "Double: " << value << '\n';
+        } catch (const std::bad_any_cast& e) {
+            std::cout << "Caught expected exception: " << e.what() << '\n';
+            // 输出: Caught expected exception: bad any_cast
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Integer: 42
+    String: Hello World
+    Caught expected exception: bad any_cast
+    ```
+
+    应用场景：
+
+    * 可以放任何东西的容器（例如 `std::vector<std::any>`）
+
+        `std::variant`更适合已知类型的集合
+
+    * 框架开发中，接收用户定义的一个未知类型的对象。
+
+    * 存储多种类型的值，比如 json 解析时的 int, double, string 等。
+
+    注：
+
+    1. 在取出值时，如果不知道其存储的类型，常用 try catch 法
+
+        ```cpp
+        void tryToPrint(const std::any& a) {
+            if (a.has_value()) {
+                // 尝试是int吗？
+                if (int* intPtr = std::any_cast<int>(&a)) {
+                    std::cout << "It's an int: " << *intPtr << std::endl;
+                }
+                // 尝试是double吗？
+                else if (double* doublePtr = std::any_cast<double>(&a)) {
+                    std::cout << "It's a double: " << *doublePtr << std::endl;
+                }
+                // 尝试是string吗？
+                else if (std::string* stringPtr = std::any_cast<std::string>(&a)) {
+                    std::cout << "It's a string: " << *stringPtr << std::endl;
+                }
+                else {
+                    std::cout << "It's something else I don't know how to handle." << std::endl;
+                }
+            } else {
+                std::cout << "It's empty." << std::endl;
+            }
+        }
+        ```
+
+    1. 如果已知 any 中的类型，可以让其在运行时和 enum 绑定
+
+        ```cpp
+        // 1. 定义一个枚举，列出所有可能的数据类型
+        enum class DataType {
+            Integer,
+            Double,
+            String,
+            // 可以继续添加更多类型...
+        };
+
+        // 2. 创建一个结构体，将值和其类型标签捆绑在一起
+        struct TaggedValue {
+            DataType type;
+            std::any value;
+        };
+        ```
+
+        或者使用 variant 绑定：
+
+        ```cpp
+        // 类型标签现在是一个variant，它知道所有可能的类型
+        using TypeInfo = std::variant<int, double, std::string>;
+
+        struct VariantTaggedValue {
+            TypeInfo type_info; // 这个variant本身也可以存储值，这里我们只用它做标签
+            std::any value;
+        };
+
+        // 使用std::visit来访问type_info，进而指导any_cast
+        ```
+
+    1. `std::any`的接口没有提供 get_type() 这样的方法。要取出值，你必须通过`std::any_cast<T>`来"尝试"，或者像我们之前讨论的那样，通过外部信息来知道类型。
+
+    1. std::any 有点像一块 buffer，可能直接存对象，也可能存对象的指针（Small Buffer Optimization (SBO) ），并且 std::any 还存了类似 type_info 的东西，可以在运行时确定类型
+
+    1. 使用  auto ptr = any_cast<xxx>(&yyy) 时，如果 yyy 后面被释放了，那么 ptr 无效。当源 std::any 对象被销毁、被重置（reset()）或被赋新值时，它内部存储的对象也会被销毁，您之前获取的指针立即变为悬空指针。
+
+        如果你需要数据的持久副本，应该使用 std::any_cast<T>(any_obj) 通过值来获取，这会返回一个全新的、独立的对象。
+
+    1. auto val = any_cast<xxx>(yyy)，返回的 val 是值（副本），不是引用
+
+        注意，`auto& ref = std::any_cast<std::string>(my_any); `会先创建副本，然后让引用绑定到副本上
+
+        example:
+
+        ```cpp
+        std::any my_any = 42;
+
+        // 1. 值拷贝（默认行为）
+        int copy = std::any_cast<int>(my_any); // 返回 int（副本）
+
+        // 2. 非常量引用
+        int& ref = std::any_cast<int&>(my_any); // 返回 int&
+        ref = 100; // 修改原始值
+
+        // 3. 常量引用
+        const int& const_ref = std::any_cast<const int&>(my_any); // 返回 const int&
+
+        // 4. 右值引用（用于移动语义）
+        int&& moved = std::any_cast<int&&>(std::move(my_any)); // 返回 int&&
+
+        // 5. 指针版本（返回nullptr或指针，不会抛出异常）
+        int* ptr = std::any_cast<int>(&my_any); // 返回 int* 或 nullptr
+        if (ptr) {
+            *ptr = 200; // 通过指针修改
+        }
+        ```
+
+    1. 当使用 std::any any_1 = any_2; 时，会发生 deep copy
+
+        当您写 std::any any_1 = any_2; 时，会发生以下过程：
+
+        1. any_2 检查自己是否包含值（通过 has_value()）
+
+        2. 如果包含值，它会创建其内部存储的对象的一个完整副本
+
+        3. 类型信息和管理函数也会被复制
+
+        4. any_1 现在拥有一个独立的、与 any_2 内容相同但完全分离的对象
+
+        当拷贝发生时，std::any 会调用存储的拷贝函数来创建深度副本。
+
+        example:
+
+        ```cpp
+        // 好的做法：使用移动语义避免不必要的拷贝
+        std::any createLargeData() {
+            std::vector<int> large_data(1000000);
+            return large_data; // 这里会发生移动，而不是拷贝
+        }
+
+        int main() {
+            std::any data = createLargeData(); // 移动构造，高效
+            std::any data_copy = data; // 深拷贝，可能昂贵！
+            
+            // 如果确定不再需要原对象，使用移动
+            std::any data_moved = std::move(data); // 移动构造，高效
+        }
+        ```
+
 * std::mutex 不能被复制或移动，通常作为全局变量或类的成员变量使用。
 
 * `std::variant`
