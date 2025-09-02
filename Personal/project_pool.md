@@ -1874,20 +1874,6 @@ tasks:
 
 ### tasks
 
-* [v] 替换 compute path
-
-    feedback:
-
-    1. c2c path (gpu -> eth -> gpu) 被 dnoc 顶替掉了，注意一下
-
-* [v] 替换 get system
-
-    feedback:
-
-    1. [v] 替换 generate coll graph
-
-    1. [v] 进行 topo system 和 graph 的转换
-
 * [O] 完成 siccl shim 层
 
     feedback:
@@ -1896,7 +1882,25 @@ tasks:
 
 * [ ] `$(MAKE)`与`make`有什么不同？
 
-* [ ] gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
+* [v] gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
+
+* [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
+
+* [ ] `pkg-config --libs`
+
+* [ ] `ldconfig`
+
+* [ ] `-rpath`
+
+* [ ] `-Wl,-rpath='$ORIGIN/../lib`
+
+* [ ] `/etc/ld.so.conf.d/myapp.conf`
+
+* [ ] `readelf`
+
+* [ ] `objdump`
+
+* [ ] `ldd`
 
 * [ ] 调研可视化的方案
 
@@ -1958,11 +1962,9 @@ tasks:
 
     `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
 
-    feedback:
+* [ ] 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
 
-    1. 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
-
-    1. 调研使用 bash 实现一个定时器任务管理工具
+* [ ] 调研使用 bash 实现一个定时器任务管理工具
 
 * [ ] 调研 bash 中的`REPLY`变量
 
@@ -1972,7 +1974,11 @@ tasks:
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
 
-* [ ] `od -x`
+* [v] `od -x`
+
+    feedback:
+
+    1. `od -t x1`
 
 * [ ] `od -t x<N>`
 
@@ -2069,7 +2075,11 @@ tasks:
 
 * [ ] 调研`ps -e -o pid,cmd`
 
-* [ ] 调研`ps aux`
+* [v] 调研`ps aux`
+
+    feedback:
+
+    1. `ps aux --sort=-%cpu`, `ps aux --sort=-%mem`
 
 * [ ] 调研`strings`工具
 
@@ -2128,18 +2138,6 @@ tasks:
 * [ ] 调研 c++ 中如何知道数组有几个维度
 
 * [ ] 调研`rsync -v`, `--info=progress2`
-
-* [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
-
-* [ ] `std::get_if<T>()`
-
-* [ ] 调研`std::holds_alternative`
-
-* [ ] 调研`std::get_if`, `std::get`
-
-* [ ] 调研 c++ 泛型 lambda
-
-* [P] 调研`std::visit`
 
 * [ ] 调研`std::reference_wrapper`
 
@@ -3923,7 +3921,23 @@ resources:
 
 ### tasks
 
-* [ ] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
+* [v] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
+
+    feedback:
+
+    1. `ioremap_cache()`
+
+    1. `ioremap_wc()`
+
+    1. `sparse`
+
+    1. `devm_ioremap()`
+
+    1. 设备树（Device Tree）
+
+    1. `platform_get_resource()`, `resource_size()`
+
+    1. `devm_platform_ioremap_resource()`
 
 * [ ] 调研`dev_get_drvdata()`, `dev_set_drvdata`
 
@@ -3931,19 +3945,37 @@ resources:
 
 * [ ] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
 
-* [v] `pci_request_region()`, `pci_request_regions()`
-
 * [ ] `/proc/ioports`
 
 * [ ] `/proc/iomem`
 
 * [ ] `dma_set_mask_and_coherent()`
 
-* [ ] `pci_iomap()`
+* [v] `pci_iomap()`
 
-* [ ] `pci_set_master()`
+    feedback:
 
-* [ ] `device->irq`
+    1. `inb`, `outl`
+
+    1. `readl`, `writel`
+
+    1. 调研 MMU（内存管理单元）如何设计？
+
+    1. `__iomem`有实际修吗？还是只是个修饰？
+
+    1. 什么是基址寄存器（BARs）
+
+    1. BAR 配置空间 都有哪些内容？
+
+* [v] `pci_set_master()`
+
+    feedback:
+
+    1. `pci_write_config_word()`, `pci_read_config_word()`
+
+    1. 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
+
+* [v] `device->irq`
 
 * [ ] `request_irq()`, `free_irq()`
 
@@ -3951,7 +3983,7 @@ resources:
 
 * [ ] `INIT_WORK()`, `cancel_work_sync()`
 
-* [ ] `pci_release_regions()`
+* [v] `pci_release_regions()`
 
 * [ ] `device_create_file()`
 
@@ -3968,37 +4000,35 @@ resources:
     -append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台
     ```
 
-    feedback:
+* [ ] `-serial mon:pty`
 
-    1. `-serial mon:pty`
+* [ ] `minicom`
 
-    1. `minicom`
+* [ ] `-serial mon:/path/to/file`
 
-    1. `-serial mon:/path/to/file`
+    `-serial file:<filename>`
 
-        `-serial file:<filename>`
+* [ ] `-serial mon:tcp:0.0.0.0:2345,server,nowait`
 
-    1. `-serial mon:tcp:0.0.0.0:2345,server,nowait`
+    `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
 
-        `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
+* [ ] `telnet <host-ip> 2345`
 
-    1. `telnet <host-ip> 2345`
+* [ ] `-serial mon:unix:/path/to/socketfile,server,nowait`
 
-    1. `-serial mon:unix:/path/to/socketfile,server,nowait`
+    `-serial unix:<path>[,server|,client][,nowait]`
 
-        `-serial unix:<path>[,server|,client][,nowait]`
+* [ ] `-serial mon:null`
 
-    1. `-serial mon:null`
+* [ ] `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
 
-    1. `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
+* [ ] `-serial vc[:WxH]`
 
-    1. `-serial vc[:WxH]`
+* [ ] `-serial pipe:<basename>`
 
-    1. `-serial pipe:<basename>`
+* [ ] `-serial null`
 
-    1. `-serial null`
-
-    1. `-serial chardev:<id>`
+* [ ] `-serial chardev:<id>`
 
 * [ ] 调研 ls 相关
 
@@ -4007,8 +4037,6 @@ resources:
     `ls -alht`, `ls -lhR`
 
 * [ ] 调研 makefile 中 target 的执行机制
-
-* [v] 总线设备、平台设备
 
 * [ ] 调研 USB 协议
 
@@ -4035,8 +4063,6 @@ resources:
 * [ ] `class_device_destructor()`
 
 * [ ] `class_dev_iter`
-
-* [v] `param_get_charp()`, `param_ops_charp`, `param_set_charp`, `param_free_charp`这几个都是干嘛的？
 
 * [ ] `kstrdup()`
 
@@ -4091,8 +4117,6 @@ resources:
 
 * [ ] `setvbuf()`, `setbuf()`
 
-* [v] `sync()`
-
 * [ ] `fflush()`是否基本等价于调用系统调用`write()`？
 
 * [ ] 页面缓存（Page Cache）
@@ -4133,23 +4157,21 @@ resources:
 
 * [v] `spin_lock()`, `spin_unlock()`
 
-    feedback:
+* [ ] `spin_trylock()`
 
-    1. `spin_trylock()`
+* [ ] `spin_lock_irq()`, `spin_unlock_irq()`
 
-    1. `spin_lock_irq()`, `spin_unlock_irq()`
+* [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
-    1. `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
+* [ ] 给出一个造成 spin lock 死锁的代码
 
-    1. 给出一个造成 spin lock 死锁的代码
+* [ ] `spin_lock_bh()`, `spin_unlock_bh()`
 
-    1. `spin_lock_bh()`, `spin_unlock_bh()`
+* [ ] `struct task_struct`
 
-    1. `struct task_struct`
+* [ ] `schedule()`
 
-    1. `schedule()`
-
-* [ ] `list_is_singular()`
+* [v] `list_is_singular()`
 
 * [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
@@ -4681,7 +4703,7 @@ cache:
 
 * 学一下 c++ 的 std format
 
-1. 学习一下 c++ make uniquue
+* 学习一下 c++ make uniquue
 
     可以自定义一个类型，然后使用 make unique 创建一个固定长度的数组。
 
@@ -4699,9 +4721,21 @@ cache:
 
     有空了研究一下这段代码，分析一下利弊。
 
+* `fprintf()`向 stdin 中写数据，似乎没有什么反应。
+
 ### tasks
 
-* [v] 函数声明处加`static`是否有意义？
+* [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
+
+* [ ] `std::get_if<T>()`
+
+* [ ] 调研`std::holds_alternative`
+
+* [ ] 调研`std::get_if`, `std::get`
+
+* [ ] 调研 c++ 泛型 lambda
+
+* [P] 调研`std::visit`
 
 * [ ] 为什么`vector<unique_ptr<XmlTag>> root_tags;`无法`root_tags.push_back(new XmlTag);`，但是可以`root_tags.emplace_back(new XmlTag);`？
 
@@ -4721,10 +4755,6 @@ cache:
 
 * [v] 调研`fprintf(stderr," Internal error, existing.\n");`的用法
 
-    feedback:
-
-    1. 简单试了下向 stdin 中写数据，似乎没有什么反应。
-
 * [ ] 调研`partial_sum()`和`accumulate()`有什么区别？
 
 * [ ] 调研 c++ string 从指定位置开始 assign 另一个字符串
@@ -4738,8 +4768,6 @@ cache:
 * [ ] 调研：c++ 迭代器为什么`upper_bound()`的返回值减去`lower_bound()`的返回值等于数组的长度？
 
 * [ ] 调研 c++ 迭代器，increase 相关
-
-* [ ] 调研 c++ `variant`
 
 ## Vim
 

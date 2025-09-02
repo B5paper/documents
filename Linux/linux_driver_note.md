@@ -6,6 +6,51 @@ Ref:
 
 ## cache
 
+* 为什么中断上下文不能睡眠？
+
+    1. 没有进程概念：中断上下文不属于任何进程。它只是“借道”执行，打断了当前正在运行的进程。如果它睡眠了，调度器不知道该唤醒哪个进程来继续执行它，因为它没有 struct task_struct 关联。这会导致系统彻底崩溃。
+
+    2. 破坏原子性：中断是异步到来的，期望被快速处理。睡眠可能导致中断处理流程被无限期挂起，使得设备无法及时响应，其他中断也可能无法处理。
+
+    3. 可能导致死锁：假设中断发生时，某个内核锁正被持有。如果中断处理程序尝试获取另一个锁，而这个操作又可能导致睡眠，那么系统就会死锁。持有锁的进程正在等待中断处理完成，而中断处理又在等待锁被释放。
+
+* `spin_lock()`
+
+    一种用于实现互斥（Mutual Exclusion）的同步原语。它是一种忙等待锁（Busy-Wait Lock），其核心特征在于：当一个线程尝试获取一个已被占用的锁时，它不会进入睡眠状态，而是会在一个循环中不断地“旋转”（Spinning），反复检查锁是否被释放，直到成功获取锁为止。
+
+    syntax:
+
+    ```c
+    #include <linux/spinlock.h>
+
+    void spin_lock(spinlock_t *lock);
+    ```
+
+    如果锁已被占用，函数不会返回，当前CPU核会在此自旋，直到成功获取锁。
+
+    自旋锁设计的初衷是保护执行时间极短的临界区。它可以在中断上下文（Interrupt Context）中使用，而睡眠锁（如Mutex）绝对不可以，因为中断上下文中不允许调度（睡眠）。
+
+    这里的中断上下文指的是中断处理程序 (ISR)、软中断 (softirq)、tasklet、工作队列（上半部）。
+
+    example:
+
+    ```c
+    #include <linux/spinlock.h>
+
+    spinlock_t my_lock;
+    DEFINE_SPINLOCK(my_lock);  // 编译时静态初始化
+
+    void my_func() {
+        // spinlock_t my_lock;
+        // spin_lock_init(&my_lock);  // 运行时动态初始化
+        spin_lock(spinlock_t *lock);
+        // critical area
+        spin_unlock(spinlock_t *lock);
+    }
+    ```
+
+    在持有自旋锁的同时再次请求获取同一个自旋锁（递归加锁），这会导致该CPU核永久自旋，系统卡死。
+
 * `charp`定义在`<linux/moduleparam.h>`中
 
 * `MODULE_AUTHOR()`, `MODULE_DESCRIPTION()`, `MODULE_VERSION()`定义在`<linux/module.h>`里

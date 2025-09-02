@@ -2,6 +2,49 @@
 
 ## cache
 
+* qemu 中，先按`Ctrl + A`，再按`C`，可以切换到 qemu 后台（即 qemu monitor），如下：
+
+    ```
+    SeaBIOS (version 1.15.0-1)
+
+
+    iPXE (https://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+BFF8B420+BFECB420 CA00
+                                                                                   
+
+
+    Booting from Hard Disk...
+    QEMU 6.2.0 monitor - type 'help' for more information
+    (qemu) 
+    ```
+
+    前面的`(qemu)` prompt 标志着已经进入了 qemu 后台，此时可以执行一些后台指令，比如`info registers`。
+
+    qemu monitor 不是虚拟机的一部分，是 qemu 监视和管理虚拟机的后台程序。
+
+* qemu 中`-serial mon:stdio`
+
+    `-serial` 选项用来指定串口输出的重定向目标，比如 file:xxx、pty、stdio 等。
+
+    `mon` 表示 QEMU Monitor。
+
+    `stdio` 表示把输入输出绑定到 当前终端的标准输入输出。
+
+    `mon:stdio`表示将虚拟机的串口和 qemu monitor 的输入输出，都绑定到`stdio`。
+
+    如果不写`mon`，只写`stdio`，那么按快捷键`Ctrl + A`，`C`，将不会出现 qemu monitor。（未验证）
+
+    如果只写`mon`，不写`stdio`，那么输出如下：
+
+    ```
+    QEMU 6.2.0 monitor - type 'help' for more information
+    (qemu) qemu-system-x86_64: -serial mon: 'mon' is not a valid char driver
+    qemu-system-x86_64: -serial mon: could not connect serial device to character backend 'mon'
+    ```
+
+    如果使用`-nographic -serial stdio -monitor none`启动 qemu，那么无法使用 ssh 登陆。不清楚原因。
+
+    这个命令的意思是`-serial stdio -monitor stdio`，但是不能这么写，会报错，因为`stdio`是一种独占资源，不能被分配两次。`-serial mon:stdio`则是多路复用形式的重定向，所以没问题。
+
 * qemu 无图形界面启动
 
     * 方案一

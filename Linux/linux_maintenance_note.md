@@ -6,6 +6,58 @@
 
 ## cache
 
+* `timeout`
+
+    如果计时器超时, ，timeout 会向子命令进程发送一个信号（默认是 TERM 信号），强制终止它, 并返回一个特定的退出状态码（默认为124）
+
+    syntax:
+
+    ```
+    timeout [OPTIONS] DURATION COMMAND [ARG]...
+    ```
+
+    * DURATION：时间长度。这是必须指定的参数。它可以是一个整数，也可以是带单位的数字（例如 10s 表示10秒，2m 表示2分钟，1h 表示1小时）。如果只是数字，默认单位是秒。
+
+    * COMMAND [ARG]...：你想要运行的实际命令及其参数。
+
+    常用选项（OPTIONS）：
+
+    * -s, --signal=SIGNAL：指定超时后要发送的信号。默认是 TERM (15)。
+
+        例如，如果程序忽略 TERM 信号，你可以使用 -s KILL 来发送 KILL (9) 信号，强制杀死进程。
+
+        查看所有信号：kill -l
+
+    * -k, --kill-after=DURATION：双重保险。先发送 -s 指定的信号（默认TERM），如果再过 DURATION 时间后进程仍然存在，则发送 KILL 信号确保其被杀死。
+
+    * --preserve-status：让 timeout 返回被它控制的命令的退出状态码。如果命令超时被杀死，仍然返回124。
+
+    example:
+
+    ```bash
+    timeout 5s ping example.com
+    timeout -s KILL 2m some-unstable-script.sh
+    timeout -k 5s 10s some-command
+    ```
+
+    在脚本中使用并检查退出状态：
+
+    ```bash
+    #!/bin/bash
+    timeout 30s long-running-task.sh
+
+    case $? in
+      0)  echo "Task completed successfully." ;;
+      124) echo "Task timed out and was killed." ;;
+      137) echo "Task was killed by a signal (e.g., KILL)." ;; # 如果用了 -s KILL，会返回137 (128+9)
+      *)  echo "Task failed with exit code: $?" ;;
+    esac
+    ```
+
+* `sync`
+
+    `sync`可以作为一个命令使用，效果和调用`sync()`相同。
+
 * `od`命令
 
     od（Octal Dump），用于以各种格式显示文件的内容，通常用于查看或诊断文件中那些不可打印的字符（如控制字符、换行符、空字符等）。
