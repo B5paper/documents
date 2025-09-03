@@ -1882,8 +1882,6 @@ tasks:
 
 * [ ] `$(MAKE)`与`make`有什么不同？
 
-* [v] gcc 编译时，直接使用`xxx.so`和使用`-Lxxx -lyyy`有什么区别？
-
 * [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
 
 * [ ] `pkg-config --libs`
@@ -1958,10 +1956,6 @@ tasks:
 
 * [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
 
-* [v] 调研`timeout`命令
-
-    `timeout 5s bash -c 'read -p "输入: " input; echo "$input"'`
-
 * [ ] 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
 
 * [ ] 调研使用 bash 实现一个定时器任务管理工具
@@ -1976,9 +1970,7 @@ tasks:
 
 * [v] `od -x`
 
-    feedback:
-
-    1. `od -t x1`
+* [ ] `od -t x1`
 
 * [ ] `od -t x<N>`
 
@@ -2077,9 +2069,7 @@ tasks:
 
 * [v] 调研`ps aux`
 
-    feedback:
-
-    1. `ps aux --sort=-%cpu`, `ps aux --sort=-%mem`
+* [ ] `ps aux --sort=-%cpu`, `ps aux --sort=-%mem`
 
 * [ ] 调研`strings`工具
 
@@ -3914,7 +3904,6 @@ resources:
 
     如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
 
-
 resources:
 
 * Linux Kernel Development, 3rd Edition
@@ -3923,67 +3912,107 @@ resources:
 
 * [v] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
 
+* [ ] `ioremap_cache()`
+
+* [ ] `ioremap_wc()`
+
+* [ ] `sparse`
+
+* [ ] `devm_ioremap()`
+
+* [ ] 设备树（Device Tree）
+
+* [ ] `platform_get_resource()`, `resource_size()`
+
+* [ ] `devm_platform_ioremap_resource()`
+
+* [v] 调研`dev_get_drvdata()`, `dev_set_drvdata`
+
     feedback:
 
-    1. `ioremap_cache()`
+    1. `devm_kzalloc()`
 
-    1. `ioremap_wc()`
+    1. `devm_ioremap_resource()`
 
-    1. `sparse`
+    1. `platform_get_irq()`
 
-    1. `devm_ioremap()`
+    1. 调研驱动的 suspend, resume 函数
 
-    1. 设备树（Device Tree）
+    1. `devm_ioremap_resource()`
 
-    1. `platform_get_resource()`, `resource_size()`
+    1. `dma_addr_t`
 
-    1. `devm_platform_ioremap_resource()`
+    1. `dma_sync_single_for_cpu()`
 
-* [ ] 调研`dev_get_drvdata()`, `dev_set_drvdata`
+    1. ` __attribute__((packed))`, `__packed`
+
+    1. 调研字节序转换宏
+
+        ```c
+        #include <linux/byteorder/generic.h>
+
+        // 从设备字节序转换到CPU字节序
+        u32 be32_to_cpu(u32); // 设备是大端序，CPU是任意序
+        u32 le32_to_cpu(u32); // 设备是小端序，CPU是任意序
+
+        u16 be16_to_cpu(u16);
+        u16 le16_to_cpu(u16);
+
+        // 从CPU字节序转换到设备字节序
+        u32 cpu_to_be32(u32);
+        u32 cpu_to_le32(u32);
+        // ... 其他类似
+        ```
 
 * [ ] 调研 pandas，polars
 
-* [ ] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
+* [v] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
+
+    feedback:
+
+    1. `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
 
 * [ ] `/proc/ioports`
 
 * [ ] `/proc/iomem`
 
-* [ ] `dma_set_mask_and_coherent()`
+* [v] `dma_set_mask_and_coherent()`
+
+    feedback:
+
+    1. `dma_map_single()`
+
+    1. `dma_alloc_coherent()`
+
+    1. 调研什么是流式 DMA
+
+    1. 调研什么是一致性 DMA
 
 * [v] `pci_iomap()`
 
-    feedback:
+* [ ] `inb`, `outl`
 
-    1. `inb`, `outl`
+* [ ] `readl`, `writel`
 
-    1. `readl`, `writel`
+* [ ] 调研 MMU（内存管理单元）如何设计？
 
-    1. 调研 MMU（内存管理单元）如何设计？
+* [ ] `__iomem`有实际修吗？还是只是个修饰？
 
-    1. `__iomem`有实际修吗？还是只是个修饰？
+* [ ] 什么是基址寄存器（BARs）
 
-    1. 什么是基址寄存器（BARs）
-
-    1. BAR 配置空间 都有哪些内容？
+* [ ] BAR 配置空间 都有哪些内容？
 
 * [v] `pci_set_master()`
 
-    feedback:
+* [ ] `pci_write_config_word()`, `pci_read_config_word()`
 
-    1. `pci_write_config_word()`, `pci_read_config_word()`
-
-    1. 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
-
-* [v] `device->irq`
+* [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
 * [ ] `request_irq()`, `free_irq()`
 
 * [ ] `irq_set_affinity_hint()`
 
 * [ ] `INIT_WORK()`, `cancel_work_sync()`
-
-* [v] `pci_release_regions()`
 
 * [ ] `device_create_file()`
 
@@ -3992,13 +4021,6 @@ resources:
 * [ ] `put_device()`
 
 * [ ] `device_initialize()`
-
-* [v] 调研 qemu 串口
-
-    ```bash
-    -serial mon:stdio \  # 将监视器和串口都重定向到 stdio
-    -append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台
-    ```
 
 * [ ] `-serial mon:pty`
 
@@ -4155,8 +4177,6 @@ resources:
 
 * [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
 
-* [v] `spin_lock()`, `spin_unlock()`
-
 * [ ] `spin_trylock()`
 
 * [ ] `spin_lock_irq()`, `spin_unlock_irq()`
@@ -4170,8 +4190,6 @@ resources:
 * [ ] `struct task_struct`
 
 * [ ] `schedule()`
-
-* [v] `list_is_singular()`
 
 * [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
