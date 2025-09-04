@@ -6,6 +6,341 @@ Ref:
 
 ## cache
 
+* `dev_set_drvdata()`, `dev_get_drvdata()`
+
+    从 struct device 对象中获取其关联的驱动私有数据（private driver data）的指针.
+
+    syntax:
+
+    ```c
+    void dev_set_drvdata(struct device *dev, void *data);
+
+    void *dev_get_drvdata(const struct device *dev);
+    ```
+
+    返回值:
+
+    * `void *`: 成功则返回之前通过`dev_set_drvdata()`设置的指针。
+
+    * 如果之前没有设置过，或者 dev 为 NULL，则返回 NULL。
+
+    其实`dev_set_drvdata()`本质是把一个指针和一个 dev 关联起来，这样用户可以在`struct my_device_data`里定义自己需要管理的设备状态、数据（比如 dma 的地址和大小）、控制同步的锁等等。这些资源如果定义成全局的，不是不可以，但是最后还是得用户去关联到 dev，非常麻烦。
+
+    example:
+
+    ```c
+    /* 1. 驱动自定义的私有数据结构 */
+    struct my_device_data {
+        int irq;
+        void __iomem *regs;
+        spinlock_t lock;
+        // ... 其他设备特定字段
+    };
+
+    /* 2. 在 probe 函数中设置驱动数据 */
+    static int my_driver_probe(struct device *dev)
+    {
+        struct my_device_data *priv;
+
+        priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+        if (!priv)
+            return -ENOMEM;
+
+        // 初始化 priv 结构...
+        priv->irq = platform_get_irq(...);
+        priv->regs = devm_ioremap_resource(...);
+
+        // !!! 关键步骤：将 priv 指针存储到 dev 中 !!!
+        dev_set_drvdata(dev, priv);
+
+        return 0;
+    }
+
+    /* 3. 在其它函数中获取驱动数据 */
+    static void my_driver_do_something(struct device *dev)
+    {
+        // !!! 关键步骤：从 dev 中取回 priv 指针 !!!
+        struct my_device_data *priv = dev_get_drvdata(dev);
+
+        if (!priv) {
+            dev_err(dev, "No driver data found!\n");
+            return;
+        }
+
+        // 现在可以使用 priv 来访问设备特定数据了
+        writel(0xAA55, priv->regs + SOME_REG_OFFSET);
+    }
+
+    /* 4. 在 remove 函数中获取并清理 */
+    static int my_driver_remove(struct device *dev)
+    {
+        struct my_device_data *priv = dev_get_drvdata(dev);
+
+        // 使用 priv 进行资源清理...
+        // devm_* 函数会自动清理，所以这里可能不需要做太多
+
+        // 通常不需要手动将 drvdata 设置为 NULL，因为 dev 本身即将被销毁
+        // 但显式设置是个好习惯
+        dev_set_drvdata(dev, NULL);
+
+        return 0;
+    }
+    ```
+
+    如果`struct my_device_data`指针由`dma_set_mask_and_coherent()`赋予，并且只存储 binary 数据，那么也完全可以把这里当作一个 buffer。binary 数据中，可能会有字节序（Endianness）的问题，需要注意。
+
+* `dma_set_mask_and_coherent()`
+
+    设置 DMA 掩码。检查并告知内核：当前设备（通常是 PCIe、USB 等外设）能够访问的系统物理地址范围。确保 DMA 操作的安全性和正确性：防止设备尝试访问超出其寻址能力的物理地址，从而导致数据损坏或系统崩溃。
+
+    并非所有硬件设备都支持 64 位物理地址寻址。一些较老或成本较低的设备可能只支持 32 位（即 4GB）甚至更小的地址空间。
+
+    syntax:
+
+    ```c
+    int dma_set_mask_and_coherent(struct device *dev, u64 mask);
+    ```
+
+    * mask: 一个位掩码，表示设备支持的地址位。例如，0xFFFFFFFF 表示 32 位掩码（支持 4GB 以下地址），`DMA_BIT_MASK(64)` 表示 64 位掩码（支持全部 64 位地址）。
+
+    返回值：
+
+    * 成功时返回 0。
+
+    * 失败时返回非零值（通常是`-EIO`），表示平台无法在该掩码下支持 DMA。例如，在一个不支持 64 位 DMA 的系统上尝试设置 64 位掩码可能会失败。
+
+    example:
+
+    ```c
+    struct device *dev = &my_pci_dev->dev;
+    u64 dma_mask = DMA_BIT_MASK(64); // 假设我们的设备支持 64 位 DMA
+
+    if (dma_set_mask_and_coherent(dev, dma_mask)) {
+        // 64 位 DMA 设置失败，尝试回退到 32 位
+        dev_warn(dev, "64-bit DMA not supported, trying 32-bit\n");
+        if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32))) {
+            dev_err(dev, "No usable DMA configuration found\n");
+            return -EIO;
+        }
+    }
+    ```
+
+    dma_set_mask_and_coherent() 实际上一次性设置了两个掩码：（未看懂）
+
+    * 流式 DMA 掩码 (DMA Mask)：
+
+        用于“流式” DMA 映射（dma_map_single 等）。
+
+        这种映射通常是短期、一次性的，缓存一致性通常由软件显式维护（如手动刷缓存）。
+
+        内核会确保为流式 DMA 分配的内存地址落在设备声明的这个地址范围内。
+
+    * 一致性 DMA 掩码 (Coherent DMA Mask)：
+
+        用于“一致性” DMA 映射（dma_alloc_coherent 等）。
+
+        这种映射是长期存在的，硬件和 CPU 都可以无障碍地访问，缓存一致性由硬件自动维护。
+
+        内核会确保为一致性 DMA 分配的内存地址同样落在设备声明的这个地址范围内。
+
+    `dma_set_mask_and_coherent()`确保了：
+
+    * 内核不会为 DMA 操作分配设备无法访问的内存地址。
+
+        （内核只能分指定范围内的地址）
+
+    * 设备驱动能够安全、可靠地执行 DMA 数据传输，充分发挥设备性能。
+
+        （设备只能访问只能范围内的地址）
+
+    辅助宏：
+
+    ```c
+    #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : (1ULL<<(n))-1)
+    ```
+
+    * `DMA_BIT_MASK(32)` 生成 0x00000000FFFFFFFF
+
+    * `DMA_BIT_MASK(64)` 生成 0xFFFFFFFFFFFFFFFF
+
+* `ioremap()`
+
+    将一段物理内存地址（通常是设备的内存或寄存器）映射到内核的虚拟地址空间。
+
+    syntax:
+
+    ```c
+    #include <asm/io.h>
+
+    void __iomem *ioremap(resource_size_t phys_addr, unsigned long size);
+
+    void iounmap(volatile void __iomem *addr);
+    ```
+
+    example:
+
+    1. 在驱动初始化时映射：
+
+    ```c
+    // 假设已知设备的寄存器物理地址是 0xFE000000，长度为 0x2000
+    void __iomem *device_regs;
+    device_regs = ioremap(0xFE000000, 0x2000);
+    if (!device_regs) {
+        // 映射失败，错误处理
+    }
+    ```
+
+    2. 通过返回的虚拟地址访问设备：
+
+        必须使用专门的读写函数（如 readl(), writel()），而不是直接解引用指针。
+
+        ```c
+        // 读取一个32位的寄存器
+        u32 value = readl(device_regs + REG_OFFSET);
+
+        // 向一个32位的寄存器写入
+        writel(new_value, device_regs + ANOTHER_REG_OFFSET);
+        ```
+
+        为什么不能用`*`直接访问？ 因为设备寄存器的访问可能有副作用（比如读一次清零）或有严格的访问顺序要求，这些专用函数能保证正确的内存访问语义。
+
+    配对函数：`iounmap()`
+
+    如果你要映射的是非PCI设备的内存（例如，在设备树中定义的平台设备的内存区域），那么你必须使用`ioremap()`。
+
+    如果硬要使用`ioremap()`映射 bar 0 寄存器，那么可能这样做：
+
+    ```c
+    // 1. 手动读取PCI配置空间，获取BAR的物理地址和大小
+    resource_size_t start = pci_resource_start(pdev, 0); // 获取物理地址
+    resource_size_t len   = pci_resource_len(pdev, 0);   // 获取长度
+    // 2. 检查资源是否有效（好习惯）
+    if (!request_mem_region(start, len, "my_driver")) {
+        // 错误处理：内存区域可能已被其他驱动占用
+        return -EBUSY;
+    }
+    // 3. 进行映射
+    void __iomem *addr = ioremap(start, len);
+    if (!addr) {
+        release_mem_region(start, len);
+        return -ENOMEM;
+    }
+    ```
+
+* qemu edu 不支持 MSI-X （未验证）
+
+* `pci_release_regions()`是`pci_request_regions()`的逆函数。
+
+    syntax:
+
+    ```c
+    void pci_release_regions(struct pci_dev *pdev);
+    ```
+
+* `list_is_singular()`
+
+    判断当前链表是否只有一个有效节点。
+
+    具体做两件事：
+
+    1. 判断链表非空 (!list_empty(head))。即判断 head->next 是否指向自己。
+
+    2. 判断链表的第一个节点的 next 指针指向头节点 (head->next->next == head)。
+
+    syntax:
+
+    ```c
+    #include <linux/list.h>
+
+    bool list_is_singular(const struct list_head *head);
+    ```
+
+    `list_is_singular()`要求链表是 init 过的。比如通过`list_del()`从一个链表上取下一个节点后，没有 init，那么无法使用`list_is_singular()`判断这个节点是否为单个节点。
+
+* `device->irq`
+
+    `dev->irq`存储了分配给该硬件设备的中断请求线（Interrupt ReQuest line）的编号。
+
+    通常使用`request_irq(dev->irq, my_handler, ...)`去注册 ISR。配对函数为`free_irq(dev->irq, dev_id);`
+
+    对于传统PCI设备，这个值通常在系统启动时由BIOS/UEFI或操作系统内核的PCI子系统自动分配。它通过读取设备的配置空间（具体是PCI_INTERRUPT_PIN和PCI_INTERRUPT_LINE寄存器）来分配和设置。对于现代设备（MSI/MSI-X），通常不直接使用`dev->irq`，而是使用`pci_alloc_irq_vectors()`等函数来管理 msi(x) 中断。
+
+    在支持 MSI-X 的 PCI 设备上直接使用 dev->irq，其行为取决于内核版本和系统配置，但通常会导致性能低下、功能受限或完全无法工作。
+
+* Bus Master
+
+    在PCI/PCIe总线架构中，大多数设备是“从设备（Slaves）”，只能响应来自CPU的读写请求。
+
+    而有些设备（如网卡、磁盘控制器、高性能显卡）需要能够主动地向系统内存大量、高速地传输数据。这类设备被称为“总线主（Bus Master）”。
+
+    要成为总线主，设备必须能够在总线上驱动地址和数据信号，主动发起传输周期。
+
+    * 如何成为总线主？
+
+        * 每个PCI设备都有一个配置空间，其中包含一个叫做命令寄存器（Command Register） 的16位寄存器。
+
+        * 该寄存器的第2位专门用于控制“总线主”功能：
+
+            * 位2 = 0：禁用设备的Bus Master功能。
+
+            * 位2 = 1：启用设备的Bus Master功能。
+
+        * 默认情况下，在系统启动或设备复位后，这一位通常是清零（禁用） 的。
+
+* `pci_set_master()`
+
+    启动 pci device 的 bus master 功能。启用这个功能后，该 PCI 设备才能主动发起 DMA（直接内存访问）操作，即能够直接读写系统内存，而无需CPU的参与。
+
+    syntax:
+
+    ```c
+    void pci_set_master(struct pci_dev *dev);
+    ```
+
+    example:
+
+    ```c
+    // 启用设备 (pci_enable_device())。
+
+    // 请求和映射I/O资源（如 pci_request_regions(), pci_iomap()）。
+
+    // 分配DMA缓冲区等资源。
+
+    // pci_set_master();
+    ```
+
+    `pci_set_master()`所做的工作非常简单：它设置PCI设备配置空间中命令寄存器的第2位。
+
+    在驱动程序的 remove 或 shutdown 路径中，通常不需要显式地禁用Bus Master，因为PCI核心在禁用设备时会自动处理。
+
+* `pci_iomap()`
+
+    将 pci 设备 bar 空间上的资源映射到内核的内存地址空间里 (内存映射 I/O (MMIO))。
+
+    syntax:
+
+    ```c
+    void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen);
+    ```
+
+    bar: 要映射的 BAR 的索引（0-5）。
+
+    maxlen: 想要映射的长度。如果为0，则映射整个 BAR 区域。
+
+    这个函数将 pci 设备 bar 指定的物理地址空间映射到内核的虚拟地址空间。如果成功，函数返回一个内核虚拟地址。
+
+    `__iomem`是一个修饰符，提醒程序员这个地址指向的是 I/O 内存，访问它需要使用专门的函数（如 ioread32, iowrite32），而不能直接解引用。
+
+    example:
+
+    ```c
+    // to be filled
+    ```
+
+    配对函数：`pci_iounmap()`
+
+    `maxlen`有可能超过 bar 允许的长度，所以在映射前，我们最好调用`pci_resource_len(dev, bar)`函数来获取第 bar 个 BAR 的实际长度。如果不动态获取长度，直接映射指定长度的 bar 空间，那么，那么内核会读取 PCI 设备对应的`struct resource`里`->end - ->start + 1`的值，并以此为依据在 mmu 里创建页表。如果驱动访问到了超出合法长度的虚拟地址，那么 mmu 会报 page fault，整个内核有可能崩溃。
+
 * 为什么中断上下文不能睡眠？
 
     1. 没有进程概念：中断上下文不属于任何进程。它只是“借道”执行，打断了当前正在运行的进程。如果它睡眠了，调度器不知道该唤醒哪个进程来继续执行它，因为它没有 struct task_struct 关联。这会导致系统彻底崩溃。

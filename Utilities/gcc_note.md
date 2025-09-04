@@ -2,6 +2,12 @@
 
 ## cache
 
+* 如果使用`gcc main.c /path/to/libxxx.so -o main`编译，那么`/path/to/libxxx.so`会被硬编码到`main`中。这个路径可以是软链接。
+
+    这种情况下，如果`libxxx.so`換了位置，那么使用`LD_LIBRARY_PATH`也是无效的。
+
+* gcc 编译时，不会记录`-L`的目录，只会指定`-l`指定的 so 文件。
+
 * 在使用 gcc 编译时，如果有这样的编译命令：
 
     ```bash

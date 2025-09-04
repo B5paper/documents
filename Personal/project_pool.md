@@ -30,6 +30,18 @@
 
 ## cache
 
+* ai 的另一个作用是，熟人里专业与专业相差太远，自己的专业别人不一定懂，遇到问题只能自己瞎想，无法与别人交流。豆瓣的小组、学术圈的 workshop 从一定程度上改善了这个问题，但问题仍然存在。有了 ai 可以简单聊几句，虽然不一定能解答，但是起码有思路有方向了，基本不存在交流困难这个问题了。
+
+* 不能只考虑组内的合作，还要考虑组间的合作
+
+* 打字交流，不如语音交流，因为语音会表达额外的情绪。语音交流不如面对面交流，因为有吃饭、打球等社交
+
+* 并不是值表示了含义，而是节点存在的本身表示了含义
+
+* 最可怕的不是站得低，而是站在肥皂水泡泡上，晃晃悠悠，不知道什么时候泡泡会被戳破
+
+* 智能应该从数据和混沌中总结规律，不应该根据（人总结出来的）规律去处理数据
+
 * 如果一个 task 查 note 时发现之前调研过，那么就意味着该对 note 进行 qa 了。如果一个 task 在 project pool 中被提起两次，那么将其合并为一次，并放到 project tasks 的最上面。
 
 * 即使是公开的常用知识，deepseek 也有可能瞎编。目前验证的方式有两种
@@ -1874,7 +1886,13 @@ tasks:
 
 ### tasks
 
-* [O] 完成 siccl shim 层
+* [v] 调研 umd 环境，获取 dev handle, uuid 和 dev
+
+    feedback:
+
+    1. g++ 和 ld 环境不一样，需要`export PATH=/usr/bin:/usr/local/bin:$PATH`.
+
+* [v] 完成 siccl shim 层
 
     feedback:
 
@@ -2066,8 +2084,6 @@ tasks:
 * [ ] 调研`htop`
 
 * [ ] 调研`ps -e -o pid,cmd`
-
-* [v] 调研`ps aux`
 
 * [ ] `ps aux --sort=-%cpu`, `ps aux --sort=-%mem`
 
@@ -3862,10 +3878,6 @@ resources:
 
 * cached tasks
 
-    调研函数：
-
-    `pci_ioremap_bar`, `pci_set_master`, `dma_set_mask`, `pci_ioremap_wc_bar`
-
     调研：`iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
 
     `dev_to_node`, `kzalloc_node`, `spin_lock_init`
@@ -3910,7 +3922,11 @@ resources:
 
 ### tasks
 
-* [v] 调研`ioremap()`, `devm_ioremap()`, `iounmap()`
+* [ ] `pci_ioremap_bar`
+
+* [ ] `dma_set_mask`
+
+* [ ] `pci_ioremap_wc_bar`
 
 * [ ] `ioremap_cache()`
 
@@ -3928,49 +3944,45 @@ resources:
 
 * [v] 调研`dev_get_drvdata()`, `dev_set_drvdata`
 
-    feedback:
+* [ ] `devm_kzalloc()`
 
-    1. `devm_kzalloc()`
+* [ ] `devm_ioremap_resource()`
 
-    1. `devm_ioremap_resource()`
+* [ ] `platform_get_irq()`
 
-    1. `platform_get_irq()`
+* [ ] 调研驱动的 suspend, resume 函数
 
-    1. 调研驱动的 suspend, resume 函数
+* [ ] `devm_ioremap_resource()`
 
-    1. `devm_ioremap_resource()`
+* [ ] `dma_addr_t`
 
-    1. `dma_addr_t`
+* [ ] `dma_sync_single_for_cpu()`
 
-    1. `dma_sync_single_for_cpu()`
+* [ ] ` __attribute__((packed))`, `__packed`
 
-    1. ` __attribute__((packed))`, `__packed`
+* [ ] 调研字节序转换宏
 
-    1. 调研字节序转换宏
+    ```c
+    #include <linux/byteorder/generic.h>
 
-        ```c
-        #include <linux/byteorder/generic.h>
+    // 从设备字节序转换到CPU字节序
+    u32 be32_to_cpu(u32); // 设备是大端序，CPU是任意序
+    u32 le32_to_cpu(u32); // 设备是小端序，CPU是任意序
 
-        // 从设备字节序转换到CPU字节序
-        u32 be32_to_cpu(u32); // 设备是大端序，CPU是任意序
-        u32 le32_to_cpu(u32); // 设备是小端序，CPU是任意序
+    u16 be16_to_cpu(u16);
+    u16 le16_to_cpu(u16);
 
-        u16 be16_to_cpu(u16);
-        u16 le16_to_cpu(u16);
-
-        // 从CPU字节序转换到设备字节序
-        u32 cpu_to_be32(u32);
-        u32 cpu_to_le32(u32);
-        // ... 其他类似
-        ```
+    // 从CPU字节序转换到设备字节序
+    u32 cpu_to_be32(u32);
+    u32 cpu_to_le32(u32);
+    // ... 其他类似
+    ```
 
 * [ ] 调研 pandas，polars
 
 * [v] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
 
-    feedback:
-
-    1. `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
+* [ ] `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
 
 * [ ] `/proc/ioports`
 
@@ -3978,17 +3990,13 @@ resources:
 
 * [v] `dma_set_mask_and_coherent()`
 
-    feedback:
+* [ ] `dma_map_single()`
 
-    1. `dma_map_single()`
+* [ ] `dma_alloc_coherent()`
 
-    1. `dma_alloc_coherent()`
+* [ ] 调研什么是流式 DMA
 
-    1. 调研什么是流式 DMA
-
-    1. 调研什么是一致性 DMA
-
-* [v] `pci_iomap()`
+* [ ] 调研什么是一致性 DMA
 
 * [ ] `inb`, `outl`
 
@@ -4002,13 +4010,11 @@ resources:
 
 * [ ] BAR 配置空间 都有哪些内容？
 
-* [v] `pci_set_master()`
-
 * [ ] `pci_write_config_word()`, `pci_read_config_word()`
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
-* [ ] `request_irq()`, `free_irq()`
+* [v] `request_irq()`, `free_irq()`
 
 * [ ] `irq_set_affinity_hint()`
 
@@ -4096,7 +4102,11 @@ resources:
 
 * [ ] `unregister_module_notifier()`
 
-* [ ] `unlocked_ioctl`与`compat_ioctl`有何不同？
+* [v] `unlocked_ioctl`与`compat_ioctl`有何不同？
+
+    feedback:
+
+    1. `Big Kernel Lock (BKL)`
 
 * [ ] `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
 
