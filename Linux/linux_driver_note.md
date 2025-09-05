@@ -6,6 +6,52 @@ Ref:
 
 ## cache
 
+* `unlocked_ioctl`与`compat_ioctl`有何不同
+
+    syntax:
+
+    ```c
+	long (*unlocked_ioctl) (struct file *filp, unsigned int cmd, unsigned long arg);
+
+    long (*compat_ioctl) (struct file *filp, unsigned int cmd, unsigned long arg);
+    ```
+
+    unlocked_ioctl：现代的标准方法，用于处理所有常规的 ioctl 调用。它的主要特点是不再持有 Big Kernel Lock (BKL)，因此得名 “unlocked”。
+
+    compat_ioctl：兼容性方法，专门用于为32位应用程序在64位内核上提供兼容性支持。
+
+* `request_irq()`
+
+    内核注册一个中断处理程序（中断服务例程，ISR）
+
+    syntax:
+
+    ```c
+    int request_irq(unsigned int irq,
+                    irq_handler_t handler,
+                    unsigned long flags,
+                    const char *name,
+                    void *dev_id);
+    ```
+
+    返回值：
+
+    * 成功时返回 0。
+
+    * 失败时返回一个错误码（负值），如 -EBUSY（中断线已被占用且不可共享）。
+
+    中断标志设置: 通过 flags 参数设置中断的行为特性，常见的标志包括：
+
+    * `IRQF_SHARED`：允许与其他驱动程序共享同一条中断线。这在中断资源紧张的系统（如基于 PCI 的系统）中很常见。
+
+    * `IRQF_ONESHOT`：中断在处理完毕后需要重新显式启用（用于线程化中断）。
+
+    * `IRQF_TIMER`：标记这是一个定时器中断，系统可能会对其进行特殊处理（如不会被暂停）。
+
+    * `IRQF_IRQPOLL`：用于共享中断中的轮询处理。
+
+    配对函数：`free_irq()`
+
 * `dev_set_drvdata()`, `dev_get_drvdata()`
 
     从 struct device 对象中获取其关联的驱动私有数据（private driver data）的指针.
@@ -1892,6 +1938,8 @@ Ref:
     syntax:
 
     ```c
+    #include <linux/pci.h>
+
     int pci_register_driver(struct pci_driver *driver);
     ```
 
@@ -1906,6 +1954,8 @@ Ref:
     * `.remove`: probe 的逆过程
 
     * `.shutdown`: 不知道干嘛用的
+
+    返回值： 成功时返回 0；失败时返回一个负的错误代码（负数）。
 
     在注册过程中，内核的PCI子系统会立刻遍历当前系统中所有已发现的PCI设备。
 
@@ -2716,8 +2766,6 @@ Ref:
     ```
 
     可以使用`pci_disable_device()`进行反向操作，禁用 pci dev。
-
-* `pci_register_driver()`是一个宏
 
 * `pci_resource_start()`
 
@@ -5279,7 +5327,7 @@ obj-m += xxx.o xxx_2.o
 
     当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
 
-    如果`major`填 0，那么返回值为自动分配的 major （未验证）
+    如果`major`填 0，那么返回值为自动分配的 major。
 
 ### note
 

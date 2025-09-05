@@ -6,6 +6,103 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 关于头文件中函数声明的 static
+
+    如果`add()`的声明和定义如下：
+
+    ```cpp
+    // lib_1.h
+    #ifndef LIB_1_H
+    #define LIB_1_H
+
+    static int add(int a, int b);
+
+    #endif
+
+    // lib_1.cpp
+    #include "lib_1.h"
+
+    int add(int a, int b) {
+        return a + b;
+    }
+    ```
+
+    那么在编译`g++ -c lib_1.cpp -o lib_1.o`时，`add()`函数的实现会变成不可见的。
+
+    此时别的库去 include `lib_1.h`，比如
+
+    ```cpp
+    // lib_2.h
+    #ifndef LIB_2_H
+    #define LIB_2_H
+
+    int sum(int a, int b, int c);
+
+    #endif
+
+    // lib_2.cpp
+    #include "lib_2.h"
+    #include "lib_1.h"
+
+    int add(int a, int b);
+
+    int sum(int a, int b, int c) {
+        return add(add(a, b), c);
+    }
+    ```
+
+    编译`g++ -c lib_2.cpp -o lib_2.o`时会 warning `add()`没有函数体：
+
+    ```
+    g++ -g main_3.cpp lib_1.o lib_2.o -o main
+    In file included from main_3.cpp:1:
+    lib_1.h:4:12: warning: ‘int add(int, int)’ used but never defined
+        4 | static int add(int a, int b);
+          |            ^~~
+    ```
+
+    由于编译`lib_2.o`没有涉及到 link 过程，所以到这里仍能生成`lib_2.o`.
+
+    到了编译`main`时，涉及到 link 过程:
+
+    ```cpp
+    // main.cpp
+    #include "lib_1.h"
+    #include "lib_2.h"
+    #include "stdio.h"
+
+    int main() {
+        int a = 1, b = 2;
+        int c = add(a, b);
+        printf("%d + %d = %d\n", a, b, c);
+
+        int d = sum(a, b, c);
+        printf("%d + %d + %d = %d\n", a, b, c, d);
+        return 0;
+    }
+    ```
+
+    `g++ main.cpp lib_1.o lib_2.o -o main`，会发现仍然找不到`add()`的定义，从而报错：
+
+    ```
+    g++ -g main.cpp lib_1.o lib_2.o -o main
+    In file included from main.cpp:1:
+    lib_1.h:4:12: warning: ‘int add(int, int)’ used but never defined
+        4 | static int add(int a, int b);
+          |            ^~~
+    /usr/bin/ld: /tmp/ccMTEjk1.o: in function `main':
+    /home/hlc/Documents/Projects/cpp_test/main.cpp:7: undefined reference to `add(int, int)'
+    /usr/bin/ld: lib_2.o: in function `sum(int, int, int)':
+    /home/hlc/Documents/Projects/cpp_test/lib_2.cpp:7: undefined reference to `add(int, int)'
+    /usr/bin/ld: /home/hlc/Documents/Projects/cpp_test/lib_2.cpp:7: undefined reference to `add(int, int)'
+    collect2: error: ld returned 1 exit status
+    make: *** [Makefile:10: main] Error 1
+    ```
+
+    因此可以得出结论，`static`函数只影响编译对应`.c` / `.cpp`文件的`.o`。
+
+    那么我们一口气把所有 cpp 文件都合一起编译链接会怎样？`g++ lib_1.cpp lib_2.cpp main_3.cpp -o main`的输出仍然报错。看来这个命令有可能只是先生成`.o`，再链接`.o`和`main`的简写版，并不能简化编译过程。
+
 * `static`只能加在函数的实现前，不能加在函数的声明前。
 
     如果`static`加在头文件的函数声明前，那么将不再检查`xx.c`或`xx.cpp`中的内容，并认为这个函数只有函数头，没有函数体。

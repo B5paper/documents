@@ -30,6 +30,10 @@
 
 ## cache
 
+* 强调条件限定的前提是能联想到多个方向的例子，甚至反例
+
+    比如“我们在修订法律时总是考虑完美执行的情况，但是毕竟法律需要人去执行，所以最终的效果并不只有条文的效力，还有人的参与”。“毕竟法律需要人去执行”，这个说法十年前可能是对的，但在今天可能有 AI 参与了，翻阅相似案件，做出判决，都有可能是 AI 去执行，那么这个限定条件的强调，其实是考虑到了人和 AI 这两种可能性。
+
 * ai 的另一个作用是，熟人里专业与专业相差太远，自己的专业别人不一定懂，遇到问题只能自己瞎想，无法与别人交流。豆瓣的小组、学术圈的 workshop 从一定程度上改善了这个问题，但问题仍然存在。有了 ai 可以简单聊几句，虽然不一定能解答，但是起码有思路有方向了，基本不存在交流困难这个问题了。
 
 * 不能只考虑组内的合作，还要考虑组间的合作
@@ -1884,21 +1888,25 @@ tasks:
 
     其中`getGpuIndex(system, graph->intra[graph->nChannels*ngpus], &p);`这个函数看起来应该是使用 gpu 的 dev id 找到 gpu 的 idx。如果这个假设是对的，那么`graph->intra`存储的就应该是 dev id（待验证）。并且……想不起来了。
 
+* g++ 和 ld 环境不一样，需要`export PATH=/usr/bin:/usr/local/bin:$PATH`.
+
+* 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
+
 ### tasks
+
+* [P] 增加 siccl topo system load 和 dump 的功能
+
+* [x] 尝试不引入 nccl 头文件编译 siccl
+
+    feedback:
+
+    1. 这个不可能实现，因为 nccl 的 struct 依赖的 struct 太多，并且分散在不同文件里。
 
 * [v] 调研 umd 环境，获取 dev handle, uuid 和 dev
 
-    feedback:
-
-    1. g++ 和 ld 环境不一样，需要`export PATH=/usr/bin:/usr/local/bin:$PATH`.
-
 * [v] 完成 siccl shim 层
 
-    feedback:
-
-    1. 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
-
-* [ ] `$(MAKE)`与`make`有什么不同？
+* [v] `$(MAKE)`与`make`有什么不同？
 
 * [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
 
@@ -1985,8 +1993,6 @@ tasks:
 * [ ] 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
-
-* [v] `od -x`
 
 * [ ] `od -t x1`
 
@@ -3922,6 +3928,8 @@ resources:
 
 ### tasks
 
+* [ ] 处理`main_2.cpp`
+
 * [ ] `pci_ioremap_bar`
 
 * [ ] `dma_set_mask`
@@ -3941,8 +3949,6 @@ resources:
 * [ ] `platform_get_resource()`, `resource_size()`
 
 * [ ] `devm_platform_ioremap_resource()`
-
-* [v] 调研`dev_get_drvdata()`, `dev_set_drvdata`
 
 * [ ] `devm_kzalloc()`
 
@@ -3980,15 +3986,13 @@ resources:
 
 * [ ] 调研 pandas，polars
 
-* [v] 调研：头文件中函数原型 static 似乎并不会被识别为函数体，为什么？
-
 * [ ] `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
 
-* [ ] `/proc/ioports`
+* [v] `/proc/ioports`
 
 * [ ] `/proc/iomem`
 
-* [v] `dma_set_mask_and_coherent()`
+* [ ] `/proc/iomem`
 
 * [ ] `dma_map_single()`
 
@@ -4013,8 +4017,6 @@ resources:
 * [ ] `pci_write_config_word()`, `pci_read_config_word()`
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
-
-* [v] `request_irq()`, `free_irq()`
 
 * [ ] `irq_set_affinity_hint()`
 
@@ -4094,8 +4096,6 @@ resources:
 
 * [ ] `kstrdup()`
 
-* [ ] `strdup()`
-
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
     `0766`不可以，`0755`可以。
@@ -4104,9 +4104,7 @@ resources:
 
 * [v] `unlocked_ioctl`与`compat_ioctl`有何不同？
 
-    feedback:
-
-    1. `Big Kernel Lock (BKL)`
+* [ ] `Big Kernel Lock (BKL)`
 
 * [ ] `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
 
@@ -4126,7 +4124,7 @@ resources:
 
 * [ ] 调研`request_threaded_irq()`
 
-* [ ] 调研为什么 rsync 不加 -r 会 skip
+* [v] 调研为什么 rsync 不加 -r 会 skip
 
     ```
     siorigin@q35:~/Documents/Projects$ rsync -v siccl_2/ mkeac@10.193.64.60:/share_data/to_lizi/sipu_runtime/siccl_2
@@ -4161,7 +4159,24 @@ resources:
 
 * [ ] 页帧分配、页表管理、换入换出（Swapping）
 
-* [ ] `std::async`
+* [v] `std::async`
+
+    feedback:
+
+    1. 调研 thread pool
+
+        ```cpp
+        // 使用第三方线程池库（如 BS::thread_pool）
+        #include "BS_thread_pool.hpp"
+
+        BS::thread_pool pool;
+        auto future = pool.submit(task); // 明确使用线程池
+
+        // 或者使用 C++17 的并行算法
+        #include <execution>
+        std::vector<int> data = {1, 2, 3, 4, 5};
+        std::for_each(std::execution::par, data.begin(), data.end(), process);
+        ```
 
 * [ ] 调研`exec()`
 
@@ -4203,7 +4218,17 @@ resources:
 
 * [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
 
-* [ ] `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
+* [v] `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
+
+    feedback:
+
+    1. 调研无锁单向链表`llist`
+
+    1. `WRITE_ONCE()`
+
+    1. 调研无锁（lock-free）操作
+
+    1. `kfree_rcu`
 
 * [ ] `list_move()`
 

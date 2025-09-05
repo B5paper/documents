@@ -592,3 +592,67 @@ module_exit(hello_exit);
 MODULE_LICENSE("GPL");
 ```
 
+[unit]
+[u_0]
+写一个`pci_register_driver()`的最简 case。
+[u_1]
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/pci.h>
+
+static struct pci_device_id pci_id_table[] = {
+    { PCI_DEVICE(0x1234, 0x11e8) },
+    {0,}
+};
+
+static int edu_probe(struct pci_dev *device, const struct pci_device_id *device_id) {
+	pr_info("in edu_probe()...\n");
+	return 0;
+}
+
+static void edu_remove(struct pci_dev *device) {
+    pr_info("in edu_remove()...\n");
+}
+
+struct pci_driver pci_driver = {
+	.name = "edu",
+	.id_table = pci_id_table,
+	.probe = edu_probe,
+	.remove = edu_remove
+};
+
+int hello_init(void) {
+    pr_info("int hello_init()...\n");
+
+    int ret = pci_register_driver(&pci_driver);
+    if (ret != 0) {
+        pr_err("fail to register pci driver\n");
+        goto PCI_REGISTER_DRIVER_FAILED;
+    }
+    
+    return 0;
+
+PCI_REGISTER_DRIVER_FAILED:
+    return -1;
+}
+
+void hello_exit(void) {
+    pr_info("in hello_exit()...\n");
+    pci_unregister_driver(&pci_driver);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL");
+```
+
+dmesg output:
+
+```
+[  473.423543] int hello_init()...
+[  473.423621] in edu_probe()...
+[  481.947618] in hello_exit()...
+[  481.947709] in edu_remove()...
+```
+
