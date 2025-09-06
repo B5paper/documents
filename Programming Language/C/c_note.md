@@ -6,6 +6,26 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `strdup()`
+
+    动态复制一个字符串。(C23 标准库)
+
+    syntax:
+
+    ```cpp
+    #include <string.h>
+
+    char *strdup(const char *str);
+    ```
+
+    返回值：
+
+    * 成功：返回指向新字符串副本的指针。
+
+    * 失败（如内存分配失败）：返回 NULL。
+
+    使用`strdup()`后，必须手动释放内存。
+
 * 关于头文件中函数声明的 static
 
     如果`add()`的声明和定义如下：

@@ -2,6 +2,126 @@
 
 ## cached
 
+* `std::async`
+
+    C++11 中的一个特性，用于异步地启动一个任务（函数或可调用对象），并返回一个 std::future 对象来获取该任务的最终结果。
+
+    头文件：`<future>`
+
+    当你调用 std::async 时，它会尝试（根据你指定的启动策略）在一个新的线程（或内部线程池）中执行你指定的函数.
+
+    std::async 返回一个 std::future 对象。这个 future 对象像一个“提货单”，你可以在未来的某个时候（通常是需要结果的时候）调用它的 .get() 方法。此时：
+
+    * 如果异步任务已经完成，立即得到结果。
+
+    * 如果任务还未完成，当前线程会阻塞等待，直到任务完成并返回结果。
+
+    这省去了手动管理线程、锁、条件变量等复杂同步机制的麻烦。
+
+    可以通过参数控制 std::async 的行为，主要有两种策略（定义在 std::launch 中）：
+
+    * std::launch::async：强制立即开始在一个新线程上异步执行任务。
+
+    * std::launch::deferred：延迟执行。任务不会立即开始，而是等到你调用 future.get() 或 future.wait() 时，在调用者的线程上同步执行。
+
+    * 如果不指定策略（默认行为），则由实现决定采用 async 还是 deferred，这给了编译器优化的空间，但可能导致不确定性。
+
+    如果异步任务中抛出了异常，这个异常不会被丢失。当你调用 future.get() 时，这个异常会在主线程中被重新抛出。这使得异步任务中的错误处理可以和同步代码一样，使用 try/catch 块来完成。
+
+    syntax:
+
+    ```cpp
+    // (1) 使用默认启动策略
+    template< class Function, class... Args >
+    std::future<std::invoke_result_t<std::decay_t<Function>, std::decay_t<Args>...>>
+        async( Function&& f, Args&&... args );
+
+    // (2) 指定启动策略
+    template< class Function, class... Args >
+    std::future<std::invoke_result_t<std::decay_t<Function>, std::decay_t<Args>...>>
+        async( std::launch policy, Function&& f, Args&&... args );
+    ```
+
+    parameter:
+
+    * `policy` (可选): 指定`std::launch`类型的 enum 值。`std::launch::async`表示强制异步执行，`std::launch::deferred`表示延迟执行。不指定时使用默认策略。
+
+        通常不使用默认策略，因为无法准确估计延迟。
+
+    * `f`: 要异步执行的可调用对象（函数、lambda表达式、函数对象、成员函数指针等）
+
+    * `args...`: 传递给可调用对象的参数
+
+    返回值
+
+    * 返回一个 std::future 对象，其模板类型 R 是函数 f 的返回类型。
+
+        例如：如果 f 返回 int，则返回`std::future<int>`
+
+    example:
+
+    ```cpp
+    #include <iostream>
+    #include <future>
+    #include <chrono>
+    #include <thread>
+
+    int expensive_calculation(int x) {
+        // 模拟一个耗时的计算
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return x * x;
+    }
+
+    int main() {
+        std::future<int> result_future = std::async(std::launch::async, expensive_calculation, 10);
+
+        // 主线程可以继续做其他工作，不会被阻塞
+        std::cout << "Doing some other work in the main thread...\n";
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "Other work done.\n";
+
+        // 现在需要结果了，调用 get()。如果任务未完成，会在此阻塞等待。
+        int result = result_future.get();
+        std::cout << "The result is: " << result << std::endl; // 输出 100
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Doing some other work in the main thread...
+    Other work done.
+    The result is: 100
+    ```
+
+    如果要异步调用类的成员函数，需要这样使用：
+
+    ```cpp
+    class MyClass {
+    public:
+        int member_func(int x) {
+            return x * 2;
+        }
+    };
+
+    int main() {
+        MyClass obj;
+        
+        // 调用成员函数，第一个参数是对象指针或引用，后面是成员函数的参数
+        auto fut = std::async(&MyClass::member_func, &obj, 42);
+        
+        std::cout << fut.get() << std::endl; // 输出 84
+        
+        return 0;
+    }
+    ```
+
+    * `std::launch::async`：确实会立即创建新线程（或使用线程池）
+
+    * `std::launch::deferred`：不会创建线程，任务延迟到 .get() 时在当前线程同步执行 
+
 * `std::any`
 
     std::any 是 C++17 标准库中引入的一个容器，它的作用是提供一种类型安全的方式来存储和操作任意类型的单个值。

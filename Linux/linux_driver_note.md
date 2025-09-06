@@ -6,6 +6,53 @@ Ref:
 
 ## cache
 
+* `$(MAKE)`与`make`的区别
+
+    只使用`make`的问题：
+
+    * 不可移植：不同的系统可能使用不同的 make 程序名称。例如，BSD 系统通常使用 bmake，而 GNU Make 可能被安装为 gmake。如果你的 Makefile 里写死了 make，在这些系统上就会执行失败。
+
+    * 忽略命令行选项：当你使用一些命令行选项（如 -k, -s, -t）调用顶层的 make 时，在递归调用中直接使用 make 会丢失这些选项。子 make 进程不会继承父进程的 flags，导致行为不一致。
+
+    * 无法传递 -j (并行编译) 选项：这是最致命的问题之一。如果你使用 make -j8 启动并行编译，但在 Makefile 内部递归调用时使用的是 make，那么这个子 make 将会是串行执行的（-j1），无法利用多核优势，严重拖慢编译速度。
+
+    MAKE 是一个 Makefile 内置的宏（变量），它的值就是当前正在执行的 make 程序的完整路径名（例如 /usr/bin/make）。并且可以解决上面列出的问题。
+
+    （如何验证`$(MAKE)`可以继承命令行选项？）
+
+* `/proc/ioports`
+
+    列出当前系统中所有设备已注册（申请）的 I/O 端口地址范围。
+
+    在 x86 体系架构中，CPU 与外部设备（如网卡、磁盘控制器、键盘、串口等）进行通信的一种主要方式是通过I/O 端口。CPU 通过 in 和 out 汇编指令来从端口读取数据或向端口写入数据，从而控制硬件。
+
+    查看：`sudo cat /proc/ioports`
+
+    output:
+
+    ```
+    0000-0cf7 : PCI Bus 0000:00
+      0000-001f : dma1
+      0020-0021 : pic1
+      0040-0043 : timer0
+      0050-0053 : timer1
+      0060-0060 : keyboard
+      0064-0064 : keyboard
+      0070-0071 : rtc_cmos
+        0070-0071 : rtc0
+      0080-008f : dma page reg
+      00a0-00a1 : pic2
+    ...
+    ```
+
+    注：
+
+    1. 必须要用`sudo`，否则显示出来的地址全是 0
+
+* `init_llist_head()`
+
+    init_llist_head() 用于无锁单向链表。初始化一个 struct llist_head 节点，将其 first 指针设置为 NULL，表示一个空的单向链表。
+
 * `unlocked_ioctl`与`compat_ioctl`有何不同
 
     syntax:
@@ -275,14 +322,6 @@ Ref:
 
 * qemu edu 不支持 MSI-X （未验证）
 
-* `pci_release_regions()`是`pci_request_regions()`的逆函数。
-
-    syntax:
-
-    ```c
-    void pci_release_regions(struct pci_dev *pdev);
-    ```
-
 * `list_is_singular()`
 
     判断当前链表是否只有一个有效节点。
@@ -358,34 +397,6 @@ Ref:
     `pci_set_master()`所做的工作非常简单：它设置PCI设备配置空间中命令寄存器的第2位。
 
     在驱动程序的 remove 或 shutdown 路径中，通常不需要显式地禁用Bus Master，因为PCI核心在禁用设备时会自动处理。
-
-* `pci_iomap()`
-
-    将 pci 设备 bar 空间上的资源映射到内核的内存地址空间里 (内存映射 I/O (MMIO))。
-
-    syntax:
-
-    ```c
-    void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen);
-    ```
-
-    bar: 要映射的 BAR 的索引（0-5）。
-
-    maxlen: 想要映射的长度。如果为0，则映射整个 BAR 区域。
-
-    这个函数将 pci 设备 bar 指定的物理地址空间映射到内核的虚拟地址空间。如果成功，函数返回一个内核虚拟地址。
-
-    `__iomem`是一个修饰符，提醒程序员这个地址指向的是 I/O 内存，访问它需要使用专门的函数（如 ioread32, iowrite32），而不能直接解引用。
-
-    example:
-
-    ```c
-    // to be filled
-    ```
-
-    配对函数：`pci_iounmap()`
-
-    `maxlen`有可能超过 bar 允许的长度，所以在映射前，我们最好调用`pci_resource_len(dev, bar)`函数来获取第 bar 个 BAR 的实际长度。如果不动态获取长度，直接映射指定长度的 bar 空间，那么，那么内核会读取 PCI 设备对应的`struct resource`里`->end - ->start + 1`的值，并以此为依据在 mmu 里创建页表。如果驱动访问到了超出合法长度的虚拟地址，那么 mmu 会报 page fault，整个内核有可能崩溃。
 
 * 为什么中断上下文不能睡眠？
 
@@ -618,24 +629,6 @@ Ref:
     3. 内核将设备的标识符（如 PCI 的 VID/DID）与已注册的驱动提供的标识符列表进行比对。
 
     4. 找到匹配的驱动后，调用驱动的 probe 函数来初始化设备。
-
-* `pci_request_regions()`
-
-    一次性申请 PCI 设备的所有有效资源区间（即所有有效的 BARs），是 `pci_request_region()`的“批处理”版本。
-
-    syntax:
-
-    ```c
-    int pci_request_regions(struct pci_dev *pdev, const char *res_name);
-    ```
-
-    返回值：
-
-    * `0`: 表示所有有效的资源区域都申请成功。
-
-    * 非`0`（错误码）: 表示在申请任何一个BAR时失败。重要的是，如果失败，它会自动释放之前已经成功申请的所有BAR。这简化了错误处理。
-
-    在大多数情况下，应优先使用 pci_request_regions()。除非你明确知道驱动只需要且应该只占用某一个特定BAR，否则使用批量申请更安全、更省事。
 
 * 设备类 (struct class)
 
@@ -911,22 +904,6 @@ Ref:
     dev_warn()	KERN_WARNING	警告信息，可能有问题
     dev_info()	KERN_INFO	信息性消息，正常状态（最常用）
     dev_dbg()	KERN_DEBUG	调试消息，默认不打印，需开启动态调试
-
-* `pci_resource_len()`
-
-    获取指定 PCI 设备某个资源（如内存区域或 I/O 端口区域）的长度或大小。
-
-    获取指定 bar 空间的字节数。bar 0 ~ bar 5
-
-    syntax:
-
-    ```c
-    #include <linux/pci.h>
-
-    resource_size_t pci_resource_len(struct pci_dev *dev, int bar);
-    ```
-
-    在调用 pci_resource_len() 或 pci_resource_start() 之前，必须成功调用 pci_enable_device()。否则，获取到的资源信息可能是无效的。
     
 * irq_handler
 
@@ -2507,6 +2484,8 @@ Ref:
 
         * `IRQF_TIMER`：标记为定时器中断，以便系统在处理电源管理时特殊考虑。
 
+        * `IRQF_IRQPOLL`：用于共享中断中的轮询处理。
+
     * `name`
 
         通常为设备名，用于在`/proc/interrupts`中标识这个中断的拥有者
@@ -2739,6 +2718,22 @@ Ref:
         在设备的PCI配置空间中设置 Memory Space Enable 和 I/O Space Enable 位
 
         解除了PCI总线对设备响应地址访问的封锁, CPU 可以通过读写设备的 BAR 所定义的地址范围来与设备通信
+
+    syntax:
+
+    ```c
+    int pci_enable_device(struct pci_dev *dev);
+    ```
+
+    成功: 返回 0。
+
+    失败: 返回一个负的错误代码（负整数）。常见的错误包括：
+
+    * `-EIO`: 无法使能设备。
+
+    * `-ENODEV`: 设备未在系统中找到或设备不支持使能操作。
+
+    * `-EINVAL`: 无效参数。
 
     example:
 
@@ -4492,6 +4487,80 @@ Ref:
     sudo bash -c "cat param_name"
     sudo bash -c "echo some_val > param_name"
     ```
+
+## Topics
+
+### pci 设备：bar 与 iomap
+
+* `pci_resource_len()`
+
+    获取指定 PCI 设备某个资源（如内存区域或 I/O 端口区域）的长度或大小。
+
+    获取指定 bar 空间的字节数。bar 0 ~ bar 5
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    resource_size_t pci_resource_len(struct pci_dev *dev, int bar);
+    ```
+
+    在调用 pci_resource_len() 或 pci_resource_start() 之前，必须成功调用 pci_enable_device()。否则，获取到的资源信息可能是无效的。
+
+* `pci_request_regions()`
+
+    一次性申请 PCI 设备的所有有效资源区间（即所有有效的 BARs），是 `pci_request_region()`的“批处理”版本。
+
+    syntax:
+
+    ```c
+    int pci_request_regions(struct pci_dev *pdev, const char *res_name);
+    ```
+
+    返回值：
+
+    * `0`: 表示所有有效的资源区域都申请成功。
+
+    * 非`0`（错误码）: 表示在申请任何一个BAR时失败。重要的是，如果失败，它会自动释放之前已经成功申请的所有BAR。这简化了错误处理。
+
+    在大多数情况下，应优先使用 pci_request_regions()。除非你明确知道驱动只需要且应该只占用某一个特定BAR，否则使用批量申请更安全、更省事。
+
+* `pci_release_regions()`是`pci_request_regions()`的逆函数。
+
+    syntax:
+
+    ```c
+    void pci_release_regions(struct pci_dev *pdev);
+    ```
+
+* `pci_iomap()`
+
+    将 pci 设备 bar 空间上的资源映射到内核的内存地址空间里 (内存映射 I/O (MMIO))。
+
+    syntax:
+
+    ```c
+    void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen);
+    ```
+
+    bar: 要映射的 BAR 的索引（0-5）。
+
+    maxlen: 想要映射的长度。如果为0，则映射整个 BAR 区域。
+
+    这个函数将 pci 设备 bar 指定的物理地址空间映射到内核的虚拟地址空间。如果成功，函数返回一个内核虚拟地址。
+
+    `__iomem`是一个修饰符，提醒程序员这个地址指向的是 I/O 内存，访问它需要使用专门的函数（如 ioread32, iowrite32），而不能直接解引用。
+
+    example:
+
+    ```c
+    void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen);
+    ```
+
+    配对函数：`pci_iounmap()`
+
+    `maxlen`有可能超过 bar 允许的长度，所以在映射前，我们最好调用`pci_resource_len(dev, bar)`函数来获取第 bar 个 BAR 的实际长度。如果不动态获取长度，直接映射指定长度的 bar 空间，那么，那么内核会读取 PCI 设备对应的`struct resource`里`->end - ->start + 1`的值，并以此为依据在 mmu 里创建页表。如果驱动访问到了超出合法长度的虚拟地址，那么 mmu 会报 page fault，整个内核有可能崩溃。
 
 ## Introduction
 

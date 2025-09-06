@@ -1892,21 +1892,11 @@ tasks:
 
 * 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
 
+* 不引入 nccl 头文件编译 siccl 不可能实现，因为 nccl 的 struct 依赖的 struct 太多，并且分散在不同文件里。
+
 ### tasks
 
 * [P] 增加 siccl topo system load 和 dump 的功能
-
-* [x] 尝试不引入 nccl 头文件编译 siccl
-
-    feedback:
-
-    1. 这个不可能实现，因为 nccl 的 struct 依赖的 struct 太多，并且分散在不同文件里。
-
-* [v] 调研 umd 环境，获取 dev handle, uuid 和 dev
-
-* [v] 完成 siccl shim 层
-
-* [v] `$(MAKE)`与`make`有什么不同？
 
 * [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
 
@@ -2980,7 +2970,7 @@ tasks:
 
 * 调研`pci_enable_msic_range()`
 
-* 调研`pci_iounmap()`, `pci_set_drvdata()`, `pci_enable_device()`, `pci_request_regions()`, `pci_set_master()`, `dma_set_mask_and_coherent()`, `pci_ioremap_bar()`
+* 调研`pci_iounmap()`, `pci_set_drvdata()`, `pci_enable_device()`, `pci_request_regions()`, `pci_set_master()`, `dma_set_mask_and_coherent()`
 
 * 调研`module_pci_driver()`, `MODULE_DEVICE_TABLE()`
 
@@ -3928,9 +3918,19 @@ resources:
 
 ### tasks
 
+* [v] reorg: qemu edu driver
+
+    feedback:
+
+    1. [ ] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
+
 * [ ] 处理`main_2.cpp`
 
-* [ ] `pci_ioremap_bar`
+* [v] `pci_ioremap_bar`
+
+    feedback:
+
+    1. `devm_ioremap_resource()`
 
 * [ ] `dma_set_mask`
 
@@ -3942,11 +3942,11 @@ resources:
 
 * [ ] `sparse`
 
-* [ ] `devm_ioremap()`
+* [v] `devm_ioremap()`
 
 * [ ] 设备树（Device Tree）
 
-* [ ] `platform_get_resource()`, `resource_size()`
+* [v] `platform_get_resource()`, `resource_size()`
 
 * [ ] `devm_platform_ioremap_resource()`
 
@@ -3988,8 +3988,6 @@ resources:
 
 * [ ] `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
 
-* [v] `/proc/ioports`
-
 * [ ] `/proc/iomem`
 
 * [ ] `/proc/iomem`
@@ -4018,7 +4016,11 @@ resources:
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
-* [ ] `irq_set_affinity_hint()`
+* [v] `irq_set_affinity_hint()`
+
+    feedback:
+
+    1. 调研标准亲和性 (smp_affinity)
 
 * [ ] `INIT_WORK()`, `cancel_work_sync()`
 
@@ -4102,8 +4104,6 @@ resources:
 
 * [ ] `unregister_module_notifier()`
 
-* [v] `unlocked_ioctl`与`compat_ioctl`有何不同？
-
 * [ ] `Big Kernel Lock (BKL)`
 
 * [ ] `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
@@ -4123,17 +4123,6 @@ resources:
 * [ ] `module_param_string()`
 
 * [ ] 调研`request_threaded_irq()`
-
-* [v] 调研为什么 rsync 不加 -r 会 skip
-
-    ```
-    siorigin@q35:~/Documents/Projects$ rsync -v siccl_2/ mkeac@10.193.64.60:/share_data/to_lizi/sipu_runtime/siccl_2
-    mkeac@10.193.64.60's password: 
-    skipping directory .
-
-    sent 17 bytes  received 12 bytes  8.29 bytes/sec
-    total size is 0  speedup is 0.00
-    ```
 
 * [ ] `vm_area_struct()`
 
@@ -4161,22 +4150,20 @@ resources:
 
 * [v] `std::async`
 
-    feedback:
+* [ ] 调研 thread pool
 
-    1. 调研 thread pool
+    ```cpp
+    // 使用第三方线程池库（如 BS::thread_pool）
+    #include "BS_thread_pool.hpp"
 
-        ```cpp
-        // 使用第三方线程池库（如 BS::thread_pool）
-        #include "BS_thread_pool.hpp"
+    BS::thread_pool pool;
+    auto future = pool.submit(task); // 明确使用线程池
 
-        BS::thread_pool pool;
-        auto future = pool.submit(task); // 明确使用线程池
-
-        // 或者使用 C++17 的并行算法
-        #include <execution>
-        std::vector<int> data = {1, 2, 3, 4, 5};
-        std::for_each(std::execution::par, data.begin(), data.end(), process);
-        ```
+    // 或者使用 C++17 的并行算法
+    #include <execution>
+    std::vector<int> data = {1, 2, 3, 4, 5};
+    std::for_each(std::execution::par, data.begin(), data.end(), process);
+    ```
 
 * [ ] 调研`exec()`
 
@@ -4220,15 +4207,13 @@ resources:
 
 * [v] `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
 
-    feedback:
+* [ ] 调研无锁单向链表`llist`
 
-    1. 调研无锁单向链表`llist`
+* [ ] `WRITE_ONCE()`
 
-    1. `WRITE_ONCE()`
+* [ ] 调研无锁（lock-free）操作
 
-    1. 调研无锁（lock-free）操作
-
-    1. `kfree_rcu`
+* [ ] `kfree_rcu`
 
 * [ ] `list_move()`
 

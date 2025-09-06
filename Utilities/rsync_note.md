@@ -2,6 +2,38 @@
 
 ## cache
 
+* 关于`rsync -r`
+
+    `rsync -r`指递归处理目录，`rsync`默认不开启`-r`，也就是说默认只处理文件。
+
+    `rsync <file_a> <dest_dir>`
+
+    下面是几种情况分析：
+
+    * `rsync /path/to/dir_a /path/to/dir_b`
+
+        `dir_a`是一个目录，所以 rsync 直接跳过不处理。
+
+    * `rsync -r /path/to/dir_a /path/to/dir_b`
+
+        在`dir_b`里创建一个目录`dir_a`，并递归复制`dir_a`中的内容。
+
+    * `rsync -r /path/to/dir_a/ /path/to/dir_b`
+
+        将`dir_a`目录中所有内容复制到`dir_b`中。
+
+    * `rsync /path/to/dir_a/* /path/to/dir_b`
+
+        将`dir_a`中的所有文件复制到`dir_b`下，但是不复制`dir_a`下的目录。
+
+        这个`*`其实是由 bash 展开的，再加上没有`-r`选项，所以展开后，本质上是`rsync <file_1> <file_2> <...> <dst_dir>`
+
+    如果`/path/to/dir_a`是一个目录，那么`/path/to/dir_b`等价于`/path/to/dir_b/`，并且`dir_b`其必须是一个目录。如果是文件，则会报错。
+
+    如果`/path/to/dir_a`是一个文件，那么`dir_b`可以是文件，也可以是目录。如果是文件，那么`dir_a`会覆盖`dir_b`，如果是目录，那么`dir_a`会被复制到目录下，如果`dir_b`中有同名文件，那么会被覆盖。
+
+    `rsync -a`等价于`rsync -rptgo`，包含了`-r`的功能。
+
 * `rsync`本身不可实时同步目录，只能配合`inotifywait`实现实时同步
 
     (未验证)
