@@ -932,8 +932,6 @@
 
     1. 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
 
-* [v] reorg project: `main_4.cpp`, `DynamicGraph`
-
 * [ ] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
 
 * [ ] 调研自定义哈希函数的写法
@@ -1291,7 +1289,115 @@
 
 ### tasks
 
-* [v] cache tabs
+* [v] procedd 1 tab
+
+    feedback:
+
+    1. `host`
+
+    1. `nsupdate`
+
+* [v] process 1 tab
+
+    feedback:
+
+    1. 直流电机 (DC Geared Motor)
+
+    1. 舵机 (Servo Motor)
+
+        模拟舵机, 数字舵机, 金属齿舵机
+
+    1. 步进电机 (Stepper Motor)
+
+    1. 无刷直流电机 (BLDC) + 驱动器
+
+        FOC等高级算法
+
+    1. 弹簧、凸轮或连杆机构，来储存和释放能量
+
+        弹簧蓄能: 使用电机配合齿轮或蜗杆压缩一个弹簧
+
+        凸轮/曲柄连杆: 通过一个凸轮或不对称的曲柄，将旋转运动转化为向上的冲击力
+
+    1. N20减速电机 高速, 370减速电机
+
+    1. 无框力矩电机，空心杯电机
+
+    1. 关键词搜索：Arduino Quadruped Robot, ESP32 Servo Controller, Jumping Robot Mechanism, SpotMicro Robot
+
+        MIT Cheetah Mini
+
+        James Bruton的超级电容实验视频
+
+        Benjamin Vedder的VESC项目
+
+* [v] process 1 tab
+
+    feedback:
+
+    1. qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
+
+        或者`-append 'console=ttyS0' # 添加这行`?
+
+* [v] process 1 tab
+
+    feedback:
+
+    1. `at`
+
+    1. `alarm()` /` setitimer()`
+
+    1. python `threading.Timer`, `sched`, `asyncio.sleep()`
+
+    1. Node.js
+
+* [v] process 1 tab
+
+    feedback:
+
+    1. 调研`gcc -static`静态链接
+
+    1. 调研`nm -D`
+
+        `nm -D /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
+
+    1. 调研`objdump -T`
+
+        `objdump -T /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
+
+    1. `gcc --wrap`
+
+    1. `gcc -ldl`
+
+    1. `strings`
+
+    1. `getconf`
+
+    1. `source`
+
+* [v] process 1 tab
+
+    feedback:
+
+    * [asso] 调研 frpc 自动重连 (Service Health Check)
+
+        ```toml
+        # frpc.toml
+
+        [[proxies]]
+        name = "test1"
+        type = "tcp"
+        localPort = 22
+        remotePort = 6000
+        # Enable TCP health check
+        healthCheck.type = "tcp"
+        # TCPing timeout seconds
+        healthCheck.timeoutSeconds = 3
+        # If health check failed 3 times in a row, the proxy will be removed from frps
+        healthCheck.maxFailed = 3
+        # A health check every 10 seconds
+        healthCheck.intervalSeconds = 10
+        ```
 
 * [ ] 调研 Floyd最短路径
 
@@ -1306,8 +1412,6 @@
 * [ ] 调研图神经网络
 
 * [ ] 调研Dijkstra
-
-* [v] process 1 tab
 
 * [ ] nvidia-smi
 
@@ -1326,8 +1430,6 @@
     > A100 Data Sheet Comparison vs V100 and H100
 
     不明白 TPCs 是什么意思。
-
-* [v] process 1 url
 
 * [ ] 调研`git rebase --onto`
 
@@ -1904,7 +2006,19 @@ tasks:
 
 * [ ] `ldconfig`
 
-* [ ] `-rpath`
+* [v] `-rpath`
+
+    feedback:
+
+    1. `-rpath-link`
+
+    1. `RUNPATH`, `--enable-new-dtags`
+
+    1. `$ORIGIN`
+
+        ```bash
+        gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
+        ```
 
 * [ ] `-Wl,-rpath='$ORIGIN/../lib`
 
@@ -1988,7 +2102,11 @@ tasks:
 
 * [ ] `od -t x<N>`
 
-* [ ] `od -c`
+* [v] `od -c`
+
+    feedback:
+
+    1. `od -A`
 
 * [ ] 调研 openssl, gpg
 
@@ -3918,35 +4036,39 @@ resources:
 
 ### tasks
 
+* [ ] vim 如何 ctag 跳转？
+
 * [v] reorg: qemu edu driver
 
     feedback:
 
-    1. [ ] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
+    1. `ioremap()`与`pci_iomap()`有什么区别？
+
+    1. `ioread32()`, `iowrite32()`
+
+    1. `raw_copy_to_user()`
+
+* [v] reorg: qemu edu driver
+
+* [ ] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
 
 * [ ] 处理`main_2.cpp`
 
 * [v] `pci_ioremap_bar`
 
-    feedback:
+* [ ] `devm_ioremap_resource()`
 
-    1. `devm_ioremap_resource()`
-
-* [ ] `dma_set_mask`
+* [v] `dma_set_mask`
 
 * [ ] `pci_ioremap_wc_bar`
 
-* [ ] `ioremap_cache()`
+* [v] `ioremap_cache()`
 
 * [ ] `ioremap_wc()`
 
 * [ ] `sparse`
 
-* [v] `devm_ioremap()`
-
 * [ ] 设备树（Device Tree）
-
-* [v] `platform_get_resource()`, `resource_size()`
 
 * [ ] `devm_platform_ioremap_resource()`
 
@@ -3954,7 +4076,7 @@ resources:
 
 * [ ] `devm_ioremap_resource()`
 
-* [ ] `platform_get_irq()`
+* [v] `platform_get_irq()`
 
 * [ ] 调研驱动的 suspend, resume 函数
 
@@ -4018,9 +4140,7 @@ resources:
 
 * [v] `irq_set_affinity_hint()`
 
-    feedback:
-
-    1. 调研标准亲和性 (smp_affinity)
+* [ ] 调研标准亲和性 (smp_affinity)
 
 * [ ] `INIT_WORK()`, `cancel_work_sync()`
 
@@ -4148,8 +4268,6 @@ resources:
 
 * [ ] 页帧分配、页表管理、换入换出（Swapping）
 
-* [v] `std::async`
-
 * [ ] 调研 thread pool
 
     ```cpp
@@ -4204,8 +4322,6 @@ resources:
 * [ ] `schedule()`
 
 * [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
-
-* [v] `INIT_LIST_HEAD()`与`init_llist_head()`有什么不同？
 
 * [ ] 调研无锁单向链表`llist`
 

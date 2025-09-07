@@ -6,6 +6,375 @@ Ref:
 
 ## cache
 
+* `resource_size()`
+
+    计算一个`struct resource`所描述的硬件资源块的大小。
+
+    syntax:
+
+    ```c
+    #include <linux/ioport.h> // 需要包含这个头文件
+
+    resource_size(struct resource *res);
+    ```
+
+    参数:
+
+        res: 指向 struct resource 的指针，通常是 platform_get_resource() 的返回值。
+
+    返回值:
+
+        返回该资源块的大小（以字节为单位）。
+
+        如果传入的 res 是 NULL，行为是未定义的（通常会导致内核崩溃/Oops）。
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct platform_device *pdev)
+    {
+        struct resource *res;
+        void __iomem *base_addr;
+
+        // 1. 获取内存资源
+        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if (!res) {
+            dev_err(&pdev->dev, "Failed to get MEM resource\n");
+            return -EINVAL;
+        }
+
+        // 2. 使用 resource_size() 获取资源大小
+        dev_info(&pdev->dev, "Resource start: 0x%llx, size: %lu bytes\n",
+                 (unsigned long long)res->start, (unsigned long)resource_size(res));
+
+        // 3. 申请并映射这段内存区域到内核的虚拟地址空间
+        // 在调用 devm_ioremap_resource 时，内核内部也会使用 resource_size()
+        base_addr = devm_ioremap_resource(&pdev->dev, res);
+        if (IS_ERR(base_addr)) {
+            return PTR_ERR(base_addr);
+        }
+
+        // 现在 base_addr 就是这段内存的起始虚拟地址，
+        // 你可以通过 ioread32(base_addr + offset) 等方式访问硬件寄存器了。
+
+        // ... 其他初始化操作 ...
+        return 0;
+    }
+    ```
+
+* `register_chrdev()`中填的`name`是设备号的名称，不是 dev 的名称。可以在`/proc/devices`中查看。
+
+    主设备号数字从 1 开始编号。
+
+* `register_chrdev()`的 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/pci.h>
+
+    int hlc_open(struct inode *, struct file *) {
+        pr_info("in hlc_open()...\n");
+        return 0;
+    }
+
+    int hlc_release(struct inode *, struct file *) {
+        pr_info("in hlc_release()...\n");
+        return 0;
+    }
+
+    ssize_t hlc_read(struct file *, char __user *, size_t, loff_t *) {
+        pr_info("in hlc_read()...\n");
+        return 0;
+    }
+
+    ssize_t hlc_write(struct file *, const char __user *, size_t, loff_t *) {
+        pr_info("in hlc_write()...\n");
+        return 0;
+    }
+
+    long hlc_ioctl(struct file *, unsigned int, unsigned long) {
+        pr_info("in hlc_ioctl()...\n");
+        return 0;
+    }
+
+    const struct file_operations fops = {
+        .open = hlc_open,
+        .release = hlc_release,
+        .read = hlc_read,
+        .write = hlc_write,
+        .unlocked_ioctl = hlc_ioctl
+    };
+
+    int dev_num_major;
+
+    int init_mod(void) {
+        pr_info("init hlc module...\n");
+        dev_num_major = register_chrdev(0, "qemu_edu", &fops);
+        if (dev_num_major <= 0) {
+            pr_err("fail to register chrdev\n");
+            goto ERR_REGISTER_CHRDEV;
+        }
+        return 0;
+
+    ERR_REGISTER_CHRDEV:
+        return -1;
+    }
+
+    void exit_mod(void) {
+        pr_info("exit hlc module...\n");
+        unregister_chrdev(dev_num_major, "hlc_dev");
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+* pci_iomap() 是一个历史遗留的、为了兼容两种不同IO方式而设计的通用接口，但在当今以MMIO为主流的开发中，更专用的 pci_ioremap_bar() 往往是更好的选择。
+
+* `platform_get_resource()`
+
+    在 Linux 设备模型中，那些直接连接在处理器总线上的、相对简单的设备（如 GPIO 控制器、I2C 控制器、内存映射的设备等）通常被抽象为“平台设备”（platform_device）。
+
+    一个设备要工作，需要内核知道它的“资源”，比如：
+
+    * 内存地址范围（IORESOURCE_MEM）：设备寄存器映射到的物理地址和长度。
+
+    * 中断号（IORESOURCE_IRQ）：设备使用的中断线编号。
+
+    * DMA 通道（IORESOURCE_DMA）：设备使用的 DMA 通道号。
+
+    这些资源信息通常在设备树（Device Tree）或ACPI表中定义，在系统启动时由内核解析并填充到对应的 platform_device 结构体中。
+
+    syntax:
+
+    ```c
+    struct resource *platform_get_resource(struct platform_device *pdev,
+                                          unsigned int type,
+                                          unsigned int num);
+    ```
+
+    * `pdev`: 指向对应的平台设备结构体的指针，通常会在驱动的 probe 函数中传入。
+
+    * `type`: 要查找的资源类型。常见的有：
+
+        * `IORESOURCE_MEM` - 内存资源
+
+        * `IORESOURCE_IRQ` - 中断资源
+
+        * `IORESOURCE_DMA` - DMA资源
+
+    * `num`: 该类型资源的索引号（从 0 开始）。例如，一个设备可能有两块内存映射区域，第一块索引为 0，第二块索引为 1。
+
+    返回值:
+
+    * 成功：返回指向 struct resource 的指针。
+
+    * 失败或指定的资源不存在：返回 NULL。
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct platform_device *pdev)
+    {
+        struct resource *res;
+
+        // 1. 获取第一个内存资源（索引0）
+        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if (!res) {
+            dev_err(&pdev->dev, "Failed to get MEM resource\n");
+            return -EINVAL;
+        }
+        // 使用 res->start 和 res->end 获取地址范围
+
+        // 2. 获取第一个中断资源（索引0）
+        res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+        if (!res) {
+            dev_err(&pdev->dev, "Failed to get IRQ resource\n");
+            return -EINVAL;
+        }
+        int irq_num = res->start; // 中断号通常存放在 start 字段
+        // 然后使用 request_irq() 申请这个中断
+
+        // ... 其他初始化操作 ...
+        return 0;
+    }
+    ```
+
+    如果是中断，可以直接使用`platform_get_irq()`
+
+* `pci_ioremap_bar()`
+
+    查找 PCI 设备上指定 BAR 的地址空间, 并将该物理地址空间映射到内核虚拟地址空间。这也是一个托管版本，无需驱动程序手动调用 iounmap().
+
+    syntax:
+
+    ```c
+    void __iomem *pci_ioremap_bar(struct pci_dev *pdev, int bar);
+    ```
+
+    example:
+
+    ```c
+    static int my_pci_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+    {
+        void __iomem *bar0_base;
+        int ret;
+
+        // 1. 启用PCI设备（获取总线主控权、分配IRQ等）
+        ret = pci_enable_device(pdev);
+        if (ret) {
+            dev_err(&pdev->dev, "Failed to enable device\n");
+            return ret;
+        }
+
+        // 2. 请求设备的资源区域（如内存区域）
+        ret = pci_request_regions(pdev, "My PCI Driver");
+        if (ret) {
+            dev_err(&pdev->dev, "Failed to request regions\n");
+            goto err_disable;
+        }
+
+        // 3. 一键式映射 BAR0
+        bar0_base = pci_ioremap_bar(pdev, 0);
+        if (!bar0_base) {
+            dev_err(&pdev->dev, "Failed to ioremap BAR0\n");
+            ret = -ENOMEM;
+            goto err_release;
+        }
+
+        // 4. 现在可以使用 bar0_base 指针来访问 BAR0 的寄存器了
+        // 例如：writel(0xFFFFFFFF, bar0_base + CTRL_REG_OFFSET);
+
+        // ... 驱动的其他初始化操作（如申请中断等）...
+
+        return 0;
+
+    // 错误处理路径
+    err_release:
+        pci_release_regions(pdev);
+    err_disable:
+        pci_disable_device(pdev);
+        return ret;
+    }
+
+    static void my_pci_driver_remove(struct pci_dev *pdev)
+    {
+        // ... 其他清理工作（如释放中断）...
+
+        // 注意：这里不需要 iounmap(bar0_base)！
+        // 内核会自动清理由 pci_ioremap_bar() 创建的映射
+
+        pci_release_regions(pdev);
+        pci_disable_device(pdev);
+    }
+    ```
+
+    在没有 pci_ioremap_bar() 时，你需要这样做：
+
+    ```c
+    // 传统繁琐的方法
+    bar0_base = pci_resource_start(pdev, 0); // 1. 获取物理地址
+    bar0_len = pci_resource_len(pdev, 0);     // 2. 获取长度
+    bar0_base = ioremap(bar0_start, bar0_len); // 3. 手动映射
+    // 并且在 remove 函数中必须记得： iounmap(bar0_base);
+    ```
+
+    该函数主要用于映射 内存空间 类型的 BAR（即 IORESOURCE_MEM）。虽然它也能处理 I/O 空间类型的 BAR（IORESOURCE_IO），但对于 I/O 端口，通常更推荐使用 pci_iomap() 系列函数，或者直接使用 inb()/outb() 等 I/O 端口操作函数。
+
+* `	devm_ioremap()`
+
+    将一段物理地址空间（通常是内存映射式设备的寄存器区域）映射到内核的虚拟地址空间，并且自动资源管理。
+
+    syntax:
+
+    ```c
+    #include <linux/io.h>
+
+    void __iomem *devm_ioremap(struct device *dev, resource_size_t offset, resource_size_t size);
+    ```
+
+    offset: 要映射的物理地址的起始偏移量（通常从设备资源（如 struct resource）中获取）。
+
+    size: 要映射的地址区域的大小。
+
+    资源管理（Managed - `devm_*`前缀）: 这是`devm_ioremap()`相对于传统 ioremap() 最关键的优势。devm_ 前缀意味着这个函数是“被托管的”或“自动资源管理的”。它将申请的资源（这里是指映射的虚拟地址区域）与特定的设备（struct device *dev）绑定。
+
+    当该设备被卸载或者驱动模块被移除时，内核会自动调用反向操作（即 devm_iounmap()）来释放这个映射。程序员无需在代码的错误处理路径和驱动退出函数中显式地调用 iounmap()。
+
+    `pci_ioremap()`专门用于 PCI/PCIe 设备, 通常与 pci_resource_start() 等PCI特定函数配对使用.  `devm_ioremap()`	通用于所有内存映射I/O设备, 通常与 `platform_get_resource()`等通用或平台函数配对使用.
+
+* `irq_set_affinity_hint()`
+
+    向系统提供一个“提示”（Hint），建议它将某个硬件的中断请求（IRQ）分配给特定的 CPU（或一组 CPU）来处理。
+
+    它的目的通常是帮助用户空间的驱动程序或管理工具（而不是内核本身的驱动程序）来优化中断处理，尤其是在与支持 RSS (Receive Side Scaling) 或 RPS (Receive Packet Steering) 的高性能网卡配合使用时。
+
+    中断亲和性是一种设置，允许管理员手动地将特定的中断绑定到特定的CPU核心上。这可以通过修改`/proc/irq/<IRQ_NUMBER>/smp_affinity`文件来实现。
+
+    syntax:
+
+    ```c
+    #include <linux/interrupt.h>
+
+    int irq_set_affinity_hint(unsigned int irq, const struct cpumask *m);
+    ```
+
+    * `const struct cpumask *m`
+
+        含义: 一个指向 cpumask 的指针，该结构体指明了你希望提示中断在哪个（或哪些）CPU核心上运行。
+
+        如何创建:
+
+        * 使用 cpumask_of(cpu) 宏来创建一个指向特定CPU的掩码。
+
+        * 例如：cpumask_of(0) 表示 CPU 0。
+
+        也可以使用更高级的宏（如 cpumask_local_spread）来根据NUMA架构智能选择CPU，或者手动构建一个更复杂的掩码。
+
+    返回值 (Return Value)
+
+    * 0: 表示成功。
+
+    * 非零值: 表示失败。错误码通常是 -EINVAL（无效参数）。
+
+    example:
+
+    ```c
+    #include <linux/interrupt.h>
+    #include <linux/cpu.h>
+
+    /* 假设你的驱动已经获取到了这个中断号 */
+    unsigned int my_irq_num;
+
+    /* 设置亲和性提示到 CPU 0 */
+    void setup_irq_hint(void)
+    {
+        int ret;
+        const struct cpumask *cpu_mask = cpumask_of(0); // 创建指向 CPU 0 的掩码
+
+        ret = irq_set_affinity_hint(my_irq_num, cpu_mask);
+        if (ret) {
+            pr_err("Failed to set affinity hint for IRQ %d, error: %d\n", my_irq_num, ret);
+            /* 错误处理 */
+        }
+    }
+
+    /* 在驱动卸载或设备移除时，通常需要清除提示 */
+    void cleanup_irq_hint(void)
+    {
+        /* 
+         * 通过传递一个全空的 cpumask 来清除之前的提示。
+         * 这告诉内核“不再有特定提示”。
+         * 注意：在某些旧内核中，传递 NULL 也可以，但使用 cpu_none_mask 是更明确的做法。
+         */
+        irq_set_affinity_hint(my_irq_num, cpu_none_mask);
+    }
+    ```
+
+    已过时 (Deprecated)：在较新的 Linux 内核中（大约 5.11 版本之后），这个函数已被标记为过时。官方推荐使用更新的 irq_set_affinity() 接口以及 struct irq_affinity_desc 中的 flags 字段来提供更明确的管理策略（例如，设置 IRQ_AFFINITY_FLAG_MANAGED 标志），而不是使用这种模糊的“提示”。
+
 * `$(MAKE)`与`make`的区别
 
     只使用`make`的问题：
@@ -49,10 +418,6 @@ Ref:
 
     1. 必须要用`sudo`，否则显示出来的地址全是 0
 
-* `init_llist_head()`
-
-    init_llist_head() 用于无锁单向链表。初始化一个 struct llist_head 节点，将其 first 指针设置为 NULL，表示一个空的单向链表。
-
 * `unlocked_ioctl`与`compat_ioctl`有何不同
 
     syntax:
@@ -66,38 +431,6 @@ Ref:
     unlocked_ioctl：现代的标准方法，用于处理所有常规的 ioctl 调用。它的主要特点是不再持有 Big Kernel Lock (BKL)，因此得名 “unlocked”。
 
     compat_ioctl：兼容性方法，专门用于为32位应用程序在64位内核上提供兼容性支持。
-
-* `request_irq()`
-
-    内核注册一个中断处理程序（中断服务例程，ISR）
-
-    syntax:
-
-    ```c
-    int request_irq(unsigned int irq,
-                    irq_handler_t handler,
-                    unsigned long flags,
-                    const char *name,
-                    void *dev_id);
-    ```
-
-    返回值：
-
-    * 成功时返回 0。
-
-    * 失败时返回一个错误码（负值），如 -EBUSY（中断线已被占用且不可共享）。
-
-    中断标志设置: 通过 flags 参数设置中断的行为特性，常见的标志包括：
-
-    * `IRQF_SHARED`：允许与其他驱动程序共享同一条中断线。这在中断资源紧张的系统（如基于 PCI 的系统）中很常见。
-
-    * `IRQF_ONESHOT`：中断在处理完毕后需要重新显式启用（用于线程化中断）。
-
-    * `IRQF_TIMER`：标记这是一个定时器中断，系统可能会对其进行特殊处理（如不会被暂停）。
-
-    * `IRQF_IRQPOLL`：用于共享中断中的轮询处理。
-
-    配对函数：`free_irq()`
 
 * `dev_set_drvdata()`, `dev_get_drvdata()`
 
@@ -322,36 +655,6 @@ Ref:
 
 * qemu edu 不支持 MSI-X （未验证）
 
-* `list_is_singular()`
-
-    判断当前链表是否只有一个有效节点。
-
-    具体做两件事：
-
-    1. 判断链表非空 (!list_empty(head))。即判断 head->next 是否指向自己。
-
-    2. 判断链表的第一个节点的 next 指针指向头节点 (head->next->next == head)。
-
-    syntax:
-
-    ```c
-    #include <linux/list.h>
-
-    bool list_is_singular(const struct list_head *head);
-    ```
-
-    `list_is_singular()`要求链表是 init 过的。比如通过`list_del()`从一个链表上取下一个节点后，没有 init，那么无法使用`list_is_singular()`判断这个节点是否为单个节点。
-
-* `device->irq`
-
-    `dev->irq`存储了分配给该硬件设备的中断请求线（Interrupt ReQuest line）的编号。
-
-    通常使用`request_irq(dev->irq, my_handler, ...)`去注册 ISR。配对函数为`free_irq(dev->irq, dev_id);`
-
-    对于传统PCI设备，这个值通常在系统启动时由BIOS/UEFI或操作系统内核的PCI子系统自动分配。它通过读取设备的配置空间（具体是PCI_INTERRUPT_PIN和PCI_INTERRUPT_LINE寄存器）来分配和设置。对于现代设备（MSI/MSI-X），通常不直接使用`dev->irq`，而是使用`pci_alloc_irq_vectors()`等函数来管理 msi(x) 中断。
-
-    在支持 MSI-X 的 PCI 设备上直接使用 dev->irq，其行为取决于内核版本和系统配置，但通常会导致性能低下、功能受限或完全无法工作。
-
 * Bus Master
 
     在PCI/PCIe总线架构中，大多数设备是“从设备（Slaves）”，只能响应来自CPU的读写请求。
@@ -397,14 +700,6 @@ Ref:
     `pci_set_master()`所做的工作非常简单：它设置PCI设备配置空间中命令寄存器的第2位。
 
     在驱动程序的 remove 或 shutdown 路径中，通常不需要显式地禁用Bus Master，因为PCI核心在禁用设备时会自动处理。
-
-* 为什么中断上下文不能睡眠？
-
-    1. 没有进程概念：中断上下文不属于任何进程。它只是“借道”执行，打断了当前正在运行的进程。如果它睡眠了，调度器不知道该唤醒哪个进程来继续执行它，因为它没有 struct task_struct 关联。这会导致系统彻底崩溃。
-
-    2. 破坏原子性：中断是异步到来的，期望被快速处理。睡眠可能导致中断处理流程被无限期挂起，使得设备无法及时响应，其他中断也可能无法处理。
-
-    3. 可能导致死锁：假设中断发生时，某个内核锁正被持有。如果中断处理程序尝试获取另一个锁，而这个操作又可能导致睡眠，那么系统就会死锁。持有锁的进程正在等待中断处理完成，而中断处理又在等待锁被释放。
 
 * `spin_lock()`
 
@@ -682,199 +977,6 @@ Ref:
 
     引用计数：class_find_device() 在找到设备后，会增加该设备的引用计数。这意味着你在使用完返回的设备指针后，必须调用 put_device() 来减少引用计数，否则该设备将永远无法被正确卸载，导致内存泄漏。
 
-* `list_splice()`
-
-    通过修改指针，将一个链表合并到另一个链表。
-
-    syntax:
-
-    ```c
-    void list_splice(struct list_head *list, struct list_head *head);
-
-    void list_splice_init(struct list_head *list, struct list_head *head);
-    ```
-
-    将链表`list`整体添加到`head`链表的前面。
-
-    比如
-
-    ```
-    list: 2 1 0
-    head: 5 4 3
-
-    after splice:
-    list: empty
-    head: 2 1 0 5 4 3
-    ```
-
-    `list_splice_init()`在修改完链表指针后，将`list`进行 init。
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/vmalloc.h>
-
-    struct ListNode {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_1;
-    struct list_head lst_2;
-
-    int init_mod(void) {
-        pr_info("init hlc module...\n");
-
-        INIT_LIST_HEAD(&lst_1);
-        INIT_LIST_HEAD(&lst_2);
-
-        for (int i = 0; i < 3; ++i) {
-            struct ListNode *new_node = vmalloc(sizeof(struct ListNode));
-            new_node->val = i;
-            list_add(&new_node->list_head, &lst_1);
-        }
-
-        for (int i = 3; i < 6; ++i) {
-            struct ListNode *new_node = vmalloc(sizeof(struct ListNode));
-            new_node->val = i;
-            list_add(&new_node->list_head, &lst_2);
-        }
-
-        struct ListNode *cur_node;
-        pr_info("list 1:\n");
-        list_for_each_entry(cur_node, &lst_1, list_head) {
-            pr_info("node val: %d\n", cur_node->val);
-        }
-
-        pr_info("list 2:\n");
-        list_for_each_entry(cur_node, &lst_2, list_head) {
-            pr_info("node val: %d\n", cur_node->val);
-        }
-
-        list_splice_init(&lst_1, &lst_2);
-        pr_info("after list splice:\n");
-
-        pr_info("list 1:\n");
-        list_for_each_entry(cur_node, &lst_1, list_head) {
-            pr_info("node val: %d\n", cur_node->val);
-        }
-
-        pr_info("list 2:\n");
-        list_for_each_entry(cur_node, &lst_2, list_head) {
-            pr_info("node val: %d\n", cur_node->val);
-        }
-        
-        return 0;
-    }
-
-    void exit_mod(void) {
-        pr_info("exit hlc module...\n");
-
-        struct ListNode *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_1, list_head) {
-            list_del(&cur_node->list_head);
-            vfree(cur_node);
-        }
-
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_2, list_head) {
-            list_del(&cur_node->list_head);
-            vfree(cur_node);
-        }
-    }
-
-    module_init(init_mod);
-    module_exit(exit_mod);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [  354.895541] init hlc module...
-    [  354.895569] list 1:
-    [  354.895572] node val: 2
-    [  354.895576] node val: 1
-    [  354.895578] node val: 0
-    [  354.895580] list 2:
-    [  354.895582] node val: 5
-    [  354.895583] node val: 4
-    [  354.895585] node val: 3
-    [  354.895587] after list splice:
-    [  354.895589] list 1:
-    [  354.895591] list 2:
-    [  354.895592] node val: 2
-    [  354.895594] node val: 1
-    [  354.895596] node val: 0
-    [  354.895598] node val: 5
-    [  354.895600] node val: 4
-    [  354.895602] node val: 3
-    [  431.783673] exit hlc module...
-    ```
-
-    注：
-
-    1. 如果不调用`list_splice_init()`，而调用`list_splice()`，那么 dmesg 输出会死循环
-
-        ```
-        [  784.259569] init hlc module...
-        [  784.259599] list 1:
-        [  784.259602] node val: 2
-        [  784.259606] node val: 1
-        [  784.259608] node val: 0
-        [  784.259610] list 2:
-        [  784.259612] node val: 5
-        [  784.259614] node val: 4
-        [  784.259616] node val: 3
-        [  784.259618] after list splice:
-        [  784.259620] list 1:
-        [  784.259621] node val: 2
-        [  784.259623] node val: 1
-        [  784.259625] node val: 0
-        [  784.259627] node val: 5
-        [  784.259629] node val: 4
-        [  784.259631] node val: 3
-        [  784.259633] node val: 1074016256
-        [  784.259636] node val: 2
-        [  784.259638] node val: 1
-        [  784.259640] node val: 0
-        [  784.259642] node val: 5
-        [  784.259644] node val: 4
-        [  784.259646] node val: 3
-        [  784.259647] node val: 1074016256
-        ...
-        ```
-
-        从 list 1 的 head 出发，进入 list 2 的节点，遍历到 list 2 的结尾，发现 list 2 的结尾指向 list 2 的 head，并不是 list 1 的 head，程序以为没有回到 list 1 的开始，所以强行认为 list 2 head 是某个 struct Node 的成员，解析到了一个无效 val `1074016256`，并继续从头开始在环中遍历。
-
-    1. 如果将`list_splice_init()`替换为`list_splice_tail_init()`，则输出为
-
-        ```
-        [ 1316.980085] init hlc module...
-        [ 1316.980110] list 1:
-        [ 1316.980113] node val: 2
-        [ 1316.980117] node val: 1
-        [ 1316.980120] node val: 0
-        [ 1316.980122] list 2:
-        [ 1316.980123] node val: 5
-        [ 1316.980125] node val: 4
-        [ 1316.980127] node val: 3
-        [ 1316.980129] after list splice tail:
-        [ 1316.980132] list 1:
-        [ 1316.980133] list 2:
-        [ 1316.980135] node val: 5
-        [ 1316.980137] node val: 4
-        [ 1316.980139] node val: 3
-        [ 1316.980141] node val: 2
-        [ 1316.980142] node val: 1
-        [ 1316.980144] node val: 0
-        [ 1363.336242] exit hlc module...
-        ```
-
-        如果使用`list_splice_tail()`，也会出现循环输出的情况。
-
 * `dev_info()`
 
     输出一条附加了设备信息（如设备名称、地址等）的提示性消息.
@@ -904,16 +1006,6 @@ Ref:
     dev_warn()	KERN_WARNING	警告信息，可能有问题
     dev_info()	KERN_INFO	信息性消息，正常状态（最常用）
     dev_dbg()	KERN_DEBUG	调试消息，默认不打印，需开启动态调试
-    
-* irq_handler
-
-    syntax:
-
-    `irqreturn_t irq_handler(int irq, void *dev_id);`
-
-    返回值必须是`IRQ_HANDLED`或`IRQ_NONE`
-
-    该函数运行在中断上下文中，因此其执行不能阻塞（不能睡眠、不能调用可能引起调度的函数如 kmalloc(..., GFP_KERNEL)、不能执行耗时操作）。
 
 * `pci_msi_enabled()`
 
@@ -1012,176 +1104,6 @@ Ref:
 
         内核将钳制后得到的最终值写入设备的 “Device Control” 寄存器。
 
-* `pci_enable_msix_range()`
-
-    为一个 PCI 设备申请并启用一组 MSI-X 中断向量，并允许指定一个期望的数量范围。
-
-    syntax:
-
-    ```c
-    #include <linux/pci.h>
-
-    int pci_enable_msix_range(struct pci_dev *dev,
-                              struct msix_entry *entries,
-                              int min_vecs,
-                              int max_vecs);
-    ```
-
-    * `entries`: 存储分配成功的中断向量信息。
-
-    返回值：
-
-    成功：返回一个正整数，表示实际分配的中断向量数量（这个值在 [min_vecs, max_vecs] 区间内）。
-
-    失败：返回一个负的错误码（如 -ENOSPC 表示无足够中断资源）。
-
-    example:
-
-    ```c
-    #define MIN_MSIX 2
-    #define MAX_MSIX 8
-
-    struct msix_entry entries[MAX_MSIX];
-    int nvecs;
-
-    // 尝试申请 MSI-X 中断，最少要2个，最多要8个。
-    nvecs = pci_enable_msix_range(pdev, entries, MIN_MSIX, MAX_MSIX);
-
-    if (nvecs < 0) {
-        // 申请失败，连2个都没有，可能需要回退到传统的MSI或INTx中断
-        dev_err(&pdev->dev, "Failed to enable MSI-X. Error: %d\n", nvecs);
-        return nvecs;
-    } else {
-        // 申请成功，nvecs 是实际分配的数量
-        dev_info(&pdev->dev, "Enabled %d MSI-X vectors\n", nvecs);
-
-        // 接下来可以为每个 entries[i].vector 申请中断处理函数 (request_irq)
-        for (int i = 0; i < nvecs; i++) {
-            request_irq(entries[i].vector, my_handler, 0, dev_name(&pdev->dev), my_data);
-        }
-    }
-    ```
-
-    配对函数：`pci_disable_msix()`
-
-    此函数目前已逐渐被`pci_alloc_irq_vectors()`（来自Linux 4.10）所取代。
-
-* MSI-X（Message Signaled Interrupts eXtended）是一种基于消息的中断机制。它允许设备（如网卡、GPU、NVMe SSD）通过向CPU写入一个特定的数据（消息）到特定的内存地址来请求中断，而不是使用传统的、基于专用引脚（IRQ线）的中断。
-
-    系统软件（操作系统）会分配一块内存区域，称为 MSI-X Table。这个表中的每一项（Entry）都对应一个中断向量，包含：
-
-    * 消息地址（Message Address）：中断消息要写入的目标地址。这个地址隐含了中断要发送给哪个CPU核心。
-
-    * 消息数据（Message Data）：一个唯一的数据值，用来标识是哪个中断向量被触发。
-
-    * 掩码位（Mask Bit）：用于临时禁用该中断。
-
-    * Pending Bit：记录中断是否已发出但尚未被处理。
-
-    虽然设备触发MSI-X的行为是一次内存写入，但整个系统（CPU、芯片组、内存控制器）被设计为能识别这次特殊的写入操作，并将其无缝地转换为一个中断信号送达CPU核心。
-
-    MSI-X消息中指定的目标地址（Message Address） 并不指向普通的DRAM内存位置。它指向一个由CPU和芯片组预留的、特殊的物理地址范围。这个范围是专门用于处理消息信号中断的。
-
-    芯片组通过内部的中断控制器（在现代x86系统中是APIC）架构，将一个“虚拟”的中断信号直接发送到步骤2a中确定的目标CPU核心。
-
-    CPU核心收到这个信号后，会立即中断当前正在执行的指令流（当然，会在合理的边界处），并根据收到的向量号，去查找自己的中断描述符表（IDT），找到并执行对应的中断服务程序（ISR）。
-
-    msix 中断并不是 cpu 轮询指定内存实现的，而是通过芯片组识别 pcie 事务类型实现的。
-    
-    msix 中断本质就是一次 pcie 事务（Transaction）。
-    
-    pcie 事务可能有很多类型：
-
-    Memory Read
-
-    Memory Write
-
-    I/O Read
-
-    I/O Write
-
-    Message
-
-    MSI 对应的事务为 Memory Write，而 msix 对应的事务为 Message (Message Signaled Interrupt)
-
-    如果芯片组识别出来 pcie 事务是 message，又发现其写入的内存地址是为 MSI 中断信号预留的、特定的地址区域，那么就可以确认这是一个 msix 中断。
-
-* `pci_alloc_irq_vectors()`
-
-    为指定的 PCI 设备申请和分配一组中断向量（Interrupt Vectors）。
-
-    syntax:
-
-    ```c
-    int pci_alloc_irq_vectors(struct pci_dev *dev, unsigned int min_vecs, unsigned int max_vecs, unsigned int flags);
-    ```
-
-    * `min_vecs`：驱动至少需要多少个中断向量。
-
-    * `max_vecs`：驱动最多希望申请多少个中断向量。
-
-    * `flags`：指定中断类型和行为的标志。最重要的标志是：
-
-        * `PCI_IRQ_MSIX`：请求使用 MSI-X 中断。
-
-        * `PCI_IRQ_MSI`：请求使用 MSI 中断。
-
-        * `PCI_IRQ_LEGACY`：请求使用传统引脚中断（如 INTA#）。
-
-        * `PCI_IRQ_ALL_TYPES`：尝试任何可用的类型（通常的用法）。
-
-        * `PCI_IRQ_AFFINITY`：提示内核这些中断可以设置 CPU 亲和性（绑定到特定 CPU 核心）。
-
-        各个 flag 可以使用`|`组合。你组合多个类型，内核会按性能从高到低的顺序（通常是 MSI-X -> MSI -> Legacy）自动选择可用的最佳类型。
-
-    return value:
-
-    分配成功则返回 实际分配到的中断数量。分配失败则返回一个负的错误码。
-
-    配对函数：`pci_free_irq_vectors()`
-
-    example:
-
-    * 尝试所有中断类型，并提示亲和性：
-
-        `int nvecs = pci_alloc_irq_vectors(pdev, 1, 32, PCI_IRQ_ALL_TYPES | PCI_IRQ_AFFINITY);`
-
-        驱动表示它兼容任何硬件支持的中断模式，并且它设计为能够利用多CPU核心的优势。
-
-    * 只尝试 MSI-X 或传统中断，不尝试 MSI
-
-        `int nvecs = pci_alloc_irq_vectors(pdev, 1, 8, PCI_IRQ_MSIX | PCI_IRQ_LEGACY);`
-        
-        可能因为驱动在某些硬件上发现 MSI 实现有bug，或者功能需求上 MSI-X 是首选，如果不行则回退到最稳定的传统模式。
-
-    * 只使用 MSI，并要求亲和性
-
-        `int nvecs = pci_alloc_irq_vectors(pdev, 2, 2, PCI_IRQ_MSI | PCI_IRQ_AFFINITY);`
-
-        只想使用 MSI 机制，并且希望中断能分布在不同的CPU上。
-
-    example:
-
-    ```c
-    // 1. 分配中断向量（假设申请了4个）
-    nvec = pci_alloc_irq_vectors(pdev, 4, 4, PCI_IRQ_MSIX);
-    if (nvec < 0) {
-        // 错误处理
-    }
-
-    // 2. 为每一个向量注册中断处理程序
-    for (i = 0; i < nvec; i++) {
-        // 注意：这里的 i 就是索引号
-        ret = pci_request_irq(pdev, i, /* 索引i对应MSI-X表条目i */
-                             my_interrupt_handler, // 中断处理函数
-                             NULL, // dev_id
-                             "my-driver:rx%d", i); // 中断名称
-        if (ret) {
-            // 错误处理
-        }
-    }
-    ```
-
 * `vmalloc()`
 
     分配一块虚拟地址连续，物理地址不一定连续的内存。
@@ -1218,168 +1140,9 @@ Ref:
 
     `vmalloc()`同理。
 
-* `cat /proc/interrupts`的最后一栏即`request_irq()`中填的 name
-
-    ```c
-    request_irq(11, irq_handler, IRQF_SHARED, "hlc irq", irq_handler);
-    ```
-
-    ```
-     11:          0          0          0          0          0          0          0          0   IO-APIC  11-fasteoi   hlc irq
-    ```
-
-* 没有`list_next()`这个函数。
-
 * `device_destroy()`是`device_create()`的反函数，`device_del()`是`device_add()`的反函数。
 
 * `fprintf(stdin, ...)`和`fscanf(stdout, ...)`一样，都是未定义行为。可能会导致程序崩溃。
-
-* MSI-X是MSI的增强版，其主要增强就是支持更多的中断向量（MSI最多32个，MSI-X可达2048个）。
-
-* cpu 的中断向量
-
-    向量 0-31 通常预留给异常（如除零错误、页故障）和不可屏蔽中断（NMI）。
-
-    向量 32-255 留给用户定义的可屏蔽中断，也就是来自外部硬件设备的中断。
-
-    irq 是操作系统抽象的概念，部分映射与 cpu 中断向量号相同，其余的不同。
-
-    具体的 cpu 中断向量映射情况：
-
-    * 32以下：CPU保留向量（0-31用于异常、NMI等）
-
-    * 32-47：传统PIC映射区（IRQ0-15）
-
-    * 现代 MSI-X：通常是一对一映射（每个Linux IRQ有独立CPU向量）
-
-    * 现代 INTx：可能多对一映射（多个Linux IRQ共享CPU向量）
-
-    由于单个 cpu 的中断向量只有 256 个，而 msix 最多可能有 2048 个中断向量，所以cpu 中的一个中断向量，可能会分时复用地处理多个 msix 的中断向量。
-
-    如果 pc 上有多个 cpu 节点，那么 msix 可能将中断注册到多个 cpu 中断向量上以做负载均衡。
-
-* 中断服务程序（ISR）即中断处理函数
-
-* 为什么使用`request_irq(irq, handler_func)`，而不是`request_vector_idx(idx, handler_func)`？
-
-    假如 vector idx 对于每个设备来说从 0 开始编号，或者对于每个 module 来说从 0 开始编号，那么问题来了，如果一个 module 里有多个 pci 设备，每个设备的中断都是从 0 开始编号，那么`request_vector_idx(0, handler_func)`究竟指的是哪个设备的中断？如果对于 module 从 0 开始编号，那么如果多个 module 共同管理一个设备，那么应该以哪个 module 的编号为准？
-
-    有一些 module 没有维护 device，注册的中断可能是软中断，或定时器中断，那么基于 device 编号就彻底不能用了。
-
-    这样看来，将 irq 与中断向量作映射，作为全局资源进行管理，似乎是比较合理的解决方式。
-
-* 操作系统中断与 pci msix 的交互流程
-
-    1. module 调用`iv = pci_irq_vector(pdev, idx)`向操作系统申请到 msix 中第`idx`个中断的中断向量（由操作系统进行分配）
-
-    2. module 调用`request_irq(iv, handler_func, ...)`将中断处理函数的地址写入到 IDT 中
-
-    3. 向 msix 第`idx`号中断的配置空间中写入中断向量`iv`的数值
-
-        操作系统将一个目标地址和一个数据值写入设备PCI配置空间中的MSI-X相关寄存器（每个中断向量都有自己的一套地址/数据寄存器）。
-
-        目标地址：指向CPU中断控制器的端口（例如x86上的Local APIC的地址）。
-
-        数据值：这个数据值就是分配给这个特定中断向量的CPU中断向量号（例如 0x41）。
-
-    4. pci 每次发起中断时，由 msix 向特定的内存中写入中断向量`iv`，操作系统感知到后，由`iv`在 IDT 中找到对应的中断函数，对中断进行处理。
-
-* 中断向量，IDT 与 irq
-
-    操作系统维护一张全局的中断描述符表 (IDT, Interrupt Descriptor Table)，其本质为一个数组，存储的是中断处理函数的地址，比如
-
-    ```
-    ...
-    IDT[0x40] = irq_handler_func_40()
-    IDT[0x41] = irq_handler_func_41()
-    IDT[0x42] = irq_handler_func_42()
-    IDT[0X43] = irq_handler_func_43()
-    ...
-    ```
-    
-    其中数组的索引`0x40`, `0x41`, ... 即为中断向量 (Interrupt Vector)（号）。
-
-    关于中断向量的解释（未验证）：
-    
-    1. 解释一：中断向量这个词最开始由 intel 这些 cpu 制造商引入，这里的“向量”是从硬件设计者的角度考虑的，倾向于表示这是一个矢量，一个路标，一个指引，告诉你中断处理函数在这里。
-
-    2. 解释二：当一个PCI设备使用MSI或MSI-X时，它不再只有一个IRQ号，而是有一组IRQ号（一个“向量”）。
-
-    由于 IDT 是全局的，但是每个驱动可能只想关心自己的中断向量，不想关心别人的，那么我们希望将 IDT 看作一个资源池，每个驱动向操作系统申请中断向量，并从 0 开始编号，得到中断向量索引(Vector Index)：
-
-    ```
-    ...
-    IDT[0x40] = irq_handler_func_40(), driver xxx, vector idx 0
-    IDT[0x41] = irq_handler_func_41(), driver yyy, vector idx 0
-    IDT[0x42] = irq_handler_func_42(), driver yyy, vector idx 1
-    IDT[0X43] = irq_handler_func_43(), driver xxx, vector idx 1
-    ...
-    ```
-
-    其中的`vector idx 0`, `vector idx 1`, ... 这些即为中断向量索引。
-
-    操作系统为了便于管理，将中断向量与全局资源 irq (Interrupt ReQuest) 进行一一映射，从而使得 module 可以基于 irq 注册中断处理函数。
-
-    ```
-    ...
-    IDT[0x40] = irq_handler_func_40(), driver xxx, vector idx 0, irq 233
-    IDT[0x41] = irq_handler_func_41(), driver yyy, vector idx 0, irq 234
-    IDT[0x42] = irq_handler_func_42(), driver yyy, vector idx 1, irq 235
-    IDT[0X43] = irq_handler_func_43(), driver xxx, vector idx 1, irq 236
-    ...
-    ```
-
-* `pci_irq_vector()`
-
-    获取一个 PCI 设备上某个特定 MSI-X 或 MSI 中断向量的 Linux 内核IRQ编号（中断号）。
-
-    syntax:
-
-    ```c
-    #include <linux/pci.h>
-
-    int pci_irq_vector(struct pci_dev *dev, unsigned int nr);
-    ```
-
-    * `nr`: MSI-X Table中中断条目的索引，索引从 0 开始
-
-        `nr`的范围为`[0, dev->msix_cnt - 1]`或`[0, dev->msi_cnt - 1]`
-
-    return value:
-
-    返回一个大于等于 0 的值，表示PCI设备第 nr 个中断向量对应的 Linux 内核 IRQ 编号（中断号）
-
-    如果失败，该函数返回一个错误码（负值）。
-
-    调用 pci_irq_vector() 之前，必须已经成功地为PCI设备分配了MSI或MSI-X中断向量。这通常是通过 pci_alloc_irq_vectors() 函数完成的。
-
-    example:
-
-    假设你正在为一个支持MSI-X的PCI设备编写驱动程序。该设备申请了3个中断向量：
-
-        索引0：用于接收数据包
-
-        索引1：用于发送数据包完成
-
-        索引2：用于报告错误
-
-    ```c
-    // 注册索引0（接收）的中断处理函数
-    irq_rx = pci_irq_vector(pdev, 0);
-    request_irq(irq_rx, my_rx_handler, 0, "my_driver_rx", my_data);
-
-    // 注册索引1（发送）的中断处理函数
-    irq_tx = pci_irq_vector(pdev, 1);
-    request_irq(irq_tx, my_tx_handler, 0, "my_driver_tx", my_data);
-
-    // 注册索引2（错误）的中断处理函数
-    irq_err = pci_irq_vector(pdev, 2);
-    request_irq(irq_err, my_err_handler, 0, "my_driver_err", my_data);
-    ```
-
-    对于传统的引脚中断（INTx），通常使用 pci_dev->irq 来获取设备唯一的IRQ编号。
-
-    对于MSI/MSI-X，必须使用`pci_irq_vector(dev, n)`来获取第n个中断的 IRQ 编号。`pci_dev->irq`在这个场景下可能没有意义或已被重用。
 
 * `device_add()`
 
@@ -1506,226 +1269,6 @@ Ref:
 
     `device_add()`需要外部传递一个`struct device`对象，而`device_create()`会在函数内部创建一个`struct device`对象。
 
-* `list_for_each()`
-
-    对`struct list_head`进行遍历，如果需要拿到外部 struct 的指针，那么需要手动调用`container_of()`。
-
-    syntax:
-
-    ```c
-    list_for_each(pos, head)
-    ```
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-    #include <linux/pci.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add_tail(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add_tail(&new_node->list_head, &lst_head);
-
-        struct list_head *cur_head;
-        list_for_each(cur_head, &lst_head) {
-            pr_info("node val: %d\n", container_of(cur_head, struct my_list_node, list_head)->val);
-        }
-
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [ 3736.286051] in hello_init()...
-    [ 3736.286191] node val: 123
-    [ 3736.286198] node val: 456
-    [ 3743.204415] in hello_exit()...
-    ```
-
-    `list_for_each_safe()`为`list_for_each()`的删除节点版本。
-
-* `list_entry()`
-
-    `list_entry()`和`container_of()`完全等价，用于从成员成员拿到外部 struct 的指针。
-
-    syntax:
-
-    ```c
-    list_entry(ptr, type, member)
-    ```
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-    #include <linux/pci.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add_tail(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add_tail(&new_node->list_head, &lst_head);
-
-        struct my_list_node *cur_node;
-        struct list_head *cur_head;
-        list_for_each(cur_head, &lst_head) {
-            cur_node = list_entry(cur_head, struct my_list_node, list_head);
-            pr_info("node val: %d\n", cur_node->val);
-        }
-
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [ 4057.550524] in hello_init()...
-    [ 4057.550644] node val: 123
-    [ 4057.550650] node val: 456
-    [ 4063.035152] in hello_exit()...
-    ```
-
-* linux 内核没有提供方法直接得到链表的长度，需要我们自己实现。
-
-    ```c
-    #include <linux/list.h>
-
-    int list_node_count(struct list_head *head)
-    {
-        int count = 0;
-        struct list_head *pos;
-
-        // 使用 list_for_each 遍历链表，每到一个节点计数器加一
-        list_for_each(pos, head) {
-            count++;
-        }
-
-        return count;
-    }
-    ```
-
-* `list_empty()`
-
-    判断链表是否为空。
-
-    list_empty() 原理：它检查头节点的 next 指针是否指向它自己。
-
-    ```c
-    // list_empty 的典型实现
-    #define list_empty(head) ((head)->next == (head))
-    ```
-
-    `list_empty()`只能作用于已经初始化的链表。
-
-    一个被删除且未被重新 init 的节点调用 list_empty() 不会返回真。
-
-* irq 11 example
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/interrupt.h>
-
-    irqreturn_t my_irq_handler(int irq, void *dev_id) {
-        pr_info("in my_irq_handler()...\n");
-        pr_info("irq: %d, dev_id: %p\n", irq, dev_id);
-        return IRQ_HANDLED;
-    }
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        int ret = request_irq(11, my_irq_handler, IRQF_SHARED, "hlc irq", my_irq_handler);
-        if (ret != 0) {
-            pr_err("fail to request irq\n");
-            return -1;
-        }
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        free_irq(11, my_irq_handler);
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    `cat /proc/interrupts ` output:
-
-    ```
-    test@Ubuntu22:~/Documents/Projects/driver_test$ cat /proc/interrupts 
-               CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
-      0:         33          0          0          0          0          0          0          0   IO-APIC   2-edge      timer
-      1:         11          0          0          0          0          0          0          0   IO-APIC   1-edge      i8042
-      6:          0          0          3          0          0          0          0          0   IO-APIC   6-edge      floppy
-      7:          0          0          0          1          0          0          0          0   IO-APIC   7-edge      parport0
-      8:          0          1          0          0          0          0          0          0   IO-APIC   8-edge      rtc0
-      9:          0          0          0          0          0          0          0          0   IO-APIC   9-fasteoi   acpi
-     11:          0          0          0          0          0          0          0          0   IO-APIC  11-fasteoi   hlc irq
-     12:          0          0          0          0          0          0          0         15   IO-APIC  12-edge      i8042
-    ```
-
 * `pci_find_capability()`
 
     syntax:
@@ -1812,8 +1355,6 @@ Ref:
 
     * `PCI_CAP_ID_VNDR` (`0x09`): 虚拟通道
 
-* MSI (Message Signaled Interrupts)
-
 * 完整的 pci capability list
 
     可参考`uapi/linux/pci_regs.h`。
@@ -1839,74 +1380,6 @@ Ref:
     | PCI_CAP_ID_MSIX | 0x11 | MSI-X 中断 (这是最常用的之一) |
     | PCI_CAP_ID_SATA | 0x12 | SATA 数据/配置索引 |
     | PCI_CAP_ID_AF | 0x13 | 高级功能 (Advanced Features) |
-
-* `list_add_tail()`
-
-    在链表尾部添加元素。
-
-    syntax:
-
-    ```c
-    static inline void list_add_tail(struct list_head *new, struct list_head *head)
-    ```
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add_tail(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add_tail(&new_node->list_head, &lst_head);
-
-        struct my_list_node *cur_node;
-        list_for_each_entry(cur_node, &lst_head, list_head) {
-            pr_info("node val: %d\n", cur_node->val);
-        }
-        
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [  488.597973] in hello_init()...
-    [  488.597977] node val: 123
-    [  488.597981] node val: 456
-    [  495.047735] in hello_exit()...
-    ```
-
-    如果链表越来越长，`list_add_tail()`的速度不会变慢，因为 linux 中的链表是双向循环链表，head 节点的 prev 即指向尾节点。
 
 * `pci_register_driver()`
 
@@ -2301,202 +1774,6 @@ Ref:
         rcu_read_unlock(); // 标记离开读临界区
     }
     ```
-
-* 如果在注册 irq X 的 handler 1 时设置为 shared，那么后面注册 irq X 的 handler 2 时也设置为 shared，可以注册成功，有 irq X 的中断时，两个 handler 都会调用
-
-    未验证。
-
-    处理程序的责任：
-
-        每个处理程序被调用时，会接收到 irq 号和注册时提供的 dev_id 作为参数。
-
-        处理程序必须检查这个中断是否是发给它的设备的。它需要通过读取设备的某个状态寄存器来判断。
-
-        如果中断是它的：它处理中断，然后返回 IRQ_HANDLED。
-
-        如果中断不是它的：它什么都不做，立刻返回 IRQ_NONE。
-
-        这种检查机制是共享中断能够工作的基础，确保每个驱动只处理属于自己的设备产生的中断。
-
-* irq 1 在 request_irq 时是非 shared 的，所以再次注册 irq 1 的 handler 时，会失败
-
-* 常用 irq
-
-    IRQ 分为两大类：标准硬件预设 IRQ 和 动态分配 IRQ。
-
-    1. 标准硬件预设 IRQ (Legacy IRQs)
-
-        * IRQ 0: 系统定时器 (System timer)
-        
-            由主板上的定时器芯片使用，不可更改。
-
-            目前仍在使用。
-
-        * IRQ 1: 键盘控制器 (Keyboard)
-            
-            专用于 PS/2 键盘。
-
-            目前仍在使用。
-
-        * IRQ 2: 级联中断 (Cascade to IRQ 9)
-        
-            用于连接第二个中断控制器 (PIC)，实际请求会重定向到 IRQ 9。
-
-        * IRQ 3: 串行端口 COM2 (Serial port COM2/COM4)
-        
-            旧式串口。
-
-            目前未在使用。
-
-        * IRQ 4: 串行端口 COM1 (Serial port COM1/COM3)
-        
-            旧式串口。
-
-            目前未在使用。
-
-        * IRQ 5: 声卡 / 并行端口 LPT2 (Sound card / LPT2)
-        
-            在没有 LPT2 的系统中，常被 PCI 声卡等设备使用。
-
-            目前未在使用。
-
-        * IRQ 6: 软盘控制器 (Floppy disk controller)
-        
-            专用于软驱。
-
-            目前未在使用。
-
-        * IRQ 7:
-        
-            并行端口 LPT1 (Parallel port LPT1)
-            
-            打印机端口。
-
-            目前未在使用。
-
-        * IRQ 8: 实时时钟 (Real-time clock, RTC)
-        
-            由 CMOS 时钟使用。
-
-            目前仍在使用。
-
-        * IRQ 9: 重定向的 IRQ2 / ACPI
-        
-            接收来自 IRQ2 的级联中断，也常用于 ACPI 系统事件。
-
-            目前正在使用。
-
-        * IRQ 12: PS/2 鼠标 (PS/2 Mouse)
-        
-            专用于 PS/2 鼠标接口。
-
-            目前仍在使用。
-
-        * IRQ 13: 数学协处理器 (Math coprocessor)
-        
-            用于 x87 FPU 错误异常。
-
-            目前未在使用。
-
-        * IRQ 14: 主 IDE 通道 (Primary ATA channel)
-        
-            用于连接在主 IDE 通道上的硬盘或光驱。
-
-            目前仍在使用。
-
-        * IRQ 15
-        
-            次 IDE 通道 (Secondary ATA channel)	用于连接在次 IDE 通道上的硬盘或光驱。
-
-            目前仍在使用。
-
-    2. 动态分配 IRQ
-
-        IRQ 号动态分配，中断共享非常普遍，多个 PCI 设备可以共享同一个 IRQ 线。
-
-        从 irq 16 开始及以上的基本都是动态分配的。
-
-    `cat /proc/interrupts`输出:
-
-    ```
-    (base) hlc@hlc-VirtualBox:~$ cat /proc/interrupts
-               CPU0       CPU1       CPU2       CPU3       
-      0:        121          0          0          0   IO-APIC   2-edge      timer
-      1:          0          0          0      27426   IO-APIC   1-edge      i8042
-      8:          0          0          0          0   IO-APIC   8-edge      rtc0
-      9:          0          0          0          0   IO-APIC   9-fasteoi   acpi
-     12:          0      90214          0          0   IO-APIC  12-edge      i8042
-     14:          0          0          0          0   IO-APIC  14-edge      ata_piix
-     15:          0          0          0      25200   IO-APIC  15-edge      ata_piix
-     18:          0          0          0          1   IO-APIC  18-fasteoi   vmwgfx
-     19:          0          0         57     529522   IO-APIC  19-fasteoi   ehci_hcd:usb2, enp0s3
-     20:          0          0     157288          0   IO-APIC  20-fasteoi   vboxguest
-     21:          0      15104     560519          0   IO-APIC  21-fasteoi   ahci[0000:00:0d.0], snd_intel8x0
-     22:         27          0          0          0   IO-APIC  22-fasteoi   ohci_hcd:usb1
-    NMI:          0          0          0          0   Non-maskable interrupts
-    LOC:   19816261    6719703    6819970    6554434   Local timer interrupts
-    SPU:          0          0          0          0   Spurious interrupts
-    PMI:          0          0          0          0   Performance monitoring interrupts
-    IWI:         35         22         15          9   IRQ work interrupts
-    RTR:          0          0          0          0   APIC ICR read retries
-    RES:     124747     132009     186545     193448   Rescheduling interrupts
-    CAL:    5551069    6766045    5986573    5687906   Function call interrupts
-    TLB:     891238     897723     909639     929551   TLB shootdowns
-    TRM:          0          0          0          0   Thermal event interrupts
-    THR:          0          0          0          0   Threshold APIC interrupts
-    DFR:          0          0          0          0   Deferred Error APIC interrupts
-    MCE:          0          0          0          0   Machine check exceptions
-    MCP:         78         78         78         78   Machine check polls
-    ERR:          0
-    MIS:       4066
-    PIN:          0          0          0          0   Posted-interrupt notification event
-    NPI:          0          0          0          0   Nested posted-interrupt event
-    PIW:          0          0          0          0   Posted-interrupt wakeup event
-    ```
-
-    其中 CPU 表示每个 CPU 核心对中断的处理次数，`IO-APIC`表示中断控制器类型，最后一栏`timer`之类的表示该中断对应的设备名。
-
-* `request_irq()`
-
-    内核注册一个中断处理程序（中断服务例程，ISR）
-
-    中断号（IRQ）
-
-    将一个具体的中断号（irq）与驱动程序提供的中断处理函数（handler）绑定起来
-
-    syntax:
-
-    ```c
-    #include <linux/interrupt.h>
-
-    int request_irq(unsigned int irq,
-                    irq_handler_t handler,
-                    unsigned long flags,
-                    const char *name,
-                    void *dev_id);
-    ```
-
-    * `flags`:
-
-        * `IRQF_SHARED`：允许多个设备共享同一个中断线。
-
-        * `IRQF_ONESHOT`：中断在处理完毕后需要重新显式启用（用于线程化中断）。
-
-        * `IRQF_TIMER`：标记为定时器中断，以便系统在处理电源管理时特殊考虑。
-
-        * `IRQF_IRQPOLL`：用于共享中断中的轮询处理。
-
-    * `name`
-
-        通常为设备名，用于在`/proc/interrupts`中标识这个中断的拥有者
-
-    * `dev_id`
-
-        提供一个唯一指针，用于区分是哪个设备触发了中断
-
-        通常指向一个代表设备的结构体（如 struct device 或自定义的私有数据）
-
-        在 irq handler 中，会被作为函数参数传入。
 
 * `module_param_array()`中的数组长度参数只有在 write 数据的时候才会被改变
 
@@ -4489,6 +3766,1102 @@ Ref:
     ```
 
 ## Topics
+
+### list
+
+* `list_add_tail()`
+
+    在链表尾部添加元素。
+
+    syntax:
+
+    ```c
+    static inline void list_add_tail(struct list_head *new, struct list_head *head)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add_tail(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add_tail(&new_node->list_head, &lst_head);
+
+        struct my_list_node *cur_node;
+        list_for_each_entry(cur_node, &lst_head, list_head) {
+            pr_info("node val: %d\n", cur_node->val);
+        }
+        
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [  488.597973] in hello_init()...
+    [  488.597977] node val: 123
+    [  488.597981] node val: 456
+    [  495.047735] in hello_exit()...
+    ```
+
+    如果链表越来越长，`list_add_tail()`的速度不会变慢，因为 linux 中的链表是双向循环链表，head 节点的 prev 即指向尾节点。
+
+* linux 内核没有提供方法直接得到链表的长度，需要我们自己实现。
+
+    ```c
+    #include <linux/list.h>
+
+    int list_node_count(struct list_head *head)
+    {
+        int count = 0;
+        struct list_head *pos;
+
+        // 使用 list_for_each 遍历链表，每到一个节点计数器加一
+        list_for_each(pos, head) {
+            count++;
+        }
+
+        return count;
+    }
+    ```
+
+* `list_empty()`
+
+    判断链表是否为空。
+
+    list_empty() 原理：它检查头节点的 next 指针是否指向它自己。
+
+    ```c
+    // list_empty 的典型实现
+    #define list_empty(head) ((head)->next == (head))
+    ```
+
+    `list_empty()`只能作用于已经初始化的链表。
+
+    一个被删除且未被重新 init 的节点调用 list_empty() 不会返回真。
+
+* `list_entry()`
+
+    `list_entry()`和`container_of()`完全等价，用于从成员成员拿到外部 struct 的指针。
+
+    syntax:
+
+    ```c
+    list_entry(ptr, type, member)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+    #include <linux/pci.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add_tail(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add_tail(&new_node->list_head, &lst_head);
+
+        struct my_list_node *cur_node;
+        struct list_head *cur_head;
+        list_for_each(cur_head, &lst_head) {
+            cur_node = list_entry(cur_head, struct my_list_node, list_head);
+            pr_info("node val: %d\n", cur_node->val);
+        }
+
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 4057.550524] in hello_init()...
+    [ 4057.550644] node val: 123
+    [ 4057.550650] node val: 456
+    [ 4063.035152] in hello_exit()...
+    ```
+
+* `list_for_each()`
+
+    对`struct list_head`进行遍历，如果需要拿到外部 struct 的指针，那么需要手动调用`container_of()`。
+
+    syntax:
+
+    ```c
+    list_for_each(pos, head)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+    #include <linux/pci.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add_tail(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add_tail(&new_node->list_head, &lst_head);
+
+        struct list_head *cur_head;
+        list_for_each(cur_head, &lst_head) {
+            pr_info("node val: %d\n", container_of(cur_head, struct my_list_node, list_head)->val);
+        }
+
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 3736.286051] in hello_init()...
+    [ 3736.286191] node val: 123
+    [ 3736.286198] node val: 456
+    [ 3743.204415] in hello_exit()...
+    ```
+
+    `list_for_each_safe()`为`list_for_each()`的删除节点版本。
+
+* 没有`list_next()`这个函数。
+
+* `list_splice()`
+
+    通过修改指针，将一个链表合并到另一个链表。
+
+    syntax:
+
+    ```c
+    void list_splice(struct list_head *list, struct list_head *head);
+
+    void list_splice_init(struct list_head *list, struct list_head *head);
+    ```
+
+    将链表`list`整体添加到`head`链表的前面。
+
+    比如
+
+    ```
+    list: 2 1 0
+    head: 5 4 3
+
+    after splice:
+    list: empty
+    head: 2 1 0 5 4 3
+    ```
+
+    `list_splice_init()`在修改完链表指针后，将`list`进行 init。
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/vmalloc.h>
+
+    struct ListNode {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_1;
+    struct list_head lst_2;
+
+    int init_mod(void) {
+        pr_info("init hlc module...\n");
+
+        INIT_LIST_HEAD(&lst_1);
+        INIT_LIST_HEAD(&lst_2);
+
+        for (int i = 0; i < 3; ++i) {
+            struct ListNode *new_node = vmalloc(sizeof(struct ListNode));
+            new_node->val = i;
+            list_add(&new_node->list_head, &lst_1);
+        }
+
+        for (int i = 3; i < 6; ++i) {
+            struct ListNode *new_node = vmalloc(sizeof(struct ListNode));
+            new_node->val = i;
+            list_add(&new_node->list_head, &lst_2);
+        }
+
+        struct ListNode *cur_node;
+        pr_info("list 1:\n");
+        list_for_each_entry(cur_node, &lst_1, list_head) {
+            pr_info("node val: %d\n", cur_node->val);
+        }
+
+        pr_info("list 2:\n");
+        list_for_each_entry(cur_node, &lst_2, list_head) {
+            pr_info("node val: %d\n", cur_node->val);
+        }
+
+        list_splice_init(&lst_1, &lst_2);
+        pr_info("after list splice:\n");
+
+        pr_info("list 1:\n");
+        list_for_each_entry(cur_node, &lst_1, list_head) {
+            pr_info("node val: %d\n", cur_node->val);
+        }
+
+        pr_info("list 2:\n");
+        list_for_each_entry(cur_node, &lst_2, list_head) {
+            pr_info("node val: %d\n", cur_node->val);
+        }
+        
+        return 0;
+    }
+
+    void exit_mod(void) {
+        pr_info("exit hlc module...\n");
+
+        struct ListNode *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_1, list_head) {
+            list_del(&cur_node->list_head);
+            vfree(cur_node);
+        }
+
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_2, list_head) {
+            list_del(&cur_node->list_head);
+            vfree(cur_node);
+        }
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [  354.895541] init hlc module...
+    [  354.895569] list 1:
+    [  354.895572] node val: 2
+    [  354.895576] node val: 1
+    [  354.895578] node val: 0
+    [  354.895580] list 2:
+    [  354.895582] node val: 5
+    [  354.895583] node val: 4
+    [  354.895585] node val: 3
+    [  354.895587] after list splice:
+    [  354.895589] list 1:
+    [  354.895591] list 2:
+    [  354.895592] node val: 2
+    [  354.895594] node val: 1
+    [  354.895596] node val: 0
+    [  354.895598] node val: 5
+    [  354.895600] node val: 4
+    [  354.895602] node val: 3
+    [  431.783673] exit hlc module...
+    ```
+
+    注：
+
+    1. 如果不调用`list_splice_init()`，而调用`list_splice()`，那么 dmesg 输出会死循环
+
+        ```
+        [  784.259569] init hlc module...
+        [  784.259599] list 1:
+        [  784.259602] node val: 2
+        [  784.259606] node val: 1
+        [  784.259608] node val: 0
+        [  784.259610] list 2:
+        [  784.259612] node val: 5
+        [  784.259614] node val: 4
+        [  784.259616] node val: 3
+        [  784.259618] after list splice:
+        [  784.259620] list 1:
+        [  784.259621] node val: 2
+        [  784.259623] node val: 1
+        [  784.259625] node val: 0
+        [  784.259627] node val: 5
+        [  784.259629] node val: 4
+        [  784.259631] node val: 3
+        [  784.259633] node val: 1074016256
+        [  784.259636] node val: 2
+        [  784.259638] node val: 1
+        [  784.259640] node val: 0
+        [  784.259642] node val: 5
+        [  784.259644] node val: 4
+        [  784.259646] node val: 3
+        [  784.259647] node val: 1074016256
+        ...
+        ```
+
+        从 list 1 的 head 出发，进入 list 2 的节点，遍历到 list 2 的结尾，发现 list 2 的结尾指向 list 2 的 head，并不是 list 1 的 head，程序以为没有回到 list 1 的开始，所以强行认为 list 2 head 是某个 struct Node 的成员，解析到了一个无效 val `1074016256`，并继续从头开始在环中遍历。
+
+    1. 如果将`list_splice_init()`替换为`list_splice_tail_init()`，则输出为
+
+        ```
+        [ 1316.980085] init hlc module...
+        [ 1316.980110] list 1:
+        [ 1316.980113] node val: 2
+        [ 1316.980117] node val: 1
+        [ 1316.980120] node val: 0
+        [ 1316.980122] list 2:
+        [ 1316.980123] node val: 5
+        [ 1316.980125] node val: 4
+        [ 1316.980127] node val: 3
+        [ 1316.980129] after list splice tail:
+        [ 1316.980132] list 1:
+        [ 1316.980133] list 2:
+        [ 1316.980135] node val: 5
+        [ 1316.980137] node val: 4
+        [ 1316.980139] node val: 3
+        [ 1316.980141] node val: 2
+        [ 1316.980142] node val: 1
+        [ 1316.980144] node val: 0
+        [ 1363.336242] exit hlc module...
+        ```
+
+        如果使用`list_splice_tail()`，也会出现循环输出的情况。
+
+* `list_is_singular()`
+
+    判断当前链表是否只有一个有效节点。
+
+    具体做两件事：
+
+    1. 判断链表非空 (!list_empty(head))。即判断 head->next 是否指向自己。
+
+    2. 判断链表的第一个节点的 next 指针指向头节点 (head->next->next == head)。
+
+    syntax:
+
+    ```c
+    #include <linux/list.h>
+
+    bool list_is_singular(const struct list_head *head);
+    ```
+
+    `list_is_singular()`要求链表是 init 过的。比如通过`list_del()`从一个链表上取下一个节点后，没有 init，那么无法使用`list_is_singular()`判断这个节点是否为单个节点。
+
+* `init_llist_head()`
+
+    init_llist_head() 用于无锁单向链表。初始化一个 struct llist_head 节点，将其 first 指针设置为 NULL，表示一个空的单向链表。
+
+### irq, 中断与 msi-x
+
+* 常用 irq
+
+    IRQ 分为两大类：标准硬件预设 IRQ 和 动态分配 IRQ。
+
+    1. 标准硬件预设 IRQ (Legacy IRQs)
+
+        * IRQ 0: 系统定时器 (System timer)
+        
+            由主板上的定时器芯片使用，不可更改。
+
+            目前仍在使用。
+
+        * IRQ 1: 键盘控制器 (Keyboard)
+            
+            专用于 PS/2 键盘。
+
+            目前仍在使用。
+
+        * IRQ 2: 级联中断 (Cascade to IRQ 9)
+        
+            用于连接第二个中断控制器 (PIC)，实际请求会重定向到 IRQ 9。
+
+        * IRQ 3: 串行端口 COM2 (Serial port COM2/COM4)
+        
+            旧式串口。
+
+            目前未在使用。
+
+        * IRQ 4: 串行端口 COM1 (Serial port COM1/COM3)
+        
+            旧式串口。
+
+            目前未在使用。
+
+        * IRQ 5: 声卡 / 并行端口 LPT2 (Sound card / LPT2)
+        
+            在没有 LPT2 的系统中，常被 PCI 声卡等设备使用。
+
+            目前未在使用。
+
+        * IRQ 6: 软盘控制器 (Floppy disk controller)
+        
+            专用于软驱。
+
+            目前未在使用。
+
+        * IRQ 7:
+        
+            并行端口 LPT1 (Parallel port LPT1)
+            
+            打印机端口。
+
+            目前未在使用。
+
+        * IRQ 8: 实时时钟 (Real-time clock, RTC)
+        
+            由 CMOS 时钟使用。
+
+            目前仍在使用。
+
+        * IRQ 9: 重定向的 IRQ2 / ACPI
+        
+            接收来自 IRQ2 的级联中断，也常用于 ACPI 系统事件。
+
+            目前正在使用。
+
+        * IRQ 12: PS/2 鼠标 (PS/2 Mouse)
+        
+            专用于 PS/2 鼠标接口。
+
+            目前仍在使用。
+
+        * IRQ 13: 数学协处理器 (Math coprocessor)
+        
+            用于 x87 FPU 错误异常。
+
+            目前未在使用。
+
+        * IRQ 14: 主 IDE 通道 (Primary ATA channel)
+        
+            用于连接在主 IDE 通道上的硬盘或光驱。
+
+            目前仍在使用。
+
+        * IRQ 15
+        
+            次 IDE 通道 (Secondary ATA channel)	用于连接在次 IDE 通道上的硬盘或光驱。
+
+            目前仍在使用。
+
+    2. 动态分配 IRQ
+
+        IRQ 号动态分配，中断共享非常普遍，多个 PCI 设备可以共享同一个 IRQ 线。
+
+        从 irq 16 开始及以上的基本都是动态分配的。
+
+    `cat /proc/interrupts`输出:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ cat /proc/interrupts
+               CPU0       CPU1       CPU2       CPU3       
+      0:        121          0          0          0   IO-APIC   2-edge      timer
+      1:          0          0          0      27426   IO-APIC   1-edge      i8042
+      8:          0          0          0          0   IO-APIC   8-edge      rtc0
+      9:          0          0          0          0   IO-APIC   9-fasteoi   acpi
+     12:          0      90214          0          0   IO-APIC  12-edge      i8042
+     14:          0          0          0          0   IO-APIC  14-edge      ata_piix
+     15:          0          0          0      25200   IO-APIC  15-edge      ata_piix
+     18:          0          0          0          1   IO-APIC  18-fasteoi   vmwgfx
+     19:          0          0         57     529522   IO-APIC  19-fasteoi   ehci_hcd:usb2, enp0s3
+     20:          0          0     157288          0   IO-APIC  20-fasteoi   vboxguest
+     21:          0      15104     560519          0   IO-APIC  21-fasteoi   ahci[0000:00:0d.0], snd_intel8x0
+     22:         27          0          0          0   IO-APIC  22-fasteoi   ohci_hcd:usb1
+    NMI:          0          0          0          0   Non-maskable interrupts
+    LOC:   19816261    6719703    6819970    6554434   Local timer interrupts
+    SPU:          0          0          0          0   Spurious interrupts
+    PMI:          0          0          0          0   Performance monitoring interrupts
+    IWI:         35         22         15          9   IRQ work interrupts
+    RTR:          0          0          0          0   APIC ICR read retries
+    RES:     124747     132009     186545     193448   Rescheduling interrupts
+    CAL:    5551069    6766045    5986573    5687906   Function call interrupts
+    TLB:     891238     897723     909639     929551   TLB shootdowns
+    TRM:          0          0          0          0   Thermal event interrupts
+    THR:          0          0          0          0   Threshold APIC interrupts
+    DFR:          0          0          0          0   Deferred Error APIC interrupts
+    MCE:          0          0          0          0   Machine check exceptions
+    MCP:         78         78         78         78   Machine check polls
+    ERR:          0
+    MIS:       4066
+    PIN:          0          0          0          0   Posted-interrupt notification event
+    NPI:          0          0          0          0   Nested posted-interrupt event
+    PIW:          0          0          0          0   Posted-interrupt wakeup event
+    ```
+
+    其中 CPU 表示每个 CPU 核心对中断的处理次数，`IO-APIC`表示中断控制器类型，最后一栏`timer`之类的表示该中断对应的设备名。
+
+* `request_irq()`
+
+    内核注册一个中断处理程序（中断服务例程，ISR）
+
+    中断号（IRQ）
+
+    将一个具体的中断号（irq）与驱动程序提供的中断处理函数（handler）绑定起来
+
+    syntax:
+
+    ```c
+    #include <linux/interrupt.h>
+
+    int request_irq(unsigned int irq,
+                    irq_handler_t handler,
+                    unsigned long flags,
+                    const char *name,
+                    void *dev_id);
+    ```
+
+    * `flags`:
+
+        * `IRQF_SHARED`：允许多个设备共享同一个中断线。
+
+        * `IRQF_ONESHOT`：中断在处理完毕后需要重新显式启用（用于线程化中断）。
+
+        * `IRQF_TIMER`：标记为定时器中断，以便系统在处理电源管理时特殊考虑。
+
+        * `IRQF_IRQPOLL`：用于共享中断中的轮询处理。
+
+    * `name`
+
+        通常为设备名，用于在`/proc/interrupts`中标识这个中断的拥有者
+
+    * `dev_id`
+
+        提供一个唯一指针，用于区分是哪个设备触发了中断
+
+        通常指向一个代表设备的结构体（如 struct device 或自定义的私有数据）
+
+        在 irq handler 中，会被作为函数参数传入。
+
+* 如果在注册 irq X 的 handler 1 时设置为 shared，那么后面注册 irq X 的 handler 2 时也设置为 shared，可以注册成功，有 irq X 的中断时，两个 handler 都会调用
+
+    未验证。
+
+    处理程序的责任：
+
+        每个处理程序被调用时，会接收到 irq 号和注册时提供的 dev_id 作为参数。
+
+        处理程序必须检查这个中断是否是发给它的设备的。它需要通过读取设备的某个状态寄存器来判断。
+
+        如果中断是它的：它处理中断，然后返回 IRQ_HANDLED。
+
+        如果中断不是它的：它什么都不做，立刻返回 IRQ_NONE。
+
+        这种检查机制是共享中断能够工作的基础，确保每个驱动只处理属于自己的设备产生的中断。
+
+* irq 1 在 request_irq 时是非 shared 的，所以再次注册 irq 1 的 handler 时，会失败
+
+* MSI (Message Signaled Interrupts)
+
+* irq 11 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/interrupt.h>
+
+    irqreturn_t my_irq_handler(int irq, void *dev_id) {
+        pr_info("in my_irq_handler()...\n");
+        pr_info("irq: %d, dev_id: %p\n", irq, dev_id);
+        return IRQ_HANDLED;
+    }
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        int ret = request_irq(11, my_irq_handler, IRQF_SHARED, "hlc irq", my_irq_handler);
+        if (ret != 0) {
+            pr_err("fail to request irq\n");
+            return -1;
+        }
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        free_irq(11, my_irq_handler);
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    `cat /proc/interrupts ` output:
+
+    ```
+    test@Ubuntu22:~/Documents/Projects/driver_test$ cat /proc/interrupts 
+               CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+      0:         33          0          0          0          0          0          0          0   IO-APIC   2-edge      timer
+      1:         11          0          0          0          0          0          0          0   IO-APIC   1-edge      i8042
+      6:          0          0          3          0          0          0          0          0   IO-APIC   6-edge      floppy
+      7:          0          0          0          1          0          0          0          0   IO-APIC   7-edge      parport0
+      8:          0          1          0          0          0          0          0          0   IO-APIC   8-edge      rtc0
+      9:          0          0          0          0          0          0          0          0   IO-APIC   9-fasteoi   acpi
+     11:          0          0          0          0          0          0          0          0   IO-APIC  11-fasteoi   hlc irq
+     12:          0          0          0          0          0          0          0         15   IO-APIC  12-edge      i8042
+    ```
+
+* 操作系统中断与 pci msix 的交互流程
+
+    1. module 调用`iv = pci_irq_vector(pdev, idx)`向操作系统申请到 msix 中第`idx`个中断的中断向量（由操作系统进行分配）
+
+    2. module 调用`request_irq(iv, handler_func, ...)`将中断处理函数的地址写入到 IDT 中
+
+    3. 向 msix 第`idx`号中断的配置空间中写入中断向量`iv`的数值
+
+        操作系统将一个目标地址和一个数据值写入设备PCI配置空间中的MSI-X相关寄存器（每个中断向量都有自己的一套地址/数据寄存器）。
+
+        目标地址：指向CPU中断控制器的端口（例如x86上的Local APIC的地址）。
+
+        数据值：这个数据值就是分配给这个特定中断向量的CPU中断向量号（例如 0x41）。
+
+    4. pci 每次发起中断时，由 msix 向特定的内存中写入中断向量`iv`，操作系统感知到后，由`iv`在 IDT 中找到对应的中断函数，对中断进行处理。
+
+* 中断向量，IDT 与 irq
+
+    操作系统维护一张全局的中断描述符表 (IDT, Interrupt Descriptor Table)，其本质为一个数组，存储的是中断处理函数的地址，比如
+
+    ```
+    ...
+    IDT[0x40] = irq_handler_func_40()
+    IDT[0x41] = irq_handler_func_41()
+    IDT[0x42] = irq_handler_func_42()
+    IDT[0X43] = irq_handler_func_43()
+    ...
+    ```
+    
+    其中数组的索引`0x40`, `0x41`, ... 即为中断向量 (Interrupt Vector)（号）。
+
+    关于中断向量的解释（未验证）：
+    
+    1. 解释一：中断向量这个词最开始由 intel 这些 cpu 制造商引入，这里的“向量”是从硬件设计者的角度考虑的，倾向于表示这是一个矢量，一个路标，一个指引，告诉你中断处理函数在这里。
+
+    2. 解释二：当一个PCI设备使用MSI或MSI-X时，它不再只有一个IRQ号，而是有一组IRQ号（一个“向量”）。
+
+    由于 IDT 是全局的，但是每个驱动可能只想关心自己的中断向量，不想关心别人的，那么我们希望将 IDT 看作一个资源池，每个驱动向操作系统申请中断向量，并从 0 开始编号，得到中断向量索引(Vector Index)：
+
+    ```
+    ...
+    IDT[0x40] = irq_handler_func_40(), driver xxx, vector idx 0
+    IDT[0x41] = irq_handler_func_41(), driver yyy, vector idx 0
+    IDT[0x42] = irq_handler_func_42(), driver yyy, vector idx 1
+    IDT[0X43] = irq_handler_func_43(), driver xxx, vector idx 1
+    ...
+    ```
+
+    其中的`vector idx 0`, `vector idx 1`, ... 这些即为中断向量索引。
+
+    操作系统为了便于管理，将中断向量与全局资源 irq (Interrupt ReQuest) 进行一一映射，从而使得 module 可以基于 irq 注册中断处理函数。
+
+    ```
+    ...
+    IDT[0x40] = irq_handler_func_40(), driver xxx, vector idx 0, irq 233
+    IDT[0x41] = irq_handler_func_41(), driver yyy, vector idx 0, irq 234
+    IDT[0x42] = irq_handler_func_42(), driver yyy, vector idx 1, irq 235
+    IDT[0X43] = irq_handler_func_43(), driver xxx, vector idx 1, irq 236
+    ...
+    ```
+
+* `pci_irq_vector()`
+
+    获取一个 PCI 设备上某个特定 MSI-X 或 MSI 中断向量的 Linux 内核IRQ编号（中断号）。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_irq_vector(struct pci_dev *dev, unsigned int nr);
+    ```
+
+    * `nr`: MSI-X Table中中断条目的索引，索引从 0 开始
+
+        `nr`的范围为`[0, dev->msix_cnt - 1]`或`[0, dev->msi_cnt - 1]`
+
+    return value:
+
+    返回一个大于等于 0 的值，表示PCI设备第 nr 个中断向量对应的 Linux 内核 IRQ 编号（中断号）
+
+    如果失败，该函数返回一个错误码（负值）。
+
+    调用 pci_irq_vector() 之前，必须已经成功地为PCI设备分配了MSI或MSI-X中断向量。这通常是通过 pci_alloc_irq_vectors() 函数完成的。
+
+    example:
+
+    假设你正在为一个支持MSI-X的PCI设备编写驱动程序。该设备申请了3个中断向量：
+
+        索引0：用于接收数据包
+
+        索引1：用于发送数据包完成
+
+        索引2：用于报告错误
+
+    ```c
+    // 注册索引0（接收）的中断处理函数
+    irq_rx = pci_irq_vector(pdev, 0);
+    request_irq(irq_rx, my_rx_handler, 0, "my_driver_rx", my_data);
+
+    // 注册索引1（发送）的中断处理函数
+    irq_tx = pci_irq_vector(pdev, 1);
+    request_irq(irq_tx, my_tx_handler, 0, "my_driver_tx", my_data);
+
+    // 注册索引2（错误）的中断处理函数
+    irq_err = pci_irq_vector(pdev, 2);
+    request_irq(irq_err, my_err_handler, 0, "my_driver_err", my_data);
+    ```
+
+    对于传统的引脚中断（INTx），通常使用 pci_dev->irq 来获取设备唯一的IRQ编号。
+
+    对于MSI/MSI-X，必须使用`pci_irq_vector(dev, n)`来获取第n个中断的 IRQ 编号。`pci_dev->irq`在这个场景下可能没有意义或已被重用。
+
+* 中断服务程序（ISR）即中断处理函数
+
+* 为什么使用`request_irq(irq, handler_func)`，而不是`request_vector_idx(idx, handler_func)`？
+
+    假如 vector idx 对于每个设备来说从 0 开始编号，或者对于每个 module 来说从 0 开始编号，那么问题来了，如果一个 module 里有多个 pci 设备，每个设备的中断都是从 0 开始编号，那么`request_vector_idx(0, handler_func)`究竟指的是哪个设备的中断？如果对于 module 从 0 开始编号，那么如果多个 module 共同管理一个设备，那么应该以哪个 module 的编号为准？
+
+    有一些 module 没有维护 device，注册的中断可能是软中断，或定时器中断，那么基于 device 编号就彻底不能用了。
+
+    这样看来，将 irq 与中断向量作映射，作为全局资源进行管理，似乎是比较合理的解决方式。
+
+* cpu 的中断向量
+
+    向量 0-31 通常预留给异常（如除零错误、页故障）和不可屏蔽中断（NMI）。
+
+    向量 32-255 留给用户定义的可屏蔽中断，也就是来自外部硬件设备的中断。
+
+    irq 是操作系统抽象的概念，部分映射与 cpu 中断向量号相同，其余的不同。
+
+    具体的 cpu 中断向量映射情况：
+
+    * 32以下：CPU保留向量（0-31用于异常、NMI等）
+
+    * 32-47：传统PIC映射区（IRQ0-15）
+
+    * 现代 MSI-X：通常是一对一映射（每个Linux IRQ有独立CPU向量）
+
+    * 现代 INTx：可能多对一映射（多个Linux IRQ共享CPU向量）
+
+    由于单个 cpu 的中断向量只有 256 个，而 msix 最多可能有 2048 个中断向量，所以cpu 中的一个中断向量，可能会分时复用地处理多个 msix 的中断向量。
+
+    如果 pc 上有多个 cpu 节点，那么 msix 可能将中断注册到多个 cpu 中断向量上以做负载均衡。
+
+* MSI-X是MSI的增强版，其主要增强就是支持更多的中断向量（MSI最多32个，MSI-X可达2048个）。
+
+* `cat /proc/interrupts`的最后一栏即`request_irq()`中填的 name
+
+    ```c
+    request_irq(11, irq_handler, IRQF_SHARED, "hlc irq", irq_handler);
+    ```
+
+    ```
+     11:          0          0          0          0          0          0          0          0   IO-APIC  11-fasteoi   hlc irq
+    ```
+
+* MSI-X（Message Signaled Interrupts eXtended）是一种基于消息的中断机制。它允许设备（如网卡、GPU、NVMe SSD）通过向CPU写入一个特定的数据（消息）到特定的内存地址来请求中断，而不是使用传统的、基于专用引脚（IRQ线）的中断。
+
+    系统软件（操作系统）会分配一块内存区域，称为 MSI-X Table。这个表中的每一项（Entry）都对应一个中断向量，包含：
+
+    * 消息地址（Message Address）：中断消息要写入的目标地址。这个地址隐含了中断要发送给哪个CPU核心。
+
+    * 消息数据（Message Data）：一个唯一的数据值，用来标识是哪个中断向量被触发。
+
+    * 掩码位（Mask Bit）：用于临时禁用该中断。
+
+    * Pending Bit：记录中断是否已发出但尚未被处理。
+
+    虽然设备触发MSI-X的行为是一次内存写入，但整个系统（CPU、芯片组、内存控制器）被设计为能识别这次特殊的写入操作，并将其无缝地转换为一个中断信号送达CPU核心。
+
+    MSI-X消息中指定的目标地址（Message Address） 并不指向普通的DRAM内存位置。它指向一个由CPU和芯片组预留的、特殊的物理地址范围。这个范围是专门用于处理消息信号中断的。
+
+    芯片组通过内部的中断控制器（在现代x86系统中是APIC）架构，将一个“虚拟”的中断信号直接发送到步骤2a中确定的目标CPU核心。
+
+    CPU核心收到这个信号后，会立即中断当前正在执行的指令流（当然，会在合理的边界处），并根据收到的向量号，去查找自己的中断描述符表（IDT），找到并执行对应的中断服务程序（ISR）。
+
+    msix 中断并不是 cpu 轮询指定内存实现的，而是通过芯片组识别 pcie 事务类型实现的。
+    
+    msix 中断本质就是一次 pcie 事务（Transaction）。
+    
+    pcie 事务可能有很多类型：
+
+    Memory Read
+
+    Memory Write
+
+    I/O Read
+
+    I/O Write
+
+    Message
+
+    MSI 对应的事务为 Memory Write，而 msix 对应的事务为 Message (Message Signaled Interrupt)
+
+    如果芯片组识别出来 pcie 事务是 message，又发现其写入的内存地址是为 MSI 中断信号预留的、特定的地址区域，那么就可以确认这是一个 msix 中断。
+
+* `pci_alloc_irq_vectors()`
+
+    为指定的 PCI 设备申请和分配一组中断向量（Interrupt Vectors）。
+
+    syntax:
+
+    ```c
+    int pci_alloc_irq_vectors(struct pci_dev *dev, unsigned int min_vecs, unsigned int max_vecs, unsigned int flags);
+    ```
+
+    * `min_vecs`：驱动至少需要多少个中断向量。
+
+    * `max_vecs`：驱动最多希望申请多少个中断向量。
+
+    * `flags`：指定中断类型和行为的标志。最重要的标志是：
+
+        * `PCI_IRQ_MSIX`：请求使用 MSI-X 中断。
+
+        * `PCI_IRQ_MSI`：请求使用 MSI 中断。
+
+        * `PCI_IRQ_LEGACY`：请求使用传统引脚中断（如 INTA#）。
+
+        * `PCI_IRQ_ALL_TYPES`：尝试任何可用的类型（通常的用法）。
+
+        * `PCI_IRQ_AFFINITY`：提示内核这些中断可以设置 CPU 亲和性（绑定到特定 CPU 核心）。
+
+        各个 flag 可以使用`|`组合。你组合多个类型，内核会按性能从高到低的顺序（通常是 MSI-X -> MSI -> Legacy）自动选择可用的最佳类型。
+
+    return value:
+
+    分配成功则返回 实际分配到的中断数量。分配失败则返回一个负的错误码。
+
+    配对函数：`pci_free_irq_vectors()`
+
+    example:
+
+    * 尝试所有中断类型，并提示亲和性：
+
+        `int nvecs = pci_alloc_irq_vectors(pdev, 1, 32, PCI_IRQ_ALL_TYPES | PCI_IRQ_AFFINITY);`
+
+        驱动表示它兼容任何硬件支持的中断模式，并且它设计为能够利用多CPU核心的优势。
+
+    * 只尝试 MSI-X 或传统中断，不尝试 MSI
+
+        `int nvecs = pci_alloc_irq_vectors(pdev, 1, 8, PCI_IRQ_MSIX | PCI_IRQ_LEGACY);`
+        
+        可能因为驱动在某些硬件上发现 MSI 实现有bug，或者功能需求上 MSI-X 是首选，如果不行则回退到最稳定的传统模式。
+
+    * 只使用 MSI，并要求亲和性
+
+        `int nvecs = pci_alloc_irq_vectors(pdev, 2, 2, PCI_IRQ_MSI | PCI_IRQ_AFFINITY);`
+
+        只想使用 MSI 机制，并且希望中断能分布在不同的CPU上。
+
+    example:
+
+    ```c
+    // 1. 分配中断向量（假设申请了4个）
+    nvec = pci_alloc_irq_vectors(pdev, 4, 4, PCI_IRQ_MSIX);
+    if (nvec < 0) {
+        // 错误处理
+    }
+
+    // 2. 为每一个向量注册中断处理程序
+    for (i = 0; i < nvec; i++) {
+        // 注意：这里的 i 就是索引号
+        ret = pci_request_irq(pdev, i, /* 索引i对应MSI-X表条目i */
+                             my_interrupt_handler, // 中断处理函数
+                             NULL, // dev_id
+                             "my-driver:rx%d", i); // 中断名称
+        if (ret) {
+            // 错误处理
+        }
+    }
+    ```
+
+* `pci_enable_msix_range()`
+
+    为一个 PCI 设备申请并启用一组 MSI-X 中断向量，并允许指定一个期望的数量范围。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_enable_msix_range(struct pci_dev *dev,
+                              struct msix_entry *entries,
+                              int min_vecs,
+                              int max_vecs);
+    ```
+
+    * `entries`: 存储分配成功的中断向量信息。
+
+    返回值：
+
+    成功：返回一个正整数，表示实际分配的中断向量数量（这个值在 [min_vecs, max_vecs] 区间内）。
+
+    失败：返回一个负的错误码（如 -ENOSPC 表示无足够中断资源）。
+
+    example:
+
+    ```c
+    #define MIN_MSIX 2
+    #define MAX_MSIX 8
+
+    struct msix_entry entries[MAX_MSIX];
+    int nvecs;
+
+    // 尝试申请 MSI-X 中断，最少要2个，最多要8个。
+    nvecs = pci_enable_msix_range(pdev, entries, MIN_MSIX, MAX_MSIX);
+
+    if (nvecs < 0) {
+        // 申请失败，连2个都没有，可能需要回退到传统的MSI或INTx中断
+        dev_err(&pdev->dev, "Failed to enable MSI-X. Error: %d\n", nvecs);
+        return nvecs;
+    } else {
+        // 申请成功，nvecs 是实际分配的数量
+        dev_info(&pdev->dev, "Enabled %d MSI-X vectors\n", nvecs);
+
+        // 接下来可以为每个 entries[i].vector 申请中断处理函数 (request_irq)
+        for (int i = 0; i < nvecs; i++) {
+            request_irq(entries[i].vector, my_handler, 0, dev_name(&pdev->dev), my_data);
+        }
+    }
+    ```
+
+    配对函数：`pci_disable_msix()`
+
+    此函数目前已逐渐被`pci_alloc_irq_vectors()`（来自Linux 4.10）所取代。
+
+* irq_handler
+
+    syntax:
+
+    `irqreturn_t irq_handler(int irq, void *dev_id);`
+
+    返回值必须是`IRQ_HANDLED`或`IRQ_NONE`
+
+    该函数运行在中断上下文中，因此其执行不能阻塞（不能睡眠、不能调用可能引起调度的函数如 kmalloc(..., GFP_KERNEL)、不能执行耗时操作）。
+
+* 为什么中断上下文不能睡眠？
+
+    1. 没有进程概念：中断上下文不属于任何进程。它只是“借道”执行，打断了当前正在运行的进程。如果它睡眠了，调度器不知道该唤醒哪个进程来继续执行它，因为它没有 struct task_struct 关联。这会导致系统彻底崩溃。
+
+    2. 破坏原子性：中断是异步到来的，期望被快速处理。睡眠可能导致中断处理流程被无限期挂起，使得设备无法及时响应，其他中断也可能无法处理。
+
+    3. 可能导致死锁：假设中断发生时，某个内核锁正被持有。如果中断处理程序尝试获取另一个锁，而这个操作又可能导致睡眠，那么系统就会死锁。持有锁的进程正在等待中断处理完成，而中断处理又在等待锁被释放。
+
+* `device->irq`
+
+    `dev->irq`存储了分配给该硬件设备的中断请求线（Interrupt ReQuest line）的编号。
+
+    通常使用`request_irq(dev->irq, my_handler, ...)`去注册 ISR。配对函数为`free_irq(dev->irq, dev_id);`
+
+    对于传统PCI设备，这个值通常在系统启动时由BIOS/UEFI或操作系统内核的PCI子系统自动分配。它通过读取设备的配置空间（具体是PCI_INTERRUPT_PIN和PCI_INTERRUPT_LINE寄存器）来分配和设置。对于现代设备（MSI/MSI-X），通常不直接使用`dev->irq`，而是使用`pci_alloc_irq_vectors()`等函数来管理 msi(x) 中断。
+
+    在支持 MSI-X 的 PCI 设备上直接使用 dev->irq，其行为取决于内核版本和系统配置，但通常会导致性能低下、功能受限或完全无法工作。
+
+* `request_irq()`
+
+    内核注册一个中断处理程序（中断服务例程，ISR）
+
+    syntax:
+
+    ```c
+    int request_irq(unsigned int irq,
+                    irq_handler_t handler,
+                    unsigned long flags,
+                    const char *name,
+                    void *dev_id);
+    ```
+
+    返回值：
+
+    * 成功时返回 0。
+
+    * 失败时返回一个错误码（负值），如 -EBUSY（中断线已被占用且不可共享）。
+
+    中断标志设置: 通过 flags 参数设置中断的行为特性，常见的标志包括：
+
+    * `IRQF_SHARED`：允许与其他驱动程序共享同一条中断线。这在中断资源紧张的系统（如基于 PCI 的系统）中很常见。
+
+    * `IRQF_ONESHOT`：中断在处理完毕后需要重新显式启用（用于线程化中断）。
+
+    * `IRQF_TIMER`：标记这是一个定时器中断，系统可能会对其进行特殊处理（如不会被暂停）。
+
+    * `IRQF_IRQPOLL`：用于共享中断中的轮询处理。
+
+    配对函数：`free_irq()`
 
 ### pci 设备：bar 与 iomap
 
