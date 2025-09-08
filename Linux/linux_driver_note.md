@@ -6,6 +6,176 @@ Ref:
 
 ## cache
 
+* `pci_request_region()`中，name 可以填`NULL`，此时`/proc/iomem`中 name 一栏为`??`（未验证）
+
+* `platform_get_irq()`
+
+    syntax:
+
+    ```c
+    platform_get_irq(struct platform_device *pdev, unsigned int num)
+    ```
+
+    从 platform 设备资源 中获取第 num 个中断号（IRQ number），供驱动程序后续调用 request_irq() 等接口使用。
+
+    如果失败，会返回负数错误码（如 -ENXIO, -EINVAL 等）。
+
+    example:
+
+    ```c
+    int irq;
+    irq = platform_get_irq(pdev, 0);
+    if (irq < 0)
+        return irq;
+    ret = devm_request_irq(&pdev->dev, irq, my_irq_handler, 0,
+                           dev_name(&pdev->dev), dev);
+    ```
+
+* `ioremap_cache()`
+
+    将设备的物理 I/O 内存（通常是 PCI/设备的寄存器或显存）映射到内核的虚拟地址空间，并且允许这段区域使用 CPU 的缓存（cache）机制。
+
+    与其他 ioremap 的区别（未验证）：
+
+    * `ioremap()`（或 ioremap_nocache()）：映射为 非缓存（uncached） 内存，CPU 访问时不走缓存，保证读写与硬件保持一致。
+
+    * `ioremap_wc()`：写合并（write-combining），适合显存等带宽敏感区域。
+
+    * `ioremap_cache()`：映射为 缓存（cached） 内存，CPU 访问时可以走缓存，性能高，但可能会导致和设备之间的数据不一致（需要显式刷新/失效 cache）。
+
+    `ioremap_cache() `一般用于：
+
+    * 显存（framebuffer）等只读/读多写少的区域，提高 CPU 访问效率；
+
+    * 确定设备内存与 CPU 缓存一致性可控时。
+
+    注意：不能随便对寄存器区使用 ioremap_cache()，因为缓存会导致寄存器读写失效或顺序错误。
+
+* `dma_set_mask()`
+
+    告知操作系统和设备驱动程序，某个硬件设备能够访问的系统物理内存地址范围（即DMA地址空间）有多大.
+
+    syntax:
+
+    ```c
+    #include <linux/dma-mapping.h>
+
+    int dma_set_mask(struct device *dev, u64 mask);
+    int dma_set_coherent_mask(struct device *dev, u64 mask);
+    int dma_set_mask_and_coherent(struct device *dev, u64 mask);
+    ```
+
+    返回 0 表示成功，返回一个非零的错误代码（通常是负数）表示失败。
+
+    `dma_set_mask_and_coherent()`是其升级版，
+
+    * streaming DMA：用于一次性的数据传输映射。CPU和设备对这块内存的访问可能不是同步的（非一致性）。
+
+    * coherent DMA（或一致性DMA）：用于需要CPU和设备同时、一致地访问的内存（例如控制寄存器所在的内存）。这块内存在映射时会进行特殊处理以保证缓存一致性。
+
+    `dma_set_mask_and_coherent()`的作用是同时为设备的两种DMA映射方式（流式和一致式）设置相同的地址掩码，这是最常见和推荐的做法，因为它确保了行为的一致性。
+
+* `pci_iomap()`的 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/pci.h>
+
+    static struct pci_device_id pci_id_table[] = {
+        { PCI_DEVICE(0x1234, 0x11e8) },
+        {0,}
+    };
+
+    static void *base_addr_bar0;
+
+    static int edu_probe(struct pci_dev *pci_dev, const struct pci_device_id *id) {
+        pr_info("in edu_probe()...\n");
+
+        int ret = pci_enable_device(pci_dev);
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci enable device, ret: %d\n", ret);
+            goto ERR_PCI_ENABLE_DEVICE;
+        }
+
+        ret = pci_request_region(pci_dev, 0, "qemu_edu_drv");
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci request region\n");
+            goto ERR_PCI_REQUEST_REGION;
+        }
+
+        resource_size_t res_len_bar0 = pci_resource_len(pci_dev, 0);
+        base_addr_bar0 = pci_iomap(pci_dev, 0, res_len_bar0);
+        if (base_addr_bar0 == NULL) {
+            dev_err(&pci_dev->dev, "fail to pci iomap\n");
+            goto ERR_PCI_IOMAP;
+        }
+        return 0;
+
+    ERR_PCI_IOMAP:
+        pci_release_region(pci_dev, 0);
+    ERR_PCI_REQUEST_REGION:
+        pci_disable_device(pci_dev);
+    ERR_PCI_ENABLE_DEVICE:
+        return -1;
+    }
+
+    static void edu_remove(struct pci_dev *pci_dev) {
+        pr_info("in edu_remove()...\n");
+        pci_iounmap(pci_dev, base_addr_bar0);
+        pci_release_region(pci_dev, 0);
+        pci_disable_device(pci_dev);
+    }
+
+    static struct pci_driver edu_driver = {
+        .name = "qemu_edu_drv",
+        .id_table = pci_id_table,
+        .probe = edu_probe,
+        .remove = edu_remove
+    };
+
+    int init_mod(void) {
+        pr_info("init hlc module...\n");
+        int ret = pci_register_driver(&edu_driver);
+        if (ret != 0) {
+            pr_err("fail to register pci driver\n");
+            goto ERR_PCI_REGISTER_DRIVER;
+        }
+        return 0;
+
+    ERR_PCI_REGISTER_DRIVER:
+        return -1;
+    }
+
+    void exit_mod(void) {
+        pr_info("exit hlc module...\n");
+        pci_unregister_driver(&edu_driver);
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 9031.003646] init hlc module...
+    [ 9031.003763] in edu_probe()...
+    [ 9036.304856] exit hlc module...
+    [ 9036.304988] in edu_remove()...
+    ```
+
+    加载完驱动后执行`sudo cat /proc/iomem | grep edu`, output:
+
+    ```
+        fea00000-feafffff : qemu_edu_drv
+    ```
+
+    比较关键的四个函数：`pci_enable_device()` -> `pci_request_region()` -> `pci_resource_len()` -> `pci_iomap()`
+
+* 写 linux module 时，vscode 的 cpp 配置里，`KBUILD_MODNAME`要写成`KBUILD_MODNAME="hello"`，以前记的笔记是`KBUILD_MODNAME=\"hello\"`，似乎是不对的。
+
 * `resource_size()`
 
     计算一个`struct resource`所描述的硬件资源块的大小。

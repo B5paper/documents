@@ -6,6 +6,22 @@
 
 ## cache
 
+* `vncviewer`
+
+    使用方法：
+
+    * `vncviewer 192.168.1.100`
+
+    * `vncviewer 192.168.1.100:5901`
+
+* dig 命令包含在`bind-utils`软件包中
+
+* 查看 glibc 版本：`ldd --version`
+
+* `od -c <file>`
+
+    以 字符形式（character）显示文件内容，不可打印字符会用转义符（如`\n`, `\t`, `\0`）或八进制表示。
+
 * `od -x`
 
     od: 是 Octal Dump 的缩写。这个名字源于其最初的主要功能是以八进制（Octal）格式显示文件内容。虽然现在它支持多种格式，但名字保留了下来。

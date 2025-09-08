@@ -2075,3 +2075,59 @@
     特征的识别似乎就是向量的内积。
 
 * 大脑中模拟的图像、声音从何而来？
+
+* 机械与电机
+
+    * 直流电机 (DC Geared Motor)
+
+    * 舵机 (Servo Motor)
+
+        模拟舵机, 数字舵机, 金属齿舵机
+
+    * 步进电机 (Stepper Motor)
+
+    * 无刷直流电机 (BLDC) + 驱动器
+
+        FOC等高级算法
+
+    * 弹簧、凸轮或连杆机构，来储存和释放能量
+
+        弹簧蓄能: 使用电机配合齿轮或蜗杆压缩一个弹簧
+
+        凸轮/曲柄连杆: 通过一个凸轮或不对称的曲柄，将旋转运动转化为向上的冲击力
+
+    * N20减速电机 高速, 370减速电机
+
+    * 无框力矩电机，空心杯电机
+
+    * 关键词搜索：Arduino Quadruped Robot, ESP32 Servo Controller, Jumping Robot Mechanism, SpotMicro Robot
+
+        MIT Cheetah Mini
+
+        James Bruton的超级电容实验视频
+
+        Benjamin Vedder的VESC项目
+
+* 科研机构
+
+    * 架构
+
+        * 由 root (layer 0) 想很多 idea，每个 idea 作为一个 branch
+
+            这些 idea 可能是验证正确选项，也可能是排除错误选项。
+
+        * layer 1 选择其中的一个 branch，继续分叉要验证的各种想法，以及实验杂项
+
+        * layer 2 选择 layer 1 的某个节点，继续细化，直到任务可以被估计时间，并且可验证正确性
+
+        * layer 3 （leaves）开始执行任务，挣取权重获得报酬
+
+    * 问题
+
+        * 如果 layer 0 制定的 branch 不合理（权重不合理，或者任务模糊），如何修正？
+
+        * 是否只能有 1 个 layer 0？每个 layer 负责人的选拔机制是怎样的？
+
+        * layer 3 的任务可能会剧烈变动，比如采购一个科研设备，被告知某个供应商要跑路程了，此时整个 layer 3 的流程都会发生改变，科研树该如何适应这种快速变化的现实？
+
+        * 如果其中某个 layer 有私心，看到了某个方向很大的希望，决定自己去实验，替代下层的 layer，该怎么办？

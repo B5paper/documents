@@ -30,6 +30,149 @@
 
 ## cache
 
+* feedback 中的联想与 task
+
+    在执行 task 的过程中，有些 feedback 是优先级很低很低的联想，有些是大概率相关的 see also，或者并列概念，或者延伸。如果把联想作为正常 feedback task 去处理，那么整体项目池的效率就太低了。
+
+    在 feedback 中，我们将联想标记为`[asso]`：
+
+    ```markdown
+    * task xxxx
+
+        feedback:
+
+        * [asso] xxxxx
+    ```
+
+    将其加入 project pool 的 task 中时，放在当前 project 所有 task 的最后。
+
+    此时 deps/feedback 相关的任务有 3 个去处：
+
+    1. deps 的任务，放到当前 project 所有 task 的最前面
+
+    2. 正常 feedback 的任务，放到当前 task 后面
+
+    3. `[asso]`标记的 feedback 任务，放到当前 project 所有 tasn 的最后面
+
+* 既然有了 bash 定时器，那么可以在看电脑屏幕时开始计时，比如 30 分钟，到时间后，离开座位 5 分钟，或者闭目养神 5 分钟，休息眼睛。
+
+    这部分属于执行系统的内容。
+
+* chatgpt 写的 bash 定时器
+
+    `timer.sh`:
+
+    ```bash
+    #!/bin/bash
+
+    if [ $# -ne 2 ]; then
+      echo "用法: $0 <N分钟> <audio_file>"
+      exit 1
+    fi
+
+    TOTAL_MIN=$1
+    AUDIO_FILE=$2
+    TOTAL_SEC=$((TOTAL_MIN * 60))
+
+    # 设置终端：关闭回显和规范模式
+    stty -echo -icanon time 0 min 0
+
+    paused=0
+    elapsed=0
+
+    cleanup() {
+      stty sane
+      tput cnorm
+    }
+    trap cleanup EXIT
+
+    tput civis  # 隐藏光标
+
+    while [ $elapsed -lt $TOTAL_SEC ]; do
+      # 捕获键盘输入
+      key=$(dd bs=1 count=1 2>/dev/null)
+      if [ "$key" = " " ]; then
+        paused=$((1 - paused))  # 切换暂停/恢复
+      fi
+
+      if [ $paused -eq 0 ]; then
+        elapsed=$((elapsed + 1))
+      fi
+
+      remain=$((TOTAL_SEC - elapsed))
+      min=$((remain / 60))
+      sec=$((remain % 60))
+
+      # 清理并重写
+      tput cup 0 0
+      tput ed
+      printf "总时间: %2d 分钟\n" "$TOTAL_MIN"
+      printf "剩余:   %02d:%02d\n" "$min" "$sec"
+      if [ $paused -eq 1 ]; then
+        printf "[已暂停]\n"
+      else
+        printf "         \n"
+      fi
+
+      sleep 1
+    done
+
+    cleanup
+    mpv --really-quiet "$AUDIO_FILE"
+    ```
+
+    用法：
+    
+    `bash timer.sh <N> <audio_file>`
+    
+    定时`N`分钟后播放音频`<audio_file>`，期间 terminal 上会显示倒计时，按空格可以暂时计时，再次按空格恢复。
+
+* cache 与 topic
+
+    cache 攒得多了后，可以尝试将 cache entry 合并成 topic，这个 topic 最好是在二级标题`## topic`下开一个三级标题，比如`### irq, interrupt and msix`:
+    
+    ```markdown
+    ## cache
+
+        ...
+
+    ## topic
+
+    ### irq, interrupt and msix
+
+    * cache entry 1
+
+        ...
+
+    * cache entry 2
+
+        ...
+
+    * ...
+    ```
+    
+    而不是在 cache 中再创建一个 entry，比如
+
+    ```markdown
+    ## cache
+    
+    * irq, interrupt and msix [topic]
+
+        * cache entry 1
+
+            ...
+
+        * cache entry 2
+
+            ...
+
+        * ...
+    ```
+
+    因为在 cache 中再创建一个 entry 会改变`cache entry 1, 2, ...`的缩进，非常麻烦，而且`irq, interrupt and msix [topic]`只是一个 list entry，没有锚点，不好定位。
+
+* [ ] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
+
 * 强调条件限定的前提是能联想到多个方向的例子，甚至反例
 
     比如“我们在修订法律时总是考虑完美执行的情况，但是毕竟法律需要人去执行，所以最终的效果并不只有条文的效力，还有人的参与”。“毕竟法律需要人去执行”，这个说法十年前可能是对的，但在今天可能有 AI 参与了，翻阅相似案件，做出判决，都有可能是 AI 去执行，那么这个限定条件的强调，其实是考虑到了人和 AI 这两种可能性。
@@ -920,17 +1063,17 @@
 
 ### tasks
 
+* [v] reorg: linux driver note
+
 * [ ] 调研 8259A
 
 * [O] reorg linux driver
 
     关注中断部分，增加 qa unit
 
-    feedback:
+* [ ] 调研 IRQ 2 与 irq 1 的级联中断
 
-    1. 调研 IRQ 2 与 irq 1 的级联中断
-
-    1. 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
+* [ ] 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
 
 * [ ] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
 
@@ -953,7 +1096,7 @@
 
 * [ ] reorg project: `main_3.cpp`
 
-* [ ] reorg project: `main_2.cpp`
+* [v] reorg project: `main_2.cpp`
 
 * [ ] reorg project: `main.cpp`
 
@@ -1291,115 +1434,53 @@
 
 * [v] procedd 1 tab
 
-    feedback:
+* [ ] `host`
 
-    1. `host`
-
-    1. `nsupdate`
+* [ ] `nsupdate`
 
 * [v] process 1 tab
 
-    feedback:
+* [v] process 1 tab
 
-    1. 直流电机 (DC Geared Motor)
+* [ ] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
 
-    1. 舵机 (Servo Motor)
-
-        模拟舵机, 数字舵机, 金属齿舵机
-
-    1. 步进电机 (Stepper Motor)
-
-    1. 无刷直流电机 (BLDC) + 驱动器
-
-        FOC等高级算法
-
-    1. 弹簧、凸轮或连杆机构，来储存和释放能量
-
-        弹簧蓄能: 使用电机配合齿轮或蜗杆压缩一个弹簧
-
-        凸轮/曲柄连杆: 通过一个凸轮或不对称的曲柄，将旋转运动转化为向上的冲击力
-
-    1. N20减速电机 高速, 370减速电机
-
-    1. 无框力矩电机，空心杯电机
-
-    1. 关键词搜索：Arduino Quadruped Robot, ESP32 Servo Controller, Jumping Robot Mechanism, SpotMicro Robot
-
-        MIT Cheetah Mini
-
-        James Bruton的超级电容实验视频
-
-        Benjamin Vedder的VESC项目
+    或者`-append 'console=ttyS0' # 添加这行`?
 
 * [v] process 1 tab
 
-    feedback:
+* [ ] `at`
 
-    1. qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
+* [ ] `alarm()` /` setitimer()`
 
-        或者`-append 'console=ttyS0' # 添加这行`?
+* [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
-* [v] process 1 tab
-
-    feedback:
-
-    1. `at`
-
-    1. `alarm()` /` setitimer()`
-
-    1. python `threading.Timer`, `sched`, `asyncio.sleep()`
-
-    1. Node.js
+* [ ] Node.js
 
 * [v] process 1 tab
 
-    feedback:
+* [ ] 调研`gcc -static`静态链接
 
-    1. 调研`gcc -static`静态链接
+* [ ] 调研`nm -D`
 
-    1. 调研`nm -D`
+    `nm -D /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
 
-        `nm -D /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
+* [ ] 调研`objdump -T`
 
-    1. 调研`objdump -T`
+    `objdump -T /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
 
-        `objdump -T /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
+* [ ] `gcc --wrap`
 
-    1. `gcc --wrap`
+* [ ] `gcc -ldl`
 
-    1. `gcc -ldl`
+* [ ] `strings`
 
-    1. `strings`
+* [ ] `getconf`
 
-    1. `getconf`
-
-    1. `source`
+* [ ] `source`
 
 * [v] process 1 tab
 
-    feedback:
-
-    * [asso] 调研 frpc 自动重连 (Service Health Check)
-
-        ```toml
-        # frpc.toml
-
-        [[proxies]]
-        name = "test1"
-        type = "tcp"
-        localPort = 22
-        remotePort = 6000
-        # Enable TCP health check
-        healthCheck.type = "tcp"
-        # TCPing timeout seconds
-        healthCheck.timeoutSeconds = 3
-        # If health check failed 3 times in a row, the proxy will be removed from frps
-        healthCheck.maxFailed = 3
-        # A health check every 10 seconds
-        healthCheck.intervalSeconds = 10
-        ```
-
-* [ ] 调研 Floyd最短路径
+* [ ] 调研 Floyd 最短路径
 
 * [ ] 调研图的遍历
 
@@ -1439,7 +1520,7 @@
 
 * [ ] 调研`git merge --squash`
 
-* [ ] 调研 rsync `--exclude`的用法
+* [v] 调研 rsync `--exclude`的用法
 
 * [ ] 调研 rsync `--backup`的用法
 
@@ -1447,9 +1528,7 @@
 
 * [v] cache tabs 06.29
 
-    feedback:
-
-    1. [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
+* [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
 
 * [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
 
@@ -1534,6 +1613,26 @@
     2. [ ] 调研 c++ `inner_product`, `adjacent_difference`
     
     3. [ ] 调研 c++ `reduce`, `ranges::fold_left`
+
+* [ ] 调研 frpc 自动重连 (Service Health Check)
+
+    ```toml
+    # frpc.toml
+
+    [[proxies]]
+    name = "test1"
+    type = "tcp"
+    localPort = 22
+    remotePort = 6000
+    # Enable TCP health check
+    healthCheck.type = "tcp"
+    # TCPing timeout seconds
+    healthCheck.timeoutSeconds = 3
+    # If health check failed 3 times in a row, the proxy will be removed from frps
+    healthCheck.maxFailed = 3
+    # A health check every 10 seconds
+    healthCheck.intervalSeconds = 10
+    ```
 
 ## Machine Learning
 
@@ -1998,7 +2097,11 @@ tasks:
 
 ### tasks
 
-* [P] 增加 siccl topo system load 和 dump 的功能
+* [v] 增加 siccl topo system load 和 dump 的功能
+
+    feedback:
+
+    1. 增加 topo system 到 xml tag　的转换
 
 * [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
 
@@ -2008,17 +2111,15 @@ tasks:
 
 * [v] `-rpath`
 
-    feedback:
+* [ ] `-rpath-link`
 
-    1. `-rpath-link`
+* [ ] `RUNPATH`, `--enable-new-dtags`
 
-    1. `RUNPATH`, `--enable-new-dtags`
+* [ ] `$ORIGIN`
 
-    1. `$ORIGIN`
-
-        ```bash
-        gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
-        ```
+    ```bash
+    gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
+    ```
 
 * [ ] `-Wl,-rpath='$ORIGIN/../lib`
 
@@ -2028,7 +2129,13 @@ tasks:
 
 * [ ] `objdump`
 
-* [ ] `ldd`
+* [v] `ldd`
+
+    feedback:
+
+    1. `objdump -p <文件名> | grep NEEDED`
+
+    1. `readelf -d <文件名> | grep NEEDED`
 
 * [ ] 调研可视化的方案
 
@@ -2104,9 +2211,7 @@ tasks:
 
 * [v] `od -c`
 
-    feedback:
-
-    1. `od -A`
+ * [ ] `od -A`
 
 * [ ] 调研 openssl, gpg
 
@@ -3503,12 +3608,6 @@ tasks:
 
         * 调研使用 slint interpreter 索引到子组件
 
-* [v] 调研 amd gpa: <https://gpuopen.com/gpuperfapi/>
-
-    看看用法，跑一些渲染，ai 应用，尝试性能改进。
-
-* [v] 调研 rgp
-
 * [ ] 调研 glx
 
 * [x] 调研 gpa 对一个 opencl command queue 能拿到什么数据
@@ -4040,29 +4139,29 @@ resources:
 
 * [v] reorg: qemu edu driver
 
-    feedback:
+* [ ] `ioremap()`与`pci_iomap()`有什么区别？
 
-    1. `ioremap()`与`pci_iomap()`有什么区别？
+* [ ] `ioread32()`, `iowrite32()`
 
-    1. `ioread32()`, `iowrite32()`
-
-    1. `raw_copy_to_user()`
-
-* [v] reorg: qemu edu driver
+* [ ] `raw_copy_to_user()`
 
 * [ ] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
 
-* [ ] 处理`main_2.cpp`
-
-* [v] `pci_ioremap_bar`
+* [v] 处理`main_2.cpp`
 
 * [ ] `devm_ioremap_resource()`
 
 * [v] `dma_set_mask`
 
-* [ ] `pci_ioremap_wc_bar`
+* [v] `pci_ioremap_wc_bar`
 
-* [v] `ioremap_cache()`
+    feedback:
+
+    1. BAR 是谁配置的？
+
+        > BIOS 或操作系统会分配具体的物理地址并写入 BAR
+
+        看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
 
 * [ ] `ioremap_wc()`
 
@@ -4072,11 +4171,9 @@ resources:
 
 * [ ] `devm_platform_ioremap_resource()`
 
-* [ ] `devm_kzalloc()`
+* [v] `devm_kzalloc()`
 
 * [ ] `devm_ioremap_resource()`
-
-* [v] `platform_get_irq()`
 
 * [ ] 调研驱动的 suspend, resume 函数
 
@@ -4137,8 +4234,6 @@ resources:
 * [ ] `pci_write_config_word()`, `pci_read_config_word()`
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
-
-* [v] `irq_set_affinity_hint()`
 
 * [ ] 调研标准亲和性 (smp_affinity)
 
@@ -4216,7 +4311,7 @@ resources:
 
 * [ ] `class_dev_iter`
 
-* [ ] `kstrdup()`
+* [v] `kstrdup()`
 
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
