@@ -4,6 +4,8 @@
 
 ## cached
 
+* SFINAE（Substitution Failure Is Not An Error）
+
 * 在`struct`中，`add_elm()`成员函数应该返回引用还是返回指针？
 
     ```cpp

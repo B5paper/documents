@@ -1094,11 +1094,19 @@
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
-* [ ] reorg project: `main_3.cpp`
+* [v] reorg project: `main_3.cpp`
 
 * [v] reorg project: `main_2.cpp`
 
-* [ ] reorg project: `main.cpp`
+* [v] reorg project: `main.cpp`
+
+    feedback:
+
+    1. `remove_const_t`
+
+    1. `remove_pointer_t`
+
+    1. `is_pointer_v`
 
 * { } reorg: projects
 
@@ -1279,7 +1287,36 @@
 
 ### Tasks
 
-* [ ] makefile 中，`$(VAR)`和`${VAR}`有什么不同？
+* [v] makefile 中，`$(VAR)`和`${VAR}`有什么不同？
+
+    feedback:
+
+    1. 调研 makefile 内置函数 `wildcard`, `subst`, `shell`
+
+    1. 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
+
+    1. 调研 make 变量与 shell 变量
+
+        * Make 变量 在规则的目标、依赖和整个 Makefile 的顶层使用 $(...) 来引用。
+
+        * Shell 变量 在规则的命令部分（以 Tab 开头的行）中使用，但需要使用两个美元符号 $$ 来转义。
+
+        ```makefile
+        MY_MAKE_VAR = I am a Make variable
+
+        test:
+            # 这里引用的是 Make 变量，需要 $()
+            @echo "Make var: $(MY_MAKE_VAR)"
+
+            # 这里我们想在 Shell 中设置并使用一个 Shell 变量
+            # 使用 $$ 来转义，这样 Make 会将其转换为单个 $ 传递给 Shell
+            @export SHELL_VAR="I am a Shell variable"; \
+            echo "Shell var: $$SHELL_VAR"
+
+            # 一个更常见的例子：获取 Shell 命令的进程 ID
+            @echo "The process ID in Make is: $(shell echo $$PPID)" # 嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
+            @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
+        ```
 
 * [ ] makefile 中，变量与定义间是否允许有空格？
 
@@ -2099,17 +2136,13 @@ tasks:
 
 * [v] 增加 siccl topo system load 和 dump 的功能
 
-    feedback:
-
-    1. 增加 topo system 到 xml tag　的转换
+* [ ] 增加 topo system 到 xml tag　的转换
 
 * [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
 
 * [ ] `pkg-config --libs`
 
-* [ ] `ldconfig`
-
-* [v] `-rpath`
+* [v] `ldconfig`
 
 * [ ] `-rpath-link`
 
@@ -2131,11 +2164,9 @@ tasks:
 
 * [v] `ldd`
 
-    feedback:
+* [ ] `objdump -p <文件名> | grep NEEDED`
 
-    1. `objdump -p <文件名> | grep NEEDED`
-
-    1. `readelf -d <文件名> | grep NEEDED`
+* [ ] `readelf -d <文件名> | grep NEEDED`
 
 * [ ] 调研可视化的方案
 
@@ -2209,9 +2240,7 @@ tasks:
 
 * [ ] `od -t x<N>`
 
-* [v] `od -c`
-
- * [ ] `od -A`
+* [ ] `od -A`
 
 * [ ] 调研 openssl, gpg
 
@@ -4135,9 +4164,15 @@ resources:
 
 ### tasks
 
-* [ ] vim 如何 ctag 跳转？
+* [v] vim 如何 ctag 跳转？
 
-* [v] reorg: qemu edu driver
+    feedback:
+
+    1. 调研 vim-gutentags
+
+    1. 调研引用系统库（如 /usr/include）的标签
+
+        `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
 
 * [ ] `ioremap()`与`pci_iomap()`有什么区别？
 
@@ -4145,33 +4180,25 @@ resources:
 
 * [ ] `raw_copy_to_user()`
 
-* [ ] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
-
-* [v] 处理`main_2.cpp`
+* [v] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
 
 * [ ] `devm_ioremap_resource()`
 
-* [v] `dma_set_mask`
-
 * [v] `pci_ioremap_wc_bar`
 
-    feedback:
+* [ ] BAR 是谁配置的？
 
-    1. BAR 是谁配置的？
+    > BIOS 或操作系统会分配具体的物理地址并写入 BAR
 
-        > BIOS 或操作系统会分配具体的物理地址并写入 BAR
+    看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
 
-        看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
-
-* [ ] `ioremap_wc()`
+* [v] `ioremap_wc()`
 
 * [ ] `sparse`
 
 * [ ] 设备树（Device Tree）
 
 * [ ] `devm_platform_ioremap_resource()`
-
-* [v] `devm_kzalloc()`
 
 * [ ] `devm_ioremap_resource()`
 
@@ -4213,7 +4240,15 @@ resources:
 
 * [ ] `dma_map_single()`
 
-* [ ] `dma_alloc_coherent()`
+* [v] `dma_alloc_coherent()`
+
+    feedback:
+
+    1. `dma_map_single`
+
+    1. DMA总线
+
+    1. dma 在 cpu 中，还是在 device 中？
 
 * [ ] 调研什么是流式 DMA
 
@@ -4310,8 +4345,6 @@ resources:
 * [ ] `class_device_destructor()`
 
 * [ ] `class_dev_iter`
-
-* [v] `kstrdup()`
 
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 

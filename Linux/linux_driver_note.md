@@ -6,6 +6,60 @@ Ref:
 
 ## cache
 
+* `kstrdup()`
+
+    在内核空间（Kernel Space）中为指定的一个字符串（以 '\0' 结尾的 C 字符串）分配一块新的内存，并将原字符串的内容复制到这块新内存中。
+
+    syntax:
+
+    ```c
+    #include <linux/string.h> // 需要包含的头文件
+
+    char *kstrdup(const char *s, gfp_t gfp_mask);
+    ```
+
+    功能与`strdup()`类似。分配的内存在不再需要时，必须使用`kfree()`来释放。
+
+* `gfp_mask`: Get Free Page mask
+
+* `pci_ioremap_wc_bar()`
+
+    将一个 PCI 设备 BAR（基地址寄存器）所指定的 PCI 内存区域映射到内核的虚拟地址空间，并特别请求该映射为“写合并”（Write-Combining, WC）内存类型。
+
+    syntax:
+
+    ```c
+    void __iomem *pci_ioremap_wc_bar(struct pci_dev *pdev, int bar);
+    ```
+
+    返回值：成功时返回一个 `__iomem` 类型的内核虚拟地址指针，指向映射区域的起始处。失败则返回 `NULL`。
+
+    写合并（WC）: 这是一种弱内存序、高性能的映射模式。CPU 可能会将多个连续的写操作在缓存中“合并”成一个更大的写入事务，再一次性发送到总线上。
+
+    对于帧缓冲区（Frame Buffer）或大量数据传输的设备（如高性能网卡、显卡），使用 WC 映射可以显著减少总线事务数量，极大提升写入带宽和性能。因为写入图像数据通常是连续的，合并后发送效率更高。
+
+* `devm_kzalloc()`
+
+    分配一块指定大小的内存，并将其初始化为零，同时将该内存的释放（free）操作与设备本身的生命周期进行绑定。
+
+    `devm_`表示 device managed。
+
+    syntax:
+
+    ```c
+    void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp);
+    ```
+
+    `flags`： 分配标志，用于控制分配行为（例如，GFP_KERNEL 表示在进程上下文中可睡眠等待，GFP_ATOMIC 表示在中断等原子上下文中分配）。
+
+    当发生以下情况时，内核会自动释放这块内存：
+
+    * 驱动被卸载（module unload）。
+
+    * 设备被分离（device detach）。
+
+    * 在分配过程中出现错误，导致设备探测（probe）失败。
+
 * `pci_request_region()`中，name 可以填`NULL`，此时`/proc/iomem`中 name 一栏为`??`（未验证）
 
 * `platform_get_irq()`

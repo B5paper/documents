@@ -2,6 +2,123 @@
 
 ## cached
 
+* 根据不同的参数类型选择不同的构造函数一例
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    struct LookupTable {
+        // (1) 第一个参数是 const char* 的构造函数
+        template <typename Arg1, typename Arg2,
+                  typename = std::enable_if_t<std::is_same_v<Arg1, const char*>>>
+        LookupTable(Arg1 str, Arg2 value) {
+            std::cout << "Constructor 1: first arg is const char* (" << str << ", " << value << ")\n";
+        }
+
+        // (2) 第二个参数是 const char* 的构造函数
+        template <typename Arg1, typename Arg2,
+                  typename = std::enable_if_t<std::is_same_v<Arg2, const char*>>,
+                  typename = void> // 额外模板参数避免冲突
+        LookupTable(Arg1 value, Arg2 str) {
+            std::cout << "Constructor 2: second arg is const char* (" << value << ", " << str << ")\n";
+        }
+    };
+
+    int main() {
+        LookupTable t1("name", 42);
+        LookupTable t2(100, "value");
+        // LookupTable<int, float> t3(10, 20);    // 编译错误：没有匹配的构造函数
+    }
+    ```
+
+    output:
+
+    ```
+    Constructor 1: first arg is const char* (name, 42)
+    Constructor 2: second arg is const char* (100, value)
+    ```
+
+    这里使用`typename = `决定是否 enable 某个构造函数。又使用`typename = void>`避免了模板函数冲突。
+
+* `std::enable_if_t<条件>`
+
+    如果条件为 true，则 enable_if_t 有一个有效的类型（默认为 void）
+
+    如果条件为 false，则 enable_if_t 没有定义类型，导致替换失败
+
+    example:
+
+    ```cpp
+    template <typename T, typename P>
+    struct LookupTable {
+        template <typename Arg1, typename Arg2,
+                  typename = std::enable_if_t<std::is_same_v<Arg1, const char*>>>
+        LookupTable(Arg1 str, Arg2 value) {
+            std::cout << "Constructor 1: first arg is const char* (" << str << ", " << value << ")\n";
+        }
+    }
+    ```
+
+    其中`typename = ...`是一个未命名的默认模板参数，当条件满足时：`typename = void`（有效）。当条件不满足时：替换失败，该模板被从重载集中移除。
+
+    现代写法：
+
+    ```cpp
+    // C++20 的 requires 子句（更清晰）
+    template <typename Arg1, typename Arg2>
+    requires std::is_same_v<Arg1, const char*>
+    void process(Arg1 str, Arg2 value);
+
+    // 或者放在返回值类型上
+    template <typename Arg1, typename Arg2>
+    std::enable_if_t<std::is_same_v<Arg1, const char*>, void>
+    process(Arg1 str, Arg2 value);
+    ```
+
+    说明：
+
+    1. 如果将`void`换成`int`，可以这样写：
+
+        ```cpp
+        template <typename Arg1, typename Arg2,
+                  typename = std::enable_if_t<std::is_same_v<Arg1, const char*>, int>>
+        void process(Arg1 str, Arg2 value) {
+            // 函数实现
+        }
+        ```
+
+        还可以使用`using`:
+
+        ```cpp
+        // 定义类型别名
+        template<bool Condition>
+        using EnableIf = std::enable_if_t<Condition, int>;
+
+        template <typename Arg1, typename Arg2,
+                  typename = EnableIf<std::is_same_v<Arg1, const char*>>>
+        void process(Arg1 str, Arg2 value) {
+            std::cout << "String: " << str << ", Value: " << value << std::endl;
+        }
+        ```
+
+    1. 由于构造函数不允许有返回类型，所以不能这样写：
+
+        ```cpp
+        #include <type_traits>
+        #include <iostream>
+
+        struct LookupTable {
+            template<typename Arg1, typename Arg2>
+            std::enable_if_t<std::is_same_v<Arg1, const char*>>
+            LookupTable(Arg1 str, Arg2 value) {
+                std::cout << "Constructor 1: first arg is const char* (" << str << ", " << value << ")\n";
+            }
+        };
+        ```
+
+        所以使用`typename =`是唯一正确的写法。
+
 * `std::async`
 
     C++11 中的一个特性，用于异步地启动一个任务（函数或可调用对象），并返回一个 std::future 对象来获取该任务的最终结果。
