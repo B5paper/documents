@@ -2,6 +2,35 @@
 
 ## cache
 
+* 在 Makefile 中，`$(VAR)`和`${VAR}`在功能上是完全相同的，可以互换使用。
+
+    使用 makefile 的内置函数时，必须使用圆括号，比如`$(subst from,to,text)`
+
+    综合看来，makefile 中使用圆括号较多，使用花括号`${VAR}`比较少见。
+
+    makefile 中，不允许使用`$VAR`。只会解析`$V`。
+
+    example:
+
+    ```makefile
+    NAME = MyApp
+    VAR = wrong_value
+    V = correct_value
+
+    test:
+    	@echo "你想输出 MyApp, 但实际会输出: $NAME"
+    	@echo "解析后相当于: $(V)NAME"
+    	@echo "而变量 V 的值是: $(V)"
+    ```
+
+    output:
+
+    ```
+    你想输出 MyApp, 但实际会输出: AME
+    解析后相当于: correct_valueNAME
+    而变量 V 的值是: correct_value
+    ```
+
 * makefile 中的子文件夹与`.PHONY`
 
     假如当前的工程目录为：

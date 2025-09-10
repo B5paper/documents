@@ -6,6 +6,94 @@ Ref:
 
 ## cache
 
+* `dma_alloc_coherent()`
+
+    为设备与 CPU 之间进行直接内存访问（DMA）而分配一段“一致性”内存。解决了由于 CPU 缓存（Cache）的存在而引发的“缓存一致性问题”。它分配的内存区域被设置为 “无缓存”（Uncacheable） 的，或者内核会通过硬件机制（如 Cache Coherent Interconnect）自动维护这块内存的缓存一致性。
+
+    syntax:
+
+    ```c
+    #include <linux/dma-mapping.h>
+
+    void *dma_alloc_coherent(struct device *dev, size_t size,
+                             dma_addr_t *dma_handle, gfp_t gfp);
+    ```
+
+    参数说明：
+
+    * `dma_handle`: 一个指向 `dma_addr_t` 类型的指针。这是一个输出参数。函数成功返回后，`*dma_handle` 中存储的就是分配的内存区域的DMA总线地址。驱动程序需要将这个地址提供给设备，设备将使用这个地址来执行DMA操作。
+
+    * `gfp`: gfp_t	分配内存时使用的标志位
+
+        * `GFP_KERNEL`: 标准的内核内存分配，可能在分配时睡眠（阻塞）。
+
+        * `GFP_ATOMIC`: 原子分配，不会睡眠，用于中断上下文等不能调度的地方。
+
+    返回值：
+
+    * `void *`: 如果分配成功，返回一个指向已分配内存区域的内核虚拟地址的指针。CPU使用这个指针来读写这块内存。
+
+    * `NULL`: 如果分配失败，则返回 NULL。
+
+    问题场景描述：
+
+    * CPU 在处理数据时，数据可能缓存在 CPU 的高速缓存中，并未立即写回主内存。
+
+    * 如果此时设备通过 DMA 直接从主内存读取数据，它读到的就是过时的、旧的数据。
+
+    * 反之，如果设备通过 DMA 将数据写入主内存，而 CPU 的缓存中还有该地址的旧数据，那么 CPU 后续读取时可能会从缓存中得到过时的、旧的数据。
+
+    常用的应用场景：
+
+    * 网络设备驱动：分配用于接收和发送数据包的网络数据缓冲区。
+
+    * 块设备驱动（如 SCSI）：分配传输命令和数据的“scatter-gather”列表。
+
+    * USB 驱动：分配用于传输 USB 请求的数据缓冲区。
+
+    配对函数：`dma_free_coherent()`
+
+    syntax:
+
+    ```c
+    void dma_free_coherent(struct device *dev, size_t size,
+                           void *cpu_addr, dma_addr_t dma_handle);
+    ```
+
+* `int major = register_chrdev(0, "hlc_dev", &fops);`z失败时会返回负数，成功时返回 0 或正数
+
+    常见的错误码：
+
+    * `-ENOMEM`: 内存分配失败
+
+    * `-EBUSY`: 设备号已被占用（当第一个参数不为0时）
+
+    * `-EINVAL`: 无效参数
+
+    * `-ENODEV`: 设备不存在或其他错误
+
+    成功时的返回值：
+
+    * 如果第一个参数为 0（如你的例子）：返回动态分配的正的主设备号
+
+    * 如果第一个参数指定了具体设备号：返回0表示成功
+
+* `ioremap_wc()`
+
+    将一段物理内存地址映射到内核虚拟地址空间，并指明该映射支持“写合并”（Write-Combining）内存访问特性
+
+    特点：
+
+    * 合并（Combining）：如果CPU在很短的时间内连续发起多个针对相邻地址的写入操作，内存控制器可以将这些操作合并为一个更大的总线传输事务。这显著减少了访问次数，提高了效率。
+
+    * 缓冲（Buffering）：写入操作可能不会立即到达最终设备，而是先被放入一个缓冲区，稍后再一起发送。这同样是为了优化性能。
+
+    * 弱排序（Weak Ordering）：写合并操作不严格保证其相对于其他内存操作的顺序，这为硬件优化提供了更大灵活性。
+
+    常用于: 显卡的帧缓冲区（Framebuffer）或显存.
+
+    在现代内核（大约 v2.6 以后）中, `ioremap()`默认就等同于`ioremap_nocache()`.
+
 * `kstrdup()`
 
     在内核空间（Kernel Space）中为指定的一个字符串（以 '\0' 结尾的 C 字符串）分配一块新的内存，并将原字符串的内容复制到这块新内存中。

@@ -2,6 +2,59 @@
 
 ## cache
 
+* ctags 基本用法
+
+    install: `sudo apt install universal-ctags`
+
+    进入工程目录，执行`ctags -R .` (递归地为当前目录及所有子目录中的文件生成 tags)，执行完后会生成`tags`文件。
+
+    常用快捷键：
+
+    * `Ctrl-]`: 跳转到光标下符号的定义处
+
+    * `g Ctrl-]`: 如果有多个匹配的定义，此命令会列出所有候选，让你选择跳转到哪一个
+
+    * `Ctrl-t`: 跳回到跳转之前的位置（类似于“后退”按钮）。可以多次按它来回溯跳转历史。
+
+    * `:ts <tag>`或`:tselect <tag>`: 列出所有匹配`<tag>`的标签定义，供你选择。
+
+    * `:tjump <tag>`: 跳转到`<tag>`。如果只有一个匹配则直接跳转，有多个则列出列表。
+
+* ctags 扩展用法
+
+    ```bash
+    # 进入你的项目目录
+    cd /path/to/your/project
+
+    # 递归地为当前目录及所有子目录中的文件生成 tags
+    ctags -R .
+
+    # 如果你只想为特定类型的文件生成 tags（例如只想要 C++ 和头文件），可以使用 --languages 选项
+    ctags -R --languages=C,C++ .
+
+    # 一个更常用的强大命令：排除不需要的目录（如 node_modules, build, .git）
+    ctags -R --exclude=node_modules --exclude=build --exclude=.git .
+    ```
+
+    * 自动在上级目录查找 tags 文件
+
+        大型项目可能有多级目录，你不一定总是在项目根目录打开文件。这个配置让 Vim 自动向上递归查找父目录中的 tags 文件，非常有用。
+
+        ```vim
+        " 在 ~/.vimrc 中添加
+        set tags=./tags;,tags;
+        ```
+
+        * `./tags;`：从当前文件所在目录开始查找名为 tags 的文件，; 代表“如果没找到，继续向上递归到父目录查找”，直到找到为止。
+
+        * `tags;`：同时也在当前工作目录（:pwd 显示的目录）下查找 tags 文件。
+
+    * tips
+
+        * 将`tags`文件添加到你的`.gitignore`中，因为它可以根据本地环境重新生成，不需要纳入版本控制。
+
+        * 将`ctags -R .`命令写入项目的 Makefile 或构建脚本。
+
 * vim 取消行号的方法
 
     `:set nonu`

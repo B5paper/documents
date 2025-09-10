@@ -30,6 +30,12 @@
 
 ## cache
 
+* 应该创建一个闭眼问题集，方便在闭眼休息的时候思考问题
+
+* 看电脑/手机 25 分钟，闭眼休息 5 分钟。这个数值目前还是比较有用的，起码眼疼程度不会进一步发展。
+
+* 如果让单个大佬负责科技树，以及 idea 估值，那么是否会陷入偏执和固化？
+
 * feedback 中的联想与 task
 
     在执行 task 的过程中，有些 feedback 是优先级很低很低的联想，有些是大概率相关的 see also，或者并列概念，或者延伸。如果把联想作为正常 feedback task 去处理，那么整体项目池的效率就太低了。
@@ -1063,8 +1069,6 @@
 
 ### tasks
 
-* [v] reorg: linux driver note
-
 * [ ] 调研 8259A
 
 * [O] reorg linux driver
@@ -1289,34 +1293,32 @@
 
 * [v] makefile 中，`$(VAR)`和`${VAR}`有什么不同？
 
-    feedback:
+* [ ] 调研 makefile 内置函数 `wildcard`, `subst`, `shell`
 
-    1. 调研 makefile 内置函数 `wildcard`, `subst`, `shell`
+* [ ] 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
 
-    1. 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
+* [ ] 调研 make 变量与 shell 变量
 
-    1. 调研 make 变量与 shell 变量
+    * Make 变量 在规则的目标、依赖和整个 Makefile 的顶层使用 $(...) 来引用。
 
-        * Make 变量 在规则的目标、依赖和整个 Makefile 的顶层使用 $(...) 来引用。
+    * Shell 变量 在规则的命令部分（以 Tab 开头的行）中使用，但需要使用两个美元符号 $$ 来转义。
 
-        * Shell 变量 在规则的命令部分（以 Tab 开头的行）中使用，但需要使用两个美元符号 $$ 来转义。
+    ```makefile
+    MY_MAKE_VAR = I am a Make variable
 
-        ```makefile
-        MY_MAKE_VAR = I am a Make variable
+    test:
+        # 这里引用的是 Make 变量，需要 $()
+        @echo "Make var: $(MY_MAKE_VAR)"
 
-        test:
-            # 这里引用的是 Make 变量，需要 $()
-            @echo "Make var: $(MY_MAKE_VAR)"
+        # 这里我们想在 Shell 中设置并使用一个 Shell 变量
+        # 使用 $$ 来转义，这样 Make 会将其转换为单个 $ 传递给 Shell
+        @export SHELL_VAR="I am a Shell variable"; \
+        echo "Shell var: $$SHELL_VAR"
 
-            # 这里我们想在 Shell 中设置并使用一个 Shell 变量
-            # 使用 $$ 来转义，这样 Make 会将其转换为单个 $ 传递给 Shell
-            @export SHELL_VAR="I am a Shell variable"; \
-            echo "Shell var: $$SHELL_VAR"
-
-            # 一个更常见的例子：获取 Shell 命令的进程 ID
-            @echo "The process ID in Make is: $(shell echo $$PPID)" # 嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
-            @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
-        ```
+        # 一个更常见的例子：获取 Shell 命令的进程 ID
+        @echo "The process ID in Make is: $(shell echo $$PPID)" # 嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
+        @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
+    ```
 
 * [ ] makefile 中，变量与定义间是否允许有空格？
 
@@ -1469,21 +1471,37 @@
 
 ### tasks
 
-* [v] procedd 1 tab
+* [v] process 1 tab
+
+    feedback:
+
+    1. [asso] grdctl
+
+    1. [asso] wlroots, Sway
+
+    1. [asso] rdesktop
+
+    1. [asso] remmina
+
+    1. [asso] freerdp2-wayland
+
+    1. [asso] freerdp2-shadow-cli
+
+    1. [asso] wlfreerdp
+
+* [v] process 1 tab
+
+    feedback:
+
+    1. [asso] 调研 vscode 的"代码片段（Snippet）"
 
 * [ ] `host`
 
 * [ ] `nsupdate`
 
-* [v] process 1 tab
-
-* [v] process 1 tab
-
 * [ ] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
 
     或者`-append 'console=ttyS0' # 添加这行`?
-
-* [v] process 1 tab
 
 * [ ] `at`
 
@@ -1492,8 +1510,6 @@
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
 * [ ] Node.js
-
-* [v] process 1 tab
 
 * [ ] 调研`gcc -static`静态链接
 
@@ -1514,8 +1530,6 @@
 * [ ] `getconf`
 
 * [ ] `source`
-
-* [v] process 1 tab
 
 * [ ] 调研 Floyd 最短路径
 
@@ -1675,23 +1689,23 @@
 
 ### tasks
 
+* [ ] 调研 rnn 与 nlp 入门级的训练数据集
+
+* [ ] 调研带自回归的 Encoder-Decoder 架构
+
+* [ ] 调研掩码自注意力（Masked Self-Attention）
+
+* [ ] 调研 LLaMA， BERT, T5, BART
+
+* [ ] Improving Language Understanding by Generative Pre-Training (Radford et al., 2018)
+
+    GPT-1
+
 * [v] 调研 decoder-only 架构
 
     feedback:
 
-    1. 调研 rnn 与 nlp 入门级的训练数据集
-
-    1. 调研带自回归的 Encoder-Decoder 架构
-
-    1. 调研掩码自注意力（Masked Self-Attention）
-
-    1. 调研 LLaMA， BERT, T5, BART
-
     1. 调研论文
-
-        * Improving Language Understanding by Generative Pre-Training (Radford et al., 2018)
-
-            GPT-1
 
         * Language Models are Few-Shot Learners (GPT-3, Brown et al., 2020)
 
@@ -1741,19 +1755,19 @@
 
                 将 Decoder-Only 架构用于跨模态生成。
 
+* [ ] 调研 VAE with a VampPrior, Jakub M. Tomczak, Max Welling
+
+    <https://arxiv.org/abs/1705.07120>
+
+* [ ] 调研 Towards Causal Representation Learning, Bernhard Schölkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, Yoshua Bengio
+
+    <https://arxiv.org/abs/2102.11107>
+
+* [ ] 调研 Generative Adversarial Networks
+
 * [v] 调研 yoshua bengio 和他的贝叶斯推理与神经网络
 
     feedback:
-
-    1. 调研 VAE with a VampPrior, Jakub M. Tomczak, Max Welling
-
-        <https://arxiv.org/abs/1705.07120>
-
-    1. 调研 Towards Causal Representation Learning, Bernhard Schölkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, Yoshua Bengio
-
-        <https://arxiv.org/abs/2102.11107>
-
-    1. 调研 Generative Adversarial Networks
 
     1. 调研 Sticking the Landing: Simple, Lower-Variance Gradient Estimators for Variational Inference
 
@@ -2134,15 +2148,19 @@ tasks:
 
 ### tasks
 
-* [v] 增加 siccl topo system load 和 dump 的功能
+* [ ] 调研 nccl dump graph 的 xml
 
-* [ ] 增加 topo system 到 xml tag　的转换
+* [x] 增加 topo system 到 xml tag　的转换
 
-* [ ] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
+* [v] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
 
-* [ ] `pkg-config --libs`
+    feedback:
 
-* [v] `ldconfig`
+    1. `readelf -l /bin/bash | grep interpreter`
+
+* [v] `pkg-config --libs`
+
+    14:48 ~ 15:04
 
 * [ ] `-rpath-link`
 
@@ -2161,8 +2179,6 @@ tasks:
 * [ ] `readelf`
 
 * [ ] `objdump`
-
-* [v] `ldd`
 
 * [ ] `objdump -p <文件名> | grep NEEDED`
 
@@ -2254,7 +2270,17 @@ tasks:
 
 * [ ] 调研`huponexit`
 
-* [ ] `openat()`
+* [v] `openat()`
+
+    15:04 ~ 15:42
+
+    feedback:
+
+    1. `chdir()`
+
+    1. [asso] `fstatat()`
+
+    1. [asso] `renameat()`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
@@ -4084,11 +4110,7 @@ resources:
 
     * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
 
-* 调研
-
-    `inb`, 
-    
-    `INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
+* 调研`INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 
 * linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
 
@@ -4164,35 +4186,63 @@ resources:
 
 ### tasks
 
+* [ ] `inb`, `outl`
+
 * [v] vim 如何 ctag 跳转？
+
+* [ ] 调研 vim-gutentags
+
+* [ ] 调研引用系统库（如 /usr/include）的标签
+
+    `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
+
+* [v] `ioremap()`与`pci_iomap()`有什么区别？
+
+    feedback:
+    
+    1. [asso] `pci_iomap_range()`
+
+    1. [asso] `pci_iomap_wc()`, `pci_iomap_wc_range()`
+
+    1. [asso] 调研什么是可预取（Prefetchable）？
+
+    1. `readl()`, `writel()`
+
+* [v] `ioread32()`, `iowrite32()`
 
     feedback:
 
-    1. 调研 vim-gutentags
+    1. 调研`iowrite32_rep()`系列
 
-    1. 调研引用系统库（如 /usr/include）的标签
+        ```c
+        #include <asm/io.h>
 
-        `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
+        void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+        void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+        void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
 
-* [ ] `ioremap()`与`pci_iomap()`有什么区别？
+        void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+        void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+        void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+        ```
 
-* [ ] `ioread32()`, `iowrite32()`
+    1. 内存屏障（`rmb()`, `wmb()`）
 
-* [ ] `raw_copy_to_user()`
+    1. 内存排序/屏障（Memory Ordering / Barriers）
 
-* [v] `int major = register_chrdev(0, "hlc_dev", &fops);`失败时会返回什么？
+* [v] `raw_copy_to_user()`
+
+    feedback:
+
+    1. [asso] `getdents`
 
 * [ ] `devm_ioremap_resource()`
-
-* [v] `pci_ioremap_wc_bar`
 
 * [ ] BAR 是谁配置的？
 
     > BIOS 或操作系统会分配具体的物理地址并写入 BAR
 
     看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
-
-* [v] `ioremap_wc()`
 
 * [ ] `sparse`
 
@@ -4242,19 +4292,15 @@ resources:
 
 * [v] `dma_alloc_coherent()`
 
-    feedback:
+* [ ] `dma_map_single`
 
-    1. `dma_map_single`
+* [ ] DMA总线
 
-    1. DMA总线
-
-    1. dma 在 cpu 中，还是在 device 中？
+* [ ] dma 在 cpu 中，还是在 device 中？
 
 * [ ] 调研什么是流式 DMA
 
 * [ ] 调研什么是一致性 DMA
-
-* [ ] `inb`, `outl`
 
 * [ ] `readl`, `writel`
 
