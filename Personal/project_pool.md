@@ -1473,33 +1473,9 @@
 
 * [v] process 1 tab
 
-    feedback:
-
-    1. [asso] `setsid`
-
-    1. [asso] `disown`不加参数的用法
-
-    1. [asso] 调研括号 `( ... )` 是子 shell，`{ ...; }` 是当前 shell 里的复合命令
-
-        `nohup bash -c "{ sleep 5 && echo hello; }"`
-
 * [v] process 1 tab
-
-* [v] process 1 tab
-
-    feedback:
-
-    1. [asso] 调研 vscode 的"代码片段（Snippet）"
 
 * [v] `host`
-
-    feedback:
-
-    1. [asso] `dig`
-
-    1. [asso] `nslookup`
-
-    1. [asso] dns 的`MX`, `NS`记录类型
 
 * [ ] `nsupdate`
 
@@ -1702,6 +1678,22 @@
 * [ ] freerdp2-shadow-cli
 
 * [ ] wlfreerdp
+
+* [ ] `setsid`
+
+* [ ] `disown`不加参数的用法
+
+* [ ] 调研括号 `( ... )` 是子 shell，`{ ...; }` 是当前 shell 里的复合命令
+
+    `nohup bash -c "{ sleep 5 && echo hello; }"`
+
+* [ ] 调研 vscode 的"代码片段（Snippet）"
+
+* [asso] `dig`
+
+* [asso] `nslookup`
+
+* [asso] dns 的`MX`, `NS`记录类型
 
 ## Torch
 
@@ -2208,13 +2200,7 @@ tasks:
     gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
     ```
 
-* [v] 调研 nccl dump graph 的 xml
-
-* [v] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
-
 * [ ] `readelf -l /bin/bash | grep interpreter`
-
-* [v] `-rpath-link`
 
 * [ ] `RUNPATH`, `--enable-new-dtags`
 
@@ -4230,18 +4216,16 @@ resources:
 
 * [v] `inb`, `outl`
 
-    feedback:
+* [ ] 调研内联汇编
 
-    1. [ ] 调研内联汇编
-
-        ```c
-        // 一个非常简化的概念性示例，并非真实代码
-        static inline unsigned char inb(unsigned short port) {
-            unsigned char data;
-            asm volatile ("inb %1, %0" : "=a" (data) : "Nd" (port));
-            return data;
-        }
-        ```
+    ```c
+    // 一个非常简化的概念性示例，并非真实代码
+    static inline unsigned char inb(unsigned short port) {
+        unsigned char data;
+        asm volatile ("inb %1, %0" : "=a" (data) : "Nd" (port));
+        return data;
+    }
+    ```
 
 * [ ] 调研 vim-gutentags
 
@@ -4249,11 +4233,7 @@ resources:
 
     `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
 
-* [v] `ioremap()`与`pci_iomap()`有什么区别？
-
 * [ ] `readl()`, `writel()`
-
-* [v] `ioread32()`, `iowrite32()`
 
 * [ ] 调研`iowrite32_rep()`系列
 
@@ -4273,10 +4253,6 @@ resources:
 
 * [ ] 内存排序/屏障（Memory Ordering / Barriers）
 
-* [v] `raw_copy_to_user()`
-
-* [v] `devm_ioremap_resource()`
-
 * [ ] BAR 是谁配置的？
 
     > BIOS 或操作系统会分配具体的物理地址并写入 BAR
@@ -4285,15 +4261,13 @@ resources:
 
 * [v] `sparse`
 
-    feedback:
+* [ ] 调研稀疏矩阵的处理
 
-    * [ ] 调研稀疏矩阵的处理
+    * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
 
-        * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
+    * C++ (Eigen): Eigen::SparseMatrix
 
-        * C++ (Eigen): Eigen::SparseMatrix
-
-        * MATLAB: sparse() 函数
+    * MATLAB: sparse() 函数
 
 * [ ] 设备树（Device Tree）
 
@@ -4302,14 +4276,6 @@ resources:
 * [ ] 调研驱动的 suspend, resume 函数
 
 * [v] `dma_addr_t`
-
-    feedback:
-
-    * [asso] 调研`phys_addr_t`
-
-    * [asso] 调研流式（Streaming）DMA
-    
-        用于大数据块的单向传输。CPU或设备一方完成访问后另一方再访问，需要软件手动处理缓存同步（dma_sync_*函数）。
 
 * [ ] `dma_sync_single_for_cpu()`
 
@@ -4771,6 +4737,12 @@ resources:
 * [ ] 调研什么是可预取（Prefetchable）？
 
 * [ ] `getdents`
+
+* [ ] 调研`phys_addr_t`
+
+* [ ] 调研流式（Streaming）DMA
+
+    用于大数据块的单向传输。CPU或设备一方完成访问后另一方再访问，需要软件手动处理缓存同步（dma_sync_*函数）。
 
 ## OpenGL
 
