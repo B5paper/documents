@@ -2,6 +2,21 @@
 
 ## cache
 
+* makefile 中，变量与定义间的空格
+
+    ```makefile
+    VAR=foo       # 值是 "foo"
+    VAR =foo      # 值是 "foo"
+    VAR= foo      # 值是 " foo"（前面多了一个空格！）
+    VAR = foo     # 值是 " foo"（同样多一个空格）
+    ```
+
+    推荐写法:
+
+    ```makefile
+    KERNEL_DIR := /usr/xxx   # 立即展开赋值
+    ```
+
 * 在 Makefile 中，`$(VAR)`和`${VAR}`在功能上是完全相同的，可以互换使用。
 
     使用 makefile 的内置函数时，必须使用圆括号，比如`$(subst from,to,text)`

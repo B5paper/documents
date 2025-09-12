@@ -2,6 +2,96 @@
 
 ## cache
 
+* ssh 远程后台执行命令后直接返回
+
+    核心要求有两点：
+
+    1. 需要在命令后添加`&`
+
+    2. stdout 和 stderr 必须重定向到文件
+
+    example:
+
+    * `ssh user@host "sleep 5 &"`
+
+        不行，因为 stdout 和 stderr 仍在占用当前 shell session.
+
+    * `ssh user@host "sleep 5 & disown"`
+
+        不行，因为 ssh 执行的是非交互 shell，`disown`无法将 job 脱离当前 shell。
+
+    * `ssh user@host "sleep 5 > /dev/null 2>&1 &"`
+
+        OK，stdout 和 stderr 被重定向到`/dev/null`文件，并且命令的最后有`&`表示在后台执行。此时 ssh 会立即返回。
+
+    * `ssh user@host "sleep 5 2>&1 > /dev/null &"`
+
+        不行，stderr 指向 shell, stdout 指向`/dev/null`。
+
+        从左到右解析命令，`2>&1`表示将 stderr 指向当前的 stdout (shell)，`> /dev/null`表示将 stdout 指向`/dev/null`，但是不改变 stderr。此时 stderr 仍指向 shell，而 stdout 指向`/dev/null`。
+
+    * `ssh user@host "sleep 5 && echo hello > /dev/null 2>&1 &"`
+
+        不行，首先`&`作用于`sleep 5 && echo hello`，即
+        
+        `(sleep 5 && echo hello > /dev/null 2>&1) &`
+
+        其次`> /dev/null`和`2>&1`只作用于`echo hello`。
+
+        此时`sleep 5`的 stdout / stderr 都定向到 shell。
+        
+        另外，`sleep 5 && echo hello > /dev/null 2>&1`可能会起一个子 shell，这个子 shell 的 stdout / stderr 都未重定向。
+        
+        因此 ssh 无法立即返回。
+
+    * `ssh user@host"sleep 5 > /dev/null 2>&1 && echo hello > /dev/null 2>&1 &"`
+
+        不行，很明显了，即使对两个子 command 都重定向，也不行。说明两个子 command 被合成为一个整体的 command。
+
+    * `ssh host@user "(sleep 5 && echo hello) > /dev/null 2>&1 &"`
+
+        OK。再次验证了上面的想法。
+
+    * `ssh user@host "nohup (sleep 5 && echo hello) > /dev/null 2>&1 &"`
+
+        不行。
+
+        前面的 case 都是 ssh 可以立即返回，但是 ssh 在返回时会发送 sighup 信号，导致实际上任务会中断，nohup 可以解决这个问题，但是 nohup 会带来新的问题。
+
+        语法错误，报错：
+
+        ```
+        bash: -c: line 0: syntax error near unexpected token `sleep'
+        bash: -c: line 0: `nohup (sleep 5 && echo hello) > /dev/null 2>&1 &'
+        ```
+
+        `(sleep 5 && echo hello)`不是一个命令，是一个子进程命令组合，`nohup`只接收单个命令，不接收子进程命令。
+
+    * `ssh user@host "nohup sleep 5 && echo hello > /dev/null 2>&1 &"`
+
+        不行，`nohup`只作用于`sleep 5`。
+
+    * `ssh user@host "nohup bash -c 'sleep 5 && echo hello' > /dev/null 2>&1 &"`
+
+        OK。`nohup`只作用于`bash -c 'sleep 5 && echo hello'`，`> /dev/null`，`2>&1`以及`&`也作用于`bash -c`。这样既可以让 ssh 立即返回，也不会因为 ssh 的返回而中断任务。
+
+* github 使用 ssh 协议时设置代理
+
+    `~/.ssh/config`:
+
+    ```conf
+    Host github_ssh_proto
+        Hostname github.com
+        ForwardAgent yes
+        ProxyCommand nc -X connect -x 127.0.0.1:10809 %h %p
+    ```
+
+    当`git remote -v`中使用的是 ssh 协议 (`git@xxxx:path/to/dir`) 时，设置`git config --global http.proxy http://xxxx:yyy`和`git config --global https.proxy http://xxxx:yyy`是无效的，这两个只对 http 协议生效。
+
+    要想让 ssh 协议走代理，必须像上面一样配置`~/.ssh/config`。
+
+    `nc`是使用`nc`程序开一个转发，`-X connect`表示代理协议是 https （为什么没有 http 协议，不清楚），`-x 127.0.0.1:10809`表示代理的 ip 和端口，`%h`表示 target host 的占位符，其实就是`github.com`，`%p`是 target host port 的占位符，上面没写`Port`字段，那就是默认的`22`。
+
 * `ssh-copy-id -i`
 
     ssh-copy-id 命令会默认将本地用户的所有公钥文件（通常是 ~/.ssh/id_rsa.pub, ~/.ssh/id_ed25519.pub 等）都复制到远程服务器.

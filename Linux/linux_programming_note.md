@@ -6,6 +6,54 @@
 
 ## cache
 
+* `openat()`
+
+    在一个特定的目录文件描述符所指向的目录下，打开或创建一个文件。
+
+    syntax:
+
+    ```c
+    #include <fcntl.h>
+
+    int openat(int dirfd, const char *pathname, int flags, ... /* mode_t mode */);
+    ```
+
+    参数说明：
+
+    * `dirfd`：一个指向目录的文件描述符。它也可以是一些特殊值：
+
+        一个普通的目录文件描述符（通过 open 某个目录获得）。
+
+        AT_FDCWD：一个特殊值，表示“相对于当前工作目录”。如果指定这个值，openat() 的行为就完全等同于传统的 open()，但它仍然为其他 *at() 系列函数（如 fstatat）提供一致性。
+
+    * `pathname`：要打开的文件路径。它可以是：
+
+        绝对路径（如 /tmp/file）：此时 dirfd 参数会被忽略。
+
+        相对路径（如 file.txt）：此时路径是相对于 dirfd 所指向的目录来解释的。
+
+    * `flags` 和 `mode`：与 open() 函数的参数完全相同，用于指定打开标志（如 O_RDONLY, O_CREAT）和创建文件时的权限。
+
+    返回值：
+
+    成功时：返回一个新打开的文件描述符（一个非负整数）。
+
+    失败时：返回 -1，并设置全局变量 errno 来指示具体的错误原因。
+
+    它是对经典 open() 系统调用的扩展，解决了 open() 在某些场景下的两个关键问题：
+
+    * 竞态条件（Race Conditions）
+
+        竞态条件： 在多线程程序中，如果一个线程在 chdir() 之后、open() 之前，另一个线程也调用了 chdir()，那么第一个线程就会打开错误的文件。这是一个非常经典的TOCTOU（检查时间与使用时间）竞态条件漏洞。
+
+    * 维护进程的“当前工作目录”状态
+
+        使用 openat() 的现代方法：
+
+        * `dirfd = open("/a/b/c", O_DIRECTORY)`: 只打开目录，获取其文件描述符 dirfd
+
+        * `fd = openat(dirfd, "file.txt", ...)`: 在 dirfd 指向的目录下打开文件`
+
 * `sync()`
 
     将内核缓冲区中所有未写入磁盘的数据（包括文件数据、元数据如inode等）立即写入到硬盘。

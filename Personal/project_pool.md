@@ -1098,19 +1098,13 @@
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
-* [v] reorg project: `main_3.cpp`
-
-* [v] reorg project: `main_2.cpp`
-
 * [v] reorg project: `main.cpp`
 
-    feedback:
+* [ ] `remove_const_t`
 
-    1. `remove_const_t`
+* [ ] `remove_pointer_t`
 
-    1. `remove_pointer_t`
-
-    1. `is_pointer_v`
+* [ ] `is_pointer_v`
 
 * { } reorg: projects
 
@@ -1167,12 +1161,6 @@
     如果一个 unit 答对的频率较高，那么它被选择的概率变小。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
-
-* [x] 调研《github入门与实践》
-
-    feedback:
-
-    1. 找不到 pdf 文件在哪...
 
 * [ ] 增加正则表达式的 qa
 
@@ -1291,9 +1279,11 @@
 
 ### Tasks
 
-* [v] makefile 中，`$(VAR)`和`${VAR}`有什么不同？
+* [ ] 调研 makefile 内置函数 `wildcard`
 
-* [ ] 调研 makefile 内置函数 `wildcard`, `subst`, `shell`
+* [ ] 调研 makefile `subst`
+
+* [ ] 调研 makefile `shell`
 
 * [ ] 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
 
@@ -1320,9 +1310,19 @@
         @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
     ```
 
-* [ ] makefile 中，变量与定义间是否允许有空格？
+* [v] makefile 中，变量与定义间是否允许有空格？
 
     `KERNEL_DIR=/usr/xxx`
+
+    feedback:
+
+    * [asso] 调研 makefile 中的`=`递归展开（lazy evaluation）
+
+    * [asso] 调研 makefile 中的`:=`立即展开（simple evaluation）
+
+    * [asso] 调研 makefile 中的`?=`若未定义则赋值
+
+    * [asso] 调研 makefile 中的`+=`追加
 
 * [ ] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
 
@@ -1475,19 +1475,15 @@
 
     feedback:
 
-    1. [asso] grdctl
+    1. [asso] `setsid`
 
-    1. [asso] wlroots, Sway
+    1. [asso] `disown`不加参数的用法
 
-    1. [asso] rdesktop
+    1. [asso] 调研括号 `( ... )` 是子 shell，`{ ...; }` 是当前 shell 里的复合命令
 
-    1. [asso] remmina
+        `nohup bash -c "{ sleep 5 && echo hello; }"`
 
-    1. [asso] freerdp2-wayland
-
-    1. [asso] freerdp2-shadow-cli
-
-    1. [asso] wlfreerdp
+* [v] process 1 tab
 
 * [v] process 1 tab
 
@@ -1495,7 +1491,15 @@
 
     1. [asso] 调研 vscode 的"代码片段（Snippet）"
 
-* [ ] `host`
+* [v] `host`
+
+    feedback:
+
+    1. [asso] `dig`
+
+    1. [asso] `nslookup`
+
+    1. [asso] dns 的`MX`, `NS`记录类型
 
 * [ ] `nsupdate`
 
@@ -1685,6 +1689,66 @@
     healthCheck.intervalSeconds = 10
     ```
 
+* [ ] grdctl
+
+* [ ] wlroots, Sway
+
+* [ ] rdesktop
+
+* [ ] remmina
+
+* [ ] freerdp2-wayland
+
+* [ ] freerdp2-shadow-cli
+
+* [ ] wlfreerdp
+
+## Torch
+
+系统地学一遍 pytorch.
+
+resources:
+
+1. Welcome to PyTorch Tutorials
+
+    <https://pytorch.org/tutorials/>
+
+    主要看 learn the basics 和 learning pytorch with examples
+
+2. PyTorch documentation
+
+    <https://pytorch.org/docs/stable/index.html>
+
+    可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
+
+### tasks
+
+* [ ] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+
+    目前看到
+
+    > Common Tensor Functions: Broadcasting, Matrix Multiplication, etc.
+
+* [ ] 调研 Pytorch - Index-based Operation
+
+    <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
+
+* [ ] 调研 Tensor Slicing
+
+    <https://www.geeksforgeeks.org/machine-learning/tensor-slicing/>
+
+* [ ] 调研 Reshaping a Tensor in Pytorch
+
+    <https://www.geeksforgeeks.org/python/reshaping-a-tensor-in-pytorch/>
+
+* [ ] 调研 pytorch-tutorial
+
+    <https://github.com/yunjey/pytorch-tutorial?tab=readme-ov-file>
+
+* [ ] 调研 Learn the Basics
+
+    <https://docs.pytorch.org/tutorials/beginner/basics/intro.html>
+
 ## Machine Learning
 
 ### tasks
@@ -1840,24 +1904,6 @@
     1. 目前看到 pdf P54
 
     2. 不清楚为什么`self.w_ = np.zeros(1 + X.shape[1])`要`1 +`。
-
-* { } 调研 pytorch
-
-    系统地学一遍 pytorch
-
-    resources:
-
-    1. Welcome to PyTorch Tutorials
-
-        <https://pytorch.org/tutorials/>
-
-        主要看 learn the basics 和 learning pytorch with examples
-
-    2. PyTorch documentation
-
-        <https://pytorch.org/docs/stable/index.html>
-
-        可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
 * [ ] 调研 三维的 Swiss Roll
 
@@ -2148,23 +2194,13 @@ tasks:
 
 ### tasks
 
-* [ ] 调研 nccl dump graph 的 xml
+* [O] 调研 graph xml parser
 
-* [x] 增加 topo system 到 xml tag　的转换
+    16:27 ~ 
 
-* [v] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
+    deps:
 
-    feedback:
-
-    1. `readelf -l /bin/bash | grep interpreter`
-
-* [v] `pkg-config --libs`
-
-    14:48 ~ 15:04
-
-* [ ] `-rpath-link`
-
-* [ ] `RUNPATH`, `--enable-new-dtags`
+    1. [ ] 编译 graph dir
 
 * [ ] `$ORIGIN`
 
@@ -2172,7 +2208,15 @@ tasks:
     gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
     ```
 
-* [ ] `-Wl,-rpath='$ORIGIN/../lib`
+* [v] 调研 nccl dump graph 的 xml
+
+* [v] `LIBRARY_PATH`, `LD_LIBRARY_PATH`, `ld.so`, `ld-linux.so`
+
+* [ ] `readelf -l /bin/bash | grep interpreter`
+
+* [v] `-rpath-link`
+
+* [ ] `RUNPATH`, `--enable-new-dtags`
 
 * [ ] `/etc/ld.so.conf.d/myapp.conf`
 
@@ -2240,7 +2284,7 @@ tasks:
 
 * [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
 
-* [ ] 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
+* [v] 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
 
 * [ ] 调研使用 bash 实现一个定时器任务管理工具
 
@@ -2274,13 +2318,7 @@ tasks:
 
     15:04 ~ 15:42
 
-    feedback:
-
-    1. `chdir()`
-
-    1. [asso] `fstatat()`
-
-    1. [asso] `renameat()`
+* [ ] `chdir()`
 
 * [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
@@ -2664,6 +2702,10 @@ tasks:
     1. 目前只看到`barrier.red.or.pred p`。
 
 * [ ] 调研 nccl 中的 asm 语句 <https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html#constraints>
+
+* [ ] `fstatat()`
+
+* [ ] `renameat()`
 
 ## gpu driver
 
@@ -4160,19 +4202,9 @@ resources:
 
         * `mdev_register_device()`
 
-    * 调研 linux kernel 函数
-
-        `mdev_get_drvdata()`
-
-        `copy_from_user()`
-
-        `BIT()`
-
 * 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
 
     如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
-
-* 可以使用`dmesg -e`显示消息的大致时间戳
 
 * kernel 中的内存管理感觉是个问题
 
@@ -4186,9 +4218,30 @@ resources:
 
 ### tasks
 
-* [ ] `inb`, `outl`
+* [ ] `dma_map_single()`
 
-* [v] vim 如何 ctag 跳转？
+* [ ] `devm_ioremap_resource()`
+
+* [ ] `copy_from_user()`
+
+* [ ] `mdev_get_drvdata()`
+
+* [ ] `BIT()`
+
+* [v] `inb`, `outl`
+
+    feedback:
+
+    1. [ ] 调研内联汇编
+
+        ```c
+        // 一个非常简化的概念性示例，并非真实代码
+        static inline unsigned char inb(unsigned short port) {
+            unsigned char data;
+            asm volatile ("inb %1, %0" : "=a" (data) : "Nd" (port));
+            return data;
+        }
+        ```
 
 * [ ] 调研 vim-gutentags
 
@@ -4198,45 +4251,31 @@ resources:
 
 * [v] `ioremap()`与`pci_iomap()`有什么区别？
 
-    feedback:
-    
-    1. [asso] `pci_iomap_range()`
-
-    1. [asso] `pci_iomap_wc()`, `pci_iomap_wc_range()`
-
-    1. [asso] 调研什么是可预取（Prefetchable）？
-
-    1. `readl()`, `writel()`
+* [ ] `readl()`, `writel()`
 
 * [v] `ioread32()`, `iowrite32()`
 
-    feedback:
+* [ ] 调研`iowrite32_rep()`系列
 
-    1. 调研`iowrite32_rep()`系列
+    ```c
+    #include <asm/io.h>
 
-        ```c
-        #include <asm/io.h>
+    void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
 
-        void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-        void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-        void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    ```
 
-        void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-        void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-        void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-        ```
+* [ ] 内存屏障（`rmb()`, `wmb()`）
 
-    1. 内存屏障（`rmb()`, `wmb()`）
-
-    1. 内存排序/屏障（Memory Ordering / Barriers）
+* [ ] 内存排序/屏障（Memory Ordering / Barriers）
 
 * [v] `raw_copy_to_user()`
 
-    feedback:
-
-    1. [asso] `getdents`
-
-* [ ] `devm_ioremap_resource()`
+* [v] `devm_ioremap_resource()`
 
 * [ ] BAR 是谁配置的？
 
@@ -4244,19 +4283,33 @@ resources:
 
     看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
 
-* [ ] `sparse`
+* [v] `sparse`
+
+    feedback:
+
+    * [ ] 调研稀疏矩阵的处理
+
+        * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
+
+        * C++ (Eigen): Eigen::SparseMatrix
+
+        * MATLAB: sparse() 函数
 
 * [ ] 设备树（Device Tree）
 
 * [ ] `devm_platform_ioremap_resource()`
 
-* [ ] `devm_ioremap_resource()`
-
 * [ ] 调研驱动的 suspend, resume 函数
 
-* [ ] `devm_ioremap_resource()`
+* [v] `dma_addr_t`
 
-* [ ] `dma_addr_t`
+    feedback:
+
+    * [asso] 调研`phys_addr_t`
+
+    * [asso] 调研流式（Streaming）DMA
+    
+        用于大数据块的单向传输。CPU或设备一方完成访问后另一方再访问，需要软件手动处理缓存同步（dma_sync_*函数）。
 
 * [ ] `dma_sync_single_for_cpu()`
 
@@ -4287,12 +4340,6 @@ resources:
 * [ ] `/proc/iomem`
 
 * [ ] `/proc/iomem`
-
-* [ ] `dma_map_single()`
-
-* [v] `dma_alloc_coherent()`
-
-* [ ] `dma_map_single`
 
 * [ ] DMA总线
 
@@ -4716,6 +4763,14 @@ resources:
 * [ ] 调研：实现一个仅使用 read device 触发的中断程序
 
 * [ ] sync socket programming
+
+* [ ] `pci_iomap_range()`
+
+* [ ] `pci_iomap_wc()`, `pci_iomap_wc_range()`
+
+* [ ] 调研什么是可预取（Prefetchable）？
+
+* [ ] `getdents`
 
 ## OpenGL
 

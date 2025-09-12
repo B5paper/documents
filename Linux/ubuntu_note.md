@@ -4,6 +4,24 @@
 
 ## cache
 
+* x11vnc 只支持 X11，无法在 Wayland 环境下使用。
+
+* ubuntu 22.04 上启动 rdp 远程桌面 service
+
+    首先 server 端安装`sudo apt install gnome-remote-desktop`
+
+    然后进入 settings -> sharing -> remote desktop，把用到的功能都打开，最下面有一个设置密码的地方，初始密码是随机密码，需要自己再设置一下。
+
+    其中有一个 enable legacy vnc protocol，打开后简单试了下，似乎没法用。
+
+    此时检查`nc -zvn 127.0.0.1 3389`，端口应该是开启的。
+
+    在 client 端安装：`sudo apt install freerdp2-x11`
+
+    连接 rdp server: `xfreerdp /v:<server_ip>`，然后会提示输入 Domain（用户名）和密码，输入后即可成功启动 rdm 远程桌面。
+
+    可以使用`xfreerdp /v:<server_ip> /clipboard`开启共享剪贴板，还可以使用快捷键 Ctrl + Alt + Enter 进入全屏模式。
+
 * gnome 的 remote desktop 几乎只能通过图形化设置完成，在使用命令行设置时，`gnome-keyring`的配置十分复杂
 
 * ubuntu 的官方帮助网站

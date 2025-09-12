@@ -6,6 +6,106 @@
 
 ## cache
 
+* `host`
+
+    一个 DNS 查询工具
+
+    常见用法:
+
+    * 查询域名对应的 IP
+
+        `host www.example.com`
+
+        输出该域名的 A/AAAA 记录。
+
+        example:
+
+        ```bash
+        host www.google.com
+        ```
+
+        output:
+
+        ```
+        www.google.com has address 142.250.71.196
+        www.google.com has IPv6 address 2404:6800:4005:816::2004
+        ```
+
+    * 查询 IP 对应的域名（反向解析）
+
+        `host 8.8.8.8`
+
+        输出 PTR 记录。
+
+        example:
+
+        ```bash
+        host 8.8.8.8
+        ```
+
+        output:
+
+        ```
+        8.8.8.8.in-addr.arpa domain name pointer dns.google.
+        ```
+
+    * 指定查询记录类型
+
+        ```bash
+        host -t MX example.com   # 查询邮件服务器记录
+        host -t NS example.com   # 查询域名服务器
+        ```
+
+    * 指定 DNS 服务器
+
+        ```bash
+        host www.example.com 8.8.8.8
+        ```
+
+        使用 Google DNS 来解析。
+
+        (如果想取消这个映射，该怎么办？)
+
+* `command_1 && command_2 &`里，`&`作用于`(command_1 && command_2)`。
+
+ * `pkg-config --libs`
+
+    获取链接一个特定软件库（Library）时，需要传递给编译器的所有链接器（Linker） flags（参数）。
+
+    当你编译程序需要用到某个第三方库（比如 OpenCV、GTK、libpng 等）时，这个命令会告诉你应该加哪些 -l 和 -L 参数。
+
+    example:
+
+    ```bash
+    pkg-config --libs mpi
+    ```
+
+    output:
+
+    ```
+    -L/usr/lib/x86_64-linux-gnu/openmpi/lib -lmpi
+    ```
+
+    pkg-config 工具通过查询事先安装好的 .pc 配置文件（这些文件通常随库一起安装），自动为你生成正确的、适用于当前系统的编译参数。
+
+    通常与 Makefile 结合起来使用：
+
+    ```makefile
+    # 编译 main.c 并链接 libcurl 库
+    program: main.c
+        gcc main.c -o program `pkg-config --libs --cflags libcurl`
+    ```
+
+    其中`--cflags`表示输出`-I<header_path>`
+
+    * `pkg-config --libs <包名>`: 获取链接库所需的参数
+    
+        `-L/usr/lib -lcurl -lssl -lcrypto`
+
+    * `pkg-config --cflags <包名>`: 获取编译时所需的参数（如头文件路径）
+    
+        `-I/usr/include/curl`
+
 * `ldconfig`
 
     创建、更新和维护共享库的缓存和必要的链接，通过生成缓存文件 /etc/ld.so.cache 来加速程序启动时寻找共享库的过程，并管理共享库的符号链接，以便系统能够快速地找到并加载运行程序时所需的共享库（.so 文件）

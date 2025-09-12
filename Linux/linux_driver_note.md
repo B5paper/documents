@@ -6,6 +6,117 @@ Ref:
 
 ## cache
 
+* `devm_ioremap_resource()`
+
+    将 I/O 内存资源（通常是 MMIO 寄存器空间）映射到内核虚拟地址空间，并且由 设备管理器（device-managed, `devm_`）自动管理其生命周期.
+
+    syntax:
+
+    ```c
+    void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res);
+    ```
+
+    * res：指向已获取的 struct resource *，通常是 IORESOURCE_MEM 类型。
+
+    返回值：
+
+    成功：返回映射后的内核虚拟地址（void __iomem *）。
+
+    失败：返回错误指针，使用 IS_ERR() 检查。
+
+    作用总结:
+
+    1. 获取资源：先调用 platform_get_resource() 或 pci_get_resource() 得到 struct resource *。
+
+    2. 检查资源有效性：函数内部会调用 request_mem_region() 确保资源未被占用。
+
+    3. 映射 I/O 内存：使用 ioremap() 将物理地址映射到内核虚拟地址。
+
+    4. 自动释放：使用 devm 机制，设备卸载时自动调用 iounmap() 并释放资源。
+
+* 可以使用`dmesg -e`显示消息的大致时间戳
+
+* `ioremap()`与`pci_iomap()`的区别
+
+    ```c
+    #include <asm/io.h>
+
+    void __iomem *ioremap(phys_addr_t offset, unsigned long size);
+    void iounmap(volatile void __iomem *addr);
+
+
+    #include <linux/pci.h>
+
+    void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen);
+    void pci_iounmap(struct pci_dev *dev, void __iomem *addr);
+    ```
+
+    `ioremap()`更底层，更通用。我们给定一个物理地址和大小，它请求内核在页表中建立映射，并返回一个可用的内核虚拟地址。它不关心这个物理地址来自哪里（可以是系统内存、设备内存、甚至是ISA总线上的端口）。
+
+    `pci_iomap()`更高层、PCI 专用。它构建在`ioremap()`或其他类似机制之上，专门用于映射 PCI 设备 BAR（Base Address Register）中声明的内存区域。
+
+    如果使用`ioremap()`，那么需要驱动程序开发者自己获取要映射的物理地址。对于 PCI 设备，需要先调用`pci_resource_start(pdev, bar)`来获取 BAR 对应的物理地址。
+
+    `pci_iomap()`相当于帮你调用了`pci_resource_start()`, `pci_resource_len()`, `ioremap()`。
+
+* `ioread32()`, `iowrite32()`
+
+    用于安全、可移植地访问内存映射 I/O (MMIO) 寄存器.
+
+    syntax:
+
+    ```c
+    #include <asm/io.h>
+
+    void iowrite8(u8 value, volatile void __iomem *addr);
+    void iowrite16(u16 value, volatile void __iomem *addr);
+    void iowrite32(u32 value, volatile void __iomem *addr);
+    #ifdef CONFIG_64BIT
+    void iowrite64(u64 value, volatile void __iomem *addr);
+    #endif
+    ```
+
+    参数:
+
+    * `value`: 要写入的数据值。类型分别为`u8`, `u16`, `u32`, `u64`（无符号8/16/32/64位整数）。
+
+    * `addr`: 目标内存映射I/O地址。这是一个指向`__iomem`空间的指针，通常由`ioremap()`, `pci_iomap()`等函数返回。`volatile`关键字告知编译器该地址的内容可能会被硬件意外修改，防止编译器进行激进的优化。
+
+    ```c
+    #include <asm/io.h>
+
+    u8 ioread8(const volatile void __iomem *addr);
+    u16 ioread16(const volatile void __iomem *addr);
+    u32 ioread32(const volatile void __iomem *addr);
+    #ifdef CONFIG_64BIT
+    u64 ioread64(const volatile void __iomem *addr);
+    #endif
+    ```
+
+    `addr`: 要读取的源内存映射I/O地址。同样是一个带有 __iomem 和 volatile 修饰符的指针。const 表明函数不会修改指针所指向的内容。
+
+    任何时候你需要与通过 ioremap() 映射的设备寄存器进行交互，都必须使用 ioreadX()/iowriteX() 函数家族，而不是直接使用指针解引用（如 *reg = value）。
+
+* `raw_copy_to_user()`
+
+    将数据从内核空间安全地复制到用户空间。
+
+    syntax:
+
+    ```c
+    unsigned long raw_copy_to_user(void __user *to, const void *from, unsigned long n);
+    ```
+
+    to： 目标地址（用户空间指针）。
+
+    from： 源地址（内核空间指针）。
+
+    n： 要拷贝的字节数。
+
+    返回值： 如果成功，返回 0；如果失败，返回尚未成功拷贝的字节数。
+
+    “raw”前缀： 这表明它是底层实现。相比 copy_to_user()，它假设调用者已经处理了可能引起睡眠的事情（如缺页中断），通常在知道上下文是安全的情况下使用，性能稍高。
+
 * `dma_alloc_coherent()`
 
     为设备与 CPU 之间进行直接内存访问（DMA）而分配一段“一致性”内存。解决了由于 CPU 缓存（Cache）的存在而引发的“缓存一致性问题”。它分配的内存区域被设置为 “无缓存”（Uncacheable） 的，或者内核会通过硬件机制（如 Cache Coherent Interconnect）自动维护这块内存的缓存一致性。
