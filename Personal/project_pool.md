@@ -30,6 +30,10 @@
 
 ## cache
 
+* 如果一个`* { } my_task`类型的 task 长期无法完成，那么它应该被升级为一个 project
+
+* 总是对自己熟悉的领域过于骄傲，总以为自己的进度领先，不愿投入时间。其实对自己熟悉的领域，更应该舍得投入时间才对。
+
 * 应该创建一个闭眼问题集，方便在闭眼休息的时候思考问题
 
 * 看电脑/手机 25 分钟，闭眼休息 5 分钟。这个数值目前还是比较有用的，起码眼疼程度不会进一步发展。
@@ -1069,6 +1073,12 @@
 
 ### tasks
 
+* [v] 调研是否有 vscode 快捷键，可以找到下一个以`##`或`###`开头的行？
+
+    feedback:
+
+    * vscode 的 ctrl + f 搜索功能有正则表达式选项
+
 * [ ] 调研 8259A
 
 * [O] reorg linux driver
@@ -1285,7 +1295,11 @@
 
 * [ ] 调研 makefile `shell`
 
-* [ ] 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
+* [v] 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
+
+    feedback:
+
+    * [ ] 调研 makefile 模式规则（例如 %.o: %.c）
 
 * [ ] 调研 make 变量与 shell 变量
 
@@ -1471,13 +1485,9 @@
 
 ### tasks
 
-* [v] process 1 tab
+* [v] process 1 tab 09.12
 
-* [v] process 1 tab
-
-* [v] `host`
-
-* [ ] `nsupdate`
+* [v] `nsupdate`
 
 * [ ] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
 
@@ -1550,8 +1560,6 @@
 * [ ] 调研`git reset --soft`
 
 * [ ] 调研`git merge --squash`
-
-* [v] 调研 rsync `--exclude`的用法
 
 * [ ] 调研 rsync `--backup`的用法
 
@@ -2192,7 +2200,7 @@ tasks:
 
     deps:
 
-    1. [ ] 编译 graph dir
+    1. [v] 编译 graph dir
 
 * [ ] `$ORIGIN`
 
@@ -2202,9 +2210,15 @@ tasks:
 
 * [ ] `readelf -l /bin/bash | grep interpreter`
 
-* [ ] `RUNPATH`, `--enable-new-dtags`
+* [v] `RUNPATH`, `--enable-new-dtags`
 
-* [ ] `/etc/ld.so.conf.d/myapp.conf`
+    feedback:
+
+    * [asso] `chrpath`, `patchelf`悠 RUNPATH
+
+    * [asso] `readelf -d my_program | grep -E '(RUNPATH|RPATH)'`
+
+* [v] `/etc/ld.so.conf.d/myapp.conf`
 
 * [ ] `readelf`
 
@@ -2270,8 +2284,6 @@ tasks:
 
 * [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
 
-* [v] 调研有没有定时器工具，在睡眠指定时间后，执行 xxx command。
-
 * [ ] 调研使用 bash 实现一个定时器任务管理工具
 
 * [ ] 调研 bash 中的`REPLY`变量
@@ -2282,7 +2294,11 @@ tasks:
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
 
-* [ ] `od -t x1`
+* [v] `od -t x1`
+
+    feedback:
+
+    * [asso] `od -t c`是干嘛用的？
 
 * [ ] `od -t x<N>`
 
@@ -2299,10 +2315,6 @@ tasks:
 * [ ] 调研 PTY 与 tty 有何不同
 
 * [ ] 调研`huponexit`
-
-* [v] `openat()`
-
-    15:04 ~ 15:42
 
 * [ ] `chdir()`
 
@@ -4204,6 +4216,8 @@ resources:
 
 ### tasks
 
+* [ ] 调研 ubuntu 屏幕锁定后，是否还能被 gnome remote desktop 正常连接
+
 * [ ] `dma_map_single()`
 
 * [ ] `devm_ioremap_resource()`
@@ -4213,8 +4227,6 @@ resources:
 * [ ] `mdev_get_drvdata()`
 
 * [ ] `BIT()`
-
-* [v] `inb`, `outl`
 
 * [ ] 调研内联汇编
 
@@ -4233,7 +4245,7 @@ resources:
 
     `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
 
-* [ ] `readl()`, `writel()`
+* [v] `readl()`, `writel()`
 
 * [ ] 调研`iowrite32_rep()`系列
 
@@ -4259,8 +4271,6 @@ resources:
 
     看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
 
-* [v] `sparse`
-
 * [ ] 调研稀疏矩阵的处理
 
     * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
@@ -4275,13 +4285,11 @@ resources:
 
 * [ ] 调研驱动的 suspend, resume 函数
 
-* [v] `dma_addr_t`
-
 * [ ] `dma_sync_single_for_cpu()`
 
 * [ ] ` __attribute__((packed))`, `__packed`
 
-* [ ] 调研字节序转换宏
+* [v] 调研字节序转换宏
 
     ```c
     #include <linux/byteorder/generic.h>
@@ -4315,7 +4323,7 @@ resources:
 
 * [ ] 调研什么是一致性 DMA
 
-* [ ] `readl`, `writel`
+* [v] `readl`, `writel`
 
 * [ ] 调研 MMU（内存管理单元）如何设计？
 
