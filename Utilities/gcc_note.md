@@ -2,6 +2,54 @@
 
 ## cache
 
+* 不能从`.so`中拿到库中所有的函数，因为有的`.c`中的函数可能是`static`的。也不能从`*.o`中拿到所有的函数，因为不一定所有的`.c`都生成`.o`，还有可能直接生成`.so`。
+
+* `--enable-new-dtags`
+
+    --enable-new-dtags 是 GNU 链接器 (ld) 的一个选项。它的主要作用是：在创建可执行文件或动态库时，使用 RUNPATH 而不是 RPATH。
+
+    example:
+
+    ```bash
+    # 启用 new dtags，生成 RUNPATH
+    gcc -Wl,--enable-new-dtags,-rpath=/opt/mylib -o my_program main.c
+
+    # 禁用 new dtags（或不指定），生成 RPATH
+    gcc -Wl,--disable-new-dtags,-rpath=/opt/mylib -o my_program main.c
+    # 或者直接
+    gcc -Wl,-rpath=/opt/mylib -o my_program main.c
+    ```
+
+    checkout:
+
+    ```bash
+    readelf -d my_program | grep -E '(RUNPATH|RPATH)'
+    ```
+
+    * 启用`--enable-new-dtags`后，输出会显示`0x000000000000001d (RUNPATH) Library runpath: [/opt/mylib]`
+
+    * 禁用时，输出会显示`0x000000000000000f (RPATH) Library rpath: [/opt/mylib]`
+
+* `RUNPATH`
+
+    存储在可执行文件或动态库（.elf 文件）中的一个参数，它的主要作用是指定程序在运行时搜索动态链接库（.so 文件）的额外路径列表。
+
+    动态链接器的典型搜索顺序如下（简化版，体现了 RUNPATH 的关键位置）：
+
+    1. LD_LIBRARY_PATH 环境变量指定的目录。
+
+    2. 可执行文件中嵌入的 RPATH 目录（如果存在，且没有 RUNPATH）。
+
+    3. 系统缓存文件 /etc/ld.so.cache 中列出的目录。
+
+    4. 默认的系统库目录，如 /lib 和 /usr/lib。
+
+    5. 可执行文件中嵌入的 RUNPATH 目录（如果存在）。
+
+    设置`RUNPATH`的方法：
+    
+    `gcc -Wl,-rpath=/path/to/your/libs -o my_program my_program.c`
+
 * `-rpath-link`
 
     -rpath-link 是 GCC/ld 链接器选项，用于在 动态链接（shared library） 时指定额外的 库搜索路径

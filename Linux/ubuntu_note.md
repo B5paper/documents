@@ -4,6 +4,22 @@
 
 ## cache
 
+* gnome 远程桌面无法重启后直接登录
+
+    首先需要设置开机自动登录：
+
+    settings -> users -> unlock -> enable atomatic login
+
+    然后需要取消 key ring:
+
+    安装`seahourse`（GNOME 的密码和密钥管理器）: `sudo apt install seahorse`
+
+    进入 seahorse, passwords -> login 右键 -> change password -> 输入当前密码 -> 新密码空白，直接点 continue -> 确认
+
+    此时再重启系统，可直接进入桌面，使用远程 rdp client 连接当前 host，可顺利连接。
+
+    除了这种方法外，还可以为远程桌面创建独立的密钥环，这种方法比较复杂，不研究了。
+
 * x11vnc 只支持 X11，无法在 Wayland 环境下使用。
 
 * ubuntu 22.04 上启动 rdp 远程桌面 service

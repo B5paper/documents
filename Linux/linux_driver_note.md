@@ -6,6 +6,65 @@ Ref:
 
 ## cache
 
+* 字节序转换宏
+
+    ```c
+    #include <linux/byteorder/generic.h>
+
+    cpu_to_be16(x)	// CPU字节序 到 大端字节序 (16位)	htobe16(x)
+    cpu_to_be32(x)	// CPU字节序 到 大端字节序 (32位)	htobe32(x)
+    cpu_to_be64(x)	// CPU字节序 到 大端字节序 (64位)	htobe64(x)
+    cpu_to_le16(x)	// CPU字节序 到 小端字节序 (16位)	htole16(x)
+    cpu_to_le32(x)	// CPU字节序 到 小端字节序 (32位)	htole32(x)
+    cpu_to_le64(x)	// CPU字节序 到 小端字节序 (64位)	htole64(x)
+    be16_to_cpu(x)	// 大端字节序 到 CPU字节序 (16位)	be16toh(x)
+    be32_to_cpu(x)	// 大端字节序 到 CPU字节序 (32位)	be32toh(x)
+    be64_to_cpu(x)	// 大端字节序 到 CPU字节序 (64位)	be64toh(x)
+    le16_to_cpu(x)	// 小端字节序 到 CPU字节序 (16位)	le16toh(x)
+    le32_to_cpu(x)	// 小端字节序 到 CPU字节序 (32位)	le32toh(x)
+    le64_to_cpu(x)	// 小端字节序 到 CPU字节序 (64位)	le64toh(x)
+    ```
+
+    `cpu`代表当前 CPU 的字节序（即主机字节序）。
+
+* `readl()`, `writel()`
+
+    用于访问内存映射 I/O (MMIO) 设备，读取/写入 32 位（`long`）的数据。
+
+    syntax:
+
+    ```c
+    void writel(u32 value, volatile void __iomem *addr);
+    u32 readl(const volatile void __iomem *addr);
+    ```
+
+    `writel()`: 它确保了写入操作是原子的（不会被其他操作打断），并且会处理不同 CPU 架构可能存在的字节序（Big-Endian vs Little-Endian）和内存访问顺序问题，保证驱动程序的跨平台兼容性。
+
+    `readl()`: 除了处理字节序和内存屏障，它还能防止编译器对读取操作进行错误的优化（例如，认为该地址的值不会变化而将其缓存，导致重复读取同一个旧值）。volatile 关键字确保了每次都会从硬件地址实实在在地读取数据。
+
+    我们不应该直接解引用访问内存映射的 I/O 寄存器。
+
+    可能遇到的问题：
+    
+    1. 编译器优化问题：多次读取同一个寄存器。编译器可能会进行优化，认为第一次读取的值和第二次是一样的，于是省去第二次的实际读取操作，直接使用缓存的值。
+
+    1. 内存访问顺序问题（内存屏障）：CPU 和编译器为了提升效率，可能会打乱指令的执行顺序（Out-of-Order Execution）。
+
+        问题场景：
+
+        1. 向 FIFO 数据寄存器 写入数据 writel(data, FIFO_DATA);
+
+        2. 向 控制寄存器 写入一个启动命令 writel(CMD_START, FIFO_CTRL);
+        硬件要求必须先写数据再发命令。
+
+        如果没有屏障，CPU或编译器可能为了效率，先执行步骤2再执行步骤1，导致硬件收到错误的顺序，操作失败。
+
+    1. 字节序问题: 不同的 CPU 架构（如 x86/Little-Endian 和 PowerPC/Big-Endian）和多字节数据在内存中的存储方式（字节序）不同。外围设备也有自己期望的字节序。
+
+        要向一个设备寄存器写入一个32位值 0x12345678。在小端序的 CPU 上，这个值在内存中存储为 78 56 34 12。如果设备期望的是大端序（即希望收到 12 34 56 78），直接解引用写入就会发送错误的数据。
+
+    1. 访问宽度和原子性问题: 对于某些寄存器，32位的写入操作必须是原子的（不可分割的）。
+
 * `dma_addr_t`c
 
     dma_addr_t 保存的是设备能理解的物理地址, 而不是内核使用的虚拟地址。

@@ -6,6 +6,93 @@
 
 ## cache
 
+* `nsupdate`
+
+    用于动态、增量地更新 DNS 域名。它允许你在不手动编辑 zone file（区域文件）和重启 DNS 服务的情况下，直接添加、修改或删除 DNS 记录。
+
+    主要功能和用途
+
+    * 动态 DNS (DDNS)
+
+        这是 nsupdate 最经典的用途。很多家庭宽带或办公网络的公网 IP 地址是动态变化的。你可以在路由器或电脑上运行一个脚本，当检测到 IP 变化时，自动使用 nsupdate 命令向 DNS 服务器发送更新请求，将你的域名（如 home.example.com）快速指向新的 IP 地址。这样你始终可以通过一个固定的域名访问到动态 IP 的设备。
+
+    * 自动化运维和脚本集成
+
+        在自动化部署（CI/CD）、云基础设施管理中，经常需要批量创建或销毁服务器。这些流程可以通过脚本调用 nsupdate，自动为新服务器注册 DNS 记录，或者在下线时清理记录，实现全自动化管理。
+
+    * 快速故障恢复
+
+        如果需要将服务从一个 IP 迁移到另一个 IP，使用 nsupdate 可以几乎实时地更新 DNS 记录，大大缩短故障切换时间（RTO），比手动修改zone file并等待复制要快得多。
+
+    工作原理
+
+    nsupdate 并不直接操作 DNS 服务器上的配置文件。它的工作流程是：
+
+    1. 连接：nsupdate 会连接到目标 DNS 服务器（通常是 BIND 9）的 53 端口，并使用 TSIG（Transaction SIGnature） 密钥进行身份验证。TSIG 确保了更新的安全性和合法性，防止任何人随意修改你的 DNS 记录。
+
+    2. 发送更新指令：在交互式命令行或通过管道输入中，你发送一系列指令，例如：
+
+        * `update add www.example.com 3600 A 192.0.2.1` （添加一条 A 记录）
+
+        * `update delete oldhost.example.com A` （删除一条 A 记录）
+
+    3. 服务器处理：DNS 服务器验证你的权限后，会在内存中直接更新它的 zone 数据，并递增该区域的序列号（SOA Serial）。这个更改会立即生效，并通知其他从服务器进行区域传输（AXFR/IXFR）以同步更新。
+
+    example:
+
+    假设我们有一个密钥key文件，用来向DNS服务器 dns.example.com 认证，并更新 example.com 域。
+
+    ```bash
+    # 启动 nsupdate 并指定服务器
+    nsupdate -k /path/to/mykey.key
+
+    # 在出现的交互提示符下输入命令
+    > server dns.example.com
+    > zone example.com
+    > update add newserver.example.com 300 A 203.0.113.10
+    > send
+    > quit
+    ```
+
+    这条命令成功执行后，域名 newserver.example.com 就会立刻指向 203.0.113.10。
+
+* `od -t x1`
+
+    以十六进制（HEX）字节的形式，逐个字节地显示文件或输入流的内容。
+
+    * `-t` (`--format`) : 用于指定输出数据的格式。它告诉 od 如何解释和显示文件中的字节。
+
+    * `x1`: `x`表示 16 进制，`1`代表每个输出单元的大小是 1 个字节。
+
+    example:
+
+    ```
+    0000000 7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
+    0000020 03 00 3e 00 01 00 00 00 10 0a 00 00 00 00 00 00
+    0000040 40 00 00 00 00 00 00 00 38 4e 00 00 00 00 00 00
+    ...
+    ```
+
+* `/etc/ld.so.conf.d/myapp.conf`
+
+    将一个自定义的库路径（例如`/opt/myapp/lib`）添加到系统中所有应用程序的共享库搜索路径中。`ld-linux.so`会搜索`/etc/ld.so.conf.d`这个目录下的所有配置。
+
+    example:
+
+    ```conf
+    /opt/myapp/lib
+    ```
+
+    创建或修改配置文件后，必须运行 ldconfig 命令来重建共享库缓存，使更改立即生效:
+
+    ```bash
+    sudo ldconfig
+    ```
+
+    这个命令会读取所有`/etc/ld.so.conf.d/`下的配置文件和`/etc/ld.so.conf`，生成一个快速的缓存文件`/etc/ld.so.cache`。动态链接器实际使用的是这个缓存文件来加速查找。
+
+    主配置文件 /etc/ld.so.conf 通常会包含一行：`include /etc/ld.so.conf.d/*.conf`。
+
 * `host`
 
     一个 DNS 查询工具
