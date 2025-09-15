@@ -1607,6 +1607,14 @@ resources:
 
 ### tasks
 
+* [ ] 调研稀疏矩阵的处理
+
+    * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
+
+    * C++ (Eigen): Eigen::SparseMatrix
+
+    * MATLAB: sparse() 函数
+
 * [ ] 调研 matplotlib 画 surface
 
 * [v] 调研 rnn 与 nlp 入门级的训练数据集
@@ -4204,14 +4212,6 @@ resources:
     > BIOS 或操作系统会分配具体的物理地址并写入 BAR
 
     看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
-
-* [ ] 调研稀疏矩阵的处理
-
-    * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
-
-    * C++ (Eigen): Eigen::SparseMatrix
-
-    * MATLAB: sparse() 函数
 
 * [ ] 设备树（Device Tree）
 
