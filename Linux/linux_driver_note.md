@@ -7283,28 +7283,6 @@ Parameters:
 
 * `*objp` – pointer returned by `kmalloc`
 
-从用户态向内核态写入数据：
-
-`copy_from_user()`
-
-header file: `#include <linux/uaccess.h>`
-
-syntax:
-
-```c
-unsigned long copy_from_user(void *to, const void __user *from, unsigned long n);
-```
-
-parameters:
-
-* `to` – Destination address, in the kernel space
-
-* `from` – The source address in the user space
-
-* `n` – Number of bytes to copy
-
-Returns number of bytes that could not be copied. On success, this will be zero.
-
 从内核态向用户态写入数据：
 
 `copy_to_user()`

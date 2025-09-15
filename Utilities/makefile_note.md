@@ -2,6 +2,43 @@
 
 ## cache
 
+* `wildcard`
+
+    用于匹配指定模式的文件名.
+
+    syntax:
+
+    ```makefile
+    $(wildcard PATTERN...)
+    ```
+
+    根据给定的模式 PATTERN，返回当前目录下 符合模式的文件列表（以空格分隔）。
+
+    如果没有文件匹配，则返回空字符串。
+
+    常见用法：
+
+    * 获取某类型的源文件
+
+        `SRC := $(wildcard *.c)`
+
+        返回当前目录下所有 .c 文件，例如：main.c util.c test.c
+
+    * 结合 patsubst 生成目标文件列表
+
+        ```makefile
+        SRC := $(wildcard *.c)
+        OBJ := $(patsubst %.c, %.o, $(SRC))
+        ```
+
+        把所有 .c 文件转成对应的 .o 文件列表
+
+    * 递归目录（需要配合 wildcard 和 foreach）
+
+        `SRC := $(wildcard src/*.c lib/*.c)`
+
+        (这个没看明白, chatgpt 的输出不完整？)
+
 * makefile 中特殊的自动变量
 
     这些自动变量主要用于表示目标和先决条件（依赖）。

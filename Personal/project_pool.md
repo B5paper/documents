@@ -26,9 +26,17 @@
 
 	因为每天临时的变动太大了，远远超过按周处理的频率。
 
+## cache
+
+* 趴着看电脑腰也会疼，目前定的时间是每天最长 30 ~ 40 分。
+
 * log 不应该与 task 放在同一个文件里，翻来翻去太费时间
 
-## cache
+* deepseek 的一些回答从一开始就是错的，完全不能作为可靠的参考资料。后续 ds 只能优先用作 idea 启发和头脑风暴了，查资料的功能作为第二梯队。
+
+* 不应该想着有万全准备了才开始某项任务，应该想着只要不明显阻碍当前的其他任务，就应该开始这项任务。
+
+    实际执行时，可以将这项任务拆解为更小的，便于启动的任务。
 
 * 如果一个`* { } my_task`类型的 task 长期无法完成，那么它应该被升级为一个 project
 
@@ -867,7 +875,11 @@
 
     * vscode 的 ctrl + f 搜索功能有正则表达式选项
 
-* [ ] 调研 8259A
+* [v] 调研 8259A
+
+    feedback:
+
+    1. [ ] 调研 qemu + FreeDOS 安装 dos 环境
 
 * [O] reorg linux driver
 
@@ -1077,17 +1089,13 @@
 
 ### Tasks
 
-* [v] 调研 makefile 内置函数 `wildcard`
-
 * [ ] 调研 makefile `subst`
 
 * [ ] 调研 makefile `shell`
 
 * [v] 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
 
-    feedback:
-
-    * [ ] 调研 makefile 模式规则（例如 %.o: %.c）
+* [ ] 调研 makefile 模式规则（例如 %.o: %.c）
 
 * [ ] 调研 make 变量与 shell 变量
 
@@ -1115,16 +1123,6 @@
 * [v] makefile 中，变量与定义间是否允许有空格？
 
     `KERNEL_DIR=/usr/xxx`
-
-    feedback:
-
-    * [asso] 调研 makefile 中的`=`递归展开（lazy evaluation）
-
-    * [asso] 调研 makefile 中的`:=`立即展开（simple evaluation）
-
-    * [asso] 调研 makefile 中的`?=`若未定义则赋值
-
-    * [asso] 调研 makefile 中的`+=`追加
 
 * [ ] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
 
@@ -1263,6 +1261,14 @@
 
 * [v] qa: review 30 mins
 
+* [ ] 调研 makefile 中的`=`递归展开（lazy evaluation）
+
+* [ ] 调研 makefile 中的`:=`立即展开（simple evaluation）
+
+* [ ] 调研 makefile 中的`?=`若未定义则赋值
+
+* [ ] 调研 makefile 中的`+=`追加
+
 ## cache tabs / process urls
 
 * 需要消化 cached urls
@@ -1273,15 +1279,55 @@
 
 ### tasks
 
-* [v] process 1 tab 09.12
+* [ ] `sudo mount -o remount /dev/shm`
 
-* [v] `nsupdate`
+    `/etc/fstab`:
+
+    ```
+    tmpfs /dev/shm tmpfs defaults,size=2G 0 0
+    ```
+
+    `sudo mount -o remount,size=2G /dev/shm` (临时增加 /dev/shm 的大小)
+
+* [ ] 调研使用其他共享内存目录
+
+    ```bash
+    sudo mkdir /mnt/shm
+    sudo mount -t tmpfs -o size=2G tmpfs /mnt/shm
+    ```
+
+* [ ] 调研`ipcs -m`
+
+* [ ] 调研`truncate`
+
+    `sudo truncate -s 9637892 /dev/shm/nccl-AoFK4o`
+
+* [ ] 调研`df -T /dev/shm`
+
+    `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
+
+* [ ] 调研`lsof`
+
+    `sudo lsof /dev/shm/nccl-AoFK4o`
+
+* [ ] 调研`ulimit -a`
+
+    ```bash
+    ulimit -n 4096  # 增加打开文件描述符的数量
+    ulimit -s unlimited  # 增加堆栈大小
+    ```
+
+* [ ] 调研`/var/log/syslog`, `/var/log/messages`
+
+* [ ] 调研给 frpc 增加密码
+
+* [v] process 1 tab 09.14
 
 * [ ] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
 
     或者`-append 'console=ttyS0' # 添加这行`?
 
-* [ ] `at`
+* [v] `at`
 
 * [ ] `alarm()` /` setitimer()`
 
@@ -1511,33 +1557,31 @@ resources:
 
 ### tasks
 
+* [ ] 为什么经过 transpose、permute 等操作后，张量会变成不连续的？
+
+* [ ] python class 中所有 member 都要在`__init__()`中使用`self.xxx = yyy`定义吗？还可以怎么声明或定义？
+
+* [ ] 什么是 transpose？多维 tensor 如何 transpose?
+
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
     目前看到
 
-    > Common Tensor Functions: Broadcasting, Matrix Multiplication, etc.
+    > Building and Training Neural Networks with PyTorch
+
+* [ ] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
+
+* [ ] 调研 python 中的`f"xxx"`字符串
+
+* [v] 调研 Pytorch - Index-based Operation
+
+    <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
 
     feedback:
 
-    * [ ] 为什么经过 transpose、permute 等操作后，张量会变成不连续的？
-
-    * [ ] python class 中所有 member 都要在`__init__()`中使用`self.xxx = yyy`定义吗？还可以怎么声明或定义？
-
-    * [ ] 什么是 transpose？多维 tensor 如何 transpose?
-
-    * [asso] `a.storage().data_ptr()`
-
-    * [ ] 调研 python 中的`f"xxx"`字符串
-
-    * [ ] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
-
     * 目前看到
 
-        > Building and Training Neural Networks with PyTorch
-
-* [ ] 调研 Pytorch - Index-based Operation
-
-    <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
+        > 3.index_copy_:  Copies the elements of a given tensor to
 
 * [ ] 调研 Tensor Slicing
 
@@ -1555,13 +1599,73 @@ resources:
 
     <https://docs.pytorch.org/tutorials/beginner/basics/intro.html>
 
+* [ ] gpu 如何对 transpose 加速？或者说，高性能 transpose 如何实现？
+
+* [ ] `a.storage().data_ptr()`
+
 ## Machine Learning
 
 ### tasks
 
 * [ ] 调研 matplotlib 画 surface
 
-* [ ] 调研 rnn 与 nlp 入门级的训练数据集
+* [v] 调研 rnn 与 nlp 入门级的训练数据集
+
+    feedback:
+
+    * pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
+
+    * [ ] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
+
+    * [ ] 调研 rnn
+
+        example 代码，尝试跑通
+
+    * [ ] 调研 IMDb 电影评论数据集
+
+        情感二分类，正面或负面
+
+        res: <http://ai.stanford.edu/~amaas/data/sentiment/>
+
+    * [ ] 调研 LSTM
+
+        example 代码，尝试跑通
+
+    * [ ] 调研 AG News 新闻分类数据集
+
+        包含超过100万篇新闻文章，任务是将新闻分类到四个顶级类别：世界、体育、商业、科技/科学。
+
+        ```py
+        from datasets import load_dataset
+        dataset = load_dataset('ag_news')
+        train_data = dataset['train']
+        ```
+
+        res: <https://arxiv.org/abs/1509.01626> （论文中有下载链接）
+
+    * [ ] SimpleBooks / TinyShakespeare 数据集
+
+        SimpleBooks：包含来自古登堡计划的纯文本书籍。
+
+        TinyShakespeare：包含莎士比亚的所有作品，约1MB的文本。
+
+    * [ ] Cornell Movie Dialogs Corpus (电影对白语料库)
+
+        包含大量电影角色之间的对话，非常适合训练一个简单的聊天机器人或对话生成模型。
+
+        res: <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>
+
+    * [ ] 调研 GRU
+
+        example 代码，尝试跑通
+
+    * [ ] 调研 BERT
+
+        example 代码，尝试跑通
+
+    * [ ] 调研 GPT
+
+        example 代码，尝试跑通
 
 * [ ] 调研带自回归的 Encoder-Decoder 架构
 
@@ -2008,7 +2112,7 @@ tasks:
 
     1. [v] 编译 graph dir
 
-* [ ] `$ORIGIN`
+* [v] `$ORIGIN`
 
     ```bash
     gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
@@ -2016,11 +2120,7 @@ tasks:
 
 * [ ] `readelf -l /bin/bash | grep interpreter`
 
-* [v] `RUNPATH`, `--enable-new-dtags`
-
-* [v] `/etc/ld.so.conf.d/myapp.conf`
-
-* [ ] `readelf`
+* [v] `readelf`
 
 * [ ] `objdump`
 
@@ -2060,7 +2160,11 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [ ] 调研`epoll`的用法
+* [v] 调研`epoll`的用法
+
+    feedback:
+
+    * [ ] reorg: linux socket programming
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -2095,10 +2199,6 @@ tasks:
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
 
 * [v] `od -t x1`
-
-    feedback:
-
-    * [asso] `od -t c`是干嘛用的？
 
 * [ ] `od -t x<N>`
 
@@ -2508,6 +2608,8 @@ tasks:
 * [ ] `chrpath`, `patchelf`悠 RUNPATH
 
 * [ ] `readelf -d my_program | grep -E '(RUNPATH|RPATH)'`
+
+* [ ] `od -t c`是干嘛用的？
 
 ## gpu driver
 
@@ -3994,15 +4096,13 @@ resources:
 
     调研：
 
-    `readl`, `writel`, `BUG()`, `readq`, `writeq`, `pci_read_config_dword`, `pci_find_ext_capability`
+    `pci_read_config_dword`, `pci_find_ext_capability`
 
     调研一下`KBUILD_MODNAME`的含义。
 
-    * 需要调研的函数
+    * `spin_unlock_irqrestore()`
 
-        * `spin_unlock_irqrestore()`
-
-        * `mdev_register_device()`
+    * `mdev_register_device()`
 
 * 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
 
@@ -4020,13 +4120,43 @@ resources:
 
 ### tasks
 
+* [ ] `BUG()`
+
+* [ ] `readq`, `writeq`
+
+* [ ] 调研 shared_ptr
+
 * [ ] vscode 是否有快捷键移动到下一个/上一个词
 
-* [ ] 调研 ubuntu 屏幕锁定后，是否还能被 gnome remote desktop 正常连接
+* [v] 调研 ubuntu 屏幕锁定后，是否还能被 gnome remote desktop 正常连接
 
-* [ ] `dma_map_single()`
+    feedback:
 
-* [ ] `devm_ioremap_resource()`
+    * 不能，最简单的办法是把 lock screen 相关的设置都禁掉
+
+* [v] `dma_map_single()`
+
+    feedback:
+
+    * [ ] 如果这块内存既读又写，该如何保证缓存一致性？
+
+    * [asso] `virt_to_phys()`
+
+    * [asso] `PAGE_OFFSET()`
+
+    * [asso] `get_free_pages()`
+
+    * [asso] `vmalloc_to_page()`
+
+    * [asso] `dma_map_sg()`
+
+    * [asso] `get_user_pages()`
+
+    * [asso] `flush_cache_all()`
+
+    * [asso] `invalidate_cache_all()`
+
+* [v] `devm_ioremap_resource()`
 
 * [ ] `copy_from_user()`
 

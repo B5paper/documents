@@ -623,3 +623,5 @@ corpus n. 语料库
 grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of Linguistic Acceptability (CoLA) contains expert judgements on whether a sentence is grammatical or not, and tests the innate linguistic bias of trained models.
 
 * factorial n. 阶乘
+
+* facilitate v. 促进; 使便利 eg. Broadcasting allows for automatic expansion of dimensions to facilitate arithmetic operations on tensors of different shapes.
