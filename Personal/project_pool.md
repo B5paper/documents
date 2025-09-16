@@ -28,6 +28,32 @@
 
 ## cache
 
+* 不知道干什么也有可能是任务定得太大，不知道从何下手。把任务细化应该会好一点。
+
+* 原以为知乎是理性讨论的，后来发现知乎只是表达欲强的人的聚集地。
+
+* 并不是多想做某个方向，只是怕一直陷在一个方向。
+
+* 大雨
+
+    在剧情的末尾，应该有一场大雨，终止浮躁的人心。大雨浇到路面上，路面被冷却冒起滋滋的蒸汽。大雨整整下了一个秋天，大街上几乎所有的活动都停止了，人们终于回过神来。
+
+* 目前是 AI 烧钱阶段，基本没有广告，后面肯定要给大模型植入广告，就像视频网站的片头广告一样。所以要抓紧时间，用好大模型快速学知识。到后面如果需要看广告才有 AI 回答，那效率就没有现在这么高了。
+
+* 映射
+
+    假如将世界作为一个复杂系统 W，是否存在另一个复杂系统 B，W 中发生的事 E，经过某种信号处理方式后，传递到 B，在 B 中会有相应的区域 A 被激活，表示事 E 发生。
+
+    有点像世界模型，也有点像盗墓笔记中的张家古楼铜镜，所有人被缩小在镜子的影像里。
+
+    系统 B 可以根据激活的 A 区域，继续去推演。
+
+* 网状知识结构
+
+    有时候读 resource 可能会不理解概念，提出问题，但是这个问题可能会在 resource 的后面得到解答。这是否暗示知识体系必须是网状结构，才能理解复杂的概念网？
+
+    阅读 resource 是一个以时间为轴的过程，而构建网状知识是一个以空间为轴的过程，说明用空间可以解决时间的前后依赖问题。
+
 * 趴着看电脑腰也会疼，目前定的时间是每天最长 30 ~ 40 分。
 
 * log 不应该与 task 放在同一个文件里，翻来翻去太费时间
@@ -206,8 +232,6 @@
 
     因此，缓存的作用就是一个桥梁，将不适合吸收的参考资料慢慢转换成适配当前的知识图谱的知识。
 
-* lavazza 的森林汤力美式 agosto，是苏打气泡水 + 美式。感觉一般偏下。
-
 * 如果一个任务是是调研任务，不是调研实现任务，那么在收集一些有用的信息，派生一些 dep / feedback 任务后，可以直接完成
 
 * 关于 A -> B -> C 的猜想
@@ -217,8 +241,6 @@
     使用这种方法，我们只能无限地让 B_n 接近 A，但是始终无法达到 A，因为我们不清楚未来是否还能找到反例。
 
     另外，现象 C，C_1 不一定都是由 A 导致的，可能是多重因素共同导致的；能解释 A 的 B 也不止有 B 和 B_1 这两种，可能有很多很多种。这样就为寻找 B 的过程带来了很大的复杂度。
-
-* 茶百道的山茶花芒果冰茶，其实就是只加芒果版的杨枝甘露，不清楚山茶花什么风味。大杯的有点多，喝不太完，中杯就行。
 
 * 如果一个任务是完成状态，那么它的 feedback 任务应该放到它的下面，如果一个任务是 P 或 O 状态，那么它的 feedback / deps 任务应该放到它的上面。
 
@@ -867,27 +889,31 @@
 
     2. 已知 ptr 无法快速找到 idx（如果 idx 的目的是找到 entity，那么找不到 idx 也无所谓了吧）
 
+* vscode 的 ctrl + f 搜索功能有正则表达式选项
+
 ### tasks
+
+* [ ] 增加每日任务模板
+
+    qa, reorg，cache tab 任务都是需要长期保持的，其余的任务从每个 project 中挑出几个。
+
+    * 有些重名任务需要记录日期以区分。
+    
+    * 所有任务需要记录开始和结束时间。
+    
+    * 调研任务，reorg, cache tab 任务需要预计总时间。
+    
+    * qa 任务需要预计需求量，比如 qa 2 units。
 
 * [v] 调研是否有 vscode 快捷键，可以找到下一个以`##`或`###`开头的行？
 
-    feedback:
-
-    * vscode 的 ctrl + f 搜索功能有正则表达式选项
-
 * [v] 调研 8259A
 
-    feedback:
-
-    1. [ ] 调研 qemu + FreeDOS 安装 dos 环境
+* [ ] 调研 qemu + FreeDOS 安装 dos 环境
 
 * [O] reorg linux driver
 
     关注中断部分，增加 qa unit
-
-* [ ] 调研 IRQ 2 与 irq 1 的级联中断
-
-* [ ] 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
 
 * [ ] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
 
@@ -907,8 +933,6 @@
 * [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
-
-* [v] reorg project: `main.cpp`
 
 * [ ] `remove_const_t`
 
@@ -1089,11 +1113,22 @@
 
 ### Tasks
 
-* [ ] 调研 makefile `subst`
+* [v] 调研 makefile `subst`
+
+    feedback:
+
+    * [ ] 等号前后是否加空格
+
+        ```makefile
+        VAR_1 = hello
+        VAR_2 =hello
+        ```
+
+        似乎 var 1 和 var 2 是一样的，为什么 var 1 没有带上等号后面的空格？
+
+    * [ ] `patsubst`
 
 * [ ] 调研 makefile `shell`
-
-* [v] 调研 makefile 中特殊的自动变量（如 `$@`, `$<`, `$^`）
 
 * [ ] 调研 makefile 模式规则（例如 %.o: %.c）
 
@@ -1119,10 +1154,6 @@
         @echo "The process ID in Make is: $(shell echo $$PPID)" # 嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
         @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
     ```
-
-* [v] makefile 中，变量与定义间是否允许有空格？
-
-    `KERNEL_DIR=/usr/xxx`
 
 * [ ] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
 
@@ -1269,7 +1300,7 @@
 
 * [ ] 调研 makefile 中的`+=`追加
 
-## cache tabs / process urls
+## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
 
@@ -1278,6 +1309,44 @@
 * 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
 
 ### tasks
+
+* [v] process 1 tab  09.15
+
+    feedback:
+
+    * [ ] `posix_memalign()`
+
+    * [asso] 调研 SG-DMA
+
+    * [ ] `aligned_alloc()`
+
+    * [asso] 调研散列表（Scatterlist）
+
+        ```c
+        struct scatterlist sg;
+        sg_init_one(&sg, user_buf, size); // 初始化散列表项
+        dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE); // 映射物理地址
+        ```
+
+    * [asso] `sg_dma_address()`, `sg_dma_len()`
+
+    * [asso] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+
+    * [asso] `mlock()`
+
+    * [asso] `get_user_pages()`
+
+    * [asso] 调研自旋锁、互斥锁的汇编实现
+    
+        `LDREX`和`STREX`（独占加载/存储）
+
+    * [asso] 调研内存屏障指令
+
+        * DMB (Data Memory Barrier)：确保屏障前的内存操作在后续操作之前完成。
+
+        * DSB (Data Synchronization Barrier)：比 DMB 更严格，等待所有内存操作完成。
+
+        * ISB (Instruction Synchronization Barrier)：清空流水线，确保新指令的执行。
 
 * [ ] `sudo mount -o remount /dev/shm`
 
@@ -1323,13 +1392,41 @@
 
 * [v] process 1 tab 09.14
 
-* [ ] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
+* [v] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
 
     或者`-append 'console=ttyS0' # 添加这行`?
 
+    feedback:
+
+    * [asso] `grub2-mkconfig`
+
+    * [asso] `/boot/grub/grub.cfg`
+
+    * [asso] SYSLINUX/ISOLINUX/PXELINUX 系列引导程序
+
+        ISOLINUX (用于光盘): isolinux/isolinux.cfg
+
+        SYSLINUX (用于 FAT 文件系统): syslinux/syslinux.cfg
+
+        PXELINUX (用于网络启动): pxelinux.cfg/default
+
+    * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
+
 * [v] `at`
 
-* [ ] `alarm()` /` setitimer()`
+* [v] `alarm()` /` setitimer()`
+
+    feedback:
+
+    * [ ] `setitimer()`
+
+    * [ ] `timer_create()`
+
+    * [ ] `signal()`
+
+    * [ ] `pause()`
+
+    * [ ] `sigaction()`
 
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
@@ -1398,8 +1495,6 @@
 * [ ] 调研 rsync `--backup`的用法
 
 * [v] process tabs  30 mins 07.06
-
-* [v] cache tabs 06.29
 
 * [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
 
@@ -1531,11 +1626,11 @@
 
 * [ ] 调研 vscode 的"代码片段（Snippet）"
 
-* [asso] `dig`
+* [ ] `dig`
 
-* [asso] `nslookup`
+* [ ] `nslookup`
 
-* [asso] dns 的`MX`, `NS`记录类型
+* [ ] dns 的`MX`, `NS`记录类型
 
 ## Torch
 
@@ -1573,7 +1668,7 @@ resources:
 
 * [ ] 调研 python 中的`f"xxx"`字符串
 
-* [v] 调研 Pytorch - Index-based Operation
+* [O] 调研 Pytorch - Index-based Operation
 
     <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
 
@@ -1583,9 +1678,13 @@ resources:
 
         > 3.index_copy_:  Copies the elements of a given tensor to
 
-* [ ] 调研 Tensor Slicing
+* [v] 调研 Tensor Slicing
 
     <https://www.geeksforgeeks.org/machine-learning/tensor-slicing/>
+
+    feedback:
+
+    * 这个是 tensorflow 的教程，对 torch 毫无意义
 
 * [ ] 调研 Reshaping a Tensor in Pytorch
 
@@ -1675,7 +1774,17 @@ resources:
 
         example 代码，尝试跑通
 
-* [ ] 调研带自回归的 Encoder-Decoder 架构
+* [v] 调研带自回归的 Encoder-Decoder 架构
+
+    feedback:
+
+    * [ ] 调研 NLP From Scratch: Classifying Names with a Character-Level RNN
+
+        <https://docs.pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html>
+
+    * [ ] 调研论文 Seq2Seq
+    
+        Sutskever, I., Vinyals, O., & Le, Q. V. (2014). Sequence to sequence learning with neural networks. In NeurIPS. 
 
 * [ ] 调研掩码自注意力（Masked Self-Attention）
 
@@ -2114,21 +2223,15 @@ tasks:
 
 * [O] 调研 graph xml parser
 
-    16:27 ~ 
+    feedback:
 
-    deps:
+    * [ ] 实现 dump 功能
 
-    1. [v] 编译 graph dir
+* [v] `readelf -l /bin/bash | grep interpreter`
 
-* [v] `$ORIGIN`
+    feedback:
 
-    ```bash
-    gcc main.c -Wl,-rpath,'$ORIGIN/../libs'
-    ```
-
-* [ ] `readelf -l /bin/bash | grep interpreter`
-
-* [v] `readelf`
+    * [asso] 解析`readelf -l <bin_file>`输出中各个字段的含义
 
 * [ ] `objdump`
 
@@ -2170,9 +2273,7 @@ tasks:
 
 * [v] 调研`epoll`的用法
 
-    feedback:
-
-    * [ ] reorg: linux socket programming
+* [ ] reorg: linux socket programming
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
@@ -2205,8 +2306,6 @@ tasks:
 * [ ] 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
-
-* [v] `od -t x1`
 
 * [ ] `od -t x<N>`
 
@@ -4122,55 +4221,51 @@ resources:
 
     如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
 
+* ubuntu 屏幕锁定后，不能被 gnome remote desktop 正常连接
+
+    最简单的解决办法是把 lock screen 相关的设置都禁掉。
+
+* `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
+
 resources:
 
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
 
-* [ ] `BUG()`
+* [ ] `/proc/iomem`
 
-* [ ] `readq`, `writeq`
-
-* [ ] 调研 shared_ptr
-
-* [ ] vscode 是否有快捷键移动到下一个/上一个词
-
-* [v] 调研 ubuntu 屏幕锁定后，是否还能被 gnome remote desktop 正常连接
+* [v] `BUG()`
 
     feedback:
 
-    * 不能，最简单的办法是把 lock screen 相关的设置都禁掉
+    * [asso] 调研 silent data corruption（静默数据损坏）
+
+* [v] `readq`, `writeq`
+
+* [v] 调研 shared_ptr
+
+* [v] vscode 是否有快捷键移动到下一个/上一个词
 
 * [v] `dma_map_single()`
 
-    feedback:
-
-    * [ ] 如果这块内存既读又写，该如何保证缓存一致性？
-
-    * [asso] `virt_to_phys()`
-
-    * [asso] `PAGE_OFFSET()`
-
-    * [asso] `get_free_pages()`
-
-    * [asso] `vmalloc_to_page()`
-
-    * [asso] `dma_map_sg()`
-
-    * [asso] `get_user_pages()`
-
-    * [asso] `flush_cache_all()`
-
-    * [asso] `invalidate_cache_all()`
+* [ ] 如果这块内存既读又写，该如何保证缓存一致性？
 
 * [v] `devm_ioremap_resource()`
 
-* [ ] `copy_from_user()`
+* [v] `copy_from_user()`
 
-* [ ] `mdev_get_drvdata()`
+    feedback:
 
-* [ ] `BIT()`
+    * [asso] 调研换出（paged out）
+
+* [v] `mdev_get_drvdata()`
+
+    feedback:
+
+    * [asso] 调研 VFIO 以及其 example 
+
+* [v] `BIT()`
 
 * [ ] 调研内联汇编
 
@@ -4223,31 +4318,7 @@ resources:
 
 * [ ] ` __attribute__((packed))`, `__packed`
 
-* [v] 调研字节序转换宏
-
-    ```c
-    #include <linux/byteorder/generic.h>
-
-    // 从设备字节序转换到CPU字节序
-    u32 be32_to_cpu(u32); // 设备是大端序，CPU是任意序
-    u32 le32_to_cpu(u32); // 设备是小端序，CPU是任意序
-
-    u16 be16_to_cpu(u16);
-    u16 le16_to_cpu(u16);
-
-    // 从CPU字节序转换到设备字节序
-    u32 cpu_to_be32(u32);
-    u32 cpu_to_le32(u32);
-    // ... 其他类似
-    ```
-
 * [ ] 调研 pandas，polars
-
-* [ ] `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
-
-* [ ] `/proc/iomem`
-
-* [ ] `/proc/iomem`
 
 * [ ] DMA总线
 
@@ -4683,6 +4754,26 @@ resources:
 * [ ] 调研流式（Streaming）DMA
 
     用于大数据块的单向传输。CPU或设备一方完成访问后另一方再访问，需要软件手动处理缓存同步（dma_sync_*函数）。
+
+* [ ] `virt_to_phys()`
+
+* [ ] `PAGE_OFFSET()`
+
+* [ ] `get_free_pages()`
+
+* [ ] `vmalloc_to_page()`
+
+* [ ] `dma_map_sg()`
+
+* [ ] `get_user_pages()`
+
+* [ ] `flush_cache_all()`
+
+* [ ] `invalidate_cache_all()`
+
+* [ ] 调研 IRQ 2 与 irq 1 的级联中断
+
+* [ ] 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
 
 ## OpenGL
 

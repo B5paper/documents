@@ -2,6 +2,8 @@
 
 ## cached
 
+* RAII (Resource Acquisition Is Initialization)，即资源获取即初始化，或者说利用对象的生命周期来自动管理资源。
+
 * 根据不同的参数类型选择不同的构造函数一例
 
     ```cpp

@@ -6,6 +6,328 @@
 
 ## cache
 
+* select / poll 底层机制并不是轮询（Busy Polling），只有在处理事件 fd 时才是线性查找
+
+* epoll examples
+
+    1. example 1
+
+        ```c
+        // 1. 创建 socket，bind，listen
+        int listen_sock = setup_listening_socket();
+
+        // 2. 创建 epoll 实例
+        int epfd = epoll_create1(0);
+
+        // 3. 将监听 socket 添加到 epoll，关注其可读事件（有新连接）
+        struct epoll_event event;
+        event.events = EPOLLIN;
+        event.data.fd = listen_sock;
+        epoll_ctl(epfd, EPOLL_CTL_ADD, listen_sock, &event);
+
+        while (1) {
+            // 4. 等待事件
+            struct epoll_event events[MAX_EVENTS];
+            int n = epoll_wait(epfd, events, MAX_EVENTS, -1);
+
+            for (int i = 0; i < n; i++) {
+                // 5. 处理事件
+                if (events[i].data.fd == listen_sock) {
+                    // 监听socket可读，说明有新连接到来
+                    int conn_sock = accept(listen_sock, ...);
+                    // 将新连接的 socket 也加入 epoll 监控
+                    set_nonblocking(conn_sock); // ET模式必须设为非阻塞
+                    event.events = EPOLLIN | EPOLLET; // 使用ET模式
+                    event.data.fd = conn_sock;
+                    epoll_ctl(epfd, EPOLL_CTL_ADD, conn_sock, &event);
+                } else {
+                    // 普通客户端socket可读，进行数据读写
+                    handle_connection(events[i].data.fd);
+                }
+            }
+        }
+        ```
+
+    2. example 2
+
+        一个完整的、可编译运行的 epoll 示例，它是一个简单的回显（Echo）服务器。
+
+        ```c
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <unistd.h>
+        #include <arpa/inet.h>
+        #include <sys/socket.h>
+        #include <sys/epoll.h>
+        #include <fcntl.h>
+        #include <errno.h>
+
+        #define PORT 8080
+        #define MAX_EVENTS 10
+        #define BUFFER_SIZE 1024
+
+        // 设置文件描述符为非阻塞模式
+        void set_nonblocking(int fd) {
+            int flags = fcntl(fd, F_GETFL, 0);
+            fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+        }
+
+        // 创建监听socket
+        int create_listen_socket() {
+            int listen_fd;
+            struct sockaddr_in server_addr;
+
+            // 创建socket
+            if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+                perror("socket");
+                exit(EXIT_FAILURE);
+            }
+
+            // 设置SO_REUSEADDR选项
+            int opt = 1;
+            if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+                perror("setsockopt");
+                close(listen_fd);
+                exit(EXIT_FAILURE);
+            }
+
+            // 绑定地址
+            server_addr.sin_family = AF_INET;
+            server_addr.sin_addr.s_addr = INADDR_ANY;
+            server_addr.sin_port = htons(PORT);
+
+            if (bind(listen_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+                perror("bind");
+                close(listen_fd);
+                exit(EXIT_FAILURE);
+            }
+
+            // 开始监听
+            if (listen(listen_fd, SOMAXCONN) == -1) {
+                perror("listen");
+                close(listen_fd);
+                exit(EXIT_FAILURE);
+            }
+
+            printf("Server listening on port %d...\n", PORT);
+            return listen_fd;
+        }
+
+        // 处理客户端连接
+        void handle_client(int client_fd) {
+            char buffer[BUFFER_SIZE];
+            ssize_t bytes_read;
+
+            // 读取数据
+            while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE - 1)) > 0) {
+                buffer[bytes_read] = '\0';
+                printf("Received from client %d: %s", client_fd, buffer);
+                
+                // 回显数据
+                if (write(client_fd, buffer, bytes_read) == -1) {
+                    perror("write");
+                    break;
+                }
+            }
+
+            // 客户端断开连接或读取出错
+            if (bytes_read == 0) {
+                printf("Client %d disconnected\n", client_fd);
+            } else if (bytes_read == -1) {
+                if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                    perror("read");
+                }
+            }
+        }
+
+        int main() {
+            int listen_fd, epoll_fd;
+            struct epoll_event event, events[MAX_EVENTS];
+
+            // 创建监听socket
+            listen_fd = create_listen_socket();
+
+            // 创建epoll实例
+            if ((epoll_fd = epoll_create1(0)) == -1) {
+                perror("epoll_create1");
+                close(listen_fd);
+                exit(EXIT_FAILURE);
+            }
+
+            // 添加监听socket到epoll，关注可读事件
+            event.events = EPOLLIN;
+            event.data.fd = listen_fd;
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_fd, &event) == -1) {
+                perror("epoll_ctl");
+                close(listen_fd);
+                close(epoll_fd);
+                exit(EXIT_FAILURE);
+            }
+
+            printf("Epoll server started. Waiting for connections...\n");
+
+            while (1) {
+                // 等待事件发生
+                int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+                if (nfds == -1) {
+                    perror("epoll_wait");
+                    break;
+                }
+
+                // 处理所有就绪的事件
+                for (int i = 0; i < nfds; i++) {
+                    // 有新连接到来
+                    if (events[i].data.fd == listen_fd) {
+                        struct sockaddr_in client_addr;
+                        socklen_t client_len = sizeof(client_addr);
+                        int client_fd;
+
+                        // 接受新连接
+                        client_fd = accept(listen_fd, (struct sockaddr*)&client_addr, &client_len);
+                        if (client_fd == -1) {
+                            perror("accept");
+                            continue;
+                        }
+
+                        // 设置客户端socket为非阻塞模式
+                        set_nonblocking(client_fd);
+
+                        // 添加客户端socket到epoll，关注可读事件（使用边缘触发模式）
+                        event.events = EPOLLIN | EPOLLET;
+                        event.data.fd = client_fd;
+                        if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1) {
+                            perror("epoll_ctl");
+                            close(client_fd);
+                            continue;
+                        }
+
+                        printf("New client connected: %d\n", client_fd);
+
+                    } 
+                    // 客户端socket可读
+                    else if (events[i].events & EPOLLIN) {
+                        handle_client(events[i].data.fd);
+                        
+                        // 注意：在实际应用中，你可能需要更复杂的连接管理
+                        // 这里简单处理，读取完成后就关闭连接
+                        printf("Closing connection for client %d\n", events[i].data.fd);
+                        close(events[i].data.fd);
+                    }
+                }
+            }
+
+            // 清理资源
+            close(listen_fd);
+            close(epoll_fd);
+            return 0;
+        }
+        ```
+
+        compile: `gcc -o epoll_server epoll_server.c`
+
+        run: `./epoll_server`
+
+        test:
+
+        ```bash
+        # 使用 telnet 测试
+        telnet localhost 8080
+
+        # 或者使用 netcat
+        nc localhost 8080
+
+        # 或者使用多个终端同时连接测试
+        ```
+
+        输入一些文字，服务器会回显你输入的内容
+
+* epoll 的两种工作模式
+
+    1. 水平触发 (Level-Triggered, LT) (默认模式)
+
+        条件满足就持续通知：只要一个文件描述符还有数据可读，每次调用 epoll_wait 都会返回它的事件。
+
+        优点：编码简单，不容易遗漏事件。
+
+        注意：如果不读完数据，会一直被通知。
+
+    2. 边缘触发 (Edge-Triggered, ET)
+
+        状态变化时只通知一次：只有当文件描述符从不可读变为可读（即新数据到来）时，才会收到一次通知。
+
+        优点：性能更高，减少了事件被重复触发的次数。
+
+        要求：必须使用非阻塞 I/O，并且必须一次性把缓冲区里的数据全部读完（直到 read 返回 EAGAIN 错误），否则可能会永远丢失这次事件。
+
+* epoll
+
+    epoll 是 Linux 系统上一种高效的多路复用 I/O 机制，用于同时监控大量的文件描述符（如网络套接字），看它们是否可读、可写或出现异常。它非常适合处理高并发网络服务器。
+
+    与其不断地轮询所有连接（像 select/poll 那样），epoll 采用了“事件通知”的方式。当内核检测到某个被监控的描述符就绪时，它会通知应用程序，从而避免了无效的检查。
+
+    使用 epoll 的方法：
+
+    1. 创建一个 epoll 实例 (epoll_create)
+
+        ```c
+        int epfd = epoll_create1(0); // 参数通常传0
+        ```
+
+        `epfd`是一个文件描述符，代表这个 epoll 实例。后续所有操作都要用到它。
+
+    2. 管理 epoll 监控列表 (epoll_ctl)
+
+        通过 epoll_ctl 向这个实例（epfd）中添加、修改或删除需要监控的文件描述符。
+
+        ```c
+        // 添加一个 socket fd 到监控列表中，关注其可读事件
+        struct epoll_event event;
+        event.events = EPOLLIN; // 监控可读事件
+        event.data.fd = sockfd; // 当事件发生时，我们知道是哪个fd触发的
+
+        epoll_ctl(epfd, EPOLL_CTL_ADD, sockfd, &event);
+        ```
+
+        * `EPOLL_CTL_ADD`: 添加
+
+        * `EPOLL_CTL_MOD`: 修改
+
+        * `EPOLL_CTL_DEL`: 删除
+
+        events 常用标志：
+
+        * EPOLLIN: 文件描述符可读（有数据到来）
+
+        * EPOLLOUT: 文件描述符可写
+
+        * EPOLLET: 设置为边缘触发（Edge-Triggered）模式（默认为水平触发 Level-Triggered）
+
+    3. 等待事件发生 (epoll_wait)
+
+        调用 epoll_wait 来等待事件发生。这个函数会阻塞，直到有一个或多个被监控的描述符就绪。
+
+        ```c
+        #define MAX_EVENTS 10
+        struct epoll_event events[MAX_EVENTS];
+
+        // 等待事件发生，超时时间设为 -1 表示一直阻塞
+        int nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
+
+        // 处理所有就绪的事件
+        for (int i = 0; i < nfds; i++) {
+            if (events[i].events & EPOLLIN) { // 如果是可读事件
+                int ready_fd = events[i].data.fd;
+                // 对这个 ready_fd 进行读操作（如 recv, accept）
+            }
+            // 可以检查其他事件，如 EPOLLOUT
+        }
+        ```
+
+        * epoll_wait 返回就绪的事件数量 nfds。
+
+        * 事件数组 events 会被填充，我们可以遍历这个数组来处理所有就绪的 I/O 操作。
+
 * `openat()`
 
     在一个特定的目录文件描述符所指向的目录下，打开或创建一个文件。

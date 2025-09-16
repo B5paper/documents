@@ -6,6 +6,232 @@ Ref:
 
 ## cache
 
+* `devm_ioremap_resource()`
+
+    将一个设备（通常是硬件外设）的物理内存地址区域（例如寄存器组）映射到内核的虚拟地址空间，并自动管理该映射的生命周期。
+
+    syntax:
+
+    ```c
+    #include <linux/device.h>   // 提供 struct device 的定义
+    #include <linux/io.h>       // 提供 __iomem、IORESOURCE_MEM 等定义和函数声明
+
+    void __iomem *devm_ioremap_resource(struct device *dev, const struct resource *res);
+    ```
+
+    params:
+
+    * `struct device *dev`: 指向申请该资源映射的设备结构体的指针。这通常由平台驱动框架自动提供（例如在 probe 函数中，&pdev->dev）。
+
+    * `const struct resource *res`: 指向要映射的硬件资源（resource 结构体）的指针。这个资源通常通过 platform_get_resource() 等函数从平台设备信息中获取。
+
+    返回值：
+
+    * 成功: 返回一个指向映射后内核虚拟地址空间的指针（void __iomem * 类型）。驱动程序后续通过此指针（配合 readl/writel 等函数）来访问硬件寄存器。
+
+    * 失败: 返回 ERR_PTR(...)，即一个封装了错误码的指针。需要使用 IS_ERR() 和 PTR_ERR() 来检查和获取错误信息。
+
+    example:
+
+    ```c
+    #include <linux/device.h>
+    #include <linux/io.h>
+    #include <linux/platform_device.h> // 用于 platform_get_resource
+
+    struct my_private_data {
+        void __iomem *reg_base;
+    };
+
+    static int my_driver_probe(struct platform_device *pdev)
+    {
+        struct device *dev = &pdev->dev;
+        struct resource *res;
+        struct my_private_data *priv;
+
+        // 从平台设备获取内存资源（索引0）
+        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if (!res) {
+            dev_err(dev, "Failed to get MEM resource\n");
+            return -EINVAL;
+        }
+
+        // 申请设备私有数据
+        priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+        if (!priv)
+            return -ENOMEM;
+
+        // 核心步骤：映射设备的寄存器区域
+        priv->reg_base = devm_ioremap_resource(dev, res);
+        if (IS_ERR(priv->reg_base)) {
+            dev_err(dev, "Failed to ioremap region\n");
+            return PTR_ERR(priv->reg_base);
+        }
+
+        // 将私有数据存储到设备结构体中
+        platform_set_drvdata(pdev, priv);
+
+        // ... 后续的硬件初始化、中断注册等操作 ...
+        // 可以通过 priv->reg_base 来访问寄存器，例如：
+        // writel(0x12345678, priv->reg_base + SOME_REG_OFFSET);
+
+        return 0;
+    }
+    // 注意：不需要在 remove 函数中手动 iounmap，devm_ 机制会自动处理。
+    ```
+
+* `dma_alloc_coherent()`与`dma_map_single()`的区别
+
+    dma_alloc_coherent() 用于“静态”或“长期”的共享缓冲区，而 dma_map_single() 用于“动态”或“短期”的流式DMA传输。
+
+    `dma_alloc_coherent()`会配置这块内存为 uncacheable（不可缓存）来实现缓存一致性，代价是性能下降。通常只能分配较小的、物理连续的内存块（例如最多几个MB）（为什么？）
+    
+    dma_map_single() + kmalloc() 是流式映射，将一块普通的、由CPU高效使用的缓存内存，临时映射给设备用于一次DMA传输。传输完成后立即解除映射。一致性由软件（内核）在映射/解除映射时维护。适合大块内存。dma_map_single -> Flush Cache, dma_unmap_single -> Invalidate Cache.
+
+    对于流式 dma，在 dma map 之后，dma unmap 之前，可能会有缓存不一致的情况。
+
+* 缓存维护操作（Cache Flushing/Invalidating）
+
+* `dma_mapping_error()`
+
+    在使用 dma_map_single() 时，强烈建议使用 dma_mapping_error() 来检查映射是否成功，而不是直接判断返回值是否为0或NULL（因为DMA地址0可能是一个有效的物理地址）。
+
+    ```c
+    dma_addr_t dma_handle;
+    dma_handle = dma_map_single(dev, ptr, size, dir);
+    if (dma_mapping_error(dev, dma_handle)) {
+        // 映射失败，处理错误
+        return -ENOMEM; // 或其它错误码
+    }
+    // 映射成功，继续使用 dma_handle
+    ```
+
+* `dma_map_single()`
+
+    为一次 DMA 传输做准备，将一块 CPU 可访问的内存区域映射到设备可以访问的 DMA 地址空间。
+
+    syntax:
+
+    ```c
+    #include <linux/dma-mapping.h>
+
+    dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir);
+
+    void dma_unmap_single(struct device *dev, dma_addr_t dma_handle, size_t size, enum dma_data_direction dir);
+    ```
+
+    parameters:
+
+    * `dev`: 指向设备结构体的指针。这个指针包含了DMA映射操作所需的硬件信息，例如设备所在的总线地址空间限制、是否具有IOMMU等。
+
+    * `ptr`: 需要映射的内核虚拟地址。这通常是通过`kmalloc()`等内核函数分配的内存块的起始地址。
+
+    * `size`: 需要映射的内存区域的大小（以字节为单位）。
+
+    * `dir`: DMA 数据传输的方向。这是一个枚举类型，决定了内核如何处理缓存一致性。其取值通常为：
+
+        * `DMA_TO_DEVICE`：数据从内存传输到设备（写操作）。
+
+        * `DMA_FROM_DEVICE`：数据从设备传输到内存（读操作）。
+
+        * `DMA_BIDIRECTIONAL`：数据可能双向传输。
+
+        * `DMA_NONE`：仅用于调试，表明方向未知。
+
+    返回值
+
+    成功时返回映射后的`dma_addr_t` DMA 地址（总线地址）。
+
+    如果映射失败（例如，参数无效或地址无法映射），函数可能会返回一个特殊的“错误”DMA地址（具体实现可能不同），或者在某些配置下触发BUG。
+
+    CPU 访问内存使用的是虚拟地址（Virtual Address），经过 MMU（内存管理单元）转换后得到物理地址。而 DMA 设备通常工作在物理地址层面，但它看到的“物理地址”（我们称之为总线地址，Bus Address）有可能与 CPU 看到的物理地址不同（尤其是在有 IOMMU 的系统中）。
+
+    `dma_map_single()`主要解决两个问题：
+
+    1. 内地映射：将 cpu 使用的 va 和 dma handle 进行映射。cpu 使用的 va 由 kmalloc() 得到
+
+    2. 维护缓存一致性
+
+        * 对于设备要读取的内存（`DMA_FROM_DEVICE`），dma_map_single() 会刷洗（Flush）CPU Cache，确保设备读到的是内存中最新的数据。
+
+        * 对于设备要写入的内存（`DMA_TO_DEVICE`），dma_map_single() 可能会作废（Invalidate）CPU Cache，确保设备写完后，CPU 下次读取时能从内存获取新数据，而不是旧的缓存数据。
+
+    典型使用流程
+
+    一个典型的 DMA 传输流程中，该函数的使用如下：
+
+    1. 分配内存：使用 kmalloc() 等函数分配一块用于 DMA 缓冲区的内存。
+
+    2. 准备数据：（如果是输出）CPU 将需要传输的数据填充到这块内存中。
+
+    3. 映射：调用 dma_map_single(dev, addr, size, direction)。
+
+        * dev：指向设备结构体的指针。
+
+        * addr：第一步分配的内存的内核虚拟地址。
+
+        * size：缓冲区大小。
+
+        * direction：数据传输方向（如 DMA_TO_DEVICE, DMA_FROM_DEVICE, DMA_BIDIRECTIONAL）。
+
+    4. 获取 DMA 地址：函数返回一个 dma_addr_t 类型的 DMA 地址。将这个地址写入设备的 DMA 控制器寄存器。
+
+    5. 启动传输：通知设备可以从/向给定的 DMA 地址开始传输数据。
+
+    6. 传输完成：设备产生中断，通知 CPU 传输完成。
+
+    7. 解除映射：调用 dma_unmap_single() 解除映射。这会再次处理缓存一致性问题，并使得这块内存的映射关系失效。
+
+    example:
+
+    ```c
+    // 必要的内核头文件
+    #include <linux/kernel.h>
+    #include <linux/module.h>
+    #include <linux/init.h>
+
+    // 设备模型相关
+    #include <linux/device.h>       // 定义 struct device
+    #include <linux/platform_device.h> // 如果是平台设备
+
+    // DMA API 相关
+    #include <linux/dma-mapping.h>  // 核心头文件，包含 dma_map_single 等
+    // #include <linux/dma-direction.h> // 如果需要，但通常 dma-mapping.h 已包含
+
+    // 其他可能需要的头文件，如用于内存分配的
+    #include <linux/slab.h>         // 用于 kmalloc, kfree
+
+    // ... 你的驱动代码 ...
+    static int my_driver_dma_transfer(struct device *dev)
+    {
+        void *cpu_addr;
+        dma_addr_t dma_handle;
+        size_t size = 1024; // 1KB
+
+        // 1. 分配内存
+        cpu_addr = kmalloc(size, GFP_KERNEL);
+        if (!cpu_addr)
+            return -ENOMEM;
+
+        // 2. 映射内存以用于DMA (传输到设备)
+        dma_handle = dma_map_single(dev, cpu_addr, size, DMA_TO_DEVICE);
+        if (dma_mapping_error(dev, dma_handle)) { // 推荐错误检查
+            kfree(cpu_addr);
+            return -ENOMEM;
+        }
+
+        // 3. 将 dma_handle 交给设备，启动DMA传输...
+        // program_device_to_start_dma(dma_handle);
+
+        // 4. (传输完成后) 解除映射
+        // dma_unmap_single(dev, dma_handle, size, DMA_TO_DEVICE);
+
+        // 5. 释放内存
+        // kfree(cpu_addr);
+
+        return 0;
+    }
+    ```
+
 * 字节序转换宏
 
     ```c

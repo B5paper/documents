@@ -2,6 +2,73 @@
 
 ## cache
 
+* `g++ *.o main.cpp -o main`在 makefile 中的问题
+
+    ```makefile
+    main: *.o main.cpp
+        g++ *.o main.cpp -o main
+    ```
+
+    存在的问题：
+
+    1. command 中的`*.o`会作为 bash 命令展开，如果当前目录没有`.o`结尾的文件，那么会报错
+
+        example:
+
+        ```
+        (base) hlc@hlc-VirtualBox:~$ ls *.aaa
+        ls: cannot access '*.aaa': No such file or directory
+        (base) hlc@hlc-VirtualBox:~$ echo $?
+        2
+        (base) hlc@hlc-VirtualBox:~$ touch b.aaa
+        (base) hlc@hlc-VirtualBox:~$ ls *.aaa
+        b.aaa
+        (base) hlc@hlc-VirtualBox:~$ echo $?
+        0
+        ```
+
+    1. target dependency 中的`*.o`会在 makefile 规则分析时展开，由于并没有`*.o`文件的 target，所以触发 makefile 的隐式规则，使用`g++ -c xxx.cpp -o xxx.o`生成`.o`文件。
+
+        注意此时不会生成`g++ -c main.cpp -o main.o`文件。
+
+        ```makefile
+        all: main
+
+        main: *.o main.cpp
+        	g++ *.o main.cpp -o main
+
+        clean:
+        	rm -f *.o main
+        ```
+
+        project dir:
+
+        ```
+        (base) hlc@hlc-VirtualBox:~/Documents/Projects/makefile_test$ ls
+        lib.cpp  lib.h  main.cpp  Makefile
+        (base) hlc@hlc-VirtualBox:~/Documents/Projects/makefile_test$ make
+        g++    -c -o *.o lib.cpp
+        g++ *.o main.cpp -o main
+        (base) hlc@hlc-VirtualBox:~/Documents/Projects/makefile_test$ ls
+         lib.cpp   lib.h   main   main.cpp   Makefile  '*.o'
+        ```
+
+    1. makefile 的内置隐含规则会生成`'*.o'`文件
+
+        make 的隐含规则为：
+
+        ```makefile
+        # Make内置的隐含规则（近似于）
+        %.o: %.cpp
+            $(CXX) $(CXXFLAGS) -c $< -o $@
+        ```
+
+        检测到`*.o`不存在，会执行：
+
+        `g++ -c -o *.o *.cpp`
+
+        根据 bash 的规则，`*.cpp`会展开为`lib.cpp`，而`-o *.o`保持 raw string，因此生成的文件也叫`'*.o'`。Shell只在命令参数中展开通配符，不在选项参数中展开。
+
 * `wildcard`
 
     用于匹配指定模式的文件名.

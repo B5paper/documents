@@ -6,6 +6,246 @@
 
 ## cache
 
+* `readelf`的用法
+
+    用于显示关于 ELF (Executable and Linkable Format) 格式目标文件的信息。
+
+    ELF 是现代 Linux 系统上的一种文件格式，用于：
+
+    * 可执行文件 (例如编译生成的`a.out`)
+
+    * 共享库 (例如：libc.so.6)
+
+    * 目标文件 (例如：file.o)
+
+    * 核心转储文件 (core dumps)
+
+    常用选项：
+
+    * 查看文件头 (`-h`)
+
+        这是最常用的选项之一。它显示了 ELF 文件的概要信息，包括：
+
+        * 文件类型（可执行文件、共享库、目标文件等）
+
+        * 目标机器的体系结构（如 x86-64, ARM）
+
+        * 程序的入口点地址（Entry point）
+
+        * 程序头表（Program Headers）和节头表（Section Headers）的起始位置和大小。
+
+    * 查看节头信息 (`-S`)
+
+        显示文件中所有的 “节” (Sections) 的信息。节是 ELF 文件的重要组成部分，例如：
+
+        * `.text`： 存放可执行代码。
+
+        * `.data`： 存放已初始化的全局变量和静态变量。
+
+        * `.bss`： 存放未初始化的全局变量和静态变量。
+
+        * `.rodata`： 存放只读数据（如字符串常量）。
+
+        * `.symtab`： 符号表。
+
+        * `.strtab`： 字符串表。
+
+    * 查看程序头信息 (`-l`)
+
+        显示 “段” (Segments) 或称为 程序头 (Program Headers) 的信息。段告诉操作系统或动态链接器如何将文件加载到内存中并执行。这对于理解程序运行时布局至关重要。
+
+    * 查看符号表 (`-s`)
+
+        显示文件中定义和引用的所有符号，如函数名、变量名。这对于解决“未定义引用”等链接错误非常有用。
+
+    * 查看动态段信息 (`-d`)
+
+        对于动态链接的可执行文件或共享库，此选项显示其依赖的共享库（如 libc.so.6）以及动态链接器需要的其他信息（如重定位信息、符号表地址等）。
+
+    * 查看重定位信息 (`-r`)
+
+        显示文件中需要重定位的条目信息，这在分析目标文件(.o)时尤其有用。
+
+    * 查看节的内容 (`-x` 或 `-p`)
+
+        以十六进制或其他格式转储指定节的具体内容。
+
+    example:
+
+    `readelf -h main`
+
+    output:
+
+    ```
+    ELF Header:
+      Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+      Class:                             ELF64
+      Data:                              2's complement, little endian
+      Version:                           1 (current)
+      OS/ABI:                            UNIX - System V
+      ABI Version:                       0
+      Type:                              DYN (Position-Independent Executable file)
+      Machine:                           Advanced Micro Devices X86-64
+      Version:                           0x1
+      Entry point address:               0x1060
+      Start of program headers:          64 (bytes into file)
+      Start of section headers:          14048 (bytes into file)
+      Flags:                             0x0
+      Size of this header:               64 (bytes)
+      Size of program headers:           56 (bytes)
+      Number of program headers:         13
+      Size of section headers:           64 (bytes)
+      Number of section headers:         31
+      Section header string table index: 30
+    ```
+
+* `at`
+
+    安排一个任务在未来的某个特定时间点执行一次。
+
+    ubuntu 系统中默认不安装`at`，需要手动安装：`sudo apt install at`
+
+    syntax:
+
+    ```bash
+    at [选项] <时间设定>
+    ```
+
+    常用选项：
+
+    * `-f <文件>`：从指定的文件中读取要执行的命令，而不是交互式输入。
+
+        示例： `at -f /path/to/script.sh 10:00 AM`
+
+    * `-l`：列出当前用户的所有待处理作业（等同于 atq 命令）。
+
+        示例： at -l
+
+    * `-r <作业ID>`或`-d <作业ID>`：删除一个指定的待处理作业（等同于 atrm 命令）。
+
+        示例： at -r 5 (删除作业ID为5的任务)
+
+    * `-m`：即使命令没有输出，也在任务完成后给用户发送邮件。
+
+    * `-M`：即使命令有输出，也不给用户发送邮件。
+
+    * `-t <时间>`：使用`[[CC]YY]MMDDhhmm[.ss]`格式指定时间（较不常用）。
+
+        示例： `at -t 202507191430.00 (2025年7月19日14点30分00秒)`
+
+    * `-v`：显示任务将被执行的时间，而不是仅仅将任务排入队列。
+
+    * 时间设定
+
+        * 简单时间格式：
+
+            HH:MM - 在今天的指定时间执行。如果该时间已过，则顺延到明天。
+
+                示例： at 14:30
+
+            midnight, noon, teatime (通常是下午4点) - 使用预定义的单词。
+
+        * 相对时间格式：
+
+            now + <数量> <时间单位> - 从现在开始的一段时间后执行。
+
+                时间单位： minutes, hours, days, weeks
+
+                示例：
+
+                    at now + 10 minutes (10分钟后)
+
+                    at now + 2 hours (2小时后)
+
+                    at now + 1 week (1周后)
+
+        * 绝对时间格式：
+
+            MMDDYY, MM/DD/YY, DD.MM.YY - 指定具体日期。
+
+                示例：
+
+                    at 11:00 PM 072025 (2025年7月20日晚上11点)
+
+                    at 10am Jul 20 (7月20日上午10点)
+
+                    at 2:00 tomorrow (明天凌晨2点)
+
+        * 组合日期和时间：
+
+            你可以将日期和时间组合起来。
+
+                示例： at 3:30 PM next Friday (下周五下午3点半)
+
+    example:
+
+    * `at now + 10 minutes` (10分钟后)
+
+    * `at 11:00 PM` (今晚11点)
+
+    * `at 2:00 tomorrow` (明天凌晨2点)
+
+    * `at 10:00 Jul 20` (7月20日上午10点)
+
+    标准输入/交互式输入：通常你直接运行 at <TIME>，然后在其提示符下输入要执行的命令，按 Ctrl+D 结束输入。
+
+    从文件读取：也可以使用 at -f script.sh <TIME> 来指定一个脚本文件在特定时间运行。
+
+    examples:
+
+    * 安排一个简单任务
+
+        ```bash
+        # 安排一个任务在下午2：30执行
+        at 2:30 PM
+        # 进入at提示符后，输入命令：
+        at> echo "Hello from the past!" > ~/reminder.txt
+        # 输入完毕后，按 Ctrl+D 来保存任务
+        ```
+
+    * 安排一个不久后的任务
+
+        ```bash
+        # 安排一个20分钟后的任务
+        at now + 20 minutes
+        at> shutdown -h now # 例如：20分钟后关机
+        at> <EOT> # 按 Ctrl+D
+        ```
+
+    * 非交互模式
+
+        ```bash
+        # 将一个脚本文件中的命令安排在下午5点执行
+        $ at -f /path/to/daily_cleanup.sh 5:00 PM
+        job 7 at Tue Jul 18 17:00:00 2025
+        ```
+
+    * 使用管道（echo）
+
+        ```bash
+        # 通过管道将命令传递给at
+        $ echo "shutdown -h now" | at now + 30 minutes
+        job 8 at Tue Jul 18 15:45:00 2025
+        ```
+
+    `atq`：列出当前用户所有等待执行的 at 任务队列（root用户可以看到所有任务）。
+
+    `atrm <job_id>`：删除一个已排队的 at 任务。例如 atrm 3 会删除作业编号为3的任务。
+
+    注意事项:
+
+    * 守护进程：at 命令的运行依赖于 atd 这个守护进程。请确保它正在运行（通常通过 systemctl status atd 检查）。
+
+    * 执行环境：at 任务会在一个几乎最小化的 shell 环境中运行，只继承少量环境变量（如TERM, PATH, SHELL等）。如果你的命令依赖于特定的环境变量（如DISPLAY用于图形界面），可能需要在其内部重新设置。
+
+    * 输出处理：任务的标准输出和标准错误默认会通过电子邮件发送给任务所有者（即安排任务的用户）。为了避免收邮件，最好在命令中明确重定向输出（如 >/dev/null 2>&1 或重定向到日志文件）。
+
+    `at`命令中的时间指示符（如 AM, PM, tomorrow, midnight 等）是大小写不敏感的（case insensitive）。
+
+    在交互环境中输入命令时，无法使用 tab 自动补全（比如文件名，目录下的文件等）。
+
+    `at`指定的 command 执行后，无法随时中止，必须等 command 结束。
+
 * `nsupdate`
 
     用于动态、增量地更新 DNS 域名。它允许你在不手动编辑 zone file（区域文件）和重启 DNS 服务的情况下，直接添加、修改或删除 DNS 记录。

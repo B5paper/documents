@@ -2,6 +2,159 @@
 
 ## cache
 
+* 获取 hugging face 的 imdb 数据集
+
+    ```py
+    from datasets import load_dataset
+    dataset = load_dataset('imdb')
+    print(dataset['train'][0])
+    ```
+
+    数据会被下载到`~/.cache/huggingface/datasets`中。imdb 数据集大小为 128 M。
+
+* `index_add()`
+
+    It is the out-of place version of the function `index_add_()`.
+
+    example:
+
+    ```py
+    import torch
+
+    y = torch.ones(5,5)
+    index2 = torch.tensor([0,1,1,1,2])
+    ten = torch.randn(5,5)
+
+    print("Indexed Matrix:\n",y.index_add(1,index2,ten))
+    print ("Printing Indexed Matrix again:\n",y)
+    ```
+
+    output:
+
+    ```
+    Indexed Matrix:
+     tensor([[ 1.1614,  2.1703,  1.5247,  1.0000,  1.0000],
+            [-0.2930,  4.1282,  0.3124,  1.0000,  1.0000],
+            [ 0.5624,  0.3906,  3.0302,  1.0000,  1.0000],
+            [ 1.7235,  2.3990,  2.5070,  1.0000,  1.0000],
+            [ 1.9170,  1.0716, -0.3112,  1.0000,  1.0000]])
+    Printing Indexed Matrix again:
+     tensor([[1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.]])
+    ```
+
+    可以看出`index_add()`不修改原 tensor 的数据。
+
+* Pytorch - Index-based Operation
+
+    * `index_add_()`
+
+        Adds the given tensor elements to the self tensor along the order given in the matrix.
+
+        syntax:
+
+        ```py
+        index_add_(dim, index, tensor) ---> Tensor
+        ```
+
+        params:
+
+        * dim: dimension along which index to add. '0' stands for column and '1' stands for row.
+
+        * index: indices of the tensor to select from. It can be LongTensor or IntTensor.
+
+        * tensor: tensor containing the values to add.
+
+        example:
+
+        ```py
+        import torch
+
+        x = torch.zeros(5,5)
+        te = torch.tensor([[1,3,5,7,9], [1,3,5,7,9], [1,3,5,7,9]], dtype=torch.float32)
+        print('te shape: {}\n'.format(te.shape))
+        index0 = torch.tensor([0, 2, 4])
+
+        x.index_add_(0, index0, te) #adding tensor te to x along row of the given order
+        print('x:\n{}'.format(x))
+        ```
+
+        output:
+
+        ```
+        te shape: torch.Size([3, 5])
+
+        x:
+        tensor([[1., 3., 5., 7., 9.],
+                [0., 0., 0., 0., 0.],
+                [1., 3., 5., 7., 9.],
+                [0., 0., 0., 0., 0.],
+                [1., 3., 5., 7., 9.]])
+        ```
+
+        可以看出，是让`te`中的三行数据分别叠加到`x`的`[0, 2, 4]`行上。
+
+        example 2:
+
+        ```py
+        import torch
+
+        y = torch.ones(5, 5) # unit vector
+        index2 = torch.tensor([0, 1, 1, 1, 2])
+        ten = torch.randn(1, 5)
+
+        # adding values to y along the column with given order
+        y.index_add_(1, index2, ten)
+        print('y is: {}'.format(y))
+        ```
+
+        output:
+
+        ```
+        Traceback (most recent call last):
+          File "/home/hlc/Documents/Projects/torch_test/main.py", line 8, in <module>
+            y.index_add_(1, index2, ten)
+        RuntimeError: source tensor shape must match self tensor shape, excluding the specified dimension. Got self.shape = [5, 5] source.shape = [1, 5]
+        ```
+
+        可以看出并没有发生 broadcasting。
+
+        可以改成这样：
+
+        ```py
+        import torch
+
+        y = torch.ones(5,5) # unit vector
+        index2 = torch.tensor([0, 1, 1, 1, 2])
+        ten = torch.randn(1, 5)
+        ten = ten.expand(5, 5)
+        print('ten is: {}'.format(ten))
+
+        # adding values to y along the column with given order
+        y.index_add_(1, index2, ten)
+        print('y is: {}'.format(y))
+        ```
+
+        output:
+
+        ```
+        ten is: tensor([[ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060]])
+        y is: tensor([[ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000]])
+        ```
+
+        可以看出，`[0, 1, 1, 1, 2]`表示将`ten`中的五列分别叠加到`y`的第 0, 1, 1, 1, 2 列。
+
 * 可以在创建 tensor 时使用`device=`参数来指定是否使用 gpu
 
     ```py
