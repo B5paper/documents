@@ -6,6 +6,216 @@ Ref:
 
 ## cache
 
+* `BIT()`
+
+    BIT() 是一个宏，它的核心作用是生成一个指定位为 1，其它位为 0 的掩码（mask）。它通常用于操作硬件寄存器中的单个位，例如设置、清除或检查某个特定的标志位。
+
+    syntax:
+
+    ```c
+    #include <linux/bits.h>
+
+    #define BIT(nr) (1UL << (nr))
+    ```
+
+    * `nr`： 是你想要设置的位的序号（从 0 开始计数）。
+
+    * `1UL`： 表示一个无符号长整型（Unsigned Long）的数字 1。使用 UL 是为了确保位操作在 32 位或 64 位系统上都是安全的，避免符号扩展和位数不足的问题。
+
+    examples:
+
+    * 设置位（Set a Bit）
+
+        使用按位或（|=） 操作来设置一个寄存器的特定位。
+        
+        ```c
+        // 设置寄存器的第 3 位 (假设位序号从 0 开始)
+        register |= BIT(3);
+        ```
+
+    * 清除位（Clear a Bit）
+
+        使用按位与（&=） 和取反（~） 操作来清除一个寄存器的特定位。
+
+        ```c
+        // 清除寄存器的第 5 位
+        register &= ~BIT(5);
+        ```
+
+    * 检查位（Check a Bit）
+
+        使用按位与（&） 操作来检查一个寄存器的特定位是否被设置。
+
+        ```c
+        // 检查寄存器的第 2 位是否被设置
+        if (register & BIT(2)) {
+            // 第 2 位为 1，执行某些操作
+        } else {
+            // 第 2 位为 0
+        }
+        ```
+
+    * 切换位（Toggle a Bit）
+
+        使用按位异或（^=） 操作来切换一个寄存器的特定位（1 变 0，0 变 1）。
+
+        ```c
+        // 切换寄存器的第 4 位
+        register ^= BIT(4);
+        ```
+
+* readq() 和 writeq()
+
+    用于以原子性的、64 位（8 字节） 的宽度从设备的内存映射寄存器或硬件缓冲区中读取和写入数据。q 代表 "Quad Word"
+
+    syntax:
+
+    ```c
+    #include <linux/io.h> // 需要包含这个头文件
+
+    u64 readq(const volatile void __iomem *addr);
+    void writeq(u64 value, volatile void __iomem *addr);
+    ```
+
+    与 readq_relaxed() 和 writeq_relaxed() 的区别
+
+    * readq() / writeq()： 包含完整的内存屏障（rmb() / wmb()）。这意味着在执行该读/写操作之前，所有之前的内存访问必须完成；之后的所有内存访问必须在该操作完成后才能开始。这保证了严格的执行顺序，但性能开销稍大。
+
+    * readq_relaxed() / writeq_relaxed()： “宽松”版本，不提供任何内存屏障保证。它们更快，但只适用于该特定访问的顺序对设备操作的正确性无关紧要的场景。使用时必须非常小心。
+
+* `BUG()`
+
+    用于主动引发 kernel panic。内核会立即停止正常运行，触发 panic。这会中止当前所有进程，并通常会导致系统重启或挂起（取决于配置）。
+
+    当 BUG() 被触发时，内核会打印出大量的调试信息，其中最关键是：
+
+    * Oops 消息：包含出错的指令地址、寄存器状态、调用栈回溯（stack trace）等。
+
+    * 调用栈（Stack Trace）：这能帮助开发者精确地定位是哪个函数、哪一行代码触发了 BUG()。
+
+    example:
+
+    ```c
+    void my_driver_function(unsigned int command) {
+        switch (command) {
+            case CMD_READ:
+                // ... 处理读操作
+                break;
+            case CMD_WRITE:
+                // ... 处理写操作
+                break;
+            // 假设我们只定义了上面两个命令，理论上传进来的 command 只能是其中之一
+            default:
+                // 如果执行到这里，说明调用者传入了非法参数，或者我们的假设错误
+                BUG();
+        }
+    }
+    ```
+
+    * panic(): 也会导致内核崩溃，但它通常用于更上层的、可预测的灾难性错误（如无法挂载根文件系统）。而 BUG() 更侧重于指示内核内部的编程逻辑错误。
+
+    * WARN(): 类似于 BUG()，但它不会导致系统崩溃。它只是打印一个完整的警告信息和堆栈跟踪，然后让系统继续运行。适用于那些严重但或许还能让系统勉强运行下去的错误。
+
+* `mdev_get_drvdata()`
+
+    用于 VFIO Mediated Device (mdev) 框架的函数。它的主要作用是从一个 mdev_device 结构体中，获取驱动之前存储的私有数据指针。
+
+    VFIO (Virtual Function I/O)： 是一个内核框架，允许用户空间程序（如虚拟机）安全、高效地直接访问硬件设备（即设备直通，Device Passthrough）。
+
+    mdev (Mediated Device)： 是 VFIO 框架的一部分，用于实现设备模拟或分区。它允许一个物理设备（如图形卡、网络卡）被虚拟化成多个独立的虚拟设备，每个虚拟设备可以被分配给不同的虚拟机。
+
+    syntax:
+
+    ```c
+    void *mdev_get_drvdata(struct mdev_device *mdev);
+    ```
+
+    参数： `mdev` - 指向要获取数据的 mdev_device 的指针。
+
+    返回值： 成功时返回之前通过 mdev_set_drvdata() 设置的 void * 类型的私有数据指针；如果从未设置过，则可能返回 NULL。
+
+    example:
+
+    ```c
+    // 1. 在设备创建时（例如在 'probe' 回调中）分配并设置私有数据
+    static int my_mdev_probe(struct mdev_device *mdev)
+    {
+        struct my_private_data *data;
+
+        data = kzalloc(sizeof(*data), GFP_KERNEL);
+        if (!data)
+            return -ENOMEM;
+
+        // 初始化私有数据结构...
+        data->parent_dev = mdev->parent->dev;
+        // ... 其他初始化
+
+        // 关键步骤：将私有数据指针存储到 mdev_device 中
+        mdev_set_drvdata(mdev, data);
+
+        return 0;
+    }
+
+    // 2. 在设备的其他操作函数中（如 ioctl），获取并使用私有数据
+    static long my_mdev_ioctl(struct mdev_device *mdev, unsigned int cmd, unsigned long arg)
+    {
+        // 关键步骤：获取之前存储的私有数据
+        struct my_private_data *data = mdev_get_drvdata(mdev);
+
+        if (!data) // 安全检查
+            return -EINVAL;
+
+        // 现在可以使用 data 来访问这个特定设备的上下文信息了
+        switch (cmd) {
+            case MY_CMD:
+                // 操作 data->some_field
+                break;
+            // ... 其他命令
+            default:
+                return -ENOTTY;
+        }
+        return 0;
+    }
+
+    // 3. 在设备销毁时（例如在 'remove' 回调中），获取数据并释放内存
+    static void my_mdev_remove(struct mdev_device *mdev)
+    {
+        struct my_private_data *data = mdev_get_drvdata(mdev);
+
+        // 清理私有数据可能占用的资源...
+        
+        // 释放私有数据内存
+        kfree(data);
+        
+        // 可选：将 mdev 的 drvdata 设为 NULL
+        mdev_set_drvdata(mdev, NULL);
+    }
+    ```
+
+    配套函数：`mdev_set_drvdata()`
+
+* `copy_from_user()`
+
+    将数据从用户空间安全地复制到内核空间。
+
+    syntax:
+
+    ```c
+    #include <linux/uaccess.h>
+
+    unsigned long copy_from_user(void *to, const void __user *from, unsigned long n);
+    ```
+
+    parameters:
+
+    * `to`: Destination address, in the kernel space
+
+    * `from`: The source address in the user space
+
+    * `n`: Number of bytes to copy
+
+    Returns number of bytes that could not be copied. On success, this will be zero.
+
 * `devm_ioremap_resource()`
 
     将一个设备（通常是硬件外设）的物理内存地址区域（例如寄存器组）映射到内核的虚拟地址空间，并自动管理该映射的生命周期。
@@ -79,158 +289,7 @@ Ref:
     // 注意：不需要在 remove 函数中手动 iounmap，devm_ 机制会自动处理。
     ```
 
-* `dma_alloc_coherent()`与`dma_map_single()`的区别
-
-    dma_alloc_coherent() 用于“静态”或“长期”的共享缓冲区，而 dma_map_single() 用于“动态”或“短期”的流式DMA传输。
-
-    `dma_alloc_coherent()`会配置这块内存为 uncacheable（不可缓存）来实现缓存一致性，代价是性能下降。通常只能分配较小的、物理连续的内存块（例如最多几个MB）（为什么？）
-    
-    dma_map_single() + kmalloc() 是流式映射，将一块普通的、由CPU高效使用的缓存内存，临时映射给设备用于一次DMA传输。传输完成后立即解除映射。一致性由软件（内核）在映射/解除映射时维护。适合大块内存。dma_map_single -> Flush Cache, dma_unmap_single -> Invalidate Cache.
-
-    对于流式 dma，在 dma map 之后，dma unmap 之前，可能会有缓存不一致的情况。
-
 * 缓存维护操作（Cache Flushing/Invalidating）
-
-* `dma_mapping_error()`
-
-    在使用 dma_map_single() 时，强烈建议使用 dma_mapping_error() 来检查映射是否成功，而不是直接判断返回值是否为0或NULL（因为DMA地址0可能是一个有效的物理地址）。
-
-    ```c
-    dma_addr_t dma_handle;
-    dma_handle = dma_map_single(dev, ptr, size, dir);
-    if (dma_mapping_error(dev, dma_handle)) {
-        // 映射失败，处理错误
-        return -ENOMEM; // 或其它错误码
-    }
-    // 映射成功，继续使用 dma_handle
-    ```
-
-* `dma_map_single()`
-
-    为一次 DMA 传输做准备，将一块 CPU 可访问的内存区域映射到设备可以访问的 DMA 地址空间。
-
-    syntax:
-
-    ```c
-    #include <linux/dma-mapping.h>
-
-    dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir);
-
-    void dma_unmap_single(struct device *dev, dma_addr_t dma_handle, size_t size, enum dma_data_direction dir);
-    ```
-
-    parameters:
-
-    * `dev`: 指向设备结构体的指针。这个指针包含了DMA映射操作所需的硬件信息，例如设备所在的总线地址空间限制、是否具有IOMMU等。
-
-    * `ptr`: 需要映射的内核虚拟地址。这通常是通过`kmalloc()`等内核函数分配的内存块的起始地址。
-
-    * `size`: 需要映射的内存区域的大小（以字节为单位）。
-
-    * `dir`: DMA 数据传输的方向。这是一个枚举类型，决定了内核如何处理缓存一致性。其取值通常为：
-
-        * `DMA_TO_DEVICE`：数据从内存传输到设备（写操作）。
-
-        * `DMA_FROM_DEVICE`：数据从设备传输到内存（读操作）。
-
-        * `DMA_BIDIRECTIONAL`：数据可能双向传输。
-
-        * `DMA_NONE`：仅用于调试，表明方向未知。
-
-    返回值
-
-    成功时返回映射后的`dma_addr_t` DMA 地址（总线地址）。
-
-    如果映射失败（例如，参数无效或地址无法映射），函数可能会返回一个特殊的“错误”DMA地址（具体实现可能不同），或者在某些配置下触发BUG。
-
-    CPU 访问内存使用的是虚拟地址（Virtual Address），经过 MMU（内存管理单元）转换后得到物理地址。而 DMA 设备通常工作在物理地址层面，但它看到的“物理地址”（我们称之为总线地址，Bus Address）有可能与 CPU 看到的物理地址不同（尤其是在有 IOMMU 的系统中）。
-
-    `dma_map_single()`主要解决两个问题：
-
-    1. 内地映射：将 cpu 使用的 va 和 dma handle 进行映射。cpu 使用的 va 由 kmalloc() 得到
-
-    2. 维护缓存一致性
-
-        * 对于设备要读取的内存（`DMA_FROM_DEVICE`），dma_map_single() 会刷洗（Flush）CPU Cache，确保设备读到的是内存中最新的数据。
-
-        * 对于设备要写入的内存（`DMA_TO_DEVICE`），dma_map_single() 可能会作废（Invalidate）CPU Cache，确保设备写完后，CPU 下次读取时能从内存获取新数据，而不是旧的缓存数据。
-
-    典型使用流程
-
-    一个典型的 DMA 传输流程中，该函数的使用如下：
-
-    1. 分配内存：使用 kmalloc() 等函数分配一块用于 DMA 缓冲区的内存。
-
-    2. 准备数据：（如果是输出）CPU 将需要传输的数据填充到这块内存中。
-
-    3. 映射：调用 dma_map_single(dev, addr, size, direction)。
-
-        * dev：指向设备结构体的指针。
-
-        * addr：第一步分配的内存的内核虚拟地址。
-
-        * size：缓冲区大小。
-
-        * direction：数据传输方向（如 DMA_TO_DEVICE, DMA_FROM_DEVICE, DMA_BIDIRECTIONAL）。
-
-    4. 获取 DMA 地址：函数返回一个 dma_addr_t 类型的 DMA 地址。将这个地址写入设备的 DMA 控制器寄存器。
-
-    5. 启动传输：通知设备可以从/向给定的 DMA 地址开始传输数据。
-
-    6. 传输完成：设备产生中断，通知 CPU 传输完成。
-
-    7. 解除映射：调用 dma_unmap_single() 解除映射。这会再次处理缓存一致性问题，并使得这块内存的映射关系失效。
-
-    example:
-
-    ```c
-    // 必要的内核头文件
-    #include <linux/kernel.h>
-    #include <linux/module.h>
-    #include <linux/init.h>
-
-    // 设备模型相关
-    #include <linux/device.h>       // 定义 struct device
-    #include <linux/platform_device.h> // 如果是平台设备
-
-    // DMA API 相关
-    #include <linux/dma-mapping.h>  // 核心头文件，包含 dma_map_single 等
-    // #include <linux/dma-direction.h> // 如果需要，但通常 dma-mapping.h 已包含
-
-    // 其他可能需要的头文件，如用于内存分配的
-    #include <linux/slab.h>         // 用于 kmalloc, kfree
-
-    // ... 你的驱动代码 ...
-    static int my_driver_dma_transfer(struct device *dev)
-    {
-        void *cpu_addr;
-        dma_addr_t dma_handle;
-        size_t size = 1024; // 1KB
-
-        // 1. 分配内存
-        cpu_addr = kmalloc(size, GFP_KERNEL);
-        if (!cpu_addr)
-            return -ENOMEM;
-
-        // 2. 映射内存以用于DMA (传输到设备)
-        dma_handle = dma_map_single(dev, cpu_addr, size, DMA_TO_DEVICE);
-        if (dma_mapping_error(dev, dma_handle)) { // 推荐错误检查
-            kfree(cpu_addr);
-            return -ENOMEM;
-        }
-
-        // 3. 将 dma_handle 交给设备，启动DMA传输...
-        // program_device_to_start_dma(dma_handle);
-
-        // 4. (传输完成后) 解除映射
-        // dma_unmap_single(dev, dma_handle, size, DMA_TO_DEVICE);
-
-        // 5. 释放内存
-        // kfree(cpu_addr);
-
-        return 0;
-    }
-    ```
 
 * 字节序转换宏
 
@@ -290,22 +349,6 @@ Ref:
         要向一个设备寄存器写入一个32位值 0x12345678。在小端序的 CPU 上，这个值在内存中存储为 78 56 34 12。如果设备期望的是大端序（即希望收到 12 34 56 78），直接解引用写入就会发送错误的数据。
 
     1. 访问宽度和原子性问题: 对于某些寄存器，32位的写入操作必须是原子的（不可分割的）。
-
-* `dma_addr_t`c
-
-    dma_addr_t 保存的是设备能理解的物理地址, 而不是内核使用的虚拟地址。
-
-    本质上是一个无符号整数类型（通常是 u64 或 u32）.
-
-    驱动开发者应将其视为一个“黑盒”或令牌（token）或 handle。不需要关心它的具体数值是什么，只需要在DMA API函数中正确地传递和使用它。不能直接对它进行数学运算或解引用。
-
-    地址转换的产生：
-
-    * 简单系统（无IOMMU）： 设备直接访问物理内存。这时，dma_addr_t 通常就是CPU的物理地址（phys_addr_t）。驱动需要确保设备可以访问该物理地址范围。
-
-    * 复杂系统（有IOMMU/SMMU）： IOMMU是一个位于设备和内存之间的硬件单元，类似于CPU的MMU。它可以将设备看到的“IO虚拟地址”（IOVA）翻译成真正的物理地址。
-
-        在这种情况下，驱动通过DMA API申请的内存，其返回的 dma_addr_t 是一个IO虚拟地址（IOVA），而不是真正的物理地址。设备使用这个IOVA进行数据传输，IOMMU会透明地完成IOVA到物理地址的转换。
 
 * `sparse`
 
@@ -499,60 +542,6 @@ Ref:
 
     “raw”前缀： 这表明它是底层实现。相比 copy_to_user()，它假设调用者已经处理了可能引起睡眠的事情（如缺页中断），通常在知道上下文是安全的情况下使用，性能稍高。
 
-* `dma_alloc_coherent()`
-
-    为设备与 CPU 之间进行直接内存访问（DMA）而分配一段“一致性”内存。解决了由于 CPU 缓存（Cache）的存在而引发的“缓存一致性问题”。它分配的内存区域被设置为 “无缓存”（Uncacheable） 的，或者内核会通过硬件机制（如 Cache Coherent Interconnect）自动维护这块内存的缓存一致性。
-
-    syntax:
-
-    ```c
-    #include <linux/dma-mapping.h>
-
-    void *dma_alloc_coherent(struct device *dev, size_t size,
-                             dma_addr_t *dma_handle, gfp_t gfp);
-    ```
-
-    参数说明：
-
-    * `dma_handle`: 一个指向 `dma_addr_t` 类型的指针。这是一个输出参数。函数成功返回后，`*dma_handle` 中存储的就是分配的内存区域的DMA总线地址。驱动程序需要将这个地址提供给设备，设备将使用这个地址来执行DMA操作。
-
-    * `gfp`: gfp_t	分配内存时使用的标志位
-
-        * `GFP_KERNEL`: 标准的内核内存分配，可能在分配时睡眠（阻塞）。
-
-        * `GFP_ATOMIC`: 原子分配，不会睡眠，用于中断上下文等不能调度的地方。
-
-    返回值：
-
-    * `void *`: 如果分配成功，返回一个指向已分配内存区域的内核虚拟地址的指针。CPU使用这个指针来读写这块内存。
-
-    * `NULL`: 如果分配失败，则返回 NULL。
-
-    问题场景描述：
-
-    * CPU 在处理数据时，数据可能缓存在 CPU 的高速缓存中，并未立即写回主内存。
-
-    * 如果此时设备通过 DMA 直接从主内存读取数据，它读到的就是过时的、旧的数据。
-
-    * 反之，如果设备通过 DMA 将数据写入主内存，而 CPU 的缓存中还有该地址的旧数据，那么 CPU 后续读取时可能会从缓存中得到过时的、旧的数据。
-
-    常用的应用场景：
-
-    * 网络设备驱动：分配用于接收和发送数据包的网络数据缓冲区。
-
-    * 块设备驱动（如 SCSI）：分配传输命令和数据的“scatter-gather”列表。
-
-    * USB 驱动：分配用于传输 USB 请求的数据缓冲区。
-
-    配对函数：`dma_free_coherent()`
-
-    syntax:
-
-    ```c
-    void dma_free_coherent(struct device *dev, size_t size,
-                           void *cpu_addr, dma_addr_t dma_handle);
-    ```
-
 * `int major = register_chrdev(0, "hlc_dev", &fops);`z失败时会返回负数，成功时返回 0 或正数
 
     常见的错误码：
@@ -603,22 +592,6 @@ Ref:
 
 * `gfp_mask`: Get Free Page mask
 
-* `pci_ioremap_wc_bar()`
-
-    将一个 PCI 设备 BAR（基地址寄存器）所指定的 PCI 内存区域映射到内核的虚拟地址空间，并特别请求该映射为“写合并”（Write-Combining, WC）内存类型。
-
-    syntax:
-
-    ```c
-    void __iomem *pci_ioremap_wc_bar(struct pci_dev *pdev, int bar);
-    ```
-
-    返回值：成功时返回一个 `__iomem` 类型的内核虚拟地址指针，指向映射区域的起始处。失败则返回 `NULL`。
-
-    写合并（WC）: 这是一种弱内存序、高性能的映射模式。CPU 可能会将多个连续的写操作在缓存中“合并”成一个更大的写入事务，再一次性发送到总线上。
-
-    对于帧缓冲区（Frame Buffer）或大量数据传输的设备（如高性能网卡、显卡），使用 WC 映射可以显著减少总线事务数量，极大提升写入带宽和性能。因为写入图像数据通常是连续的，合并后发送效率更高。
-
 * `devm_kzalloc()`
 
     分配一块指定大小的内存，并将其初始化为零，同时将该内存的释放（free）操作与设备本身的生命周期进行绑定。
@@ -640,8 +613,6 @@ Ref:
     * 设备被分离（device detach）。
 
     * 在分配过程中出现错误，导致设备探测（probe）失败。
-
-* `pci_request_region()`中，name 可以填`NULL`，此时`/proc/iomem`中 name 一栏为`??`（未验证）
 
 * `platform_get_irq()`
 
@@ -685,129 +656,6 @@ Ref:
     * 确定设备内存与 CPU 缓存一致性可控时。
 
     注意：不能随便对寄存器区使用 ioremap_cache()，因为缓存会导致寄存器读写失效或顺序错误。
-
-* `dma_set_mask()`
-
-    告知操作系统和设备驱动程序，某个硬件设备能够访问的系统物理内存地址范围（即DMA地址空间）有多大.
-
-    syntax:
-
-    ```c
-    #include <linux/dma-mapping.h>
-
-    int dma_set_mask(struct device *dev, u64 mask);
-    int dma_set_coherent_mask(struct device *dev, u64 mask);
-    int dma_set_mask_and_coherent(struct device *dev, u64 mask);
-    ```
-
-    返回 0 表示成功，返回一个非零的错误代码（通常是负数）表示失败。
-
-    `dma_set_mask_and_coherent()`是其升级版，
-
-    * streaming DMA：用于一次性的数据传输映射。CPU和设备对这块内存的访问可能不是同步的（非一致性）。
-
-    * coherent DMA（或一致性DMA）：用于需要CPU和设备同时、一致地访问的内存（例如控制寄存器所在的内存）。这块内存在映射时会进行特殊处理以保证缓存一致性。
-
-    `dma_set_mask_and_coherent()`的作用是同时为设备的两种DMA映射方式（流式和一致式）设置相同的地址掩码，这是最常见和推荐的做法，因为它确保了行为的一致性。
-
-* `pci_iomap()`的 example
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/pci.h>
-
-    static struct pci_device_id pci_id_table[] = {
-        { PCI_DEVICE(0x1234, 0x11e8) },
-        {0,}
-    };
-
-    static void *base_addr_bar0;
-
-    static int edu_probe(struct pci_dev *pci_dev, const struct pci_device_id *id) {
-        pr_info("in edu_probe()...\n");
-
-        int ret = pci_enable_device(pci_dev);
-        if (ret != 0) {
-            dev_err(&pci_dev->dev, "fail to pci enable device, ret: %d\n", ret);
-            goto ERR_PCI_ENABLE_DEVICE;
-        }
-
-        ret = pci_request_region(pci_dev, 0, "qemu_edu_drv");
-        if (ret != 0) {
-            dev_err(&pci_dev->dev, "fail to pci request region\n");
-            goto ERR_PCI_REQUEST_REGION;
-        }
-
-        resource_size_t res_len_bar0 = pci_resource_len(pci_dev, 0);
-        base_addr_bar0 = pci_iomap(pci_dev, 0, res_len_bar0);
-        if (base_addr_bar0 == NULL) {
-            dev_err(&pci_dev->dev, "fail to pci iomap\n");
-            goto ERR_PCI_IOMAP;
-        }
-        return 0;
-
-    ERR_PCI_IOMAP:
-        pci_release_region(pci_dev, 0);
-    ERR_PCI_REQUEST_REGION:
-        pci_disable_device(pci_dev);
-    ERR_PCI_ENABLE_DEVICE:
-        return -1;
-    }
-
-    static void edu_remove(struct pci_dev *pci_dev) {
-        pr_info("in edu_remove()...\n");
-        pci_iounmap(pci_dev, base_addr_bar0);
-        pci_release_region(pci_dev, 0);
-        pci_disable_device(pci_dev);
-    }
-
-    static struct pci_driver edu_driver = {
-        .name = "qemu_edu_drv",
-        .id_table = pci_id_table,
-        .probe = edu_probe,
-        .remove = edu_remove
-    };
-
-    int init_mod(void) {
-        pr_info("init hlc module...\n");
-        int ret = pci_register_driver(&edu_driver);
-        if (ret != 0) {
-            pr_err("fail to register pci driver\n");
-            goto ERR_PCI_REGISTER_DRIVER;
-        }
-        return 0;
-
-    ERR_PCI_REGISTER_DRIVER:
-        return -1;
-    }
-
-    void exit_mod(void) {
-        pr_info("exit hlc module...\n");
-        pci_unregister_driver(&edu_driver);
-    }
-
-    module_init(init_mod);
-    module_exit(exit_mod);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [ 9031.003646] init hlc module...
-    [ 9031.003763] in edu_probe()...
-    [ 9036.304856] exit hlc module...
-    [ 9036.304988] in edu_remove()...
-    ```
-
-    加载完驱动后执行`sudo cat /proc/iomem | grep edu`, output:
-
-    ```
-        fea00000-feafffff : qemu_edu_drv
-    ```
-
-    比较关键的四个函数：`pci_enable_device()` -> `pci_request_region()` -> `pci_resource_len()` -> `pci_iomap()`
 
 * 写 linux module 时，vscode 的 cpp 配置里，`KBUILD_MODNAME`要写成`KBUILD_MODNAME="hello"`，以前记的笔记是`KBUILD_MODNAME=\"hello\"`，似乎是不对的。
 
@@ -936,8 +784,6 @@ Ref:
     MODULE_LICENSE("GPL");
     ```
 
-* pci_iomap() 是一个历史遗留的、为了兼容两种不同IO方式而设计的通用接口，但在当今以MMIO为主流的开发中，更专用的 pci_ioremap_bar() 往往是更好的选择。
-
 * `platform_get_resource()`
 
     在 Linux 设备模型中，那些直接连接在处理器总线上的、相对简单的设备（如 GPIO 控制器、I2C 控制器、内存映射的设备等）通常被抽象为“平台设备”（platform_device）。
@@ -1008,85 +854,6 @@ Ref:
     ```
 
     如果是中断，可以直接使用`platform_get_irq()`
-
-* `pci_ioremap_bar()`
-
-    查找 PCI 设备上指定 BAR 的地址空间, 并将该物理地址空间映射到内核虚拟地址空间。这也是一个托管版本，无需驱动程序手动调用 iounmap().
-
-    syntax:
-
-    ```c
-    void __iomem *pci_ioremap_bar(struct pci_dev *pdev, int bar);
-    ```
-
-    example:
-
-    ```c
-    static int my_pci_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
-    {
-        void __iomem *bar0_base;
-        int ret;
-
-        // 1. 启用PCI设备（获取总线主控权、分配IRQ等）
-        ret = pci_enable_device(pdev);
-        if (ret) {
-            dev_err(&pdev->dev, "Failed to enable device\n");
-            return ret;
-        }
-
-        // 2. 请求设备的资源区域（如内存区域）
-        ret = pci_request_regions(pdev, "My PCI Driver");
-        if (ret) {
-            dev_err(&pdev->dev, "Failed to request regions\n");
-            goto err_disable;
-        }
-
-        // 3. 一键式映射 BAR0
-        bar0_base = pci_ioremap_bar(pdev, 0);
-        if (!bar0_base) {
-            dev_err(&pdev->dev, "Failed to ioremap BAR0\n");
-            ret = -ENOMEM;
-            goto err_release;
-        }
-
-        // 4. 现在可以使用 bar0_base 指针来访问 BAR0 的寄存器了
-        // 例如：writel(0xFFFFFFFF, bar0_base + CTRL_REG_OFFSET);
-
-        // ... 驱动的其他初始化操作（如申请中断等）...
-
-        return 0;
-
-    // 错误处理路径
-    err_release:
-        pci_release_regions(pdev);
-    err_disable:
-        pci_disable_device(pdev);
-        return ret;
-    }
-
-    static void my_pci_driver_remove(struct pci_dev *pdev)
-    {
-        // ... 其他清理工作（如释放中断）...
-
-        // 注意：这里不需要 iounmap(bar0_base)！
-        // 内核会自动清理由 pci_ioremap_bar() 创建的映射
-
-        pci_release_regions(pdev);
-        pci_disable_device(pdev);
-    }
-    ```
-
-    在没有 pci_ioremap_bar() 时，你需要这样做：
-
-    ```c
-    // 传统繁琐的方法
-    bar0_base = pci_resource_start(pdev, 0); // 1. 获取物理地址
-    bar0_len = pci_resource_len(pdev, 0);     // 2. 获取长度
-    bar0_base = ioremap(bar0_start, bar0_len); // 3. 手动映射
-    // 并且在 remove 函数中必须记得： iounmap(bar0_base);
-    ```
-
-    该函数主要用于映射 内存空间 类型的 BAR（即 IORESOURCE_MEM）。虽然它也能处理 I/O 空间类型的 BAR（IORESOURCE_IO），但对于 I/O 端口，通常更推荐使用 pci_iomap() 系列函数，或者直接使用 inb()/outb() 等 I/O 端口操作函数。
 
 * `	devm_ioremap()`
 
@@ -1179,20 +946,6 @@ Ref:
     ```
 
     已过时 (Deprecated)：在较新的 Linux 内核中（大约 5.11 版本之后），这个函数已被标记为过时。官方推荐使用更新的 irq_set_affinity() 接口以及 struct irq_affinity_desc 中的 flags 字段来提供更明确的管理策略（例如，设置 IRQ_AFFINITY_FLAG_MANAGED 标志），而不是使用这种模糊的“提示”。
-
-* `$(MAKE)`与`make`的区别
-
-    只使用`make`的问题：
-
-    * 不可移植：不同的系统可能使用不同的 make 程序名称。例如，BSD 系统通常使用 bmake，而 GNU Make 可能被安装为 gmake。如果你的 Makefile 里写死了 make，在这些系统上就会执行失败。
-
-    * 忽略命令行选项：当你使用一些命令行选项（如 -k, -s, -t）调用顶层的 make 时，在递归调用中直接使用 make 会丢失这些选项。子 make 进程不会继承父进程的 flags，导致行为不一致。
-
-    * 无法传递 -j (并行编译) 选项：这是最致命的问题之一。如果你使用 make -j8 启动并行编译，但在 Makefile 内部递归调用时使用的是 make，那么这个子 make 将会是串行执行的（-j1），无法利用多核优势，严重拖慢编译速度。
-
-    MAKE 是一个 Makefile 内置的宏（变量），它的值就是当前正在执行的 make 程序的完整路径名（例如 /usr/bin/make）。并且可以解决上面列出的问题。
-
-    （如何验证`$(MAKE)`可以继承命令行选项？）
 
 * `/proc/ioports`
 
@@ -1319,80 +1072,6 @@ Ref:
     ```
 
     如果`struct my_device_data`指针由`dma_set_mask_and_coherent()`赋予，并且只存储 binary 数据，那么也完全可以把这里当作一个 buffer。binary 数据中，可能会有字节序（Endianness）的问题，需要注意。
-
-* `dma_set_mask_and_coherent()`
-
-    设置 DMA 掩码。检查并告知内核：当前设备（通常是 PCIe、USB 等外设）能够访问的系统物理地址范围。确保 DMA 操作的安全性和正确性：防止设备尝试访问超出其寻址能力的物理地址，从而导致数据损坏或系统崩溃。
-
-    并非所有硬件设备都支持 64 位物理地址寻址。一些较老或成本较低的设备可能只支持 32 位（即 4GB）甚至更小的地址空间。
-
-    syntax:
-
-    ```c
-    int dma_set_mask_and_coherent(struct device *dev, u64 mask);
-    ```
-
-    * mask: 一个位掩码，表示设备支持的地址位。例如，0xFFFFFFFF 表示 32 位掩码（支持 4GB 以下地址），`DMA_BIT_MASK(64)` 表示 64 位掩码（支持全部 64 位地址）。
-
-    返回值：
-
-    * 成功时返回 0。
-
-    * 失败时返回非零值（通常是`-EIO`），表示平台无法在该掩码下支持 DMA。例如，在一个不支持 64 位 DMA 的系统上尝试设置 64 位掩码可能会失败。
-
-    example:
-
-    ```c
-    struct device *dev = &my_pci_dev->dev;
-    u64 dma_mask = DMA_BIT_MASK(64); // 假设我们的设备支持 64 位 DMA
-
-    if (dma_set_mask_and_coherent(dev, dma_mask)) {
-        // 64 位 DMA 设置失败，尝试回退到 32 位
-        dev_warn(dev, "64-bit DMA not supported, trying 32-bit\n");
-        if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32))) {
-            dev_err(dev, "No usable DMA configuration found\n");
-            return -EIO;
-        }
-    }
-    ```
-
-    dma_set_mask_and_coherent() 实际上一次性设置了两个掩码：（未看懂）
-
-    * 流式 DMA 掩码 (DMA Mask)：
-
-        用于“流式” DMA 映射（dma_map_single 等）。
-
-        这种映射通常是短期、一次性的，缓存一致性通常由软件显式维护（如手动刷缓存）。
-
-        内核会确保为流式 DMA 分配的内存地址落在设备声明的这个地址范围内。
-
-    * 一致性 DMA 掩码 (Coherent DMA Mask)：
-
-        用于“一致性” DMA 映射（dma_alloc_coherent 等）。
-
-        这种映射是长期存在的，硬件和 CPU 都可以无障碍地访问，缓存一致性由硬件自动维护。
-
-        内核会确保为一致性 DMA 分配的内存地址同样落在设备声明的这个地址范围内。
-
-    `dma_set_mask_and_coherent()`确保了：
-
-    * 内核不会为 DMA 操作分配设备无法访问的内存地址。
-
-        （内核只能分指定范围内的地址）
-
-    * 设备驱动能够安全、可靠地执行 DMA 数据传输，充分发挥设备性能。
-
-        （设备只能访问只能范围内的地址）
-
-    辅助宏：
-
-    ```c
-    #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : (1ULL<<(n))-1)
-    ```
-
-    * `DMA_BIT_MASK(32)` 生成 0x00000000FFFFFFFF
-
-    * `DMA_BIT_MASK(64)` 生成 0xFFFFFFFFFFFFFFFF
 
 * `ioremap()`
 
@@ -1782,89 +1461,6 @@ Ref:
 
     引用计数：class_find_device() 在找到设备后，会增加该设备的引用计数。这意味着你在使用完返回的设备指针后，必须调用 put_device() 来减少引用计数，否则该设备将永远无法被正确卸载，导致内存泄漏。
 
-* `dev_info()`
-
-    输出一条附加了设备信息（如设备名称、地址等）的提示性消息.
-
-    syntax:
-
-    ```c
-    #include <linux/device.h>
-
-    int dev_info(const struct device *dev, const char *fmt, ...);
-    ```
-
-    它不仅仅打印用户提供的格式化字符串，还会自动前缀与设备相关的信息。
-
-    对于 PCI 设备 (struct pci_dev *)，前缀通常是 [设备驱动名] 0000:03:00.0: 。
-
-    对于 USB 设备 (struct usb_device *)，前缀可能包含制造商和产品信息。
-
-    对于平台设备 (struct device *)，通常是设备树节点名或平台设备名。
-
-    同类函数：
-
-    dev_emerg()	KERN_EMERG	系统不可用，紧急消息
-    dev_alert()	KERN_ALERT	需要立即采取行动
-    dev_crit()	KERN_CRIT	临界状态，严重硬件错误
-    dev_err()	KERN_ERR	错误状态，操作失败
-    dev_warn()	KERN_WARNING	警告信息，可能有问题
-    dev_info()	KERN_INFO	信息性消息，正常状态（最常用）
-    dev_dbg()	KERN_DEBUG	调试消息，默认不打印，需开启动态调试
-
-* `pci_msi_enabled()`
-
-    检查一个 PCI 设备是否已经成功启用并配置了 MSI 或 MSI-X 中断模式.
-
-    它通过检查该设备结构体中的内部标志位（例如 msi_enabled 或 msix_enabled）来判断状态。
-
-    返回值：
-
-        如果设备已经启用了 MSI 或 MSI-X 模式中的任何一种，则函数返回 true（非零值）。
-
-        如果设备没有启用 MSI 或 MSI-X（即仍然在使用传统的引脚中断），则函数返回 false（0）。
-
-    syntax:
-
-    ```c
-    #include <linux/pci.h>
-
-    static inline bool pci_msi_enabled(struct pci_dev *pdev);
-    ```
-
-    example:
-
-    ```c
-    #include <linux/pci.h> // 必须包含这个头文件
-
-    // 假设在你的驱动探测函数中
-    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
-    {
-        int ret;
-
-        // ... 设备初始化、使能等操作 ...
-
-        // 尝试启用MSI中断模式
-        ret = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_MSI);
-        if (ret < 0) {
-            dev_err(&pdev->dev, "Failed to enable MSI interrupts, using legacy.\n");
-            // 通常这里会回退到传统中断
-        }
-
-        // 检查设备当前是否使用了MSI
-        if (pci_msi_enabled(pdev)) {
-            dev_info(&pdev->dev, "Device is using MSI interrupts.\n");
-            // 进行MSI模式特有的设置
-        } else {
-            dev_info(&pdev->dev, "Device is using legacy INTx interrupts.\n");
-            // 进行传统中断模式特有的设置
-        }
-
-        // ... 其他初始化代码 ...
-        return 0;
-    }
-    ```
-
 * `pcie_get_readrq()`
 
     获取指定 PCI Express (PCIe) 设备的最大读请求大小（Maximum Read Request Size, MRRS）。
@@ -1947,8 +1543,6 @@ Ref:
 
 * `device_destroy()`是`device_create()`的反函数，`device_del()`是`device_add()`的反函数。
 
-* `fprintf(stdin, ...)`和`fscanf(stdout, ...)`一样，都是未定义行为。可能会导致程序崩溃。
-
 * `device_add()`
 
     将设备添加到内核中，底层函数。
@@ -1987,44 +1581,6 @@ Ref:
 
     4. 触发设备节点创建：因为它将设备关联到了一个类（cls），而该类在创建时（class_create()）已经注册了一个 dev_uevent 回调函数。这个回调函数会在 uevent 中提供 DEVTYPE、MAJOR、MINOR 等关键信息。用户空间的 udev 看到这些信息后，就会自动在 /dev/ 下创建设备节点。通常节点名就是类名加上次设备号（例如 /dev/myclass0）。
 
-* `pr_err_once()`
-
-    如果多次调用到这个函数，那么它只输出一次，防止 dmesg 刷屏。
-
-    其内部有一个 bool 标志位，标记此函数之前是否被执行。
-
-    * `pr_emerg_once()`
-        
-        KERN_EMERG 系统可能即将崩溃
-
-    * `pr_alert_once()`
-        
-        KERN_ALERT 需要立即行动
-
-    * `pr_crit_once()`
-    
-        KERN_CRIT 临界条件
-
-    * `pr_err_once()`
-        
-        KERN_ERR 错误条件
-
-    * `pr_warn_once()`
-        
-        KERN_WARNING 警告条件
-
-    * `pr_notice_once()`
-    
-        KERN_NOTICE 正常但重要的事件
-
-    * `pr_info_once()`
-    
-        KERN_INFO 提示信息
-
-    * `pr_debug_once()`
-    
-        KERN_DEBUG 调试信息（依赖配置）
-
 * `register_chrdev()`与`register_chrdev_region()`
 
     `register_chrdev()`的目的是兼容旧驱动，标记为 deprecated。
@@ -2032,35 +1588,6 @@ Ref:
     `register_chrdev_region()`的功能是申请设备号，是现代推荐使用的函数，在内核 2.6 版本引入。
 
 * `register_chrdev_region()`后，可以在 /sys/dev/char/ 或 /sys/devices/ 下创建清晰的设备结构。（未验证）
-
-* 内核中日志等级的定义
-
-    ```c
-    #include <linux/kern_levels.h>
-
-    #define KERN_SOH    "\001"  /* ASCII Start Of Header */
-    #define KERN_SOH_ASCII  '\001'
-
-    #define KERN_EMERG      KERN_SOH "0" /* system is unusable */
-    #define KERN_ALERT      KERN_SOH "1" /* action must be taken immediately */ 
-    #define KERN_CRIT       KERN_SOH "2" /* critical conditions */
-    #define KERN_ERR        KERN_SOH "3" /* error conditions */
-    #define KERN_WARNING    KERN_SOH "4" /* warning conditions */
-    #define KERN_NOTICE     KERN_SOH "5" /* normal but significant condition */
-    #define KERN_INFO       KERN_SOH "6" /* informational */
-    #define KERN_DEBUG      KERN_SOH "7" /* debug-level messages */
-    ```
-
-    所以下面四种写法都是等价的：
-
-    ```c
-    pr_info("hello world\n");
-    printk(KERN_INFO "hello, world\n");
-    printk("\0016" "hello, world\n");
-    printk("\0016hello, world\n");
-    ```
-
-    `printk("<6>" "hello, world\n");`这种写法目前已被淘汰，内核不支持。
 
 * `device_add()`与`device_create()`
 
@@ -2073,118 +1600,6 @@ Ref:
     如果我们需要手动在`/dev`下创建节点，需要调用`device_create_file()`。
 
     `device_add()`需要外部传递一个`struct device`对象，而`device_create()`会在函数内部创建一个`struct device`对象。
-
-* `pci_find_capability()`
-
-    syntax:
-
-    ```c
-    #include <linux/pci.h>
-
-    int pci_find_capability(struct pci_dev *dev, int cap);
-    ```
-
-    * `int cap_id`：要查找的能力类型的标识符（一个字节的 ID，如 0x10 代表 PCIe）。
-
-    函数会从 PCI 配置空间的能力列表指针（Capabilities Pointer register，偏移量 `0x34`）开始，遍历整个能力链表。
-
-    返回值：
-
-    成功：如果找到了与 cap_id 匹配的能力项，则返回该能力结构在 PCI 配置空间中的偏移地址（例如，0x100）。驱动程序可以利用这个地址来读取或写入该能力结构中的具体寄存器（如配置 MSI 中断向量数、地址和数据）。
-
-    失败：如果遍历完整个链表都没有找到指定的能力，或者设备根本不支持能力列表，则返回 0。
-
-* pci capabilities list
-
-    每个 node 代表一个 capabiiility，node 的大小并不固定，只有前两个字节是固定的。
-
-    字节 0：Capability ID - 唯一标识能力的类型（如 0x01 是电源管理，0x10 是 PCIe）。
-
-    字节 1：Next Capability Pointer - 指向下一个能力结构在配置空间中的偏移地址。这个指针将所有的能力节点链接在一起，形成链表。
-
-    从字节 2 开始，驱动程序通过查询 Capability ID 来确定该如何解析后续的字节。详细的格式由 pci sig 维护。程序可以通过`pci_read_config_byte()`, `pci_read_config_word()`, `pci_read_config_dword()`来读取。开发者应该尽量使用更高级的接口，不要直接读取这些字节。
-
-    常见的 pci capability id 与其对应的 struct:
-
-    * `PCI_CAP_ID_MSI` (`0x05`): 消息信号中断
-
-        MSI 结构有两种常见形式：32位和64位地址格式。
-
-        * 最小形式 (32位地址, 1个向量)：
-
-            偏移 0x00: Capability ID (0x05) + Next Pointer
-
-            偏移 0x02: Message Control Register
-
-            偏移 0x04: Message Address Register (低32位)
-
-            偏移 0x08: Message Data Register
-
-            总长度: 10 字节 (从链表指针开始算起的结构体大小)
-
-        * 扩展形式 (64位地址, 多个向量)：
-
-            包含最小形式的所有寄存器...
-
-            偏移 0x08: Message Address Register (高32位)
-
-            偏移 0x0C: Message Data Register
-
-            偏移 0x10: Mask Bits Register (可选)
-
-            偏移 0x14: Pending Bits Register (可选)
-
-            总长度: 可达 24 字节或更多
-
-    * `PCI_CAP_ID_MSIX` (`0x11`): 消息信号中断
-
-    * `PCI_CAP_ID_PM` (`0x01`): 电源管理
-
-    * `PCI_CAP_ID_EXP` (`0x10`): PCIe 特性
-
-        PCI Express Capabilities Register
-
-        Device Capabilities Register
-
-        Device Status and Control Register
-
-        Link Capabilities Register
-
-        Link Status and Control Register
-
-        Slot Capabilities Register (如果适用)
-
-        ...
-
-        总长度: 通常至少是 20 字节（对于端点设备），对于根端口或交换设备会更长
-
-    * `PCI_CAP_ID_VNDR` (`0x09`): 虚拟通道
-
-* 完整的 pci capability list
-
-    可参考`uapi/linux/pci_regs.h`。
-
-    | 常量 | 值 | 描述 |
-    | - | - | - |
-    | PCI_CAP_ID_PM | 0x01 | 电源管理 (Power Management) |
-    | PCI_CAP_ID_AGP | 0x02 | 加速图形端口 (Accelerated Graphics Port) |
-    | PCI_CAP_ID_VPD | 0x03 | 重要产品数据 (Vital Product Data) |
-    | PCI_CAP_ID_SLOTID | 0x04 | 插槽识别 (Slot Identification) |
-    | PCI_CAP_ID_MSI | 0x05 | 消息信号中断 (Message Signaled Interrupts) |
-    | PCI_CAP_ID_CHSWP | 0x06 | 热插拔 (CompactPCI Hot-Swap) |
-    | PCI_CAP_ID_PCIX | 0x07 | PCI-X |
-    | PCI_CAP_ID_HT | 0x08 | HyperTransport |
-    | PCI_CAP_ID_VNDR | 0x09 | 厂商特定信息 (Vendor-Specific) |
-    | PCI_CAP_ID_DBG | 0x0A | 调试端口 (Debug port) |
-    | PCI_CAP_ID_CCRC | 0x0B | 紧凑型PCI中央资源控制 (CompactPCI CRC) |
-    | PCI_CAP_ID_SHPC | 0x0C | 标准热插拔控制器 (Standard Hot-Plug Controller) |
-    | PCI_CAP_ID_SSVID | 0x0D | 子系统厂商ID (Subsystem Vendor/Device ID) |
-    | PCI_CAP_ID_AGP3 | 0x0E | AGP 8x |
-    | PCI_CAP_ID_SECDEV | 0x0F | 安全设备 (Secure Device) |
-    | PCI_CAP_ID_EXP | 0x10 | PCI Express (这是最常用的之一) |
-    | PCI_CAP_ID_MSIX | 0x11 | MSI-X 中断 (这是最常用的之一) |
-    | PCI_CAP_ID_SATA | 0x12 | SATA 数据/配置索引 |
-    | PCI_CAP_ID_AF | 0x13 | 高级功能 (Advanced Features) |
 
 * `pci_register_driver()`
 
@@ -2218,140 +1633,9 @@ Ref:
 
     其逆函数为`pci_unregister_driver()`.
 
-* `list_next_entry()`
-
-    根据当前 node 指针，拿到下一个 node 的指针。
-
-    ```syntax
-    ptr = list_next_entry(pos, member)
-    ```
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add(&new_node->list_head, &lst_head);
-        struct my_list_node *node = list_first_entry(&lst_head, struct my_list_node, list_head);
-        pr_info("first entry val: %d\n", node->val);
-        node = list_next_entry(node, list_head);
-        pr_info("next entry val: %d\n", node->val);
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [16486.123036] in hello_init()...
-    [16486.123155] first entry val: 456
-    [16486.123160] next entry val: 123
-    [16492.787828] in hello_exit()...
-    ```
-
-    可以看到，`list_first_entry()`传进去的是`list_head`，而`list_next_entry()`传进去的是我们自己的 node struct。
-
-    与其对应的宏为`list_prev_entry()`。
-
 * `kzalloc()`
 
     申请内存，并将内存置 0.
-
-* `list_first_entry()`
-
-    给定`struct list_head*`指针，拿到
-
-    syntax:
-
-    ```c
-    #include <linux/list.h>
-
-    list_first_entry(ptr, type, member)
-    ```
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add(&new_node->list_head, &lst_head);
-        struct my_list_node *node = list_first_entry(&lst_head, struct my_list_node, list_head);
-        pr_info("first entry val: %d\n", node->val);
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [13557.594168] in hello_init()...
-    [13557.594275] first entry val: 456
-    [13564.272870] in hello_exit()...
-    ```
-
-    与其对应的宏为`list_last_entry()`。
 
 * `file_operations`中的`.owner`主要用于引用计数，防止内核模块在仍被进程使用（即其代码正在执行）时被意外卸载
 
@@ -2364,221 +1648,6 @@ Ref:
     当执行 rmmod 命令时，内核会检查目标模块的引用计数。如果计数大于 0（表示还有进程正在使用该模块提供的功能），卸载操作会失败并提示 Module XXX is in use。只有当引用计数为 0 时，卸载才会成功进行。
 
     linux 内核中有些 module 是永久存在的，不需要被卸载，为了区分哪些需要计数，哪些不需要，内核通过`struct module*`指针来判断。对于内置的 module，`.owner`为`NULL`。
-
-* `LIST_HEAD_INIT()`
-
-    `LIST_HEAD_INIT()`展开为
-
-    ```c
-    #define LIST_HEAD_INIT(name) { &(name), &(name) }
-    ```
-
-    可以看到，主要是完成链表的静态初始化功能，将头节点指向自身。
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head = LIST_HEAD_INIT(lst_head);
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add(&new_node->list_head, &lst_head);
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            pr_info("del node val: %d\n", cur_node->val);
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [ 2938.473855] in hello_init()...
-    [ 2941.209560] in hello_exit()...
-    [ 2941.209570] del node val: 456
-    [ 2941.209575] del node val: 123
-    ```
-
-* `list_del_init()`
-
-    删除完节点后，将此节点的 prev 和 next 指向自身。
-
-    syntax:
-
-    ```c
-    #include <linux/list.h>
-
-    void list_del_init(struct list_head *entry)
-    ```
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/list.h>
-    #include <linux/slab.h>
-
-    struct my_list_node {
-        struct list_head list_head;
-        int val;
-    };
-
-    struct list_head lst_head = LIST_HEAD_INIT(lst_head);
-    LIST_HEAD(lst_head_2);
-
-    int hello_init(void) {
-        pr_info("in hello_init()...\n");
-        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 123;
-        list_add(&new_node->list_head, &lst_head);
-        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
-        new_node->val = 456;
-        list_add(&new_node->list_head, &lst_head);
-    	return 0;
-    }
-
-    void hello_exit(void) {
-        pr_info("in hello_exit()...\n");
-        struct my_list_node *cur_node, *tmp_node;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
-            list_del_init(&cur_node->list_head);
-            list_add(&cur_node->list_head, &lst_head_2);
-        }
-        
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head_2, list_head) {
-            pr_info("del node val: %d\n", cur_node->val);
-            list_del(&cur_node->list_head);
-            kfree(cur_node);
-        }
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
-    dmesg output:
-
-    ```
-    [ 4285.077823] in hello_init()...
-    [ 4290.003627] in hello_exit()...
-    [ 4290.003719] del node val: 123
-    [ 4290.003754] del node val: 456
-    ```
-
-    这个函数通常用于将一个节点从一个链表中取出来，并准备好将它添加到另一个链表中。
-
-    实测将上述代码中的`list_del_init()`替换成`list_del()`后，没有什么区别。
-
-    `list_del()`将节点取出后，会将节点的`next`, `prev`设置为`LIST_POISON1`和`LIST_POISON2`；`list_del_init()`将节点取出后，会将节点的`next`, `prev`都指向自身。
-
-* 将`struct list_head`内嵌到用户定义的`struct ListNode`中，可能是 linux c 没有泛型和模板的无奈之举
-
-    如果内核直接实现
-
-    ```c
-    struct ListNode {
-        struct ListNode *prev, *next;
-        void *user_data;
-        size_t user_data_len;
-    }
-    ```
-
-    那么`kmalloc()`时无法把`user_data`的内存分出来，用户需要自己管理这块内存，而且还可能涉及到浅复制，深复制的问题。
-
-    如果内核想实现
-
-    ```cpp
-    template<typename T>
-    void list_add(T *list_head, T *new_node) {
-        T *tmp_node = list_head->next;
-        list_head->next = new_node;
-        new_node->next = tmp_node;
-        new_node->prev = list_head;
-    }
-    ```
-
-    那么又没有模板机制。
-
-    综合考虑，还是内嵌的方式最合适。
-
-* `list_del_rcu()`
-
-    RCU - Read-Copy-Update
-
-    用于无锁删除链表中的节点。
-
-    （未验证）
-
-    多线程访问链表的情况下，`list_del()`在删除节点时，通常需要加锁保护。但是加锁会降低性能，如果想无锁删除节点，那么就需要用到`list_del_rcu()`。`list_del_rcu()`会先修改被删除节点前一个节点的 next 指针，然后调用 synchronize_rcu() 或 kfree_rcu() 等函数等待宽限期（Grace Period），确保所有在删除操作前开始的读临界区都结束后，才安全地释放该节点的内存。
-
-    在宽限期结束前，可能仍有读者正在遍历链表并访问该节点的数据。由于 prev 指针未被修改，这些读者可以继续安全地向前遍历链表，而不会因为节点被删除而崩溃（不会遇到 LIST_POISON）。（为什么 reader 可以访问 prev 就不会崩溃？）
-
-    适用于读多写少的链表。
-
-    example:
-
-    ```c
-    // 假设一个RCU保护的链表
-    struct my_data {
-        int value;
-        struct list_head list;
-    };
-
-    // 写者删除节点
-    void delete_node(struct my_data *node)
-    {
-        spin_lock(&write_lock); // 写者之间仍需同步
-        list_del_rcu(&node->list); // 1. 从链表逻辑删除
-        spin_unlock(&write_lock);
-
-        // 2. 等待所有读者离开宽限期
-        synchronize_rcu(); 
-
-        // 3. 现在安全地释放内存
-        kfree(node);
-    }
-
-    // 读者遍历链表（无锁！）
-    void reader(void)
-    {
-        struct my_data *node;
-
-        rcu_read_lock(); // 标记进入RCU读临界区
-        list_for_each_entry_rcu(node, &my_list, list) {
-            // 安全地访问 node->value，即使它正被删除
-            printk("%d\n", node->value);
-        }
-        rcu_read_unlock(); // 标记离开读临界区
-    }
-    ```
 
 * `module_param_array()`中的数组长度参数只有在 write 数据的时候才会被改变
 
@@ -2603,8 +1672,6 @@ Ref:
     Skipping BTF generation for /home/hlc/Documents/Projects/linked_list_test/hello.ko due to unavailability of vmlinux
     make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-40-generic'
     ```
-
-* `list_add()`是在指定 node 后添加 node
 
 * 为什么写`MKDEV()`时可以填`MKDEV(255, 0)`, `MKDEV(220, 0)`
 
@@ -2844,247 +1911,6 @@ Ref:
 
     可以使用`pci_disable_device()`进行反向操作，禁用 pci dev。
 
-* `pci_resource_start()`
-
-    （未验证）
-
-    用于获取 PCI 设备某个资源（如内存地址空间或I/O端口空间）的起始地址。
-
-    syntax:
-
-    ```c
-    #include <linux/pci.h>
-
-    resource_size_t pci_resource_start(struct pci_dev *pdev, int bar);
-    ```
-
-    参数 pdev：指向目标PCI设备的指针。
-
-    参数 bar：基址寄存器（BAR）的索引号，通常从0到5。
-
-    返回值：一个 resource_size_t 类型（通常是64位或32位整数）的值，表示该资源区域的起始物理地址。
-
-    example:
-
-    ```c
-    struct pci_dev *pdev; // 假设已初始化的设备结构体
-    int bar = 0;          // 我们想使用第一个BAR
-    resource_size_t start, len;
-    void __iomem *io_addr; // 指向映射后虚拟地址的指针
-
-    // 1. 获取资源的物理起始地址和长度
-    start = pci_resource_start(pdev, bar);
-    len = pci_resource_len(pdev, bar);
-
-    // 2. 检查资源是否有效且存在
-    if (!start || !len) {
-        // 错误处理
-    }
-
-    // 3. 将物理地址映射到内核虚拟地址空间
-    io_addr = ioremap(start, len);
-    if (!io_addr) {
-        // 映射失败处理
-    }
-
-    // 4. 现在可以通过 io_addr 来读写设备了
-    // 例如：writel(0x12345678, io_addr + REG_OFFSET);
-    //        value = readl(io_addr + STATUS_REG);
-
-    // 5. (在驱动退出时) 取消映射
-    iounmap(io_addr);
-    ```
-
-* `LIST_HEAD()`与`INIT_LIST_HEAD()`
-
-    `LIST_HEAD()`是一个宏，在编译时展开，帮你定义变量，并做好初始化：
-
-    ```c
-    #include <linux/list.h>
-
-    struct my_node {
-        struct list_head node_head;
-        int val;
-    };
-
-    static LIST_HEAD(lst_head);
-
-    int m_open(struct inode *, struct file *) {
-        pr_info("in m_open()...\n");
-        for (int i = 0; i < 3; ++i) {
-            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
-            new_node->val = i;
-            // ...
-    ```
-
-    其中，`static LIST_HEAD(lst_head);`做了如下几件事：
-    
-    1. 定义变量`struct list_head lst_head;`
-
-    2. 将`lst_head`的`next`和`prev`都指向自己
-
-    3. 由于是全局变量，所以声明为`static`的，防止和其他文件里的变量冲突。
-
-    `INIT_LIST_HEAD()`是一个函数，其定义如下：
-
-    ```c
-    static inline void INIT_LIST_HEAD(struct list_head *list)
-    {
-    	WRITE_ONCE(list->next, list);
-    	WRITE_ONCE(list->prev, list);
-    }
-    ```
-
-    通常配合外部的`struct list_head xxx;`使用：
-
-    ```c
-    #include <linux/list.h>
-
-    struct my_node {
-        struct list_head node_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int m_open(struct inode *, struct file *) {
-        pr_info("in m_open()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        for (int i = 0; i < 3; ++i) {
-            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
-            new_node->val = i;
-            // ...
-    ```
-
-* 使用`list_for_each_entry_safe()`释放 list node 的内存
-
-    list 依然是借 device 触发，关键代码如下：
-
-    ```c
-    #include <linux/list.h>
-
-    struct my_node {
-        struct list_head node_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int m_open(struct inode *, struct file *) {
-        pr_info("in m_open()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        for (int i = 0; i < 3; ++i) {
-            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
-            new_node->val = i;
-            list_add(&new_node->node_head, &lst_head);
-        }
-        return 0;
-    }
-
-    int m_release(struct inode *, struct file *) {
-        pr_info("in m_release()...\n");
-        struct my_node *cur_node, *tmp_node;
-        int node_idx = 0;
-        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, node_head) {
-            pr_info("node %d, val: %d\n", node_idx++, cur_node->val);
-            list_del(&cur_node->node_head);
-            kfree(cur_node);
-        }
-
-        return 0;
-    }
-    ```
-
-    注意这里不能使用`list_for_each_entry()`，必须使用`list_for_each_entry_safe()`，否则会运行时报错。
-
-    `list_for_each_entry()`会直接使用当前节点`cur_node`访问到下一个节点，但是在我们的例子中，当前节点`cur_node`已经通过`kfree(cur_node);`释放掉了，所以会报错。`list_for_each_entry_safe()`则会使用`tmp_node`在`cur_node`被释放前，保存指向下个节点的指针，所以不会报错。
-
-* `list_add_tail()`有可能是在 list 尾部添加新节点
-
-    如果是，那么随着 list 长度增加，添加新节点会越来越费时。
-
-* linux list
-
-    linux list 添加新节点是倒序添加的：
-
-    1. 初始状态
-
-        ```
-        head
-        ```
-
-    2. 添加第一个节点 0
-
-        ```
-        head -> 0
-        ```
-
-    3. 添加第二个节点 1
-
-        ```
-        head -> 1 -> 0
-        ```
-
-    4. 添加第三个节点 2
-
-        ```
-        head -> 2 -> 1 -> 0
-        ```
-
-    此时我们再使用`struct list_head`去遍历，得到的输出即为`2, 1, 0`。
-
-* `struct list_head`是每次从尾部添加新节点，并不会每次遍历到最后一个节点才添加新节点
-
-    example:
-
-    ```c
-    #include <linux/list.h>
-
-    struct my_node {
-        struct list_head node_head;
-        int val;
-    };
-
-    struct list_head lst_head;
-
-    int m_open(struct inode *, struct file *) {
-        pr_info("in m_open()...\n");
-        INIT_LIST_HEAD(&lst_head);
-        for (int i = 0; i < 3; ++i) {
-            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
-            new_node->val = i;
-            list_add(&new_node->node_head, &lst_head);
-        }
-        return 0;
-    }
-
-    int m_release(struct inode *, struct file *) {
-        pr_info("in m_release()...\n");
-        struct my_node *cur_node;
-        int node_idx = 0;
-        list_for_each_entry(cur_node, &lst_head, node_head) {
-            pr_info("node %d, val: %d\n", node_idx++, cur_node->val);
-        }
-
-        return 0;
-    }
-    ```
-
-    run: `sudo cat /dev/hlc_dev`
-
-    dmesg output:
-
-    ```
-    [13574.844808] in m_open()...
-    [13574.844916] in m_read()...
-    [13574.844954] in m_release()...
-    [13574.844956] node 0, val: 2
-    [13574.844961] node 1, val: 1
-    [13574.844964] node 2, val: 0
-    ```
-
-* `list_add()`两个参数都是`struct list_head*`
-
 * cdev 和`cdev_init()`, `cdev_add()`相关，涉及到 open, release, read, write, ioctl 等操作；device 和`class_create()`, `device_create()`相关，涉及到`/dev/xxxx`设备文件的创建。
 
     可以看出，cdev 和 device 本身没有依赖关系，它们通过设备号`dev_t dev_num`关联到一起。
@@ -3242,28 +2068,6 @@ Ref:
 
     * 如果寄存器访问需要严格顺序，使用 rmb() / wmb() / mb() 或 readl_relaxed() / writel_relaxed()（无屏障版本）
 
-* AXI-DMA
-
-    AXI（Advanced eXtensible Interface）
-
-    axi 是 ARM 提出的片上互连协议，用于 fpga 和 soc。比如 FPGA 与处理器（如 ARM Cortex）之间的数据搬运。
-
-* PCI-DMA
-
-    PCI/PCIe（Peripheral Component Interconnect Express）
-
-    需要 低延迟、芯片内通信 → AXI-DMA。
-
-    需要 高带宽、跨设备通信 → PCI-DMA。
-
-* insmod 时报错
-
-    在`insmod`时报错`insmod: ERROR: could not insert module dkms_test.ko: Invalid module format`。
-    
-    经检查，`uname -r`查看的 kernel 版本与编译时 Makefile 里指定的 kernel 的版本相同，又查看`/boot`目录，`ls -lh`看到`initrd.img-xxxx`,`vmlinuz-xxxx`, `System.map-xxx`这三个文件的最后一次修改的日期都比较旧，说明最近没有被替换。
-
-    最终发现是 gcc 的版本变了，默认版本的`gcc`在几分钟之内从`gcc-11`升级到了`gcc-12`。很有可能当前内核是`gcc-11`编译的，而编译新 ko 时，使用了`gcc-12`，导致版本不一致。
-
 * `/sys/class/pci_bus/0000:00/device/0000:00:00.0`中每个 attr 文件的 size 都是 4096
 
     比如这个目录下的`class`，`device`等，虽然有效内容也就几十个字节，但是使用
@@ -3276,95 +2080,6 @@ Ref:
 
     得到的`len`，值为`4906`。
 
-* linux 6.8.0 vscode hello world 无静态报错的配置是这样的：
-
-    ```json
-    {
-        "configurations": [
-            {
-                "name": "Linux",
-                "includePath": [
-                    "${workspaceFolder}/**",
-                    "/usr/src/linux-headers-6.8.0-49-generic/include",
-                    "/usr/src/linux-headers-6.8.0-49-generic/arch/x86/include",
-                    "/usr/src/linux-headers-6.8.0-49-generic/arch/x86/include/generated"
-                ],
-                "compilerPath": "/usr/bin/clang-11",
-                "cStandard": "c17",
-                "cppStandard": "c++14",
-                "intelliSenseMode": "linux-clang-x64",
-                "defines": [
-                    "__KERNEL__",
-                    "MODULE"
-                ]
-            }
-        ],
-        "version": 4
-    }
-    ```
-
-    看起来是没有了 hwe 文件夹。
-
-    `__KERNEL__`对应的宏是`module_init()`, `module_exit`, `MODULE_LICENSE()`。
-
-    `MODULE`对应的宏是`MODULE_LICENSE()`。
-
-    hello world 程序：
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-
-    int init_mod(void)
-    {
-        printk("hello hlc module\n");
-        return 0;
-    }
-
-    void exit_mod(void)
-    {
-        printk("exit hlc module\n");
-        return;
-    }
-
-    module_init(init_mod);
-    module_exit(exit_mod);
-    MODULE_LICENSE("GPL");
-    ```
-
-* ubuntu 24.04 + 6.8.1 kernel 编译 hello world module 相对以前的变化
-
-    * vscode 的 c/c++ json 配置如下
-
-        ```json
-        {
-            "configurations": [
-                {
-                    "name": "Linux",
-                    "includePath": [
-                        "${workspaceFolder}/**",
-                        "/usr/src/linux-source-6.8.0/include",
-                        "/usr/src/linux-source-6.8.0/arch/x86/include/generated",
-                        "/usr/src/linux-source-6.8.0/arch/x86/include"
-                    ],
-                    "defines": [
-                        "__KERNEL__",
-                        "MODULE"
-                    ],
-                    "compilerPath": "/usr/bin/gcc",
-                    "cStandard": "c17",
-                    "cppStandard": "gnu++17",
-                    "intelliSenseMode": "linux-gcc-x64"
-                }
-            ],
-            "version": 4
-        }
-        ```
-
-        可以看到，好像没有 hwe 相关的文件夹了，另外 arch 文件夹使用的是`x86`，不是`x86_64`。
-
-    * `init_module()`函数在`linux/module.h`中被定义了，但是`exit_module()`没有被定义。
-
 * 如果需要对不同设备，函数做出不同的行为，一种方法增加一个`enum`类型的函数参数，判断调用者的情况。另一种方法是增加一个编译宏，然后使用`#ifdef xxx`来检测，这样可以在编译时判断调用函数的主体的情况。
 
     为了只编译一份 lib 就适用多种情况，目前采用的是`enum`方案。
@@ -3374,36 +2089,6 @@ Ref:
     常用的是`GFP_KERNEL`。其他的用法在文档里有详细说明。
 
     参见`kmalloc()`文档。
-
-* kbuild system 相关
-
-    * the most simple kbuild makefile
-
-        ```makefile
-        obj-y += foo.o
-        ```
-
-        This tells kbuild that there is one object in that directory, named `foo.o`. `foo.o` will be built from `foo.c` or `foo.S`.
-
-    * build a module
-
-        if `foo.o` shall be built as a module, the variable `obj-m` is used.
-
-        ```makefile
-        obj-m += foo.o
-        ```
-
-        Therefore the following pattern is often used:
-
-        ```makefile
-        obj-$(CONFIG_FOO) += foo.o
-        ```
-
-        `$(CONFIG_FOO)` evaluates to either `y` (for built-in) or `m` (for module).
-
-        If `CONFIG_FOO` is neither `y` nor `m`, then the file will not be compiled nor linked.
-
-    * The kbuild Makefile specified object files for vmlinux in the `$(obj-y)` lists.
 
 * grub 未启动 iommu，在 vfio 里 bind 的时候会报错
 
@@ -3702,10 +2387,6 @@ Ref:
         要求返回值是`void`，函数参数是`struct work_struct *`。
 
         不然`INIT_WORK()`宏会报错。
-
-* `request_irq()`
-
-    header: `#include <linux/interrupt.h>`
 
 * `struct work_struct`
 
@@ -4047,10 +2728,6 @@ Ref:
 
         work queue 可以用`schedule_work()`唤醒（或新建）一个线程，wait event 可以使用`wake_up()`唤醒一个线程，这两都有什么不一样？
 
-* vscode 中有时 tab 会变成 8 个空格，可以关闭这个设置：
-
-    `Editor: Detect Indentation`
-
 * `flush_work()`可以阻塞等待指定的 work，直到 work 完成。
 
     syntax:
@@ -4204,82 +2881,6 @@ Ref:
     1. <http://juniorprincewang.github.io/2018/11/20/Linux%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E4%B9%8Bworkqueue/>
 
     2. <https://embetronicx.com/tutorials/linux/device-drivers/workqueue-in-linux-kernel/>
-
-* kernel module 编译时出现 undefine symbol 是因为没有 export symbol
-
-    ref: <https://blog.csdn.net/choumin/article/details/127094429>
-
-* kbuild　添加自定义的 .o　文件
-
-    ```makefile
-    obj-m += haha.o
-    haha-src := my_proc.c
-    haha-objs := my_proc.o relative/path/to/hehe.o
-    ```
-
-    ref: <https://stackoverflow.com/questions/22150812/linking-kernel-module-with-a-static-lib>
-
-    注意，在`xxx-objs`中使用的路径，都是相对于当前目录的路径。
-
-* kbuild doc
-
-    <https://docs.kernel.org/kbuild/makefiles.html>
-
-* kbuild add extra flags to compiler
-
-    <https://stackoverflow.com/questions/54118602/how-to-set-preprocessor-directives-in-makefile-for-kernel-module-build-target>
-
-* 一个可用的 irq 软中断程序，见`ref_15`
-
-    在编译完，`insmod`之后，可以使用`sudo cat /dev/etx_device`触发中断，然后可以看到`dmesg`里显示：
-
-    ```
-    [12575.759721] intrp: loading out-of-tree module taints kernel.
-    [12575.759724] intrp: module verification failed: signature and/or required key missing - tainting kernel
-    [12575.760032] Major = 240 Minor = 0 
-    [12575.760356] Device Driver Insert...Done!!!
-    [12715.415083] Device File Opened...!!!
-    [12715.415103] Read function
-    [12715.415107] __common_interrupt: 1.59 No irq handler for vector
-    [12715.415119] Device File Closed...!!!
-    ```
-
-    11 号中断是保留中断，没有默认用途，因此用户可以去自定义。
-
-    代码中比较难理解的是`asm("int $0x3B");  // Corresponding to irq 11`这一句。
-
-    我们可以打开`/usr/src/linux-headers-6.5.0-28-generic/arch/x86/include/asm/irq_vectors.h`文件，查到
-
-    `#define FIRST_EXTERNAL_VECTOR           0x20`
-
-    不清楚`#define IRQ0_VECTOR (FIRST_EXTERNAL_VECTOR + 0x10)`这一步是怎么来的。
-
-    最后还需要加上我们的中断号`11`，即`0x20 + 0x10 + 11 = 0x3B`，
-
-    这诚是`asm("int $0x3B");`的由来。
-
-* typical IRQ assignments for a PC
-
-    | IRQ number | Device |
-    | - | - |
-    | 0 | System timer |
-    | 1 | Keyboard (PS/2) |
-    | 2 | Cascade from IRQ 9 |
-    | 3 | COM port 2 or 4 |
-    | 4 | COM port 1 or 3 |
-    | 5 | Parallel (printer) port 2 or sound cards |
-    | 6 | Floppy drive controller |
-    | 7 | Parallel (printer) port 1 |
-    | 8 | Real-time clock |
-    | 9 | Video |
-    | 10 | Open |
-    | 11 | Open |
-    | 12 | Mouse (PS/2) |
-    | 13 | Coprocessor |
-    | 14 | Primary IDE controller (hard drives) |
-    | 15 | Secondary IDE controller (hard drives) |
-
-    ref: <https://www.techtarget.com/whatis/definition/IRQ-interrupt-request>
 
 * 页表用于将虚拟地址映射到物理地址
 
@@ -4485,10 +3086,6 @@ Ref:
     cat: /dev/hlc_dev: No such device or address
     ```
 
-* 在使用`printk()`的`KERN_INFO`模式时，`dmesg`中显示的 log，第一个冒号之前的字体都为黄色，冒号以及之后的字体都是普通白色。
-
-    如果字符串没有冒号，那么全部 log 都是白色。
-
 * cdev 的 ops 函数原型中，`read`，`write`，`unloacked_ioctl`的返回值类型都是`ssize_t`，对应的是`long`。
 
 * `pci_set_drvdata()`与`pci_get_drvdata()`用于获取/设置设备驱动私有数据
@@ -4501,28 +3098,6 @@ Ref:
     ```
 
     It is a convenient way for example to save a pointer to a local dynamically allocated device context in the device probe callback and then retrieve it back with pci_get_drvdata in the device remove callback and do a proper cleanup of the context.
-
-* `printk()`中指针地址的打印
-
-    `%p`打印的并不是真实地址，而是经过处理的地址
-
-    `%px`打印的是原始地址值，不经过处理。
-
-    `%pK`是按配置文件打印值，更具体的用法可以参考这里：<https://blog.csdn.net/zqwone/article/details/127057245>
-
-    <https://www.kernel.org/doc/Documentation/printk-formats.txt>
-
-* 在 insmod 时报错`module verification failed: signature and/or required key missing - tainting kernel`
-
-    可以直接在 makefile 开头添加一行：`CONFIG_MODULE_SIG=n`解决。
-
-    虽然在 insmod 时还会有提示，但是可以正常加载驱动。
-
-    更完善的解决办法可以参考这个：<https://stackoverflow.com/questions/24975377/kvm-module-verification-failed-signature-and-or-required-key-missing-taintin>
-
-    如果 kernel 不是 singed 的，那么也可以不用加`CONFIG_MODULE_SIG=n`这一行。
-
-* 似乎在安装`apt install build-essential`的时候，就会安装 kernel 相关的 herders 和预编译库
 
 * `ktime_get_seconds()`可以获得系统启动后过去了多少时间
 
@@ -4572,7 +3147,1278 @@ Ref:
 
 ## Topics
 
+### print and log
+
+* 内核中日志等级的定义
+
+    ```c
+    #include <linux/kern_levels.h>
+
+    #define KERN_SOH    "\001"  /* ASCII Start Of Header */
+    #define KERN_SOH_ASCII  '\001'
+
+    #define KERN_EMERG      KERN_SOH "0" /* system is unusable */
+    #define KERN_ALERT      KERN_SOH "1" /* action must be taken immediately */ 
+    #define KERN_CRIT       KERN_SOH "2" /* critical conditions */
+    #define KERN_ERR        KERN_SOH "3" /* error conditions */
+    #define KERN_WARNING    KERN_SOH "4" /* warning conditions */
+    #define KERN_NOTICE     KERN_SOH "5" /* normal but significant condition */
+    #define KERN_INFO       KERN_SOH "6" /* informational */
+    #define KERN_DEBUG      KERN_SOH "7" /* debug-level messages */
+    ```
+
+    所以下面四种写法都是等价的：
+
+    ```c
+    pr_info("hello world\n");
+    printk(KERN_INFO "hello, world\n");
+    printk("\0016" "hello, world\n");
+    printk("\0016hello, world\n");
+    ```
+
+    `printk("<6>" "hello, world\n");`这种写法目前已被淘汰，内核不支持。
+
+* `pr_err_once()`
+
+    如果多次调用到这个函数，那么它只输出一次，防止 dmesg 刷屏。
+
+    其内部有一个 bool 标志位，标记此函数之前是否被执行。
+
+    * `pr_emerg_once()`
+        
+        KERN_EMERG 系统可能即将崩溃
+
+    * `pr_alert_once()`
+        
+        KERN_ALERT 需要立即行动
+
+    * `pr_crit_once()`
+    
+        KERN_CRIT 临界条件
+
+    * `pr_err_once()`
+        
+        KERN_ERR 错误条件
+
+    * `pr_warn_once()`
+        
+        KERN_WARNING 警告条件
+
+    * `pr_notice_once()`
+    
+        KERN_NOTICE 正常但重要的事件
+
+    * `pr_info_once()`
+    
+        KERN_INFO 提示信息
+
+    * `pr_debug_once()`
+    
+        KERN_DEBUG 调试信息（依赖配置）
+
+* `fprintf(stdin, ...)`和`fscanf(stdout, ...)`一样，都是未定义行为。可能会导致程序崩溃。
+
+* `dev_info()`
+
+    输出一条附加了设备信息（如设备名称、地址等）的提示性消息.
+
+    syntax:
+
+    ```c
+    #include <linux/device.h>
+
+    int dev_info(const struct device *dev, const char *fmt, ...);
+    ```
+
+    它不仅仅打印用户提供的格式化字符串，还会自动前缀与设备相关的信息。
+
+    对于 PCI 设备 (struct pci_dev *)，前缀通常是 [设备驱动名] 0000:03:00.0: 。
+
+    对于 USB 设备 (struct usb_device *)，前缀可能包含制造商和产品信息。
+
+    对于平台设备 (struct device *)，通常是设备树节点名或平台设备名。
+
+    同类函数：
+
+    dev_emerg()	KERN_EMERG	系统不可用，紧急消息
+    dev_alert()	KERN_ALERT	需要立即采取行动
+    dev_crit()	KERN_CRIT	临界状态，严重硬件错误
+    dev_err()	KERN_ERR	错误状态，操作失败
+    dev_warn()	KERN_WARNING	警告信息，可能有问题
+    dev_info()	KERN_INFO	信息性消息，正常状态（最常用）
+    dev_dbg()	KERN_DEBUG	调试消息，默认不打印，需开启动态调试
+
+* `printk()`中指针地址的打印
+
+    `%p`打印的并不是真实地址，而是经过处理的地址
+
+    `%px`打印的是原始地址值，不经过处理。
+
+    `%pK`是按配置文件打印值，更具体的用法可以参考这里：<https://blog.csdn.net/zqwone/article/details/127057245>
+
+    <https://www.kernel.org/doc/Documentation/printk-formats.txt>
+
+* 在使用`printk()`的`KERN_INFO`模式时，`dmesg`中显示的 log，第一个冒号之前的字体都为黄色，冒号以及之后的字体都是普通白色。
+
+    如果字符串没有冒号，那么全部 log 都是白色。
+
+### 开发环境
+
+* insmod 时报错
+
+    在`insmod`时报错`insmod: ERROR: could not insert module dkms_test.ko: Invalid module format`。
+    
+    经检查，`uname -r`查看的 kernel 版本与编译时 Makefile 里指定的 kernel 的版本相同，又查看`/boot`目录，`ls -lh`看到`initrd.img-xxxx`,`vmlinuz-xxxx`, `System.map-xxx`这三个文件的最后一次修改的日期都比较旧，说明最近没有被替换。
+
+    最终发现是 gcc 的版本变了，默认版本的`gcc`在几分钟之内从`gcc-11`升级到了`gcc-12`。很有可能当前内核是`gcc-11`编译的，而编译新 ko 时，使用了`gcc-12`，导致版本不一致。
+
+* 似乎在安装`apt install build-essential`的时候，就会安装 kernel 相关的 herders 和预编译库
+
+* 在 insmod 时报错`module verification failed: signature and/or required key missing - tainting kernel`
+
+    可以直接在 makefile 开头添加一行：`CONFIG_MODULE_SIG=n`解决。
+
+    虽然在 insmod 时还会有提示，但是可以正常加载驱动。
+
+    更完善的解决办法可以参考这个：<https://stackoverflow.com/questions/24975377/kvm-module-verification-failed-signature-and-or-required-key-missing-taintin>
+
+    如果 kernel 不是 singed 的，那么也可以不用加`CONFIG_MODULE_SIG=n`这一行。
+
+* kernel module 编译时出现 undefine symbol 是因为没有 export symbol
+
+    ref: <https://blog.csdn.net/choumin/article/details/127094429>
+
+* kbuild　添加自定义的 .o　文件
+
+    ```makefile
+    obj-m += haha.o
+    haha-src := my_proc.c
+    haha-objs := my_proc.o relative/path/to/hehe.o
+    ```
+
+    ref: <https://stackoverflow.com/questions/22150812/linking-kernel-module-with-a-static-lib>
+
+    注意，在`xxx-objs`中使用的路径，都是相对于当前目录的路径。
+
+* kbuild doc
+
+    <https://docs.kernel.org/kbuild/makefiles.html>
+
+* kbuild add extra flags to compiler
+
+    <https://stackoverflow.com/questions/54118602/how-to-set-preprocessor-directives-in-makefile-for-kernel-module-build-target>
+
+* vscode 中有时 tab 会变成 8 个空格，可以关闭这个设置：
+
+    `Editor: Detect Indentation`
+
+* kbuild system 相关
+
+    * the most simple kbuild makefile
+
+        ```makefile
+        obj-y += foo.o
+        ```
+
+        This tells kbuild that there is one object in that directory, named `foo.o`. `foo.o` will be built from `foo.c` or `foo.S`.
+
+    * build a module
+
+        if `foo.o` shall be built as a module, the variable `obj-m` is used.
+
+        ```makefile
+        obj-m += foo.o
+        ```
+
+        Therefore the following pattern is often used:
+
+        ```makefile
+        obj-$(CONFIG_FOO) += foo.o
+        ```
+
+        `$(CONFIG_FOO)` evaluates to either `y` (for built-in) or `m` (for module).
+
+        If `CONFIG_FOO` is neither `y` nor `m`, then the file will not be compiled nor linked.
+
+    * The kbuild Makefile specified object files for vmlinux in the `$(obj-y)` lists.
+
+* linux 6.8.0 vscode hello world 无静态报错的配置是这样的：
+
+    ```json
+    {
+        "configurations": [
+            {
+                "name": "Linux",
+                "includePath": [
+                    "${workspaceFolder}/**",
+                    "/usr/src/linux-headers-6.8.0-49-generic/include",
+                    "/usr/src/linux-headers-6.8.0-49-generic/arch/x86/include",
+                    "/usr/src/linux-headers-6.8.0-49-generic/arch/x86/include/generated"
+                ],
+                "compilerPath": "/usr/bin/clang-11",
+                "cStandard": "c17",
+                "cppStandard": "c++14",
+                "intelliSenseMode": "linux-clang-x64",
+                "defines": [
+                    "__KERNEL__",
+                    "MODULE"
+                ]
+            }
+        ],
+        "version": 4
+    }
+    ```
+
+    看起来是没有了 hwe 文件夹。
+
+    `__KERNEL__`对应的宏是`module_init()`, `module_exit`, `MODULE_LICENSE()`。
+
+    `MODULE`对应的宏是`MODULE_LICENSE()`。
+
+    hello world 程序：
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+
+    int init_mod(void)
+    {
+        printk("hello hlc module\n");
+        return 0;
+    }
+
+    void exit_mod(void)
+    {
+        printk("exit hlc module\n");
+        return;
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+* ubuntu 24.04 + 6.8.1 kernel 编译 hello world module 相对以前的变化
+
+    * vscode 的 c/c++ json 配置如下
+
+        ```json
+        {
+            "configurations": [
+                {
+                    "name": "Linux",
+                    "includePath": [
+                        "${workspaceFolder}/**",
+                        "/usr/src/linux-source-6.8.0/include",
+                        "/usr/src/linux-source-6.8.0/arch/x86/include/generated",
+                        "/usr/src/linux-source-6.8.0/arch/x86/include"
+                    ],
+                    "defines": [
+                        "__KERNEL__",
+                        "MODULE"
+                    ],
+                    "compilerPath": "/usr/bin/gcc",
+                    "cStandard": "c17",
+                    "cppStandard": "gnu++17",
+                    "intelliSenseMode": "linux-gcc-x64"
+                }
+            ],
+            "version": 4
+        }
+        ```
+
+        可以看到，好像没有 hwe 相关的文件夹了，另外 arch 文件夹使用的是`x86`，不是`x86_64`。
+
+    * `init_module()`函数在`linux/module.h`中被定义了，但是`exit_module()`没有被定义。
+
+### pci capability
+
+* `pci_find_capability()`
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_find_capability(struct pci_dev *dev, int cap);
+    ```
+
+    * `int cap_id`：要查找的能力类型的标识符（一个字节的 ID，如 0x10 代表 PCIe）。
+
+    函数会从 PCI 配置空间的能力列表指针（Capabilities Pointer register，偏移量 `0x34`）开始，遍历整个能力链表。
+
+    返回值：
+
+    成功：如果找到了与 cap_id 匹配的能力项，则返回该能力结构在 PCI 配置空间中的偏移地址（例如，0x100）。驱动程序可以利用这个地址来读取或写入该能力结构中的具体寄存器（如配置 MSI 中断向量数、地址和数据）。
+
+    失败：如果遍历完整个链表都没有找到指定的能力，或者设备根本不支持能力列表，则返回 0。
+
+* pci capabilities list
+
+    每个 node 代表一个 capabiiility，node 的大小并不固定，只有前两个字节是固定的。
+
+    字节 0：Capability ID - 唯一标识能力的类型（如 0x01 是电源管理，0x10 是 PCIe）。
+
+    字节 1：Next Capability Pointer - 指向下一个能力结构在配置空间中的偏移地址。这个指针将所有的能力节点链接在一起，形成链表。
+
+    从字节 2 开始，驱动程序通过查询 Capability ID 来确定该如何解析后续的字节。详细的格式由 pci sig 维护。程序可以通过`pci_read_config_byte()`, `pci_read_config_word()`, `pci_read_config_dword()`来读取。开发者应该尽量使用更高级的接口，不要直接读取这些字节。
+
+    常见的 pci capability id 与其对应的 struct:
+
+    * `PCI_CAP_ID_MSI` (`0x05`): 消息信号中断
+
+        MSI 结构有两种常见形式：32位和64位地址格式。
+
+        * 最小形式 (32位地址, 1个向量)：
+
+            偏移 0x00: Capability ID (0x05) + Next Pointer
+
+            偏移 0x02: Message Control Register
+
+            偏移 0x04: Message Address Register (低32位)
+
+            偏移 0x08: Message Data Register
+
+            总长度: 10 字节 (从链表指针开始算起的结构体大小)
+
+        * 扩展形式 (64位地址, 多个向量)：
+
+            包含最小形式的所有寄存器...
+
+            偏移 0x08: Message Address Register (高32位)
+
+            偏移 0x0C: Message Data Register
+
+            偏移 0x10: Mask Bits Register (可选)
+
+            偏移 0x14: Pending Bits Register (可选)
+
+            总长度: 可达 24 字节或更多
+
+    * `PCI_CAP_ID_MSIX` (`0x11`): 消息信号中断
+
+    * `PCI_CAP_ID_PM` (`0x01`): 电源管理
+
+    * `PCI_CAP_ID_EXP` (`0x10`): PCIe 特性
+
+        PCI Express Capabilities Register
+
+        Device Capabilities Register
+
+        Device Status and Control Register
+
+        Link Capabilities Register
+
+        Link Status and Control Register
+
+        Slot Capabilities Register (如果适用)
+
+        ...
+
+        总长度: 通常至少是 20 字节（对于端点设备），对于根端口或交换设备会更长
+
+    * `PCI_CAP_ID_VNDR` (`0x09`): 虚拟通道
+
+* 完整的 pci capability list
+
+    可参考`uapi/linux/pci_regs.h`。
+
+    | 常量 | 值 | 描述 |
+    | - | - | - |
+    | PCI_CAP_ID_PM | 0x01 | 电源管理 (Power Management) |
+    | PCI_CAP_ID_AGP | 0x02 | 加速图形端口 (Accelerated Graphics Port) |
+    | PCI_CAP_ID_VPD | 0x03 | 重要产品数据 (Vital Product Data) |
+    | PCI_CAP_ID_SLOTID | 0x04 | 插槽识别 (Slot Identification) |
+    | PCI_CAP_ID_MSI | 0x05 | 消息信号中断 (Message Signaled Interrupts) |
+    | PCI_CAP_ID_CHSWP | 0x06 | 热插拔 (CompactPCI Hot-Swap) |
+    | PCI_CAP_ID_PCIX | 0x07 | PCI-X |
+    | PCI_CAP_ID_HT | 0x08 | HyperTransport |
+    | PCI_CAP_ID_VNDR | 0x09 | 厂商特定信息 (Vendor-Specific) |
+    | PCI_CAP_ID_DBG | 0x0A | 调试端口 (Debug port) |
+    | PCI_CAP_ID_CCRC | 0x0B | 紧凑型PCI中央资源控制 (CompactPCI CRC) |
+    | PCI_CAP_ID_SHPC | 0x0C | 标准热插拔控制器 (Standard Hot-Plug Controller) |
+    | PCI_CAP_ID_SSVID | 0x0D | 子系统厂商ID (Subsystem Vendor/Device ID) |
+    | PCI_CAP_ID_AGP3 | 0x0E | AGP 8x |
+    | PCI_CAP_ID_SECDEV | 0x0F | 安全设备 (Secure Device) |
+    | PCI_CAP_ID_EXP | 0x10 | PCI Express (这是最常用的之一) |
+    | PCI_CAP_ID_MSIX | 0x11 | MSI-X 中断 (这是最常用的之一) |
+    | PCI_CAP_ID_SATA | 0x12 | SATA 数据/配置索引 |
+    | PCI_CAP_ID_AF | 0x13 | 高级功能 (Advanced Features) |
+
+### dma
+
+* AXI-DMA
+
+    AXI（Advanced eXtensible Interface）
+
+    axi 是 ARM 提出的片上互连协议，用于 fpga 和 soc。比如 FPGA 与处理器（如 ARM Cortex）之间的数据搬运。
+
+* PCI-DMA
+
+    PCI/PCIe（Peripheral Component Interconnect Express）
+
+    需要 低延迟、芯片内通信 → AXI-DMA。
+
+    需要 高带宽、跨设备通信 → PCI-DMA。
+
+* `dma_set_mask_and_coherent()`
+
+    设置 DMA 掩码。检查并告知内核：当前设备（通常是 PCIe、USB 等外设）能够访问的系统物理地址范围。确保 DMA 操作的安全性和正确性：防止设备尝试访问超出其寻址能力的物理地址，从而导致数据损坏或系统崩溃。
+
+    并非所有硬件设备都支持 64 位物理地址寻址。一些较老或成本较低的设备可能只支持 32 位（即 4GB）甚至更小的地址空间。
+
+    syntax:
+
+    ```c
+    int dma_set_mask_and_coherent(struct device *dev, u64 mask);
+    ```
+
+    * mask: 一个位掩码，表示设备支持的地址位。例如，0xFFFFFFFF 表示 32 位掩码（支持 4GB 以下地址），`DMA_BIT_MASK(64)` 表示 64 位掩码（支持全部 64 位地址）。
+
+    返回值：
+
+    * 成功时返回 0。
+
+    * 失败时返回非零值（通常是`-EIO`），表示平台无法在该掩码下支持 DMA。例如，在一个不支持 64 位 DMA 的系统上尝试设置 64 位掩码可能会失败。
+
+    example:
+
+    ```c
+    struct device *dev = &my_pci_dev->dev;
+    u64 dma_mask = DMA_BIT_MASK(64); // 假设我们的设备支持 64 位 DMA
+
+    if (dma_set_mask_and_coherent(dev, dma_mask)) {
+        // 64 位 DMA 设置失败，尝试回退到 32 位
+        dev_warn(dev, "64-bit DMA not supported, trying 32-bit\n");
+        if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32))) {
+            dev_err(dev, "No usable DMA configuration found\n");
+            return -EIO;
+        }
+    }
+    ```
+
+    dma_set_mask_and_coherent() 实际上一次性设置了两个掩码：（未看懂）
+
+    * 流式 DMA 掩码 (DMA Mask)：
+
+        用于“流式” DMA 映射（dma_map_single 等）。
+
+        这种映射通常是短期、一次性的，缓存一致性通常由软件显式维护（如手动刷缓存）。
+
+        内核会确保为流式 DMA 分配的内存地址落在设备声明的这个地址范围内。
+
+    * 一致性 DMA 掩码 (Coherent DMA Mask)：
+
+        用于“一致性” DMA 映射（dma_alloc_coherent 等）。
+
+        这种映射是长期存在的，硬件和 CPU 都可以无障碍地访问，缓存一致性由硬件自动维护。
+
+        内核会确保为一致性 DMA 分配的内存地址同样落在设备声明的这个地址范围内。
+
+    `dma_set_mask_and_coherent()`确保了：
+
+    * 内核不会为 DMA 操作分配设备无法访问的内存地址。
+
+        （内核只能分指定范围内的地址）
+
+    * 设备驱动能够安全、可靠地执行 DMA 数据传输，充分发挥设备性能。
+
+        （设备只能访问只能范围内的地址）
+
+    辅助宏：
+
+    ```c
+    #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : (1ULL<<(n))-1)
+    ```
+
+    * `DMA_BIT_MASK(32)` 生成 0x00000000FFFFFFFF
+
+    * `DMA_BIT_MASK(64)` 生成 0xFFFFFFFFFFFFFFFF
+
+* `dma_set_mask()`
+
+    告知操作系统和设备驱动程序，某个硬件设备能够访问的系统物理内存地址范围（即DMA地址空间）有多大.
+
+    syntax:
+
+    ```c
+    #include <linux/dma-mapping.h>
+
+    int dma_set_mask(struct device *dev, u64 mask);
+    int dma_set_coherent_mask(struct device *dev, u64 mask);
+    int dma_set_mask_and_coherent(struct device *dev, u64 mask);
+    ```
+
+    返回 0 表示成功，返回一个非零的错误代码（通常是负数）表示失败。
+
+    `dma_set_mask_and_coherent()`是其升级版，
+
+    * streaming DMA：用于一次性的数据传输映射。CPU和设备对这块内存的访问可能不是同步的（非一致性）。
+
+    * coherent DMA（或一致性DMA）：用于需要CPU和设备同时、一致地访问的内存（例如控制寄存器所在的内存）。这块内存在映射时会进行特殊处理以保证缓存一致性。
+
+    `dma_set_mask_and_coherent()`的作用是同时为设备的两种DMA映射方式（流式和一致式）设置相同的地址掩码，这是最常见和推荐的做法，因为它确保了行为的一致性。
+
+* `dma_alloc_coherent()`
+
+    为设备与 CPU 之间进行直接内存访问（DMA）而分配一段“一致性”内存。解决了由于 CPU 缓存（Cache）的存在而引发的“缓存一致性问题”。它分配的内存区域被设置为 “无缓存”（Uncacheable） 的，或者内核会通过硬件机制（如 Cache Coherent Interconnect）自动维护这块内存的缓存一致性。
+
+    syntax:
+
+    ```c
+    #include <linux/dma-mapping.h>
+
+    void *dma_alloc_coherent(struct device *dev, size_t size,
+                             dma_addr_t *dma_handle, gfp_t gfp);
+    ```
+
+    参数说明：
+
+    * `dma_handle`: 一个指向 `dma_addr_t` 类型的指针。这是一个输出参数。函数成功返回后，`*dma_handle` 中存储的就是分配的内存区域的DMA总线地址。驱动程序需要将这个地址提供给设备，设备将使用这个地址来执行DMA操作。
+
+    * `gfp`: gfp_t	分配内存时使用的标志位
+
+        * `GFP_KERNEL`: 标准的内核内存分配，可能在分配时睡眠（阻塞）。
+
+        * `GFP_ATOMIC`: 原子分配，不会睡眠，用于中断上下文等不能调度的地方。
+
+    返回值：
+
+    * `void *`: 如果分配成功，返回一个指向已分配内存区域的内核虚拟地址的指针。CPU使用这个指针来读写这块内存。
+
+    * `NULL`: 如果分配失败，则返回 NULL。
+
+    问题场景描述：
+
+    * CPU 在处理数据时，数据可能缓存在 CPU 的高速缓存中，并未立即写回主内存。
+
+    * 如果此时设备通过 DMA 直接从主内存读取数据，它读到的就是过时的、旧的数据。
+
+    * 反之，如果设备通过 DMA 将数据写入主内存，而 CPU 的缓存中还有该地址的旧数据，那么 CPU 后续读取时可能会从缓存中得到过时的、旧的数据。
+
+    常用的应用场景：
+
+    * 网络设备驱动：分配用于接收和发送数据包的网络数据缓冲区。
+
+    * 块设备驱动（如 SCSI）：分配传输命令和数据的“scatter-gather”列表。
+
+    * USB 驱动：分配用于传输 USB 请求的数据缓冲区。
+
+    配对函数：`dma_free_coherent()`
+
+    syntax:
+
+    ```c
+    void dma_free_coherent(struct device *dev, size_t size,
+                           void *cpu_addr, dma_addr_t dma_handle);
+    ```
+
+* `dma_addr_t`c
+
+    dma_addr_t 保存的是设备能理解的物理地址, 而不是内核使用的虚拟地址。
+
+    本质上是一个无符号整数类型（通常是 u64 或 u32）.
+
+    驱动开发者应将其视为一个“黑盒”或令牌（token）或 handle。不需要关心它的具体数值是什么，只需要在DMA API函数中正确地传递和使用它。不能直接对它进行数学运算或解引用。
+
+    地址转换的产生：
+
+    * 简单系统（无IOMMU）： 设备直接访问物理内存。这时，dma_addr_t 通常就是CPU的物理地址（phys_addr_t）。驱动需要确保设备可以访问该物理地址范围。
+
+    * 复杂系统（有IOMMU/SMMU）： IOMMU是一个位于设备和内存之间的硬件单元，类似于CPU的MMU。它可以将设备看到的“IO虚拟地址”（IOVA）翻译成真正的物理地址。
+
+        在这种情况下，驱动通过DMA API申请的内存，其返回的 dma_addr_t 是一个IO虚拟地址（IOVA），而不是真正的物理地址。设备使用这个IOVA进行数据传输，IOMMU会透明地完成IOVA到物理地址的转换。
+
+* `dma_mapping_error()`
+
+    在使用 dma_map_single() 时，强烈建议使用 dma_mapping_error() 来检查映射是否成功，而不是直接判断返回值是否为0或NULL（因为DMA地址0可能是一个有效的物理地址）。
+
+    ```c
+    dma_addr_t dma_handle;
+    dma_handle = dma_map_single(dev, ptr, size, dir);
+    if (dma_mapping_error(dev, dma_handle)) {
+        // 映射失败，处理错误
+        return -ENOMEM; // 或其它错误码
+    }
+    // 映射成功，继续使用 dma_handle
+    ```
+
+* `dma_map_single()`
+
+    为一次 DMA 传输做准备，将一块 CPU 可访问的内存区域映射到设备可以访问的 DMA 地址空间。
+
+    syntax:
+
+    ```c
+    #include <linux/dma-mapping.h>
+
+    dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir);
+
+    void dma_unmap_single(struct device *dev, dma_addr_t dma_handle, size_t size, enum dma_data_direction dir);
+    ```
+
+    parameters:
+
+    * `dev`: 指向设备结构体的指针。这个指针包含了DMA映射操作所需的硬件信息，例如设备所在的总线地址空间限制、是否具有IOMMU等。
+
+    * `ptr`: 需要映射的内核虚拟地址。这通常是通过`kmalloc()`等内核函数分配的内存块的起始地址。
+
+    * `size`: 需要映射的内存区域的大小（以字节为单位）。
+
+    * `dir`: DMA 数据传输的方向。这是一个枚举类型，决定了内核如何处理缓存一致性。其取值通常为：
+
+        * `DMA_TO_DEVICE`：数据从内存传输到设备（写操作）。
+
+        * `DMA_FROM_DEVICE`：数据从设备传输到内存（读操作）。
+
+        * `DMA_BIDIRECTIONAL`：数据可能双向传输。
+
+        * `DMA_NONE`：仅用于调试，表明方向未知。
+
+    返回值
+
+    成功时返回映射后的`dma_addr_t` DMA 地址（总线地址）。
+
+    如果映射失败（例如，参数无效或地址无法映射），函数可能会返回一个特殊的“错误”DMA地址（具体实现可能不同），或者在某些配置下触发BUG。
+
+    CPU 访问内存使用的是虚拟地址（Virtual Address），经过 MMU（内存管理单元）转换后得到物理地址。而 DMA 设备通常工作在物理地址层面，但它看到的“物理地址”（我们称之为总线地址，Bus Address）有可能与 CPU 看到的物理地址不同（尤其是在有 IOMMU 的系统中）。
+
+    `dma_map_single()`主要解决两个问题：
+
+    1. 内地映射：将 cpu 使用的 va 和 dma handle 进行映射。cpu 使用的 va 由 kmalloc() 得到
+
+    2. 维护缓存一致性
+
+        * 对于设备要读取的内存（`DMA_FROM_DEVICE`），dma_map_single() 会刷洗（Flush）CPU Cache，确保设备读到的是内存中最新的数据。
+
+        * 对于设备要写入的内存（`DMA_TO_DEVICE`），dma_map_single() 可能会作废（Invalidate）CPU Cache，确保设备写完后，CPU 下次读取时能从内存获取新数据，而不是旧的缓存数据。
+
+    典型使用流程
+
+    一个典型的 DMA 传输流程中，该函数的使用如下：
+
+    1. 分配内存：使用 kmalloc() 等函数分配一块用于 DMA 缓冲区的内存。
+
+    2. 准备数据：（如果是输出）CPU 将需要传输的数据填充到这块内存中。
+
+    3. 映射：调用 dma_map_single(dev, addr, size, direction)。
+
+        * dev：指向设备结构体的指针。
+
+        * addr：第一步分配的内存的内核虚拟地址。
+
+        * size：缓冲区大小。
+
+        * direction：数据传输方向（如 DMA_TO_DEVICE, DMA_FROM_DEVICE, DMA_BIDIRECTIONAL）。
+
+    4. 获取 DMA 地址：函数返回一个 dma_addr_t 类型的 DMA 地址。将这个地址写入设备的 DMA 控制器寄存器。
+
+    5. 启动传输：通知设备可以从/向给定的 DMA 地址开始传输数据。
+
+    6. 传输完成：设备产生中断，通知 CPU 传输完成。
+
+    7. 解除映射：调用 dma_unmap_single() 解除映射。这会再次处理缓存一致性问题，并使得这块内存的映射关系失效。
+
+    example:
+
+    ```c
+    // 必要的内核头文件
+    #include <linux/kernel.h>
+    #include <linux/module.h>
+    #include <linux/init.h>
+
+    // 设备模型相关
+    #include <linux/device.h>       // 定义 struct device
+    #include <linux/platform_device.h> // 如果是平台设备
+
+    // DMA API 相关
+    #include <linux/dma-mapping.h>  // 核心头文件，包含 dma_map_single 等
+    // #include <linux/dma-direction.h> // 如果需要，但通常 dma-mapping.h 已包含
+
+    // 其他可能需要的头文件，如用于内存分配的
+    #include <linux/slab.h>         // 用于 kmalloc, kfree
+
+    // ... 你的驱动代码 ...
+    static int my_driver_dma_transfer(struct device *dev)
+    {
+        void *cpu_addr;
+        dma_addr_t dma_handle;
+        size_t size = 1024; // 1KB
+
+        // 1. 分配内存
+        cpu_addr = kmalloc(size, GFP_KERNEL);
+        if (!cpu_addr)
+            return -ENOMEM;
+
+        // 2. 映射内存以用于DMA (传输到设备)
+        dma_handle = dma_map_single(dev, cpu_addr, size, DMA_TO_DEVICE);
+        if (dma_mapping_error(dev, dma_handle)) { // 推荐错误检查
+            kfree(cpu_addr);
+            return -ENOMEM;
+        }
+
+        // 3. 将 dma_handle 交给设备，启动DMA传输...
+        // program_device_to_start_dma(dma_handle);
+
+        // 4. (传输完成后) 解除映射
+        // dma_unmap_single(dev, dma_handle, size, DMA_TO_DEVICE);
+
+        // 5. 释放内存
+        // kfree(cpu_addr);
+
+        return 0;
+    }
+    ```
+
+* `dma_alloc_coherent()`与`dma_map_single()`的区别
+
+    dma_alloc_coherent() 用于“静态”或“长期”的共享缓冲区，而 dma_map_single() 用于“动态”或“短期”的流式DMA传输。
+
+    `dma_alloc_coherent()`会配置这块内存为 uncacheable（不可缓存）来实现缓存一致性，代价是性能下降。通常只能分配较小的、物理连续的内存块（例如最多几个MB）（为什么？）
+    
+    dma_map_single() + kmalloc() 是流式映射，将一块普通的、由CPU高效使用的缓存内存，临时映射给设备用于一次DMA传输。传输完成后立即解除映射。一致性由软件（内核）在映射/解除映射时维护。适合大块内存。dma_map_single -> Flush Cache, dma_unmap_single -> Invalidate Cache.
+
+    对于流式 dma，在 dma map 之后，dma unmap 之前，可能会有缓存不一致的情况。
+
 ### list
+
+* 使用`list_for_each_entry_safe()`释放 list node 的内存
+
+    list 依然是借 device 触发，关键代码如下：
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            list_add(&new_node->node_head, &lst_head);
+        }
+        return 0;
+    }
+
+    int m_release(struct inode *, struct file *) {
+        pr_info("in m_release()...\n");
+        struct my_node *cur_node, *tmp_node;
+        int node_idx = 0;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, node_head) {
+            pr_info("node %d, val: %d\n", node_idx++, cur_node->val);
+            list_del(&cur_node->node_head);
+            kfree(cur_node);
+        }
+
+        return 0;
+    }
+    ```
+
+    注意这里不能使用`list_for_each_entry()`，必须使用`list_for_each_entry_safe()`，否则会运行时报错。
+
+    `list_for_each_entry()`会直接使用当前节点`cur_node`访问到下一个节点，但是在我们的例子中，当前节点`cur_node`已经通过`kfree(cur_node);`释放掉了，所以会报错。`list_for_each_entry_safe()`则会使用`tmp_node`在`cur_node`被释放前，保存指向下个节点的指针，所以不会报错。
+
+* `list_add_tail()`有可能是在 list 尾部添加新节点
+
+    如果是，那么随着 list 长度增加，添加新节点会越来越费时。
+
+* linux list
+
+    linux list 添加新节点是倒序添加的：
+
+    1. 初始状态
+
+        ```
+        head
+        ```
+
+    2. 添加第一个节点 0
+
+        ```
+        head -> 0
+        ```
+
+    3. 添加第二个节点 1
+
+        ```
+        head -> 1 -> 0
+        ```
+
+    4. 添加第三个节点 2
+
+        ```
+        head -> 2 -> 1 -> 0
+        ```
+
+    此时我们再使用`struct list_head`去遍历，得到的输出即为`2, 1, 0`。
+
+* `struct list_head`是每次从尾部添加新节点，并不会每次遍历到最后一个节点才添加新节点
+
+    example:
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            list_add(&new_node->node_head, &lst_head);
+        }
+        return 0;
+    }
+
+    int m_release(struct inode *, struct file *) {
+        pr_info("in m_release()...\n");
+        struct my_node *cur_node;
+        int node_idx = 0;
+        list_for_each_entry(cur_node, &lst_head, node_head) {
+            pr_info("node %d, val: %d\n", node_idx++, cur_node->val);
+        }
+
+        return 0;
+    }
+    ```
+
+    run: `sudo cat /dev/hlc_dev`
+
+    dmesg output:
+
+    ```
+    [13574.844808] in m_open()...
+    [13574.844916] in m_read()...
+    [13574.844954] in m_release()...
+    [13574.844956] node 0, val: 2
+    [13574.844961] node 1, val: 1
+    [13574.844964] node 2, val: 0
+    ```
+
+* `list_add()`两个参数都是`struct list_head*`
+
+* `LIST_HEAD()`与`INIT_LIST_HEAD()`
+
+    `LIST_HEAD()`是一个宏，在编译时展开，帮你定义变量，并做好初始化：
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    static LIST_HEAD(lst_head);
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            // ...
+    ```
+
+    其中，`static LIST_HEAD(lst_head);`做了如下几件事：
+    
+    1. 定义变量`struct list_head lst_head;`
+
+    2. 将`lst_head`的`next`和`prev`都指向自己
+
+    3. 由于是全局变量，所以声明为`static`的，防止和其他文件里的变量冲突。
+
+    `INIT_LIST_HEAD()`是一个函数，其定义如下：
+
+    ```c
+    static inline void INIT_LIST_HEAD(struct list_head *list)
+    {
+    	WRITE_ONCE(list->next, list);
+    	WRITE_ONCE(list->prev, list);
+    }
+    ```
+
+    通常配合外部的`struct list_head xxx;`使用：
+
+    ```c
+    #include <linux/list.h>
+
+    struct my_node {
+        struct list_head node_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int m_open(struct inode *, struct file *) {
+        pr_info("in m_open()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        for (int i = 0; i < 3; ++i) {
+            struct my_node *new_node = kmalloc(sizeof(struct my_node), GFP_KERNEL);
+            new_node->val = i;
+            // ...
+    ```
+
+* `list_add()`是在指定 node 后添加 node
+
+* `LIST_HEAD_INIT()`
+
+    `LIST_HEAD_INIT()`展开为
+
+    ```c
+    #define LIST_HEAD_INIT(name) { &(name), &(name) }
+    ```
+
+    可以看到，主要是完成链表的静态初始化功能，将头节点指向自身。
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head = LIST_HEAD_INIT(lst_head);
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            pr_info("del node val: %d\n", cur_node->val);
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 2938.473855] in hello_init()...
+    [ 2941.209560] in hello_exit()...
+    [ 2941.209570] del node val: 456
+    [ 2941.209575] del node val: 123
+    ```
+
+* `list_del_init()`
+
+    删除完节点后，将此节点的 prev 和 next 指向自身。
+
+    syntax:
+
+    ```c
+    #include <linux/list.h>
+
+    void list_del_init(struct list_head *entry)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head = LIST_HEAD_INIT(lst_head);
+    LIST_HEAD(lst_head_2);
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del_init(&cur_node->list_head);
+            list_add(&cur_node->list_head, &lst_head_2);
+        }
+        
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head_2, list_head) {
+            pr_info("del node val: %d\n", cur_node->val);
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 4285.077823] in hello_init()...
+    [ 4290.003627] in hello_exit()...
+    [ 4290.003719] del node val: 123
+    [ 4290.003754] del node val: 456
+    ```
+
+    这个函数通常用于将一个节点从一个链表中取出来，并准备好将它添加到另一个链表中。
+
+    实测将上述代码中的`list_del_init()`替换成`list_del()`后，没有什么区别。
+
+    `list_del()`将节点取出后，会将节点的`next`, `prev`设置为`LIST_POISON1`和`LIST_POISON2`；`list_del_init()`将节点取出后，会将节点的`next`, `prev`都指向自身。
+
+* 将`struct list_head`内嵌到用户定义的`struct ListNode`中，可能是 linux c 没有泛型和模板的无奈之举
+
+    如果内核直接实现
+
+    ```c
+    struct ListNode {
+        struct ListNode *prev, *next;
+        void *user_data;
+        size_t user_data_len;
+    }
+    ```
+
+    那么`kmalloc()`时无法把`user_data`的内存分出来，用户需要自己管理这块内存，而且还可能涉及到浅复制，深复制的问题。
+
+    如果内核想实现
+
+    ```cpp
+    template<typename T>
+    void list_add(T *list_head, T *new_node) {
+        T *tmp_node = list_head->next;
+        list_head->next = new_node;
+        new_node->next = tmp_node;
+        new_node->prev = list_head;
+    }
+    ```
+
+    那么又没有模板机制。
+
+    综合考虑，还是内嵌的方式最合适。
+
+* `list_del_rcu()`
+
+    RCU - Read-Copy-Update
+
+    用于无锁删除链表中的节点。
+
+    （未验证）
+
+    多线程访问链表的情况下，`list_del()`在删除节点时，通常需要加锁保护。但是加锁会降低性能，如果想无锁删除节点，那么就需要用到`list_del_rcu()`。`list_del_rcu()`会先修改被删除节点前一个节点的 next 指针，然后调用 synchronize_rcu() 或 kfree_rcu() 等函数等待宽限期（Grace Period），确保所有在删除操作前开始的读临界区都结束后，才安全地释放该节点的内存。
+
+    在宽限期结束前，可能仍有读者正在遍历链表并访问该节点的数据。由于 prev 指针未被修改，这些读者可以继续安全地向前遍历链表，而不会因为节点被删除而崩溃（不会遇到 LIST_POISON）。（为什么 reader 可以访问 prev 就不会崩溃？）
+
+    适用于读多写少的链表。
+
+    example:
+
+    ```c
+    // 假设一个RCU保护的链表
+    struct my_data {
+        int value;
+        struct list_head list;
+    };
+
+    // 写者删除节点
+    void delete_node(struct my_data *node)
+    {
+        spin_lock(&write_lock); // 写者之间仍需同步
+        list_del_rcu(&node->list); // 1. 从链表逻辑删除
+        spin_unlock(&write_lock);
+
+        // 2. 等待所有读者离开宽限期
+        synchronize_rcu(); 
+
+        // 3. 现在安全地释放内存
+        kfree(node);
+    }
+
+    // 读者遍历链表（无锁！）
+    void reader(void)
+    {
+        struct my_data *node;
+
+        rcu_read_lock(); // 标记进入RCU读临界区
+        list_for_each_entry_rcu(node, &my_list, list) {
+            // 安全地访问 node->value，即使它正被删除
+            printk("%d\n", node->value);
+        }
+        rcu_read_unlock(); // 标记离开读临界区
+    }
+    ```
+
+* `list_first_entry()`
+
+    给定`struct list_head*`指针，拿到
+
+    syntax:
+
+    ```c
+    #include <linux/list.h>
+
+    list_first_entry(ptr, type, member)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+        struct my_list_node *node = list_first_entry(&lst_head, struct my_list_node, list_head);
+        pr_info("first entry val: %d\n", node->val);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [13557.594168] in hello_init()...
+    [13557.594275] first entry val: 456
+    [13564.272870] in hello_exit()...
+    ```
+
+    与其对应的宏为`list_last_entry()`。
+
+* `list_next_entry()`
+
+    根据当前 node 指针，拿到下一个 node 的指针。
+
+    ```syntax
+    ptr = list_next_entry(pos, member)
+    ```
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/list.h>
+    #include <linux/slab.h>
+
+    struct my_list_node {
+        struct list_head list_head;
+        int val;
+    };
+
+    struct list_head lst_head;
+
+    int hello_init(void) {
+        pr_info("in hello_init()...\n");
+        INIT_LIST_HEAD(&lst_head);
+        struct my_list_node *new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 123;
+        list_add(&new_node->list_head, &lst_head);
+        new_node = kmalloc(sizeof(struct my_list_node), GFP_KERNEL);
+        new_node->val = 456;
+        list_add(&new_node->list_head, &lst_head);
+        struct my_list_node *node = list_first_entry(&lst_head, struct my_list_node, list_head);
+        pr_info("first entry val: %d\n", node->val);
+        node = list_next_entry(node, list_head);
+        pr_info("next entry val: %d\n", node->val);
+    	return 0;
+    }
+
+    void hello_exit(void) {
+        pr_info("in hello_exit()...\n");
+        struct my_list_node *cur_node, *tmp_node;
+        list_for_each_entry_safe(cur_node, tmp_node, &lst_head, list_head) {
+            list_del(&cur_node->list_head);
+            kfree(cur_node);
+        }
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [16486.123036] in hello_init()...
+    [16486.123155] first entry val: 456
+    [16486.123160] next entry val: 123
+    [16492.787828] in hello_exit()...
+    ```
+
+    可以看到，`list_first_entry()`传进去的是`list_head`，而`list_next_entry()`传进去的是我们自己的 node struct。
+
+    与其对应的宏为`list_prev_entry()`。
 
 * `list_add_tail()`
 
@@ -5034,6 +4880,62 @@ Ref:
     init_llist_head() 用于无锁单向链表。初始化一个 struct llist_head 节点，将其 first 指针设置为 NULL，表示一个空的单向链表。
 
 ### irq, 中断与 msi-x
+
+* 一个可用的 irq 软中断程序，见`ref_15`
+
+    在编译完，`insmod`之后，可以使用`sudo cat /dev/etx_device`触发中断，然后可以看到`dmesg`里显示：
+
+    ```
+    [12575.759721] intrp: loading out-of-tree module taints kernel.
+    [12575.759724] intrp: module verification failed: signature and/or required key missing - tainting kernel
+    [12575.760032] Major = 240 Minor = 0 
+    [12575.760356] Device Driver Insert...Done!!!
+    [12715.415083] Device File Opened...!!!
+    [12715.415103] Read function
+    [12715.415107] __common_interrupt: 1.59 No irq handler for vector
+    [12715.415119] Device File Closed...!!!
+    ```
+
+    11 号中断是保留中断，没有默认用途，因此用户可以去自定义。
+
+    代码中比较难理解的是`asm("int $0x3B");  // Corresponding to irq 11`这一句。
+
+    我们可以打开`/usr/src/linux-headers-6.5.0-28-generic/arch/x86/include/asm/irq_vectors.h`文件，查到
+
+    `#define FIRST_EXTERNAL_VECTOR           0x20`
+
+    不清楚`#define IRQ0_VECTOR (FIRST_EXTERNAL_VECTOR + 0x10)`这一步是怎么来的。
+
+    最后还需要加上我们的中断号`11`，即`0x20 + 0x10 + 11 = 0x3B`，
+
+    这诚是`asm("int $0x3B");`的由来。
+
+* typical IRQ assignments for a PC
+
+    | IRQ number | Device |
+    | - | - |
+    | 0 | System timer |
+    | 1 | Keyboard (PS/2) |
+    | 2 | Cascade from IRQ 9 |
+    | 3 | COM port 2 or 4 |
+    | 4 | COM port 1 or 3 |
+    | 5 | Parallel (printer) port 2 or sound cards |
+    | 6 | Floppy drive controller |
+    | 7 | Parallel (printer) port 1 |
+    | 8 | Real-time clock |
+    | 9 | Video |
+    | 10 | Open |
+    | 11 | Open |
+    | 12 | Mouse (PS/2) |
+    | 13 | Coprocessor |
+    | 14 | Primary IDE controller (hard drives) |
+    | 15 | Secondary IDE controller (hard drives) |
+
+    ref: <https://www.techtarget.com/whatis/definition/IRQ-interrupt-request>
+
+* `request_irq()`
+
+    header: `#include <linux/interrupt.h>`
 
 * 常用 irq
 
@@ -5669,6 +5571,308 @@ Ref:
     配对函数：`free_irq()`
 
 ### pci 设备：bar 与 iomap
+
+* `pci_msi_enabled()`
+
+    检查一个 PCI 设备是否已经成功启用并配置了 MSI 或 MSI-X 中断模式.
+
+    它通过检查该设备结构体中的内部标志位（例如 msi_enabled 或 msix_enabled）来判断状态。
+
+    返回值：
+
+        如果设备已经启用了 MSI 或 MSI-X 模式中的任何一种，则函数返回 true（非零值）。
+
+        如果设备没有启用 MSI 或 MSI-X（即仍然在使用传统的引脚中断），则函数返回 false（0）。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    static inline bool pci_msi_enabled(struct pci_dev *pdev);
+    ```
+
+    example:
+
+    ```c
+    #include <linux/pci.h> // 必须包含这个头文件
+
+    // 假设在你的驱动探测函数中
+    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+    {
+        int ret;
+
+        // ... 设备初始化、使能等操作 ...
+
+        // 尝试启用MSI中断模式
+        ret = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_MSI);
+        if (ret < 0) {
+            dev_err(&pdev->dev, "Failed to enable MSI interrupts, using legacy.\n");
+            // 通常这里会回退到传统中断
+        }
+
+        // 检查设备当前是否使用了MSI
+        if (pci_msi_enabled(pdev)) {
+            dev_info(&pdev->dev, "Device is using MSI interrupts.\n");
+            // 进行MSI模式特有的设置
+        } else {
+            dev_info(&pdev->dev, "Device is using legacy INTx interrupts.\n");
+            // 进行传统中断模式特有的设置
+        }
+
+        // ... 其他初始化代码 ...
+        return 0;
+    }
+    ```
+
+* `pci_ioremap_bar()`
+
+    查找 PCI 设备上指定 BAR 的地址空间, 并将该物理地址空间映射到内核虚拟地址空间。这也是一个托管版本，无需驱动程序手动调用 iounmap().
+
+    syntax:
+
+    ```c
+    void __iomem *pci_ioremap_bar(struct pci_dev *pdev, int bar);
+    ```
+
+    example:
+
+    ```c
+    static int my_pci_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+    {
+        void __iomem *bar0_base;
+        int ret;
+
+        // 1. 启用PCI设备（获取总线主控权、分配IRQ等）
+        ret = pci_enable_device(pdev);
+        if (ret) {
+            dev_err(&pdev->dev, "Failed to enable device\n");
+            return ret;
+        }
+
+        // 2. 请求设备的资源区域（如内存区域）
+        ret = pci_request_regions(pdev, "My PCI Driver");
+        if (ret) {
+            dev_err(&pdev->dev, "Failed to request regions\n");
+            goto err_disable;
+        }
+
+        // 3. 一键式映射 BAR0
+        bar0_base = pci_ioremap_bar(pdev, 0);
+        if (!bar0_base) {
+            dev_err(&pdev->dev, "Failed to ioremap BAR0\n");
+            ret = -ENOMEM;
+            goto err_release;
+        }
+
+        // 4. 现在可以使用 bar0_base 指针来访问 BAR0 的寄存器了
+        // 例如：writel(0xFFFFFFFF, bar0_base + CTRL_REG_OFFSET);
+
+        // ... 驱动的其他初始化操作（如申请中断等）...
+
+        return 0;
+
+    // 错误处理路径
+    err_release:
+        pci_release_regions(pdev);
+    err_disable:
+        pci_disable_device(pdev);
+        return ret;
+    }
+
+    static void my_pci_driver_remove(struct pci_dev *pdev)
+    {
+        // ... 其他清理工作（如释放中断）...
+
+        // 注意：这里不需要 iounmap(bar0_base)！
+        // 内核会自动清理由 pci_ioremap_bar() 创建的映射
+
+        pci_release_regions(pdev);
+        pci_disable_device(pdev);
+    }
+    ```
+
+    在没有 pci_ioremap_bar() 时，你需要这样做：
+
+    ```c
+    // 传统繁琐的方法
+    bar0_base = pci_resource_start(pdev, 0); // 1. 获取物理地址
+    bar0_len = pci_resource_len(pdev, 0);     // 2. 获取长度
+    bar0_base = ioremap(bar0_start, bar0_len); // 3. 手动映射
+    // 并且在 remove 函数中必须记得： iounmap(bar0_base);
+    ```
+
+    该函数主要用于映射 内存空间 类型的 BAR（即 IORESOURCE_MEM）。虽然它也能处理 I/O 空间类型的 BAR（IORESOURCE_IO），但对于 I/O 端口，通常更推荐使用 pci_iomap() 系列函数，或者直接使用 inb()/outb() 等 I/O 端口操作函数。
+
+* pci_iomap() 是一个历史遗留的、为了兼容两种不同IO方式而设计的通用接口，但在当今以MMIO为主流的开发中，更专用的 pci_ioremap_bar() 往往是更好的选择。
+
+* `pci_iomap()`的 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/pci.h>
+
+    static struct pci_device_id pci_id_table[] = {
+        { PCI_DEVICE(0x1234, 0x11e8) },
+        {0,}
+    };
+
+    static void *base_addr_bar0;
+
+    static int edu_probe(struct pci_dev *pci_dev, const struct pci_device_id *id) {
+        pr_info("in edu_probe()...\n");
+
+        int ret = pci_enable_device(pci_dev);
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci enable device, ret: %d\n", ret);
+            goto ERR_PCI_ENABLE_DEVICE;
+        }
+
+        ret = pci_request_region(pci_dev, 0, "qemu_edu_drv");
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci request region\n");
+            goto ERR_PCI_REQUEST_REGION;
+        }
+
+        resource_size_t res_len_bar0 = pci_resource_len(pci_dev, 0);
+        base_addr_bar0 = pci_iomap(pci_dev, 0, res_len_bar0);
+        if (base_addr_bar0 == NULL) {
+            dev_err(&pci_dev->dev, "fail to pci iomap\n");
+            goto ERR_PCI_IOMAP;
+        }
+        return 0;
+
+    ERR_PCI_IOMAP:
+        pci_release_region(pci_dev, 0);
+    ERR_PCI_REQUEST_REGION:
+        pci_disable_device(pci_dev);
+    ERR_PCI_ENABLE_DEVICE:
+        return -1;
+    }
+
+    static void edu_remove(struct pci_dev *pci_dev) {
+        pr_info("in edu_remove()...\n");
+        pci_iounmap(pci_dev, base_addr_bar0);
+        pci_release_region(pci_dev, 0);
+        pci_disable_device(pci_dev);
+    }
+
+    static struct pci_driver edu_driver = {
+        .name = "qemu_edu_drv",
+        .id_table = pci_id_table,
+        .probe = edu_probe,
+        .remove = edu_remove
+    };
+
+    int init_mod(void) {
+        pr_info("init hlc module...\n");
+        int ret = pci_register_driver(&edu_driver);
+        if (ret != 0) {
+            pr_err("fail to register pci driver\n");
+            goto ERR_PCI_REGISTER_DRIVER;
+        }
+        return 0;
+
+    ERR_PCI_REGISTER_DRIVER:
+        return -1;
+    }
+
+    void exit_mod(void) {
+        pr_info("exit hlc module...\n");
+        pci_unregister_driver(&edu_driver);
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 9031.003646] init hlc module...
+    [ 9031.003763] in edu_probe()...
+    [ 9036.304856] exit hlc module...
+    [ 9036.304988] in edu_remove()...
+    ```
+
+    加载完驱动后执行`sudo cat /proc/iomem | grep edu`, output:
+
+    ```
+        fea00000-feafffff : qemu_edu_drv
+    ```
+
+    比较关键的四个函数：`pci_enable_device()` -> `pci_request_region()` -> `pci_resource_len()` -> `pci_iomap()`
+
+* `pci_request_region()`中，name 可以填`NULL`，此时`/proc/iomem`中 name 一栏为`??`（未验证）
+
+* `pci_ioremap_wc_bar()`
+
+    将一个 PCI 设备 BAR（基地址寄存器）所指定的 PCI 内存区域映射到内核的虚拟地址空间，并特别请求该映射为“写合并”（Write-Combining, WC）内存类型。
+
+    syntax:
+
+    ```c
+    void __iomem *pci_ioremap_wc_bar(struct pci_dev *pdev, int bar);
+    ```
+
+    返回值：成功时返回一个 `__iomem` 类型的内核虚拟地址指针，指向映射区域的起始处。失败则返回 `NULL`。
+
+    写合并（WC）: 这是一种弱内存序、高性能的映射模式。CPU 可能会将多个连续的写操作在缓存中“合并”成一个更大的写入事务，再一次性发送到总线上。
+
+    对于帧缓冲区（Frame Buffer）或大量数据传输的设备（如高性能网卡、显卡），使用 WC 映射可以显著减少总线事务数量，极大提升写入带宽和性能。因为写入图像数据通常是连续的，合并后发送效率更高。
+
+* `pci_resource_start()`
+
+    （未验证）
+
+    用于获取 PCI 设备某个资源（如内存地址空间或I/O端口空间）的起始地址。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    resource_size_t pci_resource_start(struct pci_dev *pdev, int bar);
+    ```
+
+    参数 pdev：指向目标PCI设备的指针。
+
+    参数 bar：基址寄存器（BAR）的索引号，通常从0到5。
+
+    返回值：一个 resource_size_t 类型（通常是64位或32位整数）的值，表示该资源区域的起始物理地址。
+
+    example:
+
+    ```c
+    struct pci_dev *pdev; // 假设已初始化的设备结构体
+    int bar = 0;          // 我们想使用第一个BAR
+    resource_size_t start, len;
+    void __iomem *io_addr; // 指向映射后虚拟地址的指针
+
+    // 1. 获取资源的物理起始地址和长度
+    start = pci_resource_start(pdev, bar);
+    len = pci_resource_len(pdev, bar);
+
+    // 2. 检查资源是否有效且存在
+    if (!start || !len) {
+        // 错误处理
+    }
+
+    // 3. 将物理地址映射到内核虚拟地址空间
+    io_addr = ioremap(start, len);
+    if (!io_addr) {
+        // 映射失败处理
+    }
+
+    // 4. 现在可以通过 io_addr 来读写设备了
+    // 例如：writel(0x12345678, io_addr + REG_OFFSET);
+    //        value = readl(io_addr + STATUS_REG);
+
+    // 5. (在驱动退出时) 取消映射
+    iounmap(io_addr);
+    ```
 
 * `pci_resource_len()`
 

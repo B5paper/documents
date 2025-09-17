@@ -2,6 +2,78 @@
 
 ## cache
 
+* 带自回归的 Encoder-Decoder 架构
+
+    一种用于处理序列到序列（Seq2Seq） 任务的深度学习模型框架。它的核心思想是将一个输入序列（如一句英文句子）转换为一个输出序列（如对应的中文句子），并且输出序列的生成是逐步、自回归地进行的。
+
+    * Encoder（编码器）：
+
+        * 作用：读取并理解整个输入序列。
+
+        * 工作方式：它接收整个输入序列（例如 “I love machine learning”），并通过神经网络（通常是 RNN, LSTM, GRU 或 Transformer）将其压缩成一个固定维度的上下文向量（Context Vector） 或一组隐藏状态。这个向量/状态集旨在包含输入序列的全部语义信息。
+
+    * Decoder（解码器）：
+
+        * 作用：根据编码器的信息和已生成的部分输出，逐步生成完整的输出序列。
+
+        * 工作方式：解码器的生成过程是自回归的（Autoregressive）。这是最关键的一点。
+
+            * 自回归：意味着在生成输出序列的每一个新词（或 token）时，都会将之前已经生成的所有词作为额外输入。
+
+            * 具体步骤：
+
+                1. 解码器从编码器得到的上下文向量和一個特殊的开始符（如 <start>） 开始。
+                
+                2. 它产生第一个输出词（如 “我”）。
+
+                3. 然后，它将这个刚刚生成的词“我”（而不是真实的目标词）和当前的隐藏状态一起作为输入，来生成下一个词“爱”。
+
+                4. 如此循环，每次生成都依赖于之前的输出，直到生成一个特殊的结束符（如 `<end>`） 表示生成为止。
+
+    简单比喻：
+
+    就像一个同声传译员。
+
+    * Encoder：听完整句英文，并理解其含义。
+
+    * Decoder：开始用中文翻译，每说一个词（“我”），都会参考自己刚才说的词和听到的英文原意，来决定下一个词说什么（“爱”），直到翻译完整个句子。
+
+    相关的模型：
+
+    * RNN-based Seq2Seq (2014)
+
+        由 Sutskever 等人和 Bahdanau 等人提出。
+
+        使用RNN或LSTM作为Encoder和Decoder的核心。最初的模型将整个输入序列压缩成一个固定的上下文向量，这在处理长序列时会造成信息瓶颈。
+
+        改进：注意力机制（Attention Mechanism） 被引入（Bahdanau et al.），允许解码器在生成每个词时“回头看”编码器的所有隐藏状态，从而动态地获取最相关的信息，极大提升了长序列的处理能力。（注意：带注意力的Seq2Seq是极其重要的变体）
+
+    * transformer (2017)
+
+        由 Vaswani 等人在论文《Attention Is All You Need》中提出。
+
+        完全基于自注意力机制（Self-Attention） 的模型，彻底抛弃了RNN。它仍然是Encoder-Decoder架构，但其编码和解码的方式发生了革命性变化。
+
+        Encoder：由多层自注意力和前馈网络组成，并行处理整个输入序列。
+
+        Decoder：同样是自回归的，但在自注意力层中加入了掩码（Mask），确保在生成位置 i 的词时，只能看到位置 1 到 i-1 的词，而不能看到“未来”的信息。
+
+    * 基于Transformer的著名模型（都属于此架构）
+
+        * GPT 系列：严格来说，GPT是只有Decoder的模型。它通过掩码自注意力实现自回归生成，可以看作是Decoder-only架构，但其核心思想——自回归生成——与Encoder-Decoder中的Decoder部分完全相同。
+
+        * BART 和 T5：这些是经典的、真正的带自回归Decoder的Encoder-Decoder模型。它们在预训练时专门为此架构设计（如通过去噪、文本填充等任务），在摘要、翻译、问答等任务上表现卓越。
+
+        * 现代大语言模型（LLMs）：如 ChatGPT 背后的模型，虽然其基础（GPT）是Decoder-only，但其通过指令微调（Instruction Tuning）和人类反馈强化学习（RLHF）学会了很多“理解-生成”的对话能力，其生成回复的过程就是典型的自回归方式。
+
+    * 奠基性论文：
+
+        * Seq2Seq 开创：Sutskever, I., Vinyals, O., & Le, Q. V. (2014). Sequence to sequence learning with neural networks. In NeurIPS. [必读]
+
+        * 注意力机制：Bahdanau, D., Cho, K., & Bengio, Y. (2014). Neural machine translation by jointly learning to align and translate. arXiv preprint arXiv:1409.0473. [必读]
+
+        * Transformer：Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. In NeurIPS. [必读中的必读]
+
 * 获取 hugging face 的 imdb 数据集
 
     ```py

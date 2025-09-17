@@ -2,6 +2,106 @@
 
 ## cache
 
+* `$(MAKE)`与`make`的区别
+
+    只使用`make`的问题：
+
+    * 不可移植：不同的系统可能使用不同的 make 程序名称。例如，BSD 系统通常使用 bmake，而 GNU Make 可能被安装为 gmake。如果你的 Makefile 里写死了 make，在这些系统上就会执行失败。
+
+    * 忽略命令行选项：当你使用一些命令行选项（如 -k, -s, -t）调用顶层的 make 时，在递归调用中直接使用 make 会丢失这些选项。子 make 进程不会继承父进程的 flags，导致行为不一致。
+
+    * 无法传递 -j (并行编译) 选项：这是最致命的问题之一。如果你使用 make -j8 启动并行编译，但在 Makefile 内部递归调用时使用的是 make，那么这个子 make 将会是串行执行的（-j1），无法利用多核优势，严重拖慢编译速度。
+
+    MAKE 是一个 Makefile 内置的宏（变量），它的值就是当前正在执行的 make 程序的完整路径名（例如 /usr/bin/make）。并且可以解决上面列出的问题。
+
+    （如何验证`$(MAKE)`可以继承命令行选项？）
+
+* `subst`
+
+    用于在 makefile 字符串中进行文本替换。它可以将一个字符串（或变量）中所有出现的指定子字符串，替换为另一个指定的子字符串。
+
+    syntax:
+
+    ```makefile
+    $(subst FROM,TO,TEXT)
+    ```
+
+    * FROM：你希望被替换掉的子字符串。
+
+    * TO：你希望用来替换 FROM 的新子字符串。
+
+    * TEXT：需要进行替换操作的原始字符串或变量。
+
+    注意：参数之间用逗号 , 分隔，并且不能有空格，否则空格会被当作字符串的一部分。
+
+    example:
+
+    ```makefile
+    # 定义一个变量
+    ORIGINAL = foo bar baz foo
+
+    # 使用 subst 将所有的 "foo" 替换为 "qux"
+    RESULT = $(subst foo,qux,$(ORIGINAL))
+
+    all:
+    	@echo "Original: $(ORIGINAL)"
+    	@echo "Result:   $(RESULT)"
+    ```
+
+    output:
+
+    ```
+    Original: foo bar baz foo
+    Result:   qux bar baz qux
+    ```
+
+    其中，`RESULT`还可以写成`RESULT = $(subst foo,qux,"foo bar baz foo")`, `RESULT = $(subst foo,qux,foo bar baz foo)`, 但是不能写成
+
+    `RESULT = $(subst foo,qux, foo bar baz foo)`, 否则会多出一个空格：
+
+    ```
+    Original: foo bar baz foo
+    Result:    qux bar baz qux
+    ```
+
+    常见应用场景:
+
+    * 修改文件后缀
+
+        这是 subst 最经典的用法之一，用于生成目标文件列表。
+
+        ```makefile
+        SOURCES = main.c utils.c helper.c
+        # 将 .c 替换为 .o
+        OBJECTS = $(subst .c,.o,$(SOURCES))
+
+        all: $(OBJECTS)
+            # ...
+
+        # 这条规则会尝试编译 main.o, utils.o, helper.o
+        ```
+
+    * 调整路径格式
+
+        例如，将空格路径转换为适合某些命令行工具的格式。
+
+        ```makefile
+        PATH_WITH_SPACES = /path/with\ spaces/file.txt
+        # 将空格替换为转义空格（或其他字符）
+        ESCAPED_PATH = $(subst \ ,\\ ,$(PATH_WITH_SPACES))
+        ```
+
+    * 简单的字符串修正
+
+        任何需要批量修改字符串内容的地方。
+
+        ```makefile
+        MY_MSG = This is a test string.
+        # 将所有的空格替换为连字符
+        HYPHENATED = $(subst ,-,$(MY_MSG))
+        # HYPHENATED 的值变为：This-is-a-test-string.
+        ```
+
 * `g++ *.o main.cpp -o main`在 makefile 中的问题
 
     ```makefile

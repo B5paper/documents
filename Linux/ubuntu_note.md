@@ -4,6 +4,26 @@
 
 ## cache
 
+* ubuntu gnome 中 settings 里的 shortcuts 快捷键设置显示不全，可以使用命令行显示全部的快捷键
+
+    example:
+
+    * 向左/向右切换虚拟桌面
+
+        gnome -> settings 中只列出了`super` + `PageUp` / `PageDown`，但是实际上还可以使用`Ctrl` + `Alt` + `ArrowLeft` / `ArrowRight` 切换，说明 settings 列出的信息不全。
+
+        执行`gsettings get org.gnome.desktop.wm.keybindings switch-to-workspace-left`，输出为
+
+        ```
+        ['<Super>Page_Up', '<Super><Alt>Left', '<Control><Alt>Left']
+        ```
+
+        可以看到，这里的信息是全的。我们可以将其设置为只使用第一个：
+
+        `gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left "['<Super>Page_Up']"`
+
+        此时便禁用掉了`Ctrl` + `Alt` + `LeftArrow`。
+
 * 平时还是把输入法归位到英文语言比较好，因为如果默读使用中文输入法，而切换到其他窗口又是中文状态，那么按快捷键会失效，或者类似于在游戏界面弹出中文候选框输入一堆中文。
 
 * ibus 中，ctrl + / 可以改变词组上屏方式（直接上屏 / 按空格上屏）

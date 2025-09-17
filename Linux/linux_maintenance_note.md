@@ -6,6 +6,22 @@
 
 ## cache
 
+* `readelf -l /bin/bash | grep interpreter`
+
+    查找 /bin/bash 可执行文件所使用的动态链接器（interpreter）的路径。
+
+    output:
+    
+    ```
+          [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
+    ```
+
+    这表示：
+
+    * `/bin/bash`依赖于动态链接器 /lib64/ld-linux-x86-64.so.2 来加载运行所需的共享库（如 libc.so）。
+
+    * 系统内核在执行 /bin/bash 时，会先加载这个指定的动态链接器，再由它处理后续的库依赖和符号解析。
+
 * `readelf`的用法
 
     用于显示关于 ELF (Executable and Linkable Format) 格式目标文件的信息。

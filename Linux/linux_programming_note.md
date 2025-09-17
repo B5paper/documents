@@ -6,6 +6,91 @@
 
 ## cache
 
+* `alarm()`
+
+    为当前进程设置一个定时器（闹钟），在指定的时间到期后，内核会向该进程发送一个 SIGALRM 信号。
+
+    syntax:
+
+    ```c
+    #include <unistd.h>
+
+    unsigned int alarm(unsigned int seconds);
+    ```
+
+    如果一个进程之前已经通过 alarm() 设置了一个尚未触发的闹钟，再次调用 alarm() 将会重置（覆盖） 之前的闹钟。
+
+    函数的返回值是前一个闹钟的剩余秒数。如果之前没有设置闹钟，则返回0。
+
+    SIGALRM 信号的默认操作是终止进程。通常，我们不会使用默认操作，而是使用 signal() 或 sigaction() 函数来捕获这个信号，并为其注册一个信号处理函数，以便在定时器到期时执行自定义的操作（例如超时处理、周期性任务等）。
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <unistd.h>
+    #include <signal.h>
+
+    // 信号处理函数
+    void alarm_handler(int signum) {
+        printf("Ring! Alarm received. Time's up!\n");
+    }
+
+    int main() {
+        // 注册信号处理函数，捕获SIGALRM信号
+        signal(SIGALRM, alarm_handler);
+
+        printf("Setting alarm for 3 seconds...\n");
+        alarm(3); // 设置3秒后发送SIGALRM信号
+
+        // 暂停进程，等待信号
+        pause();
+
+        printf("Program continues after alarm.\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Setting alarm for 3 seconds...
+    Ring! Alarm received. Time's up!
+    Program continues after alarm.
+    ```
+
+    alarm() 的定时精度是秒，对于需要更高精度（如毫秒、微秒）的定时任务，应该使用 setitimer() 或更现代的 timer_create() 等函数。
+
+* `GRUB_CMDLINE_LINUX="console=ttyS0"`
+
+    将系统的第一个串行端口（ttyS0） 设置为主要控制台（console）
+
+    qemu 虚拟机中，在`/etc/default/grub`中修改`GRUB_CMDLINE_LINUX`为`GRUB_CMDLINE_LINUX="console=ttyS0"`，使配置生效：`sudo update-grub`，重启后可以看到 console 中显示整个开机过程的 log，随机进入登陆提示。部分输出如下：
+
+    ```
+    ...
+    [  OK  ] Finished Permit User Sessions.
+    systemd-user-sessions.service
+             Starting Hold until boot process finishes up...
+             Starting Terminate Plymouth Boot Screen...
+
+    Ubuntu 22.04.4 LTS Ubuntu22 ttyS0
+
+    Ubuntu22 login: 
+    ```
+
+    `console=`是一个内核参数，用于指定内核和系统消息（包括启动信息、登录提示、系统错误等）输出到哪个设备。
+
+    `ttyS`是 Linux 中对串行端口（Serial Port，也叫 COM 端口）的命名。`ttyS0`对应第一个串行端口（即 Windows 系统中的 COM1 口）。
+
+    还可以将`console=ttyS0`改为`console=ttyS0,115200n8`，其中
+
+    * `115200`：波特率（Baud Rate），为 115200 bps（比特每秒），表示数据传输的速度。
+
+    * `n`：奇偶校验（Parity），n 代表 “none”，即无奇偶校验。
+
+    * `8`：数据位（Data Bits），为 8 个数据位。
+
 * select / poll 底层机制并不是轮询（Busy Polling），只有在处理事件 fd 时才是线性查找
 
 * epoll examples

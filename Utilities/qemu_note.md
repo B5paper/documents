@@ -2,6 +2,26 @@
 
 ## cache
 
+* `-append 'console=ttyS0'`不能单独使用，必须和`-kernel`同时使用。
+
+    否则 qemu 会报错：
+
+    ```
+    qemu-system-x86_64: -append only allowed with -kernel option
+    ```
+
+    典型使用场景：
+
+    ```bash
+    qemu-system-x86_64 \
+      -kernel /path/to/vmlinuz \
+      -initrd /path/to/initrd \
+      -append "root=/dev/vda1 ro console=ttyS0" \
+      -nographic
+    ```
+
+    这里的 -append "console=ttyS0" 和 -nographic 选项配合，将虚拟机的控制台重定向到当前终端（模拟了一个串口）。
+
 * qemu 中，先按`Ctrl + A`，再按`C`，可以切换到 qemu 后台（即 qemu monitor），如下：
 
     ```

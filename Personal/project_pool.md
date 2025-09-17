@@ -28,6 +28,10 @@
 
 ## cache
 
+* 不默认保持中文输入法的另外一个原因
+
+    有时候需要按`shift` + 鼠标滚轮横向滚动，但是`shift`又正好是切换中英文的，这样会导致每横向滚动一次，就在中英文中间切换一次。
+
 * 不知道干什么也有可能是任务定得太大，不知道从何下手。把任务细化应该会好一点。
 
 * 原以为知乎是理性讨论的，后来发现知乎只是表达欲强的人的聚集地。
@@ -893,6 +897,16 @@
 
 ### tasks
 
+* [ ] reorg: cuda
+
+* [v] reorg: documents 30 mins 09.16
+
+    feedback:
+
+    * [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
+
+    * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
+
 * [ ] 增加每日任务模板
 
     qa, reorg，cache tab 任务都是需要长期保持的，其余的任务从每个 project 中挑出几个。
@@ -904,10 +918,6 @@
     * 调研任务，reorg, cache tab 任务需要预计总时间。
     
     * qa 任务需要预计需求量，比如 qa 2 units。
-
-* [v] 调研是否有 vscode 快捷键，可以找到下一个以`##`或`###`开头的行？
-
-* [v] 调研 8259A
 
 * [ ] 调研 qemu + FreeDOS 安装 dos 环境
 
@@ -1115,18 +1125,16 @@
 
 * [v] 调研 makefile `subst`
 
-    feedback:
+* [ ] 等号前后是否加空格
 
-    * [ ] 等号前后是否加空格
+    ```makefile
+    VAR_1 = hello
+    VAR_2 =hello
+    ```
 
-        ```makefile
-        VAR_1 = hello
-        VAR_2 =hello
-        ```
+    似乎 var 1 和 var 2 是一样的，为什么 var 1 没有带上等号后面的空格？
 
-        似乎 var 1 和 var 2 是一样的，为什么 var 1 没有带上等号后面的空格？
-
-    * [ ] `patsubst`
+* [ ] `patsubst`
 
 * [ ] 调研 makefile `shell`
 
@@ -1160,8 +1168,6 @@
 * [ ] linux driver unit idx 3 增加查看 dev class 的方法
 
 * [ ] 调研`read`, `read_iter`, `splice_read`
-
-* [v] qa: linux driver 30 mins
 
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
 
@@ -1310,43 +1316,21 @@
 
 ### tasks
 
-* [v] process 1 tab  09.15
+* [v] process 1 tab  09.16
 
     feedback:
 
-    * [ ] `posix_memalign()`
+    * [asso] 既然 epoll 可以监控 fd，那么除了 socket fd 外，epoll 是否也可以监控普通文件的改动？
 
-    * [asso] 调研 SG-DMA
+    * [ ] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
 
-    * [ ] `aligned_alloc()`
+* [v] process 1 tab  09.15
 
-    * [asso] 调研散列表（Scatterlist）
+* [ ] `aligned_alloc()`
 
-        ```c
-        struct scatterlist sg;
-        sg_init_one(&sg, user_buf, size); // 初始化散列表项
-        dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE); // 映射物理地址
-        ```
+* [ ] `posix_memalign()`
 
-    * [asso] `sg_dma_address()`, `sg_dma_len()`
-
-    * [asso] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
-
-    * [asso] `mlock()`
-
-    * [asso] `get_user_pages()`
-
-    * [asso] 调研自旋锁、互斥锁的汇编实现
-    
-        `LDREX`和`STREX`（独占加载/存储）
-
-    * [asso] 调研内存屏障指令
-
-        * DMB (Data Memory Barrier)：确保屏障前的内存操作在后续操作之前完成。
-
-        * DSB (Data Synchronization Barrier)：比 DMB 更严格，等待所有内存操作完成。
-
-        * ISB (Instruction Synchronization Barrier)：清空流水线，确保新指令的执行。
+    feedback:
 
 * [ ] `sudo mount -o remount /dev/shm`
 
@@ -1390,8 +1374,6 @@
 
 * [ ] 调研给 frpc 增加密码
 
-* [v] process 1 tab 09.14
-
 * [v] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
 
     或者`-append 'console=ttyS0' # 添加这行`?
@@ -1412,21 +1394,17 @@
 
     * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
-* [v] `at`
-
 * [v] `alarm()` /` setitimer()`
 
-    feedback:
+* [ ] `setitimer()`
 
-    * [ ] `setitimer()`
+* [ ] `timer_create()`
 
-    * [ ] `timer_create()`
+* [ ] `signal()`
 
-    * [ ] `signal()`
+* [ ] `pause()`
 
-    * [ ] `pause()`
-
-    * [ ] `sigaction()`
+* [ ] `sigaction()`
 
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
@@ -1702,7 +1680,41 @@ resources:
 
 * [ ] `a.storage().data_ptr()`
 
+* [ ] 调研 SG-DMA
+
+* [ ] 调研散列表（Scatterlist）
+
+    ```c
+    struct scatterlist sg;
+    sg_init_one(&sg, user_buf, size); // 初始化散列表项
+    dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE); // 映射物理地址
+        ```
+
+* [ ] `sg_dma_address()`, `sg_dma_len()`
+
+* [ ] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+
+* [ ] `mlock()`
+
+* [ ] `get_user_pages()`
+
+* [ ] 调研自旋锁、互斥锁的汇编实现
+
+    `LDREX`和`STREX`（独占加载/存储）
+
+* [ ] 调研内存屏障指令
+
+    * DMB (Data Memory Barrier)：确保屏障前的内存操作在后续操作之前完成。
+
+    * DSB (Data Synchronization Barrier)：比 DMB 更严格，等待所有内存操作完成。
+
+    * ISB (Instruction Synchronization Barrier)：清空流水线，确保新指令的执行。
+
 ## Machine Learning
+
+## cache
+
+* pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
 
 ### tasks
 
@@ -1718,61 +1730,57 @@ resources:
 
 * [v] 调研 rnn 与 nlp 入门级的训练数据集
 
-    feedback:
+* [ ] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
 
-    * pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
+* [ ] 调研 rnn
 
-    * [ ] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
+    example 代码，尝试跑通
 
-    * [ ] 调研 rnn
+* [ ] 调研 IMDb 电影评论数据集
 
-        example 代码，尝试跑通
+    情感二分类，正面或负面
 
-    * [ ] 调研 IMDb 电影评论数据集
+    res: <http://ai.stanford.edu/~amaas/data/sentiment/>
 
-        情感二分类，正面或负面
+* [ ] 调研 LSTM
 
-        res: <http://ai.stanford.edu/~amaas/data/sentiment/>
+    example 代码，尝试跑通
 
-    * [ ] 调研 LSTM
+* [ ] 调研 AG News 新闻分类数据集
 
-        example 代码，尝试跑通
+    包含超过100万篇新闻文章，任务是将新闻分类到四个顶级类别：世界、体育、商业、科技/科学。
 
-    * [ ] 调研 AG News 新闻分类数据集
+    ```py
+    from datasets import load_dataset
+    dataset = load_dataset('ag_news')
+    train_data = dataset['train']
+    ```
 
-        包含超过100万篇新闻文章，任务是将新闻分类到四个顶级类别：世界、体育、商业、科技/科学。
+    res: <https://arxiv.org/abs/1509.01626> （论文中有下载链接）
 
-        ```py
-        from datasets import load_dataset
-        dataset = load_dataset('ag_news')
-        train_data = dataset['train']
-        ```
+* [ ] SimpleBooks / TinyShakespeare 数据集
 
-        res: <https://arxiv.org/abs/1509.01626> （论文中有下载链接）
+    SimpleBooks：包含来自古登堡计划的纯文本书籍。
 
-    * [ ] SimpleBooks / TinyShakespeare 数据集
+    TinyShakespeare：包含莎士比亚的所有作品，约1MB的文本。
 
-        SimpleBooks：包含来自古登堡计划的纯文本书籍。
+* [ ] Cornell Movie Dialogs Corpus (电影对白语料库)
 
-        TinyShakespeare：包含莎士比亚的所有作品，约1MB的文本。
+    包含大量电影角色之间的对话，非常适合训练一个简单的聊天机器人或对话生成模型。
 
-    * [ ] Cornell Movie Dialogs Corpus (电影对白语料库)
+    res: <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>
 
-        包含大量电影角色之间的对话，非常适合训练一个简单的聊天机器人或对话生成模型。
+* [ ] 调研 GRU
 
-        res: <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>
+    example 代码，尝试跑通
 
-    * [ ] 调研 GRU
+* [ ] 调研 BERT
 
-        example 代码，尝试跑通
+    example 代码，尝试跑通
 
-    * [ ] 调研 BERT
+* [ ] 调研 GPT
 
-        example 代码，尝试跑通
-
-    * [ ] 调研 GPT
-
-        example 代码，尝试跑通
+    example 代码，尝试跑通
 
 * [v] 调研带自回归的 Encoder-Decoder 架构
 
@@ -2221,11 +2229,9 @@ tasks:
 
 ### tasks
 
+* [O] 实现 dump 功能
+
 * [O] 调研 graph xml parser
-
-    feedback:
-
-    * [ ] 实现 dump 功能
 
 * [v] `readelf -l /bin/bash | grep interpreter`
 
@@ -2645,8 +2651,6 @@ tasks:
     `realpath()`是否可以保证线程安全？
 
 * [ ] 调研常用 c 标准库，linux 常用库
-
-* [v] 调研`feof()`, `ferror()`
 
 * [ ] 调研`perror()`
 
@@ -4237,37 +4241,13 @@ resources:
 
 * [v] `BUG()`
 
-    feedback:
-
-    * [asso] 调研 silent data corruption（静默数据损坏）
-
-* [v] `readq`, `writeq`
-
-* [v] 调研 shared_ptr
-
-* [v] vscode 是否有快捷键移动到下一个/上一个词
-
-* [v] `dma_map_single()`
-
 * [ ] 如果这块内存既读又写，该如何保证缓存一致性？
-
-* [v] `devm_ioremap_resource()`
 
 * [v] `copy_from_user()`
 
-    feedback:
-
-    * [asso] 调研换出（paged out）
-
 * [v] `mdev_get_drvdata()`
 
-    feedback:
-
-    * [asso] 调研 VFIO 以及其 example 
-
-* [v] `BIT()`
-
-* [ ] 调研内联汇编
+* [v] 调研内联汇编
 
     ```c
     // 一个非常简化的概念性示例，并非真实代码
@@ -4278,13 +4258,17 @@ resources:
     }
     ```
 
-* [ ] 调研 vim-gutentags
+* [v] 调研 vim-gutentags
+
+    feedback:
+
+    1. [ ] 如何安装 Vim-Plug，并检验安装成功？
 
 * [ ] 调研引用系统库（如 /usr/include）的标签
 
     `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
 
-* [ ] 调研`iowrite32_rep()`系列
+* [P] 调研`iowrite32_rep()`系列
 
     ```c
     #include <asm/io.h>
@@ -4297,6 +4281,42 @@ resources:
     void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
     void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
     ```
+
+    feedback:
+
+    * [ ] 调研 ds 生成的一段代码
+
+        ```c
+        // 计算缓冲区的虚拟地址
+        void __iomem *device_buffer = dev->mmio_base + 0x1000;
+
+        // 方法一：使用内核提供的IO函数（推荐，因为可移植且安全）
+        // 写入一个32位字
+        iowrite32(0x12345678, device_buffer);
+        // 读取一个32位字
+        u32 value = ioread32(device_buffer);
+
+        // 批量写入一段数据（这就是你想要的“强行”操作）
+        // src_buf 是你准备好的数据源（在主机内存里）
+        // count 是你想写入的32位字的数量
+        iowrite32_rep(device_buffer, src_buf, count);
+
+        // 方法二：更“强行”的方式 - 直接解引用指针（需极度小心！）
+        // 首先，确保映射时为“不缓存”或“写合并”模式，否则会出问题。
+        // 通常用 pci_ioremap_bar() 默认是 ioremap()，这通常是安全的（无缓存）。
+        // 但直接解引用 __iomem 指针编译器会报错，所以需要强制转换。
+
+        // 强制转换为 volatile 指针，告诉编译器别优化，每次都要真的访问
+        volatile u32 *hardware_buffer = (volatile u32 *)device_buffer;
+
+        // 现在，你可以像普通数组一样操作了！
+        hardware_buffer[0] = 0xAAAAAAAA; // 写入第一个字
+        value = hardware_buffer[1];      // 读取第二个字
+
+        // 甚至可以用memcpy（但确保目的地址是volatile且没有缓存问题！）
+        // memcpy_toio() 是更安全的选择
+        memcpy((void *)hardware_buffer, src_buf, count * 4);
+        ```
 
 * [ ] 内存屏障（`rmb()`, `wmb()`）
 
@@ -4641,11 +4661,11 @@ resources:
 
 * [ ] 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
 
-1. [ ] `dma_set_mask_and_coherent()`
+* [ ] `dma_set_mask_and_coherent()`
 
-1. [ ] `pci_iomap()`
+* [ ] `pci_iomap()`
 
-1. [ ] `pci_set_master()`
+* [ ] `pci_set_master()`
 
 * [O] 调研 qemu edu driver
 
@@ -4774,6 +4794,12 @@ resources:
 * [ ] 调研 IRQ 2 与 irq 1 的级联中断
 
 * [ ] 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
+
+* [asso] 调研 silent data corruption（静默数据损坏）
+
+* [asso] 调研换出（paged out）
+
+* [asso] 调研 VFIO 以及其 example
 
 ## OpenGL
 

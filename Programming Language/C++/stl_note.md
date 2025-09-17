@@ -2,6 +2,122 @@
 
 ## cached
 
+* `shared_ptr`
+
+    std::shared_ptr 是 C++ 标准库（在 <memory> 头文件中）提供的一种智能指针。它的核心作用是管理动态分配对象的生命周期，通过引用计数机制来实现。
+
+    主要特点：
+
+        共享所有权：多个 shared_ptr 可以同时“拥有”同一个对象。
+
+        自动释放：当最后一个拥有该对象的 shared_ptr 被销毁或重置时，它会自动调用 delete 来释放所管理的对象内存。
+
+        防止内存泄漏：即使代码中发生异常或提前返回，也能保证资源被正确释放，极大地减少了内存泄漏的风险。
+
+    使用方法：
+
+    * 基本创建和初始化
+
+        ```c
+        #include <memory>
+        #include <iostream>
+
+        class MyClass {
+        public:
+            MyClass() { std::cout << "Constructor\n"; }
+            ~MyClass() { std::cout << "Destructor\n"; }
+            void doSomething() { std::cout << "Doing something...\n"; }
+        };
+
+        int main() {
+            // 推荐方式：使用 std::make_shared
+            std::shared_ptr<MyClass> ptr1 = std::make_shared<MyClass>();
+
+            // 方式二：使用构造函数（不推荐，效率较低且可能不安全）
+            std::shared_ptr<MyClass> ptr2(new MyClass());
+
+            // 错误示范：绝对不要这样做！
+            // MyClass* rawPtr = new MyClass();
+            // std::shared_ptr<MyClass> p1(rawPtr);
+            // std::shared_ptr<MyClass> p2(rawPtr); // 会导致重复释放，程序崩溃！
+
+            return 0;
+        }
+        // 程序结束，ptr1和ptr2离开作用域，自动调用析构函数释放内存
+        ```
+
+        避免使用同一个原始指针直接初始化多个 shared_ptr，这会导致多个不关联的引用计数，从而造成重复释放。
+
+    * 拷贝与赋值（共享所有权）
+
+        ```c
+        std::shared_ptr<MyClass> ptr3 = ptr1; // 拷贝，引用计数+1
+        std::shared_ptr<MyClass> ptr4;
+        ptr4 = ptr2; // 赋值，ptr2的引用计数+1，ptr4原来指向的对象的引用计数-1
+
+        std::cout << ptr1.use_count() << std::endl; // 输出 2 (ptr1和ptr3)
+        ```
+
+    * 获取和使用原始指针
+
+        ```c
+        ptr1->doSomething(); // 使用 -> 操作符访问成员
+        (*ptr1).doSomething(); // 使用 * 操作符解引用
+
+        MyClass* rawPointer = ptr1.get(); // 获取保存的原始指针（谨慎使用！）
+        // 注意：不要用这个rawPointer去delete或创建新的智能指针
+        ```
+
+    * 检查引用计数
+
+        ```c
+        // use_count() 返回当前共享对象的shared_ptr数量
+        // 注意：use_count() 通常用于调试，不用于业务逻辑，因为可能性能开销大且在多线程环境下值可能立即变化。
+        long count = ptr1.use_count();
+        ```
+
+    * 重置指针
+
+        ```c
+        // 放弃对当前对象的所有权，引用计数-1
+        ptr1.reset(); // ptr1变为空指针，原对象的引用计数-1
+
+        // 重置并管理一个新对象
+        ptr1.reset(new MyClass());
+        ```
+
+    * 自定义删除器
+
+        默认情况下，shared_ptr 使用 delete 来释放资源。如果你管理的不是通过 new 分配的内存（例如文件句柄、数组等），可以指定一个自定义的删除器。
+
+        ```c
+        // 示例：管理一个文件指针，使用fclose作为删除器
+        void myDeleter(FILE* fp) {
+            if (fp) {
+                fclose(fp);
+                std::cout << "File closed.\n";
+            }
+        }
+
+        std::shared_ptr<FILE> filePtr(fopen("data.txt", "r"), myDeleter);
+
+        // 使用Lambda表达式作为删除器
+        std::shared_ptr<int> arrayPtr(
+            new int[10],
+            [](int* p) { delete[] p; } // 使用delete[]释放数组
+        );
+        ```
+
+* `vector<unique_ptr<MyStruc>> vec`无法直接`push_back()`裸指针，但是可以`emplace_back()`
+
+    example:
+
+    ```cpp
+    vector<unique_ptr<MyStruc>> vec;
+    vec.push_back(new MyStruc);  // error
+    vec.emplace_back(new MyStruc);  // OK
+    ```
+
 * RAII (Resource Acquisition Is Initialization)，即资源获取即初始化，或者说利用对象的生命周期来自动管理资源。
 
 * 根据不同的参数类型选择不同的构造函数一例

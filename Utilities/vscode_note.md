@@ -2,6 +2,22 @@
 
 ## cache
 
+* vscode 快捷键
+
+    * 移动到下一个词的开头	Ctrl + →
+
+    * 移动到上一个词的开头	Ctrl + ←
+
+    * 选择到下一个词的开头	Ctrl + Shift + →
+
+    * 选择到上一个词的开头	Ctrl + Shift + ←
+
+    * 删除前一个词	Ctrl + Backspace
+
+    * 删除后一个词	Ctrl + Delete
+
+    * 打开设置  Ctrl + ,
+
 * vscode 在`launch.json`中没有设置`cwd`时，程序中的`./`表示用户目录。比如`/share_data/users/hlc`
 
 * 关于 vscode 中 gdb 调试 c++ 时，无法鼠标悬停显示`const string &str`的调研
