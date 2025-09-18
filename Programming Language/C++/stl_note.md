@@ -2,6 +2,100 @@
 
 ## cached
 
+* shared_ptr 引用计数增加的情况
+
+    * 构造函数
+
+        * 拷贝构造函数：当一个 shared_ptr 被另一个 shared_ptr 拷贝构造时，引用计数会增加。
+
+            ```cpp
+            std::shared_ptr<int> ptr1(new int(42));
+            std::shared_ptr<int> ptr2(ptr1);  // 引用计数增加
+            ```
+
+        * 移动构造函数：虽然移动构造函数不会增加引用计数，但它会将所有权从一个 shared_ptr 转移到另一个 shared_ptr，原 shared_ptr 会被置空。
+
+            ```cpp
+            std::shared_ptr<int> ptr1(new int(42));
+            std::shared_ptr<int> ptr2(std::move(ptr1));  // ptr1 被置空，ptr2 接管对象
+            ```
+
+    * 赋值操作符
+
+        * 拷贝赋值操作符：当一个 shared_ptr 被另一个 shared_ptr 赋值时，引用计数会增加。
+
+            ```cpp
+            std::shared_ptr<int> ptr1(new int(42));
+            std::shared_ptr<int> ptr2;
+            ptr2 = ptr1;  // 引用计数增加
+            ```
+
+        * 移动赋值操作符：虽然移动赋值操作符不会增加引用计数，但它会将所有权从一个 shared_ptr 转移到另一个 shared_ptr，原 shared_ptr 会被置空。
+
+            ```cpp
+            std::shared_ptr<int> ptr1(new int(42));
+            std::shared_ptr<int> ptr2;
+            ptr2 = std::move(ptr1);  // ptr1 被置空，ptr2 接管对象
+            ```
+
+    * 返回值
+
+        * 函数返回 shared_ptr：当一个函数返回 shared_ptr 时，如果返回值被另一个 shared_ptr 接收，引用计数会增加。
+
+            ```cpp
+            std::shared_ptr<int> create_ptr() {
+                return std::make_shared<int>(42);
+            }
+
+            std::shared_ptr<int> ptr = create_ptr();  // 引用计数增加
+            ```
+
+    * 传递参数
+
+        * 按值传递 shared_ptr：当一个 shared_ptr 作为参数按值传递给函数时，引用计数会增加。
+
+            ```cpp
+            void process_ptr(std::shared_ptr<int> ptr) {
+                // 引用计数增加
+            }
+
+            std::shared_ptr<int> ptr1(new int(42));
+            process_ptr(ptr1);  // 引用计数增加
+            ```
+
+    * 使用 std::make_shared
+
+        * 创建 shared_ptr：使用 std::make_shared 创建 shared_ptr 时，引用计数会初始化为 1。
+
+            ```cpp
+            std::shared_ptr<int> ptr = std::make_shared<int>(42);  // 引用计数为 1
+            ```
+
+    * 使用 std::static_pointer_cast, std::dynamic_pointer_cast, std::const_pointer_cast
+
+        * 类型转换：使用这些类型转换函数时，如果转换成功，引用计数会增加。
+
+            ```cpp
+            std::shared_ptr<Base> base_ptr = std::make_shared<Derived>();
+            std::shared_ptr<Derived> derived_ptr = std::dynamic_pointer_cast<Derived>(base_ptr);  // 引用计数增加
+            ```
+
+    * 使用 std::enable_shared_from_this
+
+        * 获取 shared_ptr：如果一个类继承自 std::enable_shared_from_this，并且通过 shared_from_this() 获取 shared_ptr，引用计数会增加。
+
+            ```cpp
+            class MyClass : public std::enable_shared_from_this<MyClass> {
+            public:
+                std::shared_ptr<MyClass> get_ptr() {
+                    return shared_from_this();  // 引用计数增加
+                }
+            };
+
+            std::shared_ptr<MyClass> ptr = std::make_shared<MyClass>();
+            std::shared_ptr<MyClass> ptr2 = ptr->get_ptr();  // 引用计数增加
+            ```
+
 * `shared_ptr`
 
     std::shared_ptr 是 C++ 标准库（在 <memory> 头文件中）提供的一种智能指针。它的核心作用是管理动态分配对象的生命周期，通过引用计数机制来实现。

@@ -6,6 +6,75 @@ Ref:
 
 ## cache
 
+* `iowrite32_rep()`
+
+    将一块数据（由多个 32 位字组成）连续、高效地写入一个内存映射的 I/O（MMIO）设备寄存器或端口。
+
+    它操作的对象不是普通的内存，而是被映射到内存空间的设备寄存器。这些寄存器控制着硬件设备（如网卡、显卡、磁盘控制器等）的行为或用于与设备交换数据。
+
+    io： 代表输入/输出（Input/Output）。
+
+    write： 代表“写”操作。
+
+    32： 代表每次操作的数据单元是 32 位（即 4 字节的一个“字”）。
+
+    _rep： 是 “repeat” 的缩写，代表这个操作是重复的、批量的。
+
+    ```c
+    #include <linux/io.h>
+
+    void iowrite32_rep(const volatile void __iomem *addr, const void *buf, unsigned long count);
+    ```
+
+    addr: 要写入的设备寄存器的基础地址（内存映射地址）。
+
+    buf: 源数据缓冲区的地址，即你要发送给设备的数据所在的内存位置。
+
+    count: 要写入的 32 位字的数量，即重复的次数。
+
+    example:
+
+    ```c
+    #include <linux/io.h>
+    #include <linux/types.h>
+
+    /* 假设我们有一个设备，其数据端口被映射到内存地址 my_device_port */
+    static void __iomem *my_device_port;
+
+    /* 我们要发送的数据 */
+    u32 data_buffer[] = {0x12345678, 0x9ABCDEF0, 0x11111111, 0x22222222};
+
+    void send_data_to_device(void)
+    {
+        /* 将4个32位字从 data_buffer 连续写入到 my_device_port */
+        iowrite32_rep(my_device_port, data_buffer, 4);
+
+        /* 
+         * 等效于（但效率远高于）：
+         * iowrite32(data_buffer[0], my_device_port);
+         * iowrite32(data_buffer[1], my_device_port + 4); // 地址通常按字节偏移
+         * iowrite32(data_buffer[2], my_device_port + 8);
+         * iowrite32(data_buffer[3], my_device_port + 12);
+         */
+    }
+    ```
+
+    工作流程：
+
+    当你调用 iowrite32_rep(addr, buf, count) 时，它会：
+
+    1. 从内存中的 buf 位置开始读取数据。
+
+    2. 将第一个 32 位数据写入 addr 指定的设备地址。
+
+    3. 根据设备的总线特性，可能会自动将地址递增到下一个相邻的寄存器位置（或者使用同一个地址，这取决于设备的设计）。
+
+    4. 重复这个过程，直到成功写完了 count 个 32 位数据。
+
+    使用 iowrite32_rep() 比在循环中多次调用 iowrite32() 效率更高。因为它允许内核或底层架构使用更优化的方式来完成批量传输，例如使用处理器的缓存预取或更高效的总线指令（如 x86 架构上的 MOVS 指令配合 REP 前缀）。
+
+    在需要向设备传输大量数据时（例如，向网卡发送一个数据包，或向磁盘控制器发送一系列指令参数），使用 _rep 版本的函数可以显著提升性能并减少代码量。
+
 * `BIT()`
 
     BIT() 是一个宏，它的核心作用是生成一个指定位为 1，其它位为 0 的掩码（mask）。它通常用于操作硬件寄存器中的单个位，例如设置、清除或检查某个特定的标志位。

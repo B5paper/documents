@@ -6,6 +6,80 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 内联汇编
+
+    * GCC/Clang（GNU 风格）
+
+        `asm [volatile] ( “汇编模板” : “输出操作数” : “输入操作数” : “Clobbered 寄存器” );`
+        
+    * MSVC (Microsoft 风格)
+
+        `__asm { 汇编指令 }`
+
+    examples:
+
+    * gpu-style example
+
+        ```c
+        #include <stdio.h>
+
+        int add_numbers(int a, int b) {
+            int sum;
+            // 内联汇编开始
+            asm volatile (
+                "addl %%ebx, %%eax;"   // 汇编模板：将 ebx 加到 eax
+                : "=a" (sum)           // 输出操作数：将 eax 的值输出到变量 sum
+                : "a" (a), "b" (b)     // 输入操作数：将 a 放入 eax, 将 b 放入 ebx
+                // Clobbered 列表：这里没有显式修改其他寄存器，所以省略
+            );
+            return sum;
+        }
+
+        int main() {
+            int result = add_numbers(10, 25);
+            printf("The result is: %d\n", result); // 输出： The result is: 35
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        The result is: 35
+        ```
+
+        代码解释：
+
+        * `asm volatile (...)`: `volatile`关键字告诉编译器不要优化这段汇编代码，确保它按书写顺序执行。
+
+        * 汇编模板`"addl %%ebx, %%eax;"`:
+
+            * 这是实际的汇编指令。addl 表示 “add long”（32位加法）。
+
+            * 在 GNU 语法中，为了区分操作数和寄存器，寄存器名前需要两个 % 符号（%%eax）。单个 % 用于操作数。
+
+        * 输出操作数: `“=a” (sum)`:
+
+            * 格式为 "约束" (变量)。
+
+            * `=a`表示：
+
+                * `=`代表这是一个输出操作数（只写）。
+
+                * `a`是一个约束，要求将变量放入`eax`寄存器。
+
+            * `(sum)`是 C 语言中的变量，结果将从`eax`寄存器写回到这个变量。
+
+        * 输入操作数 : `“a” (a), “b” (b)`:
+
+            格式同上。
+
+            * `“a” (a)`：将变量`a`的值放入`eax`寄存器。
+
+            * `“b” (b)`：将变量`b`的值放入`ebx`寄存器。
+
+            * 编译器负责在汇编代码执行前，将 C 语言变量`a`和`b`的值加载到指定的寄存器中。
+
 * `strdup()`
 
     动态复制一个字符串。(C23 标准库)

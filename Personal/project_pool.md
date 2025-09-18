@@ -28,6 +28,22 @@
 
 ## cache
 
+* 科研式 project 的特点
+
+    1. 综合，跨学科
+    
+    2. 资源繁多
+    
+    3. 线索/思路相比学科更开放，更复杂，方向经常会有变动
+
+    目前先按常规 project 的方式管理。
+
+    对于贴大量代码的对比实验，目前先在 proj 目录里创建单独的子文件夹。
+
+* 对于学习新概念，目前的笔记模式已经足够。但是如果需要探索，做许多实验，保存思路，保存许多 project，那么又该如何管理？不能只靠 reference resources。
+
+    或者问题更明确一些：如何减少/处理 reference resource 里的东西？ 
+
 * 不默认保持中文输入法的另外一个原因
 
     有时候需要按`shift` + 鼠标滚轮横向滚动，但是`shift`又正好是切换中英文的，这样会导致每横向滚动一次，就在中英文中间切换一次。
@@ -901,13 +917,7 @@
 
 * [v] reorg: documents 30 mins 09.16
 
-    feedback:
-
-    * [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
-
-    * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
-
-* [ ] 增加每日任务模板
+* [v] 增加每日任务模板
 
     qa, reorg，cache tab 任务都是需要长期保持的，其余的任务从每个 project 中挑出几个。
 
@@ -919,9 +929,15 @@
     
     * qa 任务需要预计需求量，比如 qa 2 units。
 
+    feedback:
+
+    * [ ] bash 中如何展开文件路径的 tab 自动补全？
+
 * [ ] 调研 qemu + FreeDOS 安装 dos 环境
 
 * [O] reorg linux driver
+
+    11:01 ~ 11:25
 
     关注中断部分，增加 qa unit
 
@@ -944,7 +960,11 @@
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
-* [ ] `remove_const_t`
+* [v] `remove_const_t`
+
+    feedback:
+
+    * [asso] `add_const_t`
 
 * [ ] `remove_pointer_t`
 
@@ -1063,6 +1083,10 @@
 
 * [v] reorg documents 06.22
 
+* [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
+
+* [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
+
 ## qa
 
 ### cached
@@ -1123,8 +1147,6 @@
 
 ### Tasks
 
-* [v] 调研 makefile `subst`
-
 * [ ] 等号前后是否加空格
 
     ```makefile
@@ -1136,9 +1158,21 @@
 
 * [ ] `patsubst`
 
-* [ ] 调研 makefile `shell`
+* [v] 调研 makefile `shell`
 
-* [ ] 调研 makefile 模式规则（例如 %.o: %.c）
+    feedback:
+
+    * [asso] 调研`OBJS = $(SRCS:src/%.c=obj/%.o)`处理字符串
+
+    * [asso] 调研`./configure`运行的是什么程序？如何配置？
+
+* [v] 调研 makefile 模式规则（例如 %.o: %.c）
+
+    feedback:
+
+    * [asso] `make -p`
+
+    * [asso] `make --print-data-base`
 
 * [ ] 调研 make 变量与 shell 变量
 
@@ -1318,21 +1352,13 @@
 
 * [v] process 1 tab  09.16
 
-    feedback:
-
-    * [asso] 既然 epoll 可以监控 fd，那么除了 socket fd 外，epoll 是否也可以监控普通文件的改动？
-
-    * [ ] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
-
-* [v] process 1 tab  09.15
+* [ ] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
 
 * [ ] `aligned_alloc()`
 
 * [ ] `posix_memalign()`
 
-    feedback:
-
-* [ ] `sudo mount -o remount /dev/shm`
+* [v] `sudo mount -o remount /dev/shm`
 
     `/etc/fstab`:
 
@@ -1341,6 +1367,16 @@
     ```
 
     `sudo mount -o remount,size=2G /dev/shm` (临时增加 /dev/shm 的大小)
+
+    feedback:
+
+    * [asso] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
+
+        以及`/etc/fstab`的文件格式。
+
+    * [asso] `sudo mount -o remount,size=2G /dev/shm`
+
+        以及除了`size=2G`外，其他的`remount`常跟的选项。
 
 * [ ] 调研使用其他共享内存目录
 
@@ -1351,9 +1387,17 @@
 
 * [ ] 调研`ipcs -m`
 
-* [ ] 调研`truncate`
+* [v] 调研`truncate`
 
     `sudo truncate -s 9637892 /dev/shm/nccl-AoFK4o`
+
+    feedback:
+
+    * [asso] `truncate()`
+
+    * [asso] `std::ios::trunc`
+
+    * [asso] 什么是 tmpfs，和普通的文件系统在实现上有什么区别？
 
 * [ ] 调研`df -T /dev/shm`
 
@@ -1378,23 +1422,7 @@
 
     或者`-append 'console=ttyS0' # 添加这行`?
 
-    feedback:
-
-    * [asso] `grub2-mkconfig`
-
-    * [asso] `/boot/grub/grub.cfg`
-
-    * [asso] SYSLINUX/ISOLINUX/PXELINUX 系列引导程序
-
-        ISOLINUX (用于光盘): isolinux/isolinux.cfg
-
-        SYSLINUX (用于 FAT 文件系统): syslinux/syslinux.cfg
-
-        PXELINUX (用于网络启动): pxelinux.cfg/default
-
-    * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
-
-* [v] `alarm()` /` setitimer()`
+* [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
 * [ ] `setitimer()`
 
@@ -1610,6 +1638,20 @@
 
 * [ ] dns 的`MX`, `NS`记录类型
 
+* [asso] 既然 epoll 可以监控 fd，那么除了 socket fd 外，epoll 是否也可以监控普通文件的改动？
+
+* [asso] `grub2-mkconfig`
+
+* [asso] `/boot/grub/grub.cfg`
+
+* [asso] SYSLINUX/ISOLINUX/PXELINUX 系列引导程序
+
+    ISOLINUX (用于光盘): isolinux/isolinux.cfg
+
+    SYSLINUX (用于 FAT 文件系统): syslinux/syslinux.cfg
+
+    PXELINUX (用于网络启动): pxelinux.cfg/default
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -1630,17 +1672,39 @@ resources:
 
 ### tasks
 
-* [ ] 为什么经过 transpose、permute 等操作后，张量会变成不连续的？
+* [v] 为什么经过 transpose、permute 等操作后，张量会变成不连续的？
 
-* [ ] python class 中所有 member 都要在`__init__()`中使用`self.xxx = yyy`定义吗？还可以怎么声明或定义？
+* [v] python class 中所有 member 都要在`__init__()`中使用`self.xxx = yyy`定义吗？还可以怎么声明或定义？
+
+    feedback:
+
+    * [asso] 调研`mypy`
+
+    * [asso] 调研`from typing import Optional, List, Dict, Tuple, Set`
+
+    * [ ] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
 
 * [ ] 什么是 transpose？多维 tensor 如何 transpose?
 
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
+    17:13 ~ 18:00
+
     目前看到
 
     > Building and Training Neural Networks with PyTorch
+
+    feedback:
+
+    * [ ] `nn.MSELoss()`数学公式是什么？代码如何实现？
+
+    * [ ] `optim.SGD`数学公式是什么？代码如何实现？
+
+    * 目前看到
+
+        > Optimizing Model Training with PyTorch Datasets
+
+    * [ ] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
 
 * [ ] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
 
@@ -1655,14 +1719,6 @@ resources:
     * 目前看到
 
         > 3.index_copy_:  Copies the elements of a given tensor to
-
-* [v] 调研 Tensor Slicing
-
-    <https://www.geeksforgeeks.org/machine-learning/tensor-slicing/>
-
-    feedback:
-
-    * 这个是 tensorflow 的教程，对 torch 毫无意义
 
 * [ ] 调研 Reshaping a Tensor in Pytorch
 
@@ -1712,7 +1768,7 @@ resources:
 
 ## Machine Learning
 
-## cache
+### cache
 
 * pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
 
@@ -2229,17 +2285,23 @@ tasks:
 
 ### tasks
 
-* [O] 实现 dump 功能
+* [v] 实现 dump 功能
+
+    15:18 ~ 16:43
+
+    feedback:
+
+    * [ ] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
+
+    * [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
+
+    * [ ] vscode 如何同时滚动左右两个分栏？
 
 * [O] 调研 graph xml parser
 
 * [v] `readelf -l /bin/bash | grep interpreter`
 
-    feedback:
-
-    * [asso] 解析`readelf -l <bin_file>`输出中各个字段的含义
-
-* [ ] `objdump`
+* [v] `objdump`
 
 * [ ] `objdump -p <文件名> | grep NEEDED`
 
@@ -2277,8 +2339,6 @@ tasks:
 
 * [ ] 调研 crontab 系统级定时任务
 
-* [v] 调研`epoll`的用法
-
 * [ ] reorg: linux socket programming
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
@@ -2313,9 +2373,15 @@ tasks:
 
 * [ ] `read -r`以及有哪些常见的反斜杠转义字符？
 
-* [ ] `od -t x<N>`
+* [v] `od -t x<N>`
 
-* [ ] `od -A`
+    feedback:
+
+    * [ ] `od -A x -t x1 test.bin`
+
+    * [ ] `echo "Hello" | od -t x1c`
+
+* [v] `od -A`
 
 * [ ] 调研 openssl, gpg
 
@@ -2721,6 +2787,8 @@ tasks:
 * [ ] `readelf -d my_program | grep -E '(RUNPATH|RPATH)'`
 
 * [ ] `od -t c`是干嘛用的？
+
+* [asso] 解析`readelf -l <bin_file>`输出中各个字段的含义
 
 ## gpu driver
 
@@ -4143,9 +4211,15 @@ resources:
 
 1. <https://www.gnu.org/software/gawk/manual/html_node/index.html#SEC_Contents>
 
-## linux driver
+## Linux Driver
 
 ### cache
+
+* 了解了下每天上下班都路过的恒惴，作为一个主打创新药的公司，在知乎上被大部分人看衰，说得最多的理由是目前大部分药已经够用，寿命总体和营养、锻炼、作息、饮食等关系比较大，抗生素解决了大部分的问题，再研发新药，几乎看不到收益。另一个论点是，人的命不值研发新药的科研投入，假如一个人被动死了，法院可能判赔偿多少钱？二百万？三百万？许多人一辈子可能也挣不了三百万。那么我们投资几千万，几亿去研发一款新药，受众可能很少，也可能是那些一辈子都挣不了三百万的人。在制定法律时我们认为人是无价的，但是人一生能挣的钱可能也就几百万，甚至无法支撑创新药的研发，这种悲哀来源于何方？
+
+* 以前非常向往 spacex 和智晖君，现在反而感觉他们都是在瞎搞。究竟是我变了，还是他们变了，还是我当时向往的只是自己幻想出来的形象，并不是真正的他们？
+
+* 很久以前学嵌入式的时候，总感觉自己无所不能，电路，信号，功率，控制，信息处理，似乎什么都可以做到。后来学神经网络的时候，觉得自己似乎可以处理各种智能问题了，预测股市，解耦 PID，图片识别，拟合函数……现在看来，这些都是基础中的基础，在现实世界几乎什么都做不到。
 
 * `ssize_t`是`long`
 
@@ -4239,30 +4313,17 @@ resources:
 
 * [ ] `/proc/iomem`
 
-* [v] `BUG()`
-
-* [ ] 如果这块内存既读又写，该如何保证缓存一致性？
-
-* [v] `copy_from_user()`
-
-* [v] `mdev_get_drvdata()`
-
-* [v] 调研内联汇编
-
-    ```c
-    // 一个非常简化的概念性示例，并非真实代码
-    static inline unsigned char inb(unsigned short port) {
-        unsigned char data;
-        asm volatile ("inb %1, %0" : "=a" (data) : "Nd" (port));
-        return data;
-    }
-    ```
-
-* [v] 调研 vim-gutentags
+* [v] 如果这块内存既读又写，该如何保证缓存一致性？
 
     feedback:
 
-    1. [ ] 如何安装 Vim-Plug，并检验安装成功？
+    * [asso] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+
+    * [asso] `dma_map_page()`
+
+* [v] 调研 vim-gutentags
+
+* [ ] 如何安装 Vim-Plug，并检验安装成功？
 
 * [ ] 调研引用系统库（如 /usr/include）的标签
 
@@ -4282,41 +4343,39 @@ resources:
     void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
     ```
 
-    feedback:
+* [ ] 调研 ds 生成的一段代码
 
-    * [ ] 调研 ds 生成的一段代码
+    ```c
+    // 计算缓冲区的虚拟地址
+    void __iomem *device_buffer = dev->mmio_base + 0x1000;
 
-        ```c
-        // 计算缓冲区的虚拟地址
-        void __iomem *device_buffer = dev->mmio_base + 0x1000;
+    // 方法一：使用内核提供的IO函数（推荐，因为可移植且安全）
+    // 写入一个32位字
+    iowrite32(0x12345678, device_buffer);
+    // 读取一个32位字
+    u32 value = ioread32(device_buffer);
 
-        // 方法一：使用内核提供的IO函数（推荐，因为可移植且安全）
-        // 写入一个32位字
-        iowrite32(0x12345678, device_buffer);
-        // 读取一个32位字
-        u32 value = ioread32(device_buffer);
+    // 批量写入一段数据（这就是你想要的“强行”操作）
+    // src_buf 是你准备好的数据源（在主机内存里）
+    // count 是你想写入的32位字的数量
+    iowrite32_rep(device_buffer, src_buf, count);
 
-        // 批量写入一段数据（这就是你想要的“强行”操作）
-        // src_buf 是你准备好的数据源（在主机内存里）
-        // count 是你想写入的32位字的数量
-        iowrite32_rep(device_buffer, src_buf, count);
+    // 方法二：更“强行”的方式 - 直接解引用指针（需极度小心！）
+    // 首先，确保映射时为“不缓存”或“写合并”模式，否则会出问题。
+    // 通常用 pci_ioremap_bar() 默认是 ioremap()，这通常是安全的（无缓存）。
+    // 但直接解引用 __iomem 指针编译器会报错，所以需要强制转换。
 
-        // 方法二：更“强行”的方式 - 直接解引用指针（需极度小心！）
-        // 首先，确保映射时为“不缓存”或“写合并”模式，否则会出问题。
-        // 通常用 pci_ioremap_bar() 默认是 ioremap()，这通常是安全的（无缓存）。
-        // 但直接解引用 __iomem 指针编译器会报错，所以需要强制转换。
+    // 强制转换为 volatile 指针，告诉编译器别优化，每次都要真的访问
+    volatile u32 *hardware_buffer = (volatile u32 *)device_buffer;
 
-        // 强制转换为 volatile 指针，告诉编译器别优化，每次都要真的访问
-        volatile u32 *hardware_buffer = (volatile u32 *)device_buffer;
+    // 现在，你可以像普通数组一样操作了！
+    hardware_buffer[0] = 0xAAAAAAAA; // 写入第一个字
+    value = hardware_buffer[1];      // 读取第二个字
 
-        // 现在，你可以像普通数组一样操作了！
-        hardware_buffer[0] = 0xAAAAAAAA; // 写入第一个字
-        value = hardware_buffer[1];      // 读取第二个字
-
-        // 甚至可以用memcpy（但确保目的地址是volatile且没有缓存问题！）
-        // memcpy_toio() 是更安全的选择
-        memcpy((void *)hardware_buffer, src_buf, count * 4);
-        ```
+    // 甚至可以用memcpy（但确保目的地址是volatile且没有缓存问题！）
+    // memcpy_toio() 是更安全的选择
+    memcpy((void *)hardware_buffer, src_buf, count * 4);
+    ```
 
 * [ ] 内存屏障（`rmb()`, `wmb()`）
 

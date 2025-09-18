@@ -2,6 +2,62 @@
 
 ## cache
 
+* vim-gutentags
+
+    Vim-Gutentags 是一个 Vim 插件，它的核心功能是自动化管理 Vim 的标签文件（tags files）。
+
+    在没有 Gutentags 之前，开发者通常需要手动运行 ctags -R . 来生成标签文件，并且在项目代码更新后，还需要重新运行该命令来更新标签，否则索引就会过时。这个过程非常繁琐且容易忘记。
+
+    Gutentags 的解决方案:
+
+    * 自动生成：当你用 Vim 在项目根目录（通过 .git, .hg, .svn 等版本控制目录识别）打开一个文件时，Gutentags 会自动在后台为你运行 ctags 命令来生成标签文件（通常是 ./tags 或 ./.git/tags）。
+
+    * 自动更新：当你保存（write）一个文件后，Gutentags 会在后台静默地、异步地只更新刚才修改的那个文件的标签，而不是重新生成整个项目。这极大地提升了效率，避免了大型项目生成标签时造成的 Vim 卡顿。
+
+    * 自动管理：你完全无需手动干预整个过程。它“Just Works”。
+
+    主要特点:
+
+    * 后台异步运行：使用 Vim 的 job 功能（或其它兼容插件）在后台运行 ctags，不会阻塞你的编辑操作。
+
+    * 增量更新：只更新改变的文件，速度极快。
+
+    * 智能项目管理：自动识别项目根目录，并为每个项目单独管理标签文件。
+
+    * 高度可定制：你可以配置使用哪种 ctags 工具、标签文件存放位置、哪些文件需要被索引等。
+
+    * 支持多种标签生成工具：默认支持 ctags 和 etags，通过配置也可以支持其它工具。
+
+    安装：
+
+    * 方法一，使用 Vim-Plug
+
+        在`~/.vimrc`文件中添加：
+
+        ```vim
+        Plug 'ludovicchabant/vim-gutentags'
+        ```
+
+        重启 Vim 并执行：
+
+        ```
+        :PlugInstall
+        ```
+
+    * 方法二，使用 Vundle
+
+        在`~/.vimrc`文件中添加：
+
+        ```vim
+        Plugin 'ludovicchabant/vim-gutentags'
+        ```
+
+        重启 Vim 并执行：
+
+        ```
+        :PluginInstall
+        ```
+
 * ctags 基本用法
 
     install: `sudo apt install universal-ctags`
