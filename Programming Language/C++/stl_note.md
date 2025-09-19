@@ -2,6 +2,47 @@
 
 ## cached
 
+* `remove_const_t`
+
+    除类型的顶层 const 限定符。
+
+    如果输入类型 T 是 const 限定的（如 const int、const std::string），则 remove_const_t<T> 会得到对应的非 const 类型（如 int、std::string）。
+
+    如果输入类型 T 没有 const 限定，则 remove_const_t<T> 直接返回原始类型 T。
+
+    example:
+
+    ```cpp
+    #include <type_traits>
+
+    // 示例类型
+    using T1 = const int;
+    using T2 = int;
+
+    // 移除 const 限定
+    using Result1 = std::remove_const_t<T1>; // 等价于 int
+    using Result2 = std::remove_const_t<T2>; // 等价于 int
+
+    // 对于指针类型：仅移除顶层 const（指针本身的 const，而非指向对象的 const）
+    using T3 = const int*;          // 指针指向 const int，但指针本身非 const
+    using Result3 = std::remove_const_t<T3>; // 仍为 const int*（无变化）
+
+    using T4 = int* const;          // 顶层 const：指针本身是 const
+    using Result4 = std::remove_const_t<T4>; // 变为 int*
+    ```
+
+    注意，`remove_const_t`仅移除顶层 const：对于指针或复合类型，它不会移除底层（被指向对象）的 const 限定。例如：
+
+    * remove_const_t<const int*> 仍为 const int*（因为 const 属于被指向对象，而非指针本身）。
+
+    * remove_const_t<int* const> 会得到 int*（移除了指针本身的 const）。
+
+    相关概念：
+
+    * std::remove_const<T>：是一个类模板，其 ::type 成员类型是结果类型（C++11 起）。
+
+    * std::remove_const_t<T>：是 C++14 引入的辅助别名模板，直接等价于 typename std::remove_const<T>::type。
+
 * shared_ptr 引用计数增加的情况
 
     * 构造函数

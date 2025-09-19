@@ -2,6 +2,253 @@
 
 ## cache
 
+* `od -A`
+
+    od -A 选项用于指定输出偏移量（地址）的显示格式。这里的 -A 代表 "Address"。
+
+    * `-A x`: 十六进制（hexadecimal）
+    
+        `0000000`, `0000010`
+    
+    * `-A d`: 十进制（decimal）
+    
+        `0000000`, `0000016`
+
+    * `-A o`: 八进制（octal）, 默认情况
+    
+        `0000000`, `0000020`
+
+    * `-A n`: 不显示偏移量（none）
+    
+        （左侧偏移量栏为空）
+
+* python class 中定义成员变量
+
+    1. 在`__init__()`或其他成员函数中，使用`self.xxx = yyy`定义成员变量
+
+        ```py
+        class DynamicClass:
+            def __init__(self):
+                self.defined_in_init = "I'm from init" 
+
+            def add_attribute_later(self):
+                self.defined_later = "I was created later!"
+
+        # 使用
+        obj = DynamicClass()
+        print(obj.defined_in_init) # 正常工作
+
+        # print(obj.defined_later) # 这里会报错，因为还没有执行定义它的方法
+
+        obj.add_attribute_later() # 调用方法，动态创建了成员
+        print(obj.defined_later)  # 现在可以正常工作了
+        ```
+
+    2. 使用类属性
+
+        ```py
+        class MyClass:
+            # 这是类属性
+            class_attr = "I'm a class attribute"
+
+            def __init__(self, instance_attr):
+                # 这是实例属性
+                self.instance_attr = instance_attr
+
+        # 使用
+        obj1 = MyClass("Obj1 value")
+        obj2 = MyClass("Obj2 value")
+
+        # 访问实例属性：每个对象独有
+        print(obj1.instance_attr) # Obj1 value
+        print(obj2.instance_attr) # Obj2 value
+
+        # 访问类属性：所有对象共享，也可以通过类本身访问
+        print(obj1.class_attr)    # I'm a class attribute
+        print(obj2.class_attr)    # I'm a class attribute
+        print(MyClass.class_attr) # I'm a class attribute
+        ```
+
+        共享性：所有实例对象共享同一个类属性。如果通过类名修改它（如 MyClass.class_attr = "new"），所有实例看到的都会改变。
+
+        实例访问的陷阱：如果你通过实例对类属性进行赋值（如 obj1.class_attr = "new for obj1"），你实际上是在该实例的命名空间内创建了一个新的同名实例属性，它会遮蔽（shadow）掉类属性。此时，obj1.class_attr 是实例属性，而 obj2.class_attr 和 MyClass.class_attr 仍然是原来的类属性。
+
+    3. 使用`@property`装饰器
+
+        ```py
+        class Circle:
+            def __init__(self, radius):
+                self.radius = radius # 这里只存储了半径
+
+            @property
+            def area(self):
+                # 面积不需要存储，每次访问时根据半径计算
+                return 3.14159 * self.radius ** 2
+
+            @property
+            def diameter(self):
+                return self.radius * 2
+
+        # 使用
+        c = Circle(5)
+        print(c.radius)   # 5 (实例属性)
+        print(c.diameter) # 10 (看起来是属性，实则是方法计算的结果)
+        print(c.area)     # 78.53975 (看起来是属性，实则是方法计算的结果)
+
+        # c.area = 100 # 这会报错，因为@property默认是只读的
+        ```
+
+    在使用类成员时，如果不知道初始值，可以使用`Nonde`:
+
+    ```py
+    class User:
+        # 使用 None 作为占位符，表示这些属性需要后续初始化
+        name = None
+        email = None
+        age = None
+    ```
+
+    但是只有`None`无法提供类型信息，可以使用类型注解（Type Hints）配合 None:
+
+    ```py
+    class User:
+        name: str | None = None
+        email: str | None = None
+        age: int | None = None
+    ```
+
+    不可以只写类型注解，不写初始化值：
+
+    ```py
+    class User:
+        name: str          # 这只是类型注解
+        age: int = 0       # 这是真正的属性定义 + 类型注解
+
+    # 测试
+    user = User()
+    print(user.age)        # 正常工作，输出: 0
+    print(user.name)       # 报错！AttributeError: 'User' object has no attribute 'name'
+    ```
+
+* torch 拟合 xor 函数
+
+    ```py
+    import torch
+    import torch.nn as nn
+    from torch import optim
+
+    class SimpleNN(nn.Module):
+        def __init__(self):
+            super(SimpleNN, self).__init__()
+            self.fc1 = nn.Linear(2, 4)
+            self.fc2 = nn.Linear(4, 1)
+
+        def forward(self, x):
+            x = torch.relu(self.fc1(x))
+            x = self.fc2(x)
+            return x
+        
+    X_train = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
+    y_train = torch.tensor([[0.0], [1.0], [1.0], [0.0]])
+
+    # Instantiate the Model, Define Loss Function and Optimizer
+    model = SimpleNN()
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.1)
+
+    for epoch in range(100):
+        model.train()
+
+        # Forward pass
+        outputs = model(X_train)
+        loss = criterion(outputs, y_train)
+        
+        # Backward pass and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if (epoch + 1) % 10 == 0:
+            print(f'Epoch [{epoch + 1}/100], Loss: {loss.item():.4f}')
+
+    model.eval()
+    with torch.no_grad():
+        test_data = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
+        predictions = model(test_data)
+        print(f'Predictions:\n{predictions}')
+    ```
+
+    output:
+
+    ```
+    Epoch [10/100], Loss: 0.2205
+    Epoch [20/100], Loss: 0.1844
+    Epoch [30/100], Loss: 0.1600
+    Epoch [40/100], Loss: 0.1357
+    Epoch [50/100], Loss: 0.1115
+    Epoch [60/100], Loss: 0.0890
+    Epoch [70/100], Loss: 0.0671
+    Epoch [80/100], Loss: 0.0481
+    Epoch [90/100], Loss: 0.0320
+    Epoch [100/100], Loss: 0.0199
+    Predictions:
+    tensor([[0.1897],
+            [0.9428],
+            [0.8315],
+            [0.0905]])
+    ```
+
+    说明：
+
+    1. `super(SimpleNN, self).__init__()`与`super().__init__()`是等价的
+
+    1. `model.train()`将模型切换为训练模式，不需要写成`model = model.train()`
+
+        特点：
+
+        * Dropout层会随机丢弃神经元
+
+        * BatchNorm层使用当前批次的统计量（均值和方差）
+
+        * 启用梯度计算（autograd）
+
+        * 适合训练阶段使用
+
+    1. `model.eval()`将模型切换为评估模式
+
+        * Dropout层不会丢弃神经元（所有神经元都参与计算）
+
+        * BatchNorm层使用训练阶段学到的运行统计量
+
+        * 通常与torch.no_grad()一起使用来禁用梯度计算
+
+        * 适合测试、验证和推理阶段使用
+
+* 使用 permute 导致 tensor 变成 continuous 的例子
+
+    ```py
+    import torch as t
+
+    a = t.rand(3, 4)
+    print('a shape: {}'.format(a.shape))
+    a = a.permute(1, 0)
+    print('after permute, a shape: {}'.format(a.shape))
+    print('is continuous: {}'.format(a.is_contiguous()))
+    a = a.view(2, 6)
+    ```
+
+    output:
+
+    ```
+    a shape: torch.Size([3, 4])
+    after permute, a shape: torch.Size([4, 3])
+    is continuous: False
+    Traceback (most recent call last):
+      File "/home/hlc/Documents/Projects/torch_test/main.py", line 8, in <module>
+        a = a.view(2, 6)
+    RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+    ```
+
 * 带自回归的 Encoder-Decoder 架构
 
     一种用于处理序列到序列（Seq2Seq） 任务的深度学习模型框架。它的核心思想是将一个输入序列（如一句英文句子）转换为一个输出序列（如对应的中文句子），并且输出序列的生成是逐步、自回归地进行的。

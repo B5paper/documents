@@ -627,3 +627,5 @@ grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of 
 * facilitate v. 促进; 使便利 eg. Broadcasting allows for automatic expansion of dimensions to facilitate arithmetic operations on tensors of different shapes.
 
 * Proteus prn. [ˈprotiəs, -ˌtjus] n. 希腊海神
+
+* criterion prn. [kraɪˈtɪriən] n. 标准，准则

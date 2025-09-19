@@ -6,6 +6,8 @@ Ref:
 
 ## cache
 
+* 在使用 stream dma 时，如果`dma_map_single()`指定的 flag 为`DMA_BIDIRECTIONAL`，那么每次映射/同步操作都可能同时执行“刷写”和“失效”，性能开销最大。通过这种方法保证缓存一致性。
+
 * `iowrite32_rep()`
 
     将一块数据（由多个 32 位字组成）连续、高效地写入一个内存映射的 I/O（MMIO）设备寄存器或端口。
@@ -683,29 +685,6 @@ Ref:
 
     * 在分配过程中出现错误，导致设备探测（probe）失败。
 
-* `platform_get_irq()`
-
-    syntax:
-
-    ```c
-    platform_get_irq(struct platform_device *pdev, unsigned int num)
-    ```
-
-    从 platform 设备资源 中获取第 num 个中断号（IRQ number），供驱动程序后续调用 request_irq() 等接口使用。
-
-    如果失败，会返回负数错误码（如 -ENXIO, -EINVAL 等）。
-
-    example:
-
-    ```c
-    int irq;
-    irq = platform_get_irq(pdev, 0);
-    if (irq < 0)
-        return irq;
-    ret = devm_request_irq(&pdev->dev, irq, my_irq_handler, 0,
-                           dev_name(&pdev->dev), dev);
-    ```
-
 * `ioremap_cache()`
 
     将设备的物理 I/O 内存（通常是 PCI/设备的寄存器或显存）映射到内核的虚拟地址空间，并且允许这段区域使用 CPU 的缓存（cache）机制。
@@ -725,8 +704,6 @@ Ref:
     * 确定设备内存与 CPU 缓存一致性可控时。
 
     注意：不能随便对寄存器区使用 ioremap_cache()，因为缓存会导致寄存器读写失效或顺序错误。
-
-* 写 linux module 时，vscode 的 cpp 配置里，`KBUILD_MODNAME`要写成`KBUILD_MODNAME="hello"`，以前记的笔记是`KBUILD_MODNAME=\"hello\"`，似乎是不对的。
 
 * `resource_size()`
 
@@ -852,77 +829,6 @@ Ref:
     module_exit(exit_mod);
     MODULE_LICENSE("GPL");
     ```
-
-* `platform_get_resource()`
-
-    在 Linux 设备模型中，那些直接连接在处理器总线上的、相对简单的设备（如 GPIO 控制器、I2C 控制器、内存映射的设备等）通常被抽象为“平台设备”（platform_device）。
-
-    一个设备要工作，需要内核知道它的“资源”，比如：
-
-    * 内存地址范围（IORESOURCE_MEM）：设备寄存器映射到的物理地址和长度。
-
-    * 中断号（IORESOURCE_IRQ）：设备使用的中断线编号。
-
-    * DMA 通道（IORESOURCE_DMA）：设备使用的 DMA 通道号。
-
-    这些资源信息通常在设备树（Device Tree）或ACPI表中定义，在系统启动时由内核解析并填充到对应的 platform_device 结构体中。
-
-    syntax:
-
-    ```c
-    struct resource *platform_get_resource(struct platform_device *pdev,
-                                          unsigned int type,
-                                          unsigned int num);
-    ```
-
-    * `pdev`: 指向对应的平台设备结构体的指针，通常会在驱动的 probe 函数中传入。
-
-    * `type`: 要查找的资源类型。常见的有：
-
-        * `IORESOURCE_MEM` - 内存资源
-
-        * `IORESOURCE_IRQ` - 中断资源
-
-        * `IORESOURCE_DMA` - DMA资源
-
-    * `num`: 该类型资源的索引号（从 0 开始）。例如，一个设备可能有两块内存映射区域，第一块索引为 0，第二块索引为 1。
-
-    返回值:
-
-    * 成功：返回指向 struct resource 的指针。
-
-    * 失败或指定的资源不存在：返回 NULL。
-
-    example:
-
-    ```c
-    static int my_driver_probe(struct platform_device *pdev)
-    {
-        struct resource *res;
-
-        // 1. 获取第一个内存资源（索引0）
-        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-        if (!res) {
-            dev_err(&pdev->dev, "Failed to get MEM resource\n");
-            return -EINVAL;
-        }
-        // 使用 res->start 和 res->end 获取地址范围
-
-        // 2. 获取第一个中断资源（索引0）
-        res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-        if (!res) {
-            dev_err(&pdev->dev, "Failed to get IRQ resource\n");
-            return -EINVAL;
-        }
-        int irq_num = res->start; // 中断号通常存放在 start 字段
-        // 然后使用 request_irq() 申请这个中断
-
-        // ... 其他初始化操作 ...
-        return 0;
-    }
-    ```
-
-    如果是中断，可以直接使用`platform_get_irq()`
 
 * `	devm_ioremap()`
 
@@ -1757,67 +1663,6 @@ Ref:
     编译器会把`__init`函数的代码段放到`.init.text`中，把`__initdata`的变量放到`.init.data`中。当函数执行完成后，操作系统会调用`free_initmem()`，释放这两个 init 段中的内存，释放出空间。
 
     `__exit`标记的函数，如果 module 被静态编译进了内核，那么类似`edu_exit(void)`的函数将永不会被调用，这些函数会被直接丢弃。
-
-* `pci_request_region()`
-
-    （未验证）
-
-    I/O 端口地址和内存地址都是操作系统的资源，当检测到 pci 设备时，pci 设备需要向操作系统申请这些资源，并映射到 pci 设备上，才能正常工作。
-
-    这个申请资源的动作，即`pci_request_region()`。
-
-    syntax:
-
-    ```c
-    int pci_request_region(struct pci_dev *pdev, int bar, const char *res_name);
-    ```
-
-    * `res_name`： 一个字符串标识符，通常为驱动名，用于在资源树中标识该资源的所有者（在 /proc/ioports 或 /proc/iomem 中可以看到）。
-
-    返回值：
-
-        0: 表示申请成功。
-
-        非 0（错误码）: 表示申请失败（例如资源不存在或已被占用）。
-
-    其逆操作函数为`pci_release_region()`。
-
-    example:
-
-    ```c
-    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
-    {
-        int ret;
-        ...
-        // 首先启用设备
-        ret = pci_enable_device(pdev);
-        if (ret) {
-            dev_err(&pdev->dev, "Enable device failed\n");
-            return ret;
-        }
-
-        // 然后请求设备的某个区域（例如 BAR 0）
-        ret = pci_request_region(pdev, 0, "my_nic_driver");
-        if (ret) {
-            dev_err(&pdev->dev, "Request region for BAR0 failed\n");
-            pci_disable_device(pdev); // 失败则禁用设备
-            return ret;
-        }
-
-        // 请求成功，现在可以安全地映射和使用这个区域了
-        my_priv->ioaddr = pci_iomap(pdev, 0, 0);
-        ...
-    }
-
-    static void my_driver_remove(struct pci_dev *pdev)
-    {
-        ...
-        // 在移除时，按相反顺序释放资源
-        pci_iounmap(pdev, my_priv->ioaddr); // 取消映射
-        pci_release_region(pdev, 0);        // 释放区域
-        pci_disable_device(pdev);           // 禁用设备
-    }
-    ```
 
 * `MODULE_DEVICE_TABLE()`功能（未验证）
 
@@ -3216,6 +3061,102 @@ Ref:
 
 ## Topics
 
+### platform
+
+* `platform_get_resource()`
+
+    在 Linux 设备模型中，那些直接连接在处理器总线上的、相对简单的设备（如 GPIO 控制器、I2C 控制器、内存映射的设备等）通常被抽象为“平台设备”（platform_device）。
+
+    一个设备要工作，需要内核知道它的“资源”，比如：
+
+    * 内存地址范围（IORESOURCE_MEM）：设备寄存器映射到的物理地址和长度。
+
+    * 中断号（IORESOURCE_IRQ）：设备使用的中断线编号。
+
+    * DMA 通道（IORESOURCE_DMA）：设备使用的 DMA 通道号。
+
+    这些资源信息通常在设备树（Device Tree）或ACPI表中定义，在系统启动时由内核解析并填充到对应的 platform_device 结构体中。
+
+    syntax:
+
+    ```c
+    struct resource *platform_get_resource(struct platform_device *pdev,
+                                          unsigned int type,
+                                          unsigned int num);
+    ```
+
+    * `pdev`: 指向对应的平台设备结构体的指针，通常会在驱动的 probe 函数中传入。
+
+    * `type`: 要查找的资源类型。常见的有：
+
+        * `IORESOURCE_MEM` - 内存资源
+
+        * `IORESOURCE_IRQ` - 中断资源
+
+        * `IORESOURCE_DMA` - DMA资源
+
+    * `num`: 该类型资源的索引号（从 0 开始）。例如，一个设备可能有两块内存映射区域，第一块索引为 0，第二块索引为 1。
+
+    返回值:
+
+    * 成功：返回指向 struct resource 的指针。
+
+    * 失败或指定的资源不存在：返回 NULL。
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct platform_device *pdev)
+    {
+        struct resource *res;
+
+        // 1. 获取第一个内存资源（索引0）
+        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if (!res) {
+            dev_err(&pdev->dev, "Failed to get MEM resource\n");
+            return -EINVAL;
+        }
+        // 使用 res->start 和 res->end 获取地址范围
+
+        // 2. 获取第一个中断资源（索引0）
+        res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+        if (!res) {
+            dev_err(&pdev->dev, "Failed to get IRQ resource\n");
+            return -EINVAL;
+        }
+        int irq_num = res->start; // 中断号通常存放在 start 字段
+        // 然后使用 request_irq() 申请这个中断
+
+        // ... 其他初始化操作 ...
+        return 0;
+    }
+    ```
+
+    如果是中断，可以直接使用`platform_get_irq()`
+
+* `platform_get_irq()`
+
+    syntax:
+
+    ```c
+    platform_get_irq(struct platform_device *pdev, unsigned int num)
+    ```
+
+    从 platform 设备资源 中获取第 num 个中断号（IRQ number），供驱动程序后续调用 request_irq() 等接口使用。
+
+    如果失败，会返回负数错误码（如 -ENXIO, -EINVAL 等）。
+
+    example:
+
+    ```c
+    int irq;
+    irq = platform_get_irq(pdev, 0);
+    if (irq < 0)
+        return irq;
+    ret = devm_request_irq(&pdev->dev, irq, my_irq_handler, 0,
+                           dev_name(&pdev->dev), dev);
+    ```
+
 ### print and log
 
 * 内核中日志等级的定义
@@ -3332,6 +3273,8 @@ Ref:
     如果字符串没有冒号，那么全部 log 都是白色。
 
 ### 开发环境
+
+* 写 linux module 时，vscode 的 cpp 配置里，`KBUILD_MODNAME`要写成`KBUILD_MODNAME="hello"`，以前记的笔记是`KBUILD_MODNAME=\"hello\"`，似乎是不对的。
 
 * insmod 时报错
 
@@ -5640,6 +5583,69 @@ Ref:
     配对函数：`free_irq()`
 
 ### pci 设备：bar 与 iomap
+
+* `pci_request_region()`
+
+    声明和保留PCI设备的I/O端口或内存区域，防止其他驱动程序意外冲突。
+
+    它向内核声明："这个PCI设备的这块BAR空间（I/O端口或内存）将由我这个驱动程序使用", 防止多个驱动程序同时访问同一硬件资源造成冲突.
+
+    I/O 端口地址和内存地址都是操作系统的资源，当检测到 pci 设备时，pci 设备需要向操作系统申请这些资源，并映射到 pci 设备上，才能正常工作。
+
+    这个申请资源的动作，即`pci_request_region()`。
+
+    syntax:
+
+    ```c
+    int pci_request_region(struct pci_dev *pdev, int bar, const char *res_name);
+    ```
+
+    * `res_name`： 一个字符串标识符，通常为驱动名，用于在资源树中标识该资源的所有者（在 /proc/ioports 或 /proc/iomem 中可以看到）。
+
+    返回值：
+
+        0: 表示申请成功。
+
+        非 0（错误码）: 表示申请失败（例如资源不存在或已被占用）。
+
+    其逆操作函数为`pci_release_region()`。
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+    {
+        int ret;
+        ...
+        // 首先启用设备
+        ret = pci_enable_device(pdev);
+        if (ret) {
+            dev_err(&pdev->dev, "Enable device failed\n");
+            return ret;
+        }
+
+        // 然后请求设备的某个区域（例如 BAR 0）
+        ret = pci_request_region(pdev, 0, "my_nic_driver");
+        if (ret) {
+            dev_err(&pdev->dev, "Request region for BAR0 failed\n");
+            pci_disable_device(pdev); // 失败则禁用设备
+            return ret;
+        }
+
+        // 请求成功，现在可以安全地映射和使用这个区域了
+        my_priv->ioaddr = pci_iomap(pdev, 0, 0);
+        ...
+    }
+
+    static void my_driver_remove(struct pci_dev *pdev)
+    {
+        ...
+        // 在移除时，按相反顺序释放资源
+        pci_iounmap(pdev, my_priv->ioaddr); // 取消映射
+        pci_release_region(pdev, 0);        // 释放区域
+        pci_disable_device(pdev);           // 禁用设备
+    }
+    ```
 
 * `pci_msi_enabled()`
 

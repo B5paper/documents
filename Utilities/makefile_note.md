@@ -2,6 +2,131 @@
 
 ## cache
 
+* `$(shell command)`
+
+    `$(shell command)`是一个 Makefile 函数，它在 Makefile 解析阶段，执行一个 Shell 命令，并将其标准输出（stdout）的结果作为字符串返回，然后赋值给一个变量或直接展开使用。
+
+    常见使用场景:
+
+    * 动态获取文件列表
+
+        ```makefile
+        # 获取当前目录下所有的 .c 文件
+        SOURCES := $(shell find . -name "*.c")
+
+        # 将 .c 文件列表转换为 .o 文件列表
+        OBJECTS = $(SOURCES:.c=.o)
+        ```
+
+    * 获取系统信息或环境变量
+
+        ```makefile
+        # 获取当前用户名
+        WHOAMI := $(shell whoami)
+
+        # 获取当前工作目录的绝对路径
+        CURRENT_DIR := $(shell pwd)
+
+        # 获取 Git 提交哈希或版本号
+        GIT_HASH := $(shell git rev-parse --short HEAD)
+        ```
+
+    * 检查环境或工具是否存在
+
+        ```makefile
+        # 检查是否安装了某个工具（例如 'pandoc'）
+        PANDOC_EXISTS := $(shell command -v pandoc 2> /dev/null)
+
+        ifndef PANDOC_EXISTS
+        $(error "Error: pandoc is required but not installed.")
+        endif
+        ```
+
+    * 生成版本号或构建时间
+
+        ```makefile
+        BUILD_DATE := $(shell date +%Y-%m-%d_%H:%M)
+        VERSION := 1.0.$(shell git rev-list --count HEAD)
+        ```
+
+    * 处理文件名
+
+        ```makefile
+        # 获取当前目录名，用于命名目标文件
+        DIR_NAME := $(shell basename $(CURDIR))
+        TARGET = program_$(DIR_NAME)
+        ```
+
+    example:
+
+    ```makefile
+    # 使用 shell 命令动态获取所有 .c 文件
+    SRCS := $(shell find src -name "*.c")
+    # 将 .c 文件名转换为 .o 文件名
+    OBJS = $(SRCS:src/%.c=obj/%.o)
+    # 获取当前时间作为构建版本
+    BUILD_TIME := $(shell date)
+
+    # 最终目标
+    myapp: $(OBJS)
+    	$(CC) -o $@ $^ $(LDFLAGS)
+
+    # 编译规则
+    obj/%.o: src/%.c | obj
+    	$(CC) $(CFLAGS) -c $< -o $@
+
+    # 创建 obj 目录的规则
+    obj:
+    	mkdir -p obj
+
+    # 打印一些信息
+    print-info:
+    	@echo "Sources: $(SRCS)"
+    	@echo "Build time: $(BUILD_TIME)"
+
+    clean:
+    	rm -rf obj myapp
+
+    .PHONY: clean print-info
+    ```
+
+    注意事项:
+
+    1. 通常与 :=（立即展开赋值）一起使用，确保 shell 命令只执行一次。如果使用 =（递归展开），它可能会在每次变量被展开时都执行一次 Shell 命令，导致性能下降。
+
+    1. 错误处理: 如果执行的 Shell 命令失败（返回非零状态码），make 通常会停止执行并报错。可以使用 Shell 的逻辑操作来避免这个问题（例如 command 2>/dev/null || echo "default"）。
+
+    1. 空格处理: Shell 命令的输出会原样返回，包括换行符。有时可能需要使用 $(strip ...) 函数来去除多余的空白字符。
+
+* makefile 模式规则
+
+    模式规则是一种通用模板，它告诉 make 如何基于文件名模式来编译一类文件。它使用通配符 % 来匹配任意非空字符串。
+
+    example:
+
+    ```makefile
+    %.o: %.c
+    	$(CC) -c $(CFLAGS) $< -o $@
+    ```
+
+    解释：
+
+    * `%.o`： 这是目标模式。它匹配任何以 .o 结尾的文件名（例如 main.o, utils.o, foo.o）。
+
+    * `%.c`： 这是依赖模式。它匹配任何以 .c 结尾的文件名。这里的 % 与目标模式中的 % 代表相同的字符串。
+
+    * `$(CC) -c $(CFLAGS) $< -o $@`： 这是规则要执行的命令。
+
+        * `$(CC)`： 通常是编译器，如 gcc 或 clang。
+
+        * `-c`： 告诉编译器只编译不链接，生成目标文件（.o）。
+
+        * `$(CFLAGS)`： 传递给编译器的选项（如 -Wall -g -O2）。
+
+        * `$<`： 一个自动化变量，代表规则中的第一个依赖项的名字。在这个例子中，就是那个匹配到的 .c 文件（例如 main.c）。
+
+        * `-o $@`： 另一个自动化变量，$@ 代表规则中的目标文件名。在这里就是那个 .o 文件（例如 main.o）。
+
 * `$(MAKE)`与`make`的区别
 
     只使用`make`的问题：

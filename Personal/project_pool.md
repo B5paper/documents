@@ -28,6 +28,44 @@
 
 ## cache
 
+* [ ] 调研买山茶花
+
+* 每日任务模板
+
+    ```md
+    * [ ] reorg: documents 30 mins 09.17
+
+        10:13 ~ 10:25
+
+    * [ ] reorg: projects 30 mins 09.17
+
+    * [ ] qa: 2 units 30 mins 09.17
+
+    * [ ] cache tabs 30 mins 09.17
+
+    * [ ] process tabs 30 mins 09.17
+
+    * [ ] process 1 tab 09.17
+
+    * [ ] task 1 xx mins
+
+    * [ ] task 2 xx mins
+    ```
+
+    说明：
+
+    * `reorg: documents`之类的任务，由于每次的任务名称一样，所以需要记录日期以区分。
+
+    * `10:13 ~ 10:25`所有任务都需要记录开始和结束时间，以记录有效工作时间
+
+    * 调研任务，reorg, cache tab 任务需要预计总时间。比如`30 mins`。
+
+        这些任务没有明确的任务量，所以用时间来约束。
+
+    * qa 任务需要预计需求量，比如`qa: 2 units`。由于 qa 任务是精心编排的，不存在未知的问题，所以也指定了约束时间，比如`30 mins`。
+
+* 想了想，目前处理大型 project 的方法就是将 project 分解成模块 A, B, C, ... 然后锻炼自己快速组合模块 A， B， C, ... 的能力，直到可以快速快速解构、复现整个项目。如果想做对比实验，那就把模块改成 A, B1, C，或 A1, B, C 等等。
+
 * 科研式 project 的特点
 
     1. 综合，跨学科
@@ -913,6 +951,22 @@
 
 ### tasks
 
+* [v] reorg: cuda 30 mins 09.19
+
+    11:16 ~ 11:27, 12:24 ~ 12:51
+
+    feedback:
+
+    * [ ] 调研 cuda 向量加的 example
+
+    * [ ] 调研 cuda 矩阵乘的 example
+
+    * [ ] 调研 cuda swap
+
+    * [ ] 调研 cuda 排序
+
+    * [ ] 调研傅里叶变换，尝试对 sin 曲线进行傅里叶变换
+
 * [ ] reorg: cuda
 
 * [v] reorg: documents 30 mins 09.16
@@ -929,11 +983,37 @@
     
     * qa 任务需要预计需求量，比如 qa 2 units。
 
+* [ ] bash 中如何展开文件路径的 tab 自动补全？
+
+* [v] 调研 qemu + FreeDOS 安装 dos 环境
+
+    12:57 ~ 13:09
+
     feedback:
 
-    * [ ] bash 中如何展开文件路径的 tab 自动补全？
+    * [ ] 调研英文阅读资料，每次增加英文阅读
 
-* [ ] 调研 qemu + FreeDOS 安装 dos 环境
+    * [ ] 如何使 ssh 连到 remote host 后，在 remote host 上运行命令，但是 ssh 本身放到 local host 的后台执行，并且当 local host 的 ssh 退出后，remote host 的命令也跟着退出？
+
+        `ssh -f`是否可以做到这一点？还是说需要`nohup ssh user@host <command> > /dev/null &`?
+
+    * [ ] 调研 freedos live iso
+
+        res:
+
+        1. video tutorial
+        
+            <https://www.youtube.com/watch?v=xXkmOwLPpcg>
+
+        2. official site
+        
+            <https://www.freedos.org/>
+
+        3. Get Started with FreeDOS
+        
+            <https://www.freedos.org/books/get-started/>
+
+    * [ ] 调研 freedos bonus iso
 
 * [O] reorg linux driver
 
@@ -961,10 +1041,6 @@
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
 * [v] `remove_const_t`
-
-    feedback:
-
-    * [asso] `add_const_t`
 
 * [ ] `remove_pointer_t`
 
@@ -1079,13 +1155,11 @@
             /home/hlc/Documents/Projects/boost_1_87_0/stage/lib
         ```
 
-* [v] reorg: documents 30 mins 02.19
-
-* [v] reorg documents 06.22
-
 * [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
 
 * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
+
+* [asso] `add_const_t`
 
 ## qa
 
@@ -1147,7 +1221,7 @@
 
 ### Tasks
 
-* [ ] 等号前后是否加空格
+* [v] 等号前后是否加空格
 
     ```makefile
     VAR_1 = hello
@@ -1156,23 +1230,25 @@
 
     似乎 var 1 和 var 2 是一样的，为什么 var 1 没有带上等号后面的空格？
 
-* [ ] `patsubst`
+    feedback:
+
+    * [ ] makefile 中的`?=`
+
+    * [ ] makefile 中的`+=`
+
+* [v] `patsubst`
+
+    ~ 16:40
+
+    feedback:
+
+    * [ ] `OBJS = $(SRCS:.c=.o)`
+
+    * [asso] makefile `filter`, `filter-out`
 
 * [v] 调研 makefile `shell`
 
-    feedback:
-
-    * [asso] 调研`OBJS = $(SRCS:src/%.c=obj/%.o)`处理字符串
-
-    * [asso] 调研`./configure`运行的是什么程序？如何配置？
-
 * [v] 调研 makefile 模式规则（例如 %.o: %.c）
-
-    feedback:
-
-    * [asso] `make -p`
-
-    * [asso] `make --print-data-base`
 
 * [ ] 调研 make 变量与 shell 变量
 
@@ -1350,11 +1426,15 @@
 
 ### tasks
 
-* [v] process 1 tab  09.16
-
 * [ ] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
 
-* [ ] `aligned_alloc()`
+* [v] `aligned_alloc()`
+
+    16:56 ~ 17:02
+
+    feedback:
+
+    * [asso] 调研 SIMD 指令：SSE, AVX, NEON
 
 * [ ] `posix_memalign()`
 
@@ -1368,36 +1448,55 @@
 
     `sudo mount -o remount,size=2G /dev/shm` (临时增加 /dev/shm 的大小)
 
-    feedback:
-
-    * [asso] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
-
-        以及`/etc/fstab`的文件格式。
-
-    * [asso] `sudo mount -o remount,size=2G /dev/shm`
-
-        以及除了`size=2G`外，其他的`remount`常跟的选项。
-
-* [ ] 调研使用其他共享内存目录
+* [v] 调研使用其他共享内存目录
 
     ```bash
     sudo mkdir /mnt/shm
     sudo mount -t tmpfs -o size=2G tmpfs /mnt/shm
     ```
 
+    feedback:
+
+    * [asso] 调研不使用 swap 的 tmpfs
+
+        挂载时指定 nr_blocks=0 和 nr_inodes=0 选项
+
+        `sudo mount -t tmpfs -o size=2G,nr_blocks=0,nr_inodes=0 tmpfs /mnt/shm`
+
+    * [asso] 调研临时修改系统的 swappiness 参数
+
+        ```bash
+        # 查看当前值（通常为 60）
+        cat /proc/sys/vm/swappiness
+
+        # 设置为 0：内核会尽量避免使用交换空间。
+        # 设置为 100：内核会积极使用交换空间。
+        sudo sysctl vm.swappiness=0
+        ```
+
+    * [asso] 调研永久修改系统的 swappiness 参数
+
+        `/etc/sysctl.conf`:
+
+        ```conf
+        vm.swappiness=0
+        ```
+
+        `sudo sysctl -p`
+
+    * [asso] 调研`vm.overcommit_memory`
+
+    * [asso] 调研 ramfs
+
+        `sudo mount -t ramfs -o size=2G ramfs /mnt/shm`
+
+    * [asso] 调研`df -T /tmp`
+
 * [ ] 调研`ipcs -m`
 
 * [v] 调研`truncate`
 
     `sudo truncate -s 9637892 /dev/shm/nccl-AoFK4o`
-
-    feedback:
-
-    * [asso] `truncate()`
-
-    * [asso] `std::ios::trunc`
-
-    * [asso] 什么是 tmpfs，和普通的文件系统在实现上有什么区别？
 
 * [ ] 调研`df -T /dev/shm`
 
@@ -1417,10 +1516,6 @@
 * [ ] 调研`/var/log/syslog`, `/var/log/messages`
 
 * [ ] 调研给 frpc 增加密码
-
-* [v] qemu grub `GRUB_CMDLINE_LINUX="... ... console=ttyS0,115200n8 ..."`
-
-    或者`-append 'console=ttyS0' # 添加这行`?
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
@@ -1652,6 +1747,28 @@
 
     PXELINUX (用于网络启动): pxelinux.cfg/default
 
+* [asso] 调研`OBJS = $(SRCS:src/%.c=obj/%.o)`处理字符串
+
+* [asso] 调研`./configure`运行的是什么程序？如何配置？
+
+* [asso] `make -p`
+
+* [asso] `make --print-data-base`
+
+* [asso] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
+
+    以及`/etc/fstab`的文件格式。
+
+* [asso] `sudo mount -o remount,size=2G /dev/shm`
+
+    以及除了`size=2G`外，其他的`remount`常跟的选项。
+
+* [asso] `truncate()`
+
+* [asso] `std::ios::trunc`
+
+* [asso] 什么是 tmpfs，和普通的文件系统在实现上有什么区别？
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -1672,19 +1789,11 @@ resources:
 
 ### tasks
 
-* [v] 为什么经过 transpose、permute 等操作后，张量会变成不连续的？
-
 * [v] python class 中所有 member 都要在`__init__()`中使用`self.xxx = yyy`定义吗？还可以怎么声明或定义？
 
-    feedback:
+* [ ] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
 
-    * [asso] 调研`mypy`
-
-    * [asso] 调研`from typing import Optional, List, Dict, Tuple, Set`
-
-    * [ ] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
-
-* [ ] 什么是 transpose？多维 tensor 如何 transpose?
+* [v] 什么是 transpose？多维 tensor 如何 transpose?
 
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
@@ -1692,21 +1801,21 @@ resources:
 
     目前看到
 
-    > Building and Training Neural Networks with PyTorch
+    > Optimizing Model Training with PyTorch Datasets
+
+* [ ] `nn.MSELoss()`数学公式是什么？代码如何实现？
+
+* [ ] `optim.SGD`数学公式是什么？代码如何实现？
+
+* [ ] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
+
+* [v] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
+
+    ~ 17:51
 
     feedback:
 
-    * [ ] `nn.MSELoss()`数学公式是什么？代码如何实现？
-
-    * [ ] `optim.SGD`数学公式是什么？代码如何实现？
-
-    * 目前看到
-
-        > Optimizing Model Training with PyTorch Datasets
-
-    * [ ] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
-
-* [ ] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
+    * [asso] torch tensor 与 numpy 的转换
 
 * [ ] 调研 python 中的`f"xxx"`字符串
 
@@ -1766,6 +1875,10 @@ resources:
 
     * ISB (Instruction Synchronization Barrier)：清空流水线，确保新指令的执行。
 
+* [asso] 调研`mypy`
+
+* [asso] 调研`from typing import Optional, List, Dict, Tuple, Set`
+
 ## Machine Learning
 
 ### cache
@@ -1782,9 +1895,68 @@ resources:
 
     * MATLAB: sparse() 函数
 
-* [ ] 调研 matplotlib 画 surface
+* [O] 调研 matplotlib 画 surface
 
-* [v] 调研 rnn 与 nlp 入门级的训练数据集
+    ~ 18:03
+
+    feedback:
+
+    * example code
+
+        ```py
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.font_manager as fm
+
+        # 设置中文字体
+        plt.rcParams['font.sans-serif'] = ['Noto Sans CJK JP']  # 使用黑体
+        plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
+
+        # 创建数据
+        x = np.linspace(-5, 5, 100)
+        y = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(np.sqrt(X**2 + Y**2))
+
+        # 创建图形
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 绘制曲面
+        surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+        # 添加颜色条
+        fig.colorbar(surf)
+
+        # 设置标签 - 现在中文可以正常显示
+        ax.set_xlabel('X轴')
+        ax.set_ylabel('Y轴')
+        ax.set_zlabel('Z轴')
+        ax.set_title('3D曲面图示例')
+
+        plt.show()
+        ```
+
+    * [ ] 调研 Axes3D 的基本用法
+
+    * [asso] 调研`plt.rcParams`的基本用法
+
+        如何查看当前安装了哪些字体？
+
+    * [ ] 调研`np.linspace()`与其他常用的数据创建方法
+
+    * [ ] `np.meshgrid()`
+
+    * [ ] `plt.figure(figsize=(10, 8))`
+
+    * [ ] `fig.add_subplot(111, projection='3d')`
+
+    * [ ] 调研 matplotlib 基本和常见的 example
+
+    * [ ] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
+
+    * [ ] `fig.colorbar(surf)`
 
 * [ ] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
 
@@ -1840,15 +2012,13 @@ resources:
 
 * [v] 调研带自回归的 Encoder-Decoder 架构
 
-    feedback:
+* [ ] 调研 NLP From Scratch: Classifying Names with a Character-Level RNN
 
-    * [ ] 调研 NLP From Scratch: Classifying Names with a Character-Level RNN
+    <https://docs.pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html>
 
-        <https://docs.pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html>
+* [ ] 调研论文 Seq2Seq
 
-    * [ ] 调研论文 Seq2Seq
-    
-        Sutskever, I., Vinyals, O., & Le, Q. V. (2014). Sequence to sequence learning with neural networks. In NeurIPS. 
+    Sutskever, I., Vinyals, O., & Le, Q. V. (2014). Sequence to sequence learning with neural networks. In NeurIPS. 
 
 * [ ] 调研掩码自注意力（Masked Self-Attention）
 
@@ -2072,6 +2242,647 @@ tasks:
 
             <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
 
+## Linux Driver
+
+### cache
+
+* 了解了下每天上下班都路过的恒惴，作为一个主打创新药的公司，在知乎上被大部分人看衰，说得最多的理由是目前大部分药已经够用，寿命总体和营养、锻炼、作息、饮食等关系比较大，抗生素解决了大部分的问题，再研发新药，几乎看不到收益。另一个论点是，人的命不值研发新药的科研投入，假如一个人被动死了，法院可能判赔偿多少钱？二百万？三百万？许多人一辈子可能也挣不了三百万。那么我们投资几千万，几亿去研发一款新药，受众可能很少，也可能是那些一辈子都挣不了三百万的人。在制定法律时我们认为人是无价的，但是人一生能挣的钱可能也就几百万，甚至无法支撑创新药的研发，这种悲哀来源于何方？
+
+* 以前非常向往 spacex 和智晖君，现在反而感觉他们都是在瞎搞。究竟是我变了，还是他们变了，还是我当时向往的只是自己幻想出来的形象，并不是真正的他们？
+
+* 很久以前学嵌入式的时候，总感觉自己无所不能，电路，信号，功率，控制，信息处理，似乎什么都可以做到。后来学神经网络的时候，觉得自己似乎可以处理各种智能问题了，预测股市，解耦 PID，图片识别，拟合函数……现在看来，这些都是基础中的基础，在现实世界几乎什么都做不到。
+
+* `ssize_t`是`long`
+
+* AXI DMA MMIO
+
+    MMIO 允许 CPU 通过读写特定内存地址来配置和控制 DMA 控制器
+
+* 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
+
+    见`ref_11`。
+
+    * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
+
+    * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
+
+        `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
+
+    * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
+
+    * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
+
+* 调研`INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
+
+* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
+
+* linux 的 interruptible sleep 是如何实现的？
+
+* 调研这三个头文件
+
+    ```c
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    ```
+
+* 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
+
+* 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
+
+* [ ] param 被写入 module 中时，module 是如何感知到的？
+
+    2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
+
+* 调研
+    
+    `kthread_should_stop`, `msleep`, `likely`, `unlikely`, `orderly_poweroff`
+
+* 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
+
+    主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
+
+* cached tasks
+
+    调研：`iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
+
+    `dev_to_node`, `kzalloc_node`, `spin_lock_init`
+
+    `idr_init_base`
+
+    调研：
+
+    `pci_read_config_dword`, `pci_find_ext_capability`
+
+    调研一下`KBUILD_MODNAME`的含义。
+
+    * `spin_unlock_irqrestore()`
+
+    * `mdev_register_device()`
+
+* 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
+
+    如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
+
+* kernel 中的内存管理感觉是个问题
+
+    假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
+
+    如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
+
+* ubuntu 屏幕锁定后，不能被 gnome remote desktop 正常连接
+
+    最简单的解决办法是把 lock screen 相关的设置都禁掉。
+
+* `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
+
+resources:
+
+* Linux Kernel Development, 3rd Edition
+
+### tasks
+
+* [ ] `/proc/iomem`
+
+* [v] 如果这块内存既读又写，该如何保证缓存一致性？
+
+* [v] 调研 vim-gutentags
+
+* [ ] 如何安装 Vim-Plug，并检验安装成功？
+
+* [ ] 调研引用系统库（如 /usr/include）的标签
+
+    `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
+
+* [P] 调研`iowrite32_rep()`系列
+
+    ```c
+    #include <asm/io.h>
+
+    void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+
+    void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    ```
+
+* [ ] 调研 ds 生成的一段代码
+
+    ```c
+    // 计算缓冲区的虚拟地址
+    void __iomem *device_buffer = dev->mmio_base + 0x1000;
+
+    // 方法一：使用内核提供的IO函数（推荐，因为可移植且安全）
+    // 写入一个32位字
+    iowrite32(0x12345678, device_buffer);
+    // 读取一个32位字
+    u32 value = ioread32(device_buffer);
+
+    // 批量写入一段数据（这就是你想要的“强行”操作）
+    // src_buf 是你准备好的数据源（在主机内存里）
+    // count 是你想写入的32位字的数量
+    iowrite32_rep(device_buffer, src_buf, count);
+
+    // 方法二：更“强行”的方式 - 直接解引用指针（需极度小心！）
+    // 首先，确保映射时为“不缓存”或“写合并”模式，否则会出问题。
+    // 通常用 pci_ioremap_bar() 默认是 ioremap()，这通常是安全的（无缓存）。
+    // 但直接解引用 __iomem 指针编译器会报错，所以需要强制转换。
+
+    // 强制转换为 volatile 指针，告诉编译器别优化，每次都要真的访问
+    volatile u32 *hardware_buffer = (volatile u32 *)device_buffer;
+
+    // 现在，你可以像普通数组一样操作了！
+    hardware_buffer[0] = 0xAAAAAAAA; // 写入第一个字
+    value = hardware_buffer[1];      // 读取第二个字
+
+    // 甚至可以用memcpy（但确保目的地址是volatile且没有缓存问题！）
+    // memcpy_toio() 是更安全的选择
+    memcpy((void *)hardware_buffer, src_buf, count * 4);
+    ```
+
+* [ ] 内存屏障（`rmb()`, `wmb()`）
+
+* [ ] 内存排序/屏障（Memory Ordering / Barriers）
+
+* [ ] BAR 是谁配置的？
+
+    > BIOS 或操作系统会分配具体的物理地址并写入 BAR
+
+    看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
+
+* [ ] 设备树（Device Tree）
+
+* [ ] `devm_platform_ioremap_resource()`
+
+* [ ] 调研驱动的 suspend, resume 函数
+
+* [ ] `dma_sync_single_for_cpu()`
+
+* [ ] ` __attribute__((packed))`, `__packed`
+
+* [ ] 调研 pandas，polars
+
+* [ ] DMA总线
+
+* [ ] dma 在 cpu 中，还是在 device 中？
+
+* [ ] 调研什么是流式 DMA, 什么是一致性 DMA
+
+* [ ] 调研 MMU（内存管理单元）如何设计？
+
+* [ ] `__iomem`有实际修吗？还是只是个修饰？
+
+* [ ] 什么是基址寄存器（BARs）
+
+* [ ] BAR 配置空间 都有哪些内容？
+
+* [ ] `pci_write_config_word()`, `pci_read_config_word()`
+
+* [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
+
+* [ ] 调研标准亲和性 (smp_affinity)
+
+* [ ] `INIT_WORK()`, `cancel_work_sync()`
+
+* [ ] `device_create_file()`
+
+* [ ] `device_unregister()`
+
+* [ ] `put_device()`
+
+* [ ] `device_initialize()`
+
+* [ ] `-serial mon:pty`
+
+* [ ] `minicom`
+
+* [ ] `-serial mon:/path/to/file`
+
+    `-serial file:<filename>`
+
+* [ ] `-serial mon:tcp:0.0.0.0:2345,server,nowait`
+
+    `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
+
+* [ ] `telnet <host-ip> 2345`
+
+* [ ] `-serial mon:unix:/path/to/socketfile,server,nowait`
+
+    `-serial unix:<path>[,server|,client][,nowait]`
+
+* [ ] `-serial mon:null`
+
+* [ ] `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
+
+* [ ] `-serial vc[:WxH]`
+
+* [ ] `-serial pipe:<basename>`
+
+* [ ] `-serial null`
+
+* [ ] `-serial chardev:<id>`
+
+* [ ] 调研 ls 相关
+
+    `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
+
+    `ls -alht`, `ls -lhR`
+
+* [ ] 调研 makefile 中 target 的执行机制
+
+* [ ] 调研 USB 协议
+
+* [ ] 调研 I2C 协议
+
+* [ ] 调研 SPI 协议
+
+* [ ] `device_register()`
+
+* [ ] `device_attach()`
+
+* [ ] `linux/list_lru.h`, `linux/list_sort.h`
+
+* [ ] `list_add_rcu()`
+
+* [ ] `list_lru_add()`
+
+* [ ] `kmalloc_array()`, `kmalloc_caches()`
+
+* [ ] `devm_kmalloc()`, `devm_kzalloc()`
+
+* [ ] `class_create_file()`
+
+* [ ] `class_device_destructor()`
+
+* [ ] `class_dev_iter`
+
+* [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
+
+    `0766`不可以，`0755`可以。
+
+* [ ] `unregister_module_notifier()`
+
+* [ ] `Big Kernel Lock (BKL)`
+
+* [ ] `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
+
+    ```
+    [ 4358.400458] Attribute m_arr: Invalid permissions 0755
+    ```
+
+    为什么？
+
+* [ ] `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
+
+* [ ] `module_param_call()`
+
+* [ ] `module_param_named()`
+
+* [ ] `module_param_string()`
+
+* [ ] 调研`request_threaded_irq()`
+
+* [ ] `vm_area_struct()`
+
+* [ ] 调研 PTE（Page Table entry）, 进程的页表
+
+* [ ] 后备存储（Backing Store）
+
+* [ ] 什么是虚拟页？和物理页有什么不同？
+
+* [ ] 调研`fdatasync()`
+
+* [ ] `setvbuf()`, `setbuf()`
+
+* [ ] `fflush()`是否基本等价于调用系统调用`write()`？
+
+* [ ] 页面缓存（Page Cache）
+
+* [ ] radix tree
+
+* [ ] `dup2()`
+
+* [ ] Btrfs、ZFS的COW机制
+
+* [ ] 页帧分配、页表管理、换入换出（Swapping）
+
+* [ ] 调研 thread pool
+
+    ```cpp
+    // 使用第三方线程池库（如 BS::thread_pool）
+    #include "BS_thread_pool.hpp"
+
+    BS::thread_pool pool;
+    auto future = pool.submit(task); // 明确使用线程池
+
+    // 或者使用 C++17 的并行算法
+    #include <execution>
+    std::vector<int> data = {1, 2, 3, 4, 5};
+    std::for_each(std::execution::par, data.begin(), data.end(), process);
+    ```
+
+* [ ] 调研`exec()`
+
+* [ ] 调研`dup()`
+
+* [ ] 调研`RLIMIT_DATA`
+
+* [ ] 调研`ACPI`
+
+* [ ] 调研IO队列是什么（可能和NVMe控制器相关）
+
+* [ ] 调研`create_workqueue`
+
+* [ ] 调研`container_of()`或`list_entry()`的实现，尝试手动实现一下
+
+* [ ] 调研 linux 中的完成量（completion）
+
+* [ ] `LIST_POISON1`, `LIST_POISON2`
+
+* [ ] 调研如何多线程读写同一个链表，比如一个线程在循环遍历，另一个在随机添加/删除节点。
+
+* [ ] 调研 rcu 链表
+
+* [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
+
+* [ ] `spin_trylock()`
+
+* [ ] `spin_lock_irq()`, `spin_unlock_irq()`
+
+* [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
+
+* [ ] 给出一个造成 spin lock 死锁的代码
+
+* [ ] `spin_lock_bh()`, `spin_unlock_bh()`
+
+* [ ] `struct task_struct`
+
+* [ ] `schedule()`
+
+* [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
+
+* [ ] 调研无锁单向链表`llist`
+
+* [ ] `WRITE_ONCE()`
+
+* [ ] 调研无锁（lock-free）操作
+
+* [ ] `kfree_rcu`
+
+* [ ] `list_move()`
+
+* [ ] `list_cut_position()`
+
+* [ ] 调研链表移动元素：list_move(), list_move_tail()
+
+* [ ] 调研旋转链表：list_rotate_left()
+
+* [ ] 调研分割链表：list_cut_position()
+
+* [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
+
+* [ ] 调研`DEFINE_SPINLOCK()`
+
+* [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
+
+* [ ] `devm_request_irq()`
+
+* [ ] `platform_get_irq()`
+
+* [ ] 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
+
+* [ ] 调研中断描述符表（IDT）
+
+* [ ] 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
+
+* [ ] 中断流处理程序（flow handler）
+
+* [ ] `pci_get_device()`
+
+* [ ] `pci_get_domain_bus_and_slot()`
+
+* [ ] `dev->msix_entries`
+
+* [ ] `pci_dev->irq`
+
+* [ ] `disable_irq()`, `enable_irq()`
+
+* [ ] `pci_dev_msi_enabled()`
+
+* [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
+
+* [ ] `free_irq()`为什么需要传入 dev_id？其返回值`void*`又是什么含义？
+
+* [ ] 调研`pci_msix_vec_count`
+
+* [ ] Root Port, Switch, Endpoint
+
+* [ ] `pci_info()`
+
+* [ ] `pci_enable_msix()`
+
+* [ ] `/var/log/messages`
+
+* [ ] `/var/log/syslog`
+
+* [ ] `journalctl`
+
+* [ ] 买 fpga 学习 pcie 设备及驱动
+
+    deps:
+
+    1. [ ] 学习 fpga 与基本 verilog 开发
+
+* [ ] 调研 AXI4-Stream
+
+* [ ] `__iomem`
+
+* [ ] `request_mem_region()`
+
+* [ ] `ioremap()`
+
+* [ ] `release_mem_region()`
+
+* [ ] `pci_resource_flags()`
+
+* [ ] 调研 内核的虚拟地址是如何构成的？
+
+* [ ] 调研 inb(), outb(), inl(), outl()
+
+* [O] 调研在 kmd 上使用 mmio
+
+    feedback:
+
+    1. 调研平台设备（Platform Device）
+
+    1. 还是要从嵌入式开发板看起。
+
+        如果直接上 pc，那么比较简单的是 pci转串口（16550 uart）的驱动，网卡驱动，SATA控制器（块设备驱动）
+
+        比较复杂的是 fpga pcie 开发板
+
+        那么还不如先看看 arm 开发板的常见驱动写法，再转到更复杂的 pcie。
+
+* [ ] 调研《Linux Device Drivers》，《PCI Express System Architecture》
+
+* [ ] 调研 linux 的`drivers/pci/`目录
+
+* [ ] 调研 linux `drivers/misc/`可能有简单PCI驱动示例
+
+* [ ] 调研`setpci`命令
+
+* [ ] 调研`minicom`命令
+
+* [ ] 调研`picocom`工具
+
+* [ ] 调研`screen`命令
+
+* [ ] 调研驱动程序的`.remove()`和`.shutdown()`函数
+
+* [ ] 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
+
+* [ ] `dma_set_mask_and_coherent()`
+
+* [ ] `pci_iomap()`
+
+* [ ] `pci_set_master()`
+
+* [O] 调研 qemu edu driver
+
+    尝试跑通 example
+
+    example: <https://github.com/kokol16/EDU-driver/tree/main>
+
+    doc: <https://www.qemu.org/docs/master/specs/edu.html>
+
+    res: <https://jklincn.com/posts/qemu-edu-driver/>
+
+    feedback:
+
+    1. 执行后输出为
+
+        ```
+        Factorial: 0
+        Stored d027828c : Hello World
+        Loaded 8e8fa6b0 : 
+        Stored d0278288 : Wat
+        Loaded 8e8fa6b0 :
+        ```
+
+        按道理`Factorial`应该是`8! = 40320`才对。
+
+    1. 使用`sudo mknod /dev/edu c 241 0`创建`/dev/edu`后，使用`sudo ./test`可以得到输出：
+
+        ```
+        Factorial: 40320
+        Stored 4e2d733c : Hello World
+        Loaded 4d0416b0 : Hello World
+
+        ```
+
+        但是到这里整个 qemu 会卡住。目前不清楚原因。
+
+    1. `depmod`
+
+    1. `udev`, uevent, systemd-udevd
+
+    1. vscode 里`pci_register_driver()`会报 warning：
+
+        > unrecognized tokenC/C++(7)
+
+        在`pci.h`里，`pci_create_slot()`也会报 warning:
+
+        > declaration is incompatible with "struct pci_slot *pci_create_slot(struct pci_bus *parent, int slot_nr, const char *name, struct hotplug_slot *hotplug)" (declared at line 1129)C/C++(147)
+
+        上面两个仅报 warning，但是不影响编译。
+
+* [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
+
+* [ ] 调研 I2C 驱动
+
+* [ ] 还是先把 linux driver 开发看完比较好
+
+    先看 qa，再看网站
+
+* [v] 调研 ioctl
+
+    feedback:
+
+    1. 实现了 ioctl 读取与写入数据，见`ref_12`
+
+        output:
+
+        ```
+        successfully write data by ioctl
+        read value: 123
+        ```
+
+    2. 不太明白为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
+
+* [ ] 调研 sysfs 读写，sync
+
+* [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
+
+* [ ] `kzalloc_node()`
+
+* [ ] `kfree_rcu()`
+
+* [ ] `kfree_bulk()`
+
+* [ ] `kfree_const()`
+
+* [ ] `kfree_sensitive()`
+
+* [ ] 调研`select`的用法
+
+* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
+
+* [ ] 调研：实现一个仅使用 read device 触发的中断程序
+
+* [ ] sync socket programming
+
+* [ ] `pci_iomap_range()`
+
+* [ ] `pci_iomap_wc()`, `pci_iomap_wc_range()`
+
+* [ ] 调研什么是可预取（Prefetchable）？
+
+* [ ] `getdents`
+
+* [ ] 调研`phys_addr_t`
+
+* [ ] 调研流式（Streaming）DMA
+
+    用于大数据块的单向传输。CPU或设备一方完成访问后另一方再访问，需要软件手动处理缓存同步（dma_sync_*函数）。
+
+* [ ] `virt_to_phys()`
+
+* [ ] `PAGE_OFFSET()`
+
+* [ ] `get_free_pages()`
+
+* [ ] `vmalloc_to_page()`
+
+* [ ] `dma_map_sg()`
+
+* [ ] `get_user_pages()`
+
+* [ ] `flush_cache_all()`
+
+* [ ] `invalidate_cache_all()`
+
+* [ ] 调研 IRQ 2 与 irq 1 的级联中断
+
+* [ ] 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
+
+* [asso] 调研 silent data corruption（静默数据损坏）
+
+* [asso] 调研换出（paged out）
+
+* [asso] 调研 VFIO 以及其 example
+
 ## CCL
 
 ### cache
@@ -2289,19 +3100,19 @@ tasks:
 
     15:18 ~ 16:43
 
-    feedback:
+* [ ] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
 
-    * [ ] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
+* [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
 
-    * [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
-
-    * [ ] vscode 如何同时滚动左右两个分栏？
+* [ ] vscode 如何同时滚动左右两个分栏？
 
 * [O] 调研 graph xml parser
 
-* [v] `readelf -l /bin/bash | grep interpreter`
+    10:43 ~ 11:09
 
-* [v] `objdump`
+    feedback:
+
+    * [ ] 调研 vscode alt + D 输入日期
 
 * [ ] `objdump -p <文件名> | grep NEEDED`
 
@@ -2789,6 +3600,10 @@ tasks:
 * [ ] `od -t c`是干嘛用的？
 
 * [asso] 解析`readelf -l <bin_file>`输出中各个字段的含义
+
+* [asso] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+
+* [asso] `dma_map_page()`
 
 ## gpu driver
 
@@ -4211,654 +5026,6 @@ resources:
 
 1. <https://www.gnu.org/software/gawk/manual/html_node/index.html#SEC_Contents>
 
-## Linux Driver
-
-### cache
-
-* 了解了下每天上下班都路过的恒惴，作为一个主打创新药的公司，在知乎上被大部分人看衰，说得最多的理由是目前大部分药已经够用，寿命总体和营养、锻炼、作息、饮食等关系比较大，抗生素解决了大部分的问题，再研发新药，几乎看不到收益。另一个论点是，人的命不值研发新药的科研投入，假如一个人被动死了，法院可能判赔偿多少钱？二百万？三百万？许多人一辈子可能也挣不了三百万。那么我们投资几千万，几亿去研发一款新药，受众可能很少，也可能是那些一辈子都挣不了三百万的人。在制定法律时我们认为人是无价的，但是人一生能挣的钱可能也就几百万，甚至无法支撑创新药的研发，这种悲哀来源于何方？
-
-* 以前非常向往 spacex 和智晖君，现在反而感觉他们都是在瞎搞。究竟是我变了，还是他们变了，还是我当时向往的只是自己幻想出来的形象，并不是真正的他们？
-
-* 很久以前学嵌入式的时候，总感觉自己无所不能，电路，信号，功率，控制，信息处理，似乎什么都可以做到。后来学神经网络的时候，觉得自己似乎可以处理各种智能问题了，预测股市，解耦 PID，图片识别，拟合函数……现在看来，这些都是基础中的基础，在现实世界几乎什么都做不到。
-
-* `ssize_t`是`long`
-
-* AXI DMA MMIO
-
-    MMIO 允许 CPU 通过读写特定内存地址来配置和控制 DMA 控制器
-
-* 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
-
-    见`ref_11`。
-
-    * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
-
-    * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
-
-        `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
-
-    * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
-
-    * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
-
-* 调研`INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
-
-* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
-
-* linux 的 interruptible sleep 是如何实现的？
-
-* 调研这三个头文件
-
-    ```c
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <fcntl.h>
-    ```
-
-* 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
-
-* 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
-
-* [ ] param 被写入 module 中时，module 是如何感知到的？
-
-    2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
-
-* 调研
-    
-    `kthread_should_stop`, `msleep`, `likely`, `unlikely`, `orderly_poweroff`
-
-* 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
-
-    主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
-
-* cached tasks
-
-    调研：`iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
-
-    `dev_to_node`, `kzalloc_node`, `spin_lock_init`
-
-    `idr_init_base`
-
-    调研：
-
-    `pci_read_config_dword`, `pci_find_ext_capability`
-
-    调研一下`KBUILD_MODNAME`的含义。
-
-    * `spin_unlock_irqrestore()`
-
-    * `mdev_register_device()`
-
-* 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
-
-    如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
-
-* kernel 中的内存管理感觉是个问题
-
-    假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
-
-    如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
-
-* ubuntu 屏幕锁定后，不能被 gnome remote desktop 正常连接
-
-    最简单的解决办法是把 lock screen 相关的设置都禁掉。
-
-* `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
-
-resources:
-
-* Linux Kernel Development, 3rd Edition
-
-### tasks
-
-* [ ] `/proc/iomem`
-
-* [v] 如果这块内存既读又写，该如何保证缓存一致性？
-
-    feedback:
-
-    * [asso] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
-
-    * [asso] `dma_map_page()`
-
-* [v] 调研 vim-gutentags
-
-* [ ] 如何安装 Vim-Plug，并检验安装成功？
-
-* [ ] 调研引用系统库（如 /usr/include）的标签
-
-    `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
-
-* [P] 调研`iowrite32_rep()`系列
-
-    ```c
-    #include <asm/io.h>
-
-    void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-    void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-    void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-
-    void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-    void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-    void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-    ```
-
-* [ ] 调研 ds 生成的一段代码
-
-    ```c
-    // 计算缓冲区的虚拟地址
-    void __iomem *device_buffer = dev->mmio_base + 0x1000;
-
-    // 方法一：使用内核提供的IO函数（推荐，因为可移植且安全）
-    // 写入一个32位字
-    iowrite32(0x12345678, device_buffer);
-    // 读取一个32位字
-    u32 value = ioread32(device_buffer);
-
-    // 批量写入一段数据（这就是你想要的“强行”操作）
-    // src_buf 是你准备好的数据源（在主机内存里）
-    // count 是你想写入的32位字的数量
-    iowrite32_rep(device_buffer, src_buf, count);
-
-    // 方法二：更“强行”的方式 - 直接解引用指针（需极度小心！）
-    // 首先，确保映射时为“不缓存”或“写合并”模式，否则会出问题。
-    // 通常用 pci_ioremap_bar() 默认是 ioremap()，这通常是安全的（无缓存）。
-    // 但直接解引用 __iomem 指针编译器会报错，所以需要强制转换。
-
-    // 强制转换为 volatile 指针，告诉编译器别优化，每次都要真的访问
-    volatile u32 *hardware_buffer = (volatile u32 *)device_buffer;
-
-    // 现在，你可以像普通数组一样操作了！
-    hardware_buffer[0] = 0xAAAAAAAA; // 写入第一个字
-    value = hardware_buffer[1];      // 读取第二个字
-
-    // 甚至可以用memcpy（但确保目的地址是volatile且没有缓存问题！）
-    // memcpy_toio() 是更安全的选择
-    memcpy((void *)hardware_buffer, src_buf, count * 4);
-    ```
-
-* [ ] 内存屏障（`rmb()`, `wmb()`）
-
-* [ ] 内存排序/屏障（Memory Ordering / Barriers）
-
-* [ ] BAR 是谁配置的？
-
-    > BIOS 或操作系统会分配具体的物理地址并写入 BAR
-
-    看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
-
-* [ ] 设备树（Device Tree）
-
-* [ ] `devm_platform_ioremap_resource()`
-
-* [ ] 调研驱动的 suspend, resume 函数
-
-* [ ] `dma_sync_single_for_cpu()`
-
-* [ ] ` __attribute__((packed))`, `__packed`
-
-* [ ] 调研 pandas，polars
-
-* [ ] DMA总线
-
-* [ ] dma 在 cpu 中，还是在 device 中？
-
-* [ ] 调研什么是流式 DMA
-
-* [ ] 调研什么是一致性 DMA
-
-* [ ] 调研 MMU（内存管理单元）如何设计？
-
-* [ ] `__iomem`有实际修吗？还是只是个修饰？
-
-* [ ] 什么是基址寄存器（BARs）
-
-* [ ] BAR 配置空间 都有哪些内容？
-
-* [ ] `pci_write_config_word()`, `pci_read_config_word()`
-
-* [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
-
-* [ ] 调研标准亲和性 (smp_affinity)
-
-* [ ] `INIT_WORK()`, `cancel_work_sync()`
-
-* [ ] `device_create_file()`
-
-* [ ] `device_unregister()`
-
-* [ ] `put_device()`
-
-* [ ] `device_initialize()`
-
-* [ ] `-serial mon:pty`
-
-* [ ] `minicom`
-
-* [ ] `-serial mon:/path/to/file`
-
-    `-serial file:<filename>`
-
-* [ ] `-serial mon:tcp:0.0.0.0:2345,server,nowait`
-
-    `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
-
-* [ ] `telnet <host-ip> 2345`
-
-* [ ] `-serial mon:unix:/path/to/socketfile,server,nowait`
-
-    `-serial unix:<path>[,server|,client][,nowait]`
-
-* [ ] `-serial mon:null`
-
-* [ ] `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
-
-* [ ] `-serial vc[:WxH]`
-
-* [ ] `-serial pipe:<basename>`
-
-* [ ] `-serial null`
-
-* [ ] `-serial chardev:<id>`
-
-* [ ] 调研 ls 相关
-
-    `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
-
-    `ls -alht`, `ls -lhR`
-
-* [ ] 调研 makefile 中 target 的执行机制
-
-* [ ] 调研 USB 协议
-
-* [ ] 调研 I2C 协议
-
-* [ ] 调研 SPI 协议
-
-* [ ] `device_register()`
-
-* [ ] `device_attach()`
-
-* [ ] `linux/list_lru.h`, `linux/list_sort.h`
-
-* [ ] `list_add_rcu()`
-
-* [ ] `list_lru_add()`
-
-* [ ] `kmalloc_array()`, `kmalloc_caches()`
-
-* [ ] `devm_kmalloc()`, `devm_kzalloc()`
-
-* [ ] `class_create_file()`
-
-* [ ] `class_device_destructor()`
-
-* [ ] `class_dev_iter`
-
-* [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
-
-    `0766`不可以，`0755`可以。
-
-* [ ] `unregister_module_notifier()`
-
-* [ ] `Big Kernel Lock (BKL)`
-
-* [ ] `module_param_array(m_arr, int, NULL, 0755);`, `755`报 warning
-
-    ```
-    [ 4358.400458] Attribute m_arr: Invalid permissions 0755
-    ```
-
-    为什么？
-
-* [ ] `obj-m += hello.o`是什么含义？字符串`obj-m`添加空格后再添加`hello.o`？
-
-* [ ] `module_param_call()`
-
-* [ ] `module_param_named()`
-
-* [ ] `module_param_string()`
-
-* [ ] 调研`request_threaded_irq()`
-
-* [ ] `vm_area_struct()`
-
-* [ ] 调研 PTE（Page Table entry）, 进程的页表
-
-* [ ] 后备存储（Backing Store）
-
-* [ ] 什么是虚拟页？和物理页有什么不同？
-
-* [ ] 调研`fdatasync()`
-
-* [ ] `setvbuf()`, `setbuf()`
-
-* [ ] `fflush()`是否基本等价于调用系统调用`write()`？
-
-* [ ] 页面缓存（Page Cache）
-
-* [ ] radix tree
-
-* [ ] `dup2()`
-
-* [ ] Btrfs、ZFS的COW机制
-
-* [ ] 页帧分配、页表管理、换入换出（Swapping）
-
-* [ ] 调研 thread pool
-
-    ```cpp
-    // 使用第三方线程池库（如 BS::thread_pool）
-    #include "BS_thread_pool.hpp"
-
-    BS::thread_pool pool;
-    auto future = pool.submit(task); // 明确使用线程池
-
-    // 或者使用 C++17 的并行算法
-    #include <execution>
-    std::vector<int> data = {1, 2, 3, 4, 5};
-    std::for_each(std::execution::par, data.begin(), data.end(), process);
-    ```
-
-* [ ] 调研`exec()`
-
-* [ ] 调研`dup()`
-
-* [ ] 调研`RLIMIT_DATA`
-
-* [ ] 调研`ACPI`
-
-* [ ] 调研IO队列是什么（可能和NVMe控制器相关）
-
-* [ ] 调研`create_workqueue`
-
-* [ ] 调研`container_of()`或`list_entry()`的实现，尝试手动实现一下
-
-* [ ] 调研 linux 中的完成量（completion）
-
-* [ ] `LIST_POISON1`, `LIST_POISON2`
-
-* [ ] 调研如何多线程读写同一个链表，比如一个线程在循环遍历，另一个在随机添加/删除节点。
-
-* [ ] 调研 rcu 链表
-
-* [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`
-
-* [ ] `spin_trylock()`
-
-* [ ] `spin_lock_irq()`, `spin_unlock_irq()`
-
-* [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
-
-* [ ] 给出一个造成 spin lock 死锁的代码
-
-* [ ] `spin_lock_bh()`, `spin_unlock_bh()`
-
-* [ ] `struct task_struct`
-
-* [ ] `schedule()`
-
-* [ ] `spin_lock_irqsave()`, `spin_unlock_irqrestore()`
-
-* [ ] 调研无锁单向链表`llist`
-
-* [ ] `WRITE_ONCE()`
-
-* [ ] 调研无锁（lock-free）操作
-
-* [ ] `kfree_rcu`
-
-* [ ] `list_move()`
-
-* [ ] `list_cut_position()`
-
-* [ ] 调研链表移动元素：list_move(), list_move_tail()
-
-* [ ] 调研旋转链表：list_rotate_left()
-
-* [ ] 调研分割链表：list_cut_position()
-
-* [ ] 调研 为什么侵入式链表（数据包含链表节点而非相反）可以避免内存分配和指针间接寻址的开销？
-
-* [ ] 调研`DEFINE_SPINLOCK()`
-
-* [ ] 调研高级可编程中断控制器（APIC）, IO-APIC
-
-* [ ] `devm_request_irq()`
-
-* [ ] `platform_get_irq()`
-
-* [ ] 调研`cat /proc/interrupts`的输出里，`2-edge`，`9-fasteoi`这些代表什么意思
-
-* [ ] 调研中断描述符表（IDT）
-
-* [ ] 调研`/dev/input/eventX`, 输入子系统接口在内核中注册一个事件处理器
-
-* [ ] 中断流处理程序（flow handler）
-
-* [ ] `pci_get_device()`
-
-* [ ] `pci_get_domain_bus_and_slot()`
-
-* [ ] `dev->msix_entries`
-
-* [ ] `pci_dev->irq`
-
-* [ ] `disable_irq()`, `enable_irq()`
-
-* [ ] `pci_dev_msi_enabled()`
-
-* [ ] 调研：如果`request_irq()`中，`dev_id`填`NULL`会发生什么？
-
-* [ ] `free_irq()`为什么需要传入 dev_id？其返回值`void*`又是什么含义？
-
-* [ ] 调研`pci_msix_vec_count`
-
-* [ ] Root Port, Switch, Endpoint
-
-* [ ] `pci_info()`
-
-* [ ] `pci_enable_msix()`
-
-* [ ] `/var/log/messages`
-
-* [ ] `/var/log/syslog`
-
-* [ ] `journalctl`
-
-* [ ] 买 fpga 学习 pcie 设备及驱动
-
-    deps:
-
-    1. [ ] 学习 fpga 与基本 verilog 开发
-
-* [ ] 调研 AXI4-Stream
-
-* [ ] `__iomem`
-
-* [ ] `request_mem_region()`
-
-* [ ] `ioremap()`
-
-* [ ] `release_mem_region()`
-
-* [ ] `pci_resource_flags()`
-
-* [ ] 调研 内核的虚拟地址是如何构成的？
-
-* [ ] 调研 inb(), outb(), inl(), outl()
-
-* [O] 调研在 kmd 上使用 mmio
-
-    feedback:
-
-    1. 调研平台设备（Platform Device）
-
-    1. 还是要从嵌入式开发板看起。
-
-        如果直接上 pc，那么比较简单的是 pci转串口（16550 uart）的驱动，网卡驱动，SATA控制器（块设备驱动）
-
-        比较复杂的是 fpga pcie 开发板
-
-        那么还不如先看看 arm 开发板的常见驱动写法，再转到更复杂的 pcie。
-
-* [ ] 调研《Linux Device Drivers》，《PCI Express System Architecture》
-
-* [ ] 调研 linux 的`drivers/pci/`目录
-
-* [ ] 调研 linux `drivers/misc/`可能有简单PCI驱动示例
-
-* [ ] 调研`setpci`命令
-
-* [ ] 调研`minicom`命令
-
-* [ ] 调研`picocom`工具
-
-* [ ] 调研`screen`命令
-
-* [ ] 调研驱动程序的`.remove()`和`.shutdown()`函数
-
-* [ ] 调研 pci_request_region 时，操作系统（内核）负责分配这些地址范围，并维护一个全局的“资源树”来记录哪些地址区域已经被哪些设备占用，其中的资源树指的是什么？
-
-* [ ] `dma_set_mask_and_coherent()`
-
-* [ ] `pci_iomap()`
-
-* [ ] `pci_set_master()`
-
-* [O] 调研 qemu edu driver
-
-    尝试跑通 example
-
-    example: <https://github.com/kokol16/EDU-driver/tree/main>
-
-    doc: <https://www.qemu.org/docs/master/specs/edu.html>
-
-    res: <https://jklincn.com/posts/qemu-edu-driver/>
-
-    feedback:
-
-    1. 执行后输出为
-
-        ```
-        Factorial: 0
-        Stored d027828c : Hello World
-        Loaded 8e8fa6b0 : 
-        Stored d0278288 : Wat
-        Loaded 8e8fa6b0 :
-        ```
-
-        按道理`Factorial`应该是`8! = 40320`才对。
-
-    1. 使用`sudo mknod /dev/edu c 241 0`创建`/dev/edu`后，使用`sudo ./test`可以得到输出：
-
-        ```
-        Factorial: 40320
-        Stored 4e2d733c : Hello World
-        Loaded 4d0416b0 : Hello World
-
-        ```
-
-        但是到这里整个 qemu 会卡住。目前不清楚原因。
-
-    1. `depmod`
-
-    1. `udev`, uevent, systemd-udevd
-
-    1. vscode 里`pci_register_driver()`会报 warning：
-
-        > unrecognized tokenC/C++(7)
-
-        在`pci.h`里，`pci_create_slot()`也会报 warning:
-
-        > declaration is incompatible with "struct pci_slot *pci_create_slot(struct pci_bus *parent, int slot_nr, const char *name, struct hotplug_slot *hotplug)" (declared at line 1129)C/C++(147)
-
-        上面两个仅报 warning，但是不影响编译。
-
-* [ ] 调研在`MKDEV()`前，哪些设备号是已经被占用的？
-
-* [ ] 调研 I2C 驱动
-
-* [ ] 还是先把 linux driver 开发看完比较好
-
-    先看 qa，再看网站
-
-* [v] 调研 ioctl
-
-    feedback:
-
-    1. 实现了 ioctl 读取与写入数据，见`ref_12`
-
-        output:
-
-        ```
-        successfully write data by ioctl
-        read value: 123
-        ```
-
-    2. 不太明白为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
-
-* [ ] 调研 sysfs 读写，sync
-
-* [ ] 调研`mutex_lock`, `mutex_unlock`, `mutex_destroy`
-
-* [ ] `kzalloc_node()`
-
-* [ ] `kfree_rcu()`
-
-* [ ] `kfree_bulk()`
-
-* [ ] `kfree_const()`
-
-* [ ] `kfree_sensitive()`
-
-* [ ] 调研`select`的用法
-
-* [ ] socket 调研：为什么`accept()`的第三个参数是一个长度指针，它有什么用？
-
-* [ ] 调研：实现一个仅使用 read device 触发的中断程序
-
-* [ ] sync socket programming
-
-* [ ] `pci_iomap_range()`
-
-* [ ] `pci_iomap_wc()`, `pci_iomap_wc_range()`
-
-* [ ] 调研什么是可预取（Prefetchable）？
-
-* [ ] `getdents`
-
-* [ ] 调研`phys_addr_t`
-
-* [ ] 调研流式（Streaming）DMA
-
-    用于大数据块的单向传输。CPU或设备一方完成访问后另一方再访问，需要软件手动处理缓存同步（dma_sync_*函数）。
-
-* [ ] `virt_to_phys()`
-
-* [ ] `PAGE_OFFSET()`
-
-* [ ] `get_free_pages()`
-
-* [ ] `vmalloc_to_page()`
-
-* [ ] `dma_map_sg()`
-
-* [ ] `get_user_pages()`
-
-* [ ] `flush_cache_all()`
-
-* [ ] `invalidate_cache_all()`
-
-* [ ] 调研 IRQ 2 与 irq 1 的级联中断
-
-* [ ] 调研 irq p 系统定时器与 irq 8 实时时钟有什么区别？
-
-* [asso] 调研 silent data corruption（静默数据损坏）
-
-* [asso] 调研换出（paged out）
-
-* [asso] 调研 VFIO 以及其 example
 
 ## OpenGL
 
