@@ -2,6 +2,176 @@
 
 ## cache
 
+* `patsubst`
+
+    在一个以空格分隔的单词列表中，查找并替换符合特定“模式”（Pattern）的文本。
+
+    syntax:
+
+    ```makefile
+    $(patsubst PATTERN,REPLACEMENT,TEXT)
+    ```
+
+    * PATTERN： 需要被替换的文本模式。它可以包含一个通配符 %，代表任意长度的任何字符。
+
+    * REPLACEMENT： 替换后的文本模式。它同样可以使用 % 通配符，这个 % 会代表 PATTERN 中 % 所匹配到的内容。
+
+    * TEXT： 需要进行处理的原始文本（通常是一个由空格分隔的列表）。
+
+    返回值： 函数会返回一个经过替换处理后的新列表。
+
+    example:
+
+    ```makefile
+    SRCS = main.c helper.c utils.c
+    OBJS = $(patsubst %.c,%.o,$(SRCS))
+    ```
+
+    处理过程：
+
+    1. 取出 main.c，模式 %.c 匹配成功，% 代表 main。替换为 %.o，即 main.o。
+
+    2. 取出 helper.c，模式匹配成功，% 代表 helper。替换为 helper.o。
+
+    3. 取出 utils.c，模式匹配成功，% 代表 utils。替换为 utils.o。
+
+    example 2:
+
+    ```makefile
+    # 原始列表
+    FILES = foo.txt bar.log baz.txt
+
+    # 目标：将所有 .txt 文件名的前缀改为 “output-”，如 output-foo.txt output-baz.txt
+    NEW_FILES = $(patsubst %.txt,output-%.txt,$(FILES))
+
+    # 结果：NEW_FILES 的值为 `output-foo.txt bar.log output-baz.txt`
+    # 注意：bar.log 不符合 %.txt 模式，所以原样保留。
+    ```
+
+    `%`，匹配任意数量（0个或多个）的任意字符。匹配是“贪婪”的：% 会尽可能多地匹配字符。
+
+* makefile 与 bash 中变量等号左右的空格
+
+    makefile 会自动删除等号左右的空格：
+
+    ```makefile
+    var_1 := hello world
+
+    var_2 =  hello world
+
+    var_3=hello world
+
+    var_4:=  hello world
+
+    test:
+    	@echo "var_1: [$(var_1)]"
+    	@echo "var_2: [$(var_2)]"
+    	@echo "var_3: [$(var_3)]"
+    	@echo "var_4: [$(var_4)]"
+    ```
+
+    run: `make`
+
+    output:
+
+    ```
+    var_1: [hello world]
+    var_2: [hello world]
+    var_3: [hello world]
+    var_4: [hello world]
+    ```
+
+    但是 makefile 不会删变量最右侧的空格：
+
+    ```makefile
+    var_1 := hello world    
+
+    test:
+    	@echo "var_1: [$(var_1)]"
+    ```
+
+    output:
+
+    ```
+    var_1: [hello world    ]
+    ```
+
+    bash 要求等号左右不允许有空格：
+
+    ```bash
+    var_1=hello
+    var_2 = hello
+    var_3= hello
+    var_4 =hello
+    var_5=hello world
+    var_6=hello    # 有后缀空格
+    var_7=" hello   "
+
+    echo var_1: [${var_1}]
+    echo var_2: [${var_2}]
+    echo var_3: [${var_3}]
+    echo var_4: [${var_4}]
+    echo var_5: [${var_5}]
+    echo var_6: [${var_6}]
+    echo var_7: [${var_7}]
+    echo var_7: ["${var_7}"]
+    ```
+
+    output:
+
+    ```
+    main.sh: line 2: var_2: command not found
+    main.sh: line 3: hello: command not found
+    main.sh: line 4: var_4: command not found
+    main.sh: line 5: world: command not found
+    var_1: [hello]
+    var_2: []
+    var_3: []
+    var_4: []
+    var_5: []
+    var_6: [hello]
+    var_7: [ hello ]
+    var_7: [ hello   ]
+    ```
+
+    解释：
+
+    * `var_1=hello`
+
+        没有问题，正常的赋值变量的方式。
+
+    * `var_2 = hello`
+
+        bash 会将`var_2`作为一个 command，` = hello`作为 command 的第一个和第二个参数。
+
+    * `var_3= hello`
+
+        `var_3`为空字符串，`hello`是一个 command。
+
+        这个模式类似于`LD_LIBRARY_PATH=xxx ./main`
+
+    * `var_4 =hello`
+
+        `var_4`是一个 command，`=hello`是其第一个参数。
+
+    * `var_5=hello world`
+
+        这个与`var_3= hello`同理。
+
+    * `var_6=hello    # 有后缀空格`
+
+        忽略字符串后的空格，认为这些空格是空白分隔符。
+
+    * `var_7=" hello   "`
+
+        使用双引号将空格也算在字符串内。
+
+        但是在打印的时候出了问题。
+
+        对于`echo var_7: [${var_7}]`，bash 会将`${var_7}`替换为` hello   `，因此实际执行的命令为`echo var_7: [ hello   ]`，`echo`会认为`var_7:`, `[`, `hello`, `]`是 4 个独立的字符串，两个字符串之间的的空格都为 1.
+
+        对于`echo var_7: ["${var_7}"]`，经过 bash 替换变量后为`echo var_7: [" hello   "]`，echo 会认为`var_7`是第 1 个字符串，`[`, `" hello   "`, `]`分别是第 2，3，4 个字符串，但是这些字符串紧挨着，中间没有空格。
+
 * `$(shell command)`
 
     `$(shell command)`是一个 Makefile 函数，它在 Makefile 解析阶段，执行一个 Shell 命令，并将其标准输出（stdout）的结果作为字符串返回，然后赋值给一个变量或直接展开使用。

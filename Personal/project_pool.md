@@ -28,6 +28,12 @@
 
 ## cache
 
+* 之前之所以没有写很多笔记，可能是因为 python + ai 实在太简单了，代码即其含义。另外很多算法都封装起来了，只要会调用就可以了。
+
+* 以前的模式总是跑通一次 -> 记录过程 -> 下次仿照着跑通的来写。问题是不清楚别的方式为什么跑不通，并且不清楚能跑通的 case 的底层原理。
+
+* 为什么如此多人这么急切地投身 AI，为了证明自己是人上人？为了挣钱？为了证明自己寒窗没有苦读？为了跨越阶级？还是说迫不得已，其他方向找不到工作？还是说为了人类的未来？
+
 * [ ] 调研买山茶花
 
 * 每日任务模板
@@ -155,8 +161,6 @@
     2. 正常 feedback 的任务，放到当前 task 后面
 
     3. `[asso]`标记的 feedback 任务，放到当前 project 所有 tasn 的最后面
-
-
 
 * chatgpt 写的 bash 定时器
 
@@ -955,33 +959,17 @@
 
     11:16 ~ 11:27, 12:24 ~ 12:51
 
-    feedback:
+* [ ] 调研 cuda 向量加的 example
 
-    * [ ] 调研 cuda 向量加的 example
+* [ ] 调研 cuda 矩阵乘的 example
 
-    * [ ] 调研 cuda 矩阵乘的 example
+* [ ] 调研 cuda swap
 
-    * [ ] 调研 cuda swap
+* [ ] 调研 cuda 排序
 
-    * [ ] 调研 cuda 排序
-
-    * [ ] 调研傅里叶变换，尝试对 sin 曲线进行傅里叶变换
-
-* [ ] reorg: cuda
+* [ ] 调研傅里叶变换，尝试对 sin 曲线进行傅里叶变换
 
 * [v] reorg: documents 30 mins 09.16
-
-* [v] 增加每日任务模板
-
-    qa, reorg，cache tab 任务都是需要长期保持的，其余的任务从每个 project 中挑出几个。
-
-    * 有些重名任务需要记录日期以区分。
-    
-    * 所有任务需要记录开始和结束时间。
-    
-    * 调研任务，reorg, cache tab 任务需要预计总时间。
-    
-    * qa 任务需要预计需求量，比如 qa 2 units。
 
 * [ ] bash 中如何展开文件路径的 tab 自动补全？
 
@@ -989,31 +977,29 @@
 
     12:57 ~ 13:09
 
-    feedback:
+* [ ] 调研英文阅读资料，每次增加英文阅读
 
-    * [ ] 调研英文阅读资料，每次增加英文阅读
+* [ ] 如何使 ssh 连到 remote host 后，在 remote host 上运行命令，但是 ssh 本身放到 local host 的后台执行，并且当 local host 的 ssh 退出后，remote host 的命令也跟着退出？
 
-    * [ ] 如何使 ssh 连到 remote host 后，在 remote host 上运行命令，但是 ssh 本身放到 local host 的后台执行，并且当 local host 的 ssh 退出后，remote host 的命令也跟着退出？
+    `ssh -f`是否可以做到这一点？还是说需要`nohup ssh user@host <command> > /dev/null &`?
 
-        `ssh -f`是否可以做到这一点？还是说需要`nohup ssh user@host <command> > /dev/null &`?
+* [ ] 调研 freedos live iso
 
-    * [ ] 调研 freedos live iso
+    res:
 
-        res:
+    1. video tutorial
+    
+        <https://www.youtube.com/watch?v=xXkmOwLPpcg>
 
-        1. video tutorial
-        
-            <https://www.youtube.com/watch?v=xXkmOwLPpcg>
+    2. official site
+    
+        <https://www.freedos.org/>
 
-        2. official site
-        
-            <https://www.freedos.org/>
+    3. Get Started with FreeDOS
+    
+        <https://www.freedos.org/books/get-started/>
 
-        3. Get Started with FreeDOS
-        
-            <https://www.freedos.org/books/get-started/>
-
-    * [ ] 调研 freedos bonus iso
+* [ ] 调研 freedos bonus iso
 
 * [O] reorg linux driver
 
@@ -1221,6 +1207,8 @@
 
 ### Tasks
 
+* [ ] 任务模板中增加`qa: review`
+
 * [v] 等号前后是否加空格
 
     ```makefile
@@ -1230,25 +1218,15 @@
 
     似乎 var 1 和 var 2 是一样的，为什么 var 1 没有带上等号后面的空格？
 
-    feedback:
+* [ ] makefile 中的`?=`
 
-    * [ ] makefile 中的`?=`
-
-    * [ ] makefile 中的`+=`
+* [ ] makefile 中的`+=`
 
 * [v] `patsubst`
 
     ~ 16:40
 
-    feedback:
-
-    * [ ] `OBJS = $(SRCS:.c=.o)`
-
-    * [asso] makefile `filter`, `filter-out`
-
-* [v] 调研 makefile `shell`
-
-* [v] 调研 makefile 模式规则（例如 %.o: %.c）
+* [ ] `OBJS = $(SRCS:.c=.o)`
 
 * [ ] 调研 make 变量与 shell 变量
 
@@ -1416,6 +1394,8 @@
 
 * [ ] 调研 makefile 中的`+=`追加
 
+* [asso] makefile `filter`, `filter-out`
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1432,21 +1412,7 @@
 
     16:56 ~ 17:02
 
-    feedback:
-
-    * [asso] 调研 SIMD 指令：SSE, AVX, NEON
-
 * [ ] `posix_memalign()`
-
-* [v] `sudo mount -o remount /dev/shm`
-
-    `/etc/fstab`:
-
-    ```
-    tmpfs /dev/shm tmpfs defaults,size=2G 0 0
-    ```
-
-    `sudo mount -o remount,size=2G /dev/shm` (临时增加 /dev/shm 的大小)
 
 * [v] 调研使用其他共享内存目录
 
@@ -1455,48 +1421,7 @@
     sudo mount -t tmpfs -o size=2G tmpfs /mnt/shm
     ```
 
-    feedback:
-
-    * [asso] 调研不使用 swap 的 tmpfs
-
-        挂载时指定 nr_blocks=0 和 nr_inodes=0 选项
-
-        `sudo mount -t tmpfs -o size=2G,nr_blocks=0,nr_inodes=0 tmpfs /mnt/shm`
-
-    * [asso] 调研临时修改系统的 swappiness 参数
-
-        ```bash
-        # 查看当前值（通常为 60）
-        cat /proc/sys/vm/swappiness
-
-        # 设置为 0：内核会尽量避免使用交换空间。
-        # 设置为 100：内核会积极使用交换空间。
-        sudo sysctl vm.swappiness=0
-        ```
-
-    * [asso] 调研永久修改系统的 swappiness 参数
-
-        `/etc/sysctl.conf`:
-
-        ```conf
-        vm.swappiness=0
-        ```
-
-        `sudo sysctl -p`
-
-    * [asso] 调研`vm.overcommit_memory`
-
-    * [asso] 调研 ramfs
-
-        `sudo mount -t ramfs -o size=2G ramfs /mnt/shm`
-
-    * [asso] 调研`df -T /tmp`
-
 * [ ] 调研`ipcs -m`
-
-* [v] 调研`truncate`
-
-    `sudo truncate -s 9637892 /dev/shm/nccl-AoFK4o`
 
 * [ ] 调研`df -T /dev/shm`
 
@@ -1769,6 +1694,43 @@
 
 * [asso] 什么是 tmpfs，和普通的文件系统在实现上有什么区别？
 
+* [asso] 调研 SIMD 指令：SSE, AVX, NEON
+
+* [asso] 调研不使用 swap 的 tmpfs
+
+    挂载时指定 nr_blocks=0 和 nr_inodes=0 选项
+
+    `sudo mount -t tmpfs -o size=2G,nr_blocks=0,nr_inodes=0 tmpfs /mnt/shm`
+
+* [asso] 调研临时修改系统的 swappiness 参数
+
+    ```bash
+    # 查看当前值（通常为 60）
+    cat /proc/sys/vm/swappiness
+
+    # 设置为 0：内核会尽量避免使用交换空间。
+    # 设置为 100：内核会积极使用交换空间。
+    sudo sysctl vm.swappiness=0
+    ```
+
+* [asso] 调研永久修改系统的 swappiness 参数
+
+    `/etc/sysctl.conf`:
+
+    ```conf
+    vm.swappiness=0
+    ```
+
+    `sudo sysctl -p`
+
+* [asso] 调研`vm.overcommit_memory`
+
+* [asso] 调研 ramfs
+
+    `sudo mount -t ramfs -o size=2G ramfs /mnt/shm`
+
+* [asso] 调研`df -T /tmp`
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -1789,11 +1751,7 @@ resources:
 
 ### tasks
 
-* [v] python class 中所有 member 都要在`__init__()`中使用`self.xxx = yyy`定义吗？还可以怎么声明或定义？
-
 * [ ] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
-
-* [v] 什么是 transpose？多维 tensor 如何 transpose?
 
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
@@ -1812,10 +1770,6 @@ resources:
 * [v] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
 
     ~ 17:51
-
-    feedback:
-
-    * [asso] torch tensor 与 numpy 的转换
 
 * [ ] 调研 python 中的`f"xxx"`字符串
 
@@ -1878,6 +1832,8 @@ resources:
 * [asso] 调研`mypy`
 
 * [asso] 调研`from typing import Optional, List, Dict, Tuple, Set`
+
+* [asso] torch tensor 与 numpy 的转换
 
 ## Machine Learning
 
@@ -2342,17 +2298,23 @@ resources:
 
 ### tasks
 
+* [ ] 调研`watch "ps -aux | grep v2ray"`为什么没输出
+
+    `watch bash -c "ps -aux | grep v2ray"`为什么也没输出
+
+* [ ] 调研使用`ssh -R`是否可以完全代替 frpc
+
 * [ ] `/proc/iomem`
-
-* [v] 如果这块内存既读又写，该如何保证缓存一致性？
-
-* [v] 调研 vim-gutentags
 
 * [ ] 如何安装 Vim-Plug，并检验安装成功？
 
-* [ ] 调研引用系统库（如 /usr/include）的标签
+* [v] 调研引用系统库（如 /usr/include）的标签
 
     `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
+
+    feedback:
+
+    * [ ] 调研`:tag function_name` - 跳转到指定标签
 
 * [P] 调研`iowrite32_rep()`系列
 
@@ -2402,7 +2364,19 @@ resources:
     memcpy((void *)hardware_buffer, src_buf, count * 4);
     ```
 
-* [ ] 内存屏障（`rmb()`, `wmb()`）
+* [v] 内存屏障（`rmb()`, `wmb()`）
+
+    ~ 17:37
+
+    feedback:
+
+    * [asso] 调研`mb()`, 全屏障
+
+    * [asso] 调研头文件 C `#include <stdatomic.h>`, c++ `#include <atomic>`
+
+    * [asso] 调研`memory_order_relaxed`, `memory_order_acquire`, `memory_order_release`, `memory_order_seq_cst`
+
+    * [asso] 调研`__sync_synchronize();`, `__atomic_thread_fence(__ATOMIC_SEQ_CST);`
 
 * [ ] 内存排序/屏障（Memory Ordering / Barriers）
 
@@ -3114,7 +3088,15 @@ resources:
 
     * [ ] 调研 vscode alt + D 输入日期
 
-* [ ] `objdump -p <文件名> | grep NEEDED`
+* [v] `objdump -p <文件名> | grep NEEDED`
+
+    feedback:
+
+    * [asso] `readelf -d <文件名> | grep NEEDED`
+
+    * [asso] `patchelf`
+
+    * [asso] 调研 elf dynamic section
 
 * [ ] `readelf -d <文件名> | grep NEEDED`
 

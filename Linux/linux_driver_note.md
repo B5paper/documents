@@ -2082,10 +2082,6 @@ Ref:
 
         具体是否涉及到 cache, buffer，需要在内核里`kmalloc()`后对申请的内存进行属性设置。
 
-* `pr_info()`无论写不写`\n`都会换行，但是只有写`\n`才会刷新缓冲区
-
-    也就是说，如果只写`pr_info("hello")`，那么`"hello"`可能会放在缓冲区里，不输出到屏幕上。
-
 * 为什么`sys/ioctl.h>`里的`ioctl()`的第 3 个参数要被设计成`...`？
 
     ioctl 函数原型是
@@ -3159,6 +3155,10 @@ Ref:
 
 ### print and log
 
+* `pr_info()`无论写不写`\n`都会换行，但是只有写`\n`才会刷新缓冲区
+
+    也就是说，如果只写`pr_info("hello")`，那么`"hello"`可能会放在缓冲区里，不输出到屏幕上。
+
 * 内核中日志等级的定义
 
     ```c
@@ -3609,7 +3609,7 @@ Ref:
     }
     ```
 
-    dma_set_mask_and_coherent() 实际上一次性设置了两个掩码：（未看懂）
+    dma_set_mask_and_coherent() 实际上一次性设置了两个掩码：
 
     * 流式 DMA 掩码 (DMA Mask)：
 
@@ -4944,10 +4944,6 @@ Ref:
     | 15 | Secondary IDE controller (hard drives) |
 
     ref: <https://www.techtarget.com/whatis/definition/IRQ-interrupt-request>
-
-* `request_irq()`
-
-    header: `#include <linux/interrupt.h>`
 
 * 常用 irq
 

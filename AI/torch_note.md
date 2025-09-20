@@ -2,25 +2,111 @@
 
 ## cache
 
-* `od -A`
+* 将 tensor 从 cpu 转移到 gpu
 
-    od -A 选项用于指定输出偏移量（地址）的显示格式。这里的 -A 代表 "Address"。
+    * 推荐接口`.to()`
 
-    * `-A x`: 十六进制（hexadecimal）
-    
-        `0000000`, `0000010`
-    
-    * `-A d`: 十进制（decimal）
-    
-        `0000000`, `0000016`
+        ```py
+        import torch
 
-    * `-A o`: 八进制（octal）, 默认情况
-    
-        `0000000`, `0000020`
+        # 假设有一个在 CPU 上的 tensor
+        cpu_tensor = torch.tensor([1, 2, 3])
+        print(cpu_tensor.device) # 输出：cpu
 
-    * `-A n`: 不显示偏移量（none）
-    
-        （左侧偏移量栏为空）
+        # 检查 GPU 是否可用
+        if torch.cuda.is_available():
+            device = torch.device("cuda") # 指定目标设备为 GPU
+            gpu_tensor = cpu_tensor.to(device) # 转移到 GPU
+            print(gpu_tensor.device) # 输出：cuda:0
+
+            # 你也可以直接使用字符串
+            gpu_tensor_2 = cpu_tensor.to('cuda')
+        ```
+
+    * 旧兼容接口`.cuda()`
+
+        ```py
+        if torch.cuda.is_available():
+            gpu_tensor = cpu_tensor.cuda() # 转移到默认 GPU (cuda:0)
+            gpu_tensor = cpu_tensor.cuda(0) # 明确转移到第一个 GPU
+        ```
+
+    在创建时指定设备：
+
+    ```py
+    # 直接在 GPU 上创建 tensor，省去转移步骤
+    gpu_tensor = torch.tensor([1, 2, 3], device='cuda')
+    # 或者
+    gpu_tensor = torch.tensor([1, 2, 3]).to('cuda')
+    ```
+
+* Tensor 中的转置（Transpose）
+
+    转置是一种改变张量维度（轴）顺序的操作。
+
+    矩阵（一个 2D 张量），它的转置就是沿着主对角线翻转的操作。将矩阵 A 的行和列互换，就得到了它的转置 Aᵀ。
+
+    如果原矩阵 A 的形状是 (m, n)，那么转置后的矩阵 Aᵀ 的形状就是 (n, m)。
+
+    元素的位置关系为：A[i, j] = Aᵀ[j, i]。
+
+    对于维度大于 2 的张量（例如 3D、4D），转置指任意地重新排列张量的所有维度。
+
+    PyTorch 中转置操作是一种“视图操作”，由于不复制数据，原张量和转置后的张量共享同一块内存。修改其中一个的值，另一个也会随之改变。
+
+    1. 默认转置（`.T` 或 `transpose()`）
+
+        在很多框架中，如果不提供参数，.T 属性会默认反转所有维度的顺序。
+
+        `y = x.T`
+
+        新的维度顺序是原顺序的反转：`(2, 1, 0)`
+
+        因此，转置后的形状为：`(original_shape[2], original_shape[1], original_shape[0]) = (4, 3, 2)`
+
+    2. 自定义转置（指定 perm 参数）
+
+        * example 1: 交换最后两个维度
+
+            ```py
+            # 假设 x.shape = (2, 3, 4)
+            y = x.transpose(0, 2, 1) # 或者 x.permute(0, 2, 1) in PyTorch
+            # 新的维度顺序: (0, 2, 1)
+            # 新形状: (original_shape[0], original_shape[2], original_shape[1])
+            #        = (2, 4, 3)
+            ```
+
+        * example 2: 复杂的重新排列
+
+            ```py
+            # 假设 x.shape = (2, 3, 4, 5)
+            # 我们想要一个新的顺序：将原来的维度 2 放到最前面，然后是维度 0，维度 3，最后是维度 1。
+            perm = (2, 0, 3, 1)
+            y = x.transpose(perm)
+            # 新形状: (original_shape[2], original_shape[0], original_shape[3], original_shape[1])
+            #        = (4, 2, 5, 3)
+            ```
+
+    numpy 与 torch 的接口函数：
+
+    * numpy
+
+        ```py
+        import numpy as np
+        x = np.random.rand(2, 3, 4)
+        y = x.transpose(0, 2, 1) # 使用 transpose 函数
+        z = x.T # 反转所有维度
+        ```
+
+    * torch
+
+        ```py
+        import torch
+        x = torch.randn(2, 3, 4)
+        y = x.permute(0, 2, 1) # 常用 permute 函数
+        z = x.transpose(1, 2)  # transpose 通常一次只交换两个指定维度，这里是交换维度1和2
+        w = x.T # 反转所有维度
+        ```
 
 * python class 中定义成员变量
 

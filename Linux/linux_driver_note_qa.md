@@ -138,6 +138,10 @@ module_exit(bye)
 MODULE_LICENSE("GPL");
 ```
 
+查看当前的设备号：
+
+`cat /proc/devices`
+
 [unit]
 [idx]
 4

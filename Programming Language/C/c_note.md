@@ -6,6 +6,69 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `aligned_alloc()`
+
+    动态分配一块内存，并且这块内存的起始地址会按照你指定的字节对齐方式对齐。
+
+    syntax:
+
+    ```c
+    void *aligned_alloc(size_t alignment, size_t size);
+    ```
+
+    * alignment：指定的对齐要求。
+
+        它必须是 2 的幂次方（例如 2, 4, 8, 16, 32, 64 ...）。
+
+        在很多实现中，它必须大于或等于`sizeof(void*)`。
+
+    * size：要分配的内存块大小，单位是字节。
+
+        这个 size 参数最好是 alignment 的整数倍。虽然不是所有标准都强制要求，但这是一个很好的实践，可以确保你分配的内存块末尾之后也有足够的对齐空间，避免潜在问题。
+
+    返回值：成功时返回指向分配内存的指针；失败时返回 NULL（例如，请求的对齐无效或内存不足）。
+
+    example:
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main() {
+        // 分配 100 字节的内存，并且起始地址保证是 32 字节的倍数
+        size_t alignment = 32;
+        size_t size = 100;
+
+        // 最佳实践：使分配的大小为对齐的整数倍
+        // size_t size = 128; // 这样更好
+
+        int *ptr = (int*)aligned_alloc(alignment, size);
+
+        if (ptr == NULL) {
+            fprintf(stderr, "Memory allocation failed.\n");
+            return 1;
+        }
+
+        // 检查地址是否真的对齐（地址值 % 对齐值 应该为 0）
+        printf("Allocated address: %p\n", (void*)ptr);
+        printf("Address mod %zu: %zu\n", alignment, (size_t)ptr % alignment); // 应该输出 0
+
+        // 使用内存...
+        // ...
+
+        free(ptr); // 记得释放内存！
+        return 0;
+    }
+    ```
+
+    注意事项
+
+    * 释放内存：使用 aligned_alloc() 分配的内存必须使用 free() 来释放。你不能使用 realloc() 直接对其重新分配。
+
+    * 可移植性：这是一个 C11 标准的函数。较老的编译器或库（如 Microsoft VC++ 的 C 库）可能不支持它。在这些平台上，你可能需要使用平台特定的 API（如 _aligned_malloc on Windows, posix_memalign on POSIX systems）或手动进行对齐。
+
+    * 过度使用：除非有明确的对齐需求（如性能分析证明需要或硬件强制要求），否则应优先使用 malloc()，因为它更具可移植性和通用性。
+
 * 内联汇编
 
     * GCC/Clang（GNU 风格）
