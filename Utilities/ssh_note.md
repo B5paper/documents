@@ -2,6 +2,20 @@
 
 ## cache
 
+* ssh 远程执行 command，kill 本地 ssh 后，远程 command 被同步关闭
+
+    可以使用`ssh -f -tt user@host "<command> > /dev/null 2>&1"`
+
+    解释：
+
+    * `-f`: fork 一份 ssh 在后台运行
+
+    * `-tt`: 强制分配一个 psudo terminal，使得 local ssh 被 kill 时，远程的 psudo terminal 也被 kill，顺便清空 psudo terminal 里的所有 jobs
+
+        `-t`只是建议分配 psudo terminal，和`-f`合用时会被抑制。`-tt`则是强制分配，不会被抑制。
+
+    * `> /dev/null 2>&1`: 如果不加这个，远程的 stdout 会输出到当前 local terminal
+
 * ssh 远程后台执行命令后直接返回
 
     核心要求有两点：

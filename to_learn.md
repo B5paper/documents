@@ -8424,3 +8424,7 @@
 * c++ std::format
 
     <https://en.cppreference.com/w/cpp/utility/format/format.html>
+
+* Kill process spawned by ssh when ssh dies
+
+    <https://unix.stackexchange.com/questions/103699/kill-process-spawned-by-ssh-when-ssh-dies>

@@ -6,6 +6,91 @@
 
 ## cache
 
+* elf dynamic section lookup table
+
+    | 标签名 (Tag) | 十六进制值 (Hex) | 含义简述 |
+    | - | - | - |
+    | DT_NULL | 0x0 | 标记动态段的结束 |
+    | DT_NEEDED | 0x1 | 所需共享库的名称（字符串表偏移） |
+    | DT_PLTGOT | 0x3 | 全局偏移表（GOT）和/或过程链接表（PLT）的地址 |
+    | DT_HASH | 0x4 | 符号哈希表的地址 |
+    | DT_STRTAB | 0x5 | 字符串表的地址 |
+    | DT_SYMTAB | 0x6 | 符号表的地址 |
+    | DT_INIT | 0xC | 初始化函数的地址 |
+    | DT_FINI | 0xD | 终止函数的地址 |
+    | DT_SONAME | 0xE | 共享库自身的SONAME（字符串表偏移） |
+    | DT_RPATH | 0xF | 库搜索路径（已过时，被DT_RUNPATH取代） |
+    | DT_SYMBOLIC | 0x10 | 提示链接器从该库本身开始符号解析 |
+    | DT_DEBUG | 0x15 | 用于调试（运行时地址由调试器填充） |
+    | DT_TEXTREL | 0x16 | 存在代码段重定位，表明非PIC代码 |
+    | DT_JMPREL | 0x17 | PLT重定位条目的地址 |
+    | DT_RUNPATH | 0x1D | 库搜索路径 |
+    | DT_GNU_HASH | 0x6FFFFEF5 | GNU扩展的哈希表样式 |
+    | DT_INIT_ARRAY | 0x19 | 初始化函数指针数组的地址 |
+    | DT_FINI_ARRAY | 0x1A | 终止函数指针数组的地址 |
+
+* `objdump -p <文件名> | grep NEEDED`
+
+    * -p 选项： 代表 --private-headers，用于显示文件格式中特定于该文件的“私有”头信息。对于 ELF 格式的文件（Linux 和大多数Unix-like系统上的标准格式），这个选项会显示出程序头表（Program Headers） 和动态段（Dynamic Section） 等关键信息。
+
+    ldd 会实际尝试加载库并模拟运行，在某些不安全的情况下可能执行恶意代码。而 objdump -p | grep NEEDED 是静态分析，只读取文件头信息，因此更安全，尤其是在分析来源不可信的二进制文件时。
+
+    其他常见的标签：
+
+    * 核心依赖与加载相关
+
+        * `NEEDED`
+
+            该文件运行时所依赖的共享库的名称（如 libc.so.6）。一个文件可以有多个 NEEDED 条目。
+
+        * `SONAME`(Shared Object Name)
+
+            仅存在于共享库（.so 文件）中。它包含了该库的共享对象名称。链接器在链接时会把这个名字（而不是文件名）记录到最终的可执行文件中。这就是实现库版本兼容性的关键机制。
+
+            例如，你有一个文件名为 libxyz.so.1.2.3 的库，但其 SONAME 可能是 libxyz.so.1。可执行文件在运行时寻找的将是 libxyz.so.1，而不是具体的 libxyz.so.1.2.3。
+
+        * `RPATH` / `RUNPATH`
+
+            包含一个用冒号分隔的目录列表。动态链接器在查找 NEEDED 库时，会优先在这些目录中搜索，然后再去默认的系统库路径（如 /lib, /usr/lib）中查找。
+
+            RPATH 是较老的属性，其优先级很高。
+
+            RUNPATH 是新标准，其优先级规则不同（在 LD_LIBRARY_PATH 之后查找）。
+
+    * 符号解析相关
+
+        * HASH / GNU_HASH: 指向一个符号哈希表。动态链接器使用这个表来快速查找函数和变量（符号）在库中的地址，极大地加快了动态链接的过程。GNU_HASH 是现代 Linux 系统上更优的格式。
+
+        * STRTAB: 指向字符串表的地址。该表存储了所有动态链接所需的字符串，如符号名、库名等。
+
+        * SYMTAB: 指向符号表的地址。该表包含了所有需要被动态链接的符号（函数名、变量名）的详细信息（名称、值、大小等）。链接器通常结合 HASH 和 STRTAB 来使用它。
+
+        * PLT (Procedure Linkage Table) / PLTGOT (通常显示为 JMPREL): 指向重定位表的地址。这个表包含了所有需要延迟绑定（Lazy Binding）的函数引用信息。这是实现“第一次调用函数时才进行链接”机制的关键。
+
+    * 初始化与终止相关
+
+        * INIT: 指向初始化函数的地址。这个函数（通常命名为 _init）会在该共享库被加载到内存后、任何其他代码执行之前，由动态链接器自动调用。用于完成该库的全局构造和初始化工作。
+
+        * FINI: 指向终止函数的地址。这个函数（通常命名为 _fini）会在该共享库从内存中卸载之前，由动态链接器自动调用。用于完成清理工作（如释放资源）。
+
+            注意：现代代码更推荐使用 `__attribute__((constructor))` 和 `__attribute__((destructor))` 函数属性来代替直接使用 _init 和 _fini 节。
+
+    * 其他重要标签
+
+        * TEXTREL: 这是一个标志。如果存在，表明链接器需要修改代码段（.text段）的权限（例如将其设为可写）以便进行重定位。这通常意味着共享库不是用 -fPIC 选项编译的（位置无关代码），会带来安全性和性能上的损失。看到这个标志通常不是好事情。
+
+        * FLAGS / FLAGS_1: 一些特殊的标志位。例如 FLAGS_1 中的 PIE 标志表示该可执行文件是位置无关的可执行文件（Position-Independent Executable），这是现代Linux系统上ASLR（地址空间布局随机化）的基础。
+
+        * DEBUG: 这是一个占位符，用于调试信息，通常没有运行时语义。
+
+    ref: 
+    
+    1. <https://docs.oracle.com/cd/E53394_01/html/E54813/chapter6-42444.html>
+
+    1. `man 5 elf`
+
+    1. <https://www.gnu.org/software/binutils/>
+
 * `od -A`
 
     od -A 选项用于指定输出偏移量（地址）的显示格式。这里的 -A 代表 "Address"。

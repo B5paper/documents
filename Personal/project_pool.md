@@ -28,13 +28,15 @@
 
 ## cache
 
+* cache entry 必须够小，够多，才能形成 topic。如果都是长篇、深入、垂直的 cache entry，那么很难形成 topic。
+
 * 之前之所以没有写很多笔记，可能是因为 python + ai 实在太简单了，代码即其含义。另外很多算法都封装起来了，只要会调用就可以了。
 
 * 以前的模式总是跑通一次 -> 记录过程 -> 下次仿照着跑通的来写。问题是不清楚别的方式为什么跑不通，并且不清楚能跑通的 case 的底层原理。
 
 * 为什么如此多人这么急切地投身 AI，为了证明自己是人上人？为了挣钱？为了证明自己寒窗没有苦读？为了跨越阶级？还是说迫不得已，其他方向找不到工作？还是说为了人类的未来？
 
-* [ ] 调研买山茶花
+* [v] 调研买山茶花
 
 * 每日任务模板
 
@@ -56,6 +58,8 @@
     * [ ] task 1 xx mins
 
     * [ ] task 2 xx mins
+
+    * [ ] qa: review 30 mins
     ```
 
     说明：
@@ -69,6 +73,8 @@
         这些任务没有明确的任务量，所以用时间来约束。
 
     * qa 任务需要预计需求量，比如`qa: 2 units`。由于 qa 任务是精心编排的，不存在未知的问题，所以也指定了约束时间，比如`30 mins`。
+
+    * qa: review 复习当天的 qa，复习前几天的 qa，每周清空一次 record。
 
 * 想了想，目前处理大型 project 的方法就是将 project 分解成模块 A, B, C, ... 然后锻炼自己快速组合模块 A， B， C, ... 的能力，直到可以快速快速解构、复现整个项目。如果想做对比实验，那就把模块改成 A, B1, C，或 A1, B, C 等等。
 
@@ -971,11 +977,9 @@
 
 * [v] reorg: documents 30 mins 09.16
 
-* [ ] bash 中如何展开文件路径的 tab 自动补全？
+* [v] bash 中如何展开文件路径的 tab 自动补全？
 
-* [v] 调研 qemu + FreeDOS 安装 dos 环境
-
-    12:57 ~ 13:09
+    18:39 ~ 18:46
 
 * [ ] 调研英文阅读资料，每次增加英文阅读
 
@@ -1003,11 +1007,31 @@
 
 * [O] reorg linux driver
 
-    11:01 ~ 11:25
+    11:01 ~ 11:25, 12:17 ~ 13:38
 
     关注中断部分，增加 qa unit
 
-* [ ] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
+    deps:
+
+    1. [ ] edu driver 里创建 dev file
+
+    2. [ ] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
+
+        mmio 如何保证缓存一致性？或者说，刚写入就读取，是否会读到还未写入的值？
+
+    feedback:
+
+    * [ ] 如果同时有全局变量 aaa, 函数中的形参 aaa，那么在函数中该如何访问到全局变量 aaa？
+
+    * qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
+
+    * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
+
+        还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
+
+* [v] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
+
+    ~ 15:01
 
 * [ ] 调研自定义哈希函数的写法
 
@@ -1025,8 +1049,6 @@
 * [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
-
-* [v] `remove_const_t`
 
 * [ ] `remove_pointer_t`
 
@@ -1209,26 +1231,15 @@
 
 * [ ] 任务模板中增加`qa: review`
 
-* [v] 等号前后是否加空格
-
-    ```makefile
-    VAR_1 = hello
-    VAR_2 =hello
-    ```
-
-    似乎 var 1 和 var 2 是一样的，为什么 var 1 没有带上等号后面的空格？
-
 * [ ] makefile 中的`?=`
 
 * [ ] makefile 中的`+=`
 
-* [v] `patsubst`
-
-    ~ 16:40
-
 * [ ] `OBJS = $(SRCS:.c=.o)`
 
-* [ ] 调研 make 变量与 shell 变量
+* [v] 调研 make 变量与 shell 变量
+
+    ~ 15:31
 
     * Make 变量 在规则的目标、依赖和整个 Makefile 的顶层使用 $(...) 来引用。
 
@@ -1251,9 +1262,23 @@
         @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
     ```
 
-* [ ] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
+    feedback:
 
-* [ ] linux driver unit idx 3 增加查看 dev class 的方法
+    * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
+
+        获取 Shell 命令的进程 ID
+
+        嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
+
+    * [ ] `@echo "The process ID in Shell is: $$PPID"`
+
+        $ 给 Shell, Shell 看到的是 $PPID
+
+* [v] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
+
+* [v] linux driver unit idx 3 增加查看 dev class 的方法
+
+    19:11 ~ 19:15
 
 * [ ] 调研`read`, `read_iter`, `splice_read`
 
@@ -1271,11 +1296,9 @@
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
+* [ ] py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
+
 * [o] 调研 qa unit 中 dep 功能
-
-    feedback:
-
-    1. py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
 
 * [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
@@ -1406,22 +1429,25 @@
 
 ### tasks
 
-* [ ] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
+* [v] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
 
-* [v] `aligned_alloc()`
+    15:58 ~ 16:03
 
-    16:56 ~ 17:02
+* [v] `posix_memalign()`
 
-* [ ] `posix_memalign()`
+    16:19 ~ 16:24
 
-* [v] 调研使用其他共享内存目录
+    feedback:
 
-    ```bash
-    sudo mkdir /mnt/shm
-    sudo mount -t tmpfs -o size=2G tmpfs /mnt/shm
-    ```
+    * [asso] 编译器特定的扩展（如 GCC/Clang 的 `__attribute__((aligned))` 或 `_aligned_malloc` on MSVC）。
 
-* [ ] 调研`ipcs -m`
+* [v] 调研`ipcs -m`
+
+    19:15 ~ 19:19
+
+    feedback:
+
+    * [asso] `ipcrm -m <shmid>`手动删除内存段。
 
 * [ ] 调研`df -T /dev/shm`
 
@@ -1520,8 +1546,6 @@
 
 * [ ] 调研 rsync `--backup`的用法
 
-* [v] process tabs  30 mins 07.06
-
 * [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
 
 * [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
@@ -1586,10 +1610,6 @@
         
         该如何删减全部的两个 world？
 
-* [v] cache tabs 04.09
-
-    09:29 ~ 09:53
-
 * [P] cache tabs 06.04
 
     feedback:
@@ -1600,13 +1620,11 @@
 
 * [v] cache tabs 06.08
 
-    feedback:
+* [ ] 调研 boost 库的 lexical_cast
 
-    1. [ ] 调研 boost 库的 lexical_cast
+* [ ] 调研 c++ `inner_product`, `adjacent_difference`
 
-    2. [ ] 调研 c++ `inner_product`, `adjacent_difference`
-    
-    3. [ ] 调研 c++ `reduce`, `ranges::fold_left`
+* [ ] 调研 c++ `reduce`, `ranges::fold_left`
 
 * [ ] 调研 frpc 自动重连 (Service Health Check)
 
@@ -1658,13 +1676,13 @@
 
 * [ ] dns 的`MX`, `NS`记录类型
 
-* [asso] 既然 epoll 可以监控 fd，那么除了 socket fd 外，epoll 是否也可以监控普通文件的改动？
+* [ ] 既然 epoll 可以监控 fd，那么除了 socket fd 外，epoll 是否也可以监控普通文件的改动？
 
-* [asso] `grub2-mkconfig`
+* [ ] `grub2-mkconfig`
 
-* [asso] `/boot/grub/grub.cfg`
+* [ ] `/boot/grub/grub.cfg`
 
-* [asso] SYSLINUX/ISOLINUX/PXELINUX 系列引导程序
+* [ ] SYSLINUX/ISOLINUX/PXELINUX 系列引导程序
 
     ISOLINUX (用于光盘): isolinux/isolinux.cfg
 
@@ -1751,7 +1769,9 @@ resources:
 
 ### tasks
 
-* [ ] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
+* [v] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
+
+    19:20 ~ 19:24
 
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
@@ -1761,19 +1781,19 @@ resources:
 
     > Optimizing Model Training with PyTorch Datasets
 
-* [ ] `nn.MSELoss()`数学公式是什么？代码如何实现？
+* [v] `nn.MSELoss()`数学公式是什么？代码如何实现？
 
 * [ ] `optim.SGD`数学公式是什么？代码如何实现？
 
 * [ ] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
 
-* [v] 如果 tensor 已经在 cpu 中了，如何转移到 gpu 中？
+* [v] 调研 python 中的`f"xxx"`字符串
 
-    ~ 17:51
+    16:25 ~ 16:31
 
-* [ ] 调研 python 中的`f"xxx"`字符串
+* [v] 调研 Pytorch - Index-based Operation
 
-* [O] 调研 Pytorch - Index-based Operation
+    16:36 ~ 16:47, 16:54 ~ 16:56
 
     <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
 
@@ -1782,6 +1802,12 @@ resources:
     * 目前看到
 
         > 3.index_copy_:  Copies the elements of a given tensor to
+
+    feedback:
+
+    * 目前看到
+
+        > 5.index_fill_:  'Val' value is filled with the elements of
 
 * [ ] 调研 Reshaping a Tensor in Pytorch
 
@@ -1843,7 +1869,9 @@ resources:
 
 ### tasks
 
-* [ ] 调研稀疏矩阵的处理
+* [v] 调研稀疏矩阵的处理
+
+    17:19 ~ 17:44
 
     * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
 
@@ -1851,58 +1879,29 @@ resources:
 
     * MATLAB: sparse() 函数
 
+    feedback:
+
+    * [ ] OO格式（scipy.sparse.coo_matrix）
+
+        调用 .tocsr() 方法将其转换为 CSR格式
+
+    * [ ] scipy.sparse.lil_matrix
+
+    * [ ] C++ (Eigen): Eigen::SparseMatrix
+
+    * [asso] MATLAB: sparse() 函数
+
+* [ ] 调研 Axes3D 的基本用法
+
+* [ ] 调研`np.linspace()`与其他常用的数据创建方法
+
+* [ ] `np.meshgrid()`
+
 * [O] 调研 matplotlib 画 surface
 
     ~ 18:03
 
     feedback:
-
-    * example code
-
-        ```py
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-        import matplotlib.font_manager as fm
-
-        # 设置中文字体
-        plt.rcParams['font.sans-serif'] = ['Noto Sans CJK JP']  # 使用黑体
-        plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
-
-        # 创建数据
-        x = np.linspace(-5, 5, 100)
-        y = np.linspace(-5, 5, 100)
-        X, Y = np.meshgrid(x, y)
-        Z = np.sin(np.sqrt(X**2 + Y**2))
-
-        # 创建图形
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-
-        # 绘制曲面
-        surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
-
-        # 添加颜色条
-        fig.colorbar(surf)
-
-        # 设置标签 - 现在中文可以正常显示
-        ax.set_xlabel('X轴')
-        ax.set_ylabel('Y轴')
-        ax.set_zlabel('Z轴')
-        ax.set_title('3D曲面图示例')
-
-        plt.show()
-        ```
-
-    * [ ] 调研 Axes3D 的基本用法
-
-    * [asso] 调研`plt.rcParams`的基本用法
-
-        如何查看当前安装了哪些字体？
-
-    * [ ] 调研`np.linspace()`与其他常用的数据创建方法
-
-    * [ ] `np.meshgrid()`
 
     * [ ] `plt.figure(figsize=(10, 8))`
 
@@ -1914,7 +1913,9 @@ resources:
 
     * [ ] `fig.colorbar(surf)`
 
-* [ ] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
+* [v] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
+
+    17:46 ~ 18:02
 
 * [ ] 调研 rnn
 
@@ -1965,8 +1966,6 @@ resources:
 * [ ] 调研 GPT
 
     example 代码，尝试跑通
-
-* [v] 调研带自回归的 Encoder-Decoder 架构
 
 * [ ] 调研 NLP From Scratch: Classifying Names with a Character-Level RNN
 
@@ -2172,6 +2171,10 @@ resources:
 
     先从 sin, cos 入手，再做鸢尾花，葡萄洒等传统机器学习数据集，再做 mnist, minist-fashion，再然后是自然语言数据集，最后是综合数据集，比如视频，imagenet 等。
 
+* [asso] 调研`plt.rcParams`的基本用法
+
+    如何查看当前安装了哪些字体？
+
 ## Mathematics
 
 resources:
@@ -2306,15 +2309,15 @@ resources:
 
 * [ ] `/proc/iomem`
 
-* [ ] 如何安装 Vim-Plug，并检验安装成功？
+* [v] 如何安装 Vim-Plug，并检验安装成功？
+
+    ~ 20:10
 
 * [v] 调研引用系统库（如 /usr/include）的标签
 
     `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
 
-    feedback:
-
-    * [ ] 调研`:tag function_name` - 跳转到指定标签
+* [ ] 调研`:tag function_name` - 跳转到指定标签
 
 * [P] 调研`iowrite32_rep()`系列
 
@@ -2368,17 +2371,15 @@ resources:
 
     ~ 17:37
 
+* [v] 内存排序/屏障（Memory Ordering / Barriers）
+
+    ~ 20:23
+
     feedback:
 
-    * [asso] 调研`mb()`, 全屏障
+    * [asso] c++ 中`<atomic>`, std::memory_order 枚举
 
-    * [asso] 调研头文件 C `#include <stdatomic.h>`, c++ `#include <atomic>`
-
-    * [asso] 调研`memory_order_relaxed`, `memory_order_acquire`, `memory_order_release`, `memory_order_seq_cst`
-
-    * [asso] 调研`__sync_synchronize();`, `__atomic_thread_fence(__ATOMIC_SEQ_CST);`
-
-* [ ] 内存排序/屏障（Memory Ordering / Barriers）
+        `memory_order_seq_cst`, `memory_order_acq_rel`, `memory_order_relaxed`
 
 * [ ] BAR 是谁配置的？
 
@@ -2402,11 +2403,13 @@ resources:
 
 * [ ] dma 在 cpu 中，还是在 device 中？
 
-* [ ] 调研什么是流式 DMA, 什么是一致性 DMA
+* [v] 调研什么是流式 DMA, 什么是一致性 DMA
+
+    18:13 ~18:22
 
 * [ ] 调研 MMU（内存管理单元）如何设计？
 
-* [ ] `__iomem`有实际修吗？还是只是个修饰？
+* [ ] `__iomem`有实际用处吗？还是只是个修饰？
 
 * [ ] 什么是基址寄存器（BARs）
 
@@ -2857,6 +2860,14 @@ resources:
 
 * [asso] 调研 VFIO 以及其 example
 
+* [asso] 调研`mb()`, 全屏障
+
+* [asso] 调研头文件 C `#include <stdatomic.h>`, c++ `#include <atomic>`
+
+* [asso] 调研`memory_order_relaxed`, `memory_order_acquire`, `memory_order_release`, `memory_order_seq_cst`
+
+* [asso] 调研`__sync_synchronize();`, `__atomic_thread_fence(__ATOMIC_SEQ_CST);`
+
 ## CCL
 
 ### cache
@@ -3070,39 +3081,27 @@ resources:
 
 ### tasks
 
-* [v] 实现 dump 功能
-
-    15:18 ~ 16:43
-
 * [ ] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
 
 * [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
 
 * [ ] vscode 如何同时滚动左右两个分栏？
 
+* [ ] 调研 vscode alt + D 输入日期
+
 * [O] 调研 graph xml parser
 
     10:43 ~ 11:09
 
-    feedback:
-
-    * [ ] 调研 vscode alt + D 输入日期
-
 * [v] `objdump -p <文件名> | grep NEEDED`
-
-    feedback:
-
-    * [asso] `readelf -d <文件名> | grep NEEDED`
-
-    * [asso] `patchelf`
-
-    * [asso] 调研 elf dynamic section
 
 * [ ] `readelf -d <文件名> | grep NEEDED`
 
 * [ ] 调研可视化的方案
 
-* [ ] 调研是否其他地方用到了 topo id
+* [v] 调研是否其他地方用到了 topo id
+
+    18:10 ~ 18:13
 
 * [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
 
@@ -3168,13 +3167,9 @@ resources:
 
 * [v] `od -t x<N>`
 
-    feedback:
+* [ ] `od -A x -t x1 test.bin`
 
-    * [ ] `od -A x -t x1 test.bin`
-
-    * [ ] `echo "Hello" | od -t x1c`
-
-* [v] `od -A`
+* [ ] `echo "Hello" | od -t x1c`
 
 * [ ] 调研 openssl, gpg
 
@@ -3587,6 +3582,12 @@ resources:
 
 * [asso] `dma_map_page()`
 
+* [asso] `readelf -d <文件名> | grep NEEDED`
+
+* [asso] `patchelf`
+
+* [asso] 调研 elf dynamic section
+
 ## gpu driver
 
 ### cache
@@ -3874,8 +3875,6 @@ resources:
 
 * [ ] 调研 nvshmem API，重点看 n_pes 相关的函数和说明
 
-* [v] 使用 cuda 实现矩阵乘法
-
 * [ ] 调研 py 调用 C 库函数
 
 * [v] 调研 vllm 中 nccl 的用法
@@ -4152,11 +4151,7 @@ resources:
 
 * 调研`ida_alloc()`, `ida_free()`
 
-* 调研`dma_addr_t`类型
-
 * 调研`usleep_range()`
-
-* 调研`dev_err()`
 
 * 调研`debugfs_create_dir()`, `debugfs_remove()`
 
@@ -4164,13 +4159,11 @@ resources:
 
 * 调研`list_for_each_netry_rcu()`
 
-* 调研`pci_rq_vector()`, `spic_lock_init()`, `INIT_LIST_HEAD()`
+* 调研`spic_lock_init()`, `INIT_LIST_HEAD()`
 
-* 调研`snprintf()`, `pci_name()`, `request_irq()`
+* 调研`snprintf()`, `pci_name()`
 
 * 调研`pci_enable_msic_range()`
-
-* 调研`pci_iounmap()`, `pci_set_drvdata()`, `pci_enable_device()`, `pci_request_regions()`, `pci_set_master()`, `dma_set_mask_and_coherent()`
 
 * 调研`module_pci_driver()`, `MODULE_DEVICE_TABLE()`
 

@@ -6,6 +6,189 @@ Ref:
 
 ## cache
 
+* 一个 pci iomap 的 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/pci.h>
+
+    static struct pci_device_id pci_id_table[] = {
+        { PCI_DEVICE(0x1234, 0x11e8) },
+        {0,}
+    };
+
+    static void *base_addr_bar0;
+
+    static int edu_probe(struct pci_dev *pci_dev, const struct pci_device_id *id) {
+        pr_info("in edu_probe()...\n");
+
+        int ret = pci_enable_device(pci_dev);
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci enable device, ret: %d\n", ret);
+            goto ERR_PCI_ENABLE_DEVICE;
+        }
+
+        ret = pci_request_region(pci_dev, 0, "qemu_edu_drv");
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci request region\n");
+            goto ERR_PCI_REQUEST_REGION;
+        }
+
+        resource_size_t res_len_bar0 = pci_resource_len(pci_dev, 0);
+        base_addr_bar0 = pci_iomap(pci_dev, 0, res_len_bar0);
+        if (base_addr_bar0 == NULL) {
+            dev_err(&pci_dev->dev, "fail to pci iomap\n");
+            goto ERR_PCI_IOMAP;
+        }
+        
+        return 0;
+
+    ERR_PCI_IOMAP:
+        pci_release_region(pci_dev, 0);
+    ERR_PCI_REQUEST_REGION:
+        pci_disable_device(pci_dev);
+    ERR_PCI_ENABLE_DEVICE:
+        return -1;
+    }
+
+    static void edu_remove(struct pci_dev *pci_dev) {
+        pr_info("in edu_remove()...\n");
+        pci_iounmap(pci_dev, base_addr_bar0);
+        pci_release_region(pci_dev, 0);
+        pci_disable_device(pci_dev);
+    }
+
+    static struct pci_driver edu_driver = {
+        .name = "qemu_edu_drv",
+        .id_table = pci_id_table,
+        .probe = edu_probe,
+        .remove = edu_remove
+    };
+
+    int init_mod(void) {
+        pr_info("init hlc module...\n");
+        int ret = pci_register_driver(&edu_driver);
+        if (ret != 0) {
+            pr_err("fail to register pci driver\n");
+            goto ERR_PCI_REGISTER_DRIVER;
+        }
+        return 0;
+
+    ERR_PCI_REGISTER_DRIVER:
+        return -1;
+    }
+
+    void exit_mod(void) {
+        pr_info("exit hlc module...\n");
+        pci_unregister_driver(&edu_driver);
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 1514.274978] hello: loading out-of-tree module taints kernel.
+    [ 1514.275048] hello: module verification failed: signature and/or required key missing - tainting kernel
+    [ 1514.277452] init hlc module...
+    [ 1514.277735] in edu_probe()...
+    [ 1514.313214] ACPI: \_SB_.LNKD: Enabled at IRQ 10
+    [ 1523.042644] exit hlc module...
+    [ 1523.042691] in edu_remove()...
+    ```
+
+* `dma_set_mask_and_coherent()`主要影响的是`dma_alloc_coherent()`, `dma_map_single()`之类的函数，与`pci_iomap()`无关。
+
+* `wmb()`
+
+    写内存屏障 (Write Memory Barrier), 全称: smp_wmb(), 是 linux kernel 中定义的宏。
+
+    确保所有在 wmb() 之前的写操作，一定在所有在 wmb() 之后的写操作之前执行完成。
+
+    syntax:
+
+    ```c
+    #include <asm-generic/barrier.h>
+    #include <arch/x86/include/asm/barrier.h>  // for x86 arch
+
+    wmb()
+    ```
+
+    * 典型场景: 生产者-消费者模式
+
+        1. 生产者准备数据（写操作到内存缓冲区）。
+
+        2. 生产者设置一个标志位（例如 data_ready = 1）来通知消费者数据准备好了。
+
+        如果没有 wmb()，CPU或编译器可能会重排序，先执行步骤2（写标志位），后执行步骤1（写数据）。这样消费者看到标志位后去读数据，读到的可能就是还没准备好的错误数据。
+        在步骤1和步骤2之间插入 wmb()，就能保证数据一定先于标志位被写入。
+
+* `rmb()`
+
+    读内存屏障 (Read Memory Barrier), 全称: smp_rmb()
+
+    确保所有在 rmb() 之前的读操作，一定在所有在 rmb() 之后的读操作之前执行完成。
+
+    * 典型场景: 生产者-消费者模式（消费者侧）
+
+        1. 消费者看到标志位 data_ready == 1（读操作）。
+
+        2. 消费者去读取生产者准备好的数据（读操作）。
+
+        如果没有 rmb()，CPU可能会为了效率先预读数据缓冲区，然后再检查标志位。如果标志位检查失败，它就读到了无效的旧数据。
+        在步骤1和步骤2之间插入 rmb()，就能保证一定是先读完标志位，确认数据有效后，再去读数据。
+
+* `wmb()`与`rmb()`的 ecample
+
+    ```c
+    // 共享数据结构
+    struct shared_data {
+        int data[100];
+        int flag;
+    };
+
+    // 生产者线程
+    void producer(void) {
+        // ... 准备数据到 data_buffer ...
+        for (int i = 0; i < 100; i++) {
+            shared->data[i] = i;
+        }
+
+        // 写内存屏障！确保上面的数据写入一定先于下面的标志位写入
+        wmb();
+
+        // 发布数据：通知消费者数据准备好了
+        shared->flag = 1;
+    }
+
+    // 消费者线程
+    void consumer(void) {
+        while (!shared->flag) { // 等待数据准备好
+            // 等待...
+        }
+
+        // 读内存屏障！确保先读完标志位，再读数据
+        rmb();
+
+        // 现在可以安全地消费数据了
+        for (int i = 0; i < 100; i++) {
+            print("%d\n", shared->data[i]);
+        }
+    }
+    ```
+
+* 内存屏障
+
+    内存屏障（Memory Barrier），也称为内存栅栏（Memory Fence），是一类低级别的指令，用于强制限制CPU和编译器对内存访问操作的重排序。
+
+    它的主要作用是：确保屏障之前的特定内存操作一定在屏障之后的特定内存操作之前完成。
+
+    如果没有内存屏障，为了提高性能，CPU和编译器可能会对指令进行重排序，这在单核时代没问题，但在多核多线程并发环境下，会导致其他线程看到错误的执行顺序，从而引发不可预知的错误。
+
 * 在使用 stream dma 时，如果`dma_map_single()`指定的 flag 为`DMA_BIDIRECTIONAL`，那么每次映射/同步操作都可能同时执行“刷写”和“失效”，性能开销最大。通过这种方法保证缓存一致性。
 
 * `iowrite32_rep()`

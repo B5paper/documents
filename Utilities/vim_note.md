@@ -2,6 +2,22 @@
 
 ## cache
 
+* `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
+
+    设置 Vim 查找 tags 文件的搜索路径列表，用逗号分隔多个路径。
+
+    解释：
+
+    * `./tags` - 当前文件所在目录的 tags 文件
+
+    * `./TAGS` - 当前文件所在目录的 TAGS 文件（大写版本）
+
+    * `tags` - 当前工作目录的 tags 文件
+
+    * `TAGS` - 当前工作目录的 TAGS 文件（大写版本）
+
+    * `/path/to/other/tags` - 指定的绝对路径下的 tags 文件
+
 * vim-gutentags
 
     Vim-Gutentags 是一个 Vim 插件，它的核心功能是自动化管理 Vim 的标签文件（tags files）。
