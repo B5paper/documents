@@ -961,11 +961,78 @@
 
 ### tasks
 
+* [v] reorg: projects 30 mins 09.21
+
+    15:22 ~15:28
+
+    feedback:
+
+    * [ ] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
+
+        ```c
+        const char conds[16][3] =
+        {
+          "eq", "ne", "cs", "cc",
+          "mi", "pl", "vs", "vc",
+          "hi", "ls", "ge", "lt",
+          "gt", "le", "al", ""
+        };
+        ```
+
+    * [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
+
+    * [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
+
+        里面似乎有许多指令集的排列组合。
+
+* [v] reorg: documents 30 mins 09.21
+
+    14:43 ~ 14:59
+
+    feedback:
+
+    * [asso] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
+
+    * [ ] reorg: linux programming 30 mins
+
+    * [asso] 写一套文件操作 API，分别使用文件函数和 mmap 函数打开文件，实现功能如下：
+
+        1. 从指定位置开始，读指定字节的数据，若字节数为 <= 0，则读取所有数据
+
+        1. 实现一个 generator，每调用一次读一行，文件的最后一行如果只有 EOF 没有 \n，那么也算一行。如果 \n 后紧接 EOF，那么算同一行
+
+        1. 实现一个函数，将指定字节处（从 0 开始索引）的字节替换成指定字节
+
+    * [asso] 调研文件编辑器如何实现插入/删除功能？
+
+    * [ ] `remap_pfn_range()`
+
 * [v] reorg: cuda 30 mins 09.19
 
     11:16 ~ 11:27, 12:24 ~ 12:51
 
-* [ ] 调研 cuda 向量加的 example
+* [v] 调研 cuda 向量加的 example
+
+    16:08 ~ 16:21
+
+    feedback:
+
+    * [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
+
+    * [ ] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
+
+    * [ ] `cudaMallocHost()`, `cudaFreeHost()`
+
+    * [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
+
+        ```cpp
+        // 定义线程块数量和每个线程块中的线程数
+        int threadsPerBlock = 256;
+        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock; // 向上取整
+
+        // 启动内核
+        vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
+        ```
 
 * [ ] 调研 cuda 矩阵乘的 example
 
@@ -973,13 +1040,9 @@
 
 * [ ] 调研 cuda 排序
 
-* [ ] 调研傅里叶变换，尝试对 sin 曲线进行傅里叶变换
+* [v] 调研傅里叶变换，尝试对 sin 曲线进行傅里叶变换
 
-* [v] reorg: documents 30 mins 09.16
-
-* [v] bash 中如何展开文件路径的 tab 自动补全？
-
-    18:39 ~ 18:46
+    16:44 ~ 17:56
 
 * [ ] 调研英文阅读资料，每次增加英文阅读
 
@@ -1028,10 +1091,6 @@
     * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
 
         还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
-
-* [v] 调研如果使用 move 将一个 vector `vec_src`赋给另一个`vec_dst`，那么会释放`vec_dst`的内存，并将`vec_src`的内存的指针交给`vec_dst`，然后将`vec_src`的内存指针置空吗，还是进行浅拷贝，将`vec_src`的内存内容复制给`vec_dst`？
-
-    ~ 15:01
 
 * [ ] 调研自定义哈希函数的写法
 
@@ -1229,13 +1288,29 @@
 
 ### Tasks
 
-* [ ] 任务模板中增加`qa: review`
+* [v] qa: 2 units 30 mins
 
-* [ ] makefile 中的`?=`
+    15:32 ~ 15:38
+
+    feedback:
+
+    * [ ] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
+
+        现状：对于有数学公式的 qa，terminal 无法正常显示。
+
+* [v] 任务模板中增加`qa: review`
+
+    18:52 ~ 18:54
+
+* [v] makefile 中的`?=`
+
+     ~ 19:03
 
 * [ ] makefile 中的`+=`
 
-* [ ] `OBJS = $(SRCS:.c=.o)`
+* [v] `OBJS = $(SRCS:.c=.o)`
+
+    ~ 19:37
 
 * [v] 调研 make 变量与 shell 变量
 
@@ -1262,23 +1337,15 @@
         @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
     ```
 
-    feedback:
+* [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
-    * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
+    获取 Shell 命令的进程 ID
 
-        获取 Shell 命令的进程 ID
+    嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
 
-        嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
+* [ ] `@echo "The process ID in Shell is: $$PPID"`
 
-    * [ ] `@echo "The process ID in Shell is: $$PPID"`
-
-        $ 给 Shell, Shell 看到的是 $PPID
-
-* [v] makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
-
-* [v] linux driver unit idx 3 增加查看 dev class 的方法
-
-    19:11 ~ 19:15
+    $ 给 Shell, Shell 看到的是 $PPID
 
 * [ ] 调研`read`, `read_iter`, `splice_read`
 
@@ -1429,29 +1496,134 @@
 
 ### tasks
 
-* [v] 调研 make_unique(), 其他常见的构造 unique_ptr 的方法
+* [v] process 1 tab
 
-    15:58 ~ 16:03
+    15:40 ~ 15:49
+
+    feedback:
+
+    * [ ] 调研 Differences between torch.nn and torch.nn.functional
+
+        <https://www.geeksforgeeks.org/deep-learning/differences-between-torch-nn-and-torch-nn-functional/>
+
+    * [ ] 调研 PyTorch Loss Functions
+
+        <https://www.geeksforgeeks.org/deep-learning/pytorch-loss-functions/>
+
+    * [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
+
+        <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
+
+    * [ ] 调研 PyTorch Tutorial
+
+        <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+
+    * [asso] 调研 6.12.2 Extended Asm - Assembler Instructions with C Expression Operands
+
+        <https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html>
+
+    * [ ] reorg: 正则表达式 30 mins
+
+    * [ ] `qemu-system-x86_64 -enable-kvm -device pci-bridge,id=mybridge -device e1000,bus=mybridge,addr=0x1`
+
+    * [ ] `pci_find_bus()`
+
+    * [ ] `pci_alloc_dev()`
+
+    * [ ] 调研 ds 写的添加虚拟 pci 设备的代码（未验证）
+
+        ```c
+        // 文件名: vpci_device.c
+        #include <linux/module.h>
+        #include <linux/pci.h>
+        #include <linux/device.h>
+
+        // 定义虚拟 PCI 设备的 Vendor ID 和 Device ID
+        #define VENDOR_ID 0x1234
+        #define DEVICE_ID 0x5678
+
+        static struct pci_dev *vpdev = NULL;
+
+        static int __init vpci_init(void) {
+            struct pci_bus *bus;
+            int ret = -ENODEV;
+
+            // 获取第一个 PCI 总线 (例如: 0000:00)
+            bus = pci_find_bus(0, 0); 
+            if (!bus) {
+                printk(KERN_ERR "无法找到 PCI 总线\n");
+                return ret;
+            }
+
+            // 动态分配一个 pci_dev 结构体
+            vpdev = pci_alloc_dev(bus);
+            if (!vpdev) {
+                printk(KERN_ERR "无法分配 PCI 设备\n");
+                return -ENOMEM;
+            }
+
+            // 设置设备基本信息
+            vpdev->vendor = VENDOR_ID;     // 厂商 ID
+            vpdev->device = DEVICE_ID;     // 设备 ID
+            vpdev->devfn = PCI_DEVFN(0, 0); // 设备号 (Bus 0, Device 0)
+            vpdev->class = PCI_CLASS_NETWORK_ETHERNET; // 设备类别 (示例: 网络设备)
+
+            // 初始化设备并添加到 PCI 子系统
+            pci_bus_add_device(vpdev);
+            ret = pci_add_device(vpdev);
+            if (ret < 0) {
+                printk(KERN_ERR "无法添加 PCI 设备\n");
+                pci_free_dev(vpdev);
+                return ret;
+            }
+
+            printk(KERN_INFO "虚拟 PCI 设备已创建: %04x:%04x\n", VENDOR_ID, DEVICE_ID);
+            return 0;
+        }
+
+        static void __exit vpci_exit(void) {
+            if (vpdev) {
+                pci_stop_and_remove_bus_device(vpdev); // 从总线移除设备
+                pci_free_dev(vpdev);                   // 释放设备内存
+                printk(KERN_INFO "虚拟 PCI 设备已移除\n");
+            }
+        }
+
+        module_init(vpci_init);
+        module_exit(vpci_exit);
+        MODULE_LICENSE("GPL");
+        ```
+
+        若需要设备支持完整的配置空间操作（如 BAR 映射、中断等），需扩展模块代码：
+
+        ```c
+        // 在 vpci_init 中补充资源配置
+        vpdev->resource[0].start = 0x1000;  // BAR0 起始地址 (虚拟)
+        vpdev->resource[0].end = 0x1FFF;    // BAR0 结束地址
+        vpdev->resource[0].flags = IORESOURCE_MEM; // 内存资源类型
+
+        // 启用设备
+        pci_enable_device(vpdev);
+        ```
+
 
 * [v] `posix_memalign()`
 
     16:19 ~ 16:24
 
-    feedback:
-
-    * [asso] 编译器特定的扩展（如 GCC/Clang 的 `__attribute__((aligned))` 或 `_aligned_malloc` on MSVC）。
-
 * [v] 调研`ipcs -m`
 
     19:15 ~ 19:19
 
-    feedback:
+* [v] 调研`df -T /dev/shm`
 
-    * [asso] `ipcrm -m <shmid>`手动删除内存段。
-
-* [ ] 调研`df -T /dev/shm`
+    19:38 ~ 19:49
 
     `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
+
+    feedback:
+
+    * [asso] 调研`/etc/fstab`的格式
 
 * [ ] 调研`lsof`
 
@@ -1466,7 +1638,19 @@
 
 * [ ] 调研`/var/log/syslog`, `/var/log/messages`
 
-* [ ] 调研给 frpc 增加密码
+* [v] 调研给 frpc 增加密码
+
+    19:50 ~ 20:06
+
+    feedback:
+
+    * [asso] 调研 bash 技巧
+
+        ```bash
+        set +o history  # 禁用历史记录
+        # 敏感操作
+        set -o history  # 重新启用
+        ```
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
@@ -1690,11 +1874,11 @@
 
     PXELINUX (用于网络启动): pxelinux.cfg/default
 
-* [asso] 调研`OBJS = $(SRCS:src/%.c=obj/%.o)`处理字符串
+* [ ] 调研`OBJS = $(SRCS:src/%.c=obj/%.o)`处理字符串
 
-* [asso] 调研`./configure`运行的是什么程序？如何配置？
+* [ ] 调研`./configure`运行的是什么程序？如何配置？
 
-* [asso] `make -p`
+* [ ] `make -p`
 
 * [asso] `make --print-data-base`
 
@@ -1749,6 +1933,10 @@
 
 * [asso] 调研`df -T /tmp`
 
+* [asso] 编译器特定的扩展（如 GCC/Clang 的 `__attribute__((aligned))` 或 `_aligned_malloc` on MSVC）。
+
+* [asso] `ipcrm -m <shmid>`手动删除内存段。
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -1769,10 +1957,6 @@ resources:
 
 ### tasks
 
-* [v] 调研是否可以用实例定义成员变量，比如`aaa.my_val = 123`
-
-    19:20 ~ 19:24
-
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
     17:13 ~ 18:00
@@ -1781,27 +1965,15 @@ resources:
 
     > Optimizing Model Training with PyTorch Datasets
 
-* [v] `nn.MSELoss()`数学公式是什么？代码如何实现？
-
 * [ ] `optim.SGD`数学公式是什么？代码如何实现？
 
 * [ ] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
 
-* [v] 调研 python 中的`f"xxx"`字符串
-
-    16:25 ~ 16:31
-
-* [v] 调研 Pytorch - Index-based Operation
+* [O] 调研 Pytorch - Index-based Operation
 
     16:36 ~ 16:47, 16:54 ~ 16:56
 
     <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
-
-    feedback:
-
-    * 目前看到
-
-        > 3.index_copy_:  Copies the elements of a given tensor to
 
     feedback:
 
@@ -1879,17 +2051,13 @@ resources:
 
     * MATLAB: sparse() 函数
 
-    feedback:
+* [ ] OO格式（scipy.sparse.coo_matrix）
 
-    * [ ] OO格式（scipy.sparse.coo_matrix）
+    调用 .tocsr() 方法将其转换为 CSR格式
 
-        调用 .tocsr() 方法将其转换为 CSR格式
+* [ ] scipy.sparse.lil_matrix
 
-    * [ ] scipy.sparse.lil_matrix
-
-    * [ ] C++ (Eigen): Eigen::SparseMatrix
-
-    * [asso] MATLAB: sparse() 函数
+* [ ] C++ (Eigen): Eigen::SparseMatrix
 
 * [ ] 调研 Axes3D 的基本用法
 
@@ -1912,10 +2080,6 @@ resources:
     * [ ] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
 
     * [ ] `fig.colorbar(surf)`
-
-* [v] 调研 hugging face `datasets`中有多少数据集，下载几个 nlp 相关的
-
-    17:46 ~ 18:02
 
 * [ ] 调研 rnn
 
@@ -2175,6 +2339,8 @@ resources:
 
     如何查看当前安装了哪些字体？
 
+* [asso] MATLAB: sparse() 函数
+
 ## Mathematics
 
 resources:
@@ -2309,14 +2475,6 @@ resources:
 
 * [ ] `/proc/iomem`
 
-* [v] 如何安装 Vim-Plug，并检验安装成功？
-
-    ~ 20:10
-
-* [v] 调研引用系统库（如 /usr/include）的标签
-
-    `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
-
 * [ ] 调研`:tag function_name` - 跳转到指定标签
 
 * [P] 调研`iowrite32_rep()`系列
@@ -2367,19 +2525,9 @@ resources:
     memcpy((void *)hardware_buffer, src_buf, count * 4);
     ```
 
-* [v] 内存屏障（`rmb()`, `wmb()`）
-
-    ~ 17:37
-
 * [v] 内存排序/屏障（Memory Ordering / Barriers）
 
     ~ 20:23
-
-    feedback:
-
-    * [asso] c++ 中`<atomic>`, std::memory_order 枚举
-
-        `memory_order_seq_cst`, `memory_order_acq_rel`, `memory_order_relaxed`
 
 * [ ] BAR 是谁配置的？
 
@@ -2402,10 +2550,6 @@ resources:
 * [ ] DMA总线
 
 * [ ] dma 在 cpu 中，还是在 device 中？
-
-* [v] 调研什么是流式 DMA, 什么是一致性 DMA
-
-    18:13 ~18:22
 
 * [ ] 调研 MMU（内存管理单元）如何设计？
 
@@ -2868,6 +3012,10 @@ resources:
 
 * [asso] 调研`__sync_synchronize();`, `__atomic_thread_fence(__ATOMIC_SEQ_CST);`
 
+* [asso] c++ 中`<atomic>`, std::memory_order 枚举
+
+    `memory_order_seq_cst`, `memory_order_acq_rel`, `memory_order_relaxed`
+
 ## CCL
 
 ### cache
@@ -3087,29 +3235,15 @@ resources:
 
 * [ ] vscode 如何同时滚动左右两个分栏？
 
-* [ ] 调研 vscode alt + D 输入日期
-
 * [O] 调研 graph xml parser
 
     10:43 ~ 11:09
 
-* [v] `objdump -p <文件名> | grep NEEDED`
-
-* [ ] `readelf -d <文件名> | grep NEEDED`
-
 * [ ] 调研可视化的方案
-
-* [v] 调研是否其他地方用到了 topo id
-
-    18:10 ~ 18:13
-
-* [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
 
 * [ ] 以 uuid 为入口重构 topo layer 代码
 
 * [ ] 调研 nccl graph 中 sameChannels 的含义
-
-* [ ] 调研`ip rule`
 
 * [ ] 调研`OneCCL`, `RCCL`, `Gloo`
 
@@ -3129,63 +3263,11 @@ resources:
 
     1. <https://docs.nvidia.com/cuda/archive/9.1/cuda-memcheck/index.html>
 
-* [ ] 调研 crontab 系统级定时任务
-
 * [ ] reorg: linux socket programming
 
 * [ ] 调研`inotify_init()`, `inotify_add_watch()`
 
-* [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
-
-* [ ] 调研`lsyncd`
-
-    这个工具似乎是 inotifywait 和 rsync 的结合，是个比较成熟的工具。
-
 * [ ] 调研 POSIX 标准
-
-* [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
-
-* [ ] 在 crontab 中，无法通过 mpv 播放音乐
-
-    即使设置`DISPLAY=:0`和`DBUS_SESSION_BUS_ADDRESS`也不行。根据日志看起来像是 alsa 初始化失败。
-
-    使用`mpv --ao=pulse`选择 pulse audio 也不行，日志提示未找到 pulse audio 的驱动。
-
-    除了 mpv，其他的方案未尝试。
-
-* [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
-
-* [ ] 调研使用 bash 实现一个定时器任务管理工具
-
-* [ ] 调研 bash 中的`REPLY`变量
-
-* [ ] 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
-
-* [ ] 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
-
-* [ ] `read -r`以及有哪些常见的反斜杠转义字符？
-
-* [v] `od -t x<N>`
-
-* [ ] `od -A x -t x1 test.bin`
-
-* [ ] `echo "Hello" | od -t x1c`
-
-* [ ] 调研 openssl, gpg
-
-* [ ] 调研`dmenu`
-
-* [ ] 调研`ksshaskpass`
-
-* [ ] 调研`GIT_ASKPASS`
-
-* [ ] 调研 PTY 与 tty 有何不同
-
-* [ ] 调研`huponexit`
-
-* [ ] `chdir()`
-
-* [ ] 调研`gpg -dq ~/.ssh/password.gpg`
 
 * [ ] 调研 Boyer-Moore 算法
 
@@ -3194,39 +3276,6 @@ resources:
 * [ ] 调研`setlocale()`
 
 * [ ] 调研`ICU`或`libiconv`
-
-* [ ] 调研
-
-    ```bash
-    echo 60 > /proc/sys/net/ipv4/tcp_keepalive_time
-    echo 10 > /proc/sys/net/ipv4/tcp_keepalive_intvl
-    echo 3 > /proc/sys/net/ipv4/tcp_keepalive_probes
-    ```
-
-    与其他系统的 tcp 配置
-
-* [ ] 调研
-
-    ```bash
-    # 查看当前SSH连接参数（客户端）
-    ssh -vvv user@example.com 2>&1 | grep Keepalive
-
-    # 服务端日志（需启用Debug模式）
-    tail -f /var/log/auth.log | grep Keepalive
-    ```
-
-* [ ] 调研`csh`, `tcsh`
-
-* [ ] 调研 sudoers 中的全局配置
-
-    ```
-    Defaults	env_reset
-    Defaults	mail_badpass
-    Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
-    Defaults	use_pty
-    ```
-
-* [ ] 调研 dnf 与 yum 的异同
 
 * [ ] 调研实现`ncclTopoCheckGdr()`
 
@@ -3246,69 +3295,11 @@ resources:
 
 * [ ] 调研`#define COUNT_ARGS(...) sizeof((int[]){__VA_ARGS__}) / sizeof(int)`是如何统计参数个数的
 
-* [ ] 调研`vim -X`非交互运行
-
-* [ ] 调研如果在非终端（非交互）模式下运行top、htop、tmux、screen 等工具，会发生什么
-
 * [ ] 调研为什么 gpu vert 1 不等于 vert 2 时，vert 1 到 vert 2 的 path 类似为`PATH_PHB`。
 
 * {O} 调研`ncclTopoCheckP2p()`
 
 * [ ] 调研 NCCL_COLLNET 是干嘛用的
-
-* [ ] 调研 tty ? 是什么意思
-
-* [ ] 调研`htop`
-
-* [ ] 调研`ps -e -o pid,cmd`
-
-* [ ] `ps aux --sort=-%cpu`, `ps aux --sort=-%mem`
-
-* [ ] 调研`strings`工具
-
-* [ ] 调研`xargs -0`
-
-* [ ] 调研`ps -p <PID> -o cmd`
-
-* [ ] 调研`pgrep -a <PATTERN>`
-
-* [ ] 调研`/proc/<PID>/comm`
-
-* [ ] 调研`readlink /proc/1234/cwd`
-
-* [ ] 调研`/proc/<PID>/status`
-
-* [ ] 调研`env KEY=value command`
-
-* [ ] 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
-
-* [ ] 调研`expect`脚本
-
-* [ ] 调研`type <command>`命令
-
-* [ ] 调研`grep *.txt`使用通配符搜索多个文件，对比与`include file`有什么不同？
-
-* [ ] 调研`cut -d: -f1) app.log`
-
-* [ ] 调研`sed`, `awk`
-
-* [ ] 调研`vim +$(grep -n "error" app.log`
-
-* [ ] 调研`grep --color=auto`
-
-* [ ] 调研 gdb `x`命令
-
-* [ ] 调研`rsync --filter`
-
-    `rsync -av --filter='protect /destination/keep_this.txt' /source/ /destination/`
-
-* [ ] 调研`rsync -n`或`rsync --dry-run`
-
-* [ ] 调研`rsync --delete-excluded`
-
-* [ ] 调研`rsync --max-delete`
-
-* [ ] 调研 conan
 
 * [ ] 调研 cmake FetchContent_Declare
 
@@ -3587,6 +3578,157 @@ resources:
 * [asso] `patchelf`
 
 * [asso] 调研 elf dynamic section
+
+## linux maintain
+
+### tasks
+
+* [ ] `readelf -d <文件名> | grep NEEDED`
+
+* [ ] 调研：为什么`grep -r siDeviceGet(`不能有左小括号？
+
+* [ ] 调研`ip rule`
+
+* [ ] 调研 crontab 系统级定时任务
+
+* [ ] 调研`lsyncd`
+
+    这个工具似乎是 inotifywait 和 rsync 的结合，是个比较成熟的工具。
+
+* [ ] 调研`inotifywait -m /path/to/dir  # 持续监控目录`中`-m`的含义
+
+* [ ] 调研`mpg123`, `vlc`, `paplay`音乐播放器
+
+* [ ] 在 crontab 中，无法通过 mpv 播放音乐
+
+    即使设置`DISPLAY=:0`和`DBUS_SESSION_BUS_ADDRESS`也不行。根据日志看起来像是 alsa 初始化失败。
+
+    使用`mpv --ao=pulse`选择 pulse audio 也不行，日志提示未找到 pulse audio 的驱动。
+
+    除了 mpv，其他的方案未尝试。
+
+* [ ] 调研`aplay`，`paplay`, `cvlc`, `ffplay`
+
+* [ ] 调研使用 bash 实现一个定时器任务管理工具
+
+* [ ] 调研 bash 中的`REPLY`变量
+
+* [ ] 调研`if [[ $char == $'\0' ]]`与`if [  ]`有何不同
+
+* [ ] 调研`$char == $'\0'`是否可以写成`$char==$'\0'`
+
+* [ ] `read -r`以及有哪些常见的反斜杠转义字符？
+
+* [ ] `od -A x -t x1 test.bin`
+
+* [ ] `echo "Hello" | od -t x1c`
+
+* [ ] 调研 openssl, gpg
+
+* [ ] 调研`dmenu`
+
+* [ ] 调研`ksshaskpass`
+
+* [ ] 调研`GIT_ASKPASS`
+
+* [ ] 调研 PTY 与 tty 有何不同
+
+* [ ] 调研`huponexit`
+
+* [ ] `chdir()`
+
+* [ ] 调研`gpg -dq ~/.ssh/password.gpg`
+
+* [ ] 调研
+
+    ```bash
+    echo 60 > /proc/sys/net/ipv4/tcp_keepalive_time
+    echo 10 > /proc/sys/net/ipv4/tcp_keepalive_intvl
+    echo 3 > /proc/sys/net/ipv4/tcp_keepalive_probes
+    ```
+
+    与其他系统的 tcp 配置
+
+* [ ] 调研
+
+    ```bash
+    # 查看当前SSH连接参数（客户端）
+    ssh -vvv user@example.com 2>&1 | grep Keepalive
+
+    # 服务端日志（需启用Debug模式）
+    tail -f /var/log/auth.log | grep Keepalive
+    ```
+
+* [ ] 调研`csh`, `tcsh`
+
+* [ ] 调研 sudoers 中的全局配置
+
+    ```
+    Defaults	env_reset
+    Defaults	mail_badpass
+    Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+    Defaults	use_pty
+    ```
+
+* [ ] 调研 dnf 与 yum 的异同
+
+* [ ] 调研`vim -X`非交互运行
+
+* [ ] 调研如果在非终端（非交互）模式下运行top、htop、tmux、screen 等工具，会发生什么
+
+* [ ] 调研 tty ? 是什么意思
+
+* [ ] 调研`htop`
+
+* [ ] 调研`ps -e -o pid,cmd`
+
+* [ ] `ps aux --sort=-%cpu`, `ps aux --sort=-%mem`
+
+* [ ] 调研`strings`工具
+
+* [ ] 调研`xargs -0`
+
+* [ ] 调研`ps -p <PID> -o cmd`
+
+* [ ] 调研`pgrep -a <PATTERN>`
+
+* [ ] 调研`/proc/<PID>/comm`
+
+* [ ] 调研`readlink /proc/1234/cwd`
+
+* [ ] 调研`/proc/<PID>/status`
+
+* [ ] 调研`env KEY=value command`
+
+* [ ] 调研 tr 能否处理汉字？如果不能，那么是否有能处理汉字的 tr like 软件。
+
+* [ ] 调研`expect`脚本
+
+* [ ] 调研`type <command>`命令
+
+* [ ] 调研`grep *.txt`使用通配符搜索多个文件，对比与`include file`有什么不同？
+
+* [ ] 调研`cut -d: -f1) app.log`
+
+* [ ] 调研`sed`, `awk`
+
+* [ ] 调研`vim +$(grep -n "error" app.log`
+
+* [ ] 调研`grep --color=auto`
+
+* [ ] 调研 gdb `x`命令
+
+* [ ] 调研`rsync --filter`
+
+    `rsync -av --filter='protect /destination/keep_this.txt' /source/ /destination/`
+
+* [ ] 调研`rsync -n`或`rsync --dry-run`
+
+* [ ] 调研`rsync --delete-excluded`
+
+* [ ] 调研`rsync --max-delete`
+
+* [ ] 调研 conan
 
 ## gpu driver
 

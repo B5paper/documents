@@ -597,6 +597,8 @@ MODULE_LICENSE("GPL");
 ```
 
 [unit]
+[id]
+6465060100181122931
 [u_0]
 写一个`pci_register_driver()`的最简 case。
 [u_1]

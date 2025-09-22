@@ -10,14 +10,14 @@
     | Beta | `\beta` $\beta$ | `B` $B$ |
     | Gamma | `\gamma` $\gamma$ | `\Gamma` $\Gamma$ |
     | Delta	| `\delta` $\delta$ | `\Delta` $\Delta$ |
-    | Epsilon \epsilon $\epsilon$	E $E$ |
-    | Zeta	\zeta $\zeta$	Z $Z$
-    | Eta	\eta $\eta$	H $H$
-    | Theta	\theta $\theta$	\Theta $\Theta$
-    | Lambda	\lambda $\lambda$	\Lambda $\Lambda$
-    | Mu	\mu $\mu$	M $M$
-    | Nu	\nu $\nu$	N $N$
-    | Xi	\xi $\xi$	\Xi $\Xi$
+    | Epsilon | `\epsilon` $\epsilon$ |	`E` $E$ |
+    | Zeta | `\zeta` $\zeta$ | `Z` $Z$ |
+    | Eta | `\eta` $\eta$ | `H` $H$ |
+    | Theta | `\theta` $\theta$ | `\Theta` $\Theta$ |
+    | Lambda | `\lambda` $\lambda$ | `\Lambda` $\Lambda$ |
+    | Mu | `\mu` $\mu$ | `M` $M$ |
+    | Nu | `\nu` $\nu$ | `N` $N$ |
+    | Xi | `\xi` $\xi$ | `\Xi` $\Xi$ |
     | Pi	\pi $\pi$	\Pi $\Pi$
     | Rho	\rho $\rho$	P $P$
     | Sigma	\sigma $\sigma$	\Sigma $\Sigma$
