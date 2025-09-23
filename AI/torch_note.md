@@ -2,6 +2,392 @@
 
 ## cache
 
+* matplotlib 画 3d surface 的 example
+
+    ```py
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.font_manager as fm
+
+    # 设置中文字体
+    plt.rcParams['font.sans-serif'] = ['Noto Sans CJK JP']  # 使用黑体
+    plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
+
+    # 创建数据
+    x = np.linspace(-5, 5, 100)
+    y = np.linspace(-5, 5, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+
+    # 创建图形
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 绘制曲面
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+    # 添加颜色条
+    fig.colorbar(surf)
+
+    # 设置标签 - 现在中文可以正常显示
+    ax.set_xlabel('X轴')
+    ax.set_ylabel('Y轴')
+    ax.set_zlabel('Z轴')
+    ax.set_title('3D曲面图示例')
+
+    plt.show()
+    ```
+
+* `nn.MSELoss()`
+
+    Mean Squared Error（均方误差）, 衡量模型预测值 $\hat{y}$ 与真实值 $y$ 之间差的平方的平均值。
+
+    公式：
+
+    $L = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2$
+
+    其中：
+
+    * $L$ 是最终的损失值（一个标量）。
+
+    * $N$ 是样本的数量（或者是需要计算损失的元素的总个数）。
+
+    * $y_i$ 是第 $i$ 个数据的真实值（ground truth）。
+
+    * $\hat{y}_i$ 是模型对第 $i$ 个数据的预测值（prediction）。
+
+    * $\sum_{i=1}^{N}$ 表示对所有 $N$ 个数据点的差值平方进行求和。
+
+    平方的作用：
+
+    * 消除正负误差相互抵消的问题（例如，-2 和 +2 的误差如果直接相加会变成 0，但这显然不对）。
+
+    * 放大较大误差的贡献。误差越大，平方后的惩罚越大，这使得模型会对大的错误更加敏感。
+
+    PyTorch 的 nn.MSELoss 还提供了一个重要的参数 reduction，它可以改变计算最终损失的方式：
+
+    * `reduction='mean'` (默认值): 计算所有元素平方差的平均值。 $\rightarrow L = \frac{1}{N} \sum (y_i - \hat{y}_i)^2$
+
+    * `reduction='sum'`: 计算所有元素平方差的总和。 $\rightarrow L = \sum (y_i - \hat{y}_i)^2$
+
+    * `reduction='none'`: 不进行汇总（sum 或 mean），直接返回一个与输入形状相同的、每个位置都是一个平方差的损失张量。 $\rightarrow L_i = (y_i - \hat{y}_i)^2$
+
+    example:
+
+    ```py
+    import torch
+    import torch.nn as nn
+
+    # 1. 创建损失函数实例
+    # reduction 可以是 'mean', 'sum', 'none'
+    criterion = nn.MSELoss() # 默认 reduction='mean'
+    # criterion = nn.MSELoss(reduction='sum')
+    # criterion = nn.MSELoss(reduction='none')
+
+    # 2. 准备示例数据
+    # 假设我们有4个样本的预测值和真实值
+    predictions = torch.tensor([3.0, 5.0, 2.5, 4.0])
+    targets = torch.tensor([2.5, 4.8, 2.0, 3.8])
+
+    # 3. 计算损失
+    loss = criterion(predictions, targets)
+
+    print(f"Predictions: {predictions}")
+    print(f"Targets:     {targets}")
+    print(f"MSE Loss:    {loss.item()}")
+    ```
+
+    output:
+
+    ```
+    Predictions: tensor([3.0000, 5.0000, 2.5000, 4.0000])
+    Targets:     tensor([2.5000, 4.8000, 2.0000, 3.8000])
+    MSE Loss:    0.14499999582767487
+    ```
+
+    手动代码实现：
+
+    ```py
+    def my_mse_loss(pred, targ, reduction='mean'):
+        # 1. 计算所有元素的平方差
+        squared_diff = (pred - targ) ** 2
+        
+        # 2. 根据 reduction 参数进行汇总
+        if reduction == 'mean':
+            loss = torch.mean(squared_diff)
+        elif reduction == 'sum':
+            loss = torch.sum(squared_diff)
+        elif reduction == 'none':
+            loss = squared_diff
+        else:
+            raise ValueError("reduction must be 'mean', 'sum', or 'none'")
+        return loss
+
+    # 使用我们自己实现的函数
+    my_loss_mean = my_mse_loss(predictions, targets, 'mean')
+    my_loss_sum = my_mse_loss(predictions, targets, 'sum')
+    my_loss_none = my_mse_loss(predictions, targets, 'none')
+
+    print(f"Manual MSE Loss (mean): {my_loss_mean.item()}")
+    print(f"Manual MSE Loss (sum):  {my_loss_sum.item()}")
+    print(f"Manual MSE Loss (none): {my_loss_none}")
+    ```
+
+* hugging face 中的数据集
+
+    <https://huggingface.co/datasets>
+
+    使用 python 代码查询：
+
+    ```py
+    from huggingface_hub import list_datasets
+
+    # 这是一个生成器，要获取总数需要将其转换为列表，但对于数万个数据集这会很慢且耗内存。
+    # all_datasets = list(list_datasets())
+    # print(f"Total datasets: {len(all_datasets)}")
+
+    # 更高效的方法是使用分页并计数（但依然需要遍历所有数据集）
+    count = 0
+    for ds in list_datasets():
+        count += 1
+    print(f"Total datasets: {count}") # 注意：这会运行一段时间，因为要遍历数万个数据集
+    ```
+
+    常见的NLP任务和相关数据集:
+
+    * 文本分类（如情感分析、主题分类）：imdb, ag_news, yelp_review_full
+
+    * 问答（Question Answering）：squad, natural_questions
+
+    * 文本摘要（Summarization）：cnn_dailymail, xsum
+
+    * 文本生成（Text Generation）：wikitext-2, story_cloze
+
+    * 机器翻译（Translation）：wmt14, wmt16, opus_books
+
+    * 命名实体识别（Named Entity Recognition, NER）：conll2003, wnut_17
+
+    * 语义相似度（Semantic Textual Similarity）：stsb_multi_mt
+
+    * 自然语言推理（Natural Language Inference）：mnli, snli
+
+    * 指令微调数据集（用于训练Chat模型）：alpaca, dolly-15k
+
+    使用代码按标签筛选:
+
+    ```py
+    from huggingface_hub import list_datasets
+
+    # 查找所有打上 "text-classification" 标签的数据集
+    nlp_datasets = list(list_datasets(filter="task_categories:text-classification"))
+    print(f"Number of text-classification datasets: {len(list(nlp_datasets))}")
+
+    # 您可以尝试其他标签，如 "text-generation", "question-answering", "translation" 等。
+    ```
+
+* `csr_matrix`的创建方法
+
+    * 从密集矩阵（Dense Array）创建
+
+        从一个普通的 2D NumPy 数组或列表的列表创建。
+
+        ```py
+        import numpy as np
+        from scipy.sparse import csr_matrix
+
+        dense_matrix = np.array([[1, 0, 0, 0],
+                                 [0, 0, 2, 0],
+                                 [0, 3, 0, 4]])
+                                 
+        sparse_matrix = csr_matrix(dense_matrix)
+        print(sparse_matrix)
+        print(sparse_matrix.toarray()) # 转回密集矩阵查看
+        ```
+
+        output:
+
+        ```
+        <Compressed Sparse Row sparse matrix of dtype 'int64'
+        	with 4 stored elements and shape (3, 4)>
+          Coords	Values
+          (0, 0)	1
+          (1, 2)	2
+          (2, 1)	3
+          (2, 3)	4
+        [[1 0 0 0]
+         [0 0 2 0]
+         [0 3 0 4]]
+        ```
+
+    * 使用 (data, (row, col)) 坐标格式创建
+
+        明确指定每个非零元素的值及其所在的行和列坐标
+
+        ```py
+        import numpy as np
+        from scipy.sparse import csr_matrix
+
+        # 数据： [1, 2, 3, 4]
+        # 行索引：[0, 1, 2, 2] -> 第一个元素在第0行，第二个在第1行，第三、四个在第2行
+        # 列索引：[0, 2, 1, 3] -> 第一个元素在第0列，第二个在第2列，第三个在第1列，第四个在第3列
+
+        data = [1, 2, 3, 4]
+        row = [0, 1, 2, 2]
+        col = [0, 2, 1, 3]
+
+        sparse_matrix = csr_matrix((data, (row, col)), shape=(3, 4))
+        print(sparse_matrix.toarray())
+        ```
+
+        output:
+
+        ```
+        [[1 0 0 0]
+         [0 0 2 0]
+         [0 3 0 4]]
+        ```
+
+    * 使用 (data, indices, indptr) 直接创建（高级）
+
+        直接使用 CSR 格式的三个内部数组来创建。
+
+        ```py
+        # 假设矩阵为：
+        # [[1, 0, 2, 0]
+        #  [0, 0, 3, 4]
+        #  [5, 0, 0, 6]]
+
+        data = [1, 2, 3, 4, 5, 6]    # 所有非零值
+        indices = [0, 2, 2, 3, 0, 3] # 每个值对应的列号
+        indptr = [0, 2, 4, 6]        # 第i行的非零值范围是 data[indptr[i]:indptr[i+1]]
+
+        # indptr 解释：
+        # 第0行：有 indptr[1]-indptr[0] = 2 个元素，是 data[0:2] -> [1,2]，列号为 indices[0:2] -> [0,2]
+        # 第1行：有 indptr[2]-indptr[1] = 2 个元素，是 data[2:4] -> [3,4]，列号为 indices[2:4] -> [2,3]
+        # 第2行：有 indptr[3]-indptr[2] = 2 个元素，是 data[4:6] -> [5,6]，列号为 indices[4:6] -> [0,3]
+
+        sparse_matrix = csr_matrix((data, indices, indptr), shape=(3, 4))
+        print(sparse_matrix.toarray())
+        # [[1 0 2 0]
+        #  [0 0 3 4]
+        #  [5 0 0 6]]
+        ```
+
+* `csc_matrix`常用属性和操作
+
+    * 查看矩阵信息
+
+        ```py
+        print(sparse_matrix.shape)   # 矩阵形状: (3, 4)
+        print(sparse_matrix.nnz)     # 非零元素个数: 4
+        print(sparse_matrix.dtype)   # 数据类型: int64
+        print(sparse_matrix.has_sorted_indices) # 索引是否已排序: True
+        ```
+
+    * 转换格式
+
+        ```py
+        # 转换为其他稀疏格式
+        csc_matrix = sparse_matrix.tocsc() # 转为CSC格式（按列压缩，列操作快）
+        coo_matrix = sparse_matrix.tocoo() # 转为COO格式（坐标格式，构建快）
+
+        # 转换为密集NumPy数组
+        dense_array = sparse_matrix.toarray()
+        ```
+
+    * 数学运算
+
+        ```py
+        # 标量运算
+        result = sparse_matrix * 2   # 所有非零元素乘以2
+
+        # 矩阵运算（结果通常也是稀疏矩阵）
+        vector = np.array([1, 2, 3, 4])
+        result_vector = sparse_matrix.dot(vector) # 矩阵-向量乘法
+
+        other_sparse_matrix = csr_matrix([[1], [0], [1], [0]])
+        result_matrix = sparse_matrix.dot(other_sparse_matrix) # 矩阵-矩阵乘法
+        ```
+
+        csr_matrix 支持大多数常见的矩阵运算。
+
+    * 切片和索引
+
+        ```py
+        # 获取第1行（返回一个1xN的CSR矩阵）
+        row_1 = sparse_matrix[1, :]
+
+        # 获取第2列（效率较低，考虑用CSC格式做列操作）
+        col_2 = sparse_matrix[:, 2]
+        ```
+
+        对 CSR 矩阵进行切片通常不如对密集矩阵高效，尤其是列切片。
+
+* `scipy.sparse.csr_matrix`
+
+    Compressed Sparse Row matrix
+
+    是 SciPy 库中用于表示稀疏矩阵的一种数据结构。它专门用于高效地存储和操作那些大部分元素为零的矩阵。
+
+    CSR 格式只存储非零元素的值及其位置，极大地节省了内存和计算时间。
+
+    适用场景:
+
+    * 词袋模型（Bag-of-Words）中的文档-词项矩阵
+
+    * 图的邻接矩阵
+
+    * 有限元分析中的刚度矩阵
+
+    CSR 格式通过三个一维数组来表示整个矩阵：
+
+    1. data：存储所有非零元素的值。
+
+    2. indices：存储每个非零元素所在的列索引。
+
+    3. indptr（索引指针）：存储每一行第一个非零元素在 data 和 indices 中的起始位置。
+
+    这种结构使得按行访问和操作（如矩阵-向量乘法）非常高效。
+
+* `tens.index_copy_()`
+
+    将指定维度上的指定索引（可以是多个）复制到`tens`的对应位置。
+
+    syntax:
+
+    ```py
+    index_copy_(dim, index, tensor) -> Tensor
+    ```
+
+    example:
+
+    ```py
+    import torch
+
+    tens_1 = torch.ones(4, 4)
+    tens_2 = torch.randn(2, 4)
+    my_indices = torch.tensor([1,3])
+
+    tens_1.index_copy_(0, my_indices, tens_2)
+    print("tens_1: {}".format(tens_1))
+    ```
+
+    output:
+
+    ```
+    tens_1: tensor([[ 1.0000,  1.0000,  1.0000,  1.0000],
+            [ 0.3654,  0.9840, -0.4651,  1.4270],
+            [ 1.0000,  1.0000,  1.0000,  1.0000],
+            [ 0.0722, -1.2526, -0.8574, -1.2249]])
+    ```
+
+    注意：
+
+    * `my_indices`元素的数量必须和`tens_2`在`dim`维度上的长度对应，即`my_indices.size() == tens_2.shape[dim]`。上面例子中，如果`tens_2 = torch.randn(3, 4)`，则会报错。
+
+    `index_copy()`是其 out-of-place 版本。
+
 * 将 tensor 从 cpu 转移到 gpu
 
     * 推荐接口`.to()`

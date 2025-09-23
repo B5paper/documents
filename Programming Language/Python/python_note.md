@@ -2,6 +2,142 @@
 
 ## cached
 
+* python 中使用实例可以直接定义成员变量
+
+    ```py
+    class MyStruc:
+        def __init__(self):
+            self.val_1 = 123
+
+    obj_1 = MyStruc()
+    obj_1.val_2 = 456
+
+    print(obj_1.val_1)
+    print(obj_1.val_2)
+    ```
+
+    output:
+
+    ```
+    123
+    456
+    ```
+
+    在 IDE 里，`obj_1.`没有关于`val_2`的自动补全和提示，但是运行程序是正常的。
+
+* python 中的 f-string
+
+    f"xxx" 是 f-string（格式化字符串字面值，Formatted string literals）的语法，它在 Python 3.6 中首次引入。它是一种在字符串中直接嵌入表达式的字符串格式化机制.
+
+    基本用法:
+
+    * 嵌入变量（最基本的功能）
+
+        在字符串前加上前缀 f 或 F，然后在字符串内部用大括号 {} 包裹变量名或表达式。Python 会在运行时计算 {} 中的内容，并将其值转换为字符串插入到相应位置。
+
+        example:
+
+        ```py
+        name = "Alice"
+        age = 30
+
+        # 传统的格式化方法
+        greeting_old = "Hello, {}. You are {} years old.".format(name, age)
+        # 使用 f-string
+        greeting_new = f"Hello, {name}. You are {age} years old."
+
+        print(greeting_new)
+        # 输出: Hello, Alice. You are 30 years old.
+        ```
+
+    * 执行表达式
+
+        {} 内不仅可以放变量，还可以放任何有效的 Python 表达式。
+
+        example:
+
+        ```py
+        a = 5
+        b = 10
+
+        result = f"The sum of {a} and {b} is {a + b}, and their product is {a * b}."
+        print(result)
+        # 输出: The sum of 5 and 10 is 15, and their product is 50.
+        ```
+
+    * 调用函数和方法
+
+        可以在 {} 中直接调用函数或对象的方法。
+
+        example:
+
+        ```py
+        name = "bob"
+        message = f"Your name in uppercase is {name.upper()} and its length is {len(name)}."
+        print(message)
+        # 输出: Your name in uppercase is BOB and its length is 3.
+        ```
+
+    * 格式化输出（类似 str.format() 的格式规范）
+
+        可以在表达式后面跟上格式说明符（format specifier），用来控制输出的格式，比如小数点精度、数字的进制、对齐方式等。语法是 `{expression:format_spec}`。
+
+        example:
+
+        ```py
+        import math
+
+        price = 19.9876
+        number = 42
+
+        # 控制浮点数精度（保留两位小数）
+        f_price = f"The price is ${price:.2f}" # 输出: The price is $19.99
+
+        # 格式化为十六进制
+        f_hex = f"The number {number} in hex is {number:#x}" # 输出: The number 42 in hex is 0x2a
+
+        # 百分比显示
+        f_percent = f"Completion: {0.756:.2%}" # 输出: Completion: 75.60%
+
+        # 对齐文本（:>10 表示右对齐，宽度为10个字符）
+        f_align = f"'{name:>10}'" # 输出: '       bob'
+
+        print(f_price)
+        print(f_hex)
+        print(f_percent)
+        print(f_align)
+        ```
+
+    * 转义大括号
+
+        如果需要在 f-string 中显示字面意义的大括号，需要使用双重大括号进行转义。
+
+        example:
+
+        ```py
+        value = "data"
+        escaped = f"This is how you show braces: {{{value}}}" # 注意三层括号
+        print(escaped)
+        # 输出: This is how you show braces: {data}
+        ```
+
+    注意事项:
+
+    * 引号问题：f-string 可以使用单引号 `'`、双引号 `"` 和三引号 `'''/"""`。
+
+        ```py
+        f'Hello, {name}.'
+        f"Hello, {name}."
+        f"""Hello,
+        {name}."""
+        ```
+
+    * 表达式求值：f-string 中的表达式在运行时求值。这意味着它们使用的是当前作用域中的变量值。
+
+    * 不能为空：{} 内部不能是空的，必须包含表达式。
+
+    * Python 版本：确保你的运行环境是 Python 3.6 或更高版本，否则会引发 SyntaxError。
+
 * $\infty$在 python 中的表示
 
     可以使用`float('inf')`表示无穷大。

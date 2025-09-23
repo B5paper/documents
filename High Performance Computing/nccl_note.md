@@ -2,6 +2,54 @@
 
 ## cache
 
+* nccl 中用到 topo id 的地方汇总
+
+    * `ncclTopoGetXmlFromChannel()`
+
+        其中有：
+
+        ```cpp
+          if (system->nodes[GPU].nodes[i].gpu.rank == intra[g]) {
+            int systemId = NCCL_TOPO_ID_SYSTEM_ID(system->nodes[GPU].nodes[i].id);
+            dev = NCCL_TOPO_ID(systemId, system->nodes[GPU].nodes[i].gpu.dev);
+          }
+        ```
+
+    * `ncclTopoPrintGraph()`
+
+        ```cpp
+        if (system->nodes[NET].count > 0) {
+          sprintf(line+offset, " %s/%lx-%lx", topoNodeTypeStr[NET], NCCL_TOPO_ID_SYSTEM_ID(graph->inter[2*c]), NCCL_TOPO_ID_LOCAL_ID(graph->inter[2*c]));
+          offset = strlen(line);
+        }
+        ```
+
+        ```cpp
+        if (system->nodes[NET].count > 0) {
+          sprintf(line+offset, " %s/%lx-%lx", topoNodeTypeStr[NET], NCCL_TOPO_ID_SYSTEM_ID(graph->inter[2*c+1]), NCCL_TOPO_ID_LOCAL_ID(graph->inter[2*c+1]));
+          offset = strlen(line);
+        }
+        ```
+
+    * `ncclTopoGetChannelFromXml()`
+
+        ```cpp
+          for (int g=0; g<ngpus; g++) {
+            int systemId = NCCL_TOPO_ID_SYSTEM_ID(system->nodes[GPU].nodes[g].id);
+            if (NCCL_TOPO_ID(systemId, system->nodes[GPU].nodes[g].gpu.dev) == dev) rank = system->nodes[GPU].nodes[g].gpu.rank;
+          }
+        ```
+
+    * `printNodePaths()`
+
+    * `ncclTopoComputePaths()`
+
+    * `ncclTopoConnectCpus()`
+
+    * `ncclTopoPrintRec()`
+
+    * `ncclTopoDevToRank()`
+
 * 向上取整
 
     ```cpp

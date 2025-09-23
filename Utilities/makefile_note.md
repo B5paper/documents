@@ -2,6 +2,112 @@
 
 ## cache
 
+* `OBJS = $(SRCS:.c=.o)`
+
+    将 SRCS 变量中的所有 .c 后缀文件名替换为 .o 后缀，并将结果赋值给 OBJS 变量。
+
+    SRCS：通常是一个包含所有 C 源文件名的变量，例如`SRCS = main.c utils.c helper.c`
+
+    example:
+
+    ```makefile
+    SRCS = main.c utils.c helper.c
+    OBJS = $(SRCS:.c=.o)
+
+    myprogram: $(OBJS)
+        gcc -o myprogram $(OBJS)
+
+    main.o: main.c
+        gcc -c main.c
+
+    utils.o: utils.c
+        gcc -c utils.c
+
+    helper.o: helper.c
+        gcc -c helper.c
+    ```
+
+    等价写法：
+
+    `OBJS = $(patsubst %.c,%.o,$(SRCS))`
+
+* makefile 中的`?=`
+
+    ?= 被称为 条件赋值符 或 默认赋值符。只有当这个变量之前没有被赋值过（是空的），才会给它赋值。如果已经有值了，那么就忽略这次赋值。
+
+    如果我们在 makefile 中写`CFLAGS ?= -Wall -O2`，那么在外部执行`make CFLAGS="-g"`时，makefile 发现`CFLAGS`已经被赋值了，那么`CFLAGS ?= -Wall -O2`将不再生效。
+
+    makefile 中的四种赋值方法：
+
+    | 操作符 | 名称 | 作用 |
+    | - | - | - |
+    | `=` | 递归赋值 | 在变量被使用时才会展开并确定值。 |
+    | := |	直接赋值 |	在变量被定义时就立即展开并确定值。 |
+    | ?= |	条件赋值 |	如果变量为空，则赋予等号右边的值。 |
+    | += |	追加赋值 | 将等号右边的值追加到现有变量之后。 |
+
+* makefile 中可以使用`$(shell )`帮助实现 bash 中拼接字符串的效果
+
+    example:
+
+    ```makefile
+    var_1 := hello, $(uname -r)
+    var_2 := hello, $(shell uname -r)
+
+    test:
+    	@echo ${var_1}
+    	@echo $(var_2)
+    ```
+
+    output:
+
+    ```
+    hello,
+    hello, 6.8.0-79-generic
+    ```
+
+* makefile 中的变量与 shell 变量
+
+    ```makefile
+    makefile_var := hello, makefile
+
+    test:
+    	@echo $(makefile_var)
+    	@bash_var="hello, bash"; \
+    	echo $${bash_var}
+    ```
+
+    `make` output:
+
+    ```
+    hello, makefile
+    hello, bash
+    ```
+
+    `$()`可以引用到前面定义的 makefile 变量。
+
+    makefile target 中的每行都是一个独立 bash 环境，如果需要定义 bash 变量，那么可以使用`; \`将多行 bash 命令看作一行，或者直接写成一行的形式。
+
+    调用 bash 变量时，必须使用两个美元符号`$$`，比如`$$shell_var`, `$${shell_var}`。make 会将两个美元符号变成一个，然后传给 shell。
+
+    说明：
+
+    1. shell 变量不可以使用圆括号`$$()`
+
+    1. shell 写成两行是不可以的，因为算作两个独立的 bash 环境
+
+        ```makefile
+        target:
+        	@bash_var="hello, bash"
+        	@echo $${bash_var}
+        ```
+
+        输出为空。
+
+    * Make 变量 在规则的目标、依赖和整个 Makefile 的顶层使用 $(...) 来引用。
+
+    * Shell 变量 在规则的命令部分（以 Tab 开头的行）中使用，但需要使用两个美元符号 $$ 来转义。
+
 * `patsubst`
 
     在一个以空格分隔的单词列表中，查找并替换符合特定“模式”（Pattern）的文本。

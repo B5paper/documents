@@ -6,6 +6,46 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `posix_memalign()`
+
+    一个 POSIX 标准函数, 动态分配一块内存，并保证这块内存的起始地址是对齐在某个特定字节边界上的。
+
+    syntax:
+
+    ```c
+    #include <stdlib.h>
+
+    int posix_memalign(void **memptr, size_t alignment, size_t size);
+    ```
+
+    params:
+
+    * `size_t alignment`
+
+        指定所需的内存对齐边界，单位是字节。
+
+        这个值必须是 2 的幂次方（如 1, 2, 4, 8, 16, 32, 64, ...），并且必须是 sizeof(void *) 的整数倍。
+
+        常见的值：16 (SSE), 32 (AVX), 64 (AVX-512, 缓存行对齐)。
+
+    * `size_t size`
+
+        指定需要分配的内存块大小，单位是字节。
+
+        注意：分配的内存大小不需要是 alignment 的倍数，但通常你会分配对齐大小的整数倍以确保充分利用。
+
+    返回值：
+
+    * 成功时，返回 0。
+
+    * 失败时，返回一个错误码（不是设置 errno）。常见的错误码有：
+
+        * EINVAL: 参数无效。通常是 alignment 不是 2 的幂次方，或者不是 sizeof(void *) 的倍数。
+
+        * ENOMEM: 内存不足，无法完成分配请求。
+
+    与 aligned_alloc() 的关系：posix_memalign() 是 POSIX 的扩展，而 aligned_alloc() 是 C11 标准引入的函数。两者功能类似，但在参数细节上略有不同。在支持 C11 的环境下，aligned_alloc() 是更可移植的标准选择。
+
 * `aligned_alloc()`
 
     动态分配一块内存，并且这块内存的起始地址会按照你指定的字节对齐方式对齐。

@@ -2,6 +2,51 @@
 
 ## cache
 
+* vim-plug
+
+    official site: <https://github.com/junegunn/vim-plug>
+
+    下载和安装：
+
+    ```bash
+    curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    ```
+
+    使用：
+
+    编辑`~/.vimrc`文件：
+
+    ```vim
+    call plug#begin()
+
+    " List your plugins here
+    Plug 'tpope/vim-sensible'
+
+    call plug#end()
+    ```
+
+    进入`vim`，执行命令`:PlugInstall`，此时会开始安装插件`vim-sensible`。若安装成功，则会提示插件`vim-sensible`已经安装成功。此时说明 vim-plug 已经成功安装。
+
+* vim 中使用文件路径补全
+
+    在插入模式下，输入部分路径后按 Ctrl-x Ctrl-f：
+
+    ```vim
+    # 输入 /usr/l 然后按 Ctrl-x Ctrl-f
+    cd /usr/l█
+    ```
+
+    自动补全菜单
+
+    * `Ctrl` + `n`：向下浏览补全选项
+
+    * `Ctrl` + `p`：向上浏览补全选项
+
+    * `Ctrl` + `y`：确认当前选择的补全项
+
+    * `Ctrl` + `e`：退出补全菜单
+
 * `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
 
     设置 Vim 查找 tags 文件的搜索路径列表，用逗号分隔多个路径。

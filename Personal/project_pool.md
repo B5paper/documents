@@ -28,6 +28,57 @@
 
 ## cache
 
+* 仅靠 cache entry 的堆砌，似乎很难自动地生成一个 routine
+
+    如果有构造 routine 的动机、想法、冲动，那么就快速实施想法，或者生成 task。总是想着“等所有前置知识都学完了，便可以自动生成只需要临门一脚就可实现的 routine”，是不可能实现的。
+
+* 将 note, qa, routine (example) 放到同一个目录下
+
+    由于 routine 可能以单个文件的形式存在，也可能以工程的形式（文件夹）存在，所以使用 routines 文件夹放置所有的 routine，需要文件的时候创建文件，需要文件夹的时候创建文件夹。
+
+    这样遵循了两个原则：
+
+    1. 意义相近的事物尽量放到一起
+
+    2. 类型相似的事物如果大于等于 3 个，那么就创建一个 group （文件夹）
+
+    经过这样改动后，linux driver 文件夹目录结构如下：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/documents/Linux/linux_driver$ tree
+    .
+    ├── linux_driver_note.md
+    ├── linux_driver_note_qa_exam_db
+    ├── linux_driver_note_qa.md
+    ├── linux_driver_note_qa.md_backup
+    ├── linux_driver_note_qa.md.bk
+    └── routines
+        └── ref_25
+            ├── app_code.cpp
+            ├── kern_mod_code.c
+            └── Makefile
+
+    2 directories, 8 files
+    ```
+
+    reference resouces 继续作为全局 ref 使用，如果某个 ref 有明确的分类需求/条件，那么将这个 ref 放到 note local 的 routines 目录下。
+
+* 笔记应该有两种形式，一种是从 micro concept entry 出发，解释概念，并给出忽略上下文的、简短的 example；另一种是从 example / routine 出发，在 example 下方给出说明，一条一条地批注、解释。
+
+    其中，micro concept entry 的发展路径可以为：micro concept entry -> topic -> typical example (on top)
+
+    这样一来，micro concept entry 的方式是自底向上，example / routine 的方式是自顶向下，这种方式结合才能理解一套复杂系统，我们不可以脱离一边只使用另外一边。
+
+* 仅靠堆叠小概念 entry，无法推导出如何组合成一个复杂任务，学习的过程也很慢。
+
+    堆叠小概念的过程是线性过程，所有的新概念都是从原有概念延伸而来，对于新概念，还可以进行发散、联想和探索，但是无法更近一步，快速地把 micro concept entry 串起来组成一个复杂任务，或者一个具有完整功能的任务。
+
+    串起复杂任务的过程，必须依靠 example 和非线性学习，充满了猜想、假设、和大脑必须保存的 routine 上下文缓存。 
+
+* 很多比较大的概念可以被分解成小的概念，每个小概念占一个 entry，但是 routine 相关的知识点几乎无法被分解，它描述小 entry 如何被串起来完成一件大任务。
+
+    典型的场景，比如 vulkan 如何沉浸一帧图片。
+
 * cache entry 必须够小，够多，才能形成 topic。如果都是长篇、深入、垂直的 cache entry，那么很难形成 topic。
 
 * 之前之所以没有写很多笔记，可能是因为 python + ai 实在太简单了，代码即其含义。另外很多算法都封装起来了，只要会调用就可以了。
@@ -961,88 +1012,88 @@
 
 ### tasks
 
+* [v] reorg: projects 30 mins 09.22
+
+    10:38 ~ 11:11
+
+    feedback:
+
+    * [ ] `#pragma`
+
+    * [ ] `#if ! MY_MACRO`
+
+    * [ ] random select 增加 exclude 功能
+
+        凡是文件是 parent dir abs path 符合 esclude 指定的正则表达式，都忽略
+
+        exclude 可以指定多个正则表达式
+
+* [v] reorg: documents 30 mins 09.22
+
+    10:26 ~ 10:36
+
+    feedback:
+
+    * [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
+
+    * [ ] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
+
 * [v] reorg: projects 30 mins 09.21
 
     15:22 ~15:28
 
-    feedback:
+* [ ] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
 
-    * [ ] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
+    ```c
+    const char conds[16][3] =
+    {
+      "eq", "ne", "cs", "cc",
+      "mi", "pl", "vs", "vc",
+      "hi", "ls", "ge", "lt",
+      "gt", "le", "al", ""
+    };
+    ```
 
-        ```c
-        const char conds[16][3] =
-        {
-          "eq", "ne", "cs", "cc",
-          "mi", "pl", "vs", "vc",
-          "hi", "ls", "ge", "lt",
-          "gt", "le", "al", ""
-        };
-        ```
+* [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
 
-    * [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
+* [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
 
-    * [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
-
-        里面似乎有许多指令集的排列组合。
+    里面似乎有许多指令集的排列组合。
 
 * [v] reorg: documents 30 mins 09.21
 
     14:43 ~ 14:59
 
-    feedback:
+* [ ] reorg: linux programming 30 mins
 
-    * [asso] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
-
-    * [ ] reorg: linux programming 30 mins
-
-    * [asso] 写一套文件操作 API，分别使用文件函数和 mmap 函数打开文件，实现功能如下：
-
-        1. 从指定位置开始，读指定字节的数据，若字节数为 <= 0，则读取所有数据
-
-        1. 实现一个 generator，每调用一次读一行，文件的最后一行如果只有 EOF 没有 \n，那么也算一行。如果 \n 后紧接 EOF，那么算同一行
-
-        1. 实现一个函数，将指定字节处（从 0 开始索引）的字节替换成指定字节
-
-    * [asso] 调研文件编辑器如何实现插入/删除功能？
-
-    * [ ] `remap_pfn_range()`
-
-* [v] reorg: cuda 30 mins 09.19
-
-    11:16 ~ 11:27, 12:24 ~ 12:51
+* [ ] `remap_pfn_range()`
 
 * [v] 调研 cuda 向量加的 example
 
     16:08 ~ 16:21
 
-    feedback:
+* [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
 
-    * [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
+* [ ] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
 
-    * [ ] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
+* [ ] `cudaMallocHost()`, `cudaFreeHost()`
 
-    * [ ] `cudaMallocHost()`, `cudaFreeHost()`
+* [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
 
-    * [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
+    ```cpp
+    // 定义线程块数量和每个线程块中的线程数
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock; // 向上取整
 
-        ```cpp
-        // 定义线程块数量和每个线程块中的线程数
-        int threadsPerBlock = 256;
-        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock; // 向上取整
-
-        // 启动内核
-        vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
-        ```
+    // 启动内核
+    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
+    ```
 
 * [ ] 调研 cuda 矩阵乘的 example
 
 * [ ] 调研 cuda swap
 
 * [ ] 调研 cuda 排序
-
-* [v] 调研傅里叶变换，尝试对 sin 曲线进行傅里叶变换
-
-    16:44 ~ 17:56
 
 * [ ] 调研英文阅读资料，每次增加英文阅读
 
@@ -1288,54 +1339,23 @@
 
 ### Tasks
 
+* [v] qa: 2 units 09.22
+
+    13:17 ~ 13:24
+
+    feedback:
+
+    * [ ] qa 测试时，除了输出 qa file name，还要输出 unit id
+
 * [v] qa: 2 units 30 mins
 
     15:32 ~ 15:38
 
-    feedback:
+* [ ] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
 
-    * [ ] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
-
-        现状：对于有数学公式的 qa，terminal 无法正常显示。
-
-* [v] 任务模板中增加`qa: review`
-
-    18:52 ~ 18:54
-
-* [v] makefile 中的`?=`
-
-     ~ 19:03
+    现状：对于有数学公式的 qa，terminal 无法正常显示。
 
 * [ ] makefile 中的`+=`
-
-* [v] `OBJS = $(SRCS:.c=.o)`
-
-    ~ 19:37
-
-* [v] 调研 make 变量与 shell 变量
-
-    ~ 15:31
-
-    * Make 变量 在规则的目标、依赖和整个 Makefile 的顶层使用 $(...) 来引用。
-
-    * Shell 变量 在规则的命令部分（以 Tab 开头的行）中使用，但需要使用两个美元符号 $$ 来转义。
-
-    ```makefile
-    MY_MAKE_VAR = I am a Make variable
-
-    test:
-        # 这里引用的是 Make 变量，需要 $()
-        @echo "Make var: $(MY_MAKE_VAR)"
-
-        # 这里我们想在 Shell 中设置并使用一个 Shell 变量
-        # 使用 $$ 来转义，这样 Make 会将其转换为单个 $ 传递给 Shell
-        @export SHELL_VAR="I am a Shell variable"; \
-        echo "Shell var: $$SHELL_VAR"
-
-        # 一个更常见的例子：获取 Shell 命令的进程 ID
-        @echo "The process ID in Make is: $(shell echo $$PPID)" # 嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
-        @echo "The process ID in Shell is: $$PPID" # $$ 给 Shell, Shell 看到的是 $PPID
-    ```
 
 * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
@@ -1462,19 +1482,15 @@
 
     正确率：0 / 2
 
-    feedback:
+* [ ] 创建一个`qa_utils`文件下，下设`opengl`, `opencl`等文件夹，文件夹中再设`triangle.c`, `vec_add.c`等文件或文件夹，与 dep 任务相对应。
 
-    1. 创建一个`qa_utils`文件下，下设`opengl`, `opencl`等文件夹，文件夹中再设`triangle.c`, `vec_add.c`等文件或文件夹，与 dep 任务相对应。
+    最好可以把功能写成`.h`的形式，在使用时直接`#include "qa_utils/opengl/load_shader.h"`就可以。
 
-        最好可以把功能写成`.h`的形式，在使用时直接`#include "qa_utils/opengl/load_shader.h"`就可以。
+    实在写不成`.h`的形式，再写成`.c`或`.cpp`的形式，如果连这种形式也写不成，就创建文件夹工程目录。
 
-        实在写不成`.h`的形式，再写成`.c`或`.cpp`的形式，如果连这种形式也写不成，就创建文件夹工程目录。
+    dep 不一定要实现完整工程，只需要写出核心的逻辑就可以。
 
-        dep 不一定要实现完整工程，只需要写出核心的逻辑就可以。
-
-    1. exam 程序应该先打印 deps，如果有 deps，必须依赖 deps 进行开发
-
-* [v] qa: review 30 mins
+* [ ] exam 程序应该先打印 deps，如果有 deps，必须依赖 deps 进行开发
 
 * [ ] 调研 makefile 中的`=`递归展开（lazy evaluation）
 
@@ -1486,6 +1502,18 @@
 
 * [asso] makefile `filter`, `filter-out`
 
+* [asso] 写一套文件操作 API，分别使用文件函数和 mmap 函数打开文件，实现功能如下：
+
+    1. 从指定位置开始，读指定字节的数据，若字节数为 <= 0，则读取所有数据
+
+    1. 实现一个 generator，每调用一次读一行，文件的最后一行如果只有 EOF 没有 \n，那么也算一行。如果 \n 后紧接 EOF，那么算同一行
+
+    1. 实现一个函数，将指定字节处（从 0 开始索引）的字节替换成指定字节
+
+* [asso] 调研文件编辑器如何实现插入/删除功能？
+
+* [asso] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1496,134 +1524,123 @@
 
 ### tasks
 
+* [v] process tabs 30 mins 09.22
+
+    13:25 ~ 13:56
+
+    feedback:
+
+    * [ ] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
+
 * [v] process 1 tab
 
     15:40 ~ 15:49
 
-    feedback:
+* [ ] 调研 Differences between torch.nn and torch.nn.functional
 
-    * [ ] 调研 Differences between torch.nn and torch.nn.functional
+    <https://www.geeksforgeeks.org/deep-learning/differences-between-torch-nn-and-torch-nn-functional/>
 
-        <https://www.geeksforgeeks.org/deep-learning/differences-between-torch-nn-and-torch-nn-functional/>
+* [ ] 调研 PyTorch Loss Functions
 
-    * [ ] 调研 PyTorch Loss Functions
+    <https://www.geeksforgeeks.org/deep-learning/pytorch-loss-functions/>
 
-        <https://www.geeksforgeeks.org/deep-learning/pytorch-loss-functions/>
+* [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
 
-    * [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
+    <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
 
-        <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
+* [ ] 调研 PyTorch Tutorial
 
-    * [ ] 调研 PyTorch Tutorial
+    <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
-        <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+* [ ] reorg: 正则表达式 30 mins
 
-    * [asso] 调研 6.12.2 Extended Asm - Assembler Instructions with C Expression Operands
+* [ ] `qemu-system-x86_64 -enable-kvm -device pci-bridge,id=mybridge -device e1000,bus=mybridge,addr=0x1`
 
-        <https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html>
+* [ ] `pci_find_bus()`
 
-    * [ ] reorg: 正则表达式 30 mins
+* [ ] `pci_alloc_dev()`
 
-    * [ ] `qemu-system-x86_64 -enable-kvm -device pci-bridge,id=mybridge -device e1000,bus=mybridge,addr=0x1`
+* [ ] 调研 ds 写的添加虚拟 pci 设备的代码（未验证）
 
-    * [ ] `pci_find_bus()`
+    ```c
+    // 文件名: vpci_device.c
+    #include <linux/module.h>
+    #include <linux/pci.h>
+    #include <linux/device.h>
 
-    * [ ] `pci_alloc_dev()`
+    // 定义虚拟 PCI 设备的 Vendor ID 和 Device ID
+    #define VENDOR_ID 0x1234
+    #define DEVICE_ID 0x5678
 
-    * [ ] 调研 ds 写的添加虚拟 pci 设备的代码（未验证）
+    static struct pci_dev *vpdev = NULL;
 
-        ```c
-        // 文件名: vpci_device.c
-        #include <linux/module.h>
-        #include <linux/pci.h>
-        #include <linux/device.h>
+    static int __init vpci_init(void) {
+        struct pci_bus *bus;
+        int ret = -ENODEV;
 
-        // 定义虚拟 PCI 设备的 Vendor ID 和 Device ID
-        #define VENDOR_ID 0x1234
-        #define DEVICE_ID 0x5678
-
-        static struct pci_dev *vpdev = NULL;
-
-        static int __init vpci_init(void) {
-            struct pci_bus *bus;
-            int ret = -ENODEV;
-
-            // 获取第一个 PCI 总线 (例如: 0000:00)
-            bus = pci_find_bus(0, 0); 
-            if (!bus) {
-                printk(KERN_ERR "无法找到 PCI 总线\n");
-                return ret;
-            }
-
-            // 动态分配一个 pci_dev 结构体
-            vpdev = pci_alloc_dev(bus);
-            if (!vpdev) {
-                printk(KERN_ERR "无法分配 PCI 设备\n");
-                return -ENOMEM;
-            }
-
-            // 设置设备基本信息
-            vpdev->vendor = VENDOR_ID;     // 厂商 ID
-            vpdev->device = DEVICE_ID;     // 设备 ID
-            vpdev->devfn = PCI_DEVFN(0, 0); // 设备号 (Bus 0, Device 0)
-            vpdev->class = PCI_CLASS_NETWORK_ETHERNET; // 设备类别 (示例: 网络设备)
-
-            // 初始化设备并添加到 PCI 子系统
-            pci_bus_add_device(vpdev);
-            ret = pci_add_device(vpdev);
-            if (ret < 0) {
-                printk(KERN_ERR "无法添加 PCI 设备\n");
-                pci_free_dev(vpdev);
-                return ret;
-            }
-
-            printk(KERN_INFO "虚拟 PCI 设备已创建: %04x:%04x\n", VENDOR_ID, DEVICE_ID);
-            return 0;
+        // 获取第一个 PCI 总线 (例如: 0000:00)
+        bus = pci_find_bus(0, 0); 
+        if (!bus) {
+            printk(KERN_ERR "无法找到 PCI 总线\n");
+            return ret;
         }
 
-        static void __exit vpci_exit(void) {
-            if (vpdev) {
-                pci_stop_and_remove_bus_device(vpdev); // 从总线移除设备
-                pci_free_dev(vpdev);                   // 释放设备内存
-                printk(KERN_INFO "虚拟 PCI 设备已移除\n");
-            }
+        // 动态分配一个 pci_dev 结构体
+        vpdev = pci_alloc_dev(bus);
+        if (!vpdev) {
+            printk(KERN_ERR "无法分配 PCI 设备\n");
+            return -ENOMEM;
         }
 
-        module_init(vpci_init);
-        module_exit(vpci_exit);
-        MODULE_LICENSE("GPL");
-        ```
+        // 设置设备基本信息
+        vpdev->vendor = VENDOR_ID;     // 厂商 ID
+        vpdev->device = DEVICE_ID;     // 设备 ID
+        vpdev->devfn = PCI_DEVFN(0, 0); // 设备号 (Bus 0, Device 0)
+        vpdev->class = PCI_CLASS_NETWORK_ETHERNET; // 设备类别 (示例: 网络设备)
 
-        若需要设备支持完整的配置空间操作（如 BAR 映射、中断等），需扩展模块代码：
+        // 初始化设备并添加到 PCI 子系统
+        pci_bus_add_device(vpdev);
+        ret = pci_add_device(vpdev);
+        if (ret < 0) {
+            printk(KERN_ERR "无法添加 PCI 设备\n");
+            pci_free_dev(vpdev);
+            return ret;
+        }
 
-        ```c
-        // 在 vpci_init 中补充资源配置
-        vpdev->resource[0].start = 0x1000;  // BAR0 起始地址 (虚拟)
-        vpdev->resource[0].end = 0x1FFF;    // BAR0 结束地址
-        vpdev->resource[0].flags = IORESOURCE_MEM; // 内存资源类型
+        printk(KERN_INFO "虚拟 PCI 设备已创建: %04x:%04x\n", VENDOR_ID, DEVICE_ID);
+        return 0;
+    }
 
-        // 启用设备
-        pci_enable_device(vpdev);
-        ```
+    static void __exit vpci_exit(void) {
+        if (vpdev) {
+            pci_stop_and_remove_bus_device(vpdev); // 从总线移除设备
+            pci_free_dev(vpdev);                   // 释放设备内存
+            printk(KERN_INFO "虚拟 PCI 设备已移除\n");
+        }
+    }
 
+    module_init(vpci_init);
+    module_exit(vpci_exit);
+    MODULE_LICENSE("GPL");
+    ```
 
-* [v] `posix_memalign()`
+    若需要设备支持完整的配置空间操作（如 BAR 映射、中断等），需扩展模块代码：
 
-    16:19 ~ 16:24
+    ```c
+    // 在 vpci_init 中补充资源配置
+    vpdev->resource[0].start = 0x1000;  // BAR0 起始地址 (虚拟)
+    vpdev->resource[0].end = 0x1FFF;    // BAR0 结束地址
+    vpdev->resource[0].flags = IORESOURCE_MEM; // 内存资源类型
 
-* [v] 调研`ipcs -m`
-
-    19:15 ~ 19:19
+    // 启用设备
+    pci_enable_device(vpdev);
+    ```
 
 * [v] 调研`df -T /dev/shm`
 
     19:38 ~ 19:49
 
     `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
-
-    feedback:
-
-    * [asso] 调研`/etc/fstab`的格式
 
 * [ ] 调研`lsof`
 
@@ -1641,16 +1658,6 @@
 * [v] 调研给 frpc 增加密码
 
     19:50 ~ 20:06
-
-    feedback:
-
-    * [asso] 调研 bash 技巧
-
-        ```bash
-        set +o history  # 禁用历史记录
-        # 敏感操作
-        set -o history  # 重新启用
-        ```
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
@@ -1937,6 +1944,20 @@
 
 * [asso] `ipcrm -m <shmid>`手动删除内存段。
 
+* [asso] 调研 6.12.2 Extended Asm - Assembler Instructions with C Expression Operands
+
+    <https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html>
+
+* [asso] 调研`/etc/fstab`的格式
+
+* [asso] 调研 bash 技巧
+
+    ```bash
+    set +o history  # 禁用历史记录
+    # 敏感操作
+    set -o history  # 重新启用
+    ```
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -1959,15 +1980,53 @@ resources:
 
 * [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
-    17:13 ~ 18:00
+    17:13 ~ 18:00, 14:21 ~ 15:28
 
     目前看到
 
     > Optimizing Model Training with PyTorch Datasets
 
-* [ ] `optim.SGD`数学公式是什么？代码如何实现？
+    feedback:
 
-* [ ] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
+    * 目前看到
+
+        > 3. Batch Processing for Efficient Training
+
+    * [ ] 调研 Datasets And Dataloaders in Pytorch
+
+        <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
+
+    * [asso] `DataLoader`是如何实现 shuffle 的？先按照 dataset 的 length 生成 range，然后 random permute 吗？
+
+    * [asso] python 的实例既然可以定义成员变量，那么可以定义成员函数吗？
+
+    * [ ] `DataLoader`中的 sampler 是什么含义？
+
+    * [ ] Computer Vision with PyTorch
+
+        <https://www.geeksforgeeks.org/deep-learning/computer-vision-with-pytorch/>
+
+    * [ ] 调研 PIL
+
+        PIL 是否有显示图片的功能？
+
+    * [ ] `transforms.Compose`为什么可以接收`PIL.Image`类型的对象？
+
+    * [ ] `transforms`中常用的 aug 方法有哪些？
+
+* [v] `optim.SGD`数学公式是什么？代码如何实现？
+
+    15:32 ~ 16:12
+
+    feedback:
+
+    * [ ] 带动量的SGD（Momentum）
+
+    * [ ] 带动量和权重衰减的SGD
+
+* [v] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
+
+    ~ 11:17
 
 * [O] 调研 Pytorch - Index-based Operation
 
@@ -2041,16 +2100,6 @@ resources:
 
 ### tasks
 
-* [v] 调研稀疏矩阵的处理
-
-    17:19 ~ 17:44
-
-    * python: scipy.sparse.csr_matrix, scipy.sparse.lil_matrix 等。
-
-    * C++ (Eigen): Eigen::SparseMatrix
-
-    * MATLAB: sparse() 函数
-
 * [ ] OO格式（scipy.sparse.coo_matrix）
 
     调用 .tocsr() 方法将其转换为 CSR格式
@@ -2081,11 +2130,29 @@ resources:
 
     * [ ] `fig.colorbar(surf)`
 
-* [ ] 调研 rnn
+* [v] 调研 rnn
 
     example 代码，尝试跑通
 
-* [ ] 调研 IMDb 电影评论数据集
+    feedback:
+
+    * [ ] 调研论文《Finding Structure in Time》 (1990) by Jeffrey L. Elman
+
+        <https://crl.ucsd.edu/~elman/Papers/fsit.pdf>
+
+    * [ ] LSTM（长短期记忆网络）
+
+    * [ ] GRU（门控循环单元）
+
+    * [ ] 调研 词嵌入（Word Embeddings）
+
+    * [ ] torch tensor `.float()`
+
+    * [ ] `nn.RNN`
+
+* [v] 调研 IMDb 电影评论数据集
+
+    18:41 ~ 
 
     情感二分类，正面或负面
 
@@ -2467,15 +2534,7 @@ resources:
 
 ### tasks
 
-* [ ] 调研`watch "ps -aux | grep v2ray"`为什么没输出
-
-    `watch bash -c "ps -aux | grep v2ray"`为什么也没输出
-
-* [ ] 调研使用`ssh -R`是否可以完全代替 frpc
-
 * [ ] `/proc/iomem`
-
-* [ ] 调研`:tag function_name` - 跳转到指定标签
 
 * [P] 调研`iowrite32_rep()`系列
 
@@ -2524,10 +2583,6 @@ resources:
     // memcpy_toio() 是更安全的选择
     memcpy((void *)hardware_buffer, src_buf, count * 4);
     ```
-
-* [v] 内存排序/屏障（Memory Ordering / Barriers）
-
-    ~ 20:23
 
 * [ ] BAR 是谁配置的？
 
@@ -2604,12 +2659,6 @@ resources:
 * [ ] `-serial null`
 
 * [ ] `-serial chardev:<id>`
-
-* [ ] 调研 ls 相关
-
-    `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
-
-    `ls -alht`, `ls -lhR`
 
 * [ ] 调研 makefile 中 target 的执行机制
 
@@ -3582,6 +3631,20 @@ resources:
 ## linux maintain
 
 ### tasks
+
+* [ ] 调研 ls 相关
+
+    `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
+
+    `ls -alht`, `ls -lhR`
+
+* [ ] 调研`watch "ps -aux | grep v2ray"`为什么没输出
+
+    `watch bash -c "ps -aux | grep v2ray"`为什么也没输出
+
+* [ ] 调研使用`ssh -R`是否可以完全代替 frpc
+
+* [ ] 调研`:tag function_name` - 跳转到指定标签
 
 * [ ] `readelf -d <文件名> | grep NEEDED`
 

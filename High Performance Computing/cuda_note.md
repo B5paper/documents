@@ -2,6 +2,165 @@
 
 ## cache
 
+*  CUDA 向量加（Vector Addition） example
+
+    ```cpp
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <cuda_runtime.h>
+
+    // CUDA 内核函数：向量加法
+    __global__ void vectorAdd(const float* A, const float* B, float* C, int numElements)
+    {
+        int i = blockDim.x * blockIdx.x + threadIdx.x;
+        if (i < numElements) {
+            C[i] = A[i] + B[i];
+        }
+    }
+
+    // 初始化主机数据的辅助函数
+    void initData(float* ptr, int size, float value)
+    {
+        for (int i = 0; i < size; ++i) {
+            ptr[i] = value + i;
+        }
+    }
+
+    // 验证结果的辅助函数
+    bool verifyResult(const float* A, const float* B, const float* C, int numElements)
+    {
+        const float epsilon = 1.0e-6f;
+        for (int i = 0; i < numElements; ++i) {
+            if (fabs(C[i] - (A[i] + B[i])) > epsilon) {
+                printf("验证失败! 在索引 %d: 期望 %.2f, 得到 %.2f\n", 
+                       i, A[i] + B[i], C[i]);
+                return false;
+            }
+        }
+        printf("验证成功! 所有元素计算正确。\n");
+        return true;
+    }
+
+    int main(void)
+    {
+        // 设置向量长度
+        const int numElements = 50000;
+        const size_t size = numElements * sizeof(float);
+        printf("[信息] 向量加法，每个向量长度为 %d 元素\n", numElements);
+
+        // 分配主机内存
+        float *h_A, *h_B, *h_C;
+        h_A = (float*)malloc(size);
+        h_B = (float*)malloc(size);
+        h_C = (float*)malloc(size);
+
+        if (!h_A || !h_B || !h_C) {
+            printf("主机内存分配失败!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        // 初始化主机数组
+        initData(h_A, numElements, 1.0f);  // A = [1, 2, 3, ...]
+        initData(h_B, numElements, 2.0f);  // B = [2, 3, 4, ...]
+        // 期望结果: C = [3, 5, 7, ...]
+
+        // 分配设备内存
+        float *d_A, *d_B, *d_C;
+        cudaMalloc((void**)&d_A, size);
+        cudaMalloc((void**)&d_B, size);
+        cudaMalloc((void**)&d_C, size);
+
+        // 拷贝输入数据从主机到设备
+        cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
+
+        // 启动内核配置
+        int threadsPerBlock = 256;
+        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+        printf("[信息] 启动内核配置: %d 个线程块, 每个块 %d 个线程\n", 
+               blocksPerGrid, threadsPerBlock);
+
+        // 执行CUDA内核
+        vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
+
+        // 等待所有GPU操作完成
+        cudaDeviceSynchronize();
+
+        // 检查内核执行是否有错误
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            printf("CUDA 内核执行错误: %s\n", cudaGetErrorString(err));
+            exit(EXIT_FAILURE);
+        }
+
+        // 拷贝结果从设备到主机
+        cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
+
+        // 验证结果
+        verifyResult(h_A, h_B, h_C, numElements);
+
+        // 打印前10个结果作为示例
+        printf("\n前10个结果示例:\n");
+        for (int i = 0; i < 10 && i < numElements; ++i) {
+            printf("C[%d] = %.2f (A[%d] + B[%d] = %.2f + %.2f)\n", 
+                   i, h_C[i], i, i, h_A[i], h_B[i]);
+        }
+
+        // 释放设备内存
+        cudaFree(d_A);
+        cudaFree(d_B);
+        cudaFree(d_C);
+
+        // 释放主机内存
+        free(h_A);
+        free(h_B);
+        free(h_C);
+
+        printf("\n[信息] 程序执行完成，内存已释放。\n");
+
+        // 重置设备以便性能分析工具获取更准确的数据
+        cudaDeviceReset();
+
+        return 0;
+    }
+    ```
+
+    threadIdx.x：线程在其线程块（Block）内的索引。
+
+    blockIdx.x：线程块在网格（Grid）中的索引。
+
+    blockDim.x：每个线程块中的线程数量。
+
+    compile:
+
+    `nvcc -o vector_add vector_add.cu`
+
+    run:
+
+    `./vector_add`
+
+    output:
+
+    ```
+    [信息] 向量加法，每个向量长度为 50000 元素
+    [信息] 启动内核配置: 196 个线程块, 每个块 256 个线程
+    验证成功! 所有元素计算正确。
+
+    前10个结果示例:
+    C[0] = 3.00 (A[0] + B[0] = 1.00 + 2.00)
+    C[1] = 5.00 (A[1] + B[1] = 2.00 + 3.00)
+    C[2] = 7.00 (A[2] + B[2] = 3.00 + 4.00)
+    C[3] = 9.00 (A[3] + B[3] = 4.00 + 5.00)
+    C[4] = 11.00 (A[4] + B[4] = 5.00 + 6.00)
+    C[5] = 13.00 (A[5] + B[5] = 6.00 + 7.00)
+    C[6] = 15.00 (A[6] + B[6] = 7.00 + 8.00)
+    C[7] = 17.00 (A[7] + B[7] = 8.00 + 9.00)
+    C[8] = 19.00 (A[8] + B[8] = 9.00 + 10.00)
+    C[9] = 21.00 (A[9] + B[9] = 10.00 + 11.00)
+
+    [信息] 程序执行完成，内存已释放。
+    ```
+
 * 一个能跑通的`__shared__` example:
 
     ```cpp

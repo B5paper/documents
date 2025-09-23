@@ -6,6 +6,163 @@ Ref:
 
 ## cache
 
+* 内存排序模型（Memory Ordering Models）
+
+    * 顺序一致性（Sequential Consistency, SC）
+
+        最强模型。要求所有线程看到的整个程序的执行顺序是一致的，且每个线程内部的操作顺序就是其程序顺序。几乎在所有指令之间都隐式地插入了全屏障。性能最差，但最容易理解。
+
+    * 宽松内存排序（Relaxed Memory Ordering / Weak Ordering）
+
+        性能最优。允许大量的重排序，除非程序员显式地使用内存屏障指令来约束顺序。
+
+        ARM、PowerPC 等架构是弱内存模型。
+
+    * 介于两者之间（如 x86/x64-64）
+
+        TSO（Total Store Order）模型：这是一种相对较强的模型。
+
+        它只允许一种重排序：后来的读操作可以越过先前的写操作。因此，x86 不需要单独的 LoadLoad 或 LoadStore 屏障，但需要 StoreStore 和（尤其是）StoreLoad 屏障（这是开销最大的一种屏障）来防止这种重排序。
+
+* `request_irq()` example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/pci.h>
+
+    static struct pci_device_id pci_id_table[] = {
+        { PCI_DEVICE(0x1234, 0x11e8) },
+        {0,}
+    };
+
+    static void *base_addr_bar0;
+    static struct pci_dev *hlc_pci_dev = NULL;
+
+    irqreturn_t irq_handler(int irq, void *dev_id) {
+        pr_info("in irq_handler()...\n");
+        if (dev_id != hlc_pci_dev) {
+            pr_warn("dev_id != hlc_pci_dev\n");
+            return IRQ_NONE;
+        }
+
+        return IRQ_HANDLED;
+    }
+
+    static int edu_probe(struct pci_dev *pci_dev, const struct pci_device_id *id) {
+        pr_info("in edu_probe()...\n");
+        hlc_pci_dev = pci_dev;
+        
+        int ret = pci_enable_device(pci_dev);
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci enable device, ret: %d\n", ret);
+            goto ERR_PCI_ENABLE_DEVICE;
+        }
+
+        // mmio
+        ret = pci_request_region(pci_dev, 0, "qemu_edu_drv");
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to pci request region\n");
+            goto ERR_PCI_REQUEST_REGION;
+        }
+
+        resource_size_t res_len_bar0 = pci_resource_len(pci_dev, 0);
+        base_addr_bar0 = pci_iomap(pci_dev, 0, res_len_bar0);
+        if (base_addr_bar0 == NULL) {
+            dev_err(&pci_dev->dev, "fail to pci iomap\n");
+            goto ERR_PCI_IOMAP;
+        }
+
+        // dma
+        ret = dma_set_mask_and_coherent(&pci_dev->dev, DMA_BIT_MASK(28));
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to set dma mask and conherent\n");
+            goto ERR_DMA_SET_MASK_AND_COHERENT;
+        }
+
+        // irq
+        ret = request_irq(pci_dev->irq, irq_handler, IRQF_SHARED, "qemu_edu_dev_irq_handler", pci_dev);
+        if (ret != 0) {
+            dev_err(&pci_dev->dev, "fail to request irq\n");
+            goto ERR_REQUEST_IRQ;
+        }
+
+        pr_info("successfully probe edu pci dev\n");
+
+        return 0;
+
+    ERR_REQUEST_IRQ:
+    ERR_DMA_SET_MASK_AND_COHERENT:
+        pci_iounmap(pci_dev, base_addr_bar0);
+    ERR_PCI_IOMAP:
+        pci_release_region(pci_dev, 0);
+    ERR_PCI_REQUEST_REGION:
+        pci_disable_device(pci_dev);
+    ERR_PCI_ENABLE_DEVICE:
+        return -1;
+    }
+
+    static void edu_remove(struct pci_dev *pci_dev) {
+        pr_info("in edu_remove()...\n");
+        free_irq(pci_dev->irq, pci_dev);
+        pci_iounmap(pci_dev, base_addr_bar0);
+        pci_release_region(pci_dev, 0);
+        pci_disable_device(pci_dev);
+    }
+
+    static struct pci_driver edu_driver = {
+        .name = "qemu_edu_drv",
+        .id_table = pci_id_table,
+        .probe = edu_probe,
+        .remove = edu_remove
+    };
+
+    int init_mod(void) {
+        pr_info("init hlc module...\n");
+        int ret = pci_register_driver(&edu_driver);
+        if (ret != 0) {
+            pr_err("fail to register pci driver\n");
+            goto ERR_PCI_REGISTER_DRIVER;
+        }
+        return 0;
+
+    ERR_PCI_REGISTER_DRIVER:
+        return -1;
+    }
+
+    void exit_mod(void) {
+        pr_info("exit hlc module...\n");
+        pci_unregister_driver(&edu_driver);
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+    ```
+
+    dmesg output:
+
+    ```
+    [ 3040.252553] hello: loading out-of-tree module taints kernel.
+    [ 3040.252692] hello: module verification failed: signature and/or required key missing - tainting kernel
+    [ 3040.256257] init hlc module...
+    [ 3040.256842] in edu_probe()...
+    [ 3040.292191] ACPI: \_SB_.LNKD: Enabled at IRQ 10
+    [ 3040.292492] successfully probe edu pci dev
+    [ 3051.406874] exit hlc module...
+    [ 3051.406976] in edu_remove()...
+    ```
+
+* `free_irq()`
+
+    free an interrupt allocated with request_irq
+
+    syntax:
+
+    ```c
+    void free_irq(unsigned int irq, void * dev_id);
+    ```
+
 * 一个 pci iomap 的 example
 
     ```c

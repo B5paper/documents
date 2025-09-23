@@ -6,6 +6,82 @@
 
 ## cache
 
+* `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
+
+    将 /dev/shm 目录重新挂载为大小为 2GB 的 tmpfs（临时文件系统）。
+
+    这个操作会：
+
+    * 覆盖现有的 /dev/shm 挂载
+
+    * 之前存储在 /dev/shm 中的所有数据都会丢失
+
+    * 新的大小限制会影响所有使用共享内存的应用程序
+
+    默认的 /dev/shm 大小通常是系统物理内存的 50%。
+
+* `df -T /dev/shm`
+
+    显示 /dev/shm 目录所在文件系统的磁盘空间使用情况和文件系统类型信息。
+
+    * df：disk free 的缩写，用于显示文件系统的磁盘空间使用情况
+
+    * -T：选项，显示文件系统类型
+
+    example output:
+
+    ```
+    Filesystem     Type  1K-blocks  Used Available Use% Mounted on
+    tmpfs          tmpfs   8180620 55444   8125176   1% /dev/shm
+    ```
+
+    * 文件系统：tmpfs - 临时文件系统
+
+    * 类型：tmpfs - 基于内存的临时文件系统
+
+    * 1K-块：总容量（以 1KB 为单位）
+
+* `ipcs -m`
+
+    列出当前系统中所有进程间通信（IPC）的资源中， specifically 关于共享内存（Shared Memory） segments 的详细信息。
+
+    ipcs: 是 “Inter-Process Communication Status” 的缩写，即“进程间通信状态”。这是一个用于报告 IPC 设施状态的工具。
+
+    -m: 指定 ipcs 命令只显示与共享内存（Shared Memory） 相关的信息。如果不加任何选项，ipcs 默认会显示消息队列、共享内存和信号量所有三类信息。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ipcs -m
+
+    ------ Shared Memory Segments --------
+    key        shmid      owner      perms      bytes      nattch     status      
+    0x00000000 2          hlc        600        524288     2          dest         
+    0x00000000 7          hlc        606        7881216    2          dest         
+    0x00000000 8          hlc        606        7881216    2          dest         
+    0x00000000 34         hlc        600        524288     2          dest         
+    0x00000000 32811      hlc        606        7881216    2          dest         
+    0x00000000 32812      hlc        606        7881216    2          dest 
+    ```
+
+    KEY: 创建共享内存段时指定的键值（key），用于进程间找到同一个内存段。0x00000000 通常是私有用途。
+
+    SHMID: 共享内存段的唯一标识符（ID）。在程序中使用这个 ID 来操作特定的内存段。
+
+    OWNER: 创建该内存段的用户。
+
+    PERMS: 权限位（类似文件权限），如 644 表示所有者可读写，组和其他用户只可读。
+
+    BYTES: 该共享内存段的大小（字节）。
+
+    NATTCH: 当前关联（attach）到这个内存段的进程数量。如果为 0，表示没有进程在使用它，但它可能仍然存在系统中。
+
+    STATUS: 状态信息（在某些系统上可能显示更多细节，如被锁定的内存段）。
+
+* `objdump -p <文件名> | grep NEEDED`
+
+    -p 选项：代表显示文件头信息。
+
 * elf dynamic section lookup table
 
     | 标签名 (Tag) | 十六进制值 (Hex) | 含义简述 |

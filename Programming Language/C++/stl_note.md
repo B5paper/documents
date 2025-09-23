@@ -2,6 +2,174 @@
 
 ## cached
 
+* unique_ptr 自定义删除器 (Custom Deleter)
+
+    默认情况下，unique_ptr 使用 delete 或 delete[] 来释放资源。你可以指定一个自定义的删除器函数或函数对象，用于释放特殊资源（如文件句柄 (fclose)、套接字、特定 API 分配的内存等）。
+
+    example:
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+
+    // 一个自定义的删除器，模拟用于需要特殊清理的资源
+    struct FileDeleter {
+        void operator()(std::FILE* file_ptr) const {
+            if (file_ptr) {
+                std::fclose(file_ptr);
+                std::cout << "File closed using custom deleter.\n";
+            }
+        }
+    };
+
+    int main() {
+        // 使用自定义删除器打开文件
+        // 注意：这里必须使用裸指针构造函数，因为 make_unique 不支持自定义删除器
+        std::unique_ptr<std::FILE, FileDeleter> file_ptr(
+            std::fopen("data.txt", "r"), 
+            FileDeleter()
+        );
+
+        if (file_ptr) {
+            // 使用 file_ptr.get() 获取裸指针来操作文件
+            std::cout << "File opened successfully.\n";
+        }
+        // 当 file_ptr 离开作用域时，FileDeleter 会被调用，自动关闭文件
+        return 0;
+    }
+    ```
+
+    注意：使用自定义删除器会改变 unique_ptr 的类型，std::unique_ptr<T, Deleter> 与默认的 std::unique_ptr<T> 是不同的类型。
+
+* unique_ptr 的释放和重置
+
+    release()：放弃对指针的控制权，返回裸指针，并将 unique_ptr 自身置为 nullptr。调用者负责管理返回的裸指针的生命周期。
+
+    reset()：销毁当前管理的对象（如果存在），然后接管一个新提供的裸指针（如果提供了的话），或者直接置为 nullptr。
+
+    example:
+
+    ```cpp
+    auto ptr = std::make_unique<int>(100);
+
+    // release() 示例
+    int* released_ptr = ptr.release(); // ptr 现在是空的
+    // 必须手动删除 released_ptr: delete released_ptr;
+
+    // reset() 示例
+    ptr.reset(new int(200)); // 先删除旧的 100，然后管理新的 200
+    ptr.reset();             // 删除 200，ptr 变为 nullptr
+    ```
+
+* 常见的构造 std::unique_ptr 的方法
+
+    * 使用裸指针构造函数
+
+        用一个已存在的裸指针来构造 unique_ptr，unique_ptr 将接管该指针的所有权。
+
+        example:
+
+        ```cpp
+        // 不推荐！仅作演示
+        MyClass* raw_ptr = new MyClass(10, 5.5);
+        std::unique_ptr<MyClass> ptr(raw_ptr); // ptr 现在接管 raw_ptr
+        // 切记：此后绝不能再使用或删除 raw_ptr
+        ```
+
+        注意：
+
+        1. 极度危险：必须确保这个裸指针是刚通过 new 分配出来的，并且没有被其他任何 unique_ptr 或 shared_ptr 管理。否则会导致重复释放等未定义行为。
+
+        2. 应该尽量避免使用这种方法，优先选择 make_unique。
+
+    * 使用 std::move() 进行所有权转移
+
+        unique_ptr 是不可拷贝的，但可以移动。这意味着你可以将一个 unique_ptr 的所有权转移给另一个 unique_ptr。
+
+        example:
+
+        ```cpp
+        auto source_ptr = std::make_unique<MyClass>(1, 2.0);
+        // std::move 将 source_ptr 从“左值”变为“右值”，从而触发移动构造函数
+        std::unique_ptr<MyClass> destination_ptr = std::move(source_ptr);
+
+        // 移动后，source_ptr 变为 nullptr，不再拥有任何资源
+        // destination_ptr 现在拥有之前 source_ptr 管理的对象
+        ```
+
+* `std::make_unique()`
+
+    在动态内存中构造一个指定类型的对象，并返回一个管理该对象的 unique_ptr。
+
+    C++14 引入, 最推荐的创建 std::unique_ptr 的方式。
+
+    example:
+
+    ```cpp
+    #include <memory>
+
+    class MyClass {
+    public:
+        MyClass(int a, double b) {}
+        void doSomething() {}
+    };
+
+    int main() {
+        // 创建单个对象
+        auto ptr1 = std::make_unique<MyClass>(42, 3.14);
+        ptr1->doSomething();
+
+        // 创建数组 (C++14 起，但更推荐对数组使用 std::vector)
+        auto ptr2 = std::make_unique<int[]>(10); // 10 个整数的动态数组
+        ptr2[0] = 1;
+
+        return 0;
+    }
+    ```
+
+
+    优点：
+
+    1. 异常安全：防止因异常导致的内存泄漏。如果在一个复杂表达式中分配内存，make_unique 能确保在发生异常时已分配的内存会被正确释放。
+
+    2. 代码简洁：无需重复书写类型（使用 auto 时），只需要指定一次类型和构造函数参数即可。
+
+    3. 性能：make_unique 有机会优化内存分配的开销。
+
+* 使用`move()`移动 vector，其实移动的是 vector 内部的 buffer 指针
+
+    ```cpp
+    #include <vector>
+    #include <stdio.h>
+    #include <utility>
+    using namespace std;
+
+    int main() {
+        vector<int> vec_a{1, 2, 3, 4, 5, 6};
+        vector<int> vec_b;
+
+        printf("%p\n", vec_a.data());
+        vec_b = move(vec_a);
+        printf("%p\n", vec_a.data());
+        printf("%p\n", vec_b.data());
+
+        printf("%d\n", vec_a[0]);
+        printf("%d\n", vec_b[5]);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0x64b2694f5eb0
+    (nil)
+    0x64b2694f5eb0
+    Segmentation fault (core dumped)
+    ```
+
+    可以看到，经过 move 后，`vec_b`的 buffer addr 变成了之前`vec_a`的。`vec_a`的 buffer 指针则被置空，当再次访问时会报错。
+
 * `remove_const_t`
 
     除类型的顶层 const 限定符。
