@@ -2,6 +2,38 @@
 
 正则表达式的相关笔记。
 
+## cache
+
+* 贪婪匹配与非贪婪匹配
+
+    非贪婪匹配（也称为惰性匹配或最小匹配）是正则表达式中一种匹配模式，它会尽可能少地匹配字符。通常使用`*?`
+
+    贪婪匹配会尽可能多地匹配字符。通常使用`*`。
+
+    example:
+
+    ```py
+    import re
+
+    s = 'abbbabba'
+
+    # 贪婪匹配
+    for m in re.finditer(r'a.*a', s):
+        start_pos = m.start()
+        end_pos = m.end()
+        selected_str = s[start_pos:end_pos]
+        print(selected_str)  # abbbabba
+
+    # 非贪婪匹配
+    for m in re.finditer(r'a.*?a', s):
+        start_pos = m.start()
+        end_pos = m.end()
+        selected_str = s[start_pos:end_pos]
+        print(selected_str)  # abbba
+    ```
+
+## note
+
 ## 语法与规则
 
 * 直接输入的字符串可以直接匹配

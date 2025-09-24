@@ -28,6 +28,8 @@
 
 ## cache
 
+* reorg 任务中，默认的 feedback 任务应该放到湔任务之上，`[asso]`的 feedback 任务还按原来的方式处理，放到后面
+
 * 仅靠 cache entry 的堆砌，似乎很难自动地生成一个 routine
 
     如果有构造 routine 的动机、想法、冲动，那么就快速实施想法，或者生成 task。总是想着“等所有前置知识都学完了，便可以自动生成只需要临门一脚就可实现的 routine”，是不可能实现的。
@@ -1339,6 +1341,10 @@
 
 ### Tasks
 
+* [v] qa: review 30 mins 09.23
+
+    13:32 ~ 13:52
+
 * [v] qa: 2 units 09.22
 
     13:17 ~ 13:24
@@ -2416,6 +2422,59 @@ resources:
 
 tasks:
 
+* [v] 调研矩阵论 30 mins 09.24
+
+    13:52 ~ 15:23
+
+    feedback:
+
+    * [asso] 矩阵微积分 / 矩阵求导
+
+    * [asso] 复分析 / 复变函数论
+
+    * [asso] Wirtinger 微积分 / 复变函数求导
+
+    * [asso] 论文: 《The Complex Gradient Operator and the CR-Calculus》 by Kreutz-Delgado. 这是该领域的经典入门文献。
+
+    * [asso] 《Matrix Algebra Useful for Statistics》 by Searle and Khuri. 有章节涉及矩阵求导。
+
+    * [asso] 《Matrix Differential Calculus with Applications in Statistics and Econometrics》 by Magnus and Neudecker. 这是矩阵微积分的权威著作，虽然主要针对实数，但其思想可以扩展到复数。
+
+    * [asso] JAX
+
+        ```py
+        import jax.numpy as jnp
+        from jax import grad
+
+        # 定义一个实值损失函数，输入是复数矩阵
+        def loss(Z):
+            return jnp.real(jnp.trace(Z.conj().T @ Z))  # ||Z||_F^2
+
+        # 计算梯度
+        Z = jnp.array([[1+2j, 3j], [4-1j, 5+0j]])
+        gradient = grad(loss)(Z)
+        print("梯度:\n", gradient)
+        # 理论上，loss(Z)关于Z的梯度应该是 2 * Z_conj，但JAX等框架会处理好定义。
+        ```
+
+    * [asso] SymPy
+
+        ```py
+        from sympy import symbols, I, conjugate, diff, Matrix
+
+        # 定义符号
+        z11_r, z11_i, z21_r, z21_i = symbols('z11_r z11_i z21_r z21_i', real=True)
+        z11 = z11_r + I*z11_i
+        z21 = z21_r + I*z21_i
+        Z = Matrix([[z11], [z21]])
+
+        # 定义一个函数，例如 f = |z11|^2 + |z21|^2 = z11*conjugate(z11) + ...
+        f = conjugate(z11)*z11 + conjugate(z21)*z21
+
+        # 对实部求导（等价于一种处理方式）
+        diff(f, z11_r)
+        ```
+
 * [ ] 调研第八章 多元函数微分法及其应用
 
 * [v] 调研矩阵论
@@ -2534,7 +2593,15 @@ resources:
 
 ### tasks
 
-* [ ] `/proc/iomem`
+* [v] `/proc/iomem`
+
+    16:25 ~ 17:21
+
+    feedback:
+
+    * [asso] `/proc/<pid>/maps`
+
+    * [asso] DMA控制器芯片（如Intel的8237）
 
 * [P] 调研`iowrite32_rep()`系列
 
@@ -3638,9 +3705,13 @@ resources:
 
     `ls -alht`, `ls -lhR`
 
-* [ ] 调研`watch "ps -aux | grep v2ray"`为什么没输出
+* [x] 调研`watch "ps -aux | grep v2ray"`为什么没输出
 
     `watch bash -c "ps -aux | grep v2ray"`为什么也没输出
+
+    feedback:
+
+    * 尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
 
 * [ ] 调研使用`ssh -R`是否可以完全代替 frpc
 

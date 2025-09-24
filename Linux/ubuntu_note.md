@@ -4,6 +4,8 @@
 
 ## cache
 
+* gnome 的图片查看器叫 eog
+
 * ubuntu gnome 中 settings 里的 shortcuts 快捷键设置显示不全，可以使用命令行显示全部的快捷键
 
     example:

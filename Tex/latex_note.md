@@ -2,6 +2,8 @@
 
 ## cache
 
+* 倒三角符号的 latex 是$\nabla$
+
 * 希腊字母（Greek Letters）
 
     | 符号名称 | 小写 LaTeX | 大写 LaTeX |
@@ -18,13 +20,13 @@
     | Mu | `\mu` $\mu$ | `M` $M$ |
     | Nu | `\nu` $\nu$ | `N` $N$ |
     | Xi | `\xi` $\xi$ | `\Xi` $\Xi$ |
-    | Pi	\pi $\pi$	\Pi $\Pi$
-    | Rho	\rho $\rho$	P $P$
-    | Sigma	\sigma $\sigma$	\Sigma $\Sigma$
-    | Tau	\tau $\tau$	T $T$
-    | Phi	\phi $\phi$	\Phi $\Phi$
-    | Psi	\psi $\psi$	\Psi $\Psi$
-    | Omega	\omega $\omega$	\Omega $\Omega$
+    | Pi | `\pi` $\pi$ | \Pi $\Pi$ |
+    | Rho | `\rho` $\rho$ | `P` $P$ |
+    | Sigma | `\sigma` $\sigma$ | `\Sigma` $\Sigma$ |
+    | Tau | `\tau` $\tau$ | `T` $T$ |
+    | Phi | `\phi` $\phi$ | `\Phi` $\Phi$ |
+    | Psi | `\psi` $\psi$ | `\Psi` $\Psi$ |
+    | Omega | `\omega` $\omega$ | `\Omega` $\Omega$ |
 
 * latex 有关集合包含的符号
 
