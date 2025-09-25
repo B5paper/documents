@@ -6,6 +6,8 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
+
 * `posix_memalign()`
 
     一个 POSIX 标准函数, 动态分配一块内存，并保证这块内存的起始地址是对齐在某个特定字节边界上的。

@@ -4,6 +4,8 @@
 
 * IMDb 电影评论数据集
 
+    res: <http://ai.stanford.edu/~amaas/data/sentiment/>
+
     IMDb 数据集是一个用于二元情感分类的经典基准数据集。它包含来自互联网电影数据库（IMDb）的 50,000 条高度极化的电影评论。
 
     内容： 每条评论都被标记为 正面（positive） 或 负面（negative）。

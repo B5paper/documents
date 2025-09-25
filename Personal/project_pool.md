@@ -28,6 +28,16 @@
 
 ## cache
 
+* 了解了下每天上下班都路过的恒惴，作为一个主打创新药的公司，在知乎上被大部分人看衰，说得最多的理由是目前大部分药已经够用，寿命总体和营养、锻炼、作息、饮食等关系比较大，抗生素解决了大部分的问题，再研发新药，几乎看不到收益。另一个论点是，人的命不值研发新药的科研投入，假如一个人被动死了，法院可能判赔偿多少钱？二百万？三百万？许多人一辈子可能也挣不了三百万。那么我们投资几千万，几亿去研发一款新药，受众可能很少，也可能是那些一辈子都挣不了三百万的人。在制定法律时我们认为人是无价的，但是人一生能挣的钱可能也就几百万，甚至无法支撑创新药的研发，这种悲哀来源于何方？
+
+* 以前非常向往 spacex 和智晖君，现在反而感觉他们都是在瞎搞。究竟是我变了，还是他们变了，还是我当时向往的只是自己幻想出来的形象，并不是真正的他们？
+
+* 很久以前学嵌入式的时候，总感觉自己无所不能，电路，信号，功率，控制，信息处理，似乎什么都可以做到。后来学神经网络的时候，觉得自己似乎可以处理各种智能问题了，预测股市，解耦 PID，图片识别，拟合函数……现在看来，这些都是基础中的基础，在现实世界几乎什么都做不到。
+
+* routine 不可能用 cache task 存在，必须以 routine task 的方式存在
+
+    假如 routine 以 cache task 的方式存在，那么 routine 的所有代码都将写到 cache entry 里，但是这是不可能的，因为 routine 主打的是庞大、复杂、断点续传，cache entry 主打的是小巧、灵活、专一、多组合。将未完成的的 routine 放到 cache entry 里，显得格格不入。
+
 * reorg 任务中，默认的 feedback 任务应该放到湔任务之上，`[asso]`的 feedback 任务还按原来的方式处理，放到后面
 
 * 仅靠 cache entry 的堆砌，似乎很难自动地生成一个 routine
@@ -88,8 +98,6 @@
 * 以前的模式总是跑通一次 -> 记录过程 -> 下次仿照着跑通的来写。问题是不清楚别的方式为什么跑不通，并且不清楚能跑通的 case 的底层原理。
 
 * 为什么如此多人这么急切地投身 AI，为了证明自己是人上人？为了挣钱？为了证明自己寒窗没有苦读？为了跨越阶级？还是说迫不得已，其他方向找不到工作？还是说为了人类的未来？
-
-* [v] 调研买山茶花
 
 * 每日任务模板
 
@@ -1018,31 +1026,23 @@
 
     10:38 ~ 11:11
 
-    feedback:
+* [ ] `#pragma`
 
-    * [ ] `#pragma`
+* [ ] `#if ! MY_MACRO`
 
-    * [ ] `#if ! MY_MACRO`
+* [ ] random select 增加 exclude 功能
 
-    * [ ] random select 增加 exclude 功能
+    凡是文件是 parent dir abs path 符合 esclude 指定的正则表达式，都忽略
 
-        凡是文件是 parent dir abs path 符合 esclude 指定的正则表达式，都忽略
-
-        exclude 可以指定多个正则表达式
+    exclude 可以指定多个正则表达式
 
 * [v] reorg: documents 30 mins 09.22
 
     10:26 ~ 10:36
 
-    feedback:
+* [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
 
-    * [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
-
-    * [ ] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
-
-* [v] reorg: projects 30 mins 09.21
-
-    15:22 ~15:28
+* [ ] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
 
 * [ ] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
 
@@ -1062,17 +1062,9 @@
 
     里面似乎有许多指令集的排列组合。
 
-* [v] reorg: documents 30 mins 09.21
-
-    14:43 ~ 14:59
-
 * [ ] reorg: linux programming 30 mins
 
 * [ ] `remap_pfn_range()`
-
-* [v] 调研 cuda 向量加的 example
-
-    16:08 ~ 16:21
 
 * [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
 
@@ -1091,7 +1083,13 @@
     vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
     ```
 
-* [ ] 调研 cuda 矩阵乘的 example
+* [v] 调研 cuda 矩阵乘的 example
+
+    17:55 ~ 23:10
+
+    feedback:
+
+    * [asso] `cublasSgemm`
 
 * [ ] 调研 cuda swap
 
@@ -1285,6 +1283,10 @@
 
 ### cached
 
+* 一些 gnu 工具入门级的 guideline，废话有点多
+
+    <https://thevaluable.dev>
+
 * 使用 bfs 算法对 qa units 从易到难检测
 
 * 现在主要需要实现 new, prev rand 的功能。等这两个实现后，需要实现 dependency 的功能，根据一个条目，可以查到它的依赖条目，根据依赖条目。
@@ -1341,27 +1343,19 @@
 
 ### Tasks
 
-* [v] qa: review 30 mins 09.23
-
-    13:32 ~ 13:52
-
 * [v] qa: 2 units 09.22
 
     13:17 ~ 13:24
 
-    feedback:
-
-    * [ ] qa 测试时，除了输出 qa file name，还要输出 unit id
-
-* [v] qa: 2 units 30 mins
-
-    15:32 ~ 15:38
+* [ ] qa 测试时，除了输出 qa file name，还要输出 unit id
 
 * [ ] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
 
     现状：对于有数学公式的 qa，terminal 无法正常显示。
 
-* [ ] makefile 中的`+=`
+* [v] makefile 中的`+=`
+
+    ~ 22:31
 
 * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
@@ -1375,17 +1369,11 @@
 
 * [ ] 调研`read`, `read_iter`, `splice_read`
 
+* [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
+
+    目前看到 Character Classes
+
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
-
-    feedback:
-
-    1. <https://thevaluable.dev/regular-expression-basics-vim-grep/>
-
-        目前看到 Character Classes
-
-    2. 一些 gnu 工具入门级的 guideline，废话有点多
-
-        <https://thevaluable.dev>
 
 * [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
@@ -1534,13 +1522,7 @@
 
     13:25 ~ 13:56
 
-    feedback:
-
-    * [ ] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
-
-* [v] process 1 tab
-
-    15:40 ~ 15:49
+* [ ] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
 
 * [ ] 调研 Differences between torch.nn and torch.nn.functional
 
@@ -1642,13 +1624,9 @@
     pci_enable_device(vpdev);
     ```
 
-* [v] 调研`df -T /dev/shm`
+* [v] 调研`lsof`
 
-    19:38 ~ 19:49
-
-    `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
-
-* [ ] 调研`lsof`
+    ~ 23:18
 
     `sudo lsof /dev/shm/nccl-AoFK4o`
 
@@ -1660,10 +1638,6 @@
     ```
 
 * [ ] 调研`/var/log/syslog`, `/var/log/messages`
-
-* [v] 调研给 frpc 增加密码
-
-    19:50 ~ 20:06
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
@@ -1814,8 +1788,6 @@
     * <https://www.geeksforgeeks.org/binary-search/>
 
         目前看到 Recursive Binary Search Algorithm:
-
-* [v] cache tabs 06.08
 
 * [ ] 调研 boost 库的 lexical_cast
 
@@ -1990,49 +1962,33 @@ resources:
 
     目前看到
 
-    > Optimizing Model Training with PyTorch Datasets
+    > 3. Batch Processing for Efficient Training
 
-    feedback:
+* [ ] 调研 Datasets And Dataloaders in Pytorch
 
-    * 目前看到
+    <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
 
-        > 3. Batch Processing for Efficient Training
+* [ ] `DataLoader`中的 sampler 是什么含义？
 
-    * [ ] 调研 Datasets And Dataloaders in Pytorch
+* [ ] Computer Vision with PyTorch
 
-        <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
+    <https://www.geeksforgeeks.org/deep-learning/computer-vision-with-pytorch/>
 
-    * [asso] `DataLoader`是如何实现 shuffle 的？先按照 dataset 的 length 生成 range，然后 random permute 吗？
+* [ ] 调研 PIL
 
-    * [asso] python 的实例既然可以定义成员变量，那么可以定义成员函数吗？
+    PIL 是否有显示图片的功能？
 
-    * [ ] `DataLoader`中的 sampler 是什么含义？
+* [ ] `transforms.Compose`为什么可以接收`PIL.Image`类型的对象？
 
-    * [ ] Computer Vision with PyTorch
-
-        <https://www.geeksforgeeks.org/deep-learning/computer-vision-with-pytorch/>
-
-    * [ ] 调研 PIL
-
-        PIL 是否有显示图片的功能？
-
-    * [ ] `transforms.Compose`为什么可以接收`PIL.Image`类型的对象？
-
-    * [ ] `transforms`中常用的 aug 方法有哪些？
+* [ ] `transforms`中常用的 aug 方法有哪些？
 
 * [v] `optim.SGD`数学公式是什么？代码如何实现？
 
     15:32 ~ 16:12
 
-    feedback:
+* [ ] 带动量的SGD（Momentum）
 
-    * [ ] 带动量的SGD（Momentum）
-
-    * [ ] 带动量和权重衰减的SGD
-
-* [v] vscode 增加 alt + d 输入当前日期（比如`09.17`）的快捷键
-
-    ~ 11:17
+* [ ] 带动量和权重衰减的SGD
 
 * [O] 调研 Pytorch - Index-based Operation
 
@@ -2098,6 +2054,10 @@ resources:
 
 * [asso] torch tensor 与 numpy 的转换
 
+* [asso] `DataLoader`是如何实现 shuffle 的？先按照 dataset 的 length 生成 range，然后 random permute 吗？
+
+* [asso] python 的实例既然可以定义成员变量，那么可以定义成员函数吗？
+
 ## Machine Learning
 
 ### cache
@@ -2124,45 +2084,33 @@ resources:
 
     ~ 18:03
 
-    feedback:
+* [ ] `plt.figure(figsize=(10, 8))`
 
-    * [ ] `plt.figure(figsize=(10, 8))`
+* [ ] `fig.add_subplot(111, projection='3d')`
 
-    * [ ] `fig.add_subplot(111, projection='3d')`
+* [ ] 调研 matplotlib 基本和常见的 example
 
-    * [ ] 调研 matplotlib 基本和常见的 example
+* [ ] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
 
-    * [ ] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
-
-    * [ ] `fig.colorbar(surf)`
+* [ ] `fig.colorbar(surf)`
 
 * [v] 调研 rnn
 
     example 代码，尝试跑通
 
-    feedback:
+* [ ] 调研论文《Finding Structure in Time》 (1990) by Jeffrey L. Elman
 
-    * [ ] 调研论文《Finding Structure in Time》 (1990) by Jeffrey L. Elman
+    <https://crl.ucsd.edu/~elman/Papers/fsit.pdf>
 
-        <https://crl.ucsd.edu/~elman/Papers/fsit.pdf>
+* [ ] LSTM（长短期记忆网络）
 
-    * [ ] LSTM（长短期记忆网络）
+* [ ] GRU（门控循环单元）
 
-    * [ ] GRU（门控循环单元）
+* [ ] 调研 词嵌入（Word Embeddings）
 
-    * [ ] 调研 词嵌入（Word Embeddings）
+* [ ] torch tensor `.float()`
 
-    * [ ] torch tensor `.float()`
-
-    * [ ] `nn.RNN`
-
-* [v] 调研 IMDb 电影评论数据集
-
-    18:41 ~ 
-
-    情感二分类，正面或负面
-
-    res: <http://ai.stanford.edu/~amaas/data/sentiment/>
+* [ ] `nn.RNN`
 
 * [ ] 调研 LSTM
 
@@ -2420,90 +2368,78 @@ resources:
 
 1. 《高等数学》同济大学应用数学系
 
-tasks:
+### cache
+
+* ML-Prerequests: 机器学习的预备知识（矩阵论，概率论，凸优化等）
+
+    <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+
+* ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
+
+    <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+
+### tasks
 
 * [v] 调研矩阵论 30 mins 09.24
 
     13:52 ~ 15:23
 
-    feedback:
-
-    * [asso] 矩阵微积分 / 矩阵求导
-
-    * [asso] 复分析 / 复变函数论
-
-    * [asso] Wirtinger 微积分 / 复变函数求导
-
-    * [asso] 论文: 《The Complex Gradient Operator and the CR-Calculus》 by Kreutz-Delgado. 这是该领域的经典入门文献。
-
-    * [asso] 《Matrix Algebra Useful for Statistics》 by Searle and Khuri. 有章节涉及矩阵求导。
-
-    * [asso] 《Matrix Differential Calculus with Applications in Statistics and Econometrics》 by Magnus and Neudecker. 这是矩阵微积分的权威著作，虽然主要针对实数，但其思想可以扩展到复数。
-
-    * [asso] JAX
-
-        ```py
-        import jax.numpy as jnp
-        from jax import grad
-
-        # 定义一个实值损失函数，输入是复数矩阵
-        def loss(Z):
-            return jnp.real(jnp.trace(Z.conj().T @ Z))  # ||Z||_F^2
-
-        # 计算梯度
-        Z = jnp.array([[1+2j, 3j], [4-1j, 5+0j]])
-        gradient = grad(loss)(Z)
-        print("梯度:\n", gradient)
-        # 理论上，loss(Z)关于Z的梯度应该是 2 * Z_conj，但JAX等框架会处理好定义。
-        ```
-
-    * [asso] SymPy
-
-        ```py
-        from sympy import symbols, I, conjugate, diff, Matrix
-
-        # 定义符号
-        z11_r, z11_i, z21_r, z21_i = symbols('z11_r z11_i z21_r z21_i', real=True)
-        z11 = z11_r + I*z11_i
-        z21 = z21_r + I*z21_i
-        Z = Matrix([[z11], [z21]])
-
-        # 定义一个函数，例如 f = |z11|^2 + |z21|^2 = z11*conjugate(z11) + ...
-        f = conjugate(z11)*z11 + conjugate(z21)*z21
-
-        # 对实部求导（等价于一种处理方式）
-        diff(f, z11_r)
-        ```
-
 * [ ] 调研第八章 多元函数微分法及其应用
 
 * [v] 调研矩阵论
 
-    feedback:
+* [ ] 调研 Amir Beck
 
-    1. 调研 Amir Beck
+* [asso] 矩阵微积分 / 矩阵求导
 
-    2. cached
+* [asso] 复分析 / 复变函数论
 
-        * ML-Prerequests: 机器学习的预备知识（矩阵论，概率论，凸优化等）
+* [asso] Wirtinger 微积分 / 复变函数求导
 
-            <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+* [asso] 论文: 《The Complex Gradient Operator and the CR-Calculus》 by Kreutz-Delgado. 这是该领域的经典入门文献。
 
-        * ADMM_learning_NJU_HBS: 凸优化、变分法、ADMM 资料学习。来自南大何炳生教授主页。
+* [asso] 《Matrix Algebra Useful for Statistics》 by Searle and Khuri. 有章节涉及矩阵求导。
 
-            <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
+* [asso] 《Matrix Differential Calculus with Applications in Statistics and Econometrics》 by Magnus and Neudecker. 这是矩阵微积分的权威著作，虽然主要针对实数，但其思想可以扩展到复数。
+
+* [asso] JAX
+
+    ```py
+    import jax.numpy as jnp
+    from jax import grad
+
+    # 定义一个实值损失函数，输入是复数矩阵
+    def loss(Z):
+        return jnp.real(jnp.trace(Z.conj().T @ Z))  # ||Z||_F^2
+
+    # 计算梯度
+    Z = jnp.array([[1+2j, 3j], [4-1j, 5+0j]])
+    gradient = grad(loss)(Z)
+    print("梯度:\n", gradient)
+    # 理论上，loss(Z)关于Z的梯度应该是 2 * Z_conj，但JAX等框架会处理好定义。
+    ```
+
+* [asso] SymPy
+
+    ```py
+    from sympy import symbols, I, conjugate, diff, Matrix
+
+    # 定义符号
+    z11_r, z11_i, z21_r, z21_i = symbols('z11_r z11_i z21_r z21_i', real=True)
+    z11 = z11_r + I*z11_i
+    z21 = z21_r + I*z21_i
+    Z = Matrix([[z11], [z21]])
+
+    # 定义一个函数，例如 f = |z11|^2 + |z21|^2 = z11*conjugate(z11) + ...
+    f = conjugate(z11)*z11 + conjugate(z21)*z21
+
+    # 对实部求导（等价于一种处理方式）
+    diff(f, z11_r)
+    ```
 
 ## Linux Driver
 
 ### cache
-
-* 了解了下每天上下班都路过的恒惴，作为一个主打创新药的公司，在知乎上被大部分人看衰，说得最多的理由是目前大部分药已经够用，寿命总体和营养、锻炼、作息、饮食等关系比较大，抗生素解决了大部分的问题，再研发新药，几乎看不到收益。另一个论点是，人的命不值研发新药的科研投入，假如一个人被动死了，法院可能判赔偿多少钱？二百万？三百万？许多人一辈子可能也挣不了三百万。那么我们投资几千万，几亿去研发一款新药，受众可能很少，也可能是那些一辈子都挣不了三百万的人。在制定法律时我们认为人是无价的，但是人一生能挣的钱可能也就几百万，甚至无法支撑创新药的研发，这种悲哀来源于何方？
-
-* 以前非常向往 spacex 和智晖君，现在反而感觉他们都是在瞎搞。究竟是我变了，还是他们变了，还是我当时向往的只是自己幻想出来的形象，并不是真正的他们？
-
-* 很久以前学嵌入式的时候，总感觉自己无所不能，电路，信号，功率，控制，信息处理，似乎什么都可以做到。后来学神经网络的时候，觉得自己似乎可以处理各种智能问题了，预测股市，解耦 PID，图片识别，拟合函数……现在看来，这些都是基础中的基础，在现实世界几乎什么都做不到。
-
-* `ssize_t`是`long`
 
 * AXI DMA MMIO
 
@@ -2541,17 +2477,9 @@ tasks:
 
 * 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
 
-* [ ] param 被写入 module 中时，module 是如何感知到的？
-
-    2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
-
 * 调研
     
     `kthread_should_stop`, `msleep`, `likely`, `unlikely`, `orderly_poweroff`
-
-* 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
-
-    主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
 
 * cached tasks
 
@@ -2561,19 +2489,11 @@ tasks:
 
     `idr_init_base`
 
-    调研：
-
-    `pci_read_config_dword`, `pci_find_ext_capability`
-
     调研一下`KBUILD_MODNAME`的含义。
 
     * `spin_unlock_irqrestore()`
 
     * `mdev_register_device()`
-
-* 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
-
-    如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
 
 * kernel 中的内存管理感觉是个问题
 
@@ -2581,27 +2501,23 @@ tasks:
 
     如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
 
-* ubuntu 屏幕锁定后，不能被 gnome remote desktop 正常连接
-
-    最简单的解决办法是把 lock screen 相关的设置都禁掉。
-
-* `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
-
 resources:
 
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
 
+* [ ] param 被写入 module 中时，module 是如何感知到的？
+
+    2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
+
+* [ ] `pci_read_config_dword`
+
+* [ ] `pci_find_ext_capability`
+
 * [v] `/proc/iomem`
 
     16:25 ~ 17:21
-
-    feedback:
-
-    * [asso] `/proc/<pid>/maps`
-
-    * [asso] DMA控制器芯片（如Intel的8237）
 
 * [P] 调研`iowrite32_rep()`系列
 
@@ -2677,7 +2593,9 @@ resources:
 
 * [ ] `__iomem`有实际用处吗？还是只是个修饰？
 
-* [ ] 什么是基址寄存器（BARs）
+* [v] 什么是基址寄存器（BARs）
+
+    ~ 14:19
 
 * [ ] BAR 配置空间 都有哪些内容？
 
@@ -3132,6 +3050,10 @@ resources:
 
     `memory_order_seq_cst`, `memory_order_acq_rel`, `memory_order_relaxed`
 
+* [asso] `/proc/<pid>/maps`
+
+* [asso] DMA控制器芯片（如Intel的8237）
+
 ## CCL
 
 ### cache
@@ -3345,15 +3267,75 @@ resources:
 
 ### tasks
 
-* [ ] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
+* [x] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
+
+    14:48 ~ 17:03
+
+    feedback:
+
+    * [asso] 调研下面这个命令，看不懂
+
+        ```bash
+        # 查找美化打印脚本
+        find /usr -name "python*" -type d 2>/dev/null | xargs -I {} find {} -name "libstdcxx*" 2>/dev/null
+        ```
+
+    * [asso] 调研下面这个命令，看不懂
+
+        ```bash
+        # 检查 GDB 是否能加载美化打印
+        gdb -nx -ex "set verbose on" -ex "source /usr/share/gdb/auto-load/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.25-gdb.py" -ex "quit"
+        ```
+
+    * [asso] 下面这两种都无法实现鼠标悬停看到数据，需要调研 gdb pretty print
+
+        ```cpp
+        #include <memory>
+        #include <string>
+        #include <vector>
+        #include <stdio.h>
+
+        using namespace std;
+
+        struct MyStruc {
+            int val = 123;
+            string msg = "hello, world";
+        };
+
+        int main() {
+            vector<unique_ptr<MyStruc>> objs;
+            objs.push_back(make_unique<MyStruc>());
+
+            const string &msg = "hello, world";
+            printf("msg: %s\n", msg.c_str());
+            
+            return 0;
+        }
+        ```
+
+    * [asso] 调研 lldb
 
 * [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
 
-* [ ] vscode 如何同时滚动左右两个分栏？
+* [v] vscode 如何同时滚动左右两个分栏？
 
-* [O] 调研 graph xml parser
+    ~ 17:37
 
-    10:43 ~ 11:09
+    feedback:
+
+    * [asso] 调研 vim 中如何开分栏？如何同步滚动左右两个分栏？
+
+    * [asso] 调研 vscode Synced Scroll 插件
+
+* [v] 调研 graph xml parser
+
+    10:43 ~ 11:09, 11:09 ~ 13:49
+
+    feedback:
+
+    * [ ] `const ncclTopoGraph *const *const graphs`该如何理解？
+
+    * [ ] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
 
 * [ ] 调研可视化的方案
 

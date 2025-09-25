@@ -6,6 +6,10 @@
 
 ## cache
 
+* 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
+
+    如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
+
 * `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
 
     将 /dev/shm 目录重新挂载为大小为 2GB 的 tmpfs（临时文件系统）。

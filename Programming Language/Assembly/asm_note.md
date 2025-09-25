@@ -40,6 +40,8 @@ visual studio 提供了 masm，但是被集成在 visual studio 中，无法单�
 
 1. <https://thestarman.pcministry.com/asm/win32/index.html>
 
+## cache
+
 ## Hello world
 
 ### Console 版本

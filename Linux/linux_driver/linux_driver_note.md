@@ -6,6 +6,34 @@ Ref:
 
 ## cache
 
+* `ssize_t`是`long`
+
+* 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
+
+    主要是因为编译时候使用的内核版本和当前系统的内核版本不一致。
+
+* 对于 cpu 的 dma，cpu 内部的内存控制器里有 dma 引擎，dma 引擎设定一个计数器，要求dram把指定范围内的数据发送到总线上，如果目的地是网卡，那么网卡需要配合着读总线上的数据，并发送ack使计数器加一，直到数据全部传输完成。对于gpu和rdma网卡，则是网卡内部有dma引擎，向pcie发起read/write事务，读取或写入gpu显存的数据，gpu内则有专门的硬件单元来响应这个事务
+
+* `/proc/iomem`
+
+    /proc/iomem 是 Linux 内核提供的一个只读的虚拟文件，它直观地展示了整个系统物理内存地址空间的映射和分配情况。
+
+    它不仅仅显示普通的 RAM（系统内存）, 还显示了其他所有被映射到物理地址空间的设备，例如：
+
+    * 显卡的显存 (Video RAM)
+
+    * BIOS 的 ROM
+
+    * PCI/PCIe 设备的内存映射寄存器 (MMIO) - 这是非常重要的一部分，操作系统通过读写这些地址来与硬件（如网卡、显卡、硬盘控制器）通信。
+
+    * 系统保留的内存区域。
+
+    每一行代表一个地址范围，格式通常为：起始地址-结束地址 : 资源描述
+
+    /proc/iomem 描述的就是 CPU 的总线地址空间（或叫物理地址空间）的映射图。，总线上面可以挂多个设备，包含 dram, pcie 等，每个设备又分别占用总线地址空间的一小段范围
+
+    linux kernel 中的 va 指的并不是这里的总线地址。
+
 * 内存排序模型（Memory Ordering Models）
 
     * 顺序一致性（Sequential Consistency, SC）
