@@ -6,6 +6,24 @@ Ref:
 
 ## cache
 
+* 基址寄存器（BARs）
+
+    当电脑开机时，BIOS或操作系统会遍历所有PCIe设备，读取每个BAR的需求。然后，系统会统一规划，为每个设备的BAR分配一个实际的、唯一的起始内存地址（即“基址”），并把这个地址写回BAR中。此后，当CPU需要访问该设备时，只需从BAR指定的基址开始，进行读写操作即可。
+
+    BAR中存储的值，是 CPU 视角下的总线地址（在x86体系结构中也常称为物理地址）。
+
+    分配 bar 的过程：
+
+    1. 初始值（设备声明）：在系统分配之前，BAR中存放的并不是一个有效的地址，而是一个特殊的值，用于声明该设备所需地址空间的类型（是内存空间还是I/O空间）和大小。例如，设备会将某些位写为只读的1，系统软件通过读取并操作这些值，可以计算出设备需要多大的窗口。
+
+    2. 最终值（系统分配）：在系统启动（或设备热插拔）时，BIOS或操作系统会执行以下操作：
+
+        * 读取所有PCIe设备的BAR初始值，了解每个设备的需求。
+
+        * 在全局物理地址空间中，找出一段段未被占用的、大小合适的空闲区域。
+
+        * 将每个空闲区域的起始地址（即基址）写入到对应设备的BAR中。
+
 * `ssize_t`是`long`
 
 * 报错：`insmod: ERROR: could not insert module ./hello.ko: Invalid module format`
@@ -444,6 +462,20 @@ Ref:
     使用 iowrite32_rep() 比在循环中多次调用 iowrite32() 效率更高。因为它允许内核或底层架构使用更优化的方式来完成批量传输，例如使用处理器的缓存预取或更高效的总线指令（如 x86 架构上的 MOVS 指令配合 REP 前缀）。
 
     在需要向设备传输大量数据时（例如，向网卡发送一个数据包，或向磁盘控制器发送一系列指令参数），使用 _rep 版本的函数可以显著提升性能并减少代码量。
+
+    函数家族：
+
+    ```c
+    #include <asm/io.h>
+
+    void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+    void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
+
+    void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
+    ```
 
 * `BIT()`
 

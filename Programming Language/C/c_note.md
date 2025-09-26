@@ -6,6 +6,24 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* const 指针不允许 free()
+
+    example:
+
+    ```c
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    int main() {
+        char *real_path = realpath("./", NULL);
+        printf("real path: %s\n", real_path);
+        free(real_path);
+        return 0;
+    }
+    ```
+
+    这里`real_path`不能是`const char*`。
+
 * `static`可以只出现在头文件里，不出现在实现文件里，此时实现文件里的函数会被私有化，可以正常编译出`xxx.o`。
 
 * `posix_memalign()`

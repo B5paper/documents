@@ -233,7 +233,7 @@
     (base) hlc@hlc-VirtualBox:~$ 
     ```
 
-* ssh 
+* ssh 使用跳板机连接到远程主机
 
     使用跳板机连接到主机，等价于`-J`。其 ssh config 文件写法为
 

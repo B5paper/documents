@@ -6,6 +6,30 @@
 
 ## cache
 
+* `sudo lsof /dev/shm/nccl-AoFK4o`
+
+    用于查看正在使用特定 NCCL 共享内存文件的进程信息。
+
+    lsof: "list open files" - 列出打开文件的工具
+
+    输出列的含义：
+
+        COMMAND: 使用该文件的进程名称（如 python3, train.py 等）
+
+        PID: 进程 ID
+
+        USER: 进程所有者
+
+        FD: 文件描述符（mem 表示内存映射文件）
+
+        TYPE: 文件类型（REG 表示常规文件）
+
+        SIZE/OFF: 文件大小
+
+        NODE: 文件节点号
+
+        NAME: 文件名
+
 * 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
 
     如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`

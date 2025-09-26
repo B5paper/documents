@@ -2,6 +2,45 @@
 
 ## cache
 
+* makefile 中的 +=
+
+    在 Makefile 中，+= 是追加赋值运算符，用于向变量追加新内容，而不是替换原有内容。
+
+    `+=`会忽略左右的空格，甚至会忽略右侧的所有空白分隔符（空格，制表以及换行）
+
+    example:
+
+    ```makefile
+    msg = nihao
+    msg += hello world
+
+    msg_2 = nihao
+    msg_2 +=hello world
+
+    msg_3 = nihao
+    msg_3 +=    hello world
+
+    msg_4 = nihao
+    msg_4 = hello	world\
+    zaijian
+
+
+    test:
+    	@echo $(msg)
+    	@echo $(msg_2)
+    	@echo $(msg_3)
+    	@echo $(msg_4)
+    ```
+
+    output:
+
+    ```
+    nihao hello world
+    nihao hello world
+    nihao hello world
+    hello world zaijian
+    ```
+
 * `OBJS = $(SRCS:.c=.o)`
 
     将 SRCS 变量中的所有 .c 后缀文件名替换为 .o 后缀，并将结果赋值给 OBJS 变量。

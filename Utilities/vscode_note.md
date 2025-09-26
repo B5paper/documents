@@ -2,6 +2,26 @@
 
 ## cache
 
+* vscode sync scroll
+
+    vscode 中同时滚动左右两个分栏
+
+    extension name: `Sync Scroll`
+
+    安装完后，`Ctrl` + `Shift` + `P`打开命令栏，搜索 sync scroll，会看到一个 change sync scroll mode，选择之后，会有三个选项:
+
+    * normal
+
+        保持左右两栏行数相同。
+
+    * offset
+
+        保持左右两栏滚动相同的距离
+
+    * off
+
+    在 vscode 右下角也会有当前 sync scroll 模式的状态。
+
 * vscode 快捷键
 
     * 移动到下一个词的开头	Ctrl + →

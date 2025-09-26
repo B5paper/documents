@@ -28,6 +28,10 @@
 
 ## cache
 
+* 需要实现 asso 任务的重排序，以及接下来的任务的重排序
+
+    不然可能难而无法完成的任务总是放在轻松且易完成任务的上面。
+
 * 了解了下每天上下班都路过的恒惴，作为一个主打创新药的公司，在知乎上被大部分人看衰，说得最多的理由是目前大部分药已经够用，寿命总体和营养、锻炼、作息、饮食等关系比较大，抗生素解决了大部分的问题，再研发新药，几乎看不到收益。另一个论点是，人的命不值研发新药的科研投入，假如一个人被动死了，法院可能判赔偿多少钱？二百万？三百万？许多人一辈子可能也挣不了三百万。那么我们投资几千万，几亿去研发一款新药，受众可能很少，也可能是那些一辈子都挣不了三百万的人。在制定法律时我们认为人是无价的，但是人一生能挣的钱可能也就几百万，甚至无法支撑创新药的研发，这种悲哀来源于何方？
 
 * 以前非常向往 spacex 和智晖君，现在反而感觉他们都是在瞎搞。究竟是我变了，还是他们变了，还是我当时向往的只是自己幻想出来的形象，并不是真正的他们？
@@ -1022,9 +1026,17 @@
 
 ### tasks
 
-* [v] reorg: projects 30 mins 09.22
+* [ ] 构建任务模板初始版，模板完成版
 
-    10:38 ~ 11:11
+* [v] reorg: documents 30 mins 09.25
+
+    10:59 ~ 11:12
+
+    feedback:
+
+    * [ ] 调研 nasm
+
+        linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
 
 * [ ] `#pragma`
 
@@ -1035,10 +1047,6 @@
     凡是文件是 parent dir abs path 符合 esclude 指定的正则表达式，都忽略
 
     exclude 可以指定多个正则表达式
-
-* [v] reorg: documents 30 mins 09.22
-
-    10:26 ~ 10:36
 
 * [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
 
@@ -1086,10 +1094,6 @@
 * [v] 调研 cuda 矩阵乘的 example
 
     17:55 ~ 23:10
-
-    feedback:
-
-    * [asso] `cublasSgemm`
 
 * [ ] 调研 cuda swap
 
@@ -1343,19 +1347,23 @@
 
 ### Tasks
 
-* [v] qa: 2 units 09.22
+* [v] qa: 2 units 30 mins 09.25
 
-    13:17 ~ 13:24
+    13:26 ~ 13:58
+
+    feedback:
+
+    * [ ] 自己写的程序按 tab 如何自动补全参数？
+
+    * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
+
+        `select_graphcs_queue_family_idx` -> `select_graphics_queue_family_idx`
 
 * [ ] qa 测试时，除了输出 qa file name，还要输出 unit id
 
 * [ ] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
 
     现状：对于有数学公式的 qa，terminal 无法正常显示。
-
-* [v] makefile 中的`+=`
-
-    ~ 22:31
 
 * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
@@ -1508,6 +1516,8 @@
 
 * [asso] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
 
+* [asso] `cublasSgemm`
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1518,9 +1528,21 @@
 
 ### tasks
 
-* [v] process tabs 30 mins 09.22
+* [v] process 1 tab 09.26
 
-    13:25 ~ 13:56
+    15:54 ~ 16:31
+
+    feedback:
+
+    * [asso] 调研 Perl
+
+    * [asso] 调研 python `regex`及其递归匹配
+
+    * [asso] 调研正则表达式`(?:...)`
+
+    * [ ] `re.findall()`
+
+    * [ ] reg `\b`, `\w`
 
 * [ ] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
 
@@ -1624,13 +1646,7 @@
     pci_enable_device(vpdev);
     ```
 
-* [v] 调研`lsof`
-
-    ~ 23:18
-
-    `sudo lsof /dev/shm/nccl-AoFK4o`
-
-* [ ] 调研`ulimit -a`
+* [v] 调研`ulimit -a`
 
     ```bash
     ulimit -n 4096  # 增加打开文件描述符的数量
@@ -1982,25 +1998,15 @@ resources:
 
 * [ ] `transforms`中常用的 aug 方法有哪些？
 
-* [v] `optim.SGD`数学公式是什么？代码如何实现？
-
-    15:32 ~ 16:12
-
 * [ ] 带动量的SGD（Momentum）
 
 * [ ] 带动量和权重衰减的SGD
 
-* [O] 调研 Pytorch - Index-based Operation
+* [v] 调研 Pytorch - Index-based Operation
 
     16:36 ~ 16:47, 16:54 ~ 16:56
 
     <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
-
-    feedback:
-
-    * 目前看到
-
-        > 5.index_fill_:  'Val' value is filled with the elements of
 
 * [ ] 调研 Reshaping a Tensor in Pytorch
 
@@ -2066,15 +2072,27 @@ resources:
 
 ### tasks
 
-* [ ] OO格式（scipy.sparse.coo_matrix）
+* [v] OO格式（scipy.sparse.coo_matrix）
+
+    22:36 ～ 22:44
 
     调用 .tocsr() 方法将其转换为 CSR格式
+
+    feedback:
+
+    * [ ] `lil_matrix`
 
 * [ ] scipy.sparse.lil_matrix
 
 * [ ] C++ (Eigen): Eigen::SparseMatrix
 
-* [ ] 调研 Axes3D 的基本用法
+* [v] 调研 Axes3D 的基本用法
+
+    16:32 ~ 17:24
+
+    feedback:
+
+    * [asso] `cmap='viridis', marker='o'`
 
 * [ ] 调研`np.linspace()`与其他常用的数据创建方法
 
@@ -2380,13 +2398,7 @@ resources:
 
 ### tasks
 
-* [v] 调研矩阵论 30 mins 09.24
-
-    13:52 ~ 15:23
-
 * [ ] 调研第八章 多元函数微分法及其应用
-
-* [v] 调研矩阵论
 
 * [ ] 调研 Amir Beck
 
@@ -2501,6 +2513,15 @@ resources:
 
     如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
 
+* 实现了 ioctl 读取与写入数据，见`ref_12`
+
+    output:
+
+    ```
+    successfully write data by ioctl
+    read value: 123
+    ```
+
 resources:
 
 * Linux Kernel Development, 3rd Edition
@@ -2514,10 +2535,6 @@ resources:
 * [ ] `pci_read_config_dword`
 
 * [ ] `pci_find_ext_capability`
-
-* [v] `/proc/iomem`
-
-    16:25 ~ 17:21
 
 * [P] 调研`iowrite32_rep()`系列
 
@@ -2592,10 +2609,6 @@ resources:
 * [ ] 调研 MMU（内存管理单元）如何设计？
 
 * [ ] `__iomem`有实际用处吗？还是只是个修饰？
-
-* [v] 什么是基址寄存器（BARs）
-
-    ~ 14:19
 
 * [ ] BAR 配置空间 都有哪些内容？
 
@@ -2963,18 +2976,7 @@ resources:
 
 * [v] 调研 ioctl
 
-    feedback:
-
-    1. 实现了 ioctl 读取与写入数据，见`ref_12`
-
-        output:
-
-        ```
-        successfully write data by ioctl
-        read value: 123
-        ```
-
-    2. 不太明白为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
+* [ ] 调研为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
 
 * [ ] 调研 sysfs 读写，sync
 
@@ -3271,71 +3273,19 @@ resources:
 
     14:48 ~ 17:03
 
-    feedback:
-
-    * [asso] 调研下面这个命令，看不懂
-
-        ```bash
-        # 查找美化打印脚本
-        find /usr -name "python*" -type d 2>/dev/null | xargs -I {} find {} -name "libstdcxx*" 2>/dev/null
-        ```
-
-    * [asso] 调研下面这个命令，看不懂
-
-        ```bash
-        # 检查 GDB 是否能加载美化打印
-        gdb -nx -ex "set verbose on" -ex "source /usr/share/gdb/auto-load/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.25-gdb.py" -ex "quit"
-        ```
-
-    * [asso] 下面这两种都无法实现鼠标悬停看到数据，需要调研 gdb pretty print
-
-        ```cpp
-        #include <memory>
-        #include <string>
-        #include <vector>
-        #include <stdio.h>
-
-        using namespace std;
-
-        struct MyStruc {
-            int val = 123;
-            string msg = "hello, world";
-        };
-
-        int main() {
-            vector<unique_ptr<MyStruc>> objs;
-            objs.push_back(make_unique<MyStruc>());
-
-            const string &msg = "hello, world";
-            printf("msg: %s\n", msg.c_str());
-            
-            return 0;
-        }
-        ```
-
-    * [asso] 调研 lldb
-
 * [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
 
 * [v] vscode 如何同时滚动左右两个分栏？
 
     ~ 17:37
 
-    feedback:
-
-    * [asso] 调研 vim 中如何开分栏？如何同步滚动左右两个分栏？
-
-    * [asso] 调研 vscode Synced Scroll 插件
-
 * [v] 调研 graph xml parser
 
     10:43 ~ 11:09, 11:09 ~ 13:49
 
-    feedback:
+* [ ] `const ncclTopoGraph *const *const graphs`该如何理解？
 
-    * [ ] `const ncclTopoGraph *const *const graphs`该如何理解？
-
-    * [ ] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
+* [ ] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
 
 * [ ] 调研可视化的方案
 
@@ -3677,6 +3627,52 @@ resources:
 
 * [asso] 调研 elf dynamic section
 
+* [asso] 调研下面这个命令，看不懂
+
+    ```bash
+    # 查找美化打印脚本
+    find /usr -name "python*" -type d 2>/dev/null | xargs -I {} find {} -name "libstdcxx*" 2>/dev/null
+    ```
+
+* [asso] 调研下面这个命令，看不懂
+
+    ```bash
+    # 检查 GDB 是否能加载美化打印
+    gdb -nx -ex "set verbose on" -ex "source /usr/share/gdb/auto-load/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.25-gdb.py" -ex "quit"
+    ```
+
+* [asso] 下面这两种都无法实现鼠标悬停看到数据，需要调研 gdb pretty print
+
+    ```cpp
+    #include <memory>
+    #include <string>
+    #include <vector>
+    #include <stdio.h>
+
+    using namespace std;
+
+    struct MyStruc {
+        int val = 123;
+        string msg = "hello, world";
+    };
+
+    int main() {
+        vector<unique_ptr<MyStruc>> objs;
+        objs.push_back(make_unique<MyStruc>());
+
+        const string &msg = "hello, world";
+        printf("msg: %s\n", msg.c_str());
+        
+        return 0;
+    }
+    ```
+
+* [asso] 调研 lldb
+
+* [asso] 调研 vim 中如何开分栏？如何同步滚动左右两个分栏？
+
+* [asso] 调研 vscode Synced Scroll 插件
+
 ## linux maintain
 
 ### tasks
@@ -3695,7 +3691,42 @@ resources:
 
     * 尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
 
-* [ ] 调研使用`ssh -R`是否可以完全代替 frpc
+* [v] 调研使用`ssh -R`是否可以完全代替 frpc
+
+    feedback:
+
+    * [asso] 调研 ssh 心跳保持
+
+        client 端：
+
+        ```conf
+        # 每60秒发送心跳包
+        ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -R 8080:localhost:80 user@remote-host
+
+        # 或者写入配置文件 ~/.ssh/config
+        Host remote-host
+            HostName your-server.com
+            User username
+            ServerAliveInterval 60
+            ServerAliveCountMax 3
+            RemoteForward 8080 localhost:80
+        ```
+
+        server 端：
+
+        ```conf
+        # 在服务端 /etc/ssh/sshd_config 中配置
+        ClientAliveInterval 60
+        ClientAliveCountMax 3
+        TCPKeepAlive yes
+        ```
+
+    * [asso] 调研 frp 加密
+
+        ```conf
+        [common]
+        tls_enable = true
+        ```
 
 * [ ] 调研`:tag function_name` - 跳转到指定标签
 
