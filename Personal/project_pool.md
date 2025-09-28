@@ -28,6 +28,34 @@
 
 ## cache
 
+* 动态低价值任务
+
+    做自底向上的任务时，容易陷入查字典，背 API 的细节中，无法推动主线的进度。
+
+    如果我们已经知道一个任务是学习 API 的任务，那么可以在做任务之前就用任务时间控制、低比重、低优先级。但是如果一个任务做了 20％ 后，发现这个任务不重要，那么该如何处理？
+
+    目前想到的处理方法如下：
+
+    * 标记为低优先级的长线任务`{low}`
+
+    * 严格控制时间，比如每次只执行 20 mins
+
+    * 每执行一次，向下移动 5 个任务
+
+* 山茶花有一种又旧又潮湿的塑料皮的味道，喝起来又苦又涩，又难闻又难喝
+
+* 合作与边界
+
+    假如每个人只懂自己的一部分知识，不懂别人部分的知识，那么在合作时总会有 gap。这种 gap 似乎很难解决，在数模时就有这种问题，在现在的公司依然有这样的问题。所以可能最好的模式是一个全都懂的人，从上负责到下，然后其他人全给这个人打工？
+
+* 受迫振动
+
+    红楼梦冬篇，宝石之国，eva，进击的巨人中，推动剧情前进的总是强力的外界因素，红楼梦中是不断地抄家，宝石之国是魂的不断袭击，eva 是怪兽，进击的巨人是一波又一波出现的巨人，这种强有力的外部因素不断地使一个相对稳定的内部环境不断地做出改变，建立新的平衡点，从而推进剧情的前进。
+
+* 序列
+
+    我们向上攀爬的动力来自看到有人比我们的职级高、待遇好、权力大，通过这样把人分成三六九等，我们才能遵从自己的欲望，不断攀登这个长长的序列，将青春和动力供献给这个社会。
+
 * 需要实现 asso 任务的重排序，以及接下来的任务的重排序
 
     不然可能难而无法完成的任务总是放在轻松且易完成任务的上面。
@@ -1026,6 +1054,14 @@
 
 ### tasks
 
+* [v] reorg: documents 30 mins 09.26
+
+    11:08 ~ 11:21
+
+    feedback:
+
+    * [ ] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
+
 * [ ] 构建任务模板初始版，模板完成版
 
 * [v] reorg: documents 30 mins 09.25
@@ -1052,7 +1088,9 @@
 
 * [ ] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
 
-* [ ] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
+* [v] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
+
+    14:09 ~ 14:20
 
     ```c
     const char conds[16][3] =
@@ -1095,7 +1133,9 @@
 
     17:55 ~ 23:10
 
-* [ ] 调研 cuda swap
+* [v] 调研 cuda swap
+
+    14:34 ~ 14:48
 
 * [ ] 调研 cuda 排序
 
@@ -1347,6 +1387,16 @@
 
 ### Tasks
 
+* [v] qa: 2 units 30 mins 09.26
+
+    ~ 13:39
+
+    feedback:
+
+    * [ ] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
+
+* [v] qa: review 30 mins 09.26
+
 * [v] qa: 2 units 30 mins 09.25
 
     13:26 ~ 13:58
@@ -1361,9 +1411,109 @@
 
 * [ ] qa 测试时，除了输出 qa file name，还要输出 unit id
 
-* [ ] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
+* [v] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
+
+    ~ 16:32
 
     现状：对于有数学公式的 qa，terminal 无法正常显示。
+
+    feedback:
+
+    * [asso]  Kitty, WezTerm
+
+    * [asso] Sixel 或 Kitty 的图形协议
+
+    * [asso] texmath
+
+    * [asso] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
+
+    * [ ] glow, mdcat, catwalk
+
+    * [asso] latex/pdflatex/xelatex
+
+    * [asso] 终端图片显示工具（如 chafa, img2sixel, Kitty 的 icat）
+
+    * [asso] convert (ImageMagick) 
+
+    * [asso] latex2img 脚本或 catimg（简单图片显示
+
+    * [asso] texmath（Haskell），pandoc（可以转换格式）
+
+    * [asso] Vim/Neovim： 插件如 vim-markdown-composer 或 markdown-preview.nvim
+
+    * [asso] Emacs： 功能强大，通过 org-mode 或 latex-preview-pane 等可以在编辑器内渲染公式（通常是生成图片覆盖在文本上）。
+
+    * [asso] mdmath + 浏览器
+
+        ```bash
+        # 将 Markdown 转换为 HTML 并在浏览器中打开
+        pandoc math.md -o math.html --mathjax && xdg-open math.html
+        ```
+
+    * [asso] pandoc + lynx
+
+        ```bash
+        # 转换为文本格式查看
+        sudo apt install pandoc lynx
+        pandoc document.md -t plain | less
+        ```
+
+    * [asso] 图片变成字符画
+
+        chafa：强烈推荐。功能非常强大，支持多种输出格式（字符、符号、六角形等），色彩还原好，性能高。是目前最好的选择之一。
+
+        catimg： 简单易用，专门用于显示图片，对彩色图片支持不错。
+
+        img2txt（来自 caca-utils 包）： 老牌工具，也能生成字符画。
+
+        ```bash
+        # 安装 chafa (Ubuntu/Debian)
+        sudo apt install chafa
+
+        # 查看图片
+        chafa photo.jpg
+        # 或指定大小为终端宽度的一半
+        chafa -s 80x40 photo.jpg
+        ```
+
+    * [asso] 图形协议方式
+
+        这种方法利用终端仿真器支持的特殊协议，直接在其文本网格中渲染图形。效果最好，能显示真彩色的原图。
+
+        * Kitty 图形协议： Kitty 终端自带的协议，效率很高。
+
+            工具： Kitty 终端自带的 icat 命令。
+
+            ```bash
+            # 只在 Kitty 终端中有效
+            kitty +kitten icat image.png
+            ```
+
+        * Sixel： 一种较老的协议，但被许多终端支持（如 XTerm, WezTerm, Mintty）。
+
+            工具： img2sixel, chafa（也支持 Sixel 输出）。
+
+            ```bash
+            # 安装 ImageMagick (通常包含 `convert`，可用于生成 sixel)
+            brew install imagemagick
+            # Ubuntu: sudo apt install imagemagick
+
+            # 转换为 sixel 格式并显示
+            convert image.jpg sixel:-
+            # 或者使用专门工具
+            img2sixel image.jpg
+            ```
+
+        * iTerm2 内联图片协议： 专用于 iTerm2 终端。
+
+            iTerm2 提供了 imgcat 脚本。
+
+            ```bash
+            # 通常在 iTerm2 中，可以这样使用
+            ~/.iterm2/imgcat image.png
+            ```
+
+    * [asso] `xdg-open`
 
 * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
@@ -1528,6 +1678,8 @@
 
 ### tasks
 
+* [v] process 1 tab 30 mins 09.26
+
 * [v] process 1 tab 09.26
 
     15:54 ~ 16:31
@@ -1546,7 +1698,9 @@
 
 * [ ] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
 
-* [ ] 调研 Differences between torch.nn and torch.nn.functional
+* [v] 调研 Differences between torch.nn and torch.nn.functional
+
+    17:06 ~ 17:22
 
     <https://www.geeksforgeeks.org/deep-learning/differences-between-torch-nn-and-torch-nn-functional/>
 
@@ -1558,9 +1712,56 @@
 
     <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
 
-* [ ] 调研 PyTorch Tutorial
+* [v] 调研 PyTorch Tutorial
 
     <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+
+    18:30 ~ 18:53
+
+    feedback:
+
+    * [ ] Apply a 2D Convolution Operation in PyTorch
+
+        <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
+
+    * [ ] Apply a 2D Max Pooling in PyTorch
+
+        <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-max-pooling-in-pytorch/>
+
+    * [ ] Batch Normalization Implementation in PyTorch
+
+        <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
+
+    * [ ] Difference Between "Hidden" and "Output" in PyTorch LSTM
+
+        <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
+
+    * [ ] Generative Adversarial Networks (GANs) in PyTorch
+
+        <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
+
+    * [ ] Implementing an Autoencoder in PyTorch
+
+        <https://www.geeksforgeeks.org/deep-learning/implementing-an-autoencoder-in-pytorch/>
+
+    * [ ] Transfer Learning with Fine-Tuning in NLP
+
+        <https://www.geeksforgeeks.org/nlp/transfer-learning-and-fine-tuning-in-nlp/>
+
+    * [ ] Transfer Learning for Computer Vision
+
+        <https://www.geeksforgeeks.org/computer-vision/transfer-learning-for-computer-vision/>
+
+    * [ ] How to implement transfer learning in PyTorch?
+
+        <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
+
+
+    * [ ] Introduction to Deep Learning
+
+        <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
+
+        页面最下方的 explore 看一下。
 
 * [ ] reorg: 正则表达式 30 mins
 
@@ -1951,6 +2152,14 @@
     # 敏感操作
     set -o history  # 重新启用
     ```
+
+* [asso] `sendfile()`
+
+* [asso] 调研 SG-DMA（Scatter-Gather DMA）实现零拷贝的 example
+
+* [asso] Kafka
+
+* [asso] Netty
 
 ## Torch
 
@@ -2536,7 +2745,9 @@ resources:
 
 * [ ] `pci_find_ext_capability`
 
-* [P] 调研`iowrite32_rep()`系列
+* [v] 调研`iowrite32_rep()`系列
+
+    13:52 ~ 14:08
 
     ```c
     #include <asm/io.h>

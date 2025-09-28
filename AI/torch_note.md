@@ -2,6 +2,296 @@
 
 ## cache
 
+* COO
+
+    COO 是 “Coordinate Format” 的缩写，即坐标格式。它的设计理念非常直观：分别存储非零元素所在的行索引、列索引以及元素的值。
+
+    coo_matrix 就是由这三个等长的数组构成的：
+
+    * data： 存储所有非零元素的值，例如 [5, 9, 1, 4]
+
+    * row： 存储每个非零元素对应的行索引，例如 [0, 1, 2, 2]
+
+    * col： 存储每个非零元素对应的列索引，例如 [2, 0, 1, 2]
+
+    COO 格式本身并不适合直接进行矩阵乘法、加法等科学计算。它的主要职责是作为一种高效的构建格式。
+
+    一旦用 COO 格式构建好矩阵，你可以非常快速地将它转换为其他更适合计算的格式，例如：
+
+    * CSR (Compressed Sparse Row)： 用于高效的矩阵运算（如乘法）。
+
+    * CSC (Compressed Sparse Column)： 用于高效的列操作和求解线性方程组。
+
+    coo_matrix 的 tocsr() 和 tocsc() 方法就是用来做这个转换的。
+
+    example:
+
+    ```py
+    import numpy as np
+    from scipy.sparse import coo_matrix
+
+    # 1. 创建 COO 矩阵的三大核心数组
+    data = np.array([5, 9, 1, 4])    # 非零元素的值
+    row  = np.array([0, 1, 2, 2])    # 这些元素的行索引
+    col  = np.array([2, 0, 1, 2])    # 这些元素的列索引
+
+    # 2. 创建 COO 矩阵
+    # 参数 shape 指定矩阵的总大小，这里是一个 3x3 的矩阵
+    coo_sparse_matrix = coo_matrix((data, (row, col)), shape=(3, 3))
+
+    # 3. 查看矩阵（转换为稠密矩阵显示，便于观察）
+    print("COO矩阵（以稠密形式显示）:")
+    print(coo_sparse_matrix.toarray())
+
+    # 输出结果：
+    # [[0 0 5]
+    #  [9 0 0]
+    #  [0 1 4]]
+
+    # 4. 转换为 CSR 格式以进行高效运算
+    csr_sparse_matrix = coo_sparse_matrix.tocsr()
+    print("\n已转换为CSR格式。")
+    ```
+
+* index_fill_
+
+    'Val' value is filled with the elements of 'x' along with the order of indices given in the vector 'index'.
+
+    syntax:
+
+    ```py
+    index_fill_(dim, index, val) → Tensor
+    ```
+
+    这个函数中的`val`是个 scalar。
+
+    对应的 out of place 版本：
+
+    `index_fill()`
+
+    `index_put_()`, `index_put()`:
+
+    This operation puts the value of 'val' into the self tensor using the indices of the given 'index'.
+
+    syntax:
+
+    ```py
+    index_put_(indices, values, accumulate=False) → Tensor
+    ```
+
+    将 value 放到 indices 指定的位置。这里的 value 是个 vector，indices 则是 tensor 中要修改的数据的索引（可能是多维的）。
+
+    example:
+
+    ```py
+    #importing libraries
+    import torch
+     
+    target=torch.zeros([4,4])
+    indices = torch.LongTensor([[0,1],[1,2],[3,1],[1,0]])#indices to which values to be put
+    value = torch.ones(indices.shape[0])
+    #tuple of the index tensor is passed along with the value
+    target.index_put_(tuple(indices.t()), value)
+    ```
+
+    output:
+
+    ```
+    tensor([[0., 1., 0., 0.],
+           [1., 0., 1., 0.],
+           [0., 0., 0., 0.],
+           [0., 1., 0., 0.]])
+    ```
+
+    如果`accumulate`为 true，那么新元素会叠加到旧元素上。
+
+    `index_select()`:
+
+    A tensor is returned with indices as mentioned, by selecting from the target tensor.
+
+    syntax:
+
+    ```py
+    torch.index_select(input, dim, index, out=None) 
+    ```
+    
+    选取指定维度的几行/几列。
+
+    这个操作可以直接用`[:, [y_1, y_2], :]`这种索引方式完成，感觉比较鸡肋。
+
+* Axes3D
+
+    模块：`mpl_toolkits.mplot3d`
+
+    基本功能 routine：
+
+    1. 创建三维坐标轴
+
+        使用 projection='3d' 参数将一个普通的二维坐标轴转换为三维坐标轴。
+
+        ```py
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D  # 虽然显式导入有时不需要，但建议保留以确保环境正常
+
+        # 创建图形和三维坐标轴
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')  # 111 表示 1x1 网格的第1个子图
+
+        # 在较新的 Matplotlib 版本中，也可以这样创建：
+        # fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+        ```
+
+    2. 基本三维绘图方法
+
+        创建了 Axes3D 对象（通常命名为 ax）后，你可以使用类似二维绘图的方法，但它们接受三维坐标（x, y, z）作为参数。
+
+        * 三维散点图 (Scatter Plot)
+
+            使用 `.scatter(xs, ys, zs)` 方法。
+
+            ```py
+            import numpy as np
+
+            # 生成随机数据
+            n = 100
+            x = np.random.rand(n)
+            y = np.random.rand(n)
+            z = np.random.rand(n)
+
+            ax.scatter(x, y, z, c=z, cmap='viridis', marker='o') # c=z 表示用 z 值映射颜色
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+            ax.set_zlabel('Z Label')
+            plt.show()
+            ```
+
+        * 三维线图 (Line Plot)
+
+            使用 .plot(xs, ys, zs) 方法。
+
+            ```py
+            # 生成螺旋线数据
+            theta = np.linspace(-4 * np.pi, 4 * np.pi, 100)
+            z = np.linspace(-2, 2, 100)
+            r = z**2 + 1
+            x = r * np.sin(theta)
+            y = r * np.cos(theta)
+
+            ax.plot(x, y, z, label='3D Curve', linewidth=2)
+            ax.legend()
+            plt.show()
+            ```
+
+        * 三维曲面图 (Surface Plot)
+
+            使用 .plot_surface(X, Y, Z) 方法。注意： X, Y, Z 必须是二维网格数据。
+
+            ```py
+            # 创建网格数据
+            x = np.linspace(-5, 5, 50)
+            y = np.linspace(-5, 5, 50)
+            X, Y = np.meshgrid(x, y)
+            Z = np.sin(np.sqrt(X**2 + Y**2))  # 计算每个网格点上的 Z 值（一个曲面）
+
+            # 绘制曲面
+            surf = ax.plot_surface(X, Y, Z, cmap='coolwarm', alpha=0.8)
+
+            # 添加颜色条
+            fig.colorbar(surf, ax=ax, shrink=0.5)
+            plt.show()
+            ```
+
+        * 三维线框图 (Wireframe Plot)
+
+            使用 .plot_wireframe(X, Y, Z) 方法，类似于曲面图但只显示网格线。
+
+            ```py
+            ax.plot_wireframe(X, Y, Z, color='black', linewidth=0.5)
+            plt.show()
+            ```
+
+        * 三维柱状图 (Bar Plot)
+
+            使用 .bar3d(x, y, z, dx, dy, dz) 方法。
+
+            * x, y, z: 柱子的底部坐标。
+
+            * dx, dy, dz: 柱子在 x, y, z 方向上的长度（宽度、深度、高度）。
+
+            ```py
+            # 定义柱子的位置和大小
+            x_pos = [0, 1, 2]
+            y_pos = [0, 1, 2]
+            z_pos = np.zeros(3)  # 所有柱子从 z=0 开始
+
+            dx = dy = 0.5 * np.ones(3)  # 所有柱子的宽度和深度都是 0.5
+            dz = [1, 2, 3]              # 三个柱子的高度分别为 1, 2, 3
+
+            ax.bar3d(x_pos, y_pos, z_pos, dx, dy, dz, color=['r', 'g', 'b'], alpha=0.7)
+            plt.show()
+            ```
+
+    3. 自定义视图
+
+        调整三维图形的视角：
+
+        ```py
+        # 设置视角 (仰角, 方位角)
+        ax.view_init(elev=30,  azim=45)  # elev: 仰角（上下看）, azim: 方位角（左右转）
+
+        # 设置坐标轴比例（使其等比例显示，避免图形扭曲）
+        ax.set_box_aspect([1, 1, 1])  # [x, y, z] 方向的比例
+        ```
+
+    example:
+
+    ```py
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # 1. 创建图形和三维坐标轴
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 2. 生成并绘制数据（一个曲面和一条曲线）
+    # 曲面数据
+    x = np.linspace(-5, 5, 50)
+    y = np.linspace(-5, 5, 50)
+    X, Y = np.meshgrid(x, y)
+    Z_surf = np.sin(np.sqrt(X**2 + Y**2))
+    ax.plot_surface(X, Y, Z_surf, cmap='viridis', alpha=0.7)
+
+    # 曲线数据（一条螺旋线）
+    theta = np.linspace(0, 6*np.pi, 100)
+    z_line = np.linspace(0, 2, 100)
+    x_line = np.cos(theta)
+    y_line = np.sin(theta)
+    ax.plot(x_line, y_line, z_line, 'r-', linewidth=3, label='Spiral')
+
+    # 3. 设置标签、标题和图例
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    ax.set_title('3D Surface and Line Plot')
+    ax.legend()
+
+    # 4. 调整视角
+    ax.view_init(elev=20, azim=35)
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    Axes3D 的基本用法可以概括为：
+
+    1. 创建：通过 fig.add_subplot(projection='3d') 创建。
+
+    2. 绘图：使用与二维绘图类似的方法（如 plot, scatter），但传入三个坐标参数（x, y, z）。对于曲面和线框图，需要二维网格数据。
+
+    3. 定制：使用 set_xlabel, view_init 等方法定制坐标轴和视图。
+
+    4. 显示：最后用 plt.show() 显示图形。
+
 * IMDb 电影评论数据集
 
     res: <http://ai.stanford.edu/~amaas/data/sentiment/>

@@ -6,6 +6,37 @@
 
 ## cache
 
+* `ulimit -a`
+
+    查看当前用户 Shell 进程及其子进程所能使用的系统资源限制情况。
+
+    ulimit（User Limit）是一个 Shell 内建命令，用于控制和显示用户可用的资源限制。
+
+    -a 是 --all 的缩写，表示 显示所有（All）当前的资源限制设置。
+
+    常见和重要的限制项：
+
+    | 限制项 | 参数 | 示例值 | 含义解释 |
+    | - | - | - | - |
+    | open files | -n | 1024 | 单个进程能同时打开的最大文件数量。这是最常需要调整的项，比如数据库服务器就需要很高的值。 |
+    | max user processes | -u | 7873 | 该用户能同时运行的最大进程数（包括线程）。 |
+    | stack size | -s | 8192 | 进程栈的最大大小（KB）。如果程序递归太深可能导致栈溢出，有时需要调整此项。 |
+    | core file size | -c | 0 | 核心转储文件（core dump）的最大大小。0 表示禁止生成 core dump 文件。用于程序崩溃调试。 |
+    | virtual memory | -v | unlimited | 进程可使用的最大虚拟内存大小。unlimited 表示无限制。 |
+    | file size | -f | unlimited | Shell 创建的文件的最大大小。 |
+
+    ulimit 命令本身也可以用来修改限制, 修改通常只对 当前 Shell 会话 有效，退出后即失效。永久修改需要在用户配置文件（如 ~/.bashrc、~/.bash_profile）或系统级配置文件（如 /etc/security/limits.conf）中设置
+
+    example:
+
+    ```bash
+    # 将“打开文件数”限制临时改为 2048
+    ulimit -n 2048
+
+    # 将“核心文件大小”限制改为无限制
+    ulimit -c unlimited
+    ```
+
 * `sudo lsof /dev/shm/nccl-AoFK4o`
 
     用于查看正在使用特定 NCCL 共享内存文件的进程信息。
