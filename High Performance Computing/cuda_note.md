@@ -2,6 +2,102 @@
 
 ## cache
 
+* cuda 实现 reverse
+
+    ```cpp
+    #include <iostream>
+    #include <cuda_runtime.h>
+
+    // 简单的 reverse kernel
+    __global__ void reverse_kernel(int* input, int* output, int n) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < n) {
+            int rev_idx = n - 1 - idx;
+            output[rev_idx] = input[idx];
+        }
+    }
+
+    // 检查 CUDA 错误
+    void checkCudaError(cudaError_t err, const char* msg) {
+        if (err != cudaSuccess) {
+            std::cerr << msg << ": " << cudaGetErrorString(err) << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    int main() {
+        const int n = 10;
+        int size = n * sizeof(int);
+        
+        // 主机数据
+        int h_input[n], h_output[n];
+        for (int i = 0; i < n; i++) {
+            h_input[i] = i + 1;  // 1, 2, 3, ..., 10
+        }
+        
+        // 设备内存分配
+        int *d_input, *d_output;
+        checkCudaError(cudaMalloc(&d_input, size), "cudaMalloc d_input failed");
+        checkCudaError(cudaMalloc(&d_output, size), "cudaMalloc d_output failed");
+        
+        // 数据拷贝到设备
+        checkCudaError(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice),
+                      "cudaMemcpy HostToDevice failed");
+        
+        // 启动 kernel
+        int block_size = 256;
+        int grid_size = (n + block_size - 1) / block_size;
+        
+        reverse_kernel<<<grid_size, block_size>>>(d_input, d_output, n);
+        checkCudaError(cudaGetLastError(), "Kernel execution failed");
+        
+        // 拷贝结果回主机
+        checkCudaError(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost),
+                      "cudaMemcpy DeviceToHost failed");
+        
+        // 输出结果
+        std::cout << "Original: ";
+        for (int i = 0; i < n; i++) std::cout << h_input[i] << " ";
+        std::cout << std::endl;
+        
+        std::cout << "Reversed: ";
+        for (int i = 0; i < n; i++) std::cout << h_output[i] << " ";
+        std::cout << std::endl;
+        
+        // 清理
+        cudaFree(d_input);
+        cudaFree(d_output);
+        
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Original: 1 2 3 4 5 6 7 8 9 10 
+    Reversed: 10 9 8 7 6 5 4 3 2 1
+    ```
+
+    in-place 交换：
+
+    ```cpp
+    __global__ void reverse_inplace_kernel(int* data, int n) {
+        int tid = threadIdx.x;
+        int block_start = blockIdx.x * blockDim.x * 2;  // 每个块处理两倍数据
+        
+        int left_idx = block_start + tid;
+        int right_idx = block_start + blockDim.x * 2 - 1 - tid;
+        
+        if (left_idx < right_idx && right_idx < n) {
+            // 交换对称位置的元素
+            int temp = data[left_idx];
+            data[left_idx] = data[right_idx];
+            data[right_idx] = temp;
+        }
+    }
+    ```
+
 * cuda 矩阵乘的 example
 
     假设我们要计算：

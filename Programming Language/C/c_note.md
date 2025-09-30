@@ -6,6 +6,28 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* 两种存储字符串的方式
+
+    ```c
+    int main() {
+        const char *strs_1[] = {
+            "hello",
+            "world"
+        };
+
+        char strs_2[][8] = {
+            "nihao",
+            "zaijian"
+        };
+
+        return 0;
+    }
+    ```
+
+    `strs_1`是把字符存在字面常量区，如果不加 const，会报错或报 warning。
+
+    `strs_2`把字符存在栈区，可以不加 const，但是必须写低维度的长度，否则会编译报错。
+
 * const 指针不允许 free()
 
     example:

@@ -1054,13 +1054,23 @@
 
 ### tasks
 
+* [v] reorg: documents 30 mins 09.28
+
+    09:56 ~ 10:11
+
+    feedback:
+
+    * [ ] `kobject_put()`
+
+    * [ ] `sysfs_remove_file()`
+
+    * [ ] `asm("int $0x3B");`
+
 * [v] reorg: documents 30 mins 09.26
 
     11:08 ~ 11:21
 
-    feedback:
-
-    * [ ] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
+* [ ] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
 
 * [ ] 构建任务模板初始版，模板完成版
 
@@ -1068,13 +1078,13 @@
 
     10:59 ~ 11:12
 
-    feedback:
+* [ ] 调研 nasm
 
-    * [ ] 调研 nasm
+    linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
 
-        linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
+* [v] `#pragma`
 
-* [ ] `#pragma`
+    13:28 ~ 14:19
 
 * [ ] `#if ! MY_MACRO`
 
@@ -1087,20 +1097,6 @@
 * [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
 
 * [ ] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
-
-* [v] 调研下面的写法，没有使用`const char *`，是否说明数据存在栈中，而不是字面常量中
-
-    14:09 ~ 14:20
-
-    ```c
-    const char conds[16][3] =
-    {
-      "eq", "ne", "cs", "cc",
-      "mi", "pl", "vs", "vc",
-      "hi", "ls", "ge", "lt",
-      "gt", "le", "al", ""
-    };
-    ```
 
 * [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
 
@@ -1128,14 +1124,6 @@
     // 启动内核
     vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
     ```
-
-* [v] 调研 cuda 矩阵乘的 example
-
-    17:55 ~ 23:10
-
-* [v] 调研 cuda swap
-
-    14:34 ~ 14:48
 
 * [ ] 调研 cuda 排序
 
@@ -1290,33 +1278,6 @@
 
 * [v] reorg: documents 30 mins 02.06
 
-    feedback:
-
-    1. bootstrap 下载完后，解压出来文件，可以只使用 header 文件，也可以先编译成 .so，再在编译 main 时链接。（模板类无法实例化，如何编译？）
-
-        可以在 vscode cpp config 的 include path 里添加 bootstrap 的路径，比如`/home/hlc/Documents/Projects/boost_1_87_0`，即可在 main 代码中使用 header file 而不报错：
-
-        `#include <boost/interprocess/sync/interprocess_semaphore.hpp>`
-
-        在编译时需要加上编译参数：`-I/home/hlc/Documents/Projects/boost_1_87_0`
-
-        如果需要编译`.so`文件，可以先运行`./bootstrap.sh`，再运行`./b2`。此时即会开始编译，编译完成后会有提示：
-
-        ```
-        ...updated 641 targets...
-
-
-        The Boost C++ Libraries were successfully built!
-
-        The following directory should be added to compiler include paths:
-
-            /home/hlc/Documents/Projects/boost_1_87_0
-
-        The following directory should be added to linker library paths:
-
-            /home/hlc/Documents/Projects/boost_1_87_0/stage/lib
-        ```
-
 * [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
 
 * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
@@ -1387,29 +1348,39 @@
 
 ### Tasks
 
+* [v] qa: 2 units 30 mins 09.28
+
+    10:23 ~ 10:54
+
+    feedback:
+
+    * [asso] `docker start -ia` 其中`-ia`是什么含义？
+    
+        如果只有`-i`没有`-a`会发生什么，如果只有`-a`没有`-i`会发生什么？如果两个都没有会发生什么？
+
 * [v] qa: 2 units 30 mins 09.26
 
     ~ 13:39
 
-    feedback:
-
-    * [ ] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
-
-* [v] qa: review 30 mins 09.26
+* [ ] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
 
 * [v] qa: 2 units 30 mins 09.25
 
     13:26 ~ 13:58
 
+* [ ] 自己写的程序按 tab 如何自动补全参数？
+
+* [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
+
+    `select_graphcs_queue_family_idx` -> `select_graphics_queue_family_idx`
+
+* [v] qa 测试时，除了输出 qa file name，还要输出 unit id
+
+    14:27 ~ 14:53
+
     feedback:
 
-    * [ ] 自己写的程序按 tab 如何自动补全参数？
-
-    * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
-
-        `select_graphcs_queue_family_idx` -> `select_graphics_queue_family_idx`
-
-* [ ] qa 测试时，除了输出 qa file name，还要输出 unit id
+    * [ ] python 处理 arg 相关的 package
 
 * [v] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
 
@@ -1417,103 +1388,7 @@
 
     现状：对于有数学公式的 qa，terminal 无法正常显示。
 
-    feedback:
-
-    * [asso]  Kitty, WezTerm
-
-    * [asso] Sixel 或 Kitty 的图形协议
-
-    * [asso] texmath
-
-    * [asso] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
-
-    * [ ] glow, mdcat, catwalk
-
-    * [asso] latex/pdflatex/xelatex
-
-    * [asso] 终端图片显示工具（如 chafa, img2sixel, Kitty 的 icat）
-
-    * [asso] convert (ImageMagick) 
-
-    * [asso] latex2img 脚本或 catimg（简单图片显示
-
-    * [asso] texmath（Haskell），pandoc（可以转换格式）
-
-    * [asso] Vim/Neovim： 插件如 vim-markdown-composer 或 markdown-preview.nvim
-
-    * [asso] Emacs： 功能强大，通过 org-mode 或 latex-preview-pane 等可以在编辑器内渲染公式（通常是生成图片覆盖在文本上）。
-
-    * [asso] mdmath + 浏览器
-
-        ```bash
-        # 将 Markdown 转换为 HTML 并在浏览器中打开
-        pandoc math.md -o math.html --mathjax && xdg-open math.html
-        ```
-
-    * [asso] pandoc + lynx
-
-        ```bash
-        # 转换为文本格式查看
-        sudo apt install pandoc lynx
-        pandoc document.md -t plain | less
-        ```
-
-    * [asso] 图片变成字符画
-
-        chafa：强烈推荐。功能非常强大，支持多种输出格式（字符、符号、六角形等），色彩还原好，性能高。是目前最好的选择之一。
-
-        catimg： 简单易用，专门用于显示图片，对彩色图片支持不错。
-
-        img2txt（来自 caca-utils 包）： 老牌工具，也能生成字符画。
-
-        ```bash
-        # 安装 chafa (Ubuntu/Debian)
-        sudo apt install chafa
-
-        # 查看图片
-        chafa photo.jpg
-        # 或指定大小为终端宽度的一半
-        chafa -s 80x40 photo.jpg
-        ```
-
-    * [asso] 图形协议方式
-
-        这种方法利用终端仿真器支持的特殊协议，直接在其文本网格中渲染图形。效果最好，能显示真彩色的原图。
-
-        * Kitty 图形协议： Kitty 终端自带的协议，效率很高。
-
-            工具： Kitty 终端自带的 icat 命令。
-
-            ```bash
-            # 只在 Kitty 终端中有效
-            kitty +kitten icat image.png
-            ```
-
-        * Sixel： 一种较老的协议，但被许多终端支持（如 XTerm, WezTerm, Mintty）。
-
-            工具： img2sixel, chafa（也支持 Sixel 输出）。
-
-            ```bash
-            # 安装 ImageMagick (通常包含 `convert`，可用于生成 sixel)
-            brew install imagemagick
-            # Ubuntu: sudo apt install imagemagick
-
-            # 转换为 sixel 格式并显示
-            convert image.jpg sixel:-
-            # 或者使用专门工具
-            img2sixel image.jpg
-            ```
-
-        * iTerm2 内联图片协议： 专用于 iTerm2 终端。
-
-            iTerm2 提供了 imgcat 脚本。
-
-            ```bash
-            # 通常在 iTerm2 中，可以这样使用
-            ~/.iterm2/imgcat image.png
-            ```
-
-    * [asso] `xdg-open`
+* [ ] glow, mdcat, catwalk
 
 * [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
@@ -1630,10 +1505,6 @@
 
 * [ ] qa: 增加 openshmem 的 qa
 
-* [v] qa: 2 units 02.14
-
-    正确率：0 / 2
-
 * [ ] 创建一个`qa_utils`文件下，下设`opengl`, `opencl`等文件夹，文件夹中再设`triangle.c`, `vec_add.c`等文件或文件夹，与 dep 任务相对应。
 
     最好可以把功能写成`.h`的形式，在使用时直接`#include "qa_utils/opengl/load_shader.h"`就可以。
@@ -1668,6 +1539,100 @@
 
 * [asso] `cublasSgemm`
 
+* [asso] latex/pdflatex/xelatex
+
+* [asso] 终端图片显示工具（如 chafa, img2sixel, Kitty 的 icat）
+
+* [asso] convert (ImageMagick) 
+
+* [asso] latex2img 脚本或 catimg（简单图片显示
+
+* [asso] texmath（Haskell），pandoc（可以转换格式）
+
+* [asso] Vim/Neovim： 插件如 vim-markdown-composer 或 markdown-preview.nvim
+
+* [asso] Emacs： 功能强大，通过 org-mode 或 latex-preview-pane 等可以在编辑器内渲染公式（通常是生成图片覆盖在文本上）。
+
+* [asso] mdmath + 浏览器
+
+    ```bash
+    # 将 Markdown 转换为 HTML 并在浏览器中打开
+    pandoc math.md -o math.html --mathjax && xdg-open math.html
+    ```
+
+* [asso] pandoc + lynx
+
+    ```bash
+    # 转换为文本格式查看
+    sudo apt install pandoc lynx
+    pandoc document.md -t plain | less
+    ```
+
+* [asso] 图片变成字符画
+
+    chafa：强烈推荐。功能非常强大，支持多种输出格式（字符、符号、六角形等），色彩还原好，性能高。是目前最好的选择之一。
+
+    catimg： 简单易用，专门用于显示图片，对彩色图片支持不错。
+
+    img2txt（来自 caca-utils 包）： 老牌工具，也能生成字符画。
+
+    ```bash
+    # 安装 chafa (Ubuntu/Debian)
+    sudo apt install chafa
+
+    # 查看图片
+    chafa photo.jpg
+    # 或指定大小为终端宽度的一半
+    chafa -s 80x40 photo.jpg
+    ```
+
+* [asso] 图形协议方式
+
+    这种方法利用终端仿真器支持的特殊协议，直接在其文本网格中渲染图形。效果最好，能显示真彩色的原图。
+
+    * Kitty 图形协议： Kitty 终端自带的协议，效率很高。
+
+        工具： Kitty 终端自带的 icat 命令。
+
+        ```bash
+        # 只在 Kitty 终端中有效
+        kitty +kitten icat image.png
+        ```
+
+    * Sixel： 一种较老的协议，但被许多终端支持（如 XTerm, WezTerm, Mintty）。
+
+        工具： img2sixel, chafa（也支持 Sixel 输出）。
+
+        ```bash
+        # 安装 ImageMagick (通常包含 `convert`，可用于生成 sixel)
+        brew install imagemagick
+        # Ubuntu: sudo apt install imagemagick
+
+        # 转换为 sixel 格式并显示
+        convert image.jpg sixel:-
+        # 或者使用专门工具
+        img2sixel image.jpg
+        ```
+
+    * iTerm2 内联图片协议： 专用于 iTerm2 终端。
+
+        iTerm2 提供了 imgcat 脚本。
+
+        ```bash
+        # 通常在 iTerm2 中，可以这样使用
+        ~/.iterm2/imgcat image.png
+        ```
+
+* [asso] `xdg-open`
+
+* [asso]  Kitty, WezTerm
+
+* [asso] Sixel 或 Kitty 的图形协议
+
+* [asso] texmath
+
+* [asso] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1678,31 +1643,25 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 09.26
+* [v] process 1 tab 09.28
+
+    11:02 ~ 11:07
+
+    feedback:
+
+    * [ ] arm linux 环境下是否有类似 nasm 的工具？
 
 * [v] process 1 tab 09.26
 
     15:54 ~ 16:31
 
-    feedback:
+* [ ] `re.findall()`
 
-    * [asso] 调研 Perl
+* [ ] reg `\b`, `\w`
 
-    * [asso] 调研 python `regex`及其递归匹配
+* [v] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
 
-    * [asso] 调研正则表达式`(?:...)`
-
-    * [ ] `re.findall()`
-
-    * [ ] reg `\b`, `\w`
-
-* [ ] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
-
-* [v] 调研 Differences between torch.nn and torch.nn.functional
-
-    17:06 ~ 17:22
-
-    <https://www.geeksforgeeks.org/deep-learning/differences-between-torch-nn-and-torch-nn-functional/>
+    ~ 15:19
 
 * [ ] 调研 PyTorch Loss Functions
 
@@ -1718,50 +1677,48 @@
 
     18:30 ~ 18:53
 
-    feedback:
+* [ ] Apply a 2D Convolution Operation in PyTorch
 
-    * [ ] Apply a 2D Convolution Operation in PyTorch
+    <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
 
-        <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
+* [ ] Apply a 2D Max Pooling in PyTorch
 
-    * [ ] Apply a 2D Max Pooling in PyTorch
+    <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-max-pooling-in-pytorch/>
 
-        <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-max-pooling-in-pytorch/>
+* [ ] Batch Normalization Implementation in PyTorch
 
-    * [ ] Batch Normalization Implementation in PyTorch
+    <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
 
-        <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
+* [ ] Difference Between "Hidden" and "Output" in PyTorch LSTM
 
-    * [ ] Difference Between "Hidden" and "Output" in PyTorch LSTM
+    <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
 
-        <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
+* [ ] Generative Adversarial Networks (GANs) in PyTorch
 
-    * [ ] Generative Adversarial Networks (GANs) in PyTorch
+    <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
 
-        <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
+* [ ] Implementing an Autoencoder in PyTorch
 
-    * [ ] Implementing an Autoencoder in PyTorch
+    <https://www.geeksforgeeks.org/deep-learning/implementing-an-autoencoder-in-pytorch/>
 
-        <https://www.geeksforgeeks.org/deep-learning/implementing-an-autoencoder-in-pytorch/>
+* [ ] Transfer Learning with Fine-Tuning in NLP
 
-    * [ ] Transfer Learning with Fine-Tuning in NLP
+    <https://www.geeksforgeeks.org/nlp/transfer-learning-and-fine-tuning-in-nlp/>
 
-        <https://www.geeksforgeeks.org/nlp/transfer-learning-and-fine-tuning-in-nlp/>
+* [ ] Transfer Learning for Computer Vision
 
-    * [ ] Transfer Learning for Computer Vision
+    <https://www.geeksforgeeks.org/computer-vision/transfer-learning-for-computer-vision/>
 
-        <https://www.geeksforgeeks.org/computer-vision/transfer-learning-for-computer-vision/>
+* [ ] How to implement transfer learning in PyTorch?
 
-    * [ ] How to implement transfer learning in PyTorch?
-
-        <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
+    <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
 
 
-    * [ ] Introduction to Deep Learning
+* [ ] Introduction to Deep Learning
 
-        <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
+    <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
 
-        页面最下方的 explore 看一下。
+    页面最下方的 explore 看一下。
 
 * [ ] reorg: 正则表达式 30 mins
 
@@ -1845,13 +1802,6 @@
 
     // 启用设备
     pci_enable_device(vpdev);
-    ```
-
-* [v] 调研`ulimit -a`
-
-    ```bash
-    ulimit -n 4096  # 增加打开文件描述符的数量
-    ulimit -s unlimited  # 增加堆栈大小
     ```
 
 * [ ] 调研`/var/log/syslog`, `/var/log/messages`
@@ -2161,6 +2111,12 @@
 
 * [asso] Netty
 
+* [asso] 调研 Perl
+
+* [asso] 调研 python `regex`及其递归匹配
+
+* [asso] 调研正则表达式`(?:...)`
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2205,17 +2161,17 @@ resources:
 
 * [ ] `transforms.Compose`为什么可以接收`PIL.Image`类型的对象？
 
-* [ ] `transforms`中常用的 aug 方法有哪些？
+* [v] `transforms`中常用的 aug 方法有哪些？
+
+    15:20 ~ 15:36
+
+    feedback:
+
+    * [asso] Albumentations
 
 * [ ] 带动量的SGD（Momentum）
 
 * [ ] 带动量和权重衰减的SGD
-
-* [v] 调研 Pytorch - Index-based Operation
-
-    16:36 ~ 16:47, 16:54 ~ 16:56
-
-    <https://www.geeksforgeeks.org/python/pytorch-index-based-operation/>
 
 * [ ] 调研 Reshaping a Tensor in Pytorch
 
@@ -2287,21 +2243,17 @@ resources:
 
     调用 .tocsr() 方法将其转换为 CSR格式
 
-    feedback:
+* [ ] `lil_matrix`
 
-    * [ ] `lil_matrix`
+* [v] scipy.sparse.lil_matrix
 
-* [ ] scipy.sparse.lil_matrix
+    ~ 11:20
 
 * [ ] C++ (Eigen): Eigen::SparseMatrix
 
 * [v] 调研 Axes3D 的基本用法
 
     16:32 ~ 17:24
-
-    feedback:
-
-    * [asso] `cmap='viridis', marker='o'`
 
 * [ ] 调研`np.linspace()`与其他常用的数据创建方法
 
@@ -2320,10 +2272,6 @@ resources:
 * [ ] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
 
 * [ ] `fig.colorbar(surf)`
-
-* [v] 调研 rnn
-
-    example 代码，尝试跑通
 
 * [ ] 调研论文《Finding Structure in Time》 (1990) by Jeffrey L. Elman
 
@@ -2589,6 +2537,8 @@ resources:
 
 * [asso] MATLAB: sparse() 函数
 
+* [asso] `cmap='viridis', marker='o'`
+
 ## Mathematics
 
 resources:
@@ -2607,13 +2557,29 @@ resources:
 
 ### tasks
 
-* [ ] 调研第八章 多元函数微分法及其应用
+* [v] 调研第八章 多元函数微分法及其应用
+
+    15:36 ~ 16:07
+
+    feedback:
+
+    * [ ] 聚点，开集，闭区域，无界集
+
+    * [ ] n 维空间
+
+    * [ ] 多元函数
+
+    * [ ] 多元函数的极限
+
+    * [ ] 多元函数的连续性
+
+    * [ ] 调研使用梯度法求二无函数$f(x, y)$的最值
 
 * [ ] 调研 Amir Beck
 
-* [asso] 矩阵微积分 / 矩阵求导
+* [ ] 矩阵微积分 / 矩阵求导
 
-* [asso] 复分析 / 复变函数论
+* [ ] 复分析 / 复变函数论
 
 * [asso] Wirtinger 微积分 / 复变函数求导
 
@@ -2737,29 +2703,15 @@ resources:
 
 ### tasks
 
-* [ ] param 被写入 module 中时，module 是如何感知到的？
+* [v] param 被写入 module 中时，module 是如何感知到的？
+
+    16:13 ~ 16:17
 
     2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
 
 * [ ] `pci_read_config_dword`
 
 * [ ] `pci_find_ext_capability`
-
-* [v] 调研`iowrite32_rep()`系列
-
-    13:52 ~ 14:08
-
-    ```c
-    #include <asm/io.h>
-
-    void iowrite8_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-    void iowrite16_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-    void iowrite32_rep(volatile void __iomem *addr, const void *buf, unsigned long count);
-
-    void ioread8_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-    void ioread16_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-    void ioread32_rep(volatile void __iomem *addr, void *buf, unsigned long count);
-    ```
 
 * [ ] 调研 ds 生成的一段代码
 
@@ -2795,7 +2747,7 @@ resources:
     memcpy((void *)hardware_buffer, src_buf, count * 4);
     ```
 
-* [ ] BAR 是谁配置的？
+* [v] BAR 是谁配置的？
 
     > BIOS 或操作系统会分配具体的物理地址并写入 BAR
 
@@ -3185,8 +3137,6 @@ resources:
 
     先看 qa，再看网站
 
-* [v] 调研 ioctl
-
 * [ ] 调研为什么 ioctl 的 cmd 要靠`#define WR_VALUE _IOW('a','a',int32_t*)`这个构造
 
 * [ ] 调研 sysfs 读写，sync
@@ -3480,19 +3430,17 @@ resources:
 
 ### tasks
 
-* [x] `vector<unique_ptr>`为什么 vscode + gdb 调试时不能鼠标悬停显示内容？ 
+* [O] 梳理 topo p2p 和 eth switch 接口
 
-    14:48 ~ 17:03
+    16:39 ~ 17:20
 
-* [ ] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
+    feedback:
 
-* [v] vscode 如何同时滚动左右两个分栏？
+    * [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
 
-    ~ 17:37
+* [v] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
 
-* [v] 调研 graph xml parser
-
-    10:43 ~ 11:09, 11:09 ~ 13:49
+    13:16 ~ 13:26
 
 * [ ] `const ncclTopoGraph *const *const graphs`该如何理解？
 

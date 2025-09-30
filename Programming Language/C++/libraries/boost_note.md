@@ -4,6 +4,31 @@ boost 是一个 c++ template library，里面以头文件为主，只有少量�
 
 ## cache
 
+* bootstrap 下载完后，解压出来文件，可以只使用 header 文件，也可以先编译成 .so，再在编译 main 时链接。（模板类无法实例化，如何编译？）
+
+    可以在 vscode cpp config 的 include path 里添加 bootstrap 的路径，比如`/home/hlc/Documents/Projects/boost_1_87_0`，即可在 main 代码中使用 header file 而不报错：
+
+    `#include <boost/interprocess/sync/interprocess_semaphore.hpp>`
+
+    在编译时需要加上编译参数：`-I/home/hlc/Documents/Projects/boost_1_87_0`
+
+    如果需要编译`.so`文件，可以先运行`./bootstrap.sh`，再运行`./b2`。此时即会开始编译，编译完成后会有提示：
+
+    ```
+    ...updated 641 targets...
+
+
+    The Boost C++ Libraries were successfully built!
+
+    The following directory should be added to compiler include paths:
+
+        /home/hlc/Documents/Projects/boost_1_87_0
+
+    The following directory should be added to linker library paths:
+
+        /home/hlc/Documents/Projects/boost_1_87_0/stage/lib
+    ```
+
 * `libboost-all-dev`
 
     `apt install libboost-all-dev`

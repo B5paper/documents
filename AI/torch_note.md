@@ -2,6 +2,91 @@
 
 ## cache
 
+* Batch Processing for Efficient Training
+
+    ```py
+    for epoch in range(2):  
+        for inputs, labels in dataloader:
+            
+            outputs = inputs + 1  
+            print(f"Epoch {epoch + 1}, Inputs: {inputs}, Labels: {labels}, Outputs: {outputs}")
+    ```
+
+    不清楚为啥 outputs 会是 inputs + 1。这个看上去只是个矩阵所有元素加一，而且也并不是序列数据，比如 target = input + 1。而且这个也不像 c 语言的 ptr -> ptr + 1 就可以拿到下个数据。
+
+    这一步可能和上一步的 data aug 结合的，如果能找到上一步 data aug 的代码，可以跑跑看，创建出来 dataloader 后，就可以看到 outputs 和 inputs 的内容了。
+
+* imdb 二分类 example
+
+    ```py
+    from datasets import load_dataset
+    from transformers import (AutoTokenizer,
+                              AutoModelForSequenceClassification,
+                              TrainingArguments,
+                              Trainer)
+    import numpy as np
+    from sklearn.metrics import accuracy_score
+
+    # 1. 加载数据集和分词器
+    dataset = load_dataset("imdb")
+    model_checkpoint = "distilbert-base-uncased" # 选择一个轻量且高效的模型，例如 DistilBERT
+    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+
+    # 2. 对数据集进行分词处理
+    def tokenize_function(examples):
+        # 对文本进行分词 truncation 和 padding
+        # 这里设置最大长度，超过的部分会被截断
+        return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=256)
+
+    # 使用 map 函数批量处理整个数据集
+    tokenized_datasets = dataset.map(tokenize_function, batched=True)
+
+    # 为了节省时间和内存，我们创建一个更小的子集进行演示（可选）
+    small_train_dataset = tokenized_datasets["train"].shuffle(seed=42).select(range(1000))
+    small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42).select(range(1000))
+
+    # 3. 加载预训练模型
+    # num_labels=2 表示二分类
+    model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=2)
+
+    # 4. 定义评估指标
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        return {"accuracy": accuracy_score(labels, predictions)}
+
+    # 5. 设置训练参数
+    training_args = TrainingArguments(
+        output_dir="./my_imdb_model",      # 输出目录，模型和检查点会保存在这里
+        evaluation_strategy="epoch",       # 每个 epoch 结束后进行评估
+        learning_rate=2e-5,                # 学习率
+        per_device_train_batch_size=16,    # 训练批次大小
+        per_device_eval_batch_size=16,     # 评估批次大小
+        num_train_epochs=3,                # 训练轮数
+        weight_decay=0.01,                 # 权重衰减
+    )
+
+    # 6. 创建 Trainer
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=small_train_dataset, # 使用子集，完整训练请用 tokenized_datasets["train"]
+        eval_dataset=small_eval_dataset,   # 使用子集，完整评估请用 tokenized_datasets["test"]
+        compute_metrics=compute_metrics,
+        tokenizer=tokenizer, # 确保分词器在保存模型时也被保存
+    )
+
+    # 7. 开始训练！
+    trainer.train()
+
+    # 8. 在测试集上评估模型（使用我们创建的小子集）
+    final_metrics = trainer.evaluate(small_eval_dataset)
+    print(f"\n最终评估结果: {final_metrics}")
+
+    # 9. 保存模型（可选）
+    # trainer.save_model("./my_final_imdb_model")
+    ```
+
 * COO
 
     COO 是 “Coordinate Format” 的缩写，即坐标格式。它的设计理念非常直观：分别存储非零元素所在的行索引、列索引以及元素的值。
