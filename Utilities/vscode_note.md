@@ -2,6 +2,24 @@
 
 ## cache
 
+* vscode 中 gdb pretty print
+
+    ```json
+    "configurations": [{
+        "name": "(gdb) Launch",
+        // ...
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+            },
+            // ...
+        ]
+    }]
+    ```
+
+    必须设置`-enable-pretty-printing`这个才可以直接显示 string 的内容。否则显示的都是原始的指针。
+
 * vscode sync scroll
 
     vscode 中同时滚动左右两个分栏

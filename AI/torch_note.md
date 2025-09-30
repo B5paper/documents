@@ -2,6 +2,194 @@
 
 ## cache
 
+* `scipy.sparse.lil_matrix`
+
+    scipy.sparse.lil_matrix 是 SciPy 中用于存储稀疏矩阵的一种数据结构，特别适用于逐步构建和修改稀疏矩阵的场景。
+
+    LIL (List of Lists) 格式将稀疏矩阵存储为：
+
+    * 行列表：每个元素对应矩阵的一行
+
+    * 每行存储：两个列表，分别存储非零元素的列索引和值
+
+    这种结构使得按行操作（添加、删除、修改元素）非常高效。
+
+    **基本用法:**
+
+    * 创建 LIL 矩阵
+
+        ```py
+        import numpy as np
+        from scipy.sparse import lil_matrix
+
+        # 方法1：指定形状创建空矩阵
+        matrix = lil_matrix((3, 3))  # 3x3 矩阵
+
+        # 方法2：从稠密数组创建
+        dense_array = np.array([[1, 0, 0], [0, 0, 2], [0, 3, 0]])
+        matrix = lil_matrix(dense_array)
+
+        # 方法3：从其他稀疏格式转换
+        from scipy.sparse import csr_matrix
+        csr_mat = csr_matrix((3, 3))
+        lil_mat = csr_mat.tolil()
+        ```
+
+    * 元素赋值和修改
+
+        ```py
+        # 创建 3x3 矩阵
+        matrix = lil_matrix((3, 3))
+
+        # 逐个元素赋值
+        matrix[0, 0] = 1
+        matrix[1, 2] = 2
+        matrix[2, 1] = 3
+
+        # 批量赋值
+        matrix[0, [1, 2]] = [4, 5]  # 第0行，第1、2列
+        matrix[[1, 2], 0] = [6, 7]  # 第1、2行，第0列
+
+        print(matrix.toarray())
+        # 输出：
+        # [[1. 4. 5.]
+        #  [6. 0. 2.]
+        #  [7. 3. 0.]]
+        ```
+
+    * 访问矩阵数据
+
+        ```py
+        # 访问单个元素
+        print(matrix[0, 0])  # 1.0
+
+        # 访问整行
+        print(matrix[0].toarray())  # [[1. 4. 5.]]
+
+        # 获取非零元素信息
+        print("行指针:", matrix.rows)     # 每行的列索引列表
+        print("数据值:", matrix.data)     # 每行的数值列表
+
+        # 转换为稠密数组
+        dense = matrix.toarray()
+        ```
+
+    * 实际应用示例
+
+        ```py
+        # 示例：构建邻接矩阵
+        n_nodes = 5
+        adj_matrix = lil_matrix((n_nodes, n_nodes))
+
+        # 添加边（无向图）
+        edges = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)]
+        for i, j in edges:
+            adj_matrix[i, j] = 1
+            adj_matrix[j, i] = 1  # 无向图对称
+
+        print("邻接矩阵:")
+        print(adj_matrix.toarray())
+
+        # 转换为其他格式进行高效运算
+        csr_adj = adj_matrix.tocsr()  # 转换为CSR格式进行矩阵运算
+        ```
+
+    * 格式转换
+
+        ```py
+        # 转换为其他稀疏格式
+        csr_matrix = matrix.tocsr()   # 压缩稀疏行格式（高效计算）
+        csc_matrix = matrix.tocsc()   # 压缩稀疏列格式（高效列操作）
+        coo_matrix = matrix.tocoo()   # 坐标格式（快速构建）
+
+        # 转换回稠密矩阵
+        dense_matrix = matrix.toarray()
+        ```
+
+    **使用建议**
+
+    * 构建阶段：使用 LIL 格式进行频繁的元素修改
+
+    * 计算阶段：转换为 CSR/CSC 格式进行数学运算
+
+    * 内存敏感：对于超大矩阵，考虑使用 COO 格式
+
+* torchvision.transforms 中常用的 augmentation 方法：
+
+    * 图像预处理 & 基本变换
+
+        ```py
+        # Resize：调整图像尺寸
+        transforms.Resize((256, 256))
+
+        # CenterCrop / RandomCrop：中心/随机裁剪
+        transforms.RandomCrop(224)
+
+        # Pad：边缘填充
+        transforms.Pad(50, fill=255)
+        ```
+
+    * 颜色 & 亮度变换
+
+        ```py
+        # ColorJitter：随机调整亮度、对比度、饱和度和色调
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)
+
+        # Grayscale / RandomGrayscale：转灰度图
+        transforms.RandomGrayscale(p=0.1)
+
+        # RandomAdjustSharpness / RandomAutocontrast：调整锐度、自动对比度
+        ```
+
+    * 几何变换
+
+        ```py
+        # RandomHorizontalFlip / RandomVerticalFlip：随机水平/垂直翻转
+        transforms.RandomHorizontalFlip(p=0.5)
+
+        # RandomRotation：随机旋转
+        transforms.RandomRotation(degrees=30)
+
+        # RandomAffine：随机仿射变换（平移、旋转、缩放、剪切）
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1))
+
+        # RandomPerspective：随机透视变换
+        ```
+
+    * 模糊 & 噪声
+
+        ```py
+        # GaussianBlur：高斯模糊
+        transforms.GaussianBlur(kernel_size=5)
+
+        # RandomErasing：随机擦除（CutOut）
+        transforms.RandomErasing(p=0.5)
+        ```
+
+    * 标准化 & 张量转换
+
+        ```py
+        # ToTensor：将PIL图像或NumPy数组转换为张量，并缩放到 [0,1]
+        transforms.ToTensor()
+
+        # Normalize：标准化（减均值、除标准差）
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ```
+
+    * 组合变换
+
+        使用 Compose 将多个变换组合：
+
+        ```py
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        ```
+
 * Batch Processing for Efficient Training
 
     ```py

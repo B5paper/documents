@@ -28,6 +28,22 @@
 
 ## cache
 
+* `茉莉绿茶 + 糖`不好喝
+
+    没有`桂花 + 红茶 + 糖`好喝。
+
+* 一些高数教材的问题
+
+    * 定义铺排，没有节奏
+
+        讲完一个定义 A，马上讲下一个定义 B。在阅读定义 B 时，读者是否已经理解了定义 A？定义 A 和之前讲的定义 C, D, E 都有什么相似和不同？有什么联系？如果定义 A 的理解难度比定义 B 大，那么是否应该将定义 A 多设置些篇幅，让读者停留的时间更长一点？
+
+    * 只有从前到后的叙述，没有倒推的分析
+
+        我们为了解决什么问题才提出的定义 A？不用定义 A，用定义 B 行不行？定义 A 是谁最先提出来的，又是怎样发展成现在这个样子的？对定义 A 加一些条件，删一些条件，还能用吗？
+
+        因为总是线性叙述，线性学习，所以正好印证了之前的推断，学习效率很低，学了一堆概念，但是不知道有什么用。
+
 * 动态低价值任务
 
     做自底向上的任务时，容易陷入查字典，背 API 的细节中，无法推动主线的进度。
@@ -1054,37 +1070,27 @@
 
 ### tasks
 
+* [v] reorg: documents 30 mins 09.29
+
+    ~ 14:31
+
 * [v] reorg: documents 30 mins 09.28
 
     09:56 ~ 10:11
 
-    feedback:
+* [ ] `kobject_put()`
 
-    * [ ] `kobject_put()`
+* [ ] `sysfs_remove_file()`
 
-    * [ ] `sysfs_remove_file()`
-
-    * [ ] `asm("int $0x3B");`
-
-* [v] reorg: documents 30 mins 09.26
-
-    11:08 ~ 11:21
+* [ ] `asm("int $0x3B");`
 
 * [ ] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
 
 * [ ] 构建任务模板初始版，模板完成版
 
-* [v] reorg: documents 30 mins 09.25
-
-    10:59 ~ 11:12
-
 * [ ] 调研 nasm
 
     linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
-
-* [v] `#pragma`
-
-    13:28 ~ 14:19
 
 * [ ] `#if ! MY_MACRO`
 
@@ -1348,25 +1354,27 @@
 
 ### Tasks
 
+* [v] qa: 2 units 30 mins 09.29
+
+    14:31 ~ 14:36
+
+* [v] qa: review 30 mins 09.29
+
+    feedback:
+
+    * 和`%{`配对的是`%}`，不是`}%`。百分号永远在前。
+
+        ```c
+        %{
+        int num_cnt = 0;
+        %}
+        ```
+
 * [v] qa: 2 units 30 mins 09.28
 
     10:23 ~ 10:54
 
-    feedback:
-
-    * [asso] `docker start -ia` 其中`-ia`是什么含义？
-    
-        如果只有`-i`没有`-a`会发生什么，如果只有`-a`没有`-i`会发生什么？如果两个都没有会发生什么？
-
-* [v] qa: 2 units 30 mins 09.26
-
-    ~ 13:39
-
 * [ ] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
-
-* [v] qa: 2 units 30 mins 09.25
-
-    13:26 ~ 13:58
 
 * [ ] 自己写的程序按 tab 如何自动补全参数？
 
@@ -1378,15 +1386,7 @@
 
     14:27 ~ 14:53
 
-    feedback:
-
-    * [ ] python 处理 arg 相关的 package
-
-* [v] terminal 是否可以显示数学公式，如果不能那么调研当检测到 unit 中有数学公式时，调用外部程序显示 unit 内容，保证数学公式可以正常显示
-
-    ~ 16:32
-
-    现状：对于有数学公式的 qa，terminal 无法正常显示。
+* [ ] python 处理 arg 相关的 package
 
 * [ ] glow, mdcat, catwalk
 
@@ -1633,6 +1633,10 @@
 
 * [asso] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
 
+* [asso] `docker start -ia` 其中`-ia`是什么含义？
+
+    如果只有`-i`没有`-a`会发生什么，如果只有`-a`没有`-i`会发生什么？如果两个都没有会发生什么？
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1643,25 +1647,25 @@
 
 ### tasks
 
+* [O] process 1 tab 09.29
+
+    14:47 ~ 15:01
+
+    feedback:
+
+    * 目前看到
+
+        > 使用 std::is_copy_constructible 和 std::is_move_constructible
+
 * [v] process 1 tab 09.28
 
     11:02 ~ 11:07
 
-    feedback:
-
-    * [ ] arm linux 环境下是否有类似 nasm 的工具？
-
-* [v] process 1 tab 09.26
-
-    15:54 ~ 16:31
+* [ ] arm linux 环境下是否有类似 nasm 的工具？
 
 * [ ] `re.findall()`
 
 * [ ] reg `\b`, `\w`
-
-* [v] `^(.*?phrase\.)`与`^(*?phrase\.)`有什么不同？后者是否是匹配多行的意思？
-
-    ~ 15:19
 
 * [ ] 调研 PyTorch Loss Functions
 
@@ -1670,12 +1674,6 @@
 * [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
 
     <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
-
-* [v] 调研 PyTorch Tutorial
-
-    <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
-
-    18:30 ~ 18:53
 
 * [ ] Apply a 2D Convolution Operation in PyTorch
 
@@ -2165,10 +2163,6 @@ resources:
 
     15:20 ~ 15:36
 
-    feedback:
-
-    * [asso] Albumentations
-
 * [ ] 带动量的SGD（Momentum）
 
 * [ ] 带动量和权重衰减的SGD
@@ -2229,6 +2223,8 @@ resources:
 
 * [asso] python 的实例既然可以定义成员变量，那么可以定义成员函数吗？
 
+* [asso] Albumentations
+
 ## Machine Learning
 
 ### cache
@@ -2237,23 +2233,7 @@ resources:
 
 ### tasks
 
-* [v] OO格式（scipy.sparse.coo_matrix）
-
-    22:36 ～ 22:44
-
-    调用 .tocsr() 方法将其转换为 CSR格式
-
-* [ ] `lil_matrix`
-
-* [v] scipy.sparse.lil_matrix
-
-    ~ 11:20
-
 * [ ] C++ (Eigen): Eigen::SparseMatrix
-
-* [v] 调研 Axes3D 的基本用法
-
-    16:32 ~ 17:24
 
 * [ ] 调研`np.linspace()`与其他常用的数据创建方法
 
@@ -2561,19 +2541,17 @@ resources:
 
     15:36 ~ 16:07
 
-    feedback:
+* [ ] 聚点，开集，闭区域，无界集
 
-    * [ ] 聚点，开集，闭区域，无界集
+* [ ] n 维空间
 
-    * [ ] n 维空间
+* [ ] 多元函数
 
-    * [ ] 多元函数
+* [ ] 多元函数的极限
 
-    * [ ] 多元函数的极限
+* [ ] 多元函数的连续性
 
-    * [ ] 多元函数的连续性
-
-    * [ ] 调研使用梯度法求二无函数$f(x, y)$的最值
+* [ ] 调研使用梯度法求二无函数$f(x, y)$的最值
 
 * [ ] 调研 Amir Beck
 
@@ -2703,12 +2681,6 @@ resources:
 
 ### tasks
 
-* [v] param 被写入 module 中时，module 是如何感知到的？
-
-    16:13 ~ 16:17
-
-    2024/05/07/00: 应该修改为，param 被写入 module 中时，是否有机制可以让 module 中的代码感知到变动？
-
 * [ ] `pci_read_config_dword`
 
 * [ ] `pci_find_ext_capability`
@@ -2746,12 +2718,6 @@ resources:
     // memcpy_toio() 是更安全的选择
     memcpy((void *)hardware_buffer, src_buf, count * 4);
     ```
-
-* [v] BAR 是谁配置的？
-
-    > BIOS 或操作系统会分配具体的物理地址并写入 BAR
-
-    看起来 bar 不是 pcie device 固有的，而是 bios / os 配置的？具体流程是怎样的？
 
 * [ ] 设备树（Device Tree）
 
@@ -3430,17 +3396,11 @@ resources:
 
 ### tasks
 
+* [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
+
 * [O] 梳理 topo p2p 和 eth switch 接口
 
     16:39 ~ 17:20
-
-    feedback:
-
-    * [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
-
-* [v] XmlTag 为什么 gdb 下 string name 不能直接显示内容？
-
-    13:16 ~ 13:26
 
 * [ ] `const ncclTopoGraph *const *const graphs`该如何理解？
 
@@ -3852,41 +3812,6 @@ resources:
 
 * [v] 调研使用`ssh -R`是否可以完全代替 frpc
 
-    feedback:
-
-    * [asso] 调研 ssh 心跳保持
-
-        client 端：
-
-        ```conf
-        # 每60秒发送心跳包
-        ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -R 8080:localhost:80 user@remote-host
-
-        # 或者写入配置文件 ~/.ssh/config
-        Host remote-host
-            HostName your-server.com
-            User username
-            ServerAliveInterval 60
-            ServerAliveCountMax 3
-            RemoteForward 8080 localhost:80
-        ```
-
-        server 端：
-
-        ```conf
-        # 在服务端 /etc/ssh/sshd_config 中配置
-        ClientAliveInterval 60
-        ClientAliveCountMax 3
-        TCPKeepAlive yes
-        ```
-
-    * [asso] 调研 frp 加密
-
-        ```conf
-        [common]
-        tls_enable = true
-        ```
-
 * [ ] 调研`:tag function_name` - 跳转到指定标签
 
 * [ ] `readelf -d <文件名> | grep NEEDED`
@@ -4035,6 +3960,39 @@ resources:
 * [ ] 调研`rsync --max-delete`
 
 * [ ] 调研 conan
+
+* [asso] 调研 ssh 心跳保持
+
+    client 端：
+
+    ```conf
+    # 每60秒发送心跳包
+    ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -R 8080:localhost:80 user@remote-host
+
+    # 或者写入配置文件 ~/.ssh/config
+    Host remote-host
+        HostName your-server.com
+        User username
+        ServerAliveInterval 60
+        ServerAliveCountMax 3
+        RemoteForward 8080 localhost:80
+    ```
+
+    server 端：
+
+    ```conf
+    # 在服务端 /etc/ssh/sshd_config 中配置
+    ClientAliveInterval 60
+    ClientAliveCountMax 3
+    TCPKeepAlive yes
+    ```
+
+* [asso] 调研 frp 加密
+
+    ```conf
+    [common]
+    tls_enable = true
+    ```
 
 ## gpu driver
 
