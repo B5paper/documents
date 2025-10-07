@@ -2,6 +2,64 @@
 
 ## cached
 
+* 使用 std::is_constructible 检查是否可构造
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    class A {
+    public:
+        A(int) {}
+    };
+
+    class B {
+    public:
+        B() = delete;
+    };
+
+    int main() {
+        std::cout << std::boolalpha;
+        std::cout << "A is constructible from int: " 
+                  << std::is_constructible<A, int>::value << std::endl;  // true
+        std::cout << "B is default constructible: " 
+                  << std::is_constructible<B>::value << std::endl;       // false
+    }
+    ```
+
+* 使用 std::enable_if 约束构造函数
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    template <typename T>
+    class MyClass {
+    public:
+        // 只允许整数类型的构造函数
+        template <typename U = T, 
+                  typename = typename std::enable_if<std::is_integral<U>::value>::type>
+        MyClass(U value) {
+            std::cout << "Integral constructor: " << value << std::endl;
+        }
+        
+        // 只允许浮点类型的构造函数
+        template <typename U = T, 
+                  typename = typename std::enable_if<std::is_floating_point<U>::value>::type>
+        MyClass(U value) {
+            std::cout << "Floating point constructor: " << value << std::endl;
+        }
+    };
+
+    int main() {
+        MyClass<int> a(42);      // 调用整数构造函数
+        MyClass<double> b(3.14); // 调用浮点构造函数
+        // MyClass<std::string> c("hello"); // 编译错误，没有匹配的构造函数
+    }
+    ```
+
+    注意这里面的`typename U = T`，说明构造函数和类用的是不同的模板参数，构造函数不能直接用`T`。
+
 * unique_ptr 自定义删除器 (Custom Deleter)
 
     默认情况下，unique_ptr 使用 delete 或 delete[] 来释放资源。你可以指定一个自定义的删除器函数或函数对象，用于释放特殊资源（如文件句柄 (fclose)、套接字、特定 API 分配的内存等）。

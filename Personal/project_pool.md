@@ -1084,15 +1084,21 @@
 
 * [ ] `asm("int $0x3B");`
 
-* [ ] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
+* [v] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
 
-* [ ] 构建任务模板初始版，模板完成版
+    17:06 ~ 17:11
+
+* [v] 构建任务模板初始版，模板完成版
+
+    14:08 ~ 14:13
 
 * [ ] 调研 nasm
 
     linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
 
-* [ ] `#if ! MY_MACRO`
+* [v] `#if ! MY_MACRO`
+
+    14:20 ~ 14:21
 
 * [ ] random select 增加 exclude 功能
 
@@ -1390,7 +1396,9 @@
 
 * [ ] glow, mdcat, catwalk
 
-* [ ] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
+* [v] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
+
+    14:35 ~ 14:53
 
     获取 Shell 命令的进程 ID
 
@@ -1663,13 +1671,23 @@
 
 * [ ] arm linux 环境下是否有类似 nasm 的工具？
 
-* [ ] `re.findall()`
+* [v] `re.findall()`
+
+    17:12 ~ 17:30
 
 * [ ] reg `\b`, `\w`
 
-* [ ] 调研 PyTorch Loss Functions
+* [O] 调研 PyTorch Loss Functions
+
+    15:01 ~ 15:31
 
     <https://www.geeksforgeeks.org/deep-learning/pytorch-loss-functions/>
+
+    feedback:
+
+    * 目前看到
+
+        > Mean Square Error
 
 * [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
 
@@ -2135,7 +2153,7 @@ resources:
 
 ### tasks
 
-* [O] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+* [v] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
 
     17:13 ~ 18:00, 14:21 ~ 15:28
 
@@ -2233,7 +2251,21 @@ resources:
 
 ### tasks
 
-* [ ] C++ (Eigen): Eigen::SparseMatrix
+* [v] C++ (Eigen): Eigen::SparseMatrix
+
+    15:37 ~ 16:04
+
+    feedback:
+
+    * [asso] eigen 如何创建稀疏矩阵（静态大量，动态添加）？
+
+    * [asso] eigen 中稀疏矩阵与稠密矩阵如何转换？
+
+    * [asso] eigen 如何打印出一个稀疏矩阵中的非零值？如何打印完整矩阵？如何读取或修改指定位置的值？
+
+    * [asso] eigen 支持的矩阵最高到几维？是否支持类似 torch 的 4 维矩阵？
+
+    * [asso] eigen 中的稀疏矩阵支持哪些运算？矩阵乘法？还有其他什么运算？
 
 * [ ] 调研`np.linspace()`与其他常用的数据创建方法
 
@@ -2553,7 +2585,19 @@ resources:
 
 * [ ] 调研使用梯度法求二无函数$f(x, y)$的最值
 
-* [ ] 调研 Amir Beck
+* [v] 调研 Amir Beck
+
+    ~ 16:14
+
+    feedback:
+
+    * [asso] Amir Beck 的 Beck & Teboulle 算法
+
+        著名的 FISTA（Fast Iterative Shrinkage-Thresholding Algorithm）
+
+    * [asso] Amir Beck 的《First-Order Methods in Optimization》（2017）
+
+        系统介绍一阶优化方法的权威教材, 涵盖梯度方法、次梯度方法、近端算法等
 
 * [ ] 矩阵微积分 / 矩阵求导
 
@@ -2681,9 +2725,13 @@ resources:
 
 ### tasks
 
-* [ ] `pci_read_config_dword`
+* [v] `pci_read_config_dword`
 
-* [ ] `pci_find_ext_capability`
+    16:27 ~ 16:37
+
+* [v] `pci_find_ext_capability`
+
+    16:38 ~ 16:42
 
 * [ ] 调研 ds 生成的一段代码
 
@@ -3402,7 +3450,7 @@ resources:
 
     16:39 ~ 17:20
 
-* [ ] `const ncclTopoGraph *const *const graphs`该如何理解？
+* [v] `const ncclTopoGraph *const *const graphs`该如何理解？
 
 * [ ] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
 
