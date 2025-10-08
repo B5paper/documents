@@ -2,506 +2,6 @@
 
 ## cache
 
-* cuda 实现 reverse
-
-    ```cpp
-    #include <iostream>
-    #include <cuda_runtime.h>
-
-    // 简单的 reverse kernel
-    __global__ void reverse_kernel(int* input, int* output, int n) {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < n) {
-            int rev_idx = n - 1 - idx;
-            output[rev_idx] = input[idx];
-        }
-    }
-
-    // 检查 CUDA 错误
-    void checkCudaError(cudaError_t err, const char* msg) {
-        if (err != cudaSuccess) {
-            std::cerr << msg << ": " << cudaGetErrorString(err) << std::endl;
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    int main() {
-        const int n = 10;
-        int size = n * sizeof(int);
-        
-        // 主机数据
-        int h_input[n], h_output[n];
-        for (int i = 0; i < n; i++) {
-            h_input[i] = i + 1;  // 1, 2, 3, ..., 10
-        }
-        
-        // 设备内存分配
-        int *d_input, *d_output;
-        checkCudaError(cudaMalloc(&d_input, size), "cudaMalloc d_input failed");
-        checkCudaError(cudaMalloc(&d_output, size), "cudaMalloc d_output failed");
-        
-        // 数据拷贝到设备
-        checkCudaError(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice),
-                      "cudaMemcpy HostToDevice failed");
-        
-        // 启动 kernel
-        int block_size = 256;
-        int grid_size = (n + block_size - 1) / block_size;
-        
-        reverse_kernel<<<grid_size, block_size>>>(d_input, d_output, n);
-        checkCudaError(cudaGetLastError(), "Kernel execution failed");
-        
-        // 拷贝结果回主机
-        checkCudaError(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost),
-                      "cudaMemcpy DeviceToHost failed");
-        
-        // 输出结果
-        std::cout << "Original: ";
-        for (int i = 0; i < n; i++) std::cout << h_input[i] << " ";
-        std::cout << std::endl;
-        
-        std::cout << "Reversed: ";
-        for (int i = 0; i < n; i++) std::cout << h_output[i] << " ";
-        std::cout << std::endl;
-        
-        // 清理
-        cudaFree(d_input);
-        cudaFree(d_output);
-        
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    Original: 1 2 3 4 5 6 7 8 9 10 
-    Reversed: 10 9 8 7 6 5 4 3 2 1
-    ```
-
-    in-place 交换：
-
-    ```cpp
-    __global__ void reverse_inplace_kernel(int* data, int n) {
-        int tid = threadIdx.x;
-        int block_start = blockIdx.x * blockDim.x * 2;  // 每个块处理两倍数据
-        
-        int left_idx = block_start + tid;
-        int right_idx = block_start + blockDim.x * 2 - 1 - tid;
-        
-        if (left_idx < right_idx && right_idx < n) {
-            // 交换对称位置的元素
-            int temp = data[left_idx];
-            data[left_idx] = data[right_idx];
-            data[right_idx] = temp;
-        }
-    }
-    ```
-
-* cuda 矩阵乘的 example
-
-    假设我们要计算：
-
-    C = A * B
-
-    其中 A 是 M x K 的矩阵，B 是 K x N 的矩阵，那么结果 C 就是 M x N 的矩阵。
-
-    example:
-
-    ```cpp
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <cuda_runtime.h>
-    #include <assert.h>
-
-    // CUDA 矩阵乘法内核函数
-    __global__ void matrixMultiplyKernel(float* A, float* B, float* C, 
-                                       int M, int N, int K) {
-        // 计算当前线程负责的结果矩阵位置
-        int row = blockIdx.y * blockDim.y + threadIdx.y;
-        int col = blockIdx.x * blockDim.x + threadIdx.x;
-        
-        // 检查是否在有效范围内
-        if (row < M && col < N) {
-            float sum = 0.0f;
-            // 计算A的第row行和B的第col列的点积
-            for (int i = 0; i < K; i++) {
-                sum += A[row * K + i] * B[i * N + col];
-            }
-            C[row * N + col] = sum;
-        }
-    }
-
-    // CPU版本的矩阵乘法，用于验证结果
-    void matrixMultiplyCPU(float* A, float* B, float* C, int M, int N, int K) {
-        for (int row = 0; row < M; row++) {
-            for (int col = 0; col < N; col++) {
-                float sum = 0.0f;
-                for (int i = 0; i < K; i++) {
-                    sum += A[row * K + i] * B[i * N + col];
-                }
-                C[row * N + col] = sum;
-            }
-        }
-    }
-
-    // 比较两个矩阵是否相等（允许一定的误差）
-    bool compareMatrices(float* A, float* B, int size, float tolerance = 1e-5f) {
-        for (int i = 0; i < size; i++) {
-            if (fabs(A[i] - B[i]) > tolerance) {
-                printf("Mismatch at index %d: CPU=%f, GPU=%f\n", i, A[i], B[i]);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // 初始化矩阵
-    void initializeMatrix(float* matrix, int rows, int cols) {
-        for (int i = 0; i < rows * cols; i++) {
-            matrix[i] = static_cast<float>(rand() % 10); // 0-9的随机数
-        }
-    }
-
-    // 打印矩阵（小矩阵用于调试）
-    void printMatrix(float* matrix, int rows, int cols, const char* name) {
-        printf("%s:\n", name);
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                printf("%6.2f ", matrix[i * cols + j]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-
-    int main() {
-        // 矩阵维度
-        const int M = 512;  // A的行数，C的行数
-        const int K = 256;  // A的列数，B的行数  
-        const int N = 384;  // B的列数，C的列数
-        
-        printf("Matrix Multiplication: A(%d x %d) * B(%d x %d) = C(%d x %d)\n", 
-               M, K, K, N, M, N);
-        
-        // 分配主机内存
-        size_t size_A = M * K * sizeof(float);
-        size_t size_B = K * N * sizeof(float);
-        size_t size_C = M * N * sizeof(float);
-        
-        float* h_A = (float*)malloc(size_A);
-        float* h_B = (float*)malloc(size_B);
-        float* h_C = (float*)malloc(size_C);      // GPU结果
-        float* h_C_CPU = (float*)malloc(size_C);  // CPU结果（用于验证）
-        
-        // 初始化矩阵
-        srand(2024); // 固定随机种子以便重现结果
-        initializeMatrix(h_A, M, K);
-        initializeMatrix(h_B, K, N);
-        
-        // 分配设备内存
-        float *d_A, *d_B, *d_C;
-        cudaMalloc(&d_A, size_A);
-        cudaMalloc(&d_B, size_B);
-        cudaMalloc(&d_C, size_C);
-        
-        // 拷贝数据到设备
-        cudaMemcpy(d_A, h_A, size_A, cudaMemcpyHostToDevice);
-        cudaMemcpy(d_B, h_B, size_B, cudaMemcpyHostToDevice);
-        
-        // 配置线程块和网格维度
-        dim3 blockSize(16, 16); // 256个线程 per block
-        dim3 gridSize((N + blockSize.x - 1) / blockSize.x, 
-                      (M + blockSize.y - 1) / blockSize.y);
-        
-        printf("Grid: (%d, %d), Block: (%d, %d)\n", 
-               gridSize.x, gridSize.y, blockSize.x, blockSize.y);
-        
-        // 创建CUDA事件用于计时
-        cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        
-        // 执行GPU计算
-        cudaEventRecord(start);
-        matrixMultiplyKernel<<<gridSize, blockSize>>>(d_A, d_B, d_C, M, N, K);
-        cudaEventRecord(stop);
-        
-        // 等待内核执行完成
-        cudaEventSynchronize(stop);
-        
-        // 计算GPU运行时间
-        float gpuTime = 0.0f;
-        cudaEventElapsedTime(&gpuTime, start, stop);
-        
-        // 拷贝结果回主机
-        cudaMemcpy(h_C, d_C, size_C, cudaMemcpyDeviceToHost);
-        
-        // 执行CPU计算并计时
-        clock_t cpuStart = clock();
-        matrixMultiplyCPU(h_A, h_B, h_C_CPU, M, N, K);
-        clock_t cpuEnd = clock();
-        double cpuTime = ((double)(cpuEnd - cpuStart)) / CLOCKS_PER_SEC * 1000.0;
-        
-        // 验证结果
-        bool resultsMatch = compareMatrices(h_C, h_C_CPU, M * N);
-        
-        // 输出结果
-        printf("\n=== 性能结果 ===\n");
-        printf("GPU Time: %.2f ms\n", gpuTime);
-        printf("CPU Time: %.2f ms\n", cpuTime);
-        printf("Speedup: %.2fx\n", cpuTime / gpuTime);
-        printf("Results Match: %s\n", resultsMatch ? "Yes" : "No");
-        
-        // 打印前3x3部分结果（对于大矩阵）
-        if (M >= 3 && N >= 3) {
-            printf("\n=== 前3x3结果验证 ===\n");
-            printf("GPU Result (top-left 3x3):\n");
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    printf("%8.2f ", h_C[i * N + j]);
-                }
-                printf("\n");
-            }
-            
-            printf("\nCPU Result (top-left 3x3):\n");
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    printf("%8.2f ", h_C_CPU[i * N + j]);
-                }
-                printf("\n");
-            }
-        }
-        
-        // 清理资源
-        free(h_A);
-        free(h_B);
-        free(h_C);
-        free(h_C_CPU);
-        cudaFree(d_A);
-        cudaFree(d_B);
-        cudaFree(d_C);
-        cudaEventDestroy(start);
-        cudaEventDestroy(stop);
-        
-        printf("\nDemo completed successfully!\n");
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    Matrix Multiplication: A(512 x 256) * B(256 x 384) = C(512 x 384)
-    Grid: (24, 32), Block: (16, 16)
-
-    === 性能结果 ===
-    GPU Time: 0.07 ms
-    CPU Time: 167.03 ms
-    Speedup: 2298.38x
-    Results Match: Yes
-
-    === 前3x3结果验证 ===
-    GPU Result (top-left 3x3):
-     5172.00  5910.00  5610.00 
-     4534.00  4625.00  4653.00 
-     4819.00  5186.00  5153.00 
-
-    CPU Result (top-left 3x3):
-     5172.00  5910.00  5610.00 
-     4534.00  4625.00  4653.00 
-     4819.00  5186.00  5153.00 
-
-    Demo completed successfully!
-    ```
-
-*  CUDA 向量加（Vector Addition） example
-
-    ```cpp
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <cuda_runtime.h>
-
-    // CUDA 内核函数：向量加法
-    __global__ void vectorAdd(const float* A, const float* B, float* C, int numElements)
-    {
-        int i = blockDim.x * blockIdx.x + threadIdx.x;
-        if (i < numElements) {
-            C[i] = A[i] + B[i];
-        }
-    }
-
-    // 初始化主机数据的辅助函数
-    void initData(float* ptr, int size, float value)
-    {
-        for (int i = 0; i < size; ++i) {
-            ptr[i] = value + i;
-        }
-    }
-
-    // 验证结果的辅助函数
-    bool verifyResult(const float* A, const float* B, const float* C, int numElements)
-    {
-        const float epsilon = 1.0e-6f;
-        for (int i = 0; i < numElements; ++i) {
-            if (fabs(C[i] - (A[i] + B[i])) > epsilon) {
-                printf("验证失败! 在索引 %d: 期望 %.2f, 得到 %.2f\n", 
-                       i, A[i] + B[i], C[i]);
-                return false;
-            }
-        }
-        printf("验证成功! 所有元素计算正确。\n");
-        return true;
-    }
-
-    int main(void)
-    {
-        // 设置向量长度
-        const int numElements = 50000;
-        const size_t size = numElements * sizeof(float);
-        printf("[信息] 向量加法，每个向量长度为 %d 元素\n", numElements);
-
-        // 分配主机内存
-        float *h_A, *h_B, *h_C;
-        h_A = (float*)malloc(size);
-        h_B = (float*)malloc(size);
-        h_C = (float*)malloc(size);
-
-        if (!h_A || !h_B || !h_C) {
-            printf("主机内存分配失败!\n");
-            exit(EXIT_FAILURE);
-        }
-
-        // 初始化主机数组
-        initData(h_A, numElements, 1.0f);  // A = [1, 2, 3, ...]
-        initData(h_B, numElements, 2.0f);  // B = [2, 3, 4, ...]
-        // 期望结果: C = [3, 5, 7, ...]
-
-        // 分配设备内存
-        float *d_A, *d_B, *d_C;
-        cudaMalloc((void**)&d_A, size);
-        cudaMalloc((void**)&d_B, size);
-        cudaMalloc((void**)&d_C, size);
-
-        // 拷贝输入数据从主机到设备
-        cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
-        cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
-
-        // 启动内核配置
-        int threadsPerBlock = 256;
-        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
-        printf("[信息] 启动内核配置: %d 个线程块, 每个块 %d 个线程\n", 
-               blocksPerGrid, threadsPerBlock);
-
-        // 执行CUDA内核
-        vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
-
-        // 等待所有GPU操作完成
-        cudaDeviceSynchronize();
-
-        // 检查内核执行是否有错误
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) {
-            printf("CUDA 内核执行错误: %s\n", cudaGetErrorString(err));
-            exit(EXIT_FAILURE);
-        }
-
-        // 拷贝结果从设备到主机
-        cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
-
-        // 验证结果
-        verifyResult(h_A, h_B, h_C, numElements);
-
-        // 打印前10个结果作为示例
-        printf("\n前10个结果示例:\n");
-        for (int i = 0; i < 10 && i < numElements; ++i) {
-            printf("C[%d] = %.2f (A[%d] + B[%d] = %.2f + %.2f)\n", 
-                   i, h_C[i], i, i, h_A[i], h_B[i]);
-        }
-
-        // 释放设备内存
-        cudaFree(d_A);
-        cudaFree(d_B);
-        cudaFree(d_C);
-
-        // 释放主机内存
-        free(h_A);
-        free(h_B);
-        free(h_C);
-
-        printf("\n[信息] 程序执行完成，内存已释放。\n");
-
-        // 重置设备以便性能分析工具获取更准确的数据
-        cudaDeviceReset();
-
-        return 0;
-    }
-    ```
-
-    threadIdx.x：线程在其线程块（Block）内的索引。
-
-    blockIdx.x：线程块在网格（Grid）中的索引。
-
-    blockDim.x：每个线程块中的线程数量。
-
-    compile:
-
-    `nvcc -o vector_add vector_add.cu`
-
-    run:
-
-    `./vector_add`
-
-    output:
-
-    ```
-    [信息] 向量加法，每个向量长度为 50000 元素
-    [信息] 启动内核配置: 196 个线程块, 每个块 256 个线程
-    验证成功! 所有元素计算正确。
-
-    前10个结果示例:
-    C[0] = 3.00 (A[0] + B[0] = 1.00 + 2.00)
-    C[1] = 5.00 (A[1] + B[1] = 2.00 + 3.00)
-    C[2] = 7.00 (A[2] + B[2] = 3.00 + 4.00)
-    C[3] = 9.00 (A[3] + B[3] = 4.00 + 5.00)
-    C[4] = 11.00 (A[4] + B[4] = 5.00 + 6.00)
-    C[5] = 13.00 (A[5] + B[5] = 6.00 + 7.00)
-    C[6] = 15.00 (A[6] + B[6] = 7.00 + 8.00)
-    C[7] = 17.00 (A[7] + B[7] = 8.00 + 9.00)
-    C[8] = 19.00 (A[8] + B[8] = 9.00 + 10.00)
-    C[9] = 21.00 (A[9] + B[9] = 10.00 + 11.00)
-
-    [信息] 程序执行完成，内存已释放。
-    ```
-
-* 一个能跑通的`__shared__` example:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-
-    __shared__ int val;
-
-    __global__ void test_kern()
-    {
-        val = 123;
-        printf("%d\n", val);
-    }
-
-    int main()
-    {
-        test_kern<<<1, 1>>>();
-        cudaDeviceSynchronize();
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    123
-    ```
-
 * cuda 的跨进程 vram 访问
 
     见`ref_39`
@@ -598,734 +98,6 @@
     ```
 
     nvcc 编译器认为函数不能有偏特化，因此去找函数`do_calc()`的第一个实现，结果在代码中找到的是`do_calc<T, op_sum>()`。后来又找到了`do_calc<T, op_minus>()`的实现，因此就认为是重复定义了`do_calc()`，所以报错。
-
-* `cvta_to_global()`会将`T*`转换成`uintptr_t`, `uintptr_t`有点像`void*`，其他类型的地址都可以转成这个类型，方便处理。
-
-* ptx tmp
-
-    * 在 ptx 中使用多个 const bank
-
-        ```asm
-        .extern .const[2] .b32 const_buffer[];
-        ```
-
-        看起来是将`.const[2]`的地址赋给`const_buffer`。
-
-        ```asm
-        .extern .const[2] .b32 const_buffer[];
-        ld.const[2].b32  %r1, [const_buffer+4]; // load second word
-        ```
-
-        这个看上去是从`const_buffer+4`处，取一个`.b32`值。看来即使有了地址，`.const[2]`这些 bank 信息还是不能省。
-
-    * Use `ld.global`, `st.global`, and `atom.global` to access global variables.
-
-    * The local state space (.local) is typically standard memory with cache. Use ld.local and st.local to access local variables.
-
-        loadl memory 是缓存吗？为什么其他地方说和全局变量一样，是片外的？
-
-    * 关于 .local memory，如果架构支持 stack，那么 .local memory 被存在 stack 中，如果没有 stack，那么 .local variable 被存在 fixed address 中，因此函数也不支持递归调用。
-
-    * Additional sub-qualifiers ::entry or ::func can be specified on instructions with .param state space to indicate whether the address refers to kernel function parameter or device function parameter.
-
-        看来`__global__` kernel 和`__device__` kernel 的作用还不一样。
-
-        `::entry`和`::func`并没有默认情况，只有根据上下文指令而自动指定。比如`st.param`会对应到`st.param::func`，`isspacep.param`会对应到`isspacep.param::entry`。
-
-    * `.param`可能会被映射到 register, stack 或 global memory 上，这一点我们无法确定，具体位置在哪需要参考 ABI 的实现。
-
-* ptx asm, `ld`相关指令的注意事项
-
-    `ld`一个字节的代码：
-
-    ```cpp
-    template<>
-    __device__ __forceinline__ BytePack<1> ld_volatile_global<1>(uintptr_t *ptr)
-    {
-        uint32_t ans;
-        asm("ld.volatile.global.b8 %0, [%1];" : "=r"(ans) : "l"(ptr));
-        return *(BytePack<1>*) &ans;
-    }
-    ```
-
-    由于这里实现的是`ld_volatile_global()`模板函数的一个特化，要求返回值类型和参数类型的**形式**要和原函数声明一样，因此返回值选用了`BytePack<ElmSize>`，这样可以返回不定长的值，而输入参数使用了`uniptr_t *`，由于指针的长度总是固定的（64 位），所以不需要变长类型，直接统一使用`uniptr_t*`了。
-
-    而且`uniptr_t *`也是下面 asm 命令的要求，`"l"(ptr)`，ptr 的约束必须为`l`，不然编译通不过。
-
-    函数中声明了一个`uint32_t ans;`的变量，这个也是 asm 的要求，`.b8`指令对应的`ans`必须为 32 位。不然编译不通过。因为是 32 位，所以 constraint 使用的是`r`。后面会详细讨论 constraint 相关。
-
-    接下来看 asm 指令，`.b8`的`ld`指令，读 1 个字节，但是`ans`是 32 位，`ptr`是 64 位的指针。说明可能硬件上可能取 32 位数据的前 8 位当作 1 个字节来用。
-
-    return 时使用了强制类型转换。直接`return (BytePack<1>) ans;`显然是编译不过去的。如果写成
-
-    ```cpp
-        BytePack<1> ret;
-        ret.native = ans;
-        return ret;
-    ```
-
-    这样又显得繁琐，并且创建了一个中间变量。所以最终选择直接做类型转换。
-
-* ptx tmp
-
-    * PTX is case sensitive and uses lowercase for keywords.
-
-    * ptx 语句有两种，一种是 directive，另一种是 instruction
-
-        常见的 directive 如下：
-
-        ```
-                .reg     .b32 r1, r2;
-                .global  .f32  array[N];
-
-        start:  mov.b32   r1, %tid.x;
-                shl.b32   r1, r1, 2;          // shift thread id by 2 bits
-                ld.global.b32 r2, array[r1];  // thread[tid] gets array[tid]
-                add.f32   r2, r2, 0.5;        // add 1/2
-        ```
-
-        常见的 insrruction 如下：
-
-        `abs`, `cvta`, `membar`
-
-    * identifier
-
-        ptx 中的 identifier 与 c/c++ 中的相似。
-
-        regular expression:
-
-        ```
-        followsym:   [a-zA-Z0-9_$]
-        identifier:  [a-zA-Z]{followsym}* | {[_$%]{followsym}+
-        ```
-
-    * Predefined Identifiers
-
-        ptx 预定义了一些常量。常用的常量：
-
-        `%clock`, `%laneid`, `%lanemask_gt`
-
-    * integer 有 signed 和 unsigned 之分，以 64 位为例，分别表示为`.s64`, `.u64`
-
-    * 整型的字面量  Integer literals
-
-        常见的格式如下：
-
-        ```
-        hexadecimal literal:  0[xX]{hexdigit}+U?
-        octal literal:        0{octal digit}+U?
-        binary literal:       0[bB]{bit}+U?
-        decimal literal       {nonzero-digit}{digit}*U?
-        ```
-
-    * floating point
-
-        ptx 支持使用十六进制数按照 IEEE 754 格式精确表示浮点数。
-
-        ```
-        0[fF]{hexdigit}{8}      // single-precision floating point
-        0[dD]{hexdigit}{16}     // double-precision floating point
-        ```
-
-        example:
-
-        ```asm
-        mov.f32  $f3, 0F3f800000;       //  1.0
-        ```
-
-    * A state space is a storage area with particular characteristics.
-
-        常用的 state space:
-
-        * `.reg`: Registers, fast.
-
-        * `.sreg`: Special registers. Read-only; pre-defined; platform-specific.
-
-            The special register (.sreg) state space holds predefined, platform-specific registers, such as grid, cluster, CTA, and thread parameters, clock counters, and performance monitoring registers. All special registers are predefined.
-
-        * `.const`: Shared, read-only memory.
-
-        * `.global`: Global memory, shared by all threads.
-
-        * `.local`: Local memory, private to each thread.
-
-        * `.param`: Kernel parameters, defined per-grid; or Function or local parameters, defined per-thread.
-
-        * `.shared`: Addressable memory, defined per CTA, accessible to all threads in the cluster throughout the lifetime of the CTA that defines it.
-
-        * `.tex`: Global texture memory (deprecated).
-
-    * The constant (.const) state space is a read-only memory initialized by the host. Constant memory is accessed with a `ld.const` instruction.
-
-    * Constant memory is restricted in size, currently limited to 64 KB which can be used to hold statically-sized constant variables.
-
-        常量的空间竟然有 64 KB，感觉还是比较大的。
-
-    * There is an additional 640 KB of constant memory, organized as ten independent 64 KB regions. The driver may allocate and initialize constant buffers in these regions and pass pointers to the buffers as kernel function parameters.
-
-        没有明白这个是啥意思，猜测：默认的字面量和 const 变量都是存在 64 KB 的 constant memory 中，如果有额外的大量常量数据的需要，比如传入一个世界地图的数据之类的，可以在驱动层面额外申请，并且显式地把数据写入进去。推论：640 KB 的 constant memory 是所有 sm 共享的。
-
-* ptx tmp
-
-    * The NVIDIA GPU architecture is built around a scalable array of multithreaded Streaming Multiprocessors (SMs).
-
-    * A multiprocessor consists of multiple Scalar Processor (SP) cores, a multithreaded instruction unit, and on-chip shared memory. It implements a single-instruction barrier synchronization.
-
-        The multiprocessor maps each thread to one scalar processor core, and each scalar thread executes independently with its own instruction address and register state. 
-
-        每个 sp 对应一个线程吗？
-
-    * The multiprocessor SIMT unit creates, manages, schedules, and executes threads in groups of parallel threads called warps. (This term originates from weaving, the first parallel thread technology.)
-
-        simt unit 指的是管理多个 sp 的组件吗？
-
-    * When a multiprocessor is given one or more thread blocks to execute, it splits them into warps that get scheduled by the SIMT unit.
-
-        SM 拿到 blocks，SM 将 blocks 分成多个 warps。每个 warp 对应一个 simt unit.
-
-    * At every instruction issue time, the SIMT unit selects a warp that is ready to execute and issues the next instruction to the active threads of the warp.
-
-        warp 和 simt unit 并不是绑定的关系，simt unit 会动态选择准备就绪的 warp 进行处理。
-
-        一个 warp 中的 threads 也不是都为 active 状态，可能只有部分是 active 状态。（猜测这里的 active 和 if 条件语句有关）
-
-    * A warp executes one common instruction at a time, so full efficiency is realized when all threads of a warp agree on their execution path. If threads of a warp diverge via a data-dependent conditional branch, the warp serially executes each branch path taken, disabling threads that are not on that path, and when all paths complete, the threads converge back to the same execution path. Branch divergence occurs only within a warp; 
-
-        如果一个 warp 中的多个 thread 根据 if 语句发生了 diverge，一部分 threads 走 branch 1，另一部分 threads 走 branch 2，那么 warp 会先执行 branch 1 的代码，再执行 branch 2 的代码，最后再把所有 threads 合并到一起，执行 common 代码。
-
-        显然，最坏的情况是 branch 1 上有 N - 1 个 threads，而 branch 2 上只有 1 个 thread，并且 branch 2 的代码很长。为了这一个 thread，其他 thread 要等很长时间，彻底破坏了 simt 的优势。
-
-    * How many blocks a multiprocessor can process at once depends on how many registers per thread and how much shared memory per block are required for a given kernel since the multiprocessor’s registers and shared memory are split among all the threads of the batch of blocks. 
-
-        看来 sm 中的寄存器和 shared memory 的数量是有限的，根据这些资源的占用情况，动态决定一个 sm 能同时处理多少个 block。
-
-        推论：或者是编译，或者是固件，一定有个地方会计算 sm 中寄存器资源的占用情况，并在 dispatch 任务时会根据这些占用情况进行派发。
-
-    * 从 vulta 架构开始，引入了 Independent Thread Scheduling，此时不再以 warp + mask 的形式进行线程调度，提高了灵活性。
-
-        目前并不清楚这点是怎么 work 的，有时间了再看。
-
-    * on-chip memory
-
-        片上内存，速度快。一共有 4 种。
-
-        * register，每个 thread 独占。
-
-        * shared memory, 位置在 sm 上，逻辑上 block 共享
-
-        * read-only constant cache，位置在 sm 上，逻辑情况未知
-
-        * read-only texture cache，位置在 sm 上，逻辑情况未知
-
-* ptx tmp
-
-    * Cooperative thread arrays (CTAs) implement CUDA thread blocks
-
-    * The Parallel Thread Execution (PTX) programming model is explicitly parallel:
-
-    * The thread identifier is a three-element vector tid, (with elements tid.x, tid.y, and tid.z) 
-
-    * Each CTA has a 1D, 2D, or 3D shape specified by a three-element vector ntid (with elements ntid.x, ntid.y, and ntid.z).
-
-    * Threads within a CTA execute in SIMT (single-instruction, multiple-thread) fashion in groups called warps.
-
-    * A warp is a maximal subset of threads from a single CTA
-
-        不懂这句什么意思
-
-    * PTX includes a run-time immediate constant, WARP_SZ
-
-        warp size
-
-    * Cluster is a group of CTAs that run concurrently or in parallel and can synchronize and communicate with each other via shared memory. 
-
-        一个 cluster 由多个 warp 组成，多个 warp 之间可以共享内存。
-
-    * Cluster-wide barriers can be used to synchronize all the threads within the cluster. 
-
-        cluster-wide 并不是拿来同步 cluster 的，而是拿来同步 cluster 中的 thread 的
-
-        不同 cluster 之间的 thread 无法同步，也无法通信。
-
-    * Each CTA in a cluster has a unique CTA identifier within its cluster (cluster_ctaid).
-
-        cta 在 cluster 中有独立的 id 来标识。
-
-    * Each cluster of CTAs has 1D, 2D or 3D shape specified by the parameter cluster_nctaid
-
-        cluster 也可以按 1d, 2d, 3d 组合。这里只提供了一个`cluster_nctaid`，不同维度的 id 该如何获取？
-
-    * Each CTA in the cluster also has a unique CTA identifier (cluster_ctarank) across all dimensions. total number of CTAs across all the dimensions in the cluster is specified by cluster_nctarank.
-
-        这个应该是把 dimension flatten 后得到的 id
-
-    * Threads may read and use these values through predefined, read-only special registers %cluster_ctaid, %cluster_nctaid, %cluster_ctarank, %cluster_nctarank.
-
-    * Each cluster has a unique cluster identifier (clusterid) within a grid of clusters. Each grid of clusters has a 1D, 2D , or 3D shape specified by the parameter nclusterid. Each grid also has a unique temporal grid identifier (gridid). Threads may read and use these values through predefined, read-only special registers %tid, %ntid, %clusterid, %nclusterid, and %gridid.
-
-        cluster id 的标识，没啥可说的，和 thread id 差不多。
-
-    * Each CTA has a unique identifier (ctaid) within a grid. Each grid of CTAs has 1D, 2D, or 3D shape specified by the parameter nctaid. Thread may use and read these values through predefined, read-only special registers %ctaid and %nctaid.
-
-         cta 在 grid 中的 id 标识，注意这个是区别于 cluster 的。
-
-    * Grids may be launched with dependencies between one another
-
-        不同 grid 之间可以指定依赖关系后串行执行。这个依赖关系和 cuda graph 相关。
-
-    * ach thread has a private local memory. Each thread block (CTA) has a shared memory visible to all threads of the block and to all active blocks in the cluster and with the same lifetime as the block. Finally, all threads have access to the same global memory.
-
-        其他的都比较清楚，唯一不清楚的是，shared memory 是每个 cta 有一份，还是一个 cluster 中只有一份？
-
-    * Constant and texture memory are read-only; surface memory is readable and writable.
-
-    * The global, constant, param, texture, and surface state spaces are optimized for different memory usages.
-
-    * texture and surface memory is cached, and within the same kernel call, the cache is not kept coherent with respect to global memory writes and surface memory writes,
-
-        texture 和 surface 总是读缓存里的数据，因此如果在一个 kernel 调用内先存入新的值，再立即去读取值，很有可能读出的值并不是存入的值。
-
-    * The global, constant, and texture state spaces are persistent across kernel launches by the same application.
-
-        不懂这个是啥意思。
-
-        前面一直没提到过 param memory 是干什么用的，有什么特性。
-
-* 当`__shared__`在 kernel 外声明时，依然有基本功能：被`__shared__`修饰的数据，只在同一个 block 中相冋，并且只能被同一个 block 中的 thread 访问
-
-    example:
-
-    `main.cu`:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-
-    __shared__ int a;
-
-    __global__ void my_kern()
-    {
-        if (threadIdx.x == 0)
-        {
-            a = blockIdx.x;
-        }
-        __syncthreads();
-        if (threadIdx.x == 1)
-        {
-            printf("in block %d, a = %d\n", blockIdx.x, a);
-        }
-    }
-
-    int main()
-    {
-        my_kern<<<2, 32>>>();
-        cudaDeviceSynchronize();
-        return 0;
-    }
-    ```
-
-    compile: `nvcc main.cu -o main`
-
-    run: `./main`
-
-    output:
-
-    ```
-    in block 0, a = 0
-    in block 1, a = 1
-    ```
-
-    可以看到，不同 block 访问到的 shared 数据不同。
-
-* cuda stream
-
-    `__host__ ​cudaError_t cudaStreamCreate ( cudaStream_t* pStream ) `
-
-    在当前 host thread 最新的 context 上创建一个 stream。
-
-    如果当前 host thread 没有 context，那么在 device 的 primary context 上创建一个 stream，并将这个 context 作为当前 host thread 的 context.
-
-    销毁 stream:
-
-    `__host__ ​ __device__ ​cudaError_t cudaStreamDestroy ( cudaStream_t stream ) `
-
-* True 和 False 被称作 guard predicate
-
-* `@{!}p    instruction;`被称作 Predicated execution.
-
-    当`{!}p`为 true 时，才执行 instruction，否则不执行。
-
-    example:
-
-    ```asm
-        setp.eq.f32  p,y,0;     // is y zero?
-    @!p div.f32      ratio,x,y  // avoid division by zero
-
-    @q  bra L23;                // conditional branch
-    ```
-
-* `bra`跳转
-
-    ```asm
-    @p   bra{.uni}  tgt;           // tgt is a label
-         bra{.uni}  tgt;           // unconditional branch
-    ```
-
-    `bra.uni` is guaranteed to be non-divergent, i.e. all active threads in a warp that are currently executing this instruction have identical values for the guard predicate and branch target.
-
-    这个可能的含义是当所有线程的`p`或`tgt`都一致时，才使用`.uni`。（什么时候`tgt`会不一致？如果`p`或`tgt`不一致，但是使用了`.uni`，会报什么错？）
-
-    `bra`看起来像是 branch 的缩写。
-
-* `bar{.cta}, barrier{.cta}`
-
-    barrier
-
-    同步 cta 中的线程。猜想：cta 为一种用于同步的资源，当线程运行到 barrier 后停下，当所有线程都运行到 barrier 后，由 cta 唤醒线程继续运行。每个 cta 有 16 个用于同步的资源，编号为 0 到 15.
-
-    > The optional .cta qualifier simply indicates CTA-level applicability of the barrier and it doesn’t change the semantics of the instruction.
-
-    看上去 cta 只是一个提示词，无论使用还是不使用都不影响功能。
-
-    * `barrier{.cta}.sync{.aligned}      a{, b};`
-
-        `.sync`表示当参与 barrier 的线程到达这条指令后，等待其他线程。
-
-        `a`表示使用第几个 cta，可取值为 0 到 15.
-
-        `b`表示有多少线程参与 barrier，这个数必须是 warp size 的整数倍。如果不指定`b`，则所有参与 barrier 的 thread 所在的 warp，都会进入 barrier。
-
-        这里的`.aligned`与`.cta`同理，都只是一个提示词，不具备实际功能。
-
-    * `barrier{.cta}.arrive{.aligned}    a, b;`
-
-        与`.sync`相对，`.arrive`不会阻塞 thread。它似乎仅用于标记这里有个 barrier。
-
-        官网举的例子是 producer-consumer 模型，整个过程分为两步：
-        
-        1. 一部分 thread 作为 producer 执行`barrier.arrive`，另一部分 thread 作为 consumer 执行`barrier.sync`等待 producer 生产出资源
-
-        2. 刚才作为 producer 的 threads 执行`barrier.sync`等待 consumer 消耗资源，而刚才作为 consumer 的 threads 执行`barrier.arrive`消耗资源
-
-        目前没有看到实际的 example。
-
-        注意，在`.arrive`中，`b`必须指定。（为什么？）
-
-    * `barrier{.cta}.red.popc{.aligned}.u32  d, a{, b}, {!}c;`
-
-        `.red`表示 reduce，`.popc`表示 population-count，`d`表示目标寄存器，`c`表示谓词（predicate）。
-
-        `.popc`表示统计`c`中有多少个 true，并把结果存储到寄存器`d`中。
-
-    * `barrier{.cta}.red.op{.aligned}.pred   p, a{, b}, {!}c;`
-
-        其中的`.op`可以为`.and`，也可以为`.or`，分别用于判断`c`是否全为 true，或只有部分为 true。将判断的结果存储到寄存器`p`中。
-
-* `__syncwarp()`
-
-    syntax:
-
-    `void __syncwarp(unsigned mask=0xffffffff);`
-
-    只是一个普通的基于 warp 的同步函数，没有什么特别的。`mask`用于指定进入同步的线程。
-
-* `.reg .pred p;`是一个声明变量的语句，`.reg`表示是寄存器空间，`.pred`表示 predicate (谓词)，可能是用于条件分支的，相当于 if 语句。
-
-    example:
-
-    ```c
-    if (i < n)
-        j = j + 1;
-    ```
-
-    上面的 c 代码等价于下面这两种 ptx 代码：
-
-    ```asm
-          setp.lt.s32  p, i, n;    // p = (i < n)
-    @p    add.s32      j, j, 1;    // if i < n, add 1 to j
-    ```
-
-    ```asm
-          setp.lt.s32  p, i, n;    // compare i to n
-    @!p   bra  L1;                 // if False, branch over
-          add.s32      j, j, 1;
-    L1:     ...
-    ```
-
-* `.step`用于比较大小，并将结果存放到指定寄存器中
-
-    ```asm
-    setp.lt.s32  p|q, a, b;  // p = (a < b); q = !(a < b);
-    ```
-
-* cuda 中的 kernel 无论是 template 形式, 用 cudaLaunchKernel 启动，还是`__global__`修饰，`__device__`修饰，都是可以打断点的。nccl 中用的都是 cuda kernel，因此也是可以使用 cuda gdb 打断点的。通常 hit 一次断点需要 30 分钟以上，目前不清楚原因。
-
-* `__all_sync()`
-
-    原理与`__any_sync()`相似，当一个 warp 中每个线程提供的值都为 1 时，则返回 1，否则返回 0.
-
-    syntax:
-
-    ```cpp
-    __any_sync(unsigned mask, predicate);
-    ```
-
-    example:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include "../utils/cumem_hlc.h"
-
-    template<typename elm_type>
-    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
-    {
-        int tid = threadIdx.x;
-        int predicate = tid;
-        elm_type ret = __all_sync(0xffffffff, predicate);
-        cubuf_1[tid] = ret;
-        predicate = 1;
-        ret = __all_sync(0xffffffff, predicate);
-        cubuf_2[tid] = ret;
-    }
-
-    int main()
-    {
-        using elm_type = int;
-        int num_elm = 32;
-        elm_type *cubuf_1, *cubuf_2;
-        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
-        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
-
-        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
-        cudaDeviceSynchronize();
-
-        printf("cubuf 1:\n");
-        print_cubuf<elm_type>(cubuf_1, num_elm);
-
-        printf("cubuf 2:\n");
-        print_cubuf<elm_type>(cubuf_2, num_elm);
-
-        cudaFree(cubuf_1);
-        cudaFree(cubuf_2);
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    cubuf 1:
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as int
-    cubuf 2:
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, specialized as int
-    ```
-
-* `__ballot_sync()`
-
-    每个线程给定一个值 val，`__ballot_sync()`返回一个 32 位数 ret，如果 val 为非 0，假如 lane id 为`tid`，则将 ret 值的第`tid`位置 1，否则置 0。
-
-    example:
-
-    `main.cu`:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include "../utils/cumem_hlc.h"
-
-    template<typename elm_type>
-    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2, elm_type *cubuf_3)
-    {
-        int tid = threadIdx.x;
-        int predicate = tid % 2;
-        unsigned ret = __ballot_sync(0xffffffff, predicate);
-        cubuf_1[tid] = ret;
-        predicate = 1;
-        ret = __ballot_sync(0xffffffff, predicate);
-        cubuf_2[tid] = ret;
-        predicate = 0;
-        ret = __ballot_sync(0xffffffff, predicate);
-        cubuf_3[tid] = ret;
-    }
-
-    int main()
-    {
-        using elm_type = unsigned int;
-        int num_elm = 32;
-        elm_type *cubuf_1, *cubuf_2, *cubuf_3;
-        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
-        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
-        cudaMalloc(&cubuf_3, num_elm * sizeof(elm_type));
-
-        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2, cubuf_3);
-        cudaDeviceSynchronize();
-
-        printf("cubuf 1:\n");
-        print_cubuf<elm_type>(cubuf_1, num_elm);
-
-        printf("cubuf 2:\n");
-        print_cubuf<elm_type>(cubuf_2, num_elm);
-
-        printf("cubuf 3:\n");
-        print_cubuf<elm_type>(cubuf_3, num_elm);
-
-        cudaFree(cubuf_1);
-        cudaFree(cubuf_2);
-        cudaFree(cubuf_3);
-        return 0;
-    }
-    ``` 
-
-    output:
-
-    ```
-    cubuf 1:
-    2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, specialized as unsigned int
-    cubuf 2:
-    4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, specialized as unsigned int
-    cubuf 3:
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as unsigned int
-    ```
-
-    `2863311530`的二进制为`1010 1010 1010 1010 1010 1010 1010 1010`, `4294967295`的二进制为`1111 1111 1111 1111 1111 1111 1111 1111`。
-
-* `__shfl_xor_sync()`中，当`laneMask ＝ 3`时，会 4 个元素一组倒序取值
-
-    `main.cu`:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include "../utils/cumem_hlc.h"
-
-    template<typename elm_type>
-    __global__ void my_kern(elm_type *cubuf_1, elm_type *cubuf_2)
-    {
-        int tid = threadIdx.x;
-        elm_type val = __shfl_xor_sync(0xffffffff, cubuf_1[tid], 3);
-        cubuf_2[tid] = val;
-    }
-
-    int main()
-    {
-        using elm_type = float;
-        int num_elm = 32;
-        elm_type *cubuf_1, *cubuf_2;
-        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
-        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
-        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
-
-        my_kern<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
-        cudaDeviceSynchronize();
-
-        printf("cubuf 1:\n");
-        print_cubuf<elm_type>(cubuf_1, num_elm);
-        printf("cubuf 2:\n");
-        print_cubuf<elm_type>(cubuf_2, num_elm);
-
-        cudaFree(cubuf_1);
-        cudaFree(cubuf_2);
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    cubuf 1:
-    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
-    cubuf 2:
-    3.0, 2.0, 1.0, 0.0, 7.0, 6.0, 5.0, 4.0, 11.0, 10.0, 9.0, 8.0, 15.0, 14.0, 13.0, 12.0, 19.0, 18.0, 17.0, 16.0, 23.0, 22.0, 21.0, 20.0, 27.0, 26.0, 25.0, 24.0, 31.0, 30.0, 29.0, 28.0, specialized as float
-    ```
-
-    目前不明白是啥原理。
-
-    当`laneMask = 7`时，会 8 个一组反转：
-
-    ```
-    cubuf 1:
-    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
-    cubuf 2:
-    7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0, 8.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0, 16.0, 31.0, 30.0, 29.0, 28.0, 27.0, 26.0, 25.0, 24.0, specialized as float
-    ```
-
-* shift 与 reduce
-
-    example:
-
-    `main.cu`:
-
-    ```cpp
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include "../utils/cumem_hlc.h"
-
-    template<typename elm_type>
-    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
-    {
-        int tid = threadIdx.x;
-        elm_type val = cubuf_1[tid];
-        for (int laneMask = 16; laneMask >= 1; laneMask /= 2)
-            val += __shfl_xor_sync(0xffffffff, val, laneMask);
-        cubuf_2[tid] = val;
-    }
-
-    int main()
-    {
-        using elm_type = float;
-        int num_elm = 32;
-        elm_type *cubuf_1, *cubuf_2;
-        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
-        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
-        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
-
-        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
-        cudaDeviceSynchronize();
-
-        printf("cubuf 1:\n");
-        print_cubuf<elm_type>(cubuf_1, num_elm);
-        printf("cubuf 2:\n");
-        print_cubuf<elm_type>(cubuf_2, num_elm);
-
-        cudaFree(cubuf_1);
-        cudaFree(cubuf_2);
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    cubuf 1:
-    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
-    cubuf 2:
-    496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, specialized as float
-    ```
-
-    将`__shfl_xor_sync()`改成`__shfl_down_sync()`，也可以实现类似的效果，输出如下：
-
-    ```
-    cubuf 1:
-    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
-    cubuf 2:
-    496.0, 512.0, 528.0, 544.0, 560.0, 576.0, 592.0, 608.0, 624.0, 640.0, 656.0, 672.0, 688.0, 704.0, 720.0, 736.0, 752.0, 768.0, 784.0, 800.0, 816.0, 832.0, 848.0, 864.0, 880.0, 896.0, 912.0, 928.0, 944.0, 960.0, 976.0, 992.0, specialized as float
-    ```
-
-    其中`cubuf_2`只有第一个数字是有效的，其他的都是无效数字。
-
-    如果使用`__shfl_up_sync()`，则最终累加的结果在最后一个：
-
-    ```
-    cubuf 1:
-    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
-    cubuf 2:
-    0.0, 16.0, 32.0, 48.0, 64.0, 80.0, 96.0, 112.0, 128.0, 144.0, 160.0, 176.0, 192.0, 208.0, 224.0, 240.0, 256.0, 272.0, 288.0, 304.0, 320.0, 336.0, 352.0, 368.0, 384.0, 400.0, 416.0, 432.0, 448.0, 464.0, 480.0, 496.0, specialized as float
-    ```
 
 * `__any_sync()`
 
@@ -1544,8 +316,6 @@
     ```
 
     目前不知道原因。
-
-* cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
 
 * cuda 中`__shfl_down_sync()`的含义
 
@@ -4281,6 +3051,1238 @@
     cuda 的版本会落后一些，但是提供了提示和编译环境，可以用来跳转和写代码。
 
 * nvcc 需要安装 g++ 编译器
+
+## topics
+
+### ptx
+
+* `.reg .pred p;`是一个声明变量的语句，`.reg`表示是寄存器空间，`.pred`表示 predicate (谓词)，可能是用于条件分支的，相当于 if 语句。
+
+    example:
+
+    ```c
+    if (i < n)
+        j = j + 1;
+    ```
+
+    上面的 c 代码等价于下面这两种 ptx 代码：
+
+    ```asm
+          setp.lt.s32  p, i, n;    // p = (i < n)
+    @p    add.s32      j, j, 1;    // if i < n, add 1 to j
+    ```
+
+    ```asm
+          setp.lt.s32  p, i, n;    // compare i to n
+    @!p   bra  L1;                 // if False, branch over
+          add.s32      j, j, 1;
+    L1:     ...
+    ```
+
+* `.step`用于比较大小，并将结果存放到指定寄存器中
+
+    ```asm
+    setp.lt.s32  p|q, a, b;  // p = (a < b); q = !(a < b);
+    ```
+
+* True 和 False 被称作 guard predicate
+
+* `@{!}p    instruction;`被称作 Predicated execution.
+
+    当`{!}p`为 true 时，才执行 instruction，否则不执行。
+
+    example:
+
+    ```asm
+        setp.eq.f32  p,y,0;     // is y zero?
+    @!p div.f32      ratio,x,y  // avoid division by zero
+
+    @q  bra L23;                // conditional branch
+    ```
+
+* `bra`跳转
+
+    ```asm
+    @p   bra{.uni}  tgt;           // tgt is a label
+         bra{.uni}  tgt;           // unconditional branch
+    ```
+
+    `bra.uni` is guaranteed to be non-divergent, i.e. all active threads in a warp that are currently executing this instruction have identical values for the guard predicate and branch target.
+
+    这个可能的含义是当所有线程的`p`或`tgt`都一致时，才使用`.uni`。（什么时候`tgt`会不一致？如果`p`或`tgt`不一致，但是使用了`.uni`，会报什么错？）
+
+    `bra`看起来像是 branch 的缩写。
+
+* `bar{.cta}, barrier{.cta}`
+
+    barrier
+
+    同步 cta 中的线程。猜想：cta 为一种用于同步的资源，当线程运行到 barrier 后停下，当所有线程都运行到 barrier 后，由 cta 唤醒线程继续运行。每个 cta 有 16 个用于同步的资源，编号为 0 到 15.
+
+    > The optional .cta qualifier simply indicates CTA-level applicability of the barrier and it doesn’t change the semantics of the instruction.
+
+    看上去 cta 只是一个提示词，无论使用还是不使用都不影响功能。
+
+* `barrier{.cta}.sync{.aligned}      a{, b};`
+
+    `.sync`表示当参与 barrier 的线程到达这条指令后，等待其他线程。
+
+    `a`表示使用第几个 cta，可取值为 0 到 15.
+
+    `b`表示有多少线程参与 barrier，这个数必须是 warp size 的整数倍。如果不指定`b`，则所有参与 barrier 的 thread 所在的 warp，都会进入 barrier。
+
+    这里的`.aligned`与`.cta`同理，都只是一个提示词，不具备实际功能。
+
+* `barrier{.cta}.arrive{.aligned}    a, b;`
+
+    与`.sync`相对，`.arrive`不会阻塞 thread。它似乎仅用于标记这里有个 barrier。
+
+    官网举的例子是 producer-consumer 模型，整个过程分为两步：
+    
+    1. 一部分 thread 作为 producer 执行`barrier.arrive`，另一部分 thread 作为 consumer 执行`barrier.sync`等待 producer 生产出资源
+
+    2. 刚才作为 producer 的 threads 执行`barrier.sync`等待 consumer 消耗资源，而刚才作为 consumer 的 threads 执行`barrier.arrive`消耗资源
+
+    目前没有看到实际的 example。
+
+    注意，在`.arrive`中，`b`必须指定。（为什么？）
+
+* `barrier{.cta}.red.popc{.aligned}.u32  d, a{, b}, {!}c;`
+
+    `.red`表示 reduce，`.popc`表示 population-count，`d`表示目标寄存器，`c`表示谓词（predicate）。
+
+    `.popc`表示统计`c`中有多少个 true，并把结果存储到寄存器`d`中。
+
+* `barrier{.cta}.red.op{.aligned}.pred   p, a{, b}, {!}c;`
+
+    其中的`.op`可以为`.and`，也可以为`.or`，分别用于判断`c`是否全为 true，或只有部分为 true。将判断的结果存储到寄存器`p`中。
+
+* Cooperative thread arrays (CTAs) implement CUDA thread blocks
+
+* The Parallel Thread Execution (PTX) programming model is explicitly parallel:
+
+* The thread identifier is a three-element vector tid, (with elements tid.x, tid.y, and tid.z) 
+
+* Each CTA has a 1D, 2D, or 3D shape specified by a three-element vector ntid (with elements ntid.x, ntid.y, and ntid.z).
+
+* Threads within a CTA execute in SIMT (single-instruction, multiple-thread) fashion in groups called warps.
+
+* A warp is a maximal subset of threads from a single CTA
+
+    不懂这句什么意思
+
+* PTX includes a run-time immediate constant, WARP_SZ
+
+    warp size
+
+* Cluster is a group of CTAs that run concurrently or in parallel and can synchronize and communicate with each other via shared memory. 
+
+    一个 cluster 由多个 warp 组成，多个 warp 之间可以共享内存。
+
+* Cluster-wide barriers can be used to synchronize all the threads within the cluster. 
+
+    cluster-wide 并不是拿来同步 cluster 的，而是拿来同步 cluster 中的 thread 的
+
+    不同 cluster 之间的 thread 无法同步，也无法通信。
+
+* Each CTA in a cluster has a unique CTA identifier within its cluster (cluster_ctaid).
+
+    cta 在 cluster 中有独立的 id 来标识。
+
+* Each cluster of CTAs has 1D, 2D or 3D shape specified by the parameter cluster_nctaid
+
+    cluster 也可以按 1d, 2d, 3d 组合。这里只提供了一个`cluster_nctaid`，不同维度的 id 该如何获取？
+
+* Each CTA in the cluster also has a unique CTA identifier (cluster_ctarank) across all dimensions. total number of CTAs across all the dimensions in the cluster is specified by cluster_nctarank.
+
+    这个应该是把 dimension flatten 后得到的 id
+
+* Threads may read and use these values through predefined, read-only special registers %cluster_ctaid, %cluster_nctaid, %cluster_ctarank, %cluster_nctarank.
+
+* Each cluster has a unique cluster identifier (clusterid) within a grid of clusters. Each grid of clusters has a 1D, 2D , or 3D shape specified by the parameter nclusterid. Each grid also has a unique temporal grid identifier (gridid). Threads may read and use these values through predefined, read-only special registers %tid, %ntid, %clusterid, %nclusterid, and %gridid.
+
+    cluster id 的标识，没啥可说的，和 thread id 差不多。
+
+* Each CTA has a unique identifier (ctaid) within a grid. Each grid of CTAs has 1D, 2D, or 3D shape specified by the parameter nctaid. Thread may use and read these values through predefined, read-only special registers %ctaid and %nctaid.
+
+     cta 在 grid 中的 id 标识，注意这个是区别于 cluster 的。
+
+* Grids may be launched with dependencies between one another
+
+    不同 grid 之间可以指定依赖关系后串行执行。这个依赖关系和 cuda graph 相关。
+
+* ach thread has a private local memory. Each thread block (CTA) has a shared memory visible to all threads of the block and to all active blocks in the cluster and with the same lifetime as the block. Finally, all threads have access to the same global memory.
+
+    其他的都比较清楚，唯一不清楚的是，shared memory 是每个 cta 有一份，还是一个 cluster 中只有一份？
+
+* Constant and texture memory are read-only; surface memory is readable and writable.
+
+* The global, constant, param, texture, and surface state spaces are optimized for different memory usages.
+
+* texture and surface memory is cached, and within the same kernel call, the cache is not kept coherent with respect to global memory writes and surface memory writes,
+
+    texture 和 surface 总是读缓存里的数据，因此如果在一个 kernel 调用内先存入新的值，再立即去读取值，很有可能读出的值并不是存入的值。
+
+* The global, constant, and texture state spaces are persistent across kernel launches by the same application.
+
+    不懂这个是啥意思。
+
+    前面一直没提到过 param memory 是干什么用的，有什么特性。
+
+* The NVIDIA GPU architecture is built around a scalable array of multithreaded Streaming Multiprocessors (SMs).
+
+* A multiprocessor consists of multiple Scalar Processor (SP) cores, a multithreaded instruction unit, and on-chip shared memory. It implements a single-instruction barrier synchronization.
+
+    The multiprocessor maps each thread to one scalar processor core, and each scalar thread executes independently with its own instruction address and register state. 
+
+    每个 sp 对应一个线程吗？
+
+* The multiprocessor SIMT unit creates, manages, schedules, and executes threads in groups of parallel threads called warps. (This term originates from weaving, the first parallel thread technology.)
+
+    simt unit 指的是管理多个 sp 的组件吗？
+
+* When a multiprocessor is given one or more thread blocks to execute, it splits them into warps that get scheduled by the SIMT unit.
+
+    SM 拿到 blocks，SM 将 blocks 分成多个 warps。每个 warp 对应一个 simt unit.
+
+* At every instruction issue time, the SIMT unit selects a warp that is ready to execute and issues the next instruction to the active threads of the warp.
+
+    warp 和 simt unit 并不是绑定的关系，simt unit 会动态选择准备就绪的 warp 进行处理。
+
+    一个 warp 中的 threads 也不是都为 active 状态，可能只有部分是 active 状态。（猜测这里的 active 和 if 条件语句有关）
+
+* A warp executes one common instruction at a time, so full efficiency is realized when all threads of a warp agree on their execution path. If threads of a warp diverge via a data-dependent conditional branch, the warp serially executes each branch path taken, disabling threads that are not on that path, and when all paths complete, the threads converge back to the same execution path. Branch divergence occurs only within a warp; 
+
+    如果一个 warp 中的多个 thread 根据 if 语句发生了 diverge，一部分 threads 走 branch 1，另一部分 threads 走 branch 2，那么 warp 会先执行 branch 1 的代码，再执行 branch 2 的代码，最后再把所有 threads 合并到一起，执行 common 代码。
+
+    显然，最坏的情况是 branch 1 上有 N - 1 个 threads，而 branch 2 上只有 1 个 thread，并且 branch 2 的代码很长。为了这一个 thread，其他 thread 要等很长时间，彻底破坏了 simt 的优势。
+
+* How many blocks a multiprocessor can process at once depends on how many registers per thread and how much shared memory per block are required for a given kernel since the multiprocessor’s registers and shared memory are split among all the threads of the batch of blocks. 
+
+    看来 sm 中的寄存器和 shared memory 的数量是有限的，根据这些资源的占用情况，动态决定一个 sm 能同时处理多少个 block。
+
+    推论：或者是编译，或者是固件，一定有个地方会计算 sm 中寄存器资源的占用情况，并在 dispatch 任务时会根据这些占用情况进行派发。
+
+* 从 vulta 架构开始，引入了 Independent Thread Scheduling，此时不再以 warp + mask 的形式进行线程调度，提高了灵活性。
+
+    目前并不清楚这点是怎么 work 的，有时间了再看。
+
+* on-chip memory
+
+    片上内存，速度快。一共有 4 种。
+
+    * register，每个 thread 独占。
+
+    * shared memory, 位置在 sm 上，逻辑上 block 共享
+
+    * read-only constant cache，位置在 sm 上，逻辑情况未知
+
+    * read-only texture cache，位置在 sm 上，逻辑情况未知
+
+* PTX is case sensitive and uses lowercase for keywords.
+
+* ptx 语句有两种，一种是 directive，另一种是 instruction
+
+    常见的 directive 如下：
+
+    ```
+            .reg     .b32 r1, r2;
+            .global  .f32  array[N];
+
+    start:  mov.b32   r1, %tid.x;
+            shl.b32   r1, r1, 2;          // shift thread id by 2 bits
+            ld.global.b32 r2, array[r1];  // thread[tid] gets array[tid]
+            add.f32   r2, r2, 0.5;        // add 1/2
+    ```
+
+    常见的 insrruction 如下：
+
+    `abs`, `cvta`, `membar`
+
+* identifier
+
+    ptx 中的 identifier 与 c/c++ 中的相似。
+
+    regular expression:
+
+    ```
+    followsym:   [a-zA-Z0-9_$]
+    identifier:  [a-zA-Z]{followsym}* | {[_$%]{followsym}+
+    ```
+
+* Predefined Identifiers
+
+    ptx 预定义了一些常量。常用的常量：
+
+    `%clock`, `%laneid`, `%lanemask_gt`
+
+* integer 有 signed 和 unsigned 之分，以 64 位为例，分别表示为`.s64`, `.u64`
+
+* 整型的字面量  Integer literals
+
+    常见的格式如下：
+
+    ```
+    hexadecimal literal:  0[xX]{hexdigit}+U?
+    octal literal:        0{octal digit}+U?
+    binary literal:       0[bB]{bit}+U?
+    decimal literal       {nonzero-digit}{digit}*U?
+    ```
+
+* floating point
+
+    ptx 支持使用十六进制数按照 IEEE 754 格式精确表示浮点数。
+
+    ```
+    0[fF]{hexdigit}{8}      // single-precision floating point
+    0[dD]{hexdigit}{16}     // double-precision floating point
+    ```
+
+    example:
+
+    ```asm
+    mov.f32  $f3, 0F3f800000;       //  1.0
+    ```
+
+* A state space is a storage area with particular characteristics.
+
+    常用的 state space:
+
+    * `.reg`: Registers, fast.
+
+    * `.sreg`: Special registers. Read-only; pre-defined; platform-specific.
+
+        The special register (.sreg) state space holds predefined, platform-specific registers, such as grid, cluster, CTA, and thread parameters, clock counters, and performance monitoring registers. All special registers are predefined.
+
+    * `.const`: Shared, read-only memory.
+
+    * `.global`: Global memory, shared by all threads.
+
+    * `.local`: Local memory, private to each thread.
+
+    * `.param`: Kernel parameters, defined per-grid; or Function or local parameters, defined per-thread.
+
+    * `.shared`: Addressable memory, defined per CTA, accessible to all threads in the cluster throughout the lifetime of the CTA that defines it.
+
+    * `.tex`: Global texture memory (deprecated).
+
+* The constant (.const) state space is a read-only memory initialized by the host. Constant memory is accessed with a `ld.const` instruction.
+
+* Constant memory is restricted in size, currently limited to 64 KB which can be used to hold statically-sized constant variables.
+
+    常量的空间竟然有 64 KB，感觉还是比较大的。
+
+* There is an additional 640 KB of constant memory, organized as ten independent 64 KB regions. The driver may allocate and initialize constant buffers in these regions and pass pointers to the buffers as kernel function parameters.
+
+    没有明白这个是啥意思，猜测：默认的字面量和 const 变量都是存在 64 KB 的 constant memory 中，如果有额外的大量常量数据的需要，比如传入一个世界地图的数据之类的，可以在驱动层面额外申请，并且显式地把数据写入进去。推论：640 KB 的 constant memory 是所有 sm 共享的。
+
+* ptx asm, `ld`相关指令的注意事项
+
+    `ld`一个字节的代码：
+
+    ```cpp
+    template<>
+    __device__ __forceinline__ BytePack<1> ld_volatile_global<1>(uintptr_t *ptr)
+    {
+        uint32_t ans;
+        asm("ld.volatile.global.b8 %0, [%1];" : "=r"(ans) : "l"(ptr));
+        return *(BytePack<1>*) &ans;
+    }
+    ```
+
+    由于这里实现的是`ld_volatile_global()`模板函数的一个特化，要求返回值类型和参数类型的**形式**要和原函数声明一样，因此返回值选用了`BytePack<ElmSize>`，这样可以返回不定长的值，而输入参数使用了`uniptr_t *`，由于指针的长度总是固定的（64 位），所以不需要变长类型，直接统一使用`uniptr_t*`了。
+
+    而且`uniptr_t *`也是下面 asm 命令的要求，`"l"(ptr)`，ptr 的约束必须为`l`，不然编译通不过。
+
+    函数中声明了一个`uint32_t ans;`的变量，这个也是 asm 的要求，`.b8`指令对应的`ans`必须为 32 位。不然编译不通过。因为是 32 位，所以 constraint 使用的是`r`。后面会详细讨论 constraint 相关。
+
+    接下来看 asm 指令，`.b8`的`ld`指令，读 1 个字节，但是`ans`是 32 位，`ptr`是 64 位的指针。说明可能硬件上可能取 32 位数据的前 8 位当作 1 个字节来用。
+
+    return 时使用了强制类型转换。直接`return (BytePack<1>) ans;`显然是编译不过去的。如果写成
+
+    ```cpp
+        BytePack<1> ret;
+        ret.native = ans;
+        return ret;
+    ```
+
+    这样又显得繁琐，并且创建了一个中间变量。所以最终选择直接做类型转换。
+
+* 在 ptx 中使用多个 const bank
+
+    ```asm
+    .extern .const[2] .b32 const_buffer[];
+    ```
+
+    看起来是将`.const[2]`的地址赋给`const_buffer`。
+
+    ```asm
+    .extern .const[2] .b32 const_buffer[];
+    ld.const[2].b32  %r1, [const_buffer+4]; // load second word
+    ```
+
+    这个看上去是从`const_buffer+4`处，取一个`.b32`值。看来即使有了地址，`.const[2]`这些 bank 信息还是不能省。
+
+* Use `ld.global`, `st.global`, and `atom.global` to access global variables.
+
+* The local state space (.local) is typically standard memory with cache. Use ld.local and st.local to access local variables.
+
+    loadl memory 是缓存吗？为什么其他地方说和全局变量一样，是片外的？
+
+* 关于 .local memory，如果架构支持 stack，那么 .local memory 被存在 stack 中，如果没有 stack，那么 .local variable 被存在 fixed address 中，因此函数也不支持递归调用。
+
+* Additional sub-qualifiers ::entry or ::func can be specified on instructions with .param state space to indicate whether the address refers to kernel function parameter or device function parameter.
+
+    看来`__global__` kernel 和`__device__` kernel 的作用还不一样。
+
+    `::entry`和`::func`并没有默认情况，只有根据上下文指令而自动指定。比如`st.param`会对应到`st.param::func`，`isspacep.param`会对应到`isspacep.param::entry`。
+
+* `.param`可能会被映射到 register, stack 或 global memory 上，这一点我们无法确定，具体位置在哪需要参考 ABI 的实现。
+
+### algo
+
+* cuda 实现 reverse
+
+    ```cpp
+    #include <iostream>
+    #include <cuda_runtime.h>
+
+    // 简单的 reverse kernel
+    __global__ void reverse_kernel(int* input, int* output, int n) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < n) {
+            int rev_idx = n - 1 - idx;
+            output[rev_idx] = input[idx];
+        }
+    }
+
+    // 检查 CUDA 错误
+    void checkCudaError(cudaError_t err, const char* msg) {
+        if (err != cudaSuccess) {
+            std::cerr << msg << ": " << cudaGetErrorString(err) << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    int main() {
+        const int n = 10;
+        int size = n * sizeof(int);
+        
+        // 主机数据
+        int h_input[n], h_output[n];
+        for (int i = 0; i < n; i++) {
+            h_input[i] = i + 1;  // 1, 2, 3, ..., 10
+        }
+        
+        // 设备内存分配
+        int *d_input, *d_output;
+        checkCudaError(cudaMalloc(&d_input, size), "cudaMalloc d_input failed");
+        checkCudaError(cudaMalloc(&d_output, size), "cudaMalloc d_output failed");
+        
+        // 数据拷贝到设备
+        checkCudaError(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice),
+                      "cudaMemcpy HostToDevice failed");
+        
+        // 启动 kernel
+        int block_size = 256;
+        int grid_size = (n + block_size - 1) / block_size;
+        
+        reverse_kernel<<<grid_size, block_size>>>(d_input, d_output, n);
+        checkCudaError(cudaGetLastError(), "Kernel execution failed");
+        
+        // 拷贝结果回主机
+        checkCudaError(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost),
+                      "cudaMemcpy DeviceToHost failed");
+        
+        // 输出结果
+        std::cout << "Original: ";
+        for (int i = 0; i < n; i++) std::cout << h_input[i] << " ";
+        std::cout << std::endl;
+        
+        std::cout << "Reversed: ";
+        for (int i = 0; i < n; i++) std::cout << h_output[i] << " ";
+        std::cout << std::endl;
+        
+        // 清理
+        cudaFree(d_input);
+        cudaFree(d_output);
+        
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Original: 1 2 3 4 5 6 7 8 9 10 
+    Reversed: 10 9 8 7 6 5 4 3 2 1
+    ```
+
+    in-place 交换：
+
+    ```cpp
+    __global__ void reverse_inplace_kernel(int* data, int n) {
+        int tid = threadIdx.x;
+        int block_start = blockIdx.x * blockDim.x * 2;  // 每个块处理两倍数据
+        
+        int left_idx = block_start + tid;
+        int right_idx = block_start + blockDim.x * 2 - 1 - tid;
+        
+        if (left_idx < right_idx && right_idx < n) {
+            // 交换对称位置的元素
+            int temp = data[left_idx];
+            data[left_idx] = data[right_idx];
+            data[right_idx] = temp;
+        }
+    }
+    ```
+
+* cuda 矩阵乘的 example
+
+    假设我们要计算：
+
+    C = A * B
+
+    其中 A 是 M x K 的矩阵，B 是 K x N 的矩阵，那么结果 C 就是 M x N 的矩阵。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <cuda_runtime.h>
+    #include <assert.h>
+
+    // CUDA 矩阵乘法内核函数
+    __global__ void matrixMultiplyKernel(float* A, float* B, float* C, 
+                                       int M, int N, int K) {
+        // 计算当前线程负责的结果矩阵位置
+        int row = blockIdx.y * blockDim.y + threadIdx.y;
+        int col = blockIdx.x * blockDim.x + threadIdx.x;
+        
+        // 检查是否在有效范围内
+        if (row < M && col < N) {
+            float sum = 0.0f;
+            // 计算A的第row行和B的第col列的点积
+            for (int i = 0; i < K; i++) {
+                sum += A[row * K + i] * B[i * N + col];
+            }
+            C[row * N + col] = sum;
+        }
+    }
+
+    // CPU版本的矩阵乘法，用于验证结果
+    void matrixMultiplyCPU(float* A, float* B, float* C, int M, int N, int K) {
+        for (int row = 0; row < M; row++) {
+            for (int col = 0; col < N; col++) {
+                float sum = 0.0f;
+                for (int i = 0; i < K; i++) {
+                    sum += A[row * K + i] * B[i * N + col];
+                }
+                C[row * N + col] = sum;
+            }
+        }
+    }
+
+    // 比较两个矩阵是否相等（允许一定的误差）
+    bool compareMatrices(float* A, float* B, int size, float tolerance = 1e-5f) {
+        for (int i = 0; i < size; i++) {
+            if (fabs(A[i] - B[i]) > tolerance) {
+                printf("Mismatch at index %d: CPU=%f, GPU=%f\n", i, A[i], B[i]);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 初始化矩阵
+    void initializeMatrix(float* matrix, int rows, int cols) {
+        for (int i = 0; i < rows * cols; i++) {
+            matrix[i] = static_cast<float>(rand() % 10); // 0-9的随机数
+        }
+    }
+
+    // 打印矩阵（小矩阵用于调试）
+    void printMatrix(float* matrix, int rows, int cols, const char* name) {
+        printf("%s:\n", name);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                printf("%6.2f ", matrix[i * cols + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+
+    int main() {
+        // 矩阵维度
+        const int M = 512;  // A的行数，C的行数
+        const int K = 256;  // A的列数，B的行数  
+        const int N = 384;  // B的列数，C的列数
+        
+        printf("Matrix Multiplication: A(%d x %d) * B(%d x %d) = C(%d x %d)\n", 
+               M, K, K, N, M, N);
+        
+        // 分配主机内存
+        size_t size_A = M * K * sizeof(float);
+        size_t size_B = K * N * sizeof(float);
+        size_t size_C = M * N * sizeof(float);
+        
+        float* h_A = (float*)malloc(size_A);
+        float* h_B = (float*)malloc(size_B);
+        float* h_C = (float*)malloc(size_C);      // GPU结果
+        float* h_C_CPU = (float*)malloc(size_C);  // CPU结果（用于验证）
+        
+        // 初始化矩阵
+        srand(2024); // 固定随机种子以便重现结果
+        initializeMatrix(h_A, M, K);
+        initializeMatrix(h_B, K, N);
+        
+        // 分配设备内存
+        float *d_A, *d_B, *d_C;
+        cudaMalloc(&d_A, size_A);
+        cudaMalloc(&d_B, size_B);
+        cudaMalloc(&d_C, size_C);
+        
+        // 拷贝数据到设备
+        cudaMemcpy(d_A, h_A, size_A, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_B, h_B, size_B, cudaMemcpyHostToDevice);
+        
+        // 配置线程块和网格维度
+        dim3 blockSize(16, 16); // 256个线程 per block
+        dim3 gridSize((N + blockSize.x - 1) / blockSize.x, 
+                      (M + blockSize.y - 1) / blockSize.y);
+        
+        printf("Grid: (%d, %d), Block: (%d, %d)\n", 
+               gridSize.x, gridSize.y, blockSize.x, blockSize.y);
+        
+        // 创建CUDA事件用于计时
+        cudaEvent_t start, stop;
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
+        
+        // 执行GPU计算
+        cudaEventRecord(start);
+        matrixMultiplyKernel<<<gridSize, blockSize>>>(d_A, d_B, d_C, M, N, K);
+        cudaEventRecord(stop);
+        
+        // 等待内核执行完成
+        cudaEventSynchronize(stop);
+        
+        // 计算GPU运行时间
+        float gpuTime = 0.0f;
+        cudaEventElapsedTime(&gpuTime, start, stop);
+        
+        // 拷贝结果回主机
+        cudaMemcpy(h_C, d_C, size_C, cudaMemcpyDeviceToHost);
+        
+        // 执行CPU计算并计时
+        clock_t cpuStart = clock();
+        matrixMultiplyCPU(h_A, h_B, h_C_CPU, M, N, K);
+        clock_t cpuEnd = clock();
+        double cpuTime = ((double)(cpuEnd - cpuStart)) / CLOCKS_PER_SEC * 1000.0;
+        
+        // 验证结果
+        bool resultsMatch = compareMatrices(h_C, h_C_CPU, M * N);
+        
+        // 输出结果
+        printf("\n=== 性能结果 ===\n");
+        printf("GPU Time: %.2f ms\n", gpuTime);
+        printf("CPU Time: %.2f ms\n", cpuTime);
+        printf("Speedup: %.2fx\n", cpuTime / gpuTime);
+        printf("Results Match: %s\n", resultsMatch ? "Yes" : "No");
+        
+        // 打印前3x3部分结果（对于大矩阵）
+        if (M >= 3 && N >= 3) {
+            printf("\n=== 前3x3结果验证 ===\n");
+            printf("GPU Result (top-left 3x3):\n");
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    printf("%8.2f ", h_C[i * N + j]);
+                }
+                printf("\n");
+            }
+            
+            printf("\nCPU Result (top-left 3x3):\n");
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    printf("%8.2f ", h_C_CPU[i * N + j]);
+                }
+                printf("\n");
+            }
+        }
+        
+        // 清理资源
+        free(h_A);
+        free(h_B);
+        free(h_C);
+        free(h_C_CPU);
+        cudaFree(d_A);
+        cudaFree(d_B);
+        cudaFree(d_C);
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
+        
+        printf("\nDemo completed successfully!\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    Matrix Multiplication: A(512 x 256) * B(256 x 384) = C(512 x 384)
+    Grid: (24, 32), Block: (16, 16)
+
+    === 性能结果 ===
+    GPU Time: 0.07 ms
+    CPU Time: 167.03 ms
+    Speedup: 2298.38x
+    Results Match: Yes
+
+    === 前3x3结果验证 ===
+    GPU Result (top-left 3x3):
+     5172.00  5910.00  5610.00 
+     4534.00  4625.00  4653.00 
+     4819.00  5186.00  5153.00 
+
+    CPU Result (top-left 3x3):
+     5172.00  5910.00  5610.00 
+     4534.00  4625.00  4653.00 
+     4819.00  5186.00  5153.00 
+
+    Demo completed successfully!
+    ```
+
+*  CUDA 向量加（Vector Addition） example
+
+    ```cpp
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <cuda_runtime.h>
+
+    // CUDA 内核函数：向量加法
+    __global__ void vectorAdd(const float* A, const float* B, float* C, int numElements)
+    {
+        int i = blockDim.x * blockIdx.x + threadIdx.x;
+        if (i < numElements) {
+            C[i] = A[i] + B[i];
+        }
+    }
+
+    // 初始化主机数据的辅助函数
+    void initData(float* ptr, int size, float value)
+    {
+        for (int i = 0; i < size; ++i) {
+            ptr[i] = value + i;
+        }
+    }
+
+    // 验证结果的辅助函数
+    bool verifyResult(const float* A, const float* B, const float* C, int numElements)
+    {
+        const float epsilon = 1.0e-6f;
+        for (int i = 0; i < numElements; ++i) {
+            if (fabs(C[i] - (A[i] + B[i])) > epsilon) {
+                printf("验证失败! 在索引 %d: 期望 %.2f, 得到 %.2f\n", 
+                       i, A[i] + B[i], C[i]);
+                return false;
+            }
+        }
+        printf("验证成功! 所有元素计算正确。\n");
+        return true;
+    }
+
+    int main(void)
+    {
+        // 设置向量长度
+        const int numElements = 50000;
+        const size_t size = numElements * sizeof(float);
+        printf("[信息] 向量加法，每个向量长度为 %d 元素\n", numElements);
+
+        // 分配主机内存
+        float *h_A, *h_B, *h_C;
+        h_A = (float*)malloc(size);
+        h_B = (float*)malloc(size);
+        h_C = (float*)malloc(size);
+
+        if (!h_A || !h_B || !h_C) {
+            printf("主机内存分配失败!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        // 初始化主机数组
+        initData(h_A, numElements, 1.0f);  // A = [1, 2, 3, ...]
+        initData(h_B, numElements, 2.0f);  // B = [2, 3, 4, ...]
+        // 期望结果: C = [3, 5, 7, ...]
+
+        // 分配设备内存
+        float *d_A, *d_B, *d_C;
+        cudaMalloc((void**)&d_A, size);
+        cudaMalloc((void**)&d_B, size);
+        cudaMalloc((void**)&d_C, size);
+
+        // 拷贝输入数据从主机到设备
+        cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
+
+        // 启动内核配置
+        int threadsPerBlock = 256;
+        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+        printf("[信息] 启动内核配置: %d 个线程块, 每个块 %d 个线程\n", 
+               blocksPerGrid, threadsPerBlock);
+
+        // 执行CUDA内核
+        vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
+
+        // 等待所有GPU操作完成
+        cudaDeviceSynchronize();
+
+        // 检查内核执行是否有错误
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            printf("CUDA 内核执行错误: %s\n", cudaGetErrorString(err));
+            exit(EXIT_FAILURE);
+        }
+
+        // 拷贝结果从设备到主机
+        cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
+
+        // 验证结果
+        verifyResult(h_A, h_B, h_C, numElements);
+
+        // 打印前10个结果作为示例
+        printf("\n前10个结果示例:\n");
+        for (int i = 0; i < 10 && i < numElements; ++i) {
+            printf("C[%d] = %.2f (A[%d] + B[%d] = %.2f + %.2f)\n", 
+                   i, h_C[i], i, i, h_A[i], h_B[i]);
+        }
+
+        // 释放设备内存
+        cudaFree(d_A);
+        cudaFree(d_B);
+        cudaFree(d_C);
+
+        // 释放主机内存
+        free(h_A);
+        free(h_B);
+        free(h_C);
+
+        printf("\n[信息] 程序执行完成，内存已释放。\n");
+
+        // 重置设备以便性能分析工具获取更准确的数据
+        cudaDeviceReset();
+
+        return 0;
+    }
+    ```
+
+    threadIdx.x：线程在其线程块（Block）内的索引。
+
+    blockIdx.x：线程块在网格（Grid）中的索引。
+
+    blockDim.x：每个线程块中的线程数量。
+
+    compile:
+
+    `nvcc -o vector_add vector_add.cu`
+
+    run:
+
+    `./vector_add`
+
+    output:
+
+    ```
+    [信息] 向量加法，每个向量长度为 50000 元素
+    [信息] 启动内核配置: 196 个线程块, 每个块 256 个线程
+    验证成功! 所有元素计算正确。
+
+    前10个结果示例:
+    C[0] = 3.00 (A[0] + B[0] = 1.00 + 2.00)
+    C[1] = 5.00 (A[1] + B[1] = 2.00 + 3.00)
+    C[2] = 7.00 (A[2] + B[2] = 3.00 + 4.00)
+    C[3] = 9.00 (A[3] + B[3] = 4.00 + 5.00)
+    C[4] = 11.00 (A[4] + B[4] = 5.00 + 6.00)
+    C[5] = 13.00 (A[5] + B[5] = 6.00 + 7.00)
+    C[6] = 15.00 (A[6] + B[6] = 7.00 + 8.00)
+    C[7] = 17.00 (A[7] + B[7] = 8.00 + 9.00)
+    C[8] = 19.00 (A[8] + B[8] = 9.00 + 10.00)
+    C[9] = 21.00 (A[9] + B[9] = 10.00 + 11.00)
+
+    [信息] 程序执行完成，内存已释放。
+    ```
+
+### accel
+
+* shift 与 reduce
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        elm_type val = cubuf_1[tid];
+        for (int laneMask = 16; laneMask >= 1; laneMask /= 2)
+            val += __shfl_xor_sync(0xffffffff, val, laneMask);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, 496.0, specialized as float
+    ```
+
+    将`__shfl_xor_sync()`改成`__shfl_down_sync()`，也可以实现类似的效果，输出如下：
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    496.0, 512.0, 528.0, 544.0, 560.0, 576.0, 592.0, 608.0, 624.0, 640.0, 656.0, 672.0, 688.0, 704.0, 720.0, 736.0, 752.0, 768.0, 784.0, 800.0, 816.0, 832.0, 848.0, 864.0, 880.0, 896.0, 912.0, 928.0, 944.0, 960.0, 976.0, 992.0, specialized as float
+    ```
+
+    其中`cubuf_2`只有第一个数字是有效的，其他的都是无效数字。
+
+    如果使用`__shfl_up_sync()`，则最终累加的结果在最后一个：
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    0.0, 16.0, 32.0, 48.0, 64.0, 80.0, 96.0, 112.0, 128.0, 144.0, 160.0, 176.0, 192.0, 208.0, 224.0, 240.0, 256.0, 272.0, 288.0, 304.0, 320.0, 336.0, 352.0, 368.0, 384.0, 400.0, 416.0, 432.0, 448.0, 464.0, 480.0, 496.0, specialized as float
+    ```
+
+* 一个能跑通的`__shared__` example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __shared__ int val;
+
+    __global__ void test_kern()
+    {
+        val = 123;
+        printf("%d\n", val);
+    }
+
+    int main()
+    {
+        test_kern<<<1, 1>>>();
+        cudaDeviceSynchronize();
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    123
+    ```
+
+* 当`__shared__`在 kernel 外声明时，依然有基本功能：被`__shared__`修饰的数据，只在同一个 block 中相冋，并且只能被同一个 block 中的 thread 访问
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __shared__ int a;
+
+    __global__ void my_kern()
+    {
+        if (threadIdx.x == 0)
+        {
+            a = blockIdx.x;
+        }
+        __syncthreads();
+        if (threadIdx.x == 1)
+        {
+            printf("in block %d, a = %d\n", blockIdx.x, a);
+        }
+    }
+
+    int main()
+    {
+        my_kern<<<2, 32>>>();
+        cudaDeviceSynchronize();
+        return 0;
+    }
+    ```
+
+    compile: `nvcc main.cu -o main`
+
+    run: `./main`
+
+    output:
+
+    ```
+    in block 0, a = 0
+    in block 1, a = 1
+    ```
+
+    可以看到，不同 block 访问到的 shared 数据不同。
+
+### cuda api
+
+* `cvta_to_global()`会将`T*`转换成`uintptr_t`, `uintptr_t`有点像`void*`，其他类型的地址都可以转成这个类型，方便处理。
+
+* `__syncwarp()`
+
+    syntax:
+
+    `void __syncwarp(unsigned mask=0xffffffff);`
+
+    只是一个普通的基于 warp 的同步函数，没有什么特别的。`mask`用于指定进入同步的线程。
+
+* cuda 中的 kernel 无论是 template 形式, 用 cudaLaunchKernel 启动，还是`__global__`修饰，`__device__`修饰，都是可以打断点的。nccl 中用的都是 cuda kernel，因此也是可以使用 cuda gdb 打断点的。通常 hit 一次断点需要 30 分钟以上，目前不清楚原因。
+
+* `__all_sync()`
+
+    原理与`__any_sync()`相似，当一个 warp 中每个线程提供的值都为 1 时，则返回 1，否则返回 0.
+
+    syntax:
+
+    ```cpp
+    __any_sync(unsigned mask, predicate);
+    ```
+
+    example:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        int predicate = tid;
+        elm_type ret = __all_sync(0xffffffff, predicate);
+        cubuf_1[tid] = ret;
+        predicate = 1;
+        ret = __all_sync(0xffffffff, predicate);
+        cubuf_2[tid] = ret;
+    }
+
+    int main()
+    {
+        using elm_type = int;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as int
+    cubuf 2:
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, specialized as int
+    ```
+
+* `__ballot_sync()`
+
+    每个线程给定一个值 val，`__ballot_sync()`返回一个 32 位数 ret，如果 val 为非 0，假如 lane id 为`tid`，则将 ret 值的第`tid`位置 1，否则置 0。
+
+    example:
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void reduce_sum(elm_type *cubuf_1, elm_type *cubuf_2, elm_type *cubuf_3)
+    {
+        int tid = threadIdx.x;
+        int predicate = tid % 2;
+        unsigned ret = __ballot_sync(0xffffffff, predicate);
+        cubuf_1[tid] = ret;
+        predicate = 1;
+        ret = __ballot_sync(0xffffffff, predicate);
+        cubuf_2[tid] = ret;
+        predicate = 0;
+        ret = __ballot_sync(0xffffffff, predicate);
+        cubuf_3[tid] = ret;
+    }
+
+    int main()
+    {
+        using elm_type = unsigned int;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2, *cubuf_3;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_3, num_elm * sizeof(elm_type));
+
+        reduce_sum<elm_type><<<1, 32>>>(cubuf_1, cubuf_2, cubuf_3);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        printf("cubuf 3:\n");
+        print_cubuf<elm_type>(cubuf_3, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        cudaFree(cubuf_3);
+        return 0;
+    }
+    ``` 
+
+    output:
+
+    ```
+    cubuf 1:
+    2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, 2863311530, specialized as unsigned int
+    cubuf 2:
+    4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, specialized as unsigned int
+    cubuf 3:
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, specialized as unsigned int
+    ```
+
+    `2863311530`的二进制为`1010 1010 1010 1010 1010 1010 1010 1010`, `4294967295`的二进制为`1111 1111 1111 1111 1111 1111 1111 1111`。
+
+* `__shfl_xor_sync()`中，当`laneMask ＝ 3`时，会 4 个元素一组倒序取值
+
+    `main.cu`:
+
+    ```cpp
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "../utils/cumem_hlc.h"
+
+    template<typename elm_type>
+    __global__ void my_kern(elm_type *cubuf_1, elm_type *cubuf_2)
+    {
+        int tid = threadIdx.x;
+        elm_type val = __shfl_xor_sync(0xffffffff, cubuf_1[tid], 3);
+        cubuf_2[tid] = val;
+    }
+
+    int main()
+    {
+        using elm_type = float;
+        int num_elm = 32;
+        elm_type *cubuf_1, *cubuf_2;
+        cudaMalloc(&cubuf_1, num_elm * sizeof(elm_type));
+        cudaMalloc(&cubuf_2, num_elm * sizeof(elm_type));
+        assign_cubuf_order_int<elm_type>(cubuf_1, num_elm);
+
+        my_kern<elm_type><<<1, 32>>>(cubuf_1, cubuf_2);
+        cudaDeviceSynchronize();
+
+        printf("cubuf 1:\n");
+        print_cubuf<elm_type>(cubuf_1, num_elm);
+        printf("cubuf 2:\n");
+        print_cubuf<elm_type>(cubuf_2, num_elm);
+
+        cudaFree(cubuf_1);
+        cudaFree(cubuf_2);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    3.0, 2.0, 1.0, 0.0, 7.0, 6.0, 5.0, 4.0, 11.0, 10.0, 9.0, 8.0, 15.0, 14.0, 13.0, 12.0, 19.0, 18.0, 17.0, 16.0, 23.0, 22.0, 21.0, 20.0, 27.0, 26.0, 25.0, 24.0, 31.0, 30.0, 29.0, 28.0, specialized as float
+    ```
+
+    目前不明白是啥原理。
+
+    当`laneMask = 7`时，会 8 个一组反转：
+
+    ```
+    cubuf 1:
+    0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, specialized as float
+    cubuf 2:
+    7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0, 8.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0, 16.0, 31.0, 30.0, 29.0, 28.0, 27.0, 26.0, 25.0, 24.0, specialized as float
+    ```
+
+* cuda 中没有方法能直接拿到 thread id，只能通过 idx 计算得来
+
+* cuda stream
+
+    `__host__ ​cudaError_t cudaStreamCreate ( cudaStream_t* pStream ) `
+
+    在当前 host thread 最新的 context 上创建一个 stream。
+
+    如果当前 host thread 没有 context，那么在 device 的 primary context 上创建一个 stream，并将这个 context 作为当前 host thread 的 context.
+
+    销毁 stream:
+
+    `__host__ ​ __device__ ​cudaError_t cudaStreamDestroy ( cudaStream_t stream ) `
 
 ## ptx
 

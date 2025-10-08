@@ -2,6 +2,23 @@
 
 ## cache
 
+* `const ncclTopoGraph *const *const graphs;`
+
+    各层 const 的含义：
+
+    ```c
+    const ncclTopoGraph *const *const graphs;
+
+    // 1. 不能修改 graphs 指针本身（最右边的 const）
+    graphs = other_graphs;  // ❌ 错误
+
+    // 2. 不能修改 graphs 指向的指针数组中的指针（中间的 const）
+    graphs[0] = other_graph_ptr;  // ❌ 错误
+
+    // 3. 不能通过指针修改 ncclTopoGraph 对象的内容（最左边的 const）
+    graphs[0]->some_field = value;  // ❌ 错误
+    ```
+
 * nccl 中用到 topo id 的地方汇总
 
     * `ncclTopoGetXmlFromChannel()`

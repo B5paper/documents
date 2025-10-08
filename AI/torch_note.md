@@ -2,6 +2,117 @@
 
 ## cache
 
+* `Eigen::SparseMatrix`
+
+    Eigen::SparseMatrix 是 Eigen 库中用于表示和操作稀疏矩阵的模板类。
+
+    install:
+
+    `sudo apt install libeigen3-dev`
+
+    头文件被安装在：`/usr/include/eigen3`
+
+    这似乎是一个 header-only 的模板库，所以没有库文件。
+
+    example:
+
+    ```cpp
+    #include <eigen3/Eigen/Sparse>
+    #include <cstdio>
+    #include <vector>
+
+    int main() {
+        // 创建稀疏矩阵
+        Eigen::SparseMatrix<double> mat(1000, 1000);
+
+        // 使用 triplet 插入非零元素
+        std::vector<Eigen::Triplet<double>> triplets;
+        triplets.push_back({0, 0, 3.14});  // (行, 列, 值)
+        triplets.push_back({1, 2, 2.71});
+
+        mat.setFromTriplets(triplets.begin(), triplets.end());
+
+        // 稀疏矩阵运算
+        Eigen::SparseMatrix<double> mat2 = mat * mat.transpose();
+        
+        return 0;
+    }
+    ```
+
+    当矩阵密度 < 5% 时，Eigen::SparseMatrix 在内存和计算效率上显著优于稠密矩阵。
+
+* 常用的 loss
+
+    ```py
+    #import nn module
+    import torch.nn as nn
+    mse_loss_fn = nn.MSELoss()
+
+    loss = mse_loss_fn(predicted_value, target)
+    #predicted value is what the model is predicting 
+    #target is the actual value
+    ```
+
+    * L1 loss
+
+        The L1 loss function also called Mean Absolute Error (MAE) computes the average of the sum of absolute differences between the predicted and the actual values.
+
+        Formula: 
+
+        $\mathcal L_{L1} (y, \hat y) = \frac 1 n \sum_{i=1}^n \lvert y_i - \hat y_i\rvert$
+
+        Here,
+
+        * $n$ represents the total number of observations or samples
+
+        * $y_i$ represents the actual or observed value for the i-th sample,
+
+        * $\hat y_i$ represents the predicted or estimated value for the i-th sample.
+
+        L1 loss is mostly used for regression problems and is more robust to outliers.
+
+        syntax:
+
+        ```py
+        torch.nn.L1Loss(size_average=None, reduce=None, reduction='mean')
+        ```
+
+        example:
+
+        ```py
+        import torch
+        from torch import nn
+
+        #initialising the loss function
+        loss = nn.L1Loss()
+        #randomly initialising the input and the target value...input is considered as predicted value here.
+        input = torch.randn(2, 4, requires_grad=True)
+        target = torch.randn(2, 4)
+        #passing both the values inside the loss function.
+        output = loss(input, target)
+        #backpropagation
+        output.backward()
+        print(output)
+        ```
+
+        output:
+
+        ```
+        tensor(1.1041, grad_fn=<MeanBackward0>)
+        ```
+
+        Advantage:
+
+        * MAE is more robust to outliers compared to Mean Squared Error (MSE) because it takes the absolute difference, reducing the impact of extremely large errors.
+
+        * The MAE loss is straightforward to interpret as it represents the average magnitude of errors, making it easier to communicate the model's performance to stakeholders.
+
+        Disadvantage:
+
+        * MAE treats all errors equally, regardless of their magnitude. This can be a disadvantage in cases where distinguishing between small and large errors is important.
+
+        * The gradient of MAE is a constant value, which can slow down convergence during optimization, especially in comparison to MSE, where the gradient decreases as the error decreases.
+
 * `scipy.sparse.lil_matrix`
 
     scipy.sparse.lil_matrix 是 SciPy 中用于存储稀疏矩阵的一种数据结构，特别适用于逐步构建和修改稀疏矩阵的场景。

@@ -4,6 +4,78 @@
 
 ## cache
 
+* `re.findall()`的作用
+
+    example:
+
+    ```py
+    import re
+
+    text = 'hello, world'
+    pat = r'l+l'
+    ret = re.findall(pat, text)
+    print(ret)  # ['ll']
+
+    text = 'name: zhangsan, age: 14; name: liming, age: 15; name: wangwu, age: 16;'
+    pat = r'name: \w+, age: \d+;'
+    ret = re.findall(pat, text)
+    print(ret)  # ['name: zhangsan, age: 14;', 'name: liming, age: 15;', 'name: wangwu, age: 16;'
+
+    # 使用 () 提取出想要的具体数值
+    pat = r'name: (\w+), age: (\d+);'
+    ret = re.findall(pat, text)
+    print(ret)  # [('zhangsan', '14'), ('liming', '15'), ('wangwu', '16')]
+    ```
+
+    重要特性:
+
+    1. 非重叠匹配
+
+        ```py
+        text = "aaa"
+        matches = re.findall(r'aa', text)
+        print(matches)  # ['aa'] 只匹配一次，不重叠
+        ```
+
+    1. 空匹配处理
+
+        ```py
+        text = "a1b2c"
+        matches = re.findall(r'\d*', text)
+        print(matches)  # ['', '1', '', '2', ''] 包含空匹配
+        ```
+
+    1. 使用 flags 参数
+
+        ```py
+        text = "Hello WORLD"
+        # 忽略大小写
+        matches = re.findall(r'hello', text, re.IGNORECASE)
+        print(matches)  # ['Hello']
+        ```
+
+    与相似函数的区别:
+
+    | 函数 | 返回值 | 用途 |
+    | `re.findall()` | 列表，所有匹配的字符串或元组 | 提取所有匹配内容 |
+    | `re.finditer()` | 迭代器，返回匹配对象 | 需要匹配的详细信息 |
+    | `re.search()` | 第一个匹配的匹配对象 | 只找第一个匹配 |
+    | `re.match()` | 开头匹配的匹配对象 | 只匹配字符串开头 |
+
+    example:
+
+    ```py
+    # 提取日志中的IP地址
+    log = "192.168.1.1 - GET /home, 10.0.0.1 - POST /login"
+    ips = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', log)
+    print(ips)  # ['192.168.1.1', '10.0.0.1']
+
+    # 提取HTML标签内容
+    html = "<h1>标题</h1><p>段落内容</p>"
+    contents = re.findall(r'<[^>]+>(.*?)</[^>]+>', html)
+    print(contents)  # ['标题', '段落内容']
+    ```
+
 * ?： 在量词（如 *）之后使用，表示“非贪婪”或“最小”模式。它会匹配尽可能少的字符，直到满足后续条件（即遇到 phrase\.）。
 
 * 贪婪匹配与非贪婪匹配

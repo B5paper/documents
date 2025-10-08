@@ -6,6 +6,14 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `#if ! MY_MACRO`
+
+    检查宏 MY_MACRO 是否未定义或值为0，如果满足条件，则编译其后的代码。
+
+    `!`与变量之间也可以没有空格：`#if !MY_MACRO`
+
+    等价于`#if !defined(MY_MACRO) || MY_MACRO == 0`
+
 * 两种存储字符串的方式
 
     ```c

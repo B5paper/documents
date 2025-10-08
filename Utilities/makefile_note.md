@@ -2,6 +2,22 @@
 
 ## cache
 
+* `@echo "The process ID in Make is: $(shell echo $$PPID)"`
+
+    显示当前执行 make 进程的父进程 ID
+
+    其中，`$$`被转义为`$`, `$PPID`是 shell 变量，表示父进程 ID。
+
+    如果直接使用单个美元符号，`@echo "PID: $(shell echo $PPID)"`，那么会：
+
+    1. make 首先展开：$P 被 make 当作变量 P 的引用
+
+    2. make 看到 $P：尝试展开 make 变量 P（如果未定义就是空）
+
+    3. 最终执行：echo （空字符串）+ PID
+
+    make 不区分单双引号，都当作普通字符
+
 * makefile 中的 +=
 
     在 Makefile 中，+= 是追加赋值运算符，用于向变量追加新内容，而不是替换原有内容。

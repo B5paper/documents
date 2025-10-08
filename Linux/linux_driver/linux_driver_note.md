@@ -6,6 +6,119 @@ Ref:
 
 ## cache
 
+* `pci_read_config_dword()`
+
+    pci_read_config_dword() 是一个用于读取 PCI/PCIe 设备配置空间中一个双字（32 位）数据的函数。
+
+    PCI/PCIe 设备的配置空间是一个标准化的寄存器区域，包含设备ID、厂商ID、资源分配（BAR）、设备类别等重要信息。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_read_config_dword(struct pci_dev *pdev, int offset, u32 *value);
+    ```
+
+    * pdev：指向 PCI 设备结构体 pci_dev 的指针
+
+    * offset：要读取的配置空间偏移地址（字节偏移）
+
+    * value：输出参数，用于存储读取到的32位数据
+
+    返回值：
+
+    成功时返回 0, 失败时返回错误码
+
+    * example 1:
+
+        ```c
+        #include <linux/pci.h>
+
+        struct pci_dev *pdev;
+        u32 config_value;
+        int ret;
+
+        // 读取设备ID和厂商ID（偏移0x00）
+        ret = pci_read_config_dword(pdev, 0x00, &config_value);
+        if (ret == 0) {
+            u16 vendor_id = config_value & 0xFFFF;
+            u16 device_id = (config_value >> 16) & 0xFFFF;
+            printk("Vendor: 0x%04x, Device: 0x%04x\n", vendor_id, device_id);
+        }
+
+        // 读取BAR0（偏移0x10）
+        pci_read_config_dword(pdev, PCI_BASE_ADDRESS_0, &config_value);
+        ```
+
+    * example 2:
+
+        ```c
+        // 高级方式：使用专用函数
+        int msi_cap = pci_find_capability(pdev, PCI_CAP_ID_MSI);
+        if (msi_cap) {
+            // 然后用 pci_read_config_dword 读取具体寄存器
+            pci_read_config_dword(pdev, msi_cap + PCI_MSI_ADDRESS_LO, &address_lo);
+        }
+
+        // 底层方式：手动遍历（不推荐）
+        u8 pos = PCI_CAPABILITY_LIST;
+        pci_read_config_byte(pdev, pos, &pos);
+        while (pos) {
+            pci_read_config_dword(pdev, pos, &header);
+            if ((header & 0xFF) == PCI_CAP_ID_MSI) {
+                break; // 找到 MSI Capability
+            }
+            pci_read_config_byte(pdev, pos + 1, &pos); // 下一个
+        }
+        ```
+
+    函数家族：
+
+    ```c
+    // 读取字节（8位）
+    int pci_read_config_byte(struct pci_dev *pdev, int offset, u8 *value);
+
+    // 读取字（16位）  
+    int pci_read_config_word(struct pci_dev *pdev, int offset, u16 *value);
+
+    // 写入双字（32位）
+    int pci_write_config_dword(struct pci_dev *pdev, int offset, u32 value);
+    ```
+
+* `pci_find_ext_capability()`
+
+    pci_find_ext_capability() 是用于查找 PCIe 设备扩展能力（Extended Capability） 的函数。
+
+    syntax:
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_find_ext_capability(struct pci_dev *dev, int cap);
+    ```
+
+    常见的 PCIe 特有的高级功能：
+
+    * 高级错误报告（AER） - PCI_EXT_CAP_ID_AER
+
+    * 虚拟通道（VC） - PCI_EXT_CAP_ID_VC
+
+    * 设备序列号 - PCI_EXT_CAP_ID_DSN
+
+    * 电源预算 - PCI_EXT_CAP_ID_PWR
+
+    * 多功能 - PCI_EXT_CAP_ID_MFVC
+
+    与 pci_find_capability() 的区别:
+
+    | 特性 | pci_find_capability() | pci_find_ext_capability() |
+    | - | - | - |
+    | 能力类型 | 传统 PCI 能力 | PCIe 扩展能力 |
+    | 搜索范围 | 0x40-0xFF | 0x100-0xFFF |
+    | 链表结构 | 单字节 Next 指针 | 双字节 Next 指针 |
+    | 典型能力 | MSI、MSI-X、电源管理 | AER、VC、设备序列号 |
+
 * 基址寄存器（BARs）
 
     当电脑开机时，BIOS或操作系统会遍历所有PCIe设备，读取每个BAR的需求。然后，系统会统一规划，为每个设备的BAR分配一个实际的、唯一的起始内存地址（即“基址”），并把这个地址写回BAR中。此后，当CPU需要访问该设备时，只需从BAR指定的基址开始，进行读写操作即可。

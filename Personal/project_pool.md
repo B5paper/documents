@@ -28,9 +28,59 @@
 
 ## cache
 
-* `茉莉绿茶 + 糖`不好喝
+* 每日任务模板初始版，完成版
 
-    没有`桂花 + 红茶 + 糖`好喝。
+    初始版：
+
+    ```md
+    * [ ] reorg: documents 30 mins
+
+    * [ ] reorg: projects 30 mins
+
+    * [ ] qa: 2 units 30 mins
+
+    * [ ] cache tabs 30 mins
+
+    * [ ] process tabs 30 mins
+
+    * [ ] process 1 tab
+
+    * [ ] task 1 xx mins
+
+    * [ ] task 2 xx mins
+
+    * [ ] qa: review 30 mins
+    ```
+
+    完成版：
+
+    ```md
+    * [ ] reorg: documents 30 mins 09.17
+
+        10:13 ~ 10:25
+
+    * [ ] reorg: projects 30 mins 09.17
+
+        10:13 ~ 10:25
+
+    * [ ] qa: 2 units 30 mins 09.17
+
+        10:13 ~ 10:25
+
+        正确率： 1 / 2
+
+    * [ ] cache tabs 30 mins 09.17
+
+    * [ ] process tabs 30 mins 09.17
+
+    * [ ] process 1 tab 09.17
+
+    * [ ] task 1 xx mins
+
+    * [ ] task 2 xx mins
+
+    * [ ] qa: review 30 mins
+    ```
 
 * 一些高数教材的问题
 
@@ -57,8 +107,6 @@
     * 严格控制时间，比如每次只执行 20 mins
 
     * 每执行一次，向下移动 5 个任务
-
-* 山茶花有一种又旧又潮湿的塑料皮的味道，喝起来又苦又涩，又难闻又难喝
 
 * 合作与边界
 
@@ -634,8 +682,6 @@
         <img src='../../Reference_resources/ref_24/pics/pic_3.png'>
         </div>
 
-* [ ] 调研 u 盘里的资料
-
 * performance 的工具
 
     * `timeit_ms()`
@@ -1070,35 +1116,15 @@
 
 ### tasks
 
-* [v] reorg: documents 30 mins 09.29
-
-    ~ 14:31
-
-* [v] reorg: documents 30 mins 09.28
-
-    09:56 ~ 10:11
-
 * [ ] `kobject_put()`
 
 * [ ] `sysfs_remove_file()`
 
 * [ ] `asm("int $0x3B");`
 
-* [v] 如果 ssh 只指定 -N，不指定 -f，会发生什么？
-
-    17:06 ~ 17:11
-
-* [v] 构建任务模板初始版，模板完成版
-
-    14:08 ~ 14:13
-
 * [ ] 调研 nasm
 
     linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
-
-* [v] `#if ! MY_MACRO`
-
-    14:20 ~ 14:21
 
 * [ ] random select 增加 exclude 功能
 
@@ -1288,8 +1314,6 @@
 
     目前看完了`Working with objects`中的`Viewing object structure`。
 
-* [v] reorg: documents 30 mins 02.06
-
 * [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
 
 * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
@@ -1358,29 +1382,29 @@
 
     没有`glewInit()`，`glCreateShader()`会立即返回失败。
 
+* 和`%{`配对的是`%}`，不是`}%`。百分号永远在前。
+
+    ```c
+    %{
+    int num_cnt = 0;
+    %}
+    ```
+
+* 增添新 record 时，不删减以前的 record，每三天 review 一次。
+
 ### Tasks
-
-* [v] qa: 2 units 30 mins 09.29
-
-    14:31 ~ 14:36
 
 * [v] qa: review 30 mins 09.29
 
+* [P] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
+
+    22:31 ~ 23:10
+
     feedback:
 
-    * 和`%{`配对的是`%}`，不是`}%`。百分号永远在前。
+    * [ ] python 如何判断一个 key 是否在 dict 中？
 
-        ```c
-        %{
-        int num_cnt = 0;
-        %}
-        ```
-
-* [v] qa: 2 units 30 mins 09.28
-
-    10:23 ~ 10:54
-
-* [ ] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
+    * [ ] python 中如何实现 do while ?
 
 * [ ] 自己写的程序按 tab 如何自动补全参数？
 
@@ -1388,21 +1412,9 @@
 
     `select_graphcs_queue_family_idx` -> `select_graphics_queue_family_idx`
 
-* [v] qa 测试时，除了输出 qa file name，还要输出 unit id
-
-    14:27 ~ 14:53
-
 * [ ] python 处理 arg 相关的 package
 
 * [ ] glow, mdcat, catwalk
-
-* [v] `@echo "The process ID in Make is: $(shell echo $$PPID)"`
-
-    14:35 ~ 14:53
-
-    获取 Shell 命令的进程 ID
-
-    嵌套调用：$$ 给 Shell, $PPID 是 Shell 变量
 
 * [ ] `@echo "The process ID in Shell is: $$PPID"`
 
@@ -1487,8 +1499,6 @@
 
     feedback:
 
-    2. 增添新 record 时，不删减以前的 record，每三天 review 一次。
-
     3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
 * [ ] `使用 element draw 画一个 cube`增加 deps:
@@ -1499,11 +1509,9 @@
 
     默认情况下 append，当手动指定 clear 后，清空文件。这样可以保持一周的 review 量。
 
-    feedback:
+* [ ] 记录每个 uni 的多个历史完成时间，如果平均时间大于 N 分钟，那么标记该 unit 应该被拆分成 deps。
 
-    1. [ ] 记录每个 uni 的多个历史完成时间，如果平均时间大于 N 分钟，那么标记该 unit 应该被拆分成 deps。
-
-    2. [ ] 调研 mysql
+* [ ] 调研 mysql
 
 * [ ] 调研：unit 增加 hint 字段，显示完`[u_0]`后，输入`h`显示一条 hint 
 
@@ -1655,25 +1663,69 @@
 
 ### tasks
 
-* [O] process 1 tab 09.29
+* [v] process 1 tab 10.08
 
-    14:47 ~ 15:01
+    21:29 ~ 22:05
 
     feedback:
 
-    * 目前看到
+    * [asso] `if constexpr`
 
-        > 使用 std::is_copy_constructible 和 std::is_move_constructible
+        这个似乎可以编译期让不同类型走不同的 if 分支
 
-* [v] process 1 tab 09.28
+        ```cpp
+        #include <type_traits>
+        #include <iostream>
 
-    11:02 ~ 11:07
+        class MyClass {
+        public:
+            template <typename T>
+            MyClass(T value) {
+                if constexpr (std::is_same_v<T, int>) {
+                    std::cout << "int constructor: " << value << std::endl;
+                } else if constexpr (std::is_same_v<T, float>) {
+                    std::cout << "float constructor: " << value << std::endl;
+                } else {
+                    std::cout << "generic constructor: " << value << std::endl;
+                }
+            }
+        };
+
+        int main() {
+            MyClass a(10);      // int 版本
+            MyClass b(3.14f);   // float 版本
+            MyClass c("hello"); // 通用版本
+        }#include <type_traits>
+        #include <iostream>
+
+        class MyClass {
+        public:
+            template <typename T>
+            MyClass(T value) {
+                if constexpr (std::is_same_v<T, int>) {
+                    std::cout << "int constructor: " << value << std::endl;
+                } else if constexpr (std::is_same_v<T, float>) {
+                    std::cout << "float constructor: " << value << std::endl;
+                } else {
+                    std::cout << "generic constructor: " << value << std::endl;
+                }
+            }
+        };
+
+        int main() {
+            MyClass a(10);      // int 版本
+            MyClass b(3.14f);   // float 版本
+            MyClass c("hello"); // 通用版本
+        }
+        ```
+
+    * [asso] C++20 Concepts
+
+* [v] process 1 tab 09.29
+
+    14:47 ~ 15:01
 
 * [ ] arm linux 环境下是否有类似 nasm 的工具？
-
-* [v] `re.findall()`
-
-    17:12 ~ 17:30
 
 * [ ] reg `\b`, `\w`
 
@@ -2153,17 +2205,19 @@ resources:
 
 ### tasks
 
-* [v] 调研 <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+* [v] 调研 Datasets And Dataloaders in Pytorch
 
-    17:13 ~ 18:00, 14:21 ~ 15:28
-
-    目前看到
-
-    > 3. Batch Processing for Efficient Training
-
-* [ ] 调研 Datasets And Dataloaders in Pytorch
+    23:13 ~ 00:23
 
     <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
+
+    feedback:
+
+    * [asso] `np.loadtxt()`
+
+    * [asso] 调研这个网站下面的 tutorial 目录，看看其他部分
+
+        <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
 
 * [ ] `DataLoader`中的 sampler 是什么含义？
 
@@ -2176,10 +2230,6 @@ resources:
     PIL 是否有显示图片的功能？
 
 * [ ] `transforms.Compose`为什么可以接收`PIL.Image`类型的对象？
-
-* [v] `transforms`中常用的 aug 方法有哪些？
-
-    15:20 ~ 15:36
 
 * [ ] 带动量的SGD（Momentum）
 
@@ -2254,18 +2304,6 @@ resources:
 * [v] C++ (Eigen): Eigen::SparseMatrix
 
     15:37 ~ 16:04
-
-    feedback:
-
-    * [asso] eigen 如何创建稀疏矩阵（静态大量，动态添加）？
-
-    * [asso] eigen 中稀疏矩阵与稠密矩阵如何转换？
-
-    * [asso] eigen 如何打印出一个稀疏矩阵中的非零值？如何打印完整矩阵？如何读取或修改指定位置的值？
-
-    * [asso] eigen 支持的矩阵最高到几维？是否支持类似 torch 的 4 维矩阵？
-
-    * [asso] eigen 中的稀疏矩阵支持哪些运算？矩阵乘法？还有其他什么运算？
 
 * [ ] 调研`np.linspace()`与其他常用的数据创建方法
 
@@ -2551,6 +2589,16 @@ resources:
 
 * [asso] `cmap='viridis', marker='o'`
 
+* [asso] eigen 如何创建稀疏矩阵（静态大量，动态添加）？
+
+* [asso] eigen 中稀疏矩阵与稠密矩阵如何转换？
+
+* [asso] eigen 如何打印出一个稀疏矩阵中的非零值？如何打印完整矩阵？如何读取或修改指定位置的值？
+
+* [asso] eigen 支持的矩阵最高到几维？是否支持类似 torch 的 4 维矩阵？
+
+* [asso] eigen 中的稀疏矩阵支持哪些运算？矩阵乘法？还有其他什么运算？
+
 ## Mathematics
 
 resources:
@@ -2569,10 +2617,6 @@ resources:
 
 ### tasks
 
-* [v] 调研第八章 多元函数微分法及其应用
-
-    15:36 ~ 16:07
-
 * [ ] 聚点，开集，闭区域，无界集
 
 * [ ] n 维空间
@@ -2588,16 +2632,6 @@ resources:
 * [v] 调研 Amir Beck
 
     ~ 16:14
-
-    feedback:
-
-    * [asso] Amir Beck 的 Beck & Teboulle 算法
-
-        著名的 FISTA（Fast Iterative Shrinkage-Thresholding Algorithm）
-
-    * [asso] Amir Beck 的《First-Order Methods in Optimization》（2017）
-
-        系统介绍一阶优化方法的权威教材, 涵盖梯度方法、次梯度方法、近端算法等
 
 * [ ] 矩阵微积分 / 矩阵求导
 
@@ -2645,6 +2679,14 @@ resources:
     # 对实部求导（等价于一种处理方式）
     diff(f, z11_r)
     ```
+
+* [asso] Amir Beck 的 Beck & Teboulle 算法
+
+    著名的 FISTA（Fast Iterative Shrinkage-Thresholding Algorithm）
+
+* [asso] Amir Beck 的《First-Order Methods in Optimization》（2017）
+
+    系统介绍一阶优化方法的权威教材, 涵盖梯度方法、次梯度方法、近端算法等
 
 ## Linux Driver
 
@@ -2725,14 +2767,6 @@ resources:
 
 ### tasks
 
-* [v] `pci_read_config_dword`
-
-    16:27 ~ 16:37
-
-* [v] `pci_find_ext_capability`
-
-    16:38 ~ 16:42
-
 * [ ] 调研 ds 生成的一段代码
 
     ```c
@@ -2779,7 +2813,9 @@ resources:
 
 * [ ] 调研 pandas，polars
 
-* [ ] DMA总线
+* [v] DMA总线
+
+    00:24 ~ 00:33
 
 * [ ] dma 在 cpu 中，还是在 device 中？
 
@@ -3449,8 +3485,6 @@ resources:
 * [O] 梳理 topo p2p 和 eth switch 接口
 
     16:39 ~ 17:20
-
-* [v] `const ncclTopoGraph *const *const graphs`该如何理解？
 
 * [ ] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
 

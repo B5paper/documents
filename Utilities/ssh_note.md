@@ -2,6 +2,25 @@
 
 ## cache
 
+* 如果 ssh 只指定`-N`，不指定`-f`，那么不会进入 remote host 的登陆界面
+
+    输出如下：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ssh -N <user>@<host>
+
+
+    ```
+
+    正常情况下会有登陆提示：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ssh <user>@<host>
+    Last login: Fri Sep 19 13:23:07 2025 from 10.129.8.115
+    hlc@lab-sw1:~$ 
+
+    ```
+
 * ssh 远程执行 command，kill 本地 ssh 后，远程 command 被同步关闭
 
     可以使用`ssh -f -tt user@host "<command> > /dev/null 2>&1"`
