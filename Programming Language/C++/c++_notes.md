@@ -4,6 +4,89 @@
 
 ## cached
 
+* int类型走第一个构造函数，float类型走第二个构造函数，其他所有类型走第三个构造函数 的模板实现
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    class MyClass {
+    public:
+        // (1) int 类型的构造函数
+        template <typename T, typename = std::enable_if_t<std::is_same_v<T, int>>>
+        MyClass(T value) {
+            std::cout << "int constructor: " << value << std::endl;
+        }
+
+        // (2) float 类型的构造函数
+        template <typename T, typename = std::enable_if_t<std::is_same_v<T, float>>>
+        MyClass(T value) {
+            std::cout << "float constructor: " << value << std::endl;
+        }
+
+        // (3) 其他所有类型的构造函数
+        template <typename T, 
+                  typename = std::enable_if_t<!std::is_same_v<T, int> && !std::is_same_v<T, float>>,
+                  typename = void>  // 额外默认参数避免冲突
+        MyClass(T value) {
+            std::cout << "generic constructor: " << value << std::endl;
+        }
+    };
+
+    int main() {
+        MyClass a(10);          // (1) int 版本
+        MyClass b(3.14f);       // (2) float 版本
+        MyClass c("hello");     // (3) 通用版本
+        MyClass d(3.14);        // (3) 通用版本（double 不是 float）
+    }
+    ```
+
+* 除了使用 sfinae 约束类型外，还可以使用 static assert
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    class MyClass {
+    public:
+        template <typename T>
+        MyClass(T value) {
+            static_assert(std::is_integral<T>::value, 
+                         "MyClass constructor only accepts integral types");
+            std::cout << "Constructor: " << value << std::endl;
+        }
+    };
+
+    int main() {
+        MyClass a(42);      // OK
+        // MyClass b(3.14); // 编译错误，静态断言失败
+    }
+    ```
+
+* 在对构造函数使用模板时，`typename`后可以不写`typename = xxx`
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    class MyClass {
+    public:
+        // 只允许浮点类型的构造函数
+        template <typename T,
+                  typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+        MyClass(T value) {
+            std::cout << "Floating point constructor: " << value << std::endl;
+        }
+    };
+
+    int main() {
+        MyClass a(3.14);    // OK
+        // MyClass b(42);   // 编译错误
+    }
+    ```
+
+    目前不清楚原理。
+
 * SFINAE（Substitution Failure Is Not An Error）
 
 * 在`struct`中，`add_elm()`成员函数应该返回引用还是返回指针？

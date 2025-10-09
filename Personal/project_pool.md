@@ -28,6 +28,14 @@
 
 ## cache
 
+* 互联网和文艺作品中的人物为了典型，常常是标签化的和脸谱化的，失去了很多鲜活的特征。比如要描写一个吝啬的人，总是贯穿作品地描写这个人如何如何吝啬，似乎这个人只要出场，就必定要伴随一个吝啬的情节。但是在生活中多与人接触会发现，人并不是这样的，人有很多的小细节，比如打扑克时偷偷藏一张牌，比如被发现后第二局继续藏牌，比如听见别人讨论某个主题后，总是站在远处嘟囔地插几句评论。这些吝啬可以看作低频主分量，这些细节可以看作高频分量，正是这些高频分量使人变得鲜活和可爱。
+
+    这样就有了两个问题：
+    
+    1. 文艺作品如果把所有细节都加上，是否会被评论为臃肿不典型？文艺作品表达的可能是用一个人物来代表一类人物，这样的话，必须描写典型的性格，忽略次要的性格。但是这样又会忽略高频分量，使人物不可爱。这似乎是一个矛盾，不清楚该如何解决。
+
+    2. 还是回到以前那个设想，如果我们有一家私塾把所有人都培养为相同的待人接物的模式、几乎相同的知识、以及几乎相同的批判性思维习惯，那么会不会使人们丧失性格的多样性，从而使世界变得无聊？目前看来，确实有这个可能。互联网的很多短剧，网文小说，网红主播，看了开头就能猜到结尾，主角性格千篇一律。既然这样，我们的私塾的目的就会被推翻，那么私塾又该是什么目的？一个规定了人与人最小边界的交流讨论场所？还是仅传授知识，保证健康，但是不改变性格的场所？
+
 * 每日任务模板初始版，完成版
 
     初始版：
@@ -1116,7 +1124,43 @@
 
 ### tasks
 
-* [ ] `kobject_put()`
+* [v] reorg: documents 30 mins 10.08
+
+    12:28 ~ 12:45
+
+    feedback:
+
+    * [ ] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
+
+        这些指定的文件，可能积累了大量的 cache，是重点要处理的对象。freedom 模式则增加一点随机游走的可能性，避免过拟合。
+
+    * [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
+
+        `exit(EXIT_FAILURE);`
+
+    * 记录一下这个写法
+
+        ```cpp
+        int threadsPerBlock = 256;
+        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+        ```
+
+        如果 numElements 能整除 256，那么取商作为 blocksPerGrid；如果无法整除，那么取`商 + 1`。
+
+        如果自己写这块逻辑，可能写成：
+
+        ```cpp
+        blocksPerGrid = numElements / threadsPerBlock;
+        if (numElements % threadsPerBlock != 0) {
+            blocksPerGrid += 1;
+        }
+        ```
+
+        这样的话，相当于做了两次除法运算。上面的写法只做了一次除法运算。
+
+* [v] `kobject_put()`
+
+    15:21 ~ 15:29
 
 * [ ] `sysfs_remove_file()`
 
@@ -1394,19 +1438,37 @@
 
 ### Tasks
 
-* [v] qa: review 30 mins 09.29
+* [v] qa: 2 units 30 mins 10.08
+
+    13:04 ~ 13:05
+
+* [v] qa: review 30 mins 10.08
+
+    11:51 ~ 12:27
+
+    feedback:
+
+    * flex中，`\n {return 0;}`表示结束 parser 程序，进入主程序。如果写成`\n {}`，那么即使按回车换行，parser 程序也不结束。
+
+    * [ ] 调研实现: 增加 reinforce_record.txt
+    
+        在 review 时，仍然没做出来的题目，在 u0 后或 u1 后输入 r，将当前 unit append 到 reinforce record 中。
+
+        与 review 相似，每周使用`./main.py rein`检测一次 reinforce record。在检测中间如果还有不会的，同样使用 r 将其再次保存到 rein 中，将会的都删除。
+
+        后续可以考虑 monthly reinforce 和 quarterly reinforce 甚至 annually。每周 rein 做不出来的放到每月，每月做不出来的放到每季度，每季度做不出来的放到每年。
 
 * [P] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
 
     22:31 ~ 23:10
 
-    feedback:
+* [ ] python 如何判断一个 key 是否在 dict 中？
 
-    * [ ] python 如何判断一个 key 是否在 dict 中？
+* [ ] python 中如何实现 do while ?
 
-    * [ ] python 中如何实现 do while ?
+* [v] 自己写的程序按 tab 如何自动补全参数？
 
-* [ ] 自己写的程序按 tab 如何自动补全参数？
+    15:31 ~ 16:35
 
 * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
 
@@ -1504,10 +1566,6 @@
 * [ ] `使用 element draw 画一个 cube`增加 deps:
 
     1. load shader
-
-* [v] 调研 qa review 增加 clear 功能
-
-    默认情况下 append，当手动指定 clear 后，清空文件。这样可以保持一周的 review 量。
 
 * [ ] 记录每个 uni 的多个历史完成时间，如果平均时间大于 N 分钟，那么标记该 unit 应该被拆分成 deps。
 
@@ -1663,69 +1721,47 @@
 
 ### tasks
 
-* [v] process 1 tab 10.08
+* [O] process 1 tab 10.08
 
-    21:29 ~ 22:05
+    13:09 ~ 13:44
 
     feedback:
 
-    * [asso] `if constexpr`
+    * 目前看到
 
-        这个似乎可以编译期让不同类型走不同的 if 分支
+        > 直接构造 std::initializer_list 时指定模板参数
 
-        ```cpp
-        #include <type_traits>
-        #include <iostream>
+* [v] process 1 tab 10.08
 
-        class MyClass {
-        public:
-            template <typename T>
-            MyClass(T value) {
-                if constexpr (std::is_same_v<T, int>) {
-                    std::cout << "int constructor: " << value << std::endl;
-                } else if constexpr (std::is_same_v<T, float>) {
-                    std::cout << "float constructor: " << value << std::endl;
-                } else {
-                    std::cout << "generic constructor: " << value << std::endl;
-                }
-            }
-        };
-
-        int main() {
-            MyClass a(10);      // int 版本
-            MyClass b(3.14f);   // float 版本
-            MyClass c("hello"); // 通用版本
-        }#include <type_traits>
-        #include <iostream>
-
-        class MyClass {
-        public:
-            template <typename T>
-            MyClass(T value) {
-                if constexpr (std::is_same_v<T, int>) {
-                    std::cout << "int constructor: " << value << std::endl;
-                } else if constexpr (std::is_same_v<T, float>) {
-                    std::cout << "float constructor: " << value << std::endl;
-                } else {
-                    std::cout << "generic constructor: " << value << std::endl;
-                }
-            }
-        };
-
-        int main() {
-            MyClass a(10);      // int 版本
-            MyClass b(3.14f);   // float 版本
-            MyClass c("hello"); // 通用版本
-        }
-        ```
-
-    * [asso] C++20 Concepts
+    21:29 ~ 22:05
 
 * [v] process 1 tab 09.29
 
     14:47 ~ 15:01
 
-* [ ] arm linux 环境下是否有类似 nasm 的工具？
+* [v] arm linux 环境下是否有类似 nasm 的工具？
+
+    16:36 ~ 16:44
+
+    feedback:
+
+    * [asso] 调研`as`
+    
+        GNU Assembler (as)
+
+        * 准备树莓派开发板，使用 ssh 进入系统
+
+            或使用 qemu 模拟一个 arm 环境，安装 ubuntu 系统，使用 ssh 进入系统
+
+        * 调研系统中是否有 as，如果没有，安装
+
+        * 跑通第一个 arm 汇编的 hello world 程序
+
+        * 使用汇编实现循环求和 1 + ... + 10
+
+        * 使用汇编实现自定义函数的调用，要求有 2 个输入参数
+
+        * 使用汇编实现斐波那契数列
 
 * [ ] reg `\b`, `\w`
 
@@ -1745,43 +1781,6 @@
 
     <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
 
-* [ ] Apply a 2D Convolution Operation in PyTorch
-
-    <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
-
-* [ ] Apply a 2D Max Pooling in PyTorch
-
-    <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-max-pooling-in-pytorch/>
-
-* [ ] Batch Normalization Implementation in PyTorch
-
-    <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
-
-* [ ] Difference Between "Hidden" and "Output" in PyTorch LSTM
-
-    <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
-
-* [ ] Generative Adversarial Networks (GANs) in PyTorch
-
-    <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
-
-* [ ] Implementing an Autoencoder in PyTorch
-
-    <https://www.geeksforgeeks.org/deep-learning/implementing-an-autoencoder-in-pytorch/>
-
-* [ ] Transfer Learning with Fine-Tuning in NLP
-
-    <https://www.geeksforgeeks.org/nlp/transfer-learning-and-fine-tuning-in-nlp/>
-
-* [ ] Transfer Learning for Computer Vision
-
-    <https://www.geeksforgeeks.org/computer-vision/transfer-learning-for-computer-vision/>
-
-* [ ] How to implement transfer learning in PyTorch?
-
-    <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
-
-
 * [ ] Introduction to Deep Learning
 
     <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
@@ -1791,10 +1790,6 @@
 * [ ] reorg: 正则表达式 30 mins
 
 * [ ] `qemu-system-x86_64 -enable-kvm -device pci-bridge,id=mybridge -device e1000,bus=mybridge,addr=0x1`
-
-* [ ] `pci_find_bus()`
-
-* [ ] `pci_alloc_dev()`
 
 * [ ] 调研 ds 写的添加虚拟 pci 设备的代码（未验证）
 
@@ -2185,6 +2180,58 @@
 
 * [asso] 调研正则表达式`(?:...)`
 
+* [asso] `if constexpr`
+
+    这个似乎可以编译期让不同类型走不同的 if 分支
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    class MyClass {
+    public:
+        template <typename T>
+        MyClass(T value) {
+            if constexpr (std::is_same_v<T, int>) {
+                std::cout << "int constructor: " << value << std::endl;
+            } else if constexpr (std::is_same_v<T, float>) {
+                std::cout << "float constructor: " << value << std::endl;
+            } else {
+                std::cout << "generic constructor: " << value << std::endl;
+            }
+        }
+    };
+
+    int main() {
+        MyClass a(10);      // int 版本
+        MyClass b(3.14f);   // float 版本
+        MyClass c("hello"); // 通用版本
+    }#include <type_traits>
+    #include <iostream>
+
+    class MyClass {
+    public:
+        template <typename T>
+        MyClass(T value) {
+            if constexpr (std::is_same_v<T, int>) {
+                std::cout << "int constructor: " << value << std::endl;
+            } else if constexpr (std::is_same_v<T, float>) {
+                std::cout << "float constructor: " << value << std::endl;
+            } else {
+                std::cout << "generic constructor: " << value << std::endl;
+            }
+        }
+    };
+
+    int main() {
+        MyClass a(10);      // int 版本
+        MyClass b(3.14f);   // float 版本
+        MyClass c("hello"); // 通用版本
+    }
+    ```
+
+* [asso] C++20 Concepts
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2211,15 +2258,13 @@ resources:
 
     <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
 
+* [v] `DataLoader`中的 sampler 是什么含义？
+
+    16:47 ~ 17:20
+
     feedback:
 
-    * [asso] `np.loadtxt()`
-
-    * [asso] 调研这个网站下面的 tutorial 目录，看看其他部分
-
-        <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
-
-* [ ] `DataLoader`中的 sampler 是什么含义？
+    * [ ] `SubsetRandomSampler()`
 
 * [ ] Computer Vision with PyTorch
 
@@ -2259,7 +2304,7 @@ resources:
     struct scatterlist sg;
     sg_init_one(&sg, user_buf, size); // 初始化散列表项
     dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE); // 映射物理地址
-        ```
+    ```
 
 * [ ] `sg_dma_address()`, `sg_dma_len()`
 
@@ -2293,6 +2338,12 @@ resources:
 
 * [asso] Albumentations
 
+* [asso] `np.loadtxt()`
+
+* [asso] 调研这个网站下面的 tutorial 目录，看看其他部分
+
+    <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
+
 ## Machine Learning
 
 ### cache
@@ -2301,13 +2352,53 @@ resources:
 
 ### tasks
 
-* [v] C++ (Eigen): Eigen::SparseMatrix
+* [ ] Apply a 2D Convolution Operation in PyTorch
 
-    15:37 ~ 16:04
+    <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
 
-* [ ] 调研`np.linspace()`与其他常用的数据创建方法
+* [ ] Apply a 2D Max Pooling in PyTorch
 
-* [ ] `np.meshgrid()`
+    <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-max-pooling-in-pytorch/>
+
+* [ ] Batch Normalization Implementation in PyTorch
+
+    <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
+
+* [ ] Difference Between "Hidden" and "Output" in PyTorch LSTM
+
+    <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
+
+* [ ] Generative Adversarial Networks (GANs) in PyTorch
+
+    <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
+
+* [ ] Implementing an Autoencoder in PyTorch
+
+    <https://www.geeksforgeeks.org/deep-learning/implementing-an-autoencoder-in-pytorch/>
+
+* [ ] Transfer Learning with Fine-Tuning in NLP
+
+    <https://www.geeksforgeeks.org/nlp/transfer-learning-and-fine-tuning-in-nlp/>
+
+* [ ] Transfer Learning for Computer Vision
+
+    <https://www.geeksforgeeks.org/computer-vision/transfer-learning-for-computer-vision/>
+
+* [ ] How to implement transfer learning in PyTorch?
+
+    <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
+
+* [v] 调研`np.linspace()`与其他常用的数据创建方法
+
+    14:03 ~ 15:20
+
+    feedback:
+
+    * [ ] 调研 python 中是否有函数重载？
+
+* [v] `np.meshgrid()`
+
+    ~ 20:01
 
 * [O] 调研 matplotlib 画 surface
 
@@ -2629,10 +2720,6 @@ resources:
 
 * [ ] 调研使用梯度法求二无函数$f(x, y)$的最值
 
-* [v] 调研 Amir Beck
-
-    ~ 16:14
-
 * [ ] 矩阵微积分 / 矩阵求导
 
 * [ ] 复分析 / 复变函数论
@@ -2712,39 +2799,25 @@ resources:
 
 * 调研`INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 
-* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
-
-* linux 的 interruptible sleep 是如何实现的？
-
-* 调研这三个头文件
-
-    ```c
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <fcntl.h>
-    ```
-
-* 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
-
-* 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
-
-* 调研
+    * `kthread_should_stop`
     
-    `kthread_should_stop`, `msleep`, `likely`, `unlikely`, `orderly_poweroff`
+    * `msleep`
+    
+    * `likely`, `unlikely`
+    
+    * `orderly_poweroff`
 
-* cached tasks
+    * `iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
 
-    调研：`iommu_domain_alloc`, `iommu_group_get`, `iommu_attach_group`
+    * `dev_to_node`, `kzalloc_node`
 
-    `dev_to_node`, `kzalloc_node`, `spin_lock_init`
+    * `idr_init_base`
 
-    `idr_init_base`
-
-    调研一下`KBUILD_MODNAME`的含义。
-
-    * `spin_unlock_irqrestore()`
+    * `spin_lock_init`, `spin_unlock_irqrestore()`
 
     * `mdev_register_device()`
+
+* 调研一下`KBUILD_MODNAME`的含义。
 
 * kernel 中的内存管理感觉是个问题
 
@@ -2766,6 +2839,20 @@ resources:
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
+
+* [ ] 调研这三个头文件
+
+    ```c
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    ```
+
+* [ ] linux 的 interruptible sleep 是如何实现的？
+
+* [ ] `pci_find_bus()`
+
+* [ ] `pci_alloc_dev()`
 
 * [ ] 调研 ds 生成的一段代码
 
@@ -2812,10 +2899,6 @@ resources:
 * [ ] ` __attribute__((packed))`, `__packed`
 
 * [ ] 调研 pandas，polars
-
-* [v] DMA总线
-
-    00:24 ~ 00:33
 
 * [ ] dma 在 cpu 中，还是在 device 中？
 

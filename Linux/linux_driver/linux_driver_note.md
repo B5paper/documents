@@ -6,6 +6,159 @@ Ref:
 
 ## cache
 
+* `__user`表示是一个用户空间的指针，所以 kernel 不可以直接使用。
+
+    ```c
+    #ifdef __CHECKER__
+    # define __user __attribute__((noderef, address_space(1)))
+    # define __kernel /* default address space */
+    #else
+    # define __user
+    # define __kernel
+    #endif
+    ```
+
+* `inode`是文件的节点结构，用来存储文件静态信息。文件创建时，内核中就会有一个 inode 结构
+
+    `lsmod`除了可以列出当前已经加载的模块，还可以显示模块之间的依赖关系。
+
+    应用程序 app 先找到设备文件，设备文件通过设备号找到设备驱动，然后再调用相关的函数。设备号如何找到设备驱动？首先可以通过设备号找到`cdev`结构体，然后从`cdev`结构体找到`file_operations`结构体，再在这个结构体里找对应的驱动函数。
+
+    每个静态文件都对应内核中一个`inode` struct，存放一些基本信息。而当文件被打开时，内核会创建一个`file` struct，记录一些信息。
+
+* cdev
+
+    cdev 指的是 char device，是 linux 中用于处理 char device 相关操作（比如 open, release, read, write, ioctl 等）的概念与结构体。
+
+    相关函数：
+
+    * `cdev_init()`：将 cdev 与 fops 绑定在一起
+
+        Syntax:
+
+        ```c
+        void cdev_init(struct cdev *cdev, struct file_operations *fops);
+        ```
+
+    * `cdev_add`：将 cdev 添加到内核，并为 cdev 绑定设备号
+
+        Syntax:
+
+        ```c
+        int cdev_add(struct cdev *p, dev_t dev, unsigned count);
+        ```
+
+        params:
+
+        * `p`: 要添加的 cdev 结构
+
+        * `dev`：起始设备号
+
+        * `count`：设备号个数
+
+        返回 0 表示成功，非 0 表示失败。
+
+    * `cdev_del`：将 cdev 从内核中移除
+
+        syntax:
+
+        ```c
+        void cdev_del(struct cdev *p)
+        ```
+
+    example:
+
+    `hello_world.c`:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/cdev.h>
+    #include <linux/fs.h>
+
+    int m_open(struct inode *inode, struct file *file_ptr)
+    {
+        printk("in m_open function ...\n");
+        return 0;
+    }
+
+    int m_release(struct inode *inode, struct file *file_ptr)
+    {
+        printk("in m_release function ...\n");
+        return 0;
+    }
+
+    long int m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *offset)
+    {
+        printk("in m_read function ...\n");
+        return 0;
+    }
+
+    long int m_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
+    {
+        printk("in m_write function ...\n");
+        return 0;
+    }
+
+    long m_ioctl(struct file *, unsigned int, unsigned long)
+    {
+        printk("in m_ioctl function ...\n");
+        return 0;
+    }
+
+    dev_t dev_num;
+    struct cdev m_dev;
+    struct file_operations m_ops = {
+        .owner = THIS_MODULE,
+        .open = m_open,
+        .read = m_read,
+        .write = m_write,
+        .release = m_release,
+        .unlocked_ioctl = m_ioctl,
+    };
+
+    int hello_init(void)
+    {
+        printk("Insert my test module.\n");
+
+        // allocate a device number
+        dev_num = MKDEV(220,0);
+        register_chrdev_region(dev_num, 1, "hlc_dev");
+
+        cdev_init(&m_dev, &m_ops);
+        cdev_add(&m_dev, dev_num, 1);
+        return 0;
+    }
+
+    void hello_exit(void)
+    {
+        cdev_del(&m_dev);
+        unregister_chrdev_region(dev_num, 1);
+        printk("Exit my test module.\n");
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    加载完模块后，`/dev/`下并不会出现 dev 设备文件节点。如果需要显示这个文件节点，需要使用`struct device`相关的概念去创建。设备驱动需要和设备文件配合使用。
+
+* `cdev_alloc()`
+
+    除了使用`cdev_init()`静态绑定，还可以使用`cdev_alloc()`动态申请 cdev:
+
+    ```c
+    struct cdev *my_cdev = cdev_alloc( );
+    my_cdev->ops = &my_fops;
+    ``````
+
+* 整理一下开发环境的搭建，因为发现只需要安装`build-essential`就可以自动安装 header 文件，那么其实可以简化流程
+
+* 可以在函数声明后就直接构造`struct file_operations`，然后再在其他地方对函数进行定义。
+
+* linux module 编译不出来，可能是因为`obj-m`写成了`odj-m`
+
 * `pci_read_config_dword()`
 
     pci_read_config_dword() 是一个用于读取 PCI/PCIe 设备配置空间中一个双字（32 位）数据的函数。
@@ -7613,153 +7766,6 @@ struct cdev {
     dev_t dev;  // 设备号
     unsigned int count;
 };
-```
-
-**向内核中添加一个 cdev**
-
-two ways of allocating and initializing one of these structures:
-
-1. Runtime allocation
-
-    ```c
-    struct cdev *my_cdev = cdev_alloc( );
-    my_cdev->ops = &my_fops;
-    ``````
-
-1. Own allocation
-
-    Syntax:
-
-    ```c
-    void cdev_init(struct cdev *cdev, struct file_operations *fops);
-    ```
-
-    （`cdev`事先声明，`fops`也要事先写好）
-
-    初始化 cdev（为 cdev 提供操作函数集合）
-
-`cdev_add`：将 cdev 添加到内核（还会为 cdev 绑定设备号）
-
-Syntax:
-
-```c
-int cdev_add(struct cdev *p, dev_t dev, unsigned count);
-```
-
-params:
-
-* `p`: 要添加的 cdev 结构
-
-* `dev`：起始设备号
-
-* `count`：设备号个数
-
-返回 0 表示成功，非 0 表示失败。
-
-`cdev_del`：将 cdev 从内核中移除
-
-```c
-void cdev_del(struct cdev *p)
-```
-
-`inode`是文件的节点结构，用来存储文件静态信息。文件创建时，内核中就会有一个 inode 结构
-
-`lsmod`除了可以列出当前已经加载的模块，还可以显示模块之间的依赖关系。
-
-应用程序 app 先找到设备文件，设备文件通过设备号找到设备驱动，然后再调用相关的函数。设备号如何找到设备驱动？首先可以通过设备号找到`cdev`结构体，然后从`cdev`结构体找到`file_operations`结构体，再在这个结构体里找对应的驱动函数。
-
-每个静态文件都对应内核中一个`inode` struct，存放一些基本信息。而当文件被打开时，内核会创建一个`file` struct，记录一些信息。
-
-Example:
-
-`hello_world.c`:
-
-```c
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/cdev.h>
-#include <linux/fs.h>
-
-int m_open(struct inode *inode, struct file *file_ptr)
-{
-    printk("in m_open function ...\n");
-    return 0;
-}
-
-int m_release(struct inode *inode, struct file *file_ptr)
-{
-    printk("in m_release function ...\n");
-    return 0;
-}
-
-long int m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *offset)
-{
-    printk("in m_read function ...\n");
-    return 0;
-}
-
-long int m_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
-{
-    printk("in m_write function ...\n");
-    return 0;
-}
-
-long m_ioctl(struct file *, unsigned int, unsigned long)
-{
-    printk("in m_ioctl function ...\n");
-    return 0;
-}
-
-dev_t dev_num;
-struct cdev m_dev;
-struct file_operations m_ops = {
-    .owner = THIS_MODULE,
-    .open = m_open,
-    .read = m_read,
-    .write = m_write,
-    .release = m_release,
-    .unlocked_ioctl = m_ioctl,
-};
-
-int hello_init(void)
-{
-    printk("Insert my test module.\n");
-
-    // allocate a device number
-    dev_num = MKDEV(220,0);
-    register_chrdev_region(dev_num, 1, "hlc_dev");
-
-    cdev_init(&m_dev, &m_ops);
-    cdev_add(&m_dev, dev_num, 1);
-    return 0;
-}
-
-void hello_exit(void)
-{
-    cdev_del(&m_dev);
-    unregister_chrdev_region(dev_num, 1);
-    printk("Exit my test module.\n");
-}
-
-module_init(hello_init);
-module_exit(hello_exit);
-MODULE_LICENSE("GPL");
-```
-
-对其编译后，加载模块：`sudo insmod hello_world.ko`。
-
-设备驱动需要和设备文件配合使用。
-
-`__user`表示是一个用户空间的指针，所以 kernel 不可以直接使用。
-
-```c
-#ifdef __CHECKER__
-# define __user __attribute__((noderef, address_space(1)))
-# define __kernel /* default address space */
-#else
-# define __user
-# define __kernel
-#endif
 ```
 
 ### 设备文件
