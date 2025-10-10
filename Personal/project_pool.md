@@ -28,6 +28,16 @@
 
 ## cache
 
+* 逻辑顺序与 routine 记忆的困难
+
+    假如我们有概念 A, B, C，C 依赖 B，B 依赖 A， 最终要使用这些概念解决问题 D，。如果我们按照绝对的线性顺序，先讲 A，再讲 B，再讲 C，最后解决 D，那么在逻辑顺序上非常完美，但是在认知顺序上，我们先了解了 A，A 能干嘛？不知道，先记着。然后我们了解了 B，B 能干嘛？不知道。等我们记了一长串，终于能解决 D，时，前面的没有意义的记忆早忘完了。所以逻辑顺序上的概念，会在组成 routine 时，造成认知上的负担。
+
+    一种可能的改进方法是，我们先讨论 D，给出一个朴素的」直观的解决方案，再不断往 A, B, C 上靠拢，细化这些概念。实在不能靠拢也无所谓。
+
+    对于已经按逻辑顺序写成的资料，我们只能补救一下，比如在学 A 时，尝试在概念 A 上进行联想，和已知的熟悉的东西或概念联系起来，还可以提出测试小游戏，还可以不断举例子、举反例并分析和 A 的关系，还可以提问“如果让我设计这个概念，我可能会如何设计？”等。
+
+* 不了解恶，不使用恶，就无法理解善。就像总是看一流作家的文学和音乐，觉得一般，但是看了听了二流作家的作品，才知道一流作品好在哪里。
+
 * 互联网和文艺作品中的人物为了典型，常常是标签化的和脸谱化的，失去了很多鲜活的特征。比如要描写一个吝啬的人，总是贯穿作品地描写这个人如何如何吝啬，似乎这个人只要出场，就必定要伴随一个吝啬的情节。但是在生活中多与人接触会发现，人并不是这样的，人有很多的小细节，比如打扑克时偷偷藏一张牌，比如被发现后第二局继续藏牌，比如听见别人讨论某个主题后，总是站在远处嘟囔地插几句评论。这些吝啬可以看作低频主分量，这些细节可以看作高频分量，正是这些高频分量使人变得鲜活和可爱。
 
     这样就有了两个问题：
@@ -1122,47 +1132,63 @@
 
 * vscode 的 ctrl + f 搜索功能有正则表达式选项
 
+* 记录一下这个写法
+
+    ```cpp
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+    ```
+
+    如果 numElements 能整除 256，那么取商作为 blocksPerGrid；如果无法整除，那么取`商 + 1`。
+
+    如果自己写这块逻辑，可能写成：
+
+    ```cpp
+    blocksPerGrid = numElements / threadsPerBlock;
+    if (numElements % threadsPerBlock != 0) {
+        blocksPerGrid += 1;
+    }
+    ```
+
+    这样的话，相当于做了两次除法运算。上面的写法只做了一次除法运算。
+
+* qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
+
 ### tasks
+
+* [v] reorg: documents 30 mins 10.09
+
+    10:42 ~ 11:14
+
+    feedback:
+
+    * [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
+
+    * [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
 
 * [v] reorg: documents 30 mins 10.08
 
     12:28 ~ 12:45
 
+* [ ] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
+
+    这些指定的文件，可能积累了大量的 cache，是重点要处理的对象。freedom 模式则增加一点随机游走的可能性，避免过拟合。
+
+* [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
+
+    `exit(EXIT_FAILURE);`
+
+* [v] `sysfs_remove_file()`
+
+    14:29 ~ 15:15
+
     feedback:
 
-    * [ ] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
+    * [asso] `sysfs_create_group()`, `sysfs_remove_group()`
 
-        这些指定的文件，可能积累了大量的 cache，是重点要处理的对象。freedom 模式则增加一点随机游走的可能性，避免过拟合。
+    * [asso] `devm_kobject_create_and_add()`
 
-    * [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
-
-        `exit(EXIT_FAILURE);`
-
-    * 记录一下这个写法
-
-        ```cpp
-        int threadsPerBlock = 256;
-        int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
-        ```
-
-        如果 numElements 能整除 256，那么取商作为 blocksPerGrid；如果无法整除，那么取`商 + 1`。
-
-        如果自己写这块逻辑，可能写成：
-
-        ```cpp
-        blocksPerGrid = numElements / threadsPerBlock;
-        if (numElements % threadsPerBlock != 0) {
-            blocksPerGrid += 1;
-        }
-        ```
-
-        这样的话，相当于做了两次除法运算。上面的写法只做了一次除法运算。
-
-* [v] `kobject_put()`
-
-    15:21 ~ 15:29
-
-* [ ] `sysfs_remove_file()`
+    * [asso] `devm_device_add_groups()`
 
 * [ ] `asm("int $0x3B");`
 
@@ -1233,6 +1259,8 @@
 
 * [ ] 调研 freedos bonus iso
 
+* [ ] edu driver 里创建 dev file
+
 * [O] reorg linux driver
 
     11:01 ~ 11:25, 12:17 ~ 13:38
@@ -1241,21 +1269,15 @@
 
     deps:
 
-    1. [ ] edu driver 里创建 dev file
-
     2. [ ] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
 
         mmio 如何保证缓存一致性？或者说，刚写入就读取，是否会读到还未写入的值？
 
-    feedback:
+* [ ] 如果同时有全局变量 aaa, 函数中的形参 aaa，那么在函数中该如何访问到全局变量 aaa？
 
-    * [ ] 如果同时有全局变量 aaa, 函数中的形参 aaa，那么在函数中该如何访问到全局变量 aaa？
+* [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
 
-    * qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
-
-    * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
-
-        还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
+    还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
 
 * [ ] 调研自定义哈希函数的写法
 
@@ -1436,39 +1458,37 @@
 
 * 增添新 record 时，不删减以前的 record，每三天 review 一次。
 
+* flex中，`\n {return 0;}`表示结束 parser 程序，进入主程序。如果写成`\n {}`，那么即使按回车换行，parser 程序也不结束。
+
 ### Tasks
-
-* [v] qa: 2 units 30 mins 10.08
-
-    13:04 ~ 13:05
 
 * [v] qa: review 30 mins 10.08
 
     11:51 ~ 12:27
 
+* [ ] 调研实现: 增加 reinforce_record.txt
+
+    在 review 时，仍然没做出来的题目，在 u0 后或 u1 后输入 r，将当前 unit append 到 reinforce record 中。
+
+    与 review 相似，每周使用`./main.py rein`检测一次 reinforce record。在检测中间如果还有不会的，同样使用 r 将其再次保存到 rein 中，将会的都删除。
+
+    后续可以考虑 monthly reinforce 和 quarterly reinforce 甚至 annually。每周 rein 做不出来的放到每月，每月做不出来的放到每季度，每季度做不出来的放到每年。
+
+* [v] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
+
+    22:31 ~ 23:10, 15:41 ~ 17:16
+
     feedback:
 
-    * flex中，`\n {return 0;}`表示结束 parser 程序，进入主程序。如果写成`\n {}`，那么即使按回车换行，parser 程序也不结束。
+    * [ ] 调研 python 中文件操作的的 read(), readline() 和 readlines()
 
-    * [ ] 调研实现: 增加 reinforce_record.txt
-    
-        在 review 时，仍然没做出来的题目，在 u0 后或 u1 后输入 r，将当前 unit append 到 reinforce record 中。
+    * [ ] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
 
-        与 review 相似，每周使用`./main.py rein`检测一次 reinforce record。在检测中间如果还有不会的，同样使用 r 将其再次保存到 rein 中，将会的都删除。
-
-        后续可以考虑 monthly reinforce 和 quarterly reinforce 甚至 annually。每周 rein 做不出来的放到每月，每月做不出来的放到每季度，每季度做不出来的放到每年。
-
-* [P] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
-
-    22:31 ~ 23:10
+    * [ ] 改造`--randexam`为 subcommand 形式
 
 * [ ] python 如何判断一个 key 是否在 dict 中？
 
 * [ ] python 中如何实现 do while ?
-
-* [v] 自己写的程序按 tab 如何自动补全参数？
-
-    15:31 ~ 16:35
 
 * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
 
@@ -1721,7 +1741,15 @@
 
 ### tasks
 
-* [O] process 1 tab 10.08
+* [v] process 1 tab 10.09
+
+    13:21 ~ 13:33
+
+    feedback:
+
+    * 对于上次没处理完的 process tab task，比如`[O]`或`[P]`，应该继续这个任务，对于 date，可以 append，比如`* [ ] xxxxx 10.08 10.09`。因为我们需要拿到它的 feedback 和 current progress 的数据。
+
+* [v] process 1 tab 10.08
 
     13:09 ~ 13:44
 
@@ -1731,39 +1759,13 @@
 
         > 直接构造 std::initializer_list 时指定模板参数
 
-* [v] process 1 tab 10.08
-
-    21:29 ~ 22:05
-
-* [v] process 1 tab 09.29
-
-    14:47 ~ 15:01
-
 * [v] arm linux 环境下是否有类似 nasm 的工具？
 
     16:36 ~ 16:44
 
-    feedback:
+* [v] reg `\b`, `\w`
 
-    * [asso] 调研`as`
-    
-        GNU Assembler (as)
-
-        * 准备树莓派开发板，使用 ssh 进入系统
-
-            或使用 qemu 模拟一个 arm 环境，安装 ubuntu 系统，使用 ssh 进入系统
-
-        * 调研系统中是否有 as，如果没有，安装
-
-        * 跑通第一个 arm 汇编的 hello world 程序
-
-        * 使用汇编实现循环求和 1 + ... + 10
-
-        * 使用汇编实现自定义函数的调用，要求有 2 个输入参数
-
-        * 使用汇编实现斐波那契数列
-
-* [ ] reg `\b`, `\w`
+    17:23 ～ 17:28
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -2232,6 +2234,24 @@
 
 * [asso] C++20 Concepts
 
+* [asso] 调研`as`
+
+    GNU Assembler (as)
+
+    * 准备树莓派开发板，使用 ssh 进入系统
+
+        或使用 qemu 模拟一个 arm 环境，安装 ubuntu 系统，使用 ssh 进入系统
+
+    * 调研系统中是否有 as，如果没有，安装
+
+    * 跑通第一个 arm 汇编的 hello world 程序
+
+    * 使用汇编实现循环求和 1 + ... + 10
+
+    * 使用汇编实现自定义函数的调用，要求有 2 个输入参数
+
+    * 使用汇编实现斐波那契数列
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2252,19 +2272,11 @@ resources:
 
 ### tasks
 
-* [v] 调研 Datasets And Dataloaders in Pytorch
-
-    23:13 ~ 00:23
-
-    <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
-
 * [v] `DataLoader`中的 sampler 是什么含义？
 
     16:47 ~ 17:20
 
-    feedback:
-
-    * [ ] `SubsetRandomSampler()`
+* [ ] `SubsetRandomSampler()`
 
 * [ ] Computer Vision with PyTorch
 
@@ -2388,17 +2400,7 @@ resources:
 
     <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
 
-* [v] 调研`np.linspace()`与其他常用的数据创建方法
-
-    14:03 ~ 15:20
-
-    feedback:
-
-    * [ ] 调研 python 中是否有函数重载？
-
-* [v] `np.meshgrid()`
-
-    ~ 20:01
+* [ ] 调研 python 中是否有函数重载？
 
 * [O] 调研 matplotlib 画 surface
 
@@ -2708,7 +2710,7 @@ resources:
 
 ### tasks
 
-* [ ] 聚点，开集，闭区域，无界集
+* [v] 聚点，开集，闭区域，无界集
 
 * [ ] n 维空间
 
@@ -2779,24 +2781,6 @@ resources:
 
 ### cache
 
-* AXI DMA MMIO
-
-    MMIO 允许 CPU 通过读写特定内存地址来配置和控制 DMA 控制器
-
-* 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
-
-    见`ref_11`。
-
-    * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
-
-    * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
-
-        `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
-
-    * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
-
-    * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
-
 * 调研`INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 
     * `kthread_should_stop`
@@ -2819,21 +2803,6 @@ resources:
 
 * 调研一下`KBUILD_MODNAME`的含义。
 
-* kernel 中的内存管理感觉是个问题
-
-    假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
-
-    如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
-
-* 实现了 ioctl 读取与写入数据，见`ref_12`
-
-    output:
-
-    ```
-    successfully write data by ioctl
-    read value: 123
-    ```
-
 resources:
 
 * Linux Kernel Development, 3rd Edition
@@ -2848,13 +2817,13 @@ resources:
     #include <fcntl.h>
     ```
 
-* [ ] linux 的 interruptible sleep 是如何实现的？
-
 * [ ] `pci_find_bus()`
 
 * [ ] `pci_alloc_dev()`
 
-* [ ] 调研 ds 生成的一段代码
+* [v] 调研 ds 生成的一段代码
+
+    14:24 ~ 14:29
 
     ```c
     // 计算缓冲区的虚拟地址
@@ -3349,6 +3318,8 @@ resources:
 * [asso] `/proc/<pid>/maps`
 
 * [asso] DMA控制器芯片（如Intel的8237）
+
+* [ ] linux 的 interruptible sleep 是如何实现的？
 
 ## CCL
 

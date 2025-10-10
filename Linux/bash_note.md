@@ -4,6 +4,40 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash-completion
+
+    `/etc/bash_completion.d/hlc_main`:
+
+    ```bash
+    # 补全脚本：main
+    _main_completion() {
+        local cur prev words cword
+        _init_completion || return
+
+        # 定义所有可用的子命令
+        local subcommands="init build test deploy clean help version"
+
+        # 如果当前是第一个参数，补全子命令
+        if [[ $cword -eq 1 ]]; then
+            COMPREPLY=($(compgen -W "$subcommands" -- "$cur"))
+        fi
+    }
+
+    # 注册补全函数
+    complete -F _main_completion hlc_main
+    ```
+
+    然后执行`source ~/.bashrc`即可生效。
+
+    其中，local 变量的作用：
+
+    | 变量 | 类型 | 描述 |
+    | - | - | - |
+    | cur | 字符串 | 当前正在输入的单词（光标前的部分） |
+    | prev | 字符串 | 前一个单词 |
+    | words | 数组 | 命令行中所有的单词 |
+    | cword | 整数 | 当前单词在 words 数组中的索引 |
+
 * `[ -f file ]`
 
     检查文件是否存在且为普通文件，等价于`test -f file`

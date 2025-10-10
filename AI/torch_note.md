@@ -2,6 +2,227 @@
 
 ## cache
 
+* `np.meshgrid()`
+
+    np.meshgrid() 的主要作用是 从一维坐标向量生成网格坐标矩阵。它接受多个（通常是两个）一维数组，这些数组分别代表不同坐标轴上的点。然后，它会生成一个网格，并返回这个网格中 每一个点 的横坐标和纵坐标。
+
+    syntax:
+
+    ```py
+    numpy.meshgrid(*xi, copy=True, sparse=False, indexing='xy')
+    ```
+
+    参数解释：
+
+    * `*xi`： 一个或多个一维数组，代表网格的坐标。通常是等间距的数值序列（例如，由 np.linspace 或 np.arange 生成）。
+
+    * `copy`： 布尔值，默认为 True。如果为 False，则返回原始数组的视图以节省内存。通常保持默认即可。
+
+    * `sparse`： 布尔值，默认为 False。如果为 True，则返回稀疏网格以节省内存和计算时间。在数组很大时有用。
+
+    * `indexing`： 字符串，'xy' 或 'ij'，默认为 'xy'。这是一个非常关键的参数，决定了输出的顺序。
+
+        indexing='xy'： 返回的第一个数组是 纵坐标（Y） 的矩阵，第二个数组是 横坐标（X） 的矩阵。这与我们通常的数学和图像处理习惯（行对应Y，列对应X）一致。
+
+        indexing='ij'： 返回的第一个数组是 横坐标（X） 的矩阵，第二个数组是 纵坐标（Y） 的矩阵。这与矩阵索引一致。
+
+    返回值：
+
+    返回一个 `list` of ndarray（Numpy数组的列表）。对于二维网格，返回两个二维数组；对于三维网格，返回三个三维数组，依此类推。
+
+    example:
+
+    ```py
+    import numpy as np
+
+    x = np.array([1, 2, 3])
+    y = np.array([4, 5])
+
+    # 使用默认的 indexing='xy'
+    X, Y = np.meshgrid(x, y)
+
+    print("X (坐标矩阵):")
+    print(X)
+    print("\nY (坐标矩阵):")
+    print(Y)
+    ```
+
+    output:
+
+    ```
+    X (坐标矩阵):
+    [[1 2 3]
+     [1 2 3]]
+
+    Y (坐标矩阵):
+    [[4 4 4]
+     [5 5 5]]
+    ```
+
+    结果分析：
+
+        X 矩阵：每一 行 都是相同的，是 x 数组的复制。它代表了网格中每个点的 横坐标。
+
+        Y 矩阵：每一 列 都是相同的，是 y 数组的复制。它代表了网格中每个点的 纵坐标。
+
+    这样，网格中的点 (X[i, j], Y[i, j]) 就是所有 (x[j], y[i]) 的组合。例如：
+
+        (X[0,0], Y[0,0]) = (1, 4)
+
+        (X[0,1], Y[0,1]) = (2, 4)
+
+        (X[1,0], Y[1,0]) = (1, 5)
+
+        ...以此类推
+
+    example:
+
+    ```py
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 创建一维坐标向量
+    x = np.linspace(-5, 5, 50)
+    y = np.linspace(-5, 5, 50)
+
+    # 生成网格坐标矩阵
+    X, Y = np.meshgrid(x, y)
+
+    # 定义二维函数，例如 R = sqrt(X^2 + Y^2)
+    R = np.sqrt(X**2 + Y**2)
+    # 计算每个网格点的Z值，例如 Z = sin(R)
+    Z = np.sin(R)
+
+    # 绘制三维图形
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X, Y, Z, cmap='viridis')
+    plt.show()
+    ```
+
+* DataLoader 中的 sampler
+
+    sampler 只负责生成索引，dataloader 则按照索引生成 batch。伪代码描述这个过程：
+
+    ```py
+    # 伪代码，解释 dataloader 内部逻辑
+    for epoch in range(...):
+        for batch_indices in sampler: # 采样器生成一个batch的索引列表，如 [3, 1, 4, 9]
+            batch_data = [dataset[i] for i in batch_indices] # 根据索引从数据集中获取数据
+            # ... 后续的 collate 等操作
+            yield batch_data
+    ```
+
+    默认的 sampler 有`SequentialSampler`和`RandomSampler`。
+
+    package 与使用方法：
+
+    ```py
+    import torch
+    from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
+
+    # 创建一个简单的数据集
+    data = torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    labels = torch.tensor([0, 1, 0, 1, 0])
+    dataset = TensorDataset(data, labels)
+
+    # 使用 SequentialSampler
+    sequential_sampler = SequentialSampler(dataset)
+    dataloader = DataLoader(dataset, batch_size=2, sampler=sequential_sampler)
+
+    # 遍历 DataLoader
+    for batch_idx, (batch_data, batch_labels) in enumerate(dataloader):
+        print(f"Batch {batch_idx}:")
+        print(f"  Data: {batch_data}")
+        print(f"  Labels: {batch_labels}")
+        print("---")
+    ```
+
+* `np.linspace()`
+
+    syntax:
+
+    ```py
+    np.linspace(start, stop, num=50, endpoint=True, dtype=None, retstep=False)
+    ```
+
+    retstep：如果为True，返回（数组，步长）；如果为False（默认），只返回数组
+
+    example:
+
+    ```py
+    import numpy as np
+
+    lin_1, step_1 = np.linspace(0, 2, 5, endpoint=True, retstep=True)
+    lin_2, step_2 = np.linspace(0, 2, 5, endpoint=False, retstep=True)
+
+    print("{}, step: {}".format(lin_1, step_1))
+    print("{}, step: {}".format(lin_2, step_2))
+    ```
+
+    output:
+
+    ```
+    [0.  0.5 1.  1.5 2. ], step: 0.5
+    [0.  0.4 0.8 1.2 1.6], step: 0.4
+    ```
+
+    可以看到，当包含 endpoint 时，`step = (end - start) / (num - 1)`；当不包含 endpoint 时，`step = (end - start) / num`。
+
+    其他常见的创建数组的方法：
+
+    ```py
+    # np.zeros() - 全零数组
+    np.zeros(5)                    # [0., 0., 0., 0., 0.]
+    np.zeros((2, 3))               # 2x3的全零矩阵
+
+    # np.ones() - 全1数组
+    np.ones(4)                     # [1., 1., 1., 1.]
+    np.ones((2, 2))                # 2x2的全1矩阵
+
+    # np.full() - 填充指定值
+    np.full(3, 7)                  # [7, 7, 7]
+    np.full((2, 2), 5)             # 2x2的填充5的矩阵
+
+    # np.eye() - 单位矩阵
+    np.eye(3)                      # 3x3单位矩阵
+
+    # np.arange() - 类似range，但返回数组
+    np.arange(5)                   # [0, 1, 2, 3, 4]
+    np.arange(0, 10, 2)            # [0, 2, 4, 6, 8]
+
+    # np.logspace() - 对数等间距
+    np.logspace(0, 2, 5)           # [1., 3.16, 10., 31.62, 100.]
+
+    # np.random.rand() - 均匀分布
+    np.random.rand(3)              # 3个[0,1)的随机数
+    np.random.rand(2, 2)           # 2x2的随机矩阵
+
+    # np.random.randn() - 标准正态分布
+    np.random.randn(3)             # 3个标准正态分布随机数
+
+    # np.random.randint() - 整数随机数
+    np.random.randint(0, 10, 5)    # 5个[0,10)的随机整数
+
+    # np.array() - 从列表/元组创建
+    np.array([1, 2, 3])            # 从列表创建
+    np.array([[1, 2], [3, 4]])     # 二维数组
+
+    # np.asarray() - 转换为数组
+    np.asarray(existing_list)      # 将现有序列转为数组
+
+    # np.empty() - 未初始化数组（速度快）
+    np.empty(3)                    # 内容随机，不初始化
+
+    # np.copy() - 创建副本
+    arr_copy = np.copy(original_arr)
+
+    # np.meshgrid() - 坐标矩阵
+    x = np.linspace(0, 1, 3)
+    y = np.linspace(0, 1, 3)
+    X, Y = np.meshgrid(x, y)       # 创建网格坐标
+    ```
+
 * `torch.utils.data`
 
     There are two types of datasets:

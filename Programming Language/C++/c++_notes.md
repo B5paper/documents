@@ -4,6 +4,98 @@
 
 ## cached
 
+* 如果类模板的构造函数有独立的模板参数，那么不能显式指定，必须由编译器自动推导
+
+    ```cpp
+    #include <cstdio>
+
+    template<typename T>
+    struct A {
+        template<typename U>
+        A(T val, U msg) : val(val) {
+            printf("msg: %s\n", msg);
+        }
+        T val;
+    };
+
+    int main() {
+        A a(123, "hello, world");  // OK
+        // A a<const char*>(123, "hello, world");  // Error, 不允许显式指定构造函数的模板参数
+        // A<int> a<const char*>(123, "hello, world");  // Error, 理由同上
+        // A<int> a(123, "hello, world");  // OK，由编译器自动推导构造函数的模板参数
+        printf("val of a: %d\n", a.val);
+        return 0;
+    }
+    ```
+
+    如果确实希望显式指定，可以使用辅助函数来构造`A`：
+
+    ```cpp
+    #include <cstdio>
+    #include <utility>
+
+    template<typename T>
+    struct A {
+        template<typename U>
+        A(T val, U msg) : val(val) {
+            printf("msg: %s\n", msg);
+        }
+        T val;
+    };
+
+    // 辅助函数模板来显式指定构造函数参数类型
+    template<typename T, typename U>
+    A<T> make_A(T val, U&& msg) {
+        return A<T>(val, std::forward<U>(msg));
+    }
+
+    int main() {
+        // 使用辅助函数，可以更灵活地控制类型
+        auto a = make_A<int, const char*>(123, "hello, world");
+        printf("val of a: %d\n", a.val);
+        return 0;
+    }
+    ```
+
+    或者使用类的静态成员函数作为一个特殊的构造函数：
+
+    ```cpp
+    template<typename T>
+    class MyClass {
+    public:
+        template<typename U>
+        static MyClass create(U value) {
+            return MyClass(value);
+        }
+        
+    private:
+        MyClass(T value) : data(value) {}
+        T data;
+    };
+
+    // 使用
+    auto obj = MyClass<int>::create<double>(3.14);  // 显式指定U为double
+    ```
+
+* 类模板的构造函数可以直接使用类模板中的参数
+
+    ```cpp
+    #include <cstdio>
+
+    template<typename T>
+    struct A {
+        A(T val) : val(val) { }
+        T val;
+    };
+
+    int main() {
+        // A a(123);  // OK
+        A<int> a(123);
+        printf("val of a: %d\n", a.val);
+        return 0;
+    }
+    ```
+
 * int类型走第一个构造函数，float类型走第二个构造函数，其他所有类型走第三个构造函数 的模板实现
 
     ```cpp

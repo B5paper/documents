@@ -6,6 +6,145 @@ Ref:
 
 ## cache
 
+* 实现了 ioctl 读取与写入数据，见`ref_12`
+
+    output:
+
+    ```
+    successfully write data by ioctl
+    read value: 123
+    ```
+
+* kernel 中的内存管理感觉是个问题
+
+    假如希望用户可以无限次乱序 read, write，并且遵循 fifo 的原则，那么可以把 buffer 设计成一个链表，每次调用 read 的时候减少一个节点，调用 write 的时候增加一个节点。
+
+    如果在 read 的时候遇到链表为空，那么就输出 there is nothing to copy。
+
+* AXI DMA MMIO
+
+    MMIO 允许 CPU 通过读写特定内存地址来配置和控制 DMA 控制器
+
+* 写了内核驱动的代码和用户态代码，成功从用户态向内核写入数据，并从内核读取数据。
+
+    见`ref_11`。
+
+    * user mode 的程序需要使用`sudo ./main`执行，不然没有权限打开 device 文件
+
+    * kernel mode 的`h_write()`的返回值就是 user mode 的`write()`的返回值
+
+        `read()`同理。在写 kernel code 的时候，按照约定俗成，返回写入/读取了多少个字节。
+
+    * 如果使用`fopen()`，`fread()`，`fwrite()`等函数打开文件，那么`dmesg`中会报错。
+
+    * `copy_to_user`, `copy_from_user`返回的是剩余的字节数，与`read()`，`write()`正好相反，需要注意。
+
+* `sysfs_remove_file()`
+
+    从 sysfs 文件系统中删除先前创建的文件。
+
+    syntax:
+
+    ```c
+    void sysfs_remove_file(struct kobject *kobj, 
+                          const struct attribute *attr);
+    ```
+
+    * 从指定的 kobject 对应的 sysfs 目录中删除属性文件
+
+    * 清理相关的内核数据结构
+
+    * 确保文件系统的一致性
+
+    example:
+
+    ```c
+    // 示例：创建和删除 sysfs 文件
+    static struct kobject *example_kobj;
+    static struct attribute attr = {
+        .name = "example_file",
+        .mode = 0644,
+    };
+
+    // 创建设备时添加
+    sysfs_create_file(example_kobj, &attr);
+
+    // 清理设备时删除
+    sysfs_remove_file(example_kobj, &attr);
+    ```
+
+    如果我们不手动调用这个函数，在 rmmod 时，操作系统不会帮我们清理。
+
+    如果想让操作系统帮忙清理，可以使用`devm_sysfs_create_group();`。如果我们写的是模块级别的 sysfs 接口（无关联设备），那么就没法用这个方法了。
+
+* `kobject_put()`
+
+    减少 kobject 的引用计数，并在计数降至零时释放相关资源。
+
+    syntax:
+
+    ```c
+    #include <linux/kobject.h>
+
+    void kobject_put(struct kobject *kobj);
+    ```
+
+    驱动开发者必须在合适的业务逻辑中调用 kobject_put()，以表明“我不再使用这个内核对象了”。
+
+    * 探测失败时：在 probe 函数中，如果设备初始化到一半失败了，需要回滚操作，对之前已经成功 kobject_add 或 kobject_init 的对象调用 kobject_put() 进行清理。
+
+    * 设备移除时：在 remove 函数或 disconnect 函数中，当设备被拔出或驱动被卸载时，需要释放为该设备创建的所有内核对象。
+
+    * 引用生命周期结束时：当你使用 kobject_get() 增加了一个对象的引用后，在完成操作后必须用 kobject_put() 来平衡。
+
+    example:
+
+    ```c
+    static int my_driver_probe(struct device *dev)
+    {
+        struct my_device *my_dev = kzalloc(sizeof(*my_dev), GFP_KERNEL);
+        
+        // 初始化kobject
+        kobject_init(&my_dev->kobj, &my_ktype);
+        
+        // 添加到sysfs
+        if (kobject_add(&my_dev->kobj, &dev->kobj, "my_device")) {
+            // 如果添加失败，需要清理
+            kobject_put(&my_dev->kobj); // <-- 驱动开发者调用
+            return -ENOMEM;
+        }
+        
+        return 0;
+    }
+
+    static void my_driver_remove(struct device *dev)
+    {
+        struct my_device *my_dev = dev_get_drvdata(dev);
+        
+        // 移除设备时释放kobject
+        kobject_put(&my_dev->kobj); // <-- 驱动开发者调用
+    }
+    ```
+
+    与 kobject_put() 对应的是 kobject_get()，用于增加引用计数。
+
+    其他常用的关联函数：
+
+    ```c
+    // 增加引用计数
+    struct kobject *kobject_get(struct kobject *kobj);
+
+    // 初始化 kobject
+    void kobject_init(struct kobject *kobj, struct kobj_type *ktype);
+
+    // 添加 kobject 到系统
+    int kobject_add(struct kobject *kobj, struct kobject *parent, const char *fmt, ...);
+
+    // 初始化并添加（常用组合）
+    int kobject_init_and_add(struct kobject *kobj, struct kobj_type *ktype,
+                             struct kobject *parent, const char *fmt, ...);
+    ```
+
 * `__user`表示是一个用户空间的指针，所以 kernel 不可以直接使用。
 
     ```c
