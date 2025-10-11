@@ -28,6 +28,8 @@
 
 ## cache
 
+* 对于上次没处理完的 process tab task，比如`[O]`或`[P]`，应该继续这个任务，对于 date，可以 append，比如`* [ ] xxxxx 10.08 10.09`。因为我们需要拿到它的 feedback 和 current progress 的数据。
+
 * 逻辑顺序与 routine 记忆的困难
 
     假如我们有概念 A, B, C，C 依赖 B，B 依赖 A， 最终要使用这些概念解决问题 D，。如果我们按照绝对的线性顺序，先讲 A，再讲 B，再讲 C，最后解决 D，那么在逻辑顺序上非常完美，但是在认知顺序上，我们先了解了 A，A 能干嘛？不知道，先记着。然后我们了解了 B，B 能干嘛？不知道。等我们记了一长串，终于能解决 D，时，前面的没有意义的记忆早忘完了。所以逻辑顺序上的概念，会在组成 routine 时，造成认知上的负担。
@@ -1156,19 +1158,17 @@
 
 ### tasks
 
+* [v] reorg: documents 30 mins 10.10
+
+    16:49 ~ 17:07
+
 * [v] reorg: documents 30 mins 10.09
 
     10:42 ~ 11:14
 
-    feedback:
+* [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
 
-    * [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
-
-    * [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
-
-* [v] reorg: documents 30 mins 10.08
-
-    12:28 ~ 12:45
+* [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
 
 * [ ] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
 
@@ -1181,14 +1181,6 @@
 * [v] `sysfs_remove_file()`
 
     14:29 ~ 15:15
-
-    feedback:
-
-    * [asso] `sysfs_create_group()`, `sysfs_remove_group()`
-
-    * [asso] `devm_kobject_create_and_add()`
-
-    * [asso] `devm_device_add_groups()`
 
 * [ ] `asm("int $0x3B");`
 
@@ -1462,9 +1454,7 @@
 
 ### Tasks
 
-* [v] qa: review 30 mins 10.08
-
-    11:51 ~ 12:27
+* [v] qa: 2 units 30 mins 10.10
 
 * [ ] 调研实现: 增加 reinforce_record.txt
 
@@ -1478,13 +1468,11 @@
 
     22:31 ~ 23:10, 15:41 ~ 17:16
 
-    feedback:
+* [ ] 调研 python 中文件操作的的 read(), readline() 和 readlines()
 
-    * [ ] 调研 python 中文件操作的的 read(), readline() 和 readlines()
+* [ ] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
 
-    * [ ] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
-
-    * [ ] 改造`--randexam`为 subcommand 形式
+* [ ] 改造`--randexam`为 subcommand 形式
 
 * [ ] python 如何判断一个 key 是否在 dict 中？
 
@@ -1731,6 +1719,12 @@
 
     如果只有`-i`没有`-a`会发生什么，如果只有`-a`没有`-i`会发生什么？如果两个都没有会发生什么？
 
+* [asso] `sysfs_create_group()`, `sysfs_remove_group()`
+
+* [asso] `devm_kobject_create_and_add()`
+
+* [asso] `devm_device_add_groups()`
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1741,31 +1735,33 @@
 
 ### tasks
 
+* [v] process 1 tab 10.11
+
+    17:27 ~ 
+
+    feedback:
+
+    * [asso] 调研 QEMU 的 VirGL 或 Wine 的 DXVK
+
+    * [asso] 调研串流技术 Parsec、Moonlight 等
+
+    * [asso] 调研 virt-manager ssh 远程连接主机
+
+        ```bash
+        virt-manager -c qemu+ssh://user@linux-host/system
+        ```
+
+    * [asso] 调研 qemu 的 efi 启动方法
+
+        `qemu-system-x86_64 -bios /usr/share/OVMF/OVMF_CODE.fd -hda disk.vdi`
+
+    * [asso] 调研 qemu -hda 显式声明格式
+
+        `qemu-system-x86_64 -drive file=disk.vdi,format=vdi`
+
 * [v] process 1 tab 10.09
 
     13:21 ~ 13:33
-
-    feedback:
-
-    * 对于上次没处理完的 process tab task，比如`[O]`或`[P]`，应该继续这个任务，对于 date，可以 append，比如`* [ ] xxxxx 10.08 10.09`。因为我们需要拿到它的 feedback 和 current progress 的数据。
-
-* [v] process 1 tab 10.08
-
-    13:09 ~ 13:44
-
-    feedback:
-
-    * 目前看到
-
-        > 直接构造 std::initializer_list 时指定模板参数
-
-* [v] arm linux 环境下是否有类似 nasm 的工具？
-
-    16:36 ~ 16:44
-
-* [v] reg `\b`, `\w`
-
-    17:23 ～ 17:28
 
 * [O] 调研 PyTorch Loss Functions
 

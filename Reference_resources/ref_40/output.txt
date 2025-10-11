@@ -1,0 +1,15 @@
+Files already downloaded and verified
+cifar-10 classes: ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+Files already downloaded and verified
+epoch 0 loss: 21627.79
+epoch 1 loss: 17025.41
+epoch 2 loss: 15286.39
+epoch 3 loss: 14091.14
+epoch 4 loss: 13148.61
+epoch 5 loss: 12365.89
+epoch 6 loss: 11742.18
+epoch 7 loss: 11178.77
+epoch 8 loss: 10719.64
+epoch 9 loss: 10351.43
+Finished Training
+Accuracy of the network on the 10000 test images: 61 %
