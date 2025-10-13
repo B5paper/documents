@@ -1158,14 +1158,6 @@
 
 ### tasks
 
-* [v] reorg: documents 30 mins 10.10
-
-    16:49 ~ 17:07
-
-* [v] reorg: documents 30 mins 10.09
-
-    10:42 ~ 11:14
-
 * [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
 
 * [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
@@ -1177,10 +1169,6 @@
 * [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
 
     `exit(EXIT_FAILURE);`
-
-* [v] `sysfs_remove_file()`
-
-    14:29 ~ 15:15
 
 * [ ] `asm("int $0x3B");`
 
@@ -1454,7 +1442,7 @@
 
 ### Tasks
 
-* [v] qa: 2 units 30 mins 10.10
+* [v] qa: review 10.11
 
 * [ ] 调研实现: 增加 reinforce_record.txt
 
@@ -1463,10 +1451,6 @@
     与 review 相似，每周使用`./main.py rein`检测一次 reinforce record。在检测中间如果还有不会的，同样使用 r 将其再次保存到 rein 中，将会的都删除。
 
     后续可以考虑 monthly reinforce 和 quarterly reinforce 甚至 annually。每周 rein 做不出来的放到每月，每月做不出来的放到每季度，每季度做不出来的放到每年。
-
-* [v] 调研实现：选 unit 时，不能选 qa_record.txt 里面已经有的
-
-    22:31 ~ 23:10, 15:41 ~ 17:16
 
 * [ ] 调研 python 中文件操作的的 read(), readline() 和 readlines()
 
@@ -1737,31 +1721,69 @@
 
 * [v] process 1 tab 10.11
 
-    17:27 ~ 
+    09:50 ~ 11:16
 
     feedback:
 
-    * [asso] 调研 QEMU 的 VirGL 或 Wine 的 DXVK
+    * [asso] 调研`make -d 2>&1 | grep -A5 -B5 "INCLUDE_DIRS"`
+    
+    * [asso] 调研`g++ $(addprefix -I,$(subst :, ,$(INCLUDE_DIRS))) main.cpp -o main`
 
-    * [asso] 调研串流技术 Parsec、Moonlight 等
+        重点是`addprefix`的用法。
 
-    * [asso] 调研 virt-manager ssh 远程连接主机
+    * [asso] 调研`g++ $(foreach dir,$(INCLUDE_DIRS),-I$(dir)) main.cpp -o main`
 
-        ```bash
-        virt-manager -c qemu+ssh://user@linux-host/system
+        重点是`foreach`的用法。
+
+    * [asso] 调研 makefile 中的 shell 变量
+
+        ```makefile
+        base_dir := /path/to/base_dir_1
+        file_path = $(base_dir)/hello
+
+        test:
+        	@echo $(file_path)
+        	@base_dir="/path/to/base_dir_2"; \
+        	echo $${base_dir}/hello
         ```
 
-    * [asso] 调研 qemu 的 efi 启动方法
+        调研其中的`@base_dir="/path/to/base_dir_2"; \`的写法。
 
-        `qemu-system-x86_64 -bios /usr/share/OVMF/OVMF_CODE.fd -hda disk.vdi`
+    * [asso] 调研 makefile 中其他修改变量的方法
 
-    * [asso] 调研 qemu -hda 显式声明格式
+        感觉这两种方法比较冷门，有空了再看吧。
 
-        `qemu-system-x86_64 -drive file=disk.vdi,format=vdi`
+        * 使用递归Make调用
 
-* [v] process 1 tab 10.09
+            ```makefile
+            base_dir := /path/to/base_dir_1
+            file_path = $(base_dir)/hello
 
-    13:21 ~ 13:33
+            test:
+            	@echo $(file_path)
+            	@$(MAKE) test-inner base_dir=/path/to/base_dir_2
+
+            test-inner:
+            	@echo $(file_path)
+            ```
+
+        * 使用条件赋值
+
+            ```makefile
+            base_dir ?= /path/to/base_dir_1
+            file_path = $(base_dir)/hello
+
+            test:
+            	@echo $(file_path)
+            	@base_dir=/path/to/base_dir_2 $(MAKE) test-inner
+
+            test-inner:
+            	@echo $(file_path)
+            ```
+
+* [v] process 1 tab 10.11
+
+    17:27 ~ 
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -2248,6 +2270,24 @@
 
     * 使用汇编实现斐波那契数列
 
+* [asso] 调研 QEMU 的 VirGL 或 Wine 的 DXVK
+
+* [asso] 调研串流技术 Parsec、Moonlight 等
+
+* [asso] 调研 virt-manager ssh 远程连接主机
+
+    ```bash
+    virt-manager -c qemu+ssh://user@linux-host/system
+    ```
+
+* [asso] 调研 qemu 的 efi 启动方法
+
+    `qemu-system-x86_64 -bios /usr/share/OVMF/OVMF_CODE.fd -hda disk.vdi`
+
+* [asso] 调研 qemu -hda 显式声明格式
+
+    `qemu-system-x86_64 -drive file=disk.vdi,format=vdi`
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2268,15 +2308,27 @@ resources:
 
 ### tasks
 
-* [v] `DataLoader`中的 sampler 是什么含义？
-
-    16:47 ~ 17:20
-
 * [ ] `SubsetRandomSampler()`
 
-* [ ] Computer Vision with PyTorch
+* [v] Computer Vision with PyTorch
 
     <https://www.geeksforgeeks.org/deep-learning/computer-vision-with-pytorch/>
+
+    feedback:
+
+    * ImageNet, CIFAR, and COCO
+
+    * [ ] Create Model using Custom Module in Pytorch
+
+        <https://www.geeksforgeeks.org/machine-learning/create-model-using-custom-module-in-pytorch/>
+
+    * [ ] How to use a DataLoader in PyTorch?
+
+        <https://www.geeksforgeeks.org/python/how-to-use-a-dataloader-in-pytorch/>
+
+    * [ ] PyTorch Functional Transforms for Computer Vision
+
+        <https://www.geeksforgeeks.org/computer-vision/pytorch-functional-transforms-for-computer-vision/>
 
 * [ ] 调研 PIL
 
@@ -2816,42 +2868,6 @@ resources:
 * [ ] `pci_find_bus()`
 
 * [ ] `pci_alloc_dev()`
-
-* [v] 调研 ds 生成的一段代码
-
-    14:24 ~ 14:29
-
-    ```c
-    // 计算缓冲区的虚拟地址
-    void __iomem *device_buffer = dev->mmio_base + 0x1000;
-
-    // 方法一：使用内核提供的IO函数（推荐，因为可移植且安全）
-    // 写入一个32位字
-    iowrite32(0x12345678, device_buffer);
-    // 读取一个32位字
-    u32 value = ioread32(device_buffer);
-
-    // 批量写入一段数据（这就是你想要的“强行”操作）
-    // src_buf 是你准备好的数据源（在主机内存里）
-    // count 是你想写入的32位字的数量
-    iowrite32_rep(device_buffer, src_buf, count);
-
-    // 方法二：更“强行”的方式 - 直接解引用指针（需极度小心！）
-    // 首先，确保映射时为“不缓存”或“写合并”模式，否则会出问题。
-    // 通常用 pci_ioremap_bar() 默认是 ioremap()，这通常是安全的（无缓存）。
-    // 但直接解引用 __iomem 指针编译器会报错，所以需要强制转换。
-
-    // 强制转换为 volatile 指针，告诉编译器别优化，每次都要真的访问
-    volatile u32 *hardware_buffer = (volatile u32 *)device_buffer;
-
-    // 现在，你可以像普通数组一样操作了！
-    hardware_buffer[0] = 0xAAAAAAAA; // 写入第一个字
-    value = hardware_buffer[1];      // 读取第二个字
-
-    // 甚至可以用memcpy（但确保目的地址是volatile且没有缓存问题！）
-    // memcpy_toio() 是更安全的选择
-    memcpy((void *)hardware_buffer, src_buf, count * 4);
-    ```
 
 * [ ] 设备树（Device Tree）
 
@@ -3926,6 +3942,12 @@ resources:
 
 ## linux maintain
 
+### cache
+
+* `watch "ps -aux | grep v2ray"`没输出, `watch bash -c "ps -aux | grep v2ray"`也没输出
+
+    尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
+
 ### tasks
 
 * [ ] 调研 ls 相关
@@ -3933,16 +3955,6 @@ resources:
     `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
 
     `ls -alht`, `ls -lhR`
-
-* [x] 调研`watch "ps -aux | grep v2ray"`为什么没输出
-
-    `watch bash -c "ps -aux | grep v2ray"`为什么也没输出
-
-    feedback:
-
-    * 尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
-
-* [v] 调研使用`ssh -R`是否可以完全代替 frpc
 
 * [ ] 调研`:tag function_name` - 跳转到指定标签
 
