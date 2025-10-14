@@ -728,10 +728,6 @@
 
     * <https://www.freecodecamp.org/news/python-copy-file-copying-files-to-another-directory/>
 
-* python delete a file
-
-    <https://blog.enterprisedna.co/delete-files-from-python/>
-
 ## pypi mirror
 
 在上海使用上交的镜像比较快：<https://mirrors.sjtug.sjtu.edu.cn/docs/pypi/web/simple>

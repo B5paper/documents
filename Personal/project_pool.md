@@ -28,6 +28,12 @@
 
 ## cache
 
+* 调整 project pool 中不正确 task 分类的时机
+
+    在每天列出 task 清单后，commit 之前，对 project pool 中分类不正确的 task 进行调整，是一个还行的时机。
+    
+    因为未来一天将当日的任务回写到 project pool 中时，不在乎这个 task 的 git diff 的变化，同时也不会对整个系统的其他环节产生影响。
+
 * 对于上次没处理完的 process tab task，比如`[O]`或`[P]`，应该继续这个任务，对于 date，可以 append，比如`* [ ] xxxxx 10.08 10.09`。因为我们需要拿到它的 feedback 和 current progress 的数据。
 
 * 逻辑顺序与 routine 记忆的困难
@@ -1160,8 +1166,6 @@
 
 * [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
 
-* [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
-
 * [ ] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
 
     这些指定的文件，可能积累了大量的 cache，是重点要处理的对象。freedom 模式则增加一点随机游走的可能性，避免过拟合。
@@ -1170,7 +1174,9 @@
 
     `exit(EXIT_FAILURE);`
 
-* [ ] `asm("int $0x3B");`
+* [v] `asm("int $0x3B");`
+
+    15:47 ～ 15:50
 
 * [ ] 调研 nasm
 
@@ -1239,7 +1245,13 @@
 
 * [ ] 调研 freedos bonus iso
 
-* [ ] edu driver 里创建 dev file
+* [v] edu driver 里创建 dev file
+
+    feedback:
+
+    * 一个带有 dev file, pci driver init 过程的 edu driver
+
+        见`ref_41`。
 
 * [O] reorg linux driver
 
@@ -1276,7 +1288,7 @@
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
-* [ ] `remove_pointer_t`
+* [v] `remove_pointer_t`
 
 * [ ] `is_pointer_v`
 
@@ -1442,8 +1454,6 @@
 
 ### Tasks
 
-* [v] qa: review 10.11
-
 * [ ] 调研实现: 增加 reinforce_record.txt
 
     在 review 时，仍然没做出来的题目，在 u0 后或 u1 后输入 r，将当前 unit append 到 reinforce record 中。
@@ -1458,9 +1468,13 @@
 
 * [ ] 改造`--randexam`为 subcommand 形式
 
-* [ ] python 如何判断一个 key 是否在 dict 中？
+* [v] python 如何判断一个 key 是否在 dict 中？
 
-* [ ] python 中如何实现 do while ?
+    18:50 ~ 18:53
+
+* [v] python 中如何实现 do while ?
+
+    18:53 ~ 18:56
 
 * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
 
@@ -1719,83 +1733,23 @@
 
 ### tasks
 
-* [v] process 1 tab 10.11
-
-    09:50 ~ 11:16
-
-    feedback:
-
-    * [asso] 调研`make -d 2>&1 | grep -A5 -B5 "INCLUDE_DIRS"`
-    
-    * [asso] 调研`g++ $(addprefix -I,$(subst :, ,$(INCLUDE_DIRS))) main.cpp -o main`
-
-        重点是`addprefix`的用法。
-
-    * [asso] 调研`g++ $(foreach dir,$(INCLUDE_DIRS),-I$(dir)) main.cpp -o main`
-
-        重点是`foreach`的用法。
-
-    * [asso] 调研 makefile 中的 shell 变量
-
-        ```makefile
-        base_dir := /path/to/base_dir_1
-        file_path = $(base_dir)/hello
-
-        test:
-        	@echo $(file_path)
-        	@base_dir="/path/to/base_dir_2"; \
-        	echo $${base_dir}/hello
-        ```
-
-        调研其中的`@base_dir="/path/to/base_dir_2"; \`的写法。
-
-    * [asso] 调研 makefile 中其他修改变量的方法
-
-        感觉这两种方法比较冷门，有空了再看吧。
-
-        * 使用递归Make调用
-
-            ```makefile
-            base_dir := /path/to/base_dir_1
-            file_path = $(base_dir)/hello
-
-            test:
-            	@echo $(file_path)
-            	@$(MAKE) test-inner base_dir=/path/to/base_dir_2
-
-            test-inner:
-            	@echo $(file_path)
-            ```
-
-        * 使用条件赋值
-
-            ```makefile
-            base_dir ?= /path/to/base_dir_1
-            file_path = $(base_dir)/hello
-
-            test:
-            	@echo $(file_path)
-            	@base_dir=/path/to/base_dir_2 $(MAKE) test-inner
-
-            test-inner:
-            	@echo $(file_path)
-            ```
-
-* [v] process 1 tab 10.11
-
-    17:27 ~ 
-
 * [O] 调研 PyTorch Loss Functions
 
-    15:01 ~ 15:31
+    15:01 ~ 15:31, 23:10 ~ 23:43
 
     <https://www.geeksforgeeks.org/deep-learning/pytorch-loss-functions/>
 
+    目前看到
+
+        > Cross Entropy Loss
+    
     feedback:
 
-    * 目前看到
+     * [asso] Huber Loss 的表达式是如何构建出来的？
 
-        > Mean Square Error
+* [v] process 1 tab 10.11
+
+    09:50 ~ 11:16
 
 * [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
 
@@ -2288,6 +2242,62 @@
 
     `qemu-system-x86_64 -drive file=disk.vdi,format=vdi`
 
+* [asso] 调研`make -d 2>&1 | grep -A5 -B5 "INCLUDE_DIRS"`
+
+* [asso] 调研`g++ $(addprefix -I,$(subst :, ,$(INCLUDE_DIRS))) main.cpp -o main`
+
+    重点是`addprefix`的用法。
+
+* [asso] 调研`g++ $(foreach dir,$(INCLUDE_DIRS),-I$(dir)) main.cpp -o main`
+
+    重点是`foreach`的用法。
+
+* [asso] 调研 makefile 中的 shell 变量
+
+    ```makefile
+    base_dir := /path/to/base_dir_1
+    file_path = $(base_dir)/hello
+
+    test:
+    	@echo $(file_path)
+    	@base_dir="/path/to/base_dir_2"; \
+    	echo $${base_dir}/hello
+    ```
+
+    调研其中的`@base_dir="/path/to/base_dir_2"; \`的写法。
+
+* [asso] 调研 makefile 中其他修改变量的方法
+
+    感觉这两种方法比较冷门，有空了再看吧。
+
+    * 使用递归Make调用
+
+        ```makefile
+        base_dir := /path/to/base_dir_1
+        file_path = $(base_dir)/hello
+
+        test:
+        	@echo $(file_path)
+        	@$(MAKE) test-inner base_dir=/path/to/base_dir_2
+
+        test-inner:
+        	@echo $(file_path)
+        ```
+
+    * 使用条件赋值
+
+        ```makefile
+        base_dir ?= /path/to/base_dir_1
+        file_path = $(base_dir)/hello
+
+        test:
+        	@echo $(file_path)
+        	@base_dir=/path/to/base_dir_2 $(MAKE) test-inner
+
+        test-inner:
+        	@echo $(file_path)
+        ```
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2306,6 +2316,16 @@ resources:
 
     可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
+### cache
+
+* 每训练一段时间后（validation loss 趋于稳定），两两遍历遍历每一层（先从最底层开始）的 kernel，找到两个相似度最高的 kernel，freeze 其中一个，让另一个重新 init，最终是否可以让 test accuracy 提高？
+
+* 一个训练 cifar-10 的 example
+
+    见`ref_40`。
+
+* ImageNet, CIFAR, and COCO
+
 ### tasks
 
 * [ ] `SubsetRandomSampler()`
@@ -2314,21 +2334,17 @@ resources:
 
     <https://www.geeksforgeeks.org/deep-learning/computer-vision-with-pytorch/>
 
-    feedback:
+* [ ] Create Model using Custom Module in Pytorch
 
-    * ImageNet, CIFAR, and COCO
+    <https://www.geeksforgeeks.org/machine-learning/create-model-using-custom-module-in-pytorch/>
 
-    * [ ] Create Model using Custom Module in Pytorch
+* [ ] How to use a DataLoader in PyTorch?
 
-        <https://www.geeksforgeeks.org/machine-learning/create-model-using-custom-module-in-pytorch/>
+    <https://www.geeksforgeeks.org/python/how-to-use-a-dataloader-in-pytorch/>
 
-    * [ ] How to use a DataLoader in PyTorch?
+* [ ] PyTorch Functional Transforms for Computer Vision
 
-        <https://www.geeksforgeeks.org/python/how-to-use-a-dataloader-in-pytorch/>
-
-    * [ ] PyTorch Functional Transforms for Computer Vision
-
-        <https://www.geeksforgeeks.org/computer-vision/pytorch-functional-transforms-for-computer-vision/>
+    <https://www.geeksforgeeks.org/computer-vision/pytorch-functional-transforms-for-computer-vision/>
 
 * [ ] 调研 PIL
 
@@ -2412,9 +2428,19 @@ resources:
 
 ### tasks
 
-* [ ] Apply a 2D Convolution Operation in PyTorch
+* [O] Apply a 2D Convolution Operation in PyTorch
+
+    23:51 ~ 00:09
 
     <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
+
+    feedback:
+
+    * [ ] 调研 1d 卷积 convolution，尝试处理一个时间序列
+
+    * 目前看到
+
+        > 2D convolution in PyTorch 
 
 * [ ] Apply a 2D Max Pooling in PyTorch
 
@@ -2454,7 +2480,13 @@ resources:
 
     ~ 18:03
 
-* [ ] `plt.figure(figsize=(10, 8))`
+* [v] `plt.figure(figsize=(10, 8))`
+
+    10:14 ~ 12:22
+
+    feedback:
+
+    * [asso] `plt.grid()`画格子时，目前是长方形，如何使 grid 变成正方形？
 
 * [ ] `fig.add_subplot(111, projection='3d')`
 
@@ -2758,9 +2790,9 @@ resources:
 
 ### tasks
 
-* [v] 聚点，开集，闭区域，无界集
+* [v] n 维空间
 
-* [ ] n 维空间
+    13:45 ~ 14:16
 
 * [ ] 多元函数
 
@@ -2857,7 +2889,9 @@ resources:
 
 ### tasks
 
-* [ ] 调研这三个头文件
+* [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
+
+* [v] 调研这三个头文件
 
     ```c
     #include <sys/types.h>
@@ -2865,11 +2899,15 @@ resources:
     #include <fcntl.h>
     ```
 
-* [ ] `pci_find_bus()`
+* [v] `pci_find_bus()`
+
+    feedback:
+
+    * [asso] pci_get_slot(), pci_get_device()
 
 * [ ] `pci_alloc_dev()`
 
-* [ ] 设备树（Device Tree）
+* [v] 设备树（Device Tree）
 
 * [ ] `devm_platform_ioremap_resource()`
 
@@ -3552,7 +3590,9 @@ resources:
 
     16:39 ~ 17:20
 
-* [ ] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
+* [v] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
+
+    14:47 ~ 15:42
 
 * [ ] 调研可视化的方案
 

@@ -10,52 +10,13 @@
 
     如果直接使用单个美元符号，`@echo "PID: $(shell echo $PPID)"`，那么会：
 
-    1. make 首先展开：$P 被 make 当作变量 P 的引用
+    1. make 首先展开：`$P`被 make 当作变量`P`的引用
 
-    2. make 看到 $P：尝试展开 make 变量 P（如果未定义就是空）
+    2. make 看到`$P`：尝试展开 make 变量`P`（如果未定义就是空）
 
-    3. 最终执行：echo （空字符串）+ PID
+    3. 最终执行：`echo （空字符串）+ PID`
 
     make 不区分单双引号，都当作普通字符
-
-* makefile 中的 +=
-
-    在 Makefile 中，+= 是追加赋值运算符，用于向变量追加新内容，而不是替换原有内容。
-
-    `+=`会忽略左右的空格，甚至会忽略右侧的所有空白分隔符（空格，制表以及换行）
-
-    example:
-
-    ```makefile
-    msg = nihao
-    msg += hello world
-
-    msg_2 = nihao
-    msg_2 +=hello world
-
-    msg_3 = nihao
-    msg_3 +=    hello world
-
-    msg_4 = nihao
-    msg_4 = hello	world\
-    zaijian
-
-
-    test:
-    	@echo $(msg)
-    	@echo $(msg_2)
-    	@echo $(msg_3)
-    	@echo $(msg_4)
-    ```
-
-    output:
-
-    ```
-    nihao hello world
-    nihao hello world
-    nihao hello world
-    hello world zaijian
-    ```
 
 * `OBJS = $(SRCS:.c=.o)`
 
@@ -85,21 +46,6 @@
     等价写法：
 
     `OBJS = $(patsubst %.c,%.o,$(SRCS))`
-
-* makefile 中的`?=`
-
-    ?= 被称为 条件赋值符 或 默认赋值符。只有当这个变量之前没有被赋值过（是空的），才会给它赋值。如果已经有值了，那么就忽略这次赋值。
-
-    如果我们在 makefile 中写`CFLAGS ?= -Wall -O2`，那么在外部执行`make CFLAGS="-g"`时，makefile 发现`CFLAGS`已经被赋值了，那么`CFLAGS ?= -Wall -O2`将不再生效。
-
-    makefile 中的四种赋值方法：
-
-    | 操作符 | 名称 | 作用 |
-    | - | - | - |
-    | `=` | 递归赋值 | 在变量被使用时才会展开并确定值。 |
-    | := |	直接赋值 |	在变量被定义时就立即展开并确定值。 |
-    | ?= |	条件赋值 |	如果变量为空，则赋予等号右边的值。 |
-    | += |	追加赋值 | 将等号右边的值追加到现有变量之后。 |
 
 * makefile 中可以使用`$(shell )`帮助实现 bash 中拼接字符串的效果
 
@@ -210,128 +156,6 @@
     ```
 
     `%`，匹配任意数量（0个或多个）的任意字符。匹配是“贪婪”的：% 会尽可能多地匹配字符。
-
-* makefile 与 bash 中变量等号左右的空格
-
-    makefile 会自动删除等号左右的空格：
-
-    ```makefile
-    var_1 := hello world
-
-    var_2 =  hello world
-
-    var_3=hello world
-
-    var_4:=  hello world
-
-    test:
-    	@echo "var_1: [$(var_1)]"
-    	@echo "var_2: [$(var_2)]"
-    	@echo "var_3: [$(var_3)]"
-    	@echo "var_4: [$(var_4)]"
-    ```
-
-    run: `make`
-
-    output:
-
-    ```
-    var_1: [hello world]
-    var_2: [hello world]
-    var_3: [hello world]
-    var_4: [hello world]
-    ```
-
-    但是 makefile 不会删变量最右侧的空格：
-
-    ```makefile
-    var_1 := hello world    
-
-    test:
-    	@echo "var_1: [$(var_1)]"
-    ```
-
-    output:
-
-    ```
-    var_1: [hello world    ]
-    ```
-
-    bash 要求等号左右不允许有空格：
-
-    ```bash
-    var_1=hello
-    var_2 = hello
-    var_3= hello
-    var_4 =hello
-    var_5=hello world
-    var_6=hello    # 有后缀空格
-    var_7=" hello   "
-
-    echo var_1: [${var_1}]
-    echo var_2: [${var_2}]
-    echo var_3: [${var_3}]
-    echo var_4: [${var_4}]
-    echo var_5: [${var_5}]
-    echo var_6: [${var_6}]
-    echo var_7: [${var_7}]
-    echo var_7: ["${var_7}"]
-    ```
-
-    output:
-
-    ```
-    main.sh: line 2: var_2: command not found
-    main.sh: line 3: hello: command not found
-    main.sh: line 4: var_4: command not found
-    main.sh: line 5: world: command not found
-    var_1: [hello]
-    var_2: []
-    var_3: []
-    var_4: []
-    var_5: []
-    var_6: [hello]
-    var_7: [ hello ]
-    var_7: [ hello   ]
-    ```
-
-    解释：
-
-    * `var_1=hello`
-
-        没有问题，正常的赋值变量的方式。
-
-    * `var_2 = hello`
-
-        bash 会将`var_2`作为一个 command，` = hello`作为 command 的第一个和第二个参数。
-
-    * `var_3= hello`
-
-        `var_3`为空字符串，`hello`是一个 command。
-
-        这个模式类似于`LD_LIBRARY_PATH=xxx ./main`
-
-    * `var_4 =hello`
-
-        `var_4`是一个 command，`=hello`是其第一个参数。
-
-    * `var_5=hello world`
-
-        这个与`var_3= hello`同理。
-
-    * `var_6=hello    # 有后缀空格`
-
-        忽略字符串后的空格，认为这些空格是空白分隔符。
-
-    * `var_7=" hello   "`
-
-        使用双引号将空格也算在字符串内。
-
-        但是在打印的时候出了问题。
-
-        对于`echo var_7: [${var_7}]`，bash 会将`${var_7}`替换为` hello   `，因此实际执行的命令为`echo var_7: [ hello   ]`，`echo`会认为`var_7:`, `[`, `hello`, `]`是 4 个独立的字符串，两个字符串之间的的空格都为 1.
-
-        对于`echo var_7: ["${var_7}"]`，经过 bash 替换变量后为`echo var_7: [" hello   "]`，echo 会认为`var_7`是第 1 个字符串，`[`, `" hello   "`, `]`分别是第 2，3，4 个字符串，但是这些字符串紧挨着，中间没有空格。
 
 * `$(shell command)`
 
@@ -706,50 +530,6 @@
 
     * 链接多个目标文件：使用`$^`(所有目标文件) 和`$@`(可执行文件)。
 
-* makefile 中，变量与定义间的空格
-
-    ```makefile
-    VAR=foo       # 值是 "foo"
-    VAR =foo      # 值是 "foo"
-    VAR= foo      # 值是 " foo"（前面多了一个空格！）
-    VAR = foo     # 值是 " foo"（同样多一个空格）
-    ```
-
-    推荐写法:
-
-    ```makefile
-    KERNEL_DIR := /usr/xxx   # 立即展开赋值
-    ```
-
-* 在 Makefile 中，`$(VAR)`和`${VAR}`在功能上是完全相同的，可以互换使用。
-
-    使用 makefile 的内置函数时，必须使用圆括号，比如`$(subst from,to,text)`
-
-    综合看来，makefile 中使用圆括号较多，使用花括号`${VAR}`比较少见。
-
-    makefile 中，不允许使用`$VAR`。只会解析`$V`。
-
-    example:
-
-    ```makefile
-    NAME = MyApp
-    VAR = wrong_value
-    V = correct_value
-
-    test:
-    	@echo "你想输出 MyApp, 但实际会输出: $NAME"
-    	@echo "解析后相当于: $(V)NAME"
-    	@echo "而变量 V 的值是: $(V)"
-    ```
-
-    output:
-
-    ```
-    你想输出 MyApp, 但实际会输出: AME
-    解析后相当于: correct_valueNAME
-    而变量 V 的值是: correct_value
-    ```
-
 * makefile 中的子文件夹与`.PHONY`
 
     假如当前的工程目录为：
@@ -907,6 +687,294 @@
 * makefile 文件名可以是`Makefile`，也可以是`makefile`,但是不能是`makefilE`。
 
     也就是说，文件名只对第一个字母大小写不敏感。
+
+## topics
+
+### 变量与赋值
+
+* makefile 中的`?=`
+
+    ?= 被称为 条件赋值符 或 默认赋值符。只有当这个变量之前没有被赋值过（是空的），才会给它赋值。如果已经有值了，那么就忽略这次赋值。
+
+    如果我们在 makefile 中写`CFLAGS ?= -Wall -O2`，那么在外部执行`make CFLAGS="-g"`时，makefile 发现`CFLAGS`已经被赋值了，那么`CFLAGS ?= -Wall -O2`将不再生效。
+
+    makefile 中的四种赋值方法：
+
+    | 操作符 | 名称 | 作用 |
+    | - | - | - |
+    | `=` | 递归赋值 | 在变量被使用时才会展开并确定值。 |
+    | := |	直接赋值 |	在变量被定义时就立即展开并确定值。 |
+    | ?= |	条件赋值 |	如果变量为空，则赋予等号右边的值。 |
+    | += |	追加赋值 | 将等号右边的值追加到现有变量之后。 |
+
+* makefile 中的`+=`
+
+    在 Makefile 中，`+=`是追加赋值运算符，用于向变量追加新内容，而不是替换原有内容。
+
+    `+=`会忽略左右的空格，甚至会忽略右侧的所有空白分隔符（空格，制表以及换行）
+
+    example:
+
+    ```makefile
+    msg = nihao
+    msg += hello world
+
+    msg_2 = nihao
+    msg_2 +=hello world
+
+    msg_3 = nihao
+    msg_3 +=    hello world
+
+    msg_4 = nihao
+    msg_4 = hello	world\
+    zaijian
+
+
+    test:
+    	@echo $(msg)
+    	@echo $(msg_2)
+    	@echo $(msg_3)
+    	@echo $(msg_4)
+    ```
+
+    output:
+
+    ```
+    nihao hello world
+    nihao hello world
+    nihao hello world
+    hello world zaijian
+    ```
+
+* makefile 中，可以使用`:=`避免`=`递归变量引用的报错
+
+    ```makefile
+    my_str := hello
+    # my_str = hello  # OK
+    my_str := $(my_str) world
+    # my_str = $(my_str) world  # error
+
+    test:
+    	@echo $(my_str)
+    ```
+
+    output:
+
+    ```
+    hello world
+    ```
+
+* makefile 中的`var = val`更像是一个宏，它只记录表达式，不记录值，当用到`var`时，再去展开表达式，计算值是多少。这是一种 lazy evaluation 的方式。
+
+* makefile recipe 中，无法直接对变量赋值
+
+    在Makefile的recipe中，不能直接对Makefile变量进行赋值。Recipe中的每一行都是在独立的shell进程中执行的，而且Makefile变量解析在recipe执行之前就已经完成了。
+
+    比如：
+
+    ```makefile
+    base_dir := /path/to/base_dir_1
+    file_path = $(base_dir)/hello
+
+    test:
+    	@echo $(file_path)
+    	base_dir := /path/to/base_dir_2  # error
+    	@echo $(file_path)
+    ```
+
+    报错：
+
+    ```
+    /path/to/base_dir_1/hello
+    base_dir := /path/to/base_dir_2
+    make: base_dir: No such file or directory
+    make: *** [Makefile:17: test] Error 127
+    ```
+
+    但是可以使用 shell 变量：
+
+    ```makefile
+    base_dir := /path/to/base_dir_1
+    file_path = $(base_dir)/hello
+
+    test:
+    	@echo $(file_path)
+    	$(eval base_dir := /path/to/base_dir_2)
+    	@echo $(file_path)
+    ```
+
+    output:
+
+    ```
+    /path/to/base_dir_1/hello
+    /path/to/base_dir_2/hello
+    ```
+
+* makefile 与 bash 中变量等号左右的空格
+
+    makefile 会自动删除等号左右的空格：
+
+    ```makefile
+    var_1 := hello world
+
+    var_2 =  hello world
+
+    var_3=hello world
+
+    var_4:=  hello world
+
+    test:
+    	@echo "var_1: [$(var_1)]"
+    	@echo "var_2: [$(var_2)]"
+    	@echo "var_3: [$(var_3)]"
+    	@echo "var_4: [$(var_4)]"
+    ```
+
+    run: `make`
+
+    output:
+
+    ```
+    var_1: [hello world]
+    var_2: [hello world]
+    var_3: [hello world]
+    var_4: [hello world]
+    ```
+
+    但是 makefile 不会删变量最右侧的空格：
+
+    ```makefile
+    var_1 := hello world    
+
+    test:
+    	@echo "var_1: [$(var_1)]"
+    ```
+
+    output:
+
+    ```
+    var_1: [hello world    ]
+    ```
+
+    bash 要求等号左右不允许有空格：
+
+    ```bash
+    var_1=hello
+    var_2 = hello
+    var_3= hello
+    var_4 =hello
+    var_5=hello world
+    var_6=hello    # 有后缀空格
+    var_7=" hello   "
+
+    echo var_1: [${var_1}]
+    echo var_2: [${var_2}]
+    echo var_3: [${var_3}]
+    echo var_4: [${var_4}]
+    echo var_5: [${var_5}]
+    echo var_6: [${var_6}]
+    echo var_7: [${var_7}]
+    echo var_7: ["${var_7}"]
+    ```
+
+    output:
+
+    ```
+    main.sh: line 2: var_2: command not found
+    main.sh: line 3: hello: command not found
+    main.sh: line 4: var_4: command not found
+    main.sh: line 5: world: command not found
+    var_1: [hello]
+    var_2: []
+    var_3: []
+    var_4: []
+    var_5: []
+    var_6: [hello]
+    var_7: [ hello ]
+    var_7: [ hello   ]
+    ```
+
+    解释：
+
+    * `var_1=hello`
+
+        没有问题，正常的赋值变量的方式。
+
+    * `var_2 = hello`
+
+        bash 会将`var_2`作为一个 command，` = hello`作为 command 的第一个和第二个参数。
+
+    * `var_3= hello`
+
+        `var_3`为空字符串，`hello`是一个 command。
+
+        这个模式类似于`LD_LIBRARY_PATH=xxx ./main`
+
+    * `var_4 =hello`
+
+        `var_4`是一个 command，`=hello`是其第一个参数。
+
+    * `var_5=hello world`
+
+        这个与`var_3= hello`同理。
+
+    * `var_6=hello    # 有后缀空格`
+
+        忽略字符串后的空格，认为这些空格是空白分隔符。
+
+    * `var_7=" hello   "`
+
+        使用双引号将空格也算在字符串内。
+
+        但是在打印的时候出了问题。
+
+        对于`echo var_7: [${var_7}]`，bash 会将`${var_7}`替换为` hello   `，因此实际执行的命令为`echo var_7: [ hello   ]`，`echo`会认为`var_7:`, `[`, `hello`, `]`是 4 个独立的字符串，两个字符串之间的的空格都为 1.
+
+        对于`echo var_7: ["${var_7}"]`，经过 bash 替换变量后为`echo var_7: [" hello   "]`，echo 会认为`var_7`是第 1 个字符串，`[`, `" hello   "`, `]`分别是第 2，3，4 个字符串，但是这些字符串紧挨着，中间没有空格。
+
+* makefile 中，变量与定义间的空格
+
+    ```makefile
+    VAR=foo       # 值是 "foo"
+    VAR =foo      # 值是 "foo"
+    VAR= foo      # 值是 " foo"（前面多了一个空格！）
+    VAR = foo     # 值是 " foo"（同样多一个空格）
+    ```
+
+    推荐写法:
+
+    ```makefile
+    KERNEL_DIR := /usr/xxx   # 立即展开赋值
+    ```
+
+* 在 Makefile 中，`$(VAR)`和`${VAR}`在功能上是完全相同的，可以互换使用。
+
+    使用 makefile 的内置函数时，必须使用圆括号，比如`$(subst from,to,text)`
+
+    综合看来，makefile 中使用圆括号较多，使用花括号`${VAR}`比较少见。
+
+    makefile 中，不允许使用`$VAR`。只会解析`$V`。
+
+    example:
+
+    ```makefile
+    NAME = MyApp
+    VAR = wrong_value
+    V = correct_value
+
+    test:
+    	@echo "你想输出 MyApp, 但实际会输出: $NAME"
+    	@echo "解析后相当于: $(V)NAME"
+    	@echo "而变量 V 的值是: $(V)"
+    ```
+
+    output:
+
+    ```
+    你想输出 MyApp, 但实际会输出: AME
+    解析后相当于: correct_valueNAME
+    而变量 V 的值是: correct_value
+    ```
 
 ## note
 
