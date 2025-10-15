@@ -4,6 +4,24 @@
 
 ## cached
 
+* `remove_pointer_t`
+
+    remove_pointer_t 是 C++ 标准库中的一个类型特性（type trait），其作用是移除类型的指针修饰符。
+
+    作用：
+
+    如果 T 是指针类型，remove_pointer_t<T> 会得到指针所指向的类型
+
+    如果 T 不是指针类型，remove_pointer_t<T> 会得到 T 本身
+
+    注意
+
+    * 只移除最外层的指针修饰符
+
+    * 对于多级指针需要多次应用才能得到最终的非指针类型
+
+    * 不会影响 const、volatile 等其他类型修饰符
+
 * 如果类模板的构造函数有独立的模板参数，那么不能显式指定，必须由编译器自动推导
 
     ```cpp

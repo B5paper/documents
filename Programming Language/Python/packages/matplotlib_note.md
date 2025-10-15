@@ -2,6 +2,153 @@
 
 ## cache
 
+* `plt.figure()`
+
+    syntax:
+
+    ```py
+    plt.figure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None, frameon=True, FigureClass=<class 'matplotlib.figure.Figure'>, clear=False, **kwargs)
+    ```
+
+    * num: 图形标识符（数字或字符串）
+
+    * figsize: 图形尺寸（宽度, 高度），单位为英寸
+
+    * dpi: 分辨率，每英寸点数
+
+    * facecolor: 图形背景颜色
+
+    * edgecolor: 图形边框颜色
+
+    * clear: 如果为 True 且图形已存在，则清除该图形
+
+    example:
+
+    * 基本用法
+
+        ```py
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # 创建数据
+        x = np.linspace(0, 10, 100)
+        y = np.sin(x)
+
+        # 创建图形
+        plt.figure()
+        plt.plot(x, y)
+        plt.title('基础图形')
+        plt.show()
+        ```
+
+    * 指定图形尺寸
+
+        ```py
+        # 创建指定大小的图形
+        plt.figure(figsize=(8, 6))
+        plt.plot(x, y, 'r-', linewidth=2)
+        plt.title('自定义尺寸图形')
+        plt.grid(True)
+        plt.show()
+        ```
+
+    * 多图形管理
+
+        ```py
+        # 创建第一个图形
+        plt.figure(1, figsize=(6, 4))
+        plt.plot(x, np.sin(x), 'b-')
+        plt.title('图形 1: 正弦函数')
+
+        # 创建第二个图形
+        plt.figure(2, figsize=(6, 4))
+        plt.plot(x, np.cos(x), 'g-')
+        plt.title('图形 2: 余弦函数')
+
+        # 切换回第一个图形并添加内容
+        plt.figure(1)
+        plt.plot(x, np.cos(x), 'r--', alpha=0.5)
+        plt.legend(['sin', 'cos'])
+
+        plt.show()
+        ```
+
+    * 自定义背景和分辨率
+
+        ```py
+        # 高分辨率、自定义背景
+        plt.figure(figsize=(10, 6), dpi=100, facecolor='lightgray')
+        plt.plot(x, np.sin(x), label='sin(x)')
+        plt.plot(x, np.cos(x), label='cos(x)')
+        plt.legend()
+        plt.title('高分辨率自定义背景图形')
+        plt.grid(True, alpha=0.3)
+        plt.show()
+        ```
+
+    * 清除现有图形
+
+        ```py
+        # 先创建一个图形
+        plt.figure(1)
+        plt.plot(x, y)
+        plt.title('原始图形')
+
+        # 清除并重新绘制
+        plt.figure(1, clear=True)
+        plt.plot(x, np.tan(x))
+        plt.title('清除后重新绘制的图形')
+        plt.ylim(-5, 5)
+        plt.show()
+        ```
+
+    * 使用子图
+
+        ```py
+        # 创建图形并添加子图
+        fig = plt.figure(figsize=(12, 4))
+
+        # 添加第一个子图
+        ax1 = fig.add_subplot(131)
+        ax1.plot(x, np.sin(x))
+        ax1.set_title('正弦函数')
+
+        # 添加第二个子图
+        ax2 = fig.add_subplot(132)
+        ax2.plot(x, np.cos(x), 'r-')
+        ax2.set_title('余弦函数')
+
+        # 添加第三个子图
+        ax3 = fig.add_subplot(133)
+        ax3.plot(x, np.exp(-x), 'g-')
+        ax3.set_title('指数衰减')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    * 保存高质量图形
+
+        ```py
+        # 创建高分辨率图形用于保存
+        plt.figure(figsize=(8, 6), dpi=150)
+        x = np.linspace(0, 2*np.pi, 100)
+        y1 = np.sin(x)
+        y2 = np.cos(x)
+
+        plt.plot(x, y1, 'b-', label='sin(x)', linewidth=2)
+        plt.plot(x, y2, 'r--', label='cos(x)', linewidth=2)
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('三角函数')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+
+        # 保存为高质量图片
+        plt.savefig('high_quality_plot.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        ```
+
 * matplotlib hello world example
 
     ```python

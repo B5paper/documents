@@ -2,6 +2,98 @@
 
 ## cache
 
+* convolution
+
+    $$(f ∗ g) (t)= \int_{-\infty}^{\infty} ​f(\tau) g(t − \tau) d\tau$$
+
+    Where f and g are functions representing the image and the filter respectively, and * denotes the convolution operator.
+
+* Mean Square Error (L2 loss)
+
+    L2 computes the average of the squared differences between the predicted and actual values.
+
+    The main idea behind squaring is to penalise the model for large difference so that the model avoid larger differences. 
+
+    $$MSE = \frac 1 n \sum_{i=1}^n (y_i - \hat y_i)^2$$
+
+    Here,
+
+    * $n$ represents the total number of observations or samples,
+
+    * $y_i$ represents the actual or observed value for the ith sample,
+
+    * $\hat y_i$ represents the predicted or estimated value for the ith sample.
+
+    syntax:
+
+    ```py
+    torch.nn.MSELoss(size_average=None, reduce=None, reduction='mean')
+    ```
+
+    example:
+
+    ```py
+    import torch
+    from torch import nn
+    #initialising the loss function
+    loss = nn.MSELoss()
+    #randomly initialising the input and the target value...input is considered as predicted value here.
+    input = torch.randn(2, 4, requires_grad=True)
+    target = torch.randn(2, 4)
+    #passing both the values inside the loss function.
+    output = loss(input, target)
+    #backpropagation
+    output.backward()
+    print(output)
+    ```
+
+    output:
+
+    ```
+    tensor(1.6697, grad_fn=<MseLossBackward0>)
+    ```
+
+    Disadvantages:
+
+    Sensitive to outliers due to the squaring operation, which deviates the results in the optimization process.
+
+* Huber Loss
+
+    This loss is used while tackling regression problems especially when dealing with outliers.
+
+    $$\mathrm{HuberLoss}(x, \mathrm{target}, \delta) = 
+    \frac 1 N \sum_i
+    \left\{
+    \begin{aligned}
+        &\frac 1 2 (x_i - \mathrm{target}_i)^2 \quad \text{if } \lvert x_i - \mathrm{target}_i \rvert \leq \delta \\
+        &\delta \left( \lvert x_i - \mathrm{target}_i \rvert - \frac 1 2 \delta \right) \quad \text{otherwise}
+    \end{aligned}    
+    \right.$$
+
+    Here,
+
+    * x represents the predicted values,target represents the ground truth or target values,
+
+    * δ is a parameter controlling the threshold for switching between quadratic and linear loss
+
+    It combines both MAE( Mean Absolute Error ) and MSE( Mean Squared Error) and which loss will be used depends upon the delta value.
+
+    syntax:
+
+    ```py
+    torch.nn.HuberLoss(reduction='mean', delta=1.0)
+    ```
+
+    Advantage:
+
+    * Less sensitive to outliers than MSE but still provide a more balanced approach to evaluating the performance of regression models compared to MAE.
+
+    Disadvantage:
+
+    * Introduces a new hyper parameter and the optimization of that leads to more complexity in the model.
+
+    MAE, MSE and Huber loss are used in regression problems but, which one should we use. MSE can be used when you want to penalize larger errors more heavily. It's useful when the data does not have significant outliers and you assume that the errors are normally distributed. MAE can be used when you want robust loss function that is less affected by outliers. And Huber loss can be used when you want to compromise the benefits of both MAE and MSE. 
+
 * CIFAR-10
 
     This contains 60,000 32x32 color images in 10 classes, with 6,000 images per class.

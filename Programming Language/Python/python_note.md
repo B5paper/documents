@@ -2,6 +2,48 @@
 
 ## cached
 
+* python 中没有很好支持 do while 的方法，只能用 while + if + break 来模拟
+
+* python 中判断一个 key 是否在 dict 中
+
+    * 使用`in`关键字
+
+    * 使用 get() 方法
+
+        ```py
+        my_dict = {'a': 1, 'b': 2, 'c': 3}
+
+        # 如果 key 不存在，返回 None 或默认值
+        value = my_dict.get('a')  # 返回 1
+        value = my_dict.get('d')  # 返回 None
+        value = my_dict.get('d', 'default')  # 返回 'default'
+
+        # 判断存在性
+        if my_dict.get('a') is not None:
+            print("Key 'a' exists")
+        ```
+
+    * 使用 keys() 方法
+
+        ```py
+        my_dict = {'a': 1, 'b': 2, 'c': 3}
+
+        if 'a' in my_dict.keys():
+            print("Key 'a' exists")
+        ```
+
+    * 使用 try-except 块
+
+        ```py
+        my_dict = {'a': 1, 'b': 2, 'c': 3}
+
+        try:
+            value = my_dict['d']
+            print("Key 'd' exists")
+        except KeyError:
+            print("Key 'd' does not exist")
+        ```
+
 * python 中使用实例可以直接定义成员变量
 
     ```py

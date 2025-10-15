@@ -2,6 +2,31 @@
 
 ## cache
 
+* c++ 中的 string & 在 vscode 中，debug 断点模式下，鼠标悬停不显示内容
+
+    下面是实测结果：
+
+    ```cpp
+    #include <string>
+    #include <unordered_map>
+    using namespace std;
+
+    int main() {
+        string str = "hello, world";  // 显示
+        string &str_2 = str;  // 不显示
+        const string &str_3 = str;  // 不显示
+        const string &str_4 = "hello, world";  // 不显示
+
+        unordered_map<string, string> umap {
+            {"hello", "world"},
+            {"nihao", "zaijian"}
+        };
+        string &str_val = umap["hello"];  // 不显示
+        const string &con_str_val = umap["nihao"];  // 不显示
+        return 0;
+    }
+    ```
+
 * vscode 中 gdb pretty print
 
     ```json

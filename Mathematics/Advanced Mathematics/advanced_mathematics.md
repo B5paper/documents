@@ -2,6 +2,34 @@
 
 ## cache
 
+* n 维空间
+
+    设$n$为取定的一个自然数，我们用$\mathbf R^n$表示$n$元有序数组$(x_1, x_2, \cdots, x_n)$的全体所构成的集合，即
+
+    $$\mathbf R^n = \mathbf R \times \mathbf R \times \cdots \times \mathbf R = \{ (x_1, x_2, \cdots, x_n) \ \vert \ x_i \in \mathbf R, i = 1, 2, \cdots, n \}$$
+
+    注：
+
+    1. 感觉还不如先定义 n 维向量比较好，等把 n 维向量用熟了，再定义 n 维空间。
+
+    $\mathbf R^n$中的元素$(x_1, x_2, \cdots, x_n)$有时也用单个字母$\boldsymbol x$来表示，即
+    
+    $$\boldsymbol x = (x_1, x_2, \cdots, x_n)$$
+
+    在$\mathbf R^n$中定义线性运算如下：
+
+    设$\boldsymbol x = (x_1, x_2, \cdots, x_n)$，$\boldsymbol y = (y_1, y_2, \cdots, y_n)$为$\mathbf R^n$中任意两个元素，$\lambda \in \mathbf R$，规定
+
+    $$\boldsymbol x + \boldsymbol y = (x_1 + y_1, x_2 + y_2, \cdots, x_n + y_n)$$
+
+    $$\lambda x = (\lambda x_1, \lambda x_2, \cdots, \lambda x_n)$$
+
+    这样定义了线性运算的集合$\mathbf R^n$称为$n$维空间。
+
+    注：
+
+    1. 这个明显是线性空间的定义，但是没有线性代数/矩阵论里写得好。为什么这里不提一嘴和别的概念的联系和不同之处？为什么没有 see also 部分？
+
 * 开集
 
     如果点集$E$的点都是$E$的内点，则称$E$为开集。

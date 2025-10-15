@@ -1162,21 +1162,33 @@
 
 * qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
 
+* 一个带有 dev file, pci driver init 过程的 edu driver
+
+    见`ref_41`。
+
 ### tasks
+
+* [v] reorg: documents 30 mins 10.14
+
+    10:47 ~ 11:11
 
 * [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
 
-* [ ] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
+* [v] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
+
+    14:44 ~ 15:10, 15:30 ~ 15:58
 
     这些指定的文件，可能积累了大量的 cache，是重点要处理的对象。freedom 模式则增加一点随机游走的可能性，避免过拟合。
+
+    feedback:
+
+    * [ ] 调研 py 中`is`的用法，为什么`'' is None`会出错？
+
+    * [ ] 调研 py 中如何实现 enum？
 
 * [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
 
     `exit(EXIT_FAILURE);`
-
-* [v] `asm("int $0x3B");`
-
-    15:47 ～ 15:50
 
 * [ ] 调研 nasm
 
@@ -1247,23 +1259,15 @@
 
 * [v] edu driver 里创建 dev file
 
-    feedback:
+* [ ] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
 
-    * 一个带有 dev file, pci driver init 过程的 edu driver
-
-        见`ref_41`。
+    mmio 如何保证缓存一致性？或者说，刚写入就读取，是否会读到还未写入的值？
 
 * [O] reorg linux driver
 
     11:01 ~ 11:25, 12:17 ~ 13:38
 
     关注中断部分，增加 qa unit
-
-    deps:
-
-    2. [ ] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
-
-        mmio 如何保证缓存一致性？或者说，刚写入就读取，是否会读到还未写入的值？
 
 * [ ] 如果同时有全局变量 aaa, 函数中的形参 aaa，那么在函数中该如何访问到全局变量 aaa？
 
@@ -1287,8 +1291,6 @@
 * [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
-
-* [v] `remove_pointer_t`
 
 * [ ] `is_pointer_v`
 
@@ -1454,7 +1456,11 @@
 
 ### Tasks
 
-* [ ] 调研实现: 增加 reinforce_record.txt
+* [v] qa: 2 units 30 mins 10.14
+
+* [v] 调研实现: 增加 reinforce_record.txt
+
+    16:18 ~ 17:31
 
     在 review 时，仍然没做出来的题目，在 u0 后或 u1 后输入 r，将当前 unit append 到 reinforce record 中。
 
@@ -1462,19 +1468,21 @@
 
     后续可以考虑 monthly reinforce 和 quarterly reinforce 甚至 annually。每周 rein 做不出来的放到每月，每月做不出来的放到每季度，每季度做不出来的放到每年。
 
+    feedback:
+
+    * [ ] py 中，open file 时`a+`表示什么，只有`a`可以吗？`a`或`a+`可以在文件不存在时创建文件吗？如果不能，如何创建文件？
+
+    * [ ] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
+
+    * [ ] py 中的 list 如何 unique 化？
+
+    * [ ] py 如何删除一个文件？ 
+
 * [ ] 调研 python 中文件操作的的 read(), readline() 和 readlines()
 
 * [ ] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
 
 * [ ] 改造`--randexam`为 subcommand 形式
-
-* [v] python 如何判断一个 key 是否在 dict 中？
-
-    18:50 ~ 18:53
-
-* [v] python 中如何实现 do while ?
-
-    18:53 ~ 18:56
 
 * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
 
@@ -1733,6 +1741,10 @@
 
 ### tasks
 
+* [v] process 1 tab 10.14
+
+    13:58 ~ 14:36
+
 * [O] 调研 PyTorch Loss Functions
 
     15:01 ~ 15:31, 23:10 ~ 23:43
@@ -1742,14 +1754,6 @@
     目前看到
 
         > Cross Entropy Loss
-    
-    feedback:
-
-     * [asso] Huber Loss 的表达式是如何构建出来的？
-
-* [v] process 1 tab 10.11
-
-    09:50 ~ 11:16
 
 * [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
 
@@ -2298,6 +2302,8 @@
         	@echo $(file_path)
         ```
 
+* [asso] Huber Loss 的表达式是如何构建出来的？
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2328,11 +2334,9 @@ resources:
 
 ### tasks
 
+* [ ] 稀疏矩阵如何加速矩阵乘？
+
 * [ ] `SubsetRandomSampler()`
-
-* [v] Computer Vision with PyTorch
-
-    <https://www.geeksforgeeks.org/deep-learning/computer-vision-with-pytorch/>
 
 * [ ] Create Model using Custom Module in Pytorch
 
@@ -2483,10 +2487,6 @@ resources:
 * [v] `plt.figure(figsize=(10, 8))`
 
     10:14 ~ 12:22
-
-    feedback:
-
-    * [asso] `plt.grid()`画格子时，目前是长方形，如何使 grid 变成正方形？
 
 * [ ] `fig.add_subplot(111, projection='3d')`
 
@@ -2772,6 +2772,8 @@ resources:
 
 * [asso] eigen 中的稀疏矩阵支持哪些运算？矩阵乘法？还有其他什么运算？
 
+* [asso] `plt.grid()`画格子时，目前是长方形，如何使 grid 变成正方形？
+
 ## Mathematics
 
 resources:
@@ -2789,10 +2791,6 @@ resources:
     <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
 
 ### tasks
-
-* [v] n 维空间
-
-    13:45 ~ 14:16
 
 * [ ] 多元函数
 
@@ -2891,23 +2889,9 @@ resources:
 
 * [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
 
-* [v] 调研这三个头文件
-
-    ```c
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <fcntl.h>
-    ```
-
 * [v] `pci_find_bus()`
 
-    feedback:
-
-    * [asso] pci_get_slot(), pci_get_device()
-
 * [ ] `pci_alloc_dev()`
-
-* [v] 设备树（Device Tree）
 
 * [ ] `devm_platform_ioremap_resource()`
 
@@ -3371,6 +3355,8 @@ resources:
 
 * [ ] linux 的 interruptible sleep 是如何实现的？
 
+* [asso] pci_get_slot(), pci_get_device()
+
 ## CCL
 
 ### cache
@@ -3590,10 +3576,6 @@ resources:
 
     16:39 ~ 17:20
 
-* [v] `const string &nchannels_str`, `const string &`鼠标悬浮时不显示值，但是`string &`就可以，为什么
-
-    14:47 ~ 15:42
-
 * [ ] 调研可视化的方案
 
 * [ ] 以 uuid 为入口重构 topo layer 代码
@@ -3787,27 +3769,6 @@ resources:
 
     1. [ ] 调研`ncclCommGetAsyncError()`
 
-* [ ] 调研`grep -E`
-
-    写法：
-
-    `grep -E "keyword1|keyword2|keyword3" file.txt`
-
-* [ ] 调研`grep -z`处理跨行文本
-
-* [ ] `wc`是否可以统计汉字的字节数，单词数？
-
-* [ ] 调研`grep -A`
-
-    ```bash
-    # 显示匹配行及其后2行
-    grep -A 2 -E "keyword1|keyword2" file.txt
-    ```
-
-* [ ] 调研`grep -w`
-
-    > -w 选项匹配整个单词
-
 * [ ] 调研如何实现 grep 搜索包含 N 个关键词中的 M 个的行？
 
 * [ ] qa: bash 30 mins
@@ -3989,6 +3950,27 @@ resources:
     尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
 
 ### tasks
+
+* [ ] 调研`grep -E`
+
+    写法：
+
+    `grep -E "keyword1|keyword2|keyword3" file.txt`
+
+* [ ] 调研`grep -z`处理跨行文本
+
+* [ ] `wc`是否可以统计汉字的字节数，单词数？
+
+* [ ] 调研`grep -A`
+
+    ```bash
+    # 显示匹配行及其后2行
+    grep -A 2 -E "keyword1|keyword2" file.txt
+    ```
+
+* [ ] 调研`grep -w`
+
+    > -w 选项匹配整个单词
 
 * [ ] 调研 ls 相关
 
