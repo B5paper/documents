@@ -28,6 +28,42 @@
 
 ## cache
 
+* 一个 routine 无法由碎片化的 routine entry 拼接而成
+
+    一个 routine 可以由多个 routine entry 嵌套而成，但是似乎无法由 routine entry 拼接而成。
+
+    嵌套的情况：
+
+    ```
+    routine 1 start
+        routine 2 start
+            routine 3 start
+                routine 4 start
+                routine 4 end
+            routine 3 end
+        routine 2 end
+    routine 1 end
+    ```
+
+    我们可以从最简单的 routine 4 开始学，学完了 routine 4 再学 routine 3，以此类推。我们可以认为 routine 3 依赖于 routine 4，routine 2 依赖于 routine 3，以此类推。
+
+    拼接的情况：
+
+    ```
+    routine 1 start
+        routine 2 entry
+        routine 3 entry
+        routine 4 entry
+        ...
+    routine 1 end
+    ```
+
+    如果我们认为 routine 1 依赖于 routine entry 2, 3, 4，而 routine 3 entry 依赖于 routine entry 2，routine 4 entry 依赖于 routine 3，那么整个学习过程是比较痛苦的。
+
+    一个 routine 结构可能有嵌套，有串行拼接。通常我们认为串行的难度更大。一个 routine 的子 routine (entry) 中，串行的 entry 不要超过 3 个。
+
+* 任务管理系统是时间规划的艺术，对时间的要求很高。
+
 * 调整 project pool 中不正确 task 分类的时机
 
     在每天列出 task 清单后，commit 之前，对 project pool 中分类不正确的 task 进行调整，是一个还行的时机。

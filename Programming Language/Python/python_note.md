@@ -2,6 +2,10 @@
 
 ## cached
 
+* python 中判断空字符串，只能用`if '' == ''`
+
+    不能用`if '' is None`, `if '' == None`, `if '' is ''`
+
 * python 中没有很好支持 do while 的方法，只能用 while + if + break 来模拟
 
 * python 中判断一个 key 是否在 dict 中
