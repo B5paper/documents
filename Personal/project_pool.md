@@ -1204,11 +1204,7 @@
 
 ### tasks
 
-* [v] reorg: documents 30 mins 10.14
-
-    10:47 ~ 11:11
-
-* [ ] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
+* [v] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
 
 * [v] 调研实现： reorg doc 时，采用两种策略，一种是默认模式，即 freedom，另外一种是 restricted，只随机选择指定几个文件中的一个
 
@@ -1216,11 +1212,9 @@
 
     这些指定的文件，可能积累了大量的 cache，是重点要处理的对象。freedom 模式则增加一点随机游走的可能性，避免过拟合。
 
-    feedback:
+* [ ] 调研 py 中`is`的用法，为什么`'' is None`会出错？
 
-    * [ ] 调研 py 中`is`的用法，为什么`'' is None`会出错？
-
-    * [ ] 调研 py 中如何实现 enum？
+* [ ] 调研 py 中如何实现 enum？
 
 * [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
 
@@ -1292,8 +1286,6 @@
         <https://www.freedos.org/books/get-started/>
 
 * [ ] 调研 freedos bonus iso
-
-* [v] edu driver 里创建 dev file
 
 * [ ] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
 
@@ -1492,8 +1484,6 @@
 
 ### Tasks
 
-* [v] qa: 2 units 30 mins 10.14
-
 * [v] 调研实现: 增加 reinforce_record.txt
 
     16:18 ~ 17:31
@@ -1504,15 +1494,13 @@
 
     后续可以考虑 monthly reinforce 和 quarterly reinforce 甚至 annually。每周 rein 做不出来的放到每月，每月做不出来的放到每季度，每季度做不出来的放到每年。
 
-    feedback:
+* [ ] py 中，open file 时`a+`表示什么，只有`a`可以吗？`a`或`a+`可以在文件不存在时创建文件吗？如果不能，如何创建文件？
 
-    * [ ] py 中，open file 时`a+`表示什么，只有`a`可以吗？`a`或`a+`可以在文件不存在时创建文件吗？如果不能，如何创建文件？
+* [ ] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
 
-    * [ ] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
+* [ ] py 中的 list 如何 unique 化？
 
-    * [ ] py 中的 list 如何 unique 化？
-
-    * [ ] py 如何删除一个文件？ 
+* [ ] py 如何删除一个文件？ 
 
 * [ ] 调研 python 中文件操作的的 read(), readline() 和 readlines()
 
@@ -1777,9 +1765,7 @@
 
 ### tasks
 
-* [v] process 1 tab 10.14
-
-    13:58 ~ 14:36
+* [v] process 1 tag 10.16
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -1791,9 +1777,17 @@
 
         > Cross Entropy Loss
 
-* [ ] 调研 How to Implement Various Optimization Algorithms in Pytorch?
+* [v] 调研 How to Implement Various Optimization Algorithms in Pytorch?
+
+    15:40 ~ 16:16
 
     <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
+
+    feedback:
+
+    * [ ] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
+
+        为什么返回值会有两个，outputs.data 又是什么？
 
 * [ ] Introduction to Deep Learning
 
@@ -2924,8 +2918,6 @@ resources:
 ### tasks
 
 * [ ] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
-
-* [v] `pci_find_bus()`
 
 * [ ] `pci_alloc_dev()`
 
