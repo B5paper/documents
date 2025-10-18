@@ -2,6 +2,8 @@
 
 ## cache
 
+* vscode 里，可以使用 ctrl + up / down 实现向上／下滚动一行，不改变光标位置
+
 * c++ 中的 string & 在 vscode 中，debug 断点模式下，鼠标悬停不显示内容
 
     下面是实测结果：
