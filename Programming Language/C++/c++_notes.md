@@ -4,6 +4,10 @@
 
 ## cached
 
+* `is_pointer_v`
+
+    `is_pointer_v<T>`检查一个类型 T 是否为指针类型，等价于`is_pointer<T>::value`。
+
 * `remove_pointer_t`
 
     remove_pointer_t 是 C++ 标准库中的一个类型特性（type trait），其作用是移除类型的指针修饰符。

@@ -2,6 +2,121 @@
 
 ## cached
 
+* python 读文件
+
+    `read([size])`: 一次性读取整个文件内容，并将其作为一个字符串返回。
+
+    可选的 size 参数，指定要读取的字符数（文本模式）或字节数（二进制模式）。如果不提供，则读取整个文件。
+
+    `test_doc.txt`:
+
+    ```
+    你好
+    世界
+    nihao
+    zaijian
+    ```
+
+    ```py
+    file = 'test_doc.txt'
+
+    with open(file) as f:
+        content = f.read()  # read all characters
+    print('------ test 1: read all characters ------')
+    print(content)
+
+    # open as text file
+    with open(file) as f:
+        content = f.read(7)  # read 7 characters
+    print('------ test 2: read 7 characters ------')
+    print(content)
+
+    # open as binary file
+    with open(file, 'rb') as f:
+        content = f.read(7)  # read 7 bytes
+    print('------ test 3: read 7 bytes ------')
+    print(content)
+    ```
+
+    output:
+
+    ```
+    ------ test 1: read all characters ------
+    你好
+    世界
+    nihao
+    zaijian
+    ------ test 2: read 7 characters ------
+    你好
+    世界
+    n
+    ------ test 3: read 7 bytes ------
+    b'\xe4\xbd\xa0\xe5\xa5\xbd\n'
+    ```
+
+    * `readline([size])`
+
+        一次只读取文件的一行。
+
+        返回值：一个字符串，包含一行的内容（包括换行符 \n）。如果到达文件末尾，则返回一个空字符串。
+
+        ```py
+        file = 'test_doc.txt'
+
+        with open(file) as f:
+            line = f.readline()
+            while line != '':
+                print(line)
+                line = f.readline()
+        ```
+
+        output:
+
+        ```
+        你好
+
+        世界
+
+        nihao
+
+        zaijian
+        ```
+
+    * `readlines([hint])`
+
+        读取整个文件，并将其作为一个列表返回，列表中的每个元素是文件中的一行（字符串）。
+
+        可选的 hint 参数。如果指定了 hint，则读取大约 hint 个字节的行，直到读完这些字节所在的行为止，可能不会读取整个文件。
+
+        ```py
+        file = 'test_doc.txt'
+
+        with open(file) as f:
+            lines = f.readlines()
+        print(lines)
+        ```
+
+        output:
+
+        ```
+        ['你好\n', '世界\n', 'nihao\n', 'zaijian']
+        ```
+
+        可以看到`\n`仍然被保留。
+
+    * 文件对象本身是可迭代的
+
+        迭代文件对象本身，这相当于一个“惰性”的 readline()，内存效率最高。
+
+        ```py
+        # 这是读取大文件的最佳方式
+        with open('example.txt', 'r') as file:
+            for line in file: # 直接遍历文件对象
+                print(line, end='')
+        ```
+
+        对于非常大的文件，read() 和 readlines() 会一次性将整个文件加载到内存中，可能导致内存不足。此时，应使用 readline() 或直接迭代文件对象。
+
 * python 中判断空字符串，只能用`if '' == ''`
 
     不能用`if '' is None`, `if '' == None`, `if '' is ''`

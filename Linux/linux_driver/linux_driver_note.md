@@ -6,6 +6,14 @@ Ref:
 
 ## cache
 
+* 如果只有 cdev，没有 device 设备文件节点，不可以调用 cdev 绑定的 fops 驱动
+
+* `pci_alloc_dev()`
+
+    分配并初始化一个 PCI 设备结构体。
+
+    这个函数是内核内部使用的函数，不是给驱动开发者调用的。
+
 * `pci_find_bus()`
 
     根据总线号查找并返回指定的 PCI 总线结构。

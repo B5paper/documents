@@ -1012,7 +1012,9 @@
 
 ### tasks
 
-* [v] 调研实现： qa 需要增加 ref 形式，如果 unit 里指定了 ref 文件夹，那么文件夹下找指定的 ref 文件，输出作为 u_1。这样可以减小 qa 文件的长度。
+* [v] reorg: project pool 10.18
+
+    17:26 ~ 01:01
 
 * [ ] 调研 py 中`is`的用法，为什么`'' is None`会出错？
 
@@ -1121,8 +1123,6 @@
 * [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
-
-* [v] `is_pointer_v`
 
 * { } reorg: projects
 
@@ -1293,8 +1293,6 @@
 * [ ] py 中的 list 如何 unique 化？
 
 * [ ] py 如何删除一个文件？ 
-
-* [v] 调研 python 中文件操作的的 read(), readline() 和 readlines()
 
 * [ ] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
 
@@ -1557,6 +1555,18 @@
 
 ### tasks
 
+* [ ] awk
+
+* [ ] sed
+
+* [v] process 1 tab 10.18
+
+    15:30 ~ 17:24
+
+    * [ ] `std::is_base_of`
+
+        调研`std::is_base_of<Base, Derived>`的使用方法
+
 * [O] 调研 PyTorch Loss Functions
 
     15:01 ~ 15:31, 23:10 ~ 23:43
@@ -1566,12 +1576,6 @@
     目前看到
 
         > Cross Entropy Loss
-
-* [v] 调研 How to Implement Various Optimization Algorithms in Pytorch?
-
-    15:40 ~ 16:16
-
-    <https://www.geeksforgeeks.org/machine-learning/how-to-implement-various-optimization-algorithms-in-pytorch/>
 
 * [ ] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
 
@@ -1768,10 +1772,6 @@
     <https://www.baeldung.com/linux/last-directory-file-from-file-path>
 
     feedback:
-
-    1. deps
-
-        1. awk, sed
 
     2. 没处理完，有时间了接着处理
 
@@ -2168,8 +2168,6 @@ resources:
 
 * [ ] 稀疏矩阵如何加速矩阵乘？
 
-* [v] `SubsetRandomSampler()`
-
 * [ ] Create Model using Custom Module in Pytorch
 
     <https://www.geeksforgeeks.org/machine-learning/create-model-using-custom-module-in-pytorch/>
@@ -2181,12 +2179,6 @@ resources:
 * [ ] PyTorch Functional Transforms for Computer Vision
 
     <https://www.geeksforgeeks.org/computer-vision/pytorch-functional-transforms-for-computer-vision/>
-
-* [v] 调研 PIL
-
-    PIL 是否有显示图片的功能？
-
-* [v] `transforms.Compose`为什么可以接收`PIL.Image`类型的对象？
 
 * [ ] 带动量的SGD（Momentum）
 
@@ -2720,10 +2712,6 @@ resources:
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
-
-* [v] 如果只有 cdev，没有 device 设备文件节点，是否可以调用 cdev 绑定的 fops 驱动？
-
-* [v] `pci_alloc_dev()`
 
 * [ ] `devm_platform_ioremap_resource()`
 
@@ -4310,10 +4298,6 @@ resources:
 * [ ] 调研尝试在 nccl 中把 p2p 传输的代码剥离出来，使用单独的一份代码跑通 nvlink + p2p
 
 [ ] 继续调研 nccl 源码，看是否有 put get 相关的函数
-
-* [v] 调研 nvlink
-
-    13:36 ~ 14:42
 
 * [v] 调研 linux nvidia kmd 中与 nvlink 相关的部分
 
