@@ -1012,15 +1012,13 @@
 
 ### tasks
 
-* [v] reorg: project pool 10.18
-
-    17:26 ~ 01:01
-
-* [ ] 调研 py 中`is`的用法，为什么`'' is None`会出错？
+* [v] 调研 py 中`is`的用法，为什么`'' is None`会出错？
 
 * [ ] 调研 py 中如何实现 enum？
 
-* [ ] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
+* [v] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
+
+    15:50 ~ 15:59
 
     `exit(EXIT_FAILURE);`
 
@@ -1091,7 +1089,9 @@
 
 * [ ] 调研 freedos bonus iso
 
-* [ ] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
+* [v] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
+
+    16:20 ~ 16:47
 
     mmio 如何保证缓存一致性？或者说，刚写入就读取，是否会读到还未写入的值？
 
@@ -1212,7 +1212,7 @@
 
 ## qa
 
-### cached
+### cache
 
 * 一些 gnu 工具入门级的 guideline，废话有点多
 
@@ -1286,7 +1286,17 @@
 
 ### Tasks
 
-* [ ] py 中，open file 时`a+`表示什么，只有`a`可以吗？`a`或`a+`可以在文件不存在时创建文件吗？如果不能，如何创建文件？
+* [v] 调研 python 中文件操作的的 read(), readline() 和 readlines()
+
+* [v] qa: review 10.19
+
+    14:14 ~ 14:57
+
+    feedback:
+
+    * [ ] review 时显示 unit 的 file 和 id
+
+* [v] py 中，open file 时`a+`表示什么，只有`a`可以吗？`a`或`a+`可以在文件不存在时创建文件吗？如果不能，如何创建文件？
 
 * [ ] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
 
@@ -1563,9 +1573,9 @@
 
     15:30 ~ 17:24
 
-    * [ ] `std::is_base_of`
+* [ ] `std::is_base_of`
 
-        调研`std::is_base_of<Base, Derived>`的使用方法
+    调研`std::is_base_of<Base, Derived>`的使用方法
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -1581,11 +1591,138 @@
 
     为什么返回值会有两个，outputs.data 又是什么？
 
-* [ ] Introduction to Deep Learning
+* [v] Introduction to Deep Learning
 
     <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
 
     页面最下方的 explore 看一下。
+
+    feedback:
+
+    * [ ] F1 Score
+
+    * [ ] Feedforward Neural Network
+
+        <https://www.geeksforgeeks.org/nlp/feedforward-neural-network/>
+
+        文本中的链接和下面的 explore 可以看看，正文本身没什么要看的。
+
+    * [ ] Introduction to Convolution Neural Network
+
+        <https://www.geeksforgeeks.org/machine-learning/introduction-convolution-neural-network/>
+
+    * [ ] Introduction to Recurrent Neural Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/introduction-to-recurrent-neural-network/>
+
+    * [ ] Generative Adversarial Network (GAN)
+
+        <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-network-gan/>
+
+    * [ ] Autoencoders in Machine Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/auto-encoders/>
+
+    * [ ] Transformers in Machine Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/getting-started-with-transformers/>
+
+    * [ ] Artificial intelligence vs Machine Learning vs Deep Learning
+
+        <https://www.geeksforgeeks.org/artificial-intelligence/artificial-intelligence-vs-machine-learning-vs-deep-learning/>
+
+    * [ ] Deep Learning Examples: Practical Applications in Real Life
+
+        <https://www.geeksforgeeks.org/deep-learning/deep-learning-examples/>
+
+    * [ ] Challenges in Deep Learning
+
+        <https://www.geeksforgeeks.org/deep-learning/challenges-in-deep-learning/>
+
+    * [ ] Why Deep Learning is Important
+
+        <https://www.geeksforgeeks.org/deep-learning/why-deep-learning-is-important/>
+
+    * [ ] What is a Neural Network?
+
+        <https://www.geeksforgeeks.org/machine-learning/neural-networks-a-beginners-guide/>
+
+    * [ ] Types of Neural Networks
+
+        <https://www.geeksforgeeks.org/deep-learning/types-of-neural-networks/>
+
+    * [ ] Layers in Artificial Neural Networks (ANN)
+
+        <https://www.geeksforgeeks.org/deep-learning/layers-in-artificial-neural-networks-ann/>
+
+    * [ ] Activation functions in Neural Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/activation-functions-neural-networks/>
+
+    * [ ] Backpropagation in Neural Network
+
+        <https://www.geeksforgeeks.org/machine-learning/backpropagation-in-neural-network/>
+
+    * [ ] Convolutional Neural Network (CNN) in Machine Learning
+
+        <https://www.geeksforgeeks.org/deep-learning/convolutional-neural-network-cnn-in-machine-learning/>
+
+
+    * [ ] What is LSTM - Long Short Term Memory?
+
+        <https://www.geeksforgeeks.org/deep-learning/deep-learning-introduction-to-long-short-term-memory/>
+
+    * [ ] Gated Recurrent Unit Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/gated-recurrent-unit-networks/>
+
+    * [ ] PyTorch Tutorial
+
+        <https://www.geeksforgeeks.org/deep-learning/pytorch-learn-with-examples/>
+
+    * [ ] Gradient Descent Algorithm in Machine Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/gradient-descent-algorithm-and-its-variants/>
+
+    * [ ] Momentum-based Gradient Optimizer - ML
+
+        <https://www.geeksforgeeks.org/machine-learning/ml-momentum-based-gradient-optimizer-introduction/>
+
+    * [ ] Adagrad Optimizer in Deep Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/intuition-behind-adagrad-optimizer/>
+
+    * [ ] RMSProp Optimizer in Deep Learning
+
+        <https://www.geeksforgeeks.org/deep-learning/rmsprop-optimizer-in-deep-learning/>
+
+    * [ ] What is Adam Optimizer?
+
+        <https://www.geeksforgeeks.org/deep-learning/adam-optimizer/>
+
+    * [ ] Lung Cancer Detection using Convolutional Neural Network (CNN)
+
+        <https://www.geeksforgeeks.org/deep-learning/lung-cancer-detection-using-convolutional-neural-network-cnn/>
+
+    * [ ] Cat & Dog Classification using Convolutional Neural Network in Python
+
+        <https://www.geeksforgeeks.org/deep-learning/cat-dog-classification-using-convolutional-neural-network-in-python/>
+
+    * [ ] Sentiment Analysis with an Recurrent Neural Networks (RNN)
+
+        <https://www.geeksforgeeks.org/python/sentiment-analysis-with-an-recurrent-neural-networks-rnn/>
+
+    * [ ] Text Generation using Recurrent Long Short Term Memory Network
+
+        <https://www.geeksforgeeks.org/machine-learning/text-generation-using-recurrent-long-short-term-memory-network/>
+
+    * [ ] Deep Learning Interview Questions
+
+        <https://www.geeksforgeeks.org/deep-learning/deep-learning-interview-questions/>
+
+    * [ ] Machine Translation with Transformer in Python
+
+        <https://www.geeksforgeeks.org/nlp/machine-translation-with-transformer-in-python/>
 
 * [ ] reorg: 正则表达式 30 mins
 
@@ -2166,7 +2303,15 @@ resources:
 
 ### tasks
 
-* [ ] 稀疏矩阵如何加速矩阵乘？
+* [O] 稀疏矩阵如何加速矩阵乘？
+
+    deps:
+
+    * [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
+
+    * [ ] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
+
+    * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
 
 * [ ] Create Model using Custom Module in Pytorch
 
@@ -2280,7 +2425,9 @@ resources:
 
         > 2d Max pooling
 
-* [ ] Batch Normalization Implementation in PyTorch
+* [v] Batch Normalization Implementation in PyTorch
+
+    19:13 ~ 19:35
 
     <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
 
@@ -2618,7 +2765,9 @@ resources:
 
 ### tasks
 
-* [ ] 多元函数
+* [v] 多元函数
+
+    15:15 ~ 15:44
 
 * [ ] 多元函数的极限
 
@@ -2713,7 +2862,7 @@ resources:
 
 ### tasks
 
-* [ ] `devm_platform_ioremap_resource()`
+* [v] `devm_platform_ioremap_resource()`
 
 * [ ] 调研驱动的 suspend, resume 函数
 
@@ -3771,7 +3920,7 @@ resources:
 
 ### tasks
 
-* [ ] 调研`grep -E`
+* [v] 调研`grep -E`
 
     写法：
 
@@ -3798,13 +3947,11 @@ resources:
 
     `ls -alht`, `ls -lhR`
 
-    feedback:
+* [ ] `ls -lt`, `ls -i`, `ls -n`
 
-    * [ ] `ls -lt`, `ls -i`, `ls -n`
-    
-    * [ ] `ls --color=auto`
+* [ ] `ls --color=auto`
 
-    * [ ] `ls -alht`, `ls -lhR`
+* [ ] `ls -alht`, `ls -lhR`
 
 * [ ] 调研`:tag function_name` - 跳转到指定标签
 
