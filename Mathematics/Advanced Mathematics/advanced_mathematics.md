@@ -2,6 +2,46 @@
 
 ## cache
 
+* 多元函数
+
+    把二元函数定义中的平面点集$D$换成 n 维空间$\mathbf R^n$内的点集$D$，映射$f: D \to \mathbf R$就称为定义在$D$上的 n 元函数，通常记为
+
+    $$u = f(x_1, x_2, \cdots, x_n), \ (x_1, x_2, \cdots, x_n) \in D$$
+
+    或简讯为
+
+    $$u = f(\boldsymbol x), \ \boldsymbol x = (x_1, x_2, \cdots, x_n) \in D$$
+
+* 二元函数
+
+    设$D$是$\mathbf R^2$的一个非空子集，称映射$f: D \to \mathbf R$为定义在$D$上的二元函数，通常记为
+
+    $$z = f(x, y),\ (x, y) \in D$$
+
+    或
+
+    $$z = f(P),\ P \in D$$
+
+    其中点集$D$称为该函数的定义域，$x$, $y$称为自变量，$z$称为因变量。
+
+    example:
+
+    * $z = ax + by + c$是一张平面
+
+    * $z = x^2 + y^2$是旋转抛物面
+
+    * $z = \sin(xy)$
+
+    隐函数方程：
+
+    $F(x, y, z) = 0$
+
+    example:
+
+    * 球面：$x^2 + y^2 + z^2 - 1 = 0$
+
+    * $e^z + xyz = 0$
+
 * n 维空间
 
     设$n$为取定的一个自然数，我们用$\mathbf R^n$表示$n$元有序数组$(x_1, x_2, \cdots, x_n)$的全体所构成的集合，即

@@ -2,6 +2,117 @@
 
 ## cached
 
+* py 中，open file 时`a+`表示追加并且可读，只有`a`表示追加，但是读取文件时会报错
+
+    example:
+
+    * 只可追加，不可读
+
+        ```py
+        with open('test_doc.txt', "a") as f:
+            content = f.read()
+        print(content)
+        ```
+
+        output:
+
+        ```
+        Traceback (most recent call last):
+          File "/home/hlc/Documents/Projects/python_test/main_2.py", line 2, in <module>
+            content = f.read()
+                      ^^^^^^^^
+        io.UnsupportedOperation: not readable
+        ```
+
+    * 既可追加，又可读
+
+        ```py
+        with open('test_doc.txt', "a+") as f:
+            content = f.read()
+        print('first read:')
+        print(content)
+
+        with open('test_doc.txt', "a+") as f:
+            f.seek(0)
+            content = f.read()
+        print('second read:')
+        print(content)
+        ```
+
+        output:
+
+        ```
+        first read:
+
+        second read:
+        你好
+        世界
+        nihao
+        zaijian
+        ```
+
+        可以看到，第一次读文件时，没有内容。因为`a+`模式，默认当前位置在文件末尾。
+
+* python 中 is 关键字用于身份比较（identity comparison），它检查两个变量是否引用内存中的同一个对象。
+
+    example:
+
+    ```py
+    # 比较两个变量是否指向同一个对象
+    a = [1, 2, 3]
+    b = a  # b 和 a 指向同一个列表对象
+    c = [1, 2, 3]  # c 指向一个新的列表对象
+
+    print(a is b)  # True - 同一个对象
+    print(a is c)  # False - 值相同但不是同一个对象
+
+    # 与 None 的比较（推荐用法）
+    x = None
+    print(x is None)  # True
+    print(x is not None)  # False
+    ```
+
+    * is 与 == 的区别:
+
+        ```py
+        # is: 身份比较（是否同一个对象）
+        # ==: 值比较（值是否相等）
+
+        a = ''
+        b = ''
+
+        print(a == b)  # True - 值相等
+        print(a is b)  # 可能为 True 或 False，取决于字符串驻留
+        ```
+
+    * 小整数和字符串驻留
+
+        Python 会对小整数和某些字符串进行驻留优化：
+
+        ```py
+        # 小整数（-5 到 256）会被缓存
+        a = 100
+        b = 100
+        print(a is b)  # True
+
+        # 空字符串通常也会被驻留
+        a = ''
+        b = ''
+        print(a is b)  # True（在大多数实现中）
+        ```
+
+    * 正确的 None 比较方式
+
+        ```py
+        # 推荐：使用 is 来比较 None
+        if x is None:
+            print("x is None")
+
+        # 不推荐：使用 == 来比较 None
+        if x == None:  # 能工作，但不推荐
+            print("x == None")
+        ```
+
 * python 读文件
 
     `read([size])`: 一次性读取整个文件内容，并将其作为一个字符串返回。

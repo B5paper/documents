@@ -2,6 +2,142 @@
 
 ## cache
 
+* 稀疏矩阵乘法
+
+    加速算法简述（以 CSR x CSC 为例）：
+
+    1. 外层循环：遍历矩阵A的每一行 i（利用CSR的 row_ptr）。
+
+    2. 中层循环：对于A的第 i 行，遍历该行的每一个非零元素 A(i,k)（利用CSR的 col_indices 和 values）。这个 k 是A的列号，同时也是B的行号。
+
+    3. 内层循环：对于每个 k，找到矩阵B的第 k 行（即CSC格式下的第 k 列）。遍历B的第 k 行上的每一个非零元素 B(k,j)（利用CSC的 row_indices 和 values）。
+
+    4. 累加：将乘积 A(i,k) * B(k,j) 累加到结果矩阵 C(i,j) 上。
+
+    我们只处理那些可能产生非零结果的计算。
+
+* Natural language processing (NLP) 常见的任务
+
+    * Automatic Text Generation: Deep learning model can learn the corpus of text and new text like summaries, essays can be automatically generated using these trained models.
+
+    * Language translation: Deep learning models can translate text from one language to another, making it possible to communicate with people from different linguistic backgrounds. 
+
+    * Sentiment analysis: Deep learning models can analyze the sentiment of a piece of text, making it possible to determine whether the text is positive, negative or neutral.
+
+    * Speech recognition: Deep learning models can recognize and transcribe spoken words, making it possible to perform tasks such as speech-to-text conversion, voice search and voice-controlled devices. 
+
+* Batch Normalization
+
+    Batch Normalization (BN) is a critical technique in the training of neural networks, designed to address issues like vanishing or exploding gradients during training.
+
+    Batch Normalization(BN) is a popular technique used in deep learning to improve the training of neural networks by normalizing the inputs of each layer.
+
+    How Batch Normalization works?
+
+    1. During each training iteration (epoch), BN takes a mini batch of data and normalizes the activations (outputs) of a hidden layer. This normalization transforms the activations to have a mean of 0 and a standard deviation of 1.
+
+    2. While normalization helps with stability, it can also disrupt the network's learned features. To compensate, BN introduces two learnable parameters: gamma and beta. Gamma rescales the normalized activations, and beta shifts them, allowing the network to recover the information present in the original activations.
+
+    It ensures that each element or component is in the right proportion before distributing the inputs into the layers and each layer is normalized before being passed to the next layer.
+
+    PyTorch provides the nn.BatchNormXd module (where X is 1 for 1D data, 2 for 2D data like images, and 3 for 3D data) for convenient BN implementation.
+
+    example:
+
+    ```py
+    # Define your neural network architecture with batch normalization
+    class MLP(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layers = nn.Sequential(
+                nn.Flatten(),                   # Flatten the input image tensor
+                nn.Linear(28 * 28, 64),         # Fully connected layer from 28*28 to 64 neurons
+                nn.BatchNorm1d(64),             # Batch normalization for stability and faster convergence
+                nn.ReLU(),                      # ReLU activation function
+                nn.Linear(64, 32),              # Fully connected layer from 64 to 32 neurons
+                nn.BatchNorm1d(32),             # Batch normalization for stability and faster convergence
+                nn.ReLU(),                      # ReLU activation function
+                nn.Linear(32, 10)               # Fully connected layer from 32 to 10 neurons (for MNIST classes)
+            )
+
+        def forward(self, x):
+            return self.layers(x)
+    ```
+
+    BN 放在 ReLU 之前和之后的区别：
+
+    * BN 在 ReLU 之前（更常见的情况）：
+
+        * 数据分布更对称
+
+            ```py
+            # BN 先将输入规范化为 ~N(0,1)
+            # 这样 ReLU 激活时，约50%的神经元会被激活
+            normalized = BN(linear_output)  # ~N(0,1)
+            activated = ReLU(normalized)    # 一半为0，一半为正
+            ```
+
+        * 避免ReLU的Dead Neuron问题
+
+            如果某些神经元输出总是负值，ReLU会使其完全失活, BN先进行归一化，减少这种情况
+
+        * 与原始论文一致
+
+            Batch Normalization 原始论文推荐放在激活函数之前
+
+    * BN在ReLU之后:
+
+        * 激活值直接归一化
+
+            ```py
+            activated = ReLU(linear_output)  # 都是非负数
+            normalized = BN(activated)       # 归一化非负分布
+            ```
+
+        * 直接对激活后的值进行归一化, 可能在某些情况下更稳定
+
+    两种顺序性能差异通常很小，可能因网络架构、数据集而异。
+
+
+    对于某些激活函数，比如 Sigmoid/Tanh，顺序可能更重要，BN 在前可以防止饱和。对于 Leaky ReLU：两种顺序差异可能更小
+
+    BN 可能有害的情况:
+
+    1. 小批量大小（Small Batch Size）
+
+        ```py
+        # 当 batch_size 很小时
+        batch_size = 2  # 或者 4, 8
+        nn.BatchNorm1d(64)  # 这时候BN的统计估计不可靠，可能损害性能
+        ```
+
+    2. RNN/LSTM 等序列模型
+
+        在RNN中BN很难用，通常用LayerNorm代替, 因为序列长度变化，BN统计不稳定, 数据分布一直在变，BN的running stats跟不上
+
+    3. 噪声敏感的任务
+
+        在一些对噪声敏感的任务中, BN引入的随机性（来自batch统计）可能有害
+
+    4. 某些生成模型
+
+        GANs中BN有时会导致模式崩溃, 很多现代GAN用LayerNorm或InstanceNorm代替
+
+    BN 更好用的情况：
+
+    - 大型数据集（ImageNet等）
+    - 足够大的batch_size（32+）
+    - 卷积网络/MLP
+    - 稳定的数据分布
+
+    Benefits of Batch Normalization
+
+    * Faster Convergence: By stabilizing the gradients, BN allows you to use higher learning rates, which can significantly speed up training.
+    
+    * Reduced Internal Covariate Shift: As the network trains, the distribution of activations within a layer can change (internal covariate shift). BN helps mitigate this by normalizing activations before subsequent layers, making the training process less sensitive to these shifts.
+
+    * Initialization Insensitivity: BN makes the network less reliant on the initial weight values, allowing for more robust training and potentially better performance.
+
 * Apply a 2D Max Pooling in PyTorch
 
     There are two main types of pooling used in deep learning: Max Pooling and Average Pooling.

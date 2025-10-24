@@ -6,6 +6,28 @@
 
 ## cache
 
+* `grep -E`
+
+    主要特点：
+
+    * 支持扩展正则语法：可以使用 |, +, ?, {} 等元字符而无需转义
+
+    * 等同于 egrep：grep -E 与 egrep 命令功能相同
+
+    * 更强大的模式匹配：相比基本正则表达式，提供更丰富的模式匹配能力
+
+    `grep -E "keyword1|keyword2|keyword3" file.txt`: 在 file.txt 文件中搜索包含 keyword1 或 keyword2 或 keyword3 任意一个关键词的所有行。
+
+    ```bash
+    # 使用基本正则表达式（需要转义 |）
+    grep "keyword1\|keyword2\|keyword3" file.txt
+
+    # 使用扩展正则表达式（更简洁）
+    grep -E "keyword1|keyword2|keyword3" file.txt
+    ```
+
+    `|`前后不能有空格，如果有空格，那么空格也会被匹配，是 keyword 的一部分。
+
 * `ls -R`
 
     递归列出目录及其所有子目录中的内容。

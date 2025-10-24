@@ -6,6 +6,44 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `EXIT_FAILURE`
+
+    EXIT_FAILURE 定义在 C 标准库头文件 <stdlib.h> 中，用于表示程序异常终止的退出状态。
+
+    syntax:
+
+    ```c
+    #include <stdlib.h>
+
+    // 典型定义示例
+    #define EXIT_FAILURE 1    // 常见的实现值
+    #define EXIT_SUCCESS 0    // 成功的退出状态
+    ```
+
+    example:
+
+    ```c
+    #include <stdlib.h>
+
+    // void exit(int status);  // status 可以是 EXIT_SUCCESS 或 EXIT_FAILURE
+
+    #include <stdlib.h>
+
+    void cleanup(void) {
+        printf("执行清理操作...\n");
+    }
+
+    int main() {
+        atexit(cleanup);  // 注册退出时执行的函数
+        
+        if (some_error_condition) {
+            exit(EXIT_FAILURE);  // 退出时会自动调用 cleanup()
+        }
+        
+        return EXIT_SUCCESS;
+    }
+    ```
+
 * `#if ! MY_MACRO`
 
     检查宏 MY_MACRO 是否未定义或值为0，如果满足条件，则编译其后的代码。

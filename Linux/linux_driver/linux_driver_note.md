@@ -6,6 +6,57 @@ Ref:
 
 ## cache
 
+* `devm_platform_ioremap_resource()`
+
+    将平台设备（platform device）的指定内存资源映射到内核虚拟地址空间，并自动进行资源管理和错误处理。
+
+    syntax:
+
+    ```c
+    void __iomem *devm_platform_ioremap_resource(struct platform_device *pdev, unsigned int index);
+    ```
+
+    example:
+
+    ```c
+    struct resource *res;
+    void __iomem *base;
+
+    // 传统方式需要手动管理
+    res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+    base = devm_ioremap_resource(&pdev->dev, res);
+
+    // 使用devm_platform_ioremap_resource简化
+    base = devm_platform_ioremap_resource(pdev, 0);
+    ```
+
+* MMIO 的缓存问题
+
+    在 MMIO 区域，刚写入就读取不会读到未写入的值，因为在映射 MMIO 区域时，通常会标记为非缓存（Uncached）。另外编译器在处理 iowrite() / ioread() 相关的函数时，会不进行优化，防止乱序执行。
+
+* qemu edu 写入状态寄存器`0x20`
+
+    ```c
+    int edu_open(struct inode *, struct file *) {
+        pr_info("in edu_open()...\n");
+        pr_info("base_addr_bar0: %p\n", base_addr_bar0);
+        iowrite32(0x80, base_addr_bar0 + 0x20);
+        uint32_t val = ioread32(base_addr_bar0 + 0x20);
+        pr_info("val: %d\n", val);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    [ 1275.443425] in edu_open()...
+    [ 1275.443437] base_addr_bar0: 00000000a6ddd184
+    [ 1275.443538] val: 128
+    [ 1275.443577] in edu_read()...
+    [ 1275.443614] in edu_release()...
+    ```
+
 * 如果只有 cdev，没有 device 设备文件节点，不可以调用 cdev 绑定的 fops 驱动
 
 * `pci_alloc_dev()`
