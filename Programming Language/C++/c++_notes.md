@@ -4,6 +4,106 @@
 
 ## cached
 
+* c++ 中的奇异递归模板（CRTP）
+
+    当一个基类中包含派生类相关的信息时，就需要用到奇异递归模板 。
+
+    一个简单的 example:
+
+    ```cpp
+    #include <string>
+    using namespace std;
+
+    template <typename T>
+    struct BaseType {
+        T *p_obj;
+    };
+
+    struct MyType: BaseType<MyType> {
+        int val;
+        std::string name;
+    };
+
+    int main() {
+        MyType obj;
+        obj.val = 123;
+        obj.name = "hello, world";
+        obj.p_obj = &obj;
+    }
+    ```
+
+    假如我们希望在`BaseType`中包含一个指向派生类`MyType`的指针。由于在定义`BaseType`时，还没定义`MyType`，所以我们用模板类型先占位。接下来定义派生类，它需要继承自`BaseType`，但是`BaseType`又是一个模板类，模板参数填什么？填当前的派生类`MyType`。这里比较迷惑，因为`MyType`的定义竟然依赖自身的类型？这就是这个方法名称中递归的含义。然而这是可行的，因为`BaseType`中存储的是`T*`指针，所以每个类型的占用内存大小都能被算出来。
+
+    这个方法在什么情况下使用？如果我们希望几个类都有相同的某些属性，而这些属性又与当前类相关时，就可以使用 CRTP。
+
+    example:
+
+    * 与当前类型无关的继承，可以使用普通模板
+
+        ```cpp
+        #include <string>
+        using namespace std;
+
+        template <typename T>
+        struct BaseType {
+            T val;
+        };
+
+        struct FloatType: BaseType<float> {
+            std::string name;
+        };
+
+        struct IntType: BaseType<int> {
+            std::string name;
+        };
+
+        int main() {
+            FloatType flt_obj;
+            flt_obj.name = "float type";
+            flt_obj.val = 123.00;
+
+            IntType int_obj;
+            int_obj.name = "int obj";
+            int_obj.val = 456;
+
+            return 0;
+        }
+        ```
+
+    * 与当前类型相关的继承，可以使用递归模板
+
+        通常基类模板的成员包含当前类的指针。
+
+        ```cpp
+        #include <string>
+        using namespace std;
+
+        template <typename T>
+        struct BaseType {
+            T *p_obj;
+        };
+
+        struct MyType_1: BaseType<MyType_1> {
+            std::string name;
+        };
+
+        struct MyType_2: BaseType<MyType_2> {
+            std::string name;
+        };
+
+        int main() {
+            MyType_1 obj_1;
+            obj_1.name = "my type 1";
+            obj_1.p_obj = &obj_1;
+
+            MyType_2 obj_2;
+            obj_2.name = "my type 2";
+            obj_2.p_obj = &obj_2;
+
+            return 0;
+        }
+        ```
+
 * `is_pointer_v`
 
     `is_pointer_v<T>`检查一个类型 T 是否为指针类型，等价于`is_pointer<T>::value`。
