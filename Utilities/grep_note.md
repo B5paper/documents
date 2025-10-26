@@ -2,6 +2,58 @@
 
 ## cache
 
+* `grep -z`
+
+    grep -z 将输入数据中的 空字符（NUL, \0） 视为行分隔符，而不是默认的换行符。这使得它能够处理包含多行文本的“记录”，甚至处理二进制文件。
+
+    行为对比：
+
+    1. 默认行为 (grep 不加 -z)
+
+        * 记录分隔符： 换行符 (\n)
+
+        * 工作方式： grep 一次读取一行（以 \n 分隔）进行模式匹配。
+
+        * 问题： 如果一段文本跨越多行，并且你希望将这多行作为一个整体来搜索，默认的 grep 就无法直接做到。
+
+    2. 使用 -z 或 --null-data 的行为
+
+        * 记录分隔符： 空字符 (\0)
+
+        * 工作方式： grep 会读取数据，直到遇到一个 NUL 字符，然后将这整个数据块（可能包含很多换行符）作为一个单一的“记录”进行模式匹配。
+
+    * 匹配一个跨越多行的模式：
+
+        example:
+
+        `test.txt`:
+
+        ```
+        Start of block
+        This is a pattern we want
+        End of block
+        Another line
+        ```
+
+        run:
+        
+        `grep -z 'block.*pattern' test.txt`
+
+        output:
+
+        ```
+        Start of block
+        This is a pattern we want
+        End of block
+        Another line
+        ```
+
+        其中第一行的`block`和第二行的`This is a pattern`被标红。
+
+        可以看到，整个文本会被全部输出。看来这个功能只能用于跨行的标红。
+
+        `.`本身不匹配`\n`，但是在`grep -z`中可以匹配。
+
 * `grep -o`
 
     `-o`等价于`--only-matching`，仅输出匹配到的文本部分（而非整行）

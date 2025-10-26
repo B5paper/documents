@@ -2,6 +2,47 @@
 
 ## cached
 
+* 打开文件时`a+`的行为分析
+
+    使用`a+`打开时，`seek()`只对读取有效，对写入无效，写入总是发生在文件末尾。
+
+    example:
+
+    ```py
+    with open('msg.txt', 'a+') as f:
+        f.write('hello\n')
+        f.seek(0)
+        f.write('world\n')
+
+        print('first read:')
+        content = f.read()
+        print(content)
+        print('')
+
+        print('second read:')
+        f.seek(0)
+        content = f.read()
+        print(content)
+    ```
+
+    output:
+
+    ```
+    first read:
+
+
+    second read:
+    hello
+    world
+
+    ```
+
+    可以看到，虽然在`f.write('world\n')`之前调用了`f.seek(0)`，但是写入的`world`仍然在`hello`后面。
+
+    另外，调用完`f.write()`后，当前 pos 位置又变到文件末尾，所以第一次`f.read()`没有读到内容。
+
+    `a+`模式下，虽然`seek()`不影响`write()`的行为，但是影响`read()`的行为，可以看到第二次 read 读到了文件的内容。
+
 * py 中，open file 时`a+`表示追加并且可读，只有`a`表示追加，但是读取文件时会报错
 
     example:

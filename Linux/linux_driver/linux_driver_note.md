@@ -6,6 +6,139 @@ Ref:
 
 ## cache
 
+* Suspend（挂起）函数
+
+    在 suspend 函数中，驱动通常需要做以下几件事：
+
+    1. 保存设备状态：将设备当前关键的运行时状态（例如寄存器配置）保存起来，以便在 resume 时能恢复原样。
+
+    2. 降低设备功耗：
+
+        * 关闭设备时钟。
+
+        * 将设备置于其硬件支持的睡眠模式。
+
+        * 切断设备不需要的电源域（如果软件可控）。
+
+    3. 处理未完成的操作：确保所有挂起的I/O操作被妥善处理，避免数据丢失。
+
+    4. 释放共享资源：可能会释放一些系统级的共享资源，如中断、DMA通道等，以便整个系统能更彻底地休眠。
+
+* Resume（恢复）函数
+
+    在 resume 函数中，驱动通常需要做以下几件事：
+
+    1. 恢复电源和时钟：重新开启设备的时钟和电源。
+
+    2. 重新初始化设备：
+
+        * 将从 suspend 中保存的设备状态重新写入设备的寄存器。
+
+        * 执行一系列初始化序列，让设备回到它“睡着”之前的工作状态。
+
+    3. 重新申请资源：重新申请中断、DMA通道等系统资源。
+
+    4. 恢复正常操作：告知设备可以开始正常处理数据了。
+
+* suspend 和 resume 的 example
+
+    在现代 Linux 内核中，suspend 和 resume 函数通常被赋值给一个 struct dev_pm_ops 结构体的成员，或者更简单地，通过 DEFINE_SIMPLE_DEV_PM_OPS 宏来定义。
+
+    ```c
+    #include <linux/pm.h>
+
+    static int my_driver_suspend(struct device *dev)
+    {
+        struct my_device_data *data = dev_get_drvdata(dev);
+
+        /* 1. 保存设备状态到 data->saved_reg */
+        /* 2. 将设备设置为睡眠模式 */
+        /* 3. 关闭设备时钟 */
+        return 0;
+    }
+
+    static int my_driver_resume(struct device *dev)
+    {
+        struct my_device_data *data = dev_get_drvdata(dev);
+
+        /* 1. 打开设备时钟 */
+        /* 2. 将设备从睡眠模式唤醒 */
+        /* 3. 从 data->saved_reg 恢复设备状态 */
+        return 0;
+    }
+
+    /* 定义电源操作结构 */
+    static const struct dev_pm_ops my_driver_pm_ops = {
+        .suspend = my_driver_suspend,
+        .resume = my_driver_resume,
+        /* 可能还有 .freeze, .thaw, .poweroff 等更细粒度的回调 */
+    };
+
+    /* 在驱动注册时，将这个 pm_ops 关联到设备 */
+    static struct platform_driver my_driver = {
+        .driver = {
+            .name = "my_device",
+            .pm = &my_driver_pm_ops, // 这里是关键
+        },
+        .probe = my_probe,
+        .remove = my_remove,
+    };
+    ```
+
+* S3（Standby/挂起到内存）和S4（Hibernate/挂起到硬盘）
+
+    struct dev_pm_ops 的结构体中，主要包含以下几对函数:
+
+    1. `.suspend` / `.resume`
+
+        主要用于： 运行时电源管理（Runtime PM）和（在较老的内核中）系统睡眠的一部分。但在现代内核中，对于系统睡眠，它们通常被更具体的回调所取代。
+
+    1. `.freeze` / `.thaw`
+
+        主要用于： 为休眠（Hibernate）做准备。
+
+        作用： 在创建休眠镜像之前，.freeze 会被调用来让设备进入一个安静、静止的状态，但它不一定要让设备进入低功耗模式。重点是停止所有I/O操作，并让设备处于一个已知的、稳定的状态，以便内核能安全地创建一个完整的内存镜像并保存到硬盘（S4状态）。
+
+    1. `.poweroff` / `.restore` (或 `.suspend_noirq` / `.resume_noirq` 的特定阶段)
+
+        主要用于： S3睡眠（挂起到内存） 和 S4睡眠（休眠）的最后阶段。
+
+        作用： 这是真正让设备进入低功耗状态的函数。对于S3，它会切断设备电源，只保留内存供电；对于S4，在内存镜像保存完毕后，它会最终关闭设备电源。
+
+    1. `.suspend_late` / `.resume_early`
+
+        这些是在进程和中断被禁用/启用前后执行的，用于执行一些非常关键、需要原子上下文的操作。
+
+* S3睡眠（挂起到内存）流程
+
+    1. 冻结用户空间和进程。
+
+    2. 调用驱动的`.suspend`或`.freeze`回调（让设备安静下来）。
+
+    3. 执行系统核心的 suspend_late 操作。
+
+    4. 禁用设备中断。
+
+    5. 调用驱动的 .suspend_noirq 或 .poweroff 回调（这是最关键的一步，在这里驱动会真正切断设备时钟/电源，将其置于S3要求的低功耗状态）。
+
+    6. 系统进入S3状态，仅内存保持刷新。
+
+    恢复时，顺序相反。
+
+* S4睡眠（休眠到硬盘）流程
+
+    1. 冻结用户空间和进程。
+
+    2. 调用驱动的`.freeze`回调（让设备进入静止状态，以便创建内存镜像）。
+
+    3. 内核将整个内存内容写入硬盘的交换区（创建休眠镜像）。
+
+    4. 调用驱动的`.poweroff`回调（既然内存镜像已保存，现在可以安全地关闭设备电源了）。
+
+    5. 系统完全断电（S4状态）。
+
+    恢复时，这是一个“重启”过程：BIOS/UEFI启动 -> 内核从休眠镜像重新加载 -> 调用驱动的`.restore`回调重新初始化设备 -> 解冻进程和用户空间。
+
 * `devm_platform_ioremap_resource()`
 
     将平台设备（platform device）的指定内存资源映射到内核虚拟地址空间，并自动进行资源管理和错误处理。

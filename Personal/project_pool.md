@@ -28,6 +28,8 @@
 
 ## cache
 
+* 以前的科学家、艺术家受到疾病、战争、经济、政治等因素的影响比较多，似乎如果有经济保障和稳定的科研环境，那么就可以有无限的重大成果和产出。现代的人受到功名、声誉、学术成果、论文、金钱、权利、学术帮派的诱惑比较多，导致了即使有稳定的科研环境，也很难有创新和成果。虽然时代变了，但是我们身上的枷锁仍然没有减少。
+
 * 飞机气压
 
     机舱气压不是“地面气压”，而是“模拟海拔气压”。飞机的加压系统，并不是把机舱一直维持在海平面的标准大气压（约1013 hPa），而是将机舱内部的气压维持在一个相当于海拔1500-2500米的水平。如果将机舱完全加压到地面气压，会对飞机机身结构（特别是窗户和舱门）造成巨大的压力差，需要更厚重的材料，大大增加重量和燃油消耗。因此，这是一个权衡后的结果。
@@ -1016,17 +1018,9 @@
 
 ### tasks
 
-* [v] 调研 py 中`is`的用法，为什么`'' is None`会出错？
-
 * [ ] 调研 py 中如何实现 enum？
 
-* [v] `EXIT_FAILURE`是否为一个宏？同类型的宏还有哪些？
-
-    15:50 ~ 15:59
-
-    `exit(EXIT_FAILURE);`
-
-* [ ] 调研 nasm
+* [v] 调研 nasm
 
     linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
 
@@ -1092,12 +1086,6 @@
         <https://www.freedos.org/books/get-started/>
 
 * [ ] 调研 freedos bonus iso
-
-* [v] edu driver 在 opeo dev 时 iowrite 写入`0x20 (RW)status register`，将`0x80`设置为 1，然后再读取 0x20，看是否是`1000 0000`。
-
-    16:20 ~ 16:47
-
-    mmio 如何保证缓存一致性？或者说，刚写入就读取，是否会读到还未写入的值？
 
 * [O] reorg linux driver
 
@@ -1290,19 +1278,13 @@
 
 ### Tasks
 
-* [v] 调研 python 中文件操作的的 read(), readline() 和 readlines()
-
 * [v] qa: review 10.19
 
     14:14 ~ 14:57
 
-    feedback:
+* [ ] review 时显示 unit 的 file 和 id
 
-    * [ ] review 时显示 unit 的 file 和 id
-
-* [v] py 中，open file 时`a+`表示什么，只有`a`可以吗？`a`或`a+`可以在文件不存在时创建文件吗？如果不能，如何创建文件？
-
-* [ ] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
+* [v] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
 
 * [ ] py 中的 list 如何 unique 化？
 
@@ -1579,19 +1561,9 @@
 
         > 我写代码量化交易，彻底解决情绪化交易的问题
 
-* [v] process 1 tab 10.21
-
-* [v] process 1 tab 10.20
-
-    15:37 ~ 17:18
-
-* [ ] awk
+* [v] awk
 
 * [ ] sed
-
-* [v] process 1 tab 10.18
-
-    15:30 ~ 17:24
 
 * [ ] `std::is_base_of`
 
@@ -2445,15 +2417,15 @@ resources:
 
         > 2d Max pooling
 
-* [v] Batch Normalization Implementation in PyTorch
-
-    19:13 ~ 19:35
-
-    <https://www.geeksforgeeks.org/deep-learning/batch-normalization-implementation-in-pytorch/>
-
-* [ ] Difference Between "Hidden" and "Output" in PyTorch LSTM
+* [O] Difference Between "Hidden" and "Output" in PyTorch LSTM
 
     <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
+
+    feedback:
+
+    * [ ] torch `unsqueeze()`
+
+    * [ ] `torch.cat`
 
 * [ ] Generative Adversarial Networks (GANs) in PyTorch
 
@@ -2785,10 +2757,6 @@ resources:
 
 ### tasks
 
-* [v] 多元函数
-
-    15:15 ~ 15:44
-
 * [ ] 多元函数的极限
 
 * [ ] 多元函数的连续性
@@ -2882,9 +2850,7 @@ resources:
 
 ### tasks
 
-* [v] `devm_platform_ioremap_resource()`
-
-* [ ] 调研驱动的 suspend, resume 函数
+* [v] 调研驱动的 suspend, resume 函数
 
 * [ ] `dma_sync_single_for_cpu()`
 
@@ -3940,13 +3906,9 @@ resources:
 
 ### tasks
 
-* [v] 调研`grep -E`
+* [v] 调研`grep -z`处理跨行文本
 
-    写法：
-
-    `grep -E "keyword1|keyword2|keyword3" file.txt`
-
-* [ ] 调研`grep -z`处理跨行文本
+    15:15 ~ 15:56
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 
@@ -3960,12 +3922,6 @@ resources:
 * [ ] 调研`grep -w`
 
     > -w 选项匹配整个单词
-
-* [v] 调研 ls 相关
-
-    `ls -R`, `ls -lS`, `ls -lr`, `ls -lt`, `ls -i`, `ls -n`, `ls --color=auto`
-
-    `ls -alht`, `ls -lhR`
 
 * [ ] `ls -lt`, `ls -i`, `ls -n`
 

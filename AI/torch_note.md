@@ -2,6 +2,184 @@
 
 ## cache
 
+* 一个可以跑通的 lstm example
+
+    ```py
+    import torch
+    import torch.nn as nn
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # ==== 超参数 ====
+    seq_len = 20       # 每个输入序列长度
+    hidden_size = 64   # LSTM 隐层维度
+    num_layers = 1
+    num_epochs = 200
+    lr = 0.01
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    # ==== 生成数据 ====
+    x = np.linspace(0, 100, 1000)
+    y = np.sin(x)
+    y = (y - y.min()) / (y.max() - y.min())
+
+    # 构造序列
+    def create_dataset(data, seq_len):
+        xs, ys = [], []
+        for i in range(len(data) - seq_len):
+            xs.append(data[i:i+seq_len])
+            ys.append(data[i+seq_len])
+        return np.array(xs), np.array(ys)
+
+    X, Y = create_dataset(y, seq_len)
+    X = torch.tensor(X, dtype=torch.float32).unsqueeze(-1)  # [batch, seq_len, 1]
+    Y = torch.tensor(Y, dtype=torch.float32).unsqueeze(-1)  # [batch, 1]
+
+    train_size = int(0.8 * len(X))
+    X_train, X_test = X[:train_size], X[train_size:]
+    Y_train, Y_test = Y[:train_size], Y[train_size:]
+
+    # ==== 模型定义 ====
+    class LSTMModel(nn.Module):
+        def __init__(self, input_size=1, hidden_size=64, num_layers=1, output_size=1):
+            super(LSTMModel, self).__init__()
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, output_size)
+
+        def forward(self, x):
+            out, _ = self.lstm(x)
+            out = out[:, -1, :]  # 取最后时刻输出
+            out = self.fc(out)
+            return out
+
+    model = LSTMModel(hidden_size=hidden_size, num_layers=num_layers)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    # ==== 训练 ====
+    for epoch in range(num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        output = model(X_train)
+        loss = criterion(output, Y_train)
+        loss.backward()
+        optimizer.step()
+        if (epoch + 1) % 20 == 0:
+            print(f"Epoch [{epoch+1}/{num_epochs}]  Loss: {loss.item():.6f}")
+
+    # ==== 测试 ====
+    model.eval()
+    with torch.no_grad():
+        pred = model(X_test)   # shape [test_len, 1]
+        loss = criterion(pred, Y_test)
+        print(f"Test MSE: {loss.item():.6f}")
+
+    # ==== 未来趋势预测（修正后的循环） ====
+    future_steps = 50  # 预测未来 50 个点
+    future_preds = []
+
+    # 取测试集最后一个序列作为起点（注意是最后一个 X_test）
+    last_seq = X_test[-1].clone().detach().unsqueeze(0)  # shape [1, seq_len, 1]
+
+    model.eval()
+    with torch.no_grad():
+        for _ in range(future_steps):
+            # next_pred: shape [1, 1]
+            next_pred = model(last_seq)
+            future_preds.append(next_pred.item())
+            # 把 next_pred 扩成 [1, 1, 1]，然后滑动窗口拼接成新的 last_seq
+            next_pred_expanded = next_pred.unsqueeze(-1)     # [1, 1, 1]
+            last_seq = torch.cat((last_seq[:, 1:, :], next_pred_expanded), dim=1)  # [1, seq_len, 1]
+
+    # ==== 可视化（用解析 sin 生成 future GT 并只标 10 个 x） ====
+    plt.figure(figsize=(12,4))
+
+    # 背景完整 sin 曲线（淡化）
+    plt.plot(y, label='True sin (background)', alpha=0.15, zorder=1)
+
+    # 测试区间预测（实线）
+    test_pred_idx_start = train_size + seq_len
+    test_pred_idx_end = test_pred_idx_start + len(pred)
+    plt.plot(range(test_pred_idx_start, test_pred_idx_end),
+             pred.squeeze().cpu().numpy(), label='Predicted (test)', zorder=2)
+
+    # 未来预测（红线）
+    future_idx_start = test_pred_idx_end
+    future_idx_end = future_idx_start + future_steps
+    plt.plot(range(future_idx_start, future_idx_end),
+             np.array(future_preds), label='Future Prediction', color='red', linewidth=2, zorder=3)
+
+    # --- 用解析式继续生成 future x 与 GT（并用和训练时相同的归一化） ---
+    # 原始 x 数组名为 x；我们假设它还在作用域内
+    step = x[1] - x[0]
+    future_x = x[-1] + step * np.arange(1, future_steps + 1)  # length future_steps
+    future_y_raw = np.sin(future_x)
+
+    # 使用训练时的归一化参数（与之前 y 的归一化保持一致）
+    # 注意：在你的脚本里 y = np.sin(x); 然后 y = (y - y.min()) / (y.max() - y.min())
+    # 所以我们用同样的 min/max 来归一化 future_y_raw
+    orig_y_raw = np.sin(x)  # 原始未归一化的 y（基于原 x）
+    y_min, y_max = orig_y_raw.min(), orig_y_raw.max()
+    future_y = (future_y_raw - y_min) / (y_max - y_min)
+
+    # 在未来段均匀选取 10 个点标出 'x'
+    n_marks = 10
+    if future_steps >= n_marks:
+        mark_indices = np.linspace(0, future_steps - 1, n_marks, dtype=int)
+    else:
+        # 如果 future_steps 少于 10，标全部点
+        mark_indices = np.arange(future_steps, dtype=int)
+
+    x_gt_marks = np.array(range(future_idx_start, future_idx_end))[mark_indices]
+    y_gt_marks = future_y[mark_indices]
+
+    plt.scatter(x_gt_marks, y_gt_marks, marker='x', color='darkred',
+                s=80, linewidths=2.5, label='Ground Truth (sampled x)', zorder=4)
+
+    # 计算并打印未来预测与解析 GT 的误差（全量比较）
+    pred_array = np.array(future_preds)
+    mse_future = np.mean((pred_array - future_y) ** 2)
+    print(f"Future MSE against analytic sin (future {future_idx_start}..{future_idx_end-1}): {mse_future:.6f}")
+
+    plt.legend()
+    plt.title("LSTM: sin(x) prediction + future trend (10 sampled GT 'x' marks)")
+    plt.xlabel("Time step")
+    plt.ylabel("Normalized sin(x)")
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    output:
+
+    ```
+    Epoch [20/200]  Loss: 0.030417
+    Epoch [40/200]  Loss: 0.002496
+    Epoch [60/200]  Loss: 0.000462
+    Epoch [80/200]  Loss: 0.000082
+    Epoch [100/200]  Loss: 0.000028
+    Epoch [120/200]  Loss: 0.000012
+    Epoch [140/200]  Loss: 0.000006
+    Epoch [160/200]  Loss: 0.000003
+    Epoch [180/200]  Loss: 0.000002
+    Epoch [200/200]  Loss: 0.000002
+    Test MSE: 0.000002
+    ```
+
+    还会输出一个 sin 曲线的图像。
+
+* Long Short-Term Memory (LSTM) 
+
+    * Hidden State (h_n)
+
+        The hidden state in an LSTM represents the short-term memory of the network.
+
+        Shape: The hidden state h_n has the shape (num_layers * num_directions, batch, hidden_size). This shape indicates that the hidden state is maintained for each layer and direction in the LSTM.
+
+    * Output (output)
+
+        The output of an LSTM is the sequence of hidden states from the last layer for each time step. 
+
 * 稀疏矩阵乘法
 
     加速算法简述（以 CSR x CSC 为例）：
