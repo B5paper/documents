@@ -14,6 +14,10 @@
 
         `dir_a`是一个目录，所以 rsync 直接跳过不处理。
 
+    * `rsync /path/to/dir_a/ /path/to/dir_b/`
+
+        `dir_a/`是一个目录，所以 rsync 直接跳过不处理。
+
     * `rsync -r /path/to/dir_a /path/to/dir_b`
 
         在`dir_b`里创建一个目录`dir_a`，并递归复制`dir_a`中的内容。
@@ -27,6 +31,8 @@
         将`dir_a`中的所有文件复制到`dir_b`下，但是不复制`dir_a`下的目录。
 
         这个`*`其实是由 bash 展开的，再加上没有`-r`选项，所以展开后，本质上是`rsync <file_1> <file_2> <...> <dst_dir>`
+
+        也可以写成`rsync /path/to/dir_a/* /path/to/dir_b/`
 
     如果`/path/to/dir_a`是一个目录，那么`/path/to/dir_b`等价于`/path/to/dir_b/`，并且`dir_b`其必须是一个目录。如果是文件，则会报错。
 
@@ -98,13 +104,13 @@
 
         rsync:
 
-            -a: --archive，归档模式，保持所有文件属性，等同于 -rlptgoD。
+        * `-a`: `--archive`，归档模式，保持所有文件属性，等同于`-rlptgoD`。
 
-            -v: --verbose，输出详细信息。
+        * `-v`: `--verbose`，输出详细信息。
 
-            -z: --compress，传输时压缩，节省带宽。
+        * `-z`: `--compress`，传输时压缩，节省带宽。
 
-            --delete: 谨慎使用。让目标端和源端保持完全一致，源端删除的文件，目标端也会删除。
+        * `--delete`: 谨慎使用。让目标端和源端保持完全一致，源端删除的文件，目标端也会删除。
 
         运行：
 

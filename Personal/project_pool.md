@@ -1018,11 +1018,7 @@
 
 ### tasks
 
-* [ ] 调研 py 中如何实现 enum？
-
-* [v] 调研 nasm
-
-    linux 上没法运行 masm，只能运行 nasm。眼下没有 windows 开发环境，nasm 的语法又和 masm 不兼容。
+* [v] 调研 py 中如何实现 enum？
 
 * [ ] random select 增加 exclude 功能
 
@@ -1278,13 +1274,7 @@
 
 ### Tasks
 
-* [v] qa: review 10.19
-
-    14:14 ~ 14:57
-
 * [ ] review 时显示 unit 的 file 和 id
-
-* [v] append 模式打开文件后，read 是从头开始读，还是从文件末尾开始读？
 
 * [ ] py 中的 list 如何 unique 化？
 
@@ -1551,17 +1541,31 @@
 
 ### tasks
 
-* [O] process 1 tab 10.24
+* [v] process 1 tab 10.26
 
     feedback:
 
-    * 10日均线斜率交易策略解析
+    * [ ] 使用 stat 命令查看创建时间
 
-        目前看到
+        `stat -c "%n %W" * | sort -k2 -n`
 
-        > 我写代码量化交易，彻底解决情绪化交易的问题
+        使用 stat 查看访问时间并手动排序:
 
-* [v] awk
+        `stat -c "%n %x" * | sort -k2 -r`
+
+    * [ ] 使用 find 按创建时间排序
+
+        `find . -maxdepth 1 -type f -printf "%T@ %p\n" | sort -n | cut -d' ' -f2-`
+
+        （注：find 默认不支持 birth 时间，但可以按 mtime 排序）
+
+* [v] process 1 tab 10.24
+
+* [ ] 调研 10 日均线斜率交易策略解析
+
+    目前看到
+
+    > 我写代码量化交易，彻底解决情绪化交易的问题
 
 * [ ] sed
 
@@ -2295,15 +2299,15 @@ resources:
 
 ### tasks
 
+* [ ] `pip install -e .`
+
+* [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
+
+* [ ] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
+
+* [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
+
 * [O] 稀疏矩阵如何加速矩阵乘？
-
-    deps:
-
-    * [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
-
-    * [ ] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
-
-    * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
 
 * [ ] Create Model using Custom Module in Pytorch
 
@@ -2757,7 +2761,7 @@ resources:
 
 ### tasks
 
-* [ ] 多元函数的极限
+* [v] 多元函数的极限
 
 * [ ] 多元函数的连续性
 
@@ -2850,9 +2854,7 @@ resources:
 
 ### tasks
 
-* [v] 调研驱动的 suspend, resume 函数
-
-* [ ] `dma_sync_single_for_cpu()`
+* [v] `dma_sync_single_for_cpu()`
 
 * [ ] ` __attribute__((packed))`, `__packed`
 
@@ -3905,10 +3907,6 @@ resources:
     尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
 
 ### tasks
-
-* [v] 调研`grep -z`处理跨行文本
-
-    15:15 ~ 15:56
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 
