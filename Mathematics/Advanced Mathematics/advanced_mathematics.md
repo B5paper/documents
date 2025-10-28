@@ -2,6 +2,76 @@
 
 ## cache
 
+* 二元函数极限的证明 example
+
+    题目：设$f(x, y) = (x^2 + y^2) \sin \frac{1}{x^2 + y^2}$，求证$\lim_{(x, y) \to (0, 0)} f(x, y) = 0$
+
+    证明：
+
+    $$\lvert f(x, y) - 0 \rvert = \lvert (x^2 + y^2) \sin \frac{1}{x^2 + y^2} - 0 \rvert \leq x^2 + y^2$$
+
+    对于邻域$\mathring U(0, \delta)$内的任意一点$(x, y)$，总有
+
+    $$x^2 + y^2 < \delta^2$$
+
+    $\forall \varepsilon \gt 0$，我们取$\delta = \sqrt{\varepsilon}$，则有
+
+    $$\lvert f(x, y) - 0 \rvert \leq x^2 + y^2 < \delta^2 = \varepsilon$$
+
+    因此$A = 0$是其极限。
+
+    注：
+
+    1. $\delta = \sqrt{\varepsilon}$是我们手动构造的，方便代入或者缩放，构造不等式。
+
+* 聚点
+
+    如果对于任意给定的$\delta \gt 0$，点$P$的去心邻域$\mathring U (P, \delta)$内总有$E$中的点，则称$P$是$E$的聚点。
+
+    注：
+
+    1. 邻域是定义在全集（比如$\mathbb R^n$）中的，它可能包含很多不在$E$中的点。
+
+        我们关心的是：无论取多么小的邻域，里面必须至少有一个来自$E$且不同于$P$的点（因为去心邻域排除了$P$本身）。
+
+        用数学语言表达即为：
+
+        $\forall \delta > 0$，$\mathring U(P, \delta) \cap E \neq \varnothing$。
+
+        我们只关注这个邻域与$E$的交集非空，不要求整个邻域都在$E$内。
+
+    1. 定义强调$E$中的点，主要是为了处理$P$在$E$的边界，或者$E$是稀疏点集等情况。
+
+        下面是几个例子：
+
+        * 在$R$中，取$E = (0,1] \cup \{ 2 \}$，考虑$P = 0$，$\mathring U (0, \delta)$。
+
+            当$\delta \leq 1$时，$\mathring U$中的所有点都在$E$中；
+
+            当$\delta \gt 1$时，$\mathring U$中的点有些在$E$中，有些不在，仍满足聚点的定义。
+
+            在这个例子中，$P = 2$不是$E$的聚点，而是$E$的孤立点。
+
+        * 取$E = \left\{ \frac{1}{n}, n \in \mathbb N \right\}$，$P = 0$，$\mathring U (0, \delta)$。
+
+            由于$E$是离散的，所以无论$\delta$取多少，$\mathring U$中的大部分点都不在$E$中。
+
+        * 取$E$为$\mathbb R^2$中的一个圆盘，$P$是边界上一点
+
+            由于$P$在边界上，所以$\mathring U(P, \delta)$总是包含有$E$内的点和$E$外的点。
+
+* 二元函数的极限
+
+    设二元函数$f(P) = f(x, y)$的定义域为$D$，$P_0(x_0, y_0)$是$D$的聚点。如果存在常数$A$，对于任意给定的正数$\varepsilon$，总存在正数$\delta$，使得当点$P(x, y) \in D \cap \mathring U (P_0, \delta)$时，都有
+
+    $$\lvert f(P) - A \rvert = \lvert f(x, y) - A \rvert < \varepsilon$$
+
+    成立，那么就称常数$A$为函数$f(x, y)$当$(x, y) \to (x_0, y_0)$时的极限，记作
+
+    $$\lim_{(x, y) \to (x_0, y_0)} f(x, y) = A$$
+
+    为了区别一元函数的极限，二元函数的极限又叫二重极限。
+
 * 多元函数
 
     把二元函数定义中的平面点集$D$换成 n 维空间$\mathbf R^n$内的点集$D$，映射$f: D \to \mathbf R$就称为定义在$D$上的 n 元函数，通常记为

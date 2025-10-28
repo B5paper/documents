@@ -4,6 +4,10 @@
 
 ## cache
 
+* ubuntu 中 apt update 的图形界面的程序是`software-properties-gtk`
+
+    启动时记得加上`sudo`或`sudo -E`，否则设置不会被保存。
+
 * ubuntu 屏幕锁定后，不能被 gnome remote desktop 正常连接
 
     最简单的解决办法是把 lock screen 相关的设置都禁掉。

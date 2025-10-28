@@ -2,6 +2,108 @@
 
 ## cached
 
+* py 中实现 enum
+
+    ```py
+    from enum import Enum
+
+    class Color(Enum):
+        RED = 1
+        GREEN = 2
+        BLUE = 3
+
+    # 使用
+    print(Color.RED)        # Color.RED
+    print(Color.RED.name)   # RED
+    print(Color.RED.value)  # 1
+    ```
+
+    自动赋值:
+
+    ```py
+    from enum import Enum, auto
+
+    class Color(Enum):
+        RED = auto()
+        GREEN = auto()
+        BLUE = auto()
+
+    print(Color.RED.value)   # 1
+    print(Color.GREEN.value) # 2
+    ```
+
+    字符串枚举:
+
+    ```py
+    from enum import Enum
+
+    class HttpStatus(Enum):
+        OK = "200 OK"
+        NOT_FOUND = "404 Not Found"
+        SERVER_ERROR = "500 Internal Server Error"
+
+    print(HttpStatus.OK.value)  # "200 OK"
+    ```
+
+    使用 IntEnum（整数枚举）:
+
+    ```py
+    from enum import IntEnum
+
+    class Priority(IntEnum):
+        LOW = 1
+        MEDIUM = 2
+        HIGH = 3
+
+    # IntEnum 可以与其他整数比较
+    print(Priority.LOW == 1)  # True
+    ```
+
+    使用 Flag（标志枚举）:
+
+    ```py
+    from enum import Flag, auto
+
+    class Permission(Flag):
+        READ = auto()
+        WRITE = auto()
+        EXECUTE = auto()
+        READ_WRITE = READ | WRITE
+
+    # 使用
+    user_permissions = Permission.READ | Permission.WRITE
+    print(Permission.READ in user_permissions)  # True
+    ```
+
+    唯一值枚举:
+
+    ```py
+    from enum import Enum, unique
+
+    @unique
+    class Status(Enum):
+        PENDING = 1
+        PROCESSING = 2
+        COMPLETED = 3
+        # ERROR = 1  # 这会抛出 ValueError，因为值重复
+    ```
+
+    对枚举进行迭代：
+
+    ```py
+    from enum import Enum
+
+    class Color(Enum):
+        RED = 1
+        GREEN = 2
+        BLUE = 3
+
+    for color in Color:
+        print(color.name, color.value)
+    ```
+
+* pip 可以直接使用环境变量`http_proxy`, `https_proxy`等进行代理
+
 * 打开文件时`a+`的行为分析
 
     使用`a+`打开时，`seek()`只对读取有效，对写入无效，写入总是发生在文件末尾。

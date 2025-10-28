@@ -28,6 +28,14 @@
 
 ## cache
 
+* 每天执行 2 个线性调研任务就差不多了（输入），剩下的时间应该去自由探索和验证想法（输出）
+
+    线性学习任务是永无止境的，又是自底向上的方法，学完了只能“暂时存着”，等到后面有一天突然发现（模式匹配到）手头的任务要用到这些存储的底层知识时，这些线性学习的成果才能有用武之地，效率很低。
+
+    对于非线性的探索任务，用到什么查什么资料，跟随心里的节奏，完成任务的效率会高一些。
+
+    但是线性调研和 qa exam 又不能完全不做，这是基石，基础，是食材，颜料，是线性组合的基底。这些线性调研的知识点通过灵活的组合、变形、延伸，会有强大的力量。
+
 * 以前的科学家、艺术家受到疾病、战争、经济、政治等因素的影响比较多，似乎如果有经济保障和稳定的科研环境，那么就可以有无限的重大成果和产出。现代的人受到功名、声誉、学术成果、论文、金钱、权利、学术帮派的诱惑比较多，导致了即使有稳定的科研环境，也很难有创新和成果。虽然时代变了，但是我们身上的枷锁仍然没有减少。
 
 * 飞机气压
@@ -1018,13 +1026,29 @@
 
 ### tasks
 
-* [v] 调研 py 中如何实现 enum？
+* [v] random select 增加 exclude 功能
 
-* [ ] random select 增加 exclude 功能
+    14:09 ~ 16:05
 
     凡是文件是 parent dir abs path 符合 esclude 指定的正则表达式，都忽略
 
     exclude 可以指定多个正则表达式
+
+    feedback:
+
+    * [ ] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
+
+    * [asso] `^(?!\./).*\..*`  
+
+        排除以 ./ 开头
+
+    * [asso] `(^|/)\.[^/].*`
+
+        隐藏文件匹配
+
+    * [asso] `(^|/)\.[^/]*(?=/|$)`, `(?:^|/)(?:\.[^/]+)(?=/|$)`, `(?:^|/)(?:\.[^/]+)+(?=/|$)`, `(^|/)\.([^/]+/)+`
+
+        匹配隐藏目录
 
 * [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
 
@@ -1274,7 +1298,9 @@
 
 ### Tasks
 
-* [ ] review 时显示 unit 的 file 和 id
+* [v] review 时显示 unit 的 file 和 id
+
+    17:16 ~ 17:22
 
 * [ ] py 中的 list 如何 unique 化？
 
@@ -1541,25 +1567,11 @@
 
 ### tasks
 
+* [v] process 1 tab 10.27
+
+    10:30 ~ 14:08
+
 * [v] process 1 tab 10.26
-
-    feedback:
-
-    * [ ] 使用 stat 命令查看创建时间
-
-        `stat -c "%n %W" * | sort -k2 -n`
-
-        使用 stat 查看访问时间并手动排序:
-
-        `stat -c "%n %x" * | sort -k2 -r`
-
-    * [ ] 使用 find 按创建时间排序
-
-        `find . -maxdepth 1 -type f -printf "%T@ %p\n" | sort -n | cut -d' ' -f2-`
-
-        （注：find 默认不支持 birth 时间，但可以按 mtime 排序）
-
-* [v] process 1 tab 10.24
 
 * [ ] 调研 10 日均线斜率交易策略解析
 
@@ -2255,6 +2267,20 @@
 
 * [asso] Huber Loss 的表达式是如何构建出来的？
 
+* [asso] 使用 stat 命令查看创建时间
+
+    `stat -c "%n %W" * | sort -k2 -n`
+
+    使用 stat 查看访问时间并手动排序:
+
+    `stat -c "%n %x" * | sort -k2 -r`
+
+* [asso] 使用 find 按创建时间排序
+
+    `find . -maxdepth 1 -type f -printf "%T@ %p\n" | sort -n | cut -d' ' -f2-`
+
+    （注：find 默认不支持 birth 时间，但可以按 mtime 排序）
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2309,7 +2335,9 @@ resources:
 
 * [O] 稀疏矩阵如何加速矩阵乘？
 
-* [ ] Create Model using Custom Module in Pytorch
+* [v] Create Model using Custom Module in Pytorch
+
+    18:30 ~ 18:42
 
     <https://www.geeksforgeeks.org/machine-learning/create-model-using-custom-module-in-pytorch/>
 
@@ -2761,8 +2789,6 @@ resources:
 
 ### tasks
 
-* [v] 多元函数的极限
-
 * [ ] 多元函数的连续性
 
 * [ ] 调研使用梯度法求二无函数$f(x, y)$的最值
@@ -2854,9 +2880,7 @@ resources:
 
 ### tasks
 
-* [v] `dma_sync_single_for_cpu()`
-
-* [ ] ` __attribute__((packed))`, `__packed`
+* [v] ` __attribute__((packed))`, `__packed`
 
 * [ ] 调研 pandas，polars
 
