@@ -2,6 +2,52 @@
 
 ## cache
 
+* `rsync -h`
+
+    -h 参数表示 "human-readable"（人类可读格式）。自动将字节转换为 KB、MB、GB、TB 等单位, 使输出更加友好和直观。
+
+    其他常用 rsync 参数说明：
+
+    * `-a` (archive)：归档模式，相当于 -rlptgoD
+
+        * `-r`：递归复制目录
+
+        * `-l`：保留符号链接
+
+        * `-p`：保留权限
+
+        * `-t`：保留修改时间
+
+        * `-g`：保留属组
+
+        * `-o`：保留属主
+
+        * `-D`：保留设备文件
+
+    * `--progress`：显示传输进度
+
+    * `-v`：详细输出（显示正在复制的文件）
+
+    * `-z`：压缩传输数据
+
+    * `--delete`：删除目标中源不存在的文件
+
+    常用组合：
+
+    ```bash
+    # 基本复制（推荐）
+    rsync -ah --progress source destination
+
+    # 详细输出 + 压缩
+    rsync -azh --progress source destination
+
+    # 同步（删除目标中多余的文件）
+    rsync -ah --progress --delete source destination
+
+    # 远程复制
+    rsync -azh --progress /local/path/ user@remote:/remote/path/
+    ```
+
 * 关于`rsync -r`
 
     `rsync -r`指递归处理目录，`rsync`默认不开启`-r`，也就是说默认只处理文件。

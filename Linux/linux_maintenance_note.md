@@ -6,6 +6,29 @@
 
 ## cache
 
+* linux 下复制文件时显示进度
+
+    `pv`（Pipe Viewer）可以显示复制进度、速度和估计时间。
+
+    安装：`sudo apt install pv`
+
+    * 复制单个文件
+    
+        `pv source_file > destination_file`
+
+    * 复制整个目录
+
+        `tar cf - source_dir | pv | tar xf - -C destination_dir`
+
+    可以创建一个带进度复制的脚本：
+
+    `/usr/local/bin/cpv`:
+
+    ```bash
+    #!/bin/bash
+    tar cf - "$1" | pv | tar xf - -C "$2"
+    ```
+
 * ls 按访问时间排序
 
     ```bash

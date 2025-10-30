@@ -6,6 +6,70 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* `__attribute__((packed))`
+
+    这个主要用于取消结构体对齐。
+
+    ```c
+    // 正常情况（假设 4 字节对齐）
+    struct normal {
+        char a;      // 1 字节
+        int b;       // 4 字节
+        char c;      // 1 字节
+    };
+    // sizeof(struct normal) = 12 字节（有填充）
+
+    // 使用 packed
+    struct __attribute__((packed)) packed_struct {
+        char a;      // 1 字节
+        int b;       // 4 字节
+        char c;      // 1 字节
+    };
+    // sizeof(struct packed_struct) = 6 字节（无填充）
+    ```
+
+    主要用途:
+
+    1. 硬件/协议数据映射
+    
+        ```c
+        // 网络协议头
+        struct __attribute__((packed)) eth_header {
+            uint8_t dst_mac[6];
+            uint8_t src_mac[6];
+            uint16_t eth_type;
+        };
+        ```
+
+    2. 节省内存空间
+
+        在内存受限的嵌入式系统中减少内存占用。
+
+    3. 数据序列化
+
+        确保结构体布局与外部数据格式完全匹配。
+
+    其他替代方案：
+
+    1. 手动序列化（推荐）
+
+        ```c
+        void serialize_eth_header(const struct eth_header *hdr, uint8_t *buffer) {
+            memcpy(buffer, hdr->dst_mac, 6);
+            memcpy(buffer + 6, hdr->src_mac, 6);
+            memcpy(buffer + 12, &hdr->eth_type, 2);
+        }
+        ```
+
+    2. 使用编译器对齐指令
+
+        ```c
+        // 指定最小对齐而非完全取消
+        struct __attribute__((aligned(1))) minimal_align {
+            // ...
+        };
+        ```
+
 * `EXIT_FAILURE`
 
     EXIT_FAILURE 定义在 C 标准库头文件 <stdlib.h> 中，用于表示程序异常终止的退出状态。

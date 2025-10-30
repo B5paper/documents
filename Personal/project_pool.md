@@ -1034,23 +1034,9 @@
 
     exclude 可以指定多个正则表达式
 
-    feedback:
+* [ ] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
 
-    * [ ] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
-
-    * [asso] `^(?!\./).*\..*`  
-
-        排除以 ./ 开头
-
-    * [asso] `(^|/)\.[^/].*`
-
-        隐藏文件匹配
-
-    * [asso] `(^|/)\.[^/]*(?=/|$)`, `(?:^|/)(?:\.[^/]+)(?=/|$)`, `(?:^|/)(?:\.[^/]+)+(?=/|$)`, `(^|/)\.([^/]+/)+`
-
-        匹配隐藏目录
-
-* [ ] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
+* [v] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
 
 * [ ] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
 
@@ -1298,11 +1284,9 @@
 
 ### Tasks
 
-* [v] review 时显示 unit 的 file 和 id
+* [v] py 中的 list 如何 unique 化？
 
-    17:16 ~ 17:22
-
-* [ ] py 中的 list 如何 unique 化？
+    13:41 ~ 13:59
 
 * [ ] py 如何删除一个文件？ 
 
@@ -1557,6 +1541,18 @@
 
 * [asso] `devm_device_add_groups()`
 
+* [asso] `^(?!\./).*\..*`  
+
+    排除以 ./ 开头
+
+* [asso] `(^|/)\.[^/].*`
+
+    隐藏文件匹配
+
+* [asso] `(^|/)\.[^/]*(?=/|$)`, `(?:^|/)(?:\.[^/]+)(?=/|$)`, `(?:^|/)(?:\.[^/]+)+(?=/|$)`, `(^|/)\.([^/]+/)+`
+
+    匹配隐藏目录
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1567,17 +1563,23 @@
 
 ### tasks
 
-* [v] process 1 tab 10.27
+* [v] process 1 tab 10.28
 
-    10:30 ~ 14:08
+    10:54 ~ 11:02
 
-* [v] process 1 tab 10.26
+* [O] 调研 10 日均线斜率交易策略解析
 
-* [ ] 调研 10 日均线斜率交易策略解析
+    14:09 ～ 14:41
 
     目前看到
 
     > 我写代码量化交易，彻底解决情绪化交易的问题
+
+    feedback:
+
+    * 目前看到
+
+        > 假如有一个市场，市场里有一个股票，参与这个股票交易的所有人都是散户，所有人起始资金都是100w，所有人都遵循均线投资策略，那么这支股票的股价可能会发生什么
 
 * [ ] sed
 
@@ -2325,6 +2327,18 @@ resources:
 
 ### tasks
 
+* [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
+
+* [ ] `transforms.Resize((224, 224)),`
+
+    ```py
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),      # 调整大小
+        transforms.ToTensor(),              # 转为Tensor [0,1]
+        transforms.Normalize((0.5,), (0.5,)) # 归一化到 [-1,1]
+    ])
+    ```
+
 * [ ] `pip install -e .`
 
 * [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
@@ -2334,12 +2348,6 @@ resources:
 * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
 
 * [O] 稀疏矩阵如何加速矩阵乘？
-
-* [v] Create Model using Custom Module in Pytorch
-
-    18:30 ~ 18:42
-
-    <https://www.geeksforgeeks.org/machine-learning/create-model-using-custom-module-in-pytorch/>
 
 * [ ] How to use a DataLoader in PyTorch?
 
@@ -2879,8 +2887,6 @@ resources:
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
-
-* [v] ` __attribute__((packed))`, `__packed`
 
 * [ ] 调研 pandas，polars
 
