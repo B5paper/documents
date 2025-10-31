@@ -6,6 +6,10 @@
 
 ## cache
 
+* `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
+
+    如果在`apt update`时无法访问这个 ip 的 80 端口，可以考虑在`/etc/apt/source.list`里把这一行注释掉。
+
 * linux 下复制文件时显示进度
 
     `pv`（Pipe Viewer）可以显示复制进度、速度和估计时间。

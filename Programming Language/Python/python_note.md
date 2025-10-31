@@ -2,6 +2,72 @@
 
 ## cached
 
+* 对 python 中的 list 进行 unique
+
+    1. 使用 set()（最常用）
+
+        ```py
+        my_list = [1, 2, 2, 3, 4, 4, 5]
+        unique_list = list(set(my_list))
+        print(unique_list)  # 输出：[1, 2, 3, 4, 5]
+        ```
+
+        注意：这种方法会打乱原列表的顺序。
+
+    2. 使用 dict.fromkeys()（保持顺序）
+
+        ```py
+        my_list = [1, 2, 2, 3, 4, 4, 5]
+        unique_list = list(dict.fromkeys(my_list))
+        print(unique_list)  # 输出：[1, 2, 3, 4, 5]
+        ```
+
+    3. 使用循环（保持顺序）
+
+        ```py
+        my_list = [1, 2, 2, 3, 4, 4, 5]
+        unique_list = []
+        for item in my_list:
+            if item not in unique_list:
+                unique_list.append(item)
+        print(unique_list)  # 输出：[1, 2, 3, 4, 5]
+        ```
+
+    4. 使用列表推导式（保持顺序）
+
+        ```py
+        my_list = [1, 2, 2, 3, 4, 4, 5]
+        unique_list = []
+        [unique_list.append(x) for x in my_list if x not in unique_list]
+        print(unique_list)  # 输出：[1, 2, 3, 4, 5]
+        ```
+
+    5. 使用 collections.OrderedDict（保持顺序）
+
+        ```py
+        from collections import OrderedDict
+        my_list = [1, 2, 2, 3, 4, 4, 5]
+        unique_list = list(OrderedDict.fromkeys(my_list))
+        print(unique_list)  # 输出：[1, 2, 3, 4, 5]
+        ```
+
+    6. 使用 pandas（适用于复杂数据结构）
+
+        ```py
+        import pandas as pd
+        my_list = [1, 2, 2, 3, 4, 4, 5]
+        unique_list = pd.Series(my_list).drop_duplicates().tolist()
+        print(unique_list)  # 输出：[1, 2, 3, 4, 5]
+        ```
+
+    性能比较：
+
+    * 最快：set()（但不保持顺序）
+
+    * 保持顺序且较快：dict.fromkeys()
+
+    * 最慢：循环方法
+
 * py 中实现 enum
 
     ```py

@@ -4,6 +4,10 @@ This note is used to summarize tricks in C++ language.
 
 ## cache
 
+* 什么时候需要开一个新函数？
+
+    当变量名混乱有冲突，不好起新名字的时候可以尝试开一个新函数。
+
 * 有关 graph 数据结构的渐进构造
 
     图由点（vertex）和边（edge）构成，点与点之间用有向边相连，只要能让这个信息存储起来，就可以处理图。

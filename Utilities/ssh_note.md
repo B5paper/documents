@@ -2,6 +2,72 @@
 
 ## cache
 
+* scp 使用跳板机
+
+    如果在 ~/.ssh/config 中定义了跳板机，可以这样使用:
+
+    ```bash
+    scp -J myjump localfile.txt targetserver:/remote/path/
+    ```
+
+    其中 myjump 是在 SSH 配置中定义的跳板机别名。
+
+    如果跳板机使用非标准端口，可以使用`-J user@host:port`格式.
+
+    对于更复杂的跳转，可以使用逗号分隔多个跳板机: `-J user1@host1,user2@host2`.
+
+    scp 也可以使用 proxy command:
+
+    ```bash
+    scp -o ProxyCommand="ssh -W %h:%p jumpuser@jumpserver.example.com" localfile.txt targetuser@targetserver.example.com:/remote/path/
+    ```
+
+    如果 target host 使用了非标准端口，即可以直接指定：
+
+    ```bash
+    scp -J jumpuser@jumpserver.example.com localfile.txt targetuser@targetserver.example.com:2345:/remote/path/
+    ```
+
+    也可以使用`-P`命令指定：
+
+    ```bash
+    scp -P 2345 -J jumpuser@jumpserver.example.com localfile.txt targetuser@targetserver.example.com:/remote/path/
+    ```
+
+    如果跳板机使用了非标准端口，那么只能直接指定：
+
+    ```bash
+    scp -J jumpuser@jumpserver.example.com:2222 localfile.txt targetuser@targetserver.example.com:/remote/path/
+    ```
+
+    如果使用 ssh config 文件，那么配置起来比较清晰：
+
+    ```conf
+    # ~/.ssh/config
+    Host jumpserver
+        HostName jumpserver.example.com
+        User jumpuser
+        Port 2222
+
+    Host targetserver
+        HostName targetserver.example.com
+        User targetuser
+        Port 2345
+        ProxyJump jumpserver
+    ```
+
+    在连接的时候只需要执行：
+
+    ```bash
+    scp localfile.txt targetserver:/remote/path/
+    ```
+
+    如果使用 proxy command，那么可以使用：
+
+    ```bash
+    scp -P 2345 -o ProxyCommand="ssh -p 2222 -W %h:%p jumpuser@jumpserver.example.com" localfile.txt targetuser@targetserver.example.com:/remote/path/
+    ```
+
 * 如果 ssh 只指定`-N`，不指定`-f`，那么不会进入 remote host 的登陆界面
 
     输出如下：

@@ -2,6 +2,69 @@
 
 ## cache
 
+* `ToTensor()`
+
+    1. 数据类型转换：ToTensor() 将 PIL Image 或 numpy.ndarray 转换为 PyTorch Tensor，后续的 transforms 都需要在 Tensor 上操作
+
+    2. 通道顺序：将 H×W×C 转换为 C×H×W，符合 PyTorch 的期望格式
+
+    3. 数值范围：将 [0, 255] 的整数或 [0, 1] 的浮点数转换为 [0.0, 1.0] 的浮点数
+
+    变换前后数据 shape 对比：
+
+    ```py
+    # 对于 RGB 图像
+    (H, W, C) = (224, 224, 3)
+    # 变换后
+    (C, H, W) = (3, 224, 224)
+
+    # 对于灰度图像  
+    (H, W) = (224, 224)  # 或 (H, W, 1)
+    # 变换后
+    (1, H, W) = (1, 224, 224)
+    ```
+
+* `transforms.Normalize()`
+
+    example:
+
+    `transforms.Normalize((0.5,), (0.5,))`作用如下：
+
+    ```py
+    # 对于每个像素值：
+    normalized_pixel = (pixel - mean) / std
+
+    # 具体到你的例子：
+    normalized_pixel = (pixel - 0.5) / 0.5
+    ```
+
+    如果 RGB 三个通道的 mean 和 std 相同，那么可以写成：
+
+    ```py
+    transforms.Normalize(mean, std)
+    ```
+
+    如果是多通道图像，那么可以写成：
+
+    ```py
+    # RGB 图像归一化
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5],  # R, G, B 通道的均值
+                             std=[0.5, 0.5, 0.5])   # R, G, B 通道的标准差
+    ])
+    ```
+
+    为什么要归一化？
+
+    * 训练稳定性：将数据缩放到相似的范围，避免梯度爆炸
+
+    * 收敛速度：帮助优化器更快收敛
+
+    * 模型性能：很多模型假设输入数据是零均值的
+
+    * 数值精度：在 [-1, 1] 范围内计算更稳定
+
 * `torch.nn.Module`
 
     * `__init__()`: The __init__ method is used to initialize the module's parameters. This method is called when the module is created, and it allows we to set up any internal state that the module needs. For example, we might use this method to initialize the weights of a neural network or to create other modules that the module needs in order to function.
