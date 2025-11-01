@@ -2,6 +2,91 @@
 
 ## cache
 
+* dataset 似乎支持 slice 访问
+
+    ```py
+    my_dataset = MyDataset()
+    print(my_dataset[:3])
+    ```
+
+    output:
+
+    ```
+    [0, 1, 2]
+    ```
+
+* dataloader
+
+    syntax:
+
+    ```py
+    DataLoader(dataset, shuffle=True, sampler=None, batch_size=32)
+    ```
+
+    一个简单的 example:
+
+    ```py
+    import torch as t
+    from torch.utils.data import Dataset, DataLoader
+
+    class MyDataset(Dataset):
+        def __init__(self):
+            self.m_arr = list(range(8))
+            self.m_len = len(self.m_arr)
+        
+        def __len__(self):
+            return self.m_len
+        
+        def __getitem__(self, index):
+            return self.m_arr[index]
+        
+    my_dataset = MyDataset()
+    print("first elm: {}".format(my_dataset[0]))
+    print("dataset len: {}".format(len(my_dataset)))
+
+    my_dataloader = DataLoader(my_dataset, batch_size=2, shuffle=True)
+    for batch_data in my_dataloader:
+        print("batch_data: {}, type: {}, shape: {}".format(batch_data, type(batch_data), batch_data.shape))
+    ```
+
+    output:
+
+    ```
+    first elm: 0
+    dataset len: 8
+    batch_data: tensor([4, 1]), type: <class 'torch.Tensor'>, shape: torch.Size([2])
+    batch_data: tensor([6, 7]), type: <class 'torch.Tensor'>, shape: torch.Size([2])
+    batch_data: tensor([3, 0]), type: <class 'torch.Tensor'>, shape: torch.Size([2])
+    batch_data: tensor([5, 2]), type: <class 'torch.Tensor'>, shape: torch.Size([2])
+    ```
+
+    DataLoaders on Built-in Datasets:
+
+    ```py
+    # importing the required libraries
+    import torch
+    from torch.utils.data import Dataset
+    from torch.utils.data import DataLoader
+    import seaborn as sns
+    from torch.utils.data import TensorDataset
+
+    # defining the dataset consisting of 
+    # two columns from iris dataset
+    iris = sns.load_dataset('iris')
+    petal_length = torch.tensor(iris['petal_length'])
+    petal_width = torch.tensor(iris['petal_width'])
+    dataset = TensorDataset(petal_length, petal_width)
+
+    # implementing dataloader on the dataset 
+    # and printing per batch
+    dataloader = DataLoader(dataset, 
+                            batch_size=5, 
+                            shuffle=True)
+
+    for i in dataloader:
+        print(i)
+    ```
+
 * `ToTensor()`
 
     1. 数据类型转换：ToTensor() 将 PIL Image 或 numpy.ndarray 转换为 PyTorch Tensor，后续的 transforms 都需要在 Tensor 上操作

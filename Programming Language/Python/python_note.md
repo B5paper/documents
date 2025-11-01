@@ -2,6 +2,43 @@
 
 ## cached
 
+* python 删除文件
+
+    python 可以使用`os.remove()`删除文件，但是`os.remove()`如果删除成功，不会有提示，如果删除失败，会报 exception。因此我们使用 try 来判断文件是否删除成功。
+
+    ```py
+    import os
+
+    def remove_file(file_path):
+        try:
+            os.remove(file_path)
+            print(f"文件 {file_path} 删除成功")
+            return True
+        except FileNotFoundError:
+            print(f"文件 {file_path} 不存在")
+            return False
+        except PermissionError:
+            print(f"没有权限删除文件 {file_path}")
+            return False
+        except OSError as e:
+            print(f"删除文件时出错：{e}")
+            return False
+
+    # 使用示例
+    success = remove_file("to_delete.txt")
+    if success:
+        print("删除操作成功完成")
+    else:
+        print("删除操作失败")
+    ```
+
+    output:
+
+    ```
+    文件 to_delete.txt 删除成功
+    删除操作成功完成
+    ```
+
 * 对 python 中的 list 进行 unique
 
     1. 使用 set()（最常用）
