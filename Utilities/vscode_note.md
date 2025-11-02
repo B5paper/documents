@@ -2,6 +2,35 @@
 
 ## cache
 
+* vscode 中，可以在工程目录中创建`.env`文件，静态地配置环境变量
+
+    比如 python 工程，如果想临时添加一些 module 搜索目录，在代码里如果写成
+
+    ```py
+    import sys
+    sys.path.append('xxx')
+    ```
+
+    那么这段代码是动态执行的，无法用于 vscode 的静态代码分析。
+
+    我们可以在`.env`文件中添加：
+
+    ```conf
+    PYTHONPATH=xxx
+    ```
+
+    添加搜索路径，此时再在代码里
+
+    ```py
+    import my_module
+    ```
+
+    便可以直接 ctrl + 鼠标左键点进去了。
+
+    注意，这个方法只能用于 vscode 的静态代码分析和调试（F5 运行）。
+    
+    如果要在实际运行中使环境变量生效，必须按照 bash 的规则执行`export PYTHONPATH=xxx`。仅仅`source ./.env`是不行的。
+
 * vscode 里，可以使用 ctrl + up / down 实现向上／下滚动一行，不改变光标位置
 
 * c++ 中的 string & 在 vscode 中，debug 断点模式下，鼠标悬停不显示内容

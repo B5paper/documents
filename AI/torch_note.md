@@ -2,6 +2,18 @@
 
 ## cache
 
+* pytorch model save(), load()
+
+    ```py
+    # 保存模型
+    t.save(net.state_dict(), 'model_weights.pth')
+
+    # 加载模型
+    net.load_state_dict(t.load('model_weights.pth'))
+    ```
+
+    注意这种方法没有保存 model 的结构，只保存了参数。
+
 * dataset 似乎支持 slice 访问
 
     ```py

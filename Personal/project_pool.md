@@ -28,6 +28,8 @@
 
 ## cache
 
+* 或许应该启动一个“本周提醒”项目，每次从有道理的句子池中不重复地随机摘取 2 ～ 3 句，放在 project pool 的最前面，单独开一个二级标题`## 本周提醒`，给自己一个本周的努力方向。
+
 * 新时代的莎士比亚
 
     莎士比亚经历了底层的生活，又对生活观察细致，还有文学功底，这才造就了戏剧大师。而当今的剧本普遍缺乏对底层人民的观察，因此缺乏感染力。我们可以雇佣调查记者，收集底层人民或者行业的故事素材，进行艺术加工，做成感人的动画或剧本。这样的公司可以成为新时代的莎士比亚。
@@ -1336,6 +1338,8 @@
 
 ### tasks
 
+* [v] process 1 tab 30 mins 11.01
+
 * [v] process 1 tab 10.30
 
 * [O] 调研 10 日均线斜率交易策略解析
@@ -1348,9 +1352,13 @@
 
 * [ ] sed
 
-* [ ] `std::is_base_of`
+* [v] `std::is_base_of`
 
     调研`std::is_base_of<Base, Derived>`的使用方法
+
+    feedback:
+
+    * [asso] `if constexpr`
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -2092,7 +2100,17 @@ resources:
 
 ### tasks
 
-* [ ] 调研 torch `unsqueeze()`
+* [ ] `nn.Parameter()`
+
+* [ ] `optim.SGD([train_param], lr=1e-3)`
+
+* [ ] `tensor.detach()`
+
+* [ ] `ax.set_title()`
+
+* [ ] `plt.tight_layout()`
+
+* [v] 调研 torch `unsqueeze()`
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
@@ -2120,17 +2138,9 @@ resources:
 
     <https://www.geeksforgeeks.org/python/how-to-use-a-dataloader-in-pytorch/>
 
-    feedback:
+* [ ] dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
 
-    * [asso] Python Introduction
-
-        <https://www.geeksforgeeks.org/python/introduction-to-python/>
-
-        可以看看下面的 explore 部分。
-
-    * [ ] dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
-
-    * [ ] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
+* [ ] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
 
 * [ ] PyTorch Functional Transforms for Computer Vision
 
@@ -2203,6 +2213,12 @@ resources:
 * [asso] 调研这个网站下面的 tutorial 目录，看看其他部分
 
     <https://www.geeksforgeeks.org/python/datasets-and-dataloaders-in-pytorch/>
+
+* [asso] Python Introduction
+
+    <https://www.geeksforgeeks.org/python/introduction-to-python/>
+
+    可以看看下面的 explore 部分。
 
 ## Machine Learning
 

@@ -2,6 +2,23 @@
 
 ## cached
 
+* python datetime 格式化打印当前日期
+
+    ```py
+    import datetime
+    cur_dt = datetime.datetime.now()
+    print(cur_dt)
+    formatted_str = cur_dt.strftime("%Y/%m/%d %H:%M:%S")
+    print(formatted_str)
+    ```
+
+    output:
+
+    ```
+    2025-10-31 15:08:58.421751
+    2025/10/31 15:08:58
+    ```
+
 * python 删除文件
 
     python 可以使用`os.remove()`删除文件，但是`os.remove()`如果删除成功，不会有提示，如果删除失败，会报 exception。因此我们使用 try 来判断文件是否删除成功。
