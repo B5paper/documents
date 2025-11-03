@@ -2,6 +2,63 @@
 
 ## cache
 
+* `squeeze()`
+
+    移除所有长度为 1 的维度（或者只移除指定维度，如果其长度为 1）。
+
+    example:
+
+    ```py
+    # 接上面的例子
+    x = torch.randn(1, 4, 1, 2)
+    print(f"Original shape: {x.shape}") # torch.Size([1, 4, 1, 2])
+
+    y = x.squeeze() # 移除所有长度为1的维度
+    print(f"After squeeze(): {y.shape}") # torch.Size([4, 2])
+
+    z = x.squeeze(0) # 只移除第0维，如果其长度为1
+    print(f"After squeeze(0): {z.shape}") # torch.Size([4, 1, 2])
+
+    w = x.squeeze(2) # 只移除第2维，如果其长度为1
+    print(f"After squeeze(2): {w.shape}") # torch.Size([1, 4, 2])
+    ```
+
+* `unsqueeze()`
+
+    在张量的指定维度上增加一个长度为 1 的维度。这个操作通常也被称为“升维”。
+
+    syntax:
+
+    ```py
+    torch.unsqueeze(input, dim) → Tensor
+    ```
+
+    * input: 输入张量。
+
+    * dim: 一个整数，指定在哪个位置插入新的维度。这个新维度的长度将为 1。
+
+        dim 的取值范围是 [-input.dim()-1, input.dim()]。
+
+        * 正索引: 从前往后数，0 表示在最前面插入。
+
+        * 负索引: 从后往前数，-1 表示在最后一个维度之后插入。
+
+    这是一个“视图操作”，意味着它通常不会复制底层数据，而只是改变了看待数据的“视角”，因此效率很高。
+
+    例如：
+
+    对于一个 3 维张量 (C, H, W)：
+
+    * dim=0 -> 新形状为 (1, C, H, W)
+
+    * dim=1 -> 新形状为 (C, 1, H, W)
+
+    * dim=-1 -> 新形状为 (C, H, W, 1)
+
+    * dim=-2 -> 新形状为 (C, H, 1, W)
+
+* 在`fig, axes = subplots()`时，如果是一行或者一列，那么`axes`是一维的，如果是多行多列，`axes`是二维的。
+
 * pytorch model save(), load()
 
     ```py

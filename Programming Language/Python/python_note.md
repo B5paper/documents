@@ -2,6 +2,13 @@
 
 ## cached
 
+* 使用 venv 创建 python 虚拟环境
+
+    ```py
+    python3 -m venv myenv      # 创建虚拟环境
+    source myenv/bin/activate # 激活虚拟环境
+    ```
+
 * python datetime 格式化打印当前日期
 
     ```py

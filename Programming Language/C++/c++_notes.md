@@ -4,6 +4,55 @@
 
 ## cached
 
+* `std::is_base_of`
+
+    在编译时检查一个类是否是另一个类的基类。
+
+    syntax:
+
+    ```cpp
+    #include <type_traits>
+
+    std::is_base_of<Base, Derived>::value  // 返回 bool 类型的编译时常量
+    ```
+
+    example:
+
+    ```cpp
+    #include <type_traits>
+    #include <iostream>
+
+    class Base {};
+    class Derived : public Base {};
+    class Other {};
+
+    int main() {
+        std::cout << std::boolalpha;
+        
+        // 检查继承关系
+        std::cout << std::is_base_of<Base, Derived>::value << std::endl;  // true
+        std::cout << std::is_base_of<Base, Other>::value << std::endl;    // false
+        std::cout << std::is_base_of<Derived, Base>::value << std::endl;  // false
+        
+        // 类总是自己的基类
+        std::cout << std::is_base_of<Base, Base>::value << std::endl;     // true
+        
+        return 0;
+    }
+    ```
+
+    返回 std::true_type 或 std::false_type
+
+    注意事项
+
+    * 即使继承是 private 或 protected，std::is_base_of 也会返回 true
+
+    * 类总是被认为是自己的基类
+
+    * 内置类型之间没有基类关系
+
+    * 结果在编译时确定，可用于模板元编程
+
 * 断点的行数和实际断到的函数不对应，猜想可能的原因是模板函数在展开时行数无法完全对应
 
 * c++ 中的奇异递归模板（CRTP）

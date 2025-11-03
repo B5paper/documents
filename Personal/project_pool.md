@@ -28,6 +28,20 @@
 
 ## cache
 
+* 科研的难度远远大于线性学习和非线性学习
+
+    科研过程：编织一张知识概念网，在编织时做出猜想和预测，如果没做过实验，那么做实验验证猜想，如果猜想正确，那么继续阅读新材料，获得新概念，做出新猜想。如果猜想错误，那么需要修改或重构知识网，使得其在内部自洽时，又可以合理解释现象（猜想为什么是错的）。
+
+    通常一个新概念会联想出许多猜想和预测，在做实验中又可能冒出新的猜想或看到新的现象。为了解释新现象，我们又需要搜索假设空间，在高维度构造出许多个假设。
+    
+    整个过程是网状的，节点呈指数形式爆发的。
+
+    线性学习：查资料，跟着做一遍（验证），做笔记，做一些额外的联想或尝试，如果没时间尝试了就先缓存下来。整个过程比较简单。
+
+    非线性学习：前面的概念可能到了后面才解释，或者根本就没有解释，中间需要我们加入大量的猜想、假设来保持思维连贯。如果能拆分成线性学习，我们可能还会把它拆分成线性任务。整个过程稍微有点难度，但是基本还是跟着学习资料走的，而且大部分问题都有标准答案。
+
+    学习的过程有点像把鱼饵（问题）丢进湖里，等一段时间总会有鱼（答案）咬钩，而科研有点像把石头丢进湖里，除了泛起一点点涟漪，剩下的什么都没有。
+
 * 或许应该启动一个“本周提醒”项目，每次从有道理的句子池中不重复地随机摘取 2 ～ 3 句，放在 project pool 的最前面，单独开一个二级标题`## 本周提醒`，给自己一个本周的努力方向。
 
 * 新时代的莎士比亚
@@ -501,8 +515,6 @@
 
 * 应该增加各个项目 sync 的频率
 
-* 遇到了 vscode 中 markdown 图片显示不出来的问题，chrome 显示正常
-
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -815,10 +827,6 @@
 
 * [ ] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
 
-* [v] 网络中 p2p 连接如何建立（比如 torrent 下载那种）？假如两个 host 随机地先后启动，因为共用一份代码，所以无法确定哪个 host 是 server，哪个 host 是 client，此时该如何让两个 host 建立连接？
-
-* [v] 整理 poc 中 sock_exchange 的代码，处理`ref_29`中的图片
-
 * [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
 
 * [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
@@ -1063,9 +1071,9 @@
 
 ### Tasks
 
-* [v] py 如何删除一个文件？ 
+* [v] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
 
-* [ ] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
+    15:20 ~ 15:30
 
 * [ ] 改造`--randexam`为 subcommand 形式
 
@@ -1338,9 +1346,19 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 11.01
+* [v] process 1 tab 30 mins 11.02
 
-* [v] process 1 tab 10.30
+    13:44 ~ 14:30
+
+    feedback:
+
+    * [asso] 调研命令后写`&`的写法
+
+        ```bash
+        while sleep 1; do
+            echo "后台任务持续运行..."
+        done &
+        ```
 
 * [O] 调研 10 日均线斜率交易策略解析
 
@@ -1355,10 +1373,6 @@
 * [v] `std::is_base_of`
 
     调研`std::is_base_of<Base, Derived>`的使用方法
-
-    feedback:
-
-    * [asso] `if constexpr`
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -2056,6 +2070,8 @@
 
     （注：find 默认不支持 birth 时间，但可以按 mtime 排序）
 
+* [asso] `if constexpr`
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2110,11 +2126,11 @@ resources:
 
 * [ ] `plt.tight_layout()`
 
-* [v] 调研 torch `unsqueeze()`
-
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
-* [ ] `transforms.Resize((224, 224)),`
+* [v] `transforms.Resize((224, 224)),`
+
+    15:59 ~ 16:37
 
     ```py
     transform = transforms.Compose([
@@ -2134,17 +2150,21 @@ resources:
 
 * [O] 稀疏矩阵如何加速矩阵乘？
 
-* [v] How to use a DataLoader in PyTorch?
-
-    <https://www.geeksforgeeks.org/python/how-to-use-a-dataloader-in-pytorch/>
-
 * [ ] dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
 
 * [ ] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
 
-* [ ] PyTorch Functional Transforms for Computer Vision
+* [O] PyTorch Functional Transforms for Computer Vision
+
+    16:48 ~ 17:20
 
     <https://www.geeksforgeeks.org/computer-vision/pytorch-functional-transforms-for-computer-vision/>
+
+    feedback:
+
+    * 目前看到
+
+        > 2. adjust_contrast() function:floating-point
 
 * [ ] 带动量的SGD（Momentum）
 
