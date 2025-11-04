@@ -4,6 +4,98 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* trap
+
+    用于在脚本执行过程中捕获和处理信号或事件。它允许你在脚本接收到特定信号时执行指定的命令或函数，常用于清理临时文件、优雅退出或调试。
+
+    syntax:
+
+    ```bash
+    trap [COMMAND] [SIGNALS]
+    ```
+
+    * `COMMAND`：捕获到信号后要执行的命令或函数（用引号包裹）。
+
+    * `SIGNALS`：要捕获的信号名称或编号（如`INT`、`TERM`、`EXIT`等）。
+
+    examples:
+
+    * 捕获中断信号（如 Ctrl+C）
+
+        ```bash
+        trap "echo '脚本被中断！'; exit 1" INT
+        ```
+
+        当用户按下 Ctrl+C（发送 SIGINT 信号）时，脚本会打印消息并退出。
+
+    * 脚本退出时清理资源
+
+        ```bash
+        trap "rm -f /tmp/tempfile; echo '清理完成'" EXIT
+        ```
+
+        无论脚本正常结束还是因错误退出，都会执行清理操作（删除临时文件）。
+
+    * 忽略信号
+
+        ```bash
+        trap "" TERM
+        ```
+
+        忽略 SIGTERM 信号（常用于防止脚本被意外终止）。
+
+    * 捕获调试信号
+
+        ```bash
+        trap "echo '调试模式：变量 x=$x'" DEBUG
+        ```
+
+        每次命令执行后打印变量 x 的值（用于调试）。
+
+    * 重置信号处理
+
+        ```bash
+        trap - INT
+        ```
+
+        恢复对 SIGINT 的默认行为（移除之前的 trap 设置）。
+
+    常用信号列表:
+
+    | 信号名称 | 编号 | 触发条件 |
+    | - | - | - |
+    | INT | 2 | Ctrl+C 中断 |
+    | TERM | 15 | 默认的 kill 命令 |
+    | EXIT | 0 | 脚本退出时（非真实信号） |
+    | ERR | - | 命令执行失败时（非真实信号） |
+    | DEBUG | - | 每条命令执行后（非真实信号） |
+
+    example:
+
+    ```bash
+    #!/bin/bash
+
+    cleanup() {
+        echo "正在清理临时文件..."
+        rm -f /tmp/temp_*
+    }
+
+    trap cleanup EXIT    # 脚本退出时调用 cleanup
+    trap "echo '忽略中断信号'" INT  # 捕获 Ctrl+C
+
+    echo "创建临时文件..."
+    touch /tmp/temp_1234
+
+    echo "按 Ctrl+C 测试中断信号，或等待脚本完成..."
+    sleep 5
+    ```
+
+    注意事项:
+
+    * trap 的作用范围是当前的 Shell 环境。
+
+    * 在函数中定义的 trap 会覆盖全局设置（除非显式声明为全局）。
+
 * bash-completion
 
     `/etc/bash_completion.d/hlc_main`:

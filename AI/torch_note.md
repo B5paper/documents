@@ -2,6 +2,181 @@
 
 ## cache
 
+* `nn.Parameter()`
+
+    nn.Parameter() 是一个用于将张量包装为模型参数的类，它是 torch.Tensor 的子类。
+
+    syntax:
+
+    ```py
+    torch.nn.Parameter(data=None, requires_grad=True)
+    ```
+
+    params:
+
+    * `data` (Tensor): 要包装为参数的张量
+
+    * `requires_grad` (bool, 可选): 是否需要在反向传播中计算梯度，默认为 True
+
+* PyTorch Functional Transforms for Computer Vision
+
+    Most of the functional transforms accept both PIL images and tensor images. A tensor image is a tensor with shape (C, H, W),
+
+    if the input is a PIL image output is also a PIL image and the same for Tensor image.
+
+    * `adjust_brightness()`
+
+        adjusts the brightness of an image. It accepts both PIL image and Tensor Image.
+
+        syntax:
+
+        ```py
+        torchvision.transforms.functional.adjust_brightness(
+            img: Tensor,
+            brightness_factor: float
+        ) -> Tensor
+        ```
+
+        * img (Tensor): 输入图像，形状为 (..., H, W) 或 (C, H, W) 或 (H, W)
+
+        * brightness_factor is any non-negative floating-point number:
+
+            * brightness_factor = 1, the original image.
+
+            * brightness_factor < 1, a darker output image.
+
+            * brightness_factor > 1, a brighter output image.
+
+        example:
+
+        ```py
+        import torchvision.transforms.functional as F
+        import torch
+        from PIL import Image
+
+        image = Image.open('nature.jpg')
+
+        output = F.adjust_brightness(image, brightness_factor=3.0)
+        output.show()
+        ```
+
+        注意事项：
+
+        * 亮度调整是通过将每个像素值乘以 brightness_factor 实现的
+
+        * 结果会被裁剪到图像的原始值范围内（通常是 [0, 1]）
+
+        * 如果输入是 PIL 图像，F.adjust_brightness() 的输出是 Tensor，而不是 PIL 图像。
+
+        与``transforms.Compose`合用的例子：
+
+        ```py
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # PIL -> Tensor
+            lambda x: F.adjust_brightness(x, brightness_factor=1.5),
+            transforms.ToPILImage()  # Tensor -> PIL
+        ])
+        ```
+
+* 在 transform 时，numpy 只能先 to tensor，再 resize，不能先 resize。PIL 图像既可以先 resize，也可以先 to tensor
+
+    * numpy ndarray 只能先 to tensor;
+
+        ```py
+        from torchvision import transforms
+        import numpy as np
+
+        img = np.random.random((256, 256))
+
+        trans = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize((512, 512))
+        ])
+
+        img_trans = trans(img)
+
+        print("img shape: {}".format(img.shape))
+        print("img trans shape: {}".format(img_trans.shape))
+        ```
+
+        output:
+
+        ```
+        img shape: (256, 256)
+        img trans shape: torch.Size([1, 512, 512])
+        ```
+
+        三维的数据也可以处理：
+
+        `img = np.random.random((256, 256, 3))`
+
+        output:
+
+        ```
+        img shape: (256, 256, 3)
+        img trans shape: torch.Size([3, 512, 512])
+        ```
+
+        如果我们设置先 resize，那么会报错：
+
+        ```py
+        trans = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor()
+        ])
+        ```
+
+        output:
+
+        ```
+        ...
+          File "/home/hlc/miniconda3/envs/torch/lib/python3.10/site-packages/torchvision/transforms/_functional_pil.py", line 31, in get_dimensions
+            raise TypeError(f"Unexpected type {type(img)}")
+        TypeError: Unexpected type <class 'numpy.ndarray'>
+        ```
+
+    * PIL 图片既可以先 resize，也可以先 to tensor:
+
+        ```py
+        from torchvision import transforms
+        from PIL import Image
+
+        img = Image.open('../example.jpg')
+
+        trans = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor()
+        ])
+
+        img_trans = trans(img)
+
+        # print("img shape: {}".format(img.shape))  # PIL Image object has no shape attribute
+        print("img trans shape: {}".format(img_trans.shape))
+        ```
+
+        output:
+
+        ```
+        img trans shape: torch.Size([3, 512, 512])
+        ```
+
+        先 to tensor 也是可以的：
+
+        ```py
+        trans = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize((512, 512))
+        ])
+        ```
+
+        output:
+
+        ```
+        img trans shape: torch.Size([3, 512, 512])
+        ```
+
+    如果先做了 to tensor，那么后续操作会在 GPU 里完成（是 CPU 吧？）。如果先做 resize，那么 resize 操作会调用 PIL 提供的 resize 函数。
+
 * `squeeze()`
 
     移除所有长度为 1 的维度（或者只移除指定维度，如果其长度为 1）。
