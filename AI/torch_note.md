@@ -2,6 +2,14 @@
 
 ## cache
 
+* 如果在`batch_loss.backward()`之前就尝试拿 grad `net.fc1.weight.grad`，那么 grad 为 None
+
+* list 在 append tensor 时，需要 tensor clone()，否则 append 的都是 tensor 的引用，值都是一模一样的
+
+    `params_record.append(param.clone().detach())`
+
+* 不能使用`sgd = torch.optim.sgd.SGD()`, 但是可以使用`from torch.optim.sgd import SGD`。不清楚为什么。
+
 * `nn.Parameter()`
 
     nn.Parameter() 是一个用于将张量包装为模型参数的类，它是 torch.Tensor 的子类。

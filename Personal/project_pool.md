@@ -827,25 +827,13 @@
 
 ### tasks
 
-* [v] random select 增加 exclude 功能
-
-    14:09 ~ 16:05
-
-    凡是文件是 parent dir abs path 符合 esclude 指定的正则表达式，都忽略
-
-    exclude 可以指定多个正则表达式
-
-* [ ] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
+* [v] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
 
 * [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
 
 * [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
 
     里面似乎有许多指令集的排列组合。
-
-* [ ] reorg: linux programming 30 mins
-
-* [ ] `remap_pfn_range()`
 
 * [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
 
@@ -1081,11 +1069,7 @@
 
 ### Tasks
 
-* [v] `parse_qa_record_file()`中检测 sub block 的类型时，直接检测`^[`然后读取`[xxx]`中的内容拿到 subblock 的类型
-
-    15:20 ~ 15:30
-
-* [ ] 改造`--randexam`为 subcommand 形式
+* [v] 改造`--randexam`为 subcommand 形式
 
 * [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
 
@@ -1356,19 +1340,15 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 11.02
-
-    13:44 ~ 14:30
+* [v] process 1 tab 30 mins 11.04
 
     feedback:
 
-    * [asso] 调研命令后写`&`的写法
+    * [ ] `python -m xxx.py`
 
-        ```bash
-        while sleep 1; do
-            echo "后台任务持续运行..."
-        done &
-        ```
+* [v] process 1 tab 30 mins 11.02
+
+    13:44 ~ 14:30
 
 * [O] 调研 10 日均线斜率交易策略解析
 
@@ -1379,10 +1359,6 @@
     > 假如有一个市场，市场里有一个股票，参与这个股票交易的所有人都是散户，所有人起始资金都是100w，所有人都遵循均线投资策略，那么这支股票的股价可能会发生什么
 
 * [ ] sed
-
-* [v] `std::is_base_of`
-
-    调研`std::is_base_of<Base, Derived>`的使用方法
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -1398,6 +1374,14 @@
 
     为什么返回值会有两个，outputs.data 又是什么？
 
+* [ ] F1 Score
+
+* [ ] Feedforward Neural Network
+
+    <https://www.geeksforgeeks.org/nlp/feedforward-neural-network/>
+
+    文本中的链接和下面的 explore 可以看看，正文本身没什么要看的。
+
 * [v] Introduction to Deep Learning
 
     <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
@@ -1405,14 +1389,6 @@
     页面最下方的 explore 看一下。
 
     feedback:
-
-    * [ ] F1 Score
-
-    * [ ] Feedforward Neural Network
-
-        <https://www.geeksforgeeks.org/nlp/feedforward-neural-network/>
-
-        文本中的链接和下面的 explore 可以看看，正文本身没什么要看的。
 
     * [ ] Introduction to Convolution Neural Network
 
@@ -2082,6 +2058,14 @@
 
 * [asso] `if constexpr`
 
+* [asso] 调研命令后写`&`的写法
+
+    ```bash
+    while sleep 1; do
+        echo "后台任务持续运行..."
+    done &
+    ```
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2134,7 +2118,7 @@ resources:
 
 * [ ] python 函数如何写 static 变量？
 
-* [ ] `nn.Parameter()`
+* [v] `nn.Parameter()`
 
 * [ ] `optim.SGD([train_param], lr=1e-3)`
 
@@ -2145,18 +2129,6 @@ resources:
 * [ ] `plt.tight_layout()`
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
-
-* [v] `transforms.Resize((224, 224)),`
-
-    15:59 ~ 16:37
-
-    ```py
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),      # 调整大小
-        transforms.ToTensor(),              # 转为Tensor [0,1]
-        transforms.Normalize((0.5,), (0.5,)) # 归一化到 [-1,1]
-    ])
-    ```
 
 * [ ] `pip install -e .`
 
@@ -2720,6 +2692,8 @@ resources:
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
+
+* [ ] `remap_pfn_range()`
 
 * [ ] 调研 pandas，polars
 

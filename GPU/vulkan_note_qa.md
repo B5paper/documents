@@ -894,7 +894,7 @@ void get_phy_dev_queue_families(VkPhysicalDevice phy_dev,
 select graphics queue family index
 [u_1]
 ```cpp
-uint32_t select_graphcs_queue_family_idx(
+uint32_t select_graphics_queue_family_idx(
     const vector<VkQueueFamilyProperties> &queue_family_props,
     bool &valid)
 {
