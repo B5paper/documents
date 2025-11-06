@@ -2,6 +2,42 @@
 
 ## cache
 
+* nn.Parameter()
+
+    主要做两件事情：
+
+    1. 为 tensor 增加 grad
+
+    2. 将 tensor 注册到 model 的参数列表中
+
+    example:
+
+    * add grad
+
+        ```py
+        # 自动设置 requires_grad=True
+        param = nn.Parameter(torch.tensor([1.0, 2.0, 3.0]))
+        print(param.requires_grad)  # 输出: True
+        ```
+
+    * register as model parameter
+
+        ```py
+        class MyModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.weight = nn.Parameter(torch.randn(10, 5))
+                self.bias = nn.Parameter(torch.zeros(5))
+            
+            def forward(self, x):
+                return x @ self.weight + self.bias
+
+        model = MyModel()
+        # 自动包含在模型参数中
+        for name, param in model.named_parameters():
+            print(f"{name}: {param.shape}")
+        ```
+
 * 如果在`batch_loss.backward()`之前就尝试拿 grad `net.fc1.weight.grad`，那么 grad 为 None
 
 * list 在 append tensor 时，需要 tensor clone()，否则 append 的都是 tensor 的引用，值都是一模一样的

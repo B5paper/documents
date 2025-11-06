@@ -2,6 +2,51 @@
 
 ## cached
 
+* `os.walk()`
+
+    递归地遍历指定目录及其所有子目录。
+
+    syntax:
+
+    ```py
+    os.walk(top, topdown=True, onerror=None, followlinks=False)
+    ```
+
+    返回值
+
+    生成一个三元组 (root, dirs, files)：
+
+    * root: 当前正在遍历的目录路径
+
+    * dirs: 当前目录下的子目录列表
+
+    * files: 当前目录下的文件列表
+
+    example:
+
+    ```py
+    import os
+
+    # 基本遍历
+    for root, dirs, files in os.walk('.'):
+        print(f"当前目录: {root}")
+        print(f"子目录: {dirs}")
+        print(f"文件: {files}")
+        print("-" * 50)
+    ```
+
+    参数说明
+
+    * topdown=True: 从上往下遍历（先父目录后子目录）
+
+    * topdown=False: 从下往上遍历（先子目录后父目录）
+
+    * onerror: 错误处理函数
+
+    * followlinks: 是否跟随符号链接
+
+        默认不跟随符号链接，避免无限循环
+
 * 使用 venv 创建 python 虚拟环境
 
     ```py

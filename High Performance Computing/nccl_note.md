@@ -2,6 +2,24 @@
 
 ## cache
 
+* CE memcpy
+
+    CE Memcpy Support 指的是 Copy Engine（拷贝引擎） 对内存复制（Memcpy）操作的支持
+
+    NVIDIA GPU 有专门的硬件引擎来处理数据拷贝任务，包括：
+
+    * DMA（Direct Memory Access）引擎：负责主机（CPU）与设备（GPU）之间的数据传输。
+
+    * CE（Copy Engine）：负责 GPU 内部或 GPU 之间的数据拷贝（如 cudaMemcpy、cudaMemcpyAsync）。
+
+    CE 可以并行执行多个拷贝任务，提高数据传输效率。
+
+* `NCCL_CUMEM_ENABLE`
+
+    当 NCCL_CUMEM_ENABLE=1（或 =ON）时，NCCL 会尝试使用 CUDA 统一内存（UM） 来优化 GPU 之间的通信，减少显存拷贝开销，提升多 GPU 或跨节点通信性能。
+
+    在某些硬件（如 NVLink 互连）下可能显著提升性能，但在 PCIe-only 环境下可能效果有限。
+
 * `const ncclTopoGraph *const *const graphs;`
 
     各层 const 的含义：

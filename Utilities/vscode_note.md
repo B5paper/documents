@@ -2,6 +2,10 @@
 
 ## cache
 
+* vscode 增加路径提示功能
+
+    安装插件`Path Intellisense`，输入一半路径后，使用 Ctrl + Space 喚出路径自动补全。
+
 * vscode 中，可以在工程目录中创建`.env`文件，静态地配置环境变量
 
     比如 python 工程，如果想临时添加一些 module 搜索目录，在代码里如果写成

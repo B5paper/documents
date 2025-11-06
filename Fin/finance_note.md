@@ -4,6 +4,166 @@
 
 ## cache
 
+* jq market open
+
+    ```py
+    def market_open(context):
+        security = g.security
+        # 获取股票的收盘价
+        close_data = attribute_history(security, 5, '1d', ['close'])
+        # 取得过去五天的平均价格
+        MA5 = close_data['close'].mean()
+        # 取得上一时间点价格
+        current_price = close_data['close'][-1]
+        # 取得当前的现金
+        cash = context.portfolio.available_cash
+
+        # 如果上一时间点价格高出五天平均价1%, 则全仓买入
+        if current_price > 1.01*MA5:
+            # 用所有 cash 买入股票
+            order_value(security, cash)
+            # 记录这次买入
+            log.info("Buying %s" % (security))
+        # 如果上一时间点价格低于五天平均价, 则空仓卖出
+        elif current_price < MA5 and context.portfolio.positions[security].closeable_amount > 0:
+            # 卖出所有股票,使这只股票的最终持有量为0
+            order_target(security, 0)
+            # 记录这次卖出
+            log.info("Selling %s" % (security))
+        # 画出上一时间点价格
+        record(stock_price=current_price)
+    ```
+
+* `get_security_info(code)`
+
+    获取单支股票的信息
+
+    params:
+
+    * `code`: str, 证券代码。比如`'000001.XSHE'`代表平安银行。
+
+    return value:
+
+    * `obj`:
+
+        attrs:
+
+        * `display_name`: 中文名称
+
+        * `name`: 缩写简称
+
+        * `start_date`: 上市日期, `[datetime.date]`类型
+
+        * `end_date`: 退市日期，`[datetime.date]`类型, 如果没有退市则为2200-01-01
+        
+        * `type`: 类型，stock(股票)，index(指数)，etf(ETF基金)，fja（分级A），fjb（分级B）
+        
+        * `parent`: 分级基金的母基金代码
+
+    example:
+
+    ```py
+    stock_ping_an = get_security_info('000001.XSHE')
+    print(stock_ping_an.display_name)
+    print(stock_ping_an.name)
+    print(stock_ping_an.start_date)
+    print(stock_ping_an.end_date)
+    print(stock_ping_an.type)
+    print(stock_ping_an.parent)
+    ```
+
+    output:
+
+    ```
+    2025-01-01 00:00:00 - INFO  - 平安银行
+    2025-01-01 00:00:00 - INFO  - PAYH
+    2025-01-01 00:00:00 - INFO  - 1991-04-03
+    2025-01-01 00:00:00 - INFO  - 2200-01-01
+    2025-01-01 00:00:00 - INFO  - stock
+    2025-01-01 00:00:00 - INFO  - None
+    ```
+
+* `get_all_securities(types=['stock'], date=None)`
+
+    获取所有股票数据
+
+    params:
+
+    * types：默认为stock，这里请在使用时注意防止未来函数。
+
+    * date: 日期, 一个字符串或者 [datetime.datetime]/[datetime.date] 对象, 用于获取某日期还在上市的股票信息. 默认值为 None, 表示获取所有日期的股票信息
+
+    return value:
+
+    * `obj`: type `[pandas.DataFrame]`
+
+        dataframe columns:
+
+        * display_name # 中文名称
+
+        * name # 缩写简称
+
+        * start_date # 上市日期
+
+        * end_date # 退市日期，如果没有退市则为2200-01-01
+
+        * type # 类型，stock(股票)
+
+    example:
+
+    ```py
+    print(get_all_securities()[:2])
+    ```
+
+    output:
+
+    ```
+    2025-01-01 00:00:00 - INFO  -             display_name  name  start_date    end_date   type
+    000001.XSHE         平安银行  PAYH  1991-04-03  2200-01-01  stock
+    000002.XSHE          万科A   WKA  1991-01-29  2200-01-01  stock
+    ```
+
+* jq websites
+
+    * api 文档: <https://www.joinquant.com/help/api/help#api:API%E6%96%87%E6%A1%A3>
+
+    * 聚宽数据文档：<https://www.joinquant.com/help/api/help#name:aboutData>
+
+* XSHG‌：代表上海证券交易所, XSHE‌：代表深圳证券交易所
+
+    在量化交易平台（如聚宽）中，6位代码可能存在重复（例如000001在上交所代表上证指数，深交所代表平安银行）。此时需通过后缀区分交易所，完整代码格式为XXXXXX.XSHG（上交所）或XXXXXX.XSHE（深交所）。
+
+    例如：
+
+        ‌000001.XSHE‌：代表深交所的平安银行
+        ‌000001.XSHG‌：代表上交所的上证指数
+
+* jq initialize
+
+    ```py
+    import jqdata
+
+    def initialize(context):
+        # 000001(股票:平安银行)
+        g.security = '000001.XSHE'
+        # 设定沪深300作为基准
+        set_benchmark('000300.XSHG')
+        set_option('use_real_price', True)
+        run_daily(market_open, time='every_bar')
+    ```
+
+    注：
+
+    * `g`是全局变量，用于跨越函数，交换数据
+
+    * `set_option('use_real_price', True)`这个是前复权吗？动态复权是什么意思？
+
+    * `run_daily(market_open, time='every_bar')`这里的 bar 指的就是每天。`market_open`是自定义函数。自定义函数也只能接收`context`这一个参数。
+
+        如果要设置每分钟，每周，或者指定时间间隔，指定时刻，该怎么办？
+
+        是否有 run once 的选项？
+
 * 今日模拟盘感受
 
     * 即使前面花了两周挣了几千块，当千股下跌时，也有可能一天内亏完

@@ -2,6 +2,84 @@
 
 ## cache
 
+* CUDA Event
+
+    作用:
+
+    CUDA Event 是 GPU 执行过程中的标记点，用于：
+
+    * 测量 GPU 操作的时间间隔（性能分析）。
+
+    * 同步 Stream 的执行（等待某个操作完成）。
+
+    主要用途:
+
+    * 性能计时（Profiling）：
+
+        ```cpp
+        cudaEvent_t event;
+        cudaEventCreate(&event);
+
+        kernelA<<<..., stream1>>>(...);
+        cudaEventRecord(event, stream1);  // 在 stream1 中插入事件
+
+        // stream2 等待 event 完成后再执行
+        cudaStreamWaitEvent(stream2, event, 0);
+        kernelB<<<..., stream2>>>(...);
+        ```
+
+    * 跨 Stream 同步：
+
+        ```cpp
+        cudaEvent_t event;
+        cudaEventCreate(&event);
+
+        kernelA<<<..., stream1>>>(...);
+        cudaEventRecord(event, stream1);  // 在 stream1 中插入事件
+
+        // stream2 等待 event 完成后再执行
+        cudaStreamWaitEvent(stream2, event, 0);
+        kernelB<<<..., stream2>>>(...);
+        ```
+
+    关键特点
+
+    * 轻量级：Event 只是一个标记，不存储数据。
+
+    * 可用于 Stream 间同步：cudaStreamWaitEvent 让一个 Stream 等待另一个 Stream 的某个 Event。
+
+        example:
+
+        ```cpp
+        cudaStream_t stream1, stream2;
+        cudaEvent_t event;
+
+        cudaStreamCreate(&stream1);
+        cudaStreamCreate(&stream2);
+        cudaEventCreate(&event);
+
+        // Stream1 执行 KernelA 并记录 Event
+        kernelA<<<..., stream1>>>(...);
+        cudaEventRecord(event, stream1);
+
+        // Stream2 等待 Event 完成后再执行 KernelB
+        cudaStreamWaitEvent(stream2, event, 0);
+        kernelB<<<..., stream2>>>(...);
+
+        // 清理
+        cudaStreamDestroy(stream1);
+        cudaStreamDestroy(stream2);
+        cudaEventDestroy(event);
+        ```
+
+    * 查询完成状态：
+
+        ```cpp
+        if (cudaEventQuery(event) == cudaSuccess) {
+            // 事件已完成
+        }
+        ```
+
 * cuda 的跨进程 vram 访问
 
     见`ref_39`

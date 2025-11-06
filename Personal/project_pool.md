@@ -28,6 +28,8 @@
 
 ## cache
 
+* 难点不是实验证明/证伪了猜想，而是怎么想出来的这个实验？
+
 * 科研对应的是网状学习
 
     难度：网状学习 > 非线性学习 > 线性学习
@@ -829,7 +831,7 @@
 
 * [v] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
 
-* [ ] rocm 分为几个模块，阅读源码该从哪开始入手？
+* [v] rocm 分为几个模块，阅读源码该从哪开始入手？
 
 * [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
 
@@ -1071,7 +1073,7 @@
 
 * [v] 改造`--randexam`为 subcommand 形式
 
-* [ ] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
+* [v] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
 
     `select_graphcs_queue_family_idx` -> `select_graphics_queue_family_idx`
 
@@ -1340,23 +1342,25 @@
 
 ### tasks
 
+* [v] process 1 tab 30 mins 11.05
+
 * [v] process 1 tab 30 mins 11.04
 
-    feedback:
+* [ ] `python -m xxx.py`
 
-    * [ ] `python -m xxx.py`
-
-* [v] process 1 tab 30 mins 11.02
-
-    13:44 ~ 14:30
-
-* [O] 调研 10 日均线斜率交易策略解析
+* [O] 调研 10 日均线斜率交易策略解析 11.05
 
     14:09 ～ 14:41
 
     目前看到
 
     > 假如有一个市场，市场里有一个股票，参与这个股票交易的所有人都是散户，所有人起始资金都是100w，所有人都遵循均线投资策略，那么这支股票的股价可能会发生什么
+
+    feedback:
+
+    * 目前看到
+
+        > 您这个推论非常敏锐，已经触及了现代量化投资的核心。它大体上是正确的，但我们可以将这个“错误”更精确地定义一下。
 
 * [ ] sed
 
@@ -2110,6 +2114,8 @@ resources:
 
 ### tasks
 
+* [ ] torch tensor 与 numpy 的转换
+
 * [ ] `net.named_parameters()`
 
 * [ ] `torch.relu`, `@`
@@ -2117,8 +2123,6 @@ resources:
 * [ ] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
 
 * [ ] python 函数如何写 static 变量？
-
-* [v] `nn.Parameter()`
 
 * [ ] `optim.SGD([train_param], lr=1e-3)`
 
@@ -2210,8 +2214,6 @@ resources:
 
 * [asso] 调研`from typing import Optional, List, Dict, Tuple, Set`
 
-* [asso] torch tensor 与 numpy 的转换
-
 * [asso] `DataLoader`是如何实现 shuffle 的？先按照 dataset 的 length 生成 range，然后 random permute 吗？
 
 * [asso] python 的实例既然可以定义成员变量，那么可以定义成员函数吗？
@@ -2244,33 +2246,27 @@ resources:
 
     <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-convolution-operation-in-pytorch/>
 
-    feedback:
+    目前看到
 
-    * [ ] 调研 1d 卷积 convolution，尝试处理一个时间序列
+    > 2D convolution in PyTorch 
 
-    * 目前看到
-
-        > 2D convolution in PyTorch 
+* [ ] 调研 1d 卷积 convolution，尝试处理一个时间序列
 
 * [O] Apply a 2D Max Pooling in PyTorch
 
     <https://www.geeksforgeeks.org/computer-vision/apply-a-2d-max-pooling-in-pytorch/>
 
-    feedback:
+    目前看到
 
-    * 目前看到
+    > 2d Max pooling
 
-        > 2d Max pooling
+* [ ] `torch.cat`
 
 * [O] Difference Between "Hidden" and "Output" in PyTorch LSTM
 
     <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
 
-    feedback:
-
-    * [ ] torch `unsqueeze()`
-
-    * [ ] `torch.cat`
+* [v] torch `unsqueeze()`
 
 * [ ] Generative Adversarial Networks (GANs) in PyTorch
 
@@ -2692,6 +2688,10 @@ resources:
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
+
+* [ ] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+
+* [ ] `dma_map_page()`
 
 * [ ] `remap_pfn_range()`
 
@@ -3366,7 +3366,7 @@ resources:
 
 * [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
 
-* [O] 梳理 topo p2p 和 eth switch 接口
+* [v] 梳理 topo p2p 和 eth switch 接口
 
     16:39 ~ 17:20
 
@@ -3678,10 +3678,6 @@ resources:
 * [ ] `od -t c`是干嘛用的？
 
 * [asso] 解析`readelf -l <bin_file>`输出中各个字段的含义
-
-* [asso] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
-
-* [asso] `dma_map_page()`
 
 * [asso] `readelf -d <文件名> | grep NEEDED`
 
