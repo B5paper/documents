@@ -1342,6 +1342,85 @@
 
 ### tasks
 
+* [v] process 1 tab 30 mins 11.06
+
+    10:21 ~ 10:32
+
+    feedback:
+
+    * [asso] 使用 nc 的 -X 代理选项 + 跳板机SOCKS 代理 SSH 代理转发，进行跳板机中转连接到 target
+
+        `ssh -o ProxyCommand="ssh -q -X jumpuser@bastion.example.com nc -x localhost:1080 %h %p" targetuser@target.internal.com`
+
+    * [asso] 调用 Squid、CCProxy 等 http proxy server
+
+    * [asso] corkscrew
+
+    * [asso] 使用 corkscrew 进行 ssh 代理
+
+        ```bash
+        ssh -o ProxyCommand="corkscrew <代理服务器IP> <代理服务器端口> <目标主机IP> <目标主机SSH端口>" <用户名>@<目标主机IP>
+        ```
+
+        参数解释：
+
+            corkscrew: 核心工具。
+
+            <代理服务器IP> 和 <代理服务器端口>：你的 HTTP 代理服务器的地址和端口（例如 proxy.company.com:8080）。
+
+            <目标主机IP> 和 <目标主机SSH端口>：你最终想要连接的 SSH 服务器的地址和端口（通常是 22）。
+
+        example:
+
+        `ssh -o ProxyCommand="corkscrew proxy.company.com 3128 server.example.com 22" myuser@server.example.com`
+
+        带有用户名和密码的版本：
+
+        `ssh -o ProxyCommand="corkscrew proxy.company.com 3128 server.example.com 22 ~/.ssh/proxy_auth" myuser@server.example.com`
+
+        保存用户名和密码：
+
+        ```bash
+        echo "proxy_username:proxy_password" > ~/.ssh/proxy_auth
+        chmod 600 ~/.ssh/proxy_auth # 非常重要！确保只有你能读这个文件
+        ```
+
+    * [asso] 使用 ncat 进行 ssh 的 http 代理
+
+        ```bash
+        ssh -o ProxyCommand="ncat --proxy-type http --proxy proxy.company.com:3128 %h %p" myuser@server.example.com
+        ```
+
+        * %h 和 %p 是 SSH 的占位符，会自动替换为目标主机和端口。
+
+        * 如果代理需要认证，可以使用 --proxy-auth username:password 参数，但不建议在命令中直接输入密码，有安全风险。
+
+        配置文件：
+
+        ```conf
+        Host *
+            # 如果你的代理是全局需要的，可以放在最前面
+            # 但通常更建议针对特定域名配置
+
+        # 匹配所有以 .example.com 结尾的主机，通过公司代理连接
+        Host *.example.com
+            User myuser # 设置默认用户名
+            IdentityFile ~/.ssh/id_rsa # 指定私钥
+            ProxyCommand corkscrew proxy.company.com 3128 %h %p
+
+        # 如果代理需要认证，使用以下格式（注意安全！）
+        Host *.example.com
+            User myuser
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand corkscrew proxy.company.com 3128 %h %p ~/.ssh/proxy_auth
+
+        # 使用 ncat 的配置示例
+        Host myserver
+            HostName server.example.com
+            User myuser
+            ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
+        ```
+
 * [v] process 1 tab 30 mins 11.05
 
 * [v] process 1 tab 30 mins 11.04
@@ -2114,9 +2193,13 @@ resources:
 
 ### tasks
 
+* [ ] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
+
 * [ ] torch tensor 与 numpy 的转换
 
-* [ ] `net.named_parameters()`
+* [v] `net.named_parameters()`
+
+    ~ 13:19
 
 * [ ] `torch.relu`, `@`
 
@@ -2695,7 +2778,27 @@ resources:
 
 * [ ] `remap_pfn_range()`
 
-* [ ] 调研 pandas，polars
+* [v] 调研 pandas，polars
+
+    feedback:
+
+    * [ ] 《利用Python进行数据分析》（Python for Data Analysis）
+
+        作者: Wes McKinney（Pandas 的创始人）
+
+        内容: 从 Pandas 基础到实战，是公认的入门圣经。
+
+    * [asso] kaggle pandas tutorial
+
+        <https://www.kaggle.com/learn/pandas>
+
+    * [asso] pandas 实践平台
+
+        * Kaggle: 上面有成千上万的真实数据集和别人的代码（Kernels/Notebooks），是学习 Pandas 高级用法和数据分析思路的最佳场所。
+
+        * LeetCode 题库之 Pandas: 专门用 Pandas 解决数据处理问题，非常适合面试准备和巩固基础。
+
+    * [ ] polars
 
 * [ ] dma 在 cpu 中，还是在 device 中？
 
@@ -3361,6 +3464,8 @@ resources:
 * 因为 siccl topo 中无法 include nccl topo header，所以无法直接在 siccl topo 中引用 nv 的 struct。也无法直接复制一份 struct，因为有依赖，而且会重名。因此只能在 shim 层做转换。
 
 * 不引入 nccl 头文件编译 siccl 不可能实现，因为 nccl 的 struct 依赖的 struct 太多，并且分散在不同文件里。
+
+* Halving-Doubling 拓扑, 2D-Torus拓扑
 
 ### tasks
 
