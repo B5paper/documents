@@ -2,6 +2,65 @@
 
 ## cache
 
+* ssh 使用 nc 进行代理
+
+    `ssh -o ProxyCommand="ssh jumpuser@bastion.example.com nc target.internal.com 22" targetuser@target.internal.com`
+
+    命令分解：
+
+    1. ssh targetuser@target.internal.com: 这是你想要执行的最终连接命令。
+
+    2. -o ProxyCommand="...": 这个选项告诉 SSH 客户端，不要直接连接目标主机，而是执行 ProxyCommand 中的命令来建立连接。
+
+    3. ssh jumpuser@bastion.example.com nc target.internal.com 22:
+
+        * 先使用 SSH 登录到跳板机 bastion.example.com。
+
+        * 登录成功后，在跳板机上执行 nc target.internal.com 22 命令。
+
+        * nc (netcat) 会与目标机 target.internal.com 的 22 端口 (SSH 端口) 建立一个原始的 TCP 连接。
+
+    4. 此时，你的本地 SSH 客户端与你本地 ssh 进程通信，你本地的 ssh 进程再与跳板机上的 nc 进程通信，跳板机上的 nc 进程再与目标机的 SSH 端口通信。这样，一条链就打通了，所有的 SSH 加密数据都通过这条“管道”进行传输。
+
+* ssh 使用 `-W` 进行代理
+
+    `ssh -o ProxyCommand="ssh -W %h:%p <跳板机用户名>@<跳板机IP>" <目标机用户名>@<目标机IP>`
+
+    命令分解：
+
+        -W %h:%p: 这是一个 SSH 的内置功能。
+
+            %h 会被自动替换为最终目标主机名 (target.internal.com)。
+
+            %p 会被自动替换为最终目标端口 (22)。
+
+        这个选项命令 SSH 客户端连接到跳板机 (jumpuser@bastion.example.com)，然后请求它打开一个到 %h:%p 的 TCP 连接。之后，所有本地的 SSH 流量都会通过这个连接进行转发。
+
+    现代更推荐使用 ssh -W 的方式进行代理，因为它更安全、更简洁，而且不需要安装 nc。
+
+    配置 ssh config 进行代理：
+
+    ```conf
+    Host bastion  # 为跳板机起一个别名
+        HostName bastion.example.com
+        User jumpuser
+        IdentityFile ~/.ssh/id_rsa_bastion_key  # 可选项，指定连接跳板机的私钥
+
+    Host target  # 为目标机起一个别名
+        HostName target.internal.com
+        User targetuser
+        IdentityFile ~/.ssh/id_rsa_target_key   # 可选项，指定连接目标机的私钥
+        ProxyJump bastion  # 关键配置！表示通过 bastion 主机跳转
+        # 或者使用旧的 ProxyCommand 语法也可以：
+        # ProxyCommand ssh bastion -W %h:%p
+    ```
+
+    保存后，可以直接使用别名连接目标服务器：
+
+    `ssh target`
+
+    SSH 客户端会自动处理所有跳转逻辑。
+
 * scp 使用跳板机
 
     如果在 ~/.ssh/config 中定义了跳板机，可以这样使用:

@@ -4,6 +4,61 @@
 
 ## cache
 
+
+* `MA()`
+
+    ```py
+    pingan = '000001.XSHE'
+    ma = MA(pingan, '2025-11-04', timeperiod=10, unit='1d', include_now=False)
+    print('ma: {:.4f}'.format(ma[pingan]))
+    ```
+
+    output:
+
+    ```
+    2025-11-05 00:00:00 - INFO  - ma: 11.4650
+    ```
+    
+    注：
+
+    * 可以只写`pingan`，不加 list （可以不写成`[pingan]`）
+
+    * 不可以写成`'000001.SH'`，日期不可以写成 list，只能写单个日期
+
+    * include now 设置为 false，则不包含当天的所有数据，10 日均线其实是 11.03 的均线数据
+
+* `get_price()`
+
+    ```py
+    price = get_price(pingan, count=10, end_date='2025-11-04', frequency='daily', fields='close', skip_paused=False, fq='pre', panel=False, fill_paused=True)
+    print(price)
+    ```
+
+    output:
+
+    ```
+    2025-11-05 00:00:00 - INFO  -             close
+    2025-10-22  11.52
+    2025-10-23  11.63
+    2025-10-24  11.56
+    2025-10-27  11.52
+    2025-10-28  11.47
+    2025-10-29  11.39
+    2025-10-30  11.38
+    2025-10-31  11.32
+    2025-11-03  11.43
+    2025-11-04  11.59
+    ```
+
+* `MA(security_list, check_date, timeperiod=5, unit = '1d', include_now = True, fq_ref_date = None)`
+
+    security_list：标的列表
+    check_date：要查询数据的日期
+    timeperiod：统计的天数timeperiod
+    unit：统计周期，默认为 '1d', 支持如下周期: '1m', '5m', '15m', '30m', '60m', '120m', '1d', '1w', '1M'. '1w' 表示一周, ‘1M' 表示一月
+    include_now：是否包含当前周期，默认为 True
+    fq_ref_date：复权基准日，默认为 None
+
 * 假如对于一支股票，所有人交易者起始资金相同，且都严格只遵循均线投资策略，那么这支股票的股价可能会发生什么？
 
     整个过程可以概括为：从无效市场，到形成短暂趋势，最后陷入自我毁灭的混沌震荡。

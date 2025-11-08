@@ -2,6 +2,108 @@
 
 ## cache
 
+* `net.named_parameters()`
+
+    遍历神经网络中的所有可学习参数（权重和偏置），并返回参数名称和参数值本身的迭代器。
+
+    example:
+
+    ```py
+    from hlc_utils import *
+
+    class MyModel(Module):
+        def __init__(self):
+            super().__init__()
+            self.fc1 = Linear(784, 64)
+            self.fc2 = Linear(64, 10)
+        
+        def forward(self, x):
+            x = self.fc1(x)
+            x = F.sigmoid(x)
+            x = self.fc2(x)
+            x = F.softmax(x)
+
+    net = MyModel()
+
+    for name, param in net.named_parameters():
+        param: Parameter
+        print('param: {}'.format(param))
+        print("name: {}".format(name))
+        print('shape: {}'.format(param.shape))
+        print('data: {}'.format(param.data))
+        print('grad: {}'.format(param.grad))
+        break
+    ```
+
+    output:
+
+    ```
+    param: Parameter containing:
+    tensor([[ 0.0224, -0.0285, -0.0134,  ...,  0.0081,  0.0048, -0.0166],
+            [ 0.0114, -0.0229, -0.0186,  ...,  0.0354, -0.0218, -0.0119],
+            [ 0.0211, -0.0086,  0.0258,  ..., -0.0265,  0.0103, -0.0192],
+            ...,
+            [ 0.0037,  0.0333, -0.0095,  ...,  0.0202, -0.0237, -0.0126],
+            [-0.0068, -0.0324, -0.0191,  ...,  0.0220,  0.0154,  0.0047],
+            [ 0.0280,  0.0258, -0.0333,  ...,  0.0143, -0.0299,  0.0020]],
+           requires_grad=True)
+    name: fc1.weight
+    shape: torch.Size([64, 784])
+    data: tensor([[ 0.0224, -0.0285, -0.0134,  ...,  0.0081,  0.0048, -0.0166],
+            [ 0.0114, -0.0229, -0.0186,  ...,  0.0354, -0.0218, -0.0119],
+            [ 0.0211, -0.0086,  0.0258,  ..., -0.0265,  0.0103, -0.0192],
+            ...,
+            [ 0.0037,  0.0333, -0.0095,  ...,  0.0202, -0.0237, -0.0126],
+            [-0.0068, -0.0324, -0.0191,  ...,  0.0220,  0.0154,  0.0047],
+            [ 0.0280,  0.0258, -0.0333,  ...,  0.0143, -0.0299,  0.0020]])
+    grad: None
+    ```
+
+    可以看到`Parameter`继承自 Tensor，可以使用`param.data`获取到 tensor。并且 parameter 本身没有 name 属性。
+
+    已知一个 param，无法快速找到它对应的 layer，必须通过 name 去匹配。
+
+    设置不同的学习率:
+
+    ```py
+    optimizer_params = []
+    for name, param in net.named_parameters():
+        if 'bias' in name:
+            # 偏置项使用双倍学习率
+            optimizer_params.append({'params': param, 'lr': 0.02})
+        else:
+            optimizer_params.append({'params': param, 'lr': 0.01})
+
+    optimizer = torch.optim.SGD(optimizer_params)
+    ```
+
+    参数冻结:
+
+    ```py
+    # 冻结前几层的参数
+    for name, param in net.named_parameters():
+        if 'fc1' in name:
+            param.requires_grad = False  # 冻结该参数
+    ```
+
+    参数统计:
+
+    ```py
+    total_params = 0
+    for name, param in net.named_parameters():
+        if param.requires_grad:
+            total_params += param.numel()
+    print(f"可训练参数总数: {total_params}")
+    ```
+
+    相关方法对比
+
+    * parameters(): 只返回参数值，不包含名称
+
+    * state_dict(): 返回包含参数名称和值的字典，用于模型保存
+
+    * named_parameters(): 返回包含名称和参数的迭代器，适合遍历操作
+
 * nn.Parameter()
 
     主要做两件事情：
