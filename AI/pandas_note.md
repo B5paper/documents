@@ -1,5 +1,85 @@
 # pandas note
 
+## cache
+
+
+* 从 df 中取一列是 series
+
+    ```py
+    import pandas as pd
+    from pandas import DataFrame
+    import numpy as np
+
+    df = DataFrame({
+        'arr': [1, 2, 3]
+    })
+
+    print(df)
+    print()
+
+    print(df['arr'])
+    print(type(df['arr']))
+    print()
+
+    ser = df['arr']
+    mean = ser.mean()
+    print('mean: {}, type: {}'.format(mean, type(mean)))
+    ```
+
+    output:
+
+    ```
+        arr
+    0    1
+    1    2
+    2    3
+
+    0    1
+    1    2
+    2    3
+    Name: arr, dtype: int64
+    <class 'pandas.core.series.Series'>
+
+    mean: 2.0, type: <class 'numpy.float64'>
+    ```
+
+    创建 df 时使用的 list [1, 2, 3]，被自动转换成 Series 了。但是本质上是 pd 给这个数据加上了一层 header，底层的数据仍是共享的：
+
+    ```py
+    import pandas as pd
+    from pandas import DataFrame
+    import numpy as np
+
+    arr = [1, 2, 3]
+
+    df = DataFrame({
+        'arr': arr
+    })
+
+    print(df)
+    print()
+
+    ser = df['arr']
+    ser[0] = 4
+    print(df)
+    ```
+
+    output:
+
+    ```
+        arr
+    0    1
+    1    2
+    2    3
+
+        arr
+    0    4
+    1    2
+    2    3
+    ```
+
+## note
+
 * pandas 生成数据 examples
 
     * 类似 np.arange() - 创建序列数据

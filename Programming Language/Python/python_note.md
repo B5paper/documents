@@ -2,6 +2,60 @@
 
 ## cached
 
+* py 中显示一个 obj 的所有静态 attr
+
+    ```py
+    class Obj:
+        val_1: int = 123
+        def __init__(self):
+            self.val_2 = 456
+            return
+
+    obj = Obj()
+    obj.val_3 = 789
+
+    for attr in dir(obj):
+        print('attr: {}'.format(attr))
+    ```
+
+    output:
+
+    ```
+    attr: __annotations__
+    attr: __class__
+    attr: __delattr__
+    attr: __dict__
+    attr: __dir__
+    attr: __doc__
+    attr: __eq__
+    attr: __format__
+    attr: __ge__
+    attr: __getattribute__
+    attr: __getstate__
+    attr: __gt__
+    attr: __hash__
+    attr: __init__
+    attr: __init_subclass__
+    attr: __le__
+    attr: __lt__
+    attr: __module__
+    attr: __ne__
+    attr: __new__
+    attr: __reduce__
+    attr: __reduce_ex__
+    attr: __repr__
+    attr: __setattr__
+    attr: __sizeof__
+    attr: __str__
+    attr: __subclasshook__
+    attr: __weakref__
+    attr: val_1
+    attr: val_2
+    attr: val_3
+    ```
+
+    这里显示的 attr 都是`str`类型。
+
 * `os.walk()`
 
     递归地遍历指定目录及其所有子目录。

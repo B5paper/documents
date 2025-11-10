@@ -2,6 +2,170 @@
 
 ## cache
 
+* torch 中的`@`
+
+    Python 中的矩阵乘法运算符，A @ B 等价于 torch.matmul(A, B)。
+
+    PyTorch 通过实现 Python 的特殊方法来自定义运算符行为：
+
+    | 运算符 | Python 特殊方法 |
+    | - | - |
+    | `@` | `__matmul__`, `__rmatmul__` |
+    | `+` | `__add__` |
+    | `-` | `__sub__` |
+    | `*` | `__mul__` |	
+    | `/` | `__truediv__` |
+
+* `torch.relu()`
+
+    定义：relu(x) = max(0, x)
+
+    通俗解释：它像一个“过滤器”，把所有输入进来的负数都变成 0，而正数则保持不变。
+
+    在神经网络中的意义：
+
+    * 引入非线性。如果没有激活函数，无论神经网络有多少层，它都等价于一个线性模型，表达能力非常有限。ReLU 的加入使得网络可以学习并拟合复杂的数据模式。
+
+    * 计算简单，只有比较和取0的操作，因此训练速度比 Sigmoid、Tanh 等函数更快。
+
+    * 有助于缓解梯度消失问题（在正数区域，梯度恒为1
+
+    example:
+
+    ```py
+    import torch
+
+    x = torch.tensor([-2.0, -0.5, 0.0, 1.0, 5.0])
+    y = torch.relu(x)
+    print(y)
+    # 输出：tensor([0., 0., 0., 1., 5.])
+    ```
+
+    ReLU 的导数:
+
+    当 x < 0 时：函数值是常数 0，所以导数为 0
+
+    当 x > 0 时：函数是 f(x) = x，所以导数为 1
+
+    关键问题：在 x = 0 处的导数
+
+    在 x = 0 这个点，ReLU 函数是不可微的，或者说是一个次梯度点。
+
+    * 左导数 = 0
+
+    * 右导数 = 1
+
+    * 左右导数不相等，因此在 x=0 处导数不存在
+
+    在实际应用中（如深度学习框架 PyTorch, TensorFlow），通常采用以下约定之一：
+
+    1. 将 x=0 处的导数定义为 0（这是最常见的选择）
+
+    2. 或者定义为 1
+
+    3. 或者随机选择 0 或 1
+
+    在 PyTorch 中，torch.relu 在 x=0 处的导数被定义为 0。
+
+    example:
+
+    ```py
+    import torch
+
+    x = torch.tensor([-2.0, 0.0, 3.0], requires_grad=True)
+    y = torch.relu(x)
+
+    # 假设上游梯度为 1
+    y.backward(torch.tensor([1.0, 1.0, 1.0]))
+    print(x.grad)  # 输出：tensor([0., 0., 1.])
+    ```
+
+    关于 nn.ReLU：
+
+    ```py
+    # 对于 Sequential 模型，使用 nn.ReLU 模块
+    model = nn.Sequential(
+        nn.Linear(10, 20),
+        nn.ReLU(),      # 这是一个模块，有状态，可以训练参数（虽然ReLU没有参数）
+        nn.Linear(20, 1)
+    )
+    ```
+
+    在 nn.Sequential 中必须使用 nn.ReLU() 模块
+
+* 将 numpy ndarray 转换为 torch tensor
+
+    * 使用 torch.from_numpy()
+
+        ```py
+        import torch
+        import numpy as np
+
+        # 创建 NumPy 数组
+        numpy_array = np.array([1, 2, 3, 4, 5])
+
+        # 转换为 Torch Tensor
+        torch_tensor = torch.from_numpy(numpy_array)
+
+        print("NumPy 数组:", numpy_array)
+        print("Torch Tensor:", torch_tensor)
+        print("Tensor 类型:", torch_tensor.dtype)
+        ```
+
+    * 使用 torch.as_tensor()
+
+        ```py
+        torch_tensor = torch.as_tensor(numpy_array)
+        ```
+
+    * 使用 torch.tensor()
+
+        这个方法会创建数据的副本
+
+        ```py
+        torch_tensor = torch.tensor(numpy_array)
+        ```
+
+    关于内存的共享性：
+
+    * `torch.from_numpy()`: 共享内存
+
+    * `torch.as_tensor()`: 如果可能的话，共享内存
+
+    * `torch.tensor()`: 不共享内存，会创建副本
+
+    example:
+
+    ```py
+    import numpy as np
+    import torch
+
+    # 创建 NumPy 数组
+    numpy_array = np.array([1, 2, 3])
+
+    # 使用 from_numpy（共享内存）
+    torch_tensor = torch.from_numpy(numpy_array)
+
+    # 修改 NumPy 数组
+    numpy_array[0] = 100
+
+    print("修改后的 NumPy 数组:", numpy_array)
+    print("Torch Tensor（也改变了）:", torch_tensor)  # 也会显示 100
+
+    # 使用 torch.tensor（不共享内存）
+    torch_tensor_copy = torch.tensor(numpy_array)
+    numpy_array[1] = 200
+    print("Torch Tensor 副本（未改变）:", torch_tensor_copy)  # 不会改变
+    ```
+
+    output:
+
+    ```
+    修改后的 NumPy 数组: [100   2   3]
+    Torch Tensor（也改变了）: tensor([100,   2,   3])
+    Torch Tensor 副本（未改变）: tensor([100,   2,   3])
+    ```
+
 * `net.named_parameters()`
 
     遍历神经网络中的所有可学习参数（权重和偏置），并返回参数名称和参数值本身的迭代器。

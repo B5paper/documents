@@ -698,10 +698,6 @@
 
 * [ ] reorg project: cmake_test
 
-* [v] 如何使用`os.walk()`递归搜索嵌套的子文件夹？
-
-* [v] rocm 分为几个模块，阅读源码该从哪开始入手？
-
 * [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
 
     里面似乎有许多指令集的排列组合。
@@ -939,12 +935,6 @@
 * flex中，`\n {return 0;}`表示结束 parser 程序，进入主程序。如果写成`\n {}`，那么即使按回车换行，parser 程序也不结束。
 
 ### Tasks
-
-* [v] 改造`--randexam`为 subcommand 形式
-
-* [v] `vulkan_note_qa.md`, `select graphics queue family index`其中 u1 的函数名修正一下
-
-    `select_graphcs_queue_family_idx` -> `select_graphics_queue_family_idx`
 
 * [ ] python 处理 arg 相关的 package
 
@@ -1211,98 +1201,29 @@
 
 ### tasks
 
-* [v] process 1 url 30 mins 11.07
+* [v] process 1 tab 30 mins 11.08
+
+    15:47 ~ 16:34
 
     feedback:
 
-    * [ ] PyTorch中NumPy数组转Tensor方法
+    * [ ] Bash常用快捷键总结
 
         目前看到
 
-        > 你还可以在转换时指定数据类型：
+        > 有没有跟路径相关的常用命令，比如 cd - 之类的
+
+* [v] process 1 url 30 mins 11.07
+
+* [ ] PyTorch中NumPy数组转Tensor方法
+
+    目前看到
+
+    > 你还可以在转换时指定数据类型：
 
 * [v] process 1 tab 30 mins 11.06
 
     10:21 ~ 10:32
-
-    feedback:
-
-    * [asso] 使用 nc 的 -X 代理选项 + 跳板机SOCKS 代理 SSH 代理转发，进行跳板机中转连接到 target
-
-        `ssh -o ProxyCommand="ssh -q -X jumpuser@bastion.example.com nc -x localhost:1080 %h %p" targetuser@target.internal.com`
-
-    * [asso] 调用 Squid、CCProxy 等 http proxy server
-
-    * [asso] corkscrew
-
-    * [asso] 使用 corkscrew 进行 ssh 代理
-
-        ```bash
-        ssh -o ProxyCommand="corkscrew <代理服务器IP> <代理服务器端口> <目标主机IP> <目标主机SSH端口>" <用户名>@<目标主机IP>
-        ```
-
-        参数解释：
-
-            corkscrew: 核心工具。
-
-            <代理服务器IP> 和 <代理服务器端口>：你的 HTTP 代理服务器的地址和端口（例如 proxy.company.com:8080）。
-
-            <目标主机IP> 和 <目标主机SSH端口>：你最终想要连接的 SSH 服务器的地址和端口（通常是 22）。
-
-        example:
-
-        `ssh -o ProxyCommand="corkscrew proxy.company.com 3128 server.example.com 22" myuser@server.example.com`
-
-        带有用户名和密码的版本：
-
-        `ssh -o ProxyCommand="corkscrew proxy.company.com 3128 server.example.com 22 ~/.ssh/proxy_auth" myuser@server.example.com`
-
-        保存用户名和密码：
-
-        ```bash
-        echo "proxy_username:proxy_password" > ~/.ssh/proxy_auth
-        chmod 600 ~/.ssh/proxy_auth # 非常重要！确保只有你能读这个文件
-        ```
-
-    * [asso] 使用 ncat 进行 ssh 的 http 代理
-
-        ```bash
-        ssh -o ProxyCommand="ncat --proxy-type http --proxy proxy.company.com:3128 %h %p" myuser@server.example.com
-        ```
-
-        * %h 和 %p 是 SSH 的占位符，会自动替换为目标主机和端口。
-
-        * 如果代理需要认证，可以使用 --proxy-auth username:password 参数，但不建议在命令中直接输入密码，有安全风险。
-
-        配置文件：
-
-        ```conf
-        Host *
-            # 如果你的代理是全局需要的，可以放在最前面
-            # 但通常更建议针对特定域名配置
-
-        # 匹配所有以 .example.com 结尾的主机，通过公司代理连接
-        Host *.example.com
-            User myuser # 设置默认用户名
-            IdentityFile ~/.ssh/id_rsa # 指定私钥
-            ProxyCommand corkscrew proxy.company.com 3128 %h %p
-
-        # 如果代理需要认证，使用以下格式（注意安全！）
-        Host *.example.com
-            User myuser
-            IdentityFile ~/.ssh/id_rsa
-            ProxyCommand corkscrew proxy.company.com 3128 %h %p ~/.ssh/proxy_auth
-
-        # 使用 ncat 的配置示例
-        Host myserver
-            HostName server.example.com
-            User myuser
-            ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
-        ```
-
-* [v] process 1 tab 30 mins 11.05
-
-* [v] process 1 tab 30 mins 11.04
 
 * [ ] `python -m xxx.py`
 
@@ -1312,23 +1233,15 @@
 
     目前看到
 
-    > 假如有一个市场，市场里有一个股票，参与这个股票交易的所有人都是散户，所有人起始资金都是100w，所有人都遵循均线投资策略，那么这支股票的股价可能会发生什么
-
-    feedback:
-
-    * 目前看到
-
-        > 您这个推论非常敏锐，已经触及了现代量化投资的核心。它大体上是正确的，但我们可以将这个“错误”更精确地定义一下。
+    > 您这个推论非常敏锐，已经触及了现代量化投资的核心。它大体上是正确的，但我们可以将这个“错误”更精确地定义一下。        
 
 * [v] sed
 
-    feedback:
+* [ ] sed常见用法与示例总结
 
-    * [ ] sed常见用法与示例总结
+    目前看到
 
-        目前看到
-
-        > 实用示例
+    > 实用示例
 
 * [O] 调研 PyTorch Loss Functions
 
@@ -2036,6 +1949,79 @@
     done &
     ```
 
+* [asso] 使用 nc 的 -X 代理选项 + 跳板机SOCKS 代理 SSH 代理转发，进行跳板机中转连接到 target
+
+    `ssh -o ProxyCommand="ssh -q -X jumpuser@bastion.example.com nc -x localhost:1080 %h %p" targetuser@target.internal.com`
+
+* [asso] 调用 Squid、CCProxy 等 http proxy server
+
+* [asso] corkscrew
+
+* [asso] 使用 corkscrew 进行 ssh 代理
+
+    ```bash
+    ssh -o ProxyCommand="corkscrew <代理服务器IP> <代理服务器端口> <目标主机IP> <目标主机SSH端口>" <用户名>@<目标主机IP>
+    ```
+
+    参数解释：
+
+        corkscrew: 核心工具。
+
+        <代理服务器IP> 和 <代理服务器端口>：你的 HTTP 代理服务器的地址和端口（例如 proxy.company.com:8080）。
+
+        <目标主机IP> 和 <目标主机SSH端口>：你最终想要连接的 SSH 服务器的地址和端口（通常是 22）。
+
+    example:
+
+    `ssh -o ProxyCommand="corkscrew proxy.company.com 3128 server.example.com 22" myuser@server.example.com`
+
+    带有用户名和密码的版本：
+
+    `ssh -o ProxyCommand="corkscrew proxy.company.com 3128 server.example.com 22 ~/.ssh/proxy_auth" myuser@server.example.com`
+
+    保存用户名和密码：
+
+    ```bash
+    echo "proxy_username:proxy_password" > ~/.ssh/proxy_auth
+    chmod 600 ~/.ssh/proxy_auth # 非常重要！确保只有你能读这个文件
+    ```
+
+* [asso] 使用 ncat 进行 ssh 的 http 代理
+
+    ```bash
+    ssh -o ProxyCommand="ncat --proxy-type http --proxy proxy.company.com:3128 %h %p" myuser@server.example.com
+    ```
+
+    * %h 和 %p 是 SSH 的占位符，会自动替换为目标主机和端口。
+
+    * 如果代理需要认证，可以使用 --proxy-auth username:password 参数，但不建议在命令中直接输入密码，有安全风险。
+
+    配置文件：
+
+    ```conf
+    Host *
+        # 如果你的代理是全局需要的，可以放在最前面
+        # 但通常更建议针对特定域名配置
+
+    # 匹配所有以 .example.com 结尾的主机，通过公司代理连接
+    Host *.example.com
+        User myuser # 设置默认用户名
+        IdentityFile ~/.ssh/id_rsa # 指定私钥
+        ProxyCommand corkscrew proxy.company.com 3128 %h %p
+
+    # 如果代理需要认证，使用以下格式（注意安全！）
+    Host *.example.com
+        User myuser
+        IdentityFile ~/.ssh/id_rsa
+        ProxyCommand corkscrew proxy.company.com 3128 %h %p ~/.ssh/proxy_auth
+
+    # 使用 ncat 的配置示例
+    Host myserver
+        HostName server.example.com
+        User myuser
+        ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
+    ```
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -2084,19 +2070,13 @@ resources:
 
 * [ ] torch tensor 与 numpy 的转换
 
-* [v] `net.named_parameters()`
-
-    ~ 13:19
-
 * [v] `torch.relu`, `@`
 
     14:43 ~ 18:30
 
-    feedback:
+* [ ] `y.backward(torch.tensor([1.0, 1.0, 1.0]))`
 
-    * [ ] `y.backward(torch.tensor([1.0, 1.0, 1.0]))`
-
-        torch 中 y 的 backward() 中填的参数是什么意思？
+    torch 中 y 的 backward() 中填的参数是什么意思？
 
 * [ ] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
 
@@ -2244,11 +2224,25 @@ resources:
 
     <https://www.geeksforgeeks.org/deep-learning/difference-between-hidden-and-output-in-pytorch-lstm/>
 
-* [v] torch `unsqueeze()`
+* [O] Generative Adversarial Networks (GANs) in PyTorch
 
-* [ ] Generative Adversarial Networks (GANs) in PyTorch
+    17:05 ~ 19:56
 
     <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
+
+    feedback:
+
+    * [ ] `nn.ReLU(True)`
+
+        true 是什么意思？
+
+    * [ ] `nn.Unflatten()`
+
+    * [ ] `nn.ConvTranspose2d()`
+
+    * [ ] `nn.BatchNorm2d()`
+
+    * [ ] 调研：根据反卷积性质，如果我们正向卷积一个矩阵，可以构造出一个 W，那么如何使用这个 W 的转置 W^T 还原输出 X？
 
 * [ ] Implementing an Autoencoder in PyTorch
 
@@ -2671,29 +2665,17 @@ resources:
 
 * [ ] `dma_map_page()`
 
-* [ ] `remap_pfn_range()`
+* [v] `remap_pfn_range()`
 
 * [v] 调研 pandas，polars
 
-    feedback:
+* [ ] 《利用Python进行数据分析》（Python for Data Analysis）
 
-    * [ ] 《利用Python进行数据分析》（Python for Data Analysis）
+    作者: Wes McKinney（Pandas 的创始人）
 
-        作者: Wes McKinney（Pandas 的创始人）
+    内容: 从 Pandas 基础到实战，是公认的入门圣经。
 
-        内容: 从 Pandas 基础到实战，是公认的入门圣经。
-
-    * [asso] kaggle pandas tutorial
-
-        <https://www.kaggle.com/learn/pandas>
-
-    * [asso] pandas 实践平台
-
-        * Kaggle: 上面有成千上万的真实数据集和别人的代码（Kernels/Notebooks），是学习 Pandas 高级用法和数据分析思路的最佳场所。
-
-        * LeetCode 题库之 Pandas: 专门用 Pandas 解决数据处理问题，非常适合面试准备和巩固基础。
-
-    * [ ] polars
+* [ ] polars
 
 * [ ] dma 在 cpu 中，还是在 device 中？
 
@@ -3148,6 +3130,16 @@ resources:
 * [ ] linux 的 interruptible sleep 是如何实现的？
 
 * [asso] pci_get_slot(), pci_get_device()
+
+* [asso] kaggle pandas tutorial
+
+    <https://www.kaggle.com/learn/pandas>
+
+* [asso] pandas 实践平台
+
+    * Kaggle: 上面有成千上万的真实数据集和别人的代码（Kernels/Notebooks），是学习 Pandas 高级用法和数据分析思路的最佳场所。
+
+    * LeetCode 题库之 Pandas: 专门用 Pandas 解决数据处理问题，非常适合面试准备和巩固基础。
 
 ## CCL
 
