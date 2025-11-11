@@ -34,6 +34,14 @@
 
 ## cache
 
+* 如果一个 cache entry 既可以用于理解与学习，也可以用于任务（比如任务编排），那么是否应该开一个新的主题或者标题，类似范畴论那种感觉？
+
+* 应该增加一个闭眼问题集，没事的时候随便想一想
+
+* 中医与固执
+
+    不信中医的人认为相信中医的人是封建迷信，是固执，是不动脑子的人，但是如果真的有拓扑共轭存在，只有用整体才能理解整体，那么不信中医的人是否也是没有经过思考就随便听信别人言论的固执的人呢，这又何尝不是另一种迷信？他们只是擅于贴标签，并放心地嘲笑、批斗别人的一群人，并不是着力于解决问题的一群人。顽固相信的人，和嘲笑顽固相信的人，本质上是同一群人。
+
 * 所有文档笔记中的图片资源，都应该由 resource 文件夹统一管理
 
 	如果每个笔记都创建一个图片的相对目录，那么当笔记转移来转移去时，就必须让图片也随着文件夹移动，很麻烦。
@@ -698,7 +706,7 @@
 
 * [ ] reorg project: cmake_test
 
-* [ ] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
+* [v] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
 
     里面似乎有许多指令集的排列组合。
 
@@ -1201,29 +1209,23 @@
 
 ### tasks
 
+* [v] process 1 tab 30 mins 11.10
+
 * [v] process 1 tab 30 mins 11.08
 
     15:47 ~ 16:34
 
-    feedback:
+* [ ] Bash常用快捷键总结
 
-    * [ ] Bash常用快捷键总结
+    目前看到
 
-        目前看到
-
-        > 有没有跟路径相关的常用命令，比如 cd - 之类的
-
-* [v] process 1 url 30 mins 11.07
+    > 有没有跟路径相关的常用命令，比如 cd - 之类的
 
 * [ ] PyTorch中NumPy数组转Tensor方法
 
     目前看到
 
     > 你还可以在转换时指定数据类型：
-
-* [v] process 1 tab 30 mins 11.06
-
-    10:21 ~ 10:32
 
 * [ ] `python -m xxx.py`
 
@@ -1234,8 +1236,6 @@
     目前看到
 
     > 您这个推论非常敏锐，已经触及了现代量化投资的核心。它大体上是正确的，但我们可以将这个“错误”更精确地定义一下。        
-
-* [v] sed
 
 * [ ] sed常见用法与示例总结
 
@@ -2070,10 +2070,6 @@ resources:
 
 * [ ] torch tensor 与 numpy 的转换
 
-* [v] `torch.relu`, `@`
-
-    14:43 ~ 18:30
-
 * [ ] `y.backward(torch.tensor([1.0, 1.0, 1.0]))`
 
     torch 中 y 的 backward() 中填的参数是什么意思？
@@ -2664,10 +2660,6 @@ resources:
 * [ ] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
 
 * [ ] `dma_map_page()`
-
-* [v] `remap_pfn_range()`
-
-* [v] 调研 pandas，polars
 
 * [ ] 《利用Python进行数据分析》（Python for Data Analysis）
 

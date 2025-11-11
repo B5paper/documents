@@ -6,6 +6,57 @@ Ref:
 
 ## cache
 
+* `remap_pfn_range()`
+
+    主要用于将物理内存映射到用户空间。
+
+    将内核物理页帧（physical page frames）直接映射到用户进程的虚拟地址空间，使得用户态程序能够直接访问这些物理内存。
+
+    syntax:
+
+    ```c
+    int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr, 
+                       unsigned long pfn, unsigned long size, pgprot_t prot);
+    ```
+
+    参数说明
+
+    * vma：目标虚拟内存区域结构
+
+    * addr：用户空间起始虚拟地址
+
+    * pfn：物理页帧号（物理地址 >> PAGE_SHIFT）
+
+    * size：映射区域大小
+
+    * prot：页面保护标志
+
+    典型应用场景
+
+        设备驱动开发
+
+            映射设备内存（如显存、DMA缓冲区）到用户空间
+
+            实现零拷贝数据传输
+
+        内核模块
+
+            为特定应用提供直接硬件访问能力
+
+            实现高性能内存共享机制
+
+        嵌入式系统
+
+            直接访问特定物理地址范围的硬件寄存器
+
+    注意事项
+
+        需要仔细管理内存安全和权限
+
+        通常与 mmap() 系统调用配合使用
+
+        必须确保映射的物理内存是合法且安全的
+
 * `dma_sync_single_for_cpu()`
 
     在 DMA 传输完成后，让 CPU 能够安全地访问已被 DMA 设备写入数据的内存缓冲区，或者确保 CPU 对缓冲区的修改能被下一次 DMA 传输正确读取。
