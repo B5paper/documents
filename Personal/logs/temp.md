@@ -1982,3 +1982,15 @@
     cd ../../ && make -j
     cd example && make -j
     ```
+
+* tmp： 新关键字
+
+    * Cursor, Sourcegraph Cody
+
+    * FAISS、Chroma、Milvus
+
+    * LSP edit
+
+    * OpenDevin / CodeLLM
+
+    * Copilot Chat (VSCode)

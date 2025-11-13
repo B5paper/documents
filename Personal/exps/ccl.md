@@ -335,3 +335,91 @@
     ```
 
     理论上各个 thread 计算出来的拓扑应该是一样的才对，为什么这里又同步一遍？
+
+* 将不同GPU进程按所属计算节点进行分组，并收集节点的拓扑信息
+
+    * 节点识别与分组
+
+        ```c
+        for (node=0; node<comm->nNodes && nodesFirstRank[node] != firstRank; node++);
+        if (node == comm->nNodes) {
+          comm->nNodes++;
+          nodesFirstRank[node] = firstRank;
+          // 记录每个节点的树形通信模式
+          nodesTreePatterns[node] = allGather3Data[r].graphInfo[NCCL_ALGO_TREE].pattern;
+        }
+        comm->rankToNode[r] = node;
+        ```
+
+        * 通过firstRank（环接收的第一个rank）来识别不同的计算节点
+
+        * 如果发现新节点，增加节点计数并记录该节点的特征
+
+        * 建立rank到节点的映射关系 rankToNode
+
+        这里的 node 指的是 host，每个 node 包含一个或多个GPU（通过PCIe/NVLink连接），firstRank 作为节点的"指纹"：同一个节点上的所有rank会有相同的firstRank值，comm->rankToNode[r] 建立了映射：哪个rank属于哪台物理服务器。
+
+    * 硬件架构检测
+
+        ```c
+        if (comm->cpuArch != allGather3Data[r].cpuArch &&
+            comm->cpuArch != NCCL_TOPO_CPU_ARCH_MIXED) {
+          comm->cpuArch = NCCL_TOPO_CPU_ARCH_MIXED;
+        }
+        ```
+
+        检测集群中是否混合了不同CPU架构
+
+        如果发现异构架构，标记为混合模式
+
+    应用场景:
+
+    * 跨节点通信需要知道哪些rank在同一个节点内（节点内通信通常更快）
+
+    * 拓扑感知的通信算法需要根据节点边界优化通信模式
+
+    * 异构环境处理需要识别混合硬件配置以选择最优通信策略
+
+* 构建节点内rank映射关系
+
+    * 构建节点内的rank列表
+
+        ```c
+        for (int r=0; r<comm->nRanks; r++) {
+            int node = comm->rankToNode[r];
+            comm->nodeRanks[node].localRankToRank[comm->nodeRanks[node].localRanks++] = r;
+        }
+        ```
+
+        * 遍历所有rank，找到每个rank所属的节点
+
+        * 将rank添加到对应节点的localRankToRank数组中
+
+        * localRanks计数器记录每个节点内的rank数量
+
+    * 设置当前进程的节点信息
+
+        ```c
+        comm->node = comm->rankToNode[rank];  // 当前rank所属的节点ID
+        comm->localRankToRank = comm->nodeRanks[comm->node].localRankToRank; // 当前节点的rank映射表
+        comm->localRank = comm->rankToLocalRank[rank];  // 当前rank在节点内的局部编号
+        comm->localRanks = comm->nodeRanks[comm->node].localRanks;  // 当前节点内的rank总数
+        ```
+
+    实际效果示例
+
+    假设有2个节点，每个节点4个GPU：
+
+        Node 0: 全局rank 0,1,2,3
+
+        Node 1: 全局rank 4,5,6,7
+
+    执行后对于rank 5（在Node 1上）：
+
+        comm->node = 1 （属于节点1）
+
+        comm->localRankToRank = [4,5,6,7] （节点1的所有全局rank）
+
+        comm->localRank = 1 （在节点1内的局部编号，因为5是节点1中的第1个rank）
+
+        comm->localRanks = 4 （节点1共有4个rank）

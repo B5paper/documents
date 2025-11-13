@@ -2,6 +2,83 @@
 
 ## cached
 
+* python 中的`-m`运行
+
+    在当前文件夹下的`mod_1.py`，可以使用`python -m mod_1`启动运行。在`pkg`文件夹下的`mod_2.py`，可以使用`python -m pkg.mod_2`运行。
+
+    使用`-m`运行时，py 文件不能加`.py`。
+
+* python 中的相对导入
+
+    如果`pkg`文件夹下有两个文件：`mod_1.py`, `mod_2.py`，其内容分别如下：
+
+    `mod_1.py`:
+
+    ```py
+    def print_hello():
+        print('hello')
+    ```
+
+    `mod_2.py`:
+
+    ```py
+    from . import mod_1
+
+    mod_1.print_hello()
+    ```
+
+    运行：
+
+    * 在 pkg 的父目录中运行：`python -m pkg.mod_2`, OK
+
+    * 在 pkg 的父目录中运行：`python pkg/mod_2.py`, Error
+
+        相对导入需要 package 的信息，这里没有提供。
+
+    * 在 pkg 目录中运行：`python -m mod_2`, Error
+
+        同理，这里没有提供 package 信息。
+
+    * 在 pkg 目录中运行：`python mod_2.py`, Error
+
+        未提供 package 信息。
+
+* argparse
+
+    ```py
+    import argparse
+
+    # 创建解析器
+    parser = argparse.ArgumentParser(description='这是一个示例程序')
+
+    # 添加参数
+    parser.add_argument('--name', type=str, required=True, help='你的名字')
+    parser.add_argument('--age', type=int, default=18, help='你的年龄')
+    parser.add_argument('--verbose', action='store_true', help='详细模式')
+    parser.add_argument('input_file', help='输入文件')
+
+    # 解析参数
+    args = parser.parse_args()
+
+    # 使用参数
+    print(f"你好 {args.name}, 年龄 {args.age}")
+    if args.verbose:
+        print("详细模式已开启")
+    print(f"处理文件: {args.input_file}")
+    ```
+
+    run:
+
+    `python script.py data.txt --name 张三 --age 25 --verbose`
+
+    output:
+
+    ```
+    你好 张三, 年龄 25
+    详细模式已开启
+    处理文件: data.txt
+    ```
+
 * py 中显示一个 obj 的所有静态 attr
 
     ```py

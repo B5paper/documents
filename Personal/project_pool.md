@@ -476,53 +476,15 @@
 
     应该额外创建一个文件，然后在任务列表或项目管理里引用这个文件。
 
-* 冒泡
-
-    对于 cached 的想法、任务、问题，哪个更重要，更需要优先解决？
-
-    每次向任务列表合并新的 cache 时，如果出现了重复的条目，可以将这个条目在 cache 中上移，表示需要优先处理。这个过程称为冒泡。
-
-    通过不断冒泡，就可以以一种贪心的算法复杂度，对任务的重要性做出排序。
-
-    为什么要这样？因为在 md 文件中，anchor 只能定位到标题，离标题越近的肯定越先被处理。如果我们把重要的都放在离 anchor 最近的地方，那么每次优先处理的一定都是重要的。
-
-    使用 bookmark 确实也可以做到快速跳转，但是 bookmark 只能作为一种临时的手段，因为它会破坏顺序结构。
-
-* cache 是缓存各种混沌内容的地方，其中包含有一些 questions
-
-    另外再创建一个 cached questions，作为一个项目，将一些问题从 cache 中拿出来，汇集到一起。
-
-    每天走路，发呆的时候，可以想一想这些问题，看看有没有灵感，给出一个初步的方案。
-
 * 每天结束的时候要列出来一个明天改进什么地方
 
     2025/10/31/00: 应该改成每周比较好点，以周为单位，想一想这周需要改进的点自己是否做到，下周需要改进哪些点。
 
 * 调研 MLIR, IREE
 
-* cacHed task
-
-    cmake 环境变量的用法
-
-* 暴露的接口越多，代码越底层，可组合的方式就越多，功能越强大，编程越繁琐难用
-
-    可见代码量也是评价一个库是否好用的参考标准
-
-    反过来想，如果要实现一个功能，拆分了代码后，并不能增加可组合的方式，那么它就一定是需要优化的。
-
-    比如 vulkan，虽然比 opengl 繁琐，但是完全支持异步，多线程，这就是拆分功能的代价。
-
-* 对于黑洞任务，应该用时间去限制
-
-    比如只执行 30 分钟，然后整理一下已经得到的信息，解决的问题，尝试对未来的进度进行估计。
-
-    这样的过程应该被称为采样。
+* [ ] cmake 环境变量的用法
 
 * 低频（主能量）信息对应的是直觉，高频（低能量）信息对应的是强推理
-
-* 应该三天整理一次 log
-
-    五天整理一次 log 会花将近一个小时
 
 * 临时项目管理中的项目不应该超过 7 个, 不然就管理不过来了
 
@@ -531,8 +493,6 @@
 * 深度学习和数学最本质的区别是，深度学习只告诉你他的方法为什么行，不告诉你别人的方法为什么不行，而数学会同时告诉你这两者
 
 * 可以规定一下，如果 2 天（或者 3 天）都能通过某个 domain 的 qa，那么就可以申请增加新的 qa。
-
-* 为什么`g++ -g main.cpp -lvulkan -lglfw -o main`可以通过编译，`g++ -g -lvulkan -lglfw main.cpp -o main`就不行？
 
 * 顺着笔记找 qa 效率并不高，更好的做法是随机在笔记的后面部分找一个问题，然后写到 qa 里，再倒过来找 qa 的 dependency.
 
@@ -705,10 +665,6 @@
 ### tasks
 
 * [ ] reorg project: cmake_test
-
-* [v] `ROCm/ROCgdb/gas/testsuite/gas/arm/maverick.c`是干嘛用的？
-
-    里面似乎有许多指令集的排列组合。
 
 * [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
 
@@ -944,7 +900,13 @@
 
 ### Tasks
 
-* [ ] python 处理 arg 相关的 package
+* [v] python 处理 arg 相关的 package
+
+* [ ] Python命令行参数处理包介绍
+
+    目前看到
+
+    > 2. click (第三方库 - 更现代化)
 
 * [ ] glow, mdcat, catwalk
 
@@ -1209,11 +1171,7 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 11.10
-
-* [v] process 1 tab 30 mins 11.08
-
-    15:47 ~ 16:34
+* [v] process 1 tab 30 mins 11.11
 
 * [ ] Bash常用快捷键总结
 
@@ -1227,7 +1185,9 @@
 
     > 你还可以在转换时指定数据类型：
 
-* [ ] `python -m xxx.py`
+* [v] `python -m xxx.py`
+
+    13:54 ~ 14:44
 
 * [O] 调研 10 日均线斜率交易策略解析 11.05
 
@@ -3348,6 +3308,30 @@ resources:
 
 ### tasks
 
+* [ ] `ncclSocketStateConnectPolling` socket 也支持 polling 吗？
+
+* [ ] `cudaThreadExchangeStreamCaptureMode()`
+
+* [ ] `cudaPointerAttributes()`
+
+* [ ] C++ 中，下面的情况如何写成智能指针？
+
+    ```cpp
+    struct A;
+
+    struct Parent {
+        A* childs[4];
+    };
+
+    struct A {
+        Parent *parent;
+    };
+    ```
+
+    循环引用问题？编译器不知道 struct 的大小的问题？
+
+* [ ] `struct alignas(32) ncclIbNetCommBase`中 alignas 是什么意思？
+
 * [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
 
 * [v] 梳理 topo p2p 和 eth switch 接口
@@ -3726,6 +3710,8 @@ resources:
 * 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假。
 
 ### tasks
+
+* [ ] 为什么`g++ -g main.cpp -lvulkan -lglfw -o main`可以通过编译，`g++ -g -lvulkan -lglfw main.cpp -o main`就不行？
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 

@@ -2,6 +2,56 @@
 
 ## cache
 
+* CollNet（Collective Network）
+
+    CollNet 让多台机器在网络层形成一个层次化（hierarchical）的 collectives 拓扑，旨在让多节点间的 AllReduce / Broadcast / ReduceScatter 等集体操作 能够在网络层上更高效地执行。
+
+    执行 AllReduce 时：
+
+    1. Step 1: Node-local Reduce
+
+        各 GPU 在本节点内先做 reduce（通过 NVLink），得到一个 “节点级结果”。
+
+        节点内带宽高，这步很快。
+
+    2. Step 2: Inter-node CollNet AllReduce
+
+        各节点选出一个代表 GPU（leader GPU）通过网络互联进行 AllReduce。
+
+        这个过程使用 CollNet 的通信通道（通常基于 IB/RDMA）。
+
+    3. Step 3: Node-local Broadcast
+
+        各节点的 leader GPU 再把结果广播给同节点的其他 GPU。
+
+        这样每个阶段都在适合的层级上执行，大幅降低跨节点通信量。
+
+    CollNet 的核心机制:
+
+    * 节点代表（Leader）
+
+        每个节点选一个或多个 GPU 作为 CollNet 节点代表（通常是 GPU0）。
+
+    * Proxy 线程
+
+        NCCL 的后台线程，负责实际的 socket/RDMA 操作。CollNet 通过它发起网络 I/O。
+
+    * Transport 层接口
+
+        CollNet 作为 NCCL 的一种“transport backend”，和 Net、Shm 等并列。
+
+    * GDR 支持
+
+        CollNet 可以使用 GPUDirect RDMA（GDR）直接在 GPU 内存上通信。
+
+    * CollNet Shared Resource
+
+        每个通信 group 共享的 CollNet 网络句柄、QP、队列对等信息等。
+
+    实际中，CollNet 在大型 GPU 集群（如 DGX SuperPOD、Selene）中, 比纯 Ring AllReduce 通常快 20~40%（尤其是网络瓶颈场景）.
+
+    总结：CollNet 是 NCCL 的层次化集体通信子系统。它让多节点 GPU 集群的 AllReduce 等操作通过“节点内 reduce + 节点间 CollNet 通信 + 节点内 broadcast”的方式完成，从而显著减少跨节点数据传输量，提升分布式训练性能。
+
 * CE memcpy
 
     CE Memcpy Support 指的是 Copy Engine（拷贝引擎） 对内存复制（Memcpy）操作的支持
