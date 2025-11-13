@@ -4,6 +4,28 @@
 
 ## cache
 
+* 聚宽常用网站
+
+    * 聚宽新手指南-获取数据教程
+
+        <https://www.joinquant.com/view/community/detail/5e4d0eac18d9ddb774452a7eb8f58bd4>
+
+    * 回测
+
+        <https://www.joinquant.com/help/api/help#faq:%E5%9B%9E%E6%B5%8B>
+
+    * API文档
+
+        <https://www.joinquant.com/help/api/help#api:API%E6%96%87%E6%A1%A3>
+
+    * 关于聚宽数据
+
+        <https://www.joinquant.com/help/api/help#name:aboutData>
+
+    * 聚宽
+
+        <https://www.joinquant.com/view/user/floor?type=mainFloor>
+
 
 * `MA()`
 
