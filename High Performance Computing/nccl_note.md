@@ -2,6 +2,14 @@
 
 ## cache
 
+* 原版的 nccl 编译太慢，可以直接用这个
+
+    `make -j DEBUG=1 NVCC_GENCODE="-gencode=arch=compute_90,code=sm_90" src.build`
+
+* 单线程启动 nccl test
+
+    `./all_reduce_perf -b 16M -e 128M -f 2 -g 2`
+
 * CollNet（Collective Network）
 
     CollNet 让多台机器在网络层形成一个层次化（hierarchical）的 collectives 拓扑，旨在让多节点间的 AllReduce / Broadcast / ReduceScatter 等集体操作 能够在网络层上更高效地执行。

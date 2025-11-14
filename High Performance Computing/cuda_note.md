@@ -2,6 +2,8 @@
 
 ## cache
 
+* `cudaMemcpyDefault`表示 cuda 通过 va 自动判断拷贝方向
+
 * CUDA Event
 
     作用:

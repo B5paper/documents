@@ -34,6 +34,12 @@
 
 ## cache
 
+* log 只能按时间顺序记录想法，routine 只能按逻辑顺序记录想法，还需要一种需要经常反复修改的、网状的、类似草稿纸的结构，暂时给它起名叫 exp，表示 explore and exploit。
+
+    exp 中，既有任务，也有想法，也有临时的知识，也有临时的 log，重点是它们经常被改变。有点像一个科研过程。这里的任务并不是被提前规划好的，而是随心所欲随时冒出来的。
+
+    如果发现 exp 中的内容趋于固定了，那么就意味着这个 exp 的生命周期该结束了。
+
 * 如果一个 cache entry 既可以用于理解与学习，也可以用于任务（比如任务编排），那么是否应该开一个新的主题或者标题，类似范畴论那种感觉？
 
 * 应该增加一个闭眼问题集，没事的时候随便想一想
@@ -664,13 +670,13 @@
 
 ### tasks
 
-* [ ] reorg project: cmake_test
+* [v] reorg project: cmake_test
 
 * [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
 
 * [ ] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
 
-* [ ] `cudaMallocHost()`, `cudaFreeHost()`
+* [v] `cudaMallocHost()`, `cudaFreeHost()`
 
 * [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
 
@@ -900,15 +906,17 @@
 
 ### Tasks
 
-* [v] python 处理 arg 相关的 package
-
 * [ ] Python命令行参数处理包介绍
 
     目前看到
 
     > 2. click (第三方库 - 更现代化)
 
-* [ ] glow, mdcat, catwalk
+* [v] glow, mdcat, catwalk
+
+    feedback:
+
+    * [asso] catwalk
 
 * [ ] `@echo "The process ID in Shell is: $$PPID"`
 
@@ -1171,9 +1179,9 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 11.11
+* [v] process 1 tab 30 mins 11.13
 
-* [ ] Bash常用快捷键总结
+* [v] Bash常用快捷键总结
 
     目前看到
 
@@ -1184,10 +1192,6 @@
     目前看到
 
     > 你还可以在转换时指定数据类型：
-
-* [v] `python -m xxx.py`
-
-    13:54 ~ 14:44
 
 * [O] 调研 10 日均线斜率交易策略解析 11.05
 
@@ -3333,10 +3337,6 @@ resources:
 * [ ] `struct alignas(32) ncclIbNetCommBase`中 alignas 是什么意思？
 
 * [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
-
-* [v] 梳理 topo p2p 和 eth switch 接口
-
-    16:39 ~ 17:20
 
 * [ ] 调研可视化的方案
 
