@@ -423,3 +423,360 @@
         comm->localRank = 1 （在节点1内的局部编号，因为5是节点1中的第1个rank）
 
         comm->localRanks = 4 （节点1共有4个rank）
+
+* `ncclTopoNetState`
+
+    ```cpp
+    struct ncclTopoNetState {
+      int nVirtualNics;
+      int nPhysicalNics;
+      const char* name;
+    };
+    ```
+
+    ```cpp
+    #define NCCL_NET_MAX_PLUGINS 16
+    ```
+
+    找到一个空位，然后插入新的 state。
+
+    ```cpp
+    ncclResult_t ncclTopoGetSharedState(ncclTopoNetState** state, const char* name, ncclTopoNetState* states) {
+      INFO(NCCL_GRAPH, "Retrieving state for %s", name);
+      for (int i = 0; i < NCCL_NET_MAX_PLUGINS; i++) {
+        // Empty slot
+        if (states[i].name == NULL) {
+          states[i].nVirtualNics = -1;
+          states[i].nPhysicalNics = -1;
+          states[i].name = strdup(name);
+          *state = states + i;
+          INFO(NCCL_GRAPH, "Initialized state %d for %s", i, name);
+          return ncclSuccess;
+        // Found my slot
+        } else if (strcmp(states[i].name, name) == 0) {
+          *state = states + i;
+          return ncclSuccess;
+        }
+      }
+      WARN("NET/TOPO : Couldn't find net with name %s", name);
+      return ncclInternalError;
+    }
+    ```
+
+    `state`是个二级指针，表示把这个 entry 再拿出去，在外部进一步修改。
+
+    如果当前 entry 不是空位，那么 name 能对得上也可以。感觉这个函数还可以写成：
+
+    ```cpp
+    // 在已有项中搜索
+    while (states[i].name) {  // 判断当前 entry 是否为空
+        if (strcmp(states[i].name, name) != 0) {
+            ++i;
+            continue;
+        }
+        *state = &states[i];
+    }
+
+    // 添加一个新项
+    *state = &states[i];
+    (*state)->name = strdup(name);
+    // ...
+    ```
+
+* `ncclTopoProcessNet()`
+
+    devices -> ncclIbDevices
+
+* `ncclTopoPopulateNics()`
+
+    ```cpp
+    static ncclResult_t ncclTopoPopulateNics(ncclXml* xml, int startIndex, int endIndex, ncclResult_t (*getProperties)(int, ncclNetProperties_t*), const char* netName, int coll, int virtualNics, bool dmaBufSupport) {
+      for (int n = startIndex; n < endIndex; n++) {
+        ncclNetProperties_t props;
+        NCCLCHECK(getProperties(n, &props));
+        struct ncclXmlNode* netNode = NULL;
+        struct ncclXmlNode* parent = NULL;
+        if (virtualNics) {
+          struct ncclXmlNode* net = NULL;
+          NCCLCHECK(xmlFindTagKv(xml, "net", &net, "name", props.name));
+          // In the event of multithreaded use case, we need to re-discover the shared parent of the given devices for this vNIC
+          // Only run this if the net doesn't exist locally - this may alter the XML state
+          if (net == NULL) NCCLCHECK(ncclTopoGetVNicParent(xml, getProperties, &props.vProps, &parent));
+        }
+
+    ```
+
+    * `endIndex`为`5`.
+
+    * `getProperties`是`ncclIbGetProperties(int, ncclNetProperties_v10_t*)`
+
+    ```cpp
+    typedef ncclNetProperties_v10_t ncclNetProperties_t;
+
+    typedef struct {
+      char* name;                      // Used mostly for logging.
+      char* pciPath;                   // Path to the PCI device in /sys.
+      uint64_t guid;                   // Unique identifier for the NIC chip. Important for
+                                       // cards with multiple PCI functions (Physical or virtual).
+      int ptrSupport;                  // [NCCL_PTR_HOST|NCCL_PTR_CUDA|NCCL_PTR_DMABUF]
+      int regIsGlobal;                 // regMr is not tied to a particular comm
+      int forceFlush;                  // Force a flush on receives
+      int speed;                       // Port speed in Mbps.
+      int port;                        // Port number.
+      float latency;                   // Network latency
+      int maxComms;                    // Maximum number of comms we can create
+      int maxRecvs;                    // Maximum number of grouped receives.
+      ncclNetDeviceType netDeviceType; // Network offload type
+      int netDeviceVersion;            // Version number for network offload
+      ncclNetVDeviceProps_v10_t vProps;
+      size_t maxP2pBytes;              // Max transfer size for point-to-point operations
+      size_t maxCollBytes;             // Max transfer size for collective operations
+    } ncclNetProperties_v10_t;
+    ```
+
+    这个结构是给 IB 网卡准备的，还是标卡也能用？
+
+    后面有专门的`ncclIbDev`结构，那么这里应该是标卡、IB卡都能用。
+
+    * `virtualNics`为 0
+
+    原文片段 2:
+
+    ```cpp
+        NCCLCHECK(ncclTopoFillNet(xml, props.pciPath, props.name, &netNode, parent));
+
+        const char* colAttr;
+        NCCLCHECK(xmlGetAttr(netNode, "coll", &colAttr));
+
+        NCCLCHECK(xmlSetAttrInt(netNode, "keep", 1));
+        int dev;
+        xmlGetAttrIntDefault(netNode, "dev", &dev, -1);
+        if (dev != -1 && dev != n) INFO(NCCL_GRAPH, "TOPO/NET : Changing %s dev index from %d to %d", netName, dev, n);
+        NCCLCHECK(xmlSetAttrInt(netNode, "dev", n));
+        NCCLCHECK(xmlInitAttrInt(netNode, "latency", props.latency));
+        NCCLCHECK(xmlInitAttrInt(netNode, "speed", props.speed));
+        NCCLCHECK(xmlInitAttrInt(netNode, "port", props.port));
+        NCCLCHECK(xmlInitAttrUint64(netNode, "guid", props.guid));
+        NCCLCHECK(xmlInitAttrInt(netNode, "maxconn", props.maxComms));
+        bool gdrSupport = (props.ptrSupport & NCCL_PTR_CUDA) || (dmaBufSupport && (props.ptrSupport & NCCL_PTR_DMABUF));
+        INFO(NCCL_NET,"NET/%s : GPU Direct RDMA %s for HCA %d '%s'", netName, gdrSupport ? "Enabled" : "Disabled", n, props.name);
+        NCCLCHECK(xmlInitAttrInt(netNode, "gdr", gdrSupport));
+        // Only set coll if it's not 0
+        if (coll) NCCLCHECK(xmlInitAttrInt(netNode, "coll", coll));
+    ```
+
+    * `dev` -> `0`
+
+        说明这里的 dev 是网卡设备的索引，不是 gpu dev
+
+    * `latency` -> `0`
+
+    * `speed` -> `400000`
+
+    * `port`-> `1`
+
+    * `guid` -> `1012277474802960544`
+
+    * `maxconn` -> `131072`
+
+    * `gdrSupport` -> true
+
+    原⽂片段 3（完）：
+
+    ```cpp
+            const char* keepAttr;
+            NCCLCHECK(xmlGetAttr(netNode, "coll", &colAttr));
+            NCCLCHECK(xmlGetAttr(netNode, "keep", &keepAttr));
+            INFO(NCCL_GRAPH, "ncclTopoPopulateNics : Filled %s in topo with pciPath=%s keep=%s coll=%s",
+              props.name, props.pciPath, keepAttr, colAttr);
+          }
+
+          return ncclSuccess;
+        }
+    ```
+
+    * `keepAttr` -> `"1"`
+
+* `ncclIbGetProperties()`
+
+    ```cpp
+    ncclResult_t ncclIbGetProperties(int dev, ncclNetProperties_t* props) {
+      if (dev >= ncclNMergedIbDevs) {
+        WARN("NET/IB : Requested properties for vNic %d, only %d vNics have been created", dev, ncclNMergedIbDevs);
+        return ncclInvalidUsage;
+      }
+      struct ncclIbMergedDev* mergedDev = ncclIbMergedDevs + dev;
+      // Take the rest of the properties from an arbitrary sub-device (should be the same)
+      NCCLCHECK(ncclIbGetPhysProperties(mergedDev->vProps.devs[0], props));
+      props->name = mergedDev->devName;
+      props->speed = mergedDev->speed;
+      memcpy(&props->vProps, &mergedDev->vProps, sizeof(ncclNetVDeviceProps_t));
+      return ncclSuccess;
+    }
+    ```
+
+    * `ncclNMergedIbDevs`为 5，正好和前面的`endIndex`相同。说明 end index 指的是 ib dev。
+
+        不清楚这里的 merged 是什么意思。
+
+* `ncclIbGetPhysProperties()`
+
+    ```cpp
+    ncclResult_t ncclIbGetPhysProperties(int dev, ncclNetProperties_t* props) {
+      struct ncclIbDev* ibDev = ncclIbDevs + dev;
+      pthread_mutex_lock(&ibDev->lock);
+      props->name = ibDev->devName;
+      props->speed = ibDev->speed;
+      props->pciPath = ibDev->pciPath;
+      props->guid = ibDev->guid;
+      props->ptrSupport = NCCL_PTR_HOST;
+      if (ncclIbGdrSupport() == ncclSuccess) {
+        props->ptrSupport |= NCCL_PTR_CUDA; // GDR support via nv_peermem
+      }
+      props->regIsGlobal = 1;
+      if (ncclIbDmaBufSupport(dev) == ncclSuccess) {
+        props->ptrSupport |= NCCL_PTR_DMABUF; // GDR support via DMA-BUF
+      }
+      props->forceFlush = 0;
+      if (ibDev->capsProvider.mlx5.dataDirect) {
+        props->forceFlush = 1;
+      }
+      props->latency = 0; // Not set
+      props->port = ibDev->portNum + ibDev->realPort;
+      props->maxComms = ibDev->maxQp;
+      props->maxRecvs = NCCL_NET_IB_MAX_RECVS;
+      props->netDeviceType    = NCCL_NET_DEVICE_HOST;
+      props->netDeviceVersion = NCCL_NET_DEVICE_INVALID_VERSION;
+      props->maxP2pBytes = NCCL_MAX_NET_SIZE_BYTES;
+      pthread_mutex_unlock(&ibDev->lock);
+      return ncclSuccess;
+    }
+    ```
+
+    * `ncclIbDevs`是一个全局数组，
+
+    ```cpp
+    struct ncclIbDev ncclIbDevs[MAX_IB_DEVS];
+
+    #define MAX_IB_DEVS  32
+    
+    static int ncclNIbDevs = -1;
+    struct alignas(64) ncclIbDev {
+      pthread_mutex_t lock;
+      int device;
+      uint64_t guid;
+      uint8_t portNum;
+      uint8_t link;
+      int speed;
+      ibv_context* context;
+      int pdRefs;
+      ibv_pd* pd;
+      char devName[MAXNAMESIZE];
+      char* pciPath;
+      char* virtualPciPath;
+      int realPort;
+      int maxQp;
+      float latency;
+      struct ncclIbMrCache mrCache;
+      int ar; // ADAPTIVE_ROUTING
+      struct ibv_port_attr portAttr;
+      struct ncclIbStats stats;
+      int dmaBufSupported;
+      enum ncclIbProvider ibProvider;
+      union {
+        struct {
+          int dataDirect;
+        } mlx5;
+      } capsProvider;
+    };
+    ```
+
+    * 在进入函数时，`ncclIbDevs`中已经有内容了，这个函数明显是把 nccl ib devs 中的内容填到`props`内。
+
+    ```cpp
+    #define NCCL_PTR_HOST 0x1
+    #define NCCL_PTR_CUDA 0x2
+    #define NCCL_PTR_DMABUF 0x4
+    ```
+
+    * 不清楚这个`NCCL_PTR_DMABUF`是干嘛用的
+
+    ```cpp
+    typedef struct {
+      int ndevs;
+      int devs[NCCL_NET_MAX_DEVS_PER_NIC_V10];
+    } ncclNetVDeviceProps_v10_t;
+
+    #define NCCL_NET_MAX_DEVS_PER_NIC_V10 4
+    ```
+
+    * 看来`mergedDev`中的内容也是不准备要了，最终留下的就是这个`ncclNetProperties_t* props`
+
+    * `ndevs`为 1，`devs`中的数据全是 0.
+
+        不清楚这两个是什么意思。
+
+* `ncclTopoFillNet()`
+
+    ```cpp
+    ncclResult_t ncclTopoFillNet(struct ncclXml* xml, const char* pciPath, const char* netName, struct ncclXmlNode** netNode, struct ncclXmlNode* forceParent) {
+      NCCLCHECK(xmlFindTagKv(xml, "net", netNode, "name", netName));
+
+      if (*netNode != NULL) return ncclSuccess;
+
+      const char* pciSysPath = pciPath;
+      if (pciSysPath) {
+        char subSystem[PATH_MAX];
+        NCCLCHECK(ncclTopoGetSubsystem(pciSysPath, subSystem));
+        // This is not a PCI device (virtual, usb, ...).
+        if (strcmp(subSystem, "pci") != 0) {
+          INFO(NCCL_NET|NCCL_GRAPH, "Topology detection: network path %s is not a PCI device (%s). Attaching to first CPU", pciSysPath, subSystem);
+          pciSysPath = NULL;
+        }
+      }
+    ```
+
+    * `pciPath` -> `0x7ffb1f5ca890 "/sys/devices/pci0000:37/0000:37:01.0/0000:38:00.0/0000:39:02.0/0000:3c:00.0"`
+
+    * busid -> `$3 = "0000:3c:00.0\000\000\000"`
+
+        这个地址是 ib 的还是 eth 的？
+
+    原文片段 1（完）：
+
+    ```cpp
+      struct ncclXmlNode* parent = NULL;
+      if (forceParent) {
+        parent = forceParent;
+      } else if (pciSysPath) {
+        int offset;
+        for (offset=strlen(pciSysPath)-1; pciSysPath[offset] != '/'; offset--);
+        char busId[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
+        strcpy(busId, pciSysPath+offset+1);
+        NCCLCHECK(ncclTopoGetPciNode(xml, busId, &parent));
+        NCCLCHECK(xmlSetAttrIfUnset(parent, "class", "0x02"));
+        NCCLCHECK(ncclTopoGetXmlFromSys(parent, xml));
+      } else {
+        // Virtual NIC, no PCI device, attach to first CPU
+        NCCLCHECK(xmlFindTag(xml, "cpu", &parent));
+      }
+
+      struct ncclXmlNode* nicNode = NULL;
+      NCCLCHECK(xmlGetSub(parent, "nic", &nicNode));
+      if (nicNode == NULL) {
+        NCCLCHECK(xmlAddNode(xml, parent, "nic", &nicNode));
+      }
+
+      // We know that this net does not exist yet (we searched for it at the
+      // beginning of this function), so we can add it.
+      NCCLCHECK(xmlAddNode(xml, nicNode, "net", netNode));
+      NCCLCHECK(xmlSetAttr(*netNode, "name", netName));
+      return ncclSuccess;
+    }
+    ```
+
+    * 第一次走到这里时，`nicNode`为空。说明整个 xml 只能有一个 nic tag。
+
+    * `netName` -> `0x7ffff7f89118 <ncclIbMergedDevs+24> "mlx5_0"`
+
+* 原始的 nic device 列表从哪得到？

@@ -2,6 +2,37 @@
 
 ## cache
 
+* Git pull 输出详细信息方法
+
+    ```bash
+    git pull -v
+    # 或者
+    git pull --verbose
+    ```
+
+    设置 git 配置使其默认显示详细信息:
+
+    ```bash
+    # 设置 pull 默认显示详细信息
+    git config --global pull.verbose true
+
+    # 或者设置 fetch 显示详细信息
+    git config --global fetch.verbose true
+    ```
+
+    使用 GIT_TRACE 环境变量:
+
+    ```bash
+    # 显示详细的执行过程
+    GIT_TRACE=1 git pull
+
+    # 显示更详细的网络通信信息
+    GIT_TRACE_PACKET=1 git pull
+
+    # 同时启用多种跟踪
+    GIT_TRACE=1 GIT_TRACE_PACKET=1 git pull
+    ```
+
 * `git rebase -i`比较像从某个 commit 开始，将各个 commit 重新提交一遍。如果每次 commit 都有冲突，那么就需要一直处理冲突。如果不想每次都处理，想只保留最后一次 commit 的结果，或许可以用到`skip`选项。
 
 * git merge 在使用 Fast-forward 时，看不出来是一个 merge 操作

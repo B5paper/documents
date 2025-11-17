@@ -670,13 +670,11 @@
 
 ### tasks
 
-* [v] reorg project: cmake_test
+* [v] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
 
-* [ ] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
+    14:05 ~ 14:56
 
 * [ ] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
-
-* [v] `cudaMallocHost()`, `cudaFreeHost()`
 
 * [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
 
@@ -906,17 +904,21 @@
 
 ### Tasks
 
-* [ ] Python命令行参数处理包介绍
+* [O] Python命令行参数处理包介绍
+
+    15:05 ~ 15:32
 
     目前看到
 
     > 2. click (第三方库 - 更现代化)
 
-* [v] glow, mdcat, catwalk
-
     feedback:
 
-    * [asso] catwalk
+    * 目前看到
+
+        > 3. fire (Google 开发 - 自动生成CLI)
+
+* [v] glow, mdcat, catwalk
 
 * [ ] `@echo "The process ID in Shell is: $$PPID"`
 
@@ -1169,6 +1171,8 @@
 
     匹配隐藏目录
 
+* [asso] catwalk
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1179,13 +1183,9 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 11.13
+* [v] process 1 tab 30 mins 11.14
 
-* [v] Bash常用快捷键总结
-
-    目前看到
-
-    > 有没有跟路径相关的常用命令，比如 cd - 之类的
+    13:33 ~ 13:57
 
 * [ ] PyTorch中NumPy数组转Tensor方法
 

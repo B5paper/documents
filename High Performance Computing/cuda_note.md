@@ -2,6 +2,95 @@
 
 ## cache
 
+* `cudaMallocHost()`
+
+    在 host 上分配页锁定内存（Pinned Memory）.
+
+    核心作用
+
+    1. 固定内存：分配的主机内存不会被操作系统分页换出，确保物理地址固定。
+
+    2. 加速数据传输：GPU 可通过 DMA 直接访问该内存，省去临时复制步骤，提升主机与设备间的数据传输速度。
+
+    syntax:
+
+    ```c
+    cudaError_t cudaMallocHost(void** ptr, size_t size);
+    ```
+
+    example:
+
+    ```c
+    float *h_data;
+    cudaMallocHost(&h_data, sizeof(float) * N);  // 分配页锁定内存
+    // ... 使用 h_data 进行高效数据传输
+    cudaFreeHost(h_data);  // 释放内存
+    ```
+
+    example:
+
+    ```c
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    __global__ void increase(float *host_ptr, int num_elm) {
+        for (int i = 0; i < num_elm; ++i) {
+            host_ptr[i] += 1;
+        }
+    }
+
+    int main() {
+        float *host_data;
+        int num_elm = 8;
+        cudaError_t ret;
+        ret = cudaMallocHost(&host_data, num_elm * sizeof(float));
+        if (ret != cudaSuccess) {
+            printf("fail to cuda malloc host\n");
+            return -1;
+        }
+
+        memset(host_data, 0, num_elm * sizeof(float));
+        
+        for (int i = 0; i < num_elm; ++i) {
+            printf("%.2f, ", host_data[i]);
+        }
+        printf("\n");
+
+        increase<<<1, 1>>>(host_data, num_elm);
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < num_elm; ++i) {
+            printf("%.2f, ", host_data[i]);
+        }
+        printf("\n");
+
+        cudaFreeHost(host_data);
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
+    1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 
+    ```
+
+    系统检测与自动迁移
+
+    当GPU内核尝试访问这个主机指针时：
+
+    * CUDA运行时检测到该地址对应的是主机页锁定内存
+
+    * 系统自动在后台执行数据传输：
+
+        * 将数据从主机内存复制到设备可访问的内存区域
+
+        * 执行内核计算
+
+        * 将结果复制回主机内存
+
 * `cudaMemcpyDefault`表示 cuda 通过 va 自动判断拷贝方向
 
 * CUDA Event
