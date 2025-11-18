@@ -2,6 +2,85 @@
 
 ## cache
 
+* 使用 vim 的 netrw
+
+    * 在命令行中打开远程文件
+
+        ```bash
+        vim scp://username@hostname[:port]//path/to/file
+        ```
+
+        vim 会先使用 scp 把远程文件复制到本地`/tmp`目录下，然后再进行编辑。
+
+        注：
+
+        1. 如果`~/.ssh/config`中已经配置了`Host nickname`，那么可以直接
+
+            `vim scp://nickname//path/to/file`
+
+        1. 绝对路径与相对用户目录的路径区别
+
+            example:
+
+            绝对路径：`vim scp//user@host//home/hlc/test.txt`
+
+            相对用户目录的路径：`vim scp://user@host/test.txt`
+
+            第一个`/`相当于 ssh 命令里的`:`，表示用户的 home。
+
+        1. 不可以使用冒号`:`表示用户 home。冒号`:`只能表示 remote host 的 ssh 端口。
+
+            比如`vim scp://nickname:2222/rel_path/to/file`，表示打开`/home/<user>/rel_path/to/file`这个文件。
+
+    * 在 vim 中使用`:e`打开文件
+
+        ```vim
+        :e scp://username@hostname/path/to/file
+        ```
+
+        ```vim
+        :e scp://[user@]hostname[:port]/path/to/file
+        ```
+
+        example:
+
+        ```vim
+        " 使用默认用户名（当前本地用户名）
+        :e scp://remote-server/home/user/project/file.txt
+
+        " 指定用户名
+        :e scp://username@remote-server/path/to/file.txt
+
+        " 指定端口
+        :e scp://username@remote-server:2222/path/to/file
+
+        " 绝对路径
+        :e scp://user@host//home/user/file.txt
+
+        " 相对用户home的路径
+        :e scp://user@host/file.txt
+        ```
+
+        * 在 vim 中将 ssh 配置为默认协议，效率比 scp 更高
+
+            在 ~/.vimrc 中添加：
+
+            ```conf
+            let g:netrw_ftpextracmd = 'ssh'
+            ```
+
+            配置后，底层可能会这样传输文件：
+
+            ```bash
+            ssh user@host cat /path/to/file
+            ```
+
+            不配置时，底层可能这样传输文件：
+
+            ```bash
+            scp user@host:/path/to/file /tmp/vimXXXXXX
+            ```
+
 * vim-plug
 
     official site: <https://github.com/junegunn/vim-plug>

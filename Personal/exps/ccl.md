@@ -463,29 +463,78 @@
     }
     ```
 
-    `state`是个二级指针，表示把这个 entry 再拿出去，在外部进一步修改。
+    * `state`是个二级指针，表示把这个 entry 再拿出去，在外部进一步修改。
 
-    如果当前 entry 不是空位，那么 name 能对得上也可以。感觉这个函数还可以写成：
+    * 如果当前 entry 不是空位，那么 name 能对得上也可以。感觉这个函数还可以写成：
 
-    ```cpp
-    // 在已有项中搜索
-    while (states[i].name) {  // 判断当前 entry 是否为空
-        if (strcmp(states[i].name, name) != 0) {
-            ++i;
-            continue;
+        ```cpp
+        // 在已有项中搜索
+        while (states[i].name) {  // 判断当前 entry 是否为空
+            if (strcmp(states[i].name, name) != 0) {
+                ++i;
+                continue;
+            }
+            *state = &states[i];
         }
-        *state = &states[i];
-    }
 
-    // 添加一个新项
-    *state = &states[i];
-    (*state)->name = strdup(name);
-    // ...
-    ```
+        // 添加一个新项
+        *state = &states[i];
+        (*state)->name = strdup(name);
+        // ...
+        ```
 
 * `ncclTopoProcessNet()`
 
-    devices -> ncclIbDevices
+    原文片段 1：
+
+    ```cpp
+    // Calls to network plugin APIs should be protected. This function should be called inside a per-process lock.
+    ncclResult_t ncclTopoProcessNet(ncclXml* xml, int coll, const char* dumpXmlFile, ncclTopoNetState* state, ncclResult_t (*getProperties)(int, ncclNetProperties_t*), ncclResult_t (*makeVDevice)(int*, ncclNetVDeviceProps_t*), ncclResult_t (*devices)(int*), const char* netName, bool dmaBufSupport) {
+    ```
+
+    * `coll` = `0`
+
+    * `dumpXmlFile` = NULL
+
+    * `state`是从 shared states 中取出的一个空元素或名字匹配的元素
+
+    * devices -> ncclIbDevices
+
+        ```cpp
+        ncclResult_t ncclIbDevices(int* ndev) {
+          *ndev = ncclNMergedIbDevs;
+          return ncclSuccess;
+        }
+        ```
+
+        `ncclNMergedIbDevs` -> 5
+
+        说明在调用``ncclTopoProcessNet()`这一步之前，就已经处理好网卡搜索了。
+
+    原文片段 2：
+
+    ```cpp
+      int usePhysicalDevices = (dumpXmlFile || makeVDevice == NULL);
+      if (state->nPhysicalNics == -1)
+        NCCLCHECK(devices(&state->nPhysicalNics));
+      // Enumerate physical devices
+      NCCLCHECK(ncclTopoPopulateNics(xml, 0, state->nPhysicalNics, getProperties, netName, coll, false, dmaBufSupport));
+      if (!usePhysicalDevices) {
+        if (state->nVirtualNics == -1) {
+          NCCLCHECK(ncclTopoMakeVNics(xml, makeVDevice, getProperties, state->nPhysicalNics));
+          int nDevs;
+          NCCLCHECK(devices(&nDevs));
+          state->nVirtualNics = nDevs - state->nPhysicalNics;
+        }
+        if (state->nVirtualNics > 0) {
+          // Populate new devices
+          NCCLCHECK(ncclTopoPopulateNics(xml, state->nPhysicalNics, state->nPhysicalNics+state->nVirtualNics, getProperties, netName, coll, true, dmaBufSupport));
+        }
+      }
+
+      return ncclSuccess;
+    }
+    ```
 
 * `ncclTopoPopulateNics()`
 
@@ -780,3 +829,76 @@
     * `netName` -> `0x7ffff7f89118 <ncclIbMergedDevs+24> "mlx5_0"`
 
 * 原始的 nic device 列表从哪得到？
+
+* `ncclNetInit()`
+
+    原文片段 1：
+
+    ```cpp
+    ncclResult_t ncclNetInit(struct ncclComm* comm) {
+      bool ncclNetPluginInitialized = false;
+      pthread_once(&initPluginLibsOnceControl, initPluginLibsOnceFunc);
+      pthread_mutex_lock(&netPluginLock);
+      for (int pluginIndex = 0; pluginIndex < pluginCount; pluginIndex++) {
+        if ((pluginIndex < (pluginCount - NCCL_NET_NUM_INTERNAL_PLUGINS)) && (netPluginLibs[pluginIndex].ncclNetPluginState == ncclNetPluginStateLoadReady)) {
+          NCCLCHECK(ncclNetPluginLoad(&netPluginLibs[pluginIndex]));
+        }
+    ```
+
+    * `pluginCount`: 3
+
+        这个是啥意思，三种网络？标卡，IB, CollNet？
+
+* `ncclNetPluginInit()`
+
+    原文片段 1：
+
+    ```cpp
+    static ncclResult_t ncclNetPluginInit(netPluginLib_t* pluginLib) {
+      int ndev;
+      if (pluginLib->ncclNetPluginState == ncclNetPluginStateInitReady && pluginLib->ncclNet) {
+        if (pluginLib->ncclNet->init(ncclDebugLog, ncclProfilerCallback) != ncclSuccess) goto fail;
+        if (pluginLib->ncclNet->devices(&ndev) != ncclSuccess || ndev <= 0) goto fail;
+      }
+      pluginLib->ncclNetPluginState = ncclNetPluginStateEnabled;
+      INFO(NCCL_INIT|NCCL_NET, "Initialized NET plugin %s", pluginLib->ncclNet->name);
+    ```
+
+    * 经过`pluginLib->ncclNet->init()`调用后，全局变量`ncclIbDevs()`中的内容被填写。
+
+    * `pluginLib->ncclNet->init` -> `0x7fffb3aba3cd <ncclIbInit(void (*)(ncclDebugLogLevel, unsigned long, char const*, int, char const*, ...), ncclResult_t (*)(void**, int, void*, long, void*))>`
+
+* `ncclNetIb`
+
+    file: `net_ib.cc`
+
+    原文：
+
+    ```cpp
+    ncclNet_t ncclNetIb = {
+      "IB",
+      ncclIbInit,
+      ncclIbDevices,
+      ncclIbGetProperties,
+      ncclIbListen,
+      ncclIbConnect,
+      ncclIbAccept,
+      ncclIbRegMr,
+      ncclIbRegMrDmaBuf,
+      ncclIbDeregMr,
+      ncclIbIsend,
+      ncclIbIrecv,
+      ncclIbIflush,
+      ncclIbTest,
+      ncclIbCloseSend,
+      ncclIbCloseRecv,
+      ncclIbCloseListen,
+      NULL /* getDeviceMr */,
+      NULL /* irecvConsumed */,
+      ncclIbMakeVDevice
+    };
+    ```
+
+    * 所有与 ib 相关的函数都封装在这里面
+
+* 既然调用`ncclIbInit()`就可以检测 ib 网卡，那么 topo system 是否只需要构造 xml tag 和把 xml tag 添加到 topo system 里就可以了？
