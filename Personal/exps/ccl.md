@@ -483,6 +483,8 @@
         // ...
         ```
 
+    * 这个 get 函数只是匹配一个对应的 name，比如 "ib"、"ethernet"、或 coll-net ，如果匹配到了，那么返回数据项，如果没有匹配到，那么返回一个空的。
+
 * `ncclTopoProcessNet()`
 
     原文片段 1：
@@ -537,6 +539,8 @@
     ```
 
 * `ncclTopoPopulateNics()`
+
+    原文片段 1：
 
     ```cpp
     static ncclResult_t ncclTopoPopulateNics(ncclXml* xml, int startIndex, int endIndex, ncclResult_t (*getProperties)(int, ncclNetProperties_t*), const char* netName, int coll, int virtualNics, bool dmaBufSupport) {
@@ -787,6 +791,10 @@
 
     * `pciPath` -> `0x7ffb1f5ca890 "/sys/devices/pci0000:37/0000:37:01.0/0000:38:00.0/0000:39:02.0/0000:3c:00.0"`
 
+        机器上一张 pci 网卡对应的 bdf 为：`3c:00.0`。
+
+    * `netName` -> `0x7ffff7f89118 <ncclIbMergedDevs+24> "mlx5_0"`
+
     * busid -> `$3 = "0000:3c:00.0\000\000\000"`
 
         这个地址是 ib 的还是 eth 的？
@@ -902,3 +910,51 @@
     * 所有与 ib 相关的函数都封装在这里面
 
 * 既然调用`ncclIbInit()`就可以检测 ib 网卡，那么 topo system 是否只需要构造 xml tag 和把 xml tag 添加到 topo system 里就可以了？
+
+* `netStates`
+
+    ```cpp
+    ncclTopoNetState netStates[NCCL_NET_MAX_PLUGINS] = {};
+    ```
+
+* `ncclTopoGetVNicParent()`
+
+    ```cpp
+    ncclResult_t ncclTopoGetVNicParent(struct ncclXml* xml, ncclResult_t (*getProperties)(int, ncclNetProperties_t*), ncclNetVDeviceProps_t* vProps, ncclXmlNode** parent) {
+      ncclNetProperties_t props[NCCL_NET_MAX_DEVS_PER_NIC];
+      ncclXmlNode* physNetNodes[NCCL_NET_MAX_DEVS_PER_NIC];
+      for (int i = 0; i < vProps->ndevs; i++) {
+        NCCLCHECK(getProperties(vProps->devs[i], props + i));
+        struct ncclXmlNode* physNetNode;
+        NCCLCHECK(xmlFindTagKv(xml, "net", &physNetNode, "name", props[i].name));
+        physNetNodes[i] = physNetNode;
+        TRACE(NCCL_GRAPH, "Re-found physical ncclNet node %d %s", i,  props[i].name);
+      }
+
+    ```
+
+* nic node 在创建时应该清空为 0，防止 union 里有数据
+
+* nccl 里的很多函数和变量的命名有误导性，这进一步增加了逆向的难度
+
+* `xmlFindTagKv()`
+
+    ```cpp
+    static ncclResult_t xmlFindTagKv(struct ncclXml* xml, const char* tagName, struct ncclXmlNode** node, const char* attrName, const char* attrValue) {
+      *node = NULL;
+      for (int i=0; i<xml->maxIndex; i++) {
+        struct ncclXmlNode* n = xml->nodes+i;
+        if (strcmp(n->name, tagName) == 0) {
+          const char* value;
+          NCCLCHECK(xmlGetAttr(n, attrName, &value));
+          if (value && strcmp(value, attrValue) == 0) {
+            *node = n;
+            return ncclSuccess;
+          }
+        }
+      }
+      return ncclSuccess;
+    }
+    ```
+
+    这里只有线性搜索，有可能是`ncclXml`一次性把所有的 node ptr 都申请完，然后由线性数组 + parent ptr 构建树关系。因此搜索时没有递归。
