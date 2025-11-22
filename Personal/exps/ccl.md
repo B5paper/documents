@@ -424,21 +424,7 @@
 
         comm->localRanks = 4 （节点1共有4个rank）
 
-* `ncclTopoNetState`
-
-    ```cpp
-    struct ncclTopoNetState {
-      int nVirtualNics;
-      int nPhysicalNics;
-      const char* name;
-    };
-    ```
-
-    ```cpp
-    #define NCCL_NET_MAX_PLUGINS 16
-    ```
-
-    找到一个空位，然后插入新的 state。
+* `ncclTopoGetSharedState()`
 
     ```cpp
     ncclResult_t ncclTopoGetSharedState(ncclTopoNetState** state, const char* name, ncclTopoNetState* states) {
@@ -465,7 +451,9 @@
 
     * `state`是个二级指针，表示把这个 entry 再拿出去，在外部进一步修改。
 
-    * 如果当前 entry 不是空位，那么 name 能对得上也可以。感觉这个函数还可以写成：
+    * 这个 get 函数只是匹配一个对应的 name，比如 "ib"、"ethernet"、或 coll-net ，如果匹配到了，那么返回数据项，如果没有匹配到，那么返回一个空的。
+
+    * 感觉这个函数还可以写成：
 
         ```cpp
         // 在已有项中搜索
@@ -483,7 +471,19 @@
         // ...
         ```
 
-    * 这个 get 函数只是匹配一个对应的 name，比如 "ib"、"ethernet"、或 coll-net ，如果匹配到了，那么返回数据项，如果没有匹配到，那么返回一个空的。
+    相关资料：
+
+    ```cpp
+    struct ncclTopoNetState {
+      int nVirtualNics;
+      int nPhysicalNics;
+      const char* name;
+    };
+    ```
+
+    ```cpp
+    #define NCCL_NET_MAX_PLUGINS 16
+    ```
 
 * `ncclTopoProcessNet()`
 
@@ -521,6 +521,15 @@
         NCCLCHECK(devices(&state->nPhysicalNics));
       // Enumerate physical devices
       NCCLCHECK(ncclTopoPopulateNics(xml, 0, state->nPhysicalNics, getProperties, netName, coll, false, dmaBufSupport));
+    ```
+
+    * `makeVDevice`是个函数指针，用于创建虚拟网卡
+
+    * `usePhysicalDevices` -> `1`
+
+    原文片段 3：
+
+    ```cpp
       if (!usePhysicalDevices) {
         if (state->nVirtualNics == -1) {
           NCCLCHECK(ncclTopoMakeVNics(xml, makeVDevice, getProperties, state->nPhysicalNics));
@@ -563,35 +572,7 @@
 
     * `getProperties`是`ncclIbGetProperties(int, ncclNetProperties_v10_t*)`
 
-    ```cpp
-    typedef ncclNetProperties_v10_t ncclNetProperties_t;
-
-    typedef struct {
-      char* name;                      // Used mostly for logging.
-      char* pciPath;                   // Path to the PCI device in /sys.
-      uint64_t guid;                   // Unique identifier for the NIC chip. Important for
-                                       // cards with multiple PCI functions (Physical or virtual).
-      int ptrSupport;                  // [NCCL_PTR_HOST|NCCL_PTR_CUDA|NCCL_PTR_DMABUF]
-      int regIsGlobal;                 // regMr is not tied to a particular comm
-      int forceFlush;                  // Force a flush on receives
-      int speed;                       // Port speed in Mbps.
-      int port;                        // Port number.
-      float latency;                   // Network latency
-      int maxComms;                    // Maximum number of comms we can create
-      int maxRecvs;                    // Maximum number of grouped receives.
-      ncclNetDeviceType netDeviceType; // Network offload type
-      int netDeviceVersion;            // Version number for network offload
-      ncclNetVDeviceProps_v10_t vProps;
-      size_t maxP2pBytes;              // Max transfer size for point-to-point operations
-      size_t maxCollBytes;             // Max transfer size for collective operations
-    } ncclNetProperties_v10_t;
-    ```
-
-    这个结构是给 IB 网卡准备的，还是标卡也能用？
-
-    后面有专门的`ncclIbDev`结构，那么这里应该是标卡、IB卡都能用。
-
-    * `virtualNics`为 0
+    * `virtualNics` -> `0`
 
     原文片段 2:
 
@@ -649,6 +630,34 @@
     ```
 
     * `keepAttr` -> `"1"`
+
+* `ncclNetProperties_t`
+
+    ```cpp
+    typedef ncclNetProperties_v10_t ncclNetProperties_t;
+
+    typedef struct {
+      char* name;                      // Used mostly for logging.
+      char* pciPath;                   // Path to the PCI device in /sys.
+      uint64_t guid;                   // Unique identifier for the NIC chip. Important for
+                                       // cards with multiple PCI functions (Physical or virtual).
+      int ptrSupport;                  // [NCCL_PTR_HOST|NCCL_PTR_CUDA|NCCL_PTR_DMABUF]
+      int regIsGlobal;                 // regMr is not tied to a particular comm
+      int forceFlush;                  // Force a flush on receives
+      int speed;                       // Port speed in Mbps.
+      int port;                        // Port number.
+      float latency;                   // Network latency
+      int maxComms;                    // Maximum number of comms we can create
+      int maxRecvs;                    // Maximum number of grouped receives.
+      ncclNetDeviceType netDeviceType; // Network offload type
+      int netDeviceVersion;            // Version number for network offload
+      ncclNetVDeviceProps_v10_t vProps;
+      size_t maxP2pBytes;              // Max transfer size for point-to-point operations
+      size_t maxCollBytes;             // Max transfer size for collective operations
+    } ncclNetProperties_v10_t;
+    ```
+
+    后面有专门的`ncclIbDev`结构，这里应该是标卡、IB卡都能用。
 
 * `ncclIbGetProperties()`
 
@@ -836,6 +845,8 @@
 
     * `netName` -> `0x7ffff7f89118 <ncclIbMergedDevs+24> "mlx5_0"`
 
+    * `// Virtual NIC, no PCI device, attach to first CPU`，这里可以解答之前 xml 里 nic 在 cpu 外面的的疑问了。只是不知道什么时候会创建 virtual nic？
+
 * 原始的 nic device 列表从哪得到？
 
 * `ncclNetInit()`
@@ -958,3 +969,31 @@
     ```
 
     这里只有线性搜索，有可能是`ncclXml`一次性把所有的 node ptr 都申请完，然后由线性数组 + parent ptr 构建树关系。因此搜索时没有递归。
+
+* `ncclTopoGetSystem()`
+
+    ```cpp
+    // ...
+
+      pthread_mutex_lock(&netLock);
+      netLockHeld = 1;
+      INFO(NCCL_GRAPH, "TOPO/NET : Importing network plugins to topology");
+      ncclTopoNetState* state;
+      state = NULL;
+      if (collNetSupport(comm)) {
+        NCCLCHECKGOTO(ncclTopoGetSharedState(&state, comm->ncclCollNet->name, collNetStates), ret, fail);
+        NCCLCHECKGOTO(ncclTopoProcessNet(xml, 1, dumpXmlFile, state,
+          comm->ncclCollNet->getProperties, comm->ncclCollNet->makeVDevice, comm->ncclCollNet->devices, comm->ncclCollNet->name, comm->dmaBufSupport), ret, fail);
+      }
+      NCCLCHECKGOTO(ncclTopoGetSharedState(&state, comm->ncclNet->name, netStates), ret, fail);
+      NCCLCHECKGOTO(ncclTopoProcessNet(xml, 0, dumpXmlFile, state,
+        comm->ncclNet->getProperties, comm->ncclNet->makeVDevice, comm->ncclNet->devices, comm->ncclNet->name, comm->dmaBufSupport), ret, fail);
+      pthread_mutex_unlock(&netLock);
+      netLockHeld = 0;
+
+    // ...
+    ```
+
+    * `comm->ncclNet->makeVDevice` -> `0x7fffb3aba380 <ncclIbMakeVDevice(int*, ncclNetVDeviceProps_v10_t*)>`
+
+        这个只有在 v10 里才有，在 v6 里没有。

@@ -4,6 +4,75 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* chatgpt 写的 bash 定时器
+
+    `timer.sh`:
+
+    ```bash
+    #!/bin/bash
+
+    if [ $# -ne 2 ]; then
+      echo "用法: $0 <N分钟> <audio_file>"
+      exit 1
+    fi
+
+    TOTAL_MIN=$1
+    AUDIO_FILE=$2
+    TOTAL_SEC=$((TOTAL_MIN * 60))
+
+    # 设置终端：关闭回显和规范模式
+    stty -echo -icanon time 0 min 0
+
+    paused=0
+    elapsed=0
+
+    cleanup() {
+      stty sane
+      tput cnorm
+    }
+    trap cleanup EXIT
+
+    tput civis  # 隐藏光标
+
+    while [ $elapsed -lt $TOTAL_SEC ]; do
+      # 捕获键盘输入
+      key=$(dd bs=1 count=1 2>/dev/null)
+      if [ "$key" = " " ]; then
+        paused=$((1 - paused))  # 切换暂停/恢复
+      fi
+
+      if [ $paused -eq 0 ]; then
+        elapsed=$((elapsed + 1))
+      fi
+
+      remain=$((TOTAL_SEC - elapsed))
+      min=$((remain / 60))
+      sec=$((remain % 60))
+
+      # 清理并重写
+      tput cup 0 0
+      tput ed
+      printf "总时间: %2d 分钟\n" "$TOTAL_MIN"
+      printf "剩余:   %02d:%02d\n" "$min" "$sec"
+      if [ $paused -eq 1 ]; then
+        printf "[已暂停]\n"
+      else
+        printf "         \n"
+      fi
+
+      sleep 1
+    done
+
+    cleanup
+    mpv --really-quiet "$AUDIO_FILE"
+    ```
+
+    用法：
+    
+    `bash timer.sh <N> <audio_file>`
+    
+    定时`N`分钟后播放音频`<audio_file>`，期间 terminal 上会显示倒计时，按空格可以暂时计时，再次按空格恢复。
+
 * bash 中与目录相关的命令
 
     1. 基础路径切换

@@ -34,24 +34,6 @@
 
 ## cache
 
-* log 只能按时间顺序记录想法，routine 只能按逻辑顺序记录想法，还需要一种需要经常反复修改的、网状的、类似草稿纸的结构，暂时给它起名叫 exp，表示 explore and exploit。
-
-    exp 中，既有任务，也有想法，也有临时的知识，也有临时的 log，重点是它们经常被改变。有点像一个科研过程。这里的任务并不是被提前规划好的，而是随心所欲随时冒出来的。
-
-    如果发现 exp 中的内容趋于固定了，那么就意味着这个 exp 的生命周期该结束了。
-
-* 如果一个 cache entry 既可以用于理解与学习，也可以用于任务（比如任务编排），那么是否应该开一个新的主题或者标题，类似范畴论那种感觉？
-
-* 应该增加一个闭眼问题集，没事的时候随便想一想
-
-* 中医与固执
-
-    不信中医的人认为相信中医的人是封建迷信，是固执，是不动脑子的人，但是如果真的有拓扑共轭存在，只有用整体才能理解整体，那么不信中医的人是否也是没有经过思考就随便听信别人言论的固执的人呢，这又何尝不是另一种迷信？他们只是擅于贴标签，并放心地嘲笑、批斗别人的一群人，并不是着力于解决问题的一群人。顽固相信的人，和嘲笑顽固相信的人，本质上是同一群人。
-
-* 所有文档笔记中的图片资源，都应该由 resource 文件夹统一管理
-
-	如果每个笔记都创建一个图片的相对目录，那么当笔记转移来转移去时，就必须让图片也随着文件夹移动，很麻烦。
-
 * 想了想，除了 entry 和 routine 两种笔记方式，还有 planner 和 random walk 两种概念
 
     planner 即按照提前规划好的方式进行调研，random walk 是来兴致后的主题调研，主要依赖已经存储的知识和即时查的新知识，以及过程中的探索（观察、发现、总结）。
@@ -61,8 +43,6 @@
 * 飞机气压
 
     机舱气压不是“地面气压”，而是“模拟海拔气压”。飞机的加压系统，并不是把机舱一直维持在海平面的标准大气压（约1013 hPa），而是将机舱内部的气压维持在一个相当于海拔1500-2500米的水平。如果将机舱完全加压到地面气压，会对飞机机身结构（特别是窗户和舱门）造成巨大的压力差，需要更厚重的材料，大大增加重量和燃油消耗。因此，这是一个权衡后的结果。
-
-* 对于上次没处理完的 process tab task，比如`[O]`或`[P]`，应该继续这个任务，对于 date，可以 append，比如`* [ ] xxxxx 10.08 10.09`。因为我们需要拿到它的 feedback 和 current progress 的数据。
 
 * 每日任务模板初始版，完成版
 
@@ -118,18 +98,6 @@
     * [ ] qa: review 30 mins
     ```
 
-* 一些高数教材的问题
-
-    * 定义铺排，没有节奏
-
-        讲完一个定义 A，马上讲下一个定义 B。在阅读定义 B 时，读者是否已经理解了定义 A？定义 A 和之前讲的定义 C, D, E 都有什么相似和不同？有什么联系？如果定义 A 的理解难度比定义 B 大，那么是否应该将定义 A 多设置些篇幅，让读者停留的时间更长一点？
-
-    * 只有从前到后的叙述，没有倒推的分析
-
-        我们为了解决什么问题才提出的定义 A？不用定义 A，用定义 B 行不行？定义 A 是谁最先提出来的，又是怎样发展成现在这个样子的？对定义 A 加一些条件，删一些条件，还能用吗？
-
-        因为总是线性叙述，线性学习，所以正好印证了之前的推断，学习效率很低，学了一堆概念，但是不知道有什么用。
-
 * 动态低价值任务
 
     做自底向上的任务时，容易陷入查字典，背 API 的细节中，无法推动主线的进度。
@@ -143,101 +111,6 @@
     * 严格控制时间，比如每次只执行 20 mins
 
     * 每执行一次，向下移动 5 个任务
-
-* routine 不可能用 cache task 存在，必须以 routine task 的方式存在
-
-    假如 routine 以 cache task 的方式存在，那么 routine 的所有代码都将写到 cache entry 里，但是这是不可能的，因为 routine 主打的是庞大、复杂、断点续传，cache entry 主打的是小巧、灵活、专一、多组合。将未完成的的 routine 放到 cache entry 里，显得格格不入。
-
-* 想了想，目前处理大型 project 的方法就是将 project 分解成模块 A, B, C, ... 然后锻炼自己快速组合模块 A， B， C, ... 的能力，直到可以快速快速解构、复现整个项目。如果想做对比实验，那就把模块改成 A, B1, C，或 A1, B, C 等等。
-
-* 科研式 project 的特点
-
-    1. 综合，跨学科
-    
-    2. 资源繁多
-    
-    3. 线索/思路相比学科更开放，更复杂，方向经常会有变动
-
-    目前先按常规 project 的方式管理。
-
-    对于贴大量代码的对比实验，目前先在 proj 目录里创建单独的子文件夹。
-
-* 不应该想着有万全准备了才开始某项任务，应该想着只要不明显阻碍当前的其他任务，就应该开始这项任务。
-
-    实际执行时，可以将这项任务拆解为更小的，便于启动的任务。
-
-* 总是对自己熟悉的领域过于骄傲，总以为自己的进度领先，不愿投入时间。其实对自己熟悉的领域，更应该舍得投入时间才对。
-
-* 应该创建一个闭眼问题集，方便在闭眼休息的时候思考问题
-
-* chatgpt 写的 bash 定时器
-
-    `timer.sh`:
-
-    ```bash
-    #!/bin/bash
-
-    if [ $# -ne 2 ]; then
-      echo "用法: $0 <N分钟> <audio_file>"
-      exit 1
-    fi
-
-    TOTAL_MIN=$1
-    AUDIO_FILE=$2
-    TOTAL_SEC=$((TOTAL_MIN * 60))
-
-    # 设置终端：关闭回显和规范模式
-    stty -echo -icanon time 0 min 0
-
-    paused=0
-    elapsed=0
-
-    cleanup() {
-      stty sane
-      tput cnorm
-    }
-    trap cleanup EXIT
-
-    tput civis  # 隐藏光标
-
-    while [ $elapsed -lt $TOTAL_SEC ]; do
-      # 捕获键盘输入
-      key=$(dd bs=1 count=1 2>/dev/null)
-      if [ "$key" = " " ]; then
-        paused=$((1 - paused))  # 切换暂停/恢复
-      fi
-
-      if [ $paused -eq 0 ]; then
-        elapsed=$((elapsed + 1))
-      fi
-
-      remain=$((TOTAL_SEC - elapsed))
-      min=$((remain / 60))
-      sec=$((remain % 60))
-
-      # 清理并重写
-      tput cup 0 0
-      tput ed
-      printf "总时间: %2d 分钟\n" "$TOTAL_MIN"
-      printf "剩余:   %02d:%02d\n" "$min" "$sec"
-      if [ $paused -eq 1 ]; then
-        printf "[已暂停]\n"
-      else
-        printf "         \n"
-      fi
-
-      sleep 1
-    done
-
-    cleanup
-    mpv --really-quiet "$AUDIO_FILE"
-    ```
-
-    用法：
-    
-    `bash timer.sh <N> <audio_file>`
-    
-    定时`N`分钟后播放音频`<audio_file>`，期间 terminal 上会显示倒计时，按空格可以暂时计时，再次按空格恢复。
 
 * [ ] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
 
@@ -317,14 +190,6 @@
     * 随机填充一个数组/矩阵
 
     * 标准参考答案
-
-* to complete:
-
-    1. modern c++, rewrite the ray tracing program
-
-    3. performance analyzing
-
-    4. vulkan compute shader
 
 * qa 频率可以降低到每周一次
 
@@ -670,11 +535,7 @@
 
 ### tasks
 
-* [v] 有时候本地装有 vim 的插件，但是远程 ssh 机器上没装，而且远程 ssh 机器不能随便安装软件，比如不能`sudo apt install ctags`，那么该如何解决这个问题？或者如何将本地 vim 套件应用到远程 host 的代码编辑上？
-
-    14:05 ~ 14:56
-
-* [ ] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
+* [v] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
 
 * [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
 
@@ -910,15 +771,7 @@
 
     目前看到
 
-    > 2. click (第三方库 - 更现代化)
-
-    feedback:
-
-    * 目前看到
-
-        > 3. fire (Google 开发 - 自动生成CLI)
-
-* [v] glow, mdcat, catwalk
+    > 3. fire (Google 开发 - 自动生成CLI)
 
 * [ ] `@echo "The process ID in Shell is: $$PPID"`
 
@@ -1183,9 +1036,15 @@
 
 ### tasks
 
-* [v] process 1 tab 30 mins 11.14
+* [v] process 1 tab 30 mins 11.18
 
-    13:33 ~ 13:57
+    feedback:
+
+    * [ ] VNC Viewer使用指南
+
+        目前看到
+
+        > 第一部分：使用 VNC Viewer 连接远程电脑（作为客户端）*
 
 * [ ] PyTorch中NumPy数组转Tensor方法
 
@@ -2005,14 +1864,6 @@ resources:
     可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
 ### cache
-
-* 关于自适应
-
-    对于一个 token 序列，我们希望找到和它相关的其他 token，一个直观的想法是对 token 的集合进行遍历，计算 token 相和度，给定一个阈值然后筛选（或者直接排序），选出合适的 token。此时阈值成为了一个超参数，无法做到真正的自适应。但是现代的做法是直接使用两个矩阵相乘，计算出了任意两个 token 的相和度。
-
-    从阈值控制到自适应，这两种框架的特点有什么不一样？如何把任意一个使用阈值的框架变成一种自适应的方法？
-
-* 每训练一段时间后（validation loss 趋于稳定），两两遍历遍历每一层（先从最底层开始）的 kernel，找到两个相似度最高的 kernel，freeze 其中一个，让另一个重新 init，最终是否可以让 test accuracy 提高？
 
 * 一个训练 cifar-10 的 example
 
@@ -5037,6 +4888,14 @@ Tasks:
 ## Vulkan 学习 [0]
 
 **cache**:
+
+* to complete:
+
+    1. modern c++, rewrite the ray tracing program
+
+    3. performance analyzing
+
+    4. vulkan compute shader
 
 * glfw compiling error: `Undefined reference to XOpenDisplay`
 
