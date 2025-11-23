@@ -2,6 +2,26 @@
 
 ## cache
 
+* 记录一下这个写法
+
+    ```cpp
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+    ```
+
+    如果 numElements 能整除 256，那么取商作为 blocksPerGrid；如果无法整除，那么取`商 + 1`。
+
+    如果自己写这块逻辑，可能写成：
+
+    ```cpp
+    blocksPerGrid = numElements / threadsPerBlock;
+    if (numElements % threadsPerBlock != 0) {
+        blocksPerGrid += 1;
+    }
+    ```
+
+    这样的话，相当于做了两次除法运算。上面的写法只做了一次除法运算。
+
 * `cudaMallocHost()`
 
     在 host 上分配页锁定内存（Pinned Memory）.

@@ -2,6 +2,8 @@
 
 ## cache
 
+* vscode 的 ctrl + f 搜索功能有正则表达式选项
+
 * vscode 增加路径提示功能
 
     安装插件`Path Intellisense`，输入一半路径后，使用 Ctrl + Space 喚出路径自动补全。

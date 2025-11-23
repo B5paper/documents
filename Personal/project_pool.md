@@ -505,28 +505,6 @@
 
     2. 已知 ptr 无法快速找到 idx（如果 idx 的目的是找到 entity，那么找不到 idx 也无所谓了吧）
 
-* vscode 的 ctrl + f 搜索功能有正则表达式选项
-
-* 记录一下这个写法
-
-    ```cpp
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
-    ```
-
-    如果 numElements 能整除 256，那么取商作为 blocksPerGrid；如果无法整除，那么取`商 + 1`。
-
-    如果自己写这块逻辑，可能写成：
-
-    ```cpp
-    blocksPerGrid = numElements / threadsPerBlock;
-    if (numElements % threadsPerBlock != 0) {
-        blocksPerGrid += 1;
-    }
-    ```
-
-    这样的话，相当于做了两次除法运算。上面的写法只做了一次除法运算。
-
 * qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
 
 * 一个带有 dev file, pci driver init 过程的 edu driver
@@ -535,9 +513,7 @@
 
 ### tasks
 
-* [v] 调研目前哪些常用算法是使用 cuda 实现的，并给出代码实现的 example
-
-* [ ] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
+* [v] 为什么可以手动指定`threadsPerBlock`？其意义在哪里？
 
     ```cpp
     // 定义线程块数量和每个线程块中的线程数
@@ -552,7 +528,7 @@
 
 * [ ] 调研英文阅读资料，每次增加英文阅读
 
-* [ ] 如何使 ssh 连到 remote host 后，在 remote host 上运行命令，但是 ssh 本身放到 local host 的后台执行，并且当 local host 的 ssh 退出后，remote host 的命令也跟着退出？
+* [v] 如何使 ssh 连到 remote host 后，在 remote host 上运行命令，但是 ssh 本身放到 local host 的后台执行，并且当 local host 的 ssh 退出后，remote host 的命令也跟着退出？
 
     `ssh -f`是否可以做到这一点？还是说需要`nohup ssh user@host <command> > /dev/null &`?
 
@@ -773,7 +749,7 @@
 
     > 3. fire (Google 开发 - 自动生成CLI)
 
-* [ ] `@echo "The process ID in Shell is: $$PPID"`
+* [v] `@echo "The process ID in Shell is: $$PPID"`
 
     $ 给 Shell, Shell 看到的是 $PPID
 
@@ -1038,13 +1014,11 @@
 
 * [v] process 1 tab 30 mins 11.18
 
-    feedback:
+* [ ] VNC Viewer使用指南
 
-    * [ ] VNC Viewer使用指南
+    目前看到
 
-        目前看到
-
-        > 第一部分：使用 VNC Viewer 连接远程电脑（作为客户端）*
+    > 第一部分：使用 VNC Viewer 连接远程电脑（作为客户端）*
 
 * [ ] PyTorch中NumPy数组转Tensor方法
 
@@ -1066,7 +1040,7 @@
 
     > 实用示例
 
-* [O] 调研 PyTorch Loss Functions
+* [O] 调研 PyTorch Loss Functions 11.22
 
     15:01 ~ 15:31, 23:10 ~ 23:43
 
@@ -1075,6 +1049,12 @@
     目前看到
 
         > Cross Entropy Loss
+
+    feedback:
+
+    * 目前看到
+
+        > Negative Log Likelihood Loss
 
 * [ ] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
 
