@@ -2,6 +2,98 @@
 
 ## cache
 
+* `torch.randint()`要求 size 参数必须为 tuple 类型
+
+    比如：
+
+    * 对于一维张量: `(batch_size,)`
+
+    * 对于二维张量: `(batch_size, seq_len)`
+
+* 使用`random_()`可以将数据初始化为随机值
+
+    example:
+
+    `target = torch.empty(2, dtype=t.long).random_(4)`
+
+    创建一个 shape 为`(2, )`的数组，将其数据初始化为`[0, 4)`的随机值。
+
+* Cross Entropy Loss
+
+    用于计算两个概率分布之间的差值。
+
+    $\mathrm{CrossEntropyLoss}(x, \mathrm{target}) = - \frac 1 N \sum_i (\mathrm{target}_i \cdot \log x_i)$
+
+    * x represents the predicted values,
+
+    * target represents the ground truth or target values.
+
+    注：
+
+    1. 这个数学公式中的$target_i$是向量中的元素，与下面 torch 实现的标签编码不一样。
+
+        在实际任务中，$target_i$大部分为 0，只有一个为 1，其实相当于一个 indicator。
+
+    1. 这里的 N 指的并不是 batch size，而是一个向量中的 N 个元素，相当于下面的`N_class`。
+
+    syntax:
+
+    ```py
+    torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
+    ```
+
+    example:
+
+    ```py
+    from hlc_utils import *
+
+    ce_loss = nn.CrossEntropyLoss()
+
+    batch_size = 2
+    N_class = 4
+
+    input = torch.randn(batch_size, N_class)
+    print('input, shape: {}, data:\n{}\n'.format(input.shape, input))
+
+    target = torch.randint(0, N_class, (batch_size,))
+    print('target, shape: {}, data:\n{}\n'.format(target.shape, target))
+
+    output = ce_loss(input, target)
+    print('output, shape: {}. data:\n{}'.format(output.shape, output))
+    ```
+
+    output:
+
+    ```
+    input, shape: torch.Size([2, 4]), data:
+    tensor([[ 1.0211,  2.0191, -0.9489, -1.2573],
+            [ 1.2270,  1.9557, -0.6735, -0.9454]])
+
+    target, shape: torch.Size([2]), data:
+    tensor([3, 2])
+
+    output, shape: torch.Size([]). data:
+    3.379208564758301
+    ```
+
+    注：
+
+    1. input 应该是**未经过**“概率化”的向量，所谓概率化指的是一个向量中的`N_class`个值加起来和为 1. `CrossEntropyLoss`内置了对输入值进行 softmax 预处理的操作。
+
+    1. target 的值是标签编码（Label Encoding，与 one-hot 编码相对应）
+
+    1. 如果 batch size 大于 1，那么 CrossEntropyLoss 求的是 batch 的均值。
+
+    Advantages:
+
+    * Invariant to scaling and shifting of the predicted probabilities.
+
+    Disadvantages:
+
+    * Sensitive to outliers and imbalanced data (can be biased towards majority class).
+
+    * It does not provide a similarity between classes which can be required in some cases.
+
 * 多模态推理（Multimodal Reasoning）
 
     1. 多模态表征学习

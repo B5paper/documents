@@ -2,6 +2,14 @@
 
 ## cache
 
+* makefile 中，`@echo "The process ID in Shell is: $$PPID"`，$ 给 Shell, Shell 看到的是 $PPID
+
+    output:
+
+    ```
+    The process ID in Shell is: 427531
+    ```
+
 * `@echo "The process ID in Make is: $(shell echo $$PPID)"`
 
     显示当前执行 make 进程的父进程 ID

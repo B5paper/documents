@@ -2,6 +2,26 @@
 
 ## cached
 
+* python 不允许对一个 tuple 进行类型标注
+
+    比如：`a, b: (str, str) = 'hello', 'world'`
+
+    或者：`a, b: str, str = 'hello', 'world'`
+
+    如果确实需要标注，可以考虑下面几种办法：
+
+    ```py
+    # 方式1：最清晰
+    input_data: list
+    gt: list
+    input_data, gt = data
+
+    # 方式2：使用类型别名
+    from typing import Tuple
+    def process_data(data: Tuple[list, list]) -> None:
+        input_data, gt = data
+    ```
+
 * python 中的`-m`运行
 
     在当前文件夹下的`mod_1.py`，可以使用`python -m mod_1`启动运行。在`pkg`文件夹下的`mod_2.py`，可以使用`python -m pkg.mod_2`运行。

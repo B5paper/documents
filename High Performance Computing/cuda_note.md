@@ -2,6 +2,46 @@
 
 ## cache
 
+* 一个 SM 中有多个 warp，SM 里有调度器，可以编排 warp 处于计算状态还是处于访问内存状态，从而优化访存延迟
+
+* cuda 为什么要引入 threadsPerBlock，而不是使用 warpsPerBlock？
+
+    1. 编程模型的一致性
+
+        ```cpp
+        // 当前的线程级抽象
+        vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(...);
+
+        // 如果改用warp级抽象
+        vectorAdd<<<blocksPerGrid, warpsPerBlock>>>(...);
+        // 问题：程序员还需要关心每个warp内的线程细节吗？
+        ```
+
+    2. 硬件无关的编程接口
+
+        ```cpp
+        // 线程级抽象提供了硬件无关的接口
+        // 同样的代码在不同代GPU上都能工作
+        threadsPerBlock = 256;  // 在Pascal、Volta、Ampere上都有效
+
+        // 如果暴露warp大小：
+        warpsPerBlock = 8;
+        // 但不同架构的warp大小可能变化（历史上确实考虑过）
+        ```
+
+    实际上，CUDA也在向更高级的抽象发展：
+
+    ```cpp
+    // CUDA 11+ 的cooperative groups
+    #include <cooperative_groups.h>
+
+    __global__ void kernel() {
+        auto block = cooperative_groups::this_thread_block();
+        auto warp = cooperative_groups::tiled_partition<32>(block);
+        // 现在可以在warp级别编程，但底层仍然是线程模型
+    }
+    ```
+
 * 记录一下这个写法
 
     ```cpp
