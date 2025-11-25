@@ -7188,6 +7188,8 @@ Ref:
 
     在调用 pci_resource_len() 或 pci_resource_start() 之前，必须成功调用 pci_enable_device()。否则，获取到的资源信息可能是无效的。
 
+    在 qemu edu dev 上，bar 0 的 len size 为：`1048576`，即 1M。
+
 * `pci_request_regions()`
 
     一次性申请 PCI 设备的所有有效资源区间（即所有有效的 BARs），是 `pci_request_region()`的“批处理”版本。
@@ -7224,9 +7226,9 @@ Ref:
     void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen);
     ```
 
-    bar: 要映射的 BAR 的索引（0-5）。
+    * `bar`: 要映射的 BAR 的索引（0-5）。
 
-    maxlen: 想要映射的长度。如果为0，则映射整个 BAR 区域。
+    * `maxlen`: 想要映射的长度。如果为`0`，则映射整个 BAR 区域。
 
     这个函数将 pci 设备 bar 指定的物理地址空间映射到内核的虚拟地址空间。如果成功，函数返回一个内核虚拟地址。
 

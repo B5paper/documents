@@ -580,11 +580,7 @@
 
 * [v] 调研 cuda 排序
 
-    feedback:
-
-    * [asso] 调研 thrust
-
-* [ ] 调研英文阅读资料，每次增加英文阅读
+* [v] 调研英文阅读资料，每次增加英文阅读
 
 * [ ] 调研 freedos live iso
 
@@ -719,6 +715,8 @@
 
 * [asso] `add_const_t`
 
+* [asso] 调研 thrust
+
 ## qa
 
 ### cache
@@ -801,15 +799,13 @@
 
     目前看到
 
-    > 3. fire (Google 开发 - 自动生成CLI)
+    > 4. typer (基于类型提示 - 现代选择)
+
+* [v] 调研`read`, `read_iter`, `splice_read`
 
     feedback:
 
-    * 目前看到
-
-        > 4. typer (基于类型提示 - 现代选择)
-
-* [ ] 调研`read`, `read_iter`, `splice_read`
+    * [asso] linux 中的管道（pipe）底层是如何实现的？
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
 
@@ -1068,17 +1064,13 @@
 
 ### tasks
 
+* [v] process 1 taab 30 mins 11.24
+
 * [ ] VNC Viewer使用指南
 
     目前看到
 
     > 第一部分：使用 VNC Viewer 连接远程电脑（作为客户端）*
-
-* [v] PyTorch中NumPy数组转Tensor方法
-
-    目前看到
-
-    > 你还可以在转换时指定数据类型：
 
 * [O] 调研 10 日均线斜率交易策略解析 11.05
 
@@ -1914,6 +1906,12 @@ resources:
 * [ ] 调研 llama 在 cpu 上的部署
 
 ### tasks
+
+* [ ] torchmetric中micro precision计算详解
+
+    目前看到
+
+    > F1-score 中的 f1 是什么意思
 
 * [ ] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
 

@@ -128,22 +128,6 @@
 
     * `Ctrl` + `e`：退出补全菜单
 
-* `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
-
-    设置 Vim 查找 tags 文件的搜索路径列表，用逗号分隔多个路径。
-
-    解释：
-
-    * `./tags` - 当前文件所在目录的 tags 文件
-
-    * `./TAGS` - 当前文件所在目录的 TAGS 文件（大写版本）
-
-    * `tags` - 当前工作目录的 tags 文件
-
-    * `TAGS` - 当前工作目录的 TAGS 文件（大写版本）
-
-    * `/path/to/other/tags` - 指定的绝对路径下的 tags 文件
-
 * vim-gutentags
 
     Vim-Gutentags 是一个 Vim 插件，它的核心功能是自动化管理 Vim 的标签文件（tags files）。
@@ -200,23 +184,52 @@
         :PluginInstall
         ```
 
-* ctags 基本用法
+* vim 取消行号的方法
 
-    install: `sudo apt install universal-ctags`
+    `:set nonu`
 
-    进入工程目录，执行`ctags -R .` (递归地为当前目录及所有子目录中的文件生成 tags)，执行完后会生成`tags`文件。
+    `:set nu!`
 
-    常用快捷键：
+* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
 
-    * `Ctrl-]`: 跳转到光标下符号的定义处
+    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
 
-    * `g Ctrl-]`: 如果有多个匹配的定义，此命令会列出所有候选，让你选择跳转到哪一个
+    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
 
-    * `Ctrl-t`: 跳回到跳转之前的位置（类似于“后退”按钮）。可以多次按它来回溯跳转历史。
+* `grep -P`表示使用 PCRE 的 regex
 
-    * `:ts <tag>`或`:tselect <tag>`: 列出所有匹配`<tag>`的标签定义，供你选择。
+* vim 中搜索 metacharacter `.` 的帮助文档
 
-    * `:tjump <tag>`: 跳转到`<tag>`。如果只有一个匹配则直接跳转，有多个则列出列表。
+    `:help /\.`
+
+* PCRE, for Perl Compatible Regular Expression
+
+* vim 中有关 regex 的 help 命令
+
+    ```
+    :help pattern-searches
+    :help atom
+    ```
+
+## topics
+
+### ctags
+
+* `set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags`
+
+    设置 Vim 查找 tags 文件的搜索路径列表，用逗号分隔多个路径。
+
+    解释：
+
+    * `./tags` - 当前文件所在目录的 tags 文件
+
+    * `./TAGS` - 当前文件所在目录的 TAGS 文件（大写版本）
+
+    * `tags` - 当前工作目录的 tags 文件
+
+    * `TAGS` - 当前工作目录的 TAGS 文件（大写版本）
+
+    * `/path/to/other/tags` - 指定的绝对路径下的 tags 文件
 
 * ctags 扩展用法
 
@@ -253,32 +266,25 @@
 
         * 将`ctags -R .`命令写入项目的 Makefile 或构建脚本。
 
-* vim 取消行号的方法
+* ctags 基本用法
 
-    `:set nonu`
+    install: `sudo apt install universal-ctags`
 
-    `:set nu!`
+    进入工程目录，执行`ctags -R .` (递归地为当前目录及所有子目录中的文件生成 tags)，执行完后会生成`tags`文件。
 
-* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
+    进入 vim，导入 ctags：`:set tags=./tags`
 
-    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
+    常用快捷键：
 
-    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
+    * `Ctrl-]`: 跳转到光标下符号的定义处
 
-* `grep -P`表示使用 PCRE 的 regex
+    * `g Ctrl-]`: 如果有多个匹配的定义，此命令会列出所有候选，让你选择跳转到哪一个
 
-* vim 中搜索 metacharacter `.` 的帮助文档
+    * `Ctrl-t`: 跳回到跳转之前的位置（类似于“后退”按钮）。可以多次按它来回溯跳转历史。
 
-    `:help /\.`
+    * `:ts <tag>`或`:tselect <tag>`: 列出所有匹配`<tag>`的标签定义，供你选择。
 
-* PCRE, for Perl Compatible Regular Expression
-
-* vim 中有关 regex 的 help 命令
-
-    ```
-    :help pattern-searches
-    :help atom
-    ```
+    * `:tjump <tag>`: 跳转到`<tag>`。如果只有一个匹配则直接跳转，有多个则列出列表。
 
 ## note
 

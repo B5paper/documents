@@ -2,6 +2,65 @@
 
 ## cached
 
+* python fire
+
+    `pip install fire`
+
+    `main.py`:
+
+    ```py
+    import fire
+
+    class Calculator:
+        def add(self, a, b=2, msg='hello, world', verbose: bool = False):
+            """相加两个数字"""
+            print('a: {}, b: {}'.format(a, b))
+            print('msg: {}'.format(msg))
+            print('verbose: {}'.format(verbose))
+            return a + b
+        
+        def multiply(self, a, b):
+            """相乘两个数字"""
+            return a * b
+
+    if __name__ == '__main__':
+        fire.Fire(Calculator)
+    ```
+
+    run and output:
+
+    * `python main.py add 10`
+
+        output:
+
+        ```
+        a: 10, b: 2
+        msg: hello, world
+        verbose: False
+        12
+        ```
+
+    * `python main.py add 10 --a 1 -msg='hello' --verbose`
+
+        output:
+
+        ```
+        a: 1, b: 10
+        msg: hello
+        verbose: True
+        11
+        ```
+
+    * `python main.py multiply 2 3`
+
+        output:
+
+        ```
+        6
+        ```
+
+    可以看到，将 class 传给 fire 时，每个成员函数都是一个 subcommand。成员函数的参数直接对应 cli 的参数。
+
 * python 不允许对一个 tuple 进行类型标注
 
     比如：`a, b: (str, str) = 'hello', 'world'`

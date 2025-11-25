@@ -2,6 +2,120 @@
 
 ## cache
 
+* torchmetrics
+
+    install: `pip install torchmetrics`
+
+    ```py
+    import torch
+    from torchmetrics import Accuracy, Precision
+
+    # accuracy
+    accuracy = Accuracy(task="multiclass", num_classes=10)
+    accuracy.reset()
+
+    batch1_preds = torch.tensor([0, 1, 2, 3]) # 模型预测的类别索引
+    batch1_target = torch.tensor([0, 1, 1, 3]) # 真实的类别索引
+
+    batch2_preds = torch.tensor([1, 0, 2])
+    batch2_target = torch.tensor([1, 0, 1])
+
+    accuracy.update(batch1_preds, batch1_target)
+    accuracy.update(batch2_preds, batch2_target)
+
+    final_accuracy = accuracy.compute()
+    print(f"最终准确率: {final_accuracy}") # 例如：tensor(0.7143)
+
+
+    # precision
+    pre = Precision('multiclass', num_classes=10, average='macro')
+    pre.reset()
+    pre.update(batch1_preds, batch1_target)
+    pre.update(batch2_preds, batch2_target)
+    final_pre = pre.compute()
+    print('final pre: {}'.format(final_pre))
+    ```
+
+    output:
+
+    ```
+    最终准确率: 0.7142857313156128
+    final pre: 0.75
+    ```
+
+    注：
+
+    1. 如果 precision 的 average 设置为`micro`，那么最后得到的结果和 accuracy 相同。
+
+* 将 tensor 数据放到 gpu 里
+
+    ```py
+    # 检查设备
+    print("Tensor 设备:", torch_tensor.device)
+
+    # 如果需要，移动到 GPU
+    if torch.cuda.is_available():
+        torch_tensor = torch_tensor.cuda()
+    ```
+
+* 关于 torch tensor 创建数据副本的几种情况
+
+    * torch.tensor(任何Python数据) → 总是创建副本
+
+    * torch.from_numpy(np_array) → 共享内存（仅对NumPy数组）
+
+    * torch.as_tensor() → 尽可能共享内存（智能选择）
+
+* 将 numpy 转换为 tensor 时指定类型
+
+    ```py
+    # 转换为 float32
+    torch_tensor_float = torch.from_numpy(numpy_array).float()
+
+    # 或者在转换时指定
+    torch_tensor_float = torch.from_numpy(numpy_array.astype(np.float32))
+
+    # 使用 dtype 参数
+    torch_tensor = torch.tensor(numpy_array, dtype=torch.float32)
+    ```
+
+    最佳实践
+
+        推荐使用 torch.from_numpy() - 效率高，内存共享
+
+        如果需要独立副本 - 使用 torch.tensor()
+
+        注意数据类型 - 确保使用适合深度学习的数据类型（通常是 float32）
+
+        检查设备 - 确保 tensor 在正确的设备上（CPU/GPU）
+
+    注：
+
+    1. `.float()`会创建副本
+
+        ```py
+        import torch
+        import numpy as np
+
+        # 创建 NumPy 数组
+        numpy_array = np.array([1, 2, 3], dtype=np.int32)
+
+        # 转换过程
+        torch_tensor_int = torch.from_numpy(numpy_array)  # 共享内存，dtype=int32
+        torch_tensor_float = torch.from_numpy(numpy_array).float()  # 创建新副本，dtype=float32
+        ```
+
+    1. 只有提前把 numpy ndarray 的数据类型转换过来，才能共享数据
+
+        ```py
+        # 方法1：先转换 NumPy 数组的数据类型
+        numpy_array_float = numpy_array.astype(np.float32)
+        torch_tensor = torch.from_numpy(numpy_array_float)  # 共享内存，float32
+
+        # 方法2：使用 astype 并保持共享
+        torch_tensor = torch.from_numpy(numpy_array.astype(np.float32, copy=False))
+        ```
+
 * `torch.randint()`要求 size 参数必须为 tuple 类型
 
     比如：
