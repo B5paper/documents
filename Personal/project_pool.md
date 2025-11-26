@@ -578,10 +578,6 @@
 
 ### tasks
 
-* [v] 调研 cuda 排序
-
-* [v] 调研英文阅读资料，每次增加英文阅读
-
 * [ ] 调研 freedos live iso
 
     res:
@@ -600,7 +596,7 @@
 
 * [ ] 调研 freedos bonus iso
 
-* [O] reorg linux driver
+* [v] reorg linux driver
 
     11:01 ~ 11:25, 12:17 ~ 13:38
 
@@ -802,10 +798,6 @@
     > 4. typer (基于类型提示 - 现代选择)
 
 * [v] 调研`read`, `read_iter`, `splice_read`
-
-    feedback:
-
-    * [asso] linux 中的管道（pipe）底层是如何实现的？
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
 
@@ -1054,6 +1046,8 @@
 
 * [asso] catwalk
 
+* [asso] linux 中的管道（pipe）底层是如何实现的？
+
 ## cache tabs / process urls / process tab
 
 * 需要消化 cached urls
@@ -1064,7 +1058,7 @@
 
 ### tasks
 
-* [v] process 1 taab 30 mins 11.24
+* [v] process 1 tab 11.25
 
 * [ ] VNC Viewer使用指南
 

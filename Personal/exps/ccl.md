@@ -523,9 +523,22 @@
       NCCLCHECK(ncclTopoPopulateNics(xml, 0, state->nPhysicalNics, getProperties, netName, coll, false, dmaBufSupport));
     ```
 
+    * `devices` -> `0x7ffff72a2720 <ncclNetSocketDevices(int*)>`
+
+        实参为`comm->ncclNet->devices`，对应函数为
+
+        ```cpp
+        ncclResult_t ncclIbDevices(int* ndev) {
+          *ndev = ncclNMergedIbDevs;
+          return ncclSuccess;
+        }
+        ```
+
     * `makeVDevice`是个函数指针，用于创建虚拟网卡
 
     * `usePhysicalDevices` -> `1`
+
+    * `comm->ncclNet`从哪来？什么时候填的 name？什么时候填的 devices 函数指针？
 
     原文片段 3：
 
@@ -797,6 +810,10 @@
         }
       }
     ```
+
+    * 开头`xmlFindTagKv()`先搜索一遍 xml 中是否已经有 net tag，
+
+        然后通过`if (*netNode != NULL)`判断，如果已经有了 net tag，那么说明之前已经填写过信息，这里不再重复填写，直接返回。
 
     * `pciPath` -> `0x7ffb1f5ca890 "/sys/devices/pci0000:37/0000:37:01.0/0000:38:00.0/0000:39:02.0/0000:3c:00.0"`
 
