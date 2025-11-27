@@ -6,6 +6,96 @@ Ref:
 
 ## cache
 
+* qemu edu device 使用中断计算 facorial
+
+    1. enable 中断
+
+        `iowrite32(0x80, base_addr_bar0 + 0x20);`
+
+    2. 读取中断寄存器的状态，每个中断源对应一个 bit，根据 bit 位判断中断源
+
+        `int irq_reg_stat_val = ioread32(base_addr_bar0 + 0x24);`
+
+    3. 读取计算出来的阶乘值
+
+        `int fac_val = ioread32(base_addr_bar0 + 0x08);`
+
+    4. 配置确认中断寄存器，告诉 device 此中断已被处理，防止 device 后续循环发送中断
+
+        `iowrite32(irq_reg_stat_val, base_addr_bar0 + 0x64);`
+
+    完整的 irq handler 如下：
+
+    ```cpp
+    irqreturn_t irq_handler(int irq, void *dev_id) {
+        pr_info("in irq_handler()...\n");
+        if (dev_id != hlc_pci_dev) {
+            pr_warn("dev_id != hlc_pci_dev\n");
+            return IRQ_NONE;
+        }
+
+        int irq_reg_stat_val = ioread32(base_addr_bar0 + 0x24);
+        pr_info("reg status: %x\n", irq_reg_stat_val);  // 1
+
+        int fac_val = ioread32(base_addr_bar0 + 0x08);
+        pr_info("fac: %d\n", fac_val);
+
+        iowrite32(irq_reg_stat_val, base_addr_bar0 + 0x64);
+
+        pr_info("end of irq handler\n");
+        return IRQ_HANDLED;
+    }
+    ```
+    
+    output:
+
+    ```
+    [ 5085.263385] in irq_handler()...
+    [ 5085.263451] reg status: 1
+    [ 5085.263471] fac: 120
+    [ 5085.263504] end of irq handler
+    ```
+
+* qemu edu 使用 polling 方式计算阶乘
+
+    在 bar0 偏移`0x20`处的寄存器的值`val`，如果`val & 0x01 != 0`，即`val`的最低位为 1，那么说明设备在忙计算。如果最低位为 0，那么说明设备计算结束。
+
+    ```c
+    // 0x08 (RW)factorial computation
+    iowrite32(0x00, base_addr_bar0 + 0x20);
+    iowrite32(5, base_addr_bar0 + 0x08);
+    int cmp_cnt = 0;
+    while (true) {
+        val = ioread32(base_addr_bar0 + 0x20);
+        if (val & 0x01) {
+            pr_info("computing... %d\n", cmp_cnt++);
+            continue;
+        }
+        break;
+    }
+    val = ioread32(base_addr_bar0 + 0x08);
+    pr_info("fac: %d\n", val);
+    ```
+
+    output:
+
+    ```
+    [  364.548410] computing... 0
+    [  364.548427] computing... 1
+    [  364.548444] computing... 2
+    [  364.548460] computing... 3
+    [  364.548476] computing... 4
+    [  364.548507] fac: 120
+    ```
+
+    注：
+
+    * `iowrite32(0x00, base_addr_bar0 + 0x20);`
+
+        禁用中断。
+
+        如果一开始没有禁用中断，代码也没有正常处理中断，那么 device 会不停上报中断，即使卸载驱动后再重新加载驱动，device 也不会复位，依旧重复上报中断。只有重启 qemu 才能停止。
+
 * `read`, `read_iter`, `splice_read`
 
     它们都是 VFS（虚拟文件系统）层定义的文件操作函数指针，由具体的文件系统（如 ext4）或设备驱动来实现，用于从文件或设备中读取数据。

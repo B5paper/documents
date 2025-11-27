@@ -864,6 +864,10 @@
 
     * `// Virtual NIC, no PCI device, attach to first CPU`，这里可以解答之前 xml 里 nic 在 cpu 外面的的疑问了。只是不知道什么时候会创建 virtual nic？
 
+    * `ncclTopoGetXmlFromSys()`中，pci class 为`0x020700`，siccl 得到的 socket nic 的 class 为`0x020000`。
+
+    * `ncclTopoGetXmlFromSys()`会递归找 parent pci，直到找到 cpu 节点为止
+
 * 原始的 nic device 列表从哪得到？
 
 * `ncclNetInit()`
@@ -1014,3 +1018,9 @@
     * `comm->ncclNet->makeVDevice` -> `0x7fffb3aba380 <ncclIbMakeVDevice(int*, ncclNetVDeviceProps_v10_t*)>`
 
         这个只有在 v10 里才有，在 v6 里没有。
+
+* `fill_pci_attrs()`
+
+    pcilink, numa_node
+
+* 真实机器上每个 pci 路径的 numa id 都是正常的，比如 0。virtual box 里所有的 numa id 都是 -1
