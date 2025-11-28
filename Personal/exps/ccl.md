@@ -1024,3 +1024,9 @@
     pcilink, numa_node
 
 * 真实机器上每个 pci 路径的 numa id 都是正常的，比如 0。virtual box 里所有的 numa id 都是 -1
+
+* print_xml(), find_child_tag() 把改成类成员函数
+
+* 网卡的枚举是否能放到 local res 中完成？
+
+* 应该同时支持 nv gpu 和 sipu 地检测
