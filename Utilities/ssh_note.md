@@ -2,6 +2,8 @@
 
 ## cache
 
+* sshd 对`authorized_keys`文件的权限要求很严，必须是`600`（即`-rw-------`），并且 owner 和 group 都是当前用户，ssh server 才能正常 work。否则用户即使添加了 public key，也无法正常登陆。
+
 * ssh 使用 nc 进行代理
 
     `ssh -o ProxyCommand="ssh jumpuser@bastion.example.com nc target.internal.com 22" targetuser@target.internal.com`

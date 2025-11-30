@@ -8428,3 +8428,5 @@
 * Kill process spawned by ssh when ssh dies
 
     <https://unix.stackexchange.com/questions/103699/kill-process-spawned-by-ssh-when-ssh-dies>
+
+* <https://github.com/kunkundi/crossdesk>
