@@ -594,14 +594,6 @@
 
 * [ ] 调研 freedos bonus iso
 
-* [v] reorg linux driver
-
-    11:01 ~ 11:25, 12:17 ~ 13:38
-
-    关注中断部分，增加 qa unit
-
-* [v] 如果同时有全局变量 aaa, 函数中的形参 aaa，那么在函数中该如何访问到全局变量 aaa？
-
 * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
 
     还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
@@ -795,15 +787,13 @@
 
     > 4. typer (基于类型提示 - 现代选择)
 
-* [v] 调研`read`, `read_iter`, `splice_read`
-
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
 
     目前看到 Character Classes
 
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
 
-* [ ] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
+* [v] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
 * [ ] py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
 
@@ -1055,8 +1045,6 @@
 * 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
 
 ### tasks
-
-* [v] process 1 tab 11.25
 
 * [ ] VNC Viewer使用指南
 

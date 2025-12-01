@@ -1,3 +1,11 @@
+# english note
+
+## cache
+
+* 行尾的 \n 叫做 trailing newline
+
+## note
+
 * 英语句式
 
     It’s not really a standard, but it’s considered as such by many.

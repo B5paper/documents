@@ -4,6 +4,32 @@
 
 ## cached
 
+* c++ 中访问同名的局部变量和全局变量
+
+    使用`::`访问全局变量。
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+
+    int aaa = 123;
+
+    int main() {
+        int aaa = 456;
+        printf("global aaa: %d\n", ::aaa);
+        printf("local aaa: %d\n", aaa);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    global aaa: 123
+    local aaa: 456
+    ```
+
 * `std::is_base_of`
 
     在编译时检查一个类是否是另一个类的基类。

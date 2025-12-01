@@ -282,7 +282,7 @@
 
     `F1-Score = 2 * (Precision * Recall) / (Precision + Recall)`
 
-    意义：F1-Score是Precision和Recall的调和平均数。它只有在Precision和Recall都较高时才会高。因此，它是一个综合性的指标，特别适用于不平衡数据集的评价。
+    意义：F1-Score 是 Precision 和 Recall 的调和平均数。它只有在 Precision 和 Recall 都较高时才会高。因此，它是一个综合性的指标，特别适用于不平衡数据集的评价。
 
     * 为什么取调和平均数，而不是代数平均数，或者几何平均数？
 
