@@ -574,7 +574,7 @@
 
 ### tasks
 
-* [ ] `scanf()`的函数原型, `sscanf()`的函数原型
+* [v] `scanf()`的函数原型, `sscanf()`的函数原型
 
 * [ ] 调研 freedos live iso
 
@@ -646,8 +646,6 @@
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
 * [ ] 调研 git ignore 的实现原理
-
-* [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
 * [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
@@ -779,13 +777,19 @@
 
 ### Tasks
 
-* [O] Python命令行参数处理包介绍 11.23
+* [O] Python命令行参数处理包介绍 11.23, 12.01
 
     15:05 ~ 15:32
 
     目前看到
 
     > 4. typer (基于类型提示 - 现代选择)
+
+    feedback:
+
+    * 目前看到
+
+        > 那么 argparse 如何处理短参数，比如 -h，-i 之类的
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
 
@@ -1046,13 +1050,13 @@
 
 ### tasks
 
-* [ ] VNC Viewer使用指南
+* [v] VNC Viewer使用指南
 
     目前看到
 
     > 第一部分：使用 VNC Viewer 连接远程电脑（作为客户端）*
 
-* [O] 调研 10 日均线斜率交易策略解析 11.05
+* [v] 调研 10 日均线斜率交易策略解析 11.05, 12.01
 
     14:09 ～ 14:41
 
@@ -1086,7 +1090,7 @@
 
     为什么返回值会有两个，outputs.data 又是什么？
 
-* [ ] F1 Score
+* [v] F1 Score
 
 * [ ] Feedforward Neural Network
 
@@ -1887,11 +1891,17 @@ resources:
 
 ### tasks
 
-* [ ] torchmetric中micro precision计算详解
+* [O] torchmetric中micro precision计算详解
 
     目前看到
 
     > F1-score 中的 f1 是什么意思
+
+    feedback:
+
+    * 目前看到
+
+        > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
 * [ ] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
 
@@ -2455,6 +2465,8 @@ resources:
 ## Linux Driver
 
 ### cache
+
+* [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
 * 调研`INIT_WORK`, `DECLARE_WORK`, `struct work_struct task;`, `queue_work`
 

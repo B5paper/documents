@@ -2,6 +2,123 @@
 
 ## cache
 
+* sshd config 中
+
+    * `AllowTcpForwarding`
+
+        控制是否允许 TCP 端口转发
+
+        默认值：通常是 yes
+    
+        作用：允许客户端使用 -L（本地转发）、-R（远程转发）、-D（动态转发）
+    
+        可选值：
+    
+        * `yes`：允许所有端口转发
+    
+        * `no`：禁止所有端口转发
+    
+        * `local`：只允许 -L（本地转发）
+    
+        * `remote`：只允许 -R（远程转发）
+
+    * `GatewayPorts`
+
+        控制远程转发的绑定地址
+
+        默认值：通常是 no
+        
+        作用：控制 -R 远程转发的监听地址
+        
+        可选值：
+        
+        * `no` (默认值)
+
+            * 远程转发 (-R) 只绑定到 localhost (127.0.0.1)
+
+            * 只有 SSH 服务器本机可以访问转发的端口
+        
+        * `yes`
+
+            * 远程转发 (-R) 绑定到所有接口 (0.0.0.0)
+
+            * 网络中的任何机器都可以访问转发的端口
+        
+        * `clientspecified` (较新版本支持)
+
+            * 允许客户端指定绑定地址
+
+            * 使用格式： `ssh -R [bind_address:]port:host:hostport`
+        
+        example:
+        
+        ```bash
+        # GatewayPorts no (默认)
+        ssh -R 8080:localhost:80 user@server
+        # 只在 server 的 127.0.0.1:8080 监听，只有 server 本地能访问
+        
+        # GatewayPorts yes
+        ssh -R 8080:localhost:80 user@server  
+        # 在 server 的 0.0.0.0:8080 监听，网络中的所有机器都能访问
+        ```
+        
+        配置后需要重启：
+        
+        ```bash
+        sudo systemctl restart sshd
+        # 或
+        sudo service ssh restart
+        ```
+
+* ssh 的`-t`或`-tt`不能与`-N`合用，因为它们的意义冲突，`-N`表示不分配终端，而`-tt`表示强制分配终端。如果确实合用了，那么会以`-N`为准。
+
+    如果需要在远程机器上执行命令，那么就不要用`-N`，否则可能分配不出来终端。
+
+* `ssh -R`中的 R 表示的是 remote，即远程端口转发。而`-L`中的 L 表示的是 local，即本地端口转发。
+
+* `ssh -fNL`几乎等同于`ssh -NL &`，关闭当前 bash 对它们的存活都没有影响
+
+    `ssh -f`会在完成认证后才进入后台，而`ssh -N &`会立即进入后台，可能会跳过一些认证环节。
+
+* `ssh -N -L local_port:remote_host:remote_port user@server &`命令在当前 bash 退出后，job 不会被清空，即后台程序还在，因为 ssh 只处理 SIGINT （kill 命令） 和 SIGTERM 这两个 signal，不处理 SIGHUP
+
+    ai 说这是为了在网络连接不稳定时保持连接。（网络质量不佳时，ssh 会收到 sighup signal 吗？）
+
+    我们可以手动存储 ssh 的 pid，使用 trap 命令设置在 bash 退出时，手动 kill 掉 ssh 进程：
+
+    ```bash
+    ssh -NL 1234:127.0.0.1:1234 user@server &
+    SSH_PID=$!
+    trap "kill ${SSH_PID}" EXIT
+
+    # run other commands that need ssh tunnel
+    ```
+
+    此时即可实现在当前 bash 退出时，自动关闭 ssh tunnel。
+
+    AI 给了更详细的另一种写法：
+
+    ```bash
+    #!/bin/bash
+    
+    # 启动 SSH 隧道
+    ssh -NL 33389:127.0.0.1:3389 user@ssh_server &
+    SSH_PID=$!
+    
+    # 等待信号
+    cleanup() {
+        kill $SSH_PID 2>/dev/null
+        exit 0
+    }
+    
+    trap cleanup EXIT INT TERM
+    
+    # 等待后台进程（可选）
+    wait $SSH_PID
+    ```
+
+    这种写法考虑到了 exit, int, term 三种信号。那么对比前面的写法，如果在执行 other commands 时，在外部对 bash 进行 kill 或发送 int, term 信号，"kill ${SSH_PID}"这个命令还会被执行吗？
+
 * sshd 对`authorized_keys`文件的权限要求很严，必须是`600`（即`-rw-------`），并且 owner 和 group 都是当前用户，ssh server 才能正常 work。否则用户即使添加了 public key，也无法正常登陆。
 
 * ssh 使用 nc 进行代理
