@@ -2,6 +2,137 @@
 
 ## cached
 
+* argparse 中的 action
+
+    `action='store_true'`表示当命令行中出现这个选项时，将参数值设置为 True；如果不出现，则设置为 False。
+
+    配置了这个后，只需要写`--verbose`，就相当于`--verbose True`了。否则需要自己手动指定参数的值。（如果不写 action，只指定`--verbose`会发生什么？）
+
+    `action`可接收的值：
+
+    * `store` (默认值)
+
+        存储参数的值（默认行为）
+
+        ```py
+        parser.add_argument('--file', action='store', type=str)
+        # 命令行: --file data.txt
+        # 结果: args.file = 'data.txt'
+        ```
+
+    * `store_true` / `store_false`
+
+        ```py
+        parser.add_argument('--enable', action='store_true')
+        # 命令行指定 --enable: args.enable = True
+        # 不指定: args.enable = False
+
+        parser.add_argument('--disable', action='store_false')
+        # 命令行指定 --disable: args.disable = False
+        ```
+
+    * `store_const`
+
+        参数出现时设置为固定值
+
+        example:
+
+        `parser.add_argument('--level', action='store_const', const=10, help='出现时设置为固定值')`
+
+        ```py
+        parser.add_argument('--mode', action='store_const', const='fast')
+        # 命令行指定 --mode: args.mode = 'fast'
+        ```
+
+    * `append`
+
+        将多个参数值收集到列表中
+
+        ```py
+        parser.add_argument('--tag', action='append')
+        # 命令行: --tag python --tag argparse --tag tutorial
+        # 结果: args.tag = ['python', 'argparse', 'tutorial']
+        ```
+
+    * `count`
+
+        计算参数出现的次数
+
+        ```py
+        parser.add_argument('-v', '--verbose', action='count', default=0)
+        # 命令行: -v -v -v
+        # 结果: args.verbose = 3
+        # 或者: -vvv 同样得到 args.verbose = 3
+        ```
+
+    * `append_const`
+
+        ```py
+        parser.add_argument('--add-python', action='append_const', const='python')
+        parser.add_argument('--add-java', action='append_const', const='java')
+        # 命令行: --add-python --add-java --add-python
+        # 结果: args.const_list = ['python', 'java', 'python']
+        ```
+
+* typer
+
+    `pip install typer`
+
+    example:
+
+    ```py
+    import typer
+
+    app = typer.Typer()
+
+    @app.command()
+    def hello(name: str, age: int = 18, verbose: bool = False):
+        """向某人问好"""
+        typer.echo(f"你好 {name}, 年龄 {age}")
+        if verbose:
+            typer.echo("详细模式已开启")
+
+    @app.command()
+    def goodbye(name: str):
+        """向某人道别"""
+        typer.echo(f"再见 {name}!")
+
+    if __name__ == "__main__":
+        app()
+    ```
+
+    run:
+
+    * `python main.py --help`
+
+        output:
+
+        ```
+                                                                                        
+         Usage: main_2.py [OPTIONS] COMMAND [ARGS]...                                   
+                                                                                        
+        ╭─ Options ────────────────────────────────────────────────────────────────────╮
+        │ --install-completion          Install completion for the current shell.      │
+        │ --show-completion             Show completion for the current shell, to copy │
+        │                               it or customize the installation.              │
+        │ --help                        Show this message and exit.                    │
+        ╰──────────────────────────────────────────────────────────────────────────────╯
+        ╭─ Commands ───────────────────────────────────────────────────────────────────╮
+        │ hello     向某人问好                                                         │
+        │ goodbye   向某人道别                                                         │
+        ╰──────────────────────────────────────────────────────────────────────────────╯
+
+        ```
+
+    * `python main.py hello zhangsan --age 16 --verbose`
+
+        output:
+
+        ```
+        你好 zhangsan, 年龄 16
+        详细模式已开启
+        ```
+
 * python fire
 
     `pip install fire`

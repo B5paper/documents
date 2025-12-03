@@ -6,6 +6,134 @@
 
 ## cache
 
+* network.target vs network-online.target
+
+    network.target：
+
+        网络配置完成（接口已配置）
+
+        不保证实际网络连通性
+
+        启动较快
+
+    network-online.target：
+
+        网络真正连通（可以访问外部网络）
+
+        等待 DHCP、DNS 等完全就绪
+
+        启动较慢，可能超时
+
+    所以这两个区别是，一个内网能访问通，一个能访问到公网？
+
+* systemd 服务设置 ssh -R 反向隧道开机自启动
+
+    1. 创建 systemd 服务文件
+
+        ```bash
+        sudo nano /etc/systemd/system/ssh-reverse-tunnel.service
+        ```
+
+    2. 编辑服务文件内容
+
+        ```conf
+        [Unit]
+        Description=SSH Reverse Tunnel
+        After=network.target
+
+        [Service]
+        Type=simple
+        User=your_username
+        ExecStart=/usr/bin/ssh -N -R remote_port:localhost:local_port username@remote_host -p remote_ssh_port -o ServerAliveInterval=60 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=accept-new
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=multi-user.target
+        ```
+
+    3. 设置和启动服务
+
+        ```bash
+        # 重新加载 systemd
+        sudo systemctl daemon-reload
+
+        # 设置开机自启动
+        sudo systemctl enable ssh-reverse-tunnel.service
+
+        # 立即启动服务
+        sudo systemctl start ssh-reverse-tunnel.service
+
+        # 检查服务状态
+        sudo systemctl status ssh-reverse-tunnel.service
+        ```
+
+    注意事项
+
+        确保网络连通性: 服务在网络就绪后启动
+
+        使用非特权端口: 如果非root用户运行，remote_port通常需要大于1024
+
+        监控日志: 使用 journalctl -u ssh-reverse-tunnel.service -f 查看日志
+
+        安全考虑: 确保远程服务器是可信的，因为反向隧道会暴露本地服务
+
+    注：
+
+    1. `After=network.target`
+    
+        不写`After=network-online.target`是因为后面有无限重连做保证。
+
+        但是我觉得直接写成`After=network-online.target`更好，直接一步到位。
+
+    1. `ExitOnForwardFailure=yes`
+
+        如果无法端口转发，那么 ssh 连接直接报错。如果远程的端口被其他程序占用，那么 ssh 报错退出。
+
+        ssh 的默认设置是如果端口转发失败（比如远程端口已被占用），SSH 连接仍然会建立，端口转发功能实际上没有工作。
+
+        这个设置配合 systemd 的自动重启服务，可以一定程序上解决远程端口被占用的问题。
+
+    1. `Type=simple`
+
+        SSH 命令会长期运行，保持连接和隧道。进程在前台持续运行，不会立即退出。systemd 会监控这个长期运行的进程。
+
+        如果使用`Type=oneshot`，那么程序执行完就退出。这个配置配合`RemainAfterExit=yes`使用，检查 status 时的效果如下：
+
+        ```
+        active (exited)
+        ```
+
+        如果不设置`RemainAfterExit=yes`，则会变成
+
+        ```
+        inactive
+        ```
+
+        使用 simple 的好处：
+
+        * systemd 直接监控主进程
+
+        * 进程退出时自动重启
+
+        * 完整的生命周期管理
+
+        * 简单的日志收集
+
+        * systemctl stop 能正确终止进程
+
+* 把 rdp 的流量包在 ssh 流量里
+
+    通常使用`ssh -L`进行转发：
+
+    `ssh -N -L 本地端口:目标RDP服务器地址:3389 SSH用户名@SSH服务器地址`
+
+    然后使用 xfreerdp 连接本地隧道端口：
+
+    `xfreerdp /v:127.0.0.1:13389 /u:RDP用户名 /p:RDP密码`
+
+    xfreerdp 本身没有原生支持 ssh tunnel 的方法
+
 * `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
 
     如果在`apt update`时无法访问这个 ip 的 80 端口，可以考虑在`/etc/apt/source.list`里把这一行注释掉。

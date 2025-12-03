@@ -2,6 +2,8 @@
 
 ## cache
 
+* `\exp`后通常要加上括号，比如`\exp \left( x + y \right)`，不能只写成`\exp{x + y}`，更不能写成`\exp x + y`。
+
 * latex 输入花括号
 
     ```latex

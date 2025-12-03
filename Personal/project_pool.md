@@ -36,6 +36,28 @@
 
 ## cache
 
+* 听股评不一定是为了研究股票，可能只是想找些有共同话题的人陪伴。
+
+* 活在未来
+
+    总是感觉想象中的一切都实现了，偶尔瞥一眼现在。
+
+* 金钱就是意义
+
+    假如一个人满足吃穿住行后，没有什么特别值得奋斗的目标，此时金钱就是意义。它是社会给个人定下的目标。
+
+* 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
+
+* 剧情：消耗了大量的人力物力成就的 AI：参考悖论引擎
+
+* 剧情：幸好 AI 掌握在善良之人手中：参考芙莉莲
+
+* 什么是 Radon 变换？
+
+* 光强与光子流密度是什么关系？
+
+* c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
+
 * 似乎可以把任务系统中的平衡系统取消掉了，把执行系统和反馈系统统称为任务系统
 
     因为目前已经实现了动态的平衡，不再需要静态的平衡模块来牵制各个方向使用的时间了。
@@ -1903,7 +1925,11 @@ resources:
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
-* [ ] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
+* [v] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
+
+    feedback:
+
+    * [new] 调研 python 中 list 的方法`.sort()`，如果 list 中存储的对象是 datetime 对象或者其他类型的元素，sort() 方法会如何处理？如果是混合类型的元素，又会如何处理？
 
 * [ ] torch tensor 与 numpy 的转换
 
@@ -1913,7 +1939,7 @@ resources:
 
 * [ ] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
 
-* [ ] python 函数如何写 static 变量？
+* [v] python 函数如何写 static 变量？
 
 * [ ] `optim.SGD([train_param], lr=1e-3)`
 
@@ -2323,7 +2349,7 @@ resources:
 
 * [ ] 调研论文 A Logical Calculus of the Ideas Immanent in Nervous Activity
 
-* [ ] 调研`\mathbf`
+* [v] 调研`\mathbf`
 
 * [ ] 调研 numpy ndarray 的`.item()` method
 
@@ -3578,13 +3604,226 @@ resources:
 
 ### cache
 
+* SSH密钥常用的位元长度和类型
+
+    * RSA 密钥
+
+        ```bash
+        # 生成RSA密钥
+        ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa_4096
+        ```
+
+        位元长度	安全性	兼容性	推荐程度
+        RSA 1024	低	极高	❌ 已不安全，禁用
+        RSA 2048	中	很高	⚠️ 最低要求
+        RSA 3072	高	高	✅ 推荐
+        RSA 4096	很高	高	✅ 推荐
+
+    * ECDSA 密钥
+
+        ```bash
+        # 生成ECDSA密钥
+        ssh-keygen -t ecdsa -b 256 -f ~/.ssh/id_ecdsa_256
+        ```
+
+        曲线类型	等效RSA强度	安全性	推荐程度
+        ECDSA 256	RSA 3072	高	✅ 推荐
+        ECDSA 384	RSA 7680	很高	✅ 良好
+        ECDSA 521	RSA 15360	极高	✅ 良好
+
+    * Ed25519 密钥
+
+        ```bash
+        # 生成Ed25519密钥（固定256位）
+        ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+        ```
+
+        特性	说明	推荐程度
+        固定256位	等效RSA 3072	✅ 强烈推荐
+
+* 为什么选 ECDSA 521，而不是 2 的整数幂，比如 512？
+
+    1. 基于素数域的特性
+
+        ```py
+        # 不是 2^521，而是基于素数：
+        p_521 = 2^521 - 1  # 这是一个梅森素数
+
+        # 对比：
+        p_512 = 2^512 - 1  # 这不是质数！
+        ```
+
+    2. NIST标准曲线
+
+        ECDSA使用的不是任意位数，而是特定的标准化曲线：
+        曲线名称	字段大小	安全强度
+        NIST P-256	256位	128位
+        NIST P-384	384位	192位
+        NIST P-521	521位	256位
+
+    3. 521位的数学优势
+
+        ```py
+        # P-521曲线的素数域：
+        p = 2^521 - 1
+        ```
+
+        这个素数的特性：
+
+        - 是一个梅森素数
+        - 支持高效的模运算
+        - 提供恰好256位的安全强度
+
+    安全强度匹配
+
+        P-256: 256位字段 → 128位安全强度
+
+        P-384: 384位字段 → 192位安全强度
+
+        P-521: 521位字段 → 256位安全强度
+
+* check cipher key info
+
+    ```bash
+    # 查看密钥信息
+    ssh-keygen -l -f ~/.ssh/id_ecdsa
+    ```
+
+* ssh 中是否可以指定任意整数的位？
+
+    不能指定任意整数的位元，SSH密钥生成有严格的限制。
+
+    ```bash
+    # 尝试生成非常规位数的密钥
+    ssh-keygen -t ecdsa -b 512 -f test_key  # ❌ 会失败！
+    ssh-keygen -t ecdsa -b 500 -f test_key  # ❌ 会失败！
+    ssh-keygen -t ecdsa -b 300 -f test_key  # ❌ 会失败！
+    ```
+
+    各类型密钥的有效位元:
+
+    * RSA 密钥
+
+        ```bash
+        # 有效位元：必须是较大数字，通常 ≥1024
+        ssh-keygen -t rsa -b 1024    # ⚠️ 最小（不安全）
+        ssh-keygen -t rsa -b 2048    # ✅
+        ssh-keygen -t rsa -b 3072    # ✅
+        ssh-keygen -t rsa -b 4096    # ✅
+        ssh-keygen -t rsa -b 8192    # ✅（但性能差）
+
+        ssh-keygen -t rsa -b 1000    # ❌ 无效！
+        ssh-keygen -t rsa -b 512     # ❌ 太弱，现代SSH会拒绝
+        ```
+
+    * ECDSA 密钥
+
+        ```bash
+        # 有效位元：只有3个固定值
+        ssh-keygen -t ecdsa -b 256   # ✅ NIST P-256
+        ssh-keygen -t ecdsa -b 384   # ✅ NIST P-384  
+        ssh-keygen -t ecdsa -b 521   # ✅ NIST P-521
+
+        ssh-keygen -t ecdsa -b 512   # ❌ 无效！
+        ssh-keygen -t ecdsa -b 300   # ❌ 无效！
+        ```
+
+    * Ed25519 密钥
+
+        ```bash
+        # 固定位元：不能指定位数
+        ssh-keygen -t ed25519        # ✅ 固定256位
+        ssh-keygen -t ed25519 -b 512 # ❌ 忽略-b参数
+        ```
+        
+* ECDSA
+
+    ECDSA 密钥强度对比
+    密钥类型	等效RSA密钥长度	安全性	性能
+    ECDSA 256	RSA 3072	高	快
+    ECDSA 384	RSA 7680	很高	较快
+    ECDSA 521	RSA 15360	极高	中等
+
+    ```bash
+    # 您的521位ECDSA密钥提供极高的安全强度
+    ssh-keygen -t ecdsa -b 521 -f ~/.ssh/id_ecdsa_521
+    ```
+
+    ECDSA 521属于NIST P-521曲线（secp521r1）, 被FIPS 186-4标准认可, 广泛支持于现代SSH客户端和服务器.
+
+    兼容性 check:
+
+    ```bash
+    # 检查SSH客户端支持情况
+    ssh -Q key
+    # 应该包含: ecdsa-sha2-nistp521
+
+    # 检查SSH服务器支持
+    ssh -Q key-sig
+    ```
+
+    性能:
+
+    比ECDSA 256稍慢，但差异很小, 在大多数场景下感知不到性能影响
+
+* investigate fail2ban filter
+
+    ```conf
+    # /etc/fail2ban/filter.d/ssh-kex.conf
+    [Definition]
+    failregex = ^%(__prefix_line)serror: kex_exchange_identification:.* from <HOST>
+                ^%(__prefix_line)serror: kex_exchange_identification: Connection closed by remote host.* from <HOST>
+    ```
+
+* investigate port knocking
+
+    端口敲门 (port knocking)
+
+* 调研 ufw 防火墙
+
+    `ufw allow from YOUR_IP to any port 22`
+
+* 调研 tcpdump 的用法
+
+    `sudo tcpdump -i any port 22 -n`
+
+* 调研 iptables
+
+    ```bash
+    # 记录所有访问22端口的连接
+    sudo iptables -I INPUT -p tcp --dport 22 -j LOG --log-prefix "SSH_CONN: "
+
+    # 查看iptables日志
+    sudo tail -f /var/log/kern.log | grep SSH_CONN
+    ```
+
+    ```bash
+    # 使用iptables限制连接频率
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --set
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 -j DROP
+    ```
+
+* `who`, `w`, `last`这三个命令是什么意思？
+
 * `watch "ps -aux | grep v2ray"`没输出, `watch bash -c "ps -aux | grep v2ray"`也没输出
 
     尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
 
 * 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假。
 
+* `Restart=on-failure`, `Restart=Always`，这些有什么不同？还有什么可取的值？是否大小写敏感？
+
+* 除了`After=syslog.service`, `After=network.target`，还有什么常用的 service？
+
+* `StartLimitInterval=300`, `StartLimitBurst=5`这两个是什么意思？
+
 ### tasks
+
+* [asso] systemd 的`Wants=`, `Requires=`, `After=`有什么不同？
+
+* [asso] systemd 的`Type=forking`是什么意思？
+
+* [ ] `ssh -D`是干嘛用的？
 
 * [ ] 为什么`g++ -g main.cpp -lvulkan -lglfw -o main`可以通过编译，`g++ -g -lvulkan -lglfw main.cpp -o main`就不行？
 
@@ -3804,6 +4043,20 @@ resources:
 * [ ] 调研 docker 中 app 的调试方法
 
 * [ ] 调研 git reset 查看不同版本的 linux kernel version
+
+* [asso] 调研 Remmina 的功能，是否支持 wayland
+
+* [asso] vim 中是否有 shift + tab 来回退 4 个空格？
+
+* [asso] setsid 是否可以在 bash 退出时，给 ssh 发送 sighup 信号？
+
+* [asso] 什么是进程组？bash 中打开的进程在哪个进程组？bash 中打开的 ssh 在哪个进程组？进程组和父进程/子进程有什么关系？
+
+* [asso] `ps -o pid,ppid,pgid,sid,command -p $$,$SSH_PID`, 这里 -o 是什么意思？
+
+* [asso] 什么是 TTY 和 pts？
+
+* [asso] `chroot <dir>`是什么意思？
 
 ## gpu driver
 
