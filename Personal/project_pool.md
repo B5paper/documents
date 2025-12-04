@@ -3604,6 +3604,14 @@ resources:
 
 ### cache
 
+* [new] bash 中的分号是什么意思？
+
+    比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
+
+* [new] 调研`env`命令
+
+    比如`env LD_LIBRARY_PATH=/path/to/libs bash run_main.sh`
+
 * SSH密钥常用的位元长度和类型
 
     * RSA 密钥

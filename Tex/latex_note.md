@@ -2,6 +2,18 @@
 
 ## cache
 
+* `\mathbf`将数学符号设置为正体粗体
+
+    * 对希腊字母不生效
+
+    * 希腊字母可以使用`\bm`设置为斜体粗体，比如`\bm{\alpha}`
+
+    * 与文本模式中的 `\textbf` 不同，`\mathbf` 专用于数学模式。
+
+    效果：
+
+    $\mathbf{ABC}$, $\mathbf{abc}$, $\mathbf{123}$, $\mathbf{\alpha \beta \gamma}$, $\mathbf{+-*/}$, $\mathbf{你好}$
+
 * `\exp`后通常要加上括号，比如`\exp \left( x + y \right)`，不能只写成`\exp{x + y}`，更不能写成`\exp x + y`。
 
 * latex 输入花括号

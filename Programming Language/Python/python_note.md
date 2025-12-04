@@ -2,6 +2,162 @@
 
 ## cached
 
+* python 函数中的 static 变量
+
+    1. 使用函数属性（推荐）
+
+        ```py
+        def counter():
+            if not hasattr(counter, "count"):
+                counter.count = 0  # 初始化静态变量
+            counter.count += 1
+            return counter.count
+
+        print(counter())  # 1
+        print(counter())  # 2
+        print(counter())  # 3
+        print(f"静态变量值: {counter.count}")  # 可以直接访问
+        ```
+
+    2. 使用闭包
+
+        ```py
+        def make_counter():
+            count = 0  # 闭包中的变量，类似于静态变量
+            
+            def counter():
+                nonlocal count  # 声明为nonlocal以修改闭包变量
+                count += 1
+                return count
+            
+            return counter
+
+        counter = make_counter()
+        print(counter())  # 1
+        print(counter())  # 2
+        print(counter())  # 3
+        ```
+
+    3. 使用装饰器
+
+        这个本质也是函数属性。
+
+        ```py
+        def static_vars(**kwargs):
+            def decorate(func):
+                for key, value in kwargs.items():
+                    setattr(func, key, value)
+                return func
+            return decorate
+
+        @static_vars(counter=0)
+        def my_func():
+            my_func.counter += 1
+            return my_func.counter
+
+        print(my_func())  # 1
+        print(my_func())  # 2
+        ```
+
+        这个也可以写成：
+
+        ```py
+        def call_counter(func):
+            def wrapper(*args, **kwargs):
+                wrapper.calls += 1
+                print(f"{func.__name__} 已被调用 {wrapper.calls} 次")
+                return func(*args, **kwargs)
+            
+            wrapper.calls = 0  # 初始化计数器
+            return wrapper
+
+        @call_counter
+        def greet(name):
+            return f"Hello, {name}!"
+
+        print(greet("Alice"))
+        print(greet("Bob"))
+        print(greet("Charlie"))
+        # 输出:
+        # greet 已被调用 1 次
+        # Hello, Alice!
+        # greet 已被调用 2 次
+        # Hello, Bob!
+        # greet 已被调用 3 次
+        # Hello, Charlie!
+        ```
+
+    4. 使用类
+
+        把函数看作一个 callable object。
+
+        ```py
+        class Counter:
+            def __init__(self):
+                self.count = 0
+            
+            def __call__(self):
+                self.count += 1
+                return self.count
+
+        counter = Counter()
+        print(counter())  # 1
+        print(counter())  # 2
+        ```
+
+    注意事项
+
+    * 线程安全：上述方法在单线程中工作良好，但在多线程环境下需要加锁
+
+    * 可读性：使用函数属性是最直观的方式
+
+    * 重置静态变量：可以直接访问并重置，如 func.static_var = new_value
+
+* 生成从指定日期开始的 N 天
+
+    ```py
+    from datetime import datetime, timedelta
+
+    # 指定起始日期
+    start_date = datetime(2024, 1, 1)
+
+    # 生成未来5天（包括起始日）
+    for i in range(5):
+        current_date = start_date + timedelta(days=i)
+        print(current_date.strftime('%Y-%m-%d'))
+    ```
+
+    output:
+
+    ```
+    2024-01-01
+    2024-01-02
+    2024-01-03
+    2024-01-04
+    2024-01-05
+    ```
+
+    同理，如果向前推日期的话，只需要减去`timedelta`就可以了。
+
+    还可以使用 `date` 对象（只处理日期，不含时间）:
+
+    ```py
+    from datetime import date, timedelta
+
+    # 使用date对象
+    start_date = date(2024, 1, 1)
+
+    # 生成未来5天
+    for i in range(5):
+        current_date = start_date + timedelta(days=i)
+        print(current_date)
+
+    # 向前推3天
+    for i in range(1, 4):
+        past_date = start_date - timedelta(days=i)
+        print(past_date)
+    ```
+
 * argparse 中的 action
 
     `action='store_true'`表示当命令行中出现这个选项时，将参数值设置为 True；如果不出现，则设置为 False。

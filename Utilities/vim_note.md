@@ -2,6 +2,155 @@
 
 ## cache
 
+* ai 对 softtabstop 的解释
+
+    **softtabstop 的工作原理**
+
+    * 场景 1：`softtabstop=4，expandtab=on`
+    
+        ```vim
+        set softtabstop=4
+        set expandtab
+        ```
+
+        按一次 Tab → 插入 4 个空格，光标移动 4 个字符
+
+        按一次 Backspace → 删除 4 个空格，光标向左移动 4 个字符
+
+    * 场景 2：`softtabstop=4，expandtab=off`
+
+        ```vim
+        set softtabstop=4
+        set noexpandtab
+        ```
+
+        按一次 Tab：
+
+        * 如果光标位置到下一个 tabstop 的距离 ≥ 4 → 插入 Tab 字符
+
+        * 否则 → 插入空格补足到下一个 tabstop
+
+    * 场景 3：`softtabstop=0（默认值）`
+
+        ```vim
+        set softtabstop=0
+        ```
+
+        Tab/Backspace 的行为完全由 `tabstop` 控制
+
+        按 Tab 会直接跳到下一个 tabstop 边界
+
+    使用 `:set list` 查看空格（显示为 `.`）和 Tab（显示为 `^I`）
+
+    重要提示
+
+    * softtabstop 只在 expandtab 开启时效果最明显
+
+    * 如果 softtabstop > tabstop，Vim 会使用 tabstop 的值
+
+    * 大多数现代项目中，三个值设置为相同是最佳实践
+
+* vim 中的 `softtabstop`
+
+    它控制按 Tab 键或 Backspace 键时光标移动的宽度。
+
+    首先，只打开`:set softtabstop=4`，`tabstop`采用默认值`8`，不打开`expandtab`时，行为如下：
+
+    ```
+    hello, world
+    ```
+
+    光标在`h`前面，按 tab，插入 4 个空格：
+
+    ```
+        hello, world
+    ```
+
+    此时再按一下 tab，神奇的事情发生了，`h`前的 4 个空格被删掉，替换成了一个位宽为 8 的 tab 字符：
+
+    ```
+    	hello, world
+    ```
+
+    后面以此类推，交替插入空格和 tab：
+
+    ```
+    [  tab   ][....]hello, world
+    [  tab   ][  tab   ]hello, world
+    [  tab   ][  tab   ][....]hello, world
+    ...
+    ```
+
+    按退格（backspace）时，这个顺序正好反过来：如果有完整的 tab，那么把 tab 拆成 8 个空格，然后再删掉 4 个空格；如果有 4 个空格，那么直接删掉 4 个空格。
+
+    这个功能似乎没什么用，因为 tab 字符几乎总是会出现。对于代码，我们只需要空格，对于 makefile，我们只需要 tab。这种一会 tab 一会空格的功能，对两者都不适用。
+
+    但是这个功能对于退格比较有用。假如我们只设置`set tabstop=4`，`set expandtab`，那么按 tab 时插入 4 个空格，但是按退格（backspace）时，只能一个一个地删空格。如果这个时候结合`set softtabstop=4`，那么前面的功能不变，退格可以一次删除 4 个空格。我们可以使用 tab 键和 backspace 键高效地控制缩进，非常方便。
+
+* vim 将 tab 转换为 4 个空格
+
+    ```vim
+    " 将 Tab 转换为空格
+    set expandtab
+    " 设置 Tab 宽度为 4 个空格
+    set tabstop=4
+    set shiftwidth=4
+    set softtabstop=4
+    ```
+
+    各选项说明：
+
+    * expandtab：输入 Tab 时插入空格
+
+    * tabstop：一个 Tab 显示的宽度（字符数）
+
+    * shiftwidth：自动缩进使用的宽度
+
+    * softtabstop：按 Tab/Backspace 时光标移动的宽度
+
+    临时转换当前文件:
+
+    ```vim
+    :set expandtab
+    :%retab!
+    ```
+
+    * `%retab!`会将文件中所有 Tab 转换为空格
+
+    只转换特定行:
+
+    ```vim
+    :10,20retab  " 转换第10-20行
+    ```
+
+    文件格式配置（针对特定文件类型）:
+
+    ```vim
+    autocmd FileType python setlocal expandtab tabstop=4 shiftwidth=4
+    autocmd FileType javascript setlocal expandtab tabstop=2 shiftwidth=2
+    ```
+
+    检查当前设置:
+
+    ```vim
+    :set expandtab? tabstop? shiftwidth? softtabstop?
+    ```
+
+    反向转换（空格转Tab）:
+
+    ```vim
+    :set noexpandtab
+    :%retab!
+    ```
+
+    在打开文件时自动转换:
+
+    ```vim
+    autocmd BufRead * set expandtab | %retab!
+    ```
+
+    建议： 在团队项目中，建议使用统一的 .editorconfig 文件来保证代码风格一致。
+
 * vim 打开文件后，跳转到上次关闭时候的位置：
 
     `` ` + "``：
