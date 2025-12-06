@@ -36,196 +36,65 @@
 
 ## cache
 
-* 东芝新小黑 A3
+* [new] `file $(which xfreerdp)`这个是什么意思？
 
-    东芝（现为铠侠KIOXIA）推出的 Canvio Basics A3 系列便携式移动硬盘。
+* [new] `dpkg -L freerdp2-x11`
 
-    通常提供 1TB、2TB、4TB 等主流容量版本。
+* [new] 调研 strace
 
-    接口类型：USB 3.2 Gen 1（通常标记为 USB 3.0/3.1 Gen 1），向下兼容 USB 2.0。
-
-    接口形状：标准 USB Type-A 接口。硬盘端为Micro-B接口（即常见的梯形口）。
-
-    读写速度：由于内部是机械硬盘（HDD），速度受限于硬盘转速。典型速度约为：
-
-        读取速度：约 100 - 140 MB/s
-
-        写入速度：约 100 - 130 MB/s
-
-        注意：此为大文件连续读写的理想值，实际传输大量小文件或通过USB 2.0接口连接时会慢很多。
-
-    硬盘类型：2.5英寸 SATA 机械硬盘（HDD）。
-
-    转速：通常是 5400 RPM
-
-    缓存：一般为 8MB - 128MB
-
-    随盘软件：通常不附带备份或加密软件，主打纯硬件、高性价比。
-
-    供电方式：完全通过 USB接口总线供电，无需外接电源适配器。
-
-* 西部数据 WD My Passport (WDBS4B0020)
-
-    在存储基础上增加了数据安全和软件功能。
-
-    WD自产5400转 SATA HDD，可能采用SMR技术（对顺序写入有影响）。
-
-    自带256位AES硬件加密和WD Backup/Discovery软件。
-
-    西部数据的部分My Passport型号（尤其是大容量版本）可能使用 SMR 叠瓦式磁记录技术。在长时间、持续写入大量数据（如备份数百GB文件） 时，速度可能会出现明显下降。而东芝A3通常采用 CMR 传统磁记录（具体需查询型号批次），持续写入更稳定。
-
-    硬件加密：内置 256位AES硬件加密。首次使用时，通过WD Security软件设置密码。此后，不输入密码无法访问硬盘数据，即使硬盘被取出装入其他电脑。这对数据安全非常重要。
-
-    备份软件：自带WD Backup软件，可设置定期自动备份到硬盘。
-
-    工具箱软件：提供硬盘状态监控、诊断等功能。
-
-    在相同容量下，东芝A3的价格通常比WD My Passport低 10%-20%。你为My Passport多付的钱，主要购买了其加密功能和软件套件。
-
-* 听股评不一定是为了研究股票，可能只是想找些有共同话题的人陪伴。
-
-* 活在未来
-
-    总是感觉想象中的一切都实现了，偶尔瞥一眼现在。
-
-* 金钱就是意义
-
-    假如一个人满足吃穿住行后，没有什么特别值得奋斗的目标，此时金钱就是意义。它是社会给个人定下的目标。
-
-* 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
-
-* 剧情：消耗了大量的人力物力成就的 AI：参考悖论引擎
-
-* 剧情：幸好 AI 掌握在善良之人手中：参考芙莉莲
-
-* 什么是 Radon 变换？
-
-* 光强与光子流密度是什么关系？
-
-* c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
-
-* 似乎可以把任务系统中的平衡系统取消掉了，把执行系统和反馈系统统称为任务系统
-
-    因为目前已经实现了动态的平衡，不再需要静态的平衡模块来牵制各个方向使用的时间了。
-
-* 火种
-
-    先驱者舍身成仁，有谁后继？镜头转向一个小队，围着篝火，在推演思路，突然发现了秘密。
-
-* 火箭助推器
-
-    我们上学的过程有点像坐火箭助推器，它无法慢悠悠地把你送上天，而是必须大力地让你超重，在有限的时间里把你助推到人类知识的边界，然后靠你自己去探索未知。到了看论文的阶段，有点像冲出大气层的感觉，到处都是知识的真空，老师们也不一定懂。
-
-* ds 对话：山里的小妖怪
-
-    我：
-
-    ```
-    当个山里的小妖怪也挺不错！
+    ```bash
+    # 查看运行时的后端选择
+    strace -e openat xfreerdp /v:dummy 2>&1 | grep -i "lib.*backend"
     ```
 
-    ds:
+* [new] `update-alternatives --config xfreerdp`
 
-    ```md
-    说得太对了！当个山里的小妖怪，简直是无数现代人心里偷偷向往的田园牧歌。这可不是逃避，而是选择了一种充满诗意和自由的生活方式。
+* [new] 调研 PipeWire
 
-    如果真能如此，你的生活图景大概是这样的：
+* [new] 调研 gsettings 相关的配置，调研 netstat -tlnp，调研 grep -E，example 如下：
 
-    ---
+    ```bash
+    # 查看 GNOME 远程桌面支持的协议
+    gsettings get org.gnome.desktop.remote-desktop.rdp enable
+    gsettings get org.gnome.desktop.remote-desktop.vnc enable
 
-    ### **你的领地与职责**
-    你可能是某个山头的“巡山小钻风”，或者某条溪流的“碧波小水灵”。你的工作不再是写不完的PPT，而是：
-    *   **清晨**，用露水擦洗山门石碑，顺便吓唬一下早起的采药人（当然，只是躲在山石后发出“呜~呜~”的声音）。
-    *   **午后**，在松树下看蚂蚁搬家，和路过的松鼠精、兔子精交换山那边的八卦新闻。
-    *   **傍晚**，检查自己设下的、根本困不住人的小陷阱，然后去山神老爷那里点个卯，汇报“今日山头，平安无事”。
-
-    ### **你的社交圈**
-    你的朋友圈简单又纯粹：
-    *   **顶头上司**可能是个几百年道行的熊教头，看着凶，其实最爱偷蜂巢吃，经常被蜜蜂追得满山跑。
-    *   **最好的朋友**是一只话痨的雀妖，总爱跟你显摆它从人类村庄听来的新奇故事。
-    *   **暗恋对象**或许是住在山顶月光下的狐仙姐姐，你只敢远远望着她那优雅的身影。
-
-    ### **你的小确幸与烦恼**
-    *   **快乐很简单**：偷到农夫一壶酒，就能和朋友们在月光下开怀畅饮；人类小孩不小心落下的糖人，能让你甜上一整天。
-    *   **烦恼也很具体**：担心修行考核不过关，怕被路过的得道高僧“顺手超度”，或者只是发愁明天的供品能不能多一个果子。
-
-    ---
-
-    ### **为什么我们都羡慕这个小妖怪？**
-
-    因为在那个想象的世界里，我们找到了现代生活中最稀缺的东西：
-
-    1.  **纯粹的归属感**：一座山，一条河，就是你的整个世界。你深深扎根于此，与一草一木皆有情。
-    2.  **低欲望的满足**：快乐不来自于消费和比较，而来自于阳光、清风、友情和一口好吃的。
-    3.  **被需要的小小价值**：即使法力低微，你也是这座山不可或缺的一份子，你的巡逻和守护自有其意义。
-    4.  **逃离“内卷”**：这里没有KPI，没有“别人家的孩子”，你只需要做好那个有点笨拙但很快乐的自己。
-
-    所以，当你说“当个山里的小妖怪也挺不错”时，你其实是在说：
-
-    **“我想过一种更简单、更贴近自然、更能听见自己内心声音的生活。”**
-
-    那就保留这份美好的想象吧。在忙碌的间隙，不妨给自己泡杯茶，闭上眼睛，想象自己就是那个刚刚巡完山，正躺在岩石上晒太阳的小妖怪——耳边是风声鸟鸣，心中是万里无云。这份片刻的宁静，就是属于你的“小妖怪时光”。
+    # 查看正在运行的远程桌面服务
+    netstat -tlnp | grep -E '3389|5900'  # RDP端口3389, VNC端口5900+
     ```
 
-* 想了想，除了 entry 和 routine 两种笔记方式，还有 planner 和 random walk 两种概念
+* [new] `sudo lsof -p $(pgrep gnome-remote-desktop) | grep freerdp`
 
-    planner 即按照提前规划好的方式进行调研，random walk 是来兴致后的主题调研，主要依赖已经存储的知识和即时查的新知识，以及过程中的探索（观察、发现、总结）。
+* [new] `systemctl --user restart gnome-remote-desktop`
 
-    这个过程有点像非线性学习，但是非线性学习也可以用在 planner 里，而这里的非线性学习，更像是极度放松情况下，想到哪走到哪的漫步。
+    `--user`是什么意思？
 
-* 每日任务模板初始版，完成版
+* 贴着 kdj 的交点买入，即使亏也不会亏太多
 
-    初始版：
+* 其实与 cache 对应的是工作区（working area），而工作区的整洁是 stack　的要求，不然各种回退操作都会混乱，没有办法快速定位到想要的资源
 
-    ```md
-    * [ ] reorg: documents 30 mins
+* sync 只提出了标准，但是没有提出该如何 sync
 
-    * [ ] reorg: projects 30 mins
+    一个可能的 sync 方案：
 
-    * [ ] qa: 2 units 30 mins
+    1. 先过一遍 qa，如果完不成 unit，那么找 dep，划分出可以完成的 unit，看了答案后可以完成的 unit，以及看了答案也无法完成的 unit
 
-    * [ ] cache tabs 30 mins
+    2. 再过一遍笔记，尝试提取刚才没见过的 qa unit
 
-    * [ ] process tabs 30 mins
+        将笔记分为两部分，一部分是可以被验证的，另一部分是未被验证的
 
-    * [ ] process 1 tab
+    3. 清理 test 和 qa 文件夹
 
-    * [ ] task 1 xx mins
+    4. 将 qa 中过于复杂的拆分成 dep，无法理解的以及 empty 的都删掉
 
-    * [ ] task 2 xx mins
+    5. 将笔记中未被验证的部分作为 cache，等待接受调研
 
-    * [ ] qa: review 30 mins
-    ```
+    至此，sync 工作完成。
 
-    完成版：
+* 看手机的时间定在完成一项任务后，或者至少离上次看手机过去 xxx 分钟后
 
-    ```md
-    * [ ] reorg: documents 30 mins 09.17
+    一旦任务启动就不能再轻易看手机。可以写一个程序控制一下。
 
-        10:13 ~ 10:25
-
-    * [ ] reorg: projects 30 mins 09.17
-
-        10:13 ~ 10:25
-
-    * [ ] qa: 2 units 30 mins 09.17
-
-        10:13 ~ 10:25
-
-        正确率： 1 / 2
-
-    * [ ] cache tabs 30 mins 09.17
-
-    * [ ] process tabs 30 mins 09.17
-
-    * [ ] process 1 tab 09.17
-
-    * [ ] task 1 xx mins
-
-    * [ ] task 2 xx mins
-
-    * [ ] qa: review 30 mins
-    ```
+    保持在执行任务时的注意力。
 
 * 动态低价值任务
 
@@ -240,43 +109,6 @@
     * 严格控制时间，比如每次只执行 20 mins
 
     * 每执行一次，向下移动 5 个任务
-
-* [ ] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
-
-* [ ] 调研如何判断一个新的 example 是否已经在 qa 文件中
-
-    可能的方向：向量数据库，llm + rag
-
-    目标是在 qa file 中找到与 example 相似或相近的 unit
-
-* [ ] 如何使用模板（卷积）的方式识别缺陷？
-
-* 数据库书籍
-
-    * 《数据库系统概念》（Database System Concepts）作者：Abraham Silberschatz, Henry F. Korth, S. Sudarshan。这本书是数据库领域的权威教材，适合初学者入门。
-
-    * 《数据库管理系统》（Database Management Systems）作者：Raghu Ramakrishnan, Johannes Gehrke。它详细介绍了数据库系统的关键概念和技术，适合作为深入学习的教材。
-
-    * 《数据库系统实现》（Database System Implementation）作者：Hector Garcia-Molina, Jeffrey D. Ullman, Jennifer Widom。如果你想了解数据库系统的内部工作原理，这本书非常合适。
-
-    * 《数据库系统概论》（An Introduction to Database Systems）作者：C.J. Date。这是另一本经典的数据库教材，内容详尽。
-    如果你是中文读者，《数据库原理及应用》作者：王珊、萨师煊，这本教材结合了理论与实践，通过实例讲解数据库的设计和开发过程。
-
-* 如果有$x_1$，$x_2$两个变量，是否优化目标为修改曲面在指定点处的高度？
-
-* 数学在离散算法领域并不总是能帮上忙的，比如各种智能优化算法，神经网络算法
-
-* 需要一个 graph 工具，建立不同的东西之间的连接
-
-    stack 工具只适合任务的 trace
-
-* 一个比较好的 explore 的想法是先从 amazon 上搜索书籍，然后在 zlib 或 libgen 上下载
-
-* 调研 Computer algebra system
-
-    <https://en.wikipedia.org/wiki/Computer_algebra_system#>
-
-    自动求导、符号求导等相关知识可能和这个概念有关。
 
 * 香山 riscv 源代码 repo
 
@@ -302,73 +134,11 @@
         <img src='../../Reference_resources/ref_24/pics/pic_3.png'>
         </div>
 
-* performance 的工具
-
-    * `timeit_ms()`
-
-        区间计时。
-
-    * 需要热启动的框架
-
-        `init_env()`, `timeit_ms_N()`, `exit_env()`
-
-        calculate mean time consumption and std.
-
-        warm up time and dextroy env time
-
-    * 随机填充一个数组/矩阵
-
-    * 标准参考答案
-
 * qa 频率可以降低到每周一次
-
-* 看手机的时间定在完成一项任务后，或者至少离上次看手机过去 xxx 分钟后
-
-    一旦任务启动就不能再轻易看手机。可以写一个程序控制一下。
-
-    保持在执行任务时的注意力。
-
-* 这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
-
-* [ ] 调研`git bisect`
-
-* sync 只提出了标准，但是没有提出该如何 sync
-
-    一个可能的 sync 方案：
-
-    1. 先过一遍 qa，如果完不成 unit，那么找 dep，划分出可以完成的 unit，看了答案后可以完成的 unit，以及看了答案也无法完成的 unit
-
-    2. 再过一遍笔记，尝试提取刚才没见过的 qa unit
-
-        将笔记分为两部分，一部分是可以被验证的，另一部分是未被验证的
-
-    3. 清理 test 和 qa 文件夹
-
-    4. 将 qa 中过于复杂的拆分成 dep，无法理解的以及 empty 的都删掉
-
-    5. 将笔记中未被验证的部分作为 cache，等待接受调研
-
-    至此，sync 工作完成。
 
 * linaro 是 arm 发起的开源非盈利组织，主要做物联网方向
 
     可以在这个页面<https://www.linaro.org/downloads/>找 arm gcc 编译器的下载。
-
-* [ ] java 找 package 去哪里找？
-
-* [ ] java 是否有 package manager?
-
-* [ ] java 中多线程中的 mutex 与 semaphore 如何使用？
-
-* [ ] java 如何进行 socket 编程？
-
-* [ ] java 是否有 gui 的库？
-
-* [ ] 调研多 gpu inference
-
-    把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
-
-* 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
 
 * 与其说 nv 在搞 AI，不如说 nv 发现了一种新的计算范式，一种处理计算的新思路，而这个并行计算范式恰好符合了 AI 的需求
 
@@ -382,15 +152,11 @@
 
     使任务串行，一个非常大的挑战就是在规定的时间内使用手机，在执行任务时不看。
 
-* 调研 zig
-
 * 要想对一个东西有熟悉的理解和熟练的运用，必须将它作为更复杂的东西的一部分
 
 * 如果前一天的任务清单上任务没有完成该怎么办？
 
     目前的方案是全部判为未完成，在第二天重新从项目管理系统中获取新的任务，不再考虑这些任务。
-
-* [ ] 写一个数字图像处理库，暂时不包含深度学习
 
 * 如果在任务列表里只说了“调研”，没有明确的调研任务，那么就是从 resource，笔记，qa，搜索，多方面开始调研。
 
@@ -506,11 +272,69 @@
 
     3. 未完待续
 
-* 其实与 cache 对应的是工作区（working area），而工作区的整洁是 stack　的要求，不然各种回退操作都会混乱，没有办法快速定位到想要的资源
-
 * 需要一个指标来评价当天有多少时间是被任务系统接管的，就叫它接管率好了
 
     接管率从一定程度止反映了专心程度
+
+## cached tasks
+
+这里主要是暂时难以分类的任务。
+
+* [ ] 调研 zig
+
+* [ ] 写一个数字图像处理库，暂时不包含深度学习
+
+* [ ] 调研多 gpu inference
+
+    把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
+
+* [ ] 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
+
+* [ ] java 找 package 去哪里找？
+
+* [ ] java 是否有 package manager?
+
+* [ ] java 中多线程中的 mutex 与 semaphore 如何使用？
+
+* [ ] java 如何进行 socket 编程？
+
+* [ ] java 是否有 gui 的库？
+
+* [ ] 调研 git
+
+    这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
+
+* [ ] 调研`git bisect`
+
+* [ ] 调研 Computer algebra system
+
+    <https://en.wikipedia.org/wiki/Computer_algebra_system#>
+
+    自动求导、符号求导等相关知识可能和这个概念有关。
+
+* [ ] 如果有$x_1$，$x_2$两个变量，是否优化目标为修改曲面在指定点处的高度？
+
+* [ ] 需要一个 graph 工具，建立不同的东西之间的连接
+
+    stack 工具只适合任务的 trace
+
+* [ ] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
+
+* [ ] 调研如何判断一个新的 example 是否已经在 qa 文件中
+
+    可能的方向：向量数据库，llm + rag
+
+    目标是在 qa file 中找到与 example 相似或相近的 unit
+
+* [ ] 如何使用模板（卷积）的方式识别缺陷？
+
+* [ ] c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
+
+* [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
+
+* [ ] 什么是 Radon 变换？
+
+* [ ] 光强与光子流密度是什么关系？
 
 ## cached questions
 
@@ -1140,7 +964,7 @@
 
     > 您这个推论非常敏锐，已经触及了现代量化投资的核心。它大体上是正确的，但我们可以将这个“错误”更精确地定义一下。        
 
-* [ ] sed常见用法与示例总结
+* [v] sed常见用法与示例总结
 
     目前看到
 
@@ -1987,7 +1811,7 @@ resources:
 
 * [ ] torch tensor 与 numpy 的转换
 
-* [ ] `y.backward(torch.tensor([1.0, 1.0, 1.0]))`
+* [v] `y.backward(torch.tensor([1.0, 1.0, 1.0]))`
 
     torch 中 y 的 backward() 中填的参数是什么意思？
 
@@ -6098,6 +5922,253 @@ resources:
 
 ### cache
 
+* 使用 lambda 表达式作为自定义哈希函数
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <unordered_map>
+    using std::string;
+    using std::unordered_map;
+
+    struct MyObj {
+        string name;
+        int age;
+
+        bool operator==(const MyObj &obj_2) const {
+            if (name == obj_2.name && age == obj_2.age) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    auto my_hasher = [](const MyObj& obj) {
+        return std::hash<string>{}(obj.name) ^ std::hash<int>{}(obj.age);
+    };
+
+    int main() {
+        // decltype(my_haser) and (0, my_haser) are necessary
+        unordered_map<MyObj, int, decltype(my_hasher)> my_map(0, my_hasher);
+        MyObj obj{"zhangsan", 15};
+        my_map.insert({obj, 1});
+        my_map.insert({{"lisi", 18}, 2});
+        auto iter = my_map.find({"lisi", 18});
+        if (iter != my_map.end()) {
+            printf("lisi exists, val: %d\n", iter->second);
+        } else {
+            printf("lisi doesn't exist, val: %d\n", iter->second);
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    lisi exists, val: 2
+    ```
+
+    注：
+
+    1. `my_hasher`会被编译器转换成一个没有默认构造函数的仿函数实例
+
+    1. unordered_map 第三个模板参数是类型模板参数，所以不能填`my_hasher`，只能用`decltype(my_hasher)`拿到其类型
+
+    1. `my_map(0, my_hasher)`是必须的，因为`my_hasher`没有构造函数，所以 unordered_map 拿到类型后，无法构造出实例，必须由我们传递一个实例给它。
+
+    1. 之所以写成`my_map(0, my_hasher)`而不是`my_map(my_hasher)`，是因为 int 值可能隐式转换为 hash 值，导致歧义
+
+* 异或操作的特性：
+
+    交换律：hash(a) ^ hash(b) = hash(b) ^ hash(a)
+
+    自反性：a ^ a = 0
+
+    这可能不是最佳组合方式，因为 (a,b) 和 (b,a) 会产生相同哈希值
+
+    更好的方法：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            // 使用旋转和组合减少碰撞
+            size_t h1 = std::hash<void*>()(src_dst.first);
+            size_t h2 = std::hash<void*>()(src_dst.second);
+            return h1 ^ (h2 << 1) ^ (h2 >> (sizeof(size_t)*8 - 1));
+        }
+    };
+    ```
+
+    或者直接使用 boost 库：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            size_t h1 = std::hash<void*>()(src_dst.first);
+            size_t h2 = std::hash<void*>()(src_dst.second);
+            // 使用 boost::hash_combine 类似的方法
+            return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+        }
+    };
+    ```
+
+* `std::hash<void*>()(src_dst.first)`**不会**每次都创建一个对象，从而降低性能,编译器会对此进行大量优化.
+
+    std::hash<void*> 通常是一个空类（无成员变量）, 构造空类的开销几乎为0, 编译器可以完全优化掉构造过程.
+
+    如果使用局部变量，编译器也会优化：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            std::hash<void*> hasher;  // 构造一次，使用两次
+            return hasher(src_dst.first) ^ hasher(src_dst.second);
+        }
+    };
+    ```
+
+    或者使用静态对象？（如果编译器总是优化，那么静态也没什么性能提升吧？）：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            static std::hash<void*> hasher;
+            return hasher(src_dst.first) ^ hasher(src_dst.second);
+        }
+    };
+    ```
+
+    真正的优化应该关注哈希函数的质量（减少碰撞），而不是这种微小的构造开销。
+
+* 自定义哈希函数
+
+    * 函数对象（仿函数）
+
+        ```cpp
+        struct MyHash {
+            size_t operator()(const MyClass& obj) const {
+                // 计算哈希值
+                return ...;
+            }
+        };
+        ```
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            // operator==() is necessary
+            // these two const are both necessary
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        struct MyHash {
+            // these two const are both necessary
+            size_t operator()(const MyObj &obj) const {
+                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
+            }
+        };
+
+        int main() {
+            unordered_map<MyObj, int, MyHash> my_map;
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        lisi exists, val: 2
+        ```
+
+    * 模板特化
+
+        ```cpp
+        namespace std {
+            template<>
+            struct hash<MyClass> {
+                size_t operator()(const MyClass& obj) const {
+                    // 计算哈希值
+                    return ...;
+                }
+            };
+        }
+        ```
+
+        这个比较神奇，我们竟然能动态拓展标准库。
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        namespace std {
+        template<>
+        struct hash<MyObj> {
+            size_t operator()(const MyObj &obj) const {
+                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
+            }
+        };
+        };
+
+        int main() {
+            unordered_map<MyObj, int> my_map;
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+
+        ```
+
 * if 的使用时机
 
     如果需要跳过一段代码，那么就必须使用 if。
@@ -6432,9 +6503,161 @@ resources:
 
         随机填充数据包
 
-### note
+## git
 
-## 其他
+### cache
+
+* git submodule
+
+    将外部仓库作为子模块链接到主项目中，保持独立版本控制。
+
+    usage:
+
+    ```bash
+    # 添加子模块
+    git submodule add <repository-url> <path>
+
+    # 克隆包含子模块的项目
+    git clone <主项目仓库>
+    git submodule init
+    git submodule update
+
+    # 或克隆时直接拉取子模块
+    git clone --recursive <主项目仓库>
+
+    # 更新子模块到指定提交
+    cd <子模块目录>
+    git pull origin main
+
+    # 提交主项目中子模块的引用更新
+    cd <主项目目录>
+    git commit -am "更新子模块版本"
+    ```
+
+    特点
+
+        独立仓库：子模块是独立的 Git 仓库
+
+        指针引用：主项目只记录子模块的 commit hash
+
+        需要显式初始化更新：克隆后需额外操作获取子模块内容
+
+        分离的版本控制：子模块和主项目分别维护历史
+
+* git subtree
+
+    将外部仓库合并到主项目的子目录中，成为项目的一部分。
+
+    usage:
+
+    ```bash
+    # 添加远程仓库
+    git remote add <远程名> <repository-url>
+
+    # 添加子树（将外部仓库合并到指定目录）
+    git subtree add --prefix=<本地目录> <远程名或URL> <分支> --squash
+
+    # 拉取更新
+    git subtree pull --prefix=<目录> <远程名> <分支> --squash
+
+    # 推送修改回子项目
+    git subtree push --prefix=<目录> <远程名> <分支>
+    ```
+
+    特点
+
+        代码合并：外部代码成为主项目的一部分
+
+        单仓库管理：所有代码在一个仓库中，无需额外初始化
+
+        操作复杂：更新和推送命令较长
+
+        历史合并：可选择是否保留子项目完整历史
+
+### tasks
+
+## 其他 Miscellaneous
+
+* android connectbot 中，端口转发中断通常是因为省电策略
+
+    后台程序的小锁是只代表不 kill，不代表不会 freeze。指定后台程序无省电策略限制，才是不会 freeze。
+
+    一旦 freeze，ssh 的 tunnel 即关闭，必须重新连接 ssh 才能打开，但是 ssh session 本身不会退出，仍可正常发送命令。这样会造成迷惑。
+
+* performance 的工具
+
+    * `timeit_ms()`
+
+        区间计时。
+
+    * 需要热启动的框架
+
+        `init_env()`, `timeit_ms_N()`, `exit_env()`
+
+        calculate mean time consumption and std.
+
+        warm up time and dextroy env time
+
+    * 随机填充一个数组/矩阵
+
+    * 标准参考答案
+
+* 数据库书籍
+
+    * 《数据库系统概念》（Database System Concepts）作者：Abraham Silberschatz, Henry F. Korth, S. Sudarshan。这本书是数据库领域的权威教材，适合初学者入门。
+
+    * 《数据库管理系统》（Database Management Systems）作者：Raghu Ramakrishnan, Johannes Gehrke。它详细介绍了数据库系统的关键概念和技术，适合作为深入学习的教材。
+
+    * 《数据库系统实现》（Database System Implementation）作者：Hector Garcia-Molina, Jeffrey D. Ullman, Jennifer Widom。如果你想了解数据库系统的内部工作原理，这本书非常合适。
+
+    * 《数据库系统概论》（An Introduction to Database Systems）作者：C.J. Date。这是另一本经典的数据库教材，内容详尽。
+    如果你是中文读者，《数据库原理及应用》作者：王珊、萨师煊，这本教材结合了理论与实践，通过实例讲解数据库的设计和开发过程。
+
+* 东芝新小黑 A3
+
+    东芝（现为铠侠KIOXIA）推出的 Canvio Basics A3 系列便携式移动硬盘。
+
+    通常提供 1TB、2TB、4TB 等主流容量版本。
+
+    接口类型：USB 3.2 Gen 1（通常标记为 USB 3.0/3.1 Gen 1），向下兼容 USB 2.0。
+
+    接口形状：标准 USB Type-A 接口。硬盘端为Micro-B接口（即常见的梯形口）。
+
+    读写速度：由于内部是机械硬盘（HDD），速度受限于硬盘转速。典型速度约为：
+
+        读取速度：约 100 - 140 MB/s
+
+        写入速度：约 100 - 130 MB/s
+
+        注意：此为大文件连续读写的理想值，实际传输大量小文件或通过USB 2.0接口连接时会慢很多。
+
+    硬盘类型：2.5英寸 SATA 机械硬盘（HDD）。
+
+    转速：通常是 5400 RPM
+
+    缓存：一般为 8MB - 128MB
+
+    随盘软件：通常不附带备份或加密软件，主打纯硬件、高性价比。
+
+    供电方式：完全通过 USB接口总线供电，无需外接电源适配器。
+
+* 西部数据 WD My Passport (WDBS4B0020)
+
+    在存储基础上增加了数据安全和软件功能。
+
+    WD自产5400转 SATA HDD，可能采用SMR技术（对顺序写入有影响）。
+
+    自带256位AES硬件加密和WD Backup/Discovery软件。
+
+    西部数据的部分My Passport型号（尤其是大容量版本）可能使用 SMR 叠瓦式磁记录技术。在长时间、持续写入大量数据（如备份数百GB文件） 时，速度可能会出现明显下降。而东芝A3通常采用 CMR 传统磁记录（具体需查询型号批次），持续写入更稳定。
+
+    硬件加密：内置 256位AES硬件加密。首次使用时，通过WD Security软件设置密码。此后，不输入密码无法访问硬盘数据，即使硬盘被取出装入其他电脑。这对数据安全非常重要。
+
+    备份软件：自带WD Backup软件，可设置定期自动备份到硬盘。
+
+    工具箱软件：提供硬盘状态监控、诊断等功能。
+
+    在相同容量下，东芝A3的价格通常比WD My Passport低 10%-20%。你为My Passport多付的钱，主要购买了其加密功能和软件套件。
 
 * c++ 版本的 opencl 入门
 
