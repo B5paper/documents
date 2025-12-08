@@ -18,6 +18,10 @@ apt install cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
 
 ## cache
 
+* 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
+
+    没有`glewInit()`，`glCreateShader()`会立即返回失败。
+
 * mesa 实现了 cpu 版本的 opengl
 
 * `glxinfo`在`mesa-utils` package 中

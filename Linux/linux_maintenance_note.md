@@ -6,6 +6,137 @@
 
 ## cache
 
+* `watch "ps -aux | grep v2ray"`没输出, `watch bash -c "ps -aux | grep v2ray"`也没输出
+
+    尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
+
+* 使用 bash 启动程序时，单行环境变量要写在脚本前面
+
+    `run.sh`:
+
+    ```bash
+    ./$1
+    ```
+
+    ```bash
+    LD_LIBRARY_PATH=xxx bash run.sh main  # OK
+
+    bash LD_LIBRARY_PATH=xxx run.sh main  # error
+
+    bash run.sh LD_LIBRARY_PATH=xxx main  # error
+    ```
+
+    环境变量 LD_LIBRARY_PATH 会传递给 bash 进程，然后在 bash 中执行的脚本（run_main.sh）及其子进程（包括 ./main）都会继承这个变量。
+
+    其他传递环境变量的方法：
+
+    * 使用 export
+
+        ```bash
+        export LD_LIBRARY_PATH=/path/to/libs
+        bash run_main.sh
+        ```
+
+* systemd 与 ssh tunnel
+
+    systemd 中启动 ssh tunnel 时，不要使用`ssh -f`，因为这会
+
+    1. 创建一个 ssh 的前台程序，执行登陆认证等操作，假设其 pid 为 PID_1
+
+    2. 成功登录后，fork 一份进程到后台，此时后台进程的 pid 为 PID_2
+
+    3. 退出 PID_1 的 ssh 前台进程
+
+    systemd 检测到 PID_1 退出，会认为 ssh 进程已经结束，从而导致 systemd 错误判断 service 的状态。
+
+    因此我们直接使用`ssh -NL`或`ssh -NR`就可以。
+
+    example:
+
+    ```conf
+    [Unit]
+    Description=SSH Reverse Tunnel
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=your_username
+    # 使用密钥认证，避免交互
+    ExecStart=/usr/bin/ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -R 12345:localhost:22 user@remote-server
+    Restart=always
+    RestartSec=10
+    # 密钥权限很重要
+    Environment="HOME=/home/your_username"
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ```bash
+    # 添加这些选项提高稳定性
+    -o ExitOnForwardFailure=yes    # 端口转发失败时退出
+    -o ServerAliveInterval=30      # 30秒发送一次保活包
+    -o ServerAliveCountMax=3       # 3次无响应后断开
+    -o TCPKeepAlive=yes
+    -o BatchMode=yes               # 禁用交互提示
+    ```
+
+* `xrdp`
+
+    这是一个 独立的、完整的 RDP 服务器 软件。它运行在 Linux 系统上，等待来自 RDP 客户端的连接请求。
+
+    为了提供桌面，`xrdp` 需要依赖一个后端的图形会话管理器。最常见的是：
+
+    * Xvnc：xrdp 会启动一个 VNC 服务器（如 TigerVNC、X11VNC）来承载桌面，然后 xrdp 在 RDP 和 VNC 协议之间进行转换。这是最常见的配置。
+
+    * Xorg：较新的版本支持使用一个专门的 Xorg 会话作为后端（xrdp-xorg 模块），性能比 VNC 模式更好。
+
+    与 FreeRDP 模块的核心区别：
+
+    * xrdp 是一个常驻的系统服务（systemd 服务），监听 3389 端口，允许多个用户建立独立的、全新的桌面会话（登录屏幕 -> 输入用户名密码 -> 进入一个独立的桌面环境）。
+
+    * freerdp2-shadow-x11 是一个临时工具，用于共享已经登录的、正在使用的现有桌面会话。它不提供登录管理器，不创建新会话。
+
+* 查看当前 session 是 x11 还是 wayland
+
+    `echo $XDG_SESSION_TYPE`
+
+    output:
+
+    `wayland`
+
+* FreeRDP2
+
+    FreeRDP 是一个开源的 RDP 客户端和服务器端库。`freerdp2-x11`和`freerdp2-wayland`是它的命令行工具`xfreerdp`的两个后端。
+
+    * `freerdp2-x11`
+
+        这是 RDP 客户端 在 X11 显示系统下的主程序。你用它来连接远程的 Windows 机器或其他 RDP 服务器。
+
+    * `freerdp2-wayland`
+
+        同样是 RDP 客户端，它使用 Wayland 原生接口进行渲染，而不是 X11。
+
+    * `freerdp2-shadow-x11`
+
+        这是 FreeRDP 的 “影子服务器” 或 “桌面共享” 组件。它用于将本机的 X11 桌面会话共享出去，供其他 RDP 客户端连接。
+
+        它捕获当前 X11 显示器的输出，将其作为一个 RDP 会话对外提供。其他用户可以使用任意的 RDP 客户端（如 Windows 自带的 mstsc.exe、Android 客户端、或 xfreerdp 本身）来接入你的当前桌面。
+
+        它不是客户端，而是一个服务端。但它不创建新的桌面会话，只是“投影”现有会话。
+
+        通常通过命令行启动，例如 xfreerdp-shadow-subsystem。
+
+    通常 xfreerdp 可以自动选择后端，但是我们也可手动指定后端：
+
+    ```bash
+    # 强制使用 X11 后端（即使在 Wayland 会话中）
+    xfreerdp /b:x11 ...
+
+    # 强制使用 Wayland 后端
+    xfreerdp /b:wayland ...
+    ```
+
 * network.target vs network-online.target
 
     network.target：

@@ -36,37 +36,130 @@
 
 ## cache
 
-* [new] `file $(which xfreerdp)`这个是什么意思？
+* python 求解高斯函数
 
-* [new] `dpkg -L freerdp2-x11`
+    ```py
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.integrate import quad
+    import sympy as sp
 
-* [new] 调研 strace
+    # 符号推导验证
+    print("="*60)
+    print("符号推导验证")
+    print("="*60)
 
-    ```bash
-    # 查看运行时的后端选择
-    strace -e openat xfreerdp /v:dummy 2>&1 | grep -i "lib.*backend"
+    # 定义符号
+    ε, σ, A, k = sp.symbols('ε σ A k', positive=True, real=True)
+
+    # 1. 从微分方程开始
+    print("\n1. 解微分方程: dφ/dε / φ = k·ε")
+
+    # 定义微分方程
+    φ = sp.Function('φ')
+    ode = sp.Eq(φ(ε).diff(ε)/φ(ε), k*ε)
+
+    # 解微分方程
+    solution = sp.dsolve(ode)
+    print(f"微分方程的解: {solution}")
+
+    # 2. 应用边界条件
+    print("\n2. 应用概率密度函数的约束条件")
+
+    # 解的形式: φ(ε) = C1*exp(k*ε**2/2)
+    C1 = sp.symbols('C1')
+    φ_expr = C1 * sp.exp(k * ε**2 / 2)
+
+    # 约束1: 当|ε|→∞时，φ(ε)→0 => k必须为负
+    print(f"衰减性要求: k < 0")
+    k_value = -1/σ**2
+    φ_expr = φ_expr.subs(k, k_value)
+    print(f"令 k = -1/σ²: φ(ε) = {φ_expr}")
+
+    # 约束2: 归一化条件
+    print("\n3. 计算归一化常数")
+
+    # 计算积分
+    integral = sp.integrate(φ_expr, (ε, -sp.oo, sp.oo))
+    print(f"积分结果: ∫φ(ε)dε = {sp.simplify(integral)}")
+
+    # 令积分等于1，解出C1
+    C1_solution = sp.solve(sp.Eq(integral, 1), C1)[0]
+    print(f"归一化常数 C1 = {sp.simplify(C1_solution)}")
+
+    # 最终形式
+    φ_final = φ_expr.subs(C1, C1_solution)
+    print(f"\n4. 最终高斯分布:")
+    print(f"φ(ε) = {sp.simplify(φ_final)}")
+    print("="*60)
+
+    # 数值验证
+    print("\n数值验证:")
+    print("-"*40)
+
+    def gaussian(x, mu=0, sigma=1):
+        """标准高斯函数"""
+        return 1/(sigma*np.sqrt(2*np.pi)) * np.exp(-0.5*((x-mu)/sigma)**2)
+
+    # 测试不同sigma
+    sigmas = [0.5, 1.0, 2.0]
+    x = np.linspace(-5, 5, 1000)
+
+    plt.figure(figsize=(12, 8))
+
+    for i, sigma in enumerate(sigmas):
+        y = gaussian(x, sigma=sigma)
+
+        # 数值积分验证归一化
+        integral_val, error = quad(gaussian, -np.inf, np.inf, args=(0, sigma))
+
+        plt.subplot(2, 2, i+1)
+        plt.plot(x, y, 'b-', linewidth=2, label=f'σ={sigma}')
+        plt.fill_between(x, y, alpha=0.3)
+        plt.title(f'高斯分布 σ={sigma}\n归一化积分={integral_val:.8f} (±{error:.2e})')
+        plt.xlabel('x')
+        plt.ylabel('概率密度')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+
+    # 可视化中心极限定理
+    plt.subplot(2, 2, 4)
+    np.random.seed(42)
+
+    # 模拟不同样本量的均值分布
+    sample_sizes = [1, 5, 20, 100]
+    colors = ['red', 'green', 'blue', 'purple']
+
+    for n, color in zip(sample_sizes, colors):
+        # 从均匀分布采样，计算均值
+        n_samples = 10000
+        means = []
+
+        for _ in range(n_samples):
+            samples = np.random.uniform(-1, 1, n)  # 均匀分布[-1,1]
+            means.append(np.mean(samples))
+
+        # 绘制直方图
+        plt.hist(means, bins=50, density=True, alpha=0.5,
+                color=color, label=f'n={n}')
+
+        # 理论正态分布
+        if n > 1:
+            # 均匀分布的方差 = (b-a)²/12 = 1/3
+            theoretical_sigma = np.sqrt(1/(3*n))
+            x_fine = np.linspace(-1, 1, 200)
+            y_theory = gaussian(x_fine, sigma=theoretical_sigma)
+            plt.plot(x_fine, y_theory, color=color, linestyle='--', linewidth=2)
+
+    plt.title('中心极限定理演示')
+    plt.xlabel('样本均值')
+    plt.ylabel('概率密度')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()
     ```
-
-* [new] `update-alternatives --config xfreerdp`
-
-* [new] 调研 PipeWire
-
-* [new] 调研 gsettings 相关的配置，调研 netstat -tlnp，调研 grep -E，example 如下：
-
-    ```bash
-    # 查看 GNOME 远程桌面支持的协议
-    gsettings get org.gnome.desktop.remote-desktop.rdp enable
-    gsettings get org.gnome.desktop.remote-desktop.vnc enable
-
-    # 查看正在运行的远程桌面服务
-    netstat -tlnp | grep -E '3389|5900'  # RDP端口3389, VNC端口5900+
-    ```
-
-* [new] `sudo lsof -p $(pgrep gnome-remote-desktop) | grep freerdp`
-
-* [new] `systemctl --user restart gnome-remote-desktop`
-
-    `--user`是什么意思？
 
 * 贴着 kdj 的交点买入，即使亏也不会亏太多
 
@@ -466,8 +559,6 @@
 
 ### tasks
 
-* [v] `scanf()`的函数原型, `sscanf()`的函数原型
-
 * [ ] 调研 freedos live iso
 
     res:
@@ -503,13 +594,11 @@
     unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
     ```
 
-    feedback:
+* [ ] C++自定义哈希函数解析与优化
 
-    * [ ] C++自定义哈希函数解析与优化
+    目前看到
 
-        目前看到
-
-        > 4. 函数指针
+    > 4. 函数指针
 
 * [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
@@ -625,7 +714,7 @@
 
     增加`mymath.h`和`mymath.cpp`相关内容。
 
-目前的 qa 项目： vulkan, c++, vim, cmake, makefile
+* 目前的 qa 项目： vulkan, c++, vim, cmake, makefile
 
 * 感觉 bash, makefile, cmake, sed, awk, vim 这几个都是挺重要的，把 qa 加上去吧，每天练习
 
@@ -659,33 +748,13 @@
 
 * 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
 
-* 必须先执行`glfwInit()`，等`glfwMakeContextCurrent()`执行后，再执行`glewInit()`，
-
-    没有`glewInit()`，`glCreateShader()`会立即返回失败。
-
-* 和`%{`配对的是`%}`，不是`}%`。百分号永远在前。
-
-    ```c
-    %{
-    int num_cnt = 0;
-    %}
-    ```
-
 * 增添新 record 时，不删减以前的 record，每三天 review 一次。
-
-* flex中，`\n {return 0;}`表示结束 parser 程序，进入主程序。如果写成`\n {}`，那么即使按回车换行，parser 程序也不结束。
 
 ### Tasks
 
 * [O] Python命令行参数处理包介绍 11.23, 12.01
 
     15:05 ~ 15:32
-
-    目前看到
-
-    > 4. typer (基于类型提示 - 现代选择)
-
-    feedback:
 
     * 目前看到
 
@@ -696,8 +765,6 @@
     目前看到 Character Classes
 
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
-
-* [v] 使用`./main --id-to-idx <id> <qa_file>`找到指定哈希值的索引
 
 * [ ] py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
 
@@ -950,37 +1017,11 @@
 
 ### tasks
 
-* [v] VNC Viewer使用指南
-
-    目前看到
-
-    > 第一部分：使用 VNC Viewer 连接远程电脑（作为客户端）*
-
-* [v] 调研 10 日均线斜率交易策略解析 11.05, 12.01
-
-    14:09 ～ 14:41
-
-    目前看到
-
-    > 您这个推论非常敏锐，已经触及了现代量化投资的核心。它大体上是正确的，但我们可以将这个“错误”更精确地定义一下。        
-
-* [v] sed常见用法与示例总结
-
-    目前看到
-
-    > 实用示例
-
 * [O] 调研 PyTorch Loss Functions 11.22
 
     15:01 ~ 15:31, 23:10 ~ 23:43
 
     <https://www.geeksforgeeks.org/deep-learning/pytorch-loss-functions/>
-
-    目前看到
-
-        > Cross Entropy Loss
-
-    feedback:
 
     * 目前看到
 
@@ -989,8 +1030,6 @@
 * [ ] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
 
     为什么返回值会有两个，outputs.data 又是什么？
-
-* [v] F1 Score
 
 * [ ] Feedforward Neural Network
 
@@ -1805,19 +1844,9 @@ resources:
 
 * [v] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
 
-    feedback:
-
-    * [new] 调研 python 中 list 的方法`.sort()`，如果 list 中存储的对象是 datetime 对象或者其他类型的元素，sort() 方法会如何处理？如果是混合类型的元素，又会如何处理？
-
 * [ ] torch tensor 与 numpy 的转换
 
-* [v] `y.backward(torch.tensor([1.0, 1.0, 1.0]))`
-
-    torch 中 y 的 backward() 中填的参数是什么意思？
-
 * [ ] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
-
-* [v] python 函数如何写 static 变量？
 
 * [ ] `optim.SGD([train_param], lr=1e-3)`
 
@@ -1927,6 +1956,8 @@ resources:
 
     可以看看下面的 explore 部分。
 
+* [asso] 调研 python 中 list 的方法`.sort()`，如果 list 中存储的对象是 datetime 对象或者其他类型的元素，sort() 方法会如何处理？如果是混合类型的元素，又会如何处理？
+
 ## Machine Learning
 
 ### cache
@@ -1945,7 +1976,15 @@ resources:
 
     > 2D convolution in PyTorch 
 
-* [ ] 调研 1d 卷积 convolution，尝试处理一个时间序列
+* [v] 调研 1d 卷积 convolution，尝试处理一个时间序列
+
+    feedback:
+
+    * [ ] 1D卷积处理时间序列方法详解
+
+        目前看到
+
+        > 从不同角度的推导
 
 * [O] Apply a 2D Max Pooling in PyTorch
 
@@ -2226,8 +2265,6 @@ resources:
 * [ ] 调研论文 The Perceptron,a Perceiving and Recognizing Automaton
 
 * [ ] 调研论文 A Logical Calculus of the Ideas Immanent in Nervous Activity
-
-* [v] 调研`\mathbf`
 
 * [ ] 调研 numpy ndarray 的`.item()` method
 
@@ -3482,160 +3519,43 @@ resources:
 
 ### cache
 
-* Proxychains vs Proxychains4 (Proxychains-NG)
+* [new] `file $(which xfreerdp)`这个是什么意思？
 
-    ```
-    原始proxychains (2002-2010)
-            ↓ (停止维护)
-        分支/重写
-            ↓
-    proxychains-ng (2012-现在)
-            ↓
-      发行版中的包名：
-      - Ubuntu/Debian: proxychains4
-      - Arch: proxychains-ng
-      - 源代码: 仍叫proxychains-ng
-    ```
+* [new] `dpkg -L freerdp2-x11`
 
-    对比
-    特性	Proxychains (原始/旧版)	Proxychains4 (proxychains-ng)
-    维护状态	已停止维护（最后版本2006）	活跃维护（2024年仍在更新）
-    项目名称	proxychains	proxychains-ng (Next Generation)
-    包名差异	proxychains	proxychains4（二进制名）
-    配置文件	/etc/proxychains.conf	/etc/proxychains4.conf
-    许可证	GPLv2	GPLv2
-    主要开发者	netcreature	rofl0r
-
-    Proxychains-NG的新功能/改进：
-
-    # 1. 更好的DNS处理
-    proxychains-ng支持：
-    - proxy_dns (通过代理解析DNS)
-    - 防止DNS泄露的改进实现
-    - 更好的IPv6支持
-
-    # 2. 增强的代理链类型
-    proxychains4新增：
-    - random_chain (随机代理链)
-    - dynamic_chain (动态跳过失效代理)
-    - strict_chain (严格链，原始版本也有)
-
-    # 3. 性能优化
-    proxychains-ng有：
-    - 更快的LD_PRELOAD注入
-    - 减少内存占用
-    - 更好的多线程支持
-
-    # 4. 兼容性改进
-    - 支持更多应用程序
-    - 更好的系统调用拦截
-    - 修复原始版本的许多bug
-
-    大多数Linux发行版默认安装NG版本：
+* [new] 调研 strace
 
     ```bash
-    # Ubuntu 20.04+
-    sudo apt install proxychains4  # 明确安装NG版本
-
-    # 或者
-    sudo apt install proxychains   # 可能也是NG，但重命名了
-
-    # Arch Linux
-    sudo pacman -S proxychains-ng  # 保持原名
+    # 查看运行时的后端选择
+    strace -e openat xfreerdp /v:dummy 2>&1 | grep -i "lib.*backend"
     ```
 
-* proxychains
+* [new] `update-alternatives --config xfreerdp`
 
-    Proxychains 是一个强制应用程序通过代理服务器进行网络连接的工具，主要用于：
+* [new] 调研 PipeWire
 
-    * 代理链：支持多级代理跳转，增强匿名性
-
-    * 协议支持：支持 HTTP、SOCKS4、SOCKS5 代理
-
-    * 透明代理：无需修改应用程序代码即可使其通过代理工作
-
-    * 绕过限制：帮助受限环境中的工具（如 nmap、wget、ssh）通过代理访问外部网络
-
-    安装：
-
-    `sudo apt install proxychains4`
-
-    配置文件通常位于：
-
-    * `/etc/proxychains.conf`
-
-    * `/etc/proxychains4.conf`
-
-    * `~/.proxychains/proxychains.conf`
-
-    config example:
-
-    ```conf
-    # 代理类型 (http/socks4/socks5)
-    [ProxyList]
-    socks5 127.0.0.1 1080
-    http 192.168.1.100 8080
-    socks4 10.0.0.1 9050
-
-    # 代理链模式
-    # dynamic_chain: 按顺序使用代理，失败的代理会跳过
-    # strict_chain: 严格按顺序使用所有代理
-    # random_chain: 随机顺序使用代理
-    ```
-
-    usage:
+* [new] 调研 gsettings 相关的配置，调研 netstat -tlnp，调研 grep -E，example 如下：
 
     ```bash
-    # 基本语法
-    proxychains [命令] [参数]
+    # 查看 GNOME 远程桌面支持的协议
+    gsettings get org.gnome.desktop.remote-desktop.rdp enable
+    gsettings get org.gnome.desktop.remote-desktop.vnc enable
 
-    # 示例
-    proxychains curl https://example.com
-    proxychains nmap -sT target.com
-    proxychains wget http://example.com/file.zip
-    proxychains git clone https://github.com/user/repo.git
-    # 通过代理进行端口扫描
-    proxychains nmap -sS -Pn target.com
+    # 查看正在运行的远程桌面服务
+    netstat -tlnp | grep -E '3389|5900'  # RDP端口3389, VNC端口5900+
     ```
 
-    options:
+* [new] `sudo lsof -p $(pgrep gnome-remote-desktop) | grep freerdp`
 
-    ```bash
-    proxychains -f /path/to/custom.conf firefox    # 使用自定义配置文件
-    proxychains -q nmap target.com                 # 安静模式（不显示代理信息）
-    ```
+* [new] `systemctl --user restart gnome-remote-desktop`
 
-    注意事项
+    `--user`是什么意思？
 
-        DNS 解析：
+* [asso] 使用 lastb 命令查看最近的失败登录尝试
 
-            默认可能泄露 DNS 请求
+* [asso] denyhosts 自动封禁多次失败的IP
 
-            可在配置中启用 proxy_dns 选项
-
-        程序兼容性：
-
-            某些静态链接的程序可能无法正常工作
-
-            GUI 程序可能需要额外配置
-
-        性能影响：
-
-            多级代理会降低网络速度
-
-    验证代理生效:
-
-    ```bash
-    # 检查公网 IP 是否改变
-    proxychains curl ifconfig.me
-    proxychains wget -qO- https://api.ipify.org
-    ```
-
-* 使用 lastb 命令查看最近的失败登录尝试
-
-* 使用 fail2ban 或 denyhosts 自动封禁多次失败的IP。
-
-* 设置日志监控（如使用 logwatch 或 auditd），对异常登录尝试发出告警。
+* [asso] 设置日志监控（如使用 logwatch 或 auditd），对异常登录尝试发出告警。
 
 * 如果你觉得 fail2ban 太复杂，可以考虑：
 
@@ -3645,62 +3565,15 @@ resources:
 
     自定义脚本：用简单脚本+iptables/ufw 实现基础防护
 
-* systemd 与 ssh tunnel
+* [asso] 调研 OpenRC
 
-    systemd 中启动 ssh tunnel 时，不要使用`ssh -f`，因为这会
+    类 Systemd 的现代初始化系统
 
-    1. 创建一个 ssh 的前台程序，执行登陆认证等操作，假设其 pid 为 PID_1
-
-    2. 成功登录后，fork 一份进程到后台，此时后台进程的 pid 为 PID_2
-
-    3. 退出 PID_1 的 ssh 前台进程
-
-    systemd 检测到 PID_1 退出，会认为 ssh 进程已经结束，从而导致 systemd 错误判断 service 的状态。
-
-    因此我们直接使用`ssh -NL`或`ssh -NR`就可以。
-
-    example:
-
-    ```conf
-    [Unit]
-    Description=SSH Reverse Tunnel
-    After=network.target
-
-    [Service]
-    Type=simple
-    User=your_username
-    # 使用密钥认证，避免交互
-    ExecStart=/usr/bin/ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -R 12345:localhost:22 user@remote-server
-    Restart=always
-    RestartSec=10
-    # 密钥权限很重要
-    Environment="HOME=/home/your_username"
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    ```bash
-    # 添加这些选项提高稳定性
-    -o ExitOnForwardFailure=yes    # 端口转发失败时退出
-    -o ServerAliveInterval=30      # 30秒发送一次保活包
-    -o ServerAliveCountMax=3       # 3次无响应后断开
-    -o TCPKeepAlive=yes
-    -o BatchMode=yes               # 禁用交互提示
-    ```
+    被以下 linux 发行版采用：Gentoo, Alpine Linux, Artix Linux
 
 * systemd 的 alternative
 
-    1. 类 Systemd 的现代初始化系统
-    OpenRC (Gentoo, Alpine Linux 默认)
-
-        特点：模块化、依赖驱动、兼容传统 init 脚本
-
-        优势：相对轻量，学习曲线平缓
-
-        使用发行版：Gentoo, Alpine Linux, Artix Linux
-
-    runit (Void Linux 默认)
+    * runit (Void Linux 默认)
 
         特点：简单直接，基于监督树（supervision tree）
 
@@ -3708,7 +3581,7 @@ resources:
 
         组件：runsvdir, runsv, sv 命令
 
-    s6 和 s6-rc
+    * s6 和 s6-rc
 
         特点：Unix 哲学，组件化设计
 
@@ -3716,13 +3589,13 @@ resources:
 
         作者：Laurent Bercot
 
-    Dinit
+    * Dinit
 
         特点：C++ 编写，配置简单
 
         目标：提供 systemd-like 功能但更简单
 
-    2. 传统 SysV init
+    * 传统 SysV init
 
         ```bash
         # 经典的系统V风格
@@ -3734,7 +3607,7 @@ resources:
 
         仍在维护：Slackware, Devuan (可选)
 
-    3. 基于监督的初始化系统
+    * 基于监督的初始化系统
     supervisord (Python)
 
         特点：专注于进程管理而非系统初始化
@@ -3747,27 +3620,28 @@ resources:
 
         设计者：Daniel J. Bernstein
 
-    4. 针对特定场景的替代
-    BusyBox init
+    * 针对特定场景的替代
 
-        特点：嵌入式系统的极简方案
+        * BusyBox init
 
-        场景：资源受限环境，小型 Linux 发行版
+            特点：嵌入式系统的极简方案
 
-    minit (CRUX 使用)
+            场景：资源受限环境，小型 Linux 发行版
 
-        特点：极简设计
+        * minit (CRUX 使用)
 
-        配置：简单的纯文本文件
+            特点：极简设计
 
-    5. 容器/云原生环境
+            配置：简单的纯文本文件
+
+    * 容器/云原生环境
     不用 init 系统
 
         容器直接运行应用进程
 
         使用 tini 或 dumb-init 处理信号
 
-    systemd 轻量模式
+    * systemd 轻量模式
 
         systemd 本身也有轻量版本
 
@@ -3822,37 +3696,6 @@ resources:
             Slackware (传统 SysV)
 
             CRUX (minit)
-
-* 使用 bash 启动程序时，单行环境变量要写在脚本前面
-
-    `run.sh`:
-
-    ```bash
-    ./$1
-    ```
-
-    ```bash
-    LD_LIBRARY_PATH=xxx bash run.sh main  # OK
-
-    bash LD_LIBRARY_PATH=xxx run.sh main  # error
-
-    bash run.sh LD_LIBRARY_PATH=xxx main  # error
-    ```
-
-    环境变量 LD_LIBRARY_PATH 会传递给 bash 进程，然后在 bash 中执行的脚本（run_main.sh）及其子进程（包括 ./main）都会继承这个变量。
-
-    其他传递环境变量的方法：
-
-    * 使用 export
-
-        ```bash
-        export LD_LIBRARY_PATH=/path/to/libs
-        bash run_main.sh
-        ```
-
-* [new] bash 中的分号是什么意思？
-
-    比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
 
 * [new] 调研`env`命令
 
@@ -4020,7 +3863,7 @@ resources:
 
     比ECDSA 256稍慢，但差异很小, 在大多数场景下感知不到性能影响
 
-* investigate fail2ban filter
+* [asso] investigate fail2ban filter
 
     ```conf
     # /etc/fail2ban/filter.d/ssh-kex.conf
@@ -4029,59 +3872,21 @@ resources:
                 ^%(__prefix_line)serror: kex_exchange_identification: Connection closed by remote host.* from <HOST>
     ```
 
-* investigate port knocking
-
-    端口敲门 (port knocking)
-
-* 调研 ufw 防火墙
-
-    `ufw allow from YOUR_IP to any port 22`
-
-* 调研 tcpdump 的用法
-
-    `sudo tcpdump -i any port 22 -n`
-
-* 调研 iptables
-
-    ```bash
-    # 记录所有访问22端口的连接
-    sudo iptables -I INPUT -p tcp --dport 22 -j LOG --log-prefix "SSH_CONN: "
-
-    # 查看iptables日志
-    sudo tail -f /var/log/kern.log | grep SSH_CONN
-    ```
-
-    ```bash
-    # 使用iptables限制连接频率
-    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --set
-    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 -j DROP
-    ```
-
-* `who`, `w`, `last`这三个命令是什么意思？
-
-* `watch "ps -aux | grep v2ray"`没输出, `watch bash -c "ps -aux | grep v2ray"`也没输出
-
-    尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
-
-* 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假。
-
-* `Restart=on-failure`, `Restart=Always`，这些有什么不同？还有什么可取的值？是否大小写敏感？
-
-* 除了`After=syslog.service`, `After=network.target`，还有什么常用的 service？
-
-* `StartLimitInterval=300`, `StartLimitBurst=5`这两个是什么意思？
-
 ### tasks
 
-* [asso] systemd 的`Wants=`, `Requires=`, `After=`有什么不同？
+* [ ] 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假
 
-* [asso] systemd 的`Type=forking`是什么意思？
+* [ ] bash 中的分号是什么意思？
+
+    比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
 
 * [ ] `ssh -D`是干嘛用的？
 
-* [ ] 为什么`g++ -g main.cpp -lvulkan -lglfw -o main`可以通过编译，`g++ -g -lvulkan -lglfw main.cpp -o main`就不行？
-
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
+
+* [ ] `who`, `w`, `last`这三个命令是什么意思？
+
+* [ ] 为什么`g++ -g main.cpp -lvulkan -lglfw -o main`可以通过编译，`g++ -g -lvulkan -lglfw main.cpp -o main`就不行？
 
 * [ ] 调研`grep -A`
 
@@ -4311,6 +4116,44 @@ resources:
 * [asso] 什么是 TTY 和 pts？
 
 * [asso] `chroot <dir>`是什么意思？
+
+* [asso] systemd 的`Wants=`, `Requires=`, `After=`有什么不同？
+
+* [asso] systemd 的`Type=forking`是什么意思？
+
+* [asso] systemd 中，`StartLimitInterval=300`, `StartLimitBurst=5`这两个是什么意思？
+
+* [asso] systemd 除了`After=syslog.service`, `After=network.target`，还有什么常用的 service？
+
+* [asso] `Restart=on-failure`, `Restart=Always`，这些有什么不同？还有什么可取的值？是否大小写敏感？
+
+* [asso] 调研 iptables
+
+    ```bash
+    # 记录所有访问22端口的连接
+    sudo iptables -I INPUT -p tcp --dport 22 -j LOG --log-prefix "SSH_CONN: "
+
+    # 查看iptables日志
+    sudo tail -f /var/log/kern.log | grep SSH_CONN
+    ```
+
+    ```bash
+    # 使用iptables限制连接频率
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --set
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 -j DROP
+    ```
+
+* [asso] 调研 tcpdump 的用法
+
+    `sudo tcpdump -i any port 22 -n`
+
+* [asso] 调研 ufw 防火墙
+
+    `ufw allow from YOUR_IP to any port 22`
+
+* [asso] investigate port knocking
+
+    端口敲门 (port knocking)
 
 ## gpu driver
 

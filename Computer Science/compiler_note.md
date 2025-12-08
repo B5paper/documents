@@ -2,6 +2,16 @@
 
 ## cache
 
+* 和`%{`配对的是`%}`，不是`}%`。百分号永远在前。
+
+    ```c
+    %{
+    int num_cnt = 0;
+    %}
+    ```
+
+* flex 中，`\n {return 0;}`表示结束 parser 程序，进入主程序。如果写成`\n {}`，那么即使按回车换行，parser 程序也不结束。
+
 * compiler: 文件结束符
 
     文件结束符$\$$被规定出现在 expression $E$之后，通常记为$S \rightarrow E\$$。

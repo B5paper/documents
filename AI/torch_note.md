@@ -2,6 +2,210 @@
 
 ## cache
 
+* 高斯分布（正态分布）的推导
+
+    高斯函数（正态分布）的发现是科学史上的重要里程碑，由高斯和拉普拉斯分别独立发现。最初的动机是解决测量误差问题。
+
+    * 基本假设（公理系统）
+
+        高斯函数的推导基于以下合理假设：
+
+        1. 误差对称性假设
+
+            误差围绕真值对称分布：
+
+            $p(\varepsilon) = p(- \varepsilon)$
+
+            其中$\varepsilon = 测量值 - 真值$
+
+        2. 最大似然原理
+
+            函数中最可能的参数值应该是使所有观测值出现的概率乘积最大的值。
+
+        3. 独立同分布假设
+
+            多次测量误差相互独立。
+
+    * 推导过程
+
+        1. 设定问题框架
+
+            设：
+
+            * 真值：$\mu$
+
+            * 测量值：$x_1$, $x_2$, $\dots$, $x_n$
+
+            * 误差：$\varepsilon_i = x_i - \mu$
+
+            * 误差概率密度函数：$\varphi(\varepsilon)$
+
+            根据独立性，我们可以计算出观测到这些数据的联合概率：
+
+            $$L(\mu) = \varphi(x_1 - \mu) \cdot \varphi(x_2 - \mu) \cdot \dots \cdot \varphi(x_n - \mu)$$
+
+        2. 最大似然估计
+
+            对$L(\mu)$取对数（取对数后，求到的极值和原问题等价吗？是否存在取对数后，极值与原函数不相同的情况？）：
+
+            $$\ln L(\mu) = \sum_i \ln \varphi(x_i - \mu)$$
+
+            最大化条件（为什么是最大化，而不是最小化？）：
+
+            $$\frac{\mathrm d \ [\ln L(\mu)]} {\mathrm d \ \mu} = 0$$
+
+            即：
+
+            $$\sum \frac{\varphi'(x_i - \mu)} {\varphi(x_i - \mu)} = 0$$
+
+        3. 引入关键函数
+
+            令：
+
+            $$\Psi(\varepsilon) = \frac{\varphi'(\varepsilon)} {\varphi(\varepsilon)}$$
+
+            则方程变为：
+
+            $$\sum_i \Psi(x_i - \mu) = 0$$
+
+        4. 高斯的关键洞察
+
+            高斯意识到，如果取算术平均作为 $\mu$ 的估计：
+
+            $$\hat \mu = \frac{x_1 + x_2 + \dots + x_n} {n}$$
+
+            那么对于任意 $a$, $b$ （为什么？不懂）：
+
+            $$\sum \Psi(x_i - (a \cdot x_j + b \cdot x_k)) = 0$$
+
+            这要求 $\Psi$ 必须是线性函数 (依然不懂)：
+
+            $$\Psi (\varepsilon) = k \cdot \varepsilon$$
+
+        5. 求解微分方程
+
+            由
+
+            $$\Psi(\varepsilon) = \varphi'(\varepsilon) / \varphi(\varepsilon) = k \cdot \varepsilon$$
+
+            解这个微分方程：
+
+            $$\mathrm d \, \varphi / \varphi = k \varepsilon \ \mathrm d \, \varepsilon$$
+
+            两边积分：
+
+            $$\ln \varphi(\varepsilon) = (k / 2) \varepsilon^2 + C$$
+
+            所以：
+
+            $$φ(ε) = A \cdot \exp(kε²/2)$$
+
+        6. 确定常数
+
+            因为概率密度函数必须满足：
+
+                归一化：∫φ(ε)dε = 1
+
+                对称性：φ(ε) = φ(-ε)
+
+                衰减性：当|ε|→∞时，φ(ε)→0
+
+            这要求k必须为负数，令 k = -1/σ²
+
+            则：
+
+            φ(ε) = A · exp(-ε²/(2σ²))
+
+        7. 归一化计算
+
+            计算归一化常数A：
+
+            ∫_{-∞}^{∞} A · exp(-ε²/(2σ²)) dε = 1
+
+            利用高斯积分公式：
+
+            ∫_{-∞}^{∞} exp(-αx²) dx = √(π/α)
+
+            令 α = 1/(2σ²)，则：
+
+            ∫ exp(-ε²/(2σ²)) dε = √(2πσ²)
+
+            所以：
+
+            A = 1/√(2πσ²)
+
+        8. 最终形式
+
+            得到标准的高斯分布：
+
+            φ(ε) = 1/√(2πσ²) · exp(-ε²/(2σ²))
+
+* 梯度权重
+
+    在 PyTorch 中，y.backward() 的参数表示的是梯度权重（gradient weights），也称为 v 或 grad_output。
+
+    y.backward(gradient) 中的 gradient 参数表示 y 对自身的梯度，即 ∂y/∂y。在标量情况下通常默认为 1，但在张量情况下需要显式指定。
+
+    如果 `y` 是向量（多维）时，torch 会自动构造一个 sum 表达式，`y' = w_1 * y_1 + w_2 * y_2 + ... + w_n * y_n`，最终求导是对 `y'` 求导。
+
+    `y.backward(v)`计算的是`∂(v·y)/∂x = vᵀ · ∂y/∂x`。
+
+    当 y 是多维张量时，PyTorch 确实会：
+
+        自动构造一个标量函数：y' = w₁·y₁ + w₂·y₂ + ... + wₙ·yₙ
+
+        使用你提供的权重：w = [w₁, w₂, ..., wₙ] 就是 backward() 中的参数
+
+        对 y' 求导：最终计算的是 ∂y'/∂x，而不是直接计算 ∂y/∂x
+
+    example:
+
+    ```py
+    from hlc_utils import *
+
+    x = t.tensor([1, 2, 3], dtype=t.float, requires_grad=True)
+    y = x**2
+    y.backward(t.tensor([1, 1, 1]))
+    print('y:', y)
+    print('x.grad:', x.grad)
+
+    x.grad.zero_()
+    y = x**2
+    y[0].backward()
+    # y[1].backward()  # error, 计算图只能 backward 一次
+    # y[2].backward()
+    print('y:', y)
+    print('x.grad:', x.grad)
+    ```
+
+    output:
+
+    ```
+    y: tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    x.grad: tensor([2., 4., 6.])
+    y: tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    x.grad: tensor([2., 0., 0.])
+    ```
+
+    还可以调用`t.autograd.backward()`:
+
+    ```py
+    x = t.tensor([1, 2, 3], dtype=t.float, requires_grad=True)
+    y = x**2
+    t.autograd.backward([y[0], y[1]])
+    print('y:', y)
+    print('x.grad:', x.grad)
+    ```
+
+    output:
+
+    ```
+    y: tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    x.grad: tensor([2., 4., 6.])
+    y: tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    x.grad: tensor([2., 4., 0.])
+    ```
+
 * 进化算法 es
 
     核心思想：仿生“优胜劣汰”
