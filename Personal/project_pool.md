@@ -161,8 +161,6 @@
     plt.show()
     ```
 
-* 贴着 kdj 的交点买入，即使亏也不会亏太多
-
 * 其实与 cache 对应的是工作区（working area），而工作区的整洁是 stack　的要求，不然各种回退操作都会混乱，没有办法快速定位到想要的资源
 
 * sync 只提出了标准，但是没有提出该如何 sync
@@ -594,13 +592,19 @@
     unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
     ```
 
-* [ ] C++自定义哈希函数解析与优化
+* [O] C++自定义哈希函数解析与优化
 
     目前看到
 
     > 4. 函数指针
 
-* [ ] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
+    feedback:
+
+    * 目前看到
+
+        > 5. std::function（C++11起）
+
+* [v] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
 
     部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
@@ -760,13 +764,19 @@
 
         > 那么 argparse 如何处理短参数，比如 -h，-i 之类的
 
+    feedback:
+
+    * 目前看到
+
+        > click-with-win32
+
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
 
     目前看到 Character Classes
 
 * [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
 
-* [ ] py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
+* [v] py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
 
 * [o] 调研 qa unit 中 dep 功能
 
@@ -1016,6 +1026,40 @@
 * 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
 
 ### tasks
+
+* [v] process 1 tab 30 mins 12.08
+
+    16:33 ~ 16:44
+
+    feedback:
+
+    * [ ] 调研 Here Document
+
+        example:
+
+        ```bash
+        ssh user@hostname << 'EOF'
+        cd my_dir
+        ./main
+        exit
+        EOF
+        ```
+
+    * [asso] 调研`-t`是否可以让 ssh 保持连接
+
+        > 保持连接：如果需要保持 SSH 连接，可以添加 -t 参数：
+
+        `ssh -t user@hostname "cd my_dir && ./main"`
+
+    * [asso] 调研 screen 和 tmux
+
+        `ssh user@host "cd my_dir && screen -dmS my_session ./main"`
+
+    * [asso] 调研 bash 的`exec`命令
+
+    * [asso] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
+
+    * [asso] 调研 bash 中的特殊变量`%%`（当前作业）
 
 * [O] 调研 PyTorch Loss Functions 11.22
 
@@ -1978,13 +2022,11 @@ resources:
 
 * [v] 调研 1d 卷积 convolution，尝试处理一个时间序列
 
-    feedback:
+* [ ] 1D卷积处理时间序列方法详解
 
-    * [ ] 1D卷积处理时间序列方法详解
+    目前看到
 
-        目前看到
-
-        > 从不同角度的推导
+    > 从不同角度的推导
 
 * [O] Apply a 2D Max Pooling in PyTorch
 
@@ -2333,6 +2375,86 @@ resources:
 1. 《高等数学》同济大学应用数学系
 
 ### cache
+
+* 正弦函数
+
+    $$y = \sin ⁡x$$
+
+    其中 $x$ 是自变量（通常表示角度，单位为弧度或度），$y$ 是因变量。
+
+    **定义**
+
+    * 基于单位圆的定义
+    
+        在直角坐标系中，以原点为圆心、半径为 1 的单位圆上，角度 $\theta$（以 $x$ 轴正方向为始边，逆时针旋转为正）的终边与单位圆的交点的纵坐标即为 $\sin \theta$。
+
+    * 基于直角三角形定义
+    
+        在直角三角形中，
+        
+        $$\sin⁡ \theta = \frac{对边}{斜边}$$
+        
+        （适用于锐角）
+
+    * 级数定义（解析定义）
+
+        $$\sin ⁡x = x − \frac{x^3}{3!} + \frac{x^5}{5!} − \frac{x^7}{7!} + \cdots$$
+        
+        （其中 $x$ 为弧度）
+
+    **性质**
+
+    * 定义域与值域
+
+        定义域：全体实数 $\mathbb R$（即 $(−\infty, +\infty)$ ）。
+
+        值域：$[−1,1]$，即 $\lvert \sin ⁡x \rvert \leq 1$。
+
+    * 周期性
+
+        是周期函数，最小正周期为 $2 \pi$（即 $\sin (x + 2 k \pi) = \sin x$，$k \in \mathbb Z$）。
+
+    * 奇偶性
+
+        是奇函数，即 $\sin (−x) = - \sin x$，图像关于原点对称。
+
+    * 对称性
+
+        关于点 $(k \pi, 0)$ （$ k \in \mathbb Z$）中心对称，
+
+        关于直线 $x = \frac{\pi}{2} + k \pi$ （$k ∈ \mathbb Z$）轴对称。
+
+    * 单调性
+
+        在区间 $[− \frac{π}{2} + 2 k π, \frac{π}{2} + 2 k π]$ 上单调递增，
+
+        在区间 $[\frac{π}{2} + 2 k \pi, \frac{3π}{2} + 2 k \pi]$ 上单调递减（$k \in \mathbb Z$）。
+
+    * 最值
+
+        最大值 1 在 $x = \frac{π}{2} + 2 k \pi$ 处取得，
+
+        最小值 −1 在 $x = − \frac{π}{2} + 2 k π$（或 $\frac{3π}{2} + 2 k \pi$）处取得（$k ∈ \mathbb Z$）。
+
+    * 零点
+
+        零点为 $x = k π$ （$k ∈ \mathbb Z$），即与 x 轴的交点。
+
+    * 导数与积分
+
+        导数：$\frac{d}{dx} (\sin ⁡x) = \cos ⁡x$。
+
+        不定积分：$\int \sin x dx = − \cos x + C$。
+
+    * 与其他函数的关系
+
+        与余弦函数关系：$\sin^2 x + \cos^2 x = 1$。
+
+        和角公式：$\sin (x \pm y) = \sin x \cos y \pm \cos x \sin y$。
+
+    **图像**
+
+    * 波形曲线（正弦曲线），在 $[−1, 1]$ 之间振荡，周期为 $2π$，过原点且关于原点对称。
 
 * ML-Prerequests: 机器学习的预备知识（矩阵论，概率论，凸优化等）
 
@@ -3518,6 +3640,12 @@ resources:
 ## linux maintain
 
 ### cache
+
+* bash 命令中`&&`和`;`的区别
+
+    * `&&`： 只有前一个命令成功执行（返回0）才会执行下一个命令
+
+    * `;`： 无论前一个命令是否成功都会执行下一个命令
 
 * [new] `file $(which xfreerdp)`这个是什么意思？
 
@@ -5764,6 +5892,86 @@ resources:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 ### cache
+
+* c++ 中`size_t`在`<stddef.h>`中，不在`<stdint.h>`中
+
+* 使用函数指针实现自定义哈希函数
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <unordered_map>
+    using std::string;
+    using std::unordered_map;
+
+    struct MyObj {
+        string name;
+        int age;
+
+        bool operator==(const MyObj &obj_2) const {
+            if (name == obj_2.name && age == obj_2.age) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    size_t calc_hash(const MyObj &obj) {
+        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+    }
+
+    int main() {
+        unordered_map<MyObj, int, decltype(&calc_hash)> my_map(0, calc_hash);
+        MyObj obj{"zhangsan", 15};
+        my_map.insert({obj, 1});
+        my_map.insert({{"lisi", 18}, 2});
+        auto iter = my_map.find({"lisi", 18});
+        if (iter != my_map.end()) {
+            printf("lisi exists, val: %d\n", iter->second);
+        } else {
+            printf("lisi doesn't exist, val: %d\n", iter->second);
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    lisi exists, val: 2
+    ```
+
+    注：
+
+    1. `calc_hash`函数参数的`const MyObj &obj`中，`const`是必须的。
+
+        但是`size_t calc_hash(const MyObj &obj) {`不能写成`size_t calc_hash(const MyObj &obj) const {`，因为 const 函数只对成员函数有效。
+
+    1. 必须使用`decltype(&calc_hash)`得到**函数指针的类型**，比如`size_t(*)(const MyObj&)`
+    
+        不能使用`decltype(calc_hash)`，这样得到的是**函数类型**，比如`size_t(const MyObj&)`。函数类型是 c++ 区别于 C 的新概念。
+
+        如果不使用`decltype()`，也可以手动指定类型：
+
+        `unordered_map<MyObj, int, > my_map(0, calc_hash);`
+
+    1. `my_map(0, calc_hash);`中的两个参数都是必须的，理由与 labmda 表达式相似。
+
+        如果写成`unordered_map<MyObj, int, decltype(&calc_hash)> my_map;`，那么可以编译通过，但是运行时输出为：
+
+        ```
+        Segmentation fault (core dumped)
+        ```
+
+        labmda 完全禁用了构造函数，函数指针有构造函数，但是会返回`nullptr`，所以运行时还是会报错。
+
+    局限性：
+
+    * 函数指针不能有状态
+
+    * 不能内联，可能影响性能
+
+    * 语法相对复杂
 
 * 使用 lambda 表达式作为自定义哈希函数
 

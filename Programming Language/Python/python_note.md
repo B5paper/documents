@@ -2,6 +2,379 @@
 
 ## cached
 
+* python 中的 int
+
+    在Python中，int 类型既不是固定的32位也不是64位，而是任意精度整数（arbitrary precision），可以表示任意大小的整数，只受限于可用内存。
+
+    Python整数类型的特点
+
+    * 自动扩展精度：当整数超出当前表示范围时，Python会自动分配更多内存
+
+    * 不需要指定signed/unsigned：Python的int总是带符号的（signed）
+
+    * 没有位数限制（理论上）
+
+    如何获取整数位数信息:
+
+    ```py
+    import sys
+
+    x = 42
+    # 获取当前对象占用的字节数
+    print(sys.getsizeof(x))  # 通常是28字节（包括Python对象开销）
+
+    # 获取实际数值的位长度
+    print(x.bit_length())  # 最少需要多少位表示这个数（不包括符号位）
+    ```
+
+    虽然Python本身没有unsigned int，但在与底层系统交互时可能需要处理：
+
+    * 模拟unsigned行为
+
+        ```py
+        def to_unsigned(n, bits=32):
+            """将有符号整数转换为无符号表示"""
+            return n & ((1 << bits) - 1)
+
+        def from_unsigned(n, bits=32):
+            """将无符号整数转换为有符号表示"""
+            if n >= (1 << (bits - 1)):
+                n -= (1 << bits)
+            return n
+
+        # 示例
+        x = -1
+        unsigned = to_unsigned(x, 32)  # 4294967295
+        signed = from_unsigned(unsigned, 32)  # -1
+        ```
+
+    * 使用ctypes模块
+
+        ```py
+        import ctypes
+
+        # 转换为C语言的32位有符号/无符号整数
+        x = 0xFFFFFFFF
+
+        signed_32 = ctypes.c_int32(x).value  # -1
+        unsigned_32 = ctypes.c_uint32(x).value  # 4294967295
+
+        # 64位
+        signed_64 = ctypes.c_int64(x).value  # 4294967295
+        unsigned_64 = ctypes.c_uint64(x).value  # 4294967295
+        ```
+
+    * 使用struct模块处理二进制数据
+
+        ```py
+        import struct
+
+        # 打包为32位无符号整数
+        packed = struct.pack('I', 0xFFFFFFFF)  # 'I'表示unsigned int
+        unpacked = struct.unpack('I', packed)[0]  # 4294967295
+
+        # 打包为32位有符号整数
+        packed = struct.pack('i', -1)  # 'i'表示signed int
+        unpacked = struct.unpack('i', packed)[0]  # -1
+        ```
+
+    常见场景：
+
+    * 处理网络协议数据
+
+        ```py
+        def parse_ip_header(data):
+            # data是bytes类型
+            import struct
+            
+            # 解析为无符号整数
+            version_ihl, tos, total_length = struct.unpack('!BBH', data[:4])
+            # '!'表示网络字节序，'H'表示unsigned short
+            
+            return total_length  # 返回的是无符号整数
+        ```
+
+    * 处理硬件寄存器
+
+        ```py
+        def read_register(address):
+            # 从硬件读取32位寄存器值
+            raw_value = 0xFFFFFFFF  # 假设读取的值
+            
+            # 作为无符号解释
+            unsigned_value = raw_value & 0xFFFFFFFF
+            
+            # 如果需要作为有符号
+            if unsigned_value & 0x80000000:
+                signed_value = unsigned_value - 0x100000000
+            else:
+                signed_value = unsigned_value
+                
+            return signed_value
+        ```
+
+    * 数值范围检查
+
+        ```py
+        def check_32bit_range(value):
+            """检查值是否在32位有符号/无符号范围内"""
+            
+            # 32位有符号范围
+            signed_min = -2**31
+            signed_max = 2**31 - 1
+            
+            # 32位无符号范围
+            unsigned_min = 0
+            unsigned_max = 2**32 - 1
+            
+            is_signed_ok = signed_min <= value <= signed_max
+            is_unsigned_ok = unsigned_min <= value <= unsigned_max
+            
+            return is_signed_ok, is_unsigned_ok
+        ```
+
+* argparse 支持多个短参数的组合（传统Unix风格）
+
+    ```py
+    parser.add_argument('-a', action='store_true', help='选项A')
+    parser.add_argument('-b', action='store_true', help='选项B')
+    parser.add_argument('-c', action='store_true', help='选项C')
+    ```
+
+    `python script.py -abc`相当于`-a -b -c`。
+
+* argparse 给参数赋值时，使用空格或等号都可以
+
+* argparse 中的帮助信息 -h
+
+    ```py
+    # -h 是默认的，但你也可以自定义
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('-?', '--help', action='help', help='显示帮助信息')
+    ```
+
+* argparse 中的互斥参数组
+
+    ```py
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-v', '--verbose', action='store_true', help='详细模式')
+    group.add_argument('-q', '--quiet', action='store_true', help='安静模式')
+    ```
+
+    不能同时使用 -v 和 -q
+
+* arparse 中对参数值进行限制
+
+    ```py
+    parser.add_argument('-l', '--level', type=int, choices=[1, 2, 3], help='级别(1-3)')
+    ```
+
+* argparse 中指定多个值
+
+    ```py
+    parser.add_argument('-i', '--input', nargs='+', help='多个输入文件')
+    ```
+
+    run:
+
+    `python script.py -i file1.txt file2.txt file3.txt`
+
+* argparse 中的位置参数（positional arguments） 和 可选参数（optional arguments）
+
+    * 位置参数（没有 --）
+
+        ```py
+        parser.add_argument('input_file', help='输入文件')
+        ```
+
+        必须提供，不提供会报错
+
+        顺序敏感：在命令行中必须按照定义的顺序出现
+
+        没有前缀：直接写参数值
+
+    * 可选参数（有 - 或 --）
+
+        ```py
+        parser.add_argument('--output', help='输出文件')
+        parser.add_argument('-v', '--verbose', action='store_true')
+        ```
+
+        可选提供，可以不写
+
+        顺序无关：可以在命令行的任何位置
+
+        有前缀：以 - 或 -- 开头
+
+    examples:
+
+    * exapmle 1
+
+        ```py
+        import argparse
+
+        parser = argparse.ArgumentParser(description='文件处理工具')
+        parser.add_argument('input_file', help='输入文件路径')
+        parser.add_argument('output_file', help='输出文件路径')
+        parser.add_argument('-v', '--verbose', action='store_true', help='详细模式')
+        parser.add_argument('-f', '--format', choices=['json', 'xml'], help='输出格式')
+
+        args = parser.parse_args()
+
+        print(f"输入文件: {args.input_file}")
+        print(f"输出文件: {args.output_file}")
+        print(f"详细模式: {args.verbose}")
+        print(f"输出格式: {args.format}")
+        ```
+
+        run:
+
+        ```bash
+        # 正确：位置参数必须按顺序提供
+        python script.py input.txt output.json
+        python script.py input.txt output.json -v --format json
+        python script.py -v --format json input.txt output.json  # 顺序无关
+
+        # 错误：缺少位置参数
+        python script.py input.txt                    # 缺少 output_file
+        python script.py --verbose                    # 缺少两个位置参数
+        ```
+
+    * example 2
+
+        ```py
+        import argparse
+
+        parser = argparse.ArgumentParser(description='复制文件')
+        parser.add_argument('source', help='源文件')
+        parser.add_argument('destination', help='目标位置')
+        parser.add_argument('-r', '--recursive', action='store_true', help='递归复制')
+        parser.add_argument('-f', '--force', action='store_true', help='强制覆盖')
+
+        args = parser.parse_args()
+
+        print(f"从 {args.source} 复制到 {args.destination}")
+        if args.recursive:
+            print("递归模式")
+        if args.force:
+            print("强制覆盖模式")
+        ```
+
+        run:
+
+        ```bash
+        python script.py file.txt backup/ -r -f
+        # 或者
+        python script.py -r -f file.txt backup/
+        ```
+
+    * example 3
+
+        ```py
+        import argparse
+
+        parser = argparse.ArgumentParser(description='数据处理工具')
+
+        # 位置参数（必须的）
+        parser.add_argument('input_file', help='输入数据文件')
+        parser.add_argument('operation', choices=['process', 'validate', 'export'], 
+                           help='要执行的操作')
+
+        # 可选参数
+        parser.add_argument('-o', '--output', help='输出文件')
+        parser.add_argument('--format', default='csv', help='输出格式')
+        parser.add_argument('-v', '--verbose', action='store_true', help='详细输出')
+
+        args = parser.parse_args()
+        ```
+
+        run:
+
+        ```
+        python script.py data.csv process -o result.json --format json -v
+        ```
+
+* argparse 使用 prefix_chars 参数
+
+    argparse 允许自定义前缀字符：
+
+    ```py
+    import argparse
+
+    # 允许使用 - 和 / 作为前缀
+    parser = argparse.ArgumentParser(prefix_chars='-/')
+
+    parser.add_argument('-s', '/s', '--silent', action='store_true', help='静默模式')
+    parser.add_argument('-v', '/v', '--verbose', action='store_true', help='详细模式')
+    parser.add_argument('-f', '/f', '--file', help='输入文件')
+    parser.add_argument('-?', '/?', action='help', help='显示帮助')
+
+    args = parser.parse_args()
+
+    print(f"静默模式: {args.silent}")
+    print(f"详细模式: {args.verbose}")
+    print(f"输入文件: {args.file}")
+    ```
+
+    run:
+
+    ```bash
+    # 都可以工作
+    python script.py -s -v -f data.txt
+    python script.py /s /v /f data.txt
+    python script.py --silent --verbose --file data.txt
+    ```
+
+    这样可以用于适配 windows 环境。
+
+* argparse 处理短参数
+
+    example:
+
+    ```py
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    # 短参数: -v, 长参数: --verbose
+    parser.add_argument('-v', '--verbose', action='store_true', help='详细模式')
+    # 短参数: -f, 长参数: --file
+    parser.add_argument('-f', '--file', type=str, help='输入文件')
+    # 短参数: -n, 长参数: --number
+    parser.add_argument('-n', '--number', type=int, default=1, help='重复次数')
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        print("详细模式开启")
+    if args.file:
+        print(f"处理文件: {args.file}")
+    print(f"重复次数: {args.number}")
+    ```
+
+    `add_argument()`的原型：
+
+    ```py
+    def add_argument(
+        *name_or_flags: str,
+        action: str | type[Action] = ...,
+        nargs: int | str | None = None,
+        const: Any = ...,
+        default: Any = ...,
+        type: _ActionType = ...,
+        choices: Iterable[_T@add_argument] | None = ...,
+        required: bool = ...,
+        help: str | None = ...,
+        metavar: str | tuple[str, ...] | None = ...,
+        dest: str | None = ...,
+        version: str = ...,
+        **kwargs: Any
+    ) -> Action
+    ```
+
+    可以看到，其实现短参数的原理是使用`*name_or_flags`这个位置参数，可以指定同一个参数的多个别名。
+    
+    这个很巧妙，无论是`-v`，`--verbose`，还是`-verbose`，`--v`，都由用户自由设定，如果使用`add_argument(long='verbose', short='v')`，那遇到`-verbose`该选择 long 还是 short？这样就不好处理了。
+
 * python 函数中的 static 变量
 
     1. 使用函数属性（推荐）

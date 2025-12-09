@@ -1023,6 +1023,234 @@
 
     pcilink, numa_node
 
+* `ncclTopoGetXmlFromSys()`
+
+    原文片段 1:
+
+    ```cpp
+    ncclResult_t ncclTopoGetXmlFromSys(struct ncclXmlNode* pciNode, struct ncclXml* xml) {
+      // Fill info, then parent
+      const char* busId;
+      NCCLCHECK(xmlGetAttr(pciNode, "busid", &busId));
+      char* path = NULL;
+      ncclDebugNoWarn = NCCL_GRAPH;
+      getPciPath(busId, &path);
+      ncclDebugNoWarn = 0;
+    ```
+
+    注：
+
+    * `busId` -> `"0000:29:00.0"`
+
+        这个就是网卡的 pci bdf
+
+    * `path` -> `"/sys/devices/pci0000:26/0000:26:01.0/0000:27:00.0/0000:28:00.0/0000:29:00.0"`
+
+    原文片段 2：
+
+    ```cpp
+      if (path) {
+        NCCLCHECK(ncclTopoSetAttrFromSys(pciNode, path, "class", "class"));
+      }
+      int index;
+      ncclDebugNoWarn = NCCL_GRAPH;
+      NCCLCHECK(xmlGetAttrIndex(pciNode, "vendor", &index));
+      if (index == -1) {
+        if (path) ncclTopoSetAttrFromSys(pciNode, path, "vendor", "vendor");
+      }
+      NCCLCHECK(xmlGetAttrIndex(pciNode, "device", &index));
+      if (index == -1) {
+        if (path) ncclTopoSetAttrFromSys(pciNode, path, "device", "device");
+      }
+      NCCLCHECK(xmlGetAttrIndex(pciNode, "subsystem_vendor", &index));
+      if (index == -1) {
+        if (path) ncclTopoSetAttrFromSys(pciNode, path, "subsystem_vendor", "subsystem_vendor");
+      }
+      NCCLCHECK(xmlGetAttrIndex(pciNode, "subsystem_device", &index));
+      if (index == -1) {
+        if (path) ncclTopoSetAttrFromSys(pciNode, path, "subsystem_device", "subsystem_device");
+      }
+      ncclDebugNoWarn = 0;
+    ```
+
+    注：
+
+    * 这几个其实可以统一写成`set_attr_if_unset()`
+
+    原文片段 3：
+
+    ```cpp
+      NCCLCHECK(xmlGetAttrIndex(pciNode, "link_speed", &index));
+      if (index == -1) {
+        if (path) {
+          char deviceSpeedStr[MAX_STR_LEN];
+          float deviceSpeed = FLT_MAX;
+          NCCLCHECK(ncclTopoGetStrFromSys(path, "max_link_speed", deviceSpeedStr));
+          sscanf(deviceSpeedStr, "%f GT/s", &deviceSpeed);
+          char portSpeedStr[MAX_STR_LEN];
+          float portSpeed = FLT_MAX;
+          NCCLCHECK(ncclTopoGetStrFromSys(path, "../max_link_speed", portSpeedStr));
+          sscanf(portSpeedStr, "%f GT/s", &portSpeed);
+          NCCLCHECK(xmlSetAttr(pciNode, "link_speed", portSpeed < deviceSpeed ? portSpeedStr : deviceSpeedStr));
+        } else {
+          NCCLCHECK(xmlSetAttr(pciNode, "link_speed", ""));
+        }
+      }
+    ```
+
+    注：
+
+    * 如果 xml 中 pci node 未设置`link_speed`，那么对比`max_link_speed`和`../max_link_speed`，哪个小选哪个
+
+    * 因为`portSpeed`提前设置了`FLT_MAX`，所以如果`../max_link_speed`文件不存在，那么`sscanf(portSpeedStr, "%f GT/s", &portSpeed);`就不会生效，`portSpeed`依然保持`FLT_MAX`，而`max_link_speed`一定小于`FLT_MAX`，因此在`portSpeed < deviceSpeed ? portSpeedStr : deviceSpeedStr`的比较中，总是会选`deviceSpeedStr`。
+
+        这样就解决了`../max_link_speed`文件可能不存在的问题。
+
+    原文片段 4：
+
+    ```cpp
+      NCCLCHECK(xmlGetAttrIndex(pciNode, "link_width", &index));
+      if (index == -1) {
+        if (path) {
+          char strValue[MAX_STR_LEN];
+          NCCLCHECK(ncclTopoGetStrFromSys(path, "max_link_width", strValue));
+          int deviceWidth = strtol(strValue, NULL, 0);
+          NCCLCHECK(ncclTopoGetStrFromSys(path, "../max_link_width", strValue));
+          int portWidth = strtol(strValue, NULL, 0);
+          NCCLCHECK(xmlSetAttrInt(pciNode, "link_width", std::min(deviceWidth,portWidth)));
+        } else {
+          NCCLCHECK(xmlSetAttr(pciNode, "link_width", ""));
+        }
+      }
+    ```
+
+    * `link_width`处理方式与`link_speed`完全相同
+
+    原文片段 5：
+
+    ```cpp
+      const char* vendor;
+      NCCLCHECK(xmlGetAttr(pciNode, "vendor", &vendor));
+      if (vendor != NULL && strcmp(vendor, "0x1000") == 0) { // BCM switch, look for P2P connections
+        int nlinks;
+        char* peers;
+        NCCLCHECK(getBcmLinks(busId, &nlinks, &peers));
+        for (int l=0; l<nlinks; l++) {
+          char* target = peers+l*BUSID_SIZE;
+          struct ncclXmlNode* linkNode;
+          NCCLCHECK(xmlGetSubKv(pciNode, "pcilink", &linkNode, "target", target));
+          if (linkNode == NULL) {
+            NCCLCHECK(xmlAddNode(xml, pciNode, "pcilink", &linkNode));
+            NCCLCHECK(xmlSetAttr(linkNode, "target", target));
+          }
+        }
+      }
+    ```
+
+    * `vendor` -> `"0x15b3"`
+
+    原文片段 6：
+
+    ```cpp
+      struct ncclXmlNode* parent = pciNode->parent;
+      if (parent == NULL) {
+        if (path) {
+          // Save that for later in case next step is a CPU
+          char numaIdStr[MAX_STR_LEN];
+          NCCLCHECK(ncclTopoGetStrFromSys(path, "numa_node", numaIdStr));
+
+          // Go up one level in the PCI tree. Rewind two "/" and follow the upper PCI
+          // switch, or stop if we reach a CPU root complex.
+          int slashCount = 0;
+          int parentOffset;
+          for (parentOffset = strlen(path)-1; parentOffset>0; parentOffset--) {
+            if (path[parentOffset] == '/') {
+              slashCount++;
+              path[parentOffset] = '\0';
+              int start = parentOffset - 1;
+              while (start>0 && path[start] != '/') start--;
+              // Check whether the parent path looks like "BBBB:BB:DD.F" or not.
+              if (checkBDFFormat(path+start+1) == 0) {
+                // This a CPU root complex. Create a CPU tag and stop there.
+                struct ncclXmlNode* topNode;
+                NCCLCHECK(xmlFindTag(xml, "system", &topNode));
+                NCCLCHECK(xmlGetSubKv(topNode, "cpu", &parent, "numaid", numaIdStr));
+                if (parent == NULL) {
+                  NCCLCHECK(xmlAddNode(xml, topNode, "cpu", &parent));
+                  NCCLCHECK(xmlSetAttrLong(parent, "host_hash", getHostHash()));
+                  NCCLCHECK(xmlSetAttr(parent, "numaid", numaIdStr));
+                }
+              } else if (slashCount == 2) {
+                // Continue on the upper PCI switch
+                for (int i = strlen(path)-1; i>0; i--) {
+                  if (path[i] == '/') {
+                    NCCLCHECK(xmlFindTagKv(xml, "pci", &parent, "busid", path+i+1));
+                    if (parent == NULL) {
+                      NCCLCHECK(xmlAddNode(xml, NULL, "pci", &parent));
+                      NCCLCHECK(xmlSetAttr(parent, "busid", path+i+1));
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+            if (parent) break;
+          }
+    ```
+
+    * `numaIdStr` -> `"0"`
+
+    原文片段 7：
+
+    ```cpp
+        } else {
+          // No information on /sys, attach GPU to unknown CPU
+          NCCLCHECK(xmlFindTagKv(xml, "cpu", &parent, "numaid", "-1"));
+          if (parent == NULL) {
+            struct ncclXmlNode* topNode;
+            NCCLCHECK(xmlFindTag(xml, "system", &topNode));
+            NCCLCHECK(xmlAddNode(xml, topNode, "cpu", &parent));
+            NCCLCHECK(xmlSetAttrLong(parent, "host_hash", getHostHash()));
+            NCCLCHECK(xmlSetAttr(parent, "numaid", "-1"));
+            NCCLCHECK(ncclTopoGetXmlFromCpu(parent, xml));
+          }
+        }
+        pciNode->parent = parent;
+        // Keep PCI sub devices ordered by PCI Bus ID (Issue #820)
+        // Coverity complains about dereferenced parent being NULL
+        // but this can never happen.
+        // coverity[var_deref_op]
+        int subIndex = parent->nSubs;
+        const char* newBusId;
+        NCCLCHECK(xmlGetAttrStr(pciNode, "busid", &newBusId));
+        for (int s=0; s<parent->nSubs; s++) {
+          const char* busId;
+          NCCLCHECK(xmlGetAttr(parent->subs[s], "busid", &busId));
+          if (busId != NULL && strcmp(newBusId, busId) < 0) { subIndex = s; break; }
+        }
+        if (parent->nSubs == MAX_SUBS) {
+          WARN("Error : XML parser is limited to %d subnodes", MAX_SUBS);
+          return ncclInternalError;
+        }
+        for (int s = parent->nSubs; s > subIndex; s--) parent->subs[s] = parent->subs[s-1];
+        parent->subs[subIndex] = pciNode;
+        parent->nSubs++;
+      }
+    ```
+
+    原文片段 8（完）：
+
+    ```cpp
+      if (strcmp(parent->name, "pci") == 0) {
+        NCCLCHECK(ncclTopoGetXmlFromSys(parent, xml));
+      } else if (strcmp(parent->name, "cpu") == 0) {
+        NCCLCHECK(ncclTopoGetXmlFromCpu(parent, xml));
+      }
+      free(path);
+      return ncclSuccess;
+    }
+    ```
+
 * 真实机器上每个 pci 路径的 numa id 都是正常的，比如 0。virtual box 里所有的 numa id 都是 -1
 
 * print_xml(), find_child_tag() 把改成类成员函数
@@ -1030,3 +1258,13 @@
 * 网卡的枚举是否能放到 local res 中完成？
 
 * 应该同时支持 nv gpu 和 sipu 地检测
+
+* 网卡检测的两个问题
+
+    * 在 top 层，不应该去处理上一级目录`../max_link_speed`相关的内容
+
+        nv 那边是如何处理的？
+
+    * 在当前层，如果检测到 unknown，如何处理？
+
+        可以从`/sys/class/net/enp0s2`拿到正确的数据。那么 ifname 从哪来？populate nic 里有网卡的名称吗？
