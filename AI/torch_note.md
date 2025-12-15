@@ -2,135 +2,6 @@
 
 ## cache
 
-* `np.pad()`
-
-    np.pad() 是 NumPy 中用于数组填充（padding）的函数，主要用于在数组边界扩展指定宽度的元素。
-
-    syntax:
-
-    ```py
-    numpy.pad(array, pad_width, mode='constant', **kwargs)
-    ```
-
-    主要参数：
-
-    * array：要填充的数组
-
-    * pad_width：填充宽度，格式为 ((before_1, after_1), ..., (before_N, after_N))
-
-        对于多维数组，pad_width 的每个元组对应一个维度
-
-    * mode：填充模式，默认为 'constant'
-
-    * constant_values：当模式为 'constant' 时使用的填充值
-
-    常用填充模式
-
-        constant：常数填充（默认）
-
-        edge：使用边缘值填充
-
-        linear_ramp：线性斜坡填充
-
-        maximum/minimum：使用数组最大/最小值填充
-
-        mean：使用数组平均值填充
-
-        median：使用中位数填充
-
-        reflect/symmetric：反射/对称填充
-
-    example:
-
-    ```py
-    import numpy as np
-
-    # 1. 一维数组常数填充
-    arr_1d = np.array([1, 2, 3])
-    padded = np.pad(arr_1d, (2, 3), mode='constant', constant_values=0)
-    # 结果：[0 0 1 2 3 0 0 0]
-
-    # 2. 二维数组不同方向填充
-    arr_2d = np.array([[1, 2], [3, 4]])
-    # 上下各填充1行，左右各填充2列
-    padded = np.pad(arr_2d, ((1, 1), (2, 2)), mode='constant', constant_values=0)
-
-    # 3. 使用不同填充值
-    arr = np.array([1, 2, 3])
-    # 左侧填充5，右侧填充10
-    padded = np.pad(arr, (2, 3), mode='constant', constant_values=(5, 10))
-
-    # 4. 边缘值填充
-    arr = np.array([1, 2, 3, 4])
-    padded = np.pad(arr, (2, 2), mode='edge')
-    # 结果：[1 1 1 2 3 4 4 4]
-
-    # 5. 反射填充
-    arr = np.array([1, 2, 3, 4])
-    padded = np.pad(arr, (2, 2), mode='reflect')
-    # 结果：[3 2 1 2 3 4 3 2]
-
-    # 6. 不同维度不同填充宽度
-    arr_2d = np.ones((3, 3))
-    pad_width = ((1, 2), (3, 4))  # 第一维：上1行下2行，第二维：左3列右4列
-    padded = np.pad(arr_2d, pad_width, mode='constant', constant_values=0)
-    ```
-
-    注：
-
-    1. 如果`pad_width`只写一份，那么会在最外层维度上被广播
-
-        example:
-
-        ```py
-        import numpy as np
-
-        arr = np.ones((3, 2))
-        arr = np.pad(arr, (2, 3))
-        print(arr)
-        ```
-
-        output:
-
-        ```
-        [[0. 0. 0. 0. 0. 0. 0.]
-        [0. 0. 0. 0. 0. 0. 0.]
-        [0. 0. 1. 1. 0. 0. 0.]
-        [0. 0. 1. 1. 0. 0. 0.]
-        [0. 0. 1. 1. 0. 0. 0.]
-        [0. 0. 0. 0. 0. 0. 0.]
-        [0. 0. 0. 0. 0. 0. 0.]
-        [0. 0. 0. 0. 0. 0. 0.]]
-        ```
-
-        可以看到，在行上是前面添加两行，后面添加三行；在列上是左边添加两列，右边添加三列。
-
-        相当于把`(2, 3)`广播成了`((2, 3), (2, 3))`。
-
-        如果希望被广播成`((2, 2), (3, 3))`，那么可以写成`((2, ), (3, ))`
-
-    1. 对于`constant_value`，后 padding 的会覆盖先 padding 的
-
-        ```py
-        import numpy as np
-
-        arr = np.ones((3, 2))
-        arr = np.pad(arr, ((2, ), (3, )), constant_values=((2, ), (3, )))
-        print(arr)
-        ```
-
-        output:
-
-        ```
-        [[3. 3. 3. 2. 2. 3. 3. 3.]
-        [3. 3. 3. 2. 2. 3. 3. 3.]
-        [3. 3. 3. 1. 1. 3. 3. 3.]
-        [3. 3. 3. 1. 1. 3. 3. 3.]
-        [3. 3. 3. 1. 1. 3. 3. 3.]
-        [3. 3. 3. 2. 2. 3. 3. 3.]
-        [3. 3. 3. 2. 2. 3. 3. 3.]]
-        ```
-
 * 为什么计算卷积时，需要翻转卷积核
 
     连续卷积数学定义：
@@ -170,21 +41,19 @@
 
     只有包含翻转的卷积才满足：
 
-        交换律：f * g = g * f
+    * 交换律：$f * g = g * f$
 
-        结合律：(f * g) * h = f * (g * h)
+    * 结合律：$(f * g) * h = f * (g * h)$
 
-        平移不变性等数学性质
+    * 平移不变性等数学性质
 
 * 7点移动平均
 
-    指滑动窗口中共有 7 个数据。每次计算时，取当前数据点及其前后各3个点（共7个点）。将这7个数据点相加，然后除以7。相当于一个低通滤波器，平滑掉高频噪声。
+    指滑动窗口中共有 7 个数据。每次计算时，取当前数据点及其前后各 3 个点（共 7 个点）。将这 7 个数据点相加，然后除以 7。相当于一个低通滤波器，平滑掉高频噪声。
 
-    代码：
+    卷积核代码：`np.ones(7) / 7`
 
-    `np.ones(7) / 7`
-
-    相当于卷积核：`[1/7, 1/7, 1/7, 1/7, 1/7, 1/7, 1/7]`
+    相当于：`[1/7, 1/7, 1/7, 1/7, 1/7, 1/7, 1/7]`
 
     7 点并没有什么特殊的意义，通常与 5 点，9 点，15 点等做比较，结合实际问题赋予意义。
 
@@ -371,13 +240,13 @@
 
     `y.backward(v)`计算的是`∂(v·y)/∂x = vᵀ · ∂y/∂x`。
 
-    当 y 是多维张量时，PyTorch 确实会：
+    当 y 是多维张量时，PyTorch 会：
 
-        自动构造一个标量函数：y' = w₁·y₁ + w₂·y₂ + ... + wₙ·yₙ
+    1. 自动构造一个标量函数：$y' = w_1 \cdot y_1 + w_2 \cdot y_2 + \dots + w_n \cdot y_n$
 
-        使用你提供的权重：w = [w₁, w₂, ..., wₙ] 就是 backward() 中的参数
+    2. 使用用户提供的权重：$w = [w_1, w_2, \dots, w_n]$ 就是 `backward()` 中的参数
 
-        对 y' 求导：最终计算的是 ∂y'/∂x，而不是直接计算 ∂y/∂x
+    3. 对 $y'$ 求导：最终计算的是 $\partial y' / \partial x$，而不是直接计算 $\partial y / \partial x$
 
     example:
 
@@ -611,527 +480,6 @@
 
         通过模拟宿主与寄生虫之间的“军备竞赛”，来维持种群的多样性和避免过早收敛。
 
-* f measure 延伸
-
-    这里的 "F" 通常被认为是代表 F-measure（F 度量），源自统计学中的 F-test 概念。
-
-    f1-score 有时也被解释为平衡 Precision 和 Recall 的 Harmonic Mean（调和平均）。
-
-    $\beta$ 参数的意义：
-
-    * $\beta$ 参数控制着 Precision 和 Recall 的相对重要性
-
-    * $\beta = 1$：Precision 和 Recall 同等重要 → F1-score
-
-    * $\beta > 1$：更重视 Recall（如 $\beta = 2$ 时，Recall 的权重是 Precision 的 4 倍）
-
-    * $\beta < 1$：更重视 Precision（如 $\beta = 0.5$ 时，Precision 的权重是 Recall 的 4 倍）
-
-* F1-score
-
-    F1 指的是 F-score 或 F-measure 家族中的第一个成员，具体来说是当参数 β = 1 时的特殊情况。
-
-    F-score 的通用公式是：
-
-    $$F_\beta = (1 + \beta^2) \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{(\beta^2 \cdot \mathrm{Precision}) + \mathrm{Recall}}$$
-
-    当 $\beta = 1$ 时，公式简化为：
-
-    $$F_1 = 2 \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}$$
-
-    这就是 F1-score 的由来 - 它是 F-measure with $\beta = 1$。
-
-* 为什么 macro 不使用调和平均值？
-
-    F1-score 已经是考虑过类别平衡的数据了，直接对 F1-socre 使用 macro 就可以。F1-socre 对 Precision 和 Recall 使用调和平均是因为 Precision 和 Recall 是同一类别不同维度的指标。而 macro 是对同一个维度的指标进行调和平均，没有必要。
-
-    对已经平衡过的指标（F1）再进行一次平衡，这可能导致过度惩罚。
-
-    如果我们考虑到不同类别的平衡，可以使用
-
-    1. 加权F1（Weighted-F1）
-
-        `Weighted-F1 = Σ(weight_i × F1_i)`
-
-        其中 weight_i 通常是该类别的样本比例
-
-    2. 几何平均（Geometric Mean）
-
-        对极端值比算术平均更敏感，但比调和平均温和：
-
-        `G-Mean = (F1_1 × F1_2 × ... × F1_N)^(1/N)`
-
-    3. 使用专门的不平衡学习指标
-
-        如 G-Mean（几何平均）或 Balanced Accuracy。
-
-    如果特别关注最差类别，考虑报告 最小F1（Min-F1）
-
-* 如何选择 micro 与 macro
-
-    选择哪种平均方式完全取决于你的业务目标和数据集特点。
-
-    选择 'micro' 当：
-
-        你关心模型的整体性能，并且每个样本的错误代价是相同的。
-
-        数据存在不平衡，但大类的性能更重要。例如，在电商产品分类中，热销商品的准确率远比冷门商品重要。
-
-        你希望得到一个单一的、概括性的性能指标，并且这个指标与准确率等价。
-
-    选择 'macro' 当：
-
-        所有类别都同等重要，无论其样本数量多少。
-
-        你特别关心模型在小类/稀有类上的表现。这在很多关键领域至关重要：
-
-            医疗： 诊断一个稀有病。
-
-            金融风控： 检测极少数但危害巨大的欺诈交易。
-
-            工业： 预测罕见的设备故障。
-
-        你的数据集类别相对平衡。
-
-        你想评估模型的稳健性和泛化能力，看它是否在所有类别上都“学得不错”。
-
-
-    最佳实践
-
-    不要只看一个数字！ 一个负责任的实践是：
-
-        同时报告 Micro 和 Macro 值，以提供更全面的视图。
-
-        查看每个类别的单独指标（即不平均），这能最直接地发现问题所在。
-
-        分析混淆矩阵，直观地看到哪些类别被混淆了。
-
-* precision 的三种模式 micro, macro 与 none
-
-    * `'micro'`： 全局视角。先汇总所有类别（或所有样本）的 TP, FP, FN，再用汇总后的总数计算一个全局指标。
-
-    * `'macro'`： 平均视角。先独立计算每个类别的指标，然后对所有类别的指标值求算术平均。
-
-    * `'none'`: 计算每个类别的 precision，不进行平均
-
-    example:
-
-    ```py
-    from torchmetrics import Precision
-
-    pred = t.tensor([0, 1, 2, 3])
-    gt = t.tensor([0, 1, 0, 0])
-
-    pre = Precision('multiclass', num_classes=10, average='micro')
-    pre.update(pred, gt)
-    pre_score = pre.compute()
-    print('micro pre: {}'.format(pre_score))
-
-    pre = Precision('multiclass', num_classes=10, average='macro')
-    pre.update(pred, gt)
-    pre_score = pre.compute()
-    print('macro pre: {}'.format(pre_score))
-
-    pre = Precision('multiclass', num_classes=10, average='none')
-    pre.update(pred, gt)
-    pre_score = pre.compute()
-    print('none pre: {}'.format(pre_score))
-    ``` 
-
-    output:
-
-    ```
-    micro pre: 0.5
-    macro pre: 0.5
-    none pre: tensor([1., 1., 0., 0., 0., 0., 0., 0., 0., 0.])
-    ```
-
-    * `'micro'`模式详解
-
-        假设我们有一个多类分类问题，有 C 个类别。
-
-        1. 逐类统计：
-
-            对于每个类别 i，计算其真正例（TP_i）和假正例（FP_i）。
-
-            * 真正例（TP_i）： 真实标签为 i 且被预测为 i 的样本数。
-
-            * 假正例（FP_i）： 真实标签不是 i 但被预测为 i 的样本数。
-
-        2. 全局汇总：
-
-            * 计算所有类别的 TP 之和： total_TP = TP_1 + TP_2 + ... + TP_C
-
-            * 计算所有类别的 FP 之和： total_FP = FP_1 + FP_2 + ... + FP_C
-
-        3. 计算 Micro Precision：
-
-            使用汇总后的 total_TP 和 total_FP 来计算 Precision，公式和标准的二分类 Precision 一模一样。
-
-            $\mathrm{Precision_{micro}} = \frac{\mathrm{total\_TP}}{\mathrm{total\_TP + total\_FP}}$
-
-        重要特性与注意事项
-
-        * 与 Accuracy 的关系： 在多类分类中，Micro Precision 的值等于 准确率（Accuracy）。这是因为：
-
-            * total_TP 就是所有被正确分类的样本总数。
-
-            * total_TP + total_FP 就是所有被预测为正例的样本总数，在多类分类中，这等于总样本数（因为每个样本必须被分到一个类别）。
-
-            * 所以，Micro Precision = total_TP / N = Accuracy。
-
-        * 样本不平衡： Micro 平均对每个样本“一视同仁”，因此它更适合样本不平衡的数据集，因为大类的性能会主导最终结果。如果你关心小类的性能，应该使用 'macro' 平均。
-
-        * 多标签任务： 在多标签任务中（一个样本可以有多个标签），Micro Precision 的计算逻辑完全相同（汇总所有标签的 TP 和 FP），但此时它不等于 Accuracy，因为一个样本可以有多个预测和多个真实标签。
-
-    * `'micro'`与`'macro'`模式的对比
-
-        * 对类别不平衡的敏感性
-
-            * `micro`
-
-                不敏感（默认偏向大类）
-                大类的性能主导了最终结果。因为大类的 TP/FP 数量远多于小类，在汇总时贡献最大。在我们的例子中，Micro Precision (0.786) 更接近大类 A 的 Precision (0.947)。
-
-            * `macro`
-
-                敏感（平等对待每个类）
-                将所有类别视为同等重要，无论其样本多少。小类的差劲性能会直接拉低平均值。在我们的例子中，Macro Precision (0.831) 被小类 C 的 Precision (0.714) 拉低了。
-        * 优点
-
-            * micro
-
-                1. 综合性能： 很好地衡量了模型在整体数据集上的性能。
-                2. 等于Accuracy： 在多类分类中，Micro-Precision/Recall/F1 等于准确率，易于理解。
-                3. 适用于样本不平衡但关心整体性能的场景。
-
-            * macro
-
-                1. 公平性： 给予所有类别同等权重，能揭示模型在小类上的短板。
-                2. 稳定性： 不受类别分布影响，适合比较不同数据集或不同采样策略下的模型。
-                3. 适用于需要关注小类的场景（如医疗诊断、故障检测）。
-
-        * 缺点
-
-            * micro
-
-                1. 掩盖小类问题： 如果模型完全忽略小类，但只要大类表现好，Micro指标依然会很高，从而误导你认为模型很好。
-                2. 对数据分布敏感： 结果严重依赖于数据集的类别分布。
-
-            * macro
-
-                1. 可能低估性能： 如果一个模型在大类上表现极好，但在一个样本极少的小类上表现稍差，Macro指标可能会给出一个相对较低的评价，这可能不完全符合业务直觉。
-                2. 对噪声敏感： 一个在某个小类上的极端差值（如 Precision=0）会严重拉低整体平均值。
-
-* torchmetrics
-
-    `acc.update(pred, gt)`
-
-    在`.update()`函数中，第一个参数必须是 pred，第二个参数必须是 gt。
-
-    pred 和 gt 必须是 torch 的 tensor 类型，不能是 numpy 的 ndarray。
-
-    如果 pred 是一维的，那么其编码方式为标签编码，即预测的类别的索引，而不是概率。
-    
-    如果 pred 是二维的，那么 pred 的类型必须是 float，不能是 int，其代表的含义为输出的概率。问题：是否需要经过 softmax？问题：如果使用 max() 取概率最大值，那么 threshold = 0.5 有什么意义？
-
-* Accuracy（准确率）, Precision（精确率/查准率）, Recall（召回率/查全率）
-
-    * accuracy
-
-        含义：所有预测结果中，预测正确的比例。
-
-        公式：
-
-        `Accuracy = (TP + TN) / (TP + TN + FP + FN)`
-
-        意义：衡量模型整体的正确率。它是一个非常直观的指标。
-
-        优缺点：
-
-        * 优点：容易理解。
-
-        * 缺点：在数据不平衡的数据集上，准确率会严重失真。
-
-            例子：在一个有1000个样本的数据集中，有990个负样本（0），只有10个正样本（1）。如果一个模型简单地将所有样本都预测为负，那么它的准确率是 (0 + 990) / 1000 = 99%。虽然准确率很高，但这个模型完全没有识别正例的能力，是一个无用的模型。
-
-    * precision
-
-        含义：在所有被模型预测为正例的样本中，真正的正例有多少。
-
-        公式：
-
-        `Precision = TP / (TP + FP)`
-
-        意义：衡量模型的“精准度”或“宁缺毋滥”的程度。它关注的是预测结果。
-
-        核心问题：当模型说某个东西是“正例”时，它有多可信？
-
-        应用场景：注重减少误报（FP）的场景。
-
-        * 垃圾邮件检测：我们非常不希望把正常邮件误判为垃圾邮件（FP）。宁可放过一些垃圾邮件（FN），也不能误杀正常邮件。因此，我们需要高精确率。
-
-        * 推荐系统：给用户推送的内容，希望尽量都是他感兴趣的。如果推送了不感兴趣的内容（FP），会影响用户体验。
-
-    * recall
-
-        含义：在所有实际为正例的样本中，模型成功预测出来的有多少。
-
-        公式：
-
-        `Recall = TP / (TP + FN)`
-
-        意义：衡量模型的“覆盖率”或“宁错杀不漏放”的程度。它关注的是真实情况。
-
-        核心问题：在所有真正的正例中，模型找出了多少？
-
-        应用场景：注重减少漏报（FN）的场景。
-
-        * 疾病检测：我们非常不希望把一个患病的人误判为健康（FN）。宁可让一些健康的人做进一步检查（FP），也不能漏掉一个病人。因此，我们需要高召回率。
-
-        * 逃犯识别：在安检系统中，绝对不能漏掉一个逃犯（FN）。即使需要误警一些普通人（FP）进行二次检查，也要确保高召回率。
-
-    * Precision和Recall的“跷跷板”关系
-
-        在大多数情况下，精确率（Precision）和召回率（Recall）是相互矛盾的。提高一个，通常会导致另一个的降低。
-
-        * 如果你想提高Precision（减少FP）：
-
-            你需要提高预测正例的门槛。例如，只有模型有99%的把握时才预测为正。这样，被预测为正的样本确实很可能是正的（Precision高），但很多“没那么确定”的正例会被判为负例，从而导致漏报增加（FN增加），Recall降低。
-
-        * 如果你想提高Recall（减少FN）：
-
-            你需要降低预测正例的门槛。例如，只要模型有50%的把握就预测为正。这样，你能抓住几乎所有的正例（Recall高），但也会混入很多其实是负例的样本，导致误报增加（FP增加），Precision降低。
-
-    * 与Accuracy的关系
-
-        Accuracy提供了一个宏观的、整体的性能视图。
-
-        Precision和Recall提供了更细粒度的、针对特定类别（正例）的性能视图。
-
-        在数据平衡且FP和FN的成本相似的问题中，Accuracy是一个不错的指标。
-
-        在数据不平衡或FP与FN的成本明显不同的问题中，必须结合Precision和Recall（以及F1-Score）来分析。
-
-* F1-Score：调和平均数
-
-    为了同时考虑Precision和Recall，我们引入了 F1-Score。
-
-    公式：
-
-    `F1-Score = 2 * (Precision * Recall) / (Precision + Recall)`
-
-    意义：F1-Score 是 Precision 和 Recall 的调和平均数。它只有在 Precision 和 Recall 都较高时才会高。因此，它是一个综合性的指标，特别适用于不平衡数据集的评价。
-
-    * 为什么取调和平均数，而不是代数平均数，或者几何平均数？
-
-        因为调和平均数对较低值施加了更严厉的惩罚。
-
-        三种平均数：
-
-        假设我们有 Precision (P) 和 Recall (R) 两个值。
-
-        * 算术平均数：(P + R) / 2
-
-            特点：对所有值一视同仁，是普通的“平均值”。
-
-        * 几何平均数：sqrt(P * R)
-
-            特点：受极端值影响较小，更适合衡量比例或增长率。
-
-        * 调和平均数：2 * P * R / (P + R)
-
-            特点：强烈惩罚不平衡的数值。当P和R中有一个非常低时，调和平均数会接近这个低值。
-
-        我们希望一个模型在Precision和Recall上都表现良好，而不是用其中一个的高分来“掩盖”另一个的低分。
-
-        example:
-
-        场景：我们有一个疾病检测模型。
-
-            模型A： Precision = 1.0， Recall = 0.1
-
-                它预测有病的人，100%确实有病（非常准，绝不误诊）。
-
-                但实际有病的人，它只找出了10%（漏掉了90%的病人，非常危险）。
-
-            模型B： Precision = 0.5， Recall = 0.5
-
-                它预测有病的人，一半确实有病。
-
-                实际有病的人，它找出了一半。
-
-        问题：哪个模型更好？
-
-        计算它们的平均数：
-
-        | 模型 | A | B |
-        | - | - | - |
-        |　Precision (P) | 1.0 | 0.5 |
-        | Recall (R) | 0.1 | 0.5 |
-        | 算术平均 | (1.0 + 0.1) / 2 = 0.55 | (0.5+0.5)/2 = 0.50 |
-        | 几何平均 sqrt(1.0 * 0.1) ≈ 0.32 | sqrt(0.5 * 0.5) = 0.50 |
-        | 调和平均 | (F1) 2(1.0 * 0.1)/(1.0+0.1) ≈ 0.18 | 2(0.5* 0.5)/(0.5+0.5) = 0.50 |
-
-        分析结果：
-
-        * 从算术平均数看：模型A (0.55) > 模型B (0.50)。这显然是不合理的。模型A是一个“懒惰”的模型，它为了保持100%的准确率，只敢对极少数非常有把握的病例做出阳性预测，导致大量病人被漏诊。在医学上，这是一个灾难性的模型。然而，算术平均数却被它极高的Precision所“欺骗”，给出了更高的分数。
-
-        * 从几何平均数看：模型A (0.32) < 模型B (0.50)。这个结果已经比算术平均数合理了，它识别出了模型A的不平衡性。
-
-        * 从调和平均数 (F1-Score) 看：模型A (0.18) << 模型B (0.50)。调和平均数对模型A的“偏科”行为施加了最严厉的惩罚，给出了一个极低的分数，清晰地表明模型B的综合性能远优于模型A。
-
-        结论与总结:
-
-        平均数类型	对不平衡的惩罚力度	在评估模型中的适用性
-        算术平均	最弱	不适用。容易被一个高指标和另一个低指标的模型所误导。
-        几何平均	中等	比算术平均好，在某些场景下（如Fβ-Score的变体）有应用。
-        调和平均 (F1)	最强	最常用。能有效惩罚“偏科”的模型，确保模型在P和R之间取得有意义的平衡。
-
-    F1-Score特别适合于类别不平衡的数据集，以及那些没有明确倾向是更需要Precision还是Recall的场景，它提供了一个稳健的、单一的综合性评估指标。
-
-    当你有明确倾向时，可以使用Fβ-Score。
-
-    Fβ = (1 + β²) * (Precision * Recall) / (β² * Precision + Recall)
-
-    当β=1时，就是F1。
-
-    当β>1时，Recall的权重更高（更看重查全）。
-
-    当β<1时，Precision的权重更高（更看重查准）。
-
-* 混淆矩阵（Confusion Matrix）
-
-    有时也被称为 Error Matrix（错误矩阵），它是一个2x2的表格，总结了分类模型对二分类问题的预测结果。
-
-
-    | | 实际为正例 | 实际为负例 |
-    | - | :-: | :-: |
-    | 预测为正例 | TP (True Positive) | FP (False Positive) |
-    | 预测为负例 | FN (False Negative) | TN (True Negative) |
-
-    * TP（真阳性）：模型预测为正，实际也是正。预测正确。
-
-    * FP（假阳性）：模型预测为正，但实际是负。误报。
-
-    * FN（假阴性）：模型预测为负，但实际是正。漏报。
-
-    * TN（真阴性）：模型预测为负，实际也是负。预测正确。
-
-* torchmetrics
-
-    install: `pip install torchmetrics`
-
-    ```py
-    import torch
-    from torchmetrics import Accuracy, Precision
-
-    # accuracy
-    accuracy = Accuracy(task="multiclass", num_classes=10)
-    accuracy.reset()
-
-    batch1_preds = torch.tensor([0, 1, 2, 3]) # 模型预测的类别索引
-    batch1_target = torch.tensor([0, 1, 1, 3]) # 真实的类别索引
-
-    batch2_preds = torch.tensor([1, 0, 2])
-    batch2_target = torch.tensor([1, 0, 1])
-
-    accuracy.update(batch1_preds, batch1_target)
-    accuracy.update(batch2_preds, batch2_target)
-
-    final_accuracy = accuracy.compute()
-    print(f"最终准确率: {final_accuracy}") # 例如：tensor(0.7143)
-
-
-    # precision
-    pre = Precision('multiclass', num_classes=10, average='macro')
-    pre.reset()
-    pre.update(batch1_preds, batch1_target)
-    pre.update(batch2_preds, batch2_target)
-    final_pre = pre.compute()
-    print('final pre: {}'.format(final_pre))
-    ```
-
-    output:
-
-    ```
-    最终准确率: 0.7142857313156128
-    final pre: 0.75
-    ```
-
-    注：
-
-    1. 如果 precision 的 average 设置为`micro`，那么最后得到的结果和 accuracy 相同。
-
-* 将 tensor 数据放到 gpu 里
-
-    ```py
-    # 检查设备
-    print("Tensor 设备:", torch_tensor.device)
-
-    # 如果需要，移动到 GPU
-    if torch.cuda.is_available():
-        torch_tensor = torch_tensor.cuda()
-    ```
-
-* 关于 torch tensor 创建数据副本的几种情况
-
-    * torch.tensor(任何Python数据) → 总是创建副本
-
-    * torch.from_numpy(np_array) → 共享内存（仅对NumPy数组）
-
-    * torch.as_tensor() → 尽可能共享内存（智能选择）
-
-* 将 numpy 转换为 tensor 时指定类型
-
-    ```py
-    # 转换为 float32
-    torch_tensor_float = torch.from_numpy(numpy_array).float()
-
-    # 或者在转换时指定
-    torch_tensor_float = torch.from_numpy(numpy_array.astype(np.float32))
-
-    # 使用 dtype 参数
-    torch_tensor = torch.tensor(numpy_array, dtype=torch.float32)
-    ```
-
-    最佳实践
-
-        推荐使用 torch.from_numpy() - 效率高，内存共享
-
-        如果需要独立副本 - 使用 torch.tensor()
-
-        注意数据类型 - 确保使用适合深度学习的数据类型（通常是 float32）
-
-        检查设备 - 确保 tensor 在正确的设备上（CPU/GPU）
-
-    注：
-
-    1. `.float()`会创建副本
-
-        ```py
-        import torch
-        import numpy as np
-
-        # 创建 NumPy 数组
-        numpy_array = np.array([1, 2, 3], dtype=np.int32)
-
-        # 转换过程
-        torch_tensor_int = torch.from_numpy(numpy_array)  # 共享内存，dtype=int32
-        torch_tensor_float = torch.from_numpy(numpy_array).float()  # 创建新副本，dtype=float32
-        ```
-
-    1. 只有提前把 numpy ndarray 的数据类型转换过来，才能共享数据
-
-        ```py
-        # 方法1：先转换 NumPy 数组的数据类型
-        numpy_array_float = numpy_array.astype(np.float32)
-        torch_tensor = torch.from_numpy(numpy_array_float)  # 共享内存，float32
-
-        # 方法2：使用 astype 并保持共享
-        torch_tensor = torch.from_numpy(numpy_array.astype(np.float32, copy=False))
-        ```
-
 * `torch.randint()`要求 size 参数必须为 tuple 类型
 
     比如：
@@ -1139,90 +487,6 @@
     * 对于一维张量: `(batch_size,)`
 
     * 对于二维张量: `(batch_size, seq_len)`
-
-* 使用`random_()`可以将数据初始化为随机值
-
-    example:
-
-    `target = torch.empty(2, dtype=t.long).random_(4)`
-
-    创建一个 shape 为`(2, )`的数组，将其数据初始化为`[0, 4)`的随机值。
-
-* Cross Entropy Loss
-
-    用于计算两个概率分布之间的差值。
-
-    $\mathrm{CrossEntropyLoss}(x, \mathrm{target}) = - \frac 1 N \sum_i (\mathrm{target}_i \cdot \log x_i)$
-
-    * x represents the predicted values,
-
-    * target represents the ground truth or target values.
-
-    注：
-
-    1. 这个数学公式中的$target_i$是向量中的元素，与下面 torch 实现的标签编码不一样。
-
-        在实际任务中，$target_i$大部分为 0，只有一个为 1，其实相当于一个 indicator。
-
-    1. 这里的 N 指的并不是 batch size，而是一个向量中的 N 个元素，相当于下面的`N_class`。
-
-    syntax:
-
-    ```py
-    torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
-    ```
-
-    example:
-
-    ```py
-    from hlc_utils import *
-
-    ce_loss = nn.CrossEntropyLoss()
-
-    batch_size = 2
-    N_class = 4
-
-    input = torch.randn(batch_size, N_class)
-    print('input, shape: {}, data:\n{}\n'.format(input.shape, input))
-
-    target = torch.randint(0, N_class, (batch_size,))
-    print('target, shape: {}, data:\n{}\n'.format(target.shape, target))
-
-    output = ce_loss(input, target)
-    print('output, shape: {}. data:\n{}'.format(output.shape, output))
-    ```
-
-    output:
-
-    ```
-    input, shape: torch.Size([2, 4]), data:
-    tensor([[ 1.0211,  2.0191, -0.9489, -1.2573],
-            [ 1.2270,  1.9557, -0.6735, -0.9454]])
-
-    target, shape: torch.Size([2]), data:
-    tensor([3, 2])
-
-    output, shape: torch.Size([]). data:
-    3.379208564758301
-    ```
-
-    注：
-
-    1. input 应该是**未经过**“概率化”的向量，所谓概率化指的是一个向量中的`N_class`个值加起来和为 1. `CrossEntropyLoss`内置了对输入值进行 softmax 预处理的操作。
-
-    1. target 的值是标签编码（Label Encoding，与 one-hot 编码相对应）
-
-    1. 如果 batch size 大于 1，那么 CrossEntropyLoss 求的是 batch 的均值。
-
-    Advantages:
-
-    * Invariant to scaling and shifting of the predicted probabilities.
-
-    Disadvantages:
-
-    * Sensitive to outliers and imbalanced data (can be biased towards majority class).
-
-    * It does not provide a similarity between classes which can be required in some cases.
 
 * 多模态推理（Multimodal Reasoning）
 
@@ -1299,20 +563,6 @@
     3. 对齐：通过注意力机制找到“戴帽子的人”对应的图像区域。
 
     4. 推理：结合区域特征（检测“手”和“物体”）和问题语义预测答案（如“杯子”）。
-
-* torch 中的`@`
-
-    Python 中的矩阵乘法运算符，A @ B 等价于 torch.matmul(A, B)。
-
-    PyTorch 通过实现 Python 的特殊方法来自定义运算符行为：
-
-    | 运算符 | Python 特殊方法 |
-    | - | - |
-    | `@` | `__matmul__`, `__rmatmul__` |
-    | `+` | `__add__` |
-    | `-` | `__sub__` |
-    | `*` | `__mul__` |	
-    | `/` | `__truediv__` |
 
 * `torch.relu()`
 
@@ -1391,456 +641,9 @@
 
     在 nn.Sequential 中必须使用 nn.ReLU() 模块
 
-* 将 numpy ndarray 转换为 torch tensor
-
-    * 使用 torch.from_numpy()
-
-        ```py
-        import torch
-        import numpy as np
-
-        # 创建 NumPy 数组
-        numpy_array = np.array([1, 2, 3, 4, 5])
-
-        # 转换为 Torch Tensor
-        torch_tensor = torch.from_numpy(numpy_array)
-
-        print("NumPy 数组:", numpy_array)
-        print("Torch Tensor:", torch_tensor)
-        print("Tensor 类型:", torch_tensor.dtype)
-        ```
-
-    * 使用 torch.as_tensor()
-
-        ```py
-        torch_tensor = torch.as_tensor(numpy_array)
-        ```
-
-    * 使用 torch.tensor()
-
-        这个方法会创建数据的副本
-
-        ```py
-        torch_tensor = torch.tensor(numpy_array)
-        ```
-
-    关于内存的共享性：
-
-    * `torch.from_numpy()`: 共享内存
-
-    * `torch.as_tensor()`: 如果可能的话，共享内存
-
-    * `torch.tensor()`: 不共享内存，会创建副本
-
-    example:
-
-    ```py
-    import numpy as np
-    import torch
-
-    # 创建 NumPy 数组
-    numpy_array = np.array([1, 2, 3])
-
-    # 使用 from_numpy（共享内存）
-    torch_tensor = torch.from_numpy(numpy_array)
-
-    # 修改 NumPy 数组
-    numpy_array[0] = 100
-
-    print("修改后的 NumPy 数组:", numpy_array)
-    print("Torch Tensor（也改变了）:", torch_tensor)  # 也会显示 100
-
-    # 使用 torch.tensor（不共享内存）
-    torch_tensor_copy = torch.tensor(numpy_array)
-    numpy_array[1] = 200
-    print("Torch Tensor 副本（未改变）:", torch_tensor_copy)  # 不会改变
-    ```
-
-    output:
-
-    ```
-    修改后的 NumPy 数组: [100   2   3]
-    Torch Tensor（也改变了）: tensor([100,   2,   3])
-    Torch Tensor 副本（未改变）: tensor([100,   2,   3])
-    ```
-
-* `net.named_parameters()`
-
-    遍历神经网络中的所有可学习参数（权重和偏置），并返回参数名称和参数值本身的迭代器。
-
-    example:
-
-    ```py
-    from hlc_utils import *
-
-    class MyModel(Module):
-        def __init__(self):
-            super().__init__()
-            self.fc1 = Linear(784, 64)
-            self.fc2 = Linear(64, 10)
-        
-        def forward(self, x):
-            x = self.fc1(x)
-            x = F.sigmoid(x)
-            x = self.fc2(x)
-            x = F.softmax(x)
-
-    net = MyModel()
-
-    for name, param in net.named_parameters():
-        param: Parameter
-        print('param: {}'.format(param))
-        print("name: {}".format(name))
-        print('shape: {}'.format(param.shape))
-        print('data: {}'.format(param.data))
-        print('grad: {}'.format(param.grad))
-        break
-    ```
-
-    output:
-
-    ```
-    param: Parameter containing:
-    tensor([[ 0.0224, -0.0285, -0.0134,  ...,  0.0081,  0.0048, -0.0166],
-            [ 0.0114, -0.0229, -0.0186,  ...,  0.0354, -0.0218, -0.0119],
-            [ 0.0211, -0.0086,  0.0258,  ..., -0.0265,  0.0103, -0.0192],
-            ...,
-            [ 0.0037,  0.0333, -0.0095,  ...,  0.0202, -0.0237, -0.0126],
-            [-0.0068, -0.0324, -0.0191,  ...,  0.0220,  0.0154,  0.0047],
-            [ 0.0280,  0.0258, -0.0333,  ...,  0.0143, -0.0299,  0.0020]],
-           requires_grad=True)
-    name: fc1.weight
-    shape: torch.Size([64, 784])
-    data: tensor([[ 0.0224, -0.0285, -0.0134,  ...,  0.0081,  0.0048, -0.0166],
-            [ 0.0114, -0.0229, -0.0186,  ...,  0.0354, -0.0218, -0.0119],
-            [ 0.0211, -0.0086,  0.0258,  ..., -0.0265,  0.0103, -0.0192],
-            ...,
-            [ 0.0037,  0.0333, -0.0095,  ...,  0.0202, -0.0237, -0.0126],
-            [-0.0068, -0.0324, -0.0191,  ...,  0.0220,  0.0154,  0.0047],
-            [ 0.0280,  0.0258, -0.0333,  ...,  0.0143, -0.0299,  0.0020]])
-    grad: None
-    ```
-
-    可以看到`Parameter`继承自 Tensor，可以使用`param.data`获取到 tensor。并且 parameter 本身没有 name 属性。
-
-    已知一个 param，无法快速找到它对应的 layer，必须通过 name 去匹配。
-
-    设置不同的学习率:
-
-    ```py
-    optimizer_params = []
-    for name, param in net.named_parameters():
-        if 'bias' in name:
-            # 偏置项使用双倍学习率
-            optimizer_params.append({'params': param, 'lr': 0.02})
-        else:
-            optimizer_params.append({'params': param, 'lr': 0.01})
-
-    optimizer = torch.optim.SGD(optimizer_params)
-    ```
-
-    参数冻结:
-
-    ```py
-    # 冻结前几层的参数
-    for name, param in net.named_parameters():
-        if 'fc1' in name:
-            param.requires_grad = False  # 冻结该参数
-    ```
-
-    参数统计:
-
-    ```py
-    total_params = 0
-    for name, param in net.named_parameters():
-        if param.requires_grad:
-            total_params += param.numel()
-    print(f"可训练参数总数: {total_params}")
-    ```
-
-    相关方法对比
-
-    * parameters(): 只返回参数值，不包含名称
-
-    * state_dict(): 返回包含参数名称和值的字典，用于模型保存
-
-    * named_parameters(): 返回包含名称和参数的迭代器，适合遍历操作
-
-* nn.Parameter()
-
-    主要做两件事情：
-
-    1. 为 tensor 增加 grad
-
-    2. 将 tensor 注册到 model 的参数列表中
-
-    example:
-
-    * add grad
-
-        ```py
-        # 自动设置 requires_grad=True
-        param = nn.Parameter(torch.tensor([1.0, 2.0, 3.0]))
-        print(param.requires_grad)  # 输出: True
-        ```
-
-    * register as model parameter
-
-        ```py
-        class MyModel(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.weight = nn.Parameter(torch.randn(10, 5))
-                self.bias = nn.Parameter(torch.zeros(5))
-            
-            def forward(self, x):
-                return x @ self.weight + self.bias
-
-        model = MyModel()
-        # 自动包含在模型参数中
-        for name, param in model.named_parameters():
-            print(f"{name}: {param.shape}")
-        ```
-
 * 如果在`batch_loss.backward()`之前就尝试拿 grad `net.fc1.weight.grad`，那么 grad 为 None
 
-* list 在 append tensor 时，需要 tensor clone()，否则 append 的都是 tensor 的引用，值都是一模一样的
-
-    `params_record.append(param.clone().detach())`
-
 * 不能使用`sgd = torch.optim.sgd.SGD()`, 但是可以使用`from torch.optim.sgd import SGD`。不清楚为什么。
-
-* `nn.Parameter()`
-
-    nn.Parameter() 是一个用于将张量包装为模型参数的类，它是 torch.Tensor 的子类。
-
-    syntax:
-
-    ```py
-    torch.nn.Parameter(data=None, requires_grad=True)
-    ```
-
-    params:
-
-    * `data` (Tensor): 要包装为参数的张量
-
-    * `requires_grad` (bool, 可选): 是否需要在反向传播中计算梯度，默认为 True
-
-* PyTorch Functional Transforms for Computer Vision
-
-    Most of the functional transforms accept both PIL images and tensor images. A tensor image is a tensor with shape (C, H, W),
-
-    if the input is a PIL image output is also a PIL image and the same for Tensor image.
-
-    * `adjust_brightness()`
-
-        adjusts the brightness of an image. It accepts both PIL image and Tensor Image.
-
-        syntax:
-
-        ```py
-        torchvision.transforms.functional.adjust_brightness(
-            img: Tensor,
-            brightness_factor: float
-        ) -> Tensor
-        ```
-
-        * img (Tensor): 输入图像，形状为 (..., H, W) 或 (C, H, W) 或 (H, W)
-
-        * brightness_factor is any non-negative floating-point number:
-
-            * brightness_factor = 1, the original image.
-
-            * brightness_factor < 1, a darker output image.
-
-            * brightness_factor > 1, a brighter output image.
-
-        example:
-
-        ```py
-        import torchvision.transforms.functional as F
-        import torch
-        from PIL import Image
-
-        image = Image.open('nature.jpg')
-
-        output = F.adjust_brightness(image, brightness_factor=3.0)
-        output.show()
-        ```
-
-        注意事项：
-
-        * 亮度调整是通过将每个像素值乘以 brightness_factor 实现的
-
-        * 结果会被裁剪到图像的原始值范围内（通常是 [0, 1]）
-
-        * 如果输入是 PIL 图像，F.adjust_brightness() 的输出是 Tensor，而不是 PIL 图像。
-
-        与``transforms.Compose`合用的例子：
-
-        ```py
-        transform = transforms.Compose([
-            transforms.ToTensor(),  # PIL -> Tensor
-            lambda x: F.adjust_brightness(x, brightness_factor=1.5),
-            transforms.ToPILImage()  # Tensor -> PIL
-        ])
-        ```
-
-* 在 transform 时，numpy 只能先 to tensor，再 resize，不能先 resize。PIL 图像既可以先 resize，也可以先 to tensor
-
-    * numpy ndarray 只能先 to tensor;
-
-        ```py
-        from torchvision import transforms
-        import numpy as np
-
-        img = np.random.random((256, 256))
-
-        trans = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize((512, 512))
-        ])
-
-        img_trans = trans(img)
-
-        print("img shape: {}".format(img.shape))
-        print("img trans shape: {}".format(img_trans.shape))
-        ```
-
-        output:
-
-        ```
-        img shape: (256, 256)
-        img trans shape: torch.Size([1, 512, 512])
-        ```
-
-        三维的数据也可以处理：
-
-        `img = np.random.random((256, 256, 3))`
-
-        output:
-
-        ```
-        img shape: (256, 256, 3)
-        img trans shape: torch.Size([3, 512, 512])
-        ```
-
-        如果我们设置先 resize，那么会报错：
-
-        ```py
-        trans = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor()
-        ])
-        ```
-
-        output:
-
-        ```
-        ...
-          File "/home/hlc/miniconda3/envs/torch/lib/python3.10/site-packages/torchvision/transforms/_functional_pil.py", line 31, in get_dimensions
-            raise TypeError(f"Unexpected type {type(img)}")
-        TypeError: Unexpected type <class 'numpy.ndarray'>
-        ```
-
-    * PIL 图片既可以先 resize，也可以先 to tensor:
-
-        ```py
-        from torchvision import transforms
-        from PIL import Image
-
-        img = Image.open('../example.jpg')
-
-        trans = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor()
-        ])
-
-        img_trans = trans(img)
-
-        # print("img shape: {}".format(img.shape))  # PIL Image object has no shape attribute
-        print("img trans shape: {}".format(img_trans.shape))
-        ```
-
-        output:
-
-        ```
-        img trans shape: torch.Size([3, 512, 512])
-        ```
-
-        先 to tensor 也是可以的：
-
-        ```py
-        trans = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize((512, 512))
-        ])
-        ```
-
-        output:
-
-        ```
-        img trans shape: torch.Size([3, 512, 512])
-        ```
-
-    如果先做了 to tensor，那么后续操作会在 GPU 里完成（是 CPU 吧？）。如果先做 resize，那么 resize 操作会调用 PIL 提供的 resize 函数。
-
-* `squeeze()`
-
-    移除所有长度为 1 的维度（或者只移除指定维度，如果其长度为 1）。
-
-    example:
-
-    ```py
-    # 接上面的例子
-    x = torch.randn(1, 4, 1, 2)
-    print(f"Original shape: {x.shape}") # torch.Size([1, 4, 1, 2])
-
-    y = x.squeeze() # 移除所有长度为1的维度
-    print(f"After squeeze(): {y.shape}") # torch.Size([4, 2])
-
-    z = x.squeeze(0) # 只移除第0维，如果其长度为1
-    print(f"After squeeze(0): {z.shape}") # torch.Size([4, 1, 2])
-
-    w = x.squeeze(2) # 只移除第2维，如果其长度为1
-    print(f"After squeeze(2): {w.shape}") # torch.Size([1, 4, 2])
-    ```
-
-* `unsqueeze()`
-
-    在张量的指定维度上增加一个长度为 1 的维度。这个操作通常也被称为“升维”。
-
-    syntax:
-
-    ```py
-    torch.unsqueeze(input, dim) → Tensor
-    ```
-
-    * input: 输入张量。
-
-    * dim: 一个整数，指定在哪个位置插入新的维度。这个新维度的长度将为 1。
-
-        dim 的取值范围是 [-input.dim()-1, input.dim()]。
-
-        * 正索引: 从前往后数，0 表示在最前面插入。
-
-        * 负索引: 从后往前数，-1 表示在最后一个维度之后插入。
-
-    这是一个“视图操作”，意味着它通常不会复制底层数据，而只是改变了看待数据的“视角”，因此效率很高。
-
-    例如：
-
-    对于一个 3 维张量 (C, H, W)：
-
-    * dim=0 -> 新形状为 (1, C, H, W)
-
-    * dim=1 -> 新形状为 (C, 1, H, W)
-
-    * dim=-1 -> 新形状为 (C, H, W, 1)
-
-    * dim=-2 -> 新形状为 (C, H, 1, W)
-
-* 在`fig, axes = subplots()`时，如果是一行或者一列，那么`axes`是一维的，如果是多行多列，`axes`是二维的。
 
 * pytorch model save(), load()
 
@@ -1853,19 +656,6 @@
     ```
 
     注意这种方法没有保存 model 的结构，只保存了参数。
-
-* dataset 似乎支持 slice 访问
-
-    ```py
-    my_dataset = MyDataset()
-    print(my_dataset[:3])
-    ```
-
-    output:
-
-    ```
-    [0, 1, 2]
-    ```
 
 * dataloader
 
@@ -1938,69 +728,6 @@
     for i in dataloader:
         print(i)
     ```
-
-* `ToTensor()`
-
-    1. 数据类型转换：ToTensor() 将 PIL Image 或 numpy.ndarray 转换为 PyTorch Tensor，后续的 transforms 都需要在 Tensor 上操作
-
-    2. 通道顺序：将 H×W×C 转换为 C×H×W，符合 PyTorch 的期望格式
-
-    3. 数值范围：将 [0, 255] 的整数或 [0, 1] 的浮点数转换为 [0.0, 1.0] 的浮点数
-
-    变换前后数据 shape 对比：
-
-    ```py
-    # 对于 RGB 图像
-    (H, W, C) = (224, 224, 3)
-    # 变换后
-    (C, H, W) = (3, 224, 224)
-
-    # 对于灰度图像  
-    (H, W) = (224, 224)  # 或 (H, W, 1)
-    # 变换后
-    (1, H, W) = (1, 224, 224)
-    ```
-
-* `transforms.Normalize()`
-
-    example:
-
-    `transforms.Normalize((0.5,), (0.5,))`作用如下：
-
-    ```py
-    # 对于每个像素值：
-    normalized_pixel = (pixel - mean) / std
-
-    # 具体到你的例子：
-    normalized_pixel = (pixel - 0.5) / 0.5
-    ```
-
-    如果 RGB 三个通道的 mean 和 std 相同，那么可以写成：
-
-    ```py
-    transforms.Normalize(mean, std)
-    ```
-
-    如果是多通道图像，那么可以写成：
-
-    ```py
-    # RGB 图像归一化
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5],  # R, G, B 通道的均值
-                             std=[0.5, 0.5, 0.5])   # R, G, B 通道的标准差
-    ])
-    ```
-
-    为什么要归一化？
-
-    * 训练稳定性：将数据缩放到相似的范围，避免梯度爆炸
-
-    * 收敛速度：帮助优化器更快收敛
-
-    * 模型性能：很多模型假设输入数据是零均值的
-
-    * 数值精度：在 [-1, 1] 范围内计算更稳定
 
 * `torch.nn.Module`
 
@@ -2285,20 +1012,6 @@
     * Output (output)
 
         The output of an LSTM is the sequence of hidden states from the last layer for each time step. 
-
-* 稀疏矩阵乘法
-
-    加速算法简述（以 CSR x CSC 为例）：
-
-    1. 外层循环：遍历矩阵A的每一行 i（利用CSR的 row_ptr）。
-
-    2. 中层循环：对于A的第 i 行，遍历该行的每一个非零元素 A(i,k)（利用CSR的 col_indices 和 values）。这个 k 是A的列号，同时也是B的行号。
-
-    3. 内层循环：对于每个 k，找到矩阵B的第 k 行（即CSC格式下的第 k 列）。遍历B的第 k 行上的每一个非零元素 B(k,j)（利用CSC的 row_indices 和 values）。
-
-    4. 累加：将乘积 A(i,k) * B(k,j) 累加到结果矩阵 C(i,j) 上。
-
-    我们只处理那些可能产生非零结果的计算。
 
 * Natural language processing (NLP) 常见的任务
 
@@ -2856,867 +1569,6 @@
 
     Where f and g are functions representing the image and the filter respectively, and * denotes the convolution operator.
 
-* Mean Square Error (L2 loss)
-
-    L2 computes the average of the squared differences between the predicted and actual values.
-
-    The main idea behind squaring is to penalise the model for large difference so that the model avoid larger differences. 
-
-    $$MSE = \frac 1 n \sum_{i=1}^n (y_i - \hat y_i)^2$$
-
-    Here,
-
-    * $n$ represents the total number of observations or samples,
-
-    * $y_i$ represents the actual or observed value for the ith sample,
-
-    * $\hat y_i$ represents the predicted or estimated value for the ith sample.
-
-    syntax:
-
-    ```py
-    torch.nn.MSELoss(size_average=None, reduce=None, reduction='mean')
-    ```
-
-    example:
-
-    ```py
-    import torch
-    from torch import nn
-    #initialising the loss function
-    loss = nn.MSELoss()
-    #randomly initialising the input and the target value...input is considered as predicted value here.
-    input = torch.randn(2, 4, requires_grad=True)
-    target = torch.randn(2, 4)
-    #passing both the values inside the loss function.
-    output = loss(input, target)
-    #backpropagation
-    output.backward()
-    print(output)
-    ```
-
-    output:
-
-    ```
-    tensor(1.6697, grad_fn=<MseLossBackward0>)
-    ```
-
-    Disadvantages:
-
-    Sensitive to outliers due to the squaring operation, which deviates the results in the optimization process.
-
-* Huber Loss
-
-    This loss is used while tackling regression problems especially when dealing with outliers.
-
-    $$\mathrm{HuberLoss}(x, \mathrm{target}, \delta) = 
-    \frac 1 N \sum_i
-    \left\{
-    \begin{aligned}
-        &\frac 1 2 (x_i - \mathrm{target}_i)^2 \quad \text{if } \lvert x_i - \mathrm{target}_i \rvert \leq \delta \\
-        &\delta \left( \lvert x_i - \mathrm{target}_i \rvert - \frac 1 2 \delta \right) \quad \text{otherwise}
-    \end{aligned}    
-    \right.$$
-
-    Here,
-
-    * x represents the predicted values,target represents the ground truth or target values,
-
-    * δ is a parameter controlling the threshold for switching between quadratic and linear loss
-
-    It combines both MAE( Mean Absolute Error ) and MSE( Mean Squared Error) and which loss will be used depends upon the delta value.
-
-    syntax:
-
-    ```py
-    torch.nn.HuberLoss(reduction='mean', delta=1.0)
-    ```
-
-    Advantage:
-
-    * Less sensitive to outliers than MSE but still provide a more balanced approach to evaluating the performance of regression models compared to MAE.
-
-    Disadvantage:
-
-    * Introduces a new hyper parameter and the optimization of that leads to more complexity in the model.
-
-    MAE, MSE and Huber loss are used in regression problems but, which one should we use. MSE can be used when you want to penalize larger errors more heavily. It's useful when the data does not have significant outliers and you assume that the errors are normally distributed. MAE can be used when you want robust loss function that is less affected by outliers. And Huber loss can be used when you want to compromise the benefits of both MAE and MSE. 
-
-* CIFAR-10
-
-    This contains 60,000 32x32 color images in 10 classes, with 6,000 images per class.
-
-    使用 torch 下载和加载 cifar 10:
-
-    ```py
-    import torch
-    import torchvision
-    import torchvision.transforms as transforms
-    import torch.nn as nn
-    import torch.optim as optim
-
-    # Step 1: Loading the CIFAR-10 dataset
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to [-1, 1]
-    ])
-
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-                                              shuffle=True, num_workers=2)
-
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-                                             shuffle=False, num_workers=2)
-
-    classes = ('plane', 'car', 'bird', 'cat',
-               'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-    for data in trainloader:
-        input_data: torch.Tensor
-        gt: torch.Tensor
-        input_data, gt = data
-        print('input_data:')
-        print(input_data)
-        print('input_data shape: {}'.format(input_data.shape))
-        print('gt:')
-        print(gt)
-        print('gt shape: {}'.format(gt.shape))
-        break
-    ```
-
-    output:
-
-    ```
-    Files already downloaded and verified
-    Files already downloaded and verified
-    input_data:
-    tensor([[[[-0.5843, -0.5765, -0.5608,  ..., -0.6314, -0.6784, -0.8118],
-              [-0.6392, -0.5843, -0.5765,  ..., -0.6706, -0.6941, -0.7804],
-              [-0.6471, -0.6078, -0.6392,  ..., -0.7020, -0.7176, -0.7725],
-              ...,
-              [-0.4431, -0.4196, -0.3725,  ..., -0.6000, -0.6392, -0.6157],
-              [-0.4118, -0.3804, -0.3647,  ..., -0.5216, -0.4980, -0.6235],
-              [-0.3333, -0.3333, -0.3255,  ..., -0.5216, -0.4980, -0.6157]],
-
-             [[-0.4902, -0.5059, -0.5294,  ..., -0.6000, -0.6471, -0.7804],
-              [-0.5373, -0.5137, -0.5373,  ..., -0.6392, -0.6627, -0.7490],
-              [-0.5373, -0.5294, -0.5922,  ..., -0.6706, -0.6863, -0.7412],
-              ...,
-              [-0.3490, -0.3490, -0.3333,  ..., -0.5765, -0.6157, -0.6078],
-              [-0.3569, -0.3333, -0.3333,  ..., -0.4902, -0.4745, -0.6078],
-              [-0.3490, -0.3412, -0.3255,  ..., -0.4902, -0.4745, -0.6078]],
-
-             [[-0.5843, -0.5922, -0.6078,  ..., -0.6078, -0.6549, -0.7882],
-              [-0.6784, -0.6471, -0.6549,  ..., -0.6471, -0.6706, -0.7569],
-              [-0.7020, -0.6784, -0.7333,  ..., -0.6784, -0.6941, -0.7490],
-              ...,
-              [-0.4824, -0.4824, -0.4745,  ..., -0.7412, -0.7333, -0.6784],
-              [-0.4745, -0.4588, -0.4745,  ..., -0.6784, -0.6235, -0.6784],
-              [-0.4431, -0.4431, -0.4510,  ..., -0.6941, -0.6392, -0.6784]]],
-
-
-            [[[-0.4353, -0.4431, -0.4275,  ..., -0.4510, -0.4275, -0.3569],
-              [-0.7490, -0.7882, -0.8196,  ..., -0.8039, -0.7569, -0.7098],
-              [-0.6941, -0.7804, -0.8118,  ..., -0.8431, -0.8039, -0.7804],
-              ...,
-              [-0.6706, -0.7725, -0.7176,  ..., -0.7333, -0.7412, -0.7412],
-              [-0.6549, -0.7882, -0.7569,  ..., -0.7804, -0.7882, -0.7569],
-              [-0.5451, -0.6392, -0.6706,  ..., -0.6941, -0.7098, -0.5843]],
-
-             [[-0.6235, -0.5843, -0.5922,  ..., -0.6157, -0.5765, -0.6392],
-              [-0.7333, -0.7098, -0.7255,  ..., -0.7569, -0.6863, -0.7882],
-              [-0.7647, -0.7490, -0.7647,  ..., -0.7647, -0.7020, -0.7804],
-              ...,
-              [-0.6627, -0.6549, -0.6392,  ..., -0.7725, -0.7647, -0.7647],
-              [-0.6471, -0.6392, -0.6000,  ..., -0.7882, -0.7882, -0.8039],
-              [-0.6000, -0.5922, -0.5765,  ..., -0.7490, -0.7569, -0.7804]],
-
-             [[-0.6941, -0.6549, -0.7020,  ..., -0.6549, -0.6000, -0.7725],
-              [-0.5922, -0.4353, -0.5137,  ..., -0.4667, -0.3725, -0.5922],
-              [-0.5529, -0.3020, -0.3882,  ..., -0.4118, -0.3255, -0.5059],
-              ...,
-              [-0.4667, -0.3098, -0.3725,  ..., -0.5294, -0.5451, -0.5608],
-              [-0.4667, -0.2863, -0.3176,  ..., -0.4980, -0.4980, -0.5843],
-              [-0.5216, -0.4039, -0.4353,  ..., -0.5608, -0.5451, -0.7098]]],
-
-
-            [[[-0.7098, -0.6627, -0.7725,  ..., -0.5765, -0.5529, -0.5294],
-              [-0.7098, -0.6549, -0.7412,  ..., -0.5686, -0.5373, -0.4980],
-              [-0.7098, -0.6549, -0.7412,  ..., -0.5608, -0.5451, -0.5059],
-              ...,
-              [-0.4275, -0.3255,  0.4431,  ..., -0.1922, -0.5765, -0.6157],
-              [-0.5137, -0.3255,  0.4588,  ..., -0.0980, -0.5843, -0.6314],
-              [-0.6706, -0.3412,  0.4431,  ...,  0.0118, -0.5843, -0.6627]],
-
-             [[-0.7725, -0.7490, -0.8118,  ..., -0.7176, -0.6941, -0.6863],
-              [-0.7725, -0.7490, -0.8039,  ..., -0.7176, -0.6941, -0.6863],
-              [-0.7647, -0.7490, -0.8118,  ..., -0.7098, -0.7020, -0.6863],
-              ...,
-              [-0.5686, -0.4745,  0.3176,  ..., -0.3647, -0.7098, -0.7176],
-              [-0.6392, -0.4510,  0.3333,  ..., -0.2863, -0.7176, -0.7333],
-              [-0.7569, -0.4510,  0.3176,  ..., -0.1765, -0.7176, -0.7490]],
-
-             [[-0.8196, -0.8039, -0.8588,  ..., -0.7961, -0.7882, -0.7804],
-              [-0.8196, -0.8118, -0.8431,  ..., -0.8039, -0.7961, -0.7882],
-              [-0.8118, -0.7961, -0.8431,  ..., -0.7882, -0.7882, -0.7804],
-              ...,
-              [-0.6706, -0.5922,  0.1922,  ..., -0.5216, -0.7882, -0.7804],
-              [-0.7098, -0.5529,  0.2078,  ..., -0.4510, -0.7961, -0.7961],
-              [-0.8039, -0.5294,  0.1922,  ..., -0.3490, -0.8039, -0.8118]]],
-
-
-            [[[-0.0353,  0.0118,  0.0667,  ..., -0.2627, -0.3098, -0.2863],
-              [ 0.0196,  0.0588,  0.1137,  ..., -0.3098, -0.1765, -0.1373],
-              [ 0.0353,  0.0745,  0.1216,  ..., -0.1216, -0.0510, -0.1451],
-              ...,
-              [-0.7490, -0.7255, -0.6471,  ..., -0.8118, -0.8431, -0.8510],
-              [-0.7647, -0.7176, -0.6784,  ..., -0.8275, -0.8431, -0.8667],
-              [-0.7804, -0.7412, -0.7176,  ..., -0.8275, -0.8431, -0.8667]],
-
-             [[ 0.3490,  0.3961,  0.4510,  ..., -0.1686, -0.2000, -0.1608],
-              [ 0.3882,  0.4353,  0.4824,  ..., -0.2392, -0.0902, -0.0353],
-              [ 0.3961,  0.4275,  0.4745,  ..., -0.0588,  0.0275, -0.0510],
-              ...,
-              [-0.7255, -0.7412, -0.7098,  ..., -0.8118, -0.8431, -0.8510],
-              [-0.7412, -0.7255, -0.7176,  ..., -0.8275, -0.8431, -0.8667],
-              [-0.7569, -0.7412, -0.7333,  ..., -0.8275, -0.8431, -0.8667]],
-
-             [[ 0.7647,  0.8039,  0.8667,  ..., -0.0431, -0.0667, -0.0353],
-              [ 0.8196,  0.8588,  0.9137,  ..., -0.1137,  0.0431,  0.0980],
-              [ 0.8196,  0.8588,  0.9059,  ...,  0.0745,  0.1686,  0.0824],
-              ...,
-              [-0.7020, -0.7020, -0.6549,  ..., -0.8118, -0.8431, -0.8510],
-              [-0.7176, -0.6863, -0.6627,  ..., -0.8275, -0.8431, -0.8667],
-              [-0.7333, -0.7098, -0.6941,  ..., -0.8275, -0.8431, -0.8667]]]])
-    input_data shape: torch.Size([4, 3, 32, 32])
-    gt:
-    tensor([4, 5, 5, 9])
-    gt shape: torch.Size([4])
-    ```
-
-    数据会被下载到当前文件夹的`./data`目录里。
-
-    ```
-    cifar-10-batches-py  cifar-10-python.tar.gz
-    ```
-
-* `np.meshgrid()`
-
-    np.meshgrid() 的主要作用是 从一维坐标向量生成网格坐标矩阵。它接受多个（通常是两个）一维数组，这些数组分别代表不同坐标轴上的点。然后，它会生成一个网格，并返回这个网格中 每一个点 的横坐标和纵坐标。
-
-    syntax:
-
-    ```py
-    numpy.meshgrid(*xi, copy=True, sparse=False, indexing='xy')
-    ```
-
-    参数解释：
-
-    * `*xi`： 一个或多个一维数组，代表网格的坐标。通常是等间距的数值序列（例如，由 np.linspace 或 np.arange 生成）。
-
-    * `copy`： 布尔值，默认为 True。如果为 False，则返回原始数组的视图以节省内存。通常保持默认即可。
-
-    * `sparse`： 布尔值，默认为 False。如果为 True，则返回稀疏网格以节省内存和计算时间。在数组很大时有用。
-
-    * `indexing`： 字符串，'xy' 或 'ij'，默认为 'xy'。这是一个非常关键的参数，决定了输出的顺序。
-
-        indexing='xy'： 返回的第一个数组是 纵坐标（Y） 的矩阵，第二个数组是 横坐标（X） 的矩阵。这与我们通常的数学和图像处理习惯（行对应Y，列对应X）一致。
-
-        indexing='ij'： 返回的第一个数组是 横坐标（X） 的矩阵，第二个数组是 纵坐标（Y） 的矩阵。这与矩阵索引一致。
-
-    返回值：
-
-    返回一个 `list` of ndarray（Numpy数组的列表）。对于二维网格，返回两个二维数组；对于三维网格，返回三个三维数组，依此类推。
-
-    example:
-
-    ```py
-    import numpy as np
-
-    x = np.array([1, 2, 3])
-    y = np.array([4, 5])
-
-    # 使用默认的 indexing='xy'
-    X, Y = np.meshgrid(x, y)
-
-    print("X (坐标矩阵):")
-    print(X)
-    print("\nY (坐标矩阵):")
-    print(Y)
-    ```
-
-    output:
-
-    ```
-    X (坐标矩阵):
-    [[1 2 3]
-     [1 2 3]]
-
-    Y (坐标矩阵):
-    [[4 4 4]
-     [5 5 5]]
-    ```
-
-    结果分析：
-
-        X 矩阵：每一 行 都是相同的，是 x 数组的复制。它代表了网格中每个点的 横坐标。
-
-        Y 矩阵：每一 列 都是相同的，是 y 数组的复制。它代表了网格中每个点的 纵坐标。
-
-    这样，网格中的点 (X[i, j], Y[i, j]) 就是所有 (x[j], y[i]) 的组合。例如：
-
-        (X[0,0], Y[0,0]) = (1, 4)
-
-        (X[0,1], Y[0,1]) = (2, 4)
-
-        (X[1,0], Y[1,0]) = (1, 5)
-
-        ...以此类推
-
-    example:
-
-    ```py
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    # 创建一维坐标向量
-    x = np.linspace(-5, 5, 50)
-    y = np.linspace(-5, 5, 50)
-
-    # 生成网格坐标矩阵
-    X, Y = np.meshgrid(x, y)
-
-    # 定义二维函数，例如 R = sqrt(X^2 + Y^2)
-    R = np.sqrt(X**2 + Y**2)
-    # 计算每个网格点的Z值，例如 Z = sin(R)
-    Z = np.sin(R)
-
-    # 绘制三维图形
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X, Y, Z, cmap='viridis')
-    plt.show()
-    ```
-
-* DataLoader 中的 sampler
-
-    sampler 只负责生成索引，dataloader 则按照索引生成 batch。伪代码描述这个过程：
-
-    ```py
-    # 伪代码，解释 dataloader 内部逻辑
-    for epoch in range(...):
-        for batch_indices in sampler: # 采样器生成一个batch的索引列表，如 [3, 1, 4, 9]
-            batch_data = [dataset[i] for i in batch_indices] # 根据索引从数据集中获取数据
-            # ... 后续的 collate 等操作
-            yield batch_data
-    ```
-
-    默认的 sampler 有`SequentialSampler`和`RandomSampler`。
-
-    package 与使用方法：
-
-    ```py
-    import torch
-    from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
-
-    # 创建一个简单的数据集
-    data = torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
-    labels = torch.tensor([0, 1, 0, 1, 0])
-    dataset = TensorDataset(data, labels)
-
-    # 使用 SequentialSampler
-    sequential_sampler = SequentialSampler(dataset)
-    dataloader = DataLoader(dataset, batch_size=2, sampler=sequential_sampler)
-
-    # 遍历 DataLoader
-    for batch_idx, (batch_data, batch_labels) in enumerate(dataloader):
-        print(f"Batch {batch_idx}:")
-        print(f"  Data: {batch_data}")
-        print(f"  Labels: {batch_labels}")
-        print("---")
-    ```
-
-* `np.linspace()`
-
-    syntax:
-
-    ```py
-    np.linspace(start, stop, num=50, endpoint=True, dtype=None, retstep=False)
-    ```
-
-    retstep：如果为True，返回（数组，步长）；如果为False（默认），只返回数组
-
-    example:
-
-    ```py
-    import numpy as np
-
-    lin_1, step_1 = np.linspace(0, 2, 5, endpoint=True, retstep=True)
-    lin_2, step_2 = np.linspace(0, 2, 5, endpoint=False, retstep=True)
-
-    print("{}, step: {}".format(lin_1, step_1))
-    print("{}, step: {}".format(lin_2, step_2))
-    ```
-
-    output:
-
-    ```
-    [0.  0.5 1.  1.5 2. ], step: 0.5
-    [0.  0.4 0.8 1.2 1.6], step: 0.4
-    ```
-
-    可以看到，当包含 endpoint 时，`step = (end - start) / (num - 1)`；当不包含 endpoint 时，`step = (end - start) / num`。
-
-    其他常见的创建数组的方法：
-
-    ```py
-    # np.zeros() - 全零数组
-    np.zeros(5)                    # [0., 0., 0., 0., 0.]
-    np.zeros((2, 3))               # 2x3的全零矩阵
-
-    # np.ones() - 全1数组
-    np.ones(4)                     # [1., 1., 1., 1.]
-    np.ones((2, 2))                # 2x2的全1矩阵
-
-    # np.full() - 填充指定值
-    np.full(3, 7)                  # [7, 7, 7]
-    np.full((2, 2), 5)             # 2x2的填充5的矩阵
-
-    # np.eye() - 单位矩阵
-    np.eye(3)                      # 3x3单位矩阵
-
-    # np.arange() - 类似range，但返回数组
-    np.arange(5)                   # [0, 1, 2, 3, 4]
-    np.arange(0, 10, 2)            # [0, 2, 4, 6, 8]
-
-    # np.logspace() - 对数等间距
-    np.logspace(0, 2, 5)           # [1., 3.16, 10., 31.62, 100.]
-
-    # np.random.rand() - 均匀分布
-    np.random.rand(3)              # 3个[0,1)的随机数
-    np.random.rand(2, 2)           # 2x2的随机矩阵
-
-    # np.random.randn() - 标准正态分布
-    np.random.randn(3)             # 3个标准正态分布随机数
-
-    # np.random.randint() - 整数随机数
-    np.random.randint(0, 10, 5)    # 5个[0,10)的随机整数
-
-    # np.array() - 从列表/元组创建
-    np.array([1, 2, 3])            # 从列表创建
-    np.array([[1, 2], [3, 4]])     # 二维数组
-
-    # np.asarray() - 转换为数组
-    np.asarray(existing_list)      # 将现有序列转为数组
-
-    # np.empty() - 未初始化数组（速度快）
-    np.empty(3)                    # 内容随机，不初始化
-
-    # np.copy() - 创建副本
-    arr_copy = np.copy(original_arr)
-
-    # np.meshgrid() - 坐标矩阵
-    x = np.linspace(0, 1, 3)
-    y = np.linspace(0, 1, 3)
-    X, Y = np.meshgrid(x, y)       # 创建网格坐标
-    ```
-
-* `torch.utils.data`
-
-    There are two types of datasets:
-
-    * map-style datasets: This data set provides two functions  `__getitem__( )`, `__len__( )` that returns the indices of the sample data referred to and the numbers of samples respectively. In the example, we will use this type of dataset.
-
-    * iterable-style datasets: Datasets that can be represented in a set of iterable data samples, for this we use `__iter__( )` function.
-
-    Dataloader syntax:
-
-    ```py
-    DataLoader(dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0, collate_fn=None, pin_memory=False, drop_last=False, timeout=0, worker_init_fn=None, *, prefetch_factor=2, persistent_workers=False)
-    ```
-
-    example:
-
-    ```py
-    # importing libraries
-    import torch
-    import torchvision
-    from torch.utils.data import Dataset, DataLoader
-    import numpy as np
-    import math
-
-    # class to represent dataset
-    class HeartDataSet():
-
-        def __init__(self):
-          
-            # loading the csv file from the folder path
-            data1 = np.loadtxt('heart.csv', delimiter=',',
-                               dtype=np.float32, skiprows=1)
-            
-            # here the 13th column is class label and rest 
-            # are features
-            self.x = torch.from_numpy(data1[:, :13])
-            self.y = torch.from_numpy(data1[:, [13]])
-            self.n_samples = data1.shape[0] 
-        
-        # support indexing such that dataset[i] can 
-        # be used to get i-th sample
-        def __getitem__(self, index):
-            return self.x[index], self.y[index]
-          
-        # we can call len(dataset) to return the size
-        def __len__(self):
-            return self.n_samples
-
-
-    dataset = HeartDataSet()
-
-    # get the first sample and unpack
-    first_data = dataset[0]
-    features, labels = first_data
-    print(features, labels)
-    ```
-
-    output:
-
-    ```
-    tensor([ 63.0000,   1.0000,   3.0000, 145.0000, 233.0000,   1.0000,   0.0000,
-            150.0000,   0.0000,   2.3000,   0.0000,   0.0000,   1.0000]) tensor([1.])
-    ```
-
-    dataloader example:
-
-    ```py
-    # Loading whole dataset with DataLoader
-    # shuffle the data, which is good for training
-    dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True)
-
-    # total samples of data and number of iterations performed
-    total_samples = len(dataset)
-    n_iterations = total_samples//4
-    print(total_samples, n_iterations)
-    for i, (targets, labels) in enumerate(dataloader):
-        print(targets, labels)
-    ```
-
-    traning example:
-
-    ```py
-    num_epochs = 2
-
-    for epoch in range(num_epochs):
-        for i, (inputs, labels) in enumerate(dataloader):
-
-            # here: 303 samples, batch_size = 4, n_iters=303/4=75 iterations
-            # Run our training process
-            if (i+1) % 5 == 0:
-                print(f'Epoch: {epoch+1}/{num_epochs}, Step {i+1}/{n_iterations}|\
-                    Inputs {inputs.shape} | Labels {labels.shape}')
-    ```
-
-* `Eigen::SparseMatrix`
-
-    Eigen::SparseMatrix 是 Eigen 库中用于表示和操作稀疏矩阵的模板类。
-
-    install:
-
-    `sudo apt install libeigen3-dev`
-
-    头文件被安装在：`/usr/include/eigen3`
-
-    这似乎是一个 header-only 的模板库，所以没有库文件。
-
-    example:
-
-    ```cpp
-    #include <eigen3/Eigen/Sparse>
-    #include <cstdio>
-    #include <vector>
-
-    int main() {
-        // 创建稀疏矩阵
-        Eigen::SparseMatrix<double> mat(1000, 1000);
-
-        // 使用 triplet 插入非零元素
-        std::vector<Eigen::Triplet<double>> triplets;
-        triplets.push_back({0, 0, 3.14});  // (行, 列, 值)
-        triplets.push_back({1, 2, 2.71});
-
-        mat.setFromTriplets(triplets.begin(), triplets.end());
-
-        // 稀疏矩阵运算
-        Eigen::SparseMatrix<double> mat2 = mat * mat.transpose();
-        
-        return 0;
-    }
-    ```
-
-    当矩阵密度 < 5% 时，Eigen::SparseMatrix 在内存和计算效率上显著优于稠密矩阵。
-
-* 常用的 loss
-
-    ```py
-    #import nn module
-    import torch.nn as nn
-    mse_loss_fn = nn.MSELoss()
-
-    loss = mse_loss_fn(predicted_value, target)
-    #predicted value is what the model is predicting 
-    #target is the actual value
-    ```
-
-    * L1 loss
-
-        The L1 loss function also called Mean Absolute Error (MAE) computes the average of the sum of absolute differences between the predicted and the actual values.
-
-        Formula: 
-
-        $\mathcal L_{L1} (y, \hat y) = \frac 1 n \sum_{i=1}^n \lvert y_i - \hat y_i\rvert$
-
-        Here,
-
-        * $n$ represents the total number of observations or samples
-
-        * $y_i$ represents the actual or observed value for the i-th sample,
-
-        * $\hat y_i$ represents the predicted or estimated value for the i-th sample.
-
-        L1 loss is mostly used for regression problems and is more robust to outliers.
-
-        syntax:
-
-        ```py
-        torch.nn.L1Loss(size_average=None, reduce=None, reduction='mean')
-        ```
-
-        example:
-
-        ```py
-        import torch
-        from torch import nn
-
-        #initialising the loss function
-        loss = nn.L1Loss()
-        #randomly initialising the input and the target value...input is considered as predicted value here.
-        input = torch.randn(2, 4, requires_grad=True)
-        target = torch.randn(2, 4)
-        #passing both the values inside the loss function.
-        output = loss(input, target)
-        #backpropagation
-        output.backward()
-        print(output)
-        ```
-
-        output:
-
-        ```
-        tensor(1.1041, grad_fn=<MeanBackward0>)
-        ```
-
-        Advantage:
-
-        * MAE is more robust to outliers compared to Mean Squared Error (MSE) because it takes the absolute difference, reducing the impact of extremely large errors.
-
-        * The MAE loss is straightforward to interpret as it represents the average magnitude of errors, making it easier to communicate the model's performance to stakeholders.
-
-        Disadvantage:
-
-        * MAE treats all errors equally, regardless of their magnitude. This can be a disadvantage in cases where distinguishing between small and large errors is important.
-
-        * The gradient of MAE is a constant value, which can slow down convergence during optimization, especially in comparison to MSE, where the gradient decreases as the error decreases.
-
-* `scipy.sparse.lil_matrix`
-
-    scipy.sparse.lil_matrix 是 SciPy 中用于存储稀疏矩阵的一种数据结构，特别适用于逐步构建和修改稀疏矩阵的场景。
-
-    LIL (List of Lists) 格式将稀疏矩阵存储为：
-
-    * 行列表：每个元素对应矩阵的一行
-
-    * 每行存储：两个列表，分别存储非零元素的列索引和值
-
-    这种结构使得按行操作（添加、删除、修改元素）非常高效。
-
-    **基本用法:**
-
-    * 创建 LIL 矩阵
-
-        ```py
-        import numpy as np
-        from scipy.sparse import lil_matrix
-
-        # 方法1：指定形状创建空矩阵
-        matrix = lil_matrix((3, 3))  # 3x3 矩阵
-
-        # 方法2：从稠密数组创建
-        dense_array = np.array([[1, 0, 0], [0, 0, 2], [0, 3, 0]])
-        matrix = lil_matrix(dense_array)
-
-        # 方法3：从其他稀疏格式转换
-        from scipy.sparse import csr_matrix
-        csr_mat = csr_matrix((3, 3))
-        lil_mat = csr_mat.tolil()
-        ```
-
-    * 元素赋值和修改
-
-        ```py
-        # 创建 3x3 矩阵
-        matrix = lil_matrix((3, 3))
-
-        # 逐个元素赋值
-        matrix[0, 0] = 1
-        matrix[1, 2] = 2
-        matrix[2, 1] = 3
-
-        # 批量赋值
-        matrix[0, [1, 2]] = [4, 5]  # 第0行，第1、2列
-        matrix[[1, 2], 0] = [6, 7]  # 第1、2行，第0列
-
-        print(matrix.toarray())
-        # 输出：
-        # [[1. 4. 5.]
-        #  [6. 0. 2.]
-        #  [7. 3. 0.]]
-        ```
-
-    * 访问矩阵数据
-
-        ```py
-        # 访问单个元素
-        print(matrix[0, 0])  # 1.0
-
-        # 访问整行
-        print(matrix[0].toarray())  # [[1. 4. 5.]]
-
-        # 获取非零元素信息
-        print("行指针:", matrix.rows)     # 每行的列索引列表
-        print("数据值:", matrix.data)     # 每行的数值列表
-
-        # 转换为稠密数组
-        dense = matrix.toarray()
-        ```
-
-    * 实际应用示例
-
-        ```py
-        # 示例：构建邻接矩阵
-        n_nodes = 5
-        adj_matrix = lil_matrix((n_nodes, n_nodes))
-
-        # 添加边（无向图）
-        edges = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)]
-        for i, j in edges:
-            adj_matrix[i, j] = 1
-            adj_matrix[j, i] = 1  # 无向图对称
-
-        print("邻接矩阵:")
-        print(adj_matrix.toarray())
-
-        # 转换为其他格式进行高效运算
-        csr_adj = adj_matrix.tocsr()  # 转换为CSR格式进行矩阵运算
-        ```
-
-    * 格式转换
-
-        ```py
-        # 转换为其他稀疏格式
-        csr_matrix = matrix.tocsr()   # 压缩稀疏行格式（高效计算）
-        csc_matrix = matrix.tocsc()   # 压缩稀疏列格式（高效列操作）
-        coo_matrix = matrix.tocoo()   # 坐标格式（快速构建）
-
-        # 转换回稠密矩阵
-        dense_matrix = matrix.toarray()
-        ```
-
-    **使用建议**
-
-    * 构建阶段：使用 LIL 格式进行频繁的元素修改
-
-    * 计算阶段：转换为 CSR/CSC 格式进行数学运算
-
-    * 内存敏感：对于超大矩阵，考虑使用 COO 格式
-
-* torchvision.transforms 中常用的 augmentation 方法：
-
-    * 图像预处理 & 基本变换
-
-        ```py
-        # Resize：调整图像尺寸
-        transforms.Resize((256, 256))
-
-        # CenterCrop / RandomCrop：中心/随机裁剪
-        transforms.RandomCrop(224)
-
-        # Pad：边缘填充
-        transforms.Pad(50, fill=255)
-        ```
-
-    * 颜色 & 亮度变换
-
-        ```py
-        # ColorJitter：随机调整亮度、对比度、饱和度和色调
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)
-
-        # Grayscale / RandomGrayscale：转灰度图
-        transforms.RandomGrayscale(p=0.1)
-
-        # RandomAdjustSharpness / RandomAutocontrast：调整锐度、自动对比度
-        ```
-
-    * 几何变换
-
-        ```py
-        # RandomHorizontalFlip / RandomVerticalFlip：随机水平/垂直翻转
-        transforms.RandomHorizontalFlip(p=0.5)
-
-        # RandomRotation：随机旋转
-        transforms.RandomRotation(degrees=30)
-
-        # RandomAffine：随机仿射变换（平移、旋转、缩放、剪切）
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1))
-
-        # RandomPerspective：随机透视变换
-        ```
-
-    * 模糊 & 噪声
-
-        ```py
-        # GaussianBlur：高斯模糊
-        transforms.GaussianBlur(kernel_size=5)
-
-        # RandomErasing：随机擦除（CutOut）
-        transforms.RandomErasing(p=0.5)
-        ```
-
-    * 标准化 & 张量转换
-
-        ```py
-        # ToTensor：将PIL图像或NumPy数组转换为张量，并缩放到 [0,1]
-        transforms.ToTensor()
-
-        # Normalize：标准化（减均值、除标准差）
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ```
-
-    * 组合变换
-
-        使用 Compose 将多个变换组合：
-
-        ```py
-        transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.RandomCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-        ```
-
 * Batch Processing for Efficient Training
 
     ```py
@@ -3800,345 +1652,6 @@
 
     # 9. 保存模型（可选）
     # trainer.save_model("./my_final_imdb_model")
-    ```
-
-* COO
-
-    COO 是 “Coordinate Format” 的缩写，即坐标格式。它的设计理念非常直观：分别存储非零元素所在的行索引、列索引以及元素的值。
-
-    coo_matrix 就是由这三个等长的数组构成的：
-
-    * data： 存储所有非零元素的值，例如 [5, 9, 1, 4]
-
-    * row： 存储每个非零元素对应的行索引，例如 [0, 1, 2, 2]
-
-    * col： 存储每个非零元素对应的列索引，例如 [2, 0, 1, 2]
-
-    COO 格式本身并不适合直接进行矩阵乘法、加法等科学计算。它的主要职责是作为一种高效的构建格式。
-
-    一旦用 COO 格式构建好矩阵，你可以非常快速地将它转换为其他更适合计算的格式，例如：
-
-    * CSR (Compressed Sparse Row)： 用于高效的矩阵运算（如乘法）。
-
-    * CSC (Compressed Sparse Column)： 用于高效的列操作和求解线性方程组。
-
-    coo_matrix 的 tocsr() 和 tocsc() 方法就是用来做这个转换的。
-
-    example:
-
-    ```py
-    import numpy as np
-    from scipy.sparse import coo_matrix
-
-    # 1. 创建 COO 矩阵的三大核心数组
-    data = np.array([5, 9, 1, 4])    # 非零元素的值
-    row  = np.array([0, 1, 2, 2])    # 这些元素的行索引
-    col  = np.array([2, 0, 1, 2])    # 这些元素的列索引
-
-    # 2. 创建 COO 矩阵
-    # 参数 shape 指定矩阵的总大小，这里是一个 3x3 的矩阵
-    coo_sparse_matrix = coo_matrix((data, (row, col)), shape=(3, 3))
-
-    # 3. 查看矩阵（转换为稠密矩阵显示，便于观察）
-    print("COO矩阵（以稠密形式显示）:")
-    print(coo_sparse_matrix.toarray())
-
-    # 输出结果：
-    # [[0 0 5]
-    #  [9 0 0]
-    #  [0 1 4]]
-
-    # 4. 转换为 CSR 格式以进行高效运算
-    csr_sparse_matrix = coo_sparse_matrix.tocsr()
-    print("\n已转换为CSR格式。")
-    ```
-
-* index_fill_
-
-    'Val' value is filled with the elements of 'x' along with the order of indices given in the vector 'index'.
-
-    syntax:
-
-    ```py
-    index_fill_(dim, index, val) → Tensor
-    ```
-
-    这个函数中的`val`是个 scalar。
-
-    对应的 out of place 版本：
-
-    `index_fill()`
-
-    `index_put_()`, `index_put()`:
-
-    This operation puts the value of 'val' into the self tensor using the indices of the given 'index'.
-
-    syntax:
-
-    ```py
-    index_put_(indices, values, accumulate=False) → Tensor
-    ```
-
-    将 value 放到 indices 指定的位置。这里的 value 是个 vector，indices 则是 tensor 中要修改的数据的索引（可能是多维的）。
-
-    example:
-
-    ```py
-    #importing libraries
-    import torch
-     
-    target=torch.zeros([4,4])
-    indices = torch.LongTensor([[0,1],[1,2],[3,1],[1,0]])#indices to which values to be put
-    value = torch.ones(indices.shape[0])
-    #tuple of the index tensor is passed along with the value
-    target.index_put_(tuple(indices.t()), value)
-    ```
-
-    output:
-
-    ```
-    tensor([[0., 1., 0., 0.],
-           [1., 0., 1., 0.],
-           [0., 0., 0., 0.],
-           [0., 1., 0., 0.]])
-    ```
-
-    如果`accumulate`为 true，那么新元素会叠加到旧元素上。
-
-    `index_select()`:
-
-    A tensor is returned with indices as mentioned, by selecting from the target tensor.
-
-    syntax:
-
-    ```py
-    torch.index_select(input, dim, index, out=None) 
-    ```
-    
-    选取指定维度的几行/几列。
-
-    这个操作可以直接用`[:, [y_1, y_2], :]`这种索引方式完成，感觉比较鸡肋。
-
-* Axes3D
-
-    模块：`mpl_toolkits.mplot3d`
-
-    基本功能 routine：
-
-    1. 创建三维坐标轴
-
-        使用 projection='3d' 参数将一个普通的二维坐标轴转换为三维坐标轴。
-
-        ```py
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D  # 虽然显式导入有时不需要，但建议保留以确保环境正常
-
-        # 创建图形和三维坐标轴
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')  # 111 表示 1x1 网格的第1个子图
-
-        # 在较新的 Matplotlib 版本中，也可以这样创建：
-        # fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
-        ```
-
-    2. 基本三维绘图方法
-
-        创建了 Axes3D 对象（通常命名为 ax）后，你可以使用类似二维绘图的方法，但它们接受三维坐标（x, y, z）作为参数。
-
-        * 三维散点图 (Scatter Plot)
-
-            使用 `.scatter(xs, ys, zs)` 方法。
-
-            ```py
-            import numpy as np
-
-            # 生成随机数据
-            n = 100
-            x = np.random.rand(n)
-            y = np.random.rand(n)
-            z = np.random.rand(n)
-
-            ax.scatter(x, y, z, c=z, cmap='viridis', marker='o') # c=z 表示用 z 值映射颜色
-            ax.set_xlabel('X Label')
-            ax.set_ylabel('Y Label')
-            ax.set_zlabel('Z Label')
-            plt.show()
-            ```
-
-        * 三维线图 (Line Plot)
-
-            使用 .plot(xs, ys, zs) 方法。
-
-            ```py
-            # 生成螺旋线数据
-            theta = np.linspace(-4 * np.pi, 4 * np.pi, 100)
-            z = np.linspace(-2, 2, 100)
-            r = z**2 + 1
-            x = r * np.sin(theta)
-            y = r * np.cos(theta)
-
-            ax.plot(x, y, z, label='3D Curve', linewidth=2)
-            ax.legend()
-            plt.show()
-            ```
-
-        * 三维曲面图 (Surface Plot)
-
-            使用 .plot_surface(X, Y, Z) 方法。注意： X, Y, Z 必须是二维网格数据。
-
-            ```py
-            # 创建网格数据
-            x = np.linspace(-5, 5, 50)
-            y = np.linspace(-5, 5, 50)
-            X, Y = np.meshgrid(x, y)
-            Z = np.sin(np.sqrt(X**2 + Y**2))  # 计算每个网格点上的 Z 值（一个曲面）
-
-            # 绘制曲面
-            surf = ax.plot_surface(X, Y, Z, cmap='coolwarm', alpha=0.8)
-
-            # 添加颜色条
-            fig.colorbar(surf, ax=ax, shrink=0.5)
-            plt.show()
-            ```
-
-        * 三维线框图 (Wireframe Plot)
-
-            使用 .plot_wireframe(X, Y, Z) 方法，类似于曲面图但只显示网格线。
-
-            ```py
-            ax.plot_wireframe(X, Y, Z, color='black', linewidth=0.5)
-            plt.show()
-            ```
-
-        * 三维柱状图 (Bar Plot)
-
-            使用 .bar3d(x, y, z, dx, dy, dz) 方法。
-
-            * x, y, z: 柱子的底部坐标。
-
-            * dx, dy, dz: 柱子在 x, y, z 方向上的长度（宽度、深度、高度）。
-
-            ```py
-            # 定义柱子的位置和大小
-            x_pos = [0, 1, 2]
-            y_pos = [0, 1, 2]
-            z_pos = np.zeros(3)  # 所有柱子从 z=0 开始
-
-            dx = dy = 0.5 * np.ones(3)  # 所有柱子的宽度和深度都是 0.5
-            dz = [1, 2, 3]              # 三个柱子的高度分别为 1, 2, 3
-
-            ax.bar3d(x_pos, y_pos, z_pos, dx, dy, dz, color=['r', 'g', 'b'], alpha=0.7)
-            plt.show()
-            ```
-
-    3. 自定义视图
-
-        调整三维图形的视角：
-
-        ```py
-        # 设置视角 (仰角, 方位角)
-        ax.view_init(elev=30,  azim=45)  # elev: 仰角（上下看）, azim: 方位角（左右转）
-
-        # 设置坐标轴比例（使其等比例显示，避免图形扭曲）
-        ax.set_box_aspect([1, 1, 1])  # [x, y, z] 方向的比例
-        ```
-
-    example:
-
-    ```py
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    # 1. 创建图形和三维坐标轴
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
-
-    # 2. 生成并绘制数据（一个曲面和一条曲线）
-    # 曲面数据
-    x = np.linspace(-5, 5, 50)
-    y = np.linspace(-5, 5, 50)
-    X, Y = np.meshgrid(x, y)
-    Z_surf = np.sin(np.sqrt(X**2 + Y**2))
-    ax.plot_surface(X, Y, Z_surf, cmap='viridis', alpha=0.7)
-
-    # 曲线数据（一条螺旋线）
-    theta = np.linspace(0, 6*np.pi, 100)
-    z_line = np.linspace(0, 2, 100)
-    x_line = np.cos(theta)
-    y_line = np.sin(theta)
-    ax.plot(x_line, y_line, z_line, 'r-', linewidth=3, label='Spiral')
-
-    # 3. 设置标签、标题和图例
-    ax.set_xlabel('X Axis')
-    ax.set_ylabel('Y Axis')
-    ax.set_zlabel('Z Axis')
-    ax.set_title('3D Surface and Line Plot')
-    ax.legend()
-
-    # 4. 调整视角
-    ax.view_init(elev=20, azim=35)
-
-    plt.tight_layout()
-    plt.show()
-    ```
-
-    Axes3D 的基本用法可以概括为：
-
-    1. 创建：通过 fig.add_subplot(projection='3d') 创建。
-
-    2. 绘图：使用与二维绘图类似的方法（如 plot, scatter），但传入三个坐标参数（x, y, z）。对于曲面和线框图，需要二维网格数据。
-
-    3. 定制：使用 set_xlabel, view_init 等方法定制坐标轴和视图。
-
-    4. 显示：最后用 plt.show() 显示图形。
-
-* IMDb 电影评论数据集
-
-    res: <http://ai.stanford.edu/~amaas/data/sentiment/>
-
-    IMDb 数据集是一个用于二元情感分类的经典基准数据集。它包含来自互联网电影数据库（IMDb）的 50,000 条高度极化的电影评论。
-
-    内容： 每条评论都被标记为 正面（positive） 或 负面（negative）。
-
-    规模： 数据集通常被分为 25,000 条带标签的训练评论和 25,000 条测试评论。此外，还有 50,000 条无标签的额外评论（在此任务中通常不使用）。
-
-    任务： 根据评论文本预测其情感极性（正面/负面）。这是一个典型的文本分类任务。
-
-    explore example:
-
-    ```py
-    from datasets import load_dataset
-    import numpy as np
-
-    # 1. 加载 IMDb 数据集
-    imdb_dataset = load_dataset("imdb")
-
-    # 2. 探索数据集结构
-    print("数据集结构:", imdb_dataset)
-    print("\n训练集特征:", imdb_dataset["train"].features)
-    print("\n测试集第一条样本:", imdb_dataset["test"][0])
-
-    # 3. 查看一些基本统计信息
-    # 查看训练集和测试集的大小
-    print(f"\n训练集大小: {len(imdb_dataset['train'])}")
-    print(f"测试集大小: {len(imdb_dataset['test'])}")
-
-    # 查看标签分布
-    train_labels = imdb_dataset["train"]["label"]
-    test_labels = imdb_dataset["test"]["label"]
-
-    print(f"\n训练集 - 正面评论: {np.sum(train_labels)}, 负面评论: {len(train_labels) - np.sum(train_labels)}")
-    print(f"测试集 - 正面评论: {np.sum(test_labels)}, 负面评论: {len(test_labels) - np.sum(test_labels)}")
-
-    # 4. 随机查看几条样本
-    def show_samples(dataset, split="train", num_samples=3):
-        sampled_data = dataset[split].shuffle(seed=42).select(range(num_samples))
-        for i in range(num_samples):
-            print(f"\n--- 样本 {i+1} ---")
-            print(f"文本预览: {sampled_data[i]['text'][:200]}...") # 只打印前200个字符
-            print(f"标签: {sampled_data[i]['label']} ({'正面' if sampled_data[i]['label'] == 1 else '负面'})")
-
-    show_samples(imdb_dataset, "train")
     ```
 
 * RNN (循环神经网络) 
@@ -4343,412 +1856,6 @@
 
     * $\eta$ 是学习率（learning rate），控制每次更新的步长。
 
-* image augmentation
-
-    ```py
-    import torchvision.transforms as transforms
-    from PIL import Image
-
-    image = Image.open('example.jpg')
-
-    transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor()
-    ])
-
-    augmented_image = transform(image)
-    print("Augmented Image Shape:", augmented_image.shape)
-    ```
-
-    output:
-
-    ```
-    Augmented Image Shape: torch.Size([3, 500, 500])
-    ```
-
-* torch dataset and dataloader
-
-    ```py
-    import torch
-    from torch.utils.data import Dataset, DataLoader
-
-    class MyDataset(Dataset):
-        def __init__(self):
-            self.data = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
-            self.labels = torch.tensor([0, 1, 0])
-
-        def __len__(self):
-            return len(self.data)
-
-        def __getitem__(self, idx):
-            return self.data[idx], self.labels[idx]
-
-    dataset = MyDataset()
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
-
-    for batch in dataloader:
-        print("Batch Data:", batch[0])  
-        print("Batch Labels:", batch[1])
-    ```
-
-    output:
-
-    ```
-    Batch Data: tensor([[1., 2.],
-            [3., 4.]])
-    Batch Labels: tensor([0, 1])
-    Batch Data: tensor([[5., 6.]])
-    Batch Labels: tensor([0])
-    ```
-
-* matplotlib 画 3d surface 的 example
-
-    ```py
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.font_manager as fm
-
-    # 设置中文字体
-    plt.rcParams['font.sans-serif'] = ['Noto Sans CJK JP']  # 使用黑体
-    plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
-
-    # 创建数据
-    x = np.linspace(-5, 5, 100)
-    y = np.linspace(-5, 5, 100)
-    X, Y = np.meshgrid(x, y)
-    Z = np.sin(np.sqrt(X**2 + Y**2))
-
-    # 创建图形
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
-
-    # 绘制曲面
-    surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
-
-    # 添加颜色条
-    fig.colorbar(surf)
-
-    # 设置标签 - 现在中文可以正常显示
-    ax.set_xlabel('X轴')
-    ax.set_ylabel('Y轴')
-    ax.set_zlabel('Z轴')
-    ax.set_title('3D曲面图示例')
-
-    plt.show()
-    ```
-
-* `nn.MSELoss()`
-
-    Mean Squared Error（均方误差）, 衡量模型预测值 $\hat{y}$ 与真实值 $y$ 之间差的平方的平均值。
-
-    公式：
-
-    $L = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2$
-
-    其中：
-
-    * $L$ 是最终的损失值（一个标量）。
-
-    * $N$ 是样本的数量（或者是需要计算损失的元素的总个数）。
-
-    * $y_i$ 是第 $i$ 个数据的真实值（ground truth）。
-
-    * $\hat{y}_i$ 是模型对第 $i$ 个数据的预测值（prediction）。
-
-    * $\sum_{i=1}^{N}$ 表示对所有 $N$ 个数据点的差值平方进行求和。
-
-    平方的作用：
-
-    * 消除正负误差相互抵消的问题（例如，-2 和 +2 的误差如果直接相加会变成 0，但这显然不对）。
-
-    * 放大较大误差的贡献。误差越大，平方后的惩罚越大，这使得模型会对大的错误更加敏感。
-
-    PyTorch 的 nn.MSELoss 还提供了一个重要的参数 reduction，它可以改变计算最终损失的方式：
-
-    * `reduction='mean'` (默认值): 计算所有元素平方差的平均值。 $\rightarrow L = \frac{1}{N} \sum (y_i - \hat{y}_i)^2$
-
-    * `reduction='sum'`: 计算所有元素平方差的总和。 $\rightarrow L = \sum (y_i - \hat{y}_i)^2$
-
-    * `reduction='none'`: 不进行汇总（sum 或 mean），直接返回一个与输入形状相同的、每个位置都是一个平方差的损失张量。 $\rightarrow L_i = (y_i - \hat{y}_i)^2$
-
-    example:
-
-    ```py
-    import torch
-    import torch.nn as nn
-
-    # 1. 创建损失函数实例
-    # reduction 可以是 'mean', 'sum', 'none'
-    criterion = nn.MSELoss() # 默认 reduction='mean'
-    # criterion = nn.MSELoss(reduction='sum')
-    # criterion = nn.MSELoss(reduction='none')
-
-    # 2. 准备示例数据
-    # 假设我们有4个样本的预测值和真实值
-    predictions = torch.tensor([3.0, 5.0, 2.5, 4.0])
-    targets = torch.tensor([2.5, 4.8, 2.0, 3.8])
-
-    # 3. 计算损失
-    loss = criterion(predictions, targets)
-
-    print(f"Predictions: {predictions}")
-    print(f"Targets:     {targets}")
-    print(f"MSE Loss:    {loss.item()}")
-    ```
-
-    output:
-
-    ```
-    Predictions: tensor([3.0000, 5.0000, 2.5000, 4.0000])
-    Targets:     tensor([2.5000, 4.8000, 2.0000, 3.8000])
-    MSE Loss:    0.14499999582767487
-    ```
-
-    手动代码实现：
-
-    ```py
-    def my_mse_loss(pred, targ, reduction='mean'):
-        # 1. 计算所有元素的平方差
-        squared_diff = (pred - targ) ** 2
-        
-        # 2. 根据 reduction 参数进行汇总
-        if reduction == 'mean':
-            loss = torch.mean(squared_diff)
-        elif reduction == 'sum':
-            loss = torch.sum(squared_diff)
-        elif reduction == 'none':
-            loss = squared_diff
-        else:
-            raise ValueError("reduction must be 'mean', 'sum', or 'none'")
-        return loss
-
-    # 使用我们自己实现的函数
-    my_loss_mean = my_mse_loss(predictions, targets, 'mean')
-    my_loss_sum = my_mse_loss(predictions, targets, 'sum')
-    my_loss_none = my_mse_loss(predictions, targets, 'none')
-
-    print(f"Manual MSE Loss (mean): {my_loss_mean.item()}")
-    print(f"Manual MSE Loss (sum):  {my_loss_sum.item()}")
-    print(f"Manual MSE Loss (none): {my_loss_none}")
-    ```
-
-* hugging face 中的数据集
-
-    <https://huggingface.co/datasets>
-
-    使用 python 代码查询：
-
-    ```py
-    from huggingface_hub import list_datasets
-
-    # 这是一个生成器，要获取总数需要将其转换为列表，但对于数万个数据集这会很慢且耗内存。
-    # all_datasets = list(list_datasets())
-    # print(f"Total datasets: {len(all_datasets)}")
-
-    # 更高效的方法是使用分页并计数（但依然需要遍历所有数据集）
-    count = 0
-    for ds in list_datasets():
-        count += 1
-    print(f"Total datasets: {count}") # 注意：这会运行一段时间，因为要遍历数万个数据集
-    ```
-
-    常见的NLP任务和相关数据集:
-
-    * 文本分类（如情感分析、主题分类）：imdb, ag_news, yelp_review_full
-
-    * 问答（Question Answering）：squad, natural_questions
-
-    * 文本摘要（Summarization）：cnn_dailymail, xsum
-
-    * 文本生成（Text Generation）：wikitext-2, story_cloze
-
-    * 机器翻译（Translation）：wmt14, wmt16, opus_books
-
-    * 命名实体识别（Named Entity Recognition, NER）：conll2003, wnut_17
-
-    * 语义相似度（Semantic Textual Similarity）：stsb_multi_mt
-
-    * 自然语言推理（Natural Language Inference）：mnli, snli
-
-    * 指令微调数据集（用于训练Chat模型）：alpaca, dolly-15k
-
-    使用代码按标签筛选:
-
-    ```py
-    from huggingface_hub import list_datasets
-
-    # 查找所有打上 "text-classification" 标签的数据集
-    nlp_datasets = list(list_datasets(filter="task_categories:text-classification"))
-    print(f"Number of text-classification datasets: {len(list(nlp_datasets))}")
-
-    # 您可以尝试其他标签，如 "text-generation", "question-answering", "translation" 等。
-    ```
-
-* `csr_matrix`的创建方法
-
-    * 从密集矩阵（Dense Array）创建
-
-        从一个普通的 2D NumPy 数组或列表的列表创建。
-
-        ```py
-        import numpy as np
-        from scipy.sparse import csr_matrix
-
-        dense_matrix = np.array([[1, 0, 0, 0],
-                                 [0, 0, 2, 0],
-                                 [0, 3, 0, 4]])
-                                 
-        sparse_matrix = csr_matrix(dense_matrix)
-        print(sparse_matrix)
-        print(sparse_matrix.toarray()) # 转回密集矩阵查看
-        ```
-
-        output:
-
-        ```
-        <Compressed Sparse Row sparse matrix of dtype 'int64'
-        	with 4 stored elements and shape (3, 4)>
-          Coords	Values
-          (0, 0)	1
-          (1, 2)	2
-          (2, 1)	3
-          (2, 3)	4
-        [[1 0 0 0]
-         [0 0 2 0]
-         [0 3 0 4]]
-        ```
-
-    * 使用 (data, (row, col)) 坐标格式创建
-
-        明确指定每个非零元素的值及其所在的行和列坐标
-
-        ```py
-        import numpy as np
-        from scipy.sparse import csr_matrix
-
-        # 数据： [1, 2, 3, 4]
-        # 行索引：[0, 1, 2, 2] -> 第一个元素在第0行，第二个在第1行，第三、四个在第2行
-        # 列索引：[0, 2, 1, 3] -> 第一个元素在第0列，第二个在第2列，第三个在第1列，第四个在第3列
-
-        data = [1, 2, 3, 4]
-        row = [0, 1, 2, 2]
-        col = [0, 2, 1, 3]
-
-        sparse_matrix = csr_matrix((data, (row, col)), shape=(3, 4))
-        print(sparse_matrix.toarray())
-        ```
-
-        output:
-
-        ```
-        [[1 0 0 0]
-         [0 0 2 0]
-         [0 3 0 4]]
-        ```
-
-    * 使用 (data, indices, indptr) 直接创建（高级）
-
-        直接使用 CSR 格式的三个内部数组来创建。
-
-        ```py
-        # 假设矩阵为：
-        # [[1, 0, 2, 0]
-        #  [0, 0, 3, 4]
-        #  [5, 0, 0, 6]]
-
-        data = [1, 2, 3, 4, 5, 6]    # 所有非零值
-        indices = [0, 2, 2, 3, 0, 3] # 每个值对应的列号
-        indptr = [0, 2, 4, 6]        # 第i行的非零值范围是 data[indptr[i]:indptr[i+1]]
-
-        # indptr 解释：
-        # 第0行：有 indptr[1]-indptr[0] = 2 个元素，是 data[0:2] -> [1,2]，列号为 indices[0:2] -> [0,2]
-        # 第1行：有 indptr[2]-indptr[1] = 2 个元素，是 data[2:4] -> [3,4]，列号为 indices[2:4] -> [2,3]
-        # 第2行：有 indptr[3]-indptr[2] = 2 个元素，是 data[4:6] -> [5,6]，列号为 indices[4:6] -> [0,3]
-
-        sparse_matrix = csr_matrix((data, indices, indptr), shape=(3, 4))
-        print(sparse_matrix.toarray())
-        # [[1 0 2 0]
-        #  [0 0 3 4]
-        #  [5 0 0 6]]
-        ```
-
-* `csc_matrix`常用属性和操作
-
-    * 查看矩阵信息
-
-        ```py
-        print(sparse_matrix.shape)   # 矩阵形状: (3, 4)
-        print(sparse_matrix.nnz)     # 非零元素个数: 4
-        print(sparse_matrix.dtype)   # 数据类型: int64
-        print(sparse_matrix.has_sorted_indices) # 索引是否已排序: True
-        ```
-
-    * 转换格式
-
-        ```py
-        # 转换为其他稀疏格式
-        csc_matrix = sparse_matrix.tocsc() # 转为CSC格式（按列压缩，列操作快）
-        coo_matrix = sparse_matrix.tocoo() # 转为COO格式（坐标格式，构建快）
-
-        # 转换为密集NumPy数组
-        dense_array = sparse_matrix.toarray()
-        ```
-
-    * 数学运算
-
-        ```py
-        # 标量运算
-        result = sparse_matrix * 2   # 所有非零元素乘以2
-
-        # 矩阵运算（结果通常也是稀疏矩阵）
-        vector = np.array([1, 2, 3, 4])
-        result_vector = sparse_matrix.dot(vector) # 矩阵-向量乘法
-
-        other_sparse_matrix = csr_matrix([[1], [0], [1], [0]])
-        result_matrix = sparse_matrix.dot(other_sparse_matrix) # 矩阵-矩阵乘法
-        ```
-
-        csr_matrix 支持大多数常见的矩阵运算。
-
-    * 切片和索引
-
-        ```py
-        # 获取第1行（返回一个1xN的CSR矩阵）
-        row_1 = sparse_matrix[1, :]
-
-        # 获取第2列（效率较低，考虑用CSC格式做列操作）
-        col_2 = sparse_matrix[:, 2]
-        ```
-
-        对 CSR 矩阵进行切片通常不如对密集矩阵高效，尤其是列切片。
-
-* `scipy.sparse.csr_matrix`
-
-    Compressed Sparse Row matrix
-
-    是 SciPy 库中用于表示稀疏矩阵的一种数据结构。它专门用于高效地存储和操作那些大部分元素为零的矩阵。
-
-    CSR 格式只存储非零元素的值及其位置，极大地节省了内存和计算时间。
-
-    适用场景:
-
-    * 词袋模型（Bag-of-Words）中的文档-词项矩阵
-
-    * 图的邻接矩阵
-
-    * 有限元分析中的刚度矩阵
-
-    CSR 格式通过三个一维数组来表示整个矩阵：
-
-    1. data：存储所有非零元素的值。
-
-    2. indices：存储每个非零元素所在的列索引。
-
-    3. indptr（索引指针）：存储每一行第一个非零元素在 data 和 indices 中的起始位置。
-
-    这种结构使得按行访问和操作（如矩阵-向量乘法）非常高效。
-
 * `tens.index_copy_()`
 
     将指定维度上的指定索引（可以是多个）复制到`tens`的对应位置。
@@ -4786,220 +1893,6 @@
     * `my_indices`元素的数量必须和`tens_2`在`dim`维度上的长度对应，即`my_indices.size() == tens_2.shape[dim]`。上面例子中，如果`tens_2 = torch.randn(3, 4)`，则会报错。
 
     `index_copy()`是其 out-of-place 版本。
-
-* 将 tensor 从 cpu 转移到 gpu
-
-    * 推荐接口`.to()`
-
-        ```py
-        import torch
-
-        # 假设有一个在 CPU 上的 tensor
-        cpu_tensor = torch.tensor([1, 2, 3])
-        print(cpu_tensor.device) # 输出：cpu
-
-        # 检查 GPU 是否可用
-        if torch.cuda.is_available():
-            device = torch.device("cuda") # 指定目标设备为 GPU
-            gpu_tensor = cpu_tensor.to(device) # 转移到 GPU
-            print(gpu_tensor.device) # 输出：cuda:0
-
-            # 你也可以直接使用字符串
-            gpu_tensor_2 = cpu_tensor.to('cuda')
-        ```
-
-    * 旧兼容接口`.cuda()`
-
-        ```py
-        if torch.cuda.is_available():
-            gpu_tensor = cpu_tensor.cuda() # 转移到默认 GPU (cuda:0)
-            gpu_tensor = cpu_tensor.cuda(0) # 明确转移到第一个 GPU
-        ```
-
-    在创建时指定设备：
-
-    ```py
-    # 直接在 GPU 上创建 tensor，省去转移步骤
-    gpu_tensor = torch.tensor([1, 2, 3], device='cuda')
-    # 或者
-    gpu_tensor = torch.tensor([1, 2, 3]).to('cuda')
-    ```
-
-* Tensor 中的转置（Transpose）
-
-    转置是一种改变张量维度（轴）顺序的操作。
-
-    矩阵（一个 2D 张量），它的转置就是沿着主对角线翻转的操作。将矩阵 A 的行和列互换，就得到了它的转置 Aᵀ。
-
-    如果原矩阵 A 的形状是 (m, n)，那么转置后的矩阵 Aᵀ 的形状就是 (n, m)。
-
-    元素的位置关系为：A[i, j] = Aᵀ[j, i]。
-
-    对于维度大于 2 的张量（例如 3D、4D），转置指任意地重新排列张量的所有维度。
-
-    PyTorch 中转置操作是一种“视图操作”，由于不复制数据，原张量和转置后的张量共享同一块内存。修改其中一个的值，另一个也会随之改变。
-
-    1. 默认转置（`.T` 或 `transpose()`）
-
-        在很多框架中，如果不提供参数，.T 属性会默认反转所有维度的顺序。
-
-        `y = x.T`
-
-        新的维度顺序是原顺序的反转：`(2, 1, 0)`
-
-        因此，转置后的形状为：`(original_shape[2], original_shape[1], original_shape[0]) = (4, 3, 2)`
-
-    2. 自定义转置（指定 perm 参数）
-
-        * example 1: 交换最后两个维度
-
-            ```py
-            # 假设 x.shape = (2, 3, 4)
-            y = x.transpose(0, 2, 1) # 或者 x.permute(0, 2, 1) in PyTorch
-            # 新的维度顺序: (0, 2, 1)
-            # 新形状: (original_shape[0], original_shape[2], original_shape[1])
-            #        = (2, 4, 3)
-            ```
-
-        * example 2: 复杂的重新排列
-
-            ```py
-            # 假设 x.shape = (2, 3, 4, 5)
-            # 我们想要一个新的顺序：将原来的维度 2 放到最前面，然后是维度 0，维度 3，最后是维度 1。
-            perm = (2, 0, 3, 1)
-            y = x.transpose(perm)
-            # 新形状: (original_shape[2], original_shape[0], original_shape[3], original_shape[1])
-            #        = (4, 2, 5, 3)
-            ```
-
-    numpy 与 torch 的接口函数：
-
-    * numpy
-
-        ```py
-        import numpy as np
-        x = np.random.rand(2, 3, 4)
-        y = x.transpose(0, 2, 1) # 使用 transpose 函数
-        z = x.T # 反转所有维度
-        ```
-
-    * torch
-
-        ```py
-        import torch
-        x = torch.randn(2, 3, 4)
-        y = x.permute(0, 2, 1) # 常用 permute 函数
-        z = x.transpose(1, 2)  # transpose 通常一次只交换两个指定维度，这里是交换维度1和2
-        w = x.T # 反转所有维度
-        ```
-
-* python class 中定义成员变量
-
-    1. 在`__init__()`或其他成员函数中，使用`self.xxx = yyy`定义成员变量
-
-        ```py
-        class DynamicClass:
-            def __init__(self):
-                self.defined_in_init = "I'm from init" 
-
-            def add_attribute_later(self):
-                self.defined_later = "I was created later!"
-
-        # 使用
-        obj = DynamicClass()
-        print(obj.defined_in_init) # 正常工作
-
-        # print(obj.defined_later) # 这里会报错，因为还没有执行定义它的方法
-
-        obj.add_attribute_later() # 调用方法，动态创建了成员
-        print(obj.defined_later)  # 现在可以正常工作了
-        ```
-
-    2. 使用类属性
-
-        ```py
-        class MyClass:
-            # 这是类属性
-            class_attr = "I'm a class attribute"
-
-            def __init__(self, instance_attr):
-                # 这是实例属性
-                self.instance_attr = instance_attr
-
-        # 使用
-        obj1 = MyClass("Obj1 value")
-        obj2 = MyClass("Obj2 value")
-
-        # 访问实例属性：每个对象独有
-        print(obj1.instance_attr) # Obj1 value
-        print(obj2.instance_attr) # Obj2 value
-
-        # 访问类属性：所有对象共享，也可以通过类本身访问
-        print(obj1.class_attr)    # I'm a class attribute
-        print(obj2.class_attr)    # I'm a class attribute
-        print(MyClass.class_attr) # I'm a class attribute
-        ```
-
-        共享性：所有实例对象共享同一个类属性。如果通过类名修改它（如 MyClass.class_attr = "new"），所有实例看到的都会改变。
-
-        实例访问的陷阱：如果你通过实例对类属性进行赋值（如 obj1.class_attr = "new for obj1"），你实际上是在该实例的命名空间内创建了一个新的同名实例属性，它会遮蔽（shadow）掉类属性。此时，obj1.class_attr 是实例属性，而 obj2.class_attr 和 MyClass.class_attr 仍然是原来的类属性。
-
-    3. 使用`@property`装饰器
-
-        ```py
-        class Circle:
-            def __init__(self, radius):
-                self.radius = radius # 这里只存储了半径
-
-            @property
-            def area(self):
-                # 面积不需要存储，每次访问时根据半径计算
-                return 3.14159 * self.radius ** 2
-
-            @property
-            def diameter(self):
-                return self.radius * 2
-
-        # 使用
-        c = Circle(5)
-        print(c.radius)   # 5 (实例属性)
-        print(c.diameter) # 10 (看起来是属性，实则是方法计算的结果)
-        print(c.area)     # 78.53975 (看起来是属性，实则是方法计算的结果)
-
-        # c.area = 100 # 这会报错，因为@property默认是只读的
-        ```
-
-    在使用类成员时，如果不知道初始值，可以使用`Nonde`:
-
-    ```py
-    class User:
-        # 使用 None 作为占位符，表示这些属性需要后续初始化
-        name = None
-        email = None
-        age = None
-    ```
-
-    但是只有`None`无法提供类型信息，可以使用类型注解（Type Hints）配合 None:
-
-    ```py
-    class User:
-        name: str | None = None
-        email: str | None = None
-        age: int | None = None
-    ```
-
-    不可以只写类型注解，不写初始化值：
-
-    ```py
-    class User:
-        name: str          # 这只是类型注解
-        age: int = 0       # 这是真正的属性定义 + 类型注解
-
-    # 测试
-    user = User()
-    print(user.age)        # 正常工作，输出: 0
-    print(user.name)       # 报错！AttributeError: 'User' object has no attribute 'name'
-    ```
 
 * torch 拟合 xor 函数
 
@@ -5095,31 +1988,6 @@
 
         * 适合测试、验证和推理阶段使用
 
-* 使用 permute 导致 tensor 变成 continuous 的例子
-
-    ```py
-    import torch as t
-
-    a = t.rand(3, 4)
-    print('a shape: {}'.format(a.shape))
-    a = a.permute(1, 0)
-    print('after permute, a shape: {}'.format(a.shape))
-    print('is continuous: {}'.format(a.is_contiguous()))
-    a = a.view(2, 6)
-    ```
-
-    output:
-
-    ```
-    a shape: torch.Size([3, 4])
-    after permute, a shape: torch.Size([4, 3])
-    is continuous: False
-    Traceback (most recent call last):
-      File "/home/hlc/Documents/Projects/torch_test/main.py", line 8, in <module>
-        a = a.view(2, 6)
-    RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
-    ```
-
 * 带自回归的 Encoder-Decoder 架构
 
     一种用于处理序列到序列（Seq2Seq） 任务的深度学习模型框架。它的核心思想是将一个输入序列（如一句英文句子）转换为一个输出序列（如对应的中文句子），并且输出序列的生成是逐步、自回归地进行的。
@@ -5191,435 +2059,6 @@
         * 注意力机制：Bahdanau, D., Cho, K., & Bengio, Y. (2014). Neural machine translation by jointly learning to align and translate. arXiv preprint arXiv:1409.0473. [必读]
 
         * Transformer：Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. In NeurIPS. [必读中的必读]
-
-* 获取 hugging face 的 imdb 数据集
-
-    ```py
-    from datasets import load_dataset
-    dataset = load_dataset('imdb')
-    print(dataset['train'][0])
-    ```
-
-    数据会被下载到`~/.cache/huggingface/datasets`中。imdb 数据集大小为 128 M。
-
-* `index_add()`
-
-    It is the out-of place version of the function `index_add_()`.
-
-    example:
-
-    ```py
-    import torch
-
-    y = torch.ones(5,5)
-    index2 = torch.tensor([0,1,1,1,2])
-    ten = torch.randn(5,5)
-
-    print("Indexed Matrix:\n",y.index_add(1,index2,ten))
-    print ("Printing Indexed Matrix again:\n",y)
-    ```
-
-    output:
-
-    ```
-    Indexed Matrix:
-     tensor([[ 1.1614,  2.1703,  1.5247,  1.0000,  1.0000],
-            [-0.2930,  4.1282,  0.3124,  1.0000,  1.0000],
-            [ 0.5624,  0.3906,  3.0302,  1.0000,  1.0000],
-            [ 1.7235,  2.3990,  2.5070,  1.0000,  1.0000],
-            [ 1.9170,  1.0716, -0.3112,  1.0000,  1.0000]])
-    Printing Indexed Matrix again:
-     tensor([[1., 1., 1., 1., 1.],
-            [1., 1., 1., 1., 1.],
-            [1., 1., 1., 1., 1.],
-            [1., 1., 1., 1., 1.],
-            [1., 1., 1., 1., 1.]])
-    ```
-
-    可以看出`index_add()`不修改原 tensor 的数据。
-
-* Pytorch - Index-based Operation
-
-    * `index_add_()`
-
-        Adds the given tensor elements to the self tensor along the order given in the matrix.
-
-        syntax:
-
-        ```py
-        index_add_(dim, index, tensor) ---> Tensor
-        ```
-
-        params:
-
-        * dim: dimension along which index to add. '0' stands for column and '1' stands for row.
-
-        * index: indices of the tensor to select from. It can be LongTensor or IntTensor.
-
-        * tensor: tensor containing the values to add.
-
-        example:
-
-        ```py
-        import torch
-
-        x = torch.zeros(5,5)
-        te = torch.tensor([[1,3,5,7,9], [1,3,5,7,9], [1,3,5,7,9]], dtype=torch.float32)
-        print('te shape: {}\n'.format(te.shape))
-        index0 = torch.tensor([0, 2, 4])
-
-        x.index_add_(0, index0, te) #adding tensor te to x along row of the given order
-        print('x:\n{}'.format(x))
-        ```
-
-        output:
-
-        ```
-        te shape: torch.Size([3, 5])
-
-        x:
-        tensor([[1., 3., 5., 7., 9.],
-                [0., 0., 0., 0., 0.],
-                [1., 3., 5., 7., 9.],
-                [0., 0., 0., 0., 0.],
-                [1., 3., 5., 7., 9.]])
-        ```
-
-        可以看出，是让`te`中的三行数据分别叠加到`x`的`[0, 2, 4]`行上。
-
-        example 2:
-
-        ```py
-        import torch
-
-        y = torch.ones(5, 5) # unit vector
-        index2 = torch.tensor([0, 1, 1, 1, 2])
-        ten = torch.randn(1, 5)
-
-        # adding values to y along the column with given order
-        y.index_add_(1, index2, ten)
-        print('y is: {}'.format(y))
-        ```
-
-        output:
-
-        ```
-        Traceback (most recent call last):
-          File "/home/hlc/Documents/Projects/torch_test/main.py", line 8, in <module>
-            y.index_add_(1, index2, ten)
-        RuntimeError: source tensor shape must match self tensor shape, excluding the specified dimension. Got self.shape = [5, 5] source.shape = [1, 5]
-        ```
-
-        可以看出并没有发生 broadcasting。
-
-        可以改成这样：
-
-        ```py
-        import torch
-
-        y = torch.ones(5,5) # unit vector
-        index2 = torch.tensor([0, 1, 1, 1, 2])
-        ten = torch.randn(1, 5)
-        ten = ten.expand(5, 5)
-        print('ten is: {}'.format(ten))
-
-        # adding values to y along the column with given order
-        y.index_add_(1, index2, ten)
-        print('y is: {}'.format(y))
-        ```
-
-        output:
-
-        ```
-        ten is: tensor([[ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
-                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
-                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
-                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
-                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060]])
-        y is: tensor([[ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
-                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
-                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
-                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
-                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000]])
-        ```
-
-        可以看出，`[0, 1, 1, 1, 2]`表示将`ten`中的五列分别叠加到`y`的第 0, 1, 1, 1, 2 列。
-
-* 可以在创建 tensor 时使用`device=`参数来指定是否使用 gpu
-
-    ```py
-    import torch
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f'Using device: {device}')
-
-    tensor_size = (10000, 10000)  
-    a = torch.randn(tensor_size, device=device)  
-    b = torch.randn(tensor_size, device=device)  
-
-    c = a + b  
-
-    print("Result shape (moved to CPU for printing):", c.cpu().shape)
-
-    print("Current GPU memory usage:")
-    print(f"Allocated: {torch.cuda.memory_allocated(device) / (1024 ** 2):.2f} MB")
-    print(f"Cached: {torch.cuda.memory_reserved(device) / (1024 ** 2):.2f} MB")
-    ```
-
-    output:
-
-    ```
-    Using device: cpu
-    Result shape (moved to CPU for printing): torch.Size([10000, 10000])
-    Current GPU memory usage:
-    Allocated: 0.00 MB
-    Cached: 0.00 MB
-    ```
-
-* permute 和 transpose 都是只交换维度，不改变底层数据，所以会造成 tensor 不连续
-
-* 关于`tensor.view()`与内存的讨论
-
-    * view() 在 PyTorch 中只是改变张量的 视图，不做实际的数据拷贝，因此要求底层内存是 连续的 (contiguous)。如果原始张量不是连续的（例如经过 transpose、permute 等操作），直接调用 view() 就会报错。
-
-    * reshape() 更灵活：它会尝试返回一个 view，但如果数据在内存中不连续，它会自动做一次拷贝，把数据整理成连续的，再返回结果。因此 reshape() 一定能成功（只要新形状是合法的）。
-
-    example:
-
-    ```py
-    import torch
-
-    # 创建一个 2x3 张量
-    a = torch.arange(6).reshape(2, 3)
-    print("原始 a:\n", a)
-
-    # 转置，得到非连续内存的张量
-    b = a.t()   # transpose
-    print("转置 b:\n", b)
-    print("b 是否连续:", b.is_contiguous())  # False
-
-    # 尝试 view
-    try:
-        aaa = b.view(-1)
-        print('aaa: {}'.format(aaa))
-    except RuntimeError as e:
-        print("view 报错:", e)
-
-    # 使用 reshape 则没问题
-    c = b.reshape(-1)
-    print("reshape 成功:", c)
-    ```
-
-    output:
-
-    ```
-    原始 a:
-     tensor([[0, 1, 2],
-            [3, 4, 5]])
-    转置 b:
-     tensor([[0, 3],
-            [1, 4],
-            [2, 5]])
-    b 是否连续: False
-    view 报错: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
-    reshape 成功: tensor([0, 3, 1, 4, 2, 5])
-    ```
-    
-    PyTorch Tensor 底层由两个关键部分组成：
-
-    1. Storage（存储区）
-
-        使用一块连续的内存（1D array），存放所有元素。不使用链表或分散块存储。
-
-        即使是多维张量，本质上还是在一维数组里。
-
-    2. Tensor 元信息：size + stride
-
-        * size：每一维的长度。
-
-        * stride：每一维跨越的步长（在内存里隔多少元素算一步）。
-
-        例子：
-
-        shape 为 (2, 3) 的张量，stride = (3, 1)。
-
-        如果我们对其进行转置（transpose），那么 torch 会实行一个 trick，即只交换维度信息，不改变底层数据，此时 stride 会变成 (1, 3)，我们通过索引`arr[m][n]`可以正确访问到转置后的数据，但是此时它已经不再是先行后列的含义了，因此不连续。
-
-        如果我们改变底层数据，使它是连续的，那么转置后的 tensor，shape 为 (3, 2)，stride 为 (2, 1)。
-
-        `stride[i]`表示在第 i 维上 索引加 1，在底层 1D 存储里需要移动多少个元素。
-
-    下面的代码解释了 torch 中 transpose() 的 trick:
-
-    ```py
-    import numpy as np
-
-    class Arr:
-        def __init__(self, arr, m: int, n: int):
-            self.arr = arr
-            self.shape = [m, n]
-            self.stride = [n, 1]
-
-        def view(self, m: int, n: int):
-            self.shape = [m, n]
-            self.stride = [n, 1]
-
-        def transpose(self):
-            self.shape = [self.shape[1], self.shape[0]]
-            self.stride = [1, self.stride[0]]
-
-        def get(self, i, j):
-            return self.arr[i * self.stride[0] + j * self.stride[1]]
-
-    def print_arr(arr: Arr):
-        for i in range(arr.shape[0]):
-            for j in range(arr.shape[1]):
-                print('{}, '.format(arr.get(i, j)), end='')
-            print()
-        print()
-        return
-
-    def main():
-        data = np.arange(3 * 4)
-        arr = Arr(data, 3, 4)
-
-        print('arr (3 x 4):')
-        print_arr(arr)
-
-        arr.view(4, 3)
-        print('arr (4 x 3):')
-        print_arr(arr)
-
-        arr.view(3, 4)  # back to original state
-        arr.transpose()
-        print('arr transposed (4 x 3):')
-        print_arr(arr)
-
-        return
-
-    if __name__ == '__main__':
-        main()
-    ```
-
-    output:
-
-    ```
-    arr (3 x 4):
-    0, 1, 2, 3, 
-    4, 5, 6, 7, 
-    8, 9, 10, 11, 
-
-    arr (4 x 3):
-    0, 1, 2, 
-    3, 4, 5, 
-    6, 7, 8, 
-    9, 10, 11, 
-
-    arr transposed (4 x 3):
-    0, 4, 8, 
-    1, 5, 9, 
-    2, 6, 10, 
-    3, 7, 11,
-    ```
-
-    如果我们需要将这种非连续的底层数据变成连续的，那么可以调用`.contiguous()`方法将其变成连续的。
-
-* `tensor.view()`和`tensor.reshape()`都是浅拷贝，`reshape()`可能是深拷贝
-
-    ```py
-    import torch
-
-    # 原始张量
-    original_tensor = torch.arange(6)  # tensor([0, 1, 2, 3, 4, 5])
-    reshaped_tensor = original_tensor.view(2, 3)
-
-    # 修改reshape后的张量
-    reshaped_tensor[0, 0] = 100
-
-    print(original_tensor)  # tensor([100,   1,   2,   3,   4,   5])
-    print(reshaped_tensor)  # tensor([[100,   1,   2],
-                            #         [  3,   4,   5]])
-    ```
-
-    output:
-
-    ```
-    tensor([100,   1,   2,   3,   4,   5])
-    tensor([[100,   1,   2],
-            [  3,   4,   5]])
-    ```
-
-    可以看到，修改 reshaped_tensor 也会影响 original_tensor，因为它们共享底层数据存储。
-
-    如果原始张量在内存中不是连续的，view() 可能会失败，此时需要使用 reshape()：
-
-    ```py
-    # 转置操作会创建不连续的张量
-    non_contiguous = original_tensor.t()  # 转置
-
-    # 可能会报错
-    reshaped = non_contiguous.view(2, 3)
-    print('view reshaped: {}'.format(reshaped))
-
-    # 应该使用reshape()
-    reshaped = non_contiguous.reshape(2, 3)  # 同样也是浅拷贝
-    print('reshape reshaped: {}'.format(reshaped))
-    ```
-
-    output:
-
-    ```
-    view reshaped: tensor([[0, 1, 2],
-            [3, 4, 5]])
-    reshape reshaped: tensor([[0, 1, 2],
-            [3, 4, 5]])
-    ```
-
-    目前看到使用 view 也没有报错，不清楚为什么。
-
-    如果需要深拷贝，可以使用 clone() 方法：
-
-    ```py
-    # 创建真正的深拷贝
-    deep_copy = original_tensor.view(2, 3).clone()
-
-    # 修改深拷贝不会影响原始张量
-    deep_copy[0, 0] = 999
-    print(original_tensor)  # 不会被修改
-    ```
-
-    首先`.view()`一定是浅拷贝。对于`.reshape()`，如果张量是 连续的，reshape() 内部直接调用 view()；如果张量是 非连续的（例如经过 transpose），reshape() 会先调用 .contiguous()，把数据整理成标准布局（开辟新内存、复制数据），此时会发生深拷贝，然后再调用 view()。
-
-* tensor 的 Broadcasting 和 Matrix Multiplication 操作
-
-    ```py
-    import torch
-
-    tensor_a = torch.tensor([[1, 2, 3], [4, 5, 6]])
-    print('tensor a shape: {}'.format(tensor_a.shape))
-
-    tensor_b = torch.tensor([[10, 20, 30]]) 
-    print('tensor b shape: {}'.format(tensor_b.shape))
-
-    broadcasted_result = tensor_a + tensor_b 
-    print(f"Broadcasted Addition Result: \n{broadcasted_result}")
-
-    matrix_multiplication_result = torch.matmul(tensor_a, tensor_a.T)
-    print(f"Matrix Multiplication Result (tensor_a * tensor_a^T): \n{matrix_multiplication_result}")
-    ```
-
-    output:
-
-    ```
-    tensor a shape: torch.Size([2, 3])
-    tensor b shape: torch.Size([1, 3])
-    Broadcasted Addition Result: 
-    tensor([[11, 22, 33],
-            [14, 25, 36]])
-    Matrix Multiplication Result (tensor_a * tensor_a^T): 
-    tensor([[14, 32],
-            [32, 77]])
-    ```
 
 * 可以跑通的 pytorch example
 
@@ -5861,6 +2300,2933 @@
     Predicted: "Ankle boot", Actual: "Ankle boot"
     ```
 
+## topics
+
+### 内存布局，GPU 与 CPU
+
+* 使用 permute 导致 tensor 变成 continuous 的例子
+
+    ```py
+    import torch as t
+
+    a = t.rand(3, 4)
+    print('a shape: {}'.format(a.shape))
+    a = a.permute(1, 0)
+    print('after permute, a shape: {}'.format(a.shape))
+    print('is continuous: {}'.format(a.is_contiguous()))
+    a = a.view(2, 6)
+    ```
+
+    output:
+
+    ```
+    a shape: torch.Size([3, 4])
+    after permute, a shape: torch.Size([4, 3])
+    is continuous: False
+    Traceback (most recent call last):
+      File "/home/hlc/Documents/Projects/torch_test/main.py", line 8, in <module>
+        a = a.view(2, 6)
+    RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+    ```
+
+* 将 tensor 从 cpu 转移到 gpu
+
+    * 推荐接口`.to()`
+
+        ```py
+        import torch
+
+        # 假设有一个在 CPU 上的 tensor
+        cpu_tensor = torch.tensor([1, 2, 3])
+        print(cpu_tensor.device) # 输出：cpu
+
+        # 检查 GPU 是否可用
+        if torch.cuda.is_available():
+            device = torch.device("cuda") # 指定目标设备为 GPU
+            gpu_tensor = cpu_tensor.to(device) # 转移到 GPU
+            print(gpu_tensor.device) # 输出：cuda:0
+
+            # 你也可以直接使用字符串
+            gpu_tensor_2 = cpu_tensor.to('cuda')
+        ```
+
+    * 旧兼容接口`.cuda()`
+
+        ```py
+        if torch.cuda.is_available():
+            gpu_tensor = cpu_tensor.cuda() # 转移到默认 GPU (cuda:0)
+            gpu_tensor = cpu_tensor.cuda(0) # 明确转移到第一个 GPU
+        ```
+
+    在创建时指定设备：
+
+    ```py
+    # 直接在 GPU 上创建 tensor，省去转移步骤
+    gpu_tensor = torch.tensor([1, 2, 3], device='cuda')
+    # 或者
+    gpu_tensor = torch.tensor([1, 2, 3]).to('cuda')
+    ```
+
+* list 在 append tensor 时，需要 tensor clone()，否则 append 的都是 tensor 的引用，值都是一模一样的
+
+    `params_record.append(param.clone().detach())`
+
+* 将 tensor 数据放到 gpu 里
+
+    ```py
+    # 检查设备
+    print("Tensor 设备:", torch_tensor.device)
+
+    # 如果需要，移动到 GPU
+    if torch.cuda.is_available():
+        torch_tensor = torch_tensor.cuda()
+    ```
+
+* `tensor.view()`和`tensor.reshape()`都是浅拷贝，`reshape()`可能是深拷贝
+
+    ```py
+    import torch
+
+    # 原始张量
+    original_tensor = torch.arange(6)  # tensor([0, 1, 2, 3, 4, 5])
+    reshaped_tensor = original_tensor.view(2, 3)
+
+    # 修改reshape后的张量
+    reshaped_tensor[0, 0] = 100
+
+    print(original_tensor)  # tensor([100,   1,   2,   3,   4,   5])
+    print(reshaped_tensor)  # tensor([[100,   1,   2],
+                            #         [  3,   4,   5]])
+    ```
+
+    output:
+
+    ```
+    tensor([100,   1,   2,   3,   4,   5])
+    tensor([[100,   1,   2],
+            [  3,   4,   5]])
+    ```
+
+    可以看到，修改 reshaped_tensor 也会影响 original_tensor，因为它们共享底层数据存储。
+
+    如果原始张量在内存中不是连续的，view() 可能会失败，此时需要使用 reshape()：
+
+    ```py
+    # 转置操作会创建不连续的张量
+    non_contiguous = original_tensor.t()  # 转置
+
+    # 可能会报错
+    reshaped = non_contiguous.view(2, 3)
+    print('view reshaped: {}'.format(reshaped))
+
+    # 应该使用reshape()
+    reshaped = non_contiguous.reshape(2, 3)  # 同样也是浅拷贝
+    print('reshape reshaped: {}'.format(reshaped))
+    ```
+
+    output:
+
+    ```
+    view reshaped: tensor([[0, 1, 2],
+            [3, 4, 5]])
+    reshape reshaped: tensor([[0, 1, 2],
+            [3, 4, 5]])
+    ```
+
+    目前看到使用 view 也没有报错，不清楚为什么。
+
+    如果需要深拷贝，可以使用 clone() 方法：
+
+    ```py
+    # 创建真正的深拷贝
+    deep_copy = original_tensor.view(2, 3).clone()
+
+    # 修改深拷贝不会影响原始张量
+    deep_copy[0, 0] = 999
+    print(original_tensor)  # 不会被修改
+    ```
+
+    首先`.view()`一定是浅拷贝。对于`.reshape()`，如果张量是 连续的，reshape() 内部直接调用 view()；如果张量是 非连续的（例如经过 transpose），reshape() 会先调用 .contiguous()，把数据整理成标准布局（开辟新内存、复制数据），此时会发生深拷贝，然后再调用 view()。
+
+* permute 和 transpose 都是只交换维度，不改变底层数据，所以会造成 tensor 不连续
+
+* 关于`tensor.view()`与内存的讨论
+
+    * view() 在 PyTorch 中只是改变张量的 视图，不做实际的数据拷贝，因此要求底层内存是 连续的 (contiguous)。如果原始张量不是连续的（例如经过 transpose、permute 等操作），直接调用 view() 就会报错。
+
+    * reshape() 更灵活：它会尝试返回一个 view，但如果数据在内存中不连续，它会自动做一次拷贝，把数据整理成连续的，再返回结果。因此 reshape() 一定能成功（只要新形状是合法的）。
+
+    example:
+
+    ```py
+    import torch
+
+    # 创建一个 2x3 张量
+    a = torch.arange(6).reshape(2, 3)
+    print("原始 a:\n", a)
+
+    # 转置，得到非连续内存的张量
+    b = a.t()   # transpose
+    print("转置 b:\n", b)
+    print("b 是否连续:", b.is_contiguous())  # False
+
+    # 尝试 view
+    try:
+        aaa = b.view(-1)
+        print('aaa: {}'.format(aaa))
+    except RuntimeError as e:
+        print("view 报错:", e)
+
+    # 使用 reshape 则没问题
+    c = b.reshape(-1)
+    print("reshape 成功:", c)
+    ```
+
+    output:
+
+    ```
+    原始 a:
+     tensor([[0, 1, 2],
+            [3, 4, 5]])
+    转置 b:
+     tensor([[0, 3],
+            [1, 4],
+            [2, 5]])
+    b 是否连续: False
+    view 报错: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+    reshape 成功: tensor([0, 3, 1, 4, 2, 5])
+    ```
+    
+    PyTorch Tensor 底层由两个关键部分组成：
+
+    1. Storage（存储区）
+
+        使用一块连续的内存（1D array），存放所有元素。不使用链表或分散块存储。
+
+        即使是多维张量，本质上还是在一维数组里。
+
+    2. Tensor 元信息：size + stride
+
+        * size：每一维的长度。
+
+        * stride：每一维跨越的步长（在内存里隔多少元素算一步）。
+
+        例子：
+
+        shape 为 (2, 3) 的张量，stride = (3, 1)。
+
+        如果我们对其进行转置（transpose），那么 torch 会实行一个 trick，即只交换维度信息，不改变底层数据，此时 stride 会变成 (1, 3)，我们通过索引`arr[m][n]`可以正确访问到转置后的数据，但是此时它已经不再是先行后列的含义了，因此不连续。
+
+        如果我们改变底层数据，使它是连续的，那么转置后的 tensor，shape 为 (3, 2)，stride 为 (2, 1)。
+
+        `stride[i]`表示在第 i 维上 索引加 1，在底层 1D 存储里需要移动多少个元素。
+
+    下面的代码解释了 torch 中 transpose() 的 trick:
+
+    ```py
+    import numpy as np
+
+    class Arr:
+        def __init__(self, arr, m: int, n: int):
+            self.arr = arr
+            self.shape = [m, n]
+            self.stride = [n, 1]
+
+        def view(self, m: int, n: int):
+            self.shape = [m, n]
+            self.stride = [n, 1]
+
+        def transpose(self):
+            self.shape = [self.shape[1], self.shape[0]]
+            self.stride = [1, self.stride[0]]
+
+        def get(self, i, j):
+            return self.arr[i * self.stride[0] + j * self.stride[1]]
+
+    def print_arr(arr: Arr):
+        for i in range(arr.shape[0]):
+            for j in range(arr.shape[1]):
+                print('{}, '.format(arr.get(i, j)), end='')
+            print()
+        print()
+        return
+
+    def main():
+        data = np.arange(3 * 4)
+        arr = Arr(data, 3, 4)
+
+        print('arr (3 x 4):')
+        print_arr(arr)
+
+        arr.view(4, 3)
+        print('arr (4 x 3):')
+        print_arr(arr)
+
+        arr.view(3, 4)  # back to original state
+        arr.transpose()
+        print('arr transposed (4 x 3):')
+        print_arr(arr)
+
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    output:
+
+    ```
+    arr (3 x 4):
+    0, 1, 2, 3, 
+    4, 5, 6, 7, 
+    8, 9, 10, 11, 
+
+    arr (4 x 3):
+    0, 1, 2, 
+    3, 4, 5, 
+    6, 7, 8, 
+    9, 10, 11, 
+
+    arr transposed (4 x 3):
+    0, 4, 8, 
+    1, 5, 9, 
+    2, 6, 10, 
+    3, 7, 11,
+    ```
+
+    如果我们需要将这种非连续的底层数据变成连续的，那么可以调用`.contiguous()`方法将其变成连续的。
+
+### tensor 运算 / tensor 操作
+
+* index_fill_
+
+    'Val' value is filled with the elements of 'x' along with the order of indices given in the vector 'index'.
+
+    syntax:
+
+    ```py
+    index_fill_(dim, index, val) → Tensor
+    ```
+
+    这个函数中的`val`是个 scalar。
+
+    对应的 out of place 版本：
+
+    `index_fill()`
+
+    `index_put_()`, `index_put()`:
+
+    This operation puts the value of 'val' into the self tensor using the indices of the given 'index'.
+
+    syntax:
+
+    ```py
+    index_put_(indices, values, accumulate=False) → Tensor
+    ```
+
+    将 value 放到 indices 指定的位置。这里的 value 是个 vector，indices 则是 tensor 中要修改的数据的索引（可能是多维的）。
+
+    example:
+
+    ```py
+    #importing libraries
+    import torch
+     
+    target=torch.zeros([4,4])
+    indices = torch.LongTensor([[0,1],[1,2],[3,1],[1,0]])#indices to which values to be put
+    value = torch.ones(indices.shape[0])
+    #tuple of the index tensor is passed along with the value
+    target.index_put_(tuple(indices.t()), value)
+    ```
+
+    output:
+
+    ```
+    tensor([[0., 1., 0., 0.],
+           [1., 0., 1., 0.],
+           [0., 0., 0., 0.],
+           [0., 1., 0., 0.]])
+    ```
+
+    如果`accumulate`为 true，那么新元素会叠加到旧元素上。
+
+    `index_select()`:
+
+    A tensor is returned with indices as mentioned, by selecting from the target tensor.
+
+    syntax:
+
+    ```py
+    torch.index_select(input, dim, index, out=None) 
+    ```
+    
+    选取指定维度的几行/几列。
+
+    这个操作可以直接用`[:, [y_1, y_2], :]`这种索引方式完成，感觉比较鸡肋。
+
+* `squeeze()`
+
+    移除所有长度为 1 的维度（或者只移除指定维度，如果其长度为 1）。
+
+    example:
+
+    ```py
+    # 接上面的例子
+    x = torch.randn(1, 4, 1, 2)
+    print(f"Original shape: {x.shape}") # torch.Size([1, 4, 1, 2])
+
+    y = x.squeeze() # 移除所有长度为1的维度
+    print(f"After squeeze(): {y.shape}") # torch.Size([4, 2])
+
+    z = x.squeeze(0) # 只移除第0维，如果其长度为1
+    print(f"After squeeze(0): {z.shape}") # torch.Size([4, 1, 2])
+
+    w = x.squeeze(2) # 只移除第2维，如果其长度为1
+    print(f"After squeeze(2): {w.shape}") # torch.Size([1, 4, 2])
+    ```
+
+* `unsqueeze()`
+
+    在张量的指定维度上增加一个长度为 1 的维度。这个操作通常也被称为“升维”。
+
+    syntax:
+
+    ```py
+    torch.unsqueeze(input, dim) → Tensor
+    ```
+
+    * input: 输入张量。
+
+    * dim: 一个整数，指定在哪个位置插入新的维度。这个新维度的长度将为 1。
+
+        dim 的取值范围是 [-input.dim()-1, input.dim()]。
+
+        * 正索引: 从前往后数，0 表示在最前面插入。
+
+        * 负索引: 从后往前数，-1 表示在最后一个维度之后插入。
+
+    这是一个“视图操作”，意味着它通常不会复制底层数据，而只是改变了看待数据的“视角”，因此效率很高。
+
+    例如：
+
+    对于一个 3 维张量 (C, H, W)：
+
+    * dim=0 -> 新形状为 (1, C, H, W)
+
+    * dim=1 -> 新形状为 (C, 1, H, W)
+
+    * dim=-1 -> 新形状为 (C, H, W, 1)
+
+    * dim=-2 -> 新形状为 (C, H, 1, W)
+
+* torch 中的`@`
+
+    Python 中的矩阵乘法运算符，A @ B 等价于 torch.matmul(A, B)。
+
+    PyTorch 通过实现 Python 的特殊方法来自定义运算符行为：
+
+    | 运算符 | Python 特殊方法 |
+    | - | - |
+    | `@` | `__matmul__`, `__rmatmul__` |
+    | `+` | `__add__` |
+    | `-` | `__sub__` |
+    | `*` | `__mul__` |	
+    | `/` | `__truediv__` |
+
+* 使用`random_()`可以将数据初始化为随机值
+
+    example:
+
+    `target = torch.empty(2, dtype=t.long).random_(4)`
+
+    创建一个 shape 为`(2, )`的数组，将其数据初始化为`[0, 4)`的随机值。
+
+* `np.pad()`
+
+    np.pad() 是 NumPy 中用于数组填充（padding）的函数，主要用于在数组边界扩展指定宽度的元素。
+
+    syntax:
+
+    ```py
+    numpy.pad(array, pad_width, mode='constant', **kwargs)
+    ```
+
+    主要参数：
+
+    * array：要填充的数组
+
+    * pad_width：填充宽度，格式为 ((before_1, after_1), ..., (before_N, after_N))
+
+        对于多维数组，pad_width 的每个元组对应一个维度
+
+    * mode：填充模式，默认为 'constant'
+
+    * constant_values：当模式为 'constant' 时使用的填充值
+
+    常用填充模式
+
+    * constant：常数填充（默认）
+
+    * edge：使用边缘值填充
+
+    * linear_ramp：线性斜坡填充
+
+    * maximum/minimum：使用数组最大/最小值填充
+
+    * mean：使用数组平均值填充
+
+    * median：使用中位数填充
+
+    * reflect/symmetric：反射/对称填充
+
+    example:
+
+    ```py
+    import numpy as np
+
+    # 1. 一维数组常数填充
+    arr_1d = np.array([1, 2, 3])
+    padded = np.pad(arr_1d, (2, 3), mode='constant', constant_values=0)
+    # 结果：[0 0 1 2 3 0 0 0]
+
+    # 2. 二维数组不同方向填充
+    arr_2d = np.array([[1, 2], [3, 4]])
+    # 上下各填充1行，左右各填充2列
+    padded = np.pad(arr_2d, ((1, 1), (2, 2)), mode='constant', constant_values=0)
+
+    # 3. 使用不同填充值
+    arr = np.array([1, 2, 3])
+    # 左侧填充5，右侧填充10
+    padded = np.pad(arr, (2, 3), mode='constant', constant_values=(5, 10))
+
+    # 4. 边缘值填充
+    arr = np.array([1, 2, 3, 4])
+    padded = np.pad(arr, (2, 2), mode='edge')
+    # 结果：[1 1 1 2 3 4 4 4]
+
+    # 5. 反射填充
+    arr = np.array([1, 2, 3, 4])
+    padded = np.pad(arr, (2, 2), mode='reflect')
+    # 结果：[3 2 1 2 3 4 3 2]
+
+    # 6. 不同维度不同填充宽度
+    arr_2d = np.ones((3, 3))
+    pad_width = ((1, 2), (3, 4))  # 第一维：上1行下2行，第二维：左3列右4列
+    padded = np.pad(arr_2d, pad_width, mode='constant', constant_values=0)
+    ```
+
+    注：
+
+    1. 如果`pad_width`只写一份，那么会在最外层维度上被广播
+
+        example:
+
+        ```py
+        import numpy as np
+
+        arr = np.ones((3, 2))
+        arr = np.pad(arr, (2, 3))
+        print(arr)
+        ```
+
+        output:
+
+        ```
+        [[0. 0. 0. 0. 0. 0. 0.]
+        [0. 0. 0. 0. 0. 0. 0.]
+        [0. 0. 1. 1. 0. 0. 0.]
+        [0. 0. 1. 1. 0. 0. 0.]
+        [0. 0. 1. 1. 0. 0. 0.]
+        [0. 0. 0. 0. 0. 0. 0.]
+        [0. 0. 0. 0. 0. 0. 0.]
+        [0. 0. 0. 0. 0. 0. 0.]]
+        ```
+
+        可以看到，在行上是前面添加两行，后面添加三行；在列上是左边添加两列，右边添加三列。
+
+        相当于把`(2, 3)`广播成了`((2, 3), (2, 3))`。
+
+        如果希望被广播成`((2, 2), (3, 3))`，那么可以写成`((2, ), (3, ))`
+
+    1. 对于`constant_value`，后 padding 的会覆盖先 padding 的
+
+        ```py
+        import numpy as np
+
+        arr = np.ones((3, 2))
+        arr = np.pad(arr, ((2, ), (3, )), constant_values=((2, ), (3, )))
+        print(arr)
+        ```
+
+        output:
+
+        ```
+        [[3. 3. 3. 2. 2. 3. 3. 3.]
+        [3. 3. 3. 2. 2. 3. 3. 3.]
+        [3. 3. 3. 1. 1. 3. 3. 3.]
+        [3. 3. 3. 1. 1. 3. 3. 3.]
+        [3. 3. 3. 1. 1. 3. 3. 3.]
+        [3. 3. 3. 2. 2. 3. 3. 3.]
+        [3. 3. 3. 2. 2. 3. 3. 3.]]
+        ```
+
+* tensor 的 indexing, slicing, reshaping 操作
+
+    ```py
+    import torch
+
+    tensor = torch.tensor([[1, 2], [3, 4], [5, 6]])
+
+    element = tensor[1, 0]
+    print(f"Indexed Element (Row 1, Column 0): {element}")
+    
+    slice_tensor = tensor[:2, :]
+    print(f"Sliced Tensor (First two rows): \n{slice_tensor}")
+
+    reshaped_tensor = tensor.view(2, 3)
+    print(f"Reshaped Tensor (2x3): \n{reshaped_tensor}")
+    ```
+
+    output:
+
+    ```
+    Indexed Element (Row 1, Column 0): 3
+    Sliced Tensor (First two rows): 
+    tensor([[1, 2],
+            [3, 4]])
+    Reshaped Tensor (2x3): 
+    tensor([[1, 2, 3],
+            [4, 5, 6]])
+    ```
+
+* tensor 的 Broadcasting 和 Matrix Multiplication 操作
+
+    ```py
+    import torch
+
+    tensor_a = torch.tensor([[1, 2, 3], [4, 5, 6]])
+    print('tensor a shape: {}'.format(tensor_a.shape))
+
+    tensor_b = torch.tensor([[10, 20, 30]]) 
+    print('tensor b shape: {}'.format(tensor_b.shape))
+
+    broadcasted_result = tensor_a + tensor_b 
+    print(f"Broadcasted Addition Result: \n{broadcasted_result}")
+
+    matrix_multiplication_result = torch.matmul(tensor_a, tensor_a.T)
+    print(f"Matrix Multiplication Result (tensor_a * tensor_a^T): \n{matrix_multiplication_result}")
+    ```
+
+    output:
+
+    ```
+    tensor a shape: torch.Size([2, 3])
+    tensor b shape: torch.Size([1, 3])
+    Broadcasted Addition Result: 
+    tensor([[11, 22, 33],
+            [14, 25, 36]])
+    Matrix Multiplication Result (tensor_a * tensor_a^T): 
+    tensor([[14, 32],
+            [32, 77]])
+    ```
+
+* `index_add()`
+
+    It is the out-of place version of the function `index_add_()`.
+
+    example:
+
+    ```py
+    import torch
+
+    y = torch.ones(5,5)
+    index2 = torch.tensor([0,1,1,1,2])
+    ten = torch.randn(5,5)
+
+    print("Indexed Matrix:\n",y.index_add(1,index2,ten))
+    print ("Printing Indexed Matrix again:\n",y)
+    ```
+
+    output:
+
+    ```
+    Indexed Matrix:
+     tensor([[ 1.1614,  2.1703,  1.5247,  1.0000,  1.0000],
+            [-0.2930,  4.1282,  0.3124,  1.0000,  1.0000],
+            [ 0.5624,  0.3906,  3.0302,  1.0000,  1.0000],
+            [ 1.7235,  2.3990,  2.5070,  1.0000,  1.0000],
+            [ 1.9170,  1.0716, -0.3112,  1.0000,  1.0000]])
+    Printing Indexed Matrix again:
+     tensor([[1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.]])
+    ```
+
+    可以看出`index_add()`不修改原 tensor 的数据。
+
+* Index-based Operation
+
+    * `index_add_()`
+
+        Adds the given tensor elements to the self tensor along the order given in the matrix.
+
+        syntax:
+
+        ```py
+        index_add_(dim, index, tensor) ---> Tensor
+        ```
+
+        params:
+
+        * dim: dimension along which index to add. '0' stands for column and '1' stands for row.
+
+        * index: indices of the tensor to select from. It can be LongTensor or IntTensor.
+
+        * tensor: tensor containing the values to add.
+
+        example:
+
+        ```py
+        import torch
+
+        x = torch.zeros(5,5)
+        te = torch.tensor([[1,3,5,7,9], [1,3,5,7,9], [1,3,5,7,9]], dtype=torch.float32)
+        print('te shape: {}\n'.format(te.shape))
+        index0 = torch.tensor([0, 2, 4])
+
+        x.index_add_(0, index0, te) #adding tensor te to x along row of the given order
+        print('x:\n{}'.format(x))
+        ```
+
+        output:
+
+        ```
+        te shape: torch.Size([3, 5])
+
+        x:
+        tensor([[1., 3., 5., 7., 9.],
+                [0., 0., 0., 0., 0.],
+                [1., 3., 5., 7., 9.],
+                [0., 0., 0., 0., 0.],
+                [1., 3., 5., 7., 9.]])
+        ```
+
+        可以看出，是让`te`中的三行数据分别叠加到`x`的`[0, 2, 4]`行上。
+
+        example 2:
+
+        ```py
+        import torch
+
+        y = torch.ones(5, 5) # unit vector
+        index2 = torch.tensor([0, 1, 1, 1, 2])
+        ten = torch.randn(1, 5)
+
+        # adding values to y along the column with given order
+        y.index_add_(1, index2, ten)
+        print('y is: {}'.format(y))
+        ```
+
+        output:
+
+        ```
+        Traceback (most recent call last):
+          File "/home/hlc/Documents/Projects/torch_test/main.py", line 8, in <module>
+            y.index_add_(1, index2, ten)
+        RuntimeError: source tensor shape must match self tensor shape, excluding the specified dimension. Got self.shape = [5, 5] source.shape = [1, 5]
+        ```
+
+        可以看出并没有发生 broadcasting。
+
+        可以改成这样：
+
+        ```py
+        import torch
+
+        y = torch.ones(5,5) # unit vector
+        index2 = torch.tensor([0, 1, 1, 1, 2])
+        ten = torch.randn(1, 5)
+        ten = ten.expand(5, 5)
+        print('ten is: {}'.format(ten))
+
+        # adding values to y along the column with given order
+        y.index_add_(1, index2, ten)
+        print('y is: {}'.format(y))
+        ```
+
+        output:
+
+        ```
+        ten is: tensor([[ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060],
+                [ 0.1083, -0.3369, -0.7591, -0.2532, -0.4060]])
+        y is: tensor([[ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000],
+                [ 1.1083, -0.3493,  0.5940,  1.0000,  1.0000]])
+        ```
+
+        可以看出，`[0, 1, 1, 1, 2]`表示将`ten`中的五列分别叠加到`y`的第 0, 1, 1, 1, 2 列。
+
+* Tensor 中的转置（Transpose）
+
+    转置是一种改变张量维度（轴）顺序的操作。
+
+    矩阵（一个 2D 张量），它的转置就是沿着主对角线翻转的操作。将矩阵 A 的行和列互换，就得到了它的转置 Aᵀ。
+
+    如果原矩阵 A 的形状是 (m, n)，那么转置后的矩阵 Aᵀ 的形状就是 (n, m)。
+
+    元素的位置关系为：A[i, j] = Aᵀ[j, i]。
+
+    对于维度大于 2 的张量（例如 3D、4D），转置指任意地重新排列张量的所有维度。
+
+    PyTorch 中转置操作是一种“视图操作”，由于不复制数据，原张量和转置后的张量共享同一块内存。修改其中一个的值，另一个也会随之改变。
+
+    1. 默认转置（`.T` 或 `transpose()`）
+
+        在很多框架中，如果不提供参数，.T 属性会默认反转所有维度的顺序。
+
+        `y = x.T`
+
+        新的维度顺序是原顺序的反转：`(2, 1, 0)`
+
+        因此，转置后的形状为：`(original_shape[2], original_shape[1], original_shape[0]) = (4, 3, 2)`
+
+    2. 自定义转置（指定 perm 参数）
+
+        * example 1: 交换最后两个维度
+
+            ```py
+            # 假设 x.shape = (2, 3, 4)
+            y = x.transpose(0, 2, 1) # 或者 x.permute(0, 2, 1) in PyTorch
+            # 新的维度顺序: (0, 2, 1)
+            # 新形状: (original_shape[0], original_shape[2], original_shape[1])
+            #        = (2, 4, 3)
+            ```
+
+        * example 2: 复杂的重新排列
+
+            ```py
+            # 假设 x.shape = (2, 3, 4, 5)
+            # 我们想要一个新的顺序：将原来的维度 2 放到最前面，然后是维度 0，维度 3，最后是维度 1。
+            perm = (2, 0, 3, 1)
+            y = x.transpose(perm)
+            # 新形状: (original_shape[2], original_shape[0], original_shape[3], original_shape[1])
+            #        = (4, 2, 5, 3)
+            ```
+
+    numpy 与 torch 的接口函数：
+
+    * numpy
+
+        ```py
+        import numpy as np
+        x = np.random.rand(2, 3, 4)
+        y = x.transpose(0, 2, 1) # 使用 transpose 函数
+        z = x.T # 反转所有维度
+        ```
+
+    * torch
+
+        ```py
+        import torch
+        x = torch.randn(2, 3, 4)
+        y = x.permute(0, 2, 1) # 常用 permute 函数
+        z = x.transpose(1, 2)  # transpose 通常一次只交换两个指定维度，这里是交换维度1和2
+        w = x.T # 反转所有维度
+        ```
+
+### 数据增广，数据预处理
+
+* torchvision.transforms 中常用的 augmentation 方法：
+
+    * 图像预处理 & 基本变换
+
+        ```py
+        # Resize：调整图像尺寸
+        transforms.Resize((256, 256))
+
+        # CenterCrop / RandomCrop：中心/随机裁剪
+        transforms.RandomCrop(224)
+
+        # Pad：边缘填充
+        transforms.Pad(50, fill=255)
+        ```
+
+    * 颜色 & 亮度变换
+
+        ```py
+        # ColorJitter：随机调整亮度、对比度、饱和度和色调
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)
+
+        # Grayscale / RandomGrayscale：转灰度图
+        transforms.RandomGrayscale(p=0.1)
+
+        # RandomAdjustSharpness / RandomAutocontrast：调整锐度、自动对比度
+        ```
+
+    * 几何变换
+
+        ```py
+        # RandomHorizontalFlip / RandomVerticalFlip：随机水平/垂直翻转
+        transforms.RandomHorizontalFlip(p=0.5)
+
+        # RandomRotation：随机旋转
+        transforms.RandomRotation(degrees=30)
+
+        # RandomAffine：随机仿射变换（平移、旋转、缩放、剪切）
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1))
+
+        # RandomPerspective：随机透视变换
+        ```
+
+    * 模糊 & 噪声
+
+        ```py
+        # GaussianBlur：高斯模糊
+        transforms.GaussianBlur(kernel_size=5)
+
+        # RandomErasing：随机擦除（CutOut）
+        transforms.RandomErasing(p=0.5)
+        ```
+
+    * 标准化 & 张量转换
+
+        ```py
+        # ToTensor：将PIL图像或NumPy数组转换为张量，并缩放到 [0,1]
+        transforms.ToTensor()
+
+        # Normalize：标准化（减均值、除标准差）
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ```
+
+    * 组合变换
+
+        使用 Compose 将多个变换组合：
+
+        ```py
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        ```
+
+* `ToTensor()`
+
+    1. 数据类型转换：ToTensor() 将 PIL Image 或 numpy.ndarray 转换为 PyTorch Tensor，后续的 transforms 都需要在 Tensor 上操作
+
+    2. 通道顺序：将 H×W×C 转换为 C×H×W，符合 PyTorch 的期望格式
+
+    3. 数值范围：将 [0, 255] 的整数或 [0, 1] 的浮点数转换为 [0.0, 1.0] 的浮点数
+
+    变换前后数据 shape 对比：
+
+    ```py
+    # 对于 RGB 图像
+    (H, W, C) = (224, 224, 3)
+    # 变换后
+    (C, H, W) = (3, 224, 224)
+
+    # 对于灰度图像  
+    (H, W) = (224, 224)  # 或 (H, W, 1)
+    # 变换后
+    (1, H, W) = (1, 224, 224)
+    ```
+
+* `transforms.Normalize()`
+
+    example:
+
+    `transforms.Normalize((0.5,), (0.5,))`作用如下：
+
+    ```py
+    # 对于每个像素值：
+    normalized_pixel = (pixel - mean) / std
+
+    # 具体到你的例子：
+    normalized_pixel = (pixel - 0.5) / 0.5
+    ```
+
+    如果 RGB 三个通道的 mean 和 std 相同，那么可以写成：
+
+    ```py
+    transforms.Normalize(mean, std)
+    ```
+
+    如果是多通道图像，那么可以写成：
+
+    ```py
+    # RGB 图像归一化
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5],  # R, G, B 通道的均值
+                             std=[0.5, 0.5, 0.5])   # R, G, B 通道的标准差
+    ])
+    ```
+
+    为什么要归一化？
+
+    * 训练稳定性：将数据缩放到相似的范围，避免梯度爆炸
+
+    * 收敛速度：帮助优化器更快收敛
+
+    * 模型性能：很多模型假设输入数据是零均值的
+
+    * 数值精度：在 [-1, 1] 范围内计算更稳定
+
+* 在 transform 时，numpy 只能先 to tensor，再 resize，不能先 resize。PIL 图像既可以先 resize，也可以先 to tensor
+
+    * numpy ndarray 只能先 to tensor;
+
+        ```py
+        from torchvision import transforms
+        import numpy as np
+
+        img = np.random.random((256, 256))
+
+        trans = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize((512, 512))
+        ])
+
+        img_trans = trans(img)
+
+        print("img shape: {}".format(img.shape))
+        print("img trans shape: {}".format(img_trans.shape))
+        ```
+
+        output:
+
+        ```
+        img shape: (256, 256)
+        img trans shape: torch.Size([1, 512, 512])
+        ```
+
+        三维的数据也可以处理：
+
+        `img = np.random.random((256, 256, 3))`
+
+        output:
+
+        ```
+        img shape: (256, 256, 3)
+        img trans shape: torch.Size([3, 512, 512])
+        ```
+
+        如果我们设置先 resize，那么会报错：
+
+        ```py
+        trans = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor()
+        ])
+        ```
+
+        output:
+
+        ```
+        ...
+          File "/home/hlc/miniconda3/envs/torch/lib/python3.10/site-packages/torchvision/transforms/_functional_pil.py", line 31, in get_dimensions
+            raise TypeError(f"Unexpected type {type(img)}")
+        TypeError: Unexpected type <class 'numpy.ndarray'>
+        ```
+
+    * PIL 图片既可以先 resize，也可以先 to tensor:
+
+        ```py
+        from torchvision import transforms
+        from PIL import Image
+
+        img = Image.open('../example.jpg')
+
+        trans = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor()
+        ])
+
+        img_trans = trans(img)
+
+        # print("img shape: {}".format(img.shape))  # PIL Image object has no shape attribute
+        print("img trans shape: {}".format(img_trans.shape))
+        ```
+
+        output:
+
+        ```
+        img trans shape: torch.Size([3, 512, 512])
+        ```
+
+        先 to tensor 也是可以的：
+
+        ```py
+        trans = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize((512, 512))
+        ])
+        ```
+
+        output:
+
+        ```
+        img trans shape: torch.Size([3, 512, 512])
+        ```
+
+    如果先做了 to tensor，那么后续操作会在 GPU 里完成（是 CPU 吧？）。如果先做 resize，那么 resize 操作会调用 PIL 提供的 resize 函数。
+
+* PyTorch Functional Transforms for Computer Vision
+
+    Most of the functional transforms accept both PIL images and tensor images. A tensor image is a tensor with shape (C, H, W),
+
+    if the input is a PIL image output is also a PIL image and the same for Tensor image.
+
+    * `adjust_brightness()`
+
+        adjusts the brightness of an image. It accepts both PIL image and Tensor Image.
+
+        syntax:
+
+        ```py
+        torchvision.transforms.functional.adjust_brightness(
+            img: Tensor,
+            brightness_factor: float
+        ) -> Tensor
+        ```
+
+        * img (Tensor): 输入图像，形状为 (..., H, W) 或 (C, H, W) 或 (H, W)
+
+        * brightness_factor is any non-negative floating-point number:
+
+            * brightness_factor = 1, the original image.
+
+            * brightness_factor < 1, a darker output image.
+
+            * brightness_factor > 1, a brighter output image.
+
+        example:
+
+        ```py
+        import torchvision.transforms.functional as F
+        import torch
+        from PIL import Image
+
+        image = Image.open('nature.jpg')
+
+        output = F.adjust_brightness(image, brightness_factor=3.0)
+        output.show()
+        ```
+
+        注意事项：
+
+        * 亮度调整是通过将每个像素值乘以 brightness_factor 实现的
+
+        * 结果会被裁剪到图像的原始值范围内（通常是 [0, 1]）
+
+        * 如果输入是 PIL 图像，F.adjust_brightness() 的输出是 Tensor，而不是 PIL 图像。
+
+        与``transforms.Compose`合用的例子：
+
+        ```py
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # PIL -> Tensor
+            lambda x: F.adjust_brightness(x, brightness_factor=1.5),
+            transforms.ToPILImage()  # Tensor -> PIL
+        ])
+        ```
+
+* image augmentation
+
+    ```py
+    import torchvision.transforms as transforms
+    from PIL import Image
+
+    image = Image.open('example.jpg')
+
+    transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor()
+    ])
+
+    augmented_image = transform(image)
+    print("Augmented Image Shape:", augmented_image.shape)
+    ```
+
+    output:
+
+    ```
+    Augmented Image Shape: torch.Size([3, 500, 500])
+    ```
+
+### 可视化 visualization
+
+* 在`fig, axes = subplots()`时，如果是一行或者一列，那么`axes`是一维的，如果是多行多列，`axes`是二维的。
+
+* matplotlib 画 3d surface 的 example
+
+    ```py
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.font_manager as fm
+
+    # 设置中文字体
+    plt.rcParams['font.sans-serif'] = ['Noto Sans CJK JP']  # 使用黑体
+    plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
+
+    # 创建数据
+    x = np.linspace(-5, 5, 100)
+    y = np.linspace(-5, 5, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+
+    # 创建图形
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 绘制曲面
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+    # 添加颜色条
+    fig.colorbar(surf)
+
+    # 设置标签 - 现在中文可以正常显示
+    ax.set_xlabel('X轴')
+    ax.set_ylabel('Y轴')
+    ax.set_zlabel('Z轴')
+    ax.set_title('3D曲面图示例')
+
+    plt.show()
+    ```
+
+* Axes3D
+
+    模块：`mpl_toolkits.mplot3d`
+
+    基本功能 routine：
+
+    1. 创建三维坐标轴
+
+        使用 projection='3d' 参数将一个普通的二维坐标轴转换为三维坐标轴。
+
+        ```py
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D  # 虽然显式导入有时不需要，但建议保留以确保环境正常
+
+        # 创建图形和三维坐标轴
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')  # 111 表示 1x1 网格的第1个子图
+
+        # 在较新的 Matplotlib 版本中，也可以这样创建：
+        # fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+        ```
+
+    2. 基本三维绘图方法
+
+        创建了 Axes3D 对象（通常命名为 ax）后，你可以使用类似二维绘图的方法，但它们接受三维坐标（x, y, z）作为参数。
+
+        * 三维散点图 (Scatter Plot)
+
+            使用 `.scatter(xs, ys, zs)` 方法。
+
+            ```py
+            import numpy as np
+
+            # 生成随机数据
+            n = 100
+            x = np.random.rand(n)
+            y = np.random.rand(n)
+            z = np.random.rand(n)
+
+            ax.scatter(x, y, z, c=z, cmap='viridis', marker='o') # c=z 表示用 z 值映射颜色
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+            ax.set_zlabel('Z Label')
+            plt.show()
+            ```
+
+        * 三维线图 (Line Plot)
+
+            使用 .plot(xs, ys, zs) 方法。
+
+            ```py
+            # 生成螺旋线数据
+            theta = np.linspace(-4 * np.pi, 4 * np.pi, 100)
+            z = np.linspace(-2, 2, 100)
+            r = z**2 + 1
+            x = r * np.sin(theta)
+            y = r * np.cos(theta)
+
+            ax.plot(x, y, z, label='3D Curve', linewidth=2)
+            ax.legend()
+            plt.show()
+            ```
+
+        * 三维曲面图 (Surface Plot)
+
+            使用 .plot_surface(X, Y, Z) 方法。注意： X, Y, Z 必须是二维网格数据。
+
+            ```py
+            # 创建网格数据
+            x = np.linspace(-5, 5, 50)
+            y = np.linspace(-5, 5, 50)
+            X, Y = np.meshgrid(x, y)
+            Z = np.sin(np.sqrt(X**2 + Y**2))  # 计算每个网格点上的 Z 值（一个曲面）
+
+            # 绘制曲面
+            surf = ax.plot_surface(X, Y, Z, cmap='coolwarm', alpha=0.8)
+
+            # 添加颜色条
+            fig.colorbar(surf, ax=ax, shrink=0.5)
+            plt.show()
+            ```
+
+        * 三维线框图 (Wireframe Plot)
+
+            使用 .plot_wireframe(X, Y, Z) 方法，类似于曲面图但只显示网格线。
+
+            ```py
+            ax.plot_wireframe(X, Y, Z, color='black', linewidth=0.5)
+            plt.show()
+            ```
+
+        * 三维柱状图 (Bar Plot)
+
+            使用 .bar3d(x, y, z, dx, dy, dz) 方法。
+
+            * x, y, z: 柱子的底部坐标。
+
+            * dx, dy, dz: 柱子在 x, y, z 方向上的长度（宽度、深度、高度）。
+
+            ```py
+            # 定义柱子的位置和大小
+            x_pos = [0, 1, 2]
+            y_pos = [0, 1, 2]
+            z_pos = np.zeros(3)  # 所有柱子从 z=0 开始
+
+            dx = dy = 0.5 * np.ones(3)  # 所有柱子的宽度和深度都是 0.5
+            dz = [1, 2, 3]              # 三个柱子的高度分别为 1, 2, 3
+
+            ax.bar3d(x_pos, y_pos, z_pos, dx, dy, dz, color=['r', 'g', 'b'], alpha=0.7)
+            plt.show()
+            ```
+
+    3. 自定义视图
+
+        调整三维图形的视角：
+
+        ```py
+        # 设置视角 (仰角, 方位角)
+        ax.view_init(elev=30,  azim=45)  # elev: 仰角（上下看）, azim: 方位角（左右转）
+
+        # 设置坐标轴比例（使其等比例显示，避免图形扭曲）
+        ax.set_box_aspect([1, 1, 1])  # [x, y, z] 方向的比例
+        ```
+
+    example:
+
+    ```py
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # 1. 创建图形和三维坐标轴
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 2. 生成并绘制数据（一个曲面和一条曲线）
+    # 曲面数据
+    x = np.linspace(-5, 5, 50)
+    y = np.linspace(-5, 5, 50)
+    X, Y = np.meshgrid(x, y)
+    Z_surf = np.sin(np.sqrt(X**2 + Y**2))
+    ax.plot_surface(X, Y, Z_surf, cmap='viridis', alpha=0.7)
+
+    # 曲线数据（一条螺旋线）
+    theta = np.linspace(0, 6*np.pi, 100)
+    z_line = np.linspace(0, 2, 100)
+    x_line = np.cos(theta)
+    y_line = np.sin(theta)
+    ax.plot(x_line, y_line, z_line, 'r-', linewidth=3, label='Spiral')
+
+    # 3. 设置标签、标题和图例
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    ax.set_title('3D Surface and Line Plot')
+    ax.legend()
+
+    # 4. 调整视角
+    ax.view_init(elev=20, azim=35)
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    Axes3D 的基本用法可以概括为：
+
+    1. 创建：通过 fig.add_subplot(projection='3d') 创建。
+
+    2. 绘图：使用与二维绘图类似的方法（如 plot, scatter），但传入三个坐标参数（x, y, z）。对于曲面和线框图，需要二维网格数据。
+
+    3. 定制：使用 set_xlabel, view_init 等方法定制坐标轴和视图。
+
+    4. 显示：最后用 plt.show() 显示图形。
+
+### 稀疏矩阵
+
+* 稀疏矩阵乘法
+
+    加速算法简述（以 CSR x CSC 为例）：
+
+    1. 外层循环：遍历矩阵A的每一行 i（利用CSR的 row_ptr）。
+
+    2. 中层循环：对于A的第 i 行，遍历该行的每一个非零元素 A(i,k)（利用CSR的 col_indices 和 values）。这个 k 是A的列号，同时也是B的行号。
+
+    3. 内层循环：对于每个 k，找到矩阵B的第 k 行（即CSC格式下的第 k 列）。遍历B的第 k 行上的每一个非零元素 B(k,j)（利用CSC的 row_indices 和 values）。
+
+    4. 累加：将乘积 A(i,k) * B(k,j) 累加到结果矩阵 C(i,j) 上。
+
+    我们只处理那些可能产生非零结果的计算。
+
+* `scipy.sparse.csr_matrix`
+
+    Compressed Sparse Row matrix
+
+    是 SciPy 库中用于表示稀疏矩阵的一种数据结构。它专门用于高效地存储和操作那些大部分元素为零的矩阵。
+
+    CSR 格式只存储非零元素的值及其位置，极大地节省了内存和计算时间。
+
+    适用场景:
+
+    * 词袋模型（Bag-of-Words）中的文档-词项矩阵
+
+    * 图的邻接矩阵
+
+    * 有限元分析中的刚度矩阵
+
+    CSR 格式通过三个一维数组来表示整个矩阵：
+
+    1. data：存储所有非零元素的值。
+
+    2. indices：存储每个非零元素所在的列索引。
+
+    3. indptr（索引指针）：存储每一行第一个非零元素在 data 和 indices 中的起始位置。
+
+    这种结构使得按行访问和操作（如矩阵-向量乘法）非常高效。
+
+* `csc_matrix`常用属性和操作
+
+    * 查看矩阵信息
+
+        ```py
+        print(sparse_matrix.shape)   # 矩阵形状: (3, 4)
+        print(sparse_matrix.nnz)     # 非零元素个数: 4
+        print(sparse_matrix.dtype)   # 数据类型: int64
+        print(sparse_matrix.has_sorted_indices) # 索引是否已排序: True
+        ```
+
+    * 转换格式
+
+        ```py
+        # 转换为其他稀疏格式
+        csc_matrix = sparse_matrix.tocsc() # 转为CSC格式（按列压缩，列操作快）
+        coo_matrix = sparse_matrix.tocoo() # 转为COO格式（坐标格式，构建快）
+
+        # 转换为密集NumPy数组
+        dense_array = sparse_matrix.toarray()
+        ```
+
+    * 数学运算
+
+        ```py
+        # 标量运算
+        result = sparse_matrix * 2   # 所有非零元素乘以2
+
+        # 矩阵运算（结果通常也是稀疏矩阵）
+        vector = np.array([1, 2, 3, 4])
+        result_vector = sparse_matrix.dot(vector) # 矩阵-向量乘法
+
+        other_sparse_matrix = csr_matrix([[1], [0], [1], [0]])
+        result_matrix = sparse_matrix.dot(other_sparse_matrix) # 矩阵-矩阵乘法
+        ```
+
+        csr_matrix 支持大多数常见的矩阵运算。
+
+    * 切片和索引
+
+        ```py
+        # 获取第1行（返回一个1xN的CSR矩阵）
+        row_1 = sparse_matrix[1, :]
+
+        # 获取第2列（效率较低，考虑用CSC格式做列操作）
+        col_2 = sparse_matrix[:, 2]
+        ```
+
+        对 CSR 矩阵进行切片通常不如对密集矩阵高效，尤其是列切片。
+
+* `csr_matrix`的创建方法
+
+    * 从密集矩阵（Dense Array）创建
+
+        从一个普通的 2D NumPy 数组或列表的列表创建。
+
+        ```py
+        import numpy as np
+        from scipy.sparse import csr_matrix
+
+        dense_matrix = np.array([[1, 0, 0, 0],
+                                 [0, 0, 2, 0],
+                                 [0, 3, 0, 4]])
+                                 
+        sparse_matrix = csr_matrix(dense_matrix)
+        print(sparse_matrix)
+        print(sparse_matrix.toarray()) # 转回密集矩阵查看
+        ```
+
+        output:
+
+        ```
+        <Compressed Sparse Row sparse matrix of dtype 'int64'
+        	with 4 stored elements and shape (3, 4)>
+          Coords	Values
+          (0, 0)	1
+          (1, 2)	2
+          (2, 1)	3
+          (2, 3)	4
+        [[1 0 0 0]
+         [0 0 2 0]
+         [0 3 0 4]]
+        ```
+
+    * 使用 (data, (row, col)) 坐标格式创建
+
+        明确指定每个非零元素的值及其所在的行和列坐标
+
+        ```py
+        import numpy as np
+        from scipy.sparse import csr_matrix
+
+        # 数据： [1, 2, 3, 4]
+        # 行索引：[0, 1, 2, 2] -> 第一个元素在第0行，第二个在第1行，第三、四个在第2行
+        # 列索引：[0, 2, 1, 3] -> 第一个元素在第0列，第二个在第2列，第三个在第1列，第四个在第3列
+
+        data = [1, 2, 3, 4]
+        row = [0, 1, 2, 2]
+        col = [0, 2, 1, 3]
+
+        sparse_matrix = csr_matrix((data, (row, col)), shape=(3, 4))
+        print(sparse_matrix.toarray())
+        ```
+
+        output:
+
+        ```
+        [[1 0 0 0]
+         [0 0 2 0]
+         [0 3 0 4]]
+        ```
+
+    * 使用 (data, indices, indptr) 直接创建（高级）
+
+        直接使用 CSR 格式的三个内部数组来创建。
+
+        ```py
+        # 假设矩阵为：
+        # [[1, 0, 2, 0]
+        #  [0, 0, 3, 4]
+        #  [5, 0, 0, 6]]
+
+        data = [1, 2, 3, 4, 5, 6]    # 所有非零值
+        indices = [0, 2, 2, 3, 0, 3] # 每个值对应的列号
+        indptr = [0, 2, 4, 6]        # 第i行的非零值范围是 data[indptr[i]:indptr[i+1]]
+
+        # indptr 解释：
+        # 第0行：有 indptr[1]-indptr[0] = 2 个元素，是 data[0:2] -> [1,2]，列号为 indices[0:2] -> [0,2]
+        # 第1行：有 indptr[2]-indptr[1] = 2 个元素，是 data[2:4] -> [3,4]，列号为 indices[2:4] -> [2,3]
+        # 第2行：有 indptr[3]-indptr[2] = 2 个元素，是 data[4:6] -> [5,6]，列号为 indices[4:6] -> [0,3]
+
+        sparse_matrix = csr_matrix((data, indices, indptr), shape=(3, 4))
+        print(sparse_matrix.toarray())
+        # [[1 0 2 0]
+        #  [0 0 3 4]
+        #  [5 0 0 6]]
+        ```
+
+* COO
+
+    COO 是 “Coordinate Format” 的缩写，即坐标格式。它的设计理念非常直观：分别存储非零元素所在的行索引、列索引以及元素的值。
+
+    coo_matrix 就是由这三个等长的数组构成的：
+
+    * data： 存储所有非零元素的值，例如 [5, 9, 1, 4]
+
+    * row： 存储每个非零元素对应的行索引，例如 [0, 1, 2, 2]
+
+    * col： 存储每个非零元素对应的列索引，例如 [2, 0, 1, 2]
+
+    COO 格式本身并不适合直接进行矩阵乘法、加法等科学计算。它的主要职责是作为一种高效的构建格式。
+
+    一旦用 COO 格式构建好矩阵，你可以非常快速地将它转换为其他更适合计算的格式，例如：
+
+    * CSR (Compressed Sparse Row)： 用于高效的矩阵运算（如乘法）。
+
+    * CSC (Compressed Sparse Column)： 用于高效的列操作和求解线性方程组。
+
+    coo_matrix 的 tocsr() 和 tocsc() 方法就是用来做这个转换的。
+
+    example:
+
+    ```py
+    import numpy as np
+    from scipy.sparse import coo_matrix
+
+    # 1. 创建 COO 矩阵的三大核心数组
+    data = np.array([5, 9, 1, 4])    # 非零元素的值
+    row  = np.array([0, 1, 2, 2])    # 这些元素的行索引
+    col  = np.array([2, 0, 1, 2])    # 这些元素的列索引
+
+    # 2. 创建 COO 矩阵
+    # 参数 shape 指定矩阵的总大小，这里是一个 3x3 的矩阵
+    coo_sparse_matrix = coo_matrix((data, (row, col)), shape=(3, 3))
+
+    # 3. 查看矩阵（转换为稠密矩阵显示，便于观察）
+    print("COO矩阵（以稠密形式显示）:")
+    print(coo_sparse_matrix.toarray())
+
+    # 输出结果：
+    # [[0 0 5]
+    #  [9 0 0]
+    #  [0 1 4]]
+
+    # 4. 转换为 CSR 格式以进行高效运算
+    csr_sparse_matrix = coo_sparse_matrix.tocsr()
+    print("\n已转换为CSR格式。")
+    ```
+
+* `Eigen::SparseMatrix`
+
+    Eigen::SparseMatrix 是 Eigen 库中用于表示和操作稀疏矩阵的模板类。
+
+    install:
+
+    `sudo apt install libeigen3-dev`
+
+    头文件被安装在：`/usr/include/eigen3`
+
+    这似乎是一个 header-only 的模板库，所以没有库文件。
+
+    example:
+
+    ```cpp
+    #include <eigen3/Eigen/Sparse>
+    #include <cstdio>
+    #include <vector>
+
+    int main() {
+        // 创建稀疏矩阵
+        Eigen::SparseMatrix<double> mat(1000, 1000);
+
+        // 使用 triplet 插入非零元素
+        std::vector<Eigen::Triplet<double>> triplets;
+        triplets.push_back({0, 0, 3.14});  // (行, 列, 值)
+        triplets.push_back({1, 2, 2.71});
+
+        mat.setFromTriplets(triplets.begin(), triplets.end());
+
+        // 稀疏矩阵运算
+        Eigen::SparseMatrix<double> mat2 = mat * mat.transpose();
+        
+        return 0;
+    }
+    ```
+
+    当矩阵密度 < 5% 时，Eigen::SparseMatrix 在内存和计算效率上显著优于稠密矩阵。
+
+* `scipy.sparse.lil_matrix`
+
+    scipy.sparse.lil_matrix 是 SciPy 中用于存储稀疏矩阵的一种数据结构，特别适用于逐步构建和修改稀疏矩阵的场景。
+
+    LIL (List of Lists) 格式将稀疏矩阵存储为：
+
+    * 行列表：每个元素对应矩阵的一行
+
+    * 每行存储：两个列表，分别存储非零元素的列索引和值
+
+    这种结构使得按行操作（添加、删除、修改元素）非常高效。
+
+    **基本用法:**
+
+    * 创建 LIL 矩阵
+
+        ```py
+        import numpy as np
+        from scipy.sparse import lil_matrix
+
+        # 方法1：指定形状创建空矩阵
+        matrix = lil_matrix((3, 3))  # 3x3 矩阵
+
+        # 方法2：从稠密数组创建
+        dense_array = np.array([[1, 0, 0], [0, 0, 2], [0, 3, 0]])
+        matrix = lil_matrix(dense_array)
+
+        # 方法3：从其他稀疏格式转换
+        from scipy.sparse import csr_matrix
+        csr_mat = csr_matrix((3, 3))
+        lil_mat = csr_mat.tolil()
+        ```
+
+    * 元素赋值和修改
+
+        ```py
+        # 创建 3x3 矩阵
+        matrix = lil_matrix((3, 3))
+
+        # 逐个元素赋值
+        matrix[0, 0] = 1
+        matrix[1, 2] = 2
+        matrix[2, 1] = 3
+
+        # 批量赋值
+        matrix[0, [1, 2]] = [4, 5]  # 第0行，第1、2列
+        matrix[[1, 2], 0] = [6, 7]  # 第1、2行，第0列
+
+        print(matrix.toarray())
+        # 输出：
+        # [[1. 4. 5.]
+        #  [6. 0. 2.]
+        #  [7. 3. 0.]]
+        ```
+
+    * 访问矩阵数据
+
+        ```py
+        # 访问单个元素
+        print(matrix[0, 0])  # 1.0
+
+        # 访问整行
+        print(matrix[0].toarray())  # [[1. 4. 5.]]
+
+        # 获取非零元素信息
+        print("行指针:", matrix.rows)     # 每行的列索引列表
+        print("数据值:", matrix.data)     # 每行的数值列表
+
+        # 转换为稠密数组
+        dense = matrix.toarray()
+        ```
+
+    * 实际应用示例
+
+        ```py
+        # 示例：构建邻接矩阵
+        n_nodes = 5
+        adj_matrix = lil_matrix((n_nodes, n_nodes))
+
+        # 添加边（无向图）
+        edges = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)]
+        for i, j in edges:
+            adj_matrix[i, j] = 1
+            adj_matrix[j, i] = 1  # 无向图对称
+
+        print("邻接矩阵:")
+        print(adj_matrix.toarray())
+
+        # 转换为其他格式进行高效运算
+        csr_adj = adj_matrix.tocsr()  # 转换为CSR格式进行矩阵运算
+        ```
+
+    * 格式转换
+
+        ```py
+        # 转换为其他稀疏格式
+        csr_matrix = matrix.tocsr()   # 压缩稀疏行格式（高效计算）
+        csc_matrix = matrix.tocsc()   # 压缩稀疏列格式（高效列操作）
+        coo_matrix = matrix.tocoo()   # 坐标格式（快速构建）
+
+        # 转换回稠密矩阵
+        dense_matrix = matrix.toarray()
+        ```
+
+    **使用建议**
+
+    * 构建阶段：使用 LIL 格式进行频繁的元素修改
+
+    * 计算阶段：转换为 CSR/CSC 格式进行数学运算
+
+    * 内存敏感：对于超大矩阵，考虑使用 COO 格式
+
+### 数据集获取、划分与加载
+
+* DataLoader 中的 sampler
+
+    sampler 只负责生成索引，dataloader 则按照索引生成 batch。伪代码描述这个过程：
+
+    ```py
+    # 伪代码，解释 dataloader 内部逻辑
+    for epoch in range(...):
+        for batch_indices in sampler: # 采样器生成一个batch的索引列表，如 [3, 1, 4, 9]
+            batch_data = [dataset[i] for i in batch_indices] # 根据索引从数据集中获取数据
+            # ... 后续的 collate 等操作
+            yield batch_data
+    ```
+
+    默认的 sampler 有`SequentialSampler`和`RandomSampler`。
+
+    package 与使用方法：
+
+    ```py
+    import torch
+    from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
+
+    # 创建一个简单的数据集
+    data = torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    labels = torch.tensor([0, 1, 0, 1, 0])
+    dataset = TensorDataset(data, labels)
+
+    # 使用 SequentialSampler
+    sequential_sampler = SequentialSampler(dataset)
+    dataloader = DataLoader(dataset, batch_size=2, sampler=sequential_sampler)
+
+    # 遍历 DataLoader
+    for batch_idx, (batch_data, batch_labels) in enumerate(dataloader):
+        print(f"Batch {batch_idx}:")
+        print(f"  Data: {batch_data}")
+        print(f"  Labels: {batch_labels}")
+        print("---")
+    ```
+
+* dataset 似乎支持 slice 访问
+
+    ```py
+    my_dataset = MyDataset()
+    print(my_dataset[:3])
+    ```
+
+    output:
+
+    ```
+    [0, 1, 2]
+    ```
+
+* 获取 hugging face 的 imdb 数据集
+
+    ```py
+    from datasets import load_dataset
+    dataset = load_dataset('imdb')
+    print(dataset['train'][0])
+    ```
+
+    数据会被下载到`~/.cache/huggingface/datasets`中。imdb 数据集大小为 128 M。
+
+* hugging face 中的数据集
+
+    <https://huggingface.co/datasets>
+
+    使用 python 代码查询：
+
+    ```py
+    from huggingface_hub import list_datasets
+
+    # 这是一个生成器，要获取总数需要将其转换为列表，但对于数万个数据集这会很慢且耗内存。
+    # all_datasets = list(list_datasets())
+    # print(f"Total datasets: {len(all_datasets)}")
+
+    # 更高效的方法是使用分页并计数（但依然需要遍历所有数据集）
+    count = 0
+    for ds in list_datasets():
+        count += 1
+    print(f"Total datasets: {count}") # 注意：这会运行一段时间，因为要遍历数万个数据集
+    ```
+
+    常见的NLP任务和相关数据集:
+
+    * 文本分类（如情感分析、主题分类）：imdb, ag_news, yelp_review_full
+
+    * 问答（Question Answering）：squad, natural_questions
+
+    * 文本摘要（Summarization）：cnn_dailymail, xsum
+
+    * 文本生成（Text Generation）：wikitext-2, story_cloze
+
+    * 机器翻译（Translation）：wmt14, wmt16, opus_books
+
+    * 命名实体识别（Named Entity Recognition, NER）：conll2003, wnut_17
+
+    * 语义相似度（Semantic Textual Similarity）：stsb_multi_mt
+
+    * 自然语言推理（Natural Language Inference）：mnli, snli
+
+    * 指令微调数据集（用于训练Chat模型）：alpaca, dolly-15k
+
+    使用代码按标签筛选:
+
+    ```py
+    from huggingface_hub import list_datasets
+
+    # 查找所有打上 "text-classification" 标签的数据集
+    nlp_datasets = list(list_datasets(filter="task_categories:text-classification"))
+    print(f"Number of text-classification datasets: {len(list(nlp_datasets))}")
+
+    # 您可以尝试其他标签，如 "text-generation", "question-answering", "translation" 等。
+    ```
+
+* `nn.MSELoss()`
+
+    Mean Squared Error（均方误差）, 衡量模型预测值 $\hat{y}$ 与真实值 $y$ 之间差的平方的平均值。
+
+    公式：
+
+    $L = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2$
+
+    其中：
+
+    * $L$ 是最终的损失值（一个标量）。
+
+    * $N$ 是样本的数量（或者是需要计算损失的元素的总个数）。
+
+    * $y_i$ 是第 $i$ 个数据的真实值（ground truth）。
+
+    * $\hat{y}_i$ 是模型对第 $i$ 个数据的预测值（prediction）。
+
+    * $\sum_{i=1}^{N}$ 表示对所有 $N$ 个数据点的差值平方进行求和。
+
+    平方的作用：
+
+    * 消除正负误差相互抵消的问题（例如，-2 和 +2 的误差如果直接相加会变成 0，但这显然不对）。
+
+    * 放大较大误差的贡献。误差越大，平方后的惩罚越大，这使得模型会对大的错误更加敏感。
+
+    PyTorch 的 nn.MSELoss 还提供了一个重要的参数 reduction，它可以改变计算最终损失的方式：
+
+    * `reduction='mean'` (默认值): 计算所有元素平方差的平均值。 $\rightarrow L = \frac{1}{N} \sum (y_i - \hat{y}_i)^2$
+
+    * `reduction='sum'`: 计算所有元素平方差的总和。 $\rightarrow L = \sum (y_i - \hat{y}_i)^2$
+
+    * `reduction='none'`: 不进行汇总（sum 或 mean），直接返回一个与输入形状相同的、每个位置都是一个平方差的损失张量。 $\rightarrow L_i = (y_i - \hat{y}_i)^2$
+
+    example:
+
+    ```py
+    import torch
+    import torch.nn as nn
+
+    # 1. 创建损失函数实例
+    # reduction 可以是 'mean', 'sum', 'none'
+    criterion = nn.MSELoss() # 默认 reduction='mean'
+    # criterion = nn.MSELoss(reduction='sum')
+    # criterion = nn.MSELoss(reduction='none')
+
+    # 2. 准备示例数据
+    # 假设我们有4个样本的预测值和真实值
+    predictions = torch.tensor([3.0, 5.0, 2.5, 4.0])
+    targets = torch.tensor([2.5, 4.8, 2.0, 3.8])
+
+    # 3. 计算损失
+    loss = criterion(predictions, targets)
+
+    print(f"Predictions: {predictions}")
+    print(f"Targets:     {targets}")
+    print(f"MSE Loss:    {loss.item()}")
+    ```
+
+    output:
+
+    ```
+    Predictions: tensor([3.0000, 5.0000, 2.5000, 4.0000])
+    Targets:     tensor([2.5000, 4.8000, 2.0000, 3.8000])
+    MSE Loss:    0.14499999582767487
+    ```
+
+    手动代码实现：
+
+    ```py
+    def my_mse_loss(pred, targ, reduction='mean'):
+        # 1. 计算所有元素的平方差
+        squared_diff = (pred - targ) ** 2
+        
+        # 2. 根据 reduction 参数进行汇总
+        if reduction == 'mean':
+            loss = torch.mean(squared_diff)
+        elif reduction == 'sum':
+            loss = torch.sum(squared_diff)
+        elif reduction == 'none':
+            loss = squared_diff
+        else:
+            raise ValueError("reduction must be 'mean', 'sum', or 'none'")
+        return loss
+
+    # 使用我们自己实现的函数
+    my_loss_mean = my_mse_loss(predictions, targets, 'mean')
+    my_loss_sum = my_mse_loss(predictions, targets, 'sum')
+    my_loss_none = my_mse_loss(predictions, targets, 'none')
+
+    print(f"Manual MSE Loss (mean): {my_loss_mean.item()}")
+    print(f"Manual MSE Loss (sum):  {my_loss_sum.item()}")
+    print(f"Manual MSE Loss (none): {my_loss_none}")
+    ```
+
+* torch dataset and dataloader
+
+    ```py
+    import torch
+    from torch.utils.data import Dataset, DataLoader
+
+    class MyDataset(Dataset):
+        def __init__(self):
+            self.data = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+            self.labels = torch.tensor([0, 1, 0])
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, idx):
+            return self.data[idx], self.labels[idx]
+
+    dataset = MyDataset()
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+
+    for batch in dataloader:
+        print("Batch Data:", batch[0])  
+        print("Batch Labels:", batch[1])
+    ```
+
+    output:
+
+    ```
+    Batch Data: tensor([[1., 2.],
+            [3., 4.]])
+    Batch Labels: tensor([0, 1])
+    Batch Data: tensor([[5., 6.]])
+    Batch Labels: tensor([0])
+    ```
+
+* IMDb 电影评论数据集
+
+    res: <http://ai.stanford.edu/~amaas/data/sentiment/>
+
+    IMDb 数据集是一个用于二元情感分类的经典基准数据集。它包含来自互联网电影数据库（IMDb）的 50,000 条高度极化的电影评论。
+
+    内容： 每条评论都被标记为 正面（positive） 或 负面（negative）。
+
+    规模： 数据集通常被分为 25,000 条带标签的训练评论和 25,000 条测试评论。此外，还有 50,000 条无标签的额外评论（在此任务中通常不使用）。
+
+    任务： 根据评论文本预测其情感极性（正面/负面）。这是一个典型的文本分类任务。
+
+    explore example:
+
+    ```py
+    from datasets import load_dataset
+    import numpy as np
+
+    # 1. 加载 IMDb 数据集
+    imdb_dataset = load_dataset("imdb")
+
+    # 2. 探索数据集结构
+    print("数据集结构:", imdb_dataset)
+    print("\n训练集特征:", imdb_dataset["train"].features)
+    print("\n测试集第一条样本:", imdb_dataset["test"][0])
+
+    # 3. 查看一些基本统计信息
+    # 查看训练集和测试集的大小
+    print(f"\n训练集大小: {len(imdb_dataset['train'])}")
+    print(f"测试集大小: {len(imdb_dataset['test'])}")
+
+    # 查看标签分布
+    train_labels = imdb_dataset["train"]["label"]
+    test_labels = imdb_dataset["test"]["label"]
+
+    print(f"\n训练集 - 正面评论: {np.sum(train_labels)}, 负面评论: {len(train_labels) - np.sum(train_labels)}")
+    print(f"测试集 - 正面评论: {np.sum(test_labels)}, 负面评论: {len(test_labels) - np.sum(test_labels)}")
+
+    # 4. 随机查看几条样本
+    def show_samples(dataset, split="train", num_samples=3):
+        sampled_data = dataset[split].shuffle(seed=42).select(range(num_samples))
+        for i in range(num_samples):
+            print(f"\n--- 样本 {i+1} ---")
+            print(f"文本预览: {sampled_data[i]['text'][:200]}...") # 只打印前200个字符
+            print(f"标签: {sampled_data[i]['label']} ({'正面' if sampled_data[i]['label'] == 1 else '负面'})")
+
+    show_samples(imdb_dataset, "train")
+    ```
+
+* `torch.utils.data`
+
+    There are two types of datasets:
+
+    * map-style datasets: This data set provides two functions  `__getitem__( )`, `__len__( )` that returns the indices of the sample data referred to and the numbers of samples respectively. In the example, we will use this type of dataset.
+
+    * iterable-style datasets: Datasets that can be represented in a set of iterable data samples, for this we use `__iter__( )` function.
+
+    Dataloader syntax:
+
+    ```py
+    DataLoader(dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0, collate_fn=None, pin_memory=False, drop_last=False, timeout=0, worker_init_fn=None, *, prefetch_factor=2, persistent_workers=False)
+    ```
+
+    example:
+
+    ```py
+    # importing libraries
+    import torch
+    import torchvision
+    from torch.utils.data import Dataset, DataLoader
+    import numpy as np
+    import math
+
+    # class to represent dataset
+    class HeartDataSet():
+
+        def __init__(self):
+          
+            # loading the csv file from the folder path
+            data1 = np.loadtxt('heart.csv', delimiter=',',
+                               dtype=np.float32, skiprows=1)
+            
+            # here the 13th column is class label and rest 
+            # are features
+            self.x = torch.from_numpy(data1[:, :13])
+            self.y = torch.from_numpy(data1[:, [13]])
+            self.n_samples = data1.shape[0] 
+        
+        # support indexing such that dataset[i] can 
+        # be used to get i-th sample
+        def __getitem__(self, index):
+            return self.x[index], self.y[index]
+          
+        # we can call len(dataset) to return the size
+        def __len__(self):
+            return self.n_samples
+
+
+    dataset = HeartDataSet()
+
+    # get the first sample and unpack
+    first_data = dataset[0]
+    features, labels = first_data
+    print(features, labels)
+    ```
+
+    output:
+
+    ```
+    tensor([ 63.0000,   1.0000,   3.0000, 145.0000, 233.0000,   1.0000,   0.0000,
+            150.0000,   0.0000,   2.3000,   0.0000,   0.0000,   1.0000]) tensor([1.])
+    ```
+
+    dataloader example:
+
+    ```py
+    # Loading whole dataset with DataLoader
+    # shuffle the data, which is good for training
+    dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True)
+
+    # total samples of data and number of iterations performed
+    total_samples = len(dataset)
+    n_iterations = total_samples//4
+    print(total_samples, n_iterations)
+    for i, (targets, labels) in enumerate(dataloader):
+        print(targets, labels)
+    ```
+
+    traning example:
+
+    ```py
+    num_epochs = 2
+
+    for epoch in range(num_epochs):
+        for i, (inputs, labels) in enumerate(dataloader):
+
+            # here: 303 samples, batch_size = 4, n_iters=303/4=75 iterations
+            # Run our training process
+            if (i+1) % 5 == 0:
+                print(f'Epoch: {epoch+1}/{num_epochs}, Step {i+1}/{n_iterations}|\
+                    Inputs {inputs.shape} | Labels {labels.shape}')
+    ```
+
+* CIFAR-10
+
+    This contains 60,000 32x32 color images in 10 classes, with 6,000 images per class.
+
+    使用 torch 下载和加载 cifar 10:
+
+    ```py
+    import torch
+    import torchvision
+    import torchvision.transforms as transforms
+    import torch.nn as nn
+    import torch.optim as optim
+
+    # Step 1: Loading the CIFAR-10 dataset
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to [-1, 1]
+    ])
+
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                            download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+                                              shuffle=True, num_workers=2)
+
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+                                           download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+                                             shuffle=False, num_workers=2)
+
+    classes = ('plane', 'car', 'bird', 'cat',
+               'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+    for data in trainloader:
+        input_data: torch.Tensor
+        gt: torch.Tensor
+        input_data, gt = data
+        print('input_data:')
+        print(input_data)
+        print('input_data shape: {}'.format(input_data.shape))
+        print('gt:')
+        print(gt)
+        print('gt shape: {}'.format(gt.shape))
+        break
+    ```
+
+    output:
+
+    ```
+    Files already downloaded and verified
+    Files already downloaded and verified
+    input_data:
+    tensor([[[[-0.5843, -0.5765, -0.5608,  ..., -0.6314, -0.6784, -0.8118],
+              [-0.6392, -0.5843, -0.5765,  ..., -0.6706, -0.6941, -0.7804],
+              [-0.6471, -0.6078, -0.6392,  ..., -0.7020, -0.7176, -0.7725],
+              ...,
+              [-0.4431, -0.4196, -0.3725,  ..., -0.6000, -0.6392, -0.6157],
+              [-0.4118, -0.3804, -0.3647,  ..., -0.5216, -0.4980, -0.6235],
+              [-0.3333, -0.3333, -0.3255,  ..., -0.5216, -0.4980, -0.6157]],
+
+             [[-0.4902, -0.5059, -0.5294,  ..., -0.6000, -0.6471, -0.7804],
+              [-0.5373, -0.5137, -0.5373,  ..., -0.6392, -0.6627, -0.7490],
+              [-0.5373, -0.5294, -0.5922,  ..., -0.6706, -0.6863, -0.7412],
+              ...,
+              [-0.3490, -0.3490, -0.3333,  ..., -0.5765, -0.6157, -0.6078],
+              [-0.3569, -0.3333, -0.3333,  ..., -0.4902, -0.4745, -0.6078],
+              [-0.3490, -0.3412, -0.3255,  ..., -0.4902, -0.4745, -0.6078]],
+
+             [[-0.5843, -0.5922, -0.6078,  ..., -0.6078, -0.6549, -0.7882],
+              [-0.6784, -0.6471, -0.6549,  ..., -0.6471, -0.6706, -0.7569],
+              [-0.7020, -0.6784, -0.7333,  ..., -0.6784, -0.6941, -0.7490],
+              ...,
+              [-0.4824, -0.4824, -0.4745,  ..., -0.7412, -0.7333, -0.6784],
+              [-0.4745, -0.4588, -0.4745,  ..., -0.6784, -0.6235, -0.6784],
+              [-0.4431, -0.4431, -0.4510,  ..., -0.6941, -0.6392, -0.6784]]],
+
+
+            [[[-0.4353, -0.4431, -0.4275,  ..., -0.4510, -0.4275, -0.3569],
+              [-0.7490, -0.7882, -0.8196,  ..., -0.8039, -0.7569, -0.7098],
+              [-0.6941, -0.7804, -0.8118,  ..., -0.8431, -0.8039, -0.7804],
+              ...,
+              [-0.6706, -0.7725, -0.7176,  ..., -0.7333, -0.7412, -0.7412],
+              [-0.6549, -0.7882, -0.7569,  ..., -0.7804, -0.7882, -0.7569],
+              [-0.5451, -0.6392, -0.6706,  ..., -0.6941, -0.7098, -0.5843]],
+
+             [[-0.6235, -0.5843, -0.5922,  ..., -0.6157, -0.5765, -0.6392],
+              [-0.7333, -0.7098, -0.7255,  ..., -0.7569, -0.6863, -0.7882],
+              [-0.7647, -0.7490, -0.7647,  ..., -0.7647, -0.7020, -0.7804],
+              ...,
+              [-0.6627, -0.6549, -0.6392,  ..., -0.7725, -0.7647, -0.7647],
+              [-0.6471, -0.6392, -0.6000,  ..., -0.7882, -0.7882, -0.8039],
+              [-0.6000, -0.5922, -0.5765,  ..., -0.7490, -0.7569, -0.7804]],
+
+             [[-0.6941, -0.6549, -0.7020,  ..., -0.6549, -0.6000, -0.7725],
+              [-0.5922, -0.4353, -0.5137,  ..., -0.4667, -0.3725, -0.5922],
+              [-0.5529, -0.3020, -0.3882,  ..., -0.4118, -0.3255, -0.5059],
+              ...,
+              [-0.4667, -0.3098, -0.3725,  ..., -0.5294, -0.5451, -0.5608],
+              [-0.4667, -0.2863, -0.3176,  ..., -0.4980, -0.4980, -0.5843],
+              [-0.5216, -0.4039, -0.4353,  ..., -0.5608, -0.5451, -0.7098]]],
+
+
+            [[[-0.7098, -0.6627, -0.7725,  ..., -0.5765, -0.5529, -0.5294],
+              [-0.7098, -0.6549, -0.7412,  ..., -0.5686, -0.5373, -0.4980],
+              [-0.7098, -0.6549, -0.7412,  ..., -0.5608, -0.5451, -0.5059],
+              ...,
+              [-0.4275, -0.3255,  0.4431,  ..., -0.1922, -0.5765, -0.6157],
+              [-0.5137, -0.3255,  0.4588,  ..., -0.0980, -0.5843, -0.6314],
+              [-0.6706, -0.3412,  0.4431,  ...,  0.0118, -0.5843, -0.6627]],
+
+             [[-0.7725, -0.7490, -0.8118,  ..., -0.7176, -0.6941, -0.6863],
+              [-0.7725, -0.7490, -0.8039,  ..., -0.7176, -0.6941, -0.6863],
+              [-0.7647, -0.7490, -0.8118,  ..., -0.7098, -0.7020, -0.6863],
+              ...,
+              [-0.5686, -0.4745,  0.3176,  ..., -0.3647, -0.7098, -0.7176],
+              [-0.6392, -0.4510,  0.3333,  ..., -0.2863, -0.7176, -0.7333],
+              [-0.7569, -0.4510,  0.3176,  ..., -0.1765, -0.7176, -0.7490]],
+
+             [[-0.8196, -0.8039, -0.8588,  ..., -0.7961, -0.7882, -0.7804],
+              [-0.8196, -0.8118, -0.8431,  ..., -0.8039, -0.7961, -0.7882],
+              [-0.8118, -0.7961, -0.8431,  ..., -0.7882, -0.7882, -0.7804],
+              ...,
+              [-0.6706, -0.5922,  0.1922,  ..., -0.5216, -0.7882, -0.7804],
+              [-0.7098, -0.5529,  0.2078,  ..., -0.4510, -0.7961, -0.7961],
+              [-0.8039, -0.5294,  0.1922,  ..., -0.3490, -0.8039, -0.8118]]],
+
+
+            [[[-0.0353,  0.0118,  0.0667,  ..., -0.2627, -0.3098, -0.2863],
+              [ 0.0196,  0.0588,  0.1137,  ..., -0.3098, -0.1765, -0.1373],
+              [ 0.0353,  0.0745,  0.1216,  ..., -0.1216, -0.0510, -0.1451],
+              ...,
+              [-0.7490, -0.7255, -0.6471,  ..., -0.8118, -0.8431, -0.8510],
+              [-0.7647, -0.7176, -0.6784,  ..., -0.8275, -0.8431, -0.8667],
+              [-0.7804, -0.7412, -0.7176,  ..., -0.8275, -0.8431, -0.8667]],
+
+             [[ 0.3490,  0.3961,  0.4510,  ..., -0.1686, -0.2000, -0.1608],
+              [ 0.3882,  0.4353,  0.4824,  ..., -0.2392, -0.0902, -0.0353],
+              [ 0.3961,  0.4275,  0.4745,  ..., -0.0588,  0.0275, -0.0510],
+              ...,
+              [-0.7255, -0.7412, -0.7098,  ..., -0.8118, -0.8431, -0.8510],
+              [-0.7412, -0.7255, -0.7176,  ..., -0.8275, -0.8431, -0.8667],
+              [-0.7569, -0.7412, -0.7333,  ..., -0.8275, -0.8431, -0.8667]],
+
+             [[ 0.7647,  0.8039,  0.8667,  ..., -0.0431, -0.0667, -0.0353],
+              [ 0.8196,  0.8588,  0.9137,  ..., -0.1137,  0.0431,  0.0980],
+              [ 0.8196,  0.8588,  0.9059,  ...,  0.0745,  0.1686,  0.0824],
+              ...,
+              [-0.7020, -0.7020, -0.6549,  ..., -0.8118, -0.8431, -0.8510],
+              [-0.7176, -0.6863, -0.6627,  ..., -0.8275, -0.8431, -0.8667],
+              [-0.7333, -0.7098, -0.6941,  ..., -0.8275, -0.8431, -0.8667]]]])
+    input_data shape: torch.Size([4, 3, 32, 32])
+    gt:
+    tensor([4, 5, 5, 9])
+    gt shape: torch.Size([4])
+    ```
+
+    数据会被下载到当前文件夹的`./data`目录里。
+
+    ```
+    cifar-10-batches-py  cifar-10-python.tar.gz
+    ```
+
+### loss
+
+* Cross Entropy Loss
+
+    用于计算两个概率分布之间的差值。
+
+    $$\mathrm{CrossEntropyLoss}(x, \mathrm{target}) = - \frac 1 N \sum_i (\mathrm{target}_i \cdot \log x_i)$$
+
+    * x represents the predicted values,
+
+    * target represents the ground truth or target values.
+
+    注：
+
+    1. 这个数学公式中的 $\mathrm{target}_i$ 是向量中的元素，与下面 torch 实现的标签编码不一样。
+
+        在实际任务中，$\mathrm{target}_i$ 大部分为 0，只有一个为 1，其实相当于一个 indicator。
+
+    1. 这里的 $N$ 指的并不是 batch size，而是一个向量中的 N 个元素，相当于下面的`N_class`。
+
+    syntax:
+
+    ```py
+    torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction='mean', label_smoothing=0.0)
+    ```
+
+    example:
+
+    ```py
+    from hlc_utils import *
+
+    ce_loss = nn.CrossEntropyLoss()
+
+    batch_size = 2
+    N_class = 4
+
+    input = torch.randn(batch_size, N_class)
+    print('input, shape: {}, data:\n{}\n'.format(input.shape, input))
+
+    target = torch.randint(0, N_class, (batch_size,))
+    print('target, shape: {}, data:\n{}\n'.format(target.shape, target))
+
+    output = ce_loss(input, target)
+    print('output, shape: {}. data:\n{}'.format(output.shape, output))
+    ```
+
+    output:
+
+    ```
+    input, shape: torch.Size([2, 4]), data:
+    tensor([[ 1.0211,  2.0191, -0.9489, -1.2573],
+            [ 1.2270,  1.9557, -0.6735, -0.9454]])
+
+    target, shape: torch.Size([2]), data:
+    tensor([3, 2])
+
+    output, shape: torch.Size([]). data:
+    3.379208564758301
+    ```
+
+    注：
+
+    1. `input` 是**未经过**“概率化”的向量，所谓概率化指的是一个向量中的 `N_class` 个值加起来和为 1. `CrossEntropyLoss` 内置了对输入值进行 softmax 预处理的操作。
+
+    1. `target` 的值是标签编码（Label Encoding，与 one-hot 编码相对应）
+
+    1. 如果 batch size 大于 1，那么 CrossEntropyLoss 求的是 batch 的均值。
+
+        在上面的例子中，batch size 的值为 2.
+
+    1. `input` 必须是二维的，如果是一维的，会报错
+
+    Advantages:
+
+    * Invariant to scaling and shifting of the predicted probabilities.
+
+    Disadvantages:
+
+    * Sensitive to outliers and imbalanced data (can be biased towards majority class).
+
+    * It does not provide a similarity between classes which can be required in some cases.
+
+* L1 loss
+
+    The L1 loss function also called Mean Absolute Error (MAE) computes the average of the sum of absolute differences between the predicted and the actual values.
+
+    Formula: 
+
+    $\mathcal L_{L1} (y, \hat y) = \frac 1 n \sum_{i=1}^n \lvert y_i - \hat y_i\rvert$
+
+    Here,
+
+    * $n$ represents the total number of observations or samples
+
+    * $y_i$ represents the actual or observed value for the i-th sample,
+
+    * $\hat y_i$ represents the predicted or estimated value for the i-th sample.
+
+    L1 loss is mostly used for regression problems and is more robust to outliers.
+
+    syntax:
+
+    ```py
+    torch.nn.L1Loss(size_average=None, reduce=None, reduction='mean')
+    ```
+
+    example:
+
+    ```py
+    import torch
+    from torch import nn
+
+    #initialising the loss function
+    loss = nn.L1Loss()
+    #randomly initialising the input and the target value...input is considered as predicted value here.
+    input = torch.randn(2, 4, requires_grad=True)
+    target = torch.randn(2, 4)
+    #passing both the values inside the loss function.
+    output = loss(input, target)
+    #backpropagation
+    output.backward()
+    print(output)
+    ```
+
+    output:
+
+    ```
+    tensor(1.1041, grad_fn=<MeanBackward0>)
+    ```
+
+    Advantage:
+
+    * MAE is more robust to outliers compared to Mean Squared Error (MSE) because it takes the absolute difference, reducing the impact of extremely large errors.
+
+    * The MAE loss is straightforward to interpret as it represents the average magnitude of errors, making it easier to communicate the model's performance to stakeholders.
+
+    Disadvantage:
+
+    * MAE treats all errors equally, regardless of their magnitude. This can be a disadvantage in cases where distinguishing between small and large errors is important.
+
+    * The gradient of MAE is a constant value, which can slow down convergence during optimization, especially in comparison to MSE, where the gradient decreases as the error decreases.
+
+* Mean Square Error (L2 loss)
+
+    L2 computes the average of the squared differences between the predicted and actual values.
+
+    The main idea behind squaring is to penalise the model for large difference so that the model avoid larger differences. 
+
+    $$MSE = \frac 1 n \sum_{i=1}^n (y_i - \hat y_i)^2$$
+
+    Here,
+
+    * $n$ represents the total number of observations or samples,
+
+    * $y_i$ represents the actual or observed value for the ith sample,
+
+    * $\hat y_i$ represents the predicted or estimated value for the ith sample.
+
+    syntax:
+
+    ```py
+    torch.nn.MSELoss(size_average=None, reduce=None, reduction='mean')
+    ```
+
+    example:
+
+    ```py
+    import torch
+    from torch import nn
+    #initialising the loss function
+    loss = nn.MSELoss()
+    #randomly initialising the input and the target value...input is considered as predicted value here.
+    input = torch.randn(2, 4, requires_grad=True)
+    target = torch.randn(2, 4)
+    #passing both the values inside the loss function.
+    output = loss(input, target)
+    #backpropagation
+    output.backward()
+    print(output)
+    ```
+
+    output:
+
+    ```
+    tensor(1.6697, grad_fn=<MseLossBackward0>)
+    ```
+
+    example 2:
+
+    ```py
+    #import nn module
+    import torch.nn as nn
+    mse_loss_fn = nn.MSELoss()
+
+    loss = mse_loss_fn(predicted_value, target)
+    #predicted value is what the model is predicting 
+    #target is the actual value
+    ```
+
+    Disadvantages:
+
+    Sensitive to outliers due to the squaring operation, which deviates the results in the optimization process.
+
+* Huber Loss
+
+    This loss is used while tackling regression problems especially when dealing with outliers.
+
+    $$\mathrm{HuberLoss}(x, \mathrm{target}, \delta) = 
+    \frac 1 N \sum_i
+    \left\{
+    \begin{aligned}
+        &\frac 1 2 (x_i - \mathrm{target}_i)^2 \quad \text{if } \lvert x_i - \mathrm{target}_i \rvert \leq \delta \\
+        &\delta \left( \lvert x_i - \mathrm{target}_i \rvert - \frac 1 2 \delta \right) \quad \text{otherwise}
+    \end{aligned}    
+    \right.$$
+
+    Here,
+
+    * x represents the predicted values,target represents the ground truth or target values,
+
+    * δ is a parameter controlling the threshold for switching between quadratic and linear loss
+
+    It combines both MAE( Mean Absolute Error ) and MSE( Mean Squared Error) and which loss will be used depends upon the delta value.
+
+    syntax:
+
+    ```py
+    torch.nn.HuberLoss(reduction='mean', delta=1.0)
+    ```
+
+    Advantage:
+
+    * Less sensitive to outliers than MSE but still provide a more balanced approach to evaluating the performance of regression models compared to MAE.
+
+    Disadvantage:
+
+    * Introduces a new hyper parameter and the optimization of that leads to more complexity in the model.
+
+    MAE, MSE and Huber loss are used in regression problems but, which one should we use. MSE can be used when you want to penalize larger errors more heavily. It's useful when the data does not have significant outliers and you assume that the errors are normally distributed. MAE can be used when you want robust loss function that is less affected by outliers. And Huber loss can be used when you want to compromise the benefits of both MAE and MSE. 
+
+### 网络参数
+
+* `net.named_parameters()`
+
+    遍历神经网络中的所有可学习参数（权重和偏置），并返回参数名称和参数值本身的迭代器。
+
+    example:
+
+    ```py
+    from hlc_utils import *
+
+    class MyModel(Module):
+        def __init__(self):
+            super().__init__()
+            self.fc1 = Linear(784, 64)
+            self.fc2 = Linear(64, 10)
+        
+        def forward(self, x):
+            x = self.fc1(x)
+            x = F.sigmoid(x)
+            x = self.fc2(x)
+            x = F.softmax(x)
+
+    net = MyModel()
+
+    for name, param in net.named_parameters():
+        param: Parameter
+        print('param: {}'.format(param))
+        print("name: {}".format(name))
+        print('shape: {}'.format(param.shape))
+        print('data: {}'.format(param.data))
+        print('grad: {}'.format(param.grad))
+        break
+    ```
+
+    output:
+
+    ```
+    param: Parameter containing:
+    tensor([[ 0.0224, -0.0285, -0.0134,  ...,  0.0081,  0.0048, -0.0166],
+            [ 0.0114, -0.0229, -0.0186,  ...,  0.0354, -0.0218, -0.0119],
+            [ 0.0211, -0.0086,  0.0258,  ..., -0.0265,  0.0103, -0.0192],
+            ...,
+            [ 0.0037,  0.0333, -0.0095,  ...,  0.0202, -0.0237, -0.0126],
+            [-0.0068, -0.0324, -0.0191,  ...,  0.0220,  0.0154,  0.0047],
+            [ 0.0280,  0.0258, -0.0333,  ...,  0.0143, -0.0299,  0.0020]],
+           requires_grad=True)
+    name: fc1.weight
+    shape: torch.Size([64, 784])
+    data: tensor([[ 0.0224, -0.0285, -0.0134,  ...,  0.0081,  0.0048, -0.0166],
+            [ 0.0114, -0.0229, -0.0186,  ...,  0.0354, -0.0218, -0.0119],
+            [ 0.0211, -0.0086,  0.0258,  ..., -0.0265,  0.0103, -0.0192],
+            ...,
+            [ 0.0037,  0.0333, -0.0095,  ...,  0.0202, -0.0237, -0.0126],
+            [-0.0068, -0.0324, -0.0191,  ...,  0.0220,  0.0154,  0.0047],
+            [ 0.0280,  0.0258, -0.0333,  ...,  0.0143, -0.0299,  0.0020]])
+    grad: None
+    ```
+
+    可以看到`Parameter`继承自 Tensor，可以使用`param.data`获取到 tensor。并且 parameter 本身没有 name 属性。
+
+    已知一个 param，无法快速找到它对应的 layer，必须通过 name 去匹配。
+
+    设置不同的学习率:
+
+    ```py
+    optimizer_params = []
+    for name, param in net.named_parameters():
+        if 'bias' in name:
+            # 偏置项使用双倍学习率
+            optimizer_params.append({'params': param, 'lr': 0.02})
+        else:
+            optimizer_params.append({'params': param, 'lr': 0.01})
+
+    optimizer = torch.optim.SGD(optimizer_params)
+    ```
+
+    参数冻结:
+
+    ```py
+    # 冻结前几层的参数
+    for name, param in net.named_parameters():
+        if 'fc1' in name:
+            param.requires_grad = False  # 冻结该参数
+    ```
+
+    参数统计:
+
+    ```py
+    total_params = 0
+    for name, param in net.named_parameters():
+        if param.requires_grad:
+            total_params += param.numel()
+    print(f"可训练参数总数: {total_params}")
+    ```
+
+    相关方法对比
+
+    * parameters(): 只返回参数值，不包含名称
+
+    * state_dict(): 返回包含参数名称和值的字典，用于模型保存
+
+    * named_parameters(): 返回包含名称和参数的迭代器，适合遍历操作
+
+* nn.Parameter()
+
+    主要做两件事情：
+
+    1. 为 tensor 增加 grad
+
+    2. 将 tensor 注册到 model 的参数列表中
+
+    example:
+
+    * add grad
+
+        ```py
+        # 自动设置 requires_grad=True
+        param = nn.Parameter(torch.tensor([1.0, 2.0, 3.0]))
+        print(param.requires_grad)  # 输出: True
+        ```
+
+    * register as model parameter
+
+        ```py
+        class MyModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.weight = nn.Parameter(torch.randn(10, 5))
+                self.bias = nn.Parameter(torch.zeros(5))
+            
+            def forward(self, x):
+                return x @ self.weight + self.bias
+
+        model = MyModel()
+        # 自动包含在模型参数中
+        for name, param in model.named_parameters():
+            print(f"{name}: {param.shape}")
+        ```
+
+* `nn.Parameter()`
+
+    nn.Parameter() 是一个用于将张量包装为模型参数的类，它是 torch.Tensor 的子类。
+
+    syntax:
+
+    ```py
+    torch.nn.Parameter(data=None, requires_grad=True)
+    ```
+
+    params:
+
+    * `data` (Tensor): 要包装为参数的张量
+
+    * `requires_grad` (bool, 可选): 是否需要在反向传播中计算梯度，默认为 True
+
+### tensor 创建与转换
+
+* `np.linspace()`
+
+    syntax:
+
+    ```py
+    np.linspace(start, stop, num=50, endpoint=True, dtype=None, retstep=False)
+    ```
+
+    retstep：如果为True，返回（数组，步长）；如果为False（默认），只返回数组
+
+    example:
+
+    ```py
+    import numpy as np
+
+    lin_1, step_1 = np.linspace(0, 2, 5, endpoint=True, retstep=True)
+    lin_2, step_2 = np.linspace(0, 2, 5, endpoint=False, retstep=True)
+
+    print("{}, step: {}".format(lin_1, step_1))
+    print("{}, step: {}".format(lin_2, step_2))
+    ```
+
+    output:
+
+    ```
+    [0.  0.5 1.  1.5 2. ], step: 0.5
+    [0.  0.4 0.8 1.2 1.6], step: 0.4
+    ```
+
+    可以看到，当包含 endpoint 时，`step = (end - start) / (num - 1)`；当不包含 endpoint 时，`step = (end - start) / num`。
+
+    其他常见的创建数组的方法：
+
+    ```py
+    # np.zeros() - 全零数组
+    np.zeros(5)                    # [0., 0., 0., 0., 0.]
+    np.zeros((2, 3))               # 2x3的全零矩阵
+
+    # np.ones() - 全1数组
+    np.ones(4)                     # [1., 1., 1., 1.]
+    np.ones((2, 2))                # 2x2的全1矩阵
+
+    # np.full() - 填充指定值
+    np.full(3, 7)                  # [7, 7, 7]
+    np.full((2, 2), 5)             # 2x2的填充5的矩阵
+
+    # np.eye() - 单位矩阵
+    np.eye(3)                      # 3x3单位矩阵
+
+    # np.arange() - 类似range，但返回数组
+    np.arange(5)                   # [0, 1, 2, 3, 4]
+    np.arange(0, 10, 2)            # [0, 2, 4, 6, 8]
+
+    # np.logspace() - 对数等间距
+    np.logspace(0, 2, 5)           # [1., 3.16, 10., 31.62, 100.]
+
+    # np.random.rand() - 均匀分布
+    np.random.rand(3)              # 3个[0,1)的随机数
+    np.random.rand(2, 2)           # 2x2的随机矩阵
+
+    # np.random.randn() - 标准正态分布
+    np.random.randn(3)             # 3个标准正态分布随机数
+
+    # np.random.randint() - 整数随机数
+    np.random.randint(0, 10, 5)    # 5个[0,10)的随机整数
+
+    # np.array() - 从列表/元组创建
+    np.array([1, 2, 3])            # 从列表创建
+    np.array([[1, 2], [3, 4]])     # 二维数组
+
+    # np.asarray() - 转换为数组
+    np.asarray(existing_list)      # 将现有序列转为数组
+
+    # np.empty() - 未初始化数组（速度快）
+    np.empty(3)                    # 内容随机，不初始化
+
+    # np.copy() - 创建副本
+    arr_copy = np.copy(original_arr)
+
+    # np.meshgrid() - 坐标矩阵
+    x = np.linspace(0, 1, 3)
+    y = np.linspace(0, 1, 3)
+    X, Y = np.meshgrid(x, y)       # 创建网格坐标
+    ```
+
+* `np.meshgrid()`
+
+    np.meshgrid() 的主要作用是 从一维坐标向量生成网格坐标矩阵。它接受多个（通常是两个）一维数组，这些数组分别代表不同坐标轴上的点。然后，它会生成一个网格，并返回这个网格中 每一个点 的横坐标和纵坐标。
+
+    syntax:
+
+    ```py
+    numpy.meshgrid(*xi, copy=True, sparse=False, indexing='xy')
+    ```
+
+    参数解释：
+
+    * `*xi`： 一个或多个一维数组，代表网格的坐标。通常是等间距的数值序列（例如，由 np.linspace 或 np.arange 生成）。
+
+    * `copy`： 布尔值，默认为 True。如果为 False，则返回原始数组的视图以节省内存。通常保持默认即可。
+
+    * `sparse`： 布尔值，默认为 False。如果为 True，则返回稀疏网格以节省内存和计算时间。在数组很大时有用。
+
+    * `indexing`： 字符串，'xy' 或 'ij'，默认为 'xy'。这是一个非常关键的参数，决定了输出的顺序。
+
+        indexing='xy'： 返回的第一个数组是 纵坐标（Y） 的矩阵，第二个数组是 横坐标（X） 的矩阵。这与我们通常的数学和图像处理习惯（行对应Y，列对应X）一致。
+
+        indexing='ij'： 返回的第一个数组是 横坐标（X） 的矩阵，第二个数组是 纵坐标（Y） 的矩阵。这与矩阵索引一致。
+
+    返回值：
+
+    返回一个 `list` of ndarray（Numpy数组的列表）。对于二维网格，返回两个二维数组；对于三维网格，返回三个三维数组，依此类推。
+
+    example:
+
+    ```py
+    import numpy as np
+
+    x = np.array([1, 2, 3])
+    y = np.array([4, 5])
+
+    # 使用默认的 indexing='xy'
+    X, Y = np.meshgrid(x, y)
+
+    print("X (坐标矩阵):")
+    print(X)
+    print("\nY (坐标矩阵):")
+    print(Y)
+    ```
+
+    output:
+
+    ```
+    X (坐标矩阵):
+    [[1 2 3]
+     [1 2 3]]
+
+    Y (坐标矩阵):
+    [[4 4 4]
+     [5 5 5]]
+    ```
+
+    结果分析：
+
+        X 矩阵：每一 行 都是相同的，是 x 数组的复制。它代表了网格中每个点的 横坐标。
+
+        Y 矩阵：每一 列 都是相同的，是 y 数组的复制。它代表了网格中每个点的 纵坐标。
+
+    这样，网格中的点 (X[i, j], Y[i, j]) 就是所有 (x[j], y[i]) 的组合。例如：
+
+        (X[0,0], Y[0,0]) = (1, 4)
+
+        (X[0,1], Y[0,1]) = (2, 4)
+
+        (X[1,0], Y[1,0]) = (1, 5)
+
+        ...以此类推
+
+    example:
+
+    ```py
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 创建一维坐标向量
+    x = np.linspace(-5, 5, 50)
+    y = np.linspace(-5, 5, 50)
+
+    # 生成网格坐标矩阵
+    X, Y = np.meshgrid(x, y)
+
+    # 定义二维函数，例如 R = sqrt(X^2 + Y^2)
+    R = np.sqrt(X**2 + Y**2)
+    # 计算每个网格点的Z值，例如 Z = sin(R)
+    Z = np.sin(R)
+
+    # 绘制三维图形
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X, Y, Z, cmap='viridis')
+    plt.show()
+    ```
+
+* 将 tensor 从 numpy 转换到 torch
+
+    * `torch.from_numpy()`
+
+        这种方案会共享内存。
+
+        ```py
+        import torch
+        import numpy as np
+
+        # 创建 NumPy 数组
+        numpy_array = np.array([1, 2, 3, 4, 5])
+
+        # 转换为 Torch Tensor
+        torch_tensor = torch.from_numpy(numpy_array)
+
+        print("NumPy 数组:", numpy_array)
+        print("Torch Tensor:", torch_tensor)
+        print("Tensor 类型:", torch_tensor.dtype)
+        ```
+
+    * `torch.as_tensor()`
+
+        这种方案会尽可能共享内存，但不保证。
+
+        ```py
+        torch_tensor = torch.as_tensor(numpy_array)
+        ```
+
+    * `torch.tensor()`
+
+        这种方案会创建数据的副本。
+
+        ```py
+        torch_tensor = torch.tensor(numpy_array)
+        ```
+
 * torch 创建 tensor 的常见方法
 
     ```py
@@ -5914,11 +5280,40 @@
             [1., 1., 1.]])
     ```
 
-* 将 tensor 从 numpy 转换到 torch
+* 可以在创建 tensor 时使用`device=`参数来指定是否使用 gpu
 
-    * `torch.from_numpy()`
+    ```py
+    import torch
 
-        这种方案会共享内存。
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f'Using device: {device}')
+
+    tensor_size = (10000, 10000)  
+    a = torch.randn(tensor_size, device=device)  
+    b = torch.randn(tensor_size, device=device)  
+
+    c = a + b  
+
+    print("Result shape (moved to CPU for printing):", c.cpu().shape)
+
+    print("Current GPU memory usage:")
+    print(f"Allocated: {torch.cuda.memory_allocated(device) / (1024 ** 2):.2f} MB")
+    print(f"Cached: {torch.cuda.memory_reserved(device) / (1024 ** 2):.2f} MB")
+    ```
+
+    output:
+
+    ```
+    Using device: cpu
+    Result shape (moved to CPU for printing): torch.Size([10000, 10000])
+    Current GPU memory usage:
+    Allocated: 0.00 MB
+    Cached: 0.00 MB
+    ```
+
+* 将 numpy ndarray 转换为 torch tensor
+
+    * 使用 torch.from_numpy()
 
         ```py
         import torch
@@ -5935,49 +5330,568 @@
         print("Tensor 类型:", torch_tensor.dtype)
         ```
 
-    * `torch.as_tensor()`
-
-        这种方案会尽可能共享内存，但不保证。
+    * 使用 torch.as_tensor()
 
         ```py
         torch_tensor = torch.as_tensor(numpy_array)
         ```
 
-    * `torch.tensor()`
+    * 使用 torch.tensor()
 
-        这种方案会创建数据的副本。
+        这个方法会创建数据的副本
 
         ```py
         torch_tensor = torch.tensor(numpy_array)
         ```
 
-* tensor 的 indexing, slicing, reshaping 操作
+    关于内存的共享性：
+
+    * `torch.from_numpy()`: 共享内存
+
+    * `torch.as_tensor()`: 如果可能的话，共享内存
+
+    * `torch.tensor()`: 不共享内存，会创建副本
+
+    example:
 
     ```py
+    import numpy as np
     import torch
 
-    tensor = torch.tensor([[1, 2], [3, 4], [5, 6]])
+    # 创建 NumPy 数组
+    numpy_array = np.array([1, 2, 3])
 
-    element = tensor[1, 0]
-    print(f"Indexed Element (Row 1, Column 0): {element}")
-    
-    slice_tensor = tensor[:2, :]
-    print(f"Sliced Tensor (First two rows): \n{slice_tensor}")
+    # 使用 from_numpy（共享内存）
+    torch_tensor = torch.from_numpy(numpy_array)
 
-    reshaped_tensor = tensor.view(2, 3)
-    print(f"Reshaped Tensor (2x3): \n{reshaped_tensor}")
+    # 修改 NumPy 数组
+    numpy_array[0] = 100
+
+    print("修改后的 NumPy 数组:", numpy_array)
+    print("Torch Tensor（也改变了）:", torch_tensor)  # 也会显示 100
+
+    # 使用 torch.tensor（不共享内存）
+    torch_tensor_copy = torch.tensor(numpy_array)
+    numpy_array[1] = 200
+    print("Torch Tensor 副本（未改变）:", torch_tensor_copy)  # 不会改变
     ```
 
     output:
 
     ```
-    Indexed Element (Row 1, Column 0): 3
-    Sliced Tensor (First two rows): 
-    tensor([[1, 2],
-            [3, 4]])
-    Reshaped Tensor (2x3): 
-    tensor([[1, 2, 3],
-            [4, 5, 6]])
+    修改后的 NumPy 数组: [100   2   3]
+    Torch Tensor（也改变了）: tensor([100,   2,   3])
+    Torch Tensor 副本（未改变）: tensor([100,   2,   3])
     ```
 
-## topics
+* 关于 torch tensor 创建数据副本的几种情况
+
+    * torch.tensor(任何Python数据) → 总是创建副本
+
+    * torch.from_numpy(np_array) → 共享内存（仅对NumPy数组）
+
+    * torch.as_tensor() → 尽可能共享内存（智能选择）
+
+* 将 numpy 转换为 tensor 时指定类型
+
+    ```py
+    # 转换为 float32
+    torch_tensor_float = torch.from_numpy(numpy_array).float()
+
+    # 或者在转换时指定
+    torch_tensor_float = torch.from_numpy(numpy_array.astype(np.float32))
+
+    # 使用 dtype 参数
+    torch_tensor = torch.tensor(numpy_array, dtype=torch.float32)
+    ```
+
+    最佳实践
+
+        推荐使用 torch.from_numpy() - 效率高，内存共享
+
+        如果需要独立副本 - 使用 torch.tensor()
+
+        注意数据类型 - 确保使用适合深度学习的数据类型（通常是 float32）
+
+        检查设备 - 确保 tensor 在正确的设备上（CPU/GPU）
+
+    注：
+
+    1. `.float()`会创建副本
+
+        ```py
+        import torch
+        import numpy as np
+
+        # 创建 NumPy 数组
+        numpy_array = np.array([1, 2, 3], dtype=np.int32)
+
+        # 转换过程
+        torch_tensor_int = torch.from_numpy(numpy_array)  # 共享内存，dtype=int32
+        torch_tensor_float = torch.from_numpy(numpy_array).float()  # 创建新副本，dtype=float32
+        ```
+
+    1. 只有提前把 numpy ndarray 的数据类型转换过来，才能共享数据
+
+        ```py
+        # 方法1：先转换 NumPy 数组的数据类型
+        numpy_array_float = numpy_array.astype(np.float32)
+        torch_tensor = torch.from_numpy(numpy_array_float)  # 共享内存，float32
+
+        # 方法2：使用 astype 并保持共享
+        torch_tensor = torch.from_numpy(numpy_array.astype(np.float32, copy=False))
+        ```
+
+### metric
+
+* f measure 延伸
+
+    这里的 "F" 通常被认为是代表 F-measure（F 度量），源自统计学中的 F-test 概念。
+
+    f1-score 有时也被解释为平衡 Precision 和 Recall 的 Harmonic Mean（调和平均）。
+
+    $\beta$ 参数的意义：
+
+    * $\beta$ 参数控制着 Precision 和 Recall 的相对重要性
+
+    * $\beta = 1$：Precision 和 Recall 同等重要 → F1-score
+
+    * $\beta > 1$：更重视 Recall（如 $\beta = 2$ 时，Recall 的权重是 Precision 的 4 倍）
+
+    * $\beta < 1$：更重视 Precision（如 $\beta = 0.5$ 时，Precision 的权重是 Recall 的 4 倍）
+
+* F1-score
+
+    F1 指的是 F-score 或 F-measure 家族中的第一个成员，具体来说是当参数 β = 1 时的特殊情况。
+
+    F-score 的通用公式是：
+
+    $$F_\beta = (1 + \beta^2) \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{(\beta^2 \cdot \mathrm{Precision}) + \mathrm{Recall}}$$
+
+    当 $\beta = 1$ 时，公式简化为：
+
+    $$F_1 = 2 \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}$$
+
+    这就是 F1-score 的由来 - 它是 F-measure with $\beta = 1$。
+
+* 为什么 macro 不使用调和平均值？
+
+    F1-score 已经是考虑过类别平衡的数据了，直接对 F1-socre 使用 macro 就可以。F1-socre 对 Precision 和 Recall 使用调和平均是因为 Precision 和 Recall 是同一类别不同维度的指标。而 macro 是对同一个维度的指标进行调和平均，没有必要。
+
+    对已经平衡过的指标（F1）再进行一次平衡，这可能导致过度惩罚。
+
+    如果我们考虑到不同类别的平衡，可以使用
+
+    1. 加权F1（Weighted-F1）
+
+        `Weighted-F1 = Σ(weight_i × F1_i)`
+
+        其中 weight_i 通常是该类别的样本比例
+
+    2. 几何平均（Geometric Mean）
+
+        对极端值比算术平均更敏感，但比调和平均温和：
+
+        `G-Mean = (F1_1 × F1_2 × ... × F1_N)^(1/N)`
+
+    3. 使用专门的不平衡学习指标
+
+        如 G-Mean（几何平均）或 Balanced Accuracy。
+
+    如果特别关注最差类别，考虑报告 最小F1（Min-F1）
+
+* 如何选择 micro 与 macro
+
+    选择哪种平均方式完全取决于你的业务目标和数据集特点。
+
+    选择 'micro' 当：
+
+        你关心模型的整体性能，并且每个样本的错误代价是相同的。
+
+        数据存在不平衡，但大类的性能更重要。例如，在电商产品分类中，热销商品的准确率远比冷门商品重要。
+
+        你希望得到一个单一的、概括性的性能指标，并且这个指标与准确率等价。
+
+    选择 'macro' 当：
+
+        所有类别都同等重要，无论其样本数量多少。
+
+        你特别关心模型在小类/稀有类上的表现。这在很多关键领域至关重要：
+
+            医疗： 诊断一个稀有病。
+
+            金融风控： 检测极少数但危害巨大的欺诈交易。
+
+            工业： 预测罕见的设备故障。
+
+        你的数据集类别相对平衡。
+
+        你想评估模型的稳健性和泛化能力，看它是否在所有类别上都“学得不错”。
+
+
+    最佳实践
+
+    不要只看一个数字！ 一个负责任的实践是：
+
+        同时报告 Micro 和 Macro 值，以提供更全面的视图。
+
+        查看每个类别的单独指标（即不平均），这能最直接地发现问题所在。
+
+        分析混淆矩阵，直观地看到哪些类别被混淆了。
+
+* precision 的三种模式 micro, macro 与 none
+
+    * `'micro'`： 全局视角。先汇总所有类别（或所有样本）的 TP, FP, FN，再用汇总后的总数计算一个全局指标。
+
+    * `'macro'`： 平均视角。先独立计算每个类别的指标，然后对所有类别的指标值求算术平均。
+
+    * `'none'`: 计算每个类别的 precision，不进行平均
+
+    example:
+
+    ```py
+    from torchmetrics import Precision
+
+    pred = t.tensor([0, 1, 2, 3])
+    gt = t.tensor([0, 1, 0, 0])
+
+    pre = Precision('multiclass', num_classes=10, average='micro')
+    pre.update(pred, gt)
+    pre_score = pre.compute()
+    print('micro pre: {}'.format(pre_score))
+
+    pre = Precision('multiclass', num_classes=10, average='macro')
+    pre.update(pred, gt)
+    pre_score = pre.compute()
+    print('macro pre: {}'.format(pre_score))
+
+    pre = Precision('multiclass', num_classes=10, average='none')
+    pre.update(pred, gt)
+    pre_score = pre.compute()
+    print('none pre: {}'.format(pre_score))
+    ``` 
+
+    output:
+
+    ```
+    micro pre: 0.5
+    macro pre: 0.5
+    none pre: tensor([1., 1., 0., 0., 0., 0., 0., 0., 0., 0.])
+    ```
+
+    * `'micro'`模式详解
+
+        假设我们有一个多类分类问题，有 C 个类别。
+
+        1. 逐类统计：
+
+            对于每个类别 i，计算其真正例（TP_i）和假正例（FP_i）。
+
+            * 真正例（TP_i）： 真实标签为 i 且被预测为 i 的样本数。
+
+            * 假正例（FP_i）： 真实标签不是 i 但被预测为 i 的样本数。
+
+        2. 全局汇总：
+
+            * 计算所有类别的 TP 之和： total_TP = TP_1 + TP_2 + ... + TP_C
+
+            * 计算所有类别的 FP 之和： total_FP = FP_1 + FP_2 + ... + FP_C
+
+        3. 计算 Micro Precision：
+
+            使用汇总后的 total_TP 和 total_FP 来计算 Precision，公式和标准的二分类 Precision 一模一样。
+
+            $\mathrm{Precision_{micro}} = \frac{\mathrm{total\_TP}}{\mathrm{total\_TP + total\_FP}}$
+
+        重要特性与注意事项
+
+        * 与 Accuracy 的关系： 在多类分类中，Micro Precision 的值等于 准确率（Accuracy）。这是因为：
+
+            * total_TP 就是所有被正确分类的样本总数。
+
+            * total_TP + total_FP 就是所有被预测为正例的样本总数，在多类分类中，这等于总样本数（因为每个样本必须被分到一个类别）。
+
+            * 所以，Micro Precision = total_TP / N = Accuracy。
+
+        * 样本不平衡： Micro 平均对每个样本“一视同仁”，因此它更适合样本不平衡的数据集，因为大类的性能会主导最终结果。如果你关心小类的性能，应该使用 'macro' 平均。
+
+        * 多标签任务： 在多标签任务中（一个样本可以有多个标签），Micro Precision 的计算逻辑完全相同（汇总所有标签的 TP 和 FP），但此时它不等于 Accuracy，因为一个样本可以有多个预测和多个真实标签。
+
+    * `'micro'`与`'macro'`模式的对比
+
+        * 对类别不平衡的敏感性
+
+            * `micro`
+
+                不敏感（默认偏向大类）
+                大类的性能主导了最终结果。因为大类的 TP/FP 数量远多于小类，在汇总时贡献最大。在我们的例子中，Micro Precision (0.786) 更接近大类 A 的 Precision (0.947)。
+
+            * `macro`
+
+                敏感（平等对待每个类）
+                将所有类别视为同等重要，无论其样本多少。小类的差劲性能会直接拉低平均值。在我们的例子中，Macro Precision (0.831) 被小类 C 的 Precision (0.714) 拉低了。
+        * 优点
+
+            * micro
+
+                1. 综合性能： 很好地衡量了模型在整体数据集上的性能。
+                2. 等于Accuracy： 在多类分类中，Micro-Precision/Recall/F1 等于准确率，易于理解。
+                3. 适用于样本不平衡但关心整体性能的场景。
+
+            * macro
+
+                1. 公平性： 给予所有类别同等权重，能揭示模型在小类上的短板。
+                2. 稳定性： 不受类别分布影响，适合比较不同数据集或不同采样策略下的模型。
+                3. 适用于需要关注小类的场景（如医疗诊断、故障检测）。
+
+        * 缺点
+
+            * micro
+
+                1. 掩盖小类问题： 如果模型完全忽略小类，但只要大类表现好，Micro指标依然会很高，从而误导你认为模型很好。
+                2. 对数据分布敏感： 结果严重依赖于数据集的类别分布。
+
+            * macro
+
+                1. 可能低估性能： 如果一个模型在大类上表现极好，但在一个样本极少的小类上表现稍差，Macro指标可能会给出一个相对较低的评价，这可能不完全符合业务直觉。
+                2. 对噪声敏感： 一个在某个小类上的极端差值（如 Precision=0）会严重拉低整体平均值。
+
+* torchmetrics
+
+    `acc.update(pred, gt)`
+
+    在`.update()`函数中，第一个参数必须是 pred，第二个参数必须是 gt。
+
+    pred 和 gt 必须是 torch 的 tensor 类型，不能是 numpy 的 ndarray。
+
+    如果 pred 是一维的，那么其编码方式为标签编码，即预测的类别的索引，而不是概率。
+    
+    如果 pred 是二维的，那么 pred 的类型必须是 float，不能是 int，其代表的含义为输出的概率。问题：是否需要经过 softmax？问题：如果使用 max() 取概率最大值，那么 threshold = 0.5 有什么意义？
+
+* Accuracy（准确率）, Precision（精确率/查准率）, Recall（召回率/查全率）
+
+    * accuracy
+
+        含义：所有预测结果中，预测正确的比例。
+
+        公式：
+
+        `Accuracy = (TP + TN) / (TP + TN + FP + FN)`
+
+        意义：衡量模型整体的正确率。它是一个非常直观的指标。
+
+        优缺点：
+
+        * 优点：容易理解。
+
+        * 缺点：在数据不平衡的数据集上，准确率会严重失真。
+
+            例子：在一个有1000个样本的数据集中，有990个负样本（0），只有10个正样本（1）。如果一个模型简单地将所有样本都预测为负，那么它的准确率是 (0 + 990) / 1000 = 99%。虽然准确率很高，但这个模型完全没有识别正例的能力，是一个无用的模型。
+
+    * precision
+
+        含义：在所有被模型预测为正例的样本中，真正的正例有多少。
+
+        公式：
+
+        `Precision = TP / (TP + FP)`
+
+        意义：衡量模型的“精准度”或“宁缺毋滥”的程度。它关注的是预测结果。
+
+        核心问题：当模型说某个东西是“正例”时，它有多可信？
+
+        应用场景：注重减少误报（FP）的场景。
+
+        * 垃圾邮件检测：我们非常不希望把正常邮件误判为垃圾邮件（FP）。宁可放过一些垃圾邮件（FN），也不能误杀正常邮件。因此，我们需要高精确率。
+
+        * 推荐系统：给用户推送的内容，希望尽量都是他感兴趣的。如果推送了不感兴趣的内容（FP），会影响用户体验。
+
+    * recall
+
+        含义：在所有实际为正例的样本中，模型成功预测出来的有多少。
+
+        公式：
+
+        `Recall = TP / (TP + FN)`
+
+        意义：衡量模型的“覆盖率”或“宁错杀不漏放”的程度。它关注的是真实情况。
+
+        核心问题：在所有真正的正例中，模型找出了多少？
+
+        应用场景：注重减少漏报（FN）的场景。
+
+        * 疾病检测：我们非常不希望把一个患病的人误判为健康（FN）。宁可让一些健康的人做进一步检查（FP），也不能漏掉一个病人。因此，我们需要高召回率。
+
+        * 逃犯识别：在安检系统中，绝对不能漏掉一个逃犯（FN）。即使需要误警一些普通人（FP）进行二次检查，也要确保高召回率。
+
+    * Precision和Recall的“跷跷板”关系
+
+        在大多数情况下，精确率（Precision）和召回率（Recall）是相互矛盾的。提高一个，通常会导致另一个的降低。
+
+        * 如果你想提高Precision（减少FP）：
+
+            你需要提高预测正例的门槛。例如，只有模型有99%的把握时才预测为正。这样，被预测为正的样本确实很可能是正的（Precision高），但很多“没那么确定”的正例会被判为负例，从而导致漏报增加（FN增加），Recall降低。
+
+        * 如果你想提高Recall（减少FN）：
+
+            你需要降低预测正例的门槛。例如，只要模型有50%的把握就预测为正。这样，你能抓住几乎所有的正例（Recall高），但也会混入很多其实是负例的样本，导致误报增加（FP增加），Precision降低。
+
+    * 与Accuracy的关系
+
+        Accuracy提供了一个宏观的、整体的性能视图。
+
+        Precision和Recall提供了更细粒度的、针对特定类别（正例）的性能视图。
+
+        在数据平衡且FP和FN的成本相似的问题中，Accuracy是一个不错的指标。
+
+        在数据不平衡或FP与FN的成本明显不同的问题中，必须结合Precision和Recall（以及F1-Score）来分析。
+
+* F1-Score：调和平均数
+
+    为了同时考虑Precision和Recall，我们引入了 F1-Score。
+
+    公式：
+
+    `F1-Score = 2 * (Precision * Recall) / (Precision + Recall)`
+
+    意义：F1-Score 是 Precision 和 Recall 的调和平均数。它只有在 Precision 和 Recall 都较高时才会高。因此，它是一个综合性的指标，特别适用于不平衡数据集的评价。
+
+    * 为什么取调和平均数，而不是代数平均数，或者几何平均数？
+
+        因为调和平均数对较低值施加了更严厉的惩罚。
+
+        三种平均数：
+
+        假设我们有 Precision (P) 和 Recall (R) 两个值。
+
+        * 算术平均数：(P + R) / 2
+
+            特点：对所有值一视同仁，是普通的“平均值”。
+
+        * 几何平均数：sqrt(P * R)
+
+            特点：受极端值影响较小，更适合衡量比例或增长率。
+
+        * 调和平均数：2 * P * R / (P + R)
+
+            特点：强烈惩罚不平衡的数值。当P和R中有一个非常低时，调和平均数会接近这个低值。
+
+        我们希望一个模型在Precision和Recall上都表现良好，而不是用其中一个的高分来“掩盖”另一个的低分。
+
+        example:
+
+        场景：我们有一个疾病检测模型。
+
+            模型A： Precision = 1.0， Recall = 0.1
+
+                它预测有病的人，100%确实有病（非常准，绝不误诊）。
+
+                但实际有病的人，它只找出了10%（漏掉了90%的病人，非常危险）。
+
+            模型B： Precision = 0.5， Recall = 0.5
+
+                它预测有病的人，一半确实有病。
+
+                实际有病的人，它找出了一半。
+
+        问题：哪个模型更好？
+
+        计算它们的平均数：
+
+        | 模型 | A | B |
+        | - | - | - |
+        |　Precision (P) | 1.0 | 0.5 |
+        | Recall (R) | 0.1 | 0.5 |
+        | 算术平均 | (1.0 + 0.1) / 2 = 0.55 | (0.5+0.5)/2 = 0.50 |
+        | 几何平均 sqrt(1.0 * 0.1) ≈ 0.32 | sqrt(0.5 * 0.5) = 0.50 |
+        | 调和平均 | (F1) 2(1.0 * 0.1)/(1.0+0.1) ≈ 0.18 | 2(0.5* 0.5)/(0.5+0.5) = 0.50 |
+
+        分析结果：
+
+        * 从算术平均数看：模型A (0.55) > 模型B (0.50)。这显然是不合理的。模型A是一个“懒惰”的模型，它为了保持100%的准确率，只敢对极少数非常有把握的病例做出阳性预测，导致大量病人被漏诊。在医学上，这是一个灾难性的模型。然而，算术平均数却被它极高的Precision所“欺骗”，给出了更高的分数。
+
+        * 从几何平均数看：模型A (0.32) < 模型B (0.50)。这个结果已经比算术平均数合理了，它识别出了模型A的不平衡性。
+
+        * 从调和平均数 (F1-Score) 看：模型A (0.18) << 模型B (0.50)。调和平均数对模型A的“偏科”行为施加了最严厉的惩罚，给出了一个极低的分数，清晰地表明模型B的综合性能远优于模型A。
+
+        结论与总结:
+
+        平均数类型	对不平衡的惩罚力度	在评估模型中的适用性
+        算术平均	最弱	不适用。容易被一个高指标和另一个低指标的模型所误导。
+        几何平均	中等	比算术平均好，在某些场景下（如Fβ-Score的变体）有应用。
+        调和平均 (F1)	最强	最常用。能有效惩罚“偏科”的模型，确保模型在P和R之间取得有意义的平衡。
+
+    F1-Score特别适合于类别不平衡的数据集，以及那些没有明确倾向是更需要Precision还是Recall的场景，它提供了一个稳健的、单一的综合性评估指标。
+
+    当你有明确倾向时，可以使用Fβ-Score。
+
+    Fβ = (1 + β²) * (Precision * Recall) / (β² * Precision + Recall)
+
+    当β=1时，就是F1。
+
+    当β>1时，Recall的权重更高（更看重查全）。
+
+    当β<1时，Precision的权重更高（更看重查准）。
+
+* 混淆矩阵（Confusion Matrix）
+
+    有时也被称为 Error Matrix（错误矩阵），它是一个2x2的表格，总结了分类模型对二分类问题的预测结果。
+
+
+    | | 实际为正例 | 实际为负例 |
+    | - | :-: | :-: |
+    | 预测为正例 | TP (True Positive) | FP (False Positive) |
+    | 预测为负例 | FN (False Negative) | TN (True Negative) |
+
+    * TP（真阳性）：模型预测为正，实际也是正。预测正确。
+
+    * FP（假阳性）：模型预测为正，但实际是负。误报。
+
+    * FN（假阴性）：模型预测为负，但实际是正。漏报。
+
+    * TN（真阴性）：模型预测为负，实际也是负。预测正确。
+
+* torchmetrics
+
+    install: `pip install torchmetrics`
+
+    ```py
+    import torch
+    from torchmetrics import Accuracy, Precision
+
+    # accuracy
+    accuracy = Accuracy(task="multiclass", num_classes=10)
+    accuracy.reset()
+
+    batch1_preds = torch.tensor([0, 1, 2, 3]) # 模型预测的类别索引
+    batch1_target = torch.tensor([0, 1, 1, 3]) # 真实的类别索引
+
+    batch2_preds = torch.tensor([1, 0, 2])
+    batch2_target = torch.tensor([1, 0, 1])
+
+    accuracy.update(batch1_preds, batch1_target)
+    accuracy.update(batch2_preds, batch2_target)
+
+    final_accuracy = accuracy.compute()
+    print(f"最终准确率: {final_accuracy}") # 例如：tensor(0.7143)
+
+
+    # precision
+    pre = Precision('multiclass', num_classes=10, average='macro')
+    pre.reset()
+    pre.update(batch1_preds, batch1_target)
+    pre.update(batch2_preds, batch2_target)
+    final_pre = pre.compute()
+    print('final pre: {}'.format(final_pre))
+    ```
+
+    output:
+
+    ```
+    最终准确率: 0.7142857313156128
+    final pre: 0.75
+    ```
+
+    注：
+
+    1. 如果 precision 的 average 设置为`micro`，那么最后得到的结果和 accuracy 相同。

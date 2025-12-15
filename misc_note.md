@@ -2,6 +2,10 @@
 
 ## cache
 
+* 破解软件站，回头调研一下
+
+    <https://www.puresys.net/>
+
 * connect bot 本身并没有 -o ServerAliveInterval 的功能，长时间不发送数据，会导致自动断开连接
 
 * 量子力学中的微扰论（Perturbation Theory）

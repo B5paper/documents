@@ -2,6 +2,114 @@
 
 ## cached
 
+* python class 中定义成员变量
+
+    1. 在`__init__()`或其他成员函数中，使用`self.xxx = yyy`定义成员变量
+
+        ```py
+        class DynamicClass:
+            def __init__(self):
+                self.defined_in_init = "I'm from init" 
+
+            def add_attribute_later(self):
+                self.defined_later = "I was created later!"
+
+        # 使用
+        obj = DynamicClass()
+        print(obj.defined_in_init) # 正常工作
+
+        # print(obj.defined_later) # 这里会报错，因为还没有执行定义它的方法
+
+        obj.add_attribute_later() # 调用方法，动态创建了成员
+        print(obj.defined_later)  # 现在可以正常工作了
+        ```
+
+    2. 使用类属性
+
+        ```py
+        class MyClass:
+            # 这是类属性
+            class_attr = "I'm a class attribute"
+
+            def __init__(self, instance_attr):
+                # 这是实例属性
+                self.instance_attr = instance_attr
+
+        # 使用
+        obj1 = MyClass("Obj1 value")
+        obj2 = MyClass("Obj2 value")
+
+        # 访问实例属性：每个对象独有
+        print(obj1.instance_attr) # Obj1 value
+        print(obj2.instance_attr) # Obj2 value
+
+        # 访问类属性：所有对象共享，也可以通过类本身访问
+        print(obj1.class_attr)    # I'm a class attribute
+        print(obj2.class_attr)    # I'm a class attribute
+        print(MyClass.class_attr) # I'm a class attribute
+        ```
+
+        共享性：所有实例对象共享同一个类属性。如果通过类名修改它（如 MyClass.class_attr = "new"），所有实例看到的都会改变。
+
+        实例访问的陷阱：如果你通过实例对类属性进行赋值（如 obj1.class_attr = "new for obj1"），你实际上是在该实例的命名空间内创建了一个新的同名实例属性，它会遮蔽（shadow）掉类属性。此时，obj1.class_attr 是实例属性，而 obj2.class_attr 和 MyClass.class_attr 仍然是原来的类属性。
+
+    3. 使用`@property`装饰器
+
+        ```py
+        class Circle:
+            def __init__(self, radius):
+                self.radius = radius # 这里只存储了半径
+
+            @property
+            def area(self):
+                # 面积不需要存储，每次访问时根据半径计算
+                return 3.14159 * self.radius ** 2
+
+            @property
+            def diameter(self):
+                return self.radius * 2
+
+        # 使用
+        c = Circle(5)
+        print(c.radius)   # 5 (实例属性)
+        print(c.diameter) # 10 (看起来是属性，实则是方法计算的结果)
+        print(c.area)     # 78.53975 (看起来是属性，实则是方法计算的结果)
+
+        # c.area = 100 # 这会报错，因为@property默认是只读的
+        ```
+
+    在使用类成员时，如果不知道初始值，可以使用`Nonde`:
+
+    ```py
+    class User:
+        # 使用 None 作为占位符，表示这些属性需要后续初始化
+        name = None
+        email = None
+        age = None
+    ```
+
+    但是只有`None`无法提供类型信息，可以使用类型注解（Type Hints）配合 None:
+
+    ```py
+    class User:
+        name: str | None = None
+        email: str | None = None
+        age: int | None = None
+    ```
+
+    不可以只写类型注解，不写初始化值：
+
+    ```py
+    class User:
+        name: str          # 这只是类型注解
+        age: int = 0       # 这是真正的属性定义 + 类型注解
+
+    # 测试
+    user = User()
+    print(user.age)        # 正常工作，输出: 0
+    print(user.name)       # 报错！AttributeError: 'User' object has no attribute 'name'
+    ```
+
 * python 中的 int
 
     在Python中，int 类型既不是固定的32位也不是64位，而是任意精度整数（arbitrary precision），可以表示任意大小的整数，只受限于可用内存。
