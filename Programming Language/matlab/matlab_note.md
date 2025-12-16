@@ -6,6 +6,1189 @@
 
 ## cache
 
+* matlab 使用尾递归优化
+
+    ```matlab
+    function file_list = walk_fast(root_folder)
+        % 性能优化的递归遍历
+        
+        file_list = {};
+        folder_queue = {root_folder};
+        
+        % 使用队列而非递归栈
+        while ~isempty(folder_queue)
+            current_folder = folder_queue{1};
+            folder_queue(1) = [];
+            
+            % 获取当前文件夹内容
+            items = dir(current_folder);
+            
+            for i = 1:length(items)
+                item = items(i);
+                
+                if strcmp(item.name, '.') || strcmp(item.name, '..')
+                    continue;
+                end
+                
+                item_path = fullfile(current_folder, item.name);
+                
+                if item.isdir
+                    folder_queue{end+1} = item_path;
+                else
+                    file_list{end+1} = item_path;
+                end
+            end
+        end
+    end
+    ```
+
+* matlab 并行处理（大文件夹）
+
+    ```matlab
+    function process_folder_parallel(root_folder)
+        % 并行处理文件夹中的文件
+        
+        % 获取所有文件
+        all_files = find_files(root_folder, '');
+        
+        % 并行处理
+        parfor i = 1:length(all_files)
+            process_single_file(all_files{i});
+        end
+    end
+
+    function process_single_file(filepath)
+        % 处理单个文件
+        fprintf('处理: %s\n', filepath);
+        % ... 具体处理逻辑 ...
+    end
+    ```
+
+* matlab 递归处理目录的注意事项
+
+    ```matlab
+    % 1. 处理符号链接（可能需要额外检查）
+    items = dir(folder);
+    % dir() 会跟随符号链接，可能导致无限循环
+
+    % 2. 权限问题
+    try
+        items = dir(folder);
+    catch ME
+        warning('无法访问: %s, 原因: %s', folder, ME.message);
+    end
+
+    % 3. 内存管理（大文件夹）
+    % 考虑使用分批处理或datastore
+    ```
+
+* matlab repmat 与 python repeat dim 对比
+
+    功能	MATLAB	NumPy	说明
+    块复制	repmat(A, m, n)	np.tile(A, (m, n))	复制整个数组
+    元素复制	需用 kron 或索引	np.repeat(A, repeats, axis)	复制单个元素
+    多维复制	repmat(A, [m n p])	np.tile(A, (m, n, p))	多维度扩展
+
+    二、详细对比分析
+
+    1. 块复制（整个数组复制）
+
+        MATLAB repmat:
+
+        ```matlab
+        A = [1 2; 3 4];
+        B = repmat(A, 2, 3);
+        % B = [1 2 1 2 1 2
+        %      3 4 3 4 3 4
+        %      1 2 1 2 1 2
+        %      3 4 3 4 3 4]
+        ```
+
+        NumPy tile (对应功能):
+
+        ```python
+        import numpy as np
+        A = np.array([[1, 2], [3, 4]])
+        B = np.tile(A, (2, 3))
+        # B = [[1 2 1 2 1 2]
+        #      [3 4 3 4 3 4]
+        #      [1 2 1 2 1 2]
+        #      [3 4 3 4 3 4]]
+        ```
+
+    2. 元素复制（单个元素重复）
+    MATLAB 没有直接对应函数，需要变通：
+
+        ```matlab
+        % 方法1: 使用 kron (克罗内克积)
+        A = [1 2; 3 4];
+        B = kron(A, ones(2, 2));
+        % B = [1 1 2 2
+        %      1 1 2 2
+        %      3 3 4 4
+        %      3 3 4 4]
+        % 每个元素变成2×2块
+
+        % 方法2: 使用索引
+        A = [1 2 3];
+        B = A(ones(3,1), :);  % 每行重复3次
+        % B = [1 2 3
+        %      1 2 3
+        %      1 2 3]
+        ```
+
+        NumPy repeat (直接支持):
+
+        ```python
+        import numpy as np
+        A = np.array([[1, 2], [3, 4]])
+
+        # 沿axis=0重复（行方向）
+        B = np.repeat(A, 2, axis=0)
+        # B = [[1 2]
+        #      [1 2]
+        #      [3 4]
+        #      [3 4]]
+
+        # 沿axis=1重复（列方向）
+        C = np.repeat(A, 2, axis=1)
+        # C = [[1 1 2 2]
+        #      [3 3 4 4]]
+
+        # 每个元素重复不同次数
+        D = np.repeat(A, [2, 3], axis=0)  # 第1行重复2次，第2行重复3次
+        ```
+
+    3. 三维及多维数组复制
+    MATLAB:
+
+    matlab
+    A = reshape(1:8, [2, 2, 2]);
+    % A(:,:,1) = [1 3; 2 4]
+    % A(:,:,2) = [5 7; 6 8]
+
+    B = repmat(A, [2, 1, 2]);  % 行×2，列×1，页×2
+    size(B)  % [4, 2, 4]
+    NumPy:
+
+    python
+    import numpy as np
+    A = np.arange(1, 9).reshape(2, 2, 2)
+
+    # tile: 整个数组复制
+    B = np.tile(A, (2, 1, 2))  # 对应MATLAB的repmat
+    print(B.shape)  # (4, 2, 4)
+
+    # repeat: 元素复制
+    C = np.repeat(A, 2, axis=2)  # 沿第三维度复制
+    print(C.shape)  # (2, 2, 4)
+    三、功能映射表
+    从 NumPy 到 MATLAB:
+    python
+    # NumPy 代码
+    np.tile(A, (2, 3))      → repmat(A, 2, 3)      # MATLAB
+    np.repeat(A, 3, axis=0) → A(ones(3,1), :, :)   # MATLAB (3D时需要调整)
+    np.repeat(A, 3, axis=1) → A(:, ones(3,1), :)   # MATLAB (3D时需要调整)
+    np.repeat(A, 3, axis=2) → A(:, :, ones(3,1))   # MATLAB
+    从 MATLAB 到 NumPy:
+    matlab
+    % MATLAB 代码
+    repmat(A, 2, 3)     → np.tile(A, (2, 3))          # NumPy
+    kron(A, ones(2,2))  → np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)  # NumPy
+    A(ones(3,1), :)     → np.repeat(A, 3, axis=0)     # NumPy
+    四、实际应用场景对比
+    场景1：创建网格数据
+    MATLAB (常用meshgrid):
+
+    matlab
+    % 创建2D网格
+    x = 1:3;
+    y = 1:2;
+    [X, Y] = meshgrid(x, y);
+
+    % 用repmat实现
+    X_rep = repmat(x, length(y), 1);
+    Y_rep = repmat(y', 1, length(x));
+    NumPy (常用meshgrid):
+
+    python
+    import numpy as np
+    x = np.arange(1, 4)
+    y = np.arange(1, 3)
+    X, Y = np.meshgrid(x, y)
+
+    # 用tile实现
+    X_tile = np.tile(x, (len(y), 1))
+    Y_tile = np.tile(y.reshape(-1, 1), (1, len(x)))
+    场景2：批量向量运算
+    MATLAB (广播机制R2016b+):
+
+    matlab
+    % 旧方法：需要repmat
+    A = rand(3, 4);
+    row_vector = [1 2 3 4];
+    B = A + repmat(row_vector, size(A,1), 1);
+
+    % 新方法：自动广播
+    B = A + row_vector;  % R2016b+ 支持
+    NumPy (天然支持广播):
+
+    python
+    import numpy as np
+    A = np.random.rand(3, 4)
+    row_vector = np.array([1, 2, 3, 4])
+    B = A + row_vector  # 自动广播
+    场景3：图像处理中的通道复制
+    MATLAB:
+
+    matlab
+    % 灰度图转RGB伪彩色
+    gray_img = imread('gray.jpg');
+    height = size(gray_img, 1);
+    width = size(gray_img, 2);
+
+    % 方法1: 使用cat
+    rgb_img = cat(3, gray_img, gray_img, gray_img);
+
+    % 方法2: 使用repmat
+    rgb_img = repmat(gray_img, [1, 1, 3]);
+    NumPy:
+
+    python
+    import numpy as np
+    import cv2
+
+    gray_img = cv2.imread('gray.jpg', cv2.IMREAD_GRAYSCALE)
+    height, width = gray_img.shape
+
+    # 方法1: 使用stack
+    rgb_img = np.stack([gray_img, gray_img, gray_img], axis=2)
+
+    # 方法2: 使用tile
+    rgb_img = np.tile(gray_img[:, :, np.newaxis], (1, 1, 3))
+
+    # 方法3: 使用repeat
+    rgb_img = np.repeat(gray_img[:, :, np.newaxis], 3, axis=2)
+    五、性能对比
+    测试代码：
+    MATLAB:
+
+    matlab
+    function test_performance()
+        A = rand(1000, 1000);
+        
+        % 测试repmat
+        tic;
+        for i = 1:100
+            B = repmat(A, 2, 2);
+        end
+        repmat_time = toc;
+        
+        % 测试索引方法
+        tic;
+        for i = 1:100
+            B = A(ones(2,1), ones(2,1), :);
+        end
+        index_time = toc;
+        
+        fprintf('repmat: %.4f秒\n', repmat_time);
+        fprintf('索引: %.4f秒\n', index_time);
+    end
+    Python/NumPy:
+
+    python
+    import numpy as np
+    import time
+
+    A = np.random.rand(1000, 1000)
+
+    # 测试tile
+    start = time.time()
+    for i in range(100):
+        B = np.tile(A, (2, 2))
+    tile_time = time.time() - start
+
+    # 测试repeat
+    start = time.time()
+    for i in range(100):
+        B = np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)
+    repeat_time = time.time() - start
+
+    print(f"tile: {tile_time:.4f}秒")
+    print(f"repeat: {repeat_time:.4f}秒")
+    六、关键差异总结
+    1. 设计哲学差异
+    MATLAB：repmat 专注于块复制，设计简单统一
+
+    NumPy：区分 tile (块复制) 和 repeat (元素复制)，功能更精细
+
+    2. 语法差异
+    matlab
+    % MATLAB - 参数顺序不同
+    B = repmat(A, m, n, p)      % 直接列出各维度重复次数
+
+    # NumPy - 使用元组
+    B = np.tile(A, (m, n, p))   # 重复次数放在元组中
+    3. 广播机制
+    MATLAB：从 R2016b 开始支持自动广播，减少对 repmat 的依赖
+
+    NumPy：从一开始就支持广播，更自然地处理维度扩展
+
+    4. 内存布局考虑
+    matlab
+    % MATLAB：列优先（Fortran风格）
+    A = [1 2 3; 4 5 6];  % 内存顺序：1, 4, 2, 5, 3, 6
+
+    # NumPy：默认行优先（C风格），可指定
+    A = np.array([[1, 2, 3], [4, 5, 6]])  # 内存顺序：1, 2, 3, 4, 5, 6
+    七、迁移建议
+    从 NumPy 迁移到 MATLAB:
+    np.tile(A, reps) → repmat(A, reps)（直接对应）
+
+    np.repeat(A, n, axis) → 需要手动实现：
+
+    matlab
+    % axis=0 (行方向)
+    B = A(ones(n,1), :, :, ...);  % 根据维度调整
+
+    % axis=1 (列方向)  
+    B = A(:, ones(n,1), :, ...);
+
+    % 或用 kron 实现元素级复制
+    B = kron(A, ones(n, 1));  % 特定情况
+    从 MATLAB 迁移到 NumPy:
+    repmat(A, m, n) → np.tile(A, (m, n))
+
+    kron(A, ones(m,n)) → np.repeat(np.repeat(A, m, axis=0), n, axis=1)
+
+    A(ones(m,1), :) → np.repeat(A, m, axis=0)
+
+    八、现代替代方案
+    MATLAB 广播机制（R2016b+）
+    matlab
+    % 不再需要 repmat 的场景
+    A = rand(3, 4);
+    v = [1 2 3 4];
+
+    % 旧方法
+    B = A + repmat(v, size(A,1), 1);
+
+    % 新方法（更简洁高效）
+    B = A + v;  % 自动广播
+    NumPy 广播机制
+    python
+    # NumPy 一直支持广播
+    A = np.random.rand(3, 4)
+    v = np.array([1, 2, 3, 4])
+    B = A + v  # 自动广播
+    九、结论
+    repmat 与 NumPy 的对应关系：
+
+    repmat ≈ np.tile：都是块复制，复制整个数组
+
+    repmat ≠ np.repeat：repmat 不直接支持元素级复制
+
+    主要差异原因：
+
+    设计目标不同：MATLAB 强调数学计算简洁性，NumPy 提供更细粒度控制
+
+    历史原因：MATLAB 先有 repmat，后来 NumPy 设计时区分了 tile 和 repeat
+
+    使用场景：MATLAB 用户更多进行矩阵运算，NumPy 用户需要更灵活的数据操作
+
+    实用建议：
+
+    熟悉两种工具的差异，避免直接移植代码时的误解
+
+    了解各自的最优实践（如 MATLAB 的广播、NumPy 的向量化）
+
+    根据具体需求选择合适的方法，而非强行对应
+
+* matlab 查找特定类型文件
+
+    ```matlab
+    function file_list = find_files(root_folder, pattern)
+        % 递归查找匹配模式的文件
+        % pattern: 文件模式，如 '*.m', '*.mat', '*.txt'
+        
+        file_list = {};
+        
+        % 获取当前文件夹内容
+        items = dir(root_folder);
+        
+        for i = 1:length(items)
+            item = items(i);
+            
+            % 跳过 . 和 .. 目录
+            if strcmp(item.name, '.') || strcmp(item.name, '..')
+                continue;
+            end
+            
+            item_path = fullfile(root_folder, item.name);
+            
+            if item.isdir
+                % 递归遍历子文件夹
+                sub_files = find_files(item_path, pattern);
+                file_list = [file_list, sub_files];
+            else
+                % 检查文件是否匹配模式
+                if isempty(pattern) || contains(item.name, pattern) || ...
+                (~isempty(regexp(pattern, '^\*\.', 'once')) && ...
+                    endsWith(item.name, pattern(2:end)))
+                    file_list{end+1} = item_path;
+                end
+            end
+        end
+    end
+
+    % 使用示例
+    m_files = find_files('C:\MyProject', '*.m');
+    mat_files = find_files('C:\MyProject', '*.mat');
+    all_files = find_files('C:\MyProject', '');  % 所有文件
+    ```
+
+* matlab 计算文件夹大小
+
+    ```matlab
+    function [total_size, file_count] = get_folder_size(root_folder)
+        % 递归计算文件夹总大小
+        
+        total_size = 0;
+        file_count = 0;
+        
+        items = dir(root_folder);
+        
+        for i = 1:length(items)
+            item = items(i);
+            
+            if strcmp(item.name, '.') || strcmp(item.name, '..')
+                continue;
+            end
+            
+            item_path = fullfile(root_folder, item.name);
+            
+            if item.isdir
+                % 递归计算子文件夹
+                [sub_size, sub_count] = get_folder_size(item_path);
+                total_size = total_size + sub_size;
+                file_count = file_count + sub_count;
+            else
+                % 累加文件大小
+                total_size = total_size + item.bytes;
+                file_count = file_count + 1;
+            end
+        end
+    end
+
+    % 使用示例
+    [sz, cnt] = get_folder_size('C:\MyProject');
+    fprintf('总大小: %.2f MB，文件数: %d\n', sz/1024/1024, cnt);
+    ```
+
+* matlab 面向对象实现（类版本）递归搜索
+
+    ```matlab
+    classdef DirectoryWalker < handle
+        % DirectoryWalker - 目录遍历器类
+        
+        properties
+            RootFolder      % 根目录
+            FileExtension   % 文件扩展名过滤
+            ExcludePatterns % 排除模式
+            MaxDepth        % 最大深度
+        end
+        
+        properties (SetAccess = private)
+            Results         % 遍历结果
+            FileCount       % 文件总数
+            FolderCount     % 文件夹总数
+        end
+        
+        methods
+            function obj = DirectoryWalker(root_folder, varargin)
+                % 构造函数
+                obj.RootFolder = root_folder;
+                
+                % 解析可选参数
+                p = inputParser;
+                addParameter(p, 'FileExtension', {}, @iscell);
+                addParameter(p, 'ExcludePatterns', {}, @iscell);
+                addParameter(p, 'MaxDepth', Inf, @isnumeric);
+                parse(p, varargin{:});
+                
+                obj.FileExtension = p.Results.FileExtension;
+                obj.ExcludePatterns = p.Results.ExcludePatterns;
+                obj.MaxDepth = p.Results.MaxDepth;
+                
+                obj.Results = [];
+                obj.FileCount = 0;
+                obj.FolderCount = 0;
+            end
+            
+            function walk(obj)
+                % 执行遍历
+                obj.Results = struct('path', {}, 'files', {}, 'subfolders', {});
+                [obj.Results, obj.FileCount, obj.FolderCount] = ...
+                    obj.walk_recursive(obj.RootFolder, 0);
+            end
+            
+            function print_summary(obj)
+                % 打印摘要信息
+                fprintf('=== 目录遍历摘要 ===\n');
+                fprintf('根目录: %s\n', obj.RootFolder);
+                fprintf('总文件夹数: %d\n', obj.FolderCount);
+                fprintf('总文件数: %d\n', obj.FileCount);
+                
+                if ~isempty(obj.FileExtension)
+                    fprintf('文件过滤: %s\n', strjoin(obj.FileExtension, ', '));
+                end
+                
+                if ~isempty(obj.ExcludePatterns)
+                    fprintf('排除模式: %s\n', strjoin(obj.ExcludePatterns, ', '));
+                end
+            end
+            
+            function plot_file_types(obj)
+                % 绘制文件类型统计图
+                if isempty(obj.Results)
+                    error('请先执行walk()方法');
+                end
+                
+                % 收集所有文件扩展名
+                exts = {};
+                for i = 1:length(obj.Results)
+                    for j = 1:length(obj.Results(i).files)
+                        [~, ~, ext] = fileparts(obj.Results(i).files{j});
+                        if isempty(ext)
+                            ext = '无扩展名';
+                        end
+                        exts{end+1} = ext;
+                    end
+                end
+                
+                % 统计
+                [unique_exts, ~, idx] = unique(exts);
+                counts = histcounts(idx, 1:length(unique_exts)+1);
+                
+                % 绘制饼图
+                figure;
+                pie(counts, unique_exts);
+                title('文件类型分布');
+            end
+        end
+        
+        methods (Access = private)
+            function [results, file_count, folder_count] = walk_recursive(obj, ...
+                    current_path, current_depth)
+                % 私有递归方法
+                
+                results = struct('path', {}, 'files', {}, 'subfolders', {});
+                file_count = 0;
+                folder_count = 0;
+                
+                % 检查深度限制
+                if current_depth > obj.MaxDepth
+                    return;
+                end
+                
+                % 获取当前文件夹内容
+                items = dir(current_path);
+                
+                files = {};
+                subfolders = {};
+                
+                for i = 1:length(items)
+                    item = items(i);
+                    
+                    if strcmp(item.name, '.') || strcmp(item.name, '..')
+                        continue;
+                    end
+                    
+                    item_fullpath = fullfile(current_path, item.name);
+                    
+                    if item.isdir
+                        % 检查是否排除
+                        if ~obj.should_exclude(item.name)
+                            subfolders{end+1} = item.name;
+                            folder_count = folder_count + 1;
+                        end
+                    else
+                        % 检查文件扩展名
+                        if obj.should_include(item.name)
+                            files{end+1} = item.name;
+                            file_count = file_count + 1;
+                        end
+                    end
+                end
+                
+                % 创建当前层结果
+                current_result.path = current_path;
+                current_result.files = files;
+                current_result.subfolders = subfolders;
+                results = [results, current_result];
+                
+                % 递归遍历子文件夹
+                for i = 1:length(subfolders)
+                    subfolder_path = fullfile(current_path, subfolders{i});
+                    [sub_results, sub_file_count, sub_folder_count] = ...
+                        obj.walk_recursive(subfolder_path, current_depth + 1);
+                    
+                    results = [results, sub_results];
+                    file_count = file_count + sub_file_count;
+                    folder_count = folder_count + sub_folder_count;
+                end
+            end
+            
+            function include = should_include(obj, filename)
+                % 检查文件是否应该包含
+                include = true;
+                
+                if isempty(obj.FileExtension)
+                    return;
+                end
+                
+                [~, ~, ext] = fileparts(filename);
+                
+                for i = 1:length(obj.FileExtension)
+                    if strcmpi(ext, obj.FileExtension{i})
+                        return;
+                    end
+                end
+                
+                include = false;
+            end
+            
+            function exclude = should_exclude(obj, foldername)
+                % 检查文件夹是否应该排除
+                exclude = false;
+                
+                if isempty(obj.ExcludePatterns)
+                    return;
+                end
+                
+                for i = 1:length(obj.ExcludePatterns)
+                    if contains(foldername, obj.ExcludePatterns{i})
+                        exclude = true;
+                        return;
+                    end
+                end
+            end
+        end
+    end
+
+    % 使用示例
+    walker = DirectoryWalker('C:\MyProject', ...
+        'FileExtension', {'.m', '.mat'}, ...
+        'ExcludePatterns', {'temp', '.git'}, ...
+        'MaxDepth', 3);
+
+    walker.walk();
+    walker.print_summary();
+    walker.plot_file_types();
+    ```
+
+* MATLAB 递归遍历文件夹（实现 os.walk() 功能）
+
+    Python 函数	MATLAB 对应函数	说明
+    os.walk()	dir() + 递归	无直接对应，需自定义
+    os.listdir()	dir(), ls()	列出文件夹内容
+    os.path.join()	fullfile()	构建完整路径
+
+    * 简单递归实现
+
+        ```matlab
+        function [files, folders] = walk_directory(root_folder)
+            % 递归遍历文件夹，返回所有文件和子文件夹
+            % files: 所有文件的完整路径
+            % folders: 所有子文件夹的完整路径
+            
+            files = {};
+            folders = {};
+            
+            % 获取当前文件夹内容
+            items = dir(root_folder);
+            
+            for i = 1:length(items)
+                item = items(i);
+                
+                % 跳过 . 和 .. 目录
+                if strcmp(item.name, '.') || strcmp(item.name, '..')
+                    continue;
+                end
+                
+                % 构建完整路径
+                item_path = fullfile(root_folder, item.name);
+                
+                if item.isdir
+                    % 是文件夹：添加到列表并递归
+                    folders{end+1} = item_path;
+                    
+                    % 递归遍历子文件夹
+                    [sub_files, sub_folders] = walk_directory(item_path);
+                    
+                    % 合并结果
+                    files = [files, sub_files];
+                    folders = [folders, sub_folders];
+                else
+                    % 是文件：添加到列表
+                    files{end+1} = item_path;
+                end
+            end
+        end
+
+        % 使用示例
+        [root_files, root_folders] = walk_directory('C:\MyProject');
+        ```
+
+    * 类似 os.walk() 的生成器风格
+
+        ```matlab
+        function walk(root_folder)
+            % 类似Python的os.walk()，打印遍历结果
+            % root_folder: 起始路径
+            % dirpath: 当前目录
+            % dirnames: 子目录名列表
+            % filenames: 文件名列表
+            
+            % 获取当前文件夹内容
+            items = dir(root_folder);
+            
+            % 分离文件和文件夹
+            dirnames = {};
+            filenames = {};
+            
+            for i = 1:length(items)
+                item = items(i);
+                
+                % 跳过 . 和 .. 目录
+                if strcmp(item.name, '.') || strcmp(item.name, '..')
+                    continue;
+                end
+                
+                if item.isdir
+                    dirnames{end+1} = item.name;
+                else
+                    filenames{end+1} = item.name;
+                end
+            end
+            
+            % 输出当前层结果
+            fprintf('目录: %s\n', root_folder);
+            fprintf('  子文件夹: %s\n', strjoin(dirnames, ', '));
+            fprintf('  文件: %s\n\n', strjoin(filenames, ', '));
+            
+            % 递归遍历子文件夹
+            for i = 1:length(dirnames)
+                subfolder = fullfile(root_folder, dirnames{i});
+                walk(subfolder);
+            end
+        end
+
+        % 使用示例
+        walk('C:\MyProject');
+        ```
+
+    * 返回结构体数组版本
+
+        ```matlab
+        function walk_results = matlab_walk(root_folder)
+            % 完全模拟Python os.walk()功能
+            % 返回结构体数组，每个元素包含：
+            %   dirpath: 当前目录路径
+            %   dirnames: 子目录名（元胞数组）
+            %   filenames: 文件名（元胞数组）
+            
+            walk_results = struct('dirpath', {}, 'dirnames', {}, 'filenames', {});
+            walk_results = walk_recursive(root_folder, walk_results);
+        end
+
+        function walk_results = walk_recursive(current_path, walk_results)
+            % 递归辅助函数
+            
+            % 获取当前文件夹内容
+            items = dir(current_path);
+            
+            % 初始化当前层的目录和文件列表
+            dirnames = {};
+            filenames = {};
+            
+            % 分离文件和文件夹
+            for i = 1:length(items)
+                item = items(i);
+                
+                % 跳过 . 和 .. 目录
+                if strcmp(item.name, '.') || strcmp(item.name, '..')
+                    continue;
+                end
+                
+                if item.isdir
+                    dirnames{end+1} = item.name;
+                else
+                    filenames{end+1} = item.name;
+                end
+            end
+            
+            % 添加到结果
+            idx = length(walk_results) + 1;
+            walk_results(idx).dirpath = current_path;
+            walk_results(idx).dirnames = dirnames;
+            walk_results(idx).filenames = filenames;
+            
+            % 递归遍历子文件夹
+            for i = 1:length(dirnames)
+                subfolder = fullfile(current_path, dirnames{i});
+                walk_results = walk_recursive(subfolder, walk_results);
+            end
+        end
+
+        % 使用示例
+        results = matlab_walk('C:\MyProject');
+
+        % 遍历结果
+        for i = 1:length(results)
+            fprintf('目录: %s\n', results(i).dirpath);
+            fprintf('  子文件夹数: %d\n', length(results(i).dirnames));
+            fprintf('  文件数: %d\n', length(results(i).filenames));
+            
+            % 列出前几个文件
+            if ~isempty(results(i).filenames)
+                fprintf('  文件示例: %s\n', strjoin(results(i).filenames(1:min(3, end)), ', '));
+            end
+            fprintf('\n');
+        end
+        ```
+
+    * 带过滤功能的增强版
+
+        ```matlab
+        function walk_results = walk_with_filter(root_folder, varargin)
+            % 带过滤功能的递归遍历
+            % 可选参数:
+            %   'FileExt', {'.m', '.mat'} - 文件扩展名过滤
+            %   'ExcludeDirs', {'temp', 'test'} - 排除的文件夹
+            %   'MaxDepth', 3 - 最大递归深度
+            
+            % 解析可选参数
+            p = inputParser;
+            addParameter(p, 'FileExt', {}, @iscell);
+            addParameter(p, 'ExcludeDirs', {}, @iscell);
+            addParameter(p, 'MaxDepth', Inf, @isnumeric);
+            parse(p, varargin{:});
+            
+            file_ext = p.Results.FileExt;
+            exclude_dirs = p.Results.ExcludeDirs;
+            max_depth = p.Results.MaxDepth;
+            
+            % 初始化结果结构
+            walk_results = struct('dirpath', {}, 'dirnames', {}, 'filenames', {});
+            
+            % 开始递归遍历
+            walk_results = walk_filter_recursive(root_folder, walk_results, ...
+                file_ext, exclude_dirs, max_depth, 0);
+        end
+
+        function walk_results = walk_filter_recursive(current_path, walk_results, ...
+                file_ext, exclude_dirs, max_depth, current_depth)
+            % 递归辅助函数
+            
+            % 检查深度限制
+            if current_depth > max_depth
+                return;
+            end
+            
+            % 获取当前文件夹内容
+            items = dir(current_path);
+            
+            % 初始化当前层的目录和文件列表
+            dirnames = {};
+            filenames = {};
+            
+            for i = 1:length(items)
+                item = items(i);
+                
+                % 跳过 . 和 .. 目录
+                if strcmp(item.name, '.') || strcmp(item.name, '..')
+                    continue;
+                end
+                
+                item_fullpath = fullfile(current_path, item.name);
+                
+                if item.isdir
+                    % 检查是否在排除列表中
+                    if ~is_matched(item.name, exclude_dirs)
+                        dirnames{end+1} = item.name;
+                    end
+                else
+                    % 文件：检查扩展名
+                    if isempty(file_ext) || is_matched(item.name, file_ext)
+                        filenames{end+1} = item.name;
+                    end
+                end
+            end
+            
+            % 添加到结果
+            idx = length(walk_results) + 1;
+            walk_results(idx).dirpath = current_path;
+            walk_results(idx).dirnames = dirnames;
+            walk_results(idx).filenames = filenames;
+            
+            % 递归遍历子文件夹
+            for i = 1:length(dirnames)
+                subfolder = fullfile(current_path, dirnames{i});
+                walk_results = walk_filter_recursive(subfolder, walk_results, ...
+                    file_ext, exclude_dirs, max_depth, current_depth + 1);
+            end
+        end
+
+        function matched = is_matched(name, patterns)
+            % 检查名称是否匹配模式
+            matched = false;
+            
+            if isempty(patterns)
+                matched = true;
+                return;
+            end
+            
+            for j = 1:length(patterns)
+                pattern = patterns{j};
+                
+                % 如果是扩展名模式（以.开头）
+                if pattern(1) == '.'
+                    [~, ~, ext] = fileparts(name);
+                    if strcmpi(ext, pattern)
+                        matched = true;
+                        return;
+                    end
+                else
+                    % 普通字符串匹配（包含关系）
+                    if contains(name, pattern)
+                        matched = true;
+                        return;
+                    end
+                end
+            end
+        end
+
+        % 使用示例
+        % 1. 查找所有.m文件
+        results1 = walk_with_filter('C:\MyProject', 'FileExt', {'.m'});
+
+        % 2. 排除某些文件夹
+        results2 = walk_with_filter('C:\MyProject', ...
+            'ExcludeDirs', {'temp', 'backup', '.git'});
+
+        % 3. 限制递归深度
+        results3 = walk_with_filter('C:\MyProject', 'MaxDepth', 2);
+
+        % 4. 组合条件
+        results4 = walk_with_filter('C:\MyProject', ...
+            'FileExt', {'.m', '.mat'}, ...
+            'ExcludeDirs', {'test', 'old'}, ...
+            'MaxDepth', 3);
+        ```
+
+* matlab repmat 与其他函数的对比
+
+    * repmat vs. kron
+
+        ```matlab
+        % repmat: 块复制
+        A = [1 2; 3 4];
+        B_repmat = repmat(A, 2, 2);
+        % [A A; A A]
+
+        % kron: 克罗内克积（元素级复制）
+        B_kron = kron(A, ones(2, 2));
+        % [1*ones(2) 2*ones(2); 3*ones(2) 4*ones(2)]
+        % 即每个元素都变成2×2块
+        ```
+
+    * repmat vs. 索引复制
+
+        ```matlab
+        A = [1 2 3];
+
+        % 方法1: repmat
+        B = repmat(A, 3, 1);
+
+        % 方法2: 索引（更高效）
+        B = A(ones(3,1), :);
+
+        % 方法3: 使用ones创建索引
+        B = A(repmat(1:size(A,1), 3, 1), :);
+        ```
+
+    * repmat vs. meshgrid/ndgrid
+
+        ```matlab
+        % 创建2D网格
+        x = 1:3; y = 1:2;
+
+        % meshgrid (主要用于绘图)
+        [X1, Y1] = meshgrid(x, y);
+
+        % 用repmat实现
+        X2 = repmat(x, length(y), 1);
+        Y2 = repmat(y', 1, length(x));
+
+        % 验证
+        isequal(X1, X2)  % true
+        isequal(Y1, Y2)  % true
+        ```
+
+* matlab 广播机制（R2016b+）
+
+    ```matlab
+    % 旧方法：需要repmat
+    A = rand(1000, 1000);
+    row_mean = mean(A, 2);
+    A_centered = A - repmat(row_mean, 1, size(A, 2));
+
+    % 新方法：自动广播（更高效、更简洁）
+    A_centered = A - row_mean;  % 自动扩展维度
+    ```
+
+* matlab 预分配内存的大数据应用
+
+    ```matlab
+    % 不推荐：多次动态扩展
+    result = [];
+    for i = 1:1000
+        result = [result; repmat(i, 10, 1)];  % 每次循环都复制
+    end
+
+    % 推荐：一次性预分配
+    result = zeros(10000, 1);
+    for i = 1:1000
+        idx = (i-1)*10+1 : i*10;
+        result(idx) = repmat(i, 10, 1);
+    end
+
+    % 更推荐：向量化（无循环）
+    result = repmat((1:1000)', 10, 1);
+    result = sort(result);  % 如果需要排序
+    ```
+
+* matlab matrep 高级技巧
+
+    * 创建结构体数组
+
+        ```matlab
+        % 创建空结构体模板
+        template.name = '';
+        template.value = 0;
+        template.valid = false;
+
+        % 复制创建结构体数组
+        n = 5;
+        data = repmat(template, 1, n);
+
+        % 批量初始化
+        for i = 1:n
+            data(i).name = sprintf('Item%d', i);
+            data(i).value = i * 10;
+            data(i).valid = true;
+        end
+        ```
+
+    * 处理单元数组
+
+        ```matlab
+        % 创建单元数组模板
+        cell_template = {'', [], false};
+
+        % 复制创建
+        cell_array = repmat(cell_template, 3, 2);
+        % 3×2的单元数组，每个元素是 {'', [], false}
+
+        % 填充数据
+        for i = 1:size(cell_array, 1)
+            for j = 1:size(cell_array, 2)
+                cell_array{i, j} = {sprintf('Cell(%d,%d)', i, j), i*j, mod(i*j,2)==0};
+            end
+        end
+        ```
+
+    * 生成重复序列
+
+        ```matlab
+        % 创建重复模式
+        pattern = [1 2 3 4];
+        repeats = 3;
+        sequence = repmat(pattern, 1, repeats);
+        % sequence = [1 2 3 4 1 2 3 4 1 2 3 4]
+
+        % 创建带间隔的序列
+        base = [1 0 0 0];  % 1后面跟3个0
+        sequence = repmat(base, 1, 4);
+        % sequence = [1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0]
+        ```
+
+* repmat 常见错误和注意事项
+
+    * 维度匹配
+
+        ```matlab
+        % 错误：维度不匹配
+        A = [1 2 3];
+        B = repmat(A, 2.5, 3);  % 错误：2.5不是整数
+
+        % 正确：使用整数
+        B = repmat(A, 2, 3);    % 正确
+        ```
+
+    * 内存限制
+
+        ```matlab
+        % 大矩阵复制可能导致内存不足
+        A = rand(10000, 10000);  % ~800MB
+        B = repmat(A, 2, 2);     % ~3.2GB，可能内存不足
+
+        % 解决方案：使用稀疏矩阵或分块处理
+        A_sparse = sparse(A);
+        B_sparse = repmat(A_sparse, 2, 2);  % 更节省内存
+        ```
+
+    * 替代函数
+
+        ```matlab
+        % 对于简单重复，考虑使用：
+        A = [1 2 3];
+
+        % 方法1: 使用ones
+        B = A(ones(3,1), :);     % 垂直重复
+
+        % 方法2: 使用索引
+        B = A(repmat(1:size(A,1), 3, 1), :);
+
+        % 方法3: 使用kron（克罗内克积）
+        B = kron(A, ones(3,1));  % 垂直重复
+        ```
+
+    * 性能提示
+
+        ```matlab
+        % 测试不同方法的性能
+        A = rand(1000, 1000);
+        n = 100;
+
+        % 方法1: repmat
+        tic;
+        for i = 1:n
+            B = repmat(A, 2, 2);
+        end
+        t1 = toc;
+
+        % 方法2: 使用ones索引（可能更快）
+        tic;
+        for i = 1:n
+            B = A(ones(2,1), ones(2,1), :);  % 需要调整维度
+        end
+        t2 = toc;
+
+        fprintf('repmat: %.4f秒，索引: %.4f秒\n', t1, t2);
+        ```
+
 * matlab 读写Excel
 
     ```matlab

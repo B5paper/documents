@@ -36,6 +36,12 @@
 
 ## cache
 
+* [new] 调研分子动力学
+
+    做什么的？roadmap 是什么？世界上有哪些知名机构/研究所/实验室？论文有哪些？有哪些常用软件/工具？是否有和生物/医学/化学的交叉研究？
+
+    目前的难点在哪里，未来有哪些前进的方向？
+
 * 当评价多因素的综合作用时，直接指定影响因子可能主观因素较强，目前已知的有理论依据的是贝叶斯推理，依据为联合概率分布。是否还有其他能综合考虑多因素，并且有客观依据的方法？
 
     目前有几个联想：
@@ -786,13 +792,19 @@
 
         > click-with-win32
 
-* [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/>
+* [v] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
 
     目前看到 Character Classes
 
-* [O] 调研在 vim 中根据正则表达式搜索指定索引所在的位置
+    feedback:
 
-* [v] py 中的 int 是 32 位还是 64 位？如何区别 signed 和 unsigned？假如 signed 和 unsigned 都是 int，那么在 print 时，如何决定是否在前面加负号（-）？
+    * [asso] `grep -P`
+
+    * 目前看到
+
+        > Quantifiers
+
+* [v] 调研在 vim 中根据正则表达式搜索指定索引所在的位置 12.15
 
 * [o] 调研 qa unit 中 dep 功能
 
@@ -1902,8 +1914,6 @@ resources:
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
-* [v] 生成从指定 date 开始的几天，或者从指定 data 向前推的几天
-
 * [ ] torch tensor 与 numpy 的转换
 
 * [ ] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
@@ -2035,8 +2045,6 @@ resources:
     目前看到
 
     > 2D convolution in PyTorch 
-
-* [v] 调研 1d 卷积 convolution，尝试处理一个时间序列
 
 * [ ] 1D卷积处理时间序列方法详解
 

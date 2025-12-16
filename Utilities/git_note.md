@@ -2,6 +2,8 @@
 
 ## cache
 
+* 如果 git repo 的 remote 是 ssh 开头的地址，那么即使 submodule 中的 url 是 http 开头的地址，在 git submodule update 时也会使用 ssh config 中的代理。
+
 * Git pull 输出详细信息方法
 
     ```bash
