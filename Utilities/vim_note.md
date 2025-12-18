@@ -2,6 +2,10 @@
 
 ## cache
 
+* `/\v[vim]`
+
+    表示匹配 v, i, m 三个其中的一个。
+
 * ai 对 softtabstop 的解释
 
     **softtabstop 的工作原理**

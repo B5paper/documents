@@ -36,6 +36,45 @@
 
 ## cache
 
+* windows 中使用 nmap 的 ncat.exe 配置 ssh proxy
+
+    ```ssh
+    ProxyCommand ncat --proxy-type http --proxy 192.168.56.1:10809 %h %p
+    ```
+
+* athletic a. 运动的
+
+    eg. Let’s do our usual exercises to keep our athletic shape.
+
+* 正则表达式中的 common POSIX character classes
+
+    Character class	Description	Equivalent
+    [:alnum:]	Uppercase and lowercase letters, as well as digits	A-Za-z0-9
+    [:alpha:]	Uppercase and lowercase letters	A-Za-z
+    [:digit:]	Digits from 0 to 9	0-9
+    [:lower:]	Lowercase letters	a-z
+    [:upper:]	Uppercase letters	A-Z
+    [:blank:]	Space and tab	[ \t]
+    [:punct:]	Punctuation characters (all graphic characters except letters and digits)	
+
+    [:space:]	Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed)	[ \t\n\r\v\f]
+    [:xdigit:]	Hexadecimal digits	A-Fa-f0-9
+
+* shorthand n. 速记法，简略表达式
+
+* negate prn. [nɪˈɡeɪt] v. 取消，否定
+
+* 正则表达式中的 shorthands
+
+    | Character class | Description | Equivalent |
+    | - | - | - |
+    | `\s` | Whitespace | characters |
+    | `\d` | Digits from 0 to 9 | `[0-9]` |
+    | `\w` | Word characters | `[0-9A-Za-z_]` |
+    | `\D` | - | `[^0-9]` |
+
+* hyphen prn. [ˈhaɪfn] n. 连字符`-`
+
 * [new] 调研分子动力学
 
     做什么的？roadmap 是什么？世界上有哪些知名机构/研究所/实验室？论文有哪些？有哪些常用软件/工具？是否有和生物/医学/化学的交叉研究？
@@ -1866,6 +1905,26 @@
         ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
     ```
 
+## Matlab
+
+### tasks
+
+* [new] matlab `length()`
+
+* [new] matlab `a = {x, y, z};`
+
+* [new] matlab `a = [x, y, ]`
+
+* [new] matlab `cellfun`
+
+    ```matlab
+    % 或者使用 cellfun
+    file_cell = {'file1.txt', 'file2.csv'};
+    names = cellfun(@(x) fileparts(x), file_cell, 'UniformOutput', false);
+    ```
+
+* [new] matlab `which()`
+
 ## Torch
 
 系统地学一遍 pytorch.
@@ -1885,6 +1944,44 @@ resources:
     可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
 ### cache
+
+* Negative Log Likelihood Loss
+
+    After the output of the softmax layer is calculated (i.e. a value between 0 and 1), negative log is calculated of that value. The final layer combined is called as log-softmax layer. Generally, it is used in multi-class classification problems.
+
+    Formula:
+
+    $$\mathrm{NegativeLogLikelihoodLoss}(x, \mathrm{target}) = − \frac 1 N \sum_i \log⁡(x_{target_i})$$
+
+    Here,
+
+    * $x$ represents the predicted values,
+
+    * target represents the ground truth or target values
+
+    syntax:
+
+    ```py
+    torch.nn.NLLLoss(weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean')
+    ```
+
+    ```py
+    import torch
+    import torch.nn as nn
+
+    # size of input (N x C) is = 3 x 5
+    input = torch.randn(3, 5, requires_grad=True)
+    # every element in target should have 0 <= value < C
+    target = torch.tensor([1, 0, 4])
+    #initialising loss function
+    m = nn.LogSoftmax(dim=1)
+    nll_loss = nn.NLLLoss()
+    output = nll_loss(m(input), target)
+    #backpropagation
+    output.backward()
+    #printing output
+    print(output)
+    ```
 
 * 一个训练 cifar-10 的 example
 
@@ -6427,6 +6524,138 @@ resources:
 * vim 中的 redo 是哪个？
 
 ### cache
+
+* vim `\v`
+
+    \v 在 Vim 搜索中表示使用 "very magic" 模式，这是 Vim 正则表达式的一种特殊模式。
+
+    Vim 正则表达式的四种模式：
+
+    ```vim
+    /pattern          " magic 模式（默认，有些字符有特殊含义）
+    /\vpattern        " very magic 模式（大多数字符都有特殊含义）
+    /\Vpattern        " very nomagic 模式（几乎不特殊，字面匹配）
+    /\mpattern        " nomagic 模式（折中方案）
+    ```
+
+    `\v` 的作用：
+
+    ```vim
+    " 普通 magic 模式（默认）
+    /\(\d\{3}\)-\d\{4}    " 匹配 (123)-4567
+    " 需要转义很多特殊字符：\( \) \{ \}
+
+    " very magic 模式
+    /\v(\d{3})-\d{4}      " 匹配 (123)-4567
+    " 几乎不需要转义，像其他语言的正则表达式
+    ```
+
+    特殊字符对比表:
+
+    | 元字符 | magic 模式 | very magic 模式 | 说明 |
+    | - | - | - | - |
+    | `(`, `)` | 需要转义：`\(` `\)` | 不需要转义 | 分组 |
+    | `{` `}` | 需要转义：`\{` `\}` | 不需要转义 | 重复次数 |
+    | `+` | 需要转义：`\+` | 不需要转义 | 一个或多个 |
+    | `?` | 需要转义：`\?` | 不需要转义 | 零个或一个 |
+    | `\|` | 需要转义： `\\|` | 不需要转义 | 或 |
+    | `^`, `$` | 不需要转义 | 不需要转义 | 行首/行尾 |
+    | `.`, `*` | 不需要转义 | 不需要转义 | 任意字符/零个或多个 |
+
+    注：
+
+    1. 直接使用`/pattern`匹配，想要实现分组功能时，必须给括号加`\`：
+
+        `/\(hello\).*\(world\)`
+
+        其他的处理方式类似。
+
+    examples:
+
+    ```vim
+    " 1. 匹配邮箱
+    /\v\w+@\w+\.\w+                  " 简单邮箱匹配
+    /\v[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}  " 更复杂的邮箱
+
+    " 2. 匹配时间 (HH:MM)
+    /\v\d{2}:\d{2}                   " 24小时制时间
+
+    " 3. 匹配括号内的内容
+    /\v\([^)]+\)                     " 匹配 (任意内容)
+
+    " 4. 匹配 Markdown 标题
+    /\v^#{1,6}\s+.+$                 " 匹配 # 标题
+
+    " 5. 匹配 IP 地址
+    /\v(\d{1,3}\.){3}\d{1,3}        " 匹配 192.168.1.1
+    ```
+
+    * 与其他模式的对比
+
+        ```vim
+        " 场景：匹配 "function(arg1, arg2)"
+
+        " 1. very magic 模式（最简洁）
+        /\vfunction\([^)]+\)
+
+        " 2. magic 模式（默认，需要转义）
+        /function\([^)]\+\)
+
+        " 3. very nomagic 模式（字面匹配，需要转义特殊字符）
+        /\Vfunction(arg1, arg2)          " 只能匹配这个具体字符串
+        ```
+
+    * tricks
+
+        ```vim
+        " 快速搜索替换中使用
+        :%s/\v(\d+)-(\d+)/\2-\1/g       " 交换 123-456 为 456-123
+
+        " 在搜索模式中使用变量
+        let pattern = '\v\d{3}-\d{4}'
+        execute '/' . pattern
+
+        " 结合其他标志
+        /\vpattern/i                     " 忽略大小写
+        /\vpattern\c                     " 强制忽略大小写
+        /\vpattern\C                     " 强制区分大小写
+        ```
+
+    * 建议
+
+        * 推荐使用 \v：写起来更自然，与其他编程语言的正则表达式习惯一致
+
+        * 特殊场景用 \V：当需要字面搜索包含特殊字符的字符串时
+
+        * 保持一致性：在整个文件中使用相同的模式
+
+* vim help
+
+    :help /\[]
+    :help whitespace
+    :help [:alnum:]
+
+* vim 中的范围匹配
+
+    * `/\v[a-z]`
+
+        匹配`a`到`z`中的一个字符。
+
+    * `/[a-]`
+
+        匹配`a`或`-`。
+
+        `/[-z]`同理。
+
+    * `/\v[0-9A-Z]`
+
+        匹配多个范围。
+
+    * `/\v[^abc]`
+
+        匹配除了 a, b, c 外的所有字符中的一个
+
+    * `[a^bc]`
 
 * vim 模式
 
