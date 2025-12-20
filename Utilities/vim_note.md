@@ -2,6 +2,20 @@
 
 ## cache
 
+* 正则表达式中的 common POSIX character classes
+
+    Character class	Description	Equivalent
+    [:alnum:]	Uppercase and lowercase letters, as well as digits	A-Za-z0-9
+    [:alpha:]	Uppercase and lowercase letters	A-Za-z
+    [:digit:]	Digits from 0 to 9	0-9
+    [:lower:]	Lowercase letters	a-z
+    [:upper:]	Uppercase letters	A-Z
+    [:blank:]	Space and tab	[ \t]
+    [:punct:]	Punctuation characters (all graphic characters except letters and digits)
+
+    [:space:]	Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed)	[ \t\n\r\v\f]
+    [:xdigit:]	Hexadecimal digits	A-Fa-f0-9
+
 * `/\v[vim]`
 
     表示匹配 v, i, m 三个其中的一个。

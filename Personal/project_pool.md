@@ -36,50 +36,25 @@
 
 ## cache
 
-* windows 中使用 nmap 的 ncat.exe 配置 ssh proxy
+* 线下的思考很有可能是低工作量向高工作量突破的关键
 
-    ```ssh
-    ProxyCommand ncat --proxy-type http --proxy 192.168.56.1:10809 %h %p
-    ```
+    虽然使用任务管理系统可以达到很高的工作效率，但是一天的工作量并不是很大。
 
-* athletic a. 运动的
+    猜测主要原因是浪费了很多的可利用时间，比如吃饭，走路，挤地铁等等。如果把这些时间拿来思考 cached questions，那么就有可能大量地提高工作量。
 
-    eg. Let’s do our usual exercises to keep our athletic shape.
+* async chain 的实现非常重要，有时间了研究一下
 
-* 正则表达式中的 common POSIX character classes
+	* js 中的 promise 的原理
 
-    Character class	Description	Equivalent
-    [:alnum:]	Uppercase and lowercase letters, as well as digits	A-Za-z0-9
-    [:alpha:]	Uppercase and lowercase letters	A-Za-z
-    [:digit:]	Digits from 0 to 9	0-9
-    [:lower:]	Lowercase letters	a-z
-    [:upper:]	Uppercase letters	A-Z
-    [:blank:]	Space and tab	[ \t]
-    [:punct:]	Punctuation characters (all graphic characters except letters and digits)	
+	* rust 中 async 的原理
 
-    [:space:]	Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed)	[ \t\n\r\v\f]
-    [:xdigit:]	Hexadecimal digits	A-Fa-f0-9
+	* c++ 中协程的原理
 
-* shorthand n. 速记法，简略表达式
+	* libhv 中事件驱动的原理
 
-* negate prn. [nɪˈɡeɪt] v. 取消，否定
+* 应该增加各个项目 sync 的频率
 
-* 正则表达式中的 shorthands
-
-    | Character class | Description | Equivalent |
-    | - | - | - |
-    | `\s` | Whitespace | characters |
-    | `\d` | Digits from 0 to 9 | `[0-9]` |
-    | `\w` | Word characters | `[0-9A-Za-z_]` |
-    | `\D` | - | `[^0-9]` |
-
-* hyphen prn. [ˈhaɪfn] n. 连字符`-`
-
-* [new] 调研分子动力学
-
-    做什么的？roadmap 是什么？世界上有哪些知名机构/研究所/实验室？论文有哪些？有哪些常用软件/工具？是否有和生物/医学/化学的交叉研究？
-
-    目前的难点在哪里，未来有哪些前进的方向？
+* 每次想玩手机时，可以喝一口水代替
 
 * 当评价多因素的综合作用时，直接指定影响因子可能主观因素较强，目前已知的有理论依据的是贝叶斯推理，依据为联合概率分布。是否还有其他能综合考虑多因素，并且有客观依据的方法？
 
@@ -222,15 +197,25 @@
     plt.show()
     ```
 
-* 其实与 cache 对应的是工作区（working area），而工作区的整洁是 stack　的要求，不然各种回退操作都会混乱，没有办法快速定位到想要的资源
-
 * sync 只提出了标准，但是没有提出该如何 sync
 
     一个可能的 sync 方案：
 
-    1. 先过一遍 qa，如果完不成 unit，那么找 dep，划分出可以完成的 unit，看了答案后可以完成的 unit，以及看了答案也无法完成的 unit
+    1. 先过一遍 qa
+    
+        如果完不成 unit，看这个 unit 是否有 dep，如果有，尝试先完成 dep。
+        
+        最终将这些 unit 划分成 3 类：
+        
+        1. 可以完成的 unit
+        
+        2. 看了答案后可以完成的 unit
+        
+        3. 看了答案也无法完成的 unit
 
-    2. 再过一遍笔记，尝试提取刚才没见过的 qa unit
+        如果一个 unit 无法完成，看了其 dep，发现 dep 也无法完成，但是看了 dep 的答案后，dep 可以完成，之后 unit 也可以完成了，那么只标记 dep 为类型 2 （即看了答案后可以完成），标记 unit 为类型 1.
+
+    2. 再过一遍笔记，尝试提取在 qa 测试中没见过的内容，并制作成 qa unit
 
         将笔记分为两部分，一部分是可以被验证的，另一部分是未被验证的
 
@@ -241,12 +226,6 @@
     5. 将笔记中未被验证的部分作为 cache，等待接受调研
 
     至此，sync 工作完成。
-
-* 看手机的时间定在完成一项任务后，或者至少离上次看手机过去 xxx 分钟后
-
-    一旦任务启动就不能再轻易看手机。可以写一个程序控制一下。
-
-    保持在执行任务时的注意力。
 
 * 动态低价值任务
 
@@ -266,35 +245,7 @@
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
 
-* 节点的独立分解
-
-    1. 使用多种语义场景对节点的含义坐标进行定位
-
-        <div>
-        <img src='../../Reference_resources/ref_24/pics/pic_1.png'>
-        </div>
-
-    2. 调节单节点的值，保证在调整的过程中其他节点不受影响
-
-        <div>
-        <img src='../../Reference_resources/ref_24/pics/pic_2.png'>
-        </div>
-
-    3. 复杂网络的映射
-
-        <div>
-        <img src='../../Reference_resources/ref_24/pics/pic_3.png'>
-        </div>
-
 * qa 频率可以降低到每周一次
-
-* linaro 是 arm 发起的开源非盈利组织，主要做物联网方向
-
-    可以在这个页面<https://www.linaro.org/downloads/>找 arm gcc 编译器的下载。
-
-* 与其说 nv 在搞 AI，不如说 nv 发现了一种新的计算范式，一种处理计算的新思路，而这个并行计算范式恰好符合了 AI 的需求
-
-    是否还有其他的计算范式未被发现呢？
 
 * 串行的任务执行对提高效率非常重要，因为大脑频繁切换任务会降低效率
 
@@ -304,57 +255,11 @@
 
     使任务串行，一个非常大的挑战就是在规定的时间内使用手机，在执行任务时不看。
 
-* 要想对一个东西有熟悉的理解和熟练的运用，必须将它作为更复杂的东西的一部分
-
 * 如果前一天的任务清单上任务没有完成该怎么办？
 
     目前的方案是全部判为未完成，在第二天重新从项目管理系统中获取新的任务，不再考虑这些任务。
 
-* 如果在任务列表里只说了“调研”，没有明确的调研任务，那么就是从 resource，笔记，qa，搜索，多方面开始调研。
-
-* 调研 onnx 模型的格式，搭建一个小型全连接网络，尝试用 opencl 跑通。
-
-* 每次想玩手机时，可以喝一口水代替
-
-* 先使用 python + numpy 实现一个自动求导，再使用 c++ 实现一个自动求导
-
-	可能需要用到 c++ 版的 numpy
-
-	最终的目标是实现一个类似 pytorch 的框架
-
-* 应该增加各个项目 sync 的频率
-
-* async chain 的实现非常重要，有时间了研究一下
-
-	* js 中的 promise 的原理
-
-	* rust 中 async 的原理
-
-	* c++ 中协程的原理
-
-	* libhv 中事件驱动的原理
-
-* 计算机底层只有 01 真值表，逻辑判断，流程控制和存储空间，为什么可以发展出复杂的数据结构？
-
-	比如树，图，等等。为什么简单的概念蕴藏了如此大的复杂性？
-
-	假如一个内存只有 4 bits，我们几乎什么都干不了，不可能形成图，树。
-
-	假如有 4KB，可以做一些简单的程序。
-
-	假如有 4GB，那么就可以写很复杂的数据结构。
-
-	在这中间，红黑树，quich sort 等算法，所需要的最小内存数是多大？
-
-	也就是说，至少需要多少存储，才可能发展出更加复杂的概念？
-
-* 如果已经处理过某一天的 task 列表，那么应该标记下已经处理过
-
-	这里的处理包括：处理过 feedback，同步过任务进度
-
-	如果一个 task 列表被标记为处理过，那么它就只剩下一个记录的作用了。一周总结一次，如果没什么用就可以删了。
-
-* [ ] 增加 git 的 qa
+    2025/12/20/00: 如果是看都没看的，直接从当日任务中删除，这样第二天可以继续从项目池中 pick 出来；如果认为仍有必须做，也可以直接移动到下一天的任务列表。如果做了一半的，标记为 O, P 等。如果认为任务定制不合理，根本无法完成的，标记为 X。目前看来，各种情况都有了比较成熟的解决方案。
 
 * 在调研时，可以将笔记分成几个部分
 
@@ -374,12 +279,6 @@
 
 		经过验证的猜测或假设，需要背会。
 
-* 线下的思考很有可能是低工作量向高工作量突破的关键
-
-    虽然使用任务管理系统可以达到很高的工作效率，但是一天的工作量并不是很大。
-
-    猜测主要原因是浪费了很多的可利用时间，比如吃饭，走路，挤地铁等等。如果把这些时间拿来思考 cached questions，那么就有可能大量地提高工作量。
-
 * 是否该引入每周的计划预期？
 
     目前只完成了每天的计划列表，但是每周完成的任务量太少。
@@ -393,10 +292,6 @@
 * 为了实现短 item 的原则，不要把长代码放到项目管理或任务列表里
 
     应该额外创建一个文件，然后在任务列表或项目管理里引用这个文件。
-
-* 每天结束的时候要列出来一个明天改进什么地方
-
-    2025/10/31/00: 应该改成每周比较好点，以周为单位，想一想这周需要改进的点自己是否做到，下周需要改进哪些点。
 
 * 调研 MLIR, IREE
 
@@ -413,8 +308,6 @@
 * 可以规定一下，如果 2 天（或者 3 天）都能通过某个 domain 的 qa，那么就可以申请增加新的 qa。
 
 * 顺着笔记找 qa 效率并不高，更好的做法是随机在笔记的后面部分找一个问题，然后写到 qa 里，再倒过来找 qa 的 dependency.
-
-* note 的每个 item 也尽量控制得短一些，类似代码的函数长度
 
 * 学习资源的调研主要用于完成下面几件事情
 
@@ -640,19 +533,6 @@
 
     还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
 
-* [v] 调研自定义哈希函数的写法
-
-    ```cpp
-    struct VertexPtrHash {
-        size_t operator()(const pair<Vertex*, Vertex*> &src_dst) const {
-            return std::hash<void*>()(src_dst.first) ^
-                std::hash<void*>()(src_dst.second);
-        }
-    };
-    // <<src, dst>, path>
-    unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
-    ```
-
 * [O] C++自定义哈希函数解析与优化
 
     目前看到
@@ -664,10 +544,6 @@
     * 目前看到
 
         > 5. std::function（C++11起）
-
-* [v] table, path 都可能随着 vert 的增删而失效，如果有部分重建的算法，可以每次增删 vert 时，都部分重建 table 或 path，保证总是有效。如果部分重建的代价很大，或者需要短时间内多次增加、删除 vert，短时间内多次重建的代价大于一次性完全重建的代价，那么可以设置一个 flag，每次 add / del vert 后让 flag 失效，flag 失效时不允许使用 table, path。显式调用 build_table(), search_path() 后，flag 重新有效，此时允许使用 table, path。
-
-    部分重建时，add vert 的函数可以设计为`add_vert(Vert *new_vert, bool keep_table_valid=True)`
 
 * { } reorg: projects
 
@@ -823,27 +699,15 @@
 
     * 目前看到
 
-        > 那么 argparse 如何处理短参数，比如 -h，-i 之类的
-
-    feedback:
-
-    * 目前看到
-
         > click-with-win32
 
-* [v] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
+* [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
 
-    目前看到 Character Classes
+    目前看到
+    
+    > Quantifiers
 
-    feedback:
-
-    * [asso] `grep -P`
-
-    * 目前看到
-
-        > Quantifiers
-
-* [v] 调研在 vim 中根据正则表达式搜索指定索引所在的位置 12.15
+* [asso] `grep -P`
 
 * [o] 调研 qa unit 中 dep 功能
 
@@ -1094,39 +958,73 @@
 
 ### tasks
 
+* [ ] 使用 ncat 进行 ssh 的 http 代理
+
+    ```bash
+    ssh -o ProxyCommand="ncat --proxy-type http --proxy proxy.company.com:3128 %h %p" myuser@server.example.com
+    ```
+
+    * %h 和 %p 是 SSH 的占位符，会自动替换为目标主机和端口。
+
+    * 如果代理需要认证，可以使用 --proxy-auth username:password 参数，但不建议在命令中直接输入密码，有安全风险。
+
+    配置文件：
+
+    ```conf
+    Host *
+        # 如果你的代理是全局需要的，可以放在最前面
+        # 但通常更建议针对特定域名配置
+
+    # 匹配所有以 .example.com 结尾的主机，通过公司代理连接
+    Host *.example.com
+        User myuser # 设置默认用户名
+        IdentityFile ~/.ssh/id_rsa # 指定私钥
+        ProxyCommand corkscrew proxy.company.com 3128 %h %p
+
+    # 如果代理需要认证，使用以下格式（注意安全！）
+    Host *.example.com
+        User myuser
+        IdentityFile ~/.ssh/id_rsa
+        ProxyCommand corkscrew proxy.company.com 3128 %h %p ~/.ssh/proxy_auth
+
+    # 使用 ncat 的配置示例
+    Host myserver
+        HostName server.example.com
+        User myuser
+        ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
+    ```
+
 * [v] process 1 tab 30 mins 12.08
 
     16:33 ~ 16:44
 
-    feedback:
+* [ ] 调研 Here Document
 
-    * [ ] 调研 Here Document
+    example:
 
-        example:
+    ```bash
+    ssh user@hostname << 'EOF'
+    cd my_dir
+    ./main
+    exit
+    EOF
+    ```
 
-        ```bash
-        ssh user@hostname << 'EOF'
-        cd my_dir
-        ./main
-        exit
-        EOF
-        ```
+* [asso] 调研`-t`是否可以让 ssh 保持连接
 
-    * [asso] 调研`-t`是否可以让 ssh 保持连接
+    > 保持连接：如果需要保持 SSH 连接，可以添加 -t 参数：
 
-        > 保持连接：如果需要保持 SSH 连接，可以添加 -t 参数：
+    `ssh -t user@hostname "cd my_dir && ./main"`
 
-        `ssh -t user@hostname "cd my_dir && ./main"`
+* [asso] 调研 screen 和 tmux
 
-    * [asso] 调研 screen 和 tmux
+    `ssh user@host "cd my_dir && screen -dmS my_session ./main"`
 
-        `ssh user@host "cd my_dir && screen -dmS my_session ./main"`
+* [asso] 调研 bash 的`exec`命令
 
-    * [asso] 调研 bash 的`exec`命令
+* [asso] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
 
-    * [asso] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
-
-    * [asso] 调研 bash 中的特殊变量`%%`（当前作业）
+* [asso] 调研 bash 中的特殊变量`%%`（当前作业）
 
 * [O] 调研 PyTorch Loss Functions 11.22
 
@@ -1541,19 +1439,11 @@
 
 * [ ] wlfreerdp
 
-* [ ] `setsid`
-
-* [ ] `disown`不加参数的用法
-
 * [ ] 调研括号 `( ... )` 是子 shell，`{ ...; }` 是当前 shell 里的复合命令
 
     `nohup bash -c "{ sleep 5 && echo hello; }"`
 
 * [ ] 调研 vscode 的"代码片段（Snippet）"
-
-* [ ] `dig`
-
-* [ ] `nslookup`
 
 * [ ] dns 的`MX`, `NS`记录类型
 
@@ -1574,18 +1464,6 @@
 * [ ] 调研`OBJS = $(SRCS:src/%.c=obj/%.o)`处理字符串
 
 * [ ] 调研`./configure`运行的是什么程序？如何配置？
-
-* [ ] `make -p`
-
-* [asso] `make --print-data-base`
-
-* [asso] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
-
-    以及`/etc/fstab`的文件格式。
-
-* [asso] `sudo mount -o remount,size=2G /dev/shm`
-
-    以及除了`size=2G`外，其他的`remount`常跟的选项。
 
 * [asso] `truncate()`
 
@@ -1623,12 +1501,6 @@
     `sudo sysctl -p`
 
 * [asso] 调研`vm.overcommit_memory`
-
-* [asso] 调研 ramfs
-
-    `sudo mount -t ramfs -o size=2G ramfs /mnt/shm`
-
-* [asso] 调研`df -T /tmp`
 
 * [asso] 编译器特定的扩展（如 GCC/Clang 的 `__attribute__((aligned))` 或 `_aligned_malloc` on MSVC）。
 
@@ -1869,42 +1741,6 @@
     chmod 600 ~/.ssh/proxy_auth # 非常重要！确保只有你能读这个文件
     ```
 
-* [asso] 使用 ncat 进行 ssh 的 http 代理
-
-    ```bash
-    ssh -o ProxyCommand="ncat --proxy-type http --proxy proxy.company.com:3128 %h %p" myuser@server.example.com
-    ```
-
-    * %h 和 %p 是 SSH 的占位符，会自动替换为目标主机和端口。
-
-    * 如果代理需要认证，可以使用 --proxy-auth username:password 参数，但不建议在命令中直接输入密码，有安全风险。
-
-    配置文件：
-
-    ```conf
-    Host *
-        # 如果你的代理是全局需要的，可以放在最前面
-        # 但通常更建议针对特定域名配置
-
-    # 匹配所有以 .example.com 结尾的主机，通过公司代理连接
-    Host *.example.com
-        User myuser # 设置默认用户名
-        IdentityFile ~/.ssh/id_rsa # 指定私钥
-        ProxyCommand corkscrew proxy.company.com 3128 %h %p
-
-    # 如果代理需要认证，使用以下格式（注意安全！）
-    Host *.example.com
-        User myuser
-        IdentityFile ~/.ssh/id_rsa
-        ProxyCommand corkscrew proxy.company.com 3128 %h %p ~/.ssh/proxy_auth
-
-    # 使用 ncat 的配置示例
-    Host myserver
-        HostName server.example.com
-        User myuser
-        ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
-    ```
-
 ## Matlab
 
 ### tasks
@@ -1944,44 +1780,6 @@ resources:
     可以看下下面的 Developer Notes 主题，重点看一看模型压缩，混合精度以及并行训练／推理
 
 ### cache
-
-* Negative Log Likelihood Loss
-
-    After the output of the softmax layer is calculated (i.e. a value between 0 and 1), negative log is calculated of that value. The final layer combined is called as log-softmax layer. Generally, it is used in multi-class classification problems.
-
-    Formula:
-
-    $$\mathrm{NegativeLogLikelihoodLoss}(x, \mathrm{target}) = − \frac 1 N \sum_i \log⁡(x_{target_i})$$
-
-    Here,
-
-    * $x$ represents the predicted values,
-
-    * target represents the ground truth or target values
-
-    syntax:
-
-    ```py
-    torch.nn.NLLLoss(weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean')
-    ```
-
-    ```py
-    import torch
-    import torch.nn as nn
-
-    # size of input (N x C) is = 3 x 5
-    input = torch.randn(3, 5, requires_grad=True)
-    # every element in target should have 0 <= value < C
-    target = torch.tensor([1, 0, 4])
-    #initialising loss function
-    m = nn.LogSoftmax(dim=1)
-    nll_loss = nn.NLLLoss()
-    output = nll_loss(m(input), target)
-    #backpropagation
-    output.backward()
-    #printing output
-    print(output)
-    ```
 
 * 一个训练 cifar-10 的 example
 
@@ -3761,6 +3559,32 @@ resources:
 ## linux maintain
 
 ### cache
+
+* [asso] 调研 ramfs
+
+    `sudo mount -t ramfs -o size=2G ramfs /mnt/shm`
+
+* [asso] 调研`df -T /tmp`
+
+* [ ] `make -p`
+
+* [asso] `make --print-data-base`
+
+* [asso] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
+
+    以及`/etc/fstab`的文件格式。
+
+* [asso] `sudo mount -o remount,size=2G /dev/shm`
+
+    以及除了`size=2G`外，其他的`remount`常跟的选项。
+
+* [ ] `disown`不加参数的用法
+
+* [ ] `dig`
+
+* [ ] `nslookup`
+
+* [ ] `setsid`
 
 * bash 命令中`&&`和`;`的区别
 
@@ -6815,76 +6639,43 @@ resources:
 
 ### cache
 
-* git submodule
-
-    将外部仓库作为子模块链接到主项目中，保持独立版本控制。
-
-    usage:
-
-    ```bash
-    # 添加子模块
-    git submodule add <repository-url> <path>
-
-    # 克隆包含子模块的项目
-    git clone <主项目仓库>
-    git submodule init
-    git submodule update
-
-    # 或克隆时直接拉取子模块
-    git clone --recursive <主项目仓库>
-
-    # 更新子模块到指定提交
-    cd <子模块目录>
-    git pull origin main
-
-    # 提交主项目中子模块的引用更新
-    cd <主项目目录>
-    git commit -am "更新子模块版本"
-    ```
-
-    特点
-
-        独立仓库：子模块是独立的 Git 仓库
-
-        指针引用：主项目只记录子模块的 commit hash
-
-        需要显式初始化更新：克隆后需额外操作获取子模块内容
-
-        分离的版本控制：子模块和主项目分别维护历史
-
-* git subtree
-
-    将外部仓库合并到主项目的子目录中，成为项目的一部分。
-
-    usage:
-
-    ```bash
-    # 添加远程仓库
-    git remote add <远程名> <repository-url>
-
-    # 添加子树（将外部仓库合并到指定目录）
-    git subtree add --prefix=<本地目录> <远程名或URL> <分支> --squash
-
-    # 拉取更新
-    git subtree pull --prefix=<目录> <远程名> <分支> --squash
-
-    # 推送修改回子项目
-    git subtree push --prefix=<目录> <远程名> <分支>
-    ```
-
-    特点
-
-        代码合并：外部代码成为主项目的一部分
-
-        单仓库管理：所有代码在一个仓库中，无需额外初始化
-
-        操作复杂：更新和推送命令较长
-
-        历史合并：可选择是否保留子项目完整历史
-
 ### tasks
 
+* [ ] 增加 git 的 qa
+
 ## 其他 Miscellaneous
+
+* 计算机底层只有 01 真值表，逻辑判断，流程控制和存储空间，为什么可以发展出复杂的数据结构？
+
+	比如树，图，等等。为什么简单的概念蕴藏了如此大的复杂性？
+
+	假如一个内存只有 4 bits，我们几乎什么都干不了，不可能形成图，树。
+
+	假如有 4KB，可以做一些简单的程序。
+
+	假如有 4GB，那么就可以写很复杂的数据结构。
+
+	在这中间，红黑树，quich sort 等算法，所需要的最小内存数是多大？
+
+	也就是说，至少需要多少存储，才可能发展出更加复杂的概念？
+
+* 先使用 python + numpy 实现一个自动求导，再使用 c++ 实现一个自动求导
+
+	可能需要用到 c++ 版的 numpy
+
+	最终的目标是实现一个类似 pytorch 的框架
+
+* [ ] 调研 onnx 模型的格式，搭建一个小型全连接网络，尝试用 opencl 跑通。
+
+* linaro 是 arm 发起的开源非盈利组织，主要做物联网方向
+
+    可以在这个页面<https://www.linaro.org/downloads/>找 arm gcc 编译器的下载。
+
+* [new] 调研分子动力学
+
+    做什么的？roadmap 是什么？世界上有哪些知名机构/研究所/实验室？论文有哪些？有哪些常用软件/工具？是否有和生物/医学/化学的交叉研究？
+
+    目前的难点在哪里，未来有哪些前进的方向？
 
 * android connectbot 中，端口转发中断通常是因为省电策略
 

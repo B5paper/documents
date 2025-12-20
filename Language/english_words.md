@@ -1,5 +1,15 @@
 # English Words
 
+* hyphen prn. [ˈhaɪfn] n. 连字符`-`
+
+* shorthand n. 速记法，简略表达式
+
+* negate prn. [nɪˈɡeɪt] v. 取消，否定
+
+* athletic a. 运动的
+
+    eg. Let’s do our usual exercises to keep our athletic shape.
+
 incidental prn. [ˌɪnsɪˈdɛntl] adj. If one thing is incidental to another, it is less important than the other thing or is not a major part of it. 附带的 eg. The playing of music proved to be incidental to the main business of the evening.
 
 pitfall n. 陷阱，缺陷

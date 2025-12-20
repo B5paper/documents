@@ -2,6 +2,12 @@
 
 ## cache
 
+* windows 中使用 nmap 的 ncat.exe 配置 ssh proxy
+
+    ```ssh
+    ProxyCommand ncat --proxy-type http --proxy 192.168.56.1:10809 %h %p
+    ```
+
 * sshd config 中
 
     * `AllowTcpForwarding`

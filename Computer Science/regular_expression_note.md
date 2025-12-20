@@ -4,6 +4,15 @@
 
 ## cache
 
+* 正则表达式中的 shorthands
+
+    | Character class | Description | Equivalent |
+    | - | - | - |
+    | `\s` | Whitespace | characters |
+    | `\d` | Digits from 0 to 9 | `[0-9]` |
+    | `\w` | Word characters | `[0-9A-Za-z_]` |
+    | `\D` | - | `[^0-9]` |
+
 * `re.findall()`的作用
 
     example:

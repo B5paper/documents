@@ -2,6 +2,44 @@
 
 ## cache
 
+* Negative Log Likelihood Loss
+
+    After the output of the softmax layer is calculated (i.e. a value between 0 and 1), negative log is calculated of that value. The final layer combined is called as log-softmax layer. Generally, it is used in multi-class classification problems.
+
+    Formula:
+
+    $$\mathrm{NegativeLogLikelihoodLoss}(x, \mathrm{target}) = − \frac 1 N \sum_i \log⁡(x_{target_i})$$
+
+    Here,
+
+    * $x$ represents the predicted values,
+
+    * target represents the ground truth or target values
+
+    syntax:
+
+    ```py
+    torch.nn.NLLLoss(weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean')
+    ```
+
+    ```py
+    import torch
+    import torch.nn as nn
+
+    # size of input (N x C) is = 3 x 5
+    input = torch.randn(3, 5, requires_grad=True)
+    # every element in target should have 0 <= value < C
+    target = torch.tensor([1, 0, 4])
+    #initialising loss function
+    m = nn.LogSoftmax(dim=1)
+    nll_loss = nn.NLLLoss()
+    output = nll_loss(m(input), target)
+    #backpropagation
+    output.backward()
+    #printing output
+    print(output)
+    ```
+
 * 为什么计算卷积时，需要翻转卷积核
 
     连续卷积数学定义：

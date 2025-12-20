@@ -2,7 +2,76 @@
 
 ## cache
 
+* git subtree
+
+    将外部仓库合并到主项目的子目录中，成为项目的一部分。
+
+    usage:
+
+    ```bash
+    # 添加远程仓库
+    git remote add <远程名> <repository-url>
+
+    # 添加子树（将外部仓库合并到指定目录）
+    git subtree add --prefix=<本地目录> <远程名或URL> <分支> --squash
+
+    # 拉取更新
+    git subtree pull --prefix=<目录> <远程名> <分支> --squash
+
+    # 推送修改回子项目
+    git subtree push --prefix=<目录> <远程名> <分支>
+    ```
+
+    特点
+
+    * 代码合并：外部代码成为主项目的一部分
+
+    * 单仓库管理：所有代码在一个仓库中，无需额外初始化
+
+    * 操作复杂：更新和推送命令较长
+
+    * 历史合并：可选择是否保留子项目完整历史
+
+* git submodule
+
+    将外部仓库作为子模块链接到主项目中，保持独立版本控制。
+
+    usage:
+
+    ```bash
+    # 添加子模块
+    git submodule add <repository-url> <path>
+
+    # 克隆包含子模块的项目
+    git clone <主项目仓库>
+    git submodule init
+    git submodule update
+
+    # 或克隆时直接拉取子模块
+    git clone --recursive <主项目仓库>
+
+    # 更新子模块到指定提交
+    cd <子模块目录>
+    git pull origin main
+
+    # 提交主项目中子模块的引用更新
+    cd <主项目目录>
+    git commit -am "更新子模块版本"
+    ```
+
+    特点
+
+    * 独立仓库：子模块是独立的 Git 仓库
+
+    * 指针引用：主项目只记录子模块的 commit hash
+
+    * 需要显式初始化更新：克隆后需额外操作获取子模块内容
+
+    * 分离的版本控制：子模块和主项目分别维护历史
+
 * 如果 git repo 的 remote 是 ssh 开头的地址，那么即使 submodule 中的 url 是 http 开头的地址，在 git submodule update 时也会使用 ssh config 中的代理。
+
+    （存疑）
 
 * Git pull 输出详细信息方法
 
@@ -80,86 +149,6 @@
 
     * `git rebase --rebase-merges <commit_id>`不可以以 rebase 的方式处理 merge commit.
 
-* 多次 git stash 所发生的
-
-    当连续执行多次 git stash 后，stash 栈中会按顺序存储多次暂存的记录（最新的是 stash@{0}，之前的是 stash@{1}、stash@{2} 等）。
-
-    stash 栈的变化：
-
-    * `git stash apply stash@{1}`：仅应用改动，stash@{1} 仍保留在栈中。
-
-    * `git stash pop stash@{1}`：应用改动并删除 stash@{1}，后续的 stash@{0} 会重新编号为 stash@{0}。
-
-    由于 git stash 后，工作目录总是会会恢复最后一次 commit 的内容，所以多次 stash 的操作互相独立，五不干扰，没有依赖关系。
-
-    如果执行多次 git stash pop，那么 stash 的内容会互相叠加，如果有冲突，需要用户处理冲突。
-
-* git stash 只暂存两个地方的文件
-
-    1. 已经使用 git add 添加过的文件
-
-    2. 在 working directory 中，并且之前有 tracing 的文件
-
-    如果一个文件是新创建的，并且没有使用 git add 添加到 staging area，那么 git stash 不会暂存这个文件。
-
-    （如果一个文件既被 git add 添加到了 staging are，又被在 working directory 中做了修改，那么 git stash 存储后，在 git stash pop 时会恢复两个区域的记录吗，还是只恢复一个？）
-
-* git stash show 与 git stash list
-
-    `git stash show`只显示最后一次 stash 的文件修改增删行数信息。`git stash list`会列出所有 stash 的修改记录。
-
-* git stash 可临时保存工作区和暂存区中的更改，不产生 commit
-
-    `git stash`等价于`git stash push -m "可选说明文字"  # 推荐添加备注方便识别`
-
-    查看 stash 记录：`git stash list`
-
-    恢复最近一次的 stash（并保留 stash 记录）: `git stash apply`
-
-    恢复指定某条记录：`git stash apply stash@{n}  # n 为 stash 编号`
-
-    恢复并删除对应的 stash 记录: `git stash pop stash@{n}  # 默认弹出最近的（stash@{0}）
-    
-    只保存工作目录的修改（不包含已暂存的文件）：`git stash push --keep-index`
-
-    包含未跟踪的文件（如新创建的文件）：`git stash -u  # 或 --include-untracked`
-
-    删除某条 stash 记录：
-    
-    `git stash drop stash@{n}  # 删除指定记录`
-
-    `git stash clear           # 清空所有 stash`
-
-    查看 stash 的改动内容：`git stash show stash@{n} -p  # -p 显示详细差异`
-
-* `git stash`常用场景
-
-    * 切换分支时保存未提交的修改：
-
-        ```bash
-        git stash
-        git checkout other-branch
-        # 处理其他任务后回到原分支
-        git checkout original-branch
-        git stash pop
-        ```
-
-* 如果使用 http/https 在 github 上 clone repo，那么设置`http.proxy`, `https.proxy`就足够。但是如果使用 ssh 在 github 上 clone repo，那么就需要配置 ssh 的代理
-
-    `~/.ssh/config`:
-
-    ```conf
-    Host github.com
-        Hostname github.com
-        ServerAliveInterval 55
-        ForwardAgent yes
-        ProxyCommand /usr/bin/corkscrew <replace_with_your_company_proxy_server> <3128> %h %p
-    ```
-
-    这个方法目前未验证。
-
-    ref: <https://gist.github.com/coin8086/7228b177221f6db913933021ac33bb92>
-
 * `git revert`可以以提交 commit 的形式向前回退一个 commit。
 
     `git revert HEAD`，必须要加上`HEAD`，否则无法 work。
@@ -167,45 +156,6 @@
     `git revert <commit-id>`可以 revert 到指定 commit 的前一个 commit。
 
     一个 revert 提交的 commit 也可以被 revert。
-
-* git clone 支持`http_proxy`和`https_proxy`环境变量
-
-* git branch
-
-    `git branch -m <branch>`: Rename the current branch to `＜branch＞`
-
-    `git branch -a`: List all remote branches. 
-
-    add a new remote branch and push the local branch to remote branch:
-
-    ```bash
-    git remote add <new-remote-repo> https://bitbucket.com/user/repo.git
-    git push <new-remote-repo> crazy-experiment~
-    ```
-
-    delete a remote branch:
-
-    `git push origin --delete crazy-experiment`
-
-    or
-
-    `git push origin :crazy-experiment`
-
-    这一个比较令人困惑，其实他是给 remote 发送一个 delete signal，从而让远程删除 branch
-
-    本地创建完 branch 后，需要把它推向 remote end:
-
-    ```bash
-    git checkout <local_branch_name>
-    git push -u <remote_name> <remote_brnahc_name>
-    ```
-
-    比如：
-
-    ```bash
-    git checkout hlc_my_branch
-    git push -u origin hlc_my_branch
-    ```
 
 * `git rebase`非交互模式，当遇到文件冲突时，不会让用户去处理 conflict，把不同的 commit 合并成一个，创建一个 merge commit，而是先把 upstream 的 commit 全都照搬过来，然后再把 local 的 commit 叠加到上面
 
@@ -318,7 +268,128 @@
 
 		It would be best to do a git fetch before checking the branches, though, otherwise your determination of whether or not you need to pull will be out of date. You'll also want to verify that each branch you check has a remote tracking branch. You can use git for-each-ref --format='%(upstream:short)' refs/heads/<branch> to do that. That command will return the remote tracking branch of <branch> or the empty string if it doesn't have one. Somewhere on SO there's a different version which will return an error if the branch doesn't haven't a remote tracking branch, which may be more useful for your purpose.
 
+## topics
 
+### branch
+
+* `git branch -m <branch>`: Rename the current branch to `＜branch＞`
+
+* `git branch -a`: List all remote branches. 
+
+### 常见场景
+
+* add a new remote repo and push the local branch to remote
+
+    ```bash
+    git remote add <new_remote_name> <repo_url>
+    git push <new-remote-repo> <local_branch_name>
+    ```
+
+* delete a remote branch
+
+    `git push origin --delete <remote_branch>`
+
+    给 remote 发送一个 delete signal，从而让远程删除 branch
+
+* 本地创建完 branch 后，把它推向 remote repo:
+
+    ```bash
+    git checkout <local_branch_name>
+    git push -u <remote_name> <remote_brnahc_name>
+    ```
+
+    比如：
+
+    ```bash
+    git checkout hlc_my_branch
+    git push -u origin hlc_my_branch
+    ```
+
+### proxy
+
+* git clone 支持`http_proxy`和`https_proxy`环境变量
+
+* 如果使用 http/https 在 github 上 clone repo，那么设置`http.proxy`, `https.proxy`就足够。但是如果使用 ssh 在 github 上 clone repo，那么就需要配置 ssh 的代理
+
+    `~/.ssh/config`:
+
+    ```conf
+    Host github.com
+        Hostname github.com
+        ServerAliveInterval 55
+        ForwardAgent yes
+        ProxyCommand /usr/bin/corkscrew <replace_with_your_company_proxy_server> <3128> %h %p
+    ```
+
+    这个方法目前未验证。
+
+    ref: <https://gist.github.com/coin8086/7228b177221f6db913933021ac33bb92>
+
+### stash
+
+* 多次 git stash 所发生的
+
+    当连续执行多次 git stash 后，stash 栈中会按顺序存储多次暂存的记录（最新的是 stash@{0}，之前的是 stash@{1}、stash@{2} 等）。
+
+    stash 栈的变化：
+
+    * `git stash apply stash@{1}`：仅应用改动，stash@{1} 仍保留在栈中。
+
+    * `git stash pop stash@{1}`：应用改动并删除 stash@{1}，后续的 stash@{0} 会重新编号为 stash@{0}。
+
+    由于 git stash 后，工作目录总是会会恢复最后一次 commit 的内容，所以多次 stash 的操作互相独立，五不干扰，没有依赖关系。
+
+    如果执行多次 git stash pop，那么 stash 的内容会互相叠加，如果有冲突，需要用户处理冲突。
+
+* git stash 只暂存两个地方的文件
+
+    1. 已经使用 git add 添加过的文件
+
+    2. 在 working directory 中，并且之前有 tracing 的文件
+
+    如果一个文件是新创建的，并且没有使用 git add 添加到 staging area，那么 git stash 不会暂存这个文件。
+
+    （如果一个文件既被 git add 添加到了 staging are，又被在 working directory 中做了修改，那么 git stash 存储后，在 git stash pop 时会恢复两个区域的记录吗，还是只恢复一个？）
+
+* git stash show 与 git stash list
+
+    `git stash show`只显示最后一次 stash 的文件修改增删行数信息。`git stash list`会列出所有 stash 的修改记录。
+
+* git stash 可临时保存工作区和暂存区中的更改，不产生 commit
+
+    `git stash`等价于`git stash push -m "可选说明文字"  # 推荐添加备注方便识别`
+
+    查看 stash 记录：`git stash list`
+
+    恢复最近一次的 stash（并保留 stash 记录）: `git stash apply`
+
+    恢复指定某条记录：`git stash apply stash@{n}  # n 为 stash 编号`
+
+    恢复并删除对应的 stash 记录: `git stash pop stash@{n}  # 默认弹出最近的（stash@{0}）
+    
+    只保存工作目录的修改（不包含已暂存的文件）：`git stash push --keep-index`
+
+    包含未跟踪的文件（如新创建的文件）：`git stash -u  # 或 --include-untracked`
+
+    删除某条 stash 记录：
+    
+    `git stash drop stash@{n}  # 删除指定记录`
+
+    `git stash clear           # 清空所有 stash`
+
+    查看 stash 的改动内容：`git stash show stash@{n} -p  # -p 显示详细差异`
+
+* `git stash`常用场景
+
+    * 切换分支时保存未提交的修改：
+
+        ```bash
+        git stash
+        git checkout other-branch
+        # 处理其他任务后回到原分支
+        git checkout original-branch
+        git stash pop
+        ```
 
 ## notes
 
@@ -799,7 +870,7 @@ git log --since="2 years 1 day 3 minutes ago"
 
     不清楚加`-u`和不加`-u`有啥区别。
 
-    `git push <remote> <branch>`: 把 local 的`<branch>` push 到`<remote>`。
+    `git push <remote_name> <local_branch>`: 把本地的`<local_branch>` push 到`<remote>`。
 
     `git push [-f] [--set-upstream] [remote_name [local_branch][:remote_branch]]`
 
