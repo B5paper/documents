@@ -4,6 +4,379 @@
 
 ## cached
 
+* 调试
+
+    debug 只靠 gdb 不太够，有时候还需要对源码做修改。
+
+* if 的使用时机
+
+    如果需要跳过一段代码，那么就必须使用 if。
+
+    ```cpp
+    int func() {
+        if (cond) {
+            // block 1
+        }
+
+        // block 2
+
+        return 0;
+    }
+    ```
+
+    如上面所示，效果是 block 1 选择性执行，block 2 必须执行。
+
+    如果不想把代码嵌套在`if`中，又免不了要用`goto`:
+
+    ```cpp
+    int func() {
+        if (!cond) {
+            goto block_2;
+        }
+
+        // block 1
+
+        block_2:
+        // block 2
+
+        return 0;
+    }
+    ```
+
+    非常麻烦，还不如把 block 1 直接嵌套进 if 里。
+
+    另外，使用 if break、if return 组合，可以减少嵌套层数：
+
+    ```cpp
+    int func() {
+        if (cond 1) {
+            return xx;
+        }
+
+        for (xxxx) {
+            if (cond 2) {
+                break;
+            }
+            // ...
+        }
+
+        // ...
+
+        return 0;
+    }
+    ```
+
+* 自定义哈希函数
+
+    * 函数对象（仿函数）
+
+        ```cpp
+        struct MyHash {
+            size_t operator()(const MyClass& obj) const {
+                // 计算哈希值
+                return ...;
+            }
+        };
+        ```
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            // operator==() is necessary
+            // these two const are both necessary
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        struct MyHash {
+            // these two const are both necessary
+            size_t operator()(const MyObj &obj) const {
+                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
+            }
+        };
+
+        int main() {
+            unordered_map<MyObj, int, MyHash> my_map;
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        lisi exists, val: 2
+        ```
+
+    * 模板特化
+
+        ```cpp
+        namespace std {
+            template<>
+            struct hash<MyClass> {
+                size_t operator()(const MyClass& obj) const {
+                    // 计算哈希值
+                    return ...;
+                }
+            };
+        }
+        ```
+
+        这个比较神奇，我们竟然能动态拓展标准库。
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        namespace std {
+        template<>
+        struct hash<MyObj> {
+            size_t operator()(const MyObj &obj) const {
+                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
+            }
+        };
+        };
+
+        int main() {
+            unordered_map<MyObj, int> my_map;
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+
+        ```
+
+* `std::hash<void*>()(src_dst.first)`**不会**每次都创建一个对象，从而降低性能,编译器会对此进行大量优化.
+
+    std::hash<void*> 通常是一个空类（无成员变量）, 构造空类的开销几乎为0, 编译器可以完全优化掉构造过程.
+
+    如果使用局部变量，编译器也会优化：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            std::hash<void*> hasher;  // 构造一次，使用两次
+            return hasher(src_dst.first) ^ hasher(src_dst.second);
+        }
+    };
+    ```
+
+    或者使用静态对象？（如果编译器总是优化，那么静态也没什么性能提升吧？）：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            static std::hash<void*> hasher;
+            return hasher(src_dst.first) ^ hasher(src_dst.second);
+        }
+    };
+    ```
+
+    真正的优化应该关注哈希函数的质量（减少碰撞），而不是这种微小的构造开销。
+
+* 使用 lambda 表达式作为自定义哈希函数
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <unordered_map>
+    using std::string;
+    using std::unordered_map;
+
+    struct MyObj {
+        string name;
+        int age;
+
+        bool operator==(const MyObj &obj_2) const {
+            if (name == obj_2.name && age == obj_2.age) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    auto my_hasher = [](const MyObj& obj) {
+        return std::hash<string>{}(obj.name) ^ std::hash<int>{}(obj.age);
+    };
+
+    int main() {
+        // decltype(my_haser) and (0, my_haser) are necessary
+        unordered_map<MyObj, int, decltype(my_hasher)> my_map(0, my_hasher);
+        MyObj obj{"zhangsan", 15};
+        my_map.insert({obj, 1});
+        my_map.insert({{"lisi", 18}, 2});
+        auto iter = my_map.find({"lisi", 18});
+        if (iter != my_map.end()) {
+            printf("lisi exists, val: %d\n", iter->second);
+        } else {
+            printf("lisi doesn't exist, val: %d\n", iter->second);
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    lisi exists, val: 2
+    ```
+
+    注：
+
+    1. `my_hasher`会被编译器转换成一个没有默认构造函数的仿函数实例
+
+    1. unordered_map 第三个模板参数是类型模板参数，所以不能填`my_hasher`，只能用`decltype(my_hasher)`拿到其类型
+
+    1. `my_map(0, my_hasher)`是必须的，因为`my_hasher`没有构造函数，所以 unordered_map 拿到类型后，无法构造出实例，必须由我们传递一个实例给它。
+
+    1. 之所以写成`my_map(0, my_hasher)`而不是`my_map(my_hasher)`，是因为 int 值可能隐式转换为 hash 值，导致歧义
+
+* 使用函数指针实现自定义哈希函数
+
+    ```cpp
+    #include <stdio.h>
+    #include <string>
+    #include <unordered_map>
+    using std::string;
+    using std::unordered_map;
+
+    struct MyObj {
+        string name;
+        int age;
+
+        bool operator==(const MyObj &obj_2) const {
+            if (name == obj_2.name && age == obj_2.age) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    size_t calc_hash(const MyObj &obj) {
+        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+    }
+
+    int main() {
+        unordered_map<MyObj, int, decltype(&calc_hash)> my_map(0, calc_hash);
+        MyObj obj{"zhangsan", 15};
+        my_map.insert({obj, 1});
+        my_map.insert({{"lisi", 18}, 2});
+        auto iter = my_map.find({"lisi", 18});
+        if (iter != my_map.end()) {
+            printf("lisi exists, val: %d\n", iter->second);
+        } else {
+            printf("lisi doesn't exist, val: %d\n", iter->second);
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    lisi exists, val: 2
+    ```
+
+    注：
+
+    1. `calc_hash`函数参数的`const MyObj &obj`中，`const`是必须的。
+
+        但是`size_t calc_hash(const MyObj &obj) {`不能写成`size_t calc_hash(const MyObj &obj) const {`，因为 const 函数只对成员函数有效。
+
+    1. 必须使用`decltype(&calc_hash)`得到**函数指针的类型**，比如`size_t(*)(const MyObj&)`
+    
+        不能使用`decltype(calc_hash)`，这样得到的是**函数类型**，比如`size_t(const MyObj&)`。函数类型是 c++ 区别于 C 的新概念。
+
+        如果不使用`decltype()`，也可以手动指定类型：
+
+        `unordered_map<MyObj, int, > my_map(0, calc_hash);`
+
+    1. `my_map(0, calc_hash);`中的两个参数都是必须的，理由与 labmda 表达式相似。
+
+        如果写成`unordered_map<MyObj, int, decltype(&calc_hash)> my_map;`，那么可以编译通过，但是运行时输出为：
+
+        ```
+        Segmentation fault (core dumped)
+        ```
+
+        labmda 完全禁用了构造函数，函数指针有构造函数，但是会返回`nullptr`，所以运行时还是会报错。
+
+    局限性：
+
+    * 函数指针不能有状态
+
+    * 不能内联，可能影响性能
+
+    * 语法相对复杂
+
+* int 类型的局部变量`aaa`，在传给函数参数时，如果使用`(size_t*) &aaa`强制类型转换，那么在函数内部赋值后，会导致 segmentation fault
+
+* 如果遇到了 segmentation fault，并且当前行似乎没有问题，那么可能是在之前就发生了内存踩踏。那么可以在前面几行的时候就跟踪异常指针值的变化，从指针有效单步跟踪到指针无效，出现变化的地方就是有 bug 的代码行。
+
+* c++ 中`size_t`在`<stddef.h>`中，不在`<stdint.h>`中
+
+* `unordered_map<int, int> id_to_idx_table;`
+
+    优点：
+
+    1. 可以根据 id 快速找到 idx，进而可以找到 ptr
+
+    1. 已知 ptr，可以拿到 id，进而找到 idx
+
+    缺点：
+
+    1. 删除节点时，idx 会变动，必须重新构建 table
+
+    2. 已知 ptr 无法快速找到 idx（如果 idx 的目的是找到 entity，那么找不到 idx 也无所谓了吧）
+
 * c++ 中访问同名的局部变量和全局变量
 
     使用`::`访问全局变量。

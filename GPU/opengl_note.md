@@ -1,5 +1,13 @@
 # OpenGL Note
 
+## cache
+
+* `glXQueryVersion()`, grep 搜索结果显示出自`/usr/include/GL/glx.h`中。
+
+    ref: <https://www.ibm.com/docs/ro/aix/7.1?topic=environment-glxqueryversion-subroutine>
+
+## note
+
 Ref: <www.opengl-tutorial.org>
 
 常见的创建窗口的库：GLUT, SDL, SFML and GLFW

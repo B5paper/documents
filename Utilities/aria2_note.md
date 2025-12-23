@@ -1,5 +1,13 @@
 # aria2 Note
 
+## cache
+
+* aria2 的源代码使用的是 c++ 11，主要用了 class 和智能指针，有时间了学习下
+
+* aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
+
+## note
+
 有些资源只有使用浏览器才能下载，无法用`aria2`下载，此时可以设置 cookie，就可以登录网站下载了。
 
 `aria2c "下载地址" --header="Cookie: v=xxx"`

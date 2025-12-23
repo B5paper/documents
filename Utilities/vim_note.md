@@ -4,17 +4,17 @@
 
 * 正则表达式中的 common POSIX character classes
 
-    Character class	Description	Equivalent
-    [:alnum:]	Uppercase and lowercase letters, as well as digits	A-Za-z0-9
-    [:alpha:]	Uppercase and lowercase letters	A-Za-z
-    [:digit:]	Digits from 0 to 9	0-9
-    [:lower:]	Lowercase letters	a-z
-    [:upper:]	Uppercase letters	A-Z
-    [:blank:]	Space and tab	[ \t]
-    [:punct:]	Punctuation characters (all graphic characters except letters and digits)
-
-    [:space:]	Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed)	[ \t\n\r\v\f]
-    [:xdigit:]	Hexadecimal digits	A-Fa-f0-9
+    | Character class | Description | Equivalent |
+    | - | - | - |
+    | `[:alnum:]` | Uppercase and lowercase letters, as well as digits | `A-Za-z0-9` |
+    | `[:alpha:]` | Uppercase and lowercase letters | `A-Za-z` |
+    | `[:digit:]` | Digits from 0 to 9 | `0-9` |
+    | `[:lower:]` | Lowercase letters | `a-z` |
+    | `[:upper:]` | Uppercase letters | `A-Z` |
+    | `[:blank:]` | Space and tab | `[ \t]` |
+    | `[:punct:]` | Punctuation characters (all graphic characters except letters and digits)` | - |
+    | `[:space:]` | Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed) | `[ \t\n\r\v\f]` |
+    | `[:xdigit:]` | Hexadecimal digits | `A-Fa-f0-9` |
 
 * `/\v[vim]`
 
@@ -171,7 +171,9 @@
 
 * vim 打开文件后，跳转到上次关闭时候的位置：
 
-    `` ` + "``：
+    * 反引号 + 双引号：`` ` `` + `"`
+
+    * 单引号 + 双引号：`'` + `"`
 
 * vim 自动补全
 

@@ -395,6 +395,20 @@
 
     目前正在进行的一个优化是将按时间顺序写下的笔记，重新整理成按结构存储的数据。
 
+## english words
+
+english words 由 { } reorg: english words 进化而来。 
+
+### cache
+
+* 感觉还是写成一个 pat 比较好
+
+* 由于 word 后面可能跟 prn.，也可能跟 exp.，所以 word 本身在哪结尾无法风开始就确定，需要先确定 prn. 和 exp.，再选一个较小的 start 作为 word 的 end。或者如果发现有 prn. 则直接用 prn. 的 start 作为 word 的 end，如果没有 prn，则使用 exp 的 start 作为 word 的 end。
+
+### tasks
+
+* [ ] 增加英语单词的 qa
+
 ## reorg
 
 ### cache
@@ -451,65 +465,16 @@
 
         这样只需要每次都只处理最前面的一点就可以了。生成多个 pat，用 for 轮流检测。
 
-* 使用`{ }`表示 task 是一个长期任务，每次分派任务时，都从这个长期任务里派生出一个短时间任务，直到长期任务被完成为止
-
-    其实这样的任务也可以单独开一个项目来追踪。
-
-    2025/11/08/00: 感觉目前的模式更合理，如果一个任务完不成，那么先标注为`[P]`或`[O]`，如果第二次仍完不成，那么升级成`{ }`长期任务。下设 deps，feedback, subtasks (sub)。下设的任务又生成了`{ }`长期任务，那么原长期任务升级成 project。
-
-* 在随机选择时，必须把权重加上
-
-    权重的不平衡性太大了。
-
-* reorg 应该分三类
-
-    * project pool
-
-    * documents
-
-    * projects
-
-* qa test 中不能出现选过的 unit
-
-* 看起来，`ref_14`对应的问题是：对于一个数字 n，给定一系列数字`arr = [a, b, c, ...]`，现在从 arr 中选取 m 个数字，使得这 m 个数字的和为 n。现在需要使得 m 最小，如果无法找到 m 个数字和为 n，那么 m 取 -1。
-
-* pathlib --- 面向对象的文件系统路径
-
-    <https://docs.python.org/zh-cn/3.13/library/pathlib.html>
-
-* A Comprehensive Guide to Using pathlib in Python For File System Manipulation
-
-    <https://www.datacamp.com/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation>
-
-* `glXQueryVersion()`, grep 搜索结果显示出自`/usr/include/GL/glx.h`中。
-
-    ref: <https://www.ibm.com/docs/ro/aix/7.1?topic=environment-glxqueryversion-subroutine>
-
-* aria2 的源代码使用的是 c++ 11，主要用了 class 和智能指针，有时间了学习下
-
-* aria2 文档：<https://aria2.github.io/manual/en/html/index.html>
-
-* `unordered_map<int, int> id_to_idx_table;`
-
-    优点：
-
-    1. 可以根据 id 快速找到 idx，进而可以找到 ptr
-
-    1. 已知 ptr，可以拿到 id，进而找到 idx
-
-    缺点：
-
-    1. 删除节点时，idx 会变动，必须重新构建 table
-
-    2. 已知 ptr 无法快速找到 idx（如果 idx 的目的是找到 entity，那么找不到 idx 也无所谓了吧）
-
-* qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
-
-* 一个带有 dev file, pci driver init 过程的 edu driver
-
-    见`ref_41`。
-
 ### tasks
+
+* [O] process 1 url
+
+    <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
+
+
+* [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
+
+    还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
 
 * [ ] 调研 freedos live iso
 
@@ -529,33 +494,9 @@
 
 * [ ] 调研 freedos bonus iso
 
-* [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
-
-    还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
-
-* [O] C++自定义哈希函数解析与优化
-
-    目前看到
-
-    > 4. 函数指针
-
-    feedback:
-
-    * 目前看到
-
-        > 5. std::function（C++11起）
-
 * { } reorg: projects
 
 * { } reorg: documents
-
-* { } reorg: english words 12.24
-
-    feedback:
-
-    1. 感觉还是写成一个 pat 比较好
-
-    2. 由于 word 后面可能跟 prn.，也可能跟 exp.，所以 word 本身在哪结尾无法风开始就确定，需要先确定 prn. 和 exp.，再选一个较小的 start 作为 word 的 end。或者如果发现有 prn. 则直接用 prn. 的 start 作为 word 的 end，如果没有 prn，则使用 exp 的 start 作为 word 的 end。
 
 * { } windows 文件整理
 
@@ -564,14 +505,6 @@
 * { } 《github入门与实践》
 
     看到 P7
-
-* [o] process 1 url  10.03
-
-    <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
-
-    feedback:
-
-    1. 这个 url 未处理结束，下次继续处理
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
@@ -600,8 +533,6 @@
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
 
 * [ ] 增加正则表达式的 qa
-
-* [ ] 增加英语单词的 qa
 
 * [ ] 在 10 个 epoch 内拟合一条 sin 曲线
 
@@ -2447,6 +2378,10 @@ resources:
 ## Linux Driver
 
 ### cache
+
+* 一个带有 dev file, pci driver init 过程的 edu driver
+
+    见`ref_41`。
 
 * [ ] 调研 pcie 的中断是否不需要修改中断向量表，这个中断号是否由操作系统提供？
 
@@ -5838,149 +5773,6 @@ resources:
 
 ### cache
 
-* int 类型的局部变量`aaa`，在传给函数参数时，如果使用`(size_t*) &aaa`强制类型转换，那么在函数内部赋值后，会导致 segmentation fault
-
-* 如果遇到了 segmentation fault，并且当前行似乎没有问题，那么可能是在之前就发生了内存踩踏。那么可以在前面几行的时候就跟踪异常指针值的变化，从指针有效单步跟踪到指针无效，出现变化的地方就是有 bug 的代码行。
-
-* c++ 中`size_t`在`<stddef.h>`中，不在`<stdint.h>`中
-
-* 使用函数指针实现自定义哈希函数
-
-    ```cpp
-    #include <stdio.h>
-    #include <string>
-    #include <unordered_map>
-    using std::string;
-    using std::unordered_map;
-
-    struct MyObj {
-        string name;
-        int age;
-
-        bool operator==(const MyObj &obj_2) const {
-            if (name == obj_2.name && age == obj_2.age) {
-                return true;
-            }
-            return false;
-        }
-    };
-
-    size_t calc_hash(const MyObj &obj) {
-        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
-    }
-
-    int main() {
-        unordered_map<MyObj, int, decltype(&calc_hash)> my_map(0, calc_hash);
-        MyObj obj{"zhangsan", 15};
-        my_map.insert({obj, 1});
-        my_map.insert({{"lisi", 18}, 2});
-        auto iter = my_map.find({"lisi", 18});
-        if (iter != my_map.end()) {
-            printf("lisi exists, val: %d\n", iter->second);
-        } else {
-            printf("lisi doesn't exist, val: %d\n", iter->second);
-        }
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    lisi exists, val: 2
-    ```
-
-    注：
-
-    1. `calc_hash`函数参数的`const MyObj &obj`中，`const`是必须的。
-
-        但是`size_t calc_hash(const MyObj &obj) {`不能写成`size_t calc_hash(const MyObj &obj) const {`，因为 const 函数只对成员函数有效。
-
-    1. 必须使用`decltype(&calc_hash)`得到**函数指针的类型**，比如`size_t(*)(const MyObj&)`
-    
-        不能使用`decltype(calc_hash)`，这样得到的是**函数类型**，比如`size_t(const MyObj&)`。函数类型是 c++ 区别于 C 的新概念。
-
-        如果不使用`decltype()`，也可以手动指定类型：
-
-        `unordered_map<MyObj, int, > my_map(0, calc_hash);`
-
-    1. `my_map(0, calc_hash);`中的两个参数都是必须的，理由与 labmda 表达式相似。
-
-        如果写成`unordered_map<MyObj, int, decltype(&calc_hash)> my_map;`，那么可以编译通过，但是运行时输出为：
-
-        ```
-        Segmentation fault (core dumped)
-        ```
-
-        labmda 完全禁用了构造函数，函数指针有构造函数，但是会返回`nullptr`，所以运行时还是会报错。
-
-    局限性：
-
-    * 函数指针不能有状态
-
-    * 不能内联，可能影响性能
-
-    * 语法相对复杂
-
-* 使用 lambda 表达式作为自定义哈希函数
-
-    example:
-
-    ```cpp
-    #include <stdio.h>
-    #include <string>
-    #include <unordered_map>
-    using std::string;
-    using std::unordered_map;
-
-    struct MyObj {
-        string name;
-        int age;
-
-        bool operator==(const MyObj &obj_2) const {
-            if (name == obj_2.name && age == obj_2.age) {
-                return true;
-            }
-            return false;
-        }
-    };
-
-    auto my_hasher = [](const MyObj& obj) {
-        return std::hash<string>{}(obj.name) ^ std::hash<int>{}(obj.age);
-    };
-
-    int main() {
-        // decltype(my_haser) and (0, my_haser) are necessary
-        unordered_map<MyObj, int, decltype(my_hasher)> my_map(0, my_hasher);
-        MyObj obj{"zhangsan", 15};
-        my_map.insert({obj, 1});
-        my_map.insert({{"lisi", 18}, 2});
-        auto iter = my_map.find({"lisi", 18});
-        if (iter != my_map.end()) {
-            printf("lisi exists, val: %d\n", iter->second);
-        } else {
-            printf("lisi doesn't exist, val: %d\n", iter->second);
-        }
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    lisi exists, val: 2
-    ```
-
-    注：
-
-    1. `my_hasher`会被编译器转换成一个没有默认构造函数的仿函数实例
-
-    1. unordered_map 第三个模板参数是类型模板参数，所以不能填`my_hasher`，只能用`decltype(my_hasher)`拿到其类型
-
-    1. `my_map(0, my_hasher)`是必须的，因为`my_hasher`没有构造函数，所以 unordered_map 拿到类型后，无法构造出实例，必须由我们传递一个实例给它。
-
-    1. 之所以写成`my_map(0, my_hasher)`而不是`my_map(my_hasher)`，是因为 int 值可能隐式转换为 hash 值，导致歧义
-
 * 异或操作的特性：
 
     交换律：hash(a) ^ hash(b) = hash(b) ^ hash(a)
@@ -6015,227 +5807,9 @@ resources:
     };
     ```
 
-* `std::hash<void*>()(src_dst.first)`**不会**每次都创建一个对象，从而降低性能,编译器会对此进行大量优化.
-
-    std::hash<void*> 通常是一个空类（无成员变量）, 构造空类的开销几乎为0, 编译器可以完全优化掉构造过程.
-
-    如果使用局部变量，编译器也会优化：
-
-    ```cpp
-    struct VertexPtrHash {
-        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
-            std::hash<void*> hasher;  // 构造一次，使用两次
-            return hasher(src_dst.first) ^ hasher(src_dst.second);
-        }
-    };
-    ```
-
-    或者使用静态对象？（如果编译器总是优化，那么静态也没什么性能提升吧？）：
-
-    ```cpp
-    struct VertexPtrHash {
-        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
-            static std::hash<void*> hasher;
-            return hasher(src_dst.first) ^ hasher(src_dst.second);
-        }
-    };
-    ```
-
-    真正的优化应该关注哈希函数的质量（减少碰撞），而不是这种微小的构造开销。
-
-* 自定义哈希函数
-
-    * 函数对象（仿函数）
-
-        ```cpp
-        struct MyHash {
-            size_t operator()(const MyClass& obj) const {
-                // 计算哈希值
-                return ...;
-            }
-        };
-        ```
-
-        example:
-
-        ```cpp
-        #include <stdio.h>
-        #include <string>
-        #include <unordered_map>
-        using std::string;
-        using std::unordered_map;
-
-        struct MyObj {
-            string name;
-            int age;
-
-            // operator==() is necessary
-            // these two const are both necessary
-            bool operator==(const MyObj &obj_2) const {
-                if (name == obj_2.name && age == obj_2.age) {
-                    return true;
-                }
-                return false;
-            }
-        };
-
-        struct MyHash {
-            // these two const are both necessary
-            size_t operator()(const MyObj &obj) const {
-                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
-            }
-        };
-
-        int main() {
-            unordered_map<MyObj, int, MyHash> my_map;
-            MyObj obj{"zhangsan", 15};
-            my_map.insert({obj, 1});
-            my_map.insert({{"lisi", 18}, 2});
-            auto iter = my_map.find({"lisi", 18});
-            if (iter != my_map.end()) {
-                printf("lisi exists, val: %d\n", iter->second);
-            } else {
-                printf("lisi doesn't exist, val: %d\n", iter->second);
-            }
-            return 0;
-        }
-        ```
-
-        output:
-
-        ```
-        lisi exists, val: 2
-        ```
-
-    * 模板特化
-
-        ```cpp
-        namespace std {
-            template<>
-            struct hash<MyClass> {
-                size_t operator()(const MyClass& obj) const {
-                    // 计算哈希值
-                    return ...;
-                }
-            };
-        }
-        ```
-
-        这个比较神奇，我们竟然能动态拓展标准库。
-
-        example:
-
-        ```cpp
-        #include <stdio.h>
-        #include <string>
-        #include <unordered_map>
-        using std::string;
-        using std::unordered_map;
-
-        struct MyObj {
-            string name;
-            int age;
-
-            bool operator==(const MyObj &obj_2) const {
-                if (name == obj_2.name && age == obj_2.age) {
-                    return true;
-                }
-                return false;
-            }
-        };
-
-        namespace std {
-        template<>
-        struct hash<MyObj> {
-            size_t operator()(const MyObj &obj) const {
-                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
-            }
-        };
-        };
-
-        int main() {
-            unordered_map<MyObj, int> my_map;
-            MyObj obj{"zhangsan", 15};
-            my_map.insert({obj, 1});
-            my_map.insert({{"lisi", 18}, 2});
-            auto iter = my_map.find({"lisi", 18});
-            if (iter != my_map.end()) {
-                printf("lisi exists, val: %d\n", iter->second);
-            } else {
-                printf("lisi doesn't exist, val: %d\n", iter->second);
-            }
-            return 0;
-        }
-
-        ```
-
-* if 的使用时机
-
-    如果需要跳过一段代码，那么就必须使用 if。
-
-    ```cpp
-    int func() {
-        if (cond) {
-            // block 1
-        }
-
-        // block 2
-
-        return 0;
-    }
-    ```
-
-    如上面所示，效果是 block 1 选择性执行，block 2 必须执行。
-
-    如果不想把代码嵌套在`if`中，又免不了要用`goto`:
-
-    ```cpp
-    int func() {
-        if (!cond) {
-            goto block_2;
-        }
-
-        // block 1
-
-        block_2:
-        // block 2
-
-        return 0;
-    }
-    ```
-
-    非常麻烦，还不如把 block 1 直接嵌套进 if 里。
-
-    另外，使用 if break、if return 组合，可以减少嵌套层数：
-
-    ```cpp
-    int func() {
-        if (cond 1) {
-            return xx;
-        }
-
-        for (xxxx) {
-            if (cond 2) {
-                break;
-            }
-            // ...
-        }
-
-        // ...
-
-        return 0;
-    }
-    ```
-
-* 调试
-
-    debug 只靠 gdb 不太够，有时候还需要对源码做修改。
-
 * 写递归还是有点难度，可以先将一个完整结构分成 2 部分或 3 部分，然后分别写出 2 部分或 3 部分的处理方式，比如第 2 部分需要遍历，第 3 部分需要给出当前的 position 等。如果在第 2 部分需要遍历，那么判断下是先序遍历还是后序遍历（先遍历完子节点再处理当前节点）。
 
     做题时候的后序遍历，通常是使用 int 来返回一个值。实际项目中，如果遍历子节点时需要用到 parent 信息，而且又需要返回一些处理完后的信息，那么函数的设计就比较复杂了。这个时候究竟应该以 parent 的角度遍历子节点，还是在递归的开头直接处理当前节点，如果遇到空节点则返回？这个问题有时间了可以讨论下。
-
-* [ ] 调研 c++ 的 enumerate
 
 * string view learning material:
 
@@ -6263,9 +5837,7 @@ resources:
 
 	存储图像时，可以使用 int 也可以使用 float。
 
-* c 语言中`#defile`中`##`的用法？
-
-1. 指针的指针，区分指针的指针所指的内容不能被修改，指针所指的内容不能被修改（指针的指针本身不能被修改），指针本身不能被修改
+* 指针的指针，区分指针的指针所指的内容不能被修改，指针所指的内容不能被修改（指针的指针本身不能被修改），指针本身不能被修改
 
     分别如何 new, malloc
 
@@ -6273,7 +5845,6 @@ resources:
 
     <https://github.com/federico-busato/Modern-CPP-Programming>
 
-* 学一下 c++ 的 std format
 
 * 学习一下 c++ make uniquue
 
@@ -6296,6 +5867,18 @@ resources:
 * `fprintf()`向 stdin 中写数据，似乎没有什么反应。
 
 ### tasks
+
+* [ ] std::format
+
+* [ ] c 语言中`#defile`中`##`的用法？
+
+* [ ] 调研 c++ 的 enumerate
+
+* [ ] C++自定义哈希函数解析与优化
+
+    目前看到
+
+    > 5. std::function（C++11起）
 
 * [ ] 调研 c++ 中成员函数的指针和普通函数的指针有何不同。
 
@@ -6644,6 +6227,17 @@ resources:
 * [ ] 增加 git 的 qa
 
 ## 其他 Miscellaneous
+
+* A Comprehensive Guide to Using pathlib in Python For File System Manipulation
+
+    <https://www.datacamp.com/tutorial/comprehensive-tutorial-on-using-pathlib-in-python-for-file-system-manipulation>
+
+* pathlib --- 面向对象的文件系统路径
+
+    <https://docs.python.org/zh-cn/3.13/library/pathlib.html>
+
+
+* 看起来，`ref_14`对应的问题是：对于一个数字 n，给定一系列数字`arr = [a, b, c, ...]`，现在从 arr 中选取 m 个数字，使得这 m 个数字的和为 n。现在需要使得 m 最小，如果无法找到 m 个数字和为 n，那么 m 取 -1。
 
 * 计算机底层只有 01 真值表，逻辑判断，流程控制和存储空间，为什么可以发展出复杂的数据结构？
 

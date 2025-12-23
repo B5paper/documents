@@ -2,6 +2,8 @@
 
 ## cache
 
+* qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
+
 * `qemu-img`的常见用法
 
     * 创建新的虚拟机磁盘
