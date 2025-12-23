@@ -2,6 +2,14 @@
 
 ## cache
 
+* vscode 快捷键
+
+    * `Ctrl + Shift + \`：跳转到匹配的括号/列表项
+
+    * `Ctrl + Shift + [`：折叠当前内容
+
+    * `Ctrl` + `Home`：跳转到文件开头
+
 * vscode 插件 CJK Word Handler
 
     按 Ctrl+Left/Right 移动光标时，能正确处理中英文混合的情况（例如“VS Code是一个编辑器”）

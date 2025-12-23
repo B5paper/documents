@@ -183,26 +183,113 @@
 
     usage:
 
-    ```bash
-    # 添加子模块
-    git submodule add <repository-url> <path>
+    * 添加子模块
 
-    # 克隆包含子模块的项目
-    git clone <主项目仓库>
-    git submodule init
-    git submodule update
+        ```bash
+        # 添加子模块
+        git submodule add <repository-url> <local-path>
+        ```
+        
+        example:
 
-    # 或克隆时直接拉取子模块
-    git clone --recursive <主项目仓库>
+        ```bash
+        git submodule add https://github.com/example/lib.git libs/mylib
+        ```
 
-    # 更新子模块到指定提交
-    cd <子模块目录>
-    git pull origin main
+        这会在当前仓库中添加 .gitmodules 文件和子模块目录。
 
-    # 提交主项目中子模块的引用更新
-    cd <主项目目录>
-    git commit -am "更新子模块版本"
-    ```
+    * 克隆包含子模块的项目
+
+        ```bash
+        # 克隆包含子模块的项目
+        git clone <主项目仓库 url>
+        git submodule init
+        git submodule update
+        ```
+
+        ```bash
+        # 或克隆时直接拉取子模块
+        git clone --recursive <主项目仓库 url>
+        ```
+
+        * `git submodule init`
+
+            作用：初始化本地配置文件，建立子模块映射关系
+
+            具体操作：
+
+            1. 读取 .gitmodules 文件
+                
+                ```conf
+                # .gitmodules 示例
+                [submodule "libs/mylib"]
+                    path = libs/mylib
+                    url = https://github.com/example/lib.git
+                ```
+
+            2. 在 .git/config 中添加对应配置
+
+                ```conf
+                # 添加后 .git/config 内容
+                [submodule "libs/mylib"]
+                    url = https://github.com/example/lib.git
+                    active = true
+                ```
+
+            3. 检查子模块目录是否存在
+
+                * 如果目录不存在，仅配置，不克隆代码
+
+                * 标记子模块为"active"状态
+
+            注意：init 只是配置，不下载代码！
+
+        * `git submodule update`
+
+            作用：检出子模块的指定版本代码
+
+            具体操作：
+
+            1. 读取父仓库记录的特定提交
+
+                ```bash
+                # 父仓库中记录的子模块状态（git ls-tree HEAD）
+                160000 commit abc123...  libs/mylib
+                # abc123 是子模块的特定提交哈希
+                ```
+
+            2. 克隆或更新子模块仓库
+
+                * 如果子模块目录是空的：执行 git clone
+
+                * 如果已存在：执行 git fetch + git checkout
+
+            3. 检出指定提交（分离头指针状态）
+            
+                ```bash
+                # 进入子模块目录
+                cd libs/mylib
+                # 检出父仓库记录的特定提交（不是分支！）
+                git checkout abc123def456...
+                ```
+
+            4. 递归处理嵌套子模块（使用 --recursive 时）
+
+    * 更新子模块
+
+        ```bash
+        # 更新到主仓库记录的版本
+        git submodule update
+
+        # 更新到远程最新版本（进入子模块目录）
+        cd libs/mylib
+        git pull origin main
+
+        # 提交主项目中子模块的引用更新
+        cd ../..
+        git add libs/mylib
+        git commit -m "更新子模块"
+        ```
 
     特点
 
