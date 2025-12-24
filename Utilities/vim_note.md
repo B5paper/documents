@@ -2,6 +2,222 @@
 
 ## cache
 
+* vim 插入新行并且不进入 insert 模式
+
+    * `:put` (简写为`:pu`)
+
+        向下插入一行。
+
+        向上插入一行为`:put!`或`:pu!`
+
+    * `:call append()`
+
+        ```vim
+        :call append(line('.'), '')  " 在当前行下方插入空行
+        :call append(line('.')-1, '') " 在当前行上方插入空行
+        ```
+
+    * 映射快捷键
+
+        ```vim
+        " 在 ~/.vimrc 中添加映射
+        nnoremap <Leader>o o<Esc>     " 下方插入空行并返回普通模式
+        nnoremap <Leader>O O<Esc>     " 上方插入空行并返回普通模式
+        ```
+
+* vim 中的`<Leader>`键
+
+    Leader 键是 Vim 中的一个自定义前缀键，用于创建用户自定义快捷键映射
+
+    默认情况下，Vim 的 Leader 键是反斜杠`\`。
+
+    查看当前 Leader 键:
+
+    ```vim
+    :echo mapleader
+    :echo g:mapleader
+    ```
+
+    设置 Leader 键:
+
+    ```vim
+    " 最常见的设置：逗号 ,
+    let mapleader = ","      " 全局 Leader 键
+    let maplocalleader = "\\"  " 本地 Leader 键（用于文件类型特定映射）
+
+    " 其他常用选择
+    let mapleader = ";"      " 分号（也很方便）
+    let mapleader = "<Space>" " 空格键（需要先按空格，再按其他键）
+    let mapleader = "\\"     " 保持默认的反斜杠
+
+    " 空格键作为 Leader（现在很流行）
+    let mapleader = " "
+    nnoremap <Space> <Nop>  " 禁用空格键的默认行为
+    ```
+
+    设置了 Leader 键后，配合映射使用：
+
+    ```vim
+    " 在 .vimrc 中添加映射
+    nnoremap <Leader>w :w<CR>        " \w 保存文件（如果 Leader 是 \）
+    nnoremap <Leader>q :q<CR>        " \q 退出
+    nnoremap <Leader>o o<Esc>        " 下方插入空行并返回普通模式
+    nnoremap <Leader>O O<Esc>        " 上方插入空行并返回普通模式
+
+    " 如果是空格作为 Leader，那么就是：
+    " 按空格，再按 w = 保存
+    " 按空格，再按 o = 下方插入空行
+    ```
+
+    与 Local Leader 的区别
+
+    * `<Leader>`：全局快捷键前缀
+
+    * `<LocalLeader>`：文件类型特定的快捷键前缀
+
+    ```vim
+    " 设置 Local Leader
+    let maplocalleader = "\\"
+
+    " 只在特定文件类型中有效的映射
+    autocmd FileType python nnoremap <buffer> <LocalLeader>c I#<Esc>
+    " 在 Python 文件中，按 \c 在行首添加注释
+    ```
+
+    examples:
+
+    ```vim
+    " ~/.vimrc 中建议这样设置
+    let mapleader = " "          " 空格作为 Leader
+    let maplocalleader = "\\"    " 反斜杠作为 Local Leader
+
+    " 一些实用映射
+    nnoremap <Leader>w :w<CR>
+    nnoremap <Leader>q :q<CR>
+    nnoremap <Leader>e :e $MYVIMRC<CR>  " 编辑 vimrc
+    nnoremap <Leader>s :source $MYVIMRC<CR>  " 重新加载 vimrc
+    nnoremap <Leader>o o<Esc>k  " 下方插入空行，光标移到新行
+    nnoremap <Leader>O O<Esc>j  " 上方插入空行，光标移到原行
+    ```
+
+* vim 录制宏
+
+    基本操作
+
+    1. 开始录制
+
+        * 按 q 键开始录制
+
+        * 然后按一个寄存器键（a-z）来指定存储位置
+
+        * 示例：qa 表示录制到寄存器 a
+
+    2. 执行操作
+
+        * 执行你想要录制的所有 Vim 操作
+
+        * 可以包括：移动、插入、删除、替换等任何命令
+
+    3. 停止录制
+
+        * 按 q 键停止录制
+
+    4. 执行宏
+
+        * @a - 执行寄存器 a 中的宏
+
+        * @@ - 重复执行上一次执行的宏
+
+        * 10@a - 执行 10 次寄存器 a 中的宏
+
+    实用技巧
+
+    * 查看录制的宏
+
+        ```vim
+        :reg a        " 查看寄存器 a 的内容
+        :reg          " 查看所有寄存器
+        ```
+
+    * 编辑宏
+
+        ```vim
+        " 将宏粘贴出来编辑
+        " 1. 将寄存器内容放到当前行
+        "ap            " 将寄存器 a 的内容粘贴出来
+
+        " 2. 编辑内容
+
+        " 3. 存回寄存器
+        " 删除原有内容（如："ay$），然后
+        "add            " 删除当前行到寄存器 d
+        " 或
+        "ayy            " 复制当前行到寄存器 a
+        ```
+
+    * 常用的宏录制模式
+
+        ```vim
+        " 在多个文件上执行宏
+        1. 录制宏完成对当前文件的操作
+        2. :w 保存文件
+        3. :bn 跳转到下一个缓冲区
+        4. 停止录制
+        5. 使用 :bufdo normal @a 在所有缓冲区执行
+        ```
+
+    * 错误处理
+
+        * 如果在录制过程中出错，可以按 q 停止，然后重新录制
+
+        * 宏会记录所有按键，包括错误和更正
+
+    * 追加到现有宏
+
+        ```vim
+        qA  " 大写字母会追加到寄存器 a 的宏中
+        ```
+
+* vim 中`}`命令
+
+    移动到下一个空行的第一个非空白字符（段落移动）
+
+    注意事项：
+
+    * 配合 { 命令（向上跳转到上一个空行）使用
+
+    * 计数前缀可用：3} 向下跳转3个段落
+
+* vim `+`命令
+
+    作用：移动到下一行的第一个非空白字符
+
+    详细说明：
+
+        相当于 j + ^ 的组合
+
+        直接定位到下一行有文本内容的位置
+
+        数字前缀可用：3+ 向下移动3行并定位
+
+        反义命令是 -（移动到上一行的第一个非空白字符）
+
+* vim `.`命令
+
+    作用：重复上一次修改操作
+
+    详细说明：
+
+    * 重复最近一次在普通模式下执行的修改命令
+
+    * 可以重复插入、删除、替换等操作
+
+    * 示例：
+
+        * dw 删除一个单词 → . 再删除下一个单词
+
+        * ihello<Esc> 插入文本 → . 再次插入"hello"
+
 * vim 快捷键
 
     * `Ctrl+o`: 跳转到上一个位置

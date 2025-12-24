@@ -2,6 +2,248 @@
 
 ## cache
 
+* 表征学习
+
+    表征学习是机器学习的一个分支，其核心目标是自动发现数据中有效的特征表示（Representation），使原始数据转换为更容易被机器学习模型（如分类器、预测模型等）理解和使用的新形式。
+
+    核心思想
+
+    原始数据（如图像像素、文本字符、音频波形）通常具有高维度、稀疏、冗余或难以直接建模的特点。表征学习通过模型自动学习将这些原始数据转化为低维度、稠密、有意义的向量或编码（即“表征”），这些表征应当：
+
+    * 保留重要信息（如语义、结构）。
+
+    * 剔除噪声和冗余。
+
+    * 有利于下游任务（如分类、检测、生成）。
+
+    主要方法与类型
+
+    * 监督表征学习
+
+        * 通过有标签数据的监督任务（如图像分类）训练模型，其隐含层的输出可作为表征。
+
+        * 例如：用预训练的ResNet提取图像特征向量。
+
+    * 无监督表征学习
+
+        * 仅利用无标签数据学习数据的内在结构。
+
+        * 典型方法：
+
+            * 自编码器（Autoencoder）：通过编码-解码重构学习紧凑表征。
+
+            * 对比学习（Contrastive Learning）：如SimCLR、MoCo，通过拉近相似样本、推开不相似样本来学习表征。
+
+            * 生成模型：如VAE、GAN，通过生成过程间接学习数据分布的表征。
+
+    * 自监督学习（Self-supervised Learning）
+
+        * 无监督学习的一种，通过设计“代理任务”自动生成标签来学习表征。
+
+        * 例如：
+
+            * 掩码语言模型（MLM）：如BERT，通过预测被遮盖的词语学习语言表征。
+
+            * 图像拼图：通过预测图像块的相对位置学习视觉表征。
+
+    * 迁移学习与预训练模型
+
+        * 在大规模数据上预训练模型（如ImageNet、Wikipedia），将其学到的通用表征迁移到下游任务，通常只需微调。
+
+    关键优势
+
+    * 减少特征工程：自动学习特征，降低对人工设计特征的依赖。
+
+    * 可迁移性：预训练的表征可泛化到多种任务。
+
+    * 层次化抽象：深度模型能逐层学习从低级到高级的特征（如边缘→纹理→物体部件）。
+
+    应用领域
+
+    * 计算机视觉：图像特征提取、目标检测、人脸识别。
+
+    * 自然语言处理：词向量（Word2Vec）、句向量（BERT、GPT）。
+
+    * 语音处理：声学特征编码。
+
+    * 推荐系统：用户与物品的嵌入表示。
+
+    * 多模态学习：跨文本、图像、音频的统一表征。
+
+    总结
+
+    表征学习是将原始数据转化为“机器更懂”的形式的过程，是现代深度学习的基础。它通过数据驱动的方式自动发现内在规律，是实现通用人工智能的关键技术之一。随着大模型和多模态发展，学习通用、可解释、鲁棒的表征仍是核心挑战。
+
+* 表征学习相关的论文和项目
+
+    一、里程碑与经典论文
+
+    1. 无监督/自监督学习（基石）
+
+        * Word2Vec (2013) - Mikolov et al.
+
+            * 标题：Efficient Estimation of Word Representations in Vector Space
+
+            * 意义：开创性的词向量工作，提出CBOW和Skip-gram模型，表明可以从无标签文本中学习到语义丰富的词表征。
+
+        * Autoencoder (2006重现热潮) - Hinton & Salakhutdinov
+
+            * 标题：Reducing the Dimensionality of Data with Neural Networks
+
+            * 意义：展示了深度自编码器能学习比PCA更好的数据低维表征，推动了深度表征学习。
+
+        * BERT (2018) - Devlin et al.
+ 
+            * 标题：BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding
+
+            * 意义：基于掩码语言模型的自监督预训练范式，彻底改变了NLP，证明了从纯文本中学习深度上下文表征的强大能力。
+
+        * MoCo (2020) - He et al.
+
+            * 标题：Momentum Contrast for Unsupervised Visual Representation Learning
+
+            * 意义：视觉对比学习的经典之作，提出动量编码器和动态字典，使无监督视觉表征学习接近有监督性能。
+
+        * SimCLR (2020) - Chen et al.
+ 
+            * 标题：A Simple Framework for Contrastive Learning of Visual Representations
+
+            * 意义：简化了视觉对比学习框架，强调了数据增强和投影头的重要性，影响深远。
+
+    2. 理论分析与理解
+
+        * InfoMax Principle (1985) - Linsker
+
+            * 标题：Self-Organization in a Perceptual Network
+
+            * 意义：提出最大化输入与输出之间互信息的原则，是很多自监督学习（如对比学习）的理论基础。
+
+        + “On the Mutual Information Perspective...” (2020) - Tschannen et al.
+
+            * 标题：On Mutual Information Maximization for Representation Learning
+
+            * 意义：批判性地讨论了互信息最大化在实践中的挑战，推动了更务实的理解。
+
+    二、前沿研究方向与论文
+
+    1. 多模态表征学习
+
+        * CLIP (2021) - Radford et al.
+
+            * 标题：Learning Transferable Visual Models From Natural Language Supervision
+
+            * 意义：通过图文对比学习，学习对齐的图像和文本表征，实现零样本分类，开启多模态研究新范式。
+
+        * DALL-E / Stable Diffusion (2021-2022) - Ramesh et al. / Rombach et al.
+
+            * 意义：基于扩散模型的文生图系统，其核心是学习一个能将文本和图像对齐到同一隐空间的强大多模态表征。
+
+    2. 自监督学习新范式
+
+        * MAE (2021) - He et al.
+
+            * 标题：Masked Autoencoders Are Scalable Vision Learners
+
+            * 意义：将BERT的掩码重建思想成功应用于计算机视觉，使用非对称编码器-解码器架构高效学习视觉表征。
+
+        * BYOL (2020) - Grill et al.
+
+            * 标题：Bootstrap Your Own Latent: A New Approach to Self-Supervised Learning
+
+            * 意义：无需负样本的对比学习，仅靠在线网络和目标网络的相互预测进行学习，挑战了对比学习的固有认知。
+
+    3. 图表征学习
+
+        * Node2Vec (2016) - Grover & Leskovec
+
+            * 标题：node2vec: Scalable Feature Learning for Networks
+
+            * 意义：将Word2Vec思想应用于图节点，通过有偏随机游走生成节点序列进行学习。
+
+        * GraphSAGE (2017) - Hamilton et al.
+
+            * 标题：Inductive Representation Learning on Large Graphs
+
+            * 意义：提出一种归纳式框架，通过采样和聚合邻居特征来生成未见节点的表征。
+
+        * Graph Contrastive Learning (2020+) - 如 GRACE, DGI
+
+            * 意义：将对比学习思想应用于图数据，通过破坏图结构（如删边、加噪）来构建正负样本，学习鲁棒图表征。
+
+    三、重要开源项目与工具库
+
+    1. 综合项目/预训练模型库
+
+        * Hugging Face Transformers
+
+            * 链接: https://huggingface.co/docs/transformers
+
+            * 介绍：最流行的NLP库，提供了数千个预训练的语言表征模型（BERT, GPT, T5等）及其微调、使用接口。是多模态和视觉模型也在迅速扩展。
+
+        * PyTorch Image Models (timm)
+
+            * 链接: https://github.com/rwightman/pytorch-image-models
+
+            * 介绍：由Ross Wightman维护的计算机视觉模型库，包含大量有监督和自监督预训练的视觉骨干网络（如ViT, ResNet, ConvNeXt）及其代码。
+
+        * OpenAI CLIP
+
+            * 链接: https://github.com/openai/CLIP
+
+            * 介绍：官方实现的CLIP模型，可以轻松提取图文对齐的特征，进行零样本预测。
+
+        * FAIR’s Detectron2 & D2 Go
+
+            * 链接: https://github.com/facebookresearch/detectron2
+
+            * 介绍：Meta AI的视觉项目，不仅包含检测分割模型，也集成了很多先进的视觉自监督学习算法（如MoCo v2, DINO）。
+
+    2. 自监督学习专项库
+
+        * Lightly
+
+            * 链接: https://github.com/lightly-ai/lightly
+
+            * 介绍：专注于自监督学习的轻量级PyTorch库，提供了SimCLR, MoCo, BYOL, DINO等多种算法的简洁实现和数据流水线。
+
+        * VISSL
+
+            * 链接: https://github.com/facebookresearch/vissl
+
+            * 介绍：Meta AI发布的视觉自监督学习库，整合了其大量研究（SwAV, SimCLR, MoCo等），适合进行大规模研究和复现。
+
+        * DINO (Self-Distillation with no labels)
+
+            * 链接: https://github.com/facebookresearch/dino
+
+            * 介绍：Meta AI提出的无标签知识蒸馏方法，能学习到优异的视觉表征，并展现出突出的物体分割特性。
+
+    3. 图表征学习库
+
+        * PyTorch Geometric (PyG)
+
+            * 链接: https://github.com/pyg-team/pytorch_geometric
+
+            * 介绍：最流行的图神经网络库之一，实现了大量GNN模型（包括图自编码器、对比学习模型），是学习图表征的绝佳工具。
+
+        * Deep Graph Library (DGL)
+
+            * 链接: https://www.dgl.ai/
+
+            * 介绍：另一个高效、易用的图神经网络库，支持多种后端，有丰富的模型示例和教程。
+
+    学习建议路径
+
+    * 入门：从 Word2Vec 和 Autoencoder 理解基本思想，然后深入 BERT 和 SimCLR/MoCo 理解现代自监督范式。
+
+    * 实践：使用 Hugging Face 和 timm 库，加载预训练模型，在自己的数据上提取特征或进行微调。
+
+    * 深入：选择一个方向（如多模态CLIP、图对比学习），研读最新论文，并用 Lightly、PyG 等库进行代码复现和实验。
+
+    * 跟踪前沿：关注顶会（NeurIPS, ICLR, CVPR, ACL）中“Representation Learning”、“Self-Supervised Learning”、“Multi-modal”等主题的论文。
+
+    希望这份列表能为你探索表征学习的广阔天地提供一个有力的起点！
+
 * 对于$z = w_1 x_1 + w_2  x_2$的情况，我们首先模仿只有一个$x$的写法，得到
 
     ```py

@@ -2,6 +2,189 @@
 
 ## cached
 
+* unordered_map
+
+    unordered_map 是 C++ STL 中的关联容器，基于哈希表实现，提供平均 O(1) 时间复杂度的查找、插入和删除操作。
+
+    基本特性
+
+    * 头文件：#include <unordered_map>
+
+    * 键值对存储：每个元素是 pair<const Key, T> 类型
+
+    * 无序性：元素不按特定顺序存储
+
+    * 唯一键：每个键只能出现一次（用 unordered_multimap 可存储重复键）
+
+    基本用法
+    
+    1. 声明和初始化
+
+        ```cpp
+        #include <unordered_map>
+        #include <string>
+
+        // 声明
+        std::unordered_map<std::string, int> umap;
+
+        // 初始化列表 (C++11)
+        std::unordered_map<std::string, int> umap = {
+            {"apple", 1},
+            {"banana", 2},
+            {"orange", 3}
+        };
+        ```
+
+    2. 插入元素
+
+        ```cpp
+        // 使用 insert() 和 pair
+        umap.insert(std::make_pair("grape", 4));
+
+        // 使用 emplace() (C++11，效率更高)
+        umap.emplace("mango", 5);
+
+        // 使用下标操作符
+        umap["pear"] = 6;  // 如果键不存在，会创建新元素
+        ```
+
+    3. 访问元素
+
+        ```cpp
+        // 使用下标操作符（键不存在时会创建默认值）
+        int value = umap["apple"];  // 返回 1
+
+        // 使用 at()（键不存在时抛出异常）
+        int value = umap.at("banana");  // 返回 2
+
+        // 使用 find() 检查存在性
+        auto it = umap.find("orange");
+        if (it != umap.end()) {
+            std::cout << "Found: " << it->first << " -> " << it->second << std::endl;
+        }
+        ```
+
+    4. 修改和删除
+
+        ```cpp
+        // 修改值
+        umap["apple"] = 10;
+
+        // 删除元素
+        umap.erase("banana");  // 按键删除
+
+        auto it = umap.find("orange");
+        if (it != umap.end()) {
+            umap.erase(it);  // 按迭代器删除
+        }
+
+        // 清空所有元素
+        umap.clear();
+        ```
+
+    5. 遍历元素
+
+        ```cpp
+        // 使用范围 for 循环 (C++11)
+        for (const auto& pair : umap) {
+            std::cout << pair.first << ": " << pair.second << std::endl;
+        }
+
+        // 遍历
+        for (const auto& [name, score] : scores) {  // C++17 结构化绑定
+            std::cout << name << ": " << score << std::endl;
+        }
+
+        // 使用迭代器
+        for (auto it = umap.begin(); it != umap.end(); ++it) {
+            std::cout << it->first << ": " << it->second << std::endl;
+        }
+        ```
+
+    常用成员函数
+
+    * 容量相关
+
+        ```cpp
+        umap.empty();    // 是否为空
+        umap.size();     // 元素个数
+        umap.max_size(); // 最大可能元素数
+        ```
+
+    * 查找相关
+
+        ```cpp
+        umap.count("key");    // 返回键出现的次数（0或1）
+        umap.find("key");     // 返回迭代器，未找到返回 end()
+        umap.contains("key"); // C++20，返回 bool
+        ```
+
+    * 桶操作（哈希表特性）
+
+        ```cpp
+        umap.bucket_count();     // 桶的数量
+        umap.load_factor();      // 负载因子（元素数/桶数）
+        umap.max_load_factor();  // 最大负载因子
+        umap.rehash(100);        // 重新哈希，设置桶的最小数量
+        ```
+
+    自定义键类型
+
+    * 如果键是自定义类型，需要提供哈希函数和相等比较：
+
+        ```cpp
+        struct Point {
+            int x, y;
+            
+            // 相等运算符
+            bool operator==(const Point& other) const {
+                return x == other.x && y == other.y;
+            }
+        };
+
+        // 自定义哈希函数
+        struct PointHash {
+            std::size_t operator()(const Point& p) const {
+                return std::hash<int>()(p.x) ^ (std::hash<int>()(p.y) << 1);
+            }
+        };
+
+        // 使用自定义哈希
+        std::unordered_map<Point, std::string, PointHash> pointMap;
+        ```
+
+    性能特点
+
+    * 平均时间复杂度：插入、删除、查找为 O(1)
+
+    * 最坏情况：所有元素哈希冲突时为 O(n)
+
+    * 内存占用：比 map 稍高（需要维护哈希表结构）
+
+    与 map 的比较
+
+    | 特性 | unordered_map | map |
+    | - | - | - |
+    | 底层实现 | 哈希表 | 红黑树 |
+    | 时间复杂度 | 平均 O(1) | O(log n) |
+    | 元素顺序 | 无序 | 按键排序 |
+    | 内存使用 | 通常更高 | 通常更低 |
+    | 迭代器稳定性 | 插入可能使所有迭代器失效 | 迭代器稳定 |
+
+    注意事项
+
+    * 键不可修改，值可以修改
+
+    * 迭代时顺序不确定
+
+    * 哈希冲突会影响性能
+
+    * 频繁 rehash 可能影响性能
+
+    * 自定义类型需要提供哈希函数
+
+    unordered_map 适合需要快速查找且不关心顺序的场景，当需要有序遍历时，应选择 map。
+
 * 使用 std::is_constructible 检查是否可构造
 
     ```cpp

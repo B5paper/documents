@@ -2,150 +2,245 @@
 
 ## cache
 
-* `git clone -b <tag_name> <repo_url>`
+* git submodule 常用命令
 
-    这个命令会：
+    状态检查：git submodule status
 
-    1. 拉取整个仓库的所有历史记录（所有分支、所有标签的所有提交）
+    初始化：git submodule init
 
-    2. 然后 checkout 到 v1.0 标签对应的提交
+    更新所有：git submodule update --init --recursive
 
-    3. 你处于分离头指针状态
+    删除子模块：
 
-    即使你只看 v1.0 的代码，本地仍然有全部历史。
+        git submodule deinit -f libs/mylib
 
-* 本地的 branch 为 branch_A，远程仓库中别人新建了一个 branch_B，如何在本地新建 branch_local，并将 branch_B 的内容拉取下来，并建立跟踪关系
+        rm -rf .git/modules/libs/mylib
 
-    * 方法1：直接创建本地分支并追踪远程分支（最推荐）
+        git rm -f libs/mylib
 
-        ```bash
-        # 1. 先获取远程最新的分支信息
-        git fetch origin
+    注意事项
 
-        # 2. 创建本地分支并直接追踪远程分支
-        git checkout -b branch_local origin/branch_B
+    * 版本固定：父仓库记录的是子模块的提交哈希，不是分支
 
-        # 或简写为
-        git checkout --track origin/branch_B
-        ```
+    * 递归子模块：使用 --recursive 选项处理嵌套子模块
 
-    * 方法2：先创建再设置追踪
+    * 工作流程：在子模块目录中的修改需要单独提交和推送
 
-        ```bash
-        # 1. 获取远程分支信息
-        git fetch origin
+    * 团队协作：所有成员都需要初始化子模块
 
-        # 2. 创建本地分支但不切换
-        git branch branch_local origin/branch_B
+    * 分离头指针：子模块总是检出特定提交，不在任何分支上
 
-        # 3. 切换到新分支
-        git checkout branch_local
-        ```
+    * 双重配置：.gitmodules（共享）和 .git/config（本地）
 
-    * 方法3：使用 pull 的方式
+    * 独立仓库：每个子模块都是完整的Git仓库
 
-        ```bash
-        # 1. 先创建本地分支（基于当前分支）
-        git checkout -b branch_local
+    子模块适用于将第三方库或共享组件作为依赖管理，但复杂度较高，对于简单依赖可考虑 Git subtree 或包管理器。
 
-        # 2. 设置追踪关系
-        git branch --set-upstream-to=origin/branch_B
+* git submodule 缩写
 
-        # 3. 拉取远程内容
-        git pull
-        ```
+    ```bash
+    # 等价于 init + update
+    git submodule update --init
 
-        注:
+    # 递归初始化并更新所有子模块
+    git submodule update --init --recursive
 
-        1. 感觉这种方法不对，因为可能有 mrege 冲突
+    # 克隆时直接初始化并更新
+    git clone --recurse-submodules <repo-url>
+    ```
 
-* 修改本地 branch 追踪的远程 branch
+* git submodule 实测
 
-    * 使用 git branch --set-upstream-to（推荐）
+    * 在仓库 A 中`git submodule add <sub-repo-B> <dst-dir>`时，会自动创建`<dst-dir>`目录，并拉取`<sub-repo-B>`的代码
 
-        ```bash
-        git branch --set-upstream-to=origin/<remote_branch> [local_branch]
-        ```
+        此时 A 中`.git/config`会发生改变，添加 submodule 相关信息。
 
-    * 使用 git push -u 重新建立追踪
+    * A 中添加完 submodule 后，执行提交时，只会提交 A 中：
 
-        ```bash
-        git push -u origin <remote_branch>
-        ```
+        1. 新文件`.gitmodules`
 
-    * 使用 git config
+        2. 新建的空目录`<dst-dir>`
 
-        ```bash
-        # 设置追踪关系
-        git config branch.<local_branch>.remote origin
-        git config branch.<local_branch>.merge refs/heads/<remote_branch>
-        ```
+    * 将 A clone 到 C 时，C 中会有：
 
-    注：
+        1. 文件`.submodule`
 
-    1. 如果 remote 名不叫`origin`，需要改成对应的 remote name，比如`upstream`
+        2. 空目录`<dst-dir>`
 
-* 在本地新建了一个 branch，但是远程仓库没有这个 branch，如何把这个 branch 推到远程仓库
+        注意，此时 C 的`.git/config`中并没有 submodule 相关的信息。
 
-    * 推送，并建立追踪关系（最常用）
+    * 在 C 中执行`git submodule init`后，`.gitmodules`中的数据会被写入到`.git/config`中
 
-        ```bash
-        git push -u origin <remote_branch_name>
-        # 等价于
-        # git push --set-upstream origin <remote_branch_name>
-        ```
+    * 在 C 中执行`git submodule update`后，会正式开始拉取 B 的内容，并 checkout 到指定的 commit
 
-    * 方法二：只推送，不建立追踪
+        注意：
+        
+        * 此时 B 是 head detected 状态
 
-        ```bash
-        git push origin <branch_name>
-        ```
+        * repo C 中，submodule B 的 commit 会被暂时锁定在 A add B 时的那个 commit
+        
+            就算此时 repo B 进行了提交，在 C 中执行`git submodule update`或重新 clone C 也不会改变 B 的 commit。
 
-    * 方法三：推送并重命名远程分支名
+        * 只有 repo A 改变了 submodule B 的 commit，在 C 中执行`git submodule update`才会同步更新 B 的 commit
 
-        ```bash
-        git push origin <local_branch>:<remote_branch>
-        ```
+        * 如果 C 想脱离 A 的控制，独立更新 B 的 commit，需要进入`<sub-B-dir>`中执行`git pull`。
 
-* git clone 时，指定 branch
+* git submodule status
 
-    有以下几种方式：
+    你会看到类似：
 
-    * 使用 -b 或 --branch 参数（最常用）
+    ```
+     e3a1c9b8c9f2e6f4a8d9c2e3b9f5a1d2c3e4f5 repo_B (heads/main)
+    ```
 
-        ```bash
-        git clone -b <branch_name> <repository_url>
-        ```
+    如果前面是空格（不是`-`），说明子模块已 checkout 成功。
 
-        example:
+* git 中 head detected 状态
 
-        ```bash
-        git clone -b develop https://github.com/user/repo.git
-        ```
+    当你在分离头指针状态时：
 
-        这个命令等价于执行了以下操作：
+    * HEAD 直接指向一个具体的提交，而不是指向一个分支
 
-        1. 将远程仓库的**所有数据**拉取到本地
+    * 你不在任何分支上，就像一个"游离"的状态
 
-            即`git fetch`
+    * 新建的提交不会自动保存到任何分支
 
-        2. 在本地创建一个 branch `<branch_name>`，内容与远程 branch `<branch_name>`相同，名字也相同
+    这种状态的特性:
 
-            `git branch <branch_name> origin/<branch_name>`
+    * 优点：
 
-        3. 切换到刚创建的 branch
+        * 可以查看历史版本的代码
 
-            `git switch <branch_name>`
+        * 可以基于特定版本创建新分支
 
-        4. 设置 tracking 关系
+    * 缺点：
 
-            `git branch --set-upstream-to=origin/<branch_name>`
+        * 新建提交会丢失：
 
-    * 使用`-b`结合`--single-branch`
+            ```bash
+            # 如果修改并提交
+            git add .
+            git commit -m "修改"
+            # 这个提交没有分支指向它！
+            ```
 
-        只拉取**指定分支**内容，不拉取其他分支。
+        * 切换分支会丢失工作：
 
-        `git clone -b <branch> --single-branch <repo_url>`
+            ```bash
+            git checkout main
+            # 警告：你刚刚的提交可能会被垃圾回收
+            ```
+
+    使用场景：
+
+    * 临时查看历史版本某个特定 tag （commit）的内容
+
+        此时不能提交修改。
+
+    * 从某个 tag 出发，重新构建 branch
+
+        创建新 branch 后，可以提交修改。
+    
+    如何脱离这个状态：
+
+    ```bash
+    # 克隆默认分支
+    git clone https://github.com/user/repo.git
+
+    # 切换到标签
+    git checkout v1.0.0
+    # 此时是分离头指针状态
+
+    # 如果需要修改，创建分支
+    git checkout -b fix-v1.0.0
+
+    # 现在可以安全地修改和提交
+    git add .
+    git commit -m "基于v1.0.0的新功能"
+    ```
+
+* 删除远程分支
+
+    ```bash
+    # 删除远程分支
+    git push origin --delete <branch_name>
+
+    # 或简写
+    git push origin :<branch_name>
+    ```
+
+* 删除旧的追踪关系
+
+    ```bash
+    git branch --unset-upstream
+    ```
+
+* 快速检查远程分支是否存在
+
+    ```bash
+    # 在操作前可以先检查远程分支
+    git ls-remote --heads origin | grep branch_B
+
+    # 或查看远程分支详情
+    git remote show origin
+    ```
+
+* 验证你是否在分离头指针状态
+
+    ```bash
+    # 克隆后查看状态
+    git status
+    # 输出：HEAD detached at v1.0.0
+
+    # 查看HEAD指向
+    git log --oneline -1
+    cat .git/HEAD
+    ```
+
+* 按需拉取指定数量的 commit
+
+    只拉取一个 commit
+
+    ```bash
+    # 只拉取最新一层的提交
+    git clone --depth 1 -b v1.0 https://github.com/user/repo.git
+    ```
+
+    可以拉取更多历史（如果需要）：
+
+    ```bash
+    git fetch --deepen 10  # 再拉取10个历史提交
+    ```
+
+* working directory 中的每个文件都有两种状态：tracked 或 untracked
+
+    * Tracked files are files that were in the last snapshort; they can be unmodified, modified, or staged.
+    
+    * Untracked files are everything else - any files in your working directory that were not in your last snapshot and are not in your staging area.
+
+    [如果一个 staged 文件又被修改了，会成为什么状态呢？答：这个文件会同时变成 staged 和 unstaged 两种状态，当然，文件内容是不同的。可以再 add 一次以合并两种状态。]
+
+* git 中文件的三种状态：`committed`, `modified`, `staged`
+
+    * committed means that the data is safely stored in your local database
+
+    * modified means that you have changed the file but have not committed it to your database yet
+
+    * staged means that you have marked a modified file in its current version to go into your next commit snapshot
+
+* git project 的三个 sections
+
+    * the Git directory
+
+        The Git directory is where Git stores the metadata and object database for your project.
+
+    * the working directory
+
+        The working directory is a single checkout of one version of the project.
+
+    * the staging area
+
+        The staging area is a file, generally contained in your Git directory, that stores information about what will go into your next commit.
 
 * git subtree
 
@@ -177,130 +272,6 @@
 
     * 历史合并：可选择是否保留子项目完整历史
 
-* git submodule
-
-    将外部仓库作为子模块链接到主项目中，保持独立版本控制。
-
-    usage:
-
-    * 添加子模块
-
-        ```bash
-        # 添加子模块
-        git submodule add <repository-url> <local-path>
-        ```
-        
-        example:
-
-        ```bash
-        git submodule add https://github.com/example/lib.git libs/mylib
-        ```
-
-        这会在当前仓库中添加 .gitmodules 文件和子模块目录。
-
-    * 克隆包含子模块的项目
-
-        ```bash
-        # 克隆包含子模块的项目
-        git clone <主项目仓库 url>
-        git submodule init
-        git submodule update
-        ```
-
-        ```bash
-        # 或克隆时直接拉取子模块
-        git clone --recursive <主项目仓库 url>
-        ```
-
-        * `git submodule init`
-
-            作用：初始化本地配置文件，建立子模块映射关系
-
-            具体操作：
-
-            1. 读取 .gitmodules 文件
-                
-                ```conf
-                # .gitmodules 示例
-                [submodule "libs/mylib"]
-                    path = libs/mylib
-                    url = https://github.com/example/lib.git
-                ```
-
-            2. 在 .git/config 中添加对应配置
-
-                ```conf
-                # 添加后 .git/config 内容
-                [submodule "libs/mylib"]
-                    url = https://github.com/example/lib.git
-                    active = true
-                ```
-
-            3. 检查子模块目录是否存在
-
-                * 如果目录不存在，仅配置，不克隆代码
-
-                * 标记子模块为"active"状态
-
-            注意：init 只是配置，不下载代码！
-
-        * `git submodule update`
-
-            作用：检出子模块的指定版本代码
-
-            具体操作：
-
-            1. 读取父仓库记录的特定提交
-
-                ```bash
-                # 父仓库中记录的子模块状态（git ls-tree HEAD）
-                160000 commit abc123...  libs/mylib
-                # abc123 是子模块的特定提交哈希
-                ```
-
-            2. 克隆或更新子模块仓库
-
-                * 如果子模块目录是空的：执行 git clone
-
-                * 如果已存在：执行 git fetch + git checkout
-
-            3. 检出指定提交（分离头指针状态）
-            
-                ```bash
-                # 进入子模块目录
-                cd libs/mylib
-                # 检出父仓库记录的特定提交（不是分支！）
-                git checkout abc123def456...
-                ```
-
-            4. 递归处理嵌套子模块（使用 --recursive 时）
-
-    * 更新子模块
-
-        ```bash
-        # 更新到主仓库记录的版本
-        git submodule update
-
-        # 更新到远程最新版本（进入子模块目录）
-        cd libs/mylib
-        git pull origin main
-
-        # 提交主项目中子模块的引用更新
-        cd ../..
-        git add libs/mylib
-        git commit -m "更新子模块"
-        ```
-
-    特点
-
-    * 独立仓库：子模块是独立的 Git 仓库
-
-    * 指针引用：主项目只记录子模块的 commit hash
-
-    * 需要显式初始化更新：克隆后需额外操作获取子模块内容
-
-    * 分离的版本控制：子模块和主项目分别维护历史
-
 * 如果 git repo 的 remote 是 ssh 开头的地址，那么即使 submodule 中的 url 是 http 开头的地址，在 git submodule update 时也会使用 ssh config 中的代理。
 
     （存疑）
@@ -323,7 +294,7 @@
     git config --global fetch.verbose true
     ```
 
-    使用 GIT_TRACE 环境变量:
+    使用 `GIT_TRACE` 环境变量:
 
     ```bash
     # 显示详细的执行过程
@@ -335,8 +306,6 @@
     # 同时启用多种跟踪
     GIT_TRACE=1 GIT_TRACE_PACKET=1 git pull
     ```
-
-* `git rebase -i`比较像从某个 commit 开始，将各个 commit 重新提交一遍。如果每次 commit 都有冲突，那么就需要一直处理冲突。如果不想每次都处理，想只保留最后一次 commit 的结果，或许可以用到`skip`选项。
 
 * git merge 在使用 Fast-forward 时，看不出来是一个 merge 操作
 
@@ -502,20 +471,217 @@
 
 ## topics
 
+### merge
+
+* 使用 commit 1 merge commit 2，如果 commit 1 领先 commit 2，那么 commit 1 没有变化
+
+    如果 commit 1 和 commit 2 是 diverge 状态，并且修改的是同一行，或者相邻的几行，那么在执行`git merge`时会显示冲突（conflict）状态。
+
+    如果两个 branch 是 diverge 状态，并且在相邻较远的两段代码上有不同，那么会不会有 conflict 状态？
+
+* git merge 会保存 branch 的所有 commit history
+
+* `git merge origin/master`可以 merge remote branch
+
+* `git merge <from_branch> [<to_branch>]`
+
+    default merge to current branch.
+
+    执行 merge 操作时，`<to_branch>`必须存在。
+
+    `git merge <branch_name>`：把`<branch_name>`分支 merge 到当前分支。即对比`<branch_name>`分支最新的一次 commit 与当前分支的最新 commit，如果这两个 commit 在同一条线上，那么直接使用 fast-forward，改变当前 branch 的指针。如果这两个 commit 不在同一条线上，那么对当前 branch 创建一个新的 merge commit，并要求你手动处理 conflict。
+
+    注意，fast-forward 不会创建新 commit，而 conflict 会创建新 commit。
+
+    `git merge origin/master`
+
+### rebase
+
+* `git rebase -i`比较像从某个 commit 开始，将各个 commit 重新提交一遍。如果每次 commit 都有冲突，那么就需要一直处理冲突。如果不想每次都处理，想只保留最后一次 commit 的结果，或许可以用到`skip`选项。
+
+### submodle
+
+* `git submodule init`
+
+    作用：初始化本地配置文件，建立子模块映射关系
+
+    具体操作：
+
+    1. 读取 .gitmodules 文件
+        
+        ```conf
+        # .gitmodules 示例
+        [submodule "libs/mylib"]
+            path = libs/mylib
+            url = https://github.com/example/lib.git
+        ```
+
+    2. 在 .git/config 中添加对应配置
+
+        ```conf
+        # 添加后 .git/config 内容
+        [submodule "libs/mylib"]
+            url = https://github.com/example/lib.git
+            active = true
+        ```
+
+    3. 检查子模块目录是否存在
+
+        * 如果目录不存在，仅配置，不克隆代码
+
+        * 标记子模块为"active"状态
+
+    注意：init 只是配置，不下载代码！
+
+* `git submodule update`
+
+    作用：检出子模块的指定版本代码
+
+    具体操作：
+
+    1. 读取父仓库记录的特定提交
+
+        ```bash
+        # 父仓库中记录的子模块状态（git ls-tree HEAD）
+        160000 commit abc123...  libs/mylib
+        # abc123 是子模块的特定提交哈希
+        ```
+
+    2. 克隆或更新子模块仓库
+
+        * 如果子模块目录是空的：执行 git clone
+
+        * 如果已存在：执行 git fetch + git checkout
+
+    3. 检出指定提交（分离头指针状态）
+    
+        ```bash
+        # 进入子模块目录
+        cd libs/mylib
+        # 检出父仓库记录的特定提交（不是分支！）
+        git checkout abc123def456...
+        ```
+
+    4. 递归处理嵌套子模块（使用 --recursive 时）
+
+* git submodule
+
+    将外部仓库作为子模块链接到主项目中，保持独立版本控制。
+
+    usage:
+
+    * 添加子模块
+
+        ```bash
+        # 添加子模块
+        git submodule add <repository-url> <local-path>
+        ```
+        
+        example:
+
+        ```bash
+        git submodule add https://github.com/example/lib.git libs/mylib
+        ```
+
+        这会在当前仓库中添加 .gitmodules 文件和子模块目录。
+
+    * 克隆包含子模块的项目
+
+        ```bash
+        # 克隆包含子模块的项目
+        git clone <主项目仓库 url>
+        git submodule init
+        git submodule update
+        ```
+
+        ```bash
+        # 或克隆时直接拉取子模块
+        git clone --recursive <主项目仓库 url>
+        ```
+
+    * 更新子模块
+
+        ```bash
+        # 更新到主仓库记录的版本
+        git submodule update
+
+        # 更新到远程最新版本（进入子模块目录）
+        cd libs/mylib
+        git pull origin main
+
+        # 提交主项目中子模块的引用更新
+        cd ../..
+        git add libs/mylib
+        git commit -m "更新子模块"
+        ```
+
+    特点
+
+    * 独立仓库：子模块是独立的 Git 仓库
+
+    * 指针引用：主项目只记录子模块的 commit hash
+
+    * 需要显式初始化更新：克隆后需额外操作获取子模块内容
+
+    * 分离的版本控制：子模块和主项目分别维护历史
+
+### clone
+
+* 如果不指定分支，默认克隆的是远程仓库的默认分支（通常是 main 或 master）
+
+* `git clone -b <tag_name> <repo_url>`
+
+    这个命令会：
+
+    1. 拉取整个仓库的所有历史记录（所有分支、所有标签的所有提交）
+
+    2. 然后 checkout 到 v1.0 标签对应的提交
+
+    3. 你处于分离头指针状态
+
+    即使你只看 v1.0 的代码，本地仍然有全部历史。
+
+* git clone 时，指定 branch
+
+    有以下几种方式：
+
+    * 使用 -b 或 --branch 参数（最常用）
+
+        ```bash
+        git clone -b <branch_name> <repository_url>
+        ```
+
+        example:
+
+        ```bash
+        git clone -b develop https://github.com/user/repo.git
+        ```
+
+        这个命令等价于执行了以下操作：
+
+        1. 将远程仓库的**所有数据**拉取到本地
+
+            即`git fetch`
+
+        2. 在本地创建一个 branch `<branch_name>`，内容与远程 branch `<branch_name>`相同，名字也相同
+
+            `git branch <branch_name> origin/<branch_name>`
+
+        3. 切换到刚创建的 branch
+
+            `git switch <branch_name>`
+
+        4. 设置 tracking 关系
+
+            `git branch --set-upstream-to=origin/<branch_name>`
+
+    * 使用`-b`结合`--single-branch`
+
+        只拉取**指定分支**内容，不拉取其他分支。
+
+        `git clone -b <branch> --single-branch <repo_url>`
+
 ### branch
-
-* `git branch -m <branch>`: Rename the current branch to `＜branch＞`
-
-* `git branch -a`: List all remote branches. 
-
-### 常见场景
-
-* add a new remote repo and push the local branch to remote
-
-    ```bash
-    git remote add <new_remote_name> <repo_url>
-    git push <new-remote-repo> <local_branch_name>
-    ```
 
 * delete a remote branch
 
@@ -535,6 +701,116 @@
     ```bash
     git checkout hlc_my_branch
     git push -u origin hlc_my_branch
+    ```
+
+* 在本地新建了一个 branch，但是远程仓库没有这个 branch，如何把这个 branch 推到远程仓库
+
+    * 推送，并建立追踪关系（最常用）
+
+        ```bash
+        git push -u origin <remote_branch_name>
+        # 等价于
+        # git push --set-upstream origin <remote_branch_name>
+        ```
+
+    * 方法二：只推送，不建立追踪
+
+        ```bash
+        git push origin <branch_name>
+        ```
+
+        这种方式要求本地的 branch 和远程的 branch 的名称相同。如果不同会报错。
+
+        如果一定要求本地 branch 和远程 branch 的名称不同，那么必须用方法三。
+
+    * 方法三：推送并重命名远程分支名
+
+        ```bash
+        git push origin <local_branch>:<remote_branch>
+        ```
+
+* 修改本地 branch 追踪的远程 branch
+
+    * 使用 git branch --set-upstream-to（推荐）
+
+        ```bash
+        git branch --set-upstream-to=origin/<remote_branch> [local_branch]
+        ```
+
+    * 使用 git push -u 重新建立追踪
+
+        ```bash
+        git push -u origin <remote_branch>
+        ```
+
+    * 使用 git config
+
+        ```bash
+        # 设置追踪关系
+        git config branch.<local_branch>.remote origin
+        git config branch.<local_branch>.merge refs/heads/<remote_branch>
+        ```
+
+    注：
+
+    1. 如果 remote 名不叫`origin`，需要改成对应的 remote name，比如`upstream`
+
+* 本地的 branch 为 branch_A，远程仓库中别人新建了一个 branch_B，如何在本地新建 branch_local，并将 branch_B 的内容拉取下来，并建立跟踪关系
+
+    * 方法1：直接创建本地分支并追踪远程分支（最推荐）
+
+        ```bash
+        # 1. 先获取远程最新的分支信息
+        git fetch origin
+
+        # 2. 创建本地分支并直接追踪远程分支
+        git checkout -b branch_local origin/branch_B
+
+        # 或简写为
+        git checkout --track origin/branch_B
+        ```
+
+    * 方法2：先创建再设置追踪
+
+        ```bash
+        # 1. 获取远程分支信息
+        git fetch origin
+
+        # 2. 创建本地分支但不切换
+        git branch branch_local origin/branch_B
+
+        # 3. 切换到新分支
+        git checkout branch_local
+        ```
+
+    * 方法3：使用 pull 的方式
+
+        ```bash
+        # 1. 先创建本地分支（基于当前分支）
+        git checkout -b branch_local
+
+        # 2. 设置追踪关系
+        git branch --set-upstream-to=origin/branch_B
+
+        # 3. 拉取远程内容
+        git pull
+        ```
+
+        注:
+
+        1. 感觉这种方法不对，因为可能有 merge 冲突
+
+* `git branch -m <branch>`: Rename the current branch to `＜branch＞`
+
+* `git branch -a`: List all remote branches. 
+
+### 常见场景
+
+* add a new remote repo and push the local branch to remote
+
+    ```bash
+    git remote add <new_remote_name> <repo_url>
+    git push <new-remote-repo> <local_branch_name>
     ```
 
 ### proxy
@@ -645,58 +921,32 @@ Some materials to learn:
 
 * <https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History>
 
-## Background and basic concepts
+* background and basic concepts
 
-* CVCs: Centralized Version Control Systems
+    * CVCs: Centralized Version Control Systems
 
-    * CVS
-    * Subversion
-    * Perforce
+        * CVS
+        * Subversion
+        * Perforce
 
-* DVCSs: Distributed Version Control Systems
+    * DVCSs: Distributed Version Control Systems
 
-    * Git
-    * Mercurial
-    * Bazaar
-    * Darcs
+        * Git
+        * Mercurial
+        * Bazaar
+        * Darcs
 
-其他的版本控制系统机制使用的是存储文件的改变，而 git 存储的是快照（snapshots）。如果文件没有改变，git 会在当前版本中指向之前的 reference，否则的话会创建个新快照。
-
-git 中的文件有三种状态：`committed`, `modified`, `staged`。
-
-* committed means that the data is safely stored in your local database
-
-* modified means that you have changed the file but have not committed it to your database yet
-
-* staged means that you have marked a modified file in its current version to go into your next commit snapshot
-
-git project 的三个 sections:
-
-* the Git directory
-
-    The Git directory is where Git stores the metadata and object database for your project.
-
-* the working directory
-
-    The working directory is a single checkout of one version of the project.
-
-* the staging area
-
-    The staging area is a file, generally contained in your Git directory, that stores information about what will go into your next commit.
-
-working directory 中的每个文件都有两种状态：tracked 或 untracked。Tracked files are files that were in the last snapshort; they can be unmodified, modified, or staged. Untracked files are everything else - any files in your working directory that were not in your last snapshot and are not in your staging area.
-
-[如果一个 staged 文件又被修改了，会成为什么状态呢？答：这个文件会同时变成 staged 和 unstaged 两种状态，当然，文件内容是不同的。可以再 add 一次以合并两种状态。]
+    其他的版本控制系统机制使用的是存储文件的改变，而 git 存储的是快照（snapshots）。如果文件没有改变，git 会在当前版本中指向之前的 reference，否则的话会创建个新快照。
 
 ## Configs
 
 ### cache
 
-显示当前的所有配置：`git config --list --show-origin`
+* 显示当前的所有配置：`git config --list --show-origin`
 
-`--show-origin`表示显示来源的配置文件。
+    `--show-origin`表示显示来源的配置文件。
 
-还可以通过`git config <key>`显示一个指定 key 的值：`git config user.name`
+* 可以通过`git config <key>`显示一个指定 key 的值：`git config user.name`
 
 proxy:
 
@@ -1173,20 +1423,6 @@ git log --since="2 years 1 day 3 minutes ago"
 
     最后把我们的 main branch merge 到别人的仓库里。
 
-* `git fetch`只更新当前 branch 的信息，不更新其他 branch 的信息。
-
-* `git merge <from_branch> [<to_branch>]`
-
-    default merge to current branch.
-
-    执行 merge 操作时，`<to_branch>`必须存在。
-
-    `git merge <branch_name>`：把`<branch_name>`分支 merge 到当前分支。即对比`<branch_name>`分支最新的一次 commit 与当前分支的最新 commit，如果这两个 commit 在同一条线上，那么直接使用 fast-forward，改变当前 branch 的指针。如果这两个 commit 不在同一条线上，那么对当前 branch 创建一个新的 merge commit，并要求你手动处理 conflict。
-
-    注意，fast-forward 不会创建新 commit，而 conflict 会创建新 commit。
-
-    `git merge origin/master`
-
 * 所谓的 fast-forward，指的是 main branch HEAD 所在的 commit 节点，可以顺着其他 commit 节点，找到其他 branch 的 HEAD 所在的 commit。
 
 * git tag
@@ -1344,20 +1580,6 @@ git log --since="2 years 1 day 3 minutes ago"
 * git remove untracked files
 
     `git clean -f` removes untracked files within the directory whre you call it only.
-
-## Merge
-
-### cache
-
-* 使用 commit 1 merge commit 2，如果 commit 1 领先 commit 2，那么 commit 1 没有变化
-
-    如果 commit 1 和 commit 2 是 diverge 状态，并且修改的是同一行，或者相邻的几行，那么在执行`git merge`时会显示冲突（conflict）状态。
-
-    如果两个 branch 是 diverge 状态，并且在相邻较远的两段代码上有不同，那么会不会有 conflict 状态？
-
-* git merge 会保存 branch 的所有 commit history
-
-* `git merge origin/master`可以 merge remote branch
 
 ## Branch
 
