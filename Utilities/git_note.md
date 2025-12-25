@@ -2,6 +2,394 @@
 
 ## cache
 
+* git branch 不同个数的`-v`的效果
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/my-repo$ git branch
+    * master
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/my-repo$ git branch -v
+    * master 0cbd77a commit 2
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/my-repo$ git branch -vv
+    * master 0cbd77a [origin/master] commit 2
+    ```
+
+* `git log--decorate`
+
+    在提交历史中显示引用信息，让分支、标签等指针更直观地展示。
+
+    主要作用：
+
+    1. 显示引用位置
+
+        在每个提交旁显示它所在的分支、标签
+
+        用不同颜色区分不同类型的引用
+
+    2. 查看分支拓扑关系
+
+        清楚看到哪些提交属于哪个分支
+
+        了解分支的合并点和起点
+
+    显示的内容：
+
+        HEAD - 当前检出的位置
+
+        分支名 - 本地分支（如 main, feature/login）
+
+        远程分支 - 远程跟踪分支（如 origin/main）
+
+        标签 - 版本标签（如 tag: v1.0）
+
+    在较新的 Git 版本中（2.13+），--decorate 通常是默认启用的，可以通过以下配置查看：
+
+    ```bash
+    git config --get log.decorate  # 查看当前设置
+    ```
+
+    如果想永久启用，可以设置：
+
+    ```bash
+    git config --global log.decorate auto
+    ```
+
+    实际价值：
+
+    通过 --decorate，你可以一目了然地：
+
+        知道当前在哪个分支（HEAD 指向）
+
+        看到哪些提交已经推送到了远程
+
+        识别重要的版本标签
+
+        理解分支的合并和分离状态
+
+* `git fetch`与`git fetch --all`的区别
+
+    1. git fetch（默认行为）
+
+        ```bash
+        # 只获取当前分支配置的远程仓库
+        git fetch
+        ```
+
+        * 默认只获取当前分支追踪的远程仓库（通常是 origin）
+
+        * 如果当前分支配置了 upstream，则从对应的远程仓库获取
+
+        * 如果当前分支没有配置 upstream，则从 origin 获取
+
+        * 只更新远程跟踪分支（如 origin/main），不会修改你的本地分支
+
+    2. `git fetch --all`
+    
+        ```bash
+        # 获取所有已配置的远程仓库
+        git fetch --all
+        ```
+
+        * 获取所有配置的远程仓库（origin、upstream 等）
+
+        * 适合多个远程仓库的场景
+
+        * 一次性更新所有远程跟踪分支
+
+* 常用 fetch 选项
+
+    ```bash
+    # 获取所有标签
+    git fetch --tags
+
+    # 获取特定远程
+    git fetch origin
+
+    # 获取特定分支
+    git fetch origin main
+
+    # 清除已不存在的远程分支的本地引用
+    git fetch --prune
+    ```
+
+* `git merge v1.0 v2.0 v3.0`
+
+    将三个分支（标签/分支）合并到当前分支。
+
+    具体作用：
+
+    1. 多分支合并：一次性将 v1.0、v2.0、v3.0 三个引用（可以是标签或分支名）的代码合并到当前所在分支
+
+    2. 创建合并提交：
+
+        * Git 会找出当前分支与这三个分支的共同祖先
+
+        * 计算四路合并结果
+
+        * 生成一个新的合并提交，这个提交会有多个父提交
+
+    实际效果相当于：
+    
+    ```bash
+    # 分步执行的效果类似：
+    git merge v1.0
+    git merge v2.0  
+    git merge v3.0
+    ```
+
+    但一次性合并更高效，且只会创建一个合并提交。
+
+    这是一个相对少用但强大的功能，适用于需要一次性集成多个来源更改的场景。
+
+* `git fetch` 的默认行为是更新所有远程分支的信息，而不是只更新当前分支。
+
+    指定更新特定分支:
+
+    ```bash
+    # 只更新特定分支
+    git fetch origin main      # 只更新 origin/main
+    git fetch origin main:foo  # 更新到特定本地分支
+    ```
+
+* 查看远程分支信息
+
+    ```bash
+    git branch -r              # 显示远程跟踪分支
+    git log origin/main        # 查看远程 main 分支
+    git log origin/develop     # 查看远程 develop 分支
+    ```
+
+* `git log --all`
+
+    显示所有分支的提交历史，而不仅仅是当前分支。
+
+    主要功能：
+
+    * 显示所有分支的提交 - 包括本地分支和远程跟踪分支
+
+    * 展示完整的项目历史 - 而不仅仅是当前分支的线性历史
+
+    常用组合：
+
+    ```bash
+    # 以图形化方式显示所有分支历史
+    git log --all --oneline --graph
+
+    # 显示所有分支的历史，包含统计信息
+    git log --all --stat
+
+    # 查看所有分支中某个文件的修改历史
+    git log --all -- path/to/file
+    ```
+
+    与其他选项的对比：
+
+    | 命令 | 作用 |
+    | - | - |
+    | `git log` | 仅当前分支的历史  |
+    | `git log --all` | 所有分支的历史 |
+    | `git log --branches` | 所有本地分支的历史 |
+    | `git log --remotes` | 所有远程分支的历史 |
+
+* `git fetch origin tag v1.0`：只拉取 v1.0 tag
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git remote add origin ../repo-server/
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git fetch origin tag v1.0
+    remote: Enumerating objects: 3, done.
+    remote: Counting objects: 100% (3/3), done.
+    remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+    Unpacking objects: 100% (3/3), 189 bytes | 189.00 KiB/s, done.
+    From ../repo-server
+     * [new tag]         v1.0       -> v1.0
+    ```
+
+    如果 v2.0 依赖 v1.0，那么会下载依赖项：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git fetch origin tag v2.0
+    remote: Enumerating objects: 5, done.
+    remote: Counting objects: 100% (5/5), done.
+    remote: Compressing objects: 100% (3/3), done.
+    remote: Total 5 (delta 0), reused 0 (delta 0), pack-reused 0
+    Unpacking objects: 100% (5/5), 394 bytes | 394.00 KiB/s, done.
+    From ../repo-server
+     * [new tag]         v2.0       -> v2.0
+     * [new tag]         v1.0       -> v1.0
+    ```
+
+    如果只想下载一个 commit，那么可以使用`--depth`：
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git fetch --depth 1 origin tag v2.0
+    remote: Enumerating objects: 3, done.
+    remote: Counting objects: 100% (3/3), done.
+    remote: Compressing objects: 100% (2/2), done.
+    remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+    Unpacking objects: 100% (3/3), 226 bytes | 226.00 KiB/s, done.
+    From ../repo-server
+     * [new tag]         v2.0       -> v2.0
+    ```
+
+    相关命令：
+
+    * `git fetch origin --tags`：获取所有标签
+
+    * `git pull origin tag v1.0`：获取并尝试合并标签（通常不推荐）
+
+* `git remote`只显示 remote 的 name
+
+    `git remote -v`会显示 remote 的 name 和对应的 fetch 和 push 的 url。
+
+* `git fetch origin`：获取 origin 的所有分支和标签
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git init 
+    Initialized empty Git repository in /home/hlc/Documents/Projects/git_test/repo-2/.git/
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git remote add origin ../repo-server/
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git fetch origin
+    remote: Enumerating objects: 5, done.
+    remote: Counting objects: 100% (5/5), done.
+    remote: Compressing objects: 100% (3/3), done.
+    remote: Total 5 (delta 0), reused 0 (delta 0), pack-reused 0
+    Unpacking objects: 100% (5/5), 394 bytes | 394.00 KiB/s, done.
+    From ../repo-server
+     * [new branch]      master     -> origin/master
+     * [new tag]         v2.0       -> v2.0
+     * [new tag]         v1.0       -> v1.0
+    ```
+
+    注：
+
+    1. `git fetch origin`只获取`origin`的 branch 和 tag，其他的 remote 不被 fetch
+
+* `git remote show origin`: 查看远程分支信息
+
+* 比较版本差异：
+
+    ```bash
+    # 比较 v1.0 和 v2.0 的差异
+    git diff v1.0..v2.0
+
+    # 查看某个文件的变化
+    git diff v1.0..v3.0 -- README.md
+
+    # 查看提交历史
+    git log v1.0..v3.0 --oneline
+    ```
+
+* 精确拉取三个提交
+
+    ```bash
+    # 1. 创建空仓库
+    mkdir repo && cd repo
+    git init
+
+    # 2. 添加远程
+    git remote add origin https://github.com/user/repo.git
+
+    # 3. 只拉取这三个标签对应的提交
+    git fetch --depth 1 origin tag v1.0
+    git fetch --depth 1 origin tag v2.0
+    git fetch --depth 1 origin tag v3.0
+
+    # 4. 创建分支并包含这三个提交
+    git checkout -b my-versions v3.0
+    git merge v2.0  # 这可能会快进，因为v2.0是v3.0的祖先
+    git merge v1.0  # 同样会快进
+    ```
+
+    验证它们在同一个分支上:
+
+    ```bash
+    # 查看标签的提交关系
+    git log --oneline --graph --decorate v1.0 v2.0 v3.0
+
+    # 查看某个标签在哪些分支上
+    git branch --contains v1.0
+    git branch --contains v2.0
+    git branch --contains v3.0
+
+    # 查看标签详情
+    git show --name-only v1.0
+    ```
+
+    注：
+
+    1. `git fetch --depth 1 origin tag v3.0`这种用法没问题，可以只拉取一个 commit
+
+    1. `git merge v1.0`这个不能正常 work，这会引入一个 merge commit。
+
+    1. 整个过程中，commit v1.0 ~ v3.0 都是孤立 commit，无线性关系
+
+* 只关心 v1.0, v2.0, v3.0 这三个 commit，对其他的 commit 毫不关心
+
+    * 单仓库多分支切换（如果需要git功能）
+
+        (未测试)
+
+        ```bash
+        # 1. 先浅克隆一个版本
+        git clone --depth 1 --branch v1.0 https://github.com/user/repo.git
+        cd repo
+
+        # 2. 添加其他版本作为远程分支（但只拉取特定提交）
+        git remote set-branches origin v2.0 v3.0
+        git fetch --depth 1 origin v2.0 v3.0
+
+        # 3. 现在可以切换到不同版本
+        git checkout v2.0  # 分离头指针状态
+        git checkout v3.0  # 分离头指针状态
+        ```
+
+    * 使用 sparse-checkout（Git 2.25+）
+
+        （未测试）
+
+        ```bash
+        # 1. 创建空仓库
+        mkdir repo-all-versions
+        cd repo-all-versions
+        git init
+
+        # 2. 添加远程
+        git remote add origin https://github.com/user/repo.git
+
+        # 3. 启用 sparse-checkout
+        git sparse-checkout init --cone
+
+        # 4. 只拉取特定标签
+        for tag in v1.0 v2.0 v3.0; do
+            git fetch --depth 1 origin tag $tag
+            git checkout tags/$tag -b $tag
+        done
+        ```
+
+* wget 下载 git repo
+
+    ```bash
+    # 方式2： 如果你连 .git 都不想要
+    cd myproject/vendor
+    wget https://github.com/thirdparty/lib/archive/refs/tags/v1.0.tar.gz
+    tar -xzf v1.0.tar.gz
+    mv lib-1.0 lib
+    ```
+
+    ```bash
+    # 直接下载解压到 vendor 目录
+    cd vendor
+    curl -L <url>/archive/refs/tags/v1.0.tar.gz | tar -xz --strip-components=1
+    ```
+
+* git archive（只下载文件，无git历史）
+
+    ```bash
+    # 直接下载tar包（最干净，没有.git文件夹）
+    curl -L https://github.com/user/repo/archive/refs/tags/v1.0.tar.gz | tar -xz
+    # 或者
+    wget https://github.com/user/repo/archive/refs/tags/v1.0.tar.gz
+    tar -xzf v1.0.tar.gz
+    ```
+
 * git submodule 常用命令
 
     状态检查：git submodule status
@@ -470,6 +858,68 @@
 		It would be best to do a git fetch before checking the branches, though, otherwise your determination of whether or not you need to pull will be out of date. You'll also want to verify that each branch you check has a remote tracking branch. You can use git for-each-ref --format='%(upstream:short)' refs/heads/<branch> to do that. That command will return the remote tracking branch of <branch> or the empty string if it doesn't have one. Somewhere on SO there's a different version which will return an error if the branch doesn't haven't a remote tracking branch, which may be more useful for your purpose.
 
 ## topics
+
+### log
+
+* 可以使用`git log`查看提交历史。`git log -p`可以查看每次提交修改的内容。`git log -p -2`可以只查看最后两次 commit 的内容。`git log --stat`可以查看每次提交中每个文件修改了多少行。
+
+* `git log --pretty=oneline`可以以单行形式只显示 sha-1 码和 comments 信息。`oneline`还可以替换成`short`，`full`以及`fuller`。还可以使用`format`设置自定义的格式：`git log --pretty=format:"%h - %an, %ar : %s"`。
+
+    输出：
+
+    ```
+    ca82a6d - Scott Chacon, 6 years ago : changed the version number
+    085bb3b - Scott Chacon, 6 years ago : removed unnecessary test
+    a11bef0 - Scott Chacon, 6 years ago : first commit
+    ```
+
+    `format`的格式参考如下：
+
+    | Option | Description of Output |
+    | - | - |
+    | `%H` | Commit hash |
+    | `%h` | Abbreviated commit hash |
+    | `%T` | Tree hash |
+    | `%t` | Abbreviated tree hash |
+    | `%P` | Parent hashes |
+    | `%p` | Abbreviated parent hashes |
+    | `%an` | Author name |
+    | `%ae` | Author email |
+    | `%ad` | Author date (format respects the `--date=option`) |
+    | `%ar` | Author date, relative |
+    | `%cn` | Committer name |
+    | `%ce` | Committer email |
+    | `%cd` | Committer date |
+    | `%cr` | Committer date, relative |
+    | `%s` | Subject |
+
+* `oneline`和`format`通常和`log --graph`合起来用，得到 branch 和 merge 历史。`git log --pretty=format:"%h %s" --graph`
+
+* 有关`git log`的常用参数：
+
+    | Option | Description |
+    | - | - |
+    | `-p` | Show the patch introduced with each commit. |
+    | `--stat` | Show statistics for files modified in each commit. |
+    | `--shortstat` | Display only the changed/insertions/deletions line from the `--stat` command. |
+    | `--name-only` | Show the list of files modified after the commit information. |
+    | `--name-status` | Show the list of files affected with added/modified/deleted information as well. |
+    | `--abbrev-commit` | Show only the first few characters of the SHA-A checksum instead of all 40. |
+    | `--relative-date` | Display the date in a relative format (for example, "2 weeks ago") instead of using the full date format. |
+    | `--graph` | Display an ASCII graph of the branch and merge history beside the log output. |
+    | `--pretty` | Show commits in an alternate format. Options include oneline, short, full, fuller and format (where you specify your own format). |
+
+* `git log -<n>`可以显示最后`n`次 commit 的信息，但是这个通常不常用，因为`git log`每次都只输出一页。
+
+* `git log`还常和`--since`和`--until`合起来用：
+
+    ```bash
+    git log --since=2.weeks
+    git log --since=2008-01-15
+    git log --since="2 years 1 day 3 minutes ago"
+    ```
+
+* `git log --all`：查看所有 branch 的记录
 
 ### merge
 
@@ -1200,66 +1650,6 @@ mv README.md README
 git rm README.md
 git add README
 ```
-
-可以使用`git log`查看提交历史。`git log -p`可以查看每次提交修改的内容。`git log -p -2`可以只查看最后两次 commit 的内容。`git log --stat`可以查看每次提交中每个文件修改了多少行。
-
-`git log --pretty=oneline`可以以单行形式只显示 sha-1 码和 comments 信息。`oneline`还可以替换成`short`，`full`以及`fuller`。还可以使用`format`设置自定义的格式：`git log --pretty=format:"%h - %an, %ar : %s"`。
-
-输出：
-
-```
-ca82a6d - Scott Chacon, 6 years ago : changed the version number
-085bb3b - Scott Chacon, 6 years ago : removed unnecessary test
-a11bef0 - Scott Chacon, 6 years ago : first commit
-```
-
-`format`的格式参考如下：
-
-| Option | Description of Output |
-| - | - |
-| `%H` | Commit hash |
-| `%h` | Abbreviated commit hash |
-| `%T` | Tree hash |
-| `%t` | Abbreviated tree hash |
-| `%P` | Parent hashes |
-| `%p` | Abbreviated parent hashes |
-| `%an` | Author name |
-| `%ae` | Author email |
-| `%ad` | Author date (format respects the `--date=option`) |
-| `%ar` | Author date, relative |
-| `%cn` | Committer name |
-| `%ce` | Committer email |
-| `%cd` | Committer date |
-| `%cr` | Committer date, relative |
-| `%s` | Subject |
-
-`oneline`和`format`通常和`log --graph`合起来用，得到 branch 和 merge 历史。`git log --pretty=format:"%h %s" --graph`
-
-有关`git log`的常用参数：
-
-| Option | Description |
-| - | - |
-| `-p` | Show the patch introduced with each commit. |
-| `--stat` | Show statistics for files modified in each commit. |
-| `--shortstat` | Display only the changed/insertions/deletions line from the `--stat` command. |
-| `--name-only` | Show the list of files modified after the commit information. |
-| `--name-status` | Show the list of files affected with added/modified/deleted information as well. |
-| `--abbrev-commit` | Show only the first few characters of the SHA-A checksum instead of all 40. |
-| `--relative-date` | Display the date in a relative format (for example, "2 weeks ago") instead of using the full date format. |
-| `--graph` | Display an ASCII graph of the branch and merge history beside the log output. |
-| `--pretty` | Show commits in an alternate format. Options include oneline, short, full, fuller and format (where you specify your own format). |
-
-`git log -<n>`可以显示最后`n`次 commit 的信息，但是这个通常不常用，因为`git log`每次都只输出一页。
-
-`git log`还常和`--since`和`--until`合起来用：
-
-```bash
-git log --since=2.weeks
-git log --since=2008-01-15
-git log --since="2 years 1 day 3 minutes ago"
-```
-
-`git log --all`：查看所有 branch 的记录
 
 `git reflog`：查看包括`reset --hard`之类的修改记录
 

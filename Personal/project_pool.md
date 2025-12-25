@@ -36,18 +36,6 @@
 
 ## cache
 
-* 使用`<img src='../../Reference_resources/xxx/pics/pic_1.png'>`在 md 文件中引用图片似乎也不太好，因为如果把当前 md 文件，或仅引用图片的段落換到其他文件夹里，那么`../../`这个路径就可能错误。
-
-    把图片放到当前文件夹下似乎也不太好，因为可能 md 文字被移动地方了，但是图片没动，导致引用失效。没移动图片，一方面是容易忘，另一方面是不容易在众多图片中找到文字所匹配的。
-
-    相比之下，感觉还是上面`../../`的方案更好一些，因为无论如何它都不需要移动图片文件。就算路径不对，只需要改变下`../`的数量就可以了。
-
-* 线下的思考很有可能是低工作量向高工作量突破的关键
-
-    虽然使用任务管理系统可以达到很高的工作效率，但是一天的工作量并不是很大。
-
-    猜测主要原因是浪费了很多的可利用时间，比如吃饭，走路，挤地铁等等。如果把这些时间拿来思考 cached questions，那么就有可能大量地提高工作量。
-
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -894,6 +882,12 @@ english words 由 { } reorg: english words 进化而来。
 * 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
 
 ### tasks
+
+* [v] process 1 tab 12.24
+
+    feedback:
+
+    * [ ] matlab table 类型
 
 * [v] process 1 tab 12.23
 
@@ -1889,6 +1883,10 @@ english words 由 { } reorg: english words 进化而来。
 ## Matlab
 
 ### tasks
+
+* [ ] 调研 matlab 是否支持类似 python 的命令行模式
+
+    如果不支持，那么 octave, julia 是否支持？
 
 * [new] matlab `length()`
 
@@ -3708,6 +3706,8 @@ resources:
 ## linux maintain
 
 ### cache
+
+* [ ] 调研 rdp 远程桌面如何降低画质、提升速度
 
 * [asso] 调研 ramfs
 
@@ -6437,6 +6437,21 @@ resources:
 ### cache
 
 ### tasks
+
+* [ ] `git log main..origin/main`
+
+    ```bash
+    git fetch origin
+    git log main..origin/main --oneline  # 查看远程有哪些新提交
+    ```
+
+* [v] 调研`git merge v1.0 v2.0 v3.0`
+
+* [v] 使用 git remote -v 查看配置的远程仓库
+
+* [v] 调研`git fetch origin tag v1.0`
+
+    * git fetch origin 获取最新远程分支信息
 
 * [ ] 增加 git 的 qa
 

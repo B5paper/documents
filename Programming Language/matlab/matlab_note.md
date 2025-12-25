@@ -6,6 +6,473 @@
 
 ## cache
 
+* matlab 中查看大型变量的部分内容或摘要
+
+    * 查看数据头部/尾部（类似head/tail）
+
+        * 直接使用索引查看部分数据
+
+            ```matlab
+            % 查看前5行
+            data(1:5, :)  % 对于矩阵
+            data(1:5)     % 对于向量
+
+            % 查看后5行
+            data(end-4:end, :)  % 矩阵
+            data(end-4:end)     % 向量
+            ```
+
+        * 使用内置命令
+
+            ```matlab
+            % MATLAB R2019b及以上版本
+            head(data)      % 显示前8行
+            tail(data)      % 显示后8行
+
+            % 指定行数
+            head(data, 10)  % 显示前10行
+            tail(data, 10)  % 显示后10行
+            ```
+
+    * 获取变量信息摘要
+
+        * 使用 whos 命令
+
+            ```matlab
+            whos variable_name
+            % 或查看工作区所有变量
+            whos
+            ```
+
+        * 使用 size、class 等函数
+
+            ```matlab
+            size(data)      % 显示维度
+            class(data)     % 数据类型
+            length(data)    % 长度（向量）
+            ndims(data)     % 维度数
+            ```
+
+    * 查看变量详细信息（类似透视）
+
+        * 变量编辑器（推荐）
+
+            双击工作区中的变量名，在变量编辑器中可以：
+
+                查看完整数据
+
+                排序、筛选
+
+                可视化查看
+
+                导出部分数据
+
+        * 使用 disp 控制显示
+
+            ```matlab
+            % 只显示部分内容
+            disp('前5行：')
+            disp(data(1:5, :))
+
+            % 或设置显示格式
+            format short    % 简洁格式
+            format long     % 详细格式
+            format compact  % 紧凑显示
+            ```
+
+    * 使用 summary 函数（表格数据）
+
+        ```matlab
+        % 对于table类型
+        if istable(data)
+            summary(data)  % 显示统计摘要
+        end
+
+        % 对于timetable类型
+        if istimetable(data)
+            summary(data)
+        end
+        ```
+
+    * 快速查看函数集合
+
+        可以创建自定义函数方便使用：
+
+        ```matlab
+        function quickview(var, n)
+            % 快速查看变量部分内容
+            if nargin < 2
+                n = 5;
+            end
+            disp(['Size: ', num2str(size(var))])
+            disp(['Type: ', class(var)])
+            disp('--- Head ---')
+            if istable(var)
+                disp(var(1:min(n, height(var)), :))
+            elseif ismatrix(var)
+                disp(var(1:min(n, size(var,1)), :))
+            else
+                disp(var)
+            end
+        end
+        ```
+
+    * 对于特殊数据类型
+
+        ```matlab
+        % 结构体
+        fieldnames(mystruct)  % 查看字段名
+
+        % 元胞数组
+        celldisp(data, 'data')  % 显示元胞内容
+
+        % 稀疏矩阵
+        spy(data)  % 可视化稀疏模式
+        nnz(data)  % 非零元素个数
+        ```
+
+    * 对于超大数组，考虑先抽取样本查看：
+
+        ```matlab
+        sample_idx = randsample(size(data,1), 1000);  % 随机抽取1000行
+        sample = data(sample_idx, :);
+        ```
+
+* matlab struct（结构体）
+
+    结构体是一种将不同类型数据组织在一起的容器。
+
+    * 创建结构体
+
+        ```matlab
+        % 方法1：直接赋值
+        person.name = '张三';
+        person.age = 25;
+        person.scores = [90, 85, 88];
+        person.isStudent = true;
+
+        % 方法2：使用struct函数
+        person = struct('name', '张三', 'age', 25, 'scores', [90, 85, 88]);
+
+        % 方法3：创建结构体数组
+        students(1) = struct('name', '张三', 'age', 25);
+        students(2) = struct('name', '李四', 'age', 23);
+        ```
+
+        注：
+
+        1. 使用数组创建 struct 还可以写成
+
+            ```matlab
+            arr(1).name = 'zhangsan';
+            arr(1).age = 25;
+            arr(2).name = 'lisi';
+            arr(2).age = 26;
+            ```
+
+            如果`arr`这个变量名已经被占用，那么无法通过这样新创建数组`arr`。
+
+        1. 在创建元素为 struct 的数组时，如果数据不全，那么会被自动补上空数组
+
+            ```matlab
+            >> arr(1).name = 'zhangsan';
+            >> arr(2).age = 35;
+            >> arr(1)
+
+            ans = 
+
+              struct with fields:
+
+                name: 'zhangsan'
+                 age: []
+
+            >> arr(2)
+
+            ans = 
+
+              struct with fields:
+
+                name: []
+                 age: 35
+            ```
+
+    * 访问和操作
+
+        ```matlab
+        % 访问字段
+        name = person.name;
+        age = person.age;
+
+        % 修改字段
+        person.age = 26;
+
+        % 添加新字段
+        person.gender = '男';
+
+        % 删除字段
+        person = rmfield(person, 'isStudent');
+
+        % 获取所有字段名
+        fields = fieldnames(person);
+
+        % 检查字段是否存在
+        hasField = isfield(person, 'name');
+
+        % 遍历结构体数组
+        for i = 1:length(students)
+            disp(students(i).name);
+        end
+        ```
+
+    * 常用操作
+
+        ```matlab
+        % 嵌套结构体
+        company.department.engineering.manager = '王工';
+        company.department.engineering.employeeCount = 50;
+
+        % 结构体转为表格（如果结构一致）
+        T = struct2table(students);
+
+        % 从表格转为结构体
+        S = table2struct(T);
+        ```
+
+* matlab cell（元胞数组）
+
+    元胞数组可以存储不同类型和大小的数据，每个元素称为一个"元胞"。
+
+    * 创建元胞数组
+
+        ```matlab
+        % 方法1：使用花括号 {}
+        C = {'字符串', 123, [1,2,3;4,5,6], true};
+
+        % 方法2：使用cell函数
+        C = cell(2, 3);  % 创建2×3的空元胞数组
+        C{1,1} = 'MATLAB';
+        C{1,2} = 2023;
+        C{2,1} = magic(3);
+
+        % 方法3：混合创建
+        data{1} = '文本数据';
+        data{2} = rand(3,4);
+        data{3} = struct('a', 1, 'b', 2);
+        ```
+
+    * 访问元素（重要区别！）
+
+        ```matlab
+        % 花括号 {} 用于访问内容
+        content = C{1,1};  % 返回 'MATLAB' 字符串
+
+        % 圆括号 () 用于访问元胞本身
+        cellElement = C(1,1);  % 返回包含 'MATLAB' 的元胞
+
+        % 示例对比
+        C = {'A', 100};
+        value1 = C{1};     % 'A' (字符)
+        value2 = C(1);     % {'A'} (1×1 cell)
+
+        % 多元素访问
+        subset = C(1:2);   % 返回包含前两个元素的元胞数组
+        contents = C{1:2}; % 错误！不能这样批量获取内容
+        ```
+
+    * 常用操作
+
+        ```matlab
+        % 获取信息
+        size(C)      % 元胞数组维度
+        numel(C)     % 元素总数
+        iscell(C)    % 检查是否为元胞数组
+
+        % 转换为其他类型
+        % 当所有元胞内容类型一致时
+        cell2mat(C)      % 转换为矩阵
+        cell2table(C)    % 转换为表格
+
+        % 从其他类型转换
+        mat2cell(A, [2,2], [3,3])  % 矩阵分块转为元胞
+        num2cell(A)                % 矩阵每个元素转为独立元胞
+
+        % 删除元胞
+        C(3) = [];      % 删除第三个元胞
+        C(:,2) = [];    % 删除第二列
+        ```
+
+    * 特殊用法
+
+        ```matlab
+        % 存储函数句柄
+        funcs = {@sin, @cos, @tan};
+        result = funcs{1}(pi/2);  % 计算 sin(pi/2)
+
+        % 存储不同长度的向量
+        data{1} = 1:10;
+        data{2} = 1:100;
+        data{3} = 1:5;
+
+        % 存储不同类型数据
+        mixedData = {'文本', 123.45, struct(), [1,2,3], @plot};
+        ```
+
+* matlab struct 和 cell 的组合使用
+
+    ```matlab
+    % 结构体字段包含元胞数组
+    student.info = {'张三', 'CS101', 2023};
+    student.grades = {[90,85], [88,92]};
+
+    % 元胞数组包含结构体
+    cellArray{1} = struct('name','A','value',1);
+    cellArray{2} = struct('name','B','value',2);
+
+    % 常见的表格式数据存储
+    for i = 1:100
+        data{i}.id = i;
+        data{i}.value = rand();
+        data{i}.timestamp = datetime('now');
+    end
+    ```
+
+    选择建议
+
+    | 场景 | 推荐 | 理由 |
+    | - | - | - |
+    | 数据有明确字段名 | struct | 字段名自解释，代码可读性强 |
+    | 数据是异构的 | cell | 灵活存储不同类型数据 |
+    | 需要按名称访问 | struct | 直接使用字段名访问 |
+    | 需要按索引访问 | cell | 索引访问更自然 |
+    | 存储函数集合 | cell | 方便批量操作函数句柄 |
+    | 配置参数 | struct | 层次清晰，易于修改 |
+
+    实用技巧
+
+    ```matlab
+    % 批量处理结构体数组的字段
+    ages = [students.age];              % 提取所有age字段到数组
+    names = {students.name};            % 提取所有name字段到元胞数组
+
+    % 元胞数组的便捷操作
+    % 对每个元胞应用函数
+    results = cellfun(@mean, dataCells);  % 对每个元胞计算均值
+
+    % 条件筛选
+    textCells = C(cellfun(@ischar, C));   % 筛选出所有文本元胞
+
+    % 转换嵌套元胞
+    flatCell = [C{:}];  % 展开嵌套的元胞数组（如果内容维度一致）
+    ```
+
+* matlab cell 的历史
+
+    MATLAB 最初（1970s）就设计了 cell 来处理异构数据，大量遗留代码依赖它。
+
+    * 处理真实世界数据的需求:
+
+        ```matlab
+        % 实际问题中确实需要存储混合数据
+        experiment_data{1} = '2023-01-01';  % 日期字符串
+        experiment_data{2} = sensor_readings;  % 数值矩阵
+        experiment_data{3} = experiment_notes;  % 长文本
+        experiment_data{4} = @processing_function;  % 处理函数
+
+        % 表格不能直接存储函数句柄或任意类型
+        ```
+
+    * 灵活性的优势
+
+        ```matlab
+        % 动态数据结构
+        % 链表、树等结构在MATLAB中只能用cell实现
+        tree_node = {value, left_child, right_child};
+
+        % 变长向量数组
+        data{1} = 1:10;
+        data{2} = 1:1000;  % 每个向量长度不同
+        data{3} = 1:5;
+
+        % 如果用矩阵，需要统一长度或用NaN填充
+        ```
+
+    * 特定场景的实用性
+
+        ```matlab
+        % 函数参数传递
+        varargin和varargout必须是cell
+
+        % GUI开发
+        handles结构经常包含cell存储回调函数等
+
+        % 文件处理
+        file_list = dir('*.txt');
+        filenames = {file_list.name};  % 提取所有文件名
+        ```
+
+    * 更好的替代方案
+
+        ```matlab
+        % 1. table类型（R2013b引入）
+        T = table();
+        T.Name = {'张三'; '李四'};
+        T.Age = [25; 23];
+        T.Score = {[90,85]; [88,92]};  % 注意：table中仍可用cell列
+
+        % 更规范，支持SQL式查询，显示友好
+
+        % 2. 结构体数组
+        students = struct('name', {}, 'score', {});
+        % 比cell数组更结构化
+
+        % 3. 面向对象编程
+        classdef ExperimentData
+            properties
+                date
+                readings
+                notes
+                processFunc
+            end
+        end
+        % 类型安全，封装性好
+        ```
+
+    * Cell仍在某些场景不可替代
+
+        ```matlab
+        % 函数式编程风格
+        operations = {@sin, @(x)x.^2, @exp};
+        results = cellfun(@(f) f(data), operations, 'UniformOutput', false);
+
+        % 快速原型开发
+        % 不想定义class或struct时，cell最方便
+
+        % 与旧代码交互
+        % 很多MATLAB工具箱函数返回cell
+        ```
+
+    实际使用建议
+
+    * 尽量避免使用cell的情况
+
+        * 存储同类型数值数据 → 用矩阵
+
+        * 结构化记录数据 → 用table或struct
+
+        * 需要类型安全 → 用class
+
+    * 可以合理使用cell的情况
+
+        * 真正的异构数据
+
+        * 函数句柄集合
+
+        * 字符串数组（直到R2016b才引入string类型）
+
+        * 实现动态数据结构
+
+    * 新代码尽量用table、struct、matrix、自定义类
+
 * `fullfile()`
 
     用于构建完整文件路径的函数，它能自动处理不同操作系统之间的路径分隔符差异。
