@@ -2,6 +2,143 @@
 
 ## cache
 
+* git adverse
+
+    If you want to create a new branch to retain commits you create, you may
+    do so (now or later) by using -c with the switch command. Example:
+
+    git switch -c <new-branch-name>
+
+    Or undo this operation with:
+
+    git switch -
+
+
+    (base) hlc@Ubuntu2204:~/Documents/Projects/git_test/a$ git push
+    fatal: The current branch b_2 has no upstream branch.
+    To push the current branch and set the remote as upstream, use
+
+        git push --set-upstream origin b_2
+
+* 如果遇到问题
+
+    * 问题2：本地已存在同名分支
+
+        ```bash
+        # 如果本地已有 branch_local，想重新关联
+        git checkout branch_local
+        git branch --set-upstream-to=origin/branch_B
+        git pull
+        ```
+
+    * 问题3：想要删除旧的本地分支重新开始
+
+        ```bash
+        # 切换到其他分支
+        git checkout branch_A
+
+        # 删除本地分支
+        git branch -D branch_local
+
+        # 重新创建并追踪
+        git checkout -b branch_local origin/branch_B
+        ```
+
+* 验证操作结果
+
+    ```bash
+    # 查看所有分支及追踪关系
+    git branch -avv
+
+    # 查看当前分支追踪的远程分支
+    git rev-parse --abbrev-ref @{upstream}
+
+    # 查看远程分支的最近提交
+    git log --oneline origin/branch_B
+    ```
+
+* 查看当前的追踪关系
+
+    ```bash
+    # 查看所有分支的追踪情况
+    git branch -vv
+
+    # 查看特定分支的追踪信息
+    git rev-parse --abbrev-ref <branch_name>@{upstream}
+
+    # 或简写
+    git rev-parse --abbrev-ref @{u}
+    ```
+
+* 如果推送被拒绝的情况
+
+    如果远程已存在同名分支，需要强制推送（谨慎使用）：
+
+    ```bash
+    git push -f origin <branch_name>
+    ```
+
+    或者先拉取远程分支再推送：
+
+    ```bash
+    # 如果远程已有同名分支，先拉取
+    git pull origin <branch_name>
+    # 解决可能的冲突后
+    git push origin <branch_name>
+    ```
+
+* 查看远程 repo 信息
+
+    ```bash
+    # 查看所有远程分支
+    git branch -r
+
+    # 查看所有分支（本地和远程）
+    git branch -a
+
+    # 查看远程仓库信息
+    git remote show origin
+    ```
+
+* git clone 时指定 tab
+
+    ```bash
+    git clone -b <tag_name> <repository_url>
+    ```
+
+    example:
+
+    ```bash
+    git clone -b v1.0.0 https://github.com/user/repo.git
+    ```
+
+    这里发生的是：
+
+    * Git 找到标签 v1.0.0 对应的提
+
+    * 将代码克隆到本地
+
+    * 直接检出到那个提交，而不是检出到一个分支
+
+    * 你处于"分离头指针（Detached HEAD）"状态
+
+* 从远程仓库只拉取三个游离 commit
+
+    ```bash
+    git init
+    git remote add origin <repo-url>
+
+    git fetch --depth 1 origin tag v1.0
+    git fetch --depth 1 origin tag v2.0
+    git fetch --depth 1 origin tag v3.0
+
+    git log --all
+
+    git checkout v1.0  # 查看v1.0
+    git checkout v2.0  # 查看v2.0
+    git checkout v3.0  # 查看v3.0
+    ```
+
 * git branch 不同个数的`-v`的效果
 
     ```

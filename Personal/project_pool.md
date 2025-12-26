@@ -883,6 +883,22 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+ * [v] process 1 tab 12.25
+
+ * [v] process 1 tab 12.25
+
+    feedback:
+
+    * [ ] vim 的启动参数
+
+        `vim -n "set nobackup nowritebackup noundofile" file.txt`
+
+    * [ ] `^=`是什么含义
+
+        `set directory^=$HOME/.vim/swap//`
+
+    * [ ] vim `:split`
+
 * [v] process 1 tab 12.24
 
     feedback:
