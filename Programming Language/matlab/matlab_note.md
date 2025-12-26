@@ -6,6 +6,24 @@
 
 ## cache
 
+* 复数
+
+    ```matlab
+    a = 1 + 2i;
+    complex(2, 4)
+    ```
+
+* 常见的与复数相关的函数
+
+    ```matlab
+    conj(c)  % 计算 c 的共轭复数
+    real(c)  % 返回复数 c 的实部
+    imag(c)  % 返回复数 c 的虚部
+    isreal(c)  % 如果数组中全是实数，则返回 1，否则返回 0
+    abs(c)  % 返回复数 c 的模
+    angle(c)  % 返回复数 c 的幅角
+    ```
+
 * 预置变量
 
     * `eps`：计算机的最小正数
@@ -19,110 +37,6 @@
     * `i, j`：虚数单位定义`i`
 
     * `flops`：浮点运算次数，用于统计计算量
-
-* 在脚本中，两个`%`可以标志一个 block：
-
-    ```matlab
-    a = 1
-
-    %% new block
-    b = 2
-    ```
-
-    使用`Ctrl + Enter`可以运行 block 中的内容。
-
-* 块注释
-
-    ```matlab
-    %{
-
-        comments
-
-    %}
-    ```
-
-* 使用 `head()` / `tail()` 查看数据头部/尾部
-
-    ```matlab
-    head(data)      % 显示前 8 行
-    tail(data)      % 显示后 8 行
-
-    % 指定行数
-    head(data, 10)  % 显示前 10 行
-    tail(data, 10)  % 显示后 10 行
-    ```
-
-* 直接使用索引查看部分数据
-
-    ```matlab
-    % 查看前 5 行
-    data(1:5, :)  % 对于矩阵
-    data(1:5)     % 对于向量
-
-    % 查看后 5 行
-    data(end-4:end, :)  % 矩阵
-    data(end-4:end)     % 向量
-    ```
-
-    注：
-
-    1. matlab 不支持`data(:5)`或`data(5:)`这种省略部分索引的写法
-
-    1. 对于二维矩阵，如果只写了一维的索引，比如`data(1:10)`，那么它指的是将原矩阵做取消第一个维度的 flatten 操作后，再索引。
-
-        即从第 1 列开始，下面跟第 2 列，第 3 列…… 以此类推。
-
-        example:
-
-        ```
-        a = [ 1 3 5
-              2 4 6 ]
-        ```
-
-        使用`a(1:3)`索引时，
-
-        ```matlab
-        % 先将 a 变成
-        a_1 = [ 1
-                2
-                3
-                4
-                5
-                6 ]
-
-        % 再取转置
-        a_2 = [ 1 2 3 4 5 6 ]
-        
-        % 最后拿到结果
-        a_3 = [ 1 2 3 ]
-        ```
-
-        注意，最终拿到的结果是行向量。
-
-    1. 索引的后端都是包含在内的，即`data(ind_1:ind_2)`中的`ind_2`是 included 的，整体为闭区间。
-
-* `whos`
-
-    ```matlab
-    % 查看工作区所有变量信息
-    whos
-
-    % 查看指定变量信息
-    whos variable_name
-    ```
-
-* 获取变量信息
-
-    ```matlab
-    size(data)      % 显示形状
-    class(data)     % 数据类型
-    length(data)    % 长度（向量）
-    ndims(data)     % 维度数
-    ```
-
-    注：
-
-    1. `length(data)`显示的是第 1 个维度的长度
 
 * `summary()`
 
@@ -163,20 +77,6 @@
     end
     ```
 
-* 查看 struct 类型数据的信息
-
-    ```matlab
-    % 结构体
-    fieldnames(mystruct)  % 查看字段名
-    ```
-
-* 查看 cell 类型数据的信息
-
-    ```matlab
-    % 元胞数组
-    celldisp(data, 'data')  % 显示元胞内容
-    ```
-
 * 查看稀疏矩阵类型数据的信息
 
     ```matlab
@@ -191,688 +91,6 @@
     sample_idx = randsample(size(data,1), 1000);  % 随机抽取1000行
     sample = data(sample_idx, :);
     ```
-
-* 创建 struct
-
-    ```matlab
-    % 方法1：直接赋值
-    person.name = '张三';
-    person.age = 25;
-    person.scores = [90, 85, 88];
-    person.isStudent = true;
-
-    % 方法2：使用 struct 函数
-    person = struct('name', '张三', 'age', 25, 'scores', [90, 85, 88]);
-
-    % 方法3：创建结构体数组
-    students(1) = struct('name', '张三', 'age', 25);
-    students(2) = struct('name', '李四', 'age', 23);
-    ```
-
-    注：
-
-    1. 使用数组创建 struct 还可以写成
-
-        ```matlab
-        arr(1).name = 'zhangsan';
-        arr(1).age = 25;
-        arr(2).name = 'lisi';
-        arr(2).age = 26;
-        ```
-
-        如果`arr`这个变量名已经被占用，那么无法通过这样新创建数组`arr`。
-
-    1. 在创建元素为 struct 的数组时，如果数据不全，那么会被自动补上空数组
-
-        ```matlab
-        >> arr(1).name = 'zhangsan';
-        >> arr(2).age = 35;
-        >> arr(1)
-
-        ans = 
-
-            struct with fields:
-
-            name: 'zhangsan'
-                age: []
-
-        >> arr(2)
-
-        ans = 
-
-            struct with fields:
-
-            name: []
-                age: 35
-        ```
-
-*  struct（结构体）
-
-    matlab 中 struct (结构体) 是一种将不同类型数据组织在一起的容器。
-
-    * 访问和操作
-
-        ```matlab
-        % 访问字段
-        name = person.name;
-        age = person.age;
-
-        % 修改字段
-        person.age = 26;
-
-        % 添加新字段
-        person.gender = '男';
-
-        % 删除字段
-        person = rmfield(person, 'isStudent');
-
-        % 获取所有字段名
-        fields = fieldnames(person);
-
-        % 检查字段是否存在
-        hasField = isfield(person, 'name');
-
-        % 遍历结构体数组
-        for i = 1:length(students)
-            disp(students(i).name);
-        end
-        ```
-
-    * 常用操作
-
-        ```matlab
-        % 嵌套结构体
-        company.department.engineering.manager = '王工';
-        company.department.engineering.employeeCount = 50;
-
-        % 结构体转为表格（如果结构一致）
-        T = struct2table(students);
-
-        % 从表格转为结构体
-        S = table2struct(T);
-        ```
-
-* cell（元胞数组）
-
-    元胞数组可以存储不同类型和大小的数据，每个元素称为一个"元胞"。
-
-    * 创建元胞数组
-
-        ```matlab
-        % 方法1：使用花括号 {}
-        C = {'字符串', 123, [1,2,3;4,5,6], true};
-
-        % 方法2：使用cell函数
-        C = cell(2, 3);  % 创建2×3的空元胞数组
-        C{1,1} = 'MATLAB';
-        C{1,2} = 2023;
-        C{2,1} = magic(3);
-
-        % 方法3：混合创建
-        data{1} = '文本数据';
-        data{2} = rand(3,4);
-        data{3} = struct('a', 1, 'b', 2);
-        ```
-
-    * 访问元素（重要区别！）
-
-        ```matlab
-        % 花括号 {} 用于访问内容
-        content = C{1,1};  % 返回 'MATLAB' 字符串
-
-        % 圆括号 () 用于访问元胞本身
-        cellElement = C(1,1);  % 返回包含 'MATLAB' 的元胞
-
-        % 示例对比
-        C = {'A', 100};
-        value1 = C{1};     % 'A' (字符)
-        value2 = C(1);     % {'A'} (1×1 cell)
-
-        % 多元素访问
-        subset = C(1:2);   % 返回包含前两个元素的元胞数组
-        contents = C{1:2}; % 错误！不能这样批量获取内容
-        ```
-
-    * 常用操作
-
-        ```matlab
-        % 获取信息
-        size(C)      % 元胞数组维度
-        numel(C)     % 元素总数
-        iscell(C)    % 检查是否为元胞数组
-
-        % 转换为其他类型
-        % 当所有元胞内容类型一致时
-        cell2mat(C)      % 转换为矩阵
-        cell2table(C)    % 转换为表格
-
-        % 从其他类型转换
-        mat2cell(A, [2,2], [3,3])  % 矩阵分块转为元胞
-        num2cell(A)                % 矩阵每个元素转为独立元胞
-
-        % 删除元胞
-        C(3) = [];      % 删除第三个元胞
-        C(:,2) = [];    % 删除第二列
-        ```
-
-    * 特殊用法
-
-        ```matlab
-        % 存储函数句柄
-        funcs = {@sin, @cos, @tan};
-        result = funcs{1}(pi/2);  % 计算 sin(pi/2)
-
-        % 存储不同长度的向量
-        data{1} = 1:10;
-        data{2} = 1:100;
-        data{3} = 1:5;
-
-        % 存储不同类型数据
-        mixedData = {'文本', 123.45, struct(), [1,2,3], @plot};
-        ```
-
-* matlab struct 和 cell 的组合使用
-
-    ```matlab
-    % 结构体字段包含元胞数组
-    student.info = {'张三', 'CS101', 2023};
-    student.grades = {[90,85], [88,92]};
-
-    % 元胞数组包含结构体
-    cellArray{1} = struct('name','A','value',1);
-    cellArray{2} = struct('name','B','value',2);
-
-    % 常见的表格式数据存储
-    for i = 1:100
-        data{i}.id = i;
-        data{i}.value = rand();
-        data{i}.timestamp = datetime('now');
-    end
-    ```
-
-    选择建议
-
-    | 场景 | 推荐 | 理由 |
-    | - | - | - |
-    | 数据有明确字段名 | struct | 字段名自解释，代码可读性强 |
-    | 数据是异构的 | cell | 灵活存储不同类型数据 |
-    | 需要按名称访问 | struct | 直接使用字段名访问 |
-    | 需要按索引访问 | cell | 索引访问更自然 |
-    | 存储函数集合 | cell | 方便批量操作函数句柄 |
-    | 配置参数 | struct | 层次清晰，易于修改 |
-
-    实用技巧
-
-    ```matlab
-    % 批量处理结构体数组的字段
-    ages = [students.age];              % 提取所有age字段到数组
-    names = {students.name};            % 提取所有name字段到元胞数组
-
-    % 元胞数组的便捷操作
-    % 对每个元胞应用函数
-    results = cellfun(@mean, dataCells);  % 对每个元胞计算均值
-
-    % 条件筛选
-    textCells = C(cellfun(@ischar, C));   % 筛选出所有文本元胞
-
-    % 转换嵌套元胞
-    flatCell = [C{:}];  % 展开嵌套的元胞数组（如果内容维度一致）
-    ```
-
-* matlab cell 的历史
-
-    MATLAB 最初（1970s）就设计了 cell 来处理异构数据，大量遗留代码依赖它。
-
-    * 处理真实世界数据的需求:
-
-        ```matlab
-        % 实际问题中确实需要存储混合数据
-        experiment_data{1} = '2023-01-01';  % 日期字符串
-        experiment_data{2} = sensor_readings;  % 数值矩阵
-        experiment_data{3} = experiment_notes;  % 长文本
-        experiment_data{4} = @processing_function;  % 处理函数
-
-        % 表格不能直接存储函数句柄或任意类型
-        ```
-
-    * 灵活性的优势
-
-        ```matlab
-        % 动态数据结构
-        % 链表、树等结构在MATLAB中只能用cell实现
-        tree_node = {value, left_child, right_child};
-
-        % 变长向量数组
-        data{1} = 1:10;
-        data{2} = 1:1000;  % 每个向量长度不同
-        data{3} = 1:5;
-
-        % 如果用矩阵，需要统一长度或用NaN填充
-        ```
-
-    * 特定场景的实用性
-
-        ```matlab
-        % 函数参数传递
-        varargin和varargout必须是cell
-
-        % GUI开发
-        handles结构经常包含cell存储回调函数等
-
-        % 文件处理
-        file_list = dir('*.txt');
-        filenames = {file_list.name};  % 提取所有文件名
-        ```
-
-    * 更好的替代方案
-
-        ```matlab
-        % 1. table类型（R2013b引入）
-        T = table();
-        T.Name = {'张三'; '李四'};
-        T.Age = [25; 23];
-        T.Score = {[90,85]; [88,92]};  % 注意：table中仍可用cell列
-
-        % 更规范，支持SQL式查询，显示友好
-
-        % 2. 结构体数组
-        students = struct('name', {}, 'score', {});
-        % 比cell数组更结构化
-
-        % 3. 面向对象编程
-        classdef ExperimentData
-            properties
-                date
-                readings
-                notes
-                processFunc
-            end
-        end
-        % 类型安全，封装性好
-        ```
-
-    * Cell仍在某些场景不可替代
-
-        ```matlab
-        % 函数式编程风格
-        operations = {@sin, @(x)x.^2, @exp};
-        results = cellfun(@(f) f(data), operations, 'UniformOutput', false);
-
-        % 快速原型开发
-        % 不想定义class或struct时，cell最方便
-
-        % 与旧代码交互
-        % 很多MATLAB工具箱函数返回cell
-        ```
-
-    实际使用建议
-
-    * 尽量避免使用cell的情况
-
-        * 存储同类型数值数据 → 用矩阵
-
-        * 结构化记录数据 → 用table或struct
-
-        * 需要类型安全 → 用class
-
-    * 可以合理使用cell的情况
-
-        * 真正的异构数据
-
-        * 函数句柄集合
-
-        * 字符串数组（直到R2016b才引入string类型）
-
-        * 实现动态数据结构
-
-    * 新代码尽量用table、struct、matrix、自定义类
-
-* `fullfile()`
-
-    用于构建完整文件路径的函数，它能自动处理不同操作系统之间的路径分隔符差异。
-
-    比较像 python 中的`os.path.join()`。
-
-    syntax:
-
-    ```matlab
-    fullpath = fullfile(filepart1, filepart2, ..., filepartN)
-    ```
-
-    usage:
-
-    ```matlab
-    % 基本路径拼接
-    folder = 'C:\Users';
-    subfolder = 'Documents';
-    filename = 'data.txt';
-
-    % 自动处理分隔符
-    fullpath = fullfile(folder, subfolder, filename)
-    % 输出（在Windows上）: 'C:\Users\Documents\data.txt'
-    % 输出（在Linux/macOS上）: 'C:/Users/Documents/data.txt'
-
-    % 拼接多个部分
-    path1 = 'home';
-    path2 = 'user';
-    path3 = 'projects';
-    path4 = 'code';
-    path5 = 'main.m';
-
-    result = fullfile(path1, path2, path3, path4, path5)
-    % 输出: 'home/user/projects/code/main.m' (Linux/macOS)
-    ```
-
-    examples:
-
-    ```matlab
-    %% 示例1：构建文件路径
-    data_dir = 'data';
-    year = '2024';
-    month = '03';
-    filename = 'experiment.csv';
-
-    filepath = fullfile(data_dir, year, month, filename)
-    % 输出: 'data/2024/03/experiment.csv'
-
-    %% 示例2：与 dir、ls 等函数配合使用
-    folder = 'images';
-    files = dir(fullfile(folder, '*.png'));  % 查找 images 文件夹下所有 PNG 文件
-
-    %% 示例3：创建新目录
-    new_dir = fullfile('results', 'analysis', 'plots');
-    mkdir(new_dir);  % 创建 results/analysis/plots 目录
-
-    %% 示例4：保存文件
-    output_dir = 'output';
-    output_file = 'results.mat';
-    save(fullfile(output_dir, output_file), 'data');
-
-    %% 示例5：处理绝对路径和相对路径
-    root = '/home/user';
-    relative_path = 'docs/report.txt';
-    abs_path = fullfile(root, relative_path)
-    % 输出: '/home/user/docs/report.txt'
-
-    %% 示例6：单元格数组输入
-    parts = {'usr', 'local', 'bin', 'matlab'};
-    path_cell = fullfile(parts{:})
-    % 输出: 'usr/local/bin/matlab'
-    ```
-
-    注意事项
-
-    * 不会验证路径是否存在：fullfile() 只负责构建路径字符串，不检查路径是否真实存在
-
-    * 不解析相对路径：不会将 .. 或 . 解析为上级目录或当前目录
-
-    * 与 fileparts() 互补：fileparts() 用于拆分路径，fullfile() 用于合并路径
-
-    * 输入可以是字符串、字符向量或字符串数组
-
-* `fileparts()`
-
-    将完整的文件名或路径分解为路径、文件名和扩展名三个部分，便于单独处理各个组件。
-
-    syntax:
-
-    ```matlab
-    [pathstr, name, ext] = fileparts(filename)
-    [pathstr, name, ext] = fileparts(filename, 'PeriodicExtension', value)
-    ```
-
-    可选参数
-
-    * 'PeriodicExtension', value：控制如何处理周期性扩展名（如 .tar.gz）
-
-        * true（默认）：将 .tar.gz 视为一个扩展名
-
-        * false：只取最后一个扩展名（.gz）
-
-    usage:
-
-    * 基本分解
-
-        ```matlab
-        % 分解完整路径
-        [pathstr, name, ext] = fileparts('C:\Users\John\Documents\report.pdf');
-
-        % 结果:
-        % pathstr = 'C:\Users\John\Documents'
-        % name = 'report'
-        % ext = '.pdf'
-        ```
-
-    * 分解相对路径
-
-        ```matlab
-        [pathstr, name, ext] = fileparts('../data/input.csv');
-
-        % 结果:
-        % pathstr = '../data'
-        % name = 'input'
-        % ext = '.csv'
-        ```
-
-    * 只获取特定部分
-
-        ```matlab
-        % 只需要路径部分
-        path_only = fileparts('C:\project\src\main.m');
-
-        % 只需要文件名（不含扩展名）
-        [~, filename] = fileparts('data/experiment_results.xlsx');
-
-        % 只需要扩展名
-        [~, ~, extension] = fileparts('/home/user/image.jpg');
-        ```
-
-    examples:
-
-    * 创建输出文件路径
-
-        ```matlab
-        % 基于输入文件生成输出文件路径
-        input_file = 'C:\data\input\experiment_data.mat';
-        [input_path, input_name, ~] = fileparts(input_file);
-
-        % 创建输出文件路径
-        output_dir = fullfile(input_path, 'output');
-        output_file = fullfile(output_dir, [input_name '_processed.mat']);
-        ```
-
-    * 获取文件类型信息
-
-        ```matlab
-        % 根据扩展名分类文件
-        files = {'report.pdf', 'data.xlsx', 'script.m', 'notes.txt'};
-
-        for i = 1:length(files)
-            [~, ~, ext] = fileparts(files{i});
-            
-            switch lower(ext)
-                case {'.pdf'}
-                    disp('PDF document');
-                case {'.xlsx', '.xls'}
-                    disp('Excel file');
-                case {'.m'}
-                    disp('MATLAB script');
-                case {'.txt', '.csv'}
-                    disp('Text file');
-                otherwise
-                    disp('Unknown file type');
-            end
-        end
-        ```
-
-    特殊情况和注意事项
-
-    * 处理无扩展名的文件
-
-        ```matlab
-        [pathstr, name, ext] = fileparts('C:\files\README');
-        % pathstr = 'C:\files'
-        % name = 'README'
-        % ext = ''  (空字符串)
-        ```
-
-    * 处理只有扩展名的文件
-
-        ```matlab
-        [pathstr, name, ext] = fileparts('.gitignore');
-        % pathstr = ''
-        % name = ''
-        % ext = '.gitignore'
-        ```
-
-    * 处理文件夹路径
-
-        ```matlab
-        [pathstr, name, ext] = fileparts('C:\Users\John\Documents\');
-        % pathstr = 'C:\Users\John'
-        % name = 'Documents'
-        % ext = ''
-        ```
-
-    * 处理网络路径
-
-        ```matlab
-        [pathstr, name, ext] = fileparts('\\server\share\file.txt');
-        % pathstr = '\\server\share'
-        % name = 'file'
-        % ext = '.txt'
-        ```
-
-    常见错误处理
-
-    * 常见错误处理
-
-        ```matlab
-        % 检查文件是否存在
-        filename = 'somefile.dat';
-        if isfile(filename)
-            [pathstr, name, ext] = fileparts(filename);
-        else
-            error('文件不存在: %s', filename);
-        end
-
-        % 处理空输入
-        filename = '';
-        if ~isempty(filename)
-            [pathstr, name, ext] = fileparts(filename);
-        else
-            % 处理空文件名的情况
-        end
-        ```
-
-    扩展应用:
-
-    ```matlab
-    % 1. 构建新文件名
-    [~, name, ~] = fileparts(original_file);
-    timestamp = datestr(now, 'yyyymmdd_HHMMSS');
-    new_file = sprintf('%s_%s%s', name, timestamp, '.mat');
-
-    % 2. 提取路径层次
-    full_path = 'C:\a\b\c\d\file.txt';
-    parts = strsplit(fileparts(full_path), filesep);
-    % parts = {'C:', 'a', 'b', 'c', 'd'}
-
-    % 3. 获取父目录
-    full_path = 'C:\project\src\utils\helper.m';
-    parent_dir = fileparts(fileparts(full_path));
-    % parent_dir = 'C:\project\src'
-    ```
-
-* `mfilename()`
-
-    返回当前正在执行的 MATLAB 函数或脚本的文件名和路径信息。
-
-    syntax:
-
-    ```matlab
-    function_name = mfilename('fullpath')
-    function_name = mfilename()
-    [name, path] = mfilename('fullpath')
-    ```
-
-    usage:
-
-    * 无参数调用 - 返回当前文件名
-
-        ```matlab
-        % 在 myFunction.m 中调用
-        name = mfilename();
-        % 返回: 'myFunction' (不带扩展名 .m)
-        ```
-
-    * 'fullpath' 参数 - 返回完整路径
-
-        ```matlab
-        % 返回包含完整路径的文件名
-        full_name = mfilename('fullpath');
-        % 示例返回值: 'C:\Users\name\Documents\MATLAB\myScript.m'
-        ```
-
-    * 获取路径和文件名分离
-
-        ```matlab
-        % 方法1: 使用 fileparts
-        [filepath, name, ext] = fileparts(mfilename('fullpath'));
-
-        % 方法2: 直接分割
-        full_name = mfilename('fullpath');
-        [path_str, name_str, ext_str] = fileparts(full_name);
-        ```
-
-        注：
-
-        1. 这两个方法不是一样的吗？
-
-    examples:
-
-    * 获取当前脚本所在目录
-
-        ```matlab
-        % 获取当前.m文件所在目录，用于相对路径操作
-        current_folder = fileparts(mfilename('fullpath'));
-        data_file = fullfile(current_folder, 'data', 'input.csv');
-        ```
-
-    重要特性
-
-    * 在命令窗口调用：返回空字符串 `''`
-
-    * 在脚本中调用：返回脚本文件名
-
-    * 在函数中调用：返回函数文件名
-
-    * 嵌套调用时：始终返回当前执行的文件名
-
-    * 返回不带扩展名：mfilename() 不包含 .m 扩展名
-
-    * mfilename() 在调试和部署时行为一致，适用于需要根据文件位置动态构建路径的应用场景。
-
-    与相关函数的比较
-    函数	返回值	特点
-    mfilename()	当前文件名	不含路径和扩展名
-    mfilename('fullpath')	完整路径+文件名	包含完整路径
-    which(mfilename)	完整路径+文件名	与 mfilename('fullpath') 相似
-    dbstack	调用栈信息	更详细的调用链信息
-
-    * 实用技巧
-
-        ```matlab
-        % 获取当前文件所在目录的最佳实践
-        current_file_path = mfilename('fullpath');
-        [current_dir, ~, ~] = fileparts(current_file_path);
-
-        % 添加当前目录到MATLAB路径（临时）
-        addpath(current_dir);
-
-        % 使用相对路径访问同级目录文件
-        config_file = fullfile(current_dir, 'config', 'settings.json');
-        ```
 
 * matlab 使用尾递归优化
 
@@ -950,388 +168,699 @@
     % 考虑使用分批处理或datastore
     ```
 
-* matlab repmat 与 python repeat dim 对比
-
-    功能	MATLAB	NumPy	说明
-    块复制	repmat(A, m, n)	np.tile(A, (m, n))	复制整个数组
-    元素复制	需用 kron 或索引	np.repeat(A, repeats, axis)	复制单个元素
-    多维复制	repmat(A, [m n p])	np.tile(A, (m, n, p))	多维度扩展
-
-    二、详细对比分析
-
-    1. 块复制（整个数组复制）
-
-        MATLAB repmat:
-
-        ```matlab
-        A = [1 2; 3 4];
-        B = repmat(A, 2, 3);
-        % B = [1 2 1 2 1 2
-        %      3 4 3 4 3 4
-        %      1 2 1 2 1 2
-        %      3 4 3 4 3 4]
-        ```
-
-        NumPy tile (对应功能):
-
-        ```python
-        import numpy as np
-        A = np.array([[1, 2], [3, 4]])
-        B = np.tile(A, (2, 3))
-        # B = [[1 2 1 2 1 2]
-        #      [3 4 3 4 3 4]
-        #      [1 2 1 2 1 2]
-        #      [3 4 3 4 3 4]]
-        ```
-
-    2. 元素复制（单个元素重复）
-    MATLAB 没有直接对应函数，需要变通：
-
-        ```matlab
-        % 方法1: 使用 kron (克罗内克积)
-        A = [1 2; 3 4];
-        B = kron(A, ones(2, 2));
-        % B = [1 1 2 2
-        %      1 1 2 2
-        %      3 3 4 4
-        %      3 3 4 4]
-        % 每个元素变成2×2块
-
-        % 方法2: 使用索引
-        A = [1 2 3];
-        B = A(ones(3,1), :);  % 每行重复3次
-        % B = [1 2 3
-        %      1 2 3
-        %      1 2 3]
-        ```
-
-        NumPy repeat (直接支持):
-
-        ```python
-        import numpy as np
-        A = np.array([[1, 2], [3, 4]])
-
-        # 沿axis=0重复（行方向）
-        B = np.repeat(A, 2, axis=0)
-        # B = [[1 2]
-        #      [1 2]
-        #      [3 4]
-        #      [3 4]]
-
-        # 沿axis=1重复（列方向）
-        C = np.repeat(A, 2, axis=1)
-        # C = [[1 1 2 2]
-        #      [3 3 4 4]]
-
-        # 每个元素重复不同次数
-        D = np.repeat(A, [2, 3], axis=0)  # 第1行重复2次，第2行重复3次
-        ```
-
-    3. 三维及多维数组复制
-
-    MATLAB:
+* matlab 错误处理
 
     ```matlab
-    A = reshape(1:8, [2, 2, 2]);
-    % A(:,:,1) = [1 3; 2 4]
-    % A(:,:,2) = [5 7; 6 8]
-
-    B = repmat(A, [2, 1, 2]);  % 行×2，列×1，页×2
-    size(B)  % [4, 2, 4]
-    ```
-
-    NumPy:
-
-    ```python
-    import numpy as np
-    A = np.arange(1, 9).reshape(2, 2, 2)
-
-    # tile: 整个数组复制
-    B = np.tile(A, (2, 1, 2))  # 对应MATLAB的repmat
-    print(B.shape)  # (4, 2, 4)
-
-    # repeat: 元素复制
-    C = np.repeat(A, 2, axis=2)  # 沿第三维度复制
-    print(C.shape)  # (2, 2, 4)
-    ```
-
-    三、功能映射表
-
-    从 NumPy 到 MATLAB:
-
-    ```python
-    # NumPy 代码
-    np.tile(A, (2, 3))      → repmat(A, 2, 3)      # MATLAB
-    np.repeat(A, 3, axis=0) → A(ones(3,1), :, :)   # MATLAB (3D时需要调整)
-    np.repeat(A, 3, axis=1) → A(:, ones(3,1), :)   # MATLAB (3D时需要调整)
-    np.repeat(A, 3, axis=2) → A(:, :, ones(3,1))   # MATLAB
-    ```
-
-    从 MATLAB 到 NumPy:
-
-    ```matlab
-    % MATLAB 代码
-    repmat(A, 2, 3)     → np.tile(A, (2, 3))          # NumPy
-    kron(A, ones(2,2))  → np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)  # NumPy
-    A(ones(3,1), :)     → np.repeat(A, 3, axis=0)     # NumPy
-    ```
-
-    四、实际应用场景对比
-
-    场景1：创建网格数据
-
-    MATLAB (常用meshgrid):
-
-    ```matlab
-    % 创建2D网格
-    x = 1:3;
-    y = 1:2;
-    [X, Y] = meshgrid(x, y);
-
-    % 用repmat实现
-    X_rep = repmat(x, length(y), 1);
-    Y_rep = repmat(y', 1, length(x));
-    ```
-
-    NumPy (常用meshgrid):
-
-    ```python
-    import numpy as np
-    x = np.arange(1, 4)
-    y = np.arange(1, 3)
-    X, Y = np.meshgrid(x, y)
-
-    # 用tile实现
-    X_tile = np.tile(x, (len(y), 1))
-    Y_tile = np.tile(y.reshape(-1, 1), (1, len(x)))
-    ```
-
-    场景2：批量向量运算
-
-    MATLAB (广播机制R2016b+):
-
-    ```matlab
-    % 旧方法：需要repmat
-    A = rand(3, 4);
-    row_vector = [1 2 3 4];
-    B = A + repmat(row_vector, size(A,1), 1);
-
-    % 新方法：自动广播
-    B = A + row_vector;  % R2016b+ 支持
-    ```
-
-    NumPy (天然支持广播):
-
-    ```python
-    import numpy as np
-    A = np.random.rand(3, 4)
-    row_vector = np.array([1, 2, 3, 4])
-    B = A + row_vector  # 自动广播
-    ```
-
-    场景3：图像处理中的通道复制
-
-    MATLAB:
-
-    ```matlab
-    % 灰度图转RGB伪彩色
-    gray_img = imread('gray.jpg');
-    height = size(gray_img, 1);
-    width = size(gray_img, 2);
-
-    % 方法1: 使用cat
-    rgb_img = cat(3, gray_img, gray_img, gray_img);
-
-    % 方法2: 使用repmat
-    rgb_img = repmat(gray_img, [1, 1, 3]);
-    ```
-
-    NumPy:
-
-    ```python
-    import numpy as np
-    import cv2
-
-    gray_img = cv2.imread('gray.jpg', cv2.IMREAD_GRAYSCALE)
-    height, width = gray_img.shape
-
-    # 方法1: 使用stack
-    rgb_img = np.stack([gray_img, gray_img, gray_img], axis=2)
-
-    # 方法2: 使用tile
-    rgb_img = np.tile(gray_img[:, :, np.newaxis], (1, 1, 3))
-
-    # 方法3: 使用repeat
-    rgb_img = np.repeat(gray_img[:, :, np.newaxis], 3, axis=2)
-    ```
-
-    五、性能对比
-    
-    测试代码：
-    
-    MATLAB:
-
-    ```matlab
-    function test_performance()
-        A = rand(1000, 1000);
-        
-        % 测试repmat
-        tic;
-        for i = 1:100
-            B = repmat(A, 2, 2);
-        end
-        repmat_time = toc;
-        
-        % 测试索引方法
-        tic;
-        for i = 1:100
-            B = A(ones(2,1), ones(2,1), :);
-        end
-        index_time = toc;
-        
-        fprintf('repmat: %.4f秒\n', repmat_time);
-        fprintf('索引: %.4f秒\n', index_time);
+    try
+        fid = fopen('nonexistent.txt', 'r');
+        data = fscanf(fid, '%f');
+        fclose(fid);
+    catch ME
+        fprintf('错误: %s\n', ME.message);
+        % 错误恢复逻辑...
     end
     ```
-    
-    Python/NumPy:
 
-    ```python
-    import numpy as np
-    import time
+* matlab 编程基础
 
-    A = np.random.rand(1000, 1000)
-
-    # 测试tile
-    start = time.time()
-    for i in range(100):
-        B = np.tile(A, (2, 2))
-    tile_time = time.time() - start
-
-    # 测试repeat
-    start = time.time()
-    for i in range(100):
-        B = np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)
-    repeat_time = time.time() - start
-
-    print(f"tile: {tile_time:.4f}秒")
-    print(f"repeat: {repeat_time:.4f}秒")
-    ```
-
-    六、关键差异总结
-    
-    1. 设计哲学差异
-    
-    MATLAB：repmat 专注于块复制，设计简单统一
-
-    NumPy：区分 tile (块复制) 和 repeat (元素复制)，功能更精细
-
-    2. 语法差异
-    
-        ```matlab
-        % MATLAB - 参数顺序不同
-        B = repmat(A, m, n, p)      % 直接列出各维度重复次数
-        ```
-
-        ```py
-        # NumPy - 使用元组
-        B = np.tile(A, (m, n, p))   # 重复次数放在元组中
-        ```
-
-    3. 广播机制
-
-        MATLAB：从 R2016b 开始支持自动广播，减少对 repmat 的依赖
-
-        NumPy：从一开始就支持广播，更自然地处理维度扩展
-
-    4. 内存布局考虑
+    * 脚本文件 (.m)
 
         ```matlab
-        % MATLAB：列优先（Fortran风格）
-        A = [1 2 3; 4 5 6];  % 内存顺序：1, 4, 2, 5, 3, 6
+        % myscript.m
+        x = linspace(0, 2*pi, 100);
+        y = sin(x);
+        plot(x, y);
+        title('正弦曲线');
         ```
 
-        ```py
-        # NumPy：默认行优先（C风格），可指定
-        A = np.array([[1, 2, 3], [4, 5, 6]])  # 内存顺序：1, 2, 3, 4, 5, 6
+        在 command windows 直接输入脚本文件的名字，即可运行。比如
+
+        `>>> myscript`
+
+    * 函数文件
+
+        ```matlab
+        % myfunction.m
+        function [output1, output2] = myfunction(input1, input2)
+            % 函数说明
+            output1 = input1 + input2;
+            output2 = input1 * input2;
+        end
         ```
 
-    七、迁移建议
+    * 流程控制
 
-    从 NumPy 迁移到 MATLAB:
+        ```matlab
+        % 条件判断
+        if x > 0
+            disp('正数');
+        elseif x < 0
+            disp('负数');
+        else
+            disp('零');
+        end
 
-    ```py
-    np.tile(A, reps) → repmat(A, reps)（直接对应）
+        % 循环
+        for i = 1:10
+            disp(i);
+        end
 
-    np.repeat(A, n, axis) → 需要手动实现：
-    ```
+        while x < 100
+            x = x * 2;
+        end
+        ```
 
-    ```matlab
-    % axis=0 (行方向)
-    B = A(ones(n,1), :, :, ...);  % 根据维度调整
-
-    % axis=1 (列方向)  
-    B = A(:, ones(n,1), :, ...);
-
-    % 或用 kron 实现元素级复制
-    B = kron(A, ones(n, 1));  % 特定情况
-    ```
-
-    从 MATLAB 迁移到 NumPy:
-
-    repmat(A, m, n) → np.tile(A, (m, n))
-
-    kron(A, ones(m,n)) → np.repeat(np.repeat(A, m, axis=0), n, axis=1)
-
-    A(ones(m,1), :) → np.repeat(A, m, axis=0)
-
-    八、现代替代方案
-    
-    MATLAB 广播机制（R2016b+）
+* 基本计算
 
     ```matlab
-    % 不再需要 repmat 的场景
-    A = rand(3, 4);
-    v = [1 2 3 4];
+    >> 3 + 4 * 2  % 直接计算
+    ans = 11
 
-    % 旧方法
-    B = A + repmat(v, size(A,1), 1);
-
-    % 新方法（更简洁高效）
-    B = A + v;  % 自动广播
-    NumPy 广播机制
+    >> x = 5;      % 赋值（分号抑制输出）
+    >> y = x^2 + 3*x - 2
+    y = 38
     ```
 
-    ```python
-    # NumPy 一直支持广播
-    A = np.random.rand(3, 4)
-    v = np.array([1, 2, 3, 4])
-    B = A + v  # 自动广播
+* 向量和矩阵
+
+    ```matlab
+    >> A = [1 2 3; 4 5 6; 7 8 9]  % 创建矩阵
+    >> v = 1:0.5:3                % 创建向量 [1, 1.5, 2, 2.5, 3]
+    >> B = zeros(3, 2)            % 3×2零矩阵
+    >> C = ones(2, 3)             % 2×3全1矩阵
     ```
 
-    九、结论
+    `A`中的空格也可以为逗号。
 
-    repmat 与 NumPy 的对应关系：
+    `1:3`默认步长为 1，即生成`1 2 3`
 
-    * `repmat ≈ np.tile`：都是块复制，复制整个数组
+* 常用运算
 
-    * `repmat ≠ np.repeat`：repmat 不直接支持元素级复制
+    ```matlab
+    >> A'          % 转置
+    >> A * B       % 矩阵乘法
+    >> A .* B      % 元素对应相乘
+    >> inv(A)      % 求逆
+    >> size(A)     % 矩阵大小
+    ```
 
-    主要差异原因：
+    注：
 
-    * 设计目标不同：MATLAB 强调数学计算简洁性，NumPy 提供更细粒度控制
+    1. `size(A)`得到的也是一个向量，或者说，一维矩阵
 
-    * 历史原因：MATLAB 先有 repmat，后来 NumPy 设计时区分了 tile 和 repeat
+## topics
 
-    * 使用场景：MATLAB 用户更多进行矩阵运算，NumPy 用户需要更灵活的数据操作
+### 可视化
 
-    实用建议：
+* 基本绘图
 
-    * 熟悉两种工具的差异，避免直接移植代码时的误解
+    ```matlab
+    x = linspace(0, 2 * pi)
+    y = sin(x)
+    figure;                       % 新建图形窗口
+    plot(x, y, 'r--', 'LineWidth', 2);  % 红色虚线
+    xlabel('X轴');
+    ylabel('Y轴');
+    grid on;                      % 显示网格
+    hold on;                      % 保持图形
+    plot(x, cos(x), 'b-');       % 继续绘图
+    legend('sin', 'cos');        % 添加图例
+    ```
 
-    * 了解各自的最优实践（如 MATLAB 的广播、NumPy 的向量化）
+    注：
 
-    * 根据具体需求选择合适的方法，而非强行对应
+    1. `hold on`和`grid on`也可以写在 plot 第一幅图之前
+
+* 子图
+
+    ```matlab
+    subplot(2, 2, 1);
+    plot(x, sin(x));
+    subplot(2, 2, 2);
+    plot(x, cos(x));
+    subplot(2, 2, 3);
+    bar([1 2 3 4]);
+    subplot(2, 2, 4);
+    histogram(randn(1000,1));
+    ```
+
+    注：
+
+    1. 还可以写成`subplot(221)`，`subplot(222)`等。
+
+### 打印与字符串
+
+* matlab 中，单引号`'`和双引号`"`都可以表示字符串。
+
+* matlab 中，`disp('xxx')`和`disp('xxx');`效果相同，都没有`ans = xxx`的输出。
+
+* matlab 打印
+
+    * disp() - 基本显示
+
+        ```matlab
+        disp('Hello World');          % 显示字符串
+        disp(['x = ', num2str(5)]);   % 显示变量
+
+        % 显示矩阵
+        A = [1 2 3; 4 5 6];
+        disp('矩阵A:');
+        disp(A);
+        ```
+
+    * fprintf() - 格式化输出（最常用）
+
+        ```matlab
+        % 基本格式
+        fprintf('格式字符串', 变量1, 变量2, ...);
+
+        % 常用格式符
+        % %d - 整数
+        % %f - 浮点数
+        % %e - 科学计数法
+        % %g - 自动选择 %f 或 %e
+        % %s - 字符串
+        % %c - 字符
+        % %% - 百分号本身
+        ```
+
+        example:
+
+        ```matlab
+        % 整数
+        age = 25;
+        fprintf('年龄: %d 岁\n', age);          % 年龄: 25 岁
+
+        % 浮点数（控制小数位数）
+        pi_value = pi;
+        fprintf('π = %.2f\n', pi_value);        % π = 3.14
+        fprintf('π = %.4f\n', pi_value);        % π = 3.1416
+        fprintf('π = %8.4f\n', pi_value);       % π =   3.1416（总宽度8）
+
+        % 科学计数法
+        speed = 299792458;
+        fprintf('光速: %.2e m/s\n', speed);     % 光速: 3.00e+08 m/s
+
+        % 字符串
+        name = '张三';
+        fprintf('姓名: %s\n', name);            % 姓名: 张三
+
+        % 多个变量
+        x = 10; y = 3.1416; z = '结果';
+        fprintf('%s: x = %d, y = %.2f\n', z, x, y);  % 结果: x = 10, y = 3.14
+
+        % 对齐输出
+        fprintf('%-10s %10s %10s\n', '姓名', '年龄', '分数');
+        fprintf('%-10s %10d %10.1f\n', '张三', 20, 85.5);
+        fprintf('%-10s %10d %10.1f\n', '李四', 22, 92.0);
+        % 输出：
+        % 姓名             年龄        分数
+        % 张三               20       85.5
+        % 李四               22       92.0
+        ```
+
+    * sprintf() - 格式化字符串（不直接显示）
+
+        ```matlab
+        % 创建格式化的字符串，不直接输出
+        str = sprintf('结果: %.3f', pi);
+        disp(str);  % 结果: 3.142
+
+        % 构建复杂字符串
+        name = '小明';
+        score = 95.5;
+        date_str = datestr(now, 'yyyy-mm-dd');
+        report = sprintf('成绩报告\n姓名: %s\n分数: %.1f\n日期: %s\n', ...
+                        name, score, date_str);
+        disp(report);
+        ```
+
+    * 表格形式输出
+
+        ```matlab
+        % 创建表格数据
+        names = {'张三', '李四', '王五'};
+        ages = [20; 22; 21];
+        scores = [85.5; 92.0; 88.5];
+
+        % 表头
+        fprintf('\n========== 学生成绩表 ==========\n');
+        fprintf('%-10s %-8s %-10s\n', '姓名', '年龄', '成绩');
+        fprintf('%s\n', repmat('-', 1, 30));
+
+        % 数据行
+        for i = 1:length(names)
+            fprintf('%-10s %-8d %-10.1f\n', names{i}, ages(i), scores(i));
+        end
+
+        fprintf('\n总人数: %d\n', length(names));
+        ```
+
+        output:
+
+        ```
+        ========== 学生成绩表 ==========
+        姓名         年龄       成绩        
+        ------------------------------
+        张三         20       85.5      
+        李四         22       92.0      
+        王五         21       88.5      
+
+        总人数: 3
+        ```
+
+    * 进度条和动态显示
+
+        ```matlab
+        % 进度条
+        total = 100;
+        fprintf('进度: [');
+        for i = 1:total
+            % 每10%显示一个#
+            if mod(i, 10) == 0
+                fprintf('#');
+            end
+            pause(0.01); % 模拟计算
+        end
+        fprintf('] 完成！\n');
+
+        % 动态更新单行
+        for i = 1:20
+            fprintf('处理中: %d/%d\r', i, 20);
+            pause(0.1);
+        end
+        fprintf('\n完成！\n');
+        ```
+
+    * 综合 example
+
+        ```matlab
+        clear; clc;  % 清理环境
+
+        % 程序开始
+        fprintf('%s\n', repmat('=', 1, 50));
+        fprintf('           数据分析报告\n');
+        fprintf('%s\n\n', repmat('=', 1, 50));
+
+        % 计算并显示结果
+        data = randn(100, 1);
+        mean_val = mean(data);
+        std_val = std(data);
+
+        fprintf('统计结果:\n');
+        fprintf('%-15s: %8.4f\n', '平均值', mean_val);
+        fprintf('%-15s: %8.4f\n', '标准差', std_val);
+        fprintf('%-15s: %8d\n', '样本数', length(data));
+
+        % 用表格显示前5个数据
+        fprintf('\n前5个样本:\n');
+        for i = 1:min(5, length(data))
+            fprintf('样本 %2d: %8.4f\n', i, data(i));
+        end
+        ```
+
+### 高性能与大数据
+
+* matlab 内存管理
+
+    ```matlab
+    % 大文件分块读取
+    chunk_size = 10000;
+    fid = fopen('large_file.txt', 'r');
+    while ~feof(fid)
+        chunk = textscan(fid, '%f', chunk_size);
+        % 处理chunk...
+    end
+    fclose(fid);
+
+    % 使用datastore处理超大文件
+    ds = datastore('large_file.csv');
+    while hasdata(ds)
+        chunk = read(ds);
+        % 处理chunk...
+    end
+    ```
+
+* 预分配内存的大数据应用
+
+    ```matlab
+    % 不推荐：多次动态扩展
+    result = [];
+    for i = 1:1000
+        result = [result; repmat(i, 10, 1)];  % 每次循环都复制
+    end
+
+    % 推荐：一次性预分配
+    result = zeros(10000, 1);
+    for i = 1:1000
+        idx = (i-1)*10+1 : i*10;
+        result(idx) = repmat(i, 10, 1);
+    end
+
+    % 更推荐：向量化（无循环）
+    result = repmat((1:1000)', 10, 1);
+    result = sort(result);  % 如果需要排序
+    ```
+
+### 文件 IO 与序列化
+
+* matlab 文本文件读写
+
+    * 读取文本文件
+
+        ```matlab
+        % 方法1: fscanf - 格式化读取
+        fid = fopen('data.txt', 'r');
+        data = fscanf(fid, '%f');  % 读取浮点数
+        fclose(fid);
+
+        % 方法2: textscan - 灵活读取混合数据
+        fid = fopen('data.txt', 'r');
+        C = textscan(fid, '%s %f %f', 'Delimiter', ',');
+        fclose(fid);
+        names = C{1}; values1 = C{2}; values2 = C{3};
+
+        % 方法3: readmatrix (R2019a+)
+        data = readmatrix('data.txt');
+
+        % 方法4: readtable - 读取为表格
+        T = readtable('data.csv');
+        T = readtable('data.txt', 'Delimiter', '\t');  % 制表符分隔
+        ```
+
+    * 写入文本文件
+
+        ```matlab
+        % 方法1: fprintf
+        fid = fopen('output.txt', 'w');  % 'w'写入，'a'追加
+        fprintf(fid, '姓名: %s, 年龄: %d, 分数: %.2f\n', '张三', 20, 85.5);
+        fclose(fid);
+
+        % 方法2: writematrix (R2019a+)
+        A = [1 2 3; 4 5 6];
+        writematrix(A, 'matrix.txt');
+        writematrix(A, 'matrix.txt', 'Delimiter', '\t');  % 制表符分隔
+
+        % 方法3: writetable - 写入表格
+        data = {'张三', 20, 85.5; '李四', 22, 92.0};
+        T = cell2table(data, 'VariableNames', {'Name','Age','Score'});
+        writetable(T, 'students.csv');
+        ```
+
+* matlab 读写CSV
+
+    ```matlab
+    % 读取CSV
+    data = csvread('data.csv');        % 纯数值数据
+    T = readtable('data.csv');         % 包含表头
+    [M, ~, ~] = xlsread('data.csv');   % 读取Excel格式CSV
+
+    % 写入CSV
+    csvwrite('output.csv', data);      % 写入数值数据
+    writetable(T, 'output.csv');       % 写入表格（带表头）
+
+    % 自定义分隔符
+    data = dlmread('data.txt', ',');   % 指定分隔符为逗号
+    dlmwrite('output.txt', data, 'delimiter', '\t');  % 制表符分隔
+    ```
+
+* matlab 文件与目录管理
+
+    ```
+    % 文件操作
+    exist('filename.txt')   % 检查文件是否存在（返回0-7）
+    copyfile('源','目标')   % 复制文件
+    movefile('源','目标')   % 移动/重命名
+    delete('filename.txt')  % 删除文件
+
+    % 创建目录
+    mkdir('newfolder')      % 创建文件夹
+    rmdir('foldername')     % 删除空文件夹
+    ```
+
+* 文件常用函数速查表
+
+    | 操作类型 | 读取函数 | 写入函数 | 适用格式 |
+    | - | - | - | - |
+    | 文本文件 | fscanf, textscan | fprintf | .txt, .dat |
+    | 表格数据 | readtable | writetable | .csv, .txt, .xlsx |
+    | 数值矩阵 | readmatrix | writematrix | .txt, .csv |
+    | Excel | xlsread | xlswrite | .xlsx, .xls |
+    | 二进制 | load | save | .mat |
+    | 图像 | imread | imwrite | .jpg, .png, .tif |
+    | 音频 | audioread | audiowrite | .wav, .mp3 |
+
+* matlab 读写 Excel
+
+    ```matlab
+    % 读取 Excel
+    [num, txt, raw] = xlsread('data.xlsx');      % 读取整个工作表
+    [num, txt, raw] = xlsread('data.xlsx', 'Sheet2');  % 指定工作表
+    [num, txt, raw] = xlsread('data.xlsx', 'A1:C10');  % 指定区域
+
+    % 写入 Excel
+    data = {'Name','Age','Score'; '张三',20,85.5; '李四',22,92.0};
+    xlswrite('output.xlsx', data);               % 写入数据
+    xlswrite('output.xlsx', data, 'Sheet1', 'A1');  % 指定位置
+
+    % 新版方法 (R2019a+)
+    T = readtable('data.xlsx');                  % 读取为表格
+    writetable(T, 'output.xlsx', 'Sheet', 'Results');  % 写入表格
+    ```
+
+* matlab 保存和加载变量
+
+    ```matlab
+    % 保存变量
+    x = rand(10, 10);
+    y = magic(5);
+    z = 'test string';
+    save('data.mat');                    % 保存所有变量
+    save('data.mat', 'x', 'y');         % 只保存x和y
+    save('data.mat', '-append');        % 追加保存
+    save('data.mat', '-v7.3');          % 保存大型数据（>2GB）
+
+    % 加载变量
+    load('data.mat');                   % 加载所有变量
+    data = load('data.mat');            % 加载到结构体
+    x = data.x;                         % 访问具体变量
+
+    % 检查MAT文件内容
+    whos('-file', 'data.mat');          % 查看文件中的变量
+    ```
+
+* matlab 读写图像
+
+    ```matlab
+    % 读取图像
+    img = imread('image.jpg');          % 读取JPEG
+    img = imread('image.png');          % 读取PNG
+    img = imread('image.tif', 3);       % 读取TIFF第3帧
+
+    % 显示图像
+    imshow(img);
+    image(img); colormap(gray);
+
+    % 保存图像
+    imwrite(img, 'output.jpg', 'Quality', 90);      % JPEG质量90%
+    imwrite(img, 'output.png', 'Transparency', [0 0 0]);  % PNG透明
+    ```
+
+* matlab 读写音频
+
+    ```matlab
+    % 读取音频
+    [y, Fs] = audioread('audio.wav');   % 读取WAV
+    [y, Fs] = audioread('audio.mp3');   % 读取MP3
+    info = audioinfo('audio.wav');      % 获取音频信息
+
+    % 播放音频
+    sound(y, Fs);                       % 立即播放
+    player = audioplayer(y, Fs);        % 创建播放器对象
+    play(player);
+
+    % 保存音频
+    audiowrite('output.wav', y, Fs);                    % WAV格式
+    audiowrite('output.mp3', y, Fs, 'BitRate', 128);    % MP3格式
+    ```
+
+* matlab 遍历文件夹文件
+
+    ```matlab
+    % 获取文件列表
+    files = dir('*.txt');               % 所有txt文件
+    files = dir('data/*.csv');          % 子文件夹中的CSV
+
+    % 遍历处理
+    for i = 1:length(files)
+        filename = files(i).name;
+        fullpath = fullfile(files(i).folder, filename);
+        fprintf('处理文件: %s\n', filename);
+        
+        % 读取文件内容
+        data = readmatrix(fullpath);
+        
+        % 处理数据...
+    end
+    ```
+
+* matlab 文件路径操作
+
+    ```matlab
+    % 构建完整路径
+    fullpath = fullfile('folder', 'subfolder', 'file.txt');
+
+    % 路径分解
+    [pathstr, name, ext] = fileparts('C:\data\test.txt');
+    % pathstr = 'C:\data', name = 'test', ext = '.txt'
+
+    % 相对路径转绝对路径
+    abs_path = which('myfunction.m');    % 查找文件绝对路径
+    ```
+
+* matlab 交互式文件选择
+
+    ```matlab
+    % 选择文件
+    [filename, pathname] = uigetfile(...
+        {'*.txt;*.csv', '数据文件 (*.txt, *.csv)';
+        '*.xlsx;*.xls', 'Excel文件 (*.xlsx, *.xls)';
+        '*.*', '所有文件 (*.*)'}, ...
+        '选择数据文件');
+
+    if ~isequal(filename, 0)
+        fullpath = fullfile(pathname, filename);
+        % 读取文件...
+    end
+
+    % 选择文件夹
+    folder = uigetdir('C:\', '选择数据文件夹');
+    ```
+
+* matlab 完整的数据处理流程 example
+
+    ```matlab
+    function process_data_files()
+        clear; clc; close all;
+        
+        % 1. 选择输入文件
+        [infile, inpath] = uigetfile({'*.csv;*.xlsx', '数据文件'}, '选择输入文件');
+        if isequal(infile, 0)
+            error('未选择文件');
+        end
+        input_file = fullfile(inpath, infile);
+        
+        % 2. 读取数据
+        fprintf('正在读取: %s\n', infile);
+        if endsWith(infile, '.csv')
+            data = readtable(input_file);
+        elseif endsWith(infile, '.xlsx')
+            data = readtable(input_file);
+        end
+        
+        % 3. 处理数据
+        fprintf('数据大小: %d行 × %d列\n', size(data));
+        
+        % 统计分析
+        stats.mean = mean(data{:, 2:end});
+        stats.std = std(data{:, 2:end});
+        stats.min = min(data{:, 2:end});
+        stats.max = max(data{:, 2:end});
+        
+        % 4. 保存结果
+        % 保存为MAT文件
+        save('analysis_results.mat', 'data', 'stats');
+        
+        % 保存为Excel
+        output_table = array2table([stats.mean; stats.std; stats.min; stats.max]');
+        output_table.Properties.VariableNames = {'Mean', 'Std', 'Min', 'Max'};
+        output_table.Properties.RowNames = data.Properties.VariableNames(2:end);
+        
+        writetable(output_table, 'statistics.xlsx', 'WriteRowNames', true);
+        
+        % 5. 生成报告
+        generate_report(data, stats, infile);
+        
+        fprintf('处理完成！\n');
+    end
+
+    function generate_report(data, stats, filename)
+        report_file = 'analysis_report.txt';
+        fid = fopen(report_file, 'w');
+        
+        fprintf(fid, '数据分析报告\n');
+        fprintf(fid, '%s\n', repmat('=', 50));
+        fprintf(fid, '输入文件: %s\n', filename);
+        fprintf(fid, '分析时间: %s\n', datestr(now));
+        fprintf(fid, '\n统计结果:\n\n');
+        
+        fprintf(fid, '%-15s %10s %10s %10s %10s\n', ...
+            '变量', '平均值', '标准差', '最小值', '最大值');
+        fprintf(fid, '%s\n', repmat('-', 55));
+        
+        vars = data.Properties.VariableNames(2:end);
+        for i = 1:length(vars)
+            fprintf(fid, '%-15s %10.2f %10.2f %10.2f %10.2f\n', ...
+                vars{i}, stats.mean(i), stats.std(i), stats.min(i), stats.max(i));
+        end
+        
+        fclose(fid);
+        fprintf('报告已生成: %s\n', report_file);
+    end
+    ```
+
+* matlab 批量处理图像 example
+
+    ```matlab
+    function batch_process_images()
+        % 批量处理文件夹中的所有图像
+        input_folder = uigetdir('', '选择图像文件夹');
+        output_folder = fullfile(input_folder, 'processed');
+        
+        if ~exist(output_folder, 'dir')
+            mkdir(output_folder);
+        end
+        
+        % 获取所有图像文件
+        image_files = dir(fullfile(input_folder, '*.jpg'));
+        image_files = [image_files; dir(fullfile(input_folder, '*.png'))];
+        
+        fprintf('找到 %d 个图像文件\n', length(image_files));
+        
+        for i = 1:length(image_files)
+            % 读取图像
+            img_path = fullfile(image_files(i).folder, image_files(i).name);
+            img = imread(img_path);
+            
+            % 处理图像（示例：转为灰度并调整大小）
+            if size(img, 3) == 3
+                img_gray = rgb2gray(img);
+            else
+                img_gray = img;
+            end
+            
+            img_resized = imresize(img_gray, [256 256]);
+            
+            % 保存处理后的图像
+            [~, name, ext] = fileparts(image_files(i).name);
+            output_path = fullfile(output_folder, [name '_processed' ext]);
+            imwrite(img_resized, output_path);
+            
+            fprintf('已处理: %s\n', image_files(i).name);
+        end
+        
+        fprintf('批量处理完成！\n');
+    end
+    ```
+
+* matlab 文件编码问题
+
+    ```matlab
+    % 处理中文等特殊字符
+    fid = fopen('file.txt', 'r', 'n', 'UTF-8');  % 指定UTF-8编码
+    % 或者使用
+    fid = fopen('file.txt', 'r', 'native', 'UTF-8');
+    ```
 
 * matlab 查找特定类型文件
 
@@ -1374,44 +903,6 @@
     m_files = find_files('C:\MyProject', '*.m');
     mat_files = find_files('C:\MyProject', '*.mat');
     all_files = find_files('C:\MyProject', '');  % 所有文件
-    ```
-
-* matlab 计算文件夹大小
-
-    ```matlab
-    function [total_size, file_count] = get_folder_size(root_folder)
-        % 递归计算文件夹总大小
-        
-        total_size = 0;
-        file_count = 0;
-        
-        items = dir(root_folder);
-        
-        for i = 1:length(items)
-            item = items(i);
-            
-            if strcmp(item.name, '.') || strcmp(item.name, '..')
-                continue;
-            end
-            
-            item_path = fullfile(root_folder, item.name);
-            
-            if item.isdir
-                % 递归计算子文件夹
-                [sub_size, sub_count] = get_folder_size(item_path);
-                total_size = total_size + sub_size;
-                file_count = file_count + sub_count;
-            else
-                % 累加文件大小
-                total_size = total_size + item.bytes;
-                file_count = file_count + 1;
-            end
-        end
-    end
-
-    % 使用示例
-    [sz, cnt] = get_folder_size('C:\MyProject');
-    fprintf('总大小: %.2f MB，文件数: %d\n', sz/1024/1024, cnt);
     ```
 
 * matlab 面向对象实现（类版本）递归搜索
@@ -1916,504 +1407,754 @@
             'MaxDepth', 3);
         ```
 
-* matlab repmat 与其他函数的对比
-
-    * repmat vs. kron
-
-        ```matlab
-        % repmat: 块复制
-        A = [1 2; 3 4];
-        B_repmat = repmat(A, 2, 2);
-        % [A A; A A]
-
-        % kron: 克罗内克积（元素级复制）
-        B_kron = kron(A, ones(2, 2));
-        % [1*ones(2) 2*ones(2); 3*ones(2) 4*ones(2)]
-        % 即每个元素都变成2×2块
-        ```
-
-    * repmat vs. 索引复制
-
-        ```matlab
-        A = [1 2 3];
-
-        % 方法1: repmat
-        B = repmat(A, 3, 1);
-
-        % 方法2: 索引（更高效）
-        B = A(ones(3,1), :);
-
-        % 方法3: 使用ones创建索引
-        B = A(repmat(1:size(A,1), 3, 1), :);
-        ```
-
-    * repmat vs. meshgrid/ndgrid
-
-        ```matlab
-        % 创建2D网格
-        x = 1:3; y = 1:2;
-
-        % meshgrid (主要用于绘图)
-        [X1, Y1] = meshgrid(x, y);
-
-        % 用repmat实现
-        X2 = repmat(x, length(y), 1);
-        Y2 = repmat(y', 1, length(x));
-
-        % 验证
-        isequal(X1, X2)  % true
-        isequal(Y1, Y2)  % true
-        ```
-
-* matlab 广播机制（R2016b+）
+* matlab 计算文件夹大小
 
     ```matlab
-    % 旧方法：需要repmat
-    A = rand(1000, 1000);
-    row_mean = mean(A, 2);
-    A_centered = A - repmat(row_mean, 1, size(A, 2));
-
-    % 新方法：自动广播（更高效、更简洁）
-    A_centered = A - row_mean;  % 自动扩展维度
-    ```
-
-* matlab 预分配内存的大数据应用
-
-    ```matlab
-    % 不推荐：多次动态扩展
-    result = [];
-    for i = 1:1000
-        result = [result; repmat(i, 10, 1)];  % 每次循环都复制
-    end
-
-    % 推荐：一次性预分配
-    result = zeros(10000, 1);
-    for i = 1:1000
-        idx = (i-1)*10+1 : i*10;
-        result(idx) = repmat(i, 10, 1);
-    end
-
-    % 更推荐：向量化（无循环）
-    result = repmat((1:1000)', 10, 1);
-    result = sort(result);  % 如果需要排序
-    ```
-
-* matlab matrep 高级技巧
-
-    * 创建结构体数组
-
-        ```matlab
-        % 创建空结构体模板
-        template.name = '';
-        template.value = 0;
-        template.valid = false;
-
-        % 复制创建结构体数组
-        n = 5;
-        data = repmat(template, 1, n);
-
-        % 批量初始化
-        for i = 1:n
-            data(i).name = sprintf('Item%d', i);
-            data(i).value = i * 10;
-            data(i).valid = true;
-        end
-        ```
-
-    * 处理单元数组
-
-        ```matlab
-        % 创建单元数组模板
-        cell_template = {'', [], false};
-
-        % 复制创建
-        cell_array = repmat(cell_template, 3, 2);
-        % 3×2的单元数组，每个元素是 {'', [], false}
-
-        % 填充数据
-        for i = 1:size(cell_array, 1)
-            for j = 1:size(cell_array, 2)
-                cell_array{i, j} = {sprintf('Cell(%d,%d)', i, j), i*j, mod(i*j,2)==0};
-            end
-        end
-        ```
-
-    * 生成重复序列
-
-        ```matlab
-        % 创建重复模式
-        pattern = [1 2 3 4];
-        repeats = 3;
-        sequence = repmat(pattern, 1, repeats);
-        % sequence = [1 2 3 4 1 2 3 4 1 2 3 4]
-
-        % 创建带间隔的序列
-        base = [1 0 0 0];  % 1后面跟3个0
-        sequence = repmat(base, 1, 4);
-        % sequence = [1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0]
-        ```
-
-* repmat 常见错误和注意事项
-
-    * 维度匹配
-
-        ```matlab
-        % 错误：维度不匹配
-        A = [1 2 3];
-        B = repmat(A, 2.5, 3);  % 错误：2.5不是整数
-
-        % 正确：使用整数
-        B = repmat(A, 2, 3);    % 正确
-        ```
-
-    * 内存限制
-
-        ```matlab
-        % 大矩阵复制可能导致内存不足
-        A = rand(10000, 10000);  % ~800MB
-        B = repmat(A, 2, 2);     % ~3.2GB，可能内存不足
-
-        % 解决方案：使用稀疏矩阵或分块处理
-        A_sparse = sparse(A);
-        B_sparse = repmat(A_sparse, 2, 2);  % 更节省内存
-        ```
-
-    * 替代函数
-
-        ```matlab
-        % 对于简单重复，考虑使用：
-        A = [1 2 3];
-
-        % 方法1: 使用ones
-        B = A(ones(3,1), :);     % 垂直重复
-
-        % 方法2: 使用索引
-        B = A(repmat(1:size(A,1), 3, 1), :);
-
-        % 方法3: 使用kron（克罗内克积）
-        B = kron(A, ones(3,1));  % 垂直重复
-        ```
-
-    * 性能提示
-
-        ```matlab
-        % 测试不同方法的性能
-        A = rand(1000, 1000);
-        n = 100;
-
-        % 方法1: repmat
-        tic;
-        for i = 1:n
-            B = repmat(A, 2, 2);
-        end
-        t1 = toc;
-
-        % 方法2: 使用ones索引（可能更快）
-        tic;
-        for i = 1:n
-            B = A(ones(2,1), ones(2,1), :);  % 需要调整维度
-        end
-        t2 = toc;
-
-        fprintf('repmat: %.4f秒，索引: %.4f秒\n', t1, t2);
-        ```
-
-* matlab 读写Excel
-
-    ```matlab
-    % 读取Excel
-    [num, txt, raw] = xlsread('data.xlsx');      % 读取整个工作表
-    [num, txt, raw] = xlsread('data.xlsx', 'Sheet2');  % 指定工作表
-    [num, txt, raw] = xlsread('data.xlsx', 'A1:C10');  % 指定区域
-
-    % 写入Excel
-    data = {'Name','Age','Score'; '张三',20,85.5; '李四',22,92.0};
-    xlswrite('output.xlsx', data);               % 写入数据
-    xlswrite('output.xlsx', data, 'Sheet1', 'A1');  % 指定位置
-
-    % 新版方法 (R2019a+)
-    T = readtable('data.xlsx');                  % 读取为表格
-    writetable(T, 'output.xlsx', 'Sheet', 'Results');  % 写入表格
-    ```
-
-* matlab 保存和加载变量
-
-    ```matlab
-    % 保存变量
-    x = rand(10, 10);
-    y = magic(5);
-    z = 'test string';
-    save('data.mat');                    % 保存所有变量
-    save('data.mat', 'x', 'y');         % 只保存x和y
-    save('data.mat', '-append');        % 追加保存
-    save('data.mat', '-v7.3');          % 保存大型数据（>2GB）
-
-    % 加载变量
-    load('data.mat');                   % 加载所有变量
-    data = load('data.mat');            % 加载到结构体
-    x = data.x;                         % 访问具体变量
-
-    % 检查MAT文件内容
-    whos('-file', 'data.mat');          % 查看文件中的变量
-    ```
-
-* matlab 读写图像
-
-    ```matlab
-    % 读取图像
-    img = imread('image.jpg');          % 读取JPEG
-    img = imread('image.png');          % 读取PNG
-    img = imread('image.tif', 3);       % 读取TIFF第3帧
-
-    % 显示图像
-    imshow(img);
-    image(img); colormap(gray);
-
-    % 保存图像
-    imwrite(img, 'output.jpg', 'Quality', 90);      % JPEG质量90%
-    imwrite(img, 'output.png', 'Transparency', [0 0 0]);  % PNG透明
-    ```
-
-* matlab 读写音频
-
-    ```matlab
-    % 读取音频
-    [y, Fs] = audioread('audio.wav');   % 读取WAV
-    [y, Fs] = audioread('audio.mp3');   % 读取MP3
-    info = audioinfo('audio.wav');      % 获取音频信息
-
-    % 播放音频
-    sound(y, Fs);                       % 立即播放
-    player = audioplayer(y, Fs);        % 创建播放器对象
-    play(player);
-
-    % 保存音频
-    audiowrite('output.wav', y, Fs);                    % WAV格式
-    audiowrite('output.mp3', y, Fs, 'BitRate', 128);    % MP3格式
-    ```
-
-* matlab 遍历文件夹文件
-
-    ```matlab
-    % 获取文件列表
-    files = dir('*.txt');               % 所有txt文件
-    files = dir('data/*.csv');          % 子文件夹中的CSV
-
-    % 遍历处理
-    for i = 1:length(files)
-        filename = files(i).name;
-        fullpath = fullfile(files(i).folder, filename);
-        fprintf('处理文件: %s\n', filename);
+    function [total_size, file_count] = get_folder_size(root_folder)
+        % 递归计算文件夹总大小
         
-        % 读取文件内容
-        data = readmatrix(fullpath);
+        total_size = 0;
+        file_count = 0;
         
-        % 处理数据...
-    end
-    ```
-
-* matlab 文件路径操作
-
-    ```matlab
-    % 构建完整路径
-    fullpath = fullfile('folder', 'subfolder', 'file.txt');
-
-    % 路径分解
-    [pathstr, name, ext] = fileparts('C:\data\test.txt');
-    % pathstr = 'C:\data', name = 'test', ext = '.txt'
-
-    % 相对路径转绝对路径
-    abs_path = which('myfunction.m');    % 查找文件绝对路径
-    ```
-
-* matlab 交互式文件选择
-
-    ```matlab
-    % 选择文件
-    [filename, pathname] = uigetfile(...
-        {'*.txt;*.csv', '数据文件 (*.txt, *.csv)';
-        '*.xlsx;*.xls', 'Excel文件 (*.xlsx, *.xls)';
-        '*.*', '所有文件 (*.*)'}, ...
-        '选择数据文件');
-
-    if ~isequal(filename, 0)
-        fullpath = fullfile(pathname, filename);
-        % 读取文件...
-    end
-
-    % 选择文件夹
-    folder = uigetdir('C:\', '选择数据文件夹');
-    ```
-
-* matlab 完整的数据处理流程 example
-
-    ```matlab
-    function process_data_files()
-        clear; clc; close all;
+        items = dir(root_folder);
         
-        % 1. 选择输入文件
-        [infile, inpath] = uigetfile({'*.csv;*.xlsx', '数据文件'}, '选择输入文件');
-        if isequal(infile, 0)
-            error('未选择文件');
-        end
-        input_file = fullfile(inpath, infile);
-        
-        % 2. 读取数据
-        fprintf('正在读取: %s\n', infile);
-        if endsWith(infile, '.csv')
-            data = readtable(input_file);
-        elseif endsWith(infile, '.xlsx')
-            data = readtable(input_file);
-        end
-        
-        % 3. 处理数据
-        fprintf('数据大小: %d行 × %d列\n', size(data));
-        
-        % 统计分析
-        stats.mean = mean(data{:, 2:end});
-        stats.std = std(data{:, 2:end});
-        stats.min = min(data{:, 2:end});
-        stats.max = max(data{:, 2:end});
-        
-        % 4. 保存结果
-        % 保存为MAT文件
-        save('analysis_results.mat', 'data', 'stats');
-        
-        % 保存为Excel
-        output_table = array2table([stats.mean; stats.std; stats.min; stats.max]');
-        output_table.Properties.VariableNames = {'Mean', 'Std', 'Min', 'Max'};
-        output_table.Properties.RowNames = data.Properties.VariableNames(2:end);
-        
-        writetable(output_table, 'statistics.xlsx', 'WriteRowNames', true);
-        
-        % 5. 生成报告
-        generate_report(data, stats, infile);
-        
-        fprintf('处理完成！\n');
-    end
-
-    function generate_report(data, stats, filename)
-        report_file = 'analysis_report.txt';
-        fid = fopen(report_file, 'w');
-        
-        fprintf(fid, '数据分析报告\n');
-        fprintf(fid, '%s\n', repmat('=', 50));
-        fprintf(fid, '输入文件: %s\n', filename);
-        fprintf(fid, '分析时间: %s\n', datestr(now));
-        fprintf(fid, '\n统计结果:\n\n');
-        
-        fprintf(fid, '%-15s %10s %10s %10s %10s\n', ...
-            '变量', '平均值', '标准差', '最小值', '最大值');
-        fprintf(fid, '%s\n', repmat('-', 55));
-        
-        vars = data.Properties.VariableNames(2:end);
-        for i = 1:length(vars)
-            fprintf(fid, '%-15s %10.2f %10.2f %10.2f %10.2f\n', ...
-                vars{i}, stats.mean(i), stats.std(i), stats.min(i), stats.max(i));
-        end
-        
-        fclose(fid);
-        fprintf('报告已生成: %s\n', report_file);
-    end
-    ```
-
-* matlab 批量处理图像 example
-
-    ```matlab
-    function batch_process_images()
-        % 批量处理文件夹中的所有图像
-        input_folder = uigetdir('', '选择图像文件夹');
-        output_folder = fullfile(input_folder, 'processed');
-        
-        if ~exist(output_folder, 'dir')
-            mkdir(output_folder);
-        end
-        
-        % 获取所有图像文件
-        image_files = dir(fullfile(input_folder, '*.jpg'));
-        image_files = [image_files; dir(fullfile(input_folder, '*.png'))];
-        
-        fprintf('找到 %d 个图像文件\n', length(image_files));
-        
-        for i = 1:length(image_files)
-            % 读取图像
-            img_path = fullfile(image_files(i).folder, image_files(i).name);
-            img = imread(img_path);
+        for i = 1:length(items)
+            item = items(i);
             
-            % 处理图像（示例：转为灰度并调整大小）
-            if size(img, 3) == 3
-                img_gray = rgb2gray(img);
+            if strcmp(item.name, '.') || strcmp(item.name, '..')
+                continue;
+            end
+            
+            item_path = fullfile(root_folder, item.name);
+            
+            if item.isdir
+                % 递归计算子文件夹
+                [sub_size, sub_count] = get_folder_size(item_path);
+                total_size = total_size + sub_size;
+                file_count = file_count + sub_count;
             else
-                img_gray = img;
+                % 累加文件大小
+                total_size = total_size + item.bytes;
+                file_count = file_count + 1;
             end
-            
-            img_resized = imresize(img_gray, [256 256]);
-            
-            % 保存处理后的图像
-            [~, name, ext] = fileparts(image_files(i).name);
-            output_path = fullfile(output_folder, [name '_processed' ext]);
-            imwrite(img_resized, output_path);
-            
-            fprintf('已处理: %s\n', image_files(i).name);
         end
-        
-        fprintf('批量处理完成！\n');
     end
+
+    % 使用示例
+    [sz, cnt] = get_folder_size('C:\MyProject');
+    fprintf('总大小: %.2f MB，文件数: %d\n', sz/1024/1024, cnt);
     ```
 
-* matlab 文件编码问题
+* `fullfile()`
+
+    用于构建完整文件路径的函数，它能自动处理不同操作系统之间的路径分隔符差异。
+
+    比较像 python 中的`os.path.join()`。
+
+    syntax:
 
     ```matlab
-    % 处理中文等特殊字符
-    fid = fopen('file.txt', 'r', 'n', 'UTF-8');  % 指定UTF-8编码
-    % 或者使用
-    fid = fopen('file.txt', 'r', 'native', 'UTF-8');
+    fullpath = fullfile(filepart1, filepart2, ..., filepartN)
     ```
 
-* matlab 内存管理
+    usage:
 
     ```matlab
-    % 大文件分块读取
-    chunk_size = 10000;
-    fid = fopen('large_file.txt', 'r');
-    while ~feof(fid)
-        chunk = textscan(fid, '%f', chunk_size);
-        % 处理chunk...
-    end
-    fclose(fid);
+    % 基本路径拼接
+    folder = 'C:\Users';
+    subfolder = 'Documents';
+    filename = 'data.txt';
 
-    % 使用datastore处理超大文件
-    ds = datastore('large_file.csv');
-    while hasdata(ds)
-        chunk = read(ds);
-        % 处理chunk...
-    end
+    % 自动处理分隔符
+    fullpath = fullfile(folder, subfolder, filename)
+    % 输出（在Windows上）: 'C:\Users\Documents\data.txt'
+    % 输出（在Linux/macOS上）: 'C:/Users/Documents/data.txt'
+
+    % 拼接多个部分
+    path1 = 'home';
+    path2 = 'user';
+    path3 = 'projects';
+    path4 = 'code';
+    path5 = 'main.m';
+
+    result = fullfile(path1, path2, path3, path4, path5)
+    % 输出: 'home/user/projects/code/main.m' (Linux/macOS)
     ```
 
-* matlab 错误处理
+    examples:
 
     ```matlab
-    try
-        fid = fopen('nonexistent.txt', 'r');
-        data = fscanf(fid, '%f');
-        fclose(fid);
-    catch ME
-        fprintf('错误: %s\n', ME.message);
-        % 错误恢复逻辑...
+    %% 示例1：构建文件路径
+    data_dir = 'data';
+    year = '2024';
+    month = '03';
+    filename = 'experiment.csv';
+
+    filepath = fullfile(data_dir, year, month, filename)
+    % 输出: 'data/2024/03/experiment.csv'
+
+    %% 示例2：与 dir、ls 等函数配合使用
+    folder = 'images';
+    files = dir(fullfile(folder, '*.png'));  % 查找 images 文件夹下所有 PNG 文件
+
+    %% 示例3：创建新目录
+    new_dir = fullfile('results', 'analysis', 'plots');
+    mkdir(new_dir);  % 创建 results/analysis/plots 目录
+
+    %% 示例4：保存文件
+    output_dir = 'output';
+    output_file = 'results.mat';
+    save(fullfile(output_dir, output_file), 'data');
+
+    %% 示例5：处理绝对路径和相对路径
+    root = '/home/user';
+    relative_path = 'docs/report.txt';
+    abs_path = fullfile(root, relative_path)
+    % 输出: '/home/user/docs/report.txt'
+
+    %% 示例6：单元格数组输入
+    parts = {'usr', 'local', 'bin', 'matlab'};
+    path_cell = fullfile(parts{:})
+    % 输出: 'usr/local/bin/matlab'
+    ```
+
+    注意事项
+
+    * 不会验证路径是否存在：fullfile() 只负责构建路径字符串，不检查路径是否真实存在
+
+    * 不解析相对路径：不会将 .. 或 . 解析为上级目录或当前目录
+
+    * 与 fileparts() 互补：fileparts() 用于拆分路径，fullfile() 用于合并路径
+
+    * 输入可以是字符串、字符向量或字符串数组
+
+* `fileparts()`
+
+    将完整的文件名或路径分解为路径、文件名和扩展名三个部分，便于单独处理各个组件。
+
+    syntax:
+
+    ```matlab
+    [pathstr, name, ext] = fileparts(filename)
+    [pathstr, name, ext] = fileparts(filename, 'PeriodicExtension', value)
+    ```
+
+    可选参数
+
+    * 'PeriodicExtension', value：控制如何处理周期性扩展名（如 .tar.gz）
+
+        * true（默认）：将 .tar.gz 视为一个扩展名
+
+        * false：只取最后一个扩展名（.gz）
+
+    usage:
+
+    * 基本分解
+
+        ```matlab
+        % 分解完整路径
+        [pathstr, name, ext] = fileparts('C:\Users\John\Documents\report.pdf');
+
+        % 结果:
+        % pathstr = 'C:\Users\John\Documents'
+        % name = 'report'
+        % ext = '.pdf'
+        ```
+
+    * 分解相对路径
+
+        ```matlab
+        [pathstr, name, ext] = fileparts('../data/input.csv');
+
+        % 结果:
+        % pathstr = '../data'
+        % name = 'input'
+        % ext = '.csv'
+        ```
+
+    * 只获取特定部分
+
+        ```matlab
+        % 只需要路径部分
+        path_only = fileparts('C:\project\src\main.m');
+
+        % 只需要文件名（不含扩展名）
+        [~, filename] = fileparts('data/experiment_results.xlsx');
+
+        % 只需要扩展名
+        [~, ~, extension] = fileparts('/home/user/image.jpg');
+        ```
+
+    examples:
+
+    * 创建输出文件路径
+
+        ```matlab
+        % 基于输入文件生成输出文件路径
+        input_file = 'C:\data\input\experiment_data.mat';
+        [input_path, input_name, ~] = fileparts(input_file);
+
+        % 创建输出文件路径
+        output_dir = fullfile(input_path, 'output');
+        output_file = fullfile(output_dir, [input_name '_processed.mat']);
+        ```
+
+    * 获取文件类型信息
+
+        ```matlab
+        % 根据扩展名分类文件
+        files = {'report.pdf', 'data.xlsx', 'script.m', 'notes.txt'};
+
+        for i = 1:length(files)
+            [~, ~, ext] = fileparts(files{i});
+            
+            switch lower(ext)
+                case {'.pdf'}
+                    disp('PDF document');
+                case {'.xlsx', '.xls'}
+                    disp('Excel file');
+                case {'.m'}
+                    disp('MATLAB script');
+                case {'.txt', '.csv'}
+                    disp('Text file');
+                otherwise
+                    disp('Unknown file type');
+            end
+        end
+        ```
+
+    特殊情况和注意事项
+
+    * 处理无扩展名的文件
+
+        ```matlab
+        [pathstr, name, ext] = fileparts('C:\files\README');
+        % pathstr = 'C:\files'
+        % name = 'README'
+        % ext = ''  (空字符串)
+        ```
+
+    * 处理只有扩展名的文件
+
+        ```matlab
+        [pathstr, name, ext] = fileparts('.gitignore');
+        % pathstr = ''
+        % name = ''
+        % ext = '.gitignore'
+        ```
+
+    * 处理文件夹路径
+
+        ```matlab
+        [pathstr, name, ext] = fileparts('C:\Users\John\Documents\');
+        % pathstr = 'C:\Users\John'
+        % name = 'Documents'
+        % ext = ''
+        ```
+
+    * 处理网络路径
+
+        ```matlab
+        [pathstr, name, ext] = fileparts('\\server\share\file.txt');
+        % pathstr = '\\server\share'
+        % name = 'file'
+        % ext = '.txt'
+        ```
+
+    常见错误处理
+
+    * 常见错误处理
+
+        ```matlab
+        % 检查文件是否存在
+        filename = 'somefile.dat';
+        if isfile(filename)
+            [pathstr, name, ext] = fileparts(filename);
+        else
+            error('文件不存在: %s', filename);
+        end
+
+        % 处理空输入
+        filename = '';
+        if ~isempty(filename)
+            [pathstr, name, ext] = fileparts(filename);
+        else
+            % 处理空文件名的情况
+        end
+        ```
+
+    扩展应用:
+
+    ```matlab
+    % 1. 构建新文件名
+    [~, name, ~] = fileparts(original_file);
+    timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+    new_file = sprintf('%s_%s%s', name, timestamp, '.mat');
+
+    % 2. 提取路径层次
+    full_path = 'C:\a\b\c\d\file.txt';
+    parts = strsplit(fileparts(full_path), filesep);
+    % parts = {'C:', 'a', 'b', 'c', 'd'}
+
+    % 3. 获取父目录
+    full_path = 'C:\project\src\utils\helper.m';
+    parent_dir = fileparts(fileparts(full_path));
+    % parent_dir = 'C:\project\src'
+    ```
+
+* `mfilename()`
+
+    返回当前正在执行的 MATLAB 函数或脚本的文件名和路径信息。
+
+    syntax:
+
+    ```matlab
+    function_name = mfilename('fullpath')
+    function_name = mfilename()
+    [name, path] = mfilename('fullpath')
+    ```
+
+    usage:
+
+    * 无参数调用 - 返回当前文件名
+
+        ```matlab
+        % 在 myFunction.m 中调用
+        name = mfilename();
+        % 返回: 'myFunction' (不带扩展名 .m)
+        ```
+
+    * 'fullpath' 参数 - 返回完整路径
+
+        ```matlab
+        % 返回包含完整路径的文件名
+        full_name = mfilename('fullpath');
+        % 示例返回值: 'C:\Users\name\Documents\MATLAB\myScript.m'
+        ```
+
+    * 获取路径和文件名分离
+
+        ```matlab
+        % 方法1: 使用 fileparts
+        [filepath, name, ext] = fileparts(mfilename('fullpath'));
+
+        % 方法2: 直接分割
+        full_name = mfilename('fullpath');
+        [path_str, name_str, ext_str] = fileparts(full_name);
+        ```
+
+        注：
+
+        1. 这两个方法不是一样的吗？
+
+    examples:
+
+    * 获取当前脚本所在目录
+
+        ```matlab
+        % 获取当前.m文件所在目录，用于相对路径操作
+        current_folder = fileparts(mfilename('fullpath'));
+        data_file = fullfile(current_folder, 'data', 'input.csv');
+        ```
+
+    重要特性
+
+    * 在命令窗口调用：返回空字符串 `''`
+
+    * 在脚本中调用：返回脚本文件名
+
+    * 在函数中调用：返回函数文件名
+
+    * 嵌套调用时：始终返回当前执行的文件名
+
+    * 返回不带扩展名：mfilename() 不包含 .m 扩展名
+
+    * mfilename() 在调试和部署时行为一致，适用于需要根据文件位置动态构建路径的应用场景。
+
+    与相关函数的比较
+    函数	返回值	特点
+    mfilename()	当前文件名	不含路径和扩展名
+    mfilename('fullpath')	完整路径+文件名	包含完整路径
+    which(mfilename)	完整路径+文件名	与 mfilename('fullpath') 相似
+    dbstack	调用栈信息	更详细的调用链信息
+
+    * 实用技巧
+
+        ```matlab
+        % 获取当前文件所在目录的最佳实践
+        current_file_path = mfilename('fullpath');
+        [current_dir, ~, ~] = fileparts(current_file_path);
+
+        % 添加当前目录到MATLAB路径（临时）
+        addpath(current_dir);
+
+        % 使用相对路径访问同级目录文件
+        config_file = fullfile(current_dir, 'config', 'settings.json');
+        ```
+
+### struct 与 cell
+
+* 创建 struct
+
+    ```matlab
+    % 方法1：直接赋值
+    person.name = '张三';
+    person.age = 25;
+    person.scores = [90, 85, 88];
+    person.isStudent = true;
+
+    % 方法2：使用 struct 函数
+    person = struct('name', '张三', 'age', 25, 'scores', [90, 85, 88]);
+
+    % 方法3：创建结构体数组
+    students(1) = struct('name', '张三', 'age', 25);
+    students(2) = struct('name', '李四', 'age', 23);
+    ```
+
+    注：
+
+    1. 使用数组创建 struct 还可以写成
+
+        ```matlab
+        arr(1).name = 'zhangsan';
+        arr(1).age = 25;
+        arr(2).name = 'lisi';
+        arr(2).age = 26;
+        ```
+
+        如果`arr`这个变量名已经被占用，那么无法通过这样新创建数组`arr`。
+
+    1. 在创建元素为 struct 的数组时，如果数据不全，那么会被自动补上空数组
+
+        ```matlab
+        >> arr(1).name = 'zhangsan';
+        >> arr(2).age = 35;
+        >> arr(1)
+
+        ans = 
+
+            struct with fields:
+
+            name: 'zhangsan'
+                age: []
+
+        >> arr(2)
+
+        ans = 
+
+            struct with fields:
+
+            name: []
+                age: 35
+        ```
+
+*  struct（结构体）
+
+    matlab 中 struct (结构体) 是一种将不同类型数据组织在一起的容器。
+
+    * 访问和操作
+
+        ```matlab
+        % 访问字段
+        name = person.name;
+        age = person.age;
+
+        % 修改字段
+        person.age = 26;
+
+        % 添加新字段
+        person.gender = '男';
+
+        % 删除字段
+        person = rmfield(person, 'isStudent');
+
+        % 获取所有字段名
+        fields = fieldnames(person);
+
+        % 检查字段是否存在
+        hasField = isfield(person, 'name');
+
+        % 遍历结构体数组
+        for i = 1:length(students)
+            disp(students(i).name);
+        end
+        ```
+
+    * 常用操作
+
+        ```matlab
+        % 嵌套结构体
+        company.department.engineering.manager = '王工';
+        company.department.engineering.employeeCount = 50;
+
+        % 结构体转为表格（如果结构一致）
+        T = struct2table(students);
+
+        % 从表格转为结构体
+        S = table2struct(T);
+        ```
+
+* cell（元胞数组）
+
+    元胞数组可以存储不同类型和大小的数据，每个元素称为一个"元胞"。
+
+    * 创建元胞数组
+
+        ```matlab
+        % 方法1：使用花括号 {}
+        C = {'字符串', 123, [1,2,3;4,5,6], true};
+
+        % 方法2：使用cell函数
+        C = cell(2, 3);  % 创建2×3的空元胞数组
+        C{1,1} = 'MATLAB';
+        C{1,2} = 2023;
+        C{2,1} = magic(3);
+
+        % 方法3：混合创建
+        data{1} = '文本数据';
+        data{2} = rand(3,4);
+        data{3} = struct('a', 1, 'b', 2);
+        ```
+
+    * 访问元素（重要区别！）
+
+        ```matlab
+        % 花括号 {} 用于访问内容
+        content = C{1,1};  % 返回 'MATLAB' 字符串
+
+        % 圆括号 () 用于访问元胞本身
+        cellElement = C(1,1);  % 返回包含 'MATLAB' 的元胞
+
+        % 示例对比
+        C = {'A', 100};
+        value1 = C{1};     % 'A' (字符)
+        value2 = C(1);     % {'A'} (1×1 cell)
+
+        % 多元素访问
+        subset = C(1:2);   % 返回包含前两个元素的元胞数组
+        contents = C{1:2}; % 错误！不能这样批量获取内容
+        ```
+
+    * 常用操作
+
+        ```matlab
+        % 获取信息
+        size(C)      % 元胞数组维度
+        numel(C)     % 元素总数
+        iscell(C)    % 检查是否为元胞数组
+
+        % 转换为其他类型
+        % 当所有元胞内容类型一致时
+        cell2mat(C)      % 转换为矩阵
+        cell2table(C)    % 转换为表格
+
+        % 从其他类型转换
+        mat2cell(A, [2,2], [3,3])  % 矩阵分块转为元胞
+        num2cell(A)                % 矩阵每个元素转为独立元胞
+
+        % 删除元胞
+        C(3) = [];      % 删除第三个元胞
+        C(:,2) = [];    % 删除第二列
+        ```
+
+    * 特殊用法
+
+        ```matlab
+        % 存储函数句柄
+        funcs = {@sin, @cos, @tan};
+        result = funcs{1}(pi/2);  % 计算 sin(pi/2)
+
+        % 存储不同长度的向量
+        data{1} = 1:10;
+        data{2} = 1:100;
+        data{3} = 1:5;
+
+        % 存储不同类型数据
+        mixedData = {'文本', 123.45, struct(), [1,2,3], @plot};
+        ```
+
+* matlab struct 和 cell 的组合使用
+
+    ```matlab
+    % 结构体字段包含元胞数组
+    student.info = {'张三', 'CS101', 2023};
+    student.grades = {[90,85], [88,92]};
+
+    % 元胞数组包含结构体
+    cellArray{1} = struct('name','A','value',1);
+    cellArray{2} = struct('name','B','value',2);
+
+    % 常见的表格式数据存储
+    for i = 1:100
+        data{i}.id = i;
+        data{i}.value = rand();
+        data{i}.timestamp = datetime('now');
     end
     ```
 
-* matlab 常用函数速查表
+    选择建议
 
-    | 操作类型 | 读取函数 | 写入函数 | 适用格式 |
-    | - | - | - | - |
-    | 文本文件 | fscanf, textscan | fprintf | .txt, .dat |
-    | 表格数据 | readtable | writetable | .csv, .txt, .xlsx |
-    | 数值矩阵 | readmatrix | writematrix | .txt, .csv |
-    | Excel | xlsread | xlswrite | .xlsx, .xls |
-    | 二进制 | load | save | .mat |
-    | 图像 | imread | imwrite | .jpg, .png, .tif |
-    | 音频 | audioread | audiowrite | .wav, .mp3 |
+    | 场景 | 推荐 | 理由 |
+    | - | - | - |
+    | 数据有明确字段名 | struct | 字段名自解释，代码可读性强 |
+    | 数据是异构的 | cell | 灵活存储不同类型数据 |
+    | 需要按名称访问 | struct | 直接使用字段名访问 |
+    | 需要按索引访问 | cell | 索引访问更自然 |
+    | 存储函数集合 | cell | 方便批量操作函数句柄 |
+    | 配置参数 | struct | 层次清晰，易于修改 |
+
+    实用技巧
+
+    ```matlab
+    % 批量处理结构体数组的字段
+    ages = [students.age];              % 提取所有age字段到数组
+    names = {students.name};            % 提取所有name字段到元胞数组
+
+    % 元胞数组的便捷操作
+    % 对每个元胞应用函数
+    results = cellfun(@mean, dataCells);  % 对每个元胞计算均值
+
+    % 条件筛选
+    textCells = C(cellfun(@ischar, C));   % 筛选出所有文本元胞
+
+    % 转换嵌套元胞
+    flatCell = [C{:}];  % 展开嵌套的元胞数组（如果内容维度一致）
+    ```
+
+* matlab cell 的历史
+
+    MATLAB 最初（1970s）就设计了 cell 来处理异构数据，大量遗留代码依赖它。
+
+    * 处理真实世界数据的需求:
+
+        ```matlab
+        % 实际问题中确实需要存储混合数据
+        experiment_data{1} = '2023-01-01';  % 日期字符串
+        experiment_data{2} = sensor_readings;  % 数值矩阵
+        experiment_data{3} = experiment_notes;  % 长文本
+        experiment_data{4} = @processing_function;  % 处理函数
+
+        % 表格不能直接存储函数句柄或任意类型
+        ```
+
+    * 灵活性的优势
+
+        ```matlab
+        % 动态数据结构
+        % 链表、树等结构在MATLAB中只能用cell实现
+        tree_node = {value, left_child, right_child};
+
+        % 变长向量数组
+        data{1} = 1:10;
+        data{2} = 1:1000;  % 每个向量长度不同
+        data{3} = 1:5;
+
+        % 如果用矩阵，需要统一长度或用NaN填充
+        ```
+
+    * 特定场景的实用性
+
+        ```matlab
+        % 函数参数传递
+        varargin和varargout必须是cell
+
+        % GUI开发
+        handles结构经常包含cell存储回调函数等
+
+        % 文件处理
+        file_list = dir('*.txt');
+        filenames = {file_list.name};  % 提取所有文件名
+        ```
+
+    * 更好的替代方案
+
+        ```matlab
+        % 1. table类型（R2013b引入）
+        T = table();
+        T.Name = {'张三'; '李四'};
+        T.Age = [25; 23];
+        T.Score = {[90,85]; [88,92]};  % 注意：table中仍可用cell列
+
+        % 更规范，支持SQL式查询，显示友好
+
+        % 2. 结构体数组
+        students = struct('name', {}, 'score', {});
+        % 比cell数组更结构化
+
+        % 3. 面向对象编程
+        classdef ExperimentData
+            properties
+                date
+                readings
+                notes
+                processFunc
+            end
+        end
+        % 类型安全，封装性好
+        ```
+
+    * Cell仍在某些场景不可替代
+
+        ```matlab
+        % 函数式编程风格
+        operations = {@sin, @(x)x.^2, @exp};
+        results = cellfun(@(f) f(data), operations, 'UniformOutput', false);
+
+        % 快速原型开发
+        % 不想定义class或struct时，cell最方便
+
+        % 与旧代码交互
+        % 很多MATLAB工具箱函数返回cell
+        ```
+
+    实际使用建议
+
+    * 尽量避免使用cell的情况
+
+        * 存储同类型数值数据 → 用矩阵
+
+        * 结构化记录数据 → 用table或struct
+
+        * 需要类型安全 → 用class
+
+    * 可以合理使用cell的情况
+
+        * 真正的异构数据
+
+        * 函数句柄集合
+
+        * 字符串数组（直到R2016b才引入string类型）
+
+        * 实现动态数据结构
+
+    * 新代码尽量用table、struct、matrix、自定义类
+
+* 查看 struct 类型数据的信息
+
+    ```matlab
+    % 结构体
+    fieldnames(mystruct)  % 查看字段名
+    ```
+
+* 查看 cell 类型数据的信息
+
+    ```matlab
+    % 元胞数组
+    celldisp(data, 'data')  % 显示元胞内容
+    ```
+
+### 矩阵运算与索引
+
+* 使用 `head()` / `tail()` 查看数据头部/尾部
+
+    ```matlab
+    head(data)      % 显示前 8 行
+    tail(data)      % 显示后 8 行
+
+    % 指定行数
+    head(data, 10)  % 显示前 10 行
+    tail(data, 10)  % 显示后 10 行
+    ```
 
 * matlab repmat() 函数
 
@@ -2550,243 +2291,1311 @@
         %             sqrt(5) sqrt(8) sqrt(13)]
         ```
 
-* matlab 文本文件读写
+* repmat 高级技巧
 
-    * 读取文本文件
-
-        ```matlab
-        % 方法1: fscanf - 格式化读取
-        fid = fopen('data.txt', 'r');
-        data = fscanf(fid, '%f');  % 读取浮点数
-        fclose(fid);
-
-        % 方法2: textscan - 灵活读取混合数据
-        fid = fopen('data.txt', 'r');
-        C = textscan(fid, '%s %f %f', 'Delimiter', ',');
-        fclose(fid);
-        names = C{1}; values1 = C{2}; values2 = C{3};
-
-        % 方法3: readmatrix (R2019a+)
-        data = readmatrix('data.txt');
-
-        % 方法4: readtable - 读取为表格
-        T = readtable('data.csv');
-        T = readtable('data.txt', 'Delimiter', '\t');  % 制表符分隔
-        ```
-
-    * 写入文本文件
+    * 创建结构体数组
 
         ```matlab
-        % 方法1: fprintf
-        fid = fopen('output.txt', 'w');  % 'w'写入，'a'追加
-        fprintf(fid, '姓名: %s, 年龄: %d, 分数: %.2f\n', '张三', 20, 85.5);
-        fclose(fid);
+        % 创建空结构体模板
+        template.name = '';
+        template.value = 0;
+        template.valid = false;
 
-        % 方法2: writematrix (R2019a+)
-        A = [1 2 3; 4 5 6];
-        writematrix(A, 'matrix.txt');
-        writematrix(A, 'matrix.txt', 'Delimiter', '\t');  % 制表符分隔
+        % 复制创建结构体数组
+        n = 5;
+        data = repmat(template, 1, n);
 
-        % 方法3: writetable - 写入表格
-        data = {'张三', 20, 85.5; '李四', 22, 92.0};
-        T = cell2table(data, 'VariableNames', {'Name','Age','Score'});
-        writetable(T, 'students.csv');
+        % 批量初始化
+        for i = 1:n
+            data(i).name = sprintf('Item%d', i);
+            data(i).value = i * 10;
+            data(i).valid = true;
+        end
         ```
 
-* matlab 读写CSV
+    * 处理单元数组
+
+        ```matlab
+        % 创建单元数组模板
+        cell_template = {'', [], false};
+
+        % 复制创建
+        cell_array = repmat(cell_template, 3, 2);
+        % 3×2的单元数组，每个元素是 {'', [], false}
+
+        % 填充数据
+        for i = 1:size(cell_array, 1)
+            for j = 1:size(cell_array, 2)
+                cell_array{i, j} = {sprintf('Cell(%d,%d)', i, j), i*j, mod(i*j,2)==0};
+            end
+        end
+        ```
+
+    * 生成重复序列
+
+        ```matlab
+        % 创建重复模式
+        pattern = [1 2 3 4];
+        repeats = 3;
+        sequence = repmat(pattern, 1, repeats);
+        % sequence = [1 2 3 4 1 2 3 4 1 2 3 4]
+
+        % 创建带间隔的序列
+        base = [1 0 0 0];  % 1后面跟3个0
+        sequence = repmat(base, 1, 4);
+        % sequence = [1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0]
+        ```
+
+* repmat 常见错误和注意事项
+
+    * 维度匹配
+
+        ```matlab
+        % 错误：维度不匹配
+        A = [1 2 3];
+        B = repmat(A, 2.5, 3);  % 错误：2.5不是整数
+
+        % 正确：使用整数
+        B = repmat(A, 2, 3);    % 正确
+        ```
+
+    * 内存限制
+
+        ```matlab
+        % 大矩阵复制可能导致内存不足
+        A = rand(10000, 10000);  % ~800MB
+        B = repmat(A, 2, 2);     % ~3.2GB，可能内存不足
+
+        % 解决方案：使用稀疏矩阵或分块处理
+        A_sparse = sparse(A);
+        B_sparse = repmat(A_sparse, 2, 2);  % 更节省内存
+        ```
+
+    * 替代函数
+
+        ```matlab
+        % 对于简单重复，考虑使用：
+        A = [1 2 3];
+
+        % 方法1: 使用ones
+        B = A(ones(3,1), :);     % 垂直重复
+
+        % 方法2: 使用索引
+        B = A(repmat(1:size(A,1), 3, 1), :);
+
+        % 方法3: 使用kron（克罗内克积）
+        B = kron(A, ones(3,1));  % 垂直重复
+        ```
+
+    * 性能提示
+
+        ```matlab
+        % 测试不同方法的性能
+        A = rand(1000, 1000);
+        n = 100;
+
+        % 方法1: repmat
+        tic;
+        for i = 1:n
+            B = repmat(A, 2, 2);
+        end
+        t1 = toc;
+
+        % 方法2: 使用ones索引（可能更快）
+        tic;
+        for i = 1:n
+            B = A(ones(2,1), ones(2,1), :);  % 需要调整维度
+        end
+        t2 = toc;
+
+        fprintf('repmat: %.4f秒，索引: %.4f秒\n', t1, t2);
+        ```
+
+* matlab repmat 与 python repeat dim 对比
+
+    | 功能 | MATLAB | NumPy | 说明 |
+    | - | - | - | - |
+    | 块复制 | `repmat(A, m, n)` | `np.tile(A, (m, n))` | 复制整个数组 |
+    | 元素复制 | 需用 kron 或索引 | `np.repeat(A, repeats, axis)` | 复制单个元素 |
+    | 多维复制 | `repmat(A, [m n p])` | `np.tile(A, (m, n, p))` | 多维度扩展 |
+
+    **详细对比分析**
+
+    1. 块复制（整个数组复制）
+
+        MATLAB repmat:
+
+        ```matlab
+        A = [1 2; 3 4];
+        B = repmat(A, 2, 3);
+        % B = [1 2 1 2 1 2
+        %      3 4 3 4 3 4
+        %      1 2 1 2 1 2
+        %      3 4 3 4 3 4]
+        ```
+
+        NumPy tile (对应功能):
+
+        ```python
+        import numpy as np
+        A = np.array([[1, 2], [3, 4]])
+        B = np.tile(A, (2, 3))
+        # B = [[1 2 1 2 1 2]
+        #      [3 4 3 4 3 4]
+        #      [1 2 1 2 1 2]
+        #      [3 4 3 4 3 4]]
+        ```
+
+    2. 元素复制（单个元素重复）
+
+        MATLAB 没有直接对应函数，需要变通：
+
+        ```matlab
+        % 方法1: 使用 kron (克罗内克积)
+        A = [1 2; 3 4];
+        B = kron(A, ones(2, 2));
+        % B = [1 1 2 2
+        %      1 1 2 2
+        %      3 3 4 4
+        %      3 3 4 4]
+        % 每个元素变成2×2块
+
+        % 方法2: 使用索引
+        A = [1 2 3];
+        B = A(ones(3,1), :);  % 每行重复3次
+        % B = [1 2 3
+        %      1 2 3
+        %      1 2 3]
+        ```
+
+        NumPy repeat (直接支持):
+
+        ```python
+        import numpy as np
+        A = np.array([[1, 2], [3, 4]])
+
+        # 沿axis=0重复（行方向）
+        B = np.repeat(A, 2, axis=0)
+        # B = [[1 2]
+        #      [1 2]
+        #      [3 4]
+        #      [3 4]]
+
+        # 沿axis=1重复（列方向）
+        C = np.repeat(A, 2, axis=1)
+        # C = [[1 1 2 2]
+        #      [3 3 4 4]]
+
+        # 每个元素重复不同次数
+        D = np.repeat(A, [2, 3], axis=0)  # 第1行重复2次，第2行重复3次
+        ```
+
+    3. 三维及多维数组复制
+
+        MATLAB:
+
+        ```matlab
+        A = reshape(1:8, [2, 2, 2]);
+        % A(:,:,1) = [1 3; 2 4]
+        % A(:,:,2) = [5 7; 6 8]
+
+        B = repmat(A, [2, 1, 2]);  % 行×2，列×1，页×2
+        size(B)  % [4, 2, 4]
+        ```
+
+        NumPy:
+
+        ```python
+        import numpy as np
+        A = np.arange(1, 9).reshape(2, 2, 2)
+
+        # tile: 整个数组复制
+        B = np.tile(A, (2, 1, 2))  # 对应MATLAB的repmat
+        print(B.shape)  # (4, 2, 4)
+
+        # repeat: 元素复制
+        C = np.repeat(A, 2, axis=2)  # 沿第三维度复制
+        print(C.shape)  # (2, 2, 4)
+        ```
+
+    三、功能映射表
+
+    * 从 NumPy 到 MATLAB:
+
+        ```python
+        # NumPy 代码
+        np.tile(A, (2, 3))      → repmat(A, 2, 3)      # MATLAB
+        np.repeat(A, 3, axis=0) → A(ones(3,1), :, :)   # MATLAB (3D时需要调整)
+        np.repeat(A, 3, axis=1) → A(:, ones(3,1), :)   # MATLAB (3D时需要调整)
+        np.repeat(A, 3, axis=2) → A(:, :, ones(3,1))   # MATLAB
+        ```
+
+    * 从 MATLAB 到 NumPy:
+
+        ```matlab
+        % MATLAB 代码
+        repmat(A, 2, 3)     → np.tile(A, (2, 3))          # NumPy
+        kron(A, ones(2,2))  → np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)  # NumPy
+        A(ones(3,1), :)     → np.repeat(A, 3, axis=0)     # NumPy
+        ```
+
+    四、实际应用场景对比
+
+    * 场景1：创建网格数据
+
+        MATLAB (常用meshgrid):
+
+        ```matlab
+        % 创建2D网格
+        x = 1:3;
+        y = 1:2;
+        [X, Y] = meshgrid(x, y);
+
+        % 用repmat实现
+        X_rep = repmat(x, length(y), 1);
+        Y_rep = repmat(y', 1, length(x));
+        ```
+
+        NumPy (常用meshgrid):
+
+        ```python
+        import numpy as np
+        x = np.arange(1, 4)
+        y = np.arange(1, 3)
+        X, Y = np.meshgrid(x, y)
+
+        # 用tile实现
+        X_tile = np.tile(x, (len(y), 1))
+        Y_tile = np.tile(y.reshape(-1, 1), (1, len(x)))
+        ```
+
+    * 场景2：批量向量运算
+
+        MATLAB (广播机制R2016b+):
+
+        ```matlab
+        % 旧方法：需要repmat
+        A = rand(3, 4);
+        row_vector = [1 2 3 4];
+        B = A + repmat(row_vector, size(A,1), 1);
+
+        % 新方法：自动广播
+        B = A + row_vector;  % R2016b+ 支持
+        ```
+
+        NumPy (天然支持广播):
+
+        ```python
+        import numpy as np
+        A = np.random.rand(3, 4)
+        row_vector = np.array([1, 2, 3, 4])
+        B = A + row_vector  # 自动广播
+        ```
+
+    * 场景3：图像处理中的通道复制
+
+        MATLAB:
+
+        ```matlab
+        % 灰度图转RGB伪彩色
+        gray_img = imread('gray.jpg');
+        height = size(gray_img, 1);
+        width = size(gray_img, 2);
+
+        % 方法1: 使用cat
+        rgb_img = cat(3, gray_img, gray_img, gray_img);
+
+        % 方法2: 使用repmat
+        rgb_img = repmat(gray_img, [1, 1, 3]);
+        ```
+
+        NumPy:
+
+        ```python
+        import numpy as np
+        import cv2
+
+        gray_img = cv2.imread('gray.jpg', cv2.IMREAD_GRAYSCALE)
+        height, width = gray_img.shape
+
+        # 方法1: 使用stack
+        rgb_img = np.stack([gray_img, gray_img, gray_img], axis=2)
+
+        # 方法2: 使用tile
+        rgb_img = np.tile(gray_img[:, :, np.newaxis], (1, 1, 3))
+
+        # 方法3: 使用repeat
+        rgb_img = np.repeat(gray_img[:, :, np.newaxis], 3, axis=2)
+        ```
+
+    五、性能对比
+    
+    测试代码：
+    
+    MATLAB:
 
     ```matlab
-    % 读取CSV
-    data = csvread('data.csv');        % 纯数值数据
-    T = readtable('data.csv');         % 包含表头
-    [M, ~, ~] = xlsread('data.csv');   % 读取Excel格式CSV
+    function test_performance()
+        A = rand(1000, 1000);
+        
+        % 测试repmat
+        tic;
+        for i = 1:100
+            B = repmat(A, 2, 2);
+        end
+        repmat_time = toc;
+        
+        % 测试索引方法
+        tic;
+        for i = 1:100
+            B = A(ones(2,1), ones(2,1), :);
+        end
+        index_time = toc;
+        
+        fprintf('repmat: %.4f秒\n', repmat_time);
+        fprintf('索引: %.4f秒\n', index_time);
+    end
+    ```
+    
+    Python/NumPy:
 
-    % 写入CSV
-    csvwrite('output.csv', data);      % 写入数值数据
-    writetable(T, 'output.csv');       % 写入表格（带表头）
+    ```python
+    import numpy as np
+    import time
 
-    % 自定义分隔符
-    data = dlmread('data.txt', ',');   % 指定分隔符为逗号
-    dlmwrite('output.txt', data, 'delimiter', '\t');  % 制表符分隔
+    A = np.random.rand(1000, 1000)
+
+    # 测试tile
+    start = time.time()
+    for i in range(100):
+        B = np.tile(A, (2, 2))
+    tile_time = time.time() - start
+
+    # 测试repeat
+    start = time.time()
+    for i in range(100):
+        B = np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)
+    repeat_time = time.time() - start
+
+    print(f"tile: {tile_time:.4f}秒")
+    print(f"repeat: {repeat_time:.4f}秒")
     ```
 
-* matlab 文件与目录管理
+    六、关键差异总结
+    
+    1. 设计哲学差异
+    
+        MATLAB：repmat 专注于块复制，设计简单统一
 
-    ```
-    % 文件操作
-    exist('filename.txt')   % 检查文件是否存在（返回0-7）
-    copyfile('源','目标')   % 复制文件
-    movefile('源','目标')   % 移动/重命名
-    delete('filename.txt')  % 删除文件
+        NumPy：区分 tile (块复制) 和 repeat (元素复制)，功能更精细
 
-    % 创建目录
-    mkdir('newfolder')      % 创建文件夹
-    rmdir('foldername')     % 删除空文件夹
-    ```
-
-* matlab 打印
-
-    * disp() - 基本显示
-
+    2. 语法差异
+    
         ```matlab
-        disp('Hello World');          % 显示字符串
-        disp(['x = ', num2str(5)]);   % 显示变量
-
-        % 显示矩阵
-        A = [1 2 3; 4 5 6];
-        disp('矩阵A:');
-        disp(A);
+        % MATLAB - 参数顺序不同
+        B = repmat(A, m, n, p)      % 直接列出各维度重复次数
         ```
 
-    * fprintf() - 格式化输出（最常用）
+        ```py
+        # NumPy - 使用元组
+        B = np.tile(A, (m, n, p))   # 重复次数放在元组中
+        ```
+
+    3. 广播机制
+
+        MATLAB：从 R2016b 开始支持自动广播，减少对 repmat 的依赖
+
+        NumPy：从一开始就支持广播，更自然地处理维度扩展
+
+    4. 内存布局考虑
 
         ```matlab
-        % 基本格式
-        fprintf('格式字符串', 变量1, 变量2, ...);
-
-        % 常用格式符
-        % %d - 整数
-        % %f - 浮点数
-        % %e - 科学计数法
-        % %g - 自动选择 %f 或 %e
-        % %s - 字符串
-        % %c - 字符
-        % %% - 百分号本身
+        % MATLAB：列优先（Fortran风格）
+        A = [1 2 3; 4 5 6];  % 内存顺序：1, 4, 2, 5, 3, 6
         ```
+
+        ```py
+        # NumPy：默认行优先（C风格），可指定
+        A = np.array([[1, 2, 3], [4, 5, 6]])  # 内存顺序：1, 2, 3, 4, 5, 6
+        ```
+
+    七、迁移建议
+
+    * 从 NumPy 迁移到 MATLAB:
+
+        ```py
+        np.tile(A, reps) → repmat(A, reps)（直接对应）
+
+        np.repeat(A, n, axis) → 需要手动实现：
+        ```
+
+        ```matlab
+        % axis=0 (行方向)
+        B = A(ones(n,1), :, :, ...);  % 根据维度调整
+
+        % axis=1 (列方向)  
+        B = A(:, ones(n,1), :, ...);
+
+        % 或用 kron 实现元素级复制
+        B = kron(A, ones(n, 1));  % 特定情况
+        ```
+
+    * 从 MATLAB 迁移到 NumPy:
+
+        `repmat(A, m, n)` → `np.tile(A, (m, n))`
+
+        `kron(A, ones(m,n))` → `np.repeat(np.repeat(A, m, axis=0), n, axis=1)`
+
+        `A(ones(m,1), :)` → `np.repeat(A, m, axis=0)`
+
+    八、现代替代方案
+    
+    * MATLAB 广播机制（R2016b+）
+
+        ```matlab
+        % 不再需要 repmat 的场景
+        A = rand(3, 4);
+        v = [1 2 3 4];
+
+        % 旧方法
+        B = A + repmat(v, size(A,1), 1);
+
+        % 新方法（更简洁高效）
+        B = A + v;  % 自动广播
+        ```
+
+    * NumPy 广播机制
+
+        ```python
+        # NumPy 一直支持广播
+        A = np.random.rand(3, 4)
+        v = np.array([1, 2, 3, 4])
+        B = A + v  # 自动广播
+        ```
+
+    九、结论
+
+    repmat 与 NumPy 的对应关系：
+
+    * `repmat ≈ np.tile`：都是块复制，复制整个数组
+
+    * `repmat ≠ np.repeat`：repmat 不直接支持元素级复制
+
+    主要差异原因：
+
+    * 设计目标不同：MATLAB 强调数学计算简洁性，NumPy 提供更细粒度控制
+
+    * 历史原因：MATLAB 先有 repmat，后来 NumPy 设计时区分了 tile 和 repeat
+
+    * 使用场景：MATLAB 用户更多进行矩阵运算，NumPy 用户需要更灵活的数据操作
+
+    实用建议：
+
+    * 熟悉两种工具的差异，避免直接移植代码时的误解
+
+    * 了解各自的最优实践（如 MATLAB 的广播、NumPy 的向量化）
+
+    * 根据具体需求选择合适的方法，而非强行对应
+
+* matlab repmat 与其他函数的对比
+
+    * repmat vs. kron
+
+        ```matlab
+        % repmat: 块复制
+        A = [1 2; 3 4];
+        B_repmat = repmat(A, 2, 2);
+        % [A A; A A]
+
+        % kron: 克罗内克积（元素级复制）
+        B_kron = kron(A, ones(2, 2));
+        % [1*ones(2) 2*ones(2); 3*ones(2) 4*ones(2)]
+        % 即每个元素都变成2×2块
+        ```
+
+    * repmat vs. 索引复制
+
+        ```matlab
+        A = [1 2 3];
+
+        % 方法1: repmat
+        B = repmat(A, 3, 1);
+
+        % 方法2: 索引（更高效）
+        B = A(ones(3,1), :);
+
+        % 方法3: 使用ones创建索引
+        B = A(repmat(1:size(A,1), 3, 1), :);
+        ```
+
+    * repmat vs. meshgrid/ndgrid
+
+        ```matlab
+        % 创建2D网格
+        x = 1:3; y = 1:2;
+
+        % meshgrid (主要用于绘图)
+        [X1, Y1] = meshgrid(x, y);
+
+        % 用repmat实现
+        X2 = repmat(x, length(y), 1);
+        Y2 = repmat(y', 1, length(x));
+
+        % 验证
+        isequal(X1, X2)  % true
+        isequal(Y1, Y2)  % true
+        ```
+
+* matlab 广播机制（R2016b+）
+
+    ```matlab
+    % 旧方法：需要repmat
+    A = rand(1000, 1000);
+    row_mean = mean(A, 2);
+    A_centered = A - repmat(row_mean, 1, size(A, 2));
+
+    % 新方法：自动广播（更高效、更简洁）
+    A_centered = A - row_mean;  % 自动扩展维度
+    ```
+
+* 获取变量信息
+
+    ```matlab
+    size(data)      % 显示形状
+    class(data)     % 数据类型
+    length(data)    % 长度（向量）
+    ndims(data)     % 维度数
+    ```
+
+    注：
+
+    1. `length(data)`显示的是第 1 个维度的长度
+
+    1. 这些信息是只有矩阵才有吧？struct / cell / table 有吗？
+
+* 直接使用索引查看部分数据
+
+    ```matlab
+    % 查看前 5 行
+    data(1:5, :)  % 对于矩阵
+    data(1:5)     % 对于向量
+
+    % 查看后 5 行
+    data(end-4:end, :)  % 矩阵
+    data(end-4:end)     % 向量
+    ```
+
+    注：
+
+    1. matlab 不支持`data(:5)`或`data(5:)`这种省略部分索引的写法
+
+    1. 对于二维矩阵，如果只写了一维的索引，比如`data(1:10)`，那么它指的是将原矩阵做取消第一个维度的 flatten 操作后，再索引。
+
+        即从第 1 列开始，下面跟第 2 列，第 3 列…… 以此类推。
 
         example:
 
-        ```matlab
-        % 整数
-        age = 25;
-        fprintf('年龄: %d 岁\n', age);          % 年龄: 25 岁
-
-        % 浮点数（控制小数位数）
-        pi_value = pi;
-        fprintf('π = %.2f\n', pi_value);        % π = 3.14
-        fprintf('π = %.4f\n', pi_value);        % π = 3.1416
-        fprintf('π = %8.4f\n', pi_value);       % π =   3.1416（总宽度8）
-
-        % 科学计数法
-        speed = 299792458;
-        fprintf('光速: %.2e m/s\n', speed);     % 光速: 3.00e+08 m/s
-
-        % 字符串
-        name = '张三';
-        fprintf('姓名: %s\n', name);            % 姓名: 张三
-
-        % 多个变量
-        x = 10; y = 3.1416; z = '结果';
-        fprintf('%s: x = %d, y = %.2f\n', z, x, y);  % 结果: x = 10, y = 3.14
-
-        % 对齐输出
-        fprintf('%-10s %10s %10s\n', '姓名', '年龄', '分数');
-        fprintf('%-10s %10d %10.1f\n', '张三', 20, 85.5);
-        fprintf('%-10s %10d %10.1f\n', '李四', 22, 92.0);
-        % 输出：
-        % 姓名             年龄        分数
-        % 张三               20       85.5
-        % 李四               22       92.0
+        ```
+        a = [ 1 3 5
+              2 4 6 ]
         ```
 
-    * sprintf() - 格式化字符串（不直接显示）
+        使用`a(1:3)`索引时，
 
         ```matlab
-        % 创建格式化的字符串，不直接输出
-        str = sprintf('结果: %.3f', pi);
-        disp(str);  % 结果: 3.142
+        % 先将 a 变成
+        a_1 = [ 1
+                2
+                3
+                4
+                5
+                6 ]
 
-        % 构建复杂字符串
-        name = '小明';
-        score = 95.5;
-        date_str = datestr(now, 'yyyy-mm-dd');
-        report = sprintf('成绩报告\n姓名: %s\n分数: %.1f\n日期: %s\n', ...
-                        name, score, date_str);
-        disp(report);
+        % 再取转置
+        a_2 = [ 1 2 3 4 5 6 ]
+        
+        % 最后拿到结果
+        a_3 = [ 1 2 3 ]
         ```
 
-    * 表格形式输出
+        注意，最终拿到的结果是行向量。
+
+    1. 索引的后端都是包含在内的，即`data(ind_1:ind_2)`中的`ind_2`是 included 的，整体为闭区间。
+
+* 测试一个数组是否为空数组：`isempty()`
+
+* 将 nan 转换为 0
+
+    ```matlab
+    i = find(isnan(a));
+    a(i) = zeros(size(i));  % changes NaN into zeros
+    ```
+
+* 查看维度：`size()`，查看长度：`length()`（行数或列数的最大值），元素的总数：`numel()`
+
+* `reshape`
+
+    syntax:
+
+    * `reshape(A, sz)`
+    * `reshape(A, sz1, ..., szN)`
+
+* `repmat`
+
+    对于一个矩阵`A`，`repmat`可以将其维度进行重复。对于一个向量`A`，`repmat`可以先为其增加一个维度，然后再按矩阵做重复。对于一个纯量`A`，`repmat`可以构建具有重复元素的数组。
+
+    其实无论输入的是矩阵，向量还是纯量，`repmat`都是先把其变换成至少两个维度的矩阵，然后再处理。shape 为`(n, )`的一维向量，会先变成`(1, d)`，shape 为`(1, )`的纯量，会先变成`(1, 1)`。
+
+    `repmat`的处理方式很奇怪，如果待处理矩阵`A`后只有一个参数`r1`，那么会把`A`的前两个维度翻`r1`倍。如果`A`后有大于 1 个参数`(r1, r2, ....)`，`repmat`则会按对应位置对维度进行翻倍。
+
+    syntax:
+
+    * `repmat(A, n)`
+    * `repmat(A, r1, ..., rN)`
+    * `repmat(A, r)`
+
+    其中`r1`，...，`rN`表示在这些维度上重复几遍。
+
+    Examples:
+
+    ```matlab
+    a = 1
+    b = zeros(3)
+    ```
+
+* `cat`
+
+    syntax:
+
+    * `C = cat(dim, A, B)`
+    * `C = cat(dim, A1, A2, ..., An)`
+
+* `squeeze`
+
+    syntax:
+
+    * `squeeze(A)`
+
+    删除矩阵中大小为 1 的维度。
+    
+    具体实现的话不同情况挺复杂的，看例子理解吧。
+
+    Examples:
+
+    ```matlab
+    a = 1
+    size(squeeze(a))  % (1, 1)
+
+    b = zeros(1, 3)
+    size(squeeze(b))  % (1, 3)
+
+    c = zeros(1, 3, 1)
+    size(squeeze(c))  % (1, 3)
+
+    d = zeros(1, 3, 1, 2)
+    size(squeeze(d))  % (3, 2)
+    ```
+
+* `sub2ind`
+
+    syntax:
+
+    * `ind = sub2ind(sz, row, col)`
+    * `ind = sub2ind(sz, I1, I2, ..., In)`
+
+    将多维索引拉伸成一维索引。
+
+    `ind2sub()`
+
+* `permute`
+
+    syntax:
+
+    * `B = permute(A, dimorder)`
+
+    重排维度。相当于 numpy 中的`transpose`。
+
+    `ipermute()`
+
+* `size`
+
+    syntax:
+
+    * `sz = size(A)`
+    * `szdim = size(A, dim)`
+    * `szdim = size(A, dim1, dim2, ..., dimN)`
+    * `[sz1, ..., szN] = size(___)`
+
+* `N = ndims(A)`
+
+    获取维度的数量
+
+* 其他
+
+    * `cat()`
+
+    * `flipdim()`
+
+    * `shiftdim()`
+
+* 矩阵信息
+
+    * `length(A)`
+
+        一个数组的行数和列数的最大值。
+
+    * `numel(A)`
+
+        数组元素总数。
+
+    * `[a, b] = size(A)`
+    
+        数组的行数和列数。
+
+* 矩阵测试
+
+    * `isempty()`
+
+        用于检测某个数组是否为空数组。
 
         ```matlab
-        % 创建表格数据
-        names = {'张三', '李四', '王五'};
-        ages = [20; 22; 21];
-        scores = [85.5; 92.0; 88.5];
+        TF = isempty(A)
+        ```
 
-        % 表头
-        fprintf('\n========== 学生成绩表 ==========\n');
-        fprintf('%-10s %-8s %-10s\n', '姓名', '年龄', '成绩');
-        fprintf('%s\n', repmat('-', 1, 30));
+    * `isscalar()`
 
-        % 数据行
-        for i = 1:length(names)
-            fprintf('%-10s %-8d %-10.1f\n', names{i}, ages(i), scores(i));
+        检测某个数组是否为单元素的标量数组。
+
+        ```matlab
+        TF = isscalar(A)
+        ```
+
+    * `isvector()`
+
+        检测某个数组是否为只有一行元素或一列元素。
+
+    * `issparse()`
+
+        检测某个数组是否为稀疏数组。
+
+* 排序
+
+    ```matlab
+    a = rand(1, 10)
+    b = sort(a)
+    [b, index] = sort(a)
+    ```
+
+    排序二维数组时可以指定维度：
+
+    ```matlab
+    [b, index] = sort(A, dim, mode)  % 其中 mode 可以取 'ascend', 'descend'
+    ```
+
+    默认情况下，matlab 会对`dim=1`维度进行排序，而 numpy 中的`sort`则会对`axis=-1`维度进行排序。matlab 与 numpy 的相同点是，第二个维度指的都是行，第一个维度指的都是列。
+
+* 找到为`1`或`true`的索引：`find()`
+
+* 整数类型：
+
+    `int8()`, `int16()`, `int32()`, `int64()`, `uint8()`, `uint16()`, `uint32()`, `uint64()`
+
+* 整数的溢出会变成最小值和最大值：
+
+    ```matlab
+    k = cast('hellothere', 'uint8');  % k = 104 101 108 108 111 116 104 101 114 101
+
+    double(k) + 150;  % ans = 254 251 258 261 266 254 251 264 251
+
+    k + 150;  % ans = 254 251 255 255 255 255 254 251 255 251
+
+    k - 110;  % and = 0 0 0 0 1 6 0 0 4 0
+    ```
+
+* 浮点类型：
+
+    `single()`, `double()`
+
+    ```matlab
+    a = zeros(1, 5, 'single')
+
+    d = cast(6:-1:0, 'single')  % 转换单精度与双精度
+    ```
+
+* 单精度与双精度浮点数之间的运算结果是单精度浮点数。
+
+* 判断是否为`nan`或`inf`：`isnan()`, `isinf()`。在 matlab 中，不同的`NaN`互不相等。不可以使用`a == nan`判断。
+
+* 可以使用赋空操作删除某一行或列：
+
+    ```matlab
+    A(:, 2:3, :) = []
+    ```
+
+* 运算符：除法为`\`或`/`，乘方为`^`。
+
+* 矩阵扩展
+
+    ```matlab
+    % 直接使用索引扩展
+    a = reshape(1:9, 3, 3)
+    a(5, 5) = 111
+    a(:, 6) = 222
+    aa = a(:, [1:6, 1:6])
+
+    % 使用分号扩展行
+    b = ones(2, 6)
+    ab_r = [a; b]
+
+    % 使用逗号扩展列
+    ab_c = [a, b(:, 1:5)']
+    ```
+
+* 逻辑运算
+
+    ```matlab
+    A & B
+    and(A, B)  % 若两个数均非 0 值，则结果为 1
+
+    A | B
+    or(A, B)  % 若两个数有一个不为 0，则结果为 1
+
+    ~A
+    not(A)  % 若待运算矩阵的元素为 0，则结果元素为 1
+
+    xor(A, B)  % 若一个为 0，一个不为 0，则结果为 1
+    ```
+
+* 数值运算
+
+    ```matlab
+    cumsum(a) 
+    sum(a)
+    dot(a, b)
+    cross(a, b)  % 叉乘运算
+    prod(a)
+    cumprod(a)
+    triu(a, k)  % 提取上三角矩阵
+    tril(a, k)
+    flipud()  % 矩阵翻转
+    fliplr()
+    rot90()
+    ```
+
+* 直接使用`a * b`做的是矩阵乘法，想做逐元素相乘可以用`a .* b`。
+
+* 使用`sub2ind()`计算二维索引在拉伸为一维的数组中的索引：
+
+    ```matlab
+    b = sub2ind(size(a), [2, 3], [2, 1])
+    a(b)
+    ```
+
+* 数组索引
+
+    ```matlab
+    a = [1, 3, 4, 5, 6, 7]
+    a(5)
+    a([1,3,5])  % 访问多个元素
+    a(1:2:5)  % 访问多个元素
+    a(find(x>3))  % 按条件访问多个元素
+
+    a = zeros(2, 6)
+    a(:) = 1:12  % 按照一维方式访问
+    a(2, 4)
+    a(8)
+    a(:, [1,3])
+    a([1, 2, 5, 6]')
+    a(:, 4:end)
+    a(2, 1:2:5)
+    a([1, 2, 2, 2], [1, 3, 5])
+    ```
+
+* 转置
+
+    `a'` 或 `transpose(a)`
+    
+    这两种方法只适用二维数组（包含向量），如果维度超过二维会报错。
+
+* 可以使用`a([2, 3, 4])`进行多元素索引，也可以使用`a(1:2:10)`这样的方式。
+
+### 矩阵创建
+
+* matlab 中的`1:10`包含 1 和 10。即 end included
+
+* 输入矩阵元素创建矩阵
+
+    ```matlab
+    a = [1, 2, 3; 4, 5, 6; 7, 8, 9]
+
+    a = [1 2 3 4
+        5 6 7 8
+        0 1 2 3]
+    ```
+
+* 指定索引元素创建矩阵
+
+    ```matlab
+    B(1,2) = 3;
+    B(4,4) = 6;
+    B(4,2) = 11;
+    ```
+
+    matlab 会自动构建一个剩下元素都是 0 的矩阵：
+
+    ```matlab
+    B = 
+    0 3 0 0
+    0 0 0 0
+    0 0 0 0
+    0 11 0 6
+    ```
+
+* 创建高维矩阵
+
+    ```matlab
+    % 直接创建
+    A = zeros(2, 3)
+    % 使用索引创建
+    A(:, :, 4) = zeros(2, 3)
+    ```
+
+* 常用的二维数组生成函数
+
+    ```matlab
+    zeros(2, 4)
+    ones(2, 4)
+    randn('state', 0)  % 把正态随机发生器置 0
+    randn(2, 3)  % 产生正态随机矩阵
+    D = eye(3)  % 产生 3 x 3 的单位矩阵
+    diag(D)  % 取 D 矩阵的对角元
+    diag(diag(D))  % 外 diag() 利用一维数组生成对角矩阵
+    randsrc(3, 10, [-3, -1, 1, 3], 1)  % 在[-3, -1, 1, 3]中产生 3 x 10 的均匀分布随机数组，随机发生器的状态设置为 1
+    ```
+
+* `linspace()`：线性向量生成
+
+    `linspace(x1, x2)`默认生成 100 个点，也可以用`linspace(x1, x2, n)`指定生成的采样点数量。
+
+    `logspace`：等比数列生成
+
+* `start:step:end`: 按间隔生成向量
+
+    `start:end`按步长为 1 生成向量，比如`1:5`生成向量`[1 2 3 4 5]`，注意`end`是包括在区间内的。
+
+    `start:step:end`可以按指定步长生成向量。
+
+* 直接创建向量
+
+    ```matlab
+    a = [1 2 3]  % shape: (1, 3)
+    a = [1, 2, 3]  % shape: (1, 3)
+    a = [1; 2; 3]  % shape: (3, 1)
+    ```
+
+    matlab 里没有纯量和一维向量，只有维度从二起始的矩阵。
+    
+    为了方便，这里把 shape 为`(1, n)`或`(n, 1)`的矩阵称为向量，把 shape 为`(1, 1)`的矩阵称为数字或纯量。把 shape 为`(m, n)`的二维矩阵或三维以上的矩阵称为矩阵或张量。
+
+    可以用`size(a)`查看矩阵`a`的 shape。
+
+    example:
+
+    ```matlab
+    >> a = [1 2 3]
+
+    a =
+
+        1     2     3
+
+    >> size(a)
+
+    ans =
+
+        1     3
+
+    >> b = [1; 2; 3]
+
+    b =
+
+        1
+        2
+        3
+
+    >> size(b)
+
+    ans =
+
+        3     1
+    ```
+
+### 快捷键
+
+* 注释/取消注释
+
+    ```matlab
+    % 注释选中行：Ctrl + R
+    % 取消注释：Ctrl + T
+
+    % 示例：
+    % 选中下面三行，按 Ctrl+R
+    x = 1;
+    y = 2;
+    z = x + y;
+
+    % 再按 Ctrl+T 取消注释
+    ```
+
+    块注释：
+
+    ```matlab
+    %{
+    这是一个多行注释块
+    可以跨越多行
+    这里面的代码不会执行
+    x = 1;
+    y = 2;
+    %}
+    ```
+
+    代码段折叠:
+
+    ```matlab
+    %% 节标题（双百分号）
+    % 可以折叠代码段
+    x = linspace(0, 10, 100);
+    y = sin(x);
+
+    %% 另一个节
+    plot(x, y);
+    title('正弦波');
+    ```
+
+* clear
+
+    ```matlab
+    clear        % 清除工作区所有变量
+    clear x y    % 只清除变量x和y
+    clear all    % 清除所有变量、函数、MEX文件等（最彻底）
+    clear classes % 清除类定义
+    clear functions % 清除编译的函数
+
+    % 示例
+    >> a = 1; b = 2; whos  % 查看当前变量
+    >> clear a            % 只清除a
+    >> clear              % 清除所有变量
+    ```
+
+* clc
+
+    ```matlab
+    clc  % Clear Command Window - 清空命令窗口显示
+    % 只清除显示内容，不影响变量和程序运行
+
+    % 示例
+    >> disp('这行文字会显示')
+    >> clc  % 清屏，但变量仍然存在
+    >> a = 5;  % a变量没有被清除
+    ```
+
+    example:
+
+    ```matlab
+    % 典型用法：脚本开头
+    clear; clc; close all;  % 黄金三连
+    % clear: 清除旧变量，避免冲突
+    % clc: 清屏，让输出更清晰
+    % close all: 关闭所有图形窗口
+
+    % 实际应用
+    clear; clc;
+    fprintf('========== 程序开始 ==========\n\n');
+    ```
+
+### 函数
+
+* matlab 函数类型和调用示例
+
+    * 单输出函数
+
+        ```matlab
+        % circle_area.m
+        function area = circle_area(radius)
+            area = pi * radius^2;
         end
 
-        fprintf('\n总人数: %d\n', length(names));
+        % 调用
+        area = circle_area(5);  % 计算半径为5的圆面积
         ```
 
-        output:
+        注：
 
-        ```
-        ========== 学生成绩表 ==========
-        姓名         年龄       成绩        
-        ------------------------------
-        张三         20       85.5      
-        李四         22       92.0      
-        王五         21       88.5      
+        1. 函数文件中只能写函数，不能写调用。
 
-        总人数: 3
-        ```
+            调用只能写在脚本文件中。
 
-    * 进度条和动态显示
+    * 多输出函数
 
         ```matlab
-        % 进度条
-        total = 100;
-        fprintf('进度: [');
-        for i = 1:total
-            % 每10%显示一个#
-            if mod(i, 10) == 0
-                fprintf('#');
+        % stats.m
+        function [mean_val, std_val] = stats(data)
+            mean_val = mean(data);
+            std_val = std(data);
+        end
+
+        % 调用方式1：获取所有输出
+        [avg, deviation] = stats([1 2 3 4 5]);
+
+        % 调用方式2：只获取第一个输出
+        avg_only = stats([1 2 3 4 5]);
+
+        % 调用方式3：使用波浪线忽略输出
+        [~, std_only] = stats([1 2 3 4 5]);
+        ```
+
+    * 无输出函数
+
+        ```matlab
+        % plot_data.m
+        function plot_data(x, y)
+            figure;
+            plot(x, y, 'b-', 'LineWidth', 2);
+            xlabel('X'); ylabel('Y');
+            title('数据图');
+            grid on;
+        end
+
+        % 调用
+        x = 0:0.1:10;
+        y = sin(x);
+        plot_data(x, y);  % 只执行绘图，不返回数据
+        ```
+
+    * 带可选参数的函数
+
+        ```matlab
+        % calculate.m
+        function result = calculate(a, b, operation)
+            if nargin < 3  % 检查输入参数数量
+                operation = 'add';
             end
-            pause(0.01); % 模拟计算
+            
+            switch operation
+                case 'add'
+                    result = a + b;
+                case 'subtract'
+                    result = a - b;
+                case 'multiply'
+                    result = a * b;
+                otherwise
+                    error('不支持的操作');
+            end
         end
-        fprintf('] 完成！\n');
 
-        % 动态更新单行
-        for i = 1:20
-            fprintf('处理中: %d/%d\r', i, 20);
-            pause(0.1);
-        end
-        fprintf('\n完成！\n');
+        % 调用
+        result1 = calculate(3, 5);          % 默认加法
+        result2 = calculate(3, 5, 'multiply');  % 指定乘法
         ```
 
-    * 综合 example
+        注：
+
+        1. matlab 不支持函数的默认参数
+
+* matlab 嵌套函数和子函数
+
+    * 嵌套函数
 
         ```matlab
-        clear; clc;  % 清理环境
-
-        % 程序开始
-        fprintf('%s\n', repmat('=', 1, 50));
-        fprintf('           数据分析报告\n');
-        fprintf('%s\n\n', repmat('=', 1, 50));
-
-        % 计算并显示结果
-        data = randn(100, 1);
-        mean_val = mean(data);
-        std_val = std(data);
-
-        fprintf('统计结果:\n');
-        fprintf('%-15s: %8.4f\n', '平均值', mean_val);
-        fprintf('%-15s: %8.4f\n', '标准差', std_val);
-        fprintf('%-15s: %8d\n', '样本数', length(data));
-
-        % 用表格显示前5个数据
-        fprintf('\n前5个样本:\n');
-        for i = 1:min(5, length(data))
-            fprintf('样本 %2d: %8.4f\n', i, data(i));
+        % outer.m
+        function outer(x)
+            disp('外层函数');
+            nested_func(x);
+            
+            function nested_func(y)
+                disp(['嵌套函数接收到: ', num2str(y)]);
+            end
         end
+
+        % 调用
+        outer(10);
+        ```
+        
+        注：
+
+        * `nested_func()`可以写在调用前，也可以写在调用后
+
+    * 子函数（同一文件多个函数）
+
+        ```matlab
+        % mainfile.m
+        function mainfile()
+            data = [1 2 3 4 5];
+            result1 = subfunc1(data);
+            result2 = subfunc2(data);
+            disp(['结果: ', num2str(result1), ', ', num2str(result2)]);
+        end
+
+        % 子函数1
+        function res1 = subfunc1(d)
+            res1 = mean(d);
+        end
+
+        % 子函数2
+        function res2 = subfunc2(d)
+            res2 = sum(d);
+        end
+        ```
+
+        注：
+
+        1. 子函数必须写在主函数的下面。
+
+            即文件的第一个函数必须是以文件名命名的函数。
+
+* matlab 函数
+
+    * 文件命名规则
+
+        ```matlab
+        % 文件名必须与函数名相同！
+        % myfunction.m 文件内容：
+        function output = myfunction(input1, input2)
+            % 函数体
+            output = input1 + input2;
+        end
+        ```
+
+    * 直接调用（同目录）
+
+        ```matlab
+        % 当函数文件在当前目录或MATLAB路径中时
+        result = myfunction(3, 5);
+        disp(result);  % 输出 8
+        ```
+
+    * 通过函数句柄调用
+
+        ```matlab
+        % 创建函数句柄
+        myfunc = @myfunction;
+
+        % 使用句柄调用
+        result = myfunc(3, 5);
+
+        % 匿名函数句柄（适用于简单函数）
+        square = @(x) x^2;
+        result = square(4);  % 返回 16
+        ```
+
+    * 带路径调用
+
+        ```matlab
+        % 如果函数在不同文件夹
+        result = C:\MyFunctions\myfunction(3, 5);
+
+        % 或先添加到路径
+        addpath('C:\MyFunctions');
+        result = myfunction(3, 5);
         ```
 
 * matlab 私有函数
@@ -2977,520 +3786,30 @@
         r3 = new_function(2, 'mode', "slow", 'scale', 2.0);
         ```
 
-* matlab 中，单引号`'`和双引号`"`都可以表示字符串。
+### 常用命令与工程环境
 
-* matlab 中，`disp('xxx')`和`disp('xxx');`效果相同，都没有`ans = xxx`的输出。
+* 注释：使用`%`进行单行注释。
 
-* matlab 中的`1:10`包含 1 和 10。即 end included
-
-* matlab 函数类型和调用示例
-
-    * 单输出函数
-
-        ```matlab
-        % circle_area.m
-        function area = circle_area(radius)
-            area = pi * radius^2;
-        end
-
-        % 调用
-        area = circle_area(5);  % 计算半径为5的圆面积
-        ```
-
-        注：
-
-        1. 函数文件中只能写函数，不能写调用。
-
-            调用只能写在脚本文件中。
-
-    * 多输出函数
-
-        ```matlab
-        % stats.m
-        function [mean_val, std_val] = stats(data)
-            mean_val = mean(data);
-            std_val = std(data);
-        end
-
-        % 调用方式1：获取所有输出
-        [avg, deviation] = stats([1 2 3 4 5]);
-
-        % 调用方式2：只获取第一个输出
-        avg_only = stats([1 2 3 4 5]);
-
-        % 调用方式3：使用波浪线忽略输出
-        [~, std_only] = stats([1 2 3 4 5]);
-        ```
-
-    * 无输出函数
-
-        ```matlab
-        % plot_data.m
-        function plot_data(x, y)
-            figure;
-            plot(x, y, 'b-', 'LineWidth', 2);
-            xlabel('X'); ylabel('Y');
-            title('数据图');
-            grid on;
-        end
-
-        % 调用
-        x = 0:0.1:10;
-        y = sin(x);
-        plot_data(x, y);  % 只执行绘图，不返回数据
-        ```
-
-    * 带可选参数的函数
-
-        ```matlab
-        % calculate.m
-        function result = calculate(a, b, operation)
-            if nargin < 3  % 检查输入参数数量
-                operation = 'add';
-            end
-            
-            switch operation
-                case 'add'
-                    result = a + b;
-                case 'subtract'
-                    result = a - b;
-                case 'multiply'
-                    result = a * b;
-                otherwise
-                    error('不支持的操作');
-            end
-        end
-
-        % 调用
-        result1 = calculate(3, 5);          % 默认加法
-        result2 = calculate(3, 5, 'multiply');  % 指定乘法
-        ```
-
-        注：
-
-        1. matlab 不支持函数的默认参数
-
-* matlab 嵌套函数和子函数
-
-    * 嵌套函数
-
-        ```matlab
-        % outer.m
-        function outer(x)
-            disp('外层函数');
-            nested_func(x);
-            
-            function nested_func(y)
-                disp(['嵌套函数接收到: ', num2str(y)]);
-            end
-        end
-
-        % 调用
-        outer(10);
-        ```
-        
-        注：
-
-        * `nested_func()`可以写在调用前，也可以写在调用后
-
-    * 子函数（同一文件多个函数）
-
-        ```matlab
-        % mainfile.m
-        function mainfile()
-            data = [1 2 3 4 5];
-            result1 = subfunc1(data);
-            result2 = subfunc2(data);
-            disp(['结果: ', num2str(result1), ', ', num2str(result2)]);
-        end
-
-        % 子函数1
-        function res1 = subfunc1(d)
-            res1 = mean(d);
-        end
-
-        % 子函数2
-        function res2 = subfunc2(d)
-            res2 = sum(d);
-        end
-        ```
-
-        注：
-
-        1. 子函数必须写在主函数的下面。
-
-            即文件的第一个函数必须是以文件名命名的函数。
-
-* matlab 函数
-
-    * 文件命名规则
-
-        ```matlab
-        % 文件名必须与函数名相同！
-        % myfunction.m 文件内容：
-        function output = myfunction(input1, input2)
-            % 函数体
-            output = input1 + input2;
-        end
-        ```
-
-    * 直接调用（同目录）
-
-        ```matlab
-        % 当函数文件在当前目录或MATLAB路径中时
-        result = myfunction(3, 5);
-        disp(result);  % 输出 8
-        ```
-
-    * 通过函数句柄调用
-
-        ```matlab
-        % 创建函数句柄
-        myfunc = @myfunction;
-
-        % 使用句柄调用
-        result = myfunc(3, 5);
-
-        % 匿名函数句柄（适用于简单函数）
-        square = @(x) x^2;
-        result = square(4);  % 返回 16
-        ```
-
-    * 带路径调用
-
-        ```matlab
-        % 如果函数在不同文件夹
-        result = C:\MyFunctions\myfunction(3, 5);
-
-        % 或先添加到路径
-        addpath('C:\MyFunctions');
-        result = myfunction(3, 5);
-        ```
-
-* matlab 数据可视化
-
-    * 基本绘图
-
-        ```matlab
-        x = linspace(0, 2 * pi)
-        y = sin(x)
-        figure;                       % 新建图形窗口
-        plot(x, y, 'r--', 'LineWidth', 2);  % 红色虚线
-        xlabel('X轴');
-        ylabel('Y轴');
-        grid on;                      % 显示网格
-        hold on;                      % 保持图形
-        plot(x, cos(x), 'b-');       % 继续绘图
-        legend('sin', 'cos');        % 添加图例
-        ```
-
-        注：
-
-        1. `hold on`和`grid on`也可以写在 plot 第一幅图之前
-
-    * 子图
-
-        ```matlab
-        subplot(2, 2, 1);
-        plot(x, sin(x));
-        subplot(2, 2, 2);
-        plot(x, cos(x));
-        subplot(2, 2, 3);
-        bar([1 2 3 4]);
-        subplot(2, 2, 4);
-        histogram(randn(1000,1));
-        ```
-
-        注：
-
-        1. 还可以写成`subplot(221)`，`subplot(222)`等。
-
-* matlab 编程基础
-
-    * 脚本文件 (.m)
-
-        ```matlab
-        % myscript.m
-        x = linspace(0, 2*pi, 100);
-        y = sin(x);
-        plot(x, y);
-        title('正弦曲线');
-        ```
-
-        在 command windows 直接输入脚本文件的名字，即可运行。比如
-
-        `>>> myscript`
-
-    * 函数文件
-
-        ```matlab
-        % myfunction.m
-        function [output1, output2] = myfunction(input1, input2)
-            % 函数说明
-            output1 = input1 + input2;
-            output2 = input1 * input2;
-        end
-        ```
-
-    * 流程控制
-
-        ```matlab
-        % 条件判断
-        if x > 0
-            disp('正数');
-        elseif x < 0
-            disp('负数');
-        else
-            disp('零');
-        end
-
-        % 循环
-        for i = 1:10
-            disp(i);
-        end
-
-        while x < 100
-            x = x * 2;
-        end
-        ```
-
-* 基本计算
+* 在脚本中，两个`%`可以标志一个 block：
 
     ```matlab
-    >> 3 + 4 * 2  % 直接计算
-    ans = 11
+    a = 1
 
-    >> x = 5;      % 赋值（分号抑制输出）
-    >> y = x^2 + 3*x - 2
-    y = 38
+    %% new block
+    b = 2
     ```
 
-* 向量和矩阵
+    使用`Ctrl + Enter`可以运行 block 中的内容。
+
+* 块注释
 
     ```matlab
-    >> A = [1 2 3; 4 5 6; 7 8 9]  % 创建矩阵
-    >> v = 1:0.5:3                % 创建向量 [1, 1.5, 2, 2.5, 3]
-    >> B = zeros(3, 2)            % 3×2零矩阵
-    >> C = ones(2, 3)             % 2×3全1矩阵
+    %{
+
+        comments
+
+    %}
     ```
-
-    `A`中的空格也可以为逗号。
-
-    `1:3`默认步长为 1，即生成`1 2 3`
-
-* 常用运算
-
-    ```matlab
-    >> A'          % 转置
-    >> A * B       % 矩阵乘法
-    >> A .* B      % 元素对应相乘
-    >> inv(A)      % 求逆
-    >> size(A)     % 矩阵大小
-    ```
-
-    注：
-
-    1. `size(A)`得到的也是一个向量，或者说，一维矩阵
-
-## topics
-
-### 帮助与信息
-
-* `help func_name`
-
-* 查找函数：`lookfor keyword`
-
-    `lookfor`搜索所有函数的第一行注释行，找到对应的文件或函数。
-
-
-
-其他常用命令：
-
-* `who`：列出当前工作空间中的变量
-* `what`：列出当前文件夹或指定目录下的 M 文件、MAT 文件和 MEX 文件
-* `which`：显示指定函数或文件的路径
-* `whos`：列出当前工作空间中变量的更多信息
-* `exist`：检查指定变量或文件的存在性
-* `doc`：直接查询在线文档。通常更详细
-* `echo`：直接运行时，切换是否显示 m 文件中的内容。也可以`echo on`，`echo off`来指定状态。
-
-
-### 矩阵运算与索引
-
-* 可以使用赋空操作删除某一行或列：
-
-    ```matlab
-    A(:, 2:3, :) = []
-    ```
-
-* 运算符：除法为`\`或`/`，乘方为`^`。
-
-* 矩阵扩展
-
-    ```matlab
-    % 直接使用索引扩展
-    a = reshape(1:9, 3, 3)
-    a(5, 5) = 111
-    a(:, 6) = 222
-    aa = a(:, [1:6, 1:6])
-
-    % 使用分号扩展行
-    b = ones(2, 6)
-    ab_r = [a; b]
-
-    % 使用逗号扩展列
-    ab_c = [a, b(:, 1:5)']
-    ```
-
-* 逻辑运算
-
-    ```matlab
-    A & B
-    and(A, B)  % 若两个数均非 0 值，则结果为 1
-
-    A | B
-    or(A, B)  % 若两个数有一个不为 0，则结果为 1
-
-    ~A
-    not(A)  % 若待运算矩阵的元素为 0，则结果元素为 1
-
-    xor(A, B)  % 若一个为 0，一个不为 0，则结果为 1
-    ```
-
-* 数值运算
-
-    ```matlab
-    cumsum(a) 
-    sum(a)
-    dot(a, b)
-    cross(a, b)  % 叉乘运算
-    prod(a)
-    cumprod(a)
-    triu(a, k)  % 提取上三角矩阵
-    tril(a, k)
-    flipud()  % 矩阵翻转
-    fliplr()
-    rot90()
-    ```
-
-* 直接使用`a * b`做的是矩阵乘法，想做逐元素相乘可以用`a .* b`。
-
-* 使用`sub2ind()`计算二维索引在拉伸为一维的数组中的索引：
-
-    ```matlab
-    b = sub2ind(size(a), [2, 3], [2, 1])
-    a(b)
-    ```
-
-* 数组索引
-
-    ```matlab
-    a = [1, 3, 4, 5, 6, 7]
-    a(5)
-    a([1,3,5])  % 访问多个元素
-    a(1:2:5)  % 访问多个元素
-    a(find(x>3))  % 按条件访问多个元素
-
-    a = zeros(2, 6)
-    a(:) = 1:12  % 按照一维方式访问
-    a(2, 4)
-    a(8)
-    a(:, [1,3])
-    a([1, 2, 5, 6]')
-    a(:, 4:end)
-    a(2, 1:2:5)
-    a([1, 2, 2, 2], [1, 3, 5])
-    ```
-
-* 转置
-
-    `a'` 或 `transpose(a)`
-    
-    这两种方法只适用二维数组（包含向量），如果维度超过二维会报错。
-
-* 可以使用`a([2, 3, 4])`进行多元素索引，也可以使用`a(1:2:10)`这样的方式。
-
-### 矩阵创建
-
-* 创建高维矩阵
-
-    ```matlab
-    % 直接创建
-    A = zeros(2, 3)
-    % 使用索引创建
-    A(:, :, 4) = zeros(2, 3)
-    ```
-
-* 常用的二维数组生成函数
-
-    ```matlab
-    zeros(2, 4)
-    ones(2, 4)
-    randn('state', 0)  % 把正态随机发生器置 0
-    randn(2, 3)  % 产生正态随机矩阵
-    D = eye(3)  % 产生 3 x 3 的单位矩阵
-    diag(D)  % 取 D 矩阵的对角元
-    diag(diag(D))  % 外 diag() 利用一维数组生成对角矩阵
-    randsrc(3, 10, [-3, -1, 1, 3], 1)  % 在[-3, -1, 1, 3]中产生 3 x 10 的均匀分布随机数组，随机发生器的状态设置为 1
-    ```
-
-* `linspace()`：线性向量生成
-
-    `linspace(x1, x2)`默认生成 100 个点，也可以用`linspace(x1, x2, n)`指定生成的采样点数量。
-
-    `logspace`：等比数列生成
-
-* `start:step:end`: 按间隔生成向量
-
-    `start:end`按步长为 1 生成向量，比如`1:5`生成向量`[1 2 3 4 5]`，注意`end`是包括在区间内的。
-
-    `start:step:end`可以按指定步长生成向量。
-
-* 直接创建向量
-
-    ```matlab
-    a = [1 2 3]  % shape: (1, 3)
-    a = [1, 2, 3]  % shape: (1, 3)
-    a = [1; 2; 3]  % shape: (3, 1)
-    ```
-
-    matlab 里没有纯量和一维向量，只有维度从二起始的矩阵。
-    
-    为了方便，这里把 shape 为`(1, n)`或`(n, 1)`的矩阵称为向量，把 shape 为`(1, 1)`的矩阵称为数字或纯量。把 shape 为`(m, n)`的二维矩阵或三维以上的矩阵称为矩阵或张量。
-
-    可以用`size(a)`查看矩阵`a`的 shape。
-
-    example:
-
-    ```matlab
-    >> a = [1 2 3]
-
-    a =
-
-        1     2     3
-
-    >> size(a)
-
-    ans =
-
-        1     3
-
-    >> b = [1; 2; 3]
-
-    b =
-
-        1
-        2
-        3
-
-    >> size(b)
-
-    ans =
-
-        3     1
-    ```
-
-### 命令与快捷键
 
 * 文件与目录
 
@@ -3501,90 +3820,35 @@
     dir                     % 详细列表
     ```
 
-* 注释/取消注释
+* `whos`
 
     ```matlab
-    % 注释选中行：Ctrl + R
-    % 取消注释：Ctrl + T
+    % 查看工作区所有变量信息
+    whos
 
-    % 示例：
-    % 选中下面三行，按 Ctrl+R
-    x = 1;
-    y = 2;
-    z = x + y;
-
-    % 再按 Ctrl+T 取消注释
+    % 查看指定变量信息
+    whos variable_name
     ```
 
-    块注释：
+* `help func_name`
 
-    ```matlab
-    %{
-    这是一个多行注释块
-    可以跨越多行
-    这里面的代码不会执行
-    x = 1;
-    y = 2;
-    %}
-    ```
+* 查找函数：`lookfor keyword`
 
-    代码段折叠:
+    `lookfor`搜索所有函数的第一行注释行，找到对应的文件或函数。
 
-    ```matlab
-    %% 节标题（双百分号）
-    % 可以折叠代码段
-    x = linspace(0, 10, 100);
-    y = sin(x);
+* `who`：列出当前工作空间中的变量
 
-    %% 另一个节
-    plot(x, y);
-    title('正弦波');
-    ```
+* `what`：列出当前文件夹或指定目录下的 M 文件、MAT 文件和 MEX 文件
 
-* clear
+* `which`：显示指定函数或文件的路径
 
-    ```matlab
-    clear        % 清除工作区所有变量
-    clear x y    % 只清除变量x和y
-    clear all    % 清除所有变量、函数、MEX文件等（最彻底）
-    clear classes % 清除类定义
-    clear functions % 清除编译的函数
+* `whos`：列出当前工作空间中变量的更多信息
 
-    % 示例
-    >> a = 1; b = 2; whos  % 查看当前变量
-    >> clear a            % 只清除a
-    >> clear              % 清除所有变量
-    ```
+* `exist`：检查指定变量或文件的存在性
 
-* clc
+* `doc`：直接查询在线文档。通常更详细
 
-    ```matlab
-    clc  % Clear Command Window - 清空命令窗口显示
-    % 只清除显示内容，不影响变量和程序运行
-
-    % 示例
-    >> disp('这行文字会显示')
-    >> clc  % 清屏，但变量仍然存在
-    >> a = 5;  % a变量没有被清除
-    ```
-
-    example:
-
-    ```matlab
-    % 典型用法：脚本开头
-    clear; clc; close all;  % 黄金三连
-    % clear: 清除旧变量，避免冲突
-    % clc: 清屏，让输出更清晰
-    % close all: 关闭所有图形窗口
-
-    % 实际应用
-    clear; clc;
-    fprintf('========== 程序开始 ==========\n\n');
-    ```
-
-### 函数
-
-### 常用命令与工程环境
+* `echo`：直接运行时，切换是否显示 m 文件中的内容。也可以`echo on`，`echo off`来指定状态。
 
 * 显示运算符优先顺序：`help precedence`
 
@@ -3604,8 +3868,6 @@
     * `Del`, `Ctrl + D`：删除光标处的字符
     * `Backspace`, `Ctrl + H`：删除光标前的字符
     * `Alt + Backspace`：恢复上一次删除
-
-### 内置函数/命令
 
 * 数值的显示格式
 
@@ -3653,280 +3915,29 @@
 
     用于整理内存。将内存中的数据先存储到磁盘上，再从磁盘将数据读入到内存中。
 
-* `reshape`
-
-    syntax:
-
-    * `reshape(A, sz)`
-    * `reshape(A, sz1, ..., szN)`
-
-* `repmat`
-
-    对于一个矩阵`A`，`repmat`可以将其维度进行重复。对于一个向量`A`，`repmat`可以先为其增加一个维度，然后再按矩阵做重复。对于一个纯量`A`，`repmat`可以构建具有重复元素的数组。
-
-    其实无论输入的是矩阵，向量还是纯量，`repmat`都是先把其变换成至少两个维度的矩阵，然后再处理。shape 为`(n, )`的一维向量，会先变成`(1, d)`，shape 为`(1, )`的纯量，会先变成`(1, 1)`。
-
-    `repmat`的处理方式很奇怪，如果待处理矩阵`A`后只有一个参数`r1`，那么会把`A`的前两个维度翻`r1`倍。如果`A`后有大于 1 个参数`(r1, r2, ....)`，`repmat`则会按对应位置对维度进行翻倍。
-
-    syntax:
-
-    * `repmat(A, n)`
-    * `repmat(A, r1, ..., rN)`
-    * `repmat(A, r)`
-
-    其中`r1`，...，`rN`表示在这些维度上重复几遍。
-
-    Examples:
-
-    ```matlab
-    a = 1
-    b = zeros(3)
-    ```
-
-* `cat`
-
-    syntax:
-
-    * `C = cat(dim, A, B)`
-    * `C = cat(dim, A1, A2, ..., An)`
-
-* `squeeze`
-
-    syntax:
-
-    * `squeeze(A)`
-
-    删除矩阵中大小为 1 的维度。
-    
-    具体实现的话不同情况挺复杂的，看例子理解吧。
-
-    Examples:
-
-    ```matlab
-    a = 1
-    size(squeeze(a))  % (1, 1)
-
-    b = zeros(1, 3)
-    size(squeeze(b))  % (1, 3)
-
-    c = zeros(1, 3, 1)
-    size(squeeze(c))  % (1, 3)
-
-    d = zeros(1, 3, 1, 2)
-    size(squeeze(d))  % (3, 2)
-    ```
-
-* `sub2ind`
-
-    syntax:
-
-    * `ind = sub2ind(sz, row, col)`
-    * `ind = sub2ind(sz, I1, I2, ..., In)`
-
-    将多维索引拉伸成一维索引。
-
-    `ind2sub()`
-
-* `permute`
-
-    syntax:
-
-    * `B = permute(A, dimorder)`
-
-    重排维度。相当于 numpy 中的`transpose`。
-
-    `ipermute()`
-
-* `size`
-
-    syntax:
-
-    * `sz = size(A)`
-    * `szdim = size(A, dim)`
-    * `szdim = size(A, dim1, dim2, ..., dimN)`
-    * `[sz1, ..., szN] = size(___)`
-
-* `N = ndims(A)`
-
-    获取维度的数量
-
-* 其他
-
-    * `cat()`
-
-    * `flipdim()`
-
-    * `shiftdim()`
-
-* 矩阵信息
-
-    * `length(A)`
-
-        一个数组的行数和列数的最大值。
-
-    * `numel(A)`
-
-        数组元素总数。
-
-    * `[a, b] = size(A)`
-    
-        数组的行数和列数。
-
-* 矩阵测试
-
-    * `isempty()`
-
-        用于检测某个数组是否为空数组。
-
-        ```matlab
-        TF = isempty(A)
-        ```
-
-    * `isscalar()`
-
-        检测某个数组是否为单元素的标量数组。
-
-        ```matlab
-        TF = isscalar(A)
-        ```
-
-    * `isvector()`
-
-        检测某个数组是否为只有一行元素或一列元素。
-
-    * `issparse()`
-
-        检测某个数组是否为稀疏数组。
-
-* 排序
-
-    ```matlab
-    a = rand(1, 10)
-    b = sort(a)
-    [b, index] = sort(a)
-    ```
-
-    排序二维数组时可以指定维度：
-
-    ```matlab
-    [b, index] = sort(A, dim, mode)  % 其中 mode 可以取 'ascend', 'descend'
-    ```
-
-    默认情况下，matlab 会对`dim=1`维度进行排序，而 numpy 中的`sort`则会对`axis=-1`维度进行排序。matlab 与 numpy 的相同点是，第二个维度指的都是行，第一个维度指的都是列。
-
 ## note
 
+* 与数据类型相关的函数
 
-
-输入矩阵：
-
-```matlab
-a = [1, 2, 3;, 4, 5, 6; 7, 8, 9]
-a = [1 2 3 4
-    5 6 7 8
-    0 1 2 3]
-```
-
-还可以直接输入矩阵元素：
-
-```matlab
-B(1,2) = 3;
-B(4,4) = 6;
-B(4,2) = 11;
-```
-
-matlab 会自动构建一个剩下元素都是 0 的矩阵：
-
-```matlab
-B = 
-  0 3 0 0
-  0 0 0 0
-  0 0 0 0
-  0 11 0 6
-```
-
-注释：使用`%`进行单行注释。
-
-整数类型：
-
-`int8()`, `int16()`, `int32()`, `int64()`, `uint8()`, `uint16()`, `uint32()`, `uint64()`
-
-整数的溢出会变成最小值和最大值：
-
-```matlab
-k = cast('hellothere', 'uint8');  % k = 104 101 108 108 111 116 104 101 114 101
-
-double(k) + 150;  % ans = 254 251 258 261 266 254 251 264 251
-
-k + 150;  % ans = 254 251 255 255 255 255 254 251 255 251
-
-k - 110;  % and = 0 0 0 0 1 6 0 0 4 0
-```
-
-浮点类型：
-
-`single()`, `double()`
-
-```matlab
-a = zeros(1, 5, 'single')
-
-d = cast(6:-1:0, 'single')  % 转换单精度与双精度
-```
-
-单精度与双精度浮点数之间的运算结果是单精度浮点数。
-
-判断是否为`nan`或`inf`：`isnan()`, `isinf()`。在 matlab 中，不同的`NaN`互不相等。不可以使用`a == nan`判断。
-
-找到为`1`或`true`的索引：`find()`
-
-查看维度：`size()`，查看长度：`length()`（行数或列数的最大值），元素的总数：`numel()`
-
-```matlab
-i = find(isnan(a));
-a(i) = zeros(size(i));  % changes NaN into zeros
-```
-
-测试一个数组是否为空数组：`isempty()`
-
-复数：
-
-```matlab
-a = 1 + 2i;
-complex(2, 4)
-```
-
-常见的与复数相关的函数：
-
-```matlab
-conj(c)  % 计算 c 的共轭复数
-real(c)  % 返回复数 c 的实部
-imag(c)  % 返回复数 c 的虚部
-isreal(c)  % 如果数组中全是实数，则返回 1，否则返回 0
-abs(c)  % 返回复数 c 的模
-angle(c)  % 返回复数 c 的幅角
-```
-
-与数据类型相关的函数：
-
-```matlab
-double
-single
-int8, int16, int32, int64
-uint8, uint16, uint32, uint64
-isnumeric
-isinteger
-isfloat
-isa(x, 'type')  % 其中 type 可以是 'numeric', `integer` 和 'float'，当 x 的类型为 type 时，返回 true
-cast(x, 'type')  % 将 x 类型置为 type
-intmin('type')  % type 类型的最小整数值
-realmax('type')  % type 类型的最大浮点实数值
-realmin('type')  % type 类型的最小浮点实数值
-eps('type')  % type 数据类型的 eps 值（浮点值）
-eps(x)  % x 的 eps 值
-zeros(..., 'type')
-ones(..., 'type')
-eye(..., 'type')
-```
+    ```matlab
+    double
+    single
+    int8, int16, int32, int64
+    uint8, uint16, uint32, uint64
+    isnumeric
+    isinteger
+    isfloat
+    isa(x, 'type')  % 其中 type 可以是 'numeric', `integer` 和 'float'，当 x 的类型为 type 时，返回 true
+    cast(x, 'type')  % 将 x 类型置为 type
+    intmin('type')  % type 类型的最小整数值
+    realmax('type')  % type 类型的最大浮点实数值
+    realmin('type')  % type 类型的最小浮点实数值
+    eps('type')  % type 数据类型的 eps 值（浮点值）
+    eps(x)  % x 的 eps 值
+    zeros(..., 'type')
+    ones(..., 'type')
+    eye(..., 'type')
+    ```
 
 常用的初等函数：
 
@@ -4041,120 +4052,116 @@ isstrcut  % 检测一个名称是否是一个结构体
 isvalid  % 检测一个对象是否可以连接到硬件的串行端口对象
 ```
 
-## 矩阵运算
+### 字符串
 
-
-
-## 字符串
-
-字符串是一个`1 x n`的`char`型数组，每个字符占 2 字节。
-
-```matlab
-str = 'I am a great person ';  % 使用单引号直接创建
-
-str = ['second'; 'string']  % 字符串数组，要求字符串长度必须一致
-
-c = char('first', 'second')  % 使用 char 创建字符串数组时，如果字符串长度不同，char() 会自动在较短的字符串后加空格，使所有字符串长度相等
-```
-
-常用函数：
-
-* `c = strcat(a, b)`
-
-    删去字符串末尾的空格`' '`后进行拼接
-
-* `c = [a b]`
-
-    不删除空格进行字符串拼接
-
-* `c = strvcat('name', 'string')`
-
-    与`char()`作用类似。
-
-* `celldata = cellstr(c)`
-
-    删除字符串末尾的空格，然后将字符串数组转换为字符串单元数组。
-
-* `chararray = char(celldata)`
-
-    把一个字符串单元数组转换成一个字符数组。
-
-* `new_str = deblank(str)`
-
-    删除字符串末尾的空格并返回。
-
-* 字符串比较
-
-    `strcmp()`, `strcmpi()`, `strncmp()`, `strncmpi()`
-
-    可以使用关系运算符对单个字符进行比较。
-
-* `isletter()`
-
-    判断字符串的每个字符是否为一个字母。
-
-* `isspace()`
-
-    判断字符串中的每个字符是否为空白字符（空格，制表符，换行符）
-
-* 查找和替换
-
-    * `str = strrep(str1, str2, str3)`，把`str1`中的`str2`替换成`str3`
-
-    * `k = findstr(str1, str2)`，查找输入中较长字符串中较短字符串的位置
-
-    * `k = strfind(str, pattern)`，查找`str`中`pattern`出现的位置
-
-    * `k = strfind(cellstr, pattern)`，查找单元字符串`cellstr`中`pattern`出现的位置
-
-    * `strtok`：获得第一个分隔符之前的字符串
-
-        `token = strtok('str')`，以空格符作为分隔符
-
-        `token = strtok('str', delimiter)`，指定分隔符
-
-        `[token, rem] = strtok(...)`，返回值`rem`为第1个分隔符之后的字符串（包含分隔符）
-
-    * `strmatch`：在字符串数组中匹配指定的字符串
-
-        * `x = strmatch('str', STRS)`，在字符串数组`STRS`中匹配字符串`str`，返回匹配上的字符串所在行的指标
-
-        * `x = strmatch('str', STRS, 'exact')`：精确匹配，要求完全一致才算匹配上。
-
-* `upper()`，`lower()`，把整个字符串转换大小写
-
-* `eval()`：把字符串转换成数字
-
-    `value = sscanf(string, format)`
-
-    example:
+* 字符串是一个`1 x n`的`char`型数组，每个字符占 2 字节。
 
     ```matlab
-    v1 = sscanf('3.141593', '%g')  % 浮点数
-    v2 = sscanf('3.141593', '%d')  % 整数
+    str = 'I am a great person ';  % 使用单引号直接创建
+
+    str = ['second'; 'string']  % 字符串数组，要求字符串长度必须一致
+
+    c = char('first', 'second')  % 使用 char 创建字符串数组时，如果字符串长度不同，char() 会自动在较短的字符串后加空格，使所有字符串长度相等
     ```
 
-* 数字转换成字符串
+* 字符串常用函数：
 
-    `num2str()`, `int2str()`, `dex2hex()`，`hex2num()`，`hex2dec()`，`bin2dex()`，`dec2bin()`，`base2dec()`, `dec2base`
+    * `c = strcat(a, b)`
 
-    `mat2str()`可以把一个数组转换成字符串。
+        删去字符串末尾的空格`' '`后进行拼接
 
-    `sprintf()`，`fprintf()`，格式化字符串。
+    * `c = [a b]`
 
-    `char()`可以按 ascii 码将数字转换成字符。
+        不删除空格进行字符串拼接
 
-* `str2num`, `uintN`, `str2double`, `hex2num`, `hex2dec`, `bin2dec`, `base2dec`
+    * `c = strvcat('name', 'string')`
 
-* `double`
+        与`char()`作用类似。
 
-    把字符串转换成 ascii 形式
+    * `celldata = cellstr(c)`
 
-* `blanks(n)`, `evalc(s)`
+        删除字符串末尾的空格，然后将字符串数组转换为字符串单元数组。
 
-* 其他的一些函数
+    * `chararray = char(celldata)`
 
-    `isstrprop()`, `strtrim()`, `strjust()`
+        把一个字符串单元数组转换成一个字符数组。
+
+    * `new_str = deblank(str)`
+
+        删除字符串末尾的空格并返回。
+
+    * 字符串比较
+
+        `strcmp()`, `strcmpi()`, `strncmp()`, `strncmpi()`
+
+        可以使用关系运算符对单个字符进行比较。
+
+    * `isletter()`
+
+        判断字符串的每个字符是否为一个字母。
+
+    * `isspace()`
+
+        判断字符串中的每个字符是否为空白字符（空格，制表符，换行符）
+
+    * 查找和替换
+
+        * `str = strrep(str1, str2, str3)`，把`str1`中的`str2`替换成`str3`
+
+        * `k = findstr(str1, str2)`，查找输入中较长字符串中较短字符串的位置
+
+        * `k = strfind(str, pattern)`，查找`str`中`pattern`出现的位置
+
+        * `k = strfind(cellstr, pattern)`，查找单元字符串`cellstr`中`pattern`出现的位置
+
+        * `strtok`：获得第一个分隔符之前的字符串
+
+            `token = strtok('str')`，以空格符作为分隔符
+
+            `token = strtok('str', delimiter)`，指定分隔符
+
+            `[token, rem] = strtok(...)`，返回值`rem`为第1个分隔符之后的字符串（包含分隔符）
+
+        * `strmatch`：在字符串数组中匹配指定的字符串
+
+            * `x = strmatch('str', STRS)`，在字符串数组`STRS`中匹配字符串`str`，返回匹配上的字符串所在行的指标
+
+            * `x = strmatch('str', STRS, 'exact')`：精确匹配，要求完全一致才算匹配上。
+
+    * `upper()`，`lower()`，把整个字符串转换大小写
+
+    * `eval()`：把字符串转换成数字
+
+        `value = sscanf(string, format)`
+
+        example:
+
+        ```matlab
+        v1 = sscanf('3.141593', '%g')  % 浮点数
+        v2 = sscanf('3.141593', '%d')  % 整数
+        ```
+
+    * 数字转换成字符串
+
+        `num2str()`, `int2str()`, `dex2hex()`，`hex2num()`，`hex2dec()`，`bin2dex()`，`dec2bin()`，`base2dec()`, `dec2base`
+
+        `mat2str()`可以把一个数组转换成字符串。
+
+        `sprintf()`，`fprintf()`，格式化字符串。
+
+        `char()`可以按 ascii 码将数字转换成字符。
+
+    * `str2num`, `uintN`, `str2double`, `hex2num`, `hex2dec`, `bin2dec`, `base2dec`
+
+    * `double`
+
+        把字符串转换成 ascii 形式
+
+    * `blanks(n)`, `evalc(s)`
+
+    * 其他的一些函数
+
+        `isstrprop()`, `strtrim()`, `strjust()`
 
 正则表达式：
 
@@ -4201,7 +4208,7 @@ c = char('first', 'second')  % 使用 char 创建字符串数组时，如果字�
     (?(T)p|q)  % if then else 结构
     ```
 
-## 结构体（structures）
+### 结构体（structures）
 
 创建：
 
@@ -4223,7 +4230,7 @@ struct('Name', {'klj', 'Dana', 'John'}, 'Score', {98, 92, 85.5}, 'Salary', {[450
 {obj.attr}
 ```
 
-## 单元数组（cell array）
+### 单元数组（cell array）
 
 cell array 可看成 Python 中保持矩阵形状的 list，可以存储任何类型的值。
 
@@ -4253,7 +4260,7 @@ cell array，使用`()`进行索引，只能得到一个 cell，而使用`{}`进
 
 可以使用`deal()`取多个单元元素的内容。
 
-## 语句
+### 语句
 
 `if`语句：
 
@@ -4357,7 +4364,7 @@ matlab 在启动时，会默认执行`MATLABrc.m`和`startup.m`这两个文件�
 
 输入`exit`或`quit`可退出 matlab，在退出之前，会执行`finish.m`脚本。
 
-## 函数
+### 函数
 
 可以用`error()`终止函数执行，并返回命令行窗口。也可以使用`warning()`函数打印警告信息。
 
@@ -4395,7 +4402,7 @@ matlab 会在启动时对`toolbox`目录下的所有函数做一次缓存，后�
 
 `mlint`，`mlint()`可以检查脚本文件的语法。
 
-## 画图
+### 画图
 
 直接用`plot(y)`画图，如果`y`的 shape 为`(1, d2)`，那么会画一条曲线。如果`y`的 shape 为`(d1, d2)`，那么会画`d2`条曲线，每一列作为一条曲线的数据。
 
