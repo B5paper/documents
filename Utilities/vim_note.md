@@ -2,6 +2,236 @@
 
 ## cache
 
+* 为什么 linux 上正常关闭 vim 后不会留下 ~ 文件，而 windows 上会
+
+    vim 在 linux 上默认不开启 backup，但是在 windows 上开启。
+
+* vim 的恢复功能
+
+    * 使用 vim -r filename 恢复交换文件
+
+    * `:recover`
+
+* 在 Vim 中比较差异
+
+    ```vim
+    vim -d report.txt report.txt~
+    # 或进入 Vim 后
+    :vert diffsplit report.txt~
+    ```
+
+* `.vimrc`生效时机
+
+    在`.vimrc`保存后，重新启动 file_1 的 vim 编辑器即可。不需要关闭系统上所有的 vim。
+
+    配置生效通常有以下三种情况：
+
+    * 重新启动 Vim： 这是最稳妥的方法。当你关闭并重新打开 Vim 时，它会自动加载配置文件。
+
+    * 手动执行 Source 命令： 在不退出 Vim 的情况下，可以通过命令让当前运行的 Vim 实例立即应用新配置：
+
+        * 在 Vim 内部输入：:source ~/.vimrc（Linux）或 :source $VIM/_vimrc（Windows）。
+
+            或`:so ~/.vimrc`, `:source $MYVIMRC`
+
+    * 在 .vimrc 中设置自动指令（Autocmd）： 你可以添加一段代码，让 Vim 在检测到配置文件保存时自动执行 source 命令。
+
+    特性	Linux / macOS	Windows
+    默认文件名	.vimrc	_vimrc (通常) 或 .vimrc
+    主配置路径	~/.vimrc (用户家目录)	C:\Users\用户名\_vimrc 或 Vim 安装目录
+    路径变量	$HOME	$VIM 或 $HOME
+    换行符	LF	CRLF
+
+    ```vim
+    " 按下 \ + s 立即重新加载配置
+    nnoremap <leader>s :source $MYVIMRC<cr>
+    ```
+
+    有时候你 source 了文件，但发现外观没变。这通常是因为：
+
+    * 插件需要重启： 某些插件（如代码补全、状态栏）在初始化时加载，简单的 source 可能无法重置它们的运行状态。
+
+    * 缓存问题： 某些配色方案（Colorscheme）在切换时，旧的颜色属性可能残留在内存中，建议重新运行 :colorscheme 方案名。
+
+* windows 下禁止 vim 生成 `xxx.un~` 文件和 `xxx~` 文件
+
+    ```vim
+    " 禁用备份文件（以 ~ 结尾的文件）
+    set nobackup
+    set nowritebackup
+
+    " 禁用撤销文件（以 .un~ 结尾的文件）
+    set noundofile
+    ```
+
+    * vim 生成的几种文件简介
+    
+        * 备份文件 `xxx~`： 写文件之前，先把原文件复制一份
+
+            触发时机:
+
+            * 执行 :w
+
+            * backup 或 writebackup 开启时
+
+            作用:
+
+            * 防止写文件过程中崩溃 / 断电 / 磁盘错误
+
+            * 写失败时，原内容还在 filename~
+
+            写成功后：
+
+            * backup 开启 → filename~ 会保留
+
+            * 只开 writebackup → 写完就删
+
+            相关配置：
+
+            ```vim
+            :set backup        " 是否保留 ~ 文件
+            :set writebackup  " 是否写前临时备份
+            :set nobackup
+            :set nowritebackup
+            ```
+
+        * 交换文件 `xxx.swp`: 编辑过程中实时保存修改，用于崩溃恢复
+
+            打开文件时立即创建
+
+            作用:
+
+            * 崩溃恢复（vim -r filename）
+
+            * 防止同一文件被多个 Vim 实例同时修改
+
+            特点:
+
+            * 实时保存编辑状态
+
+            * 正常退出 Vim 会自动删除
+
+            * 非正常退出会残留
+
+            看到它通常意味着:
+
+            * 上次 Vim 崩了
+
+            * 或该文件正在被另一个 Vim 打开
+
+            相关配置：
+
+            ```vim
+            :set swapfile
+            :set noswapfile
+            :set directory?   " swap 文件存放目录
+            ```
+
+            * `.filename.swo` / `.swn` / `.swx` —— swap 冲突序号
+
+                当 .swp 已存在：
+
+                Vim 会尝试 .swo、.swn、.swx
+
+        * 撤销文件 `xxx.un~`： 撤销历史记录（持久化撤销, 重启 Vim 后还可以执行`u`命令）
+
+            需要启用 `undofile`功能，这个文件才能被创建。
+
+            相关配置：
+
+            ```vim
+            :set undofile
+            :set undodir?
+            ```
+
+    * 其它配置
+
+        ```vim
+        set backupdir=~/.vim/backup//  " 备份到特定目录
+        set backupskip=/tmp/*,/private/tmp/*  " 跳过某些目录的备份
+
+        set undodir=~/.vim/undo//
+        set directory=~/.vim/swap//
+
+        " 撤销历史（.un~文件）
+        set undofile          " 持久化撤销历史到磁盘
+        set undolevels=1000   " 内存中保留1000次撤销
+
+        " 2. 配置定时清理
+        autocmd VimLeave * !del /Q Z:\vim-backup\*
+        " 退出时自动清理内存备份
+        autocmd VimLeavePre * call CleanOldBackups(30) " 保留30天
+
+        " 备份文件扩展名
+        set backupext=.bak
+        ```
+
+    * 如果你只想对某些文件类型禁用，可以在 _vimrc 中添加：
+
+        ```vim
+        " 对特定目录禁用备份
+        autocmd BufWritePre /path/to/directory/* set nobackup nowritebackup
+
+        " 或者对特定文件类型禁用
+        autocmd FileType txt,md set noundofile
+        ```
+
+    * 设置备份目录到特定位置，而不是当前目录：
+
+        ```vim
+        " 将备份文件集中到特定目录
+        set backupdir=C:\vim_backups
+        set directory=C:\vim_backups
+        set undodir=C:\vim_undo
+
+        " 如果目录不存在则创建
+        if !isdirectory("C:\\vim_backups")
+            silent !mkdir "C:\vim_backups"
+        endif
+        ```
+
+    * 完全禁用所有备份相关功能
+
+        ```vim
+        " 一次性禁用所有备份相关文件
+        set nobackup       " 不创建备份文件（*.~）
+        set nowritebackup  " 写入时不创建备份
+        set noswapfile     " 不创建.swp交换文件
+        set noundofile     " 不创建.un~撤销文件
+        ```
+
+    * 折中方案
+
+        ```vim
+        " 将备份文件集中到固定目录，而不是污染当前目录
+        set backupdir=~/.vim/backup//
+        set directory=~/.vim/swap//
+        set undodir=~/.vim/undo//
+
+        " 确保目录存在
+        if !isdirectory(expand("~/.vim/backup"))
+            silent !mkdir ~/.vim/backup
+        endif
+        if !isdirectory(expand("~/.vim/undo"))
+            silent !mkdir ~/.vim/undo
+        endif
+        ```
+
+    * 自动清理脚本
+
+        ```vim
+        " 定期清理旧备份
+        function! CleanOldBackups(days)
+            let backup_dir = expand('~/.vim/backup')
+            if isdirectory(backup_dir)
+                " Windows 示例
+                silent !forfiles /p backup_dir /s /m * /d -%a% /c "cmd /c del @path"
+            endif
+        endfunction
+
+        autocmd VimLeave * call CleanOldBackups(7)  " 保留7天
+        ```
+
 * vim 插入新行并且不进入 insert 模式
 
     * `:put` (简写为`:pu`)

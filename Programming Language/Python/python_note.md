@@ -2,6 +2,100 @@
 
 ## cached
 
+* py 中，open file 的不同模式
+
+    * a - 只追加模式
+
+        ```python
+        # 只能写入，不能读取
+        with open('file.txt', 'a') as f:
+            f.write('新内容\n')  # ok, 可以写入
+            content = f.read()   # error, 会出错，不能读取
+        ```
+
+    * a+ - 追加和读取模式
+
+        ```python
+        # 可以读取和写入
+        with open('file.txt', 'a+') as f:
+            f.write('新内容\n')  # ✅ 可以写入
+            
+            # 读取前需要移动文件指针
+            f.seek(0)  # 将指针移动到文件开头
+            content = f.read()  # ✅ 可以读取
+        ```
+
+    * a 和 a+ 都可以在文件不存在时自动创建文件
+
+    * 各种文件打开模式对比
+
+        模式	描述	文件不存在时	可读	可写	指针位置
+        r	只读	报错	✅	❌	开头
+        r+	读写	报错	✅	✅	开头
+        w	只写	创建	❌	✅	开头（清空内容）
+        w+	读写	创建	✅	✅	开头（清空内容）
+        a	追加	创建	❌	✅	末尾
+        a+	追加读	创建	✅	✅	末尾（写），可移动（读）
+        x	创建	创建，存在则报错	❌	✅	开头
+
+    * 显式创建文件可以使用 x 模式（独占创建）
+
+        ```python
+        try:
+            with open('new_file.txt', 'x') as f:
+                f.write('创建新文件\n')
+        except FileExistsError:
+            print("文件已存在")
+        ```
+
+    * w 模式
+
+        ```python
+        # 如果文件存在会清空内容，不存在则创建
+        with open('file.txt', 'w') as f:
+            f.write('新内容\n')
+        ```
+
+    * 使用 pathlib（推荐）
+
+        ```python
+        from pathlib import Path
+
+        # 创建空文件
+        Path('new_file.txt').touch()
+
+        # 创建并写入内容
+        Path('new_file.txt').write_text('文件内容')
+        ```
+
+* 使用 a+ 打开文件时，读取是发生在文件末尾，需要移动指针到开头才能读取，写入时自动回到末尾
+
+    （如果把指针放到文件头后，再追加写入，此时指针是在头还是在尾？猜测仍在末尾）
+
+    这种设计保证了追加模式的核心特性：不会意外覆盖现有内容
+
+* python 访问全局变量
+
+    使用 global 关键字：
+
+    ```python
+    aaa = "我是全局变量"  # 全局变量
+
+    def my_function(aaa):
+        print("形参 aaa:", aaa)           # 访问形参
+        print("全局变量 aaa:", globals()['aaa'])  # 方法1：使用 globals()
+        
+        # 或者先声明 global
+        global aaa
+        print("全局变量 aaa:", aaa)        # 方法2：使用 global 关键字
+
+    my_function("我是形参")
+    ```
+
+    注意：在 Python 中，如果函数内部有同名的形参或局部变量，直接使用 global aaa 会有冲突。推荐使用 globals()['aaa']。
+
+* python 中比较 None 时应该使用 is 而不是 ==
+
 * python class 中定义成员变量
 
     1. 在`__init__()`或其他成员函数中，使用`self.xxx = yyy`定义成员变量

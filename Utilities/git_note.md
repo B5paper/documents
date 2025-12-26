@@ -2,6 +2,196 @@
 
 ## cache
 
+* git commit 后发现 user 和 email 写错了，该如何补救
+
+    * 只修改最近一次提交的作者信息
+
+        `git commit --amend --author="正确的姓名 <正确的邮箱>"`
+
+    * 修改最近一次提交的作者信息
+
+        `git commit --amend --reset-author`
+
+        这会使用你在 git config 中配置的用户名和邮箱。
+
+    * 修改多个提交的作者信息
+
+        ```bash
+        # 修改最近3次提交
+        git rebase -i HEAD~3 --exec "git commit --amend --reset-author --no-edit"
+        ```
+
+        或者使用更强大的方法：
+
+        ```bash
+        # 交互式 rebase，标记要修改的提交
+        git rebase -i HEAD~3
+        # 在编辑器中，将需要修改的提交前的 pick 改为 edit
+        # 然后对每个标记为 edit 的提交执行：
+        git commit --amend --author="正确的姓名 <正确的邮箱>"
+        git rebase --continue
+        ```
+
+        如果需要修改整个仓库的历史记录，可以使用 git filter-branch：
+
+        ```bash
+        git filter-branch --env-filter '
+        OLD_EMAIL="旧的邮箱"
+        CORRECT_NAME="正确的姓名"
+        CORRECT_EMAIL="正确的邮箱"
+        if [ "$GIT_COMMITTER_EMAIL" = "$OLD_EMAIL" ]
+        then
+            export GIT_COMMITTER_NAME="$CORRECT_NAME"
+            export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
+        fi
+        if [ "$GIT_AUTHOR_EMAIL" = "$OLD_EMAIL" ]
+        then
+            export GIT_AUTHOR_NAME="$CORRECT_NAME"
+            export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
+        fi
+        ' --tag-name-filter cat -- --branches --tags
+        ```
+
+    * 如果已经推送到远程仓库，修改历史记录后需要使用 git push --force（谨慎使用）
+
+* `git cherry-pick`
+
+    用于将指定的提交应用到当前分支。
+
+    * 主要作用
+
+        * 选择性地复制单个或多个提交到当前分支
+
+        * 常用于修复bug、功能迁移，或者从其他分支提取特定改动
+
+        * 不合并整个分支，只引入特定的提交
+
+    * 基本用法
+
+        ```bash
+        # 1. 基本用法 - 应用单个提交
+        git cherry-pick <commit-hash>
+
+        # 2. 应用多个提交
+        git cherry-pick <commit1> <commit2> <commit3>
+
+        # 3. 应用连续的提交范围（左开右闭）
+        git cherry-pick <start-commit>..<end-commit>
+
+        # 4. 应用连续的提交范围（包含起始提交）
+        git cherry-pick <start-commit>^..<end-commit>
+        ```
+
+    * 常用选项
+
+        ```bash
+        # 编辑提交信息
+        git cherry-pick -e <commit>
+
+        # 不自动提交，只更新工作区
+        git cherry-pick -n <commit>
+
+        # 解决冲突后继续
+        git cherry-pick --continue
+
+        # 放弃当前cherry-pick操作
+        git cherry-pick --abort
+
+        # 跳过当前提交
+        git cherry-pick --skip
+        ```
+
+    * 工作流程示例
+
+        ```bash
+        # 1. 切换到目标分支
+        git checkout main
+
+        # 2. 从开发分支选择特定提交
+        git cherry-pick abc123
+
+        # 3. 如果有冲突，解决后继续
+        # 解决冲突后...
+        git add .
+        git cherry-pick --continue
+        ```
+
+    * 典型应用场景
+
+        * 修复bug：将修复提交从开发分支应用到生产分支
+
+        * 功能移植：只移植某个功能相关的提交
+
+        * 代码审查：只接受部分提交改动
+
+        * 分支维护：在不同版本分支间同步特定修复
+
+    * 注意事项
+
+        * 每个`cherry-pick`都会创建新的提交（即使内容相同，提交ID也不同）
+
+        * 可能产生冲突，需要手动解决
+
+        * 顺序依赖的提交需要按顺序`cherry-pick`
+
+        * 不适合大量提交的迁移（此时应考虑 merge 或 rebase）
+
+    与 git merge 和 git rebase 不同，cherry-pick 提供了更精细的提交选择控制，让你能够精确地选择需要的改动应用到当前分支。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git init
+    Initialized empty Git repository in /home/hlc/Documents/Projects/git_test/repo-2/.git/
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git remote add origin ../repo-server/
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git checkout -b main
+    Switched to a new branch 'main'
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git cherry-pick bdb04eac91dcc38477bd235ba6e1e8860e94c928 a7f9daf03e71290e94861ab5d3df42d05c5721f4
+    fatal: bad object bdb04eac91dcc38477bd235ba6e1e8860e94c928
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git fetch
+    remote: Enumerating objects: 9, done.
+    remote: Counting objects: 100% (9/9), done.
+    remote: Compressing objects: 100% (7/7), done.
+    remote: Total 9 (delta 2), reused 0 (delta 0), pack-reused 0
+    Unpacking objects: 100% (9/9), 727 bytes | 181.00 KiB/s, done.
+    From ../repo-server
+     * [new branch]      master     -> origin/master
+     * [new tag]         v1.0       -> v1.0
+     * [new tag]         v2.0       -> v2.0
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git cherry-pick bdb04eac91dcc38477bd235ba6e1e8860e94c928 a7f9daf03e71290e94861ab5d3df42d05c5721f4
+    [main e88ad40] commit 1
+     Date: Wed Dec 24 14:45:00 2025 +0800
+     1 file changed, 0 insertions(+), 0 deletions(-)
+     create mode 100644 file_1.txt
+    [main 34dadd6] commit 3
+     Date: Thu Dec 25 10:01:21 2025 +0800
+     1 file changed, 0 insertions(+), 0 deletions(-)
+     create mode 100644 file_3.txt
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ git log --graph
+    * commit 34dadd6973f7726b39a7a20975f520ed17041f5a (HEAD -> main)
+    | Author: Liucheng Hu <lchu@siorigin.com>
+    | Date:   Thu Dec 25 10:01:21 2025 +0800
+    | 
+    |     commit 3
+    | 
+    * commit e88ad401688c2033fa983b8507943661687a6b28
+      Author: Liucheng Hu <lchu@siorigin.com>
+      Date:   Wed Dec 24 14:45:00 2025 +0800
+      
+          commit 1 
+
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-2$ ls
+    file_1.txt  file_3.txt
+    ```
+
+    注：
+
+    1. 可以看到，必须 fetch 后才能 cherry-pick。
+
+    1. cherry-pick 后，除了 commit hash 值和原版 commit 不同，剩下的都相同。
+
+    1. 可以看到 cherry-pick 不是基于快照的，而是基于 diff 的。因为 file_2.txt 不在其中
+
 * git adverse
 
     If you want to create a new branch to retain commits you create, you may

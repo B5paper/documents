@@ -4,6 +4,27 @@
 
 ## cached
 
+* c++ 访问全局变量
+
+    使用作用域解析运算符 ::：
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    string aaa = "我是全局变量";  // 全局变量
+
+    void myFunction(string aaa) {
+        cout << "形参 aaa: " << aaa << endl;        // 访问形参
+        cout << "全局变量 aaa: " << ::aaa << endl;   // 使用 :: 访问全局变量
+    }
+
+    int main() {
+        myFunction("我是形参");
+        return 0;
+    }
+    ```
+
 * 调试
 
     debug 只靠 gdb 不太够，有时候还需要对源码做修改。

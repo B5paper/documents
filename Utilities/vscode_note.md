@@ -2,6 +2,54 @@
 
 ## cache
 
+* vscode 中 debug 时自动加载环境变量
+
+    * 指定 envfile
+
+        `"envFile": "${workspaceFolder}/.env"`
+
+        注：
+
+        1. `.env`是默认情况下就支持的吧？写`envFile`的时机是给`.env`換名字。
+
+    * 使用 preLaunchTask
+
+        适用于在 shell 脚本中配置环境变量。
+
+        1. 创建 task (tasks.json)：
+
+            ```json
+            {
+                "version": "2.0.0",
+                "tasks": [
+                    {
+                        "label": "load-env",
+                        "type": "shell",
+                        "command": "source ${workspaceFolder}/env.sh && env > ${workspaceFolder}/.tmp.env",
+                        "isBackground": false
+                    }
+                ]
+            }
+            ```
+
+        2. 修改 launch.json：
+
+            ```json
+            {
+                "version": "0.2.0",
+                "configurations": [
+                    {
+                        "name": "Python: Debug",
+                        "type": "python",
+                        "request": "launch",
+                        "program": "${file}",
+                        "preLaunchTask": "load-env",
+                        "envFile": "${workspaceFolder}/.tmp.env"
+                    }
+                ]
+            }
+            ```
+
 * vscode 快捷键
 
     * `Ctrl + Shift + \`：跳转到匹配的括号/列表项

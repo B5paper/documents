@@ -6,195 +6,249 @@
 
 ## cache
 
-* matlab 中查看大型变量的部分内容或摘要
+* 预置变量
 
-    * 查看数据头部/尾部（类似head/tail）
+    * `eps`：计算机的最小正数
 
-        * 直接使用索引查看部分数据
+    * `pi`：圆周率 pi 的近似值 3.14159265358979
 
-            ```matlab
-            % 查看前5行
-            data(1:5, :)  % 对于矩阵
-            data(1:5)     % 对于向量
+    * `inf`或`Inf`：无穷大
 
-            % 查看后5行
-            data(end-4:end, :)  % 矩阵
-            data(end-4:end)     % 向量
-            ```
+    * `NaN`：不定量
 
-        * 使用内置命令
+    * `i, j`：虚数单位定义`i`
 
-            ```matlab
-            % MATLAB R2019b及以上版本
-            head(data)      % 显示前8行
-            tail(data)      % 显示后8行
+    * `flops`：浮点运算次数，用于统计计算量
 
-            % 指定行数
-            head(data, 10)  % 显示前10行
-            tail(data, 10)  % 显示后10行
-            ```
+* 在脚本中，两个`%`可以标志一个 block：
 
-    * 获取变量信息摘要
+    ```matlab
+    a = 1
 
-        * 使用 whos 命令
+    %% new block
+    b = 2
+    ```
 
-            ```matlab
-            whos variable_name
-            % 或查看工作区所有变量
-            whos
-            ```
+    使用`Ctrl + Enter`可以运行 block 中的内容。
 
-        * 使用 size、class 等函数
+* 块注释
 
-            ```matlab
-            size(data)      % 显示维度
-            class(data)     % 数据类型
-            length(data)    % 长度（向量）
-            ndims(data)     % 维度数
-            ```
+    ```matlab
+    %{
 
-    * 查看变量详细信息（类似透视）
+        comments
 
-        * 变量编辑器（推荐）
+    %}
+    ```
 
-            双击工作区中的变量名，在变量编辑器中可以：
+* 使用 `head()` / `tail()` 查看数据头部/尾部
 
-                查看完整数据
+    ```matlab
+    head(data)      % 显示前 8 行
+    tail(data)      % 显示后 8 行
 
-                排序、筛选
+    % 指定行数
+    head(data, 10)  % 显示前 10 行
+    tail(data, 10)  % 显示后 10 行
+    ```
 
-                可视化查看
+* 直接使用索引查看部分数据
 
-                导出部分数据
+    ```matlab
+    % 查看前 5 行
+    data(1:5, :)  % 对于矩阵
+    data(1:5)     % 对于向量
 
-        * 使用 disp 控制显示
+    % 查看后 5 行
+    data(end-4:end, :)  % 矩阵
+    data(end-4:end)     % 向量
+    ```
 
-            ```matlab
-            % 只显示部分内容
-            disp('前5行：')
-            disp(data(1:5, :))
+    注：
 
-            % 或设置显示格式
-            format short    % 简洁格式
-            format long     % 详细格式
-            format compact  % 紧凑显示
-            ```
+    1. matlab 不支持`data(:5)`或`data(5:)`这种省略部分索引的写法
 
-    * 使用 summary 函数（表格数据）
+    1. 对于二维矩阵，如果只写了一维的索引，比如`data(1:10)`，那么它指的是将原矩阵做取消第一个维度的 flatten 操作后，再索引。
+
+        即从第 1 列开始，下面跟第 2 列，第 3 列…… 以此类推。
+
+        example:
+
+        ```
+        a = [ 1 3 5
+              2 4 6 ]
+        ```
+
+        使用`a(1:3)`索引时，
 
         ```matlab
-        % 对于table类型
-        if istable(data)
-            summary(data)  % 显示统计摘要
+        % 先将 a 变成
+        a_1 = [ 1
+                2
+                3
+                4
+                5
+                6 ]
+
+        % 再取转置
+        a_2 = [ 1 2 3 4 5 6 ]
+        
+        % 最后拿到结果
+        a_3 = [ 1 2 3 ]
+        ```
+
+        注意，最终拿到的结果是行向量。
+
+    1. 索引的后端都是包含在内的，即`data(ind_1:ind_2)`中的`ind_2`是 included 的，整体为闭区间。
+
+* `whos`
+
+    ```matlab
+    % 查看工作区所有变量信息
+    whos
+
+    % 查看指定变量信息
+    whos variable_name
+    ```
+
+* 获取变量信息
+
+    ```matlab
+    size(data)      % 显示形状
+    class(data)     % 数据类型
+    length(data)    % 长度（向量）
+    ndims(data)     % 维度数
+    ```
+
+    注：
+
+    1. `length(data)`显示的是第 1 个维度的长度
+
+* `summary()`
+
+    显示 table 类型数据的摘要。
+
+    ```matlab
+    % 对于 table 类型
+    if istable(data)
+        summary(data)  % 显示统计摘要
+    end
+
+    % 对于timetable类型
+    if istimetable(data)
+        summary(data)
+    end
+    ```
+
+* 快速查看函数集合
+
+    可以创建自定义函数方便使用：
+
+    ```matlab
+    function quickview(var, n)
+        % 快速查看变量部分内容
+        if nargin < 2
+            n = 5;
         end
-
-        % 对于timetable类型
-        if istimetable(data)
-            summary(data)
+        disp(['Size: ', num2str(size(var))])
+        disp(['Type: ', class(var)])
+        disp('--- Head ---')
+        if istable(var)
+            disp(var(1:min(n, height(var)), :))
+        elseif ismatrix(var)
+            disp(var(1:min(n, size(var,1)), :))
+        else
+            disp(var)
         end
-        ```
+    end
+    ```
 
-    * 快速查看函数集合
+* 查看 struct 类型数据的信息
 
-        可以创建自定义函数方便使用：
+    ```matlab
+    % 结构体
+    fieldnames(mystruct)  % 查看字段名
+    ```
+
+* 查看 cell 类型数据的信息
+
+    ```matlab
+    % 元胞数组
+    celldisp(data, 'data')  % 显示元胞内容
+    ```
+
+* 查看稀疏矩阵类型数据的信息
+
+    ```matlab
+    % 稀疏矩阵
+    spy(data)  % 可视化稀疏模式
+    nnz(data)  % 非零元素个数
+    ```
+
+* 对于超大数组，考虑先抽取样本查看：
+
+    ```matlab
+    sample_idx = randsample(size(data,1), 1000);  % 随机抽取1000行
+    sample = data(sample_idx, :);
+    ```
+
+* 创建 struct
+
+    ```matlab
+    % 方法1：直接赋值
+    person.name = '张三';
+    person.age = 25;
+    person.scores = [90, 85, 88];
+    person.isStudent = true;
+
+    % 方法2：使用 struct 函数
+    person = struct('name', '张三', 'age', 25, 'scores', [90, 85, 88]);
+
+    % 方法3：创建结构体数组
+    students(1) = struct('name', '张三', 'age', 25);
+    students(2) = struct('name', '李四', 'age', 23);
+    ```
+
+    注：
+
+    1. 使用数组创建 struct 还可以写成
 
         ```matlab
-        function quickview(var, n)
-            % 快速查看变量部分内容
-            if nargin < 2
-                n = 5;
-            end
-            disp(['Size: ', num2str(size(var))])
-            disp(['Type: ', class(var)])
-            disp('--- Head ---')
-            if istable(var)
-                disp(var(1:min(n, height(var)), :))
-            elseif ismatrix(var)
-                disp(var(1:min(n, size(var,1)), :))
-            else
-                disp(var)
-            end
-        end
+        arr(1).name = 'zhangsan';
+        arr(1).age = 25;
+        arr(2).name = 'lisi';
+        arr(2).age = 26;
         ```
 
-    * 对于特殊数据类型
+        如果`arr`这个变量名已经被占用，那么无法通过这样新创建数组`arr`。
+
+    1. 在创建元素为 struct 的数组时，如果数据不全，那么会被自动补上空数组
 
         ```matlab
-        % 结构体
-        fieldnames(mystruct)  % 查看字段名
+        >> arr(1).name = 'zhangsan';
+        >> arr(2).age = 35;
+        >> arr(1)
 
-        % 元胞数组
-        celldisp(data, 'data')  % 显示元胞内容
+        ans = 
 
-        % 稀疏矩阵
-        spy(data)  % 可视化稀疏模式
-        nnz(data)  % 非零元素个数
+            struct with fields:
+
+            name: 'zhangsan'
+                age: []
+
+        >> arr(2)
+
+        ans = 
+
+            struct with fields:
+
+            name: []
+                age: 35
         ```
 
-    * 对于超大数组，考虑先抽取样本查看：
+*  struct（结构体）
 
-        ```matlab
-        sample_idx = randsample(size(data,1), 1000);  % 随机抽取1000行
-        sample = data(sample_idx, :);
-        ```
-
-* matlab struct（结构体）
-
-    结构体是一种将不同类型数据组织在一起的容器。
-
-    * 创建结构体
-
-        ```matlab
-        % 方法1：直接赋值
-        person.name = '张三';
-        person.age = 25;
-        person.scores = [90, 85, 88];
-        person.isStudent = true;
-
-        % 方法2：使用struct函数
-        person = struct('name', '张三', 'age', 25, 'scores', [90, 85, 88]);
-
-        % 方法3：创建结构体数组
-        students(1) = struct('name', '张三', 'age', 25);
-        students(2) = struct('name', '李四', 'age', 23);
-        ```
-
-        注：
-
-        1. 使用数组创建 struct 还可以写成
-
-            ```matlab
-            arr(1).name = 'zhangsan';
-            arr(1).age = 25;
-            arr(2).name = 'lisi';
-            arr(2).age = 26;
-            ```
-
-            如果`arr`这个变量名已经被占用，那么无法通过这样新创建数组`arr`。
-
-        1. 在创建元素为 struct 的数组时，如果数据不全，那么会被自动补上空数组
-
-            ```matlab
-            >> arr(1).name = 'zhangsan';
-            >> arr(2).age = 35;
-            >> arr(1)
-
-            ans = 
-
-              struct with fields:
-
-                name: 'zhangsan'
-                 age: []
-
-            >> arr(2)
-
-            ans = 
-
-              struct with fields:
-
-                name: []
-                 age: 35
-            ```
+    matlab 中 struct (结构体) 是一种将不同类型数据组织在一起的容器。
 
     * 访问和操作
 
@@ -238,7 +292,7 @@
         S = table2struct(T);
         ```
 
-* matlab cell（元胞数组）
+* cell（元胞数组）
 
     元胞数组可以存储不同类型和大小的数据，每个元素称为一个"元胞"。
 
@@ -974,18 +1028,21 @@
         ```
 
     3. 三维及多维数组复制
+
     MATLAB:
 
-    matlab
+    ```matlab
     A = reshape(1:8, [2, 2, 2]);
     % A(:,:,1) = [1 3; 2 4]
     % A(:,:,2) = [5 7; 6 8]
 
     B = repmat(A, [2, 1, 2]);  % 行×2，列×1，页×2
     size(B)  % [4, 2, 4]
+    ```
+
     NumPy:
 
-    python
+    ```python
     import numpy as np
     A = np.arange(1, 9).reshape(2, 2, 2)
 
@@ -996,25 +1053,36 @@
     # repeat: 元素复制
     C = np.repeat(A, 2, axis=2)  # 沿第三维度复制
     print(C.shape)  # (2, 2, 4)
+    ```
+
     三、功能映射表
+
     从 NumPy 到 MATLAB:
-    python
+
+    ```python
     # NumPy 代码
     np.tile(A, (2, 3))      → repmat(A, 2, 3)      # MATLAB
     np.repeat(A, 3, axis=0) → A(ones(3,1), :, :)   # MATLAB (3D时需要调整)
     np.repeat(A, 3, axis=1) → A(:, ones(3,1), :)   # MATLAB (3D时需要调整)
     np.repeat(A, 3, axis=2) → A(:, :, ones(3,1))   # MATLAB
+    ```
+
     从 MATLAB 到 NumPy:
-    matlab
+
+    ```matlab
     % MATLAB 代码
     repmat(A, 2, 3)     → np.tile(A, (2, 3))          # NumPy
     kron(A, ones(2,2))  → np.repeat(np.repeat(A, 2, axis=0), 2, axis=1)  # NumPy
     A(ones(3,1), :)     → np.repeat(A, 3, axis=0)     # NumPy
+    ```
+
     四、实际应用场景对比
+
     场景1：创建网格数据
+
     MATLAB (常用meshgrid):
 
-    matlab
+    ```matlab
     % 创建2D网格
     x = 1:3;
     y = 1:2;
@@ -1023,9 +1091,11 @@
     % 用repmat实现
     X_rep = repmat(x, length(y), 1);
     Y_rep = repmat(y', 1, length(x));
+    ```
+
     NumPy (常用meshgrid):
 
-    python
+    ```python
     import numpy as np
     x = np.arange(1, 4)
     y = np.arange(1, 3)
@@ -1034,10 +1104,13 @@
     # 用tile实现
     X_tile = np.tile(x, (len(y), 1))
     Y_tile = np.tile(y.reshape(-1, 1), (1, len(x)))
+    ```
+
     场景2：批量向量运算
+
     MATLAB (广播机制R2016b+):
 
-    matlab
+    ```matlab
     % 旧方法：需要repmat
     A = rand(3, 4);
     row_vector = [1 2 3 4];
@@ -1045,17 +1118,22 @@
 
     % 新方法：自动广播
     B = A + row_vector;  % R2016b+ 支持
+    ```
+
     NumPy (天然支持广播):
 
-    python
+    ```python
     import numpy as np
     A = np.random.rand(3, 4)
     row_vector = np.array([1, 2, 3, 4])
     B = A + row_vector  # 自动广播
+    ```
+
     场景3：图像处理中的通道复制
+
     MATLAB:
 
-    matlab
+    ```matlab
     % 灰度图转RGB伪彩色
     gray_img = imread('gray.jpg');
     height = size(gray_img, 1);
@@ -1066,9 +1144,11 @@
 
     % 方法2: 使用repmat
     rgb_img = repmat(gray_img, [1, 1, 3]);
+    ```
+
     NumPy:
 
-    python
+    ```python
     import numpy as np
     import cv2
 
@@ -1083,11 +1163,15 @@
 
     # 方法3: 使用repeat
     rgb_img = np.repeat(gray_img[:, :, np.newaxis], 3, axis=2)
+    ```
+
     五、性能对比
+    
     测试代码：
+    
     MATLAB:
 
-    matlab
+    ```matlab
     function test_performance()
         A = rand(1000, 1000);
         
@@ -1108,9 +1192,11 @@
         fprintf('repmat: %.4f秒\n', repmat_time);
         fprintf('索引: %.4f秒\n', index_time);
     end
+    ```
+    
     Python/NumPy:
 
-    python
+    ```python
     import numpy as np
     import time
 
@@ -1130,38 +1216,57 @@
 
     print(f"tile: {tile_time:.4f}秒")
     print(f"repeat: {repeat_time:.4f}秒")
+    ```
+
     六、关键差异总结
+    
     1. 设计哲学差异
+    
     MATLAB：repmat 专注于块复制，设计简单统一
 
     NumPy：区分 tile (块复制) 和 repeat (元素复制)，功能更精细
 
     2. 语法差异
-    matlab
-    % MATLAB - 参数顺序不同
-    B = repmat(A, m, n, p)      % 直接列出各维度重复次数
+    
+        ```matlab
+        % MATLAB - 参数顺序不同
+        B = repmat(A, m, n, p)      % 直接列出各维度重复次数
+        ```
 
-    # NumPy - 使用元组
-    B = np.tile(A, (m, n, p))   # 重复次数放在元组中
+        ```py
+        # NumPy - 使用元组
+        B = np.tile(A, (m, n, p))   # 重复次数放在元组中
+        ```
+
     3. 广播机制
-    MATLAB：从 R2016b 开始支持自动广播，减少对 repmat 的依赖
 
-    NumPy：从一开始就支持广播，更自然地处理维度扩展
+        MATLAB：从 R2016b 开始支持自动广播，减少对 repmat 的依赖
+
+        NumPy：从一开始就支持广播，更自然地处理维度扩展
 
     4. 内存布局考虑
-    matlab
-    % MATLAB：列优先（Fortran风格）
-    A = [1 2 3; 4 5 6];  % 内存顺序：1, 4, 2, 5, 3, 6
 
-    # NumPy：默认行优先（C风格），可指定
-    A = np.array([[1, 2, 3], [4, 5, 6]])  # 内存顺序：1, 2, 3, 4, 5, 6
+        ```matlab
+        % MATLAB：列优先（Fortran风格）
+        A = [1 2 3; 4 5 6];  % 内存顺序：1, 4, 2, 5, 3, 6
+        ```
+
+        ```py
+        # NumPy：默认行优先（C风格），可指定
+        A = np.array([[1, 2, 3], [4, 5, 6]])  # 内存顺序：1, 2, 3, 4, 5, 6
+        ```
+
     七、迁移建议
+
     从 NumPy 迁移到 MATLAB:
+
+    ```py
     np.tile(A, reps) → repmat(A, reps)（直接对应）
 
     np.repeat(A, n, axis) → 需要手动实现：
+    ```
 
-    matlab
+    ```matlab
     % axis=0 (行方向)
     B = A(ones(n,1), :, :, ...);  % 根据维度调整
 
@@ -1170,7 +1275,10 @@
 
     % 或用 kron 实现元素级复制
     B = kron(A, ones(n, 1));  % 特定情况
+    ```
+
     从 MATLAB 迁移到 NumPy:
+
     repmat(A, m, n) → np.tile(A, (m, n))
 
     kron(A, ones(m,n)) → np.repeat(np.repeat(A, m, axis=0), n, axis=1)
@@ -1178,8 +1286,10 @@
     A(ones(m,1), :) → np.repeat(A, m, axis=0)
 
     八、现代替代方案
+    
     MATLAB 广播机制（R2016b+）
-    matlab
+
+    ```matlab
     % 不再需要 repmat 的场景
     A = rand(3, 4);
     v = [1 2 3 4];
@@ -1190,33 +1300,38 @@
     % 新方法（更简洁高效）
     B = A + v;  % 自动广播
     NumPy 广播机制
-    python
+    ```
+
+    ```python
     # NumPy 一直支持广播
     A = np.random.rand(3, 4)
     v = np.array([1, 2, 3, 4])
     B = A + v  # 自动广播
+    ```
+
     九、结论
+
     repmat 与 NumPy 的对应关系：
 
-    repmat ≈ np.tile：都是块复制，复制整个数组
+    * `repmat ≈ np.tile`：都是块复制，复制整个数组
 
-    repmat ≠ np.repeat：repmat 不直接支持元素级复制
+    * `repmat ≠ np.repeat`：repmat 不直接支持元素级复制
 
     主要差异原因：
 
-    设计目标不同：MATLAB 强调数学计算简洁性，NumPy 提供更细粒度控制
+    * 设计目标不同：MATLAB 强调数学计算简洁性，NumPy 提供更细粒度控制
 
-    历史原因：MATLAB 先有 repmat，后来 NumPy 设计时区分了 tile 和 repeat
+    * 历史原因：MATLAB 先有 repmat，后来 NumPy 设计时区分了 tile 和 repeat
 
-    使用场景：MATLAB 用户更多进行矩阵运算，NumPy 用户需要更灵活的数据操作
+    * 使用场景：MATLAB 用户更多进行矩阵运算，NumPy 用户需要更灵活的数据操作
 
     实用建议：
 
-    熟悉两种工具的差异，避免直接移植代码时的误解
+    * 熟悉两种工具的差异，避免直接移植代码时的误解
 
-    了解各自的最优实践（如 MATLAB 的广播、NumPy 的向量化）
+    * 了解各自的最优实践（如 MATLAB 的广播、NumPy 的向量化）
 
-    根据具体需求选择合适的方法，而非强行对应
+    * 根据具体需求选择合适的方法，而非强行对应
 
 * matlab 查找特定类型文件
 
@@ -3179,6 +3294,202 @@
 
 ## topics
 
+### 帮助与信息
+
+* `help func_name`
+
+* 查找函数：`lookfor keyword`
+
+    `lookfor`搜索所有函数的第一行注释行，找到对应的文件或函数。
+
+
+
+其他常用命令：
+
+* `who`：列出当前工作空间中的变量
+* `what`：列出当前文件夹或指定目录下的 M 文件、MAT 文件和 MEX 文件
+* `which`：显示指定函数或文件的路径
+* `whos`：列出当前工作空间中变量的更多信息
+* `exist`：检查指定变量或文件的存在性
+* `doc`：直接查询在线文档。通常更详细
+* `echo`：直接运行时，切换是否显示 m 文件中的内容。也可以`echo on`，`echo off`来指定状态。
+
+
+### 矩阵运算与索引
+
+* 可以使用赋空操作删除某一行或列：
+
+    ```matlab
+    A(:, 2:3, :) = []
+    ```
+
+* 运算符：除法为`\`或`/`，乘方为`^`。
+
+* 矩阵扩展
+
+    ```matlab
+    % 直接使用索引扩展
+    a = reshape(1:9, 3, 3)
+    a(5, 5) = 111
+    a(:, 6) = 222
+    aa = a(:, [1:6, 1:6])
+
+    % 使用分号扩展行
+    b = ones(2, 6)
+    ab_r = [a; b]
+
+    % 使用逗号扩展列
+    ab_c = [a, b(:, 1:5)']
+    ```
+
+* 逻辑运算
+
+    ```matlab
+    A & B
+    and(A, B)  % 若两个数均非 0 值，则结果为 1
+
+    A | B
+    or(A, B)  % 若两个数有一个不为 0，则结果为 1
+
+    ~A
+    not(A)  % 若待运算矩阵的元素为 0，则结果元素为 1
+
+    xor(A, B)  % 若一个为 0，一个不为 0，则结果为 1
+    ```
+
+* 数值运算
+
+    ```matlab
+    cumsum(a) 
+    sum(a)
+    dot(a, b)
+    cross(a, b)  % 叉乘运算
+    prod(a)
+    cumprod(a)
+    triu(a, k)  % 提取上三角矩阵
+    tril(a, k)
+    flipud()  % 矩阵翻转
+    fliplr()
+    rot90()
+    ```
+
+* 直接使用`a * b`做的是矩阵乘法，想做逐元素相乘可以用`a .* b`。
+
+* 使用`sub2ind()`计算二维索引在拉伸为一维的数组中的索引：
+
+    ```matlab
+    b = sub2ind(size(a), [2, 3], [2, 1])
+    a(b)
+    ```
+
+* 数组索引
+
+    ```matlab
+    a = [1, 3, 4, 5, 6, 7]
+    a(5)
+    a([1,3,5])  % 访问多个元素
+    a(1:2:5)  % 访问多个元素
+    a(find(x>3))  % 按条件访问多个元素
+
+    a = zeros(2, 6)
+    a(:) = 1:12  % 按照一维方式访问
+    a(2, 4)
+    a(8)
+    a(:, [1,3])
+    a([1, 2, 5, 6]')
+    a(:, 4:end)
+    a(2, 1:2:5)
+    a([1, 2, 2, 2], [1, 3, 5])
+    ```
+
+* 转置
+
+    `a'` 或 `transpose(a)`
+    
+    这两种方法只适用二维数组（包含向量），如果维度超过二维会报错。
+
+* 可以使用`a([2, 3, 4])`进行多元素索引，也可以使用`a(1:2:10)`这样的方式。
+
+### 矩阵创建
+
+* 创建高维矩阵
+
+    ```matlab
+    % 直接创建
+    A = zeros(2, 3)
+    % 使用索引创建
+    A(:, :, 4) = zeros(2, 3)
+    ```
+
+* 常用的二维数组生成函数
+
+    ```matlab
+    zeros(2, 4)
+    ones(2, 4)
+    randn('state', 0)  % 把正态随机发生器置 0
+    randn(2, 3)  % 产生正态随机矩阵
+    D = eye(3)  % 产生 3 x 3 的单位矩阵
+    diag(D)  % 取 D 矩阵的对角元
+    diag(diag(D))  % 外 diag() 利用一维数组生成对角矩阵
+    randsrc(3, 10, [-3, -1, 1, 3], 1)  % 在[-3, -1, 1, 3]中产生 3 x 10 的均匀分布随机数组，随机发生器的状态设置为 1
+    ```
+
+* `linspace()`：线性向量生成
+
+    `linspace(x1, x2)`默认生成 100 个点，也可以用`linspace(x1, x2, n)`指定生成的采样点数量。
+
+    `logspace`：等比数列生成
+
+* `start:step:end`: 按间隔生成向量
+
+    `start:end`按步长为 1 生成向量，比如`1:5`生成向量`[1 2 3 4 5]`，注意`end`是包括在区间内的。
+
+    `start:step:end`可以按指定步长生成向量。
+
+* 直接创建向量
+
+    ```matlab
+    a = [1 2 3]  % shape: (1, 3)
+    a = [1, 2, 3]  % shape: (1, 3)
+    a = [1; 2; 3]  % shape: (3, 1)
+    ```
+
+    matlab 里没有纯量和一维向量，只有维度从二起始的矩阵。
+    
+    为了方便，这里把 shape 为`(1, n)`或`(n, 1)`的矩阵称为向量，把 shape 为`(1, 1)`的矩阵称为数字或纯量。把 shape 为`(m, n)`的二维矩阵或三维以上的矩阵称为矩阵或张量。
+
+    可以用`size(a)`查看矩阵`a`的 shape。
+
+    example:
+
+    ```matlab
+    >> a = [1 2 3]
+
+    a =
+
+        1     2     3
+
+    >> size(a)
+
+    ans =
+
+        1     3
+
+    >> b = [1; 2; 3]
+
+    b =
+
+        1
+        2
+        3
+
+    >> size(b)
+
+    ans =
+
+        3     1
+    ```
+
 ### 命令与快捷键
 
 * 文件与目录
@@ -3273,118 +3584,239 @@
 
 ### 函数
 
-### 内置函数
+### 常用命令与工程环境
+
+* 显示运算符优先顺序：`help precedence`
+
+* 环境 -> 设置路径 可以为 Matlab 添加或删除搜索路径。
+
+* 命令行中的快捷键
+
+    * `Up`, `Ctrl + P`：调用上一行
+    * `Down`, `Ctrl + N`：调用下一行
+    * `Left`,  `Ctrl + B`：光标左移一个字符
+    * `Right`, `Ctrl + F`：光标右移一个字符
+    * `Ctrl + Left`, `Ctrl + L`：光标左移一个单词
+    * `Ctrl + Right`, `Ctrl + R`：光标右移一个单词
+    * `Home`, `Ctrl + A`：光标置于当前行开头
+    * `End`, `Ctrl + E`：光标置于当前行末尾
+    * `Esc`, `Ctrl + U`：清除当前输入行
+    * `Del`, `Ctrl + D`：删除光标处的字符
+    * `Backspace`, `Ctrl + H`：删除光标前的字符
+    * `Alt + Backspace`：恢复上一次删除
+
+### 内置函数/命令
+
+* 数值的显示格式
+
+    | 格式命令 | 作用 |
+    | - | - |
+    | `format short` | 5 位有效数字 |
+    |`format long`|15 位有效数字|
+    |`format short e`|5位有效数字 + 科学计数法|
+    |`format long e`|15 位有效数字 + 科学计数法|
+    |`format short g`|短紧缩格式|
+    |`format long g`|长紧缩格式|
+    |`format hex`|十六进制，浮点数|
+    |`format bank`|2 位小数|
+    |`format +`|正，负或 0|
+    |`format rat`|有理数近似|
+    |`format debug`|短紧缩格式的内部存储信息|
+
+* 常用的控制命令
+
+    * `cd`：显示或改变当前文件夹
+    * `dir`：显示当前文件夹或指定文件夹下的文件
+    * `clc`：清除工作窗口中的所有显示内容
+    * `home`：将光标移至命令行窗口的最左上角
+    * `clf`：清除图形窗口
+    * `type`：显示文件内容
+    * `clear`：清理内存变量
+    * `echo`：工作窗口信息显示开关
+    * `disp`：显示变量或文字内容
+    * `load`：加载指定文件的变量
+    * `diary`：日志文件命令
+    * `!`：调用 dos 命令
+    * `exit`，`quit`：退出 
+    * `pack`：收集内存碎片
+    * `hold`：图形保持开关
+    * `path`：显示搜索目录
+    * `save`：将内存变量保存到指定文件中
+
+* `clear`
+
+    删除工作区中的所有变量。
+
+    `clear var1, var2`：清除指定变量
+
+* `pack`
+
+    用于整理内存。将内存中的数据先存储到磁盘上，再从磁盘将数据读入到内存中。
+
+* `reshape`
+
+    syntax:
+
+    * `reshape(A, sz)`
+    * `reshape(A, sz1, ..., szN)`
+
+* `repmat`
+
+    对于一个矩阵`A`，`repmat`可以将其维度进行重复。对于一个向量`A`，`repmat`可以先为其增加一个维度，然后再按矩阵做重复。对于一个纯量`A`，`repmat`可以构建具有重复元素的数组。
+
+    其实无论输入的是矩阵，向量还是纯量，`repmat`都是先把其变换成至少两个维度的矩阵，然后再处理。shape 为`(n, )`的一维向量，会先变成`(1, d)`，shape 为`(1, )`的纯量，会先变成`(1, 1)`。
+
+    `repmat`的处理方式很奇怪，如果待处理矩阵`A`后只有一个参数`r1`，那么会把`A`的前两个维度翻`r1`倍。如果`A`后有大于 1 个参数`(r1, r2, ....)`，`repmat`则会按对应位置对维度进行翻倍。
+
+    syntax:
+
+    * `repmat(A, n)`
+    * `repmat(A, r1, ..., rN)`
+    * `repmat(A, r)`
+
+    其中`r1`，...，`rN`表示在这些维度上重复几遍。
+
+    Examples:
+
+    ```matlab
+    a = 1
+    b = zeros(3)
+    ```
+
+* `cat`
+
+    syntax:
+
+    * `C = cat(dim, A, B)`
+    * `C = cat(dim, A1, A2, ..., An)`
+
+* `squeeze`
+
+    syntax:
+
+    * `squeeze(A)`
+
+    删除矩阵中大小为 1 的维度。
+    
+    具体实现的话不同情况挺复杂的，看例子理解吧。
+
+    Examples:
+
+    ```matlab
+    a = 1
+    size(squeeze(a))  % (1, 1)
+
+    b = zeros(1, 3)
+    size(squeeze(b))  % (1, 3)
+
+    c = zeros(1, 3, 1)
+    size(squeeze(c))  % (1, 3)
+
+    d = zeros(1, 3, 1, 2)
+    size(squeeze(d))  % (3, 2)
+    ```
+
+* `sub2ind`
+
+    syntax:
+
+    * `ind = sub2ind(sz, row, col)`
+    * `ind = sub2ind(sz, I1, I2, ..., In)`
+
+    将多维索引拉伸成一维索引。
+
+    `ind2sub()`
+
+* `permute`
+
+    syntax:
+
+    * `B = permute(A, dimorder)`
+
+    重排维度。相当于 numpy 中的`transpose`。
+
+    `ipermute()`
+
+* `size`
+
+    syntax:
+
+    * `sz = size(A)`
+    * `szdim = size(A, dim)`
+    * `szdim = size(A, dim1, dim2, ..., dimN)`
+    * `[sz1, ..., szN] = size(___)`
+
+* `N = ndims(A)`
+
+    获取维度的数量
+
+* 其他
+
+    * `cat()`
+
+    * `flipdim()`
+
+    * `shiftdim()`
+
+* 矩阵信息
+
+    * `length(A)`
+
+        一个数组的行数和列数的最大值。
+
+    * `numel(A)`
+
+        数组元素总数。
+
+    * `[a, b] = size(A)`
+    
+        数组的行数和列数。
+
+* 矩阵测试
+
+    * `isempty()`
+
+        用于检测某个数组是否为空数组。
+
+        ```matlab
+        TF = isempty(A)
+        ```
+
+    * `isscalar()`
+
+        检测某个数组是否为单元素的标量数组。
+
+        ```matlab
+        TF = isscalar(A)
+        ```
+
+    * `isvector()`
+
+        检测某个数组是否为只有一行元素或一列元素。
+
+    * `issparse()`
+
+        检测某个数组是否为稀疏数组。
+
+* 排序
+
+    ```matlab
+    a = rand(1, 10)
+    b = sort(a)
+    [b, index] = sort(a)
+    ```
+
+    排序二维数组时可以指定维度：
+
+    ```matlab
+    [b, index] = sort(A, dim, mode)  % 其中 mode 可以取 'ascend', 'descend'
+    ```
+
+    默认情况下，matlab 会对`dim=1`维度进行排序，而 numpy 中的`sort`则会对`axis=-1`维度进行排序。matlab 与 numpy 的相同点是，第二个维度指的都是行，第一个维度指的都是列。
 
 ## note
 
-`help func_name`
 
-查找函数：`lookfor keyword`
-
-`lookfor`搜索所有函数的第一行注释行，找到对应的文件或函数。
-
-在脚本中，两个`%`可以标志一个 block：
-
-```
-a = 1
-
-%% new block
-b = 2
-```
-
-使用`Ctrl + Enter`可以运行 block 中的内容。
-
-块注释：
-
-```matlab
-%{
-
-    comments
-
-%}
-```
-
-其他常用命令：
-
-* `who`：列出当前工作空间中的变量
-* `what`：列出当前文件夹或指定目录下的 M 文件、MAT 文件和 MEX 文件
-* `which`：显示指定函数或文件的路径
-* `whos`：列出当前工作空间中变量的更多信息
-* `exist`：检查指定变量或文件的存在性
-* `doc`：直接查询在线文档。通常更详细
-* `echo`：直接运行时，切换是否显示 m 文件中的内容。也可以`echo on`，`echo off`来指定状态。
-
-预置变量：
-
-* `eps`：计算机的最小正数
-* `pi`：圆周率 pi 的近似值 3.14159265358979
-* `inf`或`Inf`：无穷大
-* `NaN`：不定量
-* `i, j`：虚数单位定义`i`
-* `flops`：浮点运算次数，用于统计计算量
-
-环境 -> 设置路径 可以为 Matlab 添加或删除搜索路径。
-
-`clear`：删除工作区中的所有变量。
-
-`clear var1, var2`：清除指定变量
-
-`pack`：用于整理内存。将内存中的数据先存储到磁盘上，再从磁盘将数据读入到内存中。
-
-数值的显示格式：
-
-|格式命令|作用|
-|-|-|
-|`format short`|5 位有效数字|
-|`format long`|15 位有效数字|
-|`format short e`|5位有效数字 + 科学计数法|
-|`format long e`|15 位有效数字 + 科学计数法|
-|`format short g`|短紧缩格式|
-|`format long g`|长紧缩格式|
-|`format hex`|十六进制，浮点数|
-|`format bank`|2 位小数|
-|`format +`|正，负或 0|
-|`format rat`|有理数近似|
-|`format debug`|短紧缩格式的内部存储信息|
-
-常用的控制命令：
-
-* `cd`：显示或改变当前文件夹
-* `dir`：显示当前文件夹或指定文件夹下的文件
-* `clc`：清除工作窗口中的所有显示内容
-* `home`：将光标移至命令行窗口的最左上角
-* `clf`：清除图形窗口
-* `type`：显示文件内容
-* `clear`：清理内存变量
-* `echo`：工作窗口信息显示开关
-* `disp`：显示变量或文字内容
-* `load`：加载指定文件的变量
-* `diary`：日志文件命令
-* `!`：调用 dos 命令
-* `exit`，`quit`：退出 
-* `pack`：收集内存碎片
-* `hold`：图形保持开关
-* `path`：显示搜索目录
-* `save`：将内存变量保存到指定文件中
-
-命令行中的快捷键：
-
-* `Up`, `Ctrl + P`：调用上一行
-* `Down`, `Ctrl + N`：调用下一行
-* `Left`,  `Ctrl + B`：光标左移一个字符
-* `Right`, `Ctrl + F`：光标右移一个字符
-* `Ctrl + Left`, `Ctrl + L`：光标左移一个单词
-* `Ctrl + Right`, `Ctrl + R`：光标右移一个单词
-* `Home`, `Ctrl + A`：光标置于当前行开头
-* `End`, `Ctrl + E`：光标置于当前行末尾
-* `Esc`, `Ctrl + U`：清除当前输入行
-* `Del`, `Ctrl + D`：删除光标处的字符
-* `Backspace`, `Ctrl + H`：删除光标前的字符
-* `Alt + Backspace`：恢复上一次删除
-
-运算符：除法为`\`或`/`，乘方为`^`。
-
-显示运算符优先顺序：`help precedence`
 
 输入矩阵：
 
@@ -3611,297 +4043,7 @@ isvalid  % 检测一个对象是否可以连接到硬件的串行端口对象
 
 ## 矩阵运算
 
-**向量生成**
 
-1. 直接创建
-
-    ```matlab
-    a = [1 2 3]  % shape: (1, 3)
-    a = [1, 2, 3]  % shape: (1, 3)
-    a = [1; 2; 3]  % shape: (3, 1)
-    ```
-
-    matlab 里没有纯量和一维向量，只有维度从二起始的矩阵。为了方便，这里把 shape 为`(1, n)`或`(n, 1)`的矩阵称为向量，把 shape 为`(1, 1)`的矩阵称为数字或纯量。把 shape 为`(m, n)`的二维矩阵或三维以上的矩阵称为矩阵或张量。
-
-    可以用`size(a)`查看矩阵`a`的 shape。
-
-1. `linspace`：线性向量生成
-
-    `linspace(x1, x2)`默认生成 100 个点，也可以用`linspace(x1, x2, n)`指定生成的采样点数量。
-
-    `logspace`：等比数列生成
-
-1. `start:step:end`按间隔生成向量
-
-    `start:end`按步长为 1 生成向量，比如`1:5`生成向量`[1 2 3 4 5]`，注意`end`是包括在区间内的。
-
-    `start:step:end`可以按指定步长生成向量。
-
-转置：`a'`或`transpose(a)`。这两种方法只适用二维数组（包含向量），如果维度超过二维，那么会报错。
-
-可以使用`a([2, 3, 4])`进行多元素索引，也可以使用`a(1:2:10)`这样的方式。
-
-常用的二维数组生成函数：
-
-```matlab
-zeros(2, 4)
-ones(2, 4)
-randn('state', 0)  % 把正态随机发生器置 0
-randn(2, 3)  % 产生正态随机矩阵
-D = eye(3)  % 产生 3 x 3 的单位矩阵
-diag(D)  % 取 D 矩阵的对角元
-diag(diag(D))  % 外 diag() 利用一维数组生成对角矩阵
-randsrc(3, 10, [-3, -1, 1, 3], 1)  % 在[-3, -1, 1, 3]中产生 3 x 10 的均匀分布随机数组，随机发生器的状态设置为 1
-```
-
-数组寻址：
-
-```matlab
-a = [1, 3, 4, 5, 6, 7]
-a(5)
-a([1,3,5])  % 访问多个元素
-a(1:2:5)  % 访问多个元素
-a(find(x>3))  % 按条件访问多个元素
-
-a = zeros(2, 6)
-a(:) = 1:12  % 按照一维方式访问
-a(2, 4)
-a(8)
-a(:, [1,3])
-a([1, 2, 5, 6]')
-a(:, 4:end)
-a(2, 1:2:5)
-a([1, 2, 2, 2], [1, 3, 5])
-```
-
-使用`sub2ind()`计算二维索引在拉伸为一维的数组中的索引：
-
-```matlab
-b = sub2ind(size(a), [2, 3], [2, 1])
-a(b)
-```
-
-排序：
-
-```matlab
-a = rand(1, 10)
-b = sort(a)
-[b, index] = sort(a)
-```
-
-排序二维数组时可以指定维度：
-
-```matlab
-[b, index] = sort(A, dim, mode)  % 其中 mode 可以取 'ascend', 'descend'
-```
-
-默认情况下，matlab 会对`dim=1`维度进行排序，而 numpy 中的`sort`则会对`axis=-1`维度进行排序。matlab 与 numpy 的相同点是，第二个维度指的都是行，第一个维度指的都是列。
-
-数组检测：
-
-* `isempty()`
-
-    用于检测某个数组是否为空数组。
-
-    ```matlab
-    TF = isempty(A)
-    ```
-
-* `isscalar()`
-
-    检测某个数组是否为单元素的标量数组。
-
-    ```matlab
-    TF = isscalar(A)
-    ```
-
-* `isvector()`
-
-    检测某个数组是否为只有一行元素或一列元素。
-
-* `issparse()`
-
-    检测某个数组是否为稀疏数组。
-
-数组结构：
-
-* `length(A)`
-
-    一个数组的行数和列数的最大值。
-
-* `numel(A)`
-
-    数组元素总数。
-
-* `[a, b] = size(A)`：数组的行数和列数。
-
-直接使用`a * b`做的是矩阵乘法，想做逐元素相乘可以用`a .* b`。
-
-逻辑运算：
-
-```matlab
-A & B
-and(A, B)  % 若两个数均非 0 值，则结果为 1
-
-A | B
-or(A, B)  % 若两个数有一个不为 0，则结果为 1
-
-~A
-not(A)  % 若待运算矩阵的元素为 0，则结果元素为 1
-
-xor(A, B)  % 若一个为 0，一个不为 0，则结果为 1
-```
-
-数组常用的运算：
-
-```matlab
-cumsum(a) 
-sum(a)
-dot(a, b)
-cross(a, b)  % 叉乘运算
-prod(a)
-cumprod(a)
-triu(a, k)  % 提取上三角矩阵
-tril(a, k)
-flipud()  % 矩阵翻转
-fliplr()
-rot90()
-```
-
-矩阵扩展：
-
-```matlab
-% 直接使用索引扩展
-a = reshape(1:9, 3, 3)
-a(5, 5) = 111
-a(:, 6) = 222
-aa = a(:, [1:6, 1:6])
-
-% 使用分号扩展行
-b = ones(2, 6)
-ab_r = [a; b]
-
-% 使用逗号扩展列
-ab_c = [a, b(:, 1:5)']
-```
-
-高维数组：
-
-```matlab
-% 直接创建
-A = zeros(2, 3)
-% 使用索引创建
-A(:, :, 4) = zeros(2, 3)
-```
-
-* `reshape`
-
-    syntax:
-
-    * `reshape(A, sz)`
-    * `reshape(A, sz1, ..., szN)`
-
-* `repmat`
-
-    对于一个矩阵`A`，`repmat`可以将其维度进行重复。对于一个向量`A`，`repmat`可以先为其增加一个维度，然后再按矩阵做重复。对于一个纯量`A`，`repmat`可以构建具有重复元素的数组。
-
-    其实无论输入的是矩阵，向量还是纯量，`repmat`都是先把其变换成至少两个维度的矩阵，然后再处理。shape 为`(n, )`的一维向量，会先变成`(1, d)`，shape 为`(1, )`的纯量，会先变成`(1, 1)`。
-
-    `repmat`的处理方式很奇怪，如果待处理矩阵`A`后只有一个参数`r1`，那么会把`A`的前两个维度翻`r1`倍。如果`A`后有大于 1 个参数`(r1, r2, ....)`，`repmat`则会按对应位置对维度进行翻倍。
-
-    syntax:
-
-    * `repmat(A, n)`
-    * `repmat(A, r1, ..., rN)`
-    * `repmat(A, r)`
-
-    其中`r1`，...，`rN`表示在这些维度上重复几遍。
-
-    Examples:
-
-    ```matlab
-    a = 1
-    b = zeros(3)
-    ```
-
-* `cat`
-
-    syntax:
-
-    * `C = cat(dim, A, B)`
-    * `C = cat(dim, A1, A2, ..., An)`
-
-* `squeeze`
-
-    syntax:
-
-    * `squeeze(A)`
-
-    删除矩阵中大小为 1 的维度。
-    
-    具体实现的话不同情况挺复杂的，看例子理解吧。
-
-    Examples:
-
-    ```matlab
-    a = 1
-    size(squeeze(a))  % (1, 1)
-
-    b = zeros(1, 3)
-    size(squeeze(b))  % (1, 3)
-
-    c = zeros(1, 3, 1)
-    size(squeeze(c))  % (1, 3)
-
-    d = zeros(1, 3, 1, 2)
-    size(squeeze(d))  % (3, 2)
-    ```
-
-* `sub2ind`
-
-    syntax:
-
-    * `ind = sub2ind(sz, row, col)`
-    * `ind = sub2ind(sz, I1, I2, ..., In)`
-
-    将多维索引拉伸成一维索引。
-
-    `ind2sub()`
-
-* `permute`
-
-    syntax:
-
-    * `B = permute(A, dimorder)`
-
-    重排维度。相当于 numpy 中的`transpose`。
-
-    `ipermute()`
-
-* `size`
-
-    syntax:
-
-    * `sz = size(A)`
-    * `szdim = size(A, dim)`
-    * `szdim = size(A, dim1, dim2, ..., dimN)`
-    * `[sz1, ..., szN] = size(___)`
-
-* `N = ndims(A)`
-
-    获取维度的数量
-
-* 其他
-
-    * `cat()`
-    * `flipdim()`
-    * `shiftdim()`
-
-可以使用赋空操作删除某一行或列：
-
-```matlab
-A(:, 2:3, :) = []
-```
 
 ## 字符串
 
