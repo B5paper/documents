@@ -1900,6 +1900,22 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [new] 调研 matlab disp
+
+    1. disp 的用法
+
+    2. 如何格式化打印
+
+    3. 下面这些配置的含义和用法
+
+        ```matlab
+        format short    % 简洁格式
+        format long     % 详细格式
+        format compact  % 紧凑显示
+        ```
+
+* [new] 调研 matlab table
+
 * [ ] 调研 matlab 是否支持类似 python 的命令行模式
 
     如果不支持，那么 octave, julia 是否支持？
@@ -2453,86 +2469,6 @@ resources:
 1. 《高等数学》同济大学应用数学系
 
 ### cache
-
-* 正弦函数
-
-    $$y = \sin ⁡x$$
-
-    其中 $x$ 是自变量（通常表示角度，单位为弧度或度），$y$ 是因变量。
-
-    **定义**
-
-    * 基于单位圆的定义
-    
-        在直角坐标系中，以原点为圆心、半径为 1 的单位圆上，角度 $\theta$（以 $x$ 轴正方向为始边，逆时针旋转为正）的终边与单位圆的交点的纵坐标即为 $\sin \theta$。
-
-    * 基于直角三角形定义
-    
-        在直角三角形中，
-        
-        $$\sin⁡ \theta = \frac{对边}{斜边}$$
-        
-        （适用于锐角）
-
-    * 级数定义（解析定义）
-
-        $$\sin ⁡x = x − \frac{x^3}{3!} + \frac{x^5}{5!} − \frac{x^7}{7!} + \cdots$$
-        
-        （其中 $x$ 为弧度）
-
-    **性质**
-
-    * 定义域与值域
-
-        定义域：全体实数 $\mathbb R$（即 $(−\infty, +\infty)$ ）。
-
-        值域：$[−1,1]$，即 $\lvert \sin ⁡x \rvert \leq 1$。
-
-    * 周期性
-
-        是周期函数，最小正周期为 $2 \pi$（即 $\sin (x + 2 k \pi) = \sin x$，$k \in \mathbb Z$）。
-
-    * 奇偶性
-
-        是奇函数，即 $\sin (−x) = - \sin x$，图像关于原点对称。
-
-    * 对称性
-
-        关于点 $(k \pi, 0)$ （$ k \in \mathbb Z$）中心对称，
-
-        关于直线 $x = \frac{\pi}{2} + k \pi$ （$k ∈ \mathbb Z$）轴对称。
-
-    * 单调性
-
-        在区间 $[− \frac{π}{2} + 2 k π, \frac{π}{2} + 2 k π]$ 上单调递增，
-
-        在区间 $[\frac{π}{2} + 2 k \pi, \frac{3π}{2} + 2 k \pi]$ 上单调递减（$k \in \mathbb Z$）。
-
-    * 最值
-
-        最大值 1 在 $x = \frac{π}{2} + 2 k \pi$ 处取得，
-
-        最小值 −1 在 $x = − \frac{π}{2} + 2 k π$（或 $\frac{3π}{2} + 2 k \pi$）处取得（$k ∈ \mathbb Z$）。
-
-    * 零点
-
-        零点为 $x = k π$ （$k ∈ \mathbb Z$），即与 x 轴的交点。
-
-    * 导数与积分
-
-        导数：$\frac{d}{dx} (\sin ⁡x) = \cos ⁡x$。
-
-        不定积分：$\int \sin x dx = − \cos x + C$。
-
-    * 与其他函数的关系
-
-        与余弦函数关系：$\sin^2 x + \cos^2 x = 1$。
-
-        和角公式：$\sin (x \pm y) = \sin x \cos y \pm \cos x \sin y$。
-
-    **图像**
-
-    * 波形曲线（正弦曲线），在 $[−1, 1]$ 之间振荡，周期为 $2π$，过原点且关于原点对称。
 
 * ML-Prerequests: 机器学习的预备知识（矩阵论，概率论，凸优化等）
 
@@ -6162,172 +6098,28 @@ resources:
 
 ### cache
 
-* vim `\v`
-
-    \v 在 Vim 搜索中表示使用 "very magic" 模式，这是 Vim 正则表达式的一种特殊模式。
-
-    Vim 正则表达式的四种模式：
-
-    ```vim
-    /pattern          " magic 模式（默认，有些字符有特殊含义）
-    /\vpattern        " very magic 模式（大多数字符都有特殊含义）
-    /\Vpattern        " very nomagic 模式（几乎不特殊，字面匹配）
-    /\mpattern        " nomagic 模式（折中方案）
-    ```
-
-    `\v` 的作用：
-
-    ```vim
-    " 普通 magic 模式（默认）
-    /\(\d\{3}\)-\d\{4}    " 匹配 (123)-4567
-    " 需要转义很多特殊字符：\( \) \{ \}
-
-    " very magic 模式
-    /\v(\d{3})-\d{4}      " 匹配 (123)-4567
-    " 几乎不需要转义，像其他语言的正则表达式
-    ```
-
-    特殊字符对比表:
-
-    | 元字符 | magic 模式 | very magic 模式 | 说明 |
-    | - | - | - | - |
-    | `(`, `)` | 需要转义：`\(` `\)` | 不需要转义 | 分组 |
-    | `{` `}` | 需要转义：`\{` `\}` | 不需要转义 | 重复次数 |
-    | `+` | 需要转义：`\+` | 不需要转义 | 一个或多个 |
-    | `?` | 需要转义：`\?` | 不需要转义 | 零个或一个 |
-    | `\|` | 需要转义： `\\|` | 不需要转义 | 或 |
-    | `^`, `$` | 不需要转义 | 不需要转义 | 行首/行尾 |
-    | `.`, `*` | 不需要转义 | 不需要转义 | 任意字符/零个或多个 |
-
-    注：
-
-    1. 直接使用`/pattern`匹配，想要实现分组功能时，必须给括号加`\`：
-
-        `/\(hello\).*\(world\)`
-
-        其他的处理方式类似。
-
-    examples:
-
-    ```vim
-    " 1. 匹配邮箱
-    /\v\w+@\w+\.\w+                  " 简单邮箱匹配
-    /\v[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}  " 更复杂的邮箱
-
-    " 2. 匹配时间 (HH:MM)
-    /\v\d{2}:\d{2}                   " 24小时制时间
-
-    " 3. 匹配括号内的内容
-    /\v\([^)]+\)                     " 匹配 (任意内容)
-
-    " 4. 匹配 Markdown 标题
-    /\v^#{1,6}\s+.+$                 " 匹配 # 标题
-
-    " 5. 匹配 IP 地址
-    /\v(\d{1,3}\.){3}\d{1,3}        " 匹配 192.168.1.1
-    ```
-
-    * 与其他模式的对比
-
-        ```vim
-        " 场景：匹配 "function(arg1, arg2)"
-
-        " 1. very magic 模式（最简洁）
-        /\vfunction\([^)]+\)
-
-        " 2. magic 模式（默认，需要转义）
-        /function\([^)]\+\)
-
-        " 3. very nomagic 模式（字面匹配，需要转义特殊字符）
-        /\Vfunction(arg1, arg2)          " 只能匹配这个具体字符串
-        ```
-
-    * tricks
-
-        ```vim
-        " 快速搜索替换中使用
-        :%s/\v(\d+)-(\d+)/\2-\1/g       " 交换 123-456 为 456-123
-
-        " 在搜索模式中使用变量
-        let pattern = '\v\d{3}-\d{4}'
-        execute '/' . pattern
-
-        " 结合其他标志
-        /\vpattern/i                     " 忽略大小写
-        /\vpattern\c                     " 强制忽略大小写
-        /\vpattern\C                     " 强制区分大小写
-        ```
-
-    * 建议
-
-        * 推荐使用 \v：写起来更自然，与其他编程语言的正则表达式习惯一致
-
-        * 特殊场景用 \V：当需要字面搜索包含特殊字符的字符串时
-
-        * 保持一致性：在整个文件中使用相同的模式
-
-* vim help
-
-    :help /\[]
-    :help whitespace
-    :help [:alnum:]
-
-* vim 中的范围匹配
-
-    * `/\v[a-z]`
-
-        匹配`a`到`z`中的一个字符。
-
-    * `/[a-]`
-
-        匹配`a`或`-`。
-
-        `/[-z]`同理。
-
-    * `/\v[0-9A-Z]`
-
-        匹配多个范围。
-
-    * `/\v[^abc]`
-
-        匹配除了 a, b, c 外的所有字符中的一个
-
-    * `[a^bc]`
-
-* vim 模式
-
-    按 v 进入普通可视模式
-
-    按 V 进入行可视模式
-
-    按 Ctrl+V 进入块可视模式
-
-    ```vim
-    " 在 .vimrc 中修改可视模式颜色
-    highlight Visual cterm=reverse ctermbg=NONE
-    ```
-
-    ```vim
-    " 临时禁用高亮
-    :nohlsearch
-    ```
-
-    ```vim
-    " 禁用鼠标选择自动进入可视模式
-    set mouse-=a
-    " 或只禁用部分鼠标功能
-    " set mouse=nvi  " n:普通模式, v:可视模式, i:插入模式
-
-    " 鼠标释放后自动退出可视模式
-    autocmd CursorMoved * if mode() =~ '^[vV]' | silent! execute "normal! \e" | endif
-    ```
-
-    ```vim
-    " 按 Ctrl+L 清除高亮
-    nnoremap <C-l> :nohlsearch<CR>:call clearmatches()<CR>
-    ```
-
 ### tasks
+
+* [new] 调研 vim 命令
+
+    `filetype plugin indent on`
+
+    `filetype on`
+
+    `set term?`: 检查颜色支持. 如果显示 term=builtin_gui 或 term=win32 是正常的。如果是 term=dumb，可能需要调整终端设置。
+
+    `set filetype?`: 查看当前文件类型
+
+    `:version  " 查看 Vim 版本和功能`
+
+    `:scriptnames  " 查看加载的脚本`
+
+    ```vim
+    :colorscheme default  " 设置默认配色方案
+    :syntax enable
+    ```
+
+    `set encoding=utf-8`
 
 ## urls
 
@@ -6453,6 +6245,27 @@ resources:
 ### cache
 
 ### tasks
+
+* [new] `git clone --filter=blob:none --no-checkout <repo-url>`
+
+* [new] `git fetch --deepen 5  # 再获取5个历史提交`
+
+* [new] `git checkout --orphan new-history  # 创建无父提交的新分支`
+
+* [new] `git fetch origin v2.0 --depth 1`
+
+    这里是不是少写了个`tag`？
+
+* [new] 调研这段代码的含义
+
+    ```bash
+    git checkout --orphan compressed-history
+    for commit in $(git log --reverse --format="%H" --all); do
+        git checkout $commit -- .
+        git add -A
+        git commit -m "版本 $(git describe --tags $commit 2>/dev/null || echo $commit)"
+    done
+    ```
 
 * [ ] `git log main..origin/main`
 

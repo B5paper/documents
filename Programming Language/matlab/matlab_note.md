@@ -312,172 +312,185 @@
 
 * matlab 中，单引号`'`和双引号`"`都可以表示字符串。
 
-* matlab 中，`disp('xxx')`和`disp('xxx');`效果相同，都没有`ans = xxx`的输出。
+* `disp()`
 
-* matlab 打印
+    基本显示。
 
-    * disp() - 基本显示
+    ```matlab
+    disp('Hello World');          % 显示字符串
+    disp(['x = ', num2str(5)]);   % 显示变量
+
+    % 显示矩阵
+    A = [1 2 3; 4 5 6];
+    disp('矩阵A:');
+    disp(A);
+    ```
+
+    注：
+
+    1. `disp()`不把`\n`识别为转义字符
 
         ```matlab
-        disp('Hello World');          % 显示字符串
-        disp(['x = ', num2str(5)]);   % 显示变量
-
-        % 显示矩阵
-        A = [1 2 3; 4 5 6];
-        disp('矩阵A:');
-        disp(A);
+        >> disp('hello\n')
+        hello\n
         ```
 
-    * fprintf() - 格式化输出（最常用）
+    1. `disp('xxx')`和`disp('xxx');`效果相同，都没有`ans = xxx`的输出。
 
-        ```matlab
-        % 基本格式
-        fprintf('格式字符串', 变量1, 变量2, ...);
+* `fprintf()`
 
-        % 常用格式符
-        % %d - 整数
-        % %f - 浮点数
-        % %e - 科学计数法
-        % %g - 自动选择 %f 或 %e
-        % %s - 字符串
-        % %c - 字符
-        % %% - 百分号本身
-        ```
+    格式化输出（最常用）
 
-        example:
+    ```matlab
+    % 基本格式
+    fprintf('格式字符串', 变量1, 变量2, ...);
 
-        ```matlab
-        % 整数
-        age = 25;
-        fprintf('年龄: %d 岁\n', age);          % 年龄: 25 岁
+    % 常用格式符
+    % %d - 整数
+    % %f - 浮点数
+    % %e - 科学计数法
+    % %g - 自动选择 %f 或 %e
+    % %s - 字符串
+    % %c - 字符
+    % %% - 百分号本身
+    ```
 
-        % 浮点数（控制小数位数）
-        pi_value = pi;
-        fprintf('π = %.2f\n', pi_value);        % π = 3.14
-        fprintf('π = %.4f\n', pi_value);        % π = 3.1416
-        fprintf('π = %8.4f\n', pi_value);       % π =   3.1416（总宽度8）
+    example:
 
-        % 科学计数法
-        speed = 299792458;
-        fprintf('光速: %.2e m/s\n', speed);     % 光速: 3.00e+08 m/s
+    ```matlab
+    % 整数
+    age = 25;
+    fprintf('年龄: %d 岁\n', age);          % 年龄: 25 岁
 
-        % 字符串
-        name = '张三';
-        fprintf('姓名: %s\n', name);            % 姓名: 张三
+    % 浮点数（控制小数位数）
+    pi_value = pi;
+    fprintf('π = %.2f\n', pi_value);        % π = 3.14
+    fprintf('π = %.4f\n', pi_value);        % π = 3.1416
+    fprintf('π = %8.4f\n', pi_value);       % π =   3.1416（总宽度8）
 
-        % 多个变量
-        x = 10; y = 3.1416; z = '结果';
-        fprintf('%s: x = %d, y = %.2f\n', z, x, y);  % 结果: x = 10, y = 3.14
+    % 科学计数法
+    speed = 299792458;
+    fprintf('光速: %.2e m/s\n', speed);     % 光速: 3.00e+08 m/s
 
-        % 对齐输出
-        fprintf('%-10s %10s %10s\n', '姓名', '年龄', '分数');
-        fprintf('%-10s %10d %10.1f\n', '张三', 20, 85.5);
-        fprintf('%-10s %10d %10.1f\n', '李四', 22, 92.0);
-        % 输出：
-        % 姓名             年龄        分数
-        % 张三               20       85.5
-        % 李四               22       92.0
-        ```
+    % 字符串
+    name = '张三';
+    fprintf('姓名: %s\n', name);            % 姓名: 张三
 
-    * sprintf() - 格式化字符串（不直接显示）
+    % 多个变量
+    x = 10; y = 3.1416; z = '结果';
+    fprintf('%s: x = %d, y = %.2f\n', z, x, y);  % 结果: x = 10, y = 3.14
 
-        ```matlab
-        % 创建格式化的字符串，不直接输出
-        str = sprintf('结果: %.3f', pi);
-        disp(str);  % 结果: 3.142
+    % 对齐输出
+    fprintf('%-10s %10s %10s\n', '姓名', '年龄', '分数');
+    fprintf('%-10s %10d %10.1f\n', '张三', 20, 85.5);
+    fprintf('%-10s %10d %10.1f\n', '李四', 22, 92.0);
+    % 输出：
+    % 姓名             年龄        分数
+    % 张三               20       85.5
+    % 李四               22       92.0
+    ```
 
-        % 构建复杂字符串
-        name = '小明';
-        score = 95.5;
-        date_str = datestr(now, 'yyyy-mm-dd');
-        report = sprintf('成绩报告\n姓名: %s\n分数: %.1f\n日期: %s\n', ...
-                        name, score, date_str);
-        disp(report);
-        ```
+* `sprintf()`
 
-    * 表格形式输出
+    格式化字符串（不直接显示）
 
-        ```matlab
-        % 创建表格数据
-        names = {'张三', '李四', '王五'};
-        ages = [20; 22; 21];
-        scores = [85.5; 92.0; 88.5];
+    ```matlab
+    % 创建格式化的字符串，不直接输出
+    str = sprintf('结果: %.3f', pi);
+    disp(str);  % 结果: 3.142
 
-        % 表头
-        fprintf('\n========== 学生成绩表 ==========\n');
-        fprintf('%-10s %-8s %-10s\n', '姓名', '年龄', '成绩');
-        fprintf('%s\n', repmat('-', 1, 30));
+    % 构建复杂字符串
+    name = '小明';
+    score = 95.5;
+    date_str = datestr(now, 'yyyy-mm-dd');
+    report = sprintf('成绩报告\n姓名: %s\n分数: %.1f\n日期: %s\n', ...
+                    name, score, date_str);
+    disp(report);
+    ```
 
-        % 数据行
-        for i = 1:length(names)
-            fprintf('%-10s %-8d %-10.1f\n', names{i}, ages(i), scores(i));
+* 表格形式输出
+
+    ```matlab
+    % 创建表格数据
+    names = {'张三', '李四', '王五'};
+    ages = [20; 22; 21];
+    scores = [85.5; 92.0; 88.5];
+
+    % 表头
+    fprintf('\n========== 学生成绩表 ==========\n');
+    fprintf('%-10s %-8s %-10s\n', '姓名', '年龄', '成绩');
+    fprintf('%s\n', repmat('-', 1, 30));
+
+    % 数据行
+    for i = 1:length(names)
+        fprintf('%-10s %-8d %-10.1f\n', names{i}, ages(i), scores(i));
+    end
+
+    fprintf('\n总人数: %d\n', length(names));
+    ```
+
+    output:
+
+    ```
+    ========== 学生成绩表 ==========
+    姓名         年龄       成绩        
+    ------------------------------
+    张三         20       85.5      
+    李四         22       92.0      
+    王五         21       88.5      
+
+    总人数: 3
+    ```
+
+* 进度条和动态显示
+
+    ```matlab
+    % 进度条
+    total = 100;
+    fprintf('进度: [');
+    for i = 1:total
+        % 每10%显示一个#
+        if mod(i, 10) == 0
+            fprintf('#');
         end
+        pause(0.01); % 模拟计算
+    end
+    fprintf('] 完成！\n');
 
-        fprintf('\n总人数: %d\n', length(names));
-        ```
+    % 动态更新单行
+    for i = 1:20
+        fprintf('处理中: %d/%d\r', i, 20);
+        pause(0.1);
+    end
+    fprintf('\n完成！\n');
+    ```
 
-        output:
+* 与打印相关的综合 example
 
-        ```
-        ========== 学生成绩表 ==========
-        姓名         年龄       成绩        
-        ------------------------------
-        张三         20       85.5      
-        李四         22       92.0      
-        王五         21       88.5      
+    ```matlab
+    clear; clc;  % 清理环境
 
-        总人数: 3
-        ```
+    % 程序开始
+    fprintf('%s\n', repmat('=', 1, 50));
+    fprintf('           数据分析报告\n');
+    fprintf('%s\n\n', repmat('=', 1, 50));
 
-    * 进度条和动态显示
+    % 计算并显示结果
+    data = randn(100, 1);
+    mean_val = mean(data);
+    std_val = std(data);
 
-        ```matlab
-        % 进度条
-        total = 100;
-        fprintf('进度: [');
-        for i = 1:total
-            % 每10%显示一个#
-            if mod(i, 10) == 0
-                fprintf('#');
-            end
-            pause(0.01); % 模拟计算
-        end
-        fprintf('] 完成！\n');
+    fprintf('统计结果:\n');
+    fprintf('%-15s: %8.4f\n', '平均值', mean_val);
+    fprintf('%-15s: %8.4f\n', '标准差', std_val);
+    fprintf('%-15s: %8d\n', '样本数', length(data));
 
-        % 动态更新单行
-        for i = 1:20
-            fprintf('处理中: %d/%d\r', i, 20);
-            pause(0.1);
-        end
-        fprintf('\n完成！\n');
-        ```
-
-    * 综合 example
-
-        ```matlab
-        clear; clc;  % 清理环境
-
-        % 程序开始
-        fprintf('%s\n', repmat('=', 1, 50));
-        fprintf('           数据分析报告\n');
-        fprintf('%s\n\n', repmat('=', 1, 50));
-
-        % 计算并显示结果
-        data = randn(100, 1);
-        mean_val = mean(data);
-        std_val = std(data);
-
-        fprintf('统计结果:\n');
-        fprintf('%-15s: %8.4f\n', '平均值', mean_val);
-        fprintf('%-15s: %8.4f\n', '标准差', std_val);
-        fprintf('%-15s: %8d\n', '样本数', length(data));
-
-        % 用表格显示前5个数据
-        fprintf('\n前5个样本:\n');
-        for i = 1:min(5, length(data))
-            fprintf('样本 %2d: %8.4f\n', i, data(i));
-        end
-        ```
+    % 用表格显示前5个数据
+    fprintf('\n前5个样本:\n');
+    for i = 1:min(5, length(data))
+        fprintf('样本 %2d: %8.4f\n', i, data(i));
+    end
+    ```
 
 ### 高性能与大数据
 
