@@ -6,6 +6,92 @@
 
 ## cache
 
+* linux 查看当前目录的大小
+
+    1. du 命令（最常用）
+
+        ```bash
+        # 显示当前目录的总大小（人类可读格式）
+        du -sh .
+
+        # 显示详细的大小信息（包括子目录）
+        du -sh *
+        ```
+
+        常用参数：
+
+        * `-s`：汇总，只显示总大小
+
+        * `-h`：人类可读格式（KB、MB、GB）
+
+        * `-c`：显示总计
+
+        * `--max-depth=N`：限制显示层级
+
+    2. 显示当前目录的详细大小信息
+
+        ```bash
+        # 显示当前目录及所有子目录的大小
+        du -h --max-depth=1
+
+        # 按大小排序显示
+        du -h --max-depth=1 | sort -hr
+        ```
+
+    3. 使用 ncdu（需要安装，但非常直观）
+    
+        ```bash
+        # 安装ncdu
+        sudo apt install ncdu    # Debian/Ubuntu
+        sudo yum install ncdu    # CentOS/RHEL
+
+        # 使用ncdu
+        ncdu
+        ```
+
+    4. 显示磁盘使用情况
+
+        ```bash
+        # 查看整个文件系统的使用情况
+        df -h .
+
+        # 只显示当前目录所在分区的使用情况
+        df -h $PWD
+        ```
+
+    5. 其他实用命令
+
+        ```bash
+        # 快速查看当前目录大小（以字节为单位）
+        du -sb
+
+        # 排除某些文件类型（如排除.log文件）
+        du -sh --exclude="*.log" .
+
+        # 仅显示超过特定大小的目录
+        du -h --max-depth=1 | grep '[0-9]G\>'  # 显示GB级别的目录
+        ```
+
+    主要区别：
+
+    * `du`：计算文件和目录占用的实际磁盘空间
+
+    * `df`：显示文件系统的整体使用情况
+
+    * `ncdu`：交互式磁盘使用分析器，更适合深入分析
+
+    常用组合命令：
+
+    ```bash
+    # 查找当前目录下最大的10个文件/目录
+    du -ah . | sort -rh | head -10
+
+    # 只显示目录大小（不包括文件）
+    du -h --max-depth=1 -t 1M .  # 只显示大于1MB的目录
+    ```
+
+    推荐使用：`du -sh .` 这是最简单直接的查看当前目录大小的方法。
+
 * `watch "ps -aux | grep v2ray"`没输出, `watch bash -c "ps -aux | grep v2ray"`也没输出
 
     尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧

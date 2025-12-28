@@ -6,6 +6,589 @@
 
 ## cache
 
+* `set(findall(ax, '-property', 'PickableParts'), 'PickableParts', 'none');`可以降低 matlab figure 在大量数据时 cpu 占用率高的问题
+
+    但是`set(findall(ax, '-property', 'HitTest'), 'HitTest', 'off');`这个不太有用。不清楚为什么。
+
+* matlab legend()
+
+    legend() 函数用于在 MATLAB 图形中添加图例，解释不同数据系列的含义。
+
+    基本语法
+
+    ```matlab
+    legend('label1', 'label2', ..., 'labelN')
+    legend({'label1', 'label2', ..., 'labelN'})  % 使用元胞数组
+    ```
+
+    常见用法示例
+
+    1. 基础用法
+    
+        ```matlab
+        x = 0:0.1:2*pi;
+        y1 = sin(x);
+        y2 = cos(x);
+
+        plot(x, y1, 'r-', x, y2, 'b--');
+        legend('sin(x)', 'cos(x)');
+        ```
+
+    2. 指定位置
+
+        ```matlab
+        legend('sin(x)', 'cos(x)', 'Location', 'best');           % 自动选择最佳位置
+        legend('sin(x)', 'cos(x)', 'Location', 'northwest');      % 左上角
+        legend('sin(x)', 'cos(x)', 'Location', 'northeast');      % 右上角
+        legend('sin(x)', 'cos(x)', 'Location', 'southoutside');   % 底部外侧
+        ```
+
+    3. 高级选项
+
+        ```matlab
+        legend('sin(x)', 'cos(x)', ...
+            'FontSize', 12, ...              % 字体大小
+            'TextColor', 'blue', ...         % 文本颜色
+            'Box', 'off', ...                % 关闭边框
+            'Orientation', 'horizontal');    % 水平排列
+        ```
+
+    4. 自动获取句柄
+
+        ```matlab
+        h1 = plot(x, sin(x), 'r-');
+        hold on;
+        h2 = plot(x, cos(x), 'b--');
+        legend([h1, h2], {'正弦函数', '余弦函数'});
+        ```
+
+    5. 动态更新
+
+        ```matlab
+        % 创建图形后动态修改
+        lgd = legend('sin(x)', 'cos(x)');
+        lgd.Title.String = '三角函数';          % 添加图例标题
+        lgd.NumColumns = 2;                     % 分两列显示
+        ```
+
+    重要参数说明
+
+    | 参数 | 说明 |
+    | - | - |
+    | `'Location'` | 位置：'best', 'north', 'south', 'east', 'west' 等 |
+    | `'NumColumns'` | 列数 |
+    | `'Box'` | 边框：'on'（默认）或 'off' |
+    | `'FontSize'` | 字体大小 |
+    | `'Orientation'` | 方向：'vertical'（默认）或 'horizontal' |
+
+    注意事项
+
+    * 图例顺序与绘图顺序一致
+
+    * 使用 legend('off') 或 legend([]) 移除图例
+
+    * 在多个子图中，每个子图需要单独添加图例
+
+    * R2016b+ 支持 'AutoUpdate' 控制是否自动更新
+
+    最佳实践：在完成所有绘图操作后再添加图例，确保所有数据系列都被正确标注。
+
+* matlab 中，设置 3d figure 的长宽高比例
+
+    * axis equal 和相关命令
+
+        ```matlab
+        % 创建3D图形
+        [X,Y,Z] = peaks(30);
+        surf(X,Y,Z);
+
+        % 设置不同比例选项
+        axis equal;        % 三个坐标轴等比例
+        axis square;       % 使坐标框呈正方形
+        axis tight;        % 紧凑模式，贴合数据范围
+        axis vis3d;        % 保持比例不变，避免旋转时变形
+        ```
+
+    * daspect 函数 - 最常用方法
+    
+        ```matlab
+        % 设置数据单位的比例
+        daspect([1 2 3]);  % x:y:z = 1:2:3，z轴是x轴的3倍长度
+
+        % 示例：使z轴拉伸2倍
+        [x,y,z] = sphere(20);
+        surf(x,y,z);
+        daspect([1 1 2]);  % x和y轴1:1，z轴拉伸2倍
+
+        % 获取当前比例
+        current_ratio = daspect;
+        ```
+
+    * pbaspect 函数 - 设置绘图框比例
+    
+        ```matlab
+        % 设置绘图框的相对比例
+        pbaspect([1 1 1]);   % 立方体形状的绘图框
+        pbaspect([2 1 1]);   % x方向占2份，y和z各占1份
+
+        % 示例：宽高比2:1:1
+        surf(peaks);
+        pbaspect([2 1 1]);    % 绘图框比例，不是数据比例
+        ```
+
+    * axis 函数综合设置
+    
+        ```matlab
+        % 设置坐标轴范围和比例
+        [x,y,z] = peaks(30);
+        surf(x,y,z);
+
+        % 方法1：设置坐标范围
+        axis([-3 3 -3 3 -10 10]);  % [xmin xmax ymin ymax zmin zmax]
+
+        % 方法2：组合使用
+        axis equal tight;          % 等比例且紧凑
+        ```
+
+    * view 函数调整视角
+
+        ```matlab
+        surf(peaks);
+        daspect([1 1 3]);          % z轴拉伸3倍
+        view(30, 30);              % 方位角30°，俯仰角30°
+        view(3);                   % 默认3D视角
+        ```
+
+    * 完整示例
+
+        ```matlab
+        % 创建3D数据
+        [X,Y] = meshgrid(-2:0.2:2);
+        Z = X.*exp(-X.^2 - Y.^2);
+
+        % 绘制曲面
+        figure('Position', [100 100 800 600]);
+        surf(X,Y,Z);
+        title('调整3D图形比例示例');
+
+        % 设置数据比例：使z轴更明显
+        daspect([1 1 0.5]);  % z轴压缩为原来的一半
+
+        % 设置绘图框比例
+        pbaspect([1.5 1 1]);  % x方向绘图框更宽
+
+        % 调整视角
+        view(45, 30);
+
+        % 添加坐标轴标签
+        xlabel('X轴');
+        ylabel('Y轴');
+        zlabel('Z轴');
+
+        % 添加网格和光照
+        grid on;
+        light;
+        lighting gouraud;
+        shading interp;
+        ```
+
+    * 重要区别
+
+        daspect: 控制数据单位的显示比例
+
+        pbaspect: 控制绘图框的形状比例
+
+        axis equal: 使三个坐标轴的数据单位长度相等
+
+    * 实际应用技巧
+
+        ```matlab
+        % 技巧1：恢复默认比例
+        daspect('auto');
+        pbaspect('auto');
+
+        % 技巧2：保存和恢复设置
+        original_daspect = daspect;
+        original_pbaspect = pbaspect;
+        % ... 进行修改 ...
+        daspect(original_daspect);  % 恢复原始设置
+
+        % 技巧3：结合subplot使用
+        figure;
+        subplot(1,2,1);
+        surf(peaks);
+        daspect([1 1 2]);  % 左图
+
+        subplot(1,2,2);
+        surf(peaks);
+        daspect([1 1 0.5]);  % 右图，z轴压缩
+        ```
+
+    * 推荐使用流程：
+
+        1. 先用 daspect 调整数据比例
+
+        2. 再用 pbaspect 调整绘图框形状
+
+        3. 最后用 view 调整最佳视角
+
+        4. 使用 axis tight 确保图形充分利用空间
+
+* matlab 画图时，由于鼠标可以和图片中的数据点交互，当数据量很大时，即使鼠标从图片上滑过也会很卡，如何禁用图片交互，减少卡顿？
+
+    ```matlab
+    % 禁用坐标轴交互
+    ax = gca()
+    disableDefaultInteractivity(ax);
+
+    % 清空所有交互
+    ax.Interactions = [];
+
+    % 移除工具栏
+    ax.Toolbar = [];
+
+    % 只保留缩放和平移
+    ax.Interactions = [zoomInteraction, panInteraction];
+    ```
+
+    旧版本 MATLAB 的解决方案
+
+    ```matlab
+    % 对于R2020b及更早版本
+    fig = figure;
+    ax = gca;
+
+    % 方法1：禁用数据光标
+    ax.Toolbar = [];  % 移除工具栏
+    dcm_obj = datacursormode(fig);
+    set(dcm_obj, 'Enable', 'off');  % 禁用数据光标
+
+    % 方法2：关闭所有交互模式
+    zoom off;    % 禁用缩放
+    pan off;     % 禁用平移
+    rotate3d off; % 禁用3D旋转
+    datacursormode off; % 禁用数据光标
+
+    % 方法3：设置图形属性
+    set(fig, 'WindowButtonDownFcn', '');     % 清空鼠标点击回调
+    set(fig, 'WindowButtonUpFcn', '');       % 清空鼠标释放回调
+    set(fig, 'WindowButtonMotionFcn', '');   % 清空鼠标移动回调
+    ```
+
+    * 性能优化组合方案
+
+        ```matlab
+        function createNonInteractivePlot(x, y)
+            % 创建非交互式图形以提高性能
+            
+            % 1. 创建图形并禁用交互
+            fig = figure('Interactions', [], ...
+                        'ToolBar', 'none', ...
+                        'MenuBar', 'none', ...
+                        'IntegerHandle', 'off');
+            
+            % 2. 创建坐标轴
+            ax = axes('Parent', fig, ...
+                    'Interactions', [], ...
+                    'XTickMode', 'manual', ...
+                    'YTickMode', 'manual', ...
+                    'ZTickMode', 'manual');
+            
+            % 3. 绘制数据（使用性能优化选项）
+            h = plot(x, y, '-', ...
+                    'LineWidth', 1, ...
+                    'Marker', 'none', ...      % 无标记点
+                    'MarkerSize', 0.1);        % 最小化标记
+            
+            % 4. 进一步禁用交互
+            disableDefaultInteractivity(ax);
+            
+            % 5. 设置渲染器
+            set(fig, 'Renderer', 'opengl');     % 使用OpenGL渲染
+            
+            % 6. 关闭不必要的功能
+            set(h, 'HitTest', 'off');           % 禁用图形对象点击检测
+            set(h, 'PickableParts', 'none');    % 完全不可选取
+            
+            % 7. 对3D图形特别优化
+            if ~isempty(findobj(ax, 'Type', 'surface'))
+                axis(ax, 'vis3d');              % 保持3D视角不变
+                set(ax, 'CameraViewAngleMode', 'manual');
+            end
+            
+            % 8. 设置回调函数为空（防止意外交互）
+            set(fig, 'WindowButtonMotionFcn', '');
+            set(fig, 'WindowButtonDownFcn', '');
+            set(fig, 'WindowButtonUpFcn', '');
+        end
+        ```
+
+    6. 针对大数据量的特别优化
+
+        ```matlab
+        % 大数据量示例
+        x = randn(1e6, 1);
+        y = cumsum(x);
+
+        % 方法1：使用快速绘制函数
+        fig = figure('Interactions', []);
+        scatter(x(1:100:end), y(1:100:end), 1);  % 降采样
+        disableDefaultInteractivity(gca);
+
+        % 方法2：设置对象属性
+        fig = figure;
+        ax = gca;
+        h = plot(x, y);
+        h.HitTest = 'off';            % 禁用点击测试
+        h.PickableParts = 'none';     # 完全不可交互
+        ax.PickableParts = 'none';    # 坐标轴也不可交互
+
+        % 方法3：使用graphics.smoothline（R2023b+）
+        % 对于曲线，使用平滑线对象
+        ```
+
+    7. 交互模式管理函数
+
+        ```matlab
+        % 快速切换函数
+        function toggleInteractivity(state)
+            % state: 'on' 或 'off'
+            fig = gcf;
+            ax = gca;
+            
+            if strcmpi(state, 'off')
+                % 禁用交互
+                zoom off;
+                pan off;
+                rotate3d off;
+                datacursormode off;
+                
+                if verLessThan('matlab', '9.10')  % R2021a之前
+                    set(fig, 'WindowButtonMotionFcn', '');
+                else
+                    disableDefaultInteractivity(fig);
+                end
+            else
+                % 启用交互
+                zoom on;
+                pan on;
+                rotate3d on;
+            end
+        end
+        ```
+
+    8. 最佳实践建议
+
+        绘图前准备：
+
+        ```matlab
+        % 在绘制大数据前设置
+        set(0, 'DefaultFigureInteractions', []);  % 设置默认不交互
+        ```
+
+        批量绘图时：
+
+        ```matlab
+        for i = 1:10
+            fig = figure('Visible', 'off', 'Interactions', []);  % 先隐藏
+            plot(bigData{i});
+            % ... 其他设置
+            disableDefaultInteractivity(gca);
+            set(fig, 'Visible', 'on');  # 最后显示
+        end
+        ```
+
+        临时禁用/启用：
+
+        ```matlab
+        % 需要交互时临时启用
+        ax.Interactions = [zoomInteraction, panInteraction];
+
+        % 完成后再次禁用
+        ax.Interactions = [];
+        ```
+
+        最有效的单行解决方案：
+
+        ```matlab
+        disableDefaultInteractivity(gcf);  % R2021a+
+        % 或
+        set(gca, 'Interactions', []);      % R2021a+
+        ```
+
+        对于旧版本，使用：
+
+        ```matlab
+        zoom off; pan off; rotate3d off; datacursormode off;
+        set(gcf, 'WindowButtonMotionFcn', '');
+        ```
+
+        这些方法可以显著提升大数据绘图时的响应速度。
+
+* 假如 `a` 是一个 struct，`b = a.ages`，那么 `b` 是按值传递，还是按引用传递？
+
+    在 MATLAB 中，`b = a.ages` 是值传递（Copy-on-Write 机制）
+
+    详细解释：
+
+    1. MATLAB 的基本传递规则
+
+        ```matlab
+        a = struct('ages', [25, 30, 35], 'names', {'Tom', 'Jerry', 'Spike'});
+        b = a.ages;  % 此时创建了一个副本（但不是立即复制）
+        ```
+
+    2. Copy-on-Write（写时复制）机制
+
+        ```matlab
+        % 初始情况：b 和 a.ages 可能共享数据（内部优化）
+        b = a.ages;  % 表面上复制，实际上可能只是引用（内部优化）
+
+        % 但是一旦修改 b，就会触发真正的复制
+        b(1) = 26;   % 此时 MATLAB 才会真正复制数据
+        disp(a.ages(1));  % 输出: 25（a.ages 未被修改）
+        ```
+
+    3. 验证实验
+
+        ```matlab
+        % 测试1：基本赋值
+        a = struct('ages', [25, 30, 35]);
+        b = a.ages;
+        disp('初始内存地址可能相同（内部优化）');
+
+        % 测试2：修改验证
+        b(1) = 100;  % 触发实际复制
+        disp(['a.ages(1) = ', num2str(a.ages(1))]);  % 仍是 25
+        disp(['b(1) = ', num2str(b(1))]);            % 变为 100
+
+        % 测试3：使用内存函数验证（需要自定义函数）
+        % memBefore = memory_usage();  % 伪代码，实际需要自己实现
+        % b = a.ages;
+        % b(1) = 26;  % 此时内存会增加
+        % memAfter = memory_usage();
+        ```
+
+    4. 与引用传递的对比
+
+        ```matlab
+        % 对比：真正的引用传递（使用 handle 类）
+        classdef Person < handle
+            properties
+                ages
+            end
+        end
+
+        p = Person();
+        p.ages = [25, 30, 35];
+        b_ref = p.ages;  % 通过 handle，b_ref 是引用
+        b_ref(1) = 26;
+        disp(p.ages(1));  % 输出: 26（原数据被修改）
+        ```
+
+    5. 特殊情况：元胞数组和结构体数组
+
+        ```matlab
+        % 结构体数组的情况
+        a(1).ages = 25;
+        a(2).ages = 30;
+        b = [a.ages];  % 这也会创建副本
+
+        % 元胞数组
+        a = struct('ages', {{25, 30, 35}});
+        b = a.ages{1};  % 对元胞内容也是值传递
+        b = 26;
+        disp(a.ages{1});  % 仍是 25
+        ```
+
+    6. 性能考虑
+
+        ```matlab
+        % 大型数据时的优化策略
+        a = struct('ages', randn(10000, 10000));  % 大型矩阵
+
+        % 不好的做法：无意识复制
+        b = a.ages;  % 表面上只是赋值
+        % ...很多操作...
+        % 如果不需要修改，这个复制是浪费的
+
+        % 好的做法：明确是否需要修改
+        if needToModify
+            b = a.ages;  % 接受可能的复制开销
+        else
+            % 如果只是读取，可以考虑其他方式
+            processData(a.ages);  % 直接使用原数据
+        end
+        ```
+
+    7. 如何实现真正的引用传递
+
+        ```matlab
+        % 方法1：使用嵌套函数（共享工作区）
+        function processLargeData()
+            data = struct('ages', randn(1000));
+            
+            function innerFunc()
+                % 可以直接访问和修改 data.ages
+                data.ages(1) = 100;  % 修改的是原始数据
+            end
+            innerFunc();
+        end
+
+        % 方法2：使用 handle 类（面向对象）
+        classdef DataHolder < handle
+            properties
+                ages
+            end
+        end
+
+        holder = DataHolder();
+        holder.ages = randn(1000);
+        b = holder;  % b 是引用，不是副本
+        b.ages(1) = 100;  % 修改的是原始数据
+        ```
+
+    8. 总结要点
+
+        | 情况 | 传递方式 | 说明 |
+        | - | - | - |
+        | `b = a.ages` | 值传递（Copy-on-Write） | 默认行为，修改时复制 |
+        | handle 类对象 | 引用传递 | 修改会影响原数据 |
+        | 嵌套函数内访问 | 引用传递 | 共享父函数工作区 |
+        | 大型数据操作 | 需谨慎 | 无意识复制可能导致内存问题 |
+
+        核心结论：
+
+        * MATLAB 中结构体字段的赋值是值传递
+
+        * 但有 Copy-on-Write 优化：只在修改时才真正复制
+
+        * 这既保证了安全性（默认不修改原数据），又在只读场景下有性能优化
+
+        * 如果需要引用语义，需要使用 handle 类或嵌套函数
+
+    9. 实际编程建议
+
+        ```matlab
+        % 如果确定不需要修改原数据
+        function result = processData(inputStruct)
+            % 直接使用，让MATLAB决定是否复制
+            data = inputStruct.ages;  
+            result = mean(data);  % 只读操作，可能不会复制
+        end
+
+        % 如果需要修改但不影响原数据
+        function modified = modifyCopy(inputStruct)
+            modified = inputStruct.ages;  % 可能复制（Copy-on-Write）
+            modified(1) = newValue;       % 此时一定复制
+        end
+
+        % 如果需要修改原数据（引用传递）
+        function modifyInPlace(dataHolder)  % dataHolder 是 handle 对象
+            dataHolder.ages(1) = newValue;  % 直接修改原数据
+        end
+        ```
+
 * 复数
 
     ```matlab

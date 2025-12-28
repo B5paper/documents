@@ -2,109 +2,131 @@
 
 ## cache
 
-* vim `\v`
-
-    \v 在 Vim 搜索中表示使用 "very magic" 模式，这是 Vim 正则表达式的一种特殊模式。
-
-    Vim 正则表达式的四种模式：
+* vim 开启语法高亮
 
     ```vim
-    /pattern          " magic 模式（默认，有些字符有特殊含义）
-    /\vpattern        " very magic 模式（大多数字符都有特殊含义）
-    /\Vpattern        " very nomagic 模式（几乎不特殊，字面匹配）
-    /\mpattern        " nomagic 模式（折中方案）
+    syntax on
     ```
 
-    `\v` 的作用：
+* vim 的三种模式与切换
+
+    vim is a modal editor, and has 3 modes:
+
+    1. If the bottom of the screen displays the filename or is blank, you are is normal mode.
+
+    2. If you are in insert mode, the indicator displays `--INSERT--`.
+
+    3. if you are in visual mode, the indicator shows `--VISUAL--`.
+
+    enter inserting mode: type `i`
+
+    back to command mode: press `<Esc>` key.
+
+* normal 模式下的常用命令
+
+    * move around: `h`, `j`, `k`, `l`
+
+    * delete a next character: type `x`
+
+    * undo the last edit: `u`
+
+    * redo: `ctrl` + `r`
+
+    * undo line: `U`, press again to redo
+
+    * save and exit: `ZZ` (upper cases)
+
+    * discard changes and exit: `:q!`
+
+    delete a line: `dd`
+
+    进入 insert 模式：
+
+    * insert a character before the character under the cursor: `i`
+
+    * intert text after the cursor: `a`
+
+    * add a new line below: `o`
+
+    * open a line above the cursor: `O` (uppercase)
+
+* vim 中常用的寄存器
+
+    `"+` 寄存器：对应系统的 “Ctrl+C / Ctrl+V” 剪贴板。在大多数现代系统上，这是最常用的。
+
+    `"*` 寄存器：在 Linux/Unix 系统上，通常对应 “鼠标中键” 或“选择”剪贴板（即你用鼠标选中文本，然后按鼠标中键粘贴的内容）。在 Windows/macOS 上，它和 "+ 通常是相同的。
+
+    | 命令 | 描述 |
+    | - | - |
+    | `"+y` | 复制当前选中的文本到系统剪贴板 |
+    | `"+yy` 或 `"+Y` | 复制当前行到系统剪贴板 |
+    | `"+yiw` | 复制当前光标下的单词到系统剪贴板 |
+    | `"+y$` | 从光标处复制到行尾到系统剪贴板 |
+    | `"+d` | 剪切当前选中的文本到系统剪贴板 |
+    | `"+dd` | 剪切当前行到系统剪贴板 |
+    | `"+d$` | 从光标处剪切到行尾到系统剪贴板 |
+
+    可视化模式下的操作：
+
+    1. 按 v (字符可视模式) 或 V (行可视模式) 或 Ctrl+v (块可视模式)。
+
+    2. 选中你要操作的文本。
+
+    3. 按 "+y (复制) 或 "+d (剪切)。
+
+    从系统剪贴板 粘贴 到 Vim
+
+    在 Normal 模式下，使用 "+p 或 "*p。
+
+    | 命令 | 描述 |
+    | - | - |
+    | "+p | 在光标后粘贴系统剪贴板的内容 |
+    | "+P | 在光标前粘贴系统剪贴板的内容 |
+
+    设置默认使用系统剪贴板（推荐）:
 
     ```vim
-    " 普通 magic 模式（默认）
-    /\(\d\{3}\)-\d\{4}    " 匹配 (123)-4567
-    " 需要转义很多特殊字符：\( \) \{ \}
-
-    " very magic 模式
-    /\v(\d{3})-\d{4}      " 匹配 (123)-4567
-    " 几乎不需要转义，像其他语言的正则表达式
+    " 设置默认寄存器为系统剪贴板
+    set clipboard=unnamedplus " Linux, Windows (WSL)
+    " 对于 macOS，有时可能需要使用 unnamed
+    " set clipboard=unnamed
     ```
 
-    特殊字符对比表:
+    解释：
 
-    | 元字符 | magic 模式 | very magic 模式 | 说明 |
-    | - | - | - | - |
-    | `(`, `)` | 需要转义：`\(` `\)` | 不需要转义 | 分组 |
-    | `{` `}` | 需要转义：`\{` `\}` | 不需要转义 | 重复次数 |
-    | `+` | 需要转义：`\+` | 不需要转义 | 一个或多个 |
-    | `?` | 需要转义：`\?` | 不需要转义 | 零个或一个 |
-    | `\|` | 需要转义： `\\|` | 不需要转义 | 或 |
-    | `^`, `$` | 不需要转义 | 不需要转义 | 行首/行尾 |
-    | `.`, `*` | 不需要转义 | 不需要转义 | 任意字符/零个或多个 |
+    * unnamedplus：让默认寄存器 (") 与 "+ (系统剪贴板) 联通。复制 (yy)、粘贴 (p) 等命令会直接操作系统剪贴板。
 
-    注：
+    * unnamed：在 macOS 上，有时这个选项效果更好，它让默认寄存器与 "* 联通。
 
-    1. 直接使用`/pattern`匹配，想要实现分组功能时，必须给括号加`\`：
+    **在命令行模式下粘贴**:
 
-        `/\(hello\).*\(world\)`
+    如果你想在 Vim 的命令行（比如在搜索 / 或命令 : 中）粘贴系统剪贴板的内容，可以按 Ctrl+r 然后输入 +。
 
-        其他的处理方式类似。
+* 确认你的 Vim 版本是否编译了剪贴板支持
 
-    examples:
+    在终端里运行以下命令：
+
+    ```bash
+    vim --version | grep clipboard
+    ```
+
+    或者直接在 Vim 内部输入：
 
     ```vim
-    " 1. 匹配邮箱
-    /\v\w+@\w+\.\w+                  " 简单邮箱匹配
-    /\v[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}  " 更复杂的邮箱
-
-    " 2. 匹配时间 (HH:MM)
-    /\v\d{2}:\d{2}                   " 24小时制时间
-
-    " 3. 匹配括号内的内容
-    /\v\([^)]+\)                     " 匹配 (任意内容)
-
-    " 4. 匹配 Markdown 标题
-    /\v^#{1,6}\s+.+$                 " 匹配 # 标题
-
-    " 5. 匹配 IP 地址
-    /\v(\d{1,3}\.){3}\d{1,3}        " 匹配 192.168.1.1
+    :version
     ```
 
-    * 与其他模式的对比
+    然后查找 clipboard 和 xterm_clipboard。
 
-        ```vim
-        " 场景：匹配 "function(arg1, arg2)"
+    * 如果看到 +clipboard 和 +xterm_clipboard：恭喜，你的 Vim 支持系统剪贴板，可以直接使用下面的所有方法。
 
-        " 1. very magic 模式（最简洁）
-        /\vfunction\([^)]+\)
+    * 如果看到 -clipboard：说明你的 Vim 不支持。你需要安装一个带剪贴板功能的 Vim。
 
-        " 2. magic 模式（默认，需要转义）
-        /function\([^)]\+\)
+        * Ubuntu/Debian: sudo apt install vim-gtk3 (或者 vim-gnome, vim-gtk)
 
-        " 3. very nomagic 模式（字面匹配，需要转义特殊字符）
-        /\Vfunction(arg1, arg2)          " 只能匹配这个具体字符串
-        ```
+        * macOS (使用 Homebrew): brew install vim
 
-    * tricks
-
-        ```vim
-        " 快速搜索替换中使用
-        :%s/\v(\d+)-(\d+)/\2-\1/g       " 交换 123-456 为 456-123
-
-        " 在搜索模式中使用变量
-        let pattern = '\v\d{3}-\d{4}'
-        execute '/' . pattern
-
-        " 结合其他标志
-        /\vpattern/i                     " 忽略大小写
-        /\vpattern\c                     " 强制忽略大小写
-        /\vpattern\C                     " 强制区分大小写
-        ```
-
-    * 建议
-
-        * 推荐使用 \v：写起来更自然，与其他编程语言的正则表达式习惯一致
-
-        * 特殊场景用 \V：当需要字面搜索包含特殊字符的字符串时
-
-        * 保持一致性：在整个文件中使用相同的模式
+        * CentOS/RHEL: sudo yum install vim-X11 (可能需要)
 
 * vim help
 
@@ -112,29 +134,7 @@
     :help whitespace
     :help [:alnum:]
 
-* vim 中的范围匹配
-
-    * `/\v[a-z]`
-
-        匹配`a`到`z`中的一个字符。
-
-    * `/[a-]`
-
-        匹配`a`或`-`。
-
-        `/[-z]`同理。
-
-    * `/\v[0-9A-Z]`
-
-        匹配多个范围。
-
-    * `/\v[^abc]`
-
-        匹配除了 a, b, c 外的所有字符中的一个
-
-    * `[a^bc]`
-
-* vim 模式
+* 可视模式
 
     按 v 进入普通可视模式
 
@@ -573,30 +573,6 @@
         qA  " 大写字母会追加到寄存器 a 的宏中
         ```
 
-* vim 中`}`命令
-
-    移动到下一个空行的第一个非空白字符（段落移动）
-
-    注意事项：
-
-    * 配合 { 命令（向上跳转到上一个空行）使用
-
-    * 计数前缀可用：3} 向下跳转3个段落
-
-* vim `+`命令
-
-    作用：移动到下一行的第一个非空白字符
-
-    详细说明：
-
-        相当于 j + ^ 的组合
-
-        直接定位到下一行有文本内容的位置
-
-        数字前缀可用：3+ 向下移动3行并定位
-
-        反义命令是 -（移动到上一行的第一个非空白字符）
-
 * vim `.`命令
 
     作用：重复上一次修改操作
@@ -613,7 +589,295 @@
 
         * ihello<Esc> 插入文本 → . 再次插入"hello"
 
-* vim 快捷键
+* 正则表达式中的 common POSIX character classes
+
+    | Character class | Description | Equivalent |
+    | - | - | - |
+    | `[:alnum:]` | Uppercase and lowercase letters, as well as digits | `A-Za-z0-9` |
+    | `[:alpha:]` | Uppercase and lowercase letters | `A-Za-z` |
+    | `[:digit:]` | Digits from 0 to 9 | `0-9` |
+    | `[:lower:]` | Lowercase letters | `a-z` |
+    | `[:upper:]` | Uppercase letters | `A-Z` |
+    | `[:blank:]` | Space and tab | `[ \t]` |
+    | `[:punct:]` | Punctuation characters (all graphic characters except letters and digits)` | - |
+    | `[:space:]` | Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed) | `[ \t\n\r\v\f]` |
+    | `[:xdigit:]` | Hexadecimal digits | `A-Fa-f0-9` |
+
+* `/\v[vim]`
+
+    表示匹配 v, i, m 三个其中的一个。
+
+* vim 打开文件后，跳转到上次关闭时候的位置：
+
+    * 反引号 + 双引号：`` ` `` + `"`
+
+    * 单引号 + 双引号：`'` + `"`
+
+* vim 的`scp://`协议打开的文件，会在保存文件时临时把文件放到`/tmp`中，当完成 scp 传输后，会马上把这个文件删掉。这样保证打开的文件只存在于内存中，不在`/tmp`中，只有传输过程中需要用到实体文件时，才会在`/tmp`中保存一下，然后马上删掉。
+
+* 使用 vim 的 netrw
+
+    * 在命令行中打开远程文件
+
+        ```bash
+        vim scp://username@hostname[:port]//path/to/file
+        ```
+
+        vim 会先使用 scp 把远程文件复制到本地`/tmp`目录下，然后再进行编辑。
+
+        注：
+
+        1. 如果`~/.ssh/config`中已经配置了`Host nickname`，那么可以直接
+
+            `vim scp://nickname//path/to/file`
+
+        1. 绝对路径与相对用户目录的路径区别
+
+            example:
+
+            绝对路径：`vim scp//user@host//home/hlc/test.txt`
+
+            相对用户目录的路径：`vim scp://user@host/test.txt`
+
+            第一个`/`相当于 ssh 命令里的`:`，表示用户的 home。
+
+        1. 不可以使用冒号`:`表示用户 home。冒号`:`只能表示 remote host 的 ssh 端口。
+
+            比如`vim scp://nickname:2222/rel_path/to/file`，表示打开`/home/<user>/rel_path/to/file`这个文件。
+
+    * 在 vim 中使用`:e`打开文件
+
+        ```vim
+        :e scp://username@hostname/path/to/file
+        ```
+
+        ```vim
+        :e scp://[user@]hostname[:port]/path/to/file
+        ```
+
+        example:
+
+        ```vim
+        " 使用默认用户名（当前本地用户名）
+        :e scp://remote-server/home/user/project/file.txt
+
+        " 指定用户名
+        :e scp://username@remote-server/path/to/file.txt
+
+        " 指定端口
+        :e scp://username@remote-server:2222/path/to/file
+
+        " 绝对路径
+        :e scp://user@host//home/user/file.txt
+
+        " 相对用户home的路径
+        :e scp://user@host/file.txt
+        ```
+
+        * 在 vim 中将 ssh 配置为默认协议，效率比 scp 更高
+
+            在 ~/.vimrc 中添加：
+
+            ```conf
+            let g:netrw_ftpextracmd = 'ssh'
+            ```
+
+            配置后，底层可能会这样传输文件：
+
+            ```bash
+            ssh user@host cat /path/to/file
+            ```
+
+            不配置时，底层可能这样传输文件：
+
+            ```bash
+            scp user@host:/path/to/file /tmp/vimXXXXXX
+            ```
+
+* vim 取消行号的方法
+
+    `:set nonu`
+
+    `:set nu!`
+
+* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
+
+    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
+
+    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
+
+* `grep -P`表示使用 PCRE 的 regex
+
+* vim 中搜索 metacharacter `.` 的帮助文档
+
+    `:help /\.`
+
+* PCRE, for Perl Compatible Regular Expression
+
+* vim 中有关 regex 的 help 命令
+
+    ```
+    :help pattern-searches
+    :help atom
+    ```
+
+## topics
+
+### 搜索与正则表达式
+
+* vim `\v`
+
+    \v 在 Vim 搜索中表示使用 "very magic" 模式，这是 Vim 正则表达式的一种特殊模式。
+
+    Vim 正则表达式的四种模式：
+
+    ```vim
+    /pattern          " magic 模式（默认，有些字符有特殊含义）
+    /\vpattern        " very magic 模式（大多数字符都有特殊含义）
+    /\Vpattern        " very nomagic 模式（几乎不特殊，字面匹配）
+    /\mpattern        " nomagic 模式（折中方案）
+    ```
+
+    `\v` 的作用：
+
+    ```vim
+    " 普通 magic 模式（默认）
+    /\(\d\{3}\)-\d\{4}    " 匹配 (123)-4567
+    " 需要转义很多特殊字符：\( \) \{ \}
+
+    " very magic 模式
+    /\v(\d{3})-\d{4}      " 匹配 (123)-4567
+    " 几乎不需要转义，像其他语言的正则表达式
+    ```
+
+    特殊字符对比表:
+
+    | 元字符 | magic 模式 | very magic 模式 | 说明 |
+    | - | - | - | - |
+    | `(`, `)` | 需要转义：`\(` `\)` | 不需要转义 | 分组 |
+    | `{` `}` | 需要转义：`\{` `\}` | 不需要转义 | 重复次数 |
+    | `+` | 需要转义：`\+` | 不需要转义 | 一个或多个 |
+    | `?` | 需要转义：`\?` | 不需要转义 | 零个或一个 |
+    | `\|` | 需要转义： `\\|` | 不需要转义 | 或 |
+    | `^`, `$` | 不需要转义 | 不需要转义 | 行首/行尾 |
+    | `.`, `*` | 不需要转义 | 不需要转义 | 任意字符/零个或多个 |
+
+    注：
+
+    1. 直接使用`/pattern`匹配，想要实现分组功能时，必须给括号加`\`：
+
+        `/\(hello\).*\(world\)`
+
+        其他的处理方式类似。
+
+    examples:
+
+    ```vim
+    " 1. 匹配邮箱
+    /\v\w+@\w+\.\w+                  " 简单邮箱匹配
+    /\v[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}  " 更复杂的邮箱
+
+    " 2. 匹配时间 (HH:MM)
+    /\v\d{2}:\d{2}                   " 24小时制时间
+
+    " 3. 匹配括号内的内容
+    /\v\([^)]+\)                     " 匹配 (任意内容)
+
+    " 4. 匹配 Markdown 标题
+    /\v^#{1,6}\s+.+$                 " 匹配 # 标题
+
+    " 5. 匹配 IP 地址
+    /\v(\d{1,3}\.){3}\d{1,3}        " 匹配 192.168.1.1
+    ```
+
+    * 与其他模式的对比
+
+        ```vim
+        " 场景：匹配 "function(arg1, arg2)"
+
+        " 1. very magic 模式（最简洁）
+        /\vfunction\([^)]+\)
+
+        " 2. magic 模式（默认，需要转义）
+        /function\([^)]\+\)
+
+        " 3. very nomagic 模式（字面匹配，需要转义特殊字符）
+        /\Vfunction(arg1, arg2)          " 只能匹配这个具体字符串
+        ```
+
+    * tricks
+
+        ```vim
+        " 快速搜索替换中使用
+        :%s/\v(\d+)-(\d+)/\2-\1/g       " 交换 123-456 为 456-123
+
+        " 在搜索模式中使用变量
+        let pattern = '\v\d{3}-\d{4}'
+        execute '/' . pattern
+
+        " 结合其他标志
+        /\vpattern/i                     " 忽略大小写
+        /\vpattern\c                     " 强制忽略大小写
+        /\vpattern\C                     " 强制区分大小写
+        ```
+
+    * 建议
+
+        * 推荐使用 \v：写起来更自然，与其他编程语言的正则表达式习惯一致
+
+        * 特殊场景用 \V：当需要字面搜索包含特殊字符的字符串时
+
+        * 保持一致性：在整个文件中使用相同的模式
+
+* vim 中的范围匹配
+
+    * `/\v[a-z]`
+
+        匹配`a`到`z`中的一个字符。
+
+    * `/[a-]`
+
+        匹配`a`或`-`。
+
+        `/[-z]`同理。
+
+    * `/\v[0-9A-Z]`
+
+        匹配多个范围。
+
+    * `/\v[^abc]`
+
+        匹配除了 a, b, c 外的所有字符中的一个
+
+    * `[a^bc]`
+
+### 导航与跳转
+
+* `}`
+
+    移动到下一个空行的第一个非空白字符（段落移动）
+
+    注意事项：
+
+    * 配合 { 命令（向上跳转到上一个空行）使用
+
+    * 计数前缀可用：3} 向下跳转3个段落
+
+* `+`
+
+    作用：移动到下一行的第一个非空白字符
+
+    详细说明：
+
+    * 相当于 j + ^ 的组合
+
+    * 直接定位到下一行有文本内容的位置
+
+    * 数字前缀可用：3+ 向下移动3行并定位
+
+    * 反义命令是 -（移动到上一行的第一个非空白字符）
+
+* 跳转历史
 
     * `Ctrl+o`: 跳转到上一个位置
 
@@ -778,23 +1042,7 @@
 
         example: `3[m`
 
-* 正则表达式中的 common POSIX character classes
-
-    | Character class | Description | Equivalent |
-    | - | - | - |
-    | `[:alnum:]` | Uppercase and lowercase letters, as well as digits | `A-Za-z0-9` |
-    | `[:alpha:]` | Uppercase and lowercase letters | `A-Za-z` |
-    | `[:digit:]` | Digits from 0 to 9 | `0-9` |
-    | `[:lower:]` | Lowercase letters | `a-z` |
-    | `[:upper:]` | Uppercase letters | `A-Z` |
-    | `[:blank:]` | Space and tab | `[ \t]` |
-    | `[:punct:]` | Punctuation characters (all graphic characters except letters and digits)` | - |
-    | `[:space:]` | Whitespace characters (space, tab, new line, return, NL, vertical tab, and form feed) | `[ \t\n\r\v\f]` |
-    | `[:xdigit:]` | Hexadecimal digits | `A-Fa-f0-9` |
-
-* `/\v[vim]`
-
-    表示匹配 v, i, m 三个其中的一个。
+### tab 处理
 
 * ai 对 softtabstop 的解释
 
@@ -945,11 +1193,26 @@
 
     建议： 在团队项目中，建议使用统一的 .editorconfig 文件来保证代码风格一致。
 
-* vim 打开文件后，跳转到上次关闭时候的位置：
+### 自动补全
 
-    * 反引号 + 双引号：`` ` `` + `"`
+* vim 中使用文件路径补全
 
-    * 单引号 + 双引号：`'` + `"`
+    在插入模式下，输入部分路径后按 Ctrl-x Ctrl-f：
+
+    ```vim
+    # 输入 /usr/l 然后按 Ctrl-x Ctrl-f
+    cd /usr/l█
+    ```
+
+    自动补全菜单
+
+    * `Ctrl` + `n`：向下浏览补全选项
+
+    * `Ctrl` + `p`：向上浏览补全选项
+
+    * `Ctrl` + `y`：确认当前选择的补全项
+
+    * `Ctrl` + `e`：退出补全菜单
 
 * vim 自动补全
 
@@ -971,86 +1234,7 @@
 
         * 枚举常量
 
-* vim 的`scp://`协议打开的文件，会在保存文件时临时把文件放到`/tmp`中，当完成 scp 传输后，会马上把这个文件删掉。这样保证打开的文件只存在于内存中，不在`/tmp`中，只有传输过程中需要用到实体文件时，才会在`/tmp`中保存一下，然后马上删掉。
-
-* 使用 vim 的 netrw
-
-    * 在命令行中打开远程文件
-
-        ```bash
-        vim scp://username@hostname[:port]//path/to/file
-        ```
-
-        vim 会先使用 scp 把远程文件复制到本地`/tmp`目录下，然后再进行编辑。
-
-        注：
-
-        1. 如果`~/.ssh/config`中已经配置了`Host nickname`，那么可以直接
-
-            `vim scp://nickname//path/to/file`
-
-        1. 绝对路径与相对用户目录的路径区别
-
-            example:
-
-            绝对路径：`vim scp//user@host//home/hlc/test.txt`
-
-            相对用户目录的路径：`vim scp://user@host/test.txt`
-
-            第一个`/`相当于 ssh 命令里的`:`，表示用户的 home。
-
-        1. 不可以使用冒号`:`表示用户 home。冒号`:`只能表示 remote host 的 ssh 端口。
-
-            比如`vim scp://nickname:2222/rel_path/to/file`，表示打开`/home/<user>/rel_path/to/file`这个文件。
-
-    * 在 vim 中使用`:e`打开文件
-
-        ```vim
-        :e scp://username@hostname/path/to/file
-        ```
-
-        ```vim
-        :e scp://[user@]hostname[:port]/path/to/file
-        ```
-
-        example:
-
-        ```vim
-        " 使用默认用户名（当前本地用户名）
-        :e scp://remote-server/home/user/project/file.txt
-
-        " 指定用户名
-        :e scp://username@remote-server/path/to/file.txt
-
-        " 指定端口
-        :e scp://username@remote-server:2222/path/to/file
-
-        " 绝对路径
-        :e scp://user@host//home/user/file.txt
-
-        " 相对用户home的路径
-        :e scp://user@host/file.txt
-        ```
-
-        * 在 vim 中将 ssh 配置为默认协议，效率比 scp 更高
-
-            在 ~/.vimrc 中添加：
-
-            ```conf
-            let g:netrw_ftpextracmd = 'ssh'
-            ```
-
-            配置后，底层可能会这样传输文件：
-
-            ```bash
-            ssh user@host cat /path/to/file
-            ```
-
-            不配置时，底层可能这样传输文件：
-
-            ```bash
-            scp user@host:/path/to/file /tmp/vimXXXXXX
-            ```
+### plugin
 
 * vim-plug
 
@@ -1077,25 +1261,6 @@
     ```
 
     进入`vim`，执行命令`:PlugInstall`，此时会开始安装插件`vim-sensible`。若安装成功，则会提示插件`vim-sensible`已经安装成功。此时说明 vim-plug 已经成功安装。
-
-* vim 中使用文件路径补全
-
-    在插入模式下，输入部分路径后按 Ctrl-x Ctrl-f：
-
-    ```vim
-    # 输入 /usr/l 然后按 Ctrl-x Ctrl-f
-    cd /usr/l█
-    ```
-
-    自动补全菜单
-
-    * `Ctrl` + `n`：向下浏览补全选项
-
-    * `Ctrl` + `p`：向上浏览补全选项
-
-    * `Ctrl` + `y`：确认当前选择的补全项
-
-    * `Ctrl` + `e`：退出补全菜单
 
 * vim-gutentags
 
@@ -1152,35 +1317,6 @@
         ```
         :PluginInstall
         ```
-
-* vim 取消行号的方法
-
-    `:set nonu`
-
-    `:set nu!`
-
-* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
-
-    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
-
-    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
-
-* `grep -P`表示使用 PCRE 的 regex
-
-* vim 中搜索 metacharacter `.` 的帮助文档
-
-    `:help /\.`
-
-* PCRE, for Perl Compatible Regular Expression
-
-* vim 中有关 regex 的 help 命令
-
-    ```
-    :help pattern-searches
-    :help atom
-    ```
-
-## topics
 
 ### ctags
 
@@ -1259,69 +1395,29 @@
 
 vim config file: `~/.vimrc`
 
-vim is a modal editor, and has 3 modes:
-
-1. If the bottom of the screen displays the filename or is blank, you are is normal mode.
-
-2. If you are in insert mode, the indicator displays `--INSERT--`.
-
-3. if you are in visual mode, the indicator shows `--VISUAL--`.
-
-enter inserting mode: type `i`
-
-back to command mode: press `<Esc>` key.
-
-move around: `h`, `j`, `k`, `l`
-
-delete a character: type `x`
-
-undo the last edit: `u`
-
-redo: `ctrl` + `r`
-
-undo line: `U`, press again to redo
-
-save and exit: `ZZ` (upper cases)
-
-discard changes and exit: `:q!`
-
-insert a character before the character under the cursor: `i`
-
-intert text after the cursor: `a`
-
-delete a line: `dd`
-
-add a new line: `o`
-
-open a line above the cursor: `O` (uppercase)
-
 help: `:help`
 
 jump to tag: `ctrl` + `]`
 
 go back: `ctrl` + `t` (pop tag, pops a tag off the tag stack)
 
-commonly used help commands:
+* commonly used help commands
 
-* `:help x`: get help on the `x` command
+    * `:help x`: get help on the `x` command
 
-* `:help deleting`: find out how to delete text
+    * `:help deleting`: find out how to delete text
 
-* `:help index`: get a complete index of what is available
+    * `:help index`: get a complete index of what is available
 
-* `:help CTRL-A`: get help for a control character command, for example, `CTRL-A`
+    * `:help CTRL-A`: get help for a control character command, for example, `CTRL-A`
 
-    here the `CTRL` doesn't mean press `ctrl` key, but to type `C`, `T`, `R` and `L` four keys.
+        here the `CTRL` doesn't mean press `ctrl` key, but to type `C`, `T`, `R` and `L` four keys.
 
-* `:help CTRL-H`: displays help for the normal-mode CTRL-H command
+    * `:help CTRL-H`: displays help for the normal-mode CTRL-H command
 
-* `:help i_CTRL-H`: get the help for the insert-mode version of this command
+    * `:help i_CTRL-H`: get the help for the insert-mode version of this command
 
-start vim with a `-t` option: `vim -t`
-
-check what does `-t` mean: `:help -t`
-
-find meaning of vim build-in options, for example, `number`: `:help 'number'`. (quote the `number` option with single quote)
+    * find meaning of vim build-in options, for example, `number`: `:help 'number'`. (quote the `number` option with single quote)
 
 help prefixes:
 
@@ -1337,5 +1433,9 @@ help prefixes:
 | Options | `'` (both ends) | `:help 'textwidth'` |
 
 for special key, use angle brackets `<>`, for example: `:help <Up>`: find help on the up-arrow key.
+
+start vim with a `-t` option: `vim -t`
+
+check what does `-t` mean: `:help -t`
 
 看到 P13 using a count to edit faster

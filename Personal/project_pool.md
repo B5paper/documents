@@ -36,6 +36,14 @@
 
 ## cache
 
+* 医疗中的客观 AI
+
+    医患关系中，患者可能会觉得医生水平不够，对医生的判断提出质疑，此时使用 AI 给出辅助意见，患者会比较放心。
+
+* 想法：一个基于写调查报告的电商
+
+    电商平台对入驻商家明查暗访，定期发布调查报告、车间视频、暗访谈话、供应链追踪，清除消费者疑虑。
+
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -883,235 +891,250 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
- * [v] process 1 tab 12.25
-
- * [v] process 1 tab 12.25
+* [v] process 1 tab 12.27
 
     feedback:
 
-    * [ ] vim 的启动参数
+    * [new] vim `set smarttab`
 
-        `vim -n "set nobackup nowritebackup noundofile" file.txt`
+        功能是否为 让退格键一次删除 4 个空格？
 
-    * [ ] `^=`是什么含义
+        如果是，那么这个功能是否和 softtabstop 冲突了？
 
-        `set directory^=$HOME/.vim/swap//`
+    * [new] vim `s`命令：替换并插入
 
-    * [ ] vim `:split`
+    * [new] vim :normal 命令
+
+        ```vim
+        :normal i 
+        ```
+
+        （注意最后的空格）
+
+    * [new] vim 搜索并替换：`/w<CR>i<space><Esc>`
+
+ * [v] process 1 tab 12.25
+
+ * [v] process 1 tab 12.25
+
+* [ ] vim 的启动参数
+
+    `vim -n "set nobackup nowritebackup noundofile" file.txt`
+
+* [ ] `^=`是什么含义
+
+    `set directory^=$HOME/.vim/swap//`
+
+* [ ] vim `:split`
 
 * [v] process 1 tab 12.24
 
-    feedback:
-
-    * [ ] matlab table 类型
+* [ ] matlab table 类型
 
 * [v] process 1 tab 12.23
 
     feedback:
 
-    * [ ] `git submodule update --init --progress`
+* [ ] `git submodule update --init --progress`
 
-        `git clone --recurse-submodules ../repo-server .`
+    `git clone --recurse-submodules ../repo-server .`
 
-    * [ ] 调研下述说法是否正确
+* [ ] 调研下述说法是否正确
 
-        ❌ Gemini 的说法
+    ❌ Gemini 的说法
 
-        .gitmodules 里的 url = ../repo-server-2 是相对于主仓库的远程地址（origin URL）
+    .gitmodules 里的 url = ../repo-server-2 是相对于主仓库的远程地址（origin URL）
 
-        这句话 只有在“主仓库是远程 URL（如 https://、ssh://）”时才成立，
-        在你这个 case（本地路径 clone）里是错误的理解延伸。
+    这句话 只有在“主仓库是远程 URL（如 https://、ssh://）”时才成立，
+    在你这个 case（本地路径 clone）里是错误的理解延伸。
 
-    * [ ] 调研下述说法是否正确
+* [ ] 调研下述说法是否正确
 
-        Git 的规则是：
+    Git 的规则是：
 
-        子模块的相对 URL 是相对于“父仓库的 superproject URL”解析的
+    子模块的相对 URL 是相对于“父仓库的 superproject URL”解析的
 
-        而你的 superproject URL 是：
+    而你的 superproject URL 是：
 
-        git clone ../repo-server .
+    git clone ../repo-server .
 
 
-        也就是说：
+    也就是说：
 
-        superproject URL = ../repo-server
+    superproject URL = ../repo-server
 
-    * [ ] `git ls-files --stage`
+* [ ] `git ls-files --stage`
 
-    * [ ] `git config --get-all submodule.repo_B.url`
+* [ ] `git config --get-all submodule.repo_B.url`
 
-    * [ ] `git clone --recursive ../repo-server .`
+* [ ] `git clone --recursive ../repo-server .`
 
-    * [ ] 手动初始化并指定 URL：
+* [ ] 手动初始化并指定 URL：
 
-        ```bash
-        git submodule init
-        # 如果自动获取的 URL 不对，可以手动设置（注意路径）
-        git config submodule.repo_B.url ../repo-server-2 
-        git submodule update
-        ```
+    ```bash
+    git submodule init
+    # 如果自动获取的 URL 不对，可以手动设置（注意路径）
+    git config submodule.repo_B.url ../repo-server-2 
+    git submodule update
+    ```
 
-    * [ ] `fatal: transport 'file' not allowed`
+* [ ] `fatal: transport 'file' not allowed`
 
-        err info:
+    err info:
 
-        ```
-        (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-contains-submodule$ git submodule update 
+    ```
+    (base) hlc@hlc-VirtualBox:~/Documents/Projects/git_test/repo-contains-submodule$ git submodule update 
 
-        Cloning into '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2'...
+    Cloning into '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2'...
 
-        fatal: transport 'file' not allowed
+    fatal: transport 'file' not allowed
 
-        fatal: clone of '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/../repo-server-2' into submodule path '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2' failed
+    fatal: clone of '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/../repo-server-2' into submodule path '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2' failed
 
-        Failed to clone 'repo-2'. Retry scheduled
+    Failed to clone 'repo-2'. Retry scheduled
 
-        Cloning into '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2'...
+    Cloning into '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2'...
 
-        fatal: transport 'file' not allowed
+    fatal: transport 'file' not allowed
 
-        fatal: clone of '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/../repo-server-2' into submodule path '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2' failed
+    fatal: clone of '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/../repo-server-2' into submodule path '/home/hlc/Documents/Projects/git_test/repo-contains-submodule/repo-2' failed
 
-        Failed to clone 'repo-2' a second time, aborting 
-        ```
+    Failed to clone 'repo-2' a second time, aborting 
+    ```
 
-        1. 为什么会报错？
+    1. 为什么会报错？
 
-        为了防御安全漏洞（CVE-2022-39253），Git 在较新版本中默认禁用了子模块的 本地文件传输协议 (File Protocol)。
+    为了防御安全漏洞（CVE-2022-39253），Git 在较新版本中默认禁用了子模块的 本地文件传输协议 (File Protocol)。
 
-        当你使用相对路径（如 ../repo-server-2）且 Git 识别到这指向本地磁盘路径时，它会出于安全考虑拦截这个操作，防止恶意仓库通过子模块手段读取你机器上的敏感本地文件。
-        2. 解决方法
+    当你使用相对路径（如 ../repo-server-2）且 Git 识别到这指向本地磁盘路径时，它会出于安全考虑拦截这个操作，防止恶意仓库通过子模块手段读取你机器上的敏感本地文件。
+    2. 解决方法
 
-        你需要通过 Git 配置显式允许使用 file 协议。你有两种选择：
-        方案 A：单次命令允许（推荐）
+    你需要通过 Git 配置显式允许使用 file 协议。你有两种选择：
+    方案 A：单次命令允许（推荐）
 
-        如果你只是临时测试，不想修改全局安全设置，可以使用 -c 参数：
-        Bash
+    如果你只是临时测试，不想修改全局安全设置，可以使用 -c 参数：
+    Bash
 
-        git -c protocol.file.allow=always submodule update
+    git -c protocol.file.allow=always submodule update
 
-        方案 B：修改本地仓库配置（长期有效）
+    方案 B：修改本地仓库配置（长期有效）
 
-        仅针对当前这个项目开启：
-        Bash
+    仅针对当前这个项目开启：
+    Bash
 
-        git config protocol.file.allow always
-        git submodule update
+    git config protocol.file.allow always
+    git submodule update
 
-        方案 C：全局配置（方便但略降低安全性）
+    方案 C：全局配置（方便但略降低安全性）
 
-        如果你在本地经常做这种多仓库嵌套实验，可以全局开启：
-        Bash
+    如果你在本地经常做这种多仓库嵌套实验，可以全局开启：
+    Bash
 
-        git config --global protocol.file.allow always
+    git config --global protocol.file.allow always
 
-    * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
+* [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
 
-    * [ ] `git submodule sync`
+* [ ] `git submodule sync`
 
-    * [ ] `git config -f .gitmodules --list`
+* [ ] `git config -f .gitmodules --list`
 
-    * [ ] 调研下述用法
+* [ ] 调研下述用法
 
-        ```bash
-        # 检查是否有子模块相关记录
-        git show HEAD:.gitmodules 2>/dev/null
+    ```bash
+    # 检查是否有子模块相关记录
+    git show HEAD:.gitmodules 2>/dev/null
 
-        # 查看提交历史中是否有 .gitmodules
-        git log --oneline -- .gitmodules
-        ```
-* [v] process 1 tab 12.23
-
-    feedback:
-
-    * [ ] 调研 vim-unimpaired
-
-        提供 [<Space> 和 ]<Space> 分别在上方/下方插入空行
-
-    * [ ] 调研 vim-addon-mw-utils
-
-    * [ ] 调研 vim 一次性添加多行
-
-        ```vim
-        " 添加3个空行在下方
-        :put =repeat([\"\"], 3)<CR>
-
-        " 或使用函数
-        function! AddLinesBelow(count)
-            for i in range(a:count)
-                put! ''
-            endfor
-        endfunction
-        :call AddLinesBelow(3)
-        ```
-
-    * [ ] 调研 vim 添加行的映射
-
-        ```vim
-        " 快速插入空行（保持普通模式）
-        nnoremap [<Space> :<C-u>put! =repeat([''], v:count1)<CR>
-        nnoremap ]<Space> :<C-u>put =repeat([''], v:count1)<CR>
-
-        " 或者更简单的映射
-        nnoremap <silent> go :<C-u>put =''<CR>
-        nnoremap <silent> gO :<C-u>put! =''<CR>
-        ```
-
-        这样你就可以：
-
-        * `3]<Space>` - 在下方插入3个空行
-
-        * `2[<Space>` - 在上方插入2个空行
-
-        * `go` - 在下方插入一个空行
-
-        * `gO` - 在上方插入一个空行
+    # 查看提交历史中是否有 .gitmodules
+    git log --oneline -- .gitmodules
+    ```
 
 * [v] process 1 tab 12.23
 
     feedback:
 
-    * [new] 调研 vim 用法
+* [ ] 调研 vim-unimpaired
 
-        ```vim
-        nnoremap ]w :call search('^\s*\S', 'W')<CR>
-        ```
+    提供 [<Space> 和 ]<Space> 分别在上方/下方插入空行
+
+* [ ] 调研 vim-addon-mw-utils
+
+* [ ] 调研 vim 一次性添加多行
+
+    ```vim
+    " 添加3个空行在下方
+    :put =repeat([\"\"], 3)<CR>
+
+    " 或使用函数
+    function! AddLinesBelow(count)
+        for i in range(a:count)
+            put! ''
+        endfor
+    endfunction
+    :call AddLinesBelow(3)
+    ```
+
+* [ ] 调研 vim 添加行的映射
+
+    ```vim
+    " 快速插入空行（保持普通模式）
+    nnoremap [<Space> :<C-u>put! =repeat([''], v:count1)<CR>
+    nnoremap ]<Space> :<C-u>put =repeat([''], v:count1)<CR>
+
+    " 或者更简单的映射
+    nnoremap <silent> go :<C-u>put =''<CR>
+    nnoremap <silent> gO :<C-u>put! =''<CR>
+    ```
+
+    这样你就可以：
+
+    * `3]<Space>` - 在下方插入3个空行
+
+    * `2[<Space>` - 在上方插入2个空行
+
+    * `go` - 在下方插入一个空行
+
+    * `gO` - 在上方插入一个空行
+
+* [v] process 1 tab 12.23
+
+* [ ] 调研 vim 用法
+
+    ```vim
+    nnoremap ]w :call search('^\s*\S', 'W')<CR>
+    ```
 
 * [v] process 1 tab 12.22
 
-    feedback:
+* [asso] 调研插件`vim-sneak'`
 
-    * [asso] 调研插件`vim-sneak'`
+    ```vim
+    " 使用插件如 vim-sneak
+    Plug 'justinmk/vim-sneak'
 
-        ```vim
-        " 使用插件如 vim-sneak
-        Plug 'justinmk/vim-sneak'
+    " 搜索上一个 {
+    s{  
+    ```
 
-        " 搜索上一个 {
-        s{  
-        ```
+* [ ] 调研 vim `?`搜索
 
-    * [ ] 调研 vim `?`搜索
+    `?{           " 搜索上一个 {`
 
-        `?{           " 搜索上一个 {`
+* [asso] 调研下面这段 vim 代码
 
-    * [asso] 调研下面这段 vim 代码
+    ```vim
+    " 使用 coc.nvim 或其他 LSP 的函数跳转
+    nnoremap [[ :call CocAction('jumpDefinition', 'prev')<CR>
+    ```
 
-        ```vim
-        " 使用 coc.nvim 或其他 LSP 的函数跳转
-        nnoremap [[ :call CocAction('jumpDefinition', 'prev')<CR>
-        ```
+* [ ] 调研 vim `gd / gD 跳转到局部/全局定义`跳转
 
-    * [ ] 调研 vim `gd / gD 跳转到局部/全局定义`跳转
+* [ ] 调研 vim masks
 
-    * [ ] 调研 vim masks
-
-        ```vim
-        ma                   " 在当前函数打标记 a
-        // 光标移到下面
-        'a                   " 跳回标记 a
-        ```
+    ```vim
+    ma                   " 在当前函数打标记 a
+    // 光标移到下面
+    'a                   " 跳回标记 a
+    ```
 
 * [ ] 使用 ncat 进行 ssh 的 http 代理
 
@@ -1148,10 +1171,6 @@ english words 由 { } reorg: english words 进化而来。
         User myuser
         ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
     ```
-
-* [v] process 1 tab 30 mins 12.08
-
-    16:33 ~ 16:44
 
 * [ ] 调研 Here Document
 

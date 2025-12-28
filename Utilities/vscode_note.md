@@ -2,6 +2,36 @@
 
 ## cache
 
+* vscode 插件
+
+    Code Runner - 运行代码片段
+
+    GitLens - 增强代码提示功能
+
+    安装 Settings Cycler 或 Settings Watcher 扩展来管理设置变更
+
+    扩展：Compareit 来比较文件
+
+* vscode 中查看哪些配置被改过
+
+    * 使用设置界面（推荐）
+
+        打开设置：Ctrl+,（Windows/Linux）或 Cmd+,（Mac）
+
+        在搜索框中输入 @modified
+
+    * 使用命令面板
+
+        按 Ctrl+Shift+P
+
+        输入 Preferences: Open Settings (JSON)
+
+    * 文件
+
+        用户设置: %APPDATA%\Code\User\settings.json（Windows）或 ~/.config/Code/User/settings.json（Linux/Mac）
+
+        工作区设置: .vscode/settings.json（项目根目录）
+
 * vscode 中 debug 时自动加载环境变量
 
     * 指定 envfile

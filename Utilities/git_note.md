@@ -2,6 +2,31 @@
 
 ## cache
 
+* 使用 git archive + 手动创建新仓库
+
+    ```bash
+    # 1. 为每个版本下载压缩包
+    mkdir my-repo && cd my-repo
+    wget https://github.com/user/repo/archive/refs/tags/v1.0.tar.gz
+    wget https://github.com/user/repo/archive/refs/tags/v2.0.tar.gz
+    wget https://github.com/user/repo/archive/refs/tags/v3.0.tar.gz
+
+    # 2. 创建新的git仓库
+    git init
+    tar -xzf v1.0.tar.gz --strip-components=1
+    git add . && git commit -m "v1.0"
+    rm -rf *  # 清空目录
+
+    tar -xzf v2.0.tar.gz --strip-components=1
+    git add . && git commit -m "v2.0"
+    rm -rf *
+
+    tar -xzf v3.0.tar.gz --strip-components=1
+    git add . && git commit -m "v3.0"
+
+    # 现在你有一个只有3个提交的新仓库
+    ```
+
 * git commit 后发现 user 和 email 写错了，该如何补救
 
     * 只修改最近一次提交的作者信息
