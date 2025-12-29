@@ -36,6 +36,22 @@
 
 ## cache
 
+* 家用晶圆厂
+
+    * 多项目晶圆（MPW）服务
+
+        这是个人接触先进制程的唯一现实途径。你可以学习使用开源EDA工具（如OpenROAD, SkyWater PDK）设计芯片，然后将设计文件提交给谷歌的SkyWater计划或国内的类似MPW服务。
+
+    * Sam Zeloof, Jeri Ellsworth
+
+    * 手套箱（Glove Box）, 隔离器（Isolator）
+
+    * 带有双门互锁和净化吹淋功能的传递舱
+
+    * 一个集成了加热台、简易滴胶、紫外曝光（用掩膜版）和显影的桌面光刻系统。这已经有商业化的教育产品（如EMO等）。
+
+    * MEMS结构（如悬臂梁）
+
 * 医疗中的客观 AI
 
     医患关系中，患者可能会觉得医生水平不够，对医生的判断提出质疑，此时使用 AI 给出辅助意见，患者会比较放心。
@@ -469,6 +485,10 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [ ] `add_const_t`
+
+* [ ] 调研 thrust
+
 * [O] process 1 url
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
@@ -559,10 +579,6 @@ english words 由 { } reorg: english words 进化而来。
 * [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
 
 * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
-
-* [asso] `add_const_t`
-
-* [asso] 调研 thrust
 
 ## qa
 
@@ -891,49 +907,19 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] process 1 tab 12.27
-
-    feedback:
-
-    * [new] vim `set smarttab`
-
-        功能是否为 让退格键一次删除 4 个空格？
-
-        如果是，那么这个功能是否和 softtabstop 冲突了？
-
-    * [new] vim `s`命令：替换并插入
-
-    * [new] vim :normal 命令
-
-        ```vim
-        :normal i 
-        ```
-
-        （注意最后的空格）
-
-    * [new] vim 搜索并替换：`/w<CR>i<space><Esc>`
-
- * [v] process 1 tab 12.25
-
- * [v] process 1 tab 12.25
-
-* [ ] vim 的启动参数
-
-    `vim -n "set nobackup nowritebackup noundofile" file.txt`
+* [ ] matlab table 类型
 
 * [ ] `^=`是什么含义
 
     `set directory^=$HOME/.vim/swap//`
 
+* [ ] vim 搜索并替换：`/w<CR>i<space><Esc>`
+
+* [v] process 1 tab 12.27
+
 * [ ] vim `:split`
 
-* [v] process 1 tab 12.24
-
-* [ ] matlab table 类型
-
 * [v] process 1 tab 12.23
-
-    feedback:
 
 * [ ] `git submodule update --init --progress`
 
@@ -1050,8 +1036,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] process 1 tab 12.23
 
-    feedback:
-
 * [ ] 调研 vim-unimpaired
 
     提供 [<Space> 和 ]<Space> 分别在上方/下方插入空行
@@ -1095,15 +1079,11 @@ english words 由 { } reorg: english words 进化而来。
 
     * `gO` - 在上方插入一个空行
 
-* [v] process 1 tab 12.23
-
 * [ ] 调研 vim 用法
 
     ```vim
     nnoremap ]w :call search('^\s*\S', 'W')<CR>
     ```
-
-* [v] process 1 tab 12.22
 
 * [asso] 调研插件`vim-sneak'`
 
@@ -1172,7 +1152,7 @@ english words 由 { } reorg: english words 进化而来。
         ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
     ```
 
-* [ ] 调研 Here Document
+* [v] 调研 Here Document
 
     example:
 
@@ -1915,31 +1895,105 @@ english words 由 { } reorg: english words 进化而来。
     chmod 600 ~/.ssh/proxy_auth # 非常重要！确保只有你能读这个文件
     ```
 
+* [asso] vim `set smarttab`
+
+    功能是否为 让退格键一次删除 4 个空格？
+
+    如果是，那么这个功能是否和 softtabstop 冲突了？
+
+* [asso] vim `s`命令：替换并插入
+
+* [asso] vim :normal 命令
+
+    ```vim
+    :normal i 
+    ```
+
+    （注意最后的空格）
+
+* [asso] vim 的启动参数
+
+    `vim -n "set nobackup nowritebackup noundofile" file.txt`
+
 ## Matlab
 
 ### tasks
 
-* [new] 调研 matlab disp
+* [v] `split()`
 
-    1. disp 的用法
+* [v] `readRecording = @(filename) toml.read(filename);`
 
-    2. 如何格式化打印
+    feedback:
 
-    3. 下面这些配置的含义和用法
+    * [ ] 调研 matlab 命令
 
         ```matlab
-        format short    % 简洁格式
-        format long     % 详细格式
-        format compact  % 紧凑显示
+        rehash toolboxcache
+        restoredefaultpath
+        savepath
+
+        % 确保函数在MATLAB路径中
+        which yourFunctionName
+        path
         ```
 
-* [new] 调研 matlab table
+        `profile`
+
+        Simulink Data Dictionary
+
+    * [ ] deal 函数
+
+        ```matlab
+        % 匿名函数配合 deal
+        getTwoValues = @(x) deal(x^2, x^3);
+        [a, b] = getTwoValues(3);  % a=9, b=27
+
+        % 但注意：deal 在匿名函数中需要显式调用
+        getMinMax = @(arr) deal(min(arr), max(arr));
+        [minVal, maxVal] = getMinMax([5, 2, 8, 1]);
+        ```
+
+        deal 的限制：
+
+        ```matlab
+        % 这可以工作
+        f = @(x) deal(x^2, x^3);
+        [a, b] = f(2);  % a=4, b=8
+
+        % 但这不行（匿名函数中不能有多个语句）
+        % f = @(x) a = x^2; b = x^3; deal(a, b);  % 错误！
+        ```
+
+    * [ ] 嵌套函数包装
+
+        ```matlab
+        function [funcHandle] = createMultiReturnFunc()
+            % 创建返回多个值的函数句柄
+            funcHandle = @multiReturn;
+            
+            function [a, b, c] = multiReturn(x)
+                a = x^2;
+                b = x^3;
+                c = sqrt(x);
+            end
+        end
+
+        % 使用
+        myFunc = createMultiReturnFunc();
+        [val1, val2, val3] = myFunc(4);  % 16, 64, 2
+        ```
+
+* [ ] matlab `length()`
+
+* [ ] 调研 matlab table
+
+* [v] `[lumoDIR '/' metadata.file_names.recordingdata_file]`
+
+* [ ] 调研 `format compact  % 紧凑显示`
 
 * [ ] 调研 matlab 是否支持类似 python 的命令行模式
 
     如果不支持，那么 octave, julia 是否支持？
-
-* [new] matlab `length()`
 
 * [new] matlab `a = {x, y, z};`
 

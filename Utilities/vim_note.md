@@ -2,6 +2,87 @@
 
 ## cache
 
+* vim 快速添加空格
+
+    ```vim
+    " 在普通模式下按空格键在光标后插入空格
+    nnoremap <space> i<space><esc>l
+
+    " 或者在光标前插入空格
+    nnoremap <leader><space> i<space><esc>
+
+    " 更智能的版本：在单词间插入空格（光标在 w 位置时）
+    nnoremap <space> i<space><esc>w
+    ```
+
+    其他可能有用的映射：
+
+    ```vim
+    " 在单词边界智能插入空格
+    nnoremap <silent> <space> :call InsertSpace()<CR>
+
+    function! InsertSpace()
+        " 如果光标在单词开头，在前面插入空格
+        if col('.') == 1 || getline('.')[col('.')-2] =~# '\s'
+            execute "normal! i \<esc>"
+        else
+            execute "normal! a \<esc>"
+        endif
+    endfunction
+    ```
+
+* 防止 vim 的 markdown 在渲染时，把 Precision (P) 渲染成 Precision §
+
+    * 修改 Vim 配置
+
+        （未试过）
+
+        在 .vimrc 中添加：
+
+        ```vim
+        " 禁用 markdown 中的特殊符号转换
+        let g:markdown_enable_conceal = 0
+        ```
+
+        或者针对特定文件类型：
+
+        ```vim
+        autocmd FileType markdown setlocal conceallevel=0
+        ```
+
+    **对于不同的 Markdown 插件**
+
+    如果你使用的是 vim-markdown 插件：
+
+    ```vim
+    let g:vim_markdown_conceal = 0
+    let g:tex_conceal = ""
+    let g:vim_markdown_math = 1
+    ```
+
+    如果你使用的是 markdown-preview.nvim：
+
+    ```vim
+    let g:mkdp_markdown_css = 'custom.css' " 可以自定义 CSS 来避免这个问题
+    ```
+
+* vim 设置 tab 只对特定文件生效
+
+    ```vim
+    autocmd FileType python setlocal expandtab tabstop=4 shiftwidth=4
+    autocmd FileType javascript setlocal expandtab tabstop=2 shiftwidth=2
+    ```
+
+* vim 将已经存在的文件中的 tab 转换为空格
+
+    ```vim
+    " 转换整个文件
+    :%retab!
+
+    " 只转换选中的行（先进入可视模式选择）
+    :'<,'>retab!
+    ```
+
 * vim 开启语法高亮
 
     ```vim

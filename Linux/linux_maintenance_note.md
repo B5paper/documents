@@ -6,6 +6,294 @@
 
 ## cache
 
+* Here Document
+
+    Here Document（文档内嵌）是一种在 Shell 脚本中直接嵌入多行文本输入的方法，通常用于命令的标准输入。
+
+    syntax:
+
+    ```bash
+    命令 << 分隔符
+        多行文本内容
+    分隔符
+    ```
+
+    分隔符的两种形式
+
+    1. 不带引号的分隔符 - 会进行变量替换和命令替换
+
+        ```bash
+        cat << EOF
+        当前用户：$USER
+        当前目录：$(pwd)
+        EOF
+        ```
+
+    2. 带引号的分隔符 - 禁用变量和命令替换
+
+        ```bash
+        cat << 'EOF'
+        当前用户：$USER  # 不会被替换
+        当前目录：$(pwd)  # 不会被替换
+        EOF
+        ```
+
+        (双引号的`"EOF"`可以吗？)
+
+    常见用法示例
+
+    1. 远程执行命令
+
+        ```bash
+        ssh user@hostname << 'EOF'
+        cd /path/to/dir
+        ./script.sh
+        echo "任务完成"
+        EOF
+        ```
+
+    2. 创建配置文件
+
+        ```bash
+        cat > /etc/config.conf << EOF
+        server_ip=192.168.1.100
+        port=8080
+        timeout=30
+        EOF
+        ```
+
+        注：
+
+        1. 重定向`> /etc/config.conf`可以写到命令和参数的中间，记一下这个用法。
+
+    3. 传递复杂命令参数
+
+        ```bash
+        mysql -u root -p << EOF
+        USE database;
+        SELECT * FROM users;
+        EXIT;
+        EOF
+        ```
+
+    4. 使用变量（不转义）
+
+        ```bash
+        name="Alice"
+        cat << EOF
+        Hello $name,
+        Welcome to the system.
+        EOF
+        ```
+
+    高级用法
+
+    * 缩进 Here Document（使用 <<-）
+    
+        ```bash
+        if true; then
+            cat <<- EOF
+            This line is indented.
+            This too.
+            EOF
+        fi
+        ```
+
+        `<<-`允许每行的前面有制表符，在转换为文档时，会删除每行开头的制表符(Tab)。而`<<`会保持原样缩进。
+
+        对于结束标记，`<<`要求必须顶格写，前后无空格。`<<-`则允许`EOF`前面有制表符。
+
+        `<<-`的主要用途是在脚本中保持代码结构美观。
+
+        注意：
+
+        * `<<-`只删除制表符(Tab)，不删除空格，对每行开头的空格无效。
+
+        * `<<-`只删除每行开头的连续制表符。
+        
+            这意味着如果制表符在空格后面，那么不会被删除。
+
+    * 重定向到文件
+
+        ```bash
+        exec > output.log << EOF
+        日志开始
+        $(date)
+        操作完成
+        EOF
+        ```
+
+    注意事项
+
+    * 分隔符可以是任意字符串，常见的有 EOF、END、STOP 等
+
+    * 结束分隔符必须单独一行，前后不能有空格（除非使用 <<-）
+
+    * 通常与 cat、ssh、mysql、ftp 等需要多行输入的命令配合使用
+
+    * 使用 'EOF' 可以避免脚本中的特殊字符被解释
+
+    这样可以使脚本更清晰，避免使用多个 echo 命令输出多行内容。
+
+* autossh
+
+    Autossh 是一个用于创建持久 SSH 隧道的工具，当连接断开时会自动重连。它通过监控 SSH 连接状态并在断开时重新启动 SSH 会话来确保隧道的稳定性。
+
+    syntax:
+
+    ```bash
+    autossh [选项] -M <监控端口> <SSH 命令>
+    ```
+
+    * `-M <端口>`: 指定一个监控端口（用于检测连接状态），通常设为 0 让系统自动分配。
+
+    * `-f`: 后台运行。
+
+    * `-N`: 不执行远程命令（仅用于端口转发）。
+
+    * `-L/-R/-D`: 与 SSH 相同的端口转发参数。
+
+    **常用场景示例**
+
+    1. 本地端口转发
+
+        将本地端口 8080 转发到远程服务器的 80 端口：
+
+        ```bash
+        autossh -M 0 -f -N -L 8080:localhost:80 user@remote-host
+        ```
+
+    2. 远程端口转发
+
+        将远程服务器的 3306 端口转发到本地的 3306 端口：
+
+        ```bash
+        autossh -M 0 -f -N -R 3306:localhost:3306 user@remote-host
+        ```
+
+    3. 动态 SOCKS 代理
+
+        创建持久的 SOCKS5 代理（本地端口 1080）：
+
+        ```bash
+        autossh -M 0 -f -N -D 1080 user@remote-host
+        ```
+
+    **高级选项**
+
+    * `-M 0`: 自动选择监控端口（推荐）。
+
+    * `-o ServerAliveInterval=60`: 每 60 秒检测一次连接。
+
+    * `-o ExitOnForwardFailure=yes`: 转发失败时退出。
+
+    * `-o ServerAliveCountMax=3`: 最多重试 3 次。
+
+    示例：
+
+    ```bash
+    autossh -M 0 -o "ServerAliveInterval 30" -o "ServerAliveCountMax 3" -N -L 9000:localhost:22 user@remote-host
+    ```
+
+    **开机自启（Systemd）**
+
+    创建服务文件 /etc/systemd/system/autossh-tunnel.service：
+
+    ```conf
+    [Unit]
+    Description=AutoSSH Tunnel
+    After=network.target
+
+    [Service]
+    User=your-username
+    ExecStart=/usr/bin/autossh -M 0 -N -L 8080:localhost:80 user@remote-host
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    启用服务：
+
+    ```bash
+    sudo systemctl enable --now autossh-tunnel.service
+    ```
+
+    **注意事项**
+
+    * 免密登录: 建议配置 SSH 密钥认证，避免输入密码。
+
+    * 防火墙: 确保监控端口和转发端口未被阻塞。
+
+    * 资源占用: 长时间运行时可结合 -o ConnectTimeout=30 优化超时设置。
+
+* tail 的常用选项：
+
+    ```bash
+    # 从第N行开始显示
+    tail -f -n +50 filename
+
+    # 同时跟踪多个文件
+    tail -f file1 file2 file3
+
+    # 高亮显示关键字
+    tail -f filename | grep --color=auto "keyword"
+    ```
+
+    对于日志文件的特殊处理：
+
+    ```bash
+    # 过滤包含特定关键词的行
+    tail -f filename | grep "error"
+
+    # 排除特定内容
+    tail -f filename | grep -v "debug"
+
+    # 彩色输出
+    tail -f filename | ccze -A
+    ```
+
+* 实时追踪文本文件的最新内容
+
+    * tail -f (最常用)
+
+        ```bash
+        # 基本用法
+        tail -f filename
+
+        # 显示行号
+        tail -f -n 20 filename
+
+        # 等同于 --follow=descriptor，文件被移动或重命名后仍能跟踪
+        tail -F filename
+        ```
+
+    * less 的实时模式
+
+        ```bash
+        # 打开文件后，按 Shift+F 进入实时跟踪模式
+        less filename
+        # 然后按 Shift+F 开始跟踪，Ctrl+C 停止跟踪，回到普通浏览模式
+        ```
+
+    * multitail (功能更强大)
+
+        ```bash
+        # 安装 multitail
+        sudo apt install multitail  # Ubuntu/Debian
+        sudo yum install multitail  # CentOS/RHEL
+
+        # 使用 multitail
+        multitail filename
+        ```
+
+    * 使用 awk 实时处理
+
+        ```bash
+        # 结合 tail 和 awk 进行实时处理
+        tail -f filename | awk '{print "New line:", $0}'
+        ```
+
 * linux 查看当前目录的大小
 
     1. du 命令（最常用）
