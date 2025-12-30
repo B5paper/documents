@@ -6,6 +6,21 @@
 
 ## cache
 
+* matlab disp 技巧
+
+    使用拼接的字符串显示稍微复杂些的内容。
+
+    ```matlab
+    % num2str() 转换数值
+    x = 3.1415926;
+    disp(['π的值是：', num2str(x, '%.4f')]);
+
+    % 使用字符串数组（MATLAB R2016b+）
+    name = "李四";
+    age = 30;
+    disp(name + "，" + age + "岁");
+    ```
+
 * matlab 匿名函数
 
     主要用于创建简单的单行函数。

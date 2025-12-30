@@ -907,6 +907,45 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [v] process 1 tab 12.29
+
+    feedback:
+
+    * [asso] 调研 Winget
+
+    * [asso] 调研 Chocolatey
+
+    * [ ] 调研 git config 设置别名
+
+        ```bash
+        # 设置默认编辑器为VS Code
+        git config --global core.editor "code --wait"
+
+        # 设置别名
+        git config --global alias.co checkout
+        git config --global alias.br branch
+        git config --global alias.ci commit
+        git config --global alias.st status
+
+        # 启用颜色输出
+        git config --global color.ui auto
+        ```
+
+        及其他的 git config 配置选项。
+
+    * [asso] GitHub Desktop
+
+    * [asso] SourceTree
+
+    * [asso] vim `noremap!`
+    
+    * [asso] 调研 vim 命令
+
+        ```vim
+        " 修复终端退格键映射
+        set backspace=indent,eol,start
+        ```
+
 * [ ] matlab table 类型
 
 * [ ] `^=`是什么含义

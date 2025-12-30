@@ -2,6 +2,1797 @@
 
 ## cache
 
+* Vimscript
+
+    Vimscript（Vim Script）是 Vim 编辑器的内置脚本语言，用于配置、自定义和扩展 Vim。以下是 Vimscript 的核心写法要点：
+
+    1. 基础语法
+
+        注释：以 " 开头
+
+        ```vim
+        " 这是一行注释
+        ```
+
+        变量：
+
+        * 全局变量：`g:var_name`
+
+        * 局部变量：`l:var_name`（函数内）
+
+        * 选项变量：`&option_name`（如 `&tabstop`）
+
+        * 环境变量：`$PATH`
+
+        ```vim
+        let g:my_var = 10
+        let s:local_var = "hello"  " 脚本局部变量
+        ```
+
+    2. 数据类型
+
+        * 字符串：`"string"` 或 `'string'`
+
+        * 数字：整数或浮点数（如 42、3.14）
+
+        * 列表：`[1, 2, 'three']`
+
+        * 字典：`{'key': 'value', 'num': 42}`
+
+        * 特殊类型：`v:true`、`v:false`、`v:null`
+
+    3. 控制结构
+
+        ```vim
+        " 条件判断
+        if condition
+          echo "yes"
+        elseif another_condition
+          echo "maybe"
+        else
+          echo "no"
+        endif
+
+        " 循环
+        for i in range(1, 5)
+          echo i
+        endfor
+
+        while condition
+          echo "looping"
+        endwhile
+        ```
+
+    4. 函数定义
+
+        ```vim
+        function! MyFunction(arg1, arg2)
+          echo a:arg1 . " " . a:arg2  " 参数前缀 a:
+          return 1
+        endfunction
+        ```
+
+        函数名首字母通常大写（避免与内置函数冲突）。
+
+        用 ! 覆盖同名函数。
+
+    5. 常用命令
+
+        * echo：输出信息
+
+        * execute：执行字符串形式的命令
+
+        * normal：执行普通模式命令
+        vim
+
+        * normal! ggdd  " 跳转到首行并删除
+
+        * command：自定义命令
+        vim
+
+        * command! Hello echo "Hello, Vim!"
+
+    6. 自动命令（Autocmd）
+
+        在特定事件触发时执行命令：
+
+        ```vim
+        autocmd BufNewFile *.txt echo "新文本文件已创建"
+        autocmd BufWritePre *.js :call FormatFile()
+        ```
+
+    7. 映射（Key Mapping）
+
+        普通模式映射：`nnoremap <Leader>w :w<CR>`
+
+        插入模式映射：`inoremap jk <Esc>`
+
+        可视化模式映射：`vnoremap <C-c> "+y`
+
+        使用 `noremap` 避免递归映射。
+
+    8. 插件开发示例
+
+        简单插件结构：
+        
+        ```vim
+        " plugin/myplugin.vim
+        if exists('g:loaded_myplugin')
+          finish
+        endif
+        let g:loaded_myplugin = 1
+
+        function! s:MyPluginFunction()
+          echo "插件已调用"
+        endfunction
+
+        command! -nargs=0 MyPluginCall call s:MyPluginFunction()
+        ```
+
+    9. 调试与测试
+
+        查看错误：:`messages`
+
+        调试模式：启动 Vim 时加 `-D` 参数，或使用 `:debug` 命令。
+
+        脚本局部变量可通过` s:` 前缀隔离作用域。
+
+    10. 注意事项
+
+        * Vimscript 对空格敏感（赋值时等号两侧可加空格，但部分命令格式严格）。
+
+        * 使用 `set nocompatible` 确保 Vim 模式。
+
+        * 新版 Vim（8.0+）支持更多现代语法（如 Lambda 表达式）。
+
+    **快速入门建议**
+
+    * 从修改 .vimrc 开始，逐步添加自定义函数。
+
+    * 参考 :help usr_41.txt（Vimscript 用户手册）。
+
+    * 阅读现有插件源码（如 vim-airline）学习实践。
+
+    掌握基础后，可进一步学习 `:help eval.txt`（完整语言参考）。
+
+* s:local_var 和 l:var_name 有什么区别
+
+    1. l:（局部变量）
+
+        * 作用域：仅在当前函数内部有效
+
+        * 用途：函数内的局部变量，类似于其他语言的局部变量
+
+        * 生命周期：函数调用时创建，函数返回后销毁
+
+        示例：
+
+        ```vim
+        function! MyFunc()
+            let l:count = 10      " 局部变量，只能在函数内访问
+            let g:global = 20     " 全局变量，随处可访问
+            echo l:count          " 输出 10
+        endfunction
+
+        call MyFunc()
+        echo l:count             " 错误！l:count 在此不可访问
+        echo g:global            " 输出 20
+        ```
+
+    2. s:（脚本局部变量）
+
+        作用域：仅在当前脚本文件内有效（跨函数共享）
+
+        用途：脚本内部共享数据，但对其他脚本隐藏（类似模块私有变量）
+
+        生命周期：Vim 会话期间持续存在
+
+        示例：
+
+        ```vim
+        " myplugin.vim
+        let s:initialized = 0     " 脚本局部变量
+
+        function! s:Init()
+            if s:initialized == 0
+                let s:initialized = 1
+                echo "首次初始化"
+            endif
+        endfunction
+
+        function! MyPluginFunc()
+            call s:Init()         " 可以访问 s:initialized
+            echo s:initialized    " 输出 1
+        endfunction
+        ```
+
+    example:
+
+    ```vim
+    " 示例：简单的缓存系统
+    let s:cache = {}  " 脚本级缓存字典
+
+    function! s:GetCachedData(key)
+        if has_key(s:cache, a:key)
+            echo "从缓存读取"
+            return s:cache[a:key]
+        endif
+        
+        " 模拟计算
+        let l:result = a:key . "_processed"  " l: 局部变量
+        let s:cache[a:key] = l:result        " s: 脚本变量，跨调用保持
+        
+        echo "首次计算"
+        return l:result
+    endfunction
+
+    function! MyFunction()
+        echo s:GetCachedData("test1")  " 首次调用：计算
+        echo s:GetCachedData("test1")  " 第二次：从 s:cache 读取
+        echo s:GetCachedData("test2")  " 新键：计算
+    endfunction
+    ```
+
+    重要细节
+
+    * 前缀省略：在函数内，局部变量有时可以省略 l: 前缀：
+
+        ```vim
+        function! Test()
+            let count = 5    " 隐式使用 l:count
+            echo count       " 等同于 echo l:count
+        endfunction
+        ```
+
+        但为了清晰，建议显式使用 l:。
+
+    * a: 前缀：函数参数必须使用 a: 前缀：
+
+        ```vim
+        function! Add(x, y)
+            return a:x + a:y  " 正确
+            return x + y      " 错误！找不到变量 x
+        endfunction
+        ```
+
+    * 跨脚本访问 s:（不推荐但可能）：
+
+        ```vim
+        " 脚本 A: let s:secret = 42
+        " 脚本 B: 无法直接访问 scriptA#secret
+        " 但可通过 <SID> 和函数间接访问
+        ```
+
+    **最佳实践建议**
+
+    * 函数内部：
+
+        * 临时计算用 l:（或省略前缀）
+
+        * 参数用 a:
+
+        * 修改选项用 &
+
+    * 脚本开发：
+
+        * 内部状态用 s:
+
+        * 用户配置用 g:
+
+        * 用 s: 函数作为私有函数：
+
+            ```vim
+            function! s:Helper()  " 私有函数，只在本脚本内可用
+            endfunction
+            ```
+
+    * 避免污染全局：
+
+        * 除非必要，不用 g: 存储临时数据
+
+        * 用 s: 替代全局变量，避免命名冲突
+
+* s 变量必须在函数外部创建吗，可以在函数内部创建吗
+
+    `s:` 变量可以在函数内部创建，但是有重要的注意事项：
+
+    1. 可以在函数内创建 s: 变量
+
+        ```vim
+        function! s:Initialize()
+            " 在函数内部创建 s: 变量是完全合法的
+            let s:counter = 0
+            let s:config = {'auto_save': 1}
+        endfunction
+
+        function! s:Increment()
+            " 这里 s:counter 可能不存在，需要处理
+            if !exists('s:counter')
+                let s:counter = 0
+            endif
+            let s:counter += 1
+            return s:counter
+        endfunction
+        ```
+
+    2. 关键区别：何时初始化
+
+        情况A：在脚本顶层初始化（推荐）
+
+        ```vim
+        " 脚本顶部初始化 - 清晰明确
+        let s:initialized = 0
+        let s:cache = {}
+
+        function! s:DoSomething()
+            " 直接使用，无需检查是否存在
+            if s:initialized == 0
+                " 初始化代码
+                let s:initialized = 1
+            endif
+        endfunction
+        ```
+
+        情况B：在函数内初始化（惰性初始化）
+
+        ```vim
+        " 不在顶部初始化
+        function! s:LazyInit()
+            " 第一次调用时才创建
+            if !exists('s:data_loaded')
+                let s:data_loaded = 0
+                let s:cache = {}
+                echo "执行惰性初始化"
+            endif
+            
+            if s:data_loaded == 0
+                " 加载数据...
+                let s:data_loaded = 1
+            endif
+        endfunction
+        ```
+
+    总结
+
+    * 可以在函数内创建 s: 变量，但要小心访问顺序问题
+
+    * 最佳实践：在脚本顶部初始化主要变量，在函数内只做惰性初始化
+
+    * 总是用 exists() 检查变量是否存在（如果在函数内初始化）
+
+* 全局变量指的是可以跨脚本使用的变量吗？
+
+    Vimscript 中的全局变量确实可以跨脚本使用，但有不同的前缀和行为：
+
+    1. 真正的全局变量：g:
+
+        ```vim
+        " 在任何脚本中定义
+        let g:my_global = "可在任何地方访问"
+
+        " 在其他脚本中使用
+        echo g:my_global  " 输出 "可在任何地方访问"
+
+        " 甚至可以在命令行直接设置
+        " :let g:my_setting = 1
+        ```
+
+        特点：
+
+        * 整个 Vim 实例中可见
+
+        * 跨所有脚本、函数、插件
+
+        * 会话间不持久（除非保存到 viminfo）
+
+    **不同前缀的作用域对比**
+
+    | 前缀 | 作用域 | 跨脚本访问 | 示例 |
+    | - | - | - | - |
+    | g: | 全局 | ✅ 完全可访问 | let g:plugin_enabled = 1 |
+    | s: | 脚本内部 | ❌ 对其他脚本隐藏 | let s:cache = {} |
+    | l: | 函数内部 | ❌ 仅限当前函数 | let l:temp = 42 |
+    | a: | 函数参数 | ❌ 仅限当前函数 | function! Foo(a:arg) |
+    | b: | 缓冲区 | ✅ 对访问该缓冲区的脚本可见 | let b:filetype = 'python' |
+    | w: | 窗口 | ✅ 对访问该窗口的脚本可见 | let w:scroll_pos = 100 |
+    | t: | 标签页 | ✅ 对访问该标签页的脚本可见 | let t:custom_title = 'Edit' |
+    | v: | Vim 内置 | ✅ 全局只读变量 | echo v:version |
+
+    **实际跨脚本使用示例**
+
+    * 场景1：插件配置
+
+        ```vim
+        " 用户 vimrc 中设置
+        let g:myplugin_theme = 'dark'
+
+        " 在插件脚本中读取
+        function! myplugin#LoadTheme()
+            if exists('g:myplugin_theme')
+                echo "使用主题：" . g:myplugin_theme
+            else
+                let g:myplugin_theme = 'light'  " 设置默认值
+            endif
+        endfunction
+        ```
+
+    * 场景2：脚本间通信
+
+        ```vim
+        " script1.vim
+        let g:shared_data = {
+            \ 'count': 0,
+            \ 'users': ['Alice', 'Bob']
+        \ }
+
+        " script2.vim（完全不同的脚本）
+        function! ProcessSharedData()
+            if exists('g:shared_data')
+                let g:shared_data.count += 1
+                echo "当前计数：" . g:shared_data.count
+            endif
+        endfunction
+        ```
+
+    * 场景3：缓冲区局部变量跨脚本
+
+        ```vim
+        " 在 python 文件类型插件中
+        autocmd FileType python let b:python_indent = 4
+
+        " 在其他插件中也可以访问
+        function! CheckPythonIndent()
+            if exists('b:python_indent')
+                echo "Python缩进：" . b:python_indent . "空格"
+            endif
+        endfunction
+        ```
+
+    **命名空间最佳实践**
+
+    * 避免污染全局命名空间
+
+        ```vim
+        " 不好的做法：容易冲突
+        let g:debug = 1        " 可能与其他插件冲突
+        let g:count = 0        " 太通用了
+
+        " 好的做法：使用前缀
+        let g:myplugin_debug = 1
+        let g:myplugin_counter = 0
+        let g:myplugin#config = {}  " 或使用 # 分隔
+        ```
+
+    * 插件推荐的模式
+
+        ```vim
+        " 在插件初始化时
+        if !exists('g:myplugin_config')
+            let g:myplugin_config = {
+                \ 'enable': 1,
+                \ 'timeout': 1000,
+                \ 'colors': ['red', 'green', 'blue']
+            \ }
+        endif
+
+        " 在函数中使用默认值
+        function! myplugin#GetConfig(key)
+            if has_key(g:myplugin_config, a:key)
+                return g:myplugin_config[a:key]
+            else
+                return s:defaults[a:key]  " 回退到脚本默认值
+            endif
+        endfunction
+        ```
+
+    **特殊作用域变量的跨脚本访问**
+
+    * 缓冲区变量 b: 的跨脚本
+
+        ```vim
+        " 脚本A：设置缓冲区变量
+        autocmd BufEnter *.py let b:python_mode = 'strict'
+
+        " 脚本B：读取（需要处于同一缓冲区）
+        function! GetPythonMode()
+            if &filetype == 'python' && exists('b:python_mode')
+                return b:python_mode
+            endif
+            return 'default'
+        endfunction
+        ```
+
+    * 窗口变量 w: 的跨脚本
+
+        ```vim
+        " 记录窗口滚动位置
+        autocmd CursorMoved * let w:last_line = line('.')
+
+        " 另一个脚本恢复位置
+        function! RestoreLastPosition()
+            if exists('w:last_line')
+                execute 'normal! ' . w:last_line . 'G'
+            endif
+        endfunction
+        ```
+
+    **重要的注意事项**
+
+    * 变量是否存在检查：
+
+        ```vim
+        " 总是检查全局变量是否存在
+        if exists('g:myplugin_initialized')
+            " 已初始化
+        else
+            " 首次运行
+        endif
+        ```
+
+    * 避免循环依赖：
+
+        ```vim
+        " script1.vim
+        if !exists('g:shared')
+            let g:shared = {}
+        endif
+        let g:shared.value1 = ComputeValue()  " 可能依赖 script2
+
+        " script2.vim
+        if !exists('g:shared')
+            let g:shared = {}
+        endif
+        let g:shared.value2 = ComputeValue2()  " 可能依赖 script1
+        ```
+
+    * 性能考虑：
+
+        ```vim
+        " 频繁访问的全局变量，可缓存到局部
+        function! OptimizedFunction()
+            let l:config = g:myplugin_config  " 缓存到局部变量
+            for i in range(1000)
+                " 使用 l:config 而不是每次 g:myplugin_config
+                if l:config.enable
+                    " ...
+                endif
+            endfor
+        endfunction
+        ```
+
+* 在 Vimscript 中，点号 . 是字符串连接运算符。
+
+    1. 基本字符串连接
+
+        ```vim
+        let str1 = "Hello"
+        let str2 = "World"
+        let result = str1 . " " . str2  " => "Hello World"
+        ```
+
+    2. 不同数据类型的连接规则
+
+        * 字符串 + 字符串（正常连接）
+
+            ```vim
+            echo "Hello" . "World"    " => HelloWorld"
+            echo "Age: " . "25"       " => Age: 25"
+            ```
+
+        * 字符串 + 数字（数字自动转换）
+
+            ```vim
+            echo "Number: " . 42      " => Number: 42"
+            echo "Result: " . 3.14    " => Result: 3.14"
+            ```
+
+        * 数字 + 数字（先连接成字符串，不是数学加法！）
+
+            ```vim
+            echo 10 . 20              " => 1020" （字符串）
+            echo 10 + 20              " => 30"   （数字相加）
+            ```
+
+    注意：Vimscript 使用 . 而不是 + 来避免歧义！
+
+    **重要区别：**
+
+    * +：数学加法（尝试转换为数字）
+
+    * .：字符串连接（保持字符串）
+
+    **连接列表/字典时需要转换**
+
+    ```vim
+    let list = [1, 2, 3]
+    " echo "List: " . list  " 错误！不能直接连接列表
+
+    " 需要先转换为字符串
+    echo "List: " . string(list)  " => List: [1, 2, 3]"
+    echo "List: " . join(list, ", ")  " => List: 1, 2, 3"
+
+    let dict = {'a': 1, 'b': 2}
+    echo "Dict: " . string(dict)  " => Dict: {'a': 1, 'b': 2}"
+    ```
+
+    **性能提示**
+
+    对于大量字符串连接，使用列表更高效：
+
+    ```vim
+    " 低效：每次连接都创建新字符串
+    let result = ""
+    for i in range(1000)
+        let result = result . i . ","
+    endfor
+
+    " 高效：使用列表收集，最后连接
+    let parts = []
+    for i in range(1000)
+        call add(parts, i)
+    endfor
+    let result = join(parts, ",")
+    ```
+
+* vim 中，visual 模式选中几行后，如何在 vim script 中得到当前选中了哪几行，以及每行的内容？
+
+    在 Vim Script 中，你可以通过以下方式获取 visual 模式下选中的行范围和内容：
+
+    1. 获取选中行的范围
+
+        ```vim
+        " 获取起始行和结束行
+        let start_line = line("'<")  " 视觉模式起始行
+        let end_line = line("'>")    " 视觉模式结束行
+
+        " 示例使用
+        function! GetVisualSelectionRange()
+            let start_line = line("'<")
+            let end_line = line("'>")
+            echo "选中的行范围: " . start_line . " 到 " . end_line
+            return [start_line, end_line]
+        endfunction
+        ```
+
+    2. 获取选中行的内容
+
+        ```vim
+        " 方法1: 使用 getline() 函数
+        function! GetVisualSelectionLines()
+            let start_line = line("'<")
+            let end_line = line("'>")
+            let lines = []
+            
+            for lnum in range(start_line, end_line)
+                call add(lines, getline(lnum))
+            endfor
+            
+            return lines
+        endfunction
+
+        " 方法2: 更简洁的方式
+        function! GetVisualSelectionLines2()
+            let [start_line, end_line] = [line("'<"), line("'>")]
+            return map(range(start_line, end_line), 'getline(v:val)')
+        endfunction
+        ```
+
+    3. 完整示例：获取选中行信息
+
+        ```vim
+        function! PrintVisualSelectionInfo()
+            " 保存当前寄存器
+            let old_reg = @"
+            
+            " 复制选中内容到无名寄存器
+            normal! gv"xy
+            
+            " 获取行范围
+            let start_line = line("'<")
+            let end_line = line("'>")
+            
+            " 获取行数
+            let line_count = end_line - start_line + 1
+            
+            " 获取内容（通过寄存器）
+            let selected_text = @x
+            
+            " 恢复寄存器
+            let @" = old_reg
+            
+            " 输出信息
+            echo "起始行: " . start_line
+            echo "结束行: " . end_line
+            echo "总行数: " . line_count
+            echo "内容:"
+            echo selected_text
+            
+            return {
+                \ 'start': start_line,
+                \ 'end': end_line,
+                \ 'count': line_count,
+                \ 'text': selected_text,
+                \ 'lines': split(selected_text, '\n')
+                \ }
+        endfunction
+        ```
+
+    4. 使用建议
+
+        基础使用：
+
+        ```vim
+        " 在 visual 模式下选中的行上执行
+        vnoremap <leader>p :<C-u>call PrintVisualSelectionInfo()<CR>
+        ```
+
+        更实用的函数：
+
+        ```vim
+        function! ProcessVisualSelection() range
+            " a:firstline 和 a:lastline 自动包含选中范围
+            let lines = []
+            for lnum in range(a:firstline, a:lastline)
+                let line_content = getline(lnum)
+                " 对每行进行处理
+                " ...
+                call add(lines, line_content)
+            endfor
+            
+            return lines
+        endfunction
+
+        " 映射
+        vnoremap <leader>s :call ProcessVisualSelection()<CR>
+        ```
+
+    5. 注意事项
+
+        '< 和 '> 标记：只在 visual 模式退出后有效
+
+        列选择模式：如果是在 visual block 模式，上面的方法会获取整行
+
+        跨行选择：如果选择不是整行，getline() 会返回整行内容
+
+        性能：对于大量行的选择，考虑性能影响
+
+    6. 获取精确选择内容（包括部分行）
+
+        ```vim
+        function! GetExactVisualSelection()
+            " 保存寄存器
+            let old_reg = @"
+            
+            try
+                normal! gv"xy
+                let selected = @x
+            finally
+                let @" = old_reg
+            endtry
+            
+            return selected
+        endfunction
+        ```
+
+    这样你就可以在 Vim Script 中获取并处理 visual 模式下选中的行了。
+
+* 还有哪些常用的内置函数，像 getline() 这种
+
+    Vim 有许多强大的内置函数，以下分类介绍常用的函数：
+
+    1. 缓冲区相关函数
+
+        ```vim
+        " 获取当前缓冲区编号
+        let bufnum = bufnr('%')
+
+        " 获取缓冲区名称
+        let bufname = bufname('%')
+
+        " 获取所有缓冲区列表
+        let buflist = getbufinfo()
+
+        " 判断缓冲区是否修改过
+        if getbufinfo(bufnr('%'))[0].changed
+            echo "缓冲区已修改"
+        endif
+
+        " 设置缓冲区选项
+        call setbufvar(bufnr('%'), '&modifiable', 1)
+
+        " 获取行数
+        let total_lines = line('$')
+        ```
+
+    2. 窗口和标签页相关
+
+        ```vim
+        " 获取当前窗口编号
+        let winnum = winnr()
+
+        " 获取窗口列表
+        let winlist = getwininfo()
+
+        " 获取当前标签页编号
+        let tabnum = tabpagenr()
+
+        " 获取标签页列表
+        let tablist = gettabinfo()
+
+        " 窗口高度和宽度
+        let winheight = winheight(0)
+        let winwidth = winwidth(0)
+        ```
+
+    3. 文本操作函数
+
+        ```vim
+        " 获取指定行
+        let line_content = getline(5)
+
+        " 设置指定行内容
+        call setline(5, "新内容")
+
+        " 添加行到缓冲区
+        call append(10, ["新行1", "新行2"])
+
+        " 删除行
+        call deletebufline('%', 10, 15)  " 删除10-15行
+
+        " 获取光标位置
+        let [row, col] = [line('.'), col('.')]
+
+        " 设置光标位置
+        call cursor(10, 5)
+
+        " 搜索文本
+        let match_line = search('pattern', 'n')  " 不移动光标
+
+        " 获取匹配位置
+        let [match_line, match_col] = searchpos('pattern', 'n')
+        ```
+
+    4. 字符串处理函数
+
+        ```vim
+        " 字符串长度
+        let len = strlen("string")
+
+        " 子字符串
+        let sub = strpart("hello world", 6, 5)  " world
+
+        " 分割字符串
+        let parts = split("a,b,c", ',')  " ['a','b','c']
+
+        " 连接字符串
+        let joined = join(['a','b','c'], '-')  " a-b-c
+
+        " 转换大小写
+        let upper = toupper("hello")
+        let lower = tolower("HELLO")
+
+        " 替换字符串
+        let new_str = substitute("hello world", "world", "vim", "")
+
+        " 匹配正则表达式
+        if "hello" =~ '^h'
+            echo "以h开头"
+        endif
+
+        " 格式化字符串
+        let formatted = printf("行号: %d, 内容: %s", 10, getline(10))
+        ```
+
+    5. 列表和字典函数
+
+        ```vim
+        " 列表操作
+        let list = [1, 2, 3]
+        call add(list, 4)           " 添加元素
+        let item = remove(list, 0)  " 删除元素
+        let idx = index(list, 3)    " 查找索引
+        let len = len(list)         " 长度
+        call reverse(list)          " 反转
+        call sort(list)             " 排序
+
+        " 字典操作
+        let dict = {'key': 'value'}
+        let val = get(dict, 'key', 'default')  " 安全获取
+        let keys = keys(dict)                  " 所有键
+        let values = values(dict)              " 所有值
+        let has_key = has_key(dict, 'key')     " 检查键是否存在
+
+        " 映射函数
+        let doubled = map([1,2,3], 'v:val * 2')  " [2,4,6]
+        let filtered = filter([1,2,3,4], 'v:val > 2')  " [3,4]
+        ```
+
+    6. 文件系统函数
+
+        ```vim
+        " 检查文件是否存在
+        if filereadable('/path/to/file')
+            echo "文件可读"
+        endif
+
+        " 获取文件大小
+        let size = getfsize('/path/to/file')
+
+        " 读取文件内容
+        let content = readfile('/path/to/file')
+
+        " 写入文件
+        call writefile(['line1', 'line2'], '/path/to/file')
+
+        " 获取当前文件目录
+        let dir = expand('%:p:h')
+
+        " 文件名相关
+        let full_path = expand('%:p')     " 完整路径
+        let filename = expand('%:t')      " 仅文件名
+        let extension = expand('%:e')     " 扩展名
+        let directory = expand('%:p:h')   " 目录
+        ```
+
+    7. 时间和日期函数
+
+        ```vim
+        " 获取当前时间戳
+        let timestamp = localtime()
+
+        " 格式化时间
+        let time_str = strftime('%Y-%m-%d %H:%M:%S')
+
+        " 时间计算
+        let future_time = localtime() + 3600  " 1小时后
+
+        " 测量执行时间
+        let start = reltime()
+        " 执行代码...
+        let elapsed = reltime(start)
+        echo "耗时: " . reltimestr(elapsed)
+        ```
+
+    8. 正则表达式和模式匹配
+
+        ```vim
+        " 匹配函数
+        let matched = match("hello world", "world")  " 返回匹配位置
+        let list = matchlist("abc123def", '\([a-z]\+\)\d\+')  " 返回匹配列表
+
+        " 替换
+        let new_str = substitute("hello world", '\l\+', '\U\0', 'g')  " HELLO WORLD
+        ```
+
+    9. 用户交互函数
+
+        ```vim
+        " 获取用户输入
+        let name = input("请输入姓名: ")
+
+        " 确认对话框
+        let choice = confirm("是否继续?", "&Yes\n&No\n&Cancel", 2)
+
+        " 弹出选择列表
+        let selection = inputlist(['选项1', '选项2', '选项3'])
+
+        " 显示消息
+        echo "普通消息"
+        echomsg "带历史的消息"
+        echoerr "错误消息"
+        ```
+
+    10. 系统相关函数
+
+        ```vim
+        " 执行系统命令
+        let result = system('ls -la')
+
+        " 获取环境变量
+        let path = $PATH
+
+        " 检查特性支持
+        if has('python3')
+            echo "支持Python3"
+        endif
+
+        " 获取Vim版本
+        let version = v:version
+        ```
+
+    11. 常用函数组合示例
+
+        ```vim
+        " 1. 读取文件并在每行前添加行号
+        function! AddLineNumbers()
+            let lines = getline(1, '$')
+            let numbered = map(range(1, len(lines)), 'printf("%4d: %s", v:val, lines[v:val-1])')
+            call setline(1, numbered)
+        endfunction
+
+        " 2. 查找并高亮所有匹配
+        function! HighlightAll(pattern)
+            let matches = []
+            let line = 1
+            while line <= line('$')
+                let col = match(getline(line), a:pattern)
+                while col != -1
+                    call add(matches, [line, col + 1])
+                    let col = match(getline(line), a:pattern, col + 1)
+                endwhile
+                let line += 1
+            endwhile
+            return matches
+        endfunction
+
+        " 3. 批量替换
+        function! BatchReplace(pattern, replacement)
+            let start_line = line("'<")
+            let end_line = line("'>")
+            
+            for lnum in range(start_line, end_line)
+                let line_content = getline(lnum)
+                let new_line = substitute(line_content, a:pattern, a:replacement, 'g')
+                call setline(lnum, new_line)
+            endfor
+        endfunction
+        ```
+
+    12. 特殊变量
+
+        ```vim
+        " 当前文件名
+        let fname = expand('%')
+
+        " 寄存器内容
+        let reg_content = @a      " 寄存器a
+        let clipboard = @*        " 系统剪贴板
+
+        " 上次搜索模式
+        let last_search = @/
+
+        " 最近执行的命令
+        let last_cmd = @:
+
+        " Vim信息变量
+        echo v:version      " Vim版本
+        echo v:servername   " 服务器名
+        echo v:count        : 命令前的计数
+        echo v:errmsg       " 错误消息
+        ```
+
+    这些函数组合使用可以创建强大的 Vim 脚本功能。建议通过 :help function-list 查看完整函数列表。
+
+* Vim 缓冲区
+
+    1. 什么是缓冲区？
+
+        缓冲区（Buffer） 是 Vim 中内存中的文本副本，代表一个打开的文件。它不等同于窗口或标签页。
+
+        关键理解：
+
+        * 缓冲区是文件的内存表示
+
+        * 一个文件可以对应多个缓冲区（但通常不建议）
+
+        * 缓冲区可以未命名（新建未保存的文件）
+
+        * 缓冲区可以在无窗口的情况下存在
+
+    2. 缓冲区的状态
+
+        缓冲区有以下几种状态：
+
+        ```vim
+        " 查看缓冲区状态
+        :ls    " 或 :buffers :files
+        ```
+
+        状态标志说明：
+
+        * `a` - 激活（active）：在当前窗口中显示
+
+        * `h` - 隐藏（hidden）：已加载但不在任何窗口显示
+
+        * `%` - 当前缓冲区
+
+        * `#` - 交替缓冲区（使用 Ctrl-^ 切换的缓冲区）
+
+        * `+` - 已修改
+
+        * `-` - 不可修改（只读模式）
+
+        * `=` - 只读缓冲区
+
+        * `x` - 有读取错误的缓冲区
+
+        * `u` - 未列出的缓冲区
+
+    3. 基本操作命令
+
+        创建/打开缓冲区：
+
+        ```vim
+        :e file.txt      " 在新缓冲区打开文件
+        :enew           " 创建新的空缓冲区
+        :sp file.txt    " 水平分割窗口并打开缓冲区
+        :vsp file.txt   " 垂直分割窗口并打开缓冲区
+        ```
+
+        缓冲区导航：
+
+        ```vim
+        :bn              " 下一个缓冲区
+        :bp              " 上一个缓冲区
+        :bf              " 第一个缓冲区
+        :bl              " 最后一个缓冲区
+        :b#              " 切换到交替缓冲区
+        Ctrl-^           " 快速切换交替缓冲区
+        ```
+
+        按编号/名称切换：
+
+        ```vim
+        :b 2             " 切换到2号缓冲区
+        :b file.txt      " 切换到包含该文件名的缓冲区
+        :b <Tab>         " 补全缓冲区名称
+        ```
+
+        关闭缓冲区：
+
+        ```vim
+        :bd              " 删除当前缓冲区
+        :bd 2            " 删除2号缓冲区
+        :bd file.txt     " 删除指定文件缓冲区
+        :%bd             " 删除所有缓冲区
+        :bd!             " 强制删除（不保存修改）
+        ```
+
+    4. 缓冲区列表管理
+
+        ```vim
+        " 查看缓冲区列表
+        :ls              " 简短列表
+        :buffers         " 完整列表
+        :files           " 同:buffers
+
+        " 只列出某些缓冲区
+        :ls!             " 列出包括未列出的缓冲区
+        :filter /pattern/ ls   " 过滤显示
+        ```
+
+    5. 缓冲区选项
+
+        每个缓冲区可以有自己的本地选项：
+
+        ```vim
+        " 设置缓冲区特定选项
+        :setlocal tabstop=4
+        :setlocal shiftwidth=4
+        :setlocal filetype=python
+
+        " 查看缓冲区选项差异
+        :setlocal
+
+        " 缓冲区变量
+        let b:my_var = "value"  " 缓冲区局部变量
+        echo b:changedtick     " 修改次数计数器
+        ```
+
+    6. 实用技巧和命令
+
+        多文件操作：
+
+        ```vim
+        " 批量保存所有修改的缓冲区
+        :wa              " write all
+
+        " 批量放弃所有修改
+        :qa!             " quit all without saving
+        ```
+
+        缓冲区导航映射：
+
+        ```vim
+        " 在 ~/.vimrc 中添加
+        nnoremap <leader>bn :bn<CR>
+        nnoremap <leader>bp :bp<CR>
+        nnoremap <leader>bd :bd<CR>
+        nnoremap <leader>bl :ls<CR>
+        nnoremap <leader>b# :b#<CR>
+        ```
+
+        智能缓冲区切换：
+
+        ```vim
+        " 使用 fzf.vim 插件增强
+        nnoremap <C-b> :Buffers<CR>
+        ```
+
+    7. 缓冲区 vs 窗口 vs 标签页
+
+        概念	说明	类比
+        缓冲区	内存中的文件	文件本身
+        窗口	查看缓冲区的视口	查看器/窗口
+        标签页	窗口的集合	工作区/桌面
+
+        ```vim
+        " 关系示例
+        :tabnew file.txt  " 在新标签页创建窗口显示缓冲区
+        :split file.txt   " 在新窗口显示同一缓冲区
+        :vsplit file.txt  " 在垂直窗口显示同一缓冲区
+        ```
+
+    8. 缓冲区相关函数（Vim Script）
+
+        ```vim
+        " 获取当前缓冲区编号
+        let bufnum = bufnr('%')
+        let bufnum = bufnr()       " 同 bufnr('%')
+
+        " 获取缓冲区名称
+        let name = bufname('%')
+        let fullname = expand('%:p')  " 完整路径
+
+        " 检查缓冲区是否存在
+        if buflisted(bufnum)
+            echo "缓冲区在列表中"
+        endif
+
+        " 获取缓冲区信息
+        let info = getbufinfo(bufnum)
+        echo info[0].name         " 文件名
+        echo info[0].changed      " 是否修改
+        echo info[0].hidden       " 是否隐藏
+        echo info[0].lastused     " 最后使用时间
+
+        " 获取所有缓冲区
+        let buflist = getbufinfo({'buflisted': 1})
+
+        " 缓冲区选项操作
+        call setbufvar(bufnum, '&modifiable', 1)  " 设置选项
+        let mod = getbufvar(bufnum, '&modified')  " 获取选项
+
+        " 创建新缓冲区
+        let new_buf = bufadd('newfile.txt')
+        call bufload(new_buf)
+        ```
+
+    9. 实用配置示例
+
+        自动保存会话（包含缓冲区）：
+
+        ```vim
+        " ~/.vimrc
+        set sessionoptions+=buffers  " 保存会话时包括缓冲区
+        autocmd VimLeave * mksession! ~/.vim/session.vim
+        autocmd VimEnter * source ~/.vim/session.vim
+        ```
+
+        缓冲区关闭时自动删除隐藏缓冲区：
+
+        ```vim
+        function! DeleteHiddenBuffers()
+            let tpbl=[]
+            call map(range(1, tabpagenr('$')), 'extend(tpbl, tabpagebuflist(v:val))')
+            for buf in filter(range(1, bufnr('$')), 'bufexists(v:val) && index(tpbl, v:val)==-1')
+                silent execute 'bwipeout' buf
+            endfor
+        endfunction
+        command! BDH call DeleteHiddenBuffers()
+        ```
+
+        缓冲区切换增强：
+
+        ```vim
+        " 只显示已修改的缓冲区
+        function! ListModifiedBuffers()
+            let modified = []
+            for buf in range(1, bufnr('$'))
+                if getbufvar(buf, '&modified')
+                    call add(modified, bufname(buf) . ' (' . buf . ')')
+                endif
+            endfor
+            echo "已修改的缓冲区:"
+            for name in modified
+                echo name
+            endfor
+        endfunction
+        ```
+
+    10. 常见问题解决
+
+        问题1：缓冲区太多难以管理
+
+        ```vim
+        " 只保留活动缓冲区
+        :bufdo bd | tabonly  " 危险！会丢失未保存内容
+
+        " 更好的方式：只保存重要缓冲区
+        :set hidden          " 允许隐藏已修改的缓冲区
+        ```
+
+        问题2：忘记保存哪个缓冲区
+
+        ```vim
+        " 显示所有已修改缓冲区
+        :ls +  " 只显示已修改的缓冲区
+
+        " 自动保存会话
+        :mksession! mysession.vim
+        ```
+
+        问题3：缓冲区编号混乱
+
+        ```vim
+        " 按使用频率排序显示
+        :ls u  " 按上次使用时间排序
+
+        " 使用插件如：
+        " - fzf.vim
+        " - bufexplorer
+        " - miniBufExpl
+        ```
+
+    11. 最佳实践
+
+        使用 :set hidden：允许隐藏已修改的缓冲区而不强制保存
+
+        合理使用窗口：不要为每个缓冲区开新窗口
+
+        定期清理：关闭不再需要的缓冲区
+
+        使用缓冲区局部变量：避免全局污染
+
+        结合会话管理：保存工作状态
+
+    12. 插件推荐
+
+        fzf.vim：模糊查找缓冲区
+
+        vim-bufferline：在状态栏显示缓冲区
+
+        bufexplorer：专用缓冲区管理器
+
+        vim-startify：更好的启动界面，显示最近缓冲区
+
+    理解缓冲区是掌握 Vim 高效编辑的关键。缓冲区让 Vim 能够同时处理多个文件而不需要多个编辑器实例。
+
+    注：
+
+    1. 缓冲区即打开的文件的内容。
+
+* vim `nnoremap`
+
+    nnoremap 是 Vim 中用于定义快捷键映射（key mapping） 的核心命令之一。以下是它的详细用法介绍：
+
+    基本语法
+
+    ```vim
+    nnoremap <新按键> <执行的操作>
+    ```
+
+    关键特点
+
+    1. 非递归映射
+
+        * `nnoremap` 中的 `n` 表示 Normal 模式，`nore` 表示 非递归
+
+        * 如果映射右侧包含其他映射键，不会再次触发映射
+
+        * 对比：`nmap` 是递归映射，可能导致无限循环
+
+        ```vim
+        " 安全：不会再次触发映射
+        nnoremap ; :
+
+        " 危险：可能造成无限循环
+        nmap ; :
+        nmap : ;
+        ```
+
+    2. 模式限定
+
+        * 只在 Normal 模式 下生效
+
+        其他常用变体：
+
+        ```vim
+        inoremap    " Insert 模式
+        vnoremap    " Visual 模式
+        cnoremap    " Command-line 模式
+        onoremap    " Operator-pending 模式
+        noremap!    " 在 插入模式（Insert mode） 和 命令行模式（Command-line mode） 中创建非递归的键映射。
+        ```
+
+    **常用示例**
+
+    * 基础用法
+
+        ```vim
+        " 将空格键设为 leader 键（常用前缀键）
+        nnoremap <Space> <Nop>
+        let mapleader = " "
+
+        " 使用 leader 键的组合映射
+        nnoremap <leader>w :w<CR>        " 保存文件
+        nnoremap <leader>q :q<CR>        " 退出
+        nnoremap <leader>fs :w<CR>       " 快速保存
+
+        " 窗口导航
+        nnoremap <C-h> <C-w>h            " 切换到左侧窗口
+        nnoremap <C-j> <C-w>j            " 切换到下方窗口
+        nnoremap <C-k> <C-w>k            " 切换到上方窗口
+        nnoremap <C-l> <C-w>l            " 切换到右侧窗口
+        ```
+
+    * 特殊按键
+
+        ```vim
+        " 使用特殊键
+        nnoremap <Esc> :nohlsearch<CR>   " 按 Esc 清除搜索高亮
+        nnoremap <CR> o<Esc>             " 回车在当前行下方插入新行
+        nnoremap <BS> X                  " 退格键删除前一个字符
+
+        " 功能键
+        nnoremap <F2> :set invpaste paste?<CR>  " F2切换粘贴模式
+        nnoremap <F5> :source ~/.vimrc<CR>      " F5重新加载配置
+        ```
+
+    **实用技巧**
+
+    ```vim
+    " 快速编辑配置文件
+    nnoremap <leader>ev :vsplit $MYVIMRC<CR>
+    nnoremap <leader>sv :source $MYVIMRC<CR>
+
+    " 缓冲区操作
+    nnoremap <leader>bn :bnext<CR>   " 下一个缓冲区
+    nnoremap <leader>bp :bprevious<CR> " 上一个缓冲区
+    nnoremap <leader>bd :bdelete<CR> " 删除缓冲区
+
+    " 快速移动
+    nnoremap H ^                     " H 移动到行首
+    nnoremap L $                     " L 移动到行尾
+    nnoremap J 5j                    " J 向下移动5行
+    nnoremap K 5k                    " K 向上移动5行
+
+    " 大小写转换
+    nnoremap <leader>u viwU          " 将当前单词转为大写
+    nnoremap <leader>l viwu          " 将当前单词转为小写
+    ```
+
+    最佳实践
+
+    1. 始终使用非递归映射
+
+        除非有特殊需求，否则优先使用 `nnoremap` 而不是 `nmap`，避免意外递归。
+
+    2. 使用 <leader> 前缀
+
+        ```vim
+        let mapleader = ","  " 设置 leader 键为逗号
+        nnoremap <leader>s :w<CR>
+        ```   
+
+    3. 查看现有映射
+    
+        ```vim
+        :map           " 查看所有映射
+        :nmap          " 查看 Normal 模式映射
+        :verbose nmap  " 查看映射及其定义位置
+        ```
+
+    4. 取消映射
+
+        ```vim
+        :nunmap <按键>  " 取消 Normal 模式映射
+        ```
+
+    5. 条件映射
+
+        ```vim
+        " 只在特定文件类型生效
+        autocmd FileType python nnoremap <buffer> <leader>r :!python %<CR>
+        ```
+
+    注意事项
+
+    * 映射覆盖：映射会覆盖默认功能，确保不会影响常用操作
+
+    * 兼容性：在不同终端中，特殊键的表示可能不同
+
+    * 可读性：复杂的映射建议加上注释说明
+
+    * 冲突检查：使用 :nmap 检查是否已有映射
+
+    通过合理使用 nnoremap，可以极大提升 Vim 的工作效率，打造个性化的编辑环境。
+
+* 查看 nnoremap 支持的所有特殊按键
+
+    在 Vim 中查看支持的特殊按键（key codes），有几种方法：
+
+    1. 查看官方文档
+
+        最全面的方法是查看 Vim 的官方帮助文档：
+        
+        ```vim
+        :help key-notation      " 查看所有按键表示法
+        :help <>                " 查看特殊键列表
+        :help keycodes          " 详细按键代码说明
+        ```
+
+    2. 主要特殊按键列表
+
+        基础控制键
+
+        ```vim
+        <CR>       回车（Carriage Return）
+        <Esc>      退出键
+        <Tab>      Tab 键
+        <BS>       退格键（Backspace）
+        <Del>      删除键
+        <Space>    空格键
+        <Bar>      竖线符号（|）
+        <Bslash>   反斜杠（\）
+        ```
+
+        方向键和功能键
+
+        ```vim
+        <Up>       上箭头
+        <Down>     下箭头
+        <Left>     左箭头
+        <Right>    右箭头
+
+        <F1> - <F12>     功能键 F1 到 F12
+        <F13> - <F37>    扩展功能键（如有）
+        <S-F1> - <S-F12> Shift + 功能键
+        ```
+
+        修饰键组合
+
+        ```vim
+        <C-...>    Ctrl 组合键，如：<C-a>, <C-b>, <C-Space>
+        <A-...>    Alt 键（在终端中可能表示为 <M-...>）
+        <M-...>    Meta 键（通常与 Alt 相同）
+        <S-...>    Shift 组合键，如：<S-Tab>, <S-F1>
+        <D-...>    Command 键（macOS）
+
+        <C-S-...>   Ctrl+Shift 组合，如：<C-S-a>
+        <A-S-...>   Alt+Shift 组合
+        ```
+
+        特殊符号键
+
+        ```vim
+        <lt>       小于号（<），用于避免被解析为按键开始
+        <gt>       大于号（>）
+        <Bslash>   反斜杠
+        <Bar>      竖线
+        ```
+
+        鼠标按键
+
+        ```vim
+        <LeftMouse>     鼠标左键
+        <MiddleMouse>   鼠标中键
+        <RightMouse>    鼠标右键
+        <2-LeftMouse>   双击左键
+        <3-LeftMouse>   三击左键
+        ```
+
+        其他特殊键
+
+        ```vim
+        <Insert>        Insert 键
+        <Home>          Home 键
+        <End>           End 键
+        <PageUp>        Page Up
+        <PageDown>      Page Down
+
+        <Help>          Help 键
+        <Undo>          Undo 键
+        <Redo>          Redo 键
+        <Print>         Print Screen
+        <Pause>         Pause/Break
+        ```
+
+    3. 实用查看方法
+
+        方法一：使用 showkey 命令（Linux）
+
+        ```bash
+        # 在终端中查看按键代码
+        showkey -a
+        # 按键后会显示十进制和十六进制代码
+        ```
+
+        方法二：在 Vim 中测试按键
+
+        ```vim
+        " 1. 插入模式查看按键代码
+        i<C-v>然后按特殊键
+
+        " 2. 使用 :echo 测试
+        :echo getchar()    " 按下一个键，显示其代码
+        :echo keytrans(getchar())  " 转换为可读形式
+
+        " 3. 查看最后按下的键
+        :echo v:termresponse     " 显示终端响应
+        ```
+
+        方法三：查看当前终端支持的键码
+
+        ```vim
+        " 查看终端键码设置
+        :set termcap
+
+        " 查看所有 termcap 条目
+        :set termcap?
+        ```
+
+    4. 诊断按键问题
+
+        ```vim
+        " 1. 设置 verbose 模式查看键码
+        :set verbose=15
+        " 然后尝试按键，Vim 会显示详细日志
+
+        " 2. 检查 terminfo/termcap
+        :echo &term          " 查看终端类型
+        :echo $TERM          " 查看环境变量
+
+        " 3. 使用捕获模式
+        :map <F13>           " 如果不知道键名，可以先映射一个不存在的键
+        " 然后按下你想测试的键，Vim 会显示其名称
+        ```
+
+    5. 常见问题解决
+
+        终端中的特殊键问题
+
+        ```vim
+        " 在 ~/.vimrc 中添加终端兼容性设置
+        if !has('gui_running')
+          " 确保方向键正常工作
+          set term=$TERM
+          set ttyfast
+          
+          " 某些终端需要明确的键码设置
+          if &term =~ '^screen' || &term =~ '^tmux'
+            " tmux/screen 兼容性
+            execute "set <xUp>=\e[1;*A"
+            execute "set <xDown>=\e[1;*B"
+            execute "set <xRight>=\e[1;*C"
+            execute "set <xLeft>=\e[1;*D"
+          endif
+        endif
+        ```
+
+        检查特定按键的映射
+
+        ```vim
+        " 查看某个按键是否已被映射
+        :map <Tab>           " 查看 Tab 键的所有映射
+        :nmap <Tab>          " 只查看 Normal 模式的 Tab 映射
+
+        " 查看映射来自哪里
+        :verbose map <Tab>
+        ```
+
+    6. 创建测试映射来识别未知键
+
+        ```vim
+        " 方法：将未知键映射到可识别的操作
+        nnoremap <F20> :echo "特殊键被按下"<CR>
+        " 然后按下你想识别的键，如果看到消息，说明键名是 <F20>
+
+        " 或者使用这个技巧：
+        :nnoremap \| :echo "按键代码:" getchar()<CR>
+        ```
+
+    7. 实用脚本：显示按键信息
+
+        ```vim
+        " 在 vimrc 中添加以下函数
+        function! ShowKey()
+          let c = getchar()
+          echom "按键代码:" c
+          echom "按键名称:" keytrans(c)
+          echom "字符表示:" nr2char(c)
+        endfunction
+
+        " 映射一个快捷键来测试
+        nnoremap <leader>k :call ShowKey()<CR>
+        ```
+
+    注意事项：
+
+    * GUI Vim 和终端 Vim 的键码支持可能不同
+
+    * 不同终端（iTerm2, GNOME Terminal, tmux, screen）可能有差异
+
+    * 组合键在不同环境中的表示可能不同（如 <C-Space> 在某些终端中不可用）
+
+    * 使用 :help 总是最可靠的信息来源
+
+    最常用的特殊键包括：<Space>, <CR>, <Esc>, <Tab>, <C-字母>, 方向键和功能键。
+
+* 在插入模式（Insert mode）下，ctrl + h 作用为删除前一个字符（等同于 Backspace 退格键）
+
+    这是因为在早期的终端中，Ctrl+h 被用作退格键的替代（ASCII 码为 8）。Vim 保留了这一传统支持，尤其是在终端环境中。
+
+    在 Vim 分屏（split window）环境下，<C-w> h 用于向左切换窗口，但注意这不是 <C-h>（后者没有 w 前缀）。
+
+* vim 中常见的映射模式
+
+    命令	作用模式	是否递归	说明
+    map	普通、可视、选择、操作符等待	递归	通用映射（已弃用，建议用模式专用命令）
+    nmap	普通模式	递归	Normal mode
+    imap	插入模式	递归	Insert mode
+    cmap	命令行模式	递归	Command-line mode
+    noremap!	插入模式和命令行模式	非递归	Insert + Command-line，非递归
+    inoremap	插入模式	非递归	Insert mode only
+    cnoremap	命令行模式	非递归	Command-line mode only
+    nnoremap	普通模式	非递归	Normal mode only
+
+* noremap! 的 ! 表示映射适用于插入模式和命令行模式
+
+    noremap → 普通、可视、选择模式（无 !）
+
+    noremap! → 插入和命令行模式（有 !）
+
+* 在 Vim 的命令行中，! 用于执行外部 shell 命令：
+
+    ```vim
+    :!ls          " 执行 ls 命令
+    :!python3 script.py  " 执行 Python 脚本
+    :w !sudo tee %  " 常用技巧：用 sudo 保存文件
+    ```
+
+* 在替换命令中，! 表示忽略大小写：
+
+    ```vim
+    :s/foo/bar/     " 将 foo 替换为 bar（区分大小写）
+    :s/foo/bar/i    " i 表示忽略大小写
+    :s/foo/bar/gi   " g 全局，i 忽略大小写
+    ```
+
+    实际上，i 标志更常用，但 ! 在 Vim 的正则表达式中有时也用于此目的。
+
+* 在自动命令中：autocmd! 的 ! 表示清除之前的所有同类自动命令：
+
+    ```vim
+    " 清除所有 FileType 自动命令，避免重复定义
+    autocmd! FileType python
+    autocmd FileType python setlocal shiftwidth=4
+    ```
+
+* 在设置选项中：set !option 的 ! 表示切换/取反：
+
+    ```vim
+    :set number     " 显示行号
+    :set nonumber   " 不显示行号
+    :set number!    " 切换行号显示状态（显示←→不显示）
+    :set invnumber  " 同上，inv = invert
+    ```
+
+* 在缓冲区命令中：b! 的 !
+
+    ```vim
+    :b 2     " 切换到缓冲区 2（如果有未保存修改会失败）
+    :b! 2    " 强制切换到缓冲区 2（丢弃当前缓冲区未保存修改）
+    ```
+
+* 在模式切换中：! 用于临时进入命令模式
+
+    在普通模式下，Q 进入 Ex 模式，而 gQ 则不同，但 ! 可以配合：
+
+    ```vim
+    :!ls      " 普通模式按 :! 然后输入命令
+    ```
+
 * vim 快速添加空格
 
     ```vim
