@@ -6,6 +6,228 @@
 
 ## cache
 
+* matlab 命令行
+
+    * 通过 `matlab -nodisplay -nosplash -r "command"` 在终端中运行命令（适用于 Linux/macOS）
+
+        windows 下尝试了一下，这个会打开新的 matlab 窗口，并在 command line 窗口中执行。
+
+    * `octave --eval "command"` 在终端中执行单行命令。
+
+* matlab table
+
+    table 类型是MATLAB中用于存储异构数据的表格型数据结构，类似于电子表格或数据库表。
+
+    1. 创建table
+
+        ```matlab
+        % 从变量创建
+        names = {'Alice'; 'Bob'; 'Charlie'};
+        ages = [25; 30; 35];
+        scores = [85.5; 92.0; 78.5];
+        T = table(names, ages, scores, ...
+                  'VariableNames', {'Name', 'Age', 'Score'});
+
+        % 从文件导入
+        T = readtable('data.csv');
+        ```
+
+        注：
+
+        1. 为什么 names 使用的是`{}`，而其他的使用的是`[]`？
+
+            可以写成`names = ['Alice'; 'Bob'; 'Charlie']`吗？
+
+            2025/12/30/00: 不可以。报错如下：`Error using vertcat`, `Dimensions of arrays being concatenated are not consistent.`
+
+        1. names 可以使用字符串数组，写成
+
+            `names = ["Alice"; "Bob"; "Charlie"]`
+
+    2. 访问数据
+
+        ```matlab
+        % 按列名访问
+        T.Age        % 返回数值向量
+        T.('Name')   % 返回元胞数组
+
+        % 索引访问
+        T(1:2, :)              % 前两行
+        T(:, {'Name', 'Age'})  % 特定列
+        T{1:2, 'Age'}          % 提取数值数据
+        T{1, 'Name'}           % 单个元素
+        ```
+
+        注：
+
+        1. `T.('Name')`返回的是列向量，并不一定都是元胞数组
+
+            比如`T.("Age")`输出如下：
+
+            ```
+            >> a = T.("Age")
+
+            a =
+
+                25
+                30
+                35
+
+            >> class(T.("Age"))
+
+            ans =
+
+                'double'
+            ```
+
+    3. 修改和添加
+
+        ```matlab
+        % 添加新列
+        T.Gender = {'F'; 'M'; 'M'}';
+
+        % 修改数据
+        T.Age(2) = 31;
+
+        % 重命名变量
+        T.Properties.VariableNames = {'FullName', 'Years', 'Grade'};
+        ```
+
+        注：
+
+        1. table 中只能用列向量添加新列
+
+    4. 常用操作
+
+        ```matlab
+        % 筛选数据
+        young = T(T.Age < 30, :);  % 年龄小于30的行
+
+        % 排序
+        sortedT = sortrows(T, 'Age');
+
+        % 分组统计
+        groupsummary(T, 'Gender', 'mean', 'Score')  % 按性别分组求平均分
+
+        % 连接表格
+        T2 = [T; newRows];       % 垂直连接
+        T3 = [T, additionalCol]; % 水平连接
+        ```
+
+    5. 实用属性
+
+        ```matlab
+        T.Properties.VariableNames    % 查看列名
+        T.Properties.Description = '学生数据表'  % 添加描述
+        T.Properties.RowNames = {'S1','S2','S3'}  % 设置行名
+        ```
+
+        注：
+
+        1. 列名返回的是 cell array
+
+            ```
+            >> T.Properties.VariableNames
+
+            ans =
+
+            1×4 cell array
+
+            Columns 1 through 3
+
+                {'Name'}    {'Age'}    {'Score'}
+
+            Column 4
+
+                {'Gender'}
+            ```
+
+    6. 类型转换
+
+        ```matlab
+        % table 转矩阵（数值列）
+        M = T{:, {'Age', 'Score'}};
+
+        % table 转元胞数组
+        C = table2cell(T);
+
+        % 转置
+        T_transpose = rows2vars(T);
+        ```
+
+    特点总结：
+
+    * 异构数据：每列可包含不同类型数据（数值、字符、逻辑等）
+
+    * 列名访问：支持通过变量名直接访问列数据
+
+    * 数据完整性：保持数据与元数据的关联
+
+    * 集成分析：与统计、机器学习工具箱良好兼容
+
+    table 类型特别适合处理结构化数据，是替代 dataset 类型的现代推荐方式。
+
+    注：
+
+    1. dataset 类型是 matlab 的旧类型，已被抛弃
+
+    1. table 有点像 pandas DataFrame 的感觉
+
+* matlab 垂直拼接字符串
+
+    代码与报错如下：
+
+    ```
+    >> names = ['Alice'; 'Bob'; 'Charlie']
+    Error using vertcat
+    Dimensions of arrays being concatenated are
+    not consistent.
+    ```
+
+    解释：
+
+    这个错误是因为你使用分号 ; 进行垂直拼接时，三个字符串的长度不一致。
+
+    在 MATLAB 中：
+
+    * 使用方括号 [] 加 分号 ; 表示垂直拼接（vertcat）
+
+    * 垂直拼接要求所有行具有相同的列数（字符串长度）
+
+    * 'Alice' 有5个字符，'Bob' 有3个字符，'Charlie' 有7个字符
+
+    解决方案：
+
+    方案1：使用字符数组（要求填充空格使长度一致）
+
+    ```matlab
+    names = ['Alice  '; 'Bob    '; 'Charlie'];
+    % 或者使用 char 函数自动填充
+    names = char('Alice', 'Bob', 'Charlie');
+    ```
+
+    方案2：使用元胞数组（推荐，更灵活）
+
+    ```matlab
+    names = {'Alice'; 'Bob'; 'Charlie'};
+    % 访问：names{1}, names{2}, names{3}
+    ```
+
+    方案3：使用字符串数组（MATLAB R2016b+）
+
+    ```matlab
+    names = ["Alice"; "Bob"; "Charlie"];
+    % 访问：names(1), names(2), names(3)
+    ```
+
+    方案4：转置为水平拼接（如果不需要垂直排列）
+
+    ```matlab
+    names = ['Alice', 'Bob', 'Charlie'];  % 水平拼接
+    ```
+
+    推荐使用元胞数组或字符串数组，因为它们可以处理不同长度的字符串，而且更符合现代 MATLAB 编程习惯。
+
 * matlab disp 技巧
 
     使用拼接的字符串显示稍微复杂些的内容。

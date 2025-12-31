@@ -343,7 +343,7 @@
 
 这里主要是暂时难以分类的任务。
 
-* [ ] 调研 zig
+* [v] 调研 zig
 
 * [ ] 写一个数字图像处理库，暂时不包含深度学习
 
@@ -554,7 +554,7 @@ english words 由 { } reorg: english words 进化而来。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
 
-* [ ] 增加正则表达式的 qa
+* [v] 增加正则表达式的 qa
 
 * [ ] 在 10 个 epoch 内拟合一条 sin 曲线
 
@@ -612,8 +612,6 @@ english words 由 { } reorg: english words 进化而来。
 
     这里的拆开指的是写成 dependency 的形式，如果 dependency 之间做过，那么直接复杂 dep 的结果，从而减少当前 unit 的 exam 时间。
 
-* 把 vim 加入到每日 qa 中
-
 * opencl 向量相加基本模板
 
     1. 在两次使用函数得到资源列表时，容易忘写第二次
@@ -634,13 +632,13 @@ english words 由 { } reorg: english words 进化而来。
 
 * 如果单个 qa file 的正确率很高，那么降低它出现的概率
 
-* 必须增加 dep 功能了，不然 qa 没法进行下去
-
 * 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
 
 * 增添新 record 时，不删减以前的 record，每三天 review 一次。
 
 ### Tasks
+
+* [ ] 把 vim 加入到每日 qa 中
 
 * [O] Python命令行参数处理包介绍 11.23, 12.01
 
@@ -909,44 +907,25 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] process 1 tab 12.29
 
-    feedback:
+* [ ] 调研 git config 设置别名
 
-    * [asso] 调研 Winget
+    ```bash
+    # 设置默认编辑器为VS Code
+    git config --global core.editor "code --wait"
 
-    * [asso] 调研 Chocolatey
+    # 设置别名
+    git config --global alias.co checkout
+    git config --global alias.br branch
+    git config --global alias.ci commit
+    git config --global alias.st status
 
-    * [ ] 调研 git config 设置别名
+    # 启用颜色输出
+    git config --global color.ui auto
+    ```
 
-        ```bash
-        # 设置默认编辑器为VS Code
-        git config --global core.editor "code --wait"
+    及其他的 git config 配置选项。
 
-        # 设置别名
-        git config --global alias.co checkout
-        git config --global alias.br branch
-        git config --global alias.ci commit
-        git config --global alias.st status
-
-        # 启用颜色输出
-        git config --global color.ui auto
-        ```
-
-        及其他的 git config 配置选项。
-
-    * [asso] GitHub Desktop
-
-    * [asso] SourceTree
-
-    * [asso] vim `noremap!`
-    
-    * [asso] 调研 vim 命令
-
-        ```vim
-        " 修复终端退格键映射
-        set backspace=indent,eol,start
-        ```
-
-* [ ] matlab table 类型
+* [v] matlab table 类型
 
 * [ ] `^=`是什么含义
 
@@ -954,11 +933,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] vim 搜索并替换：`/w<CR>i<space><Esc>`
 
-* [v] process 1 tab 12.27
-
 * [ ] vim `:split`
-
-* [v] process 1 tab 12.23
 
 * [ ] `git submodule update --init --progress`
 
@@ -1072,8 +1047,6 @@ english words 由 { } reorg: english words 进化而来。
     # 查看提交历史中是否有 .gitmodules
     git log --oneline -- .gitmodules
     ```
-
-* [v] process 1 tab 12.23
 
 * [ ] 调研 vim-unimpaired
 
@@ -1189,18 +1162,6 @@ english words 由 { } reorg: english words 进化而来。
         HostName server.example.com
         User myuser
         ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
-    ```
-
-* [v] 调研 Here Document
-
-    example:
-
-    ```bash
-    ssh user@hostname << 'EOF'
-    cd my_dir
-    ./main
-    exit
-    EOF
     ```
 
 * [asso] 调研`-t`是否可以让 ssh 保持连接
@@ -1954,89 +1915,100 @@ english words 由 { } reorg: english words 进化而来。
 
     `vim -n "set nobackup nowritebackup noundofile" file.txt`
 
+* [asso] 调研 Winget
+
+* [asso] 调研 Chocolatey
+
+* [asso] GitHub Desktop
+
+* [asso] SourceTree
+
+* [asso] vim `noremap!`
+
+* [asso] 调研 vim 命令
+
+    ```vim
+    " 修复终端退格键映射
+    set backspace=indent,eol,start
+    ```
+
 ## Matlab
 
 ### tasks
 
-* [v] `split()`
-
 * [v] `readRecording = @(filename) toml.read(filename);`
 
-    feedback:
+* [ ] 调研 matlab 命令
 
-    * [ ] 调研 matlab 命令
+    ```matlab
+    rehash toolboxcache
+    restoredefaultpath
+    savepath
 
-        ```matlab
-        rehash toolboxcache
-        restoredefaultpath
-        savepath
+    % 确保函数在MATLAB路径中
+    which yourFunctionName
+    path
+    ```
 
-        % 确保函数在MATLAB路径中
-        which yourFunctionName
-        path
-        ```
+    `profile`
 
-        `profile`
+    Simulink Data Dictionary
 
-        Simulink Data Dictionary
+* [ ] deal 函数
 
-    * [ ] deal 函数
+    ```matlab
+    % 匿名函数配合 deal
+    getTwoValues = @(x) deal(x^2, x^3);
+    [a, b] = getTwoValues(3);  % a=9, b=27
 
-        ```matlab
-        % 匿名函数配合 deal
-        getTwoValues = @(x) deal(x^2, x^3);
-        [a, b] = getTwoValues(3);  % a=9, b=27
+    % 但注意：deal 在匿名函数中需要显式调用
+    getMinMax = @(arr) deal(min(arr), max(arr));
+    [minVal, maxVal] = getMinMax([5, 2, 8, 1]);
+    ```
 
-        % 但注意：deal 在匿名函数中需要显式调用
-        getMinMax = @(arr) deal(min(arr), max(arr));
-        [minVal, maxVal] = getMinMax([5, 2, 8, 1]);
-        ```
+    deal 的限制：
 
-        deal 的限制：
+    ```matlab
+    % 这可以工作
+    f = @(x) deal(x^2, x^3);
+    [a, b] = f(2);  % a=4, b=8
 
-        ```matlab
-        % 这可以工作
-        f = @(x) deal(x^2, x^3);
-        [a, b] = f(2);  % a=4, b=8
+    % 但这不行（匿名函数中不能有多个语句）
+    % f = @(x) a = x^2; b = x^3; deal(a, b);  % 错误！
+    ```
 
-        % 但这不行（匿名函数中不能有多个语句）
-        % f = @(x) a = x^2; b = x^3; deal(a, b);  % 错误！
-        ```
+* [ ] 嵌套函数包装
 
-    * [ ] 嵌套函数包装
-
-        ```matlab
-        function [funcHandle] = createMultiReturnFunc()
-            % 创建返回多个值的函数句柄
-            funcHandle = @multiReturn;
-            
-            function [a, b, c] = multiReturn(x)
-                a = x^2;
-                b = x^3;
-                c = sqrt(x);
-            end
+    ```matlab
+    function [funcHandle] = createMultiReturnFunc()
+        % 创建返回多个值的函数句柄
+        funcHandle = @multiReturn;
+        
+        function [a, b, c] = multiReturn(x)
+            a = x^2;
+            b = x^3;
+            c = sqrt(x);
         end
+    end
 
-        % 使用
-        myFunc = createMultiReturnFunc();
-        [val1, val2, val3] = myFunc(4);  % 16, 64, 2
-        ```
+    % 使用
+    myFunc = createMultiReturnFunc();
+    [val1, val2, val3] = myFunc(4);  % 16, 64, 2
+    ```
 
 * [ ] matlab `length()`
 
-* [ ] 调研 matlab table
-
-* [v] `[lumoDIR '/' metadata.file_names.recordingdata_file]`
+* [v] 调研 matlab table
 
 * [ ] 调研 `format compact  % 紧凑显示`
 
-* [ ] 调研 matlab 是否支持类似 python 的命令行模式
+* [v] 调研 matlab 是否支持类似 python 的命令行模式
 
     如果不支持，那么 octave, julia 是否支持？
 
-* [new] matlab `a = {x, y, z};`
+* [ ] matlab `a = {x, y, z};`
 
-* [new] matlab `a = [x, y, ]`
+* [ ] matlab `a = [x, y, ]`
 
 * [new] matlab `cellfun`
 
