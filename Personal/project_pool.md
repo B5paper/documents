@@ -36,6 +36,34 @@
 
 ## cache
 
+* qa 频率可以降低到每周一次
+
+* 在调研时，可以将笔记分成几个部分
+
+	* 猜测（或者假设）
+
+		给出自己的猜测，不需要验证
+
+	* 疑问
+
+		提出的问题
+
+	* 验证
+
+		对猜测的验证
+
+	* 已经可以确定的笔记
+
+		经过验证的猜测或假设，需要背会。
+
+* 是否该引入每周的计划预期？
+
+    目前只完成了每天的计划列表，但是每周完成的任务量太少。
+
+* 锥形思维与触手
+
+    猜想：假如锥形的根节点是高级抽象的、虚拟的概念，扇形的边缘是实际的、物理的事物，很多人在锥形，或者说扇形的末端接收到信息后，一层一层传导到根节点，改变一些看法或者概念。他们的扇形边缘非常活跃，锥形顶点处则变化缓慢。还有一些人在锥形顶点处进行快速、大量的数据交换，并尝试伸出触手来到扇形边缘做实验，拿到信息，并反馈给顶点。
+
 * 家用晶圆厂
 
     * 多项目晶圆（MPW）服务
@@ -52,14 +80,6 @@
 
     * MEMS结构（如悬臂梁）
 
-* 医疗中的客观 AI
-
-    医患关系中，患者可能会觉得医生水平不够，对医生的判断提出质疑，此时使用 AI 给出辅助意见，患者会比较放心。
-
-* 想法：一个基于写调查报告的电商
-
-    电商平台对入驻商家明查暗访，定期发布调查报告、车间视频、暗访谈话、供应链追踪，清除消费者疑虑。
-
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -71,8 +91,6 @@
 	* libhv 中事件驱动的原理
 
 * 应该增加各个项目 sync 的频率
-
-* 每次想玩手机时，可以喝一口水代替
 
 * 当评价多因素的综合作用时，直接指定影响因子可能主观因素较强，目前已知的有理论依据的是贝叶斯推理，依据为联合概率分布。是否还有其他能综合考虑多因素，并且有客观依据的方法？
 
@@ -263,44 +281,6 @@
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
 
-* qa 频率可以降低到每周一次
-
-* 串行的任务执行对提高效率非常重要，因为大脑频繁切换任务会降低效率
-
-    可能训练汉语／英语文字阅读也是必要的。
-
-    猜想：大脑的各个模块各个细胞都是通过规律的频率和谐地交互信息，才能达到高度专注的效果。切换任务会切换细胞之间互相配合的模式和频率，导致模式的调整，这个过程会导致注意力无法集中，处理问题的效率降低。
-
-    使任务串行，一个非常大的挑战就是在规定的时间内使用手机，在执行任务时不看。
-
-* 如果前一天的任务清单上任务没有完成该怎么办？
-
-    目前的方案是全部判为未完成，在第二天重新从项目管理系统中获取新的任务，不再考虑这些任务。
-
-    2025/12/20/00: 如果是看都没看的，直接从当日任务中删除，这样第二天可以继续从项目池中 pick 出来；如果认为仍有必须做，也可以直接移动到下一天的任务列表。如果做了一半的，标记为 O, P 等。如果认为任务定制不合理，根本无法完成的，标记为 X。目前看来，各种情况都有了比较成熟的解决方案。
-
-* 在调研时，可以将笔记分成几个部分
-
-	* 猜测（或者假设）
-
-		给出自己的猜测，不需要验证
-
-	* 疑问
-
-		提出的问题
-
-	* 验证
-
-		对猜测的验证
-
-	* 已经可以确定的笔记
-
-		经过验证的猜测或假设，需要背会。
-
-* 是否该引入每周的计划预期？
-
-    目前只完成了每天的计划列表，但是每周完成的任务量太少。
-
 * 无序列表（cache）的弱排序
 
     将已经完成的任务放到列表的最上面，比较重要的任务紧接着放到已经完成的任务的下面。
@@ -343,37 +323,19 @@
 
 这里主要是暂时难以分类的任务。
 
-* [v] 调研 zig
-
-* [ ] 写一个数字图像处理库，暂时不包含深度学习
-
-* [ ] 调研多 gpu inference
-
-    把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
-
 * [ ] 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
-
-* [ ] java 找 package 去哪里找？
-
-* [ ] java 是否有 package manager?
-
-* [ ] java 中多线程中的 mutex 与 semaphore 如何使用？
-
-* [ ] java 如何进行 socket 编程？
-
-* [ ] java 是否有 gui 的库？
-
-* [ ] 调研 git
-
-    这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
-
-* [ ] 调研`git bisect`
 
 * [ ] 调研 Computer algebra system
 
     <https://en.wikipedia.org/wiki/Computer_algebra_system#>
 
     自动求导、符号求导等相关知识可能和这个概念有关。
+
+* [asso] 写一个数字图像处理库，暂时不包含深度学习
+
+* [asso] 调研多 gpu inference
+
+    把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
 
 * [ ] 如果有$x_1$，$x_2$两个变量，是否优化目标为修改曲面在指定点处的高度？
 
@@ -485,14 +447,27 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] `add_const_t`
+* [v] `add_const_t`
 
-* [ ] 调研 thrust
+* [v] 调研 thrust
+
+    feedback:
+
+    * [ ] CUDA Core Compute Libraries (CCCL)
+
+        <https://github.com/nvidia/cccl>
+
+    * [asso] python 简易 http 服务器
+
+        `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
+
+    * [asso] Dash/Zeal（离线API查看器）
+
+    * [asso] cppman
 
 * [O] process 1 url
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
-
 
 * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
 
@@ -553,8 +528,6 @@ english words 由 { } reorg: english words 进化而来。
     如果一个 unit 答对的频率较高，那么它被选择的概率变小。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
-
-* [v] 增加正则表达式的 qa
 
 * [ ] 在 10 个 epoch 内拟合一条 sin 曲线
 
@@ -664,26 +637,26 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研 python 处理 csv 文件
 
+* [ ] 调研 python type hint
+
+* [ ] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
+
+* [ ] 调研 python 的去重功能（unique）
+
+    ```py
+    arr_1 = ['a', 'b', 'c', 'a']
+    arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}]
+    ```
+
+    比如这种数据该如何去重？
+
+    目前的做法是`arr = list(set(arr))`，是否还有更好的办法？
+
 * [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
     感觉比较熟悉的，之前重复出现过的 unit，可以把比重设置得低一点
 
     feedback:
-
-    2. 调研 python type hint
-
-    3. py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
-
-    4. 调研 python 的去重功能（unique）
-
-        ```py
-        arr_1 = ['a', 'b', 'c', 'a']
-        arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}]
-        ```
-
-        比如这种数据该如何去重？
-
-        目前的做法是`arr = list(set(arr))`，是否还有更好的办法？
 
     5. 目前只实现了给每个 qa file 增加一个比重，并且保证在选择时，采样不到重复的 qa file
 
@@ -905,8 +878,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] process 1 tab 12.29
-
 * [ ] 调研 git config 设置别名
 
     ```bash
@@ -925,13 +896,11 @@ english words 由 { } reorg: english words 进化而来。
 
     及其他的 git config 配置选项。
 
-* [v] matlab table 类型
-
-* [ ] `^=`是什么含义
+* [v] `^=`是什么含义
 
     `set directory^=$HOME/.vim/swap//`
 
-* [ ] vim 搜索并替换：`/w<CR>i<space><Esc>`
+* [v] vim 搜索并替换：`/w<CR>i<space><Esc>`
 
 * [ ] vim `:split`
 
@@ -1325,7 +1294,7 @@ english words 由 { } reorg: english words 进化而来。
 
         <https://www.geeksforgeeks.org/nlp/machine-translation-with-transformer-in-python/>
 
-* [ ] reorg: 正则表达式 30 mins
+* [v] reorg: 正则表达式 30 mins
 
 * [ ] `qemu-system-x86_64 -enable-kvm -device pci-bridge,id=mybridge -device e1000,bus=mybridge,addr=0x1`
 
@@ -1936,8 +1905,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `readRecording = @(filename) toml.read(filename);`
-
 * [ ] 调研 matlab 命令
 
     ```matlab
@@ -1998,13 +1965,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] matlab `length()`
 
-* [v] 调研 matlab table
-
 * [ ] 调研 `format compact  % 紧凑显示`
-
-* [v] 调研 matlab 是否支持类似 python 的命令行模式
-
-    如果不支持，那么 octave, julia 是否支持？
 
 * [ ] matlab `a = {x, y, z};`
 
@@ -6330,6 +6291,12 @@ resources:
 
 ### tasks
 
+* [ ] 调研`git bisect`
+
+* [ ] 调研 git
+
+    这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
+
 * [new] `git clone --filter=blob:none --no-checkout <repo-url>`
 
 * [new] `git fetch --deepen 5  # 再获取5个历史提交`
@@ -6367,6 +6334,20 @@ resources:
     * git fetch origin 获取最新远程分支信息
 
 * [ ] 增加 git 的 qa
+
+## java
+
+### tasks
+
+* [ ] java 找 package 去哪里找？
+
+* [ ] java 是否有 package manager?
+
+* [ ] java 中多线程中的 mutex 与 semaphore 如何使用？
+
+* [ ] java 如何进行 socket 编程？
+
+* [ ] java 是否有 gui 的库？
 
 ## 其他 Miscellaneous
 

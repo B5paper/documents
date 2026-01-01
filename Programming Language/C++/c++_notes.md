@@ -4,6 +4,57 @@
 
 ## cached
 
+* add_const_t
+
+    add_const_t 是 C++ 标准库 <type_traits> 中的一个类型特性（type trait）工具，用于为给定类型添加顶层 const 限定符。
+
+    主要作用：
+
+    * 添加 const 限定：将类型 T 转换为 const T。
+
+    * 保持引用类型不变：如果 T 已经是引用类型，则不会添加 const（因为引用本身不能 const，const 会作用于引用的对象类型）。
+
+    * 保持其他限定符：通常与其他类型转换 trait 配合时，会保持 volatile 等限定符的逻辑一致性。
+
+    基本用法：
+
+    ```cpp
+    #include <type_traits>
+
+    using std::add_const_t;
+
+    // 基本类型
+    static_assert(std::is_same_v<add_const_t<int>, const int>);          // true
+    static_assert(std::is_same_v<add_const_t<double>, const double>);    // true
+
+    // 指针类型
+    static_assert(std::is_same_v<add_const_t<int*>, int* const>);        // 注意：const 修饰指针本身，不是所指对象
+    static_assert(std::is_same_v<add_const_t<int*>, const int*>);        // false！不会添加指向 const 的指针
+
+    // 引用类型（保持不变）
+    static_assert(std::is_same_v<add_const_t<int&>, int&>);              // true，引用类型不变
+    static_assert(std::is_same_v<add_const_t<const int&>, const int&>);  // true
+
+    // 已经 const 的类型
+    static_assert(std::is_same_v<add_const_t<const int>, const int>);    // true，保持不变
+    ```
+
+    相关类型特性：
+
+    * add_const<typename T>：对应的类型别名模板（::type 成员）。
+
+    * remove_const：移除顶层 const。
+
+    * add_volatile：添加 volatile。
+
+    * add_cv：同时添加 const 和 volatile。
+
+    注意：
+
+    * 对于函数类型，add_const_t 的行为可能因 C++ 标准版本而异。
+
+    * 如果需要对指针所指对象添加 const，需要先移除指针，添加 const 后再重建指针类型，或使用 `std::add_pointer_t<std::add_const_t<std::remove_pointer_t<T>>>` 这样的组合。
+
 * c++ 访问全局变量
 
     使用作用域解析运算符 ::：
