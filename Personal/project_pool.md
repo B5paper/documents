@@ -505,7 +505,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
 
-* [ ] 调研 git ignore 的实现原理
+* [v] 调研 git ignore 的实现原理
 
 * [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
@@ -613,7 +613,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 把 vim 加入到每日 qa 中
 
-* [O] Python命令行参数处理包介绍 11.23, 12.01
+* [v] Python命令行参数处理包介绍 11.23, 12.01, 01.01
 
     15:05 ~ 15:32
 
@@ -1963,9 +1963,9 @@ english words 由 { } reorg: english words 进化而来。
     [val1, val2, val3] = myFunc(4);  % 16, 64, 2
     ```
 
-* [ ] matlab `length()`
+* [v] matlab `length()`
 
-* [ ] 调研 `format compact  % 紧凑显示`
+* [v] 调研 `format compact  % 紧凑显示`
 
 * [ ] matlab `a = {x, y, z};`
 
