@@ -36,6 +36,10 @@
 
 ## cache
 
+* Oxy- and deoxy-haemoglobin concentration
+
+    血液中氧合血红蛋白与脱氧血红蛋白的浓度
+
 * qa 频率可以降低到每周一次
 
 * 在调研时，可以将笔记分成几个部分
@@ -447,23 +451,11 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `add_const_t`
+* [ ] CUDA Core Compute Libraries (CCCL)
+
+    <https://github.com/nvidia/cccl>
 
 * [v] 调研 thrust
-
-    feedback:
-
-    * [ ] CUDA Core Compute Libraries (CCCL)
-
-        <https://github.com/nvidia/cccl>
-
-    * [asso] python 简易 http 服务器
-
-        `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
-
-    * [asso] Dash/Zeal（离线API查看器）
-
-    * [asso] cppman
 
 * [O] process 1 url
 
@@ -504,8 +496,6 @@ english words 由 { } reorg: english words 进化而来。
     看到 P7
 
 * [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
-
-* [v] 调研 git ignore 的实现原理
 
 * [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
 
@@ -553,6 +543,14 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
 
+* [asso] python 简易 http 服务器
+
+    `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
+
+* [asso] Dash/Zeal（离线API查看器）
+
+* [asso] cppman
+
 ## qa
 
 ### cache
@@ -565,53 +563,44 @@ english words 由 { } reorg: english words 进化而来。
 
 * 现在主要需要实现 new, prev rand 的功能。等这两个实现后，需要实现 dependency 的功能，根据一个条目，可以查到它的依赖条目，根据依赖条目。
 
-* opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
-
-* 一个 qa 文件里所有的 unit 平分 1
-
-    然后每次遇到熟悉的 unit，可以让这个 unit 的权重减少 n% (暂定 10%)，然后重新分配所有权重，总和仍然是 1
-
 * cmake qa:
 
     修改`使用 cmake 根据下面的代码编译出`libhmath.so`库，然后编译出可执行文件。`的`[u_0]`。
 
     增加`mymath.h`和`mymath.cpp`相关内容。
 
-* 目前的 qa 项目： vulkan, c++, vim, cmake, makefile
-
-* 感觉 bash, makefile, cmake, sed, awk, vim 这几个都是挺重要的，把 qa 加上去吧，每天练习
-
-* qa 的每个 unit 设计不应过于复杂。如果实际检测时间超过 30 mins，那么需要拆开。
-
-    这里的拆开指的是写成 dependency 的形式，如果 dependency 之间做过，那么直接复杂 dep 的结果，从而减少当前 unit 的 exam 时间。
-
-* opencl 向量相加基本模板
-
-    1. 在两次使用函数得到资源列表时，容易忘写第二次
-
-    2. 总是忘写`clBuildProgram()`
-
-    3. `fseek()`里第二个参数和第三个参数的位置写反了
-
-* 在一个新的电脑环境上，执行 qa 的前提是有一个可以测试的环境，这个环境的搭建也必须作为 qa 的一部分，并且作为 qa 的 dep 项
-
-* 每次降低权重时直接在原 qa 权重上除以 2，然后重新分配权重。增加权重同理，乘 2.
-
 * 如果一些知识点正处于 cache 状态，未变成基于空间结构的数据，但是任务中又要用到，任务会依赖一些 qa，该怎么办？
 
 * 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
 
-* 如果**大部分**的 qa file 正确率都很**高**，那么考虑扩充 units；如果大部分的 qa file 正确率都很低，那么调低高正确率 qa file 的选中概率
-
-* 如果单个 qa file 的正确率很高，那么降低它出现的概率
-
-* 关注 qa file 的正确率，如果正确率高，那么 sync note。sync note 已经完成，那么减小 qa file 的 prob。
-
-* 增添新 record 时，不删减以前的 record，每三天 review 一次。
-
 ### Tasks
 
+* [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
+
+* [ ] 在同一次 test 中，不能出现重复的 unit
+
+* [ ] 调研 python 的去重功能（unique）
+
+    ```py
+    arr_1 = ['a', 'b', 'c', 'a']
+    arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}]
+    ```
+
+    比如这种数据该如何去重？
+
+    目前的做法是`arr = list(set(arr))`，是否还有更好的办法？
+
+* [ ] 调研 python 处理 csv 文件
+
+* [ ] 调研 python type hint
+
+* [ ] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
+
+* [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
+
 * [ ] 把 vim 加入到每日 qa 中
+
+* [ ] sync bash
 
 * [v] Python命令行参数处理包介绍 11.23, 12.01, 01.01
 
@@ -627,30 +616,7 @@ english words 由 { } reorg: english words 进化而来。
     
     > Quantifiers
 
-* [asso] `grep -P`
-
 * [o] 调研 qa unit 中 dep 功能
-
-* [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
-
-* [ ] 在同一次 test 中，不能出现重复的 unit
-
-* [ ] 调研 python 处理 csv 文件
-
-* [ ] 调研 python type hint
-
-* [ ] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
-
-* [ ] 调研 python 的去重功能（unique）
-
-    ```py
-    arr_1 = ['a', 'b', 'c', 'a']
-    arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}]
-    ```
-
-    比如这种数据该如何去重？
-
-    目前的做法是`arr = list(set(arr))`，是否还有更好的办法？
 
 * [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
@@ -658,11 +624,9 @@ english words 由 { } reorg: english words 进化而来。
 
     feedback:
 
-    5. 目前只实现了给每个 qa file 增加一个比重，并且保证在选择时，采样不到重复的 qa file
+    * 目前只实现了给每个 qa file 增加一个比重，并且保证在选择时，采样不到重复的 qa file
 
         或许应该实现 qa file 可以相同，但是 unit 需要保证不同？
-
-* [ ] sync bash
 
 * [ ] 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
 
@@ -723,16 +687,6 @@ english words 由 { } reorg: english words 进化而来。
     dep 不一定要实现完整工程，只需要写出核心的逻辑就可以。
 
 * [ ] exam 程序应该先打印 deps，如果有 deps，必须依赖 deps 进行开发
-
-* [ ] 调研 makefile 中的`=`递归展开（lazy evaluation）
-
-* [ ] 调研 makefile 中的`:=`立即展开（simple evaluation）
-
-* [ ] 调研 makefile 中的`?=`若未定义则赋值
-
-* [ ] 调研 makefile 中的`+=`追加
-
-* [asso] makefile `filter`, `filter-out`
 
 * [asso] 写一套文件操作 API，分别使用文件函数和 mmap 函数打开文件，实现功能如下：
 
@@ -834,7 +788,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] `xdg-open`
 
-* [asso]  Kitty, WezTerm
+* [asso] Kitty, WezTerm
 
 * [asso] Sixel 或 Kitty 的图形协议
 
@@ -895,12 +849,6 @@ english words 由 { } reorg: english words 进化而来。
     ```
 
     及其他的 git config 配置选项。
-
-* [v] `^=`是什么含义
-
-    `set directory^=$HOME/.vim/swap//`
-
-* [v] vim 搜索并替换：`/w<CR>i<space><Esc>`
 
 * [ ] vim `:split`
 
@@ -1294,8 +1242,6 @@ english words 由 { } reorg: english words 进化而来。
 
         <https://www.geeksforgeeks.org/nlp/machine-translation-with-transformer-in-python/>
 
-* [v] reorg: 正则表达式 30 mins
-
 * [ ] `qemu-system-x86_64 -enable-kvm -device pci-bridge,id=mybridge -device e1000,bus=mybridge,addr=0x1`
 
 * [ ] 调研 ds 写的添加虚拟 pci 设备的代码（未验证）
@@ -1523,10 +1469,6 @@ english words 由 { } reorg: english words 进化而来。
         目前看到 Recursive Binary Search Algorithm:
 
 * [ ] 调研 boost 库的 lexical_cast
-
-* [ ] 调研 c++ `inner_product`, `adjacent_difference`
-
-* [ ] 调研 c++ `reduce`, `ranges::fold_left`
 
 * [ ] 调研 frpc 自动重连 (Service Health Check)
 
@@ -3703,6 +3645,18 @@ resources:
 ## linux maintain
 
 ### cache
+
+* [ ] 调研 makefile 中的`=`递归展开（lazy evaluation）
+
+* [ ] 调研 makefile 中的`:=`立即展开（simple evaluation）
+
+* [ ] 调研 makefile 中的`?=`若未定义则赋值
+
+* [ ] 调研 makefile 中的`+=`追加
+
+* [asso] makefile `filter`, `filter-out`
+
+* [asso] `grep -P`
 
 * [ ] 调研 rdp 远程桌面如何降低画质、提升速度
 
@@ -6079,6 +6033,10 @@ resources:
 
 ### tasks
 
+* [ ] 调研 c++ `inner_product`, `adjacent_difference`
+
+* [ ] 调研 c++ `reduce`, `ranges::fold_left`
+
 * [ ] std::format
 
 * [ ] c 语言中`#defile`中`##`的用法？
@@ -6144,6 +6102,8 @@ resources:
 ### cache
 
 ### tasks
+
+* [new] vim `execute`
 
 * [new] 调研 vim 命令
 
@@ -6350,6 +6310,15 @@ resources:
 * [ ] java 是否有 gui 的库？
 
 ## 其他 Miscellaneous
+
+* [new] 调研 python 命令
+
+    ```bash
+    # 查看 pip 安装包的位置
+    python -m site
+    # 或
+    python -c "import sys; print(sys.path)"
+    ```
 
 * A Comprehensive Guide to Using pathlib in Python For File System Manipulation
 

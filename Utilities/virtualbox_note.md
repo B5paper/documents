@@ -2,6 +2,23 @@
 
 ## cache
 
+* virtual box 中挂载 vboxsf 共享文件夹时，如果 -o umask=0002 失败，可以使用
+
+    `sudo mount -t vboxsf -o uid=1000,gid=1000,dmode=755,fmode=644 D_DRIVE ~/d`
+
+    还可以配置`/etc/fstab`以实现自动挂载：
+
+    ```bash
+    # 编辑 fstab 文件
+    sudo nano /etc/fstab
+
+    # 添加以下行（使用你的实际用户ID和组ID）
+    D_DRIVE  /home/hlc/d  vboxsf  uid=1000,gid=1000,dmode=775,fmode=664  0  0
+
+    # 然后测试挂载
+    sudo mount -a
+    ```
+
 * i7-1360P + win10 + virtualbox 7.0 + host ubuntu 22.04 + virt-manager + vm ubuntu 22.04，虚拟机里的虚拟机，运行起来没有感觉到明显卡顿
 
     host ubuntu 22.04 运行在 VT-x/AMD-V 模式下，嵌套分页：活动，不受限执行：活动，运行峰值：100，半虚拟化接口：KVM，处理器：4

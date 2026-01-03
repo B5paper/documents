@@ -2,6 +2,83 @@
 
 ## cache
 
+* vim 中`<tab>`与`<C-i>`等价
+
+    ```vim
+    " 将 <leader>t 映射为插入实际的 Tab 字符
+    inoremap <leader>t <Tab>
+
+    " 使用 Ctrl+i，这与 Tab 键在插入模式下效果相同
+    inoremap <leader>t <C-i>
+    ```
+
+    但是如果在字符串中，需要用`\t`表示 tab 键，不能使用`<tab>`。
+
+* vim 函数规则
+
+    > E128: Function name must start with a capital or "s:": add_star()
+
+    注：
+
+    1. 可以看出，如果用`s:`作为函数名前缀，那么有点像 C 语言中的`private`函数了。
+
+* vim 的`:source xxx.vim`是在当前环境中执行`vim`脚本，之前定义的函数会被保留。
+
+* vim function 不需要`function!`也能覆盖之前自己自定义的函数。
+
+    不清楚如果不加`!`能不能覆盖 vim 内置函数。
+
+* vim 中连接字符串时，`.`左右的空格可省略
+
+    `echo 'line: '.line`
+
+    似乎点`.`本身也可以被省略：
+
+    `echo 'cur line: 'line`
+
+    不清楚原因。
+
+* vim 可以使用单引号作为字符串，也可以使用双引号
+
+* vim 在 visual 下选择多行，进入命令模式时会自动添加`:'<,'>`，表示对每一行都调用一次后续的命令
+
+    如果我们的函数按`:'<,'>call MyFunc()`方式调用时，对于每一行都会调用一次`MyFunc()`函数。
+
+    可以在进入命令模式后，按`Ctrl` + `u`清除`'<,'>`。
+
+* vim 可视模式下对 md 段落中有文字的行添加星号
+
+    ```vim
+    function AddAsterisk()
+        let line = getline('.')
+        if line !~ '\S'
+            return 0
+        endif
+        let lnum = line('.')
+        execute lnum . 'normal! ^i* '
+        return 0
+    endfunction
+
+    vnoremap <leader>a :call AddAsterisk()<CR>
+    ```
+
+    可以按`\`, `a`触发函数调用。
+
+* vim script 显示 visual 模式下选中的内容
+
+    ```vim
+    function ShowLines()
+        let start_line = line("'<")
+        let end_line = line("'>")
+        echo "选中的行范围: " . start_line . " 到 " . end_line
+        for lnum in range(start_line, end_line)
+            let line = getline(lnum)
+            echo 'cur line: ' . line
+        endfor
+        return 0
+    endfunction
+    ```
+
 * `/w<CR>i<space><Esc>` 的作用解析
 
     这是一个复合命令序列，分解如下：

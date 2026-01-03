@@ -1,3 +1,11 @@
+* opencl 向量相加基本模板
+
+    1. 在两次使用函数得到资源列表时，容易忘写第二次
+
+    2. 总是忘写`clBuildProgram()`
+
+    3. `fseek()`里第二个参数和第三个参数的位置写反了
+
 * flex 程序中，初始化的调用是`yylex();`，不是`yyflex();`
 
 * 在 glfw get key 之前，需要`glfwPollEvents();`

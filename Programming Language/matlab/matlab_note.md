@@ -6,6 +6,101 @@
 
 ## cache
 
+* `format compact`
+
+    减少命令行窗口中的空行输出。
+
+    使用效果对比：
+    
+    默认模式（未设置）：
+
+    ```matlab
+    % 默认情况下：
+    A = [1 2; 3 4];
+    B = [5 6; 7 8];
+    ```
+
+    输出：
+
+    ```text
+    A =
+         1     2
+         3     4
+
+    B =
+         5     6
+         7     8
+    ```
+
+    注意：每个变量输出后都有额外的空行
+
+    紧凑模式：
+
+    ```matlab
+    format compact  % 设置紧凑显示
+    A = [1 2; 3 4];
+    B = [5 6; 7 8];
+    ```
+
+    输出：
+
+    ```text
+    A =
+         1     2
+         3     4
+    B =
+         5     6
+         7     8
+    ```
+
+    相关命令：
+
+    ```matlab
+    format compact     % 启用紧凑显示
+    format loose       % 恢复默认显示（带空行）
+    format short       % 短格式（默认，小数点后4位）
+    format long        % 长格式（更多小数位）
+    format bank        % 货币格式（两位小数）
+    format rat         % 有理分数格式
+    format short e     % 短科学计数法
+    ```
+
+    注意事项：
+
+    * format compact 设置是会话级别的，即设置后一直有效，直到 MATLAB 关闭或更改设置
+
+* matlab `length()`
+
+    获取数组的最大维度长度。
+
+    与其他函数对比：
+
+    * size(A)：返回各维度尺寸（如 [m, n]）
+
+    * numel(A)：返回元素总数
+
+    * length(A)：返回最大维度长度
+
+    注意事项：
+
+    ```matlab
+    % 特殊情况
+    empty = [];
+    len = length(empty);  % 返回 0
+
+    % 标量被视为 1×1 数组
+    scalar = 42;
+    len = length(scalar);  % 返回 1
+    ```
+
+    建议：
+
+    * 当需要特定维度长度时，使用 size(A, dim)
+
+    * 当需要元素总数时，使用 numel(A)
+
+    * length() 主要用于快速获取数组最大维度的长度，特别是在不确定数组维度但需要循环遍历时
+
 * matlab 命令行
 
     * 通过 `matlab -nodisplay -nosplash -r "command"` 在终端中运行命令（适用于 Linux/macOS）
