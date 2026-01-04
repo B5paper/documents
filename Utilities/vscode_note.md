@@ -2,6 +2,14 @@
 
 ## cache
 
+* 如何让 vscode 显示所有隐藏的 unicode 字符
+
+    插件：`Render Special Characters`
+
+    未测试：
+
+    * `Highlight Bad Chars`
+
 * vscode 插件
 
     Code Runner - 运行代码片段

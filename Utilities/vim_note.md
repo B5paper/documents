@@ -2,6 +2,262 @@
 
 ## cache
 
+* vim split
+
+    Vim Split（分屏）基本用法：
+
+    1. 创建分屏
+
+        ```vim
+        :vsplit      # 垂直分屏（左右分割）
+        :split       # 水平分屏（上下分割）
+        :new         # 新窗口打开空白缓冲区
+        :vsp [文件]  # 垂直分屏并打开文件
+        :sp [文件]   # 水平分屏并打开文件
+        ```
+
+    2. 快捷键
+
+        ```vim
+        Ctrl+w s    # 水平分割当前窗口
+        Ctrl+w v    # 垂直分割当前窗口
+        Ctrl+w n    # 新窗口打开新文件
+        Ctrl+w c    # 关闭当前窗口
+        Ctrl+w q    # 关闭当前窗口（同 :q）
+        Ctrl+w o    # 只保留当前窗口
+        ```
+
+    3. 窗口间导航
+
+        ```vim
+        Ctrl+w h    # 切换到左边窗口
+        Ctrl+w j    # 切换到下边窗口
+        Ctrl+w k    # 切换到上边窗口
+        Ctrl+w l    # 切换到右边窗口
+        Ctrl+w w    # 循环切换窗口
+        Ctrl+w t    # 切换到顶部窗口
+        Ctrl+w b    # 切换到底部窗口
+        ```
+
+    4. 调整窗口大小
+
+        ```vim
+        Ctrl+w =    # 所有窗口等宽等高
+        Ctrl+w +    # 增加窗口高度
+        Ctrl+w -    # 减少窗口高度
+        Ctrl+w >    # 增加窗口宽度
+        Ctrl+w <    # 减少窗口宽度
+        :resize N   # 设置高度为 N 行
+        :vertical resize N  # 设置宽度为 N 列
+        ```
+
+    5. 移动窗口
+
+        ```vim
+        Ctrl+w H    # 将当前窗口移到最左
+        Ctrl+w J    # 将当前窗口移到最下
+        Ctrl+w K    # 将当前窗口移到最上
+        Ctrl+w L    # 将当前窗口移到最右
+        Ctrl+w r    # 向右/向下旋转窗口
+        Ctrl+w R    # 向左/向上旋转窗口
+        Ctrl+w x    # 交换当前与下一个窗口
+        ```
+
+    6. 实用技巧
+
+        ```vim
+        # 在分屏间复制粘贴
+        # 普通模式下可以互相复制粘贴
+
+        # 多文件操作
+        :vsp file1.txt file2.txt
+
+        # 快速比较差异
+        :diffsplit filename
+
+        # 关闭其他所有窗口
+        :only
+        ```
+
+    示例工作流：
+
+    * vim main.py 打开主文件
+
+    * :vsp utils.py 垂直分屏打开工具文件
+
+    * Ctrl+w l 切换到右边窗口
+
+    * :sp config.py 水平分屏打开配置文件
+
+    * Ctrl+w k 回到主编辑区
+
+* vim 设置一个分窗口跟随另一个分窗口滚动
+
+    设置 Vim 分窗口同步滚动有以下几种方法：
+
+    1. 临时同步滚动
+    
+        ```vim
+        :set scrollbind        " 启用同步滚动
+        :set noscrollbind      " 禁用同步滚动
+
+        " 快捷命令
+        :windo set scrollbind  " 所有窗口同步
+        :windo set noscrollbind" 所有窗口取消同步
+        ```
+
+    2. 一键切换同步
+
+        在 ~/.vimrc 中添加：
+        
+        ```vim
+        " 切换同步滚动的快捷键
+        nnoremap <leader>sb :set scrollbind!<CR>
+        " 例如按 \sb 切换（默认leader是\）
+        ```
+
+    3. 自动同步特定文件类型
+
+        ```vim
+        " 比较文件时自动同步
+        autocmd FileType diff set scrollbind
+
+        " Markdown预览时同步
+        autocmd FileType markdown set scrollbind
+        ```
+
+    4. 垂直和水平分屏的配置
+
+        ```vim
+        " 垂直分屏时同步滚动
+        command! VsplitWithScroll 
+            \ vsp | 
+            \ set scrollbind |
+            \ wincmd p  " 回到原窗口
+
+        " 水平分屏时同步滚动  
+        command! SplitWithScroll
+            \ sp |
+            \ set scrollbind |
+            \ wincmd p
+
+        " 快捷键映射
+        nnoremap <leader>vs :VsplitWithScroll<CR>
+        nnoremap <leader>hs :SplitWithScroll<CR>
+        ```
+
+    5. 智能同步插件
+
+        使用插件可以获得更好的同步体验：
+
+        vim-syncscroll（轻量级）
+
+        ```vim
+        " 安装后自动启用，支持非对称分屏
+        " 自动检测分屏并同步滚动
+        ```
+
+        ScrollColors（比较时专用）
+
+        ```vim
+        " 用于比较两个文件版本时保持同步
+        ```
+
+    6. 手动同步命令
+
+        ```vim
+        " 创建一对同步的窗口
+        :diffsplit file1.txt
+        :vert diffsplit file2.txt
+        " 这会自动启用 scrollbind
+
+        " 保持光标位置同步
+        :set cursorbind  " 光标也一起移动
+        ```
+
+    7. 实用工作流示例
+
+        ```vim
+        " 1. 比较两个文件
+        :diffthis           " 在当前窗口启用比较模式
+        :vsp file2.txt      " 垂直分屏
+        :diffthis           " 在新窗口启用比较模式
+        " 自动同步滚动！
+
+        " 2. 查看代码和文档
+        :e main.py
+        :vsp
+        :e documentation.md
+        :set scrollbind
+        " 现在滚动代码时文档也会滚动
+
+        " 3. 编写和预览
+        :e index.html
+        :sp
+        :e style.css
+        :windo set scrollbind
+        ```
+
+    8. 注意事项
+
+        * 同步滚动只对相同高度的内容有效
+
+        * 如果窗口大小不同，滚动可能不完全对齐
+
+        * 使用 :windo diffoff 退出比较模式时会取消同步
+
+        * 同步滚动时，每个窗口的折叠（fold）状态是独立的
+
+    9. 完整配置示例
+
+        ```vim
+        " ~/.vimrc
+        " 快速切换同步滚动
+        nnoremap <F3> :set scrollbind!<CR>:echo '同步滚动: ' . (&scrollbind ? '开启' : '关闭')<CR>
+
+        " 比较模式自动同步
+        augroup ScrollSync
+            autocmd!
+            autocmd BufEnter * if &diff | set scrollbind | endif
+        augroup END
+
+        " 创建同步窗口的命令
+        command! -nargs=1 VSync vertical split <args> | set scrollbind | wincmd p
+        command! -nargs=1 HSync split <args> | set scrollbind | wincmd p
+        ```
+
+    这样设置后，你可以很方便地让分窗口跟随滚动，特别适合：
+
+    * 代码和文档对照
+
+    * 不同版本文件比较
+
+    * 多语言文件对照查看
+
+* `vim -u`：启动时额外加载配置文件
+
+    example:
+
+    `vim -u ~/test_vimrc.vim`
+
+    完全不加载默认配置，只加载指定文件:
+
+    `vim -u ~/test_vimrc.vim -N`
+
+    最小化启动（不加载任何配置）:
+
+    `vim -u NONE -N`
+
+* vim 启动后加载 Vimscript
+
+    ```vim
+    " 加载指定的 vimscript 文件
+    :source ~/test_script.vim
+
+    " 或者简写
+    :so ~/test_script.vim
+    ```
+
 * vim 中`<tab>`与`<C-i>`等价
 
     ```vim

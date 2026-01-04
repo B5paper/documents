@@ -4,6 +4,43 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 中的字符串引号逃逸
+
+    `echo It's my work.`会显示语法错误：
+
+    ```
+    main.sh: line 4: unexpected EOF while looking for matching `''
+    main.sh: line 5: syntax error: unexpected end of file
+    ```
+
+    因为 bash 认为`'`是标记了一个字符串的开始，但是没有找到另一个`'`标记字符串的结束。
+
+    如果我们写成
+
+    `echo 'It's my work.'`
+
+    输出同样同上，因为 bash 匹配最近的两个`'`，即`'It's`中的这两个。导致 work 后的`'`未被匹配。
+
+    即使加上转义也不行：`echo 'It\'s my work.'`，因为 bash 认为单引号括住的字符默认不转义，即字符串被分割为`'It\'`和`s my work.`，以及`'`开头的未完成字符串。
+
+    双引号也不转义：
+
+    `echo "It\'s my work."`
+
+    输出为：
+
+    ```
+    It\'s my work.
+    ```
+
+    要想正确输出，只有两种办法：
+
+    * `echo $'It\'s my work.'`
+
+    * `echo "It's my work."`
+
+    这点和 C 语言不太一样。
+
 * chatgpt 写的 bash 定时器
 
     `timer.sh`:

@@ -36,6 +36,26 @@
 
 ## cache
 
+* exp 中根据事实由少到多可以将内容分为几个级别
+
+    * 想法 / idea
+
+        虚无缥缈的想法、假设、灵感。
+
+    * 现象
+
+        做实验中值得记录的东西。观察到了什么？为什么会这样？为什么不是那样？
+
+    * 暂定
+
+        有局部实验证据和事实支撑的规律；暂时定下来的规则；一些好用的经验。
+
+    * 稳定
+
+        经过全局验证的规律；几乎不再变化的规则。这部分可以尝试写入笔记中。
+
+    从上到下，变化速度越来越慢。
+
 * Oxy- and deoxy-haemoglobin concentration
 
     血液中氧合血红蛋白与脱氧血红蛋白的浓度
@@ -457,7 +477,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] 调研 thrust
 
-* [O] process 1 url
+* [v] process 1 url 01.03
 
     <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
 
@@ -513,13 +533,29 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
 
-* [ ] 增加一项功能：是否答对，并将结果记录到 qa 中。
+* [P] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
     如果一个 unit 答对的频率较高，那么它被选择的概率变小。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
 
-* [ ] 在 10 个 epoch 内拟合一条 sin 曲线
+    deps:
+
+    * [v] 修正 u0 与 u1 不匹配的 bug
+
+    feedback:
+
+    * [ ] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
+
+    * 不能按所有历史记录去计算，因为一年前答题好坏不代表现在答题好坏。必须使用滑动窗口，回顾过去 N 天的记录。
+
+        但是过去 N 天可能一次都没有记录。我们可以设定一个阈值，比如过去 180 天如果这个 unit 被提问的次数小于等于 3 次，那么可以认为答对率无参考意义。
+
+        在一个 qa 文件中，如果过去 180 天这个问题未被抽取次数小于等于 3 次，那么按上次提问日期进行倒序排列，然后线性化到 0 ～ 1，得到的数值即作为分数。如果大于 3 次，那么将错误率作为分数，比如错误率为 80%，那么得分为 0.8。然后按得分倒序排列，优先选得分靠前的。
+
+        并且结果不能记录到 qa 中，必须记录到 record 中，每次列举过去 180 天的答题情况。
+
+* [v] 在 10 个 epoch 内拟合一条 sin 曲线
 
 * [ ] 将 project pool 中常用到的 pdf 等 resources 打包成 zip，发送到邮箱里
 
@@ -575,6 +611,8 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
+* [new] qa 文件权重保留小数点后 4 位 
+
 * [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
 * [ ] 在同一次 test 中，不能出现重复的 unit
@@ -598,7 +636,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
-* [ ] 把 vim 加入到每日 qa 中
+* [v] 把 vim 加入到每日 qa 中
 
 * [ ] sync bash
 
@@ -832,7 +870,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] 调研 git config 设置别名
+* [v] 调研 git config 设置别名
 
     ```bash
     # 设置默认编辑器为VS Code
@@ -850,7 +888,7 @@ english words 由 { } reorg: english words 进化而来。
 
     及其他的 git config 配置选项。
 
-* [ ] vim `:split`
+* [v] vim `:split`
 
 * [ ] `git submodule update --init --progress`
 
@@ -1905,11 +1943,7 @@ english words 由 { } reorg: english words 进化而来。
     [val1, val2, val3] = myFunc(4);  % 16, 64, 2
     ```
 
-* [v] matlab `length()`
-
-* [v] 调研 `format compact  % 紧凑显示`
-
-* [ ] matlab `a = {x, y, z};`
+* [v] matlab `a = {x, y, z};`
 
 * [ ] matlab `a = [x, y, ]`
 
@@ -6103,6 +6137,81 @@ resources:
 
 ### tasks
 
+* [new] 调研 vim 测试文件
+
+    ```bash
+    # 创建一个干净的测试环境配置
+    cat > ~/vim_plugin_test.vim << 'EOF'
+    " 最小化配置，只保留必要选项
+    set nocompatible
+    filetype off
+
+    " 设置你的 runtimepath
+    set rtp=~/.vim,/usr/share/vim/vimfiles,/usr/share/vim/vim82,/usr/share/vim/vimfiles/after,~/.vim/after
+
+    " 在这里加载你要测试的插件
+    set rtp+=~/my_vim_plugin
+
+    " 启用文件类型检测
+    filetype plugin indent on
+    syntax enable
+
+    " 添加你的调试配置
+    let g:my_plugin_debug = 1
+    EOF
+    ```
+
+* [new] 调研 vim 调试模式
+
+    ```vim
+    # 启动时启用详细日志
+    vim -V9vimlog -u test_vimrc.vim
+
+    # 或者在 Vim 中开启
+    :set verbose=9
+    :set verbosefile=/tmp/vim.log
+    ```
+
+* [new] 调研 vim 临时加载插件
+
+    ```vim
+    " 在测试配置文件中这样写：
+    function! LoadPluginForTest()
+        " 临时修改 runtimepath
+        set rtp+=~/projects/my_vim_plugin
+        
+        " 加载插件
+        runtime plugin/myplugin.vim
+        
+        " 设置测试用的全局变量
+        let g:myplugin_test_mode = 1
+    endfunction
+
+    call LoadPluginForTest()
+    ```
+
+* [new] 调研 vim -c 的用法
+
+    ```bash
+    # 一次性命令测试
+    vim -u NONE -c "source myplugin.vim" -c "echo MyPluginFunction()" -c "qa"
+
+    # 交互式测试
+    vim -u ~/test_vimrc.vim +"MyPluginCommand"
+    ```
+
+* [new] 调研 vim Vader
+
+    ```bash
+    # 安装 Vader.vim
+    mkdir -p ~/vim_test_env/pack/test/start
+    cd ~/vim_test_env/pack/test/start
+    git clone https://github.com/junegunn/vader.vim
+
+    # 运行测试
+    vim -u test.vim -c "Vader test/*.vader" -c "qa"
+    ```
+
 * [new] vim `execute`
 
 * [new] 调研 vim 命令
@@ -6310,6 +6419,138 @@ resources:
 * [ ] java 是否有 gui 的库？
 
 ## 其他 Miscellaneous
+
+* 简述 Dask 和 apache spark 的用法
+
+    Dask 和 Apache Spark 都是分布式计算框架，用于处理大规模数据，但设计理念和使用场景有所不同。以下是它们的用法简述：
+
+    Dask
+
+    特点
+
+    * Python原生：与NumPy、Pandas、Scikit-learn等生态无缝集成。
+
+    * 动态任务调度：适用于复杂、非线性的计算任务。
+
+    * 灵活性：支持单机多核或分布式集群。
+
+    核心用法
+
+    * 并行化集合：
+
+        * Dask Array：模拟NumPy，分块处理大型数组。
+
+            ```python
+            import dask.array as da
+            x = da.random.random((10000, 10000), chunks=(1000, 1000))
+            result = x.mean().compute()
+            ```
+
+        * Dask DataFrame：模拟Pandas，处理表格数据。
+
+            ```python
+            import dask.dataframe as dd
+            df = dd.read_csv('large_file.csv')
+            result = df.groupby('column').mean().compute()
+            ```
+
+        * 延迟执行（delayed）：
+
+            ```python
+            from dask import delayed
+            @delayed
+            def slow_function(x):
+                return x * 2
+            tasks = [slow_function(i) for i in range(10)]
+            results = dask.compute(*tasks)
+            ```
+
+    机器学习（dask-ml）：
+
+    ```python
+    from dask_ml.linear_model import LogisticRegression
+    model = LogisticRegression()
+    model.fit(X_train, y_train)
+    ```
+
+    部署集群：
+
+    ```python
+    from dask.distributed import Client
+    client = Client('scheduler-address:8786')  # 连接集群
+    ```
+
+    Apache Spark
+
+    特点
+
+    * JVM生态：基于Scala，支持Java、Python、R。
+
+    * 内存计算：通过RDD/DataFrame实现高性能迭代计算。
+
+    * 全栈式：支持SQL、流处理、机器学习、图计算。
+
+    核心用法
+
+    * 初始化SparkSession：
+
+        ```python
+        from pyspark.sql import SparkSession
+        spark = SparkSession.builder.appName("example").getOrCreate()
+        ```
+
+    * 数据处理：
+
+        * RDD（弹性分布式数据集）：
+
+        ```python
+        rdd = spark.sparkContext.parallelize([1, 2, 3])
+        rdd.map(lambda x: x * 2).collect()
+        ```
+
+    * DataFrame（主要API）：
+
+        ```python
+        df = spark.read.csv('large_file.csv', header=True)
+        df.groupBy('column').agg({'value': 'mean'}).show()
+        ```
+
+    * SQL 查询：
+
+        ```python
+        df.createOrReplaceTempView("table")
+        spark.sql("SELECT * FROM table WHERE column > 0").show()
+        ```
+
+    * 流处理（Structured Streaming）：
+
+        ```python
+        stream_df = spark.readStream.format("kafka").option("subscribe", "topic").load()
+        query = stream_df.writeStream.outputMode("append").start()
+        ```
+
+    * 机器学习（MLlib）：
+
+        ```python
+        from pyspark.ml.classification import LogisticRegression
+        model = LogisticRegression().fit(train_df)
+        ```
+
+    对比总结
+
+    | 维度 | Dask | Apache Spark |
+    | - | - | - |
+    | 语言生态 | Python原生 | JVM为主（支持Python/Java/Scala/R） |
+    | 部署难度 | 较轻量，易上手 | 需配置集群（如YARN/K8s） |
+    | 适用场景 | 中等数据、复杂工作流、Pandas扩展 | 超大数据、ETL流水线、全栈分析 |
+    | 内存管理 | 依赖 Python GC | 自主内存优化（Tungsten引擎） |
+    | 生态工具 | 集成 Python 科学栈 | Spark SQL/Streaming/MLlib/GraphX |
+
+    选择建议
+
+    * 若团队以Python为主，数据量在TB以下，且需要灵活的任务调度，选Dask。
+
+    * 若处理PB级数据，需企业级稳定性和全栈分析（SQL/流/ML），选Spark。
 
 * [new] 调研 python 命令
 

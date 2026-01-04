@@ -2,6 +2,12 @@
 
 ## cache
 
+* dataloader 返回的是`[inputs, gts]`
+
+    而 dataset 返回的是`(input, gt)`
+
+    如果 dataset 返回的是`(x_1, x_2, x_3)`，dataloader 返回的会不会是`(x_1s, x_2s, x_3s)`？
+
 * Negative Log Likelihood Loss
 
     After the output of the softmax layer is calculated (i.e. a value between 0 and 1), negative log is calculated of that value. The final layer combined is called as log-softmax layer. Generally, it is used in multi-class classification problems.

@@ -2,6 +2,171 @@
 
 ## cache
 
+* git 配置命令别名
+
+    ```
+    # 设置别名
+    git config --global alias.co checkout
+    git config --global alias.br branch
+    git config --global alias.ci commit
+    git config --global alias.st status
+
+    # 复杂别名
+    git config --global alias.lg "log --oneline --graph --all"
+    git config --global alias.unstage "reset HEAD --"
+    git config --global alias.last "log -1 HEAD"
+    ```
+
+    example:
+
+    `git st` = `git status`
+
+* `git config --global core.editor "code --wait"`
+
+    将 VS Code 设置为 Git 的全局默认文本编辑器
+
+    * ore.editor：指定 Git 使用的文本编辑器
+
+    * "code --wait"：
+
+        * code：VS Code 的命令行启动命令
+
+        * --wait：重要参数！让 Git 等待 VS Code 关闭后才继续执行
+
+            执行 git commit（不带 -m）时：
+
+            1. Git 会自动打开 VS Code
+
+            2. 你编辑保存提交信息
+
+            3. 关闭 VS Code 窗口后，Git 才会继续执行提交
+
+            4. 如果没有 --wait，Git 会在打开 VS Code 后立即继续执行，导致提交信息为空
+
+    如果你用其他编辑器：
+
+    * Vim: vim
+
+    * Nano: nano
+
+    * Notepad++: "C:/Program Files/Notepad++/notepad++.exe" -multiInst -nosession
+
+* git config 常见用法
+
+    **差异比较配置**
+
+    ```bash
+    # 使用 difftool（如 vimdiff, vscode）
+    git config --global diff.tool vimdiff
+    git config --global difftool.prompt false
+
+    # 更友好的 diff 输出
+    git config --global diff.colorMoved zebra
+    git config --global diff.algorithm patience  # 更智能的算法
+    ```
+
+    **合并与冲突解决**
+
+    ```bash
+    # 设置合并工具
+    git config --global merge.tool vimdiff
+
+    # 保持合并提交的原始分支信息
+    git config --global merge.log true
+
+    # 自动解决某些冲突
+    git config --global pull.rebase true  # pull 时使用 rebase
+    ```
+
+    **提交模板与钩子**
+
+    ```bash
+    # 设置提交信息模板
+    git config --global commit.template ~/.gitmessage.txt
+
+    # 设置全局钩子目录
+    git config --global core.hooksPath ~/.githooks
+    ```
+
+    **性能与行为优化**
+
+    ```bash
+    # 提高大仓库性能
+    git config --global core.preloadindex true
+    git config --global core.fscache true
+
+    # 自动修正拼写错误
+    git config --global help.autocorrect 1  # 1秒后自动执行
+
+    # 禁用某些警告
+    git config --global advice.detachedHead false
+
+    # 设置默认分支名称
+    git config --global init.defaultBranch main
+    ```
+
+    **SSH 与代理配置**
+
+    ```bash
+    # 指定 SSH 命令
+    git config --global core.sshCommand "ssh -i ~/.ssh/id_rsa"
+
+    # 设置 HTTP/HTTPS 代理
+    git config --global http.proxy http://proxy.example.com:8080
+    git config --global https.proxy https://proxy.example.com:8080
+    ```
+
+    **跨平台兼容性**
+
+    ```bash
+    # Windows 下处理行尾符
+    git config --global core.autocrlf true  # Windows 推荐
+    git config --global core.autocrlf input  # Linux/Mac 推荐
+
+    # 文件系统大小写敏感
+    git config --global core.ignorecase false
+    ```
+
+    **查看与管理配置**
+
+    ```bash
+    # 查看所有配置
+    git config --list
+    git config --list --show-origin  # 显示配置来源
+
+    # 查看特定配置
+    git config user.name
+    git config --get-all alias.ci
+
+    # 删除配置
+    git config --global --unset alias.st
+    git config --global --unset-all http.proxy
+
+    # 编辑配置文件
+    git config --global --edit
+    ```
+
+    **实用组合配置**
+
+    ```bash
+    # 开发者常用配置包
+    git config --global core.editor "code --wait"
+    git config --global color.ui auto
+    git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+    git config --global pull.rebase true
+    git config --global fetch.prune true  # 清理已删除的远程分支
+    ```
+
+    配置文件位置
+
+    * 全局配置：~/.gitconfig 或 ~/.config/git/config
+
+    * 系统配置：/etc/gitconfig
+
+    * 仓库配置：.git/config
+
+    这些配置可以根据个人工作习惯和团队规范进行调整，显著提升 Git 使用效率。
+
 * git ignore
 
     1. 配置文件的层级结构
@@ -915,11 +1080,11 @@
 
     删除子模块：
 
-        git submodule deinit -f libs/mylib
+    * git submodule deinit -f libs/mylib
 
-        rm -rf .git/modules/libs/mylib
+    * rm -rf .git/modules/libs/mylib
 
-        git rm -f libs/mylib
+    * git rm -f libs/mylib
 
     注意事项
 
