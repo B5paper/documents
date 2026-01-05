@@ -713,7 +713,7 @@
 
     * 可以跳转到类方法、属性等
 
-* matlab `split()`
+* `split()`
 
     将字符串数组（String Array）或字符向量（Character Vector）按分隔符拆分为多个子串（字符串列向量）。
 
