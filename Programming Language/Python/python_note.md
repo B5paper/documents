@@ -2,6 +2,108 @@
 
 ## cached
 
+* Python Type Hint
+
+    Python Type Hint（类型提示）是在 Python 3.5+ 中引入的静态类型检查辅助工具，它允许开发者为变量、函数参数和返回值等标注期望的类型，以提高代码的可读性、可维护性，并借助工具（如 mypy）进行静态类型检查。
+
+    **基本语法**
+
+    ```python
+    # 变量注解
+    name: str = "Alice"
+    count: int = 10
+
+    # 函数参数和返回值注解
+    def greet(name: str) -> str:
+        return f"Hello, {name}"
+    ```
+
+    **常用类型**
+
+    * 基础类型：int, str, float, bool, bytes
+
+    * 复合类型：
+
+        * List[int]：整数列表（需 from typing import List）
+
+        * Dict[str, int]：键为字符串、值为整数的字典
+
+        * Tuple[int, str]：固定长度的元组
+
+        * Optional[int]：可能为 int 或 None（等价于 Union[int, None]）
+
+        * Union[int, str]：可以是 int 或 str
+
+        * Any：任意类型（禁用静态类型检查）
+
+    **Python 3.9+ 简化写法**
+
+    从 Python 3.9 开始，可以直接使用内置类型代替 typing 中的泛型：
+
+    ```python
+    # Python 3.9+
+    list[int]          # 代替 List[int]
+    dict[str, int]     # 代替 Dict[str, int]
+    tuple[int, ...]    # 变长元组
+    ```
+
+    **示例代码**
+
+    ```python
+    from typing import Optional, Union
+
+    def process_data(
+        data: list[int],
+        prefix: Optional[str] = None
+    ) -> dict[str, Union[int, float]]:
+        result = {"sum": sum(data)}
+        if prefix:
+            result["prefix"] = len(prefix)
+        return result
+    ```
+
+    **静态检查工具**
+
+    * mypy：最常用的类型检查器。
+
+        ```bash
+        pip install mypy
+        mypy your_script.py
+        ```
+
+    注意
+
+    * 运行时可以通过 __annotations__ 属性获取类型信息（用于反射或文档生成）。
+
+    **循环中的类型注解**
+
+    1. 在循环内部注解（Python 3.6+）
+
+        ```python
+        for i in range(123):
+            i: int  # 在循环体内添加类型注解
+            # 或者直接依赖 range() 的类型推断
+            pass
+        ```
+
+    2. 使用类型注释（Type Comment，较旧的写法，Python 3.x 兼容）
+    
+        ```python
+        for i in range(123):  # type: int
+            pass
+        ```
+
+    3. 使用 typing.cast（当类型不明显时）
+
+        ```python
+        from typing import cast
+
+        items = [1, 2, 3]  # 假设这里 items 类型不明确
+        for item in items:
+            item_int = cast(int, item)  # 明确告诉类型检查器这是 int
+            # 但这不是运行时检查，只是提示类型检查器
+        ```
+
 * py 中，open file 的不同模式
 
     * a - 只追加模式

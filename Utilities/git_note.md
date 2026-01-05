@@ -2,6 +2,82 @@
 
 ## cache
 
+* git submodule sync
+
+    如果`.gitmodules`中的 repo url 路径改变，那么可以使用`git submodule sync`将更改同步到`.git/config`中。
+
+    用法：
+
+    1. 将`.gitmodules`中的所有配置同步到主仓库`.git/config`和子仓库`sub/.git/config`中
+
+        `git submodule sync`
+
+    2. 只同步指定 sub
+
+        `git submodule sync -- <submodule-path>`
+
+        example:
+
+        `git submodule sync -- lib/my-library`
+
+        只修改 my-library 子仓库中的`.git/config`
+
+    注意事项：
+
+    * 如果已经执行过 git submodule update 且本地有 submodule 的 clone，修正 URL 后可能需要删除本地子模块目录重新拉取
+
+    * 如果子模块没有初始化（--init），sync 可能不会生效，因为子模块的 .git 目录还不存在或配置不完整。
+
+    git submodule sync 的作用是同步子模块的远程 URL，具体来说：
+
+    主要功能：
+
+    * 同步 .gitmodules 中的 URL 到 .git/config
+
+        * 当你在 .gitmodules 文件中修改了子模块的 URL 后，git submodule sync 会将这些更改同步到本地的 .git/config 文件中。
+
+    * 更新本地子模块的远程仓库配置
+
+        * 对于已经初始化并拉取过的子模块，它会更新该子模块目录内的 .git/config 中的 remote.origin.url。
+
+    使用场景：
+
+    * 修改了 .gitmodules 中的 URL 后（比如仓库迁移、协议变更等）
+
+    * .git/config 中的 URL 与 .gitmodules 不一致时
+
+    * 重新配置子模块的远程仓库地址
+
+    工作原理：
+
+    ```bash
+    # 假设 .gitmodules 中的 URL 已从 old-url 改为 new-url
+
+    # 执行前：
+    .gitmodules:          submodule.foo.url = new-url
+    .git/config:          submodule.foo.url = old-url   # 旧地址
+    foo/.git/config:      [remote "origin"] url = old-url  # 旧地址
+
+    # 执行后：
+    git submodule sync
+
+    .git/config:          submodule.foo.url = new-url   # 已更新
+    foo/.git/config:      [remote "origin"] url = new-url  # 已更新
+    ```
+
+    常用命令组合：
+
+    ```bash
+    # 修改 .gitmodules 中的 URL 后
+    vim .gitmodules
+
+    # 同步配置
+    git submodule sync
+
+    # 更新子模块内容
+    git submodule update --init --recursive
+    ```
+
 * git 配置命令别名
 
     ```

@@ -630,7 +630,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研 python 处理 csv 文件
 
-* [ ] 调研 python type hint
+* [v] 调研 python type hint
 
 * [ ] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
 
@@ -3680,6 +3680,23 @@ resources:
 
 ### cache
 
+* [new] 调研 iptables
+
+    ```bash
+    # 查看当前规则
+    sudo iptables -L -n
+
+    # 手动添加规则到 fail2ban-sshd 链
+    sudo iptables -I f2b-sshd -s 192.168.1.100 -j REJECT --reject-with icmp-port-unreachable
+
+    # 或使用 DROP
+    sudo iptables -I f2b-sshd -s 192.168.1.100 -j DROP
+    ```
+
+* [new] 调研`ssh -R 127.0.0.1:2222:127.0.0.1:22 -o GatewayPorts=no ali`
+
+    通常 GatewayPorts 是在 server 端指定的，这个命令在 client 端指定，有用吗？
+
 * [ ] 调研 makefile 中的`=`递归展开（lazy evaluation）
 
 * [ ] 调研 makefile 中的`:=`立即展开（simple evaluation）
@@ -6071,7 +6088,7 @@ resources:
 
 * [ ] 调研 c++ `reduce`, `ranges::fold_left`
 
-* [ ] std::format
+* [v] std::format
 
 * [ ] c 语言中`#defile`中`##`的用法？
 

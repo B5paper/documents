@@ -2,6 +2,607 @@
 
 ## cache
 
+* vim 安装 markdown preview 插件
+
+    插件：`'iamcco/markdown-preview.nvim'`
+
+    安装：
+
+    1. 在`.vimrc`中添加
+
+        ```vim
+        call plug#begin()
+
+        " List your plugins here
+        " Plug 'tpope/vim-sensible'
+        "
+        " Plug 'plasticboy/vim-markdown'
+
+        Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
+
+        call plug#end()
+        ```
+
+        （需提前安装 VimPlug）
+
+    2. 打开一个 vim，输入命令：`:PlugInstall`
+
+        此时会 clone github repo，然后尝试编译和安装。
+
+        这个 repo 是一个 js 项目，需要 npm 安装一些包，如果环境没有挂境外代理，可能会失败。即使 repo 编译安装失败，VimPlug 也会显示插件安装成功。实际上此时并没有安装成功。
+
+        可以打开一个 md 文件，输入命令`:MarkdownPreview`试一下，如果什么都没有发生，说明没有安装成功。
+
+    3. 如果 repo 已经 clone 了，但是没有安装成功，可以用下面的方法
+
+        进入`~/.vim/plugged/markdown-preview.nvim/app`, 执行
+
+        `sudo npm install`
+
+        如果需要设置代表，先配置好`http_proxy`, `https_proxy`再执行 npm install。
+        
+        如果 app 目录中有`node_modules`，并且 npm 没有什么报错，那么大概率安装成功了。找一个 md 文件测试一下即可。
+
+* vim 渲染 markdown 使用什么插件
+
+    在Vim中渲染Markdown有多种选择，以下是最常用的插件：
+
+    🌟 主流选择
+
+    1. Markdown预览插件
+
+        * markdown-preview.nvim - 最流行的实时预览插件
+
+            ```vim
+            " 安装
+            Plug 'iamcco/markdown-preview.nvim'
+            ```
+
+            支持实时预览
+
+            自动刷新
+
+            支持数学公式、代码高亮
+
+        * glow.nvim - 使用glow渲染
+
+            ```vim
+            Plug 'ellisonleao/glow.nvim'
+            ```
+
+    2. 语法高亮增强
+
+        * vim-markdown - 增强Markdown语法高亮
+
+            ```vim
+            Plug 'plasticboy/vim-markdown'
+            ```
+
+            折叠支持
+
+            更好的语法高亮
+
+            TOC生成
+
+        * vim-markdown-toc - 生成目录
+
+            ```vim
+            Plug 'mzlogin/vim-markdown-toc'
+            ```
+
+    🔧 配置示例
+
+    ```vim
+    " 基本配置
+    call plug#begin()
+    Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+    Plug 'plasticboy/vim-markdown'
+    call plug#end()
+
+    " Markdown预览设置
+    let g:mkdp_auto_start = 0
+    let g:mkdp_auto_close = 1
+    let g:mkdp_refresh_slow = 0
+    let g:mkdp_command_for_global = 0
+    let g:mkdp_open_to_the_world = 0
+
+    " 快捷键映射
+    nmap <silent> <leader>mp <Plug>MarkdownPreview
+    nmap <silent> <leader>ms <Plug>MarkdownPreviewStop
+    nmap <silent> <leader>mt <Plug>MarkdownPreviewToggle
+    ```
+
+    🚀 使用方式
+
+    * 实时预览：打开Markdown文件，按<leader>mp
+
+    * 停止预览：按<leader>ms
+
+    * 切换预览：按<leader>mt
+
+    💡 其他选择
+
+    * 终端内渲染
+
+        * mdv - 终端内查看Markdown
+
+        * glow - 美观的终端渲染
+
+        * mdcat - cat的Markdown版本
+
+    * Neovim专属
+
+        * markdown-preview.nvim（也支持Neovim）
+
+        * neovim内置LSP + markdown语言服务器
+
+    📋 推荐组合
+
+    对于大多数用户，我推荐：
+
+    ```text
+    markdown-preview.nvim + vim-markdown
+    ```
+
+    这个组合提供了完整的Markdown编写体验。
+
+* 如何验证vim Plug是否安装成功？
+
+    验证Vim Plug是否安装成功有以下几种方法：
+
+    🔍 基本检查方法
+
+    1. 查看插件目录结构
+
+        ```bash
+        # 检查Plug是否已克隆
+        ls -la ~/.vim/autoload/
+        # 应该能看到 plug.vim 文件
+        ```
+
+    2. 在Vim中测试命令
+
+        ```vim
+        :PlugStatus    " 查看插件状态
+        :PlugInstall   " 尝试安装插件（如果没有错误，说明Plug正常工作）
+        :PlugUpdate    " 更新插件
+        :PlugClean     " 清理未使用的插件
+        ```
+
+    3. 检查Vim版本和功能
+
+        ```vim
+        " 在Vim中执行
+        :version
+        " 确认支持 +eval 和 +python3（部分插件需要）
+        ```
+
+    📝 创建测试配置验证
+
+    步骤1：创建测试配置
+
+    ```vim
+    " ~/.vimrc 中添加测试代码
+    call plug#begin('~/.vim/plugged')
+
+    " 安装一个简单插件测试
+    Plug 'junegunn/vim-easy-align'
+
+    call plug#end()
+    ```
+
+    步骤2：重新加载并安装
+
+    ```bash
+    # 重新加载配置
+    vim +'source ~/.vimrc'
+
+    # 或在Vim中
+    :source ~/.vimrc
+    :PlugInstall
+    ```
+
+    步骤3：验证安装
+
+    ```bash
+    # 检查插件是否下载
+    ls ~/.vim/plugged/
+    # 应该能看到 vim-easy-align 目录
+    ```
+
+    ✅ 完整的验证流程
+
+    方法一：使用内置命令
+
+    ```vim
+    " 1. 检查Plug命令是否存在
+    :command Plug
+
+    " 2. 检查插件列表
+    :scriptnames
+    " 在列表中应该能看到 plug.vim
+
+    " 3. 测试插件功能
+    " 安装测试插件后，验证其功能
+    :EasyAlign     " 如果vim-easy-align安装成功，这个命令应该可用
+    ```
+
+    方法二：查看帮助文档
+
+    ```vim
+    :help plug.txt
+    " 如果能看到Plug的帮助文档，说明安装成功
+    ```
+
+    方法三：创建测试脚本
+
+    ```bash
+    #!/bin/bash
+    # test_vim_plug.sh
+
+    echo "检查Vim Plug状态..."
+
+    # 检查文件是否存在
+    if [ -f ~/.vim/autoload/plug.vim ]; then
+        echo "✅ Plug.vim 文件存在"
+    else
+        echo "❌ Plug.vim 文件不存在"
+        exit 1
+    fi
+
+    # 在Vim中测试
+    echo "在Vim中测试Plug命令..."
+    vim -c 'PlugStatus' -c 'qa!' > /dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+        echo "✅ PlugStatus 命令执行成功"
+    else
+        echo "❌ PlugStatus 命令执行失败"
+    fi
+
+    echo ""
+    echo "验证完成！"
+    ```
+
+    🔧 常见问题排查
+
+    * 如果Plug未安装：
+
+        ```bash
+        # 手动安装Vim Plug
+        curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        ```
+
+    * 如果命令不可用：
+
+        * 检查Vim版本：确保Vim版本 ≥ 7.0
+
+        * 检查文件权限：
+    
+            ```bash
+            chmod 755 ~/.vim/autoload/
+            chmod 644 ~/.vim/autoload/plug.vim
+            ```
+
+        * 检查配置语法：
+
+            ```vim
+            " 确保.vimrc中正确配置
+            call plug#begin('~/.vim/plugged')
+            " 插件列表
+            call plug#end()
+            ```
+
+    测试完成后，验证一个真实插件：
+
+    ```vim
+    " 安装并验证一个真实插件
+    call plug#begin('~/.vim/plugged')
+    Plug 'tpope/vim-surround'  " 一个常用插件
+    call plug#end()
+
+    " 在Vim中
+    :PlugInstall
+    " 测试插件功能
+    :help surround  " 应该能看到帮助文档
+    ```
+
+    📊 验证结果示例
+
+    成功的安装会显示：
+
+    ```text
+    ✅ ~/.vim/autoload/plug.vim 文件存在
+    ✅ :PlugStatus 显示插件列表
+    ✅ :PlugInstall 能正常下载插件
+    ✅ 插件目录 (~/.vim/plugged/) 中有下载的插件
+    ```
+
+    最简单的快速验证命令：
+
+    ```bash
+    vim +PlugStatus +qa
+    ```
+
+    如果没有任何错误信息，说明Plug安装成功！
+
+* markdown-preview.nvim
+
+    markdown-preview.nvim 详细使用指南
+
+    📦 安装配置
+
+    1. 安装插件
+
+        ```vim
+        " 使用 vim-plug
+        Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+
+        " 使用 lazy.nvim
+        {
+            'iamcco/markdown-preview.nvim',
+            cmd = { 'MarkdownPreviewToggle', 'MarkdownPreview', 'MarkdownPreviewStop' },
+            ft = { 'markdown' },
+            build = 'cd app && yarn install',
+        }
+        ```
+
+    2. 基础配置
+
+        ```vim
+        " 设置默认选项
+        let g:mkdp_auto_start = 0           " 不自动开启预览
+        let g:mkdp_auto_close = 1           " 切换buffer时自动关闭预览
+        let g:mkdp_refresh_slow = 0         " 实时刷新（1=只在保存时刷新）
+        let g:mkdp_command_for_global = 0   " 0=仅markdown文件，1=所有文件
+        let g:mkdp_open_to_the_world = 0    " 0=本地，1=允许外部访问
+
+        " 浏览器选项
+        let g:mkdp_browser = ''             " 空=默认浏览器，或指定 'chrome', 'firefox'
+        let g:mkdp_browserfunc = ''         " 自定义浏览器打开函数
+
+        " 预览选项
+        let g:mkdp_preview_options = {
+            \ 'mkit': {},
+            \ 'katex': {},
+            \ 'uml': {},
+            \ 'maid': {},
+            \ 'disable_sync_scroll': 0,
+            \ 'sync_scroll_type': 'middle',
+            \ 'hide_yaml_meta': 1,
+            \ 'sequence_diagrams': {},
+            \ 'flowchart_diagrams': {},
+            \ 'content_editable': v:false,
+            \ 'disable_filename': 0
+            \ }
+
+        " 主题选项
+        let g:mkdp_theme = 'dark'           " 'dark' 或 'light'
+
+        " 文件路径
+        let g:mkdp_filetypes = ['markdown'] " 启用预览的文件类型
+        ```
+
+    🚀 基本使用
+
+    * 快捷键映射（推荐配置）
+
+        ```vim
+        " 正常模式快捷键
+        nmap <silent> <C-m> <Plug>MarkdownPreview        " 开启/刷新预览
+        nmap <silent> <C-s> <Plug>MarkdownPreviewStop    " 关闭预览
+        nmap <silent> <C-p> <Plug>MarkdownPreviewToggle  " 切换预览
+
+        " 或使用 leader 键
+        nmap <leader>mp <Plug>MarkdownPreview
+        nmap <leader>ms <Plug>MarkdownPreviewStop
+        nmap <leader>mt <Plug>MarkdownPreviewToggle
+
+        " 插入模式也可以映射
+        imap <C-m> <esc><Plug>MarkdownPreview<cr>a
+        ```
+
+    * 命令行命令
+
+        ```vim
+        :MarkdownPreview          " 启动预览
+        :MarkdownPreviewStop      " 停止预览
+        :MarkdownPreviewToggle    " 切换预览状态
+        ```
+
+    ⚙️ 高级配置
+
+    * 自定义浏览器
+
+        ```vim
+        " 使用 Chrome
+        let g:mkdp_browser = 'chrome'
+
+        " 或指定浏览器路径
+        let g:mkdp_browser = '/usr/bin/google-chrome-stable'
+
+        " 自定义打开函数（Linux示例）
+        let g:mkdp_browserfunc = 'OpenMarkdownPreview'
+        function! OpenMarkdownPreview(url)
+        silent exec "!xdg-open " . a:url
+        endfunction
+        ```
+
+    * 同步滚动配置
+
+        ```vim
+        " 同步滚动类型
+        " 'relative' - 相对位置同步
+        " 'middle'   - 光标在中间
+        " 'absolute' - 绝对位置同步
+        let g:mkdp_preview_options = {
+            \ 'sync_scroll_type': 'middle',
+            \ 'disable_sync_scroll': 0
+            \ }
+        ```
+
+    * 端口和地址配置
+
+        ```vim
+        " 指定端口（避免冲突）
+        let g:mkdp_port = '8080'
+
+        " 指定地址
+        let g:mkdp_host = '127.0.0.1'
+
+        " 允许外部访问（远程服务器用）
+        let g:mkdp_open_to_the_world = 1
+        let g:mkdp_open_ip = '0.0.0.0'  " 监听所有地址
+        ```
+
+    * 主题和样式
+
+        ```vim
+        " 主题设置
+        let g:mkdp_theme = 'dark'
+
+        " 自定义CSS
+        let g:mkdp_markdown_css = expand('~/.config/markdown.css')
+        let g:mkdp_highlight_css = expand('~/.config/highlight.css')
+
+        " 自动根据系统主题切换
+        function! SetMarkdownTheme()
+        if strftime('%H') < 18 && strftime('%H') > 6
+            let g:mkdp_theme = 'light'
+        else
+            let g:mkdp_theme = 'dark'
+        endif
+        endfunction
+        autocmd BufEnter *.md call SetMarkdownTheme()
+        ```
+
+    🔍 调试和问题排查
+
+    * 查看预览URL
+
+        ```vim
+        :echo g:mkdp_browserfunc
+        :echo g:mkdp_port
+        :echo g:mkdp_host
+        ```
+
+    * 检查进程
+
+        ```bash
+        # 查看预览服务器进程
+        ps aux | grep markdown
+        netstat -tlnp | grep 8080
+        ```
+
+    常见问题解决
+
+    * 预览不更新
+    
+        ```vim
+        " 设置实时刷新
+        let g:mkdp_refresh_slow = 0
+        ```
+
+    * 浏览器不打开
+
+        ```vim
+        " 明确指定浏览器
+        let g:mkdp_browser = 'firefox'
+        ```
+
+    * 端口被占用
+        
+        ```vim
+        " 更换端口
+        let g:mkdp_port = '8888'
+        ```
+
+    * 数学公式不显示
+
+        ```vim
+        " 确保启用katex
+        let g:mkdp_preview_options = {
+            \ 'katex': {},
+            \ }
+        ```
+
+    🎨 实用技巧
+
+    * 自动模式
+
+        ```vim
+        " 自动开启预览（进入markdown文件时）
+        autocmd FileType markdown let g:mkdp_auto_start = 1
+
+        " 离开时自动关闭
+        autocmd BufLeave *.md :MarkdownPreviewStop
+        ```
+
+    * 与文件树插件配合
+
+        ```vim
+        " 使用NERDTree时
+        autocmd BufWinEnter *.md if &ft == 'markdown' | NERDTreeClose | endif
+        autocmd BufWinLeave *.md if &ft == 'markdown' | NERDTreeToggle | endif
+        ```
+
+    * 性能优化
+
+        ```vim
+        " 大文件时禁用实时刷新
+        autocmd BufReadPost *.md 
+            \ if line('$') > 1000 |
+            \   let g:mkdp_refresh_slow = 1 |
+            \ endif
+        ```
+
+    * 多标签页支持
+
+        ```vim
+        " 每个markdown文件独立预览
+        let g:mkdp_page_title = '「${name}」'
+        ```
+
+    📋 完整配置示例
+
+    ```vim
+    " ~/.vimrc 或 ~/.config/nvim/init.vim
+    call plug#begin()
+    Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+    call plug#end()
+
+    " Markdown预览配置
+    let g:mkdp_auto_start = 0
+    let g:mkdp_auto_close = 1
+    let g:mkdp_refresh_slow = 0
+    let g:mkdp_command_for_global = 0
+    let g:mkdp_browser = 'chrome'
+    let g:mkdp_theme = 'dark'
+    let g:mkdp_port = '8888'
+
+    " 快捷键
+    nmap <leader>mp <Plug>MarkdownPreview
+    nmap <leader>ms <Plug>MarkdownPreviewStop
+    nmap <leader>mt <Plug>MarkdownPreviewToggle
+
+    " 自动命令
+    autocmd FileType markdown nnoremap <buffer> <leader>p :MarkdownPreview<CR>
+    autocmd FileType markdown nnoremap <buffer> <leader>s :MarkdownPreviewStop<CR>
+    ```
+
+    🎪 工作流程
+
+    * 编辑文件：用Vim编辑 .md 文件
+
+    * 开启预览：按 <leader>mp 或 :MarkdownPreview
+
+    * 实时编辑：编辑内容，预览自动更新
+
+    * 关闭预览：按 <leader>ms 或关闭Vim时自动关闭
+
+    * 切换主题：修改 g:mkdp_theme 或使用CSS自定义
+    
 * vim split
 
     Vim Split（分屏）基本用法：

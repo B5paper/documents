@@ -4,6 +4,169 @@
 
 ## cached
 
+* `std::format`
+
+    std::format 是 C++20 引入的文本格式化库，提供类型安全、高性能的字符串格式化功能，类似于 Python 的 format()。
+
+    基本用法
+    
+    ```cpp
+    #include <format>
+    #include <iostream>
+
+    int main() {
+        // 1. 基本格式化
+        std::string s1 = std::format("Hello, {}!", "World");  // "Hello, World!"
+        
+        // 2. 位置参数
+        std::string s2 = std::format("{1} {0}!", "World", "Hello");  // "Hello World!"
+        
+        // 3. 带类型的格式化
+        int x = 42;
+        double pi = 3.14159;
+        std::string s3 = std::format("int: {}, double: {}", x, pi);
+        
+        std::cout << s1 << "\n" << s2 << "\n" << s3 << std::endl;
+    }
+    ```
+
+    注：
+
+    1. sprintf 要求提前申请好 dst buffer，还需要自己手动计算，非常麻烦
+    
+        比如`str = "my name: %s, my age: %d, my height: %f\n"`，需要知道`str`中除了`%`变量之外的字符个数，需要知道`%s`代表的字符串的长度，需要知道`%d`对应的变量在字符串化后具体占几个字符，需要知道`%f`小数点后保留 8 位还是 6 位。得到所有信息后，再相加得到 dst buffer 的长度。如果字符串中有 unicode ，那么更加复杂。
+
+        如果我们直接静态申请一块大 buffer，那么又会资源浪费。
+
+        使用 c++ 的`str << "my name: " << name << ", my age: " << ...`也可以完成这个任务，但是字符串之间是断开的，不直观。
+
+        这时候`format()`就呼之欲出了，它很好地解决了这个问题。
+
+    **格式说明符**
+
+    * 数值类型
+
+        ```cpp
+        int n = 42;
+        double d = 3.14159;
+
+        // 宽度和填充
+        std::format("{:10}", n);      // "        42" (默认右对齐)
+        std::format("{:<10}", n);     // "42        " (左对齐)
+        std::format("{:^10}", n);     // "    42    " (居中对齐)
+        std::format("{:*>10}", n);    // "********42" (右对齐，*填充)
+
+        // 进制
+        std::format("{:b}", n);       // "101010" (二进制)
+        std::format("{:x}", n);       // "2a" (十六进制小写)
+        std::format("{:X}", n);       // "2A" (十六进制大写)
+        std::format("{:o}", n);       // "52" (八进制)
+
+        // 浮点数
+        std::format("{:.2f}", d);     // "3.14" (保留2位小数)
+        std::format("{:e}", d);       // "3.141590e+00" (科学计数法)
+        std::format("{:.2%}", 0.42);  // "42.00%" (百分比)
+        ```
+
+    * 字符串类型
+
+        ```cpp
+        std::string str = "hello";
+
+        std::format("{:10}", str);    // "hello     " (右对齐)
+        std::format("{:^10}", str);   // "  hello   " (居中对齐)
+        std::format("{:.3}", str);    // "hel" (截断前3个字符)
+        ```
+
+    * 时间格式化
+
+        ```cpp
+        #include <chrono>
+        using namespace std::chrono;
+
+        auto now = system_clock::now();
+
+        // 格式化为字符串
+        std::string time_str = std::format("Today is {:%Y-%m-%d}", now);
+        // 例如: "Today is 2024-01-15"
+
+        // 完整示例
+        std::format("{:%Y年%m月%d日 %H:%M:%S}", now);
+        ```
+
+    * 自定义类型格式化
+
+        ```cpp
+        struct Point {
+            int x, y;
+        };
+
+        // 特化 formatter
+        template <>
+        struct std::formatter<Point> {
+            constexpr auto parse(std::format_parse_context& ctx) {
+                return ctx.begin();
+            }
+            
+            auto format(const Point& p, std::format_context& ctx) const {
+                return std::format_to(ctx.out(), "({}, {})", p.x, p.y);
+            }
+        };
+
+        // 使用
+        Point p{10, 20};
+        std::string s = std::format("Point: {}", p);  // "Point: (10, 20)"
+        ```
+
+    **高级特性**
+
+    1. 输出到迭代器
+
+        ```cpp
+        #include <vector>
+        std::vector<char> buf;
+        std::format_to(std::back_inserter(buf), "Value: {}", 42);
+        ```
+
+    2. 输出到字符串
+
+        ```cpp
+        std::string s;
+        std::format_to(std::back_inserter(s), "{} + {} = {}", 2, 3, 5);
+        ```
+
+    3. 获取格式化后的字符数
+
+        ```cpp
+        size_t n = std::formatted_size("{} + {} = {}", 2, 3, 5);  // 返回字符数
+        ```
+
+    **对比传统方法**
+
+    ```cpp
+    // printf (类型不安全)
+    printf("%d %f", 42, 3.14);
+
+    // stringstream (冗长)
+    std::stringstream ss;
+    ss << 42 << " " << 3.14;
+
+    // std::format (推荐)
+    std::format("{} {}", 42, 3.14);
+    ```
+
+    注意事项
+
+    * 需要 C++20 支持
+
+    * 错误处理：格式字符串错误在编译时（如果可能）或运行时检测
+
+    * 性能：通常比 stringstream 和 sprintf 更快
+
+    * 本地化：通过 std::vformat 支持本地化
+
+    std::format 提供了类型安全、易读且高效的字符串格式化方式，是现代 C++ 中推荐的格式化方法。
+
 * add_const_t
 
     add_const_t 是 C++ 标准库 <type_traits> 中的一个类型特性（type trait）工具，用于为给定类型添加顶层 const 限定符。

@@ -2,6 +2,14 @@
 
 ## cache
 
+* ubuntu 22.04.4 + virtual box 7.2.4 r170995 不同虚拟显卡配置
+
+    vboxvga: 开机后卡住。
+
+    vboxsvga: 开机后卡住。未尝试开 3D 加速。
+
+    vmsvga: 开机后闪屏。开 3d 加速后恢复正常。setting 也能正常打开。
+
 * virtual box 中挂载 vboxsf 共享文件夹时，如果 -o umask=0002 失败，可以使用
 
     `sudo mount -t vboxsf -o uid=1000,gid=1000,dmode=755,fmode=644 D_DRIVE ~/d`
