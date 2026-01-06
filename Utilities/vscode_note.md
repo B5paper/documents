@@ -2,6 +2,14 @@
 
 ## cache
 
+* vscode 中，如果 tab 修改原代码的对齐格式，可以把
+
+    `Editor: Use Tab Stops`
+
+    这个配置取消。
+
+    修改 indent / tab 相关的配置后，可能需要 reload window 才能生效。
+
 * 如何让 vscode 显示所有隐藏的 unicode 字符
 
     插件：`Render Special Characters`

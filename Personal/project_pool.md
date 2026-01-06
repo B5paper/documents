@@ -36,6 +36,20 @@
 
 ## cache
 
+* 代码解析：关注关键函数、关键对象/变量
+
+* 局部大纲
+
+    导航栏应该引入一种局部大纲的机制，表示出所有的父节点，以及同级的向上 2 个节点，向下 2 个节点，其他的可以忽略不显示。这样可以方便定位在超长文档中的位置。
+
+* 对于困难的问题与简单的问题，llm 的运算量几乎相同，这不符合直觉。
+
+    一个更符合直觉的解决困难问题的过程，有点像挡板弹球游戏，球只有通过纤细狭长的通道，才能到消除砖块。
+
+* log 进步
+
+    假如 x 轴是努力程度，y 轴是取得的成就，总是感觉 y 是 x 的对数函数。即使在学校的时候成绩参差不齐，到后面大家的工资却又差不多。我们的成就总是以对数的增速向前。
+
 * exp 中根据事实由少到多可以将内容分为几个级别
 
     * 想法 / idea
@@ -1884,6 +1898,30 @@ english words 由 { } reorg: english words 进化而来。
 ## Matlab
 
 ### tasks
+
+* [new] matlab `saveas()`
+
+* [new] 调研 matlab `pause(1);`函数
+
+* [new] 调研 matlab `norm()`函数
+
+* [new] matlab `min()`, `max()`
+
+* [new] matlab `dir()`
+
+* [new] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
+
+    类似 python 的 easy dict 的效果。调研一下。
+
+    感觉这种用法比较奇怪，因为在执行前不知道有哪些 fields，执行后才知道。比较适合一行一行执行，做实验，不适合正式开发场景。
+
+* [new] matlab `jsondecode()`
+
+* [new] matlab `fileread()`
+
+* [new] matlab `fread()`, `fopen()`, `fclose()`
+
+* [new] matlab `reshape()`
 
 * [ ] 调研 matlab 命令
 

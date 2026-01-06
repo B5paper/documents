@@ -6,6 +6,664 @@
 
 ## cache
 
+* matlab 尝试不打开窗口
+
+    `matlab -nodesktop`会启动一个 command line window
+
+    `matlab -nodisplay`无效，仍会启动 matlab 整体。
+
+    * `matlab -batch "disp('Hello World')"`
+
+        有效。直接在 terminal 里输出
+
+        ```
+        Hello World
+        ```
+
+    * `matlab -batch "your_script"`: 未测试
+
+    * `matlab -r "run('myscript.m')"`: 未测试
+
+    * `matlab -nodisplay -nosplash -r "myscript; exit"`: 未测试
+
+    * Jupyter Notebook 支持
+
+        通过 imatlab 内核在 Jupyter 中使用：
+
+        ```bash
+        pip install imatlab
+        python -m imatlab install
+        ```
+
+        未测试
+
+    * MATLAB Engine API
+
+        未测试
+
+        从 Python 调用 MATLAB：
+
+        ```python
+        import matlab.engine
+        eng = matlab.engine.start_matlab()
+        result = eng.sqrt(4.0)
+        ```
+
+        常用参数说明：
+
+        * -nodesktop：无桌面界面
+
+        * -nodisplay：无图形显示
+
+        * -nosplash：不显示启动画面
+
+        * -batch "command"：执行命令后退出
+
+        * -r "command"：执行命令（旧版方式）
+
+* MATLAB Engine API
+
+    安装步骤：
+
+    1. 确保 MATLAB 已安装
+
+        首先确认你的系统已经安装了 MATLAB。
+
+    2. 找到 MATLAB 的安装位置
+
+        ```bash
+        # Linux/Mac
+        which matlab
+
+        # Windows
+        where matlab
+        ```
+
+    3. 从 MATLAB 安装 Python 引擎
+
+        * 方法 A：在 MATLAB 中安装
+
+            启动 MATLAB，然后运行：
+
+            ```matlab
+            cd (fullfile(matlabroot,'extern','engines','python'))
+            system('python setup.py install')
+            ```
+
+        * 方法 B：在命令行中安装
+
+            ```bash
+            # 切换到 MATLAB 的引擎目录
+            cd "matlabroot/extern/engines/python"
+
+            # 安装到当前 Python 环境
+            python setup.py install
+
+            # 或者安装到特定用户
+            python setup.py install --user
+
+            # 或者使用 pip
+            pip install -e .
+            ```
+
+        * 方法 C：使用 pip 直接安装（推荐）
+
+            ```bash
+
+            # 找到 MATLAB 安装路径后
+            cd "C:\Program Files\MATLAB\R2023a\extern\engines\python"
+            python -m pip install .
+
+            # 或指定具体版本
+            python setup.py build --build-base="builddir" install
+            ```
+
+    4. 验证安装
+
+        ```bash
+        python -c "import matlab.engine; print('Success!')"
+        ```
+
+    5. 常见问题解决
+
+        * 问题 1：Python 版本不匹配
+
+            MATLAB Engine 需要与 MATLAB 兼容的 Python 版本。检查：
+
+            ```matlab
+            % 在 MATLAB 中查看支持的 Python 版本
+            pyversion
+            ```
+
+        * 问题 2：权限问题
+
+            ```bash
+            # 使用管理员/root权限
+            sudo python setup.py install
+
+            # 或安装到用户目录
+            python setup.py install --user
+            ```
+
+        * 问题 3：多个 Python 环境
+
+            ```bash
+            # 确认使用的是正确的 Python
+            which python
+            python --version
+
+            # 使用绝对路径
+            /usr/bin/python3 setup.py install
+
+            # 或创建虚拟环境
+            python -m venv matlab-env
+            source matlab-env/bin/activate
+            python setup.py install
+            ```
+
+        * 问题 4：Windows 特定问题
+
+            ```cmd
+            # 以管理员身份运行命令提示符
+            cd "C:\Program Files\MATLAB\R2023a\extern\engines\python"
+            python setup.py install
+
+            # 如果系统有多个 Python，使用完整路径
+            "C:\Python39\python.exe" setup.py install
+            ```
+
+    6. 快速测试
+
+        安装成功后，测试基本功能：
+
+        ```python
+        import matlab.engine
+
+        # 启动引擎
+        eng = matlab.engine.start_matlab()
+
+        # 执行 MATLAB 命令
+        result = eng.sqrt(4.0)
+        print(f"sqrt(4) = {result}")
+
+        # 创建 MATLAB 数组
+        a = matlab.double([1, 2, 3, 4, 5])
+        print(f"MATLAB array: {a}")
+
+        # 调用 MATLAB 函数
+        b = eng.sum(a)
+        print(f"sum: {b}")
+
+        # 关闭引擎
+        eng.quit()
+        ```
+
+    替代方案：
+
+    ```py
+    # 替代方案：通过子进程调用 MATLAB
+    import subprocess
+    import json
+
+    # 创建 MATLAB 脚本
+    script = """
+    data = rand(3, 3);
+    disp(jsonencode(data))
+    """
+
+    # 执行
+    result = subprocess.run(['matlab', '-batch', script], 
+                           capture_output=True, text=True)
+    ```
+
+    注意：MATLAB Engine API 需要 MATLAB 许可证，并且 MATLAB 版本和 Python 版本必须兼容。
+
+* matlab find()
+
+    find() 函数是 MATLAB 中用于查找数组非零元素位置的核心函数。
+
+    函数原型
+
+    基本语法
+
+    ```matlab
+    ind = find(X)              % 查找所有非零元素
+    ind = find(X, k)           % 查找前k个非零元素
+    ind = find(X, k, 'first')  % 查找前k个（默认）
+    ind = find(X, k, 'last')   % 查找最后k个
+    ```
+
+    多输出语法
+
+    ```matlab
+    [row, col] = find(X, ...)        % 二维数组的行列索引
+    [row, col, v] = find(X, ...)     % 同时返回值
+    [I1, I2, ..., In] = find(X, ...) % 多维数组的n维索引
+    ```
+
+    主要作用
+
+    * 定位非零元素：找出数组中所有非零元素的索引位置
+
+    * 条件查找：结合逻辑表达式，查找满足特定条件的元素
+
+    * 稀疏索引：获取需要处理的数据位置，避免循环
+
+    用法示例
+
+    1. 基本查找
+
+        ```matlab
+        A = [0 2 3; 0 5 0; 7 0 9];
+        ind = find(A)  % 返回所有非零元素的线性索引： [2; 4; 5; 7; 9]
+        ```
+
+        注：
+
+        1. `A`不是逻辑矩阵也支持查找非零元素索引
+
+    2. 使用条件表达式
+
+        ```matlab
+        A = [1 2 3; 4 5 6; 7 8 9];
+        ind = find(A > 5)       % 大于5的元素位置： [6; 7; 8; 9]
+        ind = find(mod(A,2)==0) % 偶数的位置： [2; 4; 6; 8]
+        ```
+
+        注：
+
+        1. matlab 中不使用`%`取模，因为`%`是注释
+
+    3. 获取前/后k个结果
+
+        ```matlab
+        A = [0 3 0 1 4 0 2];
+        ind = find(A, 3)          % 前3个非零： [2, 4, 5]
+        ind = find(A, 2, 'last')  % 最后2个非零： [5, 7]
+        ```
+
+        注：
+
+        1. 搜索顺序按第 1 列，第 2 列，……
+
+            python numpy 里是按行的，即 flatten 后的排列顺序是第 1 行，第 2 行，……
+
+    4. 获取行列索引（适用于矩阵）
+
+        ```matlab
+        A = [0 2 0; 4 0 6; 0 0 9];
+        [row, col] = find(A)
+        % row = [2; 1; 2; 3]
+        % col = [1; 2; 3; 3]
+        ```
+
+    5. 实际应用示例
+
+        ```matlab
+        % 示例1：查找峰值位置
+        x = [1 2 5 3 4 2];
+        peak_idx = find(x == max(x));  % 找到最大值位置：3
+
+        % 示例2：数据筛选
+        data = [10, 25, 3, 48, 15];
+        valid_idx = find(data >= 10 & data <= 30);  % [1, 2, 5]
+
+        % 示例3：稀疏矩阵处理
+        [row, col] = find(A > threshold);
+        ```
+
+    重要特性
+
+    * 逻辑输入：当输入是逻辑数组时，find 返回 true 值的位置
+
+    * 空结果：如果没有找到符合条件的元素，返回空数组 []
+
+    * 线性索引：单输出时返回线性索引（按列优先顺序）
+
+    * 性能：通常比循环快，特别是在大数据集上
+
+    替代方案
+
+    对于逻辑索引，有时直接使用逻辑索引比 find 更高效：
+
+    ```matlab
+    % 使用 find
+    idx = find(A > 0.5);
+    B = A(idx);
+
+    % 直接逻辑索引（更简洁高效）
+    B = A(A > 0.5);
+    ```
+
+    find() 在数据处理、条件筛选和矩阵操作中非常实用，是 MATLAB 编程中的常用函数之一。
+
+* matlab 中，函数可以通过`nargout`判断返回值的个数
+
+    example:
+
+    ```matlab
+    function [row, col, val] = myFind(X)
+        % 函数内部可以根据 nargout 判断调用方式
+        switch nargout
+            case 0
+                error('至少需要一个输出参数');
+            case 1
+                % 调用者只请求一个输出：find(X)
+                row = computeLinearIndices(X);
+            case 2
+                % 调用者请求两个输出：[row, col] = find(X)
+                [row, col] = computeRowColIndices(X);
+            case 3
+                % 调用者请求三个输出：[row, col, val] = find(X)
+                [row, col, val] = computeRowColVal(X);
+        end
+    end
+    ```
+
+* matlab 中，`disp()`的原型是什么？有多个输入时，中间是否有空格间隔？
+
+* matlab `mean()`
+
+    原型
+
+    ```matlab
+    M = mean(A)
+    M = mean(A, dim)
+    M = mean(___, nanflag)
+    M = mean(___, outtype)
+    ```
+
+    * dim：指定维度（1-按列，2-按行，'all'-所有元素）
+
+    * nanflag：'omitnan'忽略NaN，'includenan'包含NaN（默认）
+
+    * outtype：输出数据类型（'default', 'double', 'native'）
+
+    作用
+
+    计算数组元素的平均值
+
+    用法示例
+
+    ```matlab
+    % 基本用法
+    A = [1 2 3; 4 5 6];
+    mean_val = mean(A)         % 返回 [2.5 3.5 4.5]，默认按列计算
+    mean_row = mean(A, 2)      % 按行计算，返回 [2; 5]
+    mean_all = mean(A, 'all')  % 计算所有元素的平均值，返回 3.5
+
+    % 处理NaN值
+    B = [1 2 NaN; 4 5 6];
+    mean_with_nan = mean(B, 'omitnan')  % 忽略NaN计算
+    mean_with_nan = mean(B, 1, 'omitnan') % 按列忽略NaN
+
+    % 指定输出类型
+    C = single([1 2 3]);
+    mean_double = mean(C, 'native')     % 返回single类型
+    mean_default = mean(C)              % 返回double类型
+    ```
+
+* matlab `std()`
+
+    原型
+
+    ```matlab
+    S = std(A)
+    S = std(A, w)
+    S = std(A, w, dim)
+    S = std(___, nanflag)
+    ```
+
+    * w：权重（0-使用N-1，1-使用N，或指定权重向量）
+
+    * dim：指定计算维度
+
+    * nanflag：同上
+
+    作用
+
+    计算数组元素的标准差
+
+    用法示例
+
+    ```matlab
+    % 基本用法
+    A = [1 2 3; 4 5 6];
+    std_val = std(A)           % 默认按列计算，返回 [2.1213 2.1213 2.1213]
+    std_row = std(A, 0, 2)     % 按行计算，w=0表示使用N-1标准化
+
+    % 权重参数w
+    B = [1 2 3 4];
+    std_n = std(B, 1)          % w=1，使用N标准化（总体标准差）
+    std_n_1 = std(B, 0)        % w=0，使用N-1标准化（样本标准差，默认）
+
+    % 处理NaN值
+    C = [1 2 NaN 4 5];
+    std_omit = std(C, 'omitnan')  % 忽略NaN计算
+    std_includenan = std(C)       % 默认包含NaN（结果为NaN）
+
+    % 多维数组
+    D = randn(3, 4, 5);
+    std_dim3 = std(D, 0, 3)    % 沿第3维计算标准差
+    ```
+
+    example:
+
+    ```matlab
+    % 数据分析示例
+    data = randn(100, 3);  % 100个样本，3个特征
+
+    % 计算均值和标准差
+    data_mean = mean(data);      % 每个特征的平均值
+    data_std = std(data);        % 每个特征的标准差
+
+    % 数据标准化（z-score标准化）
+    data_normalized = (data - data_mean) ./ data_std;
+
+    % 验证标准化结果
+    norm_mean = mean(data_normalized)    % 应接近 [0 0 0]
+    norm_std = std(data_normalized)      % 应接近 [1 1 1]
+    ```
+
+* matlab 查找函数对应的文件
+
+    `which functionName`
+
+    exist 命令（检查是否存在）
+    
+    ```matlab
+    % 检查函数是否存在并返回类型
+    exist('functionName', 'builtin')  % 内建函数
+    exist('functionName', 'file')     % 文件或函数
+    exist('functionName', 'var')      % 变量
+    ```
+
+    `pathtool`: 打开搜索路径设置
+
+    光标停在函数上按 f1: 打开函数帮助文档
+
+    查找文件命令:
+
+    ```matlab
+    % 在搜索路径中查找包含特定字符串的文件
+    lookfor keyword
+
+    % 在所有.m文件中搜索文本
+    grep('pattern', '*.m')
+    ```
+
+    dbtype 查看函数内容:
+
+    ```matlab
+    % 查看函数内容（如果知道位置）
+    dbtype functionName
+    ```
+
+    编辑器中的跳转
+
+    在MATLAB编辑器中：
+
+    * F12：跳转到函数定义
+
+    * Ctrl+单击：点击函数名跳转
+
+    * 右键 → 打开 functionName：打开函数文件
+
+* matlab 中，`fprintf()`既可以输出到文件，也可以输出到屏幕
+
+    如果第一个参数是 file hander，那么输出到文件。
+
+* matlab 中 & 和 && 有什么不同
+
+    在 MATLAB 中，& 和 && 都是逻辑运算符，但它们有重要的区别：
+
+    主要区别总结
+
+    | 特性 | & (按位与) | && (短路与) |
+    | - | - | - |
+    | 运算对象 | 数组（逐元素运算） | 标量（单个布尔值） |
+    | 短路求值 | ❌ 无，总是计算所有操作数 | ✅ 有，第一个为假就停止 |
+    | 输入维度 | 必须相同或可广播 | 必须是标量 |
+    | 执行速度 | 较慢（计算所有元素） | 较快（可能提前终止） |
+    | 主要用途 | 数组/矩阵的逻辑运算 | 条件判断和控制流 |
+
+    详细说明
+
+    1. & - 逐元素逻辑与
+
+        ```matlab
+        % 示例 1：数组运算
+        A = [true, false, true];
+        B = [true, true, false];
+        result = A & B  % 输出: [true, false, false]
+
+        % 示例 2：矩阵运算
+        M1 = [1 0; 0 1] > 0;  % [true false; false true]
+        M2 = [1 1; 0 0] > 0;  % [true true; false false]
+        M1 & M2  % 输出: [true false; false false]
+        ```
+
+    2. && - 短路逻辑与
+
+        ```matlab
+        % 示例 1：短路行为
+        x = 0;
+        y = 10;
+
+        % 使用 &&：第一个为假，第二个不计算
+        if (x > 5) && (y/x > 2)  % 安全，不会除零
+            disp('条件成立');
+        else
+            disp('条件不成立');  % 输出这个
+        end
+
+        % 如果使用 & 会报错
+        if (x > 5) & (y/x > 2)  % 错误！除以0
+            % ...
+        end
+        ```
+
+    更多对比示例
+
+    示例 1：性能差异
+
+    ```matlab
+    % 假设有一个计算量很大的函数
+    function result = expensiveComputation()
+        disp('执行昂贵计算...');
+        pause(1);  % 模拟耗时操作
+        result = false;
+    end
+
+    % 使用 && - 更快（短路）
+    condition1 = false;
+    if condition1 && expensiveComputation()
+        % 不会执行expensiveComputation()
+    end
+
+    % 使用 & - 更慢
+    if condition1 & expensiveComputation()
+        % 会执行expensiveComputation()，即使不需要
+    end
+    ```
+
+    示例 2：维度要求
+
+    ```matlab
+    % & 可以处理数组
+    A = [1 2 3];
+    B = [0 2 4];
+    (A > 1) & (B < 3)  % 有效：逐元素比较
+
+    % && 只能处理标量
+    a = 2;
+    b = 3;
+    (a > 1) && (b < 5)  % 有效：都是标量
+
+    % 这会报错
+    (A > 1) && (B < 3)  % 错误：操作数必须是标量
+
+    示例 3：在循环和条件中的典型用法
+
+    ```matlab
+    % 正确使用 && 在if语句中
+    value = 10;
+    threshold = 5;
+
+    if ~isempty(value) && value > threshold
+        disp('值有效且大于阈值');
+    end
+
+    % 正确使用 & 在数组操作中
+    data = [1, 5, 8, 3, 9];
+    indices = (data > 2) & (data < 8);  % 找出 2 < data < 8 的元素
+    % indices = [false, true, false, true, false]
+    filtered = data(indices);  % [5, 3]
+    ```
+
+    选择指南
+
+    使用 && 当：
+
+    * 在 if、while 等条件语句中
+
+    * 操作数是标量
+
+    * 需要短路求值来提高性能或避免错误
+
+    * 第二个表达式可能有副作用或计算成本高
+
+    使用 & 当：
+
+    * 对数组或矩阵进行逐元素逻辑运算
+
+    * 需要创建逻辑索引数组
+
+    * 操作数不是标量
+
+    * 总是需要计算所有操作数
+
+    重要注意事项
+
+    * 优先级：& 的优先级比 && 高
+
+    * 非逻辑输入：对于非逻辑输入，两者都会进行隐式转换（非零为true）
+
+    * | 和 ||：同样的区别也适用于或运算符
+
+        ```matlab
+        % 优先级示例
+        a = 1; b = 0; c = 1;
+        result1 = a & b || c   % 相当于 (a & b) || c
+        result2 = a && b | c   % 相当于 a && (b | c)
+        ```
+
+    记住这个简单的经验法则：
+
+    * 条件语句（if/while） → 用 && 或 ||
+
+    * 数组/矩阵运算 → 用 & 或 |
+
 * `format compact`
 
     减少命令行窗口中的空行输出。
