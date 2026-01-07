@@ -2,6 +2,18 @@
 
 ## cache
 
+* vbox + ubuntu 22.04.4 + vmsvga + 3d accel 在使用 xrdp client 时，远程桌面的矩形 update 有问题
+
+    更新 vbox 增强功能后 rdp 仍有问题。
+
+    改为 vboxsvga + 3d accel 后，桌面闪烁。
+
+    改为只用 vboxsvga，不开 3d accel 后，桌面正常，rdp client 正常。但是在打开关闭普通程序时仍能观察到桌面不正常闪烁。
+
+    注：
+
+    1. 这个事件说明 vbox 在能用的情况下，不要随意更新，可能会出问题。
+
 * ubuntu 22.04.4 + virtual box 7.2.4 r170995 不同虚拟显卡配置
 
     vboxvga: 开机后卡住。

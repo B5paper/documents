@@ -2,6 +2,604 @@
 
 ## cache
 
+* 从当前位置删除到指定字符
+
+    `dt<c>`: 删除从当前位置到`<c>`之前的所有字符，`<c>`不被删。
+
+    `df<c>`: 删除从当前位置到`<c>`的所有字符，`<c>`被删。
+
+* vim 实现搜索时大小写不敏感
+
+    1. 搜索时大小写不敏感
+
+        **临时设置**
+
+        在搜索时添加 \c 前缀：
+
+        ```text
+        /\cpattern
+        ```
+
+        * 使用 \c：忽略大小写
+
+        * 使用 \C：强制区分大小写
+
+        **在搜索模式中设置**
+
+        ```text
+        /pattern\c
+        ```
+
+        效果相同，\c 放在模式前后都可以。
+
+        **永久设置（推荐）**
+
+        在 ~/.vimrc 中添加：
+
+        ```vim
+        " 设置搜索时默认忽略大小写
+        set ignorecase
+        set smartcase   " 智能大小写：如果搜索词包含大写字母，则区分大小写
+        ```
+
+        **切换命令**
+
+        在 Vim 命令模式：
+
+        ```vim
+        :set ignorecase   " 忽略大小写
+        :set noignorecase " 区分大小写
+        :set ic           " 简写（ignorecase）
+        :set noic         " 简写（noignorecase）
+        ```
+
+* vim 输入 /xx 后立即开始搜索（增量搜索）
+
+    **开启增量搜索**
+
+    在 ~/.vimrc 中添加：
+
+    ```vim
+    " 开启增量搜索
+    set incsearch
+    ```
+
+    开启后，输入 / 后每输入一个字符，Vim 会立即高亮显示匹配的位置。
+
+    **高亮显示所有匹配项**
+
+    ```vim
+    " 高亮所有匹配项
+    set hlsearch
+    ```
+
+    **相关设置**
+
+    ```vim
+    " 完整搜索相关配置
+    set ignorecase    " 搜索忽略大小写
+    set smartcase     " 搜索包含大写时区分大小写
+    set incsearch     " 输入搜索模式时实时显示匹配
+    set hlsearch      " 高亮显示所有匹配
+    ```
+
+* vim 实用的搜索技巧
+
+    **清除高亮**
+
+    ```vim
+    :noh           " 清除搜索高亮
+    :set nohlsearch " 禁用高亮
+    :set hlsearch   " 重新启用高亮
+    ```
+
+    **搜索时跳转**
+
+    * n：下一个匹配
+
+    * N：上一个匹配
+
+    * / + ↑/↓：浏览搜索历史
+
+    **搜索特殊字符**
+
+    ```text
+    /特殊字符     " 使用反斜杠转义
+    /\/path       " 搜索 /path
+    /\<word\>     " 精确匹配单词
+    ```
+
+    **替换命令也适用**
+
+    ```vim
+    :%s/pattern/replace/gi  " g:全局，i:忽略大小写
+    ```
+
+    Vim 8.2+ 新增功能
+
+    ```vim
+    " 输入搜索词时显示匹配数
+    set shortmess-=S
+    ```
+
+    我的推荐配置
+
+    ```vim
+    " ~/.vimrc 中搜索相关设置
+    set ignorecase
+    set smartcase
+    set incsearch
+    set hlsearch
+
+    " 快速清除高亮快捷键
+    nnoremap <silent> <C-l> :<C-u>nohlsearch<CR><C-l>
+    " 按 Ctrl+l 清除高亮并重绘屏幕
+    ```
+
+    这样配置后，在 Vim 中：
+
+    * 默认搜索大小写不敏感
+
+    * 输入搜索词时立即显示匹配结果
+
+    * 所有匹配项都会高亮显示
+
+    * 可以快速清除高亮
+
+* vim 移动光标
+
+    ```vim
+    zz    " 将当前行移到屏幕中间
+    zb    " 将当前行移到屏幕底部
+    zt    " 将当前行移到屏幕顶部
+    ```
+
+* vim 使用标记（mark）
+
+    * 先标记当前位置：ma（标记到 a）
+
+    * 翻页：Ctrl+f（向下翻整页）或 Ctrl+d
+
+    * 返回标记：`a 或 'a
+
+* vim 保持光标位置翻页
+
+    ```vim
+    " 保持光标位置翻页
+    nnoremap <C-d> <C-d>zz
+    nnoremap <C-u> <C-u>zz
+    ```
+
+* vim 相对行号
+
+    `set relativenumber`
+
+* vim 纯滚动不移动光标
+
+    ```vim
+    " 纯滚动屏幕，不移动光标
+    nnoremap <C-e> <C-e>j  " 向下滚动一行
+    nnoremap <C-y> <C-y>k  " 向上滚动一行
+    ```
+
+* vim 有关滚动的插件
+
+    * vim-smoothie：平滑滚动
+
+        <https://github.com/psliwka/vim-smoothie>
+
+    * neoscroll.nvim（Neovim）
+
+        <https://github.com/karb94/neoscroll.nvim>
+
+* vim 技巧
+
+    1. 删除/更改到字符
+
+        * dtx - 删除直到字符 'x' 前
+
+        * dfx - 删除直到字符 'x'（包括 'x'）
+
+        * dTx - 向后删除直到字符 'x' 前
+
+        * dFx - 向后删除直到字符 'x'（包括 'x'）
+
+    2. 文本对象操作（超实用！）
+
+        * diw - 删除当前单词（光标在单词任意位置）
+
+        * daw - 删除当前单词（包括周围空格）
+
+        * di" - 删除引号内的内容
+
+        * da" - 删除引号及内容
+
+        * di( 或 dib - 删除括号内的内容
+
+        * da( 或 dab - 删除括号及内容
+
+        * dit - 删除 HTML/XML 标签内的内容
+
+        * dat - 删除整个 HTML/XML 标签
+
+    3. 行内移动和操作
+
+        * 0 - 移动到行首
+
+        * ^ - 移动到行首第一个非空白字符
+
+        * $ - 移动到行尾
+
+        * d$ 或 D - 删除到行尾
+
+        * d0 - 删除到行首
+
+        * d^ - 删除到行首第一个非空白字符
+
+    4. 搜索和删除
+
+        * d/pattern - 删除直到匹配 pattern 的位置
+
+        * d?pattern - 向后删除直到匹配 pattern 的位置
+
+    5. 结合数字使用
+
+        * d2t. - 删除直到第二个 '.' 前
+
+        * 3df - 删除直到第三个空格（包括空格）
+
+    实际例子：
+
+    假设文本：hello.world foo.bar test.example end
+
+    * 光标在 foo 的 'f'：dt → 删除 foo.bar
+
+    * 光标在 foo 的 'f'：df → 删除 foo.bar
+
+    * 光标在引号内：di" → 删除 "hello world" 中的 hello world
+
+    * 光标在单词任意位置：daw → 删除整个单词
+
+    这些命令中的 d 都可以换成 c（删除并进入插入模式）或 y（复制），非常灵活！
+
+* vim 和 neovim 有什么区别？
+
+    Vim 和 Neovim 都是功能强大的模态文本编辑器，它们同根同源，但如今在设计哲学、目标和生态系统上已经有了显著的区别。
+
+    可以把它们的关系理解为：Neovim 是 Vim 的一个雄心勃勃的、面向未来的分支。
+
+    下面我们从几个维度来详细对比它们的区别。
+
+    核心总结（一句话概括）
+
+    * Vim: 稳定、经典、保守。追求的是在几乎所有 Unix-like 系统上开箱即用的可靠性和一致性。
+
+    * Neovim: 现代、激进、可扩展。追求的是提供一个更易于开发和集成的现代化编辑器核心，尤其注重异步处理、嵌入性和配置体验。
+
+    详细对比
+
+    | 特性维度 | Vim | Neovim |
+    | - | - | - |
+    | 诞生与目标 | 源自更古老的 Vi，目标是提供一个强大的、普遍存在的文本编辑器。 | 2014年从 Vim 分支出来，目标是重构 Vim，解决其遗留问题，为现代开发需求而设计。 |
+    | 架构与核心 | 单体架构，许多功能紧密耦合在核心中。 | 更加模块化的架构，将很多功能（如终端仿真）作为独立的、可维护的组件实现。 |
+    | 异步任务 | 后期（Vim 8.0+）才引入了有限的异步任务支持（:job， :channel）。 | 从一开始就内置了强大的异步处理能力。这使得插件可以执行耗时操作（如 LSP、文件搜索）而不阻塞编辑器界面。 |
+    | 配置与插件 | 使用 VimScript 作为主要配置和插件语言。 | 首选 Lua，同时完全兼容 VimScript。Lua 是一种更快、更现代、更易嵌入的脚本语言，极大地提升了插件性能和开发体验。 |
+    | 终端模拟 | 内置了一个基础的终端模拟器（:term）。 | 内置了一个功能更完整、集成度更高的终端模拟器，可以很好地与键绑定和颜色主题配合。 |
+    | GUI 实现 | GUI（如 gVim）是核心的一部分，与 TUI 代码紧密相关。 | 核心只提供 TUI。GUI 是通过 RPC API 实现的独立应用程序（如 Neovide, Nvy, Goneovim 等），这带来了更大的灵活性和现代化特性。 |
+    | LSP 支持 | 需要通过插件（如 coc.nvim, ALE, vim-lsp）来集成 LSP。 | 内置了 LSP 客户端，可以通过 :LspInfo, :LspStart 等命令和简单的 Lua 配置直接使用 LSP 功能，无需额外插件。 |
+    | 默认配置 | 非常保守，几乎为零配置，旨在保持与 Vi 的兼容性。 | 提供了一些更合理的默认设置（如启用鼠标、系统剪贴板集成、相对行号等），开箱体验更好。 |
+    | 社区与生态 | 历史悠久，拥有海量的插件和庞大的用户群，是 Unix 系统的标准配备。 | 非常活跃和快速增长的社区，尤其是在 Lua 插件和现代化工具链集成方面。许多新潮、高性能的插件都优先或仅支持 Neovim。 |
+    | 项目管理 | 由 Bram Moolenaar 个人主导，发展相对缓慢和保守。 | 开源社区驱动，开发流程更开放（GitHub Issues, PRs），发展速度更快，更愿意接纳新特性。 |
+
+    **深入解析关键区别**
+
+    1. 异步处理：这是最根本的区别之一
+
+        * Vim 在很长一段时间里是单线程的。如果一个插件需要执行一个耗时操作（比如代码补全、语法检查），整个编辑器界面就会被“冻结”，直到操作完成。Vim 8 之后加入了异步支持，但 Neovim 的设计是从底层就为异步而生的。
+
+        * Neovim 的异步能力使得像 Language Server Protocol (LSP)、模糊查找器 (Telescope.nvim) 这样的现代工具能够流畅运行，这是其体验远超传统 Vim 的关键。
+
+    2. 配置语言：VimScript vs Lua
+
+        * VimScript 是 Vim 的专属语言，语法有些怪异，性能也一般。虽然功能强大，但学习曲线较陡。
+
+        * Neovim 将 Lua 提升为一级公民。Lua 是一种轻量级、高效、易学的语言。现在绝大部分 Neovim 的新插件都用 Lua 编写，配置起来更直观，执行速度也更快。你甚至可以用 Lua 完全重写你的 init.vim（Neovim 的配置文件）为 init.lua。
+
+    3. API 优先与嵌入性
+
+        * Neovim 引入了 msgpack-RPC API，这意味着任何能理解该协议的语言（Python, JavaScript, Go 等）都可以与 Neovim 核心通信。
+
+        * 这带来了两个巨大优势：
+
+            * 嵌入式：你可以将 Neovim 作为一个文本编辑组件嵌入到其他应用程序中（如 IDE、浏览器、笔记软件）。
+
+            * GUI 分离：如上所述，GUI 可以成为独立的、高度定制化的前端，而核心只负责文本编辑逻辑。
+
+    **如何选择？**
+
+    * 你应该选择 Vim，如果：
+
+        * 你主要在服务器环境下工作，需要保证编辑器在所有系统上都一致且可用。
+
+        * 你讨厌变化，现有的 Vim 配置和工作流已经完美满足你的所有需求。
+
+        * 你对 Lua 不感兴趣，也不想重构你已经用了多年的 VimScript 配置。
+
+        * 稳定性和保守性对你来说是第一位的。
+
+    * 你应该选择 Neovim，如果：
+
+        * 你是一个追求效率和现代开发体验的用户。
+
+        * 你希望获得开箱即用的 LSP、DAP 等现代工具链的无缝集成。
+
+        * 你喜欢 Lua 或者愿意学习它来获得更好的配置和插件体验。
+
+        * 你希望编辑器有一个更活跃、更快速的迭代周期和充满活力的社区。
+
+        * 你可能会想尝试那些酷炫的、基于 RPC 的 GUI（如 Neovide）。
+
+    **结论**
+
+    * Neovim 并不是要“杀死” Vim，而是作为其一个成功的“进化”分支。它解决了 Vim 在架构上的一些历史包袱，为编辑器的未来开辟了新的可能性。
+
+    * 对于新用户来说，Neovim 很可能是更好的起点，因为它默认配置更友好，现代插件生态更繁荣，学习资源（尤其是关于 Lua 和 LSP 的）也更贴近当前的需求。
+
+    * 对于老 Vim 用户，迁移到 Neovim 的成本很低，因为 Neovim 几乎 100% 兼容 Vim 的配置和插件。你可以很容易地尝试一下，看看它的现代化特性是否值得你切换。事实上，Neovim 的许多创新（如异步、终端、包管理）也反过来促进了 Vim 自身的进化。
+
+* 在 vim 中使用 p 粘贴了一段内容后，如何快速定位到粘贴内容的开头和结尾？
+
+    1. 使用标记（marks）
+
+        vim 在粘贴时自动设置了两个标记：
+
+        ```vim
+        `[  " 粘贴内容的开头
+        `]  " 粘贴内容的结尾
+        ```
+
+    2. 使用可视模式重选
+
+        ```vim
+        gv      " 重新选择上次可视模式选中的区域
+                 " 如果是粘贴后立即使用，会选中刚粘贴的内容
+        ```
+
+    3. 使用选择器查看
+
+        ```vim
+        :marks [ ]   " 查看 [ 和 ] 标记的位置
+        ```
+
+    快速操作粘贴内容：
+
+    ```vim
+    `[v`]       " 选中整个粘贴内容（行模式）
+    `[v`]       " 选中整个粘贴内容（字符模式）
+    c`[         " 从当前位置修改到粘贴开头
+    d`]         " 删除从当前位置到粘贴结尾
+    ```
+
+    相关标记：
+
+    * 按 `[ 跳转到开头
+
+    * 按 `] 跳转到结尾
+
+    * 按 `. 回到上次编辑位置
+
+    * `^：上次插入模式退出位置
+
+    * `"：上次退出文件时的位置
+
+* vim 如何表示 shift + enter 这个快捷键
+
+    在 vim 中，shift+enter 没有直接的默认映射，但可以通过不同的方式来表示和绑定：
+
+    1. 终端中的键码表示
+
+        在大多数终端中，shift+enter 发送的键码通常与普通 enter 不同：
+
+        ```vim
+        " 可以尝试这些映射，具体取决于你的终端
+        <c-m>      " ctrl+m（有时等同于回车）
+        <s-cr>     " shift+enter（可能在某些环境中有效）
+        <cr>       " 普通的回车（enter）
+
+        " 更常用的表示方式
+        <nl>       " new line (shift+enter)
+        <c-j>      " ctrl+j（在某些终端中代表 shift+enter）
+        ```
+
+    2. 查找 shift+enter 的实际键码
+
+        要确定你的终端/vim 中 shift+enter 发送什么键码：
+
+        * 方法1：使用 :help 查看
+
+        ```vim
+        :h keycodes
+        ```
+
+        * 方法2：在插入模式下查看
+
+            * 进入插入模式：i
+
+            * 按 ctrl+v，然后按 shift+enter
+
+                * 会显示实际的转义序列，如 ^m 或 ^j
+
+        * 方法3：使用脚本检测
+
+            ```vim
+            " 在 normal 模式下，将 shift+enter 映射到显示键码
+            :nnoremap <key> :echo "key code: " . getchar()<cr>
+            " 然后用 shift+enter 替换上面的 <key>
+
+            " 或者使用更简单的方法
+            :map <s-cr>
+            ```
+
+    3. 实际映射示例
+
+        根据不同的终端/环境，可能需要这样映射：
+
+        ```vim
+        " 尝试1：使用 <s-cr>
+        :nnoremap <s-cr> :echo "shift+enter pressed"<cr>
+        :inoremap <s-cr> <esc>:echo "shift+enter in insert mode"<cr>
+
+        " 尝试2：如果 <s-cr> 无效，尝试其他表示
+        :nnoremap <c-j> :echo "ctrl+j / shift+enter"<cr>
+
+        " 尝试3：使用 <nl>（new line）
+        :nnoremap <nl> :echo "new line key"<cr>
+        ```
+
+    4. gui vim (gvim)
+
+        在 gui 版本的 vim 中，表示更直接：
+
+        ```vim
+        <s-enter>  " gui vim 中的 shift+enter
+        ```
+
+    5. 实际应用场景
+
+        常见的 shift+enter 用法：
+
+        ```vim
+        " 在 normal 模式下，shift+enter 快速插入新行
+        nnoremap <s-cr> o<esc>
+
+        " 在 insert 模式下，shift+enter 在当前行下方插入新行并保持插入模式
+        inoremap <s-cr> <esc>o
+
+        " 或者映射到特定功能
+        nnoremap <s-cr> :make<cr>      " 编译
+        nnoremap <s-cr> :w<cr>         " 保存
+        ```
+
+    建议：
+
+    * 先用 ctrl+v 然后按 shift+enter 查看实际键码
+
+    * 根据显示的字符进行映射
+
+    * 如果显示 ^m，使用 <c-m> 映射
+
+    * 如果显示 ^j，使用 <c-j> 映射
+
+    大多数现代终端模拟器和 gui vim 都支持 <s-cr> 表示法，但具体取决于你的 vim 版本和终端环境。
+
+* vim 中的 keycodes 表示对大小写不敏感
+
+    ```vim
+    <cr>    " 和 <cr> 等效
+    <esc>   " 和 <esc> 等效
+    <c-a>   " 和 <c-a> 等效（都是 ctrl+a）
+    <s-a>   " 和 <s-a> 等效（都是 shift+a）
+    ```
+
+    总结：
+
+    * 键码名称本身不区分大小写：<cr> = <cr>
+
+    * 修饰键组合不区分大小写：<C-a> = <C-A>
+
+    * 单独的字母键区分大小写：a ≠ A
+
+    * 推荐使用一致的大小写风格（通常用大写，如 <CR>、<Esc>）以提高可读性
+
+* vim 中宏的持久化
+
+    1. 方法一：保存到 vimrc 中
+
+        先使用`:reg q`查看宏寄存器 (`:echo @q`似乎也可以？)，然后在 vimrc 中添加
+
+        ```vim
+        " 将宏保存到寄存器 q
+        let @q = '宏的内容'
+
+        " 例如：
+        let @q = 'IHello ^[A World!^['
+        ```
+
+        注意：`^[` 表示 `<Esc>` 键，实际输入时，需要在 insert 模式下使用`Ctrl + V, Esc`输入。
+
+    2. 方法二：将宏保存为函数
+
+        ```vim
+        function! MyMacro()
+            " 在这里编写宏的操作
+            normal! IHello 
+            normal! A World!
+        endfunction
+
+        " 创建命令调用
+        command! MyMacro call MyMacro()
+
+        " 或映射快捷键
+        nnoremap <leader>m :call MyMacro()<CR>
+        ```
+
+    3. 方法三：保存到单独的文件
+
+        将宏保存到文件：
+
+        ```vim
+        " 将寄存器 q 的内容保存到文件
+        :let @q = '宏内容'
+        :call writefile(split(@q, "\n"), '~/.vim/macro_q.txt')
+        ```
+
+        在 vimrc 中加载：
+
+        ```vim
+        if filereadable(expand('~/.vim/macro_q.txt'))
+            let @q = join(readfile('~/.vim/macro_q.txt'), "\n")
+        endif
+        ```
+
+    * 方法四：使用插件
+
+        * vim-macroswap：管理多个宏
+
+        * vim-qmacro：提供更强大的宏管理功能
+
+    实用技巧：快速获取宏内容
+
+    使用以下命令可以方便地将宏转换为 vimrc 可用的格式：
+
+    ```vim
+    " 在录制宏后执行：
+    :put q
+    " 然后选中内容，用 :'<,'>reg 查看转义后的格式
+    ```
+
+    或者使用这个函数更方便地保存宏：
+
+    ```vim
+    function! SaveMacro(reg)
+        let macro_content = getreg(a:reg)
+        let macro_content = substitute(macro_content, '\n', '^M', 'g')
+        let macro_content = substitute(macro_content, '\"', '\\\"', 'g')
+        execute 'let @'.a:reg.' = "'.macro_content.'"'
+        echo 'Macro saved to register '.a:reg
+    endfunction
+    ```
+
+    转义特殊字符的完整列表：
+
+    | 按键 | vimrc 中的表示 |
+    | - | - |
+    | `<Esc>` | `^[` 或 `<Esc>` |
+    | `<Enter>` / `<CR>` | `^M` 或 `<CR>` |
+    | `<Tab>` | `^I` 或 `<Tab>` |
+    | `<Space>` | 空格字符 |
+    | `<BS>` | `^H` 或 `<BS>` |
+    | 普通文本 | 直接写入 |
+
 * vim 安装 markdown preview 插件
 
     插件：`'iamcco/markdown-preview.nvim'`

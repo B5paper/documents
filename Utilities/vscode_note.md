@@ -2,6 +2,235 @@
 
 ## cache
 
+* 简述 vscode 中 Snippets，macros 的用法
+
+    **VSCode Snippets（代码片段）**
+
+    基本用法
+
+    * 触发方式：输入前缀 + Tab
+
+    * 预置片段：很多语言自带（如 for、if、clg 等）
+
+    创建自定义Snippet
+
+    * 打开命令面板：Ctrl+Shift+P
+
+    * 搜索：Configure User Snippets
+
+    * 选择语言 或 新建全局片段文件
+
+    JSON格式示例
+
+    ```json
+    {
+      "Print to console": {
+        "prefix": "log",
+        "body": [
+          "console.log('$1', $1);",
+          "$2"
+        ],
+        "description": "Log output to console"
+      }
+    }
+    ```
+
+    特殊语法
+
+    * $1, $2：制表位位置
+
+    * ${1:label}：带默认值的制表位
+
+    * $TM_FILENAME：当前文件名
+
+    * $BLOCK_COMMENT_START：语言相关变量
+
+    范围限定
+
+    ```json
+    // 仅在特定文件类型生效
+    {
+      "[javascript]": {
+        "My Snippet": { ... }
+      }
+    }
+    ```
+
+    **VSCode Macros（宏）**
+
+    1. 内置宏录制
+
+        VSCode没有官方宏录制功能，但可通过扩展实现
+
+    2. 使用 macros 插件
+
+        ```json
+        // settings.json 配置
+        {
+          "macros": {
+            "deleteToEnd": [
+              "cursorEndSelect",
+              "deleteRight"
+            ],
+            "duplicateLine": [
+              "editor.action.copyLinesDownAction",
+              "cursorUp"
+            ]
+          }
+        }
+
+        // 绑定快捷键
+        {
+          "key": "ctrl+shift+d",
+          "command": "macros.duplicateLine"
+        }
+        ```
+
+    3. 使用 multi-command 插件
+
+        更强大的宏功能：
+
+        ```json
+        // settings.json
+        {
+          "multiCommand.commands": [
+            {
+              "command": "multiCommand.saveAndFormat",
+              "sequence": [
+                "workbench.action.files.save",
+                "editor.action.formatDocument"
+              ]
+            },
+            {
+              "command": "multiCommand.surroundWithDiv",
+              "interval": 100, // 延迟（毫秒）
+              "sequence": [
+                "editor.action.insertSnippet",
+                { "snippet": "<div>$TM_SELECTED_TEXT</div>" }
+              ]
+            }
+          ]
+        }
+
+        // keybindings.json
+        {
+          "key": "ctrl+shift+f",
+          "command": "extension.multiCommand.saveAndFormat"
+        }
+        ```
+
+    4. 宏录制扩展
+
+        * macros-re：录制和回放操作
+
+        * multi-command：手动定义复杂序列
+
+    **宏的典型用途**
+
+    * 重复操作自动化
+
+        * 格式化 + 保存
+
+        * 注释切换 + 折叠代码
+
+    * 文本处理
+
+        * 包围选中文本
+
+        * 批量修改格式
+
+    * 工作流优化
+
+        * 打开终端 + 运行命令
+
+        * 切换侧边栏视图
+
+    **实用技巧对比**
+
+    | 功能 | Snippets | Macros |
+    | - | - | - |
+    | 最佳用途 | 代码模板 | 操作序列 |
+    | 复杂度 | 简单文本替换 | 复杂动作流 |
+    | 触发方式 | 前缀+Tab | 快捷键/命令 |
+    | 动态性 | 有限变量 | 可包含条件逻辑 |
+
+    **结合使用示例**
+
+    创建一个“新建React组件”的宏：
+
+    * Snippet 生成组件代码
+
+    * Macro 执行：
+
+        * 插入Snippet
+
+        * 创建新文件
+
+        * 保存到指定目录
+
+* vscode 中与 vim 相关的插件
+
+    1. VSCode Vim插件（已支持部分脚本功能）
+
+        VSCodeVim/Vim：最流行的Vim模拟插件
+
+        * 支持部分Vim脚本功能，如：
+
+            * .vimrc 配置文件支持
+
+            * 基本的映射（mapping）和缩写（abbreviations）
+
+            * 一些自定义命令
+
+    2. 专门扩展插件
+
+        * VimL
+
+            * 提供对Vim脚本语言的更多支持
+
+            * 支持更复杂的Vim脚本功能
+
+        * Neo Vim集成
+
+            * vscode-neovim：使用真实的Neovim实例
+
+            * 完全支持Vim脚本，因为它在后台运行真正的Neovim
+
+            * 配置方式与Vim/Neovim相同
+
+    3. 替代方案
+
+        * VSCode原生扩展
+
+            * 任务（Tasks）：自动化重复操作
+
+            * 代码片段（Snippets）：自定义代码模板
+
+            * 键盘快捷键（Keybindings）：JSON配置文件
+
+        * 宏录制插件
+
+            * macros：录制和回放操作序列
+
+            * multi-command：创建复杂的命令序列
+
+    4. 配置示例
+
+        ```json
+        // keybindings.json 示例
+        {
+          "key": "ctrl+shift+b",
+          "command": "extension.multiCommand.execute",
+          "args": {
+            "sequence": [
+              "editor.action.selectAll",
+              "editor.action.copy",
+              "editor.action.deleteLines"
+            ]
+          }
+        }
+        ```
+
 * vscode 中，如果 tab 修改原代码的对齐格式，可以把
 
     `Editor: Use Tab Stops`

@@ -884,6 +884,103 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [v] process 1 tab 01.06
+
+    feedback:
+
+    * [ ] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
+
+    * [ ] vim 替换中的`/normal I*`
+
+        可以进入 normal 模式吗？
+
+    * [ ] 调研以下命令
+
+        ```vim
+        " 在Visual模式下添加列表标记
+        vnoremap <leader>l :s/^\s*\zs\S.*$/* &/<CR>
+
+        " 或者更通用的版本
+        vnoremap <leader>l :g/^\s*\S/normal I* <CR>
+        ```
+
+        为什么上一个命令`<cr>`前有`/`，而下面的命令没有？
+
+        为什么下面的命令进入了 normal 模式后，后面又跟了一个`<cr>`？ 此时 normal 模式是否和 `:` 命令模式冲突？`<cr>`匹配的命令是 normal 还是 `:`?
+
+    * [ ] `:'<,'>normal I* `
+
+    * [ ] `match(line_content, '\S')`
+
+    * [ ] `line_content[non_whitespace_pos:]`
+
+    * [ ] `setline(line_num, new_line)`
+
+    * [ ] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
+
+    * [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
+
+    * [ ] `let [lnum1, lnum2] = [lnum2, lnum1]`
+
+    * [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
+
+    * [ ] `let save_reg = @"`, `let @" = save_reg`
+
+    * [ ] `let start_line = line("'<")`
+
+    * [ ] vim 中列表的用法`let lines = []`
+
+    * [ ] `add(lines, line)`
+
+* [v] process 1 tab 01.06
+
+    feedback:
+
+    * [ ] vim `s` 命令与`c`命令
+    
+        s```<C-r>"``` 
+
+        映射：
+
+        vnoremap <leader>` c```<C-r>0```<Esc>
+
+    * [ ] vim `I` 命令与`A`命令
+
+        ```vim
+        qq
+        I```<Esc>
+        A```<Esc>
+        q
+        ```
+
+        `:'<,'>normal @q`或`:'<,'>norm @q`
+
+    * [ ] vim 命令
+
+        :'<,'>s/.*/```&```/
+
+        解释：
+
+            '<,'>：表示选中的范围
+
+            s/.*/```&```/：将整行替换为三个反引号 + 原内容 + 三个反引号
+
+            & 表示匹配到的整个文本
+
+    * [ ] 调研 vim-surround 插件
+
+        <https://github.com/tpope/vim-surround>
+
+        安装插件后
+
+        选中文本，输入：
+        
+        ```vim
+        S```
+        ```
+
+        就会自动在选中文本两侧添加三个反引号
+
 * [v] 调研 git config 设置别名
 
     ```bash
@@ -3717,6 +3814,41 @@ resources:
 ## linux maintain
 
 ### cache
+
+* [new] `less -j 10 +G filename  # 在某些系统中结合使用`
+
+* [new] `fzf < filename`
+
+* [new] 调研 less 搜索
+
+    从当前行开始新搜索:
+
+    ```text
+    //pattern
+    ```
+
+    在搜索模式中使用正则表达式:
+
+    ```text
+    /[0-9]+\.txt
+    ```
+
+* [new] `ripgrep (rg)：rg -i pattern filename`
+
+* [new] 调研 vim 映射
+
+    ```vim
+    " 在 normal 模式下，按 ; 重复上一次的数字动作
+    nnoremap <silent> ; :<C-u>call RepeatMove()<CR>
+
+    function! RepeatMove()
+        if v:count > 0
+            execute "normal! " . v:count . "j"
+        else
+            normal! .
+        endif
+    endfunction
+    ```
 
 * [new] 调研 iptables
 

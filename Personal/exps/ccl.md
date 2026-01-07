@@ -1268,3 +1268,15 @@
     * 在当前层，如果检测到 unknown，如何处理？
 
         可以从`/sys/class/net/enp0s2`拿到正确的数据。那么 ifname 从哪来？populate nic 里有网卡的名称吗？
+
+* `ncclTopoPostset()`
+
+    * invoke
+
+        parent: `initTransportsRank()`
+
+        ```cpp
+        NCCLCHECKGOTO(ncclTopoPostset(comm, nodesFirstRank, nodesTreePatterns, allTopoRanks, rings, graphs), ret, fail);
+        ```
+
+    * `connectRings()`

@@ -6,6 +6,117 @@
 
 ## cache
 
+* 将 journactl 中的中文日期改成英文
+
+    方法1：临时设置环境变量（当前会话有效）
+
+    ```bash
+    # 设置语言为英文
+    export lang=en_us.utf-8
+    export lc_time=en_us.utf-8
+
+    # 查看日志
+    journalctl -u sshd
+    ```
+
+    方法2：永久修改系统语言
+
+    ```bash
+    # 编辑 locale 配置文件
+    sudo vim /etc/locale.conf
+
+    # 添加或修改以下内容
+    lang="en_us.utf-8"
+    lc_time="en_us.utf-8"
+
+    # 或者使用 sed 命令
+    sudo sed -i 's/lang=.*/lang="en_us.utf-8"/' /etc/locale.conf
+    echo 'lc_time="en_us.utf-8"' | sudo tee -a /etc/locale.conf
+
+    # 重启系统或重新加载环境
+    sudo systemctl restart systemd-journald
+    ```
+
+    方法3：journalctl 特定命令选项
+
+    ```bash
+    # 使用 --no-full 和特定输出格式
+    journalctl -u sshd --since "2023-12-02 21:27:27" --output json
+
+    # 或者使用特定字段显示
+    journalctl -u sshd -o json-pretty | grep -e '(message|__realtime_timestamp)'
+    ```
+    
+* less 中实现大小写不敏感的搜索
+
+    1. 启动 less 时设置参数
+
+        ```bash
+        less -I filename
+        ```
+
+        或
+
+        ```bash
+        less -i filename
+        ```
+
+        区别：
+
+        * -I：搜索时完全忽略大小写
+
+        * -i：搜索时智能忽略大小写（如果搜索模式包含大写字母，则区分大小写）
+
+    2. 在 less 内部设置
+
+        进入 less 后，可以输入
+
+        `-I`或`-i`   
+
+        来切换大小写敏感设置。
+
+    3. 使用环境变量
+
+        可以在 shell 配置文件中设置默认选项：
+
+        ```bash
+        # 在 ~/.bashrc 或 ~/.zshrc 中添加
+        export LESS="-I"
+        ```
+
+    4. 搜索时指定选项
+
+        在 less 中使用 / 搜索时，可以：
+
+        * 先输入 -i 再按回车，然后进行搜索
+
+        * 或者直接在搜索模式前加 -i：
+
+        ```text
+        /-itext
+        ```
+
+        这将搜索 "text" 并忽略大小写
+
+    5. 永久配置
+
+        编辑 ~/.lesskey 文件（如果不存在则创建）：
+
+        ```text
+        # 设置默认忽略大小写
+        -i
+        ```
+
+    提示：
+
+    * 在 less 中，按 -i 可以切换大小写敏感模式
+
+    * 当前设置状态会显示在左下角（如果有 -i 标志表示忽略大小写）
+
+    * 按 = 可以查看当前 less 的设置状态
+
+* 在 less 中，无法实现输入 /xx 后不按回车立即搜索。
+
 * Here Document
 
     Here Document（文档内嵌）是一种在 Shell 脚本中直接嵌入多行文本输入的方法，通常用于命令的标准输入。
