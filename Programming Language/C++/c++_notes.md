@@ -4,6 +4,132 @@
 
 ## cached
 
+* c /c++ 中 sleep 相关函数
+
+    在C/C++中，实现延时（sleep）功能的函数主要分为以下几种：
+
+    1. Windows平台
+
+        Sleep() 函数
+
+        ```c
+        #include <windows.h>
+
+        void Sleep(DWORD dwMilliseconds);  // 毫秒为单位
+
+        // 示例
+        Sleep(1000);  // 暂停1秒
+        Sleep(500);   // 暂停500毫秒
+        ```
+
+    2. Linux/Unix平台
+
+        sleep() 函数（秒级精度）
+
+        ```c
+        #include <unistd.h>
+
+        unsigned int sleep(unsigned int seconds);  // 秒为单位
+
+        // 示例
+        sleep(5);  // 暂停5秒
+        // 返回：剩余的秒数（正常完成返回0）
+        ```
+
+        usleep() 函数（微秒级精度，已废弃但广泛使用）
+
+        ```c
+        #include <unistd.h>
+
+        int usleep(useconds_t usec);  // 微秒为单位
+
+        // 示例
+        usleep(500000);  // 暂停0.5秒
+        ```
+
+        nanosleep() 函数（纳秒级精度，推荐使用）
+
+        ```c
+        #include <time.h>
+
+        int nanosleep(const struct timespec *req, struct timespec *rem);
+
+        // 示例
+        struct timespec ts = {1, 500000000};  // 1.5秒
+        nanosleep(&ts, NULL);  // ts.tv_sec = 秒，ts.tv_nsec = 纳秒(0-999999999)
+        ```
+
+    3. C++11及以上标准
+
+        std::this_thread::sleep_for()
+
+        ```cpp
+        #include <thread>
+        #include <chrono>
+
+        // 使用chrono时间单位
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        ```
+
+    4. 跨平台封装示例
+
+        ```cpp
+        // 使用预编译指令实现跨平台
+        #ifdef _WIN32
+            #include <windows.h>
+            #define SLEEP_MS(ms) Sleep(ms)
+        #else
+            #include <unistd.h>
+            #define SLEEP_MS(ms) usleep((ms) * 1000)
+        #endif
+
+        // 或者使用C++11标准
+        #include <thread>
+        #include <chrono>
+
+        void sleep_ms(int milliseconds) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+        }
+        ```
+
+    重要注意事项：
+
+    * 精度问题：
+
+        * Windows的Sleep()精度约15毫秒
+
+        * usleep()理论上精度更高，但受系统调度影响
+
+        * nanosleep()提供更高精度
+
+    * 线程安全：
+
+        * 所有sleep函数都会让当前线程挂起
+
+        * 在GUI编程中，主线程不宜长时间sleep
+
+    * 信号处理：
+
+        * Unix的sleep()会被信号中断并返回剩余时间
+
+        * nanosleep()的rem参数可以获取剩余时间
+
+    * 资源占用：
+
+        * sleep期间线程不占用CPU
+
+        * 相比忙等待（busy-waiting）更高效
+
+    推荐做法：
+
+    * C++11及以上：使用std::this_thread::sleep_for()，跨平台且类型安全
+
+    * 需要高精度：使用nanosleep()（Unix）或Sleep()配合高精度计时器（Windows）
+
+    * 简单应用：使用平台特定的函数或进行简单封装
+
 * `std::format`
 
     std::format 是 C++20 引入的文本格式化库，提供类型安全、高性能的字符串格式化功能，类似于 Python 的 format()。

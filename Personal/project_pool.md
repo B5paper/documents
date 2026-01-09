@@ -36,6 +36,12 @@
 
 ## cache
 
+* 这顶投降帽是我的，你戴着它来投降，其实是我投降我自己
+
+    做梦梦到了这个场景和这句台词，但是问了 AI 和百度，现有的电影并没有这句话，看来是梦里原创的。
+
+    在搜索时，各大 AI 均出现了幻觉，一口咬定自己看过这部剧。ds 认为出自鹿鼎记。
+
 * 代码解析：关注关键函数、关键对象/变量
 
 * 局部大纲
@@ -6606,6 +6612,18 @@ resources:
 * [ ] java 是否有 gui 的库？
 
 ## 其他 Miscellaneous
+
+* [new] 调研 imagemagick 
+
+    `convert -density 150 input.pdf -set filename:f "%t" +adjoin "pdf_pages/%[filename:f]-%03d.png"`
+
+* [new] 调研 parallel 用法
+
+    `parallel 'convert {} -resize 1024x768 web_images/{.}.webp' ::: *.jpg`
+
+* [new] 调研`mutool`(mupdf工具)
+
+* [new] 调研`pdf2image`(Python库)
 
 * 简述 Dask 和 apache spark 的用法
 
