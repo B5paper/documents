@@ -2,81 +2,41 @@
 
 ## cache
 
-* vim 中，使用 "+p 粘贴内容后，如何跳转到粘贴内容的开关和结尾
+* `gU`
 
-    在 Vim 中，使用 "+p 从系统剪贴板粘贴内容后，可以通过以下几种方式跳转到粘贴内容的开头和结尾：
+    gU 是一个操作符，需要配合移动命令来使用。
 
-    1. 使用 gv 重新选择上次粘贴的内容
+    examples:
 
-        * 粘贴后直接按 gv 可以重新选择刚才粘贴的内容
+    * `gUU` 或 `gUgU`: 将当前行转为大写。
 
-        * 然后按 o 可以在选择模式的开头和结尾之间切换
+    * `gUw`: 将从光标处到下一个单词结尾的文本转为大写。
 
-    2. 使用标记 (Marks)
+* 大写字母`U`
 
-        Vim 在粘贴时会自动设置一些标记：
+    * 正常模式（Normal Mode）:
 
-        ```vim
-        `[     " 粘贴内容的开头位置
-        `]     " 粘贴内容的结尾位置
-        ```
+        撤销对当前行的所有修改。会一次性撤销对当前行的多次修改。
 
-        使用方法：
+    * 可视模式（visual mode）:
 
-        ```vim
-        "+p    " 粘贴内容
-        `[     " 跳转到粘贴内容开头
-        `]     " 跳转到粘贴内容结尾
-        ```
+        选中的文本全部转换为大写字母。
 
-    3. 使用选择模式
+        在可视模式（Visual Mode）下选中多行或多段文本后，按 U，选中的部分会全部转为大写。
 
-        ```vim
-        "+p    " 粘贴内容
-        v`[    " 可视模式选择到粘贴内容开头
-        v`]    " 可视模式选择到粘贴内容结尾
-        ```
-
-    4. 创建自定义映射
-
-        可以在 .vimrc 中添加以下映射：
-
-        ```vim
-        " 跳转到上次粘贴的开头
-        nnoremap <leader>[ `[
-        " 跳转到上次粘贴的结尾
-        nnoremap <leader>] `]
-        ```
-
-    5. 查看粘贴区域的内容
-
-        ```vim
-        :echo @[    " 查看最后修改/粘贴的开头位置
-        :echo @]    " 查看最后修改/粘贴的结尾位置
-        ```
-
-    示例流程：
-
-    ```vim
-    "+p    " 粘贴系统剪贴板内容
-    `[     " 跳转到粘贴内容的第一个字符
-    ``     " 跳转回之前的位置
-    `]     " 跳转到粘贴内容的最后一个字符
-    ```
-
-    这些技巧在编辑、格式化或修改刚刚粘贴的内容时特别有用。
+        如果想将选中的文本转为小写，则使用 gu（例如在可视模式下选中后按 gu）。
 
 * vim 重选刚才的行
 
-    在Vim中，有几种方法可以重新选中刚才选择的多行：
+    在 Vim 中，有几种方法可以重新选中刚才选择的多行：
 
-    方法1：使用 gv 命令（最常用）
+    方法1： gv
 
-    这个命令会重新选择上次的visual selection区域。
+    这个命令会重新选择上次的 visual selection 区域。
 
     方法2：使用标记
 
-    * 在visual模式下选择时，可以先按 m 然后设置一个标记：
+    * 在 visual 模式下选择时，可以先按 m 然后设置一个标记：
 
         ```vim
         v  # 进入visual模式
@@ -84,7 +44,7 @@
         m a  # 设置标记为 a（可以是任意字母）
         ```
 
-    * 稍后要重新选择时：
+        稍后要重新选择时：
 
         ```vim
         ' a  # 跳转到标记a所在行
@@ -94,16 +54,16 @@
 
     方法3：使用 '> 和 '<
 
-    Vim会自动记录上次visual selection的起始位置：
+    Vim 会自动记录上次 visual selection 的起始位置：
 
-    * '< - 跳转到上次visual selection的起始行
+    * `'<`: 跳转到上次 visual selection 的起始行
 
-    * '> - 跳转到上次visual selection的结束行
+    * `'>`: 同上，跳转到结束行
 
     要重新选择：
 
     ```vim
-    '<V'>  # 从起始行visual line模式选择到结束行
+    '<V'>  " 从起始行 visual line 模式选择到结束行
     ```
 
     方法4：配合移动命令
@@ -122,185 +82,9 @@
 
     推荐使用 gv，它是最简单快捷的方法，会记住你上次选择的模式和范围。
 
-* 从当前位置删除到指定字符
 
-    `dt<c>`: 删除从当前位置到`<c>`之前的所有字符，`<c>`不被删。
 
-    `df<c>`: 删除从当前位置到`<c>`的所有字符，`<c>`被删。
 
-* vim 实现搜索时大小写不敏感
-
-    1. 搜索时大小写不敏感
-
-        **临时设置**
-
-        在搜索时添加 \c 前缀：
-
-        ```text
-        /\cpattern
-        ```
-
-        * 使用 \c：忽略大小写
-
-        * 使用 \C：强制区分大小写
-
-        **在搜索模式中设置**
-
-        ```text
-        /pattern\c
-        ```
-
-        效果相同，\c 放在模式前后都可以。
-
-        **永久设置（推荐）**
-
-        在 ~/.vimrc 中添加：
-
-        ```vim
-        " 设置搜索时默认忽略大小写
-        set ignorecase
-        set smartcase   " 智能大小写：如果搜索词包含大写字母，则区分大小写
-        ```
-
-        **切换命令**
-
-        在 Vim 命令模式：
-
-        ```vim
-        :set ignorecase   " 忽略大小写
-        :set noignorecase " 区分大小写
-        :set ic           " 简写（ignorecase）
-        :set noic         " 简写（noignorecase）
-        ```
-
-* vim 输入 /xx 后立即开始搜索（增量搜索）
-
-    **开启增量搜索**
-
-    在 ~/.vimrc 中添加：
-
-    ```vim
-    " 开启增量搜索
-    set incsearch
-    ```
-
-    开启后，输入 / 后每输入一个字符，Vim 会立即高亮显示匹配的位置。
-
-    **高亮显示所有匹配项**
-
-    ```vim
-    " 高亮所有匹配项
-    set hlsearch
-    ```
-
-    **相关设置**
-
-    ```vim
-    " 完整搜索相关配置
-    set ignorecase    " 搜索忽略大小写
-    set smartcase     " 搜索包含大写时区分大小写
-    set incsearch     " 输入搜索模式时实时显示匹配
-    set hlsearch      " 高亮显示所有匹配
-    ```
-
-* vim 实用的搜索技巧
-
-    **清除高亮**
-
-    ```vim
-    :noh           " 清除搜索高亮
-    :set nohlsearch " 禁用高亮
-    :set hlsearch   " 重新启用高亮
-    ```
-
-    **搜索时跳转**
-
-    * n：下一个匹配
-
-    * N：上一个匹配
-
-    * / + ↑/↓：浏览搜索历史
-
-    **搜索特殊字符**
-
-    ```text
-    /特殊字符     " 使用反斜杠转义
-    /\/path       " 搜索 /path
-    /\<word\>     " 精确匹配单词
-    ```
-
-    **替换命令也适用**
-
-    ```vim
-    :%s/pattern/replace/gi  " g:全局，i:忽略大小写
-    ```
-
-    Vim 8.2+ 新增功能
-
-    ```vim
-    " 输入搜索词时显示匹配数
-    set shortmess-=S
-    ```
-
-    我的推荐配置
-
-    ```vim
-    " ~/.vimrc 中搜索相关设置
-    set ignorecase
-    set smartcase
-    set incsearch
-    set hlsearch
-
-    " 快速清除高亮快捷键
-    nnoremap <silent> <C-l> :<C-u>nohlsearch<CR><C-l>
-    " 按 Ctrl+l 清除高亮并重绘屏幕
-    ```
-
-    这样配置后，在 Vim 中：
-
-    * 默认搜索大小写不敏感
-
-    * 输入搜索词时立即显示匹配结果
-
-    * 所有匹配项都会高亮显示
-
-    * 可以快速清除高亮
-
-* vim 移动光标
-
-    ```vim
-    zz    " 将当前行移到屏幕中间
-    zb    " 将当前行移到屏幕底部
-    zt    " 将当前行移到屏幕顶部
-    ```
-
-* vim 使用标记（mark）
-
-    * 先标记当前位置：ma（标记到 a）
-
-    * 翻页：Ctrl+f（向下翻整页）或 Ctrl+d
-
-    * 返回标记：`a 或 'a
-
-* vim 保持光标位置翻页
-
-    ```vim
-    " 保持光标位置翻页
-    nnoremap <C-d> <C-d>zz
-    nnoremap <C-u> <C-u>zz
-    ```
-
-* vim 相对行号
-
-    `set relativenumber`
-
-* vim 纯滚动不移动光标
-
-    ```vim
-    " 纯滚动屏幕，不移动光标
-    nnoremap <C-e> <C-e>j  " 向下滚动一行
-    nnoremap <C-y> <C-y>k  " 向上滚动一行
-    ```
 
 * vim 有关滚动的插件
 
@@ -313,48 +97,6 @@
         <https://github.com/karb94/neoscroll.nvim>
 
 * vim 技巧
-
-    1. 删除/更改到字符
-
-        * dtx - 删除直到字符 'x' 前
-
-        * dfx - 删除直到字符 'x'（包括 'x'）
-
-        * dTx - 向后删除直到字符 'x' 前
-
-        * dFx - 向后删除直到字符 'x'（包括 'x'）
-
-    2. 文本对象操作（超实用！）
-
-        * diw - 删除当前单词（光标在单词任意位置）
-
-        * daw - 删除当前单词（包括周围空格）
-
-        * di" - 删除引号内的内容
-
-        * da" - 删除引号及内容
-
-        * di( 或 dib - 删除括号内的内容
-
-        * da( 或 dab - 删除括号及内容
-
-        * dit - 删除 HTML/XML 标签内的内容
-
-        * dat - 删除整个 HTML/XML 标签
-
-    3. 行内移动和操作
-
-        * 0 - 移动到行首
-
-        * ^ - 移动到行首第一个非空白字符
-
-        * $ - 移动到行尾
-
-        * d$ 或 D - 删除到行尾
-
-        * d0 - 删除到行首
-
-        * d^ - 删除到行首第一个非空白字符
 
     4. 搜索和删除
 
@@ -467,150 +209,6 @@
 
     * 对于老 Vim 用户，迁移到 Neovim 的成本很低，因为 Neovim 几乎 100% 兼容 Vim 的配置和插件。你可以很容易地尝试一下，看看它的现代化特性是否值得你切换。事实上，Neovim 的许多创新（如异步、终端、包管理）也反过来促进了 Vim 自身的进化。
 
-* 在 vim 中使用 p 粘贴了一段内容后，如何快速定位到粘贴内容的开头和结尾？
-
-    1. 使用标记（marks）
-
-        vim 在粘贴时自动设置了两个标记：
-
-        ```vim
-        `[  " 粘贴内容的开头
-        `]  " 粘贴内容的结尾
-        ```
-
-    2. 使用可视模式重选
-
-        ```vim
-        gv      " 重新选择上次可视模式选中的区域
-                 " 如果是粘贴后立即使用，会选中刚粘贴的内容
-        ```
-
-    3. 使用选择器查看
-
-        ```vim
-        :marks [ ]   " 查看 [ 和 ] 标记的位置
-        ```
-
-    快速操作粘贴内容：
-
-    ```vim
-    `[v`]       " 选中整个粘贴内容（行模式）
-    `[v`]       " 选中整个粘贴内容（字符模式）
-    c`[         " 从当前位置修改到粘贴开头
-    d`]         " 删除从当前位置到粘贴结尾
-    ```
-
-    相关标记：
-
-    * 按 `[ 跳转到开头
-
-    * 按 `] 跳转到结尾
-
-    * 按 `. 回到上次编辑位置
-
-    * `^：上次插入模式退出位置
-
-    * `"：上次退出文件时的位置
-
-* vim 如何表示 shift + enter 这个快捷键
-
-    在 vim 中，shift+enter 没有直接的默认映射，但可以通过不同的方式来表示和绑定：
-
-    1. 终端中的键码表示
-
-        在大多数终端中，shift+enter 发送的键码通常与普通 enter 不同：
-
-        ```vim
-        " 可以尝试这些映射，具体取决于你的终端
-        <c-m>      " ctrl+m（有时等同于回车）
-        <s-cr>     " shift+enter（可能在某些环境中有效）
-        <cr>       " 普通的回车（enter）
-
-        " 更常用的表示方式
-        <nl>       " new line (shift+enter)
-        <c-j>      " ctrl+j（在某些终端中代表 shift+enter）
-        ```
-
-    2. 查找 shift+enter 的实际键码
-
-        要确定你的终端/vim 中 shift+enter 发送什么键码：
-
-        * 方法1：使用 :help 查看
-
-        ```vim
-        :h keycodes
-        ```
-
-        * 方法2：在插入模式下查看
-
-            * 进入插入模式：i
-
-            * 按 ctrl+v，然后按 shift+enter
-
-                * 会显示实际的转义序列，如 ^m 或 ^j
-
-        * 方法3：使用脚本检测
-
-            ```vim
-            " 在 normal 模式下，将 shift+enter 映射到显示键码
-            :nnoremap <key> :echo "key code: " . getchar()<cr>
-            " 然后用 shift+enter 替换上面的 <key>
-
-            " 或者使用更简单的方法
-            :map <s-cr>
-            ```
-
-    3. 实际映射示例
-
-        根据不同的终端/环境，可能需要这样映射：
-
-        ```vim
-        " 尝试1：使用 <s-cr>
-        :nnoremap <s-cr> :echo "shift+enter pressed"<cr>
-        :inoremap <s-cr> <esc>:echo "shift+enter in insert mode"<cr>
-
-        " 尝试2：如果 <s-cr> 无效，尝试其他表示
-        :nnoremap <c-j> :echo "ctrl+j / shift+enter"<cr>
-
-        " 尝试3：使用 <nl>（new line）
-        :nnoremap <nl> :echo "new line key"<cr>
-        ```
-
-    4. gui vim (gvim)
-
-        在 gui 版本的 vim 中，表示更直接：
-
-        ```vim
-        <s-enter>  " gui vim 中的 shift+enter
-        ```
-
-    5. 实际应用场景
-
-        常见的 shift+enter 用法：
-
-        ```vim
-        " 在 normal 模式下，shift+enter 快速插入新行
-        nnoremap <s-cr> o<esc>
-
-        " 在 insert 模式下，shift+enter 在当前行下方插入新行并保持插入模式
-        inoremap <s-cr> <esc>o
-
-        " 或者映射到特定功能
-        nnoremap <s-cr> :make<cr>      " 编译
-        nnoremap <s-cr> :w<cr>         " 保存
-        ```
-
-    建议：
-
-    * 先用 ctrl+v 然后按 shift+enter 查看实际键码
-
-    * 根据显示的字符进行映射
-
-    * 如果显示 ^m，使用 <c-m> 映射
-
-    * 如果显示 ^j，使用 <c-j> 映射
-
-    大多数现代终端模拟器和 gui vim 都支持 <s-cr> 表示法，但具体取决于你的 vim 版本和终端环境。
 
 * vim 中的 keycodes 表示对大小写不敏感
 
@@ -720,607 +318,7 @@
     | `<BS>` | `^H` 或 `<BS>` |
     | 普通文本 | 直接写入 |
 
-* vim 安装 markdown preview 插件
 
-    插件：`'iamcco/markdown-preview.nvim'`
-
-    安装：
-
-    1. 在`.vimrc`中添加
-
-        ```vim
-        call plug#begin()
-
-        " List your plugins here
-        " Plug 'tpope/vim-sensible'
-        "
-        " Plug 'plasticboy/vim-markdown'
-
-        Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
-
-        call plug#end()
-        ```
-
-        （需提前安装 VimPlug）
-
-    2. 打开一个 vim，输入命令：`:PlugInstall`
-
-        此时会 clone github repo，然后尝试编译和安装。
-
-        这个 repo 是一个 js 项目，需要 npm 安装一些包，如果环境没有挂境外代理，可能会失败。即使 repo 编译安装失败，VimPlug 也会显示插件安装成功。实际上此时并没有安装成功。
-
-        可以打开一个 md 文件，输入命令`:MarkdownPreview`试一下，如果什么都没有发生，说明没有安装成功。
-
-    3. 如果 repo 已经 clone 了，但是没有安装成功，可以用下面的方法
-
-        进入`~/.vim/plugged/markdown-preview.nvim/app`, 执行
-
-        `sudo npm install`
-
-        如果需要设置代表，先配置好`http_proxy`, `https_proxy`再执行 npm install。
-        
-        如果 app 目录中有`node_modules`，并且 npm 没有什么报错，那么大概率安装成功了。找一个 md 文件测试一下即可。
-
-* vim 渲染 markdown 使用什么插件
-
-    在Vim中渲染Markdown有多种选择，以下是最常用的插件：
-
-    🌟 主流选择
-
-    1. Markdown预览插件
-
-        * markdown-preview.nvim - 最流行的实时预览插件
-
-            ```vim
-            " 安装
-            Plug 'iamcco/markdown-preview.nvim'
-            ```
-
-            支持实时预览
-
-            自动刷新
-
-            支持数学公式、代码高亮
-
-        * glow.nvim - 使用glow渲染
-
-            ```vim
-            Plug 'ellisonleao/glow.nvim'
-            ```
-
-    2. 语法高亮增强
-
-        * vim-markdown - 增强Markdown语法高亮
-
-            ```vim
-            Plug 'plasticboy/vim-markdown'
-            ```
-
-            折叠支持
-
-            更好的语法高亮
-
-            TOC生成
-
-        * vim-markdown-toc - 生成目录
-
-            ```vim
-            Plug 'mzlogin/vim-markdown-toc'
-            ```
-
-    🔧 配置示例
-
-    ```vim
-    " 基本配置
-    call plug#begin()
-    Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
-    Plug 'plasticboy/vim-markdown'
-    call plug#end()
-
-    " Markdown预览设置
-    let g:mkdp_auto_start = 0
-    let g:mkdp_auto_close = 1
-    let g:mkdp_refresh_slow = 0
-    let g:mkdp_command_for_global = 0
-    let g:mkdp_open_to_the_world = 0
-
-    " 快捷键映射
-    nmap <silent> <leader>mp <Plug>MarkdownPreview
-    nmap <silent> <leader>ms <Plug>MarkdownPreviewStop
-    nmap <silent> <leader>mt <Plug>MarkdownPreviewToggle
-    ```
-
-    🚀 使用方式
-
-    * 实时预览：打开Markdown文件，按<leader>mp
-
-    * 停止预览：按<leader>ms
-
-    * 切换预览：按<leader>mt
-
-    💡 其他选择
-
-    * 终端内渲染
-
-        * mdv - 终端内查看Markdown
-
-        * glow - 美观的终端渲染
-
-        * mdcat - cat的Markdown版本
-
-    * Neovim专属
-
-        * markdown-preview.nvim（也支持Neovim）
-
-        * neovim内置LSP + markdown语言服务器
-
-    📋 推荐组合
-
-    对于大多数用户，我推荐：
-
-    ```text
-    markdown-preview.nvim + vim-markdown
-    ```
-
-    这个组合提供了完整的Markdown编写体验。
-
-* 如何验证vim Plug是否安装成功？
-
-    验证Vim Plug是否安装成功有以下几种方法：
-
-    🔍 基本检查方法
-
-    1. 查看插件目录结构
-
-        ```bash
-        # 检查Plug是否已克隆
-        ls -la ~/.vim/autoload/
-        # 应该能看到 plug.vim 文件
-        ```
-
-    2. 在Vim中测试命令
-
-        ```vim
-        :PlugStatus    " 查看插件状态
-        :PlugInstall   " 尝试安装插件（如果没有错误，说明Plug正常工作）
-        :PlugUpdate    " 更新插件
-        :PlugClean     " 清理未使用的插件
-        ```
-
-    3. 检查Vim版本和功能
-
-        ```vim
-        " 在Vim中执行
-        :version
-        " 确认支持 +eval 和 +python3（部分插件需要）
-        ```
-
-    📝 创建测试配置验证
-
-    步骤1：创建测试配置
-
-    ```vim
-    " ~/.vimrc 中添加测试代码
-    call plug#begin('~/.vim/plugged')
-
-    " 安装一个简单插件测试
-    Plug 'junegunn/vim-easy-align'
-
-    call plug#end()
-    ```
-
-    步骤2：重新加载并安装
-
-    ```bash
-    # 重新加载配置
-    vim +'source ~/.vimrc'
-
-    # 或在Vim中
-    :source ~/.vimrc
-    :PlugInstall
-    ```
-
-    步骤3：验证安装
-
-    ```bash
-    # 检查插件是否下载
-    ls ~/.vim/plugged/
-    # 应该能看到 vim-easy-align 目录
-    ```
-
-    ✅ 完整的验证流程
-
-    方法一：使用内置命令
-
-    ```vim
-    " 1. 检查Plug命令是否存在
-    :command Plug
-
-    " 2. 检查插件列表
-    :scriptnames
-    " 在列表中应该能看到 plug.vim
-
-    " 3. 测试插件功能
-    " 安装测试插件后，验证其功能
-    :EasyAlign     " 如果vim-easy-align安装成功，这个命令应该可用
-    ```
-
-    方法二：查看帮助文档
-
-    ```vim
-    :help plug.txt
-    " 如果能看到Plug的帮助文档，说明安装成功
-    ```
-
-    方法三：创建测试脚本
-
-    ```bash
-    #!/bin/bash
-    # test_vim_plug.sh
-
-    echo "检查Vim Plug状态..."
-
-    # 检查文件是否存在
-    if [ -f ~/.vim/autoload/plug.vim ]; then
-        echo "✅ Plug.vim 文件存在"
-    else
-        echo "❌ Plug.vim 文件不存在"
-        exit 1
-    fi
-
-    # 在Vim中测试
-    echo "在Vim中测试Plug命令..."
-    vim -c 'PlugStatus' -c 'qa!' > /dev/null 2>&1
-
-    if [ $? -eq 0 ]; then
-        echo "✅ PlugStatus 命令执行成功"
-    else
-        echo "❌ PlugStatus 命令执行失败"
-    fi
-
-    echo ""
-    echo "验证完成！"
-    ```
-
-    🔧 常见问题排查
-
-    * 如果Plug未安装：
-
-        ```bash
-        # 手动安装Vim Plug
-        curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
-            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        ```
-
-    * 如果命令不可用：
-
-        * 检查Vim版本：确保Vim版本 ≥ 7.0
-
-        * 检查文件权限：
-    
-            ```bash
-            chmod 755 ~/.vim/autoload/
-            chmod 644 ~/.vim/autoload/plug.vim
-            ```
-
-        * 检查配置语法：
-
-            ```vim
-            " 确保.vimrc中正确配置
-            call plug#begin('~/.vim/plugged')
-            " 插件列表
-            call plug#end()
-            ```
-
-    测试完成后，验证一个真实插件：
-
-    ```vim
-    " 安装并验证一个真实插件
-    call plug#begin('~/.vim/plugged')
-    Plug 'tpope/vim-surround'  " 一个常用插件
-    call plug#end()
-
-    " 在Vim中
-    :PlugInstall
-    " 测试插件功能
-    :help surround  " 应该能看到帮助文档
-    ```
-
-    📊 验证结果示例
-
-    成功的安装会显示：
-
-    ```text
-    ✅ ~/.vim/autoload/plug.vim 文件存在
-    ✅ :PlugStatus 显示插件列表
-    ✅ :PlugInstall 能正常下载插件
-    ✅ 插件目录 (~/.vim/plugged/) 中有下载的插件
-    ```
-
-    最简单的快速验证命令：
-
-    ```bash
-    vim +PlugStatus +qa
-    ```
-
-    如果没有任何错误信息，说明Plug安装成功！
-
-* markdown-preview.nvim
-
-    markdown-preview.nvim 详细使用指南
-
-    📦 安装配置
-
-    1. 安装插件
-
-        ```vim
-        " 使用 vim-plug
-        Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
-
-        " 使用 lazy.nvim
-        {
-            'iamcco/markdown-preview.nvim',
-            cmd = { 'MarkdownPreviewToggle', 'MarkdownPreview', 'MarkdownPreviewStop' },
-            ft = { 'markdown' },
-            build = 'cd app && yarn install',
-        }
-        ```
-
-    2. 基础配置
-
-        ```vim
-        " 设置默认选项
-        let g:mkdp_auto_start = 0           " 不自动开启预览
-        let g:mkdp_auto_close = 1           " 切换buffer时自动关闭预览
-        let g:mkdp_refresh_slow = 0         " 实时刷新（1=只在保存时刷新）
-        let g:mkdp_command_for_global = 0   " 0=仅markdown文件，1=所有文件
-        let g:mkdp_open_to_the_world = 0    " 0=本地，1=允许外部访问
-
-        " 浏览器选项
-        let g:mkdp_browser = ''             " 空=默认浏览器，或指定 'chrome', 'firefox'
-        let g:mkdp_browserfunc = ''         " 自定义浏览器打开函数
-
-        " 预览选项
-        let g:mkdp_preview_options = {
-            \ 'mkit': {},
-            \ 'katex': {},
-            \ 'uml': {},
-            \ 'maid': {},
-            \ 'disable_sync_scroll': 0,
-            \ 'sync_scroll_type': 'middle',
-            \ 'hide_yaml_meta': 1,
-            \ 'sequence_diagrams': {},
-            \ 'flowchart_diagrams': {},
-            \ 'content_editable': v:false,
-            \ 'disable_filename': 0
-            \ }
-
-        " 主题选项
-        let g:mkdp_theme = 'dark'           " 'dark' 或 'light'
-
-        " 文件路径
-        let g:mkdp_filetypes = ['markdown'] " 启用预览的文件类型
-        ```
-
-    🚀 基本使用
-
-    * 快捷键映射（推荐配置）
-
-        ```vim
-        " 正常模式快捷键
-        nmap <silent> <C-m> <Plug>MarkdownPreview        " 开启/刷新预览
-        nmap <silent> <C-s> <Plug>MarkdownPreviewStop    " 关闭预览
-        nmap <silent> <C-p> <Plug>MarkdownPreviewToggle  " 切换预览
-
-        " 或使用 leader 键
-        nmap <leader>mp <Plug>MarkdownPreview
-        nmap <leader>ms <Plug>MarkdownPreviewStop
-        nmap <leader>mt <Plug>MarkdownPreviewToggle
-
-        " 插入模式也可以映射
-        imap <C-m> <esc><Plug>MarkdownPreview<cr>a
-        ```
-
-    * 命令行命令
-
-        ```vim
-        :MarkdownPreview          " 启动预览
-        :MarkdownPreviewStop      " 停止预览
-        :MarkdownPreviewToggle    " 切换预览状态
-        ```
-
-    ⚙️ 高级配置
-
-    * 自定义浏览器
-
-        ```vim
-        " 使用 Chrome
-        let g:mkdp_browser = 'chrome'
-
-        " 或指定浏览器路径
-        let g:mkdp_browser = '/usr/bin/google-chrome-stable'
-
-        " 自定义打开函数（Linux示例）
-        let g:mkdp_browserfunc = 'OpenMarkdownPreview'
-        function! OpenMarkdownPreview(url)
-        silent exec "!xdg-open " . a:url
-        endfunction
-        ```
-
-    * 同步滚动配置
-
-        ```vim
-        " 同步滚动类型
-        " 'relative' - 相对位置同步
-        " 'middle'   - 光标在中间
-        " 'absolute' - 绝对位置同步
-        let g:mkdp_preview_options = {
-            \ 'sync_scroll_type': 'middle',
-            \ 'disable_sync_scroll': 0
-            \ }
-        ```
-
-    * 端口和地址配置
-
-        ```vim
-        " 指定端口（避免冲突）
-        let g:mkdp_port = '8080'
-
-        " 指定地址
-        let g:mkdp_host = '127.0.0.1'
-
-        " 允许外部访问（远程服务器用）
-        let g:mkdp_open_to_the_world = 1
-        let g:mkdp_open_ip = '0.0.0.0'  " 监听所有地址
-        ```
-
-    * 主题和样式
-
-        ```vim
-        " 主题设置
-        let g:mkdp_theme = 'dark'
-
-        " 自定义CSS
-        let g:mkdp_markdown_css = expand('~/.config/markdown.css')
-        let g:mkdp_highlight_css = expand('~/.config/highlight.css')
-
-        " 自动根据系统主题切换
-        function! SetMarkdownTheme()
-        if strftime('%H') < 18 && strftime('%H') > 6
-            let g:mkdp_theme = 'light'
-        else
-            let g:mkdp_theme = 'dark'
-        endif
-        endfunction
-        autocmd BufEnter *.md call SetMarkdownTheme()
-        ```
-
-    🔍 调试和问题排查
-
-    * 查看预览URL
-
-        ```vim
-        :echo g:mkdp_browserfunc
-        :echo g:mkdp_port
-        :echo g:mkdp_host
-        ```
-
-    * 检查进程
-
-        ```bash
-        # 查看预览服务器进程
-        ps aux | grep markdown
-        netstat -tlnp | grep 8080
-        ```
-
-    常见问题解决
-
-    * 预览不更新
-    
-        ```vim
-        " 设置实时刷新
-        let g:mkdp_refresh_slow = 0
-        ```
-
-    * 浏览器不打开
-
-        ```vim
-        " 明确指定浏览器
-        let g:mkdp_browser = 'firefox'
-        ```
-
-    * 端口被占用
-        
-        ```vim
-        " 更换端口
-        let g:mkdp_port = '8888'
-        ```
-
-    * 数学公式不显示
-
-        ```vim
-        " 确保启用katex
-        let g:mkdp_preview_options = {
-            \ 'katex': {},
-            \ }
-        ```
-
-    🎨 实用技巧
-
-    * 自动模式
-
-        ```vim
-        " 自动开启预览（进入markdown文件时）
-        autocmd FileType markdown let g:mkdp_auto_start = 1
-
-        " 离开时自动关闭
-        autocmd BufLeave *.md :MarkdownPreviewStop
-        ```
-
-    * 与文件树插件配合
-
-        ```vim
-        " 使用NERDTree时
-        autocmd BufWinEnter *.md if &ft == 'markdown' | NERDTreeClose | endif
-        autocmd BufWinLeave *.md if &ft == 'markdown' | NERDTreeToggle | endif
-        ```
-
-    * 性能优化
-
-        ```vim
-        " 大文件时禁用实时刷新
-        autocmd BufReadPost *.md 
-            \ if line('$') > 1000 |
-            \   let g:mkdp_refresh_slow = 1 |
-            \ endif
-        ```
-
-    * 多标签页支持
-
-        ```vim
-        " 每个markdown文件独立预览
-        let g:mkdp_page_title = '「${name}」'
-        ```
-
-    📋 完整配置示例
-
-    ```vim
-    " ~/.vimrc 或 ~/.config/nvim/init.vim
-    call plug#begin()
-    Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
-    call plug#end()
-
-    " Markdown预览配置
-    let g:mkdp_auto_start = 0
-    let g:mkdp_auto_close = 1
-    let g:mkdp_refresh_slow = 0
-    let g:mkdp_command_for_global = 0
-    let g:mkdp_browser = 'chrome'
-    let g:mkdp_theme = 'dark'
-    let g:mkdp_port = '8888'
-
-    " 快捷键
-    nmap <leader>mp <Plug>MarkdownPreview
-    nmap <leader>ms <Plug>MarkdownPreviewStop
-    nmap <leader>mt <Plug>MarkdownPreviewToggle
-
-    " 自动命令
-    autocmd FileType markdown nnoremap <buffer> <leader>p :MarkdownPreview<CR>
-    autocmd FileType markdown nnoremap <buffer> <leader>s :MarkdownPreviewStop<CR>
-    ```
-
-    🎪 工作流程
-
-    * 编辑文件：用Vim编辑 .md 文件
-
-    * 开启预览：按 <leader>mp 或 :MarkdownPreview
-
-    * 实时编辑：编辑内容，预览自动更新
-
-    * 关闭预览：按 <leader>ms 或关闭Vim时自动关闭
-
-    * 切换主题：修改 g:mkdp_theme 或使用CSS自定义
-    
 * vim split
 
     Vim Split（分屏）基本用法：
@@ -1589,70 +587,10 @@
 
     但是如果在字符串中，需要用`\t`表示 tab 键，不能使用`<tab>`。
 
-* vim 函数规则
-
-    > E128: Function name must start with a capital or "s:": add_star()
-
-    注：
-
-    1. 可以看出，如果用`s:`作为函数名前缀，那么有点像 C 语言中的`private`函数了。
 
 * vim 的`:source xxx.vim`是在当前环境中执行`vim`脚本，之前定义的函数会被保留。
 
-* vim function 不需要`function!`也能覆盖之前自己自定义的函数。
-
-    不清楚如果不加`!`能不能覆盖 vim 内置函数。
-
-* vim 中连接字符串时，`.`左右的空格可省略
-
-    `echo 'line: '.line`
-
-    似乎点`.`本身也可以被省略：
-
-    `echo 'cur line: 'line`
-
-    不清楚原因。
-
 * vim 可以使用单引号作为字符串，也可以使用双引号
-
-* vim 在 visual 下选择多行，进入命令模式时会自动添加`:'<,'>`，表示对每一行都调用一次后续的命令
-
-    如果我们的函数按`:'<,'>call MyFunc()`方式调用时，对于每一行都会调用一次`MyFunc()`函数。
-
-    可以在进入命令模式后，按`Ctrl` + `u`清除`'<,'>`。
-
-* vim 可视模式下对 md 段落中有文字的行添加星号
-
-    ```vim
-    function AddAsterisk()
-        let line = getline('.')
-        if line !~ '\S'
-            return 0
-        endif
-        let lnum = line('.')
-        execute lnum . 'normal! ^i* '
-        return 0
-    endfunction
-
-    vnoremap <leader>a :call AddAsterisk()<CR>
-    ```
-
-    可以按`\`, `a`触发函数调用。
-
-* vim script 显示 visual 模式下选中的内容
-
-    ```vim
-    function ShowLines()
-        let start_line = line("'<")
-        let end_line = line("'>")
-        echo "选中的行范围: " . start_line . " 到 " . end_line
-        for lnum in range(start_line, end_line)
-            let line = getline(lnum)
-            echo 'cur line: ' . line
-        endfor
-        return 0
-    endfunction
-    ```
 
 * `/w<CR>i<space><Esc>` 的作用解析
 
@@ -1733,158 +671,1609 @@
 
         * `:range s/old/new/g` - 在指定范围替换
 
-* Vimscript
 
-    Vimscript（Vim Script）是 Vim 编辑器的内置脚本语言，用于配置、自定义和扩展 Vim。以下是 Vimscript 的核心写法要点：
 
-    1. 基础语法
+* Vim 缓冲区
 
-        注释：以 " 开头
+    1. 什么是缓冲区？
+
+        缓冲区（Buffer） 是 Vim 中内存中的文本副本，代表一个打开的文件。它不等同于窗口或标签页。
+
+        关键理解：
+
+        * 缓冲区是文件的内存表示
+
+        * 一个文件可以对应多个缓冲区（但通常不建议）
+
+        * 缓冲区可以未命名（新建未保存的文件）
+
+        * 缓冲区可以在无窗口的情况下存在
+
+    2. 缓冲区的状态
+
+        缓冲区有以下几种状态：
 
         ```vim
-        " 这是一行注释
+        " 查看缓冲区状态
+        :ls    " 或 :buffers :files
         ```
 
-        变量：
+        状态标志说明：
 
-        * 全局变量：`g:var_name`
+        * `a` - 激活（active）：在当前窗口中显示
 
-        * 局部变量：`l:var_name`（函数内）
+        * `h` - 隐藏（hidden）：已加载但不在任何窗口显示
 
-        * 选项变量：`&option_name`（如 `&tabstop`）
+        * `%` - 当前缓冲区
 
-        * 环境变量：`$PATH`
+        * `#` - 交替缓冲区（使用 Ctrl-^ 切换的缓冲区）
+
+        * `+` - 已修改
+
+        * `-` - 不可修改（只读模式）
+
+        * `=` - 只读缓冲区
+
+        * `x` - 有读取错误的缓冲区
+
+        * `u` - 未列出的缓冲区
+
+    3. 基本操作命令
+
+        创建/打开缓冲区：
 
         ```vim
-        let g:my_var = 10
-        let s:local_var = "hello"  " 脚本局部变量
+        :e file.txt      " 在新缓冲区打开文件
+        :enew           " 创建新的空缓冲区
+        :sp file.txt    " 水平分割窗口并打开缓冲区
+        :vsp file.txt   " 垂直分割窗口并打开缓冲区
         ```
 
-    2. 数据类型
-
-        * 字符串：`"string"` 或 `'string'`
-
-        * 数字：整数或浮点数（如 42、3.14）
-
-        * 列表：`[1, 2, 'three']`
-
-        * 字典：`{'key': 'value', 'num': 42}`
-
-        * 特殊类型：`v:true`、`v:false`、`v:null`
-
-    3. 控制结构
+        缓冲区导航：
 
         ```vim
-        " 条件判断
-        if condition
-          echo "yes"
-        elseif another_condition
-          echo "maybe"
-        else
-          echo "no"
+        :bn              " 下一个缓冲区
+        :bp              " 上一个缓冲区
+        :bf              " 第一个缓冲区
+        :bl              " 最后一个缓冲区
+        :b#              " 切换到交替缓冲区
+        Ctrl-^           " 快速切换交替缓冲区
+        ```
+
+        按编号/名称切换：
+
+        ```vim
+        :b 2             " 切换到2号缓冲区
+        :b file.txt      " 切换到包含该文件名的缓冲区
+        :b <Tab>         " 补全缓冲区名称
+        ```
+
+        关闭缓冲区：
+
+        ```vim
+        :bd              " 删除当前缓冲区
+        :bd 2            " 删除2号缓冲区
+        :bd file.txt     " 删除指定文件缓冲区
+        :%bd             " 删除所有缓冲区
+        :bd!             " 强制删除（不保存修改）
+        ```
+
+    4. 缓冲区列表管理
+
+        ```vim
+        " 查看缓冲区列表
+        :ls              " 简短列表
+        :buffers         " 完整列表
+        :files           " 同:buffers
+
+        " 只列出某些缓冲区
+        :ls!             " 列出包括未列出的缓冲区
+        :filter /pattern/ ls   " 过滤显示
+        ```
+
+    5. 缓冲区选项
+
+        每个缓冲区可以有自己的本地选项：
+
+        ```vim
+        " 设置缓冲区特定选项
+        :setlocal tabstop=4
+        :setlocal shiftwidth=4
+        :setlocal filetype=python
+
+        " 查看缓冲区选项差异
+        :setlocal
+
+        " 缓冲区变量
+        let b:my_var = "value"  " 缓冲区局部变量
+        echo b:changedtick     " 修改次数计数器
+        ```
+
+    6. 实用技巧和命令
+
+        多文件操作：
+
+        ```vim
+        " 批量保存所有修改的缓冲区
+        :wa              " write all
+
+        " 批量放弃所有修改
+        :qa!             " quit all without saving
+        ```
+
+        缓冲区导航映射：
+
+        ```vim
+        " 在 ~/.vimrc 中添加
+        nnoremap <leader>bn :bn<CR>
+        nnoremap <leader>bp :bp<CR>
+        nnoremap <leader>bd :bd<CR>
+        nnoremap <leader>bl :ls<CR>
+        nnoremap <leader>b# :b#<CR>
+        ```
+
+        智能缓冲区切换：
+
+        ```vim
+        " 使用 fzf.vim 插件增强
+        nnoremap <C-b> :Buffers<CR>
+        ```
+
+    7. 缓冲区 vs 窗口 vs 标签页
+
+        概念	说明	类比
+        缓冲区	内存中的文件	文件本身
+        窗口	查看缓冲区的视口	查看器/窗口
+        标签页	窗口的集合	工作区/桌面
+
+        ```vim
+        " 关系示例
+        :tabnew file.txt  " 在新标签页创建窗口显示缓冲区
+        :split file.txt   " 在新窗口显示同一缓冲区
+        :vsplit file.txt  " 在垂直窗口显示同一缓冲区
+        ```
+
+    8. 缓冲区相关函数（Vim Script）
+
+        ```vim
+        " 获取当前缓冲区编号
+        let bufnum = bufnr('%')
+        let bufnum = bufnr()       " 同 bufnr('%')
+
+        " 获取缓冲区名称
+        let name = bufname('%')
+        let fullname = expand('%:p')  " 完整路径
+
+        " 检查缓冲区是否存在
+        if buflisted(bufnum)
+            echo "缓冲区在列表中"
         endif
 
-        " 循环
-        for i in range(1, 5)
-          echo i
-        endfor
+        " 获取缓冲区信息
+        let info = getbufinfo(bufnum)
+        echo info[0].name         " 文件名
+        echo info[0].changed      " 是否修改
+        echo info[0].hidden       " 是否隐藏
+        echo info[0].lastused     " 最后使用时间
 
-        while condition
-          echo "looping"
-        endwhile
+        " 获取所有缓冲区
+        let buflist = getbufinfo({'buflisted': 1})
+
+        " 缓冲区选项操作
+        call setbufvar(bufnum, '&modifiable', 1)  " 设置选项
+        let mod = getbufvar(bufnum, '&modified')  " 获取选项
+
+        " 创建新缓冲区
+        let new_buf = bufadd('newfile.txt')
+        call bufload(new_buf)
         ```
 
-    4. 函数定义
+    9. 实用配置示例
+
+        自动保存会话（包含缓冲区）：
 
         ```vim
-        function! MyFunction(arg1, arg2)
-          echo a:arg1 . " " . a:arg2  " 参数前缀 a:
-          return 1
+        " ~/.vimrc
+        set sessionoptions+=buffers  " 保存会话时包括缓冲区
+        autocmd VimLeave * mksession! ~/.vim/session.vim
+        autocmd VimEnter * source ~/.vim/session.vim
+        ```
+
+        缓冲区关闭时自动删除隐藏缓冲区：
+
+        ```vim
+        function! DeleteHiddenBuffers()
+            let tpbl=[]
+            call map(range(1, tabpagenr('$')), 'extend(tpbl, tabpagebuflist(v:val))')
+            for buf in filter(range(1, bufnr('$')), 'bufexists(v:val) && index(tpbl, v:val)==-1')
+                silent execute 'bwipeout' buf
+            endfor
+        endfunction
+        command! BDH call DeleteHiddenBuffers()
+        ```
+
+        缓冲区切换增强：
+
+        ```vim
+        " 只显示已修改的缓冲区
+        function! ListModifiedBuffers()
+            let modified = []
+            for buf in range(1, bufnr('$'))
+                if getbufvar(buf, '&modified')
+                    call add(modified, bufname(buf) . ' (' . buf . ')')
+                endif
+            endfor
+            echo "已修改的缓冲区:"
+            for name in modified
+                echo name
+            endfor
         endfunction
         ```
 
-        * 函数名首字母通常大写（避免与内置函数冲突）。
+    10. 常见问题解决
 
-        * 用 ! 覆盖同名函数。
-
-    5. 常用命令
-
-        * echo：输出信息
-
-        * execute：执行字符串形式的命令
-
-        * normal：执行普通模式命令
-        vim
-
-        * normal! ggdd  " 跳转到首行并删除
-
-        * command：自定义命令
-        vim
-
-        * command! Hello echo "Hello, Vim!"
-
-    6. 自动命令（Autocmd）
-
-        在特定事件触发时执行命令：
+        问题1：缓冲区太多难以管理
 
         ```vim
-        autocmd BufNewFile *.txt echo "新文本文件已创建"
-        autocmd BufWritePre *.js :call FormatFile()
+        " 只保留活动缓冲区
+        :bufdo bd | tabonly  " 危险！会丢失未保存内容
+
+        " 更好的方式：只保存重要缓冲区
+        :set hidden          " 允许隐藏已修改的缓冲区
         ```
 
-    7. 映射（Key Mapping）
+        问题2：忘记保存哪个缓冲区
 
-        普通模式映射：`nnoremap <Leader>w :w<CR>`
+        ```vim
+        " 显示所有已修改缓冲区
+        :ls +  " 只显示已修改的缓冲区
 
-        插入模式映射：`inoremap jk <Esc>`
+        " 自动保存会话
+        :mksession! mysession.vim
+        ```
 
-        可视化模式映射：`vnoremap <C-c> "+y`
+        问题3：缓冲区编号混乱
 
-        使用 `noremap` 避免递归映射。
+        ```vim
+        " 按使用频率排序显示
+        :ls u  " 按上次使用时间排序
 
-    8. 插件开发示例
+        " 使用插件如：
+        " - fzf.vim
+        " - bufexplorer
+        " - miniBufExpl
+        ```
 
-        简单插件结构：
+    11. 最佳实践
+
+        使用 :set hidden：允许隐藏已修改的缓冲区而不强制保存
+
+        合理使用窗口：不要为每个缓冲区开新窗口
+
+        定期清理：关闭不再需要的缓冲区
+
+        使用缓冲区局部变量：避免全局污染
+
+        结合会话管理：保存工作状态
+
+    12. 插件推荐
+
+        fzf.vim：模糊查找缓冲区
+
+        vim-bufferline：在状态栏显示缓冲区
+
+        bufexplorer：专用缓冲区管理器
+
+        vim-startify：更好的启动界面，显示最近缓冲区
+
+    理解缓冲区是掌握 Vim 高效编辑的关键。缓冲区让 Vim 能够同时处理多个文件而不需要多个编辑器实例。
+
+    注：
+
+    1. 缓冲区即打开的文件的内容。
+
+
+* 在 Vim 的命令行中，! 用于执行外部 shell 命令：
+
+    ```vim
+    :!ls          " 执行 ls 命令
+    :!python3 script.py  " 执行 Python 脚本
+    :w !sudo tee %  " 常用技巧：用 sudo 保存文件
+    ```
+
+* 在替换命令中，! 表示忽略大小写：
+
+    ```vim
+    :s/foo/bar/     " 将 foo 替换为 bar（区分大小写）
+    :s/foo/bar/i    " i 表示忽略大小写
+    :s/foo/bar/gi   " g 全局，i 忽略大小写
+    ```
+
+    实际上，i 标志更常用，但 ! 在 Vim 的正则表达式中有时也用于此目的。
+
+* 在自动命令中：autocmd! 的 ! 表示清除之前的所有同类自动命令：
+
+    ```vim
+    " 清除所有 FileType 自动命令，避免重复定义
+    autocmd! FileType python
+    autocmd FileType python setlocal shiftwidth=4
+    ```
+
+* 在设置选项中：set !option 的 ! 表示切换/取反：
+
+    ```vim
+    :set number     " 显示行号
+    :set nonumber   " 不显示行号
+    :set number!    " 切换行号显示状态（显示←→不显示）
+    :set invnumber  " 同上，inv = invert
+    ```
+
+* 在缓冲区命令中：b! 的 !
+
+    ```vim
+    :b 2     " 切换到缓冲区 2（如果有未保存修改会失败）
+    :b! 2    " 强制切换到缓冲区 2（丢弃当前缓冲区未保存修改）
+    ```
+
+* 在模式切换中：! 用于临时进入命令模式
+
+    在普通模式下，Q 进入 Ex 模式，而 gQ 则不同，但 ! 可以配合：
+
+    ```vim
+    :!ls      " 普通模式按 :! 然后输入命令
+    ```
+
+* vim 快速添加空格
+
+    ```vim
+    " 在普通模式下按空格键在光标后插入空格
+    nnoremap <space> i<space><esc>l
+
+    " 或者在光标前插入空格
+    nnoremap <leader><space> i<space><esc>
+
+    " 更智能的版本：在单词间插入空格（光标在 w 位置时）
+    nnoremap <space> i<space><esc>w
+    ```
+
+    其他可能有用的映射：
+
+    ```vim
+    " 在单词边界智能插入空格
+    nnoremap <silent> <space> :call InsertSpace()<CR>
+
+    function! InsertSpace()
+        " 如果光标在单词开头，在前面插入空格
+        if col('.') == 1 || getline('.')[col('.')-2] =~# '\s'
+            execute "normal! i \<esc>"
+        else
+            execute "normal! a \<esc>"
+        endif
+    endfunction
+    ```
+
+* 防止 vim 的 markdown 在渲染时，把 Precision (P) 渲染成 Precision §
+
+    * 修改 Vim 配置
+
+        （未试过）
+
+        在 .vimrc 中添加：
+
+        ```vim
+        " 禁用 markdown 中的特殊符号转换
+        let g:markdown_enable_conceal = 0
+        ```
+
+        或者针对特定文件类型：
+
+        ```vim
+        autocmd FileType markdown setlocal conceallevel=0
+        ```
+
+    **对于不同的 Markdown 插件**
+
+    如果你使用的是 vim-markdown 插件：
+
+    ```vim
+    let g:vim_markdown_conceal = 0
+    let g:tex_conceal = ""
+    let g:vim_markdown_math = 1
+    ```
+
+    如果你使用的是 markdown-preview.nvim：
+
+    ```vim
+    let g:mkdp_markdown_css = 'custom.css' " 可以自定义 CSS 来避免这个问题
+    ```
+
+
+* vim 开启语法高亮
+
+    ```vim
+    syntax on
+    ```
+
+* vim 的三种模式与切换
+
+    vim is a modal editor, and has 3 modes:
+
+    1. If the bottom of the screen displays the filename or is blank, you are is normal mode.
+
+    2. If you are in insert mode, the indicator displays `--INSERT--`.
+
+    3. if you are in visual mode, the indicator shows `--VISUAL--`.
+
+    enter inserting mode: type `i`
+
+    back to command mode: press `<Esc>` key.
+
+* normal 模式下的常用命令
+
+    * move around: `h`, `j`, `k`, `l`
+
+    * delete a next character: `x`
+
+    * undo the last edit: `u`
+
+    * redo: `ctrl` + `r`
+
+    * save and exit: `ZZ` (upper cases)
+
+    * discard changes and exit: `:q!`
+
+    * delete a line: `dd`
+
+    * insert a character before the character under the cursor: `i`
+
+    * intert text after the cursor: `a`
+
+    * add a new line below: `o`
+
+    * open a line above the cursor: `O` (uppercase)
+
+* vim 中常用的寄存器
+
+    `"+` 寄存器：对应系统的 “Ctrl+C / Ctrl+V” 剪贴板。在大多数现代系统上，这是最常用的。
+
+    `"*` 寄存器：在 Linux/Unix 系统上，通常对应 “鼠标中键” 或“选择”剪贴板（即你用鼠标选中文本，然后按鼠标中键粘贴的内容）。在 Windows/macOS 上，它和 "+ 通常是相同的。
+
+    | 命令 | 描述 |
+    | - | - |
+    | `"+y` | 复制当前选中的文本到系统剪贴板 |
+    | `"+yy` 或 `"+Y` | 复制当前行到系统剪贴板 |
+    | `"+yiw` | 复制当前光标下的单词到系统剪贴板 |
+    | `"+y$` | 从光标处复制到行尾到系统剪贴板 |
+    | `"+d` | 剪切当前选中的文本到系统剪贴板 |
+    | `"+dd` | 剪切当前行到系统剪贴板 |
+    | `"+d$` | 从光标处剪切到行尾到系统剪贴板 |
+
+    可视化模式下的操作：
+
+    1. 按 v (字符可视模式) 或 V (行可视模式) 或 Ctrl+v (块可视模式)。
+
+    2. 选中你要操作的文本。
+
+    3. 按 "+y (复制) 或 "+d (剪切)。
+
+    从系统剪贴板 粘贴 到 Vim
+
+    在 Normal 模式下，使用 "+p 或 "*p。
+
+    | 命令 | 描述 |
+    | - | - |
+    | "+p | 在光标后粘贴系统剪贴板的内容 |
+    | "+P | 在光标前粘贴系统剪贴板的内容 |
+
+    设置默认使用系统剪贴板（推荐）:
+
+    ```vim
+    " 设置默认寄存器为系统剪贴板
+    set clipboard=unnamedplus " Linux, Windows (WSL)
+    " 对于 macOS，有时可能需要使用 unnamed
+    " set clipboard=unnamed
+    ```
+
+    解释：
+
+    * unnamedplus：让默认寄存器 (") 与 "+ (系统剪贴板) 联通。复制 (yy)、粘贴 (p) 等命令会直接操作系统剪贴板。
+
+    * unnamed：在 macOS 上，有时这个选项效果更好，它让默认寄存器与 "* 联通。
+
+    **在命令行模式下粘贴**:
+
+    如果你想在 Vim 的命令行（比如在搜索 / 或命令 : 中）粘贴系统剪贴板的内容，可以按 Ctrl+r 然后输入 +。
+
+* 确认你的 Vim 版本是否编译了剪贴板支持
+
+    在终端里运行以下命令：
+
+    ```bash
+    vim --version | grep clipboard
+    ```
+
+    或者直接在 Vim 内部输入：
+
+    ```vim
+    :version
+    ```
+
+    然后查找 clipboard 和 xterm_clipboard。
+
+    * 如果看到 +clipboard 和 +xterm_clipboard：恭喜，你的 Vim 支持系统剪贴板，可以直接使用下面的所有方法。
+
+    * 如果看到 -clipboard：说明你的 Vim 不支持。你需要安装一个带剪贴板功能的 Vim。
+
+        * Ubuntu/Debian: sudo apt install vim-gtk3 (或者 vim-gnome, vim-gtk)
+
+        * macOS (使用 Homebrew): brew install vim
+
+        * CentOS/RHEL: sudo yum install vim-X11 (可能需要)
+
+* vim help
+
+    :help /\[]
+    :help whitespace
+    :help [:alnum:]
+
+* 可视模式
+
+    按 v 进入普通可视模式
+
+    按 V 进入行可视模式
+
+    按 Ctrl+V 进入块可视模式
+
+    ```vim
+    " 在 .vimrc 中修改可视模式颜色
+    highlight Visual cterm=reverse ctermbg=NONE
+    ```
+
+    ```vim
+    " 临时禁用高亮
+    :nohlsearch
+    ```
+
+    ```vim
+    " 禁用鼠标选择自动进入可视模式
+    set mouse-=a
+    " 或只禁用部分鼠标功能
+    " set mouse=nvi  " n:普通模式, v:可视模式, i:插入模式
+
+    " 鼠标释放后自动退出可视模式
+    autocmd CursorMoved * if mode() =~ '^[vV]' | silent! execute "normal! \e" | endif
+    ```
+
+    ```vim
+    " 按 Ctrl+L 清除高亮
+    nnoremap <C-l> :nohlsearch<CR>:call clearmatches()<CR>
+    ```
+
+* 为什么 linux 上正常关闭 vim 后不会留下 ~ 文件，而 windows 上会
+
+    vim 在 linux 上默认不开启 backup，但是在 windows 上开启。
+
+* vim 的恢复功能
+
+    * 使用 vim -r filename 恢复交换文件
+
+    * `:recover`
+
+* 在 Vim 中比较差异
+
+    ```vim
+    vim -d report.txt report.txt~
+    # 或进入 Vim 后
+    :vert diffsplit report.txt~
+    ```
+
+* `.vimrc`生效时机
+
+    在`.vimrc`保存后，重新启动 file_1 的 vim 编辑器即可。不需要关闭系统上所有的 vim。
+
+    配置生效通常有以下三种情况：
+
+    * 重新启动 Vim： 这是最稳妥的方法。当你关闭并重新打开 Vim 时，它会自动加载配置文件。
+
+    * 手动执行 Source 命令： 在不退出 Vim 的情况下，可以通过命令让当前运行的 Vim 实例立即应用新配置：
+
+        * 在 Vim 内部输入：:source ~/.vimrc（Linux）或 :source $VIM/_vimrc（Windows）。
+
+            或`:so ~/.vimrc`, `:source $MYVIMRC`
+
+    * 在 .vimrc 中设置自动指令（Autocmd）： 你可以添加一段代码，让 Vim 在检测到配置文件保存时自动执行 source 命令。
+
+    特性	Linux / macOS	Windows
+    默认文件名	.vimrc	_vimrc (通常) 或 .vimrc
+    主配置路径	~/.vimrc (用户家目录)	C:\Users\用户名\_vimrc 或 Vim 安装目录
+    路径变量	$HOME	$VIM 或 $HOME
+    换行符	LF	CRLF
+
+    ```vim
+    " 按下 \ + s 立即重新加载配置
+    nnoremap <leader>s :source $MYVIMRC<cr>
+    ```
+
+    有时候你 source 了文件，但发现外观没变。这通常是因为：
+
+    * 插件需要重启： 某些插件（如代码补全、状态栏）在初始化时加载，简单的 source 可能无法重置它们的运行状态。
+
+    * 缓存问题： 某些配色方案（Colorscheme）在切换时，旧的颜色属性可能残留在内存中，建议重新运行 :colorscheme 方案名。
+
+* windows 下禁止 vim 生成 `xxx.un~` 文件和 `xxx~` 文件
+
+    ```vim
+    " 禁用备份文件（以 ~ 结尾的文件）
+    set nobackup
+    set nowritebackup
+
+    " 禁用撤销文件（以 .un~ 结尾的文件）
+    set noundofile
+    ```
+
+    * vim 生成的几种文件简介
+    
+        * 备份文件 `xxx~`： 写文件之前，先把原文件复制一份
+
+            触发时机:
+
+            * 执行 :w
+
+            * backup 或 writebackup 开启时
+
+            作用:
+
+            * 防止写文件过程中崩溃 / 断电 / 磁盘错误
+
+            * 写失败时，原内容还在 filename~
+
+            写成功后：
+
+            * backup 开启 → filename~ 会保留
+
+            * 只开 writebackup → 写完就删
+
+            相关配置：
+
+            ```vim
+            :set backup        " 是否保留 ~ 文件
+            :set writebackup  " 是否写前临时备份
+            :set nobackup
+            :set nowritebackup
+            ```
+
+        * 交换文件 `xxx.swp`: 编辑过程中实时保存修改，用于崩溃恢复
+
+            打开文件时立即创建
+
+            作用:
+
+            * 崩溃恢复（vim -r filename）
+
+            * 防止同一文件被多个 Vim 实例同时修改
+
+            特点:
+
+            * 实时保存编辑状态
+
+            * 正常退出 Vim 会自动删除
+
+            * 非正常退出会残留
+
+            看到它通常意味着:
+
+            * 上次 Vim 崩了
+
+            * 或该文件正在被另一个 Vim 打开
+
+            相关配置：
+
+            ```vim
+            :set swapfile
+            :set noswapfile
+            :set directory?   " swap 文件存放目录
+            ```
+
+            * `.filename.swo` / `.swn` / `.swx` —— swap 冲突序号
+
+                当 .swp 已存在：
+
+                Vim 会尝试 .swo、.swn、.swx
+
+        * 撤销文件 `xxx.un~`： 撤销历史记录（持久化撤销, 重启 Vim 后还可以执行`u`命令）
+
+            需要启用 `undofile`功能，这个文件才能被创建。
+
+            相关配置：
+
+            ```vim
+            :set undofile
+            :set undodir?
+            ```
+
+    * 其它配置
+
+        ```vim
+        set backupdir=~/.vim/backup//  " 备份到特定目录
+        set backupskip=/tmp/*,/private/tmp/*  " 跳过某些目录的备份
+
+        set undodir=~/.vim/undo//
+        set directory=~/.vim/swap//
+
+        " 撤销历史（.un~文件）
+        set undofile          " 持久化撤销历史到磁盘
+        set undolevels=1000   " 内存中保留1000次撤销
+
+        " 2. 配置定时清理
+        autocmd VimLeave * !del /Q Z:\vim-backup\*
+        " 退出时自动清理内存备份
+        autocmd VimLeavePre * call CleanOldBackups(30) " 保留30天
+
+        " 备份文件扩展名
+        set backupext=.bak
+        ```
+
+    * 如果你只想对某些文件类型禁用，可以在 _vimrc 中添加：
+
+        ```vim
+        " 对特定目录禁用备份
+        autocmd BufWritePre /path/to/directory/* set nobackup nowritebackup
+
+        " 或者对特定文件类型禁用
+        autocmd FileType txt,md set noundofile
+        ```
+
+    * 设置备份目录到特定位置，而不是当前目录：
+
+        ```vim
+        " 将备份文件集中到特定目录
+        set backupdir=C:\vim_backups
+        set directory=C:\vim_backups
+        set undodir=C:\vim_undo
+
+        " 如果目录不存在则创建
+        if !isdirectory("C:\\vim_backups")
+            silent !mkdir "C:\vim_backups"
+        endif
+        ```
+
+    * 完全禁用所有备份相关功能
+
+        ```vim
+        " 一次性禁用所有备份相关文件
+        set nobackup       " 不创建备份文件（*.~）
+        set nowritebackup  " 写入时不创建备份
+        set noswapfile     " 不创建.swp交换文件
+        set noundofile     " 不创建.un~撤销文件
+        ```
+
+    * 折中方案
+
+        ```vim
+        " 将备份文件集中到固定目录，而不是污染当前目录
+        set backupdir=~/.vim/backup//
+        set directory=~/.vim/swap//
+        set undodir=~/.vim/undo//
+
+        " 确保目录存在
+        if !isdirectory(expand("~/.vim/backup"))
+            silent !mkdir ~/.vim/backup
+        endif
+        if !isdirectory(expand("~/.vim/undo"))
+            silent !mkdir ~/.vim/undo
+        endif
+        ```
+
+    * 自动清理脚本
+
+        ```vim
+        " 定期清理旧备份
+        function! CleanOldBackups(days)
+            let backup_dir = expand('~/.vim/backup')
+            if isdirectory(backup_dir)
+                " Windows 示例
+                silent !forfiles /p backup_dir /s /m * /d -%a% /c "cmd /c del @path"
+            endif
+        endfunction
+
+        autocmd VimLeave * call CleanOldBackups(7)  " 保留7天
+        ```
+
+* vim 插入新行并且不进入 insert 模式
+
+    * `:put` (简写为`:pu`)
+
+        向下插入一行。
+
+        向上插入一行为`:put!`或`:pu!`
+
+    * `:call append()`
+
+        ```vim
+        :call append(line('.'), '')  " 在当前行下方插入空行
+        :call append(line('.')-1, '') " 在当前行上方插入空行
+        ```
+
+    * 映射快捷键
+
+        ```vim
+        " 在 ~/.vimrc 中添加映射
+        nnoremap <Leader>o o<Esc>     " 下方插入空行并返回普通模式
+        nnoremap <Leader>O O<Esc>     " 上方插入空行并返回普通模式
+        ```
+
+
+* vim 录制宏
+
+    基本操作
+
+    1. 开始录制
+
+        * 按 q 键开始录制
+
+        * 然后按一个寄存器键（a-z）来指定存储位置
+
+        * 示例：qa 表示录制到寄存器 a
+
+    2. 执行操作
+
+        * 执行你想要录制的所有 Vim 操作
+
+        * 可以包括：移动、插入、删除、替换等任何命令
+
+    3. 停止录制
+
+        * 按 q 键停止录制
+
+    4. 执行宏
+
+        * @a - 执行寄存器 a 中的宏
+
+        * @@ - 重复执行上一次执行的宏
+
+        * 10@a - 执行 10 次寄存器 a 中的宏
+
+    实用技巧
+
+    * 查看录制的宏
+
+        ```vim
+        :reg a        " 查看寄存器 a 的内容
+        :reg          " 查看所有寄存器
+        ```
+
+    * 编辑宏
+
+        ```vim
+        " 将宏粘贴出来编辑
+        " 1. 将寄存器内容放到当前行
+        "ap            " 将寄存器 a 的内容粘贴出来
+
+        " 2. 编辑内容
+
+        " 3. 存回寄存器
+        " 删除原有内容（如："ay$），然后
+        "add            " 删除当前行到寄存器 d
+        " 或
+        "ayy            " 复制当前行到寄存器 a
+        ```
+
+    * 常用的宏录制模式
+
+        ```vim
+        " 在多个文件上执行宏
+        1. 录制宏完成对当前文件的操作
+        2. :w 保存文件
+        3. :bn 跳转到下一个缓冲区
+        4. 停止录制
+        5. 使用 :bufdo normal @a 在所有缓冲区执行
+        ```
+
+    * 错误处理
+
+        * 如果在录制过程中出错，可以按 q 停止，然后重新录制
+
+        * 宏会记录所有按键，包括错误和更正
+
+    * 追加到现有宏
+
+        ```vim
+        qA  " 大写字母会追加到寄存器 a 的宏中
+        ```
+
+* vim `.`命令
+
+    作用：重复上一次修改操作
+
+    详细说明：
+
+    * 重复最近一次在普通模式下执行的修改命令
+
+    * 可以重复插入、删除、替换等操作
+
+    * 示例：
+
+        * dw 删除一个单词 → . 再删除下一个单词
+
+        * ihello<Esc> 插入文本 → . 再次插入"hello"
+
+
+
+* vim 打开文件后，跳转到上次关闭时候的位置：
+
+    * 反引号 + 双引号：`` ` `` + `"`
+
+    * 单引号 + 双引号：`'` + `"`
+
+* vim 的`scp://`协议打开的文件，会在保存文件时临时把文件放到`/tmp`中，当完成 scp 传输后，会马上把这个文件删掉。这样保证打开的文件只存在于内存中，不在`/tmp`中，只有传输过程中需要用到实体文件时，才会在`/tmp`中保存一下，然后马上删掉。
+
+* 使用 vim 的 netrw
+
+    * 在命令行中打开远程文件
+
+        ```bash
+        vim scp://username@hostname[:port]//path/to/file
+        ```
+
+        vim 会先使用 scp 把远程文件复制到本地`/tmp`目录下，然后再进行编辑。
+
+        注：
+
+        1. 如果`~/.ssh/config`中已经配置了`Host nickname`，那么可以直接
+
+            `vim scp://nickname//path/to/file`
+
+        1. 绝对路径与相对用户目录的路径区别
+
+            example:
+
+            绝对路径：`vim scp//user@host//home/hlc/test.txt`
+
+            相对用户目录的路径：`vim scp://user@host/test.txt`
+
+            第一个`/`相当于 ssh 命令里的`:`，表示用户的 home。
+
+        1. 不可以使用冒号`:`表示用户 home。冒号`:`只能表示 remote host 的 ssh 端口。
+
+            比如`vim scp://nickname:2222/rel_path/to/file`，表示打开`/home/<user>/rel_path/to/file`这个文件。
+
+    * 在 vim 中使用`:e`打开文件
+
+        ```vim
+        :e scp://username@hostname/path/to/file
+        ```
+
+        ```vim
+        :e scp://[user@]hostname[:port]/path/to/file
+        ```
+
+        example:
+
+        ```vim
+        " 使用默认用户名（当前本地用户名）
+        :e scp://remote-server/home/user/project/file.txt
+
+        " 指定用户名
+        :e scp://username@remote-server/path/to/file.txt
+
+        " 指定端口
+        :e scp://username@remote-server:2222/path/to/file
+
+        " 绝对路径
+        :e scp://user@host//home/user/file.txt
+
+        " 相对用户home的路径
+        :e scp://user@host/file.txt
+        ```
+
+        * 在 vim 中将 ssh 配置为默认协议，效率比 scp 更高
+
+            在 ~/.vimrc 中添加：
+
+            ```conf
+            let g:netrw_ftpextracmd = 'ssh'
+            ```
+
+            配置后，底层可能会这样传输文件：
+
+            ```bash
+            ssh user@host cat /path/to/file
+            ```
+
+            不配置时，底层可能这样传输文件：
+
+            ```bash
+            scp user@host:/path/to/file /tmp/vimXXXXXX
+            ```
+
+* vim 取消行号的方法
+
+    `:set nonu`
+
+    `:set nu!`
+
+* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
+
+    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
+
+    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
+
+* `grep -P`表示使用 PCRE 的 regex
+
+* vim 中搜索 metacharacter `.` 的帮助文档
+
+    `:help /\.`
+
+* PCRE, for Perl Compatible Regular Expression
+
+* vim 中有关 regex 的 help 命令
+
+    ```
+    :help pattern-searches
+    :help atom
+    ```
+
+## topics
+
+### 快捷键与映射
+
+* vim 中的`<Leader>`键
+
+    Leader 键是 Vim 中的一个自定义前缀键，用于创建用户自定义快捷键映射
+
+    默认情况下，Vim 的 Leader 键是反斜杠`\`。
+
+    查看当前 Leader 键:
+
+    ```vim
+    :echo mapleader
+    :echo g:mapleader
+    ```
+
+    设置 Leader 键:
+
+    ```vim
+    " 最常见的设置：逗号 ,
+    let mapleader = ","      " 全局 Leader 键
+    let maplocalleader = "\\"  " 本地 Leader 键（用于文件类型特定映射）
+
+    " 其他常用选择
+    let mapleader = ";"      " 分号（也很方便）
+    let mapleader = "<Space>" " 空格键（需要先按空格，再按其他键）
+    let mapleader = "\\"     " 保持默认的反斜杠
+
+    " 空格键作为 Leader（现在很流行）
+    let mapleader = " "
+    nnoremap <Space> <Nop>  " 禁用空格键的默认行为
+    ```
+
+    设置了 Leader 键后，配合映射使用：
+
+    ```vim
+    " 在 .vimrc 中添加映射
+    nnoremap <Leader>w :w<CR>        " \w 保存文件（如果 Leader 是 \）
+    nnoremap <Leader>q :q<CR>        " \q 退出
+    nnoremap <Leader>o o<Esc>        " 下方插入空行并返回普通模式
+    nnoremap <Leader>O O<Esc>        " 上方插入空行并返回普通模式
+
+    " 如果是空格作为 Leader，那么就是：
+    " 按空格，再按 w = 保存
+    " 按空格，再按 o = 下方插入空行
+    ```
+
+    与 Local Leader 的区别
+
+    * `<Leader>`：全局快捷键前缀
+
+    * `<LocalLeader>`：文件类型特定的快捷键前缀
+
+    ```vim
+    " 设置 Local Leader
+    let maplocalleader = "\\"
+
+    " 只在特定文件类型中有效的映射
+    autocmd FileType python nnoremap <buffer> <LocalLeader>c I#<Esc>
+    " 在 Python 文件中，按 \c 在行首添加注释
+    ```
+
+    examples:
+
+    ```vim
+    " ~/.vimrc 中建议这样设置
+    let mapleader = " "          " 空格作为 Leader
+    let maplocalleader = "\\"    " 反斜杠作为 Local Leader
+
+    " 一些实用映射
+    nnoremap <Leader>w :w<CR>
+    nnoremap <Leader>q :q<CR>
+    nnoremap <Leader>e :e $MYVIMRC<CR>  " 编辑 vimrc
+    nnoremap <Leader>s :source $MYVIMRC<CR>  " 重新加载 vimrc
+    nnoremap <Leader>o o<Esc>k  " 下方插入空行，光标移到新行
+    nnoremap <Leader>O O<Esc>j  " 上方插入空行，光标移到原行
+    ```
+
+* vim `nnoremap`
+
+    nnoremap 是 Vim 中用于定义快捷键映射（key mapping） 的核心命令之一。以下是它的详细用法介绍：
+
+    基本语法
+
+    ```vim
+    nnoremap <新按键> <执行的操作>
+    ```
+
+    关键特点
+
+    1. 非递归映射
+
+        * `nnoremap` 中的 `n` 表示 Normal 模式，`nore` 表示 非递归
+
+        * 如果映射右侧包含其他映射键，不会再次触发映射
+
+        * 对比：`nmap` 是递归映射，可能导致无限循环
+
+        ```vim
+        " 安全：不会再次触发映射
+        nnoremap ; :
+
+        " 危险：可能造成无限循环
+        nmap ; :
+        nmap : ;
+        ```
+
+    2. 模式限定
+
+        * 只在 Normal 模式 下生效
+
+        其他常用变体：
+
+        ```vim
+        inoremap    " Insert 模式
+        vnoremap    " Visual 模式
+        cnoremap    " Command-line 模式
+        onoremap    " Operator-pending 模式
+        noremap!    " 在 插入模式（Insert mode） 和 命令行模式（Command-line mode） 中创建非递归的键映射。
+        ```
+
+    **常用示例**
+
+    * 基础用法
+
+        ```vim
+        " 将空格键设为 leader 键（常用前缀键）
+        nnoremap <Space> <Nop>
+        let mapleader = " "
+
+        " 使用 leader 键的组合映射
+        nnoremap <leader>w :w<CR>        " 保存文件
+        nnoremap <leader>q :q<CR>        " 退出
+        nnoremap <leader>fs :w<CR>       " 快速保存
+
+        " 窗口导航
+        nnoremap <C-h> <C-w>h            " 切换到左侧窗口
+        nnoremap <C-j> <C-w>j            " 切换到下方窗口
+        nnoremap <C-k> <C-w>k            " 切换到上方窗口
+        nnoremap <C-l> <C-w>l            " 切换到右侧窗口
+        ```
+
+    * 特殊按键
+
+        ```vim
+        " 使用特殊键
+        nnoremap <Esc> :nohlsearch<CR>   " 按 Esc 清除搜索高亮
+        nnoremap <CR> o<Esc>             " 回车在当前行下方插入新行
+        nnoremap <BS> X                  " 退格键删除前一个字符
+
+        " 功能键
+        nnoremap <F2> :set invpaste paste?<CR>  " F2切换粘贴模式
+        nnoremap <F5> :source ~/.vimrc<CR>      " F5重新加载配置
+        ```
+
+    **实用技巧**
+
+    ```vim
+    " 快速编辑配置文件
+    nnoremap <leader>ev :vsplit $MYVIMRC<CR>
+    nnoremap <leader>sv :source $MYVIMRC<CR>
+
+    " 缓冲区操作
+    nnoremap <leader>bn :bnext<CR>   " 下一个缓冲区
+    nnoremap <leader>bp :bprevious<CR> " 上一个缓冲区
+    nnoremap <leader>bd :bdelete<CR> " 删除缓冲区
+
+    " 快速移动
+    nnoremap H ^                     " H 移动到行首
+    nnoremap L $                     " L 移动到行尾
+    nnoremap J 5j                    " J 向下移动5行
+    nnoremap K 5k                    " K 向上移动5行
+
+    " 大小写转换
+    nnoremap <leader>u viwU          " 将当前单词转为大写
+    nnoremap <leader>l viwu          " 将当前单词转为小写
+    ```
+
+    最佳实践
+
+    1. 始终使用非递归映射
+
+        除非有特殊需求，否则优先使用 `nnoremap` 而不是 `nmap`，避免意外递归。
+
+    2. 使用 <leader> 前缀
+
+        ```vim
+        let mapleader = ","  " 设置 leader 键为逗号
+        nnoremap <leader>s :w<CR>
+        ```   
+
+    3. 查看现有映射
+    
+        ```vim
+        :map           " 查看所有映射
+        :nmap          " 查看 Normal 模式映射
+        :verbose nmap  " 查看映射及其定义位置
+        ```
+
+    4. 取消映射
+
+        ```vim
+        :nunmap <按键>  " 取消 Normal 模式映射
+        ```
+
+    5. 条件映射
+
+        ```vim
+        " 只在特定文件类型生效
+        autocmd FileType python nnoremap <buffer> <leader>r :!python %<CR>
+        ```
+
+    注意事项
+
+    * 映射覆盖：映射会覆盖默认功能，确保不会影响常用操作
+
+    * 兼容性：在不同终端中，特殊键的表示可能不同
+
+    * 可读性：复杂的映射建议加上注释说明
+
+    * 冲突检查：使用 :nmap 检查是否已有映射
+
+    通过合理使用 nnoremap，可以极大提升 Vim 的工作效率，打造个性化的编辑环境。
+
+* 查看 nnoremap 支持的所有特殊按键
+
+    在 Vim 中查看支持的特殊按键（key codes），有几种方法：
+
+    1. 查看官方文档
+
+        最全面的方法是查看 Vim 的官方帮助文档：
         
         ```vim
-        " plugin/myplugin.vim
-        if exists('g:loaded_myplugin')
-          finish
-        endif
-        let g:loaded_myplugin = 1
-
-        function! s:MyPluginFunction()
-          echo "插件已调用"
-        endfunction
-
-        command! -nargs=0 MyPluginCall call s:MyPluginFunction()
+        :help key-notation      " 查看所有按键表示法
+        :help <>                " 查看特殊键列表
+        :help keycodes          " 详细按键代码说明
         ```
 
-    9. 调试与测试
+    2. 主要特殊按键列表
 
-        查看错误：:`messages`
+        基础控制键
 
-        调试模式：启动 Vim 时加 `-D` 参数，或使用 `:debug` 命令。
+        ```vim
+        <CR>       回车（Carriage Return）
+        <Esc>      退出键
+        <Tab>      Tab 键
+        <BS>       退格键（Backspace）
+        <Del>      删除键
+        <Space>    空格键
+        <Bar>      竖线符号（|）
+        <Bslash>   反斜杠（\）
+        ```
 
-        脚本局部变量可通过` s:` 前缀隔离作用域。
+        方向键和功能键
 
-    10. 注意事项
+        ```vim
+        <Up>       上箭头
+        <Down>     下箭头
+        <Left>     左箭头
+        <Right>    右箭头
 
-        * Vimscript 对空格敏感（赋值时等号两侧可加空格，但部分命令格式严格）。
+        <F1> - <F12>     功能键 F1 到 F12
+        <F13> - <F37>    扩展功能键（如有）
+        <S-F1> - <S-F12> Shift + 功能键
+        ```
 
-        * 使用 `set nocompatible` 确保 Vim 模式。
+        修饰键组合
 
-        * 新版 Vim（8.0+）支持更多现代语法（如 Lambda 表达式）。
+        ```vim
+        <C-...>    Ctrl 组合键，如：<C-a>, <C-b>, <C-Space>
+        <A-...>    Alt 键（在终端中可能表示为 <M-...>）
+        <M-...>    Meta 键（通常与 Alt 相同）
+        <S-...>    Shift 组合键，如：<S-Tab>, <S-F1>
+        <D-...>    Command 键（macOS）
 
-    **快速入门建议**
+        <C-S-...>   Ctrl+Shift 组合，如：<C-S-a>
+        <A-S-...>   Alt+Shift 组合
+        ```
 
-    * 从修改 .vimrc 开始，逐步添加自定义函数。
+        特殊符号键
 
-    * 参考 :help usr_41.txt（Vimscript 用户手册）。
+        ```vim
+        <lt>       小于号（<），用于避免被解析为按键开始
+        <gt>       大于号（>）
+        <Bslash>   反斜杠
+        <Bar>      竖线
+        ```
 
-    * 阅读现有插件源码（如 vim-airline）学习实践。
+        鼠标按键
 
-    掌握基础后，可进一步学习 `:help eval.txt`（完整语言参考）。
+        ```vim
+        <LeftMouse>     鼠标左键
+        <MiddleMouse>   鼠标中键
+        <RightMouse>    鼠标右键
+        <2-LeftMouse>   双击左键
+        <3-LeftMouse>   三击左键
+        ```
+
+        其他特殊键
+
+        ```vim
+        <Insert>        Insert 键
+        <Home>          Home 键
+        <End>           End 键
+        <PageUp>        Page Up
+        <PageDown>      Page Down
+
+        <Help>          Help 键
+        <Undo>          Undo 键
+        <Redo>          Redo 键
+        <Print>         Print Screen
+        <Pause>         Pause/Break
+        ```
+
+    3. 实用查看方法
+
+        方法一：使用 showkey 命令（Linux）
+
+        ```bash
+        # 在终端中查看按键代码
+        showkey -a
+        # 按键后会显示十进制和十六进制代码
+        ```
+
+        方法二：在 Vim 中测试按键
+
+        ```vim
+        " 1. 插入模式查看按键代码
+        i<C-v>然后按特殊键
+
+        " 2. 使用 :echo 测试
+        :echo getchar()    " 按下一个键，显示其代码
+        :echo keytrans(getchar())  " 转换为可读形式
+
+        " 3. 查看最后按下的键
+        :echo v:termresponse     " 显示终端响应
+        ```
+
+        方法三：查看当前终端支持的键码
+
+        ```vim
+        " 查看终端键码设置
+        :set termcap
+
+        " 查看所有 termcap 条目
+        :set termcap?
+        ```
+
+    4. 诊断按键问题
+
+        ```vim
+        " 1. 设置 verbose 模式查看键码
+        :set verbose=15
+        " 然后尝试按键，Vim 会显示详细日志
+
+        " 2. 检查 terminfo/termcap
+        :echo &term          " 查看终端类型
+        :echo $TERM          " 查看环境变量
+
+        " 3. 使用捕获模式
+        :map <F13>           " 如果不知道键名，可以先映射一个不存在的键
+        " 然后按下你想测试的键，Vim 会显示其名称
+        ```
+
+    5. 常见问题解决
+
+        终端中的特殊键问题
+
+        ```vim
+        " 在 ~/.vimrc 中添加终端兼容性设置
+        if !has('gui_running')
+          " 确保方向键正常工作
+          set term=$TERM
+          set ttyfast
+          
+          " 某些终端需要明确的键码设置
+          if &term =~ '^screen' || &term =~ '^tmux'
+            " tmux/screen 兼容性
+            execute "set <xUp>=\e[1;*A"
+            execute "set <xDown>=\e[1;*B"
+            execute "set <xRight>=\e[1;*C"
+            execute "set <xLeft>=\e[1;*D"
+          endif
+        endif
+        ```
+
+        检查特定按键的映射
+
+        ```vim
+        " 查看某个按键是否已被映射
+        :map <Tab>           " 查看 Tab 键的所有映射
+        :nmap <Tab>          " 只查看 Normal 模式的 Tab 映射
+
+        " 查看映射来自哪里
+        :verbose map <Tab>
+        ```
+
+    6. 创建测试映射来识别未知键
+
+        ```vim
+        " 方法：将未知键映射到可识别的操作
+        nnoremap <F20> :echo "特殊键被按下"<CR>
+        " 然后按下你想识别的键，如果看到消息，说明键名是 <F20>
+
+        " 或者使用这个技巧：
+        :nnoremap \| :echo "按键代码:" getchar()<CR>
+        ```
+
+    7. 实用脚本：显示按键信息
+
+        ```vim
+        " 在 vimrc 中添加以下函数
+        function! ShowKey()
+          let c = getchar()
+          echom "按键代码:" c
+          echom "按键名称:" keytrans(c)
+          echom "字符表示:" nr2char(c)
+        endfunction
+
+        " 映射一个快捷键来测试
+        nnoremap <leader>k :call ShowKey()<CR>
+        ```
+
+    注意事项：
+
+    * GUI Vim 和终端 Vim 的键码支持可能不同
+
+    * 不同终端（iTerm2, GNOME Terminal, tmux, screen）可能有差异
+
+    * 组合键在不同环境中的表示可能不同（如 <C-Space> 在某些终端中不可用）
+
+    * 使用 :help 总是最可靠的信息来源
+
+    最常用的特殊键包括：<Space>, <CR>, <Esc>, <Tab>, <C-字母>, 方向键和功能键。
+
+* 在插入模式（Insert mode）下，ctrl + h 作用为删除前一个字符（等同于 Backspace 退格键）
+
+    这是因为在早期的终端中，Ctrl+h 被用作退格键的替代（ASCII 码为 8）。Vim 保留了这一传统支持，尤其是在终端环境中。
+
+    在 Vim 分屏（split window）环境下，<C-w> h 用于向左切换窗口，但注意这不是 <C-h>（后者没有 w 前缀）。
+
+* vim 中常见的映射模式
+
+    命令	作用模式	是否递归	说明
+    map	普通、可视、选择、操作符等待	递归	通用映射（已弃用，建议用模式专用命令）
+    nmap	普通模式	递归	Normal mode
+    imap	插入模式	递归	Insert mode
+    cmap	命令行模式	递归	Command-line mode
+    noremap!	插入模式和命令行模式	非递归	Insert + Command-line，非递归
+    inoremap	插入模式	非递归	Insert mode only
+    cnoremap	命令行模式	非递归	Command-line mode only
+    nnoremap	普通模式	非递归	Normal mode only
+
+* noremap! 的 ! 表示映射适用于插入模式和命令行模式
+
+    noremap → 普通、可视、选择模式（无 !）
+
+    noremap! → 插入和命令行模式（有 !）
+
+* vim 如何表示 shift + enter 这个快捷键
+
+    在 vim 中，shift+enter 没有直接的默认映射，但可以通过不同的方式来表示和绑定：
+
+    1. 终端中的键码表示
+
+        在大多数终端中，shift+enter 发送的键码通常与普通 enter 不同：
+
+        ```vim
+        " 可以尝试这些映射，具体取决于你的终端
+        <c-m>      " ctrl+m（有时等同于回车）
+        <s-cr>     " shift+enter（可能在某些环境中有效）
+        <cr>       " 普通的回车（enter）
+
+        " 更常用的表示方式
+        <nl>       " new line (shift+enter)
+        <c-j>      " ctrl+j（在某些终端中代表 shift+enter）
+        ```
+
+    2. 查找 shift+enter 的实际键码
+
+        要确定你的终端/vim 中 shift+enter 发送什么键码：
+
+        * 方法1：使用 :help 查看
+
+        ```vim
+        :h keycodes
+        ```
+
+        * 方法2：在插入模式下查看
+
+            * 进入插入模式：i
+
+            * 按 ctrl+v，然后按 shift+enter
+
+                * 会显示实际的转义序列，如 ^m 或 ^j
+
+        * 方法3：使用脚本检测
+
+            ```vim
+            " 在 normal 模式下，将 shift+enter 映射到显示键码
+            :nnoremap <key> :echo "key code: " . getchar()<cr>
+            " 然后用 shift+enter 替换上面的 <key>
+
+            " 或者使用更简单的方法
+            :map <s-cr>
+            ```
+
+    3. 实际映射示例
+
+        根据不同的终端/环境，可能需要这样映射：
+
+        ```vim
+        " 尝试1：使用 <s-cr>
+        :nnoremap <s-cr> :echo "shift+enter pressed"<cr>
+        :inoremap <s-cr> <esc>:echo "shift+enter in insert mode"<cr>
+
+        " 尝试2：如果 <s-cr> 无效，尝试其他表示
+        :nnoremap <c-j> :echo "ctrl+j / shift+enter"<cr>
+
+        " 尝试3：使用 <nl>（new line）
+        :nnoremap <nl> :echo "new line key"<cr>
+        ```
+
+    4. gui vim (gvim)
+
+        在 gui 版本的 vim 中，表示更直接：
+
+        ```vim
+        <s-enter>  " gui vim 中的 shift+enter
+        ```
+
+    5. 实际应用场景
+
+        常见的 shift+enter 用法：
+
+        ```vim
+        " 在 normal 模式下，shift+enter 快速插入新行
+        nnoremap <s-cr> o<esc>
+
+        " 在 insert 模式下，shift+enter 在当前行下方插入新行并保持插入模式
+        inoremap <s-cr> <esc>o
+
+        " 或者映射到特定功能
+        nnoremap <s-cr> :make<cr>      " 编译
+        nnoremap <s-cr> :w<cr>         " 保存
+        ```
+
+    建议：
+
+    * 先用 ctrl+v 然后按 shift+enter 查看实际键码
+
+    * 根据显示的字符进行映射
+
+    * 如果显示 ^m，使用 <c-m> 映射
+
+    * 如果显示 ^j，使用 <c-j> 映射
+
+    大多数现代终端模拟器和 gui vim 都支持 <s-cr> 表示法，但具体取决于你的 vim 版本和终端环境。
+
+### vim 脚本、字符串、函数
 
 * s:local_var 和 l:var_name 有什么区别
 
@@ -2794,1403 +3183,257 @@
 
     这些函数组合使用可以创建强大的 Vim 脚本功能。建议通过 :help function-list 查看完整函数列表。
 
-* Vim 缓冲区
+* Vimscript
 
-    1. 什么是缓冲区？
+    Vimscript（Vim Script）是 Vim 编辑器的内置脚本语言，用于配置、自定义和扩展 Vim。以下是 Vimscript 的核心写法要点：
 
-        缓冲区（Buffer） 是 Vim 中内存中的文本副本，代表一个打开的文件。它不等同于窗口或标签页。
+    1. 基础语法
 
-        关键理解：
-
-        * 缓冲区是文件的内存表示
-
-        * 一个文件可以对应多个缓冲区（但通常不建议）
-
-        * 缓冲区可以未命名（新建未保存的文件）
-
-        * 缓冲区可以在无窗口的情况下存在
-
-    2. 缓冲区的状态
-
-        缓冲区有以下几种状态：
+        注释：以 " 开头
 
         ```vim
-        " 查看缓冲区状态
-        :ls    " 或 :buffers :files
+        " 这是一行注释
         ```
 
-        状态标志说明：
+        变量：
 
-        * `a` - 激活（active）：在当前窗口中显示
+        * 全局变量：`g:var_name`
 
-        * `h` - 隐藏（hidden）：已加载但不在任何窗口显示
+        * 局部变量：`l:var_name`（函数内）
 
-        * `%` - 当前缓冲区
+        * 选项变量：`&option_name`（如 `&tabstop`）
 
-        * `#` - 交替缓冲区（使用 Ctrl-^ 切换的缓冲区）
-
-        * `+` - 已修改
-
-        * `-` - 不可修改（只读模式）
-
-        * `=` - 只读缓冲区
-
-        * `x` - 有读取错误的缓冲区
-
-        * `u` - 未列出的缓冲区
-
-    3. 基本操作命令
-
-        创建/打开缓冲区：
+        * 环境变量：`$PATH`
 
         ```vim
-        :e file.txt      " 在新缓冲区打开文件
-        :enew           " 创建新的空缓冲区
-        :sp file.txt    " 水平分割窗口并打开缓冲区
-        :vsp file.txt   " 垂直分割窗口并打开缓冲区
+        let g:my_var = 10
+        let s:local_var = "hello"  " 脚本局部变量
         ```
 
-        缓冲区导航：
+    2. 数据类型
+
+        * 字符串：`"string"` 或 `'string'`
+
+        * 数字：整数或浮点数（如 42、3.14）
+
+        * 列表：`[1, 2, 'three']`
+
+        * 字典：`{'key': 'value', 'num': 42}`
+
+        * 特殊类型：`v:true`、`v:false`、`v:null`
+
+    3. 控制结构
 
         ```vim
-        :bn              " 下一个缓冲区
-        :bp              " 上一个缓冲区
-        :bf              " 第一个缓冲区
-        :bl              " 最后一个缓冲区
-        :b#              " 切换到交替缓冲区
-        Ctrl-^           " 快速切换交替缓冲区
-        ```
-
-        按编号/名称切换：
-
-        ```vim
-        :b 2             " 切换到2号缓冲区
-        :b file.txt      " 切换到包含该文件名的缓冲区
-        :b <Tab>         " 补全缓冲区名称
-        ```
-
-        关闭缓冲区：
-
-        ```vim
-        :bd              " 删除当前缓冲区
-        :bd 2            " 删除2号缓冲区
-        :bd file.txt     " 删除指定文件缓冲区
-        :%bd             " 删除所有缓冲区
-        :bd!             " 强制删除（不保存修改）
-        ```
-
-    4. 缓冲区列表管理
-
-        ```vim
-        " 查看缓冲区列表
-        :ls              " 简短列表
-        :buffers         " 完整列表
-        :files           " 同:buffers
-
-        " 只列出某些缓冲区
-        :ls!             " 列出包括未列出的缓冲区
-        :filter /pattern/ ls   " 过滤显示
-        ```
-
-    5. 缓冲区选项
-
-        每个缓冲区可以有自己的本地选项：
-
-        ```vim
-        " 设置缓冲区特定选项
-        :setlocal tabstop=4
-        :setlocal shiftwidth=4
-        :setlocal filetype=python
-
-        " 查看缓冲区选项差异
-        :setlocal
-
-        " 缓冲区变量
-        let b:my_var = "value"  " 缓冲区局部变量
-        echo b:changedtick     " 修改次数计数器
-        ```
-
-    6. 实用技巧和命令
-
-        多文件操作：
-
-        ```vim
-        " 批量保存所有修改的缓冲区
-        :wa              " write all
-
-        " 批量放弃所有修改
-        :qa!             " quit all without saving
-        ```
-
-        缓冲区导航映射：
-
-        ```vim
-        " 在 ~/.vimrc 中添加
-        nnoremap <leader>bn :bn<CR>
-        nnoremap <leader>bp :bp<CR>
-        nnoremap <leader>bd :bd<CR>
-        nnoremap <leader>bl :ls<CR>
-        nnoremap <leader>b# :b#<CR>
-        ```
-
-        智能缓冲区切换：
-
-        ```vim
-        " 使用 fzf.vim 插件增强
-        nnoremap <C-b> :Buffers<CR>
-        ```
-
-    7. 缓冲区 vs 窗口 vs 标签页
-
-        概念	说明	类比
-        缓冲区	内存中的文件	文件本身
-        窗口	查看缓冲区的视口	查看器/窗口
-        标签页	窗口的集合	工作区/桌面
-
-        ```vim
-        " 关系示例
-        :tabnew file.txt  " 在新标签页创建窗口显示缓冲区
-        :split file.txt   " 在新窗口显示同一缓冲区
-        :vsplit file.txt  " 在垂直窗口显示同一缓冲区
-        ```
-
-    8. 缓冲区相关函数（Vim Script）
-
-        ```vim
-        " 获取当前缓冲区编号
-        let bufnum = bufnr('%')
-        let bufnum = bufnr()       " 同 bufnr('%')
-
-        " 获取缓冲区名称
-        let name = bufname('%')
-        let fullname = expand('%:p')  " 完整路径
-
-        " 检查缓冲区是否存在
-        if buflisted(bufnum)
-            echo "缓冲区在列表中"
+        " 条件判断
+        if condition
+          echo "yes"
+        elseif another_condition
+          echo "maybe"
+        else
+          echo "no"
         endif
 
-        " 获取缓冲区信息
-        let info = getbufinfo(bufnum)
-        echo info[0].name         " 文件名
-        echo info[0].changed      " 是否修改
-        echo info[0].hidden       " 是否隐藏
-        echo info[0].lastused     " 最后使用时间
+        " 循环
+        for i in range(1, 5)
+          echo i
+        endfor
 
-        " 获取所有缓冲区
-        let buflist = getbufinfo({'buflisted': 1})
-
-        " 缓冲区选项操作
-        call setbufvar(bufnum, '&modifiable', 1)  " 设置选项
-        let mod = getbufvar(bufnum, '&modified')  " 获取选项
-
-        " 创建新缓冲区
-        let new_buf = bufadd('newfile.txt')
-        call bufload(new_buf)
+        while condition
+          echo "looping"
+        endwhile
         ```
 
-    9. 实用配置示例
-
-        自动保存会话（包含缓冲区）：
+    4. 函数定义
 
         ```vim
-        " ~/.vimrc
-        set sessionoptions+=buffers  " 保存会话时包括缓冲区
-        autocmd VimLeave * mksession! ~/.vim/session.vim
-        autocmd VimEnter * source ~/.vim/session.vim
-        ```
-
-        缓冲区关闭时自动删除隐藏缓冲区：
-
-        ```vim
-        function! DeleteHiddenBuffers()
-            let tpbl=[]
-            call map(range(1, tabpagenr('$')), 'extend(tpbl, tabpagebuflist(v:val))')
-            for buf in filter(range(1, bufnr('$')), 'bufexists(v:val) && index(tpbl, v:val)==-1')
-                silent execute 'bwipeout' buf
-            endfor
-        endfunction
-        command! BDH call DeleteHiddenBuffers()
-        ```
-
-        缓冲区切换增强：
-
-        ```vim
-        " 只显示已修改的缓冲区
-        function! ListModifiedBuffers()
-            let modified = []
-            for buf in range(1, bufnr('$'))
-                if getbufvar(buf, '&modified')
-                    call add(modified, bufname(buf) . ' (' . buf . ')')
-                endif
-            endfor
-            echo "已修改的缓冲区:"
-            for name in modified
-                echo name
-            endfor
+        function! MyFunction(arg1, arg2)
+          echo a:arg1 . " " . a:arg2  " 参数前缀 a:
+          return 1
         endfunction
         ```
 
-    10. 常见问题解决
+        * 函数名首字母通常大写（避免与内置函数冲突）。
 
-        问题1：缓冲区太多难以管理
+        * 用 ! 覆盖同名函数。
+
+    5. 常用命令
+
+        * echo：输出信息
+
+        * execute：执行字符串形式的命令
+
+        * normal：执行普通模式命令
+        vim
+
+        * normal! ggdd  " 跳转到首行并删除
+
+        * command：自定义命令
+        vim
+
+        * command! Hello echo "Hello, Vim!"
+
+    6. 自动命令（Autocmd）
+
+        在特定事件触发时执行命令：
 
         ```vim
-        " 只保留活动缓冲区
-        :bufdo bd | tabonly  " 危险！会丢失未保存内容
-
-        " 更好的方式：只保存重要缓冲区
-        :set hidden          " 允许隐藏已修改的缓冲区
+        autocmd BufNewFile *.txt echo "新文本文件已创建"
+        autocmd BufWritePre *.js :call FormatFile()
         ```
 
-        问题2：忘记保存哪个缓冲区
+    7. 映射（Key Mapping）
 
-        ```vim
-        " 显示所有已修改缓冲区
-        :ls +  " 只显示已修改的缓冲区
+        普通模式映射：`nnoremap <Leader>w :w<CR>`
 
-        " 自动保存会话
-        :mksession! mysession.vim
-        ```
+        插入模式映射：`inoremap jk <Esc>`
 
-        问题3：缓冲区编号混乱
+        可视化模式映射：`vnoremap <C-c> "+y`
 
-        ```vim
-        " 按使用频率排序显示
-        :ls u  " 按上次使用时间排序
+        使用 `noremap` 避免递归映射。
 
-        " 使用插件如：
-        " - fzf.vim
-        " - bufexplorer
-        " - miniBufExpl
-        ```
+    8. 插件开发示例
 
-    11. 最佳实践
-
-        使用 :set hidden：允许隐藏已修改的缓冲区而不强制保存
-
-        合理使用窗口：不要为每个缓冲区开新窗口
-
-        定期清理：关闭不再需要的缓冲区
-
-        使用缓冲区局部变量：避免全局污染
-
-        结合会话管理：保存工作状态
-
-    12. 插件推荐
-
-        fzf.vim：模糊查找缓冲区
-
-        vim-bufferline：在状态栏显示缓冲区
-
-        bufexplorer：专用缓冲区管理器
-
-        vim-startify：更好的启动界面，显示最近缓冲区
-
-    理解缓冲区是掌握 Vim 高效编辑的关键。缓冲区让 Vim 能够同时处理多个文件而不需要多个编辑器实例。
-
-    注：
-
-    1. 缓冲区即打开的文件的内容。
-
-* vim `nnoremap`
-
-    nnoremap 是 Vim 中用于定义快捷键映射（key mapping） 的核心命令之一。以下是它的详细用法介绍：
-
-    基本语法
-
-    ```vim
-    nnoremap <新按键> <执行的操作>
-    ```
-
-    关键特点
-
-    1. 非递归映射
-
-        * `nnoremap` 中的 `n` 表示 Normal 模式，`nore` 表示 非递归
-
-        * 如果映射右侧包含其他映射键，不会再次触发映射
-
-        * 对比：`nmap` 是递归映射，可能导致无限循环
-
-        ```vim
-        " 安全：不会再次触发映射
-        nnoremap ; :
-
-        " 危险：可能造成无限循环
-        nmap ; :
-        nmap : ;
-        ```
-
-    2. 模式限定
-
-        * 只在 Normal 模式 下生效
-
-        其他常用变体：
-
-        ```vim
-        inoremap    " Insert 模式
-        vnoremap    " Visual 模式
-        cnoremap    " Command-line 模式
-        onoremap    " Operator-pending 模式
-        noremap!    " 在 插入模式（Insert mode） 和 命令行模式（Command-line mode） 中创建非递归的键映射。
-        ```
-
-    **常用示例**
-
-    * 基础用法
-
-        ```vim
-        " 将空格键设为 leader 键（常用前缀键）
-        nnoremap <Space> <Nop>
-        let mapleader = " "
-
-        " 使用 leader 键的组合映射
-        nnoremap <leader>w :w<CR>        " 保存文件
-        nnoremap <leader>q :q<CR>        " 退出
-        nnoremap <leader>fs :w<CR>       " 快速保存
-
-        " 窗口导航
-        nnoremap <C-h> <C-w>h            " 切换到左侧窗口
-        nnoremap <C-j> <C-w>j            " 切换到下方窗口
-        nnoremap <C-k> <C-w>k            " 切换到上方窗口
-        nnoremap <C-l> <C-w>l            " 切换到右侧窗口
-        ```
-
-    * 特殊按键
-
-        ```vim
-        " 使用特殊键
-        nnoremap <Esc> :nohlsearch<CR>   " 按 Esc 清除搜索高亮
-        nnoremap <CR> o<Esc>             " 回车在当前行下方插入新行
-        nnoremap <BS> X                  " 退格键删除前一个字符
-
-        " 功能键
-        nnoremap <F2> :set invpaste paste?<CR>  " F2切换粘贴模式
-        nnoremap <F5> :source ~/.vimrc<CR>      " F5重新加载配置
-        ```
-
-    **实用技巧**
-
-    ```vim
-    " 快速编辑配置文件
-    nnoremap <leader>ev :vsplit $MYVIMRC<CR>
-    nnoremap <leader>sv :source $MYVIMRC<CR>
-
-    " 缓冲区操作
-    nnoremap <leader>bn :bnext<CR>   " 下一个缓冲区
-    nnoremap <leader>bp :bprevious<CR> " 上一个缓冲区
-    nnoremap <leader>bd :bdelete<CR> " 删除缓冲区
-
-    " 快速移动
-    nnoremap H ^                     " H 移动到行首
-    nnoremap L $                     " L 移动到行尾
-    nnoremap J 5j                    " J 向下移动5行
-    nnoremap K 5k                    " K 向上移动5行
-
-    " 大小写转换
-    nnoremap <leader>u viwU          " 将当前单词转为大写
-    nnoremap <leader>l viwu          " 将当前单词转为小写
-    ```
-
-    最佳实践
-
-    1. 始终使用非递归映射
-
-        除非有特殊需求，否则优先使用 `nnoremap` 而不是 `nmap`，避免意外递归。
-
-    2. 使用 <leader> 前缀
-
-        ```vim
-        let mapleader = ","  " 设置 leader 键为逗号
-        nnoremap <leader>s :w<CR>
-        ```   
-
-    3. 查看现有映射
-    
-        ```vim
-        :map           " 查看所有映射
-        :nmap          " 查看 Normal 模式映射
-        :verbose nmap  " 查看映射及其定义位置
-        ```
-
-    4. 取消映射
-
-        ```vim
-        :nunmap <按键>  " 取消 Normal 模式映射
-        ```
-
-    5. 条件映射
-
-        ```vim
-        " 只在特定文件类型生效
-        autocmd FileType python nnoremap <buffer> <leader>r :!python %<CR>
-        ```
-
-    注意事项
-
-    * 映射覆盖：映射会覆盖默认功能，确保不会影响常用操作
-
-    * 兼容性：在不同终端中，特殊键的表示可能不同
-
-    * 可读性：复杂的映射建议加上注释说明
-
-    * 冲突检查：使用 :nmap 检查是否已有映射
-
-    通过合理使用 nnoremap，可以极大提升 Vim 的工作效率，打造个性化的编辑环境。
-
-* 查看 nnoremap 支持的所有特殊按键
-
-    在 Vim 中查看支持的特殊按键（key codes），有几种方法：
-
-    1. 查看官方文档
-
-        最全面的方法是查看 Vim 的官方帮助文档：
+        简单插件结构：
         
         ```vim
-        :help key-notation      " 查看所有按键表示法
-        :help <>                " 查看特殊键列表
-        :help keycodes          " 详细按键代码说明
-        ```
-
-    2. 主要特殊按键列表
-
-        基础控制键
-
-        ```vim
-        <CR>       回车（Carriage Return）
-        <Esc>      退出键
-        <Tab>      Tab 键
-        <BS>       退格键（Backspace）
-        <Del>      删除键
-        <Space>    空格键
-        <Bar>      竖线符号（|）
-        <Bslash>   反斜杠（\）
-        ```
-
-        方向键和功能键
-
-        ```vim
-        <Up>       上箭头
-        <Down>     下箭头
-        <Left>     左箭头
-        <Right>    右箭头
-
-        <F1> - <F12>     功能键 F1 到 F12
-        <F13> - <F37>    扩展功能键（如有）
-        <S-F1> - <S-F12> Shift + 功能键
-        ```
-
-        修饰键组合
-
-        ```vim
-        <C-...>    Ctrl 组合键，如：<C-a>, <C-b>, <C-Space>
-        <A-...>    Alt 键（在终端中可能表示为 <M-...>）
-        <M-...>    Meta 键（通常与 Alt 相同）
-        <S-...>    Shift 组合键，如：<S-Tab>, <S-F1>
-        <D-...>    Command 键（macOS）
-
-        <C-S-...>   Ctrl+Shift 组合，如：<C-S-a>
-        <A-S-...>   Alt+Shift 组合
-        ```
-
-        特殊符号键
-
-        ```vim
-        <lt>       小于号（<），用于避免被解析为按键开始
-        <gt>       大于号（>）
-        <Bslash>   反斜杠
-        <Bar>      竖线
-        ```
-
-        鼠标按键
-
-        ```vim
-        <LeftMouse>     鼠标左键
-        <MiddleMouse>   鼠标中键
-        <RightMouse>    鼠标右键
-        <2-LeftMouse>   双击左键
-        <3-LeftMouse>   三击左键
-        ```
-
-        其他特殊键
-
-        ```vim
-        <Insert>        Insert 键
-        <Home>          Home 键
-        <End>           End 键
-        <PageUp>        Page Up
-        <PageDown>      Page Down
-
-        <Help>          Help 键
-        <Undo>          Undo 键
-        <Redo>          Redo 键
-        <Print>         Print Screen
-        <Pause>         Pause/Break
-        ```
-
-    3. 实用查看方法
-
-        方法一：使用 showkey 命令（Linux）
-
-        ```bash
-        # 在终端中查看按键代码
-        showkey -a
-        # 按键后会显示十进制和十六进制代码
-        ```
-
-        方法二：在 Vim 中测试按键
-
-        ```vim
-        " 1. 插入模式查看按键代码
-        i<C-v>然后按特殊键
-
-        " 2. 使用 :echo 测试
-        :echo getchar()    " 按下一个键，显示其代码
-        :echo keytrans(getchar())  " 转换为可读形式
-
-        " 3. 查看最后按下的键
-        :echo v:termresponse     " 显示终端响应
-        ```
-
-        方法三：查看当前终端支持的键码
-
-        ```vim
-        " 查看终端键码设置
-        :set termcap
-
-        " 查看所有 termcap 条目
-        :set termcap?
-        ```
-
-    4. 诊断按键问题
-
-        ```vim
-        " 1. 设置 verbose 模式查看键码
-        :set verbose=15
-        " 然后尝试按键，Vim 会显示详细日志
-
-        " 2. 检查 terminfo/termcap
-        :echo &term          " 查看终端类型
-        :echo $TERM          " 查看环境变量
-
-        " 3. 使用捕获模式
-        :map <F13>           " 如果不知道键名，可以先映射一个不存在的键
-        " 然后按下你想测试的键，Vim 会显示其名称
-        ```
-
-    5. 常见问题解决
-
-        终端中的特殊键问题
-
-        ```vim
-        " 在 ~/.vimrc 中添加终端兼容性设置
-        if !has('gui_running')
-          " 确保方向键正常工作
-          set term=$TERM
-          set ttyfast
-          
-          " 某些终端需要明确的键码设置
-          if &term =~ '^screen' || &term =~ '^tmux'
-            " tmux/screen 兼容性
-            execute "set <xUp>=\e[1;*A"
-            execute "set <xDown>=\e[1;*B"
-            execute "set <xRight>=\e[1;*C"
-            execute "set <xLeft>=\e[1;*D"
-          endif
+        " plugin/myplugin.vim
+        if exists('g:loaded_myplugin')
+          finish
         endif
-        ```
+        let g:loaded_myplugin = 1
 
-        检查特定按键的映射
-
-        ```vim
-        " 查看某个按键是否已被映射
-        :map <Tab>           " 查看 Tab 键的所有映射
-        :nmap <Tab>          " 只查看 Normal 模式的 Tab 映射
-
-        " 查看映射来自哪里
-        :verbose map <Tab>
-        ```
-
-    6. 创建测试映射来识别未知键
-
-        ```vim
-        " 方法：将未知键映射到可识别的操作
-        nnoremap <F20> :echo "特殊键被按下"<CR>
-        " 然后按下你想识别的键，如果看到消息，说明键名是 <F20>
-
-        " 或者使用这个技巧：
-        :nnoremap \| :echo "按键代码:" getchar()<CR>
-        ```
-
-    7. 实用脚本：显示按键信息
-
-        ```vim
-        " 在 vimrc 中添加以下函数
-        function! ShowKey()
-          let c = getchar()
-          echom "按键代码:" c
-          echom "按键名称:" keytrans(c)
-          echom "字符表示:" nr2char(c)
+        function! s:MyPluginFunction()
+          echo "插件已调用"
         endfunction
 
-        " 映射一个快捷键来测试
-        nnoremap <leader>k :call ShowKey()<CR>
+        command! -nargs=0 MyPluginCall call s:MyPluginFunction()
         ```
 
-    注意事项：
+    9. 调试与测试
 
-    * GUI Vim 和终端 Vim 的键码支持可能不同
+        查看错误：:`messages`
 
-    * 不同终端（iTerm2, GNOME Terminal, tmux, screen）可能有差异
+        调试模式：启动 Vim 时加 `-D` 参数，或使用 `:debug` 命令。
 
-    * 组合键在不同环境中的表示可能不同（如 <C-Space> 在某些终端中不可用）
+        脚本局部变量可通过` s:` 前缀隔离作用域。
 
-    * 使用 :help 总是最可靠的信息来源
+    10. 注意事项
 
-    最常用的特殊键包括：<Space>, <CR>, <Esc>, <Tab>, <C-字母>, 方向键和功能键。
+        * Vimscript 对空格敏感（赋值时等号两侧可加空格，但部分命令格式严格）。
 
-* 在插入模式（Insert mode）下，ctrl + h 作用为删除前一个字符（等同于 Backspace 退格键）
+        * 使用 `set nocompatible` 确保 Vim 模式。
 
-    这是因为在早期的终端中，Ctrl+h 被用作退格键的替代（ASCII 码为 8）。Vim 保留了这一传统支持，尤其是在终端环境中。
+        * 新版 Vim（8.0+）支持更多现代语法（如 Lambda 表达式）。
 
-    在 Vim 分屏（split window）环境下，<C-w> h 用于向左切换窗口，但注意这不是 <C-h>（后者没有 w 前缀）。
+    **快速入门建议**
 
-* vim 中常见的映射模式
+    * 从修改 .vimrc 开始，逐步添加自定义函数。
 
-    命令	作用模式	是否递归	说明
-    map	普通、可视、选择、操作符等待	递归	通用映射（已弃用，建议用模式专用命令）
-    nmap	普通模式	递归	Normal mode
-    imap	插入模式	递归	Insert mode
-    cmap	命令行模式	递归	Command-line mode
-    noremap!	插入模式和命令行模式	非递归	Insert + Command-line，非递归
-    inoremap	插入模式	非递归	Insert mode only
-    cnoremap	命令行模式	非递归	Command-line mode only
-    nnoremap	普通模式	非递归	Normal mode only
+    * 参考 :help usr_41.txt（Vimscript 用户手册）。
 
-* noremap! 的 ! 表示映射适用于插入模式和命令行模式
+    * 阅读现有插件源码（如 vim-airline）学习实践。
 
-    noremap → 普通、可视、选择模式（无 !）
+    掌握基础后，可进一步学习 `:help eval.txt`（完整语言参考）。
 
-    noremap! → 插入和命令行模式（有 !）
+* vim 在 visual 下选择多行，进入命令模式时会自动添加`:'<,'>`，表示对每一行都调用一次后续的命令
 
-* 在 Vim 的命令行中，! 用于执行外部 shell 命令：
+    如果我们的函数按`:'<,'>call MyFunc()`方式调用时，对于每一行都会调用一次`MyFunc()`函数。
+
+    可以在进入命令模式后，按`Ctrl` + `u`清除`'<,'>`。
+
+* vim 可视模式下对 md 段落中有文字的行添加星号
 
     ```vim
-    :!ls          " 执行 ls 命令
-    :!python3 script.py  " 执行 Python 脚本
-    :w !sudo tee %  " 常用技巧：用 sudo 保存文件
-    ```
-
-* 在替换命令中，! 表示忽略大小写：
-
-    ```vim
-    :s/foo/bar/     " 将 foo 替换为 bar（区分大小写）
-    :s/foo/bar/i    " i 表示忽略大小写
-    :s/foo/bar/gi   " g 全局，i 忽略大小写
-    ```
-
-    实际上，i 标志更常用，但 ! 在 Vim 的正则表达式中有时也用于此目的。
-
-* 在自动命令中：autocmd! 的 ! 表示清除之前的所有同类自动命令：
-
-    ```vim
-    " 清除所有 FileType 自动命令，避免重复定义
-    autocmd! FileType python
-    autocmd FileType python setlocal shiftwidth=4
-    ```
-
-* 在设置选项中：set !option 的 ! 表示切换/取反：
-
-    ```vim
-    :set number     " 显示行号
-    :set nonumber   " 不显示行号
-    :set number!    " 切换行号显示状态（显示←→不显示）
-    :set invnumber  " 同上，inv = invert
-    ```
-
-* 在缓冲区命令中：b! 的 !
-
-    ```vim
-    :b 2     " 切换到缓冲区 2（如果有未保存修改会失败）
-    :b! 2    " 强制切换到缓冲区 2（丢弃当前缓冲区未保存修改）
-    ```
-
-* 在模式切换中：! 用于临时进入命令模式
-
-    在普通模式下，Q 进入 Ex 模式，而 gQ 则不同，但 ! 可以配合：
-
-    ```vim
-    :!ls      " 普通模式按 :! 然后输入命令
-    ```
-
-* vim 快速添加空格
-
-    ```vim
-    " 在普通模式下按空格键在光标后插入空格
-    nnoremap <space> i<space><esc>l
-
-    " 或者在光标前插入空格
-    nnoremap <leader><space> i<space><esc>
-
-    " 更智能的版本：在单词间插入空格（光标在 w 位置时）
-    nnoremap <space> i<space><esc>w
-    ```
-
-    其他可能有用的映射：
-
-    ```vim
-    " 在单词边界智能插入空格
-    nnoremap <silent> <space> :call InsertSpace()<CR>
-
-    function! InsertSpace()
-        " 如果光标在单词开头，在前面插入空格
-        if col('.') == 1 || getline('.')[col('.')-2] =~# '\s'
-            execute "normal! i \<esc>"
-        else
-            execute "normal! a \<esc>"
+    function AddAsterisk()
+        let line = getline('.')
+        if line !~ '\S'
+            return 0
         endif
+        let lnum = line('.')
+        execute lnum . 'normal! ^i* '
+        return 0
+    endfunction
+
+    vnoremap <leader>a :call AddAsterisk()<CR>
+    ```
+
+    可以按`\`, `a`触发函数调用。
+
+* vim script 显示 visual 模式下选中的内容
+
+    ```vim
+    function ShowLines()
+        let start_line = line("'<")
+        let end_line = line("'>")
+        echo "选中的行范围: " . start_line . " 到 " . end_line
+        for lnum in range(start_line, end_line)
+            let line = getline(lnum)
+            echo 'cur line: ' . line
+        endfor
+        return 0
     endfunction
     ```
 
-* 防止 vim 的 markdown 在渲染时，把 Precision (P) 渲染成 Precision §
+* vim function 不需要`function!`也能覆盖之前自己自定义的函数。
 
-    * 修改 Vim 配置
+    不清楚如果不加`!`能不能覆盖 vim 内置函数。
 
-        （未试过）
+* vim 中连接字符串时，`.`左右的空格可省略
 
-        在 .vimrc 中添加：
+    `echo 'line: '.line`
 
-        ```vim
-        " 禁用 markdown 中的特殊符号转换
-        let g:markdown_enable_conceal = 0
-        ```
+    似乎点`.`本身也可以被省略：
 
-        或者针对特定文件类型：
+    `echo 'cur line: 'line`
 
-        ```vim
-        autocmd FileType markdown setlocal conceallevel=0
-        ```
+    不清楚原因。
 
-    **对于不同的 Markdown 插件**
+* vim 函数规则
 
-    如果你使用的是 vim-markdown 插件：
+    > E128: Function name must start with a capital or "s:": add_star()
 
-    ```vim
-    let g:vim_markdown_conceal = 0
-    let g:tex_conceal = ""
-    let g:vim_markdown_math = 1
-    ```
+    注：
 
-    如果你使用的是 markdown-preview.nvim：
+    1. 可以看出，如果用`s:`作为函数名前缀，那么有点像 C 语言中的`private`函数了。
 
-    ```vim
-    let g:mkdp_markdown_css = 'custom.css' " 可以自定义 CSS 来避免这个问题
-    ```
+### 插入、删除与修改
 
-* vim 设置 tab 只对特定文件生效
+* 删除/更改到字符
 
-    ```vim
-    autocmd FileType python setlocal expandtab tabstop=4 shiftwidth=4
-    autocmd FileType javascript setlocal expandtab tabstop=2 shiftwidth=2
-    ```
+    * dtx - 删除直到字符 'x' 前
 
-* vim 将已经存在的文件中的 tab 转换为空格
+    * dfx - 删除直到字符 'x'（包括 'x'）
 
-    ```vim
-    " 转换整个文件
-    :%retab!
+    * dTx - 向后删除直到字符 'x' 前
 
-    " 只转换选中的行（先进入可视模式选择）
-    :'<,'>retab!
-    ```
+    * dFx - 向后删除直到字符 'x'（包括 'x'）
 
-* vim 开启语法高亮
+* 文本对象操作
 
-    ```vim
-    syntax on
-    ```
+    * diw - 删除当前单词（光标在单词任意位置）
 
-* vim 的三种模式与切换
+    * daw - 删除当前单词（包括周围空格）
 
-    vim is a modal editor, and has 3 modes:
+    * di" - 删除引号内的内容
 
-    1. If the bottom of the screen displays the filename or is blank, you are is normal mode.
+    * da" - 删除引号及内容
 
-    2. If you are in insert mode, the indicator displays `--INSERT--`.
+    * di( 或 dib - 删除括号内的内容
 
-    3. if you are in visual mode, the indicator shows `--VISUAL--`.
+    * da( 或 dab - 删除括号及内容
 
-    enter inserting mode: type `i`
+    * dit - 删除 HTML/XML 标签内的内容
 
-    back to command mode: press `<Esc>` key.
+    * dat - 删除整个 HTML/XML 标签
 
-* normal 模式下的常用命令
+* 从当前位置删除到指定字符
 
-    * move around: `h`, `j`, `k`, `l`
+    `dt<c>`: 删除从当前位置到`<c>`之前的所有字符，`<c>`不被删。
 
-    * delete a next character: type `x`
+    `df<c>`: 删除从当前位置到`<c>`的所有字符，`<c>`被删。
 
-    * undo the last edit: `u`
-
-    * redo: `ctrl` + `r`
-
-    * undo line: `U`, press again to redo
-
-    * save and exit: `ZZ` (upper cases)
-
-    * discard changes and exit: `:q!`
-
-    delete a line: `dd`
-
-    进入 insert 模式：
-
-    * insert a character before the character under the cursor: `i`
-
-    * intert text after the cursor: `a`
-
-    * add a new line below: `o`
-
-    * open a line above the cursor: `O` (uppercase)
-
-* vim 中常用的寄存器
-
-    `"+` 寄存器：对应系统的 “Ctrl+C / Ctrl+V” 剪贴板。在大多数现代系统上，这是最常用的。
-
-    `"*` 寄存器：在 Linux/Unix 系统上，通常对应 “鼠标中键” 或“选择”剪贴板（即你用鼠标选中文本，然后按鼠标中键粘贴的内容）。在 Windows/macOS 上，它和 "+ 通常是相同的。
-
-    | 命令 | 描述 |
-    | - | - |
-    | `"+y` | 复制当前选中的文本到系统剪贴板 |
-    | `"+yy` 或 `"+Y` | 复制当前行到系统剪贴板 |
-    | `"+yiw` | 复制当前光标下的单词到系统剪贴板 |
-    | `"+y$` | 从光标处复制到行尾到系统剪贴板 |
-    | `"+d` | 剪切当前选中的文本到系统剪贴板 |
-    | `"+dd` | 剪切当前行到系统剪贴板 |
-    | `"+d$` | 从光标处剪切到行尾到系统剪贴板 |
-
-    可视化模式下的操作：
-
-    1. 按 v (字符可视模式) 或 V (行可视模式) 或 Ctrl+v (块可视模式)。
-
-    2. 选中你要操作的文本。
-
-    3. 按 "+y (复制) 或 "+d (剪切)。
-
-    从系统剪贴板 粘贴 到 Vim
-
-    在 Normal 模式下，使用 "+p 或 "*p。
-
-    | 命令 | 描述 |
-    | - | - |
-    | "+p | 在光标后粘贴系统剪贴板的内容 |
-    | "+P | 在光标前粘贴系统剪贴板的内容 |
-
-    设置默认使用系统剪贴板（推荐）:
-
-    ```vim
-    " 设置默认寄存器为系统剪贴板
-    set clipboard=unnamedplus " Linux, Windows (WSL)
-    " 对于 macOS，有时可能需要使用 unnamed
-    " set clipboard=unnamed
-    ```
-
-    解释：
-
-    * unnamedplus：让默认寄存器 (") 与 "+ (系统剪贴板) 联通。复制 (yy)、粘贴 (p) 等命令会直接操作系统剪贴板。
-
-    * unnamed：在 macOS 上，有时这个选项效果更好，它让默认寄存器与 "* 联通。
-
-    **在命令行模式下粘贴**:
-
-    如果你想在 Vim 的命令行（比如在搜索 / 或命令 : 中）粘贴系统剪贴板的内容，可以按 Ctrl+r 然后输入 +。
-
-* 确认你的 Vim 版本是否编译了剪贴板支持
-
-    在终端里运行以下命令：
-
-    ```bash
-    vim --version | grep clipboard
-    ```
-
-    或者直接在 Vim 内部输入：
-
-    ```vim
-    :version
-    ```
-
-    然后查找 clipboard 和 xterm_clipboard。
-
-    * 如果看到 +clipboard 和 +xterm_clipboard：恭喜，你的 Vim 支持系统剪贴板，可以直接使用下面的所有方法。
-
-    * 如果看到 -clipboard：说明你的 Vim 不支持。你需要安装一个带剪贴板功能的 Vim。
-
-        * Ubuntu/Debian: sudo apt install vim-gtk3 (或者 vim-gnome, vim-gtk)
-
-        * macOS (使用 Homebrew): brew install vim
-
-        * CentOS/RHEL: sudo yum install vim-X11 (可能需要)
-
-* vim help
-
-    :help /\[]
-    :help whitespace
-    :help [:alnum:]
-
-* 可视模式
-
-    按 v 进入普通可视模式
-
-    按 V 进入行可视模式
-
-    按 Ctrl+V 进入块可视模式
-
-    ```vim
-    " 在 .vimrc 中修改可视模式颜色
-    highlight Visual cterm=reverse ctermbg=NONE
-    ```
-
-    ```vim
-    " 临时禁用高亮
-    :nohlsearch
-    ```
-
-    ```vim
-    " 禁用鼠标选择自动进入可视模式
-    set mouse-=a
-    " 或只禁用部分鼠标功能
-    " set mouse=nvi  " n:普通模式, v:可视模式, i:插入模式
-
-    " 鼠标释放后自动退出可视模式
-    autocmd CursorMoved * if mode() =~ '^[vV]' | silent! execute "normal! \e" | endif
-    ```
-
-    ```vim
-    " 按 Ctrl+L 清除高亮
-    nnoremap <C-l> :nohlsearch<CR>:call clearmatches()<CR>
-    ```
-
-* 为什么 linux 上正常关闭 vim 后不会留下 ~ 文件，而 windows 上会
-
-    vim 在 linux 上默认不开启 backup，但是在 windows 上开启。
-
-* vim 的恢复功能
-
-    * 使用 vim -r filename 恢复交换文件
-
-    * `:recover`
-
-* 在 Vim 中比较差异
-
-    ```vim
-    vim -d report.txt report.txt~
-    # 或进入 Vim 后
-    :vert diffsplit report.txt~
-    ```
-
-* `.vimrc`生效时机
-
-    在`.vimrc`保存后，重新启动 file_1 的 vim 编辑器即可。不需要关闭系统上所有的 vim。
-
-    配置生效通常有以下三种情况：
-
-    * 重新启动 Vim： 这是最稳妥的方法。当你关闭并重新打开 Vim 时，它会自动加载配置文件。
-
-    * 手动执行 Source 命令： 在不退出 Vim 的情况下，可以通过命令让当前运行的 Vim 实例立即应用新配置：
-
-        * 在 Vim 内部输入：:source ~/.vimrc（Linux）或 :source $VIM/_vimrc（Windows）。
-
-            或`:so ~/.vimrc`, `:source $MYVIMRC`
-
-    * 在 .vimrc 中设置自动指令（Autocmd）： 你可以添加一段代码，让 Vim 在检测到配置文件保存时自动执行 source 命令。
-
-    特性	Linux / macOS	Windows
-    默认文件名	.vimrc	_vimrc (通常) 或 .vimrc
-    主配置路径	~/.vimrc (用户家目录)	C:\Users\用户名\_vimrc 或 Vim 安装目录
-    路径变量	$HOME	$VIM 或 $HOME
-    换行符	LF	CRLF
-
-    ```vim
-    " 按下 \ + s 立即重新加载配置
-    nnoremap <leader>s :source $MYVIMRC<cr>
-    ```
-
-    有时候你 source 了文件，但发现外观没变。这通常是因为：
-
-    * 插件需要重启： 某些插件（如代码补全、状态栏）在初始化时加载，简单的 source 可能无法重置它们的运行状态。
-
-    * 缓存问题： 某些配色方案（Colorscheme）在切换时，旧的颜色属性可能残留在内存中，建议重新运行 :colorscheme 方案名。
-
-* windows 下禁止 vim 生成 `xxx.un~` 文件和 `xxx~` 文件
-
-    ```vim
-    " 禁用备份文件（以 ~ 结尾的文件）
-    set nobackup
-    set nowritebackup
-
-    " 禁用撤销文件（以 .un~ 结尾的文件）
-    set noundofile
-    ```
-
-    * vim 生成的几种文件简介
-    
-        * 备份文件 `xxx~`： 写文件之前，先把原文件复制一份
-
-            触发时机:
-
-            * 执行 :w
-
-            * backup 或 writebackup 开启时
-
-            作用:
-
-            * 防止写文件过程中崩溃 / 断电 / 磁盘错误
-
-            * 写失败时，原内容还在 filename~
-
-            写成功后：
-
-            * backup 开启 → filename~ 会保留
-
-            * 只开 writebackup → 写完就删
-
-            相关配置：
-
-            ```vim
-            :set backup        " 是否保留 ~ 文件
-            :set writebackup  " 是否写前临时备份
-            :set nobackup
-            :set nowritebackup
-            ```
-
-        * 交换文件 `xxx.swp`: 编辑过程中实时保存修改，用于崩溃恢复
-
-            打开文件时立即创建
-
-            作用:
-
-            * 崩溃恢复（vim -r filename）
-
-            * 防止同一文件被多个 Vim 实例同时修改
-
-            特点:
-
-            * 实时保存编辑状态
-
-            * 正常退出 Vim 会自动删除
-
-            * 非正常退出会残留
-
-            看到它通常意味着:
-
-            * 上次 Vim 崩了
-
-            * 或该文件正在被另一个 Vim 打开
-
-            相关配置：
-
-            ```vim
-            :set swapfile
-            :set noswapfile
-            :set directory?   " swap 文件存放目录
-            ```
-
-            * `.filename.swo` / `.swn` / `.swx` —— swap 冲突序号
-
-                当 .swp 已存在：
-
-                Vim 会尝试 .swo、.swn、.swx
-
-        * 撤销文件 `xxx.un~`： 撤销历史记录（持久化撤销, 重启 Vim 后还可以执行`u`命令）
-
-            需要启用 `undofile`功能，这个文件才能被创建。
-
-            相关配置：
-
-            ```vim
-            :set undofile
-            :set undodir?
-            ```
-
-    * 其它配置
-
-        ```vim
-        set backupdir=~/.vim/backup//  " 备份到特定目录
-        set backupskip=/tmp/*,/private/tmp/*  " 跳过某些目录的备份
-
-        set undodir=~/.vim/undo//
-        set directory=~/.vim/swap//
-
-        " 撤销历史（.un~文件）
-        set undofile          " 持久化撤销历史到磁盘
-        set undolevels=1000   " 内存中保留1000次撤销
-
-        " 2. 配置定时清理
-        autocmd VimLeave * !del /Q Z:\vim-backup\*
-        " 退出时自动清理内存备份
-        autocmd VimLeavePre * call CleanOldBackups(30) " 保留30天
-
-        " 备份文件扩展名
-        set backupext=.bak
-        ```
-
-    * 如果你只想对某些文件类型禁用，可以在 _vimrc 中添加：
-
-        ```vim
-        " 对特定目录禁用备份
-        autocmd BufWritePre /path/to/directory/* set nobackup nowritebackup
-
-        " 或者对特定文件类型禁用
-        autocmd FileType txt,md set noundofile
-        ```
-
-    * 设置备份目录到特定位置，而不是当前目录：
-
-        ```vim
-        " 将备份文件集中到特定目录
-        set backupdir=C:\vim_backups
-        set directory=C:\vim_backups
-        set undodir=C:\vim_undo
-
-        " 如果目录不存在则创建
-        if !isdirectory("C:\\vim_backups")
-            silent !mkdir "C:\vim_backups"
-        endif
-        ```
-
-    * 完全禁用所有备份相关功能
-
-        ```vim
-        " 一次性禁用所有备份相关文件
-        set nobackup       " 不创建备份文件（*.~）
-        set nowritebackup  " 写入时不创建备份
-        set noswapfile     " 不创建.swp交换文件
-        set noundofile     " 不创建.un~撤销文件
-        ```
-
-    * 折中方案
-
-        ```vim
-        " 将备份文件集中到固定目录，而不是污染当前目录
-        set backupdir=~/.vim/backup//
-        set directory=~/.vim/swap//
-        set undodir=~/.vim/undo//
-
-        " 确保目录存在
-        if !isdirectory(expand("~/.vim/backup"))
-            silent !mkdir ~/.vim/backup
-        endif
-        if !isdirectory(expand("~/.vim/undo"))
-            silent !mkdir ~/.vim/undo
-        endif
-        ```
-
-    * 自动清理脚本
-
-        ```vim
-        " 定期清理旧备份
-        function! CleanOldBackups(days)
-            let backup_dir = expand('~/.vim/backup')
-            if isdirectory(backup_dir)
-                " Windows 示例
-                silent !forfiles /p backup_dir /s /m * /d -%a% /c "cmd /c del @path"
-            endif
-        endfunction
-
-        autocmd VimLeave * call CleanOldBackups(7)  " 保留7天
-        ```
-
-* vim 插入新行并且不进入 insert 模式
-
-    * `:put` (简写为`:pu`)
-
-        向下插入一行。
-
-        向上插入一行为`:put!`或`:pu!`
-
-    * `:call append()`
-
-        ```vim
-        :call append(line('.'), '')  " 在当前行下方插入空行
-        :call append(line('.')-1, '') " 在当前行上方插入空行
-        ```
-
-    * 映射快捷键
-
-        ```vim
-        " 在 ~/.vimrc 中添加映射
-        nnoremap <Leader>o o<Esc>     " 下方插入空行并返回普通模式
-        nnoremap <Leader>O O<Esc>     " 上方插入空行并返回普通模式
-        ```
-
-* vim 中的`<Leader>`键
-
-    Leader 键是 Vim 中的一个自定义前缀键，用于创建用户自定义快捷键映射
-
-    默认情况下，Vim 的 Leader 键是反斜杠`\`。
-
-    查看当前 Leader 键:
-
-    ```vim
-    :echo mapleader
-    :echo g:mapleader
-    ```
-
-    设置 Leader 键:
-
-    ```vim
-    " 最常见的设置：逗号 ,
-    let mapleader = ","      " 全局 Leader 键
-    let maplocalleader = "\\"  " 本地 Leader 键（用于文件类型特定映射）
-
-    " 其他常用选择
-    let mapleader = ";"      " 分号（也很方便）
-    let mapleader = "<Space>" " 空格键（需要先按空格，再按其他键）
-    let mapleader = "\\"     " 保持默认的反斜杠
-
-    " 空格键作为 Leader（现在很流行）
-    let mapleader = " "
-    nnoremap <Space> <Nop>  " 禁用空格键的默认行为
-    ```
-
-    设置了 Leader 键后，配合映射使用：
-
-    ```vim
-    " 在 .vimrc 中添加映射
-    nnoremap <Leader>w :w<CR>        " \w 保存文件（如果 Leader 是 \）
-    nnoremap <Leader>q :q<CR>        " \q 退出
-    nnoremap <Leader>o o<Esc>        " 下方插入空行并返回普通模式
-    nnoremap <Leader>O O<Esc>        " 上方插入空行并返回普通模式
-
-    " 如果是空格作为 Leader，那么就是：
-    " 按空格，再按 w = 保存
-    " 按空格，再按 o = 下方插入空行
-    ```
-
-    与 Local Leader 的区别
-
-    * `<Leader>`：全局快捷键前缀
-
-    * `<LocalLeader>`：文件类型特定的快捷键前缀
-
-    ```vim
-    " 设置 Local Leader
-    let maplocalleader = "\\"
-
-    " 只在特定文件类型中有效的映射
-    autocmd FileType python nnoremap <buffer> <LocalLeader>c I#<Esc>
-    " 在 Python 文件中，按 \c 在行首添加注释
-    ```
-
-    examples:
-
-    ```vim
-    " ~/.vimrc 中建议这样设置
-    let mapleader = " "          " 空格作为 Leader
-    let maplocalleader = "\\"    " 反斜杠作为 Local Leader
-
-    " 一些实用映射
-    nnoremap <Leader>w :w<CR>
-    nnoremap <Leader>q :q<CR>
-    nnoremap <Leader>e :e $MYVIMRC<CR>  " 编辑 vimrc
-    nnoremap <Leader>s :source $MYVIMRC<CR>  " 重新加载 vimrc
-    nnoremap <Leader>o o<Esc>k  " 下方插入空行，光标移到新行
-    nnoremap <Leader>O O<Esc>j  " 上方插入空行，光标移到原行
-    ```
-
-* vim 录制宏
-
-    基本操作
-
-    1. 开始录制
-
-        * 按 q 键开始录制
-
-        * 然后按一个寄存器键（a-z）来指定存储位置
-
-        * 示例：qa 表示录制到寄存器 a
-
-    2. 执行操作
-
-        * 执行你想要录制的所有 Vim 操作
-
-        * 可以包括：移动、插入、删除、替换等任何命令
-
-    3. 停止录制
-
-        * 按 q 键停止录制
-
-    4. 执行宏
-
-        * @a - 执行寄存器 a 中的宏
-
-        * @@ - 重复执行上一次执行的宏
-
-        * 10@a - 执行 10 次寄存器 a 中的宏
-
-    实用技巧
-
-    * 查看录制的宏
-
-        ```vim
-        :reg a        " 查看寄存器 a 的内容
-        :reg          " 查看所有寄存器
-        ```
-
-    * 编辑宏
-
-        ```vim
-        " 将宏粘贴出来编辑
-        " 1. 将寄存器内容放到当前行
-        "ap            " 将寄存器 a 的内容粘贴出来
-
-        " 2. 编辑内容
-
-        " 3. 存回寄存器
-        " 删除原有内容（如："ay$），然后
-        "add            " 删除当前行到寄存器 d
-        " 或
-        "ayy            " 复制当前行到寄存器 a
-        ```
-
-    * 常用的宏录制模式
-
-        ```vim
-        " 在多个文件上执行宏
-        1. 录制宏完成对当前文件的操作
-        2. :w 保存文件
-        3. :bn 跳转到下一个缓冲区
-        4. 停止录制
-        5. 使用 :bufdo normal @a 在所有缓冲区执行
-        ```
-
-    * 错误处理
-
-        * 如果在录制过程中出错，可以按 q 停止，然后重新录制
-
-        * 宏会记录所有按键，包括错误和更正
-
-    * 追加到现有宏
-
-        ```vim
-        qA  " 大写字母会追加到寄存器 a 的宏中
-        ```
-
-* vim `.`命令
-
-    作用：重复上一次修改操作
-
-    详细说明：
-
-    * 重复最近一次在普通模式下执行的修改命令
-
-    * 可以重复插入、删除、替换等操作
-
-    * 示例：
-
-        * dw 删除一个单词 → . 再删除下一个单词
-
-        * ihello<Esc> 插入文本 → . 再次插入"hello"
+### 搜索与正则表达式
 
 * 正则表达式中的 common POSIX character classes
 
@@ -4210,123 +3453,143 @@
 
     表示匹配 v, i, m 三个其中的一个。
 
-* vim 打开文件后，跳转到上次关闭时候的位置：
+* vim 输入 /xx 后立即开始搜索（增量搜索）
 
-    * 反引号 + 双引号：`` ` `` + `"`
+    **开启增量搜索**
 
-    * 单引号 + 双引号：`'` + `"`
+    在 ~/.vimrc 中添加：
 
-* vim 的`scp://`协议打开的文件，会在保存文件时临时把文件放到`/tmp`中，当完成 scp 传输后，会马上把这个文件删掉。这样保证打开的文件只存在于内存中，不在`/tmp`中，只有传输过程中需要用到实体文件时，才会在`/tmp`中保存一下，然后马上删掉。
-
-* 使用 vim 的 netrw
-
-    * 在命令行中打开远程文件
-
-        ```bash
-        vim scp://username@hostname[:port]//path/to/file
-        ```
-
-        vim 会先使用 scp 把远程文件复制到本地`/tmp`目录下，然后再进行编辑。
-
-        注：
-
-        1. 如果`~/.ssh/config`中已经配置了`Host nickname`，那么可以直接
-
-            `vim scp://nickname//path/to/file`
-
-        1. 绝对路径与相对用户目录的路径区别
-
-            example:
-
-            绝对路径：`vim scp//user@host//home/hlc/test.txt`
-
-            相对用户目录的路径：`vim scp://user@host/test.txt`
-
-            第一个`/`相当于 ssh 命令里的`:`，表示用户的 home。
-
-        1. 不可以使用冒号`:`表示用户 home。冒号`:`只能表示 remote host 的 ssh 端口。
-
-            比如`vim scp://nickname:2222/rel_path/to/file`，表示打开`/home/<user>/rel_path/to/file`这个文件。
-
-    * 在 vim 中使用`:e`打开文件
-
-        ```vim
-        :e scp://username@hostname/path/to/file
-        ```
-
-        ```vim
-        :e scp://[user@]hostname[:port]/path/to/file
-        ```
-
-        example:
-
-        ```vim
-        " 使用默认用户名（当前本地用户名）
-        :e scp://remote-server/home/user/project/file.txt
-
-        " 指定用户名
-        :e scp://username@remote-server/path/to/file.txt
-
-        " 指定端口
-        :e scp://username@remote-server:2222/path/to/file
-
-        " 绝对路径
-        :e scp://user@host//home/user/file.txt
-
-        " 相对用户home的路径
-        :e scp://user@host/file.txt
-        ```
-
-        * 在 vim 中将 ssh 配置为默认协议，效率比 scp 更高
-
-            在 ~/.vimrc 中添加：
-
-            ```conf
-            let g:netrw_ftpextracmd = 'ssh'
-            ```
-
-            配置后，底层可能会这样传输文件：
-
-            ```bash
-            ssh user@host cat /path/to/file
-            ```
-
-            不配置时，底层可能这样传输文件：
-
-            ```bash
-            scp user@host:/path/to/file /tmp/vimXXXXXX
-            ```
-
-* vim 取消行号的方法
-
-    `:set nonu`
-
-    `:set nu!`
-
-* vim 中的 regex 构建 group 时，括号需要加`\`(parentheses)：`\(key-words\)`，但是其它常用的 regex 都不需要。
-
-    在 regex 前加`\v`表示 very magic，即所有可能被认为是 metacharacter 的字符 ，都会被判定为 metacharacter。
-
-    这样上述的 regex 就可以写成`\v(key-worlds)`。此时如果我们需要匹配`(`和`)`，那么我们需要对它们进行转义：`\v\(key-words\)`。
-
-* `grep -P`表示使用 PCRE 的 regex
-
-* vim 中搜索 metacharacter `.` 的帮助文档
-
-    `:help /\.`
-
-* PCRE, for Perl Compatible Regular Expression
-
-* vim 中有关 regex 的 help 命令
-
-    ```
-    :help pattern-searches
-    :help atom
+    ```vim
+    " 开启增量搜索
+    set incsearch
     ```
 
-## topics
+    开启后，输入 / 后每输入一个字符，Vim 会立即高亮显示匹配的位置。
 
-### 搜索与正则表达式
+    **高亮显示所有匹配项**
+
+    ```vim
+    " 高亮所有匹配项
+    set hlsearch
+    ```
+
+    **相关设置**
+
+    ```vim
+    " 完整搜索相关配置
+    set ignorecase    " 搜索忽略大小写
+    set smartcase     " 搜索包含大写时区分大小写
+    set incsearch     " 输入搜索模式时实时显示匹配
+    set hlsearch      " 高亮显示所有匹配
+    ```
+
+* vim 实用的搜索技巧
+
+    **清除高亮**
+
+    ```vim
+    :noh           " 清除搜索高亮
+    :set nohlsearch " 禁用高亮
+    :set hlsearch   " 重新启用高亮
+    ```
+
+    **搜索时跳转**
+
+    * n：下一个匹配
+
+    * N：上一个匹配
+
+    * / + ↑/↓：浏览搜索历史
+
+    **搜索特殊字符**
+
+    ```text
+    /特殊字符     " 使用反斜杠转义
+    /\/path       " 搜索 /path
+    /\<word\>     " 精确匹配单词
+    ```
+
+    **替换命令也适用**
+
+    ```vim
+    :%s/pattern/replace/gi  " g:全局，i:忽略大小写
+    ```
+
+    Vim 8.2+ 新增功能
+
+    ```vim
+    " 输入搜索词时显示匹配数
+    set shortmess-=S
+    ```
+
+    我的推荐配置
+
+    ```vim
+    " ~/.vimrc 中搜索相关设置
+    set ignorecase
+    set smartcase
+    set incsearch
+    set hlsearch
+
+    " 快速清除高亮快捷键
+    nnoremap <silent> <C-l> :<C-u>nohlsearch<CR><C-l>
+    " 按 Ctrl+l 清除高亮并重绘屏幕
+    ```
+
+    这样配置后，在 Vim 中：
+
+    * 默认搜索大小写不敏感
+
+    * 输入搜索词时立即显示匹配结果
+
+    * 所有匹配项都会高亮显示
+
+    * 可以快速清除高亮
+
+* vim 实现搜索时大小写不敏感
+
+    1. 搜索时大小写不敏感
+
+        **临时设置**
+
+        在搜索时添加 \c 前缀：
+
+        ```text
+        /\cpattern
+        ```
+
+        * 使用 \c：忽略大小写
+
+        * 使用 \C：强制区分大小写
+
+        **在搜索模式中设置**
+
+        ```text
+        /pattern\c
+        ```
+
+        效果相同，\c 放在模式前后都可以。
+
+        **永久设置（推荐）**
+
+        在 ~/.vimrc 中添加：
+
+        ```vim
+        " 设置搜索时默认忽略大小写
+        set ignorecase
+        set smartcase   " 智能大小写：如果搜索词包含大写字母，则区分大小写
+        ```
+
+        **切换命令**
+
+        在 Vim 命令模式：
+
+        ```vim
+        :set ignorecase   " 忽略大小写
+        :set noignorecase " 区分大小写
+        :set ic           " 简写（ignorecase）
+        :set noic         " 简写（noignorecase）
+        ```
 
 * vim `\v`
 
@@ -4455,6 +3718,139 @@
     * `[a^bc]`
 
 ### 导航与跳转
+
+* 在 vim 中使用 p 粘贴了一段内容后，如何快速定位到粘贴内容的开头和结尾？
+
+    1. 使用标记（marks）
+
+        vim 在粘贴时自动设置了两个标记：
+
+        ```vim
+        `[  " 粘贴内容的开头
+        `]  " 粘贴内容的结尾
+        ```
+
+        注：
+
+        1. 也可以使用单引号`'`代替反引号``` ` ```
+
+    2. 使用可视模式重选
+
+        ```vim
+        gv
+        ```
+
+        `gv`可以重新选择上次可视模式选中的区域。如果是粘贴后立即使用，会选中刚粘贴的内容。
+
+        注：
+
+        1. `gv`重选后，光标会跳转到选中内容的开头还是结尾？
+
+    3. 使用选择器查看
+
+        ```vim
+        :marks [ ]   " 查看 [ 和 ] 标记的位置
+        ```
+
+    快速操作粘贴内容：
+
+    ```vim
+    `[v`]       " 选中整个粘贴内容（行模式）
+    `[v`]       " 选中整个粘贴内容（字符模式）
+    c`[         " 从当前位置修改到粘贴开头
+    d`]         " 删除从当前位置到粘贴结尾
+    ```
+
+    相关标记：
+
+    * 按 `. 回到上次编辑位置
+
+    * `^：上次插入模式退出位置
+
+    * `"：上次退出文件时的位置s
+
+* 行内移动和操作
+
+    * 0 - 移动到行首
+
+    * ^ - 移动到行首第一个非空白字符
+
+    * $ - 移动到行尾
+
+    * d$ 或 D - 删除到行尾
+
+    * d0 - 删除到行首
+
+    * d^ - 删除到行首第一个非空白字符
+
+* vim 纯滚动不移动光标
+
+    ```vim
+    " 纯滚动屏幕，不移动光标
+    nnoremap <C-e> <C-e>j  " 向下滚动一行
+    nnoremap <C-y> <C-y>k  " 向上滚动一行
+    ```
+
+* vim 中，使用 "+p 粘贴内容后，如何跳转到粘贴内容的开关和结尾
+
+    * gv 
+
+        * 粘贴后直接按 gv 可以重新选择刚才粘贴的内容
+
+        * 然后按 o 可以在选择模式的开头和结尾之间切换
+
+    * 使用标记 (Marks)
+
+        Vim 在粘贴时会自动设置一些标记：
+
+        ```vim
+        `[     " 粘贴内容的开头位置
+        `]     " 粘贴内容的结尾位置
+        ```
+
+    * 查看粘贴区域的内容
+
+        ```vim
+        :echo @[    " 查看最后修改/粘贴的开头位置
+        :echo @]    " 查看最后修改/粘贴的结尾位置
+        ```
+
+    example：
+
+    ```vim
+    "+p    " 粘贴系统剪贴板内容
+    `[     " 跳转到粘贴内容的第一个字符
+    ``     " 跳转回之前的位置
+    `]     " 跳转到粘贴内容的最后一个字符
+    ```
+
+* vim 相对行号
+
+    `set relativenumber`
+
+* vim 保持光标位置翻页
+
+    ```vim
+    " 保持光标位置翻页
+    nnoremap <C-d> <C-d>zz
+    nnoremap <C-u> <C-u>zz
+    ```
+
+* vim 移动光标
+
+    ```vim
+    zz    " 将当前行移到屏幕中间
+    zb    " 将当前行移到屏幕底部
+    zt    " 将当前行移到屏幕顶部
+    ```
+
+* vim 使用标记（mark）
+
+    * 先标记当前位置：ma（标记到 a）
+
+    * 翻页：Ctrl+f（向下翻整页）或 Ctrl+d
+
+    * 返回标记：`a 或 'a
 
 * `}`
 
@@ -4647,6 +4043,23 @@
 
 ### tab 处理
 
+* vim 设置 tab 只对特定文件生效
+
+    ```vim
+    autocmd FileType python setlocal expandtab tabstop=4 shiftwidth=4
+    autocmd FileType javascript setlocal expandtab tabstop=2 shiftwidth=2
+    ```
+
+* vim 将已经存在的文件中的 tab 转换为空格
+
+    ```vim
+    " 转换整个文件
+    :%retab!
+
+    " 只转换选中的行（先进入可视模式选择）
+    :'<,'>retab!
+    ```
+
 * ai 对 softtabstop 的解释
 
     **softtabstop 的工作原理**
@@ -4838,6 +4251,607 @@
         * 枚举常量
 
 ### plugin
+
+* vim 安装 markdown preview 插件
+
+    插件：`'iamcco/markdown-preview.nvim'`
+
+    安装：
+
+    1. 在`.vimrc`中添加
+
+        ```vim
+        call plug#begin()
+
+        " List your plugins here
+        " Plug 'tpope/vim-sensible'
+        "
+        " Plug 'plasticboy/vim-markdown'
+
+        Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
+
+        call plug#end()
+        ```
+
+        （需提前安装 VimPlug）
+
+    2. 打开一个 vim，输入命令：`:PlugInstall`
+
+        此时会 clone github repo，然后尝试编译和安装。
+
+        这个 repo 是一个 js 项目，需要 npm 安装一些包，如果环境没有挂境外代理，可能会失败。即使 repo 编译安装失败，VimPlug 也会显示插件安装成功。实际上此时并没有安装成功。
+
+        可以打开一个 md 文件，输入命令`:MarkdownPreview`试一下，如果什么都没有发生，说明没有安装成功。
+
+    3. 如果 repo 已经 clone 了，但是没有安装成功，可以用下面的方法
+
+        进入`~/.vim/plugged/markdown-preview.nvim/app`, 执行
+
+        `sudo npm install`
+
+        如果需要设置代表，先配置好`http_proxy`, `https_proxy`再执行 npm install。
+        
+        如果 app 目录中有`node_modules`，并且 npm 没有什么报错，那么大概率安装成功了。找一个 md 文件测试一下即可。
+
+* vim 渲染 markdown 使用什么插件
+
+    在Vim中渲染Markdown有多种选择，以下是最常用的插件：
+
+    🌟 主流选择
+
+    1. Markdown预览插件
+
+        * markdown-preview.nvim - 最流行的实时预览插件
+
+            ```vim
+            " 安装
+            Plug 'iamcco/markdown-preview.nvim'
+            ```
+
+            支持实时预览
+
+            自动刷新
+
+            支持数学公式、代码高亮
+
+        * glow.nvim - 使用glow渲染
+
+            ```vim
+            Plug 'ellisonleao/glow.nvim'
+            ```
+
+    2. 语法高亮增强
+
+        * vim-markdown - 增强Markdown语法高亮
+
+            ```vim
+            Plug 'plasticboy/vim-markdown'
+            ```
+
+            折叠支持
+
+            更好的语法高亮
+
+            TOC生成
+
+        * vim-markdown-toc - 生成目录
+
+            ```vim
+            Plug 'mzlogin/vim-markdown-toc'
+            ```
+
+    🔧 配置示例
+
+    ```vim
+    " 基本配置
+    call plug#begin()
+    Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+    Plug 'plasticboy/vim-markdown'
+    call plug#end()
+
+    " Markdown预览设置
+    let g:mkdp_auto_start = 0
+    let g:mkdp_auto_close = 1
+    let g:mkdp_refresh_slow = 0
+    let g:mkdp_command_for_global = 0
+    let g:mkdp_open_to_the_world = 0
+
+    " 快捷键映射
+    nmap <silent> <leader>mp <Plug>MarkdownPreview
+    nmap <silent> <leader>ms <Plug>MarkdownPreviewStop
+    nmap <silent> <leader>mt <Plug>MarkdownPreviewToggle
+    ```
+
+    🚀 使用方式
+
+    * 实时预览：打开Markdown文件，按<leader>mp
+
+    * 停止预览：按<leader>ms
+
+    * 切换预览：按<leader>mt
+
+    💡 其他选择
+
+    * 终端内渲染
+
+        * mdv - 终端内查看Markdown
+
+        * glow - 美观的终端渲染
+
+        * mdcat - cat的Markdown版本
+
+    * Neovim专属
+
+        * markdown-preview.nvim（也支持Neovim）
+
+        * neovim内置LSP + markdown语言服务器
+
+    📋 推荐组合
+
+    对于大多数用户，我推荐：
+
+    ```text
+    markdown-preview.nvim + vim-markdown
+    ```
+
+    这个组合提供了完整的Markdown编写体验。
+
+* 如何验证vim Plug是否安装成功？
+
+    验证Vim Plug是否安装成功有以下几种方法：
+
+    🔍 基本检查方法
+
+    1. 查看插件目录结构
+
+        ```bash
+        # 检查Plug是否已克隆
+        ls -la ~/.vim/autoload/
+        # 应该能看到 plug.vim 文件
+        ```
+
+    2. 在Vim中测试命令
+
+        ```vim
+        :PlugStatus    " 查看插件状态
+        :PlugInstall   " 尝试安装插件（如果没有错误，说明Plug正常工作）
+        :PlugUpdate    " 更新插件
+        :PlugClean     " 清理未使用的插件
+        ```
+
+    3. 检查Vim版本和功能
+
+        ```vim
+        " 在Vim中执行
+        :version
+        " 确认支持 +eval 和 +python3（部分插件需要）
+        ```
+
+    📝 创建测试配置验证
+
+    步骤1：创建测试配置
+
+    ```vim
+    " ~/.vimrc 中添加测试代码
+    call plug#begin('~/.vim/plugged')
+
+    " 安装一个简单插件测试
+    Plug 'junegunn/vim-easy-align'
+
+    call plug#end()
+    ```
+
+    步骤2：重新加载并安装
+
+    ```bash
+    # 重新加载配置
+    vim +'source ~/.vimrc'
+
+    # 或在Vim中
+    :source ~/.vimrc
+    :PlugInstall
+    ```
+
+    步骤3：验证安装
+
+    ```bash
+    # 检查插件是否下载
+    ls ~/.vim/plugged/
+    # 应该能看到 vim-easy-align 目录
+    ```
+
+    ✅ 完整的验证流程
+
+    方法一：使用内置命令
+
+    ```vim
+    " 1. 检查Plug命令是否存在
+    :command Plug
+
+    " 2. 检查插件列表
+    :scriptnames
+    " 在列表中应该能看到 plug.vim
+
+    " 3. 测试插件功能
+    " 安装测试插件后，验证其功能
+    :EasyAlign     " 如果vim-easy-align安装成功，这个命令应该可用
+    ```
+
+    方法二：查看帮助文档
+
+    ```vim
+    :help plug.txt
+    " 如果能看到Plug的帮助文档，说明安装成功
+    ```
+
+    方法三：创建测试脚本
+
+    ```bash
+    #!/bin/bash
+    # test_vim_plug.sh
+
+    echo "检查Vim Plug状态..."
+
+    # 检查文件是否存在
+    if [ -f ~/.vim/autoload/plug.vim ]; then
+        echo "✅ Plug.vim 文件存在"
+    else
+        echo "❌ Plug.vim 文件不存在"
+        exit 1
+    fi
+
+    # 在Vim中测试
+    echo "在Vim中测试Plug命令..."
+    vim -c 'PlugStatus' -c 'qa!' > /dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+        echo "✅ PlugStatus 命令执行成功"
+    else
+        echo "❌ PlugStatus 命令执行失败"
+    fi
+
+    echo ""
+    echo "验证完成！"
+    ```
+
+    🔧 常见问题排查
+
+    * 如果Plug未安装：
+
+        ```bash
+        # 手动安装Vim Plug
+        curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        ```
+
+    * 如果命令不可用：
+
+        * 检查Vim版本：确保Vim版本 ≥ 7.0
+
+        * 检查文件权限：
+    
+            ```bash
+            chmod 755 ~/.vim/autoload/
+            chmod 644 ~/.vim/autoload/plug.vim
+            ```
+
+        * 检查配置语法：
+
+            ```vim
+            " 确保.vimrc中正确配置
+            call plug#begin('~/.vim/plugged')
+            " 插件列表
+            call plug#end()
+            ```
+
+    测试完成后，验证一个真实插件：
+
+    ```vim
+    " 安装并验证一个真实插件
+    call plug#begin('~/.vim/plugged')
+    Plug 'tpope/vim-surround'  " 一个常用插件
+    call plug#end()
+
+    " 在Vim中
+    :PlugInstall
+    " 测试插件功能
+    :help surround  " 应该能看到帮助文档
+    ```
+
+    📊 验证结果示例
+
+    成功的安装会显示：
+
+    ```text
+    ✅ ~/.vim/autoload/plug.vim 文件存在
+    ✅ :PlugStatus 显示插件列表
+    ✅ :PlugInstall 能正常下载插件
+    ✅ 插件目录 (~/.vim/plugged/) 中有下载的插件
+    ```
+
+    最简单的快速验证命令：
+
+    ```bash
+    vim +PlugStatus +qa
+    ```
+
+    如果没有任何错误信息，说明Plug安装成功！
+
+* markdown-preview.nvim
+
+    markdown-preview.nvim 详细使用指南
+
+    📦 安装配置
+
+    1. 安装插件
+
+        ```vim
+        " 使用 vim-plug
+        Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+
+        " 使用 lazy.nvim
+        {
+            'iamcco/markdown-preview.nvim',
+            cmd = { 'MarkdownPreviewToggle', 'MarkdownPreview', 'MarkdownPreviewStop' },
+            ft = { 'markdown' },
+            build = 'cd app && yarn install',
+        }
+        ```
+
+    2. 基础配置
+
+        ```vim
+        " 设置默认选项
+        let g:mkdp_auto_start = 0           " 不自动开启预览
+        let g:mkdp_auto_close = 1           " 切换buffer时自动关闭预览
+        let g:mkdp_refresh_slow = 0         " 实时刷新（1=只在保存时刷新）
+        let g:mkdp_command_for_global = 0   " 0=仅markdown文件，1=所有文件
+        let g:mkdp_open_to_the_world = 0    " 0=本地，1=允许外部访问
+
+        " 浏览器选项
+        let g:mkdp_browser = ''             " 空=默认浏览器，或指定 'chrome', 'firefox'
+        let g:mkdp_browserfunc = ''         " 自定义浏览器打开函数
+
+        " 预览选项
+        let g:mkdp_preview_options = {
+            \ 'mkit': {},
+            \ 'katex': {},
+            \ 'uml': {},
+            \ 'maid': {},
+            \ 'disable_sync_scroll': 0,
+            \ 'sync_scroll_type': 'middle',
+            \ 'hide_yaml_meta': 1,
+            \ 'sequence_diagrams': {},
+            \ 'flowchart_diagrams': {},
+            \ 'content_editable': v:false,
+            \ 'disable_filename': 0
+            \ }
+
+        " 主题选项
+        let g:mkdp_theme = 'dark'           " 'dark' 或 'light'
+
+        " 文件路径
+        let g:mkdp_filetypes = ['markdown'] " 启用预览的文件类型
+        ```
+
+    🚀 基本使用
+
+    * 快捷键映射（推荐配置）
+
+        ```vim
+        " 正常模式快捷键
+        nmap <silent> <C-m> <Plug>MarkdownPreview        " 开启/刷新预览
+        nmap <silent> <C-s> <Plug>MarkdownPreviewStop    " 关闭预览
+        nmap <silent> <C-p> <Plug>MarkdownPreviewToggle  " 切换预览
+
+        " 或使用 leader 键
+        nmap <leader>mp <Plug>MarkdownPreview
+        nmap <leader>ms <Plug>MarkdownPreviewStop
+        nmap <leader>mt <Plug>MarkdownPreviewToggle
+
+        " 插入模式也可以映射
+        imap <C-m> <esc><Plug>MarkdownPreview<cr>a
+        ```
+
+    * 命令行命令
+
+        ```vim
+        :MarkdownPreview          " 启动预览
+        :MarkdownPreviewStop      " 停止预览
+        :MarkdownPreviewToggle    " 切换预览状态
+        ```
+
+    ⚙️ 高级配置
+
+    * 自定义浏览器
+
+        ```vim
+        " 使用 Chrome
+        let g:mkdp_browser = 'chrome'
+
+        " 或指定浏览器路径
+        let g:mkdp_browser = '/usr/bin/google-chrome-stable'
+
+        " 自定义打开函数（Linux示例）
+        let g:mkdp_browserfunc = 'OpenMarkdownPreview'
+        function! OpenMarkdownPreview(url)
+        silent exec "!xdg-open " . a:url
+        endfunction
+        ```
+
+    * 同步滚动配置
+
+        ```vim
+        " 同步滚动类型
+        " 'relative' - 相对位置同步
+        " 'middle'   - 光标在中间
+        " 'absolute' - 绝对位置同步
+        let g:mkdp_preview_options = {
+            \ 'sync_scroll_type': 'middle',
+            \ 'disable_sync_scroll': 0
+            \ }
+        ```
+
+    * 端口和地址配置
+
+        ```vim
+        " 指定端口（避免冲突）
+        let g:mkdp_port = '8080'
+
+        " 指定地址
+        let g:mkdp_host = '127.0.0.1'
+
+        " 允许外部访问（远程服务器用）
+        let g:mkdp_open_to_the_world = 1
+        let g:mkdp_open_ip = '0.0.0.0'  " 监听所有地址
+        ```
+
+    * 主题和样式
+
+        ```vim
+        " 主题设置
+        let g:mkdp_theme = 'dark'
+
+        " 自定义CSS
+        let g:mkdp_markdown_css = expand('~/.config/markdown.css')
+        let g:mkdp_highlight_css = expand('~/.config/highlight.css')
+
+        " 自动根据系统主题切换
+        function! SetMarkdownTheme()
+        if strftime('%H') < 18 && strftime('%H') > 6
+            let g:mkdp_theme = 'light'
+        else
+            let g:mkdp_theme = 'dark'
+        endif
+        endfunction
+        autocmd BufEnter *.md call SetMarkdownTheme()
+        ```
+
+    🔍 调试和问题排查
+
+    * 查看预览URL
+
+        ```vim
+        :echo g:mkdp_browserfunc
+        :echo g:mkdp_port
+        :echo g:mkdp_host
+        ```
+
+    * 检查进程
+
+        ```bash
+        # 查看预览服务器进程
+        ps aux | grep markdown
+        netstat -tlnp | grep 8080
+        ```
+
+    常见问题解决
+
+    * 预览不更新
+    
+        ```vim
+        " 设置实时刷新
+        let g:mkdp_refresh_slow = 0
+        ```
+
+    * 浏览器不打开
+
+        ```vim
+        " 明确指定浏览器
+        let g:mkdp_browser = 'firefox'
+        ```
+
+    * 端口被占用
+        
+        ```vim
+        " 更换端口
+        let g:mkdp_port = '8888'
+        ```
+
+    * 数学公式不显示
+
+        ```vim
+        " 确保启用katex
+        let g:mkdp_preview_options = {
+            \ 'katex': {},
+            \ }
+        ```
+
+    🎨 实用技巧
+
+    * 自动模式
+
+        ```vim
+        " 自动开启预览（进入markdown文件时）
+        autocmd FileType markdown let g:mkdp_auto_start = 1
+
+        " 离开时自动关闭
+        autocmd BufLeave *.md :MarkdownPreviewStop
+        ```
+
+    * 与文件树插件配合
+
+        ```vim
+        " 使用NERDTree时
+        autocmd BufWinEnter *.md if &ft == 'markdown' | NERDTreeClose | endif
+        autocmd BufWinLeave *.md if &ft == 'markdown' | NERDTreeToggle | endif
+        ```
+
+    * 性能优化
+
+        ```vim
+        " 大文件时禁用实时刷新
+        autocmd BufReadPost *.md 
+            \ if line('$') > 1000 |
+            \   let g:mkdp_refresh_slow = 1 |
+            \ endif
+        ```
+
+    * 多标签页支持
+
+        ```vim
+        " 每个markdown文件独立预览
+        let g:mkdp_page_title = '「${name}」'
+        ```
+
+    📋 完整配置示例
+
+    ```vim
+    " ~/.vimrc 或 ~/.config/nvim/init.vim
+    call plug#begin()
+    Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+    call plug#end()
+
+    " Markdown预览配置
+    let g:mkdp_auto_start = 0
+    let g:mkdp_auto_close = 1
+    let g:mkdp_refresh_slow = 0
+    let g:mkdp_command_for_global = 0
+    let g:mkdp_browser = 'chrome'
+    let g:mkdp_theme = 'dark'
+    let g:mkdp_port = '8888'
+
+    " 快捷键
+    nmap <leader>mp <Plug>MarkdownPreview
+    nmap <leader>ms <Plug>MarkdownPreviewStop
+    nmap <leader>mt <Plug>MarkdownPreviewToggle
+
+    " 自动命令
+    autocmd FileType markdown nnoremap <buffer> <leader>p :MarkdownPreview<CR>
+    autocmd FileType markdown nnoremap <buffer> <leader>s :MarkdownPreviewStop<CR>
+    ```
+
+    🎪 工作流程
+
+    * 编辑文件：用Vim编辑 .md 文件
+
+    * 开启预览：按 <leader>mp 或 :MarkdownPreview
+
+    * 实时编辑：编辑内容，预览自动更新
+
+    * 关闭预览：按 <leader>ms 或关闭Vim时自动关闭
+
+    * 切换主题：修改 g:mkdp_theme 或使用CSS自定义
 
 * vim-plug
 
