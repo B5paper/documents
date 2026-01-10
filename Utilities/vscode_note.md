@@ -2,6 +2,33 @@
 
 ## cache
 
+* remote host 无法联网时，vscode 安装 remote ssh 插件的解决方案
+
+    目前 vscode 版本在安装 remote ssh 插件时，会
+
+    1. 在 remote host 上下载 cli 文件
+
+        cli 文件本质是一个小型的 bootstrap 程序。
+
+        此时可以在本地的 vscode 设置里，找到`Remote.SSH: Local Server Download`，将其改为`always`，表示在本地下载完 cli 文件后，通过 ssh 上传到 remote host
+
+    2. remote host 运行 cli 组件的功能，开始下载 vscode server 文件
+
+        vscode server 才是真正具有 remote ssh 功能的文件。
+
+        此时可以在本地的 vscode 设置里，找到`Remote.SSH: Http Proxy`和`Remote.SSH: Https Proxy`，点击`Edit in settings.json`后，将其配置为
+
+        ```json
+        "remote.SSH.httpsProxy": "http://127.0.0.1:8823",
+        "remote.SSH.httpProxy": "http://127.0.0.1:8823"
+        ```
+
+        然后在本地启动 v2ray `http-to-freedom.json`，监听 8823 端口。
+
+        再在本地执行`ssh -NR 8823:127.0.0.1:8823 remote_host`打开远程隧道即可。
+
+        这时 vscode 会使用这个代理下载 vscode server。
+
 * 简述 vscode 中 Snippets，macros 的用法
 
     **VSCode Snippets（代码片段）**

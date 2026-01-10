@@ -3430,6 +3430,26 @@ resources:
 
 ### tasks
 
+* [ ] 完成 01_load_topo
+
+* [ ] 完成 02_get_topo.cpp
+
+* [ ] 完成 04_compute_path.cpp
+
+* [ ] 在 data 目录中构建 load topo 对应的几种情况
+
+    1. 1 cpu + 2 sipu + 2 usipu per sipu
+
+    2. 2 cpu + 2 sipu + 2 usipu per sipu
+
+    3. 2 cpu + 4 sipu + 1 usipu per sipu
+
+    4. 1 cpu + 2 sipu + 2 usipu per sipu + socket net
+
+    5. 1 cpu + 2 sipu + 2 usipu per sipu + rdma net
+
+* [ ] 整理 xml.cpp，添加前缀
+
 * [ ] `ncclSocketStateConnectPolling` socket 也支持 polling 吗？
 
 * [ ] `cudaThreadExchangeStreamCaptureMode()`
@@ -6612,6 +6632,16 @@ resources:
 * [ ] java 是否有 gui 的库？
 
 ## 其他 Miscellaneous
+
+* [new] `\mbox{}`
+
+* [new] 模运算一般用 \bmod 或 \pmod{}
+
+    ```latex
+    \[
+    a \bmod b, \quad n \equiv 1 \pmod{2}
+    \]
+    ```
 
 * [new] 调研 imagemagick 
 

@@ -2,6 +2,118 @@
 
 ## cached
 
+* python 如何删除一个文件？
+
+    在 Python 中删除文件有多种方法，以下是几种常用的方式：
+
+    1. 使用 os.remove() - 最常用的方法
+
+        ```python
+        import os
+
+        # 删除文件
+        file_path = "example.txt"
+        os.remove(file_path)
+        print(f"文件 {file_path} 已删除")
+        ```
+
+    2. 使用 os.unlink() - 与 os.remove() 功能相同
+
+        ```python
+        import os
+
+        file_path = "example.txt"
+        os.unlink(file_path)
+        print(f"文件 {file_path} 已删除")
+        ```
+
+    3. 使用 pathlib.Path.unlink() (Python 3.4+)
+
+        ```python
+        from pathlib import Path
+
+        # 删除文件
+        file_path = Path("example.txt")
+        file_path.unlink()
+        print(f"文件 {file_path} 已删除")
+        ```
+
+    4. 完整的示例代码（包含错误处理）
+
+        ```python
+        import os
+        from pathlib import Path
+
+        def delete_file_safe(file_path):
+            """安全删除文件，包含错误处理"""
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"文件 {file_path} 删除成功")
+                else:
+                    print(f"文件 {file_path} 不存在")
+            except PermissionError:
+                print(f"权限错误：无法删除 {file_path}")
+            except OSError as e:
+                print(f"系统错误：无法删除 {file_path} - {e}")
+
+        # 使用示例
+        delete_file_safe("example.txt")
+        ```
+
+    5. 删除前检查文件是否存在
+
+        ```python
+        import os
+
+        file_path = "example.txt"
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"文件 {file_path} 已删除")
+        else:
+            print(f"文件 {file_path} 不存在")
+            ```
+
+    6. 使用 pathlib 的完整示例
+
+        ```python
+        from pathlib import Path
+
+        file_path = Path("example.txt")
+
+        if file_path.exists():
+            file_path.unlink()
+            print(f"文件 {file_path} 已删除")
+        else:
+            print(f"文件 {file_path} 不存在")
+         ```
+
+    注意事项：
+
+    * 权限问题：确保程序有删除文件的权限
+
+    * 文件占用：如果文件正在被其他程序使用，删除可能会失败
+
+    * 路径问题：使用绝对路径或确保相对路径正确
+
+    * 删除不可恢复：文件删除后通常无法恢复
+
+    推荐做法：
+
+    对于现代 Python 代码，推荐使用 pathlib 方法，因为它提供了更面向对象和可读性更好的 API。
+
+    ```python
+    from pathlib import Path
+
+    def delete_file(file_path):
+        path = Path(file_path)
+        if path.is_file():  # 确保是文件而不是目录
+            path.unlink()
+            return True
+        return False
+        ```
+
 * Python Type Hint
 
     Python Type Hint（类型提示）是在 Python 3.5+ 中引入的静态类型检查辅助工具，它允许开发者为变量、函数参数和返回值等标注期望的类型，以提高代码的可读性、可维护性，并借助工具（如 mypy）进行静态类型检查。

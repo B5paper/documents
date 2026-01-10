@@ -2,6 +2,162 @@
 
 ## cache
 
+* CUDA Graph
+
+    CUDA Graph 的作用
+
+    CUDA Graph 是 CUDA 中的一个重要特性，主要用于减少 CPU 与 GPU 间的交互开销，通过批量提交执行任务来提高 GPU 的利用效率。
+
+    主要作用：
+
+    * 减少启动开销 - 将多个内核启动和内存操作合并为单个操作
+
+    * 降低 CPU 负载 - 减少驱动程序调用次数
+
+    * 提高可预测性 - 执行时间更稳定，适合实时应用
+
+    * 优化小内核 - 特别适合大量小内核连续执行的场景
+
+    CUDA Graph 的基本用法
+
+    1. 创建和执行的典型流程
+
+        ```cpp
+        #include <cuda_runtime.h>
+
+        // 1. 创建图
+        cudaGraph_t graph;
+        cudaGraphExec_t graphExec;
+
+        cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
+        // 在此流中执行常规 CUDA 操作（内核启动、内存拷贝等）
+        kernel1<<<grid, block, 0, stream>>>(...);
+        kernel2<<<grid, block, 0, stream>>>(...);
+        cudaMemcpyAsync(..., stream);
+
+        // 2. 结束捕获，创建图
+        cudaStreamEndCapture(stream, &graph);
+
+        // 3. 实例化图（编译优化）
+        cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0);
+
+        // 4. 执行图（可重复执行）
+        cudaGraphLaunch(graphExec, stream);
+        cudaStreamSynchronize(stream);
+        ```
+
+    2. 更新图的参数（动态更新）
+
+        ```cpp
+        // 创建带更新节点的图
+        cudaGraphNode_t kernelNode;
+        cudaKernelNodeParams kernelParams = {0};
+
+        // 设置初始参数
+        kernelParams.func = (void*)myKernel;
+        kernelParams.gridDim = dim3(100, 1, 1);
+        kernelParams.blockDim = dim3(256, 1, 1);
+        kernelParams.kernelParams = (void**)args;
+
+        cudaGraphAddKernelNode(&kernelNode, graph, NULL, 0, &kernelParams);
+
+        // 实例化
+        cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0);
+
+        // 执行
+        cudaGraphLaunch(graphExec, stream);
+
+        // 更新参数并重新执行
+        kernelParams.gridDim = dim3(200, 1, 1);  // 修改参数
+        cudaGraphExecKernelNodeSetParams(graphExec, kernelNode, &kernelParams);
+        cudaGraphLaunch(graphExec, stream);  // 使用新参数执行
+        ```
+
+    3. 完整示例代码
+
+        ```cpp
+        // 简单向量加法示例
+        __global__ void vectorAdd(float* A, float* B, float* C, int N) {
+            int idx = blockIdx.x * blockDim.x + threadIdx.x;
+            if (idx < N) {
+                C[idx] = A[idx] + B[idx];
+            }
+        }
+
+        void setupCUDAgraph() {
+            int N = 1000000;
+            float *d_A, *d_B, *d_C;
+            
+            // 分配设备内存
+            cudaMalloc(&d_A, N * sizeof(float));
+            cudaMalloc(&d_B, N * sizeof(float));
+            cudaMalloc(&d_C, N * sizeof(float));
+            
+            cudaStream_t stream;
+            cudaStreamCreate(&stream);
+            
+            // 捕获操作序列创建图
+            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
+            
+            // 执行一系列操作
+            dim3 block(256);
+            dim3 grid((N + block.x - 1) / block.x);
+            vectorAdd<<<grid, block, 0, stream>>>(d_A, d_B, d_C, N);
+            vectorAdd<<<grid, block, 0, stream>>>(d_C, d_B, d_C, N);  // 另一个操作
+            
+            cudaStreamEndCapture(stream, &graph);
+            
+            // 实例化和执行
+            cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0);
+            
+            // 多次执行图（比单独执行两个内核高效）
+            for (int i = 0; i < 1000; i++) {
+                cudaGraphLaunch(graphExec, stream);
+                cudaStreamSynchronize(stream);
+            }
+            
+            // 清理
+            cudaGraphDestroy(graph);
+            cudaGraphExecDestroy(graphExec);
+            cudaStreamDestroy(stream);
+            cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
+        }
+        ```
+
+    适用场景和注意事项
+
+    适用场景：
+
+    * 频繁执行相同操作序列 - 如深度学习推理
+
+    * 小内核密集应用 - 内核启动开销占比大的情况
+
+    * 实时应用 - 需要稳定执行时间的场景
+
+    * 流水线应用 - 多个阶段固定执行顺序
+
+    注意事项：
+
+    * 图内不能有 CPU-GPU 同步（如 cudaStreamSynchronize）
+
+    * 内存操作需使用异步版本（如 cudaMemcpyAsync）
+
+    * 图执行期间参数修改需要显式更新
+
+    * 不适合动态执行路径变化大的情况
+
+    * 首次创建和实例化有一定开销
+
+    性能对比
+
+    ```cpp
+    // 传统方式 vs Graph方式
+    传统: CPU → [启动内核1] → GPU执行 → CPU → [启动内核2] → GPU执行
+    Graph: CPU → [启动整个图] → GPU执行所有操作
+    ```
+
+    通过使用 CUDA Graph，可以将多个内核启动的延迟合并，显著减少总执行时间，特别在需要重复执行相同操作序列时效果显著。
+
 * 一个 SM 中有多个 warp，SM 里有调度器，可以编排 warp 处于计算状态还是处于访问内存状态，从而优化访存延迟
 
 * cuda 为什么要引入 threadsPerBlock，而不是使用 warpsPerBlock？
