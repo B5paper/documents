@@ -36,6 +36,14 @@
 
 ## cache
 
+* exp 探索方式
+
+    1. 基于顺序的逐行解释
+
+    2. 基于兴趣的随机关注点解释
+
+* exp 关注: 关键变量的值，关键函数的含义，自然的提问，新信息是否能解答前面的问题，新信息是否与旧信息有联系
+
 * 这顶投降帽是我的，你戴着它来投降，其实是我投降我自己
 
     做梦梦到了这个场景和这句台词，但是问了 AI 和百度，现有的电影并没有这句话，看来是梦里原创的。
@@ -437,6 +445,10 @@ english words 由 { } reorg: english words 进化而来。
 
 ### cache
 
+* 贝叶斯网引论下载到`Documents/Projects/book`目录里了。还下载了些其他书，有时间了看看
+
+* 贝叶斯网的笔记不应该太简洁，应该在概念下给出大量 example，给出注释，给出引申的猜想。
+
 * java 的 note 大部分已经空间化了，没有什么需要 reorg 的
 
 * 清理了 latex 和 opengl 的笔记，但是这两份笔记只有几行，并没有什么需要整理的
@@ -494,12 +506,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] CUDA Core Compute Libraries (CCCL)
 
     <https://github.com/nvidia/cccl>
-
-* [v] 调研 thrust
-
-* [v] process 1 url 01.03
-
-    <https://www.baeldung.com/linux/single-quote-within-single-quoted-string>
 
 * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
 
@@ -559,10 +565,6 @@ english words 由 { } reorg: english words 进化而来。
 
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
 
-    deps:
-
-    * [v] 修正 u0 与 u1 不匹配的 bug
-
     feedback:
 
     * [ ] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
@@ -575,21 +577,13 @@ english words 由 { } reorg: english words 进化而来。
 
         并且结果不能记录到 qa 中，必须记录到 record 中，每次列举过去 180 天的答题情况。
 
-* [v] 在 10 个 epoch 内拟合一条 sin 曲线
-
 * [ ] 将 project pool 中常用到的 pdf 等 resources 打包成 zip，发送到邮箱里
 
-* [ ] 为 stochastic exam 增加`--check <qa_file>`功能，检查是否每个 unit 都有 idx, id。
+* [v] 为 stochastic exam 增加`--check <qa_file>`功能，检查是否每个 unit 都有 idx, id。
 
 * [ ] 找到贝叶斯网引论 pdf，上传到邮箱里
 
 * [v] reorg: documents 30 mins
-
-    feedback:
-
-    1. 贝叶斯网引论下载到`Documents/Projects/book`目录里了。还下载了些其他书，有时间了看看
-
-    2. 贝叶斯网的笔记不应该太简洁，应该在概念下给出大量 example，给出注释，给出引申的猜想。
 
 * [ ] powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
 
@@ -650,23 +644,11 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研 python 处理 csv 文件
 
-* [v] 调研 python type hint
-
 * [ ] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
-* [v] 把 vim 加入到每日 qa 中
-
 * [ ] sync bash
-
-* [v] Python命令行参数处理包介绍 11.23, 12.01, 01.01
-
-    15:05 ~ 15:32
-
-    * 目前看到
-
-        > click-with-win32
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
 
@@ -710,7 +692,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
-* [ ] 调研 exam 时显示 unit 的 id 和 idx
+* [v] 调研 exam 时显示 unit 的 id 和 idx
 
 * [v] qa: 4 units 12.18
 
@@ -892,120 +874,96 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] process 1 tab 01.06
 
-    feedback:
+* [ ] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
 
-    * [ ] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
+* [ ] vim 替换中的`/normal I*`
 
-    * [ ] vim 替换中的`/normal I*`
+    可以进入 normal 模式吗？
 
-        可以进入 normal 模式吗？
+* [ ] 调研以下命令
 
-    * [ ] 调研以下命令
+    ```vim
+    " 在Visual模式下添加列表标记
+    vnoremap <leader>l :s/^\s*\zs\S.*$/* &/<CR>
 
-        ```vim
-        " 在Visual模式下添加列表标记
-        vnoremap <leader>l :s/^\s*\zs\S.*$/* &/<CR>
+    " 或者更通用的版本
+    vnoremap <leader>l :g/^\s*\S/normal I* <CR>
+    ```
 
-        " 或者更通用的版本
-        vnoremap <leader>l :g/^\s*\S/normal I* <CR>
-        ```
+    为什么上一个命令`<cr>`前有`/`，而下面的命令没有？
 
-        为什么上一个命令`<cr>`前有`/`，而下面的命令没有？
+    为什么下面的命令进入了 normal 模式后，后面又跟了一个`<cr>`？ 此时 normal 模式是否和 `:` 命令模式冲突？`<cr>`匹配的命令是 normal 还是 `:`?
 
-        为什么下面的命令进入了 normal 模式后，后面又跟了一个`<cr>`？ 此时 normal 模式是否和 `:` 命令模式冲突？`<cr>`匹配的命令是 normal 还是 `:`?
+* [ ] `:'<,'>normal I* `
 
-    * [ ] `:'<,'>normal I* `
+* [ ] `match(line_content, '\S')`
 
-    * [ ] `match(line_content, '\S')`
+* [ ] `line_content[non_whitespace_pos:]`
 
-    * [ ] `line_content[non_whitespace_pos:]`
+* [ ] `setline(line_num, new_line)`
 
-    * [ ] `setline(line_num, new_line)`
+* [ ] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
 
-    * [ ] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
+* [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
 
-    * [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
+* [ ] `let [lnum1, lnum2] = [lnum2, lnum1]`
 
-    * [ ] `let [lnum1, lnum2] = [lnum2, lnum1]`
+* [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
 
-    * [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
+* [ ] `let save_reg = @"`, `let @" = save_reg`
 
-    * [ ] `let save_reg = @"`, `let @" = save_reg`
+* [ ] `let start_line = line("'<")`
 
-    * [ ] `let start_line = line("'<")`
+* [ ] vim 中列表的用法`let lines = []`
 
-    * [ ] vim 中列表的用法`let lines = []`
-
-    * [ ] `add(lines, line)`
+* [ ] `add(lines, line)`
 
 * [v] process 1 tab 01.06
 
-    feedback:
+* [ ] vim `s` 命令与`c`命令
 
-    * [ ] vim `s` 命令与`c`命令
-    
-        s```<C-r>"``` 
+    s```<C-r>"``` 
 
-        映射：
+    映射：
 
-        vnoremap <leader>` c```<C-r>0```<Esc>
+    vnoremap <leader>` c```<C-r>0```<Esc>
 
-    * [ ] vim `I` 命令与`A`命令
+* [ ] vim `I` 命令与`A`命令
 
-        ```vim
-        qq
-        I```<Esc>
-        A```<Esc>
-        q
-        ```
-
-        `:'<,'>normal @q`或`:'<,'>norm @q`
-
-    * [ ] vim 命令
-
-        :'<,'>s/.*/```&```/
-
-        解释：
-
-            '<,'>：表示选中的范围
-
-            s/.*/```&```/：将整行替换为三个反引号 + 原内容 + 三个反引号
-
-            & 表示匹配到的整个文本
-
-    * [ ] 调研 vim-surround 插件
-
-        <https://github.com/tpope/vim-surround>
-
-        安装插件后
-
-        选中文本，输入：
-        
-        ```vim
-        S```
-        ```
-
-        就会自动在选中文本两侧添加三个反引号
-
-* [v] 调研 git config 设置别名
-
-    ```bash
-    # 设置默认编辑器为VS Code
-    git config --global core.editor "code --wait"
-
-    # 设置别名
-    git config --global alias.co checkout
-    git config --global alias.br branch
-    git config --global alias.ci commit
-    git config --global alias.st status
-
-    # 启用颜色输出
-    git config --global color.ui auto
+    ```vim
+    qq
+    I```<Esc>
+    A```<Esc>
+    q
     ```
 
-    及其他的 git config 配置选项。
+    `:'<,'>normal @q`或`:'<,'>norm @q`
 
-* [v] vim `:split`
+* [ ] vim 命令
+
+    :'<,'>s/.*/```&```/
+
+    解释：
+
+        '<,'>：表示选中的范围
+
+        s/.*/```&```/：将整行替换为三个反引号 + 原内容 + 三个反引号
+
+        & 表示匹配到的整个文本
+
+* [ ] 调研 vim-surround 插件
+
+    <https://github.com/tpope/vim-surround>
+
+    安装插件后
+
+    选中文本，输入：
+    
+    ```vim
+    S```
+    ```
+
+    就会自动在选中文本两侧添加三个反引号
 
 * [ ] `git submodule update --init --progress`
 
@@ -1118,86 +1076,6 @@ english words 由 { } reorg: english words 进化而来。
 
     # 查看提交历史中是否有 .gitmodules
     git log --oneline -- .gitmodules
-    ```
-
-* [ ] 调研 vim-unimpaired
-
-    提供 [<Space> 和 ]<Space> 分别在上方/下方插入空行
-
-* [ ] 调研 vim-addon-mw-utils
-
-* [ ] 调研 vim 一次性添加多行
-
-    ```vim
-    " 添加3个空行在下方
-    :put =repeat([\"\"], 3)<CR>
-
-    " 或使用函数
-    function! AddLinesBelow(count)
-        for i in range(a:count)
-            put! ''
-        endfor
-    endfunction
-    :call AddLinesBelow(3)
-    ```
-
-* [ ] 调研 vim 添加行的映射
-
-    ```vim
-    " 快速插入空行（保持普通模式）
-    nnoremap [<Space> :<C-u>put! =repeat([''], v:count1)<CR>
-    nnoremap ]<Space> :<C-u>put =repeat([''], v:count1)<CR>
-
-    " 或者更简单的映射
-    nnoremap <silent> go :<C-u>put =''<CR>
-    nnoremap <silent> gO :<C-u>put! =''<CR>
-    ```
-
-    这样你就可以：
-
-    * `3]<Space>` - 在下方插入3个空行
-
-    * `2[<Space>` - 在上方插入2个空行
-
-    * `go` - 在下方插入一个空行
-
-    * `gO` - 在上方插入一个空行
-
-* [ ] 调研 vim 用法
-
-    ```vim
-    nnoremap ]w :call search('^\s*\S', 'W')<CR>
-    ```
-
-* [asso] 调研插件`vim-sneak'`
-
-    ```vim
-    " 使用插件如 vim-sneak
-    Plug 'justinmk/vim-sneak'
-
-    " 搜索上一个 {
-    s{  
-    ```
-
-* [ ] 调研 vim `?`搜索
-
-    `?{           " 搜索上一个 {`
-
-* [asso] 调研下面这段 vim 代码
-
-    ```vim
-    " 使用 coc.nvim 或其他 LSP 的函数跳转
-    nnoremap [[ :call CocAction('jumpDefinition', 'prev')<CR>
-    ```
-
-* [ ] 调研 vim `gd / gD 跳转到局部/全局定义`跳转
-
-* [ ] 调研 vim masks
-
-    ```vim
-    ma                   " 在当前函数打标记 a
-    // 光标移到下面
-    'a                   " 跳回标记 a
     ```
 
 * [ ] 使用 ncat 进行 ssh 的 http 代理
@@ -1961,26 +1839,6 @@ english words 由 { } reorg: english words 进化而来。
     chmod 600 ~/.ssh/proxy_auth # 非常重要！确保只有你能读这个文件
     ```
 
-* [asso] vim `set smarttab`
-
-    功能是否为 让退格键一次删除 4 个空格？
-
-    如果是，那么这个功能是否和 softtabstop 冲突了？
-
-* [asso] vim `s`命令：替换并插入
-
-* [asso] vim :normal 命令
-
-    ```vim
-    :normal i 
-    ```
-
-    （注意最后的空格）
-
-* [asso] vim 的启动参数
-
-    `vim -n "set nobackup nowritebackup noundofile" file.txt`
-
 * [asso] 调研 Winget
 
 * [asso] 调研 Chocolatey
@@ -1989,26 +1847,17 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] SourceTree
 
-* [asso] vim `noremap!`
-
-* [asso] 调研 vim 命令
-
-    ```vim
-    " 修复终端退格键映射
-    set backspace=indent,eol,start
-    ```
-
 ## Matlab
 
 ### tasks
 
 * [new] matlab `saveas()`
 
-* [new] 调研 matlab `pause(1);`函数
+* [ ] 调研 matlab `pause(1);`函数
 
-* [new] 调研 matlab `norm()`函数
+* [ ] 调研 matlab `norm()`函数
 
-* [new] matlab `min()`, `max()`
+* [ ] matlab `min()`, `max()`
 
 * [new] matlab `dir()`
 
@@ -2024,7 +1873,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [new] matlab `fread()`, `fopen()`, `fclose()`
 
-* [new] matlab `reshape()`
+* [ ] matlab `reshape()`
 
 * [ ] 调研 matlab 命令
 
@@ -2083,8 +1932,6 @@ english words 由 { } reorg: english words 进化而来。
     myFunc = createMultiReturnFunc();
     [val1, val2, val3] = myFunc(4);  % 16, 64, 2
     ```
-
-* [v] matlab `a = {x, y, z};`
 
 * [ ] matlab `a = [x, y, ]`
 
@@ -6349,6 +6196,115 @@ resources:
 ### cache
 
 ### tasks
+
+* [asso] vim `noremap!`
+
+* [asso] 调研 vim 命令
+
+    ```vim
+    " 修复终端退格键映射
+    set backspace=indent,eol,start
+    ```
+
+* [asso] vim `set smarttab`
+
+    功能是否为 让退格键一次删除 4 个空格？
+
+    如果是，那么这个功能是否和 softtabstop 冲突了？
+
+* [asso] vim `s`命令：替换并插入
+
+* [asso] vim :normal 命令
+
+    ```vim
+    :normal i 
+    ```
+
+    （注意最后的空格）
+
+* [asso] vim 的启动参数
+
+    `vim -n "set nobackup nowritebackup noundofile" file.txt`
+
+* [ ] 调研 vim-unimpaired
+
+    提供 [<Space> 和 ]<Space> 分别在上方/下方插入空行
+
+* [ ] 调研 vim-addon-mw-utils
+
+* [ ] 调研 vim 一次性添加多行
+
+    ```vim
+    " 添加3个空行在下方
+    :put =repeat([\"\"], 3)<CR>
+
+    " 或使用函数
+    function! AddLinesBelow(count)
+        for i in range(a:count)
+            put! ''
+        endfor
+    endfunction
+    :call AddLinesBelow(3)
+    ```
+
+* [ ] 调研 vim 添加行的映射
+
+    ```vim
+    " 快速插入空行（保持普通模式）
+    nnoremap [<Space> :<C-u>put! =repeat([''], v:count1)<CR>
+    nnoremap ]<Space> :<C-u>put =repeat([''], v:count1)<CR>
+
+    " 或者更简单的映射
+    nnoremap <silent> go :<C-u>put =''<CR>
+    nnoremap <silent> gO :<C-u>put! =''<CR>
+    ```
+
+    这样你就可以：
+
+    * `3]<Space>` - 在下方插入3个空行
+
+    * `2[<Space>` - 在上方插入2个空行
+
+    * `go` - 在下方插入一个空行
+
+    * `gO` - 在上方插入一个空行
+
+* [ ] 调研 vim 用法
+
+    ```vim
+    nnoremap ]w :call search('^\s*\S', 'W')<CR>
+    ```
+
+* [asso] 调研插件`vim-sneak'`
+
+    ```vim
+    " 使用插件如 vim-sneak
+    Plug 'justinmk/vim-sneak'
+
+    " 搜索上一个 {
+    s{  
+    ```
+
+* [ ] 调研 vim `?`搜索
+
+    `?{           " 搜索上一个 {`
+
+* [asso] 调研下面这段 vim 代码
+
+    ```vim
+    " 使用 coc.nvim 或其他 LSP 的函数跳转
+    nnoremap [[ :call CocAction('jumpDefinition', 'prev')<CR>
+    ```
+
+* [ ] 调研 vim `gd / gD 跳转到局部/全局定义`跳转
+
+* [ ] 调研 vim masks
+
+    ```vim
+    ma                   " 在当前函数打标记 a
+    // 光标移到下面
+    'a                   " 跳回标记 a
+    ```
 
 * [new] 调研 vim 测试文件
 

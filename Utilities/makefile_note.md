@@ -2,6 +2,131 @@
 
 ## cache
 
+* makefile 中，如何将 include_dirs = aaa bbb ccc 替换成 -Iaaa -Ibbb -Iccc
+
+    在 Makefile 中，有几种方法可以将 include_dirs = aaa bbb cccc 替换成 -Iaaa -Ibbb -Icccc：
+
+    方法1：使用 patsubst 函数（推荐）
+
+    ```makefile
+    include_dirs = aaa bbb cccc
+    INCLUDE_FLAGS = $(patsubst %,-I%,$(include_dirs))
+
+    all:
+        @echo "原始: $(include_dirs)"
+        @echo "转换后: $(INCLUDE_FLAGS)"
+    ```
+
+    方法2：使用 addprefix 函数
+
+    ```makefile
+    include_dirs = aaa bbb cccc
+    INCLUDE_FLAGS = $(addprefix -I,$(include_dirs))
+
+    all:
+        @echo "原始: $(include_dirs)"
+        @echo "转换后: $(INCLUDE_FLAGS)"
+    ```
+
+    方法3：使用 foreach 函数
+
+    ```makefile
+    include_dirs = aaa bbb cccc
+    INCLUDE_FLAGS = $(foreach dir,$(include_dirs),-I$(dir))
+
+    all:
+        @echo "原始: $(include_dirs)"
+        @echo "转换后: $(INCLUDE_FLAGS)"
+    ```
+
+    完整示例
+
+    ```makefile
+    # 定义包含目录
+    include_dirs = src/include libs/math libs/utils
+
+    # 方法1：使用 patsubst
+    INCLUDES1 = $(patsubst %,-I%,$(include_dirs))
+
+    # 方法2：使用 addprefix（更简洁）
+    INCLUDES2 = $(addprefix -I,$(include_dirs))
+
+    # 编译器设置
+    CC = gcc
+    CFLAGS = -Wall -O2 $(INCLUDES2)
+
+    # 示例目标文件
+    OBJS = main.o utils.o
+
+    all: program
+
+    program: $(OBJS)
+        $(CC) -o $@ $^ $(CFLAGS)
+
+    %.o: %.c
+        $(CC) -c $< $(CFLAGS)
+
+    clean:
+        rm -f *.o program
+
+    debug:
+        @echo "包含目录: $(include_dirs)"
+        @echo "编译选项: $(CFLAGS)"
+    ```
+
+    更复杂的处理（处理带空格的路径）
+
+    如果路径中包含空格，可以使用引号：
+
+    ```makefile
+    include_dirs = "path with spaces" "another path" standard_path
+    INCLUDE_FLAGS = $(addprefix -I,$(include_dirs))
+    ```
+
+    或者使用引号处理：
+
+    ```makefile
+    include_dirs = path\ with\ spaces another\ path standard_path
+    INCLUDE_FLAGS = $(addprefix -I,$(include_dirs))
+    ```
+
+    推荐
+
+    推荐使用方法2（addprefix），因为它最简洁明了：
+
+    * 代码可读性好
+
+    * 函数名语义清晰（添加前缀）
+
+    * 执行效率高
+
+    这样你就可以在编译命令中直接使用 $(INCLUDE_FLAGS) 了：
+
+    ```makefile
+    gcc $(CFLAGS) $(INCLUDE_FLAGS) -c source.c
+    ```
+
+* makefile 中可以对未定义的变量进行`+=`操作
+
+    ```makefile
+    aaa = hello
+    bbb = world
+    ccc += ${aaa}
+    ccc += ${bbb}
+
+    main:
+    	echo ${ccc}
+    ```
+
+    run: `make`
+
+    output:
+
+    ```
+    echo hello world
+    hello world
+    ```
+
 * makefile 中，`@echo "The process ID in Shell is: $$PPID"`，$ 给 Shell, Shell 看到的是 $PPID
 
     output:

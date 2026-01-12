@@ -2,6 +2,53 @@
 
 ## cache
 
+* gcc `-I<inc_path>`不会递归搜索`<inc_path>`下的子文件夹
+
+    自动生成包含路径的方法
+
+    方法1：使用 find 命令（shell 方式）
+
+    ```makefile
+    # 查找 include 目录下的所有子目录
+    INCLUDE_DIRS := $(shell find include -type d)
+    INCLUDE_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
+    ```
+
+    方法2：使用 wildcard 函数（Makefile 方式）
+
+    ```makefile
+    # 查找第一级子目录
+    INCLUDE_DIRS := include $(wildcard include/*/)
+    INCLUDE_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
+    ```
+
+    方法3：递归查找所有子目录
+
+    ```makefile
+    # 使用 find 查找所有目录（包括嵌套目录）
+    INCLUDE_DIRS := $(shell find include -type d 2>/dev/null || true)
+    INCLUDE_FLAGS = $(foreach dir,$(INCLUDE_DIRS),-I$(dir))
+    ```
+
+    注意事项
+
+    * 性能考虑
+
+        ```makefile
+        # 警告：如果目录树很大，这可能会影响性能
+        # INCLUDE_DIRS := $(shell find . -type d -name "include" -o -name "inc")
+
+        # 更好的做法：限制搜索深度
+        INCLUDE_DIRS := $(shell find . -maxdepth 4 -type d -name "include" -o -name "inc")
+        ```
+
+    * 避免重复
+
+        ```makefile
+        # 去重
+        INCLUDE_DIRS := $(sort $(INCLUDE_DIRS))
+        ```
+
 * `#pragma`
 
     #pragma 是一个预处理器指令，其核心作用是向特定的编译器发出特殊的命令或指示，从而控制编译器在编译过程中的特定行为。
