@@ -6,6 +6,644 @@
 
 ## cache
 
+* sortrows()
+
+    sortrows() 是 MATLAB 中用于按行排序的函数，特别适用于对矩阵、表格等数据进行排序。
+
+    一、函数原型
+
+    ```matlab
+    B = sortrows(A)
+    B = sortrows(A, column)
+    B = sortrows(A, column, direction)
+    B = sortrows(___, 'ComparisonMethod', method)
+    [B, index] = sortrows(___)
+    ```
+
+    二、主要作用
+
+    按行对数据进行排序，保持行的完整性。即整行数据作为一个整体进行排序。
+
+    三、基本用法
+
+    1. 默认排序（按第一列升序）
+
+        ```matlab
+        A = [3, 2, 1;
+             1, 3, 2;
+             2, 1, 3];
+
+        B = sortrows(A)
+        % 结果：
+        %   1   3   2
+        %   2   1   3
+        %   3   2   1
+        % 按第一列 [3;1;2] 升序排列
+        ```
+
+    2. 指定排序列
+
+        ```matlab
+        A = [3, 2, 1;
+             1, 3, 2;
+             2, 1, 3];
+
+        % 按第二列排序
+        B = sortrows(A, 2)
+        % 结果：
+        %   2   1   3  ← 第二列值最小（1）
+        %   3   2   1  ← 第二列值次之（2）
+        %   1   3   2  ← 第二列值最大（3）
+        ```
+
+    3. 多列排序
+
+        ```matlab
+        A = [3, 2, 1;
+             1, 2, 3;
+             2, 1, 3;
+             1, 2, 1];
+
+        % 先按第二列排序，再按第一列排序
+        B = sortrows(A, [2, 1])
+        % 结果：
+        %   2   1   3  ← 第二列=1
+        %   1   2   1  ← 第二列=2，第一列=1
+        %   1   2   3  ← 第二列=2，第一列=1（与前一行第二列相同）
+        %   3   2   1  ← 第二列=2，第一列=3
+        ```
+
+    4. 指定排序方向
+
+        ```matlab
+        A = [3, 2;
+             1, 4;
+             2, 1];
+
+        % 按第一列降序
+        B = sortrows(A, 1, 'descend')
+        % 结果：
+        %   3   2
+        %   2   1
+        %   1   4
+
+        % 不同列不同方向
+        B = sortrows(A, [1, 2], {'ascend', 'descend'})
+        ```
+
+    5. 获取排序索引
+
+        ```matlab
+        A = [3, 2, 1;
+             1, 3, 2;
+             2, 1, 3];
+
+        [B, idx] = sortrows(A, 1)
+        % idx = [2; 3; 1]  ← 原行号对应新位置
+        ```
+
+    6. 对表格（table）排序
+
+        ```matlab
+        % 创建表格
+        T = table([3;1;2], {'A';'C';'B'}, 'VariableNames', {'Num', 'Char'});
+
+        % 按 'Num' 列排序
+        T_sorted = sortrows(T, 'Num')
+
+        % 按多列排序
+        T_sorted = sortrows(T, {'Char', 'Num'})
+        ```
+
+    7. 对元胞数组排序
+
+        ```matlab
+        C = {3, 'A';
+             1, 'C';
+             2, 'B'};
+
+        % 按第一列数值排序
+        C_sorted = sortrows(C, 1)
+        ```
+
+    四、关键特性
+
+    * 稳定性：相等元素的相对顺序保持不变
+
+    * 方向控制：每列可单独指定升序（'ascend'）或降序（'descend'）
+
+    * 比较方法：可通过 'ComparisonMethod' 指定
+
+        * 'auto'（默认）：自动选择
+
+        * 'real'：按实部比较复数
+
+        * 'abs'：按模值比较复数
+
+    五、常见应用场景
+
+    ```matlab
+    % 1. 数据预处理：按时间排序
+    data = [2023, 1, 15, 100;
+            2023, 1, 10, 150;
+            2023, 1, 12, 120];
+    sorted_data = sortrows(data, [1, 2, 3]);  % 年、月、日排序
+
+    % 2. 多条件排序
+    students = {'张三', 85, 'A';
+                '李四', 90, 'B';
+                '王五', 85, 'A'};
+    % 先按成绩降序，再按姓名升序
+    sorted_students = sortrows(students, [2, 1], {'descend', 'ascend'});
+    ```
+
+    sortrows() 是 MATLAB 数据排序的常用工具，特别适合需要保持行数据完整性的排序需求。
+
+* arrayfun()
+
+    一、核心作用
+
+    将函数应用于数组中的每个元素，实现向量化操作，避免显式使用循环。
+
+    二、基本语法
+
+    ```matlab
+    B = arrayfun(func, A)
+    B = arrayfun(func, A1, ..., An)
+    [B1, ..., Bm] = arrayfun(func, ___)
+    ```
+
+    三、主要用途
+
+    1. 替代循环，简化代码
+
+        ```matlab
+        % 传统循环方式
+        A = 1:5;
+        result = zeros(size(A));
+        for i = 1:length(A)
+            result(i) = A(i)^2 + sin(A(i));
+        end
+
+        % 使用 arrayfun
+        result = arrayfun(@(x) x^2 + sin(x), A)
+        ```
+
+    2. 对数组每个元素应用复杂函数
+
+        ```matlab
+        A = [1, 2, 3; 4, 5, 6];
+
+        % 对每个元素计算
+        B = arrayfun(@(x) x^2 + 2*x + 1, A)
+        % 等效于：[1^2+2*1+1, 4, 9; 25, 36, 49]
+        ```
+
+    3. 处理多个输入数组
+
+        ```matlab
+        A = [1, 2, 3];
+        B = [4, 5, 6];
+
+        % 对每对元素操作
+        C = arrayfun(@(x, y) x*y + x + y, A, B)
+        % C = [1*4+1+4=9, 2*5+2+5=17, 3*6+3+6=27]
+        ```
+
+    4. 返回多个输出
+
+        ```matlab
+        A = [1, 2, 3, 4];
+
+        % 返回商和余数
+        [quotients, remainders] = arrayfun(@(x) deal(fix(x/2), mod(x,2)), A)
+        ```
+
+    5. 处理非数值数据（结合'UniformOutput', false）
+
+        ```matlab
+        A = [1, 3, 2, 4];
+
+        % 返回不同长度的输出（如重复字符串）
+        B = arrayfun(@(n) repmat('*', 1, n), A, 'UniformOutput', false)
+        % B = {'*', '***', '**', '****'}
+        ```
+
+    四、关键参数
+
+    1. 'UniformOutput'
+
+        * true（默认）：输出必须具有相同类型和大小
+
+        * false：允许输出为元胞数组，可处理不同类型/大小的输出
+
+        ```matlab
+        % UniformOutput = true（默认）
+        A = 1:4;
+        B = arrayfun(@(x) x*2, A)  % 返回数组: [2, 4, 6, 8]
+
+        % UniformOutput = false
+        B = arrayfun(@(x) 1:x, A, 'UniformOutput', false)
+        % B = {[1], [1,2], [1,2,3], [1,2,3,4]}
+        ```
+
+    2. 'ErrorHandler'
+
+        指定错误处理函数
+
+        ```matlab
+        A = [-2, -1, 0, 1, 2];
+
+        % 自定义错误处理
+        B = arrayfun(@sqrt, A, 'ErrorHandler', @(err, x) NaN)
+        % B = [NaN, NaN, 0, 1, 1.4142]
+        ```
+
+    五、与循环的对比
+
+    | 特性 | arrayfun() | for 循环 |
+    | - | - | - |
+    | 代码简洁性 | 高 | 低 |
+    | 可读性 | 函数式风格，直观 | 传统，详细 |
+    | 性能 | 通常接近循环，有时更快 | 稳定 |
+    | 调试难度 | 较高 | 较低 |
+    | 灵活性 | 中等 | 高 |
+
+    六、性能注意事项
+
+    * 并非总是比循环快
+
+        ```matlab
+        % 对于简单操作，向量化通常更快
+        A = 1:1e6;
+
+        % 方法1: arrayfun
+        tic
+        B1 = arrayfun(@(x) x^2, A);
+        toc
+
+        % 方法2: 向量化（最快）
+        tic
+        B2 = A.^2;
+        toc
+
+        % 方法3: 循环
+        tic
+        B3 = zeros(size(A));
+        for i = 1:length(A)
+            B3(i) = A(i)^2;
+        end
+        toc
+        ```
+
+    * 适用场景：
+
+        * 函数较复杂，难以向量化
+
+        * 需要代码简洁性和可读性
+
+        * 处理多个输入数组
+
+    七、实际应用示例
+
+    1. 批量处理文件
+
+        ```matlab
+        files = {'data1.mat', 'data2.mat', 'data3.mat'};
+        % 批量加载文件
+        data = arrayfun(@(f) load(f{1}), files, 'UniformOutput', false);
+        ```
+
+    2. 结构数组处理
+
+        ```matlab
+        students = struct('name', {'Alice', 'Bob', 'Charlie'}, ...
+                          'score', {85, 92, 78});
+
+        % 提取所有分数
+        scores = arrayfun(@(s) s.score, students)
+        ```
+
+    3. 条件处理
+
+        ```matlab
+        A = [-3, 0, 2, -1, 4];
+
+        % 对正数开方，负数返回NaN
+        B = arrayfun(@(x) ifelse(x>0, sqrt(x), NaN), A)
+        ```
+
+    八、相关函数对比
+
+    | 函数 | 作用 | 区别 |
+    | - | - | - |
+    | arrayfun | 对数组元素应用函数 | 通用，可处理多种情况 |
+    | cellfun | 对元胞数组元素应用函数 | 专门用于元胞数组 |
+    | structfun | 对结构体字段应用函数 | 专门用于结构体 |
+    | spfun | 对稀疏矩阵应用函数 | 保持稀疏性 |
+
+    总结
+
+    arrayfun() 是 MATLAB 中实现函数式编程的重要工具，主要优势在于：
+
+    * 代码简洁：一行替代多行循环
+
+    * 可读性强：明确表达"对每个元素应用函数"
+
+    * 灵活性高：支持多种输出格式和错误处理
+
+    最佳实践：在简单向量化操作不可行，且代码可读性比极致性能更重要时使用。
+
+* unique()
+
+    一、核心作用
+
+    找出数组中的唯一值（去除重复元素），并可返回相关索引信息。
+
+    二、基本语法
+
+    ```matlab
+    C = unique(A)
+    C = unique(A, setOrder)
+    [C, ia, ic] = unique(___)
+    [C, ia, ic] = unique(A, occurrence)
+    ```
+
+    三、主要功能
+
+    1. 基本去重
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+
+        C = unique(A)
+        % 结果：C = [1, 2, 3, 4]
+        % 升序排列，去除了重复的1,2,3
+        ```
+
+    2. 保持原顺序
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+
+        C = unique(A, 'stable')
+        % 结果：C = [3, 1, 2, 4]
+        % 保持首次出现的顺序，不排序
+        ```
+
+    3. 返回相关索引
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+
+        [C, ia, ic] = unique(A)
+        % C = [1, 2, 3, 4]  (唯一值，升序)
+        % ia = [2; 3; 1; 6] (C中元素在A中首次出现的位置)
+        % ic = [3; 1; 2; 3; 1; 4; 2] (A中每个元素在C中的索引)
+
+        % 验证：
+        % A(ia) = [1; 2; 3; 4] 等于 C
+        % C(ic) = [3; 1; 2; 3; 1; 4; 2] 等于 A
+        ```
+
+    4. 处理行唯一性
+
+        ```matlab
+        A = [1, 2, 3;
+             2, 3, 4;
+             1, 2, 3;  % 重复行
+             3, 4, 5];
+
+        % 默认按列处理
+        C = unique(A)  % 返回所有唯一元素：[1;2;3;4;5]
+
+        % 按行处理
+        C = unique(A, 'rows')
+        % 结果：
+        %   1   2   3
+        %   2   3   4
+        %   3   4   5
+        % 去除了重复的第三行
+        ```
+
+    四、参数详解
+
+    1. setOrder 排序顺序
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+
+        % 'sorted' - 默认，升序排列
+        C1 = unique(A, 'sorted')      % [1, 2, 3, 4]
+
+        % 'stable' - 保持原顺序
+        C2 = unique(A, 'stable')      % [3, 1, 2, 4]
+        ```
+
+    2. occurrence 出现选项
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+
+        % 'first' - 默认，返回首次出现的索引
+        [C, ia] = unique(A, 'stable', 'first')
+        % ia = [1; 2; 3; 6] (对应值3,1,2,4首次出现的位置)
+
+        % 'last' - 返回最后出现的索引
+        [C, ia] = unique(A, 'stable', 'last')
+        % ia = [4; 7; 3; 6] (对应值3,1,2,4最后一次出现的位置)
+        ```
+
+    3. 'legacy' 兼容模式
+
+        ```matlab
+        % 用于保持与R2012b之前版本的兼容性
+        C = unique(A, 'legacy')
+        ```
+
+    五、支持的数据类型
+
+    1. 数值数组
+
+        ```matlab
+        A = [1.2, 3.4, 1.2, 5.6];
+        C = unique(A)  % [1.2, 3.4, 5.6]
+        ```
+
+    2. 字符数组和字符串
+
+        ```matlab
+        % 字符数组
+        str = ['a', 'b', 'a', 'c', 'b'];
+        C = unique(str)  % 'abc'
+
+        % 字符串数组
+        strArray = ["apple", "banana", "apple", "cherry"];
+        C = unique(strArray)  % ["apple", "banana", "cherry"]
+        ```
+
+    3. 元胞数组
+
+        ```matlab
+        C = {'apple', 'banana', 'apple', 'cherry'};
+        U = unique(C)  % {'apple', 'banana', 'cherry'}
+        ```
+
+    4. 分类数组
+
+        ```matlab
+        categories = categorical({'small', 'large', 'medium', 'small'});
+        C = unique(categories)  % [large, medium, small]
+        ```
+
+    5. 表格
+
+        ```matlab
+        T = table([1;2;1;3], {'A';'B';'A';'C'}, 'VariableNames', {'ID', 'Name'});
+        T_unique = unique(T)  % 去除重复行
+        ```
+
+    六、高级用法
+
+    1. 多输出应用 - 重建原始数组
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+        [C, ia, ic] = unique(A, 'stable');
+
+        % 用索引重建A
+        A_reconstructed = C(ic)  % 等于原数组A
+        ```
+
+    2. 统计元素出现次数
+
+        ```matlab
+        A = [3, 1, 2, 3, 1, 4, 2];
+        [C, ~, ic] = unique(A);
+
+        % 统计每个唯一值的出现次数
+        counts = accumarray(ic, 1);
+        % 结果：counts = [2; 2; 2; 1] 对应值1,2,3,4
+
+        % 显示统计结果
+        for i = 1:length(C)
+            fprintf('值 %d 出现了 %d 次\n', C(i), counts(i));
+        end
+        ```
+
+    3. 分组操作
+
+        ```matlab
+        % 根据分组计算统计量
+        data = [10, 20, 15, 25, 30];
+        groups = [1, 2, 1, 2, 1];
+
+        [uniqueGroups, ~, groupIdx] = unique(groups);
+
+        % 计算每组的平均值
+        for i = 1:length(uniqueGroups)
+            groupMean = mean(data(groupIdx == i));
+            fprintf('组 %d 的平均值: %.2f\n', uniqueGroups(i), groupMean);
+        end
+        ```
+
+    4. 处理NaN值
+
+        ```matlab
+        A = [1, NaN, 2, NaN, 3, 1];
+
+        % unique默认将每个NaN视为唯一值
+        C = unique(A)
+        % 结果：[1, 2, 3, NaN, NaN] 
+        % 注意：不同的NaN被视为不同的值
+        ```
+
+    七、性能考虑
+
+    1. 大数据量处理
+
+        ```matlab
+        % 对于大型数组，unique可能消耗较多内存
+        A = rand(1e6, 1);  % 100万个随机数
+
+        tic
+        C = unique(A);
+        toc
+        ```
+
+    2. 与sort()的关系
+
+    unique() 内部使用了排序算法，因此：
+
+    * 时间复杂度：O(n log n)
+
+    * 默认'sorted'输出已排序的唯一值
+
+    * 'stable'选项不使用排序，保持首次出现顺序
+
+    八、实际应用场景
+
+    1. 数据清洗
+
+        ```matlab
+        % 去除重复数据点
+        data = [1.2, 2.3, 1.2, 3.4, 2.3, 4.5];
+        clean_data = unique(data);
+        ```
+
+    2. 类别提取
+
+        ```matlab
+        % 从数据中提取所有类别
+        labels = {'cat', 'dog', 'cat', 'bird', 'dog', 'fish'};
+        categories = unique(labels);
+        ```
+
+    3. 查找公共元素
+
+        ```matlab
+        % 使用intersect()更合适，但可配合unique使用
+        A = [1, 2, 3, 4, 5];
+        B = [3, 4, 5, 6, 7];
+
+        % 方法：先合并再找唯一值
+        common = unique([A(ismember(A, B)), B(ismember(B, A))]);
+        ```
+
+    4. 生成索引映射
+
+        ```matlab
+        % 为分类数据创建索引映射
+        colors = {'red', 'blue', 'green', 'blue', 'red', 'yellow'};
+        [uniqueColors, ~, colorIdx] = unique(colors);
+        % colorIdx可用于机器学习中的分类编码
+        ```
+
+    九、相关函数对比
+
+    | 函数 | 作用 | 与unique()的区别 |
+    | - | - | - |
+    | unique() | 找唯一值 | 基本功能 |
+    | ismember() | 检查元素是否在集合中 | 可配合使用 |
+    | intersect() | 找交集 | 找多个集合的共同元素 |
+    | union() | 找并集 | 合并多个集合并去重 |
+    | setdiff() | 找差集 | 找一个集合有而另一个没有的元素 |
+    | histcounts() | 统计频数 | 提供更详细的统计信息 |
+
+    总结
+
+    unique() 是 MATLAB 中数据预处理和集合操作的核心函数，主要特点：
+
+    * 核心功能：高效去除重复元素，提取唯一值
+
+    * 灵活性：支持多种排序方式和索引输出
+
+    * 通用性：适用于多种数据类型（数值、字符、元胞、表格等）
+
+    * 实用性：返回的索引可用于重建原始数据、分组统计等操作
+
+    最佳实践：在需要数据去重、类别提取、创建索引映射等场景时优先考虑使用 unique()。
+
 * matlab 尝试不打开窗口
 
     `matlab -nodesktop`会启动一个 command line window

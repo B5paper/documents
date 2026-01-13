@@ -503,6 +503,8 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [new] random select 实现在指定几个文件中随机选择一个文件，并随机选则一行
+
 * [ ] CUDA Core Compute Libraries (CCCL)
 
     <https://github.com/nvidia/cccl>
@@ -3277,7 +3279,7 @@ resources:
 
 ### tasks
 
-* [ ] 完成 01_load_topo
+* [v] 完成 01_load_topo
 
 * [ ] 完成 02_get_topo.cpp
 
