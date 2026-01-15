@@ -1935,7 +1935,7 @@ english words 由 { } reorg: english words 进化而来。
     [val1, val2, val3] = myFunc(4);  % 16, 64, 2
     ```
 
-* [ ] matlab `a = [x, y, ]`
+* [v] matlab `a = [x, y, ]`
 
 * [new] matlab `cellfun`
 
@@ -3279,11 +3279,41 @@ resources:
 
 ### tasks
 
+* [ ] nv 的输出是 path net　而不是 path sys　为什么？
+
+* [ ] 调研`pci nodes: num: 10`的问题，nv 环境下是 8
+
+    deps:
+
+    * [ ] 先排查是否是 cuda visible devices 的问题
+
+        * 使用新的 xml 再跑一遍 test 01
+
+    * [v] 修改 nv 中的代码，输出 topo system 内容
+
+        * 主要是 nodes 和 links
+
+        * pci 节点需要输出 bdf
+
+            可能需要从 topo id 中提取出来
+
+* [ ] 调研 cpu link 只有 3 条的问题，nv 对应为 5 条，4 pci, 1 cpu
+
+* [ ] 调研 nic nodes: num: 4 的问题，nv 对应为 6 个 nic 节点
+
+    net 同理，也需要调研。
+
+* [v] 运行 01 load topo test case, 看是否能正常加载 mock xml
+
+* [v] nv 环球中拿到包含 rdma 的 xml
+
+* [v] 将 rdma xml 修改成 sipu 兼容的格式，制作 mock xml
+
 * [v] 完成 01_load_topo
 
-* [ ] 完成 02_get_topo.cpp
+* [v] 完成 02_get_topo.cpp
 
-* [ ] 完成 04_compute_path.cpp
+* [v] 完成 04_compute_path.cpp
 
 * [ ] 在 data 目录中构建 load topo 对应的几种情况
 

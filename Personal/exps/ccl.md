@@ -1280,3 +1280,7 @@
         ```
 
     * `connectRings()`
+
+* compute path 时，未看到类似 sipu -> rdma -> sipu　的链路
+
+    即使禁用了 p2p，得到的也是 sipu -> pci -> sipu，并不是经过网卡的方案。
