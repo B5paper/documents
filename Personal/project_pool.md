@@ -36,33 +36,9 @@
 
 ## cache
 
-* exp 探索方式
-
-    1. 基于顺序的逐行解释
-
-    2. 基于兴趣的随机关注点解释
-
-* exp 关注: 关键变量的值，关键函数的含义，自然的提问，新信息是否能解答前面的问题，新信息是否与旧信息有联系
-
-* 这顶投降帽是我的，你戴着它来投降，其实是我投降我自己
-
-    做梦梦到了这个场景和这句台词，但是问了 AI 和百度，现有的电影并没有这句话，看来是梦里原创的。
-
-    在搜索时，各大 AI 均出现了幻觉，一口咬定自己看过这部剧。ds 认为出自鹿鼎记。
-
-* 代码解析：关注关键函数、关键对象/变量
-
 * 局部大纲
 
     导航栏应该引入一种局部大纲的机制，表示出所有的父节点，以及同级的向上 2 个节点，向下 2 个节点，其他的可以忽略不显示。这样可以方便定位在超长文档中的位置。
-
-* 对于困难的问题与简单的问题，llm 的运算量几乎相同，这不符合直觉。
-
-    一个更符合直觉的解决困难问题的过程，有点像挡板弹球游戏，球只有通过纤细狭长的通道，才能到消除砖块。
-
-* log 进步
-
-    假如 x 轴是努力程度，y 轴是取得的成就，总是感觉 y 是 x 的对数函数。即使在学校的时候成绩参差不齐，到后面大家的工资却又差不多。我们的成就总是以对数的增速向前。
 
 * exp 中根据事实由少到多可以将内容分为几个级别
 
@@ -90,47 +66,9 @@
 
 * qa 频率可以降低到每周一次
 
-* 在调研时，可以将笔记分成几个部分
-
-	* 猜测（或者假设）
-
-		给出自己的猜测，不需要验证
-
-	* 疑问
-
-		提出的问题
-
-	* 验证
-
-		对猜测的验证
-
-	* 已经可以确定的笔记
-
-		经过验证的猜测或假设，需要背会。
-
 * 是否该引入每周的计划预期？
 
     目前只完成了每天的计划列表，但是每周完成的任务量太少。
-
-* 锥形思维与触手
-
-    猜想：假如锥形的根节点是高级抽象的、虚拟的概念，扇形的边缘是实际的、物理的事物，很多人在锥形，或者说扇形的末端接收到信息后，一层一层传导到根节点，改变一些看法或者概念。他们的扇形边缘非常活跃，锥形顶点处则变化缓慢。还有一些人在锥形顶点处进行快速、大量的数据交换，并尝试伸出触手来到扇形边缘做实验，拿到信息，并反馈给顶点。
-
-* 家用晶圆厂
-
-    * 多项目晶圆（MPW）服务
-
-        这是个人接触先进制程的唯一现实途径。你可以学习使用开源EDA工具（如OpenROAD, SkyWater PDK）设计芯片，然后将设计文件提交给谷歌的SkyWater计划或国内的类似MPW服务。
-
-    * Sam Zeloof, Jeri Ellsworth
-
-    * 手套箱（Glove Box）, 隔离器（Isolator）
-
-    * 带有双门互锁和净化吹淋功能的传递舱
-
-    * 一个集成了加热台、简易滴胶、紫外曝光（用掩膜版）和显影的桌面光刻系统。这已经有商业化的教育产品（如EMO等）。
-
-    * MEMS结构（如悬臂梁）
 
 * async chain 的实现非常重要，有时间了研究一下
 
@@ -142,202 +80,9 @@
 
 	* libhv 中事件驱动的原理
 
-* 应该增加各个项目 sync 的频率
-
-* 当评价多因素的综合作用时，直接指定影响因子可能主观因素较强，目前已知的有理论依据的是贝叶斯推理，依据为联合概率分布。是否还有其他能综合考虑多因素，并且有客观依据的方法？
-
-    目前有几个联想：
-
-    * 股市中的价格
-
-        它综合考虑了各种因素，包括情绪、基本面、随机波动等，并且是自适应的，没有人显性指定每个因素的影响因子
-
-    * 人身体中的激素
-
-        它受多种因素、身体的各个部位调控
-
-    * 蚁群中的信息素
-
-        它被多个蚂蚁调控，每个蚂蚁释放信息素的依据不一样。
-
-* python 求解高斯函数
-
-    ```py
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.integrate import quad
-    import sympy as sp
-
-    # 符号推导验证
-    print("="*60)
-    print("符号推导验证")
-    print("="*60)
-
-    # 定义符号
-    ε, σ, A, k = sp.symbols('ε σ A k', positive=True, real=True)
-
-    # 1. 从微分方程开始
-    print("\n1. 解微分方程: dφ/dε / φ = k·ε")
-
-    # 定义微分方程
-    φ = sp.Function('φ')
-    ode = sp.Eq(φ(ε).diff(ε)/φ(ε), k*ε)
-
-    # 解微分方程
-    solution = sp.dsolve(ode)
-    print(f"微分方程的解: {solution}")
-
-    # 2. 应用边界条件
-    print("\n2. 应用概率密度函数的约束条件")
-
-    # 解的形式: φ(ε) = C1*exp(k*ε**2/2)
-    C1 = sp.symbols('C1')
-    φ_expr = C1 * sp.exp(k * ε**2 / 2)
-
-    # 约束1: 当|ε|→∞时，φ(ε)→0 => k必须为负
-    print(f"衰减性要求: k < 0")
-    k_value = -1/σ**2
-    φ_expr = φ_expr.subs(k, k_value)
-    print(f"令 k = -1/σ²: φ(ε) = {φ_expr}")
-
-    # 约束2: 归一化条件
-    print("\n3. 计算归一化常数")
-
-    # 计算积分
-    integral = sp.integrate(φ_expr, (ε, -sp.oo, sp.oo))
-    print(f"积分结果: ∫φ(ε)dε = {sp.simplify(integral)}")
-
-    # 令积分等于1，解出C1
-    C1_solution = sp.solve(sp.Eq(integral, 1), C1)[0]
-    print(f"归一化常数 C1 = {sp.simplify(C1_solution)}")
-
-    # 最终形式
-    φ_final = φ_expr.subs(C1, C1_solution)
-    print(f"\n4. 最终高斯分布:")
-    print(f"φ(ε) = {sp.simplify(φ_final)}")
-    print("="*60)
-
-    # 数值验证
-    print("\n数值验证:")
-    print("-"*40)
-
-    def gaussian(x, mu=0, sigma=1):
-        """标准高斯函数"""
-        return 1/(sigma*np.sqrt(2*np.pi)) * np.exp(-0.5*((x-mu)/sigma)**2)
-
-    # 测试不同sigma
-    sigmas = [0.5, 1.0, 2.0]
-    x = np.linspace(-5, 5, 1000)
-
-    plt.figure(figsize=(12, 8))
-
-    for i, sigma in enumerate(sigmas):
-        y = gaussian(x, sigma=sigma)
-
-        # 数值积分验证归一化
-        integral_val, error = quad(gaussian, -np.inf, np.inf, args=(0, sigma))
-
-        plt.subplot(2, 2, i+1)
-        plt.plot(x, y, 'b-', linewidth=2, label=f'σ={sigma}')
-        plt.fill_between(x, y, alpha=0.3)
-        plt.title(f'高斯分布 σ={sigma}\n归一化积分={integral_val:.8f} (±{error:.2e})')
-        plt.xlabel('x')
-        plt.ylabel('概率密度')
-        plt.grid(True, alpha=0.3)
-        plt.legend()
-
-    # 可视化中心极限定理
-    plt.subplot(2, 2, 4)
-    np.random.seed(42)
-
-    # 模拟不同样本量的均值分布
-    sample_sizes = [1, 5, 20, 100]
-    colors = ['red', 'green', 'blue', 'purple']
-
-    for n, color in zip(sample_sizes, colors):
-        # 从均匀分布采样，计算均值
-        n_samples = 10000
-        means = []
-
-        for _ in range(n_samples):
-            samples = np.random.uniform(-1, 1, n)  # 均匀分布[-1,1]
-            means.append(np.mean(samples))
-
-        # 绘制直方图
-        plt.hist(means, bins=50, density=True, alpha=0.5,
-                color=color, label=f'n={n}')
-
-        # 理论正态分布
-        if n > 1:
-            # 均匀分布的方差 = (b-a)²/12 = 1/3
-            theoretical_sigma = np.sqrt(1/(3*n))
-            x_fine = np.linspace(-1, 1, 200)
-            y_theory = gaussian(x_fine, sigma=theoretical_sigma)
-            plt.plot(x_fine, y_theory, color=color, linestyle='--', linewidth=2)
-
-    plt.title('中心极限定理演示')
-    plt.xlabel('样本均值')
-    plt.ylabel('概率密度')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.show()
-    ```
-
-* sync 只提出了标准，但是没有提出该如何 sync
-
-    一个可能的 sync 方案：
-
-    1. 先过一遍 qa
-    
-        如果完不成 unit，看这个 unit 是否有 dep，如果有，尝试先完成 dep。
-        
-        最终将这些 unit 划分成 3 类：
-        
-        1. 可以完成的 unit
-        
-        2. 看了答案后可以完成的 unit
-        
-        3. 看了答案也无法完成的 unit
-
-        如果一个 unit 无法完成，看了其 dep，发现 dep 也无法完成，但是看了 dep 的答案后，dep 可以完成，之后 unit 也可以完成了，那么只标记 dep 为类型 2 （即看了答案后可以完成），标记 unit 为类型 1.
-
-    2. 再过一遍笔记，尝试提取在 qa 测试中没见过的内容，并制作成 qa unit
-
-        将笔记分为两部分，一部分是可以被验证的，另一部分是未被验证的
-
-    3. 清理 test 和 qa 文件夹
-
-    4. 将 qa 中过于复杂的拆分成 dep，无法理解的以及 empty 的都删掉
-
-    5. 将笔记中未被验证的部分作为 cache，等待接受调研
-
-    至此，sync 工作完成。
-
-* 动态低价值任务
-
-    做自底向上的任务时，容易陷入查字典，背 API 的细节中，无法推动主线的进度。
-
-    如果我们已经知道一个任务是学习 API 的任务，那么可以在做任务之前就用任务时间控制、低比重、低优先级。但是如果一个任务做了 20％ 后，发现这个任务不重要，那么该如何处理？
-
-    目前想到的处理方法如下：
-
-    * 标记为低优先级的长线任务`{low}`
-
-    * 严格控制时间，比如每次只执行 20 mins
-
-    * 每执行一次，向下移动 5 个任务
-
 * 香山 riscv 源代码 repo
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
-
-* 无序列表（cache）的弱排序
-
-    将已经完成的任务放到列表的最上面，比较重要的任务紧接着放到已经完成的任务的下面。
-
-    这样无序列表会有一种“滚动”的效果，旧的 cache 慢慢消失，新的 cache 不断出现。
 
 * 为了实现短 item 的原则，不要把长代码放到项目管理或任务列表里
 
@@ -346,18 +91,6 @@
 * 调研 MLIR, IREE
 
 * [ ] cmake 环境变量的用法
-
-* 低频（主能量）信息对应的是直觉，高频（低能量）信息对应的是强推理
-
-* 临时项目管理中的项目不应该超过 7 个, 不然就管理不过来了
-
-* 每天离开工作区之前应该把 task 中的 feedback 整合到临时项目管理中
-
-* 深度学习和数学最本质的区别是，深度学习只告诉你他的方法为什么行，不告诉你别人的方法为什么不行，而数学会同时告诉你这两者
-
-* 可以规定一下，如果 2 天（或者 3 天）都能通过某个 domain 的 qa，那么就可以申请增加新的 qa。
-
-* 顺着笔记找 qa 效率并不高，更好的做法是随机在笔记的后面部分找一个问题，然后写到 qa 里，再倒过来找 qa 的 dependency.
 
 * 学习资源的调研主要用于完成下面几件事情
 
@@ -3279,25 +3012,9 @@ resources:
 
 ### tasks
 
+* [ ] pci busid 改成 uuid
+
 * [ ] nv 的输出是 path net　而不是 path sys　为什么？
-
-* [v] 调研`pci nodes: num: 10`的问题，nv 环境下是 8
-
-    deps:
-
-    * [v] 先排查是否是 cuda visible devices 的问题
-
-        * 使用新的 xml 再跑一遍 test 01
-
-        feedback:
-
-        * 看起来确实是 cuda visible devices　的问题，经调整后 siccl 和 nccl　输出一致
-
-* [v] 调研 cpu link 只有 3 条的问题，nv 对应为 5 条，4 pci, 1 cpu
-
-* [v] 调研 nic nodes: num: 4 的问题，nv 对应为 6 个 nic 节点
-
-    net 同理，也需要调研。
 
 * [ ] 在 data 目录中构建 load topo 对应的几种情况
 
@@ -6143,11 +5860,42 @@ resources:
 
 ### tasks
 
+* [new] `perror`
+
+* [new] `std::expected`
+
+    std::expected (C++23)
+
+    ```cpp
+    #include <expected>
+
+    std::expected<int, std::string> safe_divide(int a, int b) {
+        if (b == 0) {
+            return std::unexpected("除零错误");
+        }
+        return a / b;
+    }
+
+    // 使用
+    auto result = safe_divide(10, 0);
+    if (!result) {
+        std::cout << "错误: " << result.error() << "\n";
+    } else {
+        std::cout << "结果: " << *result << "\n";
+    }
+    ```
+
+* [new] extern C 是什么含义？
+
+    ```cpp
+    extern "C" void c_function() {
+        // 不能在这里抛出C++异常
+    }
+    ```
+
 * [ ] 调研 c++ `inner_product`, `adjacent_difference`
 
 * [ ] 调研 c++ `reduce`, `ranges::fold_left`
-
-* [v] std::format
 
 * [ ] c 语言中`#defile`中`##`的用法？
 

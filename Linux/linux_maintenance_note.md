@@ -6,6 +6,72 @@
 
 ## cache
 
+* terminal 中，启动 ssh 进入远程机器，然后再退出 ssh 后，local terminal 会出现文本无法自动换行的情况，如何解决
+
+    这是一个常见的终端窗口尺寸同步问题。当你在 SSH 会话中调整了终端窗口大小，退出后本地终端没有正确同步回来。
+
+    解决方法：
+
+    1. 最简单的方法
+
+        直接输入以下命令重置终端：
+
+        ```bash
+        reset
+        ```
+
+        或者按 Ctrl+L 清屏有时也能解决问题。
+
+    2. 调整窗口大小
+
+        手动触发一次窗口大小调整：
+
+        ```bash
+        # 方法1：改变终端窗口大小（拖动边缘即可）
+        # 方法2：按 Ctrl+C 中断当前行，然后回车
+        # 方法3：输入：
+        stty sane
+        ```
+
+    3. 在 SSH 会话中正确退出
+
+        ```bash
+        # 不要直接按 Ctrl+D 退出，先执行：
+        exit
+        ```
+
+        或者确保在退出前执行：
+
+        ```bash
+        printf '\033[8;%d;%dt' $(stty size)
+        ```
+
+    4. 预防措施
+
+        在 ~/.bashrc 或 ~/.bash_profile 中添加：
+
+        ```bash
+        # 设置 SSH 退出时重置终端
+        trap 'echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"' DEBUG
+        ```
+
+    5. 如果以上都不行
+
+        关闭当前终端标签/窗口，重新打开一个新的。
+
+    6. 永久解决方案
+
+        在 SSH 配置中启用终端窗口大小转发，编辑 ~/.ssh/config：
+
+        ```text
+        Host *
+            ServerAliveInterval 60
+            TCPKeepAlive yes
+            EscapeChar none
+        ```
+
+    最常用的是方法1：直接输入 reset 回车即可恢复正常。
+
 * 将 journactl 中的中文日期改成英文
 
     方法1：临时设置环境变量（当前会话有效）

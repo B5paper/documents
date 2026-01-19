@@ -670,7 +670,7 @@
     } ncclNetProperties_v10_t;
     ```
 
-    后面有专门的`ncclIbDev`结构，这里应该是标卡、IB卡都能用。
+    后面有专门的`ncclIbDev`结构，这里应该是 eth 卡、IB 卡都能用。
 
 * `ncclIbGetProperties()`
 
@@ -1284,3 +1284,34 @@
 * compute path 时，未看到类似 sipu -> rdma -> sipu　的链路
 
     即使禁用了 p2p，得到的也是 sipu -> pci -> sipu，并不是经过网卡的方案。
+
+* nccl 在 p2p 后的 log 文件，是否和 siccl 相同？
+
+    不同。看到 nccl p2p 后 path_nvl 被设置成了 path_net，可能是开了 NCCL_P2P_DISABLE 环境变量的原因。
+
+    禁用环境变量后恢复正常。siccl 强制 p2p = 0，因此也把 switch 节点删除了。设置 p2p = 1 后，是否可以恢复？
+
+    可以，这时两者完全一致了。
+
+* before return 前再比较一次是否相同
+
+    相同。
+
+* nv 环境中，网卡的 populate 过程是怎样的？
+
+    只能检测到一张 eth 网卡。
+
+* siccl 中`comm->ncclNet->devices`为`ncclNetSocketDevices(int*)`
+
+    nccl 中，为`ncclIbDevices(int*)`。
+    
+    为什么？
+
+    * nv 中`comm->ncclNet`为`ncclNetIb`，siccl 中为`ncclNetSocket`
+
+* 先按 4 sipu p2p + 1 rdma init 成功，再跑 1 qemu + 4 sipu + 1 rdma，禁用 p2p, shm，强制使用网卡传输数据（或许要先试一把 socket 是否能成功？）
+
+    * [v] 4 sipu p2p + 1 rdma init 成功
+
+        ring_graph.n_channels 需要设置为 2 才行
+

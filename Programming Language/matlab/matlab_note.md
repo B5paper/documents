@@ -6,6 +6,251 @@
 
 ## cache
 
+* matlab 中，我看到有的函数内部使用的变量并不是在当前函数内部创建的，为什么？
+
+    你观察到的现象在 MATLAB 中很常见，通常是由于以下几种情况：
+
+    1. 嵌套函数与共享变量
+
+        在嵌套函数中，内层函数可以直接访问外层函数的变量：
+
+        ```matlab
+        function outer()
+            sharedVar = 10;  % 外层函数变量
+
+            function inner()
+                % 可以直接使用 sharedVar
+                result = sharedVar * 2;
+            end
+
+            inner()
+        end
+        ```
+
+    2. 函数句柄捕获工作区变量
+
+        ```matlab
+        function createHandle()
+            baseValue = 5;
+
+            % 匿名函数捕获了 baseValue
+            myHandle = @(x) x + baseValue;
+
+            % 即使 baseValue 不在当前工作区，myHandle 仍记得它
+            result = myHandle(3);  % 返回 8
+        end
+        ```
+
+    3. 持久变量 (persistent)
+
+        ```matlab
+        function counter()
+            persistent count  % 跨函数调用保持值
+
+            if isempty(count)
+                count = 0;
+            end
+
+            count = count + 1;
+            disp(count);
+        end
+        % 每次调用 counter()，count 都会递增
+        ```
+
+    4. 全局变量 (global)
+
+        ```matlab
+        % 文件1: setGlobal.m
+        function setGlobal(val)
+            global GLOBAL_VAR
+            GLOBAL_VAR = val;
+        end
+
+        % 文件2: getGlobal.m
+        function result = getGlobal()
+            global GLOBAL_VAR  % 访问同一全局变量
+            result = GLOBAL_VAR;
+        end
+        ```
+
+    5. 隐式参数传递
+
+        某些函数可能依赖 MATLAB 路径中的其他变量：
+
+        ```matlab
+        % config.m
+        CONFIG_VALUE = 42;
+
+        % myFunction.m
+        function result = myFunction()
+            % 如果 CONFIG_VALUE 在路径中已定义
+            result = CONFIG_VALUE * 2;  % 使用外部定义的变量
+        end
+        ```
+
+    6. 调试或开发时的临时情况
+
+        在开发过程中，可能临时使用工作区变量进行测试：
+
+        ```matlab
+        function testFunc(x)
+            % 如果在调用前，workspace 中有 testVariable
+            y = x + testVariable;  % testVariable 来自基础工作区
+            disp(y);
+        end
+        ```
+
+    最佳实践建议：
+
+    * 避免隐式依赖：明确传递所有需要的参数
+
+    * 文档说明：如果必须使用非局部变量，请充分注释
+
+    * 优先使用参数传递：
+
+        ```matlab
+        % 推荐方式
+        function result = myFunc(x, config)
+            result = x * config.value;
+        end
+
+        % 而不是
+        function result = myFunc(x)
+            global config  % 或使用其他隐式方式
+            result = x * config.value;
+        end
+        ```
+
+    检查变量来源的方法：
+
+    ```matlab
+    % 1. 使用 which 查看变量定义位置
+    which variableName
+
+    % 2. 使用 dbstack 查看调用栈
+    dbstack
+
+    % 3. 使用 exist 检查变量作用域
+    exist('varName', 'var')
+    ```
+
+    总结：虽然 MATLAB 允许这些用法，但在正式代码中，为了可维护性和避免意外错误，建议尽量减少对非局部变量的依赖，明确通过参数传递所需数据。
+
+* 简述 matlab 函数 diff() 的原型、作用及用法
+
+    diff() 是 MATLAB 中用于计算差分和近似导数的核心函数。
+
+    一、函数原型
+
+    ```matlab
+    % 基本语法
+    Y = diff(X)
+    Y = diff(X, n)
+    Y = diff(X, n, dim)
+    ```
+
+    二、参数说明
+
+    * X：输入数组（向量、矩阵或多维数组）
+
+    * n（可选）：差分阶数，默认为 1
+
+    * dim（可选）：沿指定维度操作，默认为第一个非单一维度
+
+    三、主要作用
+
+    1. 计算相邻元素的差值
+
+        ```matlab
+        x = [1, 3, 6, 10, 15];
+        y = diff(x);  % 结果: [2, 3, 4, 5]
+        ```
+
+    2. 近似数值微分
+
+        ```matlab
+        t = 0:0.1:1;
+        x = sin(t);
+        dx_dt = diff(x) / 0.1;  % 近似计算导数
+        ```
+
+    3. 高阶差分
+
+        ```matlab
+        x = [1, 4, 9, 16];
+        d1 = diff(x);      % 一阶差分: [3, 5, 7]
+        d2 = diff(x, 2);   % 二阶差分: [2, 2] (等价于 diff(diff(x)))
+        ```
+
+    四、常用用法示例
+
+    示例1：向量差分
+
+    ```matlab
+    A = [1 2 3 5 8];
+    B = diff(A);  % 结果: [1 1 2 3]
+    ```
+
+    示例2：矩阵按行/列差分
+
+    ```matlab
+    M = [1 2 3; 4 5 6; 7 8 9];
+
+    % 按列差分（默认）
+    col_diff = diff(M);  % 结果: [3 3 3; 3 3 3]
+
+    % 按行差分
+    row_diff = diff(M, 1, 2);  % 结果: [1 1; 1 1; 1 1]
+    ```
+
+    示例3：与梯度计算对比
+
+    ```matlab
+    x = linspace(0, 2*pi, 100);
+    y = sin(x);
+
+    % diff 计算（长度减1）
+    dy_diff = diff(y) / (x(2)-x(1));
+
+    % gradient 计算（长度不变）
+    dy_grad = gradient(y, x(2)-x(1));
+    ```
+
+    五、重要特性
+
+    * 输出长度：diff(X) 输出的元素比 X 少 n 个
+
+    * 数值微分精度：一阶前向差分，精度为 O(h)
+
+    * 与梯度区别：diff 是前向差分，gradient 是中心差分（更精确）
+
+    六、实际应用场景
+
+    ```matlab
+    % 1. 检测信号突变
+    signal = [ones(1,50), 10, ones(1,50)];
+    changes = find(abs(diff(signal)) > 5);  % 找到突变点位置
+
+    % 2. 计算速度（位置差分）
+    time = 0:0.1:10;
+    position = sin(time);
+    velocity = diff(position) / 0.1;
+
+    % 3. 多阶差分消除趋势
+    data = 0.1*(1:100) + randn(1,100);  % 线性趋势+噪声
+    detrended = diff(data, 2);           % 二阶差分消除线性趋势
+    ```
+
+    七、注意事项
+
+    * 边界处理：diff 会减少数据长度，需注意索引对应关系
+
+    * 精度限制：对于高精度微分需求，建议使用 gradient 或样条插值
+
+    * 高维数据：明确指定 dim 参数以避免意外行为
+
+    diff() 是数值分析和信号处理中的基础工具，简洁高效但需理解其差分本质。
+
 * sortrows()
 
     sortrows() 是 MATLAB 中用于按行排序的函数，特别适用于对矩阵、表格等数据进行排序。

@@ -4,6 +4,236 @@
 
 ## cached
 
+* 使用异常的合适场景：
+
+    ```cpp
+    // 1. 构造函数失败
+    Socket::Socket(const std::string& addr) {
+        if (!connect(addr)) throw ConnectionError();
+    }
+
+    // 2. 真正"异常"的情况（不应该经常发生）
+    double sqrt(double x) {
+        if (x < 0) throw std::domain_error("负数不能开方");
+        return std::sqrt(x);
+    }
+
+    // 3. 需要自动资源清理的复杂操作
+    void transaction() {
+        auto guard = TransactionGuard();  // RAII
+        step1();  // 可能失败
+        step2();  // 自动回滚
+    }
+    ```
+
+    使用错误码的合适场景：
+
+    ```cpp
+    // 1. 性能关键路径
+    for (int i = 0; i < 1e6; ++i) {
+        if (process_item(data[i]) != SUCCESS) {
+            // 使用错误码，避免异常开销
+            handle_error();
+        }
+    }
+
+    // 2. 频繁发生的"错误"（其实是正常流程）
+    while (true) {
+        int bytes = recv(socket, buffer, size, 0);
+        if (bytes == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;  // 非阻塞IO的正常情况
+            }
+            // 真正的错误
+        }
+    }
+
+    // 3. C接口或系统编程
+    int posix_function() {
+        int result = syscall();
+        if (result == -1) {
+            // 设置errno
+            return -errno;
+        }
+        return result;
+    }
+    ```
+
+    业界趋势
+
+    * Google C++风格指南：禁用异常（历史原因和性能考虑）
+
+    * LLVM/Clang：使用错误码和llvm::Error类型
+
+    * 现代游戏开发：通常禁用RTTI和异常
+
+    * 高性能交易系统：避免异常确保确定性的延迟
+
+* c++ 的 try catch 机制好在哪里？
+
+    C++ 的异常处理机制（try-catch）有以下主要优点：
+
+    1. 错误处理与正常逻辑分离
+
+        ```cpp
+        // 不使用异常
+        bool processFile(const char* filename) {
+            FILE* f = fopen(filename, "r");
+            if (!f) {
+                logError("文件打开失败");
+                return false;
+            }
+            // 更多 if(error) return false;
+        }
+
+        // 使用异常
+        void processFile(const char* filename) {
+            std::ifstream file(filename);
+            if (!file) throw std::runtime_error("文件打开失败");
+            // 正常逻辑更清晰
+        }
+        ```
+
+    2. 自动资源管理（RAII）
+
+        ```cpp
+        void process() {
+            auto conn = DatabaseConnection();  // 获取资源
+            // ... 可能抛出异常的操作
+        } // 无论是否异常，conn 析构函数都会自动释放资源
+
+        // 对比 C 风格
+        void process() {
+            Resource* res = acquireResource();
+            if (error1) { free(res); return; }
+            if (error2) { free(res); return; }
+            free(res);
+        }
+        ```
+
+    3. 多层调用中的便捷错误传递
+
+        ```cpp
+        void layer1() {
+            layer2();  // 可能抛出异常
+        }
+
+        void layer2() {
+            layer3();  // 不需要检查返回值
+        }
+
+        void layer3() {
+            if (critical_error) {
+                throw MyException("严重错误");
+            }
+        }
+
+        // 调用处统一处理
+        try {
+            layer1();
+        } catch (const MyException& e) {
+            // 处理所有层级的同类错误
+        }
+        ```
+
+    4. 丰富的异常类型体系
+
+        ```cpp
+        class FileException : public std::runtime_error {
+        public:
+            FileException(const std::string& msg) : runtime_error(msg) {}
+        };
+
+        class NetworkException : public std::runtime_error {
+            // 可添加额外信息
+        };
+
+        try {
+            // 可能抛出不同异常
+        } catch (const FileException& e) {
+            // 文件相关错误
+        } catch (const NetworkException& e) {
+            // 网络相关错误
+        } catch (const std::exception& e) {
+            // 所有标准异常
+        }
+        ```
+
+    5. 构造函数中的错误处理
+
+        ```cpp
+        class Resource {
+            Handle* handle;
+        public:
+            Resource() {
+                handle = acquireHandle();
+                if (!handle) {
+                    throw std::runtime_error("获取资源失败");
+                }
+            }
+            // 构造函数无法返回错误码，异常是唯一选择
+        };
+        ```
+
+    6. 标准库的集成
+
+        ```cpp
+        #include <vector>
+        #include <stdexcept>
+
+        void example() {
+            std::vector<int> vec{1, 2, 3};
+            try {
+                int x = vec.at(10);  // 抛出 std::out_of_range
+            } catch (const std::out_of_range& e) {
+                // 安全地处理越界
+            }
+        }
+        ```
+
+    需要注意的事项：
+
+    * 性能考量：异常处理有开销，不应用于常规控制流
+
+    * 异常安全：需要确保代码在异常发生时仍保持一致性
+
+    * 现代C++最佳实践：
+
+        * 优先使用智能指针等RAII类型
+
+        * 按值抛出，按const引用捕获
+
+        * 避免抛出析构函数中的异常
+
+    与错误码的对比：
+
+    ```cpp
+    // 错误码方式
+    ErrorCode process() {
+        ErrorCode err = step1();
+        if (err != OK) return err;
+        err = step2();
+        if (err != OK) return err;
+        return OK;
+    }
+
+    // 异常方式
+    void process() {
+        step1();  // 失败直接抛出
+        step2();  // 代码更简洁
+    }
+    ```
+
+    异常机制特别适合：
+
+    * 构造函数中的错误
+
+    * 深层嵌套调用中的错误传递
+
+    * 无法立即处理的错误
+
+    * 需要自动清理资源的场景
+
 * c /c++ 中 sleep 相关函数
 
     在C/C++中，实现延时（sleep）功能的函数主要分为以下几种：

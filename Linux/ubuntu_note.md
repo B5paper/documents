@@ -4,6 +4,90 @@
 
 ## cache
 
+* xfreerdp 如何设置远程画面的缩放
+
+    xfreerdp 可以通过以下方式设置远程画面的缩放：
+
+    1. 使用 /scale 参数（推荐）
+
+        ```bash
+        xfreerdp /v:SERVER_IP /scale:100
+        ```
+
+        缩放比例值：
+
+        * 100 = 100%（原始大小）
+
+        * 150 = 150%
+
+        * 200 = 200%
+
+        * 等等，可以设置为任何整数值
+
+        注：
+
+        1. `/scale`只支持固定的几个数值，并不支持 80 等小于 100 的值
+
+    2. 使用 /scale-desktop 参数
+
+        ```bash
+        xfreerdp /v:SERVER_IP /scale-desktop:125
+        ```
+
+        这是百分比缩放，更精确控制。
+
+    3. 动态缩放（FreeRDP 3.0+）
+
+        ```bash
+        xfreerdp /v:SERVER_IP /dynamic-resolution
+        ```
+
+        这会根据窗口大小动态调整缩放。
+
+    4. 自动缩放选项
+
+        ```bash
+        # 根据DPI自动缩放
+        xfreerdp /v:SERVER_IP /auto-reconnect /auto-scale:130
+
+        # 使用监视器DPI
+        xfreerdp /v:SERVER_IP /scale:100 /monitor-dpi
+        ```
+
+    5. 组合示例
+
+        ```bash
+        # 150%缩放，启用智能缩放
+        xfreerdp /v:192.168.1.100 /u:username /p:password \
+            /scale:150 /dynamic-resolution +fonts +clipboard
+        ```
+
+    6. 配置文件设置
+
+        在 ~/.config/freerdp/client.rc 中：
+
+        ```ini
+        scale=150
+        scale_desktop=150
+        use_scale_factor=true
+        ```
+
+    注意事项：
+
+    * 某些服务器/协议版本可能不支持所有缩放选项
+
+    * 缩放可能会影响性能
+
+    * 使用 /gdi:sw（软件渲染）有时能改善缩放效果
+
+    * 确保服务器端也支持高DPI设置
+
+    要查看所有显示相关选项：
+
+    ```bash
+    xfreerdp /help | grep -i scale
+    ```
+
 * ubuntu 22.04 gnome 对 vnc 支持不好，目前即使端口 5900 打开也无法访问
 
 * x11 与 wayland

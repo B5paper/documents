@@ -2,6 +2,164 @@
 
 ## cache
 
+* PyTorch数据集划分方法总结
+
+    1. 使用 torch.utils.data.random_split（推荐）
+
+        这是最直接的方式，可以按任意比例划分：
+
+        ```python
+        import torch
+        from torch.utils.data import Dataset, DataLoader, random_split
+        from torchvision import datasets, transforms
+
+        # 示例：加载完整数据集
+        dataset = datasets.MNIST(
+            root='./data', 
+            train=True,
+            transform=transforms.ToTensor(),
+            download=True
+        )
+
+        # 手动划分比例（7:3）
+        train_size = int(0.7 * len(dataset))
+        val_size = len(dataset) - train_size
+
+        # 随机划分
+        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+        # 创建 DataLoader
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+        print(f"训练集大小: {len(train_dataset)}, 验证集大小: {len(val_dataset)}")
+        ```
+
+    2. 使用 Subset 手动选择索引
+
+        如果你想更精确地控制哪些数据进入哪个集合：
+
+        ```python
+        from torch.utils.data import Subset
+        import numpy as np
+
+        # 创建索引
+        indices = list(range(len(dataset)))
+        np.random.shuffle(indices)
+
+        # 7:3 划分
+        split = int(0.7 * len(dataset))
+        train_indices = indices[:split]
+        val_indices = indices[split:]
+
+        # 创建子集
+        train_dataset = Subset(dataset, train_indices)
+        val_dataset = Subset(dataset, val_indices)
+        ```
+
+    3. 使用 sklearn 的 train_test_split
+
+        ```python
+        from sklearn.model_selection import train_test_split
+
+        # 获取所有索引
+        indices = list(range(len(dataset)))
+
+        # 使用 sklearn 划分（可设置随机种子）
+        train_indices, val_indices = train_test_split(
+            indices, 
+            test_size=0.3,  # 验证集比例
+            random_state=42,  # 随机种子
+            shuffle=True
+        )
+
+        train_dataset = Subset(dataset, train_indices)
+        val_dataset = Subset(dataset, val_indices)
+        ```
+
+    4. 自定义 Dataset 类实现划分
+
+        如果需要更复杂的划分逻辑：
+
+        ```python
+        from torch.utils.data import Dataset
+
+        class CustomDataset(Dataset):
+            def __init__(self, data, targets, is_train=True, train_ratio=0.7, seed=42):
+                self.data = data
+                self.targets = targets
+                
+                # 固定随机种子确保可重复性
+                torch.manual_seed(seed)
+                indices = torch.randperm(len(data))
+                
+                split = int(train_ratio * len(data))
+                if is_train:
+                    self.indices = indices[:split]
+                else:
+                    self.indices = indices[split:]
+            
+            def __len__(self):
+                return len(self.indices)
+            
+            def __getitem__(self, idx):
+                actual_idx = self.indices[idx]
+                return self.data[actual_idx], self.targets[actual_idx]
+
+        # 使用示例
+        full_data = ...  # 你的数据
+        full_targets = ...  # 你的标签
+
+        train_dataset = CustomDataset(full_data, full_targets, is_train=True, train_ratio=0.7)
+        val_dataset = CustomDataset(full_data, full_targets, is_train=False, train_ratio=0.7)
+        ```
+
+    5. 使用 K-fold 交叉验证（更复杂的划分）
+
+        ```python
+        from sklearn.model_selection import KFold
+
+        kfold = KFold(n_splits=5, shuffle=True, random_state=42)
+
+        for fold, (train_idx, val_idx) in enumerate(kfold.split(dataset)):
+            print(f"Fold {fold + 1}")
+            train_dataset = Subset(dataset, train_idx)
+            val_dataset = Subset(dataset, val_idx)
+            
+            # 训练和验证...
+        ```
+
+    推荐实践
+
+    * 对于简单划分：使用 random_split 最简单直接
+
+    * 需要可重复性：使用 random_split 或 train_test_split 并设置 generator 或 random_state
+
+    * 需要分层采样：使用 sklearn 的 StratifiedShuffleSplit
+
+    * 需要复杂逻辑：自定义 Dataset 类
+
+    注意事项
+
+    * 设置随机种子确保划分可重复：
+
+        ```python
+        torch.manual_seed(42)  # PyTorch
+        np.random.seed(42)     # NumPy
+        ```
+
+    * 保持类平衡：如果数据集类别不平衡，考虑使用分层划分：
+
+        ```python
+        from sklearn.model_selection import StratifiedShuffleSplit
+
+        # targets 是标签数组
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.3, random_state=42)
+        train_idx, val_idx = next(sss.split(data, targets))
+        ```
+
+    PyTorch 本身提供了足够灵活的工具来处理各种数据集划分需求，结合 sklearn 可以满足更复杂的场景。
+
 * 为什么在含有fc layer, relu, softmax的三层简单网络中，训练mnist时，fc1的 weight的grad有时会出现一大片的0？
 
     这是一个很好的问题，你观察到的现象在训练简单神经网络时并不少见。FC1层权重梯度出现大片零值，通常是由ReLU激活函数的特性和网络初始化/数据共同导致的。下面我来详细解释原因和解决方案。

@@ -825,6 +825,66 @@ Reference: <https://www.computerhope.com/unix.htm>
 
         满足了在字符串前加`$`，并且在字符串中对单引号进行了`\'`转义，因此输出与预期一致。
 
+## topics
+
+### 重定向
+
+* `command > filename`
+
+    将输出重定向到文件，如果文件存在，则会被覆盖。
+
+    其实这行命令应该这么理解：`[command] [> filename]`，把它分成两个部分。第二部分`> filename`的完整版应该是`1> filename`，`1`表示 stdout。
+
+    例子：
+
+    `echo "hello, world" > hello.txt`
+    
+* `[descriptor]> filename`
+
+    把文件描述符重定向到某个文件。`descriptor`可以是`0`，`1`，`2`，其中`0`表示 stdin，`1`表示 stdout，`2`表示 stderr。
+
+    注意，文件描述符和`>`中间不能有空格，而后面的 filename 与`>`之间可以有空格，也可以没有。
+
+    Example:
+
+    file name: `echo_stderr.sh`
+
+    ```bash
+    #!/bin/bash
+
+    echo "hello, world!" >& 2
+    ```
+
+    `./echo_stderr.sh 2> hello.txt`
+
+    在这个例子中，`echo_stderr.sh`在 stderr 进行输出。而下面的命令`./echo_stderr.sh 2> hello.txt`将 stderr 重定向到`hello.txt`文件。因此可以在文件中得到输出的内容。
+
+    注意，如果将上述命令替换为`./echo_stderr.sh 1> hello.txt`或`./echo_stderr.sh > hello.txt`，则仍会在屏幕中进行输出，`hello.txt`文件中不会有任何内容。
+
+* `[descriptor_1]>& <descriptor_2>`
+
+    将一个文件描述符重定向到另一个文件描述符。
+
+    例子：
+
+    `echo "helo, world" >& 2`
+
+    将 stdout 重定向到 stderr。
+
+    注：
+
+    * `[descriptor_1]>&`这 3 个符号之间不能有空格，而`<descriptor_2>`之前可以有空格，也可以没有。
+
+    * 如果省略不写`[descriptor_1]`，那么`[descriptor_1]`默认为`1`。
+
+* `command &> filename`
+
+    将 stdout 和 stderr 都重定向到指定文件。注意`&>`前没有其他的参数。
+
+    这个命令等价于`1>filename 2>&1`
+
+    一些参考资料：<https://stackoverflow.com/questions/24793069/what-does-do-in-bash>
+
 ## Variables
 
 Example:
@@ -2224,64 +2284,6 @@ zaijian
     Ref: <https://www.cyberciti.biz/faq/unix-howto-read-line-by-line-from-file/>
 
 ## Miscellaneous
-
-1. 有关重定向符的用法
-
-    * `command > filename`
-
-        将输出重定向到文件，如果文件存在，则会被覆盖。
-
-        其实这行命令应该这么理解：`[command] [> filename]`，把它分成两个部分。第二部分`> filename`的完整版应该是`1> filename`，`1`表示 stdout。
-
-        例子：
-
-        `echo "hello, world" > hello.txt`
-    
-    * `[descriptor]> filename`
-
-        把文件描述符重定向到某个文件。`descriptor`可以是`0`，`1`，`2`，其中`0`表示 stdin，`1`表示 stdout，`2`表示 stderr。
-
-        注意，文件描述符和`>`中间不能有空格，而后面的 filename 与`>`之间可以有空格，也可以没有。
-
-        Example:
-
-        file name: `echo_stderr.sh`
-
-        ```bash
-        #!/bin/bash
-
-        echo "hello, world!" >& 2
-        ```
-
-        `./echo_stderr.sh 2> hello.txt`
-
-        在这个例子中，`echo_stderr.sh`在 stderr 进行输出。而下面的命令`./echo_stderr.sh 2> hello.txt`将 stderr 重定向到`hello.txt`文件。因此可以在文件中得到输出的内容。
-
-        注意，如果将上述命令替换为`./echo_stderr.sh 1> hello.txt`或`./echo_stderr.sh > hello.txt`，则仍会在屏幕中进行输出，`hello.txt`文件中不会有任何内容。
-
-    * `[descriptor_1]>& <descriptor_2>`
-
-        将一个文件描述符重定向到另一个文件描述符。
-
-        例子：
-
-        `echo "helo, world" >& 2`
-
-        将 stdout 重定向到 stderr。
-
-        注：
-
-        * `[descriptor_1]>&`这 3 个符号之间不能有空格，而`<descriptor_2>`之前可以有空格，也可以没有。
-
-        * 如果省略不写`[descriptor_1]`，那么`[descriptor_1]`默认为`1`。
-
-    * `command &> filename`
-
-        将 stdout 和 stderr 都重定向到指定文件。注意`&>`前没有其他的参数。
-
-        这个命令等价于`1>filename 2>&1`
-
-        一些参考资料：<https://stackoverflow.com/questions/24793069/what-does-do-in-bash>
 
 1. 有关标准输入输出，标准错误
 

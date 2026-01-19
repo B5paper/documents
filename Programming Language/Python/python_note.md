@@ -2,6 +2,216 @@
 
 ## cached
 
+* python 抽象基类与其他语言的抽象基类对比
+
+    1. Python的抽象基类（ABC）
+
+        ```python
+        from abc import ABC, abstractmethod
+        from typing import Protocol
+
+        # 方法1：使用ABC基类
+        class DataProcessor(ABC):
+            @abstractmethod
+            def load_data(self):
+                """必须实现的方法"""
+                pass
+            
+            @abstractmethod
+            def process_data(self):
+                """必须实现的方法"""
+                pass
+            
+            # 基类提供默认实现的功能
+            def run(self):
+                """利用子类实现的方法提供完整功能"""
+                data = self.load_data()
+                result = self.process_data(data)
+                return self.save_result(result)
+            
+            def save_result(self, result):
+                """可选的钩子方法"""
+                # 默认实现
+                return f"Saved: {result}"
+
+        # 用户实现
+        class CSVProcessor(DataProcessor):
+            def load_data(self):
+                return "CSV data"
+            
+            def process_data(self, data):
+                return f"Processed {data}"
+        ```
+
+    2. Python的Protocol（类型提示）
+
+        ```python
+        from typing import Protocol, runtime_checkable
+
+        @runtime_checkable
+        class ProcessorProtocol(Protocol):
+            def preprocess(self) -> str: ...
+            def transform(self, data: str) -> str: ...
+            
+            # 注意：Protocol本身不提供实现，只是定义接口
+
+        class BaseProcessor:
+            """基类可以基于Protocol实现通用逻辑"""
+            def execute_pipeline(self, processor: ProcessorProtocol):
+                """保证processor有preprocess和transform方法"""
+                data = processor.preprocess()
+                result = processor.transform(data)
+                return self.finalize(result)
+        ```
+
+    3. 其他语言的类似机制
+
+        Java - 接口和抽象类
+
+        ```java
+        // 接口
+        public interface Processor {
+            void load();
+            void process();
+        }
+
+        // 抽象类
+        abstract class AbstractProcessor implements Processor {
+            public abstract void load();
+            public abstract void process();
+            
+            // 模板方法
+            public void run() {
+                load();
+                process();
+                cleanup();
+            }
+            
+            protected void cleanup() {
+                // 默认实现
+            }
+        }
+        ```
+
+    Go - 接口
+
+    ```go
+    type Processor interface {
+        Load() error
+        Process() error
+    }
+
+    // 提供通用函数
+    func RunProcessor(p Processor) error {
+        if err := p.Load(); err != nil {
+            return err
+        }
+        return p.Process()
+    }
+    ```
+
+    TypeScript - 抽象类和接口
+
+    ```typescript
+    abstract class DataHandler {
+        abstract fetch(): Promise<any>;
+        abstract transform(data: any): any;
+        
+        async execute(): Promise<any> {
+            const data = await this.fetch();
+            return this.transform(data);
+        }
+    }
+    ```
+
+    4. 设计模式：模板方法模式
+
+        ```python
+        class TemplateProcessor:
+            """模板方法模式的经典实现"""
+            def process_pipeline(self):
+                # 固定流程
+                self.setup()           # 可选的钩子
+                data = self.extract()  # 必须实现
+                transformed = self.transform(data)  # 必须实现
+                self.cleanup()         # 可选的钩子
+                return transformed
+            
+            def setup(self):
+                """钩子方法，子类可覆盖"""
+                pass
+            
+            def extract(self):
+                """必须实现的方法"""
+                raise NotImplementedError
+            
+            def transform(self, data):
+                """必须实现的方法"""
+                raise NotImplementedError
+            
+            def cleanup(self):
+                """钩子方法，子类可覆盖"""
+                pass
+        ```
+
+    5. 实际应用示例
+
+        ```python
+        from abc import ABC, abstractmethod
+        from dataclasses import dataclass
+
+        class PluginBase(ABC):
+            """插件系统的基础类"""
+            
+            @abstractmethod
+            def validate_config(self, config: dict) -> bool:
+                """验证配置"""
+                pass
+            
+            @abstractmethod
+            def execute(self, input_data) -> any:
+                """执行核心逻辑"""
+                pass
+            
+            def run(self, config: dict, input_data) -> any:
+                """模板方法：完整的执行流程"""
+                if not self.validate_config(config):
+                    raise ValueError("Invalid configuration")
+                
+                self.on_start()
+                result = self.execute(input_data)
+                self.on_complete(result)
+                return result
+            
+            def on_start(self):
+                """钩子：开始执行时的回调"""
+                print(f"Starting {self.__class__.__name__}")
+            
+            def on_complete(self, result):
+                """钩子：完成时的回调"""
+                print(f"Completed with result: {result}")
+
+        # 用户实现
+        class EmailPlugin(PluginBase):
+            def validate_config(self, config: dict) -> bool:
+                return "recipient" in config and "@" in config["recipient"]
+            
+            def execute(self, input_data):
+                return f"Email sent: {input_data}"
+        ```
+
+    这种机制的核心思想是：
+
+    * 定义契约：通过抽象方法定义必须实现的方法
+
+    * 提供模板：在基类中实现通用的流程控制
+
+    * 保证功能：只要用户实现了必要方法，就能获得完整功能
+
+    * 允许扩展：通过钩子方法让用户定制特定步骤
+
+    Python 的 ABC 是最常用的实现方式，它在运行时强制检查子类是否实现了所有抽象方法。
+
 * python 如何删除一个文件？
 
     在 Python 中删除文件有多种方法，以下是几种常用的方式：
