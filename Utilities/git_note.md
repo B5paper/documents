@@ -4,6 +4,53 @@
 
 * git submodule sync
 
+    同步子模块的配置信息，确保子模块的远程仓库URL与父仓库的 .gitmodules 文件保持一致。
+
+    主要使用场景：
+
+    1. 更新子模块远程URL
+
+        当修改了 .gitmodules 文件中子模块的远程仓库URL后，运行 git submodule sync 会将新的URL同步到本地Git配置中。
+
+    2. 修复URL不一致问题
+
+        如果子模块的本地配置URL与 .gitmodules 文件中的URL不一致，使用该命令可以修复。
+
+    工作流程：
+
+    ```bash
+    # 1. 修改 .gitmodules 文件中的子模块URL
+    git submodule sync  # 2. 同步URL到本地配置
+
+    # 3. 更新子模块以使用新的URL
+    git submodule update --init --recursive
+    ```
+
+    实际示例：
+
+    ```bash
+    # 查看当前配置
+    git config --file .gitmodules submodule.external_lib.url
+
+    # 修改 .gitmodules 文件后
+    git submodule sync  # 同步更改
+
+    # 验证更改已生效
+    git config submodule.external_lib.url
+    ```
+
+    与相关命令的区别：
+
+    * git submodule update：更新子模块的内容
+
+    * git submodule sync：只同步配置信息，不更新内容
+
+    * git submodule init：初始化子模块配置
+
+    简而言之，git submodule sync 是一个维护子模块配置一致性的工具命令，通常在修改子模块远程仓库地址后使用。
+
+* git submodule sync
+
     如果`.gitmodules`中的 repo url 路径改变，那么可以使用`git submodule sync`将更改同步到`.git/config`中。
 
     用法：

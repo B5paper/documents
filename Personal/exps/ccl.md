@@ -1315,3 +1315,129 @@
 
         ring_graph.n_channels 需要设置为 2 才行
 
+* siccl output
+
+    为什么 net 1 输出了 2 次？
+
+    ```
+    sipu nodes: num: 2
+        0: sipu 1114112, chip id 0 uuid 8394d921-b848-45b4-b09f-5cc000022010 
+            0: -- LINK_SILINK, bw: 400.0 --> eth_switch 0
+            1: -- LINK_PCI, bw: 0.2 --> cpu 0
+        1: sipu 1179648, chip id 1 uuid ef5a08ec-12cd-43f8-bda0-e10000024010 
+            0: -- LINK_SILINK, bw: 400.0 --> eth_switch 0
+            1: -- LINK_PCI, bw: 0.2 --> cpu 0
+    pci nodes: num: 1
+        0: pci 4096, bdf: 0000:01:00.0
+            0: -- LINK_PCI, bw: 0.0 --> nic 20480
+            1: -- LINK_PCI, bw: 0.0 --> nic 24576
+            2: -- LINK_PCI, bw: 0.2 --> cpu 0
+    eth_switch nodes: num: 1
+        0: eth_switch 0
+            0: -- LINK_SILINK, bw: 400.0 --> sipu 1114112
+            1: -- LINK_SILINK, bw: 400.0 --> sipu 1179648
+    cpu nodes: num: 1
+        0: cpu 0
+            0: -- LINK_PCI, bw: 0.2 --> sipu 1114112
+            1: -- LINK_PCI, bw: 0.2 --> pci 4096
+            2: -- LINK_PCI, bw: 0.2 --> sipu 1179648
+    nic nodes: num: 2
+        0: nic 20480
+            0: -- LINK_NET, bw: 50.0 --> net 0
+            1: -- LINK_PCI, bw: 0.0 --> pci 4096
+        1: nic 24576
+            0: -- LINK_NET, bw: 50.0 --> net 1
+            1: -- LINK_PCI, bw: 0.0 --> pci 4096
+    net nodes: num: 3
+        0: net 0
+            0: -- LINK_NET, bw: 50.0 --> nic 20480
+        1: net 1
+            0: -- LINK_NET, bw: 50.0 --> nic 24576
+        2: net 1
+    ```
+
+* siccl xml output
+
+    这里是 collect local resources() 函数之后的输出，可以看到没有 nic 网卡。
+
+    ```xml
+    <system version="1">
+        <cpu modelid="143" familyid="6" vendor="GenuineIntel" arch="x86_64" affinity="ffffffff,ffffffff,ffffffff,00000000,0000ffff,ffffffff" host_hash="0x34f963218b32f91c" numaid="0">
+            <pci link_width="1" subsystem_vendor="0x205d" device="0x1100" link_speed="2.5 GT/s PCIe" subsystem_device="0x0000" vendor="0x205d" class="0x120000" busid="0000:11:00.0">
+                <gpu uuid="8394d921-b848-45b4-b09f-5cc000022010" chip_id="0" rank="0" dev="0" micro_id="0">
+                    <silink count="4" type="switch"></silink>
+                </gpu>
+            </pci>
+        </cpu>
+    </system>
+    ```
+
+* siccl xml output after populate nics
+
+    看起来是正常的，没什么问题。
+
+    ```xml
+    <system version="1">
+        <cpu modelid="143" familyid="6" vendor="GenuineIntel" arch="x86_64" affinity="ffffffff,ffffffff,ffffffff,00000000,0000ffff,ffffffff" host_hash="0x34f963218b32f91c" numaid="0">
+            <pci link_width="1" subsystem_vendor="0x205d" device="0x1100" link_speed="2.5 GT/s PCIe" subsystem_device="0x0000" vendor="0x205d" class="0x120000" busid="0000:11:00.0">
+                <gpu uuid="8394d921-b848-45b4-b09f-5cc000022010" chip_id="0" rank="0" dev="0" micro_id="0">
+                    <silink count="4" type="switch"></silink>
+                </gpu>
+            </pci>
+            <pci link_width="1" subsystem_vendor="0x0000" device="0x8232" link_speed="2.5 GT/s PCIe" subsystem_device="0x0000" vendor="0x104c" class="0x060400" busid="0000:01:00.0">
+                <pci link_width="0" subsystem_vendor="0x15b3" device="0x1021" link_speed="Unknown" subsystem_device="0x0023" vendor="0x15b3" class="0x02" busid="0000:05:00.0">
+                    <nic>
+                        <net maxconn="131072" speed="400000" latency="0.000000" dev="0" keep="1" gdr="0" guid="2369990716664481952" port="1" name="mlx5_0"></net>
+                    </nic>
+                </pci>
+            </pci>
+            <pci link_width="1" subsystem_vendor="0x0000" device="0x8232" link_speed="2.5 GT/s PCIe" subsystem_device="0x0000" vendor="0x104c" class="0x060400" busid="0000:01:00.0">
+                <pci link_width="0" subsystem_vendor="0x15b3" device="0x1021" link_speed="Unknown" subsystem_device="0x0023" vendor="0x15b3" class="0x02" busid="0000:06:00.0">
+                    <nic>
+                        <net maxconn="131072" speed="400000" latency="0.000000" dev="1" keep="1" gdr="0" guid="13577908673887504544" port="1" name="mlx5_1"></net>
+                    </nic>
+                </pci>
+            </pci>
+        </cpu>
+    </system>
+    ```
+
+* bootstrap 之后的 xml
+
+    这个看起来不太对，`pci busid="0000:01:00.0"`出现了两次，没有正确 merge。
+
+    ```xml
+    <system version="1">
+        <cpu numaid="0" host_hash="0x34f963218b32f91c" affinity="ffffffff,ffffffff,ffffffff,00000000,0000ffff,ffffffff" arch="x86_64" vendor="GenuineIntel" familyid="6" modelid="143">
+            <pci busid="0000:11:00.0" class="0x120000" vendor="0x205d" subsystem_device="0x0000" link_speed="2.5 GT/s PCIe" device="0x1100" subsystem_vendor="0x205d" link_width="1">
+                <gpu micro_id="0" dev="0" rank="0" chip_id="0" uuid="8394d921-b848-45b4-b09f-5cc000022010">
+                    <silink type="switch" count="4"></silink>
+                </gpu>
+            </pci>
+            <pci busid="0000:01:00.0" class="0x060400" vendor="0x104c" subsystem_device="0x0000" link_speed="2.5 GT/s PCIe" device="0x8232" subsystem_vendor="0x0000" link_width="1">
+                <pci busid="0000:05:00.0" class="0x02" vendor="0x15b3" subsystem_device="0x0023" link_speed="Unknown" device="0x1021" subsystem_vendor="0x15b3" link_width="0">
+                    <nic>
+                        <net name="mlx5_0" port="1" guid="2369990716664481952" gdr="0" keep="1" dev="0" latency="0.000000" speed="400000" maxconn="131072"></net>
+                    </nic>
+                </pci>
+                <pci busid="0000:06:00.0" class="0x02" vendor="0x15b3" subsystem_device="0x0023" link_speed="Unknown" device="0x1021" subsystem_vendor="0x15b3" link_width="0">
+                    <nic>
+                        <net name="mlx5_1" port="1" guid="13577908673887504544" gdr="0" keep="1" dev="1" latency="0.000000" speed="400000" maxconn="131072"></net>
+                    </nic>
+                </pci>
+            </pci>
+            <pci busid="0000:01:00.0" class="0x060400" vendor="0x104c" subsystem_device="0x0000" link_speed="2.5 GT/s PCIe" device="0x8232" subsystem_vendor="0x0000" link_width="1">
+                <pci busid="0000:06:00.0" class="0x02" vendor="0x15b3" subsystem_device="0x0023" link_speed="Unknown" device="0x1021" subsystem_vendor="0x15b3" link_width="0">
+                    <nic>
+                        <net name="mlx5_1" port="1" guid="13577908673887504544" gdr="0" keep="1" dev="1" latency="0.000000" speed="400000" maxconn="131072"></net>
+                    </nic>
+                </pci>
+            </pci>
+            <pci busid="0000:12:00.0" class="0x120000" vendor="0x205d" subsystem_device="0x0000" link_speed="2.5 GT/s PCIe" device="0x1100" subsystem_vendor="0x205d" link_width="1">
+                <gpu micro_id="0" dev="1" rank="1" chip_id="1" uuid="ef5a08ec-12cd-43f8-bda0-e10000024010">
+                    <silink type="switch" count="4"></silink>
+                </gpu>
+            </pci>
+        </cpu>
+    </system>
+    ```

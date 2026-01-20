@@ -1,6 +1,6 @@
 # Python Note
 
-## cached
+## cache
 
 * python 抽象基类与其他语言的抽象基类对比
 
@@ -2812,6 +2812,85 @@
 
     * <https://www.freecodecamp.org/news/python-copy-file-copying-files-to-another-directory/>
 
+## topics
+
+### re
+
+* finditer
+
+    example 1:
+
+    ```python
+    txt = 'abcbacaccba'
+    pat_2 = re.compile('a.{2}')
+    for m in pat_2.finditer(txt):
+    	start_pos = m.start()
+    	end_pos = m.end()
+    	selected_txt = txt[start_pos:end_pos]
+    	print(selected_txt)  # [abc, aca]
+    ```
+
+    这个例子中，使用`pat_2.finditer()`
+
+    example 2:
+
+    ```python
+    txt = \
+    '''
+    [unit]
+    hello
+    world
+    [unit]
+    hehe
+    haha
+    '''
+    pat_3 = re.compile('\[unit\](.|\n)*?(?=\[unit\]|\Z)')
+    for m in pat_3.finditer(txt):
+    	start_pos = m.start()
+    	end_pos = m.end()
+    	selected_txt = txt[start_pos:end_pos]
+    	print(selected_txt)
+    ```
+
+    output:
+
+    ```
+    [unit]
+    hello
+    world
+
+    [unit]
+    hehe
+    haha
+    ```
+
+    其中`(?=...)`表示匹配括号中的表达式，但是不选中。这个操作叫 forward lookahead。
+
+    `*?`表示最近匹配，在所有符合条件的表达式中，找到最短的。
+
+    可以使用这个网站对正则表达式 debug: <https://regex101.com/>
+
+    目前不清楚`findall()`怎么个用法。
+
+* search and match
+
+    ```python
+    import re
+    txt = 'hello, world'
+    pat_1 = re.compile('world')
+    m = pat_1.search(txt)
+    start_pos = m.start()
+    end_pos = m.end()
+    selected_txt = txt[start_pos:end_pos]
+    print(selected_txt)  # world
+    ```
+
+    python 中使用正则表达式可以使用`re`模块，其中`re.compile()`表示将正则表达式编译成一段小程序（应该是转换成有限状态机）。
+
+    `pat_1.search()`表示从指定位置开始匹配，返回一个`Match`对象，`Match`对象保存了匹配结果，包括开始和结尾位置，group 情况之类的。
+
+    `search()`区别于`match()`，`match()`表示从头开始匹配。
+
 ## pypi mirror
 
 在上海使用上交的镜像比较快：<https://mirrors.sjtug.sjtu.edu.cn/docs/pypi/web/simple>
@@ -2880,82 +2959,7 @@
 
 	比如使用`(.+), (.+)`去匹配`hello, world`，得到的 group 1 为`hello`，group 2 为`world`，空格被正确匹配了。
 
-### search and match
 
-example:
-
-```python
-import re
-txt = 'hello, world'
-pat_1 = re.compile('world')
-m = pat_1.search(txt)
-start_pos = m.start()
-end_pos = m.end()
-selected_txt = txt[start_pos:end_pos]
-print(selected_txt)  # world
-```
-
-python 中使用正则表达式可以使用`re`模块，其中`re.compile()`表示将正则表达式编译成一段小程序（应该是转换成有限状态机）。
-
-`pat_1.search()`表示从指定位置开始匹配，返回一个`Match`对象，`Match`对象保存了匹配结果，包括开始和结尾位置，group 情况之类的。
-
-`search()`区别于`match()`，`match()`表示从头开始匹配。
-
-### finditer
-
-example 1:
-
-```python
-txt = 'abcbacaccba'
-pat_2 = re.compile('a.{2}')
-for m in pat_2.finditer(txt):
-	start_pos = m.start()
-	end_pos = m.end()
-	selected_txt = txt[start_pos:end_pos]
-	print(selected_txt)  # [abc, aca]
-```
-
-这个例子中，使用`pat_2.finditer()`
-
-example 2:
-
-```python
-txt = \
-'''
-[unit]
-hello
-world
-[unit]
-hehe
-haha
-'''
-pat_3 = re.compile('\[unit\](.|\n)*?(?=\[unit\]|\Z)')
-for m in pat_3.finditer(txt):
-	start_pos = m.start()
-	end_pos = m.end()
-	selected_txt = txt[start_pos:end_pos]
-	print(selected_txt)
-```
-
-output:
-
-```
-[unit]
-hello
-world
-
-[unit]
-hehe
-haha
-```
-
-其中`(?=...)`表示匹配括号中的表达式，但是不选中。这个操作叫 forward lookahead。
-
-`*?`表示最近匹配，在所有符合条件的表达式中，找到最短的。
-
-可以使用这个网站对正则表达式 debug: <https://regex101.com/>
-
-目前不清楚`findall()`怎么个用法。
 
 ### group
 

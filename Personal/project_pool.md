@@ -236,7 +236,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [new] random select 实现在指定几个文件中随机选择一个文件，并随机选则一行
+* [ ] random select 实现在指定几个文件中随机选择一个文件，并随机选择一行
 
 * [ ] CUDA Core Compute Libraries (CCCL)
 
@@ -313,8 +313,6 @@ english words 由 { } reorg: english words 进化而来。
         并且结果不能记录到 qa 中，必须记录到 record 中，每次列举过去 180 天的答题情况。
 
 * [ ] 将 project pool 中常用到的 pdf 等 resources 打包成 zip，发送到邮箱里
-
-* [v] 为 stochastic exam 增加`--check <qa_file>`功能，检查是否每个 unit 都有 idx, id。
 
 * [ ] 找到贝叶斯网引论 pdf，上传到邮箱里
 
@@ -607,8 +605,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] process 1 tab 01.06
-
 * [ ] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
 
 * [ ] vim 替换中的`/normal I*`
@@ -652,8 +648,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] vim 中列表的用法`let lines = []`
 
 * [ ] `add(lines, line)`
-
-* [v] process 1 tab 01.06
 
 * [ ] vim `s` 命令与`c`命令
 
@@ -799,7 +793,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
 
-* [ ] `git submodule sync`
+* [v] `git submodule sync`
 
 * [ ] `git config -f .gitmodules --list`
 
@@ -3012,9 +3006,15 @@ resources:
 
 ### tasks
 
+* [v] ib 环境下是否能收集到网卡信息
+
+    feedback:
+
+    * 在有 ib 网卡的环境下，只能拿到 enp0s2 （eth 网卡），不能拿到 enp0s3 (rdma 网卡)
+
 * [ ] pci busid 改成 uuid
 
-* [ ] nv 的输出是 path net　而不是 path sys　为什么？
+* [v] nv 的输出是 path net　而不是 path sys　为什么？
 
 * [ ] 在 data 目录中构建 load topo 对应的几种情况
 
@@ -5961,7 +5961,31 @@ resources:
 
 ### tasks
 
-* [asso] vim `noremap!`
+* [new] 调研 vim 命令
+
+    标记要选中的行（例如第1、3、5行）：
+
+    `:1,5g/^/if line('.')%2==1|exe "normal! mV"|endif`
+
+* [new] 调研 vim 命令
+
+    `:for i in range(1, line('$'), 2) | call setpos('.', [0, i, 1, 0]) | normal V | endfor`
+
+* [new] 调研 vim 实现标记多个行，然后调用宏或函数
+
+    主要思路是，normal 模式下，使用快捷键，比如 <leader> + L （未检测这个是否与已有快捷键冲突）标记行，这些行号记录在脚本变量中，然后使用 <leader> + C 准备好调用，用户输入调用指令（比如 @x 代表调用宏， func_name 表示调用函数）后，对刚才保存在脚本中的行应用这些调用。调用完成后，清空脚本变量。
+
+    可能的问题：
+    
+    假如脚本中涉及到了行的增删，记录的行号会变动，如何解决？
+
+* [ ] 调研 vim `?`搜索
+
+    `?{           " 搜索上一个 {`
+
+* [ ] vim `noremap!`
+
+* [ ] vim `s`命令：替换并插入
 
 * [asso] 调研 vim 命令
 
@@ -5975,8 +5999,6 @@ resources:
     功能是否为 让退格键一次删除 4 个空格？
 
     如果是，那么这个功能是否和 softtabstop 冲突了？
-
-* [asso] vim `s`命令：替换并插入
 
 * [asso] vim :normal 命令
 
@@ -6048,10 +6070,6 @@ resources:
     " 搜索上一个 {
     s{  
     ```
-
-* [ ] 调研 vim `?`搜索
-
-    `?{           " 搜索上一个 {`
 
 * [asso] 调研下面这段 vim 代码
 

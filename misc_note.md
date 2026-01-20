@@ -2,6 +2,189 @@
 
 ## cache
 
+* 简述什么是粒球计算
+
+    粒球计算（Granular-Ball Computing，GBC）是一种受认知机理启发的创新计算范式，其核心思想是用不同大小的“粒球”（Granular-Ball）来表示和覆盖数据，从而简化复杂问题，提升计算效率与鲁棒性。
+
+    核心思想
+
+    * 粒球（Granular-Ball）
+
+        一个粒球通常由中心点和半径定义，能够覆盖一个数据子集。粒球的大小（半径）反映了该区域数据的分布密度或不确定性——数据密集处用小球（精细刻画），稀疏处用大球（粗略概括）。
+
+    * 粒化过程
+
+        通过自适应生成粒球来覆盖整个数据空间，形成对数据的多层次、多粒度表示，代替传统方法中逐个数据点的处理方式。
+
+    关键特点
+
+    * 多粒度性：允许从粗粒度到细粒度动态调整，兼顾整体趋势与局部细节。
+
+    * 自适应覆盖：粒球大小根据数据分布自动优化，避免人工设定参数的局限。
+
+    * 噪声容忍：大粒球能自然包容孤立点或噪声，增强模型鲁棒性。
+
+    * 计算高效：用少量粒球替代大量数据点，降低存储与计算复杂度。
+
+    应用方向
+
+    * 粒球聚类：用粒球覆盖聚类结构，实现快速聚类。
+
+    * 粒球分类：基于粒球覆盖构建分类边界，提升分类效率。
+
+    * 优化与搜索：在解空间用粒球引导搜索，加速优化过程。
+
+    与传统方法的区别
+
+    | 传统方法 | 粒球计算 |
+    | - | - |
+    | 以数据点为基本单元 | 以粒球为基本单元 |
+    | 对噪声敏感 | 对噪声鲁棒 |
+    | 计算复杂度高 | 通过粒化降低复杂度 |
+    | 依赖精细参数调优 | 自适应粒度调整 |
+
+    意义
+
+    粒球计算模仿人类“从整体到局部”的认知模式，为处理大规模、高噪声、不平衡数据提供了新思路，尤其在机器学习、数据挖掘和模式识别领域展现出潜力。它通过数据驱动的粒度自适应，在精度与效率之间寻求更优平衡。
+
+    如果需要进一步了解其数学模型或具体算法案例，可以随时补充说明。
+
+* 粒球计算有哪些经典的论文和工程项目
+
+    以下是关于粒球计算的经典论文和代表性工程项目，这些资源反映了该领域的核心发展与实际应用。
+
+    一、经典论文
+
+    理论基础与开创性工作
+
+    * 《Granular-Ball Computing: An Efficient, Robust, and Interpretable Adaptive Multi-Granularity Representation and Computation Method》
+
+        * 作者/团队：刘大有、李敏等（吉林大学、清华大学）
+
+        * 贡献：系统提出粒球计算的理论框架，包括粒球生成、多粒度覆盖和自适应优化机制。
+
+        * 关键词：多粒度表示、自适应学习、鲁棒性。
+
+    * 《Granular-Ball Based K-Means Clustering》
+
+        * 作者：Li Min, Liu Dayou 等
+
+        * 发表：IEEE Transactions on Knowledge and Data Engineering (TKDE)
+
+        * 贡献：将粒球引入K-Means聚类，显著提升大规模数据下的聚类效率与噪声鲁棒性。
+
+    * 《Granular-Ball Support Vector Machine》
+
+        * 作者：Wang Guoyin, Liu Dayou 等
+
+        * 发表：International Journal of Machine Learning and Cybernetics
+
+        * 贡献：基于粒球覆盖的SVM分类方法，减少支持向量数量，加速训练过程。
+
+    * 《Granular-Ball Optimization Algorithm》
+
+        * 作者团队：吉林大学计算智能实验室
+
+        * 贡献：将粒球用于进化优化，通过多粒度搜索平衡全局探索与局部开发。
+
+    重要进展论文
+
+    * 《Adaptive Granular-Ball Generation for Noisy Label Learning》
+
+        * 会议/期刊：AAAI / IEEE Transactions on Neural Networks and Learning Systems
+
+        * 贡献：针对噪声标签数据，提出自适应粒球生成方法，提升模型鲁棒性。
+
+    * 《Granular-Ball Based Fast Density Peaks Clustering》
+
+        * 会议：IJCAI
+
+        * 贡献：结合密度峰值聚类与粒球覆盖，实现高效聚类。
+
+    * 《Granular-Ball Computing for Imbalanced Data Classification》
+
+        * 期刊：Information Sciences
+
+        * 贡献：处理不平衡数据，通过粒球调整类别边界。
+
+    二、工程项目与工具库
+
+    开源库
+
+    * Granular-Ball Computing Toolkit (GBCT)
+
+        * 机构：吉林大学计算智能实验室
+
+        * 语言：Python
+
+        * 功能：提供粒球生成、粒球聚类、分类、可视化的基础实现。
+
+        * GitHub：可搜索“Granular-Ball Computing”或“GBCT”（部分代码发布于实验室主页）。
+
+    * GBC-Classification
+
+        * 内容：基于粒球的分类算法实现（如粒球SVM、粒球KNN）。
+
+        * 特点：包含与传统方法的对比实验模块。
+
+    * Granular-Ball Clustering (GBCLUST)
+
+        * 功能：高效粒球聚类库，支持大规模数据。
+
+        * 优化：基于C++加速的Python接口。
+
+    应用项目案例
+
+    * 医疗数据诊断中的粒球分类系统
+
+        * 场景：针对医学影像或电子病历数据，利用粒球构建鲁棒分类模型，降低噪声干扰。
+
+        * 合作机构：吉林大学附属医院（部分研究成果发表于医学信息学期刊）。
+
+    * 工业异常检测中的粒球快速检测框架
+
+        * 场景：在制造流水线数据中，用粒球覆盖正常模式，快速识别异常点。
+
+        * 特点：实时性高，适合边缘计算部署。
+
+    * 粒球优化在物流路径规划中的应用
+
+        * 场景：用粒球表示物流节点区域，加速路径搜索。
+
+        * 成果：与国内物流企业合作的项目报告。
+
+    三、重要研究团队与资源
+
+    国内外主要团队
+
+    * 吉林大学计算智能实验室（核心团队）：刘大有、李敏等，发表多篇粒球计算奠基性论文。
+
+    * 重庆大学大数据与智能计算团队：在粒球优化方向有持续研究。
+
+    * 海外合作：部分研究与美国密歇根大学、英国萨里大学等机构合作，推动粒球计算在跨领域中的应用。
+
+    相关会议与专题
+
+    * International Conference on Granular Computing (GrC)：常设粒计算相关专题。
+
+    * IEEE International Conference on Data Mining (ICDM)、IJCAI、AAAI：近年均有粒球计算相关论文。
+
+    四、入门建议
+
+    * 精读奠基论文：从刘大有团队在TKDE、Information Sciences的早期论文入手。
+
+    * 实践工具：尝试使用开源工具库（如GBCT）在UCI数据集上复现基础实验。
+
+    * 关注应用论文：结合自身领域（如生物信息、图像处理）阅读应用型论文，了解粒球如何适配具体问题。
+
+    如果需要具体论文链接、代码仓库地址或某个应用方向的扩展解读，可以进一步告知。
+
+* 骁龙 8 代工区分
+
+    骁龙 8 Gen 1 = 三星 4nm （能效发热问题较大）
+
+    骁龙 8+ Gen 1 = 台积电 4nm （能效表现优秀，口碑翻身）
+
 * 家用晶圆厂
 
     * 多项目晶圆（MPW）服务
