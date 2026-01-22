@@ -2,6 +2,127 @@
 
 ## cache
 
+* SSH -D 的作用
+
+    ssh -D 用于创建 SOCKS 代理隧道，可以将本地端口与远程 SSH 服务器建立动态端口转发。通过这个代理，所有发送到本地指定端口的数据流量都会通过 SSH 加密隧道转发到远程服务器，再由远程服务器访问目标网络资源。
+
+    主要作用：
+
+    * 加密网络流量：保护本地应用程序的网络通信
+
+    * 突破网络限制：绕过防火墙或访问受限内容
+
+    * 身份伪装：使用远程服务器的 IP 地址访问网络
+
+    * 安全浏览：在不安全的公共 Wi-Fi 中保护数据
+
+    基本用法
+
+    ```bash
+    ssh -D [本地端口] [用户@]远程主机
+    ```
+
+    常见示例
+
+    * 创建基本的 SOCKS5 代理（端口 1080）：
+
+        ```bash
+        ssh -D 1080 user@example.com
+        ```
+
+    * 指定本地接口（仅本机访问）：
+
+        ```bash
+        ssh -D localhost:1080 user@example.com
+        ```
+
+    * 允许局域网其他设备使用代理：
+
+        ```bash
+        ssh -D 0.0.0.0:1080 user@example.com
+        ```
+
+    * 后台运行：
+
+        ```bash
+        ssh -D 1080 -f -C -q -N user@example.com
+        ```
+
+    选项说明：
+
+    * -f：后台运行
+
+    * -C：启用压缩
+
+    * -q：安静模式
+
+    * -N：不执行远程命令
+
+    客户端配置
+
+    浏览器配置（以 Firefox 为例）
+
+    * 设置 → 网络设置 → 手动代理配置
+
+    * SOCKS 主机：127.0.0.1
+
+    * 端口：1080
+
+    * SOCKS v5，勾选“远程 DNS”
+
+    命令行使用
+
+    ```bash
+    # 通过代理使用 curl
+    curl --socks5 127.0.0.1:1080 http://example.com
+
+    # 设置全局代理环境变量
+    export ALL_PROXY=socks5://127.0.0.1:1080
+    ```
+
+    注意事项
+
+    * 安全性：
+
+        * 流量在本地到 SSH 服务器之间是加密的
+
+        * 从 SSH 服务器到目标网站是明文的（除非目标支持 HTTPS）
+
+        * 建议使用 -C 选项压缩数据提高速度
+
+    * 性能：
+
+        * 所有流量都经过远程服务器，速度受限于 SSH 服务器的带宽
+
+        * 可能增加延迟
+
+    * 连接管理：
+
+        * 保持 SSH 连接稳定很重要
+
+        * 可以使用 autossh 自动重连：
+
+        ```bash
+        autossh -M 0 -D 1080 -f -N user@example.com
+        ```
+
+    高级用法
+
+    多级代理跳转：
+
+    ```bash
+    # 通过跳板机连接到最终代理服务器
+    ssh -D 1080 -J jumpuser@jumpserver.com finaluser@finalserver.com
+    ```
+
+    指定加密算法（提高性能）：
+
+    ```bash
+    ssh -D 1080 -c aes128-gcm@openssh.com user@example.com
+    ```
+
+    这种代理方式特别适合需要临时安全访问、调试网络问题或绕过地域限制的场景。
+
 * windows 中使用 nmap 的 ncat.exe 配置 ssh proxy
 
     ```ssh

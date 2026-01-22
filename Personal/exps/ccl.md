@@ -1374,7 +1374,7 @@
 
 * siccl xml output after populate nics
 
-    看起来是正常的，没什么问题。
+    这个地方不对，两个 pci `0000:01:00.0`应该合成一个才对。
 
     ```xml
     <system version="1">

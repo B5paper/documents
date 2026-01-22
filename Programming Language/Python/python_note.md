@@ -2,6 +2,53 @@
 
 ## cache
 
+* python re 模块中 match() 与 search() 的区别
+
+    ```py
+    import re
+
+    txt = 'hello, world'
+    pat = re.compile('world')
+    print('text: {}'.format(txt))
+    print('pattern: {}'.format(pat.pattern))
+    print()
+
+    m = pat.match(txt)
+    print('-------- match test 1 --------')
+    print('start pos: 0, match result:')
+    print(m)  # None
+    print()
+
+    m = pat.match(txt, pos=7)
+    print('-------- match test 2 --------')
+    print('start pos: 7, match result:')
+    print(m)
+    start_pos = m.start()
+    end_pos = m.end()
+    selected_txt = txt[start_pos:end_pos]
+    print('selected text: {}'.format(selected_txt))  # world
+    ```
+
+    output:
+
+    ```
+    text: hello, world
+    pattern: world
+
+    -------- match test 1 --------
+    start pos: 0, match result:
+    None
+
+    -------- match test 2 --------
+    start pos: 7, match result:
+    <re.Match object; span=(7, 12), match='world'>
+    selected text: world
+    ```
+
+    可以看出，`match()`是从指定 pos 开始匹配，并且要求 pos 的第一个字符就要和 pattern 匹配。而`search()`是从 pos 开始向后搜索，直到找到和 pattern 匹配的子串为止。
+
+    `match()`从 pos 处开始匹配，不代表这里就是行首。即对于字符串`hello, world`，指定 match() 时 pos 为 7，pattern 设置为`^world`，那么会返回 None。`^`只匹配真正的行首，不认为 match() 设置的 pos 为行首。
+
 * python 抽象基类与其他语言的抽象基类对比
 
     1. Python的抽象基类（ABC）

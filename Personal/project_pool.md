@@ -148,11 +148,23 @@
 
 ## cached questions
 
-* 如果遇到的知识是条目式的，没有理解难度，但是数量比较大，是否该将其列入到记忆任务中？还是说调研时先跳过？
+* [new] 思考：文件中使用引用标记来引用其它文件中的内容
 
-    * append (2024.03.21)
+    比如
 
-        如果没有理解难度，那么基本上看一遍就能记住，不需要列到记忆任务中。这个效率其实挺高的，不会占太多时间。
+    output
+
+    ```
+    <dir/file_name.log>
+    ```
+
+    直接在这里放整段 log 内容太长，需要把 log 保存到外部文件中。
+
+    还需要一种机制，可以快速跳转到外部文件，或者在渲染时显示外部文件中的内容。可以考虑折叠－展开机制，输入某个快捷键，则显示文件内容，再按一次快捷键，将文件内容重新变回引用。
+
+    还需要一种机制，检测一个外部文件是否被引用，如果没有被引用，那么可以删除。
+
+    还需要一种机制，保证当 note 文件和 log 文件路径改变时，引用记录不会失效。
 
 * [思考] 无论是 qa 还是 note，除了添加内容，更需要优化。这个优化该如何进行？
 
@@ -236,6 +248,8 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
+
 * [ ] random select 实现在指定几个文件中随机选择一个文件，并随机选择一行
 
 * [ ] CUDA Core Compute Libraries (CCCL)
@@ -276,12 +290,6 @@ english words 由 { } reorg: english words 进化而来。
 
     看到 P7
 
-* [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
-
-* [ ] 在虚拟机里安装 cpu 版本的 mmdetection，看看能跑通哪些基本功能
-
-* [ ] 调研 hugging face，看看比 mmdetection 多了什么东西
-
 * [ ] 增加 cimg note qa，并加入 test collect 里
 
     1. 增加 qa unit，打开图片，获取指定位置的像素 rgb 值
@@ -291,8 +299,6 @@ english words 由 { } reorg: english words 进化而来。
     可以参考`ref_5`
 
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
-
-* [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
 
 * [P] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
@@ -358,9 +364,19 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [new] qa 文件权重保留小数点后 4 位 
+* [ ] qa 文件权重保留小数点后 4 位 
 
-* [ ] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
+* [v] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
+
+    feedback:
+
+    * [ ] re.compile `MULTILINE`
+
+        ```py
+        pat = re.compile('^world', re.MULTILINE)  # 多行模式
+        txt = 'hello, world\nworld again'
+        m = pat.match(txt, pos=12)  # 可以匹配第二行的 world
+        ```
 
 * [ ] 在同一次 test 中，不能出现重复的 unit
 
@@ -793,8 +809,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
 
-* [v] `git submodule sync`
-
 * [ ] `git config -f .gitmodules --list`
 
 * [ ] 调研下述用法
@@ -1151,24 +1165,6 @@ english words 由 { } reorg: english words 进化而来。
     > A100 Data Sheet Comparison vs V100 and H100
 
     不明白 TPCs 是什么意思。
-
-* [ ] 调研`git rebase --onto`
-
-* [ ] 调研`git merge --no-ff`
-
-* [ ] 调研`git reset --soft`
-
-* [ ] 调研`git merge --squash`
-
-* [ ] 调研 rsync `--backup`的用法
-
-* [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
-
-* [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
-
-* [ ] 调研`git cherry-pick`
-
-* [ ] 调研`git reflog`
 
 * [o] process 1 url 10/01
 
@@ -1580,17 +1576,25 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* [new] matlab exist()
+
+* [new] matlab load() 
+
+    `load(nirsFileName,'-mat');`
+
 * [new] matlab `saveas()`
 
-* [ ] 调研 matlab `pause(1);`函数
+* [v] 调研 matlab `pause(1);`函数
 
-* [ ] 调研 matlab `norm()`函数
+* [v] 调研 matlab `norm()`函数
 
 * [ ] matlab `min()`, `max()`
 
-* [new] matlab `dir()`
+* [ ] matlab `reshape()`
 
-* [new] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
+* [ ] matlab `dir()`
+
+* [ ] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
 
     类似 python 的 easy dict 的效果。调研一下。
 
@@ -1601,8 +1605,6 @@ english words 由 { } reorg: english words 进化而来。
 * [new] matlab `fileread()`
 
 * [new] matlab `fread()`, `fopen()`, `fclose()`
-
-* [ ] matlab `reshape()`
 
 * [ ] 调研 matlab 命令
 
@@ -1662,8 +1664,6 @@ english words 由 { } reorg: english words 进化而来。
     [val1, val2, val3] = myFunc(4);  % 16, 64, 2
     ```
 
-* [v] matlab `a = [x, y, ]`
-
 * [new] matlab `cellfun`
 
     ```matlab
@@ -1672,7 +1672,7 @@ english words 由 { } reorg: english words 进化而来。
     names = cellfun(@(x) fileparts(x), file_cell, 'UniformOutput', false);
     ```
 
-* [new] matlab `which()`
+* [ ] matlab `which()`
 
 ## Torch
 
@@ -3006,15 +3006,9 @@ resources:
 
 ### tasks
 
-* [v] ib 环境下是否能收集到网卡信息
-
-    feedback:
-
-    * 在有 ib 网卡的环境下，只能拿到 enp0s2 （eth 网卡），不能拿到 enp0s3 (rdma 网卡)
+* [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
 
 * [ ] pci busid 改成 uuid
-
-* [v] nv 的输出是 path net　而不是 path sys　为什么？
 
 * [ ] 在 data 目录中构建 load topo 对应的几种情况
 
@@ -3420,6 +3414,8 @@ resources:
 ## linux maintain
 
 ### cache
+
+* [ ] 调研 rsync `--backup`的用法
 
 * [new] `less -j 10 +G filename  # 在某些系统中结合使用`
 
@@ -3880,7 +3876,7 @@ resources:
 
     比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
 
-* [ ] `ssh -D`是干嘛用的？
+* [v] `ssh -D`是干嘛用的？
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 
@@ -5765,6 +5761,8 @@ resources:
 
 ### cache
 
+* [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
+
 * 异或操作的特性：
 
     交换律：hash(a) ^ hash(b) = hash(b) ^ hash(a)
@@ -5979,11 +5977,21 @@ resources:
     
     假如脚本中涉及到了行的增删，记录的行号会变动，如何解决？
 
-* [ ] 调研 vim `?`搜索
+* [v] 调研 vim `?`搜索
 
     `?{           " 搜索上一个 {`
 
-* [ ] vim `noremap!`
+    feedback:
+
+    * [ ] `?\<vim\>   " 精确匹配单词"vim"`
+
+    * [ ] 搜索后可使用 cgn 进行替换操作
+
+    * [ ] 结合 q/ 或 q? 查看和编辑搜索历史
+
+    * [ ] 搜索历史可通过 :history / 查看
+
+* [v] vim `noremap!`
 
 * [ ] vim `s`命令：替换并插入
 
@@ -6309,9 +6317,23 @@ resources:
 
 ### cache
 
+* [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
+
+* [ ] 调研`git cherry-pick`
+
+* [ ] 调研`git reflog`
+
+* [ ] 调研`git rebase --onto`
+
+* [ ] 调研`git merge --no-ff`
+
 ### tasks
 
 * [ ] 调研`git bisect`
+
+* [ ] 调研`git reset --soft`
+
+* [ ] 调研`git merge --squash`
 
 * [ ] 调研 git
 

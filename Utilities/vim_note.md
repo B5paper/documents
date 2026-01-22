@@ -2,6 +2,245 @@
 
 ## cache
 
+* vim 中 noremap! 同时作用于 insert 模式和 command 模式，那么是否有同时作用于 normal 模式和 visual 模式的？
+
+    是的，Vim 中确实有同时作用于 Normal 模式和 Visual 模式的映射命令。以下是相关命令：
+
+    1. noremap
+
+        最常用的就是 noremap 本身，它默认作用于 Normal、Visual 和 Operator-pending 模式：
+
+        ```vim
+        :noremap j gj    " 在 Normal 和 Visual 模式都有效
+        ```
+
+    2. nnoremap + vnoremap
+
+        如果你想明确指定只用于 Normal 和 Visual 模式，可以分别设置：
+
+        ```vim
+        :nnoremap j gj    " 只在 Normal 模式
+        :vnoremap j gj    " 只在 Visual 模式
+        ```
+
+    3. xnoremap
+
+        专门用于 Visual 模式（包括 character-wise、line-wise 和 block-wise visual 模式）：
+
+        ```vim
+        :xnoremap <Tab> >
+        ```
+
+    4. 特殊模式组合
+
+        你可以用模式前缀来组合多个模式：
+
+        ```vim
+        " Normal + Visual 模式
+        :map j gj          " 等同于 noremap，但不建议使用（会递归映射）
+
+        " 使用模式标识符
+        :map <silent> <expr> j mode() =~ "[Vv]" ? "gj" : "j"
+        ```
+
+    5. 推荐的实践
+
+        通常建议分开设置，这样更清晰：
+
+        ```vim
+        " 相同的映射应用到多个模式
+        nnoremap <leader>c :Comment<CR>
+        vnoremap <leader>c :Comment<CR>
+        ```
+
+        或者使用 augroup 批量设置：
+
+        ```vim
+        augroup my_mappings
+          autocmd!
+          autocmd ModeChanged *:[vV\x16]* mapclear <buffer>
+          autocmd FileType python nnoremap <buffer> <leader>c I#<Esc>
+          autocmd FileType python vnoremap <buffer> <leader>c :s/^/#/<CR>
+        augroup END
+        ```
+
+    6. 模式说明
+
+        * Normal 模式：普通浏览模式
+
+        * Visual 模式：包括 v（字符可视）、V（行可视）、Ctrl+v（块可视）
+
+        * Operator-pending 模式：比如输入 d 后等待动作
+
+    注意：noremap 默认已经包含了 Normal、Visual 和 Operator-pending 模式，所以如果你想要 Normal + Visual 模式的效果，直接用 noremap 就可以（Operator-pending 模式通常也适用相同的映射）。
+
+* 什么是命令行模式，它和 normal 模式一样吗？
+
+    不，命令行模式和 Normal 模式完全不一样。这是 Vim 中两个不同的模式，让我详细解释它们的区别：
+
+    命令行模式（Command-line Mode）
+
+    进入方式：
+
+    * 在 Normal 模式下按 :（冒号）
+
+    * 按 / 或 ? 进行搜索时
+
+    * 按 : 后出现的状态行显示 : 提示符
+
+    主要功能：
+
+    * 执行 Ex 命令：:w（保存）、:q（退出）、:s/old/new（替换）
+
+    * 执行 Vim 脚本：:echo "Hello"
+
+    * 搜索：/pattern 或 ?pattern
+
+    * 调用外部命令：:!ls（执行 shell 命令）
+
+    * 设置选项：:set number、:set hlsearch
+
+    特点：
+
+    * 光标移动到屏幕底部
+
+    * 输入命令后按 Enter 执行
+
+    * 按 Ctrl-C 或 Esc 可取消并返回 Normal 模式
+
+    * 可以输入多行命令（使用 \ 续行）
+
+    Normal 模式（普通模式）
+
+    进入方式：
+
+    * Vim 启动时的默认模式
+
+    * 从其他模式按 Esc 返回
+
+    主要功能：
+
+    * 导航文本：h j k l、w b、gg G
+
+    * 编辑操作：d（删除）、y（复制）、p（粘贴）
+
+    * 文本对象操作：diw（删除单词）、ci"（修改引号内内容）
+
+    * 窗口操作：Ctrl-w + 方向键
+
+    * 执行普通模式命令：.（重复上次操作）
+
+    特点：
+
+    * 主要工作模式
+
+    * 按键直接执行命令，不显示在屏幕底部
+
+    * 所有操作都是即时生效的
+
+    对比表格
+
+    | 特性 | 命令行模式 | Normal 模式 |
+    | - | - | - |
+    | 提示符 | : / ? | 无 |
+    | 光标位置 | 屏幕底部 | 文本任意位置 |
+    | 输入方式 | 输入完整命令后按 Enter | 按键立即执行 |
+    | 主要用途 | 执行复杂命令、设置选项 | 导航、编辑文本 |
+    | 退出方式 | Enter 执行，Esc 取消 | 按 i 等进入其他模式 |
+    | 可见性 | 命令显示在底部 | 操作不显示 |
+
+    关系示意图
+
+    ```text
+    Normal 模式
+        ↓ 按 `:`
+    命令行模式 (输入命令)
+        ↓ 按 Enter 执行
+    Normal 模式 (执行结果生效)
+    ```
+
+    示例对比
+
+    Normal 模式操作：
+
+    ```text
+    光标在文本中 → 按 `dd` → 立即删除当前行
+    ```
+
+    命令行模式操作：
+
+    ```text
+    在 Normal 模式 → 按 `:` → 输入 `:%s/foo/bar/g` → 按 Enter
+    → 全文替换所有 "foo" 为 "bar"
+    ```
+
+    关键区别：命令行模式需要输入完整的命令字符串然后执行，而 Normal 模式是每个按键立即对应一个操作。
+
+    关于 noremap! 的特殊性
+
+    当使用 noremap! 时，映射同时生效于：
+
+    * 插入模式（输入文本时）
+
+    * 命令行模式（输入命令时）
+
+    但 不生效于 Normal 模式。如果你想要 Normal 模式的映射，需要使用 nnoremap。
+
+    这就是为什么了解这些模式区别很重要——不同模式的映射是完全独立的！
+
+* `noremap!`
+
+    在 Vim 中，noremap! 用于 非递归地 定义插入模式和命令行模式的键盘映射。它的作用如下：
+
+    核心特点：
+
+    * 非递归 - 不会展开映射中的其他映射，避免循环或意外的多层映射
+
+    * 双重模式 - 同时影响插入模式和命令行模式
+
+    * 安全映射 - 防止映射间的相互干扰
+
+    基本语法：
+
+    ```vim
+    :noremap! {lhs} {rhs}
+    ```
+
+    与相关命令对比：
+
+    | 命令 | 递归 | 影响模式 |
+    | - | - | - |
+    | map! | 是 | 插入 + 命令行模式 |
+    | noremap! | 否 | 插入 + 命令行模式 |
+    | inoremap | 否 | 仅插入模式 |
+    | cnoremap | 否 | 仅命令行模式 |
+
+    使用示例：
+
+    ```vim
+    " 非递归映射：按 jk 退出插入模式（安全方式）
+    :noremap! jk <Esc>
+
+    " 比下面这个更安全（避免递归问题）：
+    :map! jk <Esc>  " 可能有递归风险
+    ```
+
+    适用场景：
+
+    * 定义模式切换快捷键（如 jk 退出插入模式）
+
+    * 在插入/命令行模式中使用，且需要避免映射冲突时
+
+    * 当同一映射需要在两种模式下生效时
+
+    注意事项：
+
+    * 通常推荐使用更具体的 inoremap（仅插入模式）和 cnoremap（仅命令行模式）
+
+    * 只有当确实需要在两种模式下使用相同映射时才用 noremap!
+
+    总的来说，noremap! 提供了在插入和命令行模式中定义安全、非递归映射的方式。
+
 * vim 中 gj / gk 的作用
 
     gj 和 gk 是 Vim 中用于 按屏幕行（visual line）移动 的命令，主要用于处理长行换行显示的情况。
