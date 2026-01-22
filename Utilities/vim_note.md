@@ -2,6 +2,91 @@
 
 ## cache
 
+* vim 禁用终端响铃（Bell）
+
+    ```vim
+    set noerrorbells   " 禁用错误提示音
+    set visualbell     " 使用视觉提示代替声音
+    set t_vb=          " 清空视觉提示（彻底静音）
+    ```
+
+* vim 在 windows 下的所有 ctrl + v 都被默认替换成了 ctrl + q
+
+    因为 windows 下的 ctrl + v 是粘贴功能。
+
+    不清楚 GVim 是什么情况，可能 ctrl + v 仍保持 vim 的语义。
+
+* 还有哪些类似 linux vim 中 ctrl + v 在 windows vim 中被默认替换成 ctrl + q 的快捷键的例子？详细列出
+
+    在 Windows 版的 Vim（或 gVim）中，由于 Windows 系统本身有一套广为人知的全局快捷键（如 Ctrl + C 复制、Ctrl + V 粘贴），为了降低新手的门槛，Vim 官方发行版通常会加载一个名为 mswin.vim 的脚本。
+
+    这个脚本会将许多经典的 Vim 快捷键重映射为 Windows 习惯。以下是受影响最严重的几个核心快捷键对比：
+
+    1. 核心映射对照表
+
+        | Windows 快捷键 | 在 Windows Vim 中的功能 | 对应的原始 Vim 快捷键 | 原始 Vim 功能说明 |
+        | - | - | - | - |
+        | Ctrl + V | 粘贴 (Paste) | Ctrl + V | 块可视化模式 (Visual Block) |
+        | Ctrl + Q | 块可视化模式 (替换方案) | 无 | 这是为了补位被占用的 Ctrl + V |
+        | Ctrl + C | 复制 (Copy) | y (yank) | 复制选中的文本到剪贴板 |
+        | Ctrl + X | 剪切 (Cut) | d (delete) | 删除选中内容并存入剪贴板 |
+        | Ctrl + A | 全选 (Select All) | ggVG | 选中全文 |
+        | Ctrl + Z | 撤销 (Undo) | u | 撤销上一步操作 |
+        | Ctrl + Y | 重做 (Redo) | Ctrl + R | 恢复被撤销的操作 |
+        | Ctrl + S | 保存 (Save) | :w | 写入文件 |
+        | Ctrl + F | 查找 (Find) | / | 开启搜索模式 |
+
+    2. 详细分析受影响的逻辑
+
+        块模式切换：Ctrl + V vs Ctrl + Q
+
+        在 Linux 下，Ctrl + V 是进入“块选择模式”的唯一王牌。但在 Windows 中，它变成了粘贴。
+
+        * 后果： 如果你习惯了在 Linux 下用 Ctrl + V 垂直编辑多行代码，在 Windows 下你会发现它直接吐出了一堆剪贴板里的乱码。
+
+        * 解决： 必须改用 Ctrl + Q。
+
+        撤销与重做：Ctrl + Z / Y
+
+        * Vim 原生： u 是撤销，Ctrl + R 是重做。Ctrl + Z 在 Linux 终端里通常是将进程挂起到后台（Suspend）。
+
+        * Windows 映射： 遵循 Office 逻辑，Ctrl + Z 撤销，Ctrl + Y 重做。这会导致习惯 Ctrl + R 的老用户感到困惑。
+
+        复制粘贴：Ctrl + C / X
+
+        * Vim 原生： Ctrl + C 通常用于中断当前的命令或回到 Normal 模式（类似 Esc）。
+
+        * Windows 映射： 变成了标准复制。这意味着如果你想通过 Ctrl + C 强行退出某个插件的搜索或提示界面，它可能会毫无反应，甚至报错。
+
+    3. 为什么会这样？
+
+        这是因为在 Windows 版本的安装目录下，有一个 _vimrc 文件，它通常会自动执行：
+
+        ```Vim Script
+        source $VIMRUNTIME/mswin.vim
+        behave mswin
+        ```
+
+        这两行代码就是“罪魁祸首”。mswin.vim 重新定义了上述所有快捷键。
+
+    4. 如何恢复成 Linux 习惯？
+
+        如果你希望在 Windows 上也拥有和 Linux 一模一样的纯粹 Vim 体验，你只需要编辑你的 _vimrc 文件（通常在 C:\Users\你的用户名\_vimrc）：
+
+        * 删除或注释掉 source $VIMRUNTIME/mswin.vim 这一行。
+
+        * 删除或注释掉 behave mswin。
+
+        * 保存并重启 Vim。
+
+        这样，Ctrl + V 就会变回块选择模式，u 依然是撤销，所有 Windows 的“入侵”映射都会消失。
+
+* 鼠标在 vim 界面上滑动时，会向 vim 发送鼠标事件序列
+
+    禁用鼠标序列：`:set mouse=`
+
+    `:set mouse=nv    " 仅允许在普通模式和可视模式下使用鼠标`
+
 * vim 中 noremap! 同时作用于 insert 模式和 command 模式，那么是否有同时作用于 normal 模式和 visual 模式的？
 
     是的，Vim 中确实有同时作用于 Normal 模式和 Visual 模式的映射命令。以下是相关命令：

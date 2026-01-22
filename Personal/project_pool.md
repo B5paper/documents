@@ -5959,6 +5959,40 @@ resources:
 
 ### tasks
 
+* [new] 调研 vim 设置
+
+    `:set term=ansi`, `:set term=xterm`, `:set term=putty`, `set term=xterm-256color`
+
+    ```vim
+    set nocompatible
+    set backspace=indent,eol,start
+    set term=xterm
+    ```
+
+    ```vim
+    :set term=builtin_ansi
+    :set term=builtin_xterm
+    ```
+
+* [new] 调研 windows 下的包管理器，以安装 vim 为例
+
+    ```powershell
+    # 在远程机器上安装 vim 的完整版本
+    choco install vim  # 如果使用 Chocolatey
+    # 或
+    scoop install vim  # 如果使用 Scoop
+    ```
+
+* [new] 调研 vim 中 <A-xxx> 代表 alt 快捷键吗？
+
+    `nnoremap <A-v> <C-v>`
+
+* [new] 调研 vim 剪贴板管理插件
+
+    ```vim
+    Plug 'svermeulen/vim-easyclip'
+    ```
+
 * [new] 调研 vim 命令
 
     标记要选中的行（例如第1、3、5行）：

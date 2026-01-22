@@ -6,6 +6,177 @@
 
 ## cache
 
+* 简述 matlab gpuarray 的用法
+
+    gpuArray 是 MATLAB 中用于 GPU 并行计算的核心工具，它将数据从 CPU 内存传输到 GPU 显存，从而利用 GPU 进行并行计算加速。以下是其主要用法：
+
+    1. 基本操作
+
+        创建 gpuArray
+
+        ```matlab
+        % 将现有数据上传到 GPU
+        A = rand(1000, 'single');  % 单精度浮点数更适合 GPU
+        gpuA = gpuArray(A);
+
+        % 直接在 GPU 上创建数据
+        gpuB = rand(1000, 'gpuArray');          % 双精度
+        gpuC = rand(1000, 'single', 'gpuArray'); % 单精度
+
+        % 其他初始化函数
+        gpuOnes = ones(1000, 'gpuArray');
+        gpuZeros = zeros(1000, 'gpuArray');
+        gpuEye = eye(1000, 'gpuArray');
+        ```
+
+        检查 GPU 可用性
+
+        ```matlab
+        gpuDeviceCount()      % 查看 GPU 数量
+        d = gpuDevice()       % 查看当前 GPU 信息
+        gpuAvailable = gpuDeviceCount() > 0  % 判断 GPU 是否可用
+        ```
+
+    2. 运算规则
+
+        支持的操作
+
+        * 大多数内置函数和运算符自动支持：
+
+            ```matlab
+            gpuA = gpuArray(rand(1000));
+            gpuB = gpuArray(rand(1000));
+
+            % 自动在 GPU 上执行
+            C = gpuA * gpuB;      % 矩阵乘法
+            D = sin(gpuA);        % 逐元素运算
+            E = fft(gpuA);        % 快速傅里叶变换
+            ```
+
+        混合运算
+
+        * 允许：gpuArray 与标量/小矩阵的混合运算（小矩阵会自动上传）
+
+        * 不允许：gpuArray 与大型 CPU 数组的直接运算
+
+    3. 数据传输
+
+        ```matlab
+        % CPU → GPU
+        cpuData = rand(100);
+        gpuData = gpuArray(cpuData);
+
+        % GPU → CPU（显式操作）
+        resultGPU = gpuData * 2;
+        resultCPU = gather(resultGPU);  % 关键函数：将数据取回 CPU
+
+        % 错误示例
+        % cpuResult = double(gpuData);  % 不会自动传输数据！
+        ```
+
+    4. 常用函数支持
+
+        数学运算
+
+        ```matlab
+        abs, sin, exp, log, sqrt  % 逐元素运算
+        sum, mean, max, min       % 规约操作（支持维度参数）
+        fft, ifft, filter         % 信号处理
+        ```
+
+        线性代数
+
+        ```matlab
+        mtimes (*)    % 矩阵乘法
+        inv, pinv     % 矩阵求逆
+        eig, svd      % 特征值/奇异值分解（部分支持）
+        ```
+
+        数组操作
+
+        ```matlab
+        reshape, permute, transpose
+        cat, repmat, bsxfun
+        ```
+
+    5. 编程技巧
+
+        预分配 GPU 内存
+
+        ```matlab
+        gpuArray.zeros(1000, 'single');  % 避免多次内存分配
+        ```
+
+        使用 arrayfun 自定义函数
+
+        ```matlab
+        % 定义标量函数
+        func = @(x, y) x.^2 + sin(y);
+
+        % 应用于 gpuArray
+        gpuX = gpuArray(rand(1000));
+        gpuY = gpuArray(rand(1000));
+        gpuZ = arrayfun(func, gpuX, gpuY);  % 在 GPU 上并行执行
+        ```
+
+        性能优化
+
+        ```matlab
+        % 1. 使用单精度（速度更快，显存占用减半）
+        gpuSingle = rand(1000, 'single', 'gpuArray');
+
+        % 2. 避免 CPU-GPU 频繁传输
+        % 错误做法：在循环内反复调用 gather()
+        % 正确做法：所有计算完成后一次性 gather()
+
+        % 3. 检查内核执行时间
+        tic; gpuResult = fft(gpuData); wait(gpuDevice); toc;
+        % wait() 确保计时准确
+        ```
+
+    6. 限制与注意事项
+
+        * 显存限制：数据大小不能超过 GPU 显存
+
+        * 函数支持：并非所有 MATLAB 函数都支持 gpuArray（查看文档确认）
+
+        * 精度差异：GPU 计算结果可能与 CPU 有微小差异
+
+        * 数据类型：大多数操作需要相同类型的 gpuArray
+
+    7. 简单示例
+
+        ```matlab
+        % 示例：矩阵乘法加速比较
+        N = 2000;
+
+        % CPU 计算
+        A = rand(N);
+        B = rand(N);
+        tic; C_cpu = A * B; t_cpu = toc;
+
+        % GPU 计算
+        gpuA = gpuArray(single(A));  % 转为单精度
+        gpuB = gpuArray(single(B));
+        tic; gpuC = gpuA * gpuB; wait(gpuDevice); t_gpu = toc;
+
+        % 取回结果并比较
+        C_gpu = gather(gpuC);
+
+        fprintf('CPU: %.3f s, GPU: %.3f s, 加速比: %.2f\n', ...
+                t_cpu, t_gpu, t_cpu/t_gpu);
+        ```
+
+    重要提示
+
+    * 使用前确保安装正确版本的 GPU 驱动和 CUDA Toolkit
+
+    * 小规模计算可能因数据传输开销而变慢
+
+    * 使用 gpuDevice 管理 GPU 内存（reset(gpuDevice) 可清空显存）
+
+    通过合理使用 gpuArray，MATLAB 程序通常可获得数倍到数十倍的加速效果，特别适合大规模数值计算和矩阵运算。
+
 * MATLAB pause() 函数
 
     1. 函数原型
