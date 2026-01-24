@@ -570,6 +570,10 @@
         pyenv version                 # 查看当前使用的版本
         ```
 
+        注：
+
+        1. 这里的 version 指的不是 pyenv 版本，是 python 的版本
+
     2. 安装 Python 版本
 
         ```bash

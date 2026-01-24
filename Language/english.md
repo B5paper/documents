@@ -2,6 +2,10 @@
 
 ## cache
 
+* Oxy- and deoxy-haemoglobin concentration
+
+    血液中氧合血红蛋白与脱氧血红蛋白的浓度
+
 * 尖括号用英语怎么说？
 
     在英语中，“尖括号”通常被称为 angle brackets。

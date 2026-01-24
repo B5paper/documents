@@ -2,6 +2,287 @@
 
 ## cache
 
+* python 去重方法总结
+
+    Python 中有多种去重方法，针对你提到的数据类型，需要不同处理方式：
+
+    1. 基础列表去重（可哈希元素）
+
+        ```python
+        arr_1 = ['a', 'b', 'c', 'a']
+
+        # 方法1：使用set（无序）
+        arr_unique = list(set(arr_1))  # ['a', 'b', 'c'] 顺序可能改变
+
+        # 方法2：保持原始顺序
+        arr_unique = []
+        for item in arr_1:
+            if item not in arr_unique:
+                arr_unique.append(item)
+        # 或使用字典（Python 3.7+ 保证顺序）
+        arr_unique = list(dict.fromkeys(arr_1))  # ['a', 'b', 'c']
+
+        # 方法3：使用sorted排序
+        arr_unique = sorted(set(arr_1), key=arr_1.index)  # ['a', 'b', 'c']
+        ```
+
+    2. 字典列表去重（不可哈希元素）
+
+        字典是不可哈希的，不能直接用 set()，需要特殊处理：
+
+        ```python
+        arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}, {'a': 2, 'b': 3}]
+
+        # 方法1：使用JSON字符串作为中间形式（简单但有限制）
+        import json
+        def deduplicate_dicts(arr):
+            seen = set()
+            result = []
+            for d in arr:
+                # 先排序键保证一致性
+                sorted_str = json.dumps(d, sort_keys=True)
+                if sorted_str not in seen:
+                    seen.add(sorted_str)
+                    result.append(d)
+            return result
+
+        arr_unique = deduplicate_dicts(arr_2)
+        # [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}]
+
+        # 方法2：转换为可哈希的元组
+        def deduplicate_dicts_v2(arr):
+            seen = set()
+            result = []
+            for d in arr:
+                # 转换为排序后的键值元组
+                t = tuple(sorted(d.items()))
+                if t not in seen:
+                    seen.add(t)
+                    result.append(d)
+            return result
+
+        # 方法3：使用Pandas（大数据集更高效）
+        import pandas as pd
+        df = pd.DataFrame(arr_2)
+        df_unique = df.drop_duplicates().to_dict('records')
+        ```
+
+    3. 使用工具函数
+
+        ```python
+        from typing import List, Any, Hashable
+        import json
+
+        def unique(sequence, keep_order=True):
+            """
+            通用去重函数
+            """
+            if not sequence:
+                return []
+            
+            # 如果元素可哈希
+            try:
+                if keep_order:
+                    return list(dict.fromkeys(sequence))
+                else:
+                    return list(set(sequence))
+            except TypeError:
+                # 处理不可哈希元素（如字典）
+                if keep_order:
+                    seen = set()
+                    result = []
+                    for item in sequence:
+                        if isinstance(item, dict):
+                            # 字典转换为可哈希的字符串
+                            key = json.dumps(item, sort_keys=True)
+                        else:
+                            key = str(item)  # 其他不可哈希类型
+                        
+                        if key not in seen:
+                            seen.add(key)
+                            result.append(item)
+                    return result
+                else:
+                    # 不保持顺序
+                    unique_dicts = {}
+                    for item in sequence:
+                        key = json.dumps(item, sort_keys=True)
+                        unique_dicts[key] = item
+                    return list(unique_dicts.values())
+
+        # 使用示例
+        print(unique(arr_1))  # ['a', 'b', 'c']
+        print(unique(arr_2))  # [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}]
+        ```
+
+    4. 性能比较和建议
+
+        | 方法 | 优点 | 缺点 | 适用场景 |
+        | - | - | - | - |
+        | set() | 速度快，简洁 | 不保持顺序 | 简单列表，不关心顺序 |
+        | dict.fromkeys() | 保持顺序，较快 | 只适用于可哈希元素 | 需要保持顺序的简单列表 |
+        | 手动循环检查 | 灵活可控 | 速度较慢 | 小数据集，复杂逻辑 |
+        | JSON转换 | 处理复杂类型 | JSON限制（如不能序列化所有类型） | 字典列表去重 |
+
+        推荐做法：
+
+        * 简单列表：list(dict.fromkeys(arr))（保持顺序）
+
+        * 字典列表：使用元组转换或JSON字符串方法
+
+        * 大数据集：考虑使用Pandas
+
+    注意事项：
+
+    * 字典去重要注意键的顺序问题
+
+    * 嵌套字典需要递归处理
+
+    * 自定义对象需要实现 __hash__ 和 __eq__ 方法
+
+* py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
+
+    f.write() 不接受变参数，它只能接受一个字符串参数。但你可以通过多种方式写入多个字符串：
+
+    1. 基本用法（一次一个字符串）
+
+        ```python
+        with open('test.txt', 'w') as f:
+            f.write("Hello ")      # 一次写入一个字符串
+            f.write("World")       # 再次写入
+            f.write("\n")          # 写入换行符
+        # 文件内容: Hello World\n
+        ```
+
+    2. 实现写入多个字符串的方法
+
+        方法1：使用字符串拼接
+
+        ```python
+        with open('test.txt', 'w') as f:
+            f.write("Hello " + "World" + "!")  # 拼接后再写入
+        # 或
+        strings = ["Hello", " ", "World", "!"]
+        with open('test.txt', 'w') as f:
+            f.write(''.join(strings))  # 使用join拼接
+        ```
+
+        方法2：使用 writelines() 方法
+
+        ```python
+        with open('test.txt', 'w') as f:
+            f.writelines(["Hello ", "World", "!\n"])
+        # 注意：writelines不会自动添加换行符
+        ```
+
+        方法3：使用 print() 函数
+
+        ```python
+        with open('test.txt', 'w') as f:
+            print("Hello", "World", sep=" ", file=f)  # sep控制分隔符
+            # 相当于 f.write("Hello World")
+        ```
+
+        方法4：自定义包装函数
+
+        ```python
+        def write_many(f, *args, sep="", end="\n"):
+            """模拟支持多个参数的write函数"""
+            content = sep.join(str(arg) for arg in args) + end
+            f.write(content)
+
+        with open('test.txt', 'w') as f:
+            write_many(f, "Hello", "World", "!")  # HelloWorld!\n
+            write_many(f, "Line", 2, sep=" ")     # Line 2\n
+        ```
+
+    3. 性能考虑
+
+        ```python
+        import time
+
+        # 测试不同方法的性能
+        def test_performance():
+            test_data = ["str" + str(i) for i in range(10000)]
+            
+            # 方法1：多次 write
+            start = time.time()
+            with open('test1.txt', 'w') as f:
+                for s in test_data:
+                    f.write(s)
+            time1 = time.time() - start
+            
+            # 方法2：一次性写入
+            start = time.time()
+            with open('test2.txt', 'w') as f:
+                f.write(''.join(test_data))
+            time2 = time.time() - start
+            
+            print(f"多次write: {time1:.4f}秒")
+            print(f"一次性写入: {time2:.4f}秒")
+            # 通常一次性写入更快，因为减少了I/O操作次数
+        ```
+
+    4. 实际应用示例
+
+        ```python
+        # 日志写入
+        def write_log(filename, *messages, level="INFO", timestamp=True):
+            import datetime
+            with open(filename, 'a') as f:
+                if timestamp:
+                    timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    f.write(f"[{timestamp_str}] [{level}] ")
+                
+                # 拼接所有消息
+                full_message = ' '.join(str(msg) for msg in messages)
+                f.write(full_message + "\n")
+
+        # 使用
+        write_log("app.log", "User", "John", "logged in", "successfully")
+        # 文件内容: [2024-01-22 10:30:00] [INFO] User John logged in successfully
+        ```
+
+    5. 类型安全建议
+
+        ```python
+        def safe_write(f, *args, sep="", end="\n"):
+            """安全写入，自动处理类型转换"""
+            try:
+                # 将所有参数转换为字符串
+                str_args = (str(arg) for arg in args)
+                content = sep.join(str_args) + end
+                f.write(content)
+            except Exception as e:
+                print(f"写入失败: {e}")
+
+        with open('output.txt', 'w') as f:
+            safe_write(f, "Number:", 42, "List:", [1, 2, 3], sep=" ")
+            # 输出: Number: 42 List: [1, 2, 3]\n
+        ```
+
+    总结
+
+    | 方法 | 优点 | 缺点 | 适用场景 |
+    | - | - | - | - |
+    | f.write(str) | 标准方法，直接 | 只接受一个参数 | 简单写入 |
+    | 字符串拼接 | 灵活控制格式 | 需要手动拼接 | 格式复杂的写入 |
+    | f.writelines() | 可传入列表 | 不自动加分隔符 | 批量写入字符串列表 |
+    | print() | 自动加换行，支持多个参数 | 输出格式固定 | 类似控制台输出的格式 |
+    | 自定义函数 | 完全自定义行为 | 需要额外代码 | 特定业务需求 |
+
+    推荐做法：
+
+    * 如果需要写入多个字符串，先使用 join() 拼接
+
+    * 如果格式类似 print()，直接使用 print(..., file=f)
+
+    * 如果需要频繁写入，考虑批量处理减少I/O操作
+
+    * 对于特定需求，封装自己的写入函数
+
+    记住：Python 的 write() 设计简单是为了保持函数单一职责原则，更复杂的写入逻辑应该由调用者处理。
+
 * python re 模块中 match() 与 search() 的区别
 
     ```py

@@ -36,40 +36,6 @@
 
 ## cache
 
-* 局部大纲
-
-    导航栏应该引入一种局部大纲的机制，表示出所有的父节点，以及同级的向上 2 个节点，向下 2 个节点，其他的可以忽略不显示。这样可以方便定位在超长文档中的位置。
-
-* exp 中根据事实由少到多可以将内容分为几个级别
-
-    * 想法 / idea
-
-        虚无缥缈的想法、假设、灵感。
-
-    * 现象
-
-        做实验中值得记录的东西。观察到了什么？为什么会这样？为什么不是那样？
-
-    * 暂定
-
-        有局部实验证据和事实支撑的规律；暂时定下来的规则；一些好用的经验。
-
-    * 稳定
-
-        经过全局验证的规律；几乎不再变化的规则。这部分可以尝试写入笔记中。
-
-    从上到下，变化速度越来越慢。
-
-* Oxy- and deoxy-haemoglobin concentration
-
-    血液中氧合血红蛋白与脱氧血红蛋白的浓度
-
-* qa 频率可以降低到每周一次
-
-* 是否该引入每周的计划预期？
-
-    目前只完成了每天的计划列表，但是每周完成的任务量太少。
-
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -84,13 +50,7 @@
 
     <https://gitee.com/OpenXiangShan/XiangShan/>
 
-* 为了实现短 item 的原则，不要把长代码放到项目管理或任务列表里
-
-    应该额外创建一个文件，然后在任务列表或项目管理里引用这个文件。
-
 * 调研 MLIR, IREE
-
-* [ ] cmake 环境变量的用法
 
 * 学习资源的调研主要用于完成下面几件事情
 
@@ -99,10 +59,6 @@
     2. 语言表达是否有歧义
 
     3. 未完待续
-
-* 需要一个指标来评价当天有多少时间是被任务系统接管的，就叫它接管率好了
-
-    接管率从一定程度止反映了专心程度
 
 ## cached tasks
 
@@ -322,8 +278,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 找到贝叶斯网引论 pdf，上传到邮箱里
 
-* [v] reorg: documents 30 mins
-
 * [ ] powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
 
     目前看完了`Working with objects`中的`Viewing object structure`。
@@ -368,19 +322,17 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
 
-    feedback:
+* [ ] re.compile `MULTILINE`
 
-    * [ ] re.compile `MULTILINE`
-
-        ```py
-        pat = re.compile('^world', re.MULTILINE)  # 多行模式
-        txt = 'hello, world\nworld again'
-        m = pat.match(txt, pos=12)  # 可以匹配第二行的 world
-        ```
+    ```py
+    pat = re.compile('^world', re.MULTILINE)  # 多行模式
+    txt = 'hello, world\nworld again'
+    m = pat.match(txt, pos=12)  # 可以匹配第二行的 world
+    ```
 
 * [ ] 在同一次 test 中，不能出现重复的 unit
 
-* [ ] 调研 python 的去重功能（unique）
+* [v] 调研 python 的去重功能（unique）
 
     ```py
     arr_1 = ['a', 'b', 'c', 'a']
@@ -393,7 +345,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研 python 处理 csv 文件
 
-* [ ] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
+* [v] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
@@ -440,8 +392,6 @@ english words 由 { } reorg: english words 进化而来。
 * 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
 
 * [ ] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
-
-* [v] 调研 exam 时显示 unit 的 id 和 idx
 
 * [v] qa: 4 units 12.18
 
@@ -621,9 +571,9 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
+* [v] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
 
-* [ ] vim 替换中的`/normal I*`
+* [v] vim 替换中的`/normal I*`
 
     可以进入 normal 模式吗？
 
@@ -809,7 +759,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
 
-* [ ] `git config -f .gitmodules --list`
+* [v] `git config -f .gitmodules --list`
 
 * [ ] 调研下述用法
 
@@ -867,11 +817,7 @@ english words 由 { } reorg: english words 进化而来。
 
     `ssh user@host "cd my_dir && screen -dmS my_session ./main"`
 
-* [asso] 调研 bash 的`exec`命令
-
 * [asso] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
-
-* [asso] 调研 bash 中的特殊变量`%%`（当前作业）
 
 * [O] 调研 PyTorch Loss Functions 11.22
 
@@ -1576,19 +1522,15 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [new] matlab exist()
+* [ ] matlab exist()
 
-* [new] matlab load() 
+* [ ] matlab load() 
 
     `load(nirsFileName,'-mat');`
 
-* [new] matlab `saveas()`
+* [ ] matlab `saveas()`
 
-* [v] 调研 matlab `pause(1);`函数
-
-* [v] 调研 matlab `norm()`函数
-
-* [ ] matlab `min()`, `max()`
+* [v] matlab `min()`, `max()`
 
 * [ ] matlab `reshape()`
 
@@ -3415,13 +3357,19 @@ resources:
 
 ### cache
 
+* [ ] cmake 环境变量的用法
+
+* [ ] 调研 bash 的`exec`命令
+
+* [ ] 调研 bash 中的特殊变量`%%`（当前作业）
+
 * [ ] 调研 rsync `--backup`的用法
 
-* [new] `less -j 10 +G filename  # 在某些系统中结合使用`
+* [ ] `less -j 10 +G filename  # 在某些系统中结合使用`
 
-* [new] `fzf < filename`
+* [ ] `fzf < filename`
 
-* [new] 调研 less 搜索
+* [ ] 调研 less 搜索
 
     从当前行开始新搜索:
 
@@ -3435,7 +3383,7 @@ resources:
     /[0-9]+\.txt
     ```
 
-* [new] `ripgrep (rg)：rg -i pattern filename`
+* [ ] `ripgrep (rg)：rg -i pattern filename`
 
 * [new] 调研 vim 映射
 
@@ -3875,8 +3823,6 @@ resources:
 * [ ] bash 中的分号是什么意思？
 
     比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
-
-* [v] `ssh -D`是干嘛用的？
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 

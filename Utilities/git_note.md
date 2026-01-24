@@ -2,6 +2,30 @@
 
 ## cache
 
+* `git config -f .gitmodules --list`
+
+    读取并列出当前项目中 .gitmodules 文件的所有配置项。
+
+    各参数含义：
+
+    * git config - Git 配置管理命令
+
+    * -f .gitmodules - --file .gitmodules 的简写
+
+        * 指定从 .gitmodules 文件（而不是全局或本地配置）读取配置
+
+    * --list - 列出所有配置项
+
+    查看特定子模块的URL:
+
+    `git config -f .gitmodules --get submodule.libs/foo.url`
+
+    与其他配置的区别
+
+    * git config --list - 列出所有配置（系统+全局+本地）
+
+    * git config -f .gitmodules --list - 仅列出.gitmodules文件中的配置
+
 * git submodule sync
 
     同步子模块的配置信息，确保子模块的远程仓库URL与父仓库的 .gitmodules 文件保持一致。
