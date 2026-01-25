@@ -2,6 +2,29 @@
 
 ## cache
 
+* pyenv 安装后的提示
+
+    ```
+    WARNING: seems you still have not added 'pyenv' to the load path.
+
+    # Load pyenv automatically by appending
+    # the following to 
+    # ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
+    # and ~/.bashrc (for interactive shells) :
+
+    export PYENV_ROOT="$HOME/.pyenv"
+    [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init - bash)"
+
+    # Restart your shell for the changes to take effect.
+
+    # Load pyenv-virtualenv automatically by adding
+    # the following to ~/.bashrc:
+
+    eval "$(pyenv virtualenv-init -)"
+
+    ```
+
 * Python创建虚拟环境方法总结
 
     在Python中创建虚拟环境有多种方法，以下是几种常用的方式：

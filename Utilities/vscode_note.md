@@ -2,6 +2,215 @@
 
 ## cache
 
+* vscode 中如何调试 mpi 启动的程序
+
+    在 VSCode 中调试 MPI 程序需要进行一些配置。以下是几种主要方法：
+
+    方法一：使用 VSCode 的 Launch 配置（推荐）
+
+    1. 安装必要扩展
+
+        * C/C++ 扩展
+
+        * MPI 相关扩展（可选）
+
+    2. 创建 launch.json 配置
+
+        ```json
+        {
+            "version": "0.2.0",
+            "configurations": [
+                {
+                    "name": "MPI Debug",
+                    "type": "cppdbg",
+                    "request": "launch",
+                    "program": "${workspaceFolder}/your_program",
+                    "args": [],
+                    "stopAtEntry": false,
+                    "cwd": "${workspaceFolder}",
+                    "environment": [],
+                    "externalConsole": false,
+                    "MIMode": "gdb",
+                    "setupCommands": [
+                        {
+                            "description": "为 gdb 启用整齐打印",
+                            "text": "-enable-pretty-printing",
+                            "ignoreFailures": true
+                        }
+                    ],
+                    "miDebuggerPath": "gdb",
+                    "miDebuggerArgs": "",
+                    "preLaunchTask": "build-mpi"
+                }
+            ]
+        }
+        ```
+
+    3. 创建 tasks.json 构建任务
+
+        ```json
+        {
+            "version": "2.0.0",
+            "tasks": [
+                {
+                    "label": "build-mpi",
+                    "type": "shell",
+                    "command": "mpic++",
+                    "args": [
+                        "-g",
+                        "-o",
+                        "your_program",
+                        "your_source.cpp"
+                    ],
+                    "group": {
+                        "kind": "build",
+                        "isDefault": true
+                    }
+                }
+            ]
+        }
+        ```
+
+    方法二：使用 OpenMPI 的调试支持
+
+    1. 通过终端启动调试
+
+        ```bash
+        mpirun -np 4 xterm -e gdb -ex run --args ./your_program
+        ```
+
+    2. 或者在 VSCode 中使用组合任务
+
+        ```json
+        {
+            "version": "2.0.0",
+            "tasks": [
+                {
+                    "label": "debug-mpi",
+                    "type": "shell",
+                    "command": "mpirun",
+                    "args": [
+                        "-np",
+                        "4",
+                        "xterm",
+                        "-e",
+                        "gdb",
+                        "-ex",
+                        "run",
+                        "--args",
+                        "${workspaceFolder}/your_program"
+                    ],
+                    "problemMatcher": []
+                }
+            ]
+        }
+        ```
+
+    方法三：使用 Microsoft MPI（Windows）
+
+    1. 安装 Microsoft MPI
+
+        * 下载并安装 Microsoft MPI
+
+        * 安装 Windows SDK（包含调试器）
+
+    2. 配置 launch.json
+
+        ```json
+        {
+            "name": "Debug MPI",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "mpiexec.exe",
+            "args": [
+                "-n",
+                "4",
+                "${workspaceFolder}/your_program.exe"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        }
+        ```
+
+    方法四：使用调试服务器（高级）
+
+    1. 修改程序添加调试等待
+
+        ```c
+        #include <mpi.h>
+        #include <unistd.h>
+
+        int main(int argc, char** argv) {
+            MPI_Init(&argc, &argv);
+            
+            int rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            
+            // 等待附加调试器
+            if (rank == 0) {
+                printf("Process 0 waiting for debugger attach (pid=%d)\n", getpid());
+                volatile int i = 0;
+                while (i == 0) { sleep(1); }  // 等待时在此处设置断点
+            }
+            MPI_Barrier(MPI_COMM_WORLD);
+            
+            // 你的代码...
+            
+            MPI_Finalize();
+            return 0;
+        }
+        ```
+
+    2. 启动 MPI 程序
+
+        ```bash
+        mpirun -np 4 ./your_program
+        ```
+
+    3. 在 VSCode 中附加到进程
+
+        * 使用 "request": "attach" 配置
+
+        * 附加到相应的进程 ID
+
+    调试技巧
+
+    1. 条件断点
+
+        * 根据进程号设置条件断点
+
+            ```c
+            if (rank == 1) {
+                // 这里设置断点
+            }
+            ```
+
+    2. 使用并行调试器（可选）
+
+        * 安装 TotalView 或 DDT
+
+        * 配置为外部调试器
+
+    3. 日志输出调试
+
+        ```c
+        #ifdef DEBUG
+            printf("[Rank %d] Debug info\n", rank);
+        #endif
+        ```
+
+    常见问题解决
+
+    * 权限问题：Linux 系统可能需要设置 ptrace 权限
+
+    * 端口冲突：多进程调试可能涉及端口设置
+
+    * 同步问题：调试时注意 MPI 调用的同步特性
+
+    选择最适合你环境的方法进行配置。对于大多数情况，方法一配合条件断点是最实用的选择。
+
 * vscode 的设置中，如何只显示已修改的
 
     在 VS Code 中，可以通过以下几种方式只显示已修改的设置：

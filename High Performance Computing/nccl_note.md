@@ -2,6 +2,55 @@
 
 ## cache
 
+* PXN
+
+    NCCL中的PXN（Peer-to-peer across NVLINK） 是NVIDIA Collective Communication Library（NCCL）中一个重要的通信模式概念，专为优化多GPU间的数据传输而设计。
+    核心含义：
+
+    PXN指的是 “通过NVLink进行点对点跨节点通信” 的一种优化模式。它允许GPU不通过CPU和系统内存，而是直接利用节点间的NVLink连接，与其他节点的GPU进行直接的点对点数据传输。
+
+    关键背景与工作原理：
+
+    * NVLink的作用：
+
+        * NVLink是NVIDIA开发的高速GPU互连技术，带宽远高于传统的PCIe。
+
+        * 在单个节点内（例如一台8卡服务器），NVLink将所有GPU连接成一个高速网络，实现GPU间的快速直接通信。
+
+    * 多节点（多机）通信的挑战：
+
+        * 传统的多机训练（如通过InfiniBand或以太网）中，GPU需要先将数据发送到本机的CPU系统内存，然后由CPU通过网卡（NIC）发送到远端节点，远端节点再经过相反的路径送到目标GPU。这个过程涉及多次拷贝和协议转换，延迟高、开销大。
+
+    * PXN的优化思路：
+
+        * 当两个节点之间通过NVLink Bridge（如NVSwitch系统）或GPU直接通过NVLink相连（例如DGX SuperPOD架构）时，物理上就具备了GPU跨节点直连的通道。
+
+        * PXN模式使得NCCL能够识别并利用这些跨节点的NVLink路径，让GPU能够像在单机内一样，直接与另一个节点上的GPU进行点对点通信，绕过CPU和网络协议栈。
+
+    PXN的优点：
+
+    * 更低延迟：减少了数据在CPU内存和网络协议栈中的穿梭。
+
+    * 更高带宽：充分利用NVLink的高带宽，通常远高于通过网卡的带宽。
+
+    * 降低CPU开销：CPU无需深度参与数据传输过程，可以腾出资源处理计算任务。
+
+    启用与检测：
+
+    PXN模式通常是自动启用的，前提是：
+
+    * 硬件支持：系统必须实际存在跨节点的NVLink连接（例如使用NVLink Switch System）。
+
+    * 软件支持：NCCL库版本需支持该特性，且拓扑检测能正确识别出这些路径。
+
+    * 环境变量：有时可以通过NCCL环境变量进行调节，例如 NCCL_PXN，但通常不需要手动设置。
+
+    你可以通过运行 nvidia-smi topo -m 命令来查看系统中GPU的连接拓扑。如果在不同节点的GPU之间显示为 NVLink 或 NVSwitch 连接，则表明硬件支持PXN通信。
+
+    简单总结：
+
+    PXN就是让多台机器上的GPU能通过它们之间直接的NVLink“高速公路”对话，而不需要绕道CPU和网卡这条“普通公路”，从而极大提升了多机多卡训练时的通信效率。 它是NCCL为了实现极致性能，在特定高端硬件架构（如DGX SuperPOD）上提供的关键优化特性。
+
 * ncclTopoPopulateNics，这里的 populate 如何翻译
 
     在技术语境中，"populate" 在这里最贴切的翻译是：

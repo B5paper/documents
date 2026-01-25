@@ -2,6 +2,26 @@
 
 ## cache
 
+* 上一级目录的路径，用英语怎么说
+
+    上一级目录的路径通常用英语表达为：
+
+    "parent directory path" 或 "path of the parent directory"
+
+    更自然的说法是："the path to the parent directory"
+
+    在上下文中，你可以直接说：
+
+    * "Go up one directory"（表示“向上跳一级目录”的操作）
+
+    * "Navigate to the parent folder"（切换到父文件夹）
+
+    * "Path of the directory above"（上一层目录的路径）
+
+* 倒数第二个的英语
+
+    The second-to-last（最常用）
+
 * Oxy- and deoxy-haemoglobin concentration
 
     血液中氧合血红蛋白与脱氧血红蛋白的浓度

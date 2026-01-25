@@ -4,6 +4,224 @@ This note is used to summarize tricks in C++ language.
 
 ## cache
 
+* 写递归函数时，我总觉得自己是凑出来的，是否有更清晰的分析方法或思考方式
+
+    这是非常普遍的困惑！很多人写递归时都有“凑”的感觉。让我分享一套系统性的分析方法，帮你建立清晰的递归思维框架。
+
+    1. 递归的本质：数学归纳法
+
+        递归本质上就是数学归纳法的编程实现：
+
+        * 基础情况（Base Case）：相当于证明 n=1 时成立
+
+        * 归纳步骤（Inductive Step）：假设 n=k 时成立，证明 n=k+1 时成立
+
+    2. 四步分析法（最核心的方法）
+
+        每次写递归函数前，问自己这四个问题：
+
+        **第一步：明确函数的定义**
+
+        用自然语言描述这个函数是干什么的
+
+        ```python
+        # 错误想法：“这个函数会计算阶乘...然后调用自身”
+        # 正确想法：“factorial(n) 返回 n 的阶乘结果”
+        ```
+
+        **第二步：找出基础情况**
+
+        什么情况下可以直接得出答案，无需递归？
+
+        ```python
+        # 阶乘：n = 0 或 n = 1 时，直接返回 1
+        # 斐波那契：n = 0 时返回 0，n = 1 时返回 1
+        ```
+
+        第三步：分解问题（关键）
+
+        假设子问题已经解决，如何构建原问题的解？
+
+        这是最核心的一步，需要「信任递归」：
+
+        ```python
+        # 对于 factorial(n):
+        # 如果我「已经知道」factorial(n-1) 的结果，
+        # 那么 factorial(n) = n * factorial(n-1)
+
+        # 对于二叉树高度：
+        # 如果我「已经知道」左子树和右子树的高度，
+        # 那么树高 = max(左高, 右高) + 1
+        ```
+
+        第四步：确保收敛
+
+        每次递归调用是否向基础情况靠近？
+
+        ```python
+        def factorial(n):
+            if n <= 1:          # 基础情况
+                return 1
+            return n * factorial(n-1)  # n-1 确保收敛
+        ```
+
+    3. 具体示例：二叉树遍历
+
+        问题：计算二叉树节点数
+
+        第一步：函数定义
+
+        ```python
+        # count_nodes(root) 返回以 root 为根的树的节点总数
+        ```
+
+        第二步：基础情况
+
+        ```python
+        if root is None:    # 空树
+            return 0
+        ```
+
+        第三步：分解问题
+
+        ```python
+        # 假设我已经知道：
+        left_count = count_nodes(root.left)   # 左子树节点数
+        right_count = count_nodes(root.right) # 右子树节点数
+
+        # 那么总节点数 = 左子树节点 + 右子树节点 + 根节点
+        return left_count + right_count + 1
+        ```
+
+        第四步：验证收敛
+
+        * 每次递归处理子树，树的高度减少
+
+        * 最终会到达 None（叶子节点的子节点）
+
+        完整代码：
+
+        ```python
+        def count_nodes(root):
+            if root is None:            # 基础情况
+                return 0
+
+            # 分解问题（信任递归）
+            left_count = count_nodes(root.left)
+            right_count = count_nodes(root.right)
+
+            # 组合结果
+            return left_count + right_count + 1
+        ```
+
+    4. 常见递归模式
+
+        模式1：递推型（自顶向下）
+
+        ```python
+        def factorial(n):
+            if n <= 1:
+                return 1
+            return n * factorial(n-1)  # 先递归，后计算
+        ```
+
+        模式2：分治型（树形）
+
+        ```python
+        def max_depth(root):
+            if not root:
+                return 0
+            left_depth = max_depth(root.left)    # 解决子问题
+            right_depth = max_depth(root.right)  # 解决子问题
+            return max(left_depth, right_depth) + 1  # 合并结果
+        ```
+
+        模式3：回溯型（尝试所有可能）
+
+        ```python
+        def permutations(nums, path=[], result=[]):
+            if not nums:                    # 基础情况
+                result.append(path.copy())
+                return
+
+            for i in range(len(nums)):      # 做选择
+                path.append(nums[i])
+                permutations(nums[:i] + nums[i+1:], path, result)  # 递归
+                path.pop()                  # 撤销选择
+        ```
+
+    5. 调试技巧：递归树可视化
+
+        在纸上画出递归调用树：
+
+        ```text
+        factorial(4)
+        ├── 4 * factorial(3)
+        │   ├── 3 * factorial(2)
+        │   │   ├── 2 * factorial(1)
+        │   │   │   └── return 1
+        │   │   └── return 2
+        │   └── return 6
+        └── return 24
+        ```
+
+    6. 避免「凑」的练习方法
+
+        * 先写注释，后写代码：先完成四步分析的注释
+
+        * 从小开始：先处理 n=0,1 的情况，再考虑 n=2
+
+        * 信任递归：写递归调用时，假设它已经正确工作
+
+        * 画图辅助：对树、图等问题一定要画图
+
+        * 测试小例子：手动模拟 n=2,3 的情况验证
+
+    7. 检查清单
+
+        写完后问：
+
+        * 基础情况覆盖完整吗？
+
+        * 每次递归是否向基础情况靠近？
+
+        * 递归调用是否在解决「更小」的同类问题？
+
+        * 结果组合是否正确？
+
+    8. 进阶：递归 → 迭代的思维
+
+        理解递归后，可以思考如何改写为迭代。这能加深理解：
+
+        ```python
+        # 递归
+        def factorial(n):
+            if n <= 1:
+                return 1
+            return n * factorial(n-1)
+
+        # 迭代
+        def factorial_iter(n):
+            result = 1
+            for i in range(2, n+1):
+                result *= i  # 逐步构建结果
+            return result
+        ```
+
+    总结
+
+    摆脱「凑」的感觉的关键是：
+
+    * 严格遵循四步分析法
+
+    * 明确函数定义（用自然语言描述）
+
+    * 信任递归（假设子问题已解决）
+
+    * 画图验证（特别是树形结构）
+
+    开始时会觉得这些步骤繁琐，但形成思维习惯后，写递归就会变得自然和自信。就像学数学归纳法一样，先按部就班，熟练后就能一眼看出递归结构。
+
 * 什么时候需要开一个新函数？
 
     当变量名混乱有冲突，不好起新名字的时候可以尝试开一个新函数。

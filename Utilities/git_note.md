@@ -1225,13 +1225,19 @@
 
     更新所有：git submodule update --init --recursive
 
-    删除子模块：
+    删除子模块的步骤：
 
-    * git submodule deinit -f libs/mylib
+    1. 先移除有问题的子模块配置
 
-    * rm -rf .git/modules/libs/mylib
+        git submodule deinit -f libs/mylib
 
-    * git rm -f libs/mylib
+    2. 删除.git/modules中的缓存
+
+        rm -rf .git/modules/libs/mylib
+
+    3. 删除子模块目录
+
+        git rm -f libs/mylib
 
     注意事项
 

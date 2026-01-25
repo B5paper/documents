@@ -2,6 +2,155 @@
 
 ## cached
 
+* 简述 c++ 中 string 的用法
+
+    C++ 中的 std::string 是标准库提供的字符串类，位于 <string> 头文件中，比 C 风格字符串更安全、方便。
+
+    基本用法
+
+    1. 创建和初始化
+
+        ```cpp
+        #include <string>
+        using namespace std;
+
+        string s1;              // 空字符串
+        string s2 = "Hello";    // 用 C 风格字符串初始化
+        string s3("World");     // 构造函数初始化
+        string s4(5, 'A');      // 5 个 'A'，即 "AAAAA"
+        string s5(s2);          // 拷贝构造
+        ```
+
+    2. 基本操作
+
+        ```cpp
+        string str = "Hello";
+
+        // 获取长度
+        int len = str.length();    // 或 str.size()
+
+        // 访问字符
+        char c1 = str[0];          // 'H'，不检查越界
+        char c2 = str.at(0);       // 'H'，检查越界，越界抛出异常
+
+        // 修改
+        str[0] = 'h';              // 修改单个字符
+        str = "New String";        // 重新赋值
+        ```
+
+    3. 字符串连接
+
+        ```cpp
+        string s1 = "Hello";
+        string s2 = "World";
+
+        string s3 = s1 + " " + s2;    // "Hello World"
+        s1 += " C++";                // s1 变为 "Hello C++"
+        ```
+
+    4. 字符串比较
+
+        ```cpp
+        string s1 = "abc";
+        string s2 = "abd";
+
+        if (s1 == s2) { }          // 相等比较
+        if (s1 < s2)  { }          // 字典序比较
+        if (s1.compare(s2) < 0) { } // 返回 -1, 0, 1
+        ```
+
+    5. 常用成员函数
+
+        ```cpp
+        string str = "Hello World";
+
+        // 子串
+        string sub = str.substr(6, 5);    // "World" (从位置6开始，取5个字符)
+
+        // 查找
+        size_t pos = str.find("World");    // 6
+        if (pos != string::npos) { }       // 找到了
+
+        // 替换
+        str.replace(6, 5, "C++");          // "Hello C++"
+
+        // 插入和删除
+        str.insert(6, "Beautiful ");       // "Hello Beautiful World"
+        str.erase(6, 10);                  // "Hello World"
+
+        // 清除
+        str.clear();                       // 清空字符串
+        ```
+
+    6. 与 C 风格字符串转换
+
+        ```cpp
+        string str = "Hello";
+
+        // string -> C 风格字符串
+        const char* cstr = str.c_str();    // 返回只读指针
+        char* data = str.data();           // C++17 前返回 const char*，之后返回 char*
+
+        // C 风格字符串 -> string
+        const char* cstyle = "World";
+        string s = cstyle;
+        ```
+
+    7. 输入输出
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+
+        string str;
+        cin >> str;                    // 读取一个单词（遇到空格停止）
+        getline(cin, str);             // 读取一行（包括空格）
+        cout << str << endl;
+        ```
+
+        实用示例
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+
+        int main() {
+            // 创建和初始化
+            std::string greeting = "Hello, ";
+            std::string name = "Alice";
+            
+            // 字符串连接
+            std::string message = greeting + name + "!";
+            std::cout << message << std::endl;  // "Hello, Alice!"
+            
+            // 查找和替换
+            size_t pos = message.find("Alice");
+            if (pos != std::string::npos) {
+                message.replace(pos, 5, "Bob");
+            }
+            std::cout << message << std::endl;  // "Hello, Bob!"
+            
+            // 遍历字符串
+            for (char c : message) {
+                std::cout << c << " ";
+            }
+            
+            return 0;
+        }
+        ```
+
+    注意事项
+
+    * std::string 自动管理内存，无需手动分配/释放
+
+    * 可以使用迭代器进行遍历：for (auto it = str.begin(); it != str.end(); ++it)
+
+    * C++11 支持移动语义，可高效传递字符串
+
+    * 支持与数字转换：std::to_string(123)，std::stoi("456")
+
+    std::string 是 C++ 中最常用的字符串处理工具，功能强大且安全。
+
 * unordered_map
 
     unordered_map 是 C++ STL 中的关联容器，基于哈希表实现，提供平均 O(1) 时间复杂度的查找、插入和删除操作。

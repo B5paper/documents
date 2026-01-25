@@ -6,6 +6,127 @@
 
 ## cache
 
+* linux中，如何按进程显示实时的网络流量？
+
+    在 Linux 中，有几种方法可以按进程显示实时的网络流量：
+
+    1. iftop（按连接显示）
+
+        ```bash
+        sudo iftop -P
+        ```
+
+        * -P 显示端口和进程信息
+
+        * 按 p 键切换显示端口/进程
+
+        * 按 Shift + P 暂停显示更新
+
+        * 按 Shift + H 显示帮助
+
+    2. nethogs（专门按进程监控）
+
+        ```bash
+        sudo nethogs
+        ```
+
+        或者指定网卡：
+
+        ```bash
+        sudo nethogs eth0
+        ```
+
+        快捷键：
+
+        * m：在 KB/s 和 KB 之间切换显示模式
+
+        * r：按流量排序
+
+        * s：按发送流量排序
+
+        * q：退出
+
+    3. bmon + bpfcc-tools
+
+        安装必要工具：
+
+        ```bash
+        # Debian/Ubuntu
+        sudo apt install bpfcc-tools linux-headers-$(uname -r)
+
+        # RHEL/CentOS
+        sudo yum install kernel-devel bcc-tools
+        ```
+
+        使用 tcptop 监控：
+
+        ```bash
+        sudo tcptop -C 1  # 每秒刷新一次
+        ```
+
+    4. ss + awk（组合命令）
+
+        实时查看进程的网络连接：
+
+        ```bash
+        watch -n 1 "ss -tup | awk '{print \$1,\$2,\$5,\$6,\$7}' | column -t"
+        ```
+
+    5. bmon（带宽监控）
+
+        ```bash
+        sudo bmon -p eth0
+        ```
+
+        * 按 d 显示详细信息
+
+        * 按 Shift + I 显示每个进程的流量
+
+    6. iptraf-ng（综合网络监控）
+
+        ```bash
+        sudo iptraf-ng
+        ```
+
+        选择菜单中的相应选项查看进程级流量。
+
+    7. 自定义脚本
+
+        创建一个简单的监控脚本：
+
+        ```bash
+        #!/bin/bash
+        while true; do
+            clear
+            echo "=== 进程网络连接统计 ==="
+            ss -tup | grep -v "State" | awk '{print $6,$7}' | sed 's/.*pid=//' | sort | uniq -c | sort -rn
+            echo -e "\n=== 按进程汇总 ==="
+            ss -tup | awk '/pid=/ {split($7,a,"="); print a[2]}' | sort | uniq -c | while read count pid; do
+                if [ -n "$pid" ] && [ -d "/proc/$pid" ]; then
+                    name=$(ps -p $pid -o comm=)
+                    echo "$count $pid ($name)"
+                fi
+            done | sort -rn
+            sleep 2
+        done
+        ```
+
+    推荐方案：
+
+    * 简单易用：使用 nethogs
+
+    * 详细信息：使用 iftop -P
+
+    * 专业监控：使用 bcc-tools 中的工具
+
+    注意事项：
+
+    * 大多数工具需要 root 权限
+
+    * 部分工具可能需要额外安装
+
+    * 对于容器化环境（Docker/K8s），可能需要使用 nsenter 进入容器命名空间查看
+
 * terminal 中，启动 ssh 进入远程机器，然后再退出 ssh 后，local terminal 会出现文本无法自动换行的情况，如何解决
 
     这是一个常见的终端窗口尺寸同步问题。当你在 SSH 会话中调整了终端窗口大小，退出后本地终端没有正确同步回来。

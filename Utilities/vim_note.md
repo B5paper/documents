@@ -2,6 +2,253 @@
 
 ## cache
 
+* vim 中，vsplit 打开两个文件后，如何只复制一个文件的多行？
+
+    在 Vim 中使用 vsplit 分割窗口后，要只复制其中一个文件的多行内容，有以下几种方法：
+
+    1. 基本方法：先进入对应窗口
+
+        ```vim
+        <C-w>h      # 先切换到左侧窗口
+        <C-w>l      # 先切换到右侧窗口
+        ```
+
+        然后在该窗口中使用正常的复制命令：
+
+        ```vim
+        yy          # 复制单行
+        5yy         # 复制5行
+        :10,20y     # 复制第10-20行
+        ```
+
+    2. 不切换窗口直接操作
+
+        如果你知道当前光标在哪个窗口，可以直接：
+
+        ```vim
+        " 如果当前窗口是你要复制的窗口
+        v           # 进入可视模式
+        选择多行
+        y           # 复制
+
+        " 或者
+        :'<,'>y     # 复制已选择的行
+        ```
+
+    3. 使用窗口局部寄存器（推荐）
+
+        如果你需要频繁在两个窗口间复制，可以：
+
+        * 在源窗口选择文本：
+
+            ```vim
+            v           # 进入可视模式
+            选择多行
+            "ay         # 复制到寄存器 a
+            ```
+
+        * 切换到目标窗口：
+
+            ```vim
+            <C-w>w      # 切换到另一个窗口
+            ```
+
+        * 粘贴：
+
+            ```vim
+            "ap         # 从寄存器 a 粘贴
+            ```
+
+    4. 使用全局寄存器
+
+        如果你想复制的文本在所有窗口间共享：
+
+        ```vim
+        "+y         # 复制到系统剪贴板
+        "+p         # 从系统剪贴板粘贴
+        ```
+
+    5. 快速切换窗口的快捷键
+
+        * <C-w>h - 切换到左侧窗口
+
+        * <C-w>l - 切换到右侧窗口
+
+        * <C-w>w - 在窗口间循环切换
+
+        * <C-w>j - 切换到下方窗口
+
+        * <C-w>k - 切换到上方窗口
+
+    实际示例
+
+    假设你想复制左侧文件的第10-20行到右侧文件：
+
+    ```vim
+    <C-w>h      # 切换到左侧窗口
+    :10,20y a   # 将10-20行复制到寄存器a
+    <C-w>l      # 切换到右侧窗口
+    "ap         # 粘贴寄存器a的内容
+    ```
+
+    这样就能准确地在分割窗口中只复制一个文件的内容了。
+
+* windows 中，vim 如何安装 vim-plug ?
+
+    在 Windows 中为 Vim 安装 vim-plug 有几种方法，以下是详细的步骤：
+
+    方法一：使用 PowerShell 或 CMD（推荐）
+
+    1. 确保 Vim 已正确安装
+
+        首先确认你的 Vim 版本（建议 8.0 以上）：
+
+        ```cmd
+        vim --version
+        ```
+
+    2. 创建必要的目录
+
+        打开 PowerShell 或 CMD，运行：
+
+        ```powershell
+        # 创建 vim 的 autoload 目录（如果不存在）
+        mkdir -Force $HOME\vimfiles\autoload
+        ```
+
+    3. 下载 vim-plug
+
+        ```powershell
+        # 使用 PowerShell 下载
+        $uri = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+        (New-Object Net.WebClient).DownloadFile($uri, $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("$HOME\vimfiles\autoload\plug.vim"))
+        ```
+
+        或者使用 curl（如果已安装）：
+
+        ```powershell
+        curl -fLo "$HOME/vimfiles/autoload/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        ```
+
+    方法二：手动下载
+
+    1. 创建目录结构
+
+        ```text
+        C:\Users\你的用户名\vimfiles\
+                        └── autoload\
+        ```
+
+    2. 下载 plug.vim
+
+        访问以下 URL，将内容保存为 plug.vim：
+
+        ```text
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        ```
+
+        将下载的文件放入：
+
+        ```text
+        C:\Users\你的用户名\vimfiles\autoload\plug.vim
+        ```
+
+    方法三：使用 Git Bash（如果有安装）
+
+    打开 Git Bash，运行：
+
+    ```bash
+    curl -fLo ~/vimfiles/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    ```
+
+    配置 vim-plug
+
+    1. 编辑 Vim 配置文件
+
+        Windows 上的 Vim 配置文件通常是：
+
+        ```text
+        C:\Users\你的用户名\_vimrc
+        ```
+
+        或（较新版本）：
+
+        ```text
+        C:\Users\你的用户名\vimfiles\vimrc
+        ```
+
+    2. 添加插件配置
+
+        在 _vimrc 文件中添加：
+
+        ```vim
+        call plug#begin('~/vimfiles/plugged')
+
+        " 在这里添加插件，例如：
+        Plug 'junegunn/vim-easy-align'
+        Plug 'https://github.com/junegunn/vim-github-dashboard.git'
+
+        call plug#end()
+        ```
+
+    3. 安装插件
+
+        * 重新打开 Vim
+
+        * 运行命令：
+
+            ```vim
+            :PlugInstall
+            ```
+
+    验证安装
+
+    在 Vim 中运行以下命令检查是否安装成功：
+
+    ```vim
+    :echo exists('g:plugs')
+    :PlugStatus
+    ```
+
+    常见问题解决
+
+    1. 如果遇到网络问题
+
+        * 可能需要设置代理（如果有）：
+
+            ```vim
+            let g:plug_shallow = 0
+            let g:plug_threads = 1
+            ```
+
+    2. 如果目录权限问题
+
+        * 以管理员身份运行 PowerShell 或 CMD
+
+    3. 如果使用的是 Neovim
+
+        Neovim 的配置路径不同：
+
+        ```powershell
+        # Neovim (Windows)
+        mkdir -Force $HOME\AppData\Local\nvim\autoload
+        $uri = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+        (New-Object Net.WebClient).DownloadFile($uri, "$HOME\AppData\Local\nvim\autoload\plug.vim")
+        ```
+
+    常用命令
+
+    * :PlugInstall - 安装插件
+
+    * :PlugUpdate - 更新插件
+
+    * :PlugClean - 删除未使用的插件
+
+    * :PlugUpgrade - 升级 vim-plug 自身
+
+    这样就完成了 vim-plug 在 Windows 上的安装。
+
 * vim 替换中的`\zs`和`&`
 
     \zs - 设置匹配开始位置
@@ -343,7 +590,7 @@
 
 * vim 替换中的 normal 模式
 
-    * 配合 `:global` 命令: `g/pattern/normal I*`
+    * 配合 `:global` 命令: `:g/pattern/normal I*`
 
         含义：在所有匹配到 pattern 的行上，执行“在行首插入星号”的操作。
 

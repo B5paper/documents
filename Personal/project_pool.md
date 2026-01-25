@@ -36,6 +36,185 @@
 
 ## cache
 
+* 两两比较
+
+    层次分析法，双败赛制，都是两两比较，如果遇到需要综合考虑多个指标的情况，是否可以借鉴一下？
+
+* 激活权重
+
+    如果我们能让多个概念保持活跃，就可以快速建立联想和连接。这有点像 llm 中的激活权重。
+
+* 虽然说不破不立，但是这破付出的代价未免也太大了。
+
+* 灵光偶得
+
+    一只老虎披上人皮后能读懂文字，能与人交流，但本质还是野兽，做出的举动仍透露着动物本性。和gpt很像。
+
+* 对非线性的线性近似只能处理局部，无法处理全局。微分一直在处理局部。难点的两端是否一个是微观，一个是全局？
+
+* 随机游走与内逻辑一致性
+
+    首先把概念固化成一个个节点，然后每次随机选两个或多个节点，分析概念之间的联系，或者提出问题。如果我们猜想出来的联系与已有知识违背，那么说明内在逻辑不一致，需要进一步探索这个问题。如果我们提出的问题没有答案，那么就需要制定计划探索答案。
+
+* 黑箱优化
+
+    除了高斯过程，还可以直接用变分法建模，比如假设目标函数就是一个二次曲面，五行，等等
+
+* 高维思考，低维表述
+
+    在思考时我们总是考虑到多个因素，多个概念联动，所有事物之间都有可能性和联系，但是当我们开始把思考表述成语言时，明显感到维度降低了，可能性减少了。
+
+    比如，如果 nchannel 是根据最大带宽算得，那么如果我改变 link 的带宽数值，搜索出来的 nchannel 也会跟着改变。但是验证这个假设只能靠改变 link 带宽这一种方法吗，可能还有其他手段，比如检查 channel 带宽，用 link 带宽除以 channel 带宽，看是否正好等于 nchannel。在思考时我们想到很多因素，但是在表述时我们需要放弃很多可能性。这可能就是语言的限制。
+
+* c语言中，调试字符串相关的代码，经常有拿到某个字符对应的位置、以及拿到某个位置对应的字符的需求，自己动手数比较麻烦，是否有工具可以解决这个问题
+
+    是的，完全有工具可以解决这个手动数位置的问题！以下是几种实用的解决方案：
+
+    1. 在线字符串可视化工具
+
+        推荐工具：
+
+        * CodeBeautify String Viewer - 显示每个字符的索引位置
+
+        * Online String Tools - 支持各种字符串分析
+
+        * strview - 专门为C语言开发者设计
+
+        功能特点：
+
+        ```text
+        字符串: "Hello, World!"
+        索引:    0123456789012
+        字符:    Hello, World!
+                 ^    ^ ^    ^
+                 |    | |    |
+        位置:    0    5 7    12
+        ```
+
+        实时显示每个字符的索引位置和ASCII值
+
+    2. IDE/编辑器插件
+
+        VS Code 扩展：
+
+        * String Manipulation - 高亮显示字符位置
+
+        * Rainbow CSV - 对字符串进行彩色标记
+
+        * Bracket Pair Colorizer - 帮助识别字符串边界
+
+        配置方法：
+
+        ```json
+        // VS Code settings.json
+        {
+            "editor.renderWhitespace": "all",
+            "editor.renderControlCharacters": true,
+            "editor.wordWrap": "off"
+        }
+        ```
+
+    3. C语言调试技巧
+
+        使用gdb调试：
+
+        ```c
+        // 示例代码
+        #include <stdio.h>
+        #include <string.h>
+
+        int main() {
+            char str[] = "Debug this string";
+            
+            // 使用gdb时：
+            // print str[5]      // 查看第6个字符
+            // x/s &str[0]       // 查看整个字符串
+            // print &str[7] - &str[0]  // 计算偏移量
+            return 0;
+        }
+        ```
+
+        gdb命令：
+
+        ```bash
+        (gdb) p str
+        (gdb) p str[3]        # 位置3的字符
+        (gdb) x/20cb str      # 以字符形式查看内存
+        (gdb) printf "%d\n", strchr(str, 's') - str  # 查找's'的位置
+        ```
+
+    4. 自制辅助函数
+
+        ```c
+        #include <stdio.h>
+        #include <string.h>
+
+        void print_string_with_indices(const char *str) {
+            printf("字符串: \"%s\"\n", str);
+            printf("索引:    ");
+            for(int i = 0; i < strlen(str); i++) {
+                printf("%d", i % 10);
+            }
+            printf("\n字符:    ");
+            for(int i = 0; i < strlen(str); i++) {
+                printf("%c", str[i]);
+                if(i < strlen(str)-1) {
+                    // 对齐空格
+                    int spaces = 1;
+                    if(i >= 10) spaces = 2;
+                    for(int j = 0; j < spaces; j++) printf(" ");
+                }
+            }
+            printf("\n");
+            
+            printf("\n详细分析:\n");
+            for(int i = 0; i < strlen(str); i++) {
+                printf("位置 %2d: '%c' (ASCII: %3d)\n", 
+                       i, str[i], (int)str[i]);
+            }
+        }
+
+        int main() {
+            char test_str[] = "C语言调试";
+            print_string_with_indices(test_str);
+            return 0;
+        }
+        ```
+
+    5. 推荐组合方案
+
+        日常开发：
+
+        * VSCode + 字符串插件 - 编写时实时查看
+
+        * 在线工具 - 快速分析复杂字符串
+
+        * gdb - 运行时调试
+
+        实用技巧：
+
+        ```c
+        // 快速定位技巧
+        #define DEBUG_CHAR(str, pos) \
+            printf("str[%d] = '%c' (ASCII: %d)\n", \
+                   pos, str[pos], str[pos])
+
+        // 使用示例
+        DEBUG_CHAR("Hello World", 6);  // 输出: str[6] = 'W' (ASCII: 87)
+        ```
+
+    6. 特殊字符处理
+
+        这些工具特别有助于处理：
+
+        * 转义字符：\n, \t, \\
+
+        * Unicode/中文字符（注意：中文字符占多个字节）
+
+        * 空终止符 \0
+
+    最佳实践：对于中文字符串调试，建议使用支持UTF-8的在线工具，并注意一个中文字符可能对应2-4个字节的存储位置。
+
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -3357,6 +3536,41 @@ resources:
 
 ### cache
 
+* [new] 调研 ssh remote forward 配置
+
+    ```conf
+    Host remote-host
+        HostName your.server.com
+        RemoteForward 12345 localhost:12345
+    ```
+
+* [new] 调研 OSC 52 协议
+
+    程序直接操作本地剪贴板：
+
+    ```vim
+    " ~/.vimrc
+    function! Osc52Yank()
+        let buffer=system('base64 | tr -d "\n"', @")
+        let data='\e]52;c;'.buffer.'\x07'
+        let silent=system('printf "'.data.'" > /dev/tty')
+    endfunction
+    map <leader>y :call Osc52Yank()<CR>
+    ```
+
+    使用时：yy 后按 `<leader>y` 即可复制到本地剪贴板。
+
+* [new] 调研 linux clipboard
+
+    ```bash
+    cat /tmp/copy.txt | xclip -selection clipboard  # Linux
+    ```
+
+    ```bash
+    # 在本地终端运行
+    nc -l 12345 | xclip -selection clipboard
+    ```
+
 * [ ] cmake 环境变量的用法
 
 * [ ] 调研 bash 的`exec`命令
@@ -5902,6 +6116,16 @@ resources:
 * vim 中的 redo 是哪个？
 
 ### cache
+
+* [new] 调研 vim 命令
+
+    ```vim
+    :10,20w /tmp/copy.txt  # 将10-20行保存到临时文件
+    ```
+
+    ```vim
+    :'<,'>w !nc localhost 12345  # 将选中内容发送到本地
+    ```
 
 ### tasks
 

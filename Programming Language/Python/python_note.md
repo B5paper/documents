@@ -2,6 +2,183 @@
 
 ## cache
 
+* pip 使用指定的 cache path 和 tmp path
+
+    ```bash
+    TMPDIR=/share/hlc/pip_tmp pip3 install --cache-dir=/share/hlc/pip_cache cupy -i https://mirrors.aliyun.com/pypi/simple
+    ```
+
+    pip 默认会使用 home dir 和 /tmp 进行下载包、解压、编译安装（具体哪个目录对应哪个功能，目前分不太清楚）。如果 home 目录已满，或者没有 /tmp 权限，那么可以手动指定这两个目录，如上所示。
+
+    注意，
+    
+    1. `TMPDIR`必须是绝对路径。
+    
+    1. 这两个目录的权限最好设置为 777.
+
+* 简述 python 包管理器 uv 的用法
+
+    uv 是一款用 Rust 开发的快速 Python 包管理器和项目工具，由 Astral 开发。以下是其主要用法：
+
+    **🚀 安装 uv**
+
+    ```bash
+    # macOS/Linux
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Windows (PowerShell)
+    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+    # pip 安装
+    pip install uv
+    ```
+
+    **📦 核心功能**
+
+    1. 创建虚拟环境
+
+        ```bash
+        # 创建并激活虚拟环境
+        uv venv
+        source .venv/bin/activate  # Linux/macOS
+        .venv\Scripts\activate     # Windows
+
+        # 指定 Python 版本
+        uv venv --python 3.11
+        ```
+
+    2. 依赖管理
+
+        ```bash
+        # 初始化项目（类似 npm init）
+        uv init
+
+        # 安装依赖
+        uv add requests           # 添加到 pyproject.toml 并安装
+        uv add pytest --dev       # 安装开发依赖
+        uv add "django>=4.0"      # 指定版本
+
+        # 安装 pyproject.toml 中的所有依赖
+        uv sync
+
+        # 更新所有依赖
+        uv sync --upgrade
+
+        # 移除依赖
+        uv remove requests
+        ```
+
+    3. 运行 Python 代码
+
+        ```bash
+        # 直接运行（自动创建临时环境）
+        uv run python script.py
+        uv run pytest tests/
+        ```
+
+    4. 项目管理工具
+
+        ```bash
+        # 锁定依赖版本
+        uv lock
+
+        # 生成 requirements.txt
+        uv pip compile -o requirements.txt
+        uv pip compile -o requirements-dev.txt --extra dev
+
+        # 从 requirements.txt 安装
+        uv pip install -r requirements.txt
+        ```
+
+    ⚡ 高级用法
+
+    并行安装
+
+    ```bash
+    uv pip install package1 package2 package3  # 并行下载安装
+    ```
+
+    项目模板
+
+    ```bash
+    # 从模板创建项目
+    uv init --template https://github.com/username/template
+    ```
+
+    集成现有项目
+
+    ```bash
+    # 在已有项目中初始化
+    cd existing-project
+    uv init --no-create-project
+    ```
+
+    **🔧 配置选项**
+
+    配置文件 (uv.toml)
+
+    ```toml
+    [project]
+    name = "my-project"
+    version = "0.1.0"
+
+    [tool.uv]
+    python = "3.11"
+    ```
+
+    环境变量
+
+    ```bash
+    # 设置镜像源
+    export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+
+    # 启用并行下载
+    export UV_PARALLEL=8
+    ```
+
+    **🆚 与传统工具对比**
+
+    | 功能 | uv | pip | pip+venv |
+    | - | - | - | - |
+    | 虚拟环境管理 | ✅ | ❌ | ✅ |
+    | 并行下载 | ✅ | ❌ | ❌ |
+    | 项目初始化 | ✅ | ❌ | ❌ |
+    | 依赖锁定 | ✅ | ❌ | ❌ |
+    | 运行命令 | ✅ | ❌ | ❌ |
+
+    **📝 示例工作流**
+
+    ```bash
+    # 1. 创建新项目
+    uv init my-project
+    cd my-project
+
+    # 2. 添加依赖
+    uv add fastapi
+    uv add pytest --dev
+
+    # 3. 编写代码后运行
+    uv run python main.py
+
+    # 4. 运行测试
+    uv run pytest
+
+    # 5. 生成生产环境需求文件
+    uv pip compile --no-dev -o requirements.txt
+    ```
+
+    **💡 小贴士**
+
+    * 极速安装：uv 的缓存机制和并行下载使其比 pip 快很多
+
+    * 一体化工具：结合了 pip、venv、virtualenv、pip-tools 的功能
+
+    * 跨平台：Windows、macOS、Linux 全支持
+
+    * 向后兼容：兼容现有的 requirements.txt 和 pyproject.toml
+
+    uv 的目标是成为 Python 项目的“一站式”工具，简化从项目创建到部署的整个流程。
+
 * python 去重方法总结
 
     Python 中有多种去重方法，针对你提到的数据类型，需要不同处理方式：
