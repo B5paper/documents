@@ -383,9 +383,11 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] 完成程序：遍历索引和目录，找到`ignore.md`中无效的索引和未被收录的目录/文件
+* [v] random select 实现在指定几个文件中随机选择一个文件，并随机选择一行
 
-* [ ] random select 实现在指定几个文件中随机选择一个文件，并随机选择一行
+    feedback:
+
+    * [ ] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
 
 * [ ] CUDA Core Compute Libraries (CCCL)
 
@@ -499,8 +501,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] qa 文件权重保留小数点后 4 位 
 
-* [v] 调研：假如 search 和 match 一个是从头开始搜索，一个是从指定位置开始搜索，那么为什么这两个函数函数都有 pos 和 endpos 这两个参数？
-
 * [ ] re.compile `MULTILINE`
 
     ```py
@@ -509,22 +509,17 @@ english words 由 { } reorg: english words 进化而来。
     m = pat.match(txt, pos=12)  # 可以匹配第二行的 world
     ```
 
-* [ ] 在同一次 test 中，不能出现重复的 unit
+* [v] 在同一次 test 中，不能出现重复的 unit
 
-* [v] 调研 python 的去重功能（unique）
+    feedback:
 
-    ```py
-    arr_1 = ['a', 'b', 'c', 'a']
-    arr_2 = [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}]
-    ```
+    * [asso] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
 
-    比如这种数据该如何去重？
+        典型场景
+        若需要选 10 个 units，但可用 50 个，重复概率约 13%
+        若需要选 15 个 units，但可用 30 个，重复概率约 48%
 
-    目前的做法是`arr = list(set(arr))`，是否还有更好的办法？
-
-* [ ] 调研 python 处理 csv 文件
-
-* [v] py 中的`f.write()`接受变参数吗，可以写入多个 str 吗
+* [v] 调研 python 处理 csv 文件
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
@@ -750,13 +745,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] vim 替换中的`\zs`(设置替换开始位置), `&`(原内容)
-
-* [v] vim 替换中的`/normal I*`
-
-    可以进入 normal 模式吗？
-
-* [ ] 调研以下命令
+* [v] 调研以下命令
 
     ```vim
     " 在Visual模式下添加列表标记
@@ -769,6 +758,12 @@ english words 由 { } reorg: english words 进化而来。
     为什么上一个命令`<cr>`前有`/`，而下面的命令没有？
 
     为什么下面的命令进入了 normal 模式后，后面又跟了一个`<cr>`？ 此时 normal 模式是否和 `:` 命令模式冲突？`<cr>`匹配的命令是 normal 还是 `:`?
+
+    feedback:
+
+    * [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
+
+    * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
 
 * [ ] `:'<,'>normal I* `
 
@@ -1709,11 +1704,9 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] matlab `saveas()`
 
-* [v] matlab `min()`, `max()`
+* [v] matlab `reshape()`
 
-* [ ] matlab `reshape()`
-
-* [ ] matlab `dir()`
+* [v] matlab `dir()`
 
 * [ ] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
 
@@ -1833,12 +1826,6 @@ resources:
 
 * [O] torchmetric中micro precision计算详解
 
-    目前看到
-
-    > F1-score 中的 f1 是什么意思
-
-    feedback:
-
     * 目前看到
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
@@ -1915,7 +1902,7 @@ resources:
 
 * [ ] `sg_dma_address()`, `sg_dma_len()`
 
-* [ ] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+* [v] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
 
 * [ ] `mlock()`
 
@@ -2436,7 +2423,7 @@ resources:
 
 ### tasks
 
-* [ ] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
+* [v] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
 
 * [ ] `dma_map_page()`
 
@@ -3536,6 +3523,10 @@ resources:
 
 ### cache
 
+* [new] `curl -I`
+
+    `curl -I https://gitlabsoft.siorigin.com/ccl/siccl_utils`
+
 * [new] 调研 ssh remote forward 配置
 
     ```conf
@@ -4034,9 +4025,13 @@ resources:
 
 * [ ] 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假
 
-* [ ] bash 中的分号是什么意思？
+* [v] bash 中的分号是什么意思？
 
     比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
+
+    feedback:
+
+    * [asso] `env`命令
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 
@@ -6520,6 +6515,18 @@ resources:
 ## git
 
 ### cache
+
+* [new] `git submodule update --remote --recursive`
+
+* [new] `git config --local`
+
+    `git config --local --remove-section submodule.src/collectives/device/utils 2>/dev/null || true`
+
+* [new] `git pull --recurse-submodules`
+
+* [new] `git ls-tree`
+
+    `git ls-tree HEAD src/collectives/device/utils`
 
 * [ ] 调研`git revert -n <commitToRevet>`, `git revert --no-commit <commitToRevet>`, `git revert HEAD~x`
 

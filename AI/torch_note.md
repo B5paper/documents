@@ -2,6 +2,365 @@
 
 ## cache
 
+* torch set_num_threads() 与 set_num_interop_threads() 区别
+
+    torch.set_num_threads() 和 torch.set_num_interop_threads() 控制的是 不同层面的并行化，理解它们的区别对于性能调优很重要。
+
+    主要区别
+
+    | 特性 | torch.set_num_threads() | torch.set_num_interop_threads() |
+    | - | - | - |
+    | 作用对象 | 单个操作内部并行（如矩阵乘法） | 多个独立操作间的并行（如多个独立的矩阵乘法） |
+    | 并行层级 | 操作内并行（intra-op） | 操作间并行（inter-op） |
+    | 典型场景 | 大型矩阵运算、卷积等 | 数据加载、多个小操作的并行执行 |
+    | 默认值 | CPU 核心数 | 通常为 1（保守默认） |
+    | 线程池 | 不同的线程池 | 不同的线程池 |
+
+    详细解释
+
+    1. torch.set_num_threads() - 操作内并行
+
+        ```python
+        import torch
+        import time
+
+        # 设置操作内并行线程数
+        torch.set_num_threads(4)  # 这个操作内部最多用4个线程
+
+        # 单一大操作会被拆分成多个子任务并行执行
+        x = torch.randn(5000, 5000)
+        y = torch.randn(5000, 5000)
+
+        # 这个矩阵乘法会在内部使用最多4个线程
+        z = x @ y  # 操作内并行
+        ```
+
+        工作方式：
+
+        * 单个复杂操作（如大矩阵乘法）被分解成多个子任务
+
+        * 这些子任务在多个线程上并行执行
+
+        * 所有线程共同完成这一个操作
+
+    2. torch.set_num_interop_threads() - 操作间并行
+
+        ```python
+        import torch
+        import concurrent.futures
+
+        # 设置操作间并行线程数
+        torch.set_num_interop_threads(2)  # 最多同时执行2个独立操作
+        torch.set_num_threads(2)  # 每个操作内部最多用2个线程
+
+        def compute(i):
+            x = torch.randn(1000, 1000)
+            y = torch.randn(1000, 1000)
+            return (x @ y).mean()
+
+        # 多个独立的矩阵乘法可以并行执行
+        # 由于设置了 interop_threads=2，最多2个操作同时进行
+        results = []
+        for i in range(4):
+            results.append(compute(i))
+        ```
+
+    实际应用场景对比
+
+    场景1：单个大任务
+
+    ```python
+    # 适合用 set_num_threads() 优化
+    torch.set_num_threads(8)  # 让单个大操作用8个核心
+    torch.set_num_interop_threads(1)  # 只有一个操作，无需操作间并行
+
+    # 单个大型矩阵运算
+    large_matrix = torch.randn(10000, 10000)
+    result = large_matrix @ large_matrix.T  # 这个操作内部会并行
+    ```
+
+    场景2：多个小任务
+
+    ```python
+    # 适合用 set_num_interop_threads() 优化
+    torch.set_num_threads(2)  # 每个小操作用2个核心
+    torch.set_num_interop_threads(4)  # 同时执行4个小操作
+
+    # 多个独立的小运算
+    def process_batch(batch_data):
+        return torch.mm(batch_data, batch_data.T)
+
+    # 如果有4个batch，可以并行处理
+    batches = [torch.randn(500, 500) for _ in range(4)]
+    results = [process_batch(batch) for batch in batches]
+    ```
+
+    场景3：混合场景
+
+    ```python
+    # 数据加载（操作间并行） + 计算（操作内并行）
+    torch.set_num_interop_threads(2)  # 同时加载2个batch
+    torch.set_num_threads(4)          # 每个batch计算用4个核心
+
+    # 假设的数据加载和计算流程
+    def load_and_compute(i):
+        # 模拟数据加载
+        data = torch.randn(1000, 1000)
+        # 计算
+        return data @ data.T
+
+    # 可以同时加载和计算多个batch
+    ```
+
+    性能影响示例
+
+    ```python
+    import torch
+    import time
+
+    # 测试不同配置的性能
+    def benchmark():
+        # 创建多个小矩阵
+        matrices = [torch.randn(500, 500) for _ in range(8)]
+        
+        # 配置1：只有操作内并行
+        torch.set_num_threads(4)
+        torch.set_num_interop_threads(1)
+        
+        start = time.time()
+        results = [m @ m.T for m in matrices]
+        print(f"只有操作内并行: {time.time()-start:.3f}s")
+        
+        # 配置2：只有操作间并行
+        torch.set_num_threads(1)
+        torch.set_num_interop_threads(4)
+        
+        start = time.time()
+        results = [m @ m.T for m in matrices]
+        print(f"只有操作间并行: {time.time()-start:.3f}s")
+        
+        # 配置3：两者结合
+        torch.set_num_threads(2)
+        torch.set_num_interop_threads(2)
+        
+        start = time.time()
+        results = [m @ m.T for m in matrices]
+        print(f"两者结合(2x2): {time.time()-start:.3f}s")
+
+    benchmark()
+    ```
+
+    最佳实践建议
+
+    * 确定工作负载类型：
+
+        * 计算密集型大操作 → 增加 num_threads
+
+        * 多个独立小操作 → 增加 num_interop_threads
+
+    * 通用推荐配置：
+
+        ```python
+        import os
+
+        total_cores = os.cpu_count()
+
+        # 通用场景：平衡配置
+        torch.set_num_threads(total_cores // 2)
+        torch.set_num_interop_threads(2)
+
+        # 数据预处理流水线
+        # torch.set_num_threads(2)  # 每个预处理任务用2核心
+        # torch.set_num_interop_threads(4)  # 同时预处理4个batch
+        ```
+
+    * 注意资源竞争：
+
+        ```python
+        # 不要设置过大，避免线程竞争
+        # 总线程数 ≈ num_threads * num_interop_threads
+        # 建议不超过物理核心数
+
+        # 错误示例（可能导致性能下降）：
+        # torch.set_num_threads(8)
+        # torch.set_num_interop_threads(8)  # 最多64个线程！
+        ```
+
+    与 DataLoader 的关系
+
+    ```python
+    from torch.utils.data import DataLoader
+
+    # DataLoader 有自己的并行机制（num_workers）
+    # 与 torch 的线程设置是独立的
+
+    # 典型配置：
+    loader = DataLoader(dataset, 
+                       batch_size=32,
+                       num_workers=4,      # 数据加载进程数
+                       pin_memory=True)
+
+    # PyTorch 计算线程设置
+    torch.set_num_threads(4)          # 每个GPU操作用4线程
+    torch.set_num_interop_threads(1)  # 通常GPU操作是串行的
+    ```
+
+    总结：
+
+    * torch.set_num_threads()：垂直扩展，让单个任务更快
+
+    * torch.set_num_interop_threads()：水平扩展，让多个任务同时进行
+
+    * 根据具体场景调整，两者乘积不要超过CPU物理核心数
+
+    * 对于大多数深度学习训练，调整 num_threads 更重要
+
+* torch 的 cpu backend 会自动多线程吗，还是使用 cpu 的 simd 相关指令集？
+
+    PyTorch 的 CPU backend 会同时使用多线程和 SIMD 指令集，但两者的触发机制和配置方式不同。
+
+    1. 自动多线程
+
+        是的，PyTorch CPU 运算默认会自动使用多线程，具体表现：
+
+        配置方式：
+
+        ```python
+        import torch
+
+        # 查看和设置线程数
+        print(torch.get_num_threads())    # 获取当前线程数
+        print(torch.get_num_interop_threads())  # 获取并行操作线程数
+
+        # 设置线程数
+        torch.set_num_threads(4)         # 设置计算线程数
+        torch.set_num_interop_threads(2) # 设置并行操作线程数
+        ```
+
+        环境变量控制：
+
+        ```bash
+        # 常用的环境变量
+        export OMP_NUM_THREADS=4        # OpenMP 线程数（影响底层运算）
+        export MKL_NUM_THREADS=4        # MKL 线程数（如果有用 MKL）
+        ```
+
+    2. SIMD 指令集优化
+
+        PyTorch 会自动利用 CPU 的 SIMD 指令集：
+
+        支持的指令集：
+
+        * SSE4.2
+
+        * AVX2
+
+        * AVX-512（如果 CPU 支持）
+
+        * ARM NEON（ARM 架构）
+
+        检查是否启用：
+
+        ```python
+        import torch
+
+        # 检查构建时启用的指令集（需要从源码编译的信息）
+        print(torch.__config__.show())  # 显示构建配置
+
+        # 运行时检测
+        print("是否使用MKL:", torch.backends.mkl.is_available())
+        print("是否使用OpenMP:", torch.backends.openmp.is_available())
+        ```
+
+        自动优化机制：
+
+        * PyTorch 在编译时会根据 CPU 架构生成多版本代码
+
+        * 运行时通过 CPU 特性检测选择最优的代码路径
+
+        * 底层使用 Eigen、MKL、OpenBLAS 等优化的数学库
+
+    3. 实际示例
+
+        ```python
+        import torch
+        import time
+
+        # 创建一个较大的张量
+        x = torch.randn(10000, 10000)
+        y = torch.randn(10000, 10000)
+
+        # 查看默认线程数
+        print(f"线程数: {torch.get_num_threads()}")
+
+        # 矩阵乘法（会自动并行化和SIMD优化）
+        start = time.time()
+        z = torch.matmul(x, y)
+        end = time.time()
+
+        print(f"计算时间: {end - start:.3f}秒")
+        print(f"张量形状: {z.shape}")
+        ```
+
+    4. 性能调优建议
+
+        推荐配置：
+
+        ```python
+        # 在程序开始时设置
+        import torch
+        import os
+
+        # 通常设置为物理核心数
+        num_cores = os.cpu_count()
+        torch.set_num_threads(num_cores)
+
+        # 或者让 OpenMP 自动管理
+        os.environ['OMP_NUM_THREADS'] = str(num_cores)
+        os.environ['MKL_NUM_THREADS'] = str(num_cores)
+        ```
+
+        注意事项：
+
+        * 线程数不要超过物理核心数，否则可能因上下文切换降低性能
+
+        * SIMD 优化是自动的，但需要 PyTorch 编译时支持对应的指令集
+
+        * 小矩阵运算可能不会充分并行化（开销大于收益）
+
+        * I/O 密集型任务与计算密集型任务的线程配置可能不同
+
+    5. 验证优化效果
+
+        ```python
+        import torch
+        import numpy as np
+
+        # 比较有无多线程的性能差异
+        torch.set_num_threads(1)  # 单线程
+        x = torch.randn(5000, 5000)
+        start = time.time()
+        _ = x @ x
+        print(f"单线程时间: {time.time() - start:.3f}s")
+
+        torch.set_num_threads(8)  # 多线程
+        start = time.time()
+        _ = x @ x
+        print(f"8线程时间: {time.time() - start:.3f}s")
+        ```
+
+    总结：
+
+    * ✅ 多线程是默认开启的，可通过 torch.set_num_threads() 配置
+
+    * ✅ SIMD 优化是自动的，PyTorch 会检测并选择最优指令集
+
+    * ⚠️ 最佳线程数取决于具体任务和硬件
+
+    * 📊 大矩阵运算最能体现并行化和 SIMD 的优势
+
+    PyTorch 在 CPU 上的性能很大程度上依赖于底层的数学库（MKL、OpenBLAS 等），这些库本身就包含了高度优化的多线程和 SIMD 实现。
+
 * 简介一下 torchmetrics 的基本用法
 
     TorchMetrics 是一个专门为 PyTorch 深度学习模型提供评估指标的库。它能够帮你标准化、简化模型性能的评估过程，尤其擅长处理分布式训练场景，并有效减少样板代码。

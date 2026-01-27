@@ -2,6 +2,399 @@
 
 ## cache
 
+* python 如何加载/保存 matlab save() 保存的 binary 文件？
+
+    Python 加载/保存 MATLAB 的 .mat 文件主要通过 scipy.io <https://scipy.io/> 模块实现，以下是详细方法：
+
+    1. 基础方法：使用 scipy.io
+
+        安装依赖
+
+        ```bash
+        pip install scipy numpy
+        ```
+
+        加载MATLAB文件
+
+        ```python
+        import scipy.io as sio
+        import numpy as np
+
+        # 加载.mat文件
+        mat_data = sio.loadmat('data.mat')
+
+        # mat_data是一个字典，MATLAB变量名为键
+        print(mat_data.keys())  # 查看所有变量名
+
+        # 访问具体变量
+        matrix_data = mat_data['variable_name']  # 替换为实际变量名
+        array_data = mat_data['array_name']
+
+        # 查看变量信息
+        print(f"数据类型: {type(matrix_data)}")
+        print(f"数据形状: {matrix_data.shape}")
+        print(f"数据类型: {matrix_data.dtype}")
+        ```
+
+        保存到MATLAB文件
+
+        ```python
+        import scipy.io as sio
+        import numpy as np
+
+        # 创建数据
+        matrix1 = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64)
+        matrix2 = np.array([[7, 8, 9], [10, 11, 12]], dtype=np.float64)
+        string_var = "Hello MATLAB"
+        scalar_var = 42.5
+
+        # 保存为.mat文件
+        sio.savemat('output.mat', {
+            'matrix1': matrix1,
+            'matrix2': matrix2,
+            'my_string': string_var,
+            'scalar_value': scalar_var
+        })
+        ```
+
+    2. 高级功能和注意事项
+
+        处理不同MATLAB版本
+
+        ```python
+        # MATLAB v7.3格式（HDF5格式）需要h5py
+        import h5py
+
+        # 加载v7.3格式
+        with h5py.File('data_v73.mat', 'r') as f:
+            data = f['variable_name'][:]  # 注意索引方式不同
+
+        # 保存时指定版本
+        sio.savemat('output_v7.mat', {'data': my_data}, do_compression=True)  # v7
+        sio.savemat('output_v73.mat', {'data': my_data}, do_compression=True, 
+                    format='7.3')  # v7.3
+        ```
+
+        处理复杂数据类型
+
+        ```python
+        # 结构体（struct）处理
+        mat_data = sio.loadmat('struct_data.mat', squeeze_me=True)
+        struct_data = mat_data['my_struct']
+
+        # 元胞数组（cell array）
+        cell_array = mat_data['my_cell']
+
+        # 对于嵌套结构体，可能需要递归处理
+        def unpack_mat_struct(struct_data):
+            if isinstance(struct_data, np.ndarray) and struct_data.dtype.names:
+                # 这是一个结构体数组
+                result = {}
+                for name in struct_data.dtype.names:
+                    result[name] = unpack_mat_struct(struct_data[name])
+                return result
+            return struct_data
+        ```
+
+        读取选项参数
+
+        ```python
+        # 常用参数
+        mat_data = sio.loadmat('data.mat', 
+                               mat_dtype=False,      # 不强制转换为matlab double
+                               squeeze_me=True,      # 压缩单元素维度
+                               struct_as_record=True, # 结构体作为记录数组
+                               verify_compressed_data_nonempty=False,
+                               variable_names=None)   # 指定读取的变量名
+        ```
+
+    3. 实用工具函数
+
+        批量转换脚本
+
+        ```python
+        import os
+        import scipy.io as sio
+        import numpy as np
+
+        def convert_mat_to_npy(mat_dir, output_dir):
+            """将目录下所有.mat文件转换为.npy格式"""
+            os.makedirs(output_dir, exist_ok=True)
+            
+            for filename in os.listdir(mat_dir):
+                if filename.endswith('.mat'):
+                    mat_path = os.path.join(mat_dir, filename)
+                    data = sio.loadmat(mat_path)
+                    
+                    # 为每个变量单独保存
+                    for key, value in data.items():
+                        if not key.startswith('__'):  # 跳过内部变量
+                            npy_filename = f"{filename[:-4]}_{key}.npy"
+                            npy_path = os.path.join(output_dir, npy_filename)
+                            np.save(npy_path, value)
+                            print(f"Saved {npy_filename}")
+
+        def save_to_mat_with_metadata(data_dict, filename, metadata=None):
+            """保存数据并添加元数据"""
+            if metadata:
+                # 将元数据作为变量保存
+                data_dict['_metadata'] = metadata
+            
+            sio.savemat(filename, data_dict, 
+                        do_compression=True,
+                        long_field_names=True)
+        ```
+
+    4. 常见问题解决
+
+        内存优化
+
+        ```python
+        # 部分读取大文件
+        import h5py
+
+        def read_large_mat_partial(filename, variable_name, start_idx, end_idx):
+            """分块读取大MAT文件"""
+            with h5py.File(filename, 'r') as f:
+                dataset = f[variable_name]
+                return dataset[start_idx:end_idx]
+        ```
+
+        数据类型转换
+
+        ```python
+        def convert_matlab_types(mat_data):
+            """转换MATLAB数据类型到Python友好格式"""
+            converted = {}
+            
+            for key, value in mat_data.items():
+                if not key.startswith('__'):
+                    # 处理复数
+                    if np.iscomplexobj(value):
+                        value = value.astype(np.complex128)
+                    # 处理逻辑类型
+                    elif value.dtype == np.bool_ or value.dtype == bool:
+                        value = value.astype(bool)
+                    # 处理字符串/cell中的字符串
+                    elif isinstance(value, np.ndarray) and value.dtype.char == 'U':
+                        value = str(value.item())
+                    
+                    converted[key] = value
+            
+            return converted
+        ```
+
+        处理特殊字符和编码
+
+        ```python
+        # 处理中文字符
+        def load_mat_with_encoding(filename, encoding='utf-8'):
+            """处理包含非ASCII字符的MAT文件"""
+            # scipy.io.loadmat通常能正确处理编码
+            data = sio.loadmat(filename)
+            
+            # 手动处理字符串字段
+            for key in data:
+                if isinstance(data[key], str):
+                    try:
+                        data[key] = data[key].encode('latin1').decode(encoding)
+                    except:
+                        pass
+            
+            return data
+        ```
+
+    5. 完整示例
+
+        ```python
+        import scipy.io as sio
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # 示例：加载、处理、保存MATLAB数据
+        def process_matlab_data(input_file, output_file):
+            # 1. 加载数据
+            mat_data = sio.loadmat(input_file)
+            
+            # 2. 提取变量
+            signals = mat_data.get('signals', None)
+            time_vector = mat_data.get('time', None)
+            sampling_rate = mat_data.get('fs', 1000)  # 默认采样率
+            
+            # 3. 数据处理
+            if signals is not None:
+                # 计算均值
+                mean_signal = np.mean(signals, axis=0)
+                
+                # 滤波等处理
+                # ...
+                
+                # 4. 保存结果
+                sio.savemat(output_file, {
+                    'original_signals': signals,
+                    'processed_signals': mean_signal,
+                    'time': time_vector,
+                    'fs': sampling_rate,
+                    'processing_info': f"Processed with Python on {np.datetime64('now')}"
+                })
+                
+                print(f"Data saved to {output_file}")
+                return True
+            
+            return False
+
+        # 使用示例
+        process_matlab_data('input_data.mat', 'processed_data.mat')
+        ```
+
+    重要提示
+
+    * 版本兼容性：MATLAB v7.3及以上使用HDF5格式，需要h5py库
+
+    * 数据类型：注意MATLAB和Python数据类型的差异
+
+    * 内存管理：大文件使用format='7.3'和HDF5格式更高效
+
+    * Unicode：MATLAB字符串可能使用不同编码，可能需要转换
+
+    * 稀疏矩阵：使用scipy.sparse处理稀疏矩阵
+
+    这些方法基本覆盖了Python与MATLAB数据交换的所有常见需求。
+
+* 简述 python 处理 csv 文件的方法
+
+    Python处理CSV文件的常用方法主要有以下几种：
+
+    1. 使用csv模块（标准库）
+
+        基本读写操作
+
+        ```python
+        import csv
+
+        # 读取CSV文件
+        with open('data.csv', 'r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                print(row)
+
+        # 读取为字典格式
+        with open('data.csv', 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                print(row['column_name'])
+
+        # 写入CSV文件
+        data = [['Name', 'Age'], ['Alice', 25], ['Bob', 30]]
+        with open('output.csv', 'w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            writer.writerows(data)
+        ```
+
+    2. 使用pandas库（最常用）
+
+        ```python
+        import pandas as pd
+
+        # 读取CSV
+        df = pd.read_csv('data.csv')
+        print(df.head())  # 查看前几行
+        print(df.info())  # 查看数据信息
+
+        # 数据处理
+        df['new_column'] = df['old_column'] * 2  # 新增列
+        filtered_df = df[df['age'] > 25]         # 过滤数据
+        grouped = df.groupby('category').mean()   # 分组聚合
+
+        # 写入CSV
+        df.to_csv('output.csv', index=False, encoding='utf-8')
+        ```
+
+    3. 使用numpy库（数值数据处理）
+
+        ```python
+        import numpy as np
+
+        # 读取数值数据
+        data = np.genfromtxt('data.csv', delimiter=',', skip_header=1)
+        # 或
+        data = np.loadtxt('data.csv', delimiter=',', skiprows=1)
+
+        # 处理数值数据
+        mean_values = np.mean(data, axis=0)
+        ```
+
+    4. 使用内置open函数（简单情况）
+
+        ```python
+        # 简单读取
+        with open('data.csv', 'r', encoding='utf-8') as f:
+            for line in f:
+                columns = line.strip().split(',')
+                print(columns)
+
+        # 简单写入
+        data = [['Name', 'Age'], ['Alice', '25']]
+        with open('output.csv', 'w', encoding='utf-8') as f:
+            for row in data:
+                f.write(','.join(map(str, row)) + '\n')
+        ```
+
+    常用参数说明
+
+    pandas读取参数：
+
+    * sep / delimiter: 分隔符（默认','）
+
+    * header: 指定表头行（默认0）
+
+    * index_col: 指定索引列
+
+    * usecols: 指定读取的列
+
+    * dtype: 指定列数据类型
+
+    * na_values: 指定缺失值表示
+
+    * encoding: 文件编码（如'utf-8'、'gbk'）
+
+    写入参数：
+
+    * index: 是否写入索引（默认True）
+
+    * columns: 指定写入的列
+
+    * encoding: 输出编码
+
+    选择建议
+
+    * 简单操作 → 使用csv模块
+
+    * 数据分析和复杂处理 → 使用pandas（推荐）
+
+    * 纯数值数据处理 → 使用numpy
+
+    * 大文件处理 → 使用csv模块或pandas的chunksize参数
+
+    * 内存限制 → 使用csv模块逐行处理
+
+    处理大文件示例
+
+    ```python
+    # pandas分块读取
+    chunk_size = 10000
+    for chunk in pd.read_csv('large_file.csv', chunksize=chunk_size):
+        process(chunk)  # 逐块处理
+
+    # csv模块逐行处理
+    with open('large_file.csv', 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            process_row(row)  # 逐行处理
+    ```
+
+    这些方法覆盖了大多数CSV文件处理场景，pandas通常是最方便的选择。
+
 * pip 使用指定的 cache path 和 tmp path
 
     ```bash

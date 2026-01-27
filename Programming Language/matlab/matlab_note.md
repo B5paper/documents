@@ -6,6 +6,351 @@
 
 ## cache
 
+* matlab `reshape()`
+
+    reshape() 是 MATLAB 中用于改变数组维度而不改变数据总量的核心函数。
+
+    1. 函数原型
+
+        ```matlab
+        B = reshape(A, sz)
+        B = reshape(A, sz1, sz2, ..., szN)
+        ```
+
+        * A: 输入数组（任意维度）
+
+        * sz: 新维度大小的向量，如 [m, n, p, ...]
+
+        * sz1, sz2, ..., szN: 各维度的具体大小
+
+        * B: 重塑后的输出数组
+
+    2. 核心作用
+
+        重新排列数组的维度布局，保持元素总数不变（即 numel(A) == numel(B)）。
+
+    3. 基本用法示例
+
+        示例1：矩阵维度转换
+
+        ```matlab
+        A = 1:12;            % 1×12 行向量
+        B = reshape(A, 3, 4) % 重塑为 3×4 矩阵
+        % B = 
+        %    1    4    7   10
+        %    2    5    8   11
+        %    3    6    9   12
+        ```
+
+        示例2：多维度数组
+
+        ```matlab
+        A = 1:24;
+        B = reshape(A, [2, 3, 4])  % 三维数组：2×3×4
+        ```
+
+        示例3：自动推断维度
+
+        ```matlab
+        A = rand(4, 6);           % 4×6 矩阵
+        B = reshape(A, 3, [])     % 3×8 矩阵（自动计算第二维为8）
+        ```
+
+    4. 关键特性
+
+        4.1 按列优先顺序
+
+        MATLAB 按列优先（column-major）顺序重塑：
+
+        ```matlab
+        A = [1 2 3; 4 5 6];  % 2×3 矩阵
+        % A = 
+        %     1  2  3
+        %     4  5  6
+
+        B = reshape(A, 3, 2)
+        % B = 
+        %     1  3  5
+        %     2  4  6
+        % 按列读取：1→4→2→5→3→6
+        ```
+
+        4.2 保持元素总数不变
+
+        ```matlab
+        A = rand(5, 7);
+        % numel(A) = 35，新维度乘积必须为35
+        B = reshape(A, 7, 5);    % √ 7×5=35
+        % C = reshape(A, 6, 6);  % × 会报错：6×6≠35
+        ```
+
+        4.3 与转置的区别
+
+        ```matlab
+        A = [1 2 3; 4 5 6];
+        B1 = reshape(A, 3, 2)   % 改变数据布局
+        B2 = A'                 % 转置：行列交换
+        % B1 = [1 3 5; 2 4 6]
+        % B2 = [1 4; 2 5; 3 6]
+        ```
+
+    5. 实用技巧
+
+        5.1 向量化矩阵
+
+        ```matlab
+        A = magic(3);
+        v = reshape(A, [], 1)   % 展成列向量，等价于 A(:)
+        ```
+
+        5.2 批量图像处理
+
+        ```matlab
+        % 将多个 28×28 图像展平为向量
+        images = rand(28, 28, 1000);      % 1000张灰度图
+        flattened = reshape(images, 784, 1000);  % 784×1000
+        ```
+
+        5.3 维度顺序调整（结合 permute）
+
+        ```matlab
+        % 将通道数放在第三维（适合图像处理）
+        data = rand(224, 224, 3, 100);  % 100张RGB图像
+        data_reshaped = reshape(data, 224, 224, 3, 100);
+        ```
+
+    6. 常见应用场景
+
+        * 数据预处理：统一输入维度
+
+        * 矩阵运算：改变形状以适应算法要求
+
+        * 图像处理：展平图像为特征向量
+
+        * 神经网络：调整数据维度以适应网络层
+
+    注意事项
+
+    * reshape 不改变内存中的数据顺序，仅改变索引方式
+
+    * 新维度的元素总数必须与原数组相同
+
+    * 与 squeeze() 结合可去除单一维度：reshape(squeeze(A), ...)
+
+    * 高维数组重塑时，建议用向量形式 [dim1, dim2, ...] 提高可读性
+
+* matlab `dir()`
+
+    dir() 是 MATLAB 中用于获取目录内容信息的核心函数。
+
+    1. 函数原型
+
+        ```matlab
+        files = dir
+        files = dir(name)
+        ```
+
+        * 无输入参数: 获取当前目录内容
+
+        * name: 指定目录路径或文件通配符
+
+        * files: 返回结构体数组，包含文件/文件夹信息
+
+    2. 核心作用
+
+        列出目录中的文件和子目录信息，包括文件名、日期、大小、是否目录等属性。
+
+    3. 输出结构体字段
+
+        ```matlab
+        files = dir;
+        % 每个元素包含以下字段：
+        files(1).name      % 文件/文件夹名称（字符串）
+        files(1).folder    % 所在文件夹完整路径（字符串）
+        files(1).date      % 修改日期时间（字符串）
+        files(1).bytes     % 文件大小（字节数）
+        files(1).isdir     % 是否为目录（逻辑值：1=是，0=否）
+        files(1).datenum   % 日期序列号（可用于排序）
+        ```
+
+    4. 基本用法示例
+
+        示例1：列出当前目录所有内容
+
+        ```matlab
+        files = dir;  % 获取当前目录内容
+        disp(files)   % 显示所有文件和文件夹
+        ```
+
+        示例2：列出指定目录
+
+        ```matlab
+        % 列出特定目录
+        files = dir('C:\Users\Documents\MATLAB');
+
+        % 列出当前目录的子目录
+        files = dir('./data');
+        ```
+
+        示例3：使用通配符过滤
+
+        ```matlab
+        % 所有 .m 文件
+        m_files = dir('*.m');
+
+        % 所有以 test 开头的文件
+        test_files = dir('test*');
+
+        % 特定扩展名
+        csv_files = dir('*.csv');
+
+        % 子目录中的特定文件
+        data_files = dir('data/*.mat');
+        ```
+
+        示例4：获取文件详细信息
+
+        ```matlab
+        files = dir('*.mat');
+        for i = 1:length(files)
+            fprintf('文件名: %s\n', files(i).name);
+            fprintf('大小: %.2f KB\n', files(i).bytes/1024);
+            fprintf('修改日期: %s\n', files(i).date);
+            fprintf('是否为目录: %d\n', files(i).isdir);
+            fprintf('---\n');
+        end
+        ```
+
+    5. 实用技巧与常见操作
+
+        5.1 过滤掉 "." 和 ".." 目录
+
+        ```matlab
+        files = dir;
+        % 去除当前目录(.)和父目录(..)
+        files = files(~ismember({files.name}, {'.', '..'}));
+
+        % 或者只保留文件（排除目录）
+        files = dir;
+        files = files(~[files.isdir]);  % 只保留文件
+        ```
+
+        5.2 按特定条件筛选文件
+
+        ```matlab
+        % 按日期筛选（最近7天内修改的）
+        files = dir('*.m');
+        file_dates = [files.datenum];
+        recent_idx = file_dates > (now - 7);
+        recent_files = files(recent_idx);
+
+        % 按大小筛选（大于1MB的文件）
+        files = dir('*.mat');
+        large_files = files([files.bytes] > 1024^2);
+        ```
+
+        5.3 文件排序
+
+        ```matlab
+        files = dir('*.csv');
+        % 按文件名排序
+        [~, idx] = sort({files.name});
+        files = files(idx);
+
+        % 按修改日期排序（从新到旧）
+        [~, idx] = sort([files.datenum], 'descend');
+        files = files(idx);
+
+        % 按文件大小排序
+        [~, idx] = sort([files.bytes]);
+        files = files(idx);
+        ```
+
+        5.4 递归获取所有子目录文件
+
+        ```matlab
+        function all_files = getAllFiles(dir_path)
+            % 获取目录及所有子目录中的文件
+            files = dir(dir_path);
+            files = files(~ismember({files.name}, {'.', '..'}));
+            
+            all_files = {};
+            
+            for i = 1:length(files)
+                file_path = fullfile(files(i).folder, files(i).name);
+                
+                if files(i).isdir
+                    % 递归处理子目录
+                    sub_files = getAllFiles(file_path);
+                    all_files = [all_files; sub_files];
+                else
+                    % 添加文件
+                    all_files = [all_files; {file_path}];
+                end
+            end
+        end
+        ```
+
+        5.5 批量处理文件
+
+        ```matlab
+        % 批量读取和处理图像
+        image_files = dir('images/*.jpg');
+        for i = 1:length(image_files)
+            filename = fullfile(image_files(i).folder, image_files(i).name);
+            img = imread(filename);
+            % 处理图像...
+        end
+        ```
+
+        5.6 与 fullfile() 结合使用
+
+        ```matlab
+        files = dir('data/*.txt');
+        for i = 1:length(files)
+            % 构建完整文件路径
+            full_path = fullfile(files(i).folder, files(i).name);
+            
+            % 读取文件
+            data = readtable(full_path);
+            % 处理数据...
+        end
+        ```
+
+    6. 注意事项
+
+        * 隐藏文件：dir 会显示隐藏文件（如 .gitignore）
+
+        * 性能考虑：处理大量文件时，考虑使用通配符过滤
+
+        * 路径分隔符：使用 fullfile() 处理跨平台路径问题
+
+        * 符号链接：会返回符号链接本身的信息
+
+        * 空目录：空目录返回空的结构体数组
+
+    7. 常见应用场景
+
+        * 数据批量导入：读取目录中所有数据文件
+
+        * 文件管理：查找、筛选、组织文件
+
+        * 自动化处理：批量处理图像、文本等文件
+
+        * 项目结构分析：获取项目文件列表
+
+    8. 相关函数
+
+        * ls: 简单列出文件名（返回字符数组）
+
+        * what: 列出MATLAB特定文件（.m, .mat, .mlx等）
+
+        * exist: 检查文件或文件夹是否存在
+
+        * cd: 更改当前目录
+
+        * pwd: 显示当前目录
+
 * matlab `min()`, `max()`
 
     原型

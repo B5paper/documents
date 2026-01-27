@@ -6,6 +6,170 @@ Ref:
 
 ## cache
 
+* dma_sync_single_for_device(), dma_sync_single_for_cpu()
+
+    1. 函数原型
+
+        ```c
+        // 同步DMA缓冲区给设备使用
+        void dma_sync_single_for_device(struct device *dev, 
+                                       dma_addr_t addr,
+                                       size_t size,
+                                       enum dma_data_direction dir);
+
+        // 同步DMA缓冲区给CPU使用
+        void dma_sync_single_for_cpu(struct device *dev,
+                                    dma_addr_t addr,
+                                    size_t size,
+                                    enum dma_data_direction dir);
+        ```
+
+    2. 作用
+
+        dma_sync_single_for_device()
+
+        * 目的：确保设备能看到CPU对DMA缓冲区的最新修改
+
+        * 实际行为：
+
+            * 将CPU的cache刷写到内存（如果CPU修改了数据）
+
+            * 让设备访问的内存区域保持一致
+
+            * 使设备能读取到CPU写入的数据
+
+        dma_sync_single_for_cpu()
+
+        * 目的：确保CPU能看到设备对DMA缓冲区的最新修改
+
+        * 实际行为：
+
+            * 使CPU的cache失效（如果设备修改了数据）
+
+            * 确保CPU读取的是内存中的最新数据
+
+            * 使CPU能读取到设备写入的数据
+
+    3. 用法
+
+        典型使用场景
+
+        ```c
+        #include <linux/dma-mapping.h>
+
+        struct device *dev;      // 设备指针
+        dma_addr_t dma_handle;   // DMA缓冲区总线地址
+        void *cpu_addr;          // CPU访问的虚拟地址
+        size_t size = 4096;      // 缓冲区大小
+
+        // 场景1: CPU准备数据，设备读取
+        void prepare_data_for_device(void)
+        {
+            // 1. CPU写入数据到缓冲区
+            memset(cpu_addr, 0xAA, size);
+            
+            // 2. 同步给设备（确保设备能看到CPU的写入）
+            dma_sync_single_for_device(dev, dma_handle, size, DMA_TO_DEVICE);
+            
+            // 3. 启动设备DMA读取操作
+            start_device_dma_read(dma_handle);
+        }
+
+        // 场景2: 设备写入数据，CPU读取
+        void read_data_from_device(void)
+        {
+            // 1. 启动设备DMA写入操作
+            start_device_dma_write(dma_handle);
+            
+            // 2. 等待设备完成（中断或轮询）
+            wait_for_device_completion();
+            
+            // 3. 同步给CPU（使CPU能看到设备的写入）
+            dma_sync_single_for_cpu(dev, dma_handle, size, DMA_FROM_DEVICE);
+            
+            // 4. CPU读取设备写入的数据
+            process_data(cpu_addr);
+        }
+
+        // 场景3: 双向传输（DMA_BIDIRECTIONAL）
+        void bidirectional_transfer(void)
+        {
+            // 设备可能读写，CPU也可能读写
+            dma_sync_single_for_device(dev, dma_handle, size, DMA_BIDIRECTIONAL);
+            // ... 操作 ...
+            dma_sync_single_for_cpu(dev, dma_handle, size, DMA_BIDIRECTIONAL);
+        }
+        ```
+
+        数据方向参数
+
+        ```c
+        enum dma_data_direction {
+            DMA_BIDIRECTIONAL = 0,    // 双向
+            DMA_TO_DEVICE = 1,        // CPU → 设备
+            DMA_FROM_DEVICE = 2,      // 设备 → CPU
+            DMA_NONE = 3,             // 调试用
+        };
+        ```
+
+    4. 重要注意事项
+
+        * 对称调用：
+
+            * 如果使用了 for_device()，之后必须使用对应的 for_cpu()
+
+            * 方向参数必须一致
+
+        * 性能影响：
+
+            * 这些函数涉及cache操作，开销较大
+
+            * 应尽量减少调用次数
+
+        * 替代方案：
+
+            ```c
+            // 使用流式DMA映射（一次性的，通常性能更好）
+            dma_map_single(dev, cpu_addr, size, dir);
+            // ... DMA操作 ...
+            dma_unmap_single(dev, dma_handle, size, dir);
+            ```
+
+        * 平台相关性：
+
+            * 在x86等强一致架构上可能是空操作
+
+            * 在ARM、PowerPC等弱一致架构上是必要的
+
+    5. 典型驱动代码结构
+
+        ```c
+        static int my_driver_probe(struct device *dev)
+        {
+            // 分配DMA缓冲区
+            cpu_addr = dma_alloc_coherent(dev, size, &dma_handle, GFP_KERNEL);
+            
+            // 或者使用流式映射
+            // dma_handle = dma_map_single(dev, cpu_addr, size, direction);
+        }
+
+        static void my_driver_io(struct device *dev)
+        {
+            // 准备发送数据
+            fill_transmit_buffer(cpu_addr);
+            dma_sync_single_for_device(dev, dma_handle, size, DMA_TO_DEVICE);
+            
+            // 启动设备传输
+            program_device_dma(dma_handle);
+            
+            // 接收数据时
+            dma_sync_single_for_cpu(dev, dma_handle, size, DMA_FROM_DEVICE);
+            process_received_data(cpu_addr);
+        }
+        ```
+
+    这些函数是Linux内核DMA API的核心部分，确保在非一致性内存架构上，CPU和设备能看到彼此对共享内存的最新修改。
+
 * qemu edu device 使用中断计算 facorial
 
     1. enable 中断

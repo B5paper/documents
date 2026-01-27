@@ -4,6 +4,30 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* 在 bash 中，分号 ; 的主要作用是分隔多个命令，类似于换行。它告诉 shell 在分号前一个命令结束后，立即执行分号后的下一个命令。
+
+    比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`等价于：
+
+    ```bash
+    export LD_LIBRARY_PATH=/path/to/libs
+    bash run_main.sh
+    ```
+
+    需要注意分号和 && 的区别：
+
+    * 分号 ;：无论前一个命令是否成功，都会执行下一个命令
+
+        ```bash
+        false; echo "这个会执行"  # echo 命令一定会执行
+        ```
+
+    * 逻辑与 &&：只有前一个命令成功（返回 0），才执行下一个命令
+
+        ```bash
+        false && echo "这个不会执行"  # echo 不会执行
+        true && echo "这个会执行"     # echo 会执行
+        ```
+
 * bash 中的字符串引号逃逸
 
     `echo It's my work.`会显示语法错误：
