@@ -385,9 +385,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] random select 实现在指定几个文件中随机选择一个文件，并随机选择一行
 
-    feedback:
-
-    * [ ] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
+* [ ] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
 
 * [ ] CUDA Core Compute Libraries (CCCL)
 
@@ -499,9 +497,9 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [ ] qa 文件权重保留小数点后 4 位 
+* [v] qa 文件权重保留小数点后 4 位 
 
-* [ ] re.compile `MULTILINE`
+* [v] re.compile `MULTILINE`
 
     ```py
     pat = re.compile('^world', re.MULTILINE)  # 多行模式
@@ -511,15 +509,11 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] 在同一次 test 中，不能出现重复的 unit
 
-    feedback:
+* [asso] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
 
-    * [asso] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
-
-        典型场景
-        若需要选 10 个 units，但可用 50 个，重复概率约 13%
-        若需要选 15 个 units，但可用 30 个，重复概率约 48%
-
-* [v] 调研 python 处理 csv 文件
+    典型场景
+    若需要选 10 个 units，但可用 50 个，重复概率约 13%
+    若需要选 15 个 units，但可用 30 个，重复概率约 48%
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
@@ -759,13 +753,11 @@ english words 由 { } reorg: english words 进化而来。
 
     为什么下面的命令进入了 normal 模式后，后面又跟了一个`<cr>`？ 此时 normal 模式是否和 `:` 命令模式冲突？`<cr>`匹配的命令是 normal 还是 `:`?
 
-    feedback:
+* [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
 
-    * [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
+* [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
 
-    * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
-
-* [ ] `:'<,'>normal I* `
+* [v] `:'<,'>normal I* `
 
 * [ ] `match(line_content, '\S')`
 
@@ -1696,17 +1688,13 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] matlab exist()
+* [v] matlab exist()
 
 * [ ] matlab load() 
 
     `load(nirsFileName,'-mat');`
 
 * [ ] matlab `saveas()`
-
-* [v] matlab `reshape()`
-
-* [v] matlab `dir()`
 
 * [ ] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
 
@@ -1830,9 +1818,9 @@ resources:
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
-* [ ] torch tensor 与 numpy 的转换
+* [v] torch tensor 与 numpy 的转换
 
-* [ ] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
+* [v] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
 
 * [ ] `optim.SGD([train_param], lr=1e-3)`
 
@@ -1952,6 +1940,14 @@ resources:
 
 ### tasks
 
+* [ ] 《利用Python进行数据分析》（Python for Data Analysis）
+
+    作者: Wes McKinney（Pandas 的创始人）
+
+    内容: 从 Pandas 基础到实战，是公认的入门圣经。
+
+* [ ] polars
+
 * [O] Apply a 2D Convolution Operation in PyTorch
 
     23:51 ~ 00:09
@@ -1976,7 +1972,7 @@ resources:
 
     > 2d Max pooling
 
-* [ ] `torch.cat`
+* [v] `torch.cat`
 
 * [O] Difference Between "Hidden" and "Output" in PyTorch LSTM
 
@@ -2423,17 +2419,7 @@ resources:
 
 ### tasks
 
-* [v] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
-
-* [ ] `dma_map_page()`
-
-* [ ] 《利用Python进行数据分析》（Python for Data Analysis）
-
-    作者: Wes McKinney（Pandas 的创始人）
-
-    内容: 从 Pandas 基础到实战，是公认的入门圣经。
-
-* [ ] polars
+* [v] `dma_map_page()`
 
 * [ ] dma 在 cpu 中，还是在 device 中？
 

@@ -6,3 +6,4 @@ Computer Science/algorithms_note_qa_exam_db
 .gitignore~
 ..gitignore.un~
 *_db
+.*.swp

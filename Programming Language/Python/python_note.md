@@ -2,6 +2,172 @@
 
 ## cache
 
+* re 的其他常用模式
+
+    1. re.IGNORECASE / re.I - 忽略大小写
+
+        ```python
+        re.compile('hello', re.I)  # 匹配 hello, Hello, HELLO, hElLo 等
+        ```
+
+    2. re.DOTALL / re.S - 点匹配所有字符
+
+        ```python
+        # 默认情况：. 不匹配换行符 \n
+        pat1 = re.compile('a.b')
+        print(pat1.search('a\nb'))  # None
+
+        # DOTALL 模式：. 匹配包括 \n 在内的所有字符
+        pat2 = re.compile('a.b', re.DOTALL)
+        print(pat2.search('a\nb'))  # 匹配成功
+        ```
+
+    3. re.VERBOSE / re.X - 详细模式（方便注释）
+
+        ```python
+        pat = re.compile(r'''
+            \d{3,4}   # 区号
+            -         # 分隔符
+            \d{7,8}   # 号码
+        ''', re.VERBOSE)
+        ```
+
+    4. re.ASCII / re.A - 限制为 ASCII 字符
+
+        ```python
+        # 默认：\w, \W, \b, \B, \d, \D, \s, \S 匹配 Unicode
+        # ASCII 模式：只匹配 ASCII 字符
+        re.compile(r'\w+', re.ASCII)  # \w 只匹配 [a-zA-Z0-9_]
+        ```
+
+    5. re.LOCALE / re.L - 本地化模式（已弃用）
+
+        * 使 \w, \W, \b, \B 依赖当前区域设置
+
+        * Python 3.6+ 不推荐使用
+
+    6. re.DEBUG - 调试模式
+
+        ```python
+        pat = re.compile(r'\d+', re.DEBUG)
+        # 输出编译过程的调试信息
+        ```
+
+    模式组合使用
+
+    多个模式可以用 | 组合：
+
+    ```python
+    # 同时启用多行模式和忽略大小写
+    pat = re.compile('^hello', re.MULTILINE | re.IGNORECASE)
+
+    # 同时启用 DOTALL 和 VERBOSE
+    pat = re.compile(r'''
+        .+      # 任意字符（包括换行）
+        \d+     # 数字
+    ''', re.DOTALL | re.VERBOSE)
+    ```
+
+    常用模式总结表
+
+    | 模式 | 常量名 | 简写 | 作用 |
+    | - | - | - | - |
+    | 多行模式 | re.MULTILINE | re.M | 让 ^ 和 $ 匹配每行的开始/结束 |
+    | 忽略大小写 | re.IGNORECASE | re.I | 大小写不敏感匹配 |
+    | 点匹配所有 | re.DOTALL | re.S | 让 . 匹配包括换行符的所有字符 |
+    | 详细模式 | re.VERBOSE | re.X | 允许在正则中添加空白和注释 |
+    | ASCII 模式 | re.ASCII | re.A | 让 \w, \d 等只匹配 ASCII 字符 |
+
+    实际应用示例：
+
+    ```python
+    # 提取多行日志中所有以 ERROR 开头的行
+    log_text = """INFO: System started
+    ERROR: Database connection failed
+    WARNING: High memory usage
+    ERROR: File not found"""
+
+    pattern = re.compile(r'^ERROR:.*', re.MULTILINE)
+    errors = pattern.findall(log_text)
+    # 结果：['ERROR: Database connection failed', 'ERROR: File not found']
+    ```
+
+    这些模式可以根据需要灵活组合，解决不同的文本匹配问题。
+
+* python `re`模块多行模式`re.MULTILINE`
+
+    作用： 改变 ^ 和 $ 的行为
+
+    * 默认情况：
+
+        * ^ 只匹配整个字符串开头
+
+        * $ 只匹配整个字符串结尾（或末尾的换行符前）
+
+    * 启用 MULTILINE 后：
+
+        * ^ 匹配每一行的开头（字符串开头 + \n 后的位置）
+
+        * $ 匹配每一行的结尾（字符串结尾 + \n 前的位置）
+
+    example 1：
+
+    ```python
+    import re
+
+    txt = 'first line\nsecond line\nthird line'
+
+    # 默认模式
+    pat1 = re.compile('^second')
+    print(pat1.search(txt))  # None，因为 ^ 只匹配整个字符串开头
+
+    # 多行模式
+    pat2 = re.compile('^second', re.MULTILINE)
+    print(pat2.search(txt))  # 匹配成功，因为 ^ 能匹配第二行开头
+    ```
+
+    example 2:
+
+    ```py
+    pat = re.compile('^world', re.MULTILINE)  # 多行模式
+    txt = 'hello, world\nworld again'
+    m = pat.match(txt, pos=12)  # 可以匹配第二行的 world
+    ```
+
+    这几行代码使用Python正则表达式的多行模式来匹配以"world"开头的行：
+
+    * re.compile('^world', re.MULTILINE)
+
+        * 编译正则表达式，^通常匹配字符串开头
+
+        * re.MULTILINE标志让^也能匹配每一行的开头
+
+    * txt = 'hello, world\nworld again'
+
+        * 创建一个包含两行的字符串
+
+        * 第一行：hello, world
+
+        * 第二行：world again
+
+    * pat.match(txt, pos=12)
+
+        * 从位置12开始匹配（即第二行的开头）
+
+        * 由于是多行模式，^world可以匹配第二行开头的"world"
+
+        * 结果会成功匹配到第二行的"world"
+
+    关键理解：
+
+    * 没有re.MULTILINE时，^只能匹配整个字符串的开头（位置0）
+
+    * 使用re.MULTILINE后，^可以匹配每行的开头（\n后的位置）
+
+    * pos=12直接跳到第二行开头，所以匹配到的是第二行的"world"
+
+    如果去掉pos=12参数，match()会从字符串开头尝试匹配，但由于第一行不是以"world"开头，所以会返回None。
+
 * python 如何加载/保存 matlab save() 保存的 binary 文件？
 
     Python 加载/保存 MATLAB 的 .mat 文件主要通过 scipy.io <https://scipy.io/> 模块实现，以下是详细方法：

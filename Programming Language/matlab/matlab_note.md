@@ -6,6 +6,125 @@
 
 ## cache
 
+* matlab exist()
+
+    exist() 是 MATLAB 中用于检查变量、函数、文件或文件夹是否存在的函数。
+
+    原型
+
+    ```matlab
+    status = exist(name, kind)
+    status = exist(name)
+    ```
+
+    参数说明
+
+    * name: 要检查的名称（字符串或字符向量）
+
+    * kind (可选): 指定检查的类型，可以是：
+
+        * 'var': 检查变量
+
+        * 'builtin': 检查内置函数
+
+        * 'file': 检查文件或文件夹
+
+        * 'dir': 检查文件夹
+
+        * 'class': 检查类
+
+        * 'all': 检查所有类型（默认）
+
+    返回值 status
+
+    * 0: 不存在
+
+    * 1: 变量
+
+    * 2: 文件（M文件、P文件等）
+
+    * 3: MEX文件
+
+    * 4: MDL文件（Simulink模型）
+
+    * 5: 内置函数
+
+    * 6: P文件
+
+    * 7: 文件夹
+
+    * 8: 类
+
+    主要用法示例
+
+    ```matlab
+    % 1. 检查变量是否存在
+    x = 10;
+    if exist('x', 'var')
+        disp('变量 x 存在');
+    end
+
+    % 2. 检查文件是否存在
+    if exist('myfunction.m', 'file')
+        disp('myfunction.m 文件存在');
+    end
+
+    % 3. 检查文件夹是否存在
+    if exist('myfolder', 'dir')
+        disp('文件夹存在');
+    end
+
+    % 4. 不指定类型（自动检测）
+    status = exist('plot');  % 返回 5（内置函数）
+    status = exist('sin');   % 返回 5（内置函数）
+
+    % 5. 检查用户自定义函数
+    if exist('myCustomFunc') == 2
+        disp('这是一个M文件函数');
+    end
+    ```
+
+    实用技巧
+
+    ```matlab
+    % 检查并创建变量
+    if ~exist('data', 'var')
+        data = load('data.mat');
+    end
+
+    % 检查文件并加载
+    filename = 'results.mat';
+    if exist(filename, 'file')
+        load(filename);
+    else
+        error('文件不存在');
+    end
+
+    % 检查文件夹并创建
+    folder = 'output';
+    if ~exist(folder, 'dir')
+        mkdir(folder);
+    end
+    ```
+
+    注意事项
+
+    * exist 会搜索 MATLAB 路径，包括当前目录
+
+    * 当不指定类型时，会按优先级返回第一个匹配项
+
+    * 对于重名的情况（如变量和文件同名），指定类型参数可以避免歧义
+
+    * 比直接使用 isfile() 或 isfolder() 更通用，但性能稍差
+
+    exist() 是 MATLAB 编程中常用的存在性检查函数，特别适用于：
+
+    * 避免重复定义变量
+
+    * 检查依赖文件是否存在
+
+    * 条件性加载数据或创建目录
+
 * matlab `reshape()`
 
     reshape() 是 MATLAB 中用于改变数组维度而不改变数据总量的核心函数。

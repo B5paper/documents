@@ -2,6 +2,473 @@
 
 ## cache
 
+* legend() 如何指定图例的顺序？
+
+    指定图例顺序的 4 种方法
+
+    1. handles 和 labels 参数（最常用）
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        x = np.linspace(0, 10, 100)
+        fig, ax = plt.subplots()
+
+        # 绘制多条曲线
+        line1, = ax.plot(x, np.sin(x), label='sin(x)', color='r')
+        line2, = ax.plot(x, np.cos(x), label='cos(x)', color='g')
+        line3, = ax.plot(x, np.tan(x)/10, label='tan(x)/10', color='b')  # 缩小tan值
+
+        # 手动指定顺序：3, 1, 2
+        ax.legend(handles=[line3, line1, line2], 
+                  labels=['tan(x)/10', 'sin(x)', 'cos(x)'])
+
+        plt.show()
+        ```
+
+    2. 调整绘制顺序 + 默认图例
+
+        图例默认按绘制顺序显示：
+
+        ```python
+        fig, ax = plt.subplots()
+
+        # 先绘制的在图例中显示在前面
+        ax.plot(x, np.tan(x)/10, label='tan(x)/10', color='b')  # 第一个
+        ax.plot(x, np.sin(x), label='sin(x)', color='r')        # 第二个  
+        ax.plot(x, np.cos(x), label='cos(x)', color='g')        # 第三个
+
+        ax.legend()  # 图例顺序：tan, sin, cos
+        plt.show()
+        ```
+
+    3. 使用字典排序（自动化）
+
+        ```python
+        fig, ax = plt.subplots()
+
+        lines = {}
+        lines['tan'] = ax.plot(x, np.tan(x)/10, label='tan(x)/10', color='b')[0]
+        lines['sin'] = ax.plot(x, np.sin(x), label='sin(x)', color='r')[0]
+        lines['cos'] = ax.plot(x, np.cos(x), label='cos(x)', color='g')[0]
+
+        # 按字母顺序排序
+        sorted_keys = sorted(lines.keys())  # ['cos', 'sin', 'tan']
+        sorted_handles = [lines[key] for key in sorted_keys]
+        sorted_labels = [f'{key}(x)/10' if key=='tan' else f'{key}(x)' for key in sorted_keys]
+
+        ax.legend(handles=sorted_handles, labels=sorted_labels)
+        plt.show()
+        ```
+
+    4. 使用自定义排序规则
+
+        ```python
+        fig, ax = plt.subplots()
+
+        # 数据准备
+        data = [
+            ('sin(x)', np.sin(x), 'r'),
+            ('cos(x)', np.cos(x), 'g'), 
+            ('tan(x)/10', np.tan(x)/10, 'b'),
+            ('sin²(x)', np.sin(x)**2, 'orange')
+        ]
+
+        # 绘制所有曲线
+        handles = []
+        labels = []
+        for label, y_data, color in data:
+            line, = ax.plot(x, y_data, color=color)
+            handles.append(line)
+            labels.append(label)
+
+        # 自定义排序顺序（按特定列表）
+        desired_order = ['cos(x)', 'sin(x)', 'sin²(x)', 'tan(x)/10']
+
+        # 按 desired_order 排序
+        order_dict = {label: i for i, label in enumerate(desired_order)}
+        sorted_pairs = sorted(zip(handles, labels), key=lambda x: order_dict[x[1]])
+        sorted_handles, sorted_labels = zip(*sorted_pairs)
+
+        ax.legend(sorted_handles, sorted_labels)
+        plt.show()
+        ```
+
+    实用示例：分组图例排序
+
+    示例 1：按类别分组排序
+
+    ```python
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # 模拟不同类别的数据
+    categories = {
+        'A类': [('A1', 'red', 1.0), ('A2', 'darkred', 1.2)],
+        'B类': [('B1', 'blue', 0.8), ('B2', 'darkblue', 1.1)],
+        'C类': [('C1', 'green', 1.3)]
+    }
+
+    handles = []
+    labels = []
+
+    # 按类别顺序绘制
+    for category, items in categories.items():
+        for name, color, offset in items:
+            line, = ax.plot(x, offset * np.sin(x + len(handles)), 
+                           color=color, label=f'{category}-{name}')
+            handles.append(line)
+            labels.append(line.get_label())
+
+    # 保持绘制顺序（即按类别分组）
+    ax.legend(handles, labels, title='数据类别', ncol=3)
+    plt.show()
+    ```
+
+    示例 2：按数值特征排序
+
+    ```python
+    fig, ax = plt.subplots()
+
+    # 创建带有特征值的数据
+    lines_info = [
+        {'label': '高频信号', 'freq': 5, 'amp': 1.0, 'color': 'red'},
+        {'label': '中频信号', 'freq': 2, 'amp': 1.5, 'color': 'blue'},
+        {'label': '低频信号', 'freq': 0.5, 'amp': 1.2, 'color': 'green'},
+        {'label': '噪声', 'freq': 10, 'amp': 0.3, 'color': 'gray'}
+    ]
+
+    # 绘制
+    handles = []
+    for info in lines_info:
+        y = info['amp'] * np.sin(info['freq'] * x)
+        line, = ax.plot(x, y, color=info['color'], label=info['label'])
+        info['handle'] = line
+        handles.append(line)
+
+    # 按频率排序
+    lines_info_sorted = sorted(lines_info, key=lambda x: x['freq'])
+    sorted_handles = [info['handle'] for info in lines_info_sorted]
+    sorted_labels = [info['label'] for info in lines_info_sorted]
+
+    ax.legend(sorted_handles, sorted_labels, title='按频率排序')
+    plt.show()
+    ```
+
+    使用 get_legend_handles_labels() 获取和修改
+
+    ```python
+    fig, ax = plt.subplots()
+
+    # 绘制曲线
+    ax.plot(x, np.sin(x), label='sin(x)')
+    ax.plot(x, np.cos(x), label='cos(x)')
+    ax.plot(x, -np.sin(x), label='-sin(x)')
+
+    # 获取当前的句柄和标签
+    handles, labels = ax.get_legend_handles_labels()
+    print('原始顺序:', labels)  # ['sin(x)', 'cos(x)', '-sin(x)']
+
+    # 重新排序（反转）
+    handles.reverse()
+    labels.reverse()
+
+    # 应用新顺序
+    ax.legend(handles, labels)
+    plt.show()
+    ```
+
+    复杂场景：多轴图例排序
+
+    ```python
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # 在两个子图中绘制
+    line1a, = ax1.plot(x, np.sin(x), label='sin(x) (左)', color='r')
+    line1b, = ax1.plot(x, np.cos(x), label='cos(x) (左)', color='b')
+
+    line2a, = ax2.plot(x, np.exp(-x), label='exp(-x) (右)', color='g', linestyle='--')
+    line2b, = ax2.plot(x, np.log(x+1), label='log(x+1) (右)', color='purple', linestyle=':')
+
+    # 创建统一图例并指定顺序
+    all_handles = [line1a, line2a, line1b, line2b]  # 自定义顺序
+    all_labels = [h.get_label() for h in all_handles]
+
+    fig.legend(all_handles, all_labels, 
+               loc='upper center', 
+               ncol=2,
+               title='统一图例（自定义顺序）')
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    一键排序函数
+
+    ```python
+    def sort_legend(ax, order='alphabetical', reverse=False):
+        """
+        对图例进行排序
+        
+        参数:
+        ax: matplotlib axes
+        order: 'alphabetical'（字母顺序）或 'custom'（自定义列表）
+        reverse: 是否反转顺序
+        """
+        handles, labels = ax.get_legend_handles_labels()
+        
+        if order == 'alphabetical':
+            # 按标签字母排序
+            sorted_pairs = sorted(zip(handles, labels), key=lambda x: x[1])
+        elif isinstance(order, list):
+            # 按自定义列表排序
+            order_dict = {label: i for i, label in enumerate(order)}
+            sorted_pairs = sorted(zip(handles, labels), key=lambda x: order_dict.get(x[1], 999))
+        else:
+            sorted_pairs = list(zip(handles, labels))
+        
+        if reverse:
+            sorted_pairs.reverse()
+        
+        sorted_handles, sorted_labels = zip(*sorted_pairs)
+        ax.legend(sorted_handles, sorted_labels)
+        return ax
+
+    # 使用示例
+    fig, ax = plt.subplots()
+    ax.plot(x, np.sin(x), label='sine')
+    ax.plot(x, np.cos(x), label='cosine')
+    ax.plot(x, np.tan(x)/10, label='tangent')
+
+    sort_legend(ax, order='alphabetical')
+    # 或 sort_legend(ax, order=['cosine', 'sine', 'tangent'])
+    plt.show()
+    ```
+
+    总结
+
+    主要方法：
+
+    * handles 和 labels 参数：最直接，完全控制
+
+    * 调整绘制顺序：简单但不够灵活
+
+    * 获取后排序：使用 get_legend_handles_labels() 获取后重新排列
+
+    * 自定义排序函数：最灵活，可复用
+
+    推荐：对于需要精确控制的情况，使用 方法1；对于需要动态排序的情况，使用 方法4。
+
+* Matplotlib 中的 label 和 legend 用法
+
+    1. 基本用法
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        x = np.linspace(0, 10, 100)
+        y1 = np.sin(x)
+        y2 = np.cos(x)
+
+        # 方法1: 使用 plt 接口
+        plt.plot(x, y1, label='sin(x)')
+        plt.plot(x, y2, label='cos(x)')
+        plt.legend()  # 显示图例
+        plt.show()
+
+        # 方法2: 使用面向对象接口
+        fig, ax = plt.subplots()
+        ax.plot(x, y1, label='sin(x)')
+        ax.plot(x, y2, label='cos(x)')
+        ax.legend()  # 显示图例
+        plt.show()
+        ```
+
+    2. label 参数详解
+
+        label 用于为数据系列设置名称，供图例显示：
+
+        ```python
+        # 不同的绘图函数都支持 label
+        plt.plot(x, y, label='线性曲线')
+        plt.scatter(x, y, label='散点')
+        plt.bar(x, y, label='柱状图')
+        plt.hist(data, label='直方图')
+        plt.fill_between(x, y1, y2, label='填充区域')
+
+        # 设置标签后必须调用 legend() 才会显示
+        plt.legend()
+        ```
+
+    3. legend() 的常用参数
+
+        ```python
+        # 基本图例
+        plt.legend()
+
+        # 1. 位置控制
+        plt.legend(loc='upper right')        # 右上角
+        plt.legend(loc='best')              # 自动选择最佳位置
+        plt.legend(loc='center left')       # 左侧居中
+        plt.legend(loc='lower center')      # 底部居中
+        plt.legend(loc=(0.5, 0.5))          # 自定义坐标 (0-1)
+
+        # 位置字符串选项：
+        # 'upper right', 'upper left', 'lower left', 'lower right'
+        # 'right', 'center left', 'center right', 'lower center'
+        # 'upper center', 'center'
+
+        # 2. 标题和字体
+        plt.legend(title='函数类型')                     # 图例标题
+        plt.legend(title='函数', title_fontsize=12)     # 标题字体大小
+        plt.legend(fontsize=10)                         # 图例字体大小
+        plt.legend(title='Legend', title_fontsize=12, fontsize=10)
+
+        # 3. 边框和背景
+        plt.legend(frameon=True)                    # 显示边框（默认）
+        plt.legend(frameon=False)                   # 隐藏边框
+        plt.legend(framealpha=0.5)                  # 边框透明度
+        plt.legend(edgecolor='black')               # 边框颜色
+        plt.legend(facecolor='lightgray')           # 背景颜色
+        plt.legend(shadow=True)                     # 阴影效果
+
+        # 4. 排列方式
+        plt.legend(ncol=2)                          # 2列显示
+        plt.legend(ncol=3)                          # 3列显示
+        plt.legend(columnspacing=1.0)               # 列间距
+        plt.legend(labelspacing=0.5)                # 标签间距
+        ```
+
+    4. 高级用法示例
+
+        ```python
+        # 示例：绘制多条曲线
+        x = np.linspace(0, 2*np.pi, 100)
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # 绘制多条曲线
+        ax.plot(x, np.sin(x), label='sin(x)', color='blue', linestyle='-')
+        ax.plot(x, np.cos(x), label='cos(x)', color='red', linestyle='--')
+        ax.plot(x, np.sin(x)**2, label='sin²(x)', color='green', linestyle=':')
+        ax.plot(x, np.cos(x)**2, label='cos²(x)', color='orange', linestyle='-.')
+
+        # 自定义图例
+        ax.legend(
+            loc='upper center',           # 顶部居中
+            bbox_to_anchor=(0.5, 1.15),  # 位置微调（x, y）
+            ncol=2,                      # 2列显示
+            title='三角函数',            # 图例标题
+            title_fontsize=12,           # 标题大小
+            fontsize=10,                 # 标签大小
+            frameon=True,                # 显示边框
+            shadow=True,                 # 阴影
+            fancybox=True,               # 圆角边框
+            framealpha=0.9,              # 透明度
+            edgecolor='black',           # 边框颜色
+            facecolor='white'            # 背景颜色
+        )
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    5. 部分显示图例
+
+        ```python
+        # 只显示部分曲线的图例
+        line1, = plt.plot(x, y1, label='曲线1')
+        line2, = plt.plot(x, y2, label='曲线2')
+        line3, = plt.plot(x, y3, label='曲线3')
+
+        # 只显示 line1 和 line3 的图例
+        plt.legend([line1, line3], ['First', 'Third'])
+
+        # 或使用 handles 参数
+        from matplotlib.lines import Line2D
+        custom_lines = [Line2D([0], [0], color='blue', lw=2),
+                        Line2D([0], [0], color='red', lw=2)]
+        plt.legend(custom_lines, ['自定义1', '自定义2'])
+        ```
+
+    6. 常见问题与技巧
+
+        ```python
+        # 1. 避免重复图例
+        fig, ax = plt.subplots()
+        for i in range(5):
+            ax.plot(x, y+i, label=f'曲线{i}' if i < 3 else None)
+        ax.legend()  # 只显示前3条曲线的图例
+
+        # 2. 多个子图的图例
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        for ax in axes.flat:
+            ax.plot(x, np.sin(x), label='sin(x)')
+            ax.plot(x, np.cos(x), label='cos(x)')
+            ax.legend(loc='upper right')
+
+        # 3. 共享图例
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        lines1 = ax1.plot(x, np.sin(x), label='sin(x)')
+        lines2 = ax2.plot(x, np.cos(x), label='cos(x)')
+
+        # 为整个图形创建统一图例
+        fig.legend(handles=[lines1[0], lines2[0]], 
+                   labels=['正弦函数', '余弦函数'],
+                   loc='upper center',
+                   ncol=2)
+
+        # 4. 图例位置微调（防止被遮盖）
+        plt.legend(loc='best', bbox_to_anchor=(1.05, 1))  # 移到图形外部右侧
+        plt.tight_layout()  # 自动调整布局
+        ```
+
+    7. 实用代码片段
+
+        ```python
+        # 自动生成图例标签
+        x = np.linspace(0, 10, 100)
+        functions = [('sin(x)', np.sin, 'blue'),
+                     ('cos(x)', np.cos, 'red'),
+                     ('exp(-x)', lambda x: np.exp(-x), 'green')]
+
+        fig, ax = plt.subplots()
+        for name, func, color in functions:
+            ax.plot(x, func(x), label=name, color=color)
+
+        # 美化图例
+        ax.legend(
+            loc='lower left',
+            frameon=True,
+            fancybox=True,
+            shadow=True,
+            borderpad=1,      # 边框内边距
+            labelspacing=1,   # 标签间距
+            handlelength=2,   # 图例句柄长度
+            handletextpad=0.5 # 句柄与文本间距
+        )
+
+        # 保存时确保图例完整
+        plt.savefig('figure.png', dpi=300, bbox_inches='tight')
+        ```
+
+    关键要点
+
+    * label：在绘图时为数据系列命名
+
+    * legend()：显示所有设置了 label 的图例
+
+    * 位置控制：loc 参数最重要，'best' 最常用
+
+    * 样式定制：可调整字体、边框、背景、排列等
+
+    * 子图处理：每个子图可独立设置图例，也可创建统一图例
+
+    * 保存注意：使用 bbox_inches='tight' 确保图例完整保存
+
+    记住：先设置 label，再调用 legend() 才能显示图例！
+
 * `plt.figure()`
 
     syntax:

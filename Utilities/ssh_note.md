@@ -2,6 +2,72 @@
 
 ## cache
 
+* 如何查看 ssh id_rsa 是多少位的？
+
+    查看 SSH RSA 密钥位数的几种方法：
+
+    1. 使用 ssh-keygen 命令（推荐）
+
+        ```bash
+        # 检查默认位置的密钥
+        ssh-keygen -l -f ~/.ssh/id_rsa
+
+        # 或指定完整路径
+        ssh-keygen -l -f /path/to/id_rsa
+        ```
+
+        输出示例：
+
+        ```text
+        3072 SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx user@host (RSA)
+        ```
+
+    这里的 3072 就是密钥位数（3072位）
+
+    2. 使用 openssl 命令
+
+        ```bash
+        openssl rsa -in ~/.ssh/id_rsa -text -noout | head -20
+        ```
+
+        在输出中查找：
+
+        ```text
+        RSA Private-Key: (3072 bit)
+        ```
+
+    3. 查看公钥文件
+
+        ```bash
+        ssh-keygen -l -f ~/.ssh/id_rsa.pub
+        ```
+
+    4. 使用 file 命令（不太准确）
+
+        ```bash
+        file ~/.ssh/id_rsa
+        ```
+
+    注意事项：
+
+    * 需要私钥文件：方法1和方法2需要私钥文件（id_rsa），而方法3只需要公钥文件（id_rsa.pub）
+
+    * 权限问题：私钥文件权限通常为 600 (-rw-------)，确保有读取权限
+
+    * 现代建议：现在推荐使用至少 3072 位的 RSA 密钥，或者使用更现代的 Ed25519 算法
+
+    查看其他类型密钥：
+
+    ```bash
+    # 查看 Ed25519 密钥
+    ssh-keygen -l -f ~/.ssh/id_ed25519
+
+    # 查看 ECDSA 密钥
+    ssh-keygen -l -f ~/.ssh/id_ecdsa
+    ```
+
+    最简便的方法是使用 ssh-keygen -l -f ~/.ssh/id_rsa 命令，它会直接显示密钥位数和指纹信息。
+
 * SSH -D 的作用
 
     ssh -D 用于创建 SOCKS 代理隧道，可以将本地端口与远程 SSH 服务器建立动态端口转发。通过这个代理，所有发送到本地指定端口的数据流量都会通过 SSH 加密隧道转发到远程服务器，再由远程服务器访问目标网络资源。

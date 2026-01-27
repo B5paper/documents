@@ -6,6 +6,124 @@ Ref:
 
 ## cache
 
+* dma_map_page()
+
+    原型
+
+    ```c
+    dma_addr_t dma_map_page(struct device *dev, 
+                            struct page *page,
+                            size_t offset,
+                            size_t size,
+                            enum dma_data_direction dir);
+    ```
+
+    参数说明：
+
+    * dev：执行DMA操作的设备指针
+
+    * page：要映射的物理页指针
+
+    * offset：页内偏移量（字节）
+
+    * size：映射区域大小（字节）
+
+    * dir：数据传输方向
+
+        * DMA_TO_DEVICE：数据从内存到设备
+
+        * DMA_FROM_DEVICE：数据从设备到内存
+
+        * DMA_BIDIRECTIONAL：双向传输
+
+    返回值：
+
+    * 成功：DMA总线地址（物理地址），设备可以直接访问
+
+    * 失败：DMA_MAPPING_ERROR
+
+    作用
+
+    * 地址转换：将CPU可见的物理地址转换为设备可访问的DMA地址
+
+    * 缓存一致性：确保CPU和设备的缓存一致性（对于coherent DMA架构）
+
+    * 内存管理：建立页面的DMA映射，使外设可以直接访问内存
+
+    典型用法示例
+
+    ```c
+    // 1. 分配内存页面
+    struct page *page = alloc_page(GFP_KERNEL | GFP_DMA);
+    if (!page) {
+        return -ENOMEM;
+    }
+
+    // 2. 建立DMA映射
+    dma_addr_t dma_handle;
+    dma_handle = dma_map_page(&pdev->dev, page, 0, PAGE_SIZE, DMA_TO_DEVICE);
+    if (dma_mapping_error(&pdev->dev, dma_handle)) {
+        free_page(page);
+        return -ENOMEM;
+    }
+
+    // 3. 将DMA地址传递给设备
+    write_device_register(dev->reg_base, dma_handle);
+
+    // 4. 启动DMA传输
+    start_dma_transfer(dev);
+
+    // 5. 等待传输完成（可选）
+    wait_for_completion(&dev->done);
+
+    // 6. 取消DMA映射
+    dma_unmap_page(&pdev->dev, dma_handle, PAGE_SIZE, DMA_TO_DEVICE);
+
+    // 7. 释放内存页面
+    __free_page(page);
+    ```
+
+    使用注意事项
+
+    * 配对使用：必须与 dma_unmap_page() 配对使用
+
+    * 映射检查：使用 dma_mapping_error() 检查映射是否成功
+
+    * 方向选择：正确选择DMA方向，影响缓存刷新操作
+
+    * 大小对齐：建议使用DMA对齐的内存分配
+
+    * 同步时机：映射后、启动DMA前可能需要缓存刷新
+
+    相关函数
+
+    ```c
+    // 建立映射
+    dma_map_single()      // 映射虚拟地址
+    dma_map_sg()          // 映射散列表
+
+    // 取消映射
+    dma_unmap_page()
+    dma_unmap_single()
+    dma_unmap_sg()
+
+    // 同步操作
+    dma_sync_single_for_device()
+    dma_sync_single_for_cpu()
+    ```
+
+    典型应用场景
+
+    * 网络设备的数据包传输
+
+    * 存储设备的块I/O操作
+
+    * 多媒体设备的视频/音频数据传输
+
+    * 任何需要外设直接访问内存的高性能数据传输
+
+    该函数是Linux DMA API的核心部分，正确使用可确保内存与外设之间的高效、安全数据传输。
+
 * dma_sync_single_for_device(), dma_sync_single_for_cpu()
 
     1. 函数原型
