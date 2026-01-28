@@ -4,6 +4,306 @@
 
 ## cache
 
+* 如果我只有 opengl 或 directx 驱动，没有 cuda / rocm，该如何在 python 中利用 gpu 的计算能力？
+
+    如果你只有 OpenGL/DirectX 驱动，没有 CUDA/ROCm，可以通过以下几种方式在 Python 中利用 GPU 计算能力：
+
+    1. OpenCL 方案（最通用）
+
+        PyOpenCL
+
+        ```python
+        import pyopencl as cl
+        import numpy as np
+
+        # 创建上下文（支持 CPU/GPU）
+        ctx = cl.create_some_context()
+        queue = cl.CommandQueue(ctx)
+
+        # OpenCL 内核代码
+        kernel_code = """
+        __kernel void add(__global const float *a, 
+                          __global const float *b, 
+                          __global float *c) {
+            int idx = get_global_id(0);
+            c[idx] = a[idx] + b[idx];
+        }
+        """
+
+        # 编译内核
+        program = cl.Program(ctx, kernel_code).build()
+        a_np = np.random.rand(10000).astype(np.float32)
+        b_np = np.random.rand(10000).astype(np.float32)
+
+        # 创建缓冲区
+        mf = cl.mem_flags
+        a_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=a_np)
+        b_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=b_np)
+        c_buf = cl.Buffer(ctx, mf.WRITE_ONLY, a_np.nbytes)
+
+        # 执行内核
+        program.add(queue, a_np.shape, None, a_buf, b_buf, c_buf)
+        c_np = np.empty_like(a_np)
+        cl.enqueue_copy(queue, c_np, c_buf)
+        ```
+
+    2. Vulkan 方案（现代、跨平台）
+
+        Vulkan Kompute
+
+        ```python
+        import kp
+        import numpy as np
+
+        # 创建 Vulkan 实例
+        mg = kp.Manager()
+
+        # 定义计算操作
+        tensor_a = mg.tensor([2.0, 4.0, 6.0])
+        tensor_b = mg.tensor([1.0, 2.0, 3.0])
+
+        # 定义 GLSL 着色器代码
+        shader_code = """
+        #version 450
+        layout (local_size_x = 1) in;
+        layout(set = 0, binding = 0) buffer bufA { float a[]; };
+        layout(set = 0, binding = 1) buffer bufB { float b[]; };
+        layout(set = 0, binding = 2) buffer bufC { float c[]; };
+
+        void main() {
+            uint idx = gl_GlobalInvocationID.x;
+            c[idx] = a[idx] + b[idx];
+        }
+        """
+
+        # 创建并执行算法
+        algo = mg.algorithm([tensor_a, tensor_b], [], shader_code)
+        mg.sequence().record(kp.OpTensorSyncDevice([tensor_a, tensor_b])) \
+                    .record(kp.OpAlgoDispatch(algo)) \
+                    .eval()
+        ```
+
+    3. DirectCompute / DirectML（Windows 专用）
+
+        DirectML（通过 ONNX Runtime）
+
+        ```python
+        import onnxruntime as ort
+        import numpy as np
+
+        # 使用 DirectML 作为后端
+        providers = ['DmlExecutionProvider', 'CPUExecutionProvider']
+        session = ort.InferenceSession("model.onnx", providers=providers)
+
+        # 创建输入
+        inputs = {'input': np.random.randn(1, 3, 224, 224).astype(np.float32)}
+        outputs = session.run(None, inputs)
+        ```
+
+    4. WebGPU（新兴标准）
+
+        wgpu-py（实验性）
+
+        ```python
+        import wgpu
+        import numpy as np
+        import asyncio
+
+        async def compute():
+            # 创建 GPU 适配器和设备
+            adapter = await wgpu.request_adapter(power_preference="high-performance")
+            device = await adapter.request_device()
+            
+            # 创建计算管线
+            compute_shader = """
+            @group(0) @binding(0) var<storage, read> input: array<f32>;
+            @group(0) @binding(1) var<storage, write> output: array<f32>;
+            
+            @compute @workgroup_size(64)
+            fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+                let idx = id.x;
+                output[idx] = input[idx] * 2.0;
+            }
+            """
+        ```
+
+    5. 基于 OpenGL 的计算着色器
+
+        ModernGL
+
+        ```python
+        import moderngl
+        import numpy as np
+
+        # 创建 OpenGL 上下文
+        ctx = moderngl.create_context(require=430)
+
+        # 计算着色器
+        compute_shader = '''
+        #version 430
+        layout(local_size_x=64) in;
+        layout(std430, binding=0) buffer InputBuffer {
+            float data[];
+        } input_buffer;
+        layout(std430, binding=1) buffer OutputBuffer {
+            float data[];
+        } output_buffer;
+
+        void main() {
+            uint idx = gl_GlobalInvocationID.x;
+            output_buffer.data[idx] = input_buffer.data[idx] * 2.0;
+        }
+        '''
+
+        # 编译着色器
+        compute = ctx.compute_shader(compute_shader)
+
+        # 创建缓冲区
+        n = 1024
+        input_data = np.random.randn(n).astype('f4')
+        output_data = np.zeros(n, dtype='f4')
+
+        input_buffer = ctx.buffer(input_data.tobytes())
+        output_buffer = ctx.buffer(output_data.tobytes())
+
+        # 绑定缓冲区
+        input_buffer.bind_to_storage_buffer(0)
+        output_buffer.bind_to_storage_buffer(1)
+
+        # 执行计算着色器
+        compute.run(n // 64)
+        ```
+
+    6. 高级库封装
+
+        GPUArray（基于 PyOpenCL/PyCUDA）
+
+        ```python
+        # 使用 GPUArray 的通用接口
+        import pyopencl.array as cl_array
+
+        ctx = cl.create_some_context()
+        queue = cl.CommandQueue(ctx)
+
+        # 创建 GPU 数组（自动选择后端）
+        a_gpu = cl_array.to_device(queue, np.random.randn(1000))
+        b_gpu = cl_array.to_device(queue, np.random.randn(1000))
+        c_gpu = a_gpu + b_gpu  # 向量化操作
+
+        # 传回主机
+        result = c_gpu.get()
+        ```
+
+        ArrayFire（多后端支持）
+
+        ```python
+        import arrayfire as af
+
+        # 设置后端（支持 CUDA、OpenCL、CPU）
+        af.set_backend('opencl')  # 使用 OpenCL
+
+        # 创建 GPU 数组
+        a = af.randu(1000, 1000)  # 在 GPU 上
+        b = af.randu(1000, 1000)
+        c = af.matmul(a, b)  # GPU 矩阵乘法
+        ```
+
+    7. 机器学习框架支持
+
+        TensorFlow（使用 DirectML）
+
+        ```python
+        import tensorflow as tf
+
+        # 安装 tensorflow-directml
+        # pip install tensorflow-directml
+
+        # TensorFlow 会自动检测 DirectML
+        model = tf.keras.Sequential([...])
+        model.compile(optimizer='adam', loss='mse')
+
+        # 训练时使用 GPU（通过 DirectX 12）
+        model.fit(x_train, y_train, epochs=10)
+        ```
+
+    8. 实用工具函数
+
+        ```python
+        import subprocess
+
+        def detect_gpu_backends():
+            """检测可用的 GPU 后端"""
+            available = []
+            
+            # 检测 OpenCL
+            try:
+                import pyopencl
+                platforms = pyopencl.get_platforms()
+                for platform in platforms:
+                    for device in platform.get_devices():
+                        if device.type == pyopencl.device_type.GPU:
+                            available.append(('OpenCL', device.name))
+                return available
+            except:
+                pass
+            
+            # 检测 Vulkan
+            try:
+                result = subprocess.run(['vulkaninfo'], 
+                                      capture_output=True, text=True)
+                if 'GPU' in result.stdout:
+                    available.append(('Vulkan', 'GPU detected'))
+            except:
+                pass
+            
+            return available
+        ```
+
+    选择建议
+
+    | 方案 | 平台支持 | 成熟度 | 性能 | 易用性 |
+    | - | - | - | - | - |
+    | OpenCL | 跨平台（Win/Linux/macOS） | 高 | 中高 | 中 |
+    | Vulkan | 跨平台 | 中高 | 高 | 中低 |
+    | DirectML | Windows 10/11 | 中高 | 高 | 高 |
+    | WebGPU | 实验性 | 低 | 中 | 中 |
+    | OpenGL CS | 跨平台 | 高 | 中 | 低 |
+
+    最佳实践
+
+    * 先检测可用后端：运行 detect_gpu_backends() 查看系统支持
+
+    * 优先选择 OpenCL：最成熟、最通用的解决方案
+
+    * Windows 用户：优先尝试 DirectML（特别是机器学习任务）
+
+    * 现代应用：考虑 Vulkan（性能更好，但学习曲线陡峭）
+
+    * 使用高级封装：如 ArrayFire，简化开发
+
+    示例工作流程
+
+    ```python
+    def gpu_compute_fallback(data):
+        """根据可用后端选择 GPU 计算方案"""
+        backends = detect_gpu_backends()
+        
+        if not backends:
+            print("无 GPU 后端，使用 CPU")
+            return cpu_compute(data)
+        
+        # 按优先级选择后端
+        for backend, name in backends:
+            if backend == 'OpenCL':
+                return opencl_compute(data)
+            elif backend == 'Vulkan':
+                return vulkan_compute(data)
+        
+        return cpu_compute(data)
+    ```
+
+    这些方案都能在没有 CUDA/ROCm 的情况下利用 GPU 计算能力，主要取决于你的具体需求和平台。
+
 * 混合编程（Python + Thrust C++）
 
     可以使用 PyBind11 或 Cython 包装 Thrust 代码：

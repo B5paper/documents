@@ -2,6 +2,386 @@
 
 ## cache
 
+* vim match()
+
+    match() 函数在 Vim 中用于在字符串中查找正则表达式的匹配位置。
+
+    基本语法
+
+    ```vim
+    match({字符串}, {模式} [, {起始位置} [, {计数}]])
+    ```
+
+    主要作用
+
+    1. 查找匹配位置
+
+        ```vim
+        " 返回第一个数字的位置
+        echo match("hello 123 world", '\d')  " 输出: 6
+
+        " 查找第一个非空白字符
+        echo match("   text", '\S')  " 输出: 3
+        ```
+
+    2. 从指定位置开始查找
+
+        ```vim
+        let s = "abc abc abc"
+        echo match(s, 'abc', 4)  " 从位置4开始查找，输出: 4
+        ```
+
+    3. 查找第N次匹配
+
+        ```vim
+        let s = "one two three two one"
+        echo match(s, 'two', 0, 2)  " 查找第2次出现的'two'，输出: 14
+        ```
+
+    返回值特点
+
+    * 找到匹配：返回匹配开始的字符位置（从0开始计数）
+
+    * 未找到匹配：返回 -1
+
+    * 只返回第一个匹配的位置，要获取所有匹配需使用其他方法
+
+    实际应用示例
+
+    ```vim
+    " 1. 检查字符串是否包含特定模式
+    if match(line, '^#') != -1
+        echo "这是一个注释行"
+    endif
+
+    " 2. 提取匹配位置后的内容
+    let line = "Name: John Doe"
+    let colon_pos = match(line, ':')
+    if colon_pos != -1
+        let name = strpart(line, colon_pos + 1)
+        echo trim(name)  " 输出: John Doe
+    endif
+
+    " 3. 在函数中处理匹配
+    function! FindEmail(text)
+        let email_pos = match(a:text, '\v\w+@\w+\.\w+')
+        if email_pos != -1
+            return strpart(a:text, email_pos)
+        endif
+        return ""
+    endfunction
+    ```
+
+    与相似函数的对比
+
+    * match()：返回位置
+
+    * matchstr()：返回匹配的字符串
+
+    * matchend()：返回匹配结束后的位置
+
+    * matchlist()：返回包含所有匹配组的列表
+
+    注意事项
+
+    * 默认使用 Vim 的魔术模式，建议使用 '\v' 前缀启用 very magic 模式
+
+    * 位置索引从 0 开始
+
+    * 支持 Vim 的所有正则表达式特性
+
+* vim 中 match() 的作用
+
+    match() 函数在 Vim 中用于在字符串中查找正则表达式的匹配位置。
+
+    基本语法
+
+    ```vim
+    match({字符串}, {模式} [, {起始位置} [, {计数}]])
+    ```
+
+    主要作用
+
+    1. 查找匹配位置
+
+        ```vim
+        " 返回第一个数字的位置
+        echo match("hello 123 world", '\d')  " 输出: 6
+
+        " 查找第一个非空白字符
+        echo match("   text", '\S')  " 输出: 3
+        ```
+
+    2. 从指定位置开始查找
+
+        ```vim
+        let s = "abc abc abc"
+        echo match(s, 'abc', 4)  " 从位置4开始查找，输出: 4
+        ```
+
+    3. 查找第N次匹配
+
+        ```vim
+        let s = "one two three two one"
+        echo match(s, 'two', 0, 2)  " 查找第2次出现的'two'，输出: 14
+        ```
+
+    返回值特点
+
+    * 找到匹配：返回匹配开始的字符位置（从0开始计数）
+
+    * 未找到匹配：返回 -1
+
+    * 只返回第一个匹配的位置，要获取所有匹配需使用其他方法
+
+    实际应用示例
+
+    ```vim
+    " 1. 检查字符串是否包含特定模式
+    if match(line, '^#') != -1
+        echo "这是一个注释行"
+    endif
+
+    " 2. 提取匹配位置后的内容
+    let line = "Name: John Doe"
+    let colon_pos = match(line, ':')
+    if colon_pos != -1
+        let name = strpart(line, colon_pos + 1)
+        echo trim(name)  " 输出: John Doe
+    endif
+
+    " 3. 在函数中处理匹配
+    function! FindEmail(text)
+        let email_pos = match(a:text, '\v\w+@\w+\.\w+')
+        if email_pos != -1
+            return strpart(a:text, email_pos)
+        endif
+        return ""
+    endfunction
+    ```
+
+    与相似函数的对比
+
+    * match()：返回位置
+
+    * matchstr()：返回匹配的字符串
+
+    * matchend()：返回匹配结束后的位置
+
+    * matchlist()：返回包含所有匹配组的列表
+
+    注意事项
+
+    * 默认使用 Vim 的魔术模式，建议使用 '\v' 前缀启用 very magic 模式
+
+    * 位置索引从 0 开始
+
+    * 支持 Vim 的所有正则表达式特性
+
+    example:
+
+    * `match(line_content, '\S')`
+
+        这段 Vim 代码的作用是在行内查找第一个非空白字符，并移动光标到该位置。
+
+        具体解析：
+
+        * match(line_content, '\S') 调用 Vim 的 match() 函数
+
+        * line_content：表示当前行的内容
+
+        * '\S'：正则表达式模式，匹配非空白字符（等价于 [^ \t\r\n\v\f]）
+
+        * 返回值：匹配到的位置索引（从0开始），如果没找到则返回 -1
+
+        实际应用场景：
+
+        ```vim
+        " 示例：查找当前行第一个非空白字符的位置
+        let pos = match(getline('.'), '\S')
+        if pos != -1
+            echo "第一个非空白字符在位置: " . pos
+        endif
+
+        " 常用组合：将光标移动到行首第一个非空白字符处（类似 0 命令）
+        normal! ^
+        ```
+
+        类似功能的其他写法：
+
+        * 普通模式：按 ^ 键
+
+        * 命令行：:normal! ^
+
+        * 搜索：/\S 然后按 n 查找
+
+* vim 字符串切片
+
+    基础切片语法
+
+    ```vim
+    let str = "Hello World"
+
+    " 基本形式：str[start:end] 或 str[start:end:step]
+    " 索引从 0 开始，包含 start，不包含 end
+
+    echo str[0:4]      " 输出: Hello
+    echo str[6:11]     " 输出: World
+    echo str[:5]       " 输出: Hello (从开头到索引5)
+    echo str[6:]       " 输出: World (从索引6到末尾)
+    echo str[-5:-1]    " 输出: Worl  (负索引表示从末尾倒数)
+    echo str[-5:]      " 输出: World
+    ```
+
+    切片步长（stride）
+
+    ```vim
+    let str = "abcdefghij"
+
+    " str[start:end:step]
+    echo str[::2]      " 输出: acegi (每隔一个字符)
+    echo str[1::2]     " 输出: bdfhj
+    echo str[2:8:3]    " 输出: cf  (从索引2到8，步长为3)
+    ```
+
+    特殊用法和注意事项
+
+    1. 越界处理
+
+        ```vim
+        let str = "Vim"
+
+        echo str[0:10]     " 输出: Vim (end超出范围时取到末尾)
+        echo str[5:10]     " 输出: ""  (start超出范围返回空字符串)
+        echo str[-10:-5]   " 输出: ""  (负索引超出范围返回空)
+        ```
+
+    2. 处理 Unicode/多字节字符
+
+        ```vim
+        " 注意：切片按字节位置，不是按字符！
+        let str = "中文测试"  " 每个中文字符占3字节
+        echo str[0:3]       " 输出: 中 (正确，刚好3字节)
+        echo str[0:4]       " 输出: 中 加上乱码！(截断了UTF-8字符)
+
+        " 要按字符切片，需要先转为列表
+        let char_list = split(str, '\zs')
+        echo join(char_list[0:2], '')  " 输出: 中文 (正确按字符切片)
+        ```
+
+    3. 与 split() 结合使用
+
+        ```vim
+        let line = "vim is awesome"
+        let words = split(line)  " 按空白分割
+        echo words[0:2]          " 输出: ['vim', 'is', 'awesome']
+        echo join(words[1:], ' ') " 输出: is awesome
+        ```
+
+    实际应用示例
+
+    示例1：提取文件扩展名
+
+    ```vim
+    function! GetExtension(filename)
+        let dot_pos = strridx(a:filename, '.')
+        if dot_pos >= 0
+            return a:filename[dot_pos + 1:]
+        endif
+        return ''
+    endfunction
+
+    echo GetExtension("script.py")  " 输出: py
+    ```
+
+    示例2：去除括号
+
+    ```vim
+    let text = "(Hello World)"
+    echo text[1:-2]  " 输出: Hello World (去掉首尾括号)
+
+    " 更安全的方式：
+    if text[0] == '(' && text[-1] == ')'
+        echo text[1:-2]
+    endif
+    ```
+
+    示例3：每行处理
+
+    ```vim
+    function! TrimLeadingSpaces(line)
+        let first_non_space = match(a:line, '\S')
+        if first_non_space >= 0
+            return a:line[first_non_space:]
+        endif
+        return ''  " 全空白行
+    endfunction
+
+    echo TrimLeadingSpaces("    indented")  " 输出: indented
+    ```
+
+    与列表切片的对比
+
+    ```vim
+    " 字符串和列表切片语法相同
+    let str = "abcde"
+    let lst = ['a', 'b', 'c', 'd', 'e']
+
+    echo str[1:3]    " 输出: bcd
+    echo lst[1:3]    " 输出: ['b', 'c', 'd']
+
+    echo str[::2]    " 输出: ace
+    echo lst[::2]    " 输出: ['a', 'c', 'e']
+    ```
+
+    性能提示
+
+    ```vim
+    " 对于大字符串的频繁切片，考虑使用函数：
+    " 方法1：使用内置函数（最快）
+    echo strpart(str, start, len)  " 相当于 str[start:start+len]
+
+    " 方法2：使用正则表达式（适合复杂提取）
+    echo matchstr(str, 'pattern')  " 提取匹配的部分
+
+    " 方法3：直接切片（可读性好）
+    echo str[start:end]
+    ```
+
+    重要限制
+
+    * 索引不可变：不能通过切片赋值修改字符串
+
+        ```vim
+        let str = "hello"
+        " str[0:2] = "xxx"  " 错误！不支持切片赋值
+        let str = "xxx" . str[3:]  " 正确方式
+        ```
+
+    * : 字符的歧义：在 Vim 命令模式下 : 是命令前缀
+
+        ```vim
+        " 在脚本中正常使用
+        let sliced = str[1:3]
+
+        " 在命令模式下需要转义或使用函数
+        :echo str[1:3]  " 可能被解释为命令
+        :echo str[1\:3] " 正确
+        :echo strpart(str, 1, 2)  " 替代方案
+        ```
+
+    替代方案比较
+
+    | 场景 | 推荐方法 |
+    | - | - |
+    | 简单子串提取 | str[start:end] |
+    | 已知长度的提取 | strpart(str, start, len) |
+    | 基于模式的提取 | matchstr(str, pattern) |
+    | 去除首尾字符 | str[1:-1] |
+    | 处理多字节字符 | split(str, '\zs')[start:end] |
+
+    Vimscript 的切片语法虽然源自 Python，但经过了简化和适应 Vim 的生态环境。掌握这些技巧能让你的 Vim 脚本更加简洁高效！
+
 * `:'<,'>normal I* `解析
 
     这个命令的作用是：在当前选中的每一行前面插入一个星号 *。

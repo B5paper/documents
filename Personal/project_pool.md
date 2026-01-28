@@ -497,35 +497,27 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [v] qa 文件权重保留小数点后 4 位 
+* [ ] sync bash
 
-* [v] re.compile `MULTILINE`
-
-    ```py
-    pat = re.compile('^world', re.MULTILINE)  # 多行模式
-    txt = 'hello, world\nworld again'
-    m = pat.match(txt, pos=12)  # 可以匹配第二行的 world
-    ```
-
-* [v] 在同一次 test 中，不能出现重复的 unit
-
-* [asso] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
+* [ ] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
 
     典型场景
     若需要选 10 个 units，但可用 50 个，重复概率约 13%
     若需要选 15 个 units，但可用 30 个，重复概率约 48%
 
-* [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
+* [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
-* [ ] sync bash
+* [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
+
+* [ ] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
+
+* [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
 
     目前看到
     
     > Quantifiers
-
-* [o] 调研 qa unit 中 dep 功能
 
 * [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
@@ -538,12 +530,6 @@ english words 由 { } reorg: english words 进化而来。
         或许应该实现 qa file 可以相同，但是 unit 需要保证不同？
 
 * [ ] 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
-
-* [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
-
-* [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
-
-* [ ] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
 
 * [ ] 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
 
@@ -739,29 +725,9 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] 调研以下命令
+* [v] `match(line_content, '\S')`
 
-    ```vim
-    " 在Visual模式下添加列表标记
-    vnoremap <leader>l :s/^\s*\zs\S.*$/* &/<CR>
-
-    " 或者更通用的版本
-    vnoremap <leader>l :g/^\s*\S/normal I* <CR>
-    ```
-
-    为什么上一个命令`<cr>`前有`/`，而下面的命令没有？
-
-    为什么下面的命令进入了 normal 模式后，后面又跟了一个`<cr>`？ 此时 normal 模式是否和 `:` 命令模式冲突？`<cr>`匹配的命令是 normal 还是 `:`?
-
-* [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
-
-* [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
-
-* [v] `:'<,'>normal I* `
-
-* [ ] `match(line_content, '\S')`
-
-* [ ] `line_content[non_whitespace_pos:]`
+* [v] `line_content[non_whitespace_pos:]`
 
 * [ ] `setline(line_num, new_line)`
 
@@ -1684,17 +1650,19 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] SourceTree
 
+* [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
+
+* [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
+
 ## Matlab
 
 ### tasks
 
-* [v] matlab exist()
-
-* [ ] matlab load() 
+* [v] matlab load() 
 
     `load(nirsFileName,'-mat');`
 
-* [ ] matlab `saveas()`
+* [v] matlab `saveas()`
 
 * [ ] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
 
@@ -1702,11 +1670,13 @@ english words 由 { } reorg: english words 进化而来。
 
     感觉这种用法比较奇怪，因为在执行前不知道有哪些 fields，执行后才知道。比较适合一行一行执行，做实验，不适合正式开发场景。
 
+* [ ] matlab `fileread()`
+
+* [ ] matlab `fread()`, `fopen()`, `fclose()`
+
+* [ ] matlab `which()`
+
 * [new] matlab `jsondecode()`
-
-* [new] matlab `fileread()`
-
-* [new] matlab `fread()`, `fopen()`, `fclose()`
 
 * [ ] 调研 matlab 命令
 
@@ -1773,8 +1743,6 @@ english words 由 { } reorg: english words 进化而来。
     file_cell = {'file1.txt', 'file2.csv'};
     names = cellfun(@(x) fileparts(x), file_cell, 'UniformOutput', false);
     ```
-
-* [ ] matlab `which()`
 
 ## Torch
 
@@ -2421,7 +2389,7 @@ resources:
 
 * [v] `dma_map_page()`
 
-* [ ] dma 在 cpu 中，还是在 device 中？
+* [v] dma 在 cpu 中，还是在 device 中？
 
 * [ ] 调研 MMU（内存管理单元）如何设计？
 

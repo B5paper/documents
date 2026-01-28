@@ -6,6 +6,228 @@
 
 ## cache
 
+* matlab load()
+
+    MATLAB load() 函数
+
+    1. 原型
+
+        ```matlab
+        load(filename)
+        load(filename, variables)
+        load(filename, '-mat')
+        load(filename, '-ascii')
+        S = load(___)
+        ```
+
+    2. 作用
+
+        * 从磁盘文件加载变量到MATLAB工作空间
+
+        * 支持多种文件格式：MAT文件、ASCII文件、Excel文件等
+
+        * 默认加载MAT格式文件（扩展名通常为.mat）
+
+    3. 基本用法
+
+        ```matlab
+        % 1. 加载整个MAT文件（所有变量）
+        load('data.mat')
+
+        % 2. 加载指定变量
+        load('data.mat', 'x', 'y')
+
+        % 3. 将加载的变量保存到结构体（不直接放入工作空间）
+        S = load('data.mat')
+
+        % 4. 加载ASCII文件
+        load('data.txt', '-ascii')
+        ```
+
+    4. load(nirsFileName,'-mat'); 的作用
+
+        ```matlab
+        load(nirsFileName, '-mat')
+        ```
+
+        作用解释：
+
+        * nirsFileName：包含近红外光谱(NIRS)数据的文件名（字符串）
+
+        * '-mat'：明确指定以MAT文件格式加载
+
+        特殊含义：
+
+        * 强制MAT格式：即使文件扩展名不是.mat，也按MAT格式解析
+
+        * 防止歧义：当文件名没有标准扩展名或扩展名不明确时，确保正确加载
+
+        * NIRS数据场景：近红外光谱数据文件有时可能使用非标准扩展名（如.nirs、.data等）
+
+        示例场景：
+
+        ```matlab
+        % 假设文件是NIRS数据，扩展名为 .nirs 但内部是MAT格式
+        nirsFileName = 'subject01_data.nirs';
+        load(nirsFileName, '-mat');  % 明确按MAT格式加载
+
+        % 等价于（如果扩展名是 .mat）：
+        load('subject01_data.mat');
+        ```
+
+        实际应用中的典型NIRS文件：
+
+        ```matlab
+        % NIRS数据通常包含多个变量：
+        % - d: 光强度数据
+        % - s: 刺激标记
+        % - t: 时间向量
+        % - aux: 辅助信号
+
+        load('experiment.nirs', '-mat');
+        whos  % 查看加载的变量
+        % 可能显示：d, s, t, aux, ml, etc.
+        ```
+
+    5. 注意事项
+
+        ```matlab
+        % 如果文件已经是 .mat 扩展名，'-mat' 是可选的
+        load('data.mat')           % 默认就是MAT格式
+        load('data.mat', '-mat')   % 明确指定，结果相同
+
+        % 但如果扩展名不标准或缺失，'-mat' 很重要
+        load('data', '-mat')       % 无扩展名，强制按MAT格式
+        load('data.nirs', '-mat')  % 特殊扩展名，强制按MAT格式
+        ```
+
+    6. 与NIRS工具箱结合使用
+
+        ```matlab
+        % 在fNIRS分析中常见用法
+        function processNIRSData(nirsFile)
+            % 加载NIRS数据
+            load(nirsFile, '-mat');
+            
+            % 访问典型NIRS变量
+            % d: 原始光强度数据 [时间点 × 通道]
+            % s: 刺激标记矩阵 [时间点 × 条件]
+            % t: 时间向量 [时间点 × 1]
+            
+            % 进一步处理...
+            [oxy, deoxy] = convertToHb(d, ...);  % 转换为血红蛋白浓度
+        end
+        ```
+
+    这种用法确保了即使NIRS数据文件使用非标准扩展名，也能正确加载MAT格式的数据结构。
+
+* matlab saveas()
+
+    saveas() 是 MATLAB 中用于将图形窗口保存为图像文件的函数。
+
+    函数原型
+
+    ```matlab
+    saveas(fig, filename, format)
+    ```
+
+    或简化版本：
+
+    ```matlab
+    saveas(fig, filename)
+    ```
+
+    参数说明
+
+    * fig：图形窗口句柄或图形对象数组
+
+    * filename：保存的文件名（可包含路径）
+
+    * format（可选）：文件格式字符串
+
+    **主要作用**
+
+    将 MATLAB 图形窗口的内容保存为各种格式的图像文件，支持多种常见图像格式。
+
+    **支持的主要格式**
+
+    * 图像格式：'png', 'jpg'/'jpeg', 'tif'/'tiff', 'bmp', 'gif'
+
+    * 矢量格式：'pdf', 'eps', 'emf', 'svg'
+
+    * MATLAB 格式：'fig'（MATLAB 专有格式，可重新编辑）
+
+    用法示例
+
+    基本用法
+
+    ```matlab
+    % 创建图形
+    fig = figure;
+    plot(1:10, rand(1,10));
+
+    % 保存为PNG格式（默认）
+    saveas(fig, 'myplot.png');
+
+    % 指定格式
+    saveas(fig, 'myplot.jpg', 'jpg');
+    saveas(fig, 'myplot.pdf', 'pdf');
+    ```
+
+    指定路径
+
+    ```matlab
+    % 保存到特定目录
+    saveas(fig, 'C:\plots\figure1.png');
+    saveas(fig, '../results/plot.pdf', 'pdf');
+    ```
+
+    批量保存多个图形
+
+    ```matlab
+    % 创建多个图形
+    fig1 = figure(1);
+    plot(sin(0:0.1:2*pi));
+    fig2 = figure(2);
+    plot(cos(0:0.1:2*pi));
+
+    % 分别保存
+    saveas(fig1, 'sine_wave.png');
+    saveas(fig2, 'cosine_wave.png');
+    ```
+
+    使用gca保存当前坐标区
+
+    ```matlab
+    % 保存当前坐标区
+    plot(1:10, 1:10);
+    saveas(gca, 'current_axes.png', 'png');
+    ```
+
+    注意事项
+
+    * 分辨率控制：saveas() 默认使用屏幕分辨率，对于高质量输出，建议使用 print() 函数：
+
+        ```matlab
+        print(fig, 'myplot.png', '-dpng', '-r300');  % 300 DPI
+        ```
+
+    * 大小调整：保存前可使用 set(fig, 'Position', ...) 调整图形大小
+
+    * 文件扩展名：如果文件名中包含扩展名且与格式参数一致，MATLAB 会使用该格式
+
+    * 推荐替代：对于更高级的图像输出控制，推荐使用：
+
+        ```matlab
+        exportgraphics(fig, filename)       % R2020a+
+        exportfig(fig, filename)             % 第三方工具
+        print(fig, filename, formatoptions)  % 传统但功能强大
+        ```
+
+    总结
+
+    saveas() 是 MATLAB 中最简单的图形保存方式，适合快速保存图形。对于需要控制分辨率、裁剪、背景透明等高级需求，建议使用 print() 或 exportgraphics() 函数。
+
 * matlab exist()
 
     exist() 是 MATLAB 中用于检查变量、函数、文件或文件夹是否存在的函数。
