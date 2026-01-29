@@ -2,6 +2,464 @@
 
 ## cache
 
+* 我想像 vscode 那样显示某一行是新增的/修改的/删除的，vim 里如何做到？
+
+    要在 Vim 中像 VS Code 那样实时显示行号旁边的 Git 状态（新增/修改/删除），有几种方案：
+
+    方案一：使用 vim-gitgutter（推荐）
+
+    安装
+
+    ```vim
+    " 使用 vim-plug
+    Plug 'airblade/vim-gitgutter'
+
+    " 使用 Vim 内置包管理
+    " mkdir -p ~/.vim/pack/git-plugins/start
+    " cd ~/.vim/pack/git-plugins/start
+    " git clone https://github.com/airblade/vim-gitgutter.git
+    ```
+
+    基本配置
+
+    ```vim
+    " 在 ~/.vimrc 中添加
+    let g:gitgutter_enabled = 1           " 启用
+    let g:gitgutter_signs = 1             " 显示符号
+    let g:gitgutter_highlight_lines = 0   " 不高亮整行（默认）
+
+    " 更新延迟（毫秒）
+    set updatetime=100
+    let g:gitgutter_realtime = 1
+    let g:gitgutter_eager = 1
+    ```
+
+    显示效果
+
+    ```text
+    │ 行号 │ 代码
+    ├──────┼─────────────
+    │  1   │ 未修改的行
+    │  2 + │ 新增的行
+    │  3 ~ │ 修改的行
+    │  4 - │ 删除的行（在附近显示）
+    ```
+
+    方案二：使用 signify（更轻量）
+
+    ```vim
+    Plug 'mhinz/vim-signify'
+    ```
+
+    更适合大型仓库，性能更好。
+
+    方案三：Neovim 的 gitsigns.nvim
+
+    如果你用 Neovim：
+
+    ```lua
+    -- 使用 lazy.nvim
+    {
+      'lewis6991/gitsigns.nvim',
+      opts = {
+        signs = {
+          add          = { text = '│' },
+          change       = { text = '│' },
+          delete       = { text = '_' },
+          topdelete    = { text = '‾' },
+          changedelete = { text = '~' },
+          untracked    = { text = '┆' },
+        },
+        signcolumn = true,
+        numhl      = false,
+        linehl     = false,
+      }
+    }
+    ```
+
+    自定义符号和颜色
+
+    修改符号样式
+
+    ```vim
+    " 使用不同的符号
+    let g:gitgutter_sign_added = '+'
+    let g:gitgutter_sign_modified = '~'
+    let g:gitgutter_sign_removed = '-'
+    let g:gitgutter_sign_removed_first_line = '^^'
+    let g:gitgutter_sign_modified_removed = 'ww'
+
+    " 或者使用 Unicode 字符
+    let g:gitgutter_sign_added = '│'
+    let g:gitgutter_sign_modified = '│'
+    let g:gitgutter_sign_removed = '_'
+    let g:gitgutter_sign_removed_first_line = '‾'
+    ```
+
+    修改颜色
+
+    ```vim
+    " 定义高亮颜色
+    highlight GitGutterAdd    guifg=#009900 guibg=NONE ctermfg=2
+    highlight GitGutterChange guifg=#bbbb00 guibg=NONE ctermfg=3
+    highlight GitGutterDelete guifg=#ff2222 guibg=NONE ctermfg=1
+
+    " 如果想高亮整行（像 VS Code 那样）
+    let g:gitgutter_highlight_lines = 1
+    " 然后自定义行高亮颜色
+    highlight GitGutterAddLine    guibg=#003300
+    highlight GitGutterChangeLine guibg=#333300
+    highlight GitGutterDeleteLine guibg=#330000
+    ```
+
+    常用操作
+
+    ```vim
+    " 跳转到下一个/上一个变更
+    ]h  " 下一个 hunk
+    [h  " 上一个 hunk
+
+    " 暂存/撤销当前区块
+    <Leader>hs  " 暂存当前区块
+    <Leader>hu  " 撤销当前区块
+
+    " 预览更改
+    <Leader>hp  " 预览当前区块的更改
+
+    " 切换显示
+    :GitGutterToggle     " 切换显示
+    :GitGutterEnable     " 启用
+    :GitGutterDisable    " 禁用
+    :GitGutterSignsToggle " 切换符号显示
+    ```
+
+    完整配置示例
+
+    ```vim
+    " ~/.vimrc
+    call plug#begin('~/.vim/plugged')
+    Plug 'airblade/vim-gitgutter'
+    call plug#end()
+
+    " GitGutter 配置
+    let g:gitgutter_map_keys = 0  " 禁用默认快捷键，自己定义
+    let g:gitgutter_sign_allow_clobber = 0
+
+    " 符号定义
+    let g:gitgutter_sign_added = '│'
+    let g:gitgutter_sign_modified = '│'
+    let g:gitgutter_sign_removed = '_'
+    let g:gitgutter_sign_removed_first_line = '‾'
+    let g:gitgutter_sign_modified_removed = '~'
+
+    " 颜色定义
+    highlight GitGutterAdd          guifg=#00ff00 ctermfg=2
+    highlight GitGutterChange       guifg=#ffff00 ctermfg=3
+    highlight GitGutterDelete       guifg=#ff0000 ctermfg=1
+    highlight GitGutterChangeDelete guifg=#ff8800 ctermfg=4
+
+    " 更新频率
+    set updatetime=100
+
+    " 自定义快捷键
+    nmap ]h <Plug>(GitGutterNextHunk)
+    nmap [h <Plug>(GitGutterPrevHunk)
+    nmap <Leader>hs <Plug>(GitGutterStageHunk)
+    nmap <Leader>hu <Plug>(GitGutterUndoHunk)
+    nmap <Leader>hp <Plug>(GitGutterPreviewHunk)
+    ```
+
+    没有插件的临时方案
+
+    如果不想装插件，可以用内置命令：
+
+    ```vim
+    " 查看当前文件的差异
+    :Gdiff
+
+    " 或者用外部命令
+    :!git diff --no-ext-diff %
+
+    " 或者开启 Vim 的 diff 模式
+    :windo diffthis   " 开启 diff 模式
+    :windo diffoff    " 关闭 diff 模式
+    ```
+
+    问题排查
+
+    如果没显示：
+
+    * 确认在 Git 仓库中
+
+    * 检查 :GitGutterEnable 是否开启
+
+    * 确认 updatetime 不要太长（建议 100-500ms）
+
+    * 查看 :messages 是否有错误
+
+    安装配置后，Vim 就会在行号旁边显示 Git 状态，体验类似 VS Code 了！
+
+* vim 有哪些 git 相关的插件？
+
+    Vim 有很多优秀的 Git 相关插件，以下是主要分类和推荐：
+
+    核心 Git 集成插件
+
+    1. vim-fugitive ⭐ 最流行
+
+        * 作者：Tim Pope
+
+        * 功能：全面的 Git 集成
+
+        * 特色：
+
+            * :G 命令查看状态
+
+            * :Gdiff 查看差异
+
+            * :Gblame 查看提交历史
+
+            * :Gcommit 提交
+
+            * :Gpush / :Gpull 推送/拉取
+
+    2. gv.vim
+
+        * 作者：Junegunn Choi
+
+        * 功能：git commit 浏览器
+
+        * 特色：可视化的提交历史，可查看提交详情和差异
+
+    Git 状态显示插件
+
+    3. vim-gitgutter
+
+        * 功能：在侧边栏显示 git 差异标记
+
+        * 特色：
+
+            * 实时显示修改状态（+/-/~）
+
+            * 支持阶段/取消阶段单个区块
+
+            * 性能优化好
+
+    4. signify / gitgutter.nvim（Neovim）
+
+        * 轻量级替代方案，性能更优
+
+    Git 差异查看插件
+
+    5. vimdiff（内置）
+
+        * 基本的 diff 功能：vimdiff file1 file2
+
+    6. diffview.nvim（Neovim）
+
+        * 现代的分屏差异查看器
+
+    Git 集成增强
+
+    7. rhubarb
+
+        * 配合 vim-fugitive 使用
+
+        * 支持在 GitHub 等平台打开文件链接
+
+    8. committia.vim
+
+        * 改进的 commit 信息编辑界面
+
+        * 在 commit 时显示 diff 预览
+
+    懒加载插件管理器推荐
+
+    如果你使用插件管理器（如 vim-plug, packer.nvim, lazy.nvim），推荐配置：
+
+    ```vim
+    " 使用 vim-plug 示例
+    Plug 'tpope/vim-fugitive'
+    Plug 'tpope/vim-rhubarb'
+    Plug 'airblade/vim-gitgutter'
+    Plug 'junegunn/gv.vim'
+    ```
+
+    Neovim 专属插件
+
+    9. neogit
+
+        * 类似 Magit 的现代 Git 界面
+
+        * 功能丰富，界面美观
+
+    10. lazygit.nvim
+
+        * lazygit 的终端 UI 集成
+
+    使用建议
+
+    * 新手组合：vim-fugitive + vim-gitgutter
+
+    * Neovim 用户：neogit + gitgutter.nvim
+
+    * 追求简洁：只安装 vim-fugitive
+
+    这些插件可以大大提高你在 Vim 中处理 Git 操作的效率！
+
+* vim-fugitive 用法
+
+    常见命令速查
+
+    ```vim
+    :Gstatus       " 查看状态（常用）
+    :Gcommit       " 提交
+    :Gpush         " 推送
+    :Gpull         " 拉取
+    :Gblame        " 查看谁改了什么
+    :Gdiff         " 查看差异
+    :Gwrite        " 暂存文件（git add）
+    :Gread         " 恢复文件（git checkout --）
+    :Gmove         " 移动/重命名文件
+    :Gdelete       " 删除文件
+    ```
+
+    ```vim
+    " vim-fugitive 的快捷键设置（可选）
+    nmap <leader>gs :Gstatus<CR>
+    nmap <leader>gc :Gcommit<CR>
+    nmap <leader>gp :Gpush<CR>
+    nmap <leader>gl :Gpull<CR>
+    nmap <leader>gd :Gdiff<CR>
+    nmap <leader>gb :Gblame<CR>
+    ```
+
+    更新插件
+
+    要更新 vim-fugitive 到最新版本：
+
+    ```vim
+    :PlugUpdate vim-fugitive
+    ```
+
+    或者更新所有插件：
+
+    ```vim
+    :PlugUpdate
+    ```
+
+    卸载插件
+
+    如果不需要了：
+
+    * 从 .vimrc 中删除 Plug 'tpope/vim-fugitive'
+
+    * 执行 :PlugClean
+
+    如果遇到问题，查看 `:messages` 获取错误信息
+
+    注：
+
+    1. 这个插件的地址为：<https://github.com/tpope/vim-fugitive>
+
+        目前看来这个版本已经比较新了，前面提到的命令有的有点旧了，最新的版本已经不支持。
+
+* vim `setline()`
+
+    在 Vim 脚本中，setline() 函数用于修改缓冲区中的指定行。
+
+    函数原型
+
+    ```vim
+    :call setline(行号, 文本)
+    ```
+
+    或处理多行：
+
+    ```vim
+    :call setline(行号, 文本列表)
+    ```
+
+    作用
+
+    setline() 的主要作用是替换缓冲区中指定行的内容。
+
+    基本用法
+
+    1. 替换单行
+
+        ```vim
+        " 将第 3 行替换为 "Hello World"
+        :call setline(3, "Hello World")
+
+        " 将当前行替换为新内容
+        :call setline('.', "New line content")
+        ```
+
+    2. 替换多行
+
+        ```vim
+        " 从第 5 行开始替换 3 行内容
+        :call setline(5, ['Line 1', 'Line 2', 'Line 3'])
+        ```
+
+    3. 实际示例
+
+        ```vim
+        " 示例 1：在文件开头添加标题
+        function! AddTitle()
+            " 在第一行插入标题
+            call setline(1, "# My Document")
+            " 在第二行插入空行
+            call setline(2, "")
+        endfunction
+
+        " 示例 2：修改当前行
+        nnoremap <leader>uc :call setline('.', toupper(getline('.')))<CR>
+        ```
+
+    注意事项
+
+    * 行号有效性：行号必须在缓冲区有效范围内（1 到 line('$')）
+
+    * 返回值：成功返回 0，失败返回 1
+
+    * 性能：比执行 Ex 命令（如 :3s/old/new/）更快
+
+    * 撤销：每次 setline() 调用会创建一个撤销块
+
+    常见搭配
+
+    ```vim
+    " 与 getline() 配合使用
+    let old_line = getline(5)
+    call setline(5, "Modified: " . old_line)
+
+    " 批量修改
+    for i in range(1, line('$'))
+        let line_content = getline(i)
+        if line_content =~ 'pattern'
+            call setline(i, substitute(line_content, 'old', 'new', 'g'))
+        endif
+    endfor
+    ```
+
+    对比其他方法
+
+    ```vim
+    " 使用 setline() - 更高效
+    :call setline(10, "new text")
+
+    " 使用 Ex 命令 - 会触发重绘
+    :10s/.*/new text/
+
+    " 使用 append()/setline() 组合添加行
+    :call append(5, "Inserted line")
+    :call setline(5, "Actual content")  " 如果需要精确位置
+    ```
+
+    setline() 是 Vim 脚本编程中操作缓冲区内容的核心函数之一，特别适合在需要精确控制行内容时使用。
+
 * vim match()
 
     match() 函数在 Vim 中用于在字符串中查找正则表达式的匹配位置。

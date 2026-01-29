@@ -2,6 +2,70 @@
 
 ## cache
 
+* `tensor.detach()`
+
+    作用
+
+    * 断开计算图：返回一个新张量，与原始张量共享数据但不参与梯度计算
+
+    * 阻止梯度回传：在反向传播时，从该张量开始的运算不会被追踪梯度
+
+    * 内存共享：不复制数据，仅创建新的引用
+
+    典型应用场景
+
+    * GAN训练中分离不同网络的梯度计算
+
+    * 在计算损失时冻结部分参数
+
+    * 将张量转换为numpy数组前
+
+    * 模型推理时减少内存占用
+
+* torch 分级优化参数
+
+    ```py
+    import torch.nn as nn
+    import torch.optim as optim
+
+    model = nn.Sequential(
+        nn.Linear(10, 20),
+        nn.ReLU(),
+        nn.Linear(20, 1)
+    )
+
+    # 假设我们想对网络不同部分使用不同的学习率
+    backbone_params = list(model[0].parameters())  # 第一层参数
+    head_params = list(model[2].parameters())      # 第三层参数
+
+    # 不同参数组使用不同的学习率
+    optimizer = optim.SGD([
+        {'params': backbone_params, 'lr': 1e-4},  # 基础层学习率小
+        {'params': head_params, 'lr': 1e-3}       # 头部层学习率大
+    ])
+
+    # 或者：只优化最后一层
+    optimizer = optim.SGD(model[2].parameters(), lr=1e-3)
+    ```
+
+* `optim.SGD([train_param], lr=1e-3)`
+
+    我们可以把想优化的数据做成 list，sgd 可以只优化 list 中的对象。
+
+    example:
+
+    Y = A x + b
+
+    我们可以写成`optim.SGD([A[0], A[3]], lr=1e-3)`，这样可以只优化`A[0]`, `A[3]`这两个数字。
+
+    在进行 layer A -> layer B 的反向传播，计算 A 中参数的梯度时，不需要用到 layer B 中参数的**梯度**，但是有可能用到 B 中参数的**值**。
+
+    在整介神经网络中，只要某一层的输出全为恒定值（比如 Y = A x + b 中，A = 0，此时 Y 恒等于 b），那么整个神经网络的输出以及梯度流就会在这里被截断，梯度优化会失效。
+
+    只要神经网絡的每一层输出都至少存在一个值随 input x 的变化而变化，那么梯度优化仍然奏效。
+
+    这意味着 freeze 神经网络中其中某一层（或几层）的梯度（`requires_grad = False`），或者在调用 sgd 时，只传入指定几层 layer 的梯度（`optim.SGD([layer_1_param, layer_3_param])`），整体仍是 work 的。
+
 * 虚拟拼接
 
     你说得非常对！这正是现代深度学习框架正在探索的优化方向。你描述的这种设计实际上涉及到 "虚拟拼接" 或 "延迟拼接" 的概念。

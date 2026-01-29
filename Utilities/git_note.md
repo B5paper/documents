@@ -2,6 +2,96 @@
 
 ## cache
 
+* 简述 git blame 的用法
+
+    Git Blame 用于查看文件中每一行的最后修改信息（谁修改的、何时修改、提交ID）。以下是主要用法：
+
+    基本语法
+
+    ```bash
+    git blame <文件名>
+    ```
+
+    常用选项
+
+    * 查看特定文件
+
+        ```bash
+        git blame main.py
+        ```
+
+    * 查看特定范围的行
+
+        ```bash
+        # 查看10-20行
+        git blame -L 10,20 main.py
+        # 查看从第15行开始的10行
+        git blame -L 15,+10 main.py
+        # 查看函数所在行
+        git blame -L :func_name main.py
+        ```
+
+    * 显示更详细的信息
+
+        ```bash
+        # 显示完整提交ID和作者
+        git blame -l main.py
+        # 显示作者邮箱
+        git blame -e main.py
+        # 显示提交日期
+        git blame -t main.py
+        ```
+
+    * 忽略特定提交（白名单/黑名单）
+
+        ```bash
+        # 忽略空格修改
+        git blame -w main.py
+        # 指定要忽略的提交范围
+        git blame --ignore-rev <commit_id> main.py
+        ```
+
+    * 追溯文件重命名
+
+        ```bash
+        git blame -C main.py  # 检测代码移动
+        git blame -C -C main.py  # 更积极的检测
+        ```
+
+    实用示例
+
+    ```bash
+    # 查看谁最后修改了第50行
+    git blame -L 50,50 main.py
+
+    # 完整信息显示
+    git blame -lte main.py
+
+    # 忽略格式化修改，只看实质改动
+    git blame -w main.py
+    ```
+
+    配合其他工具
+
+    ```bash
+    # 使用grep过滤特定作者的修改
+    git blame main.py | grep "Author: alice"
+
+    # 图形化界面查看（需要GUI工具）
+    git gui blame main.py
+    ```
+
+    主要用途：
+
+    * 追踪代码作者和修改时间
+
+    * 定位引入bug的提交
+
+    * 了解代码历史演变
+
+    * 代码审查时了解修改上下文
+
+
 * `git config -f .gitmodules --list`
 
     读取并列出当前项目中 .gitmodules 文件的所有配置项。

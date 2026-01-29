@@ -6,6 +6,118 @@
 
 ## cache
 
+* bash 中，有时候需要复制当前窗口中的内容，除了用鼠标，还有什么办法
+
+    在 bash 中，除了鼠标操作，还有多种复制终端内容的方法：
+
+    1. 使用键盘快捷键（取决于终端）
+
+        * xclip / xsel（Linux）：
+
+            ```bash
+            # 复制命令输出
+            ls -la | xclip -selection clipboard
+
+            # 复制文件内容
+            xclip -selection clipboard < file.txt
+            ```
+
+    2. 终端内置快捷键
+
+        * tmux：
+
+            ```bash
+            # 进入复制模式
+            Ctrl-b [  # 进入选择模式
+            方向键选择文本
+            Enter 复制
+
+            # 粘贴
+            Ctrl-b ]
+            ```
+
+        * screen：
+
+            ```bash
+            Ctrl-a [  # 进入选择模式
+            空格开始选择，再次空格结束
+            Ctrl-a ]  # 粘贴
+            ```
+
+    3. 通过管道复制到剪贴板
+
+        ```bash
+        # macOS
+        ls | pbcopy
+        cat file.txt | pbcopy
+
+        # Linux (需要安装 xclip 或 xsel)
+        sudo apt install xclip  # Debian/Ubuntu
+        echo "文本" | xclip -selection clipboard
+
+        # Windows WSL
+        ls | clip.exe
+        ```
+
+    4. 使用脚本函数
+
+        在 ~/.bashrc 中添加：
+
+        ```bash
+        # 复制到剪贴板
+        copy() {
+          if [[ "$(uname)" == "Darwin" ]]; then
+            pbcopy
+          elif [[ "$(uname)" == "Linux" ]]; then
+            xclip -selection clipboard
+          else
+            cat > /dev/null
+          fi
+        }
+
+        # 使用示例
+        ls -la | copy
+        echo "内容" | copy
+        ```
+
+    5. 选择并复制特定内容
+
+        ```bash
+        # 复制最近执行的命令
+        history | tail -1 | cut -c 8- | xclip -selection clipboard
+
+        # 复制当前目录路径
+        pwd | xclip -selection clipboard
+
+        # 复制文件的前几行
+        head -n 10 file.txt | xclip -selection clipboard
+        ```
+
+    6. 使用 expect 脚本自动化
+
+        ```bash
+        #!/usr/bin/expect
+        # 可用于自动化交互式复制
+        ```
+
+        实用技巧
+
+        * 组合使用：
+
+            ```bash
+            # 复制当前 git 分支名
+            git branch | grep "*" | cut -d " " -f2 | xclip -selection clipboard
+            ```
+
+        * 检查是否支持：
+
+            ```bash
+            # 测试剪贴板工具是否可用
+            which pbcopy xclip clip.exe 2>/dev/null | head -1
+            ```
+
+    建议：在 ~/.bashrc 中设置别名，方便日常使用。不同系统的剪贴板工具不同，建议根据你的操作系统选择合适的方法。
+
 * linux中，如何按进程显示实时的网络流量？
 
     在 Linux 中，有几种方法可以按进程显示实时的网络流量：

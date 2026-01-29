@@ -36,6 +36,252 @@
 
 ## cache
 
+* 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
+
+    在不同编程语言中，实现子线程 stdout 重定向到父程序缓冲区的方法不同。以下是几种常见语言的实现方案：
+
+    Python 实现
+
+    使用 io.StringIO
+
+    ```python
+    import sys
+    import io
+    import threading
+
+    class OutputRedirector:
+        def __init__(self):
+            self.original_stdout = sys.stdout
+            self.buffer = io.StringIO()
+            self.lock = threading.Lock()
+        
+        def write(self, text):
+            with self.lock:
+                self.buffer.write(text)
+                # 可选：同时输出到原stdout
+                self.original_stdout.write(text)
+        
+        def flush(self):
+            with self.lock:
+                self.buffer.flush()
+                self.original_stdout.flush()
+        
+        def get_value(self):
+            with self.lock:
+                return self.buffer.getvalue()
+
+    def worker(redirector):
+        sys.stdout = redirector
+        print("子线程输出 1")
+        print("子线程输出 2")
+
+    # 使用示例
+    if __name__ == "__main__":
+        redirector = OutputRedirector()
+        thread = threading.Thread(target=worker, args=(redirector,))
+        thread.start()
+        thread.join()
+        
+        print("缓冲区内容:", redirector.get_value())
+    ```
+
+    使用队列（更灵活）
+
+    ```python
+    import sys
+    import threading
+    import queue
+
+    class ThreadOutputManager:
+        def __init__(self):
+            self.queue = queue.Queue()
+            self.thread_outputs = {}
+            
+        def capture_output(self, thread_id, target, *args, **kwargs):
+            """运行目标函数并捕获输出"""
+            class OutputInterceptor:
+                def __init__(self, queue, thread_id):
+                    self.queue = queue
+                    self.thread_id = thread_id
+                    
+                def write(self, text):
+                    if text.strip():
+                        self.queue.put((self.thread_id, text))
+                    sys.__stdout__.write(text)  # 保持终端输出
+                    
+                def flush(self):
+                    sys.__stdout__.flush()
+            
+            original_stdout = sys.stdout
+            interceptor = OutputInterceptor(self.queue, thread_id)
+            sys.stdout = interceptor
+            
+            try:
+                result = target(*args, **kwargs)
+                return result
+            finally:
+                sys.stdout = original_stdout
+                self.queue.put((thread_id, None))  # 结束标记
+
+    # 使用示例
+    def worker_function():
+        print("开始工作")
+        for i in range(3):
+            print(f"进度: {i}")
+        print("工作完成")
+
+    manager = ThreadOutputManager()
+    thread = threading.Thread(
+        target=manager.capture_output,
+        args=("thread_1", worker_function)
+    )
+    thread.start()
+    thread.join()
+
+    # 读取输出
+    while not manager.queue.empty():
+        thread_id, output = manager.queue.get()
+        if output is not None:
+            print(f"线程 {thread_id} 输出: {output.strip()}")
+    ```
+
+    C++ 实现
+
+    ```cpp
+    #include <iostream>
+    #include <sstream>
+    #include <thread>
+    #include <mutex>
+
+    class ThreadOutputBuffer : public std::stringbuf {
+    private:
+        std::mutex mtx;
+        std::function<void(const std::string&)> callback;
+        
+    public:
+        ThreadOutputBuffer(std::function<void(const std::string&)> cb = nullptr)
+            : callback(cb) {}
+        
+        virtual int sync() override {
+            std::lock_guard<std::mutex> lock(mtx);
+            std::string text = str();
+            if (!text.empty() && callback) {
+                callback(text);
+            }
+            str("");  // 清空缓冲区
+            return 0;
+        }
+    };
+
+    void worker_thread(ThreadOutputBuffer* buffer) {
+        // 重定向cout到自定义缓冲区
+        std::streambuf* old_buf = std::cout.rdbuf(buffer);
+        
+        std::cout << "Thread output line 1" << std::endl;
+        std::cout << "Thread output line 2" << std::endl;
+        
+        // 恢复原cout缓冲区
+        std::cout.rdbuf(old_buf);
+    }
+
+    int main() {
+        std::vector<std::string> captured_output;
+        
+        auto callback = [&](const std::string& text) {
+            captured_output.push_back(text);
+        };
+        
+        ThreadOutputBuffer buffer(callback);
+        std::thread t(worker_thread, &buffer);
+        t.join();
+        
+        // 输出捕获的内容
+        for (const auto& line : captured_output) {
+            std::cout << "Captured: " << line;
+        }
+        
+        return 0;
+    }
+    ```
+
+    Java 实现
+
+    ```java
+    import java.io.*;
+    import java.util.concurrent.*;
+
+    public class ThreadOutputRedirector {
+        private static class ThreadOutputStream extends OutputStream {
+            private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            private ThreadLocal<PrintStream> originalOut = new ThreadLocal<>();
+            
+            @Override
+            public void write(int b) throws IOException {
+                buffer.write(b);
+                // 可选：同时输出到原System.out
+                System.out.write(b);
+            }
+            
+            public void startCapture() {
+                originalOut.set(System.out);
+                PrintStream ps = new PrintStream(this, true);
+                System.setOut(ps);
+            }
+            
+            public void stopCapture() {
+                System.setOut(originalOut.get());
+            }
+            
+            public String getCapturedText() {
+                return buffer.toString();
+            }
+        }
+        
+        public static void main(String[] args) throws Exception {
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            
+            Callable<String> task = () -> {
+                ThreadOutputStream tos = new ThreadOutputStream();
+                tos.startCapture();
+                
+                try {
+                    System.out.println("Thread output 1");
+                    System.out.println("Thread output 2");
+                    return tos.getCapturedText();
+                } finally {
+                    tos.stopCapture();
+                }
+            };
+            
+            Future<String> future = executor.submit(task);
+            String captured = future.get();
+            
+            System.out.println("Captured output: " + captured);
+            executor.shutdown();
+        }
+    }
+    ```
+
+    跨平台通用建议
+
+    * 使用队列/管道：线程间通信的最佳方式
+
+    * 线程安全：确保缓冲区的读写操作是线程安全的
+
+    * 资源清理：确保在线程结束时恢复原 stdout
+
+    * 性能考虑：避免频繁的锁竞争
+
+    选择哪种方法取决于：
+
+    * 你的具体需求（是否需要实时捕获）
+
+    * 编程语言
+
+    * 是否需要跨线程共享缓冲区
+
+    * 性能要求
+
 * 两两比较
 
     层次分析法，双败赛制，都是两两比较，如果遇到需要综合考虑多个指标的情况，是否可以借鉴一下？
@@ -243,7 +489,15 @@
 
 这里主要是暂时难以分类的任务。
 
-* [ ] 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
+* [v] 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
+
+* [ ] c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
+
+* [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
+
+* [ ] 什么是 Radon 变换？
+
+* [ ] 光强与光子流密度是什么关系？
 
 * [ ] 调研 Computer algebra system
 
@@ -272,14 +526,6 @@
     目标是在 qa file 中找到与 example 相似或相近的 unit
 
 * [ ] 如何使用模板（卷积）的方式识别缺陷？
-
-* [ ] c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
-
-* [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
-
-* [ ] 什么是 Radon 变换？
-
-* [ ] 光强与光子流密度是什么关系？
 
 ## cached questions
 
@@ -383,13 +629,21 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] random select 实现在指定几个文件中随机选择一个文件，并随机选择一行
-
 * [ ] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
 
-* [ ] CUDA Core Compute Libraries (CCCL)
+* [O] CUDA Core Compute Libraries (CCCL)
 
     <https://github.com/nvidia/cccl>
+
+    feedback:
+
+    1. This repository unifies three essential CUDA C++ libraries into a single, convenient repository:
+
+        Thrust (former repo)
+        CUB (former repo)
+        libcudacxx (former repo)
+
+    2. 这个库后续有兴趣了再调研，感觉目前使用 cupy 已经够用了
 
 * [ ] qa 中的代码片段越来越长，手动编辑和翻页很慢，需要写一个程序专门管理 qa 中 unit 的添加和查看
 
@@ -531,7 +785,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
 
-* [ ] 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
+* [v] 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
 
 * [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
@@ -695,10 +949,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] `sysfs_create_group()`, `sysfs_remove_group()`
 
-* [asso] `devm_kobject_create_and_add()`
-
-* [asso] `devm_device_add_groups()`
-
 * [asso] `^(?!\./).*\..*`  
 
     排除以 ./ 开头
@@ -725,11 +975,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `match(line_content, '\S')`
-
-* [v] `line_content[non_whitespace_pos:]`
-
-* [ ] `setline(line_num, new_line)`
+* [v] `setline(line_num, new_line)`
 
 * [ ] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
 
@@ -890,8 +1136,6 @@ english words 由 { } reorg: english words 进化而来。
     git config --global protocol.file.allow always
 
 * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
-
-* [v] `git config -f .gitmodules --list`
 
 * [ ] 调研下述用法
 
@@ -1658,13 +1902,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] matlab load() 
-
-    `load(nirsFileName,'-mat');`
-
-* [v] matlab `saveas()`
-
-* [ ] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
+* [v] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
 
     类似 python 的 easy dict 的效果。调研一下。
 
@@ -1786,13 +2024,75 @@ resources:
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
-* [v] torch tensor 与 numpy 的转换
+* [v] `optim.SGD([train_param], lr=1e-3)`
 
-* [v] `plt.plot(xxx, label='xxx')`, `ax.legend()`, `ax.set_title()`
+    feedback:
 
-* [ ] `optim.SGD([train_param], lr=1e-3)`
+    * [ ] `torch.allclose`
 
-* [ ] `tensor.detach()`
+    * [ ] 关键阈值：秩（Rank）
+
+        矩阵的秩决定了信息保留的程度：
+
+        ```py
+        import torch
+        import numpy as np
+
+        def analyze_layer(W):
+            """分析权重矩阵的信息传递能力"""
+            rank = torch.linalg.matrix_rank(W).item()
+            full_rank = min(W.shape)
+            rank_ratio = rank / full_rank
+            
+            # 奇异值分解（SVD）
+            U, S, V = torch.svd(W)
+            condition_number = S[0] / S[-1] if S[-1] > 0 else float('inf')
+            
+            print(f"权重形状: {W.shape}")
+            print(f"矩阵秩: {rank}/{full_rank} ({rank_ratio:.1%})")
+            print(f"条件数: {condition_number:.2e}")
+            print(f"信息保留能力: {'高' if rank_ratio > 0.8 else '中' if rank_ratio > 0.3 else '低'}")
+            
+            # 测试不同输入的信息保留
+            y_random = torch.randn(100, W.shape[1])
+            z = y_random @ W.T
+            input_var = y_random.var().item()
+            output_var = z.var().item()
+            print(f"输入方差: {input_var:.3f}")
+            print(f"输出方差: {output_var:.3f}")
+            print(f"方差保留率: {output_var/input_var:.1%}")
+            print("-" * 50)
+
+        # 不同情况的对比
+        print("=== 不同权重矩阵的信息传递能力 ===")
+
+        # 1. 全零矩阵（最坏情况）
+        W_zero = torch.zeros(10, 5)
+        analyze_layer(W_zero)
+
+        # 2. 低秩矩阵（部分信息丢失）
+        W_low_rank = torch.randn(10, 5)
+        W_low_rank[:, 2:] = 0  # 只保留前2列有效
+        analyze_layer(W_low_rank)
+
+        # 3. 满秩随机矩阵（正常情况）
+        W_full_rank = torch.randn(10, 5)
+        analyze_layer(W_full_rank)
+
+        # 4. 单位矩阵（理想情况）
+        W_identity = torch.eye(5, 5)
+        analyze_layer(W_identity)
+        ```
+
+        输出结果会显示：
+
+        * 全零矩阵：秩=0，方差保留率=0%
+
+        * 低秩矩阵：秩<满秩，部分信息丢失
+
+        * 满秩矩阵：秩=满秩，信息基本保留
+
+* [v] `tensor.detach()`
 
 * [ ] `ax.set_title()`
 
@@ -1939,8 +2239,6 @@ resources:
     目前看到
 
     > 2d Max pooling
-
-* [v] `torch.cat`
 
 * [O] Difference Between "Hidden" and "Output" in PyTorch LSTM
 
@@ -2387,9 +2685,9 @@ resources:
 
 ### tasks
 
-* [v] `dma_map_page()`
+* [asso] `devm_kobject_create_and_add()`
 
-* [v] dma 在 cpu 中，还是在 device 中？
+* [asso] `devm_device_add_groups()`
 
 * [ ] 调研 MMU（内存管理单元）如何设计？
 
@@ -3983,9 +4281,7 @@ resources:
 
     比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
 
-    feedback:
-
-    * [asso] `env`命令
+* [asso] `env`命令
 
 * [ ] `wc`是否可以统计汉字的字节数，单词数？
 
