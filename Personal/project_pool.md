@@ -751,7 +751,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [ ] sync bash
+* [v] sync bash
 
 * [ ] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
 

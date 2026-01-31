@@ -2,6 +2,121 @@
 
 ## cache
 
+* 为什么 python argparse 中，可以写成 type=int？类型也能赋值给一个变量吗？
+
+    这是一个很好的问题！这涉及到 Python 中的一些核心概念：函数是一等公民（first-class functions）和 类型也是对象。
+
+    1. 类型在 Python 中也是对象
+
+        在 Python 中，类型（类）本身也是对象，可以赋值给变量、作为参数传递、作为返回值返回。
+
+        ```python
+        # int 本身就是一个类型对象
+        print(type(int))      # <class 'type'>
+        print(int)            # <class 'int'>
+
+        # 可以赋值给变量
+        MyInt = int
+        x = MyInt("42")
+        print(x, type(x))     # 42 <class 'int'>
+        ```
+
+    2. argparse 中 type 参数的工作原理
+
+        argparse 的 add_argument() 方法的 type 参数期望一个可调用对象（callable），这个对象接收一个字符串参数并返回转换后的值。
+
+        ```python
+        import argparse
+
+        parser = argparse.ArgumentParser()
+        # int 在这里被当作一个函数使用
+        parser.add_argument('--number', type=int)
+
+        args = parser.parse_args(['--number', '42'])
+        print(args.number)    # 42，已经是整数类型
+        ```
+
+        实际上，int("42") 会返回整数 42，所以 int 完美符合要求。
+
+    3. 自定义类型转换函数
+
+        你也可以使用自定义函数：
+
+        ```python
+        import argparse
+
+        def percentage(string):
+            """将 '50%' 转换为 0.5"""
+            if string.endswith('%'):
+                return float(string[:-1]) / 100
+            return float(string)
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--discount', type=percentage)
+
+        args = parser.parse_args(['--discount', '30%'])
+        print(args.discount)  # 0.3
+        ```
+
+    4. 实际使用中的等价形式
+
+        以下三种写法是等价的：
+
+        ```python
+        # 1. 直接使用内置类型
+        parser.add_argument('--num', type=int)
+
+        # 2. 使用 lambda 函数
+        parser.add_argument('--num', type=lambda x: int(x))
+
+        # 3. 使用自定义函数
+        def to_int(x):
+            return int(x)
+
+        parser.add_argument('--num', type=to_int)
+        ```
+
+    5. 关键点总结
+
+        | 概念 | 解释 |
+        | - | - |
+        | 类型是对象 | int, str, float 等都是 type 类的实例 |
+        | 类型是可调用的 | int("42") 会调用 int 的构造函数 |
+        | type 参数要求 | 需要的是一个接收字符串并返回任意值的可调用对象 |
+        | 灵活性 | 可以是内置类型、自定义函数、lambda 表达式、类等 |
+
+    6. 更复杂的例子
+
+        ```python
+        import argparse
+
+        # 使用类作为 type（因为类是可调用的）
+        class Range:
+            def __init__(self, string):
+                start, end = map(int, string.split('-'))
+                self.start = start
+                self.end = end
+            
+            def __repr__(self):
+                return f"Range({self.start}-{self.end})"
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--range', type=Range)
+
+        args = parser.parse_args(['--range', '10-20'])
+        print(args.range)  # Range(10-20)
+        ```
+
+    所以，type=int 能工作是因为：
+
+    * int 是一个类型对象
+
+    * int 是可调用的（int("42") 返回整数 42）
+
+    * argparse 只需要一个接收字符串并返回值的可调用对象
+
+    这正是 Python 动态性和灵活性的体现！
+
 * re 的其他常用模式
 
     1. re.IGNORECASE / re.I - 忽略大小写

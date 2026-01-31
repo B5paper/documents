@@ -2,6 +2,162 @@
 
 ## cache
 
+* git clone -b <remote_branch> --single-branch <remote_repo> .
+把远程仓库的 branch clone 到本地时，我希望 local branch 的名字不要和 <remote_branch> 相同，怎么办？
+
+    你可以在 git clone 命令后使用额外的 git checkout 命令来指定本地分支名，具体步骤如下：
+
+    方法一：克隆后重命名（最简单）
+
+    ```bash
+    # 克隆远程分支到本地（默认本地分支名与远程相同）
+    git clone -b <remote_branch> --single-branch <remote_repo> .
+
+    # 切换到新位置后重命名分支
+    git checkout -b <local_branch_name>
+    ```
+
+    方法二：克隆时直接指定本地分支名（Git 2.30+）
+
+    ```bash
+    # Git 2.30 及以上版本支持 --branch 参数配合 checkout
+    git clone <remote_repo> .
+    cd <repo_dir>
+    git checkout -b <local_branch_name> origin/<remote_branch>
+    ```
+
+    方法三：先克隆后创建分支（推荐）
+
+    ```bash
+    # 1. 克隆仓库（不带分支参数）
+    git clone <remote_repo> .
+
+    # 2. 切换到指定远程分支并创建本地分支
+    git checkout -b <local_branch_name> origin/<remote_branch>
+    ```
+
+    方法四：使用 fetch 方式
+
+    ```bash
+    # 初始化仓库
+    git init
+    git remote add origin <remote_repo>
+
+    # 只获取特定分支
+    git fetch origin <remote_branch>
+
+    # 基于远程分支创建本地分支（名称不同）
+    git checkout -b <local_branch_name> FETCH_HEAD
+    ```
+
+    完整示例
+
+    假设你想将远程的 develop 分支克隆到本地的 my-dev 分支：
+
+    ```bash
+    # 方法一示例
+    git clone -b develop --single-branch https://github.com/user/repo.git .
+    git checkout -b my-dev
+
+    # 方法三示例
+    git clone https://github.com/user/repo.git .
+    cd repo
+    git checkout -b my-dev origin/develop
+    ```
+
+    最推荐使用方法三，因为它最清晰明了，而且适用于所有 Git 版本。
+
+* 简述 git fetch 的用法
+
+    Git Fetch 用于从远程仓库下载最新的提交、分支和标签到本地，但不自动合并到当前工作分支。主要用法如下：
+
+    基本用法
+
+    ```bash
+    # 1. 下载所有远程仓库的最新内容（默认远程名称为 origin）
+    git fetch
+
+    # 2. 下载特定远程仓库的内容
+    git fetch origin
+
+    # 3. 下载所有远程仓库（包括多个远程的情况）
+    git fetch --all
+    ```
+
+    常用参数和选项
+
+    ```bash
+    # 仅下载特定分支
+    git fetch origin main
+
+    # 下载所有标签
+    git fetch --tags
+
+    # 清理已删除的远程分支的本地引用
+    git fetch --prune
+
+    # 查看fetch的详细信息
+    git fetch --verbose
+
+    # 下载并立即合并到当前分支（相当于 git pull）
+    git fetch && git merge
+    ```
+
+    实际应用场景
+
+    1. 查看远程更新
+
+        ```bash
+        # 先获取远程更新
+        git fetch
+
+        # 查看远程分支与本地分支的差异
+        git log origin/main..main  # 查看远程比本地多了哪些提交
+        git log main..origin/main  # 查看本地比远程多了哪些提交
+
+        # 查看所有远程分支
+        git branch -r
+        ```
+
+    2. 创建本地分支跟踪远程分支
+
+        ```bash
+        # 获取远程分支列表后
+        git checkout -b new-branch origin/feature-branch
+        ```
+
+    3. 安全更新工作流
+
+        ```bash
+        # 推荐的安全更新流程
+        git fetch origin          # 先获取远程更新
+        git diff origin/main     # 查看差异
+        git merge origin/main    # 确认后合并
+        # 或
+        git rebase origin/main   # 变基到远程最新
+        ```
+
+    与 git pull 的区别
+
+    | 命令 | 作用 | 是否修改工作区 |
+    | - | - | - |
+    | git fetch | 仅下载远程数据到本地仓库 | 否 |
+    | git pull | fetch + merge（自动合并） | 是 |
+
+    实际例子
+
+    ```bash
+    # 场景：查看团队成员的新分支
+    git fetch
+    git branch -r  # 显示所有远程分支
+    git checkout -b team-feature origin/team-feature
+
+    # 场景：清理已删除的远程分支
+    git fetch --prune
+    ```
+
+    总结：git fetch 是一个安全的命令，它让你先查看远程变化，再决定是否合并，避免了 git pull 可能导致的意外合并冲突。
+
 * 简述 git blame 的用法
 
     Git Blame 用于查看文件中每一行的最后修改信息（谁修改的、何时修改、提交ID）。以下是主要用法：
