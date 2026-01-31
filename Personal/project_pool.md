@@ -489,8 +489,6 @@
 
 这里主要是暂时难以分类的任务。
 
-* [v] 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
-
 * [ ] c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
 
 * [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
@@ -751,9 +749,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [v] sync bash
-
-* [ ] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
+* [v] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
 
     典型场景
     若需要选 10 个 units，但可用 50 个，重复概率约 13%
@@ -784,8 +780,6 @@ english words 由 { } reorg: english words 进化而来。
         或许应该实现 qa file 可以相同，但是 unit 需要保证不同？
 
 * [ ] 如果观察的是一个连续量，比如随机摘一株草，观察其长度，那么是否无法写出样本点？是否必须以变量 + 区间 + 叉乘的形式写出样本空间？
-
-* [v] 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
 
 * [ ] 调研 qa parse 与 rewrite 时是否保留了 unit 的`[dep]`信息
 
@@ -975,9 +969,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `setline(line_num, new_line)`
-
-* [ ] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
+* [v] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
 
 * [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
 
@@ -1418,7 +1410,7 @@ english words 由 { } reorg: english words 进化而来。
     pci_enable_device(vpdev);
     ```
 
-* [ ] 调研`/var/log/syslog`, `/var/log/messages`
+* [v] 调研`/var/log/syslog`, `/var/log/messages`
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
@@ -1902,19 +1894,13 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] matlab `toml.read()` 可以将 toml 中的 key 变成 struct name
-
-    类似 python 的 easy dict 的效果。调研一下。
-
-    感觉这种用法比较奇怪，因为在执行前不知道有哪些 fields，执行后才知道。比较适合一行一行执行，做实验，不适合正式开发场景。
-
-* [ ] matlab `fileread()`
+* [v] matlab `fileread()`
 
 * [ ] matlab `fread()`, `fopen()`, `fclose()`
 
-* [ ] matlab `which()`
+* [v] matlab `which()`
 
-* [new] matlab `jsondecode()`
+* [ ] matlab `jsondecode()`
 
 * [ ] 调研 matlab 命令
 
@@ -2026,77 +2012,73 @@ resources:
 
 * [v] `optim.SGD([train_param], lr=1e-3)`
 
-    feedback:
+* [ ] `torch.allclose`
 
-    * [ ] `torch.allclose`
+* [ ] 关键阈值：秩（Rank）
 
-    * [ ] 关键阈值：秩（Rank）
+    矩阵的秩决定了信息保留的程度：
 
-        矩阵的秩决定了信息保留的程度：
+    ```py
+    import torch
+    import numpy as np
 
-        ```py
-        import torch
-        import numpy as np
+    def analyze_layer(W):
+        """分析权重矩阵的信息传递能力"""
+        rank = torch.linalg.matrix_rank(W).item()
+        full_rank = min(W.shape)
+        rank_ratio = rank / full_rank
+        
+        # 奇异值分解（SVD）
+        U, S, V = torch.svd(W)
+        condition_number = S[0] / S[-1] if S[-1] > 0 else float('inf')
+        
+        print(f"权重形状: {W.shape}")
+        print(f"矩阵秩: {rank}/{full_rank} ({rank_ratio:.1%})")
+        print(f"条件数: {condition_number:.2e}")
+        print(f"信息保留能力: {'高' if rank_ratio > 0.8 else '中' if rank_ratio > 0.3 else '低'}")
+        
+        # 测试不同输入的信息保留
+        y_random = torch.randn(100, W.shape[1])
+        z = y_random @ W.T
+        input_var = y_random.var().item()
+        output_var = z.var().item()
+        print(f"输入方差: {input_var:.3f}")
+        print(f"输出方差: {output_var:.3f}")
+        print(f"方差保留率: {output_var/input_var:.1%}")
+        print("-" * 50)
 
-        def analyze_layer(W):
-            """分析权重矩阵的信息传递能力"""
-            rank = torch.linalg.matrix_rank(W).item()
-            full_rank = min(W.shape)
-            rank_ratio = rank / full_rank
-            
-            # 奇异值分解（SVD）
-            U, S, V = torch.svd(W)
-            condition_number = S[0] / S[-1] if S[-1] > 0 else float('inf')
-            
-            print(f"权重形状: {W.shape}")
-            print(f"矩阵秩: {rank}/{full_rank} ({rank_ratio:.1%})")
-            print(f"条件数: {condition_number:.2e}")
-            print(f"信息保留能力: {'高' if rank_ratio > 0.8 else '中' if rank_ratio > 0.3 else '低'}")
-            
-            # 测试不同输入的信息保留
-            y_random = torch.randn(100, W.shape[1])
-            z = y_random @ W.T
-            input_var = y_random.var().item()
-            output_var = z.var().item()
-            print(f"输入方差: {input_var:.3f}")
-            print(f"输出方差: {output_var:.3f}")
-            print(f"方差保留率: {output_var/input_var:.1%}")
-            print("-" * 50)
+    # 不同情况的对比
+    print("=== 不同权重矩阵的信息传递能力 ===")
 
-        # 不同情况的对比
-        print("=== 不同权重矩阵的信息传递能力 ===")
+    # 1. 全零矩阵（最坏情况）
+    W_zero = torch.zeros(10, 5)
+    analyze_layer(W_zero)
 
-        # 1. 全零矩阵（最坏情况）
-        W_zero = torch.zeros(10, 5)
-        analyze_layer(W_zero)
+    # 2. 低秩矩阵（部分信息丢失）
+    W_low_rank = torch.randn(10, 5)
+    W_low_rank[:, 2:] = 0  # 只保留前2列有效
+    analyze_layer(W_low_rank)
 
-        # 2. 低秩矩阵（部分信息丢失）
-        W_low_rank = torch.randn(10, 5)
-        W_low_rank[:, 2:] = 0  # 只保留前2列有效
-        analyze_layer(W_low_rank)
+    # 3. 满秩随机矩阵（正常情况）
+    W_full_rank = torch.randn(10, 5)
+    analyze_layer(W_full_rank)
 
-        # 3. 满秩随机矩阵（正常情况）
-        W_full_rank = torch.randn(10, 5)
-        analyze_layer(W_full_rank)
+    # 4. 单位矩阵（理想情况）
+    W_identity = torch.eye(5, 5)
+    analyze_layer(W_identity)
+    ```
 
-        # 4. 单位矩阵（理想情况）
-        W_identity = torch.eye(5, 5)
-        analyze_layer(W_identity)
-        ```
+    输出结果会显示：
 
-        输出结果会显示：
+    * 全零矩阵：秩=0，方差保留率=0%
 
-        * 全零矩阵：秩=0，方差保留率=0%
+    * 低秩矩阵：秩<满秩，部分信息丢失
 
-        * 低秩矩阵：秩<满秩，部分信息丢失
+    * 满秩矩阵：秩=满秩，信息基本保留
 
-        * 满秩矩阵：秩=满秩，信息基本保留
+* [v] `ax.set_title()`
 
-* [v] `tensor.detach()`
-
-* [ ] `ax.set_title()`
-
-* [ ] `plt.tight_layout()`
+* [v] `plt.tight_layout()`
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
@@ -2158,8 +2140,6 @@ resources:
 
 * [ ] `sg_dma_address()`, `sg_dma_len()`
 
-* [v] `dma_sync_single_for_device()`, `dma_sync_single_for_cpu()`
-
 * [ ] `mlock()`
 
 * [ ] `get_user_pages()`
@@ -2199,6 +2179,16 @@ resources:
     可以看看下面的 explore 部分。
 
 * [asso] 调研 python 中 list 的方法`.sort()`，如果 list 中存储的对象是 datetime 对象或者其他类型的元素，sort() 方法会如何处理？如果是混合类型的元素，又会如何处理？
+
+* [ ] `nn.ReLU(True)`
+
+    true 是什么意思？
+
+* [ ] `nn.Unflatten()`
+
+* [ ] `nn.ConvTranspose2d()`
+
+* [ ] `nn.BatchNorm2d()`
 
 ## Machine Learning
 
@@ -2251,16 +2241,6 @@ resources:
     <https://www.geeksforgeeks.org/deep-learning/generative-adversarial-networks-gans-in-pytorch/>
 
     feedback:
-
-    * [ ] `nn.ReLU(True)`
-
-        true 是什么意思？
-
-    * [ ] `nn.Unflatten()`
-
-    * [ ] `nn.ConvTranspose2d()`
-
-    * [ ] `nn.BatchNorm2d()`
 
     * [ ] 调研：根据反卷积性质，如果我们正向卷积一个矩阵，可以构造出一个 W，那么如何使用这个 W 的转置 W^T 还原输出 X？
 
@@ -2689,7 +2669,7 @@ resources:
 
 * [asso] `devm_device_add_groups()`
 
-* [ ] 调研 MMU（内存管理单元）如何设计？
+* [v] 调研 MMU（内存管理单元）如何设计？
 
 * [ ] `__iomem`有实际用处吗？还是只是个修饰？
 
@@ -4283,7 +4263,7 @@ resources:
 
 * [asso] `env`命令
 
-* [ ] `wc`是否可以统计汉字的字节数，单词数？
+* [v] `wc`是否可以统计汉字的字节数，单词数？
 
 * [ ] `who`, `w`, `last`这三个命令是什么意思？
 
@@ -4296,7 +4276,7 @@ resources:
     grep -A 2 -E "keyword1|keyword2" file.txt
     ```
 
-* [ ] 调研`grep -w`
+* [v] 调研`grep -w`
 
     > -w 选项匹配整个单词
 
@@ -6766,6 +6746,28 @@ resources:
 
 ### cache
 
+* [new] `GIT_SSH`, `SSH_AUTH_SOCK`
+
+* [new] `GIT_SSH_COMMAND`
+
+    ```bash
+    # 使用 -v 参数查看详细的 SSH 连接过程
+    GIT_SSH_COMMAND="ssh -v" git clone web@ali:hd-dot-web
+    ```
+
+    ```bash
+    # 查看 Git 的 SSH 配置
+    git config --global --get core.sshCommand
+
+    # 如果需要，显式设置 SSH 命令
+    git config --global core.sshCommand "ssh -o IdentitiesOnly=yes -i ~/.ssh/id_rsa"
+    ```
+
+    ```bash
+    # 方法3：指定 SSH 密钥
+    GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa" git clone web@ali:hd-dot-web
+    ```
+
 * [new] `git submodule update --remote --recursive`
 
 * [new] `git config --local`
@@ -7094,52 +7096,6 @@ resources:
 
     * 《数据库系统概论》（An Introduction to Database Systems）作者：C.J. Date。这是另一本经典的数据库教材，内容详尽。
     如果你是中文读者，《数据库原理及应用》作者：王珊、萨师煊，这本教材结合了理论与实践，通过实例讲解数据库的设计和开发过程。
-
-* 东芝新小黑 A3
-
-    东芝（现为铠侠KIOXIA）推出的 Canvio Basics A3 系列便携式移动硬盘。
-
-    通常提供 1TB、2TB、4TB 等主流容量版本。
-
-    接口类型：USB 3.2 Gen 1（通常标记为 USB 3.0/3.1 Gen 1），向下兼容 USB 2.0。
-
-    接口形状：标准 USB Type-A 接口。硬盘端为Micro-B接口（即常见的梯形口）。
-
-    读写速度：由于内部是机械硬盘（HDD），速度受限于硬盘转速。典型速度约为：
-
-        读取速度：约 100 - 140 MB/s
-
-        写入速度：约 100 - 130 MB/s
-
-        注意：此为大文件连续读写的理想值，实际传输大量小文件或通过USB 2.0接口连接时会慢很多。
-
-    硬盘类型：2.5英寸 SATA 机械硬盘（HDD）。
-
-    转速：通常是 5400 RPM
-
-    缓存：一般为 8MB - 128MB
-
-    随盘软件：通常不附带备份或加密软件，主打纯硬件、高性价比。
-
-    供电方式：完全通过 USB接口总线供电，无需外接电源适配器。
-
-* 西部数据 WD My Passport (WDBS4B0020)
-
-    在存储基础上增加了数据安全和软件功能。
-
-    WD自产5400转 SATA HDD，可能采用SMR技术（对顺序写入有影响）。
-
-    自带256位AES硬件加密和WD Backup/Discovery软件。
-
-    西部数据的部分My Passport型号（尤其是大容量版本）可能使用 SMR 叠瓦式磁记录技术。在长时间、持续写入大量数据（如备份数百GB文件） 时，速度可能会出现明显下降。而东芝A3通常采用 CMR 传统磁记录（具体需查询型号批次），持续写入更稳定。
-
-    硬件加密：内置 256位AES硬件加密。首次使用时，通过WD Security软件设置密码。此后，不输入密码无法访问硬盘数据，即使硬盘被取出装入其他电脑。这对数据安全非常重要。
-
-    备份软件：自带WD Backup软件，可设置定期自动备份到硬盘。
-
-    工具箱软件：提供硬盘状态监控、诊断等功能。
-
-    在相同容量下，东芝A3的价格通常比WD My Passport低 10%-20%。你为My Passport多付的钱，主要购买了其加密功能和软件套件。
 
 * c++ 版本的 opencl 入门
 

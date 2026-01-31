@@ -2,6 +2,147 @@
 
 ## cache
 
+* matplotlib plt.plot() 如何画多条线
+
+    在Matplotlib中使用plt.plot()绘制多条线有几种常用方法：
+
+    方法1：多次调用plot()
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    x = np.linspace(0, 10, 100)
+    y1 = np.sin(x)
+    y2 = np.cos(x)
+    y3 = np.sin(x + np.pi/4)
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(x, y1, label='sin(x)')
+    plt.plot(x, y2, label='cos(x)')
+    plt.plot(x, y3, label='sin(x+π/4)')
+
+    plt.title('Multiple Lines Example')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    ```
+
+    方法2：一次传入多组数据
+
+    ```python
+    # 方式A：传入多个数组对
+    plt.plot(x, y1, x, y2, x, y3)
+
+    # 方式B：传入一个x，多个y（y可以是二维数组）
+    y_combined = np.column_stack([y1, y2, y3])
+    plt.plot(x, y_combined)  # 自动分配不同颜色
+    ```
+
+    方法3：使用循环
+
+    ```python
+    lines_data = [
+        (y1, 'sin(x)', 'b-'),
+        (y2, 'cos(x)', 'r--'),
+        (y3, 'sin(x+π/4)', 'g:')
+    ]
+
+    plt.figure(figsize=(8, 5))
+    for y_data, label, style in lines_data:
+        plt.plot(x, y_data, style, label=label)
+
+    plt.legend()
+    plt.show()
+    ```
+
+    完整示例：自定义样式
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # 生成数据
+    x = np.linspace(0, 10, 100)
+    y1 = np.sin(x)
+    y2 = np.cos(x)
+
+    plt.figure(figsize=(10, 6))
+
+    # 绘制多条线，每条线自定义样式
+    plt.plot(x, y1, 
+             color='blue',        # 颜色
+             linewidth=2,         # 线宽
+             linestyle='-',       # 线型：实线
+             marker='o',          # 标记点
+             markersize=4,        # 标记大小
+             markerfacecolor='red', # 标记填充色
+             markevery=10,        # 每10个点标记一次
+             label='sin(x)')
+
+    plt.plot(x, y2,
+             color='green',
+             linewidth=1.5,
+             linestyle='--',      # 虚线
+             alpha=0.7,           # 透明度
+             label='cos(x)')
+
+    # 添加第三条线，使用简写格式
+    plt.plot(x, np.sin(x/2), 'r-.s', label='sin(x/2)', markersize=5)
+
+    # 图表装饰
+    plt.title('Multiple Lines with Custom Styling', fontsize=14)
+    plt.xlabel('X Axis', fontsize=12)
+    plt.ylabel('Y Axis', fontsize=12)
+    plt.legend(fontsize=10, loc='upper right')
+    plt.grid(True, linestyle=':', alpha=0.6)
+    plt.axhline(y=0, color='black', linewidth=0.5)  # 添加x轴参考线
+    plt.axvline(x=5, color='gray', linewidth=0.5, linestyle='--')  # 添加y轴参考线
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    常用线型、颜色、标记简写
+
+    ```python
+    # 颜色简写
+    # 'b': 蓝色, 'g': 绿色, 'r': 红色, 'c': 青色
+    # 'm': 品红, 'y': 黄色, 'k': 黑色, 'w': 白色
+
+    # 线型简写
+    # '-': 实线, '--': 虚线, '-.': 点划线, ':': 点线
+
+    # 标记简写
+    # '.': 点, 'o': 圆圈, 's': 正方形, '^': 三角形
+    # 'D': 菱形, '*': 星号, '+': 加号, 'x': x形
+
+    # 组合使用
+    plt.plot(x, y1, 'ro--')    # 红色圆圈虚线
+    plt.plot(x, y2, 'bs-')     # 蓝色正方形实线
+    plt.plot(x, y3, 'g^:')     # 绿色三角形点线
+    ```
+
+    注意事项
+
+    * 自动颜色循环：Matplotlib会自动为每条线分配不同颜色
+
+    * 显示图例：使用plt.legend()显示标签
+
+    * 保持比例：使用plt.tight_layout()自动调整布局
+
+    * 保存图片：使用plt.savefig('figure.png', dpi=300)保存高分辨率图像
+
+    选择哪种方法取决于：
+
+    * 数据组织形式
+
+    * 是否需要不同的样式控制
+
+    * 代码的可读性和可维护性
+
 * legend() 如何指定图例的顺序？
 
     指定图例顺序的 4 种方法

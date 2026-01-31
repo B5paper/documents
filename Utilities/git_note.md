@@ -2,6 +2,114 @@
 
 ## cache
 
+* git clone 可以 -v 显示详细信息吗？我赢得有个 debug 模式，verbose 模式
+
+    是的，git clone -v 或 git clone --verbose 确实会显示详细的克隆过程信息，但主要是关于底层数据传输（如 fetch）的详细信息。
+
+    不过需要注意的是，这个“详细信息”和你可能在其他命令中遇到的“详细输出”模式不太一样。让我详细解释一下：
+
+    git clone 的详细输出选项
+
+    1. -v / --verbose（常用）
+
+        ```bash
+        git clone -v https://github.com/username/repo.git
+        ```
+
+        或者
+
+        ```bash
+        git clone --verbose https://github.com/username/repo.git
+        ```
+
+        这会显示：
+
+        * 更多的进度信息
+
+        * 底层 git 命令的执行详情（如 fetch 的详细过程）
+
+        * 传输对象的统计信息
+
+        * 但不会显示每一步的调试信息
+
+    2. 更详细的输出：组合使用 progress 参数
+
+        ```bash
+        git clone --progress https://github.com/username/repo.git
+        ```
+
+        或者
+
+        ```bash
+        GIT_CURL_VERBOSE=1 git clone https://github.com/username/repo.git
+        ```
+
+        （这会显示 HTTP 请求的详细信息）
+
+    3. 真正详细的调试模式
+
+        如果你想看到极其详细的调试信息，可以使用：
+
+        ```bash
+        # 设置 GIT_TRACE 环境变量
+        GIT_TRACE=1 git clone https://github.com/username/repo.git
+
+        # 更详细的跟踪
+        GIT_TRACE=2 git clone https://github.com/username/repo.git
+
+        # 查看所有 git 内部操作
+        GIT_TRACE_PERFORMANCE=1 git clone https://github.com/username/repo.git
+
+        # 查看网络相关详细信息
+        GIT_TRACE_PACKET=1 git clone https://github.com/username/repo.git
+        ```
+
+    4. 示例对比
+
+        普通克隆：
+
+        ```bash
+        git clone https://github.com/user/repo.git
+        # 输出：简单的进度条
+
+        Cloning into 'repo'...
+        remote: Enumerating objects: 100, done.
+        remote: Counting objects: 100% (100/100), done.
+        remote: Compressing objects: 100% (80/80), done.
+        remote: Total 100 (delta 20), reused 100 (delta 20), pack-reused 0
+        Receiving objects: 100% (100/100), 1.23 MiB | 1.45 MiB/s, done.
+        Resolving deltas: 100% (20/20), done.
+        ```
+
+        详细模式：
+
+        ```bash
+        git clone -v https://github.com/user/repo.git
+        # 会显示更多 fetch 操作的内部细节
+        ```
+
+        调试模式：
+
+        ```bash
+        GIT_TRACE=1 git clone https://github.com/user/repo.git
+        # 输出：每一步 git 调用的命令和参数
+        # 15:10:23.123456 git.c:344               trace: built-in: git clone -v https://...
+        # 15:10:23.234567 run-command.c:640       trace: run_command: git remote add origin https://...
+        # ...等等
+        ```
+
+    总结建议
+
+    * 基础详细信息：用 git clone -v
+
+    * 查看进度详情：用 git clone --progress
+
+    * 真正调试/排错：用环境变量如 GIT_TRACE=1
+
+    * 查看网络问题：用 GIT_CURL_VERBOSE=1 或 GIT_TRACE_PACKET=1
+
+    所以你的记忆是对的，-v 就是 verbose 模式，只是它显示的信息类型可能和你想的略有不同。如果需要更底层的信息，使用 GIT_TRACE 环境变量。
+
 * git clone -b <remote_branch> --single-branch <remote_repo> .
 把远程仓库的 branch clone 到本地时，我希望 local branch 的名字不要和 <remote_branch> 相同，怎么办？
 
