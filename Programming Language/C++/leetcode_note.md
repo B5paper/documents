@@ -12506,6 +12506,102 @@ nums 严格 递增
 
 ## 链表
 
+### 二进制链表转整数
+
+给你一个单链表的引用结点 head。链表中每个结点的值不是 0 就是 1。已知此链表是一个整数数字的二进制表示形式。
+
+请你返回该链表所表示数字的 十进制值 。
+
+最高位 在链表的头部。
+
+ 
+
+示例 1：
+
+输入：head = [1,0,1]
+输出：5
+解释：二进制数 (101) 转化为十进制数 (5)
+
+示例 2：
+
+输入：head = [0]
+输出：0
+
+ 
+
+提示：
+
+    链表不为空。
+    链表的结点总数不超过 30。
+    每个结点的值不是 0 就是 1。
+
+1. 不反转链表，直接计算
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        int getDecimalValue(ListNode* head) {
+            int n = 0;
+            ListNode *p = head;
+            while (p)
+            {
+                n <<= 1;
+                n += p->val;  // 也可以写成 n |= p->val
+                p = p->next;
+            }
+            return n;
+        }
+    };
+    ```
+
+1. 先翻转链表再计算
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        int getDecimalValue(ListNode* head) {
+            ListNode *p = head;
+            ListNode *pre = nullptr;
+            ListNode *nex;
+            while (p) {
+                nex = p->next;
+                p->next = pre;
+                pre = p;
+                p = nex;
+            }
+            p = pre;
+            int val = 0;
+            size_t radix = 1;
+            while (p) {
+                val += radix * p->val;
+                radix *= 2;
+                p = p->next;
+            }
+            return val;
+        }
+    };
+    ```
+
 ### 从尾到头打印链表
 
 > 输入一个链表的头结点，按照 从尾到头 的顺序返回节点的值。
@@ -13126,7 +13222,7 @@ nums 严格 递增
 
     注意题目并没有说每个节点的`val`各不相同，因此必须使用`ListNode*`作为哈希表存储的值。
 
-2. 快慢指针。
+2. 快慢指针
 
     ```c++
     /**
@@ -13197,7 +13293,121 @@ nums 严格 递增
     };
     ```
 
+    后来又写的（2026.02.01），同样遇到了`list = [1, 2]`的问题，此时 p1 == p2，跳过了 while 循环，又都不为空，所以直接返回 true 了，这显然不对。对于避免初始状态两个指针相同的问题，可以让两个指针的位置错位：
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode(int x) : val(x), next(NULL) {}
+     * };
+     */
+    class Solution {
+    public:
+        bool hasCycle(ListNode *head) {
+            if (!head || !head->next) {  // 因为后面用到了 head->next，所以这里要保证 head 有效。
+                return false;
+            }
+            ListNode *p1 = head, *p2 = head->next;
+            while (p1 && p2 && p2->next && p1 != p2) {  // 由于循环中出现了 p1->next，所以这里保证 p1 有效。同样地，出现了 p2->next->next，所以要保证 p2->next 有效，而保证 p2->next 有效，就要先保证 p2 有效。最后是核心判断，两个指针是否相遇
+                p1 = p1->next;
+                p2 = p2->next->next;
+            }
+            // 退出循环有两种情况，一种是相遇，一种是存在指针无效（走到链表末尾）。这里是判断指针无效的几种情况：
+            if (p1 == nullptr || p2 == nullptr || p2->next == nullptr) {
+                return false;
+            }
+            // 相遇，说明存在环
+            return true;
+        }
+    };
+    ```
+
+    前面的 do while 方法也挺不错。官方提供的另一种理解：
+
+    > 我们可以假想一个在 head 之前的虚拟节点，慢指针从虚拟节点移动一步到达 head，快指针从虚拟节点移动两步到达 head.next，这样我们就可以使用 while 循环了。
+
+    如果不用 do while，可以把判断放到 while 循环体的下面（网友的想法）：
+
+    ```java
+    class Solution {
+        public boolean hasCycle(ListNode head) {
+            ListNode slow = head;
+            ListNode fast = head;
+            while (fast != null && fast.next != null) {
+                slow = slow.next;
+                fast = fast.next.next;
+                if (slow == fast) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+    ```
+
+1. 使用反转链表（网友的想法）（会破坏链表结构）
+
+    如果有环那么head指向非空，设不在环上的节点长度为a，在环上的为b，最后时间是2a+b，但因为循环的时候少了判断，所以用时反而比快慢指针少
+
+    ```cpp
+    class Solution:
+        def hasCycle(self, head: Optional[ListNode]) -> bool:
+            pre = None
+            h = head
+            while h:
+                temp = h.next
+                h.next = pre
+                pre = h
+                h = temp
+            if head and head.next != None:
+                return True
+            else:
+                return False
+    ```
+
+    有环的话反转到最后一定会经过头节点，实际上只要反转的过程中二次遇到头节点就可以判断有环了
+
+1. 还可以修改已经访问过的链表里的值（会修改链表数据），比如设置为 MAX_INT, 10^5 + 1 等，如果遇到之前自己设置的值，那么说明有环
+
 ### 反转链表
+
+LCR 024. 反转链表
+
+给定单链表的头节点 head ，请反转链表，并返回反转后的链表的头节点。
+
+ 
+
+示例 1：
+
+输入：head = [1,2,3,4,5]
+输出：[5,4,3,2,1]
+
+示例 2：
+
+输入：head = [1,2]
+输出：[2,1]
+
+示例 3：
+
+输入：head = []
+输出：[]
+
+ 
+
+提示：
+
+    链表中节点的数目范围是 [0, 5000]
+    -5000 <= Node.val <= 5000
+
+ 
+
+进阶：链表可以选用迭代或递归方式完成反转。你能否用两种方法解决这道题？
+
+
+解答：
 
 1. 迭代法
 
@@ -13243,6 +13453,8 @@ nums 严格 递增
     其实这是一个后序遍历。因为为了得到当前链表反转后的头节点，我们必须知道子链表反转后的头节点。我们只要把子链表反转后的头节点返回就可以了。
 
     我们定义递归函数返回的是反转链表后的头节点。其实这个返回值对我们反转当前节点没有什么帮助。
+
+    官方解：
 
     ```c++
     /**
@@ -13307,11 +13519,95 @@ nums 严格 递增
 
     根据第二种方法，我们将`i+1`节点的`next`指向`i`，然后再处理子节点。这其实相当于先处理当前节点，再处理子节点，是先序遍历。由于没用到父节点，只用到了子节点，所以不需要额外处理。但是写代码的时候遇到一个问题：我们修改`i+1`节点的`next`时，破坏了下一级的递归结构，即`i+1`不再和`i+2`连接，我们没办法再走到`i+2`了。或许我们可以额外记录一些`i+2`节点的信息，硬写递归也是可以写的。可是这样的话，就破坏递归的优美性了，而且效率不高。
 
+    后来又写的：
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode *tail_node = nullptr;
+        ListNode *recur(ListNode *head) {
+            if (head == nullptr)
+                return nullptr;
+            ListNode *nex = recur(head->next);
+            if (nex == nullptr) {
+                tail_node = head;
+                return head;
+            }
+            nex->next = head;
+            head->next = nullptr;
+            return head;
+        }
+
+        ListNode* reverseList(ListNode* head) {
+            recur(head);
+            return tail_node;
+        }
+    };
+    ```
+
+    别人的一个答案：
+
+    ```java
+    class Solution {
+    public ListNode reverseList(ListNode head) {
+    if (head == null) {
+    return null;
+    }
+    return reverse(head);
+    }
+
+    public ListNode reverse(ListNode cur) {
+        if (cur.next == null) {
+            return cur;
+        }
+        ListNode last = reverse(cur.next);
+        cur.next.next = cur;
+        cur.next = null;
+        return last;
+    }
+
+    }
+    ```
+
+1. 可以用栈
+
+1. 头插法
+
+    ```java
+    class Solution {
+        public ListNode reverseList(ListNode head) {
+            if(head == null){
+                return head;
+            }
+            ListNode headNode = new ListNode(-1, null);
+            ListNode p = head;
+            ListNode r = null;
+            while(p != null){
+                r = p.next;
+                p.next = headNode.next;
+                headNode.next = p;
+                p = r; 
+            }
+            return headNode.next;
+        }
+    }
+    ```
+
 ### 合并两个排序的链表（合并两个有序链表）
 
 代码：
 
-1. 递归
+1. 官方解法一：递归
 
     ```c++
     /**
@@ -13343,7 +13639,9 @@ nums 严格 递增
     };
     ```
 
-1. 直接使用指针
+    这个和归并排序有点像。那么归并排序是否也有类似下面的迭代的方法？如果不能用迭代，为什么？
+
+1. 修改原链表的指针
 
     在创建一个新链表时，通常要用到`dummy_head`。
 
@@ -13378,8 +13676,58 @@ nums 严格 递增
                 }
                 p = p->next;
             }
+            // 退出循环时有两种情况，一种是 p1 存在，p2 为空；另一种是 p1 为空，p2 存在，如果按照这个逻辑写，为：
+            // if (p1 && !p2) { xxxx }
+            // if (!p1 && p2) { xxxx }
+            // 或者更复杂的嵌套形式：
+            // if (p1) { if (p2) xxx; else xxx; } else { if (p2) xxx; else xxx; }
+            // 实际上两个 if 是互斥的，可以简化成下面的写法，非常巧妙：
             if (p1) p->next = p1;
             if (p2) p->next = p2;
+            return dummy_head->next;
+        }
+    };
+    ```
+
+1. 创建一个新链表
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+            ListNode *dummy_head = new ListNode;
+            ListNode *p = dummy_head;
+            ListNode *p1 = list1, *p2 = list2;
+            while (p1 && p2) {
+                if (p1->val <= p2->val) {
+                    p->next = new ListNode(p1->val);
+                    p1 = p1->next;
+                } else {
+                    p->next = new ListNode(p2->val);
+                    p2 = p2->next;
+                }
+                p = p->next;
+            }
+            while (p1) {
+                p->next = new ListNode(p1->val);
+                p1 = p1->next;
+                p = p->next;
+            }
+            while (p2) {
+                p->next = new ListNode(p2->val);
+                p2 = p2->next;
+                p = p->next;
+            }
             return dummy_head->next;
         }
     };
@@ -13407,7 +13755,21 @@ B:     b1 → b2 → b3
 
 代码：
 
-1. 双指针法。
+1. 双指针互换链表法
+
+    * 看到“交点”，想到“相同路程”
+    
+    * 我们构造一种让 A 和 B 走相同路程的方式
+    
+    * 假如在相交前只属于链表 A 的长度为 a，只属于链表 B 的长度为 b，相交后 A 和 B 共同的长度为 c。由此可表示 A 的长度为 m = a + c，B 的长度为 n = b + c。
+
+    * 我们注意到如果 m 再加一个 b，n 再加一个 a，则 m' 就等于 n' 了，这时候就会出现相交。
+
+    * 那么我们让指针 pa 走完 A 后，再从 B 的的头开始走 b，让指针 pb 走完 B 后的，再从 A 的开头开始走 a，那么就一定相交了。
+
+    * 最巧妙的是如果没有交点，那么 pa 和 pb 会同时走到两个链表的结尾，且都是 nullptr
+
+    * 因为链表是离散的，我们考虑的情况是连续的，所以边界条件比较难处理。如果一个链表为空怎么办？如果一个链表
 
     让两个指针同时从头开始走，指针走到头部后从另一个链表的开头再开始走，直到两指针相遇。相遇处即为公共结点处。
 
@@ -13428,12 +13790,35 @@ B:     b1 → b2 → b3
             ListNode *pnode_a = headA, *pnode_b = headB;
             while (pnode_a != pnode_b)
             {
-                if (pnode_a) pnode_a = pnode_a->next;  // 为什么要写成 if else 的形式？
-                else pnode_a = headB;
-                if (pnode_b) pnode_b = pnode_b->next;
-                else pnode_b = headA;
+                if (pnode_a)
+                    pnode_a = pnode_a->next;  // 为什么要写成 if else 的形式？
+                else
+                    pnode_a = headB;
+                if (pnode_b)
+                    pnode_b = pnode_b->next;
+                else
+                    pnode_b = headA;
             }
             return pnode_a;
+        }
+    };
+    ```
+
+    官方题解：
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+            if (headA == nullptr || headB == nullptr) {
+                return nullptr;
+            }
+            ListNode *pA = headA, *pB = headB;
+            while (pA != pB) {
+                pA = pA == nullptr ? headB : pA->next;
+                pB = pB == nullptr ? headA : pB->next;
+            }
+            return pA;
         }
     };
     ```
@@ -13494,6 +13879,53 @@ B:     b1 → b2 → b3
 
     这种方法的细节非常多，远没有看起来那么简单。
 
+    后来又写的（2026.02.01）:
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode(int x) : val(x), next(NULL) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+            ListNode *node_1 = headA, *node_2 = headB;
+            while (node_1 != nullptr && node_2 != nullptr) {
+                node_1 = node_1->next;
+                node_2 = node_2->next;
+            }
+            if (node_1 == nullptr) {
+                node_1 = headB;
+            }
+            if (node_2 == nullptr) {
+                node_2 = headA;
+            }
+            while (node_1 != nullptr && node_2 != nullptr) {
+                node_1 = node_1->next;
+                node_2 = node_2->next;
+            }
+            if (node_1 == nullptr) {
+                node_1 = headB;
+            }
+            if (node_2 == nullptr) {
+                node_2 = headA;
+            }
+            while (node_1 != nullptr && node_2 != nullptr) {
+                if (node_1 == node_2) {
+                    return node_1;
+                }
+                node_1 = node_1->next;
+                node_2 = node_2->next;
+            }
+            return nullptr;
+        }
+    };
+    ```
+
 1. 哈希表
 
     先记录`A`的所有节点，然后在`B`中找有没有相同的。
@@ -13529,6 +13961,68 @@ B:     b1 → b2 → b3
     ```
 
     这个想法非常直观，也非常容易想出来。
+
+1. 双指针链表长度差法
+
+    先遍历两个链表，得到长度，计算差值，然后再让长的链表的指针走完这个差值。后续如果两个指针相遇，那么要么到了交点，要么同时到链表结尾 nullptr。
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode(int x) : val(x), next(NULL) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+            ListNode *node_1 = headA;
+            size_t len_A = 0;
+            while (node_1 != nullptr) {
+                len_A++;
+                node_1 = node_1->next;
+            }
+            ListNode *node_2 = headB;
+            size_t len_B = 0;
+            while (node_2 != nullptr) {
+                len_B++;
+                node_2 = node_2->next;
+            }
+            node_1 = headA;
+            node_2 = headB;
+            if (len_A >= len_B) {
+                size_t len_diff = len_A - len_B;
+                for (size_t i = 0; i < len_diff; ++i) {
+                    node_1 = node_1->next;
+                }
+                while (node_1 != nullptr && node_2 != nullptr) {
+                    if (node_1 == node_2) {  // 边界情况：注意这里要先判断再往下走。如果先往下走再判断会出错。为什么？
+                        return node_1;
+                    }
+                    node_1 = node_1->next;
+                    node_2 = node_2->next;
+                }
+                return nullptr;
+            } else {
+                size_t len_diff = len_B - len_A;
+                for (size_t i = 0; i < len_diff; ++i) {
+                    node_2 = node_2->next;
+                }
+                while (node_1 != nullptr && node_2 != nullptr) {
+                    if (node_1 == node_2) {
+                        return node_1;
+                    }
+                    node_1 = node_1->next;
+                    node_2 = node_2->next;
+                }
+                return nullptr;
+            }
+            return nullptr;
+        }
+    };
+    ```
 
 ### 移除链表元素
 
@@ -13740,6 +14234,37 @@ B:     b1 → b2 → b3
     ```
 
     前面的写法耦合了“删除”和“前进”两个操作在`while`里，现在这个写法把两个概念分离，并分别用两个`while`处理，我觉得比原来要好一些。
+
+    后来又写的（2026.02.01）:
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode* deleteDuplicates(ListNode* head) {
+            ListNode *p = head;
+            while (p) {  // 因为在进入内部 while 前，要保证 p 有效，所以这里加了条件
+                // 主线想法是：如果发现下一个节点的值和当前节点相同，那么让当前节点“吸收”下一个节点
+                while (p->next && p->next->val == p->val) {  // 循环体中遇到了 p->next->next，所以要保证 p->next 有效，因为 p 一直在吸收下一个节点，在进循环体之间，p 就必须是有效的
+                    p->next = p->next->next;
+                }
+                p = p->next;
+            }
+            return head;
+        }
+    };
+    ```
+
+    对比一下双 while 写法和前面的 while 中嵌套 if 的写法，各有什么特点？这两种方法分别适合什么情况？
 
 1. 递归
 
@@ -14151,6 +14676,61 @@ public:
 
     现在困难点在找`[a, a]`模式或`[a, b, a]`模式上，因为要保证从`p`节点开始至少有两个，或三个节点存在，分类讨论的情况比较多。不清楚这个问题该怎么解决。
 
+    * 2026/02/01/00:
+
+        让我们更线性一点，首先把链表看作连续的，p1 按原速向前走，p2 按 p1 的两倍速向前走，p2 走到终点，那么 p1 在路径的一半。
+
+        p1 具体在哪？有两种情况，一种是偶数，假设链表为`[1, 2, 3, 4]`，p1 向前走一步，到 2，p2 向前走 2 步，到 3；p1 向前走一步，到 3，p2 向前走 2 步到 NULL。
+
+        另一种情况是奇数个元素，假设链表为`[1, 2, 3]`，p1 向前走一步，到 2，p2 向前走 2 步，到 3，此时 p2->next 为 NULL，无法进行下一轮循环（`p2 = p2->next->next`）了。
+
+        我们观察到，元素数是偶数时，p2 在 NULL，p1 在中间靠右的位置；元素是奇数时，p2 在最后一个元素，p1 在正中间的位置。我们可以根据退出循环时 p2 的值来判断这个链表是奇数还是偶数。
+
+        以后如果遇到情况复杂的，可以使用这种举例推断找规律的方法。
+
+        由此我们可以写出代码：
+
+        ```cpp
+        /**
+         * Definition for singly-linked list.
+         * struct ListNode {
+         *     int val;
+         *     ListNode *next;
+         *     ListNode() : val(0), next(nullptr) {}
+         *     ListNode(int x) : val(x), next(nullptr) {}
+         *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+         * };
+         */
+        class Solution {
+        public:
+            bool isPalindrome(ListNode* head) {
+                ListNode *p1 = head, *p2 = head;
+                ListNode *pre = nullptr, *nex;
+                while (p2 && p2->next) {
+                    p2 = p2->next->next;
+                    nex = p1->next;
+                    p1->next = pre;
+                    pre = p1;
+                    p1 = nex;
+                }
+                if (!p2) {
+                    p2 = p1;
+                } else {
+                    p2 = p1->next;
+                }
+                p1 = pre;
+                while (p1 && p2) {
+                    if (p1->val != p2->val) {
+                        return false;
+                    }
+                    p1 = p1->next;
+                    p2 = p2->next;
+                }
+                return true;
+            }
+        };
+        ```
+
 1. 将链表中的值复制到数组中，然后用双指针
 
     （线性思考）
@@ -14186,7 +14766,49 @@ public:
     };
     ```
 
-    cpu 击败 36%, mem 击败 20%
+    这种方式`push_back()`需要动态分配内存，效率略低，先拿到链表长度，再一次性分配内存，效率比较高：
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        bool isPalindrome(ListNode* head) {
+            size_t len = 0;
+            ListNode *p = head;
+            while (p) {
+                len++;
+                p = p->next;
+            }
+            size_t half_len = len / 2;
+            p = head;
+            vector<int> v(half_len);
+            for (int i = 0; i < half_len; ++i) {
+                v[i] = p->val;
+                p = p->next;
+            }
+            if (len % 2 != 0 && p) {
+                p = p->next;
+            }
+            size_t pos = v.size() - 1;
+            while (p) {
+                if (p->val != v[pos])
+                    return false;
+                p = p->next;
+                --pos;
+            }
+            return true;
+        }
+    };
+    ```
 
 1. 递归（官方给的答案）
 
@@ -34634,7 +35256,7 @@ public:
 
     这道题虽然简单，但是其中的双重循环，已经有复杂循环的雏形了。如果把内层的`while()`改成`if`，然后借用外层`while`进行循环，又该怎么写呢？
 
-#### 链表的中间节点
+#### 链表的中间节点（链表的中间结点）
 
 给定一个头结点为 head 的非空单链表，返回链表的中间结点。
 
@@ -34686,6 +35308,27 @@ ans.val = 3, ans.next.val = 4, ans.next.next.val = 5, 以及 ans.next.next.next 
     1. 为什么不从`dummy_head`开始？如果从`dummy_head`开始，会出现什么问题？
 
     1. 如何保证`fast`停下的时候，`slow`会停在中点，或中点的下一个节点，而不是中点的上一个节点？
+
+        * 2026/02/01/00: 这个问题目前已解决，可以参考回文链表那道题。
+
+1. 网友给的递归解法
+
+    ```js
+    var middleNode = function (head) {
+        let p = head
+
+        function isMiddleNode(head) {
+            if (head === null) return null
+
+            const node = isMiddleNode(head.next)
+            if (node) return node
+            if (head === p || head.next === p) return p
+            p = p.next
+        }
+
+        return isMiddleNode(head)
+    };
+    ```
 
 #### 删除链表的倒数第 N 个结点
 
@@ -40596,7 +41239,121 @@ public:
 
 其它的也没怎么看懂，感觉有点难。
 
+## 哈希表
 
+### 设计哈希集合
+
+不使用任何内建的哈希表库设计一个哈希集合（HashSet）。
+
+实现 MyHashSet 类：
+
+    void add(key) 向哈希集合中插入值 key 。
+    bool contains(key) 返回哈希集合中是否存在这个值 key 。
+    void remove(key) 将给定值 key 从哈希集合中删除。如果哈希集合中没有这个值，什么也不做。
+
+ 
+
+示例：
+
+输入：
+["MyHashSet", "add", "add", "contains", "contains", "add", "contains", "remove", "contains"]
+[[], [1], [2], [1], [3], [2], [2], [2], [2]]
+输出：
+[null, null, null, true, false, null, true, null, false]
+
+解释：
+MyHashSet myHashSet = new MyHashSet();
+myHashSet.add(1);      // set = [1]
+myHashSet.add(2);      // set = [1, 2]
+myHashSet.contains(1); // 返回 True
+myHashSet.contains(3); // 返回 False ，（未找到）
+myHashSet.add(2);      // set = [1, 2]
+myHashSet.contains(2); // 返回 True
+myHashSet.remove(2);   // set = [1]
+myHashSet.contains(2); // 返回 False ，（已移除）
+
+ 
+
+提示：
+
+    0 <= key <= 106
+    最多调用 104 次 add、remove 和 contains
+
+代码：
+
+1. 使用取模作为哈希函数，外加链表
+
+    ```cpp
+    class MyHashSet {
+    public:
+        struct ListNode {
+            int val = -1;
+            ListNode *next = nullptr;
+        };
+
+        int num_buckets = 50;
+        vector<ListNode*> buckets;
+
+        MyHashSet() {
+            buckets.resize(num_buckets);
+            for (int i = 0; i < num_buckets; ++i) {
+                buckets[i] = new ListNode;  // dummy node
+                buckets[i]->next = nullptr;
+            }
+        }
+        
+        void add(int key) {
+            int hash_idx = key % num_buckets;
+            ListNode *inner_list = buckets[hash_idx];
+            ListNode *p = inner_list;
+            while (p->next) {
+                if (p->next->val == key) {
+                    return;
+                }
+                p = p->next;
+            }
+            ListNode *new_node = new ListNode;
+            new_node->val = key;
+            p->next = new_node;
+        }
+        
+        void remove(int key) {
+            int hash_idx = key % num_buckets;
+            ListNode *inner_list = buckets[hash_idx];
+            ListNode *p = inner_list->next;
+            ListNode *pre = inner_list;
+            while (p) {
+                if (p->val == key) {
+                    pre->next = p->next;
+                    return;
+                }
+                pre = p;
+                p = p->next;
+            }
+        }
+        
+        bool contains(int key) {
+            int hash_idx = key % num_buckets;
+            ListNode *inner_list = buckets[hash_idx];
+            ListNode *p = inner_list;
+            while (p) {
+                if (p->val == key) {
+                    return true;
+                }
+                p = p->next;
+            }
+            return false;
+        }
+    };
+
+    /**
+     * Your MyHashSet object will be instantiated and called as such:
+     * MyHashSet* obj = new MyHashSet();
+     * obj->add(key);
+     * obj->remove(key);
+     * bool param_3 = obj->contains(key);
+     */
+    ```
 
 ## 各种算法中需要注意的细节
 

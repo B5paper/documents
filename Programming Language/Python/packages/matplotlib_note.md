@@ -2,6 +2,406 @@
 
 ## cache
 
+* matplotlib `ax.set_title()`
+
+    ax.set_title() 是 Matplotlib 中用于设置当前 Axes 对象标题的方法。
+
+    函数原型
+
+    ```python
+    Axes.set_title(label, fontdict=None, loc='center', pad=None, **kwargs)
+    ```
+
+    参数说明
+
+    * label: 字符串，标题文本
+
+    * fontdict: 字典，控制字体属性（如 {'fontsize': 12, 'fontweight': 'bold'}）
+
+    * loc: 标题对齐方式，'center'、'left'、'right'
+
+    * pad: 标题与图表顶部的间距（像素）
+
+    * `**kwargs`: 其他文本属性（如 color, fontsize, fontstyle 等）
+
+    主要作用
+
+    为当前绘图区域（Axes）添加或修改标题，增强图表的可读性。
+
+    基本用法示例
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # 创建数据
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+
+    # 创建图形和坐标轴
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # 绘图
+    ax.plot(x, y, 'b-', linewidth=2)
+
+    # 设置标题（最基本用法）
+    ax.set_title('正弦函数图像')
+
+    # 设置标题并指定位置
+    ax.set_title('正弦函数图像', loc='left', fontsize=14)
+
+    # 使用fontdict参数
+    font_dict = {'fontsize': 16, 'fontweight': 'bold', 'color': 'darkred'}
+    ax.set_title('正弦函数图像', fontdict=font_dict, pad=20)
+
+    # 使用**kwargs参数
+    ax.set_title('正弦函数图像', 
+                 fontsize=18, 
+                 color='blue', 
+                 fontstyle='italic',
+                 pad=15)
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    实用技巧
+
+    1. 多行标题
+
+        ```python
+        ax.set_title('正弦函数图像\n(频率: 1Hz, 振幅: 1)', fontsize=12)
+        ```
+
+    2. 数学表达式
+
+        ```python
+        ax.set_title(r'$\sin(x)$ 函数图像', fontsize=14)
+        ```
+
+    3. 动态标题
+
+        ```python
+        mean_value = np.mean(y)
+        ax.set_title(f'正弦函数图像\n平均值: {mean_value:.3f}')
+        ```
+
+    4. 批量设置
+
+        ```python
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        titles = ['图1', '图2', '图3', '图4']
+
+        for ax, title in zip(axes.flat, titles):
+            ax.plot(x, y)
+            ax.set_title(title, fontsize=12)
+        ```
+
+    5. 完整示例
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # 创建数据
+        x = np.linspace(0, 2*np.pi, 100)
+        y1 = np.sin(x)
+        y2 = np.cos(x)
+
+        # 创建子图
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # 第一个子图
+        ax1.plot(x, y1, 'r-', linewidth=2)
+        ax1.set_title('正弦函数', 
+                      fontsize=16,
+                      fontweight='bold',
+                      color='darkred',
+                      pad=15)
+
+        # 第二个子图
+        ax2.plot(x, y2, 'b--', linewidth=2)
+        ax2.set_title('余弦函数\n$y = \cos(x)$',
+                      loc='right',
+                      fontsize=16,
+                      style='italic',
+                      color='navy')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    注意事项
+
+    * set_title() 会覆盖原有的标题
+
+    * 使用 pad 参数可以避免标题与其他元素重叠
+
+    * 通过 ax.get_title() 可以获取当前标题
+
+    * 标题位置默认居中，可根据需要调整对齐方式
+
+    这个方法简单但实用，是提高图表可读性的重要工具。
+
+* plt.tight_layout()
+
+    plt.tight_layout() 是 Matplotlib 中用于自动调整子图布局的函数，可以解决子图之间或子图与图形边缘的重叠问题。
+
+    函数原型
+
+    ```python
+    matplotlib.pyplot.tight_layout(pad=1.08, h_pad=None, w_pad=None, rect=None)
+    ```
+
+    参数说明
+
+    * pad: 图形边缘与子图之间的间距（默认 1.08）
+
+    * h_pad: 子图之间的垂直间距（默认 pad）
+
+    * w_pad: 子图之间的水平间距（默认 pad）
+
+    * rect: 在图形中保留的空间矩形区域 [left, bottom, right, top]（范围 0-1）
+
+    主要作用
+
+    * 自动调整子图参数，避免元素重叠
+
+    * 优化子图间距，使图表更美观
+
+    * 适应不同尺寸的图形
+
+    * 简化手动调整布局的工作
+
+    基本用法
+
+    1. 基础示例
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # 创建子图（没有tight_layout）
+        fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+        for i, ax in enumerate(axes.flat):
+            ax.plot(np.random.randn(50))
+            ax.set_title(f'子图 {i+1}')
+            ax.set_xlabel('X轴')
+            ax.set_ylabel('Y轴')
+
+        plt.tight_layout()  # 自动调整布局
+        plt.show()
+        ```
+
+    2. 调整间距参数
+
+        ```python
+        fig, axes = plt.subplots(2, 3, figsize=(10, 6))
+
+        for i, ax in enumerate(axes.flat):
+            ax.plot(np.arange(10), np.random.randn(10))
+            ax.set_title(f'Title {i+1}\nWith Two Lines')
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+
+        # 调整间距
+        plt.tight_layout(pad=2.0, h_pad=3.0, w_pad=2.0)
+        plt.show()
+        ```
+
+    3. 使用rect参数
+
+        ```python
+        fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+
+        for ax in axes.flat:
+            ax.plot(np.random.randn(20))
+
+        # 保留顶部和底部更多空间
+        plt.tight_layout(rect=[0, 0.1, 1, 0.95])
+        plt.suptitle('总标题', y=0.98)  # 添加总标题
+        plt.show()
+        ```
+
+    实际应用场景
+
+    场景1：长标签避免重叠
+
+    ```python
+    fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+    data = np.random.randn(100, 4)
+
+    for i, ax in enumerate(axes.flat):
+        ax.hist(data[:, i], bins=20, edgecolor='black')
+        ax.set_title(f'这是第{i+1}个子图的长标题示例')
+        ax.set_xlabel('这是一个非常长的X轴标签需要被完整显示')
+        ax.set_ylabel('Y轴标签')
+
+    plt.tight_layout()  # 自动调整避免重叠
+    plt.show()
+    ```
+
+    场景2：复杂子图布局
+
+    ```python
+    # 创建非对称子图
+    fig = plt.figure(figsize=(10, 8))
+
+    # 创建不同大小的子图
+    ax1 = plt.subplot(2, 2, 1)
+    ax2 = plt.subplot(2, 2, 2)
+    ax3 = plt.subplot(2, 1, 2)  # 跨两列
+
+    # 绘制内容
+    ax1.plot(np.random.randn(50))
+    ax1.set_title('小图1')
+    ax2.scatter(np.random.randn(50), np.random.randn(50))
+    ax2.set_title('小图2')
+    ax3.plot(np.random.randn(100))
+    ax3.set_title('大图')
+
+    plt.tight_layout()  # 自动处理不同大小的子图
+    plt.show()
+    ```
+
+    场景3：包含颜色条的情况
+
+    ```python
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+    # 第一个子图：散点图
+    scatter = axes[0].scatter(np.random.randn(100), 
+                             np.random.randn(100), 
+                             c=np.random.randn(100),
+                             cmap='viridis')
+    axes[0].set_title('散点图')
+    plt.colorbar(scatter, ax=axes[0])
+
+    # 第二个子图：等高线图
+    x = np.linspace(-3, 3, 100)
+    y = np.linspace(-3, 3, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(X) * np.cos(Y)
+    contour = axes[1].contourf(X, Y, Z, 20, cmap='RdYlBu')
+    axes[1].set_title('等高线图')
+    plt.colorbar(contour, ax=axes[1])
+
+    plt.tight_layout()  # 调整布局，避免颜色条重叠
+    plt.show()
+    ```
+
+    与subplots_adjust的对比
+
+    ```python
+    fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+
+    # 方法1：使用tight_layout（自动）
+    plt.tight_layout()
+
+    # 方法2：手动调整（繁琐）
+    # plt.subplots_adjust(left=0.1, right=0.9, 
+    #                    bottom=0.1, top=0.9,
+    #                    wspace=0.4, hspace=0.4)
+    ```
+
+    注意事项和限制
+
+    1. 调用时机
+
+        ```python
+        # 正确：在所有绘图操作之后调用
+        fig, ax = plt.subplots()
+        ax.plot([1, 2, 3])
+        ax.set_title('标题')
+        ax.set_xlabel('X轴')
+        plt.tight_layout()  # 最后调用
+        plt.savefig('plot.png')  # 保存时tight_layout生效
+
+        # 错误：在tight_layout之后添加元素可能导致重叠
+        plt.tight_layout()
+        ax.text(0.5, 0.5, '额外文本')  # 可能超出边界
+        ```
+
+    2. 不适用的情况
+
+        ```python
+        # 1. 使用gridspec的复杂布局
+        import matplotlib.gridspec as gridspec
+
+        fig = plt.figure(figsize=(10, 8))
+        gs = gridspec.GridSpec(3, 3, figure=fig)
+        ax1 = fig.add_subplot(gs[0, :])
+        ax2 = fig.add_subplot(gs[1, :-1])
+        ax3 = fig.add_subplot(gs[1:, -1])
+        ax4 = fig.add_subplot(gs[-1, 0])
+        ax5 = fig.add_subplot(gs[-1, -2])
+
+        # 对于复杂GridSpec布局，tight_layout可能不适用
+        # 可以使用constrained_layout替代
+        fig.set_constrained_layout(True)
+        ```
+
+    3. 替代方案
+
+        ```python
+        # 方法1：constrained_layout（Matplotlib 2.2+）
+        fig, axes = plt.subplots(2, 2, figsize=(8, 6), 
+                                constrained_layout=True)
+
+        # 方法2：手动调整（更精确控制）
+        fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+        # ... 绘图操作 ...
+        plt.subplots_adjust(left=0.1, bottom=0.1, 
+                           right=0.95, top=0.95,
+                           wspace=0.3, hspace=0.3)
+        ```
+
+    实用技巧
+
+    1. 与suptitle配合使用
+
+        ```python
+        fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+        for ax in axes.flat:
+            ax.plot(np.random.randn(20))
+
+        plt.tight_layout(rect=[0, 0, 1, 0.95])  # 为总标题留空间
+        plt.suptitle('四个子图的总标题', fontsize=16)
+        plt.show()
+        ```
+
+    2. 保存图形前调用
+
+        ```python
+        fig, ax = plt.subplots()
+        # ... 绘图代码 ...
+
+        plt.tight_layout()
+        plt.savefig('output.png', dpi=300, bbox_inches='tight')
+        ```
+
+    3. 调试模式
+
+        ```python
+        import matplotlib
+        matplotlib.rcParams['figure.autolayout'] = True  # 自动应用tight_layout
+
+        # 或者检查当前设置
+        print(matplotlib.rcParams['figure.autolayout'])
+        ```
+
+    总结
+
+    plt.tight_layout() 是一个简单但强大的工具，可以：
+
+    * 自动解决大部分布局问题
+
+    * 节省手动调整的时间
+
+    * 提高图形的可读性和美观度
+
+    但在复杂布局中，可能需要结合使用 constrained_layout 或手动调整参数来获得最佳效果。
+
 * matplotlib plt.plot() 如何画多条线
 
     在Matplotlib中使用plt.plot()绘制多条线有几种常用方法：

@@ -2,6 +2,157 @@
 
 ## cache
 
+* 简述 pip install -e . 的作用
+
+    pip install -e . 是 Python 包管理中的一个常用命令，用于以"开发模式"安装当前目录的包。
+
+    作用
+
+    * 开发模式安装：将包以"可编辑"（editable）模式安装到 Python 环境中
+
+    * 实时更新：对源代码的修改会立即生效，无需重新安装
+
+    * 符号链接：创建一个指向源码目录的链接，而不是复制文件
+
+    * 保持可导入：让包可以像普通安装的包一样被导入和使用
+
+    工作原理
+
+    当执行 pip install -e . 时：
+
+    * 查找 setup.py 或 pyproject.toml：在当前目录查找包的配置文件
+
+    * 创建链接：在 Python 的 site-packages 目录中创建一个 .egg-link 文件
+
+    * 记录路径：该链接文件指向源代码的实际位置
+
+    用法示例
+
+    项目结构：
+
+    ```text
+    my_package/
+    ├── setup.py          # 或 pyproject.toml
+    ├── my_package/
+    │   ├── __init__.py
+    │   └── module.py
+    └── README.md
+    ```
+
+    执行命令：
+
+    ```bash
+    # 进入项目根目录
+    cd my_package
+
+    # 以开发模式安装
+    pip install -e .
+    ```
+
+    主要优势
+
+    * 即时反馈：
+
+        ```python
+        # 修改源代码后立即生效
+        # 修改 my_package/module.py 后
+        import my_package
+        # 无需重新安装，直接使用新代码
+        ```
+
+    * 保留开发结构：
+
+        ```bash
+        # 安装后，包文件仍在原位置
+        # 可以继续使用版本控制（git）
+        # 方便调试和测试
+        ```
+
+    * 支持依赖安装：
+
+        ```python
+        # setup.py 中的依赖会被安装
+        # 例如：
+        # install_requires=['numpy', 'pandas']
+        ```
+
+    setup.py 示例
+
+    ```python
+    from setuptools import setup, find_packages
+
+    setup(
+        name="my_package",
+        version="0.1.0",
+        packages=find_packages(),
+        install_requires=[
+            "numpy>=1.20.0",
+            "pandas>=1.3.0",
+        ],
+    )
+    ```
+
+    pyproject.toml 示例
+
+    ```toml
+    [build-system]
+    requires = ["setuptools>=61.0"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "my_package"
+    version = "0.1.0"
+    dependencies = [
+        "numpy>=1.20.0",
+        "pandas>=1.3.0",
+    ]
+    ```
+
+    应用场景
+
+    * 包开发：在开发 Python 包时使用
+
+    * 团队协作：共享开发环境配置
+
+    * 测试和调试：快速迭代和测试代码修改
+
+    * 本地依赖：在多个相关项目间共享本地包
+
+    检查安装状态
+
+    ```bash
+    # 查看已安装的包
+    pip list
+
+    # 开发模式包会显示路径
+    # my-package      0.1.0    /path/to/my_package
+
+    # 或使用 pip show
+    pip show my-package
+    # Location: /path/to/my_package
+    ```
+
+    注意事项
+
+    * 需要 setup.py 或 pyproject.toml：没有这些文件会失败
+
+    * 不同 pip 版本：新版 pip 优先使用 pyproject.toml
+
+    * 虚拟环境：建议在虚拟环境中使用
+
+    * 卸载：使用 pip uninstall package_name 卸载
+
+    与普通安装的区别
+
+    | 特性 | pip install . | pip install -e . |
+    | - | - | - |
+    | 安装方式 | 复制文件 | 创建链接 |
+    | 修改源代码 | 需要重新安装 | 立即生效 |
+    | 文件位置 | site-packages | 原目录 |
+    | 开发便利性 | 低 | 高 |
+
+    这个命令是 Python 包开发的标准工作流程，极大提高了开发效率。
+
 * 为什么 python argparse 中，可以写成 type=int？类型也能赋值给一个变量吗？
 
     这是一个很好的问题！这涉及到 Python 中的一些核心概念：函数是一等公民（first-class functions）和 类型也是对象。

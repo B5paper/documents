@@ -6,6 +6,443 @@
 
 ## cache
 
+* `grep -w`
+
+    grep -w 是 grep 命令的一个常用选项，用于精确匹配整个单词，而不是单词的一部分。
+
+    主要功能
+
+    * 只匹配完整的单词，不会匹配单词中的一部分
+
+    * 匹配的单词必须被非单词字符包围或位于行首/行尾
+
+    * 非单词字符包括：空格、标点、特殊符号等
+
+    基本语法
+
+    ```bash
+    grep -w "pattern" filename
+    ```
+
+    示例说明
+
+    示例文件 (file.txt)
+
+    ```text
+    apple
+    pineapple
+    apples
+    an apple a day
+    apple123
+    apple-pie
+    ```
+
+    使用示例
+
+    ```bash
+    # 1. 只匹配完整的 "apple"
+    grep -w "apple" file.txt
+    ```
+
+    输出：
+
+    ```text
+    apple
+    an apple a day
+    ```
+
+    解释：只匹配独立的单词 "apple"，不匹配 "pineapple"、"apples" 等包含 "apple" 的单词
+
+    **对比不带 -w 的情况**
+
+    ```bash
+    # 不指定 -w 会匹配所有包含 "apple" 的字符串
+    grep "apple" file.txt
+    ```
+
+    输出：
+
+    ```text
+    apple
+    pineapple
+    apples
+    an apple a day
+    apple123
+    apple-pie
+    ```
+
+    更多实用例子
+
+    ```bash
+    # 在日志中查找特定错误代码（精确匹配）
+    grep -w "ERROR" logfile.txt
+
+    # 统计文件中某个单词出现的次数
+    grep -w "success" file.txt | wc -l
+
+    # 查找包含特定单词的行，忽略大小写
+    grep -iw "error" file.txt
+
+    # 在多个文件中查找
+    grep -w "TODO" *.py
+    ```
+
+    常见组合选项
+
+    * -i + -w: 忽略大小写并精确匹配单词
+
+        ```bash
+        grep -iw "error" file.txt  # 匹配 Error, ERROR, error 等
+        ```
+
+    * -n + -w: 显示匹配行的行号
+
+        ```bash
+        grep -nw "pattern" file.txt
+        ```
+
+    * -v + -w: 反向匹配（不包含指定单词的行）
+
+        ```bash
+        grep -vw "debug" file.txt
+        ```
+
+    注意事项
+
+    * 下划线 (_) 被视为单词字符的一部分
+
+    * 数字和字母的组合被视为单词
+
+    * 连字符（-）在单词中间时，整个连字符字符串可能被视为一个单词
+
+    简单来说，grep -w 相当于在模式两边自动加上了单词边界 \b 锚点，类似于正则表达式中的 \bpattern\b。
+
+* linux 中`wc`是否可以统计汉字的字节数，单词数？
+
+    是的，wc 命令可以统计包含汉字的文件，但理解其统计方式很重要：
+
+    1. 基本功能
+
+        ```bash
+        wc 文件名
+        ```
+
+        输出：行数 单词数 字节数 文件名
+
+    2. 统计汉字的相关选项
+
+        字节数统计（-c）
+
+        ```bash
+        wc -c 文件名
+        ```
+
+        * 准确统计文件总字节数
+
+        * 汉字通常占2-4字节（取决于编码）
+
+        字符数统计（-m）
+
+        ```bash
+        wc -m 文件名
+        ```
+
+        * 统计字符数（包括汉字）
+
+        * 一个汉字算作一个字符
+
+        * 注意：需要确保环境设置正确（如LANG=C会影响结果）
+
+        单词数统计（-w）
+
+        ```bash
+        wc -w 文件名
+        ```
+
+        * 以空格、制表符、换行符分隔的"单词"
+
+        * 对于中英文混合文本：
+
+            * 英文单词会被正确统计
+
+            * 连续汉字会被视为一个"单词"
+
+    3. 编码对统计的影响
+
+        UTF-8编码文件示例：
+
+        文件内容："你好 world"
+
+        ```bash
+        $ echo "你好 world" > test.txt
+        $ wc test.txt
+        1  2  12 test.txt
+        # 1行，2个单词，12字节
+
+        $ wc -m test.txt
+        1  8  12 test.txt
+        # 8个字符（2个汉字 + 5个英文字母 + 1个空格）
+        ```
+
+    4. 实用示例
+
+        ```bash
+        # 查看所有统计信息
+        wc filename.txt
+
+        # 只统计字节数
+        wc -c filename.txt
+
+        # 只统计字符数（包括汉字）
+        wc -m filename.txt
+
+        # 只统计单词数
+        wc -w filename.txt
+
+        # 统计行数
+        wc -l filename.txt
+        ```
+
+    5. 注意事项
+
+        * 编码敏感：wc 依赖系统区域设置，建议统一使用UTF-8编码
+
+        * 单词定义：汉字之间没有空格时，多个汉字被计为一个"单词"
+
+        * 组合使用：
+
+            ```bash
+            # 统计中文字符数量（估算）
+            wc -m file.txt | awk '{print $1}'
+            ```
+
+    6. 替代方案
+
+        如果需要更准确的中文分词统计：
+
+        ```bash
+        # 使用中文分词工具配合wc
+        echo "你好世界" | jieba分词 | wc -w
+
+        # 统计纯中文字符数
+        grep -oP '[\p{Han}]' file.txt | wc -l
+        ```
+
+    总的来说，wc 可以统计汉字的字节数和作为整体的"单词数"，但对于中文的语义单词统计不够精确。
+
+    注：
+
+* wc 无法统计汉字的字数
+
+    是的，你说得很对！wc 无法准确统计汉字的字数，原因如下：
+
+    1. wc -w 的问题
+
+        ```bash
+        echo "你好世界今天天气很好" | wc -w
+        # 输出：1
+        ```
+
+        * 所有连续汉字被视为一个"单词"
+
+        * 不符合中文"词"的概念
+
+    2. wc -c 和 wc -m 的局限
+
+        ```bash
+        echo "你好" | wc -m
+        # 输出：3（2个汉字 + 1个换行符）
+        echo "你好" | wc -c
+        # 输出：7（UTF-8下每个汉字3字节 + 1个换行符）
+        ```
+
+        * -m 统计字符数，不是字数（中文里的"词"）
+
+        * -c 统计字节数，更不相关
+
+    3. 为什么 wc 不适合中文
+
+        中文的"词" vs 英文的"word"
+
+        * 英文：单词由空格分隔 → wc -w 有效
+
+        * 中文：词由语义决定，无分隔符 → wc -w 无效
+
+    4. 准确统计中文字数的替代方案
+
+        方案1：使用专业中文分词工具
+
+        ```bash
+        # 安装结巴分词（Python）
+        pip install jieba
+
+        # 统计中文词数
+        echo "你好世界今天天气很好" | python3 -c "
+        import jieba
+        import sys
+        text = sys.stdin.read().strip()
+        words = list(jieba.cut(text))
+        print('词数:', len(words))
+        print('分词结果:', '/'.join(words))"
+        # 输出：你好/世界/今天/天气/很好 (5个词)
+        ```
+
+        方案2：统计汉字字符数
+
+        ```bash
+        # 只统计中文字符个数
+        echo "Hello 你好世界！ABC" | grep -oP '[\p{Han}]' | wc -l
+        # 输出：4（你、好、世、界）
+
+        # 或使用Python
+        echo "你好世界" | python3 -c "
+        import sys
+        text = sys.stdin.read()
+        count = sum('\u4e00' <= ch <= '\u9fff' for ch in text)
+        print(f'汉字数: {count}')"
+        ```
+
+        方案3：使用中文字数统计工具
+
+        ```bash
+        # 安装中文处理工具
+        # pip install zhconv
+
+        # 自定义统计脚本
+        cat << 'EOF' > count_chinese.py
+        import sys
+        import jieba
+
+        text = sys.stdin.read()
+        # 统计汉字字符数
+        char_count = sum('\u4e00' <= ch <= '\u9fff' for ch in text)
+        # 统计中文词数
+        word_count = len(list(jieba.cut(text)))
+
+        print(f'汉字字符数: {char_count}')
+        print(f'中文词数: {word_count}')
+        EOF
+
+        echo "我爱北京天安门" | python3 count_chinese.py
+        ```
+
+    5. 简单实用的临时方案
+
+        纯汉字字符统计
+
+        ```bash
+        # 使用grep（需要支持PCRE）
+        echo "测试文字123abc" | grep -oP '[\x{4e00}-\x{9fff}]' | wc -l
+
+        # 使用sed
+        echo "测试文字" | sed 's/[^[:punct:]]//g' | wc -m
+        ```
+
+        最简方案（仅统计字符）
+
+        ```bash
+        # 使用awk统计非空格字符
+        echo "你好世界" | awk '{print gsub(/[^\s]/,"&")}'
+        # 输出：4
+        ```
+
+    总结
+
+    | 需求 | wc 能力 | 推荐方案 |
+    | - | - | - |
+    | 字节数 | ✅ 准确 | wc -c |
+    | 字符数 | ✅ 基本准确 | wc -m |
+    | 英文单词数 | ✅ 准确 | wc -w |
+    | 中文字符数 | ⚠️ 需处理 | grep + wc |
+    | 中文词数 | ❌ 不准确 | jieba分词 |
+
+    结论：wc 不适合统计中文的字数/词数，需要借助中文分词工具才能准确统计。
+
+* 简述 `/var/log/syslog`, `/var/log/messages` 的作用与区别
+
+    /var/log/syslog 和 /var/log/messages 都是 Linux 系统中用于记录系统日志的重要文件，但它们的用途和内容因发行版而异。
+
+    主要作用
+
+    /var/log/syslog
+
+    * 记录系统范围的日志信息
+
+    * 包含内核、服务、应用程序等多种日志
+
+    * 通常由 rsyslog 或 syslog-ng 管理
+
+    * 是 syslog 服务的默认主日志文件
+
+    /var/log/messages
+
+    * 传统系统日志文件
+
+    * 记录系统启动、运行状态、硬件检测等信息
+
+    * 包含非关键性系统消息
+
+    主要区别
+
+    | 特性 | /var/log/syslog | /var/log/messages |
+    | - | - | - |
+    | 主要使用发行版 | Debian/Ubuntu 等 | RHEL/CentOS/Fedora 等 |
+    | 日志详细程度 | 更详细，包含大多数日志 | 较简略，主要为系统级消息 |
+    | 默认包含设施 | 所有设施（facility） | 通常排除 mail, authpriv, cron 等 |
+    | 优先级 | 通常记录 info 及以上 | 通常记录 warning/err 及以上 |
+
+    配置差异
+
+    在 Debian/Ubuntu 系统中：
+
+    * /var/log/syslog 是主要日志文件
+
+    * 配置通常在 /etc/rsyslog.conf 或 /etc/rsyslog.d/50-default.conf
+
+    在 RHEL/CentOS 系统中：
+
+    * /var/log/messages 是主要系统日志
+
+    * /var/log/syslog 可能不存在或为空
+
+    * 配置在 /etc/rsyslog.conf
+
+    查看建议
+
+    * 快速查看系统问题：
+
+        ```bash
+        # Debian/Ubuntu
+        tail -f /var/log/syslog
+
+        # RHEL/CentOS
+        tail -f /var/log/messages
+        ```
+
+    * 使用统一工具：
+
+        ```bash
+        # 使用 journalctl（systemd 系统）
+        journalctl -f
+
+        # 按优先级过滤
+        grep -i error /var/log/syslog
+        ```
+
+    最佳实践
+
+    * 不要手动删除：使用 logrotate 管理日志轮转
+
+    * 监控关键日志：设置日志监控告警
+
+    * 了解发行版差异：根据系统类型查看相应日志文件
+
+    * 使用集中式日志：生产环境建议使用 ELK、Graylog 等集中日志系统
+
+    在实际运维中，了解所用 Linux 发行版的日志配置习惯非常重要，这能帮助快速定位和解决系统问题。
+
+
+
 * bash 中，有时候需要复制当前窗口中的内容，除了用鼠标，还有什么办法
 
     在 bash 中，除了鼠标操作，还有多种复制终端内容的方法：

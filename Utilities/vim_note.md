@@ -2,6 +2,436 @@
 
 ## cache
 
+* 简述 vim 中 `let [lnum1, lnum2] = [lnum2, lnum1]` 的作用
+
+    在 Vim 脚本中，let [lnum1, lnum2] = [lnum2, lnum1] 的作用是交换两个变量的值。
+
+    详细解释：
+
+    * 赋值解构：[lnum1, lnum2] 是 Vim 脚本的列表解构语法，允许一次性将列表中的值赋给多个变量。
+
+    * 临时列表：[lnum2, lnum1] 会先创建一个包含两个元素的临时列表，第一个元素是 lnum2 的当前值，第二个是 lnum1 的当前值。
+
+    * 同时交换：赋值完成后，lnum1 获得原 lnum2 的值，lnum2 获得原 lnum1 的值，实现无中间变量的交换。
+
+    示例：
+
+    ```vim
+    let lnum1 = 10
+    let lnum2 = 20
+    let [lnum1, lnum2] = [lnum2, lnum1]
+    " 现在 lnum1 == 20, lnum2 == 10
+    ```
+
+    对比传统方法：
+
+    传统交换需要临时变量：
+
+    ```vim
+    let temp = lnum1
+    let lnum1 = lnum2
+    let lnum2 = temp
+    ```
+
+    而 Vim 的这种语法更简洁，且可扩展（如交换更多变量）。
+
+    注意事项：
+
+    * 需要 Vim 7.4.710 或更高版本支持解构赋值。
+
+    * 确保两侧列表长度一致，否则会报错。
+
+* vim `add()`
+
+    在 Vim 脚本中，add(list, item) 函数用于向列表末尾添加一个元素。
+
+    基本语法
+
+    ```vim
+    let new_list = add(list, item)
+    ```
+
+    参数说明
+
+    * list：要添加元素的目标列表
+
+    * item：要添加到列表的元素（可以是任意类型）
+
+    * 返回值：返回添加元素后的列表（会修改原列表）
+
+    用法示例
+
+    1. 添加字符串
+
+        ```vim
+        let fruits = ['apple', 'banana']
+        let fruits = add(fruits, 'orange')
+        " fruits 现在是 ['apple', 'banana', 'orange']
+        ```
+
+    2. 添加数字
+
+        ```vim
+        let numbers = [1, 2, 3]
+        call add(numbers, 4)
+        " numbers 现在是 [1, 2, 3, 4]
+        ```
+
+    3. 添加列表（嵌套）
+
+        ```vim
+        let matrix = [[1, 2], [3, 4]]
+        call add(matrix, [5, 6])
+        " matrix 现在是 [[1, 2], [3, 4], [5, 6]]
+        ```
+
+    4. 实际应用场景
+
+        ```vim
+        " 收集搜索结果
+        let results = []
+        for line in range(1, line('$'))
+            if getline(line) =~ 'TODO'
+                call add(results, line)
+            endif
+        endfor
+
+        " 构建选项列表
+        let options = ['Option 1', 'Option 2']
+        call add(options, 'Option 3')
+        let choice = inputlist(options)
+        ```
+
+    注意事项
+
+    * add() 会直接修改原列表，不需要重新赋值
+
+    * 如果要添加多个元素，可以使用 extend() 函数
+
+    * 与 + 操作符不同，add() 是原地修改，效率更高
+
+    * 如果需要在列表开头添加元素，使用 insert(list, item, 0)
+
+    对比其他方法
+
+    ```vim
+    " add() - 原地添加，效率高
+    call add(list, item)
+
+    " + 操作符 - 创建新列表
+    let list = list + [item]
+
+    " extend() - 添加多个元素
+    call extend(list, [item1, item2, item3])
+    ```
+
+    add() 是 Vim 脚本中操作列表时最常用的函数之一，特别适合在循环中动态构建列表。
+
+* getpos("'<") 与 getpos("<") 有什么不同？
+
+    getpos("'<") 和 getpos("<") 在 Vim 中有重要的区别：
+
+    1. getpos("'<") - 可视模式选择的起始位置
+
+        * '< 是 标记（mark），表示最近一次可视模式选择的起始位置
+
+        * 这个标记会 持久保存，直到被新的可视选择覆盖
+
+        * 即使在可视模式退出后，仍然可以通过 '< 访问这个位置
+
+        * 返回的是缓冲区位置，包括缓冲区编号
+
+        ```vim
+        " 进入可视模式选择一些文本，然后退出可视模式
+        " 仍然可以获取之前的可视选择起始位置
+        let start_visual = getpos("'<")  " 例如：[bufnum, line, col, off]
+        ```
+
+    2. getpos("<") - 当前可视选择的起始位置
+
+        * < 是 光标位置符号，表示 当前 可视模式选择的起始位置
+
+        * 只在 可视模式激活时 有效
+
+        * 如果没有激活可视模式，使用这个会报错或返回无效值
+
+        * 返回的是窗口位置（相对当前窗口）
+
+        ```vim
+        " 必须在可视模式中执行
+        vmap <leader>p :call ProcessCurrentVisual()<CR>
+
+        function! ProcessCurrentVisual()
+            " 获取当前可视选择的起始位置
+            let current_start = getpos("<")  " 只在可视模式中有效
+            let current_end = getpos(">")    " 当前可视选择的结束位置
+        endfunction
+        ```
+
+    关键区别总结
+
+    | 特性 | '<（带单引号的标记） | <（不带单引号的位置） |
+    | - | - | - |
+    | 持久性 | 持久保存，直到新的可视选择 | 只在可视模式激活时有效 |
+    | 作用域 | 缓冲区范围 | 窗口范围 |
+    | 使用时机 | 随时可用，即使不在可视模式 | 必须在可视模式中 |
+    | 返回内容 | [bufnum, lnum, col, off] | [0, lnum, col, off]（bufnum为0） |
+
+    实际应用示例
+
+    ```vim
+    " 示例1：获取最近的可视选择（即使不在可视模式）
+    function! GetLastVisualRange()
+        if getpos("'<")[1] == 0  " 检查是否有有效的可视选择历史
+            echo "No previous visual selection"
+            return []
+        endif
+        
+        let start = getpos("'<")
+        let end = getpos("'>")
+        return [start, end]
+    endfunction
+
+    " 示例2：在当前可视选择中操作（必须在可视模式）
+    vnoremap <leader>r :<C-U>call ProcessVisual()<CR>
+
+    function! ProcessVisual() range
+        " 使用 '< 和 '> 获取选择范围（这是安全的）
+        let start_line = line("'<")
+        let end_line = line("'>")
+        
+        " 或者使用 a:firstline, a:lastline（由 range 参数提供）
+        for lnum in range(a:firstline, a:lastline)
+            " 处理每一行
+        endfor
+    endfunction
+    ```
+
+    最佳实践建议
+
+    * 通常使用 '< 和 '>：
+
+        * 更安全，不会因为不在可视模式而报错
+
+        * 可以获取最近的可视选择历史
+
+        * 在可视模式命令中推荐使用
+
+    * 使用 line() 和 col() 函数作为替代：
+
+        ```vim
+        " 更简洁的获取行号方式
+        let start_line = line("'<")
+        let start_col = col("'<")
+        let end_line = line("'>")
+        let end_col = col("'>")
+        ```
+
+    * 在可视模式映射中，Vim 会自动设置 '< 和 '> 标记，所以可以直接使用它们。
+
+    结论：在大多数情况下，你应该使用 getpos("'<") 而不是 getpos("<")，因为它更可靠且不会依赖当前模式。
+
+* vim `setpos()`
+
+    setpos() 是 Vim 中用于设置缓冲区中任意位置的函数，比 cursor() 更灵活。
+
+    原型
+
+    ```vim
+    setpos({expr}, {list})
+    ```
+
+    * {expr}：位置标识符，可以是以下之一：
+
+        * '.' 当前光标位置
+
+        * '$' 最后一行
+
+        * "'x" 标记 x 的位置
+
+        * 缓冲区名称或编号
+
+    * {list}：四元素列表 [bufnum, lnum, col, off]
+
+    作用
+
+    精确设置光标位置，包括：
+
+    * 指定缓冲区
+
+    * 指定行号
+
+    * 指定列号（字节索引）
+
+    * 虚拟编辑偏移
+
+    用法示例
+
+    1. 设置当前光标位置
+
+        ```vim
+        " 移动到第10行第5列
+        call setpos('.', [0, 10, 5, 0])
+        ```
+
+    2. 设置标记位置
+
+        ```vim
+        " 设置标记a到第5行第10列
+        call setpos("'a", [0, 5, 10, 0])
+        ```
+
+    3. 在特定缓冲区设置位置
+
+        ```vim
+        " 在缓冲区3的第15行第20列设置标记b
+        call setpos("'b", [3, 15, 20, 0])
+        ```
+
+    4. 使用虚拟偏移
+
+        ```vim
+        " 第8行，第25列，虚拟偏移30（用于特殊编辑）
+        call setpos('.', [0, 8, 25, 30])
+        ```
+
+    参数说明
+
+    * bufnum：缓冲区编号，0表示当前缓冲区
+
+    * lnum：行号（1-based）
+
+    * col：列号（字节索引，1-based，0表示第1列前）
+
+    * off：虚拟偏移（通常为0）
+
+    注意事项
+
+    * 列号是字节索引，不是字符索引（对多字节字符需要注意）
+
+    * 使用 getpos() 获取当前位置
+
+    * 比 cursor() 更底层，可以操作非当前缓冲区
+
+    * 设置标记时，标记会自动移动到新位置
+
+    实用组合
+
+    ```vim
+    " 保存并恢复光标位置
+    let save_pos = getpos('.')
+    " ... 其他操作 ...
+    call setpos('.', save_pos)
+
+    " 在两个位置间跳转
+    function! TogglePosition()
+        if !exists('g:alt_pos')
+            let g:alt_pos = getpos('.')
+            call setpos('.', [0, 1, 1, 0])
+        else
+            let temp = getpos('.')
+            call setpos('.', g:alt_pos)
+            let g:alt_pos = temp
+        endif
+    endfunction
+    ```
+
+* vim `getpos()`
+
+    getpos() 函数
+
+    原型
+
+    ```text
+    getpos({expr})
+    ```
+
+    * {expr}：字符串，指定位置标识符或标记
+
+    作用
+
+    获取指定位置在缓冲区中的坐标信息，返回一个包含位置信息的列表。
+
+    返回值
+
+    返回包含 4 个元素的列表 [bufnum, lnum, col, off]：
+
+    * bufnum：缓冲区编号（总是当前缓冲区编号）
+
+    * lnum：行号（从 1 开始）
+
+    * col：列号（从 1 开始，字节索引）
+
+    * off：屏幕列偏移量（用于制表符等宽字符）
+
+    位置标识符
+
+    * "."：当前光标位置
+
+    * "'" 或 ""`：上一次跳转位置
+
+    * "<" 或 ">"：最近可视模式选择的开始/结束位置
+
+    * "0"：上一次修改的位置
+
+    * "^"：上一次插入模式结束的位置
+
+    * "$"：缓冲区最后一行
+
+    * 标记：如 "'a"（小写标记仅当前缓冲区）、"'A"（大写标记全局）
+
+    用法示例
+
+    ```vim
+    " 获取当前光标位置
+    let pos = getpos(".")
+    echo pos  " 输出类似 [1, 10, 5, 0]
+
+    " 获取标记 'a 的位置
+    let mark_pos = getpos("'a")
+
+    " 获取上一次跳转位置
+    let jump_pos = getpos("'")
+
+    " 获取可视模式选择结束位置
+    let visual_end = getpos(">")
+
+    " 分解使用位置信息
+    let [bufnum, lnum, col, off] = getpos(".")
+    echo "行号: " . lnum
+    echo "列号: " . col
+
+    " 与 setpos() 配合使用
+    let saved_pos = getpos(".")
+    " ... 其他操作 ...
+    call setpos(".", saved_pos)  " 恢复位置
+
+    " 检查标记是否存在
+    if getpos("'m")[1] != 0
+        echo "标记 m 已设置"
+    endif
+    ```
+
+    注意事项
+
+    * getpos() 返回的列号是字节索引（从 1 开始），不是字符索引
+
+    * 对于多字节字符（如中文），一个字符可能占用多个字节
+
+    * 使用 getcurpos() 可获取字符索引的列位置
+
+    * 未设置的标记返回 [0, 0, 0, 0]
+
+    相关函数
+
+    * setpos()：设置位置
+
+    * getcurpos()：获取当前光标位置（字符索引）
+
+    * col()：获取列号
+
+    * line()：获取行号
+
 * 我想像 vscode 那样显示某一行是新增的/修改的/删除的，vim 里如何做到？
 
     要在 Vim 中像 VS Code 那样实时显示行号旁边的 Git 状态（新增/修改/删除），有几种方案：

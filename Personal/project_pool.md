@@ -493,7 +493,7 @@
 
 * [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
 
-* [ ] 什么是 Radon 变换？
+* [v] 什么是 Radon 变换？
 
 * [ ] 光强与光子流密度是什么关系？
 
@@ -627,7 +627,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
+* [v] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
 
 * [O] CUDA Core Compute Libraries (CCCL)
 
@@ -755,7 +755,7 @@ english words 由 { } reorg: english words 进化而来。
     若需要选 10 个 units，但可用 50 个，重复概率约 13%
     若需要选 15 个 units，但可用 30 个，重复概率约 48%
 
-* [ ] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
+* [v] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
 * [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
@@ -793,7 +793,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
 
-* [ ] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
+* [v] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
 * [v] qa: 4 units 12.18
 
@@ -973,7 +973,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
 
-* [ ] `let [lnum1, lnum2] = [lnum2, lnum1]`
+* [v] `let [lnum1, lnum2] = [lnum2, lnum1]`
 
 * [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
 
@@ -983,7 +983,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] vim 中列表的用法`let lines = []`
 
-* [ ] `add(lines, line)`
+* [v] `add(lines, line)`
 
 * [ ] vim `s` 命令与`c`命令
 
@@ -1896,7 +1896,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] matlab `fileread()`
 
-* [ ] matlab `fread()`, `fopen()`, `fclose()`
+* [v] matlab `fread()`, `fopen()`, `fclose()`
 
 * [v] matlab `which()`
 
@@ -2082,7 +2082,7 @@ resources:
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
-* [ ] `pip install -e .`
+* [v] `pip install -e .`
 
 * [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
 
@@ -2092,7 +2092,7 @@ resources:
 
 * [O] 稀疏矩阵如何加速矩阵乘？
 
-* [ ] dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
+* [v] dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
 
 * [ ] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
 
@@ -2671,9 +2671,9 @@ resources:
 
 * [v] 调研 MMU（内存管理单元）如何设计？
 
-* [ ] `__iomem`有实际用处吗？还是只是个修饰？
+* [v] `__iomem`有实际用处吗？还是只是个修饰？
 
-* [ ] BAR 配置空间 都有哪些内容？
+* [v] BAR 配置空间 都有哪些内容？
 
 * [ ] `pci_write_config_word()`, `pci_read_config_word()`
 

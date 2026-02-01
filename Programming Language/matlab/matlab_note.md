@@ -1,5 +1,478 @@
 # Matlab Note
 
+* 简述 matlab `fread()`, `fopen()`, `fclose()` 的原型、作用及用法
+
+    在 MATLAB 中，fopen()、fread() 和 fclose() 是用于文件 I/O 操作的核心函数。
+
+    1. fopen() - 打开文件
+
+        原型：
+
+        ```matlab
+        fid = fopen(filename, permission)
+        [fid, message] = fopen(filename, permission, machineformat)
+        ```
+
+        作用：
+
+        打开文件用于读取或写入，返回文件标识符。
+
+        参数：
+
+        * filename：文件名（可包含路径）
+
+        * permission：访问模式
+
+            * 'r'：只读（默认）
+
+            * 'w'：写入（覆盖）
+
+            * 'a'：追加
+
+            * 'r+'：读写
+
+            * 'W', 'A'：无自动刷新的写/追加（用于磁带）
+
+        * machineformat（可选）：字节顺序，如 'ieee-le'（小端）
+
+        示例：
+
+        ```matlab
+        % 打开文件用于读取
+        fid = fopen('data.bin', 'r');
+        if fid == -1
+            error('文件打开失败');
+        end
+
+        % 或获取错误信息
+        [fid, errmsg] = fopen('data.bin', 'r');
+        ```
+
+    2. fread() - 读取二进制数据
+
+        原型：
+
+        ```matlab
+        A = fread(fid)
+        A = fread(fid, size)
+        A = fread(fid, size, precision)
+        A = fread(fid, size, precision, skip)
+        ```
+
+        作用：
+
+        从二进制文件中读取数据。
+
+        参数：
+
+        * fid：文件标识符
+
+        * size：读取数量
+
+            * N：读取 N 个元素
+
+            * [M,N]：读取 M×N 矩阵（按列填充）
+
+            * Inf：读取到文件末尾
+
+        * precision：数据类型
+
+            * 'uint8'、'int16'、'float32' 等
+
+            * '*datatype'：保持原始类型
+
+            * N*datatype：读取 N 个值作为一个元素
+
+        * skip：跳过的字节数
+
+        示例：
+
+        ```matlab
+        % 读取整个文件作为 uint8
+        data = fread(fid);
+
+        % 读取 100 个 double 值
+        data = fread(fid, 100, 'double');
+
+        % 读取 10x20 的 int16 矩阵
+        matrix = fread(fid, [10, 20], 'int16');
+
+        % 每跳过 4 字节读取一个 double
+        data = fread(fid, 100, 'double', 4);
+        ```
+
+    3. fclose() - 关闭文件
+
+        原型：
+
+        ```matlab
+        status = fclose(fid)
+        status = fclose('all')
+        ```
+
+        作用：
+
+        关闭已打开的文件。
+
+        参数：
+
+        * fid：文件标识符
+
+        * 'all'：关闭所有打开的文件
+
+        返回值：
+
+        * 0：成功
+
+        * -1：失败
+
+        示例：
+
+        ```matlab
+        % 关闭单个文件
+        status = fclose(fid);
+        if status == 0
+            disp('文件关闭成功');
+        end
+
+        % 关闭所有打开的文件
+        fclose('all');
+        ```
+
+        完整使用示例：
+
+        ```matlab
+        % 1. 打开文件
+        fid = fopen('data.bin', 'r');
+        if fid == -1
+            error('无法打开文件');
+        end
+
+        % 2. 读取文件头（2个int32）
+        header = fread(fid, 2, 'int32');
+
+        % 3. 根据头信息读取数据
+        rows = header(1);
+        cols = header(2);
+        data = fread(fid, [rows, cols], 'double');
+
+        % 4. 关闭文件
+        fclose(fid);
+        ```
+
+    注意事项：
+
+    * 文件标识符检查：fopen 失败时返回 -1
+
+    * 资源管理：使用 fclose 避免文件描述符泄漏
+
+    * 二进制格式：这些函数主要用于二进制文件，文本文件建议使用 textscan、fgetl 等
+
+    * 精度匹配：确保 precision 参数与文件实际存储格式一致
+
+    * 错误处理：总是检查函数返回值以确保操作成功
+
+* matlab `fileread()`
+
+    fileread() 是 MATLAB 中用于读取文本文件内容的函数。
+
+    函数原型
+
+    ```matlab
+    str = fileread(filename)
+    ```
+
+    参数说明
+
+    * filename：字符串或字符向量，指定要读取的文件路径
+
+    * 返回值：包含整个文件内容的字符串
+
+    主要作用
+
+    将整个文本文件的内容读取为一个字符串，适用于：
+
+    * 读取配置文件、日志文件
+
+    * 处理源代码文件
+
+    * 读取XML、JSON等文本格式数据（通常配合解析函数使用）
+
+    * 小到中等大小的文本文件处理
+
+    使用示例
+
+    基本用法
+
+    ```matlab
+    % 读取文本文件
+    content = fileread('data.txt');
+
+    % 显示内容
+    disp(content);
+    ```
+
+    读取不同类型文件
+
+    ```matlab
+    % 读取配置文件
+    config = fileread('config.ini');
+
+    % 读取JSON文件（配合jsondecode）
+    jsonStr = fileread('data.json');
+    data = jsondecode(jsonStr);
+
+    % 读取CSV文件头信息
+    csvContent = fileread('data.csv');
+    firstLine = strtok(csvContent, newline);
+    ```
+
+    处理相对/绝对路径
+
+    ```matlab
+    % 相对路径
+    content1 = fileread('../data/input.txt');
+
+    % 绝对路径
+    content2 = fileread('C:\Users\Name\Documents\file.txt');
+
+    % 当前目录文件
+    content3 = fileread('myfile.txt');
+    ```
+
+    常见配合操作
+
+    ```matlab
+    % 分割为行
+    content = fileread('log.txt');
+    lines = strsplit(content, {'\r\n', '\n', '\r'});
+
+    % 搜索特定内容
+    content = fileread('script.m');
+    if contains(content, 'function')
+        disp('该文件包含函数定义');
+    end
+
+    % 计算文件字符数
+    content = fileread('document.txt');
+    charCount = length(content);
+    ```
+
+    注意事项
+
+    * 文件大小：适合读取中小型文件，大文件建议使用fread或textscan
+
+    * 编码：默认使用系统编码，MATLAB R2018b+ 可指定编码：
+
+        ```matlab
+        % R2018b及以后版本
+        content = fileread(filename, 'Encoding', 'UTF-8');
+        ```
+
+    * 二进制文件：不适合读取二进制文件，会尝试将内容转为字符串
+
+    * 内存占用：整个文件内容会加载到内存中
+
+    * 文件不存在：会抛出错误，建议先检查文件存在性：
+
+        ```matlab
+        if exist(filename, 'file')
+            content = fileread(filename);
+        else
+            error('文件不存在');
+        end
+        ```
+
+    替代方案
+
+    * 大文件：使用 textscan, fread, readlines (R2017b+)
+
+    * 表格数据：使用 readtable
+
+    * 需要逐行处理：使用 fgetl 或 fgets
+
+    fileread() 因其简单易用，是小文件读取场景的首选函数。
+
+* 简述 matlab which() 的原型、作用及用法
+
+    which() 是 MATLAB 中用于定位函数、文件、变量等对象位置的函数。
+
+    函数原型
+
+    ```matlab
+    % 基本形式
+    path = which(item)
+
+    % 多种变体
+    path = which(item, '-all')          % 查找所有同名项
+    path = which(item, '-all', '-f')    % 查找所有内置函数
+    [path, errmsg] = which(item)        % 获取错误信息
+    ```
+
+    主要作用
+
+    * 定位文件路径：确定 MATLAB 如何解析特定名称
+
+    * 调试工具：检查函数遮蔽（shadowing）问题
+
+    * 路径管理：验证文件是否在搜索路径中
+
+    * 类型识别：区分内置函数、工具箱函数、MEX 文件等
+
+    使用示例
+
+    基本定位
+
+    ```matlab
+    % 查找函数位置
+    which plot            % 显示 plot 函数的路径
+    which mean            % 显示 mean 函数的路径
+    which('sin')          % 字符串参数形式
+
+    % 查找当前目录文件
+    which myfunction.m    % 显示自定义函数的完整路径
+
+    % 查找类方法
+    which handle/set
+    ```
+
+    查找所有同名项（解决遮蔽问题）
+
+    ```matlab
+    % 查找所有名为 'test' 的项
+    paths = which('test', '-all')
+
+    % 输出示例：
+    % paths = 
+    %   'C:\work\test.m'          % 用户自定义
+    %   'matlabroot\toolbox\matlab\general\test.m'  % MATLAB 内置
+    ```
+
+    获取详细信息
+
+    ```matlab
+    % 使用 -f 选项获取更多信息
+    which mean -all -f
+
+    % 输出会显示完整的类型信息
+    ```
+
+    检查特定类型
+
+    ```matlab
+    % 检查是否为内置函数
+    path = which('sin', 'builtin')
+
+    % 检查是否为变量
+    path = which('myVariable')
+    % 如果是变量，返回空字符串或提示不存在
+    ```
+
+    带错误信息的调用
+
+    ```matlab
+    % 获取错误信息
+    [path, errmsg] = which('nonexistent_function')
+    % path = ''
+    % errmsg = '函数不存在'
+    ```
+
+    常见应用场景
+
+    ```matlab
+    %% 1. 调试函数遮蔽问题
+    % 如果自定义函数与内置函数同名
+    which test -all
+    % 可以查看哪个版本被优先调用
+
+    %% 2. 验证工具箱安装
+    % 检查特定工具箱函数是否可用
+    if ~isempty(which('svmclassify'))
+        disp('统计和机器学习工具箱已安装')
+    end
+
+    %% 3. 检查文件位置
+    scriptPath = which('myscript.m')
+    if isempty(scriptPath)
+        error('脚本不在MATLAB路径中')
+    end
+
+    %% 4. 获取文件所在目录
+    [filePath, ~] = fileparts(which('myfunction.m'));
+    disp(['函数位于：', filePath]);
+    ```
+
+    返回类型判断
+
+    which() 的输出可以判断对象类型：
+
+    | 返回路径特征 | 类型说明 |
+    | - | - |
+    | 'built-in' | MATLAB 内置函数 |
+    | 以 .m 结尾 | M 文件函数 |
+    | 以 .mex 结尾 | MEX 文件 |
+    | 以 .p 结尾 | P 代码文件 |
+    | 空字符串 | 变量或不存在的项 |
+    | 目录路径 | 类或包目录 |
+
+    实用技巧
+
+    判断函数类型
+
+    ```matlab
+    function type = checkFunctionType(funcName)
+        path = which(funcName);
+        
+        if isempty(path)
+            type = '不存在或变量';
+        elseif strcmp(path, 'built-in')
+            type = '内置函数';
+        elseif endsWith(path, '.m')
+            type = 'M文件函数';
+        elseif endsWith(path, '.mex')
+            type = 'MEX文件';
+        else
+            type = '其他类型';
+        end
+    end
+    ```
+
+    查找类定义
+
+    ```matlab
+    % 查找类的定义位置
+    which handle          % 查找 handle 类
+    which containers.Map  % 查找特定类
+    ```
+
+    批量检查
+
+    ```matlab
+    % 检查多个函数是否存在
+    functions = {'plot', 'myFunc', 'toolboxFunc'};
+    for i = 1:length(functions)
+        if ~isempty(which(functions{i}))
+            fprintf('%s: 可用\n', functions{i});
+        else
+            fprintf('%s: 不可用\n', functions{i});
+        end
+    end
+    ```
+
+    注意事项
+
+    * 搜索顺序：按照 MATLAB 路径顺序搜索
+
+    * 变量优先：工作区变量优先于函数名
+
+    * 性能：对于频繁调用，可缓存结果
+
+    * 私有函数：在父目录外调用 which 可能找不到私有函数
+
+    * 方法：需要指定完整方法名：className/methodName
+
+    which() 是 MATLAB 开发和调试中的重要工具，特别是在处理大型项目或调试路径问题时非常有用。
+
 * matlab 2025b x64 破解版下载
 
     <https://www.puresys.net/8739.html>

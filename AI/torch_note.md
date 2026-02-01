@@ -2,6 +2,144 @@
 
 ## cache
 
+* pytorch 中 dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
+
+    在PyTorch的DataLoader中，默认情况下会将batch数据转换为Tensor。如果你需要返回list类型而不是Tensor类型，有以下几种方法：
+
+    方法1：使用自定义的collate_fn（推荐）
+
+    ```python
+    import torch
+    from torch.utils.data import Dataset, DataLoader
+
+    # 自定义collate_fn，直接返回list
+    def list_collate_fn(batch):
+        # batch是一个包含多个样本的列表，每个样本是__getitem__返回的元组
+        # 将每个字段的数据收集到list中
+        transposed = zip(*batch)
+        return [list(samples) for samples in transposed]
+
+    class MyDataset(Dataset):
+        def __init__(self, data):
+            self.data = data
+        
+        def __len__(self):
+            return len(self.data)
+        
+        def __getitem__(self, idx):
+            # 返回list而不是Tensor
+            return [self.data[idx], self.data[idx] * 2]
+
+    # 创建数据集和数据加载器
+    data = list(range(10))
+    dataset = MyDataset(data)
+    dataloader = DataLoader(dataset, batch_size=3, collate_fn=list_collate_fn)
+
+    # 测试
+    for batch in dataloader:
+        print(f"Batch type: {type(batch)}, Content: {batch}")
+        # batch将是list类型
+    ```
+
+    方法2：在collate_fn中更精细地控制
+
+    ```python
+    def custom_collate_fn(batch):
+        """
+        处理多种数据类型，只对某些字段转换为Tensor
+        """
+        elem = batch[0]
+        if isinstance(elem, (list, tuple)):
+            # 如果是列表或元组，递归处理每个字段
+            return [custom_collate_fn([d[i] for d in batch]) for i in range(len(elem))]
+        elif isinstance(elem, dict):
+            # 如果是字典
+            return {key: custom_collate_fn([d[key] for d in batch]) for key in elem}
+        else:
+            # 对于数字类型，可以选择转换为Tensor或保持原样
+            # return torch.tensor(batch)  # 转换为Tensor
+            return list(batch)  # 保持为list
+
+    # 使用示例
+    dataloader = DataLoader(dataset, batch_size=3, collate_fn=custom_collate_fn)
+    ```
+
+    方法3：在Dataset的__getitem__中处理
+
+    ```python
+    class MyDataset2(Dataset):
+        def __init__(self, data):
+            self.data = data
+        
+        def __len__(self):
+            return len(self.data)
+        
+        def __getitem__(self, idx):
+            # 返回tuple，让collate_fn分别处理
+            return self.data[idx], str(self.data[idx])  # 混合数据类型
+
+    def mixed_collate_fn(batch):
+        # 将batch解包为不同字段
+        field1, field2 = zip(*batch)
+        
+        # 对field1转换为Tensor，field2保持为list
+        return torch.tensor(field1), list(field2)
+
+    # 使用
+    dataloader = DataLoader(MyDataset2(data), batch_size=3, 
+                           collate_fn=mixed_collate_fn)
+    ```
+
+    方法4：最简单的方法 - 返回Python原生类型
+
+    ```python
+    # 如果只需要避免自动转换为Tensor，最简单的方法是确保__getitem__返回Python原生类型
+    class SimpleDataset(Dataset):
+        def __getitem__(self, idx):
+            # 返回Python原生类型，而不是Tensor
+            return float(self.data[idx])  # 而不是 torch.tensor(self.data[idx])
+    ```
+
+    示例：处理图像和标签
+
+    ```python
+    from PIL import Image
+    import numpy as np
+
+    class ImageDataset(Dataset):
+        def __init__(self, image_paths, labels):
+            self.image_paths = image_paths
+            self.labels = labels
+        
+        def __getitem__(self, idx):
+            # 加载图像但不转换为Tensor
+            img = Image.open(self.image_paths[idx])
+            img = np.array(img)  # 保持为numpy数组
+            label = self.labels[idx]
+            
+            return img, label
+
+    def image_collate_fn(batch):
+        images, labels = zip(*batch)
+        
+        # 图像保持为list，标签转换为Tensor（可选）
+        return list(images), torch.tensor(labels)
+
+    # 使用
+    dataloader = DataLoader(dataset, batch_size=32, 
+                           collate_fn=image_collate_fn)
+    ```
+
+    注意事项：
+
+    * 性能考虑：使用list而不是Tensor可能会降低性能，因为PyTorch的Tensor操作经过了优化
+
+    * GPU加速：如果要在GPU上训练，最终需要转换为Tensor
+
+    * 灵活性：collate_fn提供了最大的灵活性，可以根据需要处理不同类型的数据
+
+    推荐使用方法1或方法2，通过自定义collate_fn函数来控制返回类型。这是最灵活和清晰的方式。
+
 * `tensor.detach()`
 
     作用
