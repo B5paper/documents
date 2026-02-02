@@ -493,8 +493,6 @@
 
 * [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
 
-* [v] 什么是 Radon 变换？
-
 * [ ] 光强与光子流密度是什么关系？
 
 * [ ] 调研 Computer algebra system
@@ -627,8 +625,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] random select 的 restricted file set 中，如果出现的是文件夹，那么文件夹中的文件都加入限制集中，每个文件的权重和外部文件的权重相同
-
 * [O] CUDA Core Compute Libraries (CCCL)
 
     <https://github.com/nvidia/cccl>
@@ -668,6 +664,8 @@ english words 由 { } reorg: english words 进化而来。
 * { } reorg: projects
 
 * { } reorg: documents
+
+* { } reorg: restricted
 
 * { } windows 文件整理
 
@@ -748,14 +746,6 @@ english words 由 { } reorg: english words 进化而来。
 * 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
 
 ### Tasks
-
-* [v] 根据生日悖论，当选择的 units 数接近可用 units 总数的平方根时，重复概率会显著上升
-
-    典型场景
-    若需要选 10 个 units，但可用 50 个，重复概率约 13%
-    若需要选 15 个 units，但可用 30 个，重复概率约 48%
-
-* [v] 修改 qa 文件的权重范围，所有的权重加起来为 100.00，保留两位小数
 
 * [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
@@ -969,11 +959,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `setpos(".", save_pos)`, `getpos(".")`, `getpos("'<")[1:2]`
-
 * [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
-
-* [v] `let [lnum1, lnum2] = [lnum2, lnum1]`
 
 * [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
 
@@ -982,8 +968,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] `let start_line = line("'<")`
 
 * [ ] vim 中列表的用法`let lines = []`
-
-* [v] `add(lines, line)`
 
 * [ ] vim `s` 命令与`c`命令
 
@@ -1894,12 +1878,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] matlab `fileread()`
-
-* [v] matlab `fread()`, `fopen()`, `fclose()`
-
-* [v] matlab `which()`
-
 * [ ] matlab `jsondecode()`
 
 * [ ] 调研 matlab 命令
@@ -2010,8 +1988,6 @@ resources:
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
-* [v] `optim.SGD([train_param], lr=1e-3)`
-
 * [ ] `torch.allclose`
 
 * [ ] 关键阈值：秩（Rank）
@@ -2076,13 +2052,7 @@ resources:
 
     * 满秩矩阵：秩=满秩，信息基本保留
 
-* [v] `ax.set_title()`
-
-* [v] `plt.tight_layout()`
-
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
-
-* [v] `pip install -e .`
 
 * [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
 
@@ -2091,8 +2061,6 @@ resources:
 * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
 
 * [O] 稀疏矩阵如何加速矩阵乘？
-
-* [v] dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
 
 * [ ] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
 
@@ -2668,12 +2636,6 @@ resources:
 * [asso] `devm_kobject_create_and_add()`
 
 * [asso] `devm_device_add_groups()`
-
-* [v] 调研 MMU（内存管理单元）如何设计？
-
-* [v] `__iomem`有实际用处吗？还是只是个修饰？
-
-* [v] BAR 配置空间 都有哪些内容？
 
 * [ ] `pci_write_config_word()`, `pci_read_config_word()`
 

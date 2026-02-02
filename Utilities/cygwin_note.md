@@ -2,6 +2,95 @@
 
 ## cache
 
+* cygwin 如何设置可以让 /d 或 /D 表示 d 盘
+
+    在Cygwin中让 /d 或 /D 表示D盘，有几种方法可以实现：
+
+    方法1：创建符号链接（推荐）
+
+    在Cygwin终端中执行：
+
+    ```bash
+    # 创建链接到D盘
+    ln -s /cygdrive/d /d
+    ln -s /cygdrive/d /D
+    ```
+
+    方法2：修改 ~/.bashrc 或 ~/.bash_profile
+
+    编辑 ~/.bashrc 文件：
+
+    ```bash
+    # 使用别名
+    alias d:='cd /cygdrive/d'
+    alias D:='cd /cygdrive/d'
+
+    # 或者创建目录链接
+    if [ ! -e /d ]; then
+        ln -s /cygdrive/d /d 2>/dev/null
+    fi
+    if [ ! -e /D ]; then
+        ln -s /cygdrive/d /D 2>/dev/null
+    fi
+    ```
+
+    方法3：修改 /etc/fstab（需要管理员权限）
+
+    编辑 /etc/fstab 文件，添加：
+
+    ```text
+    # 映射D盘
+    C:/cygwin64/d /d none bind,posix=0,user
+    C:/cygwin64/d /D none bind,posix=0,user
+    ```
+
+    或者更简单的方式：
+
+    ```bash
+    mount -b /cygdrive/d /d
+    mount -b /cygdrive/d /D
+    ```
+
+    方法4：使用 cygpath 命令创建脚本
+
+    创建 /usr/local/bin/d: 脚本：
+
+    ```bash
+    #!/bin/bash
+    cd /cygdrive/d
+    ```
+
+    方法5：设置 CYGWIN 环境变量
+
+    在Windows环境变量中添加：
+
+    ```text
+    CYGWIN=winsymlinks:nativestrict
+    ```
+
+    然后在Cygwin中创建链接：
+
+    ```bash
+    ln -s /cygdrive/d /d
+    ```
+
+    永久生效的方法
+
+    创建 /etc/profile.d/mounts.sh：
+
+    ```bash
+    #!/bin/bash
+    # 检查并创建链接
+    [ ! -e /d ] && ln -s /cygdrive/d /d 2>/dev/null
+    [ ! -e /D ] && ln -s /cygdrive/d /D 2>/dev/null
+
+    # 或者使用别名
+    alias d:='cd /d 2>/dev/null || cd /cygdrive/d'
+    alias D:='cd /D 2>/dev/null || cd /cygdrive/d'
+    ```
+
+    推荐使用方法1，最简单直接。创建符号链接后，你就可以在Cygwin中使用 /d 或 /D 来访问D盘了。
+
 * cygwin 的字体渲染没有 windows 自带的 terminal 渲染好看，为什么
 
     这是一个很好的观察！Cygwin 终端（通常使用 mintty）和 Windows Terminal 在字体渲染上确实有明显差异，主要原因如下：
