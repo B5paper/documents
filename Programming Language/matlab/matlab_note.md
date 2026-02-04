@@ -1,5 +1,580 @@
 # Matlab Note
 
+* 简述 matlab 中 path 命令的作用
+
+    path 命令在 MATLAB 中用于显示或设置 MATLAB 的搜索路径。搜索路径是 MATLAB 查找和执行文件（如脚本、函数、类等）的一系列目录列表。
+
+    主要功能
+
+    1. 查看当前搜索路径
+
+        ```matlab
+        path
+        % 或
+        path()
+        ```
+
+        显示 MATLAB 当前的所有搜索路径，按优先级顺序排列。
+
+    2. 设置新路径（替换当前路径）
+
+        ```matlab
+        path(newPath)
+        ```
+
+        用 newPath（字符串或字符向量）完全替换当前搜索路径。
+
+    3. 添加路径
+
+        更常用的操作是使用 addpath 和 rmpath 来动态修改路径，但 path 也可用于组合路径：
+
+        ```matlab
+        path(path, 'newDirectory')        % 将 newDirectory 添加到路径末尾
+        path('newDirectory', path)        % 将 newDirectory 添加到路径开头（优先级更高）
+        ```
+
+    示例
+
+    ```matlab
+    % 查看当前路径
+    path
+
+    % 添加新目录到路径开头（优先搜索）
+    path('/home/user/myfunctions', path)
+
+    % 设置全新的路径列表
+    newPath = '/home/user/libs:/home/user/projects:/matlab/toolbox';
+    path(newPath)
+    ```
+
+    相关常用命令
+
+    * addpath：向路径添加目录（更常用）
+
+    * rmpath：从路径移除目录
+
+    * savepath：保存当前路径设置到 pathdef.m，使下次启动 MATLAB 时生效
+
+    * pathtool：打开图形界面管理路径
+
+    * which：查看函数文件所在路径（帮助确定搜索顺序）
+
+    注意事项
+
+    * 路径优先级：MATLAB 按路径顺序从上到下搜索，找到第一个匹配文件即停止。
+
+    * 修改建议：通常使用 addpath 和 pathtool 管理路径更为方便和安全。
+
+    * 持久化：直接使用 path 命令修改的路径在退出 MATLAB 后会丢失，需配合 savepath 保存。
+
+    通过合理设置路径，可以确保 MATLAB 找到自定义函数或第三方工具箱，并管理不同项目的文件组织。
+
+* 简述 savepath 的作用
+
+    savepath 的作用是将当前 MATLAB 的搜索路径设置保存为永久性配置，使这些路径设置在未来的 MATLAB 会话中自动生效。
+
+    核心功能：
+
+    将 内存中的临时路径设置 → 保存为 永久的启动路径配置
+
+    详细作用：
+
+    1. 永久化路径更改
+
+        ```matlab
+        % 临时添加路径（仅当前会话有效）
+        addpath('/path/to/my/functions');
+
+        % 保存路径设置（永久生效）
+        savepath;
+        % 下次启动 MATLAB 时，该路径仍然存在
+        ```
+
+    2. 更新 pathdef.m 文件
+
+        * 默认保存到：matlabroot/toolbox/local/pathdef.m
+
+        * 此文件在 MATLAB 启动时自动加载
+
+        * 定义了 MATLAB 的默认搜索路径顺序
+
+    典型工作流程：
+
+    ```matlab
+    % 1. 添加新路径（临时）
+    addpath('/project/code');
+
+    % 2. 测试功能是否正常
+    my_function();  % 测试调用
+
+    % 3. 确认无误后保存
+    savepath;
+
+    % 4. 验证保存成功
+    which pathdef  % 查看路径定义文件位置
+    ```
+
+    主要应用场景：
+
+    场景1：安装第三方工具箱
+
+    ```matlab
+    % 添加工具箱路径
+    addpath(genpath('/toolboxes/image_toolbox'));
+
+    % 测试工具箱功能
+    imtool test_image.jpg;
+
+    % 确认可用后永久保存
+    savepath;
+    ```
+
+    场景2：开发自定义函数库
+
+    ```matlab
+    % 添加个人代码库
+    addpath('/Users/name/matlab_lib');
+    addpath('/Users/name/matlab_lib/utils');
+    addpath('/Users/name/matlab_lib/plotting');
+
+    % 保存配置
+    savepath;
+    ```
+
+    场景3：解决权限问题
+
+    ```matlab
+    % 如果默认保存位置无写入权限
+    savepath('/alternative/path/pathdef.m');
+    % 然后需要设置 MATLAB 启动选项来加载此文件
+    ```
+
+    与相关命令的关系：
+
+    添加路径 → 保存路径
+
+    ```matlab
+    addpath('new/path');    % 临时添加
+    rmpath('old/path');     % 临时移除
+    savepath;               % 永久保存当前状态
+    ```
+
+    恢复默认 → 重新配置
+
+    ```matlab
+    restoredefaultpath;     % 清除所有自定义路径
+    addpath('essential/path');  % 重新添加必要路径
+    savepath;               % 保存精简后的配置
+    ```
+
+    重要注意事项：
+
+    ⚠️ 保存位置问题
+
+    * 需要写入 pathdef.m 文件的权限
+
+    * 在多用户系统中可能遇到权限错误
+
+    * 解决方案：
+
+        ```matlab
+        % 保存到用户有权限的位置
+        savepath('~/my_pathdef.m');
+        ```
+
+    ⚠️ 路径冲突风险
+
+    * 保存前确保路径顺序正确
+
+    * 错误的路径顺序可能导致函数调用错误版本
+
+    * 建议检查：
+
+        ```matlab
+        path  % 查看完整路径列表
+        which function_name -all  % 查看函数所有版本
+        ```
+
+    ✅ 最佳实践
+
+    ```matlab
+    % 1. 批量添加路径后统一保存
+    addpath(genpath('lib1'));
+    addpath(genpath('lib2'));
+    % ... 测试功能 ...
+    savepath;  % 一次性保存
+
+    % 2. 定期清理路径
+    pathtool;  % 使用图形界面管理路径
+    savepath;  % 保存清理后的结果
+
+    % 3. 备份原配置
+    copyfile(which('pathdef.m'), 'pathdef_backup.m');
+    ```
+
+    相关文件和命令：
+
+    | 项目 | 说明 |
+    | - | - |
+    | pathdef.m | 路径定义文件，savepath 的保存目标 |
+    | pathtool | 图形化路径管理工具，可替代命令操作 |
+    | userpath | 用户个人路径，默认自动添加 |
+    | startup.m | 启动脚本，可包含 addpath 命令 |
+
+    总结：
+
+    savepath 是 MATLAB 路径管理的"保存按钮"：
+
+    * 作用：将当前会话的路径设置永久化
+
+    * 时机：在确认所有路径配置正确后使用
+
+    * 位置：默认保存到 pathdef.m 文件
+
+    * 重要性：避免每次启动 MATLAB 都重新配置路径
+
+    记住：addpath 是临时修改，savepath 是永久保存。两者配合使用，才能高效管理 MATLAB 的工作环境。
+
+* `restoredefaultpath`
+
+    restoredefaultpath 的作用是将 MATLAB 的搜索路径恢复为出厂默认设置，这是解决 MATLAB 路径相关问题的“终极”手段。
+
+    主要作用：
+
+    * 清除所有自定义路径
+
+        * 移除所有用户手动添加的路径
+
+        * 删除所有第三方工具箱的路径
+
+        * 只保留 MATLAB 安装时自带的工具箱路径
+
+    * 修复路径冲突和损坏
+
+        * 解决因路径顺序错误导致的函数调用问题
+
+        * 修复因路径损坏导致的 MATLAB 启动或运行错误
+
+    典型应用场景：
+
+    1. 路径冲突问题
+
+        ```matlab
+        % 当出现以下情况时使用：
+        % - 调用函数时提示错误版本
+        % - 同名函数冲突（用户函数覆盖了系统函数）
+        % - MATLAB 行为异常
+        restoredefaultpath
+        savepath  % 保存默认路径
+        ```
+
+    2. MATLAB 启动失败
+
+        ```matlab
+        % 如果MATLAB启动时崩溃或卡住
+        % 可以在启动时按住Shift键，进入安全模式
+        % 然后在命令窗口执行：
+        restoredefaultpath
+        savepath
+        ```
+
+    3. 工具箱加载问题
+
+        ```matlab
+        % 第三方工具箱导致的问题
+        restoredefaultpath  % 先恢复默认
+        % 然后重新逐一手动添加必要的工具箱路径
+        addpath('/path/to/your/toolbox')
+        savepath
+        ```
+
+    工作流程：
+
+    执行前：
+
+    ```text
+    MATLAB路径 = 默认路径 + 用户自定义路径 + 第三方工具箱路径
+    ```
+
+    执行后：
+
+    ```text
+    MATLAB路径 = 仅默认路径
+    （所有用户添加的内容都被移除）
+    ```
+
+    重要注意事项：
+
+    ⚠️ 后果严重
+
+    * 所有自定义路径设置都会丢失
+
+    * 需要重新配置所有第三方工具箱
+
+    * 用户编写的函数如果不在默认路径下将无法直接调用
+
+    ✅ 恢复后的操作
+
+    ```matlab
+    restoredefaultpath;  % 恢复默认路径
+    matlabrc;            % 运行启动脚本
+    savepath;            % 保存当前路径设置
+
+    % 然后需要重新添加必要的路径
+    addpath(genpath('/Users/name/matlab'));
+    addpath('/path/to/important/toolbox');
+    savepath;  % 再次保存
+    ```
+
+    与相关命令对比：
+
+    | 命令 | 作用 | 破坏性 |
+    | - | - | - |
+    | rehash toolboxcache | 刷新工具箱缓存 | 无破坏 |
+    | rehash path | 刷新所有路径缓存 | 无破坏 |
+    | restoredefaultpath | 完全重置路径为出厂设置 | 高破坏 |
+    | rmpath | 移除单个路径 | 局部影响 |
+
+    最佳实践建议：
+
+    * 先用温和方法：
+
+        ```matlab
+        % 首先尝试
+        rehash toolboxcache
+        rehash path
+        ```
+
+    * 备份当前路径：
+
+        ```matlab
+        % 在执行 restoredefaultpath 前备份
+        p = path;
+        save('my_path_backup.mat', 'p');
+        ```
+
+    * 作为最后手段：
+
+        * 当其他方法都无效时
+
+        * MATLAB 频繁崩溃或无法正常工作时
+
+        * 怀疑路径被严重破坏时
+
+    总结：restoredefaultpath 是 MATLAB 路径问题的"核选项"——非常有效，但代价是失去所有自定义配置，需谨慎使用。
+
+* matlab `rehash toolboxcache`
+
+    在 MATLAB 中，rehash toolboxcache 的作用是刷新 MATLAB 的工具箱缓存，主要用于解决 MATLAB 找不到新添加的或已修改的函数、文件或工具箱的问题。
+
+    主要应用场景：
+
+    * 手动添加了新的工具箱或函数文件
+
+        * 当你在 MATLAB 搜索路径中添加了新的 .m 文件或工具箱文件，但 MATLAB 无法识别时
+
+    * 更新了现有工具箱
+
+        * 修改了工具箱中的函数，但 MATLAB 仍使用旧版本
+
+    * 工具箱安装后不显示
+
+        * 安装了新的工具箱，但在命令窗口中无法调用其函数
+
+    * MATLAB 提示找不到函数
+
+        * 出现 "Function not found" 错误，即使文件确实存在
+
+    工作机制：
+
+    MATLAB 会缓存工具箱和函数的信息以提高加载速度。rehash toolboxcache 强制 MATLAB：
+
+    * 重新扫描所有工具箱目录
+
+    * 更新内部函数缓存
+
+    * 使新添加或修改的文件立即可用
+
+    使用方法：
+
+    ```matlab
+    % 基本用法
+    rehash toolboxcache
+
+    % 更彻底的刷新（如果 toolboxcache 无效）
+    rehash path
+    ```
+
+    类似命令比较：
+
+    * rehash toolboxcache：专门刷新工具箱缓存
+
+    * rehash path：刷新整个 MATLAB 路径的缓存
+
+    * restoredefaultpath：恢复默认路径设置（更彻底，但会清除所有自定义路径）
+
+    注意：执行此命令后，可能需要重新启动 MATLAB 才能使某些更改完全生效。
+
+* matlab `jsondecode()`
+
+    函数原型
+
+    ```matlab
+    S = jsondecode(txt)
+    ```
+
+    输入参数：
+
+    * txt：包含JSON格式文本的字符串标量或字符向量
+
+    输出参数：
+
+    * S：MATLAB数据结构（结构体、数组、元胞数组等）
+
+    作用
+
+    将JSON（JavaScript Object Notation）格式的文本字符串解码为MATLAB可识别的数据结构。它是MATLAB与JSON数据交换的核心函数，常用于：
+
+    * 读取API返回的JSON数据
+
+    * 解析配置文件
+
+    * 处理Web数据
+
+    * 与JavaScript/Python等其他语言进行数据交换
+
+    用法示例
+
+    基本示例
+
+    ```matlab
+    % JSON字符串
+    jsonStr = '{"name":"张三","age":25,"scores":[85,92,78]}';
+
+    % 解码为MATLAB结构体
+    data = jsondecode(jsonStr);
+
+    disp(data.name)     % 输出：张三
+    disp(data.age)      % 输出：25
+    disp(data.scores)   % 输出：[85 92 78]
+    ```
+
+    处理嵌套结构
+
+    ```matlab
+    jsonStr = '{"employee":{"name":"李四","department":"研发部"},"projects":["A","B"]}';
+    data = jsondecode(jsonStr);
+
+    disp(data.employee.name)  % 输出：李四
+    disp(data.projects{2})    % 输出：B（注意：数组转为元胞数组）
+    ```
+
+    从文件读取JSON
+
+    ```matlab
+    % 假设有data.json文件
+    fid = fopen('data.json', 'r');
+    jsonStr = fread(fid, '*char')';
+    fclose(fid);
+
+    data = jsondecode(jsonStr);
+    ```
+
+    与jsonencode()配对使用
+
+    ```matlab
+    % 创建MATLAB结构体
+    matlabStruct = struct('x', [1,2,3], 'y', 'text');
+
+    % 编码为JSON字符串
+    jsonStr = jsonencode(matlabStruct);
+    % jsonStr = '{"x":[1,2,3],"y":"text"}'
+
+    % 解码回MATLAB
+    decoded = jsondecode(jsonStr);
+    ```
+
+    重要特性
+
+    1. 数据类型映射
+
+    | JSON类型 | MATLAB类型 |
+    | - | - |
+    | 对象 | 结构体 |
+    | 数组（同类型） | 矩阵/数组 |
+    | 数组（混合类型） | 元胞数组 |
+    | 字符串 | 字符向量 |
+    | 数字 | double（默认） |
+    | true/false | logical |
+    | null | []（空双精度） |
+
+    2. 选项设置（R2021b+）
+
+        ```matlab
+        % 保留数字精度（默认转换为double）
+        data = jsondecode(jsonStr, 'MakeOutputs', false);
+        % 返回未转换的字符串，保留原始数字格式
+        ```
+
+    3. 特殊字符处理
+
+        ```matlab
+        % JSON中的Unicode转义序列会自动转换
+        jsonStr = '{"text":"\u4E2D\u56FD"}'  % "\u4E2D\u56FD" = "中国"
+        data = jsondecode(jsonStr);
+        disp(data.text)  % 输出：中国
+        ```
+
+    4. 错误处理
+
+        ```matlab
+        try
+            data = jsondecode(invalidJsonStr);
+        catch ME
+            disp('JSON解析错误:');
+            disp(ME.message);
+        end
+        ```
+
+    实际应用场景
+
+    ```matlab
+    % 场景：调用Web API
+    url = 'https://api.example.com/data';
+    options = weboptions('ContentType', 'json');
+    response = webread(url, options);  % response已是结构体
+
+    % 如果API返回原始JSON字符串
+    jsonResponse = urlread(url);
+    data = jsondecode(jsonResponse);
+
+    % 处理复杂嵌套数据
+    % 假设返回：{"status":"success","data":[{"id":1,"value":10},{"id":2,"value":20}]}
+    parsed = jsondecode(jsonResponse);
+    for i = 1:length(parsed.data)
+        fprintf('ID: %d, Value: %d\n', parsed.data(i).id, parsed.data(i).value);
+    end
+    ```
+
+    注意事项
+
+    * 大文件处理：对于大JSON文件，考虑使用fileread()或fread()分块读取
+
+    * 性能：jsondecode()比loadjson()等第三方函数更快（R2016b+）
+
+    * 内存：解析大型JSON时注意内存使用
+
+    * 向后兼容：需要MATLAB R2016b或更高版本
+
+    替代方案
+
+    * MATLAB R2016b之前：使用loadjson()（File Exchange中的第三方函数）
+
+    * 简单解析：正则表达式（不推荐，容易出错）
+
+    这个函数极大简化了MATLAB与Web服务、配置文件和跨平台应用的数据交换。
+
+
 * 简述 matlab `fread()`, `fopen()`, `fclose()` 的原型、作用及用法
 
     在 MATLAB 中，fopen()、fread() 和 fclose() 是用于文件 I/O 操作的核心函数。

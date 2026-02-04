@@ -2,6 +2,50 @@
 
 ## cache
 
+* uv pip compile
+
+    `uv pip compile pyproject.toml -o requirements.txt`
+
+    这个过程很慢，可能需要几分钟。
+
+    **创建 requirements.in 文件**
+
+    ```bash
+    # 创建基础依赖文件
+    echo "torch" > requirements.in
+    echo "numpy" >> requirements.in
+
+    # 然后编译
+    uv pip compile requirements.in -o requirements.txt
+    ```
+
+    查看帮助信息：`uv pip compile --help`
+
+    **常见工作流程：**
+
+    方式A：使用 pyproject.toml
+
+    ```bash
+    # 如果有 pyproject.toml 中的 dependencies 部分
+    uv pip compile pyproject.toml -o requirements.txt
+
+    # 或者针对特定组
+    uv pip compile pyproject.toml --group dev -o requirements-dev.txt
+    ```
+
+    方式B：使用 requirements.in
+
+    ```bash
+    # 1. 创建 requirements.in 文件并添加依赖
+    echo "torch>=2.0" > requirements.in
+    echo "numpy" >> requirements.in
+
+    # 2. 编译成 locked 版本
+    uv pip compile requirements.in -o requirements.txt
+    ```
+
+    根据你的项目结构选择合适的命令即可。
+
 * 简述 pip install -e . 的作用
 
     pip install -e . 是 Python 包管理中的一个常用命令，用于以"开发模式"安装当前目录的包。

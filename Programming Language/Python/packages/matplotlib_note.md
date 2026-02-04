@@ -2,6 +2,227 @@
 
 ## cache
 
+* `ax.plot_surface()`
+
+    ax.plot_surface() 是 Matplotlib 中用于绘制三维曲面的函数。
+
+    原型
+
+    ```python
+    plot_surface(X, Y, Z, 
+                 norm=None,           # 颜色标准化
+                 vmin=None,           # 最小值
+                 vmax=None,           # 最大值
+                 cmap=None,           # 颜色映射
+                 facecolors=None,     # 面颜色
+                 shade=True,          # 是否阴影
+                 alpha=None,          # 透明度
+                 **kwargs)
+    ```
+
+    作用
+
+    在三维坐标系中绘制参数化曲面，适用于可视化二元函数 z = f(x, y)。
+
+    用法示例
+
+    ```python
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 创建数据
+    x = np.linspace(-5, 5, 100)
+    y = np.linspace(-5, 5, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+
+    # 创建三维图形
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 绘制曲面
+    surf = ax.plot_surface(X, Y, Z, 
+                          cmap='viridis', 
+                          alpha=0.8,
+                          linewidth=0,
+                          antialiased=True)
+
+    # 添加颜色条
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()
+    ```
+
+    **`surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)` 的作用**
+
+    * X, Y, Z：三维网格数据，通常由 np.meshgrid() 生成
+
+        * X, Y 定义网格点的x、y坐标
+
+        * Z 是每个网格点的高度值
+
+    * cmap='viridis'：
+
+        * 使用 'viridis' 颜色映射
+
+        * 根据 Z 值自动着色曲面，数值越高颜色越亮（黄），越低越暗（紫）
+
+    * alpha=0.8：
+
+        * 设置透明度为 0.8（80% 不透明）
+
+        * 使曲面半透明，便于观察重叠部分或内部结构
+
+    * 返回值 surf：
+
+        * 返回一个 Poly3DCollection 对象
+
+        * 可用于后续操作，如添加颜色条
+
+    关键注意事项
+
+    * 必须事先创建三维坐标轴：ax = fig.add_subplot(111, projection='3d')
+
+    * X, Y, Z 必须是二维数组，且形状相同
+
+    * 可使用 rstride 和 cstride 控制网格密度（现在建议用 rcount 和 ccount）
+
+    * vmin 和 vmax 可手动设置颜色映射范围
+
+* matplotlib `fig.add_subplot()`
+
+    原型
+
+    ```python
+    fig.add_subplot(*args, **kwargs)
+    ```
+
+    或更常用的：
+
+    ```python
+    fig.add_subplot(nrows, ncols, index, **kwargs)
+    ```
+
+    参数说明
+
+    * nrows, ncols: 网格的行数和列数
+
+    * index: 子图位置（从1开始计数，从左到右、从上到下）
+
+    * projection: 投影类型（如'rectilinear', 'polar', '3d'等）
+
+    * 其他Axes属性参数
+
+    作用
+
+    向当前图形（Figure）中添加一个坐标轴（Axes）对象作为子图，并返回该Axes对象。
+
+    基本用法
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建图形
+    fig = plt.figure(figsize=(10, 6))
+
+    # 添加2×2网格中的第1个子图
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax1.plot([1, 2, 3], [1, 4, 9])
+    ax1.set_title('Subplot 1')
+
+    # 添加第2个子图（简写形式221=2,2,1）
+    ax2 = fig.add_subplot(222)  # 第2个位置
+    ax2.scatter([1, 2, 3], [1, 2, 3])
+
+    plt.show()
+    ```
+
+    fig.add_subplot(111, projection='3d') 详解
+
+    含义
+
+    * 111: 表示1行1列的第1个（也是唯一一个）子图
+
+        * 这是旧式写法，等价于add_subplot(1, 1, 1)
+
+    * projection='3d': 创建3D坐标轴
+
+    用法示例
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    fig = plt.figure(figsize=(8, 6))
+
+    # 创建3D坐标轴
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 生成数据
+    x = np.linspace(-5, 5, 100)
+    y = np.linspace(-5, 5, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+
+    # 绘制3D曲面
+    ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+    # 设置标签
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    ax.set_title('3D Surface Plot')
+
+    plt.show()
+    ```
+
+    3D绘图的常用函数
+
+    ```python
+    # 散点图
+    ax.scatter(xs, ys, zs)
+
+    # 线图  
+    ax.plot(xs, ys, zs)
+
+    # 曲面图
+    ax.plot_surface(X, Y, Z)
+
+    # 线框图
+    ax.plot_wireframe(X, Y, Z)
+
+    # 等高线图
+    ax.contour(X, Y, Z)
+    ```
+
+    注意事项
+
+    * 111这种三数字写法已不推荐，建议使用明确写法：
+
+        ```python
+        # 推荐写法
+        ax = fig.add_subplot(1, 1, 1, projection='3d')
+        ```
+
+    * 3D投影需要额外导入：
+
+        ```python
+        from mpl_toolkits.mplot3d import Axes3D  # 虽然不显式调用，但需要导入
+        ```
+
+    * 交互式查看：在Jupyter中可使用%matplotlib notebook获得旋转交互功能
+
+    现代替代写法
+
+    ```python
+    # 更现代的写法（Matplotlib 3.4+）
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+
+    # 或多个3D子图
+    fig, axes = plt.subplots(1, 2, subplot_kw={'projection': '3d'}, figsize=(12, 5))
+    ```
+
+    这种方法创建3D图形使得Matplotlib能够绘制三维数据可视化，扩展了二维绘图库的功能。
+
 * matplotlib `ax.set_title()`
 
     ax.set_title() 是 Matplotlib 中用于设置当前 Axes 对象标题的方法。

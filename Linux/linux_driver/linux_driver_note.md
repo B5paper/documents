@@ -6,6 +6,337 @@ Ref:
 
 ## cache
 
+* linux sysfs 中的 numa_node 数据是谁来填充的？
+
+    在 Linux sysfs 中，numa_node 数据的填充是由设备驱动程序和内核的核心内存管理代码共同完成的。具体来说：
+
+    主要填充机制：
+
+    1. 设备驱动程序
+
+        * 当设备驱动程序调用 pci_register_device() 或类似函数注册设备时
+
+        * 驱动程序会设置设备的 NUMA 节点信息
+
+        * 对于 PCI 设备，通常在 struct pci_dev 中设置 dev.numa_node 字段
+
+    2. PCI 子系统
+
+        * PCI 核心代码会自动从 ACPI（ACPI SRAT 表）或设备树（DT）中获取 NUMA 信息
+
+        * 对于支持 NUMA 的平台，PCI 设备会继承其所属 PCI 主机桥的 NUMA 节点
+
+    3. 内存分配路径
+
+        * 当设备需要分配 DMA 缓冲区时
+
+        * 内核的 DMA 映射层（dma_alloc_coherent() 等）会设置设备的 NUMA 节点
+
+    4. 平台固件信息
+
+        * 在系统启动时，内核从 ACPI SRAT（Static Resource Affinity Table）读取 NUMA 拓扑
+
+        * 或从设备树中解析 NUMA 信息
+
+    具体代码路径：
+
+    ```c
+    // 示例：PCI 设备 NUMA 节点设置
+    pci_device_add()
+      → pcibios_add_device()
+        → acpi_pci_root_add()  // 从 ACPI 获取 NUMA 信息
+          → acpi_get_node()    // 获取 NUMA 节点 ID
+
+    // 在 sysfs 中的体现
+    static ssize_t numa_node_show(struct device *dev,
+                                 struct device_attribute *attr, char *buf)
+    {
+        return sprintf(buf, "%d\n", dev->numa_node);
+    }
+    static DEVICE_ATTR_RO(numa_node);
+    ```
+
+    查看示例：
+
+    ```bash
+    # 查看 PCI 设备的 NUMA 节点
+    $ cat /sys/bus/pci/devices/0000:00:1f.0/numa_node
+    0
+
+    # 查看内存设备的 NUMA 节点
+    $ cat /sys/bus/node/devices/node0/cpulist
+    0-15
+    ```
+
+    特殊情况：
+
+    * 如果设备不支持 NUMA 或无法确定节点，会显示 -1
+
+    * 虚拟设备可能显示为 -1 或特定的节点
+
+    * 有些架构可能需要在设备驱动中显式设置 NUMA 节点
+
+    总之，numa_node 是由内核根据硬件拓扑和平台固件信息自动填充，设备驱动程序通常只需要使用标准 API 注册设备即可。
+
+* 简述 linux 中 `pci_write_config_word()`, `pci_read_config_word()` 的原型、作用和用法
+
+    在Linux内核中，pci_write_config_word() 和 pci_read_config_word() 是用于访问PCI设备配置空间的函数。
+
+    函数原型
+
+    ```c
+    #include <linux/pci.h>
+
+    int pci_read_config_word(struct pci_dev *dev, int offset, u16 *value);
+    int pci_write_config_word(struct pci_dev *dev, int offset, u16 value);
+    ```
+
+    作用
+
+    这些函数用于读取和写入PCI设备的配置空间寄存器：
+
+    * PCI配置空间：每个PCI设备都有256字节（或4096字节）的配置空间
+
+    * 配置寄存器：包含设备ID、厂商ID、中断引脚、基地址寄存器(BAR)等关键信息
+
+    * 硬件抽象：提供跨平台的统一访问接口
+
+    参数说明
+
+    * dev：指向pci_dev结构的指针，表示目标PCI设备
+
+    * offset：要访问的配置空间偏移量（0-255或0-4095）
+
+    * value（读函数）：存储读取值的指针
+
+    * value（写函数）：要写入的值
+
+    用法示例
+
+    1. 读取设备ID和厂商ID
+
+        ```c
+        u16 vendor_id, device_id;
+        struct pci_dev *pdev;
+
+        /* 获取pci_dev指针（通常通过PCI子系统获得） */
+
+        /* 读取厂商ID（偏移0x00） */
+        pci_read_config_word(pdev, PCI_VENDOR_ID, &vendor_id);
+
+        /* 读取设备ID（偏移0x02） */
+        pci_read_config_word(pdev, PCI_DEVICE_ID, &device_id);
+
+        printk(KERN_INFO "Device %04x:%04x\n", vendor_id, device_id);
+        ```
+
+    2. 写入配置寄存器
+
+        ```c
+        u16 command_reg;
+
+        /* 读取命令寄存器（偏移0x04） */
+        pci_read_config_word(pdev, PCI_COMMAND, &command_reg);
+
+        /* 设置总线主控位（bit 2） */
+        command_reg |= PCI_COMMAND_MASTER;
+
+        /* 写回命令寄存器 */
+        pci_write_config_word(pdev, PCI_COMMAND, command_reg);
+        ```
+
+    3. 检查函数返回值
+
+        ```c
+        int ret;
+        u16 data;
+
+        ret = pci_read_config_word(pdev, PCI_STATUS, &data);
+        if (ret) {
+            /* 处理错误：PCI配置空间访问失败 */
+            dev_err(&pdev->dev, "Failed to read PCI status\n");
+            return ret;
+        }
+        ```
+
+    相关函数家族
+
+    Linux内核提供了不同宽度的配置空间访问函数：
+
+    ```c
+    /* 字节访问 */
+    pci_read_config_byte()
+    pci_write_config_byte()
+
+    /* 字访问（16位） */
+    pci_read_config_word()
+    pci_write_config_word()
+
+    /* 双字访问（32位） */
+    pci_read_config_dword()
+    pci_write_config_dword()
+    ```
+
+    重要注意事项
+
+    * 偏移对齐：必须使用对齐的偏移（word访问需要2字节对齐）
+
+    * 并发安全：确保在访问PCI配置空间时持有适当的锁
+
+    * 错误处理：始终检查返回值（0表示成功）
+
+    * 内核上下文：只能在内核上下文中使用
+
+    * 设备使能：访问前设备必须已使能（pci_enable_device()）
+
+    典型使用场景
+
+    * 设备驱动初始化时识别硬件
+
+    * 配置中断和DMA设置
+
+    * 设置PCI电源管理状态
+
+    * 调试和诊断PCI设备问题
+
+    这些函数是Linux PCI子系统的基础API，为设备驱动程序提供了标准化的硬件访问接口。
+
+    **那我用 mmio 也可以完成这个函数的功能吧**
+
+    可以，但通常不应该这样做。让我详细解释：
+
+    直接使用MMIO访问PCI配置空间的限制
+
+    1. 架构依赖性
+
+        ```c
+        /* x86架构的传统方法（不推荐） */
+        unsigned int pci_config_read(int bus, int slot, int func, int offset) {
+            outl(0x80000000 | (bus << 16) | (slot << 11) | (func << 8) | offset, 0xCF8);
+            return inl(0xCFC);
+        }
+        ```
+
+        * x86专用：使用0xCF8/0xCFC I/O端口
+
+        * 其他架构不同：ARM、PowerPC、RISC-V等有自己的方法
+
+        * 违反内核抽象：绕过PCI子系统
+
+    2. 正确的MMIO访问配置空间的方法
+
+        实际上，PCI配置空间不是通过常规MMIO访问的，而是通过：
+
+        * x86：CONFIG_ADDRESS/CONFIG_DATA I/O端口 (0xCF8/0xCFC)
+
+        * PCIe/现代系统：ECAM (Enhanced Configuration Access Mechanism) 机制
+
+        * 非x86架构：各自平台的特定方法
+
+    比较两种方法
+
+    | 特性 | pci_read/write_config_*() | 直接MMIO/I/O |
+    | - | - | - |
+    | 可移植性 | ✅ 跨架构通用 | ❌ 架构相关 |
+    | 并发安全 | ✅ 内部处理锁 | ❌ 需要手动同步 |
+    | 电源管理 | ✅ 处理电源状态 | ❌ 设备可能处于低功耗 |
+    | 错误检查 | ✅ 验证设备状态 | ❌ 无错误检查 |
+    | 内核ABI稳定性 | ✅ 稳定接口 | ❌ 可能变化 |
+
+    实际使用场景的区别
+
+    场景1：访问配置空间 → 使用PCI配置函数
+
+    ```c
+    /* 正确方式：访问PCI配置寄存器 */
+    u16 vendor_id;
+    pci_read_config_word(pdev, PCI_VENDOR_ID, &vendor_id);
+
+    /* 错误方式：试图用MMIO访问配置空间 */
+    void __iomem *config_base = ioremap(...); /* 错误！无法这样映射配置空间 */
+    ```
+
+    场景2：访问设备内存/寄存器空间 → 使用MMIO
+
+    ```c
+    /* 正确方式：通过BAR访问设备内存 */
+    resource_size_t bar_addr = pci_resource_start(pdev, bar_num);
+    void __iomem *regs = ioremap(bar_addr, size);
+
+    /* 读写设备寄存器 */
+    u32 status = readl(regs + STATUS_OFFSET);
+    writel(command, regs + COMMAND_OFFSET);
+    ```
+
+    为什么不能互换使用？
+
+    PCI配置空间 vs 设备内存空间
+
+    ```text
+    PCI设备地址空间：
+    1. 配置空间 (Configuration Space)
+       ├── 256字节（传统）或4096字节（PCIe）
+       ├── 包含：设备ID、厂商ID、BAR、中断等
+       ├── 访问方式：专用机制（I/O端口或ECAM）
+       └── 使用函数：pci_read/write_config_*()
+
+    2. 内存/IO空间 (通过BAR映射)
+       ├── 设备寄存器、内存缓冲区等
+       ├── 映射到系统物理地址空间
+       ├── 访问方式：MMIO（内存映射I/O）
+       └── 使用函数：readl()/writel(), ioremap()
+    ```
+
+    唯一可能使用直接访问的场景
+
+    ```c
+    /* 特殊情况：在用户空间工具或特殊内核模块中 */
+    #ifdef CONFIG_X86
+    /* 直接I/O端口访问（仅x86，需要root权限） */
+    #include <sys/io.h>
+
+    unsigned long read_pci_config(unsigned char bus, unsigned char slot,
+                                  unsigned char func, unsigned char offset) {
+        unsigned long v;
+        unsigned int addr = 0x80000000 | (bus << 16) | (slot << 11) | (func << 8) | offset;
+        
+        iopl(3);  /* 获取I/O端口访问权限 */
+        outl(addr, 0xCF8);
+        v = inl(0xCFC);
+        iopl(0);  /* 恢复权限 */
+        return v;
+    }
+    #endif
+    ```
+
+    现代Linux的最佳实践
+
+    * 驱动程序开发：始终使用pci_read/write_config_*()函数族
+
+    * 用户空间工具：使用/sys/bus/pci/devices/或/proc/bus/pci/
+
+    * 诊断调试：使用lspci、setpci等工具
+
+    * 内核模块：通过PCI子系统API，不要绕过
+
+    ```bash
+    # 用户空间查看PCI配置
+    $ lspci -xxxx  # 显示原始配置空间
+    $ setpci -s 00:01.0 COMMAND=0x143  # 修改命令寄存器
+    ```
+
+    总结
+
+    不，不能用常规MMIO完成pci_read/write_config_word()的功能：
+
+    * PCI配置空间使用专用访问机制，不是普通内存
+
+    * 直接访问会破坏可移植性和安全性
+
+    * Linux PCI子系统已经提供了正确、稳定、跨平台的接口
+
+    除非你在写非常底层的架构特定代码或诊断工具，否则应该始终使用内核提供的PCI配置空间访问函数。
+
 * BAR 配置空间 都有哪些内容？
 
     好的，这是一个非常核心的计算机体系结构问题。BAR（Base Address Register，基址地址寄存器） 是PCI/PCIe设备配置空间中的关键部分，用于实现设备的内存映射和I/O端口映射。
@@ -9612,16 +9943,24 @@ Note: Instead of using user space application, you can use `echo` and `cat` comm
 ## ioctl
 
 There are many ways to Communicate between the Userspace and Kernel Space, they are:
-IOCTL
-Procfs
-Sysfs
-Configfs
-Debugfs
-Sysctl
-UDP Sockets
-Netlink Sockets
 
-IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.  The major use of this is in case of handling some specific operations of a device for which the kernel does not have a system call by default.
+* IOCTL
+
+* Procfs
+
+* Sysfs
+
+* Configfs
+
+* Debugfs
+
+* Sysctl
+
+* UDP Sockets
+
+* Netlink Sockets
+
+IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.
 
 Some real-time applications of ioctl are Ejecting the media from a “cd” drive, changing the Baud Rate of Serial port, Adjusting the Volume, Reading or Writing device registers, etc. We already have the write and read function in our device driver. But it is not enough for all cases.
 
@@ -9641,8 +9980,11 @@ There are some steps involved to use IOCTL.
     where IOX can be:
 
     * `IO`: an ioctl with no parameters
+
     * `IOW`: an ioctl with write parameters (copy_from_user)
+
     * `IOR`: an ioctl with read parameters (copy_to_user)
+
     * `IOWR`: an ioctl with both write and read parameters
 
     * The Magic Number is a unique number or character that will differentiate our set of ioctl calls from the other ioctl calls. some times the major number for the device is used here.

@@ -493,7 +493,7 @@
 
 * [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
 
-* [ ] 光强与光子流密度是什么关系？
+* [v] 光强与光子流密度是什么关系？
 
 * [ ] 调研 Computer algebra system
 
@@ -625,6 +625,10 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
+* { } reorg: restricted
+
+* [v] reorg: restricted  02.02
+
 * [O] CUDA Core Compute Libraries (CCCL)
 
     <https://github.com/nvidia/cccl>
@@ -664,8 +668,6 @@ english words 由 { } reorg: english words 进化而来。
 * { } reorg: projects
 
 * { } reorg: documents
-
-* { } reorg: restricted
 
 * { } windows 文件整理
 
@@ -959,7 +961,46 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] `let [lnum2, col2] = getpos("'>")[1:2]`
+* [ ] `grep drm_suballoc /proc/kallsyms`
+
+* [ ] 确保正确的内核配置
+
+    ```bash
+    # 检查内核配置中是否启用了 DRM 子分配器
+    zcat /proc/config.gz | grep CONFIG_DRM_GPUVA_MGR
+    # 或
+    grep CONFIG_DRM_GPUVA_MGR /boot/config-$(uname -r)
+    ```
+
+* [ ] 强制正确的模块依赖顺序
+
+    ```bash
+    # 在 /etc/modules-load.d/ 中确保先加载 DRM 相关模块
+    echo "drm" | sudo tee -a /etc/modules-load.d/drm.conf
+
+    # 或使用 modprobe 显式指定依赖
+    sudo modprobe drm
+    sudo modprobe sipu
+    ```
+
+* [ ] 如果使用 DKMS
+
+    ```bash
+    # 重新注册和构建 DKMS 模块
+    sudo dkms remove sipu/version -k $(uname -r)
+    sudo dkms add /path/to/sipu
+    sudo dkms build sipu/version -k $(uname -r)
+    sudo dkms install sipu/version -k $(uname -r)
+    ```
+
+* [ ] 忽略缺失的符号
+
+    ```bash
+    # 忽略缺失的符号（有风险）
+    sudo insmod /path/to/sipu.ko allow_unsupported=1
+    ```
+
+* [v] `let [lnum2, col2] = getpos("'>")[1:2]`
 
 * [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
 
@@ -1393,8 +1434,6 @@ english words 由 { } reorg: english words 进化而来。
     // 启用设备
     pci_enable_device(vpdev);
     ```
-
-* [v] 调研`/var/log/syslog`, `/var/log/messages`
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
@@ -1878,9 +1917,9 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] matlab `jsondecode()`
+* [v] matlab `jsondecode()`
 
-* [ ] 调研 matlab 命令
+* [v] 调研 matlab 命令
 
     ```matlab
     rehash toolboxcache
@@ -1988,7 +2027,7 @@ resources:
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
-* [ ] `torch.allclose`
+* [v] `torch.allclose`
 
 * [ ] 关键阈值：秩（Rank）
 
@@ -2062,7 +2101,7 @@ resources:
 
 * [O] 稀疏矩阵如何加速矩阵乘？
 
-* [ ] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
+* [v] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
 
 * [O] PyTorch Functional Transforms for Computer Vision
 
@@ -2234,11 +2273,11 @@ resources:
 
     ~ 18:03
 
-* [ ] `fig.add_subplot(111, projection='3d')`
+* [v] `fig.add_subplot(111, projection='3d')`
 
 * [ ] 调研 matplotlib 基本和常见的 example
 
-* [ ] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
+* [v] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
 
 * [ ] `fig.colorbar(surf)`
 
@@ -2637,7 +2676,7 @@ resources:
 
 * [asso] `devm_device_add_groups()`
 
-* [ ] `pci_write_config_word()`, `pci_read_config_word()`
+* [v] `pci_write_config_word()`, `pci_read_config_word()`
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 

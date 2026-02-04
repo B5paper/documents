@@ -2,6 +2,281 @@
 
 ## cache
 
+* vim surround repo: <https://github.com/tpope/vim-surround>
+
+* ysiw" 为当前单词添加双引号。这个如何理解？
+
+    ysiw" 是 vim-surround 插件的一个组合命令，分解理解如下：
+
+    命令结构
+
+    ```text
+    ys i w "
+    ┃  ┃ ┃ ┃
+    ┃  ┃ ┃ └ 要添加的符号（这里是双引号）
+    ┃  ┃ └─── 范围选择器（w = word，单词）
+    ┃  └───── 内部文本对象（i = inner，内部的）
+    └──────── 操作符（ys = you surround，添加环绕）
+    ```
+
+    详细解释
+
+    1. ys
+
+        * y 代表 “you”（插件中的记忆方式，表示“添加环绕”）
+
+        * s 代表 “surround”
+
+        * 整体表示：我要给某个东西添加环绕符号
+
+    2. iw
+
+        * 这是 Vim 的 文本对象 语法
+
+        * i 表示 inner（内部，不包含周围空格）
+
+        * w 表示 word（单词）
+
+        * iw 合起来表示：光标所在的整个单词（不含周围空格）
+
+    举例：
+
+    文本 Hello, world!
+
+    光标在 world 上时，iw 会选择 world（不包括前后的逗号或空格）
+
+    3. "
+
+        * 要添加的环绕符号
+
+        * 插件会自动匹配成对的符号：" → ""，( → ()，[ → [] 等
+
+    执行效果
+
+    假设光标在单词 apple 上：
+
+    ```text
+    apple
+         ↓ 执行 ysiw"
+    "apple"
+    ```
+
+    类似用法
+
+    * ysiw( → (apple)
+
+    * ysiw[ → [apple]
+
+    * ysiw' → 'apple'
+
+    * ysiwt → <apple>（标签需要指定名称）
+
+    记忆技巧
+
+    * ys = “你包围”（添加环绕）
+
+    * ds = “删除包围”
+
+    * cs = “改变包围”
+
+    * iw = “内部单词”（常用文本对象）
+
+    * aw = “一个单词”（包含周围空格）
+
+    更直观的替代
+
+    如果觉得 ysiw" 太长，可以：
+
+    * 先按 viw 选中单词
+
+    * 再按 S"（Visual 模式下 S + 符号）
+
+    两者效果相同，但 ysiw" 更快捷，不需要进入 Visual 模式。
+
+    注：
+
+    1. vim-surround 没法加双星号 `**`，感觉整体的功能不灵活也不好用。
+
+* 简述 vim-srounding 的用法
+
+    vim-surrounding 一般指 vim-surround 插件，它是 Vim 中处理“环绕符号”的强大工具。以下是其核心用法：
+
+    基本操作
+
+    * ds + 符号：删除环绕符号
+
+        例如：ds" 删除双引号。
+
+    * cs + 旧符号 + 新符号：替换环绕符号
+
+        例如：cs"' 将双引号替换为单引号。
+
+    * ys + 范围 + 符号：添加环绕符号
+
+        例如：ysiw" 为当前单词添加双引号。
+
+    * S（Visual 模式） + 符号：为选中文本添加环绕符号
+
+        例如：选中文本后按 S( 添加括号。
+
+    常用符号
+
+    * (、)、[、]、{、}
+
+    * "、'、`
+
+    * HTML/XML 标签：t（如 cst<p> 替换标签）
+
+    * 自定义符号（如 #、_ 等）
+
+    高级用法
+
+    * 点操作符 .：重复上一次 surround 操作。
+
+    * 嵌套修改：cs 和 ds 支持多层符号。
+
+    * HTML 标签：
+
+        * cst + 标签名：修改标签类型。
+
+        * dst：删除标签，保留内容。
+
+    * 可视块模式：选中多行后按 S 批量添加符号。
+
+    示例
+
+    ```vim
+    " Hello world!"  
+    光标在文本内，按 `cs"!` → "Hello world!" 替换为 !Hello world!  
+
+    选中单词后按 `S(` → (Hello)
+    ```
+
+    安装
+
+    * Vim 8+ / Neovim 插件管理器：
+
+        Plug 'tpope/vim-surround'（vim-plug）
+
+        packadd! vim-surround（内置包管理）
+
+    掌握后可以极大提升编辑配对符号（引号、括号、标签等）的效率。
+
+* vim 的函数可以返回多个值？
+
+    不，Vim 函数不能直接返回多个值。这里涉及的是 Vim 脚本的列表解构赋值特性，不是真正的多返回值。
+
+    让我详细解释：
+
+    1. Vim 函数返回单个值
+
+        Vim 函数总是返回单个值，这个值可以是：
+
+        * 数字、字符串
+
+        * 列表（List）
+
+        * 字典（Dictionary）
+
+    2. getpos() 实际上返回一个列表
+
+        ```vim
+        " getpos() 返回的是包含 4 个元素的列表
+        let pos = getpos("'>")
+        echo pos  " 输出类似: [0, 15, 3, 0]
+
+        " 列表的 4 个元素分别是:
+        " pos[0] - 缓冲区号 (0 表示当前缓冲区)
+        " pos[1] - 行号
+        " pos[2] - 列号 (从 1 开始)
+        " pos[3] - 屏幕列偏移 (用于处理制表符等)
+        ```
+
+    3. 列表切片和多重赋值
+
+        ```vim
+        " 方法1: 先获取整个列表，再分别提取
+        let pos = getpos("'>")
+        let lnum2 = pos[1]
+        let col2 = pos[2]
+
+        " 方法2: 使用列表切片获取子列表
+        let sublist = getpos("'>")[1:2]  " 返回 [行号, 列号]
+
+        " 方法3: 列表解构赋值 (你例子中的写法)
+        let [lnum2, col2] = getpos("'>")[1:2]
+        " 这其实是两步:
+        " 1. getpos("'>")[1:2] 返回一个列表，比如 [15, 3]
+        " 2. let [a, b] = [15, 3] 将列表元素分别赋给变量
+        ```
+
+    4. 模拟多返回值的常见模式
+
+        虽然不能真正返回多个值，但可以通过这些方式模拟：
+
+        模式1：返回列表
+
+        ```vim
+        function! GetPosition()
+            let pos = getpos("'>")
+            return [pos[1], pos[2]]  " 返回包含两个值的列表
+        endfunction
+
+        let [line, col] = GetPosition()
+        ```
+
+        模式2：返回字典
+
+        ```vim
+        function! GetPositionDict()
+            let pos = getpos("'>")
+            return {'line': pos[1], 'col': pos[2]}
+        endfunction
+
+        let pos = GetPositionDict()
+        echo pos.line
+        echo pos.col
+        ```
+
+        模式3：通过参数引用修改（类似输出参数）
+
+        ```vim
+        function! GetPositionRef(line_var, col_var)
+            let pos = getpos("'>")
+            execute "let " . a:line_var . " = " . pos[1]
+            execute "let " . a:col_var . " = " . pos[2]
+        endfunction
+
+        call GetPositionRef("line_num", "col_num")
+        echo line_num
+        echo col_num
+        ```
+
+    5. 其他支持列表解构的场景
+
+        ```vim
+        " 多个变量从列表赋值
+        let [a, b, c] = [1, 2, 3]
+
+        " 配合 range() 函数
+        let [first, second] = range(1, 10)[0:1]
+
+        " 字符串分割后解构
+        let [name, version] = split('vim-8.2', '-')
+        ```
+
+    总结：
+
+    你的代码 let [lnum2, col2] = getpos("'>")[1:2] 实际上是：
+
+    * getpos() 返回一个列表
+
+    * [1:2] 切片提取部分元素得到另一个列表
+
+    * 使用列表解构语法将列表元素分别赋给两个变量
+
+    这不是真正的多返回值，而是 Vim 脚本的语法糖，让列表赋值更简洁。Python 等语言也有类似的解构赋值特性。
+
 * 简述 vim 中 getpos() 的原型、作用和用法
 
     getpos() 函数

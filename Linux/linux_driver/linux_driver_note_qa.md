@@ -287,8 +287,6 @@ Syntax:
 int m_open(struct inode *inode, struct file *file_ptr);
 ```
 
-（目前两个参数都用不到，所以不知道是啥意思）
-
 [unit]
 [idx]
 8

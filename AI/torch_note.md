@@ -2,6 +2,106 @@
 
 ## cache
 
+* `torch.allclose()`
+
+    torch.allclose 是 PyTorch 中用于判断两个张量是否在给定容忍度范围内接近相等的函数。
+
+    原型
+
+    ```python
+    torch.allclose(input, other, rtol=1e-05, atol=1e-08, equal_nan=False)
+    ```
+
+    参数说明
+
+    * input (Tensor): 第一个张量
+
+    * other (Tensor): 第二个张量
+
+    * rtol (float): 相对容忍度，默认 1e-05
+
+    * atol (float): 绝对容忍度，默认 1e-08
+
+    * equal_nan (bool): 是否将 NaN 视为相等，默认 False
+
+    作用
+
+    判断两个张量是否满足以下条件：
+
+    ```text
+    abs(input - other) ≤ atol + rtol * abs(other)
+    ```
+
+    对于所有元素都成立时返回 True，否则返回 False。
+
+    用法示例
+
+    基本使用
+
+    ```python
+    import torch
+
+    # 创建两个接近的张量
+    a = torch.tensor([1.0, 2.0, 3.0])
+    b = torch.tensor([1.00001, 2.00001, 3.00001])
+
+    # 判断是否接近
+    result = torch.allclose(a, b, rtol=1e-4)  # True
+    print(result)  # True
+    ```
+
+    设置容忍度
+
+    ```python
+    x = torch.tensor([100.0, 200.0])
+    y = torch.tensor([100.1, 200.1])
+
+    # 绝对容忍度
+    result1 = torch.allclose(x, y, atol=0.2)  # True
+    # 相对容忍度
+    result2 = torch.allclose(x, y, rtol=1e-3)  # True
+    ```
+
+    NaN 处理
+
+    ```python
+    import torch
+
+    a = torch.tensor([1.0, float('nan'), 3.0])
+    b = torch.tensor([1.0, float('nan'), 3.0])
+
+    result1 = torch.allclose(a, b)  # False (默认 equal_nan=False)
+    result2 = torch.allclose(a, b, equal_nan=True)  # True
+    ```
+
+    与 torch.equal 的区别
+
+    ```python
+    a = torch.tensor([1.0, 2.0])
+    b = torch.tensor([1.000001, 2.000001])
+
+    print(torch.equal(a, b))      # False (严格相等)
+    print(torch.allclose(a, b))   # True (在容忍度范围内)
+    ```
+
+    应用场景
+
+    * 数值比较：比较浮点数计算结果
+
+    * 模型测试：验证模型输出是否符合预期
+
+    * 梯度检查：比较梯度值是否接近
+
+    * 单元测试：验证张量运算的正确性
+
+    注意事项
+
+    * 两个张量必须有相同的形状
+
+    * 主要用于浮点数比较，整数类型会比较严格
+
+    * rtol 和 atol 可以同时起作用，满足其中一个条件即可
+
 * pytorch 中 dataloader 在打包 batch 时，如何返回 list 类型，而不是 tensor 类型？
 
     在PyTorch的DataLoader中，默认情况下会将batch数据转换为Tensor。如果你需要返回list类型而不是Tensor类型，有以下几种方法：
