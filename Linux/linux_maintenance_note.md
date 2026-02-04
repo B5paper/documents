@@ -6,6 +6,154 @@
 
 ## cache
 
+* 简述 linux 中 bear 的用法
+
+    bear 是一个用于生成编译数据库（compile_commands.json）的工具，它通过拦截 make、cmake 等构建命令的编译过程，自动记录编译每个源文件时使用的编译命令和参数。
+
+    主要功能
+
+    * 生成 compile_commands.json 文件
+
+    * 支持多种构建系统（Make、CMake、Autotools等）
+
+    * 便于与代码分析工具（如clangd、clang-tidy）配合使用
+
+    基本用法
+
+    1. 安装 Bear
+
+        ```bash
+        # Ubuntu/Debian
+        sudo apt install bear
+
+        # Fedora/RHEL
+        sudo dnf install bear
+
+        # macOS
+        brew install bear
+        ```
+
+    2. 基本命令格式
+
+        ```bash
+        bear -- <build-command>
+        ```
+
+    3. 常见使用场景
+
+        配合 make 使用：
+
+        ```bash
+        bear -- make
+        bear -- make -j4          # 支持并行编译
+        ```
+
+        配合 CMake 使用：
+
+        ```bash
+        mkdir build && cd build
+        bear -- cmake ..
+        bear -- make
+        # 或者简化为
+        bear -- cmake --build .
+        ```
+
+        配合 Autotools：
+
+        ```bash
+        bear -- ./configure
+        bear -- make
+        ```
+
+    4. 输出文件
+
+        默认在当前目录生成 compile_commands.json，包含每个编译单元的命令、参数、目录等信息。
+
+    常用选项
+
+    ```bash
+    # 指定输出文件
+    bear --output compile_commands.json -- make
+
+    # 追加到现有文件（而不是覆盖）
+    bear --append -- make
+
+    # 使用特定编译器包装器
+    bear --use-cc <compiler-wrapper> -- make
+
+    # 详细输出模式
+    bear --verbose -- make
+    ```
+
+    实际应用示例
+
+    为现有项目生成编译数据库
+
+    ```bash
+    cd /path/to/project
+    make clean                # 清理旧的构建
+    bear -- make              # 重新构建并记录
+    ```
+
+    配合代码分析工具
+
+    ```bash
+    # 1. 生成编译数据库
+    bear -- make
+
+    # 2. 使用 clang-tidy 进行代码检查
+    clang-tidy -p . src/*.cpp
+
+    # 3. 为 clangd 等语言服务器提供编译信息
+    # （clangd 会自动查找 compile_commands.json）
+    ```
+
+    处理复杂构建系统
+
+    ```bash
+    # 多层目录结构
+    bear -- sh -c "cd src && make && cd ../lib && make"
+
+    # 指定构建目录
+    cd build
+    bear -- make -C .. -j8
+    ```
+
+    注意事项
+
+    * 完整构建：为了捕获所有编译命令，最好执行完整的构建（make clean 后重新构建）
+
+    * 并行构建：Bear 支持 make -jN，但可能需要调整文件锁机制
+
+        ```bash
+        bear -- make -j4
+        ```
+
+    * 环境变量：某些构建系统可能依赖特定环境变量，确保在正确环境中运行
+
+    * 输出位置：某些工具期望 compile_commands.json 在项目根目录或构建目录
+
+    替代方案
+
+    如果 bear 不适用，可以考虑：
+
+    * CMake: 使用 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    * Bazel: 使用 bazel build --experimental_action_listener=...
+
+    * compiledb: Python 实现的类似工具
+
+    验证生成结果
+
+    ```bash
+    # 检查生成的 JSON 文件
+    cat compile_commands.json | jq '.[0]'  # 需要安装 jq
+    # 或直接查看
+    head -20 compile_commands.json
+    ```
+
+    Bear 极大地简化了为现有项目配置语言服务器和静态分析工具的过程，是 C/C++ 开发工作流中很有用的工具。
+
 * `grep -w`
 
     grep -w 是 grep 命令的一个常用选项，用于精确匹配整个单词，而不是单词的一部分。

@@ -36,6 +36,22 @@
 
 ## cache
 
+* 长期任务`{ } xxx`是不是只需要在下面标注日期就可以了？
+
+    比如：
+
+    ```
+    * { } xxx
+
+        * 02.01  30 mins
+
+            feedback:
+
+            * [ ] yyy
+
+        * 02.02  30 mins
+    ```
+
 * 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
 
     在不同编程语言中，实现子线程 stdout 重定向到父程序缓冲区的方法不同。以下是几种常见语言的实现方案：
@@ -626,6 +642,8 @@ english words 由 { } reorg: english words 进化而来。
 ### tasks
 
 * { } reorg: restricted
+
+    * 02.03  30 mins
 
 * [v] reorg: restricted  02.02
 
