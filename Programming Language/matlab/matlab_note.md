@@ -1,5 +1,1205 @@
 # Matlab Note
 
+* matlab `deal()`
+
+    deal() 函数详解
+
+    1. 函数原型
+
+        ```matlab
+        [Y1, Y2, ..., Yn] = deal(X)
+        [Y1, Y2, ..., Yn] = deal(X1, X2, ..., Xn)
+        ```
+
+    2. 基本作用
+
+        deal() 的主要作用是分配输入到多个输出，特别是在需要同时给多个变量赋值的场景。
+
+    3. 两种主要用法
+
+        用法1：复制相同的值到多个输出
+
+        ```matlab
+        % 所有输出变量获得相同的值
+        [a, b, c] = deal(10);
+        % 结果：a = 10, b = 10, c = 10
+
+        % 在结构体或元胞数组中很有用
+        S = struct('name', {'Alice', 'Bob'}, 'age', {25, 30});
+        [name1, name2] = deal(S.name);
+        % name1 = 'Alice', name2 = 'Bob'
+        ```
+
+        用法2：分配不同的值到对应的输出
+
+        ```matlab
+        % 输入输出一一对应
+        [x, y, z] = deal(1, 2, 3);
+        % 结果：x = 1, y = 2, z = 3
+
+        % 相当于：
+        % x = 1;
+        % y = 2;
+        % z = 3;
+        ```
+
+    4. 在匿名函数中的特殊用途
+
+        在匿名函数中，deal() 是实现多输出匿名函数的唯一方式：
+
+        ```matlab
+        % 普通匿名函数只能返回一个值
+        singleOut = @(x) x^2;  % 只能返回一个值
+
+        % 使用 deal() 实现多输出
+        multiOut = @(x) deal(x^2, x^3, sqrt(x));
+        [a, b, c] = multiOut(4);
+        % a = 16, b = 64, c = 2
+        ```
+
+    5. 实际应用示例
+
+        示例1：交换变量值
+
+        ```matlab
+        a = 1; b = 2;
+        [a, b] = deal(b, a);  % 交换 a 和 b
+        % 结果：a = 2, b = 1
+        ```
+
+        示例2：结构体字段批量提取
+
+        ```matlab
+        students(1) = struct('name', 'Alice', 'score', 85);
+        students(2) = struct('name', 'Bob', 'score', 92);
+
+        % 提取所有学生的分数
+        [score1, score2] = deal(students.score);
+        % score1 = 85, score2 = 92
+        ```
+
+        示例3：处理函数输出
+
+        ```matlab
+        % 某些函数返回多输出，但中间需要处理
+        [minVal, maxVal] = minmax([1 5 3 8 2]);
+
+        % 如果需要存储所有极值信息
+        [val, idx] = min([1 5 3 8 2]);
+        [minInfo, maxInfo] = deal([val, idx], max([1 5 3 8 2]));
+        ```
+
+        示例4：元胞数组操作
+
+        ```matlab
+        C = {'apple', 'banana', 'cherry'};
+        [first, second, third] = deal(C{:});
+        % first = 'apple', second = 'banana', third = 'cherry'
+        ```
+
+    6. 注意事项
+
+        * 输入输出数量必须匹配（用法2时）：
+
+            ```matlab
+            % 错误：输入输出数量不匹配
+            [a, b, c] = deal(1, 2);  % 报错
+            ```
+
+        * 在匿名函数中是必要的：
+
+            * 没有 deal()，匿名函数只能返回一个值
+
+        * 对于简单赋值，直接赋值更高效：
+
+            ```matlab
+            % 使用 deal()
+            [a, b, c] = deal(1, 2, 3);
+
+            % 更高效的直接赋值
+            a = 1; b = 2; c = 3;
+            ```
+
+    7. 替代方案对比
+
+        ```matlab
+        % 方法1：使用 deal()
+        [x, y, z] = deal(a, b, c);
+
+        % 方法2：直接赋值（更推荐，性能更好）
+        x = a;
+        y = b;
+        z = c;
+
+        % 方法3：使用元胞扩展（特定场景）
+        results = num2cell([a, b, c]);
+        [x, y, z] = results{:};
+        ```
+
+    总结
+
+    deal() 主要在两个场景中特别有用：
+
+    * 匿名函数中实现多输出
+
+    * 批量处理结构体或元胞数组数据
+
+    在其他大多数情况下，直接赋值是更简单高效的选择。
+
+    **简述 matlab 中 getTwoValues = @(x) deal(x^2, x^3); 的含义**
+
+    在 MATLAB 中，getTwoValues = @(x) deal(x^2, x^3); 是一个匿名函数的定义，具体含义如下：
+
+    1. 整体含义
+
+        创建一个名为 getTwoValues 的函数句柄，该函数：
+
+        * 接受一个输入参数 x
+
+        * 同时返回两个输出：x² 和 x³
+
+    2. 关键元素解析
+
+        @(x)
+
+        * 定义匿名函数的语法
+
+        * x 是输入参数
+
+        deal(x^2, x^3)
+
+        * deal() 是 MATLAB 函数，用于将多个输出分配给不同的变量
+
+        * 这里指定函数返回两个值：x^2 和 x^3
+
+    3. 使用示例
+
+        ```matlab
+        % 调用函数并接收两个输出
+        [a, b] = getTwoValues(3)
+
+        % 结果：
+        % a = 9  (3²)
+        % b = 27 (3³)
+
+        % 如果只接收一个输出，会得到第一个值
+        c = getTwoValues(2)  % c = 4
+
+        % 调用示例
+        [x2, x3] = getTwoValues(5);  % x2=25, x3=125
+        ```
+
+    4. 相当于传统函数定义
+
+        ```matlab
+        function [y1, y2] = getTwoValues(x)
+            y1 = x^2;
+            y2 = x^3;
+        end
+        ```
+
+        但匿名函数更简洁，适合简单的单行函数定义。
+
+    5. 应用场景
+
+        * 需要快速定义简单函数
+
+        * 作为参数传递给其他函数（如 fplot、arrayfun）
+
+        * 临时计算，无需创建单独的 .m 文件
+
+    这种语法在 MATLAB 中常用于创建简洁的多输出函数。
+
+* 简述 matlab 中 shading() 的原型、作用及用法
+
+    shading() 是 MATLAB 中用于控制曲面和补片图形颜色着色的函数。
+
+    原型
+
+    ```matlab
+    shading(style)
+    ```
+
+    主要作用
+
+    控制曲面 (surf, mesh 等) 和补片 (patch) 图形的着色方式，即如何用颜色填充图形表面。
+
+    三种着色样式
+
+    1. shading flat
+
+        * 特点：每个网格面片使用单一均匀颜色
+
+        * 颜色依据：使用面片最后一个顶点的颜色值
+
+        * 效果：面片间有明显边界，没有平滑过渡
+
+    2. shading faceted（默认）
+
+        * 特点：flat 的基础上添加黑色网格线
+
+        * 效果：清晰显示网格结构，最常用
+
+    3. shading interp
+
+        * 特点：在网格点之间进行颜色插值
+
+        * 效果：颜色平滑过渡，外观最光滑
+
+    用法示例
+
+    ```matlab
+    % 创建示例曲面
+    [X,Y,Z] = peaks(30);
+
+    % 绘制曲面
+    subplot(1,3,1)
+    surf(X,Y,Z)
+    shading flat
+    title('flat 着色')
+
+    subplot(1,3,2)
+    surf(X,Y,Z)
+    shading faceted
+    title('faceted 着色（默认）')
+
+    subplot(1,3,3)
+    surf(X,Y,Z)
+    shading interp
+    title('interp 着色')
+    ```
+
+    高级用法
+
+    ```matlab
+    % 结合光照效果
+    figure
+    surf(peaks)
+    shading interp
+    light
+    lighting gouraud  % 配合 shading interp 效果更好
+
+    % 对不同子图应用不同着色
+    figure
+    ax1 = subplot(1,2,1);
+    surf(peaks(20))
+    shading(ax1, 'flat')
+
+    ax2 = subplot(1,2,2);
+    surf(peaks(20))
+    shading(ax2, 'interp')
+    ```
+
+    注意事项
+
+    * 生效对象：只影响当前坐标区 (gca)
+
+    * 与 colormap 关系：配合使用，colormap 定义颜色映射，shading 控制着色方式
+
+    * 性能考虑：interp 计算量最大，flat 和 faceted 较轻量
+
+    * 透明度支持：如果设置了 FaceAlpha，所有着色方式都支持透明度
+
+    典型应用场景
+
+    * 科学可视化：faceted 清晰显示数据网格
+
+    * 渲染效果：interp 用于平滑表面渲染
+
+    * 快速预览：flat 用于快速数据检查
+
+    shading 是 MATLAB 三维可视化中调整图形外观的重要工具，可根据需要选择不同平衡（清晰度 vs 平滑度 vs 性能）。
+
+* matlab spy() 函数
+
+    原型
+
+    ```matlab
+    spy(S)
+    spy(S, markersize)
+    spy(S, LineSpec)
+    spy(S, LineSpec, markersize)
+    spy(ax, ___)
+    ```
+
+    作用
+
+    可视化稀疏矩阵的非零元素模式，常用于分析矩阵结构、填充模式、连接性等。
+
+    用法示例
+
+    ```matlab
+    % 创建稀疏矩阵
+    S = bucky;  % Bucky 球邻接矩阵
+
+    % 基本用法
+    figure
+    subplot(2,2,1)
+    spy(S)
+    title('默认显示')
+
+    % 控制标记大小
+    subplot(2,2,2)
+    spy(S, 10)  % 标记大小为10
+    title('标记大小=10')
+
+    % 使用线条规范
+    subplot(2,2,3)
+    spy(S, 'r*', 8)  % 红色星号，大小8
+    title('红色星号标记')
+
+    % 获取额外信息
+    subplot(2,2,4)
+    spy(S)
+    [nz, rows, cols] = find(S);
+    title(sprintf('非零元素数: %d', nnz(S)))
+
+    % 分析矩阵结构
+    A = delsq(numgrid('S', 30));  % 有限差分矩阵
+    figure
+    spy(A)
+    title('有限差分矩阵结构')
+    ```
+
+    典型应用
+
+    * 矩阵结构分析
+
+        ```matlab
+        % 带状矩阵分析
+        B = diag(ones(50,1)) + diag(ones(49,1),1) + diag(ones(49,1),-1);
+        spy(B)
+        title('三对角矩阵')
+        ```
+
+    * 稀疏模式比较
+
+    ```matlab
+    % 比较不同填充策略
+    load west0479
+    figure
+    subplot(1,3,1)
+    spy(west0479)
+    title('原始矩阵')
+
+    subplot(1,3,2)
+    spy(chol(west0479))
+    title('Cholesky分解后')
+
+    subplot(1,3,3)
+    [p,~,~] = colamd(west0479);
+    spy(west0479(p,p))
+    title('列重排序后')
+    ```
+
+* histogram() 函数
+
+    原型
+
+    ```matlab
+    histogram(X)
+    histogram(X, nbins)
+    histogram(X, edges)
+    histogram(ax, ___)
+    h = histogram(___)
+    ```
+
+    作用
+
+    创建数据的直方图，用于可视化数据分布、频率统计。
+
+    主要属性控制
+
+    ```matlab
+    % 基本用法示例
+    figure
+
+    % 1. 默认直方图
+    subplot(2,3,1)
+    data = randn(1000,1);
+    histogram(data)
+    title('默认直方图')
+
+    % 2. 指定箱数
+    subplot(2,3,2)
+    histogram(data, 30)  % 30个箱子
+    title('30个箱子')
+
+    % 3. 指定边界
+    subplot(2,3,3)
+    edges = -4:0.5:4;
+    histogram(data, edges)
+    title('指定边界')
+
+    % 4. 归一化
+    subplot(2,3,4)
+    histogram(data, 'Normalization', 'pdf')
+    title('概率密度')
+
+    % 5. 显示样式
+    subplot(2,3,5)
+    histogram(data, 'FaceColor', 'g', 'EdgeColor', 'k', 'FaceAlpha', 0.7)
+    title('自定义颜色')
+
+    % 6. 水平直方图
+    subplot(2,3,6)
+    histogram(data, 'Orientation', 'horizontal')
+    title('水平直方图')
+    ```
+
+    高级用法
+
+    ```matlab
+    % 1. 多个数据集比较
+    figure
+    data1 = randn(1000,1);
+    data2 = randn(1000,1) * 0.8 + 1;
+    histogram(data1, 'FaceAlpha', 0.5, 'Normalization', 'probability')
+    hold on
+    histogram(data2, 'FaceAlpha', 0.5, 'Normalization', 'probability')
+    legend('数据集1', '数据集2')
+    title('分布比较')
+
+    % 2. 获取统计信息
+    h = histogram(data);
+    counts = h.Values;      % 每个箱的计数
+    edges = h.BinEdges;     % 箱边界
+    binCenters = (edges(1:end-1) + edges(2:end)) / 2;
+
+    % 3. 累积分布
+    figure
+    histogram(data, 'Normalization', 'cdf')
+    title('累积分布函数')
+
+    % 4. 分组数据
+    figure
+    load carsmall
+    histogram(MPG, 'BinMethod', 'auto')
+    xlabel('MPG')
+    ylabel('频数')
+    title('汽车MPG分布')
+
+    % 5. 箱宽控制
+    figure
+    subplot(1,2,1)
+    histogram(data, 'BinWidth', 0.2)
+    title('箱宽=0.2')
+
+    subplot(1,2,2)
+    histogram(data, 'BinLimits', [-2, 2])
+    title('限制范围[-2,2]')
+    ```
+
+    属性选项总结
+
+    | 属性 | 说明 | 示例值 |
+    | - | - | - |
+    | NumBins | 箱数 | 20 |
+    | BinWidth | 箱宽度 | 0.5 |
+    | BinEdges | 箱边界 | [-3:0.5:3] |
+    | Normalization | 归一化方式 | 'count', 'probability', 'pdf', 'cdf' |
+    | FaceColor | 填充颜色 | 'r', [0.5 0.5 0.5] |
+    | EdgeColor | 边界颜色 | 'k', 'none' |
+    | FaceAlpha | 透明度 | 0.5 |
+    | Orientation | 方向 | 'vertical', 'horizontal' |
+    | DisplayStyle | 显示样式 | 'bar', 'stairs' |
+
+    典型应用场景
+
+    * 数据分布分析：查看数据是否符合正态分布等
+
+    * 异常值检测：识别分布边缘的异常点
+
+    * 数据比较：多个数据集分布对比
+
+    * 质量控制：监控过程数据的稳定性
+
+    * 图像处理：图像灰度直方图分析
+
+* camlight() 函数
+
+    原型
+
+    ```matlab
+    camlight
+    camlight(az, el)
+    camlight(light_handle, ...)
+    camlight(..., style)
+    light_handle = camlight(...)
+    ```
+
+    作用
+
+    创建与相机位置相关联的光源，使三维图形在不同视角下都有良好的照明效果。
+
+    用法示例
+
+    ```matlab
+    % 创建三维曲面
+    [x,y,z] = sphere(50);
+    figure
+    surf(x,y,z, 'FaceAlpha', 0.8)
+    axis equal
+
+    % 1. 默认相机灯
+    subplot(2,2,1)
+    surf(x,y,z)
+    camlight  % 默认：右上方45度
+    title('默认 camlight')
+
+    % 2. 指定方位角和高程角
+    subplot(2,2,2)
+    surf(x,y,z)
+    camlight(30, 60)  % az=30°, el=60°
+    title('az=30°, el=60°')
+
+    % 3. 不同样式
+    subplot(2,2,3)
+    surf(x,y,z)
+    camlight('left')  % 左侧光
+    title('左侧光')
+
+    subplot(2,2,4)
+    surf(x,y,z)
+    camlight('right', 'infinite')  % 右侧无限远光
+    title('右侧无限远光')
+    ```
+
+    光源样式
+
+    ```matlab
+    figure
+    % local 样式：点光源，随距离衰减
+    subplot(1,2,1)
+    surf(peaks)
+    camlight(45, 30, 'local')
+    lighting gouraud
+    title('local 点光源')
+
+    % infinite 样式：平行光，无衰减
+    subplot(1,2,2)
+    surf(peaks)
+    camlight(45, 30, 'infinite')
+    lighting gouraud
+    title('infinite 平行光')
+    ```
+
+    高级用法
+
+    ```matlab
+    % 动态更新光源
+    figure
+    surf(peaks)
+    camlight('headlight')  % 头灯光
+    title('使用方向键旋转，光源跟随相机')
+
+    % 多个光源
+    figure
+    [x,y,z] = sphere;
+    surf(x,y,z, 'FaceColor', 'y', 'EdgeColor', 'none')
+    camlight('left')
+    camlight('right')
+    lighting gouraud
+    material shiny
+    ```
+
+* set() 函数
+
+    原型
+
+    ```matlab
+    set(H, Name, Value)
+    set(H, NameArray, ValueArray)
+    set(H, S)
+    set(H)
+    A = set(H)
+    ```
+
+    作用
+
+    设置图形对象属性，是MATLAB图形系统的核心函数之一。
+
+    用法示例
+
+    ```matlab
+    % 创建图形
+    x = 0:0.1:2*pi;
+    y = sin(x);
+
+    figure
+    h_plot = plot(x, y);
+
+    % 1. 设置单个属性
+    set(h_plot, 'LineWidth', 2)
+
+    % 2. 设置多个属性
+    set(h_plot, 'Color', 'r', 'LineStyle', '--', 'Marker', 'o')
+
+    % 3. 使用结构体设置
+    props.LineWidth = 3;
+    props.MarkerSize = 8;
+    props.MarkerFaceColor = 'g';
+    set(h_plot, props)
+
+    % 4. 获取可用属性列表
+    prop_list = set(h_plot);
+
+    % 5. 设置坐标轴属性
+    set(gca, 'FontSize', 12, 'GridLineStyle', '-')
+    ```
+
+    常见图形对象属性设置
+
+    ```matlab
+    figure
+
+    % 设置图形窗口
+    set(gcf, 'Name', '我的图形', 'NumberTitle', 'off', ...
+             'Position', [100 100 800 600], 'Color', [0.9 0.9 0.9])
+
+    % 创建子图
+    subplot(2,2,1)
+    h1 = plot(rand(10,1));
+    set(h1, 'LineWidth', 2, 'Marker', 's', 'MarkerSize', 8)
+
+    % 设置坐标轴
+    subplot(2,2,2)
+    plot(rand(10,1))
+    set(gca, 'XGrid', 'on', 'YGrid', 'on', ...
+             'FontSize', 10, 'Box', 'on')
+
+    % 设置文本
+    subplot(2,2,3)
+    plot(rand(10,1))
+    h_title = title('随机数据');
+    set(h_title, 'FontSize', 14, 'FontWeight', 'bold', 'Color', 'red')
+
+    % 设置图例
+    subplot(2,2,4)
+    h2 = plot(rand(10,2));
+    h_legend = legend('数据1', '数据2');
+    set(h_legend, 'Location', 'best', 'FontSize', 10)
+    ```
+
+    批量设置技巧
+
+    ```matlab
+    % 批量设置多个对象
+    figure
+    hold on
+    h_lines = zeros(5,1);
+    colors = {'r', 'g', 'b', 'm', 'c'};
+
+    for i = 1:5
+        h_lines(i) = plot(rand(10,1) + i);
+    end
+
+    % 批量设置线条属性
+    set(h_lines, {'Color'}, colors', 'LineWidth', 2)
+
+    % 设置不同标记
+    markers = {'o', '+', '*', '.', 'x'};
+    for i = 1:5
+        set(h_lines(i), 'Marker', markers{i})
+    end
+    ```
+
+* view() 函数
+
+    原型
+
+    ```matlab
+    view(az, el)
+    view([az, el])
+    view([x, y, z])
+    view(2)
+    view(3)
+    view(ax, ...)
+    [az, el] = view
+    ```
+
+    作用
+
+    设置三维图形的观察视角（相机位置）。
+
+    视角参数解释
+
+    * az：方位角，绕z轴旋转的角度（度）
+
+        * 0° = 从负y轴方向看
+
+        * 90° = 从正x轴方向看
+
+    * el：高程角，相对于xy平面的仰角（度）
+
+        * 0° = 在xy平面
+
+        * 90° = 正上方垂直看
+
+    用法示例
+
+    ```matlab
+    % 创建测试曲面
+    [x,y,z] = peaks(30);
+
+    figure
+
+    % 1. 标准三维视图
+    subplot(2,3,1)
+    surf(x,y,z)
+    view(3)  % 默认三维视图 az=-37.5, el=30
+    title('view(3) 默认三维')
+
+    % 2. 二维视图
+    subplot(2,3,2)
+    surf(x,y,z)
+    view(2)  % 二维俯视图
+    title('view(2) 俯视')
+
+    % 3. 指定角度
+    subplot(2,3,3)
+    surf(x,y,z)
+    view(45, 60)  % az=45°, el=60°
+    title('view(45,60)')
+
+    % 4. 使用向量
+    subplot(2,3,4)
+    surf(x,y,z)
+    view([-10, -20, 5])  % [x, y, z] 方向向量
+    title('view([-10,-20,5])')
+
+    % 5. 不同视角比较
+    subplot(2,3,5)
+    surf(x,y,z)
+    view(0, 90)  % 正上方
+    title('正上方 view(0,90)')
+
+    subplot(2,3,6)
+    surf(x,y,z)
+    view(0, 0)  % 侧面
+    title('侧面 view(0,0)')
+    ```
+
+    视角预设
+
+    ```matlab
+    figure
+    surf(peaks)
+
+    % 常用预设视角
+    view_angles = {
+        '默认3D', [-37.5, 30];
+        '正上方', [0, 90];
+        '正前方', [0, 0];
+        '左前方', [-45, 30];
+        '右前方', [45, 30];
+        '底部', [-37.5, -90]
+    };
+
+    for i = 1:6
+        subplot(2,3,i)
+        surf(peaks)
+        view(view_angles{i,2})
+        title(view_angles{i,1})
+    end
+    ```
+
+    高级用法与动画
+
+    ```matlab
+    % 1. 旋转动画
+    figure
+    surf(peaks)
+    colormap(jet)
+    shading interp
+
+    for az = 0:2:360
+        view(az, 30)
+        pause(0.01)
+    end
+
+    % 2. 获取当前视角
+    [az, el] = view;
+    fprintf('当前视角: az=%.1f°, el=%.1f°\n', az, el)
+
+    % 3. 交互式视角设置
+    figure
+    surf(peaks)
+    rotate3d on  % 启用交互旋转
+
+    % 4. 视角与光照配合
+    figure
+    surf(peaks)
+    camlight  % 创建相机灯
+    view(45, 30)  % 设置视角
+    lighting gouraud
+
+    % 5. 多子图统一视角
+    figure
+    for i = 1:4
+        subplot(2,2,i)
+        surf(peaks + i)
+        view(30, 45)  % 统一视角
+        title(sprintf('曲面 %d', i))
+    end
+    ```
+
+* 简述 matlab inputParser 的用法
+
+    inputParser 是 MATLAB 中用于解析和验证函数输入参数的强大工具，特别适用于处理可变数量参数、参数-值对（名称-值对）等复杂输入情况。
+
+    基本使用步骤
+
+    1. 创建 inputParser 对象
+
+        ```matlab
+        p = inputParser;
+        ```
+
+    2. 设置参数属性
+
+        ```matlab
+        p.FunctionName = 'myFunction';  % 可选，用于错误信息
+        p.KeepUnmatched = true;         % 是否允许未定义的参数
+        p.PartialMatching = false;      % 是否允许参数名部分匹配
+        ```
+
+    3. 添加参数
+
+        有三种类型的参数：
+
+        必需参数
+
+        ```matlab
+        addRequired(p, 'paramName', validationFunc);
+        ```
+
+        * 必须提供，按位置传递
+
+        * 验证函数示例：@isnumeric, @ischar, 自定义函数
+
+        可选参数
+
+        ```matlab
+        addOptional(p, 'paramName', defaultValue, validationFunc);
+        ```
+
+        * 可以不提供，使用默认值
+
+        * 必须位于必需参数之后
+
+        参数-值对
+
+        ```matlab
+        addParameter(p, 'paramName', defaultValue, validationFunc);
+        ```
+
+        * 使用名称-值对形式：'Name', value
+
+        * 可以任意顺序
+
+    4. 解析参数
+
+        ```matlab
+        parse(p, varargin{:});
+        ```
+
+    5. 获取解析结果
+
+        ```matlab
+        results = p.Results;
+        paramValue = p.Results.paramName;
+        ```
+
+    完整示例
+
+    ```matlab
+    function result = myFunction(a, b, varargin)
+        % 创建解析器
+        p = inputParser;
+        
+        % 添加必需参数
+        addRequired(p, 'a', @isnumeric);
+        addRequired(p, 'b', @(x) x > 0);  % b 必须为正数
+        
+        % 添加可选参数
+        addOptional(p, 'c', 10, @isnumeric);  % 默认值 10
+        
+        % 添加参数-值对
+        addParameter(p, 'Scale', 1.0, @isnumeric);
+        addParameter(p, 'Method', 'linear', ...
+            @(x) any(validatestring(x, {'linear', 'nearest', 'spline'})));
+        addParameter(p, 'Display', false, @islogical);
+        
+        % 解析输入
+        parse(p, a, b, varargin{:});
+        
+        % 使用解析结果
+        params = p.Results;
+        disp(params);
+        
+        % 访问具体参数
+        result = params.a * params.b * params.c * params.Scale;
+        
+        if params.Display
+            fprintf('Result: %f\n', result);
+        end
+    end
+    ```
+
+    使用示例
+
+    ```matlab
+    % 调用函数
+    myFunction(5, 2)  % 使用默认值
+    myFunction(5, 2, 3)  % 指定可选参数 c=3
+    myFunction(5, 2, 'Scale', 2.0, 'Method', 'spline', 'Display', true)
+    ```
+
+    处理未匹配参数
+
+    ```matlab
+    p.KeepUnmatched = true;
+    parse(p, varargin{:});
+
+    % 获取未匹配的参数
+    unmatchedParams = p.Unmatched;
+    % unmatchedParams 是一个结构体，包含未定义的参数名值对
+    ```
+
+    验证函数示例
+
+    ```matlab
+    % 内置验证函数
+    @isnumeric      % 必须是数值
+    @ischar         % 必须是字符
+    @islogical      % 必须是逻辑值
+    @isvector       % 必须是向量
+    @(x) x > 0      % 必须大于0
+    @(x) ismember(x, {'opt1', 'opt2'})  % 必须在集合中
+
+    % 自定义验证函数
+    validateFcn = @(x) validateattributes(x, {'numeric'}, ...
+        {'scalar', 'positive', 'integer'});
+    ```
+
+    优点
+
+    * 参数管理：清晰地区分必需、可选和名称-值参数
+
+    * 验证：自动验证输入类型和范围
+
+    * 默认值：为可选参数提供默认值
+
+    * 错误处理：统一的错误信息
+
+    * 灵活性：支持多种参数传递方式
+
+    替代方案
+
+    * 对于简单函数：直接使用 nargin, varargin
+
+    * MATLAB R2019b+：考虑使用参数块（Arguments Block）
+
+        ```matlab
+        function result = myFunction(a, b, options)
+            arguments
+                a double
+                b (1,1) double {mustBePositive}
+                options.Scale (1,1) double = 1.0
+                options.Method string {mustBeMember(options.Method, ["linear","nearest"])} = "linear"
+            end
+            % 函数体
+        end
+        ```
+
+    inputParser 特别适合需要向后兼容旧版本 MATLAB 的代码，或者需要精细控制参数解析逻辑的情况。
+
+    inputParser 是一个类（class），通过创建该类的实例（对象）来使用。
+
+* 简述 matlab strcmpi() 的原型、作用与用法
+
+    strcmpi() 是 MATLAB 中用于字符串比较（不区分大小写） 的函数。
+
+    原型
+
+    ```matlab
+    TF = strcmpi(str1, str2)
+    ```
+
+    参数说明
+
+    | 参数 | 说明 |
+    | - | - |
+    | str1, str2 | 要比较的字符串、字符向量、字符向量元胞数组或字符串数组 |
+    | TF | 逻辑数组，比较结果为真时对应元素为 true，否则为 false |
+
+    作用
+
+    * 不区分大小写比较两个字符串是否完全相同
+
+    * 比较时忽略大小写差异：'Hello'、'HELLO'、'hello' 被视为相同
+
+    * 返回逻辑值（真/假）指示是否匹配
+
+    基本用法
+
+    1. 比较两个字符串
+
+        ```matlab
+        strcmpi('Hello', 'HELLO')    % 返回 true
+        strcmpi('MATLAB', 'matlab')  % 返回 true
+        strcmpi('text', 'test')      % 返回 false
+        ```
+
+    2. 比较字符串与字符向量元胞数组
+
+        ```matlab
+        % 单个字符串与元胞数组比较
+        C = {'apple', 'Banana', 'ORANGE', 'Grape'};
+        TF = strcmpi('banana', C)  % 返回 [false, true, false, false]
+
+        % 查找匹配项
+        idx = find(strcmpi('orange', C))  % 返回 3
+        ```
+
+    3. 比较两个元胞数组
+
+        ```matlab
+        C1 = {'John', 'Mary', 'Peter'};
+        C2 = {'JOHN', 'mary', 'PAUL'};
+        TF = strcmpi(C1, C2)  % 返回 [true, true, false]
+        ```
+
+    4. 比较字符串数组（R2016b+）
+
+        ```matlab
+        % 字符串数组
+        str1 = ["Apple", "Banana", "Cherry"];
+        str2 = ["APPLE", "BANANA", "Date"];
+        TF = strcmpi(str1, str2)  % 返回 [true, true, false]
+        ```
+
+    高级用法
+
+    1. 查找列表中的特定字符串
+
+        ```matlab
+        files = {'readme.txt', 'README.TXT', 'data.csv', 'DATA.CSV'};
+        isReadme = strcmpi('readme.txt', files);  % 不区分大小写查找
+        ```
+
+    2. 验证用户输入
+
+        ```matlab
+        userInput = 'YES';
+        validOptions = {'yes', 'no', 'maybe'};
+        if any(strcmpi(userInput, validOptions))
+            disp('Valid input');
+        else
+            disp('Invalid input');
+        end
+        ```
+
+    3. 处理混合大小写数据
+
+        ```matlab
+        data = {'ProductA', 'PRODUCTB', 'productC', 'ProductD'};
+        productA_indices = strcmpi('producta', data);  % 找到所有变体
+        ```
+
+    与相关函数的比较
+
+    | 函数 | 区分大小写 | 功能 | 返回类型 |
+    | - | - | - | - |
+    | strcmpi() | 否 | 字符串相等比较 | 逻辑值 |
+    | strcmp() | 是 | 字符串相等比较 | 逻辑值 |
+    | strncmpi() | 否 | 比较前 N 个字符 | 逻辑值 |
+    | strncmp() | 是 | 比较前 N 个字符 | 逻辑值 |
+    | contains() | 可选 | 检查是否包含子串 | 逻辑值 |
+    | strfind() | 是 | 查找子串位置 | 位置索引 |
+
+    ```matlab
+    % 比较示例
+    strcmp('Hello', 'HELLO')   % false（区分大小写）
+    strcmpi('Hello', 'HELLO')  % true（不区分大小写）
+
+    strncmp('Hello', 'HELLOworld', 5)   % false
+    strncmpi('Hello', 'HELLOworld', 5)  % true
+    ```
+
+    实际应用示例
+
+    示例 1：处理文件类型
+
+    ```matlab
+    files = {'image.JPG', 'document.PDF', 'photo.jpg', 'data.TXT'};
+
+    % 查找所有 JPG 文件（不区分大小写）
+    isJpg = strcmpi('.jpg', cellfun(@(x) x(end-3:end), files, 'UniformOutput', false));
+    % 或者更简单的方式
+    isJpg = endsWith(files, '.jpg', 'IgnoreCase', true);  % R2016b+
+    ```
+
+    示例 2：命令解析器
+
+    ```matlab
+    function processCommand(cmd)
+        switch lower(cmd)  % 转换为小写再比较
+            case 'start'
+                disp('Starting...');
+            case 'stop'
+                disp('Stopping...');
+            case 'pause'
+                disp('Pausing...');
+            otherwise
+                % 或者使用 strcmpi
+                if strcmpi(cmd, 'help')
+                    disp('Help information');
+                else
+                    disp('Unknown command');
+                end
+        end
+    end
+    ```
+
+    示例 3：数据库查询处理
+
+    ```matlab
+    names = {'John Smith', 'jane doe', 'JOHN SMITH', 'Bob Johnson'};
+    query = 'john smith';
+
+    % 不区分大小写查找所有匹配项
+    matches = strcmpi(query, names);
+    matchedNames = names(matches);  % 返回 {'John Smith', 'JOHN SMITH'}
+    ```
+
+    注意事项
+
+    * 输入类型必须兼容：两个输入必须是相同类型（都是字符串、都是字符向量、都是元胞数组等）
+
+    * 元胞数组大小需匹配：当比较两个元胞数组时，它们必须具有相同的大小
+
+    * 空值处理：
+
+        ```matlab
+        strcmpi('', '')        % true
+        strcmpi('text', '')    % false
+        strcmpi([], [])        % 错误，不支持空矩阵
+        ```
+
+    * 性能考虑：对于大型字符串比较，strcmpi 通常比先转换为小写再比较更高效
+
+        ```matlab
+        % 不推荐（低效）：
+        TF = strcmp(lower(str1), lower(str2));
+
+        % 推荐（高效）：
+        TF = strcmpi(str1, str2);
+        ```
+
+    strcmpi() 在处理用户输入、文件操作、数据匹配等需要忽略大小写的场景中非常实用。
+
 * 简述 matlab 中 path 命令的作用
 
     path 命令在 MATLAB 中用于显示或设置 MATLAB 的搜索路径。搜索路径是 MATLAB 查找和执行文件（如脚本、函数、类等）的一系列目录列表。

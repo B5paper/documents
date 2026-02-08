@@ -2,6 +2,147 @@
 
 ## cache
 
+* 简述 vim 中 substitute() 的原型、作用及用法
+
+    substitute() 是 Vim 中的一个内置函数，用于对字符串执行替换操作。
+
+    原型
+
+    ```vim
+    substitute({字符串}, {模式}, {替换内容}, {标志})
+    ```
+
+    参数说明
+
+    * {字符串}：要进行替换的源字符串
+
+    * {模式}：要匹配的正则表达式模式
+
+    * {替换内容}：替换后的文本，可以包含特殊替换符
+
+    * {标志}：控制替换行为的标志字符（可选）
+
+    常用标志
+
+    * g：全局替换（一行中的所有匹配）
+
+    * i：忽略大小写
+
+    * I：区分大小写
+
+    * c：每次替换前确认
+
+    用法示例
+
+    ```vim
+    " 基本替换
+    echo substitute('hello world', 'world', 'Vim', '')
+    " 返回: hello Vim
+
+    " 全局替换
+    echo substitute('foo bar foo', 'foo', 'baz', 'g')
+    " 返回: baz bar baz
+
+    " 使用正则表达式分组
+    echo substitute('2024-01-15', '\(\d\+\)-\(\d\+\)-\(\d\+\)', '\2/\3/\1', '')
+    " 返回: 01/15/2024
+
+    " 在函数中使用
+    let text = 'apple orange banana'
+    let new_text = substitute(text, 'apple', 'pear', '')
+    ```
+
+    与 :substitute 命令的区别
+
+    ```vim
+    " substitute() 函数 vs :substitute 命令
+    echo substitute('text', 'pattern', 'replacement', 'g')  " 函数
+    :s/pattern/replacement/g                               " 命令
+
+    " 主要区别：
+    " 1. substitute() 操作字符串，不修改缓冲区
+    " 2. :s 命令直接修改缓冲区内容
+    ```
+
+    实际应用
+
+    ```vim
+    " 在脚本中处理字符串
+    function! CleanText(text)
+        " 移除多余空格
+        let cleaned = substitute(a:text, '\s\+', ' ', 'g')
+        " 移除行首行尾空格
+        let cleaned = substitute(cleaned, '^\s*\|\s*$', '', 'g')
+        return cleaned
+    endfunction
+
+    " 批量处理列表
+    let list = ['vim1', 'vim2', 'vim3']
+    call map(list, "substitute(v:val, 'vim', 'neovim', 'g')")
+    ```
+
+    substitute() 是 Vim 脚本编程中处理字符串的重要工具，特别适合在不修改缓冲区的情况下进行文本转换。
+
+    **`substitute(line_content, '^\s*\zs\S', '* &', '')` 简述这个函数的作用**
+
+    这个函数的作用是：在每行第一个非空白字符前添加星号和空格（* ）
+
+    详细解析：
+
+    参数分解：
+
+    * line_content：输入的字符串（通常是行内容）
+
+    * '^\s*\zs\S'：正则表达式模式
+
+        * ^：匹配行首
+
+        * \s*：匹配0个或多个空白字符（空格、制表符等）
+
+        * \zs：匹配开始标记，表示从这里开始才是真正要匹配的内容
+
+        * \S：匹配一个非空白字符
+
+    * '* &'：替换内容
+
+        * * ：星号加空格
+
+        * &：代表整个匹配到的内容（即第一个非空白字符）
+
+    * ''：无标志，只替换第一个匹配项
+
+    匹配逻辑：
+
+    * ^\s*\zs\S 的意思是：找到行首的空白字符（不匹配它们），然后在第一个非空白字符处开始匹配
+
+    效果示例：
+
+    ```vim
+    输入 "  hello world"  → 输出 "  * hello world"
+    输入 "    vim"        → 输出 "    * vim"
+    输入 "no spaces"      → 输出 "* no spaces"
+    ```
+
+    关键点：
+
+    * \zs 是关键，它让前面的 ^\s* 只作为定位条件，而不作为匹配内容的一部分
+
+    * 因此替换时只在第一个非空白字符前插入 * ，保留原有的缩进
+
+    类似功能对比：
+
+    ```vim
+    " 这个会破坏缩进（匹配包括空白字符）：
+    substitute(line_content, '^\s*\S', '* &', '')
+    " 输入 "  hello" → 输出 "* hello"（丢失了两个空格）
+
+    " 而使用 \zs 的版本保持缩进：
+    substitute(line_content, '^\s*\zs\S', '* &', '')
+    " 输入 "  hello" → 输出 "  * hello"（保持两个空格缩进）
+    ```
+
+    这个函数常用于创建带项目符号的列表，同时保持原有的文本缩进格式。
+
 * vim surround repo: <https://github.com/tpope/vim-surround>
 
 * ysiw" 为当前单词添加双引号。这个如何理解？

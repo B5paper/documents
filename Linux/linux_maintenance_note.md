@@ -6,6 +6,110 @@
 
 ## cache
 
+* 简述 strings 的用法
+
+    strings 是一个用于从二进制文件中提取可打印字符串的命令行工具，常用于逆向工程、调试或分析二进制文件。
+
+    1. 基本用法
+
+        ```bash
+        strings 文件名
+        ```
+
+        这会扫描文件，提取所有长度 ≥ 4 的可打印 ASCII 字符序列并输出。
+
+    2. 常用选项
+
+        * -n <长度>：设置最小字符串长度（默认 4）
+
+            ```bash
+            strings -n 6 文件名  # 只输出长度至少为 6 的字符串
+            ```
+
+        * -t <格式>：显示每个字符串在文件中的偏移位置
+
+            ```bash
+            strings -t d 文件名  # 十进制偏移
+            strings -t x 文件名  # 十六进制偏移
+            strings -t o 文件名  # 八进制偏移
+            ```
+
+        * -a：扫描整个文件（默认可能只扫描特定区域）
+
+            ```bash
+            strings -a 文件名
+            ```
+
+        * -e <编码>：指定字符编码（默认为 7 位 ASCII）
+
+            ```bash
+            strings -e l 文件名  # 16 位小端 Unicode
+            strings -e b 文件名  # 16 位大端 Unicode
+            strings -e L 文件名  # 32 位小端 Unicode
+            strings -e B 文件名  # 32 位大端 Unicode
+            ```
+
+        * -f：打印文件名（在扫描多个文件时有用）
+
+            ```bash
+            strings -f *.bin
+            ```
+
+        * -o：等同于 -t o（八进制偏移，已过时，建议用 -t o）
+
+    3. 典型应用场景
+
+        3.1 逆向工程/CTF
+
+        ```bash
+        strings 可执行文件 | grep -i "flag{"
+        ```
+
+        3.2 查看嵌入式资源
+
+        ```bash
+        strings firmware.bin | head -50
+        ```
+
+        3.3 多文件扫描
+
+        ```bash
+        strings -f *.so
+        ```
+
+        3.4 查找特定长度的字符串
+
+        ```bash
+        strings -n 10 文件 | less
+        ```
+
+        3.5 带偏移输出，方便定位
+
+        ```bash
+        strings -t x 文件 | grep "password"
+        ```
+
+    4. 示例
+
+        ```bash
+        # 查看 /bin/ls 中的长字符串
+        strings -n 10 /bin/ls
+
+        # 带十六进制偏移查看，并搜索 "ELF"
+        strings -t x /bin/bash | grep "ELF"
+
+        # 扫描整个文件并输出到文本
+        strings -a 可疑文件 > 输出.txt
+        ```
+
+    5. 注意事项
+
+        * strings 可能误将二进制数据解释为字符串（假阳性）。
+
+        * 对于 Unicode 文件，需正确使用 -e 选项。
+
+        * 可以结合 grep、awk 等进行进一步过滤。
+
 * 简述 linux 中 bear 的用法
 
     bear 是一个用于生成编译数据库（compile_commands.json）的工具，它通过拦截 make、cmake 等构建命令的编译过程，自动记录编译每个源文件时使用的编译命令和参数。

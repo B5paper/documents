@@ -2,6 +2,148 @@
 
 ## cache
 
+* 简述 matplotlib 中 fig.colorbar() 的原型、作用及用法
+
+    fig.colorbar() 是 Matplotlib 中用于为图像、等高线图等标量数据显示颜色映射条（colorbar）的核心函数。
+
+    一、函数原型
+
+    ```python
+    fig.colorbar(mappable, cax=None, ax=None, **kwargs)
+    ```
+
+    主要参数：
+
+    * mappable：必需参数，具有颜色映射的对象（如 imshow(), contourf(), pcolormesh() 的返回值）
+
+    * cax：指定颜色条绘制在哪个坐标轴（默认新建一个坐标轴）
+
+    * ax：指定颜色条关联到哪个主坐标轴（或坐标轴列表）
+
+    * orientation：方向，'vertical'（默认）或 'horizontal'
+
+    * label：颜色条标签
+
+    * ticks：刻度位置
+
+    * format：刻度格式
+
+    二、主要作用
+
+    * 可视化标量数据与颜色的映射关系
+
+    * 提供数据值的参考标尺
+
+    * 增强数据可读性和解释性
+
+    三、基本用法
+
+    1. 基本示例
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        fig, ax = plt.subplots()
+        data = np.random.rand(10, 10)
+        im = ax.imshow(data)
+        fig.colorbar(im)  # 为 imshow 图像添加颜色条
+        plt.show()
+        ```
+
+    2. 自定义颜色条
+
+        ```python
+        fig, ax = plt.subplots()
+        contour = ax.contourf(np.random.rand(20, 20))
+
+        # 自定义颜色条
+        cbar = fig.colorbar(contour, 
+                           orientation='horizontal',
+                           label='温度 (°C)',
+                           shrink=0.8,  # 缩小颜色条
+                           pad=0.05)    # 与主图的间距
+        cbar.set_ticks([0, 0.5, 1])
+        cbar.set_ticklabels(['低', '中', '高'])
+        ```
+
+    3. 多子图共享颜色条
+
+        ```python
+        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+        # 创建三个子图
+        plots = []
+        for i, ax in enumerate(axes):
+            data = np.random.rand(10, 10) * (i + 1)
+            im = ax.imshow(data)
+            plots.append(im)
+
+        # 共享一个颜色条（使用 vmin/vmax 统一范围）
+        fig.colorbar(plots[0], ax=axes.ravel().tolist(), 
+                    orientation='horizontal', pad=0.1)
+        ```
+
+    4. 精确控制位置
+
+        ```python
+        fig, ax = plt.subplots()
+        im = ax.imshow(np.random.rand(10, 10))
+
+        # 手动指定颜色条位置 [left, bottom, width, height]
+        cax = fig.add_axes([0.92, 0.1, 0.02, 0.8])
+        fig.colorbar(im, cax=cax, label='数值')
+        ```
+
+    四、实用技巧
+
+    1. 获取颜色条对象进行后续操作
+
+        ```python
+        cbar = fig.colorbar(im)
+        cbar.set_label('浓度 (mg/L)', rotation=270, labelpad=15)
+        cbar.ax.tick_params(labelsize=8)
+        ```
+
+    2. 离散颜色条
+
+        ```python
+        from matplotlib import colors
+
+        fig, ax = plt.subplots()
+        data = np.random.randint(0, 5, (10, 10))
+        cmap = colors.ListedColormap(['red', 'blue', 'green', 'yellow', 'black'])
+        bounds = [0, 1, 2, 3, 4, 5]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+
+        im = ax.imshow(data, cmap=cmap, norm=norm)
+        cbar = fig.colorbar(im, ticks=[0.5, 1.5, 2.5, 3.5, 4.5])
+        cbar.set_ticklabels(['A', 'B', 'C', 'D', 'E'])
+        ```
+
+    3. 关联多个坐标轴
+
+        ```python
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        im1 = ax1.imshow(np.random.rand(10, 10))
+        im2 = ax2.imshow(np.random.rand(10, 10) * 2)
+
+        # 为两个子图添加一个颜色条
+        fig.colorbar(im1, ax=[ax1, ax2], orientation='horizontal', pad=0.2)
+        ```
+
+    五、注意事项
+
+    * 参数顺序：新版本中推荐 fig.colorbar(mappable, ax=ax) 而非 plt.colorbar()
+
+    * 范围统一：多子图时使用 vmin/vmax 确保颜色映射一致
+
+    * 性能优化：大数据集时考虑使用 pcolormesh 而非 imshow
+
+    * 颜色映射选择：根据数据类型选择合适的色彩映射（sequential, diverging, qualitative）
+
+    这种设计使得颜色条可以灵活地放置在图形的任意位置，并与一个或多个坐标轴的数据范围保持同步。
+
 * `ax.plot_surface()`
 
     ax.plot_surface() 是 Matplotlib 中用于绘制三维曲面的函数。

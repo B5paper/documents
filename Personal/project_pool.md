@@ -509,8 +509,6 @@
 
 * [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
 
-* [v] 光强与光子流密度是什么关系？
-
 * [ ] 调研 Computer algebra system
 
     <https://en.wikipedia.org/wiki/Computer_algebra_system#>
@@ -644,8 +642,6 @@ english words 由 { } reorg: english words 进化而来。
 * { } reorg: restricted
 
     * 02.03  30 mins
-
-* [v] reorg: restricted  02.02
 
 * [O] CUDA Core Compute Libraries (CCCL)
 
@@ -802,8 +798,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] fix bug: 保存最新 qa record 时，不能删除旧的
 
 * 假如一个集合有 10 个 0.1，现在只允许每个元素对自身除以 2，再平均到 1，这个集合构造出的数是有限的还是无限的？这些数的取值的概率密度是怎样的？
-
-* [v] 调研`register_chrdev_region()`与`register_chrdev()`有什么区别？
 
 * [v] qa: 4 units 12.18
 
@@ -1020,7 +1014,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] `let [lnum2, col2] = getpos("'>")[1:2]`
 
-* [ ] `substitute(line_content, '^\s*\zs\S', '* &', '')`
+* [v] `substitute(line_content, '^\s*\zs\S', '* &', '')`
 
 * [ ] `let save_reg = @"`, `let @" = save_reg`
 
@@ -1461,7 +1455,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `signal()`
 
-* [ ] `pause()`
+* [v] `pause()`
 
 * [ ] `sigaction()`
 
@@ -1483,7 +1477,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `gcc -ldl`
 
-* [ ] `strings`
+* [v] `strings`
 
 * [ ] `getconf`
 
@@ -1935,25 +1929,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] matlab `jsondecode()`
-
-* [v] 调研 matlab 命令
-
-    ```matlab
-    rehash toolboxcache
-    restoredefaultpath
-    savepath
-
-    % 确保函数在MATLAB路径中
-    which yourFunctionName
-    path
-    ```
-
-    `profile`
-
-    Simulink Data Dictionary
-
-* [ ] deal 函数
+* [v] deal 函数
 
     ```matlab
     % 匿名函数配合 deal
@@ -1995,7 +1971,7 @@ english words 由 { } reorg: english words 进化而来。
     [val1, val2, val3] = myFunc(4);  % 16, 64, 2
     ```
 
-* [new] matlab `cellfun`
+* [ ] matlab `cellfun`
 
     ```matlab
     % 或者使用 cellfun
@@ -2044,8 +2020,6 @@ resources:
     * 目前看到
 
         > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
-
-* [v] `torch.allclose`
 
 * [ ] 关键阈值：秩（Rank）
 
@@ -2119,8 +2093,6 @@ resources:
 
 * [O] 稀疏矩阵如何加速矩阵乘？
 
-* [v] 构建一个返回 `(x, sin(x))` 的 dataset 和 dataloader
-
 * [O] PyTorch Functional Transforms for Computer Vision
 
     16:48 ~ 17:20
@@ -2163,6 +2135,20 @@ resources:
     dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE); // 映射物理地址
     ```
 
+* [ ] 调研`from typing import Optional, List, Dict, Tuple, Set`
+
+* [ ] `np.loadtxt()`
+
+* [ ] `nn.ReLU(True)`
+
+    true 是什么意思？
+
+* [ ] `nn.Unflatten()`
+
+* [ ] `nn.ConvTranspose2d()`
+
+* [ ] `nn.BatchNorm2d()`
+
 * [ ] `sg_dma_address()`, `sg_dma_len()`
 
 * [ ] `mlock()`
@@ -2183,15 +2169,11 @@ resources:
 
 * [asso] 调研`mypy`
 
-* [asso] 调研`from typing import Optional, List, Dict, Tuple, Set`
-
 * [asso] `DataLoader`是如何实现 shuffle 的？先按照 dataset 的 length 生成 range，然后 random permute 吗？
 
 * [asso] python 的实例既然可以定义成员变量，那么可以定义成员函数吗？
 
 * [asso] Albumentations
-
-* [asso] `np.loadtxt()`
 
 * [asso] 调研这个网站下面的 tutorial 目录，看看其他部分
 
@@ -2204,16 +2186,6 @@ resources:
     可以看看下面的 explore 部分。
 
 * [asso] 调研 python 中 list 的方法`.sort()`，如果 list 中存储的对象是 datetime 对象或者其他类型的元素，sort() 方法会如何处理？如果是混合类型的元素，又会如何处理？
-
-* [ ] `nn.ReLU(True)`
-
-    true 是什么意思？
-
-* [ ] `nn.Unflatten()`
-
-* [ ] `nn.ConvTranspose2d()`
-
-* [ ] `nn.BatchNorm2d()`
 
 ## Machine Learning
 
@@ -2291,13 +2263,9 @@ resources:
 
     ~ 18:03
 
-* [v] `fig.add_subplot(111, projection='3d')`
-
 * [ ] 调研 matplotlib 基本和常见的 example
 
-* [v] `surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)`
-
-* [ ] `fig.colorbar(surf)`
+* [v] `fig.colorbar(surf)`
 
 * [ ] 调研论文《Finding Structure in Time》 (1990) by Jeffrey L. Elman
 
@@ -2694,13 +2662,11 @@ resources:
 
 * [asso] `devm_device_add_groups()`
 
-* [v] `pci_write_config_word()`, `pci_read_config_word()`
-
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
 * [ ] 调研标准亲和性 (smp_affinity)
 
-* [ ] `INIT_WORK()`, `cancel_work_sync()`
+* [v] `INIT_WORK()`, `cancel_work_sync()`
 
 * [ ] `device_create_file()`
 

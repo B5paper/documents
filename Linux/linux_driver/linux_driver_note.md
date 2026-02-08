@@ -6,6 +6,208 @@ Ref:
 
 ## cache
 
+* INIT_WORK()
+
+    原型：
+
+    ```c
+    INIT_WORK(_work, _func)
+    ```
+
+    作用：
+
+    * 初始化一个工作项（work_struct）
+
+    * 将工作项与处理函数绑定
+
+    用法：
+
+    ```c
+    /* 定义工作项和处理函数 */
+    struct work_struct my_work;
+    void my_work_handler(struct work_struct *work);
+
+    /* 初始化 */
+    INIT_WORK(&my_work, my_work_handler);
+
+    /* 或者使用动态分配 */
+    work = kmalloc(sizeof(struct work_struct), GFP_KERNEL);
+    INIT_WORK(work, my_work_handler);
+    ```
+
+* cancel_work_sync()
+
+    原型：
+
+    ```c
+    bool cancel_work_sync(struct work_struct *work)
+    ```
+
+    作用：
+
+    * 取消已排队但未执行的工作项
+
+    * 如果工作项正在执行，则等待其完成
+
+    * 返回 true 表示成功取消，false 表示工作项已在执行或已完成
+
+    用法：
+
+    ```c
+    /* 取消工作项，等待执行中的工作完成 */
+    if (cancel_work_sync(&my_work)) {
+        printk(KERN_INFO "Work cancelled\n");
+    }
+
+    /* 在模块卸载或设备移除时清理 */
+    void my_exit(void)
+    {
+        cancel_work_sync(&my_work);
+        /* 释放相关资源 */
+    }
+    ```
+
+* 工作队列（workqueue）
+
+    在 Linux 驱动开发中，工作队列（workqueue）是一种重要的异步执行机制，允许将任务推迟到内核线程中执行。下面是相关函数的详细说明：
+
+    二、相关函数
+
+    1. 工作调度函数
+
+        ```c
+        /* 将工作提交到系统默认工作队列 */
+        bool schedule_work(struct work_struct *work);
+
+        /* 延迟调度（指定延迟时间后执行） */
+        bool schedule_delayed_work(struct delayed_work *dwork, 
+                                  unsigned long delay);
+
+        /* 指定CPU上调度 */
+        bool schedule_work_on(int cpu, struct work_struct *work);
+        ```
+
+    2. 延迟工作相关
+
+        ```c
+        /* 初始化延迟工作项 */
+        INIT_DELAYED_WORK(_work, _func);
+
+        /* 获取延迟工作的work_struct */
+        struct work_struct *delayed_work_work(struct delayed_work *dwork);
+
+        /* 取消延迟工作 */
+        bool cancel_delayed_work_sync(struct delayed_work *dwork);
+        ```
+
+    3. 工作队列创建和管理
+
+        ```c
+        /* 创建新的工作队列 */
+        struct workqueue_struct *create_workqueue(const char *name);
+
+        /* 创建单线程工作队列 */
+        struct workqueue_struct *create_singlethread_workqueue(const char *name);
+
+        /* 在工作队列上调度工作 */
+        bool queue_work(struct workqueue_struct *wq, struct work_struct *work);
+
+        /* 销毁工作队列 */
+        void destroy_workqueue(struct workqueue_struct *wq);
+        ```
+
+    4. 工作项状态检查
+
+        ```c
+        /* 检查工作项是否正在执行 */
+        work_pending(work);
+
+        /* 检查工作项是否在队列中 */
+        work_busy(work);
+        ```
+
+    三、典型使用模式
+
+    示例：驱动中使用工作队列
+
+    ```c
+    #include <linux/workqueue.h>
+
+    struct my_device {
+        struct work_struct work;
+        struct delayed_work delayed_work;
+        struct workqueue_struct *wq;
+        // ... 其他字段
+    };
+
+    static void work_handler(struct work_struct *work)
+    {
+        struct my_device *dev = container_of(work, struct my_device, work);
+        // 处理实际工作
+    }
+
+    static void delayed_work_handler(struct work_struct *work)
+    {
+        struct delayed_work *dwork = to_delayed_work(work);
+        struct my_device *dev = container_of(dwork, struct my_device, delayed_work);
+        // 延迟处理
+    }
+
+    static int __init my_init(void)
+    {
+        struct my_device *dev;
+        
+        /* 初始化工作项 */
+        INIT_WORK(&dev->work, work_handler);
+        INIT_DELAYED_WORK(&dev->delayed_work, delayed_work_handler);
+        
+        /* 创建私有工作队列 */
+        dev->wq = create_singlethread_workqueue("my_wq");
+        
+        /* 调度工作 */
+        schedule_work(&dev->work);                    // 使用系统队列
+        queue_work(dev->wq, &dev->work);             // 使用私有队列
+        schedule_delayed_work(&dev->delayed_work, HZ); // 延迟1秒
+        
+        return 0;
+    }
+
+    static void __exit my_exit(void)
+    {
+        /* 取消所有工作项 */
+        cancel_work_sync(&dev->work);
+        cancel_delayed_work_sync(&dev->delayed_work);
+        
+        /* 刷新并销毁工作队列 */
+        flush_workqueue(dev->wq);
+        destroy_workqueue(dev->wq);
+    }
+    ```
+
+    四、重要注意事项
+
+    * 上下文限制：工作处理函数在进程上下文中运行，可以睡眠，但不能访问用户空间
+
+    * 并发考虑：默认工作队列可能由多个工作线程共享
+
+    * 取消时机：cancel_work_sync() 应在设备移除或模块退出时调用
+
+    * 内存安全：确保在工作处理函数运行时，相关数据结构保持有效
+
+    * 死锁避免：避免在工作处理函数中等待自身被取消
+
+    五、选择建议
+
+    * 系统队列：适合不频繁、短时间任务
+
+    * 私有队列：适合高频率、长时间运行任务
+
+    * 单线程队列：需要严格串行执行时使用
+
+    * 延迟工作：需要定时或延迟执行时使用
+
+    这些函数为 Linux 驱动提供了灵活的异步任务处理机制，是中断处理、定时任务等场景的重要工具。
+
 * `int m_open(struct inode *inode, struct file *file_ptr);`
 
     函数原型
