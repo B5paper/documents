@@ -2,6 +2,17 @@
 
 ## cache
 
+* pyenv 安装 python 3.12.12 时，需要额外安装一些 libxxx-dev 的库。pyenv 安装的 python 都是现场编译的吗？
+
+    可能用到的依赖：
+
+    ```bash
+    sudo apt update
+    sudo apt install -y build-essential zlib1g-dev libncurses5-dev \
+    libgdbm-dev libnss3-dev libssl-dev libreadline-dev \
+    libffi-dev libsqlite3-dev libbz2-dev liblzma-dev
+    ```
+
 * pyenv 安装后的提示
 
     ```
