@@ -1927,6 +1927,18 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
 
+## fnirs
+
+## tasks
+
+* [ ] MNE-NIRS
+
+* [new] pyserial, struct
+
+* [ ] NIRS-Toolbox
+
+* [new] OpenBCI GUI、LSL Lab Streaming Layer
+
 ## Matlab
 
 ### tasks
@@ -2259,7 +2271,7 @@ resources:
 
     <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
 
-* [ ] 调研 python 中是否有函数重载？
+* [v] 调研 python 中是否有函数重载？
 
 * [O] 调研 matplotlib 画 surface
 
@@ -2670,7 +2682,7 @@ resources:
 
 * [v] `INIT_WORK()`, `cancel_work_sync()`
 
-* [ ] `device_create_file()`
+* [v] `device_create_file()`
 
 * [ ] `device_unregister()`
 

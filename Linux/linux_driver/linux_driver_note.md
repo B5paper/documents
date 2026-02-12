@@ -6,6 +6,193 @@ Ref:
 
 ## cache
 
+* device_create_file()
+
+    `device_create_file()` 是 Linux 设备驱动开发中用于在 sysfs 文件系统中创建设备属性文件的函数。
+
+    1. 函数原型
+
+        ```c
+        int device_create_file(struct device *dev,
+                               const struct device_attribute *attr);
+        ```
+
+        **参数：**
+
+        - `dev`：指向 `struct device` 的指针，表示要创建属性文件的目标设备
+        - `attr`：指向 `struct device_attribute` 的指针，定义属性文件的属性
+
+        **返回值：**
+
+        - 成功时返回 0
+        - 失败时返回负的错误码
+
+    2. 作用
+
+        该函数的主要作用是：
+
+        - 在 `/sys/class/` 或 `/sys/devices/` 下的相应设备目录中创建属性文件
+        - 提供用户空间与内核空间交互的接口
+        - 允许用户通过读写文件的方式配置设备参数或获取设备状态
+
+    3. 用法
+
+        基本使用步骤：
+
+        ```c
+        #include <linux/device.h>
+
+        /* 1. 定义属性访问函数 */
+        static ssize_t show_attribute(struct device *dev,
+                                     struct device_attribute *attr,
+                                     char *buf)
+        {
+            return sprintf(buf, "%s\n", "attribute value");
+        }
+
+        static ssize_t store_attribute(struct device *dev,
+                                      struct device_attribute *attr,
+                                      const char *buf, size_t count)
+        {
+            /* 处理用户写入的数据 */
+            return count;
+        }
+
+        /* 2. 定义设备属性 */
+        static DEVICE_ATTR(my_attribute, 0644, show_attribute, store_attribute);
+        /* 或动态创建：*/
+        /* static struct device_attribute dev_attr_my_attribute = 
+                __ATTR(my_attribute, 0644, show_attribute, store_attribute); */
+
+        /* 3. 在驱动中创建设备属性文件 */
+        int my_device_probe(struct device *dev)
+        {
+            int ret;
+            
+            /* 创建设备 */
+            // ... 设备初始化代码 ...
+            
+            /* 创建属性文件 */
+            ret = device_create_file(dev, &dev_attr_my_attribute.attr);
+            if (ret < 0) {
+                dev_err(dev, "Failed to create attribute file\n");
+                return ret;
+            }
+            
+            return 0;
+        }
+
+        /* 4. 在驱动移除时删除属性文件 */
+        void my_device_remove(struct device *dev)
+        {
+            device_remove_file(dev, &dev_attr_my_attribute.attr);
+            // ... 其他清理代码 ...
+        }
+        ```
+
+    完整示例：
+
+    ```c
+    #include <linux/module.h>
+    #include <linux/device.h>
+    #include <linux/string.h>
+
+    static int my_value = 100;
+
+    /* 属性读取函数 */
+    static ssize_t value_show(struct device *dev,
+                             struct device_attribute *attr,
+                             char *buf)
+    {
+        return sprintf(buf, "%d\n", my_value);
+    }
+
+    /* 属性写入函数 */
+    static ssize_t value_store(struct device *dev,
+                              struct device_attribute *attr,
+                              const char *buf, size_t count)
+    {
+        int ret;
+        
+        ret = kstrtoint(buf, 10, &my_value);
+        if (ret < 0)
+            return ret;
+        
+        dev_info(dev, "value changed to %d\n", my_value);
+        return count;
+    }
+
+    /* 定义设备属性 */
+    static DEVICE_ATTR_RW(value);  // 创建可读写的属性 "value"
+
+    static struct device *my_device;
+
+    static int __init my_init(void)
+    {
+        int ret;
+        
+        /* 假设设备已创建，my_device 已分配 */
+        
+        /* 创建属性文件 */
+        ret = device_create_file(my_device, &dev_attr_value.attr);
+        if (ret) {
+            pr_err("Cannot create sysfs attribute file\n");
+            return ret;
+        }
+        
+        return 0;
+    }
+
+    static void __exit my_exit(void)
+    {
+        device_remove_file(my_device, &dev_attr_value.attr);
+    }
+    ```
+
+    4. 使用注意事项
+
+        1. **权限设置**：通过 `DEVICE_ATTR()` 的第二个参数设置文件权限（八进制）
+           - `0644`：所有者可读写，其他用户只读
+           - `0444`：所有用户只读
+           - `0200`：所有者可写
+
+        2. **属性类型**：
+           - `DEVICE_ATTR_RO(name)`：只读属性
+           - `DEVICE_ATTR_WO(name)`：只写属性  
+           - `DEVICE_ATTR_RW(name)`：读写属性
+
+        3. **错误处理**：必须检查返回值，失败时适当清理
+
+        4. **资源管理**：在设备移除或驱动卸载时，必须使用 `device_remove_file()` 删除属性文件
+
+        5. **并发控制**：如果多个进程可能同时访问属性，需要考虑使用互斥锁保护共享数据
+
+    5. 用户空间访问
+
+        创建后，用户可以通过以下路径访问：
+
+        ```
+        /sys/class/<class_name>/<device_name>/my_attribute
+        ```
+
+        或
+
+        ```
+        /sys/devices/.../<device_name>/my_attribute
+        ```
+
+        使用示例：
+
+        ```bash
+        # 读取属性
+        cat /sys/class/misc/mydevice/value
+
+        # 写入属性
+        echo "200" > /sys/class/misc/mydevice/value
+        ```
+
+    这个机制是 Linux 驱动开发中实现用户空间配置接口的常用方法。
+
 * INIT_WORK()
 
     原型：
