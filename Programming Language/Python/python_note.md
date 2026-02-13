@@ -2,6 +2,290 @@
 
 ## cache
 
+* 简述 python 中 random.choice() 和 random.choices() 的原型、作用及用法
+
+    random.choice()
+
+    原型
+
+    ```python
+    random.choice(seq)
+    ```
+
+    作用
+
+    从非空序列 `seq` 中随机返回一个元素，**各元素被选中的概率相等**。
+
+    用法
+
+    ```python
+    import random
+
+    # 从列表中随机选择一个
+    fruits = ['apple', 'banana', 'orange']
+    print(random.choice(fruits))  # 输出：随机一个水果
+
+    # 从字符串中随机选择一个字符
+    text = "Hello"
+    print(random.choice(text))    # 输出：随机一个字符（H/e/l/l/o）
+
+    # 从元组中随机选择
+    nums = (1, 2, 3, 4, 5)
+    print(random.choice(nums))    # 输出：随机一个数字
+
+    # 注意：空序列会引发 IndexError
+    # random.choice([])  # 错误！
+    ```
+
+    random.choices()
+
+    原型
+
+    ```python
+    random.choices(population, weights=None, *, cum_weights=None, k=1)
+    ```
+
+    作用
+
+    从序列 `population` 中**有放回**地随机抽取 `k` 个元素，返回一个**列表**。支持**权重设置**。
+
+    用法
+
+    ```python
+    import random
+
+    # 1. 基本用法：随机抽取3个元素（可重复）
+    fruits = ['apple', 'banana', 'orange']
+    print(random.choices(fruits, k=3))  
+    # 输出示例：['apple', 'banana', 'apple']（元素可重复）
+
+    # 2. 设置权重（相对概率）
+    # weights：各元素被选中的相对权重
+    print(random.choices(
+        ['red', 'black', 'green'],
+        weights=[3, 2, 1],  # red被选中的概率是green的3倍
+        k=10
+    ))
+
+    # 3. 累积权重（性能更好）
+    # cum_weights：累积权重 [3, 5, 6] 相当于 weights [3, 2, 1]
+    print(random.choices(
+        ['A', 'B', 'C'],
+        cum_weights=[3, 5, 6],
+        k=5
+    ))
+
+    # 4. 不指定k时，默认k=1，返回只有一个元素的列表
+    result = random.choices(['a', 'b', 'c'])
+    print(result)  # 输出示例：['b']（注意是列表）
+    ```
+
+    核心区别
+
+    | 特性 | random.choice() | random.choices() |
+    |------|-----------------|------------------|
+    | **返回值** | 单个元素 | 列表（即使k=1） |
+    | **抽样方式** | 每次1个 | 可抽取多个 |
+    | **是否可重复** | - | 有放回（可重复） |
+    | **权重支持** | ❌ 不支持 | ✅ 支持 |
+    | **空序列** | ❌ IndexError | ✅ 返回[] |
+
+    快速记忆
+
+    - **choice**：单数 → **1**个元素
+    - **choices**：复数 → 多个元素（列表）
+    - 需要概率/权重 → 用 **choices**
+    - 只需随机取1个 → 用 **choice**
+
+* 简述 random 中其他常用函数的原型、作用及用法
+
+    random.random()
+
+    原型
+
+    ```python
+    random.random()
+    ```
+
+    作用
+
+    返回 [0.0, 1.0) 范围内的**随机浮点数**，左闭右开。
+
+    用法
+
+    ```python
+    import random
+    print(random.random())  # 输出：0.37444887175646646
+    ```
+
+    random.randint()
+
+    原型
+
+    ```python
+    random.randint(a, b)
+    ```
+
+    作用
+
+    返回 [a, b] 范围内的**随机整数**，**闭区间**（包含两端）。
+
+    用法
+
+    ```python
+    print(random.randint(1, 10))   # 输出：1-10之间的整数（包含1和10）
+    print(random.randint(0, 100))  # 输出：0-100之间的整数
+    ```
+
+    random.uniform()
+
+    原型
+
+    ```python
+    random.uniform(a, b)
+    ```
+
+    作用
+
+    返回 [a, b] 范围内的**随机浮点数**（可能包含两端，取决于浮点数舍入）。
+
+    用法
+
+    ```python
+    print(random.uniform(1.5, 6.5))  # 输出：1.5-6.5之间的浮点数
+    ```
+
+    random.randrange()
+
+    原型
+
+    ```python
+    random.randrange(stop)                      # [0, stop)
+    random.randrange(start, stop[, step])       # [start, stop) 步长为step
+    ```
+
+    作用
+
+    返回指定范围内的**随机整数**，**左闭右开**，支持步长。
+
+    用法
+
+    ```python
+    print(random.randrange(10))      # 输出：0-9之间的整数
+    print(random.randrange(1, 10))   # 输出：1-9之间的整数
+    print(random.randrange(0, 20, 2)) # 输出：0-18之间的偶数
+    ```
+
+    random.shuffle()
+
+     原型
+
+    ```python
+    random.shuffle(x)
+    ```
+
+    作用
+
+    **原地打乱**序列顺序，返回 `None`（修改原序列）。
+
+    用法
+
+    ```python
+    cards = ['A', '2', '3', '4', '5']
+    random.shuffle(cards)
+    print(cards)  # 输出示例：['3', 'A', '5', '2', '4']
+
+    # 注意：只能用于可变序列（列表），不能用于元组、字符串
+    ```
+
+    random.sample()
+
+     原型
+
+    ```python
+    random.sample(population, k)
+    ```
+
+    作用
+
+    从序列中**无放回**地随机抽取 `k` 个元素，返回列表（**不重复**）。
+
+    用法
+
+    ```python
+    fruits = ['apple', 'banana', 'orange', 'grape', 'kiwi']
+    print(random.sample(fruits, 3))  # 输出：3个不重复的水果
+
+    # 也可用于字符串、元组等
+    text = "Python"
+    print(random.sample(text, 4))    # 输出：4个不重复的字符列表
+    ```
+
+    random.seed()
+
+    原型
+
+    ```python
+    random.seed(a=None, version=2)
+    ```
+
+    作用
+
+    初始化随机数生成器，固定种子可**复现随机结果**。
+
+    用法
+
+    ```python
+    random.seed(42)
+    print(random.random())  # 固定输出：0.6394267984578837
+    print(random.randint(1, 100))  # 固定输出：82
+
+    random.seed(42)  # 重置种子
+    print(random.random())  # 再次得到：0.6394267984578837
+    ```
+
+    random.getrandbits()
+
+    原型
+
+    ```python
+    random.getrandbits(k)
+    ```
+
+    作用
+
+    返回 `k` 位二进制随机整数（0 ~ 2^k - 1）。
+
+    用法
+
+    ```python
+    print(random.getrandbits(8))   # 输出：0-255之间的整数
+    print(random.getrandbits(16))  # 输出：0-65535之间的整数
+    ```
+
+    函数速查表
+
+    | 函数 | 返回值类型 | 范围 | 特点 |
+    |------|-----------|------|------|
+    | `random()` | float | [0.0, 1.0) | 基础随机浮点数 |
+    | `randint(a, b)` | int | [a, b] | 闭区间整数 |
+    | `uniform(a, b)` | float | [a, b] | 浮点数版本 |
+    | `randrange()` | int | [start, stop) | 支持步长 |
+    | `shuffle()` | None | - | 原地打乱 |
+    | `sample()` | list | - | 无放回抽样 |
+    | `seed()` | None | - | 固定随机结果 |
+    | `getrandbits()` | int | [0, 2^k-1] | 二进制位随机 |
+
+    选择建议
+
+    - **随机浮点数** → `random()`, `uniform()`
+    - **随机整数** → `randint()`（闭区间）, `randrange()`（开区间）
+    - **随机选1个** → `choice()`
+    - **随机选多个（可重复）** → `choices()`
+    - **随机选多个（不重复）** → `sample()`
+    - **打乱顺序** → `shuffle()`
+    - **复现结果** → `seed()`
+
 * python 中，if type(str_list[0]) is not list and not tuple: 可以这样写逻辑表达式吗？
 
     可以的，但这种写法有**优先级问题**，容易导致逻辑错误。让我们分析一下：

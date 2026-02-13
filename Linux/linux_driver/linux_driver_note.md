@@ -6,6 +6,8 @@ Ref:
 
 ## cache
 
+* 不创建 class 时,`/dev`文件夹下不显示设备文件。
+
 * device_create_file()
 
     `device_create_file()` 是 Linux 设备驱动开发中用于在 sysfs 文件系统中创建设备属性文件的函数。

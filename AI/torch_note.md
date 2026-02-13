@@ -2,6 +2,55 @@
 
 ## cache
 
+* 简述 pytorch 中，a.storage().data_ptr() 的作用
+
+    在 PyTorch 中，`a.storage().data_ptr()` 的作用是**返回张量 `a` 的底层数据存储区的内存地址**。
+
+    具体解释如下：
+
+    1. **`a.storage()`**：
+
+       - 返回张量 `a` 的底层 `Storage` 对象
+
+       - PyTorch 的张量由两部分组成：一个元信息头（shape、stride、dtype 等）和一个实际的连续数据存储区（Storage）
+
+       - 多个张量可以共享同一个 Storage（如切片操作、`.view()`、`.detach()` 等）
+
+    2. **`.data_ptr()`**：
+
+       - 返回该 Storage 对象所管理的内存的起始地址（Python 整数）
+
+       - 这是实际存储张量数据的内存位置
+
+    3. **主要用途**：
+
+       - **检查内存共享**：两个张量如果 `storage().data_ptr()` 相同，说明它们共享同一份底层数据
+
+       - **与外部库交互**：将 PyTorch 张量的内存地址传递给 C/CUDA 扩展或其他库（如 NumPy、OpenCV）
+
+       - **调试**：确认内存是否被重新分配，或验证操作是原地执行还是新建内存
+
+    **示例**：
+
+    ```python
+    import torch
+
+    a = torch.tensor([1, 2, 3])
+    print(a.storage().data_ptr())  # 输出内存地址，如 139823456789012
+
+    b = a[:2]  # 切片操作，共享存储
+    print(b.storage().data_ptr())  # 与 a 相同
+
+    c = a.clone()  # 深拷贝，新分配内存
+    print(c.storage().data_ptr())  # 与 a 不同
+    ```
+
+    **注意**：
+
+    - 在 CPU 上返回的是系统内存地址，CUDA 张量返回的是 GPU 显存地址
+    - 0.4.0 版本之前也常用 `.data_ptr()`，现在更推荐通过 `storage()` 访问
+
+
 * `torch.allclose()`
 
     torch.allclose 是 PyTorch 中用于判断两个张量是否在给定容忍度范围内接近相等的函数。

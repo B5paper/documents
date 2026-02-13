@@ -767,7 +767,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
-* [ ] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
+* [v] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
@@ -2137,7 +2137,7 @@ resources:
 
 * [ ] gpu 如何对 transpose 加速？或者说，高性能 transpose 如何实现？
 
-* [ ] `a.storage().data_ptr()`
+* [v] `a.storage().data_ptr()`
 
 * [ ] 调研 SG-DMA
 

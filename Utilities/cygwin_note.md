@@ -2,6 +2,10 @@
 
 ## cache
 
+* cygwin 中 scp 和 rsync 会调用 windows 自带的 ssh，导致无法正确处理 cygwin 中的`/`路径，从而无法工作。
+
+    可以在 cygwin 中安装基于 bash 的 ssh，可以解决这个问题。
+
 * cygwin 如何设置可以让 /d 或 /D 表示 d 盘
 
     在Cygwin中让 /d 或 /D 表示D盘，有几种方法可以实现：
