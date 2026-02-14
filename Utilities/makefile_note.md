@@ -2,6 +2,8 @@
 
 ## cache
 
+* makefile 中，不能使用`$(command)`得到 command 的输出，必须使用`$(shell command)`才可以。
+
 * makefile 中，如何将 include_dirs = aaa bbb ccc 替换成 -Iaaa -Ibbb -Iccc
 
     在 Makefile 中，有几种方法可以将 include_dirs = aaa bbb cccc 替换成 -Iaaa -Ibbb -Icccc：

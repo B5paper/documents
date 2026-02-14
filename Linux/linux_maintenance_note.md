@@ -6,6 +6,12 @@
 
 ## cache
 
+* xfreerdp 忽略证书：`/cert:ignore`
+
+* xfreerdp 禁用 rfx: `-rfx`
+
+    在 xfreerdp 中，`+xxx`表示开启某个功能，`-xxx`表示关闭某个功能
+
 * 简述 strings 的用法
 
     strings 是一个用于从二进制文件中提取可打印字符串的命令行工具，常用于逆向工程、调试或分析二进制文件。

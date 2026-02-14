@@ -2,6 +2,59 @@
 
 ## cache
 
+* git merge dev 时，我希望 squash 一下，不要 dev 冗长的提交记录，怎么办
+
+    在 `git merge dev` 时进行 squash，有以下几种方法：
+
+    方法1：使用 `--squash` 参数（推荐）
+
+    ```bash
+    git checkout master
+    git merge --squash dev
+    git commit -m "合并 dev 分支的所有更改"
+    ```
+
+    这会将 dev 分支的所有更改合并到工作区并暂存，但不会自动提交，需要你手动提交一次。
+
+    方法2：先 squash 再合并
+
+    如果你不想在 master 分支上操作，可以先在 dev 分支上 squash：
+
+    ```bash
+    git checkout dev
+    git rebase -i HEAD~n  # 或 git reset --soft 到某个提交
+    git checkout master
+    git merge dev
+    ```
+
+    方法3：使用 `--no-commit` 手动整理
+
+    ```bash
+    git checkout master
+    git merge --no-commit --no-ff dev
+    git reset HEAD^        # 取消合并的自动提交
+    git add -A            # 重新添加
+    git commit -m "合并 dev 分支"  # 一次提交
+    ```
+
+    注意事项
+
+    - **`--squash` 不会保留 dev 分支的提交历史**，所有更改会合并为一次新提交
+    - 不会创建合并提交（merge commit），历史是线性的
+    - 如果以后需要将 master 合并回 dev，可能需要处理冲突
+
+    示例
+
+    ```bash
+    # 当前在 master
+    $ git checkout master
+    $ git merge --squash dev
+    $ git status  # 查看所有已暂存的更改
+    $ git commit -m "feat: 合并 dev 分支的新功能"
+    ```
+
+    这样就在 master 上得到了一次干净的提交，包含了 dev 的所有更改。
+
 * git clone 可以 -v 显示详细信息吗？我赢得有个 debug 模式，verbose 模式
 
     是的，git clone -v 或 git clone --verbose 确实会显示详细的克隆过程信息，但主要是关于底层数据传输（如 fetch）的详细信息。

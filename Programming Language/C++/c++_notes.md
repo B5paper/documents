@@ -4,6 +4,194 @@
 
 ## cached
 
+* C++实现数组排序并同步索引
+
+    问：我有两个数组  int arr[] = {3, 5, 2, 1};  int ind[] = {0, 1, 2, 3}。我希望在给 arr 排序时，ind 中的元素也跟随着 arr 中元素的移动而移动，比如 arr 中 3 和 2 交换位置时， ind 中 0 和 2 交换位置。c++ 中如何实现？
+
+    答：
+
+    在 C++ 中，你可以通过多种方式实现这个需求。以下是几种常见的方法：
+
+    方法1：手动实现排序并同步交换
+
+    ```cpp
+    #include <iostream>
+    #include <algorithm>
+
+    int main() {
+        int arr[] = {3, 5, 2, 1};
+        int ind[] = {0, 1, 2, 3};
+        int n = 4;
+
+        // 使用冒泡排序（或其他排序算法）
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    // 交换 arr 中的元素
+                    std::swap(arr[j], arr[j + 1]);
+                    // 同步交换 ind 中的元素
+                    std::swap(ind[j], ind[j + 1]);
+                }
+            }
+        }
+
+        // 输出结果
+        std::cout << "排序后的 arr: ";
+        for (int i = 0; i < n; i++) std::cout << arr[i] << " ";
+        
+        std::cout << "\n对应的 ind: ";
+        for (int i = 0; i < n; i++) std::cout << ind[i] << " ";
+        
+        return 0;
+    }
+    ```
+
+    方法2：使用 pair 和标准库排序（推荐）
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+
+    int main() {
+        int arr[] = {3, 5, 2, 1};
+        int ind[] = {0, 1, 2, 3};
+        int n = 4;
+
+        // 创建 pair 数组，first 存储 arr 的值，second 存储索引
+        std::vector<std::pair<int, int>> pairs;
+        for (int i = 0; i < n; i++) {
+            pairs.emplace_back(arr[i], ind[i]);
+        }
+
+        // 根据 arr 的值排序
+        std::sort(pairs.begin(), pairs.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+                      return a.first < b.first;
+                  });
+
+        // 将排序结果放回原数组
+        for (int i = 0; i < n; i++) {
+            arr[i] = pairs[i].first;
+            ind[i] = pairs[i].second;
+        }
+
+        // 输出结果
+        std::cout << "排序后的 arr: ";
+        for (int i = 0; i < n; i++) std::cout << arr[i] << " ";
+        
+        std::cout << "\n对应的 ind: ";
+        for (int i = 0; i < n; i++) std::cout << ind[i] << " ";
+        
+        return 0;
+    }
+    ```
+
+    方法3：使用索引数组排序（更高效）
+
+    ```cpp
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+
+    int main() {
+        int arr[] = {3, 5, 2, 1};
+        int ind[] = {0, 1, 2, 3};
+        int n = 4;
+
+        // 创建索引数组，初始为 {0, 1, 2, 3}
+        std::vector<int> indices(n);
+        for (int i = 0; i < n; i++) indices[i] = i;
+
+        // 根据 arr 的值对 indices 进行排序
+        std::sort(indices.begin(), indices.end(),
+                  [&arr](int i, int j) { return arr[i] < arr[j]; });
+
+        // 根据排序后的 indices 重新排列 arr 和 ind
+        std::vector<int> sorted_arr(n);
+        std::vector<int> sorted_ind(n);
+        
+        for (int i = 0; i < n; i++) {
+            sorted_arr[i] = arr[indices[i]];
+            sorted_ind[i] = ind[indices[i]];
+        }
+
+        // 复制回原数组（如果需要）
+        std::copy(sorted_arr.begin(), sorted_arr.end(), arr);
+        std::copy(sorted_ind.begin(), sorted_ind.end(), ind);
+
+        // 输出结果
+        std::cout << "排序后的 arr: ";
+        for (int i = 0; i < n; i++) std::cout << arr[i] << " ";
+        
+        std::cout << "\n对应的 ind: ";
+        for (int i = 0; i < n; i++) std::cout << ind[i] << " ";
+        
+        return 0;
+    }
+    ```
+
+    方法4：封装成通用函数
+
+    ```cpp
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+
+    template<typename T>
+    void sort_with_indices(T* arr, int* indices, int n) {
+        std::vector<std::pair<T, int>> pairs;
+        pairs.reserve(n);
+        
+        for (int i = 0; i < n; i++) {
+            pairs.emplace_back(arr[i], indices[i]);
+        }
+        
+        std::sort(pairs.begin(), pairs.end(),
+                  [](const auto& a, const auto& b) {
+                      return a.first < b.first;
+                  });
+        
+        for (int i = 0; i < n; i++) {
+            arr[i] = pairs[i].first;
+            indices[i] = pairs[i].second;
+        }
+    }
+
+    int main() {
+        int arr[] = {3, 5, 2, 1};
+        int ind[] = {0, 1, 2, 3};
+        int n = 4;
+
+        sort_with_indices(arr, ind, n);
+
+        std::cout << "排序后的 arr: ";
+        for (int i = 0; i < n; i++) std::cout << arr[i] << " ";
+        
+        std::cout << "\n对应的 ind: ";
+        for (int i = 0; i < n; i++) std::cout << ind[i] << " ";
+        
+        return 0;
+    }
+    ```
+
+    输出结果
+
+    所有方法的输出都是：
+
+    ```
+    排序后的 arr: 1 2 3 5 
+    对应的 ind: 3 2 0 1
+    ```
+
+    **推荐使用方法2或方法3**，因为它们：
+
+    1. 利用标准库的高效排序算法
+    2. 代码简洁，易于理解
+    3. 时间复杂度为 O(n log n)
+
+    根据你的具体需求，选择最合适的方法即可。
+
 * 使用异常的合适场景：
 
     ```cpp

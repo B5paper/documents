@@ -2,6 +2,153 @@
 
 ## cache
 
+* sqlite3 中，select 语句总是要加一句 select xxx from <table>，我可以不加这个<table>吗？
+
+    **不可以不加 `FROM <table>`**，除非是以下特殊情况：
+
+    1. 必须用 `FROM` 的情况
+
+        SQL标准语法要求 `SELECT` 必须指定数据来源：
+
+        ```sql
+        -- 必须 FROM 一个表（或子查询）
+        SELECT column1, column2 FROM my_table;
+        ```
+
+    2. 不用 `FROM` 的特例
+
+        以下情况可以省略 `FROM`：
+
+        （1）直接选择常量或表达式
+
+        ```sql
+        -- SQLite、MySQL、PostgreSQL等都支持
+        SELECT 1 + 2;
+        SELECT 'Hello' || ' World';
+        SELECT CURRENT_TIMESTAMP;
+        ```
+
+        **在SQLite中运行示例：**
+
+        ```sql
+        sqlite> SELECT 1 + 2;
+        1+2
+        3
+
+        sqlite> SELECT 'Hello' || ' World!';
+        'Hello' || ' World!'
+        Hello World!
+
+        sqlite> SELECT date('now');
+        date('now')
+        2024-01-15
+        ```
+
+        （2）使用 `VALUES` 子句创建虚拟表
+
+        ```sql
+        -- 标准SQL语法
+        SELECT * FROM (VALUES (1, 'A'), (2, 'B')) AS temp_table(id, name);
+
+        -- SQLite特有简写（可以不加FROM）
+        SELECT 1 AS id, 'A' AS name
+        UNION ALL
+        SELECT 2, 'B';
+        ```
+
+        （3）查询系统/虚拟表（仍需 `FROM`，但表名特殊）
+
+        ```sql
+        -- SQLite系统表（仍需要FROM）
+        SELECT name FROM sqlite_master WHERE type='table';
+        SELECT * FROM pragma_table_info('table_list');
+        ```
+
+    3. 在SQLite中的特殊语法
+
+        SQLite对 `FROM` 的要求相对宽松，但**想要查询表中的数据必须用 `FROM`**：
+
+        ```sql
+        -- ✅ 有效：没有FROM，只有表达式
+        SELECT 3 * 4;
+
+        -- ❌ 无效：想查表数据但不指定FROM
+        SELECT snr_780;  -- 错误！SQLite不知道snr_780来自哪张表
+
+        -- ✅ 正确：指定表名
+        SELECT snr_780 FROM table_list;
+        ```
+
+    4. 实际应用场景
+
+        场景1：快速计算/测试
+
+        ```sql
+        -- 计算器功能
+        SELECT (100 * 0.08) AS tax;
+
+        -- 生成序列
+        SELECT value FROM generate_series(1, 10);
+        -- 注：SQLite没有generate_series，但可用递归CTE替代
+        ```
+
+        场景2：从应用变量构造数据
+
+        ```sql
+        -- 在应用中构造虚拟数据行
+        SELECT 'John' AS name, 25 AS age, '2024-01-15' AS date
+        UNION ALL
+        SELECT 'Alice', 30, '2024-01-16';
+        ```
+
+        场景3：查看数据库信息
+
+        ```sql
+        -- 查看SQLite版本（不需要FROM）
+        SELECT sqlite_version();
+
+        -- 查看当前设置
+        SELECT changes();  -- 上次操作影响的行数
+        SELECT last_insert_rowid();  -- 最后插入的rowid
+        ```
+
+    5. 针对您的数据表的建议
+
+        对于您之前查询的 `snr_780` 字段，**必须指定表名**：
+
+        ```sql
+        -- ❌ 错误：缺少FROM子句
+        SELECT snr_780;
+
+        -- ✅ 正确：指定来源表
+        SELECT snr_780 FROM table_list;
+
+        -- ✅ 正确：可以加WHERE条件
+        SELECT snr_780 FROM table_list WHERE patient_id = 'P001';
+
+        -- ✅ 正确：只查一条数据
+        SELECT snr_780 FROM table_list LIMIT 1;
+        ```
+
+    **总结**
+
+    - **查询表数据必须用 `FROM <table>`**，这是SQL标准。
+    - **只有纯表达式、函数调用、常量选择可以省略 `FROM`**。
+    - SQLite遵循这个规则，但提供了一些方便的语法糖（如直接 `SELECT 1+2;`）。
+
+    如果您觉得每次写 `FROM table_list` 麻烦，可以考虑：
+
+    1. **使用视图（View）**：
+
+        ```sql
+        CREATE VIEW v_snr AS SELECT snr_780, snr_850 FROM table_list;
+        SELECT snr_780 FROM v_snr;  -- 视图名更短
+        ```
+       
+    2. **在应用层封装常用查询**。
+
+    3. **使用SQLite命令行快捷键**（如设置 `.alias`）。
+
 * 简述 sqlite 用法、如何对接 python，以及学习资源
 
     SQLite 用法、Python对接及学习资源

@@ -1014,10 +1014,6 @@ english words 由 { } reorg: english words 进化而来。
     sudo insmod /path/to/sipu.ko allow_unsupported=1
     ```
 
-* [v] `let [lnum2, col2] = getpos("'>")[1:2]`
-
-* [v] `substitute(line_content, '^\s*\zs\S', '* &', '')`
-
 * [ ] `let save_reg = @"`, `let @" = save_reg`
 
 * [ ] `let start_line = line("'<")`
@@ -1479,8 +1475,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `gcc -ldl`
 
-* [v] `strings`
-
 * [ ] `getconf`
 
 * [ ] `source`
@@ -1927,9 +1921,25 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
 
+## matplotlib
+
+### tasks
+
+* [ ] `plt.Circle()`, `ax.add_patch()`
+
+* [new] `plt.Line2D()`, `ax.add_line()`
+
+* [new] `ax.text()`
+
+* [new] `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()`
+
+* [new] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
+
+* [new] `ax.text()`, `ax.annotate()`
+
 ## fnirs
 
-## tasks
+### tasks
 
 * [ ] MNE-NIRS
 
@@ -1942,29 +1952,6 @@ english words 由 { } reorg: english words 进化而来。
 ## Matlab
 
 ### tasks
-
-* [v] deal 函数
-
-    ```matlab
-    % 匿名函数配合 deal
-    getTwoValues = @(x) deal(x^2, x^3);
-    [a, b] = getTwoValues(3);  % a=9, b=27
-
-    % 但注意：deal 在匿名函数中需要显式调用
-    getMinMax = @(arr) deal(min(arr), max(arr));
-    [minVal, maxVal] = getMinMax([5, 2, 8, 1]);
-    ```
-
-    deal 的限制：
-
-    ```matlab
-    % 这可以工作
-    f = @(x) deal(x^2, x^3);
-    [a, b] = f(2);  % a=4, b=8
-
-    % 但这不行（匿名函数中不能有多个语句）
-    % f = @(x) a = x^2; b = x^3; deal(a, b);  % 错误！
-    ```
 
 * [ ] 嵌套函数包装
 
@@ -2099,7 +2086,7 @@ resources:
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
-* [ ] 在 py 中创建稀疏矩阵，计算矩阵乘法
+* [v] 在 py 中创建稀疏矩阵，计算矩阵乘法
 
 * [ ] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
 
@@ -2679,10 +2666,6 @@ resources:
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
 * [ ] 调研标准亲和性 (smp_affinity)
-
-* [v] `INIT_WORK()`, `cancel_work_sync()`
-
-* [v] `device_create_file()`
 
 * [ ] `device_unregister()`
 

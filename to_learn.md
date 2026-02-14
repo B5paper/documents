@@ -8430,3 +8430,7 @@
     <https://unix.stackexchange.com/questions/103699/kill-process-spawned-by-ssh-when-ssh-dies>
 
 * <https://github.com/kunkundi/crossdesk>
+
+* DeepWalk - Deep Learning for Graphs 
+
+    https://github.com/phanein/deepwalk

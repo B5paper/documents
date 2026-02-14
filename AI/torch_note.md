@@ -2,6 +2,229 @@
 
 ## cache
 
+* 我开发了一款新硬件，如何对接到 pytorch
+
+    将新硬件对接到PyTorch需要系统性的工作。以下是主要步骤和方案：
+
+    一、核心对接方式
+
+    1. **PyTorch后端扩展**
+
+        ```python
+        # 自定义设备注册
+        import torch
+        from torch.utils.rename_privateuse1 import rename_privateuse1_backend
+
+        # 将自定义设备注册为私有设备
+        rename_privateuse1_backend("your_device")
+
+        # 然后在代码中使用
+        device = torch.device("your_device:0")
+        ```
+
+    2. **使用自定义算子**
+
+        ```python
+        import torch
+        from torch.library import custom_op
+
+        @custom_op("your_device::custom_linear", mutates_args=())
+        def custom_linear(x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+            # 调用底层硬件加速库
+            return your_hardware_linear(x, weight)
+        ```
+
+    二、完整对接架构
+
+    1. **C++扩展接口**
+
+        ```cpp
+        // 实现PyTorch的C++扩展接口
+        #include <torch/extension.h>
+        #include <ATen/native/YourDeviceInterface.h>
+
+        // 注册设备类型
+        REGISTER_DEVICE_IMPL(your_device, YourDeviceImpl);
+
+        // 实现核心算子
+        at::Tensor your_add(const at::Tensor& self, const at::Tensor& other) {
+            // 调用硬件SDK
+            return your_hardware::add(self, other);
+        }
+
+        TORCH_LIBRARY_IMPL(aten, YourDevice, m) {
+            m.impl("add", your_add);
+        }
+        ```
+
+    2. **Python层封装**
+
+        ```python
+        # 创建设备管理类
+        class YourDevice:
+            @staticmethod
+            def is_available():
+                return your_hardware.check_availability()
+            
+            @staticmethod
+            def device_count():
+                return your_hardware.get_device_count()
+            
+            @staticmethod
+            def set_device(device_id):
+                your_hardware.set_current_device(device_id)
+
+        # 注册到PyTorch
+        torch.register_device_module("your_device", YourDevice)
+        ```
+
+    三、具体实现步骤
+
+    **步骤1：实现基础框架**
+
+    ```python
+    # 1. 定义设备属性
+    torch._C._set_device_properties(
+        "your_device",
+        torch._C._DeviceProperties(
+            name="Your Hardware",
+            major=1,
+            minor=0,
+            total_memory=your_hardware.get_memory_size(),
+            multi_processor_count=your_hardware.get_core_count()
+        )
+    )
+
+    # 2. 注册分配器
+    torch._C._set_allocator("your_device", your_allocator)
+    ```
+
+    **步骤2：实现内存管理**
+
+    ```cpp
+    // 实现PyTorch的Allocator接口
+    class YourAllocator : public at::Allocator {
+    public:
+        void* allocate(size_t size) override {
+            return your_hardware_malloc(size);
+        }
+        
+        void deallocate(void* ptr) override {
+            your_hardware_free(ptr);
+        }
+    };
+    ```
+
+    **步骤3：算子实现**
+
+    ```python
+    # 使用PyTorch的Dispatch机制
+    import torch.library as lib
+
+    # 定义算子
+    lib.define("your_device::matmul(Tensor a, Tensor b) -> Tensor")
+
+    # 实现
+    @lib.impl("your_device::matmul", "YourDevice")
+    def matmul_impl(a, b):
+        # 调用硬件加速
+        return your_hardware.matmul(a, b)
+    ```
+
+    四、优化建议
+
+    1. **逐算子迁移策略**
+
+        ```
+        1. 先实现基础算子：add, mul, matmul
+        2. 实现自动微分相关算子
+        3. 实现常见神经网络层
+        4. 优化特定算子性能
+        ```
+
+    2. **兼容性考虑**
+
+        ```python
+        # 自动回退机制
+        def fallback_to_cpu(func):
+            def wrapper(*args, **kwargs):
+                try:
+                    return func(*args, **kwargs)
+                except NotImplementedError:
+                    # 回退到CPU实现
+                    args_cpu = [arg.cpu() for arg in args]
+                    return func(*args_cpu, **kwargs).to("your_device")
+            return wrapper
+        ```
+
+    五、测试与验证
+
+    ```python
+    # 创建测试框架
+    import pytest
+
+    def test_device_operations():
+        # 测试张量创建
+        x = torch.randn(10, 10, device="your_device")
+        assert x.device.type == "your_device"
+        
+        # 测试基本运算
+        y = x + x
+        assert y.device.type == "your_device"
+        
+        # 测试模型运行
+        model = torch.nn.Linear(10, 5).to("your_device")
+        output = model(x)
+        assert output.device.type == "your_device"
+    ```
+
+    六、发布与集成
+
+    1. **创建PyTorch扩展包**
+
+        ```python
+        # setup.py
+        from setuptools import setup
+        from torch.utils.cpp_extension import BuildExtension
+
+        setup(
+            name="pytorch-your-device",
+            ext_modules=[
+                YourDeviceExtension("your_device_extension", sources=["src/your_device.cpp"])
+            ],
+            cmdclass={
+                'build_ext': BuildExtension.with_options(use_ninja=True)
+            }
+        )
+        ```
+
+    2. **文档与示例**
+
+        ```python
+        # 提供易用的接口
+        def enable_your_device():
+            """一键启用自定义设备支持"""
+            import torch_your_device
+            torch_your_device.init()
+        ```
+
+    七、推荐参考项目
+
+    1. **官方示例**: PyTorch `privateuse1` 机制
+    2. **ROCm**: AMD GPU对PyTorch的支持
+    3. **Intel Extension for PyTorch**: XPU设备支持
+    4. **Habana Gaudi**: 专用AI训练芯片对接
+
+    关键注意事项
+
+    1. **保持API兼容性**: 确保与PyTorch现有API完全兼容
+    2. **性能优化**: 重点优化数据传输和核心算子
+    3. **错误处理**: 提供清晰的错误信息
+    4. **内存管理**: 确保内存分配释放正确
+    5. **多设备支持**: 考虑多卡并行场景
+
+    建议从最简单的算子开始，逐步扩展功能。PyTorch社区对新硬件支持非常友好，可以考虑在PyTorch论坛或GitHub上寻求帮助。
+
 * 简述 pytorch 中，a.storage().data_ptr() 的作用
 
     在 PyTorch 中，`a.storage().data_ptr()` 的作用是**返回张量 `a` 的底层数据存储区的内存地址**。

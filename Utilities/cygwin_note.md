@@ -2,6 +2,8 @@
 
 ## cache
 
+* 如果在 cygwin 中，可以使用 ls 定位到一个文件，但是无法使用 vim 向其中写入内容，那么很有可能是 vim 使用的是 windows 版本的，无法处理`/`路径。使用 cygwin 仓库中的 bash 版本的 vim 可以解决这个问题。
+
 * cygwin 中 scp 和 rsync 会调用 windows 自带的 ssh，导致无法正确处理 cygwin 中的`/`路径，从而无法工作。
 
     可以在 cygwin 中安装基于 bash 的 ssh，可以解决这个问题。
