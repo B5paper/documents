@@ -1,5 +1,124 @@
 # Matlab Note
 
+* matlab 允许在函数中定义一个函数，并函数这个函数的指针（句柄）
+
+    example 1:
+
+    ```matlab
+    function [funcHandle] = createMultiReturnFunc()
+        % 创建返回多个值的函数句柄
+        funcHandle = @multiReturn;
+        
+        function [a, b, c] = multiReturn(x)
+            a = x^2;
+            b = x^3;
+            c = sqrt(x);
+        end
+    end
+
+    % 使用
+    myFunc = createMultiReturnFunc();
+    [val1, val2, val3] = myFunc(4);  % 16, 64, 2
+    ```
+
+    example 2:
+
+    ```matalb
+    function [funcHandle] = createMultiReturnFunc(power)
+        % 可以返回不同幂次的计算函数
+        funcHandle = @(x) multiReturn(x, power);
+        
+        function [a, b, c] = multiReturn(x, p)
+            a = x^p;
+            b = x^(p+1);
+            c = sqrt(x);
+        end
+    end
+
+    % 使用
+    myFunc = createMultiReturnFunc(2);
+    [val1, val2, val3] = myFunc(4);  % 16, 64, 2
+    ```
+
+    **为什么 funcHandle 定义在 function multiReturn 的前面？**
+
+    这是一个很好的观察！让我解释一下MATLAB中函数定义的顺序问题：
+
+    MATLAB的解析机制
+
+    在MATLAB中，**函数定义的顺序通常不影响其可用性**，因为MATLAB会在解析整个文件时预先加载所有函数定义。这意味着：
+
+    ```matlab
+    function [funcHandle] = createMultiReturnFunc()
+        % 这里先创建函数句柄，引用后面定义的函数
+        funcHandle = @multiReturn;  % ✅ 没问题，multiReturn在后面定义
+        
+        function [a, b, c] = multiReturn(x)  % 这个函数定义在后面
+            a = x^2;
+            b = x^3;
+            c = sqrt(x);
+        end
+    end
+    ```
+
+    为什么这样写是可行的？
+
+    1. **编译时解析**：MATLAB在执行代码前会先扫描整个文件，找到所有函数定义
+
+    2. **词法作用域**：在同一个文件内，函数名在整个作用域都是可见的
+
+    3. **嵌套函数的特殊性**：嵌套函数在定义之前就可以被引用
+
+    对比其他语言
+
+    这种写法在MATLAB中是特有的，对比其他语言：
+
+    ```python
+    # Python - 必须先定义后使用
+    def multi_return(x):
+        return x**2, x**3, x**0.5
+
+    def create_func():
+        return multi_return  # ✅ 必须在引用前定义
+    ```
+
+    ```javascript
+    // JavaScript - 函数提升让这也可以工作
+    function createFunc() {
+        return multiReturn;  // ✅ 函数声明会被提升
+        
+        function multiReturn(x) {  // 函数声明会被提升
+            return [x**2, x**3, Math.sqrt(x)];
+        }
+    }
+    ```
+
+    代码风格考虑
+
+    虽然MATLAB允许这种写法，但常见的最佳实践是：
+
+    1. **主函数在前，辅助函数在后**：便于阅读代码的主要逻辑
+
+    2. **先定义后使用**：虽然技术上不必要，但更符合直觉
+
+    3. **保持一致性**：在项目中统一风格
+
+        ```matlab
+        function [funcHandle] = createMultiReturnFunc()
+            % 定义内部函数
+            function [a, b, c] = multiReturn(x)
+                a = x^2;
+                b = x^3;
+                c = sqrt(x);
+            end
+            
+            % 创建函数句柄（先定义后使用）
+            funcHandle = @multiReturn;  % 这样写更符合阅读习惯
+        end
+        ```
+
+    所以，你观察到的代码顺序在MATLAB中是完全可以工作的，这是由MATLAB的语言特性决定的！
+
 * matlab `deal()`
 
     deal() 函数详解

@@ -21,6 +21,10 @@
         string s5(s2);          // 拷贝构造
         ```
 
+        注：
+
+        1. string 不支持`string s(24);`这样给定初始元素个数。vector 支持这个操作。但是 string 支持`string s(24, 'a');`，即初始化为给定长度的给定值。
+
     2. 基本操作
 
         ```cpp
@@ -81,6 +85,10 @@
         // 清除
         str.clear();                       // 清空字符串
         ```
+
+        注：
+
+        1. string 如果想插入 char 字符，必须使用`insert(size_t pos, size_t n, char c);`，不能使用`insert(size_t pos, char c);`，没有这个函数。要么就使用迭代器：`insert(string::const_iterator p, char c);`
 
     6. 与 C 风格字符串转换
 

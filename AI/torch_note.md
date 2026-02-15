@@ -2,6 +2,88 @@
 
 ## cache
 
+* 简述 pytorch 中 nn.RNN 的用法
+
+    nn.RNN 的基本用法
+
+    1. 基本结构
+
+        ```python
+        import torch
+        import torch.nn as nn
+
+        # 创建RNN层
+        rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
+        ```
+
+    2. 核心参数说明
+
+        - **input_size**: 输入特征的维度
+        - **hidden_size**: 隐藏状态的维度
+        - **num_layers**: RNN层数（默认1）
+        - **batch_first**: 是否将batch维度放在第一维（默认False）
+        - **dropout**: Dropout比率（多层时使用）
+        - **bidirectional**: 是否使用双向RNN
+
+    3. 前向传播
+
+        ```python
+        # 输入数据
+        # 当 batch_first=True 时：
+        # input: [batch_size, seq_len, input_size]
+        # h0: [num_layers, batch_size, hidden_size]
+
+        output, hn = rnn(input, h0)
+
+        # 输出：
+        # output: [batch_size, seq_len, hidden_size] - 每个时间步的输出
+        # hn: [num_layers, batch_size, hidden_size] - 最后一个时间步的隐藏状态
+        ```
+
+    4. 完整示例
+
+        ```python
+        import torch
+        import torch.nn as nn
+
+        # 参数设置
+        batch_size = 3
+        seq_len = 5
+        input_size = 10
+        hidden_size = 20
+        num_layers = 2
+
+        # 创建RNN
+        rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
+
+        # 准备输入数据
+        input = torch.randn(batch_size, seq_len, input_size)
+        h0 = torch.zeros(num_layers, batch_size, hidden_size)
+
+        # 前向传播
+        output, hn = rnn(input, h0)
+
+        print(f"输出形状: {output.shape}")  # [3, 5, 20]
+        print(f"隐藏状态形状: {hn.shape}")   # [2, 3, 20]
+        ```
+
+    5. 实用技巧
+
+        ```python
+        # 1. 不使用初始隐藏状态（自动初始化为0）
+        output, hn = rnn(input)
+
+        # 2. 获取最后一个时间步的输出
+        last_output = output[:, -1, :]  # [batch_size, hidden_size]
+
+        # 3. 将所有时间步的输出展平
+        flattened = output.reshape(-1, hidden_size)  # [batch_size*seq_len, hidden_size]
+        ```
+
+    6. 常见激活函数
+
+        - 默认使用tanh（可通过`nonlinearity='relu'`改为ReLU）
+
 * 我开发了一款新硬件，如何对接到 pytorch
 
     将新硬件对接到PyTorch需要系统性的工作。以下是主要步骤和方案：

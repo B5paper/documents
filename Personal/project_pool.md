@@ -507,8 +507,6 @@
 
 这里主要是暂时难以分类的任务。
 
-* [ ] c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
-
 * [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
 
 * [ ] 调研 Computer algebra system
@@ -767,8 +765,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
-* [v] 不创建 class 时,`/dev`文件夹下不显示设备文件。u0 为`请写出添加及删除 cdev 的最小代码。`的 u1 有问题，有时间了改一下。
-
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
@@ -975,7 +971,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] `grep drm_suballoc /proc/kallsyms`
+* [v] `grep drm_suballoc /proc/kallsyms`
 
 * [ ] 确保正确的内核配置
 
@@ -1065,7 +1061,7 @@ english words 由 { } reorg: english words 进化而来。
 
     就会自动在选中文本两侧添加三个反引号
 
-* [ ] `git submodule update --init --progress`
+* [v] `git submodule update --init --progress`
 
     `git clone --recurse-submodules ../repo-server .`
 
@@ -1452,8 +1448,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] `timer_create()`
 
 * [ ] `signal()`
-
-* [v] `pause()`
 
 * [ ] `sigaction()`
 
@@ -1941,7 +1935,18 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] MNE-NIRS
+* [v] MNE-NIRS
+
+    feedback:
+
+    * [asso] `print(dir(mne_nirs.preprocessing))`
+
+    * [asso] 查看所有可用的方法（过滤掉内置方法）
+
+        ```py
+        methods = [method for method in dir(raw) if not method.startswith('_')]
+        print("可用的方法：", methods)
+        ```
 
 * [new] pyserial, struct
 
@@ -1953,7 +1958,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] 嵌套函数包装
+* [v] 嵌套函数包装
 
     ```matlab
     function [funcHandle] = createMultiReturnFunc()
@@ -2086,8 +2091,6 @@ resources:
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
-* [v] 在 py 中创建稀疏矩阵，计算矩阵乘法
-
 * [ ] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
 
 * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
@@ -2123,8 +2126,6 @@ resources:
     <https://docs.pytorch.org/tutorials/beginner/basics/intro.html>
 
 * [ ] gpu 如何对 transpose 加速？或者说，高性能 transpose 如何实现？
-
-* [v] `a.storage().data_ptr()`
 
 * [ ] 调研 SG-DMA
 
@@ -2280,7 +2281,7 @@ resources:
 
 * [ ] torch tensor `.float()`
 
-* [ ] `nn.RNN`
+* [v] `nn.RNN`
 
 * [ ] 调研 LSTM
 
@@ -6127,6 +6128,8 @@ resources:
 主要任务是学完 modern c++，即 c++23 及之前的内容，找一些开源库看一看。
 
 ### cache
+
+* [asso] c / c++ 中是否有类似 argparse 的库，或者其他处理参数的库？
 
 * [ ] 调研写法`char str_1[]{ "Hello !!, GeeksforGeeks" };`, `char str{ "Muddy" };`
 

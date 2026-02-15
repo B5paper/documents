@@ -2,6 +2,566 @@
 
 ## cache
 
+* 简述什么是光子流密度（光通量）？
+
+    **光子流密度**更常见的标准术语是**光通量**，它在 radiometry（辐射度学）和 photometry（光度学）中有不同的侧重点。为了让你全面理解，可以从以下三个维度来简述：
+
+    1. 核心定义（物理光学角度）
+
+        光子流密度指的是单位时间内通过单位面积的光子数目，或者更常见的是指**单位时间内通过某一面积的光的能量**。
+
+        在辐射度学中，它对应的精确术语是**辐照度**或**辐射通量密度**，单位是 \( W/m^2 \)（瓦特每平方米）。它描述了光能量在空间中的分布浓度。
+
+    2. 视觉响应角度（光度学角度）
+
+        在光度学（人眼视觉）中，光子流密度通常特指**光通量**（Luminous Flux），它表示光源每秒发出的**可见光**能量的总和，但并非简单的物理功率，而是根据人眼对不同波长光线的敏感度（即视见函数）进行加权后的量。
+
+        *   **符号：** \(\Phi\)
+        *   **单位：** 流明（lm）
+        *   **通俗理解：** 它描述了光源“看起来”有多亮。例如，一个60W的白炽灯大约能发出700流明的光通量。
+
+    3. 通俗类比
+
+        你可以把光子流密度想象成**水流的流量**：
+
+        * 光子就像水流中的**水滴**。
+
+        * 光子流密度（光通量）就像**单位时间内流过管道某一横截面的总水量**。
+        
+        * 如果水压越大（光子密度越高），或者管道越粗（面积越大），单位时间流过的水就越多（光通量越大）。
+
+    总结
+
+    简单来说，**光子流密度（光通量）就是衡量一束光“输送”光子能力强弱的物理量。** 在照明工程中，它决定了灯具的明亮程度；在物理学中，它决定了光与物质相互作用（如光电效应）的效率。
+
+* 简述 fnirs 数据处理中的 snirf 文件格式
+
+    **SNIRF**（近红外光谱成像数据格式，Shared Near Infrared Spectroscopy Format）是 fNIRS 领域官方推荐的标准化数据文件格式，旨在解决不同厂商设备生成的数据格式不统一的问题。
+
+    以下是关于 SNIRF 格式的简述：
+
+    1. 本质与扩展名
+
+        -   **本质**：它是一种基于 **HDF5** 标准的文件格式。
+        -   **扩展名**：通常以 `.snirf` 结尾。
+
+    2. 核心设计目标
+
+        -   **互操作性**：允许数据在不同厂商的设备、不同的分析软件（如 Homer3、MNE-NIRS、Brainstorm）之间无缝流通，无需编写繁琐的格式转换脚本。
+        -   **可重复性**：通过统一的数据结构，确保数据处理和分析的标准化，便于科研结果的复现。
+
+    3. 数据结构层次
+
+        SNIRF 文件内部采用层级结构存储数据，主要包含以下核心组（Groups）和数据集（Datasets）：
+
+        -   **/nirs**：主数据组，包含以下子项：
+            -   **data**：存储原始光强数据或浓度变化数据的时间序列矩阵。
+            -   **probe**：存储探针布局信息，包括光源（Source）和探测器（Detector）的坐标位置、哪个源-探针对构成哪个测量通道。
+            -   **stim**：存储实验刺激的时间标记（开始时间、持续时间、刺激类型）。
+            -   **aux**：存储辅助数据（如加速度计数据、生理监控数据等）。
+        -   **/formatVersion**：标识该文件遵循的 SNIRF 格式版本号（如 `1.0`）。
+
+    4. 主要优势
+
+        -   **自包含**：一个 `.snirf` 文件包含了原始数据、元数据（如采样率、波长）、探头几何结构和刺激标记，无需额外的附属文件。
+        -   **跨平台**：基于 HDF5，使其不受操作系统和字节序的影响。
+        -   **社区支持**：被 Homer3（MATLAB 平台）和 MNE-NIRS（Python 平台）等主流分析工具采用为主要数据格式。
+
+* mne-nirs 完整的 GLM 分析流程
+
+    ```py
+    import mne
+    import mne_nirs
+    import numpy as np
+    from mne_nirs.experimental_design import make_first_level_design_matrix
+    from mne_nirs.statistics import run_glm
+    from mne_nirs.channels import get_long_channels, get_short_channels
+
+    # 1. 读取数据
+    raw_intensity = mne.io.read_raw_snirf('your_data.snirf', preload=True)
+
+    # 2. 预处理：转换为光密度和血红蛋白浓度
+    from mne.preprocessing import nirs
+    raw_od = nirs.optical_density(raw_intensity)
+    raw_haemo = nirs.beer_lambert_law(raw_od, ppf=0.1)
+
+    # 3. 分离长短通道（可选，用于去除生理噪声）
+    short_chs = get_short_channels(raw_haemo)
+    raw_haemo = get_long_channels(raw_haemo)
+
+    # 4. 创建设计矩阵 ⭐ 关键步骤
+    design_matrix = make_first_level_design_matrix(
+        raw_haemo,
+        drift_model='cosine',      # 漂移模型
+        high_pass=0.005,            # 高通滤波截止频率
+        hrf_model='spm',            # 血液动力学响应函数模型
+        stim_dur=5.0                # 刺激持续时间
+    )
+
+    # 5. 添加短通道均值作为回归量（可选，但推荐）
+    design_matrix["ShortHbO"] = np.mean(
+        short_chs.copy().pick(picks="hbo").get_data(), axis=0
+    )
+    design_matrix["ShortHbR"] = np.mean(
+        short_chs.copy().pick(picks="hbr").get_data(), axis=0
+    )
+
+    # 6. 运行 GLM ⭐ 需要传入 design_matrix
+    glm_est = run_glm(raw_haemo, design_matrix)
+
+    # 7. 查看结果
+    print(glm_est)
+    results_df = glm_est.to_dataframe()
+    print(results_df.head())
+    ```
+
+* 查看设计矩阵的内容
+
+    ```py
+    from nilearn.plotting import plot_design_matrix
+    import matplotlib.pyplot as plt
+
+    plot_design_matrix(design_matrix)
+    plt.show()
+    ```
+
+* MNE-NIRS 也支持传统的 epochs-based 分析（波形分析）
+
+    ```py
+    # Epochs-based 分析（替代 GLM）
+    epochs = mne.Epochs(raw_haemo, events, tmin=-2, tmax=15, baseline=(-2, 0))
+    conditions = ['Tapping_Left', 'Tapping_Right']
+    evoked_dict = {cond: epochs[cond].average() for cond in conditions}
+    mne.viz.plot_compare_evokeds(evoked_dict)
+    ```
+
+* 简述什么是广义线性模型，为什么要用广义线性模型分析fnirs数据
+
+    广义线性模型（GLM）简述
+
+    什么是广义线性模型？
+
+    **广义线性模型（GLM）** 是传统线性模型的扩展，由三个核心部分组成：
+
+    1. **随机成分**：指定响应变量的概率分布（如高斯分布、二项分布、泊松分布等）
+    2. **系统成分**：线性预测器 $\eta = X\beta$（与普通线性回归相同）
+    3. **连接函数**：将线性预测器与响应变量的期望值联系起来 $g(\mu) = \eta$
+
+    **数学表达**：
+
+    - 普通线性模型：$Y = X\beta + \varepsilon$，假设 $Y \sim N(\mu, \sigma^2)$
+
+    - 广义线性模型：$g(E[Y]) = X\beta$，$Y$ 可以服从指数族中的任何分布
+
+    与普通线性回归的区别
+
+    | 特性 | 普通线性回归 | 广义线性模型 |
+    |------|------------|------------|
+    | 因变量分布 | 正态分布 | 指数族分布（二项、泊松、伽马等） |
+    | 关系形式 | 线性 | 可通过连接函数变换 |
+    | 方差 | 恒定 | 可随均值变化 |
+    | 典型应用 | 连续值预测 | 分类、计数、比率数据 |
+
+    为什么用GLM分析fNIRS数据？
+
+    1. **fNIRS数据的特性符合GLM的框架**
+
+        fNIRS数据具有以下特点，使得GLM特别适合：
+
+        - **时间序列结构**：fNIRS数据是连续采集的时间序列，包含任务刺激、生理噪声、漂移等多种成分
+        - **线性叠加假设**：大脑的血氧响应被认为是不同刺激和干扰成分的线性叠加
+        - **噪声复杂**：包含心跳、呼吸、梅耶波等生理噪声，以及仪器噪声
+
+    2. **GLM可以分离不同信号成分**
+
+        GLM可以将fNIRS信号分解为：
+
+        ```
+        fNIRS信号 = 刺激诱发的HRF + 生理噪声 + 低频漂移 + 残差
+                 = (设计矩阵 × 参数) + 噪声
+        ```
+
+        通过构建包含不同回归量的设计矩阵，GLM可以：
+
+        - 估计不同实验条件下的血氧响应幅度
+        - 分离任务相关的激活信号与生理噪声
+        - 去除低频漂移（通过多项式或余弦基函数）
+
+    3. **处理fNIRS数据的具体优势**
+
+        | 优势 | 说明 | 在fNIRS中的应用 |
+        |------|------|----------------|
+        | **多条件分离** | 可以同时估计多个实验条件的效应 | 比较不同任务条件（如左手运动vs右手运动） |
+        | **噪声建模** | 可以将噪声源作为回归量加入模型 | 加入短通道信号去除生理噪声 |
+        | **漂移校正** | 内置漂移项处理低频趋势 | 去除设备漂移和慢速生理波动 |
+        | **统计推断** | 提供参数估计和假设检验 | 识别显著激活的通道和时间点 |
+        | **灵活性** | 可以处理连续变量和分类变量 | 分析连续变量（如反应时）的影响 |
+
+    4. **与传统的block averaging相比**
+
+        **传统Block Averaging**：
+
+        - 简单直观，易于理解
+        - 无法处理重叠的血液动力学响应
+        - 对噪声敏感，不能分离不同来源的噪声
+
+        **GLM方法**：
+
+        - 可以处理快速事件相关设计（HRF可能重叠）
+        - 可以同时建模多个回归量，分离信号成分
+        - 提供统计显著性检验
+        - 可以处理连续变化的参数（如parametric modulation）
+
+    5. **MNE-NIRS中的GLM实现**
+
+        在MNE-NIRS中，GLM分析的典型流程：
+
+        ```python
+        # 1. 构建设计矩阵（包含刺激条件、漂移项、短通道信号等）
+        design_matrix = make_first_level_design_matrix(
+            raw_haemo,
+            drift_model='cosine',  # 漂移建模
+            hrf_model='spm'        # HRF模型
+        )
+
+        # 2. 添加生理噪声回归量
+        design_matrix["ShortHbO"] = short_channel_hbo
+
+        # 3. 运行GLM
+        glm_est = run_glm(raw_haemo, design_matrix)
+
+        # 4. 统计推断
+        contrast_matrix = np.eye(design_matrix.shape[1])[0:2]  # 对比矩阵
+        contrast_results = glm_est.compute_contrast(contrast_matrix)
+        ```
+
+    6. **GLM提供的结果解释**
+
+        GLM分析可以提供：
+
+        - **Beta值**：每个条件在每个通道的激活强度
+        - **T统计量**：激活的显著性
+        - **P值**：统计检验的概率值
+        - **对比分析**：不同条件之间的差异
+
+    总结
+
+    使用GLM分析fNIRS数据的主要原因是它提供了一个**统一、灵活且统计严谨的框架**来处理fNIRS数据的复杂性。它不仅能有效地从噪声中提取任务相关的血液动力学响应，还能进行多条件比较、噪声去除和统计推断，是当前fNIRS数据分析的**标准方法**和**金标准**。
+
+* 简述 MNE-NIRS 的安装、用法
+
+    MNE-NIRS 是一个基于 MNE-Python 的专用于**功能性近红外光谱**数据分析的开源 Python 工具包。它提供了从原始数据预处理、去噪到统计分析和可视化的完整流程。
+
+    以下是其安装和基本用法的简述：
+
+    一、安装
+
+    由于 MNE-NIRS 是 MNE-Python 的姊妹项目，安装过程非常简单。推荐使用 `pip` 或 `conda` 在 Python 环境中进行安装。
+
+    1.  **创建虚拟环境（可选但推荐）**
+
+        ```bash
+        conda create -n mne-nirs python=3.9
+        conda activate mne-nirs
+        ```
+
+    2.  **安装 MNE-NIRS**
+
+        最常用的安装方式是通过 `pip` 安装，它会自动拉取核心依赖（包括 `mne`）：
+
+        ```bash
+        pip install mne-nirs
+        ```
+
+    3.  **安装可选依赖**
+
+        某些特定功能（如 GLM 统计或绘图优化）可能需要额外的库，可以根据需要安装：
+
+        ```bash
+        pip install matplotlib scikit-learn statsmodels
+        ```
+
+    二、基本用法流程
+
+    典型的 MNE-NIRS 数据分析流程遵循标准的 fNIRS 数据处理步骤。以下是核心步骤的代码简述：
+
+    1. 加载数据
+
+        MNE-NIRS 支持多种主流 fNIRS 设备的数据格式（如 SNIRF、NIRx 等）。
+
+        ```python
+        import mne
+        import mne_nirs
+
+        # 读取 SNIRF 格式文件（目前最通用的标准）
+        # raw = mne.io.read_raw_snirf("your_data.snirf", preload=True)
+
+        # 或者读取 NIRx 格式
+        raw = mne.io.read_raw_nirx("your_data_folder", preload=True)
+
+        print(raw)
+        ```
+
+    2. 基本预处理
+
+        预处理步骤通常包括：将光强数据转换为光密度、识别不良通道、去除生理噪声。
+
+        ```python
+        from mne.preprocessing.nirs import optical_density, beer_lambert_law
+
+        # 将原始强度转换为光密度
+        raw = optical_density(raw)
+
+        # 使用修订的比尔-朗伯定律将光密度转换为血红蛋白浓度
+        raw = beer_lambert_law(raw, ppf=0.1)  # ppf 是路径差分因子
+
+        # 查看数据中包含了哪些通道类型 (hbo, hbr)
+        print(raw.get_channel_types())
+
+        # 可选：识别和标记不良通道（基于信噪比等）
+        # from mne_nirs.preprocessing import detect_bad_channels
+        # bads = detect_bad_channels(raw)  # 这只是一个示例函数
+        ```
+
+        一些额外的查看信息的方法：
+
+        ```py
+        # 查看fNIRS特定通道类型
+        fnirs_picks = mne.pick_types(raw.info, fnirs=True)
+        for pick in fnirs_picks[:5]:  # 显示前5个通道
+            print(f"通道 {raw.ch_names[pick]}: 类型 = {raw. get_channel_types(picks=[pick])[0]}")
+
+        # 查看info中的通道信息
+        print(raw.info['chs'][0])  # 查看第一个通道的详细信息
+
+        # 查看自定义字段（如果有）
+        if hasattr(raw, '_data_type'):
+            print(f"数据类型: {raw._data_type}")
+        ```
+
+    3. 去噪与滤波
+
+        去除心率、呼吸等高频噪声以及低频漂移。
+
+        ```python
+        # 带通滤波：保留 0.01 至 0.5 Hz 的频率（典型的血流动力学响应频率）
+        raw.filter(0.01, 0.5, fir_design='firwin')
+
+        # 可选：使用短分离通道回归来去除生理噪声（如果设备有短距离通道）
+        # from mne_nirs.preprocessing import short_channel_regression
+        # raw = short_channel_regression(raw)
+        ```
+
+    4. 分段与基线校正
+
+        根据实验刺激将连续数据切割成一个个事件相关的片段（epoch）。
+
+        ```python
+        # 从原始数据的注释中获取事件
+        events, event_dict = mne.events_from_annotations(raw)
+
+        # 创建 epochs：以刺激开始为 0 点，取刺激前 2 秒到刺激后 10 秒
+        epochs = mne.Epochs(
+            raw,
+            events,
+            event_id=event_dict,
+            tmin=-2,  # 基线开始时间
+            tmax=10,  # 结束时间
+            baseline=(-2, 0),  # 基线校正范围
+            preload=True
+        )
+
+        print(epochs)
+        ```
+
+    5. 统计分析（GLM）
+
+        MNE-NIRS 强大的功能之一是使用广义线性模型进行统计，这更符合 fNIRS 数据的统计特性。
+
+        ```python
+        from mne_nirs.statistics import run_glm
+        from mne_nirs.experimental_design import make_first_level_design_matrix
+
+        # 基于 epochs 创建设计矩阵并拟合 GLM
+        glm_estimates = run_glm(epochs)
+
+        # 查看某个通道的统计结果
+        print(glm_estimates["S1_D1 - condition_A"])
+        ```
+
+    6. 可视化
+
+        绘制平均波形或在头皮/大脑模板上绘制激活拓扑图。
+
+        ```python
+        # 绘制所有通道的平均响应
+        epochs.average().plot_psd()  # 或者其他绘图函数
+
+        # 绘制特定通道的波形
+        # mne.viz.plot_compare_evokeds(...)
+
+        # 绘制通道在头皮上的位置
+        raw.plot_sensors()
+        ```
+
+    总结
+
+    * 安装：`pip install mne-nirs`
+
+    * 核心数据流：`raw` （原始/光密度） \(\rightarrow\) `raw` （浓度） \(\rightarrow\) `epochs` （分段） \(\rightarrow\) `glm_estimates` （统计）。
+
+    * 优势：完全兼容 MNE-Python 的数据结构，可以无缝使用 MNE 提供的滤波、ICA 和可视化工具。
+
+* MNE-NIRS 和 MNE 有什么区别？
+
+    这是一个很好的问题。**MNE** 和 **MNE-NIRS** 的关系可以理解为 **“父包”与“子包”**，或者 **“通用平台”与“专用插件”**。
+
+    简单来说：**MNE 是基础框架，MNE-NIRS 是构建在这个框架之上的 fNIRS 专用工具箱。**
+
+    以下是详细的对比和区别：
+
+    1. 定位与适用范围
+
+    -   **MNE （MNE-Python）**
+        -   **定位**：是一个通用的生理信号（主要是神经影像数据）分析软件包。
+        -   **适用范围**：最初主要针对 **脑电图** 和 **脑磁图** 设计，后来扩展了处理侵入性脑电图、皮层电刺激图以及一般时间序列的功能。
+        -   **核心**：它提供了处理任何连续生理信号的底层基础，如滤波、分段、基线校正、事件提取等。
+
+    -   **MNE-NIRS**
+        -   **定位**：是一个专门针对 **功能性近红外光谱** 分析的工具包。
+        -   **适用范围**：专注于 fNIRS 特有的数据格式和物理模型。
+        -   **核心**：它专为 fNIRS 而生，解决了 EEG/MEG 分析中不存在但在 fNIRS 中至关重要的问题。
+
+    2. 核心功能差异
+
+        最大的区别在于 **fNIRS 特有的物理转换** 和 **统计模型**。
+
+        | 功能维度 | MNE （通用） | MNE-NIRS （专用） |
+        | :--- | :--- | :--- |
+        | **单位转换** | **不支持**。MNE 只能处理电压或磁场强度等电生理信号单位。 | **原生支持**。提供函数将光强（Intensity）转为光密度（OD），再通过**修订的比尔-朗伯定律**转为血红蛋白浓度（HbO/HbR）。 |
+        | **数据格式** | 支持通用的 EEG/MEG 格式（如 FIF， EDF， BDF， CNT）。 | 支持 fNIRS 行业标准格式（如 **SNIRF**）及主流设备商格式（如 NIRx， Artinis 等）。它能识别这些格式中的波长、光源-探测器距离等信息。 |
+        | **噪声去除** | 提供通用去噪法（如滤波、ICA、SSP）。 | 提供 fNIRS 特有去噪法，如**短分离通道回归**（利用短距通道估计并去除生理噪声）。 |
+        | **统计模型** | 基于磁/电信号假设，主要使用平均值、t检验或基于场水平的簇聚类校正。 | 专门集成了基于**广义线性模型** 的统计方法，并考虑了 fNIRS 数据的序列相关性。还包含专门用于近红外的**通道特定统计功能**。 |
+
+    3. 数据结构的关系
+
+        为了更好地理解它们的区别，可以看一下代码中的数据流向：
+
+        ```python
+        import mne
+        import mne_nirs
+
+        # 1. 读取 fNIRS 数据（这一步通常用 MNE-NIRS）
+        raw = mne.io.read_raw_nirx("subject_01")  # 实际上是 mne-nirs 扩展了 MNE 的 IO
+
+        # 2. 进行 fNIRS 特有的转换（这一步必须用 MNE-NIRS）
+        raw = mne_nirs.preprocessing.optical_density(raw)
+        raw = mne_nirs.preprocessing.beer_lambert_law(raw)  # 转换为浓度
+
+        # 3. 进行通用的预处理（这一步可以用 MNE）
+        raw.filter(0.01, 0.5, fir_design='firwin')  # 这是 MNE 的功能
+
+        # 4. 创建 epochs（这是 MNE 的核心功能）
+        events = mne.find_events(raw)
+        epochs = mne.Epochs(raw, events, tmin=-2, tmax=10, baseline=None)  # MNE 功能
+
+        # 5. 进行 fNIRS 专用的统计分析（这是 MNE-NIRS 的功能）
+        from mne_nirs.statistics import run_glm
+        glm = run_glm(epochs)  # fNIRS 专用 GLM
+        ```
+
+    4. 总结区别
+
+        | 对比项 | MNE | MNE-NIRS |
+        | :--- | :--- | :--- |
+        | **比喻** | 通用厨房，有水池、灶台、切菜板 | 专门做牛排的套件，有牛排刀、测温针 |
+        | **输入数据** | EEG/MEG/iEEG 信号 | fNIRS 光强/波长信号 |
+        | **物理模型** | 电磁场模型 | 光传播模型（比尔-朗伯定律） |
+        | **特有功能** | 源定位（Source Localization）、独立成分分析 | 短通道回归、HbO/HbR 浓度转换、SNIRF 读写 |
+        | **依赖关系** | 基础库 | **必须依赖 MNE** 才能运行 |
+
+    **结论：**
+
+    当你安装 `mne-nirs` 时，它会自动安装 `mne`。你写代码时，**大部分通用操作（滤波、分段、绘图）使用的是 MNE 的函数，而涉及 fNIRS 特有物理量（如浓度转换、短通道回归）时，则需要调用 MNE-NIRS 的模块。**
+
+* 那么还有和 mne-nirs 同级的“专用插件”吗？
+
+    是的，MNE-Python 作为一个成熟的生态平台，除了 MNE-NIRS，还有多个同级的**专用插件**（通常称为 MNE 生态的子项目）。这些工具包都建立在 MNE 核心框架之上，专门针对特定的模态或分析任务进行优化。
+
+    以下是主要的同级插件：
+
+    1. **MNE-Connectivity**
+
+        -   **定位**：专门进行**功能连接**分析的插件。
+        -   **解决的问题**：计算大脑不同区域之间的同步性、相干性、Granger 因果等。
+        -   **特点**：
+            -   提供多种连接性指标（如相干性、相位锁定值、互信息等）。
+            -   支持基于传感器空间、源空间（脑磁/脑电图源定位后）的连接分析。
+            -   包含统计验证工具（如基于置换检验的连接性统计）。
+        -   **安装**：`pip install mne-connectivity`
+
+    2. **MNE-BIDS**
+
+        -   **定位**：专门处理**脑成像数据结构**格式的插件。
+        -   **解决的问题**：BIDS 是神经科学领域推荐的数据组织标准。该插件帮助用户将原始数据格式化为 BIDS 标准，或者从 BIDS 数据集读取数据。
+        -   **特点**：
+            -   可以读写符合 BIDS 标准的 EEG/MEG/iEEG/fNIRS 数据集。
+            -   包含数据验证工具，检查你的数据是否符合 BIDS 规范。
+            -   方便数据共享和复现研究。
+        -   **安装**：`pip install mne-bids`
+
+    3. **MNE-ICALabel**
+
+        -   **定位**：**自动标记独立成分**的插件。
+        -   **解决的问题**：在 EEG 数据预处理中，通常使用 ICA（独立成分分析）去除眼动、心跳等伪迹。手动区分哪个成分是伪迹非常耗时。
+        -   **特点**：
+            -   利用预训练的机器学习模型，自动将 ICA 成分分类为“脑信号”、“眼动伪迹”、“心跳伪迹”、“肌肉伪迹”等。
+            -   大大加速了 EEG 数据清理流程。
+        -   **安装**：`pip install mne-icalabel`
+
+    4. **MNE-Features**
+
+        -   **定位**：从 MNE 数据对象中**自动提取特征**的插件。
+        -   **解决的问题**：在脑机接口或机器学习应用中，需要从脑信号中提取大量特征（如波段功率、Hjorth 参数、分形维数等）。
+        -   **特点**：
+            -   提供一键式函数，从 `raw`、`epochs` 或 `events` 数据中提取数百种特征。
+            -   输出可以直接用于 scikit-learn 等机器学习库的数据框。
+        -   **安装**：`pip install mne-features`
+
+    5. **MNE-RealTime**
+
+        -   **定位**：**实时处理**脑信号的插件。
+        -   **解决的问题**：用于在线脑机接口或神经反馈系统，需要实时获取和处理数据。
+        -   **特点**：
+            -   提供客户端-服务器架构，可以连接实时数据流（如 LSL，即实验室流媒体协议）。
+            -   支持在线预处理、特征提取和分类。
+        -   **安装**：`pip install mne-realtime`（注意：该项目活跃度可能随社区需求变化）
+
+    6. **MNE-EEG （或者说 MNE-Study）**
+
+        *注：有些模块虽然不叫 MNE-XXX，但功能类似，比如 `mne.stats` 虽然内置于 MNE，但提供了复杂的统计功能。不过官方生态中还有一个 **MNE-Study**（早期概念）用于管理大规模群体研究，目前已部分功能整合进 MNE-BIDS 和核心库。*
+
+    总结对比表
+
+    | 插件名称 | 专注领域 | 典型用户 | 核心价值 |
+    | :--- | :--- | :--- | :--- |
+    | **MNE-NIRS** | fNIRS 数据分析 | fNIRS 研究者 | 血红蛋白浓度转换、短通道回归、fNIRS 专用 GLM |
+    | **MNE-Connectivity** | 功能连接 | 网络 neuroscience 研究者 | 多种连接指标计算与统计 |
+    | **MNE-BIDS** | 数据标准化 | 所有需要数据共享/复现的研究者 | BIDS 格式读写与验证 |
+    | **MNE-ICALabel** | ICA 伪迹去除 | EEG 研究者 | 自动标记 ICA 成分，加速预处理 |
+    | **MNE-Features** | 特征工程 | 脑机接口/机器学习方向 | 批量提取数百种脑信号特征 |
+    | **MNE-RealTime** | 实时处理 | 脑机接口/神经反馈方向 | 实时数据流处理框架 |
+
+    生态关系
+
+    这些插件都遵循相同的设计哲学：
+
+    1.  **依赖 MNE 核心**：它们都建立在 MNE 的数据结构（如 `Raw`、`Epochs`、`Evoked`）之上。
+    2.  **解决特定问题**：每个插件专注于一个领域，避免 MNE 核心库变得臃肿。
+    3.  **无缝集成**：插件的输出通常可以直接用 MNE 的可视化函数展示。
+
+    例如，你可以用 **MNE-NIRS** 处理 fNIRS 数据，然后用 **MNE-Connectivity** 计算通道间的相干性，最后用 **MNE-BIDS** 将处理好的数据保存为标准格式。
+
 * fnirs sqlite raw data 部分结构解析
 
     **1. 表结构说明**

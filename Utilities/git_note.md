@@ -2,6 +2,24 @@
 
 ## cache
 
+* `git clone --recurse-submodules ../repo-server .`，简述这个命令的作用
+
+    这个命令的作用是：**从相对路径 `../repo-server` 克隆一个 Git 仓库到当前目录，并且同时初始化、克隆该仓库中包含的所有子模块。**
+
+    具体分解如下：
+
+    1.  **`git clone`**：Git 的克隆命令，用于复制一个已有的 Git 仓库。
+
+    2.  **`--recurse-submodules`**：这个参数告诉 Git 在克隆主仓库之后，**也自动初始化并克隆主仓库中的所有子模块（submodules）**。如果没有这个参数，子模块对应的目录会是空的，需要额外运行 `git submodule update --init --recursive` 来补全。
+
+    3.  **`../repo-server`**：这是要克隆的**源仓库路径**。这里的 `..` 表示**父目录**。所以，Git 会去当前目录的上一级目录中，寻找一个名为 `repo-server` 的文件夹（或仓库地址），并将其作为克隆的来源。
+
+    4.  **`.`**：这是克隆的**目标路径**。**句点代表当前目录**。通常情况下，`git clone` 会创建一个与源仓库同名的文件夹（例如 `repo-server`）。但这里指定了 `.`，意思是直接把源仓库的内容下载到**当前所在的目录**，而不是创建一个新文件夹。
+
+    **总结场景：**
+
+    假设你当前在 `/home/user/projects/client` 目录下，执行这个命令后，Git 会把隔壁 `/home/user/projects/repo-server` 这个仓库的所有文件（包括子模块）都拉取并放入 `/home/user/projects/client` 目录里。
+
 * git merge dev 时，我希望 squash 一下，不要 dev 冗长的提交记录，怎么办
 
     在 `git merge dev` 时进行 squash，有以下几种方法：

@@ -26491,16 +26491,107 @@ a 和 b 仅由字符 '0' 或 '1' 组成
 
 1. 官方给的答案，直接用二进制做
 
-    ```py
-    class Solution:
-        def addBinary(self, a, b) -> str:
-            x, y = int(a, 2), int(b, 2)
-            while y:
-                answer = x ^ y
-                carry = (x & y) << 1
-                x, y = answer, carry
-            return bin(x)[2:]
+    ```cpp
+    class Solution {
+    public:
+        string addBinary(string a, string b) {
+            string result = "";
+            int i = a.length() - 1, j = b.length() - 1;
+            int carry = 0;
+            
+            while (i >= 0 || j >= 0 || carry) {
+                int sum = carry;
+                if (i >= 0) {
+                    sum += a[i--] - '0';
+                }
+                if (j >= 0) {
+                    sum += b[j--] - '0';
+                }
+                result = char(sum % 2 + '0') + result;
+                carry = sum / 2;  // carry = (sum << 1);
+            }
+            
+            return result;
+        }
+    };
     ```
+
+    如果数字比 INT32_MAX 还大，这种方式就不行了。
+
+1. 自己又写的（2026.02.15）
+
+    ```cpp
+    class Solution {
+    public:
+        string addBinary(string a, string b) {
+            int min_len = min(a.size(), b.size());
+            int max_len = max(a.size(), b.size());
+            string ans;
+            ans.resize(max_len);
+            bool carry = false;
+            for (int i = 0; i < min_len; ++i) {
+                bool a_bit = a[a.size() - 1 - i] - '0';
+                bool b_bit = b[b.size() - 1 - i] - '0';
+                bool c_bit = a_bit ^ b_bit ^ carry;
+                carry = a_bit & b_bit || a_bit & carry || b_bit & carry;
+                ans[max_len - 1 - i] = c_bit + '0';
+            }
+
+            if (max_len == min_len) {
+                if (carry) {
+                    ans.insert(0, "1");
+                }
+                return ans;
+            }
+
+            if (a.size() > b.size()) {
+                for (int i = min_len; i < max_len; ++i) {
+                    bool a_bit = a[a.size() - 1 - i] - '0';
+                    bool c_bit = a_bit ^ carry;
+                    carry = a_bit & carry;
+                    ans[max_len - i - 1] = '0' + c_bit;
+                }
+            } else {
+                for (int i = min_len; i < max_len; ++i) {
+                    bool b_bit = b[b.size() - 1 - i] - '0';
+                    bool c_bit = b_bit ^ carry;
+                    carry = b_bit & carry;
+                    ans[max_len - i - 1] = '0' + c_bit;
+                }
+            }
+
+            if (carry) {
+                ans.insert(0, "1");
+            }
+
+            return ans;
+        }
+    };
+    ```
+
+    最开始想的是最终答案要么和 a, b 中最长的那个相等，要么就多 1 位。所以先判断下长短，把 ans 的内存开出来。如果最后进位的话，ans 做 insert 还要再复制一次内存。如果用 stack，那么反转的时候**必定**复制一次内存，平均内存使用比提前开辟内存略高一丢。还有一种方式是提前分配 max_len + 1 大小的内存，这样就可以原地做 reverse 了，但是如果额外的一个字符用不上，返回的时候是按值返回 substr 的，又会复制一次内存。相当于 max_len 赌的是没有进位，此时效率最优；max_len + 1 赌的是有进位，此时效率最优。如果能返回 string_view，就没这个问题了。
+
+    `i`是否可以从`min_len`开始，`--i`直到 0？似乎不可以，因为`min_len`是短序列的结尾，但长序列没法根据这个定位自己的末尾位置在哪里。所以`i`必须从 0 开始，相当于让 2 个字符串右对齐，意义为“倒数第 i 个字符”。定位末尾，每次都要通过`a.size() - 1 - i`计算从右开始的位置，还不如先让 a, b 先反转，再统一从左开始。其实如果有`size_t a_pos = a.size() - 1 - i;`，再使用`--a_pos;`定位右侧位置比较好，也没有多大计算量。
+
+    `bool a_bit = a[a.size() - 1 - i] - '0';`这个做了隐式类型转换。如果提前把 a 和 b 转换成 bit，会不会更好一点？似乎也不行，因为内存按 bit 索引。可能转换成 bitset 比较好。
+
+    ```cpp
+    bool c_bit = a_bit ^ b_bit ^ carry;
+    carry = a_bit & b_bit || a_bit & carry || b_bit & carry;
+    ```
+
+    这段代码代码是标准的二进制加法器当前位和进位的计算方法。
+
+    最后一段代码，由于不知道 a 和 b 具体哪个长哪个短，所以几乎一样的功能写了两遍代码，如果使用引用或指针判别哪个短哪个长，应该会好很多：
+
+    ```cpp
+    string &short_str = a.size() <= b.size() ? a : b;
+    string &long_str = a.size() > b.size() ? a : b;
+    ```
+
+    标准库的 swap() 是否能完成交换两个字符串对象的 header，从而使得 a 的长度总是小于等于 b？如果可以的话，这种方式也行。
+
+    如果不是二进制，而是 p 进制，那么就无法使用二进制的 bit 加法器思路了。而 carry 要么是 0，要么是 1，永远都是二进制。
 
 ### 找出出现至少三次的最长特殊子字符串 II
 

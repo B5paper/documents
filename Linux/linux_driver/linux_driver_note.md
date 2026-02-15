@@ -6,6 +6,142 @@ Ref:
 
 ## cache
 
+* 简述 /proc/kallsyms 的作用和用法，/proc 中是否还有类似的有用的文件？
+
+    `/proc/kallsyms` 的作用和用法
+
+    作用
+
+    `/proc/kallsyms` 是 Linux 内核提供的一个虚拟文件，用于**显示内核中所有符号（函数、变量等）的地址、类型和名称**。主要用途包括：
+
+    1. **内核调试**：查看内核函数和变量的内存地址
+    2. **模块验证**：确认内核模块是否成功加载及其符号位置
+    3. **动态追踪**：为 kprobe、tracepoint 等动态追踪机制提供符号地址
+    4. **内核开发**：分析内核内存布局和符号依赖关系
+
+    基本用法
+
+    ```bash
+    # 查看所有内核符号
+    cat /proc/kallsyms
+
+    # 查找特定符号（如系统调用表）
+    grep sys_call_table /proc/kallsyms
+
+    # 查看模块相关的符号
+    grep -i ext4 /proc/kallsyms
+
+    # 只查看全局函数（类型为 T 的符号）
+    awk '$2 == "T" {print}' /proc/kallsyms
+    ```
+
+    输出格式说明
+
+    ```
+    ffffffff81000000 T startup_64    # 地址    类型    符号名
+    ffffffff81a5b3e0 D init_task      # D 表示已初始化的数据段
+    ffffffffc00a1000 t ext4_iget      # t 表示局部函数（通常来自模块）
+    ```
+
+    - **类型标记**：T/t（代码段）、D/d（数据段）、R/r（只读数据）、B/b（未初始化数据）
+
+    **`/proc` 中其他有用的文件**
+
+    1. **CPU 和系统信息**
+
+        - **`/proc/cpuinfo`**：CPU 详细信息（型号、核心数、特性等）
+
+            ```bash
+            grep "model name" /proc/cpuinfo
+            ```
+
+        - **`/proc/meminfo`**：内存使用情况（总量、空闲、缓存等）
+
+            ```bash
+            grep MemTotal /proc/meminfo
+            ```
+
+        - **`/proc/version`**：内核版本和编译信息
+
+        - **`/proc/uptime`**：系统运行时间和空闲时间
+
+    2. **进程信息**
+
+        - **`/proc/[pid]/`**：每个进程都有自己的目录，包含：
+
+            - `cmdline`：进程启动命令
+            - `environ`：进程环境变量
+            - `fd/`：进程打开的文件描述符
+            - `maps`：进程内存映射
+            - `status`：进程状态信息
+
+                ```bash
+                cat /proc/self/status    # 查看当前进程的状态
+                ```
+
+    3. **硬件和设备信息**
+
+        - **`/proc/interrupts`**：中断请求（IRQ）统计
+        - **`/proc/iomem`**：物理内存映射（类似 kallsyms 但针对硬件资源）
+        - **`/proc/ioports`**：I/O 端口分配
+        - **`/proc/devices`**：已注册的设备驱动（主设备号）
+
+    4. **文件系统和挂载**
+
+        - **`/proc/mounts`**：当前挂载的文件系统
+        - **`/proc/filesystems`**：内核支持的文件系统类型
+        - **`/proc/partitions`**：磁盘分区信息
+
+    5. **网络相关**
+
+        - **`/proc/net/`** 目录下包含网络信息：
+          - `tcp`/`udp`：网络连接状态
+          - `dev`：网络接口统计
+          - `route`：路由表
+
+    6. **内核参数和运行时信息**
+
+        - **`/proc/sys/`**：内核可调参数（可通过 sysctl 修改）
+
+            ```bash
+            cat /proc/sys/kernel/hostname   # 查看主机名
+            echo 1 > /proc/sys/net/ipv4/ip_forward  # 启用 IP 转发
+            ```
+
+        - **`/proc/modules`**：已加载的内核模块列表
+
+        - **`/proc/cmdline`**：内核启动参数
+
+    7. **动态调试信息**
+
+        - **`/proc/locks`**：文件锁信息
+        - **`/proc/stat`**：内核统计信息（CPU 时间、上下文切换等）
+        - **`/proc/zoneinfo`**：内存区域（zone）详细信息
+
+    实用技巧
+
+    1. **监控变化**：
+
+        ```bash
+        watch -n 1 'grep "cpu " /proc/stat'   # 实时查看 CPU 使用率
+        ```
+
+    2. **结合工具使用**：
+
+        ```bash
+        # 查看哪个进程在使用某个文件
+        lsof /path/to/file
+        # 本质是通过 /proc/[pid]/fd/ 实现的
+        ```
+
+    3. **安全注意**：
+
+        - 某些 `/proc` 文件需要 root 权限才能查看
+
+        - `/proc/kallsyms` 中敏感符号地址可能被隐藏（kernel.kptr_restrict 参数控制）
+
+    这些 `/proc` 文件共同构成了一个强大的系统信息接口，是 Linux 系统管理和调试的重要工具。
+
 * 不创建 class 时,`/dev`文件夹下不显示设备文件。
 
 * device_create_file()
