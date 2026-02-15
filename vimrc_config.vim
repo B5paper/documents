@@ -147,3 +147,42 @@ vnoremap zT zt3<C-y>
 nnoremap > >>
 nnoremap m 2j
 vnoremap m 2j
+
+nnoremap t zt3<C-y>
+vnoremap t zt3<C-y>
+
+" 定义快速插入函数
+function! QuickInsert() abort
+    " 获取输入的计数（[N]I），默认为 1
+    let l:count = v:count1
+    let l:inserted_text = ""
+
+    " 循环获取 N 个字符
+    for i in range(l:count)
+        let l:char = getcharstr()
+        " 如果中途按了 Esc，则终止输入
+        if l:char == "\<Esc>"
+            return
+        endif
+        let l:inserted_text .= l:char
+    endfor
+
+    " 在当前光标处插入字符
+    " 使用 feedkeys 可以确保触发原本的插入逻辑，或者直接用 execute
+    execute "normal! i" . l:inserted_text
+endfunction
+
+" 将 I 映射到该函数
+" <C-u> 用于清除 Vim 默认在命令行展示的范围，确保 v:count1 被正确读取
+nnoremap <silent> I :<C-u>call QuickInsert()<CR>
+
+" 使用 tab 键代替 >> 缩进，减少按 shift 的次数
+nnoremap <tab> >>
+vnoremap <tab> >
+
+" 使用 s 键代替 ^ 跳转到行首，减少按 shift 的次数
+nnoremap s ^
+
+" 使用 g. 表示跳转到之前选择的末尾，减少按 shift 的次数
+nnoremap g. `>
+vnoremap g. `>
