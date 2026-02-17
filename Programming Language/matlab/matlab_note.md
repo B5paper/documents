@@ -1,5 +1,56 @@
 # Matlab Note
 
+* matlab cellfun
+
+    `cellfun` 的作用
+
+    `cellfun` 是 MATLAB 中用于对元胞数组（cell array）中的每个元素进行相同函数操作的函数。它可以将一个函数应用到元胞数组的每一个元素上，并返回结果。
+
+    基本语法：
+
+    ```matlab
+    result = cellfun(@function, cellArray, 'UniformOutput', false)
+    ```
+
+    **example 代码解释**
+
+    ```matlab
+    file_cell = {'file1.txt', 'file2.csv'};
+    names = cellfun(@(x) fileparts(x), file_cell, 'UniformOutput', false);
+    ```
+
+    这段代码的作用是：
+
+    1. **`file_cell`**：创建一个包含两个文件名字符串的元胞数组
+
+       - `'file1.txt'`
+       - `'file2.csv'`
+
+    2. **`cellfun` 操作**：
+
+       - `@(x) fileparts(x)`：创建一个匿名函数，对每个输入 `x` 执行 `fileparts` 函数
+       - `file_cell`：要处理的元胞数组
+       - `'UniformOutput', false`：因为 `fileparts` 返回多个输出（路径、文件名、扩展名），设置为 `false` 可以让结果以元胞数组形式返回
+
+    3. **`fileparts` 函数**：将文件路径分解为三个部分
+
+       - 路径名（pathname）
+       - 文件名（filename）
+       - 文件扩展名（extension）
+
+    **执行结果**：
+
+    ```matlab
+    names = 
+        {1×3 cell}    {1×3 cell}
+
+    % 其中：
+    names{1} = {'', 'file1', '.txt'}  % file1.txt 的分解结果
+    names{2} = {'', 'file2', '.csv'}  % file2.csv 的分解结果
+    ```
+
+    每个结果元胞包含三个元素：`{路径, 文件名, 扩展名}`
+
 * matlab 允许在函数中定义一个函数，并函数这个函数的指针（句柄）
 
     example 1:

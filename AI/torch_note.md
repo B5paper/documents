@@ -2,6 +2,53 @@
 
 ## cache
 
+* torch.max() 的原型、作用及用法
+
+    原型
+
+    ```python
+    torch.max(input, dim, keepdim=False, *, out=None)
+    ```
+
+    或者
+
+    ```python
+    torch.max(input, other, *, out=None)
+    ```
+
+    主要作用
+
+    返回输入张量中的最大值。有两种主要使用方式：
+
+    1. **不指定维度**：返回张量中的所有元素的最大值
+    2. **指定维度**：返回指定维度上的最大值，同时返回最大值的索引
+
+    用法示例
+
+    ```python
+    import torch
+
+    # 1. 不指定维度 - 返回全局最大值
+    x = torch.tensor([[1, 5, 3],
+                      [2, 4, 6]])
+    max_value = torch.max(x)  # 返回: tensor(6)
+
+    # 2. 指定维度 - 返回最大值和索引
+    values, indices = torch.max(x, dim=1)  # 按行求最大值
+    # values: tensor([5, 6])  - 每行的最大值
+    # indices: tensor([1, 2]) - 每行最大值所在的列索引
+
+    values, indices = torch.max(x, dim=0)  # 按列求最大值
+    # values: tensor([2, 5, 6]) - 每列的最大值
+    # indices: tensor([1, 0, 1]) - 每列最大值所在的行索引
+    ```
+
+    `_, predicted = torch.max(outputs.data, 1)` 相当于 argmax:
+
+    ```py
+    predicted2 = torch.argmax(outputs, dim=1)
+    ```
+
 * 简述 pytorch 中 nn.RNN 的用法
 
     nn.RNN 的基本用法

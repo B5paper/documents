@@ -2,6 +2,121 @@
 
 ## cache
 
+* 简述 numpy 中 `np.loadtxt()` 的原型、作用及用法
+
+    `np.loadtxt()` 详解
+
+    函数原型
+
+    ```python
+    numpy.loadtxt(fname, dtype=<class 'float'>, comments='#', delimiter=None, 
+                  converters=None, skiprows=0, usecols=None, unpack=False, 
+                  ndmin=0, encoding='bytes', max_rows=None, *, quotechar=None, 
+                  like=None)
+    ```
+
+    主要作用
+
+    从文本文件加载数据，返回 NumPy 数组。专门用于读取格式规整的数据文件（如 CSV、TSV 等表格数据）。
+
+    常用参数说明
+
+    | 参数 | 说明 |
+    |------|------|
+    | **fname** | 文件路径或文件名（必需） |
+    | **dtype** | 返回数组的数据类型，默认 float |
+    | **delimiter** | 分隔符，默认空白（空格或制表符） |
+    | **skiprows** | 跳过的行数（从文件开头） |
+    | **usecols** | 指定要读取的列（索引从0开始） |
+    | **unpack** | 是否转置（True时返回每列作为独立数组） |
+    | **comments** | 注释标记，默认 '#'（忽略该标记后的内容） |
+    | **converters** | 对特定列进行转换的字典 |
+    | **encoding** | 文件编码，默认 'bytes' |
+
+    用法示例
+
+    1. 基本用法
+
+        ```python
+        import numpy as np
+
+        # data.txt 内容：
+        # 1 2 3
+        # 4 5 6
+        # 7 8 9
+
+        data = np.loadtxt('data.txt')
+        print(data)
+        # 输出：
+        # [[1. 2. 3.]
+        #  [4. 5. 6.]
+        #  [7. 8. 9.]]
+        ```
+
+    2. 指定分隔符（如 CSV 文件）
+
+        ```python
+        # data.csv 内容：
+        # 1,2,3
+        # 4,5,6
+
+        data = np.loadtxt('data.csv', delimiter=',', dtype=int)
+        print(data)
+        # 输出：
+        # [[1 2 3]
+        #  [4 5 6]]
+        ```
+
+    3. 跳过表头和选择列
+
+        ```python
+        # data_with_header.txt 内容：
+        # col1 col2 col3
+        # 1 2 3
+        # 4 5 6
+
+        # 跳过第一行，只读取第1列和第3列
+        data = np.loadtxt('data_with_header.txt', skiprows=1, usecols=(0, 2))
+        print(data)
+        # 输出：
+        # [[1. 3.]
+        #  [4. 6.]]
+        ```
+
+    4. 使用 unpack 转置
+
+        ```python
+        data = np.loadtxt('data.txt', unpack=True)
+        print(data)
+        # 输出（每一列变成一行）：
+        # [[1. 4. 7.]
+        #  [2. 5. 8.]
+        #  [3. 6. 9.]]
+
+        # 方便分别获取各列
+        x, y, z = np.loadtxt('data.txt', unpack=True)
+        ```
+
+    5. 处理混合数据类型
+
+        ```python
+        # mixed.txt 内容：
+        # A 1 2.5
+        # B 3 4.7
+
+        # 使用 converters 转换特定列
+        data = np.loadtxt('mixed.txt', dtype=str)
+        # 或指定数据类型
+        data = np.loadtxt('mixed.txt', dtype={'names': ('label', 'id', 'value'),
+                                              'formats': ('U1', 'i4', 'f8')})
+        ```
+
+    注意事项
+
+    1. **文件必须格式规整**：每行数据数量相同
+    2. **默认跳过注释行**：以 '#' 开头的行会被忽略
+    3. **对于复杂数据**：考虑使用 `np.genfromtxt()` 或 `pd.read_csv()`（pandas）
+
 * python numpy 中是否有类似 sortrows 的函数？
 
     NumPy 中类似 MATLAB sortrows() 的函数

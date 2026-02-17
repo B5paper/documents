@@ -6,6 +6,280 @@ Ref:
 
 ## cache
 
+* `put_device()`由谁调用？
+
+    **它既可以被驱动开发者显式调用，也可以被 Linux 内核核心隐式调用。**
+
+    简单来说：**谁最后持有设备的引用，谁负责调用 `put_device()`。**
+
+    以下是详细的分类说明：
+
+    1. 驱动开发者显式调用（直接调用）
+
+        在以下几种情况下，驱动开发者需要手动调用 `put_device()`：
+
+        a. 配对 `get_device()`
+
+        如果你在代码中通过 `get_device(dev)` 主动获取了一个引用（例如为了防止设备在操作过程中被释放），那么在操作完成后，你必须调用 `put_device(dev)` 来释放这个引用。
+
+        ```c
+        struct device *dev = get_device(&pdev->dev); // 增加引用计数
+        if (dev) {
+            // 执行某些需要确保设备存在的操作
+            perform_some_operation(dev);
+            put_device(dev); // 操作完成，减少引用计数
+        }
+        ```
+
+         b. 处理 `device_initialize()` 的失败路径
+
+        如果你使用了 `device_initialize()` 但没有调用 `device_add()`，或者 `device_add()` 失败，你必须手动调用 `put_device()` 来释放引用。
+
+        ```c
+        struct device *dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+        device_initialize(dev); // 初始化后，引用计数 = 1
+
+        if (something_went_wrong) {
+            put_device(dev); // 引用计数减为0 -> 触发 release -> 释放内存
+            return -EINVAL;
+        }
+        ```
+
+        c. 在自定义的 `release` 方法中（间接调用）
+
+        这一点可能有点反直觉，但当你实现设备的 `release` 回调时，你的代码是由 `put_device()` 触发的，而不是你主动调用了 `put_device()`。
+
+    2. 内核核心隐式调用（间接调用）
+
+        这是 `put_device()` 最常见的调用方式。驱动开发者通常**不会直接看到**这些调用，但它们在内核内部广泛存在。
+
+        a. 通过 `device_unregister()`
+
+        当你调用 `device_unregister(dev)` 时，其内部实现会调用 `put_device(dev)`。这是 `put_device()` 最常见的间接调用场景。
+
+        ```c
+        // device_unregister 的简化内部实现
+        void device_unregister(struct device *dev)
+        {
+            device_del(dev);    // 从系统中移除设备
+            put_device(dev);    // 内核在这里自动调用了 put_device()
+        }
+        ```
+
+        b. 设备模型核心的自动管理
+
+        内核的设备模型核心（如 `drivers/base/` 下的代码）在很多地方会自动管理引用计数。例如：
+
+        -   当你在 sysfs 中打开一个设备的属性文件时，内核会自动调用 `get_device()`。
+        -   当你关闭这个文件时，内核会自动调用 `put_device()`。
+
+    3. 总结对比
+
+        | 函数 | 调用者 | 常见调用场景 |
+        | :--- | :--- | :--- |
+        | **`device_unregister()`** | **驱动开发者** | 在 `disconnect`、`remove`、模块卸载或错误回滚路径中显式调用。 |
+        | **`put_device()`** | **两者都有** | 1. **显式**：驱动配对 `get_device()` 或处理 `device_initialize` 失败时。<br>2. **隐式**：内核在 `device_unregister`、sysfs 文件关闭、kobject 释放时调用。 |
+
+    4. 需要记住的关键点
+
+        1.  **不要过度纠结**：对于大多数常规驱动开发，如果你使用的是标准的 `device_register()` / `device_unregister()` 配对，通常不需要直接调用 `put_device()`。`device_register` 成功时已经处理好了引用计数，`device_unregister` 内部会调用 `put_device`。
+
+        2.  **只有当你使用了底层的 `device_initialize()`（增加了引用计数）但没有对应调用 `device_add()`，或者你主动调用了 `get_device()` 时，才需要考虑手动调用 `put_device()`。**
+
+* 简述 linux 中 device_unregister() 的原型、作用及用法
+
+    在 Linux 驱动模型中，`device_unregister()` 是一个非常核心的接口，用于注销一个已注册的设备。
+
+    以下是关于其原型、作用及用法的详细简述：
+
+    1. 函数原型
+
+        `device_unregister()` 定义在 `<linux/device.h>` 头文件中，其原型如下：
+
+        ```c
+        void device_unregister(struct device *dev);
+        ```
+
+    2. 函数作用
+
+        `device_unregister()` 的主要作用是**将一个之前注册到 Linux 设备核心（Device Core）的设备从系统中移除**。具体来说，它做了两件事：
+
+        1.  **发起删除操作**：通知内核该设备即将被移除。
+
+        2.  **减少引用计数**：它会调用 `put_device()` 来减少设备的引用计数。只有当引用计数降为 0 时，内核才会真正释放该设备所占用的内存。
+
+        简单来说，它是 `device_register()` 的逆操作。调用它之后，相关的设备节点（如在 sysfs 中的入口）会被移除，用户空间会收到相应的 uevent 事件。
+
+    3. 典型用法
+
+        `device_unregister()` 通常用于驱动程序模块的**退出函数**（`exit`）或设备拔出时的**断开函数**（`disconnect`）中。
+
+    示例代码片段
+
+    ```c
+    #include <linux/device.h>
+    #include <linux/module.h>
+    #include <linux/platform_device.h> // 或者 include 具体的设备头文件
+
+    static struct device *example_device;
+
+    static int __init my_driver_init(void)
+    {
+        // 1. 分配设备结构体内存 (可以使用 kzalloc 或者静态定义)
+        example_device = kzalloc(sizeof(struct device), GFP_KERNEL);
+        if (!example_device)
+            return -ENOMEM;
+
+        // 2. 初始化设备结构体 (设置 parent, release 回调等)
+        device_initialize(example_device);
+
+        // 3. 注册设备到内核 (通常在 add 函数或 probe 函数中)
+        // device_add(example_device); 或者直接使用 device_register (包含了 init 和 add)
+        // if (device_add(example_device)) {
+        //    put_device(example_device);
+        //    return -EINVAL;
+        // }
+
+        // 假设这里省略了具体注册代码，仅作演示
+        printk("Device Example: Initialized\n");
+        return 0;
+    }
+
+    static void __exit my_driver_exit(void)
+    {
+        // 4. 注销设备
+        if (example_device) {
+            device_unregister(example_device);
+            // 注意：调用 device_unregister 后，通常不需要再调用 kfree，
+            // 因为当引用计数变为0时，内核会自动通过 release 方法释放内存。
+            example_device = NULL;
+        }
+        printk("Device Example: Exited\n");
+    }
+
+    module_init(my_driver_init);
+    module_exit(my_driver_exit);
+
+    MODULE_LICENSE("GPL");
+    ```
+
+    4. 注意事项
+
+        1.  **不能重复调用**：不要对一个已经注销的设备再次调用 `device_unregister()`。
+
+        2.  **释放时机**：`device_unregister()` 返回后，设备不一定立即被释放。实际的释放是在最后一个持有该设备引用的对象调用 `put_device()` 之后才发生。
+
+        3.  **内存释放**：设备结构体通常是在其内部的 `release()` 回调函数中进行释放的。如果你用 `kzalloc` 分配了 `struct device`，必须在 `release` 函数里调用 `kfree()`，否则会导致内存泄漏。
+
+            ```c
+            // 示例 release 回调
+            void my_device_release(struct device *dev)
+            {
+                kfree(dev);
+            }
+            ```
+
+* 简述 linux 中 put_device() 的原型、作用及用法
+
+    在 Linux 驱动模型中，`put_device()` 是用于管理设备引用计数的底层基础函数。它与 `get_device()` 成对出现，是理解 `device_register()` 和 `device_unregister()` 工作机制的关键。
+
+    以下是关于其原型、作用及用法的详细简述：
+
+    1. 函数原型
+
+        `put_device()` 定义在 `<linux/device.h>` 头文件中，其原型如下：
+
+        ```c
+        void put_device(struct device *dev);
+        ```
+
+    2. 函数作用
+
+        `put_device()` 的主要作用是**减少一个设备结构体（`struct device`）的引用计数**。具体逻辑如下：
+
+        1.  **递减计数**：将设备的引用计数（kref）减 1。
+
+        2.  **条件释放**：如果引用计数降到了 0，说明内核中已经没有其他模块或子系统在持有该设备的指针，此时 `put_device()` 会自动调用该设备结构体中预定义的 **`release()` 回调函数**，最终释放设备占用的内存。
+
+        简单来说，**`get_device()` 用于防止设备在使用中被释放，而 `put_device()` 用于表示不再持有该设备，允许其在无人使用时被清理。**
+
+    3. 典型用法
+
+        `put_device()` 通常不会由驱动开发者直接频繁调用，而是更多地作为内核设备模型内部的辅助函数。但在以下几种情况下，驱动开发者需要显式使用它：
+
+         情况一：处理 `device_initialize()` / `device_add()` 的失败路径
+
+        如果你使用了 `device_initialize()` 但没有使用 `device_register()`，那么在失败时必须手动管理引用计数。
+
+        ```c
+        struct device *dev;
+
+        dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+        if (!dev)
+            return -ENOMEM;
+
+        device_initialize(dev); // 初始化后，引用计数为 1
+
+        // ... 做一些其他设置，但可能失败 ...
+        if (some_error_condition) {
+            put_device(dev); // 引用计数减为0 -> 触发 release -> 释放内存
+            return -EINVAL;
+        }
+
+        // 如果一切正常，最后调用 device_add
+        device_add(dev); // device_add 成功会增加引用计数，失败内部会调用 put_device
+        ```
+
+        情况二：配对 `get_device()` 调用
+
+        如果你在代码中通过 `get_device(dev)` 增加了一个临时的引用（例如为了确保在操作期间设备不会被注销），那么在操作完成后，必须调用 `put_device()` 来归还这个引用。
+
+        ```c
+        struct device *tmp_dev;
+
+        tmp_dev = get_device(dev); // 增加引用计数，防止 dev 被释放
+        if (tmp_dev) {
+            // 对设备进行一些安全操作...
+            my_safe_operation(tmp_dev);
+
+            put_device(tmp_dev); // 操作完成，减少引用计数
+        }
+        ```
+
+        情况三：理解 `device_unregister()`
+
+        之前提到的 `device_unregister()` 实际上内部就包含了 `put_device()`。理解这一点有助于区分内存释放的时机。
+
+        ```c
+        // device_unregister 的伪代码逻辑
+        void device_unregister(struct device *dev)
+        {
+            device_del(dev); // 从系统中移除设备（sysfs 入口等）
+            put_device(dev); // 减少引用计数（触发 release）
+        }
+        ```
+
+    4. 关键注意事项
+
+        1.  **必须配对**：`get_device()` 和 `put_device()` 必须成对出现，否则会导致引用计数失衡。计数过高会导致设备永远无法释放（内存泄漏），计数过低可能导致设备在仍有使用者时被意外释放（UAF）。
+
+        2.  **不能直接 kfree**：**绝对不可以在调用 `put_device()` 之后直接 `kfree(dev)`**。因为当引用计数降为 0 时，内核会自动调用 release 回调来释放内存。手动释放会导致双重释放。
+
+        3.  **release 函数不可或缺**：使用 `put_device()` 的前提是 `struct device` 必须设置了有效的 `release` 回调函数。如果没有设置，内核在释放时会打印警告并拒绝释放内存。
+
+            ```c
+            // 正确的 release 函数示例
+            void my_release(struct device *dev)
+            {
+                struct my_device *my_dev = container_of(dev, struct my_device, dev);
+                // 如果 my_device 包含 dev，或者 dev 是单独分配的，在这里 kfree
+                kfree(my_dev); // 或者 kfree(dev);
+            }
+
+            struct device *dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+            dev->release = my_release; // 必须赋值
+            ```
+
 * 简述 /proc/kallsyms 的作用和用法，/proc 中是否还有类似的有用的文件？
 
     `/proc/kallsyms` 的作用和用法

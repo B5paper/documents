@@ -36,6 +36,20 @@
 
 ## cache
 
+* [new] 调研斐波那契数列的并行方法
+
+    ```py
+    # 串行计算（必须依赖前值）
+    def fib_serial(n):
+        if n <= 1: return n
+        return fib_serial(n-1) + fib_serial(n-2)  # 必须等待前两个值
+
+    # 但是！我们可以用矩阵快速幂并行化
+    def fib_parallel(n):
+        # 虽然还是顺序计算，但每步可以并行处理多个不相关的计算
+        return matrix_power([[1,1],[1,0]], n)[0][1]
+    ```
+
 * project pool 中的任务数量先增大（广度优先搜索），再减少。说明复杂度存在一个最大值。如果我们的处理系统/脑子达不到处理这个最大值的能力，那么说明我们的处理系统/脑子无法处理这么复杂的问题。
 
 * 长期任务`{ } xxx`是不是只需要在下面标注日期就可以了？
@@ -53,282 +67,6 @@
 
         * 02.02  30 mins
     ```
-
-* 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
-
-    在不同编程语言中，实现子线程 stdout 重定向到父程序缓冲区的方法不同。以下是几种常见语言的实现方案：
-
-    Python 实现
-
-    使用 io.StringIO
-
-    ```python
-    import sys
-    import io
-    import threading
-
-    class OutputRedirector:
-        def __init__(self):
-            self.original_stdout = sys.stdout
-            self.buffer = io.StringIO()
-            self.lock = threading.Lock()
-        
-        def write(self, text):
-            with self.lock:
-                self.buffer.write(text)
-                # 可选：同时输出到原stdout
-                self.original_stdout.write(text)
-        
-        def flush(self):
-            with self.lock:
-                self.buffer.flush()
-                self.original_stdout.flush()
-        
-        def get_value(self):
-            with self.lock:
-                return self.buffer.getvalue()
-
-    def worker(redirector):
-        sys.stdout = redirector
-        print("子线程输出 1")
-        print("子线程输出 2")
-
-    # 使用示例
-    if __name__ == "__main__":
-        redirector = OutputRedirector()
-        thread = threading.Thread(target=worker, args=(redirector,))
-        thread.start()
-        thread.join()
-        
-        print("缓冲区内容:", redirector.get_value())
-    ```
-
-    使用队列（更灵活）
-
-    ```python
-    import sys
-    import threading
-    import queue
-
-    class ThreadOutputManager:
-        def __init__(self):
-            self.queue = queue.Queue()
-            self.thread_outputs = {}
-            
-        def capture_output(self, thread_id, target, *args, **kwargs):
-            """运行目标函数并捕获输出"""
-            class OutputInterceptor:
-                def __init__(self, queue, thread_id):
-                    self.queue = queue
-                    self.thread_id = thread_id
-                    
-                def write(self, text):
-                    if text.strip():
-                        self.queue.put((self.thread_id, text))
-                    sys.__stdout__.write(text)  # 保持终端输出
-                    
-                def flush(self):
-                    sys.__stdout__.flush()
-            
-            original_stdout = sys.stdout
-            interceptor = OutputInterceptor(self.queue, thread_id)
-            sys.stdout = interceptor
-            
-            try:
-                result = target(*args, **kwargs)
-                return result
-            finally:
-                sys.stdout = original_stdout
-                self.queue.put((thread_id, None))  # 结束标记
-
-    # 使用示例
-    def worker_function():
-        print("开始工作")
-        for i in range(3):
-            print(f"进度: {i}")
-        print("工作完成")
-
-    manager = ThreadOutputManager()
-    thread = threading.Thread(
-        target=manager.capture_output,
-        args=("thread_1", worker_function)
-    )
-    thread.start()
-    thread.join()
-
-    # 读取输出
-    while not manager.queue.empty():
-        thread_id, output = manager.queue.get()
-        if output is not None:
-            print(f"线程 {thread_id} 输出: {output.strip()}")
-    ```
-
-    C++ 实现
-
-    ```cpp
-    #include <iostream>
-    #include <sstream>
-    #include <thread>
-    #include <mutex>
-
-    class ThreadOutputBuffer : public std::stringbuf {
-    private:
-        std::mutex mtx;
-        std::function<void(const std::string&)> callback;
-        
-    public:
-        ThreadOutputBuffer(std::function<void(const std::string&)> cb = nullptr)
-            : callback(cb) {}
-        
-        virtual int sync() override {
-            std::lock_guard<std::mutex> lock(mtx);
-            std::string text = str();
-            if (!text.empty() && callback) {
-                callback(text);
-            }
-            str("");  // 清空缓冲区
-            return 0;
-        }
-    };
-
-    void worker_thread(ThreadOutputBuffer* buffer) {
-        // 重定向cout到自定义缓冲区
-        std::streambuf* old_buf = std::cout.rdbuf(buffer);
-        
-        std::cout << "Thread output line 1" << std::endl;
-        std::cout << "Thread output line 2" << std::endl;
-        
-        // 恢复原cout缓冲区
-        std::cout.rdbuf(old_buf);
-    }
-
-    int main() {
-        std::vector<std::string> captured_output;
-        
-        auto callback = [&](const std::string& text) {
-            captured_output.push_back(text);
-        };
-        
-        ThreadOutputBuffer buffer(callback);
-        std::thread t(worker_thread, &buffer);
-        t.join();
-        
-        // 输出捕获的内容
-        for (const auto& line : captured_output) {
-            std::cout << "Captured: " << line;
-        }
-        
-        return 0;
-    }
-    ```
-
-    Java 实现
-
-    ```java
-    import java.io.*;
-    import java.util.concurrent.*;
-
-    public class ThreadOutputRedirector {
-        private static class ThreadOutputStream extends OutputStream {
-            private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            private ThreadLocal<PrintStream> originalOut = new ThreadLocal<>();
-            
-            @Override
-            public void write(int b) throws IOException {
-                buffer.write(b);
-                // 可选：同时输出到原System.out
-                System.out.write(b);
-            }
-            
-            public void startCapture() {
-                originalOut.set(System.out);
-                PrintStream ps = new PrintStream(this, true);
-                System.setOut(ps);
-            }
-            
-            public void stopCapture() {
-                System.setOut(originalOut.get());
-            }
-            
-            public String getCapturedText() {
-                return buffer.toString();
-            }
-        }
-        
-        public static void main(String[] args) throws Exception {
-            ExecutorService executor = Executors.newFixedThreadPool(2);
-            
-            Callable<String> task = () -> {
-                ThreadOutputStream tos = new ThreadOutputStream();
-                tos.startCapture();
-                
-                try {
-                    System.out.println("Thread output 1");
-                    System.out.println("Thread output 2");
-                    return tos.getCapturedText();
-                } finally {
-                    tos.stopCapture();
-                }
-            };
-            
-            Future<String> future = executor.submit(task);
-            String captured = future.get();
-            
-            System.out.println("Captured output: " + captured);
-            executor.shutdown();
-        }
-    }
-    ```
-
-    跨平台通用建议
-
-    * 使用队列/管道：线程间通信的最佳方式
-
-    * 线程安全：确保缓冲区的读写操作是线程安全的
-
-    * 资源清理：确保在线程结束时恢复原 stdout
-
-    * 性能考虑：避免频繁的锁竞争
-
-    选择哪种方法取决于：
-
-    * 你的具体需求（是否需要实时捕获）
-
-    * 编程语言
-
-    * 是否需要跨线程共享缓冲区
-
-    * 性能要求
-
-* 两两比较
-
-    层次分析法，双败赛制，都是两两比较，如果遇到需要综合考虑多个指标的情况，是否可以借鉴一下？
-
-* 激活权重
-
-    如果我们能让多个概念保持活跃，就可以快速建立联想和连接。这有点像 llm 中的激活权重。
-
-* 虽然说不破不立，但是这破付出的代价未免也太大了。
-
-* 灵光偶得
-
-    一只老虎披上人皮后能读懂文字，能与人交流，但本质还是野兽，做出的举动仍透露着动物本性。和gpt很像。
-
-* 对非线性的线性近似只能处理局部，无法处理全局。微分一直在处理局部。难点的两端是否一个是微观，一个是全局？
-
-* 随机游走与内逻辑一致性
-
-    首先把概念固化成一个个节点，然后每次随机选两个或多个节点，分析概念之间的联系，或者提出问题。如果我们猜想出来的联系与已有知识违背，那么说明内在逻辑不一致，需要进一步探索这个问题。如果我们提出的问题没有答案，那么就需要制定计划探索答案。
-
-* 黑箱优化
-
-    除了高斯过程，还可以直接用变分法建模，比如假设目标函数就是一个二次曲面，五行，等等
-
-* 高维思考，低维表述
-
-    在思考时我们总是考虑到多个因素，多个概念联动，所有事物之间都有可能性和联系，但是当我们开始把思考表述成语言时，明显感到维度降低了，可能性减少了。
-
-    比如，如果 nchannel 是根据最大带宽算得，那么如果我改变 link 的带宽数值，搜索出来的 nchannel 也会跟着改变。但是验证这个假设只能靠改变 link 带宽这一种方法吗，可能还有其他手段，比如检查 channel 带宽，用 link 带宽除以 channel 带宽，看是否正好等于 nchannel。在思考时我们想到很多因素，但是在表述时我们需要放弃很多可能性。这可能就是语言的限制。
 
 * c语言中，调试字符串相关的代码，经常有拿到某个字符对应的位置、以及拿到某个位置对应的字符的需求，自己动手数比较麻烦，是否有工具可以解决这个问题
 
@@ -763,7 +501,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [ ] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
+* [v] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
@@ -971,8 +709,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `grep drm_suballoc /proc/kallsyms`
-
 * [ ] 确保正确的内核配置
 
     ```bash
@@ -1010,7 +746,7 @@ english words 由 { } reorg: english words 进化而来。
     sudo insmod /path/to/sipu.ko allow_unsupported=1
     ```
 
-* [ ] `let save_reg = @"`, `let @" = save_reg`
+* [v] `let save_reg = @"`, `let @" = save_reg`
 
 * [ ] `let start_line = line("'<")`
 
@@ -1024,7 +760,7 @@ english words 由 { } reorg: english words 进化而来。
 
     vnoremap <leader>` c```<C-r>0```<Esc>
 
-* [ ] vim `I` 命令与`A`命令
+* [v] vim `I` 命令与`A`命令
 
     ```vim
     qq
@@ -1228,7 +964,7 @@ english words 由 { } reorg: english words 进化而来。
 
         > Negative Log Likelihood Loss
 
-* [ ] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
+* [v] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
 
     为什么返回值会有两个，outputs.data 又是什么？
 
@@ -1447,7 +1183,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `timer_create()`
 
-* [ ] `signal()`
+* [v] `signal()`
 
 * [ ] `sigaction()`
 
@@ -1921,9 +1657,9 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `plt.Circle()`, `ax.add_patch()`
 
-* [new] `plt.Line2D()`, `ax.add_line()`
+* [ ] `plt.Line2D()`, `ax.add_line()`
 
-* [new] `ax.text()`
+* [ ] `ax.text()`
 
 * [new] `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()`
 
@@ -1937,47 +1673,22 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] MNE-NIRS
 
-    feedback:
-
-    * [asso] `print(dir(mne_nirs.preprocessing))`
-
-    * [asso] 查看所有可用的方法（过滤掉内置方法）
-
-        ```py
-        methods = [method for method in dir(raw) if not method.startswith('_')]
-        print("可用的方法：", methods)
-        ```
-
 * [new] pyserial, struct
 
 * [ ] NIRS-Toolbox
 
 * [new] OpenBCI GUI、LSL Lab Streaming Layer
 
-## Matlab
+* [asso] `print(dir(mne_nirs.preprocessing))`
 
-### tasks
+* [asso] 查看所有可用的方法（过滤掉内置方法）
 
-* [v] 嵌套函数包装
-
-    ```matlab
-    function [funcHandle] = createMultiReturnFunc()
-        % 创建返回多个值的函数句柄
-        funcHandle = @multiReturn;
-        
-        function [a, b, c] = multiReturn(x)
-            a = x^2;
-            b = x^3;
-            c = sqrt(x);
-        end
-    end
-
-    % 使用
-    myFunc = createMultiReturnFunc();
-    [val1, val2, val3] = myFunc(4);  % 16, 64, 2
+    ```py
+    methods = [method for method in dir(raw) if not method.startswith('_')]
+    print("可用的方法：", methods)
     ```
 
-* [ ] matlab `cellfun`
+* [v] matlab `cellfun`
 
     ```matlab
     % 或者使用 cellfun
@@ -2139,7 +1850,7 @@ resources:
 
 * [ ] 调研`from typing import Optional, List, Dict, Tuple, Set`
 
-* [ ] `np.loadtxt()`
+* [v] `np.loadtxt()`
 
 * [ ] `nn.ReLU(True)`
 
@@ -2259,15 +1970,11 @@ resources:
 
     <https://www.geeksforgeeks.org/deep-learning/how-to-implement-transfer-learning-in-pytorch/>
 
-* [v] 调研 python 中是否有函数重载？
-
 * [O] 调研 matplotlib 画 surface
 
     ~ 18:03
 
 * [ ] 调研 matplotlib 基本和常见的 example
-
-* [v] `fig.colorbar(surf)`
 
 * [ ] 调研论文《Finding Structure in Time》 (1990) by Jeffrey L. Elman
 
@@ -2279,9 +1986,7 @@ resources:
 
 * [ ] 调研 词嵌入（Word Embeddings）
 
-* [ ] torch tensor `.float()`
-
-* [v] `nn.RNN`
+* [v] torch tensor `.float()`
 
 * [ ] 调研 LSTM
 
@@ -2668,9 +2373,9 @@ resources:
 
 * [ ] 调研标准亲和性 (smp_affinity)
 
-* [ ] `device_unregister()`
+* [v] `device_unregister()`
 
-* [ ] `put_device()`
+* [v] `put_device()`
 
 * [ ] `device_initialize()`
 

@@ -2,6 +2,98 @@
 
 ## cache
 
+* PyTorch Tensor `.float()` 的作用
+
+    基本作用
+
+    `.float()` 用于将 PyTorch 张量（tensor）的数据类型转换为 **32位浮点型（float32）**。这是深度学习中默认和最常用的数据类型。
+
+    ```python
+    import torch
+
+    # 整数张量
+    x = torch.tensor([1, 2, 3])
+    print(x.dtype)  # torch.int64
+
+    x_float = x.float()
+    print(x_float.dtype)  # torch.float32
+    print(x_float)  # tensor([1., 2., 3.])
+    ```
+
+    应用场景
+
+    1. **神经网络输入**：大多数 PyTorch 模型默认使用 float32
+
+    2. **计算精度要求**：平衡计算精度和内存使用
+
+    3. **与其他操作兼容**：某些操作要求特定数据类型
+
+    类似的数据类型转换函数
+
+    1. **整数类型转换**
+
+        ```python
+        .int()        # 转换为 int32
+        .long()       # 转换为 int64（常用作标签索引）
+        .short()      # 转换为 int16
+        .byte()       # 转换为 uint8（常用于图像数据，0-255）
+        ```
+
+    2. **浮点类型转换**
+
+        ```python
+        .double()     # 转换为 float64（双精度）
+        .half()       # 转换为 float16（半精度，节省显存）
+        .bfloat16()   # 转换为 bfloat16（Google Brain 格式）
+        ```
+
+    3. **其他类型转换**
+
+        ```python
+        .bool()       # 转换为布尔型
+        .cfloat()     # 转换为复数 float32
+        .cdouble()    # 转换为复数 float64
+        ```
+
+    使用示例
+
+    ```python
+    import torch
+
+    # 创建不同类型的张量
+    x = torch.tensor([1, 2, 3])
+
+    # 各种类型转换
+    print(x.float())    # tensor([1., 2., 3.]) - float32
+    print(x.double())   # tensor([1., 2., 3.], dtype=torch.float64)
+    print(x.half())     # tensor([1., 2., 3.], dtype=torch.float16)
+    print(x.long())     # tensor([1, 2, 3]) - int64
+    print(x.byte())     # tensor([1, 2, 3], dtype=torch.uint8)
+    print(x.bool())     # tensor([True, True, True])
+
+    # 处理图像数据（0-255范围）
+    image = torch.randint(0, 256, (3, 224, 224), dtype=torch.uint8)
+    print(image.dtype)  # torch.uint8
+
+    # 神经网络输入需要归一化到 [0,1]
+    image_float = image.float() / 255.0
+    print(image_float.dtype)  # torch.float32
+    ```
+
+    注意事项
+
+    1. **内存占用**：float32 (4字节) vs float64 (8字节) vs int64 (8字节)
+
+    2. **精度需求**：大多数深度学习任务 float32 足够
+
+    3. **GPU 支持**：某些 GPU 操作只支持特定数据类型
+
+    4. **自动混合精度**：训练时可使用 `.half()` 加速
+
+    5. cuda tensor 也可以使用，但是可能支持的类型有限。
+
+    6. 设备保持不变：转换操作不会改变张量所在的设备
+
 * pytorch 使用 datasets 下载数据集时，可以使用`export http_proxy=xxx`指定代理
 
 * `from torchvision import datasets`, datasets 默认会把数据下载到当前文件夹下

@@ -6,6 +6,97 @@
 
 ## cache
 
+* 简述 linux 中 signal() 的原型、作用及用法
+
+    signal() 函数
+
+    原型
+
+    ```c
+    #include <signal.h>
+
+    void (*signal(int signum, void (*handler)(int)))(int);
+    ```
+
+    更易读的等价写法：
+
+    ```c
+    typedef void (*sighandler_t)(int);
+    sighandler_t signal(int signum, sighandler_t handler);
+    ```
+
+    作用
+
+    - **功能**：设置信号处理函数，用于捕获和处理进程收到的信号
+
+    - **参数**：
+
+      - `signum`：要处理的信号编号（如 SIGINT、SIGTERM）
+      - `handler`：处理方式，可以是：
+        - 自定义信号处理函数指针
+        - `SIG_IGN`：忽略该信号
+        - `SIG_DFL`：恢复默认处理
+
+    - **返回值**：
+      - 成功：返回之前的信号处理函数指针
+      - 失败：返回 `SIG_ERR` 并设置 errno
+
+    基本用法示例
+
+    ```c
+    #include <stdio.h>
+    #include <signal.h>
+    #include <unistd.h>
+
+    // 自定义信号处理函数
+    void sigint_handler(int signum) {
+        printf("\n收到 SIGINT 信号 (%d)，按 Ctrl+C 可退出\n", signum);
+    }
+
+    int main() {
+        // 注册 SIGINT 信号处理函数
+        if (signal(SIGINT, sigint_handler) == SIG_ERR) {
+            perror("signal 设置失败");
+            return 1;
+        }
+        
+        printf("程序运行中，按 Ctrl+C 测试信号处理\n");
+        
+        // 让程序持续运行
+        while(1) {
+            printf(".");
+            fflush(stdout);
+            sleep(1);
+        }
+        
+        return 0;
+    }
+    ```
+
+    其他用法示例
+
+    ```c
+    // 1. 忽略信号
+    signal(SIGINT, SIG_IGN);  // 忽略 Ctrl+C
+
+    // 2. 恢复默认处理
+    signal(SIGINT, SIG_DFL);  // Ctrl+C 将终止程序
+
+    // 3. 保存并恢复之前的处理函数
+    typedef void (*sighandler_t)(int);
+    sighandler_t old_handler;
+
+    old_handler = signal(SIGINT, sigint_handler);
+    // ... 使用自定义处理
+    signal(SIGINT, old_handler);  // 恢复之前的处理
+    ```
+
+    注意事项
+
+    - **可移植性**：signal() 在不同 Unix 系统上的行为可能有差异，建议使用 sigaction() 以获得更好的可移植性
+    - **系统调用中断**：某些系统调用可能被信号中断，需要处理 EINTR 错误
+    - **不可重入函数**：信号处理函数中应只调用异步信号安全的函数
+
 * 简述 linux 中 pause() 的原型、作用及用法
 
     pause() 是 Linux/Unix 系统中的一个系统调用，用于使当前进程挂起（睡眠），直到接收到一个信号为止。

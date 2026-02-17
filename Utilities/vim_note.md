@@ -2,6 +2,171 @@
 
 ## cache
 
+* 简述 `let save_reg = @"` 这个 vim 代码的作用
+
+    在 Vim 脚本中，`let save_reg = @"` 这行代码的作用是**保存当前寄存器中的内容**。
+
+    具体解释如下：
+
+    - `@"` 是 Vim 中**默认寄存器**的表示方式（即未指定寄存器时复制的内容）
+    - 这行代码将默认寄存器的内容保存到变量 `save_reg` 中
+
+    **使用场景：** 
+
+    通常在需要修改寄存器内容（如执行复制、删除操作）但又不想丢失原有内容的场景中使用。比如：
+
+    ```vim
+    " 保存当前寄存器内容
+    let save_reg = @"
+
+    " 执行某些会修改寄存器的操作
+    normal dd
+
+    " 恢复之前保存的寄存器内容
+    let @" = save_reg
+    ```
+
+    这样可以在不影响用户原有剪切板内容的情况下执行操作，提高脚本的友好性。
+
+    如果你想保存其他寄存器的内容，只需要将 `@"` 替换为对应的寄存器表示即可。
+
+    **常用寄存器的表示方式：**
+
+    ```vim
+    " 命名寄存器 a-z
+    let save_reg_a = @a    " 保存寄存器a的内容
+    let save_reg_b = @b    " 保存寄存器b的内容
+
+    " 其他特殊寄存器
+    let save_reg_slash = @/    " 保存最后一次搜索的模式
+    let save_reg_colon = @:    " 保存最后一次执行的命令行命令
+    let save_reg_dot = @.      " 保存最后一次插入的文本
+    let save_reg_star = @*     " 保存系统剪贴板 (X11 primary selection)
+    let save_reg_plus = @+     " 保存系统剪贴板 (clipboard)
+    let save_reg_percent = @%  " 保存当前文件名
+    let save_reg_hash = @#     " 保存交替文件名
+    ```
+
+    实际使用示例：
+
+    ```vim
+    " 保存多个寄存器
+    let save_reg_a = @a
+    let save_reg_plus = @+
+
+    " 执行某些操作
+    normal "ayy        " 复制当前行到寄存器a
+    normal "+p         " 从系统剪贴板粘贴
+
+    " 恢复寄存器
+    let @a = save_reg_a
+    let @+ = save_reg_plus
+    ```
+
+    这样你就可以保存和恢复任意寄存器的内容，确保脚本操作不会破坏用户已有的寄存器数据。
+
+* 在 vim 中如何查看寄存器的内容？
+
+    在 Vim 的命令模式中，有以下几种方法查看寄存器的内容：
+
+    1. **使用 `:reg` 或 `:registers` 命令**
+
+        ```vim
+        :reg           " 显示所有寄存器的内容
+        :reg a         " 只显示寄存器a的内容
+        :reg a b c     " 显示多个指定寄存器的内容
+        :reg "         " 显示默认寄存器
+        :reg /         " 显示搜索寄存器
+        ```
+
+    2. **使用 `:dis` 或 `:display` 命令**
+
+        ```vim
+        :dis           " 等同于 :reg
+        :display a     " 显示寄存器a的内容
+        ```
+
+    3. **在命令中使用 `<C-r>` 插入寄存器内容**
+
+        在命令模式下，按 `Ctrl-r` 然后输入寄存器名称，可以临时插入该寄存器的内容：
+
+        ```vim
+        :echo "<C-r>a"     " 会显示寄存器a的内容
+        :echo @"           " 显示默认寄存器内容
+        ```
+
+    4. **输出示例**
+
+        执行 `:reg` 后可能会看到类似这样的输出：
+
+        ```
+        --- Registers ---
+        ""   hello world
+        "a   test line
+        "/   search pattern
+        ":   w
+        "%   /path/to/file.txt
+        "+   clipboard content
+        ```
+
+    这样你就可以随时查看各个寄存器中保存的内容了。
+
+* 简述 vim 中`I` 命令与`A`命令的作用
+
+    在 Vim 中，`I` 和 `A` 命令都用于从**普通模式**切换到**插入模式**，但两者的光标移动位置不同：
+
+    1.  **`I` 命令**
+
+        -   **作用**：在当前行的**第一个非空白字符**处开始插入。
+        -   **记忆**：可以理解为 **I**nsert at the beginning of the line（在行首插入）。
+        -   *注意：这与按 `0` 移动到行首再按 `i` 略有不同，`I` 会忽略行首的空格或制表符，直接定位到第一个文字处。*
+
+    2.  **`A` 命令**
+
+        -   **作用**：在当前行的**末尾**开始插入。
+        -   **记忆**：可以理解为 **A**ppend at the end of the line（在行尾追加）。
+        -   *注意：这相当于直接按 `$` 移动到行尾再按 `a`（在光标后追加）。*
+
+* 我希望给 vim 加这样一个功能：normal 模式下输入 I 后，用户输入某个字符 c，然后程序在当前位置插入字符 c 后自动执行 esc 返回 normal 模式。如果输入 [N]I，则 vim 等待用户输入 N 个字符，在当前位置插入后返回到 normal 模式。
+
+    这个需求非常实用，本质上是把 **Insert 模式** 变成了一个 **“原子化”的操作**。在 Vim 中，我们可以通过 `getcharstr()` (或旧版的 `getchar()`) 配合 `v:count1` 来完美实现这个功能。
+
+    你可以将以下代码添加到你的 `.vimrc`（或 `init.vim`）中：
+
+    **Vimscript 实现方案**
+
+    ```vim
+    " 定义快速插入函数
+    function! QuickInsert() abort
+        " 获取输入的计数（[N]I），默认为 1
+        let l:count = v:count1
+        let l:inserted_text = ""
+
+        " 循环获取 N 个字符
+        for i in range(l:count)
+            let l:char = getcharstr()
+            " 如果中途按了 Esc，则终止输入
+            if l:char == "\<Esc>"
+                return
+            endif
+            let l:inserted_text .= l:char
+        endfor
+
+        " 在当前光标处插入字符
+        " 使用 feedkeys 可以确保触发原本的插入逻辑，或者直接用 execute
+        execute "normal! i" . l:inserted_text
+    endfunction
+
+    " 将 I 映射到该函数
+    " <C-u> 用于清除 Vim 默认在命令行展示的范围，确保 v:count1 被正确读取
+    nnoremap <silent> I :<C-u>call QuickInsert()<CR>
+
+    ```
+
+    友情提示
+
+    在 Vim 原生快捷键中，`I` 的功能是 **“跳转到行首第一个非空字符并进入插入模式”**。如果你想保留原生的 `I`，建议将上面的映射键改为 `ni`（取 "Next Insert" 之意）或其他不常用的组合。
+
 * vim 如何重载当前文件？
 
     在 Vim 中重载当前文件（重新加载文件内容）有以下几种方法：
@@ -882,6 +1047,7 @@
         " 进入可视模式选择一些文本，然后退出可视模式
         " 仍然可以获取之前的可视选择起始位置
         let start_visual = getpos("'<")  " 例如：[bufnum, line, col, off]
+
         ```
 
     2. getpos("<") - 当前可视选择的起始位置
@@ -8470,46 +8636,46 @@
 
     * softtabstop：按 Tab/Backspace 时光标移动的宽度
 
-    临时转换当前文件:
+    * 临时转换当前文件:
 
-    ```vim
-    :set expandtab
-    :%retab!
-    ```
+        ```vim
+        :set expandtab
+        :%retab!
+        ```
 
-    * `%retab!`会将文件中所有 Tab 转换为空格
+        * `%retab!`会将文件中所有 Tab 转换为空格
 
-    只转换特定行:
+    * 只转换特定行:
 
-    ```vim
-    :10,20retab  " 转换第10-20行
-    ```
+        ```vim
+        :10,20retab  " 转换第10-20行
+        ```
 
-    文件格式配置（针对特定文件类型）:
+    * 文件格式配置（针对特定文件类型）:
 
-    ```vim
-    autocmd FileType python setlocal expandtab tabstop=4 shiftwidth=4
-    autocmd FileType javascript setlocal expandtab tabstop=2 shiftwidth=2
-    ```
+        ```vim
+        autocmd FileType python setlocal expandtab tabstop=4 shiftwidth=4
+        autocmd FileType javascript setlocal expandtab tabstop=2 shiftwidth=2
+        ```
 
-    检查当前设置:
+    * 检查当前设置:
 
-    ```vim
-    :set expandtab? tabstop? shiftwidth? softtabstop?
-    ```
+        ```vim
+        :set expandtab? tabstop? shiftwidth? softtabstop?
+        ```
 
-    反向转换（空格转Tab）:
+    * 反向转换（空格转Tab）:
 
-    ```vim
-    :set noexpandtab
-    :%retab!
-    ```
+        ```vim
+        :set noexpandtab
+        :%retab!
+        ```
 
-    在打开文件时自动转换:
+    * 在打开文件时自动转换:
 
-    ```vim
-    autocmd BufRead * set expandtab | %retab!
-    ```
+        ```vim
+        autocmd BufRead * set expandtab | %retab!
+        ```
 
     建议： 在团队项目中，建议使用统一的 .editorconfig 文件来保证代码风格一致。
 

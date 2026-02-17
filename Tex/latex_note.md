@@ -2,6 +2,107 @@
 
 ## cache
 
+* ⊕ 是按位与的意思吗？如何用 latex 输入？
+
+    ⊕ 的含义
+
+    **⊕** 不是按位与，而是**异或（XOR）**运算。
+
+    逻辑运算符对照表
+
+    | 运算符 | 含义 | Verilog符号 | 逻辑表达式 |
+    |-------|------|------------|-----------|
+    | ⊕ | 异或（XOR） | `^` | A ⊕ B = (A & ~B) \| (~A & B) |
+    | & | 与（AND） | `&` | A & B |
+    | \| | 或（OR） | `\|` | A \| B |
+    | ~ | 非（NOT） | `~` | ~A |
+
+    异或运算真值表
+
+    | A | B | A ⊕ B |
+    |---|---|-------|
+    | 0 | 0 | 0 |
+    | 0 | 1 | 1 |
+    | 1 | 0 | 1 |
+    | 1 | 1 | 0 |
+
+    LaTeX输入方法
+
+    1. 异或符号（⊕）
+
+        ```latex
+        % 方法1：直接使用 \oplus
+        $A \oplus B$
+
+        % 方法2：使用异或运算符
+        $A \veebar B$  % 另一种异或符号
+        ```
+
+    2. 其他逻辑运算符的LaTeX表示
+
+        ```latex
+        % 与运算（AND）
+        $A \& B$        % 使用\&
+        $A \cdot B$      % 点乘
+        $A \land B$      % 逻辑与符号
+
+        % 或运算（OR）
+        $A | B$          % 直接输入|
+        $A \lor B$       % 逻辑或符号
+
+        % 非运算（NOT）
+        $\lnot A$        % 逻辑非
+        $\bar{A}$        % 上划线
+        $A'$             % 撇号表示
+
+        % 复合表达式示例
+        $S = A \oplus B \oplus C_{in}$
+        $C_{out} = (A \& B) | (A \& C_{in}) | (B \& C_{in})$
+        ```
+
+    3. 完整示例
+
+        ```latex
+        \documentclass{article}
+        \usepackage{amsmath}  % 使用amsmath包获得更好的数学符号支持
+
+        \begin{document}
+
+        半加器逻辑表达式：
+        \begin{align}
+        S &= A \oplus B \\
+        C &= A \cdot B
+        \end{align}
+
+        全加器逻辑表达式：
+        \begin{align}
+        S &= A \oplus B \oplus C_{in} \\
+        C_{out} &= (A \cdot B) + (A \cdot C_{in}) + (B \cdot C_{in})
+        \end{align}
+
+        \end{document}
+        ```
+
+    4. 常用LaTeX逻辑符号速查
+
+        | 符号 | LaTeX命令 | 含义 |
+        |-----|-----------|------|
+        | ⊕ | `\oplus` | 异或 |
+        | ∧ | `\land` 或 `\wedge` | 与 |
+        | ∨ | `\lor` 或 `\vee` | 或 |
+        | ¬ | `\lnot` 或 `\neg` | 非 |
+        | ⊻ | `\veebar` | 异或（另一种形式） |
+        | ⊗ | `\otimes` | 异或（类似符号） |
+
+    总结
+
+    - **⊕** = 异或（XOR）
+    - **&** = 与（AND）
+    - **|** = 或（OR）
+    - **~** = 非（NOT）
+
+    在LaTeX中，异或最常用的命令是 `\oplus`
+
 * latex 中，使用 \nu 表示希腊字母 ν（nu）
 
 * LaTeX 中尖括号和角度符号写法

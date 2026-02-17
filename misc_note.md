@@ -2,6 +2,252 @@
 
 ## cache
 
+* 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
+
+    在不同编程语言中，实现子线程 stdout 重定向到父程序缓冲区的方法不同。以下是几种常见语言的实现方案：
+
+    Python 实现
+
+    使用 io.StringIO
+
+    ```python
+    import sys
+    import io
+    import threading
+
+    class OutputRedirector:
+        def __init__(self):
+            self.original_stdout = sys.stdout
+            self.buffer = io.StringIO()
+            self.lock = threading.Lock()
+        
+        def write(self, text):
+            with self.lock:
+                self.buffer.write(text)
+                # 可选：同时输出到原stdout
+                self.original_stdout.write(text)
+        
+        def flush(self):
+            with self.lock:
+                self.buffer.flush()
+                self.original_stdout.flush()
+        
+        def get_value(self):
+            with self.lock:
+                return self.buffer.getvalue()
+
+    def worker(redirector):
+        sys.stdout = redirector
+        print("子线程输出 1")
+        print("子线程输出 2")
+
+    # 使用示例
+    if __name__ == "__main__":
+        redirector = OutputRedirector()
+        thread = threading.Thread(target=worker, args=(redirector,))
+        thread.start()
+        thread.join()
+        
+        print("缓冲区内容:", redirector.get_value())
+    ```
+
+    使用队列（更灵活）
+
+    ```python
+    import sys
+    import threading
+    import queue
+
+    class ThreadOutputManager:
+        def __init__(self):
+            self.queue = queue.Queue()
+            self.thread_outputs = {}
+            
+        def capture_output(self, thread_id, target, *args, **kwargs):
+            """运行目标函数并捕获输出"""
+            class OutputInterceptor:
+                def __init__(self, queue, thread_id):
+                    self.queue = queue
+                    self.thread_id = thread_id
+                    
+                def write(self, text):
+                    if text.strip():
+                        self.queue.put((self.thread_id, text))
+                    sys.__stdout__.write(text)  # 保持终端输出
+                    
+                def flush(self):
+                    sys.__stdout__.flush()
+            
+            original_stdout = sys.stdout
+            interceptor = OutputInterceptor(self.queue, thread_id)
+            sys.stdout = interceptor
+            
+            try:
+                result = target(*args, **kwargs)
+                return result
+            finally:
+                sys.stdout = original_stdout
+                self.queue.put((thread_id, None))  # 结束标记
+
+    # 使用示例
+    def worker_function():
+        print("开始工作")
+        for i in range(3):
+            print(f"进度: {i}")
+        print("工作完成")
+
+    manager = ThreadOutputManager()
+    thread = threading.Thread(
+        target=manager.capture_output,
+        args=("thread_1", worker_function)
+    )
+    thread.start()
+    thread.join()
+
+    # 读取输出
+    while not manager.queue.empty():
+        thread_id, output = manager.queue.get()
+        if output is not None:
+            print(f"线程 {thread_id} 输出: {output.strip()}")
+    ```
+
+    C++ 实现
+
+    ```cpp
+    #include <iostream>
+    #include <sstream>
+    #include <thread>
+    #include <mutex>
+
+    class ThreadOutputBuffer : public std::stringbuf {
+    private:
+        std::mutex mtx;
+        std::function<void(const std::string&)> callback;
+        
+    public:
+        ThreadOutputBuffer(std::function<void(const std::string&)> cb = nullptr)
+            : callback(cb) {}
+        
+        virtual int sync() override {
+            std::lock_guard<std::mutex> lock(mtx);
+            std::string text = str();
+            if (!text.empty() && callback) {
+                callback(text);
+            }
+            str("");  // 清空缓冲区
+            return 0;
+        }
+    };
+
+    void worker_thread(ThreadOutputBuffer* buffer) {
+        // 重定向cout到自定义缓冲区
+        std::streambuf* old_buf = std::cout.rdbuf(buffer);
+        
+        std::cout << "Thread output line 1" << std::endl;
+        std::cout << "Thread output line 2" << std::endl;
+        
+        // 恢复原cout缓冲区
+        std::cout.rdbuf(old_buf);
+    }
+
+    int main() {
+        std::vector<std::string> captured_output;
+        
+        auto callback = [&](const std::string& text) {
+            captured_output.push_back(text);
+        };
+        
+        ThreadOutputBuffer buffer(callback);
+        std::thread t(worker_thread, &buffer);
+        t.join();
+        
+        // 输出捕获的内容
+        for (const auto& line : captured_output) {
+            std::cout << "Captured: " << line;
+        }
+        
+        return 0;
+    }
+    ```
+
+    Java 实现
+
+    ```java
+    import java.io.*;
+    import java.util.concurrent.*;
+
+    public class ThreadOutputRedirector {
+        private static class ThreadOutputStream extends OutputStream {
+            private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            private ThreadLocal<PrintStream> originalOut = new ThreadLocal<>();
+            
+            @Override
+            public void write(int b) throws IOException {
+                buffer.write(b);
+                // 可选：同时输出到原System.out
+                System.out.write(b);
+            }
+            
+            public void startCapture() {
+                originalOut.set(System.out);
+                PrintStream ps = new PrintStream(this, true);
+                System.setOut(ps);
+            }
+            
+            public void stopCapture() {
+                System.setOut(originalOut.get());
+            }
+            
+            public String getCapturedText() {
+                return buffer.toString();
+            }
+        }
+        
+        public static void main(String[] args) throws Exception {
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            
+            Callable<String> task = () -> {
+                ThreadOutputStream tos = new ThreadOutputStream();
+                tos.startCapture();
+                
+                try {
+                    System.out.println("Thread output 1");
+                    System.out.println("Thread output 2");
+                    return tos.getCapturedText();
+                } finally {
+                    tos.stopCapture();
+                }
+            };
+            
+            Future<String> future = executor.submit(task);
+            String captured = future.get();
+            
+            System.out.println("Captured output: " + captured);
+            executor.shutdown();
+        }
+    }
+    ```
+
+    跨平台通用建议
+
+    * 使用队列/管道：线程间通信的最佳方式
+
+    * 线程安全：确保缓冲区的读写操作是线程安全的
+
+    * 资源清理：确保在线程结束时恢复原 stdout
+
+    * 性能考虑：避免频繁的锁竞争
+
+    选择哪种方法取决于：
+
+    * 你的具体需求（是否需要实时捕获）
+
+    * 编程语言
+
+    * 是否需要跨线程共享缓冲区
+
+    * 性能要求
+
 * 东芝新小黑 A3
 
     东芝（现为铠侠KIOXIA）推出的 Canvio Basics A3 系列便携式移动硬盘。
