@@ -501,8 +501,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [v] exam 在显示 unit 时，显示 idx, idx 以及其所对应的 qa 文件名
-
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
@@ -746,9 +744,7 @@ english words 由 { } reorg: english words 进化而来。
     sudo insmod /path/to/sipu.ko allow_unsupported=1
     ```
 
-* [v] `let save_reg = @"`, `let @" = save_reg`
-
-* [ ] `let start_line = line("'<")`
+* [v] `let start_line = line("'<")`
 
 * [ ] vim 中列表的用法`let lines = []`
 
@@ -759,17 +755,6 @@ english words 由 { } reorg: english words 进化而来。
     映射：
 
     vnoremap <leader>` c```<C-r>0```<Esc>
-
-* [v] vim `I` 命令与`A`命令
-
-    ```vim
-    qq
-    I```<Esc>
-    A```<Esc>
-    q
-    ```
-
-    `:'<,'>normal @q`或`:'<,'>norm @q`
 
 * [ ] vim 命令
 
@@ -796,10 +781,6 @@ english words 由 { } reorg: english words 进化而来。
     ```
 
     就会自动在选中文本两侧添加三个反引号
-
-* [v] `git submodule update --init --progress`
-
-    `git clone --recurse-submodules ../repo-server .`
 
 * [ ] 调研下述说法是否正确
 
@@ -963,10 +944,6 @@ english words 由 { } reorg: english words 进化而来。
     * 目前看到
 
         > Negative Log Likelihood Loss
-
-* [v] 调研`torch.max()`以及`_, predicted = torch.max(outputs.data, 1)`
-
-    为什么返回值会有两个，outputs.data 又是什么？
 
 * [ ] Feedforward Neural Network
 
@@ -1655,7 +1632,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] `plt.Circle()`, `ax.add_patch()`
+* [v] `plt.Circle()`, `ax.add_patch()`
 
 * [ ] `plt.Line2D()`, `ax.add_line()`
 
@@ -1671,29 +1648,19 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] MNE-NIRS
-
 * [new] pyserial, struct
 
 * [ ] NIRS-Toolbox
 
 * [new] OpenBCI GUI、LSL Lab Streaming Layer
 
-* [asso] `print(dir(mne_nirs.preprocessing))`
+* [ ] `print(dir(mne_nirs.preprocessing))`
 
 * [asso] 查看所有可用的方法（过滤掉内置方法）
 
     ```py
     methods = [method for method in dir(raw) if not method.startswith('_')]
     print("可用的方法：", methods)
-    ```
-
-* [v] matlab `cellfun`
-
-    ```matlab
-    % 或者使用 cellfun
-    file_cell = {'file1.txt', 'file2.csv'};
-    names = cellfun(@(x) fileparts(x), file_cell, 'UniformOutput', false);
     ```
 
 ## Torch
@@ -1820,7 +1787,7 @@ resources:
 
         > 2. adjust_contrast() function:floating-point
 
-* [ ] 带动量的SGD（Momentum）
+* [v] 带动量的SGD（Momentum）
 
 * [ ] 带动量和权重衰减的SGD
 
@@ -1850,9 +1817,7 @@ resources:
 
 * [ ] 调研`from typing import Optional, List, Dict, Tuple, Set`
 
-* [v] `np.loadtxt()`
-
-* [ ] `nn.ReLU(True)`
+* [v] `nn.ReLU(True)`
 
     true 是什么意思？
 
@@ -2357,13 +2322,13 @@ resources:
 
     * `mdev_register_device()`
 
-* 调研一下`KBUILD_MODNAME`的含义。
-
 resources:
 
 * Linux Kernel Development, 3rd Edition
 
 ### tasks
+
+* [ ] 调研`KBUILD_MODNAME`的含义。
 
 * [asso] `devm_kobject_create_and_add()`
 
@@ -2373,41 +2338,7 @@ resources:
 
 * [ ] 调研标准亲和性 (smp_affinity)
 
-* [v] `device_unregister()`
-
-* [v] `put_device()`
-
-* [ ] `device_initialize()`
-
-* [ ] `-serial mon:pty`
-
-* [ ] `minicom`
-
-* [ ] `-serial mon:/path/to/file`
-
-    `-serial file:<filename>`
-
-* [ ] `-serial mon:tcp:0.0.0.0:2345,server,nowait`
-
-    `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
-
-* [ ] `telnet <host-ip> 2345`
-
-* [ ] `-serial mon:unix:/path/to/socketfile,server,nowait`
-
-    `-serial unix:<path>[,server|,client][,nowait]`
-
-* [ ] `-serial mon:null`
-
-* [ ] `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
-
-* [ ] `-serial vc[:WxH]`
-
-* [ ] `-serial pipe:<basename>`
-
-* [ ] `-serial null`
-
-* [ ] `-serial chardev:<id>`
+* [v] `device_initialize()`
 
 * [ ] 调研 makefile 中 target 的执行机制
 
@@ -2417,7 +2348,7 @@ resources:
 
 * [ ] 调研 SPI 协议
 
-* [ ] `device_register()`
+* [v] `device_register()`
 
 * [ ] `device_attach()`
 
@@ -2818,6 +2749,36 @@ resources:
     * Kaggle: 上面有成千上万的真实数据集和别人的代码（Kernels/Notebooks），是学习 Pandas 高级用法和数据分析思路的最佳场所。
 
     * LeetCode 题库之 Pandas: 专门用 Pandas 解决数据处理问题，非常适合面试准备和巩固基础。
+
+* [ ] `-serial mon:pty`
+
+* [ ] `minicom`
+
+* [ ] `-serial mon:/path/to/file`
+
+    `-serial file:<filename>`
+
+* [ ] `-serial mon:tcp:0.0.0.0:2345,server,nowait`
+
+    `-serial udp:<host>:<port>[,<localaddr>:<localport>]`
+
+* [ ] `telnet <host-ip> 2345`
+
+* [ ] `-serial mon:unix:/path/to/socketfile,server,nowait`
+
+    `-serial unix:<path>[,server|,client][,nowait]`
+
+* [ ] `-serial mon:null`
+
+* [ ] `-append 'console=ttyS0'  # 告诉内核使用第一个串口作为控制台`
+
+* [ ] `-serial vc[:WxH]`
+
+* [ ] `-serial pipe:<basename>`
+
+* [ ] `-serial null`
+
+* [ ] `-serial chardev:<id>`
 
 ## CCL
 
@@ -4459,8 +4420,6 @@ resources:
 
     1. [ ] 调研`extern __shared__ xxx;`申请动态的 shard 数据
 
-    1. [v] 调研 cuda `__shared__`
-
 * [ ] 调研`cudaMalloc3D()`
 
 * [ ] 调研 riscv 模拟／仿真，调研指令集如何扩展
@@ -5062,8 +5021,6 @@ resources:
         在 qemu 虚拟机中使用`lsmod | grep kvm`可以看到`kvm_amd`是启用状态。
 
         这个当然没啥用，没有嵌套虚拟化，qemu 虚拟机速度很慢。
-
-* [v] 调研 shrink qcow2 image
 
 * [ ] 调研 virt-sparsify
 
@@ -6031,6 +5988,48 @@ resources:
 * vim 中的 redo 是哪个？
 
 ### cache
+
+* [new] vim 命令
+
+    ```vim
+    " 显示所有Tab字符
+    :set list
+    " Tab显示为 ^I，空格显示为 .
+
+    " 统计Tab数量
+    :%s/\t//gn
+
+    " 查看具体字符
+    :set invlist  " 切换显示/隐藏特殊字符
+    ```
+
+* [new] vim 缩进用法
+
+    ```vim
+    5>>    " 向下 5 行向右缩进
+    >i{    " 缩进当前代码块内部
+    >ap    " 缩进当前段落
+
+    >>     " 增加缩进（shiftwidth）
+    <<     " 减少缩进
+    ==     " 自动缩进当前行
+
+    vjj>   " 选中 3 行向右缩进
+    <}     " 从当前位置到段落开始向左缩进
+
+    set shiftround    " 缩进对齐到 shiftwidth 的倍数
+
+    set autoindent    " 继承上一行缩进
+    set smartindent   " 智能缩进（C-like 语言）
+    set cindent       " C 语言风格缩进
+    ```
+
+* [new] vim 格式化命令
+
+    ```vim
+    gg=G   " 格式化整个文件（使用 shiftwidth）
+    =ap    " 格式化当前段落`
+    ```
 
 * [new] 调研 vim 命令
 

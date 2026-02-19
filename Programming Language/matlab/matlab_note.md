@@ -1,5 +1,212 @@
 # Matlab Note
 
+* matlab 如何多线程加速计算，又如何利用 simd 功能
+
+    在 MATLAB 中实现多线程和 SIMD 加速计算，有以下几种主要方法：
+
+    一、多线程加速计算
+
+    1. **内置隐式并行化**
+
+        MATLAB 的许多内置函数和操作已自动支持多线程：
+
+        ```matlab
+        % 许多线性代数运算自动多线程
+        A = rand(5000, 5000);
+        B = rand(5000, 5000);
+        C = A * B;  % 矩阵乘法自动使用多线程
+
+        % 元素级运算也支持多线程
+        x = rand(1, 1e7);
+        y = sin(x) .* exp(x);  % 自动并行
+        ```
+
+    2. **显式并行计算工具箱**
+
+        ```matlab
+        % 使用 parfor 循环
+        n = 1000;
+        result = zeros(n, 1);
+        parfor i = 1:n
+            result(i) = someExpensiveFunction(i);
+        end
+
+        % 使用 spmd (单程序多数据)
+        spmd
+            % 每个worker执行相同程序但数据不同
+            localData = rand(1000) + labindex;
+            result = eig(localData);
+        end
+        ```
+
+    3. **并行池管理**
+
+        ```matlab
+        % 启动并行池
+        parpool('local', 4);  % 启动4个worker
+
+        % 检查并行池状态
+        pool = gcp();  % 获取当前并行池
+
+        % 关闭并行池
+        delete(gcp('nocreate'));
+        ```
+
+    4. **GPU加速**
+
+        ```matlab
+        % 将数据转移到GPU
+        A = gpuArray(rand(1000, 1000));
+        B = gpuArray(rand(1000, 1000));
+
+        % 在GPU上执行计算
+        C = A * B;  % 在GPU上执行矩阵乘法
+
+        % 将结果传回CPU
+        C_cpu = gather(C);
+        ```
+
+    二、SIMD 向量化加速
+
+    1. **向量化操作**（最重要！）
+
+        ```matlab
+        % ❌ 避免循环
+        slowResult = zeros(1, 1e6);
+        for i = 1:1e6
+            slowResult(i) = sin(i) * cos(i);
+        end
+
+        % ✅ 使用向量化
+        x = 1:1e6;
+        fastResult = sin(x) .* cos(x);  % SIMD加速
+        ```
+
+    2. **使用内置向量化函数**
+
+        ```matlab
+        % 逐元素运算
+        x = linspace(0, 2*pi, 1e7);
+        y = exp(-x.^2) .* sin(2*pi*x);  % 自动向量化
+
+        % 使用 bsxfun（老版本）或直接广播（R2016b+）
+        A = rand(1000, 1000);
+        B = rand(1, 1000);
+        % 广播加法，自动向量化
+        C = A + B;
+        ```
+
+    3. **优化内存访问模式**
+
+        ```matlab
+        % ❌ 列优先访问（慢）
+        data = rand(10000, 10000);
+        for i = 1:size(data, 2)  % 外层循环列
+            for j = 1:size(data, 1)  % 内层循环行
+                data(j, i) = data(j, i) * 2;
+            end
+        end
+
+        % ✅ 行优先访问（快，适合SIMD）
+        for i = 1:size(data, 1)  % 外层循环行
+            for j = 1:size(data, 2)  % 内层循环列
+                data(i, j) = data(i, j) * 2;
+            end
+        end
+        ```
+
+    三、混合优化策略
+
+    1. **并行 + 向量化**
+
+        ```matlab
+        function result = parallelVectorizedCompute()
+            n = 10000;
+            result = zeros(n, 1);
+            
+            parfor i = 1:n
+                % 内部使用向量化
+                x = linspace(0, 10, 1000);
+                y = exp(-x) .* sin(i * x);  % 向量化计算
+                result(i) = trapz(x, y);
+            end
+        end
+        ```
+
+    2. **使用 MATLAB Coder 生成优化代码**
+
+        ```matlab
+        % 生成优化的MEX文件
+        cfg = coder.config('mex');
+        cfg.EnableAutoParallelization = true;  % 启用自动并行化
+
+        % 编译函数
+        codegen -config cfg myFunction -args {zeros(1000,1000)}
+        ```
+
+    四、性能诊断和调优
+
+    1. **性能分析**
+
+        ```matlab
+        % 使用性能分析器
+        profile on
+        % 运行你的代码
+        myOptimizedFunction();
+        profile viewer
+
+        % 查看并行效率
+        mpiprofile on
+        % 运行并行代码
+        parfor i = 1:100
+            someFunction(i);
+        end
+        mpiprofile viewer
+        ```
+
+    2. **检查优化状态**
+
+        ```matlab
+        % 检查JIT加速状态
+        feature('jit')
+        feature('accel')
+
+        % 设置线程数（重启MATLAB生效）
+        % 在启动时设置环境变量：
+        % set OMP_NUM_THREADS=4  (Windows)
+        % export OMP_NUM_THREADS=4  (Linux/Mac)
+        ```
+
+    五、最佳实践建议
+
+    1. **优先向量化**：大多数性能提升来自好的向量化，而非并行
+    2. **数据规模足够大**：多线程开销大，小数据反而变慢
+    3. **避免数据通信**：并行时减少worker间的数据传递
+    4. **使用适当的数据类型**：single比double快，整数比浮点快
+    5. **预分配内存**：避免动态增长数组
+
+        ```matlab
+        % 综合示例：优化的向量化+并行计算
+        function result = optimizedComputation()
+            % 预分配
+            n = 1e6;
+            result = zeros(n, 1);
+            
+            % 向量化计算
+            x = linspace(0, 10, n);
+            
+            % 并行处理大块数据
+            parfor chunk = 1:4
+                range = (1:250000) + (chunk-1)*250000;
+                % 向量化计算块
+                temp = exp(-x(range)) .* sin(x(range).^2);
+                result(range) = temp;
+            end
+        end
+        ```
+
+    通过这些方法，你可以充分利用现代CPU的多核和SIMD能力，显著提升MATLAB计算性能。
+
 * matlab cellfun
 
     `cellfun` 的作用

@@ -2,6 +2,210 @@
 
 ## cache
 
+* autoindent 相关的配置
+
+    Vim 有多种自动缩进相关的配置，可以根据不同的编程语言和需求进行设置。以下是完整的自动缩进配置指南：
+
+    1. **基础自动缩进设置**
+
+        `autoindent` - 基本自动缩进
+
+        ```vim
+        set autoindent      " 新行继承上一行的缩进
+        ```
+
+        - 最简单的自动缩进
+
+        - 只继承缩进，不智能识别代码结构
+
+        `smartindent` - 智能缩进（已过时）
+
+        ```vim
+        set smartindent     " 在 autoindent 基础上增加一些智能
+        ```
+
+        - 会识别 `{`、`}` 等字符调整缩进
+
+        - **不推荐使用**（对现代语言支持差）
+
+        `cindent` - C 风格缩进
+
+        ```vim
+        set cindent         " C/C++/Java 风格的智能缩进
+        ```
+
+        - 专门为 C 家族语言设计
+
+        - 有详细的配置选项
+
+    2. **现代推荐：`indentexpr` 系统**
+
+        `filetype indent` - 基于文件类型的缩进
+
+        ```vim
+        " 在 .vimrc 中启用
+        filetype plugin indent on
+        ```
+
+        这是**最推荐**的方式，Vim 会根据文件类型加载对应的缩进规则。
+
+    3. **具体语言配置示例**
+
+        ```vim
+        " 通用设置
+        set autoindent
+        set smartindent     " 可选，某些语言可能需要
+        set expandtab       " 使用空格而非Tab
+
+        " 按语言设置缩进宽度
+        autocmd FileType python setlocal shiftwidth=4 tabstop=4 softtabstop=4
+        autocmd FileType javascript setlocal shiftwidth=2 tabstop=2 softtabstop=2
+        autocmd FileType java setlocal shiftwidth=4 tabstop=4 cindent
+        autocmd FileType cpp setlocal shiftwidth=4 tabstop=4 cindent
+        autocmd FileType html setlocal shiftwidth=2 tabstop=2
+        autocmd FileType yaml setlocal shiftwidth=2 tabstop=2 expandtab
+        ```
+
+    4. **C/C++ 风格缩进详细配置**
+
+        ```vim
+        " C 风格缩进详细配置
+        set cindent
+        set cinoptions=:0,l1,t0,g0,(0
+        ```
+
+        - `:0` - `case` 标签不额外缩进
+        - `l1` - `case` 内的代码缩进 1 级
+        - `t0` - 函数返回值类型不缩进
+        - `g0` - C++ 作用域声明不额外缩进
+        - `(0` - 换行时括号对齐
+
+    5. **相关辅助选项**
+
+        `copyindent` - 复制缩进样式
+
+        ```vim
+        set copyindent      " 继承上一行的缩进样式（Tab/空格混合）
+        ```
+
+        保持上一行的缩进字符类型。
+
+        `preserveindent` - 保留缩进
+
+        ```vim
+        set preserveindent  " 修改缩进时尽量保持原有缩进样式
+        ```
+
+    6. **缩进行为控制**
+
+        `indentkeys` - 触发重新缩进的键
+
+        ```vim
+        " 默认包含：0{,0},0),0],:,0#,!^F,o,O,e
+        " 可以自定义哪些键触发重新计算缩进
+        ```
+
+        `cinkeys` - C 缩进触发键
+
+        ```vim
+        " 控制 cindent 何时重新计算缩进
+        set cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
+        ```
+
+    7. **快速测试缩进**
+
+        ```vim
+        " 测试当前缩进设置
+        :set autoindent? smartindent? cindent?
+        :set shiftwidth? tabstop? expandtab?
+
+        " 查看当前文件使用的缩进脚本
+        :scriptnames  " 查看加载的所有脚本，寻找 indent/ 目录下的
+        ```
+
+    8. **完整配置示例**
+
+        ```vim
+        " ~/.vimrc 中的完整缩进配置
+        set autoindent              " 基础自动缩进
+        filetype plugin indent on   " 启用文件类型检测和缩进
+
+        " 全局默认缩进设置
+        set tabstop=4
+        set shiftwidth=4
+        set softtabstop=4
+        set expandtab               " 使用空格
+
+        " 特定语言覆盖
+        autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=4
+        autocmd FileType javascript,typescript,json setlocal expandtab shiftwidth=2 tabstop=2
+        autocmd FileType html,css setlocal expandtab shiftwidth=2 tabstop=2
+        autocmd FileType go setlocal noexpandtab shiftwidth=4 tabstop=4
+        autocmd FileType make setlocal noexpandtab shiftwidth=8 tabstop=8
+        autocmd FileType yaml setlocal expandtab shiftwidth=2 tabstop=2
+
+        " C/C++ 特殊设置
+        autocmd FileType c,cpp setlocal cindent
+        autocmd FileType c,cpp setlocal cinoptions=:0,l1,t0,g0,N-s,(0,w1,W4
+        ```
+
+    9. **常见问题排查**
+
+        缩进不正常？
+
+        ```vim
+        " 1. 检查当前设置
+        :set ai? si? ci? sw? ts? et?
+
+        " 2. 关闭所有缩进
+        :set noai nocin nosi inde=
+
+        " 3. 重新启用
+        :set ai
+
+        " 4. 查看文件类型
+        :set ft?
+
+        " 5. 手动指定缩进
+        :set indentexpr=  " 清空缩进表达式
+        ```
+
+        覆盖系统缩进规则
+
+        ```vim
+        " 创建 ~/.vim/indent/ 目录
+        " 添加自定义缩进规则，如 ~/.vim/indent/python.vim
+        ```
+
+    10. **高级技巧**
+
+        临时禁用自动缩进
+
+        ```vim
+        :set paste        " 进入粘贴模式（禁用所有缩进）
+        " 粘贴代码...
+        :set nopaste      " 恢复自动缩进
+        ```
+
+        使用插件增强
+
+        - [vim-sleuth](https://github.com/tpope/vim-sleuth) - 自动检测缩进设置
+        - [vim-indent-guides](https://github.com/nathanaelkane/vim-indent-guides) - 显示缩进指引线
+
+    总结
+
+    **最简单的有效配置：**
+
+    ```vim
+    " 在 ~/.vimrc 中添加
+    set autoindent
+    filetype plugin indent on
+    set expandtab
+    set shiftwidth=4 tabstop=4
+    ```
+
+    这样就能获得良好的自动缩进体验，Vim 会根据文件类型使用最适合的缩进规则。
+
 * 简述 `let save_reg = @"` 这个 vim 代码的作用
 
     在 Vim 脚本中，`let save_reg = @"` 这行代码的作用是**保存当前寄存器中的内容**。

@@ -2,6 +2,229 @@
 
 ## cache
 
+* 简述 plt.Circle() 的原型、作用及用法
+
+    plt.Circle() 简介
+
+    原型
+
+    ```python
+    matplotlib.patches.Circle(xy, radius=5, **kwargs)
+    ```
+
+    参数说明
+
+    - **xy**: 圆心坐标，格式为 (x, y)
+    - **radius**: 圆的半径，默认值为5
+    - **\*\*kwargs**: 可选参数，用于设置圆的样式属性，如：
+      - `facecolor`: 填充颜色
+      - `edgecolor`: 边框颜色
+      - `linewidth`: 边框线宽
+      - `alpha`: 透明度
+      - `fill`: 是否填充（布尔值）
+
+    作用
+
+    `plt.Circle()` 用于在 matplotlib 图表中创建一个圆形对象。它通常用于：
+
+    - 在数据可视化中标记特定区域
+    - 绘制几何图形
+    - 突出显示数据点或区域
+    - 创建散点图的自定义标记
+
+    用法示例
+
+    基本用法
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建图形和坐标轴
+    fig, ax = plt.subplots()
+
+    # 创建一个圆形对象
+    circle = plt.Circle((0.5, 0.5), 0.3, color='blue', alpha=0.5)
+
+    # 将圆形添加到坐标轴
+    ax.add_patch(circle)
+
+    # 设置坐标轴范围
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_aspect('equal')  # 确保圆形不被拉伸
+
+    plt.show()
+    ```
+
+    多个圆形
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+
+    # 创建多个不同样式的圆形
+    circles = [
+        plt.Circle((0.2, 0.3), 0.1, facecolor='red', edgecolor='black', linewidth=2),
+        plt.Circle((0.5, 0.6), 0.15, facecolor='green', alpha=0.7),
+        plt.Circle((0.8, 0.2), 0.12, facecolor='blue', fill=False, linewidth=3)
+    ]
+
+    # 添加所有圆形
+    for circle in circles:
+        ax.add_patch(circle)
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_aspect('equal')
+    plt.show()
+    ```
+
+    注意事项
+
+    - 需要先创建图形和坐标轴对象
+    - 必须使用 `add_patch()` 方法将圆形添加到坐标轴
+    - 建议设置 `set_aspect('equal')` 防止圆形变形
+    - 坐标轴范围需要根据圆的位置和半径适当设置
+
+* 简述 ax.add_patch() 的原型、作用和用法
+
+    ax.add_patch() 简介
+
+    原型
+
+    ```python
+    add_patch(p, **kwargs)
+    ```
+
+    参数说明
+
+    - **p**: Patch 对象，即要添加到坐标轴上的图形块对象（如 Circle、Rectangle、Polygon 等）
+    - **\*\*kwargs**: 可选参数，通常用于设置变换属性（如 transform）
+
+    作用
+
+    `ax.add_patch()` 是 Matplotlib 中用于将各种图形块（patches）添加到坐标轴的核心方法。它的主要作用是：
+
+    - 将创建的图形对象（如圆形、矩形、多边形等）渲染到坐标轴上
+    - 管理图形对象的绘制顺序和层次
+    - 使图形对象与坐标轴的坐标系建立关联
+    - 实现自定义图形元素的添加
+
+    用法示例
+
+    1. 添加单个图形块
+
+        ```python
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+
+        # 创建并添加圆形
+        circle = plt.Circle((0.5, 0.5), 0.3, color='red')
+        ax.add_patch(circle)
+
+        # 创建并添加矩形
+        rect = plt.Rectangle((0.2, 0.2), 0.4, 0.3, color='blue', alpha=0.5)
+        ax.add_patch(rect)
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_aspect('equal')
+        plt.show()
+        ```
+
+    2. 批量添加图形块
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Circle, Rectangle, Polygon
+        import numpy as np
+
+        fig, ax = plt.subplots()
+
+        # 创建不同类型的图形块
+        patches = [
+            Circle((0.3, 0.7), 0.1, color='red'),
+            Rectangle((0.6, 0.6), 0.2, 0.2, color='blue'),
+            Polygon(np.array([[0.2, 0.2], [0.4, 0.1], [0.5, 0.3]]), color='green')
+        ]
+
+        # 批量添加
+        for patch in patches:
+            ax.add_patch(patch)
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_aspect('equal')
+        plt.show()
+        ```
+
+        注：
+
+        1. 这个和上个例子是一样的，就多了个 polygon
+
+    3. 设置变换属性
+
+        ```python
+        import matplotlib.pyplot as plt
+        import matplotlib.transforms as transforms
+
+        fig, ax = plt.subplots()
+
+        # 创建圆形，使用不同的变换
+        circle1 = plt.Circle((0.5, 0.5), 0.2, color='red', alpha=0.5)
+        ax.add_patch(circle1)
+
+        # 使用数据坐标系（默认）
+        circle2 = plt.Circle((20, 20), 5, color='blue', alpha=0.5, 
+                             transform=ax.transData)
+        ax.add_patch(circle2)
+
+        ax.set_xlim(0, 40)
+        ax.set_ylim(0, 40)
+        ax.set_aspect('equal')
+        plt.show()
+        ```
+
+        注：
+
+        1. 没看明白 transData 是什么意思
+
+    可添加的常见图形块类型
+
+    | 图形块类 | 说明 |
+    |---------|------|
+    | `Circle` | 圆形 |
+    | `Rectangle` | 矩形 |
+    | `Polygon` | 多边形 |
+    | `Ellipse` | 椭圆 |
+    | `Arrow` | 箭头 |
+    | `FancyBboxPatch` | 带花边的矩形框 |
+    | `Wedge` | 扇形 |
+
+    注意事项
+
+    1. **必须先创建坐标轴**：调用 `add_patch()` 前必须有坐标轴对象
+    2. **设置坐标轴范围**：添加后需要适当设置坐标轴范围才能显示完整图形
+    3. **保持纵横比**：对于圆形等图形，建议使用 `set_aspect('equal')`
+    4. **绘制顺序**：后添加的图形会覆盖在先添加的图形上面
+    5. **性能考虑**：大量图形块时，考虑使用集合对象（如 `PatchCollection`）提高性能
+
+    常见错误及解决
+
+    ```python
+    # 错误：忘记添加图形块
+    circle = plt.Circle((0.5, 0.5), 0.3)
+    plt.show()  # 圆形不会显示
+
+    # 正确：必须添加
+    fig, ax = plt.subplots()
+    circle = plt.Circle((0.5, 0.5), 0.3)
+    ax.add_patch(circle)
+    plt.show()
+    ```
+
 * 简述 matplotlib 中 fig.colorbar() 的原型、作用及用法
 
     fig.colorbar() 是 Matplotlib 中用于为图像、等高线图等标量数据显示颜色映射条（colorbar）的核心函数。

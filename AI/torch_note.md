@@ -2,6 +2,272 @@
 
 ## cache
 
+* 简述什么是带动量的SGD（Momentum），使用时有什么技巧、注意事项
+
+    带动量的SGD（Momentum）简介
+
+    基本概念
+
+    带动量的SGD是一种优化算法，它在标准SGD的基础上引入了“动量”概念，模拟物理中的惯性：
+
+    **核心思想**：参数更新时，不仅考虑当前梯度，还考虑历史梯度的累积（动量），使更新方向更加平滑和稳定。
+
+    数学原理
+
+    ```python
+    # 标准SGD
+    w = w - learning_rate * gradient
+
+    # 带动量的SGD
+    v = momentum * v - learning_rate * gradient  # 计算动量
+    w = w + v  # 更新参数
+    ```
+    - **v**: 动量项（速度）
+    - **momentum**: 动量系数（通常设为0.9左右）
+    - **gradient**: 当前梯度
+
+    主要作用
+
+    1. **加速收敛**：在平坦区域加速下降
+    2. **抑制振荡**：减小梯度方向的剧烈波动
+    3. **跨越局部极小值**：凭借惯性可能跳出局部最优点
+    4. **稳定更新方向**：使参数更新更平滑
+
+    使用技巧
+
+    1. 动量系数设置
+
+        ```python
+        import torch.optim as optim
+
+        # 常用设置
+        optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+        # 不同情况的建议值
+        momentum_values = {
+            '默认': 0.9,      # 最常用
+            '保守': 0.5,      # 数据噪声大时
+            '激进': 0.95-0.99 # 确信收敛方向时
+        }
+        ```
+
+    2. 学习率调整策略
+
+        ```python
+        # 使用学习率衰减
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+
+        # 或者使用余弦退火
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50)
+        ```
+
+    3. 动量预热（Warm-up）
+
+        ```python
+        def adjust_learning_rate(optimizer, epoch, warmup_epochs=5):
+            """训练初期逐步增加动量的影响"""
+            if epoch < warmup_epochs:
+                lr_scale = (epoch + 1) / warmup_epochs
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = param_group['initial_lr'] * lr_scale
+        ```
+
+    注意事项
+
+    1. 动量累积问题
+
+        ```python
+        # 训练初期可能出现的问题
+        """
+        问题：初始梯度噪声大，动量累积错误方向
+        解决：可以使用较短的warm-up，或初始动量设小些
+        """
+
+        # 更好的初始化
+        optimizer = optim.SGD(model.parameters(), 
+                              lr=0.1, 
+                              momentum=0.9,
+                              nesterov=False)  # 是否使用Nesterov动量
+        ```
+
+    2. 参数更新调试
+
+        ```python
+        # 监控动量变化
+        def debug_momentum(optimizer):
+            for param_group in optimizer.param_groups:
+                if 'momentum_buffer' in param_group:
+                    buffer_norm = sum([p['momentum_buffer'].norm().item() 
+                                      for p in param_group['params']])
+                    print(f"Momentum buffer norm: {buffer_norm}")
+        ```
+
+    3. 不同优化器选择建议
+
+        | 场景 | 推荐设置 | 说明 |
+        |------|---------|------|
+        | CV任务（CNN） | momentum=0.9 | 经典设置，效果好 |
+        | NLP任务（Transformer） | Adam更常用 | 动量SGD可能不稳定 |
+        | 小批量训练 | momentum=0.95 | 需要更多历史信息 |
+        | 大批量训练 | momentum=0.9 + warm-up | 避免初期不稳定 |
+        | 迁移学习 | momentum=0.9, lr较小 | 微调预训练模型 |
+
+    4. Nesterov动量（NAG）
+
+        ```python
+        # Nesterov加速梯度（比标准动量更快收敛）
+        optimizer = optim.SGD(model.parameters(), 
+                              lr=0.01, 
+                              momentum=0.9,
+                              nesterov=True)  # 启用Nesterov
+
+        """
+        Nesterov动量的优势：
+        - 更快的收敛速度
+        - 更强的理论保证
+        - 更好的响应梯度变化
+        """
+        ```
+
+    常见问题与解决方案
+
+    1. 震荡问题
+
+        ```python
+        # 现象：损失函数剧烈波动
+        # 解决方案：
+        """
+        - 降低学习率
+        - 增加动量系数（如0.9→0.95）
+        - 增加batch size
+        """
+        ```
+
+    2. 收敛过慢
+
+        ```python
+        # 现象：损失下降缓慢
+        # 解决方案：
+        """
+        - 检查学习率是否太小
+        - 动量系数是否合适（0.9通常较好）
+        - 尝试Nesterov动量
+        """
+        ```
+
+    3. 训练不稳定
+
+        ```python
+        # 现象：损失突然增大或NaN
+        # 解决方案：
+        """
+        - 添加梯度裁剪
+        - 减小学习率
+        - 检查数据是否存在异常值
+        """
+        ```
+
+    实践建议总结
+
+    1. **默认配置**：`momentum=0.9` + 适当的学习率
+    2. **学习率调度**：结合StepLR或CosineAnnealingLR
+    3. **批量归一化**：配合BN层效果更好
+    4. **早停策略**：监控验证集性能
+    5. **实验记录**：记录不同动量系数的效果对比
+
+* 简述 nn.ReLU() 的原型、作用及用法，并简述 `nn.ReLU(True)` 中 True 的含义
+
+    nn.ReLU() 的原型、作用及用法
+
+    原型
+
+    ```python
+    torch.nn.ReLU(inplace=False)
+    ```
+
+    作用
+
+    ReLU（Rectified Linear Unit，修正线性单元）是一个非线性激活函数，其数学表达式为：
+
+    - **公式**：`ReLU(x) = max(0, x)`
+    - **特点**：将输入中所有负值置为0，正值保持不变
+
+    ReLU的主要优点：
+
+    1. **缓解梯度消失**：正区间梯度恒为1，有利于深层网络训练
+    2. **计算简单**：仅需比较和取最大值操作
+    3. **稀疏激活性**：使部分神经元输出为0，增加网络稀疏性
+
+    用法示例
+
+    ```python
+    import torch
+    import torch.nn as nn
+
+    # 创建ReLU层
+    relu = nn.ReLU()
+
+    # 或使用inplace版本
+    relu_inplace = nn.ReLU(inplace=True)
+
+    # 在前向传播中使用
+    x = torch.tensor([-2, -1, 0, 1, 2], dtype=torch.float32)
+    output = relu(x)
+    print(output)  # 输出: tensor([0., 0., 0., 1., 2.])
+
+    # 在神经网络模型中使用
+    class SimpleModel(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc = nn.Linear(10, 20)
+            self.relu = nn.ReLU()
+        
+        def forward(self, x):
+            x = self.fc(x)
+            x = self.relu(x)
+            return x
+    ```
+
+    `nn.ReLU(True)` 中 True 的含义
+
+    `nn.ReLU(True)` 中的 `True` 对应 `inplace=True` 参数，含义是：
+
+    **原地操作（In-place Operation）**
+
+    - **True**：直接在输入张量上进行修改，不分配新的内存
+    - **False（默认）**：返回一个新的张量，原输入保持不变
+
+    原地操作的特点
+
+    ```python
+    # inplace=False（默认）
+    x = torch.tensor([-1, 2, -3])
+    relu = nn.ReLU()
+    y = relu(x)
+    print(x)  # 输出: tensor([-1, 2, -3])  # x保持不变
+    print(y)  # 输出: tensor([0, 2, 0])     # 返回新张量
+
+    # inplace=True
+    x = torch.tensor([-1, 2, -3])
+    relu = nn.ReLU(inplace=True)
+    y = relu(x)
+    print(x)  # 输出: tensor([0, 2, 0])     # x被直接修改
+    print(y)  # 输出: tensor([0, 2, 0])     # y就是x（引用相同）
+    ```
+
+    优缺点
+
+    **优点**：
+
+    - 节省内存，不需要为输出分配新空间
+    - 提高运行效率（减少内存分配和复制）
+
+    **缺点**：
+
+    - 丢失原始数据，无法用于需要保留原始值的场景
+    - 在自动求导（autograd）中可能引发问题
+    - 某些操作不支持原地版本
+
 * torch.max() 的原型、作用及用法
 
     原型

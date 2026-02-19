@@ -6,6 +6,349 @@ Ref:
 
 ## cache
 
+* 简述 linux 中 device_initialize() 的原型、作用及用法
+
+    原型
+
+    ```c
+    void device_initialize(struct device *dev);
+    ```
+
+    **头文件**：`<linux/device.h>`
+
+    作用
+
+    `device_initialize()` 是Linux设备驱动模型中用于**初始化设备数据结构**的核心函数，主要功能：
+
+    1. **基本初始化**：设置设备结构的初始状态
+    2. **内部数据结构初始化**：
+       - 初始化设备的链表节点
+       - 初始化设备的kobject（内核对象）
+       - 初始化设备的锁和等待队列
+       - 设置设备的初始引用计数为1
+
+    3. **为设备注册做准备**：完成初始化后，设备可以后续通过`device_add()`添加到系统中
+
+    用法示例
+
+    基本用法
+
+    ```c
+    #include <linux/device.h>
+    #include <linux/module.h>
+
+    static struct device my_device;
+
+    static int __init my_init(void)
+    {
+        // 1. 设置设备的基本信息
+        my_device.parent = NULL;  // 父设备
+        my_device.bus = NULL;     // 所属总线
+        my_device.init_name = "my_device";  // 设备名称
+        
+        // 2. 初始化设备
+        device_initialize(&my_device);
+        
+        // 3. 后续可以添加设备到系统
+        // device_add(&my_device);
+        
+        return 0;
+    }
+    ```
+
+    典型使用模式
+
+    ```c
+    struct my_driver_data {
+        struct device dev;
+        /* 其他私有数据 */
+    };
+
+    static int my_driver_probe(void)
+    {
+        struct my_driver_data *data;
+        int ret;
+        
+        // 1. 分配设备结构内存
+        data = kzalloc(sizeof(*data), GFP_KERNEL);
+        if (!data)
+            return -ENOMEM;
+        
+        // 2. 初始化设备
+        device_initialize(&data->dev);
+        
+        // 3. 设置设备属性
+        data->dev.parent = parent_dev;
+        data->dev.bus = &my_bus_type;
+        dev_set_name(&data->dev, "my_device_%d", instance);
+        
+        // 4. 添加设备到系统
+        ret = device_add(&data->dev);
+        if (ret) {
+            put_device(&data->dev);
+            kfree(data);
+            return ret;
+        }
+        
+        return 0;
+    }
+    ```
+
+    与相关函数的关系
+
+    ```c
+    // 完整流程：分配 + 初始化 + 添加
+    struct device *dev;
+    dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+    device_initialize(dev);  // 初始化
+    device_add(dev);         // 添加到系统
+
+    // 或者使用辅助函数一步完成
+    dev = device_create(dev_class, parent, devt, data, fmt, ...);
+
+    // 清理时
+    device_del(dev);  // 从系统移除
+    put_device(dev);  // 释放引用
+    kfree(dev);       // 释放内存
+    ```
+
+    注意事项
+
+    1. **引用计数**：
+
+       - `device_initialize()` 设置初始引用计数为1
+       - 使用 `get_device()` 增加引用计数
+       - 使用 `put_device()` 减少引用计数，减为0时触发释放
+
+    2. **错误处理**：
+
+       ```c
+       device_initialize(&data->dev);
+       ret = device_add(&data->dev);
+       if (ret) {
+           put_device(&data->dev);  // 释放引用
+           kfree(data);
+           return ret;
+       }
+       ```
+
+    3. **配对使用**：
+
+       - `device_initialize()` 与 `device_add()` 配对用于完整注册
+       - `device_register()` 实际上是 `device_initialize()` + `device_add()` 的组合
+       - 清理时使用 `device_del()` + `put_device()`
+
+* 简述 device_register() 的原型、作用及用法
+
+    原型
+
+    ```c
+    int device_register(struct device *dev);
+    ```
+
+    **头文件**：`<linux/device.h>`
+
+    **返回值**：成功返回0，失败返回负的错误码
+
+    作用
+
+    `device_register()` 是Linux设备驱动模型中用于**注册设备到系统的核心函数**，它实际上是两个函数的组合：
+
+    1. **`device_initialize(dev)`**：初始化设备数据结构
+    2. **`device_add(dev)`**：将设备添加到设备层次结构中
+
+    主要功能：
+
+    - **初始化设备**：设置设备的内部数据结构、锁、kobject等
+    - **添加设备**：将设备注册到系统中，使设备可见
+    - **创建sysfs接口**：在sysfs文件系统中创建设备目录
+    - **触发uevent**：向用户空间发送设备添加事件
+    - **建立设备层次关系**：链接到父设备和总线
+
+    用法示例
+
+    基本用法
+
+    ```c
+    #include <linux/device.h>
+    #include <linux/module.h>
+
+    static struct device *my_device;
+
+    static int __init my_init(void)
+    {
+        int ret;
+        
+        // 1. 分配设备结构内存
+        my_device = kzalloc(sizeof(*my_device), GFP_KERNEL);
+        if (!my_device)
+            return -ENOMEM;
+        
+        // 2. 设置设备基本信息
+        my_device->parent = NULL;  // 父设备（可选）
+        my_device->bus = NULL;     // 所属总线（可选）
+        dev_set_name(my_device, "my_device");  // 设置设备名称
+        
+        // 3. 注册设备
+        ret = device_register(my_device);
+        if (ret) {
+            pr_err("Failed to register device: %d\n", ret);
+            kfree(my_device);
+            return ret;
+        }
+        
+        pr_info("Device registered successfully\n");
+        return 0;
+    }
+
+    static void __exit my_exit(void)
+    {
+        // 4. 注销设备
+        device_unregister(my_device);
+        // 注意：device_unregister会调用put_device，不需要手动kfree
+    }
+
+    module_init(my_init);
+    module_exit(my_exit);
+    ```
+
+    完整示例：创建类设备
+
+    ```c
+    #include <linux/device.h>
+    #include <linux/module.h>
+
+    static struct class *my_class;
+    static struct device *my_device;
+
+    static int __init my_init(void)
+    {
+        int ret;
+        
+        // 1. 创建设备类
+        my_class = class_create(THIS_MODULE, "my_class");
+        if (IS_ERR(my_class)) {
+            ret = PTR_ERR(my_class);
+            pr_err("Failed to create class: %d\n", ret);
+            return ret;
+        }
+        
+        // 2. 分配并注册设备
+        my_device = device_create(my_class, NULL, MKDEV(0, 0), NULL, "my_device");
+        if (IS_ERR(my_device)) {
+            ret = PTR_ERR(my_device);
+            pr_err("Failed to create device: %d\n", ret);
+            class_destroy(my_class);
+            return ret;
+        }
+        
+        // 或者使用device_register手动注册：
+        /*
+        my_device = kzalloc(sizeof(*my_device), GFP_KERNEL);
+        if (!my_device) {
+            class_destroy(my_class);
+            return -ENOMEM;
+        }
+        
+        my_device->class = my_class;
+        my_device->parent = NULL;
+        dev_set_name(my_device, "my_device");
+        
+        ret = device_register(my_device);
+        if (ret) {
+            pr_err("Failed to register device: %d\n", ret);
+            put_device(my_device);
+            class_destroy(my_class);
+            return ret;
+        }
+        */
+        
+        return 0;
+    }
+
+    static void __exit my_exit(void)
+    {
+        device_destroy(my_class, MKDEV(0, 0));
+        class_destroy(my_class);
+    }
+
+    module_init(my_init);
+    module_exit(my_exit);
+    ```
+
+    在驱动中使用
+
+    ```c
+    struct my_driver_data {
+        struct device dev;
+        int private_data;
+    };
+
+    static int my_probe(struct platform_device *pdev)
+    {
+        struct my_driver_data *data;
+        int ret;
+        
+        // 1. 分配驱动私有数据结构
+        data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
+        if (!data)
+            return -ENOMEM;
+        
+        // 2. 初始化设备结构
+        data->dev.parent = &pdev->dev;
+        data->dev.bus = &platform_bus_type;
+        dev_set_name(&data->dev, "my_device");
+        
+        // 3. 注册设备
+        ret = device_register(&data->dev);
+        if (ret) {
+            dev_err(&pdev->dev, "Failed to register device: %d\n", ret);
+            return ret;
+        }
+        
+        platform_set_drvdata(pdev, data);
+        return 0;
+    }
+    ```
+
+    相关函数对比
+
+    | 函数 | 功能 | 使用场景 |
+    |------|------|----------|
+    | `device_initialize()` | 仅初始化设备 | 需要自定义初始化和添加分离的场景 |
+    | `device_add()` | 添加已初始化的设备 | 与`device_initialize()`配对使用 |
+    | **`device_register()`** | **初始化+添加** | **最常用的设备注册函数** |
+    | `device_create()` | 创建并注册类设备 | 简化类设备的创建 |
+    | `device_unregister()` | 注销设备 | 与`device_register()`配对使用 |
+
+    注意事项
+
+    1. **错误处理**：
+
+       ```c
+       ret = device_register(dev);
+       if (ret) {
+           put_device(dev);  // 释放引用计数
+           kfree(dev);       // 释放内存
+           return ret;
+       }
+       ```
+
+    2. **引用计数**：
+
+       - `device_register()` 成功后增加引用计数
+       - 使用 `device_unregister()` 或 `put_device()` 释放
+
+    3. **设备名称**：
+
+       - 必须在使用`device_register()`前设置设备名称
+       - 使用 `dev_set_name(dev, "name")` 设置
+
+    4. **配对使用**：
+
+       - `device_register()` 成功必须对应 `device_unregister()`
+       - 不要混合使用 `device_register()` 和 `device_initialize()` + `device_add()`
+
 * `put_device()`由谁调用？
 
     **它既可以被驱动开发者显式调用，也可以被 Linux 内核核心隐式调用。**
