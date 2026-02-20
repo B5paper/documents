@@ -381,6 +381,8 @@ english words 由 { } reorg: english words 进化而来。
 
     * 02.03  30 mins
 
+    * 02.19  30 mins
+
 * [O] CUDA Core Compute Libraries (CCCL)
 
     <https://github.com/nvidia/cccl>
@@ -503,11 +505,17 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
-* [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15
+* [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15, 02.19
 
     目前看到
     
     > Quantifiers
+
+    feedback:
+
+    1. 目前看到
+
+        > Greedy And Non-Greedy Quantifiers
 
 * [o] 给每个 unit 设置一个比重，在抽取随机数时按比重抽取
 
@@ -707,7 +715,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] 确保正确的内核配置
+* [v] 确保正确的内核配置
 
     ```bash
     # 检查内核配置中是否启用了 DRM 子分配器
@@ -744,9 +752,7 @@ english words 由 { } reorg: english words 进化而来。
     sudo insmod /path/to/sipu.ko allow_unsupported=1
     ```
 
-* [v] `let start_line = line("'<")`
-
-* [ ] vim 中列表的用法`let lines = []`
+* [v] vim 中列表的用法`let lines = []`
 
 * [ ] vim `s` 命令与`c`命令
 
@@ -1632,9 +1638,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `plt.Circle()`, `ax.add_patch()`
-
-* [ ] `plt.Line2D()`, `ax.add_line()`
+* [v] `plt.Line2D()`, `ax.add_line()`
 
 * [ ] `ax.text()`
 
@@ -1650,7 +1654,21 @@ english words 由 { } reorg: english words 进化而来。
 
 * [new] pyserial, struct
 
-* [ ] NIRS-Toolbox
+* [v] NIRS-Toolbox
+
+    feedback:
+
+    * NIRS-Toolbox 是个基于 matlab 的工具箱
+
+        相关网站：
+
+        * <https://help.nirx.de/hc/en-us/articles/17400352078108-NIRS-Toolbox>
+
+        * <https://github.com/huppertt/nirs-toolbox>
+
+        * <https://www.artinis.com/blogpost-all/2021/fnirs-analysis-toolbox-series-brain-analyzir>
+
+        * <https://nirx.net/fnirs-analysis>
 
 * [new] OpenBCI GUI、LSL Lab Streaming Layer
 
@@ -1787,8 +1805,6 @@ resources:
 
         > 2. adjust_contrast() function:floating-point
 
-* [v] 带动量的SGD（Momentum）
-
 * [ ] 带动量和权重衰减的SGD
 
 * [ ] 调研 Reshaping a Tensor in Pytorch
@@ -1816,10 +1832,6 @@ resources:
     ```
 
 * [ ] 调研`from typing import Optional, List, Dict, Tuple, Set`
-
-* [v] `nn.ReLU(True)`
-
-    true 是什么意思？
 
 * [ ] `nn.Unflatten()`
 
@@ -2350,7 +2362,7 @@ resources:
 
 * [v] `device_register()`
 
-* [ ] `device_attach()`
+* [v] `device_attach()`
 
 * [ ] `linux/list_lru.h`, `linux/list_sort.h`
 
@@ -3408,14 +3420,6 @@ resources:
 
     `curl -I https://gitlabsoft.siorigin.com/ccl/siccl_utils`
 
-* [new] 调研 ssh remote forward 配置
-
-    ```conf
-    Host remote-host
-        HostName your.server.com
-        RemoteForward 12345 localhost:12345
-    ```
-
 * [new] 调研 OSC 52 协议
 
     程序直接操作本地剪贴板：
@@ -3432,22 +3436,9 @@ resources:
 
     使用时：yy 后按 `<leader>y` 即可复制到本地剪贴板。
 
-* [new] 调研 linux clipboard
-
-    ```bash
-    cat /tmp/copy.txt | xclip -selection clipboard  # Linux
-    ```
-
-    ```bash
-    # 在本地终端运行
-    nc -l 12345 | xclip -selection clipboard
-    ```
-
 * [ ] cmake 环境变量的用法
 
-* [ ] 调研 bash 的`exec`命令
-
-* [ ] 调研 bash 中的特殊变量`%%`（当前作业）
+* [v] 调研 bash 的`exec`命令
 
 * [ ] 调研 rsync `--backup`的用法
 
@@ -3904,15 +3895,30 @@ resources:
 
 ### tasks
 
+* [ ] 调研 bash 中的特殊变量`%%`（当前作业）
+
+* [ ] 调研 ssh remote forward 配置
+
+    ```conf
+    Host remote-host
+        HostName your.server.com
+        RemoteForward 12345 localhost:12345
+    ```
+
+* [ ] 调研 linux clipboard
+
+    ```bash
+    cat /tmp/copy.txt | xclip -selection clipboard  # Linux
+    ```
+
+    ```bash
+    # 在本地终端运行
+    nc -l 12345 | xclip -selection clipboard
+    ```
+
 * [ ] 官网介绍说，只需要使用`aria2c -x 2 <url>`就可以多线程下载，不知道真假
 
-* [v] bash 中的分号是什么意思？
-
-    比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`
-
-* [asso] `env`命令
-
-* [v] `wc`是否可以统计汉字的字节数，单词数？
+* [ ] `env`命令
 
 * [ ] `who`, `w`, `last`这三个命令是什么意思？
 
@@ -3924,10 +3930,6 @@ resources:
     # 显示匹配行及其后2行
     grep -A 2 -E "keyword1|keyword2" file.txt
     ```
-
-* [v] 调研`grep -w`
-
-    > -w 选项匹配整个单词
 
 * [ ] `ls -lt`, `ls -i`, `ls -n`
 
@@ -5103,7 +5105,7 @@ resources:
 
 * [ ] 调研 makefile 的 submodule
 
-* [ ] 调研 diff 命令的用法
+* [v] 调研 diff 命令的用法
 
 * [ ] 调研 linux `time` command
 
@@ -5364,8 +5366,6 @@ Tasks:
 添加一个 resource，官方的 vulkan programming guide。
 
 任务列表：
-
-* [v] 添加 vulkan 的 qa： 给出画一个三角形的流程步骤
 
 * [v] 调研 vulkan tutorial: texture mapping
 

@@ -2,6 +2,539 @@
 
 ## cache
 
+* 简述 matplotlib 中 `plt.Line2D()` 的原型、作用及用法
+
+    原型
+
+    ```python
+    class matplotlib.lines.Line2D(xdata, ydata, linewidth=None, linestyle=None, color=None, marker=None, ...)
+    ```
+
+    作用
+
+    `Line2D` 是 matplotlib 中最基本的图形元素之一，用于在坐标轴上绘制线条和标记点。它是所有线图的底层实现基础，可以：
+
+    - 绘制直线、曲线
+    - 设置线条样式（实线、虚线等）
+    - 添加数据点标记
+    - 控制线条颜色和宽度
+
+    主要参数
+
+    | 参数 | 说明 |
+    |------|------|
+    | `xdata, ydata` | 数据的 x 和 y 坐标 |
+    | `linewidth` / `lw` | 线条宽度 |
+    | `linestyle` / `ls` | 线条样式（'-', '--', '-.', ':'等） |
+    | `color` / `c` | 线条颜色 |
+    | `marker` | 标记点样式（'o', 's', '^', '*'等） |
+    | `markersize` / `ms` | 标记点大小 |
+    | `label` | 图例标签 |
+
+    用法示例
+
+    1. 基本用法（通过 plot 函数）
+
+        ```python
+        import matplotlib.pyplot as plt
+
+        # plot 函数返回 Line2D 对象列表
+        line, = plt.plot([1, 2, 3, 4], [1, 4, 9, 16], 'ro-')
+        plt.show()
+        ```
+
+    2. 直接创建 Line2D 对象
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        import numpy as np
+
+        # 创建图形和坐标轴
+        fig, ax = plt.subplots()
+
+        # 创建数据
+        x = np.linspace(0, 10, 100)
+        y = np.sin(x)
+
+        # 直接创建 Line2D 对象
+        line = Line2D(x, y, 
+                      linewidth=2, 
+                      linestyle='--', 
+                      color='blue',
+                      marker='o',
+                      markersize=4,
+                      markerfacecolor='red',
+                      label='sin(x)')
+
+        # 将 Line2D 对象添加到坐标轴
+        ax.add_line(line)
+
+        # 设置坐标轴范围
+        ax.set_xlim(0, 10)
+        ax.set_ylim(-1.5, 1.5)
+
+        plt.legend()
+        plt.show()
+        ```
+
+    3. 自定义线条属性
+
+        ```python
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+
+        # 创建多条线
+        line1 = Line2D([0, 1], [0, 1], 
+                       linewidth=3, 
+                       linestyle='-', 
+                       color='red', 
+                       label='直线')
+                       
+        line2 = Line2D([0, 1], [1, 0], 
+                       linewidth=2, 
+                       linestyle='--', 
+                       color='blue', 
+                       marker='s', 
+                       label='虚线带方块标记')
+
+        ax.add_line(line1)
+        ax.add_line(line2)
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.legend()
+        plt.show()
+        ```
+
+    4. 修改已创建的 Line2D 对象
+
+        ```python
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        line, = ax.plot([1, 2, 3], [1, 2, 3])
+
+        # 修改线条属性
+        line.set_color('green')
+        line.set_linewidth(3)
+        line.set_linestyle(':')
+        line.set_marker('*')
+
+        plt.show()
+        ```
+
+    常见线条样式和标记
+
+    - **线条样式**：`'-'`（实线）、`'--'`（虚线）、`'-.'`（点划线）、`':'`（点线）
+    - **标记样式**：`'o'`（圆点）、`'s'`（方块）、`'^'`（三角形）、`'*'`（星号）、`'+'`（加号）
+    - **颜色**：可以使用颜色名称、缩写（'r','g','b'）或十六进制代码
+
+    `Line2D` 是 matplotlib 中灵活且强大的绘图元素，通过它可以精细控制线条的各个方面。
+
+* 简述 `ax.add_line()` 的原型、作用及用法
+
+    原型
+
+    ```python
+    add_line(self, line, *, auto=True)
+    ```
+
+    作用
+
+    `ax.add_line()` 是 `Axes` 对象的方法，用于将 `Line2D` 对象添加到指定的坐标轴（axes）上。它是 matplotlib 底层绘图机制的重要组成部分，主要作用是：
+    - 将创建的线条对象与特定坐标轴关联
+    - 使线条能够在图形中显示
+    - 自动处理线条的渲染和更新
+
+    参数说明
+
+    | 参数 | 说明 |
+    |------|------|
+    | `line` | 要添加的 Line2D 对象 |
+    | `auto` | 是否自动更新坐标轴范围，默认为 True |
+
+    用法示例
+
+    1. 基本用法
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+
+        # 创建图形和坐标轴
+        fig, ax = plt.subplots()
+
+        # 创建 Line2D 对象
+        line = Line2D([0, 1, 2, 3], [0, 1, 4, 9], 
+                      color='blue', 
+                      linewidth=2)
+
+        # 将线条添加到坐标轴
+        ax.add_line(line)
+
+        # 设置坐标轴范围（如果 auto=False，这一步是必须的）
+        ax.set_xlim(0, 3)
+        ax.set_ylim(0, 10)
+
+        plt.show()
+        ```
+
+    2. 添加多条线条
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        import numpy as np
+
+        fig, ax = plt.subplots()
+
+        # 创建多条线条
+        x = np.linspace(0, 2*np.pi, 100)
+
+        line1 = Line2D(x, np.sin(x), color='red', label='sin(x)')
+        line2 = Line2D(x, np.cos(x), color='blue', label='cos(x)')
+        line3 = Line2D(x, np.sin(x) * np.cos(x), color='green', label='sin(x)cos(x)')
+
+        # 添加所有线条
+        ax.add_line(line1)
+        ax.add_line(line2)
+        ax.add_line(line3)
+
+        # 设置坐标轴范围和标签
+        ax.set_xlim(0, 2*np.pi)
+        ax.set_ylim(-1.5, 1.5)
+        ax.legend()
+        ax.grid(True)
+
+        plt.show()
+        ```
+
+    3. 动态添加线条
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        import numpy as np
+
+        fig, ax = plt.subplots()
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+
+        # 动态添加线条
+        for i in range(5):
+            line = Line2D([i, i+2], [i, i+2], 
+                          linewidth=2,
+                          color=plt.cm.viridis(i/5))
+            ax.add_line(line)
+
+        plt.show()
+        ```
+
+    4. 使用 auto 参数
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+        # ax1: auto=True（默认）
+        line1 = Line2D([1, 2, 3], [10, 20, 30])
+        ax1.add_line(line1)  # 自动调整范围
+        ax1.set_title('auto=True (default)')
+
+        # ax2: auto=False
+        line2 = Line2D([1, 2, 3], [10, 20, 30])
+        ax2.add_line(line2, auto=False)  # 不会自动调整范围
+        ax2.set_xlim(0, 4)  # 必须手动设置
+        ax2.set_ylim(0, 35)
+        ax2.set_title('auto=False')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    5. 结合循环创建复杂图形
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        import numpy as np
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+
+        # 创建辐射状线条
+        center_x, center_y = 0, 0
+        radius = 5
+        num_lines = 12
+
+        for i in range(num_lines):
+            angle = 2 * np.pi * i / num_lines
+            end_x = center_x + radius * np.cos(angle)
+            end_y = center_y + radius * np.sin(angle)
+            
+            line = Line2D([center_x, end_x], [center_y, end_y],
+                          color=plt.cm.hsv(i/num_lines),
+                          linewidth=2,
+                          alpha=0.7)
+            ax.add_line(line)
+
+        ax.set_xlim(-radius-1, radius+1)
+        ax.set_ylim(-radius-1, radius+1)
+        ax.set_aspect('equal')
+        ax.grid(True)
+
+        plt.show()
+        ```
+
+    与其他方法的对比
+
+    对比 `plot()` 方法
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    # 方法1: 使用 plot（更简洁）
+    ax1.plot([1, 2, 3], [1, 4, 9], 'r-', linewidth=2)
+    ax1.set_title('Using plot()')
+
+    # 方法2: 使用 add_line（更灵活）
+    from matplotlib.lines import Line2D
+    line = Line2D([1, 2, 3], [1, 4, 9], 
+                  color='red', 
+                  linewidth=2,
+                  linestyle='-')
+    ax2.add_line(line)
+    ax2.set_xlim(0, 4)
+    ax2.set_ylim(0, 10)
+    ax2.set_title('Using add_line()')
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    注意事项
+
+    1. **坐标轴范围**：使用 `add_line()` 后，通常需要手动设置坐标轴范围，除非 `auto=True`
+    2. **性能**：批量添加多条线时，`add_line()` 比多次调用 `plot()` 更高效
+    3. **灵活性**：可以直接操作 Line2D 对象的属性，实现更精细的控制
+    4. **图层管理**：添加顺序影响图层的上下关系（后添加的在上面）
+
+    `add_line()` 方法是 matplotlib 面向对象接口的重要组成部分，适合需要精细控制线条属性的场景。
+
+* 为什么是 add_line()，而不是 add_patch()
+
+    这是一个很好的问题！`add_line()` 和 `add_patch()` 的区别源于 matplotlib 对图形元素的分类设计：
+
+    1. **图形元素的分类体系**
+
+        matplotlib 将基本的图形元素分为不同的类别：
+
+        ```
+        Artist (抽象基类)
+        ├── Line2D (线条类)
+        ├── Patch (填充图形类)
+        │   ├── Rectangle
+        │   ├── Circle
+        │   ├── Polygon
+        │   └── ...
+        └── ...
+        ```
+
+    2. **为什么单独设计 `add_line()`？**
+
+        **历史原因**
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        from matplotlib.patches import Rectangle, Circle
+
+        fig, ax = plt.subplots()
+
+        # Line2D 有自己独立的继承体系
+        line = Line2D([0, 1], [0, 1])
+        ax.add_line(line)  # 专门的添加方法
+
+        # Patch 有另一套继承体系
+        rect = Rectangle((0.2, 0.2), 0.3, 0.3)
+        circle = Circle((0.7, 0.7), 0.2)
+        ax.add_patch(rect)    # 专门的添加方法
+        ax.add_patch(circle)  # 同一个方法添加不同类型的patch
+        ```
+
+        **设计理念的区别**
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+        # Line2D: 表示函数关系、数据趋势
+        x = np.linspace(0, 10, 100)
+        line = Line2D(x, np.sin(x))
+        ax1.add_line(line)
+        ax1.set_title('Line2D: 表示数据关系')
+        ax1.set_xlim(0, 10)
+        ax1.set_ylim(-1, 1)
+
+        # Patch: 表示区域、形状
+        from matplotlib.patches import Rectangle, Circle
+        rect = Rectangle((2, -0.5), 3, 1, alpha=0.3, color='red')
+        circle = Circle((7, 0), 0.5, alpha=0.3, color='blue')
+        ax2.add_patch(rect)
+        ax2.add_patch(circle)
+        ax2.set_title('Patch: 表示区域形状')
+        ax2.set_xlim(0, 10)
+        ax2.set_ylim(-1, 1)
+        ax2.set_aspect('equal')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    3. **Line2D 的特殊性**
+
+        **性能优化考虑**
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        import numpy as np
+        import time
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # 场景1：使用 Line2D 批量添加线条
+        start = time.time()
+        for i in range(100):
+            line = Line2D([0, 1], [i, i+1], linewidth=1)
+            ax1.add_line(line)
+        end = time.time()
+        ax1.set_title(f'Line2D: {end-start:.3f}s')
+        ax1.set_xlim(0, 1)
+        ax1.set_ylim(0, 101)
+
+        # 场景2：尝试用 Patch 模拟线条（效率低）
+        from matplotlib.patches import Rectangle
+        start = time.time()
+        for i in range(100):
+            # 用细长的矩形模拟线条，但开销更大
+            rect = Rectangle((0, i), 1, 0.01, linewidth=0)
+            ax2.add_patch(rect)
+        end = time.time()
+        ax2.set_title(f'Patch (矩形模拟线条): {end-start:.3f}s')
+        ax2.set_xlim(0, 1)
+        ax2.set_ylim(0, 101)
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    4. **使用统一接口的可能性**
+
+        虽然现在有专门的 `add_line()`，但理论上也可以统一：
+
+        ```python
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        from matplotlib.patches import Rectangle, Circle
+
+        fig, ax = plt.subplots()
+
+        # 当前的方式
+        line = Line2D([0, 1], [0, 1])
+        rect = Rectangle((0.2, 0.2), 0.3, 0.3)
+
+        # 理论上可以统一，但 matplotlib 选择了区分
+        # ax.add_artist(line)   # 实际上有这个更通用的方法
+        # ax.add_artist(rect)   # 但不如专门的函数高效
+
+        ax.add_line(line)
+        ax.add_patch(rect)
+
+        # 实际上有一个通用的 add_artist() 方法
+        circle = Circle((0.7, 0.7), 0.1)
+        ax.add_artist(circle)  # 可以添加任何 Artist，但效率较低
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_aspect('equal')
+        plt.show()
+        ```
+
+    5. **实际应用中的区别**
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+
+        # 1. Line2D 适合：折线图、函数曲线
+        ax = axes[0, 0]
+        x = np.linspace(0, 2*np.pi, 100)
+        line = Line2D(x, np.sin(x))
+        ax.add_line(line)
+        ax.set_title('Line2D: 正弦曲线')
+        ax.set_xlim(0, 2*np.pi)
+        ax.set_ylim(-1, 1)
+
+        # 2. Rectangle 适合：柱状图、区域标记
+        ax = axes[0, 1]
+        from matplotlib.patches import Rectangle
+        for i, val in enumerate([3, 1, 4, 2, 5]):
+            rect = Rectangle((i-0.4, 0), 0.8, val, color='skyblue')
+            ax.add_patch(rect)
+        ax.set_title('Rectangle: 柱状图')
+        ax.set_xlim(-0.5, 4.5)
+        ax.set_ylim(0, 6)
+
+        # 3. Circle 适合：散点图、标记
+        ax = axes[1, 0]
+        from matplotlib.patches import Circle
+        np.random.seed(42)
+        for i in range(20):
+            circle = Circle(np.random.rand(2)*10, 0.3, 
+                           color=np.random.rand(3))
+            ax.add_patch(circle)
+        ax.set_title('Circle: 散点标记')
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.set_aspect('equal')
+
+        # 4. Polygon 适合：任意形状
+        ax = axes[1, 1]
+        from matplotlib.patches import Polygon
+        triangle = Polygon([[2, 1], [4, 3], [1, 4]], 
+                           closed=True, color='orange', alpha=0.6)
+        ax.add_patch(triangle)
+        ax.set_title('Polygon: 多边形')
+        ax.set_xlim(0, 5)
+        ax.set_ylim(0, 5)
+        ax.set_aspect('equal')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+    总结
+
+    **为什么是 `add_line()` 而不是 `add_patch()`？**
+
+    1. **历史传统**：matplotlib 早期设计就区分了线条和填充图形
+    2. **性能优化**：线条的渲染和计算与填充图形有本质区别
+    3. **语义清晰**：线条代表"连接"，填充图形代表"区域"，概念上不同
+    4. **API 设计**：提供专门的方法使代码更直观，意图更明确
+    5. **灵活性**：虽然存在通用的 `add_artist()`，但专门的方法能提供更好的性能和更精确的控制
+
+    这种设计体现了 matplotlib"显式优于隐式"的设计哲学，让开发者清楚地知道自己在添加什么类型的图形元素。
+
 * 简述 plt.Circle() 的原型、作用及用法
 
     plt.Circle() 简介

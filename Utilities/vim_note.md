@@ -2,6 +2,185 @@
 
 ## cache
 
+* vim 中特殊的正则表达式匹配规则
+
+    | Metacharacter | Description |
+    | - | - |
+    | * | Matches the preceding (meta)character 0 or more time. |
+    | + | Matches the preceding (meta)character 1 or more time. |
+    | = | Matches the preceding (meta)character 0 or 1 time. |
+    | {n,m} | Matches the preceding (meta)character from n to m times. |
+    | {n} | Matches the preceding (meta)character exactly n times. |
+    | {,m} | Matches the preceding (meta)character from 0 to m. |
+
+    Note that the quantifier = doesn’t exist in the PCRE world.
+
+* vim 在使用`s`替换时，可以使用`\1`指代第几个 group
+
+    The first group can be referenced using \1, the second one with \2, and so on.
+
+    For example, here’s how you would replace the first two digits of our years:
+
+    `:%s/\v\d\d(\d\d)/19\1`
+
+* 仅匹配单词
+
+    `grep -P '\bvim\b' example.html`
+
+    vim: `/\v<vim>`
+
+* vim 中正则表达式使用替代项（alternatives）
+
+    `/\vclass|href`
+
+* 简述 vim 中列表 [] 的用法
+
+    在 Vim 脚本（Vimscript）中，列表（List）是一个非常重要的数据结构。它本质上是一个**有序的、可变**的元素集合，可以包含任意类型的数据（数字、字符串、甚至是另一个列表）。
+
+    以下是 Vim 中列表的几种核心用法：
+
+    1. 定义列表
+
+        使用方括号 `[]` 定义列表，元素之间用逗号分隔。
+
+        ```vim
+        let empty_list = []
+        let numbers = [1, 2, 3, 4]
+        let mixed = [10, "hello", [5, 6]]  " 支持嵌套
+        let names = ["Alice", "Bob", "Charlie"]
+        ```
+
+    2. 访问元素
+
+        Vim 列表的索引从 **0** 开始。可以使用负数从末尾开始索引（-1 表示最后一个元素）。
+
+        ```vim
+        echo numbers[0]      " 输出 1
+        echo names[-1]       " 输出 Charlie
+        echo mixed[2][1]     " 输出 6 (访问嵌套列表)
+        ```
+
+    3. 切片
+
+        可以使用 `[a:b]` 的形式获取子列表。切片操作会生成一个新的列表。
+
+        ```vim
+        let nums = [0, 1, 2, 3, 4, 5]
+        echo nums[2:4]       " 输出 [2, 3, 4]
+        echo nums[3:]        " 输出 [3, 4, 5] (从3到末尾)
+        echo nums[:2]        " 输出 [0, 1, 2] (从开头到2)
+        ```
+
+    4. 添加元素
+
+        - **`add(list, item)`**：在列表末尾添加一个元素。
+
+          ```vim
+          let fruits = ["apple"]
+          call add(fruits, "banana")
+          echo fruits   " 输出 ["apple", "banana"]
+          ```
+
+        - **`extend(list, list2)`**：将一个列表追加到另一个列表末尾。
+
+          ```vim
+          let list1 = [1, 2]
+          let list2 = [3, 4]
+          call extend(list1, list2)
+          echo list1   " 输出 [1, 2, 3, 4]
+          ```
+
+        - **`insert(list, item, index)`**：在指定位置插入元素。
+
+          ```vim
+          let list = ["a", "c"]
+          call insert(list, "b", 1)
+          echo list   " 输出 ["a", "b", "c"]
+          ```
+
+    5. 删除元素
+
+        - **`remove(list, index)`**：删除指定索引的元素。
+
+          ```vim
+          let list = [10, 20, 30]
+          call remove(list, 1)   " 删除索引1的元素（20）
+          echo list              " 输出 [10, 30]
+          ```
+
+        - **`remove(list, start, end)`**：删除范围内的元素。
+
+          ```vim
+          let list = [1, 2, 3, 4]
+          call remove(list, 1, 2)   " 删除索引1到2的元素（2,3）
+          echo list                 " 输出 [1, 4]
+          ```
+
+    6. 常用函数
+
+        - **`len(list)`**：获取列表长度。
+
+            ```vim
+            echo len([1, 2, 3])   " 输出 3
+            ```
+
+        - **`empty(list)`**：检查列表是否为空。
+
+            ```vim
+            if empty(mylist)
+              echo "列表是空的"
+            endif
+            ```
+
+        - **`index(list, value)`**：查找值的索引。
+
+            ```vim
+            echo index(["a", "b", "c"], "b")   " 输出 1
+            ```
+
+        - **`join(list, separator)`**：将列表拼接成字符串。
+
+            ```vim
+            echo join(["vim", "is", "fun"], "-")   " 输出 vim-is-fun
+            ```
+
+        - **`reverse(list)`**：反转列表。
+
+            ```vim
+            echo reverse([1, 2, 3])   " 输出 [3, 2, 1]
+            ```
+
+    7. 循环遍历
+
+        结合 `for` 循环遍历列表是常见的操作：
+
+        ```vim
+        let colors = ["red", "green", "blue"]
+        for item in colors
+            echo "颜色: " . item
+        endfor
+        ```
+
+    8. 字符串与列表互转
+
+        这在处理文本或命令行参数时非常有用。
+
+        - 字符串转列表：`split(str, pattern)`
+
+            ```vim
+            let words = split("one,two,three", ",")   " 返回 ['one', 'two', 'three']
+            ```
+
+        - 列表转字符串：`join(list, sep)`
+
+            ```vim
+            let str = join(['a', 'b', 'c'], ':')      " 返回 'a:b:c'
+            ```
+
+    总结
+
+    在 Vim 中，`[]` 不仅仅是创建列表的符号，它结合上述函数可以实现数据的存储、遍历、修改和转换。无论是写复杂的 Vim 配置，还是编写插件，掌握列表的用法都能让脚本变得更加简洁和高效。
+
 * autoindent 相关的配置
 
     Vim 有多种自动缩进相关的配置，可以根据不同的编程语言和需求进行设置。以下是完整的自动缩进配置指南：

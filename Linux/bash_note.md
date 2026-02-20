@@ -4,6 +4,71 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* 简述 bash 中 exec 的用法
+
+    `exec` 是 Bash 中的一个内置命令，用于**替换当前 shell 进程**而不创建新进程。主要有以下几种用法：
+
+    1. **进程替换**
+
+        用新程序替换当前 shell 进程：
+
+        ```bash
+        exec ls -l          # 执行 ls，之后当前 shell 结束
+        exec /bin/bash      # 替换为新的 bash（相当于重新登录）
+        ```
+
+    2. **重定向（最常用）**
+
+        永久性地修改当前 shell 的文件描述符：
+
+        ```bash
+        exec > output.log   # 之后所有输出都重定向到文件
+        exec 2> error.log   # 所有错误输出重定向
+        exec 1>&2           # 标准输出合并到标准错误
+        exec 3<> file.txt   # 打开文件描述符 3 可读写
+        ```
+
+    3. **关闭文件描述符**
+
+        ```bash
+        exec 3>&-           # 关闭文件描述符 3
+        ```
+
+    4. **在脚本中使用**
+
+        ```bash
+        #!/bin/bash
+        exec > log.txt 2>&1    # 脚本中所有输出都写入 log.txt
+        echo "这条会写入文件"    
+        exec 3< /etc/passwd    # 打开文件读取
+        ```
+
+    5. **无命令时**
+
+        ```bash
+        exec                 # 无效果，保持当前 shell
+        ```
+
+    执行区别示例
+
+    ```bash
+    # 普通执行 - 创建子进程
+    ls -l                # 子进程执行，结束后返回父 shell
+
+    # exec 执行 - 替换当前进程
+    exec ls -l           # 替换当前 shell，执行完后直接退出
+    ```
+
+    典型应用场景
+
+    - **日志重定向**：脚本中统一管理输出
+
+    - **文件描述符操作**：高级 I/O 重定向
+
+    - **包装脚本**：`exec python app.py` 替换脚本进程为应用进程
+
+    - **清理资源**：关闭不需要的文件描述符
+
 * 在 bash 中，分号 ; 的主要作用是分隔多个命令，类似于换行。它告诉 shell 在分号前一个命令结束后，立即执行分号后的下一个命令。
 
     比如`export LD_LIBRARY_PATH=/path/to/libs; bash run_main.sh`等价于：

@@ -2,6 +2,185 @@
 
 ## cache
 
+* python argparse 的 help 部分好像无法换行，为什么？
+
+    你遇到的情况是 `argparse` 默认会重新格式化帮助文本，移除额外的空格和换行。这是因为它内部使用了 `argparse.RawDescriptionHelpFormatter` 的变体来处理文本。
+
+    问题原因
+
+    默认情况下，`argparse` 使用 `HelpFormatter` 类来处理帮助文本，它会：
+
+    - 将连续的空白字符（包括换行）替换为单个空格
+
+    - 自动换行以适应终端宽度
+
+    这意味着即使你在帮助文本中写了换行，最终显示时也会被合并成一行。
+
+    解决方案
+
+    方法1：使用 `RawDescriptionHelpFormatter`
+
+    ```python
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='''这是第一行
+    这是第二行
+    这是第三行''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ```
+
+    方法2：使用 `RawTextHelpFormatter`（更彻底的方案）
+
+    ```python
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='第一行\n第二行\n第三行',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    # 也适用于参数的帮助文本
+    parser.add_argument('--option', help='帮助文本的第一行\n第二行\n第三行')
+    ```
+
+    方法3：自定义格式化器（保留自动换行但允许显式换行）
+
+    ```python
+    import argparse
+
+    class CustomHelpFormatter(argparse.HelpFormatter):
+        def _fill_text(self, text, width, indent):
+            # 保留显式的换行符，同时进行自动换行
+            return ''.join([indent + line for line in text.splitlines(True)])
+
+    parser = argparse.ArgumentParser(
+        description='第一行\n第二行\n第三行',
+        formatter_class=CustomHelpFormatter
+    )
+    ```
+
+    示例对比
+
+    ```python
+    import argparse
+
+    # 没有使用 RawTextHelpFormatter（显示为一行）
+    parser1 = argparse.ArgumentParser(description='line1\nline2\nline3')
+    parser1.print_help()
+
+    # 使用 RawTextHelpFormatter（保留换行）
+    parser2 = argparse.ArgumentParser(
+        description='line1\nline2\nline3',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser2.print_help()
+    ```
+
+    **建议**：如果需要完全控制格式（如创建表格或对齐文本），使用 `RawTextHelpFormatter`；如果只想在长描述中插入段落分隔，使用 `RawDescriptionHelpFormatter`。
+
+* RawDescriptionHelpFormatter 和 RawTextHelpFormatter 有什么不一样？
+
+    `RawDescriptionHelpFormatter` 和 `RawTextHelpFormatter` 都是 Python 的 `argparse` 模块中用来控制帮助信息显示格式的类。它们的核心区别在于**如何处理帮助文本中的换行符和空格**。
+
+    简单来说：
+
+    - **`RawDescriptionHelpFormatter`**：只保留**描述（description）和结尾（epilog）**中的原始格式，但会重新包装**参数帮助**（`help=`）中的文本。
+
+    - **`RawTextHelpFormatter`**：保留**所有文本**（描述、结尾以及每个参数的帮助信息）中的原始格式。
+
+    详细区别
+
+    当你为程序添加参数时，通常会为每个参数提供一段帮助文本：
+
+    ```python
+    parser.add_argument('--example', help='这是一段很长很长的帮助信息，它会在显示时被自动换行，以适应终端的宽度。')
+    ```
+
+    默认情况下，`argparse` 会忽略帮助文本中你手动添加的换行符，并根据终端的宽度自动重新排版。
+
+    这两个格式化类就是为了改变这种行为。
+
+    **RawDescriptionHelpFormatter**
+
+    -   **影响范围**：`description`（程序的描述）和 `epilog`（程序的结尾语）。
+    -   **行为**：对于 `description` 和 `epilog` 中你写的换行符，它会原样保留，不会重新排版。但是对于每个参数（`add_argument`）的 `help` 字符串，它仍然会进行自动换行和重新排版。
+    -   **适用场景**：你想让程序的整体描述有一个漂亮的、自定义的排版格式（比如分点列出），但又希望参数的帮助信息保持整齐的自动换行。
+
+    **RawTextHelpFormatter**
+
+    -   **影响范围**：`description`、`epilog` **以及** 所有参数的 `help` 字符串。
+    -   **行为**：所有帮助文本中的换行符和空格都会最大程度地被保留。argparse 不会对任何帮助文本进行自动换行处理。
+    -   **适用场景**：你希望对每一个参数（比如参数的可选值）都进行非常细致的、多行的格式说明，完全由你自己控制排版。
+
+    **代码示例对比**
+
+    假设我们有以下代码，分别在 `description` 和参数的 `help` 中加入了换行符 `\n`。
+
+    ```python
+    import argparse
+    import textwrap
+
+    # 公共的 description 和参数帮助
+    desc = textwrap.dedent('''\
+        这是一个程序描述。
+        这是第二行描述。
+            这是缩进的第三行。''')
+
+    arg_help = "这是参数帮助的第一行。\n这是参数帮助的第二行。"
+
+    def run_test(formatter, formatter_name):
+        parser = argparse.ArgumentParser(
+            description=desc,
+            epilog="这是结尾信息。\n结尾的第二行。",
+            formatter_class=formatter
+        )
+        parser.add_argument('--test', help=arg_help)
+        
+        print(f"\n--- 使用 {formatter_name} ---")
+        parser.print_help()
+
+    # 测试默认情况
+    run_test(argparse.HelpFormatter, "默认 HelpFormatter")
+
+    # 测试 RawDescriptionHelpFormatter
+    run_test(argparse.RawDescriptionHelpFormatter, "RawDescriptionHelpFormatter")
+
+    # 测试 RawTextHelpFormatter
+    run_test(argparse.RawTextHelpFormatter, "RawTextHelpFormatter")
+    ```
+
+    输出结果分析
+
+    **1. 默认 HelpFormatter**
+
+    -   **描述**：`\n` 被忽略了，所有描述文本被连在一起，然后被自动换行（取决于终端宽度）。
+    -   **参数帮助**：`\n` 被忽略了，`"第一行。第二行。"` 被连在一起显示。
+
+    **2. RawDescriptionHelpFormatter**
+
+    -   **描述**：`\n` 被保留了，你看到的描述就是代码里写的三行格式。
+    -   **参数帮助**：`\n` 被忽略了，仍然显示为 `"第一行。第二行。"` 的拼接形式（并自动换行）。
+    -   **结尾**：`\n` 被保留了。
+
+    **3. RawTextHelpFormatter**
+
+    -   **描述**：`\n` 被保留了。
+    -   **参数帮助**：`\n` 被保留了。你会看到 `--test` 的帮助信息分成了两行显示。
+    -   **结尾**：`\n` 被保留了。
+
+    总结
+
+    | 特性 | RawDescriptionHelpFormatter | RawTextHelpFormatter |
+    | :--- | :--- | :--- |
+    | **`description` 格式** | **保留**原始换行 | **保留**原始换行 |
+    | **`epilog` 格式** | **保留**原始换行 | **保留**原始换行 |
+    | **参数 `help` 格式** | **自动换行**（忽略手动换行） | **保留**原始换行 |
+    | **适用场景** | 只想自定义程序整体的描述排版，参数部分用自动排版即可。 | 需要完全自定义所有文本的排版，包括参数部分（例如，列出参数的可选值）。 |
+
+    **建议**：除非你真的需要为每个参数编写多行且格式复杂的帮助信息，否则 `RawDescriptionHelpFormatter` 通常就够用了。`RawTextHelpFormatter` 虽然灵活，但你需要手动处理所有换行和对齐，维护起来会更麻烦一些。
+
 * 简述 python 中 random.choice() 和 random.choices() 的原型、作用及用法
 
     random.choice()
