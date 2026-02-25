@@ -2,6 +2,20 @@
 
 ## cache
 
+* pyenv 安装 python 时是从源码编译，下面是常用的几个编译依赖库
+
+    * sudo apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev
+
+    sudo apt-get install -y tk-dev
+
+    * 为什么会出现这个问题？
+
+        pyenv 安装 Python 的本质是从源码现场编译。
+
+        它就像一个厨师，如果发现你的厨房（系统）里没有 libsqlite3-dev（数据库原材料），它不会报错停止，而是选择“不做了”，直接跳过这个组件完成安装。
+
+        这就是为什么你看到了 Installed 成功提示，但运行后却报 ImportError 的原因。
+
 * pyenv 安装 python 3.12.12 时，需要额外安装一些 libxxx-dev 的库。pyenv 安装的 python 都是现场编译的吗？
 
     可能用到的依赖：

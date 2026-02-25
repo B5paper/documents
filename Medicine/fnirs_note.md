@@ -2,6 +2,528 @@
 
 ## cache
 
+* 一些有用的摘录
+
+    > fNIRS devices consist of two kinds of optodes: light sources (AKA “emitters” or “transmitters”) and light detectors (AKA “receivers”). Channels are defined as source-detector pairs, and channel locations are defined as the midpoint between source and detector.
+
+* oxyhaemoglobin prn. [ɒksihiməɡ'loʊbɪn] n. 氧化血红素
+
+* 什么是 frequency domain fNIRS
+
+    **Frequency Domain fNIRS (FD-fNIRS)** 简介
+
+    Frequency Domain fNIRS是一种**先进的功能性近红外光谱技术**，它通过**调制光强频率**来测量大脑活动。让我详细解释：
+
+    **基本原理**
+
+    1. **与传统方法的对比**
+
+        ```python
+        # 三种主要fNIRS技术的对比
+        techniques = {
+            "Continuous Wave (CW-fNIRS)": {
+                "光强调制": "恒定强度",
+                "测量参数": "只有光衰减",
+                "优缺点": ["简单便宜", "无法区分吸收和散射"]
+            },
+            "Frequency Domain (FD-fNIRS)": {
+                "光强调制": "高频调制 (MHz范围)",
+                "测量参数": "衰减 + 相位延迟 + 调制深度",
+                "优缺点": ["可区分吸收和散射", "设备较复杂"]
+            },
+            "Time Domain (TD-fNIRS)": {
+                "光强调制": "脉冲激光",
+                "测量参数": "时间点扩展函数",
+                "优缺点": ["信息最丰富", "最昂贵复杂"]
+            }
+        }
+        ```
+
+    2. **物理原理**
+
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # 模拟FD-fNIRS的光强调制
+        t = np.linspace(0, 10e-9, 1000)  # 时间(ns)
+        frequency = 100e6  # 100 MHz调制
+
+        # 入射光
+        incident = np.sin(2 * np.pi * frequency * t)
+
+        # 出射光（有衰减和相位延迟）
+        attenuation = 0.7  # 衰减系数
+        phase_delay = 0.5  # 相位延迟（弧度）
+        detected = attenuation * np.sin(2 * np.pi * frequency * t - phase_delay)
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(t*1e9, incident, label='入射光', alpha=0.7)
+        plt.plot(t*1e9, detected, label='出射光', alpha=0.7)
+        plt.xlabel('时间 (ns)')
+        plt.ylabel('光强')
+        plt.title('FD-fNIRS：高频调制光信号')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        ```
+
+    **测量参数**
+
+    1. **三个关键参数**
+
+        ```python
+        class FDNIRS_Measurement:
+            def __init__(self):
+                self.DC = None      # 平均光强（衰减）
+                self.AC = None      # 调制幅度（调制深度）
+                self.phase = None   # 相位延迟
+                
+            def calculate_optical_properties(self):
+                """
+                从测量参数计算光学特性
+                """
+                # 吸收系数 (μa) 和 约化散射系数 (μs')
+                # 通过求解光子扩散方程得到
+                mu_a = self.solve_for_absorption(self.DC, self.AC, self.phase)
+                mu_s_prime = self.solve_for_scattering(self.DC, self.AC, self.phase)
+                
+                return mu_a, mu_s_prime
+            
+            def solve_for_absorption(self, DC, AC, phase):
+                """简化的吸收系数计算"""
+                # 实际需要解扩散方程
+                # 这里只是示意
+                mu_a = (np.log(DC) + np.log(AC)) / (2 * phase)
+                return mu_a
+        ```
+
+    2. **数据采集过程**
+
+        ```python
+        # 典型的FD-fNIRS采集流程
+        class FDNIRS_Acquisition:
+            def __init__(self, modulation_freq=110e6):  # 常用110 MHz
+                self.freq = modulation_freq
+                self.sampling_rate = 10 * modulation_freq  # 奈奎斯特定理
+                
+            def acquire_channel(self, source, detector):
+                """
+                单个通道的采集
+                """
+                # 1. 发送调制光
+                self.emit_modulated_light(source, self.freq)
+                
+                # 2. 检测信号
+                raw_signal = self.detect_light(detector)
+                
+                # 3. 解调（提取DC、AC和相位）
+                DC = np.mean(raw_signal)
+                AC = np.std(raw_signal) * np.sqrt(2)
+                
+                # 用锁相放大器提取相位
+                reference = np.sin(2 * np.pi * self.freq * self.time)
+                phase = self.extract_phase(raw_signal, reference)
+                
+                return {
+                    'DC': DC,
+                    'AC': AC,
+                    'phase': phase,
+                    'frequency': self.freq
+                }
+        ```
+
+    **优势与局限**
+
+    **优点**
+
+    ```python
+    advantages = {
+        "定量测量": "✅ 可分别计算HbO和HbR的绝对浓度",
+        "深层组织": "✅ 穿透深度比CW-fNIRS大（可达3-4cm）",
+        "抗干扰": "✅ 调制技术降低环境光干扰",
+        "多参数": "✅ 同时获得吸收和散射信息"
+    }
+
+    # 定量计算示例
+    def calculate_absolute_concentration(AC, phase, baseline):
+        """
+        计算绝对血氧浓度
+        """
+        # 基于修正的Beer-Lambert定律
+        # 但可以分离吸收和散射效应
+        mu_a = extract_absorption(AC, phase)
+        
+        # 使用比尔定律计算浓度
+        epsilon_HbO = 2.5  # 摩尔消光系数 (cm⁻¹/mM)
+        epsilon_HbR = 1.8
+        
+        # 解联立方程
+        HbO = (mu_a[760] * epsilon_HbR[850] - mu_a[850] * epsilon_HbR[760]) / \
+              (epsilon_HbO[760] * epsilon_HbR[850] - epsilon_HbO[850] * epsilon_HbR[760])
+        
+        return HbO
+    ```
+
+    **局限**
+
+    ```python
+    limitations = {
+        "设备成本": "💰 比CW-fNIRS贵3-5倍",
+        "复杂性": "🔧 需要高频电子设备和精密校准",
+        "数据处理": "📊 需要复杂的解调算法",
+        "功耗": "⚡ 高频调制导致更高功耗"
+    }
+    ```
+
+    **实际应用**
+
+    1. **硬件组成**
+
+        ```python
+        class FDNIRS_System:
+            def __init__(self):
+                # 核心组件
+                self.laser_diodes = {
+                    '760nm': LaserDiode(freq=110e6, power=10),  # 去氧血红蛋白敏感
+                    '850nm': LaserDiode(freq=110e6, power=10)   # 氧合血红蛋白敏感
+                }
+                
+                self.detectors = {
+                    'PMT': PhotomultiplierTube(gain=1e6),        # 高灵敏度
+                    'APD': AvalanchePhotodiode(bandwidth=200e6)  # 高速响应
+                }
+                
+                self.modulation = {
+                    'type': 'sine',          # 正弦调制
+                    'frequencies': [70e6, 110e6, 140e6],  # 多频可选
+                    'demodulation': 'lock-in' # 锁相放大解调
+                }
+        ```
+
+    2. **数据分析**
+
+        ```python
+        import numpy as np
+        from scipy import signal
+
+        def process_fdnirs_data(ac_760, ac_850, phase_760, phase_850, distance):
+            """
+            处理FD-fNIRS数据
+            """
+            # 1. 计算光学特性
+            mu_a_760, mus_760 = solve_diffusion_equation(
+                AC=ac_760, 
+                phase=phase_760,
+                distance=distance,
+                wavelength=760
+            )
+            
+            mu_a_850, mus_850 = solve_diffusion_equation(
+                AC=ac_850,
+                phase=phase_850,
+                distance=distance,
+                wavelength=850
+            )
+            
+            # 2. 计算血氧浓度
+            HbO, HbR = beer_lambert_modified(
+                mu_a_760, 
+                mu_a_850,
+                wavelengths=[760, 850],
+                extinction_coeffs=extinction_data
+            )
+            
+            # 3. 额外信息：散射系数反映组织结构
+            scatter_index = (mus_760 + mus_850) / 2
+            
+            return {
+                'HbO': HbO,
+                'HbR': HbR,
+                'scatter': scatter_index,
+                'phase_delay': (phase_760 + phase_850) / 2
+            }
+        ```
+
+    **与其他技术的比较**
+
+    | 特性 | CW-fNIRS | FD-fNIRS | TD-fNIRS |
+    |------|----------|----------|----------|
+    | **信息量** | 低 | 中 | 高 |
+    | **成本** | $10k-50k | $50k-150k | $200k+ |
+    | **时间分辨率** | 高(>100Hz) | 中(10-50Hz) | 低(<10Hz) |
+    | **穿透深度** | 1-2cm | 2-3cm | 3-5cm |
+    | **定量能力** | 相对变化 | 绝对浓度 | 绝对浓度+分层 |
+    | **便携性** | 高 | 中 | 低 |
+
+    **总结**
+
+    **FD-fNIRS的核心价值**：
+
+    1. **定量测量**：不再是简单的相对变化
+    2. **区分吸收和散射**：获得更全面的组织信息
+    3. **更好的深度穿透**：可以测量更深层的大脑组织
+
+    **适用场景**：
+
+    - 需要绝对血氧浓度的临床研究
+    - 深层脑区测量
+    - 需要区分血氧和散射效应的研究
+
+    需要我详细解释FD-fNIRS在某个具体领域的应用吗？
+
+* 简述什么是 frequency domain fNIRS。用中文回答
+
+    **频域功能性近红外光谱（Frequency Domain fNIRS）** 是一种通过测量大脑皮层血氧代谢变化来评估神经活动的光学脑成像技术。
+
+    它是 **fNIRS** 技术的一种实现形式。与常见的**连续波（Continuous Wave, CW）** 系统不同，频域技术通过向头部发射**强度经过高频调制的近红外光**（通常为几十至几百MHz），并分析从组织中散射出来的光信号的变化来获取数据。
+
+    其核心原理和特点如下：
+
+    1.  **测量参数（相位与衰减）**：
+
+        -   **相移**：光在穿过组织时，由于传播路径的延迟，出射光的相位会相对于入射光发生**滞后**。这个相位延迟程度主要取决于光在组织中的**路径长度**和组织的**吸收系数**。
+        -   **衰减**：出射光相对于入射光的平均光强衰减程度，反映了组织的总**吸收系数**和**散射系数**。
+
+    2.  **关键优势：路径长度校正**：
+
+        -   在连续波系统中，由于光在组织中的实际行走路径长度是未知的，很难进行精确的定量测量。
+        -   频域系统通过测量**相移**，可以计算出光子在组织中的**平均路径长度**。一旦知道了路径长度，就可以结合光强的衰减，通过数学模型（如修正的比尔-朗伯定律的频域解）将吸收系数和散射系数**分离**开来。
+
+    3.  **主要功能**：
+
+        -   **定量测量**：能够更精确地计算出氧合血红蛋白（HbO）和脱氧血红蛋白（HbR）的**绝对浓度变化**（相比连续波系统通常只能测量相对变化）。
+        -   **组织光学特性**：可以同时测量组织的吸收系数（μa）和约化散射系数（μs‘），有助于更深入地了解组织特性。
+
+    **总结来说**，频域fNIRS比连续波fNIRS提供了更丰富的光学信息，能够实现更高精度的定量测量，并区分光的吸收与散射效应，这对于需要精确比较或绝对量化脑血流动力学反应的研究具有重要价值。
+
+* 给一些频域 fnirs 相关的论文、项目、书籍等学习资料
+
+    以下是关于频域fNIRS的精选学习资料，涵盖经典论文、开源项目、专业书籍和研究团队，帮助你系统掌握这一技术：
+
+    **经典综述与奠基论文**
+
+    1.  **《Frequency-domain techniques for cerebral and functional near-infrared spectroscopy》**
+
+        -   *作者*：Fantini, S., & Franceschini, M. A. (2006)
+        -   *来源*：Near-Infrared Spectroscopy, 11, 203-223.
+        -   *简介*：该领域的经典入门综述，详细阐述了频域技术的物理原理及其在脑功能研究中的应用。
+
+    2.  **《Non-invasive optical spectroscopy and imaging of human brain function》**
+
+        -   *作者*：Villringer, A., & Chance, B. (1997)
+        -   *来源*：Trends in Neurosciences, 20(10), 435-442.
+        -   *简介*：虽然覆盖整个fNIRS领域，但对早期频域技术的理论基础（如光子迁移理论）有深刻论述。
+
+    3.  **《Quantitative determination of the absorption and scattering spectra of the human breast in vivo using frequency-domain near-infrared optical tomography》**
+
+        -   *作者*：Chance, B., et al. (1998)
+        -   *简介*：展示了频域技术如何分离吸收和散射系数，对理解算法原理很有帮助。
+
+    **核心理论书籍**
+
+    4.  **《Handbook of Optical Biomedical Diagnostics》**
+
+        -   *编者*：Valery V. Tuchin
+        -   *章节*：第7章 "Frequency-Domain Optical Tomography" 详细讲解了频域测量系统的硬件设计与数学模型。
+
+    5.  **《Near-Infrared Spectroscopy: Theory, Spectral Analysis, Instrumentation, and Applications》**
+
+        -   *作者*：Yukihiro Ozaki (尾崎幸洋) 等
+        -   *简介*：涵盖了频域fNIRS的理论基础，特别是关于相移测量与修正比尔-朗伯定律的部分。
+
+    **开源硬件与软件项目**
+
+    6.  **开源项目：ISS Imagent (相关算法库)**
+
+        -   *简介*：ISS公司是频域fNIRS设备的市场领导者。虽然没有完全开源的硬件，但其部分数据处理算法已在学术社区共享。可以搜索 "ISS Imagent processing algorithms" 查找相关Matlab/Python代码。
+
+    7.  **GitHub项目：** 搜索关键词 "**Frequency-domain fNIRS**" 或 "**FD-NIRS**"
+
+        -   *推荐仓库*：
+            -   **"NIRS-brain"**：基于Matlab的fNIRS数据分析包，支持频域数据处理。
+            -   **"Homer3"**：最著名的fNIRS分析工具箱（基于Matlab），其核心函数（如`hmR_Intensity2OD`）可用于处理频域数据，计算吸收和散射系数。
+            -   **"PyNIRS"**：Python版本的fNIRS工具箱，包含频域数据处理模块。
+
+    8.  **硬件设计参考：**
+
+        -   *论文*："A low-cost, frequency-domain, near-infrared spectroscopy system" 搜索此类论文可找到一些高校设计的开源硬件方案（通常基于FPGA或锁相放大器）。
+
+    **前沿研究团队与实验室**
+
+    9.  **Sergio Fantini 实验室 (塔夫茨大学)**
+
+        -   *简介*：频域fNIRS领域的权威之一，专注于定量光学成像和脑氧代谢监测。其网站通常有公开的算法和数据集。
+
+    10. **Arjun Yodh 实验室 (宾夕法尼亚大学)**
+
+        -   *简介*：专注于扩散光学成像（包括频域和时域），在生物医学光学顶刊发表大量高被引论文。
+
+    11. **Maria Angela Franceschini 实验室 (麻省总医院)**
+
+        -   *简介*：开发了先进的fNIRS技术（包括频域系统）用于临床脑监测。
+
+    **中国学者与中文资源**
+
+    12. **国内团队：**
+
+        -   **天津大学 高峰教授团队**：在扩散光学层析成像（包括频域方法）方面有深入研究，发表多篇理论推导和系统搭建的论文。
+        -   **华中科技大学 骆清铭院士团队**：虽然更知名于显微成像，但其在近红外光谱与脑功能研究方面也有涉及频域技术的论文。
+
+    13. **中文综述：**
+
+        -   *论文*：《频域近红外光谱技术用于脑功能成像的研究进展》（可在知网或万方数据搜索），适合快速了解中文术语和技术框架。
+
+    **实用建议：如何入手**
+
+    -   **第一步**：先读 **Fantini 2006** 的综述，搞懂“相移”和“调制频率”的核心概念。
+    -   **第二步**：下载 **Homer3**，运行其示例数据（如果有频域数据demo），观察如何从原始相位和强度数据计算出HbO/HbR。
+    -   **第三步**：搜索 "**calibration of frequency-domain NIRS**"（频域fNIRS的校准），因为频域系统对相位校准要求极高，这是实际搭建或使用设备的关键。
+
+    如果你需要查找特定方向的论文（例如：结合EEG的频域fNIRS，或用于婴儿监测的频域设备），可以使用 **PubMed** 或 **Google Scholar**，配合关键词："frequency-domain NIRS" AND "brain" AND "特定主题"。
+
+* nibabel, nilearn 这俩库是干嘛用的？
+
+    这两个是**Python神经影像分析的核心库**，让我详细解释：
+
+    **NiBabel - 文件I/O基础库**
+
+    核心功能：读写神经影像格式
+
+    ```python
+    import nibabel as nib
+
+    # 1. 读取各种神经影像格式
+    img = nib.load('subject_T1.nii.gz')  # NIfTI格式
+    img = nib.load('subject.dcm')         # DICOM格式
+    img = nib.load('subject.mgz')          # FreeSurfer格式
+
+    # 2. 获取影像数据
+    data = img.get_fdata()  # 3D/4D数组，shape=(x, y, z) 或 (x, y, z, t)
+    affine = img.affine     # 仿射矩阵，将体素坐标映射到真实空间坐标
+
+    # 3. 处理头文件信息
+    header = img.header
+    voxel_size = header.get_zooms()  # 获取体素大小
+    ```
+
+    **主要用途**
+
+    - **格式转换**：DICOM → NIfTI，NIfTI → FreeSurfer等
+    - **数据访问**：获取MRI/fMRI的像素数据
+    - **坐标变换**：处理不同空间坐标系的转换
+
+    **Nilearn - 统计分析库**
+
+    核心功能：统计学习和可视化
+
+    ```python
+    from nilearn import image, plotting, datasets, surface
+
+    # 1. 下载标准模板
+    mni = datasets.load_mni152_template()  # MNI152标准脑模板
+
+    # 2. 图像处理
+    smoothed_img = image.smooth_img('fmri.nii.gz', fwhm=6)  # 空间平滑
+    masked_data = image.clean_img(imgs, confounds=confounds)  # 去噪
+
+    # 3. 统计建模
+    from nilearn.glm.first_level import FirstLevelGLM
+    glm = FirstLevelGLM()
+    results = glm.fit(run_images, design_matrices)
+
+    # 4. 可视化
+    plotting.plot_img('stat_map.nii.gz')  # 显示统计图
+    plotting.plot_glass_brain('contrast.nii.gz')  # 玻璃脑显示
+    plotting.view_img('results.nii.gz')  # 交互式3D视图
+    ```
+
+    **两者关系**
+
+    ```
+    原始数据 → [NiBabel读取] → NumPy数组 → [Nilearn处理] → 统计结果 → [NiBabel保存]
+    ```
+
+    **实际配合使用**
+
+    ```python
+    import nibabel as nib
+    from nilearn import image, plotting
+    import numpy as np
+
+    # NiBabel负责IO
+    img = nib.load('functional.nii.gz')
+    data = img.get_fdata()
+
+    # Nilearn负责分析
+    # 1. 预处理
+    processed = image.clean_img(img, detrend=True, standardize=True)
+
+    # 2. 统计分析
+    from nilearn.glm import threshold_stats_img
+    thresholded_map, threshold = threshold_stats_img(
+        stat_map_img, 
+        alpha=0.05, 
+        height_control='fdr'
+    )
+
+    # 3. 可视化
+    plotting.plot_stat_map(thresholded_map, 
+                            bg_img='anatomy.nii.gz',
+                            cut_coords=[-30, -20, 10])
+
+    # NiBabel再次用于保存
+    nib.save(thresholded_map, 'results.nii.gz')
+    ```
+
+    **在fNIRS分析中的可能用途**
+
+    虽然这两个库主要为fMRI/MRI设计，但在fNIRS中也有用武之地：
+
+    ```python
+    import nibabel as nib
+    from nilearn import plotting, surface
+
+    # 1. 加载标准脑模板用于可视化
+    mni = nib.load('mni152.nii.gz')
+
+    # 2. 将fNIRS探头位置映射到标准空间
+    from mne_nirs.channels import get_long_channels
+    montage = get_long_channels(raw_info)
+    mni_positions = transform_to_mni(montage.get_positions())  # 需要自定义变换
+
+    # 3. 在标准脑上绘制探头位置
+    plotting.plot_markers(
+        mni_positions,
+        mni,
+        marker_color='red',
+        marker_size=50
+    )
+
+    # 4. 将重建结果保存为标准格式
+    # 假设你计算出了大脑激活图（2D数组）
+    activation_map_3d = project_to_volume(activation_values, mni.affine)
+    nib.save(nib.Nifti1Image(activation_map_3d, mni.affine), 
+             'fnirs_activation.nii.gz')
+    ```
+
+    **核心区别总结**
+
+    | 特性 | NiBabel | Nilearn |
+    |------|---------|---------|
+    | **主要功能** | 文件读写、格式转换 | 统计分析、机器学习 |
+    | **依赖关系** | 基础IO库 | 依赖NiBabel、Scikit-learn |
+    | **应用场景** | 数据加载/保存 | 统计建模、可视化 |
+    | **fNIRS适用性** | 间接（保存结果） | 有限（可视化为主） |
+
+    **实际建议**
+
+    1. **必须学NiBabel**：任何神经影像Python分析的基础
+    2. **根据需求学Nilearn**：如果做fMRI或需要高级可视化
+    3. **fNIRS项目**：主要用于最终结果的保存和可视化
+
+    需要我详细介绍它们在fNIRS项目中的具体应用案例吗？
+
 * hd-dot 中的光不会互相干扰吗？
 
     不会，因为我们不探测“相干性”。

@@ -2,6 +2,15 @@
 
 ## cache
 
+* vim 中检查当前状态下快捷键的映射
+
+    ```vim
+    :verbose map <Tab>
+    :verbose vmap j
+    ```
+
+    这会告诉你 Tab 或 j 分别在哪个文件的哪一行被定义了。
+
 * vim 中特殊的正则表达式匹配规则
 
     | Metacharacter | Description |
