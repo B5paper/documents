@@ -2,6 +2,462 @@
 
 ## cache
 
+* 我现在有 mesh 数据（float 类型的 node 数据，unit 类型的 face 数据），如何使用 matplotlib 画出 wireframe
+
+    要将mesh数据（节点和面）绘制成wireframe，你可以使用matplotlib的`plot_trisurf`或`Poly3DCollection`。以下是几种方法：
+
+    方法1：使用 plot_trisurf（最简单）
+
+    ```python
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import numpy as np
+
+    # 假设你的数据
+    # nodes: float数组, shape (n_nodes, 3) - [x, y, z]
+    # faces: uint数组, shape (n_faces, 3) - 三角形面的顶点索引
+
+    def plot_wireframe_trisurf(nodes, faces):
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # 提取坐标
+        x = nodes[:, 0]
+        y = nodes[:, 1]
+        z = nodes[:, 2]
+        
+        # 使用trisurf绘制线框
+        # shade=False 不进行着色，只显示线框
+        surf = ax.plot_trisurf(x, y, z, triangles=faces, 
+                              linewidth=0.5, 
+                              edgecolor='black',
+                              shade=False,
+                              alpha=0.8)
+        
+        # 设置标签
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        
+        plt.show()
+        
+        return fig, ax
+    ```
+
+    方法2：使用 Poly3DCollection（更灵活）
+
+    ```python
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    def plot_wireframe_poly(nodes, faces):
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # 创建面的顶点坐标
+        mesh_faces = []
+        for face in faces:
+            # 获取三角形面的三个顶点
+            triangle = nodes[face]
+            mesh_faces.append(triangle)
+        
+        # 创建Poly3DCollection
+        mesh = Poly3DCollection(mesh_faces, 
+                               linewidths=0.5,
+                               edgecolors='black',
+                               facecolors='none',  # 不填充面
+                               alpha=0.8)
+        
+        ax.add_collection3d(mesh)
+        
+        # 设置坐标轴范围
+        ax.set_xlim(nodes[:, 0].min(), nodes[:, 0].max())
+        ax.set_ylim(nodes[:, 1].min(), nodes[:, 1].max())
+        ax.set_zlim(nodes[:, 2].min(), nodes[:, 2].max())
+        
+        # 设置标签
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        
+        plt.show()
+        
+        return fig, ax
+    ```
+
+    方法3：只绘制边的版本
+
+    ```python
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import numpy as np
+
+    def plot_wireframe_edges(nodes, faces):
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # 提取所有边
+        edges = set()
+        for face in faces:
+            # 三角形的三条边
+            for i in range(3):
+                edge = tuple(sorted([face[i], face[(i+1)%3]]))
+                edges.add(edge)
+        
+        # 绘制每条边
+        for edge in edges:
+            points = nodes[list(edge)]
+            ax.plot(points[:, 0], points[:, 1], points[:, 2], 
+                    'k-', linewidth=0.5)
+        
+        # 可选：绘制节点
+        ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], 
+                  c='red', s=10, alpha=0.5)
+        
+        # 设置标签
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        
+        plt.show()
+        
+        return fig, ax
+    ```
+
+    完整示例
+
+    ```python
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+    # 创建一个简单的测试数据（球体表面）
+    def create_test_mesh():
+        # 生成球体网格
+        phi = np.linspace(0, np.pi, 10)
+        theta = np.linspace(0, 2*np.pi, 20)
+        phi, theta = np.meshgrid(phi, theta)
+        
+        r = 1
+        x = r * np.sin(phi) * np.cos(theta)
+        y = r * np.sin(phi) * np.sin(theta)
+        z = r * np.cos(phi)
+        
+        # 转换为节点数组
+        nodes = np.column_stack([x.flatten(), y.flatten(), z.flatten()])
+        
+        # 创建面（三角形）
+        faces = []
+        n_phi, n_theta = phi.shape
+        
+        for i in range(n_phi - 1):
+            for j in range(n_theta - 1):
+                # 两个三角形组成一个四边形
+                idx1 = i * n_theta + j
+                idx2 = i * n_theta + j + 1
+                idx3 = (i + 1) * n_theta + j
+                idx4 = (i + 1) * n_theta + j + 1
+                
+                faces.append([idx1, idx2, idx3])
+                faces.append([idx2, idx4, idx3])
+        
+        return nodes, np.array(faces, dtype=np.uint32)
+
+    # 使用示例
+    if __name__ == "__main__":
+        # 创建测试数据
+        nodes, faces = create_test_mesh()
+        
+        # 使用方法1
+        plot_wireframe_trisurf(nodes, faces)
+        
+        # 使用方法2
+        # plot_wireframe_poly(nodes, faces)
+        
+        # 使用方法3
+        # plot_wireframe_edges(nodes, faces)
+    ```
+
+    注意事项
+
+    1. **数据类型**：确保将faces转换为numpy数组，并指定正确的dtype（如`uint32`或`int64`）
+
+    2. **面的顺序**：如果面是四边形，需要先转换为三角形
+
+    3. **性能**：对于大型网格，方法1（trisurf）通常最快，方法3（边绘制）最慢
+
+    4. **颜色和样式**：可以通过调整参数自定义线框的颜色、粗细等
+
+    选择哪种方法取决于你的具体需求：
+
+    - 如果想快速查看结果，使用方法1
+    - 如果需要更多控制（如不同的面颜色），使用方法2
+    - 如果只想看网格结构，使用方法3
+
+* 我试了下方法一，能画，但是数据太多，画得太慢太卡了，有没有解决方案
+
+    对于大数据量的mesh，matplotlib确实会变慢。以下是几种优化方案：
+
+    方案1：数据降采样
+
+    ```python
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+
+    def plot_wireframe_downsampled(nodes, faces, sample_ratio=0.1):
+        """
+        随机采样部分面进行绘制
+        sample_ratio: 采样比例，0.1表示绘制10%的面
+        """
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # 随机采样面
+        n_faces = len(faces)
+        n_sample = int(n_faces * sample_ratio)
+        sampled_indices = np.random.choice(n_faces, n_sample, replace=False)
+        sampled_faces = faces[sampled_indices]
+        
+        # 提取坐标
+        x = nodes[:, 0]
+        y = nodes[:, 1]
+        z = nodes[:, 2]
+        
+        # 绘制采样的面
+        surf = ax.plot_trisurf(x, y, z, triangles=sampled_faces,
+                              linewidth=0.3,
+                              edgecolor='black',
+                              facecolor='none',
+                              alpha=0.5)
+        
+        # 设置坐标轴比例一致
+        set_axes_equal(ax)
+        
+        plt.show()
+        return fig, ax
+
+    def set_axes_equal(ax):
+        """设置3D坐标轴比例一致"""
+        x_limits = ax.get_xlim3d()
+        y_limits = ax.get_ylim3d()
+        z_limits = ax.get_zlim3d()
+        
+        x_range = abs(x_limits[1] - x_limits[0])
+        y_range = abs(y_limits[1] - y_limits[0])
+        z_range = abs(z_limits[1] - z_limits[0])
+        
+        max_range = max(x_range, y_range, z_range)
+        
+        ax.set_xlim3d([x_limits[0] - 0.1*max_range, x_limits[1] + 0.1*max_range])
+        ax.set_ylim3d([y_limits[0] - 0.1*max_range, y_limits[1] + 0.1*max_range])
+        ax.set_zlim3d([z_limits[0] - 0.1*max_range, z_limits[1] + 0.1*max_range])
+    ```
+
+    方案2：使用更快的渲染引擎（PyVista/VTK）
+
+    ```python
+    import pyvista as pv
+    import numpy as np
+
+    def plot_wireframe_pyvista(nodes, faces):
+        """
+        使用PyVista（基于VTK）渲染，速度快很多
+        需要安装：pip install pyvista
+        """
+        # 准备PyVista所需的faces格式
+        # 格式：每行 [n_points, p1, p2, p3, ...]
+        pv_faces = np.hstack([np.full((len(faces), 1), 3), faces])
+        pv_faces = pv_faces.flatten()
+        
+        # 创建PolyData
+        mesh = pv.PolyData(nodes, pv_faces)
+        
+        # 创建plotter
+        plotter = pv.Plotter()
+        
+        # 添加网格，只显示边
+        plotter.add_mesh(mesh, style='wireframe', color='black', line_width=1)
+        
+        # 可选：添加节点
+        # plotter.add_points(mesh, color='red', point_size=3)
+        
+        plotter.show()
+        
+        return plotter
+
+    # 如果需要保存为交互式HTML
+    def plot_wireframe_pyvista_html(nodes, faces, filename='mesh.html'):
+        pv_faces = np.hstack([np.full((len(faces), 1), 3), faces])
+        pv_faces = pv_faces.flatten()
+        
+        mesh = pv.PolyData(nodes, pv_faces)
+        
+        plotter = pv.Plotter(off_screen=True)
+        plotter.add_mesh(mesh, style='wireframe', color='black')
+        plotter.export_html(filename)
+        print(f"已保存到 {filename}")
+    ```
+
+    方案3：使用Mayavi（科学可视化）
+
+    ```python
+    from mayavi import mlab
+    import numpy as np
+
+    def plot_wireframe_mayavi(nodes, faces):
+        """
+        使用Mayavi渲染，适合大数据量
+        需要安装：pip install mayavi
+        """
+        # 创建三角形网格
+        mlab.figure(bgcolor=(1, 1, 1))  # 白色背景
+        
+        # 提取坐标
+        x = nodes[:, 0]
+        y = nodes[:, 1]
+        z = nodes[:, 2]
+        
+        # 绘制线框
+        mesh = mlab.triangular_mesh(x, y, z, faces,
+                                   representation='wireframe',
+                                   line_width=1,
+                                   color=(0, 0, 0))
+        
+        mlab.show()
+        return mesh
+    ```
+
+    方案4：使用Plotly（交互式Web渲染）
+
+    ```python
+    import plotly.graph_objects as go
+    import numpy as np
+
+    def plot_wireframe_plotly(nodes, faces):
+        """
+        使用Plotly创建交互式3D图，支持大数据量
+        需要安装：pip install plotly
+        """
+        # 提取坐标
+        x, y, z = nodes[:, 0], nodes[:, 1], nodes[:, 2]
+        
+        # 创建Mesh3D对象
+        fig = go.Figure(data=[
+            go.Mesh3d(
+                x=x,
+                y=y,
+                z=z,
+                i=faces[:, 0],
+                j=faces[:, 1],
+                k=faces[:, 2],
+                opacity=0.5,
+                color='lightblue',
+                line=dict(color='black', width=1)
+            )
+        ])
+        
+        # 更新布局
+        fig.update_layout(
+            scene=dict(
+                xaxis_title='X',
+                yaxis_title='Y',
+                zaxis_title='Z',
+                aspectmode='data'
+            ),
+            width=800,
+            height=600
+        )
+        
+        fig.show()
+        return fig
+    ```
+
+    方案5：自定义简化算法
+
+    ```python
+    def simplify_mesh(nodes, faces, target_faces=5000):
+        """
+        简单的网格简化：基于边的长度进行简化
+        """
+        from sklearn.cluster import KMeans
+        
+        # 如果面数已经小于目标，直接返回
+        if len(faces) <= target_faces:
+            return nodes, faces
+        
+        # 计算每个面的中心点
+        face_centers = np.mean(nodes[faces], axis=1)
+        
+        # 使用K-means聚类选择代表性的面
+        n_clusters = min(target_faces, len(faces))
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        labels = kmeans.fit_predict(face_centers)
+        
+        # 选择每个聚类中离中心最近的面
+        simplified_faces = []
+        for i in range(n_clusters):
+            cluster_faces = np.where(labels == i)[0]
+            if len(cluster_faces) > 0:
+                # 找到离聚类中心最近的面
+                cluster_centers = face_centers[cluster_faces]
+                distances = np.linalg.norm(cluster_centers - kmeans.cluster_centers_[i], axis=1)
+                simplified_faces.append(cluster_faces[np.argmin(distances)])
+        
+        simplified_faces = faces[simplified_faces]
+        
+        return nodes, simplified_faces
+    ```
+
+    性能对比和建议
+
+    ```python
+    # 使用示例和性能比较
+    import time
+
+    def compare_methods(nodes, faces):
+        """比较不同方法的性能"""
+        
+        # 方法1: Matplotlib（原始）
+        start = time.time()
+        fig, ax = plot_wireframe_trisurf(nodes, faces)
+        print(f"Matplotlib: {time.time() - start:.2f}秒")
+        plt.close()
+        
+        # 方法2: Matplotlib（降采样）
+        start = time.time()
+        fig, ax = plot_wireframe_downsampled(nodes, faces, sample_ratio=0.05)
+        print(f"Matplotlib降采样: {time.time() - start:.2f}秒")
+        plt.close()
+        
+        # 方法3: PyVista
+        try:
+            start = time.time()
+            # PyVista需要在非交互模式下测试
+            print(f"PyVista通常比Matplotlib快10-100倍")
+        except:
+            pass
+        
+        # 方法4: Plotly
+        try:
+            start = time.time()
+            # Plotly测试
+            print(f"Plotly适合交互式可视化")
+        except:
+            pass
+    ```
+
+    推荐方案
+
+    1. **如果数据量在10万面以下**：使用Matplotlib降采样（方案1）
+    2. **如果数据量在10万-100万面**：使用PyVista（方案2）
+    3. **如果数据量在100万面以上**：使用Mayavi（方案3）或进一步降采样
+    4. **如果需要交互式Web展示**：使用Plotly（方案4）
+
+    最简单的改进就是从原来的完整渲染改为降采样渲染，可以立即获得10-20倍的性能提升。
+
 * 简述 matplotlib 中 `plt.Line2D()` 的原型、作用及用法
 
     原型
