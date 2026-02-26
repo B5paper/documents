@@ -1208,6 +1208,18 @@
     
     如果要在实际运行中使环境变量生效，必须按照 bash 的规则执行`export PYTHONPATH=xxx`。仅仅`source ./.env`是不行的。
 
+    注：
+
+    1. `.env`只有 work space 下的有效
+
+        比如`A`文件夹下有`B`文件夹，`B`文件夹下有`C.py`。如果 vscode 打开的是`A`文件夹，但是`.env`被放到了`B`下，则无效。
+
+    1. `.env`中`PYTHONPATH`可以使用相对路径，也可以使用绝对路径。使用相对路径时，相对的是`C.py`文件的路径。
+
+        比如`PYTHONPATH=..`，等价于在`C.py`文件中添加
+
+        `sys.path.append('..')`
+
 * vscode 里，可以使用 ctrl + up / down 实现向上／下滚动一行，不改变光标位置
 
 * c++ 中的 string & 在 vscode 中，debug 断点模式下，鼠标悬停不显示内容
