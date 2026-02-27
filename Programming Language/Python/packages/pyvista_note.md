@@ -2,6 +2,278 @@
 
 ## cache
 
+* 简述 pyvista 画如何画二维折线图，并给出 example
+
+    PyVista 本身主要专注于三维网格和表面可视化，但它可以非常方便地结合 Matplotlib 来绘制二维折线图，或者利用 PyVista 的 `pyvista.Chart2D` 功能（如果可用）。
+
+    以下是两种常用的方法：
+
+    方法一：使用 PyVista 内置的 Chart2D（推荐，无需额外库）
+
+    从 PyVista 0.32.0 版本开始，引入了 `Chart2D` 功能，可以直接在 PyVista 的渲染窗口中绘制二维图表。
+
+    ```python
+    import pyvista as pv
+    import numpy as np
+
+    # 生成数据
+    x = np.linspace(0, 10, 20)
+    y = np.sin(x)
+
+    # 创建一个二维图表
+    chart = pv.Chart2D()
+    # 添加折线图
+    line_plot = chart.line(x, y, 'r', width=3, label='sin(x)')
+
+    # 显示图表（这会打开一个 PyVista 渲染窗口）
+    chart.show()
+
+    # 如果你有一个现有的绘图场景，也可以将图表嵌入进去
+    # 例如：plotter = pv.Plotter()
+    #      plotter.add_chart(chart)
+    #      plotter.show()
+    ```
+
+    方法二：使用 Matplotlib 嵌入（兼容性更好）
+
+    如果你只需要一个独立的二维折线图，最通用的做法是使用 Matplotlib。PyVista 通常与 Matplotlib 配合使用来处理这类需求。
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # 生成数据
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+
+    # 创建折线图
+    plt.figure(figsize=(8, 4))
+    plt.plot(x, y, 'b-', linewidth=2, label='sin(x)')
+    plt.plot(x, np.cos(x), 'r--', label='cos(x)')
+
+    # 添加标签和标题
+    plt.xlabel('X axis')
+    plt.ylabel('Y axis')
+    plt.title('2D Line Plot using Matplotlib')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    # 显示图形
+    plt.show()
+    ```
+
+    完整的 PyVista + 三维场景示例
+
+    以下是一个更典型的 PyVista 使用场景：在三维场景旁边显示一个二维折线图：
+
+    ```python
+    import pyvista as pv
+    import numpy as np
+
+    # 创建一些三维数据（例如：一个球体）
+    sphere = pv.Sphere(radius=0.5, center=(0, 0, 0))
+
+    # 创建二维数据
+    x = np.linspace(0, 10, 50)
+    y = np.sin(x)
+
+    # 创建绘图器
+    plotter = pv.Plotter(shape=(1, 2))  # 一行两列
+
+    # 左侧子图：显示三维球体
+    plotter.subplot(0, 0)
+    plotter.add_mesh(sphere, color='lightblue', show_edges=True)
+    plotter.add_text("3D Sphere", font_size=10)
+
+    # 右侧子图：显示二维折线图（通过创建单独的 Chart2D）
+    plotter.subplot(0, 1)
+    chart = pv.Chart2D()
+    chart.line(x, y, 'g', width=2, label='sin(x)')
+    plotter.add_chart(chart)  # 将图表添加到子图中
+
+    # 显示
+    plotter.show()
+    ```
+
+    总结
+
+    - 如果**只是画二维折线图**：使用 Matplotlib 最简单（方法二）。
+    - 如果**需要在 PyVista 的三维场景旁边画二维折线图**：使用 `pyvista.Chart2D`（方法一或第三个示例）。
+    - 确保你的 PyVista 版本较新（>=0.32.0）以获得 `Chart2D` 支持。
+
+* 简述 pyvista 如何画类似 matplotlib animation 那样的动态图
+
+    PyVista 本身不直接提供类似 `matplotlib.animation` 的高级动画模块，但可以通过几种方式实现动态可视化效果。
+
+    主要方法
+
+    1. 使用 `update` 函数配合定时器（最常用）
+
+        ```python
+        import pyvista as pv
+        import numpy as np
+
+        # 1. 准备基础数据
+        x = np.linspace(-10, 10, 100)
+        y = np.linspace(-10, 10, 100)
+        X, Y = np.meshgrid(x, y)
+        dist = np.sqrt(X**2 + Y**2)  # 预先计算距离，优化性能
+
+        # 2. 初始化网格
+        # 初始高度设为 0
+        Z = np.zeros_like(X)
+        grid = pv.StructuredGrid(X, Y, Z)
+        grid["scalars"] = Z.flatten() # 绑定颜色数据
+
+        # 3. 创建绘图窗口
+        pl = pv.Plotter(notebook=False)
+        # 添加网格，设置颜色映射(cmap)和固定的颜色范围(clim)
+        pl.add_mesh(grid, scalars="scalars", clim=[-1, 1], cmap="viridis")
+
+        # 关键步骤：开启交互式更新模式
+        pl.show(interactive_update=True)
+
+        # 4. 动画循环
+        t = 0
+        try:
+            # 模拟 500 帧动画，或者使用 while True 持续运行
+            for i in range(500):
+                t += 0.1
+                
+                # 计算新的波浪高度: $z = \sin(\sqrt{x^2 + y^2} - t)$
+                new_z = np.sin(dist - t)
+                
+                # 更新物理坐标（Z轴）
+                grid.points[:, 2] = new_z.flatten()
+                
+                # 更新颜色标量（让颜色随高度实时变化）
+                grid["scalars"] = new_z.flatten()
+                
+                # 刷新渲染窗口
+                pl.update()
+                
+                # 如果需要限制帧率，可以取消下面一行的注释
+                # import time; time.sleep(0.01)
+
+        except Exception as e:
+            # 当手动关闭窗口时，防止报错
+            print("动画已停止")
+
+        # 5. 释放资源
+        pl.close()
+        ```
+
+    2. 使用 `add_timer_event` 方法
+
+        这个似乎有 bug。
+
+        ```python
+        import pyvista as pv
+        import numpy as np
+
+        # 1. 创建初始数据
+        mesh = pv.Sphere(theta_resolution=40, phi_resolution=40)
+        # 备份原始坐标，防止变形累积（重要！）
+        orig_points = mesh.points.copy()
+
+        # 2. 设置绘图器
+        pl = pv.Plotter()
+        # 初始化标量，确保 add_mesh 时能识别颜色映射
+        mesh["scalars"] = np.zeros(mesh.n_points)
+        actor = pl.add_mesh(mesh, scalars="scalars", cmap="magma", clim=[-1, 1])
+
+        # 时间变量
+        t = 0
+
+        # 3. 定时器回调函数 (必须接受 obj 和 event 两个参数)
+        def timer_callback(obj, event):
+            global t
+            t += 0.1
+            
+            # 基于【原始坐标】进行变形，防止球体越变越大或飞走
+            new_points = orig_points.copy()
+            # 变形公式：$y' = y + 0.1 \cdot \sin(x \cdot 2 + t)$
+            new_points[:, 1] += 0.1 * np.sin(orig_points[:, 0] * 5 + t)
+            
+            # 更新网格点和颜色
+            mesh.points = new_points
+            mesh["scalars"] = np.sin(orig_points[:, 0] * 5 + t)
+            
+            # 刷新渲染
+            pl.render()
+
+        # 4. 设置定时器
+        # 每 16ms 触发一次回调
+        pl.add_timer_event(16, timer_callback)
+
+        # 5. 显示窗口
+        pl.show()
+        ```
+
+    3. 录制视频或保存帧
+
+        ```python
+        import pyvista as pv
+        import numpy as np
+
+        # 创建数据
+        x = np.linspace(-10, 10, 100)
+        y = np.linspace(-10, 10, 100)
+        x, y = np.meshgrid(x, y)
+        z = np.zeros_like(x)
+
+        grid = pv.StructuredGrid(x, y, z)
+
+        # 创建绘图器
+        pl = pv.Plotter(off_screen=True)  # 离屏渲染
+        pl.add_mesh(grid, scalars=z.flatten(), clim=[-2, 2])
+
+        # 打开视频写入器
+        pl.open_movie("animation.mp4", framerate=24)
+
+        # 动画循环
+        for t in np.linspace(0, 2*np.pi, 100):
+            # 更新数据
+            z = np.sin(np.sqrt(x**2 + y**2) - t * 5)
+            grid.points[:, 2] = z.flatten()
+            grid["scalars"] = z.flatten()
+            
+            # 写入帧
+            pl.write_frame()
+
+        # 关闭
+        pl.close()
+        ```
+
+    4. 使用 `orbit_on_path` 实现摄像机动画
+
+        ```python
+        import pyvista as pv
+
+        # 创建模型
+        mesh = pv.Cone()
+
+        # 创建绘图器
+        pl = pv.Plotter()
+        pl.add_mesh(mesh)
+
+        # 设置摄像机动画路径
+        path = pl.generate_orbital_path(n_points=100, viewup=[0, 1, 0], shift=5)
+
+        # 播放动画
+        pl.orbit_on_path(path, write_frames=False)
+        pl.show()
+        ```
+
+    注意事项
+
+    1. **性能优化**：对于复杂模型，尽量减少每帧更新的数据量
+    2. **帧率控制**：可以使用 `time.sleep()` 或定时器控制动画速度
+    3. **交互性**：PyVista 的动画通常保持交互性，可以在动画过程中旋转视角
+    4. **Jupyter Notebook**：在 notebook 中使用时，需要设置 `notebook=True`
+
+    这些方法各有适用场景，第一种方法最灵活，第二种适合周期性更新，第三种适合生成视频文件。
+
 * 简述 PyVista 的安装和用法
 
     我来简要介绍 PyVista 的安装和基本用法。

@@ -6,6 +6,102 @@
 
 ## cache
 
+* 简述 linux 中创建磁盘文件，并制作为 swap，最后使用 swapon 开启的过程
+
+    ## Linux 创建并启用 swap 的步骤
+
+    ### 1. **创建用于 swap 的文件**
+    ```bash
+    # 方法1：使用 dd 命令（传统方式）
+    sudo dd if=/dev/zero of=/swapfile bs=1M count=2048  # 创建 2GB 的 swap 文件
+
+    # 方法2：使用 fallocate（更快，推荐）
+    sudo fallocate -l 2G /swapfile  # 创建 2GB 的 swap 文件
+    ```
+
+    ### 2. **设置正确的权限**
+    ```bash
+    sudo chmod 600 /swapfile  # 仅 root 可读写
+    ```
+
+    ### 3. **格式化为 swap 格式**
+    ```bash
+    sudo mkswap /swapfile  # 将文件设置为 swap 格式
+    ```
+
+    ### 4. **启用 swap 文件**
+    ```bash
+    sudo swapon /swapfile  # 立即启用 swap
+    ```
+
+    ### 5. **验证 swap 已启用**
+    ```bash
+    # 查看 swap 使用情况
+    swapon --show
+    # 或
+    free -h
+    # 或
+    cat /proc/swaps
+    ```
+
+    ### 6. **设置为开机自动挂载**
+    编辑 `/etc/fstab` 文件：
+    ```bash
+    sudo vim /etc/fstab  # 或其他编辑器
+    ```
+
+    添加以下行：
+    ```
+    /swapfile none swap sw 0 0
+    ```
+
+    ### 完整示例
+    ```bash
+    # 完整命令序列
+    sudo fallocate -l 4G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+
+    # 验证
+    free -h
+
+    # 设置开机启动
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    ```
+
+    ### 其他相关操作
+
+    #### 关闭 swap
+    ```bash
+    sudo swapoff /swapfile
+    ```
+
+    #### 调整 swappiness 值（控制使用 swap 的倾向）
+    ```bash
+    # 查看当前值
+    cat /proc/sys/vm/swappiness
+
+    # 临时修改（值范围 0-100，越小越少用 swap）
+    sudo sysctl vm.swappiness=10
+
+    # 永久修改
+    echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+    ```
+
+    #### 删除 swap 文件
+    ```bash
+    sudo swapoff /swapfile
+    sudo rm /swapfile
+    # 并从 /etc/fstab 中删除对应行
+    ```
+
+    ### 注意事项
+    1. **文件位置**：通常放在根目录 `/swapfile`，也可自定义位置
+    2. **大小建议**：通常为物理内存的 1-2 倍，或根据实际需求确定
+    3. **性能考虑**：swap 文件比 swap 分区稍慢，但更灵活
+    4. **Btrfs 文件系统**：若使用 Btrfs，需额外配置才能支持 swap 文件
+
 * @@ -1,4 +1,4 @@ 这个是什么意思？
 
     这是 `diff -u`（统一格式输出）中的**差异块头信息**，用来定位文件中发生变化的位置。

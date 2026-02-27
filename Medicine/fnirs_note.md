@@ -2,6 +2,8 @@
 
 ## cache
 
+* 3D 定位仪（digitizer）
+
 * 一些有用的摘录
 
     > fNIRS devices consist of two kinds of optodes: light sources (AKA “emitters” or “transmitters”) and light detectors (AKA “receivers”). Channels are defined as source-detector pairs, and channel locations are defined as the midpoint between source and detector.

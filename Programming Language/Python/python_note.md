@@ -2,6 +2,548 @@
 
 ## cache
 
+* 即使是 from xxx import yyy，也会执行`xxx.py`中的所有代码
+
+    如果有不想被执行的代码，可以写到`if __name__ == '__main__`下。
+
+* 简述 python 中 pickle 的用法
+
+    ## Python pickle 用法简述
+
+    pickle 是 Python 内置的序列化模块，用于将 Python 对象转换为字节流（序列化），以及将字节流恢复为对象（反序列化）。
+
+    ### 主要函数
+
+    #### 1. **序列化（对象 → 字节流）**
+    ```python
+    import pickle
+
+    # pickle.dumps() - 序列化为字节对象
+    data = {'name': 'Alice', 'age': 30, 'scores': [85, 92, 78]}
+    bytes_data = pickle.dumps(data)
+
+    # pickle.dump() - 序列化并写入文件
+    with open('data.pkl', 'wb') as f:
+        pickle.dump(data, f)
+    ```
+
+    #### 2. **反序列化（字节流 → 对象）**
+    ```python
+    # pickle.loads() - 从字节对象反序列化
+    restored_data = pickle.loads(bytes_data)
+
+    # pickle.load() - 从文件读取并反序列化
+    with open('data.pkl', 'rb') as f:
+        restored_data = pickle.load(f)
+    ```
+
+    ### 支持的数据类型
+    - 基本类型：`None`, `bool`, `int`, `float`, `str`
+    - 容器类型：`list`, `tuple`, `dict`, `set`
+    - 自定义类实例（需满足 pickle 的条件）
+    - 函数和类（但仅序列化名称引用，而非代码）
+
+    ### 示例：自定义类的序列化
+    ```python
+    class Person:
+        def __init__(self, name, age):
+            self.name = name
+            self.age = age
+
+    # 序列化自定义对象
+    p = Person('Bob', 25)
+    with open('person.pkl', 'wb') as f:
+        pickle.dump(p, f)
+
+    # 反序列化
+    with open('person.pkl', 'rb') as f:
+        p2 = pickle.load(f)
+    print(p2.name, p2.age)  # Bob 25
+    ```
+
+    ### 注意事项
+    1. **安全性**：不要加载不可信来源的 pickle 数据，可能执行恶意代码
+    2. **版本兼容性**：不同 Python 版本的 pickle 可能存在兼容性问题
+    3. **可读性**：pickle 生成的是二进制格式，不可读（对比 JSON）
+    4. **协议版本**：可指定协议版本 `pickle.dump(obj, file, protocol=4)`
+
+    ### 协议版本
+    - 协议 0：ASCII 格式，可读
+    - 协议 1-2：旧版二进制格式
+    - 协议 3：Python 3 专用
+    - 协议 4：Python 3.4+，支持大对象
+    - 协议 5：Python 3.8+，性能优化
+
+    ```python
+    # 使用最高协议版本
+    pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+    ```
+
+* 简述 python 中如何处理 json 文件
+
+    在Python中处理JSON文件主要使用内置的`json`模块。以下是常用的方法和示例：
+
+    1. 读取JSON文件
+
+        json.load() - 从文件读取JSON
+
+        ```python
+        import json
+
+        # 从JSON文件读取
+        with open('data.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            print(data)
+            print(type(data))  # dict或list
+        ```
+
+        json.loads() - 从字符串读取JSON
+
+        ```python
+        import json
+
+        # 从JSON字符串解析
+        json_str = '{"name": "Alice", "age": 25, "city": "Beijing"}'
+        data = json.loads(json_str)
+        print(data)
+        print(data['name'])  # 输出: Alice
+        ```
+
+    2. 写入JSON文件
+
+        json.dump() - 写入到文件
+
+        ```python
+        import json
+
+        data = {
+            "name": "Bob",
+            "age": 30,
+            "city": "Shanghai",
+            "hobbies": ["reading", "swimming"],
+            "is_student": False
+        }
+
+        # 写入JSON文件
+        with open('output.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        ```
+
+        json.dumps() - 转换为JSON字符串
+
+        ```python
+        import json
+
+        data = {
+            "name": "Charlie",
+            "age": 28,
+            "city": "Guangzhou"
+        }
+
+        # 转换为JSON字符串
+        json_str = json.dumps(data, ensure_ascii=False, indent=2)
+        print(json_str)
+        print(type(json_str))  # str
+        ```
+
+    3. 常用参数说明
+
+        ```python
+        import json
+
+        data = {
+            "name": "张三",
+            "age": 25,
+            "scores": [85, 92, 78]
+        }
+
+        # indent: 格式化缩进
+        json_str = json.dumps(data, indent=4)
+        print("带缩进:\n", json_str)
+
+        # ensure_ascii=False: 支持中文
+        json_str = json.dumps(data, ensure_ascii=False, indent=2)
+        print("\n支持中文:\n", json_str)
+
+        # sort_keys: 按键排序
+        json_str = json.dumps(data, sort_keys=True, indent=2)
+        print("\n键排序:\n", json_str)
+
+        # separators: 自定义分隔符（压缩JSON）
+        json_str = json.dumps(data, separators=(',', ':'))
+        print("\n压缩格式:\n", json_str)
+        ```
+
+    4. 处理复杂数据类型
+
+        ```python
+        import json
+        from datetime import datetime
+
+        class CustomEncoder(json.JSONEncoder):
+            """自定义JSON编码器"""
+            def default(self, obj):
+                if isinstance(obj, datetime):
+                    return obj.strftime('%Y-%m-%d %H:%M:%S')
+                if isinstance(obj, set):
+                    return list(obj)
+                return super().default(obj)
+
+        # 包含特殊类型的字典
+        data = {
+            "name": "David",
+            "created_at": datetime.now(),
+            "tags": {"python", "json", "coding"},  # set类型
+            "score": 95.5
+        }
+
+        # 使用自定义编码器
+        json_str = json.dumps(data, cls=CustomEncoder, ensure_ascii=False, indent=2)
+        print("处理复杂类型:\n", json_str)
+        ```
+
+    5. 错误处理
+
+        ```python
+        import json
+
+        def safe_json_load(file_path):
+            """安全地加载JSON文件"""
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except FileNotFoundError:
+                print(f"文件 {file_path} 不存在")
+                return None
+            except json.JSONDecodeError as e:
+                print(f"JSON解析错误: {e}")
+                return None
+            except Exception as e:
+                print(f"其他错误: {e}")
+                return None
+
+        # 使用示例
+        data = safe_json_load('config.json')
+        if data:
+            print("成功加载:", data)
+        ```
+
+    6. 实用示例
+
+        读取和修改JSON文件
+
+        ```python
+        import json
+
+        # 读取配置文件
+        def update_config(config_file, updates):
+            # 读取现有配置
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # 更新配置
+            config.update(updates)
+            
+            # 写回文件
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            
+            return config
+
+        # 使用
+        new_config = update_config('config.json', {'theme': 'dark', 'language': 'zh-CN'})
+        print("更新后的配置:", new_config)
+        ```
+
+        处理JSON Lines格式
+
+        ```python
+        import json
+
+        # 写入JSON Lines（每行一个JSON对象）
+        data_list = [
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"},
+            {"id": 3, "name": "Charlie"}
+        ]
+
+        with open('data.jsonl', 'w', encoding='utf-8') as f:
+            for item in data_list:
+                f.write(json.dumps(item, ensure_ascii=False) + '\n')
+
+        # 读取JSON Lines
+        def read_jsonl(file_path):
+            data = []
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():  # 跳过空行
+                        data.append(json.loads(line))
+            return data
+
+        loaded_data = read_jsonl('data.jsonl')
+        print("JSON Lines数据:", loaded_data)
+        ```
+
+    总结
+
+    | 方法 | 用途 | 示例 |
+    |------|------|------|
+    | `json.load()` | 从文件读取JSON | `data = json.load(f)` |
+    | `json.loads()` | 从字符串解析JSON | `data = json.loads(json_str)` |
+    | `json.dump()` | 写入JSON到文件 | `json.dump(data, f)` |
+    | `json.dumps()` | 转换为JSON字符串 | `json_str = json.dumps(data)` |
+
+    **常用参数**：
+
+    - `indent`: 格式化缩进
+    - `ensure_ascii=False`: 支持中文
+    - `sort_keys`: 按键排序
+    - `cls`: 自定义编码器
+
+    **注意事项**：
+
+    - JSON要求使用双引号 `"`，不能用单引号
+    - JSON支持的数据类型：对象(dict)、数组(list)、字符串、数字、布尔值、null
+    - 处理文件时建议指定 `encoding='utf-8'` 以支持中文
+
+* 是否有类似 pretty print 的功能
+
+    是的，Python 中确实有类似 pretty print 的功能，主要有以下几种方式：
+
+    1. json.dumps() 的 indent 参数
+
+        这是处理 JSON 最常用的格式化方式：
+
+        ```python
+        import json
+
+        data = {
+            "name": "Alice",
+            "age": 25,
+            "contact": {
+                "email": "alice@example.com",
+                "phone": "123-4567-8901",
+                "address": {
+                    "city": "Beijing",
+                    "district": "Chaoyang",
+                    "street": "Chang'an Street"
+                }
+            },
+            "hobbies": ["reading", "swimming", "coding"],
+            "scores": [98, 87, 92, 78]
+        }
+
+        # 使用 indent 参数美化输出
+        formatted_json = json.dumps(data, indent=2, ensure_ascii=False)
+        print(formatted_json)
+        ```
+
+    2. pprint 模块 - Python 内置的美化打印
+
+        ```python
+        import pprint
+        import json
+
+        data = {
+            "name": "Bob",
+            "age": 30,
+            "contact": {
+                "email": "bob@example.com",
+                "phone": "987-6543-2100",
+                "address": {
+                    "city": "Shanghai",
+                    "district": "Pudong",
+                    "street": "Century Avenue"
+                }
+            },
+            "hobbies": ["photography", "gaming", "hiking"]
+        }
+
+        # 使用 pprint
+        pp = pprint.PrettyPrinter(indent=2, width=80, depth=None)
+        pp.pprint(data)
+
+        # 或者直接使用 pprint 函数
+        print("\n--- 使用 pprint 函数 ---")
+        pprint.pprint(data, indent=2, width=80)
+
+        # pprint 还可以设置 compact 模式
+        print("\n--- compact 模式 ---")
+        pprint.pprint(data, indent=2, width=40, compact=True)
+        ```
+
+    3. rich 库 - 更强大的美化打印
+
+        需要安装：`pip install rich`
+
+        ```python
+        from rich import print as rprint
+        from rich.pretty import pprint as rpprint
+        import json
+
+        data = {
+            "name": "Charlie",
+            "age": 28,
+            "contact": {
+                "email": "charlie@example.com",
+                "phone": "555-1234-5678",
+                "address": {
+                    "city": "Guangzhou",
+                    "district": "Tianhe",
+                    "street": "Zhujiang East Road"
+                }
+            },
+            "hobbies": ["music", "sports", "travel"],
+            "metadata": {
+                "created_at": "2024-01-15",
+                "updated_at": "2024-02-20",
+                "version": "1.0.0"
+            }
+        }
+
+        # rich 的彩色输出
+        print("=== rich 美化输出 ===")
+        rprint(data)
+
+        # 或者使用 rich.pretty
+        print("\n=== rich.pretty 输出 ===")
+        rpprint(data, indent_guides=True)
+        ```
+
+    4. 自定义 JSON 格式化器
+
+        ```python
+        import json
+
+        class PrettyJSONEncoder(json.JSONEncoder):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.current_indent = 0
+                self.indent_str = "  "
+            
+            def encode(self, obj):
+                return self._pretty_encode(obj)
+            
+            def _pretty_encode(self, obj, level=0):
+                if isinstance(obj, dict):
+                    if not obj:
+                        return "{}"
+                    lines = ["{"]
+                    for key, value in obj.items():
+                        lines.append(f"{self.indent_str * (level + 1)}{json.dumps(key)}: {self._pretty_encode(value, level + 1)},")
+                    lines[-1] = lines[-1].rstrip(",")  # 移除最后一个逗号
+                    lines.append(f"{self.indent_str * level}}}")
+                    return "\n".join(lines)
+                elif isinstance(obj, list):
+                    if not obj:
+                        return "[]"
+                    if all(not isinstance(i, (dict, list)) for i in obj):
+                        return json.dumps(obj)
+                    lines = ["["]
+                    for item in obj:
+                        lines.append(f"{self.indent_str * (level + 1)}{self._pretty_encode(item, level + 1)},")
+                    lines[-1] = lines[-1].rstrip(",")
+                    lines.append(f"{self.indent_str * level}]")
+                    return "\n".join(lines)
+                else:
+                    return json.dumps(obj)
+
+        # 使用自定义编码器
+        data = {
+            "name": "David",
+            "details": {
+                "age": 35,
+                "skills": ["Python", "JavaScript", "SQL"]
+            },
+            "config": {
+                "debug": True,
+                "options": {
+                    "theme": "dark",
+                    "font_size": 14
+                }
+            }
+        }
+
+        print("=== 自定义美化输出 ===")
+        encoder = PrettyJSONEncoder()
+        print(encoder.encode(data))
+        ```
+
+    5. 比较不同美化方式
+
+        ```python
+        import json
+        import pprint
+        from rich import print as rprint
+
+        data = {
+            "very_long_key_name_that_causes_wrapping": "some value that might be long",
+            "nested_structure": {
+                "level1": {
+                    "level2": {
+                        "level3": "deeply nested value"
+                    }
+                }
+            },
+            "list_with_many_items": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        }
+
+        print("=== json.dumps (indent=2) ===")
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+
+        print("\n=== pprint (width=40) ===")
+        pprint.pprint(data, indent=2, width=40)
+
+        print("\n=== pprint (compact=True) ===")
+        pprint.pprint(data, indent=2, width=40, compact=True)
+
+        print("\n=== rich ===")
+        rprint(data)
+        ```
+
+    6. 文件输出美化
+
+        ```python
+        import json
+
+        data = {
+            "users": [
+                {"name": "Alice", "age": 25, "email": "alice@example.com"},
+                {"name": "Bob", "age": 30, "email": "bob@example.com"},
+                {"name": "Charlie", "age": 28, "email": "charlie@example.com"}
+            ],
+            "settings": {
+                "theme": "dark",
+                "language": "zh-CN",
+                "notifications": True
+            }
+        }
+
+        # 美化输出到文件
+        with open('formatted_output.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False, sort_keys=True)
+
+        # 或者使用更精细的控制
+        with open('pretty_output.json', 'w', encoding='utf-8') as f:
+            f.write(json.dumps(data, indent=2, ensure_ascii=False))
+            f.write('\n')  # 添加换行符
+        ```
+
+    总结对比
+
+    | 方法 | 优点 | 缺点 | 适用场景 |
+    |------|------|------|----------|
+    | `json.dumps(indent=n)` | 内置、简单 | 功能单一 | JSON 格式化 |
+    | `pprint` | 内置、可配置 | 输出不是标准 JSON | Python 对象美化 |
+    | `rich` | 彩色、功能强大 | 需要安装第三方库 | 开发调试、命令行工具 |
+    | 自定义编码器 | 完全控制 | 需要编写代码 | 特殊格式需求 |
+
+    **推荐使用**：
+
+    - 简单 JSON 美化：`json.dumps(data, indent=2, ensure_ascii=False)`
+    - Python 对象调试：`pprint.pprint(data)`
+    - 彩色输出：`rich.print(data)`
+
 * python 2 不支持中文字符
 
     这个错误非常经典，它说明你正在使用 Python 2 运行含有**中文（或非 ASCII 字符）**的代码。

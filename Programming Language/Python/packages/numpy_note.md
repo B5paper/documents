@@ -2,6 +2,155 @@
 
 ## cache
 
+* 简述 numpy 中拼接 array 的常用方法，并给出 example
+
+    在 NumPy 中，拼接 array 的常用方法主要有以下几种，我会为每个方法提供简单的示例。
+
+    1. np.concatenate() - 最通用的拼接方法
+
+        可以沿现有维度拼接多个数组。
+
+        ```python
+        import numpy as np
+
+        # 创建示例数组
+        a = np.array([[1, 2], [3, 4]])
+        b = np.array([[5, 6], [7, 8]])
+
+        # 沿第一个轴拼接（垂直方向）
+        c = np.concatenate((a, b), axis=0)
+        print("沿axis=0拼接:\n", c)
+        # 输出:
+        # [[1 2]
+        #  [3 4]
+        #  [5 6]
+        #  [7 8]]
+
+        # 沿第二个轴拼接（水平方向）
+        d = np.concatenate((a, b), axis=1)
+        print("\n沿axis=1拼接:\n", d)
+        # 输出:
+        # [[1 2 5 6]
+        #  [3 4 7 8]]
+        ```
+
+    2. np.vstack() - 垂直堆叠
+
+        相当于 `concatenate(axis=0)`，将数组按垂直方向堆叠。
+
+        ```python
+        # 垂直堆叠
+        e = np.vstack((a, b))
+        print("垂直堆叠:\n", e)
+        # 输出:
+        # [[1 2]
+        #  [3 4]
+        #  [5 6]
+        #  [7 8]]
+
+        # 一维数组的垂直堆叠
+        x = np.array([1, 2, 3])
+        y = np.array([4, 5, 6])
+        z = np.vstack((x, y))
+        print("\n一维数组垂直堆叠:\n", z)
+        # 输出:
+        # [[1 2 3]
+        #  [4 5 6]]
+        ```
+
+    3. np.hstack() - 水平堆叠
+
+        相当于 `concatenate(axis=1)`，将数组按水平方向堆叠。
+
+        ```python
+        # 水平堆叠
+        f = np.hstack((a, b))
+        print("水平堆叠:\n", f)
+        # 输出:
+        # [[1 2 5 6]
+        #  [3 4 7 8]]
+
+        # 一维数组的水平堆叠
+        x = np.array([1, 2, 3])
+        y = np.array([4, 5, 6])
+        z = np.hstack((x, y))
+        print("\n一维数组水平堆叠:\n", z)
+        # 输出: [1 2 3 4 5 6]
+        ```
+
+    4. np.dstack() - 深度堆叠
+
+        沿第三个轴（深度方向）堆叠数组。
+
+        ```python
+        # 深度堆叠
+        g = np.dstack((a, b))
+        print("深度堆叠:\n", g)
+        print("形状:", g.shape)
+        # 输出:
+        # [[[1 5]
+        #   [2 6]]
+        # 
+        #  [[3 7]
+        #   [4 8]]]
+        # 形状: (2, 2, 2)
+        ```
+
+    5. np.stack() - 沿新轴堆叠
+
+        沿新的维度堆叠数组，会增加数组的维度。
+
+        ```python
+        # 沿新轴堆叠
+        h = np.stack((a, b), axis=0)
+        print("沿新axis=0堆叠:\n", h)
+        print("形状:", h.shape)
+        # 输出形状: (2, 2, 2)
+
+        i = np.stack((a, b), axis=2)
+        print("\n沿新axis=2堆叠:\n", i)
+        print("形状:", i.shape)
+        # 输出形状: (2, 2, 2)
+        ```
+
+    6. np.append() - 追加元素
+
+        类似于Python列表的append，但效率较低，不推荐循环中使用。
+
+        ```python
+        # 追加到一维数组
+        j = np.array([1, 2, 3])
+        k = np.append(j, [4, 5, 6])
+        print("append到一维数组:\n", k)
+        # 输出: [1 2 3 4 5 6]
+
+        # 追加到二维数组（需要保持形状）
+        l = np.array([[1, 2], [3, 4]])
+        m = np.append(l, [[5, 6]], axis=0)
+        print("\nappend到二维数组（行追加）:\n", m)
+        # 输出:
+        # [[1 2]
+        #  [3 4]
+        #  [5 6]]
+        ```
+
+    总结对比
+
+    | 方法 | 说明 | 适用场景 |
+    |------|------|----------|
+    | `concatenate` | 最通用，可指定轴 | 任意维度数组拼接 |
+    | `vstack` | 垂直堆叠 | 行方向拼接，处理一维数组方便 |
+    | `hstack` | 水平堆叠 | 列方向拼接，处理一维数组方便 |
+    | `dstack` | 深度堆叠 | 需要沿第三维拼接时 |
+    | `stack` | 沿新轴堆叠 | 需要增加数组维度时 |
+    | `append` | 追加元素 | 简单追加操作（不推荐循环使用） |
+
+    **注意事项**：
+
+    - 除了 `stack` 方法，其他方法要求数组在非拼接维度上形状一致
+    - `append` 会重新分配内存，效率较低
+    - 推荐使用 `concatenate` 及其专门化的变体进行数组拼接
+
 * 简述 numpy 中 `np.loadtxt()` 的原型、作用及用法
 
     `np.loadtxt()` 详解
