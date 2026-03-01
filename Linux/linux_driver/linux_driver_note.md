@@ -6,6 +6,66 @@ Ref:
 
 ## cache
 
+* 我在 sudo lsmod | grep -i vfio 时，没有看到输出，但是我的 mellanox 网卡驱动信息显示 Kernel driver in use: vfio-pci，为什么？
+
+    这是一个看似矛盾但实际很常见的情况。让我解释一下可能的原因：
+
+    ## 主要原因分析
+
+    ### 1. **VFIO模块可能以内置方式编译**
+    如果VFIO驱动是直接编译进内核（built-in），而不是作为可加载模块，`lsmod` 不会显示它：
+    ```bash
+    # 检查VFIO是否内置在内核中
+    grep CONFIG_VFIO /boot/config-$(uname -r)
+    grep CONFIG_VFIO_PCI /boot/config-$(uname -r)
+    ```
+
+    ### 2. **模块名称不完全匹配**
+    你的 `grep -i vfio` 应该能匹配到，但可能是：
+    - 模块名可能是 `vfio_pci` 而不是 `vfio-pci`（连字符和下划线的区别）
+    - 需要加载依赖模块：`vfio`、`vfio_iommu_type1`、`vfio_pci`
+
+    ## 诊断步骤
+
+    ### 检查VFIO模块状态
+    ```bash
+    # 更精确的检查
+    lsmod | grep -E "vfio|vfio_pci"
+
+    # 检查模块是否可用
+    modprobe -l | grep vfio
+
+    # 查看驱动绑定情况
+    lspci -vnn | grep -A20 Mellanox
+
+    # 检查IOMMU组
+    find /sys/kernel/iommu_groups/ -type l
+    ```
+
+    ### 查看模块依赖
+    ```bash
+    # 如果vfio-pci是模块，查看其依赖
+    modinfo vfio-pci 2>/dev/null || modinfo vfio_pci
+    ```
+
+    ## 常见情况
+
+    这通常发生在：
+    1. **直通设备配置** - 通过PCI passthrough将网卡分配给虚拟机
+    2. **内核内置支持** - 某些发行版将VFIO编译进内核
+    3. **模块未显示** - 模块被使用但不知为何未在lsmod中显示
+
+    ## 验证网卡确实在使用VFIO
+    ```bash
+    # 确认驱动绑定
+    lspci -k -s $(lspci | grep Mellanox | cut -d' ' -f1)
+
+    # 检查设备文件
+    ls -l /dev/vfio/
+    ```
+
+    **结论**：只要 `lspci -k` 显示 "Kernel driver in use: vfio-pci"，就说明网卡确实在使用VFIO驱动，无论 `lsmod` 是否显示。这可能是模块内置或临时未显示的情况。
+
 * 简述 linux 中 device_attach() 的原型、作用及用法
 
     在 Linux 内核中，`device_attach()` 是一个用于**将设备绑定到驱动**的核心函数。

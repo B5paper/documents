@@ -2,6 +2,48 @@
 
 ## cache
 
+* pyvista 手动设置快捷键触发对话框
+
+    PyVista 原生并没有直接弹出“文件保存对话框”的内置函数，因为它是一个科学计算库而非 GUI 库。但你可以结合 tkinter 轻易实现：
+
+    ```Python
+    import pyvista as pv
+    from tkinter import filedialog
+
+    plotter = pv.Plotter()
+    plotter.add_mesh(pv.Cube())
+
+    def save_callback():
+        # 弹出系统保存对话框
+        path = filedialog.asksaveasfilename(defaultextension=".png")
+        if path:
+            plotter.screenshot(path)
+            print(f"已保存至: {path}")
+
+    # 给渲染窗口添加一个自定义按键（比如按 'd' 弹出对话框）
+    plotter.add_key_event('d', save_callback)
+    plotter.show()
+    ```
+
+    自定义 s 键保存图片：
+
+    ```
+    import pyvista as pv
+
+    plotter = pv.Plotter()
+    plotter.add_mesh(pv.Sphere())
+
+    # 定义一个带反馈的保存函数
+    def custom_save():
+        filename = "manual_save.png"
+        plotter.screenshot(filename)
+        print(f"--- 触发成功！截图已保存至: {filename} ---")
+
+    # 重新绑定 's' 键
+    plotter.add_key_event('s', custom_save)
+
+    plotter.show()
+    ```
 * 简述 pyvista 画如何画二维折线图，并给出 example
 
     PyVista 本身主要专注于三维网格和表面可视化，但它可以非常方便地结合 Matplotlib 来绘制二维折线图，或者利用 PyVista 的 `pyvista.Chart2D` 功能（如果可用）。

@@ -2,6 +2,140 @@
 
 ## cache
 
+* 我创建了一个 git repo A，使用 git subtree 添加了一个第三方库 B，但是发现第三方库 B 中代码有错误，此时我改正了 B 中的错误后，想让别人 git pull A 的时候能直接用我修正过的代码，但是又希望未来 update B 的时候，能和 B 的 upstream 保持一致，该怎么办？
+
+    你遇到的是 subtree 维护中常见的问题。以下是几种解决方案：
+
+    ## 推荐方案：**Subtree + 维护分支**
+
+    ### 1. **创建并维护一个修复分支**
+    ```bash
+    # 1. 先fork B的仓库（或本地创建修复分支）
+    git remote add b-origin <B的原仓库URL>
+    git fetch b-origin
+
+    # 2. 基于B的最新commit创建修复分支
+    git subtree split --prefix=path/to/B --branch=b-fixed
+
+    # 3. 在b-fixed分支上修复bug并提交
+    git checkout b-fixed
+    # ... 修复代码 ...
+    git commit -m "fix: bug in B library"
+
+    # 4. 将修复合并回主分支
+    git checkout main
+    git subtree pull --prefix=path/to/B b-fixed --squash
+
+    # 5. 保存修复分支以便后续使用
+    git branch -f b-fixed-base <修复前的commit>
+    ```
+
+    ### 2. **使用补丁文件维护**
+    ```bash
+    # 1. 生成修复补丁
+    cd path/to/B
+    # 修改B的代码
+    git diff > ../b-fix.patch
+
+    # 2. 更新时应用补丁
+    git subtree pull --prefix=path/to/B <B的URL> <tag> --squash
+    cd path/to/B
+    patch -p1 < ../b-fix.patch
+    git add .
+    git commit -m "apply fixes after update"
+    ```
+
+    ## 更优方案：**使用 git-subrepo 替代 subtree**
+
+    考虑使用 `git-subrepo`，它更好地处理这种情况：
+    ```bash
+    # 安装
+    git clone https://github.com/ingydotnet/git-subrepo
+
+    # 添加subrepo
+    git subrepo clone <B的URL> path/to/B
+
+    # 修复并提交
+    cd path/to/B
+    # ... 修改代码 ...
+    git commit -m "fix bug"
+    git subrepo push
+
+    # 更新时
+    git subrepo pull path/to/B
+    # 如果有冲突会提示，你的修复会保留
+    ```
+
+    ## 自动化脚本方案
+
+    创建更新脚本 `.scripts/update-b.sh`：
+    ```bash
+    #!/bin/bash
+    set -e
+
+    # 更新subtree
+    git subtree pull --prefix=path/to/B <B的URL> <branch> --squash
+
+    # 应用固定修复
+    cd path/to/B
+    if [ -f ../../b-fixes.patch ]; then
+        patch -p1 < ../../b-fixes.patch
+    fi
+
+    # 重新应用你的特定修改
+    # 如果有多个修复，可以逐个应用
+    ```
+
+    ## **推荐工作流程**
+
+    1. **首次添加时**：
+    ```bash
+    git subtree add --prefix=vendor/B <B-url> main --squash
+    # 修复bug
+    git commit -m "fix bug in B"
+    ```
+
+    2. **创建更新脚本**：
+    ```bash
+    # update-b.sh
+    TARGET="vendor/B"
+    REMOTE="<B-url>"
+    BRANCH="main"
+
+    # 保存当前修复
+    cd $TARGET
+    git diff > ../../b-custom.patch
+
+    # 更新
+    cd ../..
+    git subtree pull --prefix=$TARGET $REMOTE $BRANCH --squash
+
+    # 重新应用修复
+    cd $TARGET
+    patch -p1 < ../../b-custom.patch || true
+    git add .
+    git commit -m "Update B with custom fixes"
+    ```
+
+    3. **团队成员使用**：
+    ```bash
+    git pull origin main  # 直接获取你更新后的版本
+    ```
+
+    ## **重要建议**
+
+    1. **记录所有修改**：在项目README中记录你对B做的所有修改
+    2. **版本锁定**：更新时使用特定tag而非分支，避免意外更改
+    3. **考虑上游贡献**：如果修复有通用价值，尽量提交PR到原项目
+    4. **测试保障**：更新后运行测试确保修复仍然有效
+
+    **最佳实践**：如果B的修改较多且长期维护，考虑：
+    - 维护自己的B分支
+    - 使用 `git submodule` 指向你的fork
+    - 定期rebase到上游最新版本
+
+    这样既能保持你的修复，又能在更新时相对容易地合并上游变更。
+
 * `git clone --recurse-submodules ../repo-server .`，简述这个命令的作用
 
     这个命令的作用是：**从相对路径 `../repo-server` 克隆一个 Git 仓库到当前目录，并且同时初始化、克隆该仓库中包含的所有子模块。**
