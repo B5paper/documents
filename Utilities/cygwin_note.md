@@ -1,5 +1,7 @@
 # cygwin note
 
+官网：<https://www.cygwin.com/>
+
 ## cache
 
 * 如果在 cygwin 中，可以使用 ls 定位到一个文件，但是无法使用 vim 向其中写入内容，那么很有可能是 vim 使用的是 windows 版本的，无法处理`/`路径。使用 cygwin 仓库中的 bash 版本的 vim 可以解决这个问题。

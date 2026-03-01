@@ -525,6 +525,54 @@
     3. **fNIRS项目**：主要用于最终结果的保存和可视化
 
     需要我详细介绍它们在fNIRS项目中的具体应用案例吗？
+    
+* 一些网站
+
+    * mne-nirs
+
+        <https://github.com/mne-tools/mne-nirs>
+
+        主要用于 python  下的 fnirs channel 数据预处理，过滤噪声，质量评估等。
+
+        没有 3d 重建的功能。
+
+        对标的是 matlab 下的 homer3。
+
+    * homer2
+
+        <https://www.nitrc.org/projects/homer2>
+
+        官网会引导跳转到这里去下载 homer2。这里有 homer2 的简介和下载链接。
+
+        <https://homer-fnirs.org/>
+
+        这个看起来比较像是 homer2 官网，但是上面显示此项目已不再维护，用户需要使用最新的 homer3。
+
+    * openfnirs
+
+        <https://openfnirs.org/>
+
+        大多数知名的 fnirs 相关的项目都可以在这里跳转到，比如 homer2, atlas viewer, toast++ 等。
+
+    * fNIRS vs EEG: Comparing Non-Invasive Brain Imaging Techniques
+
+        <https://imotions.com/blog/learning/research-fundamentals/fnirs-vs-eeg/?srsltid=AfmBOopvmIlZPxJW_A8sv4w4iAOxUh8qmivtVMNkvHQVAAab-DN7m9cW>
+
+        技术博客。
+
+    * NIRFAST
+
+        <http://www.nirfast.co.uk/>
+
+        可能是一个类似 toast++ 的工具。还没有深入调研。
+
+    * pynir
+
+        <https://pypi.org/project/pynir/>
+
+        This is a Python library for handling Near infrared (NIR) spectral calibration.
+
+        不清楚校准的是什么。也是和 homer 一样滤除无效通道吗？
 
 * hd-dot 中的光不会互相干扰吗？
 

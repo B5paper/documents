@@ -8434,3 +8434,11 @@
 * DeepWalk - Deep Learning for Graphs 
 
     https://github.com/phanein/deepwalk
+
+* graph-neural-network-course
+
+    <https://github.com/mlabonne/graph-neural-network-course>
+
+* AmpliGraph
+
+    <https://github.com/Accenture/AmpliGraph>

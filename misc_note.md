@@ -2,6 +2,14 @@
 
 ## cache
 
+* ni multisim 14.2汉化破解版下载 专业版(含安装教程)
+
+    <http://www.anyxz.com/index.php/12895.html>
+
+* KEIL5 MDK的（官网）下载安装（Win11）
+
+    <https://blog.csdn.net/get_p_c_j/article/details/140348703>
+
 * 如何将一个子线程的 stdout 重定向到父程序的指定缓冲区？
 
     在不同编程语言中，实现子线程 stdout 重定向到父程序缓冲区的方法不同。以下是几种常见语言的实现方案：
