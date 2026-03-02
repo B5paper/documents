@@ -2,6 +2,455 @@
 
 ## cache
 
+* 搜索 fnirs 相关的数据集，关键字：`NIRS-BCI Stroke Dataset`
+
+* 简述 homer3 的常用 API 及用法，给出完整流程的 example
+
+    Homer3 简介
+
+    Homer3 是一个用于处理功能性近红外光谱（fNIRS）数据的MATLAB工具箱。以下是其常用API和完整流程示例。
+
+    常用API
+
+    1. 数据导入
+
+        ```matlab
+        % 读取SNIRF格式数据
+        data = nirs.io.loadSNIRF('filename.snirf');
+
+        % 或加载现有数据
+        data = nirs.core.Data(raw_d, raw_t, raw_sd);
+        ```
+
+    2. 数据预处理
+
+        ```matlab
+        % 转换为光学密度
+        data_OD = nirs.modules.ConvertD2O();
+
+        % 去除生理噪声
+        filter = nirs.modules.OpticalDensity();
+        filter = nirs.modules.BandPassFilt();
+        filter.lowpass = 0.5;
+        filter.highpass = 0.01;
+
+        % 运动伪影校正
+        motion = nirs.modules.MotionCorrect();
+        motion.Method = 'spline';
+        ```
+
+    3. 血氧浓度计算
+
+        ```matlab
+        hb = nirs.modules.BeerLambertLaw();
+        hb.ppf = [6 6];  % 路径差分因子
+        ```
+
+    4. 区块平均
+
+        ```matlab
+        blockavg = nirs.modules.BlockAverage();
+        blockavg.time = [-5 20];  % 时间窗口
+        ```
+
+    完整流程示例
+
+    ```matlab
+    %% 完整的fNIRS数据处理流程
+
+    % 1. 加载数据
+    data_raw = nirs.io.loadSNIRF('subject01.snirf');
+
+    % 2. 转换为光学密度
+    job = nirs.modules.ConvertD2O();
+    data_OD = job.run(data_raw);
+
+    % 3. 运动校正
+    job = nirs.modules.MotionCorrect();
+    job.Method = 'spline';  % 或 'wavelet'
+    data_mc = job.run(data_OD);
+
+    % 4. 带通滤波
+    job = nirs.modules.BandPassFilt();
+    job.lowpass = 0.5;    % 低频截止
+    job.highpass = 0.01;  % 高频截止
+    data_filtered = job.run(data_mc);
+
+    % 5. 计算Hb浓度
+    job = nirs.modules.BeerLambertLaw();
+    job.ppf = [6 6];
+    data_hb = job.run(data_filtered);
+
+    % 6. 区块平均
+    job = nirs.modules.BlockAverage();
+    job.pre = 5;   % 刺激前5秒
+    job.post = 20; % 刺激后20秒
+    data_avg = job.run(data_hb);
+
+    % 7. 结果可视化
+    figure;
+    for i = 1:length(data_avg)
+        subplot(2, ceil(length(data_avg)/2), i);
+        data_avg(i).draw();
+        title(['Channel ' num2str(i)]);
+    end
+
+    % 8. 导出结果
+    % 获取HbO和HbR数据
+    HbO_data = data_avg.getData('hbo');
+    HbR_data = data_avg.getData('hbr');
+
+    % 保存到Excel
+    time = data_avg(1).time;
+    T = table(time, HbO_data, HbR_data);
+    writetable(T, 'results_subject01.xlsx');
+    ```
+
+    高级功能示例
+
+    个体水平统计分析
+
+    ```matlab
+    % 计算每个通道的峰值
+    for ch = 1:length(data_avg)
+        [peak_hbo, idx] = max(data_avg(ch).data(:,1));  % HbO通道
+        peak_time = data_avg(ch).time(idx);
+        results(ch).peak_hbo = peak_hbo;
+        results(ch).peak_time = peak_time;
+    end
+    ```
+
+    群体水平分析
+
+    ```matlab
+    % 加载多个被试数据
+    subjects = {'sub01.snirf', 'sub02.snirf', 'sub03.snirf'};
+    group_data = {};
+
+    for i = 1:length(subjects)
+        data = nirs.io.loadSNIRF(subjects{i});
+        % ... 应用相同的预处理流程
+        group_data{i} = processed_data;
+    end
+
+    % 执行群体统计分析
+    group_stats = nirs.statistics.robustFit(group_data);
+    ```
+
+    这个流程涵盖了从原始数据到结果导出的完整fNIRS数据分析过程。根据具体研究需求，可以调整预处理参数和分析方法。
+
+    **Homer3 的 3D 重建功能**
+
+    Homer3 提供了完整的 fNIRS 3D 重建功能，包括图像重建、定位和可视化。以下是详细的 API 和完整流程：
+
+    常用 3D 重建 API
+
+    1. 头模型生成
+
+        ```matlab
+        % 创建头模型
+        headmodel = nirs.core.HeadModel();
+
+        % 从模板创建
+        headmodel = nirs.core.HeadModel.fromTemplate('colin27');
+
+        % 从MRI数据创建
+        headmodel = nirs.core.HeadModel.fromMRI('mri_file.nii');
+        ```
+
+    2. 光源探测器定位
+
+        ```matlab
+        % 设置光极位置
+        probe = nirs.core.Probe();
+        probe.srcPos = [x1 y1 z1; x2 y2 z2];  % 光源坐标
+        probe.detPos = [x1 y1 z1; x2 y2 z2];  % 探测器坐标
+        probe.optodes.Register = {'S1','S2','D1','D2'};  % 光极名称
+        probe.optodes.Type = {'Source','Source','Detector','Detector'};  % 类型
+
+        % 注册光极到头模型
+        headmodel.registerProbe(probe);
+        ```
+
+    3. 前向模型计算
+
+        ```matlab
+        % 创建前向模型
+        forward = nirs.forward.Nirfast();
+
+        % 设置组织光学属性
+        forward.prop = nirs.forward.Nirfast.getDefaultProp();  % 默认光学属性
+        % μa (吸收系数) 和 μs' (散射系数)
+        % 头皮: [0.017 0.74], 颅骨: [0.016 0.64], 脑脊液: [0.004 0.26], 灰质: [0.018 0.64]
+
+        % 计算敏感度矩阵
+        forward.mesh = headmodel.mesh;
+        forward.probe = probe;
+        Jacobian = forward.Jacobian;
+        ```
+
+    4. 图像重建
+
+        ```matlab
+        % 设置重建参数
+        recon = nirs.modules.ImageReconstruction();
+        recon.method = 'moore-penrose';  % 或 'tikhonov', 'lcurve'
+        recon.lambda = 0.01;  % 正则化参数
+        recon.mesh = headmodel.mesh;
+        recon.probe = probe;
+
+        % 执行重建
+        recon_results = recon.run(data_hb);  % data_hb是处理后的Hb数据
+        ```
+
+    完整 3D 重建流程示例
+
+    ```matlab
+    %% 完整的 fNIRS 3D 重建流程
+
+    % 1. 加载处理后的数据
+    load('processed_data.mat');  % 包含 data_hb 等
+
+    % 2. 创建头模型
+    disp('Creating head model...');
+    headmodel = nirs.core.HeadModel();
+
+    % 方法A: 使用模板
+    headmodel = nirs.core.HeadModel.fromTemplate('colin27');
+
+    % 方法B: 或使用ICBM152模板（推荐）
+    % headmodel = nirs.core.HeadModel.fromTemplate('icbm152');
+
+    % 方法C: 或从MRI文件创建
+    % headmodel = nirs.core.HeadModel.fromMRI('subject_mri.nii', 'tissues', {'scalp','skull','csf','gray'});
+
+    % 3. 创建并注册光极
+    disp('Setting up probe...');
+    probe = nirs.core.Probe();
+
+    % 定义10-20系统坐标（示例）
+    src_pos = [
+        0.08 0.01 0.08;   % F3
+        0.08 -0.01 0.08;  % F4
+        0.04 0.07 0.06;   % C3
+        0.04 -0.07 0.06;  % C4
+    ];
+
+    det_pos = [
+        0.07 0.02 0.07;   % 探测器位置
+        0.07 -0.02 0.07;
+        0.05 0.06 0.06;
+        0.05 -0.06 0.06;
+    ];
+
+    probe.srcPos = src_pos;
+    probe.detPos = det_pos;
+
+    % 定义测量通道
+    probe.link = table();
+    probe.link.source = [1 1 2 2 3 3 4 4]';
+    probe.link.detector = [1 2 1 2 3 4 3 4]';
+    probe.link.type = repmat({'hbo'}, 8, 1);
+
+    % 注册光极到头模型
+    headmodel.registerProbe(probe);
+
+    % 4. 可视化光极位置
+    figure;
+    headmodel.draw();
+    hold on;
+    scatter3(probe.srcPos(:,1), probe.srcPos(:,2), probe.srcPos(:,3), ...
+        100, 'r', 'filled', 'DisplayName', 'Sources');
+    scatter3(probe.detPos(:,1), probe.detPos(:,2), probe.detPos(:,3), ...
+        100, 'b', 'filled', 'DisplayName', 'Detectors');
+    legend;
+    title('Optode Positions on Head Model');
+
+    % 5. 创建前向模型
+    disp('Computing forward model...');
+    forward = nirs.forward.Nirfast();
+
+    % 设置组织类型
+    headmodel.mesh.tissue = {'scalp', 'skull', 'csf', 'gray'};
+
+    % 设置光学属性（典型值）
+    optical_props = [
+        0.017 0.74;   % 头皮 [μa, μs']
+        0.016 0.64;   % 颅骨
+        0.004 0.26;   % 脑脊液
+        0.018 0.64;   % 灰质
+    ];
+
+    forward.prop = optical_props;
+    forward.mesh = headmodel.mesh;
+    forward.probe = probe;
+
+    % 计算敏感度矩阵
+    Jacobian = forward.Jacobian;
+
+    % 6. 执行图像重建
+    disp('Performing image reconstruction...');
+    recon = nirs.modules.ImageReconstruction();
+    recon.method = 'tikhonov';  % 使用Tikhonov正则化
+    recon.lambda = 0.1;  % 正则化参数（可调整）
+    recon.mesh = headmodel.mesh;
+    recon.probe = probe;
+
+    % 运行重建（使用处理后的Hb数据）
+    recon_results = recon.run(data_hb);
+
+    % 7. 3D可视化结果
+    disp('Visualizing results...');
+    figure;
+
+    % 绘制大脑表面
+    subplot(2,2,1);
+    headmodel.draw('tissue', 'gray');
+    title('Gray Matter Surface');
+
+    % 绘制HbO重建结果
+    subplot(2,2,2);
+    headmodel.drawSolution(recon_results(1).data, 'colormap', jet);
+    title('HbO Reconstruction');
+
+    % 绘制HbR重建结果
+    subplot(2,2,3);
+    headmodel.drawSolution(recon_results(2).data, 'colormap', jet);
+    title('HbR Reconstruction');
+
+    % 3D交互视图
+    subplot(2,2,4);
+    h = headmodel.draw();
+    hold on;
+    headmodel.drawSolution(recon_results(1).data, 'alpha', 0.5);
+    title('3D Overlay View');
+    view(3);
+
+    % 8. 保存重建结果
+    % 保存重建图像
+    save('reconstruction_results.mat', 'recon_results', 'headmodel', 'probe');
+
+    % 导出重建数据为NIfTI格式
+    nirs.forward.writeNifti(recon_results(1).data, 'hbo_recon.nii', headmodel.mesh);
+    ```
+
+    **高级3D重建功能**
+
+    1. 空间归一化
+
+        ```matlab
+        % 将个体空间结果归一化到MNI空间
+        mni_results = nirs.forward.normalizeToMNI(recon_results, headmodel);
+
+        % 查看MNI坐标的激活
+        mni_coords = mni_results.mesh.nodes;
+        activation_values = mni_results.data;
+        ```
+
+    2. ROI分析
+
+        ```matlab
+        % 定义感兴趣区域
+        roi_definitions = {
+            'PFC',  [-40 30 20; 40 30 20];  % 前额叶
+            'M1',   [-40 -20 50; 40 -20 50]; % 运动皮层
+            'S1',   [-40 -30 60; 40 -30 60]; % 感觉皮层
+        };
+
+        % 提取ROI内的平均激活
+        for i = 1:size(roi_definitions, 1)
+            roi_name = roi_definitions{i,1};
+            roi_center = mean(roi_definitions{i,2});
+            radius = 15; % mm
+            
+            % 找到ROI内的节点
+            nodes_in_roi = find(vecnorm(headmodel.mesh.nodes - roi_center, 2, 2) < radius);
+            
+            % 计算平均激活
+            roi_activation_hbo(i) = mean(recon_results(1).data(nodes_in_roi));
+            roi_activation_hbr(i) = mean(recon_results(2).data(nodes_in_roi));
+            
+            fprintf('%s ROI - HbO: %.4f, HbR: %.4f\n', ...
+                roi_name, roi_activation_hbo(i), roi_activation_hbr(i));
+        end
+        ```
+
+    3. 深度敏感度分析
+
+        ```matlab
+        % 计算不同深度的敏感度
+        depth_bins = 0:5:30; % mm
+        sensitivity_profile = zeros(length(depth_bins)-1, 1);
+
+        for i = 1:length(depth_bins)-1
+            depth_mask = headmodel.mesh.nodes(:,3) > -depth_bins(i+1) & ...
+                         headmodel.mesh.nodes(:,3) < -depth_bins(i);
+            sensitivity_profile(i) = mean(Jacobian(depth_mask, :), 'all');
+        end
+
+        % 绘制深度敏感度曲线
+        figure;
+        bar(depth_bins(1:end-1), sensitivity_profile);
+        xlabel('Depth (mm)');
+        ylabel('Mean Sensitivity');
+        title('Depth Sensitivity Profile');
+        ```
+
+    4. 统计参数图
+
+        ```python
+        % 生成统计参数图（SPM）
+        spm_results = nirs.statistics.SPM();
+        spm_results.dim = headmodel.mesh.nodes;
+        spm_results.Z = recon_results(1).data ./ recon_results(1).std;  % Z统计量
+        spm_results.p = 2 * normcdf(-abs(spm_results.Z));  % p值
+
+        % 阈值化结果（p < 0.05，FDR校正）
+        [significant, p_corrected] = nirs.statistics.fdr(spm_results.p, 0.05);
+
+        % 显示显著区域
+        figure;
+        headmodel.drawSolution(significant .* recon_results(1).data, ...
+            'colormap', hot, 'alpha', 0.7);
+        title('Significant Activation (FDR corrected, p<0.05)');
+        ```
+
+    5. 时间序列重建
+
+        ```matlab
+        % 重建每个时间点的激活
+        n_timepoints = size(data_hb(1).data, 1);
+        time_recon = zeros(length(headmodel.mesh.nodes), n_timepoints);
+
+        for t = 1:n_timepoints
+            time_data = nirs.core.Data();
+            time_data.data = data_hb(1).data(t,:);
+            time_data.probe = probe;
+            
+            recon_time = recon.run(time_data);
+            time_recon(:,t) = recon_time(1).data;
+        end
+
+        % 创建时间序列视频
+        figure;
+        for t = 1:10:n_timepoints
+            clf;
+            headmodel.drawSolution(time_recon(:,t));
+            title(sprintf('Time: %.2f s', data_hb(1).time(t)));
+            drawnow;
+            frames(t) = getframe(gcf);
+        end
+        ```
+
+    注意事项
+
+    1. **网格质量**：确保头模型网格质量良好，避免畸形单元
+    2. **正则化参数**：需要通过L-curve或交叉验证选择最佳λ
+    3. **计算资源**：3D重建计算量大，可能需要并行计算
+    4. **验证**：建议使用模拟数据验证重建算法的准确性
+
+    这个完整的3D重建流程可以帮助你从fNIRS数据获得大脑活动的三维空间分布。
+
 * AdultMNI152
 
     AdultMNI152（通常指MNI-ICBM152）是神经影像学领域最广泛使用的标准脑模板之一，由蒙特利尔神经学研究所（MNI）开发。

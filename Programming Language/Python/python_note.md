@@ -2,6 +2,77 @@
 
 ## cache
 
+* python 函数参数提示中的这个斜杠 / 是什么意思？
+    
+    `(a: LiteralString, /, *paths: LiteralString)`
+
+    在 Python 函数参数中，斜杠 `/` 是一个**位置参数分隔符**，这是 Python 3.8 引入的特性。让我详细解释：
+
+    ## 基本含义
+
+    `/` 表示它**左边**的所有参数都必须是**仅限位置参数**（positional-only parameters），不能作为关键字参数传递。
+
+    ## 示例说明
+
+    以你的例子：
+    ```python
+    (a: LiteralString, /, *paths: LiteralString)
+    ```
+
+    ### 规则解析：
+    - `a` 在 `/` 左侧 → 必须是位置参数
+    - `*paths` 在 `/` 右侧 → 可以是位置或关键字参数
+    - `/` 本身不是参数，只是一个语法标记
+
+    ### 实际演示：
+    ```python
+    def example(a, /, *paths):
+        print(f"a={a}, paths={paths}")
+
+    # ✅ 正确调用
+    example("hello", "path1", "path2")           # a=hello, paths=('path1', 'path2')
+    example("hello")                              # a=hello, paths=()
+
+    # ❌ 错误调用
+    example(a="hello", "path1", "path2")          # TypeError: example() got some positional-only arguments passed as keyword arguments: 'a'
+
+    # ✅ *paths 可以接受关键字参数
+    example("hello", paths=("path1", "path2"))    # a=hello, paths=('path1', 'path2')
+    ```
+
+    ## 使用场景
+
+    1. **API 设计**：强制参数为位置参数，避免参数名耦合
+    2. **内置函数兼容**：很多 Python 内置函数使用这种模式
+    3. **性能优化**：位置参数解析略快
+    4. **参数名自由**：允许将来更改参数名而不破坏代码
+
+    ### 常见例子：
+    ```python
+    # Python 内置函数示例
+    len(obj)           # len 只能接受位置参数
+    abs(-5)            # abs 也只能位置参数
+
+    # 标准库中的使用
+    def __init__(self, name, /, age=0):
+        self.name = name    # name 必须是位置参数
+        self.age = age      # age 可以是关键字参数
+    ```
+
+    ## 完整语法组合
+
+    ```python
+    def func(pos_only, /, pos_or_keyword, *, keyword_only):
+        """参数类型：
+        - pos_only: 仅位置参数
+        - pos_or_keyword: 位置或关键字参数
+        - keyword_only: 仅关键字参数
+        """
+        pass
+    ```
+
+    这样设计让参数传递规则更加清晰和灵活。
+
 * 即使是 from xxx import yyy，也会执行`xxx.py`中的所有代码
 
     如果有不想被执行的代码，可以写到`if __name__ == '__main__`下。

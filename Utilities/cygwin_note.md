@@ -4,6 +4,123 @@
 
 ## cache
 
+* windows terminal cygwin 中，bell 声一直响个不停，大量事件都会触发bell，如何解决
+
+    在 Windows Terminal 的 Cygwin 环境中，如果 bell 声（终端提示音）响个不停，通常是因为某些操作触发了终端的 BEL 字符（ASCII 7）。以下是几种解决方法：
+
+    1. **在 Windows Terminal 设置中禁用铃声**
+
+        在 Windows Terminal 的配置文件（settings.json）中，找到你的 Cygwin 配置，添加或修改以下设置：
+
+        ```json
+        {
+            "profiles": {
+                "list": [
+                    {
+                        "name": "Cygwin",
+                        "commandline": "cygwin.exe",
+                        "bellStyle": "none",  // 禁用铃声
+                        // 或者
+                        "bellStyle": "window", // 只在窗口闪烁，不发出声音
+                    }
+                ]
+            }
+        }
+        ```
+
+        **可选值：**
+
+        - `"none"`：完全禁用铃声
+        - `"window"`：窗口闪烁代替声音
+        - `"audible"`：声音提示（默认）
+        - `["window", "audible"]`：同时使用窗口闪烁和声音
+
+    2. **在 Cygwin 中禁用铃声**
+
+        方法 A：修改终端设置
+
+        在 Cygwin 中运行：
+
+        ```bash
+        # 查看当前设置
+        echo $TERM
+
+        # 临时禁用铃声
+        setterm -blength 0
+
+        # 或使用 tput
+        tput bel # 测试铃声
+        ```
+
+        方法 B：修改 .bashrc 或 .bash_profile
+
+        在 `~/.bashrc` 中添加：
+
+        ```bash
+        # 禁用铃声
+        setterm -blength 0 2>/dev/null
+
+        # 或者使用 xset
+        xset -b 2>/dev/null
+        ```
+
+    3. **修改 Cygwin 的输入设置**
+
+        有些情况下，铃声是由特定的按键组合触发的。编辑 `~/.inputrc` 文件：
+
+        ```bash
+        # 禁用铃声
+        set bell-style none
+        set bell-style visible  # 使用视觉提示代替声音
+        ```
+
+    4. **在 Cygwin 中禁用所有终端的铃声**
+
+        编辑 `/etc/inputrc`（需要管理员权限）：
+
+        ```bash
+        # 在文件末尾添加
+        set bell-style none
+        ```
+
+    5. **通过 Windows 系统设置禁用**
+
+        如果以上方法都不行，可以通过 Windows 系统设置禁用系统提示音：
+
+        1. 打开 **控制面板** → **硬件和声音** → **声音**
+        2. 在"声音"选项卡中，找到"程序事件"列表
+        3. 找到 **默认蜂鸣** 或 **终端铃声**
+        4. 将声音设置为"无"
+
+    6. **临时解决方案**
+
+        在 Cygwin 会话中运行以下命令可以临时禁用铃声：
+
+        ```bash
+        # 完全禁用所有铃声
+        echo -e "\e[?1034l"
+        ```
+
+    7. **检查常见触发源**
+
+        如果铃声频繁触发，可能是以下原因：
+
+        - **Tab 自动补全**：当有多个匹配项时可能会响铃
+        - **错误的命令**：输入不存在的命令
+        - **VI/Emacs 等编辑器**：某些操作触发了铃声
+
+        在 `.bashrc` 中添加：
+
+        ```bash
+        # 让自动补全更安静
+        bind 'set show-all-if-ambiguous on'
+        bind 'set bell-style none'
+        ```
+
+    推荐方案
+
+    首先尝试 **方法 1**（Windows Terminal 设置），这是最简单且针对性的解决方案。如果不行，再组合使用 **方法 2B**（修改 .bashrc）。
+
 * 如果在 cygwin 中，可以使用 ls 定位到一个文件，但是无法使用 vim 向其中写入内容，那么很有可能是 vim 使用的是 windows 版本的，无法处理`/`路径。使用 cygwin 仓库中的 bash 版本的 vim 可以解决这个问题。
 
 * cygwin 中 scp 和 rsync 会调用 windows 自带的 ssh，导致无法正确处理 cygwin 中的`/`路径，从而无法工作。
