@@ -2,6 +2,354 @@
 
 ## cache
 
+* 简述 freesurfer 的用法
+
+    ## FreeSurfer 简介
+
+    FreeSurfer 是一个专门用于处理和分析神经影像数据的软件包，主要用于大脑结构像（MRI）的皮层重建、分割和分析。
+
+    ## 主要功能
+
+    ### 1. 皮层重建流程（recon-all）
+
+    ```bash
+    # 完整处理流程
+    recon-all -i T1.nii.gz -s subject_name -all
+
+    # 分步骤处理
+    recon-all -i T1.nii.gz -s subject_name   # 导入数据
+    recon-all -s subject_name -autorecon1     # 第一步：预处理、配准、去头皮
+    recon-all -s subject_name -autorecon2     # 第二步：分割、表面重建
+    recon-all -s subject_name -autorecon3     # 第三步：表面处理、皮层图谱
+    ```
+
+    ### 2. 常用命令
+
+    ```bash
+    # 查看处理结果
+    freeview -v mri/T1.mgz \
+             -v mri/brainmask.mgz \
+             -v mri/aseg.mgz
+
+    # 计算皮层厚度
+    mris_anatomical_stats -f stats.txt subject_name lh
+
+    # 提取皮层指标
+    asegstats2table --subjects subj1 subj2 --table aseg_stats.txt
+    aparcstats2table --subjects subj1 subj2 --hemi lh --table aparc_stats.txt
+    ```
+
+    ## 核心文件结构
+
+    ```
+    subjects/
+    └── subject_name/
+        ├── mri/              # 体积数据
+        │   ├── T1.mgz        # 原始T1
+        │   ├── brainmask.mgz # 去头皮后的脑组织
+        │   ├── aseg.mgz      # 脑区分割结果
+        │   └── norm.mgz      # 归一化后的图像
+        ├── surf/             # 表面数据
+        │   ├── lh.pial       # 左脑软膜表面
+        │   ├── lh.white      # 左脑白质表面
+        │   ├── rh.pial       # 右脑软膜表面
+        │   └── rh.white      # 右脑白质表面
+        ├── label/            # 标签文件
+        ├── stats/            # 统计结果
+        └── scripts/          # 处理脚本
+    ```
+
+    ## 皮层指标提取
+
+    ```bash
+    # 体积测量
+    mri_segstats --seg mri/aseg.mgz --sum aseg.stats
+
+    # 皮层厚度
+    mris_anatomical_stats -a aparc.annot -f lh.thickness.stats subject_name lh
+
+    # 表面积
+    mris_anatomical_stats -a aparc.annot -f lh.area.stats subject_name lh
+
+    # 皮层体积
+    mris_anatomical_stats -a aparc.annot -f lh.volume.stats subject_name lh
+    ```
+
+    ## 组分析准备
+
+    ```bash
+    # 配准到标准空间（fsaverage）
+    recon-all -s subject_name -qcache
+
+    # 平滑数据
+    mri_surf2surf --hemi lh \
+                  --s subject_name \
+                  --sval thickness \
+                  --fwhm 10 \
+                  --tval lh.thickness.fwhm10.mgh
+
+    # 创建组分析设计矩阵
+    mris_preproc --target fsaverage \
+                 --hemi lh \
+                 --meas thickness \
+                 --subjects subj1 subj2 subj3 \
+                 --out lh.thickness.mgh
+    ```
+
+    ## 可视化
+
+    ```bash
+    # 3D表面显示
+    tksurfer subject_name lh inflated
+
+    # 体积数据显示
+    freeview -v mri/T1.mgz \
+             -v mri/aseg.mgz:colormap=lut \
+             -f surf/lh.pial:edgecolor=red \
+             -f surf/rh.pial:edgecolor=blue
+
+    # 覆盖统计结果
+    freeview -f surf/lh.inflated:overlay=lh.thickness.mgh
+    ```
+
+    ## 实用技巧
+
+    ### 批处理脚本
+    ```bash
+    #!/bin/bash
+    # 批量处理多个被试
+    subjects="subj01 subj02 subj03"
+    for sub in $subjects; do
+        recon-all -i ${sub}/T1.nii -s ${sub} -all
+    done
+    ```
+
+    ### QA检查
+    ```bash
+    # 生成质量报告
+    recon-check -s subject_name
+
+    # 检查配准质量
+    tkregister2 --mov mri/rawavg.mgz --reg register.dat --surf
+    ```
+
+    ## 注意事项
+
+    1. **计算资源**：处理一个被试需要约6-8小时，需要大量内存（8GB+）
+    2. **数据质量**：T1图像需要高分辨率（1mm³等体素）、无运动伪影
+    3. **版本兼容**：不同版本FreeSurfer结果可能有差异
+    4. **并行处理**：可以使用`-parallel`选项加速批处理
+
+    FreeSurfer是神经影像分析的重要工具，特别适合研究皮层形态学、厚度变化等指标！
+
+* 简述 cifti 的用法
+
+    ## CIFTI 简介
+
+    CIFTI（Connectivity Informatics Technology Initiative）是一种专门用于存储**脑连接数据**的文件格式，由Human Connectome Project（HCP）开发。它可以将**皮层表面**和**皮层下核团**的数据整合在一个文件中。
+
+    ## 主要特点
+
+    - **混合表示**：同时存储皮层表面（面片）和皮层下体积（体素）
+    - **高效存储**：采用GIFTI（表面数据）和NIfTI（体积数据）的混合
+    - **标准空间**：通常使用标准空间（如fsLR、MNI）进行配准
+
+    ## 文件类型
+
+    ```bash
+    # 主要CIFTI文件扩展名
+    .dconn.nii      # 连接矩阵（dense connectivity）
+    .ptseries.nii   # 时间序列数据（parcellated timeseries）
+    .dtseries.nii   # 密集时间序列（dense timeseries）
+    .dscalar.nii    # 标量数据（dense scalar）
+    .dlabel.nii     # 标签数据（dense label）
+    .pconn.nii      # 分区连接矩阵（parcellated connectivity）
+    ```
+
+    ## 常用工具
+
+    ### 1. wb_command（Workbench Command）
+
+    ```bash
+    # 查看CIFTI信息
+    wb_command -file-information dtseries.dtseries.nii
+
+    # 提取特定结构
+    wb_command -cifti-separate dtseries.dtseries.nii \
+               COLUMN -volume-only volume.nii.gz \
+               -metric CORTEX_LEFT left.func.gii \
+               -metric CORTEX_RIGHT right.func.gii
+
+    # 合并数据到CIFTI
+    wb_command -cifti-create-dense-timeseries timeseries.dtseries.nii \
+               -volume volume.nii.gz \
+               -left-metric left.func.gii \
+               -right-metric right.func.gii
+
+    # 重采样CIFTI
+    wb_command -cifti-resample input.dscalar.nii \
+               RESAMPLE_TO template.dscalar.nii \
+               -method BARYCENTRIC \
+               output.dscalar.nii
+
+    # 平滑处理
+    wb_command -cifti-smoothing input.dtseries.nii \
+               2 2 COLUMN output.dtseries.nii \
+               -left-surface left.midthickness.surf.gii \
+               -right-surface right.midthickness.surf.gii
+    ```
+
+    ### 2. Python处理（nibabel）
+
+    ```python
+    import nibabel as nib
+
+    # 读取CIFTI文件
+    cifti_img = nib.load('data.dtseries.nii')
+    cifti_data = cifti_img.get_fdata()
+    print(f"Data shape: {cifti_data.shape}")  # (时间点, 顶点数+体素数)
+
+    # 获取结构信息
+    header = cifti_img.header
+    brain_models = header.get_index_map(1).brain_models
+
+    # 查看不同脑区
+    for model in brain_models:
+        print(f"Structure: {model.brain_structure}")
+        print(f"Index range: {model.index_range}")
+        print(f"Vertex/Voxel count: {model.surface_number_of_vertices or model.voxel_list_shape}")
+
+    # 提取特定脑区
+    left_cortex_mask = cifti_img.header.get_axis(1).name == 'CIFTI_STRUCTURE_CORTEX_LEFT'
+
+    # 创建新的CIFTI
+    new_cifti = nib.cifti2.Cifti2Image(data, cifti_img.header)
+    nib.save(new_cifti, 'output.dscalar.nii')
+    ```
+
+    ## 实际应用示例
+
+    ### 1. 功能连接分析
+    ```python
+    import numpy as np
+    import nibabel as nib
+
+    # 读取时间序列数据
+    dtseries = nib.load('resting.dtseries.nii')
+    timeseries = dtseries.get_fdata()  # (时间, 位置)
+
+    # 计算功能连接
+    correlation = np.corrcoef(timeseries.T)  # (位置, 位置)
+
+    # 保存为连接矩阵
+    pconn_img = nib.cifti2.Cifti2Image(correlation, dtseries.header)
+    nib.save(pconn_img, 'functional_connectivity.pconn.nii')
+    ```
+
+    ### 2. 分区统计
+    ```python
+    # 使用分区文件进行统计
+    wb_command -cifti-parcellate data.dtseries.nii \
+               parcellation.dlabel.nii \
+               COLUMN \
+               parcel_stats.ptseries.nii \
+               -method MEAN
+
+    # 分区时间序列相关
+    wb_command -cifti-correlation parcel_stats.ptseries.nii \
+               parcel_corr.pconn.nii
+    ```
+
+    ### 3. 可视化准备
+    ```bash
+    # 将CIFTI转换为GIFTI用于表面可视化
+    wb_command -cifti-separate data.dscalar.nii \
+               COLUMN -metric CORTEX_LEFT left.func.gii
+
+    # 将CIFTI转换为NIfTI用于体积可视化
+    wb_command -cifti-separate data.dscalar.nii \
+               COLUMN -volume-only volume.nii.gz
+    ```
+
+    ## 数据格式转换
+
+    ### CIFTI ↔ GIFTI/NIfTI
+    ```bash
+    # CIFTI到GIFTI（皮层）
+    wb_command -cifti-separate input.dtseries.nii \
+               COLUMN -metric CORTEX_LEFT left.func.gii
+
+    # CIFTI到NIfTI（皮层下）
+    wb_command -cifti-separate input.dtseries.nii \
+               COLUMN -volume-all subcortical.nii.gz
+
+    # GIFTI/NIfTI到CIFTI
+    wb_command -cifti-create-dense-scalar output.dscalar.nii \
+               -left-metric left.func.gii \
+               -right-metric right.func.gii \
+               -volume subcortical.nii.gz
+    ```
+
+    ### 不同空间转换
+    ```bash
+    # fsaverage到fsLR
+    wb_command -metric-resample left.func.gii \
+               fsaverage_LR_fs_LR32k/fsaverage.left_hemisphere.surf.gii \
+               fs_LR-deformed_to-fsaverage.left_hemisphere.surf.gii \
+               ADAP_BARY_AREA \
+               left.func.fsLR.gii
+
+    # 合并成CIFTI
+    wb_command -cifti-create-dense-scalar output.dscalar.nii \
+               -left-metric left.func.fsLR.gii \
+               -right-metric right.func.fsLR.gii
+    ```
+
+    ## 实用技巧
+
+    ### 批处理脚本
+    ```bash
+    #!/bin/bash
+    # 批量处理多个被试的CIFTI
+    for sub in sub-01 sub-02 sub-03; do
+        # 平滑数据
+        wb_command -cifti-smoothing \
+            ${sub}/func/${sub}_task-rest.dtseries.nii \
+            4 4 COLUMN \
+            ${sub}/func/${sub}_task-rest_smoothed.dtseries.nii \
+            -left-surface ${sub}/surf/${sub}_left.midthickness.surf.gii \
+            -right-surface ${sub}/surf/${sub}_right.midthickness.surf.gii
+    done
+    ```
+
+    ### 提取感兴趣区
+    ```python
+    import numpy as np
+    import nibabel as nib
+
+    # 读取CIFTI和分区文件
+    cifti_img = nib.load('data.dtseries.nii')
+    parcel_img = nib.load('parcels.dlabel.nii')
+
+    # 提取特定分区（如默认模式网络）
+    dmn_parcels = [1, 2, 3]  # 默认模式网络的分区标签
+    parcel_data = parcel_img.get_fdata()[0]
+    dmn_mask = np.isin(parcel_data, dmn_parcels)
+
+    # 提取DMN的时间序列
+    dmn_timeseries = cifti_img.get_fdata()[:, dmn_mask]
+    ```
+
+    ## 注意事项
+
+    1. **空间配准**：CIFTI数据通常需要在标准空间（fsLR、MNI）中
+    2. **内存需求**：密集CIFTI文件可能很大（尤其是.dconn.nii）
+    3. **工具选择**：wb_command是主要处理工具，Python的nibabel提供编程接口
+    4. **版本兼容**：注意CIFTI-2与CIFTI-1的区别
+    5. **表面文件**：需要对应的表面文件进行平滑、重采样等操作
+
+    CIFTI格式特别适合HCP数据分析和脑连接研究，能够同时利用皮层表面和皮层下结构的优势！
+
 * 搜索 fnirs 相关的数据集，关键字：`NIRS-BCI Stroke Dataset`
 
 * 简述 homer3 的常用 API 及用法，给出完整流程的 example

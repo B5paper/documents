@@ -2,6 +2,173 @@
 
 ## cache
 
+* 简述 python 中 random 随机数的用法
+
+    Python 的 `random` 模块提供了丰富的随机数生成功能，以下是主要用法：
+
+    ## 1. 基本随机数生成
+
+    ```python
+    import random
+
+    # 生成 [0.0, 1.0) 之间的随机浮点数
+    print(random.random())  # 0.37444887175646646
+
+    # 生成指定范围内的随机整数 [a, b]（包含两端）
+    print(random.randint(1, 10))  # 7
+
+    # 生成指定范围内的随机整数 [a, b)（步长为 step）
+    print(random.randrange(0, 10, 2))  # 4（0-10之间的偶数）
+
+    # 生成指定范围内的随机浮点数 [a, b]
+    print(random.uniform(1.5, 5.5))  # 3.2345678901234567
+    ```
+
+    ## 2. 序列相关操作
+
+    ```python
+    # 从列表中随机选择一个元素
+    fruits = ['apple', 'banana', 'orange', 'grape']
+    print(random.choice(fruits))  # banana
+
+    # 从序列中随机选择多个元素（可重复）
+    print(random.choices(fruits, k=3))  # ['apple', 'grape', 'banana']
+
+    # 从序列中随机选择多个元素（不重复）
+    print(random.sample(fruits, k=2))  # ['orange', 'apple']
+
+    # 打乱列表顺序（原地操作）
+    cards = [1, 2, 3, 4, 5]
+    random.shuffle(cards)
+    print(cards)  # [3, 5, 1, 4, 2]
+    ```
+
+    ## 3. 随机分布函数
+
+    ```python
+    # 高斯分布（正态分布）
+    print(random.gauss(0, 1))  # 均值0，标准差1
+
+    # 指数分布
+    print(random.expovariate(1.5))
+
+    # 三角分布
+    print(random.triangular(0, 10, 5))  # 最小值0，最大值10，众数5
+    ```
+
+    ## 4. 设置随机种子
+
+    ```python
+    # 设置种子，使随机结果可重现
+    random.seed(42)
+    print(random.random())  # 0.6394267984578837
+    print(random.randint(1, 100))  # 82
+
+    # 重置种子，得到相同的结果
+    random.seed(42)
+    print(random.random())  # 0.6394267984578837
+    ```
+
+    ## 5. 实用示例
+
+    ```python
+    # 生成随机密码
+    import random
+    import string
+
+    def generate_password(length=8):
+        chars = string.ascii_letters + string.digits
+        return ''.join(random.choice(chars) for _ in range(length))
+
+    print(generate_password())  # aK3mN9xP
+
+    # 随机抽样
+    population = list(range(100))
+    sample = random.sample(population, 5)
+    print(sample)  # [32, 67, 12, 89, 45]
+
+    # 随机打乱文本
+    text = list("Hello World")
+    random.shuffle(text)
+    print(''.join(text))  # "dlW lroHole"
+    ```
+
+    ## 注意事项
+    - `random` 模块生成的是伪随机数，适合一般应用
+    - 对于密码学等安全要求高的场景，应使用 `secrets` 模块
+    - 设置相同种子可以复现随机结果，便于调试
+
+* 简述 python 如何处理 toml 文件
+
+    Python 处理 TOML 文件主要通过标准库 `tomllib`（Python 3.11+）或第三方库 `tomli`/`tomlkit`。以下是主要处理方法：
+
+    1. **Python 3.11+ 标准库 tomllib**
+
+        用于**读取** TOML 文件：
+
+        ```python
+        import tomllib
+
+        # 读取文件
+        with open('config.toml', 'rb') as f:
+            data = tomllib.load(f)
+
+        # 解析字符串
+        toml_str = """
+        title = "TOML Example"
+        [owner]
+        name = "Tom"
+        """
+        data = tomllib.loads(toml_str)
+        ```
+
+    2. **第三方库 tomli/tomlkit**
+
+        用于兼容旧版本 Python 或需要写入功能：
+
+        ```bash
+        pip install tomlkit  # 或 pip install tomli
+        ```
+
+        ```python
+        # 读取
+        import tomlkit
+
+        with open('config.toml', 'r') as f:
+            data = tomlkit.load(f)
+
+        # 写入
+        data['new_key'] = 'new_value'
+        with open('config.toml', 'w') as f:
+            tomlkit.dump(data, f)
+        ```
+
+    3. **常用库对比**
+
+        | 库 | 读取 | 写入 | 说明 |
+        |-----|------|------|------|
+        | `tomllib` | ✅ | ❌ | Python 3.11+ 标准库 |
+        | `tomli` | ✅ | ❌ | 第三方，兼容旧版本 |
+        | `tomlkit` | ✅ | ✅ | 支持写入，保持格式 |
+
+    4. **示例 TOML 文件处理**
+
+        ```python
+        # config.toml
+        # title = "配置"
+        # [database]
+        # host = "localhost"
+        # port = 5432
+
+        import tomllib
+
+        with open('config.toml', 'rb') as f:
+            config = tomllib.load(f)
+
+        print(config['title'])        # 配置
+        print(config['database']['port'])  # 5432
+        ```
+
 * python 函数参数提示中的这个斜杠 / 是什么意思？
     
     `(a: LiteralString, /, *paths: LiteralString)`

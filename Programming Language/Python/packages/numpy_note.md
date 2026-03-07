@@ -2,6 +2,145 @@
 
 ## cache
 
+* NumPy 中的随机数生成器（Random Number Generator）
+
+    这是 NumPy 中的随机数生成器（Random Number Generator）的**新式用法**，是 NumPy 1.17 版本后推荐的方式：
+
+    ## 1. 基本用法
+
+    ```python
+    import numpy as np
+
+    # 创建随机数生成器，42是随机种子
+    rng = np.random.default_rng(42)
+
+    # 生成随机数
+    print(rng.random())                    # 0.7739560485559633（标量）
+    print(rng.random(3))                    # [0.43887844 0.85859792 0.69736803]（数组）
+    print(rng.random((2, 3)))               # 2x3的随机数组
+    ```
+
+    ## 2. 与旧版对比
+
+    ```python
+    # 旧版（不推荐）
+    np.random.seed(42)
+    a = np.random.rand(3)
+    b = np.random.randint(0, 10, 3)
+
+    # 新版（推荐）
+    rng = np.random.default_rng(42)
+    a = rng.random(3)
+    b = rng.integers(0, 10, 3)
+    ```
+
+    ## 3. 常用方法
+
+    ```python
+    rng = np.random.default_rng(42)
+
+    # 整数随机数
+    print(rng.integers(0, 10, 5))           # [6 3 7 4 6] 0-9之间的5个整数
+    print(rng.integers(0, 10, (2, 3)))       # 2x3的整数数组
+
+    # 浮点数随机数
+    print(rng.random(5))                     # [0.77 0.43 0.85 0.59 0.69]
+    print(rng.uniform(0, 1, 5))              # 均匀分布，等同于random()
+
+    # 正态分布
+    print(rng.normal(0, 1, 3))               # 均值0，标准差1的正态分布
+
+    # 随机选择
+    arr = np.array([1, 2, 3, 4, 5])
+    print(rng.choice(arr, 3))                 # 随机选择3个元素
+    print(rng.choice(arr, 3, replace=False))  # 无放回选择
+
+    # 打乱数组
+    rng.shuffle(arr)                          # 原地打乱
+    print(arr)
+
+    # 随机排列
+    print(rng.permutation(10))                 # 0-9的随机排列
+    ```
+
+    ## 4. 多维数组操作
+
+    ```python
+    rng = np.random.default_rng(42)
+
+    # 生成多维随机数组
+    matrix = rng.random((3, 4))                # 3行4列
+    print(matrix)
+
+    # 沿指定轴打乱
+    matrix2d = np.array([[1, 2], [3, 4], [5, 6]])
+    rng.shuffle(matrix2d, axis=0)              # 打乱行顺序
+    print(matrix2d)
+    ```
+
+    ## 5. 不同的分布
+
+    ```python
+    rng = np.random.default_rng(42)
+
+    # 各种概率分布
+    print(rng.normal(0, 1, 5))                 # 正态分布
+    print(rng.poisson(3, 5))                   # 泊松分布
+    print(rng.exponential(1, 5))                # 指数分布
+    print(rng.binomial(10, 0.5, 5))             # 二项分布
+    print(rng.gamma(2, 2, 5))                   # Gamma分布
+    ```
+
+    ## 6. 并行处理优势
+
+    ```python
+    # 可以创建独立的生成器，避免线程安全问题
+    rng1 = np.random.default_rng(42)
+    rng2 = np.random.default_rng(43)
+
+    # 各自独立
+    print(rng1.random(3))  # [0.77 0.43 0.85]
+    print(rng2.random(3))  # [0.95 0.15 0.10]
+    ```
+
+    ## 7. 实用示例
+
+    ```python
+    rng = np.random.default_rng(42)
+
+    # 生成随机数据集
+    def generate_dataset(n_samples=100, n_features=5):
+        X = rng.random((n_samples, n_features))
+        y = rng.integers(0, 2, n_samples)  # 二分类标签
+        return X, y
+
+    X, y = generate_dataset()
+    print(f"X shape: {X.shape}")  # (100, 5)
+    print(f"y shape: {y.shape}")  # (100,)
+
+    # 随机采样数据
+    data = rng.random(1000)
+    sample = rng.choice(data, size=100, replace=False)
+
+    # 蒙特卡洛模拟
+    def monte_carlo_pi(n_points=10000):
+        points = rng.random((n_points, 2))
+        inside = np.sum(np.sum(points**2, axis=1) <= 1)
+        return 4 * inside / n_points
+
+    print(f"π ≈ {monte_carlo_pi()}")
+    ```
+
+    ## 优势总结
+
+    1. **面向对象**：可以创建多个独立的生成器
+    2. **线程安全**：不同生成器互不影响
+    3. **性能更好**：特别是对于大规模随机数生成
+    4. **一致性**：不同版本NumPy结果更稳定
+    5. **灵活性**：支持更多的随机分布和操作
+
+    这是目前NumPy推荐的随机数生成方式！
+
 * 简述 numpy 中拼接 array 的常用方法，并给出 example
 
     在 NumPy 中，拼接 array 的常用方法主要有以下几种，我会为每个方法提供简单的示例。
