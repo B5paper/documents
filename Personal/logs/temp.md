@@ -1994,3 +1994,17 @@
     * OpenDevin / CodeLLM
 
     * Copilot Chat (VSCode)
+
+* leetcode
+
+    能量项链, 环形石子合并, 接雨水, 除自身以外数组的乘积, 海明距离, 拟阵（Matroid）, 最小生成树, 线性扫描（Linear Scan）, 最长回文子串
+
+    IOI（国际信息学奥林匹克竞赛）, ACM-ICPC
+
+    <<算法艺术与信息学竞赛>>
+
+    蒙特卡洛树搜索（MCTS）
+
+    遍历性（Ergodicity）
+
+    concurrent.futures
