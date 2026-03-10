@@ -2,44 +2,497 @@
 
 ## cache
 
+* 通道类型，常见类型：'mag'、'grad'、'eeg'、'stim'、'eog'、'ecg'、'emg'、'misc' 这几个是什么意思？我使用 fnirs 数据，该用哪个通道类型？
+
+    **通道类型含义说明**
+
+    **常见通道类型解释**
+
+    | 类型 | 全称 | 含义 | 典型应用 |
+    |------|------|------|----------|
+    | **'mag'** | Magnetometer | 磁力计 | MEG（脑磁图）中测量磁场强度的传感器 |
+    | **'grad'** | Gradiometer | 梯度计 | MEG 中测量磁场梯度的传感器 |
+    | **'eeg'** | Electroencephalography | 脑电图 | 记录头皮电位活动的电极 |
+    | **'stim'** | Stimulation | 刺激通道 | 记录事件触发信号、刺激标记的通道 |
+    | **'eog'** | Electrooculography | 眼电图 | 记录眼动和眨眼信号的电极 |
+    | **'ecg'** | Electrocardiography | 心电图 | 记录心电信号的电极 |
+    | **'emg'** | Electromyography | 肌电图 | 记录肌肉活动信号的电极 |
+    | **'misc'** | Miscellaneous | 杂项 | 其他未明确分类的信号 |
+
+    **其他可能用到的类型**
+
+    | 类型 | 含义 | 说明 |
+    |------|------|------|
+    | **'bio'** | Biological signals | 生物信号（如呼吸、体温等） |
+    | **'hbr'** | Deoxygenated hemoglobin | 脱氧血红蛋白（fNIRS专用） |
+    | **'hbo'** | Oxygenated hemoglobin | 氧合血红蛋白（fNIRS专用） |
+    | **'fnirs_cw_amplitude'** | fNIRS amplitude | fNIRS振幅数据 |
+    | **'fnirs_od'** | Optical Density | fNIRS光密度数据 |
+
+    **fNIRS数据应使用的通道类型**
+
+    对于 **fNIRS（功能性近红外光谱）** 数据，MNE-Python 提供专门的通道类型：
+
+    **推荐方案**
+
+    ```python
+    import mne
+
+    # 方案1：使用专门的 fNIRS 通道类型（推荐）
+    ch_names = ['S1_D1_hbo', 'S1_D1_hbr', 'S2_D1_hbo', 'S2_D1_hbr']
+    ch_types = ['hbo', 'hbr', 'hbo', 'hbr']  # 氧合和脱氧血红蛋白
+
+    info = mne.create_info(
+        ch_names=ch_names,
+        sfreq=10,  # fNIRS 通常采样率较低
+        ch_types=ch_types
+    )
+    ```
+
+    **完整的 fNIRS 数据示例**
+
+    ```python
+    import mne
+    import numpy as np
+
+    # 假设你有 8 个通道的 fNIRS 数据（4个氧合，4个脱氧）
+    n_channels = 8
+    ch_names = [
+        'S1_D1_HBO', 'S1_D1_HBR',
+        'S2_D1_HBO', 'S2_D1_HBR',
+        'S3_D2_HBO', 'S3_D2_HBR',
+        'S4_D2_HBO', 'S4_D2_HBR'
+    ]
+    ch_types = ['hbo', 'hbr'] * 4  # 交替氧合和脱氧
+
+    # 创建信息对象
+    info = mne.create_info(
+        ch_names=ch_names,
+        sfreq=10,  # fNIRS 典型采样率
+        ch_types=ch_types
+    )
+
+    # 可选：添加电极位置信息（如果有）
+    # montage = mne.channels.make_standard_montage('standard_1020')
+    # info.set_montage(montage)
+
+    # 创建模拟数据
+    data = np.random.randn(8, 1000)  # 8通道，1000个时间点
+    raw = mne.io.RawArray(data, info)
+
+    # 转换为光密度（如果需要）
+    # raw = mne.preprocessing.nirs.optical_density(raw)
+    ```
+
+    **fNIRS 特定处理**
+
+    MNE 对 fNIRS 数据有专门的处理流程：
+
+    ```python
+    # 如果数据是原始强度，可以转换
+    # raw = mne.io.RawArray(data, info)
+
+    # 转换为光密度
+    # raw = mne.preprocessing.nirs.optical_density(raw)
+
+    # 转换为浓度
+    # raw = mne.preprocessing.nirs.beer_lambert_law(raw, ppf=0.1)
+    ```
+
+    **总结**
+
+    对于 **fNIRS 数据**：
+
+    - **氧合血红蛋白**通道用 **`'hbo'`**
+    - **脱氧血红蛋白**通道用 **`'hbr'`**
+    - 如果数据是原始光强或尚未分离，可以用 **`'fnirs_cw_amplitude'`** 或 **`'fnirs_od'`**
+
+    使用专门的 fNIRS 通道类型可以让后续的分析（如使用 MNE 的 fNIRS 专用预处理函数）更加方便。
+
+* mne.create_info() 简述这个函数的用法
+
+    `mne.create_info()` 是 MNE-Python 中用于创建 **Info 对象**的核心函数。Info 对象存储了数据的元信息（如采样率、通道名称、通道类型等），是创建 Raw、Epochs 或 Evoked 对象的必要前提。
+
+    **基本语法**
+
+    ```python
+    info = mne.create_info(
+        ch_names,          # 通道名称列表
+        sfreq,             # 采样频率（Hz）
+        ch_types=None,     # 通道类型（默认都是 'mag'）
+        montage=None,      # 通道位置信息
+        verbose=None       # 详细程度
+    )
+    ```
+
+    **主要参数说明**
+
+    | 参数 | 类型 | 说明 |
+    |------|------|------|
+    | **ch_names** | list of str | 通道名称列表，如 `['Fz', 'Cz', 'Pz']` |
+    | **sfreq** | float | 采样频率（单位：Hz） |
+    | **ch_types** | str 或 list | 通道类型，常见类型：`'mag'`、`'grad'`、`'eeg'`、`'stim'`、`'eog'`、`'ecg'`、`'emg'`、`'misc'` |
+    | **montage** | str 或 DigMontage | 电极位置模板或自定义位置 |
+    | **verbose** | bool/str/None | 控制输出信息的详细程度 |
+
+    **常用示例**
+
+    1. 创建简单 EEG 数据信息
+
+        ```python
+        import mne
+        import numpy as np
+
+        # 创建 32 个 EEG 通道的信息
+        ch_names = [f'EEG{i:03d}' for i in range(1, 33)]
+        info = mne.create_info(
+            ch_names=ch_names,
+            sfreq=250,  # 250 Hz 采样率
+            ch_types='eeg'  # 所有通道都是 EEG
+        )
+
+        # 创建随机数据
+        data = np.random.randn(32, 1000)  # 32通道，1000个时间点
+        raw = mne.io.RawArray(data, info)
+        ```
+
+    2. 混合通道类型
+
+        ```python
+        ch_names = ['Fz', 'Cz', 'Pz', 'STI101', 'EOG']
+        ch_types = ['eeg', 'eeg', 'eeg', 'stim', 'eog']
+
+        info = mne.create_info(
+            ch_names=ch_names,
+            sfreq=500,
+            ch_types=ch_types
+        )
+        ```
+
+    3. 添加电极位置信息
+
+        ```python
+        # 使用标准 10-20 系统电极位置
+        info = mne.create_info(
+            ch_names=['Fz', 'Cz', 'Pz', 'Oz'],
+            sfreq=1000,
+            ch_types='eeg',
+            montage='standard_1020'  # 使用标准电极位置
+        )
+        ```
+
+    4. 创建 MEG 数据信息
+
+        ```python
+        # 创建 MEG 通道信息（磁力计和梯度计混合）
+        ch_names = [f'MEG{idx:03d}' for idx in range(1, 10)]
+        ch_types = ['mag'] * 5 + ['grad'] * 4
+
+        info = mne.create_info(
+            ch_names=ch_names,
+            sfreq=1000,
+            ch_types=ch_types
+        )
+        ```
+
+    **应用场景**
+
+    1. **创建模拟数据**：生成测试用的 Raw 或 Epochs 对象
+    2. **自定义数据导入**：将自定义格式的数据转换为 MNE 格式
+    3. **修改现有数据**：为现有数据创建新的 Info 对象
+    4. **教学演示**：快速生成示例数据进行演示
+
+    **注意事项**
+
+    - 如果 `ch_types` 是字符串，所有通道使用相同类型
+    - 如果 `ch_types` 是列表，长度必须与 `ch_names` 相同
+    - 创建后可以通过 `info['chs']` 查看和修改通道信息
+    - 对于真实数据，建议添加准确的电极位置信息
+
+* gm_hbo = np.sum(data_hbo[:, indices] * weights[None, :, :], axis=2), 这行代码占内存太大了，拆成一个 for 循环
+
+    你说的对，`np.sum(data_hbo[:, indices] * weights[None, :, :], axis=2)` 这行代码会创建一个很大的中间数组，导致内存爆炸。让我帮你改写成一个更节省内存的 for 循环版本：
+
+    方案1：简单的 for 循环版本
+
+    ```python
+    # 获取维度信息
+    n_samples, n_channels, n_features = data_hbo.shape
+    n_selected = indices.shape[0]  # indices 的长度
+    n_weights = weights.shape[1]   # weights 的第二维大小
+
+    # 初始化结果数组
+    gm_hbo = np.zeros((n_samples, n_selected, n_weights))
+
+    # 使用 for 循环逐个计算
+    for i in range(n_selected):
+        idx = indices[i]
+        gm_hbo[:, i, :] = np.dot(data_hbo[:, idx, :], weights[idx])
+    ```
+
+    方案2：更优化的版本（使用 einsum）
+
+    如果 indices 是连续的或者可以向量化部分操作：
+
+    ```python
+    # 方法1：使用 einsum，通常比 for 循环快，内存也更友好
+    gm_hbo = np.einsum('sif,fg->sig', data_hbo[:, indices, :], weights[indices])
+
+    # 或者如果 weights 是全局的，但只选择特定的 indices
+    gm_hbo = np.zeros((n_samples, n_selected, weights.shape[2]))
+    for i, idx in enumerate(indices):
+        gm_hbo[:, i, :] = data_hbo[:, idx, :] @ weights[idx]
+    ```
+
+    方案3：分批处理（如果 indices 很大）
+
+    ```python
+    def compute_gm_hbo_batch(data_hbo, indices, weights, batch_size=100):
+        n_samples, n_channels, n_features = data_hbo.shape
+        n_selected = len(indices)
+        n_weights = weights.shape[1]
+        
+        gm_hbo = np.zeros((n_samples, n_selected, n_weights))
+        
+        # 分批处理
+        for batch_start in range(0, n_selected, batch_size):
+            batch_end = min(batch_start + batch_size, n_selected)
+            batch_indices = indices[batch_start:batch_end]
+            
+            # 对这个批次使用向量化操作
+            batch_data = data_hbo[:, batch_indices, :]  # 形状: (n_samples, batch_size, n_features)
+            batch_weights = weights[batch_indices]      # 形状: (batch_size, n_weights, n_features)
+            
+            # 使用 einsum 或 matmul
+            gm_hbo[:, batch_start:batch_end, :] = np.einsum('sif,fgf->sig', batch_data, batch_weights)
+        
+        return gm_hbo
+
+    # 使用
+    gm_hbo = compute_gm_hbo_batch(data_hbo, indices, weights, batch_size=50)
+    ```
+
+    方案4：内存监控版本
+
+    ```python
+    import psutil
+    import numpy as np
+
+    def compute_gm_hbo_memory_safe(data_hbo, indices, weights):
+        """
+        带有内存监控的版本
+        """
+        n_samples, n_channels, n_features = data_hbo.shape
+        n_selected = len(indices)
+        n_weights = weights.shape[1]
+        
+        # 检查可用内存
+        available_memory = psutil.virtual_memory().available / (1024**3)  # GB
+        estimated_memory = (n_samples * n_selected * n_weights * 8) / (1024**3)  # GB
+        
+        print(f"可用内存: {available_memory:.2f} GB")
+        print(f"估计需要内存: {estimated_memory:.2f} GB")
+        
+        if estimated_memory > available_memory * 0.8:  # 如果超过80%可用内存
+            print("内存可能不足，使用分块处理")
+            # 计算合适的批次大小
+            safe_batch_size = int(available_memory * 0.5 * 1024**3 / (n_samples * n_weights * 8))
+            safe_batch_size = max(1, min(safe_batch_size, n_selected))
+            print(f"使用批次大小: {safe_batch_size}")
+            
+            return compute_gm_hbo_batch(data_hbo, indices, weights, safe_batch_size)
+        else:
+            # 内存充足，可以使用优化的向量化方法
+            return np.einsum('sif,fgf->sig', data_hbo[:, indices, :], weights[indices])
+
+    # 使用
+    gm_hbo = compute_gm_hbo_memory_safe(data_hbo, indices, weights)
+    ```
+
+    **推荐使用方案2的 einsum 版本，因为它：**
+
+    1. **内存效率高**：不会创建巨大的中间数组
+    2. **速度快**：einsum 是优化的 C 语言实现
+    3. **代码简洁**：一行代码解决问题
+
+    选择哪个方案取决于你的具体需求：
+
+    - 如果 indices 不太大，用 `np.einsum`
+    - 如果 indices 很大，用分批处理
+    - 如果想自动适应内存，用内存监控版本
+
+* 绘制1728个球体确实会很慢，因为每个球体都是由许多面片组成的。以下是几种优化方案：
+
+    方案1：使用点云 + Glyph（推荐）
+
+    ```python
+    import pyvista as pv
+    import numpy as np
+
+    def plotter_add_markers_optimized(plotter: pv.Plotter, center_coords: np.ndarray, 
+                                      radius: float = 3, shape: str = 'sphere'):
+        """
+        优化的标记绘制函数
+        """
+        # 创建点云数据
+        points = pv.PolyData(center_coords)
+        
+        if shape == 'sphere':
+            # 使用glyph为每个点创建一个球体
+            # sphere_radius 控制球体大小，scale_factor 控制缩放
+            glyphs = points.glyph(geom=pv.Sphere(theta_resolution=10, phi_resolution=10),
+                                 scale=False,  # 不根据数据缩放
+                                 orient=False,  # 不旋转
+                                 tolerance=0.0)  # 不合并重叠的glyph
+            # 调整球体大小
+            glyphs.points *= radius / 3  # 因为默认Sphere半径是3
+            
+        elif shape == 'cube':
+            glyphs = points.glyph(geom=pv.Cube(), scale=False, orient=False)
+            glyphs.points *= radius / 3
+        else:
+            raise ValueError(f'unknown shape: {shape}')
+        
+        # 添加网格
+        plotter.add_mesh(glyphs)
+        return [glyphs]
+    ```
+
+    方案2：降低球体分辨率
+
+    ```python
+    def plotter_add_markers_low_res(plotter: pv.Plotter, center_coords: np.ndarray, 
+                                    radius: float = 3):
+        """
+        使用低分辨率球体
+        """
+        meshes = []
+        # 降低球体分辨率
+        sphere = pv.Sphere(radius=radius, theta_resolution=8, phi_resolution=8)
+        
+        for xyz in center_coords:
+            # 复制并移动球体
+            mesh = sphere.copy()
+            mesh.points += xyz
+            plotter.add_mesh(mesh)
+            meshes.append(mesh)
+        
+        return meshes
+    ```
+
+    方案3：使用简单的点（如果是小标记）
+
+    ```python
+    def plotter_add_markers_as_points(plotter: pv.Plotter, center_coords: np.ndarray,
+                                      point_size: float = 10.0):
+        """
+        如果标记足够小，直接用点表示
+        """
+        points = pv.PolyData(center_coords)
+        plotter.add_mesh(points, render_points_as_spheres=True, 
+                         point_size=point_size)
+        return [points]
+    ```
+
+    方案4：分批绘制（内存优化）
+
+    ```python
+    def plotter_add_markers_batched(plotter: pv.Plotter, center_coords: np.ndarray,
+                                    radius: float = 3, batch_size: int = 100):
+        """
+        分批绘制以避免内存问题
+        """
+        meshes = []
+        n_points = len(center_coords)
+        
+        for i in range(0, n_points, batch_size):
+            batch = center_coords[i:min(i+batch_size, n_points)]
+            points = pv.PolyData(batch)
+            glyphs = points.glyph(geom=pv.Sphere(theta_resolution=8, phi_resolution=8),
+                                 scale=False, orient=False)
+            glyphs.points *= radius / 3
+            plotter.add_mesh(glyphs)
+            meshes.append(glyphs)
+            
+            # 可选：更新进度
+            print(f'Processed {i+len(batch)}/{n_points} markers')
+        
+        return meshes
+    ```
+
+    **推荐使用方法**
+
+    ```python
+    # 使用优化的glyph方法
+    plotter = pv.Plotter()
+    plotter_add_markers_optimized(plotter, channel_pos, radius=3, shape='sphere')
+
+    # 如果需要更快的渲染，可以进一步降低分辨率
+    def plotter_add_markers_fast(plotter: pv.Plotter, center_coords: np.ndarray, 
+                                radius: float = 3):
+        points = pv.PolyData(center_coords)
+        # 使用低分辨率球体
+        sphere_low = pv.Sphere(theta_resolution=6, phi_resolution=6)  # 默认是16
+        glyphs = points.glyph(geom=sphere_low, scale=False, orient=False)
+        glyphs.points *= radius / 3
+        plotter.add_mesh(glyphs, color='red', opacity=0.8)
+        return [glyphs]
+
+    # 使用
+    plotter = pv.Plotter()
+    plotter_add_markers_fast(plotter, channel_pos, radius=3)
+    plotter.show()
+    ```
+
+    **性能对比：**
+
+    - 原始方法：1728个完整球体 ≈ 1728 × 约1000面 ≈ 170万面
+    - 优化方法：1728个低分辨球体 ≈ 1728 × 约100面 ≈ 17万面（快10倍）
+
+    如果标记很小，**方案3（点）**最快；如果需要球体形状，**方案1（glyph）**最优化。
+
+* num_sd_pairs, num_wave_channels
+
+    num_channel == num_sd_pairs
+
 * 简述 freesurfer 的用法
 
-    ## FreeSurfer 简介
+    **FreeSurfer 简介**
 
     FreeSurfer 是一个专门用于处理和分析神经影像数据的软件包，主要用于大脑结构像（MRI）的皮层重建、分割和分析。
 
-    ## 主要功能
+    **主要功能**
 
-    ### 1. 皮层重建流程（recon-all）
+    1. 皮层重建流程（recon-all）
 
-    ```bash
-    # 完整处理流程
-    recon-all -i T1.nii.gz -s subject_name -all
+        ```bash
+        # 完整处理流程
+        recon-all -i T1.nii.gz -s subject_name -all
 
-    # 分步骤处理
-    recon-all -i T1.nii.gz -s subject_name   # 导入数据
-    recon-all -s subject_name -autorecon1     # 第一步：预处理、配准、去头皮
-    recon-all -s subject_name -autorecon2     # 第二步：分割、表面重建
-    recon-all -s subject_name -autorecon3     # 第三步：表面处理、皮层图谱
-    ```
+        # 分步骤处理
+        recon-all -i T1.nii.gz -s subject_name   # 导入数据
+        recon-all -s subject_name -autorecon1     # 第一步：预处理、配准、去头皮
+        recon-all -s subject_name -autorecon2     # 第二步：分割、表面重建
+        recon-all -s subject_name -autorecon3     # 第三步：表面处理、皮层图谱
+        ```
 
-    ### 2. 常用命令
+    2. 常用命令
 
-    ```bash
-    # 查看处理结果
-    freeview -v mri/T1.mgz \
-             -v mri/brainmask.mgz \
-             -v mri/aseg.mgz
+        ```bash
+        # 查看处理结果
+        freeview -v mri/T1.mgz \
+                 -v mri/brainmask.mgz \
+                 -v mri/aseg.mgz
 
-    # 计算皮层厚度
-    mris_anatomical_stats -f stats.txt subject_name lh
+        # 计算皮层厚度
+        mris_anatomical_stats -f stats.txt subject_name lh
 
-    # 提取皮层指标
-    asegstats2table --subjects subj1 subj2 --table aseg_stats.txt
-    aparcstats2table --subjects subj1 subj2 --hemi lh --table aparc_stats.txt
-    ```
+        # 提取皮层指标
+        asegstats2table --subjects subj1 subj2 --table aseg_stats.txt
+        aparcstats2table --subjects subj1 subj2 --hemi lh --table aparc_stats.txt
+        ```
 
-    ## 核心文件结构
+    **核心文件结构**
 
     ```
     subjects/
@@ -59,7 +512,7 @@
         └── scripts/          # 处理脚本
     ```
 
-    ## 皮层指标提取
+    **皮层指标提取**
 
     ```bash
     # 体积测量
@@ -75,7 +528,7 @@
     mris_anatomical_stats -a aparc.annot -f lh.volume.stats subject_name lh
     ```
 
-    ## 组分析准备
+    **组分析准备**
 
     ```bash
     # 配准到标准空间（fsaverage）
@@ -96,7 +549,7 @@
                  --out lh.thickness.mgh
     ```
 
-    ## 可视化
+    **可视化**
 
     ```bash
     # 3D表面显示
@@ -112,9 +565,10 @@
     freeview -f surf/lh.inflated:overlay=lh.thickness.mgh
     ```
 
-    ## 实用技巧
+    **实用技巧**
 
-    ### 批处理脚本
+    **批处理脚本**
+
     ```bash
     #!/bin/bash
     # 批量处理多个被试
@@ -124,7 +578,8 @@
     done
     ```
 
-    ### QA检查
+    **QA检查**
+    
     ```bash
     # 生成质量报告
     recon-check -s subject_name
@@ -133,7 +588,7 @@
     tkregister2 --mov mri/rawavg.mgz --reg register.dat --surf
     ```
 
-    ## 注意事项
+    **注意事项**
 
     1. **计算资源**：处理一个被试需要约6-8小时，需要大量内存（8GB+）
     2. **数据质量**：T1图像需要高分辨率（1mm³等体素）、无运动伪影
@@ -144,17 +599,17 @@
 
 * 简述 cifti 的用法
 
-    ## CIFTI 简介
+    **CIFTI 简介**
 
     CIFTI（Connectivity Informatics Technology Initiative）是一种专门用于存储**脑连接数据**的文件格式，由Human Connectome Project（HCP）开发。它可以将**皮层表面**和**皮层下核团**的数据整合在一个文件中。
 
-    ## 主要特点
+    **主要特点**
 
     - **混合表示**：同时存储皮层表面（面片）和皮层下体积（体素）
     - **高效存储**：采用GIFTI（表面数据）和NIfTI（体积数据）的混合
     - **标准空间**：通常使用标准空间（如fsLR、MNI）进行配准
 
-    ## 文件类型
+    **文件类型**
 
     ```bash
     # 主要CIFTI文件扩展名
@@ -166,114 +621,118 @@
     .pconn.nii      # 分区连接矩阵（parcellated connectivity）
     ```
 
-    ## 常用工具
+    **常用工具**
 
-    ### 1. wb_command（Workbench Command）
+    1. wb_command（Workbench Command）
 
-    ```bash
-    # 查看CIFTI信息
-    wb_command -file-information dtseries.dtseries.nii
+        ```bash
+        # 查看CIFTI信息
+        wb_command -file-information dtseries.dtseries.nii
 
-    # 提取特定结构
-    wb_command -cifti-separate dtseries.dtseries.nii \
-               COLUMN -volume-only volume.nii.gz \
-               -metric CORTEX_LEFT left.func.gii \
-               -metric CORTEX_RIGHT right.func.gii
+        # 提取特定结构
+        wb_command -cifti-separate dtseries.dtseries.nii \
+                   COLUMN -volume-only volume.nii.gz \
+                   -metric CORTEX_LEFT left.func.gii \
+                   -metric CORTEX_RIGHT right.func.gii
 
-    # 合并数据到CIFTI
-    wb_command -cifti-create-dense-timeseries timeseries.dtseries.nii \
-               -volume volume.nii.gz \
-               -left-metric left.func.gii \
-               -right-metric right.func.gii
+        # 合并数据到CIFTI
+        wb_command -cifti-create-dense-timeseries timeseries.dtseries.nii \
+                   -volume volume.nii.gz \
+                   -left-metric left.func.gii \
+                   -right-metric right.func.gii
 
-    # 重采样CIFTI
-    wb_command -cifti-resample input.dscalar.nii \
-               RESAMPLE_TO template.dscalar.nii \
-               -method BARYCENTRIC \
-               output.dscalar.nii
+        # 重采样CIFTI
+        wb_command -cifti-resample input.dscalar.nii \
+                   RESAMPLE_TO template.dscalar.nii \
+                   -method BARYCENTRIC \
+                   output.dscalar.nii
 
-    # 平滑处理
-    wb_command -cifti-smoothing input.dtseries.nii \
-               2 2 COLUMN output.dtseries.nii \
-               -left-surface left.midthickness.surf.gii \
-               -right-surface right.midthickness.surf.gii
-    ```
+        # 平滑处理
+        wb_command -cifti-smoothing input.dtseries.nii \
+                   2 2 COLUMN output.dtseries.nii \
+                   -left-surface left.midthickness.surf.gii \
+                   -right-surface right.midthickness.surf.gii
+        ```
 
-    ### 2. Python处理（nibabel）
+    2. Python处理（nibabel）
 
-    ```python
-    import nibabel as nib
+        ```python
+        import nibabel as nib
 
-    # 读取CIFTI文件
-    cifti_img = nib.load('data.dtseries.nii')
-    cifti_data = cifti_img.get_fdata()
-    print(f"Data shape: {cifti_data.shape}")  # (时间点, 顶点数+体素数)
+        # 读取CIFTI文件
+        cifti_img = nib.load('data.dtseries.nii')
+        cifti_data = cifti_img.get_fdata()
+        print(f"Data shape: {cifti_data.shape}")  # (时间点, 顶点数+体素数)
 
-    # 获取结构信息
-    header = cifti_img.header
-    brain_models = header.get_index_map(1).brain_models
+        # 获取结构信息
+        header = cifti_img.header
+        brain_models = header.get_index_map(1).brain_models
 
-    # 查看不同脑区
-    for model in brain_models:
-        print(f"Structure: {model.brain_structure}")
-        print(f"Index range: {model.index_range}")
-        print(f"Vertex/Voxel count: {model.surface_number_of_vertices or model.voxel_list_shape}")
+        # 查看不同脑区
+        for model in brain_models:
+            print(f"Structure: {model.brain_structure}")
+            print(f"Index range: {model.index_range}")
+            print(f"Vertex/Voxel count: {model.surface_number_of_vertices or model.voxel_list_shape}")
 
-    # 提取特定脑区
-    left_cortex_mask = cifti_img.header.get_axis(1).name == 'CIFTI_STRUCTURE_CORTEX_LEFT'
+        # 提取特定脑区
+        left_cortex_mask = cifti_img.header.get_axis(1).name == 'CIFTI_STRUCTURE_CORTEX_LEFT'
 
-    # 创建新的CIFTI
-    new_cifti = nib.cifti2.Cifti2Image(data, cifti_img.header)
-    nib.save(new_cifti, 'output.dscalar.nii')
-    ```
+        # 创建新的CIFTI
+        new_cifti = nib.cifti2.Cifti2Image(data, cifti_img.header)
+        nib.save(new_cifti, 'output.dscalar.nii')
+        ```
 
-    ## 实际应用示例
+    **实际应用示例**
 
-    ### 1. 功能连接分析
-    ```python
-    import numpy as np
-    import nibabel as nib
+    1. 功能连接分析
 
-    # 读取时间序列数据
-    dtseries = nib.load('resting.dtseries.nii')
-    timeseries = dtseries.get_fdata()  # (时间, 位置)
+        ```python
+        import numpy as np
+        import nibabel as nib
 
-    # 计算功能连接
-    correlation = np.corrcoef(timeseries.T)  # (位置, 位置)
+        # 读取时间序列数据
+        dtseries = nib.load('resting.dtseries.nii')
+        timeseries = dtseries.get_fdata()  # (时间, 位置)
 
-    # 保存为连接矩阵
-    pconn_img = nib.cifti2.Cifti2Image(correlation, dtseries.header)
-    nib.save(pconn_img, 'functional_connectivity.pconn.nii')
-    ```
+        # 计算功能连接
+        correlation = np.corrcoef(timeseries.T)  # (位置, 位置)
 
-    ### 2. 分区统计
-    ```python
-    # 使用分区文件进行统计
-    wb_command -cifti-parcellate data.dtseries.nii \
-               parcellation.dlabel.nii \
-               COLUMN \
-               parcel_stats.ptseries.nii \
-               -method MEAN
+        # 保存为连接矩阵
+        pconn_img = nib.cifti2.Cifti2Image(correlation, dtseries.header)
+        nib.save(pconn_img, 'functional_connectivity.pconn.nii')
+        ```
 
-    # 分区时间序列相关
-    wb_command -cifti-correlation parcel_stats.ptseries.nii \
-               parcel_corr.pconn.nii
-    ```
+    2. 分区统计
 
-    ### 3. 可视化准备
-    ```bash
-    # 将CIFTI转换为GIFTI用于表面可视化
-    wb_command -cifti-separate data.dscalar.nii \
-               COLUMN -metric CORTEX_LEFT left.func.gii
+        ```python
+        # 使用分区文件进行统计
+        wb_command -cifti-parcellate data.dtseries.nii \
+                   parcellation.dlabel.nii \
+                   COLUMN \
+                   parcel_stats.ptseries.nii \
+                   -method MEAN
 
-    # 将CIFTI转换为NIfTI用于体积可视化
-    wb_command -cifti-separate data.dscalar.nii \
-               COLUMN -volume-only volume.nii.gz
-    ```
+        # 分区时间序列相关
+        wb_command -cifti-correlation parcel_stats.ptseries.nii \
+                   parcel_corr.pconn.nii
+        ```
 
-    ## 数据格式转换
+    3. 可视化准备
 
-    ### CIFTI ↔ GIFTI/NIfTI
+        ```bash
+        # 将CIFTI转换为GIFTI用于表面可视化
+        wb_command -cifti-separate data.dscalar.nii \
+                   COLUMN -metric CORTEX_LEFT left.func.gii
+
+        # 将CIFTI转换为NIfTI用于体积可视化
+        wb_command -cifti-separate data.dscalar.nii \
+                   COLUMN -volume-only volume.nii.gz
+        ```
+
+    **数据格式转换**
+
+    **CIFTI ↔ GIFTI/NIfTI**
+
     ```bash
     # CIFTI到GIFTI（皮层）
     wb_command -cifti-separate input.dtseries.nii \
@@ -290,7 +749,8 @@
                -volume subcortical.nii.gz
     ```
 
-    ### 不同空间转换
+    **不同空间转换**
+
     ```bash
     # fsaverage到fsLR
     wb_command -metric-resample left.func.gii \
@@ -305,9 +765,10 @@
                -right-metric right.func.fsLR.gii
     ```
 
-    ## 实用技巧
+    **实用技巧**
 
-    ### 批处理脚本
+    **批处理脚本**
+
     ```bash
     #!/bin/bash
     # 批量处理多个被试的CIFTI
@@ -322,7 +783,8 @@
     done
     ```
 
-    ### 提取感兴趣区
+    **提取感兴趣区**
+
     ```python
     import numpy as np
     import nibabel as nib
@@ -340,7 +802,7 @@
     dmn_timeseries = cifti_img.get_fdata()[:, dmn_mask]
     ```
 
-    ## 注意事项
+    **注意事项**
 
     1. **空间配准**：CIFTI数据通常需要在标准空间（fsLR、MNI）中
     2. **内存需求**：密集CIFTI文件可能很大（尤其是.dconn.nii）

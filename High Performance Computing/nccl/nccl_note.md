@@ -1,0 +1,2272 @@
+# NCCL Note
+
+## cache
+
+* `collNetChainGraph`, `collNetDirectGraph`
+
+    collNetChainGraph 和 collNetDirectGraph 都是 NVIDIA Collective Networking (CollNet) 的不同实现模式，针对不同的硬件配置和通信模式进行优化。它们的区别主要体现在通信路径和硬件利用上。
+
+    一、基本概念
+
+    CollNet (Collective Networking)
+
+    * NVIDIA 的专用集合通信网络技术
+
+    * 利用网络硬件直接加速集合操作
+
+    * 主要支持：AllReduce、Broadcast、Reduce、AllGather
+
+    * 需要特定硬件支持（如ConnectX-6/7网卡 + NCCL版本支持）
+
+    二、collNetDirectGraph（直连模式）
+
+    通信模式
+
+    ```text
+    Rank0 ────┐
+              │
+    Rank1 ────┼──► Switch/NIC ───► 直接硬件加速 ───► 结果
+              │
+    Rank2 ────┘
+    ```
+
+    * 点对点直连：每个rank直接与NIC/Switch通信
+
+    * 硬件加速：集合操作在网络硬件中完成
+
+    * 单跳通信：减少软件路径
+
+    特点
+
+    * 需要硬件支持网络内集合操作
+
+    * 通信延迟最低
+
+    * 带宽利用率最高
+
+    * 对网络拓扑要求严格
+
+    适用场景
+
+    ```c
+    // 硬件要求：支持Sharp的NIC + NCCL_SHARP_ENABLE=1
+    if (supportSharp && sameNode) {
+        use collNetDirect;
+    }
+    ```
+
+    三、collNetChainGraph（链式模式）
+
+    通信模式
+
+    ```text
+    Rank0 ──► Rank1 ──► Rank2 ──► ... ──► RankN
+       │                                  │
+       └─────── NIC/Switch ───────────────┘
+    ```
+
+    * 链式聚合：数据沿着rank链传递和聚合
+
+    * 软件参与：部分聚合在CPU/GPU进行
+
+    * 多跳通信：需要多个传输步骤
+
+    特点
+
+    * 兼容性更好
+
+    * 可处理不规则的网络拓扑
+
+    * 允许跨节点的链式聚合
+
+    * 资源使用更灵活
+
+    适用场景
+
+    ```c
+    // 当直连模式不可用时回退到链式
+    if (!directSupported || crossNode) {
+        use collNetChain;
+    }
+    ```
+
+    四、关键区别对比
+
+    | 特性 | collNetDirect | collNetChain |
+    | - | - | - |
+    | 通信路径 | 直连硬件加速 | 链式传输聚合 |
+    | 硬件要求 | 支持SHARP的NIC | 标准RDMA网卡 |
+    | 延迟 | 极低（单跳） | 较高（多跳） |
+    | 带宽 | 接近线速 | 受链长度影响 |
+    | 拓扑要求 | 严格对称 | 灵活 |
+    | 跨节点 | 通常节点内 | 支持跨节点 |
+    | NIC负载 | 集中式 | 分布式 |
+    | 实现复杂度 | 硬件依赖 | 纯软件实现 |
+
+    五、在NCCL中的选择逻辑
+
+    ```c
+    // 简化的选择逻辑
+    ncclResult_t selectCollNetMode() {
+        // 1. 检查硬件支持
+        if (ncclSharpEnabled && supportDirectCollNet()) {
+            // 优先使用直连模式
+            return NCCL_ALGO_COLLNET_DIRECT;
+        } else if (hasCollNetCapability()) {
+            // 回退到链式模式
+            return NCCL_ALGO_COLLNET_CHAIN;
+        }
+        return NCCL_ALGO_RING; // 回退到环算法
+    }
+    ```
+
+    六、性能影响
+
+    AllReduce 示例
+
+    ```bash
+    # Direct模式（8个GPU，节点内）
+    Bandwidth: ~200 GB/s
+    Latency: ~5 μs
+
+    # Chain模式（8个GPU，节点内）
+    Bandwidth: ~150 GB/s  
+    Latency: ~15 μs
+
+    # 传统Ring算法
+    Bandwidth: ~100 GB/s
+    Latency: ~30 μs
+    ```
+
+    七、配置和调优
+
+    环境变量控制
+
+    ```bash
+    # 启用CollNet
+    export NCCL_COLLNET_ENABLE=1
+
+    # 强制使用链式模式
+    export NCCL_COLLNET_DIRECT=0
+
+    # 设置链式聚合阈值
+    export NCCL_COLLNET_CHAIN_THRESHOLD=65536
+    ```
+
+    代码中的决策
+
+    ```c
+    // 基于消息大小选择
+    if (size < collNetChainThreshold) {
+        // 小消息：使用链式（减少启动开销）
+        useChain = true;
+    } else {
+        // 大消息：使用直连（最大化带宽）
+        useDirect = true;
+    }
+    ```
+
+    八、实际应用场景
+
+    适合Direct模式
+
+    * HPC集群（同一节点内）
+
+    * 大型AllReduce操作（>1MB）
+
+    * 对称网络拓扑
+
+    * InfiniBand with SHARP
+
+    适合Chain模式
+
+    * 云环境（网络不对称）
+
+    * 小到中型消息
+
+    * 需要跨节点集合通信
+
+    * 网络硬件不支持SHARP时
+
+    总结：collNetDirectGraph追求极致性能但要求严格硬件支持，collNetChainGraph提供更好的兼容性和灵活性，是前者的优雅降级方案。
+
+* 节点内传输、节点间传输性能对比表格
+
+    节点内传输性能
+
+    | 类型 | 带宽 | 延迟 | 适用场景 |
+    | - | - | - | - |
+    | NVLink | 600-900 GB/s | 0.5μs | A100/H100集群 |
+    | PCIe 4.0 | 32 GB/s | 2-3μs | 通用GPU服务器 |
+    | 主机内存 | 100 GB/s | 5-10μs | 老旧GPU或无P2P |
+    | 共享内存 | 200 GB/s | 1μs | 同一进程多GPU |
+
+    节点间传输性能
+
+    | 类型 | 带宽 | 延迟 | 适用场景 |
+    | - | - | - | - |
+    | IB + GDR | 200 Gb/s | 0.8μs | HPC超算 |
+    | IB (传统) | 200 Gb/s | 2μs | 企业集群 |
+    | RoCE | 100 Gb/s | 3μs | 云数据中心 |
+    | TCP/IP | 10 Gb/s | 20μs | 测试环境 |
+
+* nvbPeers：通过 NVLink 连接的 GPU 对
+
+    pxnPeers：通过 PCIe 交换机连接的 GPU 对
+
+* globalNicFused：多个NIC是否被融合为一个逻辑设备
+
+* `fillInfo()`, 658 ~ 669
+
+    这段代码的主要作用是为NCCL（NVIDIA Collective Communications Library）初始化通信信息，以便在多GPU或多节点环境中进行高效的集体通信。具体分析如下：
+
+    * 获取共享内存设备信息：
+
+        ```c
+        stat("/dev/shm", &statbuf);
+        info->shmDev = statbuf.st_dev;
+        ```
+
+        * 查询/dev/shm（共享内存文件系统）的设备标识符（MAJOR:MINOR）
+
+        * 该信息用于判断在容器环境中是否可以使用共享内存进行进程间通信
+
+        * 容器中不同实例的/dev/shm可能映射到不同设备，需要确认是否可共享
+
+    * 设置总线ID：
+
+        ```c
+        info->busId = comm->busId;
+        ```
+
+        * 记录GPU的总线标识符（如PCIe总线位置）
+
+        * 用于识别和区分系统中的不同GPU设备
+
+    * 检查GPU Direct RDMA支持：
+
+        ```c
+        ncclGpuGdrSupport(comm, &info->gdrSupport);
+        ```
+
+        * 检测当前GPU和网卡是否支持GPU Direct RDMA技术
+
+        * GDR允许网卡直接访问GPU内存，避免CPU拷贝，提高通信性能
+
+    * 设置计算能力信息：
+
+        ```c
+        info->cudaCompCap = comm->minCompCap = comm->maxCompCap = comm->compCap;
+        ```
+
+        * 记录CUDA计算能力（Compute Capability）
+
+        * 初始化最小、最大计算能力为当前GPU的计算能力
+
+        * 在跨GPU通信时，NCCL需要确保所有GPU的计算能力兼容
+
+    * 保存通信子指针：
+
+        ```c
+        info->comm = comm;
+        ```
+
+        * 将NCCL通信子（communication context）指针保存到info结构中
+
+    总体目的：收集和设置关键的系统、设备和通信信息，为后续建立高效的GPU间通信通道（包括共享内存、PCIe、NVLink、网络等）做准备。这些信息对于在复杂环境（如容器、多节点集群）中优化通信性能至关重要。
+
+* `fillInfo()`, 671 ~ 705
+
+    这段代码的作用是为MNNVL（Multi-Node Multi-GPU Virtual Link）技术获取和配置GPU互连网络（NVLink fabric）的拓扑信息。MNNVL是NVIDIA用于大规模多节点多GPU互连的高级技术。
+
+    主要功能：
+
+    1. 获取GPU设备句柄
+
+        * 将总线ID转换为NVML可识别的格式
+
+        * 通过PCIe总线ID获取NVML设备句柄
+
+    2. 查询GPU Fabric信息
+
+        * 调用ncclNvmlDeviceGetGpuFabricInfoV()获取GPU互连网络信息
+
+        * 包括集群UUID、连接状态、健康状态等
+
+    3. 配置MNNVL参数
+
+        * UUID配置：如果设置了ncclParamMNNVLUUID()参数，使用自定义UUID
+
+        * Clique ID配置：
+
+            * 如果参数为-2：根据机架序列号哈希生成clique ID（自动分区）
+
+            * 如果参数非-1：使用参数指定的clique ID
+
+            * 记录平台信息（机架序列号、插槽号、托盘索引等）
+
+    4. 日志输出
+
+        * 记录详细的MNNVL信息用于调试和监控
+
+        * 包括总线ID、Fabric UUID、clique ID、连接状态等
+
+    技术背景：
+
+    * MNNVL：支持跨多个节点的GPU直接互连，形成更大的虚拟GPU集群
+
+    * Clique：一组通过NVLink直接互连的GPU子集
+
+    * Fabric：指GPU间的物理互连网络（NVLink）
+
+    应用场景：
+
+    * 大规模AI训练集群（如DGX SuperPOD）
+
+    * 需要跨多个节点进行高效GPU直接通信的应用
+
+    * 自动检测和配置多节点GPU拓扑结构
+
+    这段代码让NCCL能够识别和利用MNNVL的高级互连功能，优化大规模分布式训练中的通信性能。
+
+
+* `const ncclTopoGraph *const *const graphs;`
+
+    各层 const 的含义：
+
+    ```c
+    const ncclTopoGraph *const *const graphs;
+
+    // 1. 不能修改 graphs 指针本身（最右边的 const）
+    graphs = other_graphs;  // ❌ 错误
+
+    // 2. 不能修改 graphs 指向的指针数组中的指针（中间的 const）
+    graphs[0] = other_graph_ptr;  // ❌ 错误
+
+    // 3. 不能通过指针修改 ncclTopoGraph 对象的内容（最左边的 const）
+    graphs[0]->some_field = value;  // ❌ 错误
+    ```
+
+* nccl 中用到 topo id 的地方汇总
+
+    * `ncclTopoGetXmlFromChannel()`
+
+        其中有：
+
+        ```cpp
+          if (system->nodes[GPU].nodes[i].gpu.rank == intra[g]) {
+            int systemId = NCCL_TOPO_ID_SYSTEM_ID(system->nodes[GPU].nodes[i].id);
+            dev = NCCL_TOPO_ID(systemId, system->nodes[GPU].nodes[i].gpu.dev);
+          }
+        ```
+
+    * `ncclTopoPrintGraph()`
+
+        ```cpp
+        if (system->nodes[NET].count > 0) {
+          sprintf(line+offset, " %s/%lx-%lx", topoNodeTypeStr[NET], NCCL_TOPO_ID_SYSTEM_ID(graph->inter[2*c]), NCCL_TOPO_ID_LOCAL_ID(graph->inter[2*c]));
+          offset = strlen(line);
+        }
+        ```
+
+        ```cpp
+        if (system->nodes[NET].count > 0) {
+          sprintf(line+offset, " %s/%lx-%lx", topoNodeTypeStr[NET], NCCL_TOPO_ID_SYSTEM_ID(graph->inter[2*c+1]), NCCL_TOPO_ID_LOCAL_ID(graph->inter[2*c+1]));
+          offset = strlen(line);
+        }
+        ```
+
+    * `ncclTopoGetChannelFromXml()`
+
+        ```cpp
+          for (int g=0; g<ngpus; g++) {
+            int systemId = NCCL_TOPO_ID_SYSTEM_ID(system->nodes[GPU].nodes[g].id);
+            if (NCCL_TOPO_ID(systemId, system->nodes[GPU].nodes[g].gpu.dev) == dev) rank = system->nodes[GPU].nodes[g].gpu.rank;
+          }
+        ```
+
+    * `printNodePaths()`
+
+    * `ncclTopoComputePaths()`
+
+    * `ncclTopoConnectCpus()`
+
+    * `ncclTopoPrintRec()`
+
+    * `ncclTopoDevToRank()`
+
+* 向上取整
+
+    ```cpp
+    #define DIVUP(x, y) \
+        (((x)+(y)-1)/(y))
+
+    int div_up(int x, int y) {
+        return (x + y - 1) / y;
+    }
+    ```
+
+    上述代码实现了 x / y 向上取整，如果 x 正好是 y 的整数倍，那么不向上取整。
+
+    这个算法还挺巧妙的，如果写成
+    
+    ```cpp
+    if (x % y == 0)
+        res = x / y;
+    else
+        res = x / y + 1;
+    ```
+
+    那么就太复杂了，没有 (x + y - 1) / y 简单。目前不清楚这个算法是怎么想出来的。
+
+* `mirrorBits()`
+
+    ```cpp
+    int mirrorBits(int val, int pow2) {
+        int mirror = 0;
+        // mb 表示最高位的 1
+        for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+            // 如果 val 最低位为 1，那么 mirror 的最高位置 1
+            if (val & b) {
+                // |= 保护除了最高位之外的其他位不被改变
+                mirror |= mb;
+            }
+        }
+        return mirror;  //0b110;
+    }
+    ```
+
+    * `pow2`用二进制表示为 1, 10, 100, 1000, 10000, 100000, ... 这样就既指定了位宽，又标记了最高位的 1，后面只需要将 pow2 的 1 一步一步往右移就可以了
+
+    * 假如 pow2 = 8 = 0b1000，那么 val 的最大值就为 pow2 - 1 = 7 = 0b0111, val 的取值范围为 0 ~ 7
+
+    * 此时如果 val = 0b0011，那么就把低位的 1 翻折到高位去，0b0110，注意并不是 0b1100，否则就超过 val 的最大可能取值了
+
+        同理，如果 val = 0b0001，那么 mirror = 0b0100
+
+        如果 val = 0b0111，那么 mirror 不变，仍为 mirror = 0b0111。
+    
+    * 整体看来，`mirrorBits()`的功能是把`....xxxx`翻转到`.xxxx...`
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        using namespace std;
+
+        int mirrorBits(int val, int pow2) {
+            int mirror = 0;
+            for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+                if (val & b) {
+                    mirror |= mb;
+                }
+            }
+            return mirror;
+        }
+
+        void print_binary(int val) {
+            string str;
+            while (val) {
+                str.push_back(val % 2 ? '1' : '0');
+                val >>= 1;
+            }
+            int left = 0, right = str.size() - 1;
+            while (left < right) {
+                swap(str[left], str[right]);
+                ++left;
+                --right;
+            }
+            printf("%s", str.c_str());
+        }
+
+        int main() {
+            for (int pow2 = 2; pow2 <= 32; pow2 *= 2) {
+                printf("pow2: ");
+                print_binary(pow2);
+                putchar('\n');
+                for (int val = 1; val < pow2; ++val) {
+                    int mirror_val = mirrorBits(val, pow2);
+                    printf("    ");
+                    print_binary(val);
+                    printf(" -> ");
+                    print_binary(mirror_val);
+                    putchar('\n');
+                }
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        pow2: 10
+            1 -> 1
+        pow2: 100
+            1 -> 10
+            10 -> 1
+            11 -> 11
+        pow2: 1000
+            1 -> 100
+            10 -> 10
+            11 -> 110
+            100 -> 1
+            101 -> 101
+            110 -> 11
+            111 -> 111
+        pow2: 10000
+            1 -> 1000
+            10 -> 100
+            11 -> 1100
+            100 -> 10
+            101 -> 1010
+            110 -> 110
+            111 -> 1110
+            1000 -> 1
+            1001 -> 1001
+            1010 -> 101
+            1011 -> 1101
+            1100 -> 11
+            1101 -> 1011
+            1110 -> 111
+            1111 -> 1111
+        pow2: 100000
+            1 -> 10000
+            10 -> 1000
+            11 -> 11000
+            100 -> 100
+            101 -> 10100
+            110 -> 1100
+            111 -> 11100
+            1000 -> 10
+            1001 -> 10010
+            1010 -> 1010
+            1011 -> 11010
+            1100 -> 110
+            1101 -> 10110
+            1110 -> 1110
+            1111 -> 11110
+            10000 -> 1
+            10001 -> 10001
+            10010 -> 1001
+            10011 -> 11001
+            10100 -> 101
+            10101 -> 10101
+            10110 -> 1101
+            10111 -> 11101
+            11000 -> 11
+            11001 -> 10011
+            11010 -> 1011
+            11011 -> 11011
+            11100 -> 111
+            11101 -> 10111
+            11110 -> 1111
+            11111 -> 11111
+        ```
+
+        实际结果与前面猜想相同。
+
+* 判断`val`是否为 2 的整数幂
+
+    如果 val 是 2 的整数次幂（1, 2, 4, 8, 16, ...），则返回 true
+
+    ```cpp
+    bool isPow2(int val) {
+        return (val & (val-1)) == 0;
+    }
+    ```
+
+    example:
+
+    ```cpp
+    #include <stdio.h>
+
+    bool isPow2(int val) {
+        return (val & (val-1)) == 0;
+    }
+
+    int main() {
+        for (int i = 0; i <= 32; ++i) {
+            if (isPow2(i)) {
+                printf("val = %d, true\n", i);
+            } else {
+                printf("val = %d, false\n", i);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    val = 0, true
+    val = 1, true
+    val = 2, true
+    val = 3, false
+    val = 4, true
+    val = 5, false
+    val = 6, false
+    val = 7, false
+    val = 8, true
+    val = 9, false
+    val = 10, false
+    val = 11, false
+    val = 12, false
+    val = 13, false
+    val = 14, false
+    val = 15, false
+    val = 16, true
+    val = 17, false
+    val = 18, false
+    val = 19, false
+    val = 20, false
+    val = 21, false
+    val = 22, false
+    val = 23, false
+    val = 24, false
+    val = 25, false
+    val = 26, false
+    val = 27, false
+    val = 28, false
+    val = 29, false
+    val = 30, false
+    val = 31, false
+    val = 32, true
+    ```
+
+* `ncclNvmlDevicePairs`在 nvml 中，是个 (32, 32) 的数组，其中填充了任意两个 gpu dev 之间的 p2p status，这样看来，dev 其实就是设备的物理编号，nccl 中和 nvml 中保持相同的含义，nvml 只处理设备的物理编号。
+
+    相关代码：
+    
+    ```cpp
+    // ...
+    status = ncclNvmlDevicePairs[indexes[i-1]][indexes[i-0]].p2pStatusRead;
+    // ...
+    ```
+
+* nccl 中`hops`表示的是，从当前节点出发，需要经过`hops`个节点，才能到达指定节点。
+
+    比如 vert 0 -> vert 1 -> vert 2 -> vert 3，那么 vert 0 到 vert 3 的`hops`就是 3。
+
+    ```cpp
+    int hops = gpu_to_cpu_paths[cpu_vert_idx].edge_list.size();
+    ```
+
+* nccl `add_inter_step`
+
+    为什么在`add_inter_step()`时，两个 gpu 之间一定要经过 cpu？ nic / net 是一定经过 cpu 的，host 中转也一定经过 cpu，如果中间节点是 pci，那`p2p_active == 0`就不成立了。nvlink 更不可能，所以一定要经过 cpu
+
+    ```cpp
+    ret = add_inter_step(topo_system, CPU,
+        cpu_idx, GPU, vert_idx_2, GPU, vert_idx_1);
+    ```
+
+* `rank`是对`peerInfo`的编号
+
+    ```cpp
+    PeerInfo* dstInfo = &comm.peerInfo[topo_system.nodes[GPU][vert_idx_1]->gpu.rank];
+    ```
+
+    从这里可以看出，rank 是对 peerInfo 的编号。对比前面的，我们知道 dev 是物理编号。
+
+* nccl 禁用 shm 后，会调用`AllReduce_Sum_f32_RING_SIMPLE`
+
+* 如果数据横跨两个 cuda device，那么要么开启 p2p，要么使用 host mem 作中转
+
+* nccl 中的 va 是 cuda malloc 时得到的
+
+    使用 gdb 运行程序，则 cuda malloc 返回的指针总是固定的：
+
+    ```
+    dev 0, buf A: 0x7ffe60a00000, buf B: 0x7ffe60a00200
+    dev 1, buf A: 0x7ffe60c00000, buf B: 0x7ffe60c00200
+    ```
+
+    正常运行程序，得到的指针则是随机的：
+
+    ```
+    dev 0, buf A: 0x7f7674a00000, buf B: 0x7f7674a00200
+    dev 1, buf A: 0x7f7674c00000, buf B: 0x7f7674c00200
+    ```
+
+    ```
+    dev 0, buf A: 0x7f1088a00000, buf B: 0x7f1088a00200
+    dev 1, buf A: 0x7f1088c00000, buf B: 0x7f1088c00200
+    ```
+
+* nccl 很可能起了 46183 个 device 线程
+
+* nccl 调试时的 temp 中间结果
+
+    * c 为什么会从 0 循环到 1？
+
+        因为`sendMask = 3`，只有低 2 位为 1.
+
+        看不出来 sendMask，recvMask 有什么特别的二进制含义，可能只是为了省内存。
+
+    * `ncclNvmlDevicePairs[0][1].p2pStatusRead`与`p2pStatusWrite`的值都为`NVML_P2P_STATUS_CHIPSET_NOT_SUPPORTED`
+
+        `ncclNvmlDevicePairInfo ncclNvmlDevicePairs`是一个全局数组，专门记录 p2p 能力的。
+
+* 224 机器如果不禁用 IB，那么`wrap_ibv_get_async_event()`会被调用。后面可以判断一下这个函数是否和 gpu direct rdma 有关。
+
+    启动与禁用 IB 对测速影响不大，看起来 IB 应该没有被用到。
+
+    * 224 机器，设置了`NCCL_IB_DISABLE＝1`后，确实没有了 ibv 相关函数的调用
+
+* 实体机上可以跑通 p2p
+
+    两种模式都可以跑通：
+
+    1. P2P/CUMEM/CE
+
+    2. P2P/direct pointer
+
+    跑不通的模式：
+
+    1. SHM/direct/direct
+
+    在调用函数`pfn_nvmlDeviceGetP2PStatus()`时，得到 pcie p2p 不可用的结果。nvml 是 nvidia management library，是 nv 的一个库。显然这个函数是从其他 so 库中加载进来的。
+
+* 在一个虚拟机 node 上透传两个 cuda device，运行 nccl 时，默认情况下走的是 shared memory 传输数据，并没有启用 pcie 的 p2p
+
+* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
+
+    使用 compute_70 可以跑通。
+
+* cuda 和 nccl 可以使用不同的 stream 异步执行 commands 队列
+
+    ref: `ref_33`
+
+    猜想：stream 有点像 vulkan 里的 queue。 queue 中每完成一项任务，device 就用中断上报一次 completion。 
+
+* nccl 声称实现的通信原语
+
+    AllReduce, Broadcast, Reduce, AllGather, ReduceScatter, send/receive, scatter, gather, all-to-all
+
+* 在`nvmlwrap.cc:156`这里，当`a = 0, b = 1`时，`ncclNvmlDevicePairs[0][1]`被修改。
+
+    修改它调用的是`nvmlDeviceGetP2PStatus()`函数。
+
+* nccl 调试记录
+
+    * `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+
+        `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
+
+    * `ncclTransports`在五处地方被使用
+    
+        1. `proxyConnInit()`未被调用
+
+        2. `proxyFree()`：未调用
+
+        3. `ncclProxyConnect()`：未调用
+
+        4. `selectTransport()`：调用
+
+        5. `ncclTopoComputePaths()`
+
+        说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+        猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+    * nccl 中`prims_ll.h`文件里有挺多 load, store 相关的函数，但是整个 nccl 中关于 atomic 的函数并不多。由此推断 nccl 很有可能不包含 load, store, atomic 的通信功能
+
+* `all_reduce_perf`只用到了 coll channel （24 个），`sendrecv_perf`同时用到了 coll channel，p2p channel （32 个）
+
+* `-g 2`和`-g 4`不会影响 channel 的数量，但会影响拓扑（ring, tree）的数量
+
+    `-g 4`会起 4 ring, 4 tree
+
+    `-g 2`会起 2 ring, 2 tree
+
+* nccl 无法使用`CUDA_VISIBLE_DEVICES`指定具体使用哪块 gpu
+
+    `NVIDIA_VISIBLE_DEVICES`也不行。
+
+* nccl 有隐藏的环境变量`NCCL_LL_BUFFSIZE`, `NCCL_LL128_BUFFSIZE`，把这两个设置为`16384`，nccl 会找尽量满足这个 size 的 buffer size。将`NCCL_LL128_BUFFSIZE`设置为 16 KB 后，nccl 实际申请的内存是 20 KB，即使这样也是满足要求的。
+
+    添加这两个环境变量后，可以在不跳过三种 protocol 注册 mr 的情况下，跑通所有的 test case。
+
+## topics
+
+### 概念解释
+
+* PXN
+
+    NCCL 中的 PXN（Peer-to-peer across NVLINK） 是 NCCL 中一个重要的通信模式概念，专为优化多GPU间的数据传输而设计。
+    
+    核心含义：
+
+    PXN 指的是 “通过 NVLink 进行点对点跨节点通信” 的一种优化模式。它允许 GPU 不通过 CPU 和系统内存，而是直接利用节点间的 NVLink 连接，与其他节点的 GPU 进行直接的点对点数据传输。
+
+    关键背景与工作原理：
+
+    * 多节点（多机）通信的挑战：
+
+        * 传统的多机训练（如通过 InfiniBand 或以太网）中，GPU需要先将数据发送到本机的 CPU 系统内存，然后由 CPU 通过网卡（NIC）发送到远端节点，远端节点再经过相反的路径送到目标 GPU。这个过程涉及多次拷贝和协议转换，延迟高、开销大。
+
+    * PXN 的优化思路：
+
+        * 当两个节点之间通过 NVLink Bridge（如 NVSwitch 系统）或 GPU 直接通过 NVLink 相连（例如 DGX SuperPOD 架构）时，物理上就具备了 GPU 跨节点直连的通道。
+
+        * PXN 模式使得 NCCL 能够识别并利用这些跨节点的 NVLink 路径，让 GPU 能够像在单机内一样，直接与另一个节点上的 GPU 进行点对点通信，绕过CPU和网络协议栈。
+
+    PXN的优点：
+
+    * 更低延迟：减少了数据在CPU内存和网络协议栈中的穿梭。
+
+    * 更高带宽：充分利用 NVLink 的高带宽，通常远高于通过网卡的带宽。
+
+    * 降低 CPU 开销：CPU 无需深度参与数据传输过程，可以腾出资源处理计算任务。
+
+    启用与检测：
+
+    PXN 模式通常是自动启用的，前提是：
+
+    * 硬件支持：系统必须实际存在跨节点的 NVLink 连接（例如使用 NVLink Switch System）。
+
+    * 软件支持：NCCL 库版本需支持该特性，且拓扑检测能正确识别出这些路径。
+
+    * 环境变量：有时可以通过 NCCL 环境变量进行调节，例如 `NCCL_PXN`，但通常不需要手动设置。
+
+    你可以通过运行 `nvidia-smi topo -m` 命令来查看系统中 GPU 的连接拓扑。如果在不同节点的 GPU 之间显示为 NVLink 或 NVSwitch 连接，则表明硬件支持 PXN 通信。
+
+    简单总结：
+
+    PXN就是让多台机器上的GPU能通过它们之间直接的NVLink“高速公路”对话，而不需要绕道CPU和网卡这条“普通公路”，从而极大提升了多机多卡训练时的通信效率。 它是NCCL为了实现极致性能，在特定高端硬件架构（如DGX SuperPOD）上提供的关键优化特性。
+
+* ncclTopoPopulateNics，这里的 populate 如何翻译
+
+    populate: 填充 或 配置
+
+    其他可选译法：
+
+    * 「枚举网卡」- 如果函数涉及发现所有可用网卡
+
+    * 「收集网卡信息」- 如果重点是搜集网卡数据
+
+    * 「初始化网卡拓扑」
+
+* CollNet（Collective Network）
+
+    CollNet 让多台机器在网络层形成一个层次化（hierarchical）的 collectives 拓扑，旨在让多节点间的 AllReduce / Broadcast / ReduceScatter 等集体操作 能够在网络层上更高效地执行。
+
+    执行 AllReduce 时：
+
+    1. Step 1: Node-local Reduce
+
+        各 GPU 在本节点内先做 reduce（通过 NVLink），得到一个 “节点级结果”。
+
+        节点内带宽高，这步很快。
+
+    2. Step 2: Inter-node CollNet AllReduce
+
+        各节点选出一个代表 GPU（leader GPU）通过网络互联进行 AllReduce。
+
+        这个过程使用 CollNet 的通信通道（通常基于 IB/RDMA）。
+
+    3. Step 3: Node-local Broadcast
+
+        各节点的 leader GPU 再把结果广播给同节点的其他 GPU。
+
+        这样每个阶段都在适合的层级上执行，大幅降低跨节点通信量。
+
+    CollNet 的核心机制:
+
+    * 节点代表（Leader）
+
+        每个节点选一个或多个 GPU 作为 CollNet 节点代表（通常是 GPU0）。
+
+    * Proxy 线程
+
+        NCCL 的后台线程，负责实际的 socket/RDMA 操作。CollNet 通过它发起网络 I/O。
+
+    * Transport 层接口
+
+        CollNet 作为 NCCL 的一种“transport backend”，和 Net、Shm 等并列。
+
+    * GDR 支持
+
+        CollNet 可以使用 GPUDirect RDMA（GDR）直接在 GPU 内存上通信。
+
+    * CollNet Shared Resource
+
+        每个通信 group 共享的 CollNet 网络句柄、QP、队列对等信息等。
+
+    实际中，CollNet 在大型 GPU 集群（如 DGX SuperPOD、Selene）中, 比纯 Ring AllReduce 通常快 20~40%（尤其是网络瓶颈场景）.
+
+    总结：CollNet 是 NCCL 的层次化集体通信子系统。它让多节点 GPU 集群的 AllReduce 等操作通过“节点内 reduce + 节点间 CollNet 通信 + 节点内 broadcast”的方式完成，从而显著减少跨节点数据传输量，提升分布式训练性能。
+
+* CE memcpy
+
+    CE Memcpy Support 指的是 Copy Engine（拷贝引擎） 对内存复制（Memcpy）操作的支持
+
+    NVIDIA GPU 有专门的硬件引擎来处理数据拷贝任务，包括：
+
+    * DMA（Direct Memory Access）引擎：负责主机（CPU）与设备（GPU）之间的数据传输。
+
+    * CE（Copy Engine）：负责 GPU 内部或 GPU 之间的数据拷贝（如 cudaMemcpy、cudaMemcpyAsync）。
+
+    CE 可以并行执行多个拷贝任务，提高数据传输效率。
+
+* `NCCL_CUMEM_ENABLE`
+
+    当 `NCCL_CUMEM_ENABLE=1`（或 `=ON`）时，NCCL 会尝试使用 CUDA 统一内存（UM） 来优化 GPU 之间的通信，减少显存拷贝开销，提升多 GPU 或跨节点通信性能。
+
+    在某些硬件（如 NVLink 互连）下可能显著提升性能，但在 PCIe-only 环境下可能效果有限。
+
+* cumem
+
+    cuMem（CUDA Memory） 是 NVIDIA CUDA 中的一个特性集，允许在 CUDA 内存空间中进行统一的内存管理和访问。在 NCCL 上下文中，cuMemSupport 标志表示是否支持 cuMem API，特别是用于 GPU 之间或 GPU 与 CPU 之间的内存共享和访问。
+
+    主要功能：
+
+    1. 统一虚拟地址（UVA）
+
+        * 为所有 GPU 内存和主机内存提供单一的虚拟地址空间
+
+        * 允许通过单个指针在不同 GPU 内存间透明访问
+
+    2. 内存池和共享
+
+        * cuMemCreate：创建可共享的内存句柄
+
+        * cuMemExportToShareableHandle：将内存导出为可跨进程共享的句柄
+
+        * cuMemImportFromShareableHandle：从共享句柄导入内存
+
+    3. 在 NCCL 中的作用
+
+        ```c
+        // 检查所有 rank 是否都支持 cuMem
+        if (!comm->peerInfo[i].cuMemSupport) comm->cuMemSupport = 0;
+        ```
+
+        * 集体决策：只有所有 rank 都支持 cuMem 时，整个通信域才启用 cuMem 功能
+
+        * 通信优化：启用后可以使用更高效的跨进程内存共享机制
+
+    应用场景：
+
+    1. 跨进程 GPU 内存共享
+
+        ```c
+        // 进程 A：创建并共享内存
+        cuMemCreate(&handle, size, &props);
+        cuMemExportToShareableHandle(&osHandle, handle, type, 0);
+
+        // 进程 B：导入并使用共享内存
+        cuMemImportFromShareableHandle(&handle, osHandle, type);
+        ```
+
+    2. NCCL 中的具体用途
+
+        * GPUDirect P2P 的替代/增强：在特定配置下提供更好的性能
+
+        * 容器化环境：在容器中更高效地共享 GPU 内存
+
+        * 虚拟化环境：支持 GPU 虚拟化场景
+
+    3. 与 GPUDirect RDMA 的关系
+
+        * 互补关系：cuMem 可以在 GPUDirect 不可用时提供替代方案
+
+        * 协同工作：在某些配置下两者可以一起使用以获得最佳性能
+
+    技术优势：
+
+    * 减少内存拷贝：避免通过主机内存中转
+
+    * 降低延迟：直接访问远程 GPU 内存
+
+    * 简化编程模型：统一的内存地址空间
+
+    检查条件：
+
+    在 fillInfo 函数中：
+
+    ```c
+    info->cuMemSupport = ncclCuMemEnable();
+    ```
+
+    这个函数检查：
+
+    * CUDA 运行时版本是否支持 cuMem API
+
+    * 驱动程序是否支持
+
+    * 当前 GPU 架构是否支持
+
+    * 用户是否通过环境变量显式启用/禁用
+
+    实际意义：
+
+    当 NCCL 检测到所有 rank 都支持 cuMem 时，可以：
+
+    * 使用更高效的内存共享策略
+
+    * 在某些场景下减少通信开销
+
+    * 支持更复杂的多进程 GPU 应用架构
+
+    这就是为什么在 AllGather 后需要检查所有 peer 的 cuMemSupport 标志——这是一个需要所有参与者共同支持的集体特性。
+
+* cuMem API 的支持情况
+
+    支持情况分析：
+
+    1. 硬件要求
+
+        * Volta 架构（V100）及以上：基本支持
+
+        * Pascal（P100）及更早：不支持或功能有限
+
+        * 消费级 GPU（GeForce）：通常不支持或功能受限
+
+        * 数据中心/专业 GPU：基本都支持
+
+            * Tesla V100, A100, H100, H200 等
+
+            * A10, A30, A40 等
+
+    2. 软件/驱动要求
+
+        * CUDA 11.0+：完整 cuMem API 支持
+
+        * 驱动版本：需要较新的驱动（通常 450.80.02+）
+
+        * 操作系统：Linux 支持更好，Windows 支持有限
+
+    3. 实际部署情况
+
+        ✅ 支持的典型场景：
+
+        ```bash
+        # 数据中心/云环境
+        DGX 系统（V100/A100/H100）
+        云 GPU 实例（AWS p4d/p5, Azure NDv4/NDv5）
+        NVIDIA HGX 平台
+        ```
+
+        ❌ 不支持的典型场景：
+
+        ```bash
+        # 消费级/桌面环境
+        GeForce RTX 系列（游戏卡）
+        大多数工作站（Quadro 除外）
+        旧版集群（Pascal 及更早）
+        ```
+
+    在 NCCL 中的实际情况：
+
+    1. 企业级部署（大部分支持）
+
+        ```c
+        // 在 DGX/HGX 系统中通常为 true
+        comm->cuMemSupport = 1;  // ✅ 支持
+        ```
+
+    2. 学术/研究集群（部分支持）
+
+        ```c
+        // 如果混合了新旧 GPU
+        if (all_ranks_have_volta_or_newer) {
+            comm->cuMemSupport = 1;  // ✅
+        } else {
+            comm->cuMemSupport = 0;  // ❌
+        }
+        ```
+
+    3. 开发/测试环境（通常不支持）
+
+        ```c
+        // 桌面工作站、笔记本
+        comm->cuMemSupport = 0;  // ❌ 大部分情况
+        ```
+
+    统计估计：
+
+    | 环境类型 | cuMem 支持率 | 备注 |
+    | - | - | - |
+    | 超算/数据中心 | 90%+ | 新部署基本都是 Ampere/Hopper |
+    | 企业私有云 | 70-80% | 可能有部分旧 GPU |
+    | 学术集群 | 50-70% | GPU 代际混合常见 |
+    | 个人/开发机 | <20% | 多为消费级 GPU |
+
+    为什么 NCCL 要检查这个？
+
+    ```c
+    // 集体决策：需要所有 rank 一致支持
+    for (int i = 0; i < nranks; i++) {
+        if (!comm->peerInfo[i].cuMemSupport) {
+            comm->cuMemSupport = 0;  // 任何不支持都会禁用
+            break;
+        }
+    }
+    ```
+
+    关键原因：cuMem 优化是集体操作，必须所有参与者都支持才能使用。如果混合了支持和不支持的 GPU：
+
+    * 统一回退到传统路径
+
+    * 避免复杂的兼容性处理
+
+    * 确保通信可靠性
+
+    总结：
+
+    * 大部分生产环境（特别是近年部署的）都支持
+
+    * 大部分开发/个人环境不支持
+
+    * 混合环境会集体禁用该优化
+
+    这反映了 NVIDIA 的市场策略：高级特性主要面向数据中心和专业市场，而不是消费级市场。
+
+### compile and install
+
+* 原版的 nccl 编译太慢，可以直接用这个
+
+    `make -j DEBUG=1 NVCC_GENCODE="-gencode=arch=compute_90,code=sm_90" src.build`
+
+* A100, cuda 12.4 对应的 nccl sm 为 80。编译 sm 90 无法跑通。
+
+* cuda 12.1 环境下，编译 nccl 使用 compute_90 编译时，无法跑通 nccl-test
+
+    使用 compute_70 可以跑通。
+
+## note
+
+### app
+
+#### cache
+
+* 单线程启动 nccl test
+
+    `./all_reduce_perf -b 16M -e 128M -f 2 -g 2`
+
+* 使用 unique id + init rank 的方式进行初始化
+
+    ```cpp
+    #include <nccl.h>
+    #include <cuda_runtime.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        ncclUniqueId uni_id;
+        ncclResult_t ret;
+        ret = ncclGetUniqueId(&uni_id);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to get unique id\n");
+            return -1;
+        }
+        printf("get unique id: %lu\n", uni_id);
+
+        ncclComm_t comms[2];
+        int dev_indices[2] = {0, 1};
+
+        ncclGroupStart();
+        for (int i = 0; i < 2; i++) {
+            cudaSetDevice(dev_indices[i]);
+            ncclCommInitRank(&comms[i], 2, uni_id, i);
+        }
+        ncclGroupEnd();
+
+        for (int i = 0; i < 2; ++i)
+        {
+            cudaSetDevice(dev_indices[i]);
+            cudaDeviceSynchronize();
+        }
+
+        for (int i = 0; i < 2; ++i)
+        {
+            printf("comms[%d]: %p\n", i, comms[i]);
+        }
+
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    get unique id: 512
+    comms[0]: 0x55fd1f29f6c0
+    comms[1]: 0x55fd1f33cf20
+    ```
+
+* 使用`ncclCommInitRankConfig()`进行带参数的初始化
+
+    ```cpp
+    ncclConfig_t config = NCCL_CONFIG_INITIALIZER;
+    config.blocking = 0;
+    config.minCTAs = 4;
+    config.maxCTAs = 16;
+    config.cgaClusterSize = 2;
+    config.netName = "Socket";
+
+    // ...
+
+    ncclGroupStart();
+    for (int i = 0; i < 2; i++)
+    {
+        cudaSetDevice(dev_indices[i]);
+        ncclCommInitRankConfig(&comms[i], 2, uni_id, i, &config);
+    }
+    ncclGroupEnd();
+    ```
+
+    这里，`NCCL_CONFIG_INITIALIZER`并不是一个枚举，而是一个宏，写了 struct 初始化的一些字段。
+
+* The `ncclCommInitRankScalable()` function enables the creation of a NCCL communicator using many ncclUniqueIds.
+
+    看起来这个函数可以指定多个 unique id，但是 unique id 其实是标识 host　的，使用多个 host 又有什么用？
+
+    试了下，这个功能在目前的版本里没有，好像是新加上去的。
+
+* doc 里说使用这个函数判断一个 rank 是否应该产生一个 unique id
+
+    ```cpp
+    bool rankHasRoot(const int rank, const int nRanks, const int nIds) {
+      const int rmr = nRanks % nIds;
+      const int rpr = nRanks / nIds;
+      const int rlim = rmr * (rpr+1);
+      if (rank < rlim) {
+        return !(rank % (rpr + 1));
+      } else {
+        return !((rank - rlim) % rpr);
+      }
+    }
+    ```
+
+    For example, if 3 ncclUniqueIds are to be distributed accross 7 NCCL ranks, the first ncclUniqueId will be associated to ranks 0-2, while the others will be associated to ranks 3-4, and 5-6. This function will therefore return true on rank 0, 3, and 5, and false otherwise.
+
+    Note: only the first ncclUniqueId will be used to create the communicator hash id, which is used to identify the communicator in the log file and in the replay tool.
+
+    不清楚这个干嘛用的，创建这么多 unique id 有什么用。
+
+* Using multiple NCCL communicators concurrently
+
+    根据 doc 上的资料，在 cuda 12.3 之前，
+
+    ```cpp
+    cudaGraphLaunch(graph1, stream1); // all ranks do this first
+    cudaGraphLaunch(graph2, stream2); // and this second
+    ```
+
+    是按顺序执行的，底层使用的是 cuda graph。
+
+    从 cuda 12.3 开始，这两个语句是并行执行的，底层使用的是 completion events。
+
+* nccl 提供的控制模式
+
+    * single-threaded control of all GPUs
+
+    * multi-threaded, for example, using one thread per GPU
+
+    * multi-process, for example, MPI
+
+* Each CUDA device is identified within the communication group by a zero-based index or rank. 
+
+    看来每个 group 内的 rank 是从 0 开始分配，并且唯一的，但是 group 与 group 内的 rank 是互相独立的。
+
+* When creating a communicator, a unique rank between 0 and n-1 has to be assigned to each of the n CUDA devices which are part of the communicator.
+
+    猜测：在当前进程创建 communicator 后，当前 host 的所有 device 会被编号为 0 到 n - 1。
+
+* Using the same CUDA device multiple times as different ranks of the same NCCL communicator is not supported and may lead to hangs.
+
+    在不同的 communicator 中，同一个 deivce 是否会有不同的 rank？
+
+* Given a static mapping of ranks to CUDA devices, the ncclCommInitRank(), ncclCommInitRankConfig() and ncclCommInitAll() functions will create communicator objects, each communicator object being associated to a fixed rank and CUDA device.
+
+    cuda device，rank 和 communicator 是一一映射关系。
+
+    每次 init 的时候，cuda dev 都会被映射到相同的 rank 上吗？
+
+* Before calling ncclCommInitRank(), you need to first create a unique object which will be used by all processes and threads to synchronize and understand they are part of the same communicator. This is done by calling the ncclGetUniqueId() function.
+
+    这个 unique id 其实就是 ip + bus id 了。
+
+* The ncclGetUniqueId() function returns an ID which has to be broadcast to all participating threads and processes using any CPU communication system, for example, passing the ID pointer to multiple threads, or broadcasting it to other processes using MPI or another parallel environment using, for example, sockets.
+
+    看他这个介绍，mpi 只是可选项之一，是否如果只调用 thread，那么就不会用到 mpi？
+
+* You can also call the ncclCommInitAll operation to create n communicator objects at once within a single process. As it is limited to a single process, this function does not permit inter-node communication. ncclCommInitAll is equivalent to calling a combination of ncclGetUniqueId and ncclCommInitRank.
+
+    猜想：inter-node 可能是跨 host 通信的意思。
+
+    看起来`ncclCommInitAll()`是在一个进程上拿到所有 device 的 rank 的意思。
+
+* The following sample code is a simplified implementation of ncclCommInitAll.
+
+    ```cpp
+    ncclResult_t ncclCommInitAll(ncclComm_t* comm, int ndev, const int* devlist) {
+      ncclUniqueId Id;
+      ncclGetUniqueId(&Id);
+      ncclGroupStart();
+      for (int i=0; i<ndev; i++) {
+        cudaSetDevice(devlist[i]);
+        ncclCommInitRank(comm+i, ndev, Id, i);
+      }
+      ncclGroupEnd();
+    }
+    ```
+
+    `ncclCommInitRank()`接收了个`ndev`参数，猜测可能是为每个`comm`，都创建长度为`ndev`的数组，保存 peer devs 的信息。而`Id`和`i`，则分别作为 bus id 和 dev rank 信息。
+
+* 一条可以跑通的 nccl 命令：`mpirun -np 2 --host sw53,sw54 -mca btl_tcp_if_include ens9f0 $(pwd)/all_reduce_perf -b 8 -e 128M -f 2 -g 1`
+
+    output:
+
+    ```
+    Authorization required, but no authorization protocol specified
+    Authorization required, but no authorization protocol specified
+    Authorization required, but no authorization protocol specified
+    Authorization required, but no authorization protocol specified
+    # nThread 1 nGpus 1 minBytes 8 maxBytes 134217728 step: 2(factor) warmup iters: 5 iters: 20 agg iters: 1 validation: 1 graph: 0
+    #
+    # Using devices
+    #  Rank  0 Group  0 Pid  58680 on       sw53 device  0 [0xb1] Tesla V100-PCIE-32GB
+    #  Rank  1 Group  0 Pid 928295 on       sw54 device  0 [0xb1] Tesla V100-PCIE-32GB
+    #
+    #                                                              out-of-place                       in-place          
+    #       size         count      type   redop    root     time   algbw   busbw #wrong     time   algbw   busbw #wrong
+    #        (B)    (elements)                               (us)  (GB/s)  (GB/s)            (us)  (GB/s)  (GB/s)       
+            8             2     float     sum      -1    17.39    0.00    0.00      0    16.26    0.00    0.00      0
+            16             4     float     sum      -1    17.45    0.00    0.00      0    26.12    0.00    0.00      0
+            32             8     float     sum      -1    17.09    0.00    0.00      0    16.83    0.00    0.00      0
+            64            16     float     sum      -1    17.14    0.00    0.00      0    16.58    0.00    0.00      0
+            128            32     float     sum      -1    17.08    0.01    0.01      0    16.93    0.01    0.01      0
+            256            64     float     sum      -1    18.64    0.01    0.01      0    17.65    0.01    0.01      0
+            512           128     float     sum      -1    19.45    0.03    0.03      0    18.65    0.03    0.03      0
+            1024           256     float     sum      -1    20.68    0.05    0.05      0    21.43    0.05    0.05      0
+            2048           512     float     sum      -1    24.26    0.08    0.08      0    23.42    0.09    0.09      0
+            4096          1024     float     sum      -1    29.49    0.14    0.14      0    29.28    0.14    0.14      0
+            8192          2048     float     sum      -1    39.72    0.21    0.21      0    39.90    0.21    0.21      0
+        16384          4096     float     sum      -1    53.53    0.31    0.31      0    52.61    0.31    0.31      0
+        32768          8192     float     sum      -1    90.02    0.36    0.36      0    90.05    0.36    0.36      0
+        65536         16384     float     sum      -1    159.5    0.41    0.41      0    159.9    0.41    0.41      0
+        131072         32768     float     sum      -1    178.5    0.73    0.73      0    177.4    0.74    0.74      0
+        262144         65536     float     sum      -1    310.2    0.85    0.85      0    309.0    0.85    0.85      0
+        524288        131072     float     sum      -1    583.2    0.90    0.90      0    582.7    0.90    0.90      0
+        1048576        262144     float     sum      -1   1130.9    0.93    0.93      0   1130.6    0.93    0.93      0
+        2097152        524288     float     sum      -1   2224.5    0.94    0.94      0   2223.9    0.94    0.94      0
+        4194304       1048576     float     sum      -1   4402.7    0.95    0.95      0   4400.1    0.95    0.95      0
+        8388608       2097152     float     sum      -1   8776.1    0.96    0.96      0   8776.5    0.96    0.96      0
+        16777216       4194304     float     sum      -1    17371    0.97    0.97      0    17367    0.97    0.97      0
+        33554432       8388608     float     sum      -1    34324    0.98    0.98      0    34302    0.98    0.98      0
+        67108864      16777216     float     sum      -1    68192    0.98    0.98      0    68194    0.98    0.98      0
+    134217728      33554432     float     sum      -1   136001    0.99    0.99      0   135982    0.99    0.99      0
+    # Out of bounds values : 0 OK
+    # Avg bus bandwidth    : 0.471788 
+    #
+    ```
+
+    参数说明：
+
+    * `-np 2`：表示一共起 2 个进程。默认情况下会给每个 node 分 1 个进程，
+
+    * `--host`：指定 node 的 hostname，使用逗号分隔
+
+    * `-mca`：不知道有啥用，后面跟两个参数，好像是用来配置 mpi 走的网卡
+
+    * `$(pwd)/all_reduce_perf`：因为指定绝对路径比较方便，所以这里使用了`$(pwd)`
+
+    * `-b 8`, `-e 128M`, `-f 2`: 第 1 次先发 8 个字节，后面发送的数据量不断翻倍，直到 128M 为止，数据量每次翻 2 倍。
+
+    * `-g 1`：在当前机器上使用 1 块 gpu
+
+* 一个可以运行的 nccl test 命令
+
+    ```bash
+    nccl_tests_path=/home/hlc/Documents/Projects/nccl-tests
+    mpirun -np 2 --host node1,node2 -mca btl_tcp_if_include enp0s3 -x NCCL_DEBUG=TRACE -x NCCL_BUFFSIZE=32768 ${nccl_tests_path}/build/all_reduce_perf -b 8 -e 128M -f 2 -g 1
+    ```
+
+    说明：
+
+    * `CCL_DEBUG`必须设置成`TRACE`才能看到 nccl 运行时的详细的信息。设置成`INFO`不行。
+
+    * `NCCL_BUFFSIZE`可以设置 cpu memory buffer 的大小
+
+        这个默认为`4194304`,即 4MB.
+
+        `32768`对应的是 32KB.
+
+    * `-g 1`表示 nccl 在本 node 上只使用一块 gpu.
+
+* 一个最简 nccl 程序
+
+    `main.cu`:
+
+    ```c
+    #include <nccl.h>
+    #include <stdio.h>
+
+    int main()
+    {
+        ncclComm_t comm;
+        int dev_id = 0;
+        ncclResult_t ret = ncclCommInitAll(&comm, 1, &dev_id);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to init all comm\n");
+            return -1;
+        }
+        printf("successfully init all comm\n");
+
+        ret = ncclCommDestroy(comm);
+        if (ret != ncclSuccess)
+        {
+            printf("fail to destroy comm\n");
+            return -1;
+        }
+        printf("successfully destroy comm\n");
+        return 0;
+    }
+    ```
+
+    编译：
+
+    `nvcc main.cu -lnccl -o main`
+
+    运行：
+
+    `./main`
+
+    输出：
+
+    ```
+    successfully init all comm
+    successfully destroy comm
+    ```
+
+    这个程序可以用来测试 nccl 编译和运行环境。
+
+* 创建 communicator 时，nccl 会创建 rank，这个 rank 代表一个 device，不代表一个进程
+
+    > Using the same CUDA device multiple times as different ranks of the same NCCL communicator is not supported and may lead to hangs.
+
+* nccl all reduce example
+
+    `main.c`:
+
+    ```c
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <nccl.h>
+    #include <cuda_runtime.h>
+
+    // resources on a cuda device
+    typedef struct
+    {
+        float *cubuf_A;
+        float *cubuf_B;
+        cudaStream_t cu_stream;
+    } CudevRes;
+
+    void print_vec_cuf32(void *cubuf, int num_elm)
+    {
+        float *buf = (float*) malloc(num_elm * sizeof(float));
+        cudaError_t cu_ret;
+        cu_ret = cudaMemcpy(buf, cubuf, num_elm * sizeof(float), cudaMemcpyDeviceToHost);
+        if (cu_ret != cudaSuccess)
+        {
+            printf("fail to cuda memcpy\n");
+            exit(-1);
+        }
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+        free(buf);
+    }
+
+    void print_vec_f32(float *buf, int num_elm)
+    {
+        for (int i = 0; i < num_elm; ++i)
+        {
+            printf("%.1f, ", buf[i]);
+        }
+        putchar('\n');
+    }
+
+    int main()
+    {
+        int cu_dev_cnt;
+        cudaGetDeviceCount(&cu_dev_cnt);
+        printf("there are totally %d cuda devices\n", cu_dev_cnt);
+
+        // int cur_cu_dev_id;
+        // cudaGetDevice(&cur_cu_dev_id);
+        // printf("current cuda device: %d\n", cur_cu_dev_id);
+
+        int num_cuda_devs = 2;
+
+        ncclComm_t *nccl_comms = malloc(num_cuda_devs * sizeof(ncclComm_t));
+        int *cuda_dev_ids = malloc(num_cuda_devs * sizeof(int));
+        for (int i = 0; i < num_cuda_devs; ++i)
+            cuda_dev_ids[i] = i;
+        cudaError_t cu_ret = ncclCommInitAll(nccl_comms, num_cuda_devs, cuda_dev_ids);
+        if (cu_ret != cudaSuccess)
+        {
+            printf("fail to comm init all\n");
+            return -1;
+        }
+        printf("successfully comm init all\n");
+
+        int num_elms = 8;
+
+        float *buf_A_dev_0 = malloc(num_elms * sizeof(float));
+        float *buf_A_dev_1 = malloc(num_elms * sizeof(float));
+        float *buf_B = malloc(num_elms * sizeof(float));
+        for (int i = 0; i < num_elms; ++i)
+        {
+            buf_A_dev_0[i] = rand() % 5;
+            buf_A_dev_1[i] = rand() % 5;
+            buf_B[i] = rand() % 5;
+        }
+        for (int i = 0; i < num_elms; ++i)
+        {
+            buf_B[i] = buf_A_dev_0[i] + buf_A_dev_1[i];
+        }
+
+        printf("buf_A_dev_0:\n");
+        print_vec_f32(buf_A_dev_0, num_elms);
+
+        printf("buf_A_dev_1:\n");
+        print_vec_f32(buf_A_dev_1, num_elms);
+
+        printf("buf_B:\n");
+        print_vec_f32(buf_B, num_elms);
+
+        putchar('\n');
+
+        CudevRes *cudev_reses = malloc(num_cuda_devs * sizeof(CudevRes));
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            CudevRes *cudev_res = &cudev_reses[i];
+
+            cu_ret = cudaSetDevice(i);
+            if (cu_ret != cudaSuccess)
+                printf("fail to set cuda device %d\n", i);
+
+            cu_ret = cudaMalloc((void**) &cudev_res->cubuf_A, num_elms * sizeof(float));
+            if (cu_ret != cudaSuccess)
+                printf("fail to malloc buf A on cuda dev %d\n", i);
+
+            cu_ret = cudaMalloc((void**) &cudev_res->cubuf_B, num_elms * sizeof(float));
+            if (cu_ret != cudaSuccess)
+                printf("fail to malloc buf B on cuda dev %d\n", i);
+
+            cu_ret = cudaStreamCreate(&cudev_res->cu_stream);
+            if (cu_ret != cudaSuccess)
+                printf("fail to create cuda stream on dev %d\n", i);
+
+            printf("allocate resources from cuda device %d\n", i);
+
+            if (i == 0)
+                cu_ret = cudaMemcpy(cudev_res->cubuf_A, buf_A_dev_0, num_elms * sizeof(float), cudaMemcpyHostToDevice);
+            else if (i == 1)
+                cu_ret = cudaMemcpy(cudev_res->cubuf_A, buf_A_dev_1, num_elms * sizeof(float), cudaMemcpyHostToDevice);
+            else
+            {
+                printf("error\n");
+                return -1;
+            }
+            if (cu_ret != cudaSuccess)
+            {
+                printf("fail to cudaMemcpy buf A\n");
+                return -1;
+            }
+
+            cu_ret = cudaMemset(cudev_res->cubuf_B, 0, num_elms * sizeof(float));
+            if (cu_ret != cudaSuccess)
+            {
+                printf("fail to cudaMemset buf B\n");
+                return -1;
+            }
+
+            printf("assign cuda mem data for dev %d\n", i);
+        }
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            cudaSetDevice(i);
+            printf("cu dev %d:\n", i);
+            printf("\tcubuf_A: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_A, num_elms);
+            printf("\tcubuf_B: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_B, num_elms);
+        }
+
+        ncclGroupStart();
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            CudevRes cudev_res = cudev_reses[i];
+            cudaSetDevice(i);
+            cu_ret = ncclAllReduce(cudev_res.cubuf_A, cudev_res.cubuf_B, num_elms, ncclFloat, ncclSum, nccl_comms[i], cudev_res.cu_stream);
+            if (cu_ret != cudaSuccess)
+            {
+                printf("fail to all recude\n");
+                return -1;
+            }
+        }
+        cu_ret = ncclGroupEnd();
+        if (cu_ret != cudaSuccess)
+        {
+            printf("fail to group end\n");
+            return -1;
+        }
+        printf("nccl all reduce group ended\n");
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            CudevRes cudev_res = cudev_reses[i];
+            cudaSetDevice(i);
+            cudaStreamSynchronize(cudev_res.cu_stream);
+        }
+        printf("cuda stream synchronized\n");
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            cudaSetDevice(i);
+            printf("cu dev %d:\n", i);
+            printf("\tcubuf_A: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_A, num_elms);
+            printf("\tcubuf_B: ");
+            print_vec_cuf32(cudev_reses[i].cubuf_B, num_elms);
+        }
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            cudaSetDevice(i);
+            CudevRes cudev_res = cudev_reses[i];
+            cudaFree(cudev_res.cubuf_A);
+            cudaFree(cudev_res.cubuf_B);
+            cudaStreamDestroy(cudev_res.cu_stream);
+        }
+        printf("cuda dev resource free\n");
+
+        for (int i = 0; i < num_cuda_devs; ++i)
+        {
+            ncclCommDestroy(nccl_comms[i]);
+        }
+
+        free(nccl_comms);
+        free(cuda_dev_ids);
+        return 0;
+    }
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    main: main.c
+        nvcc -g -I/home/huliucheng/Documents/Projects/nccl/build/include main.c -L/home/huliucheng/Documents/Projects/nccl/build/lib -lnccl -o main
+
+    clean:
+        rm -f main
+    ```
+
+    `run.sh`:
+
+    ```sh
+    #!/bin/bash
+
+    export LD_LIBRARY_PATH=/home/huliucheng/Documents/Projects/nccl/build/lib:${LD_LIBRARY_PATH}
+
+    ./main
+    ```
+
+    compile: `make`
+
+    run: `./run.sh`
+
+    output:
+
+    ```
+    there are totally 2 cuda devices
+    successfully comm init all
+    buf_A_dev_0:
+    3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+    buf_A_dev_1:
+    1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+    buf_B:
+    4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
+
+    allocate resources from cuda device 0
+    assign cuda mem data for dev 0
+    allocate resources from cuda device 1
+    assign cuda mem data for dev 1
+    cu dev 0:
+        cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+        cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+    cu dev 1:
+        cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+        cubuf_B: 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+    nccl all reduce group ended
+    cuda stream synchronized
+    cu dev 0:
+        cubuf_A: 3.0, 0.0, 1.0, 1.0, 0.0, 1.0, 2.0, 3.0, 
+        cubuf_B: 4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
+    cu dev 1:
+        cubuf_A: 1.0, 3.0, 2.0, 2.0, 4.0, 0.0, 1.0, 2.0, 
+        cubuf_B: 4.0, 3.0, 3.0, 3.0, 4.0, 1.0, 3.0, 5.0, 
+    cuda dev resource free
+    ```
+
+    可以看到，all reduce sum 把不同 device 上的 src 处的数据相加，然后把结果同步到两个 device 的 dst 显存上。
+
+#### note
+
+### topo
+
+#### cache
+
+* `TopoLinkList`、`TopoNodeList`与`TopoNodeSet`有什么不同？
+
+* `ncclTopoSetPaths()`
+
+    每个 node 都有多种 path，这里的 path 是个`ncclTopoLinkList`，其内容如下：
+
+    ```cpp
+    struct ncclTopoLinkList {
+      struct ncclTopoLink* list[NCCL_TOPO_MAX_HOPS];
+      int count;
+      float bw;
+      int type;
+    };
+    ```
+
+    可以看到 path 中包含了一个 link list，还有个 type。这个 type 一共有如下几种：
+
+    ```cpp
+    // Local (myself)
+    #define PATH_LOC 0
+
+    // Connection traversing NVLink
+    #define PATH_NVL 1
+
+    // Connection through NVLink using an intermediate GPU
+    #define PATH_NVB 2
+
+    // Connection traversing at most a single PCIe bridge
+    #define PATH_PIX 3
+
+    // Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+    #define PATH_PXB 4
+
+    // Connection between a GPU and a NIC using an intermediate GPU. Used to enable rail-local, aggregated network send/recv operations.
+    #define PATH_PXN 5
+
+    // Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+    #define PATH_PHB 6
+
+    // Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+    #define PATH_SYS 7
+
+    // Connection through the network
+    #define PATH_NET 8
+
+    // Disconnected
+    #define PATH_DIS 9
+    ```
+
+    每个 topo node 下有多种类型的 path，每种类型的 path 又有多条 path 实例，每条 path 其实是一个 topo path list。
+
+    从`baseNode->paths+baseNode->type`可以看出，每个 node 只处理和当前 node 类型相同的 path。并且申请的内存大小是根据 topo system 中的数据确定的。
+
+    因此每个 node 下的 path 可能是这样的：
+
+    ```
+    cpu 0 -> cpu 1 -> cpu 2 -> cpu 3
+    ```
+
+    这其中并没有 gpu，nic 相关的。
+
+    2025053100: 上述代码表示“如果未初始化从 base node 出发，到 base node 类型的 path，那么将所有 base node 类型的 path 都初始化一下”。这个初始化实际上是为后面 bfs 的种子轮搜索服务的。前面的推理明显是完全错误的，错误原因一是将 base node 泛化为了所有 node，其实应该只能推断出在这里对 base node 类型的 path 做了申请内存和初始化，但是不知道拿来干嘛的；二是没有做实验验证`cpu 0 -> cpu 1 -> cpu 2 -> cpu 3`是否正确，如果验证了马上发现 path 中会有多种 node，那么前面的推理就被全部推翻了。由此我们得到的启示是：如果想要做出推断，那么必须做实验。
+
+* getPath
+
+    ```cpp
+    static ncclResult_t getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path) {
+      for (int i=0; i<system->nodes[t].count; i++) {
+        if (system->nodes[t].nodes[i].id == id) {
+          *path = node->paths[t]+i;
+          return ncclSuccess;
+        }
+      }
+      WARN("Could not find node of type %d id %lx", t, id);
+      return ncclInternalError;
+    }
+    ```
+
+    这个函数的传入参数`t`应该是 type 的意思，比如`GPU`, `CPU`, `NIC`。
+
+    返回从`node`出发，指向节点类型为`t`，节点 id 为`id`的 path。
+
+* `ncclTopoConnectNodes()`
+
+    ```cpp
+    ncclResult_t ncclTopoConnectNodes(struct ncclTopoNode* node, struct ncclTopoNode* remNode, int type, float bw) {
+      // Aggregate links into higher bw for NVLink
+      struct ncclTopoLink* link;
+      for (link = node->links; link - node->links != NCCL_TOPO_MAX_LINKS && link->remNode; link++) {
+        if (link->remNode == remNode && link->type == type) break;
+      }
+
+      // ...
+    }
+    ```
+
+    `NCCL_TOPO_MAX_LINKS`宏展开是 128，这个遍历看起来是从头开始遍历，要么到达最大容量`NCCL_TOPO_MAX_LINKS`后停止，要么`link->remNode`为空时停止。因此前面使用数组已经分配了`link`的空间，所以在数组范围内`link`一定都不为空。
+
+    往上走一层我们可以看到`ncclTopoConnectNodes(cpu1, cpu2, LINK_SYS, bw);`，说明 local link 是 cpu 1 上的 link，而 remote node 就是 cpu 2，link type 为`LINK_SYS`。
+
+    ```cpp
+    // Sort links in BW descending order
+    struct ncclTopoLink linkSave;
+    memcpy(&linkSave, link, sizeof(struct ncclTopoLink));
+    while (link != node->links) {
+        if ((link-1)->bw >= linkSave.bw)
+            break;
+        memcpy(link, link-1, sizeof(struct ncclTopoLink));
+        link--;
+    }
+    memcpy(link, &linkSave, sizeof(struct ncclTopoLink));
+    ```
+
+    这个是从尾向前遍历，因为要用到`link - 1`，所以当遍历完第 2 个节点后停下，第 1 个节点单独处理。
+
+    1, 2, 3, 4, 5
+
+    `linkSave` -> 5
+
+    `link - 1` -> 4
+
+    `link` -> 4, `link - 1` -> 3
+
+    1, 2, 3, 4, 4 => 5, 1, 2, 3, 4
+
+    看起来比较像，对于`cpu_node_2`，让当前`cpu_node_1`的 link 向前找到一个合适的位置。
+
+    5, 4, 2, 1, 3 => 5, 4, 3, 2, 1
+
+    4, 5, 2, 1, 3 => 4, 5, 3, 2, 1
+
+    由上面的例子可以看出，首先把要处理的数据`x`放在末尾，然后倒着向前找，直到找到第一个比`x`大的数`y`，最后将`x`放到`y`的后面，退出。再向前的数据则不去处理。
+
+    边界条件：如果搜索整个数组都没有找到比`x`大的值，那么说明`x`是数组中最大的，将其放到最前面。
+
+    * cpu node 的 links 是在什么时候被填充的？
+
+        看起来比较像在`ncclTopoAddNvLinks()`里填充。这个是个递归调用的函数。
+
+        * (2025.04.08,00) cpu node 的 link 并不是物理的 link，而是拓扑图里的 edge，因此并不是只在 add nvlinks 函数里填充。目前看来，应该是在`ncclTopoConnectNodes()`里被填充。
+
+    * 为什么只有 cpu link 的 connect，没有 gpu link 的 connect？
+
+    * link type
+
+        ```cpp
+        // We want link types and path types to match as much as possible
+        #define LINK_LOC 0
+        #define LINK_NVL 1
+        // Skipping 2 for PATH_NVB
+        #define LINK_PCI 3
+        // Skipping 4 for PATH_PXB
+        // Skipping 5 for PATH_PXN
+        // Skipping 6 for PATH_PHB
+        #define LINK_SYS 7
+        #define LINK_NET 8
+        ```
+
+        实测每个 cpu 有 3 个 link，有两个 type 为`LINK_LOC`，还有一个 type 为`LINK_PCI`。
+
+        看来 topo system 里的 link 指的不是 nvlink，而是 graph 里的 edge。
+
+* nccl 中的 topo node 只有四种：gpu, net, cpu, pci
+
+    目前不清楚 pci 中的`uint64_t device;`成员是干嘛用的，可能是 bus id？
+
+    每个 node 上都可以对接 nvlink。（net 该怎么对接？）
+
+    link 相关的结构体只有三个信息：
+
+    ```cpp
+    struct TopoLink
+    {
+        int type;
+        float bw;
+        struct TopoNode *peer_node;  // remNode
+    };
+    ```
+    
+    这里的`TopoLink`即为拓扑边，其实翻译成 edge 更恰当。`peer_node`, `remNode`就是从当前 node 出发的下一跳 node。
+
+    这里的`int type;`类型指的是拓扑边的类型，不是下个节点的类型。
+
+    每个节点都包含一个固定长度的`TopoLinkList*`数组，数组中的每个元素分别对应不同的类型：
+
+    ```cpp
+    enum {
+        GPU = 0,
+        PCI = 1,
+        NVS = 2,
+        CPU = 3, // Actually NUMA domains
+        NIC = 4,
+        NET = 5,
+        NCCL_TOPO_NODE_TYPES
+    };
+    ```
+
+    每个节点朝别的所有类型的节点都有 path，这里的 path 类型即 dst 节点的类型。
+
+    `TopoLinkList`的 struct 为：
+
+    ```cpp
+    struct TopoLinkList
+    {
+        vector<TopoLink*> list;  // NCCL_TOPO_MAX_HOPS 256 * 7
+        int count;
+        float bw;
+        int type;
+    };
+    ```
+
+    这里的`list`是由一系列 topo link (edge) 组成的 path。
+
+    其中的`int type;`指的是 path type。
+
+    每个类型存储一个 path 指针，这个指针，其实是一个 path 数组，由于数组的长度需要在运行时动态确定，所以后面会有 malloc 填充这个指针。
+
+* `ncclTopoFuseXml()`
+
+    ```c
+    ncclResult_t ncclTopoFuseXml(struct ncclXml* dst, struct ncclXml* src) {
+      struct ncclXmlNode* topNodeDst;
+      NCCLCHECK(xmlFindTag(dst, "system", &topNodeDst));
+
+      if (topNodeDst == NULL) {
+        xmlAddTree(dst, NULL, src->nodes);
+        return ncclSuccess;
+      }
+
+      struct ncclXmlNode* topNodeSrc;
+      NCCLCHECK(xmlFindTag(src, "system", &topNodeSrc));
+
+      NCCLCHECK(xmlTopoFuseXmlRecursive(dst, topNodeDst, topNodeSrc));
+
+      return ncclSuccess;
+    }
+    ```
+
+    如果`dst`是个空的 xml，那么把`src`的 xml 直接添加到`dst`里。
+
+    如果`dst`非空，那么找到`src`中的`system` tag，
+
+* nccl xml
+
+    ```c
+    if (comm->MNNVL) {
+        // Ensure that we have enough room when fusing topos from multiple nodes.
+        free(xml);
+        NCCLCHECK(xmlAlloc(&xml, nLocalRanks*NCCL_TOPO_XML_MAX_NODES));
+    } else {
+        // In the intra-node case there's no need to enlarge the topo xml.
+        xml->maxIndex = 0;
+        free(localRanks);
+    }
+    ```
+
+    不清楚这个`comm->MNNVL`是干嘛用的，疑似是发现了多个 host。如果有多个 host，那么就认为在 current node 上申请的 xml 的内存不够用（为什么不够用？前面在申请时，是按 max nodes 申请的内存吗？），全部释放掉再申请个新的。
+
+    如果发现所有的 comm rank 都是在同一个 node 上的，那么认为为 xml 预留的空间够用，`xml->maxIndex = 0;`相当于移动了栈顶指针，效果上等价于释放数据。`free(localRanks);`不清楚干嘛用的，可能是如果发现 comm 都在同一个 host 上，那么 localRanks 就是无意义的。
+
+* 修改环境变量`NCCL_P2P_LEVEL`, `NCCL_P2P_DIRECT_DISABLE`, `NCCL_P2P_DISABLE`都无法启动或禁止 p2p
+
+* 发现本机资源的几个关键函数：`ncclTopoGetSystem()` -> `ncclTopoComputePaths()` -> `ncclTopoTrimSystem()`
+
+    目前看来是在`ncclTopoComputePaths()`中判断了 pcie p2p 不可用。
+
+    这里的不可用有可能是逻辑判断有问题，也有可能是上一个函数`ncclTopoGetSystem()`在获取资源时，获取的原始数据有误。
+
+* nccl 中 xml 的内存申请
+
+    nccl 中与 xml 相关的 struct 如下：
+
+    ```cpp
+    struct ncclXmlNode {
+        char name[MAX_STR_LEN+1];
+        struct {
+            char key[MAX_STR_LEN+1];
+            char value[MAX_STR_LEN+1];
+        } attrs[MAX_ATTR_COUNT+1];  // Need an extra one to consume extra params
+        int nAttrs;
+        int type;
+        struct ncclXmlNode* parent;
+        struct ncclXmlNode* subs[MAX_SUBS];
+        int nSubs;
+    };
+
+    struct ncclXml {
+        int maxIndex, maxNodes;
+        struct ncclXmlNode nodes[1];
+    };
+    ```
+
+    可以看到`ncclXml`里记录了`maxNodes`，即`nodes`数组的最大长度，`maxIndex`即目前`nodes`的实际长度，而`nodes`数组其实是实际子 nodes 的起始地址。
+
+    `struct ncclXmlNode nodes[1];`这样的写法，是想既申请一个节点，作为 xml 的 root node，又可以将`nodes`作为指针，增加偏移指向 child nodes。
+
+    下面是 nccl 里内存申请相关的函数：
+
+    ```cpp
+    static size_t xmlMemSize(int maxNodes) {
+      return offsetof(struct ncclXml, nodes) + sizeof(struct ncclXmlNode)*maxNodes;
+    }
+
+    static ncclResult_t xmlAlloc(struct ncclXml** xml, int maxNodes) {
+      char* mem;
+      NCCLCHECK(ncclCalloc(&mem, xmlMemSize(maxNodes)));
+      *xml = (struct ncclXml*)mem;
+      (*xml)->maxNodes = maxNodes;
+      return ncclSuccess;
+    }
+    ```
+
+    可以看到，`xmlMemSize()`在计算 size 时，`offsetof(struct ncclXml, nodes)`计算的是 header 部分，`sizeof(struct ncclXmlNode)*maxNodes`统计的是 child nodes 所占的 size。
+
+    这样的写法，有点像：
+
+    ```c
+    struct MyXml
+    {
+        header member var 1;
+        header member var 2;
+        header member var 3;
+        ...
+        root node 0;
+        ----------------------
+        child node 1;
+        child node 2;
+        child node 3;
+        ...
+    };
+    ```
+
+    这样即可将一个大小可动态变化的 struct 写成静态的第 1 部分和动态的第 2 部分。
+
+    是否有 feedback？未想到。
+
+#### note
+
+### communication operator
+
+#### cache
+
+* 基于 reduce copy 可以跑通的 all reduce
+
+    见`ref_36`。
+
+    output:
+
+    ```
+    the first 8 elms:
+    cubuf_1: 1.0, 4.0, 3.0, 1.0, 5.0, 1.0, 4.0, 0.0, specialized as float
+    cubuf_2: 3.0, 0.0, 2.0, 1.0, 1.0, 2.0, 5.0, 5.0, specialized as float
+    after launch, the first 8 elms:
+    cubuf_1: 4.0, 4.0, 5.0, 2.0, 6.0, 3.0, 9.0, 5.0, specialized as float
+    cubuf_2: 4.0, 4.0, 5.0, 2.0, 6.0, 3.0, 9.0, 5.0, specialized as float
+    in compare_buf_cubuf(), specialized as float
+    in compare_buf_cubuf(), specialized as float
+    all results are correct
+    ```
+
+    问题：
+
+    1. 什么时候`Apply_Reduce::reduce()`中的 half 会被调用到？
+
+    2. `MultimemSrcs`, `MultimemDsts`在何时被调用？
+
+    3. 尝试将 Unroll 加上去，看是如何处理 hunk 的
+
+    4. 16 字节的数据是如何被处理的？
+
+    5. while 循环如何触发？while 中的 break 什么时候能删掉？
+
+    6. `aligned`何时被触发？
+
+    说明：
+
+    1. `cvta_to_global()`目前看来没有对 va 地址作任何改变
+
+* 在 ld_volatile_global() 处恢复运行，disable 断点后，nccl perf data 最后仍能正常输出。说明前面的数据 0 并不是真的 0，只是数据很小没有显示出来。
+
+    同时还说明，前几轮的小数据量 perf 有可能没有调用到 ld_volatile_global()。
+
+    很可能是 8 bytes - 1048576 bytes 这个范围内。
+
+    * 2025/02/11/01: 确实没有用到，因为调用的是宏定义的 load 函数。`ld_volatile_global()`也很有可能不是加载数据用的，而是加载配置用的（step value）。
+
+* nccl 在启用 ll128 协议时，调用`op128.h`中的函数。如果是 ll 协议，那么不会调用。simple 协议目前不清楚。
+
+* `ld_volatile_global()`在两个地方被调用
+
+    1. `Primitives::loadStepValue()`
+
+        用于加载 peer connection 的 info
+
+        * `connStepPtr = conn->head;`, `connStepPtr = conn->tail;`, 看起来`connStepPtr`是 conn 的链表, 这些都在`loadRecvConn()`被调用
+
+        * 有可能 step 是异步处理，所以需要 volatile 加载数据
+
+        * `st_relaxed_sys_global()`由`postPeer()`调用
+
+    2. reduce copy
+
+        用于取 payload 数据。
+
+* `op128.h`中`ld_volatile_global()`会调用到（可以用 pritf 法证明）。其他`ld_volatile_global_xxx()`相关的函数都是使用宏定义的，覆盖了 128 bytes, 64 bytes, 32 bytes, 16 bytes 以及 8 bytes 的处理。
+
+* 一个 unroll 中处理无法使用一个完整 warp 处理的数据的方式：
+
+    unroll 为 1 时，因为每个线程是单独计算自己的任务进度，所以可以处理不完整的 warp 的任务
+
+* `reduceCopyPacks()`是最底层负责干活的函数，每次起一个 warp，warp 里有 32 个线程，每个线程搬运 16 个字节，warp （线程）循环处理 Unroll 组数据，这叫一个 hunk。
+
+    数据可能有多个 src，dst，此时需要做 reduce，把多个 src, dst 合到一处。
+
+* nccl 数据传输的调用流程
+
+    run work batch (dev func) -> run work coll -> run ring/tree -> prims -> send
+
+    * `Primitives<> prims`由`RunWorkColl()` -> `runRing()`创建
+
+#### note
+
+### transport layer
+
+#### cache
+
+* 可以确认 socket 的 buffer 使用的是 cuda host alloc
+
+    与 user 申请的数据对应的地址为`0x7fccafc00000`，查询 nccl 中所有的 buffer 的 addr，有一个`in ncclCudaHostCallocDebug(), host alloc size: 8388608, ptr: 0x7fccafa00000`，将`0x7fccafa00000`与`8388608`相加得到`7FCCB0200000`，由此可以看出`0x7fccafc00000`在这段内存里。
+
+    这个用于 socket 的 buffer size 为 8M，nccl 运行的整个过程中，一共申请了 2 个 8M 的 buffer，猜测可能是因为每个 gpu 算一个 rank，每个 rank 上都要有一个 buffer。
+
+    官网中的环境变量没有 8M 或 8388608 相关的字段，说明这个 buffer 大小在官网看来不受环境变量控制。
+
+* nccl pcie 检查调用栈
+
+    * `ncclAsyncJobMain()`
+
+        * `commAlloc()`
+
+            * `ncclNvmlDeviceGetHandleByPciBusId()`
+
+                * `ncclNvmlEnsureInitialized()`
+
+                    * `pfn_nvmlDeviceGetP2PStatus()`
+
+        * `ncclCommInitRankFunc()`
+
+            * `initTransportsRank()`
+
+                * `ncclTopoComputePaths()`
+
+                    * `ncclTopoCheckP2p()`
+
+                    * `p2pCanConnect()`
+
+                        * `ncclTopoCheckP2p()`
+
+* nccl p2p 在开始数据传输任务后，host 端在 while 循环中进行 poll 检查 sockfd 状态，除此之外无显式的 send recv 操作，说明 p2p 确实是由 device 侧发起的数据搬运操作。
+
+    p2p 模式下，cpu 单核仍会跑满，但是这个是主动循环 poll sockfd 事件导致的，并不是内核在读写 host memory。
+
+    猜测可能是 host 申请一个 sockfd，然后把相关的 buffer 地址以及对应的权限交给 gpu. gpu 走 pcie p2p 和其他 gpu 进行通信，当通信完成后，gpu 会回填这个 sockfd 的 buffer，这个 buffer 里包含了 fd 的状态，代表事件已经完成。host 侧则通过轮询（也不是轮询，其实就是 poll）这个 fd 判断事件是否完成。
+
+    （如果使用 poll，按道理 cpu 应该占用率为零才对，为什么仍会占用 100%？可能是 timeout 设置为 0？不清楚，有时间了看看。）
+
+* nccl 调用了`p2pCanConnect()`和`shmCanConnect()`，但是后续会调用`shmSendConnect()`, `shmRecvConnect()`，并未调用 p2p 相关的函数，说明传输数据使用的是 shared host memory，并不是 pcie。
+
+* 设置环境变量`NCCL_SHM_DISABLE=1`可以禁用 shared host memory，此时会使用 socket 进行通信
+
+* 在建立 ring 连接时（`ncclTransportRingConnect()`），调用`ncclTransportP2pSetup()`建立 p2p 连接
+
+    其中，会调用`selectTransport()` -> `transportComm->setup()`，最终调用到`shmRecvSetup()`。
+
+    显然`setup()`函数指针在前面已经被替换成了`shmRecvSetup()`。
+
+    目前看来，应该是用`struct ncclTransport shmTransport;`完成的替换，这个结构体里包含了 proxy 所需要用到的所有 shm 相关的函数。
+
+* `shmTransport`既包含在`struct ncclTransport* ncclTransports[NTRANSPORTS]`数组中，可以用 transport 索引直接调用到，对应的数组的索引是 1
+
+    `p2pTransport`对应数组的索引是 0，`netTransport`对应 2，`collNetTransport`对应 3。
+
+* 为什么`p2pCanConnect()`会被执行多次？ 经 cnt 统计一共调用了 16 次。
+
+    nccl 会起两个线程，每个线程独立扫描一遍本机资源，对于本机的两个 gpu，都判断一次 p2p can connect，即 0 - 1, 1 - 0， 因此`p2pCanConnect()`会被调用 4 次。
+
+    1. thread 79, g = 0, p = 1
+
+    2. thread 80, g = 0, p = 1
+
+    3. thread 79, g = 1, p = 0
+
+    4. thread 80, g = 1, p = 0
+
+    5. thread 79, g = 0, p = 1
+
+        这里开始第二次调用`ncclTopoComputePaths()`, recompute paths after triming
+
+    6. thread 80, g = 0, p = 1
+
+    7. thread 79, g = 1, p = 0
+
+    8. thread 80, g = 1, p = 0
+
+    9. thread 36, `ncclAsyncJobMain()` -> `ncclCollPreconnectFunc()` -> `ncclTransportRingConnect()` -> `ncclTransportP2pSetup()` -> `selectTransport()` -> `p2pCanConnect()`, c = 0
+
+    10. thread 37, 
+
+    11. thread 37, c = 1
+
+    12. thread 36, c = 1
+
+    13. thread 36, c = 0
+
+        从这里开始，调用`selectTransport<1>()`
+
+    14. thread 37, c = 0
+
+    15. thread 36, c = 1
+
+    16. thread 37, c = 1
+
+* `ncclTransports`在五处地方被使用
+
+    1. `proxyConnInit()`未被调用
+
+    2. `proxyFree()`：未调用
+
+    3. `ncclProxyConnect()`：未调用
+
+    4. `selectTransport()`：调用
+
+    5. `ncclTopoComputePaths()`
+
+    说明全程没有用到 proxy。无法简单看代码看出逻辑，可能只要在同一台机器上就不需要创建 proxy。
+
+    猜想：这个可能是在`groupLaunch()` -> `asyncJobLaunch()`阶段就判断出了不需要创建 proxy connect。
+
+#### note
