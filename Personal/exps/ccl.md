@@ -7085,6 +7085,134 @@
 
     **想聊聊具体的传输层吗？** 比如 `p2pTransport` 是如何判断 NVLink 是否可用的，或者是 `shmTransport` 是如何处理内存共享的？
 
+* `p2pSendSetup()`
+
+    这段代码是 NCCL 中 **P2P (Point-to-Point) 传输层**的一个核心函数。它的主要作用是**在发送端（Send Side）初始化 P2P 连接所需的资源**，并生成用于握手的连接结构体（`connectInfo`），以便远程接收端能够识别并连接到当前节点。
+
+    以下是逐行的详细功能解释：
+
+    ---
+
+    1. 函数定义与内存分配
+
+        ```c
+        ncclResult_t p2pSendSetup(struct ncclComm* comm, struct ncclTopoGraph* graph, struct ncclPeerInfo* myInfo, struct ncclPeerInfo* peerInfo,
+            struct ncclConnect* connectInfo, struct ncclConnector* send, int channelId, int connIndex) {
+          struct p2pResources* resources;
+          struct ncclP2pRequest req;
+          NCCLCHECK(ncclCalloc(&resources, 1)); // 为该连接的 P2P 资源结构体分配内存
+          send->transportResources = resources; // 挂载到发送端连接器上
+
+        ```
+
+        * **作用**：初始化基础结构。`p2pResources` 将存储该连接后续使用的内存地址、类型等信息。
+
+    2. 策略判断（Read vs Write）
+
+        ```c
+          int useRead, intermediateRank;
+          NCCLCHECK(p2pGetInfo(comm, myInfo, peerInfo, &useRead, &intermediateRank));
+          if (useMemcpy) useRead = 0; // 如果强制使用 Memcpy (CE)，则不使用 RDMA Read 模式
+
+          static_assert(sizeof(struct p2pConnectInfo) <= sizeof(struct ncclConnect), "p2p Connect Info is too big");
+          struct p2pConnectInfo* info = (struct p2pConnectInfo*)connectInfo;
+          info->read = useRead;
+        ```
+
+        * **作用**：调用 `p2pGetInfo` 判断是使用 **P2P Write**（推模式）还是 **P2P Read**（拉模式）。
+
+        * **逻辑**：如果是 `CollNet`（集合网络优化）且连接索引为 1，则强制设为 Write（用于 scatter-reduce）。
+
+    3. 计算共享内存大小
+
+        ```c
+          int sendSize = sizeof(struct ncclSendMem);
+          // 对于 P2P Read，SIMPLE 协议的缓冲区会附加在 ncclSendMem 结构体之后
+          if (info->read) sendSize += comm->buffSizes[NCCL_PROTO_SIMPLE];
+          ALIGN_SIZE(sendSize, CUDA_IPC_MIN); // 按照 CUDA IPC 最小粒度对齐内存大小
+
+        ```
+
+        * **作用**：计算需要在 GPU 之间共享的控制结构（和数据缓冲）的大小。
+
+    ### 4. 路径类型判断（Direct vs IPC vs CuMem）
+
+    这部分代码决定了两个 GPU 之间如何“对话”：
+
+    ```c
+      if (intermediateRank == -1) { // 意味着可以直接通信，无需中间中转
+        info->rank = myInfo->rank;
+        // 判断是否在同一进程内，且未禁用 P2P 直接访问
+        if (P2P_SAME_PID(myInfo, peerInfo) && ncclParamP2pDirectDisable() == 0 && useMemcpy == 0) {
+          resources->type = P2P_DIRECT; // 直接指针访问（同一进程）
+        } else {
+          if (ncclCuMemEnable()) {
+            resources->type = P2P_CUMEM; // 使用新的 cuMem API (支持 Multi-Node NVLink 等)
+          } else {
+            resources->type = P2P_IPC; // 使用传统的 CUDA IPC 句柄跨进程通信
+          }
+        }
+        // 设置标志位：告诉接收端是 Read 还是 Write 模式
+        send->conn.flags |= info->read ? NCCL_P2P_READ : NCCL_P2P_WRITE;
+      } else {
+        // 间接路径：通过 intermediateRank 指定的 GPU 进行中转
+        resources->type = P2P_INTERMEDIATE;
+        info->rank = intermediateRank;
+      }
+
+    ```
+
+    ### 5. 代理连接与内存准备
+
+    ```c
+      memset(&req, '\0', sizeof(req));
+      req.size = sendSize;
+      req.refcount = 0;
+      // 引用计数逻辑：如果涉及跨设备但同进程，增加引用计数以管理内存释放
+      if (P2P_SAME_PID((comm->peerInfo + info->rank), peerInfo) && (comm->peerInfo[info->rank].cudaDev != peerInfo->cudaDev)) req.refcount++;
+      if (P2P_SAME_PID((comm->peerInfo + info->rank), myInfo) && (comm->peerInfo[info->rank].cudaDev != myInfo->cudaDev)) req.refcount++;
+      
+      // 建立代理连接（Proxy Connection）
+      NCCLCHECK(ncclProxyConnect(comm, TRANSPORT_P2P, 1, info->rank, &send->proxyConn));
+
+    ```
+
+    * **作用**：NCCL 使用代理线程（Proxy Thread）来处理复杂的内存映射和状态监控。
+
+    ### 6. 获取通信描述符（IPC 握手关键点）
+
+    ```c
+      if (useMemcpy) {
+        // 使用共享内存副本（SHM）模式
+        NCCLCHECK(ncclProxyCallBlocking(comm, &send->proxyConn, ncclProxyMsgSetup, NULL, 0, &resources->proxyInfo, sizeof(struct p2pShmProxyInfo)));
+        memcpy(&info->desc, &resources->proxyInfo.desc, sizeof(ncclShmIpcDesc_t));
+      } else {
+        // 正常 P2P 模式：获取 P2P 缓冲区信息
+        NCCLCHECK(ncclProxyCallBlocking(comm, &send->proxyConn, ncclProxyMsgSetup, &req, sizeof(struct ncclP2pRequest), &info->p2pBuff, sizeof(struct ncclP2pBuff)));
+        // 将分配的内存映射到本地地址空间
+        NCCLCHECK(p2pMap(comm, &send->proxyConn, myInfo, comm->peerInfo+info->rank, &info->p2pBuff, (void**)&resources->sendDevMem, &resources->sendMemIpc));
+        resources->sendMemSameProc = P2P_SAME_PID(myInfo, (comm->peerInfo + info->rank));
+      }
+
+    ```
+
+    * **作用**：
+    1. 向代理线程发起同步调用（`ncclProxyCallBlocking`），请求分配或准备好 P2P 内存。
+    2. `info->p2pBuff` 包含了 CUDA IPC 句柄等信息，这会被填充到 `connectInfo` 中返回给调用者。
+    3. 调用 `p2pMap`：在发送端本侧也映射这块内存，用于监控进度（如 `ncclSendMem` 里的 head/tail 指针）。
+
+
+
+    ---
+
+    ### 总结
+
+    该函数的核心任务是：**“为了发数据给对方，我（发送方）先准备好一块共享内存（或找到对方的内存），把这块内存的‘钥匙’（IPC 句柄）放进 `connectInfo` 里，等会儿通过网络发给对方。”**
+
+    **下一步建议：**
+    你想了解这个函数返回的 `connectInfo` 是如何在接收端（`p2pRecvSetup`）被处理并完成握手的吗？
+
+
 ## topics
 
 ### MNNVL
