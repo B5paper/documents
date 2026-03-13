@@ -1,5 +1,575 @@
 ## 链表
 
+### 排序链表
+
+* 题目
+
+    给你链表的头结点 head ，请将其按 升序 排列并返回 排序后的链表 。
+
+    
+
+    示例 1：
+
+    输入：head = [4,2,1,3]
+    输出：[1,2,3,4]
+
+    示例 2：
+
+    输入：head = [-1,5,3,4,0]
+    输出：[-1,0,3,4,5]
+
+    示例 3：
+
+    输入：head = []
+    输出：[]
+
+    
+
+    提示：
+
+        链表中节点的数目在范围 [0, 5 * 104] 内
+        -105 <= Node.val <= 105
+
+    
+
+    进阶：你可以在 O(n log n) 时间复杂度和常数级空间复杂度下，对链表进行排序吗？
+
+* 我的解法
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode() : val(0), next(nullptr) {}
+    *     ListNode(int x) : val(x), next(nullptr) {}
+    *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* merge(ListNode *list1, ListNode *list2) {
+            ListNode *p1 = list1, *p2 = list2;
+            ListNode dummy;
+            ListNode *dummy_head = &dummy;
+            ListNode *p = dummy_head;
+            while (p1 && p2) {
+                if (p1->val < p2->val) {
+                    p->next = p1;
+                    p1 = p1->next;
+                } else {
+                    p->next = p2;
+                    p2 = p2->next;
+                }
+                p = p->next;
+            }
+            if (p1) {
+                p->next = p1;
+            }
+            if (p2) {
+                p->next = p2;
+            }
+            p = dummy_head->next;
+            return p;
+        }
+
+        ListNode* get_middle_node(ListNode *head) {
+            ListNode *p1 = head, *p2 = head, *pre;
+            while (p2 && p2->next) {
+                pre = p1;
+                p1 = p1->next;
+                p2 = p2->next->next;
+            }
+            pre->next = nullptr;
+            return p1;
+        }
+
+        ListNode* recur_sort(ListNode *head) {
+            if (head == nullptr || head->next == nullptr) {
+                return head;
+            }
+            ListNode *mid_node = get_middle_node(head);
+            ListNode *head_1 = recur_sort(head);
+            ListNode *head_2 = recur_sort(mid_node);
+            ListNode *new_head = merge(head_1, head_2);
+            return new_head;
+        }
+
+        ListNode* sortList(ListNode* head) {
+            return recur_sort(head);
+        }
+    };
+    ```
+
+* ai 探讨我的思路和代码：
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode() : val(0), next(nullptr) {}
+    *     ListNode(int x) : val(x), next(nullptr) {}
+    *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* merge(ListNode *list1, ListNode *list2) {
+            ListNode *p1 = list1, *p2 = list2;
+            ListNode *dummy_head = new ListNode;
+            ListNode *p = dummy_head;
+            while (p1 && p2) {
+                if (p1->val < p2->val) {
+                    p->next = p1;
+                    p1 = p1->next;
+                } else {
+                    p->next = p2;
+                    p2 = p2->next;
+                }
+                p = p->next;
+            }
+            if (p1) {
+                p->next = p1;
+            }
+            if (p2) {
+                p->next = p2;
+            }
+            p = dummy_head->next;
+            delete dummy_head;
+            return p;
+        }
+
+        ListNode* get_middle_node(ListNode *head) {
+            ListNode *p1 = head, *p2 = head;
+            while (p2 && p2->next) {
+                p1 = p1->next;
+                p2 = p2->next->next;
+            }
+            return p1;
+        }
+
+        ListNode* recur_sort(ListNode *head) {
+            if (head == nullptr || head->next == nullptr) {
+                return head;
+            }
+            ListNode *mid_node = get_middle_node(head);
+            ListNode *head_1 = recur_sort(head);
+            ListNode *head_2 = recur_sort(mid_node);
+            ListNode *new_head = merge(head_1, head_2);
+            return new_head;
+        }
+
+        ListNode* sortList(ListNode* head) {
+            return recur_sort(head);
+        }
+    };
+    ```
+
+    你的思路方向非常正确，选择 **归并排序（Merge Sort）** 来处理链表排序是达到 $O(n \log n)$ 时间复杂度的最优解。
+
+    不过，你目前的 C++ 代码实现中存在一个**致命的逻辑错误**，这会导致程序进入死循环或产生错误的递归结果。
+
+    ---
+
+    **代码缺陷分析**
+
+    1. 链表未断开（死循环根源）
+
+        在归并排序中，你需要将链表从中间一分为二。你的 `get_middle_node` 只是找到了中点，但**没有把前半部分和后半部分切断**。
+
+        * **后果**：当你递归调用 `recur_sort(head)` 时，它仍然能通过 `head` 遍历到整个链表，导致递归永远无法收敛。
+
+    2. 递归参数错误
+
+        在 `recur_sort` 中，你递归调用了 `head` 和 `mid_node`。如果不断开链表，这两个参数对应的链表长度根本没有减少。
+
+    3. 内存泄露风险
+
+        你在 `merge` 函数中 `new` 了一个 `dummy_head` 节点，虽然最后 `delete` 了，但在高频递归中频繁申请/释放内存会影响性能。其实可以使用栈上的局部变量：`ListNode dummy(0);`。
+
+    ---
+
+    **修正后的代码**
+
+    要实现正确的归并排序，你需要用 **快慢指针** 找到中点的前驱节点，然后将 `next` 置为 `nullptr`。
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* sortList(ListNode* head) {
+            // 递归终止条件
+            if (!head || !head->next) return head;
+
+            // 1. 使用快慢指针找到中点并断开链表
+            // slow 最终指向中点，pre 指向中点的前一个节点
+            ListNode *slow = head, *fast = head, *pre = nullptr;
+            while (fast && fast->next) {
+                pre = slow;
+                slow = slow->next;
+                fast = fast->next->next;
+            }
+            pre->next = nullptr; // 【关键】断开链表，分为 [head, pre] 和 [slow, end]
+
+            // 2. 递归排序左右两部分
+            ListNode* left = sortList(head);
+            ListNode* right = sortList(slow);
+
+            // 3. 合并
+            return merge(left, right);
+        }
+
+        ListNode* merge(ListNode* l1, ListNode* l2) {
+            ListNode dummy(0); // 栈上分配，无需 delete
+            ListNode* p = &dummy;
+            while (l1 && l2) {
+                if (l1->val < l2->val) {
+                    p->next = l1;
+                    l1 = l1->next;
+                } else {
+                    p->next = l2;
+                    l2 = l2->next;
+                }
+                p = p->next;
+            }
+            p->next = l1 ? l1 : l2;
+            return dummy.next;
+        }
+    };
+
+    ```
+
+    ---
+
+    **进阶：如何达到常数级空间复杂度？**
+
+    你提到的进阶要求是 $O(1)$ 空间复杂度。
+
+    * **递归版**：由于递归栈的存在，空间复杂度其实是 $O(\log n)$。
+    * **迭代版（Bottom-up）**：要达到真正的 $O(1)$，需要使用 **自底向上** 的归并排序。通过循环，每次合并长度为 1, 2, 4, 8... 的子链表。
+
+    | 维度 | 递归法 (Top-down) | 迭代法 (Bottom-up) |
+    | --- | --- | --- |
+    | **时间复杂度** | $O(n \log n)$ | $O(n \log n)$ |
+    | **空间复杂度** | $O(\log n)$ (栈空间) | $O(1)$ |
+    | **实现难度** | 简单直观 | 较复杂 (需手动控制步长) |
+
+    **你想深入了解如何用“自底向上”的迭代法来实现这个 $O(1)$ 空间复杂度的版本吗？**
+
+* ai 给出的 bottom-up 解法
+
+    既然你决定挑战这道题的“终极形态”，那我们就把递归彻底抛弃。
+
+    要把空间复杂度降到 $O(1)$，我们需要**自底向上（Bottom-up）**地进行归并。想象一下：第一轮把相邻的 $1$ 个节点合并成 $2$ 个；第二轮把相邻的 $2$ 个合并成 $4$ 个……直到合并后的长度大于或等于链表总长。
+
+    这个过程就像是在**织布**：每次剪下一段，理顺，缝好，再剪下一段。
+
+    **自底向上归并排序 (Bottom-up Merge Sort)**
+
+    这种方法的难点在于：**你需要手动维护四个关键点**：
+
+    1. **已排序部分的末尾**（用于连接下一段）。
+    2. **当前待处理部分的起点**。
+    3. **第一段子链表**。
+    4. **第二段子链表**。
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* sortList(ListNode* head) {
+            if (!head || !head->next) return head;
+
+            // 1. 先统计链表总长度
+            int length = 0;
+            ListNode* curr = head;
+            while (curr) {
+                length++;
+                curr = curr->next;
+            }
+
+            // 2. 引入 dummyHead 简化头部的处理
+            ListNode dummy(0);
+            dummy.next = head;
+
+            // 3. 循环步长：1, 2, 4, 8...
+            for (int step = 1; step < length; step <<= 1) {
+                ListNode* prev = &dummy;     // 已合并部分的末尾
+                curr = dummy.next;           // 剩余未合并部分的起点
+
+                while (curr) {
+                    // --- 找到第一段 ---
+                    ListNode* head1 = curr;
+                    for (int i = 1; i < step && curr->next; ++i) curr = curr->next;
+                    
+                    // --- 找到第二段 ---
+                    ListNode* head2 = curr->next;
+                    curr->next = nullptr;    // 切断第一段
+                    curr = head2;
+                    for (int i = 1; i < step && curr && curr->next; ++i) curr = curr->next;
+
+                    // --- 切断第二段并保留后续的起点 ---
+                    ListNode* next_start = nullptr;
+                    if (curr) {
+                        next_start = curr->next;
+                        curr->next = nullptr; // 切断第二段
+                    }
+
+                    // --- 合并这两段并将结果挂到 prev 后面 ---
+                    prev->next = merge(head1, head2);
+                    
+                    // --- 更新 prev 到已合并部分的末尾 ---
+                    while (prev->next) prev = prev->next;
+                    
+                    // --- 移动到下一组待处理位置 ---
+                    curr = next_start;
+                }
+            }
+            return dummy.next;
+        }
+
+        // 标准的双链表合并函数
+        ListNode* merge(ListNode* l1, ListNode* l2) {
+            ListNode dummy(0);
+            ListNode* p = &dummy;
+            while (l1 && l2) {
+                if (l1->val <= l2->val) {
+                    p->next = l1; l1 = l1->next;
+                } else {
+                    p->next = l2; l2 = l2->next;
+                }
+                p = p->next;
+            }
+            p->next = l1 ? l1 : l2;
+            return dummy.next;
+        }
+    };
+
+    ```
+
+    ---
+
+    **深度评价：为什么这个解法是“完全体”？**
+
+    1. **真正的 $O(1)$ 空间**：
+    没有递归调用，所有的变量（`step`, `curr`, `prev` 等）都在栈上分配，且数量固定。无论链表多长，它占用的额外内存都不会增加。
+    2. **工程上的稳健性**：
+    你可以注意到我在 `merge` 中使用的是栈对象 `ListNode dummy(0)`，这完美规避了官方解法中的内存泄露问题。
+    3. **手动切断的艺术**：
+    这个算法的核心在于 `curr->next = nullptr`。这就像是在处理一捆乱绳，每次量出两截，剪断，理顺缝好，再继续处理剩下的。
+
+    **性能对比总结**
+
+    | 维度 | 你的初版 | 官方递归版 | 这里的迭代版 |
+    | --- | --- | --- | --- |
+    | **时间复杂度** | $O(n \log n)$ | $O(n \log n)$ | $O(n \log n)$ |
+    | **空间复杂度** | $O(\log n)$ | $O(\log n)$ | **$O(1)$ (最优)** |
+    | **核心风险** | 死循环 | 栈溢出/内存泄露 | **逻辑复杂易写错** |
+
+    **一个小建议：**
+    在面试中，如果面试官没要求 $O(1)$ 空间，**写递归版**（即官方那种），因为不容易出错且代码整洁。只有当对方追问“能不能优化空间”时，再把这个“迭代织布法”祭出来。
+
+    你觉得这个迭代逻辑里，最绕的部分是不是“如何切断链表再接回去”那一段？　
+
+* 官方答案: 方法一：自顶向下归并排序
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* sortList(ListNode* head) {
+            return sortList(head, nullptr);
+        }
+
+        ListNode* sortList(ListNode* head, ListNode* tail) {
+            if (head == nullptr) {
+                return head;
+            }
+            if (head->next == tail) {
+                head->next = nullptr;
+                return head;
+            }
+            ListNode* slow = head, *fast = head;
+            while (fast != tail) {
+                slow = slow->next;
+                fast = fast->next;
+                if (fast != tail) {
+                    fast = fast->next;
+                }
+            }
+            ListNode* mid = slow;
+            return merge(sortList(head, mid), sortList(mid, tail));
+        }
+
+        ListNode* merge(ListNode* head1, ListNode* head2) {
+            ListNode* dummyHead = new ListNode(0);
+            ListNode* temp = dummyHead, *temp1 = head1, *temp2 = head2;
+            while (temp1 != nullptr && temp2 != nullptr) {
+                if (temp1->val <= temp2->val) {
+                    temp->next = temp1;
+                    temp1 = temp1->next;
+                } else {
+                    temp->next = temp2;
+                    temp2 = temp2->next;
+                }
+                temp = temp->next;
+            }
+            if (temp1 != nullptr) {
+                temp->next = temp1;
+            } else if (temp2 != nullptr) {
+                temp->next = temp2;
+            }
+            return dummyHead->next;
+        }
+    };
+    ```
+
+    复杂度分析
+
+        时间复杂度：O(nlogn)，其中 n 是链表的长度。
+
+        空间复杂度：O(logn)，其中 n 是链表的长度。空间复杂度主要取决于递归调用的栈空间。
+
+    * ai 评价
+
+        官方给出的这个递归解法，本质上是**带边界控制的归并排序**。
+
+        相比于你在上一版中通过“物理断开”链表（即令 `pre->next = nullptr`）来拆分子序列，官方的解法更像是在处理**数组区间**：它通过传递 `head` 和 `tail`（左闭右开区间）来界定当前处理的范围。
+
+        以下是针对这个官方解法的深度评价：
+
+        **亮点：逻辑严密且优雅**
+
+        1. **无需物理断开**：
+
+            它在递归过程中不修改原链表的 `next` 指针。只有当递归到底部，即 `head->next == tail` 时，才执行 `head->next = nullptr`。这保证了在拆分阶段，原链表结构是完整的，仅靠指针逻辑划分区间。
+
+        2. **区间控制非常精准**：
+
+            使用了典型的快慢指针寻找中点，但快指针的终止条件改成了 `fast != tail`。这完美适配了递归区间的逻辑，避免了处理单节点或空节点时的边界越界问题。
+
+        3. **合并逻辑稳健**：
+
+            `merge` 函数是标准的双指针合并。使用 `dummyHead` 简化了头节点处理，虽然会有微小的内存分配开销，但代码逻辑非常清晰。
+
+        ---
+
+        **不足与性能隐患**
+
+        1. **空间复杂度并非 $O(1)$**：
+
+            虽然进阶要求 $O(1)$ 空间，但**官方这个递归解法依然是 $O(\log n)$**。因为递归调用会占用系统栈空间。如果链表长度为 $5 \times 10^4$，递归深度约为 16 层左右。
+
+        2. **内存泄露风险（C++ 细节）**：
+        
+            官方代码里有一行 `ListNode* dummyHead = new ListNode(0);`。在 `merge` 结束后直接返回了 `dummyHead->next`，但**没有 `delete dummyHead**`。虽然在 LeetCode 判题环境中这通常不会导致崩溃，但在实际工程中，这属于明显的内存泄露（Memory Leak）。
+
+        3. **时间常数略大**：
+
+            每次递归都要用快慢指针重新跑一遍中点。在平衡性不好的情况下（虽然归并排序很稳定），相比于直接操作指针，这种逻辑判断略多。
+
+        ---
+
+        **核心对比：官方 vs 你之前的尝试**
+
+        | 特性 | 你之前的做法 | 官方解法 |
+        | --- | --- | --- |
+        | **拆分方式** | 尝试找到中点（但忘了断开） | 传入 `tail` 指针界定范围 |
+        | **基础情况** | `head == nullptr |  |
+        | **安全性** | 容易陷入死循环（若不断开） | 逻辑闭环，非常安全 |
+        | **内存管理** | 尝试 `delete dummy` | **存在内存泄露**（忘记 `delete`） |
+
+        **一个小的优化建议**
+
+        如果你想让官方代码更“C++ 范儿”一点，可以把 `merge` 里的 `dummyHead` 改成局部对象：
+
+        ```cpp
+        ListNode dummy(0); // 栈上对象
+        ListNode* temp = &dummy;
+        // ... 后续逻辑 ...
+        return dummy.next; // 无需 delete，自动销毁
+
+        ```
+
+        **总结评价：**
+        官方这个解法是“标准教科书式”的递归写法。它最大的功劳是演示了如何**不破坏链表原结构**的情况下，利用边界指针进行区间划分。
+
+        不过，如果你想追求题目进阶要求的 **$O(1)$ 空间复杂度**，这个解法依然是不合格的。**你需要用“自底向上（Bottom-up）”的迭代写法来彻底干掉递归栈。你想看看那个像“织布”一样复杂的迭代版代码吗？**
+
+* 官方答案：方法二：自底向上归并排序
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* sortList(ListNode* head) {
+            if (head == nullptr) {
+                return head;
+            }
+            int length = 0;
+            ListNode* node = head;
+            while (node != nullptr) {
+                length++;
+                node = node->next;
+            }
+            ListNode* dummyHead = new ListNode(0, head);
+            for (int subLength = 1; subLength < length; subLength <<= 1) {
+                ListNode* prev = dummyHead, *curr = dummyHead->next;
+                while (curr != nullptr) {
+                    ListNode* head1 = curr;
+                    for (int i = 1; i < subLength && curr->next != nullptr; i++) {
+                        curr = curr->next;
+                    }
+                    ListNode* head2 = curr->next;
+                    curr->next = nullptr;
+                    curr = head2;
+                    for (int i = 1; i < subLength && curr != nullptr && curr->next != nullptr; i++) {
+                        curr = curr->next;
+                    }
+                    ListNode* next = nullptr;
+                    if (curr != nullptr) {
+                        next = curr->next;
+                        curr->next = nullptr;
+                    }
+                    ListNode* merged = merge(head1, head2);
+                    prev->next = merged;
+                    while (prev->next != nullptr) {
+                        prev = prev->next;
+                    }
+                    curr = next;
+                }
+            }
+            return dummyHead->next;
+        }
+
+        ListNode* merge(ListNode* head1, ListNode* head2) {
+            ListNode* dummyHead = new ListNode(0);
+            ListNode* temp = dummyHead, *temp1 = head1, *temp2 = head2;
+            while (temp1 != nullptr && temp2 != nullptr) {
+                if (temp1->val <= temp2->val) {
+                    temp->next = temp1;
+                    temp1 = temp1->next;
+                } else {
+                    temp->next = temp2;
+                    temp2 = temp2->next;
+                }
+                temp = temp->next;
+            }
+            if (temp1 != nullptr) {
+                temp->next = temp1;
+            } else if (temp2 != nullptr) {
+                temp->next = temp2;
+            }
+            return dummyHead->next;
+        }
+    };
+    ```
+
+    复杂度分析
+
+        时间复杂度：O(nlogn)，其中 n 是链表的长度。
+
+        空间复杂度：O(1)。
+
 ### 分隔链表
 
 给你一个链表的头节点 head 和一个特定值 x ，请你对链表进行分隔，使得所有 小于 x 的节点都出现在 大于或等于 x 的节点之前。

@@ -2,6 +2,298 @@
 
 ## cache
 
+* vscode 中的 python launch.json 如何像 c/c++ 那样设置 environment 环境变量
+
+    在 VSCode 的 `launch.json` 中为 Python 设置环境变量有多种方式，类似于 C/C++ 的配置：
+
+    **方法1：使用 `env` 属性（最常用）**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 当前文件",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": {
+                    "DATABASE_URL": "postgresql://localhost/mydb",
+                    "API_KEY": "your-api-key-here",
+                    "DEBUG": "true",
+                    "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
+                    "MY_CUSTOM_VAR": "custom_value"
+                }
+            }
+        ]
+    }
+    ```
+
+    **方法2：使用 `envFile` 属性（从文件加载）**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 使用 .env 文件",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "envFile": "${workspaceFolder}/.env"
+            }
+        ]
+    }
+    ```
+
+    **.env 文件内容：**
+
+    ```bash
+    # .env 文件
+    DATABASE_URL=postgresql://localhost/mydb
+    API_KEY=your-api-key-here
+    DEBUG=true
+    MY_CUSTOM_VAR=custom_value
+    # 支持注释
+    PORT=5000
+    ```
+
+    **方法3：组合使用 env 和 envFile**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 组合配置",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "envFile": "${workspaceFolder}/.env",
+                "env": {
+                    "DEBUG": "false",  // 会覆盖 .env 文件中的 DEBUG
+                    "PORT": "8080",    // 会覆盖 .env 文件中的 PORT
+                    "TEMP_VAR": "临时变量"  // 额外的变量
+                }
+            }
+        ]
+    }
+    ```
+
+    **方法4：不同环境的配置示例**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 开发环境",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": {
+                    "ENVIRONMENT": "development",
+                    "DEBUG": "true",
+                    "DATABASE_URL": "sqlite:///dev.db",
+                    "LOG_LEVEL": "DEBUG"
+                }
+            },
+            {
+                "name": "Python: 测试环境",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": {
+                    "ENVIRONMENT": "testing",
+                    "DEBUG": "false",
+                    "DATABASE_URL": "postgresql://test:test@localhost/test_db",
+                    "LOG_LEVEL": "INFO"
+                }
+            },
+            {
+                "name": "Python: 生产环境模拟",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": {
+                    "ENVIRONMENT": "production",
+                    "DEBUG": "false",
+                    "DATABASE_URL": "postgresql://prod:prod@prod_db/prod_db",
+                    "LOG_LEVEL": "WARNING",
+                    "SECRET_KEY": "${env:SECRET_KEY}"  // 从系统环境变量读取
+                }
+            }
+        ]
+    }
+    ```
+
+    **方法5：使用系统环境变量**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 使用系统环境变量",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": {
+                    "PATH": "${env:PATH}",  // 保留系统 PATH
+                    "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
+                    "HOME": "${env:HOME}",  // 保留系统 HOME
+                    "USERNAME": "${env:USERNAME}",  // 保留系统用户名
+                    "MY_APP_SECRET": "${env:SECRET_KEY}"  // 从系统环境变量读取
+                }
+            }
+        ]
+    }
+    ```
+
+    **方法6：使用 Python 脚本动态生成配置**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 动态环境变量",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": {
+                    "CURRENT_TIME": "${command:python.createEnv}"  // 使用命令
+                }
+            }
+        ]
+    }
+    ```
+
+    **实用示例：Flask/Django 项目**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: Flask",
+                "type": "python",
+                "request": "launch",
+                "module": "flask",
+                "env": {
+                    "FLASK_APP": "app.py",
+                    "FLASK_ENV": "development",
+                    "FLASK_DEBUG": "1",
+                    "DATABASE_URL": "postgresql://localhost/flask_db",
+                    "SECRET_KEY": "dev-secret-key-123",
+                    "MAIL_SERVER": "localhost",
+                    "MAIL_PORT": "1025"
+                },
+                "args": [
+                    "run",
+                    "--no-debugger",
+                    "--no-reload"
+                ],
+                "jinja": true
+            },
+            {
+                "name": "Python: Django",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/manage.py",
+                "args": [
+                    "runserver"
+                ],
+                "env": {
+                    "DJANGO_SETTINGS_MODULE": "myproject.settings.development",
+                    "DATABASE_URL": "postgresql://localhost/django_db",
+                    "DEBUG": "true",
+                    "EMAIL_HOST": "localhost",
+                    "EMAIL_PORT": "1025"
+                }
+            }
+        ]
+    }
+    ```
+
+    **方法7：使用不同的配置文件**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 本地开发",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "envFile": "${workspaceFolder}/.env.local"
+            },
+            {
+                "name": "Python: Docker 开发",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "envFile": "${workspaceFolder}/.env.docker"
+            },
+            {
+                "name": "Python: CI 测试",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "envFile": "${workspaceFolder}/.env.ci"
+            }
+        ]
+    }
+    ```
+
+    **注意事项**
+
+    1. **环境变量优先级**：`env` 中的设置会覆盖 `envFile` 中的同名变量
+    2. **变量替换**：可以使用 `${workspaceFolder}`、`${env:VAR_NAME}` 等变量
+    3. **敏感信息**：不要将密码等敏感信息直接写在 `launch.json` 中，建议使用 `.env` 文件并添加到 `.gitignore`
+    4. **跨平台兼容**：环境变量名在 Windows 和 Linux/macOS 上可能略有不同
+
+    **完整的 launch.json 示例**
+
+    ```json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: 调试模式",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/main.py",
+                "console": "integratedTerminal",
+                "justMyCode": true,
+                "envFile": "${workspaceFolder}/.env",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
+                    "PYTHONUNBUFFERED": "1",
+                    "DEBUG_MODE": "true",
+                    "LOG_FILE": "${workspaceFolder}/logs/debug.log"
+                },
+                "args": ["--port", "5000"],
+                "cwd": "${workspaceFolder}"
+            }
+        ]
+    }
+    ```
+
+    这样配置后，你就可以像在 C/C++ 中一样方便地管理和使用环境变量了。
+
 * vscode 的 add folder to workspace 是怎么用的？
 
     好的，我们来详细讲解一下 VS Code 中 “Add Folder to Workspace” 的功能和用法。

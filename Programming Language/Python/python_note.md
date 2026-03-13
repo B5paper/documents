@@ -2,6 +2,730 @@
 
 ## cache
 
+* 简述 python 中 unittest 的用法
+
+    **Python unittest 基本用法**
+
+    unittest 是 Python 的标准单元测试框架，以下是其核心用法：
+
+    1. 基本结构
+
+        ```python
+        import unittest
+
+        # 测试类必须继承 unittest.TestCase
+        class TestMathFunctions(unittest.TestCase):
+            
+            # 测试方法必须以 test_ 开头
+            def test_add(self):
+                self.assertEqual(1 + 1, 2)
+                self.assertNotEqual(1 + 1, 3)
+            
+            def test_subtract(self):
+                self.assertTrue(5 - 3 == 2)
+                self.assertFalse(5 - 3 == 1)
+
+        # 运行测试
+        if __name__ == '__main__':
+            unittest.main()
+        ```
+
+    2. 常用的断言方法
+
+        ```python
+        class TestAssertions(unittest.TestCase):
+            
+            def test_assertions(self):
+                self.assertEqual(2 + 2, 4)              # 相等
+                self.assertNotEqual(2 + 2, 5)            # 不相等
+                self.assertTrue(True)                     # 为真
+                self.assertFalse(False)                   # 为假
+                
+                self.assertIn(3, [1, 2, 3])               # 包含
+                self.assertNotIn(4, [1, 2, 3])            # 不包含
+                
+                self.assertIs(None, None)                  # 是同一个对象
+                self.assertIsNot(None, [])                  # 不是同一个对象
+                
+                self.assertIsInstance([], list)            # 是某类型
+                self.assertNotIsInstance({}, list)         # 不是某类型
+                
+                self.assertAlmostEqual(3.14159, 3.1416, places=4)  # 浮点数近似相等
+                self.assertRaises(ValueError, int, 'abc')  # 预期抛出异常
+        ```
+
+    3. 测试固件（setUp 和 tearDown）
+
+        ```python
+        class TestDatabase(unittest.TestCase):
+            
+            def setUp(self):
+                """每个测试方法执行前运行"""
+                print("准备测试数据...")
+                self.data = [1, 2, 3]
+            
+            def tearDown(self):
+                """每个测试方法执行后运行"""
+                print("清理测试数据...")
+                self.data = None
+            
+            def test_length(self):
+                self.assertEqual(len(self.data), 3)
+            
+            def test_sum(self):
+                self.assertEqual(sum(self.data), 6)
+        ```
+
+    4. 类级别的 setUp 和 tearDown
+
+        ```python
+        class TestDatabase(unittest.TestCase):
+            
+            @classmethod
+            def setUpClass(cls):
+                """整个测试类执行前运行一次"""
+                print("连接数据库...")
+                cls.connection = "database_connection"
+            
+            @classmethod
+            def tearDownClass(cls):
+                """整个测试类执行后运行一次"""
+                print("关闭数据库连接...")
+                cls.connection = None
+        ```
+
+    5. 跳过测试
+
+        ```python
+        class TestSkip(unittest.TestCase):
+            
+            @unittest.skip("直接跳过")
+            def test_skip(self):
+                pass
+            
+            @unittest.skipIf(1 < 2, "条件为真时跳过")
+            def test_skip_if(self):
+                pass
+            
+            @unittest.skipUnless(2 < 1, "条件为假时跳过")
+            def test_skip_unless(self):
+                pass
+            
+            @unittest.expectedFailure
+            def test_expected_failure(self):
+                self.assertEqual(1, 2)  # 预期会失败
+        ```
+
+    6. 命令行运行测试
+
+        ```bash
+        # 运行所有测试
+        python -m unittest test_module.py
+
+        # 运行单个测试类
+        python -m unittest test_module.TestClass
+
+        # 运行单个测试方法
+        python -m unittest test_module.TestClass.test_method
+
+        # 发现并运行所有测试（自动发现）
+        python -m unittest discover
+
+        # 详细输出
+        python -m unittest -v test_module.py
+        ```
+
+    7. 完整示例
+
+        ```python
+        import unittest
+
+        def add(a, b):
+            return a + b
+
+        def divide(a, b):
+            if b == 0:
+                raise ValueError("除数不能为0")
+            return a / b
+
+        class TestCalculator(unittest.TestCase):
+            
+            def setUp(self):
+                print("开始测试...")
+            
+            def tearDown(self):
+                print("测试结束")
+            
+            def test_add(self):
+                self.assertEqual(add(1, 2), 3)
+                self.assertEqual(add(-1, 1), 0)
+                self.assertEqual(add(0, 0), 0)
+            
+            def test_divide(self):
+                self.assertEqual(divide(6, 2), 3)
+                self.assertEqual(divide(5, 2), 2.5)
+                
+                with self.assertRaises(ValueError):
+                    divide(10, 0)
+
+        if __name__ == '__main__':
+            unittest.main()
+        ```
+
+    **主要特点：**
+
+    1. **自动发现测试**：以 `test_` 开头的方法会被自动识别
+    2. **丰富的断言**：提供多种断言方法
+    3. **测试固件**：setUp/tearDown 管理测试环境
+    4. **测试套件**：可以组合多个测试
+    5. **测试运行器**：支持多种输出格式
+
+* python 中，如果 func_2() 的定义在后面，但是我在前面的 func_1() 中就要调用 func_2()，该怎么办
+
+    在 Python 中，如果函数 `func_2` 的定义在后面，而你想在前面的 `func_1` 中调用它，有以下几种解决方案：
+
+    **方法1：调整函数定义顺序（最简单）**
+
+    将 `func_2` 的定义放在 `func_1` 之前：
+
+    ```python
+    def func_2():
+        print("这是 func_2")
+        return "func_2 的结果"
+
+    def func_1():
+        result = func_2()  # 现在可以正常调用
+        print(f"func_1 调用了 {result}")
+
+    func_1()
+    ```
+
+    **方法2：在调用时才执行函数**
+
+    如果必须保持函数定义的顺序，可以在调用 `func_1` 时才执行：
+
+    ```python
+    def func_1():
+        def inner():
+            result = func_2()  # 这时 func_2 已经定义
+            print(f"func_1 调用了 {result}")
+        return inner()
+
+    def func_2():
+        print("这是 func_2")
+        return "func_2 的结果"
+
+    # 调用 func_1
+    func_1()  # 正常工作
+    ```
+
+    **方法3：使用函数作为参数传递**
+
+    ```python
+    def func_1(func):
+        result = func()  # 调用传入的函数
+        print(f"func_1 调用了传入的函数，结果是：{result}")
+
+    def func_2():
+        print("这是 func_2")
+        return "func_2 的结果"
+
+    # 将 func_2 作为参数传递给 func_1
+    func_1(func_2)
+    ```
+
+    **方法4：使用全局变量（不推荐）**
+
+    ```python
+    def func_1():
+        global func_2
+        result = func_2()  # 现在可以调用
+        print(f"func_1 调用了 {result}")
+
+    def func_2():
+        print("这是 func_2")
+        return "func_2 的结果"
+
+    func_1()  # 正常工作
+    ```
+
+    **为什么会有这个问题？**
+
+    Python 是解释型语言，代码从上到下执行。当执行到 `func_1` 的定义时，`func_2` 还没有被定义，所以会出现 `NameError`。
+
+    **最佳实践**
+
+    推荐使用**方法1**（调整函数定义顺序）或**方法2**（在调用时执行），这样代码更清晰、更易维护。方法3（参数传递）也很常用，特别是在需要灵活性的场景中。
+
+* 所以 python 没有类似 C 中“函数声明”的语法吗？那如果有两个函数互相调用的需求怎么办
+
+    很好的问题！Python 确实**没有**像 C 语言那样的独立函数声明语法。对于相互调用的函数（循环依赖），有以下几种解决方案：
+
+    **场景：两个函数互相调用**
+
+    ```python
+    def func_a():
+        # 想要调用 func_b
+        return func_b() + " 被 func_a 调用"
+
+    def func_b():
+        # 想要调用 func_a
+        return func_a() + " 被 func_b 调用"
+    ```
+
+    **解决方案**
+
+    **方法1：使用条件判断避免无限递归**
+
+    ```python
+    def func_a(called_from=None):
+        if called_from == 'b':
+            return "func_a 被 func_b 调用"
+        return func_b(called_from='a') + " -> func_a"
+
+    def func_b(called_from=None):
+        if called_from == 'a':
+            return "func_b 被 func_a 调用"
+        return func_a(called_from='b') + " -> func_b"
+
+    # 测试
+    print(func_a())  # func_b 被 func_a 调用 -> func_a
+    ```
+
+    **方法2：将其中一个函数定义为内部函数**
+
+    ```python
+    def func_a():
+        def func_b():
+            return func_a() + " 内部"  # 这里调用外部的 func_a
+        
+        # 在 func_a 内部调用 func_b
+        result = func_b()
+        return result
+
+    # 注意：这个例子会有无限递归问题，需要加终止条件
+    ```
+
+    **方法3：使用类来封装**
+    
+    ```python
+    class MyFunctions:
+        def func_a(self):
+            return self.func_b() + " -> func_a"
+        
+        def func_b(self):
+            return self.func_a() + " -> func_b"  # 注意：会无限递归
+
+    # 更好的实现：带状态的类
+    class Calculator:
+        def __init__(self):
+            self.call_stack = []
+        
+        def add(self, x):
+            self.call_stack.append('add')
+            result = x + self.multiply(x)
+            self.call_stack.pop()
+            return result
+        
+        def multiply(self, x):
+            self.call_stack.append('multiply')
+            if len(self.call_stack) > 2:  # 防止无限递归
+                result = x * 2
+            else:
+                result = x * self.add(x)
+            self.call_stack.pop()
+            return result
+
+    calc = Calculator()
+    print(calc.add(5))  # 正常工作
+    ```
+
+    **方法4：使用函数属性或全局字典**
+
+    ```python
+    # 方法4a：使用函数属性
+    def func_a():
+        return func_a.cache['b']() + " 通过 func_a 调用"
+
+    def func_b():
+        return func_b.cache['a']() + " 通过 func_b 调用"
+
+    # 设置相互引用
+    func_a.cache = {'b': func_b}
+    func_b.cache = {'a': func_a}
+
+    # 方法4b：使用字典管理
+    functions = {}
+
+    def register(func):
+        functions[func.__name__] = func
+        return func
+
+    @register
+    def func_a():
+        return functions['func_b']() + " 通过字典调用"
+
+    @register
+    def func_b():
+        return functions['func_a']() + " 通过字典调用"
+    ```
+
+    **方法5：延迟执行（最常用）**
+
+    ```python
+    def func_a(x):
+        def execute():
+            return func_b(x) + 10
+        return execute
+
+    def func_b(x):
+        def execute():
+            return func_a(x)() + 20  # 注意这里要调用 execute()
+        return execute
+
+    # 使用
+    result = func_a(5)()  # 需要两次调用
+    print(result)
+    ```
+
+    **方法6：使用回调函数**
+
+    ```python
+    def func_a(callback=None):
+        print("func_a 开始执行")
+        if callback:
+            result = callback()
+            print(f"func_a 收到回调结果: {result}")
+        return "func_a 完成"
+
+    def func_b():
+        print("func_b 开始执行")
+        # 调用 func_a，并传入自己作为回调
+        return func_a(lambda: "func_b 的回调结果")
+
+    # 调用
+    print(func_b())
+    ```
+
+    **实际应用示例：简单的表达式求值**
+
+    ```python
+    class Expression:
+        def __init__(self):
+            self.operations = {
+                'add': self.add,
+                'multiply': self.multiply
+            }
+        
+        def evaluate(self, expr):
+            op = expr['op']
+            return self.operations[op](expr)
+        
+        def add(self, expr):
+            left = self.evaluate(expr['left'])  # 可能调用 multiply
+            right = self.evaluate(expr['right'])
+            return left + right
+        
+        def multiply(self, expr):
+            left = self.evaluate(expr['left'])  # 可能调用 add
+            right = self.evaluate(expr['right'])
+            return left * right
+
+    # 使用
+    expr = {
+        'op': 'add',
+        'left': {'op': 'multiply', 'left': 2, 'right': 3},
+        'right': 4
+    }
+
+    calc = Expression()
+    print(calc.evaluate(expr))  # 输出: 10 (2*3 + 4)
+    ```
+
+    **总结**
+
+    Python 虽然没有 C 语言的函数声明，但通过：
+
+    - **类和对象**（最常用）
+    - **延迟执行**
+    - **回调函数**
+    - **全局字典**
+
+    等方式都能优雅地处理函数相互调用的问题。在实际开发中，如果遇到复杂的相互调用，通常意味着需要重新考虑代码设计，可能需要引入类或重新组织代码结构。
+
+* python 似乎也没有 namespace 相关的机制
+
+    Python 实际上有很强大的命名空间（namespace）机制，只是和 C++ 的 `namespace` 关键字不同。Python 的命名空间是通过模块、类和函数作用域来实现的：
+
+    **Python 的命名空间机制**
+
+    1. **模块即命名空间**
+
+        每个 `.py` 文件自动成为一个独立的命名空间：
+
+        ```python
+        # math_operations.py
+        def add(x, y):
+            return x + y
+
+        PI = 3.14159
+
+        # main.py
+        import math_operations
+        import math_operations as mo  # 可以取别名
+
+        print(math_operations.add(1, 2))  # 通过模块名访问
+        print(mo.PI)                       # 通过别名访问
+        print(PI)  # 错误！不能直接访问
+        ```
+
+    2. **包（Package）—— 嵌套命名空间**
+        
+        通过目录结构创建嵌套命名空间：
+
+        ```python
+        # 目录结构：
+        # mypackage/
+        # ├── __init__.py
+        # ├── math/
+        # │   ├── __init__.py
+        # │   ├── algebra.py
+        # │   └── geometry.py
+        # └── utils/
+        #     ├── __init__.py
+        #     └── strings.py
+
+        # 使用方式：
+        import mypackage.math.algebra
+        from mypackage.utils import strings
+        from mypackage.math.geometry import area
+
+        # 或者用别名
+        import mypackage.math.algebra as alg
+        ```
+
+    3. **类作为命名空间**
+
+        ```python
+        class MathOperations:
+            @staticmethod
+            def add(x, y):
+                return x + y
+            
+            @staticmethod
+            def multiply(x, y):
+                return x * y
+            
+            PI = 3.14159
+            E = 2.71828
+
+        class StringOperations:
+            @staticmethod
+            def capitalize(text):
+                return text.capitalize()
+            
+            @staticmethod
+            def reverse(text):
+                return text[::-1]
+
+        # 使用
+        print(MathOperations.add(1, 2))
+        print(MathOperations.PI)
+        print(StringOperations.reverse("hello"))
+        ```
+
+    4. **函数/方法作用域作为临时命名空间**
+
+        ```python
+        def outer_function():
+            x = 10  # 在 outer_function 命名空间中
+            
+            def inner_function():
+                y = 20  # 在 inner_function 命名空间中
+                return x + y  # 可以访问外部的 x
+            
+            return inner_function()
+        ```
+
+    5. **使用字典模拟命名空间**
+        
+        ```python
+        # 创建命名空间
+        math_ns = {
+            'add': lambda x, y: x + y,
+            'subtract': lambda x, y: x - y,
+            'PI': 3.14159
+        }
+
+        string_ns = {
+            'capitalize': str.capitalize,
+            'reverse': lambda s: s[::-1]
+        }
+
+        # 使用
+        print(math_ns['add'](5, 3))
+        print(string_ns['reverse']('hello'))
+
+        # 或者用 SimpleNamespace
+        from types import SimpleNamespace
+
+        math = SimpleNamespace(
+            add=lambda x, y: x + y,
+            subtract=lambda x, y: x - y,
+            PI=3.14159
+        )
+
+        print(math.add(5, 3))
+        print(math.PI)
+        ```
+
+    6. **Enum 作为常量命名空间**
+
+        ```python
+        from enum import Enum, auto
+
+        class Color(Enum):
+            RED = auto()
+            GREEN = auto()
+            BLUE = auto()
+            
+        class Direction(Enum):
+            NORTH = 'north'
+            SOUTH = 'south'
+            EAST = 'east'
+            WEST = 'west'
+
+        # 使用
+        print(Color.RED)
+        print(Direction.NORTH.value)
+        ```
+
+    7. **动态导入和命名空间**
+
+        ```python
+        import importlib
+
+        # 动态导入模块
+        module_name = "math"
+        math_module = importlib.import_module(module_name)
+
+        # 动态访问属性
+        function_name = "sqrt"
+        sqrt_func = getattr(math_module, function_name)
+
+        print(sqrt_func(16))  # 4.0
+        ```
+
+    **高级命名空间技巧**
+
+    1. **命名空间包（Namespace Packages）**
+        
+        ```python
+        # 不同目录下的同名包会自动合并
+        # directory1/
+        #   mypackage/
+        #     module1.py
+        # directory2/
+        #   mypackage/
+        #     module2.py
+
+        # 使用：
+        import mypackage.module1
+        import mypackage.module2  # 都能正常工作
+        ```
+
+    2. **使用 __all__ 控制导出**
+        
+        ```python
+        # module.py
+        __all__ = ['public_function', 'PublicClass']  # 明确导出的内容
+
+        def public_function():
+            pass
+
+        def _private_function():  # 约定私有
+            pass
+
+        class PublicClass:
+            pass
+
+        # 在其他文件
+        from module import *  # 只导入 __all__ 中列出的内容
+        ```
+
+    3. **动态创建命名空间**
+        
+        ```python
+        def create_namespace(**kwargs):
+            """动态创建命名空间"""
+            return type('DynamicNamespace', (), kwargs)
+
+        # 使用
+        MathNS = create_namespace(
+            add=lambda x, y: x + y,
+            PI=3.14159
+        )
+
+        print(MathNS.add(1, 2))
+        print(MathNS.PI)
+        ```
+
+    **实际应用示例**
+
+    ```python
+    # 一个完整的命名空间示例
+    # config/
+    # ├── __init__.py
+    # ├── database.py
+    # └── app.py
+
+    # config/database.py
+    class Config:
+        HOST = 'localhost'
+        PORT = 5432
+        USER = 'admin'
+        
+    class Development(Config):
+        DEBUG = True
+        DATABASE = 'dev_db'
+
+    class Production(Config):
+        DEBUG = False
+        DATABASE = 'prod_db'
+
+    # config/app.py
+    from .database import Development, Production
+
+    class AppConfig:
+        VERSION = '1.0.0'
+        NAME = 'MyApp'
+        
+        class Features:  # 嵌套命名空间
+            BETA = False
+            ANALYTICS = True
+            CACHE_ENABLED = True
+
+    # main.py
+    from config.app import AppConfig
+    from config.database import Development
+
+    print(AppConfig.VERSION)
+    print(AppConfig.Features.BETA)
+    print(Development.HOST)
+    ```
+
+    **总结**
+
+    Python 虽然没有 `namespace` 关键字，但提供了多种强大的命名空间机制：
+
+    - **模块** - 最基础的命名空间
+    - **包** - 模块的集合
+    - **类** - 组织和封装相关功能
+    - **函数** - 局部作用域
+    - **字典/SimpleNamespace** - 动态命名空间
+
+    这些机制共同提供了比 C++ 的 `namespace` 更灵活、更强大的命名空间管理能力。
+
 * 简述 python 中 random 随机数的用法
 
     Python 的 `random` 模块提供了丰富的随机数生成功能，以下是主要用法：
