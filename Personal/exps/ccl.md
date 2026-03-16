@@ -9012,3 +9012,93 @@
     ncclCudaMemcpyAsync(devCommAndChans, &tmpCommAndChans, 1, deviceStream)
     ```
 
+* multi-node nvlink 跨机 P2P 处理机制
+
+    ```
+    ● NVSwitch 跨机 P2P 处理机制
+
+      核心答案：NCCL 通过 MNNVL (Multi-Node NVLink) 机制来绕过 hostHash 检查，使用
+      NVSwitch Fabric 来实现跨机 P2P。
+
+      ---
+      1. hostHash 跨机被拒绝的位置
+
+      src/transport/p2p.cc:146-150 (p2pCanConnect)：
+
+      if (info1->hostHash != comm->peerInfo[comm->rank].hostHash ||
+          info1->hostHash != info2->hostHash) {
+        // Without MNNVL, P2P is disabled here
+        return ncclSuccess;  // ret 保持默认值 0
+      }
+
+      但这是 transport 层的检查。在它之前，topology 层的 ncclTopoCheckP2p()
+      会先运行。
+
+      ---
+      2. MNNVL 在 topology 层的绕过
+
+      src/graph/paths.cc:272-296 (ncclTopoCheckP2p)：
+
+      if (info1->hostHash != info2->hostHash) {
+        if (comm->MNNVL) {
+          // 不直接返回，而是走 NVSwitch fabric 检查
+          NCCLCHECK(ncclTopoCheckMNNVL(comm->topo, info1, info2, &mnnvl));
+          if (!mnnvl) return ncclSuccess;  // fabric 不通则关闭
+          // mnnvl=1 则继续，允许 P2P
+        } else {
+          return ncclSuccess;  // 无 MNNVL，关闭 P2P
+        }
+      }
+
+      ---
+      3. MNNVL 的 Fabric 识别机制
+
+      src/graph/paths.cc:390-409 (ncclTopoCheckMNNVL)：
+
+      不用 hostHash，改用 NVML 提供的 fabric cluster UUID + clique ID 来识别两个 GPU
+       是否连接到同一个 NVSwitch 域：
+
+      if ((memcmp(fabricInfo1->clusterUuid, fabricInfo2->clusterUuid,
+                  NVML_GPU_FABRIC_UUID_LEN) == 0) &&
+          (fabricInfo1->cliqueId == fabricInfo2->cliqueId)) {
+        *ret = 1;  // 可以走 NVSwitch P2P
+      }
+
+      每个 GPU 的 fabricInfo（含 clusterUuid 和 cliqueId）在初始化时由 NVML
+      填充：src/init.cc:671-705。
+
+      ---
+      4. Fabric Handle（内存句柄的不同）
+
+      src/mnnvl.cc:85：
+
+      当 MNNVL 激活后，cuMem 句柄类型从普通的 POSIX fd 切换为：
+
+      ncclCuMemHandleType = CU_MEM_HANDLE_TYPE_FABRIC;
+
+      这样 p2p.cc 的内存 export/import 就能跨节点工作。
+
+      ---
+      5. 决策总结
+
+      ┌─────────────────┬──────────┬─────────────┬────────────────┬─────────────┐
+      │      场景       │ hostHash │ comm->MNNVL │  Fabric UUID   │    结果     │
+      │                 │          │             │      匹配      │             │
+      ├─────────────────┼──────────┼─────────────┼────────────────┼─────────────┤
+      │ 同机 P2P        │ 一致     │ 无关        │ 无关           │ ✅ P2P      │
+      ├─────────────────┼──────────┼─────────────┼────────────────┼─────────────┤
+      │ 跨机，无        │ 不一致   │ 0           │ —              │ ❌ 关闭     │
+      │ NVSwitch        │          │             │                │             │
+      ├─────────────────┼──────────┼─────────────┼────────────────┼─────────────┤
+      │ 跨机，有        │ 不一致   │ 1           │ 是             │ ✅ Fabric   │
+      │ NVSwitch        │          │             │                │ P2P         │
+      ├─────────────────┼──────────┼─────────────┼────────────────┼─────────────┤
+      │ 跨机，有        │ 不一致   │ 1           │ 否             │ ❌ 关闭     │
+      │ NVSwitch        │          │             │                │             │
+      └─────────────────┴──────────┴─────────────┴────────────────┴─────────────┘
+
+      所以 rank → dev id 的转换在 MNNVL 路径下不需要本地查询，因为 topology 层通过
+      fabric UUID 而非 CUDA device handle 做了识别，内存句柄通过
+      CU_MEM_HANDLE_TYPE_FABRIC 跨节点传递后远端可以直接 import，绕开了本地
+      busIdToCudaDev() 这个查本地设备列表的逻辑。
+    ```
