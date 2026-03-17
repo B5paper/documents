@@ -6,13 +6,15 @@
 
 * [v] vscode + mpi 调试 ready
 
-* [ ] 修改 p2p can connect，在 init 结束前打断点
+* [v] 修改 p2p can connect，在 init 结束前打断点
 
-* [ ] 在 launch kernel 前打断点
+* [v] 在 launch kernel 前打断点
 
-* [ ] claude 分析是否 launch kernel 有崩溃的可能性
+* [v] 跑 kernel, 崩溃掉 vm
 
-* [ ] 跑 kernel, 崩溃掉 vm
+* [ ] claude 分析 launch kernel 可能在哪里崩溃
+
+* [ ] launch kernel 前打印详细信息，比如 src addr, dst addr 等
 
 * [ ] 检查 channel 搜索里，为何选择 pxn
 
@@ -3514,7 +3516,7 @@
             NCCLCHECKGOTO(ncclTopoGetNvbGpus(comm->topo, comm->rank, &nvbNpeers, &nvbPeers), ret, fail);
             ```
             
-            - `ncclTopoGetNvbGpus`：获取通过NVLink连接的GPU列表
+            - `ncclTopoGetNvbGpus`：获取通过 NVLink 连接的 GPU 列表
             - 基于拓扑信息，找出与当前GPU有NVLink直接连接的GPU
 
             3.1 为每个NVB peer准备连接
@@ -7046,6 +7048,337 @@
 
     **接下来的建议：**
     你想了解这些被拷贝到 GPU 的数据在具体的 **Collective Kernel（如 AllReduce）** 中是如何被使用的吗？
+
+* ncclProxyConnect()
+
+    这段代码是 NCCL 内部的一个核心函数 `ncclProxyConnect`。
+
+    它的主要作用是：**在当前 GPU 进程（Rank）与负责数据传输的代理进程（Proxy）之间建立通信连接。** 在多 GPU 训练中，Proxy 负责处理复杂的网络协议栈或跨进程数据搬运。
+
+    ---
+
+    **代码逐段解析**
+
+    1. 初始化与查找代理 Rank
+
+        ```c
+          struct ncclSocket* sock;
+          int ready, proxyRank = -1;
+          struct ncclProxyState* sharedProxyState = comm->proxyState;
+
+          // 遍历本地所有 Rank，找到目标 Proxy 所在的全局 Rank 编号
+          for (int i = 0; i < comm->localRanks; ++i) {
+            if (comm->topParentRanks[comm->localRankToRank[i]] == tpProxyRank) {
+              proxyRank = comm->localRankToRank[i];
+              break;
+            }
+          }
+          // 判断 Proxy 是否和当前 Rank 在同一个进程中（通过 PID 哈希对比）
+          proxyConn->sameProcess = comm->peerInfo[proxyRank].pidHash == comm->peerInfo[comm->rank].pidHash ? 1 : 0;
+        ```
+        * **作用：** 确定目标 Proxy 在系统中的位置，并识别它是一个远程进程还是当前进程内的线程。
+
+    ---
+
+    2. 分配共享代理资源（单次初始化）
+        
+        ```c
+          if (sharedProxyState->peerSocks == NULL) {
+            // 为本地所有的 Proxy 连接分配内存空间（Socket、操作指令流、共享内存）
+            NCCLCHECK(ncclCalloc(&sharedProxyState->peerSocks, comm->sharedRes->tpNLocalRanks));
+            NCCLCHECK(ncclCalloc(&sharedProxyState->proxyOps, comm->sharedRes->tpNLocalRanks));
+            NCCLCHECK(ncclCalloc(&sharedProxyState->sharedDevMems, comm->sharedRes->tpNLocalRanks));
+            for (int i = 0; i < comm->sharedRes->tpNLocalRanks; ++i) {
+              NCCLCHECK(ncclSocketSetFd(-1, &sharedProxyState->peerSocks[i])); // 初始化文件描述符为 -1
+            }
+          }
+        ```
+        * **作用：** 如果是第一次调用，初始化 `sharedProxyState` 中的数组，这些数组用于管理本地 GPU 与各个代理之间的 Socket 连接和操作队列。
+
+    ---
+
+    3. 建立 Socket 连接
+
+        ```c
+          proxyConn->tpLocalRank = comm->sharedRes->tpRankToLocalRank[proxyConn->tpRank];
+          sock = sharedProxyState->peerSocks + proxyConn->tpLocalRank;
+          
+          // 检查 Socket 是否已经建立
+          NCCLCHECK(ncclSocketReady(sock, &ready));
+          if (!ready) {
+            // 初始化 Socket 并连接到 Proxy 的监听地址
+            NCCLCHECK(ncclSocketInit(sock, sharedProxyState->peerAddresses+proxyConn->tpRank, comm->sharedRes->magic, ncclSocketTypeProxy, comm->abortHostFlag));
+            NCCLCHECK(ncclSocketConnect(sock));
+          }
+        ```
+        * **作用：** 通过 TCP Socket 与目标 Proxy 建立物理连接。如果连接已存在则复用。
+
+    ---
+
+    4. 发送握手请求 (Proxy Handshake)
+
+        ```c
+          struct ncclProxyInitReq req = {0};
+          req.transport = transport;      // 传输类型（如 NET, P2P, SHM）
+          req.send = send;                // 是发送端还是接收端
+          req.tpLocalRank = comm->topParentLocalRanks[comm->localRank];
+          req.tpRank = comm->topParentRanks[comm->rank];
+          req.sameProcess = proxyConn->sameProcess;
+
+          struct ncclProxyInitResp resp = {0};
+          // 发起阻塞调用，将请求发送给 Proxy，并等待响应
+          NCCLCHECK(ncclProxyCallBlocking(comm, proxyConn, ncclProxyMsgInit, &req, sizeof(req), &resp, sizeof(resp)));
+          // 获取 Proxy 分配的连接句柄
+          proxyConn->connection = resp.connection;
+        ```
+
+        * **作用：** 告知 Proxy：“我是谁（Rank），我想通过什么协议（Transport）建立连接”。Proxy 会返回一个 `connection` 指针，作为后续通信的身份凭证。
+
+    ---
+
+    5. 设置共享内存操作池 (Proxy Progress)
+
+        ```c
+          struct ncclTransportComm* tcomm = send ? &ncclTransports[transport]->send : &ncclTransports[transport]->recv;
+          if (tcomm->proxyProgress) {
+            // 构造共享内存路径（例如 /dev/shm/nccl-XXXXXX）
+            char poolPath[] = "/dev/shm/nccl-XXXXXX";
+            strncpy(poolPath+sizeof("/dev/shm/nccl-")-1, resp.devShmPath, sizeof("XXXXXX")-1);
+            
+            struct ncclProxyOps* proxyOps = sharedProxyState->proxyOps + proxyConn->tpLocalRank;
+            if (proxyOps->pool == NULL) {
+              // 打开 Proxy 提供的共享内存，用于存放待执行的任务指令（ProxyOps）
+              NCCLCHECK(ncclShmOpen(poolPath, sizeof(struct ncclProxyOpsPool), (void**)(&proxyOps->pool), NULL, 0, &proxyOps->handle));
+              proxyOps->nextOps = proxyOps->nextOpsEnd = proxyOps->freeOp = -1;
+            }
+          }
+        ```
+
+        * **作用：** 如果该传输协议需要 Proxy 参与进度驱动（Progress），则通过 **共享内存 (Shared Memory)** 建立一个指令池。GPU 进程把要发的数据任务写进池子，Proxy 进程直接读取并执行，从而避免频繁的 Socket 调用开销。
+
+    ---
+
+    **总结**
+
+    该函数是 NCCL **控制平面** 的一部分。它通过 **TCP Socket** 完成握手协商，通过 **共享内存** 建立高性能的数据指令通道，最终让 GPU 算力点能够与负责网络传输的代理模块联动。
+
+    **你想深入了解具体的传输协议（如 `ncclTransport`）是如何利用这个连接的吗？**
+
+* `ncclProxyCallBlocking()`
+
+    这段代码是 NCCL 中的一个**同步阻塞调用**封装。它的作用是将一个异步的代理操作（Proxy Call）转变为同步操作：发送请求后，程序会停在这里死等，直到收到代理进程的回复。
+
+    ---
+
+    **代码逐行解析**
+
+    1. 准备唯一的标识符 (Handle)
+
+        ```c
+          ncclResult_t res = ncclSuccess;
+          // 分配 1 字节内存作为 handle (opId)
+          void* opId = malloc(1);
+        ```
+        * **作用：** 这是一个比较巧妙的技巧。`opId` 本身的内容不重要，重要的是它的**内存地址**。NCCL 用这个唯一的地址来标识当前这个特定的请求，确保稍后“认领”回执时不会拿错别人的。
+
+    ---
+
+    2. 发起异步请求
+
+        ```c
+          // 调用异步接口发起请求
+          NCCLCHECKGOTO(ncclProxyCallAsync(comm, proxyConn, type, reqBuff, reqSize, respSize, opId), res, fail);
+        ```
+        * **作用：** 调用 `ncclProxyCallAsync`。这个函数会立即返回，它负责把请求（`reqBuff`）通过之前建立好的 Socket 发送给 Proxy 进程，并告诉 Proxy：“处理完后，把结果标记在这个 `opId` 下”。
+        * **错误处理：** 如果发送失败，跳转到 `fail` 标签。
+
+    ---
+
+    3. 轮询等待响应 (Polling)
+        
+        ```c
+          do {
+            // 轮询检查 Proxy 是否已经写回了响应数据
+            res = ncclPollProxyResponse(comm, proxyConn, respBuff, opId);
+          } while (res == ncclInProgress);
+        ```
+
+        * **作用：** 这是一个典型的**忙等（Busy-wait）**循环。
+            * `ncclPollProxyResponse` 会去查看 Socket 接收缓冲区或共享内存，看有没有针对 `opId` 的回执。
+            * 如果 Proxy 还没处理完，它会返回 `ncclInProgress`。
+            * 循环会一直持续，直到结果变成 `ncclSuccess`（成功拿到数据并存入 `respBuff`）或出错。
+
+    ---
+
+    4. 清理与返回
+        
+        ```c
+        exit:
+          free(opId); // 释放作为标识符的内存
+          return res;
+        fail:
+          goto exit;
+        ```
+
+        * **作用：** 无论成功还是失败，都要释放 `opId`占用的内存，防止内存泄漏，并返回最终的状态码。
+
+    ---
+
+    **总结与通俗类比**
+
+    你可以把这个过程想象成在餐厅点餐：
+
+    1.  **`malloc(1)`**: 服务员给你一个**取餐号**（`opId`）。
+    2.  **`ncclProxyCallAsync`**: 你把订单（`reqBuff`）给后厨，然后转身离开柜台。
+    3.  **`do...while`**: 你没去座位上坐着，而是**一直盯着**出餐口（轮询），每隔几秒问一句：“我的菜好了吗？”（`ncclPollProxyResponse`）。
+    4.  **`ncclSuccess`**: 厨师把菜（`respBuff`）端出来，你拿着菜离开。
+
+    **注意：** 虽然这种“阻塞”方式会消耗 CPU 资源（因为在不停循环），但在高性能计算（HPC）中，这种方式比操作系统上下文切换（Sleep/Wakeup）的延迟更低，反应更快。
+
+    **需要我帮你看看 `ncclProxyCallAsync` 内部是如何把数据发出去的吗？**
+
+* `bootstrapBarrier()`
+
+    这段代码实现的是 NCCL 初始化阶段的一个**同步屏障（Barrier）**。它的作用是确保所有参与通信的 Rank（GPU 进程）都到达了同一个时间点，只有当所有 Rank 都调用了这个函数，大家才能继续往下执行。
+
+    它没有采用简单的“Master-Slave”结构，而是使用了一个非常经典且高效的**传播算法（Dissemination Algorithm）**。
+
+    ---
+
+    **代码逐行解析**
+
+    1. 特殊情况处理与日志
+        
+        ```c
+          if (nranks == 1) return ncclSuccess;
+          TRACE(NCCL_INIT, "rank %d nranks %d tag %x - ENTER", rank, nranks, tag);
+        ```
+        * 如果只有一个 Rank，不需要同步，直接返回成功。
+        * `TRACE` 用于记录调试日志，标记当前 Rank 进入了屏障阶段。
+
+    ---
+
+    2. 核心算法：Dissemination 算法
+        
+        该算法通过 $\lceil \log_2(nranks) \rceil$ 轮通信完成同步。在每一轮中，每个 Rank 向“前方”发送信号，并从“后方”接收信号。
+
+        ```c
+          int data[1]; // 定义一个空数据包，仅作为信号使用
+          for (int mask=1; mask<nranks; mask<<=1) { 
+            // mask 每一轮翻倍：1, 2, 4, 8...
+            
+            // 计算当前轮次要接收数据的来源 (src) 和发送数据的目标 (dst)
+            int src = (rank - mask + nranks) % nranks;
+            int dst = (rank + mask) % nranks;
+
+            // 向 dst 发送一个同步信号
+            NCCLCHECK(bootstrapSend(commState, ranks[dst], tag, data, sizeof(data)));
+            
+            // 阻塞等待，直到收到来自 src 的同步信号
+            NCCLCHECK(bootstrapRecv(commState, ranks[src], tag, data, sizeof(data)));
+          }
+        ```
+
+        * **计算逻辑**：
+            * `dst`：当前 Rank 加上偏移量 `mask`（取模保证循环）。
+            * `src`：当前 Rank 减去偏移量 `mask`（取模保证循环）。
+        * **为什么高效？**
+            * 在第一轮（mask=1），每个 Rank 与邻居同步。
+            * 在第二轮（mask=2），由于第一轮已经和邻居同步过，现在的同步相当于覆盖了 4 个 Rank。
+            * **最终效果**：只需要很少的轮次，同步信号就能像涟漪一样迅速覆盖所有节点。对于 1024 个 Rank，只需要 10 轮通信。
+
+    ---
+
+    3. 结束与退出
+
+        ```c
+          TRACE(NCCL_INIT, "rank %d nranks %d tag %x - DONE", rank, nranks, tag);
+          return ncclSuccess;
+        ```
+
+        * 记录日志表示同步完成，所有 Rank 现在可以步调一致地执行后续任务了。
+
+    ---
+
+    **为什么用这个算法而不是简单的“发给 0 号 Rank”？**
+
+    1.  **无中心化**：如果所有人都发给 0 号 Rank，0 号会变成性能瓶颈（In-cast 问题）。
+    2.  **负载均衡**：每个 Rank 在每一轮承担的通信量完全相同。
+    3.  **对数级复杂度**：通信复杂度是 $O(\log N)$，而简单的方法通常是 $O(N)$。
+
+    ---
+
+    **一个有趣的细节**
+
+    代码注释中提到了 **1988 年的论文**。这说明 NCCL 虽然是最前沿的 AI 库，但其底层分布式系统的基石依然是这些经过几十年考验的经典计算机科学算法。
+
+    **既然聊到了 `bootstrapSend`，你想看看 NCCL 是如何通过 `bootstrap` 引导程序在还没建立正式 GPU 通信前，先通过 TCP 交换信息的吗？**
+
+* `ncclComm`
+
+    `ncclComm` 是 NCCL 中最核心的结构体，它代表了一个**通信子（Communicator）**。你可以把它理解为一组 GPU 进行集体通信时的“上下文”或“控制中心”。
+
+    为了方便理解，我们可以将这众多的字段按功能划分为几个主要模块：
+
+    ---
+
+    1. 基础信息与拓扑 (Identity & Topology)
+        
+        这些字段定义了当前 GPU 在集群中的身份以及它周围的网络环境。
+        * **`rank` / `nRanks`**: 当前 GPU 在全局中的编号和总 GPU 数量。
+        * **`node` / `nNodes`**: 当前节点编号和总节点数。
+        * **`localRank` / `localRanks`**: 在当前服务器（节点）内的编号和总数。
+        * **`topo`**: 拓扑系统对象，记录了 GPU 之间是通过 NVLink、PCIe 还是网络连接的。
+        * **`peerInfo`**: 存储所有其他 Rank 的基本信息（如 Hostname、PID 等）。
+        * **`rankToNode` / `rankToLocalRank`**: 用于快速查询 Rank 全局编号与物理位置的映射表。
+
+    2. 内存管理与生命周期 (Memory & Lifecycle)
+        
+        * **`memPermanent` / `memScoped`**: NCCL 内部的内存池，用于减少频繁 `malloc` 的开销。`Permanent` 随通信子销毁，`Scoped` 随特定操作销毁。
+        * **`destructorHead`**: 析构函数链表，确保在关闭通信子时能正确释放所有挂载的资源。
+        * **`magic`**: 魔数，用于校验通信双方是否都在使用兼容的 NCCL 版本。
+
+    3. 通信通道与协议 (Channels & Transports)
+        
+        这是数据传输的“管线”定义。
+        * **`channels[MAXCHANNELS]`**: 核心数据结构。每个通道包含了一套完整的通信资源（Buffer、同步信号等），支持多通道并发以压榨带宽。
+        * **`nChannels`**: 实际激活的通道数量。
+        * **`ncclNet` / `ncclCollNet`**: 网络层接口指针，指向底层的 InfiniBand 或 TCP 驱动。
+        * **`bootstrap`**: 引导程序，用于在 GPU 正式通信前，通过 CPU/网络 交换初始握手信息。
+
+    4. 任务调度与执行 (Work Engine)
+        
+        NCCL 采用异步流水线模式，这些字段控制任务的下发。
+        * **`workFifoHeap` / `devWorkFifoHeap`**: 任务指令队列（FIFO）。CPU 将通信任务（如 AllReduce）写入这里，GPU 从中读取并执行。
+        * **`opCount`**: 操作计数器，用于同步和追踪当前执行到了第几个任务。
+        * **`planQueue`**: 待执行的“内核计划”队列。
+        * **`tasks`**: 用户通过 `ncclGroupEnd` 提交的原始任务列表。
+
+    5. 状态控制与同步 (Sync & Control)
+
+        * **`asyncResult`**: 记录异步操作的状态（是否报错）。
+        * **`abortFlag`**: 紧急停止标志。如果某个 Rank 报错，所有 Rank 都会通过这个标志检测并退出，防止死锁。
+        * **`intraBarrier...`**: 进程内屏障，用于同一进程下多个 GPU 线程之间的同步。
+        * **`groupNext`**: 当用户使用 `ncclGroupStart()` 时，将多个通信子串联起来统一处理。
+
+    6. 高级特性支持 (Advanced Features)
+
+        * **`proxyState`**: 代理服务的状态，处理需要 CPU 介入的异步网络操作。
+        * **`collNetSupport`**: 是否支持 Sharp (可扩展分层聚合协议)。
+        * **`nvlsSupport`**: 是否支持 NVLink SHARP (针对多 GPU 的硬件级加速)。
+        * **`userRedOps`**: 用户自定义的归约操作（Reduction Ops）。
+
+    ---
+
+    **总结**
+
+    `ncclComm` 就像是一个**复杂的调度台**：
+    1. 它知道**“我是谁”**（Rank/Node）；
+    2. 它知道**“路怎么走”**（Topology/Channels）；
+    3. 它管理**“活怎么干”**（WorkFifo/Tasks）；
+    4. 它监控**“有没有出事”**（AbortFlag/AsyncResult）。
+
+    **这个结构体非常庞大，你对其中哪一部分（比如任务下发流程或拓扑发现）更感兴趣？我可以深入讲解。**
 
 ## topics
 
