@@ -2,6 +2,64 @@
 
 ## cache
 
+* ModuleNotFoundError: No module named 'setuptools'
+
+    看来你是在尝试用 `pip` 安装或者运行某个 `setup.py` 脚本时碰壁了。
+
+    这个报错非常直白：你的 Python 环境里缺少 **setuptools**，它是 Python 几乎所有第三方库安装和打包的“基石”。
+
+    **快速解决方法**
+
+    根据你的环境，运行对应的命令即可：
+
+    1. 如果你使用的是系统 Python (Ubuntu/Debian)
+
+        通常最稳妥的方法是直接通过 `apt` 安装：
+
+        ```bash
+        sudo apt-get update
+        sudo apt-get install python3-setuptools
+
+        ```
+
+    2. 如果你在虚拟环境或个人环境 (推荐)
+
+        直接使用 `pip` 补齐这个库：
+
+        ```bash
+        python3 -m pip install --upgrade setuptools
+
+        ```
+
+        *注：使用 `python3 -m pip` 比直接运行 `pip` 更安全，能确保装在当前使用的 Python 路径下。*
+
+    3. 如果连 `pip` 都报错找不到
+
+        说明你的 Python 环境非常“精简”，需要先安装 `pip`：
+
+        ```bash
+        sudo apt-get install python3-pip
+
+        ```
+
+    ---
+
+    **为什么会突然报这个错？**
+
+    结合你前面编译 C++ 代码（`toast_py3`）的背景，大概率是因为：
+
+    1. **环境切换：** 你可能进入了一个全新的 `conda` 环境或 `venv` 虚拟环境，而里面还没初始化基础工具。
+    2. **项目构建：** `toast_py3` 听名字就是一个 Python 对 C++ 库的封装（Python Wrapper）。在编译完底层的 `.so` 或 `.a` 库后，它会调用 `setuptools` 来把这些库“打包”成 Python 可以 `import` 的模块。
+
+    ---
+
+    **避坑小贴士**
+
+    如果你解决完 `setuptools` 报错后，接着报错 **`ModuleNotFoundError: No module named 'wheel'`**，请不要惊讶，直接运行：
+    `python3 -m pip install wheel`
+
+    **等你装好 `setuptools` 后，再次尝试运行之前的安装命令。如果还有关于 `distutils` 或者编译链接的报错，记得把错误信息贴给我！**
+
 * 简述 python 中 unittest 的用法
 
     **Python unittest 基本用法**

@@ -2,6 +2,202 @@
 
 ## cache
 
+* 简述 gdb 如何 attach 调试
+
+    **gdb attach 调试简述**
+
+    **gdb attach** 用于调试已经运行的进程，而不需要从程序开始处启动。
+
+    **基本步骤**
+
+    1. 查找进程 PID
+        
+        ```bash
+        ps aux | grep 程序名          # 查看进程PID
+        pidof 程序名                  # 直接获取PID
+        pgrep 程序名                  # 另一种获取PID的方式
+        ```
+
+    2. 启动 gdb 并 attach
+
+        ```bash
+        # 方法一：先启动gdb，再attach
+        gdb
+        (gdb) attach <PID>
+
+        # 方法二：直接attach
+        gdb -p <PID>
+        gdb --pid=<PID>
+
+        # 方法三：同时指定程序文件
+        gdb 程序名 <PID>
+        gdb 程序名 -p <PID>
+        ```
+
+    **常用操作**
+
+    **调试控制**
+
+    ```bash
+    (gdb) continue 或 c            # 继续执行程序
+    (gdb) break 或 b               # 设置断点
+    (gdb) next 或 n                # 下一步（跳过函数）
+    (gdb) step 或 s                # 步入函数
+    (gdb) print 或 p               # 打印变量值
+    (gdb) backtrace 或 bt          # 查看调用栈
+    (gdb) info threads             # 查看所有线程
+    (gdb) thread <ID>              # 切换线程
+    ```
+
+    **分离进程**
+
+    ```bash
+    (gdb) detach                    # 分离进程，让程序继续运行
+    (gdb) quit                      # 退出gdb
+    ```
+
+    **注意事项**
+
+    1. **权限要求**
+
+       - 需要与被调试进程相同的用户权限或root权限
+       - 某些系统可能需要设置ptrace权限
+
+    2. **编译要求**
+
+       - 程序需包含调试信息（编译时加 `-g` 选项）
+       - 最好使用 `-O0` 避免优化导致调试困难
+
+    3. **进程状态**
+
+       - attach会暂停目标进程
+       - 生产环境attach可能导致服务短暂中断
+       - detach后程序继续正常执行
+
+    4. **常见问题**
+
+       ```bash
+       # 权限不足时尝试
+       sudo gdb -p <PID>
+       
+       # 或临时修改ptrace限制
+       echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+       ```
+
+    **实用场景**
+
+    - 调试已运行的服务进程
+    - 分析程序卡死或性能问题
+    - 排查生产环境问题（谨慎使用）
+
+* 调试 c++ 代码时，在宏前打断点停不下来，为什么？
+
+    **宏前打断点停不下来的原因**
+
+    **主要原因**
+
+    1. **宏不是函数/代码行**
+       - 宏在**预处理阶段**被展开，编译器生成的调试信息中没有宏的符号
+       - gdb实际看到的是宏展开后的代码，而非宏定义本身
+
+    2. **调试信息不包含宏**
+       - 默认编译选项下，调试信息（DWARF格式）不包含宏定义
+       - 即使有 `-g` 选项，宏信息通常也不被保留
+
+    **示例说明**
+
+    ```cpp
+    // 源代码 test.cpp
+    #define DEBUG_PRINT(x) do { \
+        std::cout << "Debug: " << x << std::endl; \
+    } while(0)
+
+    void func() {
+        DEBUG_PRINT("hello");  // 想在这行打断点
+    }
+    ```
+
+    ```bash
+    # 预处理后实际代码
+    void func() {
+        do { 
+            std::cout << "Debug: " << "hello" << std::endl; 
+        } while(0);
+    }
+    ```
+
+    **解决方案**
+
+    1. **在宏展开后的位置打断点**
+
+        ```bash
+        # 查看宏展开后的代码行
+        gdb test
+        (gdb) info line func         # 查看func函数对应的代码行
+        (gdb) break test.cpp:5       # 在宏调用的代码行打断点
+        (gdb) break test.cpp:6       # 或在宏展开后的具体行
+        ```
+
+    2. **使用保存宏信息的编译选项**
+        
+        ```bash
+        # GCC编译时添加 -g3 选项（保存宏信息）
+        g++ -g3 test.cpp -o test
+
+        # 然后可以直接在宏名打断点
+        gdb test
+        (gdb) break DEBUG_PRINT       # 现在可以直接对宏打断点
+        (gdb) info macro DEBUG_PRINT  # 查看宏定义
+        (gdb) macro expand DEBUG_PRINT("hello")  # 展开宏
+        ```
+
+    3. **在宏展开的代码处打断点**
+
+        ```bash
+        # 查看预处理后的代码
+        g++ -E test.cpp > test.i      # 生成预处理文件
+        # 查看test.i找到实际代码行，然后打断点
+        ```
+
+    4. **在宏调用的上下文打断点**
+
+        ```cpp
+        void func() {
+            DEBUG_PRINT("hello");
+            // 可以在调用宏的下一行打断点
+            normal_function();  // 在这里打断点
+        }
+        ```
+
+    5. **临时将宏改为函数（调试用）**
+
+        ```cpp
+        // 调试时临时改为内联函数
+        inline void debug_print(const char* x) {
+            std::cout << "Debug: " << x << std::endl;
+        }
+        #define DEBUG_PRINT(x) debug_print(x)  // 或直接使用函数
+        ```
+
+    **调试宏的技巧**
+
+    ```bash
+    # 查看宏信息（需要 -g3）
+    (gdb) info macro DEBUG_PRINT  # 显示宏定义
+    (gdb) macro list              # 列出所有宏
+    (gdb) macro expand DEBUG_PRINT("test")  # 展开宏
+
+    # 在宏调用处设置条件断点
+    (gdb) break test.cpp:5 if strcmp(x, "error") == 0
+    ```
+
+    **总结**
+
+    - **根本原因**：宏在预处理阶段被展开，没有对应的调试符号
+    - **最佳方案**：使用 `-g3` 编译选项保留宏信息
+    - **备选方案**：在宏调用的行号或宏展开后的代码位置打断点
+    - **调试技巧**：善用 `info macro`、`macro expand` 等命令辅助调试
+
 * `my_print()`在调试时无法一次性输出的问题
 
     我写的代码中 

@@ -4,6 +4,61 @@
 
 ## cached
 
+* vector (1,n)
+
+    这个错误太经典了！看到 `nr.cc` 这个文件名以及 `vector (1,n)` 这种从下标 1 开始分配内存的写法，基本可以断定这是著名的 **Numerical Recipes (数值方法)** 的老代码。
+
+    **为什么会报 “ambiguous”（歧义）错误？**
+
+    在 C++ 标准库中，有一个非常常用的容器叫 `std::vector`。
+    而在早期（C++98 甚至更早）的《Numerical Recipes》代码中，作者为了方便动态分配数组，自己写了一个叫 `vector(nl, nh)` 的函数（通常定义在 `nrutil.h` 或 `nrutil.c` 里）。
+
+    当你的代码里（或者包含的某个头文件里）写了 `using namespace std;` 时，编译器就懵了：
+    **“你说的这个 `vector`，到底是指 C++ 标准库的 `std::vector`，还是你自己写的那个用来分配内存的 `vector()` 函数？”**
+
+    ---
+
+    **怎么解决？（三种方法，任选其一）**
+
+    你需要修改 `/home/hlc/Documents/Projects/hd-dot/projs/toast_test/toast_py3/src/libmath/nr.cc` 这个文件。
+
+    **方法 A：加上全局作用域符 `::`（最快、最安全）**
+
+    既然编译器分不清，我们就明确告诉它：“我要用的是全局定义的那个普通函数，不是 `std::` 里面的容器”。
+
+    1. 打开 `nr.cc`，定位到第 **1042** 行。
+    2. 将原代码：
+    ```cpp
+    dg = vector (1,n);
+
+    ```
+
+    3. 修改为：
+    ```cpp
+    dg = ::vector(1,n);
+
+    ```
+
+    *(注意：如果 `nr.cc` 里还有其他地方报错，比如 `free_vector`，不需要改；但如果是 `v = vector(...)`、`matrix(...)` 这种，只要报 ambiguous 错误，都在前面加上 `::` 即可。)*
+
+    **方法 B：干掉万恶的 `using namespace std;`（最规范）**
+
+    1. 在 `nr.cc` 的开头（或者它包含的头文件里），寻找是否有 `using namespace std;` 这一行。
+    2. 把它注释掉：`// using namespace std;`
+    3. **副作用**：这可能会导致文件里原本用到 `cout`, `endl`, `abs` 等标准库函数的地方报错，你需要把它们手动改成 `std::cout`, `std::endl`, `std::abs`。
+
+    **方法 C：重命名自定义的 vector**
+
+    如果你有权限且愿意批量替换，可以把 `nrutil.h` 和 `nr.cc` 里所有的自定义 `vector` 函数改名为 `nr_vector`，这样就彻底避开了命名冲突。不过这通常需要改动很多地方，不如方法 A 来得干脆。
+
+    ---
+
+    **建议操作**
+
+    强烈建议你采用 **方法 A**。在 `nr.cc` 第 1042 行把 `vector` 改成 `::vector`。保存后重新编译试试。
+
+    **顺便问一下，除了第 1042 行，下面是不是跟着还有一连串类似的 `ambiguous` 报错（比如 `ivector`, `matrix` 之类的）？如果有的话，可以告诉我，我教你一个批量替换的小技巧。**
+
 * C++实现数组排序并同步索引
 
     问：我有两个数组  int arr[] = {3, 5, 2, 1};  int ind[] = {0, 1, 2, 3}。我希望在给 arr 排序时，ind 中的元素也跟随着 arr 中元素的移动而移动，比如 arr 中 3 和 2 交换位置时， ind 中 0 和 2 交换位置。c++ 中如何实现？

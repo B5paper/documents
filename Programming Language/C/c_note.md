@@ -6,6 +6,411 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* __atomic_exchange_n() 简述这个函数的原型、作用、用法
+
+    **函数原型**
+    
+    ```c
+    #include <stdatomic.h>  // 或编译器内置头文件
+
+    type __atomic_exchange_n(type *ptr, type val, int memorder);
+    ```
+
+    **作用**
+
+    原子地将 `ptr` 指向的值替换为 `val`，并返回原来的值。这是一个**原子交换操作**（read-modify-write）。
+
+    **参数说明**
+
+    - **ptr**：指向要操作的变量的指针
+    - **val**：要设置的新值
+    - **memorder**：内存顺序约束
+
+    **内存顺序参数（memorder）**
+
+    | 内存顺序 | 描述 |
+    |----------|------|
+    | `__ATOMIC_RELAXED` | 宽松内存顺序，仅保证原子性 |
+    | `__ATOMIC_CONSUME` | 消费操作（很少使用） |
+    | `__ATOMIC_ACQUIRE` | 获取操作，防止之后的内存操作重排到此之前 |
+    | `__ATOMIC_RELEASE` | 释放操作，防止之前的内存操作重排到此之后 |
+    | `__ATOMIC_ACQ_REL` | 获取+释放操作（用于读写操作） |
+    | `__ATOMIC_SEQ_CST` | 顺序一致性模型（最严格） |
+
+    **使用示例**
+
+    1. 基本用法
+
+        ```c
+        #include <stdio.h>
+
+        int main() {
+            int value = 10;
+            int old_value;
+            
+            // 原子交换：将 value 改为 20，返回原值 10
+            old_value = __atomic_exchange_n(&value, 20, __ATOMIC_SEQ_CST);
+            
+            printf("原值: %d, 新值: %d\n", old_value, value);  // 输出: 原值: 10, 新值: 20
+            
+            return 0;
+        }
+        ```
+
+    2. 多线程环境实现锁
+
+        ```c
+        #include <stdio.h>
+        #include <pthread.h>
+        #include <unistd.h>
+
+        int lock = 0;  // 0: 未锁定, 1: 已锁定
+
+        void acquire_lock() {
+            // 原子交换尝试获取锁
+            while (__atomic_exchange_n(&lock, 1, __ATOMIC_ACQUIRE) == 1) {
+                // 锁已被占用，忙等待
+                usleep(100);  // 避免CPU空转
+            }
+        }
+
+        void release_lock() {
+            // 释放锁
+            __atomic_store_n(&lock, 0, __ATOMIC_RELEASE);
+        }
+
+        int shared_counter = 0;
+
+        void* thread_func(void* arg) {
+            for (int i = 0; i < 1000; i++) {
+                acquire_lock();
+                shared_counter++;  // 临界区
+                release_lock();
+            }
+            return NULL;
+        }
+
+        int main() {
+            pthread_t t1, t2;
+            
+            pthread_create(&t1, NULL, thread_func, NULL);
+            pthread_create(&t2, NULL, thread_func, NULL);
+            
+            pthread_join(t1, NULL);
+            pthread_join(t2, NULL);
+            
+            printf("最终计数: %d\n", shared_counter);  // 输出: 2000
+            
+            return 0;
+        }
+        ```
+
+    3. 实现无锁数据结构（栈）
+        
+        ```c
+        #include <stdio.h>
+        #include <stdatomic.h>
+
+        typedef struct node {
+            int data;
+            struct node* next;
+        } node_t;
+
+        node_t* top = NULL;  // 栈顶指针
+
+        // 无锁入栈
+        void push(int value) {
+            node_t* new_node = malloc(sizeof(node_t));
+            new_node->data = value;
+            
+            node_t* old_top;
+            do {
+                old_top = top;
+                new_node->next = old_top;
+                // 原子更新栈顶指针
+            } while (!__atomic_compare_exchange_n(&top, &old_top, new_node, 
+                                                 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+        }
+
+        // 无锁出栈
+        int pop() {
+            node_t* old_top;
+            node_t* new_top;
+            
+            do {
+                old_top = top;
+                if (old_top == NULL) return -1;  // 空栈
+                new_top = old_top->next;
+                // 原子更新栈顶指针
+            } while (!__atomic_compare_exchange_n(&top, &old_top, new_top,
+                                                 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+            
+            int value = old_top->data;
+            free(old_top);
+            return value;
+        }
+        ```
+
+    4. 不同内存顺序的比较
+
+        ```c
+        #include <stdio.h>
+        #include <pthread.h>
+
+        int data = 0;
+        int flag = 0;
+
+        void* writer(void* arg) {
+            data = 42;  // 写入数据
+            
+            // 释放语义：确保 data 写入在 flag 设置之前完成
+            __atomic_exchange_n(&flag, 1, __ATOMIC_RELEASE);
+            return NULL;
+        }
+
+        void* reader(void* arg) {
+            int f;
+            
+            // 获取语义：确保 flag 读取后，能正确读取 data
+            while ((f = __atomic_exchange_n(&flag, 0, __ATOMIC_ACQUIRE)) == 0) {
+                // 等待 flag 被设置
+            }
+            
+            printf("data = %d\n", data);  // 保证看到 writer 设置的 42
+            return NULL;
+        }
+
+        int main() {
+            pthread_t t1, t2;
+            pthread_create(&t1, NULL, writer, NULL);
+            pthread_create(&t2, NULL, reader, NULL);
+            pthread_join(t1, NULL);
+            pthread_join(t2, NULL);
+            return 0;
+        }
+        ```
+
+    5. 实现自旋锁
+        
+        ```c
+        #include <stdio.h>
+        #include <pthread.h>
+
+        typedef struct {
+            int locked;  // 0: 未锁定, 1: 锁定
+        } spinlock_t;
+
+        void spinlock_init(spinlock_t* lock) {
+            lock->locked = 0;
+        }
+
+        void spinlock_lock(spinlock_t* lock) {
+            // 原子交换尝试获取锁
+            while (__atomic_exchange_n(&lock->locked, 1, __ATOMIC_ACQUIRE)) {
+                // 锁已被占用，继续自旋
+                // 可以添加 CPU 暂停指令优化
+                __asm__ volatile("pause" ::: "memory");
+            }
+        }
+
+        void spinlock_unlock(spinlock_t* lock) {
+            // 释放锁
+            __atomic_store_n(&lock->locked, 0, __ATOMIC_RELEASE);
+        }
+
+        // 使用示例
+        spinlock_t lock;
+        int counter = 0;
+
+        void* worker(void* arg) {
+            for (int i = 0; i < 100000; i++) {
+                spinlock_lock(&lock);
+                counter++;
+                spinlock_unlock(&lock);
+            }
+            return NULL;
+        }
+        ```
+
+    **与相关函数对比**
+
+    | 函数 | 描述 | 返回值 |
+    |------|------|--------|
+    | `__atomic_exchange_n()` | 原子交换 | 原值 |
+    | `__atomic_load_n()` | 原子读取 | 当前值 |
+    | `__atomic_store_n()` | 原子写入 | 无 |
+    | `__atomic_compare_exchange_n()` | 条件交换 | 是否成功 |
+    | `__atomic_fetch_add_n()` | 原子加法 | 原值 |
+
+    ```c
+    // 比较示例
+    int val = 10;
+    int old;
+
+    // 原子交换
+    old = __atomic_exchange_n(&val, 20, __ATOMIC_SEQ_CST);  // old=10, val=20
+
+    // 原子读取
+    int current = __atomic_load_n(&val, __ATOMIC_ACQUIRE);  // current=20
+
+    // 原子写入
+    __atomic_store_n(&val, 30, __ATOMIC_RELEASE);           // val=30
+    ```
+
+    **注意事项**
+
+    1. **类型支持**：支持整型、指针等基本类型
+    2. **对齐要求**：变量需要正确对齐
+    3. **内存顺序**：选择合适的内存顺序影响性能和正确性
+    4. **编译器支持**：GCC 4.7+、Clang 等支持
+    5. **硬件支持**：需要底层硬件支持原子操作
+
+    **应用场景**
+
+    - 实现无锁数据结构
+    - 实现自旋锁、读写锁
+    - 多线程计数器
+    - 状态标志管理
+    - 引用计数
+
+* strcasecmp() 简述这个函数的原型、作用及用法
+
+    **函数原型**
+
+    ```c
+    #include <strings.h>
+
+    int strcasecmp(const char *s1, const char *s2);
+    ```
+
+    **作用**
+
+    比较两个字符串，**忽略大小写差异**，进行不区分大小写的字典序比较。
+
+    **返回值**
+
+    - **0**：两个字符串相等（忽略大小写）
+    - **负数**：s1 < s2（忽略大小写）
+    - **正数**：s1 > s2（忽略大小写）
+
+    **使用示例**
+
+    1. 基本用法
+
+        ```c
+        #include <stdio.h>
+        #include <strings.h>
+
+        int main() {
+            char *str1 = "Hello";
+            char *str2 = "hello";
+            char *str3 = "HELLO";
+            char *str4 = "world";
+            
+            if (strcasecmp(str1, str2) == 0) {
+                printf("'Hello' 和 'hello' 相等（忽略大小写）\n");
+            }
+            
+            if (strcasecmp(str1, str3) == 0) {
+                printf("'Hello' 和 'HELLO' 相等（忽略大小写）\n");
+            }
+            
+            if (strcasecmp(str1, str4) != 0) {
+                printf("'Hello' 和 'world' 不相等\n");
+            }
+            
+            return 0;
+        }
+        ```
+
+    2. 用于比较判断
+
+        ```c
+        #include <stdio.h>
+        #include <strings.h>
+
+        int main() {
+            char input[100];
+            
+            printf("请输入 'yes' 或 'no'：");
+            scanf("%s", input);
+            
+            // 忽略大小写判断用户输入
+            if (strcasecmp(input, "yes") == 0) {
+                printf("用户同意\n");
+            } else if (strcasecmp(input, "no") == 0) {
+                printf("用户拒绝\n");
+            } else {
+                printf("无效输入\n");
+            }
+            
+            return 0;
+        }
+        ```
+
+    3. 在搜索/比较中的应用
+
+        ```c
+        #include <stdio.h>
+        #include <strings.h>
+
+        // 不区分大小写的字符串搜索
+        int find_string(const char *target, const char *array[], int size) {
+            for (int i = 0; i < size; i++) {
+                if (strcasecmp(target, array[i]) == 0) {
+                    return i;  // 返回匹配的索引
+                }
+            }
+            return -1;  // 未找到
+        }
+
+        int main() {
+            const char *colors[] = {"Red", "Green", "Blue", "Yellow"};
+            int size = sizeof(colors) / sizeof(colors[0]);
+            
+            // 不区分大小写查找
+            printf("查找 'GREEN'：%s\n", 
+                   find_string("GREEN", colors, size) >= 0 ? "找到" : "未找到");
+            printf("查找 'blue'：%s\n", 
+                   find_string("blue", colors, size) >= 0 ? "找到" : "未找到");
+            
+            return 0;
+        }
+        ```
+
+    **相关函数**
+
+    | 函数 | 描述 |
+    |------|------|
+    | `strncasecmp()` | 比较前n个字符，忽略大小写 |
+    | `strcmp()` | 区分大小写的字符串比较 |
+    | `strncmp()` | 比较前n个字符，区分大小写 |
+
+    ```c
+    // strncasecmp 示例：只比较前n个字符
+    char *s1 = "HelloWorld";
+    char *s2 = "HELLOworld";
+    if (strncasecmp(s1, s2, 5) == 0) {
+        printf("前5个字符相等（忽略大小写）\n");
+    }
+    ```
+
+    **注意事项**
+
+    1. **头文件**：`<strings.h>`（注意不是 `<string.h>`）
+    2. **平台差异**：
+       - Linux/Unix：`strcasecmp()` 在 `<strings.h>`
+       - Windows：使用 `_stricmp()` 在 `<string.h>`
+       - POSIX标准函数
+
+    3. **本地化影响**：
+       - 默认基于ASCII字符集
+       - 某些系统可能受locale设置影响
+
+    4. **性能考虑**：
+       - 比 `strcmp()` 稍慢，因为需要处理大小写转换
+       - 适合配置解析、命令处理等需要忽略大小写的场景
+
 * `sscanf()`
 
     从给定的字符串（str） 中按照指定的格式读取数据，并将数据存储到给定的变量地址中。可以看作是 scanf() 的“字符串版本”。

@@ -2,6 +2,452 @@
 
 ## cache
 
+* pv.CellType.TETRA 和 VOXEL 有什么区别
+
+    在 PyVista (VTK) 中，`TETRA` 和 `VOXEL` 是两种完全不同的单元类型，它们在**拓扑结构**、**顶点顺序**以及**几何限制**上有显著区别。
+
+    简单来说：**TETRA 是“全能型”的四面体，VOXEL 是“规则型”的正方体单元。**
+
+    ---
+
+    1. 结构与顶点数量
+
+        | 特性 | **TETRA (四面体)** | **VOXEL (体素)** |
+        | --- | --- | --- |
+        | **顶点数** | 4 个顶点 | 8 个顶点 |
+        | **面数量** | 4 个三角形面 | 6 个矩形面 |
+        | **形状** | 任意形状的四面体（锥体） | 必须是各边平行于坐标轴的直角六面体 |
+        | **VTK 枚举值** | `10` | `11` |
+
+    ---
+
+    2. 几何限制 (最核心区别)
+
+        * **TETRA (Tetrahedron):**
+        * 非常灵活。四个顶点可以在空间中任意摆放（只要不共面）。
+        * 适用于**非结构化网格**，能完美拟合复杂的曲面边界。
+        * 通常用于有限元分析 (FEA) 或物理仿真。
+
+
+        * **VOXEL:**
+        * **极其严苛**。在 VTK 定义中，VOXEL 的 12 条边必须分别平行于 $x, y, z$ 轴。
+        * 它实际上是一个“轴对齐”的正方体或长方体。
+        * 如果你有一个倾斜的六面体，你不能使用 `VOXEL`，而必须使用 `HEXAHEDRON` (六面体, Type 12)。
+
+    ---
+
+    3. 顶点排列顺序 (Indexing)
+
+        VTK 对两者的顶点索引顺序要求不同，如果弄反了，渲染会出错（法线反转或畸变）。
+
+        **TETRA (4 nodes)**
+
+        通常遵循右手定则：底面三个点 $(0, 1, 2)$ 逆时针排列，第四个点 $(3)$ 在上方。
+
+        **VOXEL (8 nodes)**
+
+        顺序非常特殊，它是按照二进制递增坐标排序的：
+
+        1. $(x_{min}, y_{min}, z_{min})$
+        2. $(x_{max}, y_{min}, z_{min})$
+        3. $(x_{min}, y_{max}, z_{min})$
+        4. $(x_{max}, y_{max}, z_{min})$
+        5. ...以此类推（先变 $x$，再变 $y$，最后变 $z$）。
+
+    ---
+
+    4. 什么时候用哪个？
+
+        * **用 `TETRA` 的场景：**
+        * 你正在从 `MeshLab`、`Gmsh` 或 `TetGen` 导入数据。
+        * 你需要模拟复杂的几何体（如人体器官、机械零件）。
+        * **你的数据源 `elems` 是 $m \times 4$ 的数组。**
+
+
+        * **用 `VOXEL` 的场景：**
+        * 你正在处理医学影像（MRI/CT 扫描堆栈）。
+        * 你正在处理类似 Minecraft 的方块世界。
+        * 数据本身是在规整的 3D 网格（Grid）上采样得到的。
+
+    ---
+
+    **避坑指南**
+
+    如果你手中的 `elems` 是 **$m \times 8$** 的数组，且形状是规则的长方体，你可能想用 `VOXEL`；但如果这些长方体发生了旋转或变形，**请务必使用 `pv.CellType.HEXAHEDRON` (12)**，否则 VTK 会尝试强行将它们对齐到轴向，导致模型崩坏。
+
+    **你现在手头的数据源是四列（四面体）还是八列（六面体/体素）？**
+
+* pv.voxelize
+
+    看来你正在查阅 `pv.voxelize` 的文档。这是一个非常经典的**空间离散化**工具，也就是将任意形状的网格（无论是高模四面体还是表面网格）“方块化”。
+
+    如果你想通过这个方法实现**降采样**，它的核心逻辑是：用一堆规则的正方体（Voxels）去填充你的原始模型。
+
+    1. 如何使用 `voxelize` 进行降采样？
+
+        如果你的原始四面体网格太密（几十万个小四面体），你可以通过设置较大的 `density` 来生成一个低模的、由方块组成的网格。
+
+        ```python
+        import pyvista as pv
+
+        # 假设 mesh 是你之前创建的高模 UnstructuredGrid
+        # density 决定了方块的大小，数值越大，模型越“糊”（模数越低）
+        low_res_voxel_mesh = mesh.voxelize(density=0.5) 
+
+        # 查看结果
+        low_res_voxel_mesh.plot(show_edges=True)
+
+        ```
+
+    2. 参数关键点拨
+
+        * **`density` (密度/尺寸)**:
+        * 这是最重要的参数。虽然叫 density，但它实际上代表**每个方块的边长**。
+        * 如果传一个数字（如 `0.5`），则 $x, y, z$ 方向都是 $0.5$ 的正方体。
+        * 如果传列表 `[0.5, 0.5, 1.0]`，你可以得到长方体体素。
+
+
+        * **`check_surface`**:
+        * 默认 `True`。它要求你的输入网格必须是**封闭流形**（Closed Manifold，没有破洞）。如果你的四面体网格边界有漏洞，这步会报错。
+
+
+        * **`enclosed`**:
+        * 如果设为 `True`，体素网格会稍微包裹住原始模型的边界；`False`（默认）则尽量保持在原始模型内部。
+
+    3. 注意：它返回的是什么？
+
+        调用 `voxelize` 后，你得到的不再是四面体网格（TETRA），而是**体素网格（VOXEL）**。
+
+        * **如果你需要继续做有限元分析 (FEA)**：VOXEL 网格通常是可以直接用的，但如果你后续的算法只认四面体，你需要加一步转换：
+        ```python
+        # 将方块(VOXEL) 自动切分成四面体(TETRA)
+        low_res_tet_mesh = low_res_voxel_mesh.tetrahedralize()
+
+        ```
+
+    4. 为什么要用这个方法做降采样？
+
+        * **优点**：非常稳定，能保证生成的低模网格绝对没有自交，且网格质量（单元形状）非常统一。
+        * **缺点**：会丢失原始模型的精细特征（比如尖锐的边缘会变成锯齿状）。
+
+    ---
+
+    **你想把降采样后的结果导出为哪种格式？或者你需要保持原始模型的精确边界（不想变锯齿）吗？**
+
+    * 我看它写了 deprecated 
+
+        眼尖！这是一个非常典型的 **API 迁移警告**。
+
+        在 PyVista `0.46.0` 及之后的版本中，官方正在整理代码架构，将原本直接挂在 `pyvista` 命名空间下的全局函数，统一转移到了**过滤器（Filters）**系统中。
+
+        1. 为什么会 Deprecated？
+
+            PyVista 希望所有的处理操作（如平滑、切片、体素化）都通过统一的入口调用。
+
+            * **旧写法：** `pv.voxelize(mesh, ...)`
+            * **新写法：** `mesh.voxelize(...)`
+
+            这本质上是把函数变成了一个**对象方法**。这样做的好处是支持“链式调用”，比如 `mesh.voxelize(0.5).extract_surface()`。
+
+        ---
+
+        2. 你应该如何修改代码？
+
+            如果你使用的是较新版本的 PyVista，请直接在你的 mesh 对象上调用它：
+
+            ```python
+            import pyvista as pv
+
+            # 1. 创建或读取你的高模网格
+            # high_res_mesh = pv.UnstructuredGrid(...) 
+
+            # 2. 正确的“非弃用”调用方式
+            # 这里的 density 是体素的边长，数值越大，生成的网格越稀疏（低模）
+            low_poly_mesh = high_res_mesh.voxelize(density=0.1, check_surface=False)
+
+            # 3. 如果你需要把它转回四面体（低模四面体网格）
+            final_low_tet_mesh = low_poly_mesh.tetrahedralize()
+
+            final_low_tet_mesh.plot(show_edges=True)
+
+            ```
+
+        ---
+
+        3. 补充：文档中提到的另外两个“兄弟”
+
+            文档的 **See Also** 部分提到了两个替代方案，根据你的需求可能有奇效：
+
+            1. **`voxelize_rectilinear`**:
+            * **返回：** `RectilinearGrid`。
+            * **特点：** 如果你的降采样只是为了存储数据（比如 CT 断层数据），这个格式比 `UnstructuredGrid` 更省内存，查询速度更快。
+
+
+            2. **`voxelize_binary_mask`**:
+            * **返回：** `ImageData` (由 0 和 1 组成的 3D 矩阵)。
+            * **场景：** 如果你想把 3D 模型变成类似 NumPy 数组的 $0/1$ 矩阵（做深度学习或者计算体积），用这个最快。
+
+        ---
+
+        **避坑指南**
+
+        如果你调用 `mesh.voxelize()` 报错说 `surface is not closed`，那是因为你的原始四面体网格**外表面有破洞**。
+
+        你可以尝试先修复表面：
+
+        ```python
+        # 提取表面 -> 填补漏洞 -> 再体素化
+        fixed_mesh = mesh.extract_surface().fill_holes(100)
+        low_poly = fixed_mesh.voxelize(density=0.5)
+
+        ```
+
+        **你的原始网格是封闭的几何体吗？如果不确定，我可以教你如何检测网格的开口（Holes）。**
+
+* Surface is not closed.
+
+    意料之中的报错。这个 `RuntimeError` 是因为 `voxelize` 算法底层需要一个**明确的“内部”和“外部”**空间定义。如果你的四面体网格表面有孔洞、重叠面或者非流形边缘（Non-manifold edges），它就不知道哪些区域该填入体素。
+
+    你有两种主要的解决策略：
+
+    **方案 A：强行跳过检查（最快，但不一定稳）**
+
+    如果你确信网格基本完整，只是有一些微小的数值缝隙，可以直接禁用检查。但请注意，如果空洞太大，生成的低模网格可能会丢失大片区域。
+
+    ```python
+    # 修改这一行，添加 check_surface=False
+    grid = mesh.voxelize(density=0.5, check_surface=False)
+
+    ```
+
+    ---
+
+    **方案 B：先修复表面，再体素化（最推荐）**
+
+    如果你的目标是降采样并保持形状，通常的做法是：**提取表面 -> 补洞 -> 体素化**。
+
+    ```python
+    import pyvista as pv
+
+    # 1. 提取四面体网格的表面（转换成三角面网格）
+    surface = mesh.extract_surface()
+
+    # 2. 尝试自动补洞 (hole_size 是空洞的最大周长，可以调大一点)
+    # 同时进行表面清理（移除重复点和退化面）
+    clean_surface = surface.clean().fill_holes(1000)
+
+    # 3. 再次尝试体素化
+    try:
+        grid = clean_surface.voxelize(density=0.5, check_surface=True)
+    except RuntimeError:
+        print("表面依然不封闭，尝试强行体素化...")
+        grid = clean_surface.voxelize(density=0.5, check_surface=False)
+
+    grid.plot(show_edges=True)
+
+    ```
+
+    ---
+
+    **方案 C：如果你的原始数据确实“很烂” (不封闭)**
+
+    如果你的模型根本不是一个封闭的实体（比如它只是一片曲面，或者内部有大量断裂），`voxelize` 可能不是最佳选择。
+
+    你可以尝试 **`select_enclosed_points`** 配合一个背景网格，这是一种更鲁棒的采样方式：
+
+    ```python
+    # 1. 创建一个覆盖整个模型的背景网格 (Uniform Grid)
+    bounds = mesh.bounds
+    dims = (50, 50, 50) # 你想要的低模分辨率
+    grid = pv.ImageData(
+        dimensions=dims,
+        spacing=[(bounds[1]-bounds[0])/dims[0], 
+                (bounds[3]-bounds[2])/dims[1], 
+                (bounds[5]-bounds[4])/dims[2]],
+        origin=[bounds[0], bounds[2], bounds[4]]
+    )
+
+    # 2. 找出哪些点在原始 mesh 内部
+    # 这种方法对“不封闭”网格的容忍度稍高
+    selection = grid.select_enclosed_points(mesh, tolerance=0.001)
+    low_res_mesh = selection.threshold(0.5, scalars="selected_points")
+
+    ```
+
+    ---
+
+    **排查建议：**
+
+    你可以运行下面这行代码来**视觉定位**到底是哪里没封口：
+
+    ```python
+    # 提取并显示边界边（即没有邻接面的边，通常就是漏洞所在）
+    edges = mesh.extract_feature_edges(boundary_edges=True, non_manifold_edges=True)
+    p = pv.Plotter()
+    p.add_mesh(mesh, color="white", opacity=0.5)
+    p.add_mesh(edges, color="red", line_width=5) # 红色的地方就是破洞
+    p.show()
+
+    ```
+
+    **如果看到红线很多，说明你的原始四面体数据本身存在严重的拓扑问题。你需要我帮你看看如何用 Python 批量修复这些破洞吗？**
+
+* pyvista 可以设置在降采样时使用多线程吗
+
+    直接的答案是：**PyVista（以及底层的 VTK）的大部分内置 Filter（如 `voxelize`）并不原生支持 Python 层面的简单 `multiprocessing` 开关。**
+
+    这是因为 VTK 的核心逻辑是用 C++ 编写的。虽然 VTK 内部有些算法（如 SMP 框架）会自动使用多线程，但像 `voxelize` 这种依赖于空间映射和拓扑检查的算法，往往是**单线程顺序执行**的。
+
+    不过，如果你有多个网格需要处理，或者想加速单个大网格的降采样，可以参考以下几种实战方案：
+
+    ---
+
+    1. 任务级并行 (多进程处理多个 Mesh)
+
+        如果你有一堆 `.vtk` 或 `.msh` 文件需要批量降采样，这是提升效率最快的方法。使用 Python 的 `concurrent.futures`：
+
+        ```python
+        import pyvista as pv
+        from concurrent.futures import ProcessPoolExecutor
+
+        def process_mesh(file_path):
+            # 每个进程加载自己的数据，避免 GIL 锁
+            mesh = pv.read(file_path)
+            # 执行耗时的降采样
+            low_res = mesh.voxelize(density=0.5, check_surface=False)
+            low_res.save(f"low_{file_path}")
+            return True
+
+        files = ["m1.vtk", "m2.vtk", "m3.vtk"]
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            executor.map(process_mesh, files)
+
+        ```
+
+    ---
+
+    2. 空间分割并行 (针对超大单个 Mesh)
+
+        如果你的单个网格极其巨大（比如几千万个四面体），`voxelize` 会非常慢。你可以手动将空间切分成几块（Chunks），并行处理后合并：
+
+        1. 将大 Mesh 按坐标轴切分为 4 份（使用 `mesh.clip`）。
+        2. 开启 4 个进程分别对这 4 个块进行 `voxelize`。
+        3. 使用 `pv.merge()` 将结果重新拼回一个 `UnstructuredGrid`。
+
+    ---
+
+    3. 利用 VTK 的加速器 (显卡/多核)
+
+        虽然 PyVista 的 `voxelize` 默认不快，但你可以尝试切换到基于 **ImageData** 的方案，这在 VTK 中是有并行优化的：
+
+        ```python
+        # 使用多线程重采样算法 (Resampling)
+        # 这种方法比传统的 voxelize 快得多，因为它基于探测（Probing）
+        grid = pv.ImageData(dimensions=(100, 100, 100), spacing=(0.1, 0.1, 0.1), origin=mesh.center)
+        resampled = grid.sample(mesh) # 这里内部调用了 VTK 的并行探测算法
+        low_res = resampled.threshold(0.5) 
+
+        ```
+
+    ---
+
+    4. 终极性能方案：Open3D (CPU 多线程)
+
+        如果 PyVista 的速度确实令你抓狂，可以考虑将数据转给 **Open3D**。Open3D 的 `VoxelGrid` 下采样算法原生支持多线程加速，且速度极快。
+
+        ```python
+        import open3d as o3d
+        import numpy as np
+
+        # 将 PyVista 的点转给 Open3D
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(mesh.points)
+
+        # 执行体素下采样 (这一步非常快)
+        voxel_size = 0.5
+        downsampled_pcd = pcd.voxel_down_sample(voxel_size)
+
+        # 拿到降采样后的点中心，再构建你的低模
+        new_points = np.asarray(downsampled_pcd.points)
+
+        ```
+
+    ---
+
+    **总结建议**
+
+    * **如果是单网格耗时：** 检查 `check_surface=False` 是否能加速（通常能快 30% 以上）；或者改用 `sample` 探测法。
+    * **如果是多网格耗时：** 使用 `ProcessPoolExecutor`。
+    * **如果是性能瓶颈：** 考虑先将四面体转成点云，用 Open3D 快速下采样，最后再重新剖分。
+
+    **你的高模网格大约有多少个单元（Cells）？如果超过 500 万个，我们可能需要考虑更底层的分块处理逻辑。**
+
+* 'UnstructuredGrid' object has no attribute 'tetrahedralize' 
+
+    这个错误是因为在 PyVista 的最新版本中，这个方法的名称是 **`delaunay_3d`** 或者 **`extract_geometry`** 的变体。虽然逻辑上是“四面体化”，但 VTK/PyVista 将其分类在过滤器（Filters）中。
+
+    对于 `UnstructuredGrid`（尤其是由 `voxelize` 生成的六面体/体素网格），将其转换为四面体网格的正确方法是使用 **`.delaunay_3d()`** 或 **`.tessellate()`**。
+
+    1. 修正后的代码
+
+        请将报错的那行改为以下任意一种（推荐第一种）：
+
+        ```python
+        # 方法 A：最通用，将非三角形单元（如 Voxel）切分为四面体
+        low_tet = grid.tessellate()
+
+        # 方法 B：如果想要重新生成更致密的四面体结构（基于点云重新构建）
+        # alpha 参数控制网格的紧致程度
+        low_tet = grid.delaunay_3d(alpha=0.1)
+
+        # 方法 C：如果你只是想提取几何体并确保它是 UnstructuredGrid 格式
+        low_tet = grid.cast_to_unstructured_grid()
+
+        ```
+
+    ---
+
+    2. 为什么会报错？
+
+        * **API 差异**：在 PyVista 中，只有 `PolyData`（表面网格）有类似 `triangulate` 的直接方法。
+        * **UnstructuredGrid 的特殊性**：`UnstructuredGrid` 已经是一个体网格了，如果你想改变它的单元类型（比如从 Voxel 变 Tetra），通常需要调用 `tessellate`（镶嵌/细分）过滤器，它会将每一个 8 节点的六面体体素切割成 5 个或 6 个四面体。
+
+    ---
+
+    3. 性能小贴士
+
+        如果你刚才通过 `voxelize` 得到了几百万个方块，调用 `tessellate()` 会让单元数量再翻 **5-6 倍**（因为 1 个方块 = 6 个四面体）。
+
+        **如果你的目标是减少数据量，请务必增大 `voxelize(density=...)` 中的 `density` 值。**
+
+    ---
+
+    **完整闭环示例**
+
+    为了确保你现在能跑通，这里是一个完整的最小化脚本：
+
+    ```python
+    import pyvista as pv
+
+    # 1. 你的高模
+    # mesh = ...
+
+    # 2. 降采样（增加 density 值来减少数量）
+    grid = mesh.voxelize(density=1.0, check_surface=False)
+
+    # 3. 转换为四面体网格
+    low_tet = grid.tessellate()
+
+    print(f"原始单元数: {mesh.n_cells}")
+    print(f"降采样后单元数: {low_tet.n_cells}")
+
+    low_tet.save("low_res_tetra.vtk")
+    low_tet.plot(show_edges=True)
+
+    ```
+
+    **运行 `tessellate()` 后，你的单元数量（Cells）是否符合你的预期（变少了还是变多了）？**
+
 * pyvista 手动设置快捷键触发对话框
 
     PyVista 原生并没有直接弹出“文件保存对话框”的内置函数，因为它是一个科学计算库而非 GUI 库。但你可以结合 tkinter 轻易实现：

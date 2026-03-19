@@ -2,6 +2,82 @@
 
 ## cache
 
+* 这个错误在 pyenv 环境下非常经典：你的 Python 是在没有安装 Tkinter 库的情况下编译安装的。
+
+    抓到“元凶”了。这个错误在 **pyenv** 环境下非常经典：**你的 Python 是在没有安装 Tkinter 库的情况下编译安装的。**
+
+    在 Linux 上，`_tkinter` 是 Python 调用系统 GUI 的 C 语言扩展。如果你在安装 Python 3.12 之前没有安装系统的 `tk-dev` 开发包，pyenv 编译出来的 Python 就会自动“阉割”掉图形界面功能。
+
+    ---
+
+    **终极解决方案（三步走）**
+
+    你不能直接用 `pip install tkinter`（因为它不是纯 Python 库），你需要重新给系统“补课”。
+
+    **第一步：安装系统开发库**
+
+    在终端执行：
+
+    ```bash
+    sudo apt-get update
+    sudo apt-get install tk-dev libtk8.6 python3-tk
+
+    ```
+
+    **第二步：让 pyenv 重新编译 Python**
+
+    因为 `_tkinter` 是在 Python 编译安装时嵌入的，所以你需要**重新安装**当前的 Python 版本。别担心，这不会删掉你已有的 site-packages，但会补全功能：
+
+    ```bash
+    # 重新安装当前版本（如果你用的是 3.12.12）
+    pyenv install 3.12.12
+
+    ```
+
+    *注：pyenv 会检测到已安装，可能会询问是否覆盖，选择 **Yes**。*
+
+    **第三步：验证**
+
+    安装完成后，运行下面这行命令测试：
+
+    ```bash
+    python -c "import tkinter; print('Tkinter works!')"
+
+    ```
+
+    如果输出了 `Tkinter works!`，你的 `plt.show()` 就能弹出窗口了。
+
+    ---
+
+    **觉得重新编译太麻烦？（快速绕过方案）**
+
+    如果你现在急着看结果，不想等 pyenv 编译（通常要几分钟），可以改用 **不需要 Tkinter 的后端**：
+
+    1. **保存为图片（最简单）：**
+
+        在 `recon.py` 中，把 `plt.show()` 替换为：
+        ```python
+        plt.savefig('my_recon_result.png')
+        print("图像已保存到当前目录下的 my_recon_result.png")
+
+        ```
+
+    2. **尝试切换到 Qt 后端（如果你装了 PyQt）：**
+
+        ```python
+        import matplotlib
+        try:
+            matplotlib.use('Qt5Agg')
+        except:
+            pass
+        import matplotlib.pyplot as plt
+
+        ```
+
+    **建议还是走“第一步 + 第二步”，因为以后你跑任何带有图形界面的 Python 脚本，这个问题都会像幽灵一样缠着你。**
+
+    **需要我帮你写一个自动检测后端并保存图片的脚本片段吗？**
+
 * pyenv 安装 python 时是从源码编译，下面是常用的几个编译依赖库
 
     * sudo apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev
