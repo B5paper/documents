@@ -4,23 +4,33 @@
 
 * [v] 虚拟机里安装 claude
 
-* [ ] 调查 channel 无法正常搜索的问题
+* [v] 调查 channel 无法正常搜索的问题
 
-* [ ] 重构 topo, 整理代码，提交 branch
+* [v] 重构 topo, 整理代码，提交 branch
+
+* [v] 拉取 kmd, umd (sirt / rt) 源码
+
+* [v] 分析 sipuDeviceEnablePeerAccess 的底层实现
+
+* [v] siMemImportFromShareableHandle, sipuIpcOpenMemHandle
+
+* [v] siMemAddressReserve, siMemMap, siMemSetAccess 
+
+* [v] 找 driver 中 p2p 通信的 case
 
 * [ ] 调研目前的 ipa 与 handle 的机制
 
-* [ ] claude 分析 launch kernel 可能在哪里崩溃
+* [ ] 写一个跨机指定 chip id 的 memcpy / kernel 的 case，看是否能跑通
 
-* [ ] launch kernel 前打印详细信息，比如 src addr, dst addr 等
+* [v] claude 分析 launch kernel 可能在哪里崩溃
+
+* [v] launch kernel 前打印详细信息，比如 src addr, dst addr 等
 
 * [ ] 检查 channel 搜索里，为何选择 pxn
 
 * [ ] 调研 `generate_coll_graph()` 或 `ncclTopoCompute()` 的含义
 
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
-
-* [ ] strtok_r()
 
 ## cache
 

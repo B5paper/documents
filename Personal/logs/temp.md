@@ -6,19 +6,9 @@
 
     * 为什么注释了创建 wait queue head 的两行
 
-    * `DECLARE_WAIT_QUEUE_HEAD()`, `DECLARE_WAITQUEUE()`
-
-    * `add_wait_queue()`
-
-    * `wait_event()`
-
     * `kthread_should_stop()`, `kthread_stop()`
 
     * `wake_up()`
-
-    * `remove_wait_queue()`
-
-* temp
 
     * `schedule_work`
 
@@ -26,25 +16,11 @@
 
 * `virsh nodedev-dettach pci_0000_b1_00_0` e3
 
-* python packages in use
-
-    ·NumPy 1.9.1
-    ·SciPy 0.14.0
-    ·scikit-learn 0.15.2
-    ·matplotlib 1.4.0
-    ·pandas 0.15.2
-
 * pytorch
-
-    * `torch.utils.data.DataLoader`, `torch.utils.data.Dataset`
 
     * `TorchText`, `TorchVision`, and `TorchAudio`, all of which include datasets. 
 
     * `transform` and `target_transform` to modify the samples and labels respectively.
-
-    * `torch.cuda.is_available()`
-
-    * `print(f"Using {device} device")`
 
     * torchvision datasets 的一个用法
 
@@ -60,25 +36,6 @@
         此时会自动下载数据集到当前文件夹。
 
         如果需要下载 test 部分的数据集，可以把`train=True`改成`train=False`。
-
-    * dataloader 的一个构造方法：
-
-        ```python
-        train_dataloader = DataLoader(training_data, batch_size=batch_size)
-        ```
-
-        是按顺序的还是 shuffle 的？如果 batch size 无法正好被整除，那么最后一个 part 是 drop，还是合并入下一次，还是循环计数？
-
-    * 从 dataloader 中拿数据的方法
-
-        ```py
-        for X, y in test_dataloader:
-            print(f"Shape of X [N, C, H, W]: {X.shape}")
-            print(f"Shape of y: {y.shape} {y.dtype}")
-            break
-        ```
-
-        看起来这个数据拿出来直接就是 tensor，，不知道 dataloader 是否支持拿出来是 list 或 dict，因为有时候 ground-truth 不一定是单个矩阵的形式。
 
     * 自己定义的 block 需要继承自`torch.nn.Module`
 
@@ -119,12 +76,6 @@
         `model.parameters()`可以拿到模型的参数。
 
         如果不在这里指定 lr，那么后面还能在哪里指定 lr？
-
-    * `model.train()`
-
-        这一行的作用是什么来着？好像是 drop out 层启动随机 drop，其他的还有什么，忘了。
-
-        看来`.train()`是 in place 的行为。
 
     * 在训练的过程中将训练数据 to device，此时只有显存复制，没有计算，肯定会损失一部分效率。如果显存充足，有没有在做计算时 io 取放数据的方式？
 
