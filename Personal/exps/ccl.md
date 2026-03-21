@@ -1,4 +1,4 @@
-## tasksW
+## tasks
 
 * [v] 拉取 kmd, umd (sirt / rt) 源码
 
@@ -27,6 +27,1053 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* `tryOpenLib()`
+
+    这段代码是 NCCL 插件加载机制中最底层的“开瓶器”。它的任务是调用操作系统的动态链接库接口（`dlopen`），并对可能出现的错误进行分类处理。
+
+    以下是逐行详细解释：
+
+    1. 基础检查
+        
+        ```cpp
+        static void* tryOpenLib(char* name, int* err, char* errStr) {
+          *err = 0; // 初始化错误码为 0（无错误）
+          if (nullptr == name || strlen(name) == 0) {
+            return nullptr; // 如果库名为空，直接返回空指针
+          }
+        ```
+
+    2. 处理静态插件标识
+
+        ```cpp
+          // 检查库名是否为特定的 "STATIC_PLUGIN"（不区分大小写）
+          if (strncasecmp(name, "STATIC_PLUGIN", strlen(name)) == 0) {
+            name = nullptr; // 如果是静态插件，将 name 设为 NULL
+          }
+        ```
+
+        * **深层逻辑**：在 Linux 的 `dlopen(NULL, ...)` 调用中，如果传入 `NULL`，它会返回**当前主程序**的句柄。这通常用于加载那些已经静态链接到 NCCL 内部、不需要外部 `.so` 文件的插件。
+
+    3. 执行动态加载
+
+        ```cpp
+          // 调用系统函数加载动态库
+          // RTLD_NOW: 立即解析所有符号，如果找不到符号则加载失败
+          // RTLD_LOCAL: 该库中的符号对后续加载的其他库不可见（减少符号污染）
+          void *handle = dlopen(name, RTLD_NOW | RTLD_LOCAL);
+        ```
+
+    4. 错误捕获与分类
+
+        ```cpp
+          if (nullptr == handle) {
+            // 如果加载失败，获取系统提供的错误描述字符串
+            strncpy(errStr, dlerror(), MAX_STR_LEN);
+            errStr[MAX_STR_LEN] = '\0'; // 确保字符串以 null 结尾，防止溢出
+
+            // 这一行是静态分析工具（Coverity）的注释，提示工具此处 handle 或 name 不会同时为空
+            // coverity[var_deref_model]
+            
+            // 逻辑判断：如果错误信息中包含文件名，且包含“文件不存在”的提示
+            if (strstr(errStr, name) && strstr(errStr, "No such file or directory")) {
+              *err = ENOENT; // 将错误码标记为标准的“文件不存在”（Error No ENTity）
+            }
+          }
+        ```
+
+        * **作用**：它通过解析 `dlerror()` 返回的易读字符串，反向推导出结构化的错误码（`ENOENT`）。这样上层函数就可以根据是“找不到文件”还是“依赖库损坏”来决定是静默尝试下一个路径，还是直接报错。
+
+    5. 返回句柄
+
+        ```cpp
+          return handle; // 返回库句柄（成功）或 nullptr（失败）
+        }
+        ```
+
+    ---
+
+    **关键点总结**
+    
+    1.  **静态/动态两用**：通过 `name = nullptr` 的处理，兼容了静态编译进程序的插件。
+    2.  **符号立即解析**：使用 `RTLD_NOW` 是为了确保插件在加载瞬间就检查其完整性，避免在后续运行通讯时才因为缺少符号而崩溃。
+    3.  **精细化错误识别**：它不只是告诉你“失败了”，还会特意检查是不是因为文件路径不对（`ENOENT`），这对于多路径搜索（如在 `/usr/lib` 和 `/usr/local/lib` 轮询）至关重要。
+
+    **你是否在遇到 `Could not find: nccl-net.so` 之类的 INFO 日志？**这通常就是因为这个函数在尝试了所有路径后，最终都触发了这里的 `ENOENT` 逻辑。
+
+* `openPluginLib()`
+
+    这段代码是 NCCL 用于**动态加载插件库**（如网络插件或 I/O 插件）的核心函数。它通过多种命名策略尝试寻找并打开 `.so` 共享库文件。
+
+    以下是逐行详细解释：
+
+    1. 变量初始化
+        
+        ```c
+        static void* openPluginLib(enum ncclPluginType type, const char* libName) {
+          int openErr, len = PATH_MAX;
+          char libName_[MAX_STR_LEN] = { 0 };       // 用于构建库文件名的临时缓冲区
+          char openErrStr[MAX_STR_LEN + 1] = { 0 }; // 存储 dlopen 等操作的错误信息
+          char eNoEntNameList[PATH_MAX] = { 0 };     // 记录未找到（ENOENT）的文件名列表，用于最后的 INFO 输出
+        ```
+
+    2. 构建第一种可能的库文件名
+        
+        ```c
+          if (libName && strlen(libName)) {
+            // 如果用户指定了 libName，直接拷贝
+            snprintf(libName_, MAX_STR_LEN, "%s", libName);
+          } else {
+            // 如果没指定，使用默认前缀（如 nccl-net）并加上 .so 后缀
+            snprintf(libName_, MAX_STR_LEN, "%s.so", pluginPrefix[type]);
+          }
+        ```
+
+    3. 第一次尝试打开库
+
+        ```c
+          libHandles[type] = tryOpenLib(libName_, &openErr, openErrStr);
+          if (libHandles[type]) {
+            libNames[type] = strdup(libName_);               // 成功则记录库名
+            ncclPluginLibPaths[type] = getLibPath(libHandles[type]); // 获取库的绝对路径
+            return libHandles[type];                         // 成功返回句柄
+          }
+          
+          // 如果失败且原因是“文件不存在”（ENOENT），记录到错误列表
+          if (openErr == ENOENT) {
+            appendNameToList(eNoEntNameList, &len, libName_);
+          } else {
+            // 如果是其他错误（如权限、依赖缺失），记录详细日志
+            INFO(subsys[type], "%s/Plugin: %s: %s", pluginNames[type], libName_, openErrStr);
+          }
+        ```
+
+    4. 复杂命名匹配逻辑（第二次尝试）
+
+        这段逻辑处理一种特殊情况：如果用户只给了一个简写（如 `ib`），NCCL 会尝试将其拼凑成标准格式（如 `nccl-net-ib.so`）。
+
+        ```c
+          // 条件检查：libName 存在，且不是路径（不含 '/'），且不是以 'lib' 开头，且不是以 '.so' 结尾
+          if (libName && strlen(libName) && strchr(libName, '/') == nullptr &&
+              (strncmp(libName, "lib", strlen("lib")) || strlen(libName) < strlen(".so") ||
+               strncmp(libName + strlen(libName) - strlen(".so"), ".so", strlen(".so")))) {
+            
+            // 重新构建文件名格式为：[前缀]-[用户指定名].so
+            snprintf(libName_, MAX_STR_LEN, "%s-%s.so", pluginPrefix[type], libName);
+
+            // 再次尝试打开
+            libHandles[type] = tryOpenLib(libName_, &openErr, openErrStr);
+            if (libHandles[type]) {
+              libNames[type] = strdup(libName_);
+              ncclPluginLibPaths[type] = getLibPath(libHandles[type]);
+              return libHandles[type];
+            }
+            
+            if (openErr == ENOENT) {
+              appendNameToList(eNoEntNameList, &len, libName_);
+            } else {
+              INFO(subsys[type], "%s/Plugin: %s: %s", pluginNames[type], libName_, openErrStr);
+            }
+          }
+        ```
+
+    5. 最终错误汇总处理
+
+        ```c
+          // 如果最终没找到任何库，根据收集到的 eNoEntNameList 输出提示信息
+          if (strlen(eNoEntNameList)) {
+            INFO(subsys[type], "%s/Plugin: Could not find:%s%s%s", pluginNames[type], eNoEntNameList,
+                 (strlen(pluginFallback[type]) > 0 ? ". " : ""), pluginFallback[type]);
+          } else if (strlen(pluginFallback[type])) {
+            // 如果没有特定的找不到的文件，但有回退方案（Fallback）描述，则输出它
+            INFO(subsys[type], "%s/Plugin: %s", pluginNames[type], pluginFallback[type]);
+          }
+          return nullptr; // 全部失败返回空指针
+        }
+        ```
+
+    ---
+
+    **总结：该函数的工作流程**
+
+    1.  **直接尝试**：先按原样或默认名称尝试加载。
+    2.  **智能重试**：如果用户输入的是一个“标签”（如 `ib` 或 `ucx`），它会自动补全成 `nccl-net-ib.so` 这种标准格式。
+    3.  **静默失败与日志**：如果是文件找不到，它会汇总所有尝试过的路径最后统一报个 INFO；如果是文件坏了或依赖没对，它会立即报详细错误。
+
+    **您是在尝试自定义 NCCL 的网络插件（Net Plugin）吗？**通常这种报错会出现在找不到 Infiniband 驱动插件的时候。
+
+* `ncclTopoGetLocalNets()`
+
+    这段代码的作用是：**为一个特定的 `rank`（进程）找出所有与其物理距离最近（本地）的网络设备 ID 列表。**
+
+    相比于之前的 `ncclTopoGetLocalNet`（获取单个网卡），这个函数 `ncclTopoGetLocalNets`（注意复数 s）的任务更简单直接：**只负责搜寻并列出所有达标的本地网卡，不做负载均衡或通道分配。**
+
+    ---
+
+    逐行解释
+
+    1. 进程到 GPU 的映射
+
+        ```c
+          int gpu;
+          // 根据进程的 rank 编号，在系统拓扑中定位它所在的物理 GPU 索引
+          NCCLCHECK(ncclTopoRankToIndex(system, rank, &gpu, /*showWarn=*/true));
+        ```
+
+        *   **作用**：确定当前进程跑在哪块显卡上，因为“本地”是相对于具体 GPU 而言的。
+
+    2. 搜索本地网络设备索引
+
+        ```c
+          int localNetIndexes[NCCL_TOPO_MAX_NODES];
+          // 核心搜索函数：从指定的 GPU 出发，寻找类型为 NET（网络）的所有“本地”节点
+          // 结果存入 localNetIndexes，数量存入 localNetCount
+          NCCLCHECK(ncclTopoGetLocal(system, GPU, gpu, NET, localNetIndexes, localNetCount, NULL));
+        ```
+
+        *   **作用**：在拓扑图（如 PCIe 树）中进行路径分析。它会找到与该 GPU 距离最近（通常是同一个 PCIe Switch 下）的所有网卡索引。
+
+    3. 错误检查
+        
+        ```c
+          if (*localNetCount == 0) {
+            // 如果该 GPU 无法通过本地路径到达任何网卡，输出警告并返回错误
+            WARN("Could not find any local path from gpu %d to net.", gpu);
+            return ncclInternalError;
+          }
+        ```
+
+        *   **作用**：确保硬件拓扑识别正常。如果返回 0，意味着该 GPU 在拓扑结构中是“孤立”的，无法进行跨节点通信。
+
+    4. 索引到 ID 的转换
+
+        ```c
+          // 遍历找到的本地网卡索引
+          for (int n=0; n<*localNetCount; n++) 
+            // 将拓扑系统中的内部索引（Index）转换为全局唯一的网络设备 ID
+            localNets[n] = system->nodes[NET].nodes[localNetIndexes[n]].id;
+        ```
+
+        *   **作用**：`localNetIndexes` 只是在 `system` 数组里的下标，而 `id` 才是其他模块（如通信后端）用来识别网卡的真正标识符。
+
+    5. 返回结果
+        
+        ```c
+          return ncclSuccess;
+        }
+        ```
+
+    ---
+
+    **总结：它与前一个函数的区别**
+
+    | 特性 | `ncclTopoGetLocalNet` (单数) | `ncclTopoGetLocalNets` (复数) |
+    | :--- | :--- | :--- |
+    | **目标** | 为某个通道（Channel）**选定一个**网卡 | **列出所有**物理邻近的网卡 |
+    | **逻辑** | 包含负载均衡、位反转、策略过滤 | 纯粹的拓扑查询，不涉及分配逻辑 |
+    | **用途** | 决定数据流具体走哪条路 | 用于初始化、资源统计或上层策略决策 |
+
+    **这几个函数通常是连在一起使用的：先用这个函数拿到所有网卡，再用之前的 `SelectNets` 确定优先级。你是在分析 NCCL 的初始化流程吗？**
+
+* `ncclTopoGetLocalNet()`
+
+    这段代码同样来自 **NCCL**，它的核心目标是：**为一个特定的 `rank`（进程）在特定的 `channelId`（通信通道）上，精准分配一个最合适的本地网络设备（NIC）**。
+
+    简单来说，它解决了“这个 GPU 的这个通道该走哪张网卡”的问题。以下是逐行拆解：
+
+    ---
+
+    1. 初始定位：从 Rank 到 GPU
+
+        ```c
+          int gpu;
+          // 将 MPI/NCCL 的 rank 转换为系统拓扑中对应的 GPU 索引
+          NCCLCHECK(ncclTopoRankToIndex(system, rank, &gpu, /*showWarn=*/true));
+        ```
+
+        * 获取该进程对应的物理 GPU 编号。
+
+    ---
+
+    2. 搜寻本地网络设备
+
+        ```c
+          int localNets[NCCL_TOPO_MAX_NODES];
+          int localNetCount;
+          // 查找与该 GPU 在“物理上最邻近”的所有网络设备（通常是同 PCIe 树下的网卡）
+          NCCLCHECK(ncclTopoGetLocal(system, GPU, gpu, NET, localNets, &localNetCount, NULL));
+          if (localNetCount==0) {
+            WARN("Could not find any local path from gpu %d to net.", gpu);
+            return ncclInternalError;
+          }
+        ```
+
+        * `localNets`：存储找到的本地网卡列表。
+        * 如果连一个本地网卡都找不到，报错。
+
+    ---
+
+    3. 计算“每显卡分配网卡数”（netsPerGpu）
+    
+        这一段根据用户设置的策略，计算一个 GPU 应该“认领”多少张网卡。
+        
+        ```c
+          int netsPerGpu = 0;
+          int policyCount = 0;
+          enum netDevsPolicy policy;
+          NCCLCHECK(ncclTopoGetNetDevsPolicy(&policy, &policyCount));
+
+          if (policy == NETDEVS_POLICY_AUTO) {
+            // 自动模式：通过（本地网卡总数 / 本地 GPU 总数）来平分
+            int localGpus[NCCL_TOPO_MAX_NODES];
+            int localGpuCount;
+            NCCLCHECK(ncclTopoGetLocal(system, NET, localNets[0], GPU, localGpus, &localGpuCount, NULL));
+            netsPerGpu = DIVUP(localNetCount, localGpuCount);
+          } else if (policy == NETDEVS_POLICY_ALL) {
+            // 允许使用该 GPU 能看到的所有本地网卡
+            netsPerGpu = localNetCount;
+          } else if (policy == NETDEVS_POLICY_MAX) {
+            // 限制最大数量，取政策规定值和物理存在值的最小值
+            netsPerGpu = std::min(policyCount, localNetCount);
+          }
+        ```
+
+    ---
+
+    4. 关键算法：负载均衡与镜像映射
+        
+        这是代码中最巧妙的地方，目的是让不同的 GPU 尽量均匀地散开，不要挤在同一张网卡上。
+
+        ```c
+          int net = system->nodes[GPU].nodes[gpu].gpu.dev; // 获取 GPU 的设备 ID
+          // 如果网卡数量是 2 的幂（如 2, 4, 8），使用位反转（mirrorBits）
+          // 作用：让相邻的 GPU 映射到距离较远的网卡，实现更好的跨 Switch 负载均衡
+          if (isPow2(localNetCount)) net = mirrorBits(net, localNetCount);
+
+          // 结合通道 ID 进行偏移，实现多通道间的网卡复用/切换
+          net += channelId % (netsPerGpu);
+        ```
+
+        * **`mirrorBits`**: 这是一个常见的优化技巧。例如有 4 张网卡，如果不做处理，GPU 0, 1 可能都挤在网卡 0；位反转后，它们会被映射到 0 和 2，从而分散流量。
+
+    ---
+
+    5. 输出结果
+        
+        ```c
+          // 通过计算出的索引 net，从本地网卡列表 localNets 中取出真实的网卡 ID 和设备编号
+          if (id) *id = system->nodes[NET].nodes[localNets[net % localNetCount]].id;
+          if (dev) *dev = system->nodes[NET].nodes[localNets[net % localNetCount]].net.dev;
+          return ncclSuccess;
+        ```
+        * `id`：通常是网卡的唯一标识（如 UUID 或内部索引）。
+        * `dev`：通常是系统中的设备号（如 `/dev/infiniband/uverbs0` 中的 `0`）。
+
+    ---
+
+    **总结**
+
+    这个函数的作用是 **“智能分流”**。它不仅仅是找个网卡，而是：
+    1.  **就近原则**：只看本地（Local）的网卡。
+    2.  **策略约束**：遵守 `AUTO/ALL/MAX` 限制。
+    3.  **打散负载**：通过 `mirrorBits` 和 `channelId` 取模，确保多个 GPU 和多个 Channel 能够均匀地压榨所有可用网卡的带宽。
+
+    **你想了解这种“位反转（mirrorBits）”具体是如何提升带宽利用率的吗？我可以画个简单的映射表给你看。**
+
+* nccl `ncclTopoComputePaths()` 调研
+
+    `ncclTopoSetPaths()`说是进行 bfs 搜索，但是只有两层循环，没有 queue 或者递归，看起来比较像从 cpu, gpu, nic 等出发，搜索第一层能到达的 node
+
+    对于无法 p2p 直接的 gpu，寻找其共同的 cpu，并使用`addInterStep()`添加 cpu 中转。
+
+    `ncclTransports` struct obj 提供了不同 transport 的统一 api。此时会调用`canConnect()`判断`srcInfo`和`dstInfo`能否连通。
+
+    `ncclPeerInfo`如下：
+
+    ```cpp
+    struct ncclPeerInfo {
+      int rank;
+      int cudaDev;
+      int nvmlDev;
+      int gdrSupport;
+      uint64_t hostHash;
+      uint64_t pidHash;
+      dev_t shmDev;
+      int64_t busId;
+      struct ncclComm* comm;
+      int cudaCompCap;
+      // MNNVL support
+      nvmlGpuFabricInfoV_t fabricInfo;
+      int cuMemSupport;
+    };
+    ```
+
+    dst 由外层循环控制，src 由内层循环控制。
+
+    接下来处理 nic，对于每个 nic，遍历 gpu，这个可能拿来判断是否使用 gpu direct rdma
+
+    如果不能使用 gpu direct rdma，那么使用 nic - cpu - nic 做中转，同样地，使用`addInterStep()`添加中间节点。
+
+* nccl tmp
+
+    * sort link
+
+        ```cpp
+        static ncclResult_t ncclTopoSort(struct ncclTopoNode* node, struct ncclTopoNode* upNode) {
+          // Shift all links to have upLink as last link
+          if (upNode) {
+            int l=0;
+            while (node->links[l].remNode != upNode) l++;
+            struct ncclTopoLink upLink;
+            memcpy(&upLink, node->links+l, sizeof(struct ncclTopoLink));
+            while (node->links[l+1].remNode) {
+              memcpy(node->links+l, node->links+l+1, sizeof(struct ncclTopoLink));
+              l++;
+            }
+            memcpy(node->links+l, &upLink, sizeof(struct ncclTopoLink));
+          }
+
+          // ...
+        }
+        ```
+
+        node 1 -> link 1 -> node 2 -> link 2
+
+        目前看来，上述代码中的`upLink`指的就是 link 1，它相对于 node 2 来说是上游的 link，因此被称为 up link。
+
+        代码中的`upNode`指的当然是 node 1。
+
+        上述代码发现`upLink`后，将其移动到 node 2 所有 links 的最后一位。目前不知道这个是干嘛用的。
+
+* nccl tmp
+
+    * get path
+
+        ```cpp
+        static ncclResult_t getPath(struct ncclTopoSystem* system, struct ncclTopoNode* node, int t, int64_t id, struct ncclTopoLinkList** path) {
+          for (int i=0; i<system->nodes[t].count; i++) {
+            if (system->nodes[t].nodes[i].id == id) {
+              *path = node->paths[t]+i;
+              return ncclSuccess;
+            }
+          }
+          WARN("Could not find node of type %d id %lx", t, id);
+          return ncclInternalError;
+        }
+        ```
+
+        从`*path = node->paths[t]+i;`可以看出，每个 node 下，对应 node type 的 path 的数量是 system 中对应 node type 的 node 数量。并且每个 node 都可以映射到一条 path 上。
+
+        比如 topo system 中，cpu 类型的 node 有 cpu_0, cpu_1, cpu_2, cpu_3，共 4 个 cpu。那么，在 cpu 0 中，其 cpu 类型的 path 一共有 4 条，并且每条 path 都可以映射到一个 cpu node 上：
+
+        ```
+        path_0 -> cpu_0
+        path_1 -> cpu_1
+        path_2 -> cpu_2
+        path_3 -> cpu_3
+        ```
+
+        每条 path 又是一个 link list，其中有多个 link，每个 link 都有一个 target node 属性。
+
+        `*path = node->paths[t]+i;`: 这里的`i`指的是 nodes 中第 i 个 node，但是 i 也被用到了这里 path 上，说明 path 的排序也是按照 node 的顺序来的，那么很有可能每条 path 的第一个 node 是 path 起始的 node。这样的话，这行代码的含义就可以为：每个 node 只处理从自己开始的那条 path。
+
+    * `ncclTopoCreateNode()`
+
+        ```cpp
+        ncclResult_t ncclTopoCreateNode(struct ncclTopoSystem* system, struct ncclTopoNode** node, int type, uint64_t id) {
+          if (system->nodes[type].count == NCCL_TOPO_MAX_NODES) {
+            WARN("Error : tried to create too many nodes of type %d", type);
+            return ncclInternalError;
+          }
+          struct ncclTopoNode* n = system->nodes[type].nodes+system->nodes[type].count;
+          system->nodes[type].count++;
+          n->type = type;
+          n->id = id;
+          if (type == GPU) {
+            n->gpu.dev = NCCL_TOPO_UNDEF;
+            n->gpu.rank = NCCL_TOPO_UNDEF;
+            // ...
+          }
+          // ...
+        }
+        ```
+
+        因为 nccl 中是提前把数组中元素申请好的，所以靠增加 count 计数来表示目前使用了多少个数组元素，模拟内存分配的过程。
+
+    * `ncclTopoConnectNodes()`
+
+        ```cpp
+        ncclResult_t ncclTopoConnectNodes(struct ncclTopoNode* node, struct ncclTopoNode* remNode, int type, float bw) {
+          // Aggregate links into higher bw for NVLink
+          struct ncclTopoLink* link;
+          for (link = node->links; link - node->links != NCCL_TOPO_MAX_LINKS && link->remNode; link++) {
+            if (link->remNode == remNode && link->type == type) break;
+          }
+          if (link - node->links == NCCL_TOPO_MAX_LINKS) {
+            WARN("Error : too many Topo links (max %d)", NCCL_TOPO_MAX_LINKS);
+            return ncclInternalError;
+          }
+          if (link->remNode == NULL) node->nlinks++;
+          link->type = type;
+          link->remNode = remNode;
+          link->bw += bw;
+          // ...
+        }
+        ```
+
+        每个 topo node 中有默认创建的最大 128 条 link，每条 link 包含一个 remote topo node （或者可以理解为 target topo node, dst topo node, peer topo node 等），这些 link 并不构成单向链表（path 是 link 组成的 list，因此 path 构成单向链表）。
+
+        上述代码对 node 的 link 数组进行遍历，若有 link 指向`remNode`，说明之已经添加过这条 link，现在又被要求添加这条 link，说明 node 和 remNode 之间不止有一条 link，这种情况只有可能是多条 nvlink。后续在处理这种情况时，我们看到它使用`link->bw += bw;`累加 bindwidth，聚合 nvlink 的带宽。
+
+        若找不到 link 指向`remNode`，说明这条 link 还没被创建，此时使用`node->nlinks++;`使指针递增一位，模仿 malloc 的效果。然后使用
+
+        ```cpp
+        link->type = type;
+        link->remNode = remNode;
+        link->bw += bw;
+        ```
+
+        对这条新创建的 link 进行初始化。
+
+    * system id 的含义
+
+        一个 topo system 可能存了好多个 host hash，每个 host hash 对应一个 host。如果我想找到指定的 host，那么其对应的数组索引 idx 就是 system id。
+
+    * `ncclTopoCreateNode()`
+
+        这个函数模仿 malloc 的功能。
+
+    * `ncclGetSystemId()`
+
+        这个函数不只是搜索已有的 host hashes，而且还当 host hashed 不存在时，创建一个新的位置，并将当前要查询的 host hash 填入其中，并返回指向当前 host hash 的索引。
+
+        功能有点像 c++ 中 unordered map 的`operator[]`查询。
+
+    * `ncclResult_t ncclTopoAddGpu(struct ncclXmlNode* xmlGpu, struct ncclTopoSystem* system, struct ncclTopoNode* gpu);`
+
+        这个函数参数中有`system`，在函数体实现中并没有用到这个，只是根据 xml tag 的相关字段，填充了 topo node 的相关数据。
+
+    * topo system add nic
+
+        ```cpp
+        if (strcmp(node->name, "nic") == 0) {
+          struct ncclTopoNode* nic = NULL;
+          NCCLCHECK(ncclTopoGetNode(system, &nic, NIC, 0));
+          if (nic == NULL) {
+            NCCLCHECK(ncclTopoCreateNode(system, &nic, NIC, NCCL_TOPO_ID(systemId, 0)));
+            NCCLCHECK(ncclTopoConnectNodes(cpu, nic, LINK_PCI, LOC_BW));
+            NCCLCHECK(ncclTopoConnectNodes(nic, cpu, LINK_PCI, LOC_BW));
+          }
+          NCCLCHECK(ncclTopoAddNic(node, system, nic, systemId));
+        }
+        ```
+
+        这个在`ncclTopoGetNode()`最后一个参数 id 处填了个 0，是表示一个 system 下只有一个 nic tag 吗？
+
+        `ncclTopoCreateNode()`给出的 local id 也恒为 0。不清楚为什么。
+
+    * system id and bit shift
+
+        ```cpp
+        // (uint64_t) is necessary, or shifing will occured on a 32 bit register
+        // ((uint64_t) system_id << 56) is necessary, or expression 56) + numa_id will be calculated first
+        system_id = 1;
+        uint64_t topo_id = ((uint64_t) system_id << 56) + numa_id;
+        ```
+
+    * insert pci node
+
+        ```cpp
+        for (int s = parent->nSubs; s > subIndex; s--) parent->subs[s] = parent->subs[s-1];
+        parent->subs[subIndex] = pciNode;
+        ```
+
+        reserve a placeholder for pci node.
+
+        why use `subIndex` as the index of pci node? answer: nccl has to Keep PCI sub devices ordered by PCI Bus ID
+
+* nccl tmp
+
+    * get path
+
+        ```cpp
+        getPath(system, node, baseNode->type, baseNode->id, &path);
+        ```
+
+        可以看到，`getPath()`在被调用时，指定了 node，又指定了 base node，其含义为搜索 topo system，找到 base node 的位置，由于指定 node 开始的 path 的索引与 topo node 在 topo system 中的索引一致，所以我们便可以在 node 中定位以 base node 开头的 path 的索引。
+
+        example:
+
+        topo system 中 topo node 的排布如下：
+
+        ```
+        topo_system:
+
+        cpu:
+        cpu_node_0
+        cpu_node_1
+
+        gpu:
+        gpu_node_0
+        gpu_node_1
+        gpu_node_2
+        gpu_node_3
+
+        ...
+        ```
+
+        `cpu_node_0`的 path 排布如下：
+
+        ```
+        path:
+
+        cpu:
+        cpu_node_0 -> gpu_node_0 -> gpu_node_1
+        cpu_node_1 -> gpu_node_1 -> gpu_node_2
+
+        gpu:
+        gpu_node_0 -> cpu_node_0 -> cpu_node_1
+        gpu_node_1 -> cpu_node_1 -> cpu_node_0
+        gpu_node_2 -> cpu_node_0 -> cpu_node_1
+        gpu_node_3 -> cpu_node_1 -> cpu_node_0
+
+        ...
+        ```
+
+        假如我现在想在`cpu_node_0`中，找到以`cpu_node_1`开头的 path，但是我现在只有`cpu_node_1`的`topo_id`，那么我可以根据这个 id，在 topo system 中找到其对应的索引，然后根据这个索引在`cpu_node_0`的 paths 中找到对应的 path。
+
+    * topo path 不是只搜索同类型的 node 之间的连接
+
+        ```cpp
+        NCCLCHECK(ncclCalloc(remNode->paths+baseNode->type, system->nodes[baseNode->type].count));
+        ```
+
+        这个 alloc 代码，size 使用的是`system->nodes[baseNode->type].count`，表示从各个 node 开始的 path。还是可以连接到其他类型的 node 的。
+
+* reverse link
+
+    ```cpp
+    if ((remPath->bw == 0 || remPath->count > path->count) && remPath->bw < bw) {
+      // Find reverse link
+      for (int l=0; l<remNode->nlinks; l++) {
+        if (remNode->links[l].remNode == node && remNode->links[l].type == link->type) {
+          remPath->list[0] = remNode->links+l;
+          break;
+        }
+      }
+      // ...
+    }
+    ```
+
+    `path`表示从当前 node 走向 base node 的路径。
+
+    `remNode`是当前 node 通过 link 指向的下一个 node，即 node --link--> remNode。
+
+    `remPath`是`remNode`指向 base node 的路径。
+
+    目前通过 base node 一路搜索过来的情况是这样的：base node -> ... -> node --link--> rem node。注意，这条链路是单向的，base node 能走到 node，走到 rem node，不代表 node / rem node 也能原路返回。
+
+    现在我们开始分析 if 语句中条件的含义：
+
+    * `remPath->bw == 0`: 表示 rem node 找不到返回 base node 的 path。
+
+    * `remPath->count > path->count`: 表示 rem node 走到 base node 的路径比 node 走到 base node 的路径长。
+
+        如果把这里的大于号改成小于号，即 rem node 到 base node 的路径比 node 到 base node 的路径更短，那么就没必要找 reverse link 了，我们直接走 rem path 返回就可以。事实上 nccl 也是这么做的。
+
+    结合上下文，我们可以推测出，当 rem node 找不到返回 base node 的路径，或者说，找到了，但是路径比从 node 返回的路径长，那么就选择找到一条 rem node 到 node 的边，并通过 node 返回 base node，即 rem node --rem_link--> node -> ... -> base node。
+
+    * `remPath->bw < bw`：这个比较好理解了，只有当 rem path 的带宽小于 path 的带宽，我们才尝试 reverse link -> path 的个组合的带宽是否有可能大于 rem path 的带宽。如果 rem path 的带宽本身比 path 的带宽大，那么就不考虑 path 和 rem path 上节点的数量了。
+
+* nccl 是可以处理 pci 中的多个 child tag 的
+
+    ```cpp
+    ncclResult_t ncclTopoAddPci(struct ncclXmlNode* xmlPci, struct ncclTopoSystem* system, struct ncclTopoNode* parent, int systemId, int numaId) {
+        // ...
+        for (int s=0; s<xmlPci->nSubs; s++) {
+          struct ncclXmlNode* xmlSubPci = xmlPci->subs[s];
+          if (strcmp(xmlSubPci->name, "pcilink") != 0) { // PCI links will be added later
+            NCCLCHECK(ncclTopoAddPci(xmlSubPci, system, node, systemId, numaId));
+          }
+        }
+        // ...
+    }
+    ```
+
+    `ncclTopoAddPci()`是 dfs 的结构，只有遇到 gpu 和 nic 时，才做 terminate 处理。由于 gpu/nic 可能和另一个 pci tag 并列，所以 child pci tag 并未放到函数末尾处理。
+
+    这里先处理了 pci tag 的子节点，处理完后才 connect 当前 pci tag 创建出来的 pci node 和 parent node，说明这是一个树的后序遍历。理论上先序遍历也可以达成一样的效果，后面可以试一下。
+
+* nccl 假设 pci 下要么只有一个 gpu 或一个 nic，要么只有另一个 pci，因此其递归终止的条件是解析当前节点，如果当前 pci 节点下有 gpu/nic，那么就停止递归。否则就认为当前节点下还有嵌套 pci，那么以当前节点为 parent pci 节点，遍历子节点，是非常常规的思路。
+
+    但是 siccl 的 pci 下可能有多个 gpu 节点，这样我们在解析到 pci 后，并不能停止解析当前 pci，还要继续解析下去，这样就导致 gpu 的解析和子 pci 的解析被放到了同一个循环下。如果解析到了子节点是 pci 节点，我们以当前 pci 节点作为 parent 节点，再添加子 pci 时，相当于没有跳过当前 pci node 的创建，tag 也往下走了一层。
+
+    按道理效果应该和直接递归调用是一样的。
+
+    可以试试在写全排列时，对于 n = x 的情况单独展开，是否和统一写在 for 里一样。
+
+    ```
+    <parent-pci 0>
+        <pci 1>
+            <pci 2>
+                <gpu>
+            <pci 3>
+                <gpu>
+            
+    ```
+
+    按照目前的方案，pci 1 检测到 pci 2 是 child pci tag，转到小循环开始处理。pci 1 作为 parent node，重新扫描所有的子 tag。但是我们需要注意到，在 pci 1 的外层大循环中，仍然会处理 pci 2 和 pci 3。此时当处理 pci 3 时，又进入小循环，pci 2 又被处理了一遍。nccl 之所以能写小循环，是因为它没有外层的大循环。
+
+* `ncclTopoGetLocal()`
+
+    `locals`是 node idx 的数组，`localCount`是数组的长度。
+
+    ```cpp
+    ncclResult_t ncclTopoGetLocal(struct ncclTopoSystem* system, int type, int index, int resultType, int** locals, int* localCount, int* pathType) {
+    ```
+
+    参数含义为，从`type, index`的 node 出发，在指向所有`resultType`类型的 node 的 path 中，找到 bw 最大的那几条 path。
+
+    `locals`中的内容为`0, 1`，对应`localNets`。
+
+    第二次调用，`locals`中的内容为`0`，对应`localGpus`。
+
+    `net`一直为 1，`channelId`是外部传进来的，为 0。
+
+    `id`是个指针，刚传进来时是个未初始化的随机数，之后被赋值为 2。
+
+    看起来`net`只是为了选择`localNets[]`数组中的哪个元素。
+
+    `dev`是 net 的 dev，与 gpu 没有关系。外部传入的是 NULL，说明外部不需要这个参数，直接跳过不填。
+
+    `ncclTopoGetLocalNet()`的作用，猜测可能是根据指定的 gpu node（只能是 gpu，不能是其他），在已有的 net node 中，找到一个带宽最大，路径约束最严的 net node。
+
+    * 两条 if 的写法
+
+        正常我们找最大值并保存，通常会这样写：
+
+        ```cpp
+        vector<int> max_vals;
+        int max_val;
+        for (int val : val_arr) {
+            if (val > max_val) {
+                max_vals.clear();
+                max_vals.push_back(val);
+                max_val = val;
+                continue;
+            }
+            if (val == max_val) {
+                max_vals.push_back(val);
+            }
+        }
+        ```
+
+        而 nccl 的写法是这样的：
+
+        ```cpp
+        if (paths[i].bw > maxBw || (paths[i].bw == maxBw && paths[i].type < minType)) {
+          maxBw = paths[i].bw;
+          minType = paths[i].type;
+          if (pathType)
+            *pathType = minType;
+          count = 0;  // 在这里清空临时存储的最大值
+        }
+        if (paths[i].bw == maxBw && paths[i].type == minType)
+            (*locals)[count++] = i;  // 在这里添加最大值
+        ```
+
+        对应上面的写法，为：
+
+        ```cpp
+        vector<int> max_vals;
+        int max_val;
+        for (int val : val_arr) {
+            if (val > max_val) {
+                max_vals.clear();
+                max_val = val;
+            }
+            if (val == max_val) {
+                max_vals.push_back(val);
+            }
+        }
+        ```
+
+        这样两个 if 的逻辑关系改成了互相关联，还是挺有意思的。
+
+    * `if (paths[i].bw > maxBw || (paths[i].bw == maxBw && paths[i].type < minType)) {`
+
+        根据这行代码可以看出，如果有 bw 更大的 path，那么优先找 bw 更大的。如果 bw 相等，那么找 path type 更小的（即约束更严的，尽量 p2p 的）
+
+    * `NCCLCHECK(ncclTopoGetLocal(system, GPU, gpu, NET, &localNets, &localNetCount, NULL));`
+
+        根据上面的分析，这行代码的作用就是，从`GPU`类型，index 为`gpu`的 node 出发，找到离`NET`类型节点 bw 最大的 path，或者 bw 相同时，paty type 最小的 path。
+
+* `ncclTopoGetLocalNet()`
+
+    反正要在函数内部调用`ncclTopoRankToIndex()`根据 rank 找到 gpu node idx，那么为什么不从一开始就传入 gpu node idx，或 gpu node 的指针？
+
+    为什么传入参数要引入`channelId`，有什么用？
+
+    `net % localNetCount = 1`, `localNets = [0, 1]`
+
+    `system->nodes[NET][N]->id = {1, 2, 0}`，siccl, nccl 的值相同
+
+    nccl `net->id = 2, 1`
+
+    `nets = {1, 0}`, `localNets = {1, 0}`, `netCount = 2`
+
+    * `ncclResult_t ncclTopoGetLocalNet(struct ncclTopoSystem* system, int rank, int channelId, int64_t* id, int* dev) {`
+
+        根据前后的分析，`ncclTopoGetLocalNet()`的作用是给定 gpu rank 和 channel，找出一个合适的、最优的网卡（或 net interface 接口）。
+
+    * 对下面代码的解析
+
+        ```cpp
+        int net = system->nodes[GPU][gpu]->gpu.dev;
+        if (isPow2(localNetCount)) {
+            net = mirrorBits(net, localNetCount);
+        }
+        // 假如网卡数量为 5，gpu 数量为 2，那么 div(5, 2) = 3
+        // 即前面每 3 张网卡服务 1 个 gpu，最后 1 个 gpu 由剩余网卡（2 张）负责
+        // 以 gpu 的视角来看，是这样的：
+        //      gpu_0                  gpu_1
+        //   /    |    \           /     |    \ 
+        // net0  net1  net2       net3  net4  NULL
+        // idx_0 idx_1 idx_2      idx_0  idx_1
+        // 那么 channelId % 3 的含义即为，当前 channel 对应的 net 的 idx
+        // net 前面被赋值的是 gpu 的 dev 号，现在 += 这个值，说明 gpu_1 由
+        // net[1, 2, 3] 负责，并非由上图的 net[3, 4] 负责。
+        net += channelId % div_up(localNetCount, localGpuCount);
+        ```
+
+        仿照这段逻辑写了个程序，代码和输出如下：
+
+        ```cpp
+        bool isPow2(int val) {
+            return (val & (val-1)) == 0;
+        }
+
+        int mirrorBits(int val, int pow2) {
+            int mirror = 0;
+            // mb 表示最高位的 1
+            for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+                // 如果 val 最低位为 1，那么 mirror 的最高位置 1
+                if (val & b) {
+                    // |= 保护除了最高位之外的其他位不被改变
+                    mirror |= mb;
+                }
+            }
+            return mirror;  // 0b110;
+        }
+
+        int div_up(int x, int y) {
+            return (x + y - 1) / y;
+        }
+
+        #include <stdio.h>
+
+        int main() {
+            int localNetCount = 8;
+            int localGpuCount = 4;
+            for (int channelId = 0; channelId < 6; ++channelId) {
+                for (int i = 0; i < localGpuCount; ++i) {
+                    int net = i;
+                    if (isPow2(localNetCount)) {
+                        net = mirrorBits(net, localNetCount);
+                    }
+                    net += channelId % div_up(localNetCount, localGpuCount);
+                    printf("gpu idx: %d, channel: %d, net: %d\n", i, channelId, net);
+                }
+                putchar('\n');
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        gpu idx: 0, channel: 0, net: 0
+        gpu idx: 1, channel: 0, net: 4
+        gpu idx: 2, channel: 0, net: 2
+        gpu idx: 3, channel: 0, net: 6
+
+        gpu idx: 0, channel: 1, net: 1
+        gpu idx: 1, channel: 1, net: 5
+        gpu idx: 2, channel: 1, net: 3
+        gpu idx: 3, channel: 1, net: 7
+
+        gpu idx: 0, channel: 2, net: 0
+        gpu idx: 1, channel: 2, net: 4
+        gpu idx: 2, channel: 2, net: 2
+        gpu idx: 3, channel: 2, net: 6
+
+        gpu idx: 0, channel: 3, net: 1
+        gpu idx: 1, channel: 3, net: 5
+        gpu idx: 2, channel: 3, net: 3
+        gpu idx: 3, channel: 3, net: 7
+
+        gpu idx: 0, channel: 4, net: 0
+        gpu idx: 1, channel: 4, net: 4
+        gpu idx: 2, channel: 4, net: 2
+        gpu idx: 3, channel: 4, net: 6
+
+        gpu idx: 0, channel: 5, net: 1
+        gpu idx: 1, channel: 5, net: 5
+        gpu idx: 2, channel: 5, net: 3
+        gpu idx: 3, channel: 5, net: 7
+        ```
+
+        可以看到，当`localNetCount`为偶数时，在每个 channel 里分配的 net，先是偶数，再是奇数。
+
+        如果`localNetCount`为奇数，为了更好地找规律，我们将程序修改如下：
+
+        ```cpp
+        bool isPow2(int val) {
+            return (val & (val-1)) == 0;
+        }
+
+        int mirrorBits(int val, int pow2) {
+            int mirror = 0;
+            // mb 表示最高位的 1
+            for (int b = 1, mb = (pow2>>1); b < pow2; b <<= 1, mb >>= 1) {
+                // 如果 val 最低位为 1，那么 mirror 的最高位置 1
+                if (val & b) {
+                    // |= 保护除了最高位之外的其他位不被改变
+                    mirror |= mb;
+                }
+            }
+            return mirror;  // 0b110;
+        }
+
+        int div_up(int x, int y) {
+            return (x + y - 1) / y;
+        }
+
+        #include <stdio.h>
+
+        int main() {
+            int localNetCount = 13;
+            int localGpuCount = 3;
+            for (int channelId = 0; channelId < 6; ++channelId) {
+                for (int i = 0; i < localGpuCount; ++i) {
+                    int net = i;
+                    if (isPow2(localNetCount)) {
+                        net = mirrorBits(net, localNetCount);
+                    }
+                    printf("gpu idx: %d, channel: %d, net before: %d, ", i, channelId, net);
+                    net += channelId % div_up(localNetCount, localGpuCount);
+                    printf("net after: %d\n", net);
+                }
+                putchar('\n');
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        gpu idx: 0, channel: 0, net before: 0, net after: 0
+        gpu idx: 1, channel: 0, net before: 1, net after: 1
+        gpu idx: 2, channel: 0, net before: 2, net after: 2
+
+        gpu idx: 0, channel: 1, net before: 0, net after: 1
+        gpu idx: 1, channel: 1, net before: 1, net after: 2
+        gpu idx: 2, channel: 1, net before: 2, net after: 3
+
+        gpu idx: 0, channel: 2, net before: 0, net after: 2
+        gpu idx: 1, channel: 2, net before: 1, net after: 3
+        gpu idx: 2, channel: 2, net before: 2, net after: 4
+
+        gpu idx: 0, channel: 3, net before: 0, net after: 3
+        gpu idx: 1, channel: 3, net before: 1, net after: 4
+        gpu idx: 2, channel: 3, net before: 2, net after: 5
+
+        gpu idx: 0, channel: 4, net before: 0, net after: 4
+        gpu idx: 1, channel: 4, net before: 1, net after: 5
+        gpu idx: 2, channel: 4, net before: 2, net after: 6
+
+        gpu idx: 0, channel: 5, net before: 0, net after: 0
+        gpu idx: 1, channel: 5, net before: 1, net after: 1
+        gpu idx: 2, channel: 5, net before: 2, net after: 2
+        ```
+
+        可以看到，net 在循环后移，增量为 0 ~ 4，正好 5 个，这里的 5 是从`13 / 3`并向上取整而来。
+
+        总体上这段代码是 gpu 和 net 的负载均衡策略。
+
+    * 这段代码比较奇怪，从 gpu 开始找 net 的时候，搜索到的是全部符合条件的 net，但是从 net 反向搜索 gpu 时，只使用了第 1 个 net。这样下来，那就不一定其他 net 也能连到这些 gpu 了。然而后面又使用了所有 net 的 count，说明其他的 net 也会参与其中。这样就矛盾了。
+
+        目前只有两个解释：
+
+        1. `net[0]`可以代表其他的 net 的情况，不需要其他 net 重复搜索了。
+
+        2. `ncclTopoGetLocal()`函数不仅仅是为`ncclTopoGetLocalNet()`设计的，在其他地方也有调用到，所以输出才为数组的形式。如果只为`ncclTopoGetLocalNet()`设计，那么只给出第一条最佳 path 就可以了，不需要给出数组的形式。
+
+    * 目前看起来，不进行静态负载均衡应该影响不大。只有到时候实际程序跑起来，又有多网卡、多显卡的情况，才能尝试测试这里的静态负载均衡是否合理。
+
+* `ncclTopoSelectNets()`
+
+    猜想：可能会循环或对称分配 net 资源，当 net 资源被分配完（新分配的数据又重新回到开头）时，则停止分配。
+
+    ```cpp
+      // Then add others satisfying typeInter
+      for (int t=0; t <= typeInter; t++) {
+    ```
+
+    这里的`typeInter`为 3，是`graph->typeInter`传进来的。
+
+    最终函数返回时，`netCount`为 2，并将其赋值给函数参数`*netCountRet`。
+
+    * 对 gpu rank 与 channel 的遍历
+
+        ```cpp
+          for (int g=0; g<system->nodes[GPU].count; g++) {
+            if (gpu != -1 && gpu != g) continue;
+            localNetCount = 0;
+            struct ncclTopoNode* gpu = system->nodes[GPU].nodes+g;
+            for (int c = 0; c<MAXCHANNELS; c++) {
+              int64_t netId;
+              print_path_1(system);
+              NCCLCHECK(ncclTopoGetLocalNet(system, gpu->gpu.rank, c, &netId, NULL));
+              // ...
+        ```
+
+        我们已知`ncclTopoGetLocalNet()`是根据 gpu rank 和 channel，找出最优的到 net 的 path，这里的两层 for，外层是对 gpu 进行遍历，内层是对 channel 进行遍历，刚好对应`ncclTopoGetLocalNet()`函数的作用。
+
+    * 有关 channel 与 net
+
+        ```cpp
+        for (int c = 0; c<MAXCHANNELS; c++) {
+          int64_t netId;
+          print_path_1(system);
+          NCCLCHECK(ncclTopoGetLocalNet(system, gpu->gpu.rank, c, &netId, NULL));
+          NCCLCHECK(ncclTopoIdToIndex(system, NET, netId, localNets+localNetCount));
+          if (localNetCount > 0 && localNets[localNetCount] == localNets[0])
+            break;
+          localNetCount++;
+        }
+        // Append NICs to list
+        for (int i=0; i<localNetCount; i++) {
+          int n = localNets[i];
+          int found = 0;
+          while (nets[found] != n && found<netCount)
+            found++;
+          if (found == netCount)
+            nets[netCount++] = n;
+        }
+        ```
+
+        前面的`MAXCHANNELS`为 32，跳出第一个 for 走的是`break`语句，说明搜索到了重复的 local net，而`localNetCount`为 2，刚好对应 net node 为 2. 这似乎暗示每条 channel 都对应一个不同的 net，并不是一个 net 衍生出多条 channel。
+
+    * `nets`是外部传入的，`ncclTopoSelectNets()`会尝试往这个数组里 append 新的 net node 的 idx。
+
+    * `ncclResult_t ncclTopoSelectNets(struct ncclTopoSystem* system, int typeInter, int gpu, int* nets, int* netCountRet) {`
+
+        整体看来，`ncclTopoSelectNets()`似乎是往`nets`里添加新元素（即满足条件的 net node 的 idx）。
+
+        不清楚`typeInter`是干嘛用的。
 
 * `ncclTopoPreset()`
 
@@ -7995,6 +9042,143 @@
     **这段代码执行完后，`plan->workQueue` 里就填满了具体的任务指令，紧接着就会调用你之前看到的 `uploadWork` 将这些指令发给 GPU。**
 
     你想了解 `addP2pToPlan` 内部是如何具体拆分数据块到不同通道的吗？
+
+* `ncclTopoSelectNets()`
+
+    这段代码出自 NCCL 的拓扑分析模块。它的核心任务是：**根据用户设定的策略和硬件拓扑，生成一个排序后的网络设备（NIC/NET）列表**，供数据传输时择优使用。
+
+    以下是逐行详细解释：
+
+    1. 函数声明与初始化
+
+        ```c
+        ncclResult_t ncclTopoSelectNets(struct ncclTopoSystem* system, int typeInter, int gpu, int nets[NCCL_TOPO_MAX_NODES], int* netCountRet) {
+          ncclResult_t ret = ncclSuccess;
+          int netCount = 0;
+        ```
+
+        * **`system`**: 整个系统的拓扑结构信息。
+        * **`typeInter`**: 允许的路径类型（如 NVLink, PCI, PXB 等）。
+        * **`gpu`**: 目标 GPU 索引。若为 `-1`，表示为全局（所有 GPU）寻找可用的网络。
+        * **`nets`**: 输出参数，存储选中的网络设备索引数组。
+        * **`netCount`**: 记录已找到的网络设备数量。
+
+    ---
+
+    2. 第一阶段：添加“首选”网卡（Preferred NETs）
+        
+        ```c
+          if (system->nHosts > 1 && ncclParamScatterEnable()) {
+            // 针对 MNNVL (Multi-Node NVLink) 系统，优先按 GPU 排序，再按通道排序
+            NCCLCHECK(ncclTopoPrefNetsGpuFirst(system, gpu, nets, &netCount));
+          } else {
+            // 针对普通系统，优先按通道排序，再按 GPU 排序（保证负载均衡）
+            NCCLCHECK(ncclTopoPrefNetsChannelFirst(system, gpu, nets, &netCount));
+          }
+        ```
+
+        * 这里根据是否开启了 `MNNVL_SCATTER_NETS_ENABLE` 决定排序策略。
+        * **首选网卡**通常是那些物理距离与指定 GPU 最近、带宽最高的网卡。
+
+    ---
+
+    3. 获取策略限额（Policy Limit）
+        
+        ```c
+          int maxDevCount = 0;
+          enum netDevsPolicy netDevsPolicy;
+          NCCLCHECK(ncclTopoGetNetDevsPolicy(&netDevsPolicy, &maxDevCount));
+        ```
+
+        * 从环境变量或配置中读取 `netDevsPolicy`（网卡策略）。
+        * `maxDevCount`：策略允许使用的最大网卡数量（例如，用户可能限制每个 GPU 只用 1 张网卡）。
+
+    ---
+
+    4. 动态调整限额
+        
+        ```c
+          if (gpu == -1) maxDevCount *= system->nodes[GPU].count;
+          if (netDevsPolicy != NETDEVS_POLICY_MAX) maxDevCount = NCCL_TOPO_MAX_NODES;
+          if (netCount >= maxDevCount) goto exit;
+        ```
+
+        * 如果搜索的是全局网卡（`gpu == -1`），总限额 = 单卡限额 × GPU 数量。
+        * 如果策略**不是** `MAX`（即没有强制限制），则将限额设为最大值。
+        * 如果第一阶段找齐了，直接跳到退出。
+
+    ---
+
+    5. 第二阶段：补全其他网卡（按距离由近及远）
+
+        ```c
+          for (int t=0; t <= typeInter; t++) { // 遍历路径类型（由快到慢，如 NVLink -> PCI）
+            for (int g = 0; g < system->nodes[GPU].count; g++) { // 遍历系统中每个 GPU
+              if (gpu != -1 && gpu != g) continue; // 如果指定了特定 GPU，跳过不相关的
+              
+              int localNetCount = 0, localNets[MAXCHANNELS];
+              struct ncclTopoNode* gpu = system->nodes[GPU].nodes+g;
+              struct ncclTopoLinkList* paths = gpu->paths[NET]; // 获取该 GPU 到所有网卡的路径
+        ```
+
+        * 这一层循环是在寻找“备选网卡”。它按照**路径开销（t）**从小到大搜索。
+
+    ---
+
+    6. 查找符合条件的本地网卡
+        
+        ```c
+              for (int n=0; n<system->nodes[NET].count && n<MAXCHANNELS; n++) {
+                if (paths[n].type == t) localNets[localNetCount++] = n;
+              }
+        ```
+
+        * 在当前的路径等级 `t` 下，找出所有能通达的网卡索引并存入 `localNets`。
+
+    ---
+
+    7. 去重并加入最终列表
+
+        ```c
+              for (int i=0; i<localNetCount; i++) {
+                int n = localNets[i];
+                int found = 0;
+                // 检查该网卡是否已在 nets 列表中（去重）
+                while (found < netCount && nets[found] != n) found++;
+                
+                if (found == netCount) nets[netCount++] = n; // 如果没找到，则添加
+                if (netCount >= maxDevCount) goto exit; // 达到限额则停止
+              }
+        ```
+
+        * 将新发现的网卡追加入输出数组，并确保不会重复添加第一阶段已经选中的首选网卡。
+
+        * 循环中调用`ncclTopoGetLocalNet()`，只是改变 channel，其他的都不变。
+
+        * 第 1 次返回的`netId`为`2`，第 2 次返回的`netId`为`1`，第 3 次返回的`netId`为`2`。循环一共 3 次就停止，停止条件是`localNets`新添加的元素和第一个元素相等。退出循环时，`localNets`的长度`localNetCount`为 2.
+
+    ---
+
+    8. 结束返回
+
+        ```c
+        exit:
+          *netCountRet = netCount;
+          return ret;
+        }
+        ```
+
+        * 回填最终搜寻到的网卡总数。
+
+    **总结**
+
+    该函数的作用是：
+
+    1.  **优先级排序**：先挑物理最匹配的（Preferred），再按拓扑距离（Path Type）补齐。
+    2.  **合规性检查**：严格遵守用户设置的网卡数量配额。
+    3.  **多卡支持**：既能为单个 GPU 找网卡，也能为整个节点（`gpu=-1`）汇总网卡资源。
+
+    **您是在调试多机多卡的通信性能吗？**如果是的话，了解 `NETDEVS_POLICY` 的具体取值会对你有很大帮助。
 
 ## topics
 
