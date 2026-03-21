@@ -2,6 +2,412 @@
 
 ## cache
 
+* 详细讲讲什么是无锁队列，什么是有锁队列？无锁队列和有锁队列比有什么优势？两种分别如何用代码实现？写出核心逻辑的 c/c++ 代码
+
+    在多线程编程中，队列是线程间传递数据最常用的容器。为了保证数据在“多生产者-多消费者”环境下的准确性，我们通常有两种选择：**有锁队列**（Lock-based Queue）和**无锁队列**（Lock-free Queue）。
+
+    ---
+
+    1. 核心概念
+
+        **有锁队列 (Lock-based Queue)**
+
+        有锁队列利用**互斥锁（Mutex）**或**读写锁**来保证同一时间只有一个线程能操作队列。
+
+        * **机制**：当一个线程尝试访问队列时，它必须先获取锁。如果锁已被占用，该线程会被挂起（休眠），直到锁被释放。
+
+        * **打个比方**：像是一个单人洗手间，门上有锁。里面有人时，外面的人必须站着等，甚至蹲下睡觉。
+
+        **无锁队列 (Lock-free Queue)**
+
+        无锁队列不使用传统的锁机制，而是依赖**原子操作（Atomic Operations）**（如 CAS: Compare-And-Swap）来确保并发安全。
+
+        * **机制**：它允许多个线程同时尝试修改队列。如果发生冲突，线程不会被挂起，而是通过不断的重试（自旋）来完成操作。
+
+        * **打个比方**：像是在旋转门里进出，大家不用停下来等门开，而是根据门的节奏寻找时机钻进去。
+
+    ---
+
+    2. 无锁队列 vs 有锁队列：优势在哪里？
+
+        | 特性 | 有锁队列 | 无锁队列 |
+        | :--- | :--- | :--- |
+        | **吞吐量** | 高竞争下性能急剧下降（上下文切换开销） | 高竞争下通常表现更稳健 |
+        | **延迟** | 可能出现长时间阻塞（如果持锁线程被切走） | 延迟通常较低且可预测 |
+        | **死锁风险** | 存在死锁风险 | 彻底杜绝死锁 |
+        | **实现难度** | 简单、易维护 | 极高（需要处理 ABA 问题、内存屏障等） |
+        | **优先级反转** | 存在（低优先级持锁，高优先级等待） | 不存在 |
+
+        **核心优势**：无锁队列最大的价值在于**避免了线程上下文切换的开销**，并且在实时性要求极高的系统中（如音视频处理、高频交易），它能提供更稳定的响应时间。
+
+    ---
+
+    3. 代码实现：核心逻辑
+
+        A. 有锁队列 (基于 `std::mutex`)
+
+        这是最常用、最稳妥的实现方案。
+
+        ```cpp
+        #include <queue>
+        #include <mutex>
+        #include <condition_variable>
+
+        template <typename T>
+        class LockBasedQueue {
+        private:
+            std::queue<T> queue_;
+            std::mutex mutex_;
+            std::condition_variable cond_;
+
+        public:
+            void push(T value) {
+                {
+                    std::lock_guard<std::mutex> lock(mutex_);
+                    queue_.push(std::move(value));
+                }
+                cond_.notify_one(); // 通知等待的消费者
+            }
+
+            bool try_pop(T& value) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (queue_.empty()) return false;
+                value = std::move(queue_.front());
+                queue_.pop();
+                return true;
+            }
+        };
+        ```
+
+        ---
+
+        B. 无锁队列 (基于 `std::atomic` CAS)
+
+        这里展示一个简单的**单生产者-单消费者 (SPSC)** 的无锁环形队列逻辑。如果是多生产者，CAS 的逻辑会更复杂（需处理头尾指针的同步）。
+
+        **核心逻辑：CAS (Compare and Swap)**
+        $$CAS(ptr, old\_val, new\_val)$$
+        逻辑是：如果 $ptr$ 指向的值等于 $old\_val$，则将其改为 $new\_val$ 并返回 true，否则返回 false。
+
+        ```cpp
+        #include <atomic>
+        #include <vector>
+
+        template <typename T>
+        class LockFreeQueueSPSC {
+        private:
+            struct Node {
+                T data;
+                std::atomic<bool> has_data{false};
+            };
+            
+            std::vector<Node> buffer_;
+            std::atomic<size_t> head_{0};
+            std::atomic<size_t> tail_{0};
+            size_t capacity_;
+
+        public:
+            LockFreeQueueSPSC(size_t cap) : capacity_(cap), buffer_(cap) {}
+
+            // 生产者逻辑
+            bool enqueue(T value) {
+                size_t t = tail_.load(std::memory_order_relaxed);
+                size_t next_t = (t + 1) % capacity_;
+                
+                if (next_t == head_.load(std::memory_order_acquire)) {
+                    return false; // 队列满
+                }
+
+                buffer_[t].data = std::move(value);
+                tail_.store(next_t, std::memory_order_release);
+                return true;
+            }
+
+            // 消费者逻辑
+            bool dequeue(T& value) {
+                size_t h = head_.load(std::memory_order_relaxed);
+                
+                if (h == tail_.load(std::memory_order_acquire)) {
+                    return false; // 队列空
+                }
+
+                value = std::move(buffer_[h].data);
+                head_.store((h + 1) % capacity_, std::memory_order_release);
+                return true;
+            }
+        };
+        ```
+
+    ---
+
+    4. 总结与建议
+
+        * **什么时候用有锁队列？**
+            绝大多数业务场景。代码清晰、不容易写出逻辑漏洞。如果你的队列每秒处理的操作少于 10 万次，锁的开销几乎可以忽略。
+        * **什么时候用无锁队列？**
+            1. 极高频率的数据交换。
+            2. 严格的中断环境（不能调用阻塞 API）。
+            3. 追求极致的低延迟。
+
+        > **警告**：自己手动实现一个通用的、健壮的“多生产者多消费者 (MPMC)”无锁队列是非常困难的，往往会遇到 **ABA 问题**。在生产环境中，建议优先使用成熟的库，如 **Boost.Lockfree**。
+
+    您是否想深入了解如何解决无锁队列中的 **ABA 问题** 或者是 **内存屏障 (Memory Barrier)** 的具体用法？
+
+* 详细讲讲什么是无栈协程，什么是有栈协程
+
+    简单来说，**协程（Coroutine）**是用户态的“轻量级线程”。而“有栈”还是“无栈”，决定了协程**在哪里存储局部变量**以及**如何实现切换**。
+
+    我们可以把线程想象成一辆大型巴士，而协程是巴士里的乘客。
+
+    ---
+
+    1. 有栈协程 (Stackful Coroutine)
+
+        有栈协程在创建时，会由运行时分配一段**独立的内存空间**作为它的私有栈（类似线程栈，通常是几十 KB 到几 MB）。
+
+        **核心特征**
+
+        * **上下文保存**：它会把所有的通用寄存器、栈指针（ESP/RSP）全部保存下来。
+        * **任意位置挂起**：因为它有自己的栈，所以它可以在**嵌套调用的深处**随时暂停。
+        * **代表实现**：Go 语言的 **Goroutine**、Lua 的 Coroutine、C++ 的 **libaco** 或 **Boost.Context**。
+
+        **工作原理**
+
+        当有栈协程 A 切换到 B 时，程序会执行类似汇编的操作：
+
+        1.  将当前 CPU 寄存器的值压入 A 的私有栈。
+        2.  将 CPU 的栈指针寄存器（SP）指向 B 的私有栈。
+        3.  从 B 的栈中恢复寄存器值。
+        4.  继续执行。
+
+        > **优点**：对开发者极其友好，代码写起来和同步阻塞代码一模一样。
+        > **缺点**：内存开销较大（每个协程都要预分配栈），上下文切换涉及寄存器操作，虽然比线程快，但仍有一定成本。
+
+    ---
+
+    2. 无栈协程 (Stackless Coroutine)
+
+        无栈协程**没有独立的栈空间**。它的局部变量和执行状态被保存在一个由编译器生成的**堆对象（或闭包）**中。
+
+        **核心特征**
+
+        * **状态机驱动**：编译器会将你的函数改写成一个巨大的 `switch-case` 状态机。
+        * **只能在顶层挂起**：它通常只能在被标记为 `async` 的函数内部挂起，无法在普通的子函数嵌套里直接挂起整个调用链。
+        * **代表实现**：**JavaScript (async/await)**、**Python (asyncio)**、**Rust**、以及 **C++20 的 Coroutines**。
+
+        **工作原理**
+
+        编译器会将函数逻辑拆分成多个片段：
+        1.  运行到 `await` 或 `yield` 关键字。
+        2.  将当前所有局部变量存入一个**协程帧（Coroutine Frame）**对象中（位于堆上）。
+        3.  函数直接 `return`，将控制权还给调度器。
+        4.  恢复时，根据保存的状态码直接跳回上次断点。
+
+        > **优点**：极其节省内存（按需分配，不需要预留栈空间），切换效率极高（本质是函数返回和调用）。
+        > **缺点**：逻辑被“碎片化”，通常需要特定的关键字支持（如 `async/await`），且存在“染色”问题（异步函数只能在异步函数中调用）。
+
+    ---
+
+    3. 深度对比
+
+        | 特性 | 有栈协程 (Stackful) | 无栈协程 (Stackless) |
+        | :--- | :--- | :--- |
+        | **内存分配** | 预分配固定大小的栈 (e.g. 2KB - 2MB) | 按需在堆上分配状态机对象 (极小) |
+        | **挂起位置** | 可以在任何嵌套函数内挂起 | 只能在有关键字支持的顶层函数挂起 |
+        | **控制流** | 类似多线程，隐式切换 | 显式状态机，显式返回 |
+        | **性能** | 略慢（涉及寄存器切换） | 极快（函数指针跳转） |
+        | **易用性** | 极高，逻辑连续 | 一般，存在异步传染性 |
+
+    ---
+
+    4. C++20 无栈协程的核心逻辑 (伪代码)
+
+        C++20 的协程是典型的无栈实现。编译器会把你的代码转换成类似下面的结构：
+
+        **原始代码：**
+        ```cpp
+        Task my_coroutine() {
+            int x = 10;
+            co_await some_async_job(); // 挂起
+            std::cout << x;
+        }
+        ```
+
+        **编译器生成的伪逻辑：**
+        ```cpp
+        struct my_coroutine_state {
+            int state = 0; // 状态机位置
+            int x;         // 局部变量存入堆
+            // ... 其他上下文
+        };
+
+        void resume(my_coroutine_state* s) {
+            switch(s->state) {
+                case 0:
+                    s->x = 10;
+                    s->state = 1;
+                    // 发起异步并直接退出函数
+                    return; 
+                case 1:
+                    std::cout << s->x;
+                    s->state = 2;
+                    return;
+            }
+        }
+        ```
+
+    ---
+
+    **总结**
+
+    * 如果你追求**极高的并发数**（千万级）且对内存极其敏感，**无栈协程**（如 C++20, Rust）是上限更高的选择。
+    * 如果你追求**开发效率**，希望像写单线程代码一样写并发，**有栈协程**（如 Go）是更好的平衡。
+
+    想看看 C++20 中 `co_await` 和 `promise_type` 这一套复杂的“无栈协程”模板代码是怎么写的吗？（提醒：那可能是 C++ 里最难懂的部分之一）
+
+* 详细讲讲 FIFO 环形 buffer，给出实现代码和使用例子
+
+    **FIFO 环形缓冲区（Circular Buffer / Ring Buffer）** 是一种固定大小的队列，其末尾和开头相连。它在处理流式数据（如串口通信、音频流、网络数据包）时极其高效，因为它避免了频繁的内存分配和数据移动。
+
+    ---
+
+    1. 核心原理
+
+        环形缓冲区使用两个指针（或下标）：
+        * **Write Pointer (head)**：指向下一个数据写入的位置。
+        * **Read Pointer (tail)**：指向下一个数据读取的位置。
+
+        **关键状态判断：**
+        1.  **为空 (Empty)**：`head == tail`。
+        2.  **已满 (Full)**：通常有两种处理方式。最常用的是**留空位法**，即 `(head + 1) % capacity == tail` 时认为已满（此时浪费一个存储单元，用于区分空和满）。
+        3.  **覆盖 (Overwrite)**：如果缓冲区满了仍要写入，可以将 `tail` 向前推一位，覆盖旧数据。
+
+    ---
+
+    2. 实现代码 (C++ 模板类)
+
+        这是一个典型的、非线程安全的环形缓冲区实现。
+
+        ```cpp
+        #include <iostream>
+        #include <vector>
+        #include <optional>
+
+        template <typename T>
+        class RingBuffer {
+        private:
+            std::vector<T> buffer_;
+            size_t head_ = 0; // 写入位置
+            size_t tail_ = 0; // 读取位置
+            size_t capacity_;
+
+        public:
+            // 实际申请 capacity + 1 的空间，用“留空位法”判断满
+            explicit RingBuffer(size_t cap) : capacity_(cap + 1), buffer_(cap + 1) {}
+
+            // 检查是否已满
+            bool is_full() const {
+                return (head_ + 1) % capacity_ == tail_;
+            }
+
+            // 检查是否为空
+            bool is_empty() const {
+                return head_ == tail_;
+            }
+
+            // 写入数据
+            bool push(T value) {
+                if (is_full()) {
+                    return false; // 缓冲区已满
+                }
+                buffer_[head_] = std::move(value);
+                head_ = (head_ + 1) % capacity_;
+                return true;
+            }
+
+            // 读取数据
+            bool pop(T& value) {
+                if (is_empty()) {
+                    return false; // 缓冲区为空
+                }
+                value = std::move(buffer_[tail_]);
+                tail_ = (tail_ + 1) % capacity_;
+                return true;
+            }
+
+            // 查看当前元素数量
+            size_t size() const {
+                if (head_ >= tail_) {
+                    return head_ - tail_;
+                }
+                return capacity_ - (tail_ - head_);
+            }
+        };
+        ```
+
+    ---
+
+    3. 使用例子
+
+        假设我们有一个传感器每秒产生数据，而我们的处理逻辑稍慢，需要通过 Ring Buffer 做缓冲。
+
+        ```cpp
+        int main() {
+            // 创建一个容量为 5 的环形缓冲区
+            RingBuffer<int> rb(5);
+
+            // 1. 模拟写入数据
+            std::cout << "Pushing 1, 2, 3, 4, 5..." << std::endl;
+            for (int i = 1; i <= 5; ++i) {
+                rb.push(i);
+            }
+
+            // 尝试写入第 6 个（会失败，因为容量是 5）
+            if (!rb.push(6)) {
+                std::cout << "Buffer is full, cannot push 6." << std::endl;
+            }
+
+            // 2. 模拟读取部分数据
+            int val;
+            rb.pop(val);
+            std::cout << "Popped: " << val << std::endl; // 应该是 1
+            rb.pop(val);
+            std::cout << "Popped: " << val << std::endl; // 应该是 2
+
+            // 3. 再次写入，验证“环形”特性
+            std::cout << "Pushing 7, 8..." << std::endl;
+            rb.push(7);
+            rb.push(8);
+
+            // 4. 读取所有剩余数据
+            std::cout << "Current size: " << rb.size() << std::endl;
+            while (!rb.is_empty()) {
+                rb.pop(val);
+                std::cout << "Remaining item: " << val << " ";
+            }
+            std::cout << std::endl;
+
+            return 0;
+        }
+        ```
+
+    ---
+
+    4. 进阶：为什么要用它？
+
+        1.  **性能极高**：插入和删除的时间复杂度都是 $O(1)$。且不需要像 `std::deque` 那样复杂的内部映射。
+        2.  **内存友好**：由于内存是预分配的一块连续空间，对 CPU 缓存（Cache）非常友好。
+        3.  **适合硬件交互**：许多硬件驱动（如 UART/DMA）直接在底层使用这种结构。
+
+    **注意事项：**
+
+    * **线程安全**：上面的代码在多线程环境下需要加锁。如果是单生产者、单消费者（SPSC）模型，可以结合 `std::atomic` 将 `head_` 和 `tail_` 改为原子变量，从而实现无锁环形队列。
+    * **容量选择**：通常建议将容量设置为 2 的幂（如 256, 1024），这样取模运算 `% capacity` 可以被优化为位运算 `& (capacity - 1)`，速度更快。
+
+    你想尝试将这个 Buffer 改造成**支持自动覆盖旧数据**的版本（常用在日志系统），还是想看看**无锁版本**的原子操作实现？
+
+
+
 * 1:1 生产者与消费者实现
 
 	```cpp

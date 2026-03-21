@@ -2,6 +2,93 @@
 
 ## cache
 
+* 简述如何使用梯度法求二无函数$f(x, y)$的最值，给出 python 代码
+
+    梯度法（Gradient Descent/Ascent）是一种通过计算函数在当前点的**梯度**（即函数增长最快的方向），沿着梯度的反方向（求最小值）或正方向（求最大值）不断迭代，最终寻找函数极值的优化算法。
+
+    ---
+
+    1. 核心逻辑
+
+        假设我们要寻找函数 $f(x, y)$ 的**最小值**：
+
+        1.  **求梯度**：计算函数在当前点 $(x_k, y_k)$ 的梯度向量 $\nabla f(x_k, y_k) = \left( \frac{\partial f}{\partial x}, \frac{\partial f}{\partial y} \right)$。
+        2.  **设置步长**：选择一个合适的学习率 $\eta$（Learning Rate）。
+        3.  **更新坐标**：沿着梯度相反的方向移动：
+            $$x_{k+1} = x_k - \eta \frac{\partial f}{\partial x}$$
+            $$y_{k+1} = y_k - \eta \frac{\partial f}{\partial y}$$
+        4.  **循环迭代**：重复上述过程，直到梯度接近于 0（即到达极值点）或达到预设的迭代次数。
+
+        > **注意**：如果是求**最大值**，则将减号改为加号（梯度上升法）。
+
+    ---
+
+    2. Python 代码实现
+
+        我们以求二元函数 $f(x, y) = x^2 + y^2 + 10$ 的最小值为例。显然，该函数在 $(0, 0)$ 处取得最小值 $10$。
+
+        ```python
+        import numpy as np
+
+        # 1. 定义目标函数
+        def f(x, y):
+            return x**2 + y**2 + 10
+
+        # 2. 定义梯度（偏导数）
+        def gradient(x, y):
+            df_dx = 2 * x
+            df_dy = 2 * y
+            return np.array([df_dx, df_dy])
+
+        def gradient_descent(init_x, init_y, learning_rate=0.1, epochs=100):
+            curr_pos = np.array([float(init_x), float(init_y)])
+            
+            print(f"开始迭代，初始点: ({curr_pos[0]}, {curr_pos[1]}), 初始值: {f(*curr_pos)}")
+            
+            for i in range(epochs):
+                grad = gradient(curr_pos[0], curr_pos[1])
+                
+                # 更新位置：x = x - eta * grad
+                curr_pos -= learning_rate * grad
+                
+                # 打印部分收敛过程
+                if (i + 1) % 10 == 0:
+                    print(f"迭代 {i+1}: 坐标=({curr_pos[0]:.4f}, {curr_pos[1]:.4f}), 函数值={f(*curr_pos):.4f}")
+                    
+                # 如果梯度已经非常小，提前停止
+                if np.linalg.norm(grad) < 1e-6:
+                    break
+                    
+            return curr_pos
+
+        # 执行优化
+        best_pos = gradient_descent(init_x=5, init_y=8, learning_rate=0.1)
+        print(f"\n最终结果：最小值点在 {best_pos}，最小值为 {f(*best_pos)}")
+        ```
+
+    ---
+
+    3. 梯度法的局限性（避坑指南）
+
+        虽然梯度法逻辑简单，但在实际应用中有几个痛点：
+
+        * **学习率（$\eta$）敏感**：
+            * 太小：收敛极慢。
+            * 太大：会在极值点附近来回震荡，甚至发散。
+        * **局部最优解**：如果函数有多个“坑”（局部极小值），梯度法可能会掉进其中一个坑里，而找不到全局最低点。
+        * **鞍点问题**：在某些点梯度为 0 但并不是极值点，梯度法可能会在那里“卡死”。
+
+    ---
+
+    4. 推荐进阶工具
+
+        在工业界（尤其是机器学习领域），我们通常不会手写偏导数，而是使用具有**自动求导**能力的框架：
+
+        1.  **PyTorch / TensorFlow**：只需要定义函数，框架会自动帮你计算梯度，非常适合复杂的多元函数。
+        2.  **Scipy.optimize**：提供了 `minimize` 函数，集成了比基础梯度法更高级的算法（如 BFGS），收敛速度更快且更稳定。
+
+    你想看看如何用 **PyTorch** 这种现代框架来实现上述逻辑吗？它可以让你免去手动求导的麻烦。
+
 * mne-nirs 是否有 3d 重建功能？
 
     **简短回答：不，mne-nirs 本身并没有内置的、成熟的 3D 体素重建功能（如 DOT）。**

@@ -14,6 +14,54 @@
 
     * `DECLARE_WORK(workqueue,workqueue_fn);`
 
+* 必读经典书籍
+
+    **基础与进阶：C++ 并发编程**
+    
+    * **《C++ Concurrency in Action》 (C++ 并发编程实战) - Anthony Williams**
+        * **地位**：并发领域的“圣经”。
+        * **核心内容**：详细讲解了 `std::atomic`、内存模型（Memory Model）、CAS 操作，以及**如何从零实现一个无锁队列**。
+    * **《A Programmer's Guide to C++20 Coroutines》 - James McNellis**
+        * **核心内容**：目前讲解 C++20 **无栈协程**最透彻的资源之一。它会告诉你 `co_await` 背后复杂的编译器行为。
+
+    **底层与系统：Linux 内核**
+
+    * **《Linux Kernel Development》 (Linux 内核设计与实现) - Robert Love**
+        * **核心内容**：非常适合初学者。其中有一章专门讲**内存管理**，详细描述了 `vm_area_struct` (VMA) 和进程地址空间。
+    * **《Understanding the Linux Kernel》 (深入理解 Linux 内核)**
+        * **核心内容**：更厚、更深。如果你想彻底搞懂内核是如何通过红黑树管理 VMA 的，看这本书。
+
+* 协程 (Coroutines) 相关的资料
+
+    * **CppReference (Coroutines)**: 官方文档虽然晦涩，但是最权威的定义。
+
+    * **Raymond Chen 的博客 (The Old New Thing)**: 微软资深工程师，写了一系列关于 C++20 协程的浅显易懂的文章（搜索 "C++ Coroutines"）。
+
+* 无锁编程 (Lock-free) 相关的资料
+
+    * **Preshing on Programming (博客)**: Jeff Preshing 的博客是学习**内存屏障 (Memory Barriers)** 和 **原子操作** 的金标准。他的文章《An Introduction to Lock-Free Programming》是必读篇目。
+
+    * **CppCon (YouTube 频道)**: 搜索 "Lock-free" 或 "Atomics"。特别是 **Herb Sutter** 的演讲，他能把复杂的内存模型讲得非常生动。
+
+* 开源项目实战
+
+    | 领域 | 推荐开源项目 | 学习重点 |
+    | :--- | :--- | :--- |
+    | **无锁队列** | [**concurrentqueue**](https://github.com/cameron314/concurrentqueue) | 极其高效的 MPMC 无锁队列实现，代码质量极高。 |
+    | **无锁/有锁** | [**Boost.Lockfree**](https://www.boost.org/doc/libs/release/doc/html/lockfree.html) | 学习如何处理 ABA 问题和内存管理。 |
+    | **有栈协程** | [**libaco**](https://github.com/hnes/libaco) | 一个极简、极快的 C 语言有栈协程库（仅数百行），非常适合钻研汇编切换逻辑。 |
+    | **无栈协程** | [**cppcoro**](https://github.com/lewissbaker/cppcoro) | C++20 协程的基础设施库，展示了如何封装异步操作。 |
+    | **Ring Buffer** | [**Linux Kernel kfifo**](https://github.com/torvalds/linux/blob/master/include/linux/kfifo.h) | 学习 Linux 内核如何用位运算优化取模，以及如何处理并发。 |
+
+* 学习建议路径
+
+    1.  **第一阶段**：阅读《C++ 并发编程实战》，亲手实现一个基于 `mutex` 的环形 Buffer。
+    2.  **第二阶段**：研究 **CAS (Compare-and-Swap)**，尝试将 Buffer 改为单生产者单消费者的无锁版本。
+    3.  **第三阶段**：阅读《Linux 内核设计与实现》关于内存管理的部分，理解虚拟内存是如何通过 VMA 映射到物理内存的。
+    4.  **第四阶段**：查阅 C++20 协程资料，尝试用 `co_yield` 写一个简单的生成器。
+
+* Linux 的 kfifo
+
 * `virsh nodedev-dettach pci_0000_b1_00_0` e3
 
 * pytorch

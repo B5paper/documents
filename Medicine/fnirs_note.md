@@ -2,6 +2,18 @@
 
 ## cache
 
+* NIRS-Toolbox 是个基于 matlab 的工具箱
+
+    相关网站：
+
+    * <https://help.nirx.de/hc/en-us/articles/17400352078108-NIRS-Toolbox>
+
+    * <https://github.com/huppertt/nirs-toolbox>
+
+    * <https://www.artinis.com/blogpost-all/2021/fnirs-analysis-toolbox-series-brain-analyzir>
+
+    * <https://nirx.net/fnirs-analysis>
+
 * 我现在想加载 lumo 的数据后，使用 mne-nirs 进行预处理，然后使用 toast++ 进行 3D 重建，给我一份 example 代码，加上可视化功能 
 
     这是一个非常有挑战性且完整的 DOT（扩散光学断层扫描）流程。要实现从 Lumo 原始数据到 3D 重建的转换，我们需要将 Lumo 的几何结构映射到 MNI 空间，利用 `mne-nirs` 处理时间序列信号，最后调用 `toast++` 进行空间域的反演。

@@ -2,6 +2,87 @@
 
 ## cache
 
+* 简述 matplotlib 中 ax.text() 的原型、作用及用法
+
+    在 `matplotlib` 中，`ax.text()` 是一个非常灵活的工具，用于在绘图区域（Axes）的任意位置添加**文本注释**。相比于标题或坐标轴标签，它更适合标注特定的数据点或说明。
+
+    ---
+
+    1. 函数原型
+
+        ```python
+        ax.text(x, y, s, fontdict=None, **kwargs)
+        ```
+
+        * **`x, y`**: 文本放置的坐标位置。默认情况下，使用的是数据坐标系（Data Coordinates）。
+        * **`s`**: 要显示的字符串内容。
+        * **`fontdict`**: 一个字典，用于定义字体属性（如大小、权重等）。
+        * **`**kwargs`**: 关键字参数，用于控制文本的外观（颜色、对齐方式、边界框等）。
+
+    ---
+
+    2. 核心作用
+
+        * **数据标注**：在特定的波峰、波谷或异常值旁边写上数值。
+        * **图表补充**：在图中空白处添加统计信息（如 $R^2$ 值、均值等）。
+        * **自定义标签**：当标准的 `legend` 或 `label` 无法满足复杂的排版需求时使用。
+
+    ---
+
+    3. 常用参数（kwargs）
+
+        | 参数 | 说明 | 常见取值 |
+        | :--- | :--- | :--- |
+        | **`color`** | 文本颜色 | `'red'`, `'#00FF00'`, `0.5` |
+        | **`fontsize`** | 字体大小 | `12`, `'large'`, `'small'` |
+        | **`fontweight`**| 字体粗细 | `'bold'`, `'normal'`, `500` |
+        | **`ha`** | 水平对齐 (Horizontal Alignment) | `'center'`, `'left'`, `'right'` |
+        | **`va`** | 垂直对齐 (Vertical Alignment) | `'center'`, `'top'`, `'bottom'`, `'baseline'` |
+        | **`alpha`** | 透明度 | `0.0` 到 `1.0` |
+        | **`bbox`** | 文本框样式（给文字加底色框） | 字典格式，如 `dict(facecolor='red', alpha=0.5)` |
+        | **`transform`** | 坐标变换（决定 x,y 是相对数据还是相对画布） | `ax.transAxes` (相对轴), `ax.transData` (默认) |
+
+    ---
+
+    4. 代码用法示例
+
+        ```python
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+
+        # 1. 基础用法：在 (2, 5) 位置添加文字
+        ax.text(2, 5, "Hello World", fontsize=12)
+
+        # 2. 进阶用法：设置对齐、颜色和带背景的文本框
+        ax.text(8, 8, "Important Node", 
+                color='white', 
+                ha='center', 
+                va='center',
+                fontweight='bold',
+                bbox=dict(facecolor='orange', edgecolor='black', boxstyle='round,pad=0.5'))
+
+        # 3. 相对坐标用法：使用 transform 参数
+        # (0.05, 0.95) 代表在轴的左上角，不受坐标轴刻度范围变化的影响
+        ax.text(0.05, 0.95, "Global Annotation", 
+                transform=ax.transAxes, 
+                verticalalignment='top')
+
+        plt.show()
+        ```
+
+    ---
+
+    5. 实用小技巧
+
+        * **支持 LaTeX**：如果你需要显示数学公式，可以直接使用 `r"$\alpha + \beta = \gamma$"`。
+        * **批量标注**：在处理散点图时，经常配合 `for` 循环使用 `ax.text()` 遍历列表来为每个点打标签。
+        * **文本避让**：如果文字太多重叠了，建议搜索并使用第三方库 `adjust_text`，它可以自动计算位置防止文本相互覆盖。
+
+    **需要我演示如何结合循环和 `ax.text()` 自动给折线图的所有波峰打上标签吗？**
+
 * 我现在有 mesh 数据（float 类型的 node 数据，unit 类型的 face 数据），如何使用 matplotlib 画出 wireframe
 
     要将mesh数据（节点和面）绘制成wireframe，你可以使用matplotlib的`plot_trisurf`或`Poly3DCollection`。以下是几种方法：
