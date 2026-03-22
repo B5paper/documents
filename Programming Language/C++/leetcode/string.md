@@ -1,5 +1,863 @@
 ## 字符串
 
+### 同构字符串
+
+给定两个字符串 s 和 t ，判断它们是否是同构的。
+
+如果 s 中的字符可以按某种映射关系替换得到 t ，那么这两个字符串是同构的。
+
+每个出现的字符都应当映射到另一个字符，同时不改变字符的顺序。不同字符不能映射到同一个字符上，相同字符只能映射到同一个字符上，字符可以映射到自己本身。
+
+ 
+
+示例 1：
+
+输入：s = "egg", t = "add"
+
+输出：true
+
+解释：
+
+字符串 s 和 t 可以通过以下方式变得相同：
+
+    将 'e' 映射为 'a'。
+    将 'g' 映射为 'd'。
+
+示例 2：
+
+输入：s = "f11", t = "b23"
+
+输出：false
+
+解释：
+
+字符串 s 和 t 无法变得相同，因为 '1' 需要同时映射到 '2' 和 '3'。
+
+示例 3：
+
+输入：s = "paper", t = "title"
+
+输出：true
+
+ 
+
+提示：
+
+    1 <= s.length <= 5 * 104
+    t.length == s.length
+    s 和 t 由任意有效的 ASCII 字符组成
+
+题解：
+
+1. 自己写的
+
+    ```cpp
+    class Solution {
+    public:
+        bool isIsomorphic(string s, string t) {
+            int ch_map[256];
+            memset(ch_map, -1, 256 * sizeof(int));
+            for (int i = 0; i < s.size(); ++i) {
+                if (ch_map[s[i]] == -1) {
+                    for (int j = 0; j < 256; ++j) {
+                        if (ch_map[j] == t[i])
+                            return false;
+                    }
+                    ch_map[s[i]] = t[i];
+                    continue;
+                }
+                if (ch_map[s[i]] != t[i]) {
+                    return false;
+                }            
+            }
+            return true;
+        }
+    };
+    ```
+
+    char 是 -128 ~ 127 还是 0 ~ 255？
+
+2. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        bool isIsomorphic(string s, string t) {
+            unordered_map<char, char> s2t;
+            unordered_map<char, char> t2s;
+            int len = s.length();
+            for (int i = 0; i < len; ++i) {
+                char x = s[i], y = t[i];
+                if ((s2t.count(x) && s2t[x] != y) || (t2s.count(y) && t2s[y] != x)) {
+                    return false;
+                }
+                s2t[x] = y;
+                t2s[y] = x;
+            }
+            return true;
+        }
+    };
+    ```
+
+3. 网友答案，两次调用比较
+
+    ```cpp
+    bool check(string s, string t)
+    {
+    	char charMap[128] = {};
+    	for (int i = 0; i < s.size(); i++)
+    	{
+    		if (charMap[s[i]] != 0 && charMap[s[i]] != t[i])
+    			return false;
+
+    		charMap[s[i]] = t[i];
+    	}
+    	return true;
+    }
+
+    bool isIsomorphic(string s, string t)
+    {
+    	if (s.size() < 2)
+            return true;
+    	return check(s, t) && check(t, s);
+    }
+    ```
+
+* AI 分析：
+
+    * 分析一下我的代码问题在哪
+
+        ```cpp
+        class Solution {
+        public:
+            bool isIsomorphic(string s, string t) {
+                int ch_map[256] = {-1};
+                for (int i = 0; i < s.size(); ++i) {
+                    if (ch_map[s[i]] == -1) {
+                        ch_map[s[i]] = t[i];
+                        continue;
+                    }
+                    if (ch_map[s[i]] != t[i])
+                        return false;
+                }
+                return true;
+            }
+        };
+        ```
+
+        你的代码思路很清晰，使用了哈希映射的思想来记录字符之间的对应关系。不过，目前的实现漏掉了一个关键的约束条件，导致它在处理某些案例时会“翻车”。
+
+        **核心问题所在**
+
+        你的代码只实现了 **“单向映射”**（$s \to t$），而题目要求的是 **“双射”**（即 $s$ 和 $t$ 必须一一对应）。
+
+        根据题意：“不同字符不能映射到同一个字符上”。
+
+        **举个例子：**
+        * 输入：`s = "badc"`, `t = "baba"`
+        * 你的代码逻辑：
+            1.  `s[0]('b')` 映射到 `t[0]('b')`。
+            2.  `s[1]('a')` 映射到 `t[1]('a')`。
+            3.  `s[2]('d')` 映射到 `t[2]('b')`。注意！这里 `t` 中的 `'b'` 已经被 `s` 中的 `'b'` 占用了，但你的代码发现 `s[2]` 还没映射过，于是直接建立了 `d -> b` 的映射。
+        * **结果：** 你的代码会返回 `true`，但实际应该是 `false`，因为 `t` 里的 `'b'` 同时对应了 `s` 里的 `'b'` 和 `'d'`。
+
+        ---
+
+        **其他小细节**
+
+        1.  **数组初始化问题：**
+            `int ch_map[256] = {-1};` 在 C++ 中并不会把所有元素都初始化为 `-1`。它只会把第一个元素设为 `-1`，其余的都会自动初始化为 `0`。
+            * **修正建议：** 使用 `memset(ch_map, -1, sizeof(ch_map));` 或者在定义时使用显式循环，亦或是初始化为 `0` 并用 `0` 作为未赋值标志。
+
+        ---
+
+        **解决方案：双向绑定**
+
+        要解决这个问题，最简单的办法是记录**两份映射**：一份是 $s \to t$，另一份是 $t \to s$。
+
+        ```cpp
+        class Solution {
+        public:
+            bool isIsomorphic(string s, string t) {
+                // 使用两个数组记录双向映射关系
+                int s2t[256] = {0};
+                int t2s[256] = {0};
+                
+                for (int i = 0; i < s.size(); ++i) {
+                    unsigned char sc = s[i];
+                    unsigned char tc = t[i];
+                    
+                    // 如果已经存在映射，检查是否冲突
+                    if ((s2t[sc] != 0 && s2t[sc] != tc) || 
+                        (t2s[tc] != 0 && t2s[tc] != sc)) {
+                        return false;
+                    }
+                    
+                    // 建立双向映射
+                    s2t[sc] = tc;
+                    t2s[tc] = sc;
+                }
+                
+                return true;
+            }
+        };
+        ```
+
+        ---
+
+        **另一种巧妙解法：记录最后出现位置**
+
+        如果不想要两个数组，还有一个“脑筋急转弯”式的解法：记录每个字符**上一次出现的位置**。如果两个字符串同构，那么它们对应位置的字符上一次出现的位置必须是一样的。
+
+        * 对于 `egg` 和 `add`：
+            * 'e' 和 'a' 都是第一次出现。
+            * 'g' 和 'd' 第一次出现都在索引 1。
+            * 第二个 'g' 和第二个 'd' 之前出现的位置都在索引 1。
+            * **匹配！**
+
+        你想让我帮你用这种“记录索引法”重写一遍代码，看看它如何节省空间吗？
+
+### Excel 表列序号
+
+给你一个字符串 columnTitle ，表示 Excel 表格中的列名称。返回 该列名称对应的列序号 。
+
+例如：
+
+A -> 1
+B -> 2
+C -> 3
+...
+Z -> 26
+AA -> 27
+AB -> 28 
+...
+
+ 
+
+示例 1:
+
+输入: columnTitle = "A"
+输出: 1
+
+示例 2:
+
+输入: columnTitle = "AB"
+输出: 28
+
+示例 3:
+
+输入: columnTitle = "ZY"
+输出: 701
+
+ 
+
+提示：
+
+    1 <= columnTitle.length <= 7
+    columnTitle 仅由大写英文组成
+    columnTitle 在范围 ["A", "FXSHRXW"] 内
+
+题解：
+
+1. 自己写的
+
+    ```cpp
+    class Solution {
+    public:
+        int titleToNumber(string columnTitle) {
+            int ans = 0;
+            for (int i = 0; i < columnTitle.size(); ++i) {
+                ans *= 26;
+                ans += columnTitle[i] - 'A' + 1;
+            }
+            return ans;
+        }
+    };
+    ```
+
+2. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        int titleToNumber(string columnTitle) {
+            int number = 0;
+            long multiple = 1;
+            for (int i = columnTitle.size() - 1; i >= 0; i--) {
+                int k = columnTitle[i] - 'A' + 1;
+                number += k * multiple;
+                multiple *= 26;
+            }
+            return number;
+        }
+    };
+    ```
+
+### Excel 表列名称
+
+给你一个整数 columnNumber ，返回它在 Excel 表中相对应的列名称。
+
+例如：
+
+A -> 1
+B -> 2
+C -> 3
+...
+Z -> 26
+AA -> 27
+AB -> 28 
+...
+
+ 
+
+示例 1：
+
+输入：columnNumber = 1
+输出："A"
+
+示例 2：
+
+输入：columnNumber = 28
+输出："AB"
+
+示例 3：
+
+输入：columnNumber = 701
+输出："ZY"
+
+示例 4：
+
+输入：columnNumber = 2147483647
+输出："FXSHRXW"
+
+ 
+
+提示：
+
+    1 <= columnNumber <= 231 - 1
+
+
+题解：
+
+1. 自己写的
+
+    ```cpp
+    class Solution {
+    public:
+        string convertToTitle(int columnNumber) {
+            string ans;
+            while (columnNumber) {
+                ans.push_back((columnNumber - 1) % 26 + 'A');
+                columnNumber = (columnNumber - 1) / 26;
+            }
+            reverse(ans.begin(), ans.end());
+            return ans;
+        }
+    };
+    ```
+
+    不清楚自己是怎么想出来`(columnNumber - 1)`这个表达的
+
+1. 网友解法
+
+    ```cpp
+    class Solution {
+    public:
+        string convertToTitle(int columnNumber) {
+            string ans;
+            while(columnNumber) {
+                --columnNumber;
+                int re = columnNumber % 26;
+                ans.push_back('A' + re);
+                columnNumber /= 26;
+            }
+            reverse(ans.begin(), ans.end());
+            return ans;
+        }
+    };
+    ```
+
+### 验证回文串
+
+如果在将所有大写字符转换为小写字符、并移除所有非字母数字字符之后，短语正着读和反着读都一样。则可以认为该短语是一个 回文串 。
+
+字母和数字都属于字母数字字符。
+
+给你一个字符串 s，如果它是 回文串 ，返回 true ；否则，返回 false 。
+
+ 
+
+示例 1：
+
+输入: s = "A man, a plan, a canal: Panama"
+输出：true
+解释："amanaplanacanalpanama" 是回文串。
+
+示例 2：
+
+输入：s = "race a car"
+输出：false
+解释："raceacar" 不是回文串。
+
+示例 3：
+
+输入：s = " "
+输出：true
+解释：在移除非字母数字字符之后，s 是一个空字符串 "" 。
+由于空字符串正着反着读都一样，所以是回文串。
+
+ 
+
+提示：
+
+    1 <= s.length <= 2 * 105
+    s 仅由可打印的 ASCII 字符组成
+
+题解：
+
+1. 自己写的
+
+    ```cpp
+    class Solution {
+    public:
+        bool char_in_range(char ch) {
+            return 'a' <= ch && ch <= 'z' ||
+                '0' <= ch && ch <= '9' ||
+                'A' <= ch && ch <= 'Z';
+        }
+
+        char to_lower(char ch) {
+            return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
+        }
+
+        bool isPalindrome(string s) {
+            int p1 = 0, p2 = s.size() - 1;
+            while (p1 < p2) {
+                while (p1 < s.size() && p1 < p2 && !char_in_range(s[p1])) {
+                    ++p1;
+                }
+                if (p1 >= s.size())
+                    return false;
+                while (p2 >= 0 && p1 < p2 && !char_in_range(s[p2])) {
+                    --p2;
+                }
+                if (p2 < 0)
+                    return false;
+                if (to_lower(s[p1]) != to_lower(s[p2])) {
+                    return false;
+                }
+                ++p1;
+                --p2;
+            }
+            return true;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 把两个指针放到两端，往中间走，如果遇到不等的，那么说明不是回文串
+
+        也可以先把两个指针放到中间的位置，往两边走
+
+        外循环使用`while (p1 <= p2)`，相遇后就算判断结束了
+
+    2. 有很多无关的字符，我们需要过滤，用 `while (not_valid(s[p1])) ++p1;`
+
+        `s[p1]`需要保证指针有效，我们使用`while (p1 < s.size())`
+
+    3. 编译通过后报错，分别修改了
+
+        * `while (p1 <= p2)` -> `while (p1 < p2)`
+
+        * `while (p1 < s.size() && ...` -> `while (p1 < s.size() && p1 < p2 && ...`
+
+        之后就跑通了。
+
+        虽然能隐约感觉到要加这两个条件，但是并无法用线性思考得到
+
+    ai 分析：
+
+    * 分析下有什么问题
+
+        你的代码思路非常正确，使用了**双指针法**，这在解决回文串问题上是最优的（空间复杂度 $O(1)$）。但是，你的代码中隐藏了一个 **C++ 初学者极其容易掉进去的“逻辑陷阱”**，以及一些边界处理的细节问题。
+
+        让我们一一拆解：
+
+        ---
+
+        1. 致命伤：连等判断的陷阱
+            
+            在 C++ 中，`'a' <= ch <= 'z'` **不会**像数学里那样运行。
+
+            * **错误逻辑**：`'a' <= ch <= 'z'` 会先计算 `'a' <= ch`，得到一个布尔值 `true` (1) 或 `false` (0)。
+            * **后续计算**：然后变成 `1 <= 'z'` 或 `0 <= 'z'`。由于 `'z'` 的 ASCII 码远大于 1，这个表达式**永远返回 `true`**。
+            * **修正**：必须使用逻辑与 `&&` 连接。
+                ```cpp
+                return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9');
+                ```
+
+        2. `to_lower` 的数字漏洞
+
+            你的 `to_lower` 函数目前只处理了 `A-Z` 到 `a-z` 的转换。
+
+            虽然你的代码在比较时看起来没问题，但如果你传入的是数字（比如 `'1'`），你的逻辑表达式 `'A' <= ch <= 'Z'` 依然会因为上面的连等问题导致逻辑混乱。修正连等后，逻辑就正常了。
+
+        3. 边界处理逻辑
+            
+            在 `isPalindrome` 函数中：
+            * **过早返回 `false`**：如果字符串里全是空格或非字母（如 `"???"`），`p1` 会加到 `s.size()`。此时你应该返回 `true`（因为空字符串是回文），而你的代码返回了 `false`。
+            * **循环重叠**：内部的 `while` 可能会让 `p1` 跑到 `p2` 后面去，虽然不一定会崩，但逻辑上不够严密。
+
+        ---
+
+        4. 优化后的 C++ 代码（更地道的写法）
+
+            在 C++ 中，`<cctype>` 头文件已经为你准备好了 `isalnum`（判断字母数字）和 `tolower`（转小写），直接用它们性能更好且不易出错。
+
+            ```cpp
+            #include <iostream>
+            #include <string>
+            #include <cctype>
+
+            class Solution {
+            public:
+                bool isPalindrome(std::string s) {
+                    int left = 0, right = s.size() - 1;
+                    
+                    while (left < right) {
+                        // 1. 跳过左侧非字母数字
+                        while (left < right && !std::isalnum(s[left])) {
+                            left++;
+                        }
+                        // 2. 跳过右侧非字母数字
+                        while (left < right && !std::isalnum(s[right])) {
+                            right--;
+                        }
+                        
+                        // 3. 统一转小写后比较
+                        if (std::tolower(s[left]) != std::tolower(s[right])) {
+                            return false;
+                        }
+                        
+                        left++;
+                        right--;
+                    }
+                    return true;
+                }
+            };
+            ```
+
+        5. 为什么这么改？
+
+            1.  **`std::isalnum`**：代替了你写的 `char_in_range`。它不仅能处理基本字符，在某些本地化环境下也更鲁棒。
+            2.  **`left < right` 条件提升**：在内部 `while` 循环中也加入 `left < right`，这样当指针相遇时会自动停止，不需要再额外判断 `p1 >= s.size()`。
+            3.  **简洁性**：代码行数减少了一半，且逻辑漏洞（如全空格字符串）被完美覆盖。
+
+        ---
+
+        **避坑小结**
+
+        * **C++ 连等判断**：记住 `a <= b <= c` 是**万恶之源**，永远用 `(a <= b && b <= c)`。
+        * **标准库真香**：处理字符时，先看看 `<cctype>` 里的 `isalpha`, `isdigit`, `isalnum`, `isspace`。
+
+        **说起双指针，你有没有遇到过那种“快慢指针”的问题（比如判断链表是否有环）？那种技巧在处理线性结构时同样非常惊艳。**
+
+2. 官方解法一，先删掉无效字符，再翻转字符串，与原字符串比较
+
+    ```cpp
+    class Solution {
+    public:
+        bool isPalindrome(string s) {
+            string sgood;
+            for (char ch: s) {
+                if (isalnum(ch)) {
+                    sgood += tolower(ch);
+                }
+            }
+            string sgood_rev(sgood.rbegin(), sgood.rend());
+            return sgood == sgood_rev;
+        }
+    };
+    ```
+
+3. 官方解法二，先遍历一遍字符串，删掉无效字符，再双指针
+
+    ```cpp
+    class Solution {
+    public:
+        bool isPalindrome(string s) {
+            string sgood;
+            for (char ch: s) {
+                if (isalnum(ch)) {
+                    sgood += tolower(ch);
+                }
+            }
+            int n = sgood.size();
+            int left = 0, right = n - 1;
+            while (left < right) {
+               if (sgood[left] != sgood[right]) {
+                    return false;
+                }
+                ++left;
+                --right;
+            }
+            return true;
+        }
+    };
+    ```
+
+4. 官方解法三，双指针
+
+    ```cpp
+    class Solution {
+    public:
+        bool isPalindrome(string s) {
+            int n = s.size();
+            int left = 0, right = n - 1;
+            while (left < right) {
+                while (left < right && !isalnum(s[left])) {
+                    ++left;
+                }
+                while (left < right && !isalnum(s[right])) {
+                    --right;
+                }
+                if (left < right) {
+                    if (tolower(s[left]) != tolower(s[right])) {
+                        return false;
+                    }
+                    ++left;
+                    --right;
+                }
+            }
+            return true;
+        }
+    };
+    ```
+
+5. 使用栈
+
+6. 网友的单层循环，双指针
+
+    ```cpp
+    public boolean isPalindrome(String s) {
+        int len = s.length();
+        boolean ans = true;
+        if (len == 0)
+            return ans;
+        int left = 0, right = len - 1;
+        while (left < right) {
+            if (!isValid(s.charAt(left))) {
+                left++;
+                continue;
+            }
+            if (!isValid(s.charAt(right))) {
+                right--;
+                continue;
+            }
+            if (isEqual(s.charAt(left), s.charAt(right))) {
+                left++;
+                right--;
+            } else {
+                ans = false;
+                break;
+            }
+        }
+        return ans;
+    }
+
+    public boolean isValid(char c) {
+        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9');
+    }
+
+    public boolean isEqual(char c1, char c2) {
+        return (c1 == c2) || ('a' <= c1 && c1 <= 'z' && c1 - c2 == 32) || ('A' <= c1 && c1 <= 'Z' && c1 - c2 == -32);
+    }
+    ```
+
+7. 网友的解法，滚动哈希
+
+    ```cpp
+    class Solution {
+    public:
+        bool isPalindrome(string s) {
+            int base = 11,mod = 1000000007;
+            long left = 0, right = 0, mul = 1;
+            int i = 0,len = s.length();
+            while(i<len){
+                int val;
+                if(s[i] - 'a' < 26 && s[i]-'a'>-1)  val = s[i] - 'a';
+                else if(s[i] - 'A' < 26 && s[i]-'A'>-1)     val = s[i] - 'A';
+                else if(s[i] - '0' < 10 && s[i]-'0'>-1)     val = s[i] - '0'+26;
+                else {
+                    i++; 
+                    continue;
+                }
+                left = ((base * left + val) % mod);
+                right = ((right + mul * val) % mod);
+                mul = (mul * base % mod);
+                i++;
+            }
+            return left == right;
+        }
+    };
+    ```
+
+    * ai 分析
+
+        这段代码非常惊艳！它没有使用双指针去“物理比对”字符串的前后字符，而是运用了**滚动哈希（Rolling Hash）**的思路，通过数学手段在**一次遍历**中完成验证。
+
+        简单来说，它的思路是：**将字符串看作一个巨大的数字，验证“正着读的数值”和“反着读的数值”是否相等。**
+
+        ---
+
+        1. 核心逻辑拆解
+
+            这段代码在维护两个动态更新的哈希值：
+
+            **`left` (正向哈希)**
+
+            每次遇到新字符 `val`，它把之前的数值“左移”一位（乘以 `base`），然后加上新字符。
+            * 公式：$left = (left \times base + val) \pmod{mod}$
+            * 类比：就像构建数字 $123$，先有 $1$，然后 $1 \times 10 + 2 = 12$，最后 $12 \times 10 + 3 = 123$。
+
+            **`right` (反向哈希)**
+
+            它把新字符 `val` 放在最高位，之前的数值保持在低位不动。
+            * 公式：$right = (right + val \times mul) \pmod{mod}$，其中 $mul$ 是 $base$ 的幂次。
+            * 类比：构建数字 $123$，先有 $1$，然后 $2 \times 10 + 1 = 21$，最后 $3 \times 100 + 21 = 321$。
+
+            **结论**：如果字符串是回文（如 `"aba"`），那么正向算的数字和反向算的数字在数学上必然相等。
+
+        ---
+
+        2. 代码中的具体实现点
+
+            1.  **字符映射 (`val`)**：
+                代码将 `a-z` 映射为 `0-25`，将 `0-9` 映射为 `26-35`。它手动实现了过滤非字母数字的功能（那个复杂的 `if-else if` 链）。
+            2.  **一次遍历**：
+                普通的双指针需要从两头向中间靠拢。而这个算法从左到右扫一遍，就把“正向”和“反向”的信息全部收集齐了。
+            3.  **大数处理**：
+                使用 `mod = 10^9 + 7` 来防止数值溢出，并降低不同字符串算出相同哈希值（哈希碰撞）的概率。
+
+        ---
+
+        3. 这个算法的优缺点
+
+            **优点**
+
+            * **流式处理**：如果字符串很大，甚至大到无法一次性读入内存，这个算法依然可以运行。你只需要一个字符一个字符地喂给它。
+            * **极其简洁的逻辑**：不需要考虑指针越界、相遇等复杂的边界条件。
+
+            **缺点（潜在风险）**
+
+            * **哈希碰撞**：这是哈希算法的宿命。理论上存在两个非回文字符串，它们的哈希值在取模后恰好相等。虽然 `10^9 + 7` 概率很低，但在极其严格的测试用例下可能会挂掉。
+            * **计算开销**：涉及大量的乘法和取模运算。在某些硬件上，这可能比简单的字符比较（双指针）要慢。
+
+        ---
+
+        4. 深度洞察：代码中的一个小瑕疵
+
+            这段代码中有一个逻辑细节值得讨论：
+            `int base = 11;` 
+
+            通常在做字符串哈希时，`base` 应该**大于**字符集的大小。你的代码中 `val` 的范围是 `0-35`（26个字母 + 10个数字），但 `base` 只设为 `11`。
+            * 这意味着不同的组合可能会产生相同的哈希结果（比如 `val=1` 和 `val=12` 可能产生干扰）。
+            * **建议**：将 `base` 设为 `37` 或更高，安全性会大大提升。
+
+        **总结**
+
+        你写的这段代码本质上是在用 **数学指纹** 验证回文。这是一种非常高级的思维转换——**把“空间对称性问题”转化为了“数值相等性问题”**。
+
+        **既然你已经掌握了哈希验证的思想，你想尝试用这个思路去解决那个经典的“最长回文子串”问题吗？（那就是著名的 Manacher 算法或者哈希+二分的领域了）。**
+
+### 最后一个单词的长度
+
+给你一个字符串 s，由若干单词组成，单词前后用一些空格字符隔开。返回字符串中 最后一个 单词的长度。
+
+单词 是指仅由字母组成、不包含任何空格字符的最大。
+
+ 
+
+示例 1：
+
+输入：s = "Hello World"
+输出：5
+解释：最后一个单词是“World”，长度为 5。
+
+示例 2：
+
+输入：s = "   fly me   to   the moon  "
+输出：4
+解释：最后一个单词是“moon”，长度为 4。
+
+示例 3：
+
+输入：s = "luffy is still joyboy"
+输出：6
+解释：最后一个单词是长度为 6 的“joyboy”。
+
+ 
+
+提示：
+
+    1 <= s.length <= 104
+    s 仅有英文字母和空格 ' ' 组成
+    s 中至少存在一个单词
+
+题解：
+
+1. 自己写的，两次循环找条件，第一次找到非空字符，第二次找空格
+
+    ```cpp
+    class Solution {
+    public:
+        int lengthOfLastWord(string s) {
+            int pos = s.size() - 1;
+            while (pos >= 0) {
+                if (s[pos] != ' ')
+                    break;
+                --pos;
+            }
+            int ans = 0;
+            while (pos >= 0) {
+                if (s[pos] == ' ')
+                    break;
+                --pos;
+                ++ans;
+            }
+            return ans;
+        }
+    };
+    ```
+
+1. 网友解法，一次循环
+
+    ```java
+    public int lengthOfLastWord(String s) {
+		char space = ' ';
+		//题目要求是最后一个单词，s的尾部可能包含空格，所以必须以最后一个非空格的单词开始
+		boolean flag = false;
+		int index = 0;
+		for (int i = s.length() - 1; i >= 0; i--) {
+			char str = s.charAt(i);
+			//如果遇到非尾部的空格，直接break
+			if (flag && str == space) {
+				break;
+			}
+			//如果当前字符串不是空格
+			if (str != space) {
+				//找到第一个非空格的词了
+				flag = true;
+				index++;
+			}
+		}
+		return index;
+	}
+    ```
+
+    一次循环的话，需要记录什么时候开始计数答案，所以一定需要一个额外的 flag。如果是两次循环，那么相当于用代码逻辑代替这个 flag 了。
+
 ### 有效的括号
 
 给定一个只包括 '('，')'，'{'，'}'，'['，']' 的字符串 s ，判断字符串是否有效。
@@ -1778,7 +2636,138 @@ public:
     };
     ```
 
-这里用数组计数还是比较快的，但是如果用是 unicode 字符的话，就只能用哈希表了。
+    这里用数组计数还是比较快的，但是如果用是 unicode 字符的话，就只能用哈希表了。
+
+2. 后来又写的（2026.03.22）
+
+    ```cpp
+    class Solution {
+    public:
+        bool isAnagram(string s, string t) {
+            if (s.size() != t.size())
+                return false;
+
+            int cnt[26] = {0};
+            for (int i = 0; i < s.size(); ++i) {
+                cnt[s[i] - 'a']++;
+                cnt[t[i] - 'a']--;
+            }
+            
+            for (int i = 0; i < 26; ++i) {
+                if (cnt[i] != 0)
+                    return false;
+            }
+
+            return true;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 使用数组计数，对于字符串 1，增加计数，对于字符串 2，减少计数。后面只需要判断 cnt 数组是否全为 0 就可以了
+
+    2. 因为在同一个循环中统计两个字符串，所以要求两个字符串的长度必须相等。
+
+        正好发现，如果不相等的话，那必不是异位词，所以在函数开头直接排除这种情况。
+
+3. 官方答案，排序
+
+    ```cpp
+    class Solution {
+    public:
+        bool isAnagram(string s, string t) {
+            if (s.length() != t.length()) {
+                return false;
+            }
+            sort(s.begin(), s.end());
+            sort(t.begin(), t.end());
+            return s == t;
+        }
+    };
+    ```
+
+4. 官方答案，哈希表
+
+    ```cpp
+    class Solution {
+    public:
+        bool isAnagram(string s, string t) {
+            if (s.length() != t.length()) {
+                return false;
+            }
+            vector<int> table(26, 0);
+            for (auto& ch: s) {
+                table[ch - 'a']++;
+            }
+            for (auto& ch: t) {
+                table[ch - 'a']--;
+                if (table[ch - 'a'] < 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+    ```
+
+    如果用哈希表来存 unicode，如何存，使用 wchar_t 吗？
+
+5. 网友的一遍循环版本
+
+    ```cpp
+    /**
+     * hash
+     * @param s
+     * @param t
+     * @return
+     */
+    public boolean isAnagram(String s, String t) {
+        if (s.length() != t.length()){
+            return false;
+        }
+        int[] arr = new int[123];
+        char[] charsS = s.toCharArray();
+        char[] charsT = t.toCharArray();
+        int count = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (++arr[charsS[i]] <= 0){
+                count++;
+            }
+            if (--arr[charsT[i]] >= 0){
+                count++;
+            }
+        }
+        return count == s.length();
+    }
+
+    /**
+     * hash(适用unicode)
+     * @param s
+     * @param t
+     * @return
+     */
+    public boolean isAnagram2(String s, String t) {
+        if (s.codePointCount(0, s.length()) != t.codePointCount(0, t.length())){
+            return false;
+        }
+        HashMap<Integer, Integer> hashMap = new HashMap<>();
+        int[] arrS = s.codePoints().toArray();
+        int[] arrT = t.codePoints().toArray();
+        int count = 0, temp;
+        for (int i = 0; i < arrS.length; i++) {
+            if ((temp = hashMap.getOrDefault(arrS[i], 0) + 1) <= 0){
+                count++;
+            }
+            hashMap.put(arrS[i], temp);
+            if ((temp = hashMap.getOrDefault(arrT[i], 0) - 1) >= 0){
+                count++;
+            }
+            hashMap.put(arrT[i], temp);
+        }
+        return count == s.codePointCount(0, s.length());
+    }
+    ```
 
 ### 有效的变位词
 
@@ -3610,6 +4599,87 @@ a 和 b 仅由字符 '0' 或 '1' 组成
     标准库的 swap() 是否能完成交换两个字符串对象的 header，从而使得 a 的长度总是小于等于 b？如果可以的话，这种方式也行。
 
     如果不是二进制，而是 p 进制，那么就无法使用二进制的 bit 加法器思路了。而 carry 要么是 0，要么是 1，永远都是二进制。
+
+1. 自己又写的（2026.03.22）
+
+    ```cpp
+    class Solution {
+    public:
+        string addBinary(string a, string b) {
+            int p1 = a.size() - 1;
+            int p2 = b.size() - 1;
+            int n1, n2;
+            int s, carry = 0;
+            string ans;
+            while (p1 >= 0 || p2 >= 0) {
+                n1 = p1 >= 0 ? a[p1] - '0' : 0;
+                n2 = p2 >= 0 ? b[p2] - '0' : 0;
+                s = (n1 + n2 + carry) % 2;
+                carry = (n1 + n2 + carry) / 2;
+                ans.push_back(s + '0');
+                --p1;
+                --p2;
+            }
+            if (carry) {
+                ans.push_back('1');
+            }
+            reverse(ans.begin(), ans.end());
+            return ans;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 计算肯定是从低位往高位加，所以先把指针移到最右边，每计算一位，就 push back 一下，后面再把 ans 翻转一下就可以了
+
+    2. 由于不知道 a, b 哪个更长，所以指针面临失效问题，我们用三目运算符，对短字符串补 0 就可以了。只要 p2 和 p2 有一个还大于等于 0，就能继续计算下去。我们不让 p1 和 p2 固定在 -1，会加很多判断的代码，太麻烦，我们让 p1 和 p2 越来越负，无所谓。
+
+    3. 计算过程是个标准的全加器，但是这里用 int n1, n2 是否太奢侈，如果用位运算的话更好一点。最后还要判断一次 carry，不能忘。
+
+    4. 最后翻转一下 ans 就可以了。我们从低位到高位计算，但是字符串顺序是高位到低位，这中间必须涉及到翻转。
+
+    非线性思考：
+
+    * 在做链表的加法器时，也会遇到类似的问题：两个数长度不一致；输入与输出是高位到低位，而中间计算过程是低位到高位。处理方式有下面几种
+
+        * 先翻转输入数据（或者将指针置于最后，倒序遍历），计算完后，将答案再翻转回来
+
+        * 提前比一下两个的长度，使用指针法拿到 sh(ort) 和 lo(ng) 指针，当 sh 失效后，直接处理 lo 就可以
+
+        * 不提前比长度，当两个指针只要有一个失效，马上退出循环，变成单指针模式，使用 if (p1) 和 if (p2) 处理两种失效情况。这种方法重复代码有点多
+
+        * 不提前比长度，只要有一个指针还有效，那么就继续计算，失效的指针直接用三目运算符转换为 0
+
+        * 提前比较长度，把短的输入数据前面补 0，变成和长的一样长。
+
+        * 不补 0，在循环中使用两个 if, if (p1), if (p2) 判断哪个指针需要参与计算
+
+            ```cpp
+            while (p1 || p2) {
+                sum = carry;
+                if (p1) {
+                    sum += p1->val;
+                }
+                if (p2) {
+                    sum += p2->val;
+                }
+                digit = sum % p;
+                carry = sum / p;
+                p1 = p1->next;
+                p2 = p2->next;
+            }
+            ```
+
+    * bitset
+
+    * p-进制全加器的三个关键概念：
+
+        * 和 sum = a + b + carry
+
+        * 当前位 digit = sum % p
+
+        * 进位 carry = sum / p, 或者 bool carry = sum >= p
 
 ### 找出出现至少三次的最长特殊子字符串 II
 

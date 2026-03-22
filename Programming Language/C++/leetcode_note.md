@@ -13038,6 +13038,253 @@ nums 严格 递增
     };
     ```
 
+### 二叉树的所有路径
+
+给你一个二叉树的根节点 root ，按 任意顺序 ，返回所有从根节点到叶子节点的路径。
+
+叶子节点 是指没有子节点的节点。
+ 
+
+示例 1：
+
+输入：root = [1,2,3,null,5]
+输出：["1->2->5","1->3"]
+
+示例 2：
+
+输入：root = [1]
+输出：["1"]
+
+ 
+
+提示：
+
+    树中节点的数目在范围 [1, 100] 内
+    -100 <= Node.val <= 100
+
+题解：
+
+1. 自己写的
+
+    ```cpp
+    /**
+     * Definition for a binary tree node.
+     * struct TreeNode {
+     *     int val;
+     *     TreeNode *left;
+     *     TreeNode *right;
+     *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+     *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+     *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+     * };
+     */
+    class Solution {
+    public:
+        vector<string> ans;
+        string tmp;
+        void dfs(TreeNode *root) {
+            if (!root)
+                return;
+
+            tmp.append(to_string(root->val));
+            tmp.append("->");
+
+            if (!root->left && !root->right) {
+                tmp.erase(tmp.size() - 2, 2);
+                ans.push_back(tmp);
+                int pos = tmp.rfind('>');
+                tmp.erase(pos+1);
+                return;
+            }
+
+            dfs(root->left);
+            dfs(root->right);
+
+            tmp.erase(tmp.size() - 2, 2);
+            int pos = tmp.rfind('>');
+            tmp.erase(pos+1);
+        }
+        vector<string> binaryTreePaths(TreeNode* root) {
+            dfs(root);
+            return ans;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 前序遍历递归搜索，但需要记录路径，说明是回溯法
+
+    2. 先处理当前节点，再处理左节点，再处理右节点。如果当前节点是叶子节点，那么记录路径
+
+    3. 在函数返回时，记得擦除路径，进行回溯
+
+        其实上面的代码可以简化成这样：
+
+        ```cpp
+        /**
+         * Definition for a binary tree node.
+         * struct TreeNode {
+         *     int val;
+         *     TreeNode *left;
+         *     TreeNode *right;
+         *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+         *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+         *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+         * };
+         */
+        class Solution {
+        public:
+            vector<string> ans;
+            string tmp;
+            void dfs(TreeNode *root) {
+                if (!root)
+                    return;
+
+                tmp.append(to_string(root->val));
+                tmp.append("->");
+
+                if (!root->left && !root->right) {
+                    ans.push_back(tmp.substr(0, tmp.size() - 2));
+                }
+
+                dfs(root->left);
+                dfs(root->right);
+
+                tmp.erase(tmp.size() - 2, 2);
+                int pos = tmp.rfind('>');
+                tmp.erase(pos+1);
+            }
+            vector<string> binaryTreePaths(TreeNode* root) {
+                dfs(root);
+                return ans;
+            }
+        };
+        ```
+
+        这样改下来，整个函数只需要在 return 时擦除一次 tmp 的最后一个节点，`tmp.substr()`每次会生成新字符串对象，会略微降低效率，如果改成 stringview 则完美。
+
+    4. 由于是先序遍历，所以当前节点自己去处理空节点的情况，在函数开头直接 return 就可以。
+
+1. 网友解法，dfs 按值传递参数
+
+    ```java
+    List<String> res = new ArrayList<>();
+    public List<String> binaryTreePaths(TreeNode root) {
+      backTrace("", root);
+      return res;
+    }
+
+    private void backTrace(String path, TreeNode root) {
+      if (root == null) {
+         return;
+      }
+      path += String.valueOf(root.val);
+      if (root.left == null && root.right == null) {
+         res.add(path);
+         return;
+      }
+      path += "->";
+      backTrace(path, root.left);
+      backTrace(path, root.right);
+    }
+    ```
+
+1. 网友解法，dfs，存长度从而快速删除
+
+    ```java
+    class Solution {
+        List<String> res = new ArrayList<>();
+        StringBuilder path = new StringBuilder();
+
+        public List<String> binaryTreePaths(TreeNode root) {
+            dfs(root);
+            return res;
+        }
+
+        private void dfs(TreeNode root) {
+            if (root == null) return;
+
+            int t = path.length();
+            path.append(root.val);
+            
+            if (root.left == null && root.right == null)
+                res.add(path.toString());
+            
+            path.append("->");
+            dfs(root.left);
+            dfs(root.right);
+            path.delete(t, path.length());
+        }
+    }
+    ```
+
+1. 官方解答，dfs
+
+    ```cpp
+    class Solution {
+    public:
+        void construct_paths(TreeNode* root, string path, vector<string>& paths) {
+            if (root != nullptr) {
+                path += to_string(root->val);
+                if (root->left == nullptr && root->right == nullptr) {  // 当前节点是叶子节点
+                    paths.push_back(path);                              // 把路径加入到答案中
+                } else {
+                    path += "->";  // 当前节点不是叶子节点，继续递归遍历
+                    construct_paths(root->left, path, paths);
+                    construct_paths(root->right, path, paths);
+                }
+            }
+        }
+
+        vector<string> binaryTreePaths(TreeNode* root) {
+            vector<string> paths;
+            construct_paths(root, "", paths);
+            return paths;
+        }
+    };
+    ```
+
+1. 官方解答，bfs
+
+    ```cpp
+    class Solution {
+    public:
+        vector<string> binaryTreePaths(TreeNode* root) {
+            vector<string> paths;
+            if (root == nullptr) {
+                return paths;
+            }
+            queue<TreeNode*> node_queue;
+            queue<string> path_queue;
+
+            node_queue.push(root);
+            path_queue.push(to_string(root->val));
+
+            while (!node_queue.empty()) {
+                TreeNode* node = node_queue.front(); 
+                string path = path_queue.front();
+                node_queue.pop();
+                path_queue.pop();
+
+                if (node->left == nullptr && node->right == nullptr) {
+                    paths.push_back(path);
+                } else {
+                    if (node->left != nullptr) {
+                        node_queue.push(node->left);
+                        path_queue.push(path + "->" + to_string(node->left->val));
+                    }
+
+                    if (node->right != nullptr) {
+                        node_queue.push(node->right);
+                        path_queue.push(path + "->" + to_string(node->right->val));
+                    }
+                }
+            }
+            return paths;
+        }
+    };
+    ```
 
 ### 重建二叉树（从前序与中序遍历序列构造二叉树）
 

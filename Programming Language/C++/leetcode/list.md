@@ -1,5 +1,274 @@
 ## 链表
 
+### 图书整理 I
+
+书店店员有一张链表形式的书单，每个节点代表一本书，节点中的值表示书的编号。为更方便整理书架，店员需要将书单倒过来排列，就可以从最后一本书开始整理，逐一将书放回到书架上。请倒序返回这个书单链表。
+
+ 
+
+示例 1：
+
+输入：head = [3,6,4,1]
+
+输出：[1,4,6,3]
+
+ 
+
+提示：
+
+0 <= 链表长度 <= 10000
+
+题解：
+
+这道题跟反转链表不同的地方是，这道题需要输出 vector，而不是链表，相当于把一个顺序容器变成了随机容器，我们可操作的空间大了些。
+
+1. vector + reverse
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        vector<int> reverseBookList(ListNode* head) {
+            vector<int> ans;
+            ListNode *p = head;
+            while (p) {
+                ans.push_back(p->val);
+                p = p->next;
+            }
+            reverse(ans.begin(), ans.end());
+            return ans;
+        }
+    };
+    ```
+
+    reverse 如果不想用库函数，可以自己写双指针。
+
+2. 栈
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        vector<int> reverseBookList(ListNode* head) {
+            stack<int> stk;
+            vector<int> ans;
+            ListNode *p = head;
+            while (p) {
+                stk.push(p->val);
+                p = p->next;
+            }
+            while (!stk.empty()) {
+                ans.push_back(stk.top());
+                stk.pop();
+            }
+            return ans;
+        }
+    };
+    ```
+
+3. 递归
+
+### 删除链表的节点
+
+给定单向链表的头指针和一个要删除的节点的值，定义一个函数删除该节点。
+
+返回删除后的链表的头节点。
+
+示例 1：
+
+输入：head = [4,5,1,9], val = 5
+输出：[4,1,9]
+解释：给定你链表中值为 5 的第二个节点，那么在调用了你的函数之后，该链表应变为 4 -> 1 -> 9.
+
+示例 2：
+
+输入：head = [4,5,1,9], val = 1
+输出：[4,5,9]
+解释：给定你链表中值为 1 的第三个节点，那么在调用了你的函数之后，该链表应变为 4 -> 5 -> 9.
+
+ 
+
+说明：
+
+    题目保证链表中节点的值互不相同
+    若使用 C 或 C++ 语言，你不需要 free 或 delete 被删除的节点
+
+题解：
+
+1. 自己写的
+
+    ```cpp
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     ListNode *next;
+     *     ListNode() : val(0), next(nullptr) {}
+     *     ListNode(int x) : val(x), next(nullptr) {}
+     *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+     * };
+     */
+    class Solution {
+    public:
+        ListNode* deleteNode(ListNode* head, int val) {
+            ListNode *dummy_head = new ListNode;
+            dummy_head->next = head;
+            ListNode *p = dummy_head;
+            while (p->next) {
+                if (p->next->val == val) {
+                    p->next = p->next->next;
+                    break;
+                }
+                p = p->next;
+            }
+            return dummy_head->next;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 普通的一遍遍历就可以。头节点也可能被删除，所以加个 dummy head，方便处理头节点。
+
+    2. 循环中取的是`p->next->val`，所以 while 条件要判断`p->next`是否有效，而不是判断`while (p)`是否有效
+
+    3. 事实上，p 不可能走到最后一个节点，因为如果 p 走到了倒数第 2 个节点，那么最后一个节点一定是待删除的节点，此时循环必定 break。因此`while (p)`其实也是对的。总体来看，这个思考可有可无。
+
+2. 网友的递归版本
+
+    ```cpp
+    class Solution {
+        public ListNode deleteNode(ListNode head, int val) {
+            if (head == null) {
+                return null;
+            }
+            if (head.val == val) {
+                return head.next;
+            } else {
+                head.next = deleteNode(head.next, val);
+            }
+            return head;
+        }
+    }
+    ```
+
+    * 为什么链表相关的题目经常出现递归的身影？ 
+
+        这是一个非常棒的观察！在处理链表、树、图这类**具有嵌套性质**的数据结构时，递归（Recursion）确实是常客。
+
+        既然你熟悉 C/C++，我们先用 C 语言改写一下那个递归逻辑，然后深入分析为什么递归在链表题目中如此好用。
+
+        1. C/C++ 递归版本实现
+
+            在 C 中，我们可以这样写：
+
+            ```cpp
+            struct ListNode {
+                int val;
+                ListNode *next;
+                ListNode(int x) : val(x), next(NULL) {}
+            };
+
+            class Solution {
+            public:
+                ListNode* deleteNode(ListNode* head, int val) {
+                    // 1. 基准情况：走到尽头了，什么都不做
+                    if (head == NULL) return NULL;
+
+                    // 2. 匹配情况：找到了要删的点，返回它的下一个，相当于把它“跳过”了
+                    if (head->val == val) return head->next;
+
+                    // 3. 递归步骤：当前节点不是要找的，那么我的 next 应该指向“在后面节点中删除 val 后的结果”
+                    head->next = deleteNode(head->next, val);
+                    
+                    return head;
+                }
+            };
+            ```
+
+        ---
+
+        2. 为什么链表题目经常出现递归？
+
+            主要原因有以下三点：
+
+            **A. 链表本身就是“递归定义”的**
+
+            在计算机科学中，链表的定义通常是：
+
+            > 一个链表要么是 **空 (NULL)**，要么是一个 **包含数据的节点** 加上 **指向另一个链表的指针**。
+
+            这种“套娃”式的定义和递归的本质完全吻合。递归函数处理链表时，其实是把大问题转化成了一个规模更小的子问题：**“先处理头节点，剩下的链表交给函数自己去搞定。”**
+
+            **B. 递归自动处理了“指针重连”的逻辑**
+
+            在迭代（循环）法中，删除节点通常需要一个 `prev` 指针来记录前驱节点。而递归利用了**函数调用栈**，在“回溯”阶段自然而然地完成了连接。
+
+            *   **入栈阶段**：顺着 `next` 一直往后找，直到找到目标值。
+            *   **出栈阶段**：函数返回。上一层的 `head->next` 会接收到下一层返回的新地址。
+            *   这种“接收返回地址”的操作，省去了我们手动维护 `prev` 指针的麻烦。
+
+            **C. 状态的天然保存**
+
+            链表操作中（尤其是倒序打印、反转链表），我们需要记住“来时的路”。
+            *   **迭代**：需要显式地使用一个栈（Stack）来存储节点。
+            *   **递归**：系统的调用栈（System Stack）自动帮你存好了。
+
+        ---
+
+        3. 递归 vs 迭代 (C/C++ 视角)
+
+            虽然递归代码简洁优雅，但作为 C/C++ 开发者，我们需要对性能有更敏锐的直觉：
+
+            | 特性 | 递归版本 | 迭代版本 (While 循环) |
+            | :--- | :--- | :--- |
+            | **代码量** | 极简，逻辑清晰 | 略多，需维护 `prev` 或哨兵节点 |
+            | **空间复杂度** | **$O(N)$** (消耗调用栈空间) | **$O(1)$** (只需常数级指针) |
+            | **时间复杂度** | $O(N)$ | $O(N)$ |
+            | **风险** | 链表极长时可能导致 **栈溢出 (Stack Overflow)** | 稳定，工业界更倾向于迭代 |
+
+        4. 你的下一个进阶：哨兵位 (Dummy Node)
+
+            如果你觉得递归的空间开销太大，又觉得迭代法处理“头节点可能被删除”的情况很麻烦，C++ 中最常用的技巧是 **Dummy Node**。
+
+        **你想看下如何用 C++ 的“哨兵位”技巧，写出既不耗额外空间、又不用特殊判断头节点的迭代代码吗？**
+
+3. 官方答案，不使用 dummy head，使用 pre 指针来记录上一个
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* deleteNode(ListNode* head, int val) {
+            if(head->val == val) return head->next;
+            ListNode *pre = head, *cur = head->next;
+            while(cur != nullptr && cur->val != val) {
+                pre = cur;
+                cur = cur->next;
+            }
+            if(cur != nullptr) pre->next = cur->next;
+            return head;
+        }
+    };
+    ```
+
 ### 判断子序列
 
 给定字符串 s 和 t ，判断 s 是否为 t 的子序列。
