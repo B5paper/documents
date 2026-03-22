@@ -4155,7 +4155,119 @@ public:
 输出：[2,3]
 ```
 
-代码：
+题解：
+
+1. ai 分析
+
+    * 分析一下我这份代码问题在哪里：
+
+        ```cpp
+        /**
+        * Definition for singly-linked list.
+        * struct ListNode {
+        * int val;
+        * ListNode *next;
+        * ListNode() : val(0), next(nullptr) {}
+        * ListNode(int x) : val(x), next(nullptr) {}
+        * ListNode(int x, ListNode *next) : val(x), next(next) {}
+        * };
+        */
+
+        class Solution {
+        public:
+        ListNode* deleteDuplicates(ListNode* head) {
+        ListNode dummy_head(-1, head);
+        ListNode *p;
+        ListNode *cur = &dummy_head;
+        while (cur->next) {
+        p = cur;
+        if (p->next && p->next->next && p->next->val == p->next->next->val) {
+        while (p->next && p->next->next && p->next->val == p->next->next->val) {
+        p = p->next;
+        }
+        cur->next = p->next->next;
+        cur = cur->next;
+        continue;
+        }
+        cur = cur->next;
+        }
+        return dummy_head.next;
+        }
+        }; 
+        ```
+
+        这份代码逻辑中存在三个关键的“断层”，导致它在处理连续重复（如 `1,1,1`）或末尾重复（如 `1,2,2`）时会失控。
+
+        1. 核心逻辑错误：跳过了“救命”的节点
+            
+            在你的 `while` 循环内部：
+            ```cpp
+            while (p->next && p->next->next && p->next->val == p->next->next->val) {
+                p = p->next;
+            }
+            cur->next = p->next->next; // 这一行跳得太远了
+            ```
+            * **问题所在**：当 `p` 停在最后一个重复元素时（比如 `1, 1, [1]`），`p->next` 应该是 `nullptr` 或者下一个不同的元素。你执行 `cur->next = p->next->next`，直接**跳过了下一个可能是不重复的元素**。
+            * **正确做法**：你应该让 `cur->next` 指向 `p->next->next` 的前提是 `p->next` 本身就是我们要删除的最后一个重复项。通常我们直接让 `cur->next = p->next`（如果 `p` 已经移到了重复区间的末尾）。
+
+        2. `cur = cur->next` 挪动太急
+
+            ```cpp
+            cur->next = p->next->next;
+            cur = cur->next; // 错误！
+            ```
+            * **问题所在**：当你删除了一组重复元素后，新接上来的 `cur->next` **依然可能是重复的**（例如 `[1, 1, 2, 2]`）。如果你直接移动 `cur` 指针，你就失去了检查新接上来的元素是否重复的机会。
+            * **准则**：**只有确定当前 `cur->next` 是唯一的，才能移动 `cur`。**
+
+        3. 指针 `p` 的定位模糊
+
+            你在循环开头做了 `p = cur`，但在判断重复时使用的是 `p->next`。这导致你的 `p` 实际上只是 `cur` 的一个别名，并没有起到“探测哨兵”的作用。
+
+        ---
+
+        **修正后的逻辑思路**
+
+        删除重复节点 II 的秘诀在于：**始终站在“确定不重复”的节点上，观察它后面的两个节点是否相等。**
+
+        ```cpp
+        class Solution {
+        public:
+            ListNode* deleteDuplicates(ListNode* head) {
+                if (!head) return nullptr;
+                
+                ListNode dummy(0, head);
+                ListNode* cur = &dummy;
+
+                while (cur->next && cur->next->next) {
+                    // 如果发现接下来的两个节点值相同
+                    if (cur->next->val == cur->next->next->val) {
+                        int x = cur->next->val;
+                        // 把所有值等于 x 的节点全部“跨越”过去
+                        while (cur->next && cur->next->val == x) {
+                            cur->next = cur->next->next;
+                        }
+                        // 注意：这里【不要】移动 cur，因为新接上来的 cur->next 可能又是重复的
+                    } else {
+                        // 只有确定 cur->next 和后面的不重复，才放心移动 cur
+                        cur = cur->next;
+                    }
+                }
+                return dummy.next;
+            }
+        };
+        ```
+
+        **为什么这个改进版能行？**
+
+        1.  **记录重复值 `x`**：一旦发现 `1 == 1`，我们就记住 `1` 这个晦气的值。不管后面有几个 `1`，只要 `cur->next->val == x`，我们就执行 `cur->next = cur->next->next`（相当于删除）。
+        2.  **不急着踏步**：在 `if` 分支里（删除发生后），我们没有 `cur = cur->next`。这意味着下一轮循环依然会检查这个位置。
+        3.  **示例演示 `[1, 1, 1, 2, 3]`**：
+            * `cur` 在 dummy。发现 `1 == 1`。记录 `x = 1`。
+            * 连续删除三个 `1`。此时 `cur->next` 指向了 `2`。
+            * 下一轮循环，发现 `2 != 3`（或者 `3` 为空），进入 `else`。
+            * `cur` 终于移动到 `2`。
+
+        **你想让我针对 `[1, 2, 2]` 这个例子，对比一下你的原代码和修正后的代码在内存里的具体跳跃过程吗？**
 
 1. 逻辑挺复杂的，细节很多，不容易想出来。
 
@@ -4232,6 +4344,86 @@ public:
             return dummy_head->next;
         }
     };
+    ```
+
+1. 官方答案
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode* deleteDuplicates(ListNode* head) {
+            if (!head) {
+                return head;
+            }
+            
+            ListNode* dummy = new ListNode(0, head);
+
+            ListNode* cur = dummy;
+            while (cur->next && cur->next->next) {
+                if (cur->next->val == cur->next->next->val) {
+                    int x = cur->next->val;
+                    while (cur->next && cur->next->val == x) {
+                        cur->next = cur->next->next;
+                    }
+                }
+                else {
+                    cur = cur->next;
+                }
+            }
+
+            return dummy->next;
+        }
+    };
+    ```
+
+1. 网友解法，递归
+
+    ```cpp
+    class Solution:
+        def deleteDuplicates(self, head, val=None) -> ListNode:
+            if not head: return head
+            # 情况一（第一行）：我和之前重复了
+            # 情况二（第二行）：我和之后重复了
+            if (val is not None and head.val==val) or \
+            (head.next and head.val==head.next.val):
+                return self.deleteDuplicates(head.next, head.val)
+            head.next = self.deleteDuplicates(head.next, head.val)
+            return head
+    ```
+
+1. 网友的解法，快慢双指针
+
+    ```cpp
+    //快慢双指针：
+    public ListNode deleteDuplicates(ListNode head) {
+        //由于可能删除头结点，为了统一操作，建立虚拟头结点
+        ListNode virHead = new ListNode(10000);
+        virHead.next = head;
+
+        ListNode slow = virHead;//符合题意的，不同数字，不曾重复的序列右边界
+        ListNode fast = virHead;//依次遍历数组
+        while (fast != null && fast.next != null) {
+            if (slow.val != fast.val) {//找到不重复项
+                //跳过后续所有的重复元素
+                while (fast != null && fast.next != null && fast.val == fast.next.val) {
+                    while (fast.next != null && fast.val == fast.next.val) {
+                        fast = fast.next;
+                    }
+                    fast = fast.next;
+                }
+                
+                //把重复元素的后一个元素接上。
+                slow.next = fast;
+                slow = slow.next;
+            }
+
+            //fast不为空，就接着遍历
+            if (fast != null) {
+                fast = fast.next;
+            }
+        }
+        return virHead.next;
+    }
     ```
 
 ### 回文链表
@@ -5904,11 +6096,158 @@ lists[i].length 的总和不超过 10^4
 
     其实和我的思路差不多。如果用我的方法，需要判断边界条件；官方的答案不需要处理特殊情况。
 
-1. 快慢指针
+1. 网友解法，快慢指针
 
     让一个指针比另一个指针快`k`步，这样当快指针到链表尾时，慢指针就会在要断开的位置。
 
     这种方法也挺好的，比较优雅。
+
+    ```cpp
+    public static ListNode rotateRight(ListNode head, int k) {
+        if (head == null || head.next == null || k == 0) return head;
+        ListNode cur = head;
+        // 统计链表长度：
+        int len = 0;
+        while (cur != null) {
+            len++;
+            cur = cur.next;
+        }
+        // 对k化简：
+        k %= len;
+        if (k == 0) return head;
+        // 快指针 fast 先走k步：
+        ListNode fast = head;
+        while (k > 0) {
+            fast = fast.next;
+            k--;
+        }
+        // 快慢指针再一起同步前进，直至fast走到尾节点停：
+        ListNode slow = head;
+        while (fast.next != null) {
+            fast = fast.next;
+            slow = slow.next;
+        }
+        // 此时的慢指针slow的下一个节点就是旋转后的新头，原尾节点fast串连到老头head上：
+        ListNode newHead = slow.next;
+        slow.next = null;
+        fast.next = head;
+
+        return newHead;
+    }
+    ```
+
+1. 自己写的，2026.03.22
+
+    ```cpp
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     ListNode *next;
+    *     ListNode() : val(0), next(nullptr) {}
+    *     ListNode(int x) : val(x), next(nullptr) {}
+    *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+    * };
+    */
+    class Solution {
+    public:
+        ListNode* rotateRight(ListNode* head, int k) {
+            if (!head)
+                return nullptr;
+            int len = 0;
+            ListNode dummy_head;
+            dummy_head.next = head;
+            ListNode *p = head;
+            while (p) {
+                p = p->next;
+                ++len;
+            }
+            int n = len - k % len;
+            p = &dummy_head;
+            while (n--) {
+                p = p->next;
+            }
+            dummy_head.next= p->next;
+            p->next = nullptr;
+            p = &dummy_head;
+            while (p->next) {
+                p = p->next;
+            }
+            p->next = head;
+            return dummy_head.next;
+        }
+    };
+    ```
+
+    线性思考：
+
+    1. 把倒数 k 个节点扣到前面来，由于是单链表，只能先遍历一遍拿到长度 n
+
+    2. 让指针从头开始走 n - k 步，然后停下。如果从第 1 个节点开始走，假如现在一共 5 个节点，需要旋转 2 个节点，那么走 3 步后，p 会停在第 4 个节点上。然而我们需要将第 3 个节点的末尾置 nullptr，所以必须少走一步
+
+        又考虑到第 1 个节点也有可能被旋转，所以直接引入 dummy head，也不需要少走一步了。p 直接从 dummy head 开始走就可以
+
+    3. 将 p->next 作为新的 head 节点，我们再从 head 节点出发，向后走到 null 时，接上原来的 head，即大功告成
+
+1. 网友解法
+
+    1. 全反转
+
+    2. 前 k 反转
+    
+    3. 后 n-k 反转
+
+1. 网友解法，用数组保存指针
+
+    ```cpp
+    class Solution {
+    public:
+        ListNode *rotateRight(ListNode *head, int k) {
+            vector<ListNode *> seq;
+            for (auto p = head; p; p = p->next) {
+                seq.push_back(p);
+            }
+            const int n = seq.size();
+            if (n && k % n) {
+                k %= n;
+                seq[n - 1]->next = head;
+                seq[n - k - 1]->next = nullptr;
+                head = seq[n - k];            
+            }
+            return head;
+        }
+    };
+    ```
+
+1. 网友解法，不使用 dummy head，使用 pre 保存上一个指针
+
+    ```cpp
+    public ListNode rotateRight(ListNode head, int k) {
+        if (k == 0 || head == null || head.next == null) {
+            return head;
+        }
+        ListNode tail = head;
+        // tail向前走k%n步
+        for (int i = 0; i < k; i++) {
+            if (tail.next == null) {
+                tail = head;
+            } else {
+                tail = tail.next;
+            }
+        }
+        // pre和tail同步向前走，直达tail走到表尾
+        ListNode pre = head;
+        while (tail.next != null) {
+            tail = tail.next;
+            pre = pre.next;
+        }
+        // 截断、拼接pre后面的节点至表前
+        tail.next = head;
+        head = pre.next;
+        pre.next = null;
+        return head;
+    }
+    ```
 
 ### 两数相加
 
