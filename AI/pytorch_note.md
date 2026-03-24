@@ -2,6 +2,70 @@
 
 ## cache
 
+* torch.cuda 中都有哪些常用函数？
+
+    在 PyTorch 的 GPU 编程中，`torch.cuda` 模块提供了管理显存、查询设备状态及优化计算的核心工具。
+
+    以下是开发中最常用的函数分类整理：
+
+    1. 设备查询与基础检查
+        
+        这些函数通常用于编写“设备无关”的代码，确保程序在有或没有 GPU 的环境下都能运行。
+        * **`torch.cuda.is_available()`**: 返回 `True` 如果当前系统支持 CUDA。
+        * **`torch.cuda.device_count()`**: 返回可用 GPU 的数量。
+        * **`torch.cuda.current_device()`**: 返回当前正在使用的 GPU 索引。
+        * **`torch.cuda.get_device_name(device=None)`**: 获取指定设备的型号名称（如 "NVIDIA GeForce RTX 4090"）。
+        * **`torch.cuda.get_device_properties(device)`**: 返回包含显存总量、计算能力（major, minor）等详细信息的属性对象。
+
+    ---
+
+    2. 显存管理（调优必备）
+        
+        PyTorch 使用缓存分配器（Caching Allocator）来加速内存管理，这些函数能帮你监控和回收显存。
+        * **`torch.cuda.empty_cache()`**: 释放 PyTorch 缓存分配器中闲置的显存。如果你在循环中频繁遇到 **OOM (Out of Memory)**，手动调用它可能有帮助（虽然会略微降低速度）。
+        * **`torch.cuda.memory_allocated(device=None)`**: 查看当前已分配给 Tensor 的显存大小（单位：字节）。
+        * **`torch.cuda.memory_reserved(device=None)`**: 查看缓存分配器目前占用的总显存。
+        * **`torch.cuda.max_memory_allocated(device=None)`**: 查看自程序启动以来显存占用的**峰值**。
+
+    ---
+
+    3. 设备状态控制
+        
+        * **`torch.cuda.set_device(device)`**: 设置当前默认使用的 GPU。
+            > **提示**：官方更推荐使用环境变量 `CUDA_VISIBLE_DEVICES` 或在创建 Tensor 时指定 `device` 参数，而不是频繁调用 `set_device`。
+        * **`torch.cuda.synchronize(device=None)`**: 等待当前设备上所有流中的任务完成。因为 GPU 操作是异步的，做性能测试（计时）时必须先调用此函数。
+        * **`torch.cuda.device(device_idx)`**: 上下文管理器，用于临时切换当前设备。
+            ```python
+            with torch.cuda.device(1):
+                # 这里的操作都会默认在 GPU 1 上执行
+                x = torch.tensor([1., 2.]).cuda()
+            ```
+
+    ---
+
+    4. 流与事件（进阶优化）
+        
+        用于实现多个核函数（Kernel）的并行执行或精细的同步控制。
+        * **`torch.cuda.Stream()`**: 创建一个新的 CUDA 流，用于实现计算与数据传输的重叠（Overlap）。
+        * **`torch.cuda.current_stream()`**: 获取当前的流。
+        * **`torch.cuda.Event(enable_timing=True)`**: 创建一个事件，常用于精确测量 GPU 算子的执行时间。
+
+    ---
+
+    5. 随机数种子（复现性）
+        
+        * **`torch.cuda.manual_seed(seed)`**: 为当前 GPU 设置随机种子。
+        * **`torch.cuda.manual_seed_all(seed)`**: 为所有可用的 GPU 设置随机种子。
+
+    **总结建议**
+
+    如果你是刚入门，最需要掌握的是 `is_available()`、`device_count()` 以及如何监控 `memory_allocated()`。当你的模型开始变得庞大且复杂时，`empty_cache()` 和 `synchronize()` 会成为你调试性能和显存压力的重要工具。
+
+    **您是遇到了具体的 OOM 报错，还是想针对多显卡环境进行优化呢？**我可以为您提供针对性的代码示例。
+
+
+
+
 * PyTorch Tensor `.float()` 的作用
 
     基本作用

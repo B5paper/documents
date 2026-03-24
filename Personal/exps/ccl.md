@@ -1,22 +1,16 @@
 ## tasks
 
-* [v] 拉取 kmd, umd (sirt / rt) 源码
-
-* [v] 分析 sipuDeviceEnablePeerAccess 的底层实现
-
-* [v] siMemImportFromShareableHandle, sipuIpcOpenMemHandle
-
-* [v] siMemAddressReserve, siMemMap, siMemSetAccess 
-
-* [v] 找 driver 中 p2p 通信的 case
-
 * [v] claude 分析 launch kernel 可能在哪里崩溃
 
 * [v] launch kernel 前打印详细信息，比如 src addr, dst addr 等
 
-* [ ] 调研目前的 ipa 与 handle 的机制
+* [v] 调研目前的 ipa 与 handle 的机制
 
-* [ ] 写一个跨机指定 chip id 的 memcpy / kernel 的 case，看是否能跑通
+* [v] 写一个跨机指定 chip id 的 memcpy / kernel 的 case，看是否能跑通
+
+* [ ] 跑通 codex
+
+* [ ] 修好 topo bug, 尝试改 device kernel bug，跑通 p2p
 
 * [ ] ai 思考 p2p active 时 rank = 1 是否有更优雅的解决方案
 
@@ -27,6 +21,16 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* sendbuff, recvbuff 调用链
+
+    首次来源顺序是：
+
+    用户 API (ncclAllReduce/ncclReduce 等) 传入的 sendbuff/recvbuff（应用层进来）
+    ncclEnqueueCheck() 里经 infoCopy->ncclTaskColl t (t->sendbuff/t->recvbuff)
+    ncclLaunchPrepare() -> computeColl() 里 work->sendbuff=info->sendbuff; work->recvbuff=info->recvbuff
+    uploadWork() 把 work 数组复制到 plan->workHead（或指向 FIFO）
+
 
 * `tryOpenLib()`
 
@@ -11907,3 +11911,12 @@
       CU_MEM_HANDLE_TYPE_FABRIC 跨节点传递后远端可以直接 import，绕开了本地
       busIdToCudaDev() 这个查本地设备列表的逻辑。
     ```
+
+* 编译
+        
+  总结修了两个问题：
+
+  1. 去掉 --offload-host-only — 让 __global__ kernel 的 device                  
+  代码正常编译，解决 __sipu_gpubin_handle_ / __sipu_fatbin_ 未定义的问题        
+  2. 加 -DOMPI_SKIP_MPICXX — 跳过 OpenMPI 的 C++ 绑定头文件，解决 lld 找不到    
+  __cxxabiv1::__class_type_info vtable 的问题

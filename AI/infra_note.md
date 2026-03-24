@@ -2,6 +2,24 @@
 
 ## cache
 
+* Transformer Lab is a Machine Learning Research Platform designed for frontier AI/ML workflows. Local, on-prem, or in the cloud. Open source.
+
+    <https://lab.cloud/>
+
+* alpaka - Abstraction Library for Parallel Kernel Acceleration
+
+    <https://github.com/alpaka-group/alpaka>
+
+* RAPIDS: GPU Accelerated Data Science
+
+    <https://rapids.ai/>
+
+    <https://github.com/rapidsai>
+
+* byteps: A high performance and generic framework for distributed DNN training 
+
+    <https://github.com/bytedance/byteps>
+
 * 有哪些常用的 ai infra 的编译前端或图优化工具？
 
     以下是 AI 基础设施（AI Infra）中常用的编译前端和图优化工具，它们主要用于深度学习模型的编译、优化和部署：

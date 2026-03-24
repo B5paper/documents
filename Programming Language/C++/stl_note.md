@@ -2,6 +2,76 @@
 
 ## cached
 
+* 简述 std::call_once() 的原型、作用及用法
+
+    在多线程编程中，`std::call_once` 是 C++11 引入的一个非常实用的工具，专门用于确保某个特定任务（如初始化全局资源）**在多线程环境下只被执行一次**。
+
+    1. 函数原型
+        
+        它定义在 `<mutex>` 头文件中，通常与 `std::once_flag` 配合使用：
+
+        ```cpp
+        template< class Callable, class... Args >
+        void call_once( std::once_flag& flag, Callable&& f, Args&&... args );
+        ```
+
+        * **`flag`**: 一个 `std::once_flag` 类型的对象。多个线程必须共享同一个 flag 才能实现“只执行一次”。
+        * **`f`**: 要执行的可调用对象（函数、Lambda 表达式、成员函数等）。
+        * **`args...`**: 传递给函数 `f` 的参数。
+
+    ---
+
+    2. 核心作用
+        
+        * **线程安全的延迟初始化**：确保即使有多个线程同时调用 `call_once`，也只有一个线程会成功运行目标函数，其他线程会阻塞等待，直到该函数执行完毕。
+        * **比互斥锁更高效**：相比于手动使用 `std::mutex` 进行 `if (initialized)` 判断，`call_once` 在底层进行了优化，开销通常更小。
+        * **异常处理**：如果执行函数 `f` 时抛出了异常，执行会被认为“失败”，`once_flag` 不会被翻转。后续的线程调用会**重新尝试**执行该函数。
+
+    ---
+
+    3. 基本用法示例
+
+        最典型的场景是实现**线程安全的单例模式**或**配置加载**：
+
+        ```cpp
+        #include <iostream>
+        #include <thread>
+        #include <mutex>
+
+        std::once_flag init_flag;
+
+        void init_resource() {
+            std::cout << "系统资源初始化中... (仅此一次)" << std::endl;
+        }
+
+        void worker(int id) {
+            // 无论多少个线程调用，init_resource 只会运行一次
+            std::call_once(init_flag, init_resource);
+            std::cout << "线程 " << id << " 开始工作" << std::endl;
+        }
+
+        int main() {
+            std::thread t1(worker, 1);
+            std::thread t2(worker, 2);
+            std::thread t3(worker, 3);
+
+            t1.join();
+            t2.join();
+            t3.join();
+            return 0;
+        }
+        ```
+
+    ---
+
+    4. 注意事项
+        
+        * **`std::once_flag` 的生命周期**：它必须比 `call_once` 调用的生命周期长，通常定义为全局变量、静态变量或类成员。
+        * **不可拷贝**：`std::once_flag` 既不能拷贝也不能移动。
+        * **死锁风险**：不要在被 `call_once` 调用的函数内部再次调用同一个 `once_flag` 的 `call_once`，这会导致死锁。
+
+    **比起传统的 `pthread_once`，`std::call_once` 的优势在于它支持任意参数传递。你想看看它在类成员函数中如何配合单例模式使用吗？**
+
 * 简述 c++ 中 string 的用法
 
     C++ 中的 std::string 是标准库提供的字符串类，位于 <string> 头文件中，比 C 风格字符串更安全、方便。

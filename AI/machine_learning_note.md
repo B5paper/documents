@@ -2,6 +2,10 @@
 
 ## cache
 
+* Transfer Adaptation Learning: A Decade Survey
+
+    <https://arxiv.org/abs/1903.04687>
+
 * 简述什么是 AI 中的对比学习
 
     **对比学习（Contrastive Learning）**是人工智能领域，尤其是自监督学习中的一种重要方法，其核心思想是通过**学习区分相似（正）样本与不相似（负）样本**来获得高质量的数据表示。

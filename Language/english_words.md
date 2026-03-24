@@ -639,3 +639,7 @@ grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of 
 * Proteus prn. [ˈprotiəs, -ˌtjus] n. 希腊海神
 
 * criterion prn. [kraɪˈtɪriən] n. 标准，准则
+
+* stub n. 树桩; 铅笔头，烟蒂; 票根，存根
+
+* whirr prn. [hwə, wə] n. 呼呼声 vi. 作呼呼声

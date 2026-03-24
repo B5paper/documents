@@ -2,6 +2,14 @@
 
 ## cache
 
+* FlagCX: FlagCX is a scalable and adaptive cross-chip communication library. 
+
+    <https://github.com/flagos-ai/FlagCX>
+
+* Mooncake
+
+    <https://kvcache-ai.github.io/Mooncake/>
+
 * Yoshua Bengio（约书亚·本吉奥）
 
     核心方向：

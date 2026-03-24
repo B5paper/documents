@@ -6,6 +6,234 @@ Ref:
 
 ## cache
 
+* `DECLARE_WAIT_QUEUE_HEAD()`, `DECLARE_WAITQUEUE()`, `add_wait_queue()`, `wait_event()`, `remove_wait_queue()` 讲讲这一系列函数的原型、作用、用法
+
+    这些函数是 Linux 内核中**等待队列（Wait Queue）**机制的核心组成部分。等待队列主要用于实现进程的**阻塞（Blocking）**：当进程需要的资源未就绪时进入睡眠，当资源就绪时被唤醒。
+
+    ---
+
+    1. 原型与作用
+
+        A. 初始化
+
+        * **`DECLARE_WAIT_QUEUE_HEAD(name)`**
+            * **作用**：静态定义并初始化一个等待队列头（Wait Queue Head）。它是进程休眠的“场所”。
+            * **本质**：定义一个 `wait_queue_head_t` 结构体并初始化其锁和链表。
+
+        * **`DECLARE_WAITQUEUE(name, tsk)`**
+            * **作用**：静态定义并初始化一个等待队列项（Wait Queue Entry）。它代表一个具体的进程。
+            * **参数**：`name` 是变量名，`tsk` 通常是 `current`（指向当前进程）。
+
+        B. 入队与出队
+
+        * **`add_wait_queue(wait_queue_head_t *q, wait_queue_entry_t *wait)`**
+            * **作用**：将一个等待项 `wait` 加入到队列头 `q` 中。此时进程尚未休眠，只是“登记”了。
+        * **`remove_wait_queue(wait_queue_head_t *q, wait_queue_entry_t *wait)`**
+            * **作用**：将等待项从队列中移除。通常在进程被唤醒后执行。
+
+        C. 休眠核心
+
+        * **`wait_event(wq_head, condition)`**
+            * **作用**：这是最常用的**宏**。它结合了状态检查和休眠逻辑。
+            * **逻辑**：检查 `condition`，若为假则进程进入 `TASK_UNINTERRUPTIBLE` 状态并调度出去；若为真则立即返回。
+
+    ---
+
+    2. 常用函数对比表
+
+        | 函数/宏 | 进程状态 | 是否可被信号中断 | 说明 |
+        | :--- | :--- | :--- | :--- |
+        | `wait_event` | `TASK_UNINTERRUPTIBLE` | 否 | 除非条件满足，否则一直睡 |
+        | `wait_event_interruptible` | `TASK_INTERRUPTIBLE` | **是** | **最推荐**，可被 Ctrl+C 终止 |
+        | `wait_event_timeout` | `TASK_UNINTERRUPTIBLE` | 否 | 增加超时机制 |
+
+    ---
+
+    3. 典型用法流程
+
+        在驱动开发中，通常分为“读/等待方”和“写/唤醒方”。
+
+        **场景：驱动程序等待数据就绪**
+
+        第一步：全局定义
+
+        ```c
+        DECLARE_WAIT_QUEUE_HEAD(my_wait_queue); // 创建等待队列头
+        int data_ready = 0; // 条件变量
+        ```
+
+        第二步：等待方（如 Read 函数）
+
+        使用 `wait_event` 系列宏是最简单且安全的方法：
+        ```c
+        // 1. 直接休眠直到 data_ready 为真
+        // 如果被信号中断，该宏返回 -ERESTARTSYS
+        if (wait_event_interruptible(my_wait_queue, data_ready != 0))
+            return -ERESTARTSYS; 
+
+        // 2. 执行到这里说明 data_ready 已经是 1 了
+        // 处理数据...
+        ```
+
+        第三步：唤醒方（如 中断处理程序或 Write 函数）
+
+        ```c
+        data_ready = 1; // 改变条件
+        wake_up_interruptible(&my_wait_queue); // 唤醒所有在该队列上休眠的进程
+        ```
+
+    ---
+
+    4. 进阶：手动使用 `add_wait_queue`
+        
+        如果你不想使用 `wait_event` 宏，而是手动控制流程（例如在复杂的并发场景下），步骤如下：
+
+        1.  **`DECLARE_WAITQUEUE(wait, current);`** —— 创建代表自己的节点。
+        2.  **`add_wait_queue(&q, &wait);`** —— 把自己排进队伍。
+        3.  **`set_current_state(TASK_INTERRUPTIBLE);`** —— 设置睡眠状态。
+        4.  **`schedule();`** —— 放弃 CPU，正式睡去。
+        5.  **`set_current_state(TASK_RUNNING);`** —— 被唤醒后恢复状态。
+        6.  **`remove_wait_queue(&q, &wait);`** —— 办完事离开队伍。
+
+        > **注意**：手动操作极易产生“竞态条件”（例如在设置状态和检查条件之间错过了唤醒信号）。除非有特殊需求，**强烈建议优先使用 `wait_event_interruptible()`**。
+
+    **您目前是在编写字符设备驱动吗？如果是的话，我可以为您演示如何将这些函数集成到 `read` 接口中。**
+
+* 简述 strtok_r() 的原型、作用、用法
+
+    `strtok_r()` 是 C 语言中用于字符串分割的函数，它是 `strtok()` 的**线程安全**（Thread-safe）且**可重入**（Reentrant）的版本。在多线程编程或需要嵌套分割字符串时，它是首选工具。
+
+    ---
+
+    1. 函数原型
+
+        它定义在 `<string.h>` 头文件中：
+
+        ```c
+        char *strtok_r(char *str, const char *delim, char **saveptr);
+        ```
+
+        * **`str`**: 指向要分割的字符串。如果是第一次调用，传入字符串首地址；后续调用传入 `NULL`。
+        * **`delim`**: 包含所有分隔符的字符串。
+        * **`saveptr`**: 一个指向 `char*` 的指针，由函数内部使用，用于记录当前扫描到的位置。用户无需手动修改它，只需提供存储空间。
+
+    ---
+
+    2. 主要作用
+
+        * **字符串切割**：将一个字符串根据指定的分隔符集合拆分成一系列标记（tokens）。
+        * **可重入性**：与 `strtok()` 使用内部静态变量不同，`strtok_r()` 使用用户提供的 `saveptr` 来保存上下文。这使得它可以在多线程环境下安全使用，或者在同一线程内交替分割两个不同的字符串。
+
+    ---
+
+    3. 基本用法与逻辑
+
+        1.  **首次调用**：传入待处理字符串的指针。函数找到第一个非分隔符字符，并将其视为 token 的开始，然后在遇到分隔符时将其替换为 `\0`（空字符），返回 token 首地址。
+        2.  **后续调用**：第一个参数传入 `NULL`。函数会从 `saveptr` 记录的位置继续寻找下一个 token。
+        3.  **结束标志**：当没有更多 token 可找时，返回 `NULL`。
+
+    ---
+
+    4. 代码示例
+
+        以下是一个简单的分割示例：
+
+        ```c
+        #include <stdio.h>
+        #include <string.h>
+
+        int main() {
+            char str[] = "Apple,Orange;Banana,Grape";
+            const char *delim = ",;";
+            char *saveptr;
+            
+            // 第一次调用
+            char *token = strtok_r(str, delim, &saveptr);
+            
+            while (token != NULL) {
+                printf("Token: %s\n", token);
+                // 后续调用传入 NULL
+                token = strtok_r(NULL, delim, &saveptr);
+            }
+            
+            return 0;
+        }
+        ```
+
+    ---
+
+    **注意事项**
+
+    * **破坏性**：`strtok_r()` 会修改原始字符串（将分隔符替换为 `\0`）。如果你需要保留原字符串，请先用 `strdup()` 或 `strcpy()` 复制一份。
+    * **常量字符串**：不要直接传入字符串常量（如 `"a,b,c"`），因为这会导致段错误（Segmentation Fault）。
+
+    ---
+
+    **想让我为你写一个更复杂的例子吗？比如如何在嵌套循环中使用 `strtok_r()` 来解析 CSV 或 配置文件？**
+
+* 简述 linux 中 dma-buf 的作用和用法
+
+    在 Linux 内核中，**dma-buf** 是一个专为**硬件辅助的缓冲区共享**（Buffer Sharing）而设计的框架。
+
+    简单来说，它的核心目标是：**让不同的设备驱动程序（如 GPU、摄像头、显示控制器等）能够直接访问同一块内存，而无需在用户空间和内核空间之间进行昂贵的内存拷贝。**
+
+    ---
+
+    1. dma-buf 的主要作用
+
+        * **零拷贝（Zero-copy）共享**：允许多个硬件设备共享同一块物理内存。例如，摄像头采集的图像数据可以直接交给 GPU 处理，再由显示驱动（DRM）输出，全程无需 CPU 搬运数据。
+        * **跨驱动交互**：解决了不同子系统（如 V4L2 摄像头驱动和 DRM 图形驱动）之间无法直接传递内存块的问题。
+        * **统一的句柄管理**：在用户空间，dma-buf 表现为一个**文件描述符（File Descriptor, FD）**。这意味着你可以像传递普通文件一样，通过 `sendmsg` 等方式在进程间传递内存引用。
+        * **同步机制**：集成了 `fence`（栅栏）机制，确保当一个设备（如 GPU）正在写内存时，另一个设备（如显示器）不会读取到不完整的数据。
+
+    ---
+
+    2. 核心角色：导出者 vs 导入者
+
+        在 dma-buf 架构中，有两个主要角色：
+
+        1.  **Exporter（导出者）**：
+            * 负责分配物理内存。
+            * 实现 `struct dma_buf_ops` 接口（定义了如何映射、销毁内存等）。
+            * 将内存包装成一个 `dma_buf` 对象并生成一个 **FD** 给用户空间。
+        2.  **Importer（导入者）**：
+            * 拿到 FD 后，将其转换回 `dma_buf` 对象。
+            * 通过 `dma_buf_attach()` 关联到自己的设备，并使用 `dma_buf_map_attachment()` 获取可以进行 DMA 操作的地址列表（scatterlist）。
+
+    ---
+
+    3. 基本用法流程
+
+        **内核层（Driver 开发者）**
+
+        * **导出端**：调用 `dma_buf_export()` 创建对象，随后用 `dma_buf_fd()` 获取文件描述符发送给应用层。
+        * **导入端**：调用 `dma_buf_get(fd)` 获取对象，然后调用 `dma_buf_attach()` 和 `dma_buf_map_attachment()` 来准备 DMA 传输。
+
+        **应用层（App 开发者）**
+
+        应用层通常不直接操作 dma-buf 的底层结构，而是充当“经纪人”：
+        
+        1.  从一个驱动（如 `/dev/video0`）通过 IOCTL 申请一个 dma-buf FD。
+        2.  将这个 FD 通过 IOCTL 传递给另一个驱动（如 `/dev/dri/card0`）。
+        3.  如果需要在用户空间读写，可以使用 `mmap(fd, ...)`。
+
+    ---
+
+    4. 为什么不用传统内存分配？
+
+        | 特性 | 传统 `malloc` / `mmap` | dma-buf |
+        | :--- | :--- | :--- |
+        | **拷贝开销** | 跨设备通常需要 CPU 拷贝 | **零拷贝**，直接硬件访问 |
+        | **内存类型** | 普通系统内存 | 支持特定内存（如显存、连续物理内存） |
+        | **同步** | 需手动维护缓存一致性 | 内置 `fence` 机制支持异步同步 |
+        | **传递方式** | 传递虚地址（进程限制） | **传递 FD**（可跨进程、跨设备） |
+
+    ---
+
+    > **小贴士**：在现代 Android 系统中，原本用于内存分配的 **ION** 机制正在被 **DMA-BUF Heaps** 逐步取代，因为后者已经成为了 Linux 主线内核的标准。
+
+    **你想深入了解如何在具体的驱动（如 V4L2 或 DRM）中调用这些接口，还是想看一个应用层的简单示例？**
+
 * 简述什么是 linux 中的 vma
 
     在 Linux 内核中，**VMA** 全称是 **Virtual Memory Area**（虚拟内存区域）。

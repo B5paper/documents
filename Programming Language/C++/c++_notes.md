@@ -4,6 +4,322 @@
 
 ## cached
 
+* 简述 c、c++ 中字符串与数字的互相转换
+
+    在 C 和 C++ 中，字符串与数字的转换方式经历了从“底层函数”到“面向对象流”再到“现代标准库”的演变。
+
+    ---
+
+    1. 数字 $\to$ 字符串
+
+        **C 风格（底层、快速）**
+
+        * **`sprintf` / `snprintf`**: 最经典的方法，支持复杂的格式化（如保留小数、补零）。
+            ```cpp
+            char buf[20];
+            int num = 42;
+            snprintf(buf, sizeof(buf), "%d", num); // 安全性高于 sprintf
+            ```
+
+        **C++ 风格（简洁、推荐）**
+
+        * **`std::to_string` (C++11)**: 最常用的方法，支持所有基本数值类型。
+            ```cpp
+            std::string s = std::to_string(3.14159);
+            ```
+        * **`std::stringstream`**: 像操作 `cout` 一样拼接，适合复杂的混合构建。
+            ```cpp
+            std::stringstream ss;
+            ss << "Value: " << 100;
+            std::string s = ss.str();
+            ```
+    ---
+
+    2. 字符串 $\to$ 数字
+
+        **C 风格（简单、历史悠久）**
+
+        * **`atoi`, `atof`**: 简单直接，但**无法检测错误**（如果转换失败会直接返回 0）。
+            ```cpp
+            int i = atoi("123");
+            double d = atof("3.14");
+            ```
+        * **`strtol`, `strtod`**: 更专业，可以检测字符串是否合法、是否转换完整。
+
+        **C++ 风格（安全、现代）**
+
+        * **`std::stoi`, `std::stod` 等 (C++11)**: 
+            相比 `atoi`，它们在转换失败时会抛出异常（`std::invalid_argument`），且能自动处理进制转换。
+            ```cpp
+            int i = std::stoi("123");
+            double d = std::stod("3.14");
+            ```
+
+    ---
+
+    **总结与对比**
+
+    | 方法 | 语言 | 优点 | 缺点 |
+    | :--- | :--- | :--- | :--- |
+    | **`sprintf` / `atoi`** | C | 速度极快，内存开销极小 | 不够安全，`atoi` 无法报错 |
+    | **`stringstream`** | C++ | 灵活，支持自定义类型 | 相对较慢，代码略冗长 |
+    | **`to_string` / `stoi`** | C++11 | **首选**，语法最简洁 | 性能适中，异常处理需注意 |
+    | **`charconv`** | C++17 | **性能巅峰**，无内存分配 | 语法非常底层且复杂 |
+
+    > **💡 小贴士：** 在刷算法题（如 LeetCode）时，直接用 **`std::to_string`** 和 **`std::stoi`** 是最高效的选择，既不容易出错，代码也易读。
+
+    需要我为你演示一个处理“转换异常”（比如字符串里夹杂了字母导致转换失败）的健壮代码模版吗？
+
+* memset() 容易出错，是否有直接按 sizeof(elm_type) 为步长进行置 0 的函数
+
+    这是一个非常深刻的痛点。在 C++ 中，`memset` 确实是个“老古董”，它是按**字节**操作的，对于非 `char` 类型的数组（如 `int`, `long`, `struct`），手动计算字节数极易出错。
+
+    在现代 C++ 中，我们有更安全、更符合直觉的替代方案，它们会自动处理类型大小：
+
+    1. 最推荐：`std::fill` (通用且安全)
+        
+        这是 C++ 标准库提供的算法，它会根据数组元素的类型自动处理。无论你的数组是 `int`、`double` 还是自定义对象，它都能正确工作。
+
+        ```cpp
+        #include <algorithm> // 必须包含这个头文件
+
+        int ch[26];
+
+        // 将整个数组置 0
+        std::fill(std::begin(ch), std::end(ch), 0);
+
+        // 或者如果你知道长度
+        std::fill(ch, ch + 26, 0);
+        ```
+
+        **优点：** * **类型安全**：它不是按字节填充，而是按**元素**填充。如果你想把 `int` 数组全初始化为 `1`，`memset` 做不到（会变成奇怪的很大数字），但 `std::fill` 可以轻松实现。
+        * **语义清晰**：代码读起来就是“把这个区间填满 0”。
+
+    ---
+
+    2. `std::array` 或 `std::vector` 的重置
+        
+        如果你使用现代 C++ 容器（推荐），重置操作会更简单：
+
+        ```cpp
+        // 如果使用 std::array
+        std::array<int, 26> ch;
+        ch.fill(0); 
+
+        // 如果使用 std::vector
+        std::vector<int> v(26, 0);
+        v.assign(26, 0); // 重新设置为 26 个 0
+        ```
+
+    ---
+
+    3. 如果你坚持要修复 `memset`
+        
+        如果你在刷算法题时为了追求极致的微小性能差异（通常没必要）非要用 `memset`，正确的姿势是配合 `sizeof`：
+
+        ```cpp
+        // 永远不要写硬编码的数字，使用 sizeof(变量名)
+        memset(ch, 0, sizeof(ch)); 
+        ```
+        * `sizeof(ch)` 会自动计算出 `26 * sizeof(int)`，即 104 字节。这样就不会出现你之前只清理了前 26 字节的情况。
+
+    ---
+
+    **总结建议**
+
+    | 方案 | 语法 | 推荐理由 |
+    | :--- | :--- | :--- |
+    | **`std::fill`** | `std::fill(begin, end, val)` | **最通用**，支持非零初始化，类型安全。 |
+    | **`sizeof` 配合** | `memset(arr, 0, sizeof(arr))` | 仅限置 0 或 -1，速度理论最快但容易写错。 |
+    | **大括号初始化** | `int ch[26] = {0};` | 仅限**声明时**一次性清零。 |
+
+    **避坑小贴士：**
+    
+    在解决“无重复字符的最长子串”这类题目时，由于字符集可能包含 ASCII 的所有 128 个字符，建议直接定义 `int ch[128] = {0};`。
+
+    需要我帮你把刚才那个滑动窗口的代码，用最稳健的 `std::fill` 方式重写一遍吗？
+
+* c++ 中是否有 split() 等字符串的便捷处理函数
+
+    这是一个让所有从 Python 或 Java 转到 C++ 的开发者都感到“痛心疾首”的问题：**C++ 标准库（STL）中确实没有内置 `std::string::split()` 函数。**
+
+    C++ 的设计哲学是“不为你不需要的东西付费”，且标准库更倾向于提供通用的**算法**（如 `std::find`）而非针对特定容器的各种高层方法。
+
+    不过，别担心，在 C++ 中我们有几种优雅的替代方案：
+
+    ---
+
+    1. 最常用的“现代”做法：使用 `std::stringstream`
+        
+        这是面试或刷题中最常见的写法，利用 C++ 的输入输出流特性。
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <vector>
+        #include <sstream>
+
+        using namespace std;
+
+        vector<string> split(const string& s, char delimiter) {
+            vector<string> tokens;
+            string token;
+            istringstream tokenStream(s);
+            
+            // getline 第三个参数可以指定分隔符
+            while (getline(tokenStream, token, delimiter)) {
+                tokens.push_back(token);
+            }
+            return tokens;
+        }
+
+        // 使用示例
+        // auto result = split("apple,banana,cherry", ',');
+        ```
+        * **优点**：代码简洁，逻辑清晰。
+        * **缺点**：由于涉及流操作（Stream），在大规模数据处理时性能略低。
+
+    ---
+
+    2. 性能最优的做法：使用 `find` 和 `substr`
+        
+        如果你在处理超长字符串，或者对性能有严格要求，这种手动查找的方法最快。
+
+        ```cpp
+        vector<string> split_fast(const string& s, const string& delimiter) {
+            vector<string> tokens;
+            size_t last = 0;
+            size_t next = 0;
+            
+            while ((next = s.find(delimiter, last)) != string::npos) {
+                tokens.push_back(s.substr(last, next - last));
+                last = next + delimiter.length();
+            }
+            tokens.push_back(s.substr(last));
+            return tokens;
+        }
+        ```
+        * **优点**：没有额外的流开销，支持**多字符分隔符**（如按照 `", "` 拆分）。
+
+    ---
+
+    3. C++20 的新时代：`std::ranges`
+        
+        如果你使用的是支持 **C++20** 的编译器，终于有类似“一行代码”的操作了：
+
+        ```cpp
+        #include <iostream>
+        #include <string>
+        #include <vector>
+        #include <ranges>
+        #include <string_view>
+
+        int main() {
+            std::string text = "apple,banana,cherry";
+            auto split_view = text | std::views::split(',');
+
+            for (const auto& word : split_view) {
+                // word 是一个子范围，可以转回 string_view 或 string
+                std::cout << std::string_view(word) << std::endl;
+            }
+        }
+        ```
+        * **优点**：**零拷贝（Zero-copy）**！它返回的是视图（Views），性能极其强悍。
+
+    ---
+
+    4. 字符串处理的“全家桶”：常用的 STL 函数
+        
+        虽然没有 `split`，但 C++ 的 `<string>` 和 `<algorithm>` 提供了这些强大的工具：
+
+        | 功能 | C++ 函数 |
+        | :--- | :--- |
+        | **查找子串** | `s.find("target")` |
+        | **截取子串** | `s.substr(start_index, length)` |
+        | **替换字符** | `std::replace(s.begin(), s.end(), 'a', 'b')` |
+        | **判断开头** | `s.starts_with("pre")` (C++20) |
+        | **判断结尾** | `s.ends_with("suf")` (C++20) |
+        | **数值转换** | `std::stoi(s)` (转int), `std::to_string(42)` |
+
+    ---
+
+    **总结**
+
+    在 C++ 中，如果你追求代码快（开发快），用 `stringstream`；如果你追求程序快（运行快），用 `find` + `substr`。
+
+    **提到字符串处理，你在刷题时经常会遇到需要“去除首尾空格”（Trim）的操作吗？要不要我顺便展示一下 C++ 实现它的最简方式？**
+
+* 那么有没有什么稍微知名点的库解决这个问题，比如 boost 之类的？
+
+    看来你对 C++ 的生态很敏锐！没错，**Boost** 库几乎是 C++ 程序员的“第二标准库”，它里面确实有一个非常强大的字符串处理子库 **`boost/algorithm/string.hpp`**，能完美解决 `split`、`trim`、`replace` 等所有标准库缺失的痛点。
+
+    ---
+
+    1. 使用 Boost 实现 Split
+        
+        这是最地道的 Boost 写法，非常简洁：
+
+        ```cpp
+        #include <boost/algorithm/string.hpp>
+        #include <vector>
+        #include <string>
+
+        std::string text = "apple,banana,,cherry";
+        std::vector<std::string> results;
+
+        // 第一个参数：存储容器
+        // 第二个参数：待分割字符串
+        // 第三个参数：分隔符（支持多个字符作为分隔符集合）
+        // 第四个参数：压缩选项（token_compress_on 表示合并连续分隔符，解决空字符串问题）
+        boost::split(results, text, boost::is_any_of(","), boost::token_compress_on);
+        ```
+
+        * **亮点**：它支持 `token_compress_on`。比如对于 `"a,,b"`，如果你开启压缩，结果是 `["a", "b"]`；如果不开启，结果是 `["a", "", "b"]`。这在处理乱糟糟的输入时极其好用。
+
+    ---
+
+    2. Boost 的其他“真香”函数
+
+        除了 `split`，Boost 还提供了这些标准库里没有的便捷操作：
+
+        * **`boost::trim(s)`**：直接原地去除首尾空格（也有 `trim_left` 和 `trim_right`）。
+        * **`boost::to_upper(s)` / `boost::to_lower(s)`**：一键转大小写（不用再去写 `std::transform` 配合 `::toupper` 了）。
+        * **`boost::contains(s, "sub")`**：判断是否包含子串，返回 `bool`（比 `s.find() != npos` 直观得多）。
+        * **`boost::starts_with(s, "pre")`**：在 C++20 之前，这是唯一的官方平替。
+        * **`boost::join(vector, ", ")`**：`split` 的逆操作，把数组拼成字符串。
+
+    ---
+
+    3. 除了 Boost，还有哪些知名库？
+
+        虽然 Boost 很强，但它有个缺点：**太重了**（库体积巨大，安装麻烦）。如果你在做轻量级开发，可以考虑这些：
+
+        **A. Google Abseil (Abseil-cpp)**
+
+        这是 Google 内部使用的开源库（底层的基础组件），性能极佳。
+        * **函数**：`absl::StrSplit()`
+        * **特点**：极其强调性能，返回的是 `string_view`，减少内存分配。
+
+        **B. Poco C++ Libraries**
+
+        Poco 类似于 C++ 版的 Java JDK，非常全面。
+        * **函数**：`Poco::StringTokenizer`
+        * **特点**：适合做网络或系统级应用开发。
+
+        **C. fmt (std::format 的前身)**
+
+        虽然它主要解决的是**格式化输出**（类似 Python 的 f-string），但它让字符串的拼接和处理变得极其优雅。C++20 的 `std::format` 就是基于它进化的。
+
+    ---
+
+    4. 现实建议：怎么选？
+
+        * **刷题/面试**：千万不要用 Boost（环境不支持）。老老实实用我前面教你的 `stringstream` 或 `find + substr`。
+        * **公司大型项目**：如果已经引入了 Boost，直接用 `boost::split`。
+        * **追求极致性能**：选 Google Abseil 或自己手写 `string_view` 版的切割函数。
+
+    **既然提到了 Boost，你平时在项目中是比较在意库的“功能全面性”，还是更倾向于“轻量化、无外部依赖”呢？（这决定了你该深入研究 Boost 还是精进 STL 组合技）。**
+
 * vector (1,n)
 
     这个错误太经典了！看到 `nr.cc` 这个文件名以及 `vector (1,n)` 这种从下标 1 开始分配内存的写法，基本可以断定这是著名的 **Numerical Recipes (数值方法)** 的老代码。

@@ -36,6 +36,46 @@
 
 ## cache
 
+* Manacher 算法
+
+* 《动手学大模型》系列编程实践教程
+
+    <https://github.com/Lordog/dive-into-llms>
+
+* graph 与 embedding 相关
+
+    * GraphVite - graph embedding at high speed and large scale
+
+        <https://github.com/DeepGraphLearning/graphvite>
+
+    * Graph Neural Networks for Recommender Systems 
+
+        <https://github.com/je-dbl/GNN-RecSys>
+
+    *  Knowledge Graph Embeddings including TransE, TransH, TransR and PTransE 
+
+        <https://github.com/thunlp/KB2E>
+
+    * GraphEmbedding: Implementation and experiments of graph embedding algorithms. 
+
+        <https://github.com/shenweichen/GraphEmbedding>
+
+* freerdp github repo: <https://github.com/FreeRDP/FreeRDP>
+
+    homepage: <https://www.freerdp.com/>
+
+* 多件事情积压到一起时，顿感压力增大，但是回想以前的经历，哪一次不是多件高度不确定的事情积压在一起？数模、过年回家车票、读研、考试、学分，毕业工作、去留城市、刷题、毕业论文、同学关系……
+
+    所以单条事件线的压力根本不算压力，只有多线重合，才会爆发出巨大的压力、复杂性、不确定性。在这样巨大的复杂系统中，随着时间的流逝，不确定性会逐渐减小，最终我们可以凭借逐渐牢靠的“实感”做出判断，收束多条事件脉络，度过这道坎。
+
+    这样的磨炼可能几年才有一次，把握好锻炼的机会。
+
+* 动态任务生成
+
+    在 exp 的任务列表中，遇到当前无法完成的任务 A，马上拆分 A 任务或找 A 任务的 dep，在 A 任务前插入 B, C 等几乎可以马上完成的任务。
+
+    这种方式适合单主线、且必须完成的任务。因为没有逻辑分析，所以主要靠直觉和灵感进行任务分拆，效率高，但是一旦遗忘主线很难再拾起来。动态任务生成对“恐惧”和“不敢”相关的心理有奇效，同时也一定程度上避免了去思考"我接下来要干什么".
+
 * 谷歌并非不可击败与 fate
 
     之前总是感觉谷歌没有任何缺点，技术实力最强，内部也鼓励创新，那么硬实力和软实力已经无敌了。随着发现 gemini 也会乱编，nano banana 也无法完美遵循指令，顿时感觉谷歌像是 fate 中没有血条、全身无敌的 boss 被山中老者一刀砍出了血条一样，好像有一句话在对我说，“谷歌并非无法战胜”。 
