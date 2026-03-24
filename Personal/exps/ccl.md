@@ -8,7 +8,7 @@
 
 * [v] 写一个跨机指定 chip id 的 memcpy / kernel 的 case，看是否能跑通
 
-* [ ] 跑通 codex
+* [v] 跑通 codex
 
 * [ ] 修好 topo bug, 尝试改 device kernel bug，跑通 p2p
 
