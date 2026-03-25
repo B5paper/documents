@@ -2089,7 +2089,183 @@
 > 
 > 若其中不包含环，则输出null。
 
-代码：
+题解：
+
+1. ai 讨论
+
+    * 分析一下我的代码问题在哪：
+
+        ```cpp
+        /**
+        * Definition for singly-linked list.
+        * struct ListNode {
+        *     int val;
+        *     ListNode *next;
+        *     ListNode(int x) : val(x), next(NULL) {}
+        * };
+        */
+        class Solution {
+        public:
+            ListNode *detectCycle(ListNode *head) {
+                if (!head || !head->next)
+                    return nullptr;
+                ListNode *p1 = head, *p2 = head;
+                while (p2 && p2->next) {
+                    p1 = p1->next;
+                    p2 = p2->next->next;
+                    if (p1 == p2) {
+                        break;
+                    }
+                }
+                if (!p1 || !p2)
+                    return nullptr;
+                p2 = head;
+                while (p1 != p2) {
+                    p1 = p1->next;
+                    p2 = p2->next;
+                }
+                return p1;
+            }
+        };
+        ```
+
+        这个问题非常经典，你的代码逻辑其实已经非常接近正确答案了，但在**处理“无环”情况的判定**上存在一个小瑕疵。
+
+        1. 核心问题分析
+
+            你的代码在第一个 `while` 循环结束后，使用了如下判断：
+            ```cpp
+            if (!p1 || !p2) return nullptr;
+            ```
+
+            **问题在于：**
+            * 如果链表**没有环**，`p2` 或 `p2->next` 会变为空，循环结束。此时 `p1` 和 `p2` 并不相等。
+            * 如果链表**有环**，循环会因为 `p1 == p2` 而 `break`。
+            * 在 `break` 之后，即使有环，你的 `if (!p1 || !p2)` 逻辑依然可能被触发（虽然在有环的情况下 `p1` 和 `p2` 肯定不为空），但这并不能准确区分是因为“找到了相遇点”跳出循环，还是因为“遍历到了末尾”跳出循环。
+
+            特别是当链表**完全无环**时，你的 `while` 循环结束了，但此时 `p1 != p2`。按照你的逻辑，程序会直接进入第二个 `while(p1 != p2)`，而此时 `p1` 和 `p2` 都在链表上，这可能导致死循环或逻辑错误。
+
+        ---
+
+        2. 修正方案
+
+            我们需要一个明确的标志来判断第一个循环是因为**相遇**（有环）跳出的，还是因为**遇到 NULL**（无环）跳出的。
+
+            **修改后的代码如下：**
+
+            ```cpp
+            class Solution {
+            public:
+                ListNode *detectCycle(ListNode *head) {
+                    if (!head || !head->next) return nullptr;
+                    
+                    ListNode *p1 = head, *p2 = head;
+                    bool hasCycle = false; // 引入标志位
+
+                    while (p2 && p2->next) {
+                        p1 = p1->next;
+                        p2 = p2->next->next;
+                        if (p1 == p2) {
+                            hasCycle = true; // 确定有环
+                            break;
+                        }
+                    }
+
+                    // 如果没有环，直接返回
+                    if (!hasCycle) return nullptr;
+
+                    // 有环，寻找入口
+                    p2 = head;
+                    while (p1 != p2) {
+                        p1 = p1->next;
+                        p2 = p2->next;
+                    }
+                    return p1;
+                }
+            };
+            ```
+
+        ---
+
+        3. 数学原理回顾 (Floyd 判圈算法)
+
+            为什么相遇后，一个指针从 `head` 出发，一个从 `相遇点` 出发，速度一致地移动，它们一定会在环入口相遇？
+
+            假设：
+            * 从起点到环入口的距离为 $a$。
+            * 从环入口到相遇点的距离为 $b$。
+            * 从相遇点再走回到环入口的距离为 $c$。
+
+            当快慢指针相遇时：
+            * 慢指针走过的距离：$s_1 = a + b$
+            * 快指针走过的距离：$s_2 = a + n(b + c) + b$ （$n$ 为快指针绕环的圈数）
+
+            因为快指针速度是慢指针的两倍，所以 $s_2 = 2s_1$：
+            $$a + n(b + c) + b = 2(a + b)$$
+            简化得：
+            $$a = (n - 1)(b + c) + c$$
+
+            这意味着：**从起点到环入口的距离 $a$ ，等于从相遇点继续走过 $n-1$ 圈加上距离 $c$。** 这就是为什么第二个循环能找到入口的原因。
+
+        ---
+
+        4. 总结与建议
+            
+            * **空间复杂度：** 你的实现已经是 $O(1)$，完美符合进阶要求。
+            * **边界处理：** 以后遇到类似的“快慢指针”，一定要区分清楚循环退出的原因。
+
+        你想看一看关于这个算法的**动态演示图解**，或者尝试用 `std::unordered_set` 实现一个更直观（但空间 $O(n)$）的版本吗？
+
+    * 修改后的代码：
+
+        ```cpp
+        /**
+        * Definition for singly-linked list.
+        * struct ListNode {
+        *     int val;
+        *     ListNode *next;
+        *     ListNode(int x) : val(x), next(NULL) {}
+        * };
+        */
+        class Solution {
+        public:
+            ListNode *detectCycle(ListNode *head) {
+                if (!head || !head->next)
+                    return nullptr;
+                ListNode *p1 = head, *p2 = head;
+                while (true) {
+                    p1 = p1->next;
+                    p2 = p2->next->next;
+                    if (!p2 || !p2->next) {
+                        return nullptr;
+                    }
+                    if (p1 == p2)
+                        break;
+                }
+                p2 = head;
+                while (p1 != p2) {
+                    p1 = p1->next;
+                    p2 = p2->next;
+                }
+                return p1;
+            }
+        };
+        ```
+
+        由于退出循环有两种情况，一种是发现指针相等，另一种是走到链表末尾，所以直接给 true 就可以，在 while 内部使用 if 来判断退出条件。如果到链表末尾，那直接使函数返回。
+
+        又由于两个指针必须先移动一步后，才开始判断，所以其实可以写成这样：
+
+        ```cpp
+        do {
+            p1 = p1->next;
+            p2 = p2->next->next;
+            if (!p2 || !p2->next)
+                return nullptr;
+        } while (p1 != p2);
+        ```
+
+        又由于在第一次移动 p1, p2 之前没有判断指针是否有效，所以在 while 前面额外判断了一下。
 
 1. 使用额外空间，单指针
 
