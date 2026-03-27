@@ -36,6 +36,12 @@
 
 ## cache
 
+* 享受不确定
+
+    从害怕不确定到享受不确定，在不完整、不对称的信息下做相对可靠的决定，享受不确定带来的机遇，享受众多不确定事件之间的关联与奇妙反应
+
+    不断寻找哪个动向是最新的，哪个动向是最稳的，如何基于当前的状态、能力，向着前沿动向走。是选择最新的动向，还是选择最稳的动向，这又是一个问题：是做 explore，还是做 exploit。
+
 * Manacher 算法
 
 * 《动手学大模型》系列编程实践教程
@@ -483,7 +489,7 @@
 
     把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
 
-* [ ] 如果有$x_1$，$x_2$两个变量，是否优化目标为修改曲面在指定点处的高度？
+* [v] 如果有$x_1$，$x_2$两个变量，是否优化目标为修改曲面在指定点处的高度？
 
 * [ ] 需要一个 graph 工具，建立不同的东西之间的连接
 
@@ -965,7 +971,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [v] vim 中列表的用法`let lines = []`
 
-* [ ] vim `s` 命令与`c`命令
+* [v] vim `s` 命令与`c`命令
 
     s```<C-r>"``` 
 
@@ -2034,9 +2040,9 @@ resources:
 
 * [ ] `nn.BatchNorm2d()`
 
-* [ ] `sg_dma_address()`, `sg_dma_len()`
+* [v] `sg_dma_address()`, `sg_dma_len()`
 
-* [ ] `mlock()`
+* [v] `mlock()`
 
 * [v] `get_user_pages()`
 
@@ -2533,7 +2539,7 @@ resources:
 
 ### tasks
 
-* [ ] 调研`KBUILD_MODNAME`的含义。
+* [v] 调研`KBUILD_MODNAME`的含义。
 
 * [asso] `devm_kobject_create_and_add()`
 
@@ -2541,7 +2547,7 @@ resources:
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
-* [ ] 调研标准亲和性 (smp_affinity)
+* [v] 调研标准亲和性 (smp_affinity)
 
 * [v] `device_initialize()`
 
@@ -2555,9 +2561,9 @@ resources:
 
 * [ ] `linux/list_sort.h`
 
-* [ ] 调研 rcu 链表, `list_add_rcu()`, `kfree_rcu`
+* [v] 调研 rcu 链表, `list_add_rcu()`, `kfree_rcu`
 
-* [ ] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`, `list_lru_add()`
+* [v] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`, `list_lru_add()`
 
 * [ ] `kmalloc_array()`, `kmalloc_caches()`
 
