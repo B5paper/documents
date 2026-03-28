@@ -2230,6 +2230,8 @@
         # 然后按 Shift+F 开始跟踪，Ctrl+C 停止跟踪，回到普通浏览模式
         ```
 
+        或者直接使用`less +F /var/log/syslog`
+
     * multitail (功能更强大)
 
         ```bash
@@ -2240,6 +2242,18 @@
         # 使用 multitail
         multitail filename
         ```
+
+        监控多个文件：
+
+        `multitail -i log1.log -i log2.log`
+
+        功能：
+
+            分屏：在同一个终端窗口开多个子窗口监控。
+
+            着色：自动识别日志等级（Error, Warn）并高亮。
+
+            过滤：支持正则过滤，只看你想看的内容。
 
     * 使用 awk 实时处理
 

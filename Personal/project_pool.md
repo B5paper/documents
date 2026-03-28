@@ -36,73 +36,7 @@
 
 ## cache
 
-* 享受不确定
-
-    从害怕不确定到享受不确定，在不完整、不对称的信息下做相对可靠的决定，享受不确定带来的机遇，享受众多不确定事件之间的关联与奇妙反应
-
-    不断寻找哪个动向是最新的，哪个动向是最稳的，如何基于当前的状态、能力，向着前沿动向走。是选择最新的动向，还是选择最稳的动向，这又是一个问题：是做 explore，还是做 exploit。
-
-* Manacher 算法
-
-* 《动手学大模型》系列编程实践教程
-
-    <https://github.com/Lordog/dive-into-llms>
-
-* graph 与 embedding 相关
-
-    * GraphVite - graph embedding at high speed and large scale
-
-        <https://github.com/DeepGraphLearning/graphvite>
-
-    * Graph Neural Networks for Recommender Systems 
-
-        <https://github.com/je-dbl/GNN-RecSys>
-
-    *  Knowledge Graph Embeddings including TransE, TransH, TransR and PTransE 
-
-        <https://github.com/thunlp/KB2E>
-
-    * GraphEmbedding: Implementation and experiments of graph embedding algorithms. 
-
-        <https://github.com/shenweichen/GraphEmbedding>
-
-* freerdp github repo: <https://github.com/FreeRDP/FreeRDP>
-
-    homepage: <https://www.freerdp.com/>
-
-* 多件事情积压到一起时，顿感压力增大，但是回想以前的经历，哪一次不是多件高度不确定的事情积压在一起？数模、过年回家车票、读研、考试、学分，毕业工作、去留城市、刷题、毕业论文、同学关系……
-
-    所以单条事件线的压力根本不算压力，只有多线重合，才会爆发出巨大的压力、复杂性、不确定性。在这样巨大的复杂系统中，随着时间的流逝，不确定性会逐渐减小，最终我们可以凭借逐渐牢靠的“实感”做出判断，收束多条事件脉络，度过这道坎。
-
-    这样的磨炼可能几年才有一次，把握好锻炼的机会。
-
-* 动态任务生成
-
-    在 exp 的任务列表中，遇到当前无法完成的任务 A，马上拆分 A 任务或找 A 任务的 dep，在 A 任务前插入 B, C 等几乎可以马上完成的任务。
-
-    这种方式适合单主线、且必须完成的任务。因为没有逻辑分析，所以主要靠直觉和灵感进行任务分拆，效率高，但是一旦遗忘主线很难再拾起来。动态任务生成对“恐惧”和“不敢”相关的心理有奇效，同时也一定程度上避免了去思考"我接下来要干什么".
-
-* 谷歌并非不可击败与 fate
-
-    之前总是感觉谷歌没有任何缺点，技术实力最强，内部也鼓励创新，那么硬实力和软实力已经无敌了。随着发现 gemini 也会乱编，nano banana 也无法完美遵循指令，顿时感觉谷歌像是 fate 中没有血条、全身无敌的 boss 被山中老者一刀砍出了血条一样，好像有一句话在对我说，“谷歌并非无法战胜”。 
-
-* 震荡出来的智慧
-
-    总是感觉以前我并没有什么智慧，吃饭睡觉上学写作业，即使在干活时也没有什么发明新东西的欲望。后来在不断变化的环境中，被迫去处理问题，感觉才逐渐学到智慧与能力。这就像在混沌中震荡，从一个平衡点震荡到其他平衡点。如果没有这个震荡的过程，那么现在应该还是非常平庸。
-
-* 在制定计划时，似乎总有一条暗线，无法言明，靠直觉规划，效率极高，任何明面的计划都无法与它抗衡。我能做的只有用几个显式的计划描述一部分这条暗线，记录下这条暗线的一部分，从而高效地推行进度
-
-    * 有可能暗线做的是全局注意力，任何显式的言语表达都会使之发生坍缩，从而降低维度，增加了条件独立，无法再考虑周全
-
-* 最长无重复字符子串, 两数之和 (有序数组), 三数之和
-
 * matplotlib.tri 或 Mayavi
-
-* 归并排序、堆排序和快速排序 代码，以及复杂度
-
-* 从 ai 处拿到的信息是重要的，但是保存整个对话过程也很重要，因为它揭示了思路是如何延伸和改变的
-
-* 灵活组合海量的初级 example，形成各种解决方案，有点像《全职高手》里的叶修
 
 * 解决刷题遗忘的几个（尝试）办法
 
@@ -159,24 +93,6 @@
     * 如果你的目标是大规模训练一个机器人策略，比如让人形机器人学会行走或抓取，那么你需要的是 Isaac Lab。
 
     * 实际上，它们并非替代关系，而是协同工作的：Isaac Lab 依赖 Isaac Sim 提供的物理和渲染能力，并将其用于大规模的并行训练
-
-* 当一个节点的内容巨长无比时（比如解析 nccl 的一个函数，或者解析一篇论文），那么要么要么强行分段，那么按引用进行跳转。
-
-    强行分段是最容易实现的，但是按引用跳转应该是比较优雅的。
-
-* 再次感叹，只靠扫雷式的推理，很难解构复杂系统，或者说，可以解构，但是效率太低，远不如直接找到主干效率高。
-
-    主干和扫雷必须同时进行，才能既不失效率，又不失可能性。
-
-    如果纯粹想从零碎条目拼凑成主线，那么必须当零碎条件达到一定数量/复杂度后，强制进行合并，用临时主线串起来。如果放任不管，那么前面记住的条目，后面会被遗忘，再也串不起来了。如果用临时主线，这意味着临时主线可能会经常变动，条目也可以在临时主线中进进出出，总归是还在掌控范围内。
-
-    任意两个条目之间的连接，是全局注意力的组合/创新可能性。主线则是对复杂度的降维和硬件资源的妥协，以及效率的提升。这两者必须取得平衡，不能偏向哪一边。
-
-* 只靠分散的细节推理，无法支撑起主线
-
-    是否每分散、碎片化地整理一段时间，就尝试向主线靠拢比较好？
-
-    仅靠分散的碎片全局两两组合，可能很长时间也无法自动浮现主线把所有碎片串连起来。
 
 * 为什么无法静心做一件事？
 
@@ -671,6 +587,8 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
 
+* [ ] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
+
 * [P] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
     如果一个 unit 答对的频率较高，那么它被选择的概率变小。
@@ -678,8 +596,6 @@ english words 由 { } reorg: english words 进化而来。
     如果一个 unit 距离上次回答的时间较长，那么它被选择的概率变大。
 
     feedback:
-
-    * [ ] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
 
     * 不能按所有历史记录去计算，因为一年前答题好坏不代表现在答题好坏。必须使用滑动窗口，回顾过去 N 天的记录。
 
@@ -713,10 +629,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### cache
 
-* 如果一些知识点正处于 cache 状态，未变成基于空间结构的数据，但是任务中又要用到，任务会依赖一些 qa，该怎么办？
-
-    2026/03/21/00: 目前的做法是使用 exp 系统，把需要临时记忆的知识点分成不稳定和稳定两种状态，不稳定的知识点经过反复验证成为规律/经验后，转移到稳定中，稳定的知识点积累够一定量后，放到 note 的 cache 中。
-
 * 一些 gnu 工具入门级的 guideline，废话有点多
 
     <https://thevaluable.dev>
@@ -732,6 +644,8 @@ english words 由 { } reorg: english words 进化而来。
     增加`mymath.h`和`mymath.cpp`相关内容。
 
 * 如果在 collect 文件里新增加一个 qa 文件，权重该如何设置？
+
+* 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
 ### Tasks
 
@@ -770,10 +684,6 @@ english words 由 { } reorg: english words 进化而来。
 * [v] qa: 4 units 12.18
 
     正确率：3 / 4
-
-    feedback:
-
-    3. 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
 * [ ] `使用 element draw 画一个 cube`增加 deps:
 
@@ -961,23 +871,6 @@ english words 由 { } reorg: english words 进化而来。
     sudo dkms build sipu/version -k $(uname -r)
     sudo dkms install sipu/version -k $(uname -r)
     ```
-
-* [v] 忽略缺失的符号
-
-    ```bash
-    # 忽略缺失的符号（有风险）
-    sudo insmod /path/to/sipu.ko allow_unsupported=1
-    ```
-
-* [v] vim 中列表的用法`let lines = []`
-
-* [v] vim `s` 命令与`c`命令
-
-    s```<C-r>"``` 
-
-    映射：
-
-    vnoremap <leader>` c```<C-r>0```<Esc>
 
 * [ ] vim 命令
 
@@ -1382,8 +1275,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] `setitimer()`
 
 * [ ] `timer_create()`
-
-* [v] `signal()`
 
 * [ ] `sigaction()`
 
@@ -1855,8 +1746,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `ax.text()`
-
 * [ ] `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()`
 
 * [ ] `ax.annotate()`
@@ -1868,8 +1757,6 @@ english words 由 { } reorg: english words 进化而来。
 ### tasks
 
 * [ ] pyserial, struct
-
-* [v] NIRS-Toolbox
 
 * [ ] OpenBCI GUI、LSL Lab Streaming Layer
 
@@ -2006,8 +1893,6 @@ resources:
 
         > 2. adjust_contrast() function:floating-point
 
-* [v] 带动量和权重衰减的SGD
-
 * [ ] 调研 Reshaping a Tensor in Pytorch
 
     <https://www.geeksforgeeks.org/python/reshaping-a-tensor-in-pytorch/>
@@ -2039,12 +1924,6 @@ resources:
 * [ ] `nn.ConvTranspose2d()`
 
 * [ ] `nn.BatchNorm2d()`
-
-* [v] `sg_dma_address()`, `sg_dma_len()`
-
-* [v] `mlock()`
-
-* [v] `get_user_pages()`
 
 * [ ] 调研自旋锁、互斥锁的汇编实现
 
@@ -2446,8 +2325,6 @@ resources:
 
 * [ ] 多元函数的连续性
 
-* [v] 调研使用梯度法求二无函数$f(x, y)$的最值
-
 * [ ] 矩阵微积分 / 矩阵求导
 
 * [ ] 复分析 / 复变函数论
@@ -2539,17 +2416,11 @@ resources:
 
 ### tasks
 
-* [v] 调研`KBUILD_MODNAME`的含义。
+* [ ] `devm_kobject_create_and_add()`
 
-* [asso] `devm_kobject_create_and_add()`
-
-* [asso] `devm_device_add_groups()`
+* [ ] `devm_device_add_groups()`
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
-
-* [v] 调研标准亲和性 (smp_affinity)
-
-* [v] `device_initialize()`
 
 * [ ] 调研 makefile 中 target 的执行机制
 
@@ -2560,10 +2431,6 @@ resources:
 * [ ] 调研 SPI 协议
 
 * [ ] `linux/list_sort.h`
-
-* [v] 调研 rcu 链表, `list_add_rcu()`, `kfree_rcu`
-
-* [v] 调研`list_lru.h`, `struct list_lru`, `list_lru_del()`, `list_lru_add()`
 
 * [ ] `kmalloc_array()`, `kmalloc_caches()`
 
@@ -2904,8 +2771,6 @@ resources:
 * [ ] `dma_map_sg()`
 
 * [ ] `get_user_pages()`
-
-* [v] `flush_cache_all()`
 
 * [ ] `invalidate_cache_all()`
 

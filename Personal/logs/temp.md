@@ -1,3 +1,198 @@
+* glad
+
+    compile:
+
+    `g++ main.cpp glad.c -o cube -lglfw3 -lopengl32 -lgdi32 -luser32 -lkernel32`
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+
+    // 包含 GLAD (必须在 GLFW 之前)
+    #include <glad/glad.h>
+    // 包含 GLFW
+    #include <GLFW/glfw3.h>
+
+    // 包含 GLM 数学库
+    #include <glm/glm.hpp>
+    #include <glm/gtc/matrix_transform.hpp>
+    #include <glm/gtc/type_ptr.hpp>
+
+    // --- 着色器源码 ---
+    const char* vertexShaderSource = "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "out vec3 ourColor;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 projection;\n"
+    "void main() {\n"
+    "   gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
+    "   ourColor = aColor;\n"
+    "}\0";
+
+    const char* fragmentShaderSource = "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "in vec3 ourColor;\n"
+    "void main() {\n"
+    "   FragColor = vec4(ourColor, 1.0f);\n"
+    "}\n\0";
+
+    int main() {
+        // 1. 初始化 GLFW
+        glfwInit();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        GLFWwindow* window = glfwCreateWindow(800, 600, "Rotating Colored Cube", NULL, NULL);
+        if (window == NULL) {
+            std::cout << "Failed to create GLFW window" << std::endl;
+            glfwTerminate();
+            return -1;
+        }
+        glfwMakeContextCurrent(window);
+
+        // 2. 加载 OpenGL 函数
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return -1;
+        }
+
+        // 3. 开启深度测试 (关键：没有这个立方体看起来是乱的)
+        glEnable(GL_DEPTH_TEST);
+
+        // 4. 编译着色器
+        unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+        glCompileShader(vertexShader);
+
+        unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+        glCompileShader(fragmentShader);
+
+        unsigned int shaderProgram = glCreateProgram();
+        glAttachShader(shaderProgram, vertexShader);
+        glAttachShader(shaderProgram, fragmentShader);
+        glLinkProgram(shaderProgram);
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+
+        // 5. 顶点数据 (36个顶点，包含位置和颜色)
+        float vertices[] = {
+            // 位置              // 颜色 (RGB)
+            -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+             0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,
+             0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
+             0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 1.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.5f, 0.5f, 0.5f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.5f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.5f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.5f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.5f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.5f, 0.0f,
+
+             0.5f,  0.5f,  0.5f,  0.2f, 0.8f, 0.2f,
+             0.5f,  0.5f, -0.5f,  0.8f, 0.2f, 0.2f,
+             0.5f, -0.5f, -0.5f,  0.2f, 0.2f, 0.8f,
+             0.5f, -0.5f, -0.5f,  0.2f, 0.2f, 0.8f,
+             0.5f, -0.5f,  0.5f,  0.8f, 0.8f, 0.2f,
+             0.5f,  0.5f,  0.5f,  0.2f, 0.8f, 0.2f,
+
+            -0.5f, -0.5f, -0.5f,  0.1f, 0.9f, 0.4f,
+             0.5f, -0.5f, -0.5f,  0.9f, 0.1f, 0.4f,
+             0.5f, -0.5f,  0.5f,  0.4f, 0.9f, 0.1f,
+             0.5f, -0.5f,  0.5f,  0.4f, 0.9f, 0.1f,
+            -0.5f, -0.5f,  0.5f,  0.1f, 0.4f, 0.9f,
+            -0.5f, -0.5f, -0.5f,  0.1f, 0.9f, 0.4f,
+
+            -0.5f,  0.5f, -0.5f,  0.7f, 0.3f, 0.9f,
+             0.5f,  0.5f, -0.5f,  0.3f, 0.7f, 0.9f,
+             0.5f,  0.5f,  0.5f,  0.9f, 0.7f, 0.3f,
+             0.5f,  0.5f,  0.5f,  0.9f, 0.7f, 0.3f,
+            -0.5f,  0.5f,  0.5f,  0.7f, 0.9f, 0.3f,
+            -0.5f,  0.5f, -0.5f,  0.7f, 0.3f, 0.9f
+        };
+
+        unsigned int VBO, VAO;
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        // 位置属性 (Location 0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        // 颜色属性 (Location 1)
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        // 6. 渲染循环
+        while (!glfwWindowShouldClose(window)) {
+            // 输入
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                glfwSetWindowShouldClose(window, true);
+
+            // 背景颜色
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glUseProgram(shaderProgram);
+
+            // --- 矩阵变换 ---
+            glm::mat4 model = glm::mat4(1.0f);
+            glm::mat4 view  = glm::mat4(1.0f);
+            glm::mat4 projection = glm::mat4(1.0f);
+
+            // 绕 Z 轴旋转 (随着时间变化)
+            model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            // 为了视觉效果更好，加点 X 轴旋转
+            model = glm::rotate(model, (float)glfwGetTime() * glm::radians(20.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+            projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+            // 传递给着色器
+            unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
+            unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
+            unsigned int projLoc  = glGetUniformLocation(shaderProgram, "projection");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+            // 绘制立方体
+            glBindVertexArray(VAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+
+        // 清理
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glfwTerminate();
+        return 0;
+    }
+
+    ```
+
+    在 OpenGL Core Profile（核心模式）下，一些旧的查询扩展的方法可能会失效。设置 glewExperimental = GL_TRUE 会确保 GLEW 使用可靠的方式初始化所有现代 OpenGL 函数（比如我们用到的顶点数组 VAO）。
+
+    宏定义：我在代码开头加了 #define GLEW_STATIC。如果你是动态链接 .dll 或 .so 版本的 GLEW，可以去掉它。
+
 * linux 相关
 
     * `linux/wait.h`

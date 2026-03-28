@@ -8442,3 +8442,29 @@
 * AmpliGraph
 
     <https://github.com/Accenture/AmpliGraph>
+
+* graph 与 embedding 相关
+
+    * GraphVite - graph embedding at high speed and large scale
+
+        <https://github.com/DeepGraphLearning/graphvite>
+
+    * Graph Neural Networks for Recommender Systems 
+
+        <https://github.com/je-dbl/GNN-RecSys>
+
+    *  Knowledge Graph Embeddings including TransE, TransH, TransR and PTransE 
+
+        <https://github.com/thunlp/KB2E>
+
+    * GraphEmbedding: Implementation and experiments of graph embedding algorithms. 
+
+        <https://github.com/shenweichen/GraphEmbedding>
+
+* freerdp github repo: <https://github.com/FreeRDP/FreeRDP>
+
+    homepage: <https://www.freerdp.com/>
+
+* 《动手学大模型》系列编程实践教程
+
+    <https://github.com/Lordog/dive-into-llms>

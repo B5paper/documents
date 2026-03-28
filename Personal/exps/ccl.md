@@ -22,6 +22,10 @@
 
 * [v] 尝试改 device kernel bug，跑通 p2p
 
+* [ ] ai 总结重点，先让它自己总结，然后再提问，主要是 ipa map 的时机，send/recv 的 head / tail 哪个是远程地址，哪个是本地地址。算子中如何启用 ipa 和 addr。
+
+    另外需要对地址、指令进行说明，在调试时如何猜测的。
+
 * [ ] ai 思考 p2p active 时 rank = 1 是否有更优雅的解决方案
 
 * [ ] 调研跨机时 iommu 不共享的问题，看如何使用 net 方式绕过。注意 chip id 这次会变成 0 和 4，不再是 0 和 1
