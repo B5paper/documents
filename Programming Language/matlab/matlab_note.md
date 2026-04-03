@@ -687,87 +687,6 @@
 
     shading 是 MATLAB 三维可视化中调整图形外观的重要工具，可根据需要选择不同平衡（清晰度 vs 平滑度 vs 性能）。
 
-* matlab spy() 函数
-
-    原型
-
-    ```matlab
-    spy(S)
-    spy(S, markersize)
-    spy(S, LineSpec)
-    spy(S, LineSpec, markersize)
-    spy(ax, ___)
-    ```
-
-    作用
-
-    可视化稀疏矩阵的非零元素模式，常用于分析矩阵结构、填充模式、连接性等。
-
-    用法示例
-
-    ```matlab
-    % 创建稀疏矩阵
-    S = bucky;  % Bucky 球邻接矩阵
-
-    % 基本用法
-    figure
-    subplot(2,2,1)
-    spy(S)
-    title('默认显示')
-
-    % 控制标记大小
-    subplot(2,2,2)
-    spy(S, 10)  % 标记大小为10
-    title('标记大小=10')
-
-    % 使用线条规范
-    subplot(2,2,3)
-    spy(S, 'r*', 8)  % 红色星号，大小8
-    title('红色星号标记')
-
-    % 获取额外信息
-    subplot(2,2,4)
-    spy(S)
-    [nz, rows, cols] = find(S);
-    title(sprintf('非零元素数: %d', nnz(S)))
-
-    % 分析矩阵结构
-    A = delsq(numgrid('S', 30));  % 有限差分矩阵
-    figure
-    spy(A)
-    title('有限差分矩阵结构')
-    ```
-
-    典型应用
-
-    * 矩阵结构分析
-
-        ```matlab
-        % 带状矩阵分析
-        B = diag(ones(50,1)) + diag(ones(49,1),1) + diag(ones(49,1),-1);
-        spy(B)
-        title('三对角矩阵')
-        ```
-
-    * 稀疏模式比较
-
-    ```matlab
-    % 比较不同填充策略
-    load west0479
-    figure
-    subplot(1,3,1)
-    spy(west0479)
-    title('原始矩阵')
-
-    subplot(1,3,2)
-    spy(chol(west0479))
-    title('Cholesky分解后')
-
-    subplot(1,3,3)
-    [p,~,~] = colamd(west0479);
-    spy(west0479(p,p))
-    title('列重排序后')
-    ```
 
 * histogram() 函数
 
@@ -7256,14 +7175,6 @@
     end
     ```
 
-* 查看稀疏矩阵类型数据的信息
-
-    ```matlab
-    % 稀疏矩阵
-    spy(data)  % 可视化稀疏模式
-    nnz(data)  % 非零元素个数
-    ```
-
 * 对于超大数组，考虑先抽取样本查看：
 
     ```matlab
@@ -7448,6 +7359,98 @@
     1. `size(A)`得到的也是一个向量，或者说，一维矩阵
 
 ## topics
+
+### 稀疏矩阵
+
+* matlab spy() 函数
+
+    原型
+
+    ```matlab
+    spy(S)
+    spy(S, markersize)
+    spy(S, LineSpec)
+    spy(S, LineSpec, markersize)
+    spy(ax, ___)
+    ```
+
+    作用
+
+    可视化稀疏矩阵的非零元素模式，常用于分析矩阵结构、填充模式、连接性等。
+
+    用法示例
+
+    ```matlab
+    % 创建稀疏矩阵
+    S = bucky;  % Bucky 球邻接矩阵
+
+    % 基本用法
+    figure
+    subplot(2,2,1)
+    spy(S)
+    title('默认显示')
+
+    % 控制标记大小
+    subplot(2,2,2)
+    spy(S, 10)  % 标记大小为10
+    title('标记大小=10')
+
+    % 使用线条规范
+    subplot(2,2,3)
+    spy(S, 'r*', 8)  % 红色星号，大小8
+    title('红色星号标记')
+
+    % 获取额外信息
+    subplot(2,2,4)
+    spy(S)
+    [nz, rows, cols] = find(S);
+    title(sprintf('非零元素数: %d', nnz(S)))
+
+    % 分析矩阵结构
+    A = delsq(numgrid('S', 30));  % 有限差分矩阵
+    figure
+    spy(A)
+    title('有限差分矩阵结构')
+    ```
+
+    典型应用
+
+    * 矩阵结构分析
+
+        ```matlab
+        % 带状矩阵分析
+        B = diag(ones(50,1)) + diag(ones(49,1),1) + diag(ones(49,1),-1);
+        spy(B)
+        title('三对角矩阵')
+        ```
+
+    * 稀疏模式比较
+
+        ```matlab
+        % 比较不同填充策略
+        load west0479
+        figure
+        subplot(1,3,1)
+        spy(west0479)
+        title('原始矩阵')
+
+        subplot(1,3,2)
+        spy(chol(west0479))
+        title('Cholesky分解后')
+
+        subplot(1,3,3)
+        [p,~,~] = colamd(west0479);
+        spy(west0479(p,p))
+        title('列重排序后')
+        ```
+
+* 查看稀疏矩阵类型数据的信息
+
+    ```matlab
+    % 稀疏矩阵
+    spy(data)  % 可视化稀疏模式
+    nnz(data)  % 非零元素个数
+    ```
 
 ### 可视化
 
