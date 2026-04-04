@@ -649,7 +649,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### Tasks
 
-* [ ] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
+* [v] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15, 02.19
 
@@ -851,7 +851,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] 强制正确的模块依赖顺序
+* [v] 强制正确的模块依赖顺序
 
     ```bash
     # 在 /etc/modules-load.d/ 中确保先加载 DRM 相关模块
@@ -1760,7 +1760,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] OpenBCI GUI、LSL Lab Streaming Layer
 
-* [ ] `print(dir(mne_nirs.preprocessing))`
+* [v] `print(dir(mne_nirs.preprocessing))`
 
 * [asso] 查看所有可用的方法（过滤掉内置方法）
 
@@ -1805,7 +1805,7 @@ resources:
 
 ### tasks
 
-* [O] torchmetric中micro precision计算详解
+* [v] torchmetric中micro precision计算详解
 
     * 目前看到
 
@@ -1893,7 +1893,7 @@ resources:
 
         > 2. adjust_contrast() function:floating-point
 
-* [ ] 调研 Reshaping a Tensor in Pytorch
+* [v] 调研 Reshaping a Tensor in Pytorch
 
     <https://www.geeksforgeeks.org/python/reshaping-a-tensor-in-pytorch/>
 
