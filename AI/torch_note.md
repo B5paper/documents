@@ -2054,7 +2054,17 @@
 
         * Leaky ReLU: f(x) = max(0.01x, x)。当 x < 0 时，它有一个很小的斜率（如0.01），而不是0。这确保了梯度永远不会完全为0，给了“死亡”神经元复活的机会。
 
-        * PReLU: 将负区间的斜率作为一个可学习的参数。
+            $$
+            f(x) = 
+            \left\{
+                \begin{aligned}
+                &x \quad x > 0 \\
+                &\alpha x \quad x \leq 0​
+                \end{aligned}
+            \right.
+            $$
+
+        * PReLU (Parametric ReLU ): 将负区间的斜率$ \alpha$ 作为一个可学习的参数。
 
         * ELU: 在负数区间是一个指数曲线，能缓解梯度消失问题并使输出均值接近0。
 
