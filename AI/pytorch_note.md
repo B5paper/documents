@@ -2,6 +2,474 @@
 
 ## cache
 
+* accuracy 有 micro 和 macro 之分吗？
+
+    这是一个很好的问题！**准确率（Accuracy）通常没有 micro 和 macro 之分**，原因让我详细解释一下。
+
+    **核心原因：Accuracy 的本质**
+
+    Accuracy 的定义是：
+    \[ \text{Accuracy} = \frac{\text{所有正确预测的样本数}}{\text{总样本数}} \]
+
+    这个定义本身就已经是 **"micro" 视角** 了 - 它统计所有样本的预测结果，然后计算总体比例。
+
+    **为什么 Accuracy 没有 Macro 平均？**
+
+    1. 计算层面的原因
+        
+        对于多分类问题，Accuracy 只能这样计算：
+        ```python
+        # 这本身就是 micro 方式
+        accuracy = (TP₁ + TP₂ + ... + TPₙ) / N
+        ```
+
+        没有办法为每个类别单独计算 "类别准确率"，因为：
+        - 每个样本只能属于一个真实类别
+        - 每个样本只能被预测为一个类别
+        - 正确预测一个样本就同时贡献了该类的 TP 和其他类的 TN
+
+    2. 概念层面的原因
+        
+        尝试定义 "每个类别的准确率" 会很不直观：
+        ```python
+        # 不合理的"类别准确率"概念
+        accuracy_class_i = (TP_i + TN_i) / N
+        ```
+        这里 TN_i（真负例）对于类别 i 来说意义模糊，因为它包含了所有其他类别的正确预测。
+
+    **对比 Precision/Recall/F1 的情况**
+
+    为了更清楚理解，我们对比一下：
+
+    | 指标 | 是否有 Micro | 是否有 Macro | 原因 |
+    |------|-------------|--------------|------|
+    | **Accuracy** | ✅ (本身就是) | ❌ | 天然就是全局统计，无法合理定义"类别准确率" |
+    | **Precision** | ✅ | ✅ | 可以为每个类别单独计算 Precision |
+    | **Recall** | ✅ | ✅ | 可以为每个类别单独计算 Recall |
+    | **F1-score** | ✅ | ✅ | 基于 Precision 和 Recall 计算 |
+
+    **实际计算示例**
+
+    假设一个3分类问题：
+    ```python
+    import torch
+    from torchmetrics import Accuracy
+
+    # 真实标签和预测
+    target = torch.tensor([0, 1, 2, 0, 1, 2])  # 真实类别
+    preds = torch.tensor([0, 1, 1, 0, 0, 2])   # 预测类别
+
+    # Accuracy 只有一种计算方式
+    accuracy = Accuracy(task="multiclass", num_classes=3)
+    acc = accuracy(preds, target)
+    print(f"Accuracy: {acc:.3f}")  # 输出: 0.667
+
+    # 验证：手动计算
+    # 正确预测：索引0,1,5 → 3个正确，总共6个样本 → 3/6=0.5
+    ```
+
+    **替代方案：当你想"公平"评估每个类别时**
+
+    如果你想要一个类似 "macro accuracy" 的指标来公平对待所有类别，可以考虑：
+
+    1. **平衡准确率（Balanced Accuracy）**
+        
+        ```python
+        from torchmetrics import Accuracy
+
+        # 平衡准确率：对每个类别的召回率求平均
+        balanced_acc = Accuracy(task="multiclass", num_classes=3, average='macro')
+        result = balanced_acc(preds, target)
+        print(f"Balanced Accuracy: {result:.3f}")
+        ```
+
+        实际上，在 `torchmetrics` 中，当你在多分类任务中使用 `average='macro'` 时，它计算的就是平衡准确率。
+
+    2. **每类准确率的概念替代**
+        
+        虽然不能直接计算"类别准确率"，但可以通过其他方式了解各类别表现：
+
+        ```python
+        from torchmetrics import Precision, Recall, ConfusionMatrix
+
+        # 通过其他指标了解各类别表现
+        precision = Precision(task="multiclass", num_classes=3, average='none')
+        recall = Recall(task="multiclass", num_classes=3, average='none')
+        conf_matrix = ConfusionMatrix(task="multiclass", num_classes=3)
+
+        print("每类 Precision:", precision(preds, target))
+        print("每类 Recall:", recall(preds, target))
+        print("混淆矩阵:\n", conf_matrix(preds, target))
+        ```
+
+    **在 torchmetrics 中的实际行为**
+
+    在 `torchmetrics` 的 Accuracy 中：
+    - `average='micro'` 或 `average=None`：标准的准确率
+    - `average='macro'`：平衡准确率（每类召回率的平均）
+    - `average='weighted'`：按类别样本数加权的准确率
+
+    ```python
+    # 对比不同 average 参数
+    acc_micro = Accuracy(task="multiclass", num_classes=3, average='micro')
+    acc_macro = Accuracy(task="multiclass", num_classes=3, average='macro')
+    acc_weighted = Accuracy(task="multiclass", num_classes=3, average='weighted')
+
+    print(f"Micro Accuracy: {acc_micro(preds, target):.3f}")    # 标准准确率
+    print(f"Macro Accuracy: {acc_macro(preds, target):.3f}")    # 平衡准确率
+    print(f"Weighted Accuracy: {acc_weighted(preds, target):.3f}") # 加权准确率
+    ```
+
+    **总结**
+
+    - **Accuracy 没有 micro/macro 之分**，因为它天然就是 micro 视角的全局指标
+    - 所谓的 "macro accuracy" 实际上计算的是**平衡准确率**
+    - 如果你需要公平评估每个类别的表现，应该使用：
+      - **平衡准确率**（Balanced Accuracy）
+      - **每类的 Precision 和 Recall**
+      - **F1-score 的 macro 平均**
+
+    所以当你看到有人讨论 "macro accuracy" 时，他们通常指的是平衡准确率，而不是传统意义上的准确率。
+
+* 简述 pytorch 中 view() 的原型、作用和用法
+
+    在 PyTorch 中，`view()` 是一个非常常用且高效的方法，用于改变张量（Tensor）的形状。它的核心思想是在**不改变底层数据**的情况下，重新解释数据的维度。
+
+    ---
+
+    1. 函数原型
+
+        ```python
+        tensor.view(*shape) -> Tensor
+        ```
+        * **参数 `*shape`**：期望输出的新形状（整数序列）。
+        * **返回值**：返回一个新的张量，它与原张量共享内存空间。
+
+    ---
+
+    2. 主要作用
+
+        `view()` 的作用是**维度重塑（Reshaping）**。
+        它类似于 NumPy 中的 `reshape()`，但有一个关键约束：**原张量必须是连续的（Contiguous）**。如果张量在内存中不连续（例如经过了 `transpose()` 或 `permute()` 操作），直接调用 `view()` 会报错，此时通常需要先调用 `.contiguous()`。
+
+    ---
+
+    3. 基本用法与示例
+
+        A. 基础变换
+
+        最常见的用法是将多维张量展平或重组。
+        ```python
+        import torch
+
+        x = torch.randn(4, 4)  # 形状为 (4, 4)
+        y = x.view(16)         # 展平为 (16,)
+        z = x.view(2, 8)       # 重塑为 (2, 8)
+        ```
+
+        B. 使用 `-1` 自动计算维度
+
+        如果你不想手动计算某个维度的数值，可以用 `-1` 代替，PyTorch 会根据总元素数量自动推导该维度的值。
+        ```python
+        x = torch.randn(4, 4)
+        # 只要确定第一维是 2，总元素 16 个，第二维自动推导为 8
+        y = x.view(2, -1) 
+        print(y.shape) # torch.Size([2, 8])
+        ```
+
+        C. 在深度学习模型中的典型场景
+
+        在全连接层（Linear Layer）之前，通常需要将卷积层输出的多维特征图展平：
+        ```python
+        # 假设 batch_size=32, 图像特征为 64通道, 7x7大小
+        features = torch.randn(32, 64, 7, 7)
+
+        # 保留 batch 维度，将其余维度展平
+        flattened = features.view(32, -1) 
+        print(flattened.shape) # torch.Size([32, 3136])
+        ```
+
+    ---
+
+    4. 注意事项（避坑指南）
+
+        1.  **共享内存**：`view()` 产生的新张量与原张量**共用内存**。修改其中一个，另一个也会变。
+        2.  **连续性限制**：如果遇到 `RuntimeError: input is not contiguous`，请改用 `x.contiguous().view(...)` 或者直接使用 `x.reshape(...)`（后者会自动处理不连续的情况，但可能会产生内存拷贝）。
+        3.  **元素总数必须匹配**：重塑前后的元素总乘积必须一致。例如 $4 \times 4 = 16$，你不能把它 `view` 成 $(3, 5)$。
+
+    ---
+
+    **需要我为你对比一下 `view()`、`reshape()` 和 `transpose()` 之间的深层区别吗？**
+
+* 详细讲讲 unsqueeze()
+
+    简单来说，`unsqueeze()` 的作用是**“升维”**。它在指定位置插入一个长度为 **1** 的新维度。
+
+    这在深度学习中极其重要，因为模型通常要求输入具有特定的维度（例如 Batch 维度），而你的原始数据可能少了一维。
+
+    ---
+
+    1. 函数原型
+        
+        ```python
+        tensor.unsqueeze(dim) -> Tensor
+        ```
+        * **参数 `dim`**：新维度插入的位置索引。
+        * **返回值**：返回一个新张量，与原张量共享内存。
+
+    ---
+
+    2. 核心逻辑：插入“1”
+        
+        假设你有一个形状为 `(3, 4)` 的张量 $A$：
+        * `A.unsqueeze(0)` $\rightarrow$ 形状变为 `(1, 3, 4)`
+        * `A.unsqueeze(1)` $\rightarrow$ 形状变为 `(3, 1, 4)`
+        * `A.unsqueeze(2)` 或 `A.unsqueeze(-1)` $\rightarrow$ 形状变为 `(3, 4, 1)`
+
+        > **直观理解**：它就像是在现有的维度列表里挤进一个数字 1，其他维度往后挪。
+
+    ---
+
+    3. 为什么要用它？（三大实战场景）
+
+        **场景 A：添加 Batch 维度（最常用）**
+
+        PyTorch 的模型（如 `nn.Conv2d` 或 `nn.Linear`）通常要求输入的第一维是 **Batch Size**。如果你只有一张图片或一个向量，就需要手动补齐这一维。
+
+        ```python
+        # 假设是一个单张图片的特征，形状为 [C, H, W]
+        image = torch.randn(3, 224, 224) 
+
+        # 模型要求输入为 [Batch, C, H, W]
+        input_tensor = image.unsqueeze(0) 
+
+        print(input_tensor.shape) # torch.Size([1, 3, 224, 224])
+        ```
+
+        **场景 B：为了进行广播（Broadcasting）**
+
+        当你需要对两个形状不匹配的张量进行加减乘除时，可以用 `unsqueeze` 扩展维度，触发自动广播。
+
+        ```python
+        x = torch.tensor([1, 2, 3])      # 形状 (3,)
+        y = torch.tensor([10, 20])       # 形状 (2,)
+
+        # 想让 x 的每个元素都加到 y 的每一行上
+        # 将 x 变为 (3, 1)，将 y 变为 (1, 2)
+        result = x.unsqueeze(1) + y.unsqueeze(0) 
+        # 结果形状为 (3, 2)
+        ```
+
+        **场景 C：配合特定的 Loss 函数**
+        
+        有些损失函数（如 `nn.CrossEntropyLoss`）对标签的维度有严格要求，有时需要将 `(N,)` 变成 `(N, 1)`。
+
+        ---
+
+    4. 逆操作：`squeeze()`
+
+        有增就有减。`squeeze()` 用于**“降维”**，它会移除所有长度为 **1** 的维度。
+
+        * `tensor.squeeze()`：移除所有长度为 1 的维度。
+        * `tensor.squeeze(dim)`：只移除指定位置且长度为 1 的维度。
+
+        ```python
+        x = torch.randn(1, 3, 1, 5)
+
+        y = x.squeeze()     # 形状变为 (3, 5)
+        z = x.squeeze(0)    # 形状变为 (3, 1, 5)
+        ```
+
+    ---
+
+    5. 进阶小技巧：None 索引
+        
+        在 Python 中，你可以使用 `None` 这种切片语法来实现和 `unsqueeze` 一样的效果，代码更简洁：
+
+        ```python
+        x = torch.randn(3, 4)
+
+        y = x[None, :, :]   # 等同于 x.unsqueeze(0) -> (1, 3, 4)
+        z = x[:, None, :]   # 等同于 x.unsqueeze(1) -> (3, 1, 4)
+        w = x[..., None]    # 等同于 x.unsqueeze(-1) -> (3, 4, 1)
+        ```
+
+    ---
+
+    **总结**
+
+    * **`unsqueeze(dim)`**：在 `dim` 处塞入一个大小为 1 的维度。
+    * **核心用途**：对齐维度、适配模型接口、准备广播运算。
+
+    **想看看 `unsqueeze` 是如何帮助你在卷积神经网络中处理单张图片的完整代码吗？**
+
+* 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
+
+    在 `torchmetrics` 中，有几种方法可以获得多分类任务中指定类别的 precision、recall 和 f1。让我为你详细介绍每种方法。
+
+    **方法1：使用 `average='none'` 然后选择特定类别**
+
+    这是最直接的方法：
+
+    ```python
+    import torch
+    from torchmetrics import Precision, Recall, F1Score
+
+    # 设置任务
+    num_classes = 3
+    precision_metric = Precision(task="multiclass", num_classes=num_classes, average='none')
+    recall_metric = Recall(task="multiclass", num_classes=num_classes, average='none')
+    f1_metric = F1Score(task="multiclass", num_classes=num_classes, average='none')
+
+    # 模拟数据
+    preds = torch.tensor([0, 1, 2, 0, 1, 2])  # 预测的类别索引
+    target = torch.tensor([0, 1, 1, 0, 0, 2]) # 真实的类别索引
+
+    # 计算所有类别的指标
+    all_precision = precision_metric(preds, target)
+    all_recall = recall_metric(preds, target)
+    all_f1 = f1_metric(preds, target)
+
+    print("所有类别的 Precision:", all_precision)
+    print("所有类别的 Recall:", all_recall)
+    print("所有类别的 F1:", all_f1)
+
+    # 获取指定类别（比如类别1）的指标
+    class_idx = 1
+    print(f"\n类别 {class_idx} 的指标:")
+    print(f"Precision: {all_precision[class_idx]:.3f}")
+    print(f"Recall: {all_recall[class_idx]:.3f}")
+    print(f"F1: {all_f1[class_idx]:.3f}")
+    ```
+
+    输出类似：
+    ```
+    所有类别的 Precision: tensor([0.6667, 0.5000, 1.0000])
+    所有类别的 Recall: tensor([1.0000, 0.5000, 0.5000])
+    所有类别的 F1: tensor([0.8000, 0.5000, 0.6667])
+
+    类别 1 的指标:
+    Precision: 0.500
+    Recall: 0.500
+    F1: 0.500
+    ```
+
+    **方法2：使用 `class` 参数（某些版本支持）**
+
+    在新版本的 torchmetrics 中，可以直接指定类别：
+
+    ```python
+    # 直接计算特定类别的指标
+    precision_class1 = Precision(task="multiclass", num_classes=num_classes, average='none', class=1)
+    recall_class1 = Recall(task="multiclass", num_classes=num_classes, average='none', class=1)
+    f1_class1 = F1Score(task="multiclass", num_classes=num_classes, average='none', class=1)
+
+    # 计算特定类别的指标
+    prec_1 = precision_class1(preds, target)
+    rec_1 = recall_class1(preds, target)
+    f1_1 = f1_class1(preds, target)
+
+    print(f"\n直接计算类别 1:")
+    print(f"Precision: {prec_1:.3f}")
+    print(f"Recall: {rec_1:.3f}")
+    print(f"F1: {f1_1:.3f}")
+    ```
+
+    **方法3：使用 `MulticlassPrecision` 等具体类**
+
+    ```python
+    from torchmetrics.classification import MulticlassPrecision, MulticlassRecall, MulticlassF1Score
+
+    # 为特定类别创建指标
+    precision_class_specific = MulticlassPrecision(num_classes=num_classes, average='none')
+    recall_class_specific = MulticlassRecall(num_classes=num_classes, average='none')
+    f1_class_specific = MulticlassF1Score(num_classes=num_classes, average='none')
+
+    # 使用方法相同
+    precisions = precision_class_specific(preds, target)
+    recalls = recall_class_specific(preds, target)
+    f1_scores = f1_class_specific(preds, target)
+
+    class_of_interest = 2
+    print(f"\n类别 {class_of_interest} 的指标:")
+    print(f"Precision: {precisions[class_of_interest]:.3f}")
+    print(f"Recall: {recalls[class_of_interest]:.3f}")
+    print(f"F1: {f1_scores[class_of_interest]:.3f}")
+    ```
+
+    **方法4：批量获取所有类别的指标（推荐用于分析）**
+
+    ```python
+    def get_per_class_metrics(preds, target, num_classes, class_names=None):
+        """获取每个类别的详细指标"""
+        if class_names is None:
+            class_names = [f"Class_{i}" for i in range(num_classes)]
+        
+        precision = Precision(task="multiclass", num_classes=num_classes, average='none')
+        recall = Recall(task="multiclass", num_classes=num_classes, average='none')
+        f1 = F1Score(task="multiclass", num_classes=num_classes, average='none')
+        
+        precisions = precision(preds, target)
+        recalls = recall(preds, target)
+        f1_scores = f1(preds, target)
+        
+        print("每个类别的详细指标:")
+        print("=" * 50)
+        for i, name in enumerate(class_names):
+            print(f"{name}: Precision={precisions[i]:.3f}, Recall={recalls[i]:.3f}, F1={f1_scores[i]:.3f}")
+        
+        return precisions, recalls, f1_scores
+
+    # 使用示例
+    class_names = ["Cat", "Dog", "Fish"]
+    precisions, recalls, f1_scores = get_per_class_metrics(preds, target, num_classes, class_names)
+
+    # 然后可以轻松访问任何类别
+    interest_class = "Dog"
+    class_idx = class_names.index(interest_class)
+    print(f"\n我们关心的类别 '{interest_class}':")
+    print(f"Precision: {precisions[class_idx]:.3f}")
+    print(f"Recall: {recalls[class_idx]:.3f}")
+    print(f"F1: {f1_scores[class_idx]:.3f}")
+    ```
+
+    **方法5：使用 ClassificationReport（最方便的分析工具）**
+
+    ```python
+    from torchmetrics import ClassificationReport
+
+    # 使用分类报告一次性获取所有信息
+    report = ClassificationReport(task="multiclass", num_classes=num_classes)
+    result = report(preds, target)
+    print(result)
+    ```
+
+    这会输出一个格式化的报告，包含每个类别的 precision、recall、f1-score。
+
+    **实际应用建议**
+
+    1. **对于单类别分析**：使用方法1（`average='none'`）最直接
+    2. **对于完整分析**：使用方法4或5查看所有类别
+    3. **在训练循环中**：可以同时计算宏观平均和单个类别指标
+
+    ```python
+    # 训练时的典型用法
+    def calculate_metrics(preds, target, num_classes, class_of_interest):
+        # 宏观指标用于整体监控
+        macro_f1 = F1Score(task="multiclass", num_classes=num_classes, average='macro')
+        
+        # 特定类别指标用于重点关注
+        per_class_f1 = F1Score(task="multiclass", num_classes=num_classes, average='none')
+        
+        overall_f1 = macro_f1(preds, target)
+        class_f1s = per_class_f1(preds, target)
+        interest_f1 = class_f1s[class_of_interest]
+        
+        return overall_f1, interest_f1
+    ```
+
+    **总结**：在 `torchmetrics` 中获取指定类别的指标，主要就是使用 `average='none'` 参数来计算所有类别的指标，然后通过索引选择你关心的特定类别。
+
 * torch.cuda 中都有哪些常用函数？
 
     在 PyTorch 的 GPU 编程中，`torch.cuda` 模块提供了管理显存、查询设备状态及优化计算的核心工具。

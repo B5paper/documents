@@ -469,8 +469,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * 贝叶斯网的笔记不应该太简洁，应该在概念下给出大量 example，给出注释，给出引申的猜想。
 
-* java 的 note 大部分已经空间化了，没有什么需要 reorg 的
-
 * 清理了 latex 和 opengl 的笔记，但是这两份笔记只有几行，并没有什么需要整理的
 
     最好还是先让程序扫描一遍目录，然后根据规则排除一些文件，然后再跟上一次使用的数据库做对比，看看新扫描的增加了哪些文件，缺少了哪些文件，手动确认是否更新数据库。
@@ -648,8 +646,6 @@ english words 由 { } reorg: english words 进化而来。
 * 动态的 review 间隔确定：通过即时复述，确定记忆量；间隔一段时间，比如早上到晚上，或者早上到第二天早上，再次复述，达到 90% 暂定）以上
 
 ### Tasks
-
-* [v] opengl add qa: 请使用 shader 画一个彩色的 cube，并使之旋转。
 
 * [O] 调研 <https://thevaluable.dev/regular-expression-basics-vim-grep/> 12.15, 02.19
 
@@ -851,17 +847,6 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] 强制正确的模块依赖顺序
-
-    ```bash
-    # 在 /etc/modules-load.d/ 中确保先加载 DRM 相关模块
-    echo "drm" | sudo tee -a /etc/modules-load.d/drm.conf
-
-    # 或使用 modprobe 显式指定依赖
-    sudo modprobe drm
-    sudo modprobe sipu
-    ```
-
 * [ ] 如果使用 DKMS
 
     ```bash
@@ -872,7 +857,7 @@ english words 由 { } reorg: english words 进化而来。
     sudo dkms install sipu/version -k $(uname -r)
     ```
 
-* [ ] vim 命令
+* [v] vim 命令
 
     :'<,'>s/.*/```&```/
 
@@ -1276,7 +1261,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `timer_create()`
 
-* [ ] `sigaction()`
+* [v] `sigaction()`
 
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
@@ -1742,25 +1727,19 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
 
-## matplotlib
-
-### tasks
-
-* [ ] `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()`
-
-* [ ] `ax.annotate()`
-
-* [new] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
-
 ## fnirs
 
 ### tasks
 
+* [v] `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()`
+
+* [ ] `ax.annotate()`
+
+* [ ] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
+
 * [ ] pyserial, struct
 
 * [ ] OpenBCI GUI、LSL Lab Streaming Layer
-
-* [v] `print(dir(mne_nirs.preprocessing))`
 
 * [asso] 查看所有可用的方法（过滤掉内置方法）
 
@@ -1804,12 +1783,6 @@ resources:
 * [ ] 调研 llama 在 cpu 上的部署
 
 ### tasks
-
-* [v] torchmetric中micro precision计算详解
-
-    * 目前看到
-
-        > 那么在 torchmetric 中，在多分类任务中，如果我想获得一个指定类别的 precision / recall / f1 该怎么办？
 
 * [ ] 关键阈值：秩（Rank）
 
@@ -1893,10 +1866,6 @@ resources:
 
         > 2. adjust_contrast() function:floating-point
 
-* [v] 调研 Reshaping a Tensor in Pytorch
-
-    <https://www.geeksforgeeks.org/python/reshaping-a-tensor-in-pytorch/>
-
 * [ ] 调研 pytorch-tutorial
 
     <https://github.com/yunjey/pytorch-tutorial?tab=readme-ov-file>
@@ -1909,7 +1878,7 @@ resources:
 
 * [ ] 调研 SG-DMA
 
-* [ ] 调研散列表（Scatterlist）
+* [v] 调研散列表（Scatterlist）
 
     ```c
     struct scatterlist sg;
@@ -3946,6 +3915,8 @@ resources:
     ```
 
 ### tasks
+
+* [v] 除了 watch tail xxx.log 看最文件最新内容，还有什么办法？类似 dmesg -w 的功能
 
 * [ ] 调研 bash 中的特殊变量`%%`（当前作业）
 
@@ -6102,6 +6073,8 @@ resources:
     ```
 
 ### tasks
+
+* [v] vim 打开文件后，是否可以总是追踪最新内容？
 
 * [new] 调研 vim 设置
 

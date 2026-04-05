@@ -2,6 +2,75 @@
 
 ## cache
 
+* 为什么有时我执行 python xxx.py 2>&1 | tee my.log 时，屏幕上没有输出，到了程序执行完的时候才一股脑输出
+
+    这是一个非常经典的问题，原因不在于 `python` 或 `tee` 本身，而在于 **标准 I/O 的缓存机制（Buffering）**。
+
+    1. 现象背后的“幕后黑手”：全缓存 (Full Buffering)
+
+        在 Linux/Unix 系统中，为了提高性能，标准输出（`stdout`）通常有两种模式：
+        * **行缓存 (Line Buffered)**：当输出遇到换行符 `\n` 时，立即把数据冲刷（flush）到屏幕上。这是你直接运行 `python xxx.py` 时的默认行为。
+        * **全缓存 (Fully Buffered)**：数据会被攒在一个缓冲区里（通常是 **4KB** 或 **8KB**），直到缓冲区满了，或者程序结束时，才一次性吐出来。
+
+        **当你使用管道 `|` 时，系统会自动把 `stdout` 从“行缓存”切换到“全缓存”模式。** 这就是为什么你看着屏幕像“死”了一样，直到程序结束才猛然刷出一大堆日志。
+
+    ---
+
+    2. 解决方案（如何实现实时输出）
+
+        要解决这个问题，你需要强制 Python 或系统关闭缓存，或者改为行缓存模式。
+
+        方法 A：使用 `-u` 参数（最简单，推荐）
+
+        Python 提供了一个专门的参数来强制输出不进入缓冲区（unbuffered）。
+        ```bash
+        python -u xxx.py 2>&1 | tee my.log
+        ```
+
+        方法 B：设置环境变量
+
+        如果你不想每次都输入 `-u`，可以设置环境变量：
+        ```bash
+        export PYTHONUNBUFFERED=1
+        python xxx.py 2>&1 | tee my.log
+        ```
+
+        方法 C：在代码中手动 Flush
+
+        如果你只想让特定的关键输出实时显示，可以在 `print` 函数中指定：
+        ```python
+        print("Processing data...", flush=True)
+        ```
+        或者在代码开头重新定义 `sys.stdout`：
+        ```python
+        import sys
+        import io
+        # 强制所有输出立即刷新
+        sys.stdout = io.TextIOWrapper(sys.stdout.detach(), line_buffering=True)
+        ```
+
+        方法 D：使用 `stdbuf` 命令（通用方案）
+
+        如果你运行的不是 Python，而是其他程序（如 C 编译的程序），可以使用系统工具 `stdbuf` 修改缓冲区行为：
+        ```bash
+        # -o L 表示输出(output)设为行(Line)缓存
+        stdbuf -oL python xxx.py 2>&1 | tee my.log
+        ```
+
+    ---
+
+    3. 为什么 `2>&1` 没起作用？
+
+        `2>&1` 只是把**标准错误 (stderr)** 重定向到了 **标准输出 (stdout)**。
+        * `stderr` 默认通常是不缓存的（为了让你尽快看到错误）。
+        * 但一旦它被重定向到 `stdout`，它就跟着 `stdout` 一起进入了那个 4KB 的大缓冲区里“排队”去了。
+
+    **总结建议**
+
+    如果你是在跑一个耗时很长的脚本，想实时看到进度，**直接加个 `-u` 参数是最优雅的解法。**
+
+    **顺便问一下，你的脚本里是否有大量的 `print` 语句？如果是为了记录日志，我可以教你如何配置 Python 的 `logging` 模块，它能更专业地处理文件同步和终端显示。**
+
 * 果子熟了的茉莉龙井和桂花乌龙都十分难喝
 
 * 如果一行发生错位，那么只有错位那一行的后半段，和后面几行的第一个字符与上面的对位会发生影响，后面几行的中间部分的向上对位不受影响

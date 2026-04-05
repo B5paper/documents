@@ -290,6 +290,18 @@
     ReLU（Rectified Linear Unit，修正线性单元）是一个非线性激活函数，其数学表达式为：
 
     - **公式**：`ReLU(x) = max(0, x)`
+
+        $$f(x) = \max(0, x)$$
+
+        其公式还可以被写为：
+
+        $$f(x) = \left\{
+            \begin{aligned}
+            &x \quad \text{if } x \gt 0\\
+            &0 \quad \text{if } x \leq 0 \end{aligned}
+            \right.​
+        $$
+
     - **特点**：将输入中所有负值置为0，正值保持不变
 
     ReLU的主要优点：

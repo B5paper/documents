@@ -6,6 +6,10 @@ Ref:
 
 ## cache
 
+* 什么是 DRM？
+
+    DRM (Direct Rendering Manager) 是 Linux 内核的一个子系统。它负责与显卡（GPU）进行交互，处理图形渲染、显存管理和屏幕刷新等任务。它是现代图形界面（如 Wayland 或复杂的 X11 配置）能够流畅运行的基础组件。
+
 * 讲讲 rcu 链表, 以及`list_add_rcu()`, `kfree_rcu`的原型、作用及用法。讲讲还有哪些常用函数
 
     在 Linux 内核开发中，**RCU (Read-Copy-Update)** 是一种极高性能的锁机制。它的核心思想是：**允许多个读取者（Reader）在不加锁的情况下并发访问，而更新者（Updater）则通过“先复制、后替换、最后延迟销毁”的方式进行操作。**
