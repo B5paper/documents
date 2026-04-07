@@ -1934,6 +1934,10 @@ resources:
 
 ### tasks
 
+* [v] 看笔记中是否有 cross entropy 的例子，如果没有，给出一个
+
+    只有 pytorch 库的实现，没有 numpy 实现。
+
 * [ ] 《利用Python进行数据分析》（Python for Data Analysis）
 
     作者: Wes McKinney（Pandas 的创始人）
@@ -2399,17 +2403,17 @@ resources:
 
 * [ ] 调研 SPI 协议
 
-* [ ] `linux/list_sort.h`
+* [v] `linux/list_sort.h`
 
-* [ ] `kmalloc_array()`, `kmalloc_caches()`
+* [v] `kmalloc_array()`, `kmalloc_caches()`
 
-* [ ] `devm_kmalloc()`, `devm_kzalloc()`
+* [v] `devm_kmalloc()`, `devm_kzalloc()`
 
-* [ ] `class_create_file()`
+* [v] `class_create_file()`
 
-* [ ] `class_device_destructor()`
+* [v] `class_device_destructor()`
 
-* [ ] `class_dev_iter`
+* [v] `class_dev_iter`
 
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
@@ -3052,7 +3056,7 @@ resources:
 
 * [ ] `cudaPointerAttributes()`
 
-* [ ] C++ 中，下面的情况如何写成智能指针？
+* [v] C++ 中，下面的情况如何写成智能指针？
 
     ```cpp
     struct A;

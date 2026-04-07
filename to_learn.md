@@ -8468,3 +8468,15 @@
 * 《动手学大模型》系列编程实践教程
 
     <https://github.com/Lordog/dive-into-llms>
+
+* 经典技术书籍 PDF 文件，持续更新...
+
+    <https://awesome-programming-books.github.io/>
+
+* transformers 快速入门
+
+    <https://transformers.run/>
+
+* 计算机相关书籍的 git 仓库
+
+    <https://github.com/muditbac/Reading/tree/master>

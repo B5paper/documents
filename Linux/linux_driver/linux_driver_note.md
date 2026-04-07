@@ -6,6 +6,194 @@ Ref:
 
 ## cache
 
+* 简述 sigaction() 的原型、作用及用法
+
+    在 Linux 系统编程中，`sigaction()` 是处理信号的现代、健壮的首选方式。相比于早期的 `signal()` 函数，它提供了更细致的控制，且在不同 Unix 变体之间表现更一致。
+
+    ---
+
+    1. 函数原型
+
+        `sigaction()` 定义在 `<signal.h>` 头文件中，其原型如下：
+
+        ```c
+        #include <signal.h>
+
+        int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+        ```
+
+        **参数说明：**
+
+        * **`signum`**: 要捕获的信号编号（如 `SIGINT`, `SIGTERM`）。注意：`SIGKILL` 和 `SIGSTOP` 不能被捕获或忽略。
+        * **`act`**: 指向 `struct sigaction` 的指针，定义了信号处理的新行为。
+        * **`oldact`**: 若不为 `NULL`，则用来保存该信号之前的处理配置（方便后续恢复）。
+
+    ---
+
+    2. 核心结构体 `struct sigaction`
+
+        理解这个函数的核心在于理解它使用的结构体：
+
+        ```c
+        struct sigaction {
+            void     (*sa_handler)(int);          // 传统的处理函数指针
+            void     (*sa_sigaction)(int, siginfo_t *, void *); // 增强版处理函数
+            sigset_t   sa_mask;                   // 信号屏蔽集
+            int        sa_flags;                  // 行为标志
+            void     (*sa_restorer)(void);        // 已废弃，通常不用理会
+        };
+        ```
+
+        * **`sa_handler`**: 指定信号处理函数（或 `SIG_IGN`, `SIG_DFL`）。
+        * **`sa_mask`**: 在执行信号处理程序期间，要把哪些信号**临时阻塞**。这能防止信号嵌套导致竞态条件。
+        * **`sa_flags`**: 常用标志位：
+            * `SA_RESTART`: 使被信号中断的系统调用自动重启。
+            * `SA_SIGINFO`: 使用 `sa_sigaction` 而非 `sa_handler`，获取更多信号上下文信息（如谁发的信号）。
+
+    ---
+
+    3. 主要作用
+
+        1.  **防止信号丢失**：在信号处理程序执行期间，自动阻塞相同的信号，直到处理完成。
+        2.  **更丰富的信息**：通过 `SA_SIGINFO` 标志，可以得知引发信号的进程 PID、UID 以及导致信号的原因。
+        3.  **可靠性**：解决了早期 `signal()` 函数在处理函数触发后会自动重置为默认行为的问题。
+        4.  **精细化控制**：可以决定是否重启被中断的慢速系统调用（如 `read()`, `accept()`）。
+
+    ---
+
+    4. 基本用法示例
+
+        以下是一个简单的代码片段，展示如何捕获 `Ctrl+C` (`SIGINT`) 并优雅地处理。
+
+        ```c
+        #include <stdio.h>
+        #include <signal.h>
+        #include <unistd.h>
+
+        // 信号处理函数
+        void my_handler(int sig) {
+            printf("\n捕获到信号 %d，准备退出...\n", sig);
+        }
+
+        int main() {
+            struct sigaction sa;
+
+            // 1. 设置处理函数
+            sa.sa_handler = my_handler;
+            
+            // 2. 初始化屏蔽集（处理期间不阻塞额外信号）
+            sigemptyset(&sa.sa_mask);
+            
+            // 3. 设置标志（自动重启系统调用）
+            sa.sa_flags = SA_RESTART;
+
+            // 4. 注册信号处理程序
+            if (sigaction(SIGINT, &sa, NULL) == -1) {
+                perror("sigaction error");
+                return 1;
+            }
+
+            printf("程序运行中，请按 Ctrl+C 测试...\n");
+            while(1) {
+                sleep(1);
+            }
+
+            return 0;
+        }
+        ```
+
+    ---
+
+    **总结提示**
+
+    如果你正在编写严肃的生产环境代码，**请始终使用 `sigaction()` 而不是 `signal()`**。它虽然参数稍微复杂一点，但提供的安全性和可预测性是不可替代的。
+
+
+* 简述 linux 中 struct scatterlist 的用法，以及相关函数，比如 sg_init_one(), dma_map_sg() 等
+
+    在 Linux 内核驱动开发中，`struct scatterlist`（分散/聚集列表，简称 **SG List**）是处理 **DMA（直接内存访问）** 的核心机制。
+
+    它的存在主要是为了解决一个矛盾：在虚拟内存中连续的缓冲区，在物理内存中往往是**离散**的（由多个不连续的页面组成）。通过 SG List，硬件可以一次性处理这些离散的内存块，而不需要 CPU 多次拷贝数据。
+
+    ---
+
+    1. 核心结构体 `struct scatterlist`
+
+        虽然其内部实现可能随架构变化，但核心成员通常包含：
+        * **`page_link`**: 指向内存页的指针。
+        * **`offset`**: 数据在页面内的起始偏移。
+        * **`length`**: 这一块数据的长度。
+        * **`dma_address`**: **（关键）** 映射后的设备总线地址（DMA 看到的地址）。
+
+    ---
+
+    2. 常用函数与操作流程
+
+        使用 SG List 通常遵循“初始化 -> 配置 -> DMA 映射 -> 使用 -> 解除映射”的流程。
+
+        **A. 初始化**
+
+        * **`sg_init_table(struct scatterlist *sgl, unsigned int nents)`**
+            初始化一个 SG 表，将 `nents` 个 scatterlist 结构体串联起来。
+        * **`sg_init_one(struct scatterlist *sg, const void *buf, unsigned int buflen)`**
+            **作用**：最常用的简便函数。如果你只有一个连续的虚拟内存缓冲区，用它快速将其封装成一个单节点的 SG List。
+            **用法**：`sg_init_one(&sg, my_buffer, 1024);`
+
+        **B. DMA 映射**
+
+        * **`dma_map_sg(struct device *dev, struct scatterlist *sg, int nents, enum dma_data_direction dir)`**
+            **作用**：将 SG List 中的物理地址转换为设备可达的 **DMA 地址**。它会处理 IOMMU 映射、缓存一致性（Cache Flush/Invalidate）等复杂工作。
+            **返回值**：返回实际映射的入口数量（可能小于 `nents`，因为相邻的物理块可能被 IOMMU 合并）。
+        * **`sg_dma_address(struct scatterlist *sg)`**
+            **作用**：宏函数，用于获取映射后的设备总线地址，传递给硬件寄存器。
+        * **`sg_dma_len(struct scatterlist *sg)`**
+            **作用**：获取映射后的长度。
+
+        **C. 解除映射**
+
+        * **`dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents, enum dma_data_direction dir)`**
+            **作用**：DMA 传输完成后，释放映射并确保 CPU 能看到最新的数据。
+
+    ---
+
+    3. 典型用法示例
+
+        ```c
+        struct scatterlist sg;
+        struct device *dev = my_pci_dev;
+        dma_addr_t dma_addr;
+        int nents;
+
+        // 1. 初始化并关联缓冲区
+        sg_init_one(&sg, kbuf, len);
+
+        // 2. 映射 DMA 地址 (从内存到设备)
+        nents = dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE);
+        if (nents <= 0) {
+            // 错误处理
+        }
+
+        // 3. 获取设备需要的地址并告知硬件
+        dma_addr = sg_dma_address(&sg);
+        my_hardware_start_dma(dma_addr, sg_dma_len(&sg));
+
+        // ... 等待硬件中断提示传输完成 ...
+
+        // 4. 解除映射
+        dma_unmap_sg(dev, &sg, 1, DMA_TO_DEVICE);
+        ```
+
+    ---
+
+    4. 为什么不用简单的 `dma_map_single`？
+
+        * **性能**：如果你有一个由多个 `page` 组成的数组，`dma_map_sg` 允许硬件在一次 DMA 传输中完成所有数据的搬运（Gather），而不需要为每个 page 触发一次 DMA。
+        * **IOMMU 支持**：在支持 IOMMU 的硬件上，`dma_map_sg` 可以将物理上散乱的页面在虚拟 I/O 地址空间里拼成一段**连续**的地址，这对某些不支持散列读取的旧设备是救命稻草。
+
+    **温馨提示**：在操作 `struct scatterlist` 时，一定要注意 `nents`（原始个数）和 `dma_map_sg` 返回值（映射后的个数）的区别。循环读取 `sg_dma_address` 时，应该使用返回值作为循环次数。
+
+    你是在编写块设备驱动（Block Driver）还是网络驱动？这两者在处理 SG List 的链表迭代上（如 `for_each_sg`）有一些细微的差异。
+
 * 什么是 DRM？
 
     DRM (Direct Rendering Manager) 是 Linux 内核的一个子系统。它负责与显卡（GPU）进行交互，处理图形渲染、显存管理和屏幕刷新等任务。它是现代图形界面（如 Wayland 或复杂的 X11 配置）能够流畅运行的基础组件。

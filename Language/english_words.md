@@ -645,3 +645,5 @@ grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of 
 * whirr prn. [hwə, wə] n. 呼呼声 vi. 作呼呼声
 
 * tetrahedron prn. [tetrə'hedrənz] n. 四面体
+
+* sth comes in handy phrase. sth 很有用

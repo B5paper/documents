@@ -2,6 +2,60 @@
 
 ## cache
 
+* python 里，如果函数返回的 tuple 有多个元素，但是我只想接收其中的前几个，怎么办？使用 a, b, _ = my_func() 可以吗？
+
+    在 Python 中，你的直觉完全正确！使用 `_` 作为占位符是处理这类情况的标准做法（Pythonic way）。
+
+    ---
+
+    1. 使用 `_` 接收不需要的元素
+        
+        `_` 在 Python 中本质上还是一个变量名，但约定俗成地，它代表“这个值我不打算使用”。
+
+        ```python
+        def my_func():
+            return 1, 2, 3, 4
+
+        # 只想要前两个
+        a, b, _ , _ = my_func()
+        print(a, b) # 输出: 1 2
+        ```
+
+    ---
+
+    2. 进阶技巧：使用解包运算符 `*`
+        
+        如果你只想要前两个，而后面有很多个元素，手动写一堆 `_` 会很麻烦。这时候可以使用 `*`（星号）来“打包”剩余的部分。
+
+        ```python
+        # 只接收前两个，剩下的全部扔给 _
+        a, b, *_ = my_func()
+
+        # 或者只想要第一个和最后一个
+        first, *_, last = my_func()
+        ```
+
+    ---
+
+    3. 对比：MATLAB 怎么做？
+        
+        既然你之前问了 MATLAB，这里有个很有趣的对比。在 MATLAB 中，如果你想忽略某个返回值，使用的是**波浪号 `~`**。
+
+        ```matlab
+        % MATLAB 语法
+        [a, b, ~] = my_func(); % 忽略第三个返回值
+        ```
+
+    ---
+
+    **注意事项**
+
+    虽然在 Python 中 `a, b, _ = my_func()` 非常常用，但有两点小提醒：
+    1.  **覆盖风险**：如果你在交互式解释器（如 IPython/Jupyter）中，`_` 通常用来存储**上一次显示的结果**。手动赋值给 `_` 会暂时覆盖这个功能。
+    2.  **国际化冲突**：在一些使用了 `gettext` 的代码库中，`_()` 函数常被用于字符串翻译。在这种特定环境下，应避免使用 `_` 作为占位符变量。
+
+    你目前是在进行纯数值计算调试，还是在做更复杂的系统开发？
+
 * 当你不知道这个模块里有哪些“工具”可用时，运行`dir(module_name)`就能把所有的函数名、类名和变量名像查字典一样罗列出来。
 
     `dir()`会返回一个包含该对象所有成员名称的字符串列表。
@@ -859,94 +913,95 @@
 
     Python 的 `random` 模块提供了丰富的随机数生成功能，以下是主要用法：
 
-    ## 1. 基本随机数生成
+    1. 基本随机数生成
 
-    ```python
-    import random
+        ```python
+        import random
 
-    # 生成 [0.0, 1.0) 之间的随机浮点数
-    print(random.random())  # 0.37444887175646646
+        # 生成 [0.0, 1.0) 之间的随机浮点数
+        print(random.random())  # 0.37444887175646646
 
-    # 生成指定范围内的随机整数 [a, b]（包含两端）
-    print(random.randint(1, 10))  # 7
+        # 生成指定范围内的随机整数 [a, b]（包含两端）
+        print(random.randint(1, 10))  # 7
 
-    # 生成指定范围内的随机整数 [a, b)（步长为 step）
-    print(random.randrange(0, 10, 2))  # 4（0-10之间的偶数）
+        # 生成指定范围内的随机整数 [a, b)（步长为 step）
+        print(random.randrange(0, 10, 2))  # 4（0-10之间的偶数）
 
-    # 生成指定范围内的随机浮点数 [a, b]
-    print(random.uniform(1.5, 5.5))  # 3.2345678901234567
-    ```
+        # 生成指定范围内的随机浮点数 [a, b]
+        print(random.uniform(1.5, 5.5))  # 3.2345678901234567
+        ```
 
-    ## 2. 序列相关操作
+    2. 序列相关操作
 
-    ```python
-    # 从列表中随机选择一个元素
-    fruits = ['apple', 'banana', 'orange', 'grape']
-    print(random.choice(fruits))  # banana
+        ```python
+        # 从列表中随机选择一个元素
+        fruits = ['apple', 'banana', 'orange', 'grape']
+        print(random.choice(fruits))  # banana
 
-    # 从序列中随机选择多个元素（可重复）
-    print(random.choices(fruits, k=3))  # ['apple', 'grape', 'banana']
+        # 从序列中随机选择多个元素（可重复）
+        print(random.choices(fruits, k=3))  # ['apple', 'grape', 'banana']
 
-    # 从序列中随机选择多个元素（不重复）
-    print(random.sample(fruits, k=2))  # ['orange', 'apple']
+        # 从序列中随机选择多个元素（不重复）
+        print(random.sample(fruits, k=2))  # ['orange', 'apple']
 
-    # 打乱列表顺序（原地操作）
-    cards = [1, 2, 3, 4, 5]
-    random.shuffle(cards)
-    print(cards)  # [3, 5, 1, 4, 2]
-    ```
+        # 打乱列表顺序（原地操作）
+        cards = [1, 2, 3, 4, 5]
+        random.shuffle(cards)
+        print(cards)  # [3, 5, 1, 4, 2]
+        ```
 
-    ## 3. 随机分布函数
+    3. 随机分布函数
 
-    ```python
-    # 高斯分布（正态分布）
-    print(random.gauss(0, 1))  # 均值0，标准差1
+        ```python
+        # 高斯分布（正态分布）
+        print(random.gauss(0, 1))  # 均值0，标准差1
 
-    # 指数分布
-    print(random.expovariate(1.5))
+        # 指数分布
+        print(random.expovariate(1.5))
 
-    # 三角分布
-    print(random.triangular(0, 10, 5))  # 最小值0，最大值10，众数5
-    ```
+        # 三角分布
+        print(random.triangular(0, 10, 5))  # 最小值0，最大值10，众数5
+        ```
 
-    ## 4. 设置随机种子
+    4. 设置随机种子
 
-    ```python
-    # 设置种子，使随机结果可重现
-    random.seed(42)
-    print(random.random())  # 0.6394267984578837
-    print(random.randint(1, 100))  # 82
+        ```python
+        # 设置种子，使随机结果可重现
+        random.seed(42)
+        print(random.random())  # 0.6394267984578837
+        print(random.randint(1, 100))  # 82
 
-    # 重置种子，得到相同的结果
-    random.seed(42)
-    print(random.random())  # 0.6394267984578837
-    ```
+        # 重置种子，得到相同的结果
+        random.seed(42)
+        print(random.random())  # 0.6394267984578837
+        ```
 
-    ## 5. 实用示例
+    5. 实用示例
 
-    ```python
-    # 生成随机密码
-    import random
-    import string
+        ```python
+        # 生成随机密码
+        import random
+        import string
 
-    def generate_password(length=8):
-        chars = string.ascii_letters + string.digits
-        return ''.join(random.choice(chars) for _ in range(length))
+        def generate_password(length=8):
+            chars = string.ascii_letters + string.digits
+            return ''.join(random.choice(chars) for _ in range(length))
 
-    print(generate_password())  # aK3mN9xP
+        print(generate_password())  # aK3mN9xP
 
-    # 随机抽样
-    population = list(range(100))
-    sample = random.sample(population, 5)
-    print(sample)  # [32, 67, 12, 89, 45]
+        # 随机抽样
+        population = list(range(100))
+        sample = random.sample(population, 5)
+        print(sample)  # [32, 67, 12, 89, 45]
 
-    # 随机打乱文本
-    text = list("Hello World")
-    random.shuffle(text)
-    print(''.join(text))  # "dlW lroHole"
-    ```
+        # 随机打乱文本
+        text = list("Hello World")
+        random.shuffle(text)
+        print(''.join(text))  # "dlW lroHole"
+        ```
 
-    ## 注意事项
+    **注意事项**
+    
     - `random` 模块生成的是伪随机数，适合一般应用
     - 对于密码学等安全要求高的场景，应使用 `secrets` 模块
     - 设置相同种子可以复现随机结果，便于调试
@@ -1028,23 +1083,25 @@
 
     在 Python 函数参数中，斜杠 `/` 是一个**位置参数分隔符**，这是 Python 3.8 引入的特性。让我详细解释：
 
-    ## 基本含义
+    **基本含义**
 
     `/` 表示它**左边**的所有参数都必须是**仅限位置参数**（positional-only parameters），不能作为关键字参数传递。
 
-    ## 示例说明
+    **示例说明**
 
     以你的例子：
     ```python
     (a: LiteralString, /, *paths: LiteralString)
     ```
 
-    ### 规则解析：
+    **规则解析：**
+
     - `a` 在 `/` 左侧 → 必须是位置参数
     - `*paths` 在 `/` 右侧 → 可以是位置或关键字参数
     - `/` 本身不是参数，只是一个语法标记
 
-    ### 实际演示：
+    **实际演示：**
+
     ```python
     def example(a, /, *paths):
         print(f"a={a}, paths={paths}")
@@ -1060,14 +1117,15 @@
     example("hello", paths=("path1", "path2"))    # a=hello, paths=('path1', 'path2')
     ```
 
-    ## 使用场景
+    **使用场景**
 
     1. **API 设计**：强制参数为位置参数，避免参数名耦合
     2. **内置函数兼容**：很多 Python 内置函数使用这种模式
     3. **性能优化**：位置参数解析略快
     4. **参数名自由**：允许将来更改参数名而不破坏代码
 
-    ### 常见例子：
+    **常见例子：**
+
     ```python
     # Python 内置函数示例
     len(obj)           # len 只能接受位置参数
@@ -1079,7 +1137,7 @@
         self.age = age      # age 可以是关键字参数
     ```
 
-    ## 完整语法组合
+    **完整语法组合**
 
     ```python
     def func(pos_only, /, pos_or_keyword, *, keyword_only):
@@ -1099,42 +1157,46 @@
 
 * 简述 python 中 pickle 的用法
 
-    ## Python pickle 用法简述
+    **Python pickle 用法简述**
 
     pickle 是 Python 内置的序列化模块，用于将 Python 对象转换为字节流（序列化），以及将字节流恢复为对象（反序列化）。
 
-    ### 主要函数
+    **主要函数**
 
-    #### 1. **序列化（对象 → 字节流）**
-    ```python
-    import pickle
+    1. **序列化（对象 → 字节流）**
+        
+        ```python
+        import pickle
 
-    # pickle.dumps() - 序列化为字节对象
-    data = {'name': 'Alice', 'age': 30, 'scores': [85, 92, 78]}
-    bytes_data = pickle.dumps(data)
+        # pickle.dumps() - 序列化为字节对象
+        data = {'name': 'Alice', 'age': 30, 'scores': [85, 92, 78]}
+        bytes_data = pickle.dumps(data)
 
-    # pickle.dump() - 序列化并写入文件
-    with open('data.pkl', 'wb') as f:
-        pickle.dump(data, f)
-    ```
+        # pickle.dump() - 序列化并写入文件
+        with open('data.pkl', 'wb') as f:
+            pickle.dump(data, f)
+        ```
 
-    #### 2. **反序列化（字节流 → 对象）**
-    ```python
-    # pickle.loads() - 从字节对象反序列化
-    restored_data = pickle.loads(bytes_data)
+    2. **反序列化（字节流 → 对象）**
+        
+        ```python
+        # pickle.loads() - 从字节对象反序列化
+        restored_data = pickle.loads(bytes_data)
 
-    # pickle.load() - 从文件读取并反序列化
-    with open('data.pkl', 'rb') as f:
-        restored_data = pickle.load(f)
-    ```
+        # pickle.load() - 从文件读取并反序列化
+        with open('data.pkl', 'rb') as f:
+            restored_data = pickle.load(f)
+        ```
 
-    ### 支持的数据类型
+    **支持的数据类型**
+
     - 基本类型：`None`, `bool`, `int`, `float`, `str`
     - 容器类型：`list`, `tuple`, `dict`, `set`
     - 自定义类实例（需满足 pickle 的条件）
     - 函数和类（但仅序列化名称引用，而非代码）
 
-    ### 示例：自定义类的序列化
+    **示例：自定义类的序列化**
+
     ```python
     class Person:
         def __init__(self, name, age):
@@ -1152,13 +1214,15 @@
     print(p2.name, p2.age)  # Bob 25
     ```
 
-    ### 注意事项
+    **注意事项**
+
     1. **安全性**：不要加载不可信来源的 pickle 数据，可能执行恶意代码
     2. **版本兼容性**：不同 Python 版本的 pickle 可能存在兼容性问题
     3. **可读性**：pickle 生成的是二进制格式，不可读（对比 JSON）
     4. **协议版本**：可指定协议版本 `pickle.dump(obj, file, protocol=4)`
 
-    ### 协议版本
+    **协议版本**
+
     - 协议 0：ASCII 格式，可读
     - 协议 1-2：旧版二进制格式
     - 协议 3：Python 3 专用

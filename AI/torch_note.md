@@ -2,6 +2,17 @@
 
 ## cache
 
+* cross-entropy function
+
+    $$
+    H(X) = \left\{
+        \begin{aligned}
+        &− \int_x ​p(x) \log p(x),\quad \text{if } X \text{ is continous} \\
+        &− \sum_x ​p(x) \log p(x),\quad \text{if } X \text{ is discrete}​
+        \end{aligned}
+        \right .
+    $$
+
 * 简述带动量和权重衰减的SGD的原理和实现
 
     在机器学习优化中，标准的 **SGD（随机梯度下降）** 容易在“沟壑”中震荡，且容易过拟合。为了解决这些问题，引入了**动量（Momentum）**来加速收敛，以及**权重衰减（Weight Decay）**来控制模型复杂度。
