@@ -1,5 +1,17 @@
 # English Words
 
+* roughly adv. 粗略地; 大体上; 大致上; 粗暴地
+
+* hinder prn. [ˈhɪndər] vt.& vi. 阻碍，妨碍; 成为阻碍
+
+    eg. Both issues can hinder the successful training of deep neural networks.
+
+* spam prn. [spæm] n. 香火腿; （斯帕姆）午餐肉; 垃圾邮件; （非索要的）电邮广告
+
+* shoot up 狙击; 迅速成长; 向上射击; 迅速发送
+
+* deviate prn. [ˈdiːvieɪt] v. 背离，偏离
+
 * hyphen prn. [ˈhaɪfn] n. 连字符`-`
 
 * shorthand n. 速记法，简略表达式
@@ -647,3 +659,18 @@ grammatical prn. [ɡrəˈmætɪkəl] a. 符合语法规则的 eg. The Corpus of 
 * tetrahedron prn. [tetrə'hedrənz] n. 四面体
 
 * sth comes in handy phrase. sth 很有用
+
+* break up with 跟 ... 分手; 与 ... 断绝关系
+
+* fraud prn. [frɔːd] n. 欺诈; 骗子; 伪劣品; 冒牌货
+
+* hyperbolic adj. 双曲线的
+
+* outcome n. 结果
+
+    eg. This applies when outcomes can take on any value within a continuous interval [a, b].
+
+* mitigate prn. [ˈmɪtɪɡeɪt] vt. 使缓和，使减轻; 使平息
+
+    eg. Tanh helps mitigate the vanishing gradient problem (to some extent), especially when compared to sigmoid activation.
+
