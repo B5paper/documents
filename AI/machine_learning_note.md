@@ -2,6 +2,86 @@
 
 ## cache
 
+* Underfitting and Overfitting in ML
+
+    Underfitting means that the model is too simple and does not cover all real patterns in the data.
+    Overfitting means that the model learns not just the underlying pattern, but also noise or random quirks in the training data. model memorizes training data
+    A good model finds the right spot, it is complex enough to capture real patterns, but not so complex that it “memorizes” noise
+
+    **What is Underfitting?**
+
+    Underfitting happens when the model fails to learn important patterns. It performs poorly on both training and testing data. Underfitting happens due to:
+
+    * Model is too simple
+    * Very high regularization
+    * Features are weak or missing
+    * Not enough training
+    * High bias
+
+    Bias: It is like assuming all birds can only be small and fly, so the model fails to recognize big birds like ostriches or penguins that can't fly and get biased with predictions.
+
+    **Bias–Variance Inside Underfitting**
+
+    Underfitting mainly occurs due to high bias:
+
+    * High bias means model makes strong assumptions
+    * Ignores patterns
+    * Learns an overly simple representation
+    * Variance is low because the model gives similar outputs even if the data changes
+
+    Underfitting = High Bias + Low Variance
+
+    **What is Overfitting?**
+
+    Overfitting happens when the model learns too much from the training data, including noise and outliers. It performs very well on training data but poorly on test data. Overfitting happens due to:
+
+    * Model too complex
+    * Too many features
+    * Very little data
+    * No regularization
+    * High variance
+
+    Variance: Error that happens when a machine learning model learns too much from the data, including random noise. 
+
+    **Bias–Variance Inside Overfitting**
+
+    Overfitting is mainly caused by high variance:
+
+    * High variance means model reacts too strongly to training data
+    * Learns noise as patterns
+    * Low bias because the model is extremely flexible
+
+    Overfitting = Low Bias + High Variance
+
+    **Bias-Variance Tradeoff**
+
+    The relationship between bias and variance is often referred to as the bias-variance tradeoff, which highlights the need for balance:
+
+    * Increasing model complexity reduces bias but increases variance (risk of overfitting).
+
+    * Simplifying the model reduces variance but increases bias (risk of underfitting).
+
+    The goal is to find an optimal balance where both bias and variance are minimized, resulting in good generalization performance.
+
+    **How to Address Overfitting and Underfitting?**
+
+    * Techniques to Reduce Underfitting
+
+        * Use a more complex model
+        * Add new features and perform feature engineering
+        * Reduce regularization
+        * Train for more epochs
+        * Scale features properly
+
+    * Techniques to Reduce Overfitting
+
+        * Collect more training data
+        * Reduce model complexity
+        * Use regularization (L1/L2)
+        * Apply dropout (for neural networks)
+        * Use early stopping
+        * Clean noisy data
+
 * Transfer Adaptation Learning: A Decade Survey
 
     <https://arxiv.org/abs/1903.04687>

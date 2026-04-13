@@ -6,6 +6,96 @@
 
 ## cache
 
+* 详细讲讲 find /some/dir -maxdepth 1
+
+    在 Linux 终端中，`find` 是功能最强大的文件搜索工具，而 `-maxdepth` 参数则是控制搜索**“深度”**（即递归层级）的刹车。
+
+    当你执行 `find /some/dir -maxdepth 1` 时，它的核心含义是：**“只在 `/some/dir` 这一层目录里找，不要钻进子目录里去。”**
+
+    ---
+
+    1. 参数详解
+
+        **`-maxdepth 1`**
+        * **层级定义**：
+            * 层级 `0`：搜索起点本身（即 `/some/dir` 这个目录条目）。
+            * 层级 `1`：搜索起点下的直接内容（文件和子文件夹）。
+        * **作用**：它强制 `find` 表现得像 `ls` 一样平铺直叙，停止默认的递归搜索。
+
+    ---
+
+    2. 常用场景对比
+
+        假设你的目录结构如下：
+        ```text
+        /home/hlc/project/
+        ├── .env
+        ├── main.py
+        └── data/
+            └── secret.txt
+        ```
+
+        **场景 A：不带 -maxdepth（默认行为）**
+        ```bash
+        find /home/hlc/project -name "*"
+        ```
+        **结果**：会列出所有文件，包括深度嵌套的 `data/secret.txt`。
+
+        **场景 B：带 -maxdepth 1**
+        ```bash
+        find /home/hlc/project -maxdepth 1 -name "*"
+        ```
+        **结果**：只列出 `.env`、`main.py` 和 `data/` 文件夹本身，**绝不会**显示 `secret.txt`。
+
+    ---
+
+    3. 为什么在解决你的 `npm` 报错时很有用？
+
+        在你之前的 `ENOTEMPTY` 错误中，`npm` 报错说目录不为空。如果你想看看到底是哪些“钉子户”文件阻止了重命名，你会用到：
+
+        ```bash
+        find /path/to/openai/codex -maxdepth 1
+        ```
+
+        **它的妙处在于：**
+        1.  **可见性**：它会显示隐藏文件（以 `.` 开头的文件，比如 `.DS_Store` 或 `.git`），而普通的 `ls` 命令默认是不显示的。
+        2.  **纯净度**：如果子目录里有成千上万个文件（比如 `node_modules` 内部），不加 `maxdepth` 会导致屏幕被刷屏，而 `maxdepth 1` 让你只关注当前层级的异常。
+
+    ---
+
+    4. 进阶用法示例
+
+        1. 只看当前目录下的隐藏文件
+        ```bash
+        find . -maxdepth 1 -name ".*"
+        ```
+
+        2. 查找当前目录下最近 1 天修改过的文件
+        ```bash
+        find . -maxdepth 1 -mtime -1
+        ```
+
+        3. 统计当前目录下有多少个直接子项（不计深层文件）
+        ```bash
+        find . -maxdepth 1 | wc -l
+        ```
+
+    ---
+
+    **一个重要的位置陷阱**
+    在老版本的 `find` 或者某些特定的 Unix 系统中，**`-maxdepth` 必须紧跟在路径后面**。
+
+    * **正确**：`find /dir -maxdepth 1 -name "*.js"`
+    * **可能警告/报错**：`find /dir -name "*.js" -maxdepth 1`
+        *(系统会提示：测试参数 `-name` 在全局参数 `-maxdepth` 之后，可能会影响效率)*。
+
+    ---
+
+    **总结**
+    `find -maxdepth 1` 是你**精确打击**目标文件时的过滤器。在你升级 `codex` 的过程中，它能帮你快速确认那个出问题的全局目录里，到底塞进了什么不该存在的“私货”。
+
+    你刚才在那个报错目录里，用这个命令抓到那个“作乱”的文件了吗？
+
 * lnav (日志导航器 - 极度强大)
 
     这是目前最智能的命令行日志查看工具，它就像是一个带有 SQL 引擎的 dmesg。

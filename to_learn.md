@@ -8480,3 +8480,73 @@
 * 计算机相关书籍的 git 仓库
 
     <https://github.com/muditbac/Reading/tree/master>
+
+* ai relative
+
+    * Binomial Distribution in Probability
+
+        <https://www.geeksforgeeks.org/maths/binomial-distribution/>
+
+    * Normal Distribution
+
+        <https://www.geeksforgeeks.org/maths/normal-distribution/>
+
+    * Poisson Distribution
+
+        <https://www.geeksforgeeks.org/maths/poisson-distribution/>
+
+    * Probability in Maths
+
+        <https://www.geeksforgeeks.org/maths/probability-in-maths/>
+
+    * Statistics in Maths
+
+        <https://www.geeksforgeeks.org/maths/statistics/>
+
+    * Permutation
+
+        <https://www.geeksforgeeks.org/maths/permutation/>
+
+    * Probability Density Function
+
+        <https://www.geeksforgeeks.org/engineering-mathematics/probability-density-function/>
+
+    * <https://www.geeksforgeeks.org/machine-learning/huber-loss-function-in-machine-learning/>
+
+    * Bias and Variance in Machine Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/bias-vs-variance-in-machine-learning/>
+
+    * Bias-Variance Trade Off - Machine Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/ml-bias-variance-trade-off/>
+
+    * Activation functions in Neural Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/activation-functions-neural-networks/>
+
+    * Kaiming Initialization in Deep Learning
+
+        <https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/>
+
+    * Introduction to Recurrent Neural Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/introduction-to-recurrent-neural-network/>
+
+    * What is LSTM - Long Short Term Memory?
+
+        <https://www.geeksforgeeks.org/deep-learning/deep-learning-introduction-to-long-short-term-memory/>
+
+    * Gated Recurrent Unit Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/gated-recurrent-unit-networks/>
+
+    * Classification vs Regression in Machine Learning
+
+        <https://www.geeksforgeeks.org/machine-learning/ml-classification-vs-regression/>
+
+    * Linear Regression in Machine learning
+
+        <https://www.geeksforgeeks.org/machine-learning/ml-linear-regression/>
+
+    * <https://www.geeksforgeeks.org/maths/probability-distribution/>

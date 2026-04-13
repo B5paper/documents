@@ -11,8 +11,7 @@
       - 按类型过滤：rg -tcpp
       - 结果太多时，先缩目录，再缩关键词，再加排除
 
-      最常用的是 rg
-      比 grep 快很多，默认还会尊重 .gitignore。
+      最常用的是 rg, 比 grep 快很多，默认还会尊重 .gitignore。
 
       常用例子：
 
@@ -40,8 +39,7 @@
       - -l：只看命中文件名
       - --files：列文件，不搜内容
 
-      什么时候用 grep
-      机器上没有 rg 时再退回去。
+      什么时候用 grep: 机器上没有 rg 时再退回去。
 
       grep -RIn "workHead" src
       grep -RIn --include='*.cc' "remoteChip" src
@@ -62,7 +60,8 @@
       rg -n "ptrExchange" -tcpp
       rg -n "CMAKE_" -tcmake
 
-      先粗后细
+      **先粗后细**
+      
       比如排查空指针：
 
       1. 先搜结构体定义
@@ -138,3 +137,4 @@
       3. rg -n -C 3 "关键词" 相关文件
       4. sed -n 'start,endp' 文件
       5. 必要时 diff / 批量脚本
+
