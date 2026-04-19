@@ -6,6 +6,334 @@
 
 ## cache
 
+* 我想知道一个文件夹里，包括所有子文件夹，哪些文件最近被修改了
+
+    在 Linux/macOS 系统中，可以使用以下几种方法查找文件夹（包含子文件夹）中最近被修改的文件：
+
+    1. 使用 find 命令（最灵活）
+
+        **查找最近 24 小时内修改的文件**
+
+        ```bash
+        find /path/to/folder -type f -mtime -1
+        ```
+
+        **查找最近 7 天内修改的文件**
+
+        ```bash
+        find /path/to/folder -type f -mtime -7
+        ```
+
+        **查找最近 1 小时内修改的文件（分钟级精度）**
+
+        ```bash
+        find /path/to/folder -type f -mmin -60
+        ```
+
+        **查找最近 10 分钟内修改的文件**
+
+        ```bash
+        find /path/to/folder -type f -mmin -10
+        ```
+
+    2. 按修改时间排序显示（最直观）
+
+        **显示最近修改的 10 个文件**
+
+        ```bash
+        ls -lt /path/to/folder | head -10
+        ```
+
+        **递归显示所有文件，按时间排序**
+
+        ```bash
+        find /path/to/folder -type f -printf '%T@ %p\n' | sort -rn | head -20
+        ```
+
+        **更友好的格式（显示时间）**
+
+        ```bash
+        find /path/to/folder -type f -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r | head -20
+        ```
+
+    3. 使用 stat 命令（详细信息）
+
+        ```bash
+        # 显示最近修改的 10 个文件及其修改时间
+        find /path/to/folder -type f -exec stat -c '%y %n' {} \; | sort -r | head -10
+        ```
+
+    4. 使用 ls 递归（简单但可能较慢）
+
+        ```bash
+        # 递归显示所有文件，按时间排序
+        ls -ltR /path/to/folder | head -20
+        ```
+
+    5. 实用脚本示例
+
+        **查找并显示最近 N 分钟修改的文件**
+
+        ```bash
+        #!/bin/bash
+        # 用法: ./recent_files.sh /path/to/folder 30
+
+        FOLDER=${1:-.}
+        MINUTES=${2:-60}
+
+        find "$FOLDER" -type f -mmin -$MINUTES -exec ls -lh {} \;
+        ```
+
+        **带颜色输出的版本（显示最近 1 小时）**
+
+        ```bash
+        find . -type f -mmin -60 -exec ls -lh --color=auto {} \; 2>/dev/null
+        ```
+
+    6. 不同时间单位的参数
+
+        | 参数 | 含义 | 示例 |
+        |------|------|------|
+        | `-mmin -n` | 最近 n 分钟内修改 | `-mmin -30` |
+        | `-mmin +n` | n 分钟前修改 | `-mmin +60` |
+        | `-mtime -n` | 最近 n 天内修改 | `-mtime -1` |
+        | `-mtime +n` | n 天前修改 | `-mtime +7` |
+        | `-newer file` | 比指定文件新 | `-newer reference.txt` |
+
+    7. Windows 系统（PowerShell）
+
+        ```powershell
+        # 查找最近 1 天修改的文件
+        Get-ChildItem -Path "C:\folder" -Recurse -File | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-1)} | Sort-Object LastWriteTime -Descending
+
+        # 显示最近 10 个修改的文件
+        Get-ChildItem -Path "C:\folder" -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 10
+        ```
+
+    8. 常用场景示例
+
+        **查找当前目录最近修改的 5 个文件**
+
+        ```bash
+        find . -type f -printf '%T@ %p\n' | sort -rn | head -5 | cut -d' ' -f2-
+        ```
+
+        **查找并显示修改时间和文件大小**
+
+        ```bash
+        find . -type f -mtime -1 -exec ls -lh {} \; | awk '{print $6, $7, $8, $9}'
+        ```
+
+        **只显示文件名（不含路径）**
+
+        ```bash
+        find . -type f -mmin -30 -printf '%f\n'
+        ```
+
+    **推荐命令**
+
+    **日常使用最方便**：
+    ```bash
+    # 显示最近修改的 20 个文件，带时间戳
+    find . -type f -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r | head -20
+    ```
+
+    **快速查看最近 1 小时**：
+    ```bash
+    find . -type f -mmin -60 -ls
+    ```
+
+    这些命令中的 `/path/to/folder` 替换为 `.（当前目录）` 或具体的文件夹路径即可。
+
+* linux 如何查看 cpu 频率
+
+    在 Linux 中查看 CPU 频率有多种方法，以下是最常用且实用的几种：
+
+    1. **使用 `lscpu` 命令（最常用）**
+
+        ```bash
+        lscpu | grep MHz
+        ```
+        或者直接查看最大/最小频率：
+        ```bash
+        lscpu | grep -E "MHz|CPU max|CPU min"
+        ```
+
+    2. **查看 `/proc/cpuinfo`**
+
+        ```bash
+        cat /proc/cpuinfo | grep MHz
+        ```
+        查看所有核心：
+        ```bash
+        grep "MHz" /proc/cpuinfo
+        ```
+
+    3. **使用 `cpupower` 命令（需安装）**
+
+        ```bash
+        # 安装（Ubuntu/Debian）
+        sudo apt install linux-tools-common
+
+        # 查看频率
+        cpupower frequency-info
+        ```
+
+    4. **实时监控频率变化**
+
+        ```bash
+        # 每秒刷新一次
+        watch -n 1 "grep 'MHz' /proc/cpuinfo"
+
+        # 或使用
+        watch -n 1 "lscpu | grep MHz"
+        ```
+
+    5. **使用 `i7z` 工具（Intel CPU）**
+
+        ```bash
+        # 安装
+        sudo apt install i7z
+
+        # 运行
+        sudo i7z
+        ```
+
+    6. **使用 `turbostat`（Intel/AMD）**
+        
+        ```bash
+        # 系统自带，显示详细频率信息
+        turbostat --show PkgWatt,Corwatt,GFXWatt
+        ```
+
+    7. **查看特定核心频率**
+
+        ```bash
+        # 查看所有核心的当前频率
+        for i in /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq; do echo "$i: $(cat $i)"; done
+
+        # 转换为 MHz
+        for i in /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq; do echo "$i: $(($(cat $i) / 1000)) MHz"; done
+        ```
+
+    **推荐命令**
+
+    最简单直接的方法：
+    ```bash
+    lscpu | grep MHz
+    ```
+    这会显示当前频率、最小和最大频率，适合大多数使用场景。
+
+* 已经进入 less 后，如何显示行号
+
+    在 `less` 界面内（已经打开文件的情况下），显示行号最快的方法是：
+
+    1. 实时切换行号
+
+        在 `less` 运行状态下，直接按下键盘上的：
+        > **`-N`** (注意是大写的 N，或者先按 `-` 再按 `shift + n`)
+
+        * **效果**：你会看到左下角出现 `line numbers enabled` 的提示，随后屏幕左侧会立即显示行号。
+        * **关闭**：再次输入 `-N` 即可取消显示。
+
+    ---
+
+    2. 常用相关快捷键
+
+        既然你已经进入了 `less`，这些操作配合行号会非常高效：
+
+        * **跳到指定行**：直接输入 **行号** 然后按 **`G`** (大写)。例如想去第 500 行，输入 `500G`。
+        * **当前百分比/行数信息**：按下 **`Ctrl + G`**，底部的状态栏会显示当前文件的行数范围和百分比。
+
+    ---
+
+    3. 一劳永逸的办法（下次使用）
+        
+        如果你希望以后每次用 `less` 都默认带行号，而不用进去再按键，可以采用以下两种方式：
+
+        * **临时命令**：
+            ```bash
+            less -N filename
+            ```
+        * **永久环境变量**（推荐）：
+            在你的 `~/.bashrc` 或 `~/.zshrc` 中添加一行：
+            ```bash
+            export LESS="-N"
+            ```
+            这样以后你只需要输入 `less filename`，行号就会自动在那儿等着你了。
+
+* 如何在 linux terminal 中查看图片文件，不需要很精细，看个大概就行
+
+    在 Linux 终端看图片，这听起来有点“硬核”，但实际上有很多有趣的工具可以满足你“看个大概”的需求。根据你使用的终端模拟器和对画质的要求，有以下几种方案：
+
+    ---
+
+    1. 字符画派：`timg` (推荐)
+        
+        `timg` 是目前最强大的终端图片查看器之一。它非常聪明，如果你的终端支持图形协议（如 Kitty 或 iTerm2），它会显示高像素图片；如果不支持，它会自动降级为高分辨率的 **24-bit ANSI 字符画**。
+
+        * **安装：** `sudo apt install timg` (Ubuntu/Debian) 或 `brew install timg` (macOS)
+        * **用法：** ```bash
+            timg image.jpg
+            ```
+        * **优点：** 自动适配环境，彩色字符渲染效果在同类工具中出类拔萃。
+
+    ---
+
+    2. 极简像素派：`catimg`
+        
+        如果你只需要飞快地扫一眼轮廓，`catimg` 是个轻量级的好选择。它通过彩色方块字符来模拟像素。
+
+        * **安装：** `sudo apt install catimg`
+        * **用法：** ```bash
+            catimg image.png
+            ```
+        * **特点：** 速度极快，虽然颗粒感重，但看个配色和构图绰绰有余。
+
+    ---
+
+    3. 老牌经典：`cacaview` (ASCII Art)
+        
+        如果你想要那种复古的、纯字符（字母、数字、标点）组成的艺术感，可以使用 `caca-utils`。
+
+        * **安装：** `sudo apt install caca-utils`
+        * **用法：** ```bash
+            cacaview image.jpg
+            ```
+        * **特点：** 纯 ASCII 码实现，非常有黑客帝国的感觉。
+
+    ---
+
+    4. 现代终端专属：`icat` (Kitty) / `imgcat` (iTerm2)
+        
+        如果你使用的是一些现代化的终端，它们本身就支持在窗口内渲染真正的位图（不是字符拼凑的）。
+
+        * **Kitty 用户：** 直接使用内置工具：
+
+            ```bash
+            kitten icat image.jpg
+            ```
+        * **iTerm2 (macOS) 用户：** 
+
+            ```bash
+            imgcat image.jpg
+            ```
+
+    ---
+
+    **总结建议**
+
+    | 工具 | 渲染方式 | 推荐理由 |
+    | :--- | :--- | :--- |
+    | **`timg`** | ANSI / 图形协议 | **首选**，画质平衡得最好，支持动图。 |
+    | **`catimg`** | 彩色方块 | 够快、够简单。 |
+    | **`cacaview`** | 纯 ASCII 字符 | 极致复古，不需要颜色支持。 |
+
+    > **温馨提示：** 在使用这些工具时，建议**缩小终端字体**或者**拉大终端窗口**，这样“像素点”会更多，图片看起来会更清晰。
+
+    你目前使用的是哪种终端（比如 GNOME Terminal, Alacritty, 还是 VS Code 的内置终端）？我可以帮你针对性地选一个效果最好的。
+
+
 * 详细讲讲 find /some/dir -maxdepth 1
 
     在 Linux 终端中，`find` 是功能最强大的文件搜索工具，而 `-maxdepth` 参数则是控制搜索**“深度”**（即递归层级）的刹车。

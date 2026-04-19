@@ -1,26 +1,12 @@
 ## tasks
 
-* [v] claude 分析 launch kernel 可能在哪里崩溃
-
-* [v] launch kernel 前打印详细信息，比如 src addr, dst addr 等
-
-* [v] 调研目前的 ipa 与 handle 的机制
-
-* [v] 写一个跨机指定 chip id 的 memcpy / kernel 的 case，看是否能跑通
-
-* [v] 跑通 codex
-
-* [v] 修好 topo bug
-
-* [v] 验证 remote read case，双向并行传输过程也无问题
-
-* [v] 单机多卡尝试跑 p2p，看是否 iova 会错误导致 qemu 崩溃
-
 * [v] 再崩溃一次 qemu，记录日志，看是否有 0x128 报错
 
 * [v] 如果 ccl 的代码已经修好，那么理论上可以运行通过。尝试跑一下
 
 * [v] 尝试改 device kernel bug，跑通 p2p
+
+* [ ] 临时修好
 
 * [ ] ai 总结重点，先让它自己总结，然后再提问，主要是 ipa map 的时机，send/recv 的 head / tail 哪个是远程地址，哪个是本地地址。算子中如何启用 ipa 和 addr。
 

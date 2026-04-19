@@ -2,6 +2,23 @@
 
 ## cache
 
+* Compare with Merge Base
+
+    含义：对比共同祖先（最常用于 Pull Request 场景）。
+
+    这相当于执行：
+
+    `git diff $(git merge-base HEAD <target_commit>) HEAD`
+
+    逻辑： 它会先找到当前分支和目标 Commit 在历史轴上最后一次“交汇”的那个点（即 Merge Base，共同祖先）。然后，它只显示从那个祖先点之后，你当前分支所做的修改。
+
+    适用场景： 
+    
+    * 代码评审 (Code Review)：你想看看自己在当前特性分支上到底改了什么，而不希望看到目标分支（如 main）这段时间里别人提交的新代码。
+
+        如果直接比对，你会看到别人在 main 上的修改；如果用 Merge Base，你只会看到你自己新增的改动。
+
+
 * vscode 中的 python launch.json 如何像 c/c++ 那样设置 environment 环境变量
 
     在 VSCode 的 `launch.json` 中为 Python 设置环境变量有多种方式，类似于 C/C++ 的配置：

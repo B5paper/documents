@@ -20,7 +20,7 @@
 
     如果这个服务暴露在公网（或者一个不安全的局域网），黑客只需要用 scapy 这种工具往你的 18861 端口发一段包含 os.system('rm -rf /') 的 Pickle 字节流，你的服务端进程会毫无怨言地执行它。
 
-* protocol_config
+* `protocol_config`
 
     ```py
     if __name__ == "__main__":
@@ -97,7 +97,7 @@
 
         你已经知道了它是 Service 的实例。但要注意：root 是延迟加载的。
     当你第一次访问 conn.root 时，客户端才会请求服务端去创建那个 MyService 实例。
-    4. conn._config (真正的配置所在地)
+    4. `conn._config` (真正的配置所在地)
 
         这就是你刚才质问我的那个配置。
 
@@ -488,11 +488,12 @@
     RPyC 在传输数据时，如果涉及中文，Python 2 的 str 和 unicode 转换经常报错。
 
     尝试在代码开头加入这几行（这是 Python 2 处理中文的“黑魔法”）：
-    Python
 
+    ```python
     import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
+    ```
 
 * 针对 data 的处理（重中之重）
 

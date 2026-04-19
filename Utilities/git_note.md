@@ -2,6 +2,396 @@
 
 ## cache
 
+* 在使用 git 做版本控制时，我先从 main branch 创建自己的branch my-branch-informal，开发了大量的 debug, log, feature 相关的代码，后面我给 main branch 提 feature 更新时，希望只把 my-branch-informal 的新开发的 feature 部分提出来，放到 my-branch-formal 中，然后从 my-branch-formal 向 main 提出 pull request。剩下的 debug / log 部分继续保持不动。我该如何处理 git 完成这个想法？
+
+    这种情况是 Git 工作流中非常典型的“清理战场”操作。你目前的处境是：一个分支里混杂了“要交的作业”和“打草稿的痕迹”。
+
+    最稳健且灵活的方法是使用 **`git checkout -p` (Patch 模式)** 或 **`git cherry-pick -n`**。以下是推荐的操作步骤：
+
+    ---
+
+    **方案一：交互式挑选改动（最推荐，精细到每一行）**
+
+    这种方法允许你像审阅代码一样，一行一行决定哪些代码进 `formal`，哪些留在 `informal`。
+
+    1.  **创建正式分支**：
+        从最新的 `main` 创建一个干净的正式分支。
+        ```bash
+        git checkout main
+        git pull origin main
+        git checkout -b my-branch-formal
+        ```
+
+    2.  **交互式检出改动**：
+        使用 `checkout` 命令从 `informal` 分支中“挑拣”改动。
+        ```bash
+        git checkout -p my-branch-informal
+        ```
+
+    3.  **决定代码去留**：
+        此时终端会逐个显示代码块（Hunk），并询问你：
+        * 输入 **`y`**：将该改动放入 `formal` 分支。
+        * 输入 **`n`**：跳过该改动（即留在 `informal` 中，不进入正式分支）。
+        * 输入 **`s`**：如果一个代码块同时包含 feature 和 debug，输入 `s` 可以将其切分成更小的块。
+
+    4.  **提交并推送**：
+        挑拣完成后，你的工作区里就全是“干净”的代码了。
+        ```bash
+        git add .
+        git commit -m "feat: implement core feature without logs"
+        git push origin my-branch-formal
+        ```
+
+    ---
+
+    **方案二：利用 VS Code 的 UI 进行挑选（最直观）**
+
+    如果你觉得命令行 `git checkout -p` 看起来太累，VS Code 的原生功能就能完成这个操作：
+
+    1.  同样先切换到新的 `my-branch-formal` 分支。
+    2.  在左侧 **Source Control** 面板中，点击顶部的 `...` -> **Checkout -> Checkout Detached...** -> 选择 `my-branch-informal`（或者直接在终端 `git checkout my-branch-informal -- .` 把文件全覆盖过来，但先别提交）。
+    3.  **关键步骤**：现在你的正式分支里全是有问题的代码，且都处于“已修改”状态。
+    4.  在 VS Code 源代码管理面板的文件列表中，点击文件打开 Diff 视图。
+    5.  **选中你需要的代码行**，右键选择 **"Stage Selected Ranges" (暂存选定的范围)**。
+    6.  **放弃不需要的代码**：把所有 feature 代码 Stage 完后，剩下的全是 debug/log。直接点击顶部的“放弃所有更改”（Discard All Changes）图标。
+    7.  最后只剩下干净的代码被 Staged，直接提交即可。
+
+    ---
+
+    **方案三：Cherry-pick 配合重置（如果你是以 Commit 为单位区分的）**
+
+    如果你在 `informal` 分支开发时，非常有先见之明地把 feature 和 debug 分开提交了：
+
+    1.  切换到 `my-branch-formal`。
+    2.  使用 `git cherry-pick <commit-id>` 逐个把 feature 相关的 Commit 挪过来。
+    3.  如果一个 Commit 里面既有 feature 又有 debug，可以使用：
+        ```bash
+        git cherry-pick -n <commit-id>  # 拿过来，但不自动提交
+        ```
+        然后在 VS Code 里把不需要的行删掉，再手动 `git commit`。
+
+    ---
+
+    **核心逻辑总结**
+
+    无论用哪种方法，核心逻辑都是：
+    1.  **开新坑**（基于 `main` 的 `formal` 分支）。
+    2.  **拉数据**（把 `informal` 的改动拉到工作区，但不立刻提交）。
+    3.  **筛选**（通过 `checkout -p` 或 VS Code 的 `Stage Selected` 剔除 debug 代码）。
+    4.  **发请求**（提交干净的代码并提 PR）。
+
+    **💡 小贴士**：以后开发时，如果能养成“功能写完提交一次，Debug 完撤销或单独提交”的习惯，处理起来会快得多。
+
+* 如果当前工作目录下有 1. untrack 的文件，2. tracked 但是未 add 的文件 3. add 但是未 commit 的文件 4. 已经 commit 的文件 5. stash 历史。当我 checkout 到其他 branch / commit时，哪些文件会丢失？
+
+    切换分支（`git checkout` 或 `git switch`）时，Git 的设计原则是**尽量保护你的工作成果不被覆盖**。
+
+    以下是针对你提到的 5 类文件的处理逻辑：
+
+    ---
+
+    1. Untracked 文件 (新建且从未 add)
+    
+        * **结论：** **安全，会跟随你。**
+        * **详情：** Git 完全不管理这些文件，它们会原封不动地留在你的文件夹里。
+        * **例外：** 如果你要切换到的那个分支里，**恰好有一个同名文件**，Git 会报错提示覆盖冲突，并阻止你切换分支。
+
+    2. Tracked 但未 Add 的文件 (已修改)
+
+        * **结论：** **安全，会跟随你。**
+        * **详情：** 默认情况下，这些改动会带到新分支。
+        * **例外（重要）：** 如果你要切换到的那个分支，自你上次提交后也改动了这些文件的**相同位置**，Git 会报错：
+            > *`error: Your local changes to the following files would be overwritten by checkout...`*
+            此时 Git 会强制要求你先 `stash` 或 `commit` 才能切换，以防你的改动丢失。
+
+    3. Add 但未 Commit 的文件 (Staged 暂存区)
+
+        * **结论：** **安全，会跟随你。**
+        * **详情：** 它们会保持“已暂存”的状态出现在新分支。
+        * **例外：** 同上。如果新分支与你的暂存区改动存在冲突，Git 会拒绝切换。
+
+    4. 已经 Commit 的文件
+
+        * **结论：** **绝对安全。**
+        * **详情：** 它们已经进入了 Git 的数据库。当你切换分支时，这些文件会从磁盘上消失，取而代之的是目标分支的文件。但只要你切回原分支，它们会立刻恢复。
+
+    5. Stash 历史
+
+        * **结论：** **绝对安全。**
+        * **详情：** `stash` 是独立于分支的存储栈。你在 `A` 分支 `stash` 的东西，在 `B` 分支依然可以通过 `git stash list` 看到，并且可以在任何分支应用（`pop` / `apply`）。
+
+    ---
+
+    **总结对照表**
+
+    | 文件类型 | 切换分支后去哪了？ | 是否有丢失风险？ |
+    | :--- | :--- | :--- |
+    | **Untracked** | 留在原地（跟随你） | 否 |
+    | **Modified (未 add)** | 留在原地（跟随你） | 否（冲突时 Git 会拦截切换） |
+    | **Staged (已 add)** | 留在原地（跟随你） | 否（冲突时 Git 会拦截切换） |
+    | **Committed** | 存入 Git 仓库（切换后磁盘可见度改变） | 否（随时可切回来） |
+    | **Stash** | 存在 Git 存储栈 | 否 |
+
+    ---
+
+    **真正的“危险”操作提醒**
+
+    在 Git 中，**切换分支本身几乎不会导致丢失代码**，因为 Git 会在冲突时“罢工”。
+
+    真正会导致你代码丢失的操作是：
+    1.  **`git checkout -- <file>`** 或 **`git restore <file>`**：这会用仓库版本覆盖掉你本地**未提交**的改动，且不可撤销。
+    2.  **`git reset --hard`**：这会清空你所有的本地改动（第 2、3 类文件），将工作区重置到纯净状态。
+    3.  **`git clean -fd`**：这会物理删除所有 **Untracked** 文件。
+
+    **💡 建议：** 在进行复杂的分支切换或合并前，养成执行 `git status` 的习惯，或者干脆用 `git stash` 把当前现场“打包”起来。
+
+* 但是我的情况是这样的：我目前在 my-branch 上开发，加了大量的功能，现场非常凌乱。此时突然有客人来了，要求我演示下稳定分支的成果，此时我必须保持 my-branch 上的所有内容，临时切换到 main 分支编译、运行，等客人走后，我再切换回自己的 my-branch 上继续开发。这个场景如何用 git 解决
+
+    针对这种“突然查岗”的紧急场景，Git 提供了三种主流解决方案。根据你的“现场凌乱”程度，你可以选择最适合的一种：
+
+    ---
+
+    **方案一：最标准做法 —— `git stash` (现场打包)**
+
+    这是 Git 设计用来处理这类问题的官方方案。它能把所有已跟踪（Tracked）的改动暂时存到一个“临时储藏室”。
+
+    1.  **保存现场**：
+        ```bash
+        git stash -u
+        ```
+        * `-u` (或 `--include-untracked`) 非常重要，它能把你**新建的文件**也一起打包，确保工作区彻底干净。
+    2.  **切换并演示**：
+        ```bash
+        git checkout main
+        # 编译、运行、演示...
+        ```
+    3.  **恢复现场**：
+        演示结束，切回自己的分支：
+        ```bash
+        git checkout my-branch
+        git stash pop
+        ```
+        * `pop` 会把存起来的改动拿出来并从储藏室删除。你的代码、暂存区状态（Add 过的文件）都会回来。
+
+    ---
+
+    **方案二：最高效做法 —— `git worktree` (多开工作区)**
+
+    如果你觉得切换分支、编译、再切回来太慢（尤其是大项目，编译缓存可能失效），这是**进阶神技**。它允许你在不同的文件夹里同时打开两个分支。
+
+    1.  **在另一个文件夹打开 main**：
+        （假设你在项目根目录）
+        ```bash
+        git worktree add ../temp-main-dir main
+        ```
+    2.  **去新文件夹演示**：
+        你现在的 `my-branch` 文件夹**纹丝不动**，完全不需要做任何 `stash` 或 `commit`。你直接进入 `../temp-main-dir` 这个新目录进行演示。
+    3.  **演示完删掉即可**：
+        客人走后，删掉那个临时文件夹，回到原来的目录继续写你的代码。
+        ```bash
+        git worktree remove ../temp-main-dir
+        ```
+
+    ---
+
+    **方案三：最保险做法 —— 临时 Commit (WIP)**
+
+    如果你不信任 `stash`（怕自己忘了或者存太多找不到），可以先随便提交一个。
+
+    1.  **快速提交**：
+        ```bash
+        git add .
+        git commit -m "WIP: temporary save for demo"
+        ```
+    2.  **切换演示**：
+        `git checkout main` ...
+    3.  **撤销提交恢复现场**：
+        切回 `my-branch` 后，把那个临时 Commit 撤销掉，代码会重新变回“未提交”的凌乱状态：
+        ```bash
+        git reset HEAD~1
+        ```
+
+    ---
+
+    **深度建议**
+
+    * **如果你追求快**：用 **`git stash -u`**。它不需要创建新目录，几秒钟就能清空现场。
+    * **如果你的项目很大（编译很久）**：一定要学 **`git worktree`**。因为切换分支会导致大量文件的时间戳改变，可能触发重新编译；而 `worktree` 让 `main` 和 `my-branch` 拥有各自独立的编译输出，演示时互不干扰。
+
+    **VS Code 小贴士**：
+    在 VS Code 左下角有一个 **Timeline** 或 **Stashes** 视图，如果你用了 `git stash`，可以直接在 UI 里右键点击那个 Stash 记录选择 `Apply` 或 `Pop`，非常直观。
+
+* 假如现在有 main 分支，dev-1 分支，dev-2 分支，我在 dev-2 上大改特改，加入大量 debug 代码，后面想把稳定了些的feature 加入 dev-1 中，比如指定的几个文件，或者某个文件中的指定几行，最后使用 dev-1 向 main 分支提起 pull request，该怎么办
+
+    这种需求在实际开发中非常常见，即：**从一个“脏”分支中提取“干净”的代码片段到另一个分支。**
+
+    为了实现将 `dev-2`（凌乱分支）中的特定文件或特定行提取到 `dev-1`（准备 PR 的分支），你可以采用以下几种方法：
+
+    ---
+
+    **方法一：提取“特定文件”（最快、最简单）**
+
+    如果你只需要 `dev-2` 中的某几个完整文件，可以直接在 `dev-1` 分支执行 `checkout` 命令来“拉取”它们。
+
+    1.  **切换到目标分支**：
+        ```bash
+        git checkout dev-1
+        ```
+    2.  **从 dev-2 检出指定文件**：
+        ```bash
+        git checkout dev-2 -- path/to/file1.js path/to/file2.js
+        ```
+        * 这个命令会直接把 `dev-2` 中的这两个文件覆盖到你当前的分支，且处于 **Staged (已暂存)** 状态。
+    3.  **提交并提 PR**：
+        确认没问题后，直接 `git commit`。
+
+    ---
+
+    **方法二：提取“指定行/代码块”（最精细、最推荐）**
+
+    如果你想实现你说的“某文件中的指定几行”，使用 **`git checkout -p` (Patch 模式)** 是最佳选择。
+
+    1.  **切换到目标分支**：
+        ```bash
+        git checkout dev-1
+        ```
+    2.  **交互式检出代码块**：
+        ```bash
+        git checkout -p dev-2
+        ```
+    3.  **在交互界面进行筛选**：
+        Git 会逐个对比 `dev-1` 和 `dev-2` 的差异，并询问你对每一个“代码块（hunk）”的操作：
+        * 按 **`y`**：接受这个改动（带入 `dev-1`）。
+        * 按 **`n`**：拒绝这个改动（不带入 `dev-1`）。
+        * 按 **`s`**：将当前代码块切割得更小（以便分离 feature 和 debug 代码）。
+        * 按 **`e`**：手动编辑这个代码块（这是终极武器，你可以直接删掉你不想要的某一行）。
+
+    4.  **提交**：
+        操作完成后，只有你选中的行会被带入 `dev-1`。
+
+    ---
+
+    **方法三：利用 VS Code 的 UI 可视化操作（最直观）**
+
+    如果你不喜欢命令行，VS Code 的内置功能可以非常轻松地完成“按行挑选”：
+
+    1.  在 `dev-1` 分支下，打开 **源代码管理** 面板。
+    2.  点击右上角 `...` -> **Checkout -> Checkout Detached...** -> 选择 `dev-2`（或者直接在终端用 `git checkout dev-2 -- .` 把所有改动先拿过来，但不要 commit）。
+    3.  现在你的工作区有很多改动（包括 feature 和 debug）。
+    4.  打开具体的文件，在 Diff 视图中：
+        * **选中** 属于 feature 的那几行。
+        * 右键点击选中的行，选择 **“Stage Selected Ranges” (暂存选定的范围)**。
+    5.  **关键点**：当你把所有 feature 的行都 Stage（暂存）后，剩下的全是 debug 代码。
+    6.  在源代码管理面板中，右键点击文件或点击撤销图标，选择 **“Discard Changes” (放弃更改)**。
+    7.  **结果**：所有 debug 代码都被物理删除了，只剩下你刚才 Stage 的干净代码，直接 Commit 即可。
+
+    ---
+
+    **方法四：Cherry-pick 的变体（适用于 Commit 较清晰的情况）**
+
+    如果你在 `dev-2` 上曾经有过比较明确的 Commit（虽然里面混了 debug），你可以：
+
+    1.  在 `dev-1` 上执行：
+        ```bash
+        git cherry-pick -n <commit_id>
+        ```
+        * `-n` 代表 **no-commit**。它会把那个提交的内容拿到工作区，但不会自动创建新的提交。
+    2.  然后你在 VS Code 里把 debug 的行删掉，剩下的再手动提交。
+
+    ---
+
+    **总结工作流建议**
+
+    1.  **准备环境**：确保 `dev-1` 是基于最新的 `main` 创建的。
+    2.  **提取内容**：
+        * 如果是**整个文件**：用 `git checkout dev-2 -- <file>`。
+        * 如果是**文件内的某几行**：用 VS Code 的 **Stage Selected Ranges**。
+    3.  **验证**：在 `dev-1` 上本地编译运行，确保没有误删导致报错。
+    4.  **推送与 PR**：推送 `dev-1` 到远端，向 `main` 发起 Pull Request。
+    5.  **后续**：如果你还需要在 `dev-2` 上继续 debug，直接切回去就好，它完全不受影响。
+
+* debug 代码不能删除，后面 main 分支出了问题，还是这条 debug 通路，一路调下来
+
+    明白你的核心需求了：**你需要“代码分身”**。也就是在 `dev-1` 里保持纯净用于 PR，但在 `dev-2` 里保留那些珍贵的、甚至是永久性的 Debug 基础设施。
+
+    这种情况下，你不能使用“删除”或“放弃”逻辑，而是要建立一个**单向同步**的工作流。以下是最佳实践：
+
+    ---
+
+    **方案：单向拣选 + 持续保留 (Picking without Deleting)**
+
+    这个流程能保证：你的 `dev-2` 永远是“全家桶”（Feature + Debug），而 `dev-1` 是“精装房”（只有 Feature）。
+
+    **第一步：建立干净的同步环境**
+
+    确保你当前在 `dev-1`（准备向 main 提 PR 的分支），且它是基于 `main` 的最新状态。
+
+    **第二步：使用交互式暂存 (The "Surgical" Stage)**
+
+    这是实现你需求最精准的方法。
+
+    1. **将改动“借”过来**：
+       在 `dev-1` 分支执行：
+       ```bash
+       git checkout dev-2 -- .
+       ```
+       *注意：这会把 `dev-2` 的所有文件状态覆盖到 `dev-1` 的工作区，但**不会**改变 `dev-2` 的任何东西。*
+
+    2. **精细化挑选 (在 VS Code UI 中操作最简单)**：
+       * 打开 VS Code 的 **Source Control** 面板。
+       * 点击文件进入对比视图。
+       * **只针对 Feature 代码**：选中代码行 -> 右键 -> **Stage Selected Ranges**。
+       * **针对 Debug 代码**：**不要点 Discard！** 也不要 Stage。
+       * 当你把所有 Feature 都 Staged 之后，**重点来了**：
+
+    3. **强制撤销未暂存的改动**：
+       执行：
+       ```bash
+       git checkout .
+       ```
+       或者在 VS Code 里对那些未暂存的（Debug 相关的）更改点 **Discard Changes**。
+       * **别担心！** 因为你现在是在 `dev-1` 分支操作，这里的“放弃”只是放弃了从 `dev-2` 借过来的临时副本，**`dev-2` 分支里的原生 Debug 代码毫发无损**。
+
+    4. **提交并提 PR**：
+       现在 `dev-1` 工作区是干净的 Feature，提交并推送。
+
+    ---
+
+    **进阶：如果你想更专业（Debug 模块化）**
+
+    如果你觉得每次手动挑拣太累，且这些 Debug 代码确实非常重要，建议将其**工具化**：
+
+    **策略 A：环境变量开关（最推荐）**
+
+    不要在代码里写死 Debug 逻辑，而是用环境变量控制：
+    ```javascript
+    if (process.env.MY_DEBUG_MODE) {
+        console.log("Deep Trace:", data); // 这段代码可以合入 main，因为默认不开启
+    }
+    ```
+    * **优点**：Debug 代码可以直接合入 `main`，以后在生产环境出问题，只要开启环境变量就能原地调试，不需要重新写代码。
+
+    **策略 B：独立的 Debug 分支**
+
+    如果 Debug 代码量巨大且不适合进 `main`：
+    1. 保持一个 `debug-utils` 分支。
+    2. 每次开新功能时，从 `main` 开 `feature-x`。
+    3. 如果需要调试，把 `debug-utils` 合并进 `feature-x`。
+    4. 提 PR 时，利用我们之前说的 `git diff` 或 `checkout -p` 只把 `feature-x` 里的业务逻辑提出来。
+
+    ---
+
+    **总结你的操作路径**
+
+    1. `git checkout dev-1`
+    2. `git checkout dev-2 -- path/to/file` (把带 debug 的文件拉过来)
+    3. **在 VS Code 里把 feature 代码 Stage 了。**
+    4. `git checkout .` (把剩下没 Stage 的 debug 代码在这个分支里抹掉)
+    5. `git commit` -> `git push` -> **向 main 提 PR**。
+    6. `git checkout dev-2` -> **回到你的快乐老家，所有 debug 代码都在原地等你。**
+
+    这样，`dev-1` 是给别人看的面子，`dev-2` 是你自己干活的里子。
+
 * 我创建了一个 git repo A，使用 git subtree 添加了一个第三方库 B，但是发现第三方库 B 中代码有错误，此时我改正了 B 中的错误后，想让别人 git pull A 的时候能直接用我修正过的代码，但是又希望未来 update B 的时候，能和 B 的 upstream 保持一致，该怎么办？
 
     你遇到的是 subtree 维护中常见的问题。以下是几种解决方案：

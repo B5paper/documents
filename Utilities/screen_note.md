@@ -2,6 +2,91 @@
 
 ## cache
 
+* 我如何判断一个 terminal 窗口是否开了 screen ?
+
+    有几种方法可以判断当前终端是否运行在 `screen` 会话中：
+
+    1. 检查环境变量（最常用）
+
+        ```bash
+        echo $STY
+        ```
+        - **有输出**（如 `1234.tty1`）：在 screen 中
+        - **空输出**：不在 screen 中
+
+        `STY` 是 screen 会话特有的环境变量，记录当前会话名称。
+
+        ```bash
+        # 一行判断并输出结果
+        [ -n "$STY" ] && echo "在 screen 中" || echo "不在 screen 中"
+        ```
+
+    2. 检查 TERM 变量
+
+        ```bash
+        echo $TERM
+        ```
+        - **screen 中**：通常显示 `screen` 或 `screen-256color`
+        - **普通终端**：显示 `xterm`、`xterm-256color`、`linux` 等
+
+        但这个方法**不够准确**，因为可以手动修改 TERM 变量。
+
+    3. 查看父进程
+
+        ```bash
+        ps -p $PPID -o comm=
+        ```
+        - 输出 `screen`：在 screen 中
+        - 输出其他（如 `bash`、`zsh`、`sshd`）：不在 screen 中
+
+        更详细的父进程信息：
+        ```bash
+        ps -f -p $PPID
+        ```
+
+    4. 检查进程树
+
+        ```bash
+        pstree -p $$ | grep screen
+        ```
+        或
+        ```bash
+        ps -ef | grep -v grep | grep "screen"
+        ```
+
+    5. 检查终端内的按键行为
+
+        在 screen 中，默认的转义键是 `Ctrl+A`：
+        - 按 `Ctrl+A` 后按 `?`：会显示 screen 帮助（如果在 screen 中）
+        - 按 `Ctrl+A` 后按 `d`：会脱离（detach）screen 会话
+
+        **注意**：这个方法最直观，但会触发 screen 命令，可能产生副作用。
+
+    **推荐判断方法**
+
+    **最可靠**的方法是结合环境变量和父进程：
+
+    ```bash
+    if [ -n "$STY" ]; then
+        echo "在 screen 会话中: $STY"
+    elif ps -p $PPID -o comm= | grep -q screen; then
+        echo "父进程是 screen"
+    else
+        echo "不在 screen 中"
+    fi
+    ```
+
+    或者创建一个别名方便使用：
+    ```bash
+    alias isscreen='[ -n "$STY" ] && echo "In screen: $STY" || echo "Not in screen"'
+    ```
+
+    **类似工具的环境变量**
+
+    其他终端复用工具也有类似的环境变量：
+    - **tmux**：`echo $TMUX`（有值表示在 tmux 中）
+    - **screen**：`echo $STY`（有值表示在 screen 中）
+
 * 简述 linux 中 screen 的用法
 
     简单来说，`screen` 是一个 **终端复用器**。它最核心的价值在于：即使你断开了 SSH 连接，原本在服务器上运行的任务也不会中断，你可以随时“重连”回去查看进度。
