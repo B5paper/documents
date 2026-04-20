@@ -2,6 +2,34 @@
 
 ## cache
 
+* linux enable ptrace
+
+    check:
+
+    ```bash
+    sysctl kernel.yama.ptrace_scope
+    ```
+
+    ```bash
+    cat /proc/sys/kernel/yama/ptrace_scope
+    ```
+
+    The output will be a number from 0 to 3. Here's what each value means:
+
+        0: Classic ptrace permissions. Any process can trace any other process (least secure).
+
+        1: Restricted to descendants (default on many modern Linux distributions). A process can only trace its direct children. This is a good balance of security and functionality.
+
+        2: Admin only. Only processes running with root (CAP_SYS_PTRACE) privileges can use ptrace.
+
+        3: No tracing. No processes can use ptrace at all (most restrictive).
+
+    set to 0:
+
+    ```bash
+    sudo sysctl kernel.yama.ptrace_scope=0
+    ```
+
 * 简述 gdb 如何 attach 调试
 
     **gdb attach 调试简述**

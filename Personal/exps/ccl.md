@@ -6,7 +6,15 @@
 
 * [v] 尝试改 device kernel bug，跑通 p2p
 
-* [ ] 临时修好
+* [v] 分析 nccl multi node nvlink 的数据传递路径
+
+* [ ] 把 nccl 2.26 代码复制到 /share 目录，
+
+* [ ] 在 init 的时候增加 mnnvl
+
+* [ ] eth switch node 为什么没有生成？怀疑是单个机器上只有单卡，而 p2p check 又有问题
+
+* [ ] 在 init 函数中增加  chip id 的逻辑
 
 * [ ] ai 总结重点，先让它自己总结，然后再提问，主要是 ipa map 的时机，send/recv 的 head / tail 哪个是远程地址，哪个是本地地址。算子中如何启用 ipa 和 addr。
 
@@ -23,6 +31,66 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* 关键点已经比较清楚了：MNNVL 在 initTransportsRank() 里做两件事，一是把“哪些跨节点 GPU 其实还能当作 NVLink 邻居”这个事实注入拓扑；二是让后续 P2P transport 改用 FABRIC shareable handle，把远端 GPU 内存映射进本地 GPU。最后补齐几处精确行号，我给你一版按初始化面和数据面拆开的说明
+
+    initTransportsRank() 里和 MNNVL 相关的核心，不是自己实现一套新的“网络传输协议”，而是把一组跨 node 但处于同一 NVLink fabric clique 的 GPU，当成一个更大的P2P/NVLink 域来初始化。这样后面的拓扑建图、P2P transport 选择、连接建立，都会把这些跨节点 GPU 视为可直接做 GPU-GPU 访问的对象。
+
+    **它主要做了什么**
+
+    1. 先在 AllGather1 里收集每个 rank 的 peerInfo，其中包含 NVML 返回的 fabric 信息：clusterUuid、cliqueId、fabric state 等，这一步在 src/init.cc:646 到 src/init.cc:705 填好，并在 src/init.cc:930 到 src/init.cc:932 做全局交换。
+
+    2. initTransportsRank() 随后在多节点场景下调用 ncclMnnvlCheck()，判断是否真的能启用 MNNVL，入口在 src/init.cc:954 到 src/init.cc:958。
+
+    3. ncclMnnvlCheck() 会做三件事：
+
+        - 要求 cuMem 可用；
+        - 要求 GPU 支持 CU_MEM_HANDLE_TYPE_FABRIC；
+        - 根据 clusterUuid + cliqueId 把 ranks 分成一个 clique，并验证 IMEX/FABRIC handle 确实能 export/import。
+
+        见 src/mnnvl.cc:13 到 src/mnnvl.cc:89。成功后它会直接把全局 ncclCuMemHandleType 强制设成 CU_MEM_HANDLE_TYPE_FABRIC，并置 comm->MNNVL = 1，见 src/mnnvl.cc:84 到 src/mnnvl.cc:86。
+
+    4. 一旦 comm->MNNVL=1，拓扑层会把原本“单机 local ranks”扩展成“同一 MNNVL clique 的 ranks”，然后做 topo XML 融合。也就是说，NCCL 会把多 node 的这些 GPU 拓扑拼成一个更大的 NVLink 域，而不再只按 host 划界。见 src/graph/topo.cc:1503 到 src/graph/topo.cc:1539。
+
+    5. 连通性判断时，如果两个 rank 不在同一 host，正常逻辑会直接否掉 P2P；但若启用了 MNNVL，就额外检查它们是否在同一 fabric cluster/clique，如果是，就允许继续按 P2P 路径处理。见 src/graph/paths.cc:282 到 src/graph/paths.cc:289，以及 clique 判断函数 src/graph/paths.cc:390 到 src/graph/paths.cc:407。
+
+  多 node 间是如何交换数据的
+
+  要分清“控制面”和“数据面”。
+
+  1. 控制面/元数据交换：
+      - 仍然走 bootstrap 通道，不是走 NVLink。
+      - peerInfo、拓扑 XML、ncclConnect 等初始化元数据，都是通过
+        bootstrapAllGather / bootstrapSend / bootstrapRecv 交换的。
+      - bootstrapIntraNodeAllGather() 名字虽然叫 intra-node，但实现其实就是基于
+        socket 的 OOB 通道；MNNVL 只是把 ranks 集合换成 clique ranks。见 src/
+        bootstrap.cc:1219 到 src/bootstrap.cc:1230。
+      - transport connect 信息的交换在 src/transport.cc:175 到 src/
+        transport.cc:187。
+  2. 真正的数据面交换：
+      - 走的是 P2P/CUMEM 这条路径，但在 MNNVL 下其 handle 类型已经被改成
+        FABRIC。
+      - p2pSendSetup() 打日志时会把这类连接标成 P2P/MNNVL，见 src/transport/
+        p2p.cc:393 到 src/transport/p2p.cc:397。
+      - 发送端分配一块可共享 GPU 内存，并 cuMemExportToShareableHandle() 导出
+        shareable handle，见 src/transport/p2p.cc:213 到 src/transport/
+        p2p.cc:226。
+      - 接收端拿到这个 handle 后，调用 cuMemImportFromShareableHandle()、
+        cuMemMap()、cuMemSetAccess()，把“远端 GPU 内存”映射到本地 GPU 地址空间，
+        见 src/transport/p2p.cc:253 到 src/transport/p2p.cc:296。
+      - 后续 kernel 对这个映射地址的读写，就实际落到跨 node NVLink fabric 上。
+
+  所以更准确地说，MNNVL 不是“多 node 间先把数据拷到网卡再发”，而是“通过
+  bootstrap 交换 FABRIC handle 等元数据，然后把远端 GPU 内存直接映射进来，后续数
+  据访问走 NVLink fabric”。
+
+  一句话总结
+
+  initTransportsRank() 里的 MNNVL，本质上是在初始化阶段把一组跨 node GPU 组织成
+  同一个 NVLink clique，并让 NCCL 后续把它们当成可做 P2P 的 GPU 对待；多 node 间
+  真正的数据交换不是 bootstrap 传数据，而是 bootstrap 只交换句柄和连接信息，业务
+  数据本身通过 cuMem 的 FABRIC handle 建立的远端 GPU 内存映射，在 NVLink fabric
+  上直接读写。
 
 * p2pRecvSetup() 中，为什么
 

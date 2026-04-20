@@ -2,6 +2,8 @@
 
 ## cache
 
+* stash 的内容不会跟随 branch，但会在 git stash list 里提示来自哪个 branch
+
 * 在使用 git 做版本控制时，我先从 main branch 创建自己的branch my-branch-informal，开发了大量的 debug, log, feature 相关的代码，后面我给 main branch 提 feature 更新时，希望只把 my-branch-informal 的新开发的 feature 部分提出来，放到 my-branch-formal 中，然后从 my-branch-formal 向 main 提出 pull request。剩下的 debug / log 部分继续保持不动。我该如何处理 git 完成这个想法？
 
     这种情况是 Git 工作流中非常典型的“清理战场”操作。你目前的处境是：一个分支里混杂了“要交的作业”和“打草稿的痕迹”。

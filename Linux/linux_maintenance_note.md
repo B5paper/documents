@@ -6,6 +6,291 @@
 
 ## cache
 
+* `ps -xu mkeac | grep qemu`，报错：`error: must set personality to get -x option`，这个报错是为什么
+
+    (ds 回答)
+
+    这个错误是因为在 Linux 系统中，`ps` 命令的选项语法有 **标准语法** 和 **BSD 语法** 的区别，你混用了这两种语法导致的问题。
+
+    **错误原因**
+
+    你的命令 `ps -xu mkeac | grep qemu` 中：
+
+    - `-x` 是 BSD 风格的选项
+    - `-u` 是标准语法选项
+
+    在 Linux 系统中，`ps` 命令不允许这样混合使用不同的语法风格。
+
+    **解决方案**
+
+    **方案1：使用纯 BSD 语法（推荐）**
+
+    ```bash
+    ps aux | grep qemu | grep mkeac
+    # 或者直接过滤
+    ps aux | grep qemu | grep -v grep
+    ```
+
+    **方案2：使用纯标准语法**
+
+    ```bash
+    # 显示所有进程并过滤
+    ps -ef | grep qemu | grep mkeac
+
+    # 或者指定用户
+    ps -u mkeac -f | grep qemu
+    ```
+
+    **方案3：正确的混合使用方式**
+
+    ```bash
+    # 先指定用户，再用 BSD 风格显示
+    ps -u mkeac --forest | grep qemu
+
+    # 或者用 -U 指定用户
+    ps -U mkeac -o pid,cmd | grep qemu
+    ```
+
+    **正确示例**
+
+    根据你的需求（查看 mkeac 用户的 qemu 进程），这里有几个推荐的方法：
+
+    ```bash
+    # 方法1：最常用（推荐）
+    ps -u mkeac -f | grep qemu
+
+    # 方法2：查看所有进程后过滤
+    ps aux | grep qemu | grep mkeac
+
+    # 方法3：如果只想看 qemu 进程
+    ps -C qemu -f -u mkeac
+
+    # 方法4：更详细的进程信息
+    ps -u mkeac -f --forest | grep -E "qemu|PID"
+    ```
+
+    **语法说明**
+
+    **标准语法**（使用 `-` 前缀）：
+    - `ps -ef`：显示所有进程
+    - `ps -u username`：显示指定用户
+    - `ps -C command`：显示指定命令
+
+    **BSD 语法**（不使用 `-` 前缀）：
+    - `ps aux`：显示所有进程（BSD风格）
+    - `ps ax`：显示所有进程
+    - `ps u`：显示用户格式
+
+    **最简单的解决方法**
+
+    对于你的需求，直接用这个命令就行：
+    ```bash
+    ps -fu mkeac | grep qemu
+    # 或
+    ps -u mkeac -f | grep qemu
+    ```
+
+    这两个命令都能正确显示 mkeac 用户下的 qemu 进程信息。
+
+* 详细讲讲 linux 中 ps 的用法
+
+    **Linux `ps` 命令详解**
+
+    `ps` (process status) 是 Linux 中最基础的进程查看命令，用于显示当前系统的进程状态。
+
+    1. **基础用法**
+
+        ```bash
+        ps
+        ```
+        默认显示当前终端下的进程，通常只显示两列：
+        - PID：进程ID
+        - TTY：终端类型
+        - TIME：CPU使用时间
+        - CMD：命令名称
+
+    2. **常用选项组合**
+
+        **查看所有进程**
+
+        ```bash
+        # 这三种方式都能查看所有进程
+        ps -ef          # 标准语法
+        ps aux          # BSD 语法  
+        ps -eF          # 显示更多字段
+        ```
+
+        **常用参数详解**
+
+        ```bash
+        # 常用选项
+        -e   # 显示所有进程
+        -f   # 显示完整格式信息
+        -l   # 长格式显示
+        -u   # 按用户显示
+        -p   # 指定PID显示
+
+        # BSD风格参数
+        a    # 显示所有终端进程
+        u    # 显示面向用户的格式
+        x    # 显示没有终端的进程
+        ```
+
+    3. **输出字段说明**
+
+        ```bash
+        # ps aux 的输出示例
+        USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+        root         1  0.0  0.1 128116  6712 ?        Ss   Nov15   0:03 /usr/lib/systemd
+        ```
+
+        **字段含义：**
+        - **USER**：进程所有者
+        - **PID**：进程ID
+        - **%CPU**：CPU使用率
+        - **%MEM**：内存使用率
+        - **VSZ**：虚拟内存大小(KB)
+        - **RSS**：物理内存大小(KB)
+        - **TTY**：终端类型
+        - **STAT**：进程状态
+        - **START**：启动时间
+        - **TIME**：CPU占用时间
+        - **COMMAND**：命令名称
+
+    4. **进程状态(STAT)**
+
+        ```
+        R  # 运行 (Running)
+        S  # 可中断睡眠 (Sleeping)
+        D  # 不可中断睡眠 (Disk sleep)
+        T  # 停止 (Stopped)
+        Z  # 僵尸进程 (Zombie)
+        X  # 死亡进程 (Dead)
+        <  # 高优先级进程
+        N  # 低优先级进程
+        s  # 会话领导者
+        l  # 多线程进程
+        +  # 前台进程组
+        ```
+
+    5. **常用查询示例**
+
+        **按用户过滤**
+        
+        ```bash
+        ps -u username        # 查看指定用户的进程
+        ps -U root -u root    # 查看root用户的进程
+        ```
+
+        **按进程名查找**
+
+        ```bash
+        ps -C nginx          # 显示nginx进程
+        ps -C sshd -o pid,cmd  # 只显示PID和命令
+        ```
+
+        **自定义输出列**
+
+        ```bash
+        ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu
+        # 自定义列并按CPU降序排列
+        ```
+
+        **显示进程树**
+
+        ```bash
+        ps -ef --forest      # 树形结构显示父子进程
+        ps axjf              # BSD风格的进程树
+        ```
+
+    6. **实用组合命令**
+
+        ```bash
+        # 查找特定进程的PID
+        ps aux | grep nginx
+
+        # 显示CPU/内存占用前10的进程
+        ps aux --sort=-%cpu | head -11
+        ps aux --sort=-%mem | head -11
+
+        # 显示进程的详细环境变量
+        ps eww -p PID
+
+        # 显示指定PID的进程
+        ps -p 1234,5678 -f
+
+        # 实时监控进程
+        watch -n 1 'ps aux --sort=-%cpu | head -20'
+        ```
+
+    7. **性能相关用法**
+
+        ```bash
+        # 查看线程信息
+        ps -eLf              # 显示所有线程
+        ps -T -p PID         # 查看指定进程的线程
+
+        # 查看进程的CPU亲和性
+        ps -o pid,psr,cmd -p PID
+
+        # 查看进程的内存映射
+        ps -o pid,cmd,vsize,rssize -p PID
+        ```
+
+    8. **常见问题排查**
+
+        **查找僵尸进程**
+
+        ```bash
+        ps aux | grep Z
+        ps -eo pid,stat,cmd | grep Z
+        ```
+
+        **查找CPU占用过高的进程**
+
+        ```bash
+        ps aux --sort=-pcpu | head -5
+        ```
+
+        **查找内存占用过高的进程**
+
+        ```bash
+        ps aux --sort=-pmem | head -5
+        ```
+
+    9. **高级用法示例**
+
+        ```bash
+        # 显示所有进程的完整命令行，包括参数
+        ps auxww
+
+        # 结合其他命令处理进程
+        kill -9 $(ps aux | grep 'process_name' | awk '{print $2}')
+
+        # 按CPU使用率排序，并显示指定列
+        ps -e -o pid,pcpu,pmem,args --sort=-pcpu | head -20
+
+        # 显示进程的执行时间
+        ps -eo pid,comm,etime,time
+        ```
+
+    10. **ps vs top/htop**
+
+        | 命令 | 特点 | 适用场景 |
+        |------|------|----------|
+        | `ps` | 静态快照，适合脚本处理 | 一次性查看、脚本分析 |
+        | `top` | 动态刷新，交互式 | 实时监控、交互操作 |
+        | `htop` | 增强版top，界面友好 | 需要可视化操作的场景 |
+
+    **小贴士**
+
+    - `ps aux` 是最常用的组合，足够应付大多数场景
+    - 结合 `grep` 可以快速过滤特定进程
+    - 使用 `--sort` 参数可以方便地排序查看
+    - 在脚本中建议使用完整的选项名（如 `--pid` 而不是 `-p`）以提高可读性
+
+    掌握 `ps` 命令是 Linux 系统管理和问题排查的基础技能之一。
+
 * 我想知道一个文件夹里，包括所有子文件夹，哪些文件最近被修改了
 
     在 Linux/macOS 系统中，可以使用以下几种方法查找文件夹（包含子文件夹）中最近被修改的文件：

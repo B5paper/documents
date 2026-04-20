@@ -4,6 +4,134 @@
 
 ## cached
 
+* c/c++ 里面，如果字符串一行写不下，该怎么办
+
+    (ds 回答)
+
+    在 C/C++ 中，如果字符串一行写不下，有几种处理方法：
+
+    1. **C 风格字符串**
+
+        方法1：字符串字面量自动连接
+
+        ```c
+        // C 和 C++ 都支持：相邻的字符串字面量会自动连接
+        const char* long_string = "这是一行很长的字符串，"
+                                  "需要分成多行编写，"
+                                  "编译器会自动把它们连接在一起。";
+
+        // 或者这样写
+        const char* str = "第一行部分 "
+                          "第二行部分 "
+                          "第三行部分";
+        ```
+
+        方法2：使用反斜杠续行
+
+        ```c
+        // 使用反斜杠 \ 续行（注意：\ 后面不能有空格）
+        const char* long_string = "这是一行很长的字符串，\
+        需要分成多行编写，\
+        但是这种方法不太推荐。";
+        ```
+
+        方法3：多行字符串拼接
+
+        ```c
+        // 运行时拼接
+        char buffer[1024];
+        strcpy(buffer, "第一部分");
+        strcat(buffer, "第二部分");
+        strcat(buffer, "第三部分");
+        ```
+
+    2. **C++ 风格字符串**
+
+        方法1：使用 `+` 运算符
+
+        ```cpp
+        // C++ string 类
+        #include <string>
+        std::string long_string = "这是一行很长的字符串，"
+                                  "C++11 之前也支持这种写法，"
+                                  "因为字符串字面量会自动连接。";
+
+        // 使用 + 运算符
+        std::string str = std::string("第一部分") + 
+                          "第二部分" + 
+                          "第三部分";
+
+        std::string msg2 = std::string("复杂消息: ") + 
+                           param1 + ", " + 
+                           param2;
+        ```
+
+        方法2：C++11 原始字符串字面量
+
+        ```cpp
+        // C++11 引入的原始字符串，可以跨行且不需要转义
+        std::string sql = R"(
+            SELECT id, name, age, address, phone
+            FROM users
+            WHERE age > 18
+            ORDER BY name
+        )";
+
+        // 带分隔符的原始字符串（避免内容中的 )" 干扰）
+        std::string html = R"DELIMITER(
+            <div class="content">
+                <p>This is a long HTML string</p>
+                <p>It can contain "quotes" and multiple lines</p>
+            </div>
+        )DELIMITER";
+        ```
+
+        方法3：使用 stringstream
+
+        ```cpp
+        #include <sstream>
+        std::stringstream ss;
+        ss << "第一部分 "
+           << "第二部分 "
+           << "第三部分";
+        std::string result = ss.str();
+        ```
+
+    3. **预处理技巧**
+
+        宏定义拼接
+
+        ```c
+        // 定义多行宏
+        #define LONG_STRING "第一部分" \
+                            "第二部分" \
+                            "第三部分"
+
+        // 使用
+        const char* str = LONG_STRING;
+        ```
+
+    4. **实际应用示例**
+
+        **日志消息**
+
+        ```cpp
+        LOG_INFO("用户操作日志: "
+                 "user_id=" + std::to_string(user_id) + ", "
+                 "action=" + action + ", "
+                 "timestamp=" + current_time());
+        ```
+
+    **注意事项**
+
+    1. **字符串字面量自动连接**是编译时完成的，没有运行时开销
+    2. **反斜杠续行**方法要注意：`\` 必须是行末最后一个字符
+    3. **原始字符串字面量**（C++11+）最清晰，特别适合多行文本
+    4. 过长的字符串考虑是否应该放到配置文件或资源文件中
+
+    根据你的具体需求选择合适的方式，通常 **方法1（自动连接）** 和 **方法3（原始字符串）** 是最常用的。
+
+
 * C++ 中，下面的情况如何写成智能指针？
 
     ```
