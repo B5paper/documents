@@ -8,21 +8,21 @@
 
 * [v] 分析 nccl multi node nvlink 的数据传递路径
 
-* [ ] 把 nccl 2.26 代码复制到 /share 目录，
+* [v] 把 nccl 2.26 代码复制到 /share 目录，
 
-* [ ] 在 init 的时候增加 mnnvl
+* [v] 在 init 的时候增加 mnnvl
 
-* [ ] eth switch node 为什么没有生成？怀疑是单个机器上只有单卡，而 p2p check 又有问题
+* [v] eth switch node 为什么没有生成？怀疑是单个机器上只有单卡，而 p2p check 又有问题
 
-* [ ] 在 init 函数中增加  chip id 的逻辑
+* [v] 在 init 函数中增加  chip id 的逻辑
 
 * [ ] ai 总结重点，先让它自己总结，然后再提问，主要是 ipa map 的时机，send/recv 的 head / tail 哪个是远程地址，哪个是本地地址。算子中如何启用 ipa 和 addr。
 
     另外需要对地址、指令进行说明，在调试时如何猜测的。
 
-* [ ] ai 思考 p2p active 时 rank = 1 是否有更优雅的解决方案
+* [v] ai 思考 p2p active 时 rank = 1 是否有更优雅的解决方案
 
-* [ ] 调研跨机时 iommu 不共享的问题，看如何使用 net 方式绕过。注意 chip id 这次会变成 0 和 4，不再是 0 和 1
+* [v] 调研跨机时 iommu 不共享的问题，看如何使用 net 方式绕过。注意 chip id 这次会变成 0 和 4，不再是 0 和 1
 
 * [ ] 检查 channel 搜索里，为何选择 pxn
 
