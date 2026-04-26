@@ -6,6 +6,64 @@
 
 ## cache
 
+* `from cupy.typing import NDArray`
+
+    这个`NDArray`只是一个变量，不是一个类型，做类型标注时，pylance 会报错
+
+    cupy 高度兼容 numpy，所以直接使用 numpy 的`NDArray`给 cupy 的对象也可以。
+
+* cupy 的安装
+
+    在 Python 领域，这是一个常见的“陷阱”：如果你直接执行 `pip install cupy`，pip 会尝试**下载源代码并现场编译**。现场编译需要你的系统里完美配置好所有 CUDA 相关的头文件、库路径，甚至还要对应版本的 cuTENSOR 和 cuSPARSELt。你报错中提到的 `fatal error: cutensor.h` 和 `cannot find -lcuda` 正是因为现场编译环境不完整导致的。
+
+    **解决办法非常简单：不要让它现场编译，直接安装预编译好的版本（Binary Wheel）。**
+
+    ---
+
+    1. 推荐：根据你的 CUDA 版本安装对应包
+        
+        CuPy 官方为不同的 CUDA 版本提供了预编译包。既然你打算换到 **CUDA 12.x**，请根据你实际安装的版本运行对应的命令：
+
+        * **如果你装的是 CUDA 12.x：**
+          ```bash
+          pip install cupy-cuda12x
+          ```
+        * **如果你装的是 CUDA 11.x：**
+          ```bash
+          pip install cupy-cuda11x
+          ```
+
+        > **注意**：执行这个命令时，pip 会直接下载一个已经编译好的 `.whl` 文件，**不需要**检测你系统里的 `cutensor.h` 或 `nccl.h`，直接就能装好。
+
+    ---
+
+    2. 深度分析：为什么之前的编译会失败？
+        
+        虽然你可能已经通过 `cupy-cuda12x` 解决了问题，但了解报错原因能帮你避开以后的坑：
+
+        1.  **`fatal error: cutensor.h`**: 就像我们之前讨论的，CuPy 的源码编译脚本会自动探测系统中是否有 cuTENSOR。你之前没装（或者装了没配置路径），它就挂了。
+        2.  **`cannot find -lcuda`**: 这是 WSL2 里的一个经典问题。`libcuda.so`（这是驱动库）在 WSL2 中位于 `/usr/lib/wsl/lib/`。标准的 Linux 编译器找不到这个特殊的 Windows 映射路径。
+            * *修复方法（如果以后非要编译）*：`export LDFLAGS="-L/usr/lib/wsl/lib"`。
+
+    ---
+
+    3. 如果你已经切换到了 Conda (强烈推荐)
+        
+        如果你已经在用 Conda 管理环境，安装 CuPy 会更加丝滑，因为它会自动帮你把所有依赖库（包括那些烦人的 `nccl` 和 `cutensor`）全部作为依赖项一站式装好：
+
+        ```bash
+        # 在你的 conda 环境中
+        conda install -c conda-forge cupy
+        ```
+
+    **总结**
+
+    * **不要用** `pip install cupy`（这会触发源码编译）。
+    * **请使用** `pip install cupy-cuda12x`（这会下载预编译好的二进制包）。
+
+    你现在 CUDA 12 换好了吗？如果换好了，直接跑 `pip install cupy-cuda12x` 应该几秒钟就装完了。
+
+
 * 我的一个项目需要用gpu做加速，但是我的开发环境是本地的一般性能机器，带gpu的高性能服务器都部署在云端，所以我希望程序设计成有一个 connect_to_gpu_server(ip_addr: str, port: int, auth: dict) 接口的软件框架。是否有现成的能实现这种功能的框架或工具？如果没有，自己该如何设计？
 
     您描述的正是典型的分布式计算/远程GPU加速场景。我来为您梳理现有解决方案和自建框架的设计思路：

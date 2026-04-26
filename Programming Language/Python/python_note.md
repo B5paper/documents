@@ -2,6 +2,190 @@
 
 ## cache
 
+* python  是否可以像 c++ 那样，让 class 里的函数实现写到 class 外面
+
+    直接回答你：**可以，但方式和 C++ 完全不同。**
+
+    在 C++ 中，你在类内声明（Header），在类外通过作用域解析符 `::` 实现。而在 Python 中，类是**动态对象**，你可以随时通过**属性赋值**的方式，将一个独立的函数“注入”到类中。
+
+    以下是实现这一点的几种常见方式：
+
+    ---
+
+    1. 动态绑定（最接近“实现写在外面”）
+        
+        你可以先定义一个普通的函数，然后通过赋值将其关联到类上。
+
+        ```python
+        class MyClass:
+            def __init__(self, value):
+                self.value = value
+            
+            # 类似于 C++ 的函数声明（可选，为了代码可读性）
+            def process(self): ...
+
+        # 在类外面写具体的实现
+        def process_impl(self):
+            print(f"Processing value: {self.value}")
+
+        # 将函数挂载到类上
+        MyClass.process = process_impl
+
+        # 使用
+        obj = MyClass(10)
+        obj.process()  # 输出: Processing value: 10
+        ```
+
+    ---
+
+    2. 为什么要加 `self`？
+        
+        在 C++ 类外实现时，编译器知道该函数属于哪个作用域。但在 Python 中，类外的函数只是一个普通函数。
+        * 当你执行 `MyClass.process = process_impl` 时，你实际上是把这个函数放进了类的命名空间。
+        * 当你通过 **实例** 调用 `obj.process()` 时，Python 会自动执行“绑定（Binding）”操作，将 `obj` 作为第一个参数传给 `self`。
+
+    ---
+
+    3. 使用场景与优缺点
+
+        **优点**
+
+        * **解耦**：如果某个函数的逻辑非常庞大（比如几千行），写在类里面会导致文件难以维护，写在外面可以保持类定义的简洁。
+        * **动态扩展**：你可以根据运行时的条件，给类赋予不同的功能（类似插件系统）。
+
+        **缺点（VS C++）**
+
+        * **IDE 支持变差**：Pylance 或 PyCharm 可能无法在类定义中直接跳转到实现位置。
+        * **破坏封装**：这种做法在 Python 社区并不常见，除非是为了解决循环引用或动态生成代码。
+
+    ---
+
+    4. 更“Pythonic”的替代方案
+        
+        如果你是因为类太臃肿才想把函数写在外面，通常推荐以下做法：
+
+        1.  **Mixin（混入类）**：将功能拆分到多个小类中，通过多继承组合。
+            ```python
+            class LogicMixin:
+                def complex_logic(self):
+                    print("Done")
+
+            class MyClass(LogicMixin):
+                def __init__(self):
+                    pass
+            ```
+        2.  **组合（Composition）**：将逻辑封装在另一个类或模块的函数中，并在类内调用它。
+
+    ---
+
+    **特别提醒：**
+    虽然你可以把实现写在外面，但 Python 不支持像 C++ 那样先在类里写一个 `void func();` 的**前置声明**。在 Python 中，如果你在类里定义了同名函数，后置的赋值会直接**覆盖**掉前面的定义。
+
+    你是遇到了单文件代码行数过多，还是遇到了两个类之间互相引用的问题？
+
+* python module 在不同系统下的格式
+
+    Windows Python 只能加载 .pyd 后缀的二进制扩展（本质是 DLL）。
+
+    Linux Python 才能加载 .so 后缀的文件。
+
+* python type hint 中，如果一个变量的类型变了，该如何标注？比如：
+
+    ```py
+    my_var: A = get_A()
+    my_var: B
+    this_function_require_B(my_var)
+    ```
+
+    其实 A 和 B 是包含关系或者兼容关系
+
+    在 Python 的类型提示（Type Hinting）中，处理“同一个变量名在逻辑过程中类型发生变化”的情况，主要有以下几种最佳实践。
+
+    根据你的描述，如果 **A 和 B 具有兼容关系**（例如 B 是 A 的子类，或者 B 是 A 的一种更具体的形式），你可以采用以下策略：
+
+    1. 局部类型重新声明 (Type Shadowing)
+
+        在 Python 3.10+ 中，如果你在同一个作用域内给同一个变量名赋了不同类型的值，静态类型检查器（如 mypy 或 Pyright）通常会根据赋值自动进行**类型推断**，但如果你想显式标注，最推荐的做法其实是**换一个变量名**。
+
+        ```python
+        # 推荐做法：通过新变量名明确意图
+        my_var_a: A = get_A()
+        my_var_b: B = transform_to_B(my_var_a) 
+
+        this_function_require_B(my_var_b)
+        ```
+
+    ---
+
+    2. 使用 `typing.Union` 或 `|` (多类型联合)
+        
+        如果你必须坚持使用同一个变量名，可以在初始化时告诉检查器该变量可能是 A 也可能是 B。
+
+        ```python
+        # Python 3.10+ 写法
+        my_var: A | B = get_A()
+
+        # 经过某些逻辑处理后，my_var 变成了 B 类型
+        my_var = convert_to_B(my_var)
+
+        this_function_require_B(my_var)
+        ```
+
+    ---
+
+    3. 类型缩小 (Type Narrowing / Typeguard)
+        
+        如果 A 和 B 是父子类关系（`B` 继承自 `A`），或者 B 是 A 的一部分，你可以使用 `isinstance` 来触发类型检查器的“自动收窄”功能。这是最“优雅”且符合 Python 惯例的做法。
+
+        ```python
+        my_var: A = get_A()
+
+        if isinstance(my_var, B):
+            # 在这个作用域内，类型检查器会自动将 my_var 视为 B 类型
+            this_function_require_B(my_var)
+        ```
+
+    ---
+
+    4. 使用 `typing.cast` (强制类型转换)
+        
+        如果你确定在某个时间点 `my_var` 已经变成了 `B`，但静态分析工具识别不出来，你可以使用 `cast`。这不会改变代码运行时的行为，只是单纯给类型检查器打个招呼。
+
+        ```python
+        from typing import cast
+
+        my_var: A = get_A()
+
+        # ... 一些逻辑之后 ...
+
+        # 强行告诉检查器：现在把它当做 B 看待
+        my_var_as_b = cast(B, my_var)
+        this_function_require_B(my_var_as_b)
+        ```
+
+    ---
+
+    5. 协议与抽象 (Protocol)
+        
+        如果 A 和 B 并没有显式的继承关系，但它们都满足某种“行为”（比如都有 `.draw()` 方法），你可以定义一个 `Protocol`。
+
+        ```python
+        from typing import Protocol
+
+        class Drawable(Protocol):
+            def draw(self) -> None: ...
+
+        # 这样无论 my_var 是 A 还是 B，只要能 draw 就能通过校验
+        my_var: Drawable = get_any_object()
+        ```
+
+    **核心建议**
+
+    * **如果 A 和 B 逻辑上是两个阶段的东西**：请务必**换个变量名**（例如 `raw_data` -> `processed_data`）。这不仅能解决类型标注问题，还能显著提高代码可读性。
+    * **如果 A 是 B 的父类**：直接标注为 `my_var: A`，然后在调用需要 B 的函数前，用 `isinstance(my_var, B)` 做个判断，这样代码最健壮。
+
+    你是遇到了具体的第三方库类型不兼容，还是在写自己的业务逻辑？
+
 * 在填 (variable) SrcPos: ndarray[_AnyShape, dtype[Any]] 类型时，我只知道 SrcPos 的类型为 float，但是不知道它的 shape，该怎么填 hint
 
     在 Python 的类型提示（Type Hinting）中，当你使用的是 `numpy.typing` 或类似的结构化类型检查时，如果你**不确定 Shape（维度）**，最标准且兼容性最好的填法是使用 **`np.ndarray[Any, np.dtype[np.float64]]`**（或者简写为 `np.float64`）。

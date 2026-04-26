@@ -2,6 +2,18 @@
 
 ## cache
 
+* vscode 中 debug 启动 python 后的环境变量的自动配置
+
+    Ctrl + `,` 打开 setting，搜索 python，有下面几个配置：
+
+    * `Python: Env File`
+    
+    * `Python › Terminal: Activate Environment`
+    
+    * `Python › Terminal: Activate Env In Current Terminal`
+
+    可以看到`Activate Environment`前是打勾的，所以只要把`.env`配置好，按 F5 调试时就会自动加载。加载是临时的，退出 debug 模式后不会影响当前 bash 中的环境变量。
+
 * Compare with Merge Base
 
     含义：对比共同祖先（最常用于 Pull Request 场景）。

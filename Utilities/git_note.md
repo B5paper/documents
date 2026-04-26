@@ -2,6 +2,71 @@
 
 ## cache
 
+* 使用 git 时，我发现当前 branch 下缺少一个文件，但在别的 branch 里有，如何单独把这个文件从别的 branch 复制到当前 branch ?
+
+    在 Git 中，这种操作非常常见，你不需要切换分支再手动复制。最标准、最优雅的方法是使用 `git checkout` 或 `git restore` 命令。
+
+    假设目标分支名为 `target-branch`，文件路径为 `path/to/file.txt`。
+
+    ---
+
+    1. 推荐方案：使用 `git checkout`
+        
+        这是最经典的方法，它会将指定分支的文件直接“拉”到你当前的分支，并自动放入**暂存区（Staging Area）**。
+
+        ```bash
+        git checkout target-branch -- path/to/file.txt
+        ```
+        * **`target-branch`**: 目标分支的名字。
+        * **`--`**: 这个符号是用来分隔分支名和文件路径的，防止文件名和分支名重名导致歧义（建议养成加上它的习惯）。
+        * **`path/to/file.txt`**: 文件的完整路径。
+
+    ---
+
+    2. 现代方案：使用 `git restore`
+
+        如果你使用的是 Git 2.23 之后的版本，官方更推荐使用 `restore` 命令，它的语义更清晰（即“恢复”某个文件）。
+
+        ```bash
+        git restore --source target-branch path/to/file.txt
+        ```
+        * 这个命令默认会将文件恢复到你的**工作区**。
+        * 如果你想顺便把它加到暂存区，可以加上 `--staged` 参数。
+
+    ---
+
+    3. 进阶技巧
+
+        场景 A：想改名或者只想要内容？
+
+        如果你不想直接覆盖当前路径，或者想看看内容再决定，可以用 `show` 命令配合重定向：
+        ```bash
+        git show target-branch:path/to/file.txt > new_filename.txt
+        ```
+
+        场景 B：一次拿走整个文件夹？
+
+        如果你缺少的不是一个文件，而是一整个目录：
+        ```bash
+        git checkout target-branch -- path/to/folder/
+        ```
+
+    ---
+
+    4. 操作后的收尾工作
+        
+        执行完上述操作后，你会发现该文件已经出现在你的当前分支中了。
+
+        1.  **检查状态**：运行 `git status`，你会发现文件已被添加。
+        2.  **提交更改**：
+            ```bash
+            git commit -m "From target-branch: add missing file.txt"
+            ```
+
+    **注意：** 这种操作会直接把那个分支上的文件内容同步过来，如果当前分支原本就有这个文件，它会被直接覆盖。
+
+    这个文件是因为之前合并丢失了，还是单纯只需要那边的某个配置模板？
+
 * stash 的内容不会跟随 branch，但会在 git stash list 里提示来自哪个 branch
 
 * 在使用 git 做版本控制时，我先从 main branch 创建自己的branch my-branch-informal，开发了大量的 debug, log, feature 相关的代码，后面我给 main branch 提 feature 更新时，希望只把 my-branch-informal 的新开发的 feature 部分提出来，放到 my-branch-formal 中，然后从 my-branch-formal 向 main 提出 pull request。剩下的 debug / log 部分继续保持不动。我该如何处理 git 完成这个想法？

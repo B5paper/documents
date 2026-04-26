@@ -1,3 +1,71 @@
+* scipy 中的稀疏矩阵如何转换成 cupy 矩阵
+
+    将 SciPy 的稀疏矩阵转换为 CuPy 矩阵是加速大规模数值计算的常见需求。由于 SciPy 运行在 CPU 上，而 CuPy 运行在 NVIDIA GPU 上，这个过程涉及**内存到显存的传输**。
+
+    最直接的方法是使用 CuPy 提供的 **`cupyx.scipy.sparse`** 模块。
+
+    1. 基础转换方法
+
+        CuPy 提供了与 SciPy 几乎一一对应的稀疏矩阵格式（如 CSR, CSC, COO）。你可以直接将 SciPy 对象传递给 CuPy 的构造函数。
+
+        ```python
+        import scipy.sparse as sp
+        import cupy as cp
+        from cupyx.scipy.sparse import csr_matrix as cp_csr_matrix
+
+        # 1. 创建一个 SciPy 稀疏矩阵 (CPU)
+        scipy_sparse_matrix = sp.csr_matrix([[0, 1, 0], [2, 0, 3]])
+
+        # 2. 转换为 CuPy 稀疏矩阵 (GPU)
+        cupy_sparse_matrix = cp_csr_matrix(scipy_sparse_matrix)
+
+        print(type(cupy_sparse_matrix)) 
+        # 输出: <class 'cupyx.scipy.sparse.csr.csr_matrix'>
+        ```
+
+    ---
+
+    2. 支持的格式对照表
+
+        为了保持计算效率，建议转换前后的格式保持一致：
+
+        | SciPy 格式 | CuPy 对应类 | 适用场景 |
+        | :--- | :--- | :--- |
+        | `sp.csr_matrix` | `cupyx.scipy.sparse.csr_matrix` | 算术运算、矩阵向量乘法 |
+        | `sp.csc_matrix` | `cupyx.scipy.sparse.csc_matrix` | 快速列切片 |
+        | `sp.coo_matrix` | `cupyx.scipy.sparse.coo_matrix` | 快速构建矩阵 |
+
+    ---
+
+    3. 高级用法：自动转换
+
+        如果你不确定输入的格式，可以使用 `cupy.asarray()`。虽然它主要用于稠密数组，但对于某些稀疏操作，CuPy 的接口设计非常灵活：
+
+        ```python
+        import cupyx.scipy.sparse as cps
+
+        # 强制转换并移动到 GPU
+        device_matrix = cps.array(scipy_sparse_matrix)
+        ```
+
+    ---
+
+    4. 性能优化建议
+
+        * **避免频繁传输**：将数据移动到 GPU（从 SciPy 到 CuPy）是一个耗时操作。理想的做法是“一次搬运，多次计算”。
+        * **内存对齐**：如果 SciPy 矩阵的索引类型是 `int64`，而在 GPU 上 `int32` 就足够了，可以在转换时指定 `dtype` 以节省显存。
+        * **反向转换**：如果需要将结果转回 CPU，使用 `.get()` 方法：
+            ```python
+            cpu_sparse = cupy_sparse_matrix.get()
+            ```
+
+    5. 注意事项
+
+        > [!CAUTION]
+        > **库依赖**：确保你安装了 `cupy` 且版本与你的 CUDA 环境匹配。CuPy 的稀疏矩阵 API 位于 `cupyx` 命名空间下，而不是核心的 `cupy` 命名空间。
+
+    你目前处理的稀疏矩阵规模大约有多大？针对极大规模的稀疏矩阵，不同的存储格式（CSR vs CSC）对计算性能的影响会非常显著。
+
 * 简述 scipy.spatial.KDTree 的用法
 
     `scipy.spatial.KDTree` 是一种用于快速处理**多维空间数据**的数据结构（例如实现最近邻查找、范围查找）。它通过递归分割空间来组织数据点，将查询的时间复杂度从 O(N) 降低到 O(log N)，非常适合处理大量点集。

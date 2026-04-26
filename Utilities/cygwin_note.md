@@ -4,6 +4,482 @@
 
 ## cache
 
+* 使用 cygwin 时，ssh + prefix + <tab> 无法补全 host 名称，如何解决？
+
+    在 Cygwin 环境下，`ssh` 无法通过 Tab 键补全 Host 名称，通常是因为 **Bash Completion** 插件未安装，或者 SSH 找不到对应的配置文件（如 `~/.ssh/config` 或 `~/.ssh/known_hosts`）。
+
+    以下是解决该问题的几个步骤：
+
+    1. 安装 bash-completion 包
+
+        Cygwin 默认安装的是最基础的 Bash，并不包含高级补全逻辑。
+        * 重新运行 Cygwin 的 `setup-x86_64.exe`。
+        * 在搜索框输入 **bash-completion**。
+        * 选择该包并完成安装。
+        * 安装后，重启 Cygwin 终端。
+
+    ---
+
+    2. 检查 SSH 配置文件
+
+        `ssh` 命令的补全默认会扫描两个地方：`~/.ssh/config` 中的 `Host` 别名，以及 `~/.ssh/known_hosts` 中的已知地址。
+
+        * **Host 别名补全：**
+            确保你的 `~/.ssh/config` 格式正确。例如：
+            ```text
+            Host myserver
+                HostName 192.168.1.10
+                User admin
+            ```
+            输入 `ssh my<tab>` 应该能补全为 `ssh myserver`。
+
+        * **已知主机补全：**
+            如果你的 `known_hosts` 文件对主机名进行了哈希处理（加密），补全插件将无法读取它们。检查你的 `~/.ssh/config` 中是否有这一行：
+            > `HashKnownHosts no`
+            如果是 `yes`，补全功能就废了。
+
+    ---
+
+    3. 手动激活补全脚本
+
+        如果安装了 `bash-completion` 仍不起作用，可能需要手动在 `~/.bashrc` 中加载它。
+        打开 `~/.bashrc`，确保包含以下逻辑：
+
+        ```bash
+        if [[ -f /usr/share/bash-completion/bash_completion ]]; then
+          . /usr/share/bash-completion/bash_completion
+        fi
+        ```
+
+        然后执行 `source ~/.bashrc` 使其生效。
+
+    ---
+
+    4. 权限问题（Cygwin 特有）
+
+        Cygwin 有时会对 `/home/用户名/.ssh` 目录的权限非常敏感。如果权限太松，SSH 可能会忽略配置文件。
+        在 Cygwin 终端执行：
+        ```bash
+        chmod 700 ~/.ssh
+        chmod 600 ~/.ssh/config
+        chmod 600 ~/.ssh/known_hosts
+        ```
+
+    ---
+
+    5. 万能重启法
+
+        有时候是因为 Bash 的补全缓存（hash）乱了，可以尝试清理一下：
+        ```bash
+        hash -r
+        ```
+
+    **💡 小贴士：**
+    如果你是在 Windows 原生路径下使用的 SSH（比如 `/cygdrive/c/Windows/System32/OpenSSH/ssh.exe`），那么 Cygwin 的 Bash 补全脚本可能无法正确识别它的参数。建议始终使用 Cygwin 内部安装的 `openssh` 包。
+
+* 在 windows terminal 中打开 cygwin 后，ls 显示的中文文件名乱码，如何解决
+
+    在使用 Windows Terminal 配合 Cygwin 时，中文乱码通常是因为 **字符编码不匹配** 导致的。Windows Terminal 默认使用 UTF-8，而 Cygwin 的内部环境或 Shell 配置可能还在使用较旧的编码。
+
+    你可以按照以下步骤逐一排查并解决：
+
+    ---
+
+    1. 修改 Cygwin 环境变量 (最有效)
+        
+        Cygwin 需要明确知道它应该以 UTF-8 模式运行。你可以通过修改 `~/.bashrc` 或 `~/.bash_profile` 来实现。
+
+        1.  在 Cygwin 中执行命令：`nano ~/.bashrc`
+        2.  在文件末尾添加以下内容：
+            ```bash
+            export LANG="zh_CN.UTF-8"
+            export LC_ALL="zh_CN.UTF-8"
+            ```
+        3.  保存退出（Ctrl+O, Enter, Ctrl+X），然后重启终端或运行 `source ~/.bashrc`。
+
+    ---
+
+    2. 设置 `ls` 命令参数
+        
+        有时候 `ls` 命令本身没有开启对非 ASCII 字符的支持。
+
+        * 尝试使用：`ls --show-control-chars`
+        * 如果你希望永久生效，可以在 `~/.bashrc` 中添加别名：
+            ```bash
+            alias ls='ls --color=auto --show-control-chars'
+            ```
+
+    ---
+
+    3. 配置 Inputrc (解决输入中文乱码)
+        
+        如果在终端里**输入**中文也显示乱码或反斜杠，需要配置 `inputrc`。
+
+        1.  编辑文件：`nano ~/.inputrc`
+        2.  确保或添加以下设置：
+            ```bash
+            set meta-flag on
+            set convert-meta off
+            set input-meta on
+            set output-meta on
+            ```
+
+    ---
+
+    4. 检查 Windows Terminal 设置
+        
+        虽然 Windows Terminal 默认支持 UTF-8，但请确保你没有手动更改过字体。
+
+        * **字体建议**：确保在 Windows Terminal 设置中，为 Cygwin 配置选择了支持中文的字体（如 **Microsoft YaHei Mono**, **Sarasa Term SC (等距更纱黑体)** 或 **Lucida Console**）。
+        * 如果字体不支持中文字符集，即便编码正确，也会显示为方块或乱码。
+
+    ---
+
+    5. 验证效果
+        
+        完成上述设置后，在终端输入以下命令验证：
+
+        ```bash
+        locale
+        ```
+
+        **预期的正确输出应该是：**
+        > LANG="zh_CN.UTF-8"
+        > LC_CTYPE="zh_CN.UTF-8"
+        > ... (其他项也应为 UTF-8)
+
+    ---
+
+    **小贴士**
+
+    如果你发现只有在特定的磁盘（如 `/cygdrive/c/`）下乱码，而在 Cygwin 安装目录内正常，通常是因为 Windows 文件系统的权限或长文件名压缩导致的，但 90% 的情况通过设置 `LANG="zh_CN.UTF-8"` 即可完美解决。
+
+* cygwin 生成一个默认的 .bashrc
+
+    如果你在 `~`（家目录）下没有看到 `.bashrc`，通常是因为 Cygwin 在首次启动时没有正确触发初始化脚本，或者文件被隐藏了（由于文件名以 `.` 开头，普通的 `ls` 看不见，需要用 `ls -a`）。
+
+    你可以通过以下几种方法生成一个标准的 `.bashrc`：
+
+    **方法一：从系统模板复制（推荐）**
+
+    Cygwin 官方自带了一套标准的默认配置模板，存放在 `/etc/skel` 目录下。你可以直接将它们拷贝到你的家目录：
+
+    ```bash
+    cp /etc/skel/.bashrc ~/
+    cp /etc/skel/.bash_profile ~/
+    cp /etc/skel/.inputrc ~/
+    ```
+
+    **这样做的好处：** 这些模板文件包含了大量预设的别名（alias）和环境变量，能让你用起来更顺手。
+
+    注：
+
+    1. 这个方法可行
+
+    ---
+
+    **方法二：手动创建一个基础版**
+
+    如果你只需要解决乱码问题，不想用复杂的模板，可以直接运行下面这条命令来创建：
+
+    ```bash
+    cat << 'EOF' > ~/.bashrc
+    # 基础编码设置
+    export LANG="zh_CN.UTF-8"
+    export LC_ALL="zh_CN.UTF-8"
+
+    # 别名设置：解决 ls 乱码
+    alias ls='ls --color=auto --show-control-chars'
+
+    # 如果有 .bash_profile 也会加载它
+    if [ -f ~/.bash_profile ]; then
+      . ~/.bash_profile
+    fi
+    EOF
+    ```
+
+    ---
+
+    **方法三：通过 Cygwin 重新初始化**
+
+    如果你的家目录里什么配置文件都没有（比如没有 `.profile` 或 `.bash_profile`），可以运行：
+    ```bash
+    /usr/bin/copy-prompt-etc.sh
+    ```
+    这个脚本会自动检查并把缺失的配置文件从系统目录补全。
+
+    ---
+
+    **关键步骤：使其生效**
+
+    生成文件后，别忘了运行以下命令让配置立即在当前窗口生效：
+
+    ```bash
+    source ~/.bashrc
+    ```
+
+    **检查确认：**
+    执行 `ls -a ~`，如果你能看到 `.bashrc` 出现在列表中，说明生成成功了。现在再试试 `ls` 那些中文文件，看看是不是已经恢复正常了？
+
+* cygwin 中，sshfs 报错`cygfuse: initialization failed: winfsp-x64.dll not found`的解决方案
+
+    出现这个错误是因为 **Cygwin 的 SSHFS 依赖于 WinFSP (Windows File System Proxy)**，但你的系统中缺失了 WinFSP 驱动，或者 Cygwin 找不到它的动态库（`.dll`）。
+
+    简单来说，SSHFS 需要一个“桥梁”来把远程文件系统映射到 Windows，而 WinFSP 就是那个桥梁。
+
+    请按照以下步骤解决：
+
+    1. 安装 WinFSP (核心步骤)
+        
+        你不能只通过 Cygwin 的 `apt-cyg` 或 `setup.exe` 解决，必须在 **Windows 主机**上安装驱动：
+
+        1.  前往 [WinFSP 官方 GitHub 发布页](https://github.com/winfsp/winfsp/releases) 或其官网。
+        2.  下载最新的安装包（通常是 `winfsp-x.x.xxxx.msi`）。
+        3.  运行安装程序，**务必确保勾选所有组件**（尤其是 Core 和软件开发支持）。
+        4.  安装完成后，**必须重启电脑**（或至少重启 Windows Terminal），以便让环境变量生效。
+
+        注：
+
+        1. 这个方案可行
+
+    ---
+
+    2. 检查 DLL 路径 (如果安装后仍报错)
+        
+        如果安装了 WinFSP 依然报错，说明 Cygwin 找不到 `winfsp-x64.dll` 的路径。
+
+        1.  找到 WinFSP 的安装路径，通常在：
+            `C:\Program Files (x86)\WinFsp\bin`
+        2.  在 Cygwin 中将该路径添加到 `PATH` 变量中。编辑你的 `~/.bashrc`：
+            ```bash
+            # 将 WinFSP 的路径添加到 Cygwin 的 PATH
+            export PATH=$PATH:"/cygdrive/c/Program Files (x86)/WinFsp/bin"
+            ```
+        3.  保存并执行 `source ~/.bashrc`。
+
+    ---
+
+    3. 确认 Cygwin 端的 Fuse 依赖
+        
+        确保你已经通过 Cygwin 的安装程序（`setup-x86_64.exe`）安装了以下包：
+        * `sshfs`
+        * `libfuse2` (或 `libfuse3`)
+
+    ---
+
+    4. 权限问题 (重要)
+        
+        在 Windows Terminal 中使用 SSHFS 时，有时需要管理员权限才能挂载驱动盘：
+        * 尝试以**管理员身份运行** Windows Terminal，再执行 `sshfs` 命令。
+
+* cygwin 中切换默认的 ssh / vim 等工具版本：修改`PATH`变量就可以
+
+    比如`export PATH="/usr/local/bin:/usr/bin:$PATH"`
+
+* windows 里 sshfs 挂载的时候，挂载点不能提前存在，都是现场创建的
+
+    握草，你发现了华点！**握个手，你是对的。**
+
+    在 Windows 环境下（尤其是配合 WinFSP 使用时），`sshfs` 的行为逻辑确实和传统的 Linux 挂载习惯有个微妙的差别：
+
+    **关键逻辑：挂载点是“虚”的**
+
+    * **Linux 习惯：** 必须先 `mkdir mountpoint`，然后把远程目录“覆盖”在这个空文件夹上。
+    * **WinFSP/Windows 习惯：** 挂载点（文件夹或盘符）在挂载动作发生前，**最好不要真实存在**。
+
+    **为什么会这样？**
+
+    WinFSP 实际上是在 Windows 内核中创建了一个虚拟文件系统节点。
+    1.  如果你提前创建了文件夹，这个文件夹就占用了 D 盘（或 C 盘）上的一个**物理路径索引**。
+    2.  当你运行 `sshfs ... ./hd-dot/` 时，WinFSP 尝试在那个位置创建一个虚拟入口，结果发现“坑位”已经被一个真实的物理文件夹占了。
+    3.  于是它就报错：`mount point in use`（挂载点已被占用）。
+
+    ---
+
+    **验证你的结论**
+
+    如果你现在尝试：
+    ```bash
+    # 1. 先删掉那个讨厌的文件夹
+    rmdir hd-dot
+
+    # 2. 让他“现场表演”创建一个挂载点
+    sshfs hlc@ali:hd-dot ./hd-dot/
+    ```
+    你会发现，随着命令成功执行，`hd-dot` 会像魔法一样突然出现，而且它现在实际上是一个**虚拟链接**。
+
+    **进阶 Tips**
+    * **卸载即消失：** 当你执行 `umount` 或者杀掉进程时，这个 `hd-dot` 文件夹通常会自动消失。
+    * **盘符更香：** 这也是为什么我之前推荐你直接挂载到 `X:` 盘，因为盘符在 Windows 里天然就是“不存在即可用”的，完全避开了文件夹权限和物理占用的麻烦。
+
+    你这波直觉很准，这就是 Windows 和 Linux 在处理 FUSE (Filesystem in Userspace) 时的核心底层差异之一。现在挂载成功了吗？
+
+* cygwin 中`PYTHONPATH`中的路径必须是反斜杠`\`分隔的 windows 路径，不能是 linux 风格的路径，否则会报错
+
+* cygpath
+
+    `cygpath`可以将 linux 风格的路径转换成 windows 风格的：
+
+    ```
+    new_path=$(cygpath -pw ${old_path})
+    ```
+
+* cygwin 中使用 sshfs 挂载时，文件 user 和 group 变成 no+body no+body，并且只能进入只读状态的解决方案
+
+    出现 `no+body`（或者 `nobody`）且文件变为**只读**，通常是因为 SSHFS 挂载时，远程服务器的用户 ID (UID) 和组 ID (GID) 与你本地 Cygwin 环境的用户 ID **不匹配**，且 SSHFS 默认没有获得足够的权限来映射这些账号。
+
+    在 Cygwin 中解决这个问题，通常需要重新挂载并添加特定的参数。
+
+    ---
+
+    1. 核心解决方法：使用映射参数
+        
+        你需要告诉 SSHFS：**“把远程的所有文件都看作是我本地这个用户拥有的。”**
+
+        先卸载当前的挂载点：
+
+        `umount /d/Documents/Projects/hd-dot/projs/toast_test` 
+        *(或者使用 `fusermount -u`，取决于你的具体环境)*
+
+        注：
+
+        1. 经测试，WinFsp + cygwin + sshfs 环境下，`umount`无效，只能使用`fusermount -u`
+
+        然后使用以下命令重新挂载：
+
+        ```bash
+        sshfs -o idmap=user,allow_other,default_permissions,uid=$(id -u),gid=$(id -g) user@remote_host:/path/to/dir /local/mount/point
+        ```
+
+        **参数详解：**
+        * **`idmap=user`**: 启用用户 ID 映射。
+        * **`uid=$(id -u)`**: 将远程文件的所有者强制显示为当前本地用户的 UID。
+        * **`gid=$(id -g)`**: 将远程文件的所属组强制显示为当前本地组的 GID。
+        * **`allow_other`**: 允许其他进程（如 Windows 系统进程）访问该挂载点。
+        * **`default_permissions`**: 让内核根据 UID/GID 进行标准的权限检查。
+
+        注：
+
+        1. WinFsp + cygwin + sshfs 环境下，只使用`-o uid=-1,gid=-1`就可以了
+
+    ---
+
+    2. 处理 Windows/Cygwin 特有的权限问题
+
+        如果你是在 Windows 下通过 **WinFsp** 驱动使用的 SSHFS（这是 Cygwin 下用 SSHFS 的常见方式），权限显示 `no+body` 往往是因为 Windows 无法关联远程的 Linux UID。
+
+        尝试在挂载命令中加入以下针对 WinFsp 的参数：
+        ```bash
+        sshfs -o uid=-1,gid=-1 user@remote_host:/remote/path /local/path
+        ```
+        *(在某些版本的 WinFsp 中，`-1` 代表自动映射到当前运行挂载命令的用户)*
+
+    ---
+
+    3. 如果依然是“只读”
+
+        如果 UID 已经显示正确，但依然无法修改文件，请检查以下两点：
+
+        1.  **远程目录权限**：登录到服务器，确认你的 SSH 账户对该目录有 `w` (写) 权限。
+            * `ls -ld /path/to/dir`
+        2.  **SFTP 服务设置**：SSHFS 依赖于远程服务器的 SFTP 子系统。如果服务器端的 `/etc/ssh/sshd_config` 中将 SFTP 设置为只读模式，SSHFS 也会受限。
+        3.  **挂载选项添加 `rw`**：显式指定读写模式：
+            * `-o rw`
+
+    ---
+
+    4. 调试建议
+        
+        如果还是不行，建议加上 `-d` 参数运行挂载命令来查看详细报错：
+        ```bash
+        sshfs -o debug,loglevel=debug1 ... [其他参数]
+        ```
+
+    **一个小提示**：
+    因为你是在 `/d/` (D盘) 路径下挂载，这涉及到 Cygwin 对 Windows 盘符的接管。如果可能，尝试挂载到 Cygwin 的根目录路径下（例如 `/home/wsdlh/mnt`），权限冲突通常会少一些。
+
+    你是通过 Cygwin 官方包安装的 `sshfs`，还是通过 Windows 安装的 `Rclone` 或 `Sshfs-Win` 挂载到 D 盘的？
+
+* cygwin 中的 fusermount
+
+    在 Cygwin 环境中，由于 `sshfs` 通常底层调用的是 **WinFsp** (Windows File System Proxy)，标准的 Unix `umount` 命令有时会因为无法识别这种“虚拟盘”而报错。
+
+    你可以尝试以下几种方法来强制卸载：
+
+    **方法 1：使用 `fusermount` (最标准的 SSHFS 卸载方式)**
+
+    如果你的 Cygwin 环境安装了 `fuse` 相关组件，这是最正规的做法：
+    ```bash
+    fusermount -u /d/Documents/Projects/hd-dot/
+    ```
+    如果提示“设备忙”，可以尝试强制卸载：
+    ```bash
+    fusermount -uz /d/Documents/Projects/hd-dot/
+    ```
+
+    ---
+
+    **方法 2：使用 Windows 原生 `net use` (最有效)**
+
+    因为你挂载到了 `/d/` 盘符下的某个路径，这在底层往往被 Windows 识别为一个网络资源。你可以尝试在 Cygwin 窗口输入：
+    ```bash
+    net use
+    ```
+    查看输出列表中是否有对应的远程路径。如果有，使用以下命令断开：
+    ```bash
+    net use 'D:\Documents\Projects\hd-dot' /delete
+    ```
+    *(注意：在 Bash 中输入 Windows 路径建议用单引号包裹)*
+
+    ---
+
+    **方法 3：强制结束进程 (简单粗暴但管用)**
+
+    如果挂载已经“死掉”（例如服务器断开了，导致目录卡死），最快的方法是杀掉 `sshfs` 进程：
+
+    1.  **查找进程 ID：**
+        ```bash
+        ps -ef | grep sshfs
+        ```
+    2.  **杀掉进程：**
+        ```bash
+        kill -9 <PID>
+        ```
+    杀掉进程后，Windows 可能会有几秒钟的缓存延迟，随后挂载点就会消失。
+
+    ---
+
+    **方法 4：通过 Windows 资源管理器**
+
+    如果上述命令都失效：
+    1.  打开 **此电脑** (This PC)。
+    2.  看看是否有一个带网络图标的驱动器或文件夹。
+    3.  右键点击它，选择 **断开连接** (Disconnect) 或 **弹出** (Eject)。
+
+    ---
+
+    **卸载后的建议**
+
+    当你成功卸载后，下次挂载时请务必加上我之前提到的 **UID/GID 映射参数**。
+
+    **为什么之前会报错 `Invalid argument`？**
+    这是因为 Cygwin 的 `umount` 预期的是 `/etc/fstab` 中定义的挂载点。而 SSHFS 这种通过 FUSE 动态创建的挂载点，`umount` 有时找不到对应的系统记录，所以它一脸懵逼地给了你一个“无效参数”。
+
+    你现在这个目录是处于“卡死”状态（输入 `ls` 没反应）还是仅仅只是想换个参数重新挂载？
+
+* cygwin + bash 中使用 windows 版 miniconda
+
+    在`.bashrc`中添加：
+
+    ```bash
+    set -o igncr
+    source /cygdrive/c/Users/wsdlh/AppData/Roaming/miniconda3/etc/profile.d/conda.sh
+    ```
+
+    然后刷新配置：`source ~/.bashrc`。即可生效。
+
+    windows 环境下的`conda.sh`换行符是`\r\n`，这个脚本调用的其他脚本的換行符也是`\r\n`，所以只靠`set ff=unix`修`conda.sh`文件是不够的，还不如直接`set -o igncr`忽略所有的`\r`。
+
 * windows terminal cygwin 中，bell 声一直响个不停，大量事件都会触发bell，如何解决
 
     在 Windows Terminal 的 Cygwin 环境中，如果 bell 声（终端提示音）响个不停，通常是因为某些操作触发了终端的 BEL 字符（ASCII 7）。以下是几种解决方法：

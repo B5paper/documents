@@ -8550,3 +8550,10 @@
         <https://www.geeksforgeeks.org/machine-learning/ml-linear-regression/>
 
     * <https://www.geeksforgeeks.org/maths/probability-distribution/>
+
+* DGL
+
+    <https://github.com/dmlc/dgl>
+
+    DGL is an easy-to-use, high performance and scalable Python package for deep learning on graphs.
+

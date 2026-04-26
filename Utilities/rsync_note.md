@@ -2,6 +2,8 @@
 
 ## cache
 
+* rsync `--dry-run`或`-n`会列出将要被传输的文件清单。
+
 * `rsync -h`
 
     -h 参数表示 "human-readable"（人类可读格式）。自动将字节转换为 KB、MB、GB、TB 等单位, 使输出更加友好和直观。

@@ -2,6 +2,96 @@
 
 ## cache
 
+* 详细讲讲 cuda graph
+
+    在 GPU 编程的领域中，**CUDA Graph** 是一项旨在减少 **CPU 发射开销（CPU Launch Overhead）** 的核心技术。
+
+    简单来说，传统的 CUDA 编程模式像是在“点菜”：你每点一道菜（启动一个 Kernel），服务员（CPU）就要跑一趟后厨（GPU）。而 CUDA Graph 则是制作一份“固定套餐”：你把所有的菜品和顺序一次性定好，以后直接说“来份 A 套餐”，GPU 就会自动按照预定流程执行。
+
+    ---
+
+    1. 为什么需要 CUDA Graph？
+
+        在高性能计算或深度推理中，我们经常遇到 **"Short Kernels"（短算子）** 问题。
+
+        * **传统流模式（Stream-based）：** CPU 需要通过驱动程序向 GPU 逐个发送指令。即使 Kernel 执行只需 5微秒，CPU 发送指令的延迟可能就有 10微秒。当任务包含成百上千个小算子时，CPU 成了性能瓶颈。
+        * **依赖关系复杂：** 在流模式下，复杂的依赖关系需要大量的 `cudaStreamWaitEvent`，这增加了编程复杂度并引入了额外的同步开销。
+
+        **CUDA Graph 的核心价值：** 将任务的定义与执行分离。一次定义，多次快速执行。
+
+    ---
+
+    2. CUDA Graph 的核心概念
+
+        CUDA Graph 将计算任务表示为一个 **有向无环图 (DAG)**：
+
+        * **节点 (Nodes)：** 代表具体的操作。包括 Kernel 启动、内存拷贝（Memcpy）、内存填充（Memset）、甚至是子图（Child Graphs）。
+        * **边 (Edges)：** 代表操作之间的依赖关系。只有当指向某个节点的所有入边任务都完成后，该节点才会执行。
+
+        **关键步骤**
+        1.  **定义 (Definition)：** 创建节点和边，构建图结构。
+        2.  **实例化 (Instantiation)：** 将图编译成可执行的任务清单（Executable Graph）。系统会预先验证依赖关系并优化调度。
+        3.  **执行 (Execution)：** 将实例化后的图提交到流中执行。
+
+    ---
+
+    3. 如何创建 CUDA Graph？
+
+        目前主要有两种方式：
+
+        A. 录制模式 (Stream Capture) — **最常用**
+
+        你不需要手动构建节点，只需通过“录制”现有的流操作即可。
+        ```cpp
+        cudaGraph_t graph;
+        cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
+
+        // 这里正常写你的 CUDA 代码（Kernel, Memcpy 等）
+        launch_kernel_A<<<...>>>(stream);
+        launch_kernel_B<<<...>>>(stream);
+
+        cudaStreamEndCapture(stream, &graph);
+        ```
+
+        B. 显式 API 模式
+
+        手动通过 `cudaGraphAddKernelNode` 等函数创建节点并连接。这种方式更灵活，适合动态构建复杂逻辑，但代码量较大。
+
+    ---
+
+    4. CUDA Graph 的优势
+
+        | 特性 | 传统流模式 (Stream) | CUDA Graph |
+        | :--- | :--- | :--- |
+        | **CPU 开销** | 每次 Launch 都有开销 | 仅在实例化时有开销，执行极快 |
+        | **GPU 利用率** | 算子间可能有间隙（Gap） | 算子切换更紧凑，利用率更高 |
+        | **优化空间** | 驱动只能看到当前算子 | 驱动可以看到全局，进行整图优化 |
+        | **适用场景** | 逻辑经常变化的计算 | 结构固定、反复循环的计算（如 RNN/Transformer 推理） |
+
+    ---
+
+    5. 进阶：Graph Update（动态更新）
+
+        很多人误以为一旦创建了 Graph，里面的参数（比如输入数据的指针）就不能变了。其实，CUDA 提供了 **Graph Update** 机制：
+
+        > 如果你的图结构（拓扑关系）没变，只是想更改某个 Kernel 的参数或内存地址，你可以使用 `cudaGraphExecKernelNodeSetParams`。这比重新创建一个图要快得多，能保持极高的执行频率。
+
+    ---
+
+    6. 限制与注意事项
+
+        虽然 CUDA Graph 很强，但并非万能：
+        * **结构不可变性：** 如果你的模型每一步的 `if-else` 分支会导致完全不同的 Kernel 调用，Graph 就不太适用。
+        * **初始成本：** “实例化”是一个相对耗时的过程，所以 CUDA Graph 只有在**重复执行**多次时才能赚回票价。
+        * **调试难度：** 传统的 printf 或断点在 Graph 内部更难追踪。
+
+    **总结**
+
+    **CUDA Graph 是从“命令式编程”向“声明式编程”的一次演进。** 它通过消除 CPU 提交任务的瓶颈，让 GPU 能够真正跑满其理论带宽，特别是在 AI 模型推理和科学模拟等具有固定流水线的场景中，性能提升非常显著。
+
+    对于你的应用场景，你是否已经观察到 CPU 提交任务速度赶不上 GPU 执行速度的情况？
+
+
 * CUDA Graph
 
     CUDA Graph 的作用

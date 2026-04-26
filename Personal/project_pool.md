@@ -1741,7 +1741,45 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [v] `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()`
+* [new] 使用 python -i 或者安装 winpty
+
+* [new] cygpath
+
+* [new] winpty python
+
+* [new] PS1 变量
+
+* [new] pip install -e .
+
+* [new] VS Code 的 `Remote - WSL` 插件
+
+* [new] C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
+
+* [new] `arr: "NDArray" = cp.array([1, 2, 3])`
+
+* [new] divmod, np.unravel_index
+
+* [new] GitLens
+
+* [new] git diff
+
+    终端版:
+
+    ```bash
+    git diff <commit_id> -- <file_path>
+    ```
+
+    如果你配置了 VS Code 作为默认的 diff tool，可以使用：
+
+    ```bash
+    git difftool <commit_id> -- <file_path>
+    ```
+
+    这会自动弹出 VS Code 的对比窗口。
+
+* [new] 调研 numpy 中 flatten 和 reshape 的实现，P 进制数的合成与取各个位的数字的实现
+
+    分别实现从高位到低位，从低位到高位
 
 * [ ] `ax.annotate()`
 

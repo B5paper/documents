@@ -2,6 +2,417 @@
 
 ## cache
 
+* `np.hstack()`保持 axis=0 不变，只增加 axis=1 的 size
+
+    比如对于多个`shape = (m, 1)` 的 arr，使用`np.hstack()`后，`m`保持不变，`1`会叠加成`n`，即最终变成`shape = (m, n)`
+
+* `<class 'numpy.void'>` 详细讲讲这个东西
+
+    在 NumPy 的世界里，`numpy.void` 是一个比较“冷门”但极其重要的底层类型。简单来说，它是 NumPy 用来处理**结构化数据（Structured Data）**或**原始内存块**的容器。
+
+    你可以把它类比为 C 语言中的 `struct` 或者 Python 中的 `tuple`（但它存储在连续的内存中）。
+
+    ---
+
+    1. 为什么叫 "void"?
+        
+        这个名字源于 C 语言中的 `void*` 指针。在 NumPy 中，当一个数组的元素不是单一的数值类型（如 `int` 或 `float`），而是一个由多种类型组成的“记录”时，这个记录的类型就是 `numpy.void`。
+
+        它代表一个**固定大小的内存缓冲区**，里面可以塞进任何东西。
+
+    ---
+
+    2. 什么时候会产生 `numpy.void`？
+        
+        最常见的场景是使用 **结构化数组（Structured Arrays）**。
+
+        ```python
+        import numpy as np
+
+        # 定义一个结构：包含一个 10 字符的字符串，一个整数，一个浮点数
+        dt = np.dtype([('name', 'S10'), ('age', 'i4'), ('weight', 'f4')])
+
+        # 创建数组
+        data = np.array([('Alice', 25, 55.0), ('Bob', 30, 70.5)], dtype=dt)
+
+        # 提取其中一个元素
+        item = data[0]
+
+        print(type(item)) 
+        # 输出: <class 'numpy.void'>
+        ```
+
+        当你从结构化数组中提取**单行**数据时，NumPy 不会返回 `tuple`，而是返回一个 `numpy.void` 对象。
+
+    ---
+
+    3. `numpy.void` 的核心特性
+
+        * **类似字典的访问**：你可以通过字段名访问内部数据。
+            ```python
+            print(item['name'])  # b'Alice'
+            ```
+        * **不可变性（类似）**：虽然它是对内存的视图，但通常作为标量返回。
+        * **内存连续**：它在内存中是紧凑排列的。如果你的结构体占用 18 字节，那么 `numpy.void` 就会精确地管理这 18 字节的二进制数据。
+
+    ---
+
+    4. 常见的坑：为什么我的代码报错了？
+
+        当你处理数据遇到 `<class 'numpy.void'>` 时，通常会遇到以下麻烦：
+
+        A. 序列化问题 (JSON)
+        JSON 无法识别 `numpy.void`。如果你尝试将包含这种类型的数组 `json.dumps`，会抛出 `TypeError`。
+        * **解法**：使用 `.tolist()`。对于 `numpy.void` 对象，调用 `.item()` 会将其转换为标准的 Python `tuple`。
+
+        B. 意外的结构化数据
+        有时候你从某些旧的 `.mat` (MATLAB) 文件或 HDF5 文件读取数据，NumPy 会自动将其解析为结构化数组。如果你本以为它是数值，结果发现没法做加减法，可能就是因为它变成了 `void` 类型。
+
+    ---
+
+    5. 什么时候主动使用它？
+        
+        除了处理表格类数据，`numpy.void` 还可以用来实现**灵活的内存映射**。
+
+        如果你有一段二进制流，已知前 4 字节是 ID，后 8 字节是坐标，你可以直接定义一个 `dtype` 映射上去，然后通过 `numpy.void` 像操作对象一样操作这段内存，而不需要手动进行位运算或切片。
+
+    ---
+
+    **总结对照表**
+
+    | 特性 | `numpy.int64 / float64` | `numpy.void` |
+    | :--- | :--- | :--- |
+    | **内容** | 单一数值 | 混合型结构 (Record) |
+    | **对应 C 语言** | `long` / `double` | `struct` |
+    | **访问方式** | 直接使用值 | 通过索引 `[0]` 或键 `['key']` |
+    | **主要用途** | 数学计算 | 数据库记录、解析二进制协议 |
+
+    你是在处理特定的数据集（如 `.npy` 或 `.mat` 文件）时突然跳出这个报错，还是在尝试自己构建复杂的 Dtype？
+
+* 我如何将这种类型方便地转换成 class? 比如
+
+    ```py
+    class ComplexType:
+        var_a: int
+        var_b: int
+
+    class MyType:
+        name: str
+        age: int
+        weight: float
+        a_complex_type: ComplexType
+    ```
+
+    将 `numpy.void`（结构化数据）转换为 Python 类的最方便方法，取决于你的具体需求。这里推荐三种主流方案，按“推荐程度”排序：
+
+    1. 使用 `Pydantic` (最强校验 + 嵌套支持)
+
+        如果你有**嵌套结构**（如你例子中的 `ComplexType`），Pydantic 是最完美的方案。它能自动处理类型转换和嵌套实例化。
+
+        ```python
+        import numpy as np
+        from pydantic import BaseModel
+
+        # 1. 定义类 (继承 BaseModel)
+        class ComplexType(BaseModel):
+            var_a: int
+            var_b: int
+
+        class MyType(BaseModel):
+            name: str
+            age: int
+            weight: float
+            a_complex_type: ComplexType
+
+        # 2. 模拟一个嵌套的 numpy.void 数据
+        dt = np.dtype([
+            ('name', 'U10'), 
+            ('age', 'i4'), 
+            ('weight', 'f4'), 
+            ('a_complex_type', [('var_a', 'i4'), ('var_b', 'i4')])
+        ])
+        void_data = np.array(('Alice', 25, 55.5, (1, 2)), dtype=dt)[()] 
+
+        # 3. 转换：先转为 dict，再解包
+        # 注意：void 对象的 .item() 会返回嵌套的 tuple，
+        # 但用 dict(zip(item.dtype.names, item)) 可以转成一级字典
+        def void_to_dict(v):
+            if not isinstance(v, np.void):
+                return v
+            res = {}
+            for name in v.dtype.names:
+                val = v[name]
+                if isinstance(val, np.void):
+                    res[name] = void_to_dict(val)
+                else:
+                    res[name] = val.item() if hasattr(val, 'item') else val
+            return res
+
+        data_dict = void_to_dict(void_data)
+        obj = MyType(**data_dict)
+
+        print(obj.a_complex_type.var_a) # 输出: 1
+        ```
+
+    ---
+
+    2. 使用 `dataclasses` (原生轻量级)
+        
+        如果你不想安装第三方库，Python 原生的 `dataclasses` 配合递归转换函数也很方便。
+
+        ```python
+        from dataclasses import dataclass
+
+        @dataclass
+        class ComplexType:
+            var_a: int
+            var_b: int
+
+        @dataclass
+        class MyType:
+            name: str
+            age: int
+            weight: float
+            a_complex_type: ComplexType
+
+        # 转换逻辑同上，拿到 dict 后实例化
+        def dict_to_dataclass(cls, data):
+            if not isinstance(data, dict):
+                return data
+            field_types = cls.__annotations__
+            return cls(**{
+                k: dict_to_dataclass(field_types[k], v) 
+                for k, v in data.items()
+            })
+
+        obj = dict_to_dataclass(MyType, data_dict)
+        ```
+
+    ---
+
+    3. 最“偷懒”的方法：`SimpleNamespace` 或 `NamedTuple`
+        
+        如果你不需要严格的类定义，只需要能用 `.属性` 访问：
+
+        * **NamedTuple**: `np.void` 本身不支持直接转 NamedTuple，但你可以通过 `collections.namedtuple(*void_data.dtype.names)(*void_data)` 快速创建一个扁平的对象。
+        * **Pandas (黑科技)**:
+            ```python
+            import pandas as pd
+            df = pd.DataFrame([void_data])
+            # 这样你就有了极其强大的处理能力，虽然它不是自定义类
+            ```
+
+    ---
+
+    **关键点：如何处理 `numpy.void` 到 `dict`？**
+
+    要把 `numpy.void` 顺利塞进类里，核心是将其**递归转为 dict**。
+    `numpy.void` 对象虽然看起来像字典，但它其实是序列。你可以写一个通用的工具函数：
+
+    ```python
+    def to_recursive_dict(void_obj):
+        """
+        将嵌套的 numpy.void 彻底转为 Python 字典
+        """
+        out = {}
+        for name in void_obj.dtype.names:
+            val = void_obj[name]
+            if isinstance(val, np.void):
+                out[name] = to_recursive_dict(val)
+            elif isinstance(val, np.ndarray):
+                out[name] = val.tolist()
+            else:
+                # 处理 numpy 标量转 Python 原生类型
+                out[name] = val.item() if hasattr(val, 'item') else val
+        return out
+    ```
+
+    **总结建议**
+
+    1.  **工程化项目**：用 **Pydantic**。它处理 `numpy.void` 经常出现的字符串编码（`b'str'`）和类型转换最稳健。
+    2.  **简单脚本**：用 **dataclasses** + 手写递归转换。
+    3.  **大量数据转换**：如果你有数百万行数据，不要逐行转类，直接利用 NumPy 的 **向量化操作** 或 **Pandas** 维护结构化数组，因为实例化 Python 类对象非常耗费内存和时间。
+
+* np.empty((0,), dtype=np.float64) 讲讲这个语句的用法
+
+    当你看到 `np.empty((0,), dtype=np.float64)` 时，这并不是在“挖坑待填”，而是在创建一个**维度的长度为 0 的空数组**。
+
+    在 NumPy 中，这种写法非常特殊且实用，它通常被用作**累加器的起点**或**算法的边界处理**。
+
+    ---
+
+    1. 拆解这个语句
+
+        * **`(0,)`**: 这是 `shape` 参数。它告诉 NumPy 创建一个**一维数组**，但这个维度的长度是 **0**。
+        * **`dtype=np.float64`**: 指定数据类型。虽然数组里没东西，但它定义了未来加入的数据应该是什么格式。
+
+        结果表现：
+
+        ```python
+        import numpy as np
+
+        arr = np.empty((0,), dtype=np.float64)
+
+        print(arr)          # 输出: []
+        print(arr.shape)    # 输出: (0,)
+        print(len(arr))     # 输出: 0
+        ```
+
+    ---
+
+    2. 核心用法：作为“动态数组”的起点
+
+        在 Python 原生语法中，我们常用 `res = []` 来初始化一个列表，然后不断 `append`。在 NumPy 中，如果你需要在一个循环中动态地堆叠（stack）数组，`np.empty((0,))` 就是那个 **“空列表”** 的等价物。
+
+        示例：配合 `np.append` 或 `np.concatenate`
+
+        假设你有一组不确定长度的数据流需要合并：
+
+        ```python
+        import numpy as np
+
+        # 1. 初始化一个长度为 0 的“底座”
+        result = np.empty((0,), dtype=np.float64)
+
+        # 2. 模拟动态获取数据并合并
+        for i in range(3):
+            new_data = np.array([i * 1.5, i * 2.5])
+            # 将新数据拼接到旧数据后面
+            result = np.append(result, new_data)
+
+        print(result) 
+        # 输出: [0.  0.  1.5 2.5 3.  5. ]
+        ```
+
+    ---
+
+    3. 为什么不用 `np.array([])`？
+
+        你可能会问：这和直接写 `np.array([])` 有什么区别？
+
+        1.  **明确性**：`np.empty((0,), dtype=np.float64)` 显式地规定了数据类型。如果你直接用 `np.array([])`，默认类型通常是 `float64`，但在某些版本或配置下可能不明确。
+        2.  **占位符一致性**：在编写通用函数时，使用 `empty` 的逻辑更加统一，即“我只申请结构，不关心初值”。
+        3.  **多维扩展**：这种写法很容易扩展到多维。例如 `np.empty((0, 10))` 表示创建一个有 10 列，但目前有 0 行的矩阵。这在处理 DataFrame 风格的数据合并时非常有用。
+
+    ---
+
+    4. 性能小贴士（避坑指南）
+
+        虽然 `np.empty((0,))` 很好用，但**不要在超大规模循环中使用 `np.append` 频繁操作它。**
+
+        * **原因**：NumPy 数组在内存中是连续分配的。每次执行 `np.append`，NumPy 都会开辟一块全新的内存，把旧数据和新数据一起拷贝过去。
+        * **更好的做法**：
+            * 如果你知道最终大小，直接用 `np.empty(N)` 预分配。
+            * 如果你不知道最终大小，先用 Python 原生列表 `[]` 进行 `append`，最后一次性调用 `np.array(list)` 转换。
+
+    ---
+
+    5. 总结
+
+        `np.empty((0,), dtype=np.float64)` 本质上是**创建了一个类型安全的“零长度占位符”**。它最常出现在需要**初始化一个空的 NumPy 容器**以便随后进行拼接的场景中。
+
+    你目前是在尝试编写一个需要动态增加元素的循环，还是在处理某些可能返回空结果的数据接口？
+
+* 详细讲讲 numpy 中 np.empty() 的用法
+
+    在 NumPy 的工具箱里，`np.empty()` 是一个追求**极致速度**的工具。如果你需要创建一个大数组，但并不在乎数组里最初装的是什么，它是最理想的选择。
+
+    ---
+
+    1. 核心定义
+        
+        `np.empty()` 用于创建一个**指定形状（shape）**和**数据类型（dtype）**的数组，但它**不会初始化**数组元素。
+
+        **语法**
+
+        ```python
+        numpy.empty(shape, dtype=float, order='C')
+        ```
+
+        * **shape**: 数组的维度（例如 `5`, `(2, 3)`, 或 `[1, 2, 3]`）。
+        * **dtype**: 期望的数据类型，默认是 `float64`。
+        * **order**: 在内存中的存储方式，`'C'` 为行优先（C风格），`'F'` 为列优先（Fortran风格）。
+
+    ---
+
+    2. 为什么它很快？（重要特性）
+        
+        当你使用 `np.zeros()` 时，系统会分配内存并将每个位置“抹零”；使用 `np.ones()` 时，系统会将其填充为 1。
+
+        而 **`np.empty()` 直接申请内存，申请到什么就是什么。**
+        这意味着：
+        * **它是“脏”的**：数组里的数值是该内存地址上原有的残留数据（垃圾值）。
+        * **效率最高**：省去了写入初始值的步骤，在大规模数组操作时性能优势明显。
+
+    ---
+
+    3. 基本用法示例
+
+        **创建一维数组**
+
+        ```python
+        import numpy as np
+
+        arr = np.empty(3)
+        print(arr) 
+        # 输出结果可能是随机的极小值，例如：[6.9e-310, 0.0, 4.7e-310]
+        ```
+
+        **创建多维数组并指定类型**
+
+        ```python
+        # 创建一个 2x3 的整型数组
+        arr_int = np.empty((2, 3), dtype=int)
+        print(arr_int)
+        ```
+
+    ---
+
+    4. 什么时候该用 `np.empty()`？
+
+        既然数值是随机的，为什么要用它？通常有以下两个经典场景：
+
+        1.  **作为“容器”使用**：
+            如果你打算立刻用一个循环或函数（如 `np.copyto`）把这个数组填满，那么初始化为 0 就是浪费时间。
+            ```python
+            # 先挖个坑，一会儿填满它
+            data = np.empty(1000000) 
+            for i in range(1000000):
+                data[i] = i ** 2 
+            ```
+
+        2.  **性能敏感型应用**：
+            在处理超大规模科学计算时，初始化内存的开销（Memory Bandwidth）可能会成为瓶颈。
+
+    ---
+
+    5. 常见误区与对比
+
+        | 函数 | 初始值 | 速度 | 适用场景 |
+        | :--- | :--- | :--- | :--- |
+        | **`np.empty`** | 内存残留值（随机） | **最快** | 确定随后会立刻覆盖所有数据时 |
+        | **`np.zeros`** | 0 | 中等 | 需要清零背景，防止干扰计算时 |
+        | **`np.ones`** | 1 | 中等 | 需要做乘法初始化或掩码时 |
+        | **`np.full`** | 自定义值 | 中等 | 需要特定初始背景时 |
+
+        > **⚠️ 安全警告：**
+        > 永远不要在不打算重新赋值的情况下直接使用 `np.empty()` 的结果进行数学运算（如加减乘除）。因为那些“垃圾值”是不确定的，会导致你的计算结果不可预测且不可复现。
+
+    ---
+
+    6. 进阶变体：`np.empty_like()`
+        
+        这是一个非常实用的“克隆”函数。它会根据现有数组的**形状和类型**创建一个新的 empty 数组。
+
+        ```python
+        existing_arr = np.array([[1, 2], [3, 4]])
+        new_arr = np.empty_like(existing_arr) 
+
+        # new_arr 的形状是 (2, 2)，类型是 int，但内容是随机的
+        ```
+
+    在使用 `np.empty()` 时，你是否正在处理需要手动填充的大规模数据集？
+
 * 我希望找到 ndarray 里指定的一行，比如找 [4, 5, 6]，返回行索引 1. 上面这种方法虽然可以找，但是当数据量比较大时，会生成很大的布尔矩阵，是否有更好的方法？
 
     ```ipython

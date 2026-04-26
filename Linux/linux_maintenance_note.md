@@ -6,6 +6,8 @@
 
 ## cache
 
+* apt 安装软件可以直接使用 http_proxy, https_proxy，但是如果使用 sudo apt 安装，需要添加 sudo -E apt install xxx
+
 * `ps -xu mkeac | grep qemu`，报错：`error: must set personality to get -x option`，这个报错是为什么
 
     (ds 回答)

@@ -2,6 +2,20 @@
 
 ## cache
 
+* winsw: Windows Service Wrapper in a permissive license
+
+    <https://github.com/winsw/winsw?tab=readme-ov-file>
+
+    快速生成 windows server。
+
+    usage example: <https://github.com/winsw/winsw/blob/v3/docs/cli-commands.md#install-command>
+
+* WinFsp · Windows File System Proxy
+
+    <https://github.com/winfsp/winfsp>
+
+    在cygwin 里安装 sshfs 时需要这个库。
+
 * windows在重启时有时会因为程序正在运行而卡住无法关机，如何保证能一定重启成功
 
     我来分享几种确保Windows能强制重启成功的方法，按推荐顺序排列：
