@@ -595,7 +595,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
 
-* [ ] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
+* [v] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
 
 * [P] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
@@ -857,7 +857,7 @@ english words 由 { } reorg: english words 进化而来。
 
 ### tasks
 
-* [ ] 如果使用 DKMS
+* [v] 如果使用 DKMS
 
     ```bash
     # 重新注册和构建 DKMS 模块
@@ -867,19 +867,7 @@ english words 由 { } reorg: english words 进化而来。
     sudo dkms install sipu/version -k $(uname -r)
     ```
 
-* [v] vim 命令
-
-    :'<,'>s/.*/```&```/
-
-    解释：
-
-        '<,'>：表示选中的范围
-
-        s/.*/```&```/：将整行替换为三个反引号 + 原内容 + 三个反引号
-
-        & 表示匹配到的整个文本
-
-* [ ] 调研 vim-surround 插件
+* [v] 调研 vim-surround 插件
 
     <https://github.com/tpope/vim-surround>
 
@@ -1270,8 +1258,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] `setitimer()`
 
 * [ ] `timer_create()`
-
-* [v] `sigaction()`
 
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
@@ -1678,7 +1664,7 @@ english words 由 { } reorg: english words 进化而来。
 
     （注：find 默认不支持 birth 时间，但可以按 mtime 排序）
 
-* [asso] `if constexpr`
+* [ ] `if constexpr`
 
 * [asso] 调研命令后写`&`的写法
 
@@ -1757,7 +1743,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [new] `arr: "NDArray" = cp.array([1, 2, 3])`
 
-* [new] divmod, np.unravel_index
+* [ ] divmod, np.unravel_index
 
 * [new] GitLens
 
@@ -1781,7 +1767,7 @@ english words 由 { } reorg: english words 进化而来。
 
     分别实现从高位到低位，从低位到高位
 
-* [ ] `ax.annotate()`
+* [v] `ax.annotate()`
 
 * [ ] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
 
@@ -1896,7 +1882,7 @@ resources:
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
-* [ ] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
+* [v] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
 
 * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
 
@@ -1926,17 +1912,9 @@ resources:
 
 * [ ] 调研 SG-DMA
 
-* [v] 调研散列表（Scatterlist）
+* [v] 调研`from typing import Optional, List, Dict, Tuple, Set`
 
-    ```c
-    struct scatterlist sg;
-    sg_init_one(&sg, user_buf, size); // 初始化散列表项
-    dma_map_sg(dev, &sg, 1, DMA_TO_DEVICE); // 映射物理地址
-    ```
-
-* [ ] 调研`from typing import Optional, List, Dict, Tuple, Set`
-
-* [ ] `nn.Unflatten()`
+* [v] `nn.Unflatten()`
 
 * [ ] `nn.ConvTranspose2d()`
 
