@@ -1,5 +1,74 @@
 # Matlab Note
 
+* 简述 matlab 中 split() 的功能
+
+    在 MATLAB 中，`split()` 函数主要用于将\*\*字符串数组（String Array）**或**字符向量（Character Vector）\*\*拆分为多个子部分。
+
+    它的工作原理非常直控：你提供一个待拆分的字符串，并指定一个“分隔符”，函数就会在每一个匹配到分隔符的地方将字符串切断。
+
+    1. 基本功能
+
+        `split()` 会根据指定的分隔符将原始输入拆分成一个**字符串列向量**。
+
+    2. 常用语法格式
+
+        | 语法 | 说明 |
+        | :--- | :--- |
+        | `newStr = split(str)` | **默认拆分**：按空白字符（空格、换行、制表符）进行拆分。 |
+        | `newStr = split(str, delimiter)` | **指定分隔符**：按照你定义的 `delimiter`（如逗号、分号或特定单词）拆分。 |
+        | `newStr = split(str, [d1, d2])` | **多重分隔符**：同时匹配多个不同的分隔符进行拆分。 |
+
+    -----
+
+    3. 代码示例
+
+        A. 默认按空格拆分
+
+        ```matlab
+        str = "MATLAB is a powerful tool";
+        words = split(str)
+        % 输出:
+        % "MATLAB"
+        % "is"
+        % "a"
+        % "powerful"
+        % "tool"
+        ```
+
+        B. 指定分隔符
+
+        ```matlab
+        str = "apple,banana,orange";
+        fruits = split(str, ",")
+        % 输出:
+        % "apple"
+        % "banana"
+        % "orange"
+        ```
+
+        C. 使用多个分隔符
+
+        如果你有一串复杂的地址信息，包含多种符号：
+
+        ```matlab
+        str = "Red;Blue,Green";
+        colors = split(str, [";", ","])
+        % 输出:
+        % "Red"
+        % "Blue"
+        % "Green"
+        ```
+
+    -----
+
+    4. 注意事项
+
+      * **返回类型**：无论输入是字符向量 `''` 还是字符串 `""`，`split()` 通常都会返回一个**字符串数组**。
+      * **维度变化**：如果输入是一个字符串矩阵（多行），`split` 会在第三维度上进行拆分。
+      * **与 `strsplit` 的区别**：`strsplit` 是较老版本中常用的函数，主要针对字符向量并返回元胞数组（Cell Array）；而 `split` 是为了配合现代 MATLAB 的 `string` 数据类型设计的，效率更高且用法更直观。
+
+    您是想处理特定格式的数据文件（如 CSV 或日志文件），还是在进行文本分析？我可以为您提供针对特定场景的代码示例。
+
 * matlab 中，如何快速切换文件 tab
 
     在 MATLAB 中，有多种方法可以快速切换文件编辑器中的 Tab：

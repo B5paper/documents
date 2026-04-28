@@ -2,6 +2,15 @@
 
 ## cache
 
+* CUDA 的 memory 为什么要 pin 住？
+
+    CUDA pin memory（页锁定内存）核心是**省掉页表映射开销+支持DMA直接传输**，提速主机与GPU的数据交互。
+    1.  普通内存可被OS换出到硬盘，GPU无法直接访问，必须经CPU拷贝中转；pin住后内存物理地址固定，不换页，GPU能通过DMA直接读写，绕开CPU。
+    2.  搭配cudaMemcpyAsync异步传输时，pin memory才能让数据传输和核函数计算并行，大幅提升整体吞吐。
+    3.  代价是pin内存占用物理内存不释放，过量使用会导致系统卡顿，需控制用量。
+
+    要不要我帮你整理**pin memory的代码使用示例**？
+
 * 详细讲讲 cuda graph
 
     在 GPU 编程的领域中，**CUDA Graph** 是一项旨在减少 **CPU 发射开销（CPU Launch Overhead）** 的核心技术。

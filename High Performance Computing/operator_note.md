@@ -2,6 +2,141 @@
 
 ## cache
 
+* 简述什么是算子golden
+
+    以下是**可直接运行的Python代码**，实现基于NumPy生成算子Golden数据、保存为bin文件，以及与算子输出进行精度校验的完整逻辑。
+    代码以常见的`矩阵乘法算子`为例，可直接替换为你需要验证的任意算子。
+
+    ```python
+    import numpy as np
+    import struct
+
+    def generate_golden_data(shape, dtype=np.float32, op_type="matmul"):
+        """
+        生成算子的Golden数据（基于NumPy的权威计算结果）
+        :param shape: 输入数据的形状，matmul时为 (a_shape, b_shape)
+        :param dtype: 数据类型，默认float32
+        :param op_type: 算子类型，当前支持 matmul/add，可扩展
+        :return: 输入数据1, 输入数据2, Golden输出数据
+        """
+        # 固定随机种子，保证Golden数据可复现
+        np.random.seed(42)
+        
+        if op_type == "matmul":
+            a_shape, b_shape = shape
+            a = np.random.uniform(-10, 10, a_shape).astype(dtype)
+            b = np.random.uniform(-10, 10, b_shape).astype(dtype)
+            golden = np.matmul(a, b).astype(dtype)
+        elif op_type == "add":
+            a_shape, b_shape = shape
+            a = np.random.uniform(-10, 10, a_shape).astype(dtype)
+            b = np.random.uniform(-10, 10, b_shape).astype(dtype)
+            golden = np.add(a, b).astype(dtype)
+        else:
+            raise NotImplementedError(f"暂不支持算子类型: {op_type}")
+        
+        return a, b, golden
+
+    def save_to_bin(data, file_path):
+        """
+        将numpy数组保存为bin文件（按内存布局连续存储）
+        :param data: numpy数组
+        :param file_path: 保存路径
+        """
+        with open(file_path, "wb") as f:
+            f.write(data.tobytes())
+
+    def load_from_bin(file_path, shape, dtype):
+        """
+        从bin文件加载数据为numpy数组
+        :param file_path: 加载路径
+        :param shape: 数组形状
+        :param dtype: 数据类型
+        :return: numpy数组
+        """
+        data_size = np.prod(shape) * np.dtype(dtype).itemsize
+        with open(file_path, "rb") as f:
+            data_bytes = f.read(data_size)
+        return np.frombuffer(data_bytes, dtype=dtype).reshape(shape)
+
+    def check_precision(pred, golden, rtol=1e-5, atol=1e-8):
+        """
+        校验算子输出与Golden数据的精度
+        :param pred: 算子输出数据（numpy数组）
+        :param golden: Golden数据（numpy数组）
+        :param rtol: 相对误差阈值
+        :param atol: 绝对误差阈值
+        :return: 校验是否通过, 最大绝对误差, 最大相对误差
+        """
+        # 确保形状和类型一致
+        assert pred.shape == golden.shape, f"形状不匹配: pred {pred.shape} vs golden {golden.shape}"
+        assert pred.dtype == golden.dtype, f"类型不匹配: pred {pred.dtype} vs golden {golden.dtype}"
+        
+        # 计算绝对误差和相对误差
+        abs_error = np.abs(pred - golden)
+        rel_error = abs_error / (np.abs(golden) + atol)  # 避免除零
+        
+        max_abs_error = np.max(abs_error)
+        max_rel_error = np.max(rel_error)
+        
+        # 精度校验（满足 rtol 或 atol 其一即可通过）
+        pass_flag = np.allclose(pred, golden, rtol=rtol, atol=atol)
+        
+        return pass_flag, max_abs_error, max_rel_error
+
+    # -------------------------- 主流程：以矩阵乘法为例 --------------------------
+    if __name__ == "__main__":
+        # 1. 配置参数
+        OP_TYPE = "matmul"  # 算子类型：matmul/add
+        DTYPE = np.float32  # 数据类型
+        A_SHAPE = (128, 64)  # 输入A形状
+        B_SHAPE = (64, 32)   # 输入B形状
+        GOLDEN_DIR = "./golden_data/"  # Golden数据保存目录
+        import os
+        os.makedirs(GOLDEN_DIR, exist_ok=True)
+
+        # 2. 生成Golden数据
+        a, b, golden = generate_golden_data(
+            shape=(A_SHAPE, B_SHAPE),
+            dtype=DTYPE,
+            op_type=OP_TYPE
+        )
+
+        # 3. 保存Golden数据到bin文件（输入+输出）
+        save_to_bin(a, f"{GOLDEN_DIR}/input_a.bin")
+        save_to_bin(b, f"{GOLDEN_DIR}/input_b.bin")
+        save_to_bin(golden, f"{GOLDEN_DIR}/golden_output.bin")
+        print("Golden数据已保存到bin文件")
+
+        # 4. 模拟算子输出（实际使用时替换为你的算子推理结果）
+        # 这里用NumPy的计算结果模拟“理想算子输出”，实际需替换为硬件/框架的算子输出
+        pred_output = np.matmul(a, b).astype(DTYPE)
+
+        # 5. 从bin加载Golden数据（模拟实际验证流程）
+        loaded_golden = load_from_bin(
+            file_path=f"{GOLDEN_DIR}/golden_output.bin",
+            shape=golden.shape,
+            dtype=DTYPE
+        )
+
+        # 6. 精度校验
+        pass_flag, max_abs_err, max_rel_err = check_precision(pred_output, loaded_golden)
+        print(f"精度校验结果: {'通过' if pass_flag else '失败'}")
+        print(f"最大绝对误差: {max_abs_err:.6e}")
+        print(f"最大相对误差: {max_rel_err:.6e}")
+    ```
+
+    **核心说明**
+
+    1. **可复现性**：固定`np.random.seed(42)`，确保每次生成的Golden数据完全一致。
+    2. **精度校验**：使用`np.allclose`，支持**相对误差（rtol）**和**绝对误差（atol）**双阈值，适配不同精度需求的算子。
+    3. **扩展性**：新增算子类型时，只需在`generate_golden_data`中添加对应的NumPy计算逻辑。
+
+    **实际使用注意事项**
+    - 替换`pred_output`为**你的算子实际输出**（如硬件算子、自定义框架算子的结果）。
+    - 若算子输入为单张量（如ReLU、Conv2D），可修改`generate_golden_data`的输入参数逻辑。
+    - 对于整型数据（如int8），建议将`rtol`设为0，仅用`atol`（如1）进行校验。
+
 * 简述 flash attention
 
     Flash Attention 是一种高效计算注意力机制的算法，由斯坦福大学团队于2022年提出。它通过优化内存访问方式，显著减少了Transformer模型中注意力层的计算时间和内存占用。

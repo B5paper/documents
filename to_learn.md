@@ -8557,3 +8557,6 @@
 
     DGL is an easy-to-use, high performance and scalable Python package for deep learning on graphs.
 
+* flash-attention
+
+    <https://github.com/Dao-AILab/flash-attention>

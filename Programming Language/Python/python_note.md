@@ -2,6 +2,21 @@
 
 ## cache
 
+* 简述 python 中 reduce, map, filter 的作用
+
+    三者均为 Python 内置的**高阶函数**，用于对可迭代对象进行批量处理，核心作用与差异如下：
+    1.  **map(function, iterable)**
+        - 核心作用：将 `function` 依次作用于 `iterable` 的每个元素，返回包含所有结果的迭代器。
+        - 核心逻辑：**一对一映射**，输入与输出元素数量相同。
+    2.  **filter(function, iterable)**
+        - 核心作用：用 `function` 对 `iterable` 每个元素做判断（返回布尔值），返回仅包含判断为 `True` 元素的迭代器。
+        - 核心逻辑：**过滤筛选**，输出元素数量 ≤ 输入。
+    3.  **reduce(function, iterable[, initializer])**
+        - 核心作用：将 `function`（需接收两个参数）依次作用于 `iterable` 的元素，**累积计算**为单个值，需从 `functools` 导入。
+        - 核心逻辑：**多对一归约**，最终输出单个结果。
+
+    是否需要我提供**三者的完整代码示例**，直观展示它们的使用场景和差异？
+
 * python  是否可以像 c++ 那样，让 class 里的函数实现写到 class 外面
 
     直接回答你：**可以，但方式和 C++ 完全不同。**

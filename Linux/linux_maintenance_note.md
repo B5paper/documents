@@ -6,6 +6,73 @@
 
 ## cache
 
+* tar -t 我希望只查看顶层目录，怎么办
+
+    你希望使用 `tar -t` 命令只查看归档文件的顶层目录/文件（不递归显示子目录内容），这可以通过精准的参数组合和过滤方式实现，以下是两种可靠方案：
+
+    方案一：使用 `tar` 内置 `--no-recursion` 参数（推荐，最简洁）
+
+    `tar` 命令本身提供了 `--no-recursion`（可简写为 `--no-recurse`）参数，用于禁止递归遍历子目录，直接只显示归档的顶层内容，无需额外过滤工具。
+
+    完整命令
+
+    ```bash
+    # 基本用法（查看顶层内容，显示详细信息）
+    tar -tf 你的归档文件.tar --no-recursion
+
+    # 示例（查看 test.tar 的顶层目录/文件）
+    tar -tf test.tar --no-recursion
+    ```
+
+    参数说明
+
+    - `-t`：列出归档文件中的内容（查看模式）
+    - `-f`：指定归档文件（后面必须紧跟归档文件名，不可省略）
+    - `--no-recursion`：核心参数，禁止 `tar` 递归进入子目录，仅展示顶层条目
+
+    方案二：通过 `awk` 过滤路径（兼容无 `--no-recursion` 的老旧 `tar` 版本）
+
+    如果你的 `tar` 版本较旧，不支持 `--no-recursion` 参数，可以通过 `awk` 过滤路径格式，只保留顶层内容（顶层内容的路径不含 `/`，或仅开头无嵌套 `/`）。
+
+    完整命令
+
+    ```bash
+    # 用法1：过滤不含 "/" 的顶层条目（纯顶层文件/目录，无嵌套）
+    tar -tf 你的归档文件.tar | awk -F '/' 'NF == 1'
+
+    # 用法2：兼容部分特殊顶层目录（更严谨，确保仅第一层）
+    tar -tf 你的归档文件.tar | awk '!index($0, "/") || (index($0, "/") == length($0))'
+
+    # 示例（过滤 test.tar 的顶层内容）
+    tar -tf test.tar | awk -F '/' 'NF == 1'
+    ```
+
+    原理说明
+
+    - `awk -F '/' 'NF == 1'`：以 `/` 作为字段分隔符，仅保留字段数为 1 的行（即路径中不含 `/`，说明是顶层内容，无嵌套子目录）
+    - 该方案完全依赖文本过滤，不依赖 `tar` 内置参数，兼容性更强
+
+    补充说明
+
+    1.  若归档文件是压缩格式（如 `.tar.gz`/`.tar.bz2`/`.tar.xz`），只需添加对应解压参数，核心逻辑不变：
+        ```bash
+        # .tar.gz 格式（加 -z 参数）
+        tar -tzf test.tar.gz --no-recursion
+
+        # .tar.bz2 格式（加 -j 参数）
+        tar -tjf test.tar.bz2 --no-recursion
+
+        # .tar.xz 格式（加 -J 参数）
+        tar -tJf test.tar.xz --no-recursion
+        ```
+    2.  两种方案对比：`--no-recursion` 更简洁、效率更高（直接由 `tar` 内部控制，无需管道传输）；`awk` 过滤兼容性更强，适用于老旧系统。
+
+    总结
+
+    1.  优先使用 `tar -tf 归档文件 --no-recursion`，简洁高效，实现顶层内容查看；
+    2.  老旧 `tar` 版本可备用 `tar -tf 归档文件 | awk -F '/' 'NF == 1'`；
+    3.  压缩归档文件只需添加对应解压参数（`-z`/`-j`/`-J`），核心参数不变。
+
 * apt 安装软件可以直接使用 http_proxy, https_proxy，但是如果使用 sudo apt 安装，需要添加 sudo -E apt install xxx
 
 * `ps -xu mkeac | grep qemu`，报错：`error: must set personality to get -x option`，这个报错是为什么
