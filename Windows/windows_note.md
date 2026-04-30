@@ -2,6 +2,73 @@
 
 ## cache
 
+* win 11 中的同名 sudo
+
+    ```shell
+    wsdlh@abchhh /cygdrive/c/home/wsdlh
+    $ sudo vim 'C:\ProgramData\ssh\sshd_config'
+    ```
+
+    > 已在此计算机上禁用 Sudo。若要启用它，请转到“设置”应用中的 Developer Settings page
+
+    这是一个非常有趣的“撞车”现象。你看到的这个错误提示**不是来自 Cygwin**，而是来自 **Windows 11 原生自带的 `sudo` 命令**。
+
+    由于你的 `PATH` 变量中包含了 Windows 的系统目录，当你输入 `sudo` 时，系统优先调用了 Windows 最近新增的内置 `sudo.exe`，而不是你在 Cygwin 里设定的别名或脚本。
+
+    要解决这个问题并成功编辑文件，你有两个选择：
+
+    **方案一：启用 Windows 原生 Sudo（最快）**
+
+    既然 Windows 已经提示你了，直接开启它即可：
+    1.  打开 Windows **设置 (Settings)**。
+    2.  前往 **系统 (System) > 开发者选项 (For developers)**。
+    3.  找到 **启用 Sudo (Enable Sudo)** 开关并打开。
+    4.  回到 Cygwin，再次运行你的命令。
+
+    ---
+
+    **方案二：绕过 Sudo，直接以管理员身份运行**
+
+    在 Windows/Cygwin 环境下，修改 `sshd_config` 这种系统文件最稳妥的方法是不在终端里“提权”，而是直接开启一个“高权限终端”：
+
+    1.  关闭当前的 Cygwin 窗口。
+    2.  **右键点击** Cygwin 快捷方式（图标），选择 **“以管理员身份运行”**。
+    3.  直接输入命令（不需要加 sudo）：
+        ```bash
+        vim /cygdrive/c/ProgramData/ssh/sshd_config
+        ```
+
+    ---
+
+    **方案三：如果你坚持要在 Cygwin 模拟 Linux 风格**
+
+    如果你想让 `sudo` 这个词指向你自定义的行为，而不是 Windows 自带的那个，你可以在 `.bashrc` 里强制指定别名。
+
+    但在你目前的场景下，最简单且不报错的临时方法是使用 **PowerShell 提权调用**：
+    ```bash
+    powershell -Command "Start-Process vim -ArgumentList 'C:\ProgramData\ssh\sshd_config' -Verb RunAs"
+    ```
+
+    **一个小提示**
+
+    `C:\ProgramData\ssh\sshd_config` 的权限非常严格。即使你用了 `sudo`，有时 Windows 仍然会因为文件所有权（Ownership）属于 `SYSTEM` 而阻止修改。
+
+    如果修改失败，建议：
+    * 先在管理员权限的窗口下，使用 `ls -l` 查看权限。
+    * 或者直接在 Windows 资源管理器里右键该文件 -> 属性 -> 安全，确认你的账户有“写入”权限。
+
+    你开启“开发者模式”中的 Sudo 选项了吗，还是更倾向于直接用管理员身份打开终端？
+
+* win 11 的 ssh 登陆密码
+
+    * 如果使用邮箱作为 win 11 的账号，那么 ssh 的密码与邮箱账号密码相同，ssh 的用户名可以通过`whoami`看到
+
+    * 关闭“仅允许 hello 登录”的设置，并重启电脑 
+
+        > 为了提高安全性，仅允许此设备上的 Microsoft 账户使用 Windows Hello 登录
+
+        只重启 ssh service 没用。
+
 * winsw: Windows Service Wrapper in a permissive license
 
     <https://github.com/winsw/winsw?tab=readme-ov-file>

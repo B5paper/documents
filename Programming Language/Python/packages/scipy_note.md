@@ -1,3 +1,69 @@
+## cache
+
+* scipy 中的稀疏矩阵的运算有类似 numpy 那样的多线程或 smid 加速机制吗
+
+    这是一个非常扎实的问题。简单直接的回答是：**Scipy 的稀疏矩阵（`scipy.sparse`）在原生状态下对多线程和 SIMD 的支持非常有限，远不如 Numpy 那样成熟。**
+
+    底层原因在于稀疏矩阵的存储特性（非连续内存）与并行计算需要的“数据规整性”天然冲突。以下是详细的拆解：
+
+    ---
+
+    1. 为什么它不像 Numpy 那样快？
+
+        Numpy 的核心运算（如矩阵乘法）通常链接了 **BLAS/LAPACK** 库（如 OpenBLAS, Intel MKL, 或 Apple Accelerate）。这些库是高度优化的，会自动利用多核 CPU 和 SIMD 指令集。
+
+        相比之下，Scipy 的稀疏矩阵：
+        * **多线程：** 大多数稀疏运算（如 `dot` 或 `spsolve`）运行在底层的 C++ 或 Fortran 代码中，但受到 **GIL (Global Interpreter Lock)** 的限制，或者其底层实现本身就是单线程的递归/循环。
+        * **SIMD：** 由于稀疏矩阵存储的是（值, 行索引, 列索引），内存访问是**非连续的（Strided/Random access）**。这使得 CPU 很难预取数据，也难以应用典型的 SIMD 向量化指令。
+
+    ---
+
+    2. 不同格式的“加速”现状
+
+        虽然原生支持弱，但不同的存储格式在效率上有天壤之别：
+
+        | 格式 | 优势 | 局限性 |
+        | :--- | :--- | :--- |
+        | **CSR / CSC** | **最接近硬件加速。** 矩阵乘法（SPMM）和向量乘法（SPMV）在 Scipy 中有部分优化，但基本是单核逻辑。 | 结构固定，难以动态修改。 |
+        | **COO** | 适合构建矩阵。 | 几乎没有任何计算加速，计算前通常需转为 CSR。 |
+        | **LIL / DOK** | 方便像字典一样读写。 | 纯 Python 逻辑，极其缓慢，不支持任何底层加速。 |
+
+    ---
+
+    3. 如果你需要加速，该怎么办？
+
+        如果你发现 Scipy 的性能遇到了瓶颈，目前业界标准的替代方案如下：
+
+        A. 切换到 Intel MKL 运行时
+
+        如果你使用的是 Intel CPU，通过 Conda 安装 `mkl` 和 `mkl-service`。在某些版本的 Scipy 中，针对 CSR 格式的运算会调用 MKL 的稀疏子程序（MKL Sparse BLAS），这可以显著提升 **SIMD** 的利用率。
+
+        B. 使用 PyTorch 或 TensorFlow (GPU 加速)
+
+        这是目前最主流的方案。如果你有大量稀疏运算：
+        * `torch.sparse` 支持 GPU 上的稀疏矩阵运算。
+        * GPU 拥有成千上万个核心，处理 CSR 格式的并行化能力远超 CPU。
+
+        C. Cupy (Numpy/Scipy 的 GPU 替代品)
+
+        如果你不想改变代码风格，**CuPy** 是最佳选择。它几乎完整克隆了 `scipy.sparse` 的 API，但运行在 CUDA 上。
+        ```python
+        import cupyx.scipy.sparse as sparse # 几乎与 scipy 语法一致
+        ```
+
+        D. 使用专用库：PyData/Sparse 或 PyKeOps
+
+        * **PyData/Sparse:** 提供了更现代的稀疏张量支持，且能更好地与 Dask 集成进行分布式计算。
+        * **PyKeOps:** 针对特定的大规模核运算，绕过了传统的矩阵存储，利用在线映射实现极速计算。
+
+    ---
+
+    **总结**
+
+    Scipy 稀疏矩阵目前主要服务于**中等规模**和**算法验证**。如果你追求极致的多线程并发现 CPU 占用率始终只有 100%（单核），那么你应该考虑将计算负载转移到 **GPU (CuPy/PyTorch)** 或者检查是否正确链接了 **MKL** 库。
+
+    你目前的计算场景是在处理大规模的图算法，还是在求解大型线性方程组？
+
 * scipy 中的稀疏矩阵如何转换成 cupy 矩阵
 
     将 SciPy 的稀疏矩阵转换为 CuPy 矩阵是加速大规模数值计算的常见需求。由于 SciPy 运行在 CPU 上，而 CuPy 运行在 NVIDIA GPU 上，这个过程涉及**内存到显存的传输**。

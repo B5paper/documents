@@ -1,3 +1,67 @@
+## AI Agent Note
+
+## cache
+
+* 使用 ssh 登陆到远程机器，再打开 screen，然后打开 codex 后，codex 在工作时，光标会狂闪。如何解决？
+
+    在使用 SSH、Screen 和 Codex CLI（OpenAI 的命令行工具）这一套组合时，光标狂闪通常是因为 **Codex 的状态指示器（Spinner）触发了频繁的终端重绘**，而 Screen 在处理这种高频刷新时，会不断发送“隐藏/显示光标”的转义序列。
+
+    这种现象在 SSH 延迟环境下会被放大，导致光标看起来像在“狂跳”或“狂闪”。你可以通过以下几个步骤解决：
+
+    1. 关闭 Codex 的终端标题动画（最有效）
+        
+        Codex 默认会不断更新终端窗口的标题（Title）来显示一个旋转的加载图标（Spinner）。在 Screen 内部，这个操作会导致频繁的重绘冲突。
+
+        * **方法**：在 Codex 交互界面中，输入 `/title` 命令来修改或禁用标题动画。
+        * **或者**：在你的 Codex 配置文件中（通常是 `~/.config/codex/config.toml` 或类似路径），找到 `tui` 部分，设置：
+            ```toml
+            [tui]
+            animated_terminal_title = false
+            ```
+            *注：如果该选项不可用，尝试寻找关闭 "spinner" 或 "status animation" 的开关。*
+
+    ---
+
+    2. 优化 Screen 的配置
+        
+        Screen 对高频刷新率的支持不如 Tmux。你可以通过修改 `~/.screenrc` 来减少不必要的干扰：
+
+        1.  打开配置文件：`nano ~/.screenrc`
+        2.  添加或确保有以下配置：
+            ```text
+            # 禁用 Screen 自己的可视铃声
+            vbell off
+            # 尝试开启“非阻塞”模式，减少输出等待导致的闪烁
+            nonblock on
+            ```
+        3.  重启 Screen 会话生效。
+
+    ---
+
+    3. 修改光标闪烁设置
+        
+        如果是因为 Codex 在等待模型响应时，其 TUI（终端界面）强制光标进入某种状态，你可以尝试在进入 Screen 前先禁用系统层面的光标闪烁：
+
+        ```bash
+        # 执行此命令后再打开 screen 和 codex
+        setterm -blink off
+        ```
+
+    ---
+
+    4. 终极替代方案：使用 Tmux + 同步渲染
+        
+        如果上述方法无法彻底解决，建议将 `screen` 换成 **`tmux`**。Tmux 在 3.3+ 版本中支持 **“同步渲染”（Synchronized Rendering）**，可以完全消除 TUI 程序（如 Codex、Claude Code）的闪烁。
+
+        在 `~/.tmux.conf` 中添加：
+        ```text
+        set-option -g terminal-features ",xterm-256color:Sync"
+        ```
+
+    **总结**
+
+    最快的方法是进入 Codex 后查找是否有**关闭 Status Spinner（加载动画）**的选项。那个每秒几十次的标题更新通常是 SSH 环境下光标狂闪的罪魁祸首。
+
 * 给我讲讲常用的搜索技巧，比如 grep 之类的
 
   * 常用思路

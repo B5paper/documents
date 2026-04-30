@@ -2,6 +2,72 @@
 
 ## cache
 
+* 简述 matplotlib 中`ax.annotate()`的原型、作用和用法
+
+    `ax.annotate()` 是 Matplotlib 中功能最强大的文本标注工具。它不仅仅能写字，还能画出带箭头的指向线，将文字精确地链接到图表中的特定点。
+
+    ---
+
+    1. 函数原型
+        
+        其核心调用签名如下：
+
+        ```python
+        ax.annotate(text, xy, xytext=None, arrowprops=None, **kwargs)
+        ```
+
+    2. 主要参数作用
+
+        | 参数 | 说明 |
+        | :--- | :--- |
+        | **`text`** | 字符串。标注显示的文本内容。 |
+        | **`xy`** | 元组 `(x, y)`。**被标注点**的坐标（箭头的尖端所在位置）。 |
+        | **`xytext`** | 元组 `(x, y)`。可选。**文字所在**的坐标。如果不填，默认等于 `xy`。 |
+        | **`arrowprops`** | 字典。可选。定义箭头的样式（如颜色、宽度、收缩比例等）。 |
+        | **`xycoords`** | 字符串。指定 `xy` 的坐标系（默认为 `'data'`，即基于数据轴）。 |
+        | **`textcoords`** | 字符串。指定 `xytext` 的坐标系（常用 `'offset points'` 或 `'data'`）。 |
+
+    ---
+
+    3. 基本用法示例
+
+        下面是一个典型的使用场景：标注曲线上的最高点。
+
+        ```python
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        x = [1, 2, 3]
+        y = [1, 5, 2]
+        ax.plot(x, y)
+
+        # 使用 annotate 进行标注
+        ax.annotate(
+            'Peak Value',            # 文本内容
+            xy=(2, 5),               # 箭头指向的点 (数据坐标)
+            xytext=(2.5, 5.5),       # 文字所在的位置 (数据坐标)
+            arrowprops=dict(         # 箭头样式
+                facecolor='black', 
+                shrink=0.05, 
+                width=2
+            ),
+            fontsize=12,
+            color='red'
+        )
+
+        plt.show()
+        ```
+
+    4. 核心功能总结
+        
+        * **指向性：** 自动处理文字与目标点之间的连线/箭头。
+        * **坐标转换：** 极其灵活。你可以设置“箭头指向数据点（data）”，而“文字放在屏幕左上角（axes fraction）”。
+        * **避让与偏移：** 通过 `textcoords='offset points'`，可以让文字在目标点坐标的基础上，精确偏移若干像素点，防止文字覆盖数据点。
+
+    > **小贴士：** 如果你只需要在图上写字而不需要箭头，虽然 `ax.annotate()` 也能做，但通常使用更简单的 `ax.text(x, y, "text")` 会更直观。
+
+    你是在处理科学论文的绘图，还是在做普通的数据可视化分析？
+
 * 简述 matplotlib 中 `ax.set_xlim()`, `ax.set_ylim()`, `ax.set_aspect()`, `ax.axis()` 这几个函数的原型、作用及用法
 
     在 Matplotlib 的面向对象接口中，这几个函数是控制**坐标轴范围**和**显示比例**的核心工具。它们通常作用于 `Axes` 对象（即变量 `ax`）。

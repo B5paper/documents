@@ -2,6 +2,60 @@
 
 ## cache
 
+* web 前端的 GLB 是什么东西？
+
+    **GLB (glTF Binary)** 是前端（Web 3D）领域最常用的 **3D模型文件格式**。
+    简单说：**它是把 3D 模型、贴图、材质、动画全打包在一个二进制文件里的格式，专为网页快速加载设计。**
+
+    一、核心定位
+    - **全称**：glTF Binary（GL传输格式-二进制版）
+    - **制定方**：Khronos Group（WebGL、OpenGL标准组织）
+    - **本质**：**glTF 的单文件二进制封装**
+
+    二、GLB vs glTF（关键区别）
+    - **.gltf（JSON文本）**
+      - 结构：`.gltf`（JSON描述）+ `.bin`（几何数据）+ 多张贴图（`.png`/`.jpg`）
+      - 特点：可读、易编辑，但**多文件、请求多、加载慢**
+
+    - **.glb（二进制）**
+      - 结构：**一个文件全包**（JSON头 + 二进制数据 + 内嵌贴图）
+      - 特点：**体积更小、加载更快、单文件、易部署**
+
+    三、前端为什么用 GLB？
+    - ✅ **单文件，减少网络请求**（Web弱网/移动端优势大）
+    - ✅ **体积小**：比分离式 glTF 小约 30%
+    - ✅ **原生支持 PBR 材质、动画、骨骼**
+    - ✅ **Three.js/Babylon.js 等库原生加载**
+    - ✅ **WebXR、AR/VR 标准格式**
+
+    四、文件结构（极简）
+    1. **Header（12字节）**：标识`glTF`、版本、总长
+    2. **JSON Chunk**：场景、节点、材质、动画（同 .gltf）
+    3. **Binary Chunk**：顶点、索引、贴图二进制数据
+
+    五、前端典型用法（Three.js）
+    ```javascript
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+    const loader = new GLTFLoader()
+    loader.load(
+      'model.glb', // 单文件
+      (gltf) => {
+        scene.add(gltf.scene) // 直接加入场景
+      }
+    )
+    ```
+
+    六、适用场景
+    - Web 3D 产品展示（电商、汽车、家具）
+    - 网页 AR/VR 互动（WebXR）
+    - 数字孪生、数据可视化
+    - 游戏引擎资源交换（Unity/Unreal）
+
+    一句话记：**GLB = Web 3D 的 JPG，单文件、轻量、快加载、全包含。**
+
+    要不要我给你一段可直接运行的 **Three.js 加载 GLB 的完整代码**（含 HTML+JS）？
+
 * 除了 echarts，前端还有哪些类似 matplotlib 的可视化库
 
     除了 ECharts，前端还有不少优秀的可视化库，以下是一些类似 Matplotlib 风格（注重数据驱动、图表类型丰富）的库：

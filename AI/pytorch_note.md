@@ -2,6 +2,75 @@
 
 ## cache
 
+* 讲讲 pytorch 中`nn.Unflatten()`的原型、作用和用法
+
+    在 PyTorch 的神经网络构建中，`nn.Unflatten()` 是一个非常实用的层，它主要用于**将一个平坦的维度“展开”回高维形状**。它通常出现在 **卷积神经网络（CNN）的解码器（Decoder）** 或 **生成对抗网络（GAN）** 中，作为 `nn.Flatten()` 的逆操作。
+
+    ---
+
+    1. 函数原型
+
+        ```python
+        torch.nn.Unflatten(dim, unflattened_size)
+        ```
+
+        * **`dim` (int)**: 要被展开的维度索引。通常是 `1`，因为第 `0` 维通常是 Batch Size。
+        * **`unflattened_size` (tuple/torch.Size)**: 展开后的新形状（不包括 Batch 维度）。
+
+    ---
+
+    2. 核心作用
+
+        在全连接层（`nn.Linear`）之后，数据通常变成了形状为 `(Batch, Features)` 的 2D 张量。如果你想把这些特征喂给卷积层（`nn.Conv2d`），你需要把 `Features` 这一维重新变成 `(Channels, Height, Width)`。
+
+        **`nn.Unflatten` 的本质就是 `tensor.view()` 或 `tensor.reshape()` 的封装，但它更适合放在 `nn.Sequential` 中。**
+
+    ---
+
+    3. 用法示例
+
+        假设我们有一个全连接层的输出，维度是 `(64, 128)`（64 是 Batch Size），我们想把它转换成 `(64, 1, 8, 16)` 的特征图：
+
+        **在 `nn.Sequential` 中使用（最常见用法）**
+
+        ```python
+        import torch
+        import torch.nn as nn
+
+        # 模拟输入：Batch=64, 特征数=128
+        input_tensor = torch.randn(64, 128)
+
+        model = nn.Sequential(
+            # 将维度 1 (128) 展开为 (1, 8, 16)
+            # 注意：1 * 8 * 16 必须等于 128
+            nn.Unflatten(dim=1, unflattened_size=(1, 8, 16)),
+            
+            # 接着可以接卷积层了
+            nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        )
+
+        output = model(input_tensor)
+        print(output.shape)  # 输出: torch.Size([64, 32, 8, 16])
+        ```
+
+    ---
+
+    4. 关键点与注意事项
+
+        * **元素总数匹配**：`unflattened_size` 中所有数字的乘积，必须等于原维度 `dim` 的大小。例如，上面例子中 $1 \times 8 \times 16 = 128$。
+        * **Batch 维度自动保留**：你只需要定义“特征”部分的形状。PyTorch 会自动保留第 0 维的 Batch 数量。
+        * **与 `view()` 的区别**：
+            * `view()` 是张量的方法，需要写在 `forward` 函数里。
+            * `nn.Unflatten` 是一个 **Layer（层）**，可以像 `nn.ReLU` 一样直接塞进 `nn.Sequential` 容器，让模型结构更清晰。
+
+    5. 常见应用场景
+
+        1.  **VAE（变分自编码器）**：将隐藏向量（Latent Vector）转回特征图。
+        2.  **GAN（生成对抗网络）**：将随机噪声向量转为图像的初始特征图。
+        3.  **从特征还原空间信息**：在一些多模态模型中，将一维的语义嵌入向量映射回空间维度进行后续处理。
+
+    你是在处理图像生成类任务（比如自编码器），还是在尝试把全连接网络改造成卷积网络？
+
 * accuracy 有 micro 和 macro 之分吗？
 
     这是一个很好的问题！**准确率（Accuracy）通常没有 micro 和 macro 之分**，原因让我详细解释一下。
