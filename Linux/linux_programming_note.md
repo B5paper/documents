@@ -6,6 +6,165 @@
 
 ## cache
 
+* 那么如何才能知道一个点 so 文件是否是一个 debug 版本的？
+
+    我给你**最简单、最实用**的判断方法，Linux 下直接用这几条命令就能看 `.so` 是不是 **debug 版本（带调试信息）**。
+
+    ---
+
+    1. 最准：看是否包含调试段
+
+        ```bash
+        readelf -S your_lib.so | grep -i debug
+        ```
+
+        - **有输出** → 带调试信息（debug 版）
+        - **没输出** → 没有调试信息（release 版）
+
+    ---
+
+    2. 看是否被 strip（最常用）
+
+        ```bash
+        file your_lib.so
+        ```
+
+        如果输出里有：
+        - `not stripped` → **带调试信息**
+        - `stripped` → **已经被剥掉调试信息**
+
+        > 一般：
+        > - 编译时加 `-g` → not stripped
+        > - 用 `strip xxx.so` 后 → stripped
+
+    ---
+
+    3. 直接看符号表（判断能不能调试）
+
+        ```bash
+        nm your_lib.so
+        ```
+
+        - 输出一堆函数名、变量名 → 有符号，**可调试**
+        - 输出 `no symbols` → 不能调试
+
+    ---
+
+    4. 最简单总结（你记这个就行）
+
+        1. 编译时加了 `-g -O0` → 是 debug 版
+        2. `file xxx.so` 显示 `not stripped` → 能 GDB 调试
+        3. `readelf -S xxx.so | grep debug` 有内容 → 真·带调试信息
+
+    ---
+
+    如果你愿意，我可以直接教你**怎么把一个现有的 .so 重新编译成带调试信息的版本**。
+
+* 我有一个点 SO 文件是 Python 调用起来的，现在我想用 GDB 去调试这个点 SO 文件，该怎么办？
+
+    我给你一套**最直接、一步到位**的 GDB 调试 Python 调用 `.so` 动态库的流程，你照着做就能断住。
+
+    ---
+
+    1. 启动 GDB 并附加 Python
+        
+        你有两种方式，任选一种：
+
+        方式A：直接用 GDB 跑 Python
+        ```bash
+        gdb python3
+        ```
+        然后在 GDB 里：
+        ```gdb
+        run your_script.py
+        ```
+
+        方式B：attach 到已运行的 Python 进程
+        1. 先找到 PID：
+        ```bash
+        ps aux | grep python3
+        ```
+        2. GDB 附加：
+        ```bash
+        gdb -p <PID>
+        ```
+
+    ---
+
+    2. 让 GDB 加载你的 .so 符号（关键）
+
+        先确认你的 `.so` **带调试信息**：
+        编译时必须加：
+        ```bash
+        -g -O0
+        ```
+        否则断点无效。
+
+        然后在 GDB 里：
+
+        **查看你的 .so 是否被加载**
+        ```gdb
+        info sharedlibrary
+        ```
+        能看到你的 `.so` 就行。
+
+    ---
+
+    3. 在你的 C/C++ 函数上下断点
+        
+        假设你导出的函数是：
+        ```c
+        void my_func(int x)
+        ```
+
+        直接下断点：
+        ```gdb
+        break my_func
+        ```
+        或者
+        ```gdb
+        b my_func
+        ```
+
+        然后：
+        ```gdb
+        continue
+        ```
+
+        这时 Python 调用到这个函数，**GDB 会立刻断住**。
+
+    ---
+
+    4. 常见必用命令（你直接记这几个）
+
+        - 继续跑：`c`
+        - 单步进入：`s`
+        - 单步跳过：`n`
+        - 查看栈：`bt`
+        - 打断点：`b 函数名`
+        - 查看变量：`p 变量名`
+        - 退出：`q`
+
+    ---
+
+    5. 如果你用的是 Python C 扩展（如 PyBind11、Cython）
+
+        一样调试，只是函数名会被改编，你可以：
+        ```gdb
+        break <YourSoName>.so!<某个函数>
+        ```
+        或者直接用：
+        ```gdb
+        info functions <关键词>
+        ```
+        找到真实函数名。
+
+    ---
+
+    **你告诉我三件事，我可以直接给你写**你专属的调试命令**：**
+    1. 你的 `.so` 是 `C` 还是 `C++`？
+    2. 你要调试的**函数名**是什么？
+    3. 你是 `Python3.x` + Linux 吗？
 * 讲讲 `mlock()` 的原型、作用及用法
 
     在 Linux 系统编程中，`mlock()` 是一个非常有力量的系统调用。它的核心作用是**“锁住内存”**，防止特定的内存区域被系统交换（Swap）到硬盘上。

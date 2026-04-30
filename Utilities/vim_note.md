@@ -2,1749 +2,14 @@
 
 ## cache
 
-* 我希望给 vim 加这样一个功能：normal 模式下输入 I 后，用户输入某个字符 c，然后程序在当前位置插入字符 c 后自动执行 esc 返回 normal 模式。如果输入 [N]I，则 vim 等待用户输入 N 个字符，在当前位置插入后返回到 normal 模式。
+* vim 中，如何 visual 模式下只选取指定的行，比如隔一行选一行。我想选择指定的不规律的几行，比如 1, 4, 9, 12，然后对这些行应用一些指定的宏或函数，比如在每一行的开头添加 * ，删去结尾的空格，替换行里的一些字符等。
 
-    这个需求非常实用，本质上是把 **Insert 模式** 变成了一个 **“原子化”的操作**。在 Vim 中，我们可以通过 `getcharstr()` (或旧版的 `getchar()`) 配合 `v:count1` 来完美实现这个功能。
+    感觉目前没有很好的办法，ai 推荐使用插件：
 
-    你可以将以下代码添加到你的 `.vimrc`（或 `init.vim`）中：
+    * **vim-visual-multi**（类 VSCode 多光标）
+    * **vim-multiple-cursors**（老牌）
 
-    **Vimscript 实现方案**
-
-    ```vim
-    " 定义快速插入函数
-    function! QuickInsert() abort
-        " 获取输入的计数（[N]I），默认为 1
-        let l:count = v:count1
-        let l:inserted_text = ""
-
-        " 循环获取 N 个字符
-        for i in range(l:count)
-            let l:char = getcharstr()
-            " 如果中途按了 Esc，则终止输入
-            if l:char == "\<Esc>"
-                return
-            endif
-            let l:inserted_text .= l:char
-        endfor
-
-        " 在当前光标处插入字符
-        " 使用 feedkeys 可以确保触发原本的插入逻辑，或者直接用 execute
-        execute "normal! i" . l:inserted_text
-    endfunction
-
-    " 将 I 映射到该函数
-    " <C-u> 用于清除 Vim 默认在命令行展示的范围，确保 v:count1 被正确读取
-    nnoremap <silent> I :<C-u>call QuickInsert()<CR>
-
-    ```
-
-    友情提示
-
-    在 Vim 原生快捷键中，`I` 的功能是 **“跳转到行首第一个非空字符并进入插入模式”**。如果你想保留原生的 `I`，建议将上面的映射键改为 `ni`（取 "Next Insert" 之意）或其他不常用的组合。
-
-
-* vim 中，我使用 y 复制一段文字后，想在另一个地方执行 vex 删除一个单词后，再按 p 把复制的文字粘贴到当前位置。但是这时候粘贴板上的数据已经改变了。如何处理？
-
-    在 Vim 中，你遇到的是**寄存器（registers）**的问题。当你执行 `v e x` 时，删除的内容会进入默认寄存器（`""`），覆盖了之前复制的内容。
-
-    有几种方法可以解决：
-
-    方法一：使用命名寄存器（推荐）
-
-    1. **复制时**：使用 `"ay` 将内容保存到寄存器 `a`
-       - `"ay`：先按 `"a`，再按 `y`
-    2. **粘贴时**：使用 `"ap` 从寄存器 `a` 粘贴
-       - `"ap`：先按 `"a`，再按 `p`
-
-    这样删除操作不会影响寄存器 `a` 的内容。
-
-    方法二：使用系统剪贴板寄存器
-
-    如果想让复制的内容在系统剪贴板中：
-
-    1. **复制时**：`"+y`（Linux/macOS）或 `"*y`（Windows）
-
-    2. **粘贴时**：`"+p` 或 `"*p`
-
-    方法三：使用黑洞寄存器删除
-
-    当删除不需要保存的内容时，可以使用黑洞寄存器 `_`：
-
-    ```vim
-    "_vex  " 删除内容但不保存到任何寄存器
-    ```
-
-    方法四：先删除再粘贴
-
-    ```vim
-    p    " 先粘贴之前复制的内容
-    vex  " 再删除单词
-    ```
-
-    查看寄存器内容
-
-    ```vim
-    :reg    " 查看所有寄存器内容
-    :reg a  " 查看寄存器a的内容
-    ```
-
-    常用寄存器说明
-
-    - `""`：默认寄存器（你遇到问题的地方）
-    - `"0`：最近一次复制的内容
-    - `"a`-`"z`：命名寄存器（可自定义使用）
-    - `"+`/`"*`：系统剪贴板
-    - `"_`：黑洞寄存器（删除但不保存）
-
-    **建议**：习惯使用命名寄存器（如 `"ay` 和 `"ap`）来避免这类问题，特别是当需要在多个位置进行复制粘贴操作时。
-
-
-
-* ysiw" 为当前单词添加双引号。这个如何理解？
-
-    ysiw" 是 vim-surround 插件的一个组合命令，分解理解如下：
-
-    命令结构
-
-    ```text
-    ys i w "
-    ┃  ┃ ┃ ┃
-    ┃  ┃ ┃ └ 要添加的符号（这里是双引号）
-    ┃  ┃ └─── 范围选择器（w = word，单词）
-    ┃  └───── 内部文本对象（i = inner，内部的）
-    └──────── 操作符（ys = you surround，添加环绕）
-    ```
-
-    详细解释
-
-    1. ys
-
-        * y 代表 “you”（插件中的记忆方式，表示“添加环绕”）
-
-        * s 代表 “surround”
-
-        * 整体表示：我要给某个东西添加环绕符号
-
-    2. iw
-
-        * 这是 Vim 的 文本对象 语法
-
-        * i 表示 inner（内部，不包含周围空格）
-
-        * w 表示 word（单词）
-
-        * iw 合起来表示：光标所在的整个单词（不含周围空格）
-
-    举例：
-
-    文本 Hello, world!
-
-    光标在 world 上时，iw 会选择 world（不包括前后的逗号或空格）
-
-    3. "
-
-        * 要添加的环绕符号
-
-        * 插件会自动匹配成对的符号：" → ""，( → ()，[ → [] 等
-
-    执行效果
-
-    假设光标在单词 apple 上：
-
-    ```text
-    apple
-         ↓ 执行 ysiw"
-    "apple"
-    ```
-
-    类似用法
-
-    * ysiw( → (apple)
-
-    * ysiw[ → [apple]
-
-    * ysiw' → 'apple'
-
-    * ysiwt → <apple>（标签需要指定名称）
-
-    记忆技巧
-
-    * ys = “你包围”（添加环绕）
-
-    * ds = “删除包围”
-
-    * cs = “改变包围”
-
-    * iw = “内部单词”（常用文本对象）
-
-    * aw = “一个单词”（包含周围空格）
-
-    更直观的替代
-
-    如果觉得 ysiw" 太长，可以：
-
-    * 先按 viw 选中单词
-
-    * 再按 S"（Visual 模式下 S + 符号）
-
-    两者效果相同，但 ysiw" 更快捷，不需要进入 Visual 模式。
-
-    注：
-
-    1. vim-surround 没法加双星号 `**`，感觉整体的功能不灵活也不好用。
-
-
-* 我想像 vscode 那样显示某一行是新增的/修改的/删除的，vim 里如何做到？
-
-    要在 Vim 中像 VS Code 那样实时显示行号旁边的 Git 状态（新增/修改/删除），有几种方案：
-
-    方案一：使用 vim-gitgutter（推荐）
-
-    安装
-
-    ```vim
-    " 使用 vim-plug
-    Plug 'airblade/vim-gitgutter'
-
-    " 使用 Vim 内置包管理
-    " mkdir -p ~/.vim/pack/git-plugins/start
-    " cd ~/.vim/pack/git-plugins/start
-    " git clone https://github.com/airblade/vim-gitgutter.git
-    ```
-
-    基本配置
-
-    ```vim
-    " 在 ~/.vimrc 中添加
-    let g:gitgutter_enabled = 1           " 启用
-    let g:gitgutter_signs = 1             " 显示符号
-    let g:gitgutter_highlight_lines = 0   " 不高亮整行（默认）
-
-    " 更新延迟（毫秒）
-    set updatetime=100
-    let g:gitgutter_realtime = 1
-    let g:gitgutter_eager = 1
-    ```
-
-    显示效果
-
-    ```text
-    │ 行号 │ 代码
-    ├──────┼─────────────
-    │  1   │ 未修改的行
-    │  2 + │ 新增的行
-    │  3 ~ │ 修改的行
-    │  4 - │ 删除的行（在附近显示）
-    ```
-
-    方案二：使用 signify（更轻量）
-
-    ```vim
-    Plug 'mhinz/vim-signify'
-    ```
-
-    更适合大型仓库，性能更好。
-
-    方案三：Neovim 的 gitsigns.nvim
-
-    如果你用 Neovim：
-
-    ```lua
-    -- 使用 lazy.nvim
-    {
-      'lewis6991/gitsigns.nvim',
-      opts = {
-        signs = {
-          add          = { text = '│' },
-          change       = { text = '│' },
-          delete       = { text = '_' },
-          topdelete    = { text = '‾' },
-          changedelete = { text = '~' },
-          untracked    = { text = '┆' },
-        },
-        signcolumn = true,
-        numhl      = false,
-        linehl     = false,
-      }
-    }
-    ```
-
-    自定义符号和颜色
-
-    修改符号样式
-
-    ```vim
-    " 使用不同的符号
-    let g:gitgutter_sign_added = '+'
-    let g:gitgutter_sign_modified = '~'
-    let g:gitgutter_sign_removed = '-'
-    let g:gitgutter_sign_removed_first_line = '^^'
-    let g:gitgutter_sign_modified_removed = 'ww'
-
-    " 或者使用 Unicode 字符
-    let g:gitgutter_sign_added = '│'
-    let g:gitgutter_sign_modified = '│'
-    let g:gitgutter_sign_removed = '_'
-    let g:gitgutter_sign_removed_first_line = '‾'
-    ```
-
-    修改颜色
-
-    ```vim
-    " 定义高亮颜色
-    highlight GitGutterAdd    guifg=#009900 guibg=NONE ctermfg=2
-    highlight GitGutterChange guifg=#bbbb00 guibg=NONE ctermfg=3
-    highlight GitGutterDelete guifg=#ff2222 guibg=NONE ctermfg=1
-
-    " 如果想高亮整行（像 VS Code 那样）
-    let g:gitgutter_highlight_lines = 1
-    " 然后自定义行高亮颜色
-    highlight GitGutterAddLine    guibg=#003300
-    highlight GitGutterChangeLine guibg=#333300
-    highlight GitGutterDeleteLine guibg=#330000
-    ```
-
-    常用操作
-
-    ```vim
-    " 跳转到下一个/上一个变更
-    ]h  " 下一个 hunk
-    [h  " 上一个 hunk
-
-    " 暂存/撤销当前区块
-    <Leader>hs  " 暂存当前区块
-    <Leader>hu  " 撤销当前区块
-
-    " 预览更改
-    <Leader>hp  " 预览当前区块的更改
-
-    " 切换显示
-    :GitGutterToggle     " 切换显示
-    :GitGutterEnable     " 启用
-    :GitGutterDisable    " 禁用
-    :GitGutterSignsToggle " 切换符号显示
-    ```
-
-    完整配置示例
-
-    ```vim
-    " ~/.vimrc
-    call plug#begin('~/.vim/plugged')
-    Plug 'airblade/vim-gitgutter'
-    call plug#end()
-
-    " GitGutter 配置
-    let g:gitgutter_map_keys = 0  " 禁用默认快捷键，自己定义
-    let g:gitgutter_sign_allow_clobber = 0
-
-    " 符号定义
-    let g:gitgutter_sign_added = '│'
-    let g:gitgutter_sign_modified = '│'
-    let g:gitgutter_sign_removed = '_'
-    let g:gitgutter_sign_removed_first_line = '‾'
-    let g:gitgutter_sign_modified_removed = '~'
-
-    " 颜色定义
-    highlight GitGutterAdd          guifg=#00ff00 ctermfg=2
-    highlight GitGutterChange       guifg=#ffff00 ctermfg=3
-    highlight GitGutterDelete       guifg=#ff0000 ctermfg=1
-    highlight GitGutterChangeDelete guifg=#ff8800 ctermfg=4
-
-    " 更新频率
-    set updatetime=100
-
-    " 自定义快捷键
-    nmap ]h <Plug>(GitGutterNextHunk)
-    nmap [h <Plug>(GitGutterPrevHunk)
-    nmap <Leader>hs <Plug>(GitGutterStageHunk)
-    nmap <Leader>hu <Plug>(GitGutterUndoHunk)
-    nmap <Leader>hp <Plug>(GitGutterPreviewHunk)
-    ```
-
-    没有插件的临时方案
-
-    如果不想装插件，可以用内置命令：
-
-    ```vim
-    " 查看当前文件的差异
-    :Gdiff
-
-    " 或者用外部命令
-    :!git diff --no-ext-diff %
-
-    " 或者开启 Vim 的 diff 模式
-    :windo diffthis   " 开启 diff 模式
-    :windo diffoff    " 关闭 diff 模式
-    ```
-
-    问题排查
-
-    如果没显示：
-
-    * 确认在 Git 仓库中
-
-    * 检查 :GitGutterEnable 是否开启
-
-    * 确认 updatetime 不要太长（建议 100-500ms）
-
-    * 查看 :messages 是否有错误
-
-    安装配置后，Vim 就会在行号旁边显示 Git 状态，体验类似 VS Code 了！
-
-
-
-* `:'<,'>normal I* `解析
-
-    这个命令的作用是：在当前选中的每一行前面插入一个星号 *。
-
-    具体解析：
-
-    * :'<,'>：
-
-        * : 进入命令模式
-
-        * '<,'> 是代表上次可视模式（visual mode）选中的范围
-
-        * '< 表示选中区域的开始行
-
-        * '> 表示选中区域的结束行
-
-    * normal：
-
-        * 表示在指定范围内执行普通模式命令
-
-        * 可以使用缩写 norm
-
-    * I* ：
-
-        * I 是普通模式的命令，表示在当前行的行首（第一个非空白字符前）进入插入模式
-
-        * * 是要插入的字符（星号加空格）
-
-    使用步骤：
-
-    * 用可视模式（V 或 Ctrl+V）选中多行文本
-
-    * 按 : 进入命令模式，会自动出现 :'<,'>
-
-    * 输入 normal I* 并回车
-
-* vim 在退出时，要求我先 :w 保存，才能 :q 退出，但是我忘了刚才修改了什么东西，是否有类似 diff 命令的方式查看 vim 编辑的文件改动了哪些？
-
-    有几种方法可以查看未保存的修改：
-
-    1. 查看当前文件的改动
-
-        ```vim
-        :changes
-        ```
-
-        或
-
-        ```vim
-        :undolist
-        ```
-
-        这会显示你做的修改历史。
-
-        注：
-
-        1. 这些显示的都只是操作历史，无法像 diff 那样看到直观的文本对比
-
-    2. 比较已保存文件和当前版本的差异
-
-        ```vim
-        :DiffOrig
-        ```
-
-        如果 :DiffOrig 命令不存在，需要先加载 diff 功能：
-
-        ```vim
-        :vert diffsplit
-        ```
-
-        注：
-
-        1. 简单试了下，似乎不行
-
-    3. 使用 git diff 风格查看
-
-        ```vim
-        :w !diff % -
-        ```
-
-        这会比较已保存文件和当前未保存内容的差异。
-
-        注：
-
-        1. 这个好像还行, 不知道 :w 是否会直接保存文件
-
-    4. 查看当前行或可视选择的差异
-
-        * 查看当前行修改：g:
-
-        * 查看整个文件的修改概要：:diffthis
-
-    5. 如果你只是想看看修改
-
-        先保存到临时文件，然后比较：
-
-        ```vim
-        :w /tmp/temp_file
-        :vert diffpatch /tmp/temp_file
-        ```
-
-    6. 推荐配置（添加到 .vimrc）
-
-        ```vim
-        " 快速查看未保存的差异
-        command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis | wincmd p | diffthis
-        ```
-
-    7. 不想保存修改就退出
-
-        如果你确定不需要这些修改：
-
-        * 强制退出不保存：:q!
-
-        * 回到上次保存的状态：:e!（然后再 :q 退出）
-
-    8. 使用插件
-
-        安装 vim-fugitive 等插件可以获得更好的 Git 集成和 diff 查看功能。
-
-    最简单的方式是直接使用 :DiffOrig（如果可用），或者先执行 :w 保存，然后用 Git 等工具查看修改。
-
-* vim 替换命令的 example: 为每个非空行行首添加星号
-
-    `vnoremap <leader>l :s/^\s*\zs\S.*$/* &/<CR>`
-
-    这行 Vim 命令的作用是 在可视模式下，给选中的每一行添加 Markdown 风格的列表标记。
-
-    具体解析：
-
-    * `vnoremap`：在可视模式下创建映射
-
-    * `<leader>l`：当按下 <leader> 键（通常是 \）和 l 键时触发
-
-    * :s/^\s*\zs\S.*$/* &/：替换命令
-
-        * `^\s*`：匹配行首的空白字符
-
-        * `\zs`：设置匹配开始位置（不替换前面的空白）
-
-        * `\S.*$`：匹配第一个非空白字符到行尾的内容
-
-        * `* &`：替换为 * 加上原匹配内容（& 代表匹配的内容）
-
-    * `<CR>`：回车执行命令
-
-
-* 关于 vim 中`:s/foo/bar<CR>`的解析机制
-
-    Vim 不会把 :s/foo/bar<CR> 解析为 "把 foo 替换为 bar<CR>"，原因如下：
-
-    Vim 的命令行解析机制:
-
-    * <CR> 是特殊的控制字符
-
-    * 在 Vim 的命令行模式下，<CR> 表示 回车执行
-
-    * 它不是普通文本字符，而是 命令结束符
-
-    * 当 Vim 遇到 <CR> 时，它会立即：
-
-        * 结束当前命令的输入
-
-        * 解析已输入的内容
-
-        * 执行解析后的命令
-
-    * 输入`<cr>`字符串需要转义：`:s/foo/bar\<CR>/g`
-
-        注意：
-
-        1. 只需要转义左尖括号就可以了，足以破坏原义
-
-        1. 在映射中要双重转义：
-
-            ```vim
-            " 如果在映射定义中：
-            nnoremap <leader>x :s/foo/bar\\<CR>/g<CR>
-            " 需要 \\ 因为映射本身会解析一次
-            ```
-
-        1. 使用表达式寄存器更安全：
-
-            ```vim
-            :s/foo/\='bar<CR>'/g
-            " 在表达式中，字符串字面量不需要转义特殊键名
-            ```
-
-    * 如果要输入换行，可以使用`\r`
-
-        ```vim
-        " 将 foo 替换为 bar + 回车 + 换行
-        :s/foo/bar\r/g
-
-        " 效果：将 "foo" 替换为：
-        " bar
-        " （后面内容在新行）
-        ```
-
-        也可以使用表达式寄存器:
-
-        ```vim
-        " 使用 Ctrl-V + Enter 输入真正的回车符
-        :s/foo/bar^M/g
-        " ^M 的输入方法：在 replacement 部分按 Ctrl-V 然后按 Enter
-
-        " 或者使用表达式：
-        :s/foo/\="bar" . nr2char(13)/g
-        ```
-
-    * 重要区别：\r vs \n
-
-        ```vim
-        " \r 在 replacement 中表示换行符
-        " \n 在 pattern 中表示换行符，在 replacement 中表示 NUL 字符（ASCII 0）
-
-        :s/foo/bar\n/g    " 错误：会插入 NUL 字符（显示为 ^@）
-        :s/foo/bar\r/g    " 正确：插入换行符
-        ```
-
-    注意事项
-
-    * \r 在搜索模式中表示回车（^M），在替换文本中表示换行
-
-    * 如果要替换为真正的 ^M 字符（CR），需要用 \x0d 或表达式寄存器
-
-    * 某些情况下，可能需要设置 :set ff=unix 确保换行符正确
-
-* normal 命令
-
-    ```vim
-    :normal I* <CR>
-    ```
-
-    * :normal 是一个 Ex 命令（在 : 命令行中执行）
-
-    * 它告诉 Vim："在普通模式下执行后面的按键序列"
-
-    * I* 是传递给 :normal 的参数
-
-    * 最后的 <CR> 是结束 :normal 命令，而不是在普通模式中按回车
-
-    执行流程解析
-
-    ```vim
-    :g/^\s*\S/normal I* <CR>
-    ```
-
-    * : 进入命令行模式
-
-    * g/^\s*\S/ 设置匹配模式
-
-    * normal I* 对匹配的每行执行普通模式命令 I*␣
-
-    * <CR> 执行整个 :g 命令
-
-    这里的 <CR> 不是给 normal I* 的，而是结束 :g 命令并执行它。
-
-* vim 中，vsplit 打开两个文件后，如何只复制一个文件的多行？
-
-    在 Vim 中使用 vsplit 分割窗口后，要只复制其中一个文件的多行内容，有以下几种方法：
-
-    1. 基本方法：先进入对应窗口
-
-        ```vim
-        <C-w>h      # 先切换到左侧窗口
-        <C-w>l      # 先切换到右侧窗口
-        ```
-
-        然后在该窗口中使用正常的复制命令：
-
-        ```vim
-        yy          # 复制单行
-        5yy         # 复制5行
-        :10,20y     # 复制第10-20行
-        ```
-
-    2. 不切换窗口直接操作
-
-        如果你知道当前光标在哪个窗口，可以直接：
-
-        ```vim
-        " 如果当前窗口是你要复制的窗口
-        v           # 进入可视模式
-        选择多行
-        y           # 复制
-
-        " 或者
-        :'<,'>y     # 复制已选择的行
-        ```
-
-    3. 使用窗口局部寄存器（推荐）
-
-        如果你需要频繁在两个窗口间复制，可以：
-
-        * 在源窗口选择文本：
-
-            ```vim
-            v           # 进入可视模式
-            选择多行
-            "ay         # 复制到寄存器 a
-            ```
-
-        * 切换到目标窗口：
-
-            ```vim
-            <C-w>w      # 切换到另一个窗口
-            ```
-
-        * 粘贴：
-
-            ```vim
-            "ap         # 从寄存器 a 粘贴
-            ```
-
-    4. 使用全局寄存器
-
-        如果你想复制的文本在所有窗口间共享：
-
-        ```vim
-        "+y         # 复制到系统剪贴板
-        "+p         # 从系统剪贴板粘贴
-        ```
-
-    5. 快速切换窗口的快捷键
-
-        * <C-w>h - 切换到左侧窗口
-
-        * <C-w>l - 切换到右侧窗口
-
-        * <C-w>w - 在窗口间循环切换
-
-        * <C-w>j - 切换到下方窗口
-
-        * <C-w>k - 切换到上方窗口
-
-    实际示例
-
-    假设你想复制左侧文件的第10-20行到右侧文件：
-
-    ```vim
-    <C-w>h      # 切换到左侧窗口
-    :10,20y a   # 将10-20行复制到寄存器a
-    <C-w>l      # 切换到右侧窗口
-    "ap         # 粘贴寄存器a的内容
-    ```
-
-    这样就能准确地在分割窗口中只复制一个文件的内容了。
-
-* windows 中，vim 如何安装 vim-plug ?
-
-    在 Windows 中为 Vim 安装 vim-plug 有几种方法，以下是详细的步骤：
-
-    方法一：使用 PowerShell 或 CMD（推荐）
-
-    1. 确保 Vim 已正确安装
-
-        首先确认你的 Vim 版本（建议 8.0 以上）：
-
-        ```cmd
-        vim --version
-        ```
-
-    2. 创建必要的目录
-
-        打开 PowerShell 或 CMD，运行：
-
-        ```powershell
-        # 创建 vim 的 autoload 目录（如果不存在）
-        mkdir -Force $HOME\vimfiles\autoload
-        ```
-
-    3. 下载 vim-plug
-
-        ```powershell
-        # 使用 PowerShell 下载
-        $uri = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
-        (New-Object Net.WebClient).DownloadFile($uri, $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("$HOME\vimfiles\autoload\plug.vim"))
-        ```
-
-        或者使用 curl（如果已安装）：
-
-        ```powershell
-        curl -fLo "$HOME/vimfiles/autoload/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        ```
-
-    方法二：手动下载
-
-    1. 创建目录结构
-
-        ```text
-        C:\Users\你的用户名\vimfiles\
-                        └── autoload\
-        ```
-
-    2. 下载 plug.vim
-
-        访问以下 URL，将内容保存为 plug.vim：
-
-        ```text
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        ```
-
-        将下载的文件放入：
-
-        ```text
-        C:\Users\你的用户名\vimfiles\autoload\plug.vim
-        ```
-
-    方法三：使用 Git Bash（如果有安装）
-
-    打开 Git Bash，运行：
-
-    ```bash
-    curl -fLo ~/vimfiles/autoload/plug.vim --create-dirs \
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-    ```
-
-    配置 vim-plug
-
-    1. 编辑 Vim 配置文件
-
-        Windows 上的 Vim 配置文件通常是：
-
-        ```text
-        C:\Users\你的用户名\_vimrc
-        ```
-
-        或（较新版本）：
-
-        ```text
-        C:\Users\你的用户名\vimfiles\vimrc
-        ```
-
-    2. 添加插件配置
-
-        在 _vimrc 文件中添加：
-
-        ```vim
-        call plug#begin('~/vimfiles/plugged')
-
-        " 在这里添加插件，例如：
-        Plug 'junegunn/vim-easy-align'
-        Plug 'https://github.com/junegunn/vim-github-dashboard.git'
-
-        call plug#end()
-        ```
-
-    3. 安装插件
-
-        * 重新打开 Vim
-
-        * 运行命令：
-
-            ```vim
-            :PlugInstall
-            ```
-
-    验证安装
-
-    在 Vim 中运行以下命令检查是否安装成功：
-
-    ```vim
-    :echo exists('g:plugs')
-    :PlugStatus
-    ```
-
-    常见问题解决
-
-    1. 如果遇到网络问题
-
-        * 可能需要设置代理（如果有）：
-
-            ```vim
-            let g:plug_shallow = 0
-            let g:plug_threads = 1
-            ```
-
-    2. 如果目录权限问题
-
-        * 以管理员身份运行 PowerShell 或 CMD
-
-    3. 如果使用的是 Neovim
-
-        Neovim 的配置路径不同：
-
-        ```powershell
-        # Neovim (Windows)
-        mkdir -Force $HOME\AppData\Local\nvim\autoload
-        $uri = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
-        (New-Object Net.WebClient).DownloadFile($uri, "$HOME\AppData\Local\nvim\autoload\plug.vim")
-        ```
-
-    常用命令
-
-    * :PlugInstall - 安装插件
-
-    * :PlugUpdate - 更新插件
-
-    * :PlugClean - 删除未使用的插件
-
-    * :PlugUpgrade - 升级 vim-plug 自身
-
-    这样就完成了 vim-plug 在 Windows 上的安装。
-
-* vim 替换中的`\zs`和`&`
-
-    \zs - 设置匹配开始位置
-
-    作用：在匹配模式中标记“真正匹配开始的位置”，前面的部分只作为匹配条件但不被替换。
-
-    示例：
-
-    ```vim
-    :%s/\d\+\zs\.\d\+/,/
-    ```
-
-    * 匹配模式：\d\+\.\d\+（如 123.456）
-
-    * \zs 前的 \d\+ 只是匹配条件
-
-    * 实际替换的是 \zs 后的 \.\d\+
-
-    * 结果：123,456（只替换小数点后的 .456 为 ,456）
-
-    另一个例子：
-
-    ```vim
-    :%s/\w\+\zs\s\+//g
-    ```
-
-    * 删除每个单词后的空格，但保留单词本身
-
-    & - 引用匹配的整个文本
-
-    作用：在替换部分引用整个匹配的模式。
-
-    示例：
-
-    ```vim
-    :%s/\w\+/[&]/g
-    ```
-
-    * 把每个单词用方括号括起来
-
-    * hello world → [hello] [world]
-
-    ```vim
-    :%s/\d\+/&%/g
-    ```
-
-    * 在每个数字后加百分号
-
-    * 123 test 456 → 123% test 456%
-
-    组合使用示例
-
-    ```vim
-    :%s/\d\+\zs\.\d\+/&0/g
-    ```
-
-    * 匹配：数字.数字
-
-    * \zs 前只作为条件
-
-    * & 引用匹配部分（.数字）
-
-    * 结果：给小数点后的数字加 0
-
-    * 12.3 → 12.30
-
-    这两个标记让 Vim 的替换更加灵活精确，可以精确控制匹配和替换的范围。
-
-* Vim 替换命令中其他有用的标记
-
-    **替换部分特殊标记**
-
-    1. \1, \2, ... \9 - 引用捕获组
-
-        ```vim
-        :%s/\(\w\+\) \(\w\+\)/\2 \1/g
-        " 交换两个单词的位置
-        " hello world → world hello
-
-        :%s/\(\d\+\)-\(\d\+\)/\2.\1/g
-        " 交换用连字符分隔的数字
-        " 123-456 → 456.123
-        ```
-
-    2. \0 - 引用整个匹配（与 & 相同）
-
-        ```vim
-        :%s/\w\+/item: \0/g
-        " 每个单词前加 "item: "
-        ```
-
-    3. ~ - 使用上次替换的字符串
-
-        ```vim
-        " 第一次替换：
-        :%s/foo/bar/g
-        " 第二次替换可以使用 ~ 代表 "bar"：
-        :%s/baz/~/g  " 实际替换为 baz → bar
-        ```
-
-    模式部分的特殊标记
-
-    4. \ze - 设置匹配结束位置（与 \zs 对应）
-
-        ```vim
-        :%s/foo\zebar/BAR/g
-        " 匹配 "foobar"，但实际匹配结束在 foo 后
-        " 只替换 "foo"，不替换 "bar"
-        " foobar → BARbar
-        ```
-
-    5. \zs 和 \ze 组合使用
-
-        ```vim
-        :%s/\w\+\zs\d\+\ze\w\+/###/g
-        " 匹配：单词+数字+单词，但只替换数字部分
-        " abc123def → abc###def
-        ```
-
-    6. \@<= - 正向回顾（positive lookbehind）
-
-        ```vim
-        :%s/\(\w\)\@<=x/X/g
-        " 替换前面是单词字符的 x
-        " axb cxd → aXb cXd
-        " 但 xyz 中的 x 不变（前面不是单词字符）
-        ```
-
-    7. `\@<!` - 负向回顾（negative lookbehind）
-
-        ```vim
-        :%s/\(\d\)\@<!\./点/g
-        " 替换前面不是数字的点
-        " a.b → a点b
-        " 但 1.5 中的 . 不变（前面是数字）
-        ```
-
-    8. \@= - 正向预览（positive lookahead）
-
-        ```vim
-        :%s/foo\(bar\)\@=/FOO/g
-        " 替换后面是 bar 的 foo
-        " foobar → FOObar
-        " foobaz 不变
-        ```
-
-    9. \@! - 负向预览（negative lookahead）
-
-        ```vim
-        :%s/foo\(bar\)\@!/FOO/g
-        " 替换后面不是 bar 的 foo
-        " foobaz → FOObar
-        " foobar 不变
-        ```
-
-    替换标志（flags）
-
-    10. \c 和 \C - 忽略/区分大小写
-
-        ```vim
-        :%s/foo\c/bar/g  " 忽略大小写，匹配 foo, FOO, Foo 等
-        :%s/foo\C/bar/g  " 区分大小写，只匹配 foo
-        ```
-
-    11. \v - 使用非常魔法模式
-
-        ```vim
-        :%s/\v(\w+)\s+(\w+)/\2 \1/g
-        " 不需要转义括号
-        " 对比：%s/\(\w\+\)\s\+\(\w\+\)/\2 \1/g
-        ```
-
-    12. \V - 使用原义模式
-
-        ```vim
-        :%s/\Va.b/a.b/g
-        " 点就是字面意义的点，不是正则的 .
-        " 匹配 "a.b" 而不是 "a任意字符b"
-        ```
-
-    其他有用标记
-
-    13. \e - 结束替换字符串
-
-        ```vim
-        :%s/foo/\=toupper(submatch(0))\e bar/g
-        " \e 后面的 " bar" 是普通文本
-        " 结果：在匹配的 foo 转为大写后加 " bar"
-        " foo → FOO bar
-        ```
-
-    14. \U, \L, \E - 大小写转换
-
-        ```vim
-        :%s/foo/\U&/g      " foo → FOO
-        :%s/FOO/\L&/g      " FOO → foo
-        :%s/foo\w*/\U&\Ebar/g  " \U 开始，\E 结束
-        " foobar → FOOBARbar
-        ```
-
-    15. \u, \l - 转换下一个字符大小写
-
-        ```vim
-        :%s/foo/\u&/g      " foo → Foo
-        :%s/FOO/\l&/g      " FOO → fOO
-        ```
-
-    替换中使用表达式 \=
-
-    16. \= - 使用 Vim 脚本表达式
-
-        ```vim
-        :%s/\d\+/\=(submatch(0)*2)/g
-        " 所有数字乘以 2
-
-        :%s/\w\+/\=toupper(submatch(0))/g
-        " 所有单词转大写
-
-        :%s/.*/\=printf("%03d", submatch(0))/g
-        " 格式化为 3 位数字
-        ```
-
-    实用组合示例
-
-    ```vim
-    " 1. 在每行行首添加行号
-    :%s/^/\=printf("%3d: ", line('.'))/
-
-    " 2. 将下划线命名转为驼峰
-    :%s/_\(\w\)/\u\1/g
-
-    " 3. 提取 email 用户名
-    :%s/^\(\w\+\)@.*$/\1/
-
-    " 4. 智能缩进调整
-    :%s/^\(\s*\)/\=repeat(' ', len(submatch(1)) + 4)/
-
-    " 5. 转义 HTML 特殊字符
-    :%s/[&<>"]/\={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[submatch(0)]/g
-    ```
-
-    掌握这些标记可以让你在 Vim 中进行非常强大和灵活的文本处理！
-
-* vim 中，s 前的百分号是什么意思
-
-    在 Vim 中，:%s 前面的 % 表示在整个文件中执行替换，即对所有行进行操作。
-
-    % 的含义
-
-    % 是 Vim 中的一个范围符号，代表整个文件或当前缓冲区。
-
-    ```vim
-    :%s/pattern/replacement/g
-    " 在整个文件中进行替换
-    ```
-
-    其他常用范围符号
-
-    1. % - 整个文件
-
-        ```vim
-        :%s/foo/bar/g     " 替换文件中所有 foo
-        ```
-
-    2. 行号范围
-
-        ```vim
-        :10,20s/foo/bar/g  " 只在第10-20行替换
-        :1,$s/foo/bar/g    " 从第1行到最后一行（同 %）
-        :.s/foo/bar/g      " 只在当前行替换
-        ```
-
-    3. 'm - 标记位置
-
-        ```vim
-        :'a,'bs/foo/bar/g  " 在标记 a 到标记 b 之间替换
-        ```
-
-    4. 模式匹配范围
-
-        ```vim
-        :/^Start/,/^End/s/foo/bar/g
-        " 从匹配 "Start" 的行到匹配 "End" 的行
-        ```
-
-    5. . - 当前行
-
-        ```vim
-        :.s/foo/bar/g      " 仅当前行
-        :.,+5s/foo/bar/g   " 当前行及后面5行
-        ```
-
-    6. $ - 最后一行
-
-        ```vim
-        :.,$s/foo/bar/g    " 从当前行到最后一行
-        ```
-
-    实用示例对比
-
-    ```vim
-    " 不同范围的替换示例
-    :%s/old/new/g        " 整个文件
-    :1,50s/old/new/g     " 第1-50行
-    :/begin/,/end/s/o/n/g # 从包含"begin"到包含"end"的行
-    :'<,'>s/old/new/g    " 在可视模式选中的行（自动生成）
-    :.,+3s/old/new/g     " 当前行及后面3行
-    ```
-
-    如果省略 % 会怎样？
-
-    如果只写 :s 而不指定范围：
-
-    ```vim
-    :s/foo/bar/g
-    ```
-
-    这只会在当前行进行替换，不是整个文件！
-
-    记忆技巧
-
-    * % 像 "百分百" → 100% 的行都要处理
-
-    * % 也像 "全部" (All) 的意思
-
-    * :%s 是全局替换的标准写法
-
-    所以你的例子：
-
-    ```vim
-    :%s/\d\+\zs\.\d\+/,/
-    ```
-
-    会在整个文件中查找匹配 \d\+\.\d\+（数字.数字）的模式，但只替换 \zs 之后的部分（即 .数字 部分），将其替换为 ,（保持 \zs 前的数字不变）。
-
-* vim 替换命令的基本结构
-
-    `:s/pattern/replace/flags`
-
-* vim 替换中的 normal 模式
-
-    * 配合 `:global` 命令: `:g/pattern/normal I*`
-
-        含义：在所有匹配到 pattern 的行上，执行“在行首插入星号”的操作。
-
-        效果：这常用于批量给某些行加注释或列表标记。
-
-    * 在替换式中使用表达式: `s/pattern/\=.../`，这属于高级用法。例如： :%s/pattern/\=execute('normal I*')/n
-
-        含义：找到匹配项后，不直接通过替换文本来修改，而是调用 execute 函数去触发一段普通模式指令。
-
-* vim 禁用终端响铃（Bell）
-
-    ```vim
-    set noerrorbells   " 禁用错误提示音
-    set visualbell     " 使用视觉提示代替声音
-    set t_vb=          " 清空视觉提示（彻底静音）
-    ```
-
-* vim 在 windows 下的所有 ctrl + v 都被默认替换成了 ctrl + q
-
-    因为 windows 下的 ctrl + v 是粘贴功能。
-
-    不清楚 GVim 是什么情况，可能 ctrl + v 仍保持 vim 的语义。
-
-* 还有哪些类似 linux vim 中 ctrl + v 在 windows vim 中被默认替换成 ctrl + q 的快捷键的例子？详细列出
-
-    在 Windows 版的 Vim（或 gVim）中，由于 Windows 系统本身有一套广为人知的全局快捷键（如 Ctrl + C 复制、Ctrl + V 粘贴），为了降低新手的门槛，Vim 官方发行版通常会加载一个名为 mswin.vim 的脚本。
-
-    这个脚本会将许多经典的 Vim 快捷键重映射为 Windows 习惯。以下是受影响最严重的几个核心快捷键对比：
-
-    1. 核心映射对照表
-
-        | Windows 快捷键 | 在 Windows Vim 中的功能 | 对应的原始 Vim 快捷键 | 原始 Vim 功能说明 |
-        | - | - | - | - |
-        | Ctrl + V | 粘贴 (Paste) | Ctrl + V | 块可视化模式 (Visual Block) |
-        | Ctrl + Q | 块可视化模式 (替换方案) | 无 | 这是为了补位被占用的 Ctrl + V |
-        | Ctrl + C | 复制 (Copy) | y (yank) | 复制选中的文本到剪贴板 |
-        | Ctrl + X | 剪切 (Cut) | d (delete) | 删除选中内容并存入剪贴板 |
-        | Ctrl + A | 全选 (Select All) | ggVG | 选中全文 |
-        | Ctrl + Z | 撤销 (Undo) | u | 撤销上一步操作 |
-        | Ctrl + Y | 重做 (Redo) | Ctrl + R | 恢复被撤销的操作 |
-        | Ctrl + S | 保存 (Save) | :w | 写入文件 |
-        | Ctrl + F | 查找 (Find) | / | 开启搜索模式 |
-
-    2. 详细分析受影响的逻辑
-
-        块模式切换：Ctrl + V vs Ctrl + Q
-
-        在 Linux 下，Ctrl + V 是进入“块选择模式”的唯一王牌。但在 Windows 中，它变成了粘贴。
-
-        * 后果： 如果你习惯了在 Linux 下用 Ctrl + V 垂直编辑多行代码，在 Windows 下你会发现它直接吐出了一堆剪贴板里的乱码。
-
-        * 解决： 必须改用 Ctrl + Q。
-
-        撤销与重做：Ctrl + Z / Y
-
-        * Vim 原生： u 是撤销，Ctrl + R 是重做。Ctrl + Z 在 Linux 终端里通常是将进程挂起到后台（Suspend）。
-
-        * Windows 映射： 遵循 Office 逻辑，Ctrl + Z 撤销，Ctrl + Y 重做。这会导致习惯 Ctrl + R 的老用户感到困惑。
-
-        复制粘贴：Ctrl + C / X
-
-        * Vim 原生： Ctrl + C 通常用于中断当前的命令或回到 Normal 模式（类似 Esc）。
-
-        * Windows 映射： 变成了标准复制。这意味着如果你想通过 Ctrl + C 强行退出某个插件的搜索或提示界面，它可能会毫无反应，甚至报错。
-
-    3. 为什么会这样？
-
-        这是因为在 Windows 版本的安装目录下，有一个 _vimrc 文件，它通常会自动执行：
-
-        ```Vim Script
-        source $VIMRUNTIME/mswin.vim
-        behave mswin
-        ```
-
-        这两行代码就是“罪魁祸首”。mswin.vim 重新定义了上述所有快捷键。
-
-    4. 如何恢复成 Linux 习惯？
-
-        如果你希望在 Windows 上也拥有和 Linux 一模一样的纯粹 Vim 体验，你只需要编辑你的 _vimrc 文件（通常在 C:\Users\你的用户名\_vimrc）：
-
-        * 删除或注释掉 source $VIMRUNTIME/mswin.vim 这一行。
-
-        * 删除或注释掉 behave mswin。
-
-        * 保存并重启 Vim。
-
-        这样，Ctrl + V 就会变回块选择模式，u 依然是撤销，所有 Windows 的“入侵”映射都会消失。
-
-* 鼠标在 vim 界面上滑动时，会向 vim 发送鼠标事件序列
-
-    禁用鼠标序列：`:set mouse=`
-
-    `:set mouse=nv    " 仅允许在普通模式和可视模式下使用鼠标`
-
-* vim 中 noremap! 同时作用于 insert 模式和 command 模式，那么是否有同时作用于 normal 模式和 visual 模式的？
-
-    是的，Vim 中确实有同时作用于 Normal 模式和 Visual 模式的映射命令。以下是相关命令：
-
-    1. noremap
-
-        最常用的就是 noremap 本身，它默认作用于 Normal、Visual 和 Operator-pending 模式：
-
-        ```vim
-        :noremap j gj    " 在 Normal 和 Visual 模式都有效
-        ```
-
-    2. nnoremap + vnoremap
-
-        如果你想明确指定只用于 Normal 和 Visual 模式，可以分别设置：
-
-        ```vim
-        :nnoremap j gj    " 只在 Normal 模式
-        :vnoremap j gj    " 只在 Visual 模式
-        ```
-
-    3. xnoremap
-
-        专门用于 Visual 模式（包括 character-wise、line-wise 和 block-wise visual 模式）：
-
-        ```vim
-        :xnoremap <Tab> >
-        ```
-
-    4. 特殊模式组合
-
-        你可以用模式前缀来组合多个模式：
-
-        ```vim
-        " Normal + Visual 模式
-        :map j gj          " 等同于 noremap，但不建议使用（会递归映射）
-
-        " 使用模式标识符
-        :map <silent> <expr> j mode() =~ "[Vv]" ? "gj" : "j"
-        ```
-
-    5. 推荐的实践
-
-        通常建议分开设置，这样更清晰：
-
-        ```vim
-        " 相同的映射应用到多个模式
-        nnoremap <leader>c :Comment<CR>
-        vnoremap <leader>c :Comment<CR>
-        ```
-
-        或者使用 augroup 批量设置：
-
-        ```vim
-        augroup my_mappings
-          autocmd!
-          autocmd ModeChanged *:[vV\x16]* mapclear <buffer>
-          autocmd FileType python nnoremap <buffer> <leader>c I#<Esc>
-          autocmd FileType python vnoremap <buffer> <leader>c :s/^/#/<CR>
-        augroup END
-        ```
-
-    6. 模式说明
-
-        * Normal 模式：普通浏览模式
-
-        * Visual 模式：包括 v（字符可视）、V（行可视）、Ctrl+v（块可视）
-
-        * Operator-pending 模式：比如输入 d 后等待动作
-
-    注意：noremap 默认已经包含了 Normal、Visual 和 Operator-pending 模式，所以如果你想要 Normal + Visual 模式的效果，直接用 noremap 就可以（Operator-pending 模式通常也适用相同的映射）。
-
-* 什么是命令行模式，它和 normal 模式一样吗？
-
-    不，命令行模式和 Normal 模式完全不一样。这是 Vim 中两个不同的模式，让我详细解释它们的区别：
-
-    命令行模式（Command-line Mode）
-
-    进入方式：
-
-    * 在 Normal 模式下按 :（冒号）
-
-    * 按 / 或 ? 进行搜索时
-
-    * 按 : 后出现的状态行显示 : 提示符
-
-    主要功能：
-
-    * 执行 Ex 命令：:w（保存）、:q（退出）、:s/old/new（替换）
-
-    * 执行 Vim 脚本：:echo "Hello"
-
-    * 搜索：/pattern 或 ?pattern
-
-    * 调用外部命令：:!ls（执行 shell 命令）
-
-    * 设置选项：:set number、:set hlsearch
-
-    特点：
-
-    * 光标移动到屏幕底部
-
-    * 输入命令后按 Enter 执行
-
-    * 按 Ctrl-C 或 Esc 可取消并返回 Normal 模式
-
-    * 可以输入多行命令（使用 \ 续行）
-
-    Normal 模式（普通模式）
-
-    进入方式：
-
-    * Vim 启动时的默认模式
-
-    * 从其他模式按 Esc 返回
-
-    主要功能：
-
-    * 导航文本：h j k l、w b、gg G
-
-    * 编辑操作：d（删除）、y（复制）、p（粘贴）
-
-    * 文本对象操作：diw（删除单词）、ci"（修改引号内内容）
-
-    * 窗口操作：Ctrl-w + 方向键
-
-    * 执行普通模式命令：.（重复上次操作）
-
-    特点：
-
-    * 主要工作模式
-
-    * 按键直接执行命令，不显示在屏幕底部
-
-    * 所有操作都是即时生效的
-
-    对比表格
-
-    | 特性 | 命令行模式 | Normal 模式 |
-    | - | - | - |
-    | 提示符 | : / ? | 无 |
-    | 光标位置 | 屏幕底部 | 文本任意位置 |
-    | 输入方式 | 输入完整命令后按 Enter | 按键立即执行 |
-    | 主要用途 | 执行复杂命令、设置选项 | 导航、编辑文本 |
-    | 退出方式 | Enter 执行，Esc 取消 | 按 i 等进入其他模式 |
-    | 可见性 | 命令显示在底部 | 操作不显示 |
-
-    关系示意图
-
-    ```text
-    Normal 模式
-        ↓ 按 `:`
-    命令行模式 (输入命令)
-        ↓ 按 Enter 执行
-    Normal 模式 (执行结果生效)
-    ```
-
-    示例对比
-
-    Normal 模式操作：
-
-    ```text
-    光标在文本中 → 按 `dd` → 立即删除当前行
-    ```
-
-    命令行模式操作：
-
-    ```text
-    在 Normal 模式 → 按 `:` → 输入 `:%s/foo/bar/g` → 按 Enter
-    → 全文替换所有 "foo" 为 "bar"
-    ```
-
-    关键区别：命令行模式需要输入完整的命令字符串然后执行，而 Normal 模式是每个按键立即对应一个操作。
-
-    关于 noremap! 的特殊性
-
-    当使用 noremap! 时，映射同时生效于：
-
-    * 插入模式（输入文本时）
-
-    * 命令行模式（输入命令时）
-
-    但 不生效于 Normal 模式。如果你想要 Normal 模式的映射，需要使用 nnoremap。
-
-    这就是为什么了解这些模式区别很重要——不同模式的映射是完全独立的！
-
-* `noremap!`
-
-    在 Vim 中，noremap! 用于 非递归地 定义插入模式和命令行模式的键盘映射。它的作用如下：
-
-    核心特点：
-
-    * 非递归 - 不会展开映射中的其他映射，避免循环或意外的多层映射
-
-    * 双重模式 - 同时影响插入模式和命令行模式
-
-    * 安全映射 - 防止映射间的相互干扰
-
-    基本语法：
-
-    ```vim
-    :noremap! {lhs} {rhs}
-    ```
-
-    与相关命令对比：
-
-    | 命令 | 递归 | 影响模式 |
-    | - | - | - |
-    | map! | 是 | 插入 + 命令行模式 |
-    | noremap! | 否 | 插入 + 命令行模式 |
-    | inoremap | 否 | 仅插入模式 |
-    | cnoremap | 否 | 仅命令行模式 |
-
-    使用示例：
-
-    ```vim
-    " 非递归映射：按 jk 退出插入模式（安全方式）
-    :noremap! jk <Esc>
-
-    " 比下面这个更安全（避免递归问题）：
-    :map! jk <Esc>  " 可能有递归风险
-    ```
-
-    适用场景：
-
-    * 定义模式切换快捷键（如 jk 退出插入模式）
-
-    * 在插入/命令行模式中使用，且需要避免映射冲突时
-
-    * 当同一映射需要在两种模式下生效时
-
-    注意事项：
-
-    * 通常推荐使用更具体的 inoremap（仅插入模式）和 cnoremap（仅命令行模式）
-
-    * 只有当确实需要在两种模式下使用相同映射时才用 noremap!
-
-    总的来说，noremap! 提供了在插入和命令行模式中定义安全、非递归映射的方式。
-
-* vim 中 gj / gk 的作用
-
-    gj 和 gk 是 Vim 中用于 按屏幕行（visual line）移动 的命令，主要用于处理长行换行显示的情况。
-
-    主要作用对比
-
-    | 命令 | 普通模式移动 | 作用 |
-    | j | 下一实际行 | 按文件中的换行符移动 |
-    | k | 上一实际行 | 按文件中的换行符移动 |
-    | gj | 下一屏幕行 | 按屏幕上显示的行移动（即使长行被折行显示） |
-    | gk | 上一屏幕行 | 按屏幕上显示的行移动（即使长行被折行显示） |
-
-    使用场景示例
-
-    假设有一个很长的行（例如 200 个字符），在 Vim 中因为窗口宽度限制被自动折行显示为多行：
-
-    ```text
-    这是一段非常非常非常...（省略）...长的文本行，
-    在屏幕上显示为多行，但实际上文件中只有一行。
-    ```
-
-    * 按 j/k：光标会跳到下一个实际行（文件中的换行处）
-
-    * 按 gj/gk：光标会在同一个长行内的不同屏幕行之间上下移动
-
-    相关配置
-
-    ```vim
-    " 让 j/k 在换行时按屏幕行移动（类似 gj/gk 的默认行为）
-    nnoremap j gj
-    nnoremap k gk
-
-    " 但这样会失去按实际行移动的功能，可改用：
-    nnoremap <expr> j v:count ? 'j' : 'gj'
-    nnoremap <expr> k v:count ? 'k' : 'gk'
-    ```
-
-    其他相关命令
-
-    * g0/g^/g$：按屏幕行的行首/非空白字符/行尾移动
-
-    * :set wrap：启用自动折行（默认开启）
-
-    * :set nowrap：禁用折行，长行会水平滚动
-
-    gj/gk 在处理 Markdown、文档、日志等包含长行的文本时特别有用。
-
-* vim 在用 :vsplit 打开新窗口时，如何在右边打开新窗口，而不是在左边打开
-
-    在 Vim 中使用 :vsplit 时，默认会在当前窗口的左侧打开新窗口。如果你希望在右侧打开新窗口，有以下几种方法：
-
-    方法一：使用 :rightbelow vertical split（最常用）
-
-    ```vim
-    :rightbelow vertical split
-    ```
-
-    或简写为：
-
-    ```vim
-    :rightbelow vsplit
-    ```
-
-    或更短的简写：
-
-    ```vim
-    :bo vsplit
-    ```
-
-    其中 bo 是 bottom 的缩写，在这里表示"右下方"
-
-    方法二：使用方向参数
-
-    ```vim
-    :vertical split
-    ```
-
-    然后按 Ctrl+w L 将新窗口移动到右侧
-
-    方法三：配置为默认行为（添加到 .vimrc）
-
-    如果你希望 :vsplit 默认在右侧打开，可以在 ~/.vimrc 中添加：
-
-    ```vim
-    set splitright
-    ```
-
-    这样设置后，所有的垂直分割都会在右侧打开。
-
-    方法四：使用快捷键映射
-
-    在 .vimrc 中创建自定义快捷键：
-
-    ```vim
-    " 使用空格+v在右侧垂直分割
-    nnoremap <space>v :rightbelow vnew<CR>
-    " 或保持原有命令但强制右侧
-    nnoremap <leader>v :rightbelow vsplit<CR>
-    ```
-
-    快速参考：
-
-    * :vsplit 或 :vs - 在左侧垂直分割
-
-    * :rightbelow vsplit 或 :rightbelow vs - 在右侧垂直分割
-
-    * :vertical split - 垂直分割，然后可以用 Ctrl+w L 移动到右侧
-
-    最实用的是 方法一（使用 :rightbelow vsplit）或 方法三（设置 splitright 全局选项）。
-
-* vim 在输入 :vsplit subdir/ 后，如何显示出 subdir 中的子文件？
-
-    在 Vim 中，当你使用 :vsplit subdir/ 命令分割窗口打开目录时，它会显示该目录的文件列表（类似文件管理器）。要查看 subdir 中的子文件，有几种方法：
-
-    1. 直接进入子目录（推荐）
-
-        * 在目录列表中，将光标移动到 subdir 上
-
-        * 按 enter 键即可进入该子目录
-
-        * 或者直接使用命令：:vsplit subdir（不加末尾的 /）
-
-    2. 在命令中使用路径通配符
-
-        ```vim
-        :vsplit subdir/*
-        ```
-
-        这会在新窗口中打开 subdir 下的所有文件（如果有多个文件会显示列表）。
-
-    3. 使用 netrw（vim 内置文件浏览器）
-
-        ```vim
-        :explore subdir/   " 在当前位置打开文件浏览器
-        :vexplore subdir/  " 垂直分割打开文件浏览器
-        :sexplore subdir/  " 水平分割打开文件浏览器
-        ```
-
-    4. 使用 :find 命令 + 补全
-
-        ```vim
-        :find subdir/      " 输入后按 Tab，会显示子目录中的文件
-        :vsplit `tab补全的结果`
-        ```
-
-    5. 进入子目录后导航
-
-        一旦进入 subdir 目录视图：
-
-        * - 返回上级目录
-
-        * Enter 打开文件或进入子目录
-
-        * o 在新窗口中打开
-
-        * D 删除文件/目录
-
-        * R 重命名
-
-        * s 切换排序方式
-
-        * q 或 :q 关闭目录窗口
-
-        * i 切换显示格式（详细信息/简略信息）
-
-    注意：如果 subdir 显示为普通文件而非目录，可能是因为它是符号链接或者你缺少该目录的读取权限。
-
-    注：
-
-    1. 可以使用 tab 打开子目录，但是需要随便输入一点东西
-    
-        比如`:vsplit subdir/`，此时可以输入`:vsplit subdir/*`然后按 tab，即可显示子文件夹中内容。也可以按一下右箭头，虽然屏幕上没显示内容，但是此时按 tab 也可以显示子文件夹中内容。
+    个人感觉可以写个 vim 脚本，按某个键（比如`\l`）进入选中模式，然后按`a`选中行，每选中一行把行号加到 vim 脚本的 list 里，最后按`\l`退出选择。在 apply 宏或函数时，可以直接使用这个 list 里的数据。另外增加 reset list 功能: `\lr`，查看已标记行号的功能：`\ll`。
 
 * vim 中，我将 m 键映射为 2j，现在我输入 3m，想向下移动 6 行，但是实际移动的是 32j，即 32 行。该如何解决这个问题
 
@@ -1911,710 +176,6 @@
 
     ssh 连接时是否需要开 -X 或 -Y，不清楚。
 
-* Vimscript 中双引号字符串的转义规则：
-
-    ```vim
-    if line =~ "\w"
-    ```
-
-    "\w" 在双引号字符串中，\w 不是一个标准转义序列
-
-    Vim 会将它解释为：反斜杠 + 字母 w
-
-    所以实际匹配的是字面字符串 "w"，而不是正则表达式 \w
-
-    如果要匹配单词字符，应该用：
-
-    ```vim
-    if line =~ '\w'      " 单引号字符串，不转义
-    " 或者
-    if line =~ "\\w"     " 双引号字符串中需要双反斜杠
-    ```
-
-* 匹配非空白字符
-
-    在 Vimscript 中，要匹配非空白字符（即行中至少有一个非空白字符），有几种正确的方法：
-
-    方法1：使用单引号字符串（推荐）
-
-    ```vim
-    if line =~ '\S'      " \S 匹配非空白字符
-        echo 'selected'
-    endif
-    ```
-
-    方法2：使用双引号字符串并转义
-
-    ```vim
-    if line =~ "\\S"     " 需要双反斜杠
-        echo 'selected'
-    endif
-    ```
-
-    方法3：使用更明确的模式
-
-    ```vim
-    " 匹配至少一个非空白字符
-    if line =~ '\S\+'
-        echo 'selected'
-    endif
-
-    " 或者匹配任何非空白字符
-    if line =~ '[^[:space:]]'
-        echo 'selected'
-    endif
-    ```
-
-    方法4：使用 Vim 内置函数
-
-    ```vim
-    " 如果不需要正则，可以使用 trim 函数
-    if trim(line) != ''
-        echo 'selected'
-    endif
-
-    " 或者检查是否全是空白
-    if line !~ '^\s*$'
-        echo 'selected'
-    endif
-    ```
-
-    正则表达式说明
-
-    * \S：匹配非空白字符（非空格、制表符等）
-
-    * \s：匹配空白字符
-
-    * ^\s*$：匹配空行或只有空白字符的行（使用 !~ 取反即可匹配非空行）
-
-* vimscript 中如何实现 if xxx != yyy，或者 if not xxx == yyy 这种效果？
-
-    在 Vimscript 中，有多种方式可以实现不等于判断或取反逻辑：
-
-    1. 不等于运算符
-
-        ```vim
-        " 使用 != 运算符（最常用）
-        if xxx != yyy
-            echo "not equal"
-        endif
-        ```
-
-    2. 取反运算符
-
-        ```vim
-        " 使用 ! 取反运算符
-        if !(xxx == yyy)
-            echo "not equal"
-        endif
-
-        " 或者
-        if not xxx == yyy
-            echo "not equal"
-        endif
-        ```
-
-    3. 具体示例
-
-        ```vim
-        let name = "vim"
-        let value = 10
-
-        " 字符串不等于
-        if name != "emacs"
-            echo "This is vim"
-        endif
-
-        " 数字不等于  
-        if value != 5
-            echo "Value is not 5"
-        endif
-
-        " 取反方式
-        if !(name == "emacs")
-            echo "Not emacs"
-        endif
-
-        if not name == "emacs"
-            echo "Also not emacs"
-        endif
-        ```
-
-    4. 对于模式匹配的取反
-
-        ```vim
-        let line = "hello world"
-
-        " 匹配包含 "hello" 的行
-        if line =~ "hello"
-            echo "contains hello"
-        endif
-
-        " 取反：不包含 "hello" 的行
-        if line !~ "hello"
-            echo "does not contain hello"
-        endif
-
-        " 或者使用取反运算符
-        if !(line =~ "hello")
-            echo "also does not contain hello"
-        endif
-        ```
-
-    5. 复杂逻辑组合
-
-        ```vim
-        let a = 1
-        let b = 2
-        let c = 3
-
-        " 多个条件组合
-        if a != b && b != c
-            echo "a, b, c are all different"
-        endif
-
-        " 使用 not 运算符
-        if not (a == b || b == c)
-            echo "no equal pairs"
-        endif
-        ```
-
-    6. 运算符总结
-
-    | 运算符 | 描述 | 示例 |
-    | - | - | - |        
-    | != | 不等于 | if a != b |
-    | !~ | 不匹配模式 | if str !~ "pattern" |
-    | ! | 逻辑非 | if !condition |
-    | not | 逻辑非（更可读） | if not condition |
-
-    7. 注意事项
-
-        ```vim
-        " 字符串比较注意类型
-        if "10" != 10          " 字符串和数字比较，通常为 true
-        if "10" != "10"        " false
-        if 10 != 10.0          " false（数字类型比较）
-
-        " 使用 is 和 isnot 进行严格比较（比较对象引用）
-        let list1 = [1, 2, 3]
-        let list2 = [1, 2, 3]
-        if list1 isnot list2   " true，不同对象
-            echo "different objects"
-        endif
-        ```
-
-    8. 实际应用示例
-
-        ```vim
-        " 检查文件类型
-        if &filetype != "python"
-            echo "Not a Python file"
-        endif
-
-        " 检查是否在插入模式
-        if mode() != "i"
-            echo "Not in insert mode"
-        endif
-
-        " 检查行是否不为空
-        let line = getline(lnum)
-        if line != ""
-            echo "Line is not empty"
-        endif
-
-        " 更严谨的检查空行（包含空白字符）
-        if line !~ '^\s*$'
-            echo "Line has content"
-        endif
-        ```
-
-    推荐使用：对于大多数情况，直接使用 != 运算符最清晰简单。如果需要取反复杂的表达式，使用 !() 或 not 可以提高可读性。
-
-* vimscript 中，如何获取当前行的行号，以及当前行的内容？
-
-    在 Vimscript 中，可以使用以下方式获取当前行号和当前行内容：
-
-    获取当前行号
-
-    ```vim
-    " 方法1: line() 函数
-    let current_line = line('.')
-    echo "当前行号: " . current_line
-
-    " 方法2: line('.') 的简写
-    echo "当前行号: " . line('.')
-    ```
-
-    获取当前行内容
-
-    ```vim
-    " 方法1: getline() 函数
-    let current_content = getline('.')
-    echo "当前行内容: " . current_content
-
-    " 方法2: 直接使用 getline('.')
-    echo "当前行内容: " . getline('.')
-    ```
-
-    结合使用的示例
-
-    ```vim
-    " 获取并显示当前行号和内容
-    let line_num = line('.')
-    let line_content = getline('.')
-
-    echo "第 " . line_num . " 行: " . line_content
-
-    " 或者更简洁地
-    echo "第 " . line('.') . " 行: " . getline('.')
-    ```
-
-    其他相关函数
-
-    ```vim
-    " 获取指定行号的内容
-    let line_10 = getline(10)  " 获取第10行的内容
-
-    " 获取可视模式下选中的行范围
-    let start_line = line("'<")  " 可视模式起始行
-    let end_line = line("'>")    " 可视模式结束行
-
-    " 获取总行数
-    let total_lines = line('$')  " 文件总行数
-    ```
-
-    实际应用示例
-
-    ```vim
-    " 示例1: 显示当前行信息
-    function! ShowCurrentLineInfo()
-        let lnum = line('.')
-        let content = getline('.')
-        echo "行号: " . lnum . " | 长度: " . strlen(content) . " | 内容: " . content
-    endfunction
-
-    " 示例2: 在当前行前面添加行号
-    function! AddLineNumber()
-        let lnum = line('.')
-        let content = getline('.')
-        call setline('.', lnum . ': ' . content)
-    endfunction
-
-    " 示例3: 复制当前行并添加行号
-    function! CopyWithLineNumber()
-        let lnum = line('.')
-        let content = getline('.')
-        let @" = lnum . ': ' . content  " 复制到无名寄存器
-        echo "已复制: " . lnum . ': ' . content
-    endfunction
-    ```
-
-    注意事项
-
-    * . 表示当前光标位置
-
-    * getline() 返回的是字符串，包含行尾的换行符会被去掉
-
-    * 如果要修改当前行，可以使用 setline() 函数：
-
-        ```vim
-        call setline('.', '新的内容')
-        ```
-
-    这些函数在编写 Vim 插件或自定义映射时非常有用。
-
-* 在 visual 模式下，使用快捷键调用自定义函数 function MyFunc()，会自动添加 :'<,'> 吗？
-
-    是的，在 Visual 模式下使用快捷键调用自定义函数时，Vim 会自动添加 :'<,'> 前缀。让我详细解释一下：
-
-    Visual 模式下的行为
-
-    ```vim
-    " 示例映射
-    vnoremap <leader>f :call MyFunc()<CR>
-    ```
-
-    在 Visual 模式下按下 <leader>f 时，命令行会显示：
-
-    ```text
-    :'<,'>call MyFunc()
-    ```
-
-    这个 :'<,'> 表示 Visual 模式下选中的行范围：
-
-    * '< - 可视选择的起始行
-
-    * '> - 可视选择的结束行
-
-    * , - 范围分隔符
-
-    为什么会有这个行为？
-
-    这是 Vim 的历史遗留特性。在 Visual 模式下，当你按 : 进入命令行时，Vim 会自动插入 :'<,'> 前缀，表示接下来的命令会作用于选中的行范围。
-
-    实际影响
-
-    在你的函数中，你需要正确处理这个行范围：
-
-    ```vim
-    function! MyFunc() range
-        " range 关键字让函数接收行范围参数
-        let start_line = a:firstline
-        let end_line = a:lastline
-        
-        for line_num in range(start_line, end_line)
-            let content = getline(line_num)
-            echo "处理第 " . line_num . " 行: " . content
-        endfor
-    endfunction
-
-    " 映射（range 会自动传递）
-    vnoremap <leader>f :call MyFunc()<CR>
-    ```
-
-    如何控制这个行为？
-
-    方法1：使用 range 参数
-
-    ```vim
-    function! MyFunc() range
-        " 函数会自动接收可视选择的范围
-        echo "从 " . a:firstline . " 到 " . a:lastline
-    endfunction
-    ```
-
-    方法2：不使用范围（需要在映射中清除）
-
-    ``````vim
-    vnoremap <leader>f :<C-u>call MyFunc()<CR>
-
-    function! MyFunc()
-        " 现在这个函数只针对当前行，忽略可视选择
-        echo "当前行: " . line('.')
-    endfunction
-    ```
-    ```
-
-    方法3：同时支持两种调用方式
-
-    ```vim
-    function! MyFunc() range
-        if a:0 > 0
-            " 被 range 调用（有行范围）
-            echo "处理范围: " . a:firstline . "-" . a:lastline
-        else
-            " 普通调用（无行范围）
-            echo "处理当前行: " . line('.')
-        endif
-    endfunction
-
-    " 两种映射方式
-    nnoremap <leader>f :call MyFunc()<CR>    " 正常模式
-    vnoremap <leader>f :call MyFunc()<CR>    " 可视模式（带范围）
-    ```
-
-    最佳实践建议
-
-    * 明确设计意图：
-
-        * 如果函数设计为处理多行，使用 range
-
-        * 如果只处理当前行，在映射中用 <C-u> 清除范围
-
-    * 示例：处理选中的多行
-
-        ```vim
-        function! ProcessSelection() range
-            let total_chars = 0
-            for lnum in range(a:firstline, a:lastline)
-                let total_chars += strlen(getline(lnum))
-            endfor
-            echo "选中 " . (a:lastline - a:firstline + 1) . " 行，共 " . total_chars . " 字符"
-        endfunction
-
-        vnoremap <leader>c :call ProcessSelection()<CR>
-        ```
-
-    * 示例：只处理当前可视模式位置
-
-        ```vim
-        function! ProcessCursor()
-            echo "光标在行: " . line('.') . "，列: " . col('.')
-        endfunction
-
-        " <C-u> 清除 '<,'> 前缀
-        vnoremap <leader>p :<C-u>call ProcessCursor()<CR>
-        ```
-
-    测试技巧
-
-    你可以用以下方式测试：
-
-    ```vim
-    " 临时测试映射
-    :vnoremap <leader>t :echo "测试"<CR>
-    ```
-
-    在 Visual 模式下按 <leader>t，你会看到命令行显示 :'<,'>echo "测试"，然后执行。
-
-    总结
-
-    * 默认行为：Visual 模式下会自动添加 :'<,'>
-
-    * 处理方式：
-
-        * 接受范围：函数加 range 参数
-
-        * 拒绝范围：映射中加 <C-u>
-
-    * 设计建议：根据函数用途选择合适的方式，保持行为一致性
-
-* 函数 return 0 和 return 1 有区别吗？
-
-    在 Vimscript 中，函数 return 0 和 return 1 有区别，但这个区别主要体现在 条件判断 和 调用者如何处理返回值 上。让我详细解释：
-
-    1. 基本区别
-
-        ```vim
-        function! TestZero()
-            return 0
-        endfunction
-
-        function! TestOne()
-            return 1
-        endfunction
-        ```
-
-    2. 在条件判断中的不同行为
-
-        Vimscript 的真值判断规则：
-
-        * 0 是假（false）
-
-        * 1 是真（true）
-
-        * 任何非零数值都是真
-
-    ```vim
-    if TestZero()
-        echo "这会执行吗？不会！因为返回 0 是假"
-    else
-        echo "这个会执行"
-    endif
-
-    if TestOne()
-        echo "这个会执行（返回 1 是真）"
-    endif
-
-    " 同样，返回 2, 3, -1 等也都是真"
-    function! TestTwo()
-        return 2
-    endfunction
-
-    if TestTwo()
-        echo "这个也会执行"
-    endif
-    ```
-
-    3. 常见的返回模式
-
-        模式1：成功/失败指示
-
-        ```vim
-        function! SaveFileIfModified()
-            if &modified
-                write
-                return 1    " 成功保存"
-            else
-                echo "文件未修改，无需保存"
-                return 0    " 未执行保存操作"
-            endif
-        endfunction
-
-        " 使用示例
-        if SaveFileIfModified()
-            echo "文件已保存"
-        else
-            echo "文件未保存"
-        endif
-        ```
-
-        模式2：查找/检查函数
-
-        ```vim
-        function! HasTodoComment()
-            " 检查当前行是否有 TODO 注释
-            if getline('.') =~ 'TODO'
-                return 1    " 有 TODO"
-            else
-                return 0    " 没有 TODO"
-            endif
-        endfunction
-
-        " 使用示例
-        if HasTodoComment()
-            echo "当前行有 TODO 注释"
-        endif
-        ```
-
-    4. 实际应用场景
-
-        场景1：作为条件使用
-
-        ```vim
-        function! IsValidFilename(filename)
-            " 检查文件名是否有效
-            if a:filename =~ '[/\\:*?"<>|]'
-                return 0    " 无效
-            else
-                return 1    " 有效
-            endif
-        endfunction
-
-        let fname = "test.txt"
-        if IsValidFilename(fname)
-            echo fname . " 是有效的文件名"
-        endif
-        ```
-
-        场景2：链式调用判断
-
-        ```vim
-        function! CheckAllConditions()
-            if !Condition1()
-                return 0
-            endif
-            if !Condition2()
-                return 0
-            endif
-            if !Condition3()
-                return 0
-            endif
-            return 1    " 所有条件都满足
-        endfunction
-        ```
-
-    5. 与其他值的对比
-
-        ```vim
-        function! VariousReturns()
-            " 不同返回值的真值测试
-            return 0    " 假
-            return 1    " 真
-            return -1   " 真
-            return ""   " 真（空字符串在Vim中是真！）
-            return "0"  " 真（字符串"0"也是真！）
-            return []   " 真
-            return {}   " 真
-        endfunction
-
-        " 重要：Vimscript 中只有 0 是假，其他都是真！
-        ```
-
-    6. 最佳实践建议
-
-        建议1：明确约定
-        
-        ```vim
-        " 文档注释说明返回值的意义
-        "
-        " @return 1 表示成功，0 表示失败
-        function! ProcessFile()
-            " ... 处理逻辑
-            return success ? 1 : 0
-        endfunction
-        ```
-
-        建议2：使用命名常量提高可读性
-
-        ```vim
-        let s:SUCCESS = 1
-        let s:FAILURE = 0
-        let s:TRUE = 1
-        let s:FALSE = 0
-
-        function! SaveSettings()
-            try
-                " ... 保存逻辑
-                return s:SUCCESS
-            catch
-                return s:FAILURE
-            endtry
-        endfunction
-        ```
-
-        建议3：考虑使用字符串或更丰富的返回值
-
-        ```vim
-        " 有时简单的 0/1 不够用
-        function! ValidateInput(input)
-            if empty(a:input)
-                return "EMPTY"
-            elseif a:input !~ '^\w\+$'
-                return "INVALID_CHARS"
-            elseif strlen(a:input) < 3
-                return "TOO_SHORT"
-            else
-                return "OK"    " 成功
-            endif
-        endfunction
-
-        let result = ValidateInput("ab")
-        if result == "OK"
-            echo "输入有效"
-        else
-            echo "错误：" . result
-        endif
-        ```
-
-    7. 特殊用途：命令的成功/失败
-
-        ```vim
-        " 有些 Vim 命令会设置 v:shell_error
-        function! RunCommand(cmd)
-            let output = system(a:cmd)
-            if v:shell_error
-                echo "命令失败，错误码：" . v:shell_error
-                return 0
-            else
-                echo "命令成功"
-                return 1
-            endif
-        endfunction
-        ```
-
-    总结
-
-    | 返回值 | 布尔值 | 典型含义 | 使用场景 |
-    | - | - | - | - |
-    | return 0 | 假 (false) | 失败、否、错误 | 条件判断中表示假，操作失败 |
-    | return 1 | 真 (true) | 成功、是、正确 | 条件判断中表示真，操作成功 |
-
-    关键点：
-
-    * 在 if 语句中，0 表示假，1 表示真
-
-    * 这符合大多数编程语言的约定（C/C++风格）
-
-    * 在 Vimscript 中，只有数值 0 是假，其他所有值都是真
-
-    * 设计函数时，考虑调用者如何使用返回值来决定返回 0 还是 1
-
-* vim ctrl + f
-
-    无论光标在何处，都跳转到当前页的倒数第 2 行，并把这一行置顶
-
-* `gU`
-
-    gU 是一个操作符，需要配合移动命令来使用。
-
-    examples:
-
-    * `gUU` 或 `gUgU`: 将当前行转为大写。
-
-    * `gUw`: 将从光标处到下一个单词结尾的文本转为大写。
-
 * 大写字母`U`
 
     * 正常模式（Normal Mode）:
@@ -2689,43 +250,8 @@
 
 
 
-* vim 有关滚动的插件
 
-    * vim-smoothie：平滑滚动
 
-        <https://github.com/psliwka/vim-smoothie>
-
-    * neoscroll.nvim（Neovim）
-
-        <https://github.com/karb94/neoscroll.nvim>
-
-* vim 技巧
-
-    * 搜索和删除
-
-        * d/pattern - 删除直到匹配 pattern 的位置
-
-        * d?pattern - 向后删除直到匹配 pattern 的位置
-
-    * 结合数字使用
-
-        * d2t. - 删除直到第二个 '.' 前
-
-        * 3df - 删除直到第三个空格（包括空格）
-
-    实际例子：
-
-    假设文本：hello.world foo.bar test.example end
-
-    * 光标在 foo 的 'f'：dt → 删除 foo.bar
-
-    * 光标在 foo 的 'f'：df → 删除 foo.bar
-
-    * 光标在引号内：di" → 删除 "hello world" 中的 hello world
-
-    * 光标在单词任意位置：daw → 删除整个单词
-
-    这些命令中的 d 都可以换成 c（删除并进入插入模式）或 y（复制），非常灵活！
 
 * vim 和 neovim 有什么区别？
 
@@ -4235,9 +1761,789 @@
 
     这些大写命令让 Vim 的操作更加高效，减少了模式切换和重复按键的需要。
 
+* 我希望给 vim 加这样一个功能：normal 模式下输入 I 后，用户输入某个字符 c，然后程序在当前位置插入字符 c 后自动执行 esc 返回 normal 模式。如果输入 [N]I，则 vim 等待用户输入 N 个字符，在当前位置插入后返回到 normal 模式。
+
+    这个需求非常实用，本质上是把 **Insert 模式** 变成了一个 **“原子化”的操作**。在 Vim 中，我们可以通过 `getcharstr()` (或旧版的 `getchar()`) 配合 `v:count1` 来完美实现这个功能。
+
+    你可以将以下代码添加到你的 `.vimrc`（或 `init.vim`）中：
+
+    **Vimscript 实现方案**
+
+    ```vim
+    " 定义快速插入函数
+    function! QuickInsert() abort
+        " 获取输入的计数（[N]I），默认为 1
+        let l:count = v:count1
+        let l:inserted_text = ""
+
+        " 循环获取 N 个字符
+        for i in range(l:count)
+            let l:char = getcharstr()
+            " 如果中途按了 Esc，则终止输入
+            if l:char == "\<Esc>"
+                return
+            endif
+            let l:inserted_text .= l:char
+        endfor
+
+        " 在当前光标处插入字符
+        " 使用 feedkeys 可以确保触发原本的插入逻辑，或者直接用 execute
+        execute "normal! i" . l:inserted_text
+    endfunction
+
+    " 将 I 映射到该函数
+    " <C-u> 用于清除 Vim 默认在命令行展示的范围，确保 v:count1 被正确读取
+    nnoremap <silent> I :<C-u>call QuickInsert()<CR>
+
+    ```
+
+    友情提示
+
+    在 Vim 原生快捷键中，`I` 的功能是 **“跳转到行首第一个非空字符并进入插入模式”**。如果你想保留原生的 `I`，建议将上面的映射键改为 `ni`（取 "Next Insert" 之意）或其他不常用的组合。
+
+
+* vim 中，我使用 y 复制一段文字后，想在另一个地方执行 vex 删除一个单词后，再按 p 把复制的文字粘贴到当前位置。但是这时候粘贴板上的数据已经改变了。如何处理？
+
+    在 Vim 中，你遇到的是**寄存器（registers）**的问题。当你执行 `v e x` 时，删除的内容会进入默认寄存器（`""`），覆盖了之前复制的内容。
+
+    有几种方法可以解决：
+
+    方法一：使用命名寄存器（推荐）
+
+    1. **复制时**：使用 `"ay` 将内容保存到寄存器 `a`
+       - `"ay`：先按 `"a`，再按 `y`
+    2. **粘贴时**：使用 `"ap` 从寄存器 `a` 粘贴
+       - `"ap`：先按 `"a`，再按 `p`
+
+    这样删除操作不会影响寄存器 `a` 的内容。
+
+    方法二：使用系统剪贴板寄存器
+
+    如果想让复制的内容在系统剪贴板中：
+
+    1. **复制时**：`"+y`（Linux/macOS）或 `"*y`（Windows）
+
+    2. **粘贴时**：`"+p` 或 `"*p`
+
+    方法三：使用黑洞寄存器删除
+
+    当删除不需要保存的内容时，可以使用黑洞寄存器 `_`：
+
+    ```vim
+    "_vex  " 删除内容但不保存到任何寄存器
+    ```
+
+    方法四：先删除再粘贴
+
+    ```vim
+    p    " 先粘贴之前复制的内容
+    vex  " 再删除单词
+    ```
+
+    查看寄存器内容
+
+    ```vim
+    :reg    " 查看所有寄存器内容
+    :reg a  " 查看寄存器a的内容
+    ```
+
+    常用寄存器说明
+
+    - `""`：默认寄存器（你遇到问题的地方）
+    - `"0`：最近一次复制的内容
+    - `"a`-`"z`：命名寄存器（可自定义使用）
+    - `"+`/`"*`：系统剪贴板
+    - `"_`：黑洞寄存器（删除但不保存）
+
+    **建议**：习惯使用命名寄存器（如 `"ay` 和 `"ap`）来避免这类问题，特别是当需要在多个位置进行复制粘贴操作时。
+
+
+
+* ysiw" 为当前单词添加双引号。这个如何理解？
+
+    ysiw" 是 vim-surround 插件的一个组合命令，分解理解如下：
+
+    命令结构
+
+    ```text
+    ys i w "
+    ┃  ┃ ┃ ┃
+    ┃  ┃ ┃ └ 要添加的符号（这里是双引号）
+    ┃  ┃ └─── 范围选择器（w = word，单词）
+    ┃  └───── 内部文本对象（i = inner，内部的）
+    └──────── 操作符（ys = you surround，添加环绕）
+    ```
+
+    详细解释
+
+    1. ys
+
+        * y 代表 “you”（插件中的记忆方式，表示“添加环绕”）
+
+        * s 代表 “surround”
+
+        * 整体表示：我要给某个东西添加环绕符号
+
+    2. iw
+
+        * 这是 Vim 的 文本对象 语法
+
+        * i 表示 inner（内部，不包含周围空格）
+
+        * w 表示 word（单词）
+
+        * iw 合起来表示：光标所在的整个单词（不含周围空格）
+
+    举例：
+
+    文本 Hello, world!
+
+    光标在 world 上时，iw 会选择 world（不包括前后的逗号或空格）
+
+    3. "
+
+        * 要添加的环绕符号
+
+        * 插件会自动匹配成对的符号：" → ""，( → ()，[ → [] 等
+
+    执行效果
+
+    假设光标在单词 apple 上：
+
+    ```text
+    apple
+         ↓ 执行 ysiw"
+    "apple"
+    ```
+
+    类似用法
+
+    * ysiw( → (apple)
+
+    * ysiw[ → [apple]
+
+    * ysiw' → 'apple'
+
+    * ysiwt → <apple>（标签需要指定名称）
+
+    记忆技巧
+
+    * ys = “你包围”（添加环绕）
+
+    * ds = “删除包围”
+
+    * cs = “改变包围”
+
+    * iw = “内部单词”（常用文本对象）
+
+    * aw = “一个单词”（包含周围空格）
+
+    更直观的替代
+
+    如果觉得 ysiw" 太长，可以：
+
+    * 先按 viw 选中单词
+
+    * 再按 S"（Visual 模式下 S + 符号）
+
+    两者效果相同，但 ysiw" 更快捷，不需要进入 Visual 模式。
+
+    注：
+
+    1. vim-surround 没法加双星号 `**`，感觉整体的功能不灵活也不好用。
+
+
+* 我想像 vscode 那样显示某一行是新增的/修改的/删除的，vim 里如何做到？
+
+    要在 Vim 中像 VS Code 那样实时显示行号旁边的 Git 状态（新增/修改/删除），有几种方案：
+
+    方案一：使用 vim-gitgutter（推荐）
+
+    安装
+
+    ```vim
+    " 使用 vim-plug
+    Plug 'airblade/vim-gitgutter'
+
+    " 使用 Vim 内置包管理
+    " mkdir -p ~/.vim/pack/git-plugins/start
+    " cd ~/.vim/pack/git-plugins/start
+    " git clone https://github.com/airblade/vim-gitgutter.git
+    ```
+
+    基本配置
+
+    ```vim
+    " 在 ~/.vimrc 中添加
+    let g:gitgutter_enabled = 1           " 启用
+    let g:gitgutter_signs = 1             " 显示符号
+    let g:gitgutter_highlight_lines = 0   " 不高亮整行（默认）
+
+    " 更新延迟（毫秒）
+    set updatetime=100
+    let g:gitgutter_realtime = 1
+    let g:gitgutter_eager = 1
+    ```
+
+    显示效果
+
+    ```text
+    │ 行号 │ 代码
+    ├──────┼─────────────
+    │  1   │ 未修改的行
+    │  2 + │ 新增的行
+    │  3 ~ │ 修改的行
+    │  4 - │ 删除的行（在附近显示）
+    ```
+
+    方案二：使用 signify（更轻量）
+
+    ```vim
+    Plug 'mhinz/vim-signify'
+    ```
+
+    更适合大型仓库，性能更好。
+
+    方案三：Neovim 的 gitsigns.nvim
+
+    如果你用 Neovim：
+
+    ```lua
+    -- 使用 lazy.nvim
+    {
+      'lewis6991/gitsigns.nvim',
+      opts = {
+        signs = {
+          add          = { text = '│' },
+          change       = { text = '│' },
+          delete       = { text = '_' },
+          topdelete    = { text = '‾' },
+          changedelete = { text = '~' },
+          untracked    = { text = '┆' },
+        },
+        signcolumn = true,
+        numhl      = false,
+        linehl     = false,
+      }
+    }
+    ```
+
+    自定义符号和颜色
+
+    修改符号样式
+
+    ```vim
+    " 使用不同的符号
+    let g:gitgutter_sign_added = '+'
+    let g:gitgutter_sign_modified = '~'
+    let g:gitgutter_sign_removed = '-'
+    let g:gitgutter_sign_removed_first_line = '^^'
+    let g:gitgutter_sign_modified_removed = 'ww'
+
+    " 或者使用 Unicode 字符
+    let g:gitgutter_sign_added = '│'
+    let g:gitgutter_sign_modified = '│'
+    let g:gitgutter_sign_removed = '_'
+    let g:gitgutter_sign_removed_first_line = '‾'
+    ```
+
+    修改颜色
+
+    ```vim
+    " 定义高亮颜色
+    highlight GitGutterAdd    guifg=#009900 guibg=NONE ctermfg=2
+    highlight GitGutterChange guifg=#bbbb00 guibg=NONE ctermfg=3
+    highlight GitGutterDelete guifg=#ff2222 guibg=NONE ctermfg=1
+
+    " 如果想高亮整行（像 VS Code 那样）
+    let g:gitgutter_highlight_lines = 1
+    " 然后自定义行高亮颜色
+    highlight GitGutterAddLine    guibg=#003300
+    highlight GitGutterChangeLine guibg=#333300
+    highlight GitGutterDeleteLine guibg=#330000
+    ```
+
+    常用操作
+
+    ```vim
+    " 跳转到下一个/上一个变更
+    ]h  " 下一个 hunk
+    [h  " 上一个 hunk
+
+    " 暂存/撤销当前区块
+    <Leader>hs  " 暂存当前区块
+    <Leader>hu  " 撤销当前区块
+
+    " 预览更改
+    <Leader>hp  " 预览当前区块的更改
+
+    " 切换显示
+    :GitGutterToggle     " 切换显示
+    :GitGutterEnable     " 启用
+    :GitGutterDisable    " 禁用
+    :GitGutterSignsToggle " 切换符号显示
+    ```
+
+    完整配置示例
+
+    ```vim
+    " ~/.vimrc
+    call plug#begin('~/.vim/plugged')
+    Plug 'airblade/vim-gitgutter'
+    call plug#end()
+
+    " GitGutter 配置
+    let g:gitgutter_map_keys = 0  " 禁用默认快捷键，自己定义
+    let g:gitgutter_sign_allow_clobber = 0
+
+    " 符号定义
+    let g:gitgutter_sign_added = '│'
+    let g:gitgutter_sign_modified = '│'
+    let g:gitgutter_sign_removed = '_'
+    let g:gitgutter_sign_removed_first_line = '‾'
+    let g:gitgutter_sign_modified_removed = '~'
+
+    " 颜色定义
+    highlight GitGutterAdd          guifg=#00ff00 ctermfg=2
+    highlight GitGutterChange       guifg=#ffff00 ctermfg=3
+    highlight GitGutterDelete       guifg=#ff0000 ctermfg=1
+    highlight GitGutterChangeDelete guifg=#ff8800 ctermfg=4
+
+    " 更新频率
+    set updatetime=100
+
+    " 自定义快捷键
+    nmap ]h <Plug>(GitGutterNextHunk)
+    nmap [h <Plug>(GitGutterPrevHunk)
+    nmap <Leader>hs <Plug>(GitGutterStageHunk)
+    nmap <Leader>hu <Plug>(GitGutterUndoHunk)
+    nmap <Leader>hp <Plug>(GitGutterPreviewHunk)
+    ```
+
+    没有插件的临时方案
+
+    如果不想装插件，可以用内置命令：
+
+    ```vim
+    " 查看当前文件的差异
+    :Gdiff
+
+    " 或者用外部命令
+    :!git diff --no-ext-diff %
+
+    " 或者开启 Vim 的 diff 模式
+    :windo diffthis   " 开启 diff 模式
+    :windo diffoff    " 关闭 diff 模式
+    ```
+
+    问题排查
+
+    如果没显示：
+
+    * 确认在 Git 仓库中
+
+    * 检查 :GitGutterEnable 是否开启
+
+    * 确认 updatetime 不要太长（建议 100-500ms）
+
+    * 查看 :messages 是否有错误
+
+    安装配置后，Vim 就会在行号旁边显示 Git 状态，体验类似 VS Code 了！
+
+
+
+
+* vim 在退出时，要求我先 :w 保存，才能 :q 退出，但是我忘了刚才修改了什么东西，是否有类似 diff 命令的方式查看 vim 编辑的文件改动了哪些？
+
+    有几种方法可以查看未保存的修改：
+
+    1. 查看当前文件的改动
+
+        ```vim
+        :changes
+        ```
+
+        或
+
+        ```vim
+        :undolist
+        ```
+
+        这会显示你做的修改历史。
+
+        注：
+
+        1. 这些显示的都只是操作历史，无法像 diff 那样看到直观的文本对比
+
+    2. 比较已保存文件和当前版本的差异
+
+        ```vim
+        :DiffOrig
+        ```
+
+        如果 :DiffOrig 命令不存在，需要先加载 diff 功能：
+
+        ```vim
+        :vert diffsplit
+        ```
+
+        注：
+
+        1. 简单试了下，似乎不行
+
+    3. 使用 git diff 风格查看
+
+        ```vim
+        :w !diff % -
+        ```
+
+        这会比较已保存文件和当前未保存内容的差异。
+
+        注：
+
+        1. 这个好像还行, 不知道 :w 是否会直接保存文件
+
+    4. 查看当前行或可视选择的差异
+
+        * 查看当前行修改：g:
+
+        * 查看整个文件的修改概要：:diffthis
+
+    5. 如果你只是想看看修改
+
+        先保存到临时文件，然后比较：
+
+        ```vim
+        :w /tmp/temp_file
+        :vert diffpatch /tmp/temp_file
+        ```
+
+    6. 推荐配置（添加到 .vimrc）
+
+        ```vim
+        " 快速查看未保存的差异
+        command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis | wincmd p | diffthis
+        ```
+
+    7. 不想保存修改就退出
+
+        如果你确定不需要这些修改：
+
+        * 强制退出不保存：:q!
+
+        * 回到上次保存的状态：:e!（然后再 :q 退出）
+
+    8. 使用插件
+
+        安装 vim-fugitive 等插件可以获得更好的 Git 集成和 diff 查看功能。
+
+    最简单的方式是直接使用 :DiffOrig（如果可用），或者先执行 :w 保存，然后用 Git 等工具查看修改。
+
 ## topics
 
+### config
+
+* vim config file: `~/.vimrc`
+
+* vim 禁用终端响铃（Bell）
+
+    ```vim
+    set noerrorbells   " 禁用错误提示音
+    set visualbell     " 使用视觉提示代替声音
+    set t_vb=          " 清空视觉提示（彻底静音）
+    ```
+
+### windows
+
+* vim 在 windows 下的所有 ctrl + v 都被默认替换成了 ctrl + q
+
+    因为 windows 下的 ctrl + v 是粘贴功能。
+
+    不清楚 GVim 是什么情况，可能 ctrl + v 仍保持 vim 的语义。
+
+* 还有哪些类似 linux vim 中 ctrl + v 在 windows vim 中被默认替换成 ctrl + q 的快捷键的例子？详细列出
+
+    在 Windows 版的 Vim（或 gVim）中，由于 Windows 系统本身有一套广为人知的全局快捷键（如 Ctrl + C 复制、Ctrl + V 粘贴），为了降低新手的门槛，Vim 官方发行版通常会加载一个名为 mswin.vim 的脚本。
+
+    这个脚本会将许多经典的 Vim 快捷键重映射为 Windows 习惯。以下是受影响最严重的几个核心快捷键对比：
+
+    1. 核心映射对照表
+
+        | Windows 快捷键 | 在 Windows Vim 中的功能 | 对应的原始 Vim 快捷键 | 原始 Vim 功能说明 |
+        | - | - | - | - |
+        | Ctrl + V | 粘贴 (Paste) | Ctrl + V | 块可视化模式 (Visual Block) |
+        | Ctrl + Q | 块可视化模式 (替换方案) | 无 | 这是为了补位被占用的 Ctrl + V |
+        | Ctrl + C | 复制 (Copy) | y (yank) | 复制选中的文本到剪贴板 |
+        | Ctrl + X | 剪切 (Cut) | d (delete) | 删除选中内容并存入剪贴板 |
+        | Ctrl + A | 全选 (Select All) | ggVG | 选中全文 |
+        | Ctrl + Z | 撤销 (Undo) | u | 撤销上一步操作 |
+        | Ctrl + Y | 重做 (Redo) | Ctrl + R | 恢复被撤销的操作 |
+        | Ctrl + S | 保存 (Save) | :w | 写入文件 |
+        | Ctrl + F | 查找 (Find) | / | 开启搜索模式 |
+
+    2. 详细分析受影响的逻辑
+
+        块模式切换：Ctrl + V vs Ctrl + Q
+
+        在 Linux 下，Ctrl + V 是进入“块选择模式”的唯一王牌。但在 Windows 中，它变成了粘贴。
+
+        * 后果： 如果你习惯了在 Linux 下用 Ctrl + V 垂直编辑多行代码，在 Windows 下你会发现它直接吐出了一堆剪贴板里的乱码。
+
+        * 解决： 必须改用 Ctrl + Q。
+
+        撤销与重做：Ctrl + Z / Y
+
+        * Vim 原生： u 是撤销，Ctrl + R 是重做。Ctrl + Z 在 Linux 终端里通常是将进程挂起到后台（Suspend）。
+
+        * Windows 映射： 遵循 Office 逻辑，Ctrl + Z 撤销，Ctrl + Y 重做。这会导致习惯 Ctrl + R 的老用户感到困惑。
+
+        复制粘贴：Ctrl + C / X
+
+        * Vim 原生： Ctrl + C 通常用于中断当前的命令或回到 Normal 模式（类似 Esc）。
+
+        * Windows 映射： 变成了标准复制。这意味着如果你想通过 Ctrl + C 强行退出某个插件的搜索或提示界面，它可能会毫无反应，甚至报错。
+
+    3. 为什么会这样？
+
+        这是因为在 Windows 版本的安装目录下，有一个 _vimrc 文件，它通常会自动执行：
+
+        ```Vim Script
+        source $VIMRUNTIME/mswin.vim
+        behave mswin
+        ```
+
+        这两行代码就是“罪魁祸首”。mswin.vim 重新定义了上述所有快捷键。
+
+    4. 如何恢复成 Linux 习惯？
+
+        如果你希望在 Windows 上也拥有和 Linux 一模一样的纯粹 Vim 体验，你只需要编辑你的 _vimrc 文件（通常在 C:\Users\你的用户名\_vimrc）：
+
+        * 删除或注释掉 source $VIMRUNTIME/mswin.vim 这一行。
+
+        * 删除或注释掉 behave mswin。
+
+        * 保存并重启 Vim。
+
+        这样，Ctrl + V 就会变回块选择模式，u 依然是撤销，所有 Windows 的“入侵”映射都会消失。
+
 ### 多窗口
+
+* vim 在用 :vsplit 打开新窗口时，如何在右边打开新窗口，而不是在左边打开
+
+    在 Vim 中使用 :vsplit 时，默认会在当前窗口的左侧打开新窗口。如果你希望在右侧打开新窗口，有以下几种方法：
+
+    方法一：使用 :rightbelow vertical split（最常用）
+
+    ```vim
+    :rightbelow vertical split
+    ```
+
+    或简写为：
+
+    ```vim
+    :rightbelow vsplit
+    ```
+
+    或更短的简写：
+
+    ```vim
+    :bo vsplit
+    ```
+
+    其中 bo 是 bottom 的缩写，在这里表示"右下方"
+
+    方法二：使用方向参数
+
+    ```vim
+    :vertical split
+    ```
+
+    然后按 Ctrl+w L 将新窗口移动到右侧
+
+    方法三：配置为默认行为（添加到 .vimrc）
+
+    如果你希望 :vsplit 默认在右侧打开，可以在 ~/.vimrc 中添加：
+
+    ```vim
+    set splitright
+    ```
+
+    这样设置后，所有的垂直分割都会在右侧打开。
+
+    方法四：使用快捷键映射
+
+    在 .vimrc 中创建自定义快捷键：
+
+    ```vim
+    " 使用空格+v在右侧垂直分割
+    nnoremap <space>v :rightbelow vnew<CR>
+    " 或保持原有命令但强制右侧
+    nnoremap <leader>v :rightbelow vsplit<CR>
+    ```
+
+    快速参考：
+
+    * :vsplit 或 :vs - 在左侧垂直分割
+
+    * :rightbelow vsplit 或 :rightbelow vs - 在右侧垂直分割
+
+    * :vertical split - 垂直分割，然后可以用 Ctrl+w L 移动到右侧
+
+    最实用的是 方法一（使用 :rightbelow vsplit）或 方法三（设置 splitright 全局选项）。
+
+* vim 在输入 :vsplit subdir/ 后，如何显示出 subdir 中的子文件？
+
+    在 Vim 中，当你使用 :vsplit subdir/ 命令分割窗口打开目录时，它会显示该目录的文件列表（类似文件管理器）。要查看 subdir 中的子文件，有几种方法：
+
+    1. 直接进入子目录（推荐）
+
+        * 在目录列表中，将光标移动到 subdir 上
+
+        * 按 enter 键即可进入该子目录
+
+        * 或者直接使用命令：:vsplit subdir（不加末尾的 /）
+
+    2. 在命令中使用路径通配符
+
+        ```vim
+        :vsplit subdir/*
+        ```
+
+        这会在新窗口中打开 subdir 下的所有文件（如果有多个文件会显示列表）。
+
+    3. 使用 netrw（vim 内置文件浏览器）
+
+        ```vim
+        :explore subdir/   " 在当前位置打开文件浏览器
+        :vexplore subdir/  " 垂直分割打开文件浏览器
+        :sexplore subdir/  " 水平分割打开文件浏览器
+        ```
+
+    4. 使用 :find 命令 + 补全
+
+        ```vim
+        :find subdir/      " 输入后按 Tab，会显示子目录中的文件
+        :vsplit `tab补全的结果`
+        ```
+
+    5. 进入子目录后导航
+
+        一旦进入 subdir 目录视图：
+
+        * - 返回上级目录
+
+        * Enter 打开文件或进入子目录
+
+        * o 在新窗口中打开
+
+        * D 删除文件/目录
+
+        * R 重命名
+
+        * s 切换排序方式
+
+        * q 或 :q 关闭目录窗口
+
+        * i 切换显示格式（详细信息/简略信息）
+
+    注意：如果 subdir 显示为普通文件而非目录，可能是因为它是符号链接或者你缺少该目录的读取权限。
+
+    注：
+
+    1. 可以使用 tab 打开子目录，但是需要随便输入一点东西
+    
+        比如`:vsplit subdir/`，此时可以输入`:vsplit subdir/*`然后按 tab，即可显示子文件夹中内容。也可以按一下右箭头，虽然屏幕上没显示内容，但是此时按 tab 也可以显示子文件夹中内容。
+
+* vim 中，vsplit 打开两个文件后，如何只复制一个文件的多行？
+
+    在 Vim 中使用 vsplit 分割窗口后，要只复制其中一个文件的多行内容，有以下几种方法：
+
+    1. 基本方法：先进入对应窗口
+
+        ```vim
+        <C-w>h      # 先切换到左侧窗口
+        <C-w>l      # 先切换到右侧窗口
+        ```
+
+        然后在该窗口中使用正常的复制命令：
+
+        ```vim
+        yy          # 复制单行
+        5yy         # 复制5行
+        :10,20y     # 复制第10-20行
+        ```
+
+    2. 不切换窗口直接操作
+
+        如果你知道当前光标在哪个窗口，可以直接：
+
+        ```vim
+        " 如果当前窗口是你要复制的窗口
+        v           # 进入可视模式
+        选择多行
+        y           # 复制
+
+        " 或者
+        :'<,'>y     # 复制已选择的行
+        ```
+
+    3. 使用窗口局部寄存器（推荐）
+
+        如果你需要频繁在两个窗口间复制，可以：
+
+        * 在源窗口选择文本：
+
+            ```vim
+            v           # 进入可视模式
+            选择多行
+            "ay         # 复制到寄存器 a
+            ```
+
+        * 切换到目标窗口：
+
+            ```vim
+            <C-w>w      # 切换到另一个窗口
+            ```
+
+        * 粘贴：
+
+            ```vim
+            "ap         # 从寄存器 a 粘贴
+            ```
+
+    4. 使用全局寄存器
+
+        如果你想复制的文本在所有窗口间共享：
+
+        ```vim
+        "+y         # 复制到系统剪贴板
+        "+p         # 从系统剪贴板粘贴
+        ```
+
+    5. 快速切换窗口的快捷键
+
+        * <C-w>h - 切换到左侧窗口
+
+        * <C-w>l - 切换到右侧窗口
+
+        * <C-w>w - 在窗口间循环切换
+
+        * <C-w>j - 切换到下方窗口
+
+        * <C-w>k - 切换到上方窗口
+
+    实际示例
+
+    假设你想复制左侧文件的第10-20行到右侧文件：
+
+    ```vim
+    <C-w>h      # 切换到左侧窗口
+    :10,20y a   # 将10-20行复制到寄存器a
+    <C-w>l      # 切换到右侧窗口
+    "ap         # 粘贴寄存器a的内容
+    ```
+
+    这样就能准确地在分割窗口中只复制一个文件的内容了。
 
 * vim split
 
@@ -4740,7 +3046,159 @@
 
         **你需要我帮你写一个自动挂载并更新 Tags 的 Shell 小脚本吗？**
 
-### 常用 command 命令
+### command 模式下的常用命令
+
+* help: `:help`
+
+* 鼠标在 vim 界面上滑动时，会向 vim 发送鼠标事件序列
+
+    禁用鼠标序列：`:set mouse=`
+
+    `:set mouse=nv    " 仅允许在普通模式和可视模式下使用鼠标`
+
+* 什么是命令行模式，它和 normal 模式一样吗？
+
+    不，命令行模式和 Normal 模式完全不一样。这是 Vim 中两个不同的模式，让我详细解释它们的区别：
+
+    命令行模式（Command-line Mode）
+
+    进入方式：
+
+    * 在 Normal 模式下按 :（冒号）
+
+    * 按 / 或 ? 进行搜索时
+
+    * 按 : 后出现的状态行显示 : 提示符
+
+    主要功能：
+
+    * 执行 Ex 命令：:w（保存）、:q（退出）、:s/old/new（替换）
+
+    * 执行 Vim 脚本：:echo "Hello"
+
+    * 搜索：/pattern 或 ?pattern
+
+    * 调用外部命令：:!ls（执行 shell 命令）
+
+    * 设置选项：:set number、:set hlsearch
+
+    特点：
+
+    * 光标移动到屏幕底部
+
+    * 输入命令后按 Enter 执行
+
+    * 按 Ctrl-C 或 Esc 可取消并返回 Normal 模式
+
+    * 可以输入多行命令（使用 \ 续行）
+
+    Normal 模式（普通模式）
+
+    进入方式：
+
+    * Vim 启动时的默认模式
+
+    * 从其他模式按 Esc 返回
+
+    主要功能：
+
+    * 导航文本：h j k l、w b、gg G
+
+    * 编辑操作：d（删除）、y（复制）、p（粘贴）
+
+    * 文本对象操作：diw（删除单词）、ci"（修改引号内内容）
+
+    * 窗口操作：Ctrl-w + 方向键
+
+    * 执行普通模式命令：.（重复上次操作）
+
+    特点：
+
+    * 主要工作模式
+
+    * 按键直接执行命令，不显示在屏幕底部
+
+    * 所有操作都是即时生效的
+
+    对比表格
+
+    | 特性 | 命令行模式 | Normal 模式 |
+    | - | - | - |
+    | 提示符 | : / ? | 无 |
+    | 光标位置 | 屏幕底部 | 文本任意位置 |
+    | 输入方式 | 输入完整命令后按 Enter | 按键立即执行 |
+    | 主要用途 | 执行复杂命令、设置选项 | 导航、编辑文本 |
+    | 退出方式 | Enter 执行，Esc 取消 | 按 i 等进入其他模式 |
+    | 可见性 | 命令显示在底部 | 操作不显示 |
+
+    关系示意图
+
+    ```text
+    Normal 模式
+        ↓ 按 `:`
+    命令行模式 (输入命令)
+        ↓ 按 Enter 执行
+    Normal 模式 (执行结果生效)
+    ```
+
+    示例对比
+
+    Normal 模式操作：
+
+    ```text
+    光标在文本中 → 按 `dd` → 立即删除当前行
+    ```
+
+    命令行模式操作：
+
+    ```text
+    在 Normal 模式 → 按 `:` → 输入 `:%s/foo/bar/g` → 按 Enter
+    → 全文替换所有 "foo" 为 "bar"
+    ```
+
+    关键区别：命令行模式需要输入完整的命令字符串然后执行，而 Normal 模式是每个按键立即对应一个操作。
+
+    关于 noremap! 的特殊性
+
+    当使用 noremap! 时，映射同时生效于：
+
+    * 插入模式（输入文本时）
+
+    * 命令行模式（输入命令时）
+
+    但 不生效于 Normal 模式。如果你想要 Normal 模式的映射，需要使用 nnoremap。
+
+    这就是为什么了解这些模式区别很重要——不同模式的映射是完全独立的！
+
+* normal 命令
+
+    ```vim
+    :normal I* <CR>
+    ```
+
+    * :normal 是一个 Ex 命令（在 : 命令行中执行）
+
+    * 它告诉 Vim："在普通模式下执行后面的按键序列"
+
+    * I* 是传递给 :normal 的参数
+
+    * 最后的 <CR> 是结束 :normal 命令，而不是在普通模式中按回车
+
+    执行流程解析
+
+    ```vim
+    :g/^\s*\S/normal I* <CR>
+    ```
+
+    * : 进入命令行模式
+
+    * g/^\s*\S/ 设置匹配模式
+
+    * normal I* 对匹配的每行执行普通模式命令 I*␣
+
+    * <CR> 执行整个 :g 命令
+
+    这里的 <CR> 不是给 normal I* 的，而是结束 :g 命令并执行它。
 
 * vim 如何重载当前文件？
 
@@ -5169,6 +3627,378 @@
     ```
 
 ### 快捷键与映射
+
+* 在 visual 模式下，使用快捷键调用自定义函数 function MyFunc()，会自动添加 :'<,'> 吗？
+
+    是的，在 Visual 模式下使用快捷键调用自定义函数时，Vim 会自动添加 :'<,'> 前缀。让我详细解释一下：
+
+    Visual 模式下的行为
+
+    ```vim
+    " 示例映射
+    vnoremap <leader>f :call MyFunc()<CR>
+    ```
+
+    在 Visual 模式下按下 <leader>f 时，命令行会显示：
+
+    ```text
+    :'<,'>call MyFunc()
+    ```
+
+    这个 :'<,'> 表示 Visual 模式下选中的行范围：
+
+    * '< - 可视选择的起始行
+
+    * '> - 可视选择的结束行
+
+    * , - 范围分隔符
+
+    为什么会有这个行为？
+
+    这是 Vim 的历史遗留特性。在 Visual 模式下，当你按 : 进入命令行时，Vim 会自动插入 :'<,'> 前缀，表示接下来的命令会作用于选中的行范围。
+
+    实际影响
+
+    在你的函数中，你需要正确处理这个行范围：
+
+    ```vim
+    function! MyFunc() range
+        " range 关键字让函数接收行范围参数
+        let start_line = a:firstline
+        let end_line = a:lastline
+        
+        for line_num in range(start_line, end_line)
+            let content = getline(line_num)
+            echo "处理第 " . line_num . " 行: " . content
+        endfor
+    endfunction
+
+    " 映射（range 会自动传递）
+    vnoremap <leader>f :call MyFunc()<CR>
+    ```
+
+    如何控制这个行为？
+
+    方法1：使用 range 参数
+
+    ```vim
+    function! MyFunc() range
+        " 函数会自动接收可视选择的范围
+        echo "从 " . a:firstline . " 到 " . a:lastline
+    endfunction
+    ```
+
+    方法2：不使用范围（需要在映射中清除）
+
+    ``````vim
+    vnoremap <leader>f :<C-u>call MyFunc()<CR>
+
+    function! MyFunc()
+        " 现在这个函数只针对当前行，忽略可视选择
+        echo "当前行: " . line('.')
+    endfunction
+    ```
+    ```
+
+    方法3：同时支持两种调用方式
+
+    ```vim
+    function! MyFunc() range
+        if a:0 > 0
+            " 被 range 调用（有行范围）
+            echo "处理范围: " . a:firstline . "-" . a:lastline
+        else
+            " 普通调用（无行范围）
+            echo "处理当前行: " . line('.')
+        endif
+    endfunction
+
+    " 两种映射方式
+    nnoremap <leader>f :call MyFunc()<CR>    " 正常模式
+    vnoremap <leader>f :call MyFunc()<CR>    " 可视模式（带范围）
+    ```
+
+    最佳实践建议
+
+    * 明确设计意图：
+
+        * 如果函数设计为处理多行，使用 range
+
+        * 如果只处理当前行，在映射中用 <C-u> 清除范围
+
+    * 示例：处理选中的多行
+
+        ```vim
+        function! ProcessSelection() range
+            let total_chars = 0
+            for lnum in range(a:firstline, a:lastline)
+                let total_chars += strlen(getline(lnum))
+            endfor
+            echo "选中 " . (a:lastline - a:firstline + 1) . " 行，共 " . total_chars . " 字符"
+        endfunction
+
+        vnoremap <leader>c :call ProcessSelection()<CR>
+        ```
+
+    * 示例：只处理当前可视模式位置
+
+        ```vim
+        function! ProcessCursor()
+            echo "光标在行: " . line('.') . "，列: " . col('.')
+        endfunction
+
+        " <C-u> 清除 '<,'> 前缀
+        vnoremap <leader>p :<C-u>call ProcessCursor()<CR>
+        ```
+
+    测试技巧
+
+    你可以用以下方式测试：
+
+    ```vim
+    " 临时测试映射
+    :vnoremap <leader>t :echo "测试"<CR>
+    ```
+
+    在 Visual 模式下按 <leader>t，你会看到命令行显示 :'<,'>echo "测试"，然后执行。
+
+    总结
+
+    * 默认行为：Visual 模式下会自动添加 :'<,'>
+
+    * 处理方式：
+
+        * 接受范围：函数加 range 参数
+
+        * 拒绝范围：映射中加 <C-u>
+
+    * 设计建议：根据函数用途选择合适的方式，保持行为一致性
+
+* vim 中 noremap! 同时作用于 insert 模式和 command 模式，那么是否有同时作用于 normal 模式和 visual 模式的？
+
+    是的，Vim 中确实有同时作用于 Normal 模式和 Visual 模式的映射命令。以下是相关命令：
+
+    1. noremap
+
+        最常用的就是 noremap 本身，它默认作用于 Normal、Visual 和 Operator-pending 模式：
+
+        ```vim
+        :noremap j gj    " 在 Normal 和 Visual 模式都有效
+        ```
+
+    2. nnoremap + vnoremap
+
+        如果你想明确指定只用于 Normal 和 Visual 模式，可以分别设置：
+
+        ```vim
+        :nnoremap j gj    " 只在 Normal 模式
+        :vnoremap j gj    " 只在 Visual 模式
+        ```
+
+    3. xnoremap
+
+        专门用于 Visual 模式（包括 character-wise、line-wise 和 block-wise visual 模式）：
+
+        ```vim
+        :xnoremap <Tab> >
+        ```
+
+    4. 特殊模式组合
+
+        你可以用模式前缀来组合多个模式：
+
+        ```vim
+        " Normal + Visual 模式
+        :map j gj          " 等同于 noremap，但不建议使用（会递归映射）
+
+        " 使用模式标识符
+        :map <silent> <expr> j mode() =~ "[Vv]" ? "gj" : "j"
+        ```
+
+    5. 推荐的实践
+
+        通常建议分开设置，这样更清晰：
+
+        ```vim
+        " 相同的映射应用到多个模式
+        nnoremap <leader>c :Comment<CR>
+        vnoremap <leader>c :Comment<CR>
+        ```
+
+        或者使用 augroup 批量设置：
+
+        ```vim
+        augroup my_mappings
+          autocmd!
+          autocmd ModeChanged *:[vV\x16]* mapclear <buffer>
+          autocmd FileType python nnoremap <buffer> <leader>c I#<Esc>
+          autocmd FileType python vnoremap <buffer> <leader>c :s/^/#/<CR>
+        augroup END
+        ```
+
+    6. 模式说明
+
+        * Normal 模式：普通浏览模式
+
+        * Visual 模式：包括 v（字符可视）、V（行可视）、Ctrl+v（块可视）
+
+        * Operator-pending 模式：比如输入 d 后等待动作
+
+    注意：noremap 默认已经包含了 Normal、Visual 和 Operator-pending 模式，所以如果你想要 Normal + Visual 模式的效果，直接用 noremap 就可以（Operator-pending 模式通常也适用相同的映射）。
+
+* `noremap!`
+
+    在 Vim 中，noremap! 用于 非递归地 定义插入模式和命令行模式的键盘映射。它的作用如下：
+
+    核心特点：
+
+    * 非递归 - 不会展开映射中的其他映射，避免循环或意外的多层映射
+
+    * 双重模式 - 同时影响插入模式和命令行模式
+
+    * 安全映射 - 防止映射间的相互干扰
+
+    基本语法：
+
+    ```vim
+    :noremap! {lhs} {rhs}
+    ```
+
+    与相关命令对比：
+
+    | 命令 | 递归 | 影响模式 |
+    | - | - | - |
+    | map! | 是 | 插入 + 命令行模式 |
+    | noremap! | 否 | 插入 + 命令行模式 |
+    | inoremap | 否 | 仅插入模式 |
+    | cnoremap | 否 | 仅命令行模式 |
+
+    使用示例：
+
+    ```vim
+    " 非递归映射：按 jk 退出插入模式（安全方式）
+    :noremap! jk <Esc>
+
+    " 比下面这个更安全（避免递归问题）：
+    :map! jk <Esc>  " 可能有递归风险
+    ```
+
+    适用场景：
+
+    * 定义模式切换快捷键（如 jk 退出插入模式）
+
+    * 在插入/命令行模式中使用，且需要避免映射冲突时
+
+    * 当同一映射需要在两种模式下生效时
+
+    注意事项：
+
+    * 通常推荐使用更具体的 inoremap（仅插入模式）和 cnoremap（仅命令行模式）
+
+    * 只有当确实需要在两种模式下使用相同映射时才用 noremap!
+
+    总的来说，noremap! 提供了在插入和命令行模式中定义安全、非递归映射的方式。
+
+* `:'<,'>normal I* `解析
+
+    这个命令的作用是：在当前选中的每一行前面插入一个星号 *。
+
+    具体解析：
+
+    * :'<,'>：
+
+        * : 进入命令模式
+
+        * '<,'> 是代表上次可视模式（visual mode）选中的范围
+
+        * '< 表示选中区域的开始行
+
+        * '> 表示选中区域的结束行
+
+    * normal：
+
+        * 表示在指定范围内执行普通模式命令
+
+        * 可以使用缩写 norm
+
+    * I* ：
+
+        * I 是普通模式的命令，表示在当前行的行首（第一个非空白字符前）进入插入模式
+
+        * * 是要插入的字符（星号加空格）
+
+    使用步骤：
+
+    * 用可视模式（V 或 Ctrl+V）选中多行文本
+
+    * 按 : 进入命令模式，会自动出现 :'<,'>
+
+    * 输入 normal I* 并回车
+
+* 关于 vim 中`:s/foo/bar<CR>`的解析机制
+
+    * 在 Vim 的命令行模式下，`<CR>` 是特殊的控制字符表示回车执行
+
+    * 输入`<cr>`字符串需要转义：`:s/foo/bar\<CR>/g`
+
+        注意：
+
+        1. 只需要转义左尖括号就可以了，足以破坏原义
+
+        1. 在映射中要双重转义：
+
+            ```vim
+            " 如果在映射定义中：
+            nnoremap <leader>x :s/foo/bar\\<CR>/g<CR>
+            " 需要 \\ 因为映射本身会解析一次
+            ```
+
+        1. 使用表达式寄存器更安全：
+
+            ```vim
+            :s/foo/\='bar<CR>'/g
+            " 在表达式中，字符串字面量不需要转义特殊键名
+            ```
+
+    * 如果要输入换行，可以使用`\r`
+
+        ```vim
+        " 将 foo 替换为 bar + 回车 + 换行
+        :s/foo/bar\r/g
+
+        " 效果：将 "foo" 替换为：
+        " bar
+        " （后面内容在新行）
+        ```
+
+        也可以使用表达式寄存器:
+
+        ```vim
+        " 使用 Ctrl-V + Enter 输入真正的回车符
+        :s/foo/bar^M/g
+        " ^M 的输入方法：在 replacement 部分按 Ctrl-V 然后按 Enter
+
+        " 或者使用表达式：
+        :s/foo/\="bar" . nr2char(13)/g
+        ```
+
+    * 重要区别：\r vs \n
+
+        ```vim
+        " \r 在 replacement 中表示换行符
+        " \n 在 pattern 中表示换行符，在 replacement 中表示 NUL 字符（ASCII 0）
+
+        :s/foo/bar\n/g    " 错误：会插入 NUL 字符（显示为 ^@）
+        :s/foo/bar\r/g    " 正确：插入换行符
+        ```
+
+    **注意事项**
+
+    * `\r` 在搜索模式中表示回车（`^M`），在替换文本中表示换行
+
+    * 如果要替换为真正的 `^M` 字符（CR），需要用 `\x0d` 或表达式寄存器
+
+    * 某些情况下，可能需要设置 `:set ff=unix` 确保换行符正确
 
 * vim 中的`<Leader>`键
 
@@ -5727,6 +4557,550 @@
     大多数现代终端模拟器和 gui vim 都支持 <s-cr> 表示法，但具体取决于你的 vim 版本和终端环境。
 
 ### vim 脚本、字符串、函数
+
+* 匹配非空白字符
+
+    在 Vimscript 中，要匹配非空白字符（即行中至少有一个非空白字符），有几种正确的方法：
+
+    方法1：使用单引号字符串（推荐）
+
+    ```vim
+    if line =~ '\S'      " \S 匹配非空白字符
+        echo 'selected'
+    endif
+    ```
+
+    方法2：使用双引号字符串并转义
+
+    ```vim
+    if line =~ "\\S"     " 需要双反斜杠
+        echo 'selected'
+    endif
+    ```
+
+    方法3：使用更明确的模式
+
+    ```vim
+    " 匹配至少一个非空白字符
+    if line =~ '\S\+'
+        echo 'selected'
+    endif
+
+    " 或者匹配任何非空白字符
+    if line =~ '[^[:space:]]'
+        echo 'selected'
+    endif
+    ```
+
+    方法4：使用 Vim 内置函数
+
+    ```vim
+    " 如果不需要正则，可以使用 trim 函数
+    if trim(line) != ''
+        echo 'selected'
+    endif
+
+    " 或者检查是否全是空白
+    if line !~ '^\s*$'
+        echo 'selected'
+    endif
+    ```
+
+    正则表达式说明
+
+    * \S：匹配非空白字符（非空格、制表符等）
+
+    * \s：匹配空白字符
+
+    * ^\s*$：匹配空行或只有空白字符的行（使用 !~ 取反即可匹配非空行）
+
+* vimscript 中如何实现 if xxx != yyy，或者 if not xxx == yyy 这种效果？
+
+    在 Vimscript 中，有多种方式可以实现不等于判断或取反逻辑：
+
+    1. 不等于运算符
+
+        ```vim
+        " 使用 != 运算符（最常用）
+        if xxx != yyy
+            echo "not equal"
+        endif
+        ```
+
+    2. 取反运算符
+
+        ```vim
+        " 使用 ! 取反运算符
+        if !(xxx == yyy)
+            echo "not equal"
+        endif
+
+        " 或者
+        if not xxx == yyy
+            echo "not equal"
+        endif
+        ```
+
+    3. 具体示例
+
+        ```vim
+        let name = "vim"
+        let value = 10
+
+        " 字符串不等于
+        if name != "emacs"
+            echo "This is vim"
+        endif
+
+        " 数字不等于  
+        if value != 5
+            echo "Value is not 5"
+        endif
+
+        " 取反方式
+        if !(name == "emacs")
+            echo "Not emacs"
+        endif
+
+        if not name == "emacs"
+            echo "Also not emacs"
+        endif
+        ```
+
+    4. 对于模式匹配的取反
+
+        ```vim
+        let line = "hello world"
+
+        " 匹配包含 "hello" 的行
+        if line =~ "hello"
+            echo "contains hello"
+        endif
+
+        " 取反：不包含 "hello" 的行
+        if line !~ "hello"
+            echo "does not contain hello"
+        endif
+
+        " 或者使用取反运算符
+        if !(line =~ "hello")
+            echo "also does not contain hello"
+        endif
+        ```
+
+    5. 复杂逻辑组合
+
+        ```vim
+        let a = 1
+        let b = 2
+        let c = 3
+
+        " 多个条件组合
+        if a != b && b != c
+            echo "a, b, c are all different"
+        endif
+
+        " 使用 not 运算符
+        if not (a == b || b == c)
+            echo "no equal pairs"
+        endif
+        ```
+
+    6. 运算符总结
+
+    | 运算符 | 描述 | 示例 |
+    | - | - | - |        
+    | != | 不等于 | if a != b |
+    | !~ | 不匹配模式 | if str !~ "pattern" |
+    | ! | 逻辑非 | if !condition |
+    | not | 逻辑非（更可读） | if not condition |
+
+    7. 注意事项
+
+        ```vim
+        " 字符串比较注意类型
+        if "10" != 10          " 字符串和数字比较，通常为 true
+        if "10" != "10"        " false
+        if 10 != 10.0          " false（数字类型比较）
+
+        " 使用 is 和 isnot 进行严格比较（比较对象引用）
+        let list1 = [1, 2, 3]
+        let list2 = [1, 2, 3]
+        if list1 isnot list2   " true，不同对象
+            echo "different objects"
+        endif
+        ```
+
+    8. 实际应用示例
+
+        ```vim
+        " 检查文件类型
+        if &filetype != "python"
+            echo "Not a Python file"
+        endif
+
+        " 检查是否在插入模式
+        if mode() != "i"
+            echo "Not in insert mode"
+        endif
+
+        " 检查行是否不为空
+        let line = getline(lnum)
+        if line != ""
+            echo "Line is not empty"
+        endif
+
+        " 更严谨的检查空行（包含空白字符）
+        if line !~ '^\s*$'
+            echo "Line has content"
+        endif
+        ```
+
+    推荐使用：对于大多数情况，直接使用 != 运算符最清晰简单。如果需要取反复杂的表达式，使用 !() 或 not 可以提高可读性。
+
+* vimscript 中，如何获取当前行的行号，以及当前行的内容？
+
+    在 Vimscript 中，可以使用以下方式获取当前行号和当前行内容：
+
+    获取当前行号
+
+    ```vim
+    " 方法1: line() 函数
+    let current_line = line('.')
+    echo "当前行号: " . current_line
+
+    " 方法2: line('.') 的简写
+    echo "当前行号: " . line('.')
+    ```
+
+    获取当前行内容
+
+    ```vim
+    " 方法1: getline() 函数
+    let current_content = getline('.')
+    echo "当前行内容: " . current_content
+
+    " 方法2: 直接使用 getline('.')
+    echo "当前行内容: " . getline('.')
+    ```
+
+    结合使用的示例
+
+    ```vim
+    " 获取并显示当前行号和内容
+    let line_num = line('.')
+    let line_content = getline('.')
+
+    echo "第 " . line_num . " 行: " . line_content
+
+    " 或者更简洁地
+    echo "第 " . line('.') . " 行: " . getline('.')
+    ```
+
+    其他相关函数
+
+    ```vim
+    " 获取指定行号的内容
+    let line_10 = getline(10)  " 获取第10行的内容
+
+    " 获取可视模式下选中的行范围
+    let start_line = line("'<")  " 可视模式起始行
+    let end_line = line("'>")    " 可视模式结束行
+
+    " 获取总行数
+    let total_lines = line('$')  " 文件总行数
+    ```
+
+    实际应用示例
+
+    ```vim
+    " 示例1: 显示当前行信息
+    function! ShowCurrentLineInfo()
+        let lnum = line('.')
+        let content = getline('.')
+        echo "行号: " . lnum . " | 长度: " . strlen(content) . " | 内容: " . content
+    endfunction
+
+    " 示例2: 在当前行前面添加行号
+    function! AddLineNumber()
+        let lnum = line('.')
+        let content = getline('.')
+        call setline('.', lnum . ': ' . content)
+    endfunction
+
+    " 示例3: 复制当前行并添加行号
+    function! CopyWithLineNumber()
+        let lnum = line('.')
+        let content = getline('.')
+        let @" = lnum . ': ' . content  " 复制到无名寄存器
+        echo "已复制: " . lnum . ': ' . content
+    endfunction
+    ```
+
+    注意事项
+
+    * . 表示当前光标位置
+
+    * getline() 返回的是字符串，包含行尾的换行符会被去掉
+
+    * 如果要修改当前行，可以使用 setline() 函数：
+
+        ```vim
+        call setline('.', '新的内容')
+        ```
+
+    这些函数在编写 Vim 插件或自定义映射时非常有用。
+
+* Vimscript 中双引号字符串的转义规则：
+
+    ```vim
+    if line =~ "\w"
+    ```
+
+    "\w" 在双引号字符串中，\w 不是一个标准转义序列
+
+    Vim 会将它解释为：反斜杠 + 字母 w
+
+    所以实际匹配的是字面字符串 "w"，而不是正则表达式 \w
+
+    如果要匹配单词字符，应该用：
+
+    ```vim
+    if line =~ '\w'      " 单引号字符串，不转义
+    " 或者
+    if line =~ "\\w"     " 双引号字符串中需要双反斜杠
+    ```
+
+* 函数 return 0 和 return 1 有区别吗？
+
+    在 Vimscript 中，函数 return 0 和 return 1 有区别，但这个区别主要体现在 条件判断 和 调用者如何处理返回值 上。让我详细解释：
+
+    1. 基本区别
+
+        ```vim
+        function! TestZero()
+            return 0
+        endfunction
+
+        function! TestOne()
+            return 1
+        endfunction
+        ```
+
+    2. 在条件判断中的不同行为
+
+        Vimscript 的真值判断规则：
+
+        * 0 是假（false）
+
+        * 1 是真（true）
+
+        * 任何非零数值都是真
+
+    ```vim
+    if TestZero()
+        echo "这会执行吗？不会！因为返回 0 是假"
+    else
+        echo "这个会执行"
+    endif
+
+    if TestOne()
+        echo "这个会执行（返回 1 是真）"
+    endif
+
+    " 同样，返回 2, 3, -1 等也都是真"
+    function! TestTwo()
+        return 2
+    endfunction
+
+    if TestTwo()
+        echo "这个也会执行"
+    endif
+    ```
+
+    3. 常见的返回模式
+
+        模式1：成功/失败指示
+
+        ```vim
+        function! SaveFileIfModified()
+            if &modified
+                write
+                return 1    " 成功保存"
+            else
+                echo "文件未修改，无需保存"
+                return 0    " 未执行保存操作"
+            endif
+        endfunction
+
+        " 使用示例
+        if SaveFileIfModified()
+            echo "文件已保存"
+        else
+            echo "文件未保存"
+        endif
+        ```
+
+        模式2：查找/检查函数
+
+        ```vim
+        function! HasTodoComment()
+            " 检查当前行是否有 TODO 注释
+            if getline('.') =~ 'TODO'
+                return 1    " 有 TODO"
+            else
+                return 0    " 没有 TODO"
+            endif
+        endfunction
+
+        " 使用示例
+        if HasTodoComment()
+            echo "当前行有 TODO 注释"
+        endif
+        ```
+
+    4. 实际应用场景
+
+        场景1：作为条件使用
+
+        ```vim
+        function! IsValidFilename(filename)
+            " 检查文件名是否有效
+            if a:filename =~ '[/\\:*?"<>|]'
+                return 0    " 无效
+            else
+                return 1    " 有效
+            endif
+        endfunction
+
+        let fname = "test.txt"
+        if IsValidFilename(fname)
+            echo fname . " 是有效的文件名"
+        endif
+        ```
+
+        场景2：链式调用判断
+
+        ```vim
+        function! CheckAllConditions()
+            if !Condition1()
+                return 0
+            endif
+            if !Condition2()
+                return 0
+            endif
+            if !Condition3()
+                return 0
+            endif
+            return 1    " 所有条件都满足
+        endfunction
+        ```
+
+    5. 与其他值的对比
+
+        ```vim
+        function! VariousReturns()
+            " 不同返回值的真值测试
+            return 0    " 假
+            return 1    " 真
+            return -1   " 真
+            return ""   " 真（空字符串在Vim中是真！）
+            return "0"  " 真（字符串"0"也是真！）
+            return []   " 真
+            return {}   " 真
+        endfunction
+
+        " 重要：Vimscript 中只有 0 是假，其他都是真！
+        ```
+
+    6. 最佳实践建议
+
+        建议1：明确约定
+        
+        ```vim
+        " 文档注释说明返回值的意义
+        "
+        " @return 1 表示成功，0 表示失败
+        function! ProcessFile()
+            " ... 处理逻辑
+            return success ? 1 : 0
+        endfunction
+        ```
+
+        建议2：使用命名常量提高可读性
+
+        ```vim
+        let s:SUCCESS = 1
+        let s:FAILURE = 0
+        let s:TRUE = 1
+        let s:FALSE = 0
+
+        function! SaveSettings()
+            try
+                " ... 保存逻辑
+                return s:SUCCESS
+            catch
+                return s:FAILURE
+            endtry
+        endfunction
+        ```
+
+        建议3：考虑使用字符串或更丰富的返回值
+
+        ```vim
+        " 有时简单的 0/1 不够用
+        function! ValidateInput(input)
+            if empty(a:input)
+                return "EMPTY"
+            elseif a:input !~ '^\w\+$'
+                return "INVALID_CHARS"
+            elseif strlen(a:input) < 3
+                return "TOO_SHORT"
+            else
+                return "OK"    " 成功
+            endif
+        endfunction
+
+        let result = ValidateInput("ab")
+        if result == "OK"
+            echo "输入有效"
+        else
+            echo "错误：" . result
+        endif
+        ```
+
+    7. 特殊用途：命令的成功/失败
+
+        ```vim
+        " 有些 Vim 命令会设置 v:shell_error
+        function! RunCommand(cmd)
+            let output = system(a:cmd)
+            if v:shell_error
+                echo "命令失败，错误码：" . v:shell_error
+                return 0
+            else
+                echo "命令成功"
+                return 1
+            endif
+        endfunction
+        ```
+
+    总结
+
+    | 返回值 | 布尔值 | 典型含义 | 使用场景 |
+    | - | - | - | - |
+    | return 0 | 假 (false) | 失败、否、错误 | 条件判断中表示假，操作失败 |
+    | return 1 | 真 (true) | 成功、是、正确 | 条件判断中表示真，操作成功 |
+
+    关键点：
+
+    * 在 if 语句中，0 表示假，1 表示真
+
+    * 这符合大多数编程语言的约定（C/C++风格）
+
+    * 在 Vimscript 中，只有数值 0 是假，其他所有值都是真
+
+    * 设计函数时，考虑调用者如何使用返回值来决定返回 0 还是 1
 
 * vim `setline()`
 
@@ -8320,137 +7694,447 @@
 
     1. 可以看出，如果用`s:`作为函数名前缀，那么有点像 C 语言中的`private`函数了。
 
-### 插入、删除与修改
+### 插入、删除、修改、替换
 
-* 简述 vim 中`I` 命令与`A`命令的作用
+* `gU`
 
-    在 Vim 中，`I` 和 `A` 命令都用于从**普通模式**切换到**插入模式**，但两者的光标移动位置不同：
+    gU 是一个操作符，需要配合移动命令来使用。
 
-    1.  **`I` 命令**
+    examples:
 
-        -   **作用**：在当前行的**第一个非空白字符**处开始插入。
-        -   **记忆**：可以理解为 **I**nsert at the beginning of the line（在行首插入）。
-        -   *注意：这与按 `0` 移动到行首再按 `i` 略有不同，`I` 会忽略行首的空格或制表符，直接定位到第一个文字处。*
+    * `gUU` 或 `gUgU`: 将当前行转为大写。
 
-    2.  **`A` 命令**
+    * `gUw`: 将从光标处到下一个单词结尾的文本转为大写。
 
-        -   **作用**：在当前行的**末尾**开始插入。
-        -   **记忆**：可以理解为 **A**ppend at the end of the line（在行尾追加）。
-        -   *注意：这相当于直接按 `$` 移动到行尾再按 `a`（在光标后追加）。*
+* vim 替换中的`\zs`和`&`
 
-* vim 在使用`s`替换时，可以使用`\1`指代第几个 group
+    \zs - 设置匹配开始位置
 
-    The first group can be referenced using \1, the second one with \2, and so on.
+    作用：在匹配模式中标记“真正匹配开始的位置”，前面的部分只作为匹配条件但不被替换。
 
-    For example, here’s how you would replace the first two digits of our years:
+    示例：
 
-    `:%s/\v\d\d(\d\d)/19\1`
+    ```vim
+    :%s/\d\+\zs\.\d\+/,/
+    ```
 
-* 详细讲讲 vim 中 `s` 命令与`c`命令的用法
+    * 匹配模式：\d\+\.\d\+（如 123.456）
 
-    在 Vim 中，`s` (Substitute) 和 `c` (Change) 都是非常高频的命令。它们的共同点是**“删除内容并进入插入（Insert）模式”**，但它们的作用范围和设计逻辑有很大的不同。
+    * \zs 前的 \d\+ 只是匹配条件
 
-    简单来说：`s` 针对的是**字符（Character）**，而 `c` 针对的是**动作（Motion）或文本对象（Text Object）**。
+    * 实际替换的是 \zs 后的 \.\d\+
 
-    下面为您详细拆解这两个命令的用法。
+    * 结果：123,456（只替换小数点后的 .456 为 ,456）
 
-    ---
+    另一个例子：
 
-    1. `s` 命令：替换字符 (Substitute)
+    ```vim
+    :%s/\w\+\zs\s\+//g
+    ```
 
-        `s` 命令的核心逻辑是：**删掉光标所在位置的字符，并进入插入模式。** 它可以看作是 `x`（删除字符）和 `i`（插入）的结合体。
+    * 删除每个单词后的空格，但保留单词本身
 
-        **常用操作：**
+    & - 引用匹配的整个文本
 
-        * **`s`**：删除光标下的 1 个字符，并进入插入模式。
+    作用：在替换部分引用整个匹配的模式。
 
-            * *场景*：你把 "apple" 拼成了 "opple"，光标在 'o' 上，按下 `s`，输入 `a`，然后按 `Esc`。
+    示例：
 
-        * **`[数字]s`**：删除光标下的指定数量的字符，并进入插入模式。
+    ```vim
+    :%s/\w\+/[&]/g
+    ```
 
-            * *示例*：`3s` 会删除光标及其后面的共 3 个字符，然后让你开始输入。
+    * 把每个单词用方括号括起来
 
-        * **`S` (大写)**：删除**整行**内容，并进入插入模式（同时会保留该行的缩进）。
+    * hello world → [hello] [world]
 
-            * *等价于*：`cc` 命令。
+    ```vim
+    :%s/\d\+/&%/g
+    ```
 
-        > **💡 记忆口诀**：`s` 就是专门用来对付**单个或几个连续字符**的快速替换。
+    * 在每个数字后加百分号
 
-    ---
+    * 123 test 456 → 123% test 456%
 
-    2. `c` 命令：更改文本 (Change)
+    组合使用示例
 
-        `c` 是 Vim 中最强大的**操作符（Operator）**之一。在 Vim 的“动词 + 名词”语法中，`c` 是动词（更改），它必须配合一个表示范围的名词（动作或文本对象）才能发挥作用。
+    ```vim
+    :%s/\d\+\zs\.\d\+/&0/g
+    ```
 
-        **常用操作（配合移动/动作）：**
+    * 匹配：数字.数字
 
-        * **`cw` (change word)**：从光标位置删除到单词结尾（包含标点），并进入插入模式。
+    * \zs 前只作为条件
 
-        * **`ce` (change end)**：从光标位置删除到单词结尾（不包含单词后的空格），并进入插入模式。
-        
-        * **`c$`**：从光标位置删除到**行尾**，并进入插入模式。
+    * & 引用匹配部分（.数字）
 
-            * *等价于*：**`C` (大写)**。
+    * 结果：给小数点后的数字加 0
 
-        * **`c0`**：从光标位置删除到**行首**，并进入插入模式。
+    * 12.3 → 12.30
 
-        * **`cc`**：删除**整行**，保留缩进，并进入插入模式。
+    这两个标记让 Vim 的替换更加灵活精确，可以精确控制匹配和替换的范围。
 
-        **高级操作（配合文本对象 - 极其强大）：**
+* Vim 替换命令中其他有用的标记
 
-        这是 `c` 命令最能提升效率的地方。`i` 代表 inner（内部），`a` 代表 around（包含周围空格或符号）。
+    **替换部分特殊标记**
 
-        * **`ciw` (change inner word)**：无论光标在单词的哪个位置，都会**更改整个单词**。
+    1. \1, \2, ... \9 - 引用捕获组
 
-        * **`ci"`**：更改双引号 `""` **里面**的内容（写代码时修改字符串的神技）。
+        ```vim
+        :%s/\(\w\+\) \(\w\+\)/\2 \1/g
+        " 交换两个单词的位置
+        " hello world → world hello
 
-        * **`ca"`**：更改双引号以及引号里面的内容（连同引号一起删掉并修改）。
+        :%s/\(\d\+\)-\(\d\+\)/\2.\1/g
+        " 交换用连字符分隔的数字
+        " 123-456 → 456.123
+        ```
 
-        * **`ci(` 或 `cib`**：更改括号 `()` 内部的内容。
+    2. \0 - 引用整个匹配（与 & 相同）
 
-        * **`cit`**：更改 HTML/XML 标签（Tag）内部的内容。
+        ```vim
+        :%s/\w\+/item: \0/g
+        " 每个单词前加 "item: "
+        ```
 
-    ---
+    3. ~ - 使用上次替换的字符串
 
-    3. `s` 与 `c` 的对比总结
+        ```vim
+        " 第一次替换：
+        :%s/foo/bar/g
+        " 第二次替换可以使用 ~ 代表 "bar"：
+        :%s/baz/~/g  " 实际替换为 baz → bar
+        ```
 
-        为了更直观地理解，我们可以把它们放在一起来看：
+    模式部分的特殊标记
 
-        | 命令 | 本质等价于 | 作用对象 | 适用场景 |
-        | :--- | :--- | :--- | :--- |
-        | **`s`** | `cl` (change letter) | 单个/多个字符 | 发现拼写错误，快速替换几个字母。 |
-        | **`cw`** | `d` + `w` + `i` | 单词的一部分 | 删掉光标到词尾的内容并重写。 |
-        | **`ciw`** | 无直接替代 | 整个单词 | 无论光标在哪，直接重写当前单词。 |
-        | **`S`** | `cc` | 整行 | 清空当前行并重新写，保留缩进。 |
-        | **`C`** | `c$` | 行的后半部分 | 发现光标后面的内容都错了，清空并重写。 |
+    4. \ze - 设置匹配结束位置（与 \zs 对应）
 
-    * 核心结论
-        
-        * 如果你只需要改掉眼前的**一两个字母**，用 `s` 最快。
+        ```vim
+        :%s/foo\zebar/BAR/g
+        " 匹配 "foobar"，但实际匹配结束在 foo 后
+        " 只替换 "foo"，不替换 "bar"
+        " foobar → BARbar
+        ```
 
-        * 如果你需要改掉**一个单词、一句话、或者括号里的内容**，用 `c` 配合文本对象（如 `ciw`, `ci"`）是最高效的 Vim 魔法。
+    5. \zs 和 \ze 组合使用
 
-    想了解更多关于 Vim 中 `ciw`、`ca(` 这种**文本对象 (Text Objects)** 的进阶组合用法吗？这是 Vim 提速的最关键一步。
+        ```vim
+        :%s/\w\+\zs\d\+\ze\w\+/###/g
+        " 匹配：单词+数字+单词，但只替换数字部分
+        " abc123def → abc###def
+        ```
 
-* vim 中 s 替换命令里，& 表示要替换的整个文本。是否还有类似的特殊符号的含义？
+    6. \@<= - 正向回顾（positive lookbehind）
+
+        ```vim
+        :%s/\(\w\)\@<=x/X/g
+        " 替换前面是单词字符的 x
+        " axb cxd → aXb cXd
+        " 但 xyz 中的 x 不变（前面不是单词字符）
+        ```
+
+    7. `\@<!` - 负向回顾（negative lookbehind）
+
+        ```vim
+        :%s/\(\d\)\@<!\./点/g
+        " 替换前面不是数字的点
+        " a.b → a点b
+        " 但 1.5 中的 . 不变（前面是数字）
+        ```
+
+    8. \@= - 正向预览（positive lookahead）
+
+        ```vim
+        :%s/foo\(bar\)\@=/FOO/g
+        " 替换后面是 bar 的 foo
+        " foobar → FOObar
+        " foobaz 不变
+        ```
+
+    9. \@! - 负向预览（negative lookahead）
+
+        ```vim
+        :%s/foo\(bar\)\@!/FOO/g
+        " 替换后面不是 bar 的 foo
+        " foobaz → FOObar
+        " foobar 不变
+        ```
+
+    替换标志（flags）
+
+    10. \c 和 \C - 忽略/区分大小写
+
+        ```vim
+        :%s/foo\c/bar/g  " 忽略大小写，匹配 foo, FOO, Foo 等
+        :%s/foo\C/bar/g  " 区分大小写，只匹配 foo
+        ```
+
+    11. \v - 使用非常魔法模式
+
+        ```vim
+        :%s/\v(\w+)\s+(\w+)/\2 \1/g
+        " 不需要转义括号
+        " 对比：%s/\(\w\+\)\s\+\(\w\+\)/\2 \1/g
+        ```
+
+    12. \V - 使用原义模式
+
+        ```vim
+        :%s/\Va.b/a.b/g
+        " 点就是字面意义的点，不是正则的 .
+        " 匹配 "a.b" 而不是 "a任意字符b"
+        ```
+
+    其他有用标记
+
+    13. \e - 结束替换字符串
+
+        ```vim
+        :%s/foo/\=toupper(submatch(0))\e bar/g
+        " \e 后面的 " bar" 是普通文本
+        " 结果：在匹配的 foo 转为大写后加 " bar"
+        " foo → FOO bar
+        ```
+
+    14. \U, \L, \E - 大小写转换
+
+        ```vim
+        :%s/foo/\U&/g      " foo → FOO
+        :%s/FOO/\L&/g      " FOO → foo
+        :%s/foo\w*/\U&\Ebar/g  " \U 开始，\E 结束
+        " foobar → FOOBARbar
+        ```
+
+    15. \u, \l - 转换下一个字符大小写
+
+        ```vim
+        :%s/foo/\u&/g      " foo → Foo
+        :%s/FOO/\l&/g      " FOO → fOO
+        ```
+
+    替换中使用表达式 \=
+
+    16. \= - 使用 Vim 脚本表达式
+
+        ```vim
+        :%s/\d\+/\=(submatch(0)*2)/g
+        " 所有数字乘以 2
+
+        :%s/\w\+/\=toupper(submatch(0))/g
+        " 所有单词转大写
+
+        :%s/.*/\=printf("%03d", submatch(0))/g
+        " 格式化为 3 位数字
+        ```
+
+    实用组合示例
+
+    ```vim
+    " 1. 在每行行首添加行号
+    :%s/^/\=printf("%3d: ", line('.'))/
+
+    " 2. 将下划线命名转为驼峰
+    :%s/_\(\w\)/\u\1/g
+
+    " 3. 提取 email 用户名
+    :%s/^\(\w\+\)@.*$/\1/
+
+    " 4. 智能缩进调整
+    :%s/^\(\s*\)/\=repeat(' ', len(submatch(1)) + 4)/
+
+    " 5. 转义 HTML 特殊字符
+    :%s/[&<>"]/\={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[submatch(0)]/g
+    ```
+
+    掌握这些标记可以让你在 Vim 中进行非常强大和灵活的文本处理！
+
+
+* vim 替换命令的基本结构
+
+    `:s/pattern/replace/flags`
+
+* vim 替换中的 normal 模式
+
+    * 配合 `:global` 命令: `:g/pattern/normal I*`
+
+        含义：在所有匹配到 pattern 的行上，执行“在行首插入星号”的操作。
+
+        效果：这常用于批量给某些行加注释或列表标记。
+
+    * 在替换式中使用表达式: `s/pattern/\=.../`，这属于高级用法。例如： :%s/pattern/\=execute('normal I*')/n
+
+        含义：找到匹配项后，不直接通过替换文本来修改，而是调用 execute 函数去触发一段普通模式指令。
+
+* vim 替换命令的 example: 为每个非空行行首添加星号
+
+    `vnoremap <leader>l :s/^\s*\zs\S.*$/* &/<CR>`
+
+    这行 Vim 命令的作用是 在可视模式下，给选中的每一行添加 Markdown 风格的列表标记。
+
+    具体解析：
+
+    * `vnoremap`：在可视模式下创建映射
+
+    * `<leader>l`：当按下 <leader> 键（通常是 \）和 l 键时触发
+
+    * :s/^\s*\zs\S.*$/* &/：替换命令
+
+        * `^\s*`：匹配行首的空白字符
+
+        * `\zs`：设置匹配开始位置（不替换前面的空白）
+
+        * `\S.*$`：匹配第一个非空白字符到行尾的内容
+
+        * `* &`：替换为 * 加上原匹配内容（& 代表匹配的内容）
+
+    * `<CR>`：回车执行命令
+
+* normal 模式下进入 insert 模式的方法
+
+    * 常用插入命令
+
+        * `I`: 在当前行的**第一个非空白字符**处开始插入。
+
+        * `A`: 在当前行的**末尾**开始插入。
+
+            等价于直接按 `$` 移动到行尾再按 `a`。
+
+    * 常用替换命令
+
+        * `s` (Substitute): 删掉光标所在位置的**字符（Character）**，并进入插入模式。
+
+            等价于`x`（删除字符） +  `i`（插入）。
+
+            * `[数字]s`: 删除光标下的指定数量的字符，并进入插入模式。
+
+            * **`S` (大写)**：删除**整行**内容，并进入插入模式（同时会保留该行的缩进）。
+
+                * 等价于 `cc` 命令。
+
+            注：
+
+            1. 个人感觉`s`没啥用，因为完全可以用`[n]xi`或者`xi`完成同样的功能。
+
+        * `c` (Change)
+
+            `c` 针对的是**动作（Motion）或文本对象（Text Object）**
+
+            `c` 是**操作符（Operator）**之一。在 Vim 的“动词 + 名词”语法中，`c` 是动词（更改），它必须配合一个表示范围的名词（动作或文本对象）才能发挥作用。
+
+            * 常用操作（配合移动/动作）：
+
+                * `cw` (change word)： 从光标位置删除到单词结尾（包含标点），并进入插入模式。
+
+                * `ce` (change end)： 从光标位置删除到单词结尾（不包含单词后的空格），并进入插入模式。
+                
+                * `c$`： 从光标位置删除到**行尾**，并进入插入模式。
+
+                    * 等价于`C` (大写)
+
+                * `c0`： 从光标位置删除到**行首**，并进入插入模式。
+
+                * `cc`： 删除**整行**，保留缩进，并进入插入模式。
+
+            * 高级操作（配合文本对象）
+
+                这是 `c` 命令最能提升效率的地方。`i` 代表 inner（内部），`a` 代表 around（包含周围空格或符号）。
+
+                * `ciw` (change inner word)： 无论光标在单词的哪个位置，都会**更改整个单词**。
+
+                * `ci"`： 更改双引号 `""` **里面**的内容（写代码时修改字符串的神技）。
+
+                * `ca"`： 更改双引号以及引号里面的内容（连同引号一起删掉并修改）。
+
+                * `ci(` 或 `cib`： 更改括号 `()` 内部的内容。
+
+                * `cit`： 更改 HTML/XML 标签（Tag）内部的内容。
+
+
+
+#### `d`删除
+
+* `d`命令删除字符的常见用法
+
+    * `dtx`: 删除直到字符 'x' 前
+
+    * `dfx`: 删除直到字符 'x'（包括 'x'）
+
+    * `dTx`: 向后删除直到字符 'x' 前
+
+    * `dFx`: 向后删除直到字符 'x'（包括 'x'）
+
+    * 文本对象操作
+
+        * `diw`: 删除当前单词（光标在单词任意位置）
+
+        * `daw`: 删除当前单词（包括周围空格）
+
+        * `di"`: 删除引号内的内容
+
+        * `da"`: 删除引号及内容
+
+        * `di(` 或 `dib`: 删除括号内的内容
+
+        * `da(` 或 `dab`: 删除括号及内容
+
+        * `dit`: 删除 HTML/XML 标签内的内容
+
+        * `dat`: 删除整个 HTML/XML 标签
+
+* 常用技巧
+
+    * 搜索和删除
+
+        * d/pattern - 删除直到匹配 pattern 的位置
+
+        * d?pattern - 向后删除直到匹配 pattern 的位置
+
+    * 结合数字使用
+
+        * d2t. - 删除直到第二个 '.' 前
+
+        * 3df - 删除直到第三个空格（包括空格）
+
+    实际例子：
+
+    假设文本：hello.world foo.bar test.example end
+
+    * 光标在 foo 的 'f'：dt → 删除 foo.bar
+
+    * 光标在 foo 的 'f'：df → 删除 foo.bar
+
+    * 光标在引号内：di" → 删除 "hello world" 中的 hello world
+
+    * 光标在单词任意位置：daw → 删除整个单词
+
+    这些命令中的 d 都可以换成 c（删除并进入插入模式）或 y（复制），非常灵活！
+
+#### `:s`替换
+
+* 替换命令`:s`里常用的特殊符号含义
 
     在 Vim 的 `:substitute` (简写为 `:s`) 命令中，除了 `&` 之外，确实还有一系列非常有用的特殊符号。它们能极大地简化复杂的文本重组工作。
 
     我们将这些符号分为 **“匹配到的文本”** 和 **“特殊格式控制”** 两类：
 
-    ---
-
     1. 引用匹配内容的符号
 
         除了 `&` 表示“匹配到的全部文本”外，最常用的是**捕获组**引用：
 
-        * **`\0`**: 效果等同于 `&`，代表整个匹配项。
-        * **`\1`, `\2` ... `\9`**: 引用正则表达式中用 `\(` `\)`（或扩展模式下的 `()`）括起来的第 n 个分组。
-            * *例子*：`:s/\(\w+\) \(\w+\)/\2 \1/` 会把 "hello world" 交换顺序变成 "world hello"。
-        * **`~`**: 代表**上一次**替换命令中使用的替换字符串。
-            * *例子*：如果你刚才执行了 `:s/A/B/`，现在执行 `:s/C/~/`，则 C 会被替换成 B。
+        * `\0`: 效果等同于 `&`，代表整个匹配项。
 
-    ---
+        * `\1`, `\2` ... `\9`: 引用正则表达式中用 `\(` `\)`（或扩展模式下的 `()`）括起来的第 n 个分组。
+
+            * 例子：`:s/\(\w+\) \(\w+\)/\2 \1/` 会把 "hello world" 交换顺序变成 "world hello"。
+
+        * `~`: 代表**上一次**替换命令中使用的替换字符串。
+
+            * 例子： 如果你刚才执行了 `:s/A/B/`，现在执行 `:s/C/~/`，则 C 会被替换成 B。
+
+        * replace the first two digits of our years
+
+            `:%s/\v\d\d(\d\d)/19\1`
 
     2. 改变大小写的控制符
 
@@ -8462,11 +8146,10 @@
         * **`\L`**: 将其后的所有字符转为**小写**，直到遇到 `\e` 或 `\E`。
         * **`\e` 或 `\E`**: 结束 `\U` 或 `\L` 的转换范围。
 
-        **用法示例：**
+        用法示例：
+
         * `:s/\w\+/\u&/g`：将匹配到的单词首字母大写。
         * `:s/hello/\U&/`：将 "hello" 变成 "HELLO"。
-
-    ---
 
     3. 特殊字符与表达式
 
@@ -8476,8 +8159,6 @@
         * **`\n`**: 在替换部分代表一个 Null 字符（但在搜索部分代表换行）。
         * **`\=`**: **（非常强大）** 后接一个 Vim 脚本表达式。
             * *例子*：`:s/\d\+/\=submatch(0) + 1/` 会将匹配到的数字全部加 1。
-
-    ---
 
     **总结对照表**
 
@@ -8494,51 +8175,111 @@
 
     你是在处理大批量的日志格式化，还是在进行代码重构？如果涉及到复杂的逻辑，`\=` 表达式配合 `submatch()` 简直是黑科技般的存在。
 
-* vim 命令解析 `:'<,'>s/.*/```&```/`
+* vim 中，`s` 前的百分号与其他表示范围的特殊符号
+
+    `:%s` 前面的 % 表示在整个文件中执行替换，即对所有行进行操作。
+
+    % 的含义
+
+    % 是 Vim 中的一个范围符号，代表整个文件或当前缓冲区。
+
+    ```vim
+    :%s/pattern/replacement/g
+    " 在整个文件中进行替换
+    ```
+
+    其他常用范围符号
+
+    1. % - 整个文件
+
+        ```vim
+        :%s/foo/bar/g     " 替换文件中所有 foo
+        ```
+
+    2. 行号范围
+
+        ```vim
+        :10,20s/foo/bar/g  " 只在第10-20行替换
+        :1,$s/foo/bar/g    " 从第1行到最后一行（同 %）
+        :.s/foo/bar/g      " 只在当前行替换
+        ```
+
+    3. 'm - 标记位置
+
+        ```vim
+        :'a,'bs/foo/bar/g  " 在标记 a 到标记 b 之间替换
+        ```
+
+    4. 模式匹配范围
+
+        ```vim
+        :/^Start/,/^End/s/foo/bar/g
+        " 从匹配 "Start" 的行到匹配 "End" 的行
+        ```
+
+    5. . - 当前行
+
+        ```vim
+        :.s/foo/bar/g      " 仅当前行
+        :.,+5s/foo/bar/g   " 当前行及后面5行
+        ```
+
+    6. $ - 最后一行
+
+        ```vim
+        :.,$s/foo/bar/g    " 从当前行到最后一行
+        ```
+
+    实用示例对比
+
+    ```vim
+    " 不同范围的替换示例
+    :%s/old/new/g        " 整个文件
+    :1,50s/old/new/g     " 第1-50行
+    :/begin/,/end/s/o/n/g # 从包含"begin"到包含"end"的行
+    :'<,'>s/old/new/g    " 在可视模式选中的行（自动生成）
+    :.,+3s/old/new/g     " 当前行及后面3行
+    ```
+
+    如果省略 % 会怎样？
+
+    如果只写 :s 而不指定范围：
+
+    ```vim
+    :s/foo/bar/g
+    ```
+
+    这只会在当前行进行替换，不是整个文件！
+
+    记忆技巧
+
+    * % 像 "百分百" → 100% 的行都要处理
+
+    * % 也像 "全部" (All) 的意思
+
+    * :%s 是全局替换的标准写法
+
+    所以你的例子：
+
+    ```vim
+    :%s/\d\+\zs\.\d\+/,/
+    ```
+
+    会在整个文件中查找匹配 \d\+\.\d\+（数字.数字）的模式，但只替换 \zs 之后的部分（即 .数字 部分），将其替换为 ,（保持 \zs 前的数字不变）。
+
+* `:s`中的范围选择
+
+    example: `:'<,'>s/.*/```&```/`
 
     解释：
 
-    * '<,'>：表示选中的范围
+    * `'<,'>`：表示选中的范围
 
-    * s/.*/```&```/：将整行替换为三个反引号 + 原内容 + 三个反引号
+    * `s/.*/```&```/`：将整行替换为三个反引号 + 原内容 + 三个反引号
 
-    * & 表示匹配到的整个文本
+    * `&`: 表示匹配到的整个文本
 
-* 删除/更改到字符
-
-    * dtx - 删除直到字符 'x' 前
-
-    * dfx - 删除直到字符 'x'（包括 'x'）
-
-    * dTx - 向后删除直到字符 'x' 前
-
-    * dFx - 向后删除直到字符 'x'（包括 'x'）
-
-* 文本对象操作
-
-    * diw - 删除当前单词（光标在单词任意位置）
-
-    * daw - 删除当前单词（包括周围空格）
-
-    * di" - 删除引号内的内容
-
-    * da" - 删除引号及内容
-
-    * di( 或 dib - 删除括号内的内容
-
-    * da( 或 dab - 删除括号及内容
-
-    * dit - 删除 HTML/XML 标签内的内容
-
-    * dat - 删除整个 HTML/XML 标签
-
-* 从当前位置删除到指定字符
-
-    `dt<c>`: 删除从当前位置到`<c>`之前的所有字符，`<c>`不被删。
-
-    `df<c>`: 删除从当前位置到`<c>`的所有字符，`<c>`被删。
-
-### 搜索与正则表达式
+### 搜索、正则表达式、替换
 
 * vim 使用 / 搜索时，如何按 raw string 搜索？即我想要搜索的字符串就是字面意思，不是正则表达式的 pattern?
 
@@ -8956,6 +8697,59 @@
     * `[a^bc]`
 
 ### 导航与跳转
+
+* jump to tag: `ctrl` + `]`
+
+* ctrl + f
+
+    无论光标在何处，都跳转到当前页的倒数第 2 行，并把这一行置顶
+
+* vim 中 gj / gk 的作用
+
+    gj 和 gk 是 Vim 中用于 按屏幕行（visual line）移动 的命令，主要用于处理长行换行显示的情况。
+
+    主要作用对比
+
+    | 命令 | 普通模式移动 | 作用 |
+    | j | 下一实际行 | 按文件中的换行符移动 |
+    | k | 上一实际行 | 按文件中的换行符移动 |
+    | gj | 下一屏幕行 | 按屏幕上显示的行移动（即使长行被折行显示） |
+    | gk | 上一屏幕行 | 按屏幕上显示的行移动（即使长行被折行显示） |
+
+    使用场景示例
+
+    假设有一个很长的行（例如 200 个字符），在 Vim 中因为窗口宽度限制被自动折行显示为多行：
+
+    ```text
+    这是一段非常非常非常...（省略）...长的文本行，
+    在屏幕上显示为多行，但实际上文件中只有一行。
+    ```
+
+    * 按 j/k：光标会跳到下一个实际行（文件中的换行处）
+
+    * 按 gj/gk：光标会在同一个长行内的不同屏幕行之间上下移动
+
+    相关配置
+
+    ```vim
+    " 让 j/k 在换行时按屏幕行移动（类似 gj/gk 的默认行为）
+    nnoremap j gj
+    nnoremap k gk
+
+    " 但这样会失去按实际行移动的功能，可改用：
+    nnoremap <expr> j v:count ? 'j' : 'gj'
+    nnoremap <expr> k v:count ? 'k' : 'gk'
+    ```
+
+    其他相关命令
+
+    * g0/g^/g$：按屏幕行的行首/非空白字符/行尾移动
+
+    * :set wrap：启用自动折行（默认开启）
+
+    * :set nowrap：禁用折行，长行会水平滚动
+
+    gj/gk 在处理 Markdown、文档、日志等包含长行的文本时特别有用。
 
 * 在 vim 中使用 p 粘贴了一段内容后，如何快速定位到粘贴内容的开头和结尾？
 
@@ -9493,6 +9287,172 @@
         * 枚举常量
 
 ### plugin
+
+* vim 有关滚动的插件
+
+    * vim-smoothie：平滑滚动
+
+        <https://github.com/psliwka/vim-smoothie>
+
+    * neoscroll.nvim（Neovim）
+
+        <https://github.com/karb94/neoscroll.nvim>
+
+* windows 中，vim 如何安装 vim-plug ?
+
+    在 Windows 中为 Vim 安装 vim-plug 有几种方法，以下是详细的步骤：
+
+    方法一：使用 PowerShell 或 CMD（推荐）
+
+    1. 确保 Vim 已正确安装
+
+        首先确认你的 Vim 版本（建议 8.0 以上）：
+
+        ```cmd
+        vim --version
+        ```
+
+    2. 创建必要的目录
+
+        打开 PowerShell 或 CMD，运行：
+
+        ```powershell
+        # 创建 vim 的 autoload 目录（如果不存在）
+        mkdir -Force $HOME\vimfiles\autoload
+        ```
+
+    3. 下载 vim-plug
+
+        ```powershell
+        # 使用 PowerShell 下载
+        $uri = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+        (New-Object Net.WebClient).DownloadFile($uri, $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("$HOME\vimfiles\autoload\plug.vim"))
+        ```
+
+        或者使用 curl（如果已安装）：
+
+        ```powershell
+        curl -fLo "$HOME/vimfiles/autoload/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        ```
+
+    方法二：手动下载
+
+    1. 创建目录结构
+
+        ```text
+        C:\Users\你的用户名\vimfiles\
+                        └── autoload\
+        ```
+
+    2. 下载 plug.vim
+
+        访问以下 URL，将内容保存为 plug.vim：
+
+        ```text
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        ```
+
+        将下载的文件放入：
+
+        ```text
+        C:\Users\你的用户名\vimfiles\autoload\plug.vim
+        ```
+
+    方法三：使用 Git Bash（如果有安装）
+
+    打开 Git Bash，运行：
+
+    ```bash
+    curl -fLo ~/vimfiles/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    ```
+
+    配置 vim-plug
+
+    1. 编辑 Vim 配置文件
+
+        Windows 上的 Vim 配置文件通常是：
+
+        ```text
+        C:\Users\你的用户名\_vimrc
+        ```
+
+        或（较新版本）：
+
+        ```text
+        C:\Users\你的用户名\vimfiles\vimrc
+        ```
+
+    2. 添加插件配置
+
+        在 _vimrc 文件中添加：
+
+        ```vim
+        call plug#begin('~/vimfiles/plugged')
+
+        " 在这里添加插件，例如：
+        Plug 'junegunn/vim-easy-align'
+        Plug 'https://github.com/junegunn/vim-github-dashboard.git'
+
+        call plug#end()
+        ```
+
+    3. 安装插件
+
+        * 重新打开 Vim
+
+        * 运行命令：
+
+            ```vim
+            :PlugInstall
+            ```
+
+    验证安装
+
+    在 Vim 中运行以下命令检查是否安装成功：
+
+    ```vim
+    :echo exists('g:plugs')
+    :PlugStatus
+    ```
+
+    常见问题解决
+
+    1. 如果遇到网络问题
+
+        * 可能需要设置代理（如果有）：
+
+            ```vim
+            let g:plug_shallow = 0
+            let g:plug_threads = 1
+            ```
+
+    2. 如果目录权限问题
+
+        * 以管理员身份运行 PowerShell 或 CMD
+
+    3. 如果使用的是 Neovim
+
+        Neovim 的配置路径不同：
+
+        ```powershell
+        # Neovim (Windows)
+        mkdir -Force $HOME\AppData\Local\nvim\autoload
+        $uri = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+        (New-Object Net.WebClient).DownloadFile($uri, "$HOME\AppData\Local\nvim\autoload\plug.vim")
+        ```
+
+    常用命令
+
+    * :PlugInstall - 安装插件
+
+    * :PlugUpdate - 更新插件
+
+    * :PlugClean - 删除未使用的插件
+
+    * :PlugUpgrade - 升级 vim-plug 自身
+
+    这样就完成了 vim-plug 在 Windows 上的安装。
 
 * vim 有哪些 git 相关的插件？
 
@@ -10483,12 +10443,6 @@
     * `:tjump <tag>`: 跳转到`<tag>`。如果只有一个匹配则直接跳转，有多个则列出列表。
 
 ## note
-
-vim config file: `~/.vimrc`
-
-help: `:help`
-
-jump to tag: `ctrl` + `]`
 
 go back: `ctrl` + `t` (pop tag, pops a tag off the tag stack)
 
