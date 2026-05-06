@@ -4,6 +4,19 @@
 
 ## cache
 
+* 简述petsc4py
+
+    **petsc4py** 是 PETSc（Portable, Extensible Toolkit for Scientific Computation）科学计算库的 Python 绑定，核心作用是让 Python 开发者高效调用 PETSc 的并行数值求解能力，实现大规模线性/非线性方程组、特征值问题的分布式计算。
+
+    1.  **核心特点**
+        - 无缝对接 PETSc 核心功能，支持稀疏矩阵、向量、并行求解器（如 GMRES、CG）与预条件子，保留 PETSc 的高性能与可扩展性。
+        - 与 Python 生态兼容，可结合 NumPy、SciPy 进行数据交互，也可与 mpi4py 协同实现多进程并行计算。
+        - 支持面向对象编程，用 Python 语法封装 PETSc 的 C 语言接口，降低并行数值计算的开发门槛。
+    2.  **典型场景**
+        - 计算流体力学、有限元分析等领域的大规模偏微分方程求解。
+        - 机器学习中大规模线性系统的分布式求解（如深度学习模型的梯度下降优化）。
+        - 高性能计算（HPC）场景下的并行数值模拟与科学计算。
+
 * 如果我只有 opengl 或 directx 驱动，没有 cuda / rocm，该如何在 python 中利用 gpu 的计算能力？
 
     如果你只有 OpenGL/DirectX 驱动，没有 CUDA/ROCm，可以通过以下几种方式在 Python 中利用 GPU 计算能力：

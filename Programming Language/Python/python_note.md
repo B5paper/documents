@@ -2,6 +2,209 @@
 
 ## cache
 
+* 简述 plotly
+
+    **Plotly** 是一款跨语言的**交互式数据可视化库**，核心优势是生成可交互、可网页部署的动态图表，支持 Python、R、JavaScript 等多语言接口。
+    1.  **核心特点**
+        - 支持线图、散点图、热力图、3D 图、仪表盘等超百种图表类型，图表自带缩放、平移、悬停提示等交互功能。
+        - 分为两大模块：`plotly.py`（Python 后端）用于数据处理与图表生成，`Dash` 用于快速构建基于可视化的交互式 Web 应用。
+        - 生成的图表可导出为 HTML、PNG、PDF 等格式，也可直接嵌入网页或 Jupyter Notebook。
+    2.  **典型场景**
+        - 数据科学与机器学习的结果可视化（如模型性能对比、特征分布）。
+        - 构建实时监控仪表盘（如电力系统运行状态、服务器监控）。
+        - 开发轻量化交互式 Web 应用，无需前端框架基础。
+
+* 关于 python 的包和相对/绝对导入
+
+    这是一个非常深刻的问题。要理解为什么，我们需要拆解 Python 对 **“脚本（Script）”** 和 **“模块（Module）”** 这两个身份的底层处理逻辑。
+
+    简单来说：**相对导入的本质是“查家谱”，而如果你直接运行某个文件，Python 会让它“自立门户”，从而导致它不认得任何亲戚。**
+
+    ---
+
+    1. 身份危机：`__name__` 的变化
+        
+        在 Python 中，每个文件都有一个内置属性 `__name__`：
+        * **当你把它当模块导入时**：`__name__` 是它的全名（如 `data_utils.data_utils`）。
+        * **当你直接运行它时**：`__name__` 永远被强制设为 `"__main__"`。
+
+        **关键点来了：**
+        相对导入（`.`）的解析**完全依赖于** `__name__` 这个变量。
+        * 如果 `__name__` 是 `data_utils.data_utils`，Python 看到 `from .`，就知道：“噢，我要找 `data_utils` 里的东西。”
+        * 如果 `__name__` 是 `"__main__"`，Python 看到 `from .`，就会一脸懵逼：“`__main__` 是顶级入口，它的‘当前包’是谁？我不知道。” 
+
+        于是就报了你看到的那个错：`no known parent package`。
+
+    ---
+
+    2. “点”的含义：锚点（Anchor）
+        
+        相对导入中的 `.` 并不是指“当前硬盘上的目录”，而是指**“当前命名空间包中的位置”**。
+
+        * `from . import x` 意思是：从**当前包**中导入。
+        * `from .. import x` 意思是：从**父包**中导入。
+
+        如果你直接在 `data_utils` 文件夹里启动，Python 并没有加载任何父级包的信息。对于解释器来说，此时的 `data_utils.py` 就像一个漂浮在孤岛上的脚本，它失去了坐标系，找不到“锚点”。
+
+    ---
+
+    3. 为什么 `-m` 能解决问题？
+        
+        当你运行 `python -m data_utils.data_utils`（假设你在 `projs` 目录下）：
+        1.  Python 依然会将该文件的 `__name__` 设为 `"__main__"`（为了触发你的调试代码）。
+        2.  **但是**，它会额外设置一个属性叫做 `__package__`，将其设为 `"data_utils"`。
+        3.  当代码执行到 `from .vis_utils` 时，Python 发现虽然自己是“主角（main）”，但它知道自己属于 `data_utils` 这个组织。
+        4.  于是，它能通过这个“组织关系”找到同组的 `vis_utils`。
+
+    ---
+
+    **总结：一个形象的类比**
+
+    * **直接运行文件**（`python data_utils.py`）：
+        你像是一个隐姓埋名的特工。别人问你：“你家隔壁（`.`）是谁？” 你说：“我不知道，我刚空降到这个叫 `__main__` 的任务里，我没有家。” —— **报错。**
+
+    * **以模块运行**（`python -m data_utils.data_utils`）：
+        你依然在执行任务，但你带着身份证。别人问你：“你家隔壁是谁？” 你看一眼身份证：“噢，我是 `data_utils` 家族的，我隔壁是 `vis_utils`。” —— **成功。**
+
+    **结论**
+
+    在 Python 中，**“相对导入”和“直接运行脚本”在设计哲学上是冲突的**。解决办法永远只有两个：
+    1.  **专业做法**：永远用 `-m` 模式从包的根目录启动（就像我们之前配置 VS Code 那样）。
+    2.  **野路子**：把相对导入改成绝对导入（例如 `from data_utils.vis_utils import ...`），但这会破坏包的移植性。
+
+    你现在的配置能跑通了吗？如果还是报 parent package 错误，通常就是 `cwd` 还没退回到正确的那一层。
+
+* 关于 py 文件以 program 方式启动还是以 module 启动的调试方法
+
+    正常的 python 脚本可以使用
+
+    ```py
+    if __name__ == '__main__':
+        main()
+    ```
+
+    调试，那如果这个 python 文件本身就是个 module，我该怎么调试？
+
+    * 如果 py 本身是一个 module，那么其中的同级包导入可能使用`from . import xxx`等相对路径，这时候直接`python test.py`会报错，必须使用`python -m test.py`才能解决这个相对 package 路径的问题
+
+        * 使用 `-m` 会让 Python 将该文件作为模块加载，同时将 `__name__` 设置为 `"__main__"`。
+
+    * 如果提示不是顶级包，或者找不到包，那么使用`PYTHONPATH`环境变量，或者对于 vscode 环境，写`.env`文件，在其中定义`PYTHONPATH`，把 package 的绝对路径添加进去即可
+
+        以 module 形式启动时，默认认为当前目录为 package 顶级目录。在 vscode 中，则需要配置`"cwd": "${workspaceFolder}"`。
+
+        Python 在执行 -m（模块模式）时，有一个极其死板的逻辑：它只会从“当前执行命令的目录”开始扫描包。
+
+        不知道 vscode 里能不能直接这样配置：
+
+        ```json
+        "env": {
+            "PYTHONPATH": "${workspaceFolder}/projs"
+        }
+        ```
+
+        > 如果在 launch.json 中同时写了 "env": { "PYTHONPATH": "..." } 和 "envFile": "..."，env 对象里的设置会覆盖 .env 文件里的同名变量。
+
+    * 使用 VS Code
+
+        在 `.vscode/launch.json` 中添加一个配置，指定以模块模式运行：
+        ```json
+        {
+            "name": "Python: Debug Module",
+            "type": "python",
+            "request": "launch",
+            "module": "your_package_name.your_module_name" // 替换为你的模块路径
+        }
+        ```
+
+    * 使用 vscode，结合 cwd 和 module 配置
+
+        ```json
+        "module": "app.core.processor",
+        "cwd": "xxx"  // 必须得是 app 的上一级目录，否则找不到 app
+        ```
+
+        如果不设置`cwd`为 app 的上一级目录，那么需要设置`PYTHONPATH`
+
+* py 类型标注问题
+
+    python 里，如果我写一个函数
+    def save_param(model: MyModel)
+    如果我知道 model 是一个继承自 Module 的类型的对象，但是不知道 model 的具体类型，该怎么写类型标注
+
+    非常好的问题，这涉及到 Python typing 中如何给 **PyTorch 模型（继承自 `torch.nn.Module`）** 做类型标注。
+
+    ---
+
+    **情形说明**
+
+    你有一个函数：
+
+    ```python
+    def save_param(model: MyModel):
+        ...
+    ```
+
+    但你希望这个函数能够接受 **任何继承自 `torch.nn.Module` 的对象**，
+    而不依赖于某个具体的 `MyModel` 类。
+
+    ---
+
+    **常见写法：**
+
+    ```python
+    from torch.nn import Module
+
+    def save_param(model: Module):
+        ...
+    ```
+
+    说明：
+
+    * `Module` 是 PyTorch 所有模型的基类。
+    * 这样写表示：`model` 必须是 `torch.nn.Module` 或其子类。
+
+    ---
+
+    如果你想保留泛型类型（比如类型推断/返回相同类型），那么可以用 **`TypeVar`** 来保持类型一致性：
+
+    ```python
+    from typing import TypeVar
+    from torch.nn import Module
+
+    T = TypeVar("T", bound=Module)
+
+    def save_param(model: T) -> None:
+        ...
+    ```
+
+    或者如果函数返回相同类型的模型：
+
+    ```python
+    def clone_model(model: T) -> T:
+        ...
+    ```
+
+    这样 Mypy / Pyright 等类型检查器就能知道返回的类型与输入相同。
+
+    ---
+
+    **如果你需要支持任意自定义模型类（带方法或属性）**
+
+    比如你的函数访问 `model.some_custom_attr`，但 `Module` 并没有这个字段，
+    可以用 **`Protocol`** 来定义结构化类型：
+
+    ```python
+    from typing import Protocol
+    from torch.nn import Module
+
+    class HasCustomAttr(Protocol):
+        some_custom_attr: int
+
+    def save_param(model: Module | HasCustomAttr):
+        ...
+    ```
+
 * 简述python中uv如何安装，以及用法
 
     你提到的 **uv** 应该是指 Python 的现代包管理工具（替代 pip/venv 等），其安装和基础用法如下：

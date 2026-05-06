@@ -2,6 +2,108 @@
 
 ## cache
 
+* 我使用vim的netrw打开远程文件后，如何使用ctags？远程host未安装ctags
+
+    `netrw` 只是通过 SSH/SCP 把远程文件 **拉到本地的临时目录** 再编辑，所以 **ctags 只需要在本地生成即可**，跟远程主机上有没有 ctags 完全无关。
+
+    下面是可以直接用的几种方案：
+
+    ---
+
+    **方案 1：把整个远程工程 rsync/clone 到本地，然后本地生成 tags**
+
+    这是最稳、最好用的方式。
+
+    1. 用 `netrw` 打开远程路径，例如：
+
+       ```
+       :e scp://user@host//path/to/proj/
+       ```
+
+    2. **找出 netrw 的本地缓存路径**
+       执行：
+
+       ```
+       :echo b:netrw_curdir
+       ```
+
+       这个目录就是你当前正在编辑的远程目录在本地同步的缓存路径。
+
+    3. 在缓存目录生成 tags：
+
+       ```bash
+       cd /tmp/…/some/netrw/path
+       ctags -R .
+       ```
+
+    4. 在 Vim 中设置 tags：
+
+       ```
+       :set tags=/tmp/.../netrw/path/tags
+       ```
+
+    完成后 Vim 的跳转（`<C-]>`, `g]` 等) 就都能用了。
+
+    ---
+
+    **方案 2：用 Vim 配置自动为 netrw 本地缓存生成 tags**
+
+    把下面加入 `.vimrc`：
+
+    ```vim
+    autocmd BufEnter scp://* call s:GenTagsForNetrw()
+
+    function! s:GenTagsForNetrw()
+        if exists("b:netrw_curdir")
+            let l:dir = b:netrw_curdir
+            if !filereadable(l:dir . "/tags")
+                echo "Generating tags for " . l:dir
+                silent execute "!ctags -R " . shellescape(l:dir)
+            endif
+            execute "setlocal tags=" . l:dir . "/tags"
+        endif
+    endfunction
+    ```
+
+    这样你每次打开远程文件，Vim 会自动：
+
+    * 找到对应的 netrw 缓存目录
+    * 缓存目录没有 tags 就自动生成
+    * 自动 `set tags`
+
+    远程主机完全不需要 ctags。
+
+    ---
+
+    **方案 3：用 sshfs（推荐）**
+
+    如果你常编辑远程项目，直接把远程目录挂载成本地目录就更轻松了：
+
+    ```bash
+    sshfs user@host:/path/to/proj ~/remote-proj
+    cd ~/remote-proj
+    ctags -R .
+    ```
+
+    然后像编辑本地项目一样使用 Vim，tag、搜索都无缝工作。
+
+    ---
+
+    **不能用的方式**
+
+    * 不能在 netrw 的 “虚拟路径” 上运行 `!ctags` —— 它会试图在远程机器上执行
+    * 不能在远程主机没有 ctags 的情况下让 Vim 在远程运行 ctags
+
+    ---
+
+    如果你想，我也可以：
+
+    * 写一个 **自动更新 tags 的插件样式脚本**
+    * 给你 **支持多 host 多缓存的 better-netrw + tags 工作流**
+    * 给你一个 **纯 Lua（适配 Neovim）的版本**
+
+    你需要更自动化一点的吗？
+
 * vim 中，如何 visual 模式下只选取指定的行，比如隔一行选一行。我想选择指定的不规律的几行，比如 1, 4, 9, 12，然后对这些行应用一些指定的宏或函数，比如在每一行的开头添加 * ，删去结尾的空格，替换行里的一些字符等。
 
     感觉目前没有很好的办法，ai 推荐使用插件：

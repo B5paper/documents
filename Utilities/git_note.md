@@ -2,6 +2,510 @@
 
 ## cache
 
+* git stash pop error: `error: could not restore untracked files from stash`
+
+    当你执行 pop 时，Git 尝试把你之前存储的文件恢复到当前目录。但它发现，你要恢复的那些未跟踪文件（untracked files）（如 compile.sh 等）在当前的文件夹里已经存在了。
+
+    为什么会出现这种情况？
+
+    通常是因为你在执行 git stash 时使用了 -u (或 --include-untracked) 参数，把这些脚本文件也存进去了。但在你尝试 pop 回来之前，这些文件可能因为某些原因（手动创建、脚本生成或其他分支遗留）已经出现在了你的 ~/proj/siccl 目录下。
+
+    直接手动删除那个 stash（如果你确定不需要里面的其他改动）：`git stash drop`
+
+* git rebase main 和 git rebase -i main 有什么不同？
+
+    简单来说，这两者的区别在于**自动化程度**和**控制力度**。`git rebase` 默认是“全自动模式”，而 `-i` (interactive) 是“手动干预模式”。
+
+    1. `git rebase main` (全自动模式)
+
+        当你输入这个命令时，Git 会执行以下动作：
+        * **动作：** 找出 `feat` 分支从分叉点开始的所有提交（Commits），把它们暂时“拿掉”。
+        * **动作：** 将 `feat` 分支的基底指向 `main` 分支的最新位置。
+        * **动作：** 将刚才拿掉的提交，按顺序一个一个重新“贴”回到 `main` 的后面。
+        * **特点：** 除非发生代码冲突，否则它不会停下来。它会原封不动地把你所有的历史提交记录搬过去。
+
+    ---
+
+    2. `git rebase -i main` (交互模式)
+
+        这里的 `-i` 代表 **Interactive**。它在开始“贴”提交之前，会先弹出一个文本编辑器，列出所有即将被移动的提交。
+
+        **你可以对每一条提交执行以下指令：**
+
+        | 命令 (关键字) | 作用 |
+        | :--- | :--- |
+        | **pick** | 正常保留这个提交（默认选项）。 |
+        | **reword** | 保留提交的代码，但**修改提交的信息**（比如改错别字）。 |
+        | **edit** | 停下来，允许你**修改这个提交里的文件**，或者拆分提交。 |
+        | **squash** | 将这个提交**合并**到前一个提交里（用来清理零碎的小提交）。 |
+        | **drop** | 直接**删掉**这个提交及其代码。 |
+
+    ---
+
+    **核心差异对比**
+
+    | 特性 | git rebase main | git rebase -i main |
+    | :--- | :--- | :--- |
+    | **初衷** | 仅仅是为了让分支基底对齐。 | 为了**整理历史**（清理、合并、重命名）。 |
+    | **提交数量** | 保持不变。 | 可能会减少（通过 squash 合并）。 |
+    | **提交顺序** | 保持不变。 | 你可以手动交换行的顺序来改变提交顺序。 |
+    | **复杂度** | 低，一步到位。 | 稍高，需要你在编辑器里确认操作。 |
+
+    ---
+
+    **针对你之前的需求建议**
+
+    如果你希望在处理 PR 之前，把 `feat` 分支上那些诸如 "fix typo"、"test" 之类的零碎 commit 合并成一个整洁的提交，**`git rebase -i main` 是最佳选择**。
+
+    1.  运行 `git rebase -i main`。
+    2.  将第一行保持为 `pick`，后面所有的行都改为 `s` (squash)。
+    3.  保存退出。
+    4.  Git 会弹出一个新窗口让你写一段最终的 commit message。
+    5.  这样你的 PR 看起来就像是一个完美的、经过深思熟虑的改动，而不是一堆杂乱的过程稿。
+
+* 目前我有 branch main 和 feat，现在希望把 feat 中不同于 main 的地方都摘录出来（类似于 git diff main），然后在 feat 分支，对于某处 diff， 做类似 "接收 main 处的代码" or “接收 feat 处的修改”，最后再 git add . 并 git commit -m "for pull request"提交 feat branch。该怎么办？
+
+    你描述的操作流程本质上是想在 `feat` 分支上进行一次**交互式的合并或变基**，也就是手动处理 `feat` 对 `main` 的每一个差异点。
+
+    虽然 `git diff` 只能查看差异，不能直接操作，但你可以通过以下几种标准工作流来实现你的目标：
+
+    **方案一：使用交互式变基（推荐，最符合“逐处处理”逻辑）**
+
+    这种方法会将 `feat` 分支的修改重新在 `main` 的基础上“重演”，让你逐个 commit、甚至逐行决定保留哪些代码。
+
+    1.  **确保在 feat 分支：**
+        `git checkout feat`
+    2.  **启动交互式变基：**
+        `git rebase -i main`
+        *在弹出的编辑器中，如果只想把所有修改合并成一个大的改动，可以将 `feat` 的多个 commit 设为 `squash`。*
+    3.  **处理冲突（即你的“接收”过程）：**
+        如果 Git 无法自动合并，它会停下来报错。此时你打开冲突文件，会看到类似：
+        ```text
+        <<<<<<< HEAD (main 的代码)
+        ...
+        =======
+        ... (feat 的修改)
+        >>>>>>> feat
+        ```
+        * **接收 main：** 删掉 feat 的部分，保留 main 的。
+        * **接收 feat：** 删掉 main 的部分，保留 feat 的。
+
+        注：
+
+        1. 由于 commit 记录的是 snapshot，所以拿 feat 往 main 上合时，如果第一次选取了 main 的 patch，那么后续每一次把 feat 中的 commit 合到 main 上，feat 的 patch 都会和 main 的 patch 冲突，所以每次都要解决下冲突，非常麻烦。
+
+            比较好的解决方案是先把 feat 进行 squash，再 rebase / merge 到 main。或者对 feat 进行 reset，处理完后再 commit，然后 merge 到 main。
+
+    4.  **继续：**
+
+        处理完一个文件的冲突后：
+
+        `git add <文件名>`
+        `git rebase --continue`
+
+    ---
+
+    **方案二：使用 Merge 并手动拣选 (更简单直接)**
+
+    如果你希望一次性看到所有差异并进行“接收”操作：
+
+    1.  **执行合并（但不自动提交）：**
+        ```bash
+        git checkout feat
+        git merge main --no-commit --no-ff
+        ```
+
+    2.  **使用工具进行“接收”操作：**
+
+        此时，Git 会把 `main` 的改动带过来。
+        * **针对某个文件，想完全用 main 的：** `git checkout main -- <path/to/file>`
+        * **针对某个文件，想完全用 feat 的：** `git checkout feat -- <path/to/file>`
+        * **针对文件内的某几行进行选择：** 建议使用 VS Code 或 JetBrains 系 IDE。在 VS Code 中，点击 `Merge Editor`，你会看到左右对比，点击 **"Accept Incoming (Main)"** 或 **"Accept Current (Feat)"** 即可。
+
+    3.  **提交：**
+
+        ```bash
+        git add .
+        git commit -m "for pull request"
+        ```
+
+    ---
+
+    **方案三：交互式暂存 (git add -p)**
+
+    1.  merge 但不提交： `git merge main --no-commit --no-ff`
+
+        注：
+
+        1. 即使加了 `--no-commit`，Git 默认也会把 main 的改动全部放入“暂存区”。为了能用 add -p 逐个挑选，你通常需要多做一个动作：
+
+            全部重置到未暂存： git reset (不加参数，仅重置暂存区，保留工作区文件)
+
+        2. 这一步和`git checkout feat`, `git reset --mixed main`有啥区别？
+            
+    2.  **交互式添加：**
+
+        `git add -p`
+        Git 会把每一处差异（Hunk）展示给你，并询问：
+        * `y`: 暂存这一块（接收修改）
+        * `n`: 不暂存这一块（保留原样/接收 main）
+        * `e`: 手动编辑这一块
+
+    3.  **提交：** `git commit -m "for pull request"`
+
+    **专家建议**
+
+    如果你是为了做 **Pull Request**，通常最干净的做法是：
+
+    1. `git checkout feat`
+    2. `git fetch origin main`
+    3. `git rebase origin/main` (处理冲突)
+    4. `git push -f` (更新你的远程 feat 分支)
+
+    这样在 GitHub/GitLab 的 PR 页面上，别人看到的 Diff 就会非常纯净，只包含你真正想改动的代码。
+
+    你在处理这些差异时，使用的是命令行还是 VS Code 等图形化编辑器？我可以根据你的工具提供更具体的快捷键建议。
+
+* git rebase 中 squash 的含义
+
+    核心规则：`squash` 的向上合并: `squash` (或 `s`) 的定义是：**将当前提交合并到它“上方”的那一个提交中。**
+
+* 关于`git rebase -i <first-commit-id>`
+
+    ```
+    e <second-commit-id>
+    s <third-commit-id>
+    ```
+
+    如果这样设置，那么会停在 second commit 处 (HEAD 指向 second commit)。等待用户修改内容，然后`git add .`, `git commit --amend`。
+
+    如果没有什么需要修改的，那么直接执行`git rebase --continue`，git 会接着处理 third commit。
+
+    git rebase 会一行一行地执行，**并不是**把 third commit 压缩到 second commit 后，再统一 edit。
+
+    注：
+
+    1. 如果希望工作区和暂存区都是 second commit 的内容，那么需要在`<second-commit>`的位置处，再执行`git reset HEAD^`。
+
+        此时`git log` 里只剩 `first commit` 了。
+
+* 假如现在 branch master 版本为 A -> B -> C -> D, branch test 版本为  B -> E -> F，此时我想让 test 领先 master 一个 commit，方便 master 维护者将 test branch merge 到 master branch，怎么办
+
+    要把 `test` 分支整理成“领先 `master` 一个干净的 commit”，最专业且标准的方法是使用 **`git rebase`** 配合 **`squash`**。
+
+    目前的结构是：
+    
+    * **master:** `A -> B -> C -> D`
+    * **test:** `B -> E -> F` (分叉点在 `B`)
+
+    你的目标是让 `test` 变成：`A -> B -> C -> D -> G` (其中 `G` 包含了 `E` 和 `F` 的所有改动)。
+
+    ---
+
+    操作步骤
+
+    1. 切换到 test 分支并更新基础
+
+        首先，你需要把 `test` 的基点从 `B` 移动到 `D`。
+        ```bash
+        git checkout test
+        git rebase -i master
+        ```
+
+    2. 在交互界面进行压缩（Squash）
+        
+        执行上述命令后，会弹出一个编辑器，内容大致如下：
+        ```text
+        pick <hash_E> E commit message
+        pick <hash_F> F commit message
+        ```
+        为了将它们合并为一个 commit，你需要将第二个改为 `s` (squash)：
+        ```text
+        pick <hash_E> E commit message
+        squash <hash_F> F commit message
+        ```
+        **保存并退出。**
+
+    3. 处理潜在冲突
+        
+        如果在 rebase 过程中，`E` 或 `F` 的改动与 `master` 分支的 `C` 或 `D` 有重叠，Git 会停下来。
+        * 你需要手动打开文件，选择保留你的修改（feat）还是 master 的修改。
+        * 处理完后：
+            ```bash
+            git add .
+            git rebase --continue
+            ```
+
+    4. 编写最终的 Commit Message
+
+        完成合并后，Git 会再次弹出编辑器，让你写这一个合并后的 commit 信息（即 `G` 的信息）。你可以写：
+        `feat: implementation of test feature on top of D`
+
+    ---
+
+    **结果**
+
+    现在你的 `git log` 看起来会是：
+    * `D` (master)
+    * `G` (test，包含了原先 E 和 F 的所有内容)
+
+    **为什么这样做对维护者最友好？**
+
+    1.  **线性历史：** 维护者看到的是一条直线，没有交叉的环路（Merge loops）。
+    2.  **一键 Fast-Forward：** 维护者只需要在 `master` 分支执行 `git merge test`，`master` 就会直接指向 `G`，不需要产生额外的 "Merge branch..." 这种没意义的提交。
+    3.  **代码评审简单：** 维护者只需要看一个完整的 Diff，而不是在 `E` 和 `F` 之间跳来跳去。
+
+    ---
+
+    **进阶技巧：如果你想更简单粗暴**
+
+    如果你不在乎 `E` 和 `F` 的提交历史，只想快速达成目标，还有一个“骚操作”：
+    ```bash
+    git checkout test
+    git reset --soft master  # 把 test 的 HEAD 移到 D，但保留 E 和 F 的代码在暂存区
+    git commit -m "All changes from test branch in one commit"
+    ```
+    这直接一步到位：让 `test` 站在 `master` 的肩膀上，并把所有差异打包成了一个新的 commit。
+
+    完成这些后，你的 PR (Pull Request) 就会像一件艺术品一样干净！你打算用哪种方式？
+
+* 那我如果不需要得到这么干净的 commit history 呢，我希望逐 chunk 对比 master 当前版本 D 和 test 当前版本 F 的差异点，每个 chunk 选择使用 D 的还是使用 F 的，然后从 F 生成新 commit G，最后在 master 分支执行 merge test。该怎么办？
+
+    如果你追求的是**逐个代码块（chunk）对比**并手动选择保留 master（D）还是 test（F）的代码，那么最适合你的工具是 `git checkout --patch`。
+
+    这种方法不需要你精通 rebase 的复杂逻辑，它更像是一种“手动拣选”。
+
+    操作流程
+
+    1. 确保你在 test 分支，且代码是最新的
+
+        ```bash
+        git checkout test
+        ```
+
+    2. 将代码重置到与 master 一致，但保留差异
+        
+        这一步是核心。我们让 `test` 分支的文件内容在逻辑上“退回”到 `master` 的状态，但把 `test` 原本的改动全部变成“未暂存（unstaged）”的差异。
+        ```bash
+        git reset master
+        ```
+        *此时，`git log` 会显示你在 `D` 节点。你的 `E` 和 `F` 的改动现在都作为“修改未提交”出现在你的工作区中。*
+
+    3. 逐 Chunk 选择改动 (核心步骤)
+        
+        现在，我们使用交互式暂存命令：
+        ```bash
+        git add -p
+        ```
+        Git 会把 `test` (F) 相对于 `master` (D) 的每一处差异（Hunk）展示给你，并询问你的意图：
+        * 输入 **`y`**：接收这个 test 的修改（即保留 F 的改动）。
+        * 输入 **`n`**：不接收这个修改（即保留 master D 的代码）。
+        * 输入 **`s`**：如果当前的块太大，尝试将其拆分成更小的块。
+        * 输入 **`e`**：手动编辑这个块（如果你想对 master 和 test 的代码做混合修改）。
+
+    4. 提交你的选择
+        
+        当你处理完所有感兴趣的块后：
+        ```bash
+        git commit -m "Commit G: features from test on top of master"
+        ```
+
+    5. 清理不需要的改动
+        
+        如果你在 `git add -p` 中对某些块选了 `n`（保留 master），那么这些改动依然会留在你的工作区里。如果你确定不再需要它们：
+        ```bash
+        git checkout .
+        ```
+
+    6. 合并到 master
+        
+        现在你的 `test` 分支结构已经是 `A -> B -> C -> D -> G`，且 `G` 是你精准筛选后的结果。
+        ```bash
+        git checkout master
+        git merge test
+        ```
+        *因为 test 现在是 master 的直接后代，这次合并会是 **Fast-forward**，非常丝滑。*
+
+    ---
+
+    **这种方法的优缺点**
+
+    | 优点 | 缺点 |
+    | :--- | :--- |
+    | **精准控制**：可以精确到某一行选谁。 | **耗时**：如果差异点（Hunks）非常多，会点到手软。 |
+    | **无需处理合并冲突**：因为你在 `add -p` 时已经手动解决了冲突。 | **历史丢失**：`E` 和 `F` 的提交记录会消失，只剩下 `G`。 |
+    | **所见即所得**：非常直观。 | |
+
+    ---
+
+    **一个更直观的建议：使用 VS Code**
+
+    如果你觉得命令行操作 `y/n/s` 太枯燥，你可以这样做：
+    1.  执行完上面的 `git reset master`。
+    2.  打开 VS Code 的 **Source Control（源码管理）** 面板。
+    3.  点击文件，在左侧（D）和右侧（F）的对比中，直接点击行号旁边的 **"+"** 号（Stage Change）来挑选你想进入 `G` 的代码块。
+    4.  未被点击 "+" 的部分保持原样（即 master 的代码）。
+
+    这种方式你觉得是否符合你“逐块对比”的习惯？
+
+* 所以 git rebase 操作的是 commit，git reset 操作的是 working folder?
+
+    这个理解已经非常接近核心了，但为了让你在操作时不踩坑，我们需要微调一下这两个概念的边界。
+
+    最精准的区分方式是看它们**“移动”的是什么**。
+
+    1. `git rebase`：操作的是“提交历史的基底”
+
+        * **操作对象：** **Commits (提交)**。
+        * **本质：** 它是把一系列提交（E, F）“剪切”下来，然后在另一个地方（D）重新“粘贴”一遍。
+        * **对工作区的影响：** 它会自动修改你的 Working Folder，让它匹配正在“重演”的那个提交。如果重演过程中发现你的改动和目标基底有冲突，它会停下来让你在 Working Folder 里解冲突。
+        * **一句话总结：** `rebase` 改变的是**历史的轨迹**。
+
+    2. `git reset`：操作的是“指针的位置”
+    
+        `reset` 比较特殊，它的行为取决于你用的参数。它就像一个**时间机器**，决定你回溯到哪个版本，并决定是否带走你现在的衣服（代码）。
+
+        * **`git reset --soft`**：
+            * 只移动 **HEAD 指针**。
+            * **不改动 Working Folder**。
+            * **效果：** 历史回退了，但你写过的代码还在“暂存区”里等着提交。
+        * **`git reset --mixed` (默认)**：
+            * 移动 **HEAD 指针**，重置**暂存区**。
+            * **不改动 Working Folder**。
+            * **效果：** 历史回退了，你的代码还在，但变成了“未暂存”状态。这就是我建议你用的，因为它让你能通过 `git add -p` 重新挑选代码。
+        * **`git reset --hard`**：
+            * 移动 **HEAD 指针**，重置**暂存区**，**强制改动 Working Folder**。
+            * **效果：** 你的工作区会变得和目标版本一模一样，你未提交的所有改动都会**消失**。
+
+    ---
+
+    **总结对比**
+
+    | 命令 | 主要操作目标 | 你的 Working Folder 会变吗？ | 典型用途 |
+    | :--- | :--- | :--- | :--- |
+    | **`git rebase`** | **Commit** | **会** (跟随重演进度) | 整理历史，保持分支线性。 |
+    | **`git reset`** | **HEAD 指针** | **视参数而定** (--hard 会变) | 撤销错误提交，或“打散”提交以便重新整理。 |
+
+    **回到你的需求**
+
+    你之前想“逐块对比 D 和 F”，之所以推荐先用 `git reset master`，就是利用了 `reset` **“移动指针但不改动 Working Folder”** 的特性：
+
+    1.  你把 `HEAD` 移回了 `D`（master）。
+    2.  但你的 `Working Folder` 依然保持着 `F` (test) 的内容。
+    3.  这样，Git 就会认为：“咦，你现在的代码怎么和 `D` 相比多了这么多改动？”
+    4.  然后你就可以用 `git add -p` 像挑菜一样，把 `F` 里的好东西一件件挑出来放进 `G`。
+
+    **这就是把 `reset` 当作“代码拆包器”的高级用法。** 你觉得这个逻辑现在清晰了吗？
+
+* 推断：
+
+    1. 如果运行 git rebase -i main，把第一个 commit 设置为 p，从第二个开始设置为 s，那么一定不会遇到 conflict，因为相当于把 test 分支上所有改动压缩成一个新 commit，再把这个新 commit 放到 main 分支上，所以一定不会有冲突。
+    2. git rebase 如果发现没有冲突，那么会自动采纳新 commit 的改动，否则遇到冲突才会停下来要求用户手动处理。但是如果用户并不是每个 chunk 都想提交，那么用 git rebase 就无法完成这个需求。
+    这两个推断是否正确
+
+    你的这两个推断非常精彩，展示了你对 Git 逻辑的深度思考。不过，从 Git 的底层运作机制来看，这两个推断**一个“不完全正确”，一个“非常准确”**。
+
+    让我们逐一拆解：
+
+    ---
+
+    推断 1：`rebase` + `squash` 就一定不会有冲突吗？
+    > **结论：错误。** 依然很有可能遇到冲突。
+
+    **原因：**
+    你可能产生了一个小误解：认为 `squash` 是先在原地压缩好，再整体搬运。但实际上，`rebase` 的顺序是 **“先搬运，再压缩”**（或者说是边搬运边压缩）。
+
+    1.  **搬运第一个：** Git 尝试把第一个 commit（`E`）拿到 `main` 分支的末尾（`D`）去重演。
+        * 如果 `E` 修改了文件 `A` 的第 10 行，而 `main` 分支的 `C` 或 `D` 也修改了第 10 行 —— **砰！冲突发生了。** * 此时 `rebase` 会立刻停下来，根本还没轮到后面的 `s` 指令执行。
+    2.  **逐个合并：** 只有当第一个 `pick` 成功落位后，Git 才会把第二个 `squash` 的内容拿过来合并。如果第二个提交（`F`）的改动与此时的基底有冲突，同样会停下来。
+
+    **总结：** 只要 `test` 分支修改的代码位置在 `main` 分支上也被动过，无论你是否 `squash`，冲突都在那里，躲不掉。
+
+    ---
+
+    推断 2：`rebase` 无法完成“部分采纳”的需求吗？
+    > **结论：完全正确。** 你的直觉非常敏锐。
+
+    **原因：**
+    * **`rebase` 的天职：** 它是为了“完整地迁移”历史。它的自动化逻辑是：只要没有代码层面的冲突（即两段代码没改同一行），它就会**默认你全部都要**，然后自动合并。
+    * **局限性：** 就像你说的，如果 `test` 分支改了 10 处地方，且这 10 处都没和 `main` 产生代码冲突，`rebase` 会一声不吭地把这 10 处全部合并进去。你没有机会在 `rebase` 过程中说：“这处我要，那处我不要”。
+
+    **你的解决方案：**
+    所以你之前想到的 **`git reset master` + `git add -p`** 才是处理这种“精挑细选”任务的神技。在这种工作流下：
+    1.  你主动放弃了自动化的 `rebase`。
+    2.  你把所有差异摊在桌面上（Working Folder）。
+    3.  你通过 `add -p` 扮演了“人工过滤器”。
+
+    ---
+
+    **启发：什么时候该用哪个？**
+
+    * **用 `rebase`：** 当你确信 `test` 分支里的**所有代码**都是你想要的，你只是想把它们整齐地排在 `main` 后面时。
+    * **用 `reset + add -p`：** 当你的 `test` 分支写得比较乱，里面混杂了一些调试代码、临时的注释或者你不想要的改动，你想**过滤**后再提交给 `main` 时。
+
+    你现在面对的 `siccl` 项目，是属于“全部都要”的情况，还是需要“过滤掉一部分”的情况？
+
+* "如果第二个提交（F）的改动与此时的基底有冲突，同样会停下来。"，此时的基底是哪个？第一个 pick 后的代码？还是 main ？
+
+    这是一个非常精准的技术细节问题。答案是：**此时的基底是“第一个 `pick` 之后产生的临时新状态”。**
+
+    为了让你彻底理解，我们可以把 `rebase` 想象成一个**盖楼**的过程。
+
+    **场景还原**
+
+    * **Main (基座):** 已经盖好了 D 层。
+    * **Test (待搬迁的楼层):** 原本盖在 B 层之上的 E 层和 F 层。
+    * **指令:** `pick E` + `squash F`
+
+    ---
+
+    详细步骤与基底变化
+
+    第一步：处理 `pick E`
+
+    1.  Git 尝试把 `E` 层放到 `D` 层（Main 的末尾）上面。
+    2.  **此时的基底是：`D`**。
+    3.  如果 `E` 和 `D` 没冲突，Git 会生成一个临时的新节点 **`E'`**。
+
+    第二步：处理 `squash F`
+
+    1.  Git 尝试把 `F` 层合并到刚才生成的 **`E'`** 上面。
+    2.  **此时的基底是：`E'`**（即 `D + E` 的混合体）。
+    3.  **冲突发生的可能性：**
+        * 即使 `F` 与最初的 `main (D)` 没冲突，但如果 `F` 修改的代码位置和 `E` 修改的位置重叠了，这里也会产生冲突。
+        * Git 会停下来，让你在 `E'` 的基础上解决 `F` 的冲突。
+
+    ---
+
+    **关键结论**
+
+    > **`rebase` 是一个“累加”的过程。** 每一个步骤执行时，它的基底都是**上一个步骤刚刚完成后的状态**。
+
+    这也就是为什么在一个有很多 commit 的分支上做 `rebase` 可能会非常痛苦：
+    1.  你可能在处理第一个 `pick` 时解决了冲突 A。
+    2.  到了第三个 `squash` 时，发现它又和你在第一个 `pick` 里刚刚改好的代码产生了冲突 B。
+    3.  你需要不断地处理冲突 -> `add` -> `continue`。
+
+    **对比你的两个方案**
+
+    1.  **如果你用 `rebase -i`：** 你是在**动态**地解决每一层楼和下面那一层楼的矛盾。
+    2.  **如果你用 `reset --mixed master` + `git add -p`：** 你相当于把 `E` 和 `F` 直接炸平，变成了一堆原始材料（Working Tree 改动），然后一次性直接在 `D` 层（Master）上重新挑选。
+
+    **所以：**
+    * 如果你预感到 `E` 和 `F` 之间有很多互相覆盖的改动，或者它们与 `main` 冲突很多，用 **`reset` 方案**通常会更轻松，因为你只需要**一次性处理最终差异**，而不需要经历 `rebase` 过程中那漫长的、一轮又一轮的冲突解决。
+
+* git reset 的三种模式
+
+    `git reset` 三种模式的直观对比
+
+    假设你当前在 `feat` 分支，你想重置到 `main`：
+
+    | 模式 | 命令 | HEAD 指针移动 | 暂存区 (Index) | 工作目录 (Working Tree) |
+    | :--- | :--- | :--- | :--- | :--- |
+    | **Soft** | `git reset --soft main` | **移动** | 不动 (保持已 add 状态) | 不动 |
+    | **Mixed (默认)** | `git reset main` | **移动** | **重置** (变为未 add 状态) | 不动 |
+    | **Hard** | `git reset --hard main` | **移动** | **重置** | **重置 (所有修改消失！)** |
+
 * 使用 git 时，我发现当前 branch 下缺少一个文件，但在别的 branch 里有，如何单独把这个文件从别的 branch 复制到当前 branch ?
 
     在 Git 中，这种操作非常常见，你不需要切换分支再手动复制。最标准、最优雅的方法是使用 `git checkout` 或 `git restore` 命令。

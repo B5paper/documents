@@ -2,6 +2,165 @@
 
 ## cache
 
+* vscode 里的 jupyter 插件有哪些常用功能，如何使用？
+
+    > **Jupyter Keymap** 和 **Jupyter Cell Tags**（辅助操作）
+
+    > 打开命令面板 -> `Ctrl + Shift + X`
+
+    **主要功能与使用方法**
+
+    1. 在 `.ipynb` 文件中使用交互式 Notebook
+
+        * 打开 / 创建 Notebook
+
+            * 打开 `.ipynb` 文件会自动进入交互式界面
+
+            * 或者命令面板创建一个新 Notebook：
+
+              ```
+              Jupyter: Create New Blank Notebook
+              ```
+
+        * 单元格操作
+
+            * 每个代码块就是一个 **cell**。
+            * `Shift + Enter`：运行当前 cell 并跳到下一个。
+            * `Ctrl + Enter`：运行当前 cell。
+            * `Alt + Enter`：运行当前 cell 并插入一个新的 cell。
+
+        * 可视化输出
+
+            * 支持 matplotlib / seaborn / plotly 等图表直接显示在 cell 输出下方。
+
+            * 也支持 HTML、Markdown、图片、DataFrame 表格的可视化显示。
+
+        * 修改内核 (Kernel)
+
+            点击右上角**Select Kernel** -> 可选择当前 Python 解释器、conda 环境或远程 Jupyter 服务器。
+
+    2. 在 `.py` 文件中使用 Jupyter 功能
+
+        即使不是 Notebook 文件，也能用“cell”运行：
+
+        * 定义 Cell 区域
+
+            在 `.py` 文件中插入：
+
+            ```python
+            # %%
+            print("Hello Jupyter in VS Code!")
+            ```
+
+            然后在代码左侧会出现一个「▶ Run Cell」按钮。
+            点击即可像在 Notebook 中那样运行代码。
+
+        * 快捷键
+
+            * `Shift + Enter`：运行当前 cell。
+            * `Ctrl + Alt + Enter`：运行整个文件。
+            * `Ctrl + Shift + P` → “Run Current File in Interactive Window” 也可以。
+
+        * 输出窗口
+
+            输出会出现在右侧或下方的 “**Interactive Window**”，支持图形显示、变量查看等。
+
+    3. 变量查看与数据探索
+
+        点击右上角 “**Variables**” 图标，可以看到类似于 Spyder / JupyterLab 的变量浏览器：
+
+        * 显示当前会话中的变量名称、类型、值、维度。
+        * 双击 DataFrame 可以在「Data Viewer」中打开表格样式的交互式视图。
+        * 支持过滤、排序、查看统计信息。
+
+    4. 断点调试（高级功能）
+
+        VS Code 的 Jupyter 支持 **Notebook 级别调试**：
+
+        1. 点击左侧行号设置断点。
+        2. 运行 Notebook 或 cell。
+        3. 使用调试图标（🐞）或命令 “**Debug Cell**”。
+        4. 支持：
+
+           * 变量查看
+           * 单步执行
+           * 调用栈与控制流查看
+
+        注意：某些版本中需要 Python ≥ 3.7，并启用 `ipykernel` ≥ 6 才能使用调试。
+
+    5. 连接远程 Jupyter 服务器
+
+        可直接连接远程 notebook 服务（如在服务器上跑的 Jupyter Lab）。
+
+        操作方式：
+
+        1. 打开命令面板：`Ctrl + Shift + P`
+
+        2. 选择：
+
+           ```
+           Jupyter: Specify Jupyter Server for Connections
+           ```
+
+        3. 输入远程 URL，如：
+
+           ```
+           http://192.168.1.10:8888/?token=abcd...
+           ```
+
+        4. 连接成功后，VS Code 就能在本地执行远程服务器上的计算。
+
+    6. 导出 Notebook
+
+        在右上角菜单中：
+
+        ```
+        Export As → Python Script / HTML / PDF
+        ```
+
+        或者使用命令面板：
+
+        ```
+        Jupyter: Export Current Notebook As
+        ```
+
+    7. 交互式绘图与小部件支持
+
+        支持 Jupyter Widgets（如 `ipywidgets`）：
+
+        ```python
+        from ipywidgets import interact
+
+        @interact(x=(0, 10))
+        def f(x):
+            return x ** 2
+        ```
+
+        会在 VS Code 中显示滑块交互界面。
+
+    三、常用快捷键汇总
+
+    | 操作                  | 快捷键                                  |
+    | ------------------- | ------------------------------------ |
+    | 运行当前 cell           | `Shift + Enter`                      |
+    | 运行当前 cell 并插入新 cell | `Alt + Enter`                        |
+    | 运行全部 cell           | `Ctrl + Alt + Enter`                 |
+    | 添加 cell（上/下）        | `A / B`（命令模式）                        |
+    | 删除 cell             | `D, D`（连续两次）                         |
+    | 选择内核                | `Ctrl + Shift + P` → “Select Kernel” |
+    | 打开变量查看器             | “Variables” 面板                       |
+
+    四、实用技巧
+
+    * 在 `.py` 文件中使用 `# %%` 能保持版本控制友好性（比 `.ipynb` 更方便 diff）。
+    * 可以配置 `"interactiveWindow.textEditor.executeSelection"` 快捷键来快速执行选中代码。
+    * 运行大文件时可启用 `"Jupyter: Enable Scrolling for Cell Outputs"` 避免输出过长。
+
+    ---
+
+    是否希望我接着帮你写一份「**Jupyter 插件快速上手指南**」（带图示 + 示例代码 + 常用命令表）？
+    那样可以直接保存成 Markdown 给你放在项目根目录里，方便随时查阅。
+
 * vscode 中 debug 启动 python 后的环境变量的自动配置
 
     Ctrl + `,` 打开 setting，搜索 python，有下面几个配置：

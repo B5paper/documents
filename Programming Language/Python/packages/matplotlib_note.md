@@ -2,6 +2,100 @@
 
 ## cache
 
+* matplotlib 的 ax，如果没有要 plot 的内容，或者没有 imshow() 的内容，如何关闭坐标轴
+
+    在 **matplotlib** 中，如果一个 `Axes` 没有任何内容（比如没有 `plot()`、`imshow()` 等），你仍然可以**手动关闭坐标轴显示**，主要有几种方法：
+
+    ---
+
+    方法 1：`ax.axis("off")`
+
+    最常用、最简单的方式：
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    ax.axis("off")  # 隐藏坐标轴、刻度、边框
+    plt.show()
+    ```
+
+    这会让整个坐标系（包括坐标轴线、刻度、标签）都不可见。
+
+    ---
+
+    方法 2：分别隐藏坐标轴的上下左右部分
+
+    如果你只想关闭部分边框或刻度：
+
+    ```python
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ```
+
+    这会留下空白区域，但不完全移除坐标系（区别是 `axis("off")` 会连坐标轴框架也一起隐藏）。
+
+    ---
+
+    方法 3：全局关闭所有 subplot 的坐标轴
+
+    如果你有一堆空的 subplot：
+
+    ```python
+    fig, axes = plt.subplots(2, 3)
+    for ax in axes.flat:
+        ax.axis("off")
+    plt.show()
+    ```
+
+    常见于你在批量显示图像网格，但某些格子没有内容时。
+
+    ---
+
+    方法 4：在创建时直接不带坐标系（适合展示图像）
+
+    你可以使用 `plt.imshow()` 并同时关闭坐标轴：
+
+    ```python
+    plt.imshow(img)
+    plt.axis("off")
+    plt.show()
+    ```
+
+    ---
+
+    方法 5（高级）：自动关闭没有内容的 Axes
+
+    如果你在循环画很多图，但部分 `ax` 没有内容，可以自动检测并隐藏：
+
+    ```python
+    for ax in axes.flat:
+        if not ax.has_data():  # 没有 plot/imshow/scatter 等数据
+            ax.axis("off")
+    ```
+
+    ---
+
+    **推荐实践：**
+
+    如果你是在显示一组图片（比如 CNN 卷积核、特征图等），用：
+
+    ```python
+    if not ax.has_data():
+        ax.axis("off")
+    ```
+
+    是最干净通用的方案。
+
+    ---
+
+    是否希望我帮你写一个完整例子：比如一组 subplot，其中部分 `ax` 有图片、部分没有，自动关闭空的那些？
+
 * 简述 matplotlib 中`ax.annotate()`的原型、作用和用法
 
     `ax.annotate()` 是 Matplotlib 中功能最强大的文本标注工具。它不仅仅能写字，还能画出带箭头的指向线，将文字精确地链接到图表中的特定点。
