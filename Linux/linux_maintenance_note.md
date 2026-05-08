@@ -6,6 +6,642 @@
 
 ## cache
 
+* ubuntu 如何设置开机自动运行某个basH脚本
+
+    在 **Ubuntu** 下，你有好几种方式可以设置开机自动运行某个 `bash` 脚本，取决于你是想让它 **在用户登录时运行**，还是 **开机不需要登录就运行**（system-level）。我给你分情况列一下：
+
+    ---
+
+    方法一：使用 `systemd`（推荐，通用，开机即运行）
+
+    1. 假设脚本路径是 `/home/username/myscript.sh`
+       确保脚本可执行：
+
+       ```bash
+       chmod +x /home/username/myscript.sh
+       ```
+
+    2. 创建一个 `systemd` 服务文件：
+
+       ```bash
+       sudo nano /etc/systemd/system/myscript.service
+       ```
+
+    3. 写入以下内容（修改路径和用户）：
+
+       ```ini
+       [Unit]
+       Description=My Startup Script
+       After=network.target
+
+       [Service]
+       Type=simple
+       ExecStart=/home/username/myscript.sh
+       User=username
+       WorkingDirectory=/home/username
+       Restart=on-failure
+
+       [Install]
+       WantedBy=multi-user.target
+       ```
+
+    4. 启用并启动服务：
+
+       ```bash
+       sudo systemctl daemon-reload
+       sudo systemctl enable myscript.service
+       sudo systemctl start myscript.service
+       ```
+
+    5. 查看是否运行成功：
+
+       ```bash
+       systemctl status myscript.service
+       ```
+
+    ---
+
+    方法二：使用 `crontab`（用户登录时运行）
+
+    1. 编辑当前用户的 crontab：
+
+       ```bash
+       crontab -e
+       ```
+
+    2. 添加一行：
+
+       ```bash
+       @reboot /home/username/myscript.sh
+       ```
+
+    3. 确保脚本有执行权限：
+
+       ```bash
+       chmod +x /home/username/myscript.sh
+       ```
+
+    > ⚠️ 注意：`@reboot` 任务运行时环境比较简陋，可能缺少 PATH，你最好在脚本开头加上：
+
+    ```bash
+    #!/bin/bash
+    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    ```
+
+    ---
+
+    方法三：如果只是图形界面登录时运行
+
+    把脚本添加到 **Startup Applications**（适合桌面环境）。
+
+    1. 打开 `Startup Applications Preferences`
+    2. 添加新任务，命令填入脚本路径即可。
+
+    ---
+
+    **总结**
+
+    * 如果要 **系统启动就运行（不用登录）** → 用 **systemd**（方法一）。
+    * 如果只要 **用户登录后运行** → 用 **crontab @reboot** 或 **Startup Applications**。
+
+* 我记得不是有个类似 bashrc 的设置
+
+    对的 👍，你记得的是 **用户登录时执行的脚本**，跟 `.bashrc`、`.profile` 之类有关：
+
+    ---
+
+    **区别几个常见文件**
+
+    * **`~/.bashrc`**
+      每次启动一个 *交互式 shell* 时执行（例如你开一个终端窗口）。
+      ⚠️ 不会在纯开机时自动执行，只有开了终端才会跑。
+
+    * **`~/.profile`** 或 **`~/.bash_profile`**
+      在用户登录时（无论是图形界面还是 TTY）执行一次。
+      适合放一些只需要在用户登录时跑的脚本。
+
+    * **`/etc/profile`**
+      系统范围的，所有用户登录时都会执行。
+
+    ---
+
+    **如果你想在登录时跑脚本**
+
+    比如脚本 `/home/username/myscript.sh`：
+
+    1. 编辑 `~/.profile`：
+
+       ```bash
+       nano ~/.profile
+       ```
+
+    2. 在文件末尾加：
+
+       ```bash
+       # 开机登录后自动执行
+       /home/username/myscript.sh &
+       ```
+
+    3. 保存后退出。
+
+        这样每次你 **登录这个用户** 时脚本就会跑了（包括图形界面和 ssh 登录）。
+
+    ---
+
+    **如果你想在开机但不登录时也能跑**
+
+    那就不能只靠 `.bashrc` / `.profile`，要用我之前说的 **systemd** 或 **cron @reboot**。
+
+* 我希望在用户登录时只启动一次，再登录就不启动了
+
+    明白了。你要的是 **用户第一次登录时启动一次脚本**，但之后再登录同一会话时 **不再重复执行**。
+
+    这种情况 `.bashrc` 不合适，因为它每开一个终端都会执行；
+    `.profile` 虽然是登录时执行，但你可能还想限制为「只执行一次」。
+
+    ---
+
+    解决方法：加一个 **标记文件**
+
+    思路就是：
+
+    * 用户登录时，`.profile` 调用你的脚本
+    * 但在执行前先检查一个「标记文件」是否存在
+    * 如果不存在，就运行脚本并创建标记
+    * 如果存在，就什么也不做
+
+    ---
+
+    **实现步骤**
+
+    假设你的脚本是 `/home/username/myscript.sh`
+
+    1. 编辑 `~/.profile`：
+
+       ```bash
+       nano ~/.profile
+       ```
+
+    2. 在文件末尾加上：
+
+       ```bash
+       # 仅第一次登录时执行脚本
+       FLAG="$HOME/.myscript_ran"
+       if [ ! -f "$FLAG" ]; then
+           /home/username/myscript.sh &
+           touch "$FLAG"
+       fi
+       ```
+
+    3. 确保脚本可执行：
+
+       ```bash
+       chmod +x /home/username/myscript.sh
+       ```
+
+    ---
+
+    **如果想每次重启后都再执行一次**
+
+    那就在 `~/.profile` 里不变，但把「标记文件」放到 `/tmp`（因为 `/tmp` 每次开机都会清空）：
+
+    ```bash
+    FLAG="/tmp/.myscript_ran"
+    ```
+
+    ---
+
+    这样，你就可以控制：
+
+    * **同一次开机 → 登录一次就执行，后面不执行**
+    * **下次重启 → 又会执行一次**
+
+    ---
+
+    要不要我给你写一个完整的 `myscript.sh` 示例（带日志输出），这样你可以确认它到底有没有只执行一次？
+
+* /etc/profile 中的命令并不是开机运行，而是登录了用户才运行，有没有开机就运行的配置文件或脚本？
+
+    你理解得对：
+
+    * `/etc/profile` 和 `~/.bashrc` 之类的文件只会在**用户登录时**运行，根本不属于“开机自启”。
+    * 如果想要 **开机（还没登录）就运行脚本**，有几种常见方式：
+
+    ---
+
+    ### 1. `systemd` 服务（推荐）
+
+    适合所有现代 Linux 发行版（Ubuntu, CentOS, Debian…）。
+
+    1. 写一个脚本，例如 `/usr/local/bin/myscript.sh`：
+
+       ```bash
+       #!/bin/bash
+       echo "Boot script running at $(date)" >> /var/log/myscript.log
+       ```
+
+       记得赋予可执行权限：
+
+       ```bash
+       chmod +x /usr/local/bin/myscript.sh
+       ```
+
+    2. 新建一个 systemd unit：
+
+       ```bash
+       sudo nano /etc/systemd/system/myscript.service
+       ```
+
+       内容：
+
+       ```ini
+       [Unit]
+       Description=Run my script at boot
+       After=network.target
+
+       [Service]
+       Type=oneshot
+       ExecStart=/usr/local/bin/myscript.sh
+       RemainAfterExit=yes
+
+       [Install]
+       WantedBy=multi-user.target
+       ```
+
+    3. 启用并启动：
+
+       ```bash
+       sudo systemctl daemon-reload
+       sudo systemctl enable myscript.service
+       sudo systemctl start myscript.service
+       ```
+
+    这样脚本会在**系统启动**（到 multi-user.target）时自动运行，无需用户登录。
+
+    ---
+
+    ### 2. `/etc/rc.local`（旧方法）
+
+    部分系统不再默认支持，但可以手动启用。
+
+    * 在 `/etc/rc.local` 文件里加入命令，例如：
+
+      ```bash
+      /usr/local/bin/myscript.sh &
+      exit 0
+      ```
+    * 确保文件可执行：
+
+      ```bash
+      sudo chmod +x /etc/rc.local
+      ```
+
+    然后 rc.local 就会在开机最后阶段运行。
+
+    ---
+
+    ### 3. `cron @reboot`
+
+    使用 `crontab -e` 添加：
+
+    ```bash
+    @reboot /usr/local/bin/myscript.sh
+    ```
+
+    这样每次开机时都会执行。
+
+    ---
+
+    ✅ 总结：
+
+    * 如果是现代系统（Ubuntu 16.04+），**systemd** 是最稳定、可控的方式。
+    * 如果只想简单快速，可以用 `cron @reboot`。
+
+    ---
+
+    要不要我给你写一个最小的 **systemd service 文件**，你只需要改脚本路径就能直接用？
+
+* @reboot /usr/local/bin/myscript.sh 这个方法根本无法用
+
+    你说得对，在一些 Linux（特别是 Ubuntu 20.04+）上，`cron` 默认并不会在开机阶段正常运行 `@reboot`，需要额外条件满足（比如 `cron` 服务已经启动，并且脚本路径/权限没问题）。
+
+    为了避免这种坑，最稳妥的就是 **用 systemd 服务**。这是现在 Linux 的主流方式。
+
+    ---
+
+    ### 最小可用的 systemd 服务示例
+
+    假设你的脚本是 `/usr/local/bin/myscript.sh`：
+
+    1. **检查脚本权限**
+
+       ```bash
+       chmod +x /usr/local/bin/myscript.sh
+       ```
+
+    2. **创建 service 文件**
+
+       ```bash
+       sudo nano /etc/systemd/system/myscript.service
+       ```
+
+       写入：
+
+       ```ini
+       [Unit]
+       Description=Run my script at boot
+       After=network.target
+
+       [Service]
+       Type=oneshot
+       ExecStart=/usr/local/bin/myscript.sh
+       RemainAfterExit=yes
+
+       [Install]
+       WantedBy=multi-user.target
+       ```
+
+    3. **启用并启动**
+
+       ```bash
+       sudo systemctl daemon-reload
+       sudo systemctl enable myscript.service
+       sudo systemctl start myscript.service
+       ```
+
+    4. **验证开机自启**
+       重启后查看日志：
+
+       ```bash
+       journalctl -u myscript.service -b
+       ```
+
+    ---
+
+    🔑 和 `@reboot` 不同，这种方式**百分百可靠**，不会依赖 cron。
+
+    要不要我帮你写一个版本，支持后台常驻运行（比如脚本里有 while true 循环，systemd 会自动守护它）？
+
+* 除了multi-user.target，是否还有其他 target？我希望图形界面和文字界面都能自动启动服务
+
+    对的，`systemd` 里有很多 **target**，用来表示系统处于不同的运行级别（类似 SysV 的 runlevel）。
+
+    ---
+
+    ### 常见的几个 target
+
+    1. **`multi-user.target`**
+
+       * 文字界面（无图形），相当于传统的 runlevel 3。
+       * 网络、多用户登录都可用，常用于服务器环境。
+
+    2. **`graphical.target`**
+
+       * 图形界面（桌面环境），相当于传统的 runlevel 5。
+       * 一般桌面 Linux 在启动时会最终进入这个 target。
+
+    3. **`basic.target`**
+
+       * 提供基本的系统服务，但没有网络、多用户等。
+
+    4. **`rescue.target`**
+
+       * 单用户模式，类似 runlevel 1。
+
+    5. **`emergency.target`**
+
+       * 紧急维护模式，几乎只有 root shell 和最小挂载。
+
+    6. **`network.target`**
+
+       * 网络服务可用时的 target，常用作依赖。
+
+    ---
+
+    ### 你的需求：
+
+    如果希望 **不论是文字界面还是图形界面** 都能自启动服务，直接把 `[Install]` 部分改成：
+
+    ```ini
+    [Install]
+    WantedBy=multi-user.target graphical.target
+    ```
+
+    这样无论系统最终进入文字模式（multi-user）还是图形模式（graphical），你的服务都会被拉起来。
+
+    ---
+
+    ### 完整示例
+
+    ```ini
+    [Unit]
+    Description=Run my script at boot
+    After=network.target
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/myscript.sh
+    RemainAfterExit=yes
+
+    [Install]
+    WantedBy=multi-user.target graphical.target
+    ```
+
+    然后：
+
+    ```bash
+    sudo systemctl daemon-reload
+    sudo systemctl enable myscript.service
+    ```
+
+    这样就能保证：
+
+    * 在服务器（只有文字界面）环境 → 会运行
+    * 在桌面（进入图形界面）环境 → 也会运行
+
+    ---
+
+    要不要我帮你整理一个 **对照表：SysV runlevel ↔ systemd target**，这样你可以一眼看懂该挂到哪个 target？
+
+* RemainAfterExit=yes 这个是干嘛用的？
+
+    好问题 👍，这个参数在 `systemd` 里很容易被忽略。
+
+    ---
+
+    **`RemainAfterExit=yes` 的作用**
+
+    * **默认情况下**，如果一个 service 是 `Type=oneshot`，那么 `ExecStart` 命令跑完进程退出后，`systemd` 会认为这个 service **已经 stopped**。
+    * 加了 `RemainAfterExit=yes` 以后，即使 `ExecStart` 的进程退出了，`systemd` 依然会把这个服务标记为 **active (exited)** 状态。
+
+    换句话说：
+
+    * **不加** → 你的脚本跑完后，`systemctl status` 会显示 `inactive (dead)`。
+    * **加了** → 你的脚本跑完后，`systemctl status` 会显示 `active (exited)`。
+
+    ---
+
+    **什么时候需要？**
+
+    * 如果你只是想在开机时执行一次脚本（比如写个日志、调整系统参数），其实不需要 `RemainAfterExit=yes`，默认跑完就结束就行。
+    * 如果你的脚本只执行一次，但你希望之后通过 `systemctl status` 还能看到它“执行过”，那么就加上 `RemainAfterExit=yes`。
+
+    ---
+
+    **举个例子**
+
+    ```ini
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/myscript.sh
+    RemainAfterExit=yes
+    ```
+
+    执行结果：
+
+    ```bash
+    ● myscript.service - Run my script at boot
+       Loaded: loaded (/etc/systemd/system/myscript.service; enabled)
+       Active: active (exited) since Fri 2025-09-12 09:00:00 CST; 10s ago
+    ```
+
+    如果没写 `RemainAfterExit=yes`：
+
+    ```bash
+    ● myscript.service - Run my script at boot
+       Loaded: loaded (/etc/systemd/system/myscript.service; enabled)
+       Active: inactive (dead) since Fri 2025-09-12 09:00:00 CST; 10s ago
+    ```
+
+    ---
+
+    **总结：**
+
+    * `RemainAfterExit=yes` = **保持服务在 systemd 状态机里“激活”**，即使脚本已经退出。
+    * 对“只执行一次就完事”的脚本不是必须，但有助于用 `systemctl status` 判断是否运行过。
+
+* 报错：
+
+    connect: network is unreachable. With loginFailExit enabled, no additional retries will b
+
+
+    这个报错信息看起来像是 **systemd 在启动时跑了你的脚本，但脚本里依赖网络**，结果网络还没起来，于是直接失败了。
+
+    关键点在这里：
+
+    ```
+    connect: network is unreachable
+    With loginFailExit enabled, no additional retries will b...
+    ```
+
+    说明你的脚本在尝试连接网络的时候，网络接口还没 ready。
+
+    ---
+
+    ### 解决方法
+
+    在你的 `.service` 文件里，**增加网络依赖**：
+
+    ```ini
+    [Unit]
+    Description=Run my script at boot
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/myscript.sh
+    RemainAfterExit=yes
+
+    [Install]
+    WantedBy=multi-user.target graphical.target
+    ```
+
+    解释：
+
+    * `After=network-online.target`
+      确保脚本在“网络完全就绪”之后再执行。
+    * `Wants=network-online.target`
+      保证 systemd 会启动 `network-online.target` 这个服务。
+    * 注意：`network.target` 只保证“网络服务启动”，但不保证网卡真正拿到 IP。很多脚本需要等到 **network-online.target**。
+
+    ---
+
+    ### 另外注意
+
+    如果你在云环境（比如 AWS、Azure、KVM）或容器里跑，有些 Linux 没有默认启用 `systemd-networkd-wait-online.service`，可能还要手动启用：
+
+    ```bash
+    sudo systemctl enable systemd-networkd-wait-online.service
+    ```
+
+    ---
+
+    要不要我帮你写一个 **同时支持联网前等待 + 重试机制** 的 service 配置？这样即使网络一开始不可用，脚本也能延迟或自动重试。
+
+* systemd 开机启动脚本
+
+    ```conf
+    [Unit]
+    Description=hlc script init frpc
+    After=network.target
+    After=network-online.target
+    Wants=network-online.target
+    ```
+
+    可以这样写吗，两个 after 算重复吗？
+
+    可以这样写，不算错误 👍。
+
+    在 `systemd` 里：
+
+    * `[Unit]` 段的 **多个 `After=`** 并不是互斥的，都会生效，表示“本服务要在这些 target 之后启动”。
+    * 相当于把依赖条件加在一起 → 启动顺序约束更严格。
+
+    所以你写成：
+
+    ```ini
+    [Unit]
+    Description=hlc script init frpc
+    After=network.target
+    After=network-online.target
+    Wants=network-online.target
+    ```
+
+    实际上等价于：
+
+    ```ini
+    [Unit]
+    Description=hlc script init frpc
+    After=network.target network-online.target
+    Wants=network-online.target
+    ```
+
+    ---
+
+    **推荐写法**
+
+    一般直接写成一行更简洁：
+
+    ```ini
+    [Unit]
+    Description=hlc script init frpc
+    After=network-online.target
+    Wants=network-online.target
+    ```
+
+    因为：
+
+    * `network-online.target` 本身已经隐含了 `network.target`。
+    * 所以单独写 `After=network.target` 没必要，但写了也不会有坏处。
+
+    ---
+
+    **总结：**
+
+    * 你写的那种方式 **能正常用**，只是稍微重复。
+    * 如果追求简洁，直接用 `After=network-online.target` 就够了。
+
 * Top 命令的 cpu 使用量中，按下 t  后看到占用率有的线粗，有的线细，是什么含义
 
     在 `top` 命令界面按下 **`t`** 键，实际上是在切换 **CPU 占用率的显示模式**（由数据变为图形化柱状图）。
