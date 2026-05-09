@@ -2,191 +2,6 @@
 
 ## cache
 
-* vim 中，在录制宏时，`^[` 是一个 字面上的 ESC 字符，而不是 Vim 语义层面的 `<Esc>` 键。如果要输入`<esc>`键，需要使用`Ctrl-V Esc`。
-
-
-* 还有哪些字符需要像 ctrl v + esc 这样用特殊方法插入，给出列表。并给出在哪里查到这个列表？
-
-
-    这个问题问得**非常专业**，已经是 *Vim 内部表示 / 终端控制字符* 这一层了 👍
-    我分三部分回答：
-
-    1. **有哪些字符需要用 `Ctrl-V` 这种“字面插入”方式**
-    2. **常用完整列表（按类别）**
-    3. **官方/权威文档从哪里查（Vim help 精确位置）**
-
-    ---
-
-    ## 1️⃣ 什么时候“必须”用 `Ctrl-V` 插入？
-
-    只要一个字符满足下面任意一条，就**不能直接敲出来**，必须用 `Ctrl-V`（或等价方式）：
-
-    * 它是 **ASCII 控制字符**（0x00–0x1F, 0x7F）
-    * 它在 Vim 里有 **特殊语义**（如 `<Esc>`、`<Tab>`、`<CR>`）
-    * 你希望插入的是 **“这个字符本身”**，而不是它的功能
-
-    👉 典型场景：
-
-    * 宏 (`let @a = '...'`)
-    * 映射 (`:map`)
-    * 搜索模式
-    * 二进制/协议文本
-    * 精确复现终端行为
-
-    ---
-
-    ## 2️⃣ 需要 `Ctrl-V` 插入的字符列表（重点）
-
-    ### 🔹 A. ASCII 控制字符（最重要）
-
-    | Ctrl 组合  | 名称  | ASCII | Vim 显示 | 说明      |
-    | -------- | --- | ----- | ------ | ------- |
-    | `Ctrl-@` | NUL | 0x00  | `^@`   | 空字符     |
-    | `Ctrl-A` | SOH | 0x01  | `^A`   |         |
-    | `Ctrl-B` | STX | 0x02  | `^B`   |         |
-    | `Ctrl-C` | ETX | 0x03  | `^C`   | 中断      |
-    | `Ctrl-D` | EOT | 0x04  | `^D`   |         |
-    | `Ctrl-G` | BEL | 0x07  | `^G`   | 响铃      |
-    | `Ctrl-H` | BS  | 0x08  | `^H`   | 退格      |
-    | `Ctrl-I` | TAB | 0x09  | `^I`   | **Tab** |
-    | `Ctrl-J` | LF  | 0x0A  | `^J`   | 换行      |
-    | `Ctrl-M` | CR  | 0x0D  | `^M`   | **回车**  |
-    | `Ctrl-[` | ESC | 0x1B  | `^[`   | **Esc** |
-    | `Ctrl-\` | FS  | 0x1C  | `^\`   |         |
-    | `Ctrl-]` | GS  | 0x1D  | `^]`   |         |
-    | `Ctrl-^` | RS  | 0x1E  | `^^`   |         |
-    | `Ctrl-_` | US  | 0x1F  | `^_`   |         |
-    | `DEL`    | DEL | 0x7F  | `^?`   | 删除      |
-
-    📌 **插入方法统一：**
-
-    ```
-    Ctrl-V  Ctrl-<key>
-    ```
-
-    例如：
-
-    * `Ctrl-V Ctrl-[` → 插入 `^[`
-    * `Ctrl-V Ctrl-M` → 插入 `^M`
-    * `Ctrl-V Ctrl-I` → 插入真正的 Tab（不是空格）
-
-    ---
-
-    ### 🔹 B. Vim 特殊键（键名 vs 字面字符）
-
-    这些键**平时你敲的是“动作”**，不是字符：
-
-    | 键         | 键名      | 字面插入方式             |
-    | --------- | ------- | ------------------ |
-    | Esc       | `<Esc>` | `Ctrl-V Esc`       |
-    | Tab       | `<Tab>` | `Ctrl-V Tab`       |
-    | Enter     | `<CR>`  | `Ctrl-V Enter`     |
-    | Backspace | `<BS>`  | `Ctrl-V Backspace` |
-
-    📌 如果你 **不** 用 `Ctrl-V`，Vim 会：
-
-    * 执行命令
-    * 或结束输入
-    * 或触发补全
-
-    ---
-
-    ### 🔹 C. 非 ASCII / 特殊 Unicode（补充）
-
-    #### 十六进制方式（推荐）
-
-    ```
-    Ctrl-V u 00a0     " Unicode
-    Ctrl-V x 1b       " 8-bit
-    Ctrl-V o 033      " 八进制
-    ```
-
-    例子：
-
-    | 字符             | 用途               |
-    | -------------- | ---------------- |
-    | `Ctrl-V u00a0` | 不断行空格 (NBSP)     |
-    | `Ctrl-V x1b`   | ESC（和 Ctrl-[ 等价） |
-    | `Ctrl-V x7f`   | DEL              |
-
-    ---
-
-    ## 3️⃣ 在哪里查到这些列表？（权威来源）
-
-    ### 📘 Vim 官方文档（必看）
-
-    ### ① `:help i_CTRL-V`
-
-    > **插入模式下 Ctrl-V 的完整说明**
-
-    ```
-    :help i_CTRL-V
-    ```
-
-    这里有：
-
-    * 所有可插入控制字符
-    * 十六进制 / Unicode 规则
-    * 精确行为说明
-
-    ---
-
-    ### ② `:help key-notation`
-
-    > **Vim 的 `<Esc>` / `<CR>` / `<Tab>` 表示法**
-
-    ```
-    :help key-notation
-    ```
-
-    ---
-
-    ### ③ `:help ASCII`
-
-    > **完整 ASCII 表（含控制字符）**
-
-    ```
-    :help ASCII
-    ```
-
-    这是你要的**“官方列表”**，非常关键。
-
-    ---
-
-    ### ④ `:help special-keys`
-
-    ```
-    :help special-keys
-    ```
-
-    ---
-
-    ## 4️⃣ 一个老 Vim 用户的经验总结（很值钱）
-
-    > **只要你在 Vim 里看到 `^X` 这种显示，
-    > 那它 100% 是一个“不能直接敲出来的字符”。**
-
-    而：
-
-    * 想插入它 → `Ctrl-V`
-    * 想理解它 → `:help ASCII`
-    * 想在宏/映射里用 → 优先 `<Esc>` / `<CR>`，避免裸 `^[`
-
-    ---
-
-    ## 5️⃣ 给你一条“防踩坑”建议
-
-    * **宏里**：
-      ✅ 用 `<Esc>`（通过 `:execute` / `:normal!`）
-      ❌ 少用字面 `^[`
-
-    * **需要精确字节控制时**：
-      ✅ `Ctrl-V`
-
-    ---
-
-    如果你愿意，我可以帮你整理一张 **“Vim 控制字符速查表（宏 / 映射 / 插入 / 显示对照）”**，直接一页就够用。
-
 * 有关复制命令的几种用法
 
     ```vim
@@ -195,107 +10,6 @@
     :10,20y     # 复制第10-20行
     ```
 
-* 我使用vim的netrw打开远程文件后，如何使用ctags？远程host未安装ctags
-
-    `netrw` 只是通过 SSH/SCP 把远程文件 **拉到本地的临时目录** 再编辑，所以 **ctags 只需要在本地生成即可**，跟远程主机上有没有 ctags 完全无关。
-
-    下面是可以直接用的几种方案：
-
-    ---
-
-    **方案 1：把整个远程工程 rsync/clone 到本地，然后本地生成 tags**
-
-    这是最稳、最好用的方式。
-
-    1. 用 `netrw` 打开远程路径，例如：
-
-       ```
-       :e scp://user@host//path/to/proj/
-       ```
-
-    2. **找出 netrw 的本地缓存路径**
-       执行：
-
-       ```
-       :echo b:netrw_curdir
-       ```
-
-       这个目录就是你当前正在编辑的远程目录在本地同步的缓存路径。
-
-    3. 在缓存目录生成 tags：
-
-       ```bash
-       cd /tmp/…/some/netrw/path
-       ctags -R .
-       ```
-
-    4. 在 Vim 中设置 tags：
-
-       ```
-       :set tags=/tmp/.../netrw/path/tags
-       ```
-
-    完成后 Vim 的跳转（`<C-]>`, `g]` 等) 就都能用了。
-
-    ---
-
-    **方案 2：用 Vim 配置自动为 netrw 本地缓存生成 tags**
-
-    把下面加入 `.vimrc`：
-
-    ```vim
-    autocmd BufEnter scp://* call s:GenTagsForNetrw()
-
-    function! s:GenTagsForNetrw()
-        if exists("b:netrw_curdir")
-            let l:dir = b:netrw_curdir
-            if !filereadable(l:dir . "/tags")
-                echo "Generating tags for " . l:dir
-                silent execute "!ctags -R " . shellescape(l:dir)
-            endif
-            execute "setlocal tags=" . l:dir . "/tags"
-        endif
-    endfunction
-    ```
-
-    这样你每次打开远程文件，Vim 会自动：
-
-    * 找到对应的 netrw 缓存目录
-    * 缓存目录没有 tags 就自动生成
-    * 自动 `set tags`
-
-    远程主机完全不需要 ctags。
-
-    ---
-
-    **方案 3：用 sshfs（推荐）**
-
-    如果你常编辑远程项目，直接把远程目录挂载成本地目录就更轻松了：
-
-    ```bash
-    sshfs user@host:/path/to/proj ~/remote-proj
-    cd ~/remote-proj
-    ctags -R .
-    ```
-
-    然后像编辑本地项目一样使用 Vim，tag、搜索都无缝工作。
-
-    ---
-
-    **不能用的方式**
-
-    * 不能在 netrw 的 “虚拟路径” 上运行 `!ctags` —— 它会试图在远程机器上执行
-    * 不能在远程主机没有 ctags 的情况下让 Vim 在远程运行 ctags
-
-    ---
-
-    如果你想，我也可以：
-
-    * 写一个 **自动更新 tags 的插件样式脚本**
-    * 给你 **支持多 host 多缓存的 better-netrw + tags 工作流**
-    * 给你一个 **纯 Lua（适配 Neovim）的版本**
-
-    你需要更自动化一点的吗？
 
 * vim 中，如何 visual 模式下只选取指定的行，比如隔一行选一行。我想选择指定的不规律的几行，比如 1, 4, 9, 12，然后对这些行应用一些指定的宏或函数，比如在每一行的开头添加 * ，删去结尾的空格，替换行里的一些字符等。
 
@@ -2534,6 +2248,116 @@
 
     最简单的方式是直接使用 :DiffOrig（如果可用），或者先执行 :w 保存，然后用 Git 等工具查看修改。
 
+* vim 中的特殊字符
+
+    只要一个字符满足下面任意一条，就**不能直接敲出来**，必须用 `Ctrl-V`（或等价方式）：
+
+    * 它是 **ASCII 控制字符**（0x00–0x1F, 0x7F）
+    * 它在 Vim 里有 **特殊语义**（如 `<Esc>`、`<Tab>`、`<CR>`）
+    * 你希望插入的是 **“这个字符本身”**，而不是它的功能
+
+    **典型场景：**
+
+    * 宏 (`let @a = '...'`)
+    * 映射 (`:map`)
+    * 搜索模式
+    * 二进制/协议文本
+    * 精确复现终端行为
+
+    常见的 Vim 内部表示 / 终端控制字符:
+
+    * ASCII 控制字符
+
+        | Ctrl 组合  | 名称  | ASCII | Vim 显示 | 说明      |
+        | -------- | --- | ----- | ------ | ------- |
+        | `Ctrl-@` | NUL | 0x00  | `^@`   | 空字符     |
+        | `Ctrl-A` | SOH | 0x01  | `^A`   |         |
+        | `Ctrl-B` | STX | 0x02  | `^B`   |         |
+        | `Ctrl-C` | ETX | 0x03  | `^C`   | 中断      |
+        | `Ctrl-D` | EOT | 0x04  | `^D`   |         |
+        | `Ctrl-G` | BEL | 0x07  | `^G`   | 响铃      |
+        | `Ctrl-H` | BS  | 0x08  | `^H`   | 退格      |
+        | `Ctrl-I` | TAB | 0x09  | `^I`   | **Tab** |
+        | `Ctrl-J` | LF  | 0x0A  | `^J`   | 换行      |
+        | `Ctrl-M` | CR  | 0x0D  | `^M`   | **回车**  |
+        | `Ctrl-[` | ESC | 0x1B  | `^[`   | **Esc** |
+        | `Ctrl-\` | FS  | 0x1C  | `^\`   |         |
+        | `Ctrl-]` | GS  | 0x1D  | `^]`   |         |
+        | `Ctrl-^` | RS  | 0x1E  | `^^`   |         |
+        | `Ctrl-_` | US  | 0x1F  | `^_`   |         |
+        | `DEL`    | DEL | 0x7F  | `^?`   | 删除      |
+
+        插入方法：
+
+        ```
+        Ctrl-V  Ctrl-<key>
+        ```
+
+        例如：
+
+        * `Ctrl-V Ctrl-[`: 插入 `^[`
+        * `Ctrl-V Ctrl-M`: 插入 `^M`
+        * `Ctrl-V Ctrl-I`: 插入真正的 Tab（不是空格）
+
+    * Vim 特殊键（键名 vs 字面字符）
+
+        这些键平时你敲的是**动作**，不是字符：
+
+        | 键         | 键名      | 字面插入方式             |
+        | --------- | ------- | ------------------ |
+        | Esc       | `<Esc>` | `Ctrl-V Esc`       |
+        | Tab       | `<Tab>` | `Ctrl-V Tab`       |
+        | Enter     | `<CR>`  | `Ctrl-V Enter`     |
+        | Backspace | `<BS>`  | `Ctrl-V Backspace` |
+
+        如果你不使用 `Ctrl-V`，Vim 会直接执行命令，或结束输入，或触发补全。
+
+    * 非 ASCII / 特殊 Unicode
+
+        十六进制方式（推荐）
+
+        ```vim
+        Ctrl-V u 00a0     " Unicode
+        Ctrl-V x 1b       " 8-bit
+        Ctrl-V o 033      " 八进制
+        ```
+
+        例子：
+
+        | 字符            | 用途               |
+        | -------------- | ----------------   |
+        | `Ctrl-V u00a0` | 不断行空格 (NBSP)     |
+        | `Ctrl-V x1b`   | ESC（和 `Ctrl-[` 等价） |
+        | `Ctrl-V x7f`   | DEL              |
+
+    **查看特殊按键的列表：**
+
+    * `:help i_CTRL-V`
+
+        插入模式下 Ctrl-V 的完整说明
+
+        这里有：
+
+        * 所有可插入控制字符
+        * 十六进制 / Unicode 规则
+        * 精确行为说明
+
+    * `:help key-notation`
+
+        Vim 的 `<Esc>` / `<CR>` / `<Tab>` 表示法
+
+    * `:help ASCII`
+
+        完整 ASCII 表（含控制字符）
+
+    * `:help special-keys`
+
+    **建议：**
+
+    * 对于宏，优先使用 `<Esc>`, `<CR>`（通过 `:execute` / `:normal!`），少用字面 `^[`
+
+    * 对于需要精确字节控制，使用`Ctrl-V`
+
 ## topics
 
 ### vim 的不同模式
@@ -3066,6 +2890,107 @@
         ```
 
 ### 远程文件
+
+* 我使用vim的netrw打开远程文件后，如何使用ctags？远程host未安装ctags
+
+    `netrw` 只是通过 SSH/SCP 把远程文件 **拉到本地的临时目录** 再编辑，所以 **ctags 只需要在本地生成即可**，跟远程主机上有没有 ctags 完全无关。
+
+    下面是可以直接用的几种方案：
+
+    ---
+
+    **方案 1：把整个远程工程 rsync/clone 到本地，然后本地生成 tags**
+
+    这是最稳、最好用的方式。
+
+    1. 用 `netrw` 打开远程路径，例如：
+
+       ```
+       :e scp://user@host//path/to/proj/
+       ```
+
+    2. **找出 netrw 的本地缓存路径**
+
+       执行：
+
+       ```
+       :echo b:netrw_curdir
+       ```
+
+       这个目录就是你当前正在编辑的远程目录在本地同步的缓存路径。
+
+    3. 在缓存目录生成 tags：
+
+       ```bash
+       cd /tmp/…/some/netrw/path
+       ctags -R .
+       ```
+
+    4. 在 Vim 中设置 tags：
+
+       ```
+       :set tags=/tmp/.../netrw/path/tags
+       ```
+
+    完成后 Vim 的跳转（`<C-]>`, `g]` 等) 就都能用了。
+
+    **方案 2：用 Vim 配置自动为 netrw 本地缓存生成 tags**
+
+    把下面加入 `.vimrc`：
+
+    ```vim
+    autocmd BufEnter scp://* call s:GenTagsForNetrw()
+
+    function! s:GenTagsForNetrw()
+        if exists("b:netrw_curdir")
+            let l:dir = b:netrw_curdir
+            if !filereadable(l:dir . "/tags")
+                echo "Generating tags for " . l:dir
+                silent execute "!ctags -R " . shellescape(l:dir)
+            endif
+            execute "setlocal tags=" . l:dir . "/tags"
+        endif
+    endfunction
+    ```
+
+    这样你每次打开远程文件，Vim 会自动：
+
+    * 找到对应的 netrw 缓存目录
+    * 缓存目录没有 tags 就自动生成
+    * 自动 `set tags`
+
+    远程主机完全不需要 ctags。
+
+    ---
+
+    **方案 3：用 sshfs（推荐）**
+
+    如果你常编辑远程项目，直接把远程目录挂载成本地目录就更轻松了：
+
+    ```bash
+    sshfs user@host:/path/to/proj ~/remote-proj
+    cd ~/remote-proj
+    ctags -R .
+    ```
+
+    然后像编辑本地项目一样使用 Vim，tag、搜索都无缝工作。
+
+    ---
+
+    **不能用的方式**
+
+    * 不能在 netrw 的 “虚拟路径” 上运行 `!ctags` —— 它会试图在远程机器上执行
+    * 不能在远程主机没有 ctags 的情况下让 Vim 在远程运行 ctags
+
+    ---
+
+    如果你想，我也可以：
+
+    * 写一个 **自动更新 tags 的插件样式脚本**
+    * 给你 **支持多 host 多缓存的 better-netrw + tags 工作流**
+    * 给你一个 **纯 Lua（适配 Neovim）的版本**
+
+    你需要更自动化一点的吗？
 
 * 我使用 vim 的 netrw 打开远程文件后，如何使用 ctags？远程 host 未安装 ctags
 
