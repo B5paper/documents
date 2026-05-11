@@ -2,6 +2,63 @@
 
 ## cache
 
+* 简述pinn的原理，作用，代表论文以及项目
+
+    **PINNs (Physics-Informed Neural Networks，物理信息神经网络)** 是近年来科学计算与人工智能交叉领域（AI for Science）最热门的研究方向之一。它由布朗大学的 George Karniadakis 教授团队提出。
+
+    以下是对 PINN 的深度简述：
+
+    1. PINN 的核心原理
+
+        传统神经网络通常是“纯数据驱动”的黑盒模型，而 PINN 通过将**偏微分方程 (PDEs)** 直接嵌入到神经网络的**损失函数 (Loss Function)** 中，使模型在拟合数据的同时必须遵循物理定律。
+
+        * **网络结构**：通常是一个全连接深度神经网络 (DNN)，输入是坐标（如空间 $x, y, z$ 和时间 $t$），输出是物理场（如压力 $p$、速度 $u$、温度 $T$）。
+        * **损失函数构成**：
+
+        $$Loss = Loss_{data} + Loss_{physics} + Loss_{bc/ic}$$
+
+        1. **$Loss_{data}$**：预测值与观测点实测数据之间的误差。
+        2. **$Loss_{physics}$**：通过**自动微分 (Automatic Differentiation)** 计算输出对输入的导数，代入 PDE 后的残差。残差越小，越符合物理定律。
+        3. **$Loss_{bc/ic}$**：边界条件 (Boundary Conditions) 和初始条件 (Initial Conditions) 的约束。
+
+    2. PINN 的主要作用
+
+        * **正向问题（解方程）**：在没有实验数据或只有边界条件的情况下，求解复杂的偏微分方程。它不需要像有限元法（FEM）那样进行复杂的网格划分，适合处理高维问题。
+        * **反向问题（参数辨识）**：通过少量的实验观测数据，反向推导物理方程中的未知参数（例如流体的粘性系数、材料的弹性模量）。
+        * **数据增强与去噪**：在实验数据稀疏或含有噪声的情况下，利用物理定律作为“正则化项”来约束模型，提高预测的准确性和泛化能力。
+
+    3. 代表性论文
+
+        1. **开山之作 (2019)**：
+
+            * *Raissi, M., Perdikaris, P., & Karniadakis, G. E. (2019). Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics.*
+
+            * **地位**：正式定义了 PINN 框架，展示了其在流体力学、量子力学等领域的应用。
+
+        2. **综述论文 (2021)**：
+
+            * *Karniadakis, G. E., et al. (2021). Physics-informed machine learning. Nature Reviews Physics.*
+            * **地位**：系统梳理了物理信息机器学习的发展脉络和未来挑战。
+
+    4. 主流项目与工具库
+
+        如果你想上手实现 PINN，以下是目前最流行的开源框架：
+
+        | 项目名称 | 开发团队/背景 | 特点 |
+        | --- | --- | --- |
+        | **DeepXDE** | Lu Lu (宾大) | **最推荐**。目前功能最全的 PINN 库，支持多种几何形状和 PDE 类型，易用性高。 |
+        | **NVIDIA Modulus** | 英伟达 | 企业级框架，针对多 GPU 加速和数字孪生 (Digital Twins) 进行了高度优化。 |
+        | **SciANN** | 独立社区 | 基于 Keras/TensorFlow，语法类似于定义数学公式，非常直观。 |
+        | **MindSpore Science** | 华为 | 国产 AI 框架，针对科研场景提供了丰富的 PINN 套件和算子优化。 |
+        | **IDEEP** | 百度 (飞桨) | 飞桨推出的科学计算平台，支持大规模分布式训练。 |
+
+    **总结**
+
+    PINN 的伟大之处在于它弥合了“严谨的物理公式”与“强大的学习能力”之间的鸿沟。它不需要传统的离散网格，而是用**神经网络来表示连续的解空间**。
+
+    **您是想深入了解某个特定的物理方程（如 Navier-Stokes 方程）的 PINN 实现，还是想尝试运行一个基础的 Demo？**
+
+
 * 如何训练一个自己的stable diffusion
 
     训练自己的Stable Diffusion，优先选**LoRA**（新手友好、快、省显存）；进阶用**DreamBooth**（强定制）、**Textual Inversion**（新词嵌入）。下面给你完整可执行流程👇

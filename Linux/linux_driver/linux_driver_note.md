@@ -6,6 +6,114 @@ Ref:
 
 ## cache
 
+* module_param_array(m_arr, int, NULL, 0755);
+    指定权限时，0755 似乎会报错，可以使用哪些权限？
+
+    在使用 `module_param_array`（以及 `module_param`）定义内核模块参数时，权限参数（`perm`）的设定受到内核安全机制的严格限制。
+
+    在较新版本的 Linux 内核中，**禁止任何具有“可执行”权限（World-writable/Executable）的参数设置**。由于 `0755` 包含了可执行权限（`5` 对应 `read` + `execute`），内核在编译或加载时会触发 `BUILD_BUG_ON` 或报错。
+
+    ### 1\. 权限设置的基本原则
+
+    内核参数的权限位主要控制 `/sys/module/<module_name>/parameters/<param_name>` 下对应文件的访问属性：
+
+      * **不可见**：设置为 `0`。该参数不会在 sysfs 中显示，只能在加载模块时通过命令行传递。
+      * **只读**：允许用户态查看参数当前值，但不能修改。
+      * **可读写**：允许 root 用户在系统运行时动态修改参数值。
+
+    ### 2\. 推荐使用的权限宏
+
+    为了代码的可读性和兼容性，建议使用 `<linux/stat.h>` 中定义的宏，而不是原始的八进制数字：
+
+    | 权限需求 | 推荐宏 / 组合 | 八进制等价 | 说明 |
+    | :--- | :--- | :--- | :--- |
+    | **仅 root 可读** | `S_IRUSR` | `0400` | 最安全，仅 root 可见。 |
+    | **全员只读** | `S_IRUGO` | `0444` | 所有用户可见，均不可修改。 |
+    | **root 可读写** | `S_IRUSR | S_IWUSR` | `0600` | 仅 root 可见并可动态修改。 |
+    | **root 读写 + 组/他人只读** | `S_IRUGO | S_IWUSR` | `0644` | 常用。所有人可见，仅 root 可改。 |
+
+    ### 3\. 为什么 0755 会报错？
+
+    内核源码中有一项安全检查：
+
+    ```c
+    /* 内核通过此宏确保参数既不是全局可写的，也不是可执行的 */
+    __moduleparam_constcheck(); 
+    ```
+
+    如果你尝试使用 `0755` 或 `0666`（全局可写），内核会认为这存在安全风险：
+
+    1.  **禁止可执行**：内核参数只是数据，不需要执行权限。
+    2.  **禁止全局写**：防止非特权用户通过修改内核参数来破坏系统稳定性。
+
+    -----
+
+    您可以直接修改代码如下：
+
+    ```c
+    // 如果您希望 root 能够修改，其他用户只能查看
+    module_param_array(m_arr, int, NULL, 0644); 
+    ```
+
+    为了确保参数修改后能正确生效，我可以为您提供相关的处理逻辑。
+
+      * [编写检测参数变更的回调函数](http://googleusercontent.com/interactive_content/0)
+      * [生成标准的模块初始化模板代码](http://googleusercontent.com/interactive_content/1)
+
+* KERN_DIR=/usr/src/linux-headers-$(uname -r)
+
+    为啥这么写是错的？
+
+    在 shell 脚本或终端中直接这样写，通常会导致 `KERN_DIR` 变成一个**空值**或者**无效路径**，主要原因有以下几点：
+
+    ### 1\. 变量赋值的语法限制
+
+    在 Shell 中，变量赋值的等号 `=` 两侧**不能有空格**。
+
+      * **错误写法**：`KERN_DIR = /usr/src/...` （Shell 会把 `KERN_DIR` 当成一个命令，把 `=` 当成参数）。
+      * **正确写法**：`KERN_DIR=/usr/src/...`
+
+    ### 2\. 运行环境的差异 (Makefile vs Shell)
+
+    这是最常见的原因。如果你是在 **Makefile** 文件里这么写，它会报错或失效：
+
+      * **Shell 语法**：使用 `$(uname -r)` 执行命令。
+      * **Makefile 语法**：Makefile 里的 `$(...)` 是用来引用变量的。如果你想在 Makefile 里调用 Shell 命令，必须显式使用 `shell` 函数：
+        ```makefile
+        # 在 Makefile 中应该这样写：
+        KERN_DIR := /usr/src/linux-headers-$(shell uname -r)
+        ```
+
+    ### 3\. 路径不存在
+
+    `$(uname -r)` 会返回类似于 `6.8.0-45-generic` 的内核版本号。
+
+      * 在 **Ubuntu/Debian** 上，路径通常是 `/usr/src/linux-headers-x.x.x-x-generic`。
+      * 在 **CentOS/RHEL** 上，路径通常是 `/usr/src/kernels/x.x.x...`。
+      * 如果你的系统中没有安装对应的 `kernel-devel` 或 `linux-headers` 软件包，这个目录根本就不存在。
+
+    -----
+
+    ### 如何排查？
+
+    你可以执行以下命令来检查路径是否真的有效：
+
+    ```bash
+    ls -d /usr/src/linux-headers-$(uname -r)
+    ```
+
+    如果提示 `No such file or directory`，说明你需要先安装头文件：
+
+      * **Ubuntu/Debian**: `sudo apt install linux-headers-$(uname -r)`
+      * **CentOS/Fedora**: `sudo dnf install kernel-devel-$(uname -r)`
+
+    为了确保脚本的健壮性，我们可以完善这段代码。
+
+    为了确保编译环境配置正确，可以进行以下后续操作：
+
+      * [检测当前系统内核头文件的实际存放路径](http://googleusercontent.com/interactive_content/0)
+      * [编写兼容不同 Linux 发行版的 KERN\_DIR 自动获取脚本](http://googleusercontent.com/interactive_content/1)
+      * [生成标准的 Linux 驱动程序 Makefile 模板](http://googleusercontent.com/interactive_content/2)
 * 简述 madvise() 的作用
 
     `madvise()` 是 **Linux/Unix 下的内存 advise 系统调用**，作用是：

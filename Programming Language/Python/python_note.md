@@ -2,6 +2,140 @@
 
 ## cache
 
+* 详细讲讲 pytest 的用法
+
+    Pytest 是目前 Python 社区最流行、功能最强大的测试框架。相比传统的 `unittest`，它语法更简洁、扩展性更高，且拥有极其丰富的插件生态。
+
+    以下是关于 Pytest 用法的深度指南：
+
+    ---
+
+    一、 核心概念与快速上手
+
+    Pytest 的核心哲学是 **“无痛测试”**。你不需要继承任何类，只需要编写以 `test_` 开头的函数即可。
+
+    1. 简单的测试用例
+        
+        创建一个 `test_demo.py` 文件：
+        ```python
+        def add(a, b):
+            return a + b
+
+        def test_add_success():
+            assert add(1, 2) == 3  # 直接使用 Python 原生的 assert
+
+        def test_add_fail():
+            assert add(1, 2) == 5
+        ```
+        **运行方式：** 在终端输入 `pytest`，它会自动搜索当前目录下所有 `test_*.py` 或 `*_test.py` 的文件并执行。
+
+    ---
+
+    二、 断言与异常处理
+
+    Pytest 对原生 `assert` 进行了重写，当测试失败时，它会提供非常详细的上下文信息（Variable interpretation），让你一眼看出哪里出了错。
+
+    1. 检查异常
+
+        如果你的代码预期会抛出异常，可以使用 `pytest.raises`：
+        ```python
+        import pytest
+
+        def test_zero_division():
+            with pytest.raises(ZeroDivisionError):
+                1 / 0
+        ```
+
+    ---
+
+    三、 Fixture：Pytest 的灵魂
+
+    Fixture（测试夹具）用于定义测试的前置准备（如数据库连接、登录）和后置清理（如关闭连接、删除临时文件）。
+
+    1. 基本用法
+        
+        ```python
+        import pytest
+
+        @pytest.fixture
+        def db_connection():
+            print("\n[前置] 连接数据库...")
+            conn = {"user": "admin"}
+            yield conn  # yield 之前是前置，之后是后置
+            print("\n[后置] 关闭数据库连接...")
+
+        def test_query(db_connection):
+            assert db_connection["user"] == "admin"
+        ```
+
+    2. 作用域 (Scope)
+
+        Fixture 可以控制执行频率：
+        *   `function`: 每个函数执行一次（默认）。
+        *   `class`: 每个类执行一次。
+        *   `module`: 每个模块（文件）执行一次。
+        *   `session`: 整个测试会话执行一次。
+
+    ---
+
+    四、 参数化测试 (Parametrization)
+
+    如果你想用不同的输入数据测试同一个逻辑，不需要写多个函数，直接使用 `@pytest.mark.parametrize`。
+
+    ```python
+    @pytest.mark.parametrize("input_val, expected", [
+        (1, 2),
+        (2, 4),
+        (3, 6),
+    ])
+    def test_double(input_val, expected):
+        assert input_val * 2 == expected
+    ```
+
+    ---
+
+    五、 配置文件与插件
+
+    1. `pytest.ini`
+        
+        这是 Pytest 的主配置文件，通常放在项目根目录，用于定制运行规则。
+        ```ini
+        [pytest]
+        addopts = -vs --strict-markers
+        testpaths = tests
+        python_files = test_*.py
+        markers =
+            smoke: 冒烟测试
+            regression: 回归测试
+        ```
+
+    2. 常用插件生态
+
+        Pytest 的强大在于插件，你可以通过 `pip` 安装：
+        *   **pytest-html**: 生成 HTML 格式的测试报告。
+        *   **pytest-xdist**: 多进程并行运行测试，显著提高速度。
+        *   **pytest-ordering**: 控制测试用例的执行顺序。
+        *   **pytest-rerunfailures**: 失败重试（处理网络波动等不稳定情况）。
+
+    ---
+
+    六、 项目结构最佳实践
+
+    一个标准的 Pytest 项目通常如下：
+    ```text
+    my_project/
+    ├── src/                # 源代码
+    ├── tests/              # 测试文件夹
+    │   ├── conftest.py     # 公共 Fixture 配置文件（跨文件共享）
+    │   ├── test_api.py
+    │   └── test_ui.py
+    ├── pytest.ini          # 配置文件
+    └── requirements.txt
+    ```
+
+    > **💡 小贴士：** `conftest.py` 是一个特殊的文件。在该文件中定义的 Fixture，不需要显式导入，同目录及子目录下的所有测试文件都可以直接调用，这是实现代码复用的利器。
+
+    你目前是想为一个现有的项目编写测试，还是从零开始搭建自动化测试框架？
 * 简述 plotly
 
     **Plotly** 是一款跨语言的**交互式数据可视化库**，核心优势是生成可交互、可网页部署的动态图表，支持 Python、R、JavaScript 等多语言接口。

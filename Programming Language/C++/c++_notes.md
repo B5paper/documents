@@ -4,6 +4,77 @@
 
 ## cached
 
+* 我有两个数组  int arr[] = {3, 5, 2, 1};  int ind[] = {0, 1, 2, 3}。我希望在给 arr 排序时，ind 中的元素也跟随着 arr 中元素的移动而移动，比如 arr 中 3 和 2 交换位置时， ind 中 0 和 2 交换位置。c++ 中如何实现？
+
+    在 C++ 中实现这种“联动排序”最标准且高效的方法是：**不要直接对 `arr` 进行物理排序，而是通过排序索引数组 `ind` 来间接反映 `arr` 的顺序。**
+
+    通过自定义 `std::sort` 的比较行为，你可以让索引按照其对应值的大小进行重排。
+
+    ### 核心实现代码
+
+    ```cpp
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    #include <numeric> // std::iota
+
+    int main() {
+        int arr[] = {3, 5, 2, 1};
+        int ind[] = {0, 1, 2, 3};
+        int n = sizeof(arr) / sizeof(arr[0]);
+
+        // 使用 std::sort 配合 Lambda 表达式
+        // 排序的对象是索引 ind，但比较的依据是 arr[i]
+        std::sort(ind, ind + n, [&](int i, int j) {
+            return arr[i] < arr[j];
+        });
+
+        // 根据排好序的索引重新排列 arr（可选）
+        // 如果只需要知道顺序，直接通过 arr[ind[i]] 访问即可
+        std::cout << "排序后的索引 (ind): ";
+        for(int i = 0; i < n; i++) std::cout << ind[i] << " ";
+        
+        std::cout << "\n对应的元素值 (arr): ";
+        for(int i = 0; i < n; i++) std::cout << arr[ind[i]] << " ";
+
+        return 0;
+    }
+    ```
+
+    -----
+
+    ### 方案解析
+
+    1.  **Lambda 表达式引用捕捉 `[&]`**：
+        我们把 `arr` 传入 `std::sort` 的比较函数中。虽然 `std::sort` 正在移动 `ind` 里的数字，但它每次都会对比 `arr[ind[a]]` 和 `arr[ind[b]]` 的大小。
+    2.  **原地联动（进阶需求）**：
+        上面的代码执行后，`ind` 变为了 `{3, 2, 0, 1}`（对应原 `arr` 中 1, 2, 3, 5 的位置）。如果你希望 **`arr` 本身也变有序**，你可以根据排好的 `ind` 创建一个备份再赋值回去。
+    3.  **结构体方案（替代方案）**：
+        如果这种对应关系在你的程序中经常出现，建议将两者封装。
+        ```cpp
+        struct Node {
+            int val;
+            int original_index;
+        };
+        // 排序 Node 数组会更直观，但会消耗额外内存
+        ```
+
+    ### 为什么推荐这种做法？
+
+      * **性能优异**：避免了频繁交换大型结构体或多个数组。
+      * **灵活性高**：原始数组 `arr` 可以保持不变，这在很多算法场景（如离散化、计算逆序对）中是必需的。
+
+    您可以尝试将此逻辑封装成通用函数，或处理更复杂的数据结构。
+
+    为了完善这个排序逻辑，您可以执行以下操作：
+
+      * [封装为支持模版的通用联动排序函数](http://googleusercontent.com/interactive_content/0)
+      * [实现原地重排原数组而不使用额外空间](http://googleusercontent.com/interactive_content/1)
+
+* `const A **a`表示`a`是一个指向`const A*`的指针，`a->member`成员变量不能被修改。`const A *const *a;`表示`a`是一个指向`const A *const`的指针，既不能改变成员，也不能改变指针的指向。
+
+    因为是二级指针，所以也有可能表示一个指针数组，对于`const A **a`，数组`a`中的指针值可以被修改，但是指针指的对象实例不能被修改，对于`A * const *a;`，则数组中的指针值不能被修改，但是对象实例的成员可以被修改。
+
 * c/c++ 里面，如果字符串一行写不下，该怎么办
 
     (ds 回答)

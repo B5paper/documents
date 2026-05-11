@@ -36,6 +36,85 @@
 
 ## cache
 
+* qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
+
+* 现在我有多个 qemu 虚拟机，不一定在同一个物理机上，如何让它们可以使用 ip 互访？
+
+    要在不同物理机上的 QEMU 虚拟机之间实现 IP 互访，核心挑战在于构建一个**跨主机的二层或三层网络**。
+
+    以下是几种主流的解决方案，按实现难度从易到难排序：
+
+    1. 组网神器：Tailscale / ZeroTier (推荐)
+
+        这是目前最简单、最稳定的方案，完全无视物理网络环境（甚至可以跨公网）。
+
+        * **原理**：在每个虚拟机内部安装客户端，它们会构建一个虚拟网卡（TUN 设备），并分配一个在全球唯一的私网 IP。
+        * **优点**：
+            * 无需配置复杂的网桥或物理交换机。
+            * 自带 NAT 穿透，虚拟机在内网还是外网都能通。
+        *   **操作**：在每台 VM 里运行 `curl -fsSL [https://tailscale.com/install.sh](https://tailscale.com/install.sh) | sh`，登录后直接通过分配的 100.x.x.x 地址互访。
+
+    2. VXLAN 隧道 (进阶原生方案)
+
+        如果你希望在底层网络层面实现透明传输，VXLAN 是工业级标准。它通过将二层数据包封装在 UDP 中，在物理机之间建立“隧道”。
+
+        * **实现步骤**：
+
+            1.  在物理机 A 和 B 上分别创建一个 VXLAN 接口，并指定对端的物理 IP。
+            2.  将该 VXLAN 接口挂载到 QEMU 使用的网桥（如 `br0`）上。
+
+        * **命令示例**（在物理机 A 上）：
+
+            ```bash
+            # 创建 vxlan 接口，vni 是唯一标识，remote 是物理机 B 的 IP
+            ip link add vxlan0 type vxlan id 100 remote [物理机B_IP] dstport 4789 dev eth0
+            ip link set vxlan0 up
+            # 将 vxlan0 加入网桥
+            brctl addif br0 vxlan0
+            ```
+
+        *   **结果**：两台物理机上的 `br0` 像通过一根隐形的网线连在一起了，两边的 VM 只要在同一个网段即可通信。
+
+    3. 桥接物理网卡 (二层直连)
+        
+        如果你的物理机都在同一个局域网（同一交换机下），且你有权限控制物理网络。
+
+        *   **原理**：将物理机的网卡（如 `eth0`）也加入到 QEMU 网桥中。
+        *   **缺点**：物理路由器必须能处理大量的 MAC 地址；如果是在云服务器（阿里云/AWS）上，这种方式通常会被安全策略拦截。
+        *   **配置关键**：
+            
+        ```bash
+        # 物理机配置
+        brctl addif br0 eth0
+        ```
+
+        此时虚拟机就像插在物理交换机上一样，直接通过物理 DHCP 获取 IP。
+
+    4. WireGuard 自建 VPN
+        
+        如果你追求极高性能且不希望依赖 Tailscale 的控制端。
+
+        * 原理：在每台虚拟机或每台物理机上部署 WireGuard
+
+        * 场景：
+
+            * VM-to-VM：每台虚拟机都是一个 Peer，直接点对点。
+            * Host-to-Host：在物理机上打通隧道，并配置路由转发（Static Routes），将指向对方 VM 网段的流量转发到隧道中。
+
+    **方案对比与建议**
+
+    | 方案 | 易用性 | 性能 | 适用场景 |
+    | :--- | :--- | :--- | :--- |
+    | **Tailscale** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 跨地域、不想折腾配置、学习用途 |
+    | **VXLAN** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 实验机房、模拟集群、同局域网 |
+    | **桥接物理网卡** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 只有几台物理机且在同一个交换机下 |
+    | **WireGuard** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 对安全和延迟有极致要求的场景 |
+
+    **我的建议：**
+    如果你只是想快速让实验环境跑起来，**Tailscale** 是首选。如果你是在学习 Linux 网络或构建高性能集群，研究一下 **VXLAN** 会让你受益匪浅。
+    ```
+* [new] 如果 cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
+
 * 既需要 explore，又需要输出，对接现实世界
 
     一个问题展开研究可能非常复杂，需要几个月才能看完，比如 linux 内核。但是现实往往要求马上做出输出，比如找工作。所以，复杂的不是 linux 内核本身，也不是找工作本身，而是靠“人”这个润滑剂在 explore 和对接现实世界之间缓和所有摩擦，在动态的变化中找到平衡。
@@ -1255,9 +1334,9 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
-* [ ] `setitimer()`
+* [v] `setitimer()`
 
-* [ ] `timer_create()`
+* [v] `timer_create()`
 
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
@@ -1504,7 +1583,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] 调研正则表达式`(?:...)`
 
-* [asso] `if constexpr`
+* [v] `if constexpr`
 
     这个似乎可以编译期让不同类型走不同的 if 分支
 
@@ -1743,7 +1822,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [new] `arr: "NDArray" = cp.array([1, 2, 3])`
 
-* [ ] divmod, np.unravel_index
+* [v] divmod, np.unravel_index
 
 * [new] GitLens
 
@@ -1916,9 +1995,9 @@ resources:
 
 * [v] `nn.Unflatten()`
 
-* [ ] `nn.ConvTranspose2d()`
+* [v] `nn.ConvTranspose2d()`
 
-* [ ] `nn.BatchNorm2d()`
+* [v] `nn.BatchNorm2d()`
 
 * [ ] 调研自旋锁、互斥锁的汇编实现
 
@@ -6104,7 +6183,9 @@ resources:
 
 ### tasks
 
-* [v] vim 打开文件后，是否可以总是追踪最新内容？
+* [new] vim `autocmd`
+
+    example: `autocmd FileType diff set scrollbind`
 
 * [new] 调研 vim 设置
 

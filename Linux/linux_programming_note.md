@@ -6,6 +6,124 @@
 
 ## cache
 
+* 详细讲讲 setitimer() 的原型、作用及用法
+
+    `setitimer()` 是 Linux/Unix 系统编程中用于设置**间隔定时器**（Interval Timer）的系统调用。相比于简单的 `alarm()`，它能提供更精确的控制，并支持多种计时模式。
+
+    1. 函数原型
+
+        要在 C 语言中使用它，需要包含以下头文件：
+
+        ```c
+        #include <sys/time.h>
+
+        int setitimer(int which, const struct itimerval *new_value, struct itimerval *old_value);
+
+        ```
+
+        **参数说明：**
+
+        1. **`which`**: 指定定时器类型。
+        2. **`new_value`**: 指向 `itimerval` 结构的指针，用于设定新的定时器值。
+        3. **`old_value`**: 指向 `itimerval` 结构的指针，用于传出旧的定时器设置（如果不关心，可以传 `NULL`）。
+
+        **返回值：**
+
+        * **成功**：返回 0。
+        * **失败**：返回 -1，并设置 `errno`。
+
+    2. 核心数据结构
+
+        理解 `setitimer` 的关键在于 `struct itimerval` 结构体：
+
+        ```c
+        struct itimerval {
+            struct timeval it_interval; /* 下一次定时器触发的时间间隔（循环频率） */
+            struct timeval it_value;    /* 距离下一次定时器触发的剩余时间（首次触发时间） */
+        };
+
+        struct timeval {
+            long tv_sec;                /* 秒 */
+            long tv_usec;               /* 微秒 (1/1,000,000 秒) */
+        };
+
+        ```
+
+        > **逻辑点拨**：
+        > * 如果 `it_value` 为 0，定时器会停止。
+        > * 如果 `it_value` 不为 0 且 `it_interval` 为 0，定时器只触发一次。
+        > * 如果两者都不为 0，定时器会在 `it_value` 时间后首次触发，随后每隔 `it_interval` 时间触发一次。
+        > 
+
+    3. 定时器类型 (`which`)
+
+        `setitimer` 支持三种计时模式，每种模式触发时发出的信号不同：
+
+        | 常量 | 计时逻辑 | 触发信号 |
+        | --- | --- | --- |
+        | **`ITIMER_REAL`** | **真实时间**（挂钟时间）。进程不运行时也计时。 | `SIGALRM` |
+        | **`ITIMER_VIRTUAL`** | **虚拟时间**。仅在进程处于**用户态**执行时计时。 | `SIGVTALRM` |
+        | **`ITIMER_PROF`** | **剖析时间**。进程在**用户态和内核态**运行时都计时。 | `SIGPROF` |
+
+    4. 使用步骤与示例
+
+        使用 `setitimer` 的典型流程是：**定义信号处理函数** -> **注册信号** -> **设置定时器参数** -> **启动定时器**。
+
+        代码示例：每隔一秒打印一条信息
+
+        ```c
+        #include <stdio.h>
+        #include <signal.h>
+        #include <sys/time.h>
+        #include <unistd.h>
+
+        // 信号处理函数
+        void timer_handler(int sig) {
+            printf("Timer expired! Signal received: %d\n", sig);
+        }
+
+        int main() {
+            struct itimerval timer;
+
+            // 1. 注册信号捕获函数
+            signal(SIGALRM, timer_handler);
+
+            // 2. 设置首次触发时间（2秒后）
+            timer.it_value.tv_sec = 2;
+            timer.it_value.tv_usec = 0;
+
+            // 3. 设置随后的间隔时间（每隔1秒触发一次）
+            timer.it_interval.tv_sec = 1;
+            timer.it_interval.tv_usec = 0;
+
+            // 4. 启动定时器（使用真实时间计时）
+            if (setitimer(ITIMER_REAL, &timer, NULL) == -1) {
+                perror("error setting timer");
+                return 1;
+            }
+
+            // 模拟程序一直运行
+            while (1) {
+                pause(); // 等待信号触发
+            }
+
+            return 0;
+        }
+        ```
+
+    5. `setitimer` vs `alarm`
+
+        虽然两者都用于定时，但有明显区别：
+
+        * **精度**：`alarm()` 只能精确到秒，而 `setitimer()` 可以精确到**微秒**。
+        * **重复性**：`alarm()` 是一次性的，`setitimer()` 可以通过 `it_interval` 实现自动循环触发。
+        * **多维度**：`setitimer()` 可以根据 CPU 占用时间（虚拟时间）来计时，这在性能分析（Profiling）中非常有用。
+
+    **注意事项：**
+
+    * 一个进程中，同一种类型的定时器（如 `ITIMER_REAL`）只能设置一个，新设置的会覆盖旧的。
+    * `it_usec` 的取值范围通常应在 0 到 999,999 之间。
+    * 现代高性能应用中，如果需要更高的精度和更多的定时器实例，通常推荐使用 `timer_create()` (POSIX timers)。
 * 那么如何才能知道一个点 so 文件是否是一个 debug 版本的？
 
     我给你**最简单、最实用**的判断方法，Linux 下直接用这几条命令就能看 `.so` 是不是 **debug 版本（带调试信息）**。

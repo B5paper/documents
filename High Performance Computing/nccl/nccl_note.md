@@ -2,6 +2,69 @@
 
 ## cache
 
+* nccl 中 devWork->cbd 是干嘛用的
+
+    cbd -> Channel Buffer Descriptor（频道缓冲区描述符）
+
+    devWork->cbd 的设计是为了极致的性能，它主要包含：
+
+    1. Direct Pointers (直接指针)：为了避免在 Kernel 内部进行复杂的地址偏移计算。
+
+    2. ConnFifo：连接的 FIFO 信息，用于确定数据在 Ring 或 Tree 拓扑中发往哪个 Peer。
+
+    3. Step 控制：用于多 GPU 之间的同步锁（Progress Proxy）。
+
+    **`devWork` 的作用**
+    
+    `devWork` 是 GPU 上执行 NCCL 算法的 **工作描述结构体**，每个 thread block（甚至 warp）会从这个结构里读出当前要处理的通信任务。
+
+    它包含了：
+
+    * 数据源和目标的指针
+    * 分块大小信息
+    * 环形拓扑/树形拓扑的 rank 信息
+    * 进度控制（phase、step）
+    * 对应通信缓冲区信息（包括 `cbd`）
+
+    **例子**
+
+    假设 Reduce-Scatter 要传 1000 个元素，分给 4 个 GPU，但负载是非均匀的：
+
+    * GPU0: 400 个
+    * GPU1: 200 个
+    * GPU2: 300 个
+    * GPU3: 100 个
+
+    那么`cbd` 数组可能是：
+
+    ```
+    cbd[0] = { ptr = base,        size = 400 }
+    cbd[1] = { ptr = base+400,    size = 200 }
+    cbd[2] = { ptr = base+600,    size = 300 }
+    cbd[3] = { ptr = base+900,    size = 100 }
+    ```
+
+    kernel 每次从 `devWork->cbd[step]` 取出当前 step 要处理的那块数据，而不是自己推算。
+
+    一个更直观的图示：
+
+    ```
+    rank 0    rank 1    rank 2    rank 3
+    xxxx       xxxx      xxxx      xxxx
+    xxxx       xxxx      xxxx      xxxx
+    xxxx       xxxx      xxxx      xxxx
+    xxxx       xxxx      xxxx      xxxx
+    oooo       oooo      oooo      oooo
+    oooo       oooo      oooo      oooo
+    oooo       oooo      oooo      oooo
+    vvvv       vvvv      vvvv      vvvv
+    vvvv       vvvv      vvvv      vvvv
+    ```
+
+    可以看到，对于 4 块 gpu，chunk 一共有 3 个，但是 size 各不相同，分别为`{4, 3, 2}`。
+
+    这种非均匀的 chunk size，无论是在 reduce scatter 阶段还是 all gather 阶段，都是效率更低的，并且无法改善非均衡计算/通信压力。
+
 * `collNetChainGraph`, `collNetDirectGraph`
 
     collNetChainGraph 和 collNetDirectGraph 都是 NVIDIA Collective Networking (CollNet) 的不同实现模式，针对不同的硬件配置和通信模式进行优化。它们的区别主要体现在通信路径和硬件利用上。
