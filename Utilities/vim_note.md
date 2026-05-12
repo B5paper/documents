@@ -870,8 +870,8 @@
 
     感觉目前没有很好的办法，ai 推荐使用插件：
 
-    * **vim-visual-multi**（类 VSCode 多光标）
-    * **vim-multiple-cursors**（老牌）
+    * `vim-visual-multi`（类 VSCode 多光标）
+    * `vim-multiple-cursors`（老牌）
 
     个人感觉可以写个 vim 脚本，按某个键（比如`\l`）进入选中模式，然后按`a`选中行，每选中一行把行号加到 vim 脚本的 list 里，最后按`\l`退出选择。在 apply 宏或函数时，可以直接使用这个 list 里的数据。另外增加 reset list 功能: `\lr`，查看已标记行号的功能：`\ll`。
 
@@ -881,63 +881,106 @@
 
     有几种解决方案：
 
-    解决方案 1：使用表达式映射（推荐）
+    * 解决方案 1：使用表达式映射（Expression Mapping）（推荐）
 
-    ```vim
-    " 在 vimrc 中添加
-    nnoremap <expr> m (v:count ? v:count * 2 : 2) . 'j'
-    ```
+        ```vim
+        " 在 vimrc 中添加
+        nnoremap <expr> m (v:count ? v:count * 2 : 2) . 'j'
+        ```
 
-    这个映射会：
+        这个映射会完成`3x2j`。
 
-    * 当输入 m 时 → 执行 2j
+        * `<expr>`: 它告诉 Vim：后面的字符串不是要执行的命令，而是一个需要计算的表达式。Vim 会先计算这个表达式的结果，然后再把结果当作命令执行。
 
-    * 当输入 3m 时 → 执行 6j（3×2）
+            如果你在映射中去掉了 <expr>，Vim 就不会再把后面的代码当作“逻辑表达式”去计算，而是会把它当作一串普通的按键序列（Literal keys）直接输入。
 
-    * 当输入 5m 时 → 执行 10j（5×2）
+        * `(v:count ? v:count * 2 : 2) . 'j'` 是一个典型的三元运算符逻辑：
 
-    解决方案 2：使用 <Cmd> 映射（Vim 8.2+/Neovim）
+            * 变量 `v:count`
 
-    ```vim
-    nnoremap m <Cmd>execute 'normal! ' . (v:count1 * 2) . 'j'<CR>
-    ```
+                这是 Vim 的内置变量，用于存储你在按键前输入的数字前缀（Count）。
 
-    解决方案 3：使用函数包装
+                * 如果你输入 5m，那么 v:count 就是 5。
 
-    ```vim
-    function! MoveLines() abort
-        let count = v:count1 * 2
-        execute 'normal! ' . count . 'j'
-    endfunction
+                * 如果你直接按 m，那么 v:count 默认为 0。
 
-    nnoremap <silent> m :call MoveLines()<CR>
-    ```
+            * 三元运算符 (条件 ? 结果A : 结果B)
 
-    解决方案 4：使用递归映射（较简单）
+                条件: v:count（在 VimL 中，0 为假，非 0 为真）。
 
-    ```vim
-    " 这个方法有点取巧，但可以工作
-    nnoremap m 2j
-    nnoremap 1m 2j
-    nnoremap 2m 4j
-    nnoremap 3m 6j
-    nnoremap 4m 8j
-    " ... 可以继续添加更多数字
-    ```
+                如果为真（输入了数字）: 执行 v:count * 2。
 
-    最完整的解决方案
+                如果为假（没输数字）: 执行 2。
 
-    如果你希望处理所有数字前缀（包括 0 前缀）：
+            * 字符串连接符 `.`
 
-    ```vim
-    nnoremap <expr> m 'normal! ' . (max([v:count, 1]) * 2) . 'j'
-    ```
+                `. 'j'` 表示将前面的计算结果与字符 j（向下移动一行的命令）拼接在一起。
 
-    或者更好的版本：
+        注：
 
-    ```vim
-    nnoremap <expr> m (v:count ? v:count : 1) * 2 . 'j'
-    ```
+        1. 这个也可以等价映射成`nnoremap m <Cmd>execute 'normal! ' . (v:count1 * 2) . 'j'<CR>`
+
+            为什么 <expr> 通常更好？
+            
+            如果你删掉 <expr> 改成 execute，主要的变化在于命令的性质：
+            
+            | 特性 | `<expr>` 映射 | `execute 'normal! ...'` |
+            | - | - | - |
+            | 本质 | 按键替换（m -> 4j） | 脚本执行（运行一段代码） |
+            | 简洁性 | 高（直接返回字符串） | 低（需要写 execute, normal!, <CR>） |
+            | 宏录制 | 录制宏时表现更直观 | 有时会录入完整的命令字符串 |
+            | 处理 Count | 非常自然 | 需要依赖 v:count1 或手动解析 |
+
+    * 解决方案 2：使用 `<Cmd>` 映射（Vim 8.2+/Neovim）
+
+        ```vim
+        nnoremap m <Cmd>execute 'normal! ' . (v:count1 * 2) . 'j'<CR>
+        ```
+
+        * `<Cmd> ... <CR>`
+
+            这是现代 Vim/Neovim 推荐的执行命令方式。
+
+            相比传统的 : 模式，`<Cmd>` 不会切换到命令行模式，也不会闪烁，执行效率更高且更安静。
+
+            `<CR>` 代表按下回车，完成命令执行。
+
+        * execute
+
+            这是一个 Vim 脚本命令，用于将后面的字符串当作命令来执行。
+
+            因为我们需要动态计算跳转的行数，所以必须用 execute 来拼接字符串。
+
+        * `v:count1`: 这是一个内置变量。如果你在按 m 前输入了一个数字（如 5），它就是这个数字；如果你没输入数字，它的值默认为 1。
+
+        * `.`: 在 Vim 脚本中用于连接字符串。
+
+        * `'normal! ... j'`: 模拟按下原生的 j（向下移动）。! 确保使用的是 Vim 原生功能，不受其他插件映射的影响。
+
+    * 解决方案 3：使用函数包装
+
+        ```vim
+        function! MoveLines() abort
+            let count = v:count1 * 2
+            execute 'normal! ' . count . 'j'
+        endfunction
+
+        nnoremap <silent> m :call MoveLines()<CR>
+        ```
+
+    * 最完整的解决方案
+
+        如果你希望处理所有数字前缀（包括 0 前缀）：
+
+        ```vim
+        nnoremap <expr> m 'normal! ' . (max([v:count, 1]) * 2) . 'j'
+        ```
+
+        或者更好的版本：
+
+        ```vim
+        nnoremap <expr> m (v:count ? v:count : 1) * 2 . 'j'
+        ```
 
     验证映射
 
