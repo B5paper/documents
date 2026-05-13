@@ -2,6 +2,91 @@
 
 ## cache
 
+* divmod, np.unravel_index，详细讲讲这两个
+
+    处理多维数组或大型数据集时，坐标转换是一个绕不开的话题。`divmod` 是 Python 原生的“算术利器”，而 `np.unravel_index` 则是 NumPy 里的“空间转换大师”。
+
+    简单来说：**`divmod` 处理的是一维的除法逻辑，而 `np.unravel_index` 处理的是多维空间的索引映射。**
+
+    1. Python 原生：`divmod(a, b)`
+
+        这是一个内置函数，它同时执行**除法**和**取余**操作，并以元组的形式返回结果。
+
+        **核心逻辑**
+
+        $$divmod(a, b) = (a // b, a \% b)$$
+
+        **应用场景**
+
+        最典型的例子是**时间/长度单位转换**。比如将 130 秒转换为“分:秒”：
+
+        ```python
+        minutes, seconds = divmod(130, 60)
+        print(f"{minutes}分 {seconds}秒") 
+        # 输出: 2分 10秒
+        ```
+
+    2. NumPy 进阶：`np.unravel_index`
+
+        当你有一个多维数组（矩阵），但你手头只有一个“扁平化”后的索引（Flat Index）时，这个函数能帮你找回它在原始多维空间里的坐标。
+
+        **核心逻辑**
+
+        假设你有一个 $3 \times 4$ 的矩阵，展平后它有 12 个元素。如果你想知道第 5 个元素在矩阵里的行和列：
+
+        ```python
+        import numpy as np
+
+        # 参数：展平后的索引，原始数组的形状
+        index = np.unravel_index(5, (3, 4))
+        print(index) 
+        # 输出: (1, 1) -> 表示第1行，第1列（索引从0开始）
+        ```
+
+        **为什么它比 `divmod` 强大？**
+
+        * **支持多维：** `divmod` 只能处理两层关系（商和余）。`np.unravel_index` 可以处理任意维度（3D, 4D...）。
+        * **支持阵列操作：** 你可以一次性传入一堆索引，它会返回一堆坐标。
+
+    3. 两者的深度联系
+
+        其实，**`np.unravel_index` 在二维情况下，本质就是 `divmod` 的封装。**
+
+        如果你有一个形状为 `(H, W)` 的二维数组，对于任何一个平铺索引 `idx`：
+
+        * **行坐标** = `idx // W`
+        * **列坐标** = `idx % W`
+
+        这正好就是 `divmod(idx, W)`。
+
+        **对比总结**
+
+        | 特性 | `divmod(a, b)` | `np.unravel_index(indices, shape)` |
+        | --- | --- | --- |
+        | **库依赖** | Python 内置，无需 import | 需要 `import numpy as np` |
+        | **维度限制** | 仅限 2 级拆解（商与余） | 支持无限维（由 `shape` 决定） |
+        | **输入类型** | 单个数值 | 数值、列表或 NumPy 数组 |
+        | **典型用途** | 简单的单位换算（时分秒、页码计算） | 寻找矩阵最大值的坐标、图像处理 |
+
+    4. 实战案例：在矩阵中找最大值
+
+        这是这两个函数最常出现的组合场景。假设我们要找一个矩阵中最大值的位置：
+
+        ```python
+        import numpy as np
+
+        data = np.array([[10, 20, 30], 
+                         [99, 50, 60]])
+
+        # 1. argmax 会返回展平后的索引（这里是 3，因为 99 是第4个元素）
+        flat_idx = np.argmax(data)
+
+        # 2. 将扁平索引转回二维坐标
+        row, col = np.unravel_index(flat_idx, data.shape)
+
+        print(f"最大值 {data[row, col]} 在第 {row} 行, 第 {col} 列")
+        # 输出: 最大值 99 在第 1 行, 第 0 列
+        ```
 * `np.hstack()`保持 axis=0 不变，只增加 axis=1 的 size
 
     比如对于多个`shape = (m, 1)` 的 arr，使用`np.hstack()`后，`m`保持不变，`1`会叠加成`n`，即最终变成`shape = (m, n)`

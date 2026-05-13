@@ -2,6 +2,27 @@
 
 ## cache
 
+* 禁止 gdb 下载符号表
+ 
+    可以直接让它找不到服务器。在你的 `.bashrc` 中删除或覆盖环境变量：
+
+    ```bash
+    export DEBUGINFOD_URLS=""
+    ```
+
+    没有了 URL，GDB 会放弃联网，转而搜索本地路径。
+
+    在远程服务器执行：
+
+    ```bash
+    echo "unset DEBUGINFOD_URLS" >> ~/.bashrc
+    ```
+
+    **关键动作：** 在 VS Code 按 `F1` 或 `Ctrl+Shift+P` -> 输入并执行 **`Remote-SSH: Kill VS Code Server on Host`**。
+    
+    **重新连接：** 重新连上 SSH。
+
+    **原理：** VS Code 的 Remote Server 启动时会继承用户的 Shell 环境。只要 `DEBUGINFOD_URLS` 变量在系统层级消失了，GDB 就像被拔了网线，哪怕它想下载也找不到地址。
 * linux enable ptrace
 
     check:

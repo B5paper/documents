@@ -6,6 +6,143 @@
 
 ## cache
 
+* 详细讲讲 timer_create() 的原型、作用及用法
+
+    在 Linux 系统编程中，`timer_create()` 是 POSIX 定时器接口的核心函数。相比于传统的 `alarm()` 或 `setitimer()`，它提供了更高的精度，并支持多实例、多种通知方式（信号、线程等）。
+
+    1. 函数原型
+
+        使用该函数需要包含头文件 `<signal.h>` 和 `<time.h>`，并在链接时添加 `-lrt` 选项（在现代 glibc 中通常已集成，不需要手动链接）。
+
+        ```c
+        int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid);
+        ```
+
+        参数解析：
+
+        * **`clockid`**: 指定定时器基于哪种时钟。
+        * `CLOCK_REALTIME`: 系统实时时间（受系统时间修改影响）。
+        * `CLOCK_MONOTONIC`: 单调时间（自系统启动起的时间，不受用户修改影响）。
+
+        * **`sevp`**: 指向 `sigevent` 结构体的指针，定义了定时器到期时如何通知进程。如果为 `NULL`，默认发送信号。
+        * **`timerid`**: 输出参数，返回创建成功的定时器句柄。
+
+    2. 核心结构体：sigevent
+
+        这是 `timer_create` 的灵魂，它决定了定时器的“提醒方式”。
+
+        ```c
+        struct sigevent {
+            int          sigev_notify; // 通知方式
+            int          sigev_signo;  // 信号编号
+            union sigval sigev_value;  // 伴随数据
+            void (*sigev_notify_function) (union sigval); // 回调函数（用于线程通知）
+            pthread_attr_t *sigev_notify_attributes;    // 线程属性
+        };
+        ```
+
+        **常见的 `sigev_notify` 取值：**
+
+        1. **`SIGEV_NONE`**: 不进行通知，通过 `timer_gettime()` 主动轮询。
+        2. **`SIGEV_SIGNAL`**: 发送 `sigev_signo` 指定的信号给进程。
+        3. **`SIGEV_THREAD`**: 在一个新线程中执行 `sigev_notify_function`（相当于自带回调）。
+
+    3. 工作流程与用法
+
+        创建一个定时器通常分为三个步骤：**创建 -> 启动 -> 处理**。
+
+        步骤一：创建定时器
+
+        ```c
+        timer_t timerid;
+        struct sigevent sev;
+
+        sev.sigev_notify = SIGEV_SIGNAL; // 信号通知
+        sev.sigev_signo = SIGRTMIN;      // 使用实时信号
+        sev.sigev_value.sival_ptr = &timerid; // 传递数据
+
+        timer_create(CLOCK_MONOTONIC, &sev, &timerid);
+
+        ```
+
+        步骤二：启动/停止定时器
+
+        使用 `timer_settime()` 函数来设置定时器的初始到期时间和周期。
+
+        ```c
+        struct itimerspec its;
+        its.it_value.tv_sec = 1;      // 1秒后第一次到期
+        its.it_value.tv_nsec = 0;
+        its.it_interval.tv_sec = 1;   // 之后每隔1秒触发一次（周期性）
+        its.it_interval.tv_nsec = 0;
+
+        timer_settime(timerid, 0, &its, NULL);
+
+        ```
+
+        步骤三：删除定时器
+
+        当不再需要定时器时，应手动销毁以释放资源。
+
+        ```c
+        timer_delete(timerid);
+
+        ```
+
+    4. 关键特性与优势
+
+        1. **多实例**: 你可以为一个进程创建成千上万个独立的定时器，而 `alarm()` 每个进程只能有一个。
+        2. **高精度**: 支持纳秒级（`struct timespec`），虽然实际精度取决于硬件时钟频率，但理论上限远高于 `ms` 级。
+        3. **实时信号支持**: 配合 `SIGEV_SIGNAL` 使用 `SIGRTMIN` 附近的信号，可以确保信号在内核中排队，不会像传统信号（如 `SIGALRM`）那样在快速连续触发时发生丢失。
+        4. **线程友好**: 相比于信号中断主流程，使用 `SIGEV_THREAD` 直接在回调函数中处理逻辑，更符合现代并发编程习惯。
+
+    5. 简单示例：SIGEV_THREAD 方式
+
+        这种方式最直观，不需要处理信号掩码。
+
+        ```c
+        #include <stdio.h>
+        #include <time.h>
+        #include <signal.h>
+        #include <unistd.h>
+
+        void timer_handler(union sigval sv) {
+            printf("定时器触发！当前时间: %ld\n", time(NULL));
+        }
+
+        int main() {
+            timer_t timerid;
+            struct sigevent sev;
+            struct itimerspec its;
+
+            // 配置：线程通知
+            sev.sigev_notify = SIGEV_THREAD;
+            sev.sigev_notify_function = timer_handler;
+            sev.sigev_value.sival_ptr = &timerid;
+            sev.sigev_notify_attributes = NULL;
+
+            timer_create(CLOCK_MONOTONIC, &sev, &timerid);
+
+            // 设置：2秒后开始，每1秒触发一次
+            its.it_value.tv_sec = 2;
+            its.it_value.tv_nsec = 0;
+            its.it_interval.tv_sec = 1;
+            its.it_interval.tv_nsec = 0;
+
+            timer_settime(timerid, 0, &its, NULL);
+
+            sleep(5); // 让主线程运行一会儿
+            timer_delete(timerid);
+            return 0;
+        }
+
+        ```
+
+    注意事项
+
+    * **资源限制**: 每个系统对每个进程可创建的定时器总量有限制（见 `RLIMIT_SIGPENDING`）。
+
+    * **信号安全**: 如果你选择信号通知模式（`SIGEV_SIGNAL`），在信号处理函数中只能调用**异步信号安全**的函数（如 `write`），不能调用 `printf` 等。
 * 详细讲讲 setitimer() 的原型、作用及用法
 
     `setitimer()` 是 Linux/Unix 系统编程中用于设置**间隔定时器**（Interval Timer）的系统调用。相比于简单的 `alarm()`，它能提供更精确的控制，并支持多种计时模式。
