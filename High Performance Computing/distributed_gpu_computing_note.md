@@ -37,6 +37,7 @@
 
     1. **管理架构异构：** 利用 Kubernetes 等平台管理不同 CPU 架构的节点（x86、ARM）。
     2. **优化计算异构：** 引入 GPU/NPU 共享和虚拟化技术，提升加速器资源的利用率。
+
 * 详细讲讲分布式计算的工具 ray 的用法
 
     Ray 是一个开源的分布式计算框架，由 UC Berkeley 的 RISELab 开发。它的核心目标是**让分布式编程变得像单机编程一样简单**。
@@ -83,7 +84,6 @@
         results = ray.get([obj_ref1, obj_ref2]) # 也可以传入列表并行获取
 
         print(results) # [100, 400]
-
         ```
 
         **Actor（有状态的类）**
@@ -106,7 +106,6 @@
         # 调用方法
         obj_ref = counter.increment.remote()
         print(ray.get(obj_ref)) # 输出 1
-
         ```
 
     3. Ray 的生态系统 (Libraries)
