@@ -2,6 +2,295 @@
 
 ## cache
 
+* 我在 ssh 里打开了远程 host，然后又在远程 host 中 vim 打开了一个文件，然后又 :vsplit xxx 打开了第二个文件，现在我想复制第二个文件的某一行，而不复制第一个文件的相同行，而且要把复制的文件 ctrl + v 粘贴到本地的 vscode 中，该怎么办？
+
+    这个问题是很多 SSH 和 Vim 用户都会遇到的痛点。当你使用 `vsplit`（垂直分屏）时，终端（Terminal）本身并不知道 Vim 内部的分界线，所以直接用鼠标拖选会把左右两屏的内容都选进去。
+
+    要解决你的需求，可以根据你的环境选择以下几种方案：
+
+    1. 方案一：最快的手动方式（不需要任何插件）
+
+        既然你的目标是复制第二屏的内容到本地，最简单的思路是**暂时让第二屏占据整个终端窗口**。
+
+        1. 切换到第二个文件
+        
+            按下 `Ctrl + w` 然后按 `l` (或者右箭头)。
+
+        2. 全屏当前文件
+        
+            输入 `:tabe %`。这会在 Vim 的一个新标签页中打开当前文件，此时侧边栏消失了。
+
+        3. 复制内容
+
+            * 如果你在本地使用 macOS，按住 `Option` 键再用鼠标选择（这可以忽略 Vim 的行号或特殊设置）。
+            * 如果你在 Windows/Linux，按住 `Shift` 键再用鼠标选择。
+            * 直接右键或使用终端的复制快捷键。
+
+        4. 回到原状
+        
+            复制完后，在 Vim 中输入 `:q` 关闭这个临时标签页，你就回到了之前的双分屏界面。
+
+    2. 方案二：利用 OSC 52 协议（最推荐的“极客”方案）
+
+        如果你经常需要从 SSH 的 Vim 复制到本地剪贴板，**OSC 52** 是终极解决方案。它允许远程服务器通过 SSH 通道直接将文本发送到你本地终端的剪贴板。
+
+        1. **安装插件**：在远程 Vim 中安装 [vim-oscyank](https://github.com/ojroques/vim-oscyank)。
+        2. **使用**：在你想复制的那一行按下 `v` 进入可视模式选中，然后输入 `:OSCYank`。
+        3. **结果**：文字会直接进入你本地电脑的剪贴板。你直接在本地 VS Code 里 `Ctrl + V` 即可。
+        > **注意**：你需要使用支持 OSC 52 的终端（如 iTerm2, Alacritty, Windows Terminal, 或较新版本的 Chrome SSH）。
+
+* 只要在 remote host 上安装了`apt install vim-gtk3`增强，就可以做到使用`"+y`把内容复制到 local host
+
+    验证：输入 `vim --version | grep clipboard`，看到 `+clipboard` 表示安装成功。
+
+    * 开启 SSH X11 转发 (存疑，不清楚是否为必做项)
+
+        你连接 SSH 时不能只用 `ssh user@host`，必须加上 `-X` 或 `-Y` 参数：
+
+        ```bash
+        ssh -X user@host
+        # 或者更宽松的授权
+        ssh -Y user@host
+        ```
+
+    为什么我还是建议你考虑 OSC 52？
+
+    如果你觉得装 XQuartz/VcXsrv 太麻烦，**OSC 52 协议**（方案二）其实更先进。它不需要 X11 转发，也不需要安装 `vim-gtk3`，哪怕是只有 `-clipboard` 的基础版 Vim，只要装个小脚本，就能通过终端的 ANSI 转义码直接把文字“塞”给本地剪贴板。
+
+* 我是在 windows 中使用 cygwin 调用的 vim ~/.bashrc 命令
+
+    在 Cygwin 环境中，由于它是一个模拟 Linux 的层，文件路径和权限的处理与原生 Linux 略有不同。出现 `E212: Can't open file for writing` 通常有以下几种可能：
+
+    1. 路径斜杠问题
+
+        虽然 Cygwin 能够识别部分 Windows 路径，但在调用 `vim` 时，务必使用 Linux 风格的**正斜杠** (`/`)。你输入的 `\home\wsdlh\.bashrc` 使用了 Windows 反斜杠，这在 Vim 中会被视为转义字符或无效路径。
+
+        * 正确命令：
+
+            ```bash
+            vim ~/.bashrc
+            ```
+
+        或者使用完整路径：
+
+        ```bash
+        vim /home/wsdlh/.bashrc
+        ```
+
+    2. 文件权限受限
+
+        如果路径正确但依然报错，可能是因为该文件的所有者不是当前用户，或者文件被设置为“只读”。
+
+        * 尝试强制保存： 在 Vim 报错时，尝试输入 `:w!` 强制写入。
+
+        * 检查权限： 在终端运行 `ls -l ~/.bashrc`。如果权限位没有 `w`（写权限），请运行：
+
+            ```bash
+            chmod +w ~/.bashrc
+            ```
+
+* 我使用的正是 vim ~/.bashrc，是不是因为 ~ 被 cygwin 或 vim 替换成反斜杠 \home\wsdlhl\ 了？
+
+    很有可能。这通常是由于 Cygwin 的路径转换逻辑与 Vim 的内部解析发生了冲突。
+
+    在 Cygwin 中，如果你在命令里直接使用 `~`，Shell（Bash）会先将其展开。如果展开后的路径被误处理为 Windows 风格的物理路径（带反斜杠），Vim 在尝试写入时就会报错，因为它把反斜杠 `\` 当作了普通字符（或者文件名的一部分），而 Windows 不允许在文件名中使用这些字符，或者 Vim 无法找到对应的目录。
+
+    核心原因排查
+
+    1. **路径展开错误**：执行 `echo ~/.bashrc` 看看输出。如果输出的是 `\home\wsdlh\.bashrc` 而不是 `/home/wsdlh/.bashrc`，说明你的 `HOME` 环境变量可能在 Windows 系统层级被设置成了 Windows 格式。
+
+    2. **Vim 的目录不存在**：Vim 在保存文件时会先检查目录。如果路径中包含反斜杠，Vim 会认为你要在一个名为 `\home\wsdlh\` 的**文件夹**下创建文件，而这个文件夹在 Linux 逻辑路径下是不存在的。
+
+    解决方案
+
+    方法二：检查并修正 HOME 变量
+
+    在 Cygwin 终端输入：
+
+    ```bash
+    export HOME=/home/wsdlh
+    vim ~/.bashrc
+    ```
+
+    如果这次成功了，说明你需要检查 Windows 的环境变量设置，确保 `HOME` 没有被硬编码为 Windows 格式。
+
+    ```bash
+    wsdlh@DESKTOP-ETVUKF3 ~
+    $ echo ~/.bashrc
+    /home/wsdlh/.bashrc
+
+    wsdlh@DESKTOP-ETVUKF3 ~
+    $ echo $HOME
+    /home/wsdlh
+    ```
+
+    从你的 `echo` 输出结果来看，Cygwin 内部的环境变量和路径展开是非常健康的（都是标准的 Linux 正斜杠 `/`）。
+
+    这种情况下，Vim 报错 `\home\wsdlh\.bashrc`（带反斜杠）通常是因为 **Vim 自身被配置成了 Windows 模式**，或者它在尝试通过 Windows API 写入文件时，路径转换出现了偏差。
+
+    请尝试以下三个具体的操作来解决：
+
+    1. 检查 Vim 的 `shellslash` 设置
+
+        Vim 有一个选项可以控制它在 Windows 环境下使用哪种斜杠。在 Vim 报错的界面，直接输入以下命令并回车：
+
+        ```vim
+        :set shellslash?
+
+        ```
+
+        如果显示 `noshellslash`，请手动修复它：
+
+        ```vim
+        :set shellslash
+        :w
+
+        ```
+
+        这会强制 Vim 在处理路径时使用 `/`，通常能解决 E212 错误。
+
+    3. 检查是否有 `.swp` 文件残留
+
+        如果之前的编辑异常中断，可能会留下一个交换文件，导致写入失败。尝试清理：
+
+        ```bash
+        rm -f ~/.bashrc.swp
+        ```
+
+    4. 终极尝试：强制指定路径写入
+
+        如果 `vim ~/.bashrc` 进去后无法保存，在冒号命令行输入：
+
+        ```vim
+        :w! /home/wsdlh/.bashrc
+        ```
+
+        注意这里的 `/` 是关键。如果这仍然失败，请尝试 `sudo vim ~/.bashrc`（如果你安装了 cygutils-extra 包提供的 sudo 模拟）。
+
+    为了彻底解决路径和权限冲突，我们可以进一步优化你的 Vim 启动配置。
+
+    * 自动开启 shellslash 以支持正斜杠路径
+    * 修复 Cygwin 目录的 Windows 访问权限
+    * 检测并清除 Vim 残留的交换文件
+
+* shellslash 是启动 vim 后才生效的吧，我这个显然是还未启动 vim 时，传给 vim 的路径有问题
+
+    你的直觉非常准确。如果是在执行 `vim ~/.bashrc` 的那一刻就报错，说明 Bash 在传递参数给 Vim 之前，路径解析就已经出现了偏差。
+
+    既然 `echo $HOME` 显示的是正斜杠，但报错信息里出现了反斜杠，这通常是因为你使用的 `vim` 程序可能是一个 **Windows 原生版本**（例如安装 Git for Windows 时带的 Vim），而不是 **Cygwin 编译版本**。Windows 原生程序无法直接识别 Cygwin 的虚拟路径（如 `/home/...`），会尝试将其强制转换为 Windows 格式。
+
+    核心排查与解决方法
+
+    1. 确认 Vim 的身份
+
+        在终端输入以下命令：
+
+        ```bash
+        which vim
+        ```
+
+        * 如果输出 `/usr/bin/vim`，说明是 Cygwin 版本（理论上不应出现反斜杠问题）。
+
+        * 如果输出类似 `/cygdrive/c/Program Files/Git/usr/bin/vim` 或其他 Windows 路径，说明你调用的是外部 Vim。
+
+    2. 使用 cygpath 进行实时转换
+
+        如果由于环境限制必须使用该 Vim，可以通过 `cygpath` 工具将 Linux 路径转换为 Windows 识别的物理路径：
+
+        ```bash
+        vim $(cygpath -m ~/.bashrc)
+        ```
+
+        `-m` 参数会强制输出带正斜杠的 Windows 路径（如 `C:/cygwin64/home/...`），这对大多数 Vim 版本都有效。*
+
+    4. 强制修复 HOME 变量映射
+
+        如果以上都不行，尝试在执行时临时覆盖 HOME 变量的表达方式：
+
+        ```bash
+        HOME=/home/wsdlh vim ~/.bashrc
+        ```
+
+* cygwin 中 windows 版 vim 与 cygwin vim 的区别 
+
+    ```bash
+    wsdlh@DESKTOP-ETVUKF3 ~
+    $ which vim
+    /cygdrive/c/Program Files/Vim/vim91/vim
+    ```
+
+    找到了！问题的根源正如你所料：你正在调用 **Windows 原生版本的 Vim**，而不是 Cygwin 版本的 Vim。
+
+    当你执行 `vim ~/.bashrc` 时，Cygwin 的 Bash 会将 `~/.bashrc` 展开为 `/home/wsdlh/.bashrc`。然而，这个 Windows 原生 Vim 无法理解 Cygwin 的虚拟路径（`/home/...`），它会尝试按照 Windows 的逻辑去解析，结果就把路径误解成了 `\home\wsdlh\.bashrc`，并因为找不到这个 Windows 路径而报错。
+
+    解决方案
+
+    1. 安装 Cygwin 版 Vim（推荐）
+
+        这是最根本的解决办法。Cygwin 版的 Vim 能完美识别 `/home/` 路径。
+
+        * 重新运行 Cygwin 的 `setup-x86_64.exe`。
+        * 在软件包选择界面搜索 `vim`。
+        * 确保安装了 `vim` 和 `vim-common` 及其相关组件。
+
+    2. 使用 cygpath 进行实时转换
+
+        如果你想继续使用这个 Windows 版 Vim，必须在传参时转换路径：
+
+        ```bash
+        /cygdrive/c/Program+Files/Vim/vim91/vim $(cygpath -m ~/.bashrc)
+        ```
+
+    3. 设置别名 (Alias)
+
+        为了方便，你可以通过设置别名来自动完成转换。在当前终端输入（成功进入后再写入 `.bashrc`）：
+
+        ```bash
+        alias vim='/cygdrive/c/Program\ Files/Vim/vim91/vim $(cygpath -m "$@")'
+        ```
+
+        注意：由于 Windows 版 Vim 和 Cygwin 的终端交互（如退格键、颜色）可能存在兼容性问题，长远来看还是建议使用方案 1。*
+
+    为了帮你彻底理顺开发环境，我们可以优化工具链的调用顺序。
+
+    * 修改 PATH 变量以优先使用 Cygwin 原生工具
+    * 编写自动转换路径的 Vim 启动脚本别名
+    * 检查 Cygwin 环境中是否已安装原生 Vim
+
+* vim 和 vim-common 有什么区别
+
+    简单来说，`vim` 和 `vim-common` 的关系是 **“执行程序”** 与 **“支持资源”** 的关系。在 Cygwin 或 Linux 包管理器中，它们的分工如下：
+
+    1. vim (主程序包)
+
+        这个包包含的是 **二进制可执行文件**。
+
+        * **核心内容**：主要是 `vim.exe`。
+        * **作用**：它是你运行编辑器时真正启动的那个“引擎”。
+        * **特点**：它体积较小，但如果没有 `vim-common` 提供的资源，它甚至无法正常启动或显示语法高亮。
+
+    2. vim-common (公共资源包)
+
+        这个包包含的是 **所有 Vim 版本共用的非执行文件**。
+
+        * **核心内容**：
+        * **帮助文档** (Runtime help files)
+        * **语法高亮脚本** (Syntax files)
+        * **配置文件模板** (如全局的 `vimrc` 示例)
+        * **语言翻译** (各国的菜单转换和提示)
+        * **工具辅助** (如 `xxd` 这种用来查看十六进制的独立小程序)
+
+
+        * **作用**：为不同的 Vim 变体（比如控制台版的 `vim`、图形界面的 `gvim`、精简版的 `vim-tiny`）提供通用的支持文件。
+
+    总结
+
+    | 包名 | 包含什么 | 相当于 |
+    | --- | --- | --- |
+    | **vim** | 编辑器的主程序 (vim.exe) | 汽车的**发动机** |
+    | **vim-common** | 帮助文档、语法高亮、皮肤、插件框架 | 汽车的**内饰、仪表盘和说明书** |
+
+    **建议**：在 Cygwin 中，你应该**两个都安装**。通常当你选择安装 `vim` 时，Cygwin 的安装程序会自动勾选 `vim-common` 作为依赖项。你之所以遇到之前的路径问题，就是因为你只调用了 Windows 的“发动机”，而没有使用 Cygwin 这一套完整的“车架”。
 * 详细讲讲 vim `:source %` 的作用
 
     在 Vim 中，`:source %` 是一个非常强大且高频使用的命令。简单来说，它的作用是：**重新加载并执行当前正在编辑的文件中的所有 Vim 脚本命令。**
