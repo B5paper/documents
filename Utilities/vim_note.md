@@ -2,6 +2,63 @@
 
 ## cache
 
+* vim 中，我设置了 expand tab，但是仍想保留输入 tab 的能力，于是我做了一个映射
+    nnoremap <leader><tab> i  <esc>    " i 后面跟的是 ctrl + v，再按 tab 键输入的字符
+    但是在实际测试中发现，这样输入的 tab 还是被 expand tab 展开成了 4 个空格。该如何解决这个问题？
+
+    这是一个在 Vim 配置中非常经典的问题。产生这个现象的原因是：虽然你在编写 `.vimrc` 时使用了 `Ctrl+v` 输出了字面量 Tab，但 Vim 在**执行**映射时，会模拟你的键盘输入。由于此时 `expandtab` (et) 选项是开启的，Vim 会认为你在插入模式下“按”了一次 Tab 键，从而自动将其转换为了空格。
+
+    要解决这个问题，有以下几种更稳妥的方法：
+
+    方法一：在映射中使用 `<C-V>` 字符串（推荐）
+
+    不要在 `.vimrc` 中直接输入那个不可见的 Tab 字符，而是直接写出 `<C-V><Tab>` 的字面量。这样 Vim 在执行映射时，会先触发 `Ctrl-v`（告诉 Vim 下一个字符不进行转义或缩进处理），然后再输入 Tab。
+
+    ```vim
+    " 在 Normal 模式下按下 <leader> + Tab 插入一个真实的 Tab
+    nnoremap <leader><tab> i<C-v><Tab><Esc>
+
+    ```
+
+    方法二：利用临时取消 `expandtab` (最保险)
+
+    如果你担心复杂的插件或缩进设置干扰，可以在映射中临时关闭 `et`，插入完后再恢复。这种方法最为“暴力”且有效：
+
+    ```vim
+    " 使用 :setlocal noet 确保该动作不受全局 expandtab 影响
+    nnoremap <leader><tab> :setlocal noet <bar> execute "normal! i\t" <bar> setlocal et<CR>
+
+    ```
+
+    * `<bar>` 是 Vim 脚本里的管道符 `|`，用于在一行执行多条命令。
+    * `\t` 在 `execute` 命令中会被解析为真正的 Tab 字符。
+
+    方法三：使用 `R` 寄存器或字符编码插入
+
+    你也可以通过插入字符编码（Tab 的 ASCII 码是 9）来绕过键盘映射的逻辑：
+
+    ```vim
+    " 使用 <C-q> 或 <C-v> 配合十进制编码 009 插入
+    nnoremap <leader><tab> i<C-v>009<Esc>
+
+    ```
+
+    为什么你之前的做法失效了？
+
+    当你写 `nnoremap <leader><tab> i<Tab字符><esc>` 时：
+
+    1. Vim 加载配置，识别到你要在 `i` 后面输入一个 ASCII 9 (Tab)。
+    2. 当你触发映射时，Vim 运行 `i` 进入插入模式。
+    3. Vim 接着把 ASCII 9 送入缓冲区。
+    4. **此时 `expandtab` 拦截了这个字符**，并根据当前的 `shiftwidth` 或 `tabstop` 将其替换成了空格。
+
+    **额外的小技巧：手动插入**
+
+    如果你在编辑过程中临时想输入一个真 Tab，而不想改配置，只需在 **插入模式** 下直接按下：
+    **`Ctrl + v`** 接着按 **`Tab`**
+    这在 Vim 中是“字面量插入”的通用快捷键。
+
+    **这些方法能解决你的问题吗？或者你需要针对特定文件类型（如 Makefile）自动禁用 expandtab？**
 * 我在 ssh 里打开了远程 host，然后又在远程 host 中 vim 打开了一个文件，然后又 :vsplit xxx 打开了第二个文件，现在我想复制第二个文件的某一行，而不复制第一个文件的相同行，而且要把复制的文件 ctrl + v 粘贴到本地的 vscode 中，该怎么办？
 
     这个问题是很多 SSH 和 Vim 用户都会遇到的痛点。当你使用 `vsplit`（垂直分屏）时，终端（Terminal）本身并不知道 Vim 内部的分界线，所以直接用鼠标拖选会把左右两屏的内容都选进去。

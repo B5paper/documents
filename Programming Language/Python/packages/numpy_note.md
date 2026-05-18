@@ -2,6 +2,88 @@
 
 ## cache
 
+* numpy 中的数据如何转换到 py 内置类型
+
+    将 NumPy 数据转换回 Python 内置类型（如 `int`, `float`, `list`, `dict`）非常重要，尤其是在你需要将结果写入 JSON 文件、数据库，或者进行非数值逻辑判断时。
+
+    主要有以下几种常见场景和转换方法：
+
+    ---
+
+    1. 将 NumPy 标量转换为 Python 标量
+
+        NumPy 有自己的数据类型（如 `np.int64`, `np.float32`），直接用 Python 的内置构造函数即可：
+
+        ```python
+        import numpy as np
+
+        np_val = np.float64(3.14159)
+
+        # 转换方法
+        py_float = float(np_val)  # 转换为 Python float
+        py_int = int(np.int32(10)) # 转换为 Python int
+
+        print(type(py_float)) # <class 'float'>
+
+        ```
+
+    2. 将整个数组转换为 Python 列表 (`.tolist()`)
+
+        这是最常用的方法，它可以处理任何维度的数组，并递归地将内部元素转换为 Python 原生类型。
+
+        ```python
+        arr = np.array([[1, 2], [3, 4]])
+
+        # 转换为嵌套列表
+        py_list = arr.tolist()
+
+        print(py_list)       # [[1, 2], [3, 4]]
+        print(type(py_list)) # <class 'list'>
+        # 内部元素也变回了原生 int
+        print(type(py_list[0][0])) # <class 'int'>
+
+        ```
+
+    3. 获取数组中单个元素的“原生”类型 (`.item()`)
+
+        如果你只想从数组中取出一个值，并且希望它是 Python 原生类型而非 NumPy 类型，使用 `.item()` 是最高效的。
+
+        ```python
+        val = np.array([10.5])[0] # 这通常还是 np.float64
+        print(type(val))          # <class 'numpy.float64'>
+
+        native_val = val.item()   # 转换为原生 float
+        print(type(native_val))   # <class 'float'>
+
+        ```
+
+    4. 特殊场景：将 NumPy 字典或对象转换
+
+        有时候你会遇到 `np.void` 或存储在 NumPy 数组里的对象：
+
+        * **转换字典/对象**：如果数组里装的是对象，通常可以直接索引出来。
+        * **处理 JSON 序列化**：JSON 默认不支持 NumPy 类型。通常做法是：
+        ```python
+        import json
+        # 先转成列表再序列化
+        json_str = json.dumps(arr.tolist()) 
+
+        ```
+
+    总结表格
+
+    | 目标类型 | NumPy 方法 | 说明 |
+    | --- | --- | --- |
+    | **int** | `int(val)` 或 `val.item()` | 适合单个整数 |
+    | **float** | `float(val)` 或 `val.item()` | 适合单个浮点数 |
+    | **list** | `arr.tolist()` | **最推荐**，适合一维或多维数组 |
+    | **dict** | `dict(arr)` | 仅当数组结构符合键值对时 |
+
+    **小提醒：**
+    在你的重建代码中，如果你要把 `err`（目标函数值）存入一个 Python 列表以便后续绘图或记录，建议使用 `float(err)`。这样可以避免随着迭代次数增加，内存中堆积了大量庞大的 NumPy 对象。
+
+    **你想知道如何在转换的同时保留特定的精度（比如只留小数点后四位）吗？**
+
 * divmod, np.unravel_index，详细讲讲这两个
 
     处理多维数组或大型数据集时，坐标转换是一个绕不开的话题。`divmod` 是 Python 原生的“算术利器”，而 `np.unravel_index` 则是 NumPy 里的“空间转换大师”。

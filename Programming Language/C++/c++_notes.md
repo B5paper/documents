@@ -4,6 +4,82 @@
 
 ## cached
 
+* 我在 prelib.h 和 prelib.c 中定义了函数 int pre()，然后在 mylib.c 中使用了 pre()，但是 mylib.h 中并没有 pre() 的声明。如果 libmylib.so 是根据 mylib.c 生成的，那么我在编译 ext_main.cpp 时，可以 include "mylib.h"，并且 -lmylib，那么是否可以在 ext_main.cpp 中调用到 pre()?
+
+    符号可见性与链接（Symbol Visibility）
+
+    **结论：取决于 `libmylib.so` 是如何构建的。**
+
+    即便你解决了上面两个问题，能否成功调用 `pre()` 取决于 `pre` 这个符号是否真的存在于 `libmylib.so` 中：
+
+    1. **如果 `libmylib.so` 包含了 `prelib.o`：**
+
+        如果在生成 `libmylib.so` 时，命令是 `gcc -shared -o libmylib.so mylib.c prelib.c`，那么 `pre` 的定义就被打包进了动态库。此时，只要你做了 `extern "C"` 声明，`ext_main.cpp` **可以**调用到它。
+    
+    2. **如果 `libmylib.so` 只是依赖 `prelib`：**
+
+        如果 `mylib.c` 编译时只是引用了 `pre`，但在链接成 `.so` 时没有包含 `prelib.o`，那么 `libmylib.so` 内部会有一个关于 `pre` 的“未定义符号”（Undefined Symbol）。
+
+        * 此时，除非你在编译 `ext_main.cpp` 时同时也链接了 `prelib`（例如 `-lmylib -lprelib`），否则会在运行时或链接时报错。
+
+    3. **隐藏符号（Visibility）：**
+
+        现代编译器支持隐藏符号。如果 `libmylib.so` 在编译时使用了 `-fvisibility=hidden`，即使 `pre` 的代码在里面，外部也无法看到它，调用依然会失败。
+
+    我看到 makefile 中确实有这一行：
+
+    ```bash
+    gcc -fvisibility=hidden
+    ```
+
+    **默认隐藏所有符号**: 即使函数在代码里定义了，它也不会进入 `.so` 的“导出符号表”（Dynamic Symbol Table），因此外部程序链接时会报错 `undefined reference`。
+
+    有以下几种解决方案，按推荐程度排序：
+
+    1. 显式导出函数
+
+        ```cpp
+        // 在声明或定义处添加属性
+        __attribute__((visibility("default")))
+        int get_host_hash(unsigned long &host_hash) {
+            // ... 原有实现 ...
+        }
+        ```
+
+        之后重新编译 `libmylib.so`，使用 `nm -D libmylib.so | grep get_host_hash` 检查，现在你应该能看到一个大写的 **`T`**，表示它已经成功导出了。
+
+    2. 修改 Makefile 降低可见性限制（最快，但有副作用）
+
+        如果你不在乎这个库导出了多少“秘密”函数，可以直接在 Makefile 中修改该选项。
+
+        1. 找到 Makefile 中的这一行：
+
+            `CXXFLAGS := -fPIC -fvisibility=hidden`
+
+        2. 将其修改为：
+
+            `CXXFLAGS := -fPIC -fvisibility=default`
+
+            （或者直接删掉 `-fvisibility=hidden`，因为默认就是 `default`）。
+            
+        3. 重新编译 `libmylib.so`。
+
+        **缺点：** 这会导致库中所有的函数都被公开，可能会增加库体积，并增加符号冲突的风险。
+
+    **验证步骤**
+
+    无论你采用哪种方法，编译完 `.so` 后，请务必执行以下命令验证：
+
+    ```bash
+    # 必须看到大写的 T
+    nm -D libmylib.so | grep get_host_hash
+    ```
+
+    **只要 `nm` 的结果里出现了 `T _Z13get_host_hashRm`，你的 `ext_main.cpp` 就可以通过以下声明正常调用它了：**
+
+    ```cpp
+    extern int get_host_hash(unsigned long &);
+    ```
 * 详细讲讲 if constexpr 的用法
 
     `if constexpr` 是 C++17 引入的一个重量级特性，被称为**编译期条件分支**。
