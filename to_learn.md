@@ -8560,3 +8560,22 @@
 * flash-attention
 
     <https://github.com/Dao-AILab/flash-attention>
+
+* cached tabs
+
+    * qemu edu设备介绍
+
+        <https://zhuanlan.zhihu.com/p/350947593>
+
+    * EDU device
+
+        <https://www.qemu.org/docs/master/specs/edu.html>
+
+    * NLP From Scratch
+
+        <https://docs.pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html>
+
+    * Activation Functions in Neural Networks
+
+        <https://www.geeksforgeeks.org/machine-learning/activation-functions-neural-networks/>
+

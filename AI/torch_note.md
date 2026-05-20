@@ -2,6 +2,61 @@
 
 ## cache
 
+* PyTorch Functional Transforms for Computer Vision
+
+    ```py
+    import torchvision.transforms.functional as F
+    import torch
+    from PIL import Image
+
+    image = Image.open('nature.jpg')
+
+    # brightness
+    # brightness_factor = 0, black output image.
+    # brightness_factor = 1, the original image.
+    # 0 < brightness_factor < 1, a darker output image.
+    # brightness_factor > 1, a brighter output image.
+    output = F.adjust_brightness(image, brightness_factor=3.0)
+    output.show()
+
+    # contrast
+    # Solid gray image if contrast_factor = 0.
+    # The original image if contrast_factor = 1,
+    # To lower contrast use 0 < contrast_factor < 1.
+    # To increase contrast use contrast_factor > 1.
+    output = F.adjust_contrast(image,contrast_factor=4.2)
+
+    # hue
+    # To adjust the hue, the image is first converted to HSV (Hue, Saturation, Value) color space. The image hue is adjusted by converting the image to HSV and the changes are made in the hue channel (H). Then the image is converted back to the original image. 
+    # The important parameter to this transform is hue_factor.  It's range value is [-0.5, 0.5].  0.5 and -0.5 give the complete opposite of the hue channel in HSV color space in positive and negative direction respectively. Therefore, both hue_factor=-0.5 and hue_factor=0.5 gives an image with complementary colors while hue_factor=0 gives the original image.
+    output = F.adjust_hue(image,hue_factor=-0.3)
+
+    # saturation
+    output = F.adjust_saturation(image,saturation_factor=7.0)
+
+    # sharpness
+    output = F.adjust_sharpness(image,sharpness_factor=5.0)
+
+    # gaussian_blur
+    output = F.gaussian_blur(image, kernel_size = (11,13), sigma = None)
+
+    # pil_to_tensor
+    img_tensor = F.pil_to_tensor(pil_image)
+
+    # to_pil_image
+    pil_img = F.to_pil_image(img_tesnor)
+
+    # normalize
+    img_tensor = F.pil_to_tensor(image)
+    img_tensor = img_tensor.type(torch.float)
+    mean, std = img_tensor.mean(), img_tensor.std()
+    img = F.normalize(img_tensor, mean=mean, std=std)
+    output = F.to_pil_image(img)
+    output.show()
+
+    # invert
+    output = F.invert(image)
+    ```
 * 对于总是进入 saturation 的 layer 输出，视为无效输出，重新初始化与此相关的所有 hidden 神经元的参数，会改善梯度消失问题吗？会改善 ap 吗？
 
     如果不断重初始化后，每轮总是有规模几乎相同的神经元“死亡”，那么是否说明是数据集提供的规律太少？如果增大数据集容量，或者改变网络结构，会不会改善这一现象？

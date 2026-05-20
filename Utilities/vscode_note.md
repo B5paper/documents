@@ -2,6 +2,105 @@
 
 ## cache
 
+* vscode 中如何调试 mpi 启动的程序
+
+    目前最主流且高效的方法是使用 **"Attach"（附加）** 模式，或者利用 VS Code 的 **Microsoft C++ 扩展** 配合特定的 `launch.json` 配置。
+
+    * 方法一：使用 "Attach" 模式（最通用）
+
+        这种方法的核心是：先让 MPI 程序运行起来，然后在 VS Code 中手动或自动地将调试器挂载到正在运行的进程上。
+
+        1. 修改代码（可选但建议）：
+
+            在程序开始处加入一段等待循环，确保你有足够的时间在进程结束前完成挂载。
+            
+            ```cpp
+            int i = 0;
+            while (i == 0) {
+                sleep(1); // 记得包含 <unistd.h>
+            }
+            ```
+
+            调试器挂载后，你可以通过调试控制台修改 `i = 1` 来跳出循环。
+
+        2. 配置 `launch.json`：
+
+            创建一个 "C++ (GDB/LLDB) Attach" 配置。
+
+            ```json
+            {
+                "name": "(gdb) Attach",
+                "type": "cppdbg",
+                "request": "attach",
+                "program": "${workspaceFolder}/your_executable",
+                "processId": "${command:pickProcess}",
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ]
+            }
+            ```
+
+        3. **运行并挂载：**
+
+            * 在终端运行：`mpirun -np 4 ./your_executable`
+            * 在 VS Code 调试面板选择 "(gdb) Attach" 并点击运行。
+            * 在弹出的进程列表中搜索你的程序名，选择对应的 PID 进行调试。
+
+    * 方法二：使用 `tmpi` 或 辅助脚本（自动化方案）
+
+        如果你觉得手动挂载太麻烦，可以使用脚本让每个 MPI 进程都弹出一个调试终端。
+
+        1. 创建调试脚本 `debug_wrapper.sh`：
+
+            ```bash
+            #!/bin/bash
+            # 使用 gdbserver 启动程序，并在特定端口监听
+            # 或者简单地启动一个终端运行 gdb
+            xterm -e gdb --args "$@"
+            ```
+
+        2. 启动 MPI：
+
+            ```bash
+            mpirun -np 4 ./debug_wrapper.sh ./your_executable
+            ```
+
+            这将弹出 4 个终端窗口，每个窗口对应一个进程的调试会话。
+
+        注：
+
+        1. 这种方式没试过
+
+    * 方法三：使用 VS Code 的 Multi-target Debugging
+
+        VS Code 支持同时运行多个调试会话。你可以配置一个 `compound`（复合）启动项。
+
+        1. 在 `launch.json` 中定义多个 attach 配置。
+
+        2. 使用 `compounds` 字段将它们组合在一起。
+
+        ```json
+        "compounds": [
+            {
+                "name": "Debug MPI Rank 0 & 1",
+                "configurations": ["Attach Rank 0", "Attach Rank 1"]
+            }
+        ]
+        ```
+
+        注意：这仍然需要你手动对应 PID，适合节点数较少（2-4个）的情况。
+
+    **避坑指南**
+
+    * 权限问题: 在 Linux 上，如果无法 Attach，可能需要执行 `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`。
+* vscode 插件：CJK-Word-Break
+
+    它强制将所有 CJK 字符边界识别为词语分隔符。
 * vscode 中分组管理断点的插件
 
     有的，因为原生功能的缺失，社区确实开发了一些插件来专门解决“断点分组/多场景管理”的问题。

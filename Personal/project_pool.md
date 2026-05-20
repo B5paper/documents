@@ -36,6 +36,10 @@
 
 ## cache
 
+* [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和
+
+* [ ] 归并排序、堆排序和快速排序 代码，以及复杂度
+
 * [new] pyacvd, tetgen, gmsh
 
 * qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
@@ -6130,6 +6134,8 @@ resources:
 * vim 中的 redo 是哪个？
 
 ### cache
+
+* [new] vim-repeat (https://github.com/tpope/vim-repeat) 插件
 
 * [new] 命令模式（命令行）方法
 
