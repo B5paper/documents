@@ -2,6 +2,23 @@
 
 ## cache
 
+* 使用 rdp 连接到远程 windows，然后在远程机器上 windows terminal 中使用 vim，此时按 backspace 键，左右箭头键，都失灵了，如何解决
+
+    > powershell profile -> terminal emulation -> use the legacy input encoding，打开这个后就好了
+
+    太棒了！你找到了一个非常精准且“深层”的解决方案。
+
+    这个 **“使用旧版输入编码”（Use legacy input encoding）** 的选项之所以能解决问题，是因为它触及了 Windows 终端演进中的核心矛盾：**VT 序列与 Win32 API 的冲突**。
+
+    **为什么这个设置起作用了？（技术原理解析）**
+
+    为了让你用得更明白，这里拆解一下背后的逻辑：
+
+    1. **现代模式（VT Input）：** 默认情况下，Windows Terminal 会将按键包装成“虚拟终端序列”（VT Sequences）。例如，按下 `Backspace` 会发送 `0x7f` (DEL)，按下方向键会发送 `ESC [ A`。
+
+    2. **RDP 的干扰：** 当你通过 RDP 连接时，按键信号经过了一层远程传输协议的转换。在这种复杂的链路下，Vim（尤其是原生 Windows 版的 `vim.exe`）往往无法正确解析这些现代的 VT 序列，导致它不知道你按了什么。
+
+    3. **旧版模式（Legacy Input）：** 打开这个开关后，终端会强迫输入流模拟旧版的 **Win32 控制台模式**。它不再发送复杂的 `ESC` 编码，而是直接发送传统的控制字符（如 `0x08` 代表 Backspace）。
 * win 11 中的同名 sudo
 
     ```shell

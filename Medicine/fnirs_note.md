@@ -2,6 +2,25 @@
 
 ## cache
 
+* data_hbo 数量级正常，但是 py 里的有效数字总是比 matlab 小 0.08 左右。我观察了其他几个元素，都是相同的情况
+
+    在数量级对齐后，依然存在的这 **4%~5%** 的系统性偏差（即你看到的 0.07~0.08 左右的数值差），通常由以下两个深层原因引起：
+
+    1. 消光系数 (Extinction Coefficients) 的取值不同（最核心原因）
+
+        Beer-Lambert 定律依赖于血红蛋白在不同波长下的消光系数 $\epsilon$。
+
+        * **MNE-NIRS** 默认使用的是 **Cope (1991)** 的数据。
+        * **MATLAB (如 Homer2/3)** 默认通常使用的是 **Prahl** 或 **Matcher** 的数据。
+
+        即使波长完全一样（比如 760nm 和 850nm），不同文献来源的 $\epsilon$ 值会有细微差别。例如，HbO 在 760nm 下，Cope 的值可能比 Prahl 的值高出几个百分点，这种偏差会通过矩阵求逆线性放大到最终的 HbO 浓度中。
+
+    2. DPF 的波长依赖性 (Wavelength-dependent DPF)
+
+        * **你的 Python 代码**：`beer_lambert_law(od_2, ppf=6)`。这里你传入的是一个标量 `6`，意味着 MNE 对 **760nm 和 850nm 都统一使用了 6 作为路径增益因子**。
+        * **MATLAB/Homer**：通常会根据公式 $DPF(\lambda) = a + b \cdot \lambda^c$ 计算每个波长对应的 DPF。
+        * 例如：760nm 的 DPF 可能是 **6.2**，而 850nm 的 DPF 可能是 **5.8**。
+        * 如果你在 MATLAB 里用的是动态 DPF，而 Python 里用的是固定常数 6，结果必然会出现这种 5% 左右的系统偏差。
 * 这个是 toast++ 的一个 example 代码，逐行解释这段代码
 
     ```py

@@ -2,6 +2,9 @@
 
 ## cache
 
+* vscode 调试在 for 循环 / while 循环中的代码时，如何方便地跳出循环？
+
+    似乎没有什么好办法。只能在循环外再设置一个断点。matlab 可以执行到指定行。
 * vscode 中如何调试 mpi 启动的程序
 
     目前最主流且高效的方法是使用 **"Attach"（附加）** 模式，或者利用 VS Code 的 **Microsoft C++ 扩展** 配合特定的 `launch.json` 配置。
