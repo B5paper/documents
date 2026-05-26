@@ -36,6 +36,26 @@
 
 ## cache
 
+* [ ] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
+
+* [new] markdown-aware, vim-markdown
+
+* [new] vim-textobj-function, vim-treesitter-textobjects
+
+* [new] vim-lsp, coc.nvim, nvim-lspconfig
+
+* [new] nvim-treesitter
+
+* [new] `nvim-cmp` + `cmp-nvim-lsp`
+
+* [new] aerial.nvim, symbols-outline.nvim
+
+* [new] clang-format, `formatter.nvim` / `conform.nvim`
+
+* [new] telescope.nvim
+
+* [new] lsof 命令
+
 * [new] libpci
 
 * [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和

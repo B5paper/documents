@@ -6,6 +6,31 @@
 
 ## cache
 
+* linux 上查看磁盘配额
+
+    * 最常用的命令：`quota`
+
+        这是查看个人配额的标准工具。建议加上 `-s`（human-readable）参数：
+
+        ```bash
+        quota -s
+        ```
+
+        * **blocks (used):** 当前已使用的空间。
+        * **quota (soft):** 软限制。达到此限制后你还能写入，但会收到警告。
+        * **limit (hard):** 硬限制。**一旦达到这个值，就会触发你看到的 `Disk quota exceeded` 错误。**
+        * **grace:** 如果超过了软限制，这里会显示你还有多长时间来清理文件。
+
+        注：
+
+        1. quota 命令需要使用 apt 安装
+
+    * 如果发现配额确实满了，可以用 `du` 命令排查“大户”：
+
+        ```bash
+        # 查看当前目录下各一级子目录的大小，并按大小排序
+        du -h --max-depth=1 | sort -hr
+        ```
 * 关于 ptrace 权限的修改
 
     在使用 GDB 调试 MPI 程序或进行多进程附加（Attach）调试时，你指的应该是 Linux 的 **`ptrace_scope`** 权限设置。

@@ -2,6 +2,83 @@
 
 ## cache
 
+* 我在 dev 分支上开发，需要时不时追一下 main 分支上的最新 commit，怎么办
+
+    在 Git 中同步 `main` 分支最新提交到 `dev` 分支有**两种主流方案**，核心区别在于提交历史形态，推荐个人开发分支用**变基(rebase)**，公共分支用**合并(merge)**。
+
+    * 方案一：推荐！变基同步（保持线性历史）
+        
+        **优点**：无额外合并提交，历史干净如一条直线，便于回溯和代码审查
+
+        **⚠️ 铁律**：**绝对不要对已经推送到远程的公共分支执行 rebase**，仅用于你自己的本地 `dev` 分支
+
+        ```bash
+        # 1. 确保工作区干净（有未提交修改先暂存）
+        git status
+        git stash  # 如有未提交修改，执行此命令暂存
+
+        # 2. 拉取远程 main 分支的最新代码（不切换分支）
+        git fetch origin main
+
+        # 3. 将你的 dev 分支变基到最新的 main 上
+        git rebase origin/main
+
+        # 4. 解决冲突（如有）
+        # 编辑冲突文件后执行
+        git add <冲突文件>
+        git rebase --continue
+        # 若想放弃本次变基，执行 git rebase --abort
+
+        # 5. 恢复之前暂存的修改（如果执行了 git stash）
+        git stash pop
+
+        # 6. 强制推送更新你的远程 dev 分支（因为变基改写了历史）
+        git push origin dev --force-with-lease
+        # 推荐用 --force-with-lease 替代 --force，防止覆盖他人提交
+        ```
+
+    * 方案二：合并同步（保留完整历史）
+        
+        **优点**：操作安全，不改写历史，保留所有提交的原始时间线
+
+        **缺点**：会产生额外的合并提交，历史可能变得杂乱
+
+        ```bash
+        # 1. 切换到 main 分支并拉取最新
+        git checkout main
+        git pull origin main
+
+        # 2. 切回 dev 分支并合并 main
+        git checkout dev
+        git merge main
+
+        # 3. 解决冲突（如有）
+        # 编辑冲突文件后执行
+        git add <冲突文件>
+        git commit
+
+        # 4. 推送更新到远程 dev 分支
+        git push origin dev
+        ```
+
+    * 一步到位的快捷命令（变基）
+
+        不用切换分支，直接同步远程 `main` 到本地 `dev`：
+
+        ```bash
+        git pull origin main --rebase
+        ```
+
+    * 最佳实践
+
+        1. **同步频率**：建议每天至少同步一次，避免冲突累积成灾难
+        2. **冲突处理**：遇到复杂冲突时，先和相关提交的作者沟通再解决
+        3. **分支保护**：远程 `main` 分支应开启保护，禁止直接推送，只能通过 PR/MR 合并
+        4. **临时保存**：同步前务必用 `git stash` 暂存未完成的工作，避免代码丢失
+
+    注：
+
+    1. git reset 应也可以吧，回头研究一下
 * git stash pop error: `error: could not restore untracked files from stash`
 
     当你执行 pop 时，Git 尝试把你之前存储的文件恢复到当前目录。但它发现，你要恢复的那些未跟踪文件（untracked files）（如 compile.sh 等）在当前的文件夹里已经存在了。

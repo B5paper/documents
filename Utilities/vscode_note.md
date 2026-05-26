@@ -2,6 +2,8 @@
 
 ## cache
 
+* vscode 可以使用`Ctrl + Shift + O`打开 Markdown 标题导航
+
 * vscode 调试在 for 循环 / while 循环中的代码时，如何方便地跳出循环？
 
     似乎没有什么好办法。只能在循环外再设置一个断点。matlab 可以执行到指定行。

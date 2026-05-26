@@ -2,6 +2,332 @@
 
 ## cache
 
+* vim 中，我希望匹配 ## hello world，我使用 #+ +hello 为什么不行
+
+    这个困惑非常经典！你在 Vim 中使用 `#+ +hello` 无法匹配 `## hello world`，主要有两个核心原因：**Vim 默认的正则表达式模式（Magic）** 以及 **对空格匹配的误解**。
+
+    我们直接来看看为什么不行，以及怎么改。
+
+    **原因拆解**
+
+    1. `+` 没有被当成“一个或多个”，而被当成了字面量
+
+        Vim 默认的正则模式叫做 **Magic 模式**。在这个模式下，大部分特殊符号（比如 `+`、`?`、`{`、`|`）都必须加反斜杠 `\` 转义，才能获得它们在现代正则（如 PCRE/Python）中的特殊含义。
+
+        * 在你的写法中，`#+` 意味着：匹配一个井号 `#`，后面**紧跟一个真正的加号 `+**`。
+
+    2. 空格的连写变成了单纯的字符匹配
+
+        在正则中，如果你连写两个空格（或者像你写的 `+ ` 加号后面接空格），Vim 只会死板地去匹配对应的空格数量。
+
+        * 你的第二段 ` +hello`（前面有个空格）意味着：匹配一个空格，后面**紧跟一个加号 `+**`，再紧跟 `hello`。
+
+        所以，你的表达式 `#+ +hello` 实际上在寻找一段长得像 **`#++hello`** 的文本，这当然找不到 `## hello world`。
+
+    **正确的解决方法**
+
+    如果你想实现“匹配一个或多个 `#`，后面接一个或多个空格，再接 `hello`”，你有两种最简单好用的改法：
+
+    **方法 A：使用 Vim 的“超级魔法”模式 `\v`（强烈推荐）**
+
+    在正则最前面加上 `\v`（Very Magic），可以让 Vim 的正则变得和大多数现代编程语言一样，`+` 不需要加反斜杠就能表示“一个或多个”。
+
+    ```text
+    /\v#+ +hello
+    ```
+
+    * `#+`：匹配一个或多个 `#`
+    * ` +`：匹配一个或多个空格
+    * `hello`：匹配单词 `hello`
+
+    **方法 B：在标准模式下给 `+` 加反斜杠**
+
+    如果你不想用 `\v`，就必须告诉 Vim 这两个 `+` 是特殊符号，写作 `\+`。
+
+    ```text
+    /#\+ \+hello
+    ```
+
+    **进阶小贴士**
+
+    在实际写 Markdown 或代码时，空格往往不止是空格键，还可能包含制表符（Tab）。为了更稳妥地匹配“任意空白字符”，建议使用 `\s`：
+
+    * **极其优雅的写法（Very Magic）：** `/\v#+\s+hello`
+    * **传统写法：** `/#\+\s\+hello`
+* 详细讲一下 clangd 和 vim-lsp 这个组合，如何安装？如何使用？
+
+    好，这里我**只讲 clangd + vim-lsp 这一条线**，不掺 Neovim、不掺 coc、不掺 treesitter，目标是：
+
+    > **在「纯 Vim」里，把 C/C++ 提升到“真正懂语义”的级别**
+
+    我会按 **安装 → 最小配置 → 常用用法 → 你关心的问题对应方案 → 排错** 来讲。
+
+    ---
+
+    一、整体架构（先理解再装）
+
+    ```
+    ┌────────┐        LSP 协议        ┌────────┐
+    │  Vim   │  <----------------->  │ clangd │
+    │        │        JSON-RPC        │        │
+    └────────┘                        └────────┘
+          ↑
+       vim-lsp
+    ```
+
+    * **clangd**：真正解析 C/C++ 的引擎（来自 LLVM）
+    * **vim-lsp**：Vim 的 LSP 客户端
+    * Vim 只负责：
+
+      * 显示
+      * 跳转
+      * keymap
+
+    二、安装 clangd（必须先做）
+
+    1.   确认是否已有 clangd
+
+        ```bash
+        clangd --version
+        ```
+
+        如果 >= 12 就可以用了（越新越好）。
+
+    2. 安装方式（Linux）
+
+        **Ubuntu / Debian（不推荐仓库自带）**
+
+        ```bash
+        sudo apt install clangd
+        ```
+
+        更推荐 LLVM 官方：
+
+        ```bash
+        sudo apt install clangd-17
+        sudo update-alternatives --config clangd
+        ```
+
+    3. clangd 的“生命线”：compile_commands.json
+
+        clangd **不靠猜**，它需要：
+
+        ```text
+        compile_commands.json
+        ```
+
+        **CMake 项目**
+
+        ```bash
+        cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+        ```
+
+        或：
+
+        ```bash
+        ln -s build/compile_commands.json .
+        ```
+
+        📌 **没有这个文件，80% 的问题都会发生**
+
+    三、安装 vim-lsp
+
+    1. 用 vim-plug（示例）
+
+        ```vim
+        call plug#begin('~/.vim/plugged')
+
+        Plug 'prabirshrestha/vim-lsp'
+        Plug 'mattn/vim-lsp-settings'   " 自动发现 clangd
+
+        call plug#end()
+        ```
+
+        然后：
+
+        ```vim
+        :PlugInstall
+        ```
+
+    2. 为什么要 `vim-lsp-settings`
+
+        它会：
+
+        * 自动找到 clangd
+        * 自动注册 C/C++ 的 LSP server
+        * 少写很多配置
+
+        你当然也可以不用，但**新手不建议**
+
+    四、最小可用配置（可以直接复制）
+
+    ```vim
+    " ========= LSP 基础 =========
+    let g:lsp_diagnostics_enabled = 1
+    let g:lsp_diagnostics_echo_cursor = 1
+
+    " 悬浮窗口
+    let g:lsp_hover_ui = 'float'
+
+    " 补全
+    let g:lsp_completion_enabled = 1
+
+    " ========= 常用快捷键 =========
+    nnoremap <silent> gd :LspDefinition<CR>
+    nnoremap <silent> gD :LspDeclaration<CR>
+    nnoremap <silent> gr :LspReferences<CR>
+    nnoremap <silent> gi :LspImplementation<CR>
+    nnoremap <silent> K  :LspHover<CR>
+
+    " 重命名
+    nnoremap <leader>rn :LspRename<CR>
+
+    " 诊断
+    nnoremap <leader>e :LspNextDiagnostic<CR>
+    nnoremap <leader>E :LspPreviousDiagnostic<CR>
+    ```
+
+    这已经是**可日用状态**。
+
+    五、clangd 真正好用的地方（你关心的）
+
+    1. 跳到上一个 / 下一个函数？
+
+        > **不是 motion，而是符号**
+
+        ```vim
+        :LspDocumentSymbol
+        ```
+
+        你会看到：
+
+        ```
+        function_1
+        function_2
+        ```
+
+        ⬆️ 这就是你之前问的 **“怎么跳到 function_1” 的正解**
+
+        你可以绑定：
+
+        ```vim
+        nnoremap <leader>fs :LspDocumentSymbol<CR>
+        ```
+
+    2. 从声明跳定义 / 从注释区跳函数头
+
+        ```vim
+        gd
+        ```
+
+        clangd 会：
+
+        * 跳过空行
+        * 跳过注释
+        * 跳到真正的函数定义
+
+    3. hover / 类型信息（比你想象强）
+
+        ```vim
+        K
+        ```
+
+        * 显示函数签名
+        * 模板参数
+        * 注释（Doxygen）
+
+    4. 重构级操作
+
+        重命名函数 / 变量
+
+        ```vim
+        <leader>rn
+        ```
+
+        clangd 会：
+
+        * 跨文件
+        * 处理头文件
+
+    六、clangd 的常用高级配置（强烈建议）
+
+    创建：
+
+    ```bash
+    ~/.config/clangd/config.yaml
+    ```
+
+    示例：
+
+    ```yaml
+    CompileFlags:
+      Add: [-Wall, -Wextra]
+      Remove: [-Werror]
+
+    Index:
+      Background: Build
+
+    Diagnostics:
+      ClangTidy:
+        Add: [modernize-*, performance-*]
+    ```
+
+    七、常见问题 & 排错
+
+    1. `gd` 跳转不准？
+
+        99% 原因：
+
+        * 没有 `compile_commands.json`
+        * 路径不对（软链位置错）
+
+    2. vim-lsp 没连上 clangd？
+
+        检查：
+
+        ```vim
+        :LspStatus
+        :LspLog
+        ```
+
+    3. 多个 clangd 版本冲突？
+
+        ```vim
+        :LspServerInfo
+        ```
+
+        或者直接指定：
+
+        ```vim
+        let g:lsp_settings = {
+        \  'clangd': {
+        \    'cmd': ['clangd-17'],
+        \  },
+        \}
+        ```
+
+    八、与 VS Code 的本质差异
+
+    | VS Code | Vim + clangd |
+    | ------- | ------------ |
+    | 开箱即用    | 配一次，终身爽      |
+    | GUI     | 键盘流          |
+    | 封装      | 可控、可 hack    |
+
+    九、下一步你可以升级什么
+
+    1. **函数 textobject（补齐最后一块）**
+    2. **ctags 作为 fallback**
+    3. **Neovim + Treesitter（如果你哪天想进阶）**
+
+    如果你愿意
+
+    你可以直接把：
+
+    * `:LspLog`
+    * 或你项目的构建方式（CMake / Bazel / Make）
+
+    贴出来，我可以帮你 **针对 clangd 精确调到“工程级”状态**。
 * 详细讲讲 vimdiff 的用法
 
     `vimdiff` 是 Vim 自带的**文件对比与合并工具**。它不仅能在终端里用高亮清晰地标出两个（甚至多个）文件的差异，还能让你用极快的纯键盘操作把差异进行合并。
