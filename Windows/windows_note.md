@@ -2,6 +2,58 @@
 
 ## cache
 
+* 我想禁用 windows 的恢复分区，怎么办
+
+    禁用或删除 Windows 的恢复分区（Recovery Partition）可以让磁盘管理界面看起来更整洁，或者释放那几百 MB 的空间。
+
+    由于恢复分区受到保护，在普通的“磁盘管理”中无法直接右键删除。你需要使用命令行工具 **Diskpart**。
+
+    第一步：在系统中禁用恢复环境
+
+    在删除分区前，建议先在软件层面关闭恢复功能，防止系统报错。
+
+    1. 右键点击开始菜单，选择 **终端（管理员）** 或 **命令提示符（管理员）**。
+
+    2. 输入以下命令并回车：
+
+        `reagentc /disable`
+        *(如果显示 "Operation Successful"，说明已禁用)*
+
+    第二步：使用 Diskpart 强制删除分区
+
+    1. 在同一个窗口输入：
+
+        `diskpart`
+
+    2. 列出所有磁盘：
+
+        `list disk`
+
+    3. 选择你的系统所在的磁盘（通常是 0）：
+
+        `select disk 0`
+
+    4. 列出所有分区，找到类型为“恢复”的分区：
+
+        `list partition`
+
+        *(假设恢复分区是分区 4，请根据实际显示的编号操作)*
+
+    5. 选中该分区：
+
+        `select partition 4`
+
+    6. **关键步骤：** 强制删除（因为它是受保护分区）：
+
+        `delete partition override`
+
+    第三步：合并空间（可选）
+
+    删除后，你会发现磁盘管理中多了一块“未分配空间”。
+
+    * 如果这块空间**紧邻** C 盘右侧，你可以右键 C 盘选择“扩展卷”将其合并。
+    * 如果中间隔着其他分区（比如 EFI 分区），系统自带工具无法直接合并，需要使用“傲梅分区助手”等第三方工具。
+
 * 使用 rdp 连接到远程 windows，然后在远程机器上 windows terminal 中使用 vim，此时按 backspace 键，左右箭头键，都失灵了，如何解决
 
     > powershell profile -> terminal emulation -> use the legacy input encoding，打开这个后就好了

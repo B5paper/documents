@@ -1,5 +1,47 @@
 ## cache
 
+* 微星（MSI） b760m 主板将内存从 2666 MHz 拉到 3600 MHz
+
+    这确实是个常见的小烦恼。默认情况下，为了保证系统的初始稳定性，主板会自动把内存频率设定在基础值（通常是 2133MHz 或 2666MHz）。
+
+    需要开启 **XMP (Extreme Memory Profile)**
+
+    常见问题与解决方案：
+    
+    1. 报错：
+    
+        > Verification failed 0x1A security violation
+
+        解决方案：
+
+        先把频率调到 2666 MHz，然后关闭 secure boot，最后再开启 XMP 即可。
+
+    2. 报错：
+    
+        > Press any key to perform mok management
+
+        看来你遇到了 Linux 系统（或者某些带有特殊引导工具的 Windows 修改版）在开启 **Secure Boot** 时最经典的“握手失败”界面。
+
+        出现 **MOK Management (Machine Owner Key)** 是因为 BIOS 识别到你的内存频率变动或系统引导文件没有经过主板预设密钥的验证。别担心，这**不是报错**，而是一个等待你“授权”的确认过程。
+
+        解决方案：
+
+        **启动 bios csm mode / legacy mode，绕过 UEFI 即可。**
+
+        简单来说，**CSM (Compatibility Support Module)** 是主板 BIOS 里的一个“兼容性模式”。
+
+        它的存在是为了让现代的主板能够支持**老旧的硬件和操作系统**。你可以把它理解为一个“老系统模拟器”。
+
+        以下是它的核心区别和作用：
+
+        **CSM vs. UEFI**:
+
+        现在的电脑默认都运行在 **UEFI** 模式（更安全、启动更快、支持大于 2TB 的硬盘）。而 **CSM** 是为了兼容那些不支持 UEFI 的老古董：
+
+        * **开启 CSM：** 模拟传统 BIOS 环境。支持安装 Windows 7、使用老型号显卡、或者读取 MBR 格式的分区。
+
+        * **关闭 CSM（纯 UEFI 模式）：** 现代标准。支持 **Secure Boot（安全启动）**、快速启动，以及 GPT 格式的硬盘分区。
+
 * 主板上 cpu 供电口是8pin+4pin，但是我的电源给出的线都是8pin再分叉出一个8pim，我是将同一根线上的两个 8pin 组合一下接到 cpu 供电上，还是分别取两根线上的8pin组合一下给cpu供电？
 
     这是一个非常典型且容易让人纠结的装机细节。简单来说，两种方案在**开机使用**上通常都没问题，但从**电气安全和稳定性**的角度来看，有明确的优劣之分。
