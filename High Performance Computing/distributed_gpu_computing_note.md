@@ -1,5 +1,50 @@
 ## cache
 
+* 单个 gpu / npu 芯片有 triton 帮忙优化算子把寄存器／shared memory/global memory 利用到极致，那么对于多卡的算子呢，是否有类似的框架或工具做算子生成或优化？
+
+    对于单卡（Single-GPU/NPU）算子，Triton 通过对 Tile（瓦片）层级的抽象，成功地让开发者能够手动或自动地调优寄存器和 Shared Memory。而对于**多卡（Multi-GPU/NPU）算子**，核心挑战在于如何将计算与通信（Communication）在细粒度上进行流水线化（Pipelining）和重叠（Overlap）。
+
+    目前，针对多卡算子生成和优化的框架已经开始成熟，主要分为以下几类：
+
+    1. Triton 的原生分布式扩展：Triton-Distributed / Iris
+
+        这是最贴近你需求的工具。为了解决单卡 Triton 无法直接描述跨卡数据交换的问题，社区和厂商（如 AMD、OpenAI）推出了扩展：
+
+        * **Triton-Distributed**: 允许在 Triton 内核中直接描述跨 GPU 的数据传输。它将计算 Tile 与通信算子（如 All-Reduce）融合，目的是在同一个 Kernel 内动态调整内存访问模式，从而隐藏通信延迟。
+
+        * **Iris (AMD Research)**: 这是一个专门为 Triton 设计的多卡通信库。它引入了类似 **SHMEM** 的远程内存访问（RMA）原语。通过在 Triton Kernel 中增加几行代码，就可以实现类似“一边计算当前 Tile，一边异步读取/写入远程 GPU 显存”的操作。
+
+    2. 算子与通信融合框架 (Fused Operator Frameworks)
+
+        传统的做法是“计算 Kernel + NCCL 通信 + 计算 Kernel”，这会在 GPU 上产生多次同步开销。这类框架旨在打破这种边界：
+
+        * **ParallelKittens**: 基于 ThunderKittens 扩展，它提供了一套多卡原语，专门用于编写高度重叠的 Kernel（如 MoE 的 All-to-All 融合、Attention 的跨卡分布式实现）。它能通过 DMA（如 NVIDIA 的 TMA）在寄存器级别调度跨卡通信。
+
+        * **FLUX / MS-Comet (Microsoft)**: 微软开发的分布式算子库，专注于将 GEMM 与通信（Reduce-Scatter / All-Gather）深度融合。它们利用 GPU 的 SM 直接驱动网络传输，避免了 CPU 端的调度延迟。
+
+    3. 通信算子编译器 (Collective Communication Compilers)
+
+        如果你不仅仅是想优化计算，还想优化多卡之间的“握手”协议，可以关注：
+
+        * **GC3 (Microsoft Research)**: 一个针对 GPU 集体通信的优化编译器。它提供了一种领域特定语言 (DSL)，让你可以定义自定义的通信拓扑和算法，然后将其编译成高效的执行代码。
+
+        * **AdapCC / HiCCL**: 这些框架会自动根据集群的物理拓扑（PCIe 还是 NVLink，单机还是多机）生成最优的通信策略（如 Ring、Tree 或混合拓扑），并生成相应的 CUDA/HIP 代码。
+
+    **核心差异对比**
+
+    | 特性 | 单卡 Triton | 多卡分布式框架 (如 Iris/ParallelKittens) |
+    | --- | --- | --- |
+    | **优化目标** | 寄存器/SRAM 利用率 | 计算与通信的并行/重叠 (Overlap) |
+    | **主要原语** | `tl.load`, `tl.dot`, `tl.store` | `remote_put`, `remote_get`, `fence` |
+    | **瓶颈处理** | 内存带宽/计算吞吐 | 节点间带宽/网络延迟 |
+    | **编程模型** | 瓷砖化 (Tiling) | 瓷砖化 + 分布式流水线 (Pipelining) |
+
+    **建议**
+
+    * 如果你已经有 Triton 经验，优先查看 **Triton-Distributed** 或 AMD 的 **Iris** 项目，因为它们延续了 Tile-based 的思维。
+    * 如果你追求极致性能且愿意手写一部分 CUDA，**ParallelKittens** 是目前学术界和工业界非常前沿的选择。
+
+    你想深入了解其中某个框架的编程模型，或者需要一个具体的通信融合（Communication Fusion）代码示例吗？
 * 我的一个项目需要用gpu做加速，但是我的开发环境是本地的一般性能机器，带gpu的高性能服务器都部署在云端，所以我希望程序设计成有一个 connect_to_gpu_server(ip_addr: str, port: int, auth: dict) 接口的软件框架。是否有现成的能实现这种功能的框架或工具？如果没有，自己该如何设计？
 
     在开发环境中将本地任务卸载（Offload）到远程 GPU 服务器，是一个非常经典的工程问题。根据你的需求，这通常分为“直接使用现成工具”和“基于 RPC 设计自定义框架”两条路径。

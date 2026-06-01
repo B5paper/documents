@@ -2,6 +2,91 @@
 
 ## cache
 
+* 我是通信库的开发者，想知道nccl具体在哪一行代码决定走p2p，还是ib net
+
+    作为通信库开发者，你关注的应该是 NCCL 拓扑搜索和路径择优的核心逻辑。NCCL 的“抉择”并不是一行简单的 `if-else`，而是一个**基于评分机制的插件筛选过程**。
+
+    具体的决策逻辑位于 **`src/graph/connect.cc`** 文件中的 **`selectTransport`** 函数。
+
+    以下是代码层面的深度拆解：
+
+    1. 核心决策函数：`selectTransport`
+
+        在 NCCL 初始化或重连时，会调用 `selectTransport` 来决定两个 GPU 节点（或内外部端口）之间使用哪种传输方式。
+
+        * **源文件路径**：`src/graph/connect.cc`
+        * **关键逻辑代码段**（以 NCCL 2.x/3.x 典型结构为例）：
+
+        ```cpp
+        static ncclResult_t selectTransport(struct ncclComm* comm, struct ncclTopoGraph* graph, struct ncclConnectMyInfo* myInfo, struct ncclConnectPeerInfo* peerInfo, struct ncclConnector* connector) {
+          // ... 
+          for (int t=0; t<NTRANSPORTS; t++) {  // 遍历所有可能的传输层：P2P, SHM, NET
+            struct ncclTransport *transport = ncclTransports + t;
+            struct ncclTransportComm* transportComm = NULL;
+            
+            // 关键调用：询问该 Transport 能否连接这两个点
+            NCCLCHECK(transport->canConnect(&ret, comm, graph, myInfo, peerInfo));
+            
+            if (ret > 0) {
+              // 如果可以连接，则进入 setup 阶段
+              connector->transport = transport;
+              // ... 匹配成功，退出循环
+              return ncclSuccess;
+            }
+          }
+        }
+
+    2. Transport 的优先级顺序
+
+        NCCL 定义了一个 `ncclTransports` 数组（通常在 `src/transport/transport.cc` 中初始化）。它的遍历顺序即代表了**默认优先级**：
+
+        1. **`p2pTransport`**: 处理 NVLink 和 PCIe P2P。
+        2. **`shmTransport`**: 处理共享内存（CPU 拷贝）。
+        3. **`netTransport`**: 处理网卡（Socket 或 IB/Verbs）。
+
+        **结论**：只要 `p2pTransport->canConnect` 返回成功（`ret > 0`），NCCL 就会直接选用 P2P，根本不会走到 `netTransport`。
+
+    3. `p2pTransport` 何时“放手”？
+
+        既然你没看到 IB 被调用，说明 `p2pTransport->canConnect` 在单机场景下截获了请求。
+
+        * **代码位置**：`src/transport/p2p.cc` 中的 `p2pCanConnect` 函数。
+        * **决策逻辑**：
+        * 它会调用 `ncclTopoCheckP2p` 检查两个 GPU 之间是否有 **NVLink** 或 **PCIe P2P** 支撑。
+        * 在单机多卡环境下，只要驱动层支持 P2P，该函数就会返回 `1`。
+        * **由于它在数组中的索引靠前，它被优先选中。**
+
+    4. `netTransport` 何时被触发？
+
+        * **代码位置**：`src/transport/net.cc` 中的 `netCanConnect` 函数。
+
+        * **触发条件**：
+
+            1. **跨机通信**：`myInfo->rank` 和 `peerInfo->rank` 不在同一个 `node`。
+            2. **强制干预**：如果你设置了 `NCCL_P2P_DISABLE=1`，那么 `p2pCanConnect` 会直接返回 `ncclSuccess` 但 `ret = 0`，从而迫使 `selectTransport` 继续向下寻找，直到匹配到 `netTransport`。
+
+    5. 开发者调试建议：如何看到 IB 的调用？
+
+        如果你想强行进入 `src/transport/net_ib.cc` 里的 `net_ib_init` 或 `isend/irecv`，你需要：
+
+        1. **断点位置**：
+
+            * `src/transport/net.cc` 中的 `net_v7_get_properties` (或对应版本的接口)。
+            * `src/transport/net_ib.cc` 中的 `nccl_ib_reg_mr`。
+
+        2. **强制路径**：
+
+            * 设置 `export NCCL_P2P_DISABLE=1`。
+            * 设置 `export NCCL_SHM_DISABLE=1`。
+            * 此时，`selectTransport` 别无选择，只能跳转到 `netTransport`，进而调用底层扩展的 IB 接口。
+
+    **总结**
+
+    NCCL 决定“走不走 IB”的逻辑在 **`src/graph/connect.cc` 的循环遍历中**。单机环境下，`p2p.cc` 的 `canConnect` 逻辑优先级最高，导致 `net.cc` 及其背后的 `net_ib.cc` 被屏蔽。
+
+    **你想深入研究一下 `ncclTopoCheckP2p` 是如何根据机器的 XML 拓扑结构给路径评分（Score）的吗？我可以为你指出那部分的计算逻辑。**
+
+
 * 逐行解释这段代码 `ncclResult_t ncclIpcLocalRegisterBuffer()`
 
     这段代码是 `ipcRegisterBuffer`（你上一段提供的函数）的上层入口封装。它的主要作用是**在执行实际的 IPC 注册之前，进行参数校验和内存注册状态的查询**。
