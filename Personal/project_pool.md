@@ -36,9 +36,13 @@
 
 ## cache
 
+* [new] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
+
 * [ ] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
 
 * [new] markdown-aware, vim-markdown
+
+* [new] 调研 vim 中的 textobj 或 treesitter
 
 * [new] vim-textobj-function, vim-treesitter-textobjects
 
@@ -6682,7 +6686,7 @@ resources:
 
 * [new] `git clone --filter=blob:none --no-checkout <repo-url>`
 
-* [new] `git fetch --deepen 5  # 再获取5个历史提交`
+* [v] `git fetch --deepen 5  # 再获取5个历史提交`
 
 * [new] `git checkout --orphan new-history  # 创建无父提交的新分支`
 
