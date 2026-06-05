@@ -2,6 +2,192 @@
 
 ## cache
 
+* 详细讲讲 nccl 最新的 deepep 功能
+
+    NCCL DeepEP（NCCL EP）功能详解
+
+    一、概念澄清与背景
+
+    **DeepEP最初是DeepSeek团队于2025年10月开源的专为混合专家模型（MoE）设计的专家并行通信库**，解决了传统NCCL通用All-to-All原语在MoE动态路由场景下带宽利用率低、延迟高的瓶颈问题。
+
+    **NCCL EP（NCCL Expert Parallel）是NVIDIA在NCCL 2.28.7及以上版本中集成的官方实现**，它采用了DeepEP的核心设计思想，基于NCCL全新的Device API和GPU发起网络（GIN）技术构建，提供了统一的专家并行通信API，成为目前最主流的MoE通信解决方案。
+
+    二、核心问题：MoE通信的独特挑战
+
+    MoE模型的专家并行（EP）需要执行两个关键操作：
+    - **Dispatch（分发）**：根据门控网络的决策，将token路由到对应的专家GPU
+    - **Combine（合并）**：将专家处理后的结果聚合回原始GPU
+
+    传统NCCL All-to-All的缺陷：
+    1. 假设固定大小和固定目的地的数据传输，无法高效处理MoE的动态不规则路由
+    2. 通信由CPU发起，需要显式GPU同步屏障，引入额外开销
+    3. 无法充分利用NVLink和RDMA的带宽不对称性
+    4. 通信任务占用GPU SM资源，与计算任务竞争
+
+    三、NCCL EP的核心架构与技术
+
+    * 3.1 底层技术基础
+
+        NCCL EP建立在NCCL 2.28+引入的两大革命性技术之上：
+
+        1. NCCL Device API
+
+            允许GPU直接从CUDA内核内部发起通信操作，完全绕过CPU控制路径，消除了CPU介导的延迟和同步开销。支持三种操作模式：
+            - **LSA（Load/Store Accessible）**：用于节点内NVLink/PCIe通信
+            - **Multimem**：利用NVLink SHARP实现硬件多播
+            - **GIN（GPU-Initiated Networking）**：用于节点间RDMA通信
+
+        2. GPU发起网络（GIN）
+            
+            GIN提供了两种后端实现，支持不同的硬件环境：
+            - **GDAKI（GPUDirect Async Kernel-Initiated）**：直接GPU到NIC通信，无需CPU干预，延迟最低，需要支持DOCA GPUNetIO的网卡
+            - **Proxy后端**：通过无锁GPU-CPU队列和CPU代理线程实现，兼容所有标准RDMA网络（如AWS EFA）
+
+        3. Copy Engine（CE）集体通信
+
+            将通信任务从GPU SM卸载到专用硬件Copy Engine，实现**零SM占用**的通信操作，彻底解决了通信与计算的资源竞争问题。
+
+    * 3.2 两种算法模式
+        
+        NCCL EP针对不同的MoE工作负载，提供了两种优化的算法模式，在创建EP组时指定：
+
+        | 特性 | 低延迟模式（LL Mode） | 高吞吐量模式（HT Mode） |
+        |------|------------------------|--------------------------|
+        | 目标场景 | 推理解码（1-128 tokens） | 训练/预填充（4096+ tokens） |
+        | 通信拓扑 | 全连接mesh | 分层NVLink+RDMA |
+        | 输出格式 | 3D专家优先张量 | 2D带计数张量 |
+        | 关键优化 | 分阶段执行、双缓冲重叠 | 数据聚合、拓扑感知 |
+        | 确定性 | 非确定性（适合推理） | 确定性（适合训练） |
+
+    四、NCCL EP的核心功能
+
+    * 4.1 无缝计算-通信重叠
+
+        - **分阶段执行**：支持`send_only`模式，允许在数据传输的同时启动专家计算
+        - **双缓冲机制**：重叠连续的Dispatch和Combine阶段，隐藏通信延迟
+        - **钩子式异步调度**：将RDMA流量卸载到后台，不阻塞计算内核的执行
+
+    * 4.2 原生低精度支持
+
+        - 原生支持FP8（E4M3和E5M2）数据格式，通信数据量减少50%
+        - 支持在通信过程中自动进行格式转换，无需额外的内核调用
+        - 与NVIDIA Blackwell架构的FP8硬件加速完美配合
+
+    * 4.3 拓扑感知与带宽优化
+
+        - 自动检测集群网络拓扑，优先使用高带宽的NVLink进行节点内通信
+        - 实现非对称域带宽转发（NVLink→RDMA），充分利用不同互连的带宽优势
+        - 在H800系统上，节点内NVLink带宽可达158 GB/s，节点间RDMA带宽稳定在47 GB/s
+
+    * 4.4 统一API与多语言支持
+
+        - 提供C API和Python绑定（通过ctypes包装，无需编译）
+        - 与PyTorch、vLLM、SGLang等主流框架无缝集成
+        - 支持与NCCL传统集体通信操作混合使用
+
+    五、性能表现
+
+    * 5.1 训练性能
+
+        在32节点×8 B200 GPU的集群上训练DeepSeek-V3模型时：
+        - 使用NCCL EP比标准PyTorch All-to-All实现**预训练速度提升41%**
+        - 通信带宽利用率从传统NCCL的40-50%提升到90%以上
+        - 支持更大的批次大小和更高的专家并行度
+
+    * 5.2 推理性能
+
+        在8-EP配置、400 Gb/s InfiniBand网络上：
+        - Dispatch延迟低至**77 μs**，Combine延迟低至**120 μs**
+        - 比传统NCCL All-to-All延迟降低5倍以上
+        - 支持每秒处理数百万个token的高并发推理请求
+
+    六、使用方法
+
+    * 6.1 环境要求
+
+        - NCCL版本：2.28.7及以上
+        - CUDA版本：12.5及以上
+        - GPU架构：Ampere（A100）及以上（推荐Hopper H100/H800或Blackwell B200）
+        - 网络：InfiniBand或支持GPUDirect RDMA的以太网（如AWS EFA）
+
+    * 6.2 关键环境变量
+        
+        ```bash
+        # 启用NCCL作为DeepEP的后端
+        DEEP_EP_BACKEND=nccl
+
+        # 选择GIN模式：2=Proxy（兼容所有RDMA），3=GDAKI（最低延迟）
+        NCCL_GIN_TYPE=2
+
+        # 启用Copy Engine集体通信（零SM占用）
+        NCCL_CE_COLLECTIVES=1
+
+        # 启用FP8通信支持
+        NCCL_ALLOW_FP8=1
+        ```
+
+    * 6.3 框架集成示例
+
+        * vLLM中启用NCCL EP
+
+            ```bash
+            vllm serve deepseek-ai/DeepSeek-V3 \
+              --tensor-parallel-size 8 \
+              --expert-parallel-size 32 \
+              --all2all-backend deepep_low_latency
+            ```
+
+        * PyTorch中使用NCCL EP API
+
+            ```python
+            import torch
+            import nccl4py
+
+            # 创建NCCL通信器
+            comm = nccl4py.NcclCommunicator(world_size, rank, nccl_uuid)
+
+            # 创建EP组
+            ep_group = comm.create_ep_group(
+                expert_parallel_size=32,
+                algorithm=nccl4py.EPAlgorithm.LL  # 或HT
+            )
+
+            # 执行Dispatch操作
+            dispatched_tokens, expert_counts = ep_group.dispatch(tokens, routing_map)
+
+            # 执行专家计算
+            expert_outputs = expert_model(dispatched_tokens)
+
+            # 执行Combine操作
+            combined_outputs = ep_group.combine(expert_outputs, expert_counts)
+            ```
+
+    七、适用场景与限制
+
+    * 7.1 最佳适用场景
+
+        - 大规模MoE模型的分布式训练（如DeepSeek-V3、Qwen3-MoE）
+        - 高并发低延迟的MoE推理服务
+        - 专家并行度较高（≥8）的场景
+        - 网络带宽受限的集群环境
+
+    * 7.2 当前限制
+
+        - 仅支持NVIDIA GPU，不支持AMD或其他厂商的加速卡
+        - GDAKI模式需要特定的网卡和驱动支持
+        - 目前主要优化了All-to-All通信，对其他MoE通信模式的支持有限
+        - 不支持动态专家数量和弹性扩展（计划在未来版本中支持）
+
+    八、未来发展方向
+    
+    1. **自动模式选择**：根据工作负载特征自动在LL和HT模式之间切换
+    2. **增强弹性支持**：支持专家数量动态调整和节点故障恢复
+    3. **更多低精度格式**：支持MXFP8、INT4等更低精度的通信
+    4. **与其他并行策略融合**：更好地与张量并行、流水线并行和数据并行结合
+    5. **跨云支持**：优化在不同云厂商网络环境下的性能
+
+    需要我补充一份**NCCL EP与传统NCCL All-to-All**的详细性能对比表格，或者提供一个可直接运行的**PyTorch MoE最小示例**吗？
+
 * 我是通信库的开发者，想知道nccl具体在哪一行代码决定走p2p，还是ib net
 
     作为通信库开发者，你关注的应该是 NCCL 拓扑搜索和路径择优的核心逻辑。NCCL 的“抉择”并不是一行简单的 `if-else`，而是一个**基于评分机制的插件筛选过程**。

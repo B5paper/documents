@@ -6,6 +6,125 @@
 
 ## cache
 
+* linux 中清空一个文件的方法
+
+    * `> filename`
+
+    * `truncate -s 0 filename`
+
+    * `echo -n "" > filename`
+
+        `-n`表示不输出最后的换行符
+
+    如果文件需要 sudo 权限才能修改，那么需要配合 `tee` 命令：
+
+    ```bash
+    sudo tee filename < /dev/null
+    # 或者用前面提到的 truncate
+    sudo truncate -s 0 filename
+    ```
+* Zip 分卷压缩
+
+    你遇到的这种文件列表，属于典型的 **Zip 分卷压缩（Split Zip Archive）**。
+
+    在分卷压缩中，`data.zip` 是主索引文件（通常也是最后一个分卷），而 `.z01`, `.z02` 等是它的数据分卷。解压这种文件，**不能**直接去挨个解压 `.z01` 或 `.z02`，而是需要把它们视作一个整体。
+
+    以下是不同系统下最简单、高效的解压方法：
+
+    方法一：Linux / macOS 终端（最标准做法）
+
+    在 Linux 或 macOS 的命令行中，标准的 `unzip` 命令有时对分卷压缩支持得不够完美（容易报错）。最稳妥的做法是先用 `zip` 命令将它们**合并恢复成一个完整的大 zip 文件**，然后再解压。
+
+    打开终端，进入文件所在的目录，执行以下两步：
+
+    ```bash
+    # 1. 将所有分卷合并成一个完整的 single.zip
+    zip -s 0 data.zip --out single.zip
+
+    # 2. 直接解压合并后的 single.zip
+    unzip single.zip
+    ```
+
+    **原理解析**：`-s 0` 参数的意思是“将分卷大小调整为 0（即不分卷）”，`--out` 后面跟着合并后的新文件名。
+
+    为什么不需要手动指定列表？
+
+    在分卷压缩的底层逻辑中，**主文件（也就是 `data.zip`）的末尾记录了整个分卷的核心目录（Central Directory）和所有分卷的信息**。
+
+    1. `zip` 命令会先去读取 `data.zip` 的尾部数据。
+
+    2. 它从里面读出：“哦！我其实是一个分卷压缩包的一部分，我的前一个兄弟叫 `data.z02`（或者根据你的命名，它会去寻找同目录下的前置分卷）。”
+
+    3. **它会自动在当前目录下，按照编号顺序（`.z01`, `.z02`...）去寻找并拼接这些文件。**
+
+    因为 `data.zip` 内部写死了寻找 `data.z01`、`data.z02`，所以我们用一个循环，把那些数字开头的分卷，全部软链接（或者重命名）成以 `data` 开头：
+
+    ```bash
+    for f in [0-1]*.z*; do ln -s "$f" "data.${f#*.}"; done
+    ```
+
+    > **这行命令在干嘛？** > 它会自动把 `01.z01` 映射成 `data.z01`，把 `14.z14` 映射成 `data.z14`。用软链接（`ln -s`）速度极快且不占额外空间。
+
+    **用 `zip` 修复并合并**
+
+    现在前缀统一了，再次召唤 `zip` 修复工具，它就能顺藤摸瓜找到所有分卷了：
+
+    ```bash
+    zip -s 0 data.zip --out correct_single.zip
+    ```
+
+    **最后：解压最终得到的完美文件**
+
+    ```bash
+    unzip -d data correct_single.zip
+    ```
+* unzip 的 -x  exclude files that follow (in xlist) 是什么含义
+
+    在 `unzip` 命令中，`-x` 参数的作用是**在解压时「排除」指定的文件或文件夹**。
+
+    example:
+
+    1. 排除单个文件
+
+        ```bash
+        unzip project.zip -x notes.txt
+        ```
+
+    2. 按通配符匹配排除文件
+
+        如果你不想解压任何 `.log` 结尾的日志文件：
+
+        ```bash
+        unzip project.zip -x "*.log"
+        ```
+
+        注意：在 Linux/macOS 终端中，通配符（如 `*`）建议**用双引号引起来**（`"*.log"`），防止终端提前把 `*` 解析成了当前目录下的文件。
+
+    3. 排除整个文件夹
+
+        如果你想跳过压缩包里的 `backup` 目录及其下的所有内容：
+
+        ```bash
+        unzip project.zip -x "backup/*"
+        ```
+
+    4. 同时排除多个不同的规则
+
+        你可以直接在 `-x` 后面列出多个需要排除的内容，用空格隔开：
+
+        ```bash
+        unzip project.zip -x "*.md" "config/local.json" "test/*"
+        ```
+
+        结果：同时排除了所有 Markdown 文件、特定的本地配置文件以及整个 test 文件夹。
+
+    **注意**
+
+    * `-x` 参数后面跟的所有内容都会被当作「排除对象」。因此，如果你还要指定解压到某个特定目录（使用 `-d` 参数），**一定要把 `-d` 放在 `-x` 及其列表的前面**，或者明确区分开。
+
+        * **正确做法**：`unzip target.zip -d /output/dir/ -x "secret/*"`
+
+        * **错误做法**：`unzip target.zip -x "secret/*" -d /output/dir/` （这可能会让 unzip 误以为 `-d` 也是你想排除的文件名）
 * linux 上查看磁盘配额
 
     * 最常用的命令：`quota`

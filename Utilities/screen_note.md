@@ -2,6 +2,112 @@
 
 ## cache
 
+* 使用 screen 后，进入 ctrl + a, [ 的复制模式，然后使用两次空格复制完数据后，进入 vim 中，insert 模式，然后使用 ctrl + a, ] 粘贴。但是由于 vim 有 autoindent，此时会造成输出里有大量的自动缩进。如何解决这个问题？
+
+    这是一个非常经典且让人头疼的“梯形缩进”问题。原因在于 Vim 的 `autoindent`（自动缩进）误把 `screen` 粘贴进来的文本当成了你正在**手动输入**的代码，结果每一行都在前一行的基础上叠加上一次缩进。
+
+    解决这个问题的最佳方案是利用 Vim 的 **`paste` 模式**。在这个模式下，Vim 会暂时关闭所有的自动缩进和快捷键映射，完美还原复制的内容。
+
+    以下是几种最实用的解决方法：
+
+    **方法一：临时开启 paste 模式（最常用）**
+
+    在准备粘贴之前，先在 Vim 中执行以下步骤：
+
+    1. 按 `Esc` 退出当前的 Insert 模式，回到 Normal 模式。
+    2. 输入 `:set paste` 并回车。
+    3. 按 `i` 进入 Insert 模式（此时底部会显示 `-- INSERT (paste) --`）。
+    4. 使用 `Ctrl + a, ]` 粘贴你的文本。
+    5. 粘贴完成后，按 `Esc` 回到 Normal 模式，输入 `:set nopaste` 恢复普通的编辑模式。
+
+    **方法二：绑定快捷键快速切换（一劳永逸）**
+
+    频繁输入 `:set paste` 略显麻烦，你可以在你的 `~/.vimrc` 文件中加一行配置，绑定一个快捷键（比如 `F2`）来一键切换：
+
+    ```vim
+    set pastetoggle=<F2>
+    ```
+
+    **使用方法：**
+
+    在 Vim 的 Insert 模式或 Normal 模式下，直接按下 `F2` 键，就能在“普通模式”和“粘贴模式”之间无缝切换，省去了手动敲命令的麻烦。
+
+    screen 的复制缓冲区与文件的交互：
+
+    * 方案一：让 screen 把复制内容自动写进文件，Vim 直接读取
+
+        这是纯终端环境下的终极魔改。我们可以让 `screen` 在复制时，把内容同步写到一个临时文件里，然后让 Vim 去读这个文件。
+
+        1. 在你的 `~/.screenrc` 中加入这行配置（允许写出缓冲区）：
+
+            ```screen
+            bufferfile /tmp/screen-exchange
+            ```
+
+        2. 在 `~/.vimrc` 中写一个快捷键（比如映射到 `F3`）：
+
+            ```vim
+            nnoremap <F3> :r /tmp/screen-exchange<CR>
+            ```
+
+        **使用流程：**
+
+        * 在 `screen` 中用 `Ctrl + a, [` 选中并复制文本。
+        * 复制完成后，按下 `Ctrl + a, >`（这会把刚刚复制的内容写入 `/tmp/screen-exchange` 文件）。
+        * 打开 Vim，在 **Normal 模式**下直接按 `F3`。Vim 会直接把文件内容读进来，**完全不经过 Insert 模式，因此绝对不会触发任何自动缩进！**
+
+    * 方案二：利用 `xclip` / `xsel` 连通系统剪贴板（需要 X11 支持）
+
+        如果你的 `screen` 运行在本地 Linux，或者通过 `ssh -X` 连接到服务器，你可以让 `screen` 复制的内容直接进入系统的 `+` 寄存器。
+
+        在 `~/.screenrc` 中加入：
+
+        ```screen
+        bindkey -m ' ' eval 'stuff \015' 'writebuf' 'exec sh -c "xclip -sel clip /tmp/screen-exchange"'
+        ```
+
+        *(注：这串命令的意思是，当你用空格结束 screen 复制时，它自动把内容扔给系统的剪贴板 `xclip`)*
+
+        一旦配置成功，`screen` 复制的内容就真的进入系统剪贴板了。此时你在 Vim 中（需要 Vim 支持 `+clipboard`），直接在 Normal 模式下敲 **`"+p`** 就能秒贴，同样不需要进入 Insert 模式，完美避开缩进问题。
+
+    **总结来说：** 如果不想折腾复杂的配置，遇到 `screen` 粘贴时，最省心的方式依然是前面提到的 **方法二（用 `F2` 切换 `pastetoggle`）**。
+
+    * screen append
+
+        默认情况下，如果你直接使用 `Ctrl + a, >`（执行的是 `writebuf` 命令），`screen` 会**直接覆盖**旧的 `screen-exchange` 文件，而不会追加。
+
+        但是，`screen` 内部其实提供了一个**内置的追加机制**。它允许你在**复制文本的阶段**就把内容“追加”到 `screen` 的内部缓冲区里，然后再通过 `Ctrl + a, >` 一次性写出去。
+
+        这里有两种实现追加的方法：
+
+        方法一：利用 Screen 的内置“追加复制”模式（推荐，纯原生）
+
+        当你进入 `screen` 的复制模式后，可以通过以下操作实现追加：
+
+        1. 按 `Ctrl + a, [` 进入复制模式。
+        2. 移动光标到你想复制的起点，按下**第一下空格**（设置起点）。
+        3. 移动光标到终点。**注意：此时不要按空格，而是按下大写的 `A` 键。**
+        4. 按下 `A` 后，当前选中的文本就会追加（Append）到你上一次复制的内容后面，并自动退出复制模式。
+        5. 此时再按下 `Ctrl + a, >`，写入到 `screen-exchange` 文件里的就是多次累加后的完整内容了。
+
+        方法二：在 Shell 层面通过重定向追加（适合需要多次独立写入）
+
+        如果你希望每次按 `Ctrl + a, >` 时，它在文件末尾追加，而不是覆盖，原生 `writebuf` 命令没有直接提供 `append` 参数。但我们可以通过在 `~/.screenrc` 中自定义一个快捷键，利用 shell 的 `>>` 符号强行追加。
+
+        在你的 `~/.screenrc` 中加入这样一行：
+
+        ```screen
+        # 将 Ctrl + a, M 绑定为：将缓冲区写到临时文件，然后利用 cat 追加到 screen-exchange
+        bind M eval "writebuf /tmp/screen-tmp" "exec sh -c 'cat /tmp/screen-tmp >> /tmp/screen-exchange'"
+        ```
+
+        **使用流程：**
+
+        1. 正常用 `Ctrl + a, [` 和双击空格复制第一段。
+        2. 按下 `Ctrl + a, M`（大写 M），内容被追加到 `/tmp/screen-exchange`。
+        3. 复制第二段，再次按下 `Ctrl + a, M`……
+        4. 这样你就可以无限追加。最后在 Vim 中直接用 `:r /tmp/screen-exchange` 一把读入。
+        *(注：用这个方法前，记得先去 `/tmp/screen-exchange` 把旧文件删掉或清空，以免混入以前的历史数据。)*
 * screen 如何将默认 shell 设置成 bash?
 
     在 `screen` 中，它默认通常会调用你的系统默认 Shell（可以通过 `echo $SHELL` 查看）。如果你想强制让 `screen` 启动时使用 **bash**，可以通过以下两种方式实现：
