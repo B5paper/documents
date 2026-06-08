@@ -2,6 +2,991 @@
 
 ## cache
 
+* 详细讲讲 vim 中 Ctrl + n 和 ctrl + p 的功能
+
+    在 Vim 中，`Ctrl + n` 和 `Ctrl + p` 是一对极其强大的组合键。它们最核心的功能是**关键词自动补全（Keyword Completion）**，但根据你当前所处的**模式**，它们的作用会有所不同。
+
+    下面为你详细拆解它们在**插入模式**和**命令行模式**下的具体功能和高级用法。
+
+    1. 插入模式（Insert Mode）：代码与文本自动补全
+
+        这是这对组合键最常用的场景。当你在输入代码或文字时，Vim 会在后台扫描当前文件、其他缓冲区（Buffers）甚至标签页，帮你自动补全单词。
+
+        * **`Ctrl + n` (Next)：** 向下（向前）查找匹配的单词。
+        * **`Ctrl + p` (Previous)：** 向上（向后）查找匹配的单词。
+
+        **核心操作流程**
+
+        1. 在插入模式下，输入一个单词的前几个字母（例如 `myfu`）。
+        2. 按下 `Ctrl + n` 或 `Ctrl + p`，Vim 会弹出一个下拉菜单（Pum - Popup menu）。
+        3. **继续按 `Ctrl + n**`：在弹出的补全列表中**向下**移动光标。
+        4. **继续按 `Ctrl + p**`：在弹出的补全列表中**向上**移动光标。
+        5. 选中想要的单词后，直接**继续输入其他字符**或者按 **`Ctrl + y`**（Yes）确认选择。如果想取消补全，按 **`Ctrl + e`**（Exit）。
+
+        **Vim 默认从哪里查找匹配项？**
+
+        默认情况下，Vim 的补全搜索范围非常广（由 `complete` 选项控制）。它会查找：
+
+        * 当前当前文件（Current buffer）
+        * 其他处于打开状态的缓冲区（Other buffers）
+        * 已经关闭但载入过窗口的缓冲区（Unloaded buffers）
+        * 当前文件的包含文件（如 C/C++ 的 `#include` 头文件）
+        * Tags 标签文件
+
+        > **冷知识：`Ctrl + n` 和 `Ctrl + p` 的初始搜索方向不同**
+        > * `Ctrl + n` 会先从当前光标**往后（下方）**搜索，找不到再往前搜。
+        > * `Ctrl + p` 会先从当前光标**往前（上方）**搜索。如果你刚刚定义了一个变量，马上在下面用到它，用 `Ctrl + p` 通常能一击必中！
+        > 
+        > 
+
+    2. 命令行模式（Command-line Mode）：历史命令补全
+
+        当你按下 `:` 进入命令行模式，或者按下 `/`、`?` 进入搜索模式时，这组快捷键就变成了**历史记录导航利器**。
+
+        * **`Ctrl + n` (Next)：** 显示**下一条**更晚执行的命令（向未来的时间线移动）。
+        * **`Ctrl + p` (Previous)：** 显示**上一条**更早执行的命令（向过去的时间线移动）。
+
+        **进阶技巧：前缀过滤搜索**
+
+        如果你只按 `:` 然后不停按 `Ctrl + p`，它会机械地遍历你输入过的所有命令。但如果你**先输入几个字母，再按 `Ctrl + p**`，它就会进行前缀匹配。
+
+        * **操作示例：**
+        1. 输入 `:set`
+        2. 按 `Ctrl + p`
+        3. Vim 只会帮你找出历史记录中所有以 `set` 开头的命令（如 `:set number`、`:set paste` 等），自动过滤掉其他无关命令。这比用方向键方便得多，手不需要离开主键盘区。
+
+    **总结与对比**
+
+    | 模式 | `Ctrl + n` (Next) | `Ctrl + p` (Previous) | 实用场景 |
+    | --- | --- | --- | --- |
+    | **插入模式** | 补全菜单：**向下**选择 / 向后搜索单词 | 补全菜单：**向上**选择 / 向前搜索单词 | 写代码、写文档时快速补全长单词、变量名 |
+    | **命令行模式** | 历史记录：切换到**较新**的命令（向下） | 历史记录：切换到**较旧**的命令（向上） | 快速重复执行之前输入过的复杂命令 |
+
+    **高效盲打建议：** 在 Vim 中频繁使用方向键（↑ ↓）会让你的手离开主键区，降低输入效率。无论是在插入模式选补全，还是在命令行翻历史，肌肉记忆养成 **`Ctrl + n` / `Ctrl + p**` 绝对能让你的操作流畅度翻倍！
+
+* Ctrl + x  Ctrl + i 再详细讲讲这个
+
+    看来你已经开始探索 Vim 极其强大的 **`Ctrl + x` 子模式（Omni-completion / Sub-mode）** 了！
+
+    在 Vim 的插入模式下，单纯按 `Ctrl + n` 或 `Ctrl + p` 属于**通用补全**（什么都混在一起搜）。而先按 **`Ctrl + x`**，就会激活 Vim 的“特定类型补全”模式。
+
+    接下来接一个 **`Ctrl + i`**，其核心功能是：**针对“包含文件”（Include Files）进行关键词自动补全。**
+
+    1. 什么是 `Ctrl + x` 加上 `Ctrl + i`？
+
+        * **`Ctrl + x`**：进入补全子模式（状态栏会显示 `-- ^X mode (` 提示）。
+        * **`Ctrl + i`**：代表 **Include**。它会专门去搜索当前文件**以及所有被 `include`（引入）进来的头文件或库文件**中的单词。
+
+        ### 举个例子：
+
+        假设你在写一个 C++ 或 C 语言程序，文件开头写了：
+
+        ```c
+        #include <stdio.h>
+        #include "my_project_header.h"
+
+        ```
+
+        当你写到一半，想用 `my_project_header.h` 里面定义的一个结构体或 `stdio.h` 里的某个冷门函数，但当前 `.c` 文件里还没出现过这个词。
+
+        这时候，普通的 `Ctrl + n` 可能找不到。但如果你输入前几个字母，然后按下：
+
+        > **`Ctrl + x` 然后按下 `Ctrl + i**`
+
+        Vim 就会瞬间顺着 `#include` 路线，飞速爬进 `stdio.h` 和 `my_project_header.h` 的源码里，把匹配的关键词抓取出来做成下拉列表供你选择！
+
+    2. 补全触发后的后续操作
+
+        按下 `Ctrl + x` `Ctrl + i` 弹出了菜单后，你该怎么选择呢？
+
+        * **继续按 `Ctrl + i**` 或按 **`Ctrl + n`**：在弹出的补全列表中**向下**移动光标。
+        * **按 `Ctrl + p**`：在弹出的补全列表中**向上**移动光标。
+        * 确认和退出的方式与普通补全一致（`Ctrl + y` 确认，`Ctrl + e` 取消）。
+
+    3. 它对哪些语言有效？（Vim 怎么知道什么是 "Include"？）
+
+        Vim 之所以这么聪明，是因为它内部有一个叫 **`include`** 的配置项。Vim 会根据你当前文件的语言（Filetype），自动用正则表达式去匹配“引入文件”的语法。
+
+        它绝对不仅限于 C/C++ 的 `#include`：
+
+        * **Python:** 识别 `import os` 或 `from datetime import datetime`，会去搜这些库。
+        * **Java:** 识别 `import java.util.*;`。
+        * **Ruby:** 识别 `require 'blueprint'`。
+
+        > ⚠️ **注意（避坑指南）：**
+        > Vim 默认是基于文本和路径去查找的。它能否成功深入到库文件内部，取决于 Vim 的 `path` 变量配置。如果是一些需要复杂编译环境才能找到的深层第三方库，原生的 `Ctrl + x` `Ctrl + i` 可能会因为找不到文件路径而抓取失败。
+
+    **顺便赠送：`Ctrl + x` 家族的其他神技**
+
+    既然学了 `Ctrl + x` `Ctrl + i`，顺便记一下这几个亲兄弟，它们在特定场景下比普通补全好用 10 倍：
+
+    * **`Ctrl + x` ➡️ `Ctrl + f` (File)：** 文件路径补全。输入 `./src/` 然后按这个，直接弹出该目录下的所有文件名，写路径再也不怕写错。
+    * **`Ctrl + x` ➡️ `Ctrl + l` (Line)：** 整行补全。如果想写一句和上面差不多长的代码/注释，按这个直接复制一整行。
+    * **`Ctrl + x` ➡️ `Ctrl + k` (Dictionary)：** 字典补全。写英文文档或注释时，帮你补全英文单词。
+    * **`Ctrl + x` ➡️ `Ctrl + o` (Omni)：** 全能补全（类似于现代 IDE 的智能提示）。需要开启代码语义补全插件或内置的 `omnicomplete`。
+
+    你平时主要用 Vim 写哪种编程语言呢？针对不同的语言，`Ctrl + x` 家族的侧重点会很不一样。
+
+* 详细讲讲 vim 中的 dictionary 补全
+
+    在 Vim 中，**Dictionary（字典）补全**是一个针对“纯文本”或“特定领域术语”非常有用的高级补全功能。
+
+    普通的 `Ctrl + n` 只能补全你**已经打开的文件**里出现过的单词。但如果你在写一篇全英文的 Markdown 报告、在代码中写大段的英文注释，或者在写特定行业文档，很多单词是第一次出现，普通补全就无能为力了。
+
+    这时候，**Dictionary 补全**（快捷键：`Ctrl + x` ➡️ `Ctrl + k`）就能让 Vim 调用一个外部的“单词列表文件”（即字典），直接帮你补全你从未输入过的单词。
+
+    1. 核心操作方法
+
+        在插入模式（Insert Mode）下：
+
+        1. 输入单词的前几个字母（例如：`hypot`）。
+
+        2. 按下组合键：**`Ctrl + x`**，紧接着按下 **`Ctrl + k`**（你可以把 $k$ 想象成 **K**eyword 或 Dictionary 的第二个音节）。
+
+        3. Vim 会弹出的下拉菜单，展示字典中所有匹配的单词（如 `hypothesis`、`hypothetical` 等）。
+
+        4. 切换和选定方式与普通补全完全一样（`Ctrl + n` / `Ctrl + p` 上下翻页，`Ctrl + y` 确认）。
+
+    2. 关键前提：Vim 的“字典”从哪来？
+
+        要想让 `Ctrl + x` `Ctrl + k` 工作，Vim 必须知道你的“字典文件”存在哪里。这需要通过配置 Vim 的 **`dictionary`** 选项来实现。
+
+        如果未做任何配置，直接按 `Ctrl + x` `Ctrl + k`，Vim 通常会报错：`E142: File not found: "dictionary"`。
+
+        如何配置你的字典？
+
+        你可以将字典配置写入你的 `~/.vimrc`（或 Neovim 的 `init.lua`）中：
+
+        方法 A：利用 Linux / macOS 自带的系统字典（最省心）
+
+        类 Unix 系统（如 Ubuntu, macOS）通常自带一个巨大的英文单词列表，一般位于 `/usr/share/dict/words`。
+
+        ```vim
+        " 在 .vimrc 中添加这一行
+        set dictionary+=/usr/share/dict/words
+        ```
+
+        方法 B：创建你自己的“专属术语库”
+
+        如果你在写医学、法律、金融文档，或者某个特定项目的开发文档，你可以自己创建一个纯文本文件（比如 `~/.vim/my_terms.txt`），里面**每行写一个单词/术语**。
+
+        ```vim
+        " 在 .vimrc 中指定你自己的术语字典
+        set dictionary+=~/.vim/my_terms.txt
+        ```
+
+    3. 进阶高阶技巧
+
+        技巧 1：让普通 `Ctrl + n` 自动融合字典
+
+        每次都按 `Ctrl + x` `Ctrl + k` 嫌麻烦？你可以修改 Vim 的 `complete` 选项，把字典（代号为 `k`）直接塞进普通的 `Ctrl + n` 搜索路径里。
+
+        ```vim
+        " 在 .vimrc 中配置：让普通补全也去搜字典
+        set complete+=k
+        ```
+
+        这样配置后，你以后只需要输入前缀并按普通的 **`Ctrl + n`**，Vim 在搜完当前文件后，会自动去搜你配置的字典文件，一步到位！
+
+        技巧 2：分文件类型（Filetype）加载不同字典
+
+        如果你既写英文博客，又写特定的行业代码，你肯定不希望写代码时弹出一堆英文日常词汇。你可以利用 Vim 的 `autocmd` 针对不同文件类型加载不同的字典：
+
+        ```vim
+        " 只有在写 Markdown 或纯文本时，才加载系统英文词典
+        autocmd FileType markdown,text setlocal dictionary+=/usr/share/dict/words
+        " 写 C 语言时，加载你的 C 语言 API 专用术语表
+        autocmd FileType c setlocal dictionary+=~/.vim/c_keywords.txt
+        ```
+
+    **总结与常见误区区分**
+
+    有很多初学者会把 **Dictionary 补全 (`Ctrl + k`)** 和 **Thesaurus（同义词）补全 (`Ctrl + t`)** 搞混：
+
+    * **Dictionary 补全 (`Ctrl + x` ➡️ `Ctrl + k`)**：根据你输入的**前缀**，补全**完整的单词**（比如输入 `aut` 补全 `automatic`）。
+    
+    * **Thesaurus 补全 (`Ctrl + x` ➡️ `Ctrl + t`)**：根据你当前光标下的**完整单词**，推荐它的**同义词**（比如光标在 `big` 上，按完弹出来 `large`, `huge`, `enormous`）。它需要另外配置 `thesaurus` 文本文件。
+
+    如果你经常需要在 Vim 中编写大量非代码的文本，花 2 分钟给 Vim 配一个 `/usr/share/dict/words` 字典，绝对会让你的文本输入效率大幅提升！
+
+* autocmd FileType c,cpp setlocal dictionary+=~/.vim/cpp.dict 详细解释下这行命令的作用
+
+    这行命令是 Vim 中非常典型且优雅的**自动化配置（Automation）**。它的核心作用是：**“当你用 Vim 打开 C 或 C++ 源代码文件时，自动为你单独加载一个专属于 C/C++ 的自定义字典文件。”**
+
+    为了让你彻底理解，我们将这行命令拆解成 5 个部分来逐一剖析：
+
+    ```vim
+    autocmd FileType c,cpp setlocal dictionary+=~/.vim/cpp.dict
+    ───┬─── ───┬──── ─┬─ ───┬──── ─────┬────  ────────┬───────
+       ①       ②      ③     ④          ⑤              ⑥
+
+    ```
+
+    ---
+
+    1. `autocmd` (Auto-command) —— 自动命令触发器
+
+        这是 Vim 的自动事件监听机制。它告诉 Vim：“你在后台帮我盯着，一旦发生某个特定的**事件**（Event），就自动帮我执行后面指定的命令”。
+
+    2. `FileType` —— 监听的事件类型
+
+        这是 Vim 众多内置事件中的一种。每当 Vim 打开一个文件，并根据文件后缀或内容识别出该文件的“文件类型（Filetype）”时，就会触发这个事件。例如，打开 `.c` 文件时触发 `FileType c`，打开 `.py` 文件时触发 `FileType python`。
+
+    3. `c,cpp` —— 事件的过滤条件（模式匹配）
+
+        这限制了事件的生效范围。只有当识别出的文件类型是 `c`（C 语言）**或者** `cpp`（C++ 语言）时，后面的命令才会执行。如果打开的是 `python` 或 `markdown` 文件，这行命令直接静默跳过，不会干扰其他语言。
+
+    4. `setlocal` —— 局部设置
+
+        这是这行命令里非常关键的细节！
+
+        * 如果用 `set`，那这个设置就是全局（Global）的，会影响你当前和后续打开的所有标签页和文件。
+        * 用 **`setlocal`**，意味着后面修改的配置**只对当前这一个缓冲区（Buffer/文件窗口）生效**。
+
+        > **为什么要用 `setlocal`？**
+        > 这样可以避免“污染”。你想想，如果你随后又用同一个 Vim 实例打开了一个 `.txt` 文本，你肯定不希望在写普通情书或日记时，一按补全弹出来的全是 `printf`、`std::cout` 这种 C++ 字典里的词。`setlocal` 确保了 `cpp.dict` 只在 C/C++ 代码窗口里发挥作用。
+
+    5. `dictionary+=` —— 追加字典选项
+
+        * `dictionary` 是 Vim 内置的控制字典路径的选项。
+        * **`+=`** 代表**追加（Append）**，而不是覆盖。如果你的 Vim 之前已经配置过一个通用系统字典，`+=` 就会把 C++ 字典加在后面。这样，你既能补全 C++ 术语，也能补全普通的英文单词。
+
+    6. `~/.vim/cpp.dict` —— 你的自定义字典路径
+
+        这是你存放 C/C++ 专属词汇的纯文本文件。
+
+        * `~` 代表当前系统用户的家目录（Home Directory）。
+        * 你需要自己在这个文件里一行一个地写上你想补全的词。例如，你可以把常用的第三方库函数、复杂的类名、结构体名写进去：
+        ```text
+        std::vector
+        std::shared_ptr
+        printf
+        memcpy
+        uint32_t
+
+        ```
+
+    最终运行效果
+
+    当你把这行命令写入 `~/.vimrc` 后，每次你用 Vim 打开一个 `main.cpp` 文件，Vim 就会悄悄在后台执行 `setlocal dictionary+=~/.vim/cpp.dict`。
+
+    当你在这个文件里写代码，输入 `std::v` 并按下 **`Ctrl + x` ➡️ `Ctrl + k**` 时，Vim 就会立刻去翻 `~/.vim/cpp.dict`，在下拉菜单里精准为你奉上 `std::vector`。这就实现了针对不同编程语言的**个性化、定制化文本补全**。
+
+* autocmd FileType c,cpp setlocal iskeyword+=# 那这个呢，iskeyword+=# 是什么含义？
+
+    这行命令在写 C 和 C++ 代码时非常实用。它的核心作用是：**把 `#` 字符也当成“单词的一部分”，而不是一个分隔符。**
+
+    在默认情况下，Vim 会把 `#include` 拆分成两部分：一个符号 `#` 和一个单词 `include`。加了这行命令后，Vim 就会认为 **`#include` 或 `#define` 本身就是一个完整的单词**。
+
+    我们同样用拆解的方式，带你看看它在实际写代码和补全时会带来怎样的奇妙变化：
+
+    1. 什么是 `iskeyword`？
+
+        `iskeyword`（通常简写为 `isk`）是 Vim 内部一个非常底层且重要的配置项。它定义了：**哪些字符可以组合成一个“单词”（Word）**。
+
+        * **默认情况下**，Vim 认为字母（`a-z`）、数字（`0-9`）和下划线（`_`）是属于单词的字符。而像 `@`、`#`、`$`、`-` 这些特殊符号，都被当成**单词之间的分隔符**（就像空格一样）。
+        * **`setlocal iskeyword+=#`** 则是把 `#` 号追加（`+=`）到了当前 C/C++ 文件的单词字符白名单里。
+
+    2. 为什么要针对 C/C++ 设置这个？（核心痛点）
+
+        在 C 和 C++ 中，存在大量的**预处理指令**（Preprocessing Directives），它们全部是以 `#` 开头的，比如：
+
+        * `#include`
+        * `#define`
+        * `#ifndef`
+        * `#pragma`
+
+        如果你**没有**加这行命令，在写代码时会遇到以下两个非常不爽的痛点：
+
+        痛点一：无法一次性补全预处理指令
+
+        你想输入 `#include`。你先输入了 `#inc`，然后按下 `Ctrl + n` 尝试补全。
+
+        * **默认情况：** 因为 `#` 是分隔符，Vim 只会把 `inc` 拿去匹配，弹出的补全菜单里也是 `include`。你选中后，虽然能拼出 `#include`，但由于中间有分隔符判断，经常会卡顿或者不符合预期。
+        * **加了这行命令后：** 你直接输入 `#inc` 触发补全，Vim 会把 `#inc` 作为一个整体去搜索。它可以直接精准地帮你补全出完整的 **`#include`**、**`#ifndef`**，体验非常连贯。
+
+        痛点二：光标快捷键会把 `#` 漏掉
+
+        在 Vim 中，有两个非常常用的跳转神技：
+
+        * **`*` 键**：在普通模式下，按下 `*` 会在文件中向下寻找并高亮**当前光标下的单词**。
+        * **`w` 键**：光标向后跳过一个单词。
+
+        如果光标停在 `#define` 的 `#` 上：
+
+        * **默认情况：** 按 `*` 键，Vim 只会高亮文件中所有的 `define`，而不会带上 `#`。按 `w` 键，光标会直接从 `#` 跳到 `d`。
+        * **加了这行命令后：** 按 `*` 键，Vim 会把整个 `#define` 当成一个词整体高亮和搜索！按 `w` 键，光标会把 `#define` 作为一个整体直接跳过去。
+
+    3. 连起来解释这行命令
+
+        ```vim
+        autocmd FileType c,cpp setlocal iskeyword+=#
+        ```
+
+        > **大白话翻译：**
+        > “只要我打开的文件类型是 **C** 或 **C++**（`autocmd FileType c,cpp`），就在**当前文件窗口内**（`setlocal`），把 **`#` 号**追加到单词字符定义中（`iskeyword+=#`）。这样我以后在写 C/C++ 预处理指令时，无论是用 `Ctrl+n` 补全，还是用 `*` 键搜索，Vim 都会把 `#define`、`#include` 当成一整个单词来对待。”
+
+    这是一个能显著提升 C/C++ 原生编码流畅度的小细节！
+
+* 详细讲讲 vim 中 snippet 的用法
+
+    在 Vim 中，**Snippet（代码片段）** 是提高输入效率的绝对神器。简单来说，它就像是“代码宏”：你只需要输入一个简短的缩写（比如 `for`），然后按下快捷键，Vim 就会自动把它展开成一段完整的代码结构，并允许你用 `Tab` 键在不同的占位符之间快速跳跃修改。
+
+    要在 Vim 中高效使用 Snippet，通常需要依赖**插件**。下面为你详细拆解 Vim Snippet 的核心概念、主流插件组合、配置方法以及如何编写自己的 Snippet。
+
+    1. 核心生态：插件组合
+
+        Vim 原生对高级 Snippet 的支持较弱，社区通常采用“引擎 + 库”的组合模式：
+
+        * **Snippet 引擎（负责解析和跳跃）：**
+        * **UltiSnips**：功能最强大、最经典的引擎（支持在 Snippet 中嵌入 Python 代码）。
+        * **LuaSnip**：Neovim 用户目前的首选，速度极快，配置灵活性极高。
+        * **vim-vsnip**：轻量级，完美支持 VS Code 格式的 Snippet。
+
+
+        * **Snippet 语料库（负责提供现成的代码片段）：**
+        * **honza/vim-snippets**：一个巨大的社区维护库，包含了几乎所有主流编程语言的常用片段。
+
+
+        > 💡 **本指南以最经典的 `UltiSnips` + `vim-snippets` 组合为例进行讲解。**
+
+    2. 基础安装与配置（以 vim-plug 为例）
+
+        在你的 `.vimrc` 中添加以下插件：
+
+        ```vim
+        call plug#begin('~/.vim/plugged')
+
+        " Snippet 引擎
+        Plug 'SirVer/ultisnips'
+
+        " 现成的代码片段库
+        Plug 'honza/vim-snippets'
+
+        call plug#end()
+
+        ```
+
+        **核心快捷键配置**
+
+        UltiSnips 默认的展开快捷键是 `<tab>`，但这经常会和很多补全插件（如 Coc.nvim 或 YouCompleteMe）冲突。建议在 `.vimrc` 中重映射：
+
+        ```vim
+        " 触发展开的快捷键（改为 Ctrl + j）
+        let g:UltiSnipsExpandTrigger="<c-j>"
+
+        " 跳向下一个占位符的快捷键
+        let g:UltiSnipsJumpForwardTrigger="<c-j>"
+
+        " 跳向上一个占位符的快捷键
+        let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+
+        " 如果你想定义自己的 snippet 存放目录
+        let g:UltiSnipsSnippetDirectories=["UltiSnips", "my_snippets"]
+
+        ```
+
+    3. 实战用法：如何使用 Snippet？
+
+        安装配置完成后，重启 Vim。假设你在编写一个 `main.py` 的 Python 文件：
+
+        1. **输入触发词**：在插入模式下输入 `def`。
+        2. **触发展开**：按下你设置的快捷键 `Ctrl + j`。
+        3. **瞬间展开**：代码会变成：
+        ```python
+        def fname(arg):
+            """docstring for fname"""
+            pass
+
+        ```
+
+
+        4. **光标跳跃**：此时光标会停留在 `fname` 上。将其修改为 `my_function`，然后再次按下 `Ctrl + j`，光标会自动跳到 `arg`，修改完参数后再按 `Ctrl + j`，光标会跳到 `docstring`。
+        5. **完成**：一气呵成，双手完全不需要离开主键盘区去按方向键。
+
+    4. 进阶：如何编写自己的自定义 Snippet？
+
+        现成的库虽好，但根据自己的习惯定制 Snippet 才是精髓。
+
+        使用命令 `:UltiSnipsEdit`，Vim 会自动为你当前打开的文件类型创建一个自定义的 snippet 文件（例如 `python.snippets`）。
+
+        **Snippet 的基本语法**
+
+        一个标准的 Snippet 定义格式如下：
+
+        ```text
+        snippet 触发词 "描述文本" 选项
+        代码内容
+        endsnippet
+
+        ```
+
+        示例 1：基础占位符 `${N}`
+
+        ```text
+        snippet if "If condition" b
+        if ${1:condition}:
+            ${2:pass}
+        $0
+        endsnippet
+
+        ```
+
+        * `b` 选项：表示只有当触发词 `if` 在**行首**时才触发。
+        * `${1:condition}`：第 1 个停靠点，默认文本是 `condition`。
+        * `${2:pass}`：第 2 个停靠点。
+        * `$0`：最终退出 Snippet 时的光标所在位置。
+
+        示例 2：镜像占位符（修改一处，多处联动）
+
+        如果你在写 HTML 或一些重复度高的代码：
+
+        ```text
+        snippet tag "HTML tag"
+        <${1:div}>
+            $0
+        </${1/(\w+).*/$1/}>
+        endsnippet
+
+        ```
+
+        * 当你在 `<` 后面把 `div` 改成 `section` 时，闭合标签 `</div>` 会**同步实时**变成 `</section>`。
+
+        示例 3：高阶玩法（嵌入 Python/Shell 脚本）
+
+        UltiSnips 最强悍的地方在于支持行内代码。用 ` 包裹：
+
+        ```text
+        snippet today "Insert current date"
+        Today is `date +%Y-%m-%d`.
+        endsnippet
+
+        ```
+
+        输入 `today` 并展开，它会直接调用系统命令，变成 `Today is 2026-06-05`。
+
+    5. 常见痛点与解决建议
+
+        * **与自动补全（Autocomplete）冲突**：这是最常见的问题。如果你使用的是 `Coc.nvim`，建议让 Coc 来管理 Snippet，安装 `coc-snippets` 插件，它能完美地把 Snippet 融入到下拉补全菜单中，直接用 `Tab` 键一并解决。
+        * **不知道有哪些现成的触发词**：可以去查阅 `~/.vim/plugged/vim-snippets/snippets/` 目录下对应语言的文件，或者在 Vim 中输入触发词的前几个字母，依赖补全插件的提示。
+
+    你目前在使用哪种补全插件（如 Coc, YCM, 或 Neovim 原生 LSP）？如果有特定插件，我可以帮你针对性地优化 `Tab` 键的冲突配置。
+* 详细讲讲 autocmd FileType c,cpp setlocal complete+=s 这行 vim 命令的含义
+
+    这行 Vim 命令的作用是：**当你在 Vim 中打开或编辑 C 或 C++ 源代码文件时，自动将“书签/特殊文件（Syntax/Spell/Tags等相关的扩展补全源，这里特指 thesaurus 或 spell，稍后详解）”加入到你的代码自动补全路径中。**
+
+    为了让你彻底明白，我们把它拆解成三个核心部分来详细分析：
+
+    1. 触发机制：`autocmd FileType c,cpp`
+
+        * **`autocmd` (Automated Command)**：自动命令。它是 Vim 的一种事件监听机制，允许你在特定的事件发生时，自动执行指定的命令。
+        * **`FileType`**：这是 Vim 的一个内置**事件（Event）**。当 Vim 检测到当前缓冲区的的文件类型（File Type）被设置或改变时，就会触发这个事件。
+        * **`c,cpp`**：这是**模式匹配（Pattern）**。意思是这个自动命令只对文件类型为 `c`（C语言）或 `cpp`（C++语言）的文件生效。
+
+        **连起来看**：只要你打开一个 C 或 C++ 文件（或者手动执行了 `:set ft=c`），Vim 就会捕捉到这个信号，准备执行后面的命令。
+
+    2. 作用范围：`setlocal`
+
+        * **`set` 与 `setlocal` 的区别**：
+        * `set` 会修改全局设置，影响你当前打开的以及未来打开的**所有**标签页和窗口。
+        * `setlocal` 只对当前活动缓冲区（Buffer）生效。
+
+
+        * **为什么要用 `setlocal**`：因为你只想在写 C/C++ 代码时改变补全行为。如果你打开了一个纯文本文件（Markdown 或 `.txt`），你显然不需要 C/C++ 相关的特定补全逻辑。`setlocal` 保证了这种隔离性。
+
+    3. 核心功能：`complete+=s`
+
+        这是这行命令的核心，用来控制 Vim 的 **插入模式补全（Ins-completion）** 路径。
+
+        * **`complete` 选项**：这是一个由单字母字母组成的字符串列表，决定了当你在插入模式下按下 `Ctrl + N` 或 `Ctrl + P` 时，Vim 会去**哪些地方**寻找匹配的单词来当做补全候选。
+        * **`+=`**：表示追加。在现有的补全源列表里，再添加一个新的源，而不是覆盖它们。
+        * **`s`**：这是关键的字母代号。在 Vim 的 `complete` 选项中：
+        * **`s` 代表 `thesaurus`（同义词词典）文件。** * *注：如果你开启了拼写检查（`spell`），在某些特定配置下它也会关联拼写检查文件，但官方定义中 `s` 主要对应 `thesaurus` 选项指定的文件。*
+
+    **总结与实际效果**
+
+    将它们拼装在一起，这行命令的完整逻辑是：
+
+    > **“每当 Vim 识别到当前文件是 C 或 C++ 代码时，就针对当前文件窗口，在自动补全的搜索路径中追加‘同义词/词典文件（s）’。”**
+
+    **补充避坑指南（为什么你可能感觉它没生效？）**
+
+    很多人的配置文件里抄了这一行，但发现并没有什么变化。这是因为 **`s` 依赖于 `thesaurus` 选项的配置**。
+
+    如果你没有在 `.vimrc` 中指定你的词典文件路径，例如：
+
+    ```vim
+    set thesaurus+=~/.vim/dict/c_keywords.txt
+    ```
+
+    那么追加了 `s`，Vim 也不知道去哪里找词，这个配置就会形同虚设。通常，C/C++ 开发者更常用的是 `complete+=k`（使用 `dictionary` 字典文件补全关键字）或者依赖基于 LSP（Language Server Protocol）的现代补全插件（如 coc.nvim, nvim-cmp 等）。
+* `:syntax list` 中的 `cInclude`
+
+    ```vim
+    cInclude       xxx match /^\s*\zs\(%:\|#\)\s*include\>\s*["<]/  display contains
+    =cIncluded
+                       links to Include
+    cDefine        xxx start=/^\s*\zs\(%:\|#\)\s*\(define\|undef\)\>/ skip=/\\$/ end
+    =/$/  keepend contains=ALLBUT,@cPreProcGroup,@Spell
+    ...
+    ```
+
+    你看到：
+
+    ```
+    cInclude  xxx match /^\s*\zs\(%:\|#\)\s*include\>\s*["<]/  display contains
+    ```
+
+    说明 Vim 的 C 语法规则是：
+
+    > `#include` 只在匹配完整的 `#include` + `<...>` 或 `"..."` 才会被识别为 cInclude。
+
+    也就是说：
+
+    ```
+    #include <xxx>
+    ```
+
+    才是被识别的语法 token。
+
+    **`cInclude` 语法匹配的作用**
+
+    你看到的：
+
+    ```
+    cInclude  xxx match /^\s*\zs\(%:\|#\)\s*include\>\s*["<]/
+    ```
+
+    它的功能主要是 **语法高亮和显示效果**，而不是补全：
+
+    * 匹配行首的 `#include`（或者 `%:`）
+    * 后面跟 `<` 或 `"`
+    * 高亮显示这一整行为 include 指令
+
+    作用包括：
+
+    1. **颜色高亮**：让 `#include <vector>` 显示成蓝色（或主题指定颜色）
+    2. **折叠**（folding）或其他语法相关操作
+    3. **提供语法相关的 Vim 命令**（如 `:help cInclude` 提到的 `contains`/`display`）
+
+    **总结一句话**
+
+    > **Vim 的 `cInclude` 只是高亮和识别写好的 `#include`，它不提供补全；补全必须靠 dictionary/snippet/tags/插件。**
+* vim c++ 文件如何补全关键字，比如 `#include`？
+
+    `:help cscope` 和 `:help include-search` 对你没用
+
+    * 使用 UltiSnips 或 LuaSnip（自动扩展）
+
+        如果你想输入 `#i` 自动变成 `#include <…>`，可以用 snippet：
+
+        例如用 UltiSnips：
+
+        ```
+        snippet inc "include directive"
+        #include <${1}>
+        endsnippet
+        ```
+
+        然后输入：
+
+        ```
+        inc + Tab
+        ```
+
+        自动变成：
+
+        ```
+        #include <>
+        ```
+
+        查询：
+
+        ```
+        :setl iskeyword?
+        :setl complete?
+        :set ft?
+        ```
+
+    **查看当前可以补全哪些关键字**
+
+    Vim **没有一个“一条命令列出所有可补全关键字”的官方接口**，因为补全来源有多种（buffer、dictionary、tags、syntax 等）。
+
+    * 查看当前 buffer 中的所有“单词”（最基础的补全来源）
+
+        Vim 会从 buffer 里的“单词”补全，所以最直接：
+
+        ```
+        :g/\k\+/
+        ```
+
+        但这个太多了，最好的方式：
+
+        ```
+        :%s/\k\+/\r&/gn
+        ```
+
+        不过更简单的方式是：
+
+        ```
+        :echo join(sort(keys(wordlist#WordList())),"\n")
+        ```
+
+        但这个需要插件。
+
+        所以**最推荐你这样：**
+
+        ```
+        :lopen
+        ```
+
+        再输入：
+
+        ```
+        Ctrl + n
+        ```
+
+        你会看到补全窗口里 *所有匹配的“单词”*。
+
+    * 查看 dictionary（字典补全）的关键词
+
+        ```
+        :echo &dictionary
+        ```
+
+        如果你想直接看内容：
+
+        ```
+        :tabnew ~/.vim/dict/cpp.dict
+        ```
+
+    * 查看当前启用的 `iskeyword`（决定 Vim 把什么当成词）
+
+        ```
+        :setl iskeyword?
+        ```
+
+        如果没有 `#`，补全不会包含 `#include`。
+
+        你要看到：
+
+        ```
+        iskeyword=@,48-57,_,192-255,#
+        ```
+
+        否则你补不了带 `#` 的关键字。
+
+    * 查看补全来源（complete option）
+
+        ```
+        :setl complete?
+        ```
+
+        常用来源：
+
+        * `k` → dictionary
+        * `s` → syntax keyword
+        * `w` → buffers
+        * `b` → current buffer
+        * `t` → tags
+
+        你需要至少看到：
+
+        ```
+        complete=.,w,b,u,t,i,s,k
+        ```
+
+        如果没有 `s`，语法关键字不会参与补全
+        如果没有 `k`，字典补全不会参与。
+
+    * 查看 syntax 关键字（很多 C/C++ 关键字在这里）
+
+        语法关键字在：
+
+        ```
+        :syntax list
+        ```
+
+        你会看到：
+
+        * cInclude
+        * cStatement
+        * cType
+        * cPreProc
+        * cConditional
+
+        等
+
+        但是注意：
+
+        > syntax 的名字不是补全词，补全词是它们的 token。
+
+        如果你开启了：
+
+        ```vim
+        set complete+=s
+        ```
+
+        这里的关键字就会加入补全词库。
+
+    * 查看 tags（如果你有 ctags 文件）
+
+        如果你使用 ctags：
+
+        ```
+        :ts
+        ```
+
+        或者列出当前 tags 文件：
+
+        ```
+        :echo &tags
+        ```
+
+        tags 文件里的所有符号都可补全。
+
+    如果你想“完整列出所有可补关键字”给我看, 你可以执行：
+
+    ```
+    :messages clear
+    Ctrl+n
+    :messages
+    ```
+* vim里，对于 markdown 的列表，比如
+
+    ```
+    * hello
+        * nihao
+        * zaijian
+        * world
+        hello is a greeting message.
+    ```
+
+    **vim-markdown**（推荐）
+
+    安装：
+
+    ```
+    Plug 'preservim/vim-markdown'
+    ```
+
+    它提供：
+
+    ```
+    ]h   跳到上一层 list 的开始
+    [h   跳到上一层 list 的结束
+    ```
+
+    光标在 message → 按：
+
+    ```
+    ]h
+    ```
+
+    就直接跳到 `* hello`。
+
+    这是最接近“树结构父节点跳转”的插件功能。
+* vim中内容被选中后，内容会变白色，如何取消选中？我是用鼠标选中，然后 ctrl + shift + c 复制的内容
+
+    你现在看到的 “内容变白色” 是 **终端的鼠标选区**，并不是 Vim 的可视模式（visual mode）。
+
+    所以你需要“取消的是终端的选中状态”，而不是 Vim 内部状态。
+
+    **取消终端鼠标选中（不退出 Vim，因为你不是在 Vim 里选的）**
+
+    不同 terminal emulator 的取消方式一样：
+
+    1. 点一下空白处（最简单）
+
+        在 Vim 窗口外、终端外的任意空白区域单击一下即可清除选区。
+
+        但这会让光标跑出 Vim 窗口，不太优雅。
+
+    2. 在终端内随便点击鼠标左键一次
+
+        在终端内部但不在选区上，点击一下左键也会取消选中。
+
+    3. 按一次 `Esc`（很多终端有效）
+
+        部分 terminal emulator（如 gnome-terminal, alacritty）中，按 `Esc` 会清除高亮选区。
+
+    4. 用键盘移动（左右方向键）
+
+        按一下左右方向键
+        或
+        按 `j` / `k`（如果你在 vim normal mode）
+        终端就会清除鼠标区域选中。
+
+    **为什么 vim 里 :set mouse=a 时会出现这种情况？**
+
+    因为你：
+
+    1. 用鼠标框选 → 这不是 Vim 的 visual 模式，而是终端自己的文本选区
+    2. 终端为了复制文本，会把文字反白显示
+    3. 复制完成后选区仍然存在
+
+    Vim 无法取消终端级的选区，只能通过终端自身行为来清除。
+
+    **如果你希望使用鼠标复制，但又不想让终端选区干扰 Vim？**
+
+    可以设置：
+
+    **让鼠标选区不进入 Vim，而总是当作终端选区：**
+
+    ```vim
+    :set mouse=
+    ```
+
+    这样鼠标永远不会进入 Vim 模式，只作为“终端文本选择”使用。
+    复制更方便，但你不能用鼠标移动光标或 resize splits。
+
+    如果你告诉我你用的是什么终端（gnome-terminal / kitty / alacritty / iTerm2 / Windows Terminal），我可以给出你终端专属的最优操作。
+
+* vim 如何在当前行设置一个临时标记，当在别的地方做完修改后，再跳转回这个标记处？比如：
+
+    hello
+
+    * 两个反引号` `` ` = jump list 的上一个位置
+
+    * 两个单引号`' '` = jump list 的上一个位置的行的开头
+
+    使用`m`标记时，大写标记是全局的（任何文件都能跳），小写标记（如 `ma`）只在当前文件有效。
+
+    * Jump list（跳转列表） 
+
+        **概念**：Vim 会把会产生“明显位置变化”的动作记录到 jump list，例如：用 `/` 或 `?` 搜索、用 `n/N`、用 `G` 跳到文件尾、使用标签跳转、用 `:tag`、使用 `%` 匹配括号跳转、用 `Ctrl-]` 跳到 tag、使用 `gf`、跳到另一个文件（`:e file`）等。
+
+        查看 jump list：
+
+        ```
+        :jumps
+        ```
+
+        输出会像这样（简化示例）：
+
+        ```
+        jump line  col file/text
+         1  10     1  file1.txt
+         2  42    10  otherfile.c
+         ...
+        ```
+
+        左边的序号表示 jump-list 的顺序；第一个是最旧、最后一项是最近的（显示格式和细节可参考 `:help jumps`）。
+
+        **注意**：不是每次普通移动都会进 jump list（比如按 `h/j/k/l` 或微小移动不会），只有“明显跳跃”才记录。
+
+    * 在跳转历史中前进 / 后退：`<C-o>` 和 `<C-i>`
+
+        * `Ctrl-O`：回到 jump list 中**更早**的位置（后退，go older）。
+
+        * `Ctrl-I`：回到 jump list 中**更近**的位置（前进，go newer），也就是撤销上一次 `Ctrl-O` 的效果。
+
+        几个要点 / 常见坑：
+
+        * `Ctrl-I` 在很多终端里被当成 `Tab`（ASCII 相同），因此终端里可能不能区分 `<C-i>`。在 GUI（gvim）或某些终端/配置下没问题。如果你发现 `<C-i>` 无效，可以用 `:normal! <C-i>` 或在 GUI 测试，或换用 jump-list 的其他手段（见下）。
+
+        * `:jumps` 能帮助你确认当前处于 jump list 的哪一项（Vim 也会显示当前位置索引）。
+
+        * `Ctrl-O` / `Ctrl-I` 是基于 jump list 的，所以只能在 jump list 记录的点之间跳。
+
+    * 手动标记（marks）
+    
+        同时维护多个临时位置（推荐用于“书签”）
+
+        如果你想显式地保存若干“将来要回到的位置”，用 mark 是最直接的办法。
+
+        设置标记：
+
+        * 小写字母 `a`–`z`：局部标记（仅当前文件有效）
+
+            ```vim
+            ma    " 在当前光标位置设置标记 a（小写）
+            ```
+
+        * 大写字母 `A`–`Z`：全局标记（可跨文件）
+
+            ```vim
+            mA    " 在当前光标位置设置全局标记 A
+            ```
+
+        跳回标记：
+
+        * 精确位置（行和列）：`` `a ``（反引号 + 标记字母）
+
+          ```vim
+          `a    " 精确回到标记 a 的行列
+          ```
+
+        * 跳到标记所在行（列不保证）：`'a`（单引号 + 标记字母）
+
+          ```vim
+          'a    " 跳到标记 a 的行（列移动到行首或首个非空）
+          ```
+
+    **示例使用流程**：
+
+    1. 在编辑处按 `m1` 或 `ma`（例如 `ma`）标记当前行。
+    2. 跳到别处做修改。
+    3. 想回到那行就按 `` `a ``（或 `'a` 如果只需要行）。
+
+    **为什么用大写？**
+
+    大写标记 (`mA`) 是全局的，能跨文件跳转（适合你在多个文件间工作时做书签）。小写仅对当前缓冲有意义。
+
+    **维护多个位置**：
+
+    可以设置多个不同字母的标记：`ma`, `mb`, `mC` 等，然后随时用对应的 `` ` `` 跳回。非常适合“先记下几处关键位置，做完一堆修改再按字母回去检查”的工作流。
+
+* vim `：Change list`（修改列表）和一些特殊标记
+
+    除了 jump list 和 marks，Vim 还有 change list（记录改动位置），以及一些预定义的“特殊标记”。
+
+    **Change list**（修改点历史）：
+
+    * 查看修改列表：
+
+      ```
+      :changes
+      ```
+
+    * 在修改历史中前后跳：
+
+        * `g;` 跳到上一个改动处（older change）
+
+        * `g,` 跳到下一个改动处（newer change）
+        这是在你想回到“最近修改过的位置”时最方便（比如逐个查看最近修改的几处）。
+
+    **几个内置特殊标记（常用）**：
+
+    * `` `. `` —— 上一次修改的位置（精确到列）。例如按 `` `. `` 可跳到最后一次修改的位置。（如果只需要精准到行，则使用 ` '. `）
+
+    * `"` —— 上次退出该文件时光标所在位置（打开文件后可 `'"` 跳回上次光标处）。
+    
+    * `^` —— 上次插入结束位置（last insertion end）。
+
+    * `[` 和 `]` —— 上一次变更或文本对象的开始/结束（常用于操作后定位）。
+      这些特殊标记在 debug、查看修改上下文时很有用。
+
+    * 常见小技巧 / 推荐映射
+
+        * 快速返回“上一跳位置”（最实用）：
+
+            ```
+            nnoremap <leader><leader> ``   " 双反引号——回到上一个精确位置
+            ```
+
+        * 使用标记作书签组（举例）：
+
+            ```
+            ma   " 在 A 处设置书签
+            mB   " 在 B 处设置跨文件书签
+            `a   " 回到 A（精确）
+            `B   " 回到 B（精确，跨文件）
+            ```
+
+        * 如果你的终端把 `<C-i>` 变成 Tab，且你想前进（forward），可以在 Vim 中利用 `:normal` 调用某个 jump-list 索引（高级），或者直接用 marks 来避免依赖 `<C-i>`。
+
+    * 想跳到“最近改动处”来复查修改：用 `g;` / `g,`（change list）。
 * 详细讲讲 vim 中 autocmd 的用法
 
     在 Vim 中，`autocmd`（Automation Command，自动命令）是一个极其强大的功能。它允许你让 Vim **在特定的事件发生时（如打开文件、保存文件、切换 buffer 等），自动执行指定的命令**。

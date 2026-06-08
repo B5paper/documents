@@ -2,6 +2,202 @@
 
 ## cache
 
+* ssh -R 是否稳定，抗得住巨大流量？比如我想暴露一个内网的 ftp 服务，上传和下载 TB 级别的数据（比如深度学习的数据集）？
+
+    对于 TB 级别的数据传输（尤其是深度学习数据集这种大文件），`ssh -R` **完全扛不住**，且效率极低。
+
+    如果你强行使用 `ssh -R` 跑 FTP 传输大数据，你将面临三大灾难：
+
+    1. 性能灾难：TCP over TCP 问题
+
+        SSH 隧道本身是基于 TCP 的，而 FTP 传输文件也是 TCP。
+        当你在一个 TCP 连接（SSH 隧道）里面再跑一个 TCP 连接（FTP 数据流）时，一旦网络出现波动丢包：
+
+        * 内层 TCP 认为丢包了，触发重传。
+        * 外层 TCP 也认为丢包了，触发重传。
+        * **结果**：重传风暴叠加，导致延迟瞬间飙升，吞吐量断崖式下跌，甚至连接直接断开（Broken pipe）。这在网络工程中被称为 **"TCP Meltdown"**。
+
+    2. CPU 瓶颈：加密开销
+
+        SSH 的设计初衷是安全，它会对**每一个字节**都进行高强度的加密/解密。
+
+        * **SSH 隧道**：Host B 加密 -> Host A 解密 -> Host A 转发 -> 用户。
+        * 传输几个 TB 的数据，意味着你的 CPU 要把这几个 TB 的数据完整地跑一遍加密算法。这会吃满单核 CPU，导致带宽跑不满（比如你有 1Gbps 带宽，但 SSH 只能跑到 100Mbps，瓶颈在 CPU）。
+
+    3. FTP 协议本身的噩梦
+
+        FTP 是一个很古老的协议，它分“控制端口”（21）和“数据端口”（随机端口）。
+
+        * 单纯用 `ssh -R` 转发 21 端口是**无法传输文件**的。
+        * 你必须配置 Passive Mode（被动模式），并把 FTP Server 的一大段被动端口（例如 50000-51000）全部转发出去。用 SSH 转发一千个端口？这在运维上是不可接受的。
+
+    **最佳解决方案：WireGuard (或 Tailscale)**
+
+    既然你的需求是：**安全（不暴露端口给黑客）** + **高性能（跑满带宽传输 TB 数据）**。
+
+    **WireGuard** 是目前的版本答案。
+
+    **为什么是 WireGuard？**
+
+    1. **UDP 协议**：它基于 UDP，完美避开了 "TCP over TCP" 的性能熔断问题。
+    2. **内核级性能**：WireGuard 运行在 Linux 内核空间，加密效率极高，几乎不损耗带宽，轻松跑满千兆甚至万兆网络。
+    3. **隐身**：它不通过 TCP 端口握手。如果不持有私钥，黑客扫描你的 UDP 端口是**没有任何回应**的（Drop 包），在黑客看来你的机器就像断网了一样。
+    4. **透明组网**：连上 WireGuard 后，你的公网机器 A 和内网机器 B 就像在同一个局域网里。你可以直接用 `ftp 10.100.0.2` 访问，完全不需要管端口映射。
+
+    **架构图**
+
+    ```mermaid
+    graph LR
+        User[你/公网用户] -- WireGuard VPN --> HostA[公网服务器]
+        HostA -- WireGuard VPN (内网互联) --> HostB[内网 GPU 服务器]
+        
+        subgraph "VPN 虚拟局域网 (10.0.0.x)"
+        HostA_IP[Host A: 10.0.0.1]
+        HostB_IP[Host B: 10.0.0.2]
+        end
+    ```
+
+    **实施步骤 (最简版)**
+
+    如果不想手搓 WireGuard 配置，强烈建议直接使用基于 WireGuard 的封装工具 **Tailscale**（极度简单，无需公网 IP 配置，但你既然有公网 IP，也可以用原生的 WireGuard）。
+
+    **这里以原生 WireGuard 为例（性能最强）：**
+
+    **1. 公网机器 (Host A) 安装 WireGuard**
+
+    ```bash
+    apt install wireguard
+    # 生成私钥和公网钥
+    wg genkey | tee privatekey | wg pubkey > publickey
+
+    ```
+
+    配置 `/etc/wireguard/wg0.conf`:
+
+    ```ini
+    [Interface]
+    Address = 10.0.0.1/24
+    ListenPort = 51820
+    PrivateKey = <Host A 的私钥>
+
+    [Peer]
+    # 内网机器 B
+    PublicKey = <Host B 的公网钥>
+    AllowedIPs = 10.0.0.2/32
+
+    ```
+
+    **2. 内网机器 (Host B) 安装 WireGuard**
+    配置 `/etc/wireguard/wg0.conf`:
+
+    ```ini
+    [Interface]
+    Address = 10.0.0.2/24
+    PrivateKey = <Host B 的私钥>
+
+    [Peer]
+    # 公网机器 A
+    PublicKey = <Host A 的公网钥>
+    Endpoint = <Host A 的公网IP>:51820
+    AllowedIPs = 10.0.0.1/32, 0.0.0.0/0  # 如果你想让内网机器也通过公网上网，或者只填 10.0.0.1/32 只互联
+    PersistentKeepalive = 25 # 关键：每25秒发个包，保持内网穿透连接
+    ```
+
+    **3. 启动**
+    两边都执行 `systemctl enable --now wg-quick@wg0`。
+
+    **4. 传输 TB 数据**
+    现在，你在公网机器 A 上，或者你的笔记本（也连上 WireGuard）上，直接访问：
+    `sftp user@10.0.0.2`
+    或者
+    `ftp 10.0.0.2`
+
+    * **黑客视角**：扫描公网 IP，只能看到 22 (SSH) 和一个无响应的 UDP 51820。Fail2ban 守好 22 即可。
+    * **你的视角**：内网机器就在 `10.0.0.2`，速度飞快，极其稳定。
+
+    **总结**
+
+    * **SSH -R**: 适合传指令、改代码、轻量级 Web 访问。**传 TB 级文件会崩溃。**
+    * **FRP**: 适合把服务公开给全网（建站）。
+    * **WireGuard**: 适合**私有**的大数据传输和内网互联。这是你当前场景的最优解。
+* 如果禁用了 ssh 密码登陆，那么`ssh-copy-id`就会无法使用，此时只能把 public key 写入到`~/.ssh/authorized_keys`中
+
+* ssh 中 forward agent 是干嘛的
+
+    `ForwardAgent`（ssh-agent forwarding）是 SSH 里一个 **非常重要但容易误解** 的功能，它的作用不是让远程机器获得你的私钥，而是：
+
+    **代理转发（Agent Forwarding）= 把本地私钥“借给”远程主机使用，但私钥本身不离开本地**
+
+    也就是说，**你的私钥仍然在 B 上，但 A 上可以替你使用它来登录别的机器**。
+
+    **它是干嘛的？一句话解释**
+
+    **允许你通过 A 登录 C，而不需要把私钥复制到 A。**
+
+    实际流程：
+
+    ```
+    B (私钥在这里)
+      ↓ SSH -A
+    A（没有私钥，但可以通过 ssh-agent 调用 B 上的私钥）
+      ↓ SSH
+    C
+    ```
+
+    A 上并不知道你的私钥内容，但它能借助 ssh-agent 来使用该私钥完成登录。
+
+    **这个功能解决什么问题？**
+
+    比如你在 B（本地电脑）有私钥，但你要通过跳板机 A 登录到服务器 C：
+
+    没有 Agent Forwarding 的情况：
+
+    ```
+    B --SSH--> A   （这里成功）
+    A --SSH--> C   （失败：A 没有私钥）
+    ```
+
+    很多人会错误地把私钥复制到 A，造成安全风险。
+
+    **用 agent forwarding：**
+
+    ```
+    ssh -A user@A
+    ssh user@C   # 成功，因为A通过agent调用B上的私钥
+    ```
+
+    **重点理解：Agent forwarding 不会让你进入 A**
+
+    Agent forwarding **完全不能**让你：
+
+    * 从 B 登录 A 的 user_2
+    * 在远程生成 authorized_keys
+    * 替代 `ssh-copy-id`
+
+    因为 **agent forwarding 的前提是你已经成功 SSH 到 A**。
+
+    你现在的问题是：
+
+    > A 禁止密码，而 B 不能登录 A 的 user_2 → 首次登录都没法建立
+    > `-A` 根本派不上用场
+
+    Agent forwarding 只能在 **你已经能登录的情况下** 扩展你的能力，“往外跳”，而不是解决“登录不进去”的问题。
+
+    **用一个比喻解释**
+
+    * 私钥 = 你的身份证
+    * ssh-agent = 你家里一个拿着你身份证的助手
+    * Agent forwarding = 你告诉酒店(A)：“如果有人问我的身份证，你打电话给我家里的助手(B)问就行，不要我把身份证交给你。”
+
+    但是：
+
+    如果你连酒店(A)的大门都进不去（即登录失败），那 assistant forwarding 完全用不上。
+
+    **3 个要点总结**
+
+    1. **ForwardAgent 是允许远程主机使用你本地的私钥去登录第三方机器。**
+    2. **它不能帮助你第一次登录目标机器。**
+    3. **它不会复制你的私钥，只是远程帮你调用。**
 * 我通过 journalctl 看到有人在一直扫我的 ssh，有哪些防御方法
 
     1. 更改默认端口

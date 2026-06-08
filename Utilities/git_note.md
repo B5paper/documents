@@ -2,6 +2,93 @@
 
 ## cache
 
+* git clone -b <remote_branch> --single-branch <remote_repo> .
+把远程仓库的 branch clone 到本地时，我希望 local branch 的名字不要和 <remote_branch> 相同，怎么办？
+
+    明白了，你想做的是：
+
+    * 从远程仓库克隆某个分支 `<remote_branch>`，
+    * 只克隆这个分支（`--single-branch`），
+    * **本地分支名不想和远程分支名一样**。
+
+    直接 `git clone -b <remote_branch>` 会让本地分支名和远程分支名相同。要改变本地分支名，有两种常用方式：
+
+    **方法 1：先 clone 再重命名**
+
+    ```bash
+    git clone --single-branch --branch <remote_branch> <remote_repo> .
+    git branch -m <local_branch_name>
+    ```
+
+    解释：
+
+    * `git branch -m <local_branch_name>` 会把当前分支重命名为你想要的本地分支名。
+    * 缺点：先 clone 后改名，命令多两步。
+
+    **方法 2：使用 `--origin` + `checkout -b`**
+
+    如果你希望一步到位，可以：
+
+    ```bash
+    git clone --no-checkout <remote_repo> .
+    git fetch origin <remote_branch>
+    git checkout -b <local_branch_name> origin/<remote_branch>
+    ```
+
+    解释：
+
+    1. `--no-checkout` 不自动切换分支，这样你可以自己决定本地分支名。
+    2. `git fetch origin <remote_branch>` 拉取远程分支。
+    3. `git checkout -b <local_branch_name> origin/<remote_branch>` 用你想要的本地名字创建分支并跟踪远程分支。
+
+    **总结：**
+
+    * 如果只是简单改名字，方法 1 最方便。
+    * 如果想完全自定义流程，方法 2 更灵活。
+
+    我可以帮你写一个**单条命令就完成 clone 并指定本地分支名**的版本，让你不用分两步操作。你希望我写吗？
+
+* 哦，说错了，我的意思是，我本地创建了一个 main branch，它没有 track remote branch，我想把远程的 main branch 拉到本地，但是由于本地已经有了 main，会发生冲突。我希望 remote main branch 被拉到本地时，有个新名字。怎么办？
+
+    明白了，你的情况是：
+
+    * 本地已经有一个 `main` 分支（不跟踪远程），
+    * 远程也有 `main` 分支，
+    * 你想把远程的 `main` 拉到本地，但不覆盖已有 `main`，而是用一个新的本地名字，比如 `remote-main`。
+
+    这种情况用 **fetch + checkout -b** 非常合适。
+
+    **操作步骤**
+
+    ```bash
+    # 1. 拉取远程更新（不切换分支）
+    git fetch origin main
+
+    # 2. 基于远程 main 创建一个新的本地分支
+    git checkout -b remote-main origin/main
+    ```
+
+    解释：
+
+    * `git fetch origin main` 只把远程 main 拉下来，不会改动本地分支。
+    * `git checkout -b remote-main origin/main` 创建一个本地分支 `remote-main`，内容和远程 `main` 一致，并自动跟踪远程分支。
+
+    **可选：设置跟踪**
+
+    如果你希望 `remote-main` 跟踪远程 `main`：
+
+    ```bash
+    git branch --set-upstream-to=origin/main remote-main
+    ```
+
+    **效果**：
+
+    * 本地 `main` 不受影响
+    * 远程 `main` 有一个新的本地分支 `remote-main`
+
+    如果你愿意，我可以写一个 **一条命令就把远程 main 拉下来并用新名字创建本地分支** 的版本，让操作更简单。
+
+    你希望我写吗？
 * 关于 git 中 grafted commit 的 merge
 
     为什么这样 merge，会多一个 merge commit，而不是 fast forward？
