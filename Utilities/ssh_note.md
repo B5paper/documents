@@ -2,6 +2,90 @@
 
 ## cache
 
+* 为什么 ssh 登陆时只能尝试三次输入密码？
+
+    因为 **OpenSSH 默认把 “最大密码尝试次数” 限制为 3 次**，这是为了降低暴力破解的风险，同时避免用户在反复输错时占用连接资源。
+
+    * 详细原因
+
+        1. **OpenSSH 的默认设置**
+
+            OpenSSH 服务器端（`sshd`）里有两个相关参数：
+
+            | 参数名            | 含义                                  | 默认值   |
+            | -------------- | ----------------------------------- | ----- |
+            | `MaxAuthTries` | 一个 SSH 连接里允许的**最大认证失败次数**（包括密码、公钥等） | **6** |
+            | `MaxSessions`  | 并发会话数量                              | 10    |
+
+            那为什么你看到的是 **只能输错 3 次密码就被踢？**
+
+            因为：
+
+        2. **在 password 身份验证流程里，每次会话最多提供 3 次密码输入**
+
+            OpenSSH 的认证结构是这样的：
+
+            * SSH 建立连接
+            * 进入 *password* 认证方式
+            * **该认证方式内部限制最多尝试 3 次密码**
+            * 如果 3 次都错，整个 "password" 方法失败并计入一次认证失败
+            * 如果达到 `MaxAuthTries`（默认 6）会直接断链
+
+            也就是说：
+
+            💡 **你看到的“只能输 3 次”的限制实际上是 password 方法内部的固定行为 — 不是 MaxAuthTries。**
+
+            这是 OpenSSH 的 hard-coded 设计。
+
+    > 你不能单纯通过 sshd_config 修改，因为 3 次逻辑写死在源码里
+
+    OpenSSH 源码里（auth.c / auth2-passwd.c）明确写死 3 次：
+
+    ```c
+    #define FAIL_PASSWD_FROM_STDIN 3
+    ```
+
+    能改的只有 **MaxAuthTries**
+
+    例如：
+
+    ```
+    MaxAuthTries 10
+    ```
+
+    这会让你可以尝试密码认证方法更多次数，但**每次只有 3 次密码输入**。
+    比如你可以失败两轮（3+3），第三轮开始失败到第 10 个认证失败才断。
+
+* 假如 MaxAuthTries 为 6，我一共可以输错6次密码？
+
+    不行。**不会是 6 次密码输入。**
+
+    `MaxAuthTries` 控制的是：
+
+    > **一次 SSH 连接允许的 “认证失败次数”**（不是密码输入次数）
+
+    * **一次 password-method failure ＝ 1 次 auth failure**
+    * MaxAuthTries=6 → 允许 **6 次 auth failure**
+    * 但 password-method failure ≠ 重复启动 6 次
+
+* 那如果达到 MaxAuthTries 会发生什么？
+
+    当达到 **MaxAuthTries**（认证失败次数上限）时，OpenSSH 会立即：
+
+    ❌ 立刻断开 SSH 连接
+
+    并且输出类似日志：
+
+    ```
+    sshd[xxxx]: maximum authentication attempts exceeded for <user> from <ip> port <port>
+    ```
+
+    客户端会看到类似：
+
+    ```
+    Received disconnect from <ip> port <port>:2: Too many authentication failures
+    Disconnected from <ip> port <port>
+    ```
 * ssh -R 是否稳定，抗得住巨大流量？比如我想暴露一个内网的 ftp 服务，上传和下载 TB 级别的数据（比如深度学习的数据集）？
 
     对于 TB 级别的数据传输（尤其是深度学习数据集这种大文件），`ssh -R` **完全扛不住**，且效率极低。

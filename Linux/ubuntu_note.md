@@ -4,6 +4,98 @@
 
 ## cache
 
+* gnome 的 remote desktop 如何通过命令行重启？
+
+    在 GNOME（特别是 GNOME 42+ 或 Ubuntu 22.04+ 等使用 GNOME Remote Desktop 的系统）中，远程桌面服务是由 **`gnome-remote-desktop`** systemd 服务提供的。
+    你可以通过命令行用 `systemctl` 来重启它。
+
+    ✅ 重启 GNOME Remote Desktop 服务的命令
+
+    ```bash
+    systemctl --user restart gnome-remote-desktop.service
+    ```
+
+    🔍 查看状态
+
+    查看当前远程桌面服务是否运行：
+
+    ```bash
+    systemctl --user status gnome-remote-desktop.service
+    ```
+
+    🚀 如果你希望彻底重新加载配置
+
+    比如修改了 VNC/RDP 设置，可以执行：
+
+    ```bash
+    systemctl --user daemon-reload
+    systemctl --user restart gnome-remote-desktop.service
+    ```
+
+    **确认 GNOME 远程桌面在监听 RDP 端口（默认 3389）**
+
+    执行：
+
+    ```bash
+    ss -lntp | grep 3389
+    ```
+
+    正常输出应类似：
+
+    ```
+    LISTEN 0 50 *:3389 *:* users:(("gnome-remote-de",pid=xxxx,fd=xx))
+    ```
+
+    如果没有，说明 GNOME RDP 没在监听，可能：
+
+    * 设置被禁用了；
+    * 或 GNOME Remote Desktop 崩溃了；
+    * 或当前会话不是图形 GNOME session。
+
+    **检查配置是否启用了 RDP**
+
+    运行：
+
+    ```bash
+    gsettings get org.gnome.desktop.remote-desktop.rdp enable
+    ```
+
+    如果输出是 `false`，则开启：
+
+    ```bash
+    gsettings set org.gnome.desktop.remote-desktop.rdp enable true
+    ```
+
+    另外检查是否允许无提示登录：
+
+    ```bash
+    gsettings get org.gnome.desktop.remote-desktop.rdp view-only
+    gsettings get org.gnome.desktop.remote-desktop.rdp auth-method
+    ```
+
+    总结修复思路
+
+    1. 启用并重启服务：
+
+       ```bash
+       systemctl --user restart gnome-remote-desktop.service
+       ```
+
+    2. 检查 RDP 是否监听 3389：
+
+       ```bash
+       ss -lntp | grep 3389
+       ```
+    3. 确认配置已启用：
+
+       ```bash
+       gsettings get org.gnome.desktop.remote-desktop.rdp enable
+       ```
+    4. 若仍失败，查看日志：
+
+       ```bash
+       journalctl --user -u gnome-remote-desktop.service -n 50
+       ```
 * ubuntu + wayland 如何修改分辨率，特别是 gnome setting 中没显示的分辨率
 
     在 Ubuntu 的 Wayland 会话下，由于 `xrandr` 不再直接控制显示输出（它仅通过 XWayland 起作用），传统的 `xrandr --addmode` 方法不再生效。要强制开启 GNOME 设置中未列出的分辨率，目前最稳妥的方法是通过 **内核引导参数（Kernel Parameters）** 来修改。

@@ -6,6 +6,181 @@
 
 ## cache
 
+* 我该如何查看 fail2ban 的 filter 的 sshd.conf 中提取出来的 <HOST> 的值？
+
+    `<HOST>` 是 Fail2ban **从日志里匹配出来的 IP 地址**，但 **Fail2ban 默认不会直接把它打印出来**。不过你有几种可靠的方法可以看到 Fail2ban 实际提取到的 `<HOST>` 值。
+
+    下面给你最实用、最直接的方法。
+
+    * fail2ban-regex 验证你的 filter 如何提取 `<HOST>`
+
+        fail2ban-regex 会模拟 filter 并输出它提取到的 `<HOST>`。
+
+        例如：
+
+        ```bash
+        fail2ban-regex /var/log/auth.log /etc/fail2ban/filter.d/sshd.conf
+        ```
+
+        输出中会列出所有匹配的条目，例如：
+
+        ```
+        Matched line(s):
+          [1] 2025-12-02... Failed password for root from 45.9.20.11 port 12345 ssh2
+            IP: 45.9.20.11
+        ```
+
+        这里的 `IP:` 就是 `<HOST>` 的实际值。
+
+    * 方法 3：调试模式（只在临时测试时用）
+
+        Fail2ban 可以带 `--debug` 输出所有匹配信息，包括 `<HOST>`：
+
+        ```bash
+        fail2ban-client start --debug
+        ```
+
+        但这个模式很啰嗦，不建议长期打开。
+
+    fail2ban-regex 两种模式行为不同的根本原因
+
+    * **单行模式（参数列表中直接放字符串）**
+      → 不解析日期 → 正常匹配
+
+    * **文件模式（使用 `-` 或文件路径）**
+      → 要解析日期 → 中文日期无法被识别 → 导致 prefregex 失败 → failregex 也失败
+
+    解决方法
+
+    **方法 1 — 禁用日期解析（最简单）**
+
+    在文件模式下加 `--datepattern=`，让 fail2ban 不解析日志日期：
+
+    ```
+    echo '12月 02 20:52:30 ...' | \
+    fail2ban-regex --datepattern= - /etc/fail2ban/filter.d/sshd.conf
+    ```
+
+    这样就和模式 1 行为一致了。
+
+    **方法 2 — 让 sshd 用英文月份（推荐）**
+
+    修改 `/etc/ssh/sshd_config`：
+
+    ```
+    SyslogFacility AUTH
+    LogLevel VERBOSE
+    ```
+
+    然后设置系统 locale：
+
+    ```
+    export LC_TIME=en_US.UTF-8
+    ```
+
+    或编辑 `/etc/locale.conf`：
+
+    ```
+    LC_TIME=en_US.UTF-8
+    ```
+
+    然后重启 sshd：
+
+    ```
+    systemctl restart sshd
+    ```
+
+    这样新日志会变成：
+
+    ```
+    Dec 02 20:52:30 ...
+    ```
+
+    fail2ban 就能识别。
+
+
+    * ```<mdre-<mode>>```是什么意思？
+
+        `<mdre-<mode>>` 是 Fail2ban **sshd filter 模板里的一个占位符（macro）**，用来根据 `mode` 参数动态加载不同的 failregex 子集。
+
+        它的作用是 **根据用户设置的 `mode`，决定哪些额外的规则被启用**。
+
+        1. 语法和展开规则
+
+            在 `/etc/fail2ban/filter.d/sshd.conf` 中，你会看到类似：
+
+            ```ini
+            failregex = %(cmnfailre)s
+                        <mdre-<mode>>
+                        %(cfooterre)s
+            ```
+
+            解释：
+
+            * `%(cmnfailre)s` → 引用 **公共失败规则**（common fail regex），比如常见的 “Failed password”
+            * `<mdre-<mode>>` → **根据 mode 展开不同规则**
+            * `%(cfooterre)s` → 引用 **公共尾部规则**（footer regex）
+
+            `<mode>` 的可能值在同一个 filter 里定义：
+
+            ```ini
+            # Parameter "mode": normal (default), ddos, extra or aggressive
+            mode = normal
+            ```
+
+        2. `<mdre-<mode>>` 的展开逻辑
+
+            假设你设置了：
+
+            ```ini
+            mode = normal
+            ```
+
+            那么 `<mdre-<mode>>` 会展开为 `mdre-normal` 模块对应的规则块。
+
+            * **normal** → 仅包含最基本的 failregex，例如普通登录失败
+            * **ddos** → 添加针对大量尝试/端口扫描的规则
+            * **extra** → 包含 “Connection closed/reset” 的规则
+            * **aggressive** → 合并所有规则（normal + ddos + extra）
+
+            也就是说：
+
+            * 这条占位符本身不匹配任何日志
+            * 它只是 **指向一组 failregex**，在加载 filter 时才会展开
+            * 如果你 mode = normal，那么 “Connection closed by authenticating user” 这类规则 **不会启用**
+
+        3. 实际效果
+
+            举例：
+
+            ```ini
+            mode = normal
+            failregex = %(cmnfailre)s
+                        <mdre-<mode>>
+                        %(cfooterre)s
+            ```
+
+            * 普通登录失败 → 匹配
+            * Connection closed → **不会匹配**（因为 normal 模式不包含 extra 的规则）
+
+            改成：
+
+            ```ini
+            mode = extra
+            ```
+
+            * `<mdre-<mode>>` 展开后包含 “Connection closed/reset by authenticating user” 的规则
+            * 现在日志就能被匹配，<HOST> 能提取出来
+
+        4. 小结
+
+            * `<mdre-<mode>>` = Fail2ban filter 的宏，占位符，用于**动态加载 mode 对应的 failregex**
+            * `<mode>` 可以是 `normal`、`ddos`、`extra` 或 `aggressive`
+            * 默认 `normal` 模式不包含“Connection closed/reset”规则
+            * 如果你想让这类规则生效，需要：
+
+              1. 改 `mode = extra` 或 `mode = aggressive`
+              2. 或直接把规则写在 failregex= 块里，不依赖 `<mdre-<mode>>`
 * linux 中清空一个文件的方法
 
     * `> filename`

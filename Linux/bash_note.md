@@ -4,80 +4,6 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
-* 简述 bash 中 alias 的用法
-
-    在 Bash 中，`alias`（别名）是一个非常实用的功能。简单来说，它允许你为冗长的命令设定一个**简短的“绰号”**，从而提高敲代码的效率。
-
-    1. 基本语法
-
-        设置别名的标准格式如下：
-
-        ```bash
-        alias 别名='实际执行的命令'
-
-        ```
-
-        > **注意**：等号 `=` 两边**不能有空格**，否则 Bash 会报错。
-
-    2. 常用操作
-
-        | 操作类型 | 命令示例 | 说明 |
-        | --- | --- | --- |
-        | **创建别名** | `alias ll='ls -alF'` | 输入 `ll` 即可执行详细列出文件的命令 |
-        | **查看单个别名** | `alias ll` | 查看 `ll` 具体指向什么命令 |
-        | **查看所有别名** | `alias` | 直接输入 `alias` 不带参数，列出当前所有已定义的别名 |
-        | **删除别名** | `unalias ll` | 取消 `ll` 这个别名 |
-        | **临时跳过别名** | `\ls` | 在命令前加反斜杠，强制执行原始程序而非别名 |
-
-    3. 让别名永久生效
-
-        如果你直接在终端输入 `alias` 命令，它只在**当前会话**有效。一旦关闭终端或重启，别名就会消失。
-
-        要让它永久生效，需要将其写入 Bash 的配置文件中：
-
-        1. 打开文件：`nano ~/.bashrc` (或使用 `vim`)。
-
-        2. 在文件末尾添加你的别名，例如：
-
-            ```bash
-            alias gs='git status'
-            alias ..='cd ..'
-            alias py='python3'
-            ```
-
-
-        3. 保存退出后，执行以下命令立即使其生效：
-
-            `source ~/.bashrc`
-
-    4. 经典用法示例
-
-        这里有一些大家公认的“效率利器”：
-
-        * **安全保护**：防止误删重要文件。
-
-            `alias rm='rm -i'` (删除前确认)
-
-        * **简化路径**：快速回退目录。
-
-            `alias ..='cd ..'`
-
-            `alias ...='cd ../..'`
-
-        * **网络检查**：
-
-            `alias myip="curl ifconfig.me"`
-
-        * **组合命令**：
-
-        `alias update='sudo apt update && sudo apt upgrade'`
-
-    ⚠️ 注意事项
-
-    1. **参数处理**：`alias` 只能简单替换命令头。如果你需要处理复杂的参数（例如：把参数插在命令中间），建议使用 **Bash 函数 (Function)**。
-
-    2. **优先级**：别名的优先级高于系统内建命令和可执行文件。如果你定义了 `alias ls='echo hi'`，那么原本的 `ls` 就被“遮住”了。
-
 * 简述 bash 中 exec 的用法
 
     `exec` 是 Bash 中的一个内置命令，用于**替换当前 shell 进程**而不创建新进程。主要有以下几种用法：
@@ -166,43 +92,6 @@ Reference: <https://www.computerhope.com/unix.htm>
         false && echo "这个不会执行"  # echo 不会执行
         true && echo "这个会执行"     # echo 会执行
         ```
-
-* bash 中的字符串引号逃逸
-
-    `echo It's my work.`会显示语法错误：
-
-    ```
-    main.sh: line 4: unexpected EOF while looking for matching `''
-    main.sh: line 5: syntax error: unexpected end of file
-    ```
-
-    因为 bash 认为`'`是标记了一个字符串的开始，但是没有找到另一个`'`标记字符串的结束。
-
-    如果我们写成
-
-    `echo 'It's my work.'`
-
-    输出同样同上，因为 bash 匹配最近的两个`'`，即`'It's`中的这两个。导致 work 后的`'`未被匹配。
-
-    即使加上转义也不行：`echo 'It\'s my work.'`，因为 bash 认为单引号括住的字符默认不转义，即字符串被分割为`'It\'`和`s my work.`，以及`'`开头的未完成字符串。
-
-    双引号也不转义：
-
-    `echo "It\'s my work."`
-
-    输出为：
-
-    ```
-    It\'s my work.
-    ```
-
-    要想正确输出，只有两种办法：
-
-    * `echo $'It\'s my work.'`
-
-    * `echo "It's my work."`
-
-    这点和 C 语言不太一样。
 
 * chatgpt 写的 bash 定时器
 
@@ -318,10 +207,11 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     相关的环境变量:
 
-    变量	用途
-    $HOME	用户家目录路径
-    $PWD	当前工作目录路径
-    $OLDPWD	上一个工作目录路径（cd - 就是用它）
+    | 变量 | 用途 |
+    | - | - |
+    | `$HOME` | 用户家目录路径 |
+    | `$PWD` | 当前工作目录路径 |
+    | `$OLDPWD` | 上一个工作目录路径（`cd -` 就是用它） |
 
 * bash 的快捷键
 
@@ -417,97 +307,6 @@ Reference: <https://www.computerhope.com/unix.htm>
         
         * `Ctrl + X Ctrl + E`: 用默认编辑器（如 vim）编辑当前命令，退出编辑器后命令会自动执行。非常适合编辑长而复杂的命令。
 
-* trap
-
-    用于在脚本执行过程中捕获和处理信号或事件。它允许你在脚本接收到特定信号时执行指定的命令或函数，常用于清理临时文件、优雅退出或调试。
-
-    syntax:
-
-    ```bash
-    trap [COMMAND] [SIGNALS]
-    ```
-
-    * `COMMAND`：捕获到信号后要执行的命令或函数（用引号包裹）。
-
-    * `SIGNALS`：要捕获的信号名称或编号（如`INT`、`TERM`、`EXIT`等）。
-
-    examples:
-
-    * 捕获中断信号（如 Ctrl+C）
-
-        ```bash
-        trap "echo '脚本被中断！'; exit 1" INT
-        ```
-
-        当用户按下 Ctrl+C（发送 SIGINT 信号）时，脚本会打印消息并退出。
-
-    * 脚本退出时清理资源
-
-        ```bash
-        trap "rm -f /tmp/tempfile; echo '清理完成'" EXIT
-        ```
-
-        无论脚本正常结束还是因错误退出，都会执行清理操作（删除临时文件）。
-
-    * 忽略信号
-
-        ```bash
-        trap "" TERM
-        ```
-
-        忽略 SIGTERM 信号（常用于防止脚本被意外终止）。
-
-    * 捕获调试信号
-
-        ```bash
-        trap "echo '调试模式：变量 x=$x'" DEBUG
-        ```
-
-        每次命令执行后打印变量 x 的值（用于调试）。
-
-    * 重置信号处理
-
-        ```bash
-        trap - INT
-        ```
-
-        恢复对 SIGINT 的默认行为（移除之前的 trap 设置）。
-
-    常用信号列表:
-
-    | 信号名称 | 编号 | 触发条件 |
-    | - | - | - |
-    | INT | 2 | Ctrl+C 中断 |
-    | TERM | 15 | 默认的 kill 命令 |
-    | EXIT | 0 | 脚本退出时（非真实信号） |
-    | ERR | - | 命令执行失败时（非真实信号） |
-    | DEBUG | - | 每条命令执行后（非真实信号） |
-
-    example:
-
-    ```bash
-    #!/bin/bash
-
-    cleanup() {
-        echo "正在清理临时文件..."
-        rm -f /tmp/temp_*
-    }
-
-    trap cleanup EXIT    # 脚本退出时调用 cleanup
-    trap "echo '忽略中断信号'" INT  # 捕获 Ctrl+C
-
-    echo "创建临时文件..."
-    touch /tmp/temp_1234
-
-    echo "按 Ctrl+C 测试中断信号，或等待脚本完成..."
-    sleep 5
-    ```
-
-    注意事项:
-
-    * trap 的作用范围是当前的 Shell 环境。
-
-    * 在函数中定义的 trap 会覆盖全局设置（除非显式声明为全局）。
 
 * bash-completion
 
@@ -543,21 +342,6 @@ Reference: <https://www.computerhope.com/unix.htm>
     | words | 数组 | 命令行中所有的单词 |
     | cword | 整数 | 当前单词在 words 数组中的索引 |
 
-* `[ -f file ]`
-
-    检查文件是否存在且为普通文件，等价于`test -f file`
-
-    如果 file 是符号链接，-f 会检查链接指向的目标文件是否为普通文件（跟随链接）
-
-    其他常见文件测试选项
-    选项	作用
-    -e file	文件/目录是否存在（不检查类型）。
-    -d file	是否为目录。
-    -L file	是否为符号链接。
-    -s file	文件是否存在且大小大于0字节。
-    -r file	文件是否可读。
-    -w file	文件是否可写。
-    -x file	文件是否可执行。
 
 * bash 中输入密码显示为星号（`*`）的模板代码
 
@@ -625,243 +409,10 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     若用户在 -t 指定的时间内未输入，read 会立即结束，并返回 非0 状态码（表示超时）。
 
-* bash 中常见信号与触发条件
 
-    | 信号名称 | 编号 |	触发条件 |
-    | - | - | - |
-    | `INT` | 2 | Ctrl + C 中断 |
-    | `TERM` | 15 | 默认的 kill 命令 |
-    | `EXIT` | 0 | 脚本退出时（非真实信号） |
-    | `ERR` | - | 命令执行失败时（非真实信号） |
-    | `DEBUG` | - | 每条命令执行后（非真实信号） |
+## topics
 
-    example:
-
-    `main.sh`：
-
-    ```bash
-    trap "echo INT triggered!; exit 1" INT
-    trap "echo TERM triggered; exit 1" TERM
-    trap "echo EXIT triggered; exit 1" EXIT
-    trap "echo ERR triggered; exit 1" ERR
-    trap "echo DEBUG triggered" DEBUG
-
-    while true; do
-        echo "current time: $(date)"
-        sleep 1
-    done
-    ```
-
-    run: `bash main.sh`
-
-    使用不同的方式触发 signal 后，output 如下：
-
-    * `Ctrl` + `C`
-
-        ```
-        DEBUG triggered
-        DEBUG triggered
-        current time: 2025年 07月 01日 星期二 15:41:38 CST
-        DEBUG triggered
-        DEBUG triggered
-        DEBUG triggered
-        current time: 2025年 07月 01日 星期二 15:41:39 CST
-        DEBUG triggered
-        DEBUG triggered
-        DEBUG triggered
-        current time: 2025年 07月 01日 星期二 15:41:40 CST
-        DEBUG triggered
-        ^CDEBUG triggered
-        INT triggered!
-        DEBUG triggered
-        DEBUG triggered
-        EXIT triggered
-        DEBUG triggered
-        ```
-
-    * kill
-
-        ```
-        DEBUG triggered
-        DEBUG triggered
-        current time: 2025年 07月 01日 星期二 15:44:15 CST
-        DEBUG triggered
-        DEBUG triggered
-        DEBUG triggered
-        current time: 2025年 07月 01日 星期二 15:44:16 CST
-        DEBUG triggered
-        DEBUG triggered
-        DEBUG triggered
-        current time: 2025年 07月 01日 星期二 15:44:17 CST
-        DEBUG triggered
-        DEBUG triggered
-        TERM triggered
-        DEBUG triggered
-        DEBUG triggered
-        EXIT triggered
-        DEBUG triggered
-        ```
-
-    所有的信号对大小写不敏感，即`INT`和`int`是等价的，其他的同理。
-
-* bash 中的 trap 可以让用户指定函数或命令去处理 signal 信号
-
-    example:
-
-    `main.sh`:
-
-    ```bash
-    trap "echo manully terminated!; exit 1" INT
-
-    while true; do
-        echo "current time: $(date)"
-        sleep 1
-    done
-    ```
-
-    执行：`bash ./main.sh`，等待几秒后，按`Ctrl` + `C`。
-
-    output:
-
-    ```
-    current time: 2025年 06月 30日 星期一 13:03:09 CST
-    current time: 2025年 06月 30日 星期一 13:03:10 CST
-    current time: 2025年 06月 30日 星期一 13:03:11 CST
-    current time: 2025年 06月 30日 星期一 13:03:12 CST
-    ^Cmanully terminated!
-    ```
-
-* `set -e`: 任何命令返回非零（失败）状态时，立即退出脚本
-
-    可以通过`set +e`关闭这一行为。
-
-    example:
-
-    ```bash
-    set -e
-    cd haha
-    echo hello
-    ```
-
-    (`haha`文件夹不存在)
-
-    output:
-
-    ```
-    main.sh: line 2: cd: haha: No such file or directory
-    ```
-
-    退出 bash 脚本后，`echo $?`的值为`1`。
-
-    ```bash
-    # set -e
-    cd haha
-    echo hello
-    ```
-
-    output:
-
-    ```
-    main.sh: line 2: cd: haha: No such file or directory
-    hello
-    ```
-
-    `set -e`等价于`set -o errexit`。
-
-* `set -u`: 遇到未定义的变量时，报错并退出（防止误用空变量）
-
-    example:
-
-    ```bash
-    set -u
-    echo "$my_var"
-    echo "hello"
-    ```
-
-    output:
-
-    ```
-    main.sh: line 2: my_var: unbound variable
-    ```
-
-    ```bash
-    # set -u
-    echo "$my_var"
-    echo "hello"
-    ```
-
-    output:
-
-    ```
-
-    hello
-    ```
-
-* `set -o pipefail`
-
-    管道命令`|`中任意一个子命令失败时，整个管道返回非零状态。
-    
-    example:
-
-    `main.sh`:
-
-    ```bash
-    set -o pipefail
-    cd haha | echo "hello"
-    echo $?
-    ```
-
-    run: `bash main.sh`
-
-    output:
-
-    ```
-    main.sh: line 2: cd: haha: No such file or directory
-    hello
-    1
-    ```
-
-    如果不设置`pipefail`，则只返回最后一个命令的状态：
-
-    ```bash
-    # set -o pipefail
-    cd haha | echo "hello"
-    echo $?
-    ```
-
-    run: `bash main.sh`
-
-    output:
-
-    ```
-    hello
-    main.sh: line 2: cd: haha: No such file or directory
-    0
-    ```
-
-    注意，`set -o pipefail`只改变了管道命令的返回值，并不会使 bash 脚本退出。
-
-    `set +o pipefail`可以关闭这个参数。
-
-* bash array 使用小括号来定义：`arr=(elm_1 elm_2 elm_3)`
-
-* bash array 使用`[]`作为下标，并从 0 开始索引，`${arr[0]}`, `${arr[1]}`
-
-* 当使用`@`或`*`作为索引时，会索引数组中的所有元素：`${arr[@]}`, `${arr[*]}`
-
-* 使用`${#arr[@]}`或`${#arr[*]}`可以获得数组的长度
-
-* bash 中打印数组中的字符串，每个一行
-
-    ```bash
-    arr=(hello world nihao zaijian)
-    arr_len=${#arr[@]}
-    i=0
-    while [ $i -lt $arr_len ] ; do
-        echo ${arr[i]}
-        i=$((i+1))
-    done
-    ```
+### 字符串与逃逸
 
 * bash escape single quote
 
@@ -988,7 +539,666 @@ Reference: <https://www.computerhope.com/unix.htm>
 
         满足了在字符串前加`$`，并且在字符串中对单引号进行了`\'`转义，因此输出与预期一致。
 
-## topics
+
+* bash 中的字符串引号逃逸
+
+    `echo It's my work.`会显示语法错误：
+
+    ```
+    main.sh: line 4: unexpected EOF while looking for matching `''
+    main.sh: line 5: syntax error: unexpected end of file
+    ```
+
+    因为 bash 认为`'`是标记了一个字符串的开始，但是没有找到另一个`'`标记字符串的结束。
+
+    如果我们写成
+
+    `echo 'It's my work.'`
+
+    输出同样同上，因为 bash 匹配最近的两个`'`，即`'It's`中的这两个。导致 work 后的`'`未被匹配。
+
+    即使加上转义也不行：`echo 'It\'s my work.'`，因为 bash 认为单引号括住的字符默认不转义，即字符串被分割为`'It\'`和`s my work.`，以及`'`开头的未完成字符串。
+
+    双引号也不转义：
+
+    `echo "It\'s my work."`
+
+    输出为：
+
+    ```
+    It\'s my work.
+    ```
+
+    要想正确输出，只有两种办法：
+
+    * `echo $'It\'s my work.'`
+
+    * `echo "It's my work."`
+
+    这点和 C 语言不太一样。
+
+
+### 数组 array
+
+* bash array 使用小括号来定义：`arr=(elm_1 elm_2 elm_3)`
+
+* bash array 使用`[]`作为下标，并从 0 开始索引，`${arr[0]}`, `${arr[1]}`
+
+* 当使用`@`或`*`作为索引时，会索引数组中的所有元素：`${arr[@]}`, `${arr[*]}`
+
+* 使用`${#arr[@]}`或`${#arr[*]}`可以获得数组的长度
+
+* bash 中打印数组中的字符串，每个一行
+
+    ```bash
+    arr=(hello world nihao zaijian)
+    arr_len=${#arr[@]}
+    i=0
+    while [ $i -lt $arr_len ] ; do
+        echo ${arr[i]}
+        i=$((i+1))
+    done
+    ```
+
+
+### set 命令
+
+* `set -e`: 任何命令返回非零（失败）状态时，立即退出脚本
+
+    可以通过`set +e`关闭这一行为。
+
+    example:
+
+    ```bash
+    set -e
+    cd haha
+    echo hello
+    ```
+
+    (`haha`文件夹不存在)
+
+    output:
+
+    ```
+    main.sh: line 2: cd: haha: No such file or directory
+    ```
+
+    退出 bash 脚本后，`echo $?`的值为`1`。
+
+    ```bash
+    # set -e
+    cd haha
+    echo hello
+    ```
+
+    output:
+
+    ```
+    main.sh: line 2: cd: haha: No such file or directory
+    hello
+    ```
+
+    `set -e`等价于`set -o errexit`。
+
+* `set -u`: 遇到未定义的变量时，报错并退出（防止误用空变量）
+
+    example:
+
+    ```bash
+    set -u
+    echo "$my_var"
+    echo "hello"
+    ```
+
+    output:
+
+    ```
+    main.sh: line 2: my_var: unbound variable
+    ```
+
+    ```bash
+    # set -u
+    echo "$my_var"
+    echo "hello"
+    ```
+
+    output:
+
+    ```
+
+    hello
+    ```
+
+* `set -o pipefail`
+
+    管道命令`|`中任意一个子命令失败时，整个管道返回非零状态。
+    
+    example:
+
+    `main.sh`:
+
+    ```bash
+    set -o pipefail
+    cd haha | echo "hello"
+    echo $?
+    ```
+
+    run: `bash main.sh`
+
+    output:
+
+    ```
+    main.sh: line 2: cd: haha: No such file or directory
+    hello
+    1
+    ```
+
+    如果不设置`pipefail`，则只返回最后一个命令的状态：
+
+    ```bash
+    # set -o pipefail
+    cd haha | echo "hello"
+    echo $?
+    ```
+
+    run: `bash main.sh`
+
+    output:
+
+    ```
+    hello
+    main.sh: line 2: cd: haha: No such file or directory
+    0
+    ```
+
+    注意，`set -o pipefail`只改变了管道命令的返回值，并不会使 bash 脚本退出。
+
+    `set +o pipefail`可以关闭这个参数。
+
+
+### signal 相关
+
+* trap
+
+    用于在脚本执行过程中捕获和处理信号或事件。它允许你在脚本接收到特定信号时执行指定的命令或函数，常用于清理临时文件、优雅退出或调试。
+
+    syntax:
+
+    ```bash
+    trap [COMMAND] [SIGNALS]
+    ```
+
+    * `COMMAND`：捕获到信号后要执行的命令或函数（用引号包裹）。
+
+    * `SIGNALS`：要捕获的信号名称或编号（如`INT`、`TERM`、`EXIT`等）。
+
+    examples:
+
+    * 捕获中断信号（如 Ctrl+C）
+
+        ```bash
+        trap "echo '脚本被中断！'; exit 1" INT
+        ```
+
+        当用户按下 Ctrl+C（发送 SIGINT 信号）时，脚本会打印消息并退出。
+
+    * 脚本退出时清理资源
+
+        ```bash
+        trap "rm -f /tmp/tempfile; echo '清理完成'" EXIT
+        ```
+
+        无论脚本正常结束还是因错误退出，都会执行清理操作（删除临时文件）。
+
+    * 忽略信号
+
+        ```bash
+        trap "" TERM
+        ```
+
+        忽略 SIGTERM 信号（常用于防止脚本被意外终止）。
+
+    * 捕获调试信号
+
+        ```bash
+        trap "echo '调试模式：变量 x=$x'" DEBUG
+        ```
+
+        每次命令执行后打印变量 x 的值（用于调试）。
+
+    * 重置信号处理
+
+        ```bash
+        trap - INT
+        ```
+
+        恢复对 SIGINT 的默认行为（移除之前的 trap 设置）。
+
+    常用信号列表:
+
+    | 信号名称 | 编号 | 触发条件 |
+    | - | - | - |
+    | INT | 2 | Ctrl+C 中断 |
+    | TERM | 15 | 默认的 kill 命令 |
+    | EXIT | 0 | 脚本退出时（非真实信号） |
+    | ERR | - | 命令执行失败时（非真实信号） |
+    | DEBUG | - | 每条命令执行后（非真实信号） |
+
+    example:
+
+    ```bash
+    #!/bin/bash
+
+    cleanup() {
+        echo "正在清理临时文件..."
+        rm -f /tmp/temp_*
+    }
+
+    trap cleanup EXIT    # 脚本退出时调用 cleanup
+    trap "echo '忽略中断信号'" INT  # 捕获 Ctrl+C
+
+    echo "创建临时文件..."
+    touch /tmp/temp_1234
+
+    echo "按 Ctrl+C 测试中断信号，或等待脚本完成..."
+    sleep 5
+    ```
+
+    注意事项:
+
+    * trap 的作用范围是当前的 Shell 环境。
+
+    * 在函数中定义的 trap 会覆盖全局设置（除非显式声明为全局）。
+
+
+* bash 中常见信号与触发条件
+
+    | 信号名称 | 编号 |	触发条件 |
+    | - | - | - |
+    | `INT` | 2 | Ctrl + C 中断 |
+    | `TERM` | 15 | 默认的 kill 命令 |
+    | `EXIT` | 0 | 脚本退出时（非真实信号） |
+    | `ERR` | - | 命令执行失败时（非真实信号） |
+    | `DEBUG` | - | 每条命令执行后（非真实信号） |
+
+    example:
+
+    `main.sh`：
+
+    ```bash
+    trap "echo INT triggered!; exit 1" INT
+    trap "echo TERM triggered; exit 1" TERM
+    trap "echo EXIT triggered; exit 1" EXIT
+    trap "echo ERR triggered; exit 1" ERR
+    trap "echo DEBUG triggered" DEBUG
+
+    while true; do
+        echo "current time: $(date)"
+        sleep 1
+    done
+    ```
+
+    run: `bash main.sh`
+
+    使用不同的方式触发 signal 后，output 如下：
+
+    * `Ctrl` + `C`
+
+        ```
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:41:38 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:41:39 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:41:40 CST
+        DEBUG triggered
+        ^CDEBUG triggered
+        INT triggered!
+        DEBUG triggered
+        DEBUG triggered
+        EXIT triggered
+        DEBUG triggered
+        ```
+
+    * kill
+
+        ```
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:44:15 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:44:16 CST
+        DEBUG triggered
+        DEBUG triggered
+        DEBUG triggered
+        current time: 2025年 07月 01日 星期二 15:44:17 CST
+        DEBUG triggered
+        DEBUG triggered
+        TERM triggered
+        DEBUG triggered
+        DEBUG triggered
+        EXIT triggered
+        DEBUG triggered
+        ```
+
+    所有的信号对大小写不敏感，即`INT`和`int`是等价的，其他的同理。
+
+* bash 中的 trap 可以让用户指定函数或命令去处理 signal 信号
+
+    example:
+
+    `main.sh`:
+
+    ```bash
+    trap "echo manully terminated!; exit 1" INT
+
+    while true; do
+        echo "current time: $(date)"
+        sleep 1
+    done
+    ```
+
+    执行：`bash ./main.sh`，等待几秒后，按`Ctrl` + `C`。
+
+    output:
+
+    ```
+    current time: 2025年 06月 30日 星期一 13:03:09 CST
+    current time: 2025年 06月 30日 星期一 13:03:10 CST
+    current time: 2025年 06月 30日 星期一 13:03:11 CST
+    current time: 2025年 06月 30日 星期一 13:03:12 CST
+    ^Cmanully terminated!
+    ```
+
+### test 命令
+
+* `test`
+
+    `test`命令没有输出，但是有一个 exit status，`0`代表`true`，`1`代表`false`。
+
+    Example:
+
+    ```bash
+    num=4
+    if (test $num -gt 5)
+    then
+        echo "yes"
+    else
+        echo "no"
+    fi 
+    ```
+
+    `test`命令也可被方括号`[]`替代：
+
+    ```bash
+    file="/etc/passwd"
+    if [ -e $file ]
+    then
+        echo "whew"
+    else
+        echo "uh-oh"
+    fi
+    ```
+
+    Syntax:
+
+    1. File tests:
+
+        ```bash
+        test [-a] [-b] [-c] [-d] [-e] [-f] [-g] [-h] [-L] [-k] [-p] [-r] [-s] [-S] [-u] [-w] [-x] [-O] [-G] [-N] [file]
+
+        test -t fd
+
+        test file1 {-nt | -ot | -ef} file2
+        ```
+
+    1. String tests:
+
+        ```bash
+        test [-n | -z] string
+
+        test string1 {= | != | < | >} string2
+        ```
+
+    1. Shell options and variables:
+
+        ```bash
+        test -o option
+
+        test {-v | -R} var
+        ```
+
+    1. Simple logic (test if values are `null`):
+
+        ```bash
+        test [!] expr
+
+        test expr1 {-a | -o} expr2
+        ```
+
+    1. Numerical comparison (for integer values only; bash doesn't do floating point math):
+
+        ```bash
+        test arg1 {-eq | -ne | -lt | -le | -gt | -ge} arg2
+        ```
+
+    Options:
+
+    1. `-a file`, `-e file`
+
+        Returns true if *file* exists. Does the same thing as `-e`. Both are included for compatibility reasons with legacy versions of Unix.
+
+    1. `-b file`
+
+        如果 *file* 是块 (block) 文件则返回 true。
+
+    1. `-c file`
+
+        如果 *file* 是字符 (character) 文件则返回 true 
+        
+        For example, `/dev/urandom` is a character-special file.
+
+    1. `-d file`
+
+        Returns true if *file* is a directory.
+
+    1. `-f file`
+
+        Returns true if *file* exists, and is a regular file.
+
+    1. `-g file`
+
+        Returns true if *file* has the setgid bit set.
+
+    1. `-h file`
+
+    	Returns true if *file* is a symbolic link. Does the same thing as `-L`. Both are included for compatibility reasons with legacy versions of Unix.
+
+    1. `-L file`
+
+        Returns true if *file* is a symbolic link. Does the same thing as `-h`. Both are included for compatibility reasons with legacy versions of Unix.
+
+    1. `-k file`
+
+        Returns true if *file* has its sticky bit set.
+
+    1. `-p file`
+
+        Returns true if the file is a named pipe, e.g., as created with the command `mkfifo`.
+
+    1. `-r file`
+
+        Returns true if *file* is readable by the user running `test`.
+
+    1. `-s file`
+
+        Returns true if *file* exists, and is not empty.
+
+    1. `-S file`
+
+        Returns true if *file* is a socket.
+
+    1. `-t fd`
+
+        Returns true if file descriptor *fd* is opened on a terminal.
+
+    1. `-u file`
+
+        Returns true if *file* has the setuid bit set.
+
+    1. `-w file`
+
+        Returns true if the user running `test` has write permission to *file*, i.e., make changes to it.
+
+    1. `-x file`
+
+        Returns true if *file* is executable by the user running `test`.
+
+    1. `-O file`
+
+    	Returns true if *file* is owned by the user running `test`.
+
+    1. `-G file`
+
+        Returns true if *file* is owned by the group of the user running `test`.
+
+    1. `-N file`
+
+        Returns true if *file* was modified since the last time it was read.
+
+    1. `file1 -nt file2`
+
+        Returns true if *file1* is newer (has a newer modification date/time) than *file2*.
+
+    1. `file1 -ot file2`
+
+        Returns true if *file1* is older (has an older modification date/time) than *file2*.
+
+    1. `file1 -ef file2`
+
+        Returns true if *file1* is a hard link to *file2*.
+
+    1. `test [-n] string`
+
+        Returns true if *string* is not empty. Operates the same with or without `-n`.
+
+        For example, if `mystr=""`, then `test "$mystr"` and `test -n "$mystr"` would both be false. If `mystr="Not empty"`, then `test "$mystr"` and `test -n "$mystr"` would both be true.
+
+    1. `-z string`
+
+        Returns true if string *string* is empty, i.e., `""`.
+
+    1. `string1 = string2`
+
+        Returns true if *string1* and *string2* are equal, i.e., contain the same characters.
+
+    1. `string1 != string2`
+
+        Returns true if *string1* and *string2* are not equal.
+
+    1. `string1 < string2`
+
+        Returns true if *string1* sorts before *string2* lexicographically, according to ASCII numbering, based on the first character of the string. For instance, `test "Apple" < "Banana"` is true, but `test "Apple" < "banana"` is false, because all lowercase letters have a lower ASCII number than their uppercase counterparts.
+
+        **Tip**: Enclose any variable names in double quotes to protect whitespace. Also, escape the less than symbol with a backslash to prevent bash from interpreting as a redirection operator. For instance, use t`est "$str1" \< "$str2"` instead of `test $str1 < $str2`. The latter command will try to read from a file whose name is the value of variable *str2*. For more information, see redirection in bash.
+
+    1. `string1 > string2`
+
+        Returns true if *string1* sorts after *string2* lexicographically, according to the ASCII numbering. As noted above, use `test "$str1" \> "$str2"` instead of `test $str1 > $str2`. The latter command creates or overwrites a file whose name is the value of variable *str2*.
+
+    1. `-o option`
+
+        Returns true if the shell option *opt* is enabled.
+
+    1. `-v var`
+
+        Returns true if the shell variable *var* is set.
+
+    1. `-R var`
+
+        Returns true if the shell variable *var* is set, and is a name reference. (It's possible this refers to an *indirect reference*, as described in Parameter expansion in bash.)
+
+    1. `! expr`
+
+        Returns true if and only if the expression *expr* is null.
+
+    1. `expr1 -a expr2`
+
+        Returns true if expressions *expr1* and *expr2* are both not null.
+
+    1. `expr1 -o expr2`
+
+        Returns true if either of the expressions *expr1* or *expr2* are not null.
+
+    1. `arg1 -eq arg2`
+
+        True if argument *arg1* equals *arg2*.
+
+    1. `arg1 -ne arg2`
+
+        True if argument *arg1* is not equal to *arg2*.
+
+    1. `arg1 -lt arg2`
+
+        True if numeric value *arg1* is less than *arg2*.
+
+    1. `arg1 -le arg2`
+
+        True if numeric value *arg1* is less than or equal to *arg2*.
+
+    1. `arg1 -gt arg2`
+
+        True if numeric value *arg1* is greater than *arg2*.
+
+    1. `arg1 -ge arg2`
+
+        True if numeric value *arg1* is greater than or equal to *arg2*.
+
+    Notes:
+
+    1. All arguments to test must be separated by a space, including all operators.
+
+    1. The `<` and `>` operators are lexicographical comparisons, based on ASCII numbering. They are not numerical operators (instead, use `-lt`, `-gt`, etc. for comparing numbers).
+
+    1. The precise behavior of `test`, depending on the number of arguments provided, is as follows:
+
+        | #<br>args | test behavior |
+        | - | - |
+        | 0 | Always return false. |
+        | 1 | Return true, if and only if the expression is not null. |
+        | 2 | If the first argument is `!`, return true if and only if the expression is null. <br> If the first argument if one of the other unary operators (`-a`, `-b`, etc.), return true if and only if the unary test of the second argument is true. <br> If the first argument is not an unary operator, return false. |
+        | 3 | The following conditions are applied in the order listed. <br> If the second argument is one of the binary conditional operators listed above, the result is the binary test using the first and third arguments as operands. Binary conditional operators are those which take two operands, e.g., `-nt`, `-eq`, `<`, etc. <br> The `-a` and `-o` operators are considered binary operators when there are three arguments. <br> If the first argument is `!`, the value is the negation of the two-argument test using the second and third arguments. <br> If the first argument is exactly `(` and the third argument is exactly `)`, the result is the one-argument test of the second argument. In other words, `( expr )` returns the value of `expr`. This special case exists as a way to override the normal precedence of operations. <br> Otherwise, the expression is false. |
+        | 4 | If the first argument is `!`, the result is the negation of the three-argument expression composed of the remaining arguments. <br> Otherwise, the expression is parsed and evaluated according to precedence using the rules listed above. |
+        | 5+ | The expression is parsed and evaluated according to precedence using the rules listed above. |
+
+    Exit status
+
+    `0` for true, `1` for false. Anything greater than 1 indicates an error or malformed command.
+
+    `$?` can be used to get the exit status of `test`.
+
+* `[ -f file ]`
+
+    检查文件是否存在且为普通文件，等价于`test -f file`
+
+    如果 file 是符号链接，-f 会检查链接指向的目标文件是否为普通文件（跟随链接）
+
+    其他常见文件测试选项
+    选项	作用
+    -e file	文件/目录是否存在（不检查类型）。
+    -d file	是否为目录。
+    -L file	是否为符号链接。
+    -s file	文件是否存在且大小大于0字节。
+    -r file	文件是否可读。
+    -w file	文件是否可写。
+    -x file	文件是否可执行。
 
 ### 重定向
 
@@ -1856,272 +2066,80 @@ ls
 
 ## Common used command
 
-### test
+* 简述 bash 中 alias 的用法
 
-`test`命令没有输出，但是有一个 exit status，`0`代表`true`，`1`代表`false`。
+    在 Bash 中，`alias`（别名）是一个非常实用的功能。简单来说，它允许你为冗长的命令设定一个**简短的“绰号”**，从而提高敲代码的效率。
 
-Example:
+    1. 基本语法
 
-```bash
-num=4
-if (test $num -gt 5)
-then
-    echo "yes"
-else
-    echo "no"
-fi 
-```
+        设置别名的标准格式如下：
 
-`test`命令也可被方括号`[]`替代：
+        ```bash
+        alias 别名='实际执行的命令'
 
-```bash
-file="/etc/passwd"
-if [ -e $file ]
-then
-    echo "whew"
-else
-    echo "uh-oh"
-fi
-```
+        ```
 
-Syntax:
+        > **注意**：等号 `=` 两边**不能有空格**，否则 Bash 会报错。
 
-1. File tests:
+    2. 常用操作
 
-    ```bash
-    test [-a] [-b] [-c] [-d] [-e] [-f] [-g] [-h] [-L] [-k] [-p] [-r] [-s] [-S] [-u] [-w] [-x] [-O] [-G] [-N] [file]
+        | 操作类型 | 命令示例 | 说明 |
+        | --- | --- | --- |
+        | **创建别名** | `alias ll='ls -alF'` | 输入 `ll` 即可执行详细列出文件的命令 |
+        | **查看单个别名** | `alias ll` | 查看 `ll` 具体指向什么命令 |
+        | **查看所有别名** | `alias` | 直接输入 `alias` 不带参数，列出当前所有已定义的别名 |
+        | **删除别名** | `unalias ll` | 取消 `ll` 这个别名 |
+        | **临时跳过别名** | `\ls` | 在命令前加反斜杠，强制执行原始程序而非别名 |
 
-    test -t fd
+    3. 让别名永久生效
 
-    test file1 {-nt | -ot | -ef} file2
-    ```
+        如果你直接在终端输入 `alias` 命令，它只在**当前会话**有效。一旦关闭终端或重启，别名就会消失。
 
-1. String tests:
+        要让它永久生效，需要将其写入 Bash 的配置文件中：
 
-    ```bash
-    test [-n | -z] string
+        1. 打开文件：`nano ~/.bashrc` (或使用 `vim`)。
 
-    test string1 {= | != | < | >} string2
-    ```
+        2. 在文件末尾添加你的别名，例如：
 
-1. Shell options and variables:
+            ```bash
+            alias gs='git status'
+            alias ..='cd ..'
+            alias py='python3'
+            ```
 
-    ```bash
-    test -o option
 
-    test {-v | -R} var
-    ```
+        3. 保存退出后，执行以下命令立即使其生效：
 
-1. Simple logic (test if values are `null`):
+            `source ~/.bashrc`
 
-    ```bash
-    test [!] expr
+    4. 经典用法示例
 
-    test expr1 {-a | -o} expr2
-    ```
+        这里有一些大家公认的“效率利器”：
 
-1. Numerical comparison (for integer values only; bash doesn't do floating point math):
+        * **安全保护**：防止误删重要文件。
 
-    ```bash
-    test arg1 {-eq | -ne | -lt | -le | -gt | -ge} arg2
-    ```
+            `alias rm='rm -i'` (删除前确认)
 
-Options:
+        * **简化路径**：快速回退目录。
 
-1. `-a file`
+            `alias ..='cd ..'`
 
-    Returns true if *file* exists. Does the same thing as `-e`. Both are included for compatibility reasons with legacy versions of Unix.
+            `alias ...='cd ../..'`
 
-1. `-b file`
+        * **网络检查**：
 
-    Returns true if *file* is "block-special." Block-special files are similar to regular files, but are stored on block devices — special areas on the storage device that are written or read one block (sector) at a time.
+            `alias myip="curl ifconfig.me"`
 
-1. `-c file`
+        * **组合命令**：
 
-    Returns true if *file* is "character-special." Character-special files are written or read byte-by-byte (one character at a time), immediately, to a special device. For example, `/dev/urandom` is a character-special file.
+        `alias update='sudo apt update && sudo apt upgrade'`
 
-1. `-d file`
+    ⚠️ 注意事项
 
-    Returns true if *file* is a directory.
+    1. **参数处理**：`alias` 只能简单替换命令头。如果你需要处理复杂的参数（例如：把参数插在命令中间），建议使用 **Bash 函数 (Function)**。
 
-1. `-e file`
+    2. **优先级**：别名的优先级高于系统内建命令和可执行文件。如果你定义了 `alias ls='echo hi'`，那么原本的 `ls` 就被“遮住”了。
 
-    Returns true if *file* exists. Does the same thing as `-a`. Both are included for compatibility reasons with legacy versions of Unix.
-
-1. `-f file`
-
-    Returns true if *file* exists, and is a regular file.
-
-1. `-g file`
-
-    Returns true if *file* has the setgid bit set.
-
-1. `-h file`
-
-	Returns true if *file* is a symbolic link. Does the same thing as `-L`. Both are included for compatibility reasons with legacy versions of Unix.
-
-1. `-L file`
-
-    Returns true if *file* is a symbolic link. Does the same thing as `-h`. Both are included for compatibility reasons with legacy versions of Unix.
-
-1. `-k file`
-
-    Returns true if *file* has its sticky bit set.
-
-1. `-p file`
-
-    Returns true if the file is a named pipe, e.g., as created with the command `mkfifo`.
-
-1. `-r file`
-
-    Returns true if *file* is readable by the user running `test`.
-
-1. `-s file`
-
-    Returns true if *file* exists, and is not empty.
-
-1. `-S file`
-
-    Returns true if *file* is a socket.
-
-1. `-t fd`
-
-    Returns true if file descriptor *fd* is opened on a terminal.
-
-1. `-u file`
-
-    Returns true if *file* has the setuid bit set.
-
-1. `-w file`
-
-    Returns true if the user running `test` has write permission to *file*, i.e., make changes to it.
-
-1. `-x file`
-
-    Returns true if *file* is executable by the user running `test`.
-
-1. `-O file`
-
-	Returns true if *file* is owned by the user running `test`.
-
-1. `-G file`
-
-    Returns true if *file* is owned by the group of the user running `test`.
-
-1. `-N file`
-
-    Returns true if *file* was modified since the last time it was read.
-
-1. `file1 -nt file2`
-
-    Returns true if *file1* is newer (has a newer modification date/time) than *file2*.
-
-1. `file1 -ot file2`
-
-    Returns true if *file1* is older (has an older modification date/time) than *file2*.
-
-1. `file1 -ef file2`
-
-    Returns true if *file1* is a hard link to *file2*.
-
-1. `test [-n] string`
-
-    Returns true if *string* is not empty. Operates the same with or without `-n`.
-
-    For example, if `mystr=""`, then `test "$mystr"` and `test -n "$mystr"` would both be false. If `mystr="Not empty"`, then `test "$mystr"` and `test -n "$mystr"` would both be true.
-
-1. `-z string`
-
-    Returns true if string *string* is empty, i.e., `""`.
-
-1. `string1 = string2`
-
-    Returns true if *string1* and *string2* are equal, i.e., contain the same characters.
-
-1. `string1 != string2`
-
-    Returns true if *string1* and *string2* are not equal.
-
-1. `string1 < string2`
-
-    Returns true if *string1* sorts before *string2* lexicographically, according to ASCII numbering, based on the first character of the string. For instance, `test "Apple" < "Banana"` is true, but `test "Apple" < "banana"` is false, because all lowercase letters have a lower ASCII number than their uppercase counterparts.
-
-    **Tip**: Enclose any variable names in double quotes to protect whitespace. Also, escape the less than symbol with a backslash to prevent bash from interpreting as a redirection operator. For instance, use t`est "$str1" \< "$str2"` instead of `test $str1 < $str2`. The latter command will try to read from a file whose name is the value of variable *str2*. For more information, see redirection in bash.
-
-1. `string1 > string2`
-
-    Returns true if *string1* sorts after *string2* lexicographically, according to the ASCII numbering. As noted above, use `test "$str1" \> "$str2"` instead of `test $str1 > $str2`. The latter command creates or overwrites a file whose name is the value of variable *str2*.
-
-1. `-o option`
-
-    Returns true if the shell option *opt* is enabled.
-
-1. `-v var`
-
-    Returns true if the shell variable *var* is set.
-
-1. `-R var`
-
-    Returns true if the shell variable *var* is set, and is a name reference. (It's possible this refers to an *indirect reference*, as described in Parameter expansion in bash.)
-
-1. `! expr`
-
-    Returns true if and only if the expression *expr* is null.
-
-1. `expr1 -a expr2`
-
-    Returns true if expressions *expr1* and *expr2* are both not null.
-
-1. `expr1 -o expr2`
-
-    Returns true if either of the expressions *expr1* or *expr2* are not null.
-
-1. `arg1 -eq arg2`
-
-    True if argument *arg1* equals *arg2*.
-
-1. `arg1 -ne arg2`
-
-    True if argument *arg1* is not equal to *arg2*.
-
-1. `arg1 -lt arg2`
-
-    True if numeric value *arg1* is less than *arg2*.
-
-1. `arg1 -le arg2`
-
-    True if numeric value *arg1* is less than or equal to *arg2*.
-
-1. `arg1 -gt arg2`
-
-    True if numeric value *arg1* is greater than *arg2*.
-
-1. `arg1 -ge arg2`
-
-    True if numeric value *arg1* is greater than or equal to *arg2*.
-
-Notes:
-
-1. All arguments to test must be separated by a space, including all operators.
-
-1. The `<` and `>` operators are lexicographical comparisons, based on ASCII numbering. They are not numerical operators (instead, use `-lt`, `-gt`, etc. for comparing numbers).
-
-1. The precise behavior of `test`, depending on the number of arguments provided, is as follows:
-
-    | #<br>args | test behavior |
-    | - | - |
-    | 0 | Always return false. |
-    | 1 | Return true, if and only if the expression is not null. |
-    | 2 | If the first argument is `!`, return true if and only if the expression is null. <br> If the first argument if one of the other unary operators (`-a`, `-b`, etc.), return true if and only if the unary test of the second argument is true. <br> If the first argument is not an unary operator, return false. |
-    | 3 | The following conditions are applied in the order listed. <br> If the second argument is one of the binary conditional operators listed above, the result is the binary test using the first and third arguments as operands. Binary conditional operators are those which take two operands, e.g., `-nt`, `-eq`, `<`, etc. <br> The `-a` and `-o` operators are considered binary operators when there are three arguments. <br> If the first argument is `!`, the value is the negation of the two-argument test using the second and third arguments. <br> If the first argument is exactly `(` and the third argument is exactly `)`, the result is the one-argument test of the second argument. In other words, `( expr )` returns the value of `expr`. This special case exists as a way to override the normal precedence of operations. <br> Otherwise, the expression is false. |
-    | 4 | If the first argument is `!`, the result is the negation of the three-argument expression composed of the remaining arguments. <br> Otherwise, the expression is parsed and evaluated according to precedence using the rules listed above. |
-    | 5+ | The expression is parsed and evaluated according to precedence using the rules listed above. |
-
-Exit status
-
-`0` for true, `1` for false. Anything greater than 1 indicates an error or malformed command.
-
-`$?` can be used to get the exit status of `test`.
 
 ### trap
 

@@ -2,6 +2,268 @@
 
 ## cache
 
+* 我想处理 EGG / fnirs 时间序列数据，对一段时间序列数据的 action / event 进行分类。目前常用方法有哪些
+
+    处理 EEG（脑电）与 fNIRS（功能性近红外光谱）的多模态时间序列数据并进行动作/事件分类（Action/Event Classification）是目前脑机接口（BCI）和认知神经科学领域非常热门的方向。
+
+    由于 **EEG 具有极高的微秒级时间分辨率**，而 **fNIRS 具有更好的厘米级空间分辨率（但存在几秒的血氧延迟反应）**，两者的结合属于典型的**异构信号融合**。
+
+    目前工业界和学术界常用的处理与分类方法可以分为三大类：**传统机器学习方法**、**深度学习方法**、以及专门针对多模态特性的**模态融合策略**。
+
+    一、 多模态特征融合策略（核心前提）
+
+    在分类之前，如何处理这两种时间分辨率截然不同的信号是关键。目前主流有三种融合范式：
+
+    * **特征级融合（Feature-level / Early Fusion）：** * **做法：** 分别提取 EEG（如功率谱密度）和 fNIRS（如 HbO/HbR 的均值、斜率）的特征，拼接（Concatenate）成一个大的特征向量，再送入分类器。
+    * **痛点：** 容易忽略两种信号在时间上的非线性互补关系。
+
+
+    * **决策级融合（Decision-level / Late Fusion）：**
+    * **做法：** 针对 EEG 和 fNIRS 分别训练两个独立的分类器，最后通过**投票（Voting）**、**加权平均**或元分类器（Meta-classifier，如逻辑回归）将两者的预测概率融合。
+    * **优点：** 结构简单，能有效防止由于某一种模态噪声过大而摧毁整个模型。
+
+
+    * **混合/混合时序对齐融合（Hybrid / Alignment Fusion）：**
+    * 目前前沿（如 BiSTF-Net 等网络）常采用**自适应时间对齐（Adaptive Temporal Alignment, ATA）**，利用数据驱动的方法动态调整 fNIRS 的血氧延迟，使其在时序上与 EEG 的电生理激活打通，再进行交叉注意力（Cross-Attention）融合。
+
+    二、 传统机器学习方法（经典、可解释性强）
+
+    对于小样本或实时性要求极高的场景，传统“手动特征工程 + 线性/非线性分类器”依旧是基石。
+
+    1. 特征提取常用算法
+
+        * **EEG 特征：** * **共同空间模式（CSP, Common Spatial Pattern）：** 专门用于运动想象（Motor Imagery）等任务的空间滤波算法。
+        * **时频特征：** 功率谱密度（PSD）、小波变换（Wavelet Transform）提取 $\alpha$、$\beta$ 等频段能量。
+
+
+        * **fNIRS 特征：**
+        * 从氧合血红蛋白（HbO）和脱氧血红蛋白（HbR）的时序窗口中提取：**均值（Mean）、方差（Variance）、斜率（Slope）、峰值（Peak Value）和偏度（Skewness）**。
+
+    2. 常用分类器
+
+        * **支持向量机（SVM）：** 最常用的基线模型，尤其是使用高斯核（RBF）的 SVM，在小样本上表现极度稳定。
+        * **线性判别分析（LDA）：** 脑机接口领域的经典轻量级算法，计算速度极快，常用于实时在线分类。
+        * **随机森林 / XGBoost：** 在特征工程做得很扎实的情况下，这类树模型对噪声有很强的鲁棒性。
+
+    三、 深度学习方法（端到端、前沿主流）
+
+    深度学习能够省去繁琐的手动特征提取，直接输入预处理后的原始时序数据（Raw / Windowed Data）。
+
+    1. 卷积神经网络（CNN）分支
+
+        * **EEGNet / DeepConvNet：** 专门为 EEG 设计的轻量级 CNN。它利用时间卷积（Temporal Convolution）和深度可分离空间卷积（Depthwise Separable Convolution）来捕获脑电的时间和空间特征。同样的方法可以并行一个分支用于捕捉 fNIRS 通道的时间变化。
+        * **时空卷积（Spatial-Temporal CNN）：** 先用一维卷积在时间轴上滑动，再通过二维卷积捕获不同导联/通道（Channels）之间的空间拓扑结构。
+
+    2. 循环神经网络与时序模型（RNN / LSTM / GRU）
+
+        * 由于 fNIRS 信号本质上是一种非常平缓的低频时序信号，**LSTM** 或 **GRU** 能够很好地捕获其长距离的时间依赖性（Long-term dependencies）。通常做法是用 CNN 提取 EEG 的瞬时特征，用 LSTM 提取 fNIRS 的趋势特征。
+
+    3. 注意力机制与 Transformer（目前最火热）
+
+        * **自注意力（Self-Attention）：** 捕获单一模态内，事件发生前后的长程时间上下文关系。
+        * **交叉注意力（Cross-Attention）：** **（重点推荐）** 以 EEG 的时间高分辨率作为 Query，去检索 fNIRS 的空间/血氧特征（Key 和 Value），实现“用电信号引导光信号，用光信号补充电信号的空间定位”。例如近年被广泛讨论的 *MBC-ATT* 架构。
+
+    四、 针对“动作/事件”分类的具体实施建议
+
+    1. 滑动窗口切片（Windowing）：
+
+        * 由于是时间序列的动作分类，需要根据 Event Trigger（事件触发标签）截取 **Epoch**。
+        * **注意两者的窗口长度可能不同：** EEG 的动作相关电位（如 ERP、ERD/ERS）通常在动作发生前/后 **0.5s 到 2s** 内最明显；而 fNIRS 的血氧响应通常在动作开始后 **2s 才开始上升，5-8s 达到峰值**。因此，做传统融合时，fNIRS 的提取窗口通常要比 EEG 向后延伸几秒。
+
+    2. 基线校正（Baseline Correction）：
+
+        * fNIRS 极易受到漂移影响，在每个事件（Action）开始前 1-2 秒的数据必须作为基线（Baseline）扣除。
+
+    3. 初学者推荐路线：
+
+        * **快速 Baseline 搭建：** 提取 EEG 的 PSD 特征 + fNIRS 窗口内的 Mean/Slope 特征 $\rightarrow$ 拼接 $\rightarrow$ **SVM / Random Forest**。
+        
+        * **进阶深度学习：** 采用双支路网络（Two-stream Network），左边走 **EEGNet**，右边走 **Vanilla CNN/LSTM (处理 fNIRS)** $\rightarrow$ 在全连接层前进行特征拼接（Concat） $\rightarrow$ Softmax 输出分类。
+
+    你目前的具体应用场景是什么（例如：是健康人的**运动想象/真实动作**分类，还是临床上的**认知负荷/情绪**脑功能评估）？这决定了数据清洗和特征选择的侧重点。
+
+* 现在我们只考虑 fnirs 多通道数据 ，有哪些可以和 注意力机制与 Transformer 相关的方法？推荐一些论文，并做简要介绍
+
+    专注于 **fNIRS 多通道数据**时，引入注意力机制（Attention Mechanism）与 Transformer 的核心优势在于：它能够有效捕获**跨通道的空间拓扑关系（Spatial Functional Connectivity）**以及**血氧信号随时间演进的长程依赖性（Temporal Dynamics）**。
+
+    由于 fNIRS 采样率较低（通常在 $1\,\text{Hz} - 10\,\text{Hz}$ 之间），它的序列长度相比 EEG 显著变短，这使得 Transformer 模型不容易发生长序列的梯度消失，且能更精准地捕捉血氧响应（HbO/HbR）在数秒内的上升与回落趋势。
+
+    以下是目前将注意力机制/Transformer 应用于 fNIRS 多通道分类的四大核心方法，以及相关的代表性论文推荐与分析：
+
+    一、 核心应用方法分类
+
+    1. 空间注意力机制（Spatial-level Attention）
+
+        * **原理：** 多通道 fNIRS 布置在不同的大脑皮层（如前额叶 PFC、运动皮层 MC）。该方法计算**通道与通道之间的互注意力（Channel-wise Attention）**，动态学习在特定动作（如左手握拳）时，哪些通道之间的协同激活最高。这在数学上类似于提取动态功能连接（Dynamic Functional Connectivity）。
+
+    2. 时间长程注意力机制（Temporal-level Transformer）
+
+        * **原理：** 传统的 LSTM 对数秒后的血氧信号存在记忆衰减。Transformer 的自注意力机制（Self-Attention）可以无视时间距离，直接关联动作刚开始（Baseline）和血氧达到峰值（Peak，通常在 5–8 秒后）的时序点，从而提取出更完整的血氧动力学特征。
+
+    3. CNN-Transformer 混合架构（Hybrid Spatial-Temporal）
+
+        * **原理：** 这是目前**最主流且效果最好**的框架。由于 fNIRS 局部通道之间存在物理上的空间相近性，先使用一维/二维 CNN 提取局部的时空特征（提取局部特征），然后将特征图送入 Transformer Encoder（建立全局时序长程依赖关系），实现“强强联合”。
+
+    二、 推荐论文与简要介绍
+
+    以下精选了近几年在该领域具有代表性的、专门针对 fNIRS 的 Transformer 论文：
+
+    * 论文 1：基础奠基作 —— 纯粹的 fNIRS Transformer 架构
+
+        * **题目：** *Transformer Model for Functional Near-Infrared Spectroscopy Classification* (后开源为著名项目 **fNIRS-T**)
+        * **来源/年份：** IEEE Transactions (2022-2023 期间提出并持续更新)
+        * **简要介绍：** 该论文是**最早专门针对纯 fNIRS 数据定制 Transformer** 的尝试之一。作者团队提出了 **fNIRS-T** 模型。
+        * **核心做法：** 针对 fNIRS 多通道的时序特点，设计了一个端到端的网络。它引入了一个简易的预处理模块（平均池化 + 层归一化），直接取代了传统繁琐的带通滤波和基线校正。然后利用 Transformer 机制同时探索了 **Spatial-level（空间级）** 和 **Channel-level（通道级）** 的特征表示。
+        * **亮点：** 该项目在 GitHub 上开源了 PyTorch 代码（搜索 `wzhlearning/fNIRS-Transformer`），非常适合作为你研究的 **Baseline（基准模型）**。
+
+    * 论文 2：最新前沿 —— 混合时空 CNN + Transformer 架构
+
+        * **题目：** *fNIRS-STCT: A Novel Hybrid Spatial and Temporal CNN and Transformer Network for fNIRS Signal Classification*
+        * **来源/年份：** *PubMed / IEEE* (2026年最新发表)
+        * **简要介绍：** 传统的 Transformer 往往直接破坏了多通道 fNIRS 在头皮上的“物理邻近性（Local Spatial structure）”。这篇最新论文提出了 **fNIRS-STCT**。
+        * **核心做法：** 采用混合架构。第一阶段利用 **Spatial CNN** 和 **Temporal CNN** 提取每个大脑皮层区域（如左右前额叶）内部通道的局部血氧变化特征；第二阶段，将这些局部特征序列喂入 **Transformer Block**，让自注意力机制去捕捉动作全周期（如 10 秒窗口）内的全局宏观演变趋势。
+        * **亮点：** 解决了“纯 Transformer 在小样本 fNIRS 上容易过拟合”的问题，分类准确率比纯 CNN 或纯 RNN 有了大幅提升。
+
+    * 论文 3：综述指引 —— 了解全景必读
+
+        * **题目：** *Advancing Functional Near-Infrared Spectroscopy (fNIRS) With Transformers: A PRISMA-Driven Systematic Review*
+        * **来源/年份：** *IEEE Access* (2025年发表)
+        * **简要介绍：** 这是一篇针对 Transformer 在 fNIRS 领域应用的**系统性文献综述（Systematic Review）**。
+        * **核心内容：** 团队系统性筛选分析了数十项将 Transformer 用于 fNIRS 信号处理、脑机接口（BCI）、情绪识别和认知负荷评估的研究。报告详细拆解了目前前沿论文在 **Embedding（特征嵌入层）优化**、**Attention 机制改进**上做出的各种微调。
+        * **亮点：** 极力推荐先读这篇，你可以顺着它附录里的表格，直接找到和你当前所做动作分类（如运动想象、语言任务）最匹配的特定网络变体。
+
+    三、 给你的工程落地建议
+
+    如果你准备开始写代码，建议采取以下策略：
+
+    1. **数据的 Token 化（Embedding）：** fNIRS 数据维度通常是 `[Batch, Channels, Time_Points]`（可能还区分 HbO 和 HbR）。在输入 Transformer 之前，建议像视觉 Transformer（ViT）那样，将时序切成小 patch，或者使用一个简单的 `Conv1d(kernel_size=3)` 把时间轴映射到高维向量空间（Embedding Space），这样能显著提升模型的收敛速度。
+    2. **推荐先从 CNN-Transformer 杂交模型入手：** 由于 fNIRS 公开数据集的样本量通常只有几十个被试，**纯 Transformer 非常吃数据量，直接用极易过拟合**。先用轻量级 CNN 降维，再接入 1-2 层的 Transformer Encoder，通常是性价比最高的方案。
+
+* 给我想几个创新点吧，结合最近这一两年的大模型、transformer 之类的
+
+    结合 2025–2026 年人工智能领域的最新技术趋势（如**多模态大模型（VLM/LLM）的神经对齐、自监督时间序列大模型（Time-Series Foundation Models）、以及掩码自编码器（MAE）**），要在 fNIRS 多通道动作/事件分类上做出让人眼前一亮的创新，可以从以下四个前沿方向切入。
+
+    这些创新点不仅理论“故事”讲得通，而且具备很高的实验可行性。
+
+    * 创新点一：基于“时间序列大模型（TS Foundation Models）”的 fNIRS 零样本/少样本微调
+
+        * **背景痛点：** fNIRS 数据集规模普遍极小（通常只有几十个被试），直接从头训练一个 Transformer 极易过拟合，且泛化性能差。
+
+        * **创新思路：** 借力近年来爆火的**通用时间序列大模型**（如 2024-2025 年开源的 **TimeGPT, MOMENT, Chronos, 或 PatchTST**）。这些模型在数以亿计的其他领域时序数据（气象、金融、交通等）上进行了预训练，具备极强的通用时序模式捕捉能力。
+
+        * **具体做法：**
+
+        1. 将多通道 fNIRS 数据（HbO/HbR）进行通道独立化（Channel-Independent）处理。
+
+        2. 利用 **Frozen（冻结）大模型主干 + 轻量级 LoRA（低秩适应）** 的方式，将预训练时序大模型作为特征提取器。
+
+        3. 在尾端加入一个专用于 fNIRS 动作分类的头部（Classification Head）。
+
+        * **论文故事/卖点：** “首个将通用时序大模型知识迁移至精神生理学血氧信号的研究”，能够实现**在极少样本（Few-Shot）甚至跨被试（Cross-Subject）场景下的高鲁棒性分类**。
+
+    * 创新点二：fNIRS 掩码自编码器（fNIRS-MAE）与时空自监督预训练
+
+        * **背景痛点：** 传统的 Transformer 依赖大量带标签的数据（Supervised Learning）。
+        * **创新思路：** 借鉴 Vision Transformer 中的 **MAE (Masked Autoencoders)** 思想。fNIRS 信号在空间（通道邻近）和时间（血氧曲线连续性）上都有极高的冗余性，非常适合做掩码重建。
+
+        * **具体做法：**
+
+        1. **时空掩码（Spatio-Temporal Masking）：** 随机将 fNIRS 矩阵中某些通道、某些时间段的数据擦除（比如擦除 50% 的血氧数据）。
+
+        2. **重建任务（Pre-training）：** 训练一个轻量级的 Transformer Encoder-Decoder，只让它根据没被擦除的数据，去“预言/重建”被擦除的血氧信号。
+
+        3. **下游微调（Fine-tuning）：** 预训练完成后，丢弃 Decoder，用 Encoder 的权重去接分类器，进行动作事件分类。
+
+        * **论文故事/卖点：** 摆脱对“人工打标签”的依赖。利用无标签的无休止 fNIRS 靜息态（Resting-state）数据进行大范围预训练，然后无缝迁移到复杂的动作分类任务中。
+
+    * 创新点三：大脑血氧-文本跨模态对齐（Brain-Text Alignment）与零样本事件分类
+
+        * **背景痛点：** 传统的分类器（如 Softmax 映射到 0, 1, 2）无法理解动作背后的**语义逻辑**（例如：不知道“左手握拳”和“右手握拳”都属于运动想象，而“心算”属于认知任务）。
+        * **创新思路：** 借鉴 **CLIP（对比语言-图像预训练）** 的思想，建立 **fNIRS-to-Text 跨模态对齐**。
+        * **具体做法：**
+        1. 利用 Transformer 提取 fNIRS 多通道的时空表征向量。
+        2. 利用大语言模型（如 Llama 3 或 GPT-4）提取动作标签的文本语义向量（例如输入：“被试正在进行高强度的左手抓握运动想象” $\rightarrow$ 提取 Text Embedding）。
+        3. 使用**对比学习（Contrastive Learning, InfoNCE Loss）**，在共享的潜空间（Latent Space）中，拉近 fNIRS 信号与对应文本描述的距离。
+
+
+        * **论文故事/卖点：** 赋予模型 **Zero-Shot（零样本）分类能力**。训练好后，即使你加入一个新的动作事件（比如“抬脚”），模型不需要重新训练，只需让文本端输入“抬脚”，看哪段 fNIRS 信号与其余弦相似度最高即可。
+
+    * 创新点四：基于“物理/生理先验引导”的图变形器（Physics-Informed Graph Transformer）
+
+        * **背景痛点：** 纯 Transformer 的 Self-Attention 是全连接的，完全忽略了大脑皮层的解剖学物理结构（例如：前额叶 PFC 的通道和枕叶的通道在空间上离得很远，直接计算全局 Attention 会引入大量噪声）。
+        * **创新思路：** 将 **图神经网络（GNN）** 与 **Transformer** 融合，引入大脑源空间的物理拓扑先验，构建 **fNIRS Graph Transformer**。
+        * **具体做法：**
+        1. 根据 fNIRS 光极（Optodes）在头皮上的实际 3D 坐标（如蒙特利尔神经学研究所 MNI 空间坐标），计算通道间的物理距离，生成一个**物理邻接矩阵（Adjacency Matrix）**。
+        2. 将这个矩阵作为 **Attention Bias（注意力偏置）** 注入到 Transformer 的 Self-Attention 计算中：$Attention = \text{Softmax}(\frac{QK^T}{\sqrt{d_k}} + \lambda \cdot \text{Topology\_Bias})$。
+        3. 让模型在计算时间相关性时，天然受到大脑空间物理结构的约束。
+
+        * **论文故事/卖点：** 极具**可解释性（Explainability）**。你可以在论文中可视化出 Attention Matrix，清晰地告诉审稿人：“看，模型重点关注了运动皮层附近的通道拓扑网络，这与神经科学的发现完全吻合。”
+
+    **导师/审稿人最喜欢的组合拳建议**：
+
+    如果你想快速发出论文，**创新点四（图变形器）** 的工作量和立意最稳健，容易画出漂亮的脑区激活图；如果你想追求高影响力、投顶会（如 NeurIPS, EMBC），**创新点一（结合时序大模型 LoRA 微调）** 或 **创新点二（fNIRS-MAE）** 是目前最顶流的研究范式。
+
+    你对上面哪一个大方向比较感兴趣？我们可以进一步细化它的模型架构设计。
+
+* 那如果不一定要上大模型，但是要上 transformer 呢 ？
+
+    如果不打算上参数量惊人的大模型（LLM/Time-Series Foundation Models），而是基于**标准规模的 Transformer 架构（参数量通常在几百万到几千万之间，单张消费级显卡即可轻松训练）**，我们需要将创新点聚焦在“如何针对 fNIRS 数据的独特性，去改良标准的 Transformer 结构”。
+
+    在学术界（如 IEEE, NeuroImage 等期刊），审稿人最喜欢看到你**利用神经科学、生理学先验去约束或改造 Transformer 的注意力机制**。以下为你设计 4 个完全不需要外部大模型、纯靠改良 Transformer 结构的创新点：
+
+    * 创新点一：基于三维空间坐标嵌入的物理图变形器（3D-Spatial Embedding Graph Transformer）
+
+        * **传统做法：** 大多数研究直接把多通道 fNIRS 数据平行输入 Transformer（只做时间上的 Position Embedding），导致模型完全不知道通道在头皮上的物理空间位置（比如左前额叶和右枕叶被模型认为是一样的）。
+        * **改良创新：** 引入 **3D 空间坐标嵌入（3D-Spatial Embedding）** 与 **物理图注意力（Graph Attention）**。
+        * **具体实现：** 1.  获取你所用 fNIRS 设备每个通道的 3D 物理坐标（$(x, y, z)$ 坐标，通常由 MNI 空间或 10-20 系统转换而来）。
+        2.  利用一个简易的 MLP（多层感知机）将这 3D 坐标映射成高维的 **Spatial Embedding**，并直接与时序 Embedding **相加或相乘**。
+        3.  在 Transformer Block 中，将通道间的物理距离作为注意力阻尼（Distance Decay）。距离越远的通道，初始的 Attention 权重被强制衰减，迫使模型优先捕捉**局部脑区的协同血氧演变**。
+        * **故事卖点：** 解决了传统 Transformer 缺乏空间几何感知的问题。展现了结构（大脑皮层物理分布）与功能（血氧时序变化）的有机结合，可解释性极强。
+
+    * 创新点二：HbO 与 HbR 的双支路交叉注意力融合网络（Dual-Stream Cross-Attention Network）
+
+        * **传统做法：** 大多研究直接将氧合血红蛋白（HbO）和脱氧血红蛋白（HbR）简单拼接在一起，或者只用 HbO。这忽略了两者生理上的反向相干性（通常激活时 HbO 上升，HbR 下降）。
+        * **改良创新：** 搭建**双支路 Transformer**，利用 **Cross-Attention（交叉注意力）** 让 HbO 和 HbR 进行跨模态信息交互。
+        * **具体实现：**
+        1. 网络分为两条平行支路：支路 A 纯处理 HbO 数据，支路 B 纯处理 HbR 数据。各自经过一个标准的 Transformer Encoder 提取时序特征。
+        2. 核心创新在融合层：引入 **Cross-Attention Block**。将 HbO 的特征作为 Query ($Q$)，去和 HbR 的 Key ($K$)、Value ($V$) 计算注意力；反之亦然。
+        3. 通过这种方式，模型能够自动学习“在动作发生时，HbO 的峰值和 HbR 的谷值在时间轴上是如何动态配对的”。
+
+
+        * **故事卖点：** 充分利用了 fNIRS 信号特有的双生理指标特性。比盲目拼接（Concatenation）具有更高级的神经学解释度。
+
+    * 创新点三：面向血氧延迟的“多尺度多时滞”注意力机制（Multi-Scale Temporal Lag Attention）
+
+        * **传统做法：** fNIRS 存在严重的血氧延迟（Hemodynamic Response Delay，从动作触发到血氧达峰需要 5-8 秒）。标准的 Transformer 注意力窗口是固定的，很难同时兼顾“动作刚触发时的瞬时突变”和“数秒后的缓慢血氧洪峰”。
+        * **改良创新：** 改造 Self-Attention 层，引入**多尺度时间窗（Multi-scale Window）**与**时滞感知（Time-lag Aware）**。
+        * **具体实现：**
+        1. 在计算时序注意力时，设计多个并行的注意力头（Attention Heads），但给不同的头赋予不同的**时间跨度（Dilation Rates）**。
+        2. **短跨度头（Short-range Heads）：** 关注相邻几秒内的局部血氧斜率波动。
+        3. **长跨度头（Long-range/Lagged Heads）：** 强行计算当前时刻与 $5-8\,\text{s}$ 前时刻之间的关联度，专门用来捕捉血氧延迟响应。
+
+
+        * **故事卖点：** 专门为血氧动力学（Hemodynamic）量身定制的 Transformer。打破了从计算机视觉/自然语言处理直接照搬 Transformer 的僵局。
+
+    * 创新点四：轻量级 fNIRS 掩码自编码器（fNIRS-MAE，纯本地训练）
+
+        * **传统做法：** 收集的大量 fNIRS 数据中，有标签的动作数据很少，但被试在实验间隙、静息态下的无标签数据很多，这些数据往往被浪费了。
+        * **改良创新：** 虽然不上大模型，但可以借用 **MAE（Masked Autoencoder）自监督预训练** 的思想，用你自己的小数据集进行“两阶段”训练。
+        * **具体实现：**
+        1. **第一阶段（自监督预训练）：** 把你收集到的所有 fNIRS 原始时序数据拿出来（不需要知道当时被试在做什么动作）。随机擦除（Mask）掉 30% 的时序片段。训练一个 3 层的轻量级 Transformer Encoder，让它去预测被擦除的部分是什么。
+        2. **第二阶段（下游分类微调）：** 预训练结束后，锁定制好权重的 Encoder，在后面接一个简单的分类头，用带有“动作标签”的数据去微调分类。
+
+        * **故事卖点：** 提出了一种“小样本场景下的 fNIRS 数据高效自监督利用方案”。证明了即使在小规模数据集上，通过合理的掩码机制，Transformer 也能不依赖大模型实现超强的泛化能力。
+
+    **工程实现难度与推荐排布：**
+
+    | 创新点 | 代码实现难度 | 论文审稿人青睐度 | 推荐指数 |
+    | --- | --- | --- | --- |
+    | **1. 3D空间图变形器** | ★★☆☆☆ (仅需引入坐标坐标矩阵) | ★★★★★ (可解释性极高) | 🏆 **首推** |
+    | **2. HbO/HbR 交叉注意力** | ★★★☆☆ (需修改传统模型的输入与交互) | ★★★★☆ (生理故事讲得好) | ★★★★☆ |
+    | **3. 多时滞注意力机制** | ★★★★☆ (需要重写底层 Attention 计算) | ★★★★☆ (切中 fNIRS 核心痛点) | ★★★★☆ |
+    | **4. 本地轻量级 MAE** | ★★★☆☆ (训练分两步，稍繁琐) | ★★★★☆ (研究范式前沿) | ★★★★☆ |
+
+    对于硕士论文或高水平期刊，**创新点一（空间几何嵌入）** 和 **创新点二（双指标交叉注意力）** 是性价比最高的选择，既有工作量，代码实现又不会特别痛苦。
 * 对于 fnirs 时间序列数据，有哪些常用的分类方法
 
     对于功能性近红外光谱（fNIRS）时间序列数据，分类任务的核心在于**如何从随时间变化的血氧信号（通常是氧合血红蛋白 $\Delta HbO_2$ 和脱氧血红蛋白 $\Delta HbR$）中提取有价值的特征，并选择合适的分类器进行识别。**

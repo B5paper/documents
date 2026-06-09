@@ -2,6 +2,88 @@
 
 ## cache
 
+* 我想让 vim 在进入 insert 模式后，5 秒内如果没有键盘的输入，则自动切换到 normal 模式，怎么办
+
+    在 Vim 中实现“Insert 模式下 5 秒内无输入自动退回 Normal 模式”的功能，可以通过结合使用 `CursorHoldI` 自动命令（autocmd）和 `updatetime` 参数来实现。
+
+    你可以将以下配置直接复制到你的 `~/.vimrc`（或 Neovim 的 `init.vim`）中：
+
+    ```vim
+    " 设置等待时间为 5000 毫秒（5秒）
+    set updatetime=5000
+
+    " 当在 Insert 模式下触发 CursorHoldI 事件时，执行 stopinsert 退出到 Normal 模式
+    augroup AutoBackToNormal
+        autocmd!
+        autocmd CursorHoldI * stopinsert
+    augroup END
+
+    ```
+
+    💡 核心原理解析与注意事项
+
+    有几个在使用这个功能前需要了解的细节（避免你后续用起来觉得体验奇怪）：
+
+    1. **什么是 `updatetime`？**
+
+        Vim 没有一个专门只针对“输入超时”的独立定时器。它是通过 `updatetime` 这个全局参数来控制的。当你停止输入达到 `updatetime` 设定的时间后，Vim 会触发 `CursorHold`（Normal模式下）或 `CursorHoldI`（Insert模式下）事件。
+
+    2. **潜在的副作用：**
+
+        * **全局影响**：`updatetime` 的默认值是 4000 毫秒（4秒）。很多 Vim 插件（比如代码补全插件、语法检查插件、Git 符号显示插件）都依赖这个参数来决定什么时候刷新界面。如果你把它改成 5000 毫秒，这些插件的响应可能会**变慢一点**（如果你之前有插件把它改成了 100 毫秒，现在改成 5000 毫秒，感官会很明显）。
+
+        * **交换文件（Swap file）**：Vim 也会在 `updatetime` 到期时将缓冲区写入交换文件。
+
+
+    3. **如果只想在特定文件类型生效：**
+
+        如果你不想让这个功能全局生效，只想在写普通文本（比如 Markdown）时启用，可以这样写：
+
+        ```vim
+        autocmd FileType markdown autocmd CursorHoldI <buffer> stopinsert
+        ```
+
+* 我将按下 i 后，按 alt + tab 将 vim 切换到后台，然后再 alt + tab 把 vim 切换到前台，此时不触发这个 autocmd 了，如何解决
+
+    这是因为 Vim 的 `CursorHoldI` 事件有一个触发前提：**用户必须在 Vim 内部有过至少一次按键移动或输入**，然后停止输入，定时器才会开始倒计时。
+
+    当你按下 `i` 进入 Insert 模式，接着立刻按 `Alt + Tab` 切走再切回来，对 Vim 来说，你在 Insert 模式下**从未在 Vim 窗口内产生过有效输入**，因此它的内部定时器根本没有被激活。
+
+    要解决这个问题，我们需要让 Vim 在“**重新获得焦点**”（FocusGained）或者“**进入窗口**”（WinEnter）时，强制重新计算时间或触发状态检查。
+
+    请将之前的配置替换为以下**升级版配置**：
+
+    ```vim
+    " 设置等待时间为 5000 毫秒（5秒）
+    set updatetime=5000
+
+    augroup AutoBackToNormal
+        autocmd!
+        " 1. 正常的输入停顿 5 秒自动退出
+        autocmd CursorHoldI * stopinsert
+
+        " 2. 当 Vim 重新获得焦点时，如果处于 Insert 模式，重新触发一次检测
+        "    通过 feedkeys 模拟一个安全的无感操作（比如向右移动再向左移动光标 \<Left>\<Right>）
+        "    来强行激活 Vim 的 CursorHoldI 定时器
+        autocmd FocusGained * if mode() =~# '[iR]' | call feedkeys("\<Left>\<Right>", 'n') | endif
+    augroup END
+    ```
+
+    🔍 为什么这样能解决？
+
+    * `FocusGained` 是 Vim 的一个内置事件，当你的窗口从后台（比如 `Alt + Tab` 回来）切回前台时会触发。
+    * `mode() =~# '[iR]'` 用于判断当前是否处于 Insert 模式或 Replace 模式。
+    * `call feedkeys("\<Left>\<Right>", 'n')` 是核心魔法。由于 Vim 必须“动一下”才会开始计算 `updatetime`，我们通过代码模拟用户按了一次左方向键和右方向键。因为位置没变，对你没有任何视觉影响，但它成功**欺骗并激活了 Vim 的倒计时机制**。
+
+    > ⚠️ **注意**：
+    > `FocusGained` 事件在**图形界面（GUI）的 Vim**（如 GVim, MacVim）中百分之百完美生效。
+    > 如果你使用的是**终端（Terminal）里的 Vim**，终端可能默认不会把焦点事件传递给 Vim。如果你发现切回来还是没生效，请确保你的终端开启了 Focus Reporting。
+    > * **Neovim 用户**：默认已原生支持终端焦点。
+    > * **原版 Vim 用户**：如果是在 tmux 或普通终端里，可能需要安装插件 `tmux-plugins/vim-tmux-focus-events` 或 `chriskempson/vim-alternate-toggles` 才能让终端支持 `FocusGained`。
+    > 
+    > 
+
+    你可以在你的环境中试一下这个新配置，看看 `Alt + Tab` 切回来后停顿 5 秒是否能正常退回 Normal 模式？
 * 详细讲讲 vim 中 Ctrl + n 和 ctrl + p 的功能
 
     在 Vim 中，`Ctrl + n` 和 `Ctrl + p` 是一对极其强大的组合键。它们最核心的功能是**关键词自动补全（Keyword Completion）**，但根据你当前所处的**模式**，它们的作用会有所不同。
@@ -1151,6 +1233,8 @@
 
     如果你听别人说“Vim 的 `g` 命令强到逆天”，他们九成指的是这个。它的核心逻辑是：**在全文件中，找出所有匹配特定模式（正则表达式）的行，并对这些行执行指定的命令。**
 
+    `g`是`global`命令的缩写。
+
     1. 基本语法结构
 
         ```vim
@@ -1198,6 +1282,16 @@
             " 附加复制（注意 A 是大写，表示追加）
             :g/pattern/y A
             ```
+
+        注：
+
+        1. 还能有这种写法
+
+            `:%g/^/norm! jdd`
+
+            和这种写法：
+
+            `:'<,'>g/./normal! [你的命令]`
 
     3. 孪生兄弟：`:v` 或 `:g!`（反向匹配）
 
@@ -2011,6 +2105,7 @@
     " 现代推荐写法 2：在写函数时避免硬编码，用命令代替
     execute "normal! \<Esc>"
     ```
+
 * vim 中宏的特殊字符的含义
 
     ```vim
@@ -2362,9 +2457,11 @@
         A. `normal!` 后面不能直接跟命令行模式命令
 
         `normal!` 的作用是模拟你在键盘上按下按键。`:s/...` 是一个命令行模式（Command-line mode）命令。
+
         如果你想在 `normal!` 里执行冒号命令，你必须显式地写入回车键（`<CR>`），否则 Vim 只是在底行输入了字符而没有回车。
 
         * **错误逻辑：** `normal! :s/...` (Vim 会在底行输入文字然后停在那里)
+
         * **修正逻辑：** `normal! :s/...^M` (其中 `^M` 是回车)
 
         B. 变量 `lnum` 的连接方式

@@ -36,6 +36,12 @@
 
 ## cache
 
+* [asso] Mercurial 或者更现代的 Jujutsu
+
+* [asso] 调研 vim multiple line 插件
+
+    [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
+
 * [new] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
 
 * [ ] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
