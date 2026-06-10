@@ -2,6 +2,78 @@
 
 ## cache
 
+* 简述 matplotlib 画 surface，要求能正确显示汉字
+
+    步骤概览（简短）
+
+    1. 使用 `mpl_toolkits.mplot3d` 创建 3D 轴，调用 `plot_surface` 绘制曲面。
+    2. 为了正确显示汉字，设置字体（常用 `SimHei`/`Noto Sans CJK` 等）或加载指定 `.ttf`，并把它用于标题/坐标轴文字。
+    3. 关闭负号的 unicode 问题：`rcParams['axes.unicode_minus'] = False`。
+    4. 在 `set_xlabel`/`set_ylabel`/`set_zlabel` 和 `set_title` 中传入 `fontproperties`（或通过 `rcParams` 全局设置）。
+
+    下面给出一个自包含、常用且稳健的示例代码（复制运行即可）：
+
+    ```python
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D            # noqa: F401 (导入以启用 3D)
+    from matplotlib import font_manager, rcParams
+    from matplotlib.font_manager import FontProperties
+
+    # 1) 配置字体（优先尝试系统已安装的 SimHei，否则可指定字体文件路径）
+    def get_chinese_font():
+        # 常见名称尝试
+        candidates = ["SimHei", "Noto Sans CJK SC", "AR PL UKai CN", "WenQuanYi Zen Hei"]
+        for name in candidates:
+            if name in [f.name for f in font_manager.fontManager.ttflist]:
+                return FontProperties(fname=font_manager.findfont(name), size=12)
+        # 若上面没找到，也可以手动填入本地 ttf 路径，如：
+        # return FontProperties(fname="/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", size=12)
+        return None
+
+    ch_font = get_chinese_font()
+    if ch_font:
+        # 全局设置（可选）
+        rcParams['font.sans-serif'] = [ch_font.get_name()]
+    else:
+        print("未找到常见中文字体，中文可能无法正常显示。请安装 SimHei 或指定 ttf 路径。")
+
+    # 让负号正常显示
+    rcParams['axes.unicode_minus'] = False
+
+    # 2) 生成数据并画图
+    X = np.linspace(-3, 3, 80)
+    Y = np.linspace(-3, 3, 80)
+    X, Y = np.meshgrid(X, Y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, linewidth=0, antialiased=True)
+
+    # 3) 设置中文标签（如果 ch_font 为 None，可省略 fontproperties 参数）
+    if ch_font:
+        ax.set_title("三维曲面示例", fontproperties=ch_font, fontsize=14)
+        ax.set_xlabel("X 轴", fontproperties=ch_font)
+        ax.set_ylabel("Y 轴", fontproperties=ch_font)
+        ax.set_zlabel("Z 值", fontproperties=ch_font)
+    else:
+        ax.set_title("三维曲面示例")
+        ax.set_xlabel("X 轴")
+        ax.set_ylabel("Y 轴")
+        ax.set_zlabel("Z 值")
+
+    fig.colorbar(surf, shrink=0.5, aspect=10, pad=0.1)
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    补充提示
+
+    * 在 Windows 通常系统自带 `SimHei` 可直接使用；在 Linux 系统可安装 `fonts-noto-cjk` 或 `fonts-noto-cjk-extra`/`fonts-wqy-zenhei`；macOS 可以使用系统的 `Songti` 或 `Heiti`。
+    * 如果想统一全局字体并避免在每个 `set_*` 中传 `fontproperties`，可以直接设置 `rcParams['font.sans-serif'] = ['SimHei']`（前提是字体存在）。
+    * 如果你在 Jupyter Notebook/Qt 后端里看不到中文，检查 matplotlib 的后端以及 notebook 的前端是否能访问到所设置的字体文件。
 * matplotlib 的 ax，如果没有要 plot 的内容，或者没有 imshow() 的内容，如何关闭坐标轴
 
     在 **matplotlib** 中，如果一个 `Axes` 没有任何内容（比如没有 `plot()`、`imshow()` 等），你仍然可以**手动关闭坐标轴显示**，主要有几种方法：

@@ -4,6 +4,180 @@
 
 ## cache
 
+* ubuntu gnome 里 ctrl + alt + left/right 可以切换桌面，但是并没有年到 setting 里有设置的地方， 为什么
+
+    这是因为：
+
+    1. **历史原因**
+
+        * GNOME 很多快捷键是从 *gnome-shell* 的内置 keybinding schema 里读取的。
+
+        * “切换工作区”的快捷键在 `org.gnome.desktop.wm.keybindings` 这个 dconf schema 里，不在 Settings 应用直接管理的那部分。
+
+    2. **如何查看 / 修改**
+
+        你可以用 `gsettings` 或 `dconf-editor` 来查看：
+
+        ```bash
+        gsettings get org.gnome.desktop.wm.keybindings switch-to-workspace-left
+        gsettings get org.gnome.desktop.wm.keybindings switch-to-workspace-right
+        ```
+
+        默认会输出：
+
+        ```
+        ['<Control><Alt>Left']
+        ['<Control><Alt>Right']
+        ```
+
+        修改方式：
+
+        ```bash
+        gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left "['<Super><Alt>Left']"
+        gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-right "['<Super><Alt>Right']"
+        ```
+
+        这样就能改绑定。
+
+    3. **为什么在 Settings 里看不到**
+
+        GNOME 的 *Settings → Keyboard* 界面只展示了部分用户级别的常用 keybindings（比如 screenshot, launchers），
+        而窗口管理器（Mutter/gnome-shell）的 workspace 切换快捷键是另一套 schema，所以 UI 没有合并展示。
+
+* gnome 桌面被 lock 后，远程 rdp client 就无法连接，怎么办
+
+    你这个情况是 **GNOME 桌面锁屏后，远程 RDP 就断开/无法连接**。这其实是 GNOME + systemd + gdm 的机制导致的：当会话被锁定，桌面 session 会进入受限状态，外部 RDP 客户端就拿不到图形帧。
+
+    解决方案 ： 如果是 wayland，那么需要禁用 GNOME 锁屏
+* 安装 xpra 或 VNC 等替代品
+
+    Wayland 下 X11 forwarding 难搞，但：
+
+    * **xpra**（推荐）
+    * **NoVNC / TigerVNC**
+    * **Waypipe**（Wayland 的 SSH forwarding 专用）
+
+    都可以替代 SSH -X。
+
+* 简述一下 waypipe
+
+    **Waypipe 是什么？**
+
+    Waypipe = **Wayland 版本的 SSH X11 Forwarding**
+
+    * 作用类似 `ssh -X`
+    * 但转发的不是 X11，而是 **Wayland 协议 + DMA-BUF（显存 buffer）**
+    * 可以 **在远程服务器上运行 GUI 程序，并显示在本地的 Wayland 桌面**
+
+    简单理解：
+
+    > *X11 forwarding 的 Wayland 替代品。*
+
+    ---
+
+    **安装方式（Ubuntu/Debian）**
+
+    **服务器 + 本地都需要安装：**
+
+    ```
+    sudo apt install waypipe
+    ```
+
+    **最常用用法**
+
+    **正常转发（类似 ssh -X）**
+
+    ```
+    waypipe ssh user@remote gedit
+    ```
+
+    或登录后再跑：
+
+    ```
+    waypipe ssh user@remote
+    #（进入 shell 后）
+    gedit
+    ```
+
+    **实际做了什么？**
+
+    * 它在本地启动一个 **Wayland 代理客户端**
+    * SSH 加密传输远程的 Wayland 请求（类似 X11 forwarding）
+    * 远程应用渲染输出通过 DMA-BUF 或像素复制传回来
+
+    ---
+
+    性能特点
+
+    | 模式                | 性能                                       |
+    | ----------------- | ---------------------------------------- |
+    | **DMA-BUF 零拷贝**   | 远端 GPU → 本地 GPU，无需 CPU copy，非常快（但需要显卡支持） |
+    | **像素流（fallback）** | 性能和 x11 forwarding 类似，较慢                 |
+
+    Waypipe 会自动协商。
+
+    最重要的两个选项（强烈推荐使用）
+
+    1. 开启压缩（zstd）
+
+        ```
+        waypipe --compress=lz4 ssh user@remote app
+        ```
+
+    2. 开启零拷贝 DMA-BUF（默认自动）
+
+        显卡支持的情况下，它自动启用，因此无需手动设置。
+
+    如果你想“开一个完整桌面应用”
+
+    比如想在远程打开 VS Code GUI：
+
+    ```
+    waypipe ssh user@remote code
+    ```
+
+    只要远程是 Wayland 环境即可（GNOME/KDE/Hyprland 都行）。
+
+    ---
+
+    注意点（非常重要）
+
+    1. **服务器和客户端必须都支持 Wayland（至少客户端要 Wayland）**
+    2. **不能转发 X11-only 程序**
+       如果你运行 `xeyes` 这类纯 X11 应用 → 失败
+       （可以试试 `WAYLAND_DISPLAY=""` 强制 XWayland，但意义不大）
+    3. 性能好坏取决于：
+
+       * 带宽
+       * GPU DMA-BUF 支持
+       * 应用是否本身 Wayland 原生
+
+    如何确认 Wayland 代理成功？
+
+    远程运行的应用里：
+
+    ```
+    echo $WAYLAND_DISPLAY
+    ```
+
+    应该输出：
+
+    ```
+    waypipe-wl
+    ```
+
+    表示正在被 waypipe 捕获。
+
+    Waypipe vs SSH -X（对比表）
+
+    | 项目             | SSH -X | Waypipe |
+    | -------------- | ------ | ------- |
+    | 协议             | X11    | Wayland |
+    | 性能             | 很差     | 快很多     |
+    | 支持 Wayland 应用  | ❌      | ✔       |
+    | 是否依赖 X server  | ✔      | ❌       |
+    | 适合现代桌面         | ❌      | ✔       |
+    | 支持 GPU DMA-BUF | ❌      | ✔       |
 * gnome 的 remote desktop 如何通过命令行重启？
 
     在 GNOME（特别是 GNOME 42+ 或 Ubuntu 22.04+ 等使用 GNOME Remote Desktop 的系统）中，远程桌面服务是由 **`gnome-remote-desktop`** systemd 服务提供的。

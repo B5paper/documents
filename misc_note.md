@@ -2,6 +2,128 @@
 
 ## cache
 
+* 如何驱赶进入室内的一两只马蜂
+
+    1. 开窗通风自然放走（最稳妥）
+
+        关好其余房门，**只打开一扇落地窗/大窗户**，拉上室内窗帘、关掉屋内灯光，马蜂趋光，十几分钟会顺着亮光自行飞出，全程不用靠近。
+
+    2. 矿泉水瓶诱捕放生
+
+        1. 瓶底放少量糖水/果汁，瓶口敞开；
+        2. 放角落静置，马蜂寻甜钻进后拧紧瓶盖，拿到室外放生。
+
+    3. 纸板+玻璃杯徒手移出
+
+        玻璃杯倒扣罩住马蜂，硬纸板从杯底滑入封口，拎到窗外掀开放走，动作慢一点即可。
+
+    **千万别做**
+
+    1. **不要喷蚊香、杀虫剂**：受惊乱撞疯狂蛰人；
+    2. 不要挥毛巾乱拍，极易激怒马蜂。
+
+* 蚊香对马蜂有效吗
+
+    蚊香对马蜂效果很差，不推荐用来驱杀马蜂
+
+    1. 原理区别
+
+        蚊香有效成分多是**拟除虫菊酯低浓度**，针对蚊子、小飞虫这类小型软体飞虫；
+        马蜂体型大、外壳几丁质厚实、呼吸系统耐受强，**少量蚊香烟雾很难毒杀**：
+        - 近距离密闭小空间：烟雾刺鼻会让马蜂受惊乱飞、暴躁蜇人，很难毒死；
+        - 室外/通风环境：烟雾快速飘散，基本没用。
+
+    2. 风险重点
+
+        马蜂遇刺激性烟雾**极易受惊集体攻击**，蚊香熏窝最容易被马蜂群起蛰伤，非常危险。
+
+    3. 正确处理办法
+        
+        1. 室外零星单只马蜂
+
+            关窗，用苍蝇拍、吸尘器捕捉后放生即可。
+
+        2. 屋檐/墙洞有蜂巢（关键）
+
+            1. 白天马蜂外出觅食，**夜间全员回巢**是处理时机；
+            2. 优先网购**马蜂专用杀虫气雾剂（高浓度菊酯）**，远距离喷射巢穴入口；
+            3. 蜂巢大、位置高、胡蜂（大马蜂）窝：直接联系物业、消防上门摘除，不要自行处理。
+
+    **补充：替代驱蚊防马蜂**
+
+    薄荷、风油精气味能短暂驱赶马蜂，但无法灭巢。
+* 有没有什么 rdp 协议的 app 推荐？
+
+    你是说找能用 **RDP（Remote Desktop Protocol）** 协议的 app 吗？我可以根据你主要用在哪个平台／设备（Windows / macOS / iPhone / Android / Linux / iPad 等）来推荐比较合适的。先给你几个比较通用、评价不错的：
+
+    推荐的 RDP 客户端 App
+
+    | 名称                           | 优点                                                          | 支援平台 / 特别功能                                           |
+    | ---------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+    | **Microsoft Remote Desktop** | 官方支持，稳定，兼容性好。可以很方便地连接 Windows 主机／服务器。                       | Windows, macOS, Android, iOS 等 ([Microsoft Learn][1]) |
+    | **FreeRDP**                  | 免费开源，性能好，可调性强。适合喜欢自己配置／调优的用户。                               | 多平台（Windows, Linux, macOS 等）为主 ([Geekflare][2])       |
+    | **Remmina**                  | 界面简洁，支持存储连接配置，多标签页，支持 RDP + 较多其它远程协议。适合在 Linux 或跨平台环境使用。    | Linux 优秀／也有其它系统支持 ([Geekflare][2])                    |
+    | **Royal TS**                 | 对于管理多个远程连接／多个目标机器比较方便，有很多定制化设置。                             | 支持 RDP 之外还有 VNC, SSH 等 ([Geekflare][2])               |
+    | **AnyDesk**                  | 操作简便、延迟低，跨平台支持好，也可做远程支持。虽然严格说它用的不完全是运作在纯 RDP 上，但作为远程桌面用途很好。 | Windows, macOS, Android, iOS 等 ([G2 Learning Hub][3]) |
+
+    ---
+
+    如果你告诉我你常用设备（例如 iPhone／Android／Windows／Linux）或重点考虑的功能（如延迟低、画面流畅、安全强、跨网络／穿透 NAT、防火墙、免费／付费等），我可以帮你选几个最适合你的。要吗？
+
+    [1]: https://learn.microsoft.com/en-us/previous-versions/remote-desktop-client/remote-desktop-android?utm_source=chatgpt.com "Use the Remote Desktop client for Android and ..."
+    [2]: https://geekflare.com/software/remote-desktop-client-software/?utm_source=chatgpt.com "9 Remote Desktop Clients for Windows, macOS, and Linux"
+    [3]: https://learn.g2.com/best-remote-desktop-software?utm_source=chatgpt.com "My Honest Review of 9 Best Remote Desktop Software for ..."
+
+    **推荐的安卓 RDP 客户端／远程桌面 App**
+
+    下面是一些评价不错、功能全面的选项：
+
+    | 应用                               | 优点 / 特色                                                                                         | 注意事项                                   |
+    | -------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------- |
+    | **Microsoft Remote Desktop**     | 官方的 RDP 客户端，对 Windows 支持好；能够配置 Remote Desktop Gateway；显示分辨率、声音重定向等选项也不错。 ([Microsoft Learn][1]) | 要开启电脑的远程桌面功能；如果通过公网／外网连接可能要配置防火墙及端口转发。 |
+    | **aRDP**                         | 开源的 RDP 客户端，功能丰富（支持 SSH 隧道、RDP Gateway、触控／多指手势、声音重定向等） ([Google Play][2])                       | 免费版／付费版本功能会有差异；稳定性也可能因设备／网络有差别。        |
+    | **Splashtop Personal Remote PC** | 画面较流畅，界面友好，也支持文件传输；对延迟敏感度比某些工具要好。 ([Android Authority][3])                                      | 如果要远程访问互联网／任意网络以外的电脑，可能要订阅／付费。         |
+    | **TeamViewer**                   | 熟悉、操作简单；跨网络连接容易；支持文件传输、多人协作／远程支持功能。 ([Android Authority][3])                                    | 免费版有使用限制；如果长期／高频使用，付费版可能性价比更高。         |
+    | **RemotePC Viewer**              | 简单易用，适合日常连接自己电脑／家里电脑。 ([Android Authority][3])                                                  |                                        |
+    | **RealVNC Viewer**               | 如果你电脑上也可以开启 VNC，或者有混合需求（RDP ＋ VNC），这个也不错。 ([Android Authority][3])                              |                                        |
+
+    [1]: https://learn.microsoft.com/en-us/previous-versions/remote-desktop-client/remote-desktop-android?utm_source=chatgpt.com "Use the Remote Desktop client for Android and ..."
+    [2]: https://play.google.com/store/apps/details?hl=en_US&id=com.iiordanov.freeaRDP&utm_source=chatgpt.com "aRDP: Secure RDP Client - Apps on Google Play"
+    [3]: https://www.androidauthority.com/best-remote-desktop-apps-android-933450/?utm_source=chatgpt.com "7 best remote desktop apps for Android"
+
+    推荐（按优先级）
+
+    * **Microsoft Remote Desktop（官方）** — 官方 RDP 客户端，跟 Windows 最兼容、功能完整（NLA、网关、声音/剪贴板重定向等）。适合直接在局域网或通过 RD Gateway/工作帐户连接。([Google Play][1])
+
+    * **aRDP / aRDP Pro（基于 FreeRDP，开源）** — 支持 RDP、可通过 SSH 隧道，适合喜欢可配置、开源方案的用户。对进阶用户友好。([Google Play][2])
+
+    * **Remotix（付费/高性能）** — 支持 RDP、VNC，并有自家低延迟协议（NEAR）、文件传输、RD Gateway 支持。适合对流畅度和多协议支持有要求的用户。([remotix.com][3])
+
+    * **Remote Desktop Manager（Devolutions）移动端** — 如果你需要管理很多主机、集中保存凭据和多协议支持，这个更适合运维/管理场景。([Google Play][4])
+
+    * **Xtralogic Remote Desktop Client** — Android 上较常用的商业 RDP 客户端之一，功能全面且有试用期。适合想要替代方案的用户。([xtralogic.com][5])
+
+    * **Jump Desktop（可选）** — 支持 RDP/VNC/自家协议，用户体验很好；但 Android 商店上可用性有时会变动（上架状态请以官网/Play 商店为准）。([jumpdesktop.com][6])
+
+    我建议你怎么选
+
+    * 只要控制家里/办公室 Windows、想省事：**Microsoft Remote Desktop**。（最省事、兼容最好）([Google Play][1])
+
+    * 想用开源/可隧道（SSH）方案或在 Linux 后端测试：**aRDP / FreeRDP**。([Google Play][2])
+
+    * 需要更好流畅度、文件传输、跨协议：**Remotix** 或 **Jump Desktop**（若 Play 商店可用）。([remotix.com][3])
+
+    * 管理大量主机/凭据：**Remote Desktop Manager**（企业/运维场景）。
+
+    **aRDP挺不错的**
+
+    aRDP 基于 **FreeRDP**，功能很全：RDP 协议、SSH 隧道、RD Gateway 都能用，Android 上挺灵活的。
+
+    小提示：
+
+    * 如果只是 **局域网用**，直接填电脑内网 IP + Windows 账号就行。
+    * 如果要 **公网访问**，建议走 VPN 或 SSH 隧道，不要裸开 3389 端口。
+    * aRDP 支持多手势，你可以切换成“鼠标模式”，操作更像触控板，方便点。
 * 一个人在家很无聊，有哪些活动可以做
 
     **轻松打发时间**

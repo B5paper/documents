@@ -2,6 +2,166 @@
 
 ## cache
 
+* 在远端用 shell wrapper／trap 把子进程绑在父进程上（更可控）——**推荐**（对常见非守护化程序最稳）
+
+    * 思路：启动你的程序为子进程，父 shell `wait` 它，同时设置 `EXIT` trap 在父进程退出时 `kill` 子进程或其进程组。示例一行（把 `your_command` 换成真实命令）：
+
+        ```bash
+        ssh user@host 'bash -lc "trap \"kill 0\" EXIT; your_command & wait"'
+        ```
+
+    * 解释：父 shell 启动 `your_command` 并 `wait`，如果父 shell 因 ssh 断开/被 kill 而退出，`EXIT` trap 会执行 `kill 0`（向同一进程组的所有进程发信号），从而把子进程也清掉。**注意**：如果远端命令自己 double-fork、调用 `setsid` 或显式忽略 SIGTERM/SIGHUP，这个办法就无效。类似做法在社区常见并被讨论过。([Stack Overflow][4])
+
+* 重定向 stdin 的方法（未测试）
+
+    ```bash
+    ssh -f -t user@host 'bash -lc "your_command & child=\$!; cat >/dev/null; kill \$child 2>/dev/null; pkill -P \$child 2>/dev/null; wait \$child"'
+    ```
+
+    解释：
+
+    * `your_command & child=$!`：把你要跑的命令放后台，记下 pid。
+    * `cat >/dev/null`：从远端 stdin（即那个 pty）持续读取，直到 EOF（也就是本地 SSH 连接断开）。
+    * `kill $child` + `pkill -P $child`：在检测到 EOF 后尝试杀掉主进程和它的子进程。
+    * `wait $child`：等清理完再退出 shell（保持 wrapper 生命周期完整）。
+
+    **优点**：简单、常用、在大多数场景（包括 `-f -t`）下可靠。
+    **缺点**：如果远端命令自行做了 `setsid`/double-fork并且完全脱离父子关系，`pkill -P` 可能找不到后代；这时需要更强的杀掉策略（见下面）。
+
+    方法 C（更强）：把任务放到自己的进程组／session，然后按组杀掉
+
+    如果你的命令会 fork 出很多子进程或做 daemonize，想一并杀掉所有进程，可以尝试给它创建一个新的进程组或 session，然后用 `kill -TERM -- -PGID` 去杀整组。示例如下（注意 quoting）：
+
+    ```bash
+    ssh -f -t user@host 'bash -lc "setsid bash -c '\''your_command'\'' & child=\$!; cat >/dev/null; kill -TERM -- -\$child 2>/dev/null; wait \$child"'
+    ```
+
+    说明：
+
+    * `setsid bash -c 'your_command' & child=$!`：让 `your_command` 在新 session 中启动（通常其 PGID == PID），这样 `kill -- -$child` 会把该进程组全部杀掉。
+
+    * caveat：`setsid` 在某些极端情况下会让命令完全脱离（这正是我们想处理的），但需要注意信号传播语义；不同命令对 `TERM`/`HUP` 的处理会不同。
+
+* SSH multiplexing（ControlMaster），它会让多个 ssh 会话复用同一个 master 连接，杀掉一个客户端不一定会关闭底层连接：
+
+   * 在本地 `~/.ssh/config` 看 `ControlMaster`/`ControlPath`，或试 `ssh -o ControlMaster=no ...` 强制不复用。
+
+* 在远端查 surviving 进程的父子/pgid 信息，看看它是为什么还存活：
+
+   ```bash
+   ps -o pid,ppid,pgid,sid,cmd -p <surviving-pid>
+   ls -l /proc/<surviving-pid>/fd | sed -n '1,120p'
+   ```
+
+* 若你不介意多行，可以用 heredoc，引用更直观：
+
+    ```bash
+    ssh user@host 'bash -s' <<'REMOTE'
+    trap 'kill 0' EXIT
+    your_command &
+    wait
+    REMOTE
+    ```
+
+* 方法 2：不用 `-f`，改用 shell 的后台符号 `&`
+
+    让 ssh 保持前台分配 pty，再由本地 shell 把 ssh 放到后台：
+
+    ```bash
+    ssh -tt user@host 'bash -lc "sleep 1000 & child=$!; cat >/dev/null; kill $child; wait $child"' &
+    ```
+
+    效果和 `-f -tt` 类似，但逻辑更直观。
+
+* 方法 3：避免伪终端，改用 stdin EOF 探测
+
+    如果你不需要真正的 pty（只是想让 ssh 退出时杀掉远端进程），那就不用 `-t`，而是在远端脚本里用 `cat` 等待 stdin EOF：
+
+    ```bash
+    ssh -f user@host 'bash -lc "sleep 1000 & child=$!; cat >/dev/null; kill $child; wait $child"'
+    ```
+
+    这里 stdin 是 ssh 的 TCP channel，本地 kill 掉 ssh 后，远端 `cat` 也会得到 EOF，然后执行 kill。
+* 实验验证 ssh 远程执行命令是否会随 ssh 本身的关闭而关闭
+
+    1. 最简单情况
+
+        ```bash
+        ssh user@host "your_command"
+        ```
+
+        example:
+
+        ```bash
+        ssh user@host 'for i in {0..100}; do echo $i >> ssh_test.log; sleep 1; done'
+        ```
+
+        远程机器会执行命令，本地的 ssh 连接会阻塞，等命令执行完后，本地 ssh 会自动退出。
+
+        如果在本地按 ctrl + c 强行结束 ssh 连接，那么远程命令会继续执行，直到自然结束。
+
+    2. kill 本地 ssh 进程时，远程 bash 脚本接收到的是什么信号？`SIGHUP`?
+
+        先是 SIGINT，然后是 EXIT，没有 SIGHUP
+
+        验证: 
+        
+        我们使用 trap 捕捉信号，看看远程 bash 到底接收到的是什么。
+
+        ```bash
+        ssh -t user@host 'trap "echo exit >> ssh_test.log;" EXIT; trap "echo sighup >> ssh_test.log; exit" SIGHUP; trap "echo sigint >> ssh_test.log; exit" SIGINT; echo -n "" > ssh_test.log; for i in {0..5}; do echo $i >> ssh_test.log; sleep 1; done'
+        ```
+
+        `ssh_test.log`:
+
+        ```
+        0
+        1
+        sigint
+        exit
+        ```
+
+        注：
+
+        1. `-t`是必须的，否则就会像步骤 1 中，远程 bash 不会收到 signal，会在执行完后才自动结束。
+
+    3. 如果远程命令里用了 `nohup`、`setsid`、`disown`，daemonize, 它是否会退出。
+
+        * `nohup`
+
+            即使指定了`nohup bash -c 'command'`，如果有`-t`，那么当 ctrl + c 结束本地 ssh 进程时，远程脚本仍然会收到 sigint。
+
+    4. 使用`bash -c 'command'`又有什么不同？
+
+        与直接执行 command 效果相同，无特殊效果。
+
+    5. `-f -t`, `-f -tt` 有什么区别
+
+        * `-t` 的作用
+
+            * `-t` 强制分配伪终端。
+
+            * 有了伪终端，远程的前台进程依赖这个 tty，当 ssh 连接断开/tty 收回时，内核会给前台进程组发 `SIGHUP`，通常就会退出。
+
+            * 所以 **单用 `-t`**，往往能满足“kill ssh → 远程命令退出”。
+
+        * `-f` 的作用
+
+            * `-f` 意味着 ssh 在执行远程命令前就 fork 自己到后台。
+
+            * 它常用于配合 `-N`（不执行命令，仅做端口转发）。
+
+        * `-f -t`
+
+            ```bash
+            ssh -f -t user@host 'trap "echo exit >> ssh_test.log;" EXIT; trap "echo sighup >> ssh_test.log; exit" HUP; trap "echo sigint >> ssh_test.log; exit" SIGINT; echo -n "" > ssh_test.log; for i in {0..100}; do echo $i >> ssh_test.log; sleep 1; done'
+            ```
+
+            此时会提示：
+
+            `Pseudo-terminal will not be allocated because stdin is not a terminal.`
+
+            然后继续执行远程命令。
 * 为什么 ssh 登陆时只能尝试三次输入密码？
 
     因为 **OpenSSH 默认把 “最大密码尝试次数” 限制为 3 次**，这是为了降低暴力破解的风险，同时避免用户在反复输错时占用连接资源。
