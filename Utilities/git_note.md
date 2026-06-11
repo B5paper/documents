@@ -3,12 +3,15 @@
 ## cache
 
 * git clone -b <remote_branch> --single-branch <remote_repo> .
-把远程仓库的 branch clone 到本地时，我希望 local branch 的名字不要和 <remote_branch> 相同，怎么办？
+
+    把远程仓库的 branch clone 到本地时，我希望 local branch 的名字不要和 <remote_branch> 相同，怎么办？
 
     明白了，你想做的是：
 
     * 从远程仓库克隆某个分支 `<remote_branch>`，
+
     * 只克隆这个分支（`--single-branch`），
+
     * **本地分支名不想和远程分支名一样**。
 
     直接 `git clone -b <remote_branch>` 会让本地分支名和远程分支名相同。要改变本地分支名，有两种常用方式：
@@ -1389,7 +1392,7 @@
 
     ---
 
-    ## 结论（一句话版）
+    结论（一句话版）
 
     > **`-b <name>` 在没有 `--single-branch` 时，被当成“分支名”处理；
     > 而 `--no-tags` 又禁止了 tag 的获取，于是 Git 根本“看不到” `v5.0`，就直接报错。**
@@ -1403,17 +1406,17 @@
 
     ---
 
-    ## 我们逐条对你两次命令“对账”
+    我们逐条对你两次命令“对账”
 
     ---
 
-    ## 情况一（失败）
+    **情况一（失败）**
 
     ```bash
     git clone -b v5.0 --no-tags ../repo_server/ .
     ```
 
-    ### Git 在内部做了什么？
+    **Git 在内部做了什么？**
 
     1. **没有 `--single-branch`**
     2. Git 采用 **“传统 clone 语义”**
@@ -1439,8 +1442,9 @@
     --no-tags
     ```
 
-    👉 Git **根本不会 fetch `refs/tags/*`**
-    👉 本地完全“看不到” `v5.0`
+    * Git **根本不会 fetch `refs/tags/*`**
+
+    * 本地完全“看不到” `v5.0`
 
     于是直接报：
 
@@ -1448,19 +1452,20 @@
     fatal: Remote branch v5.0 not found in upstream origin
     ```
 
-    📌 **注意**：
+    **注意**：
+
     这里 Git **甚至还没进入“checkout tag”的逻辑**，
     它在 *解析 -b 参数阶段* 就已经失败了。
 
     ---
 
-    ## 情况二（成功）
+    **情况二（成功）**
 
     ```bash
     git clone -b v5.0 --single-branch --no-tags ../repo_server/ .
     ```
 
-    ### 这里发生了什么本质变化？
+    **这里发生了什么本质变化？**
 
     加了 `--single-branch` 后，Git 切换到**另一条代码路径**：
 
@@ -1487,7 +1492,7 @@
 
     ---
 
-    ## 用一句“非常不 Git 但非常真实”的话总结
+    **用一句“非常不 Git 但非常真实”的话总结**
 
     > **`--no-tags` 禁止“隐式 tag”，
     > 但 `--single-branch -b <tag>` 属于“显式 tag”，
@@ -1495,7 +1500,7 @@
 
     ---
 
-    ## 为什么这会显得这么“垃圾”？
+    **为什么这会显得这么“垃圾”？**
 
     因为你现在看到的是 **三层历史行为叠加**：
 
@@ -1512,11 +1517,11 @@
 
     ---
 
-    ## 给你一个“不会踩雷的原则级总结”
+    **给你一个“不会踩雷的原则级总结”**
 
     如果你要的是：
 
-    ### ✅ **“只要一个 tag，最小 clone”**
+    **“只要一个 tag，最小 clone”**
 
     唯一稳定、不靠隐式规则的写法是：
 
@@ -1530,7 +1535,7 @@
 
     ---
 
-    ## 最后一针（你之前骂 Git，其实骂得很准）
+    最后一针（你之前骂 Git，其实骂得很准）
 
     你现在不是在“学 Git 用法”，
     你是在**阅读 Git 的历史妥协记录**。
@@ -1543,12 +1548,6 @@
     如果你愿意，我们下一步可以干一件很爽的事：
     👉 **给 Git 设计一个“如果从零开始”的 clone / fetch 语义**
     你现在这个理解层级，已经完全够资格干这个了。
-
-
-
-
-
-
 
 * 我在 dev 分支上开发，需要时不时追一下 main 分支上的最新 commit，怎么办
 
@@ -2592,67 +2591,69 @@
 
     你遇到的是 subtree 维护中常见的问题。以下是几种解决方案：
 
-    ## 推荐方案：**Subtree + 维护分支**
+    推荐方案：**Subtree + 维护分支**
 
-    ### 1. **创建并维护一个修复分支**
-    ```bash
-    # 1. 先fork B的仓库（或本地创建修复分支）
-    git remote add b-origin <B的原仓库URL>
-    git fetch b-origin
+    1. **创建并维护一个修复分支**
+        
+        ```bash
+        # 1. 先fork B的仓库（或本地创建修复分支）
+        git remote add b-origin <B的原仓库URL>
+        git fetch b-origin
 
-    # 2. 基于B的最新commit创建修复分支
-    git subtree split --prefix=path/to/B --branch=b-fixed
+        # 2. 基于B的最新commit创建修复分支
+        git subtree split --prefix=path/to/B --branch=b-fixed
 
-    # 3. 在b-fixed分支上修复bug并提交
-    git checkout b-fixed
-    # ... 修复代码 ...
-    git commit -m "fix: bug in B library"
+        # 3. 在b-fixed分支上修复bug并提交
+        git checkout b-fixed
+        # ... 修复代码 ...
+        git commit -m "fix: bug in B library"
 
-    # 4. 将修复合并回主分支
-    git checkout main
-    git subtree pull --prefix=path/to/B b-fixed --squash
+        # 4. 将修复合并回主分支
+        git checkout main
+        git subtree pull --prefix=path/to/B b-fixed --squash
 
-    # 5. 保存修复分支以便后续使用
-    git branch -f b-fixed-base <修复前的commit>
-    ```
+        # 5. 保存修复分支以便后续使用
+        git branch -f b-fixed-base <修复前的commit>
+        ```
 
-    ### 2. **使用补丁文件维护**
-    ```bash
-    # 1. 生成修复补丁
-    cd path/to/B
-    # 修改B的代码
-    git diff > ../b-fix.patch
+    2. **使用补丁文件维护**
 
-    # 2. 更新时应用补丁
-    git subtree pull --prefix=path/to/B <B的URL> <tag> --squash
-    cd path/to/B
-    patch -p1 < ../b-fix.patch
-    git add .
-    git commit -m "apply fixes after update"
-    ```
+        ```bash
+        # 1. 生成修复补丁
+        cd path/to/B
+        # 修改B的代码
+        git diff > ../b-fix.patch
 
-    ## 更优方案：**使用 git-subrepo 替代 subtree**
+        # 2. 更新时应用补丁
+        git subtree pull --prefix=path/to/B <B的URL> <tag> --squash
+        cd path/to/B
+        patch -p1 < ../b-fix.patch
+        git add .
+        git commit -m "apply fixes after update"
+        ```
 
-    考虑使用 `git-subrepo`，它更好地处理这种情况：
-    ```bash
-    # 安装
-    git clone https://github.com/ingydotnet/git-subrepo
+        更优方案：**使用 git-subrepo 替代 subtree**
 
-    # 添加subrepo
-    git subrepo clone <B的URL> path/to/B
+        考虑使用 `git-subrepo`，它更好地处理这种情况：
+        ```bash
+        # 安装
+        git clone https://github.com/ingydotnet/git-subrepo
 
-    # 修复并提交
-    cd path/to/B
-    # ... 修改代码 ...
-    git commit -m "fix bug"
-    git subrepo push
+        # 添加subrepo
+        git subrepo clone <B的URL> path/to/B
 
-    # 更新时
-    git subrepo pull path/to/B
-    # 如果有冲突会提示，你的修复会保留
-    ```
+        # 修复并提交
+        cd path/to/B
+        # ... 修改代码 ...
+        git commit -m "fix bug"
+        git subrepo push
 
-    ## 自动化脚本方案
+        # 更新时
+        git subrepo pull path/to/B
+        # 如果有冲突会提示，你的修复会保留
+        ```
+
+    **自动化脚本方案**
 
     创建更新脚本 `.scripts/update-b.sh`：
     ```bash
@@ -2672,7 +2673,7 @@
     # 如果有多个修复，可以逐个应用
     ```
 
-    ## **推荐工作流程**
+    **推荐工作流程**
 
     1. **首次添加时**：
     ```bash
@@ -2708,7 +2709,7 @@
     git pull origin main  # 直接获取你更新后的版本
     ```
 
-    ## **重要建议**
+    **重要建议**
 
     1. **记录所有修改**：在项目README中记录你对B做的所有修改
     2. **版本锁定**：更新时使用特定tag而非分支，避免意外更改
@@ -4612,6 +4613,8 @@
 
     将外部仓库合并到主项目的子目录中，成为项目的一部分。
 
+    与大家熟知的 git submodule（子模块）不同，git subtree 会把子仓库的所有代码和历史记录（可选）真正地合并进主仓库。这意味着其他人克隆主仓库时，不需要执行任何初始化命令，直接就能看到完整的代码。
+
     usage:
 
     ```bash
@@ -4628,7 +4631,33 @@
     git subtree push --prefix=<目录> <远程名> <分支>
     ```
 
-    特点
+    注：
+
+    1. `git subtree add --prefix=sub_proj https://xxxx main`
+
+        注意，这里的`--prefix`的目录前不能有`./`，`sub_proj`默认就是当对于当前 git proj 的目录。另外，`main`或其他分支名不能省，否则 git 会报错。
+
+    1. git subtree 会把目录变成一项目部分，所以如果要删除 subtree 目录，那么只能`git rm -r <subtree_dir>`，然后`git commit`；或者手动删除后，再`git add .`，`git commit`。
+
+    1. `--squash` 参数（强烈推荐）： 如果不加这个参数，子仓库几百个 commit 历史会全部塞进你的主仓库，让 commit tree 变得非常混乱。加上 --squash 后，Git 会把子仓库的所有历史记录压缩成一个 commit 再合并进来。
+
+    1. 注意：如果添加时用了 --squash，更新时也必须带上 --squash。
+
+    1. git subtree 最强大的地方在于：你可以在主项目中直接修改子目录里的代码，然后作为独立提交推回给子仓库。
+
+        1. 在本地的 plugins/my_lib 目录下直接改动文件。
+
+        2. 正常进行 git add 和 git commit（这时提交记录在主项目里）。
+
+        3. 使用以下命令将该目录的变更切片并推送到子仓库的远程分支：
+
+            ```Bash
+            git subtree push --prefix=<本地目录> <子仓库URL/别名> <分支名>
+            ```
+
+    1. 每次使用 url 比较麻烦，我们可以使用 git remote 创建别名
+
+    特点:
 
     * 代码合并：外部代码成为主项目的一部分
 

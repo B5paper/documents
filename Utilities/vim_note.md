@@ -4329,15 +4329,15 @@
 
     一些相关的选项：
 
-    * 'scrolloff' - 设置在光标上下保留的最小行数
+    * `scrolloff` - 设置在光标上下保留的最小行数
 
         ```vim
         set scrolloff=5  " 光标上下总是保留5行可见
         ```
 
-    * 'sidescrolloff' - 水平方向的类似选项
+    * `sidescrolloff` - 水平方向的类似选项
 
-    * 'startofline' - 某些命令是否会移动光标到行首
+    * `startofline` - 某些命令是否会移动光标到行首
 
 * 使用 ssh 登陆 remote host 后，启动 vim 打开一个文件，此时如果 remote host 没有安装`vim-gtk3`，那么使用`"+y`是无法将内容复制到 local host 的剪贴板上的。
 

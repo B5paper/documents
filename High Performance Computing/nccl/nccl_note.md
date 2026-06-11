@@ -2,6 +2,490 @@
 
 ## cache
 
+* 简述 nccl 中这两个函数`sendSetup()`和`recvSetup()`的作用
+
+    ```cpp
+    static ncclResult_t sendSetup(struct ncclComm* comm, struct ncclTopoGraph* graph, struct ncclPeerInfo* myInfo, struct ncclPeerInfo* peerInfo, struct ncclConnect* connectInfo, struct ncclConnector* send, int channelId, int connIndex) {
+      struct setupReq req = { 0 };
+
+      int proxyRank;
+      int64_t netId;
+      NCCLCHECK(ncclTopoGetNetDev(comm, myInfo->rank, graph, channelId, -1, &netId, &req.netDev, &proxyRank));
+      NCCLCHECK(ncclTopoCheckGdr(comm->topo, myInfo->rank, netId, 1, &req.useGdr));
+      send->conn.flags |= req.useGdr ? NCCL_DIRECT_NIC : 0;
+
+      send->proxyConn.tpLocalRank = comm->topParentLocalRanks[comm->localRank];
+      NCCLCHECK(ncclProxyConnect(comm, TRANSPORT_COLLNET, 1, myInfo->rank, &send->proxyConn));
+      ncclAtomicRefCountIncrement(&comm->collNetSharedRes->refCount);
+      req.collNet = comm->collNetSharedRes;
+      NCCLCHECK(ncclProxyCallBlocking(comm, &send->proxyConn, ncclProxyMsgSetup, &req, sizeof(req), NULL, 0));
+
+      INFO(NCCL_INIT|NCCL_NET,"CollNet %02d/%1d : %d [send] via COLLNET/%s/%d%s%s", channelId, connIndex, myInfo->rank, collNetName(comm), req.netDev,
+          req.useGdr ? "/GDRDMA" : "", req.useGdr==ncclTopoGdrModePci ? "(PCI)" : "");
+      return ncclSuccess;
+    }
+
+    static ncclResult_t recvSetup(struct ncclComm* comm, struct ncclTopoGraph* graph, struct ncclPeerInfo* myInfo, struct ncclPeerInfo* peerInfo, struct ncclConnect* connectInfo, struct ncclConnector* recv, int channelId, int connIndex) {
+      struct setupReq req = { 0 };
+
+      int proxyRank;
+      int64_t netId;
+      NCCLCHECK(ncclTopoGetNetDev(comm, myInfo->rank, graph, channelId, -1, &netId, &req.netDev, &proxyRank));
+      NCCLCHECK(ncclTopoCheckGdr(comm->topo, myInfo->rank, netId, 0, &req.useGdr));
+      recv->conn.flags |= req.useGdr ? NCCL_DIRECT_NIC : 0;
+      // Determine whether we need to flush the GDR buffer on recv or not
+      if (req.useGdr) NCCLCHECK(ncclTopoNeedFlush(comm, netId, req.netDev, myInfo->rank, &req.needFlush));
+
+      recv->proxyConn.tpLocalRank = comm->topParentLocalRanks[comm->localRank];
+      NCCLCHECK(ncclProxyConnect(comm, TRANSPORT_COLLNET, 0, myInfo->rank, &recv->proxyConn));
+      static_assert(sizeof(collNetRecvConnectInfo) <= sizeof(struct ncclConnect), "Collnet Recv Connect info is too big");
+      struct collNetRecvConnectInfo* info = (struct collNetRecvConnectInfo*) connectInfo;
+      ncclAtomicRefCountIncrement(&comm->collNetSharedRes->refCount);
+      req.collNet = comm->collNetSharedRes;
+      NCCLCHECK(ncclProxyCallBlocking(comm, &recv->proxyConn, ncclProxyMsgSetup, &req, sizeof(req), &info->collNetHandle, sizeof(collNetHandle_t)));
+
+      INFO(NCCL_INIT|NCCL_NET,"CollNet %02d/%1d : %d [receive] via COLLNET/%s/%d%s%s", channelId, connIndex, myInfo->rank, collNetName(comm), req.netDev,
+          req.useGdr ? "/GDRDMA" : "", req.useGdr==ncclTopoGdrModePci ? "(PCI)" : "");
+      return ncclSuccess;
+    }
+    ```
+
+    这两个函数是 **NCCL（NVIDIA Collective Communication Library）** 中用于 **CollNet（Collective Network）通信层初始化阶段** 的 **send/recv 连接建立函数**。
+    它们的主要任务是在 NCCL 集体通信（例如 AllReduce、Broadcast）中为参与的节点设置好底层网络传输通道（特别是使用 CollNet 的情况）。
+
+    ---
+
+    一、总体功能概述
+
+    | 函数            | 方向   | 主要功能                                                                                                   |
+    | ------------- | ---- | ------------------------------------------------------------------------------------------------------ |
+    | `sendSetup()` | 发送方向 | 为当前 rank 建立一个 **发送端的 CollNet 连接**（send connector），包括网络设备选择、是否使用 GDR（GPUDirect RDMA）、代理线程连接、资源注册等。      |
+    | `recvSetup()` | 接收方向 | 为当前 rank 建立一个 **接收端的 CollNet 连接**（recv connector），同样包括网络设备选择、是否使用 GDR、是否需要缓存刷新（flush）、代理线程连接、接收端句柄准备等。 |
+
+    二者都是 **setup 阶段** 的一部分，在运行实际通信（例如 `ncclCollNetSend()` / `ncclCollNetRecv()`）之前调用，用于配置连接信息和向 NCCL 的 **proxy 线程（通信调度线程）** 注册。
+
+    ---
+
+    二、关键执行步骤解析
+
+    以下两者逻辑非常相似，只是发送/接收略有不同。
+
+    1. 获取网络设备与拓扑信息
+
+        ```c
+        NCCLCHECK(ncclTopoGetNetDev(comm, myInfo->rank, graph, channelId, -1, &netId, &req.netDev, &proxyRank));
+        ```
+
+        * 从 NCCL 拓扑信息 (`comm->topo`) 和当前通道 (`graph`) 中选择合适的网络设备（如 NIC）。
+        * `netId` 标识网络设备实例；
+        * `req.netDev` 是该通道要使用的物理网络接口编号；
+        * `proxyRank` 表示负责该网络设备的 rank。
+
+        🔹 这一部分决定**具体哪个 NIC 用于 CollNet 通信**。
+
+    ---
+
+    2. 检查是否支持 GDR (GPUDirect RDMA)
+
+        ```c
+        NCCLCHECK(ncclTopoCheckGdr(comm->topo, myInfo->rank, netId, send_or_recv, &req.useGdr));
+        send->conn.flags |= req.useGdr ? NCCL_DIRECT_NIC : 0;
+        ```
+
+        * 调用 `ncclTopoCheckGdr()` 判断当前 GPU 与选定网卡之间是否支持 GPUDirect RDMA；
+        * 如果支持，则标记 `NCCL_DIRECT_NIC`，通信时可直接在 GPU 内存上 DMA。
+
+        🔹 目的是**尽量走零拷贝路径，提高带宽、降低延迟**。
+
+    ---
+
+    3. 建立与 proxy 线程的连接
+
+        ```c
+        send->proxyConn.tpLocalRank = comm->topParentLocalRanks[comm->localRank];
+        NCCLCHECK(ncclProxyConnect(comm, TRANSPORT_COLLNET, isSend, myInfo->rank, &send->proxyConn));
+        ```
+
+        * NCCL 中实际的网络 I/O 通信是由后台 **proxy 线程** 完成的；
+        * 此处通过 `ncclProxyConnect()` 在控制通道上注册当前连接；
+        * 不同方向使用不同的 `isSend` 标志（`1` for send，`0` for recv）。
+
+        🔹 proxy 线程后续会异步执行真正的 socket / RDMA 操作。
+
+    ---
+
+    4. 引用计数 + 注册共享资源
+
+        ```c
+        ncclAtomicRefCountIncrement(&comm->collNetSharedRes->refCount);
+        req.collNet = comm->collNetSharedRes;
+        ```
+
+        * `comm->collNetSharedRes` 表示一个共享的 CollNet 资源结构；
+        * 增加引用计数，确保多连接共享同一资源；
+        * 把它塞进 `req` 请求中发给 proxy。
+
+    ---
+
+    5. 向 proxy 线程发送 setup 请求（阻塞调用）
+
+        ```c
+        NCCLCHECK(ncclProxyCallBlocking(comm, &send->proxyConn, ncclProxyMsgSetup, &req, sizeof(req), NULL, 0));
+        ```
+
+        * 通过控制信道向 proxy 线程发送一个 `ncclProxyMsgSetup` 消息；
+        * proxy 线程执行具体的网络初始化操作；
+        * `recvSetup` 中还会接收一个 `collNetHandle_t`（网络层句柄），供对端使用。
+
+        🔹 **send 只发起请求；recv 还返回一个连接句柄**。
+
+    ---
+
+    6. 调试信息打印
+
+        ```c
+        INFO(NCCL_INIT|NCCL_NET, "CollNet ... [send/receive] via COLLNET/%s/%d%s%s", ...);
+        ```
+
+        * 打印网络设备号、通道号、是否使用 GDR/GDR-PCI 等信息；
+        * 用于启动时诊断 CollNet 拓扑和优化路径是否生效。
+
+    ---
+
+    三、主要区别（send vs recv）
+
+    | 项目            | `sendSetup()`                   | `recvSetup()`                                     |
+    | ------------- | ------------------------------- | ------------------------------------------------- |
+    | `useGdr` 检查方向 | 第 4 个参数 `1` 表示发送方向              | 第 4 个参数 `0` 表示接收方向                                |
+    | 是否需要 flush    | 不需要                             | 需要判断是否需要 flush GPU buffer (`ncclTopoNeedFlush()`) |
+    | 返回信息          | 不需要返回                           | 接收端需要返回 `collNetHandle_t` 给上层                     |
+    | proxy 连接方向    | `ncclProxyConnect(..., 1, ...)` | `ncclProxyConnect(..., 0, ...)`                   |
+
+    ---
+
+    四、总结一句话概括
+
+    > **`sendSetup()` 和 `recvSetup()` 是 NCCL CollNet 通信初始化阶段的发送端和接收端设置函数。**
+    > 它们完成了：
+    >
+    > 1. 拓扑感知的网络设备选择；
+    > 2. GDR 能力检测；
+    > 3. 与 proxy 线程建立连接；
+    > 4. 注册 CollNet 共享资源；
+    > 5. 阻塞调用 proxy 线程执行实际 setup。
+
+    换句话说，这两个函数相当于在 **NCCL CollNet 层** 中完成：
+
+    > 🏗️「构建通信通道」+「绑定设备」+「准备数据路径」 的准备工作。
+
+    ---
+
+    是否希望我顺便画一张图，展示这两个 setup 阶段中 “主线程 → proxy 线程 → 网络设备” 的交互流程？
+
+* 什么是CollNet？
+
+    非常好的问题。这个是理解 NCCL 架构（尤其是大规模集群通信性能优化）的关键。
+    我们来系统性地解释一下——**什么是 CollNet（Collective Network）**。
+
+    ---
+
+    ## 🧩 一、CollNet 的基本定义
+
+    > **CollNet（Collective Network）** 是 NCCL 在多节点通信中引入的一种 **集体通信层（collective transport layer）**，
+    > 旨在让多节点间的 **AllReduce / Broadcast / ReduceScatter 等集体操作** 能够在网络层上更高效地执行。
+
+    换句话说：
+
+    > 普通 NCCL 是 “每个 GPU → 网络 → 另一台机器”，
+    > 而 CollNet 则是 “让多台机器在网络层形成一个 **层次化的 collectives 拓扑**”。
+
+    ---
+
+    ## ⚙️ 二、为什么需要 CollNet
+
+    在多 GPU 集群中，通信通常分为两层：
+
+    1. **节点内通信**（intra-node）
+
+       * GPU 之间通过 NVLink / NVSwitch 高速互联。
+       * 延迟低，带宽高。
+       * 可直接在 GPU 内存之间交换数据。
+
+    2. **节点间通信**（inter-node）
+
+       * 通过 InfiniBand / RoCE 等网络通信。
+       * 延迟更高，带宽更有限。
+       * 通常使用 GPUDirect RDMA 加速。
+
+    传统 NCCL（Ring、Tree 等算法）在节点数很多时，
+    **节点间网络通信变成瓶颈**，因为每台机器都独立进行 send/recv。
+
+    于是 NVIDIA 引入 CollNet，让通信层 **感知网络拓扑**，在“节点层面”进行优化。
+
+    ---
+
+    ## 🏗️ 三、CollNet 的设计思想（层次化 AllReduce）
+
+    CollNet 使用一种 **分层（hierarchical）通信结构**：
+
+    ```
+    层次结构：
+    +----------------------------+
+    |    全局 CollNet 层         |  (节点之间)
+    +----------------------------+
+    |    节点内 Reduce 层        |  (GPU 之间)
+    +----------------------------+
+    ```
+
+    执行 AllReduce 时：
+
+    1. **Step 1: Node-local Reduce**
+
+       * 各 GPU 在本节点内先做 reduce（通过 NVLink），得到一个 “节点级结果”。
+       * 节点内带宽高，这步很快。
+
+    2. **Step 2: Inter-node CollNet AllReduce**
+
+       * 各节点选出一个代表 GPU（leader GPU）通过网络互联进行 AllReduce。
+       * 这个过程使用 CollNet 的通信通道（通常基于 IB/RDMA）。
+
+    3. **Step 3: Node-local Broadcast**
+
+       * 各节点的 leader GPU 再把结果广播给同节点的其他 GPU。
+
+    这样每个阶段都在适合的层级上执行，大幅降低跨节点通信量。
+
+    ---
+
+    ## 🧠 四、CollNet 的核心机制
+
+    | 机制                          | 说明                                                    |
+    | --------------------------- | ----------------------------------------------------- |
+    | **节点代表（Leader）**            | 每个节点选一个或多个 GPU 作为 CollNet 节点代表（通常是 GPU0）。             |
+    | **Proxy 线程**                | NCCL 的后台线程，负责实际的 socket/RDMA 操作。CollNet 通过它发起网络 I/O。  |
+    | **Transport 层接口**           | CollNet 作为 NCCL 的一种“transport backend”，和 Net、Shm 等并列。 |
+    | **GDR 支持**                  | CollNet 可以使用 GPUDirect RDMA（GDR）直接在 GPU 内存上通信。        |
+    | **CollNet Shared Resource** | 每个通信 group 共享的 CollNet 网络句柄、QP、队列对等信息等。               |
+
+    ---
+
+    ## 🧩 五、CollNet 在 NCCL 代码结构中的位置
+
+    在 NCCL 源码中（如 `src/transport/` 目录）：
+
+    ```
+    /transport
+     ├── net.[ch]          # 普通网络层 (Net transport)
+     ├── collnet.[ch]      # CollNet transport 实现
+     ├── proxy.[ch]        # Proxy 线程机制
+     ├── shm.[ch]          # Shared memory transport
+     └── ...
+    ```
+
+    `collnet.[ch]` 中定义的 `sendSetup()` 和 `recvSetup()` 就是：
+
+    > 在 CollNet transport 初始化阶段建立连接的关键函数。
+
+    ---
+
+    ## ⚡ 六、性能特点
+
+    | 特性                | 效果                |
+    | ----------------- | ----------------- |
+    | 分层结构              | 减少跨节点通信带宽占用       |
+    | 结合 GPUDirect RDMA | 低延迟传输             |
+    | 可扩展性              | 更适合数百/上千 GPU 的集群  |
+    | 自动拓扑感知            | NCCL 拓扑模块自动选择最优路径 |
+
+    实际中，CollNet 在大型 GPU 集群（如 DGX SuperPOD、Selene）中：
+
+    > **比纯 Ring AllReduce 通常快 20~40%（尤其是网络瓶颈场景）**
+
+    ---
+
+    ## 📘 七、一句话总结
+
+    > **CollNet 是 NCCL 的层次化集体通信子系统。**
+    > 它让多节点 GPU 集群的 AllReduce 等操作通过“节点内 reduce + 节点间 CollNet 通信 + 节点内 broadcast”的方式完成，
+    > 从而显著减少跨节点数据传输量，提升分布式训练性能。
+
+    ---
+
+    是否希望我接着画一张图，展示 CollNet 在多节点集群中（比如 4 节点 × 8 GPU）的通信拓扑结构？
+    图中可以清晰看到 “节点内 NVLink 层 + 节点间 CollNet 层” 的分层结构。
+
+* sendSetup()中，buffer 是在哪注册的？
+
+    非常好的问题 👍——这个涉及到 NCCL 的内部资源管理和通信路径初始化的更深层逻辑。
+
+    你问的这个点——
+
+    > 在 `sendSetup()` 里，**通信 buffer（GPU 内存或中间 buffer）是什么时候、在哪里注册的？**
+
+    其实是一个非常典型的“**CollNet setup 阶段 vs. runtime 阶段**”区别。
+
+    下面我们分层讲清楚：
+
+    ---
+
+    ## 🧩 一、`sendSetup()` 本身的定位
+
+    `sendSetup()` 的职责仅是：
+
+    * 选网络设备；
+    * 检查是否支持 GDR；
+    * 连接 proxy；
+    * 通知 proxy 做 CollNet 通道建立（`ncclProxyCallBlocking(..., ncclProxyMsgSetup, ...)`）。
+
+    它是 **建立连接 (setup phase)**，不是在注册具体传输 buffer。
+
+    所以在 `sendSetup()` 内，**并没有真正注册 buffer（无 ibv_reg_mr 或 cuMemHostRegister 等操作）**。
+    但它为之后的 buffer 注册准备好了环境和资源句柄。
+
+    ---
+
+    ## ⚙️ 二、buffer 注册在 NCCL 中的典型路径
+
+    在 NCCL（尤其是 CollNet 和 Net transport）中，**buffer 注册发生在实际通信前（runtime 阶段）**，
+    而不是在 `sendSetup()` / `recvSetup()` 里。
+
+    ---
+
+    ### 🔹1. 注册点一般在 `ncclProxyProgress()` 中
+
+    CollNet 的数据传输是由 proxy 线程执行的。
+
+    proxy 在执行时，会处理如下几种消息类型：
+
+    ```c
+    enum ncclProxyOpType {
+      ncclProxyMsgSetup,
+      ncclProxyMsgConnect,
+      ncclProxyMsgStart,
+      ncclProxyMsgProgress,
+      ncclProxyMsgClose,
+      ...
+    };
+    ```
+
+    其中：
+
+    * `ncclProxyMsgSetup`：只是建立连接（对应 `sendSetup()` / `recvSetup()`）
+    * **`ncclProxyMsgStart` / `ncclProxyMsgProgress`：才是注册 buffer 的阶段**
+
+    当真正开始发送数据时（例如执行一次 AllReduce kernel 时），
+    上层 kernel 会调用 `ncclProxyStart()`，这时 proxy 收到 `ncclProxyMsgStart` 消息，
+    其中包含：
+
+    ```c
+    struct ncclProxyArgs {
+      void* sendbuff;
+      void* recvbuff;
+      size_t size;
+      ...
+    };
+    ```
+
+    proxy 线程拿到 `sendbuff` 后，会调用 transport backend 的 `regMr()` 或 `regBuffer()` 接口。
+
+    ---
+
+    ### 🔹2. 对应 CollNet backend 的注册函数
+
+    在 `src/transport/collnet.cc` 里，有如下接口定义：
+
+    ```c
+    struct ncclTransport collNetTransport = {
+      .name = "COLLNET",
+      .send = {
+        .setup = sendSetup,
+        .connect = sendConnect,
+        .regMr = sendRegMr,
+        .deregMr = sendDeregMr,
+        .proxyProgress = sendProxyProgress,
+      },
+      .recv = {
+        .setup = recvSetup,
+        .connect = recvConnect,
+        .regMr = recvRegMr,
+        .deregMr = recvDeregMr,
+        .proxyProgress = recvProxyProgress,
+      },
+    };
+    ```
+
+    > ✅ 看到没：`sendSetup()` 只是第一步，**真正注册 buffer 的函数是 `sendRegMr()`**。
+
+    ---
+
+    ### 🔹3. `sendRegMr()` 内部才进行内存注册
+
+    以 NCCL 的 Net/CUDA path 为例（CollNet 类似），`sendRegMr()` 一般会执行类似：
+
+    ```c
+    ncclResult_t sendRegMr(void* comm, void* data, int size, void** mhandle) {
+      struct ncclNetHandle* net = (struct ncclNetHandle*) comm;
+      return net->regMr(net->comm, data, size, mhandle);
+    }
+    ```
+
+    而底层 `net->regMr()` 通常由特定网络插件（IB/RDMA、Socket、NVLink 等）实现，比如：
+
+    * 对 InfiniBand：调用 `ibv_reg_mr()` 注册 GPU 地址。
+    * 对 RoCE / GPUDirect：调用 `cudaHostRegister()` 或 GDRCopy 映射。
+    * 对 Socket fallback：直接记录 pointer，不注册。
+
+    ---
+
+    ### 🔹4. 注册对象是什么
+
+    注册的 buffer 通常是：
+
+    * 实际通信使用的 `sendbuff` 或 `recvbuff`；
+    * 位于 GPU 全局内存；
+    * 用于 RDMA 传输时必须注册成 MR（Memory Region）。
+
+    注册完成后，NCCL 会获得一个 `mhandle`（memory handle），
+    用于后续 RDMA `post_send()` 或 `post_recv()`。
+
+    ---
+
+    ## 🧱 三、调用顺序总结（重点）
+
+    整个 CollNet 通道从 setup → buffer 注册 → 传输的时序如下：
+
+    ```
+    sendSetup()                    <-- 建立连接, proxy 注册
+    recvSetup()
+
+        ↓
+    proxy thread 初始化完成
+
+        ↓ (AllReduce kernel 启动时)
+    sendRegMr() / recvRegMr()      <-- 注册通信 buffer (GPU 内存)
+        ↓
+    proxy thread 调用 regMr()
+        ↓
+    ibv_reg_mr / cudaHostRegister  <-- 真正 buffer 注册
+        ↓
+    发送/接收数据 (sendProxyProgress / recvProxyProgress)
+    ```
+
+    ---
+
+    ## 🧠 四、总结一句话
+
+    > 在 `sendSetup()` 阶段 **并不会注册通信 buffer**。
+    > 它只是创建连接、绑定网络设备、初始化 proxy。
+    >
+    > 真正的 buffer 注册（`ibv_reg_mr()` 或 CUDA GDR 映射）
+    > 发生在后续的 `sendRegMr()` / `recvRegMr()` 阶段，
+    > 当实际要传输某个 GPU 内存时才会执行。
+
+    ---
+
+    如果你希望我帮你定位一下 CollNet 路径下具体哪个 `.cc` 文件的 `sendRegMr()` 注册了 buffer（例如调用了哪个 GDR/IB 接口），我可以帮你 trace 一下源码调用链（从 `collnet.cc` → `net_ib.cc` → `ibv_reg_mr()`）。
+    是否要我帮你详细 trace 一遍？
 * 详细讲讲 nccl 最新的 deepep 功能
 
     NCCL DeepEP（NCCL EP）功能详解
