@@ -4,6 +4,8 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 中，一个变量 my_env 无论是 export 的，还是非 export 的，都可以使用 unset 取消这个变量。如果只想取消这个 export 前缀，那么可以使用`export -n my_env`
+
 * 简述 bash 中 exec 的用法
 
     `exec` 是 Bash 中的一个内置命令，用于**替换当前 shell 进程**而不创建新进程。主要有以下几种用法：

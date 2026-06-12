@@ -2,6 +2,55 @@
 
 ## cache
 
+* matplotlib 做横向排版占满屏幕
+
+    如果你只想让所有图像**横向排列铺满屏幕**（即一行多列显示），下面是最简洁的做法：
+
+    修改版代码（横向排版、自动撑满屏幕）
+
+    ```python
+    import torch
+    import matplotlib.pyplot as plt
+
+    # 假设已有 net.fc1.weight
+    params = net.fc1.weight.detach().numpy().reshape(-1, 28, 28)
+
+    nimg = params.shape[0]
+
+    # --- 关键修改 ---
+    fig, axes = plt.subplots(1, nimg, figsize=(nimg * 2, 2))  # 横向排满，调整 figsize 宽度
+    if nimg == 1:
+        axes = [axes]  # 兼容单图情况
+
+    for i, ax in enumerate(axes):
+        ax.imshow(params[i], cmap='gray')
+        ax.axis('off')
+
+    plt.subplots_adjust(wspace=0, hspace=0)  # 去掉空隙
+    plt.show()
+    ```
+
+    说明：
+
+    * `figsize=(nimg * 2, 2)`：
+
+        控制横向宽度随图片数量线性增长，`2` 表示每张图宽 2 英寸（可调）。
+
+    * `plt.subplots(1, nimg)`：
+
+        所有图片放在**一行**。
+
+    * `plt.subplots_adjust(wspace=0)`：
+
+        去掉图像之间的空白。
+
+    * 如果图片太多（>10），可能屏幕会放不下，可以：
+
+        ```python
+        plt.figure(figsize=(20, 2))
+        ```
+
+        只显示前几张，或手动调整显示密度。
 * 简述 matplotlib 画 surface，要求能正确显示汉字
 
     步骤概览（简短）

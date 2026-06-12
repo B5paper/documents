@@ -2,6 +2,64 @@
 
 ## cache
 
+* pyenv 在执行 `pyenv install <version>` 时，如果下载速度过慢，我手动下载了 `xxx.tar.xz` 文件，该如何指定 pyenv 使用本地文件？
+
+    国内下载 `pyenv` 的官方源确实经常让人抓狂。既然你已经手动下载了 `.tar.xz` 压缩包，可以通过**设置环境变量**或者**建立缓存目录**的方式，让 `pyenv` 直接读取本地文件，跳过下载步骤。
+
+    这里推荐最稳妥、最常用的 **`~/.pyenv/cache` 缓存法**。
+
+    ---
+
+    第一步：创建 cache 目录
+
+    `pyenv` 默认不会创建这个目录，你需要手动创建它：
+
+    ```bash
+    mkdir -p ~/.pyenv/cache
+
+    ```
+
+    *(注意：如果你自定义了 `PYENV_ROOT`，请将路径替换为你的实际 pyenv 安装路径下的 `cache` 目录)*
+
+    第二步：将下载好的压缩包移入该目录
+
+    把你的 `xxx.tar.xz` 文件复制或移动到刚才创建的 `cache` 文件夹中。
+
+    ```bash
+    cp /path/to/your/Python-3.x.x.tar.xz ~/.pyenv/cache/
+    ```
+
+    > ⚠️ **关键细节：检查文件名**
+    > `pyenv` 对文件名有严格的匹配规则。通常从 Python 官网下载的文件名是 `Python-3.x.x.tar.xz`（注意大写 `P`）。请确保文件名与 `pyenv` 预期的名称完全一致。如果你不确定，可以先执行一下 `pyenv install 3.x.x`，看它第一行提示正在下载的链接尾部是什么文件名，然后把本地文件改成那个名字。
+
+    第三步：离线安装
+
+    这时候再次执行安装命令，并加上 `-v`（详细模式）参数，这样你能清晰地看到它是否使用了缓存：
+
+    ```bash
+    pyenv install -v 3.x.x
+
+    ```
+
+    如果配置正确，你会看到类似 `Installing Python-3.x.x...` 的提示，而不会出现 `Downloading...` 的进度条，接着就会直接进入编译阶段。
+
+    ---
+
+    **备选方案：通过本地镜像源（更省心）**
+
+    如果你以后经常需要安装不同版本，每次都手动下载可能会觉得麻烦。你可以直接使用国内的镜像源（比如淘宝镜像），让 `pyenv` 自己去快车道下载。
+
+    在执行安装时，临时指定 `PYTHON_BUILD_MIRROR_URL` 环境变量：
+
+    ```bash
+    # 以安装 3.10.11 为例
+    v=3.10.11
+    export PYTHON_BUILD_MIRROR_URL="https://npmmirror.com/mirrors/python/$v/"
+    pyenv install $v
+
+    ```
+
+    这个方法会自动去国内镜像站寻找对应的版本，速度通常也是满速，免去了手动下载和改名字的烦恼。
 * pyenv 需要现场编译 python 源码，需要编译环境，还需要几个依赖库，比较麻烦。
 
     关于 tk，只需要 tk-dev 就可以

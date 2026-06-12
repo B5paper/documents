@@ -6,6 +6,89 @@ Ref:
 
 ## cache
 
+* qemu edu device 中的 `0x00 (RO)identification`
+
+    > Value is in the form `0xRRrr00edu` where: - RR – major version - rr – minor version
+
+    我使用
+
+    ```c
+    int32_t val = ioread32(base_addr_bar0 + 0x00);
+    pr_info("0x00 val: %0x\n", val); 
+    ```
+
+    输出的内容为
+
+    `0x00 val: 10000ed`
+
+    这样的输出对吗？
+
+
+    你的输出是 **对的，只是被 printk 的格式给坑了**。
+
+    **你的 edu identification 的规则**
+
+    QEMU edu 设备的 *identification register (offset 0x00)* 返回格式：
+
+    ```
+    0xRRrr00edu
+    ```
+
+    * `RR` = major version
+    * `rr` = minor version
+    * 固定尾巴 `00edu`（ASCII “edu”）
+
+    例如 QEMU 默认实现里：
+
+    ```c
+    #define EDU_VERSION 0x10000edU
+    ```
+
+    **你的输出为什么变成 `10000ed`？**
+
+    你用了：
+
+    ```c
+    pr_info("0x00 val: %0x\n", val);
+    ```
+
+    **错误点在于 `%0x`**
+
+    * `%x` 才是合法的格式
+    * `%0x` 会被解析成 “0 宽度，不补 0”，实际上效果就是普通 `%x`
+    * 并且 **前导零不会自动打印**，如果最前面的 `0` 被省略，输出自然变成：
+
+    ```
+    10000ed
+    ```
+
+    如果你想严格看到 32bit，你应该写：
+
+    ```c
+    pr_info("0x00 val: 0x%08x\n", val);
+    ```
+
+    这会输出：
+
+    ```
+    0x00 val: 0x10000ed
+    ```
+
+    或者可能是：
+
+    ```
+    0x00 val: 0x010000ed
+    ```
+
+    取决于 QEMU 版本。
+
+    **edu 的 u 是 unsigned 的意思**
+
+    QEMU 源码（`hw/misc/edu.c`）写得很明确：
+
+    ```c
+    #define EDU_VERSION 0x10000edU
+    ```
 * module_param_array(m_arr, int, NULL, 0755);
     指定权限时，0755 似乎会报错，可以使用哪些权限？
 

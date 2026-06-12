@@ -2,6 +2,189 @@
 
 ## cache
 
+* 有什么开源的 cuda 线性代数库，类似 cuBLAS 那样的
+
+    1. CUTLASS (by NVIDIA)
+
+        **简介**：这是 NVIDIA 开源的 CUDA C++ 模板库，专门为高性能矩阵-矩阵乘法（GEMM）及其变体设计。([GitHub][1])
+
+        **特点**：
+
+        * 支持多种数据类型（FP64/FP32/FP16/BF16/整数等）以及 Tensor Cores。([GitHub][1])
+
+        * 模板化、可定制，适合性能微调、kernel 修改。
+
+        * 虽然主要是 GEMM /密集矩阵乘法为主，不一定包含完整的 BLAS1/2/3 + LAPACK 求解器。
+
+            **适用情况**：如果你关注的是 dense 矩阵乘法、或者需要自定义 kernel 优化（比如非标准形状、非均匀 chunk size），CUTLASS 是一个非常好的起点。
+
+            **限制**：如果你还需要像 LU 分解、QR 分解、稀疏矩阵操作、或者非常高级的 solver，可能要配合其他库或自己扩展。
+
+    2. MAGMA (Matrix Algebra on GPU and Multi-core Architectures)
+
+        **简介**：这是一个面向异构（CPU+GPU）系统的线性代数库，提供类似 LAPACK 的接口，用于 dense 矩阵分解、求特征值／奇异值分解、线性系统求解等。([NVIDIA Developer][2])
+
+        **特点**：
+
+        * 支持多精度（S／D／C／Z）并且能利用 GPU 加速。([NVIDIA Developer][2])
+
+        * 接口上类似 LAPACK／BLAS，便于从 CPU 代码迁移。
+
+            **适用情况**：你如果不仅做 GEMM，还做更多线性代数操作（如分解、求解器、特征值问题），MAGMA 是一个强选项。
+            **限制**：虽然开源，但相比纯 kernel 自定义水平可能稍“黑箱”。如果你需要完全控制 kernel 内部（比如你提到线程卡住／死锁、非均匀 chunk size 的场景），可能要进入库内部或自己修改。
+            **额外提示**：如果你当前在调试线程死锁、多线程 ring reduce‐scatter，那你对底层细节的控制可能需要较高，自定义性高的库可能更合适。
+
+    3. Ginkgo
+
+        **简介**：一个面向多核／多 GPU 的高性能线性代数库，支持 CUDA (NVIDIA)、HIP (AMD)、SYCL 等。重点在稀疏线性系统。([ginkgo-project.github.io][3])
+
+        **特点**：
+
+        * 支持多种加速器平台，不仅 NVIDIA。
+
+        * 更偏向“稀疏线性代数系统”与可扩展 solver。
+
+            **适用情况**：如果你处理的是稀疏矩阵或稀疏系统／求解器，那么 Ginkgo 是很好的选择。
+
+            **限制**：如果你的场景主要是密集矩阵、或只是 BLAS/LAPACK 核心，那它可能功能过于“solver”化，不一定专注于你想的那种“kernel + chunk size”级别控制。
+
+    4. ViennaCL
+
+        **简介**：一个 C++ 模板库，支持 CUDA、OpenCL、OpenMP，用于多核架构／GPU 的线性代数计算。([viennacl.sourceforge.net][4])
+
+        **特点**：
+
+        * 支持稠密和稀疏矩阵操作、预处理器、多平台。
+
+        * 对 C++ 用户较友好。
+
+            **适用情况**：如果你做的是较通用的线性代数操作、多平台考虑、或者想一个轻量模板库。
+            **限制**：相比 CUTLASS／MAGMA 在 GPU 性能优化上可能略逊一筹；而且如果你明确只针对 CUDA 优化、并且对 kernel-级别调整有强需求，可能要自己扩展。
+
+    如果你愿意，我可以 **帮你查几个专门支持“非均匀 chunk size”“batched变形形状”的 CUDA 线性代数库**，并列出它们的接口支持情况 +源码可调度程度。你看要不要？
+
+    [1]: https://github.com/NVIDIA/cutlass?utm_source=chatgpt.com "NVIDIA/cutlass: CUDA Templates and Python DSLs for ..."
+    [2]: https://developer.nvidia.com/magma?utm_source=chatgpt.com "MAGMA"
+    [3]: https://ginkgo-project.github.io/?utm_source=chatgpt.com "Ginkgo"
+    [4]: https://viennacl.sourceforge.net/?utm_source=chatgpt.com "ViennaCL - Linear Algebra Library using CUDA, OpenCL, and ..."
+
+* 我记得还有个 CUTE 
+
+    对，你记得没错——你说的 **CUTE**（**Composable Utilities for Tensor Expressions**）确实是一个 **CUDA 线性代数内核构建库**，而且和 **CUTLASS** 关系非常密切。下面我帮你把它和 CUTLASS 的定位、差异、适用场景都梳理清楚👇
+
+    🧩 CUTE（Composable Utilities for Tensor Expressions）
+
+    **全称**：Composable Utilities for Tensor Expressions
+    **仓库**：[https://github.com/NVIDIA/cute](https://github.com/NVIDIA/cute)
+    **作者**：NVIDIA
+    **许可证**：BSD-3
+    **首次引入**：最早在 **CUTLASS 3.0+** 里作为底层组件出现（后独立为 cute 仓库）
+
+    **核心定位**
+
+    CUTE 是一个 **用于描述和生成高性能 GPU tensor 运算的底层模板库**。
+    它不是一个像 cuBLAS/MAGMA 那样“直接可调用函数”的库，而是：
+
+    > 一个 **编译期算子描述框架**，帮你以高层次的张量表达式（Tensor Expression）来组合出你自己的 kernel。
+
+    你可以把它理解成：
+
+    > CUTLASS 的下一代底层 DSL（Domain Specific Language），
+    > 也是 NVIDIA GEMM / Tensor Core 内核的“编译期几何引擎”。
+
+    **简要原理**
+
+    CUTE 的设计思想是：
+
+    * 用 **几何代数式（shape + layout + mapping）** 描述线程块、warp、tensor、memory 的组织；
+    * 自动推导出索引变换、内存访问、共享内存布局；
+    * 以极少模板代码生成完整的 CUDA kernel（包括 tensor core 指令级 tile 操作）。
+
+    例如（伪代码）：
+
+    ```cpp
+    using namespace cute;
+
+    // 定义矩阵 A、B、C 的形状
+    auto M = Int<128>{};
+    auto N = Int<64>{};
+    auto K = Int<32>{};
+
+    // 定义 threadblock、warp、thread tile
+    auto TB = make_tile(M/2, N/2);
+    auto W  = make_tile(M/4, N/4);
+
+    // 定义 tensor layout
+    auto layout_A = make_layout(M, K);
+    auto layout_B = make_layout(K, N);
+    auto layout_C = make_layout(M, N);
+
+    // 矩阵乘法映射
+    auto problem_shape = make_shape(M, N, K);
+    ```
+
+    CUTE 通过这种模板表达，自动生成最优的索引访问和 thread mapping。
+
+    **和 CUTLASS 的关系**
+
+    | 项目          | 定位                                   | 是否独立使用           | 核心功能                                |
+    | ----------- | ------------------------------------ | ---------------- | ----------------------------------- |
+    | **CUTLASS** | 高性能 CUDA 线性代数模板库（GEMM / Conv / etc.） | ✅                | 提供具体 kernel 实现（基于 CUTE）             |
+    | **CUTE**    | 抽象层——负责描述计算几何和布局映射                   | ✅（面向 kernel 开发者） | 提供形状、映射、tile 抽象，用于生成 CUTLASS kernel |
+
+    所以你可以理解为：
+
+    > **CUTE 是 CUTLASS 的几何 DSL 层**，让你自己定义新的 tile / layout / block / warp 组织方式。
+
+    📚 学习资料
+
+    官方仓库文档已经比较完备：
+
+    * GitHub: [https://github.com/NVIDIA/cute](https://github.com/NVIDIA/cute)
+    * CUTE tutorial PDF（来自 CUTLASS docs）: [https://github.com/NVIDIA/cutlass/tree/main/media/docs/cute](https://github.com/NVIDIA/cutlass/tree/main/media/docs/cute)
+    * NVIDIA GTC 2023 讲座：“**CUTE: Composable Utilities for Tensor Expressions**”
+
+    ---
+
+    ⚠️ 注意事项
+
+    * CUTE 仍是 **相对底层的模板库**，它不会帮你自动处理 stream、event、通信、调度；
+    * 需要较高的 C++17 / template metaprogramming 水平；
+    * 目前只支持 **CUDA 后端**；
+    * 你如果希望有像 cuBLAS 那样直接 `sgemm()` 的接口，需要自己封装。
+
+    ---
+
+    ✅ 结论
+
+    | 目标                                      | 推荐库         |
+    | --------------------------------------- | ----------- |
+    | 想要“开箱即用的 BLAS/LAPACK 功能”                | **MAGMA**   |
+    | 想要“高性能 GEMM 内核 + 可调模板”                  | **CUTLASS** |
+    | 想要“自己定义 warp/tile/shape 映射、玩 kernel 几何” | **CUTE**    |
+    | 想要“跨平台稀疏求解器”                            | **Ginkgo**  |
+
+    **主流开源 CUDA 线性代数库**
+
+    | 名称                          | 定位                  | 特点                                               |
+    | --------------------------- | ------------------- | ------------------------------------------------ |
+    | **CUTLASS**                 | NVIDIA 出的高性能矩阵乘法模板库 | CUDA kernel 模板级，支持 Tensor Core，几乎是 cuBLAS 的源码级原型 |
+    | **CUTE**                    | CUTLASS 的几何描述层      | 描述 tile / warp / layout 映射的模板库，适合自写 GEMM kernel  |
+    | **MAGMA**                   | 类 LAPACK 库          | 提供矩阵分解、求解器等完整线代功能（CUDA + CPU 混合）                 |
+    | **Ginkgo**                  | 稀疏线性代数框架            | 支持 CUDA/HIP/SYCL，偏向稀疏矩阵与求解器                      |
+    | **AmgX**                    | NVIDIA 出的多重网格求解器    | 偏数值求解领域（稀疏矩阵）                                    |
+    | **ViennaCL**                | C++ 模板库             | 支持 CUDA/OpenCL/OpenMP，通用线代操作                     |
+    | **ArrayFire**               | 通用 GPU 数值库          | API 风格接近 NumPy，CUDA 后端可选开源版                      |
+    | **clara** / **cuTensorNet** | 高阶张量运算（非矩阵）         | NVIDIA cuTensor 系列的开源部分，用于张量网络计算                 |
+
+    ---
+
+    简单说：
+
+    * **想学 cuBLAS 内核实现** → 看 CUTLASS
+    * **想自己定义 tile 几何关系** → 玩 CUTE
+    * **想要 LAPACK 功能（分解、SVD 等）** → 用 MAGMA
+    * **稀疏矩阵 / 求解器方向** → 用 Ginkgo 或 AmgX
 * __global__ void copy_data(float *host_ptr, float *dev_ptr, int num) 这样的算子必须要有uvm才能工作吗
 
     非常好的问题，这其实涉及到 **host/device 指针空间的区别** 和 **UVM（Unified Virtual Memory）机制** 的作用。

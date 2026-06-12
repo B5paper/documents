@@ -2,6 +2,156 @@
 
 ## cache
 
+* 简述 python 中 datetime 的用法
+
+    好的，Python 中的 `datetime` 模块是处理日期和时间的核心模块，它提供了多个类来分别表示日期、时间、日期时间、时间间隔等。
+
+    下面我将简述其中最常用类的用法。
+
+    1. 导入模块
+
+        首先，你需要导入这个模块。
+
+        ```python
+        from datetime import datetime, date, time, timedelta
+        ```
+
+    2. 主要类及其用法
+
+        a. `datetime` 类 (最常用)
+            
+            表示一个具体的日期和时间（年、月、日、时、分、秒、微秒）。
+
+            - **获取当前时间**：
+              ```python
+              now = datetime.now()
+              print(now)  # 输出：2023-10-25 16:30:45.123456
+              ```
+
+            - **创建特定时间**：
+              ```python
+              # 方法1：直接指定
+              dt = datetime(2023, 10, 25, 14, 30, 0)
+              print(dt)  # 输出：2023-10-25 14:30:00
+
+              # 方法2：从字符串解析 (非常常用)
+              dt_str = "2023-10-25 14:30:00"
+              dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+              print(dt)  # 输出：2023-10-25 14:30:00
+              ```
+
+            - **将时间对象格式化为字符串** (非常常用)：
+              ```python
+              now = datetime.now()
+              formatted_str = now.strftime("%Y/%m/%d %H:%M:%S")
+              print(formatted_str)  # 输出：2023/10/25 16:30:45
+              ```
+
+            - **访问各个部分**：
+              ```python
+              print(now.year)
+              print(now.month)
+              print(now.day)
+              print(now.hour)
+              print(now.minute)
+              print(now.second)
+              ```
+
+        b. `date` 类
+            
+            只表示日期部分（年、月、日）。
+
+            - **获取当前日期**：
+              ```python
+              today = date.today()
+              print(today)  # 输出：2023-10-25
+              ```
+
+            - **创建特定日期**：
+              ```python
+              d = date(2023, 10, 25)
+              ```
+
+        c. `time` 类
+            
+            只表示时间部分（时、分、秒、微秒）。
+
+            - **创建特定时间**：
+              ```python
+              t = time(14, 30, 0)
+              print(t)  # 输出：14:30:00
+              ```
+
+        d. `timedelta` 类 (极其重要)
+
+            表示两个 `datetime` 或 `date` 对象之间的时间间隔。常用于时间计算。
+
+            - **计算未来或过去的日期**：
+              ```python
+              now = datetime.now()
+
+              # 计算3天后的时间
+              future = now + timedelta(days=3)
+              # 计算2小时前的时间
+              past = now - timedelta(hours=2)
+              # 组合使用
+              complex_calc = now + timedelta(weeks=1, days=2, hours=5)
+              ```
+
+            - **计算两个时间点的差值**：
+              ```python
+              dt1 = datetime(2023, 10, 20)
+              dt2 = datetime(2023, 10, 25)
+              difference = dt2 - dt1
+              print(difference)        # 输出：5 days, 0:00:00
+              print(difference.days)   # 输出：5 (天数)
+              # 注意：如果要获取总秒数，可以使用 total_seconds()
+              print(difference.total_seconds()) # 输出：432000.0
+              ```
+
+    3. 常用格式代码 (用于 `strftime` 和 `strptime`)
+
+        | 代码 | 含义                  | 示例              |
+        | :--- | :-------------------- | :---------------- |
+        | `%Y` | 四位数的年份          | 2023              |
+        | `%m` | 两位数的月份 (01-12)  | 10                |
+        | `%d` | 两位数的日期 (01-31)  | 25                |
+        | `%H` | 24小时制的小时 (00-23) | 16                |
+        | `%I` | 12小时制的小时 (01-12) | 04                |
+        | `%M` | 分钟 (00-59)          | 30                |
+        | `%S` | 秒 (00-59)            | 45                |
+        | `%p` | AM 或 PM              | AM                |
+        | `%f` | 微秒 (000000-999999)  | 123456            |
+        | `%A` | 完整的星期名          | Wednesday         |
+        | `%B` | 完整的月份名          | October           |
+
+    4. 时间戳转换
+
+        `datetime` 对象可以和 UNIX 时间戳（从 1970-1-1 开始的秒数）互相转换。
+
+        - **`datetime` -> 时间戳**：
+          ```python
+          now = datetime.now()
+          timestamp = now.timestamp()
+          print(timestamp) # 输出：1698229845.123456
+          ```
+
+        - **时间戳 -> `datetime`**：
+          ```python
+          timestamp = 1698229845.123
+          dt = datetime.fromtimestamp(timestamp)
+          print(dt) # 输出：2023-10-25 16:30:45.123000
+          ```
+
+    **总结**
+
+    - **`datetime.now()`**： 获取当前时间。
+    - **`datetime.strptime(str, format)`**： 字符串 -> 时间对象。
+    - **`datetime.strftime(format)`**： 时间对象 -> 格式化字符串。
+    - **`timedelta`**： 用于时间的加减法运算。
+    - **`.timestamp()` 和 `fromtimestamp()`**： 与时间戳互相转换。
+
+    掌握以上几点，你就已经能够应对 Python 中绝大部分的日期和时间处理任务了。
 * 详细讲讲 pytest 的用法
 
     Pytest 是目前 Python 社区最流行、功能最强大的测试框架。相比传统的 `unittest`，它语法更简洁、扩展性更高，且拥有极其丰富的插件生态。
