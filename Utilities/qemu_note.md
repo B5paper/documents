@@ -2,6 +2,130 @@
 
 ## cache
 
+* 在 qemu 虚拟机中，我希望 03:00.0, 04:00.0, 05:00.0, 06:00.0 走 iommu passthrough，11:00.0 ~ 14:00.0 走正常 iommu，该如何配置jjjj
+
+    ```
+    02:03.0 PCI bridge: Texas Instruments XIO3130 PCI Express Switch (Downstream) (rev 01)
+    03:00.0 Infiniband controller: Mellanox Technologies MT2910 Family [ConnectX-7]
+    04:00.0 Infiniband controller: Mellanox Technologies MT2910 Family [ConnectX-7]
+    05:00.0 Infiniband controller: Mellanox Technologies MT2910 Family [ConnectX-7]
+    06:00.0 Infiniband controller: Mellanox Technologies MT2910 Family [ConnectX-7]
+    10:00.0 PCI bridge: Red Hat, Inc. QEMU PCIe Root port
+    10:01.0 PCI bridge: Red Hat, Inc. QEMU PCIe Root port
+    10:02.0 PCI bridge: Red Hat, Inc. QEMU PCIe Root port
+    10:03.0 PCI bridge: Red Hat, Inc. QEMU PCIe Root port
+    11:00.0 Processing accelerators: Device 205d:1100 (rev 01)
+    12:00.0 Processing accelerators: Device 205d:1100 (rev 01)
+    13:00.0 Processing accelerators: Device 205d:1100 (rev 01)
+    14:00.0 Processing accelerators: Device 205d:1100 (rev 01)
+    ```
+
+    你这个需求可以拆成一句话来理解：
+
+    > **同一个 QEMU 虚拟机里，一部分 PCIe 设备做“直通（VFIO passthrough，使用宿主 IOMMU）”，另一部分设备仍然走“虚拟 IOMMU（vIOMMU）/普通虚拟化路径”。**
+
+    三、QEMU 命令行的**关键配置**
+
+    1. **启用 vIOMMU（必须）**
+
+        否则 11:00.0–14:00.0 在 guest 里就“没有 IOMMU”
+
+        ```bash
+        -device intel-iommu,intremap=on,caching-mode=on
+        ```
+
+        （AMD 平台用 `amd-iommu`）
+
+    2. **VFIO 直通设备：关闭 iommu_platform**
+
+        ```bash
+        -device vfio-pci,host=03:00.0,iommu_platform=off
+        -device vfio-pci,host=04:00.0,iommu_platform=off
+        -device vfio-pci,host=05:00.0,iommu_platform=off
+        -device vfio-pci,host=06:00.0,iommu_platform=off
+        ```
+
+        解释：
+
+        * `iommu_platform=off`
+
+          * **设备 DMA 直接走 host IOMMU**
+          * 不走 guest vIOMMU
+          * 这是 *bare-metal 风格直通*（你要的）
+
+    3. 普通 / 虚拟设备：默认走 vIOMMU
+
+        例如：
+
+        ```bash
+        -device virtio-net-pci,netdev=net0
+        -device virtio-blk-pci,drive=vd0
+        ```
+
+        或者你那个：
+
+        ```text
+        11:00.0 ~ 14:00.0  Processing accelerators
+        ```
+
+        如果它们是：
+
+        * virtio
+        * emulated PCI
+        * mediated device (mdev)
+
+        👉 **什么都不用加**
+        👉 它们会自动挂到 `intel-iommu`
+
+    四、Guest OS 内部的表现（你应该看到什么）
+
+    1. IOMMU 存在
+
+        ```bash
+        dmesg | grep -i iommu
+        ```
+
+        ```text
+        DMAR: IOMMU enabled
+        ```
+
+    2. VFIO 设备 **不受 guest IOMMU 约束**
+
+        ```bash
+        lspci -vvv -s 03:00.0
+        ```
+
+        * 不会看到 guest IOMMU fault
+        * DMA 地址是 guest 物理地址 → host IOVA
+
+    3. 11:00.0–14:00.0 受 guest IOMMU 约束
+
+        ```bash
+        ls /sys/kernel/iommu_groups/
+        ```
+
+        能看到这些设备被分组
+
+    **最小可用示例（总结版）**
+
+    ```bash
+    qemu-system-x86_64 \
+      -enable-kvm \
+      -machine q35,accel=kvm \
+      -device intel-iommu,intremap=on \
+      \
+      -device vfio-pci,host=03:00.0,iommu_platform=off \
+      -device vfio-pci,host=04:00.0,iommu_platform=off \
+      -device vfio-pci,host=05:00.0,iommu_platform=off \
+      -device vfio-pci,host=06:00.0,iommu_platform=off \
+      \
+      -device virtio-blk-pci,drive=vd0 \
+      -device virtio-net-pci,netdev=net0
+    ```
+
+    注：
+
+    1. 这里面的参数都没有实际测试过
 * qemu edu dev spec: <https://www.qemu.org/docs/master/specs/edu.html>
 
 * `qemu-img`的常见用法

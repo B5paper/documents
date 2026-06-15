@@ -2,192 +2,6 @@
 
 ## cache
 
-* pyenv 在执行 `pyenv install <version>` 时，如果下载速度过慢，我手动下载了 `xxx.tar.xz` 文件，该如何指定 pyenv 使用本地文件？
-
-    国内下载 `pyenv` 的官方源确实经常让人抓狂。既然你已经手动下载了 `.tar.xz` 压缩包，可以通过**设置环境变量**或者**建立缓存目录**的方式，让 `pyenv` 直接读取本地文件，跳过下载步骤。
-
-    这里推荐最稳妥、最常用的 **`~/.pyenv/cache` 缓存法**。
-
-    ---
-
-    第一步：创建 cache 目录
-
-    `pyenv` 默认不会创建这个目录，你需要手动创建它：
-
-    ```bash
-    mkdir -p ~/.pyenv/cache
-
-    ```
-
-    *(注意：如果你自定义了 `PYENV_ROOT`，请将路径替换为你的实际 pyenv 安装路径下的 `cache` 目录)*
-
-    第二步：将下载好的压缩包移入该目录
-
-    把你的 `xxx.tar.xz` 文件复制或移动到刚才创建的 `cache` 文件夹中。
-
-    ```bash
-    cp /path/to/your/Python-3.x.x.tar.xz ~/.pyenv/cache/
-    ```
-
-    > ⚠️ **关键细节：检查文件名**
-    > `pyenv` 对文件名有严格的匹配规则。通常从 Python 官网下载的文件名是 `Python-3.x.x.tar.xz`（注意大写 `P`）。请确保文件名与 `pyenv` 预期的名称完全一致。如果你不确定，可以先执行一下 `pyenv install 3.x.x`，看它第一行提示正在下载的链接尾部是什么文件名，然后把本地文件改成那个名字。
-
-    第三步：离线安装
-
-    这时候再次执行安装命令，并加上 `-v`（详细模式）参数，这样你能清晰地看到它是否使用了缓存：
-
-    ```bash
-    pyenv install -v 3.x.x
-
-    ```
-
-    如果配置正确，你会看到类似 `Installing Python-3.x.x...` 的提示，而不会出现 `Downloading...` 的进度条，接着就会直接进入编译阶段。
-
-    ---
-
-    **备选方案：通过本地镜像源（更省心）**
-
-    如果你以后经常需要安装不同版本，每次都手动下载可能会觉得麻烦。你可以直接使用国内的镜像源（比如淘宝镜像），让 `pyenv` 自己去快车道下载。
-
-    在执行安装时，临时指定 `PYTHON_BUILD_MIRROR_URL` 环境变量：
-
-    ```bash
-    # 以安装 3.10.11 为例
-    v=3.10.11
-    export PYTHON_BUILD_MIRROR_URL="https://npmmirror.com/mirrors/python/$v/"
-    pyenv install $v
-
-    ```
-
-    这个方法会自动去国内镜像站寻找对应的版本，速度通常也是满速，免去了手动下载和改名字的烦恼。
-* pyenv 需要现场编译 python 源码，需要编译环境，还需要几个依赖库，比较麻烦。
-
-    关于 tk，只需要 tk-dev 就可以
-
-* 这个错误在 pyenv 环境下非常经典：你的 Python 是在没有安装 Tkinter 库的情况下编译安装的。
-
-    抓到“元凶”了。这个错误在 **pyenv** 环境下非常经典：**你的 Python 是在没有安装 Tkinter 库的情况下编译安装的。**
-
-    在 Linux 上，`_tkinter` 是 Python 调用系统 GUI 的 C 语言扩展。如果你在安装 Python 3.12 之前没有安装系统的 `tk-dev` 开发包，pyenv 编译出来的 Python 就会自动“阉割”掉图形界面功能。
-
-    ---
-
-    **终极解决方案（三步走）**
-
-    你不能直接用 `pip install tkinter`（因为它不是纯 Python 库），你需要重新给系统“补课”。
-
-    **第一步：安装系统开发库**
-
-    在终端执行：
-
-    ```bash
-    sudo apt-get update
-    sudo apt-get install tk-dev libtk8.6 python3-tk
-
-    ```
-
-    **第二步：让 pyenv 重新编译 Python**
-
-    因为 `_tkinter` 是在 Python 编译安装时嵌入的，所以你需要**重新安装**当前的 Python 版本。别担心，这不会删掉你已有的 site-packages，但会补全功能：
-
-    ```bash
-    # 重新安装当前版本（如果你用的是 3.12.12）
-    pyenv install 3.12.12
-
-    ```
-
-    *注：pyenv 会检测到已安装，可能会询问是否覆盖，选择 **Yes**。*
-
-    **第三步：验证**
-
-    安装完成后，运行下面这行命令测试：
-
-    ```bash
-    python -c "import tkinter; print('Tkinter works!')"
-
-    ```
-
-    如果输出了 `Tkinter works!`，你的 `plt.show()` 就能弹出窗口了。
-
-    ---
-
-    **觉得重新编译太麻烦？（快速绕过方案）**
-
-    如果你现在急着看结果，不想等 pyenv 编译（通常要几分钟），可以改用 **不需要 Tkinter 的后端**：
-
-    1. **保存为图片（最简单）：**
-
-        在 `recon.py` 中，把 `plt.show()` 替换为：
-        ```python
-        plt.savefig('my_recon_result.png')
-        print("图像已保存到当前目录下的 my_recon_result.png")
-
-        ```
-
-    2. **尝试切换到 Qt 后端（如果你装了 PyQt）：**
-
-        ```python
-        import matplotlib
-        try:
-            matplotlib.use('Qt5Agg')
-        except:
-            pass
-        import matplotlib.pyplot as plt
-
-        ```
-
-    **建议还是走“第一步 + 第二步”，因为以后你跑任何带有图形界面的 Python 脚本，这个问题都会像幽灵一样缠着你。**
-
-    **需要我帮你写一个自动检测后端并保存图片的脚本片段吗？**
-
-* pyenv 安装 python 时是从源码编译，下面是常用的几个编译依赖库
-
-    * sudo apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev
-
-    sudo apt-get install -y tk-dev
-
-    * 为什么会出现这个问题？
-
-        pyenv 安装 Python 的本质是从源码现场编译。
-
-        它就像一个厨师，如果发现你的厨房（系统）里没有 libsqlite3-dev（数据库原材料），它不会报错停止，而是选择“不做了”，直接跳过这个组件完成安装。
-
-        这就是为什么你看到了 Installed 成功提示，但运行后却报 ImportError 的原因。
-
-* pyenv 安装 python 3.12.12 时，需要额外安装一些 libxxx-dev 的库。pyenv 安装的 python 都是现场编译的吗？
-
-    可能用到的依赖：
-
-    ```bash
-    sudo apt update
-    sudo apt install -y build-essential zlib1g-dev libncurses5-dev \
-    libgdbm-dev libnss3-dev libssl-dev libreadline-dev \
-    libffi-dev libsqlite3-dev libbz2-dev liblzma-dev
-    ```
-
-* pyenv 安装后的提示
-
-    ```
-    WARNING: seems you still have not added 'pyenv' to the load path.
-
-    # Load pyenv automatically by appending
-    # the following to 
-    # ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
-    # and ~/.bashrc (for interactive shells) :
-
-    export PYENV_ROOT="$HOME/.pyenv"
-    [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-    eval "$(pyenv init - bash)"
-
-    # Restart your shell for the changes to take effect.
-
-    # Load pyenv-virtualenv automatically by adding
-    # the following to ~/.bashrc:
-
-    eval "$(pyenv virtualenv-init -)"
-
-    ```
-
 * Python创建虚拟环境方法总结
 
     在Python中创建虚拟环境有多种方法，以下是几种常用的方式：
@@ -984,5 +798,198 @@
     site-packages	每个虚拟环境独立一份	每个 Python 版本全局共享一份
     存储位置	项目目录内（可自定义）	~/.pyenv/versions/
     激活方式	source myenv/bin/activate	pyenv local/global/shell
+
+## topics
+
+### pyenv
+
+* pyenv 在执行 `pyenv install <version>` 时，如果下载速度过慢，我手动下载了 `xxx.tar.xz` 文件，该如何指定 pyenv 使用本地文件？
+
+    国内下载 `pyenv` 的官方源确实经常让人抓狂。既然你已经手动下载了 `.tar.xz` 压缩包，可以通过**设置环境变量**或者**建立缓存目录**的方式，让 `pyenv` 直接读取本地文件，跳过下载步骤。
+
+    这里推荐最稳妥、最常用的 **`~/.pyenv/cache` 缓存法**。
+
+    ---
+
+    第一步：创建 cache 目录
+
+    `pyenv` 默认不会创建这个目录，你需要手动创建它：
+
+    ```bash
+    mkdir -p ~/.pyenv/cache
+
+    ```
+
+    *(注意：如果你自定义了 `PYENV_ROOT`，请将路径替换为你的实际 pyenv 安装路径下的 `cache` 目录)*
+
+    第二步：将下载好的压缩包移入该目录
+
+    把你的 `xxx.tar.xz` 文件复制或移动到刚才创建的 `cache` 文件夹中。
+
+    ```bash
+    cp /path/to/your/Python-3.x.x.tar.xz ~/.pyenv/cache/
+    ```
+
+    > ⚠️ **关键细节：检查文件名**
+    > `pyenv` 对文件名有严格的匹配规则。通常从 Python 官网下载的文件名是 `Python-3.x.x.tar.xz`（注意大写 `P`）。请确保文件名与 `pyenv` 预期的名称完全一致。如果你不确定，可以先执行一下 `pyenv install 3.x.x`，看它第一行提示正在下载的链接尾部是什么文件名，然后把本地文件改成那个名字。
+
+    第三步：离线安装
+
+    这时候再次执行安装命令，并加上 `-v`（详细模式）参数，这样你能清晰地看到它是否使用了缓存：
+
+    ```bash
+    pyenv install -v 3.x.x
+
+    ```
+
+    如果配置正确，你会看到类似 `Installing Python-3.x.x...` 的提示，而不会出现 `Downloading...` 的进度条，接着就会直接进入编译阶段。
+
+    ---
+
+    **备选方案：通过本地镜像源（更省心）**
+
+    如果你以后经常需要安装不同版本，每次都手动下载可能会觉得麻烦。你可以直接使用国内的镜像源（比如淘宝镜像），让 `pyenv` 自己去快车道下载。
+
+    在执行安装时，临时指定 `PYTHON_BUILD_MIRROR_URL` 环境变量：
+
+    ```bash
+    # 以安装 3.10.11 为例
+    v=3.10.11
+    export PYTHON_BUILD_MIRROR_URL="https://npmmirror.com/mirrors/python/$v/"
+    pyenv install $v
+
+    ```
+
+    这个方法会自动去国内镜像站寻找对应的版本，速度通常也是满速，免去了手动下载和改名字的烦恼。
+
+* pyenv 需要现场编译 python 源码，需要编译环境，还需要几个依赖库，比较麻烦。
+
+    关于 tk，只需要 tk-dev 就可以
+
+* 这个错误在 pyenv 环境下非常经典：你的 Python 是在没有安装 Tkinter 库的情况下编译安装的。
+
+    抓到“元凶”了。这个错误在 **pyenv** 环境下非常经典：**你的 Python 是在没有安装 Tkinter 库的情况下编译安装的。**
+
+    在 Linux 上，`_tkinter` 是 Python 调用系统 GUI 的 C 语言扩展。如果你在安装 Python 3.12 之前没有安装系统的 `tk-dev` 开发包，pyenv 编译出来的 Python 就会自动“阉割”掉图形界面功能。
+
+    ---
+
+    **终极解决方案（三步走）**
+
+    你不能直接用 `pip install tkinter`（因为它不是纯 Python 库），你需要重新给系统“补课”。
+
+    **第一步：安装系统开发库**
+
+    在终端执行：
+
+    ```bash
+    sudo apt-get update
+    sudo apt-get install tk-dev libtk8.6 python3-tk
+
+    ```
+
+    **第二步：让 pyenv 重新编译 Python**
+
+    因为 `_tkinter` 是在 Python 编译安装时嵌入的，所以你需要**重新安装**当前的 Python 版本。别担心，这不会删掉你已有的 site-packages，但会补全功能：
+
+    ```bash
+    # 重新安装当前版本（如果你用的是 3.12.12）
+    pyenv install 3.12.12
+
+    ```
+
+    *注：pyenv 会检测到已安装，可能会询问是否覆盖，选择 **Yes**。*
+
+    **第三步：验证**
+
+    安装完成后，运行下面这行命令测试：
+
+    ```bash
+    python -c "import tkinter; print('Tkinter works!')"
+
+    ```
+
+    如果输出了 `Tkinter works!`，你的 `plt.show()` 就能弹出窗口了。
+
+    ---
+
+    **觉得重新编译太麻烦？（快速绕过方案）**
+
+    如果你现在急着看结果，不想等 pyenv 编译（通常要几分钟），可以改用 **不需要 Tkinter 的后端**：
+
+    1. **保存为图片（最简单）：**
+
+        在 `recon.py` 中，把 `plt.show()` 替换为：
+        ```python
+        plt.savefig('my_recon_result.png')
+        print("图像已保存到当前目录下的 my_recon_result.png")
+
+        ```
+
+    2. **尝试切换到 Qt 后端（如果你装了 PyQt）：**
+
+        ```python
+        import matplotlib
+        try:
+            matplotlib.use('Qt5Agg')
+        except:
+            pass
+        import matplotlib.pyplot as plt
+
+        ```
+
+    **建议还是走“第一步 + 第二步”，因为以后你跑任何带有图形界面的 Python 脚本，这个问题都会像幽灵一样缠着你。**
+
+    **需要我帮你写一个自动检测后端并保存图片的脚本片段吗？**
+
+* pyenv 安装 python 时是从源码编译，下面是常用的几个编译依赖库
+
+    * sudo apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev
+
+    sudo apt-get install -y tk-dev
+
+    * 为什么会出现这个问题？
+
+        pyenv 安装 Python 的本质是从源码现场编译。
+
+        它就像一个厨师，如果发现你的厨房（系统）里没有 libsqlite3-dev（数据库原材料），它不会报错停止，而是选择“不做了”，直接跳过这个组件完成安装。
+
+        这就是为什么你看到了 Installed 成功提示，但运行后却报 ImportError 的原因。
+
+* pyenv 安装 python 3.12.12 时，需要额外安装一些 libxxx-dev 的库。pyenv 安装的 python 都是现场编译的吗？
+
+    可能用到的依赖：
+
+    ```bash
+    sudo apt update
+    sudo apt install -y build-essential zlib1g-dev libncurses5-dev \
+    libgdbm-dev libnss3-dev libssl-dev libreadline-dev \
+    libffi-dev libsqlite3-dev libbz2-dev liblzma-dev
+    ```
+
+* pyenv 安装后的提示
+
+    ```
+    WARNING: seems you still have not added 'pyenv' to the load path.
+
+    # Load pyenv automatically by appending
+    # the following to 
+    # ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
+    # and ~/.bashrc (for interactive shells) :
+
+    export PYENV_ROOT="$HOME/.pyenv"
+    [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init - bash)"
+
+    # Restart your shell for the changes to take effect.
+
+    # Load pyenv-virtualenv automatically by adding
+    # the following to ~/.bashrc:
+
+    eval "$(pyenv virtualenv-init -)"
+
+    ```
+
+### venv
 
 ## note
