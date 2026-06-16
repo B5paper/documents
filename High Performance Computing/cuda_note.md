@@ -2,6 +2,116 @@
 
 ## cache
 
+* gpu 通过 launch kernel 把数据从显存拷到 host 上时，使用 uvm 了吗？
+
+    使用统一虚拟内存（UVM）模式
+
+    当您使用UVM时，GPU和CPU共享一个统一的虚拟地址空间。这意味着一个指针既可以被CPU访问，也可以被GPU访问。物理数据在CPU内存和GPU显存之间的迁移是由驱动和硬件在后台自动完成的。
+
+    在这种模式下，数据“拷贝”的行为变得不同。
+
+    1.  **分配UVM内存**：您使用`cudaMallocManaged`或`cudaMallocManaged`来分配统一内存。
+
+        ```cuda
+        float *uvm_data;
+        cudaMallocManaged(&uvm_data, size);
+        ```
+
+    2.  **CPU初始化**：CPU可以直接操作`uvm_data`。
+
+        ```cuda
+        for(int i=0; i<N; i++) uvm_data[i] = i;
+        ```
+
+    3.  **启动内核**：当您启动内核时（`myKernel<<<...>>>(uvm_data)`），CUDA运行时系统会：
+
+        *   检测到内核将要访问`uvm_data`。
+        *   确保在内核执行**之前**，该数据已经迁移到GPU显存中（如果尚未存在）。这个过程对程序员是**透明**的。
+
+    4.  **内核执行后CPU访问**：内核结束后，如果CPU马上尝试读取`uvm_data`，会发生什么？
+
+        *   **可能触发Page Fault**：CPU访问了一个其当前内存中没有最新数据的地址。
+
+        *   **驱动介入**：CUDA驱动会捕获这个错误，然后将数据从GPU显存**迁移**回CPU内存，以确保CPU看到的是最新结果。
+
+        *   这个迁移过程看起来像一次“拷贝”，但它是由访问触发的，而不是由`cudaMemcpy`发起的。
+
+    **结论：在UVM模式下，您不需要显式调用`cudaMemcpy`。数据在内核启动前和CPU访问时，由系统自动在GPU显存和CPU内存之间迁移。所以，虽然您没有写拷贝代码，但数据的物理移动确实发生了，这背后就是UVM在管理。**
+
+    - 当kernel中的线程访问一个由`cudaMallocManaged`分配的UVM内存地址时
+    - 如果该数据当前位于CPU内存中，GPU的MMU会触发**页错误**
+    - 此时，**SM会暂停相关线程**，而GPU的内存管理单元会：
+      - 通过DMA将所需的数据页从CPU内存迁移到GPU显存
+      - 完成后恢复线程执行
+    - 这个过程看起来就像是SM在"搬运"数据
+
+    **CUDA 11的`cudaMemPrefetchAsync`**
+
+    您可以显式地指导数据移动：
+
+    ```cuda
+    float *uvm_data;
+    cudaMallocManaged(&uvm_data, size);
+
+    // 在kernel启动前，预取数据到GPU
+    cudaMemPrefetchAsync(uvm_data, size, device_id); // 移动到GPU显存
+
+    myKernel<<<...>>>(uvm_data);
+
+    // kernel结束后，预取数据回CPU
+    cudaMemPrefetchAsync(uvm_data, size, cudaCpuDeviceId);
+    ```
+
+    在这个例子中，虽然看起来是API调用在搬数据，但底层仍然是SM和内存控制器协作完成的。
+
+    实际示例
+
+    ```cpp
+    __global__ void processData(float *data, int n) {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < n) {
+            // 如果data[idx]不在GPU显存中，会触发UVM页错误
+            // SM会暂停当前线程，后台将数据从CPU内存搬移到GPU显存
+            data[idx] = data[idx] * 2.0f + 1.0f;
+        }
+    }
+
+    int main() {
+        float *data;
+        cudaMallocManaged(&data, N * sizeof(float));
+        
+        // CPU初始化数据
+        for (int i = 0; i < N; i++) data[i] = i;
+        
+        // 启动kernel - SM会在需要时自动搬数据
+        processData<<<(N+255)/256, 256>>>(data, N);
+        cudaDeviceSynchronize();
+        
+        // 此时数据可能还在GPU显存，当CPU访问时会迁回CPU内存
+        printf("%f\n", data[0]);
+        
+        cudaFree(data);
+        return 0;
+    }
+    ```
+
+    性能考虑
+
+    即使使用UVM，在kernel内部大量访问"远程"数据也会有性能代价：
+
+    ```cpp
+    // 不好的模式：可能导致大量页错误
+    __global__ void slow_copy(float *src, float *dst, int n) {
+        for (int i = 0; i < n; i++) {
+            dst[i] = src[i];  // 可能频繁触发页迁移
+        }
+    }
+
+    // 更好的模式：预取数据
+    cudaMemPrefetchAsync(src, size, device_id);  // 预取到GPU
+    cudaMemPrefetchAsync(dst, size, device_id);
+    copy_data<<<...>>>(src, dst, n);
+    ```
 * 有什么开源的 cuda 线性代数库，类似 cuBLAS 那样的
 
     1. CUTLASS (by NVIDIA)

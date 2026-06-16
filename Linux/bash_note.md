@@ -4,6 +4,111 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 中，我想知道这个 bash 进程接收到了操作系统发过来的哪些 signal，怎么办
+
+    在 Bash 中，想要知道当前进程（或指定 Bash 进程）接收、捕获或忽略了哪些信号（Signals），可以通过以下几种方法来实现。最直接、最底层的方法是读取 Linux 的 `/proc` 伪文件系统。
+
+    ---
+
+    ## 方法一：通过 `/proc` 文件系统查看（最精准）
+
+    Linux 会将每个进程的信号处理状态记录在 `/proc/[PID]/status` 文件中。你可以直接查看当前 Bash 进程（PID 为 `$$`）的状态。
+
+    运行以下命令：
+
+    ```bash
+    grep -E "Sig(Pnd|Blk|Ign|Cgt)" /proc/$$/status
+
+    ```
+
+    ### 1. 输出结果解析
+
+    你会看到类似下面的一串十六进制掩码：
+
+    * **`SigPnd` (Pending):** 进程排队等待接收的信号。
+    * **`SigBlk` (Blocked):** 进程目前阻塞的信号（暂时不处理）。
+    * **`SigIgn` (Ignored):** 进程**显式忽略**的信号。
+    * **`SigCgt` (Caught):** 进程**捕获并自定义了处理函数**的信号（这也是你最需要关注的）。
+
+    ### 2. 如何将十六进制转换为可读的信号名称？
+
+    手算十六进制位掩码太痛苦了，我们可以用 Linux 自带的 `ps` 工具直接转换，或者用一个简单的命令行组合。
+
+    **直接用 `ps` 查看当前 Shell 捕获的信号：**
+
+    ```bash
+    ps -o pid,comm,caught -p $$
+
+    ```
+
+    *输出示例：*
+
+    ```text
+      PID COMMAND          CAUGHT
+    12345 bash     0000000180014003
+
+    ```
+
+    **终极解析脚本：**
+    如果你想抓出具体是哪些信号（如 `SIGINT`, `SIGTERM`），可以直接运行下面这段单行命令，它会把 `SigCgt` 翻译成具体的信号名称：
+
+    ```bash
+    cat /proc/$$/status | grep SigCgt | awk '{print $2}' | xargs -I {} -s 256 sample=0x{} perl -e '
+    $mask = oct($ENV{sample});
+    for ($i=1; $i<=64; $i++) {
+        print "Signal $i (" . `kill -l $i` . ") is caught\n" if ($mask & (1 << ($i-1)));
+    }' | sed 's/\n//g'
+
+    ```
+
+    *(注：`kill -l` 会把数字转为标准的信号名，比如 2 代表 `INT`，15 代表 `TERM`。)*
+
+    ---
+
+    ## 方法二：使用 Bash 内置的 `trap` 命令（最常用）
+
+    如果你只想知道 **Bash 脚本或当前交互式终端自己用 `trap` 显式捕获了哪些信号**，直接输入 `trap` 即可：
+
+    ```bash
+    trap
+
+    ```
+
+    * **如果没有任何输出：** 说明当前 Bash 没用自定义的 `trap` 钩子，它正在使用操作系统默认的信号处理机制。
+    * **如果有输出：** 它会列出所有被捕获的信号和对应的触发动作。例如：
+    ```text
+    trap -- 'echo "Caught SIGINT!"' SIGINT
+    trap -- '' SIGTERM  # 这代表 SIGTERM 被忽略了
+
+    ```
+
+
+
+    ---
+
+    ## 方法三：使用 `ssignal` 或 `psig` 工具（如果系统支持）
+
+    在某些 Linux 发行版或通过安装 `debian-goodies` / `procps` 增强包后，你可以使用更人性化的工具：
+
+    ```bash
+    # 如果系统中安装了 psig (通常在 Solaris 或部分高级工具集里)
+    psig $$
+
+    ```
+
+    或者使用 `ps` 的扩展格式查看：
+
+    ```bash
+    ps -q $$ -o s वर्गीकृत信号相关字段 (需查阅具体man手册)
+
+    ```
+
+    ---
+
+    ## 💡 总结建议
+
+    * 想快速看当前 Shell 脚本里绑定了什么监控函数：直接输 **`trap`**。
+    * 想看操作系统底层到底把哪些信号投递给了这个 Bash（包括动态捕获的）：用 **`grep -E "Sig(Cgt|Ign)" /proc/$$/status`**。
 * bash 中，一个变量 my_env 无论是 export 的，还是非 export 的，都可以使用 unset 取消这个变量。如果只想取消这个 export 前缀，那么可以使用`export -n my_env`
 
 * 简述 bash 中 exec 的用法

@@ -5,7 +5,216 @@
 这里不记录编程相关，操作系统原理相关。
 
 ## cache
+* 详细讲讲 systemd-run 的用法
 
+    `systemd-run` 是 systemd 工具家族中非常强大但常被低估的一个命令。它的核心作用是：**在临时（Transient）的 systemd 单元（Unit）中运行程序。**
+
+    简单来说，平时你用 `&` 或 `nohup` 在后台运行任务，一旦终端断开或者父进程挂了，任务可能就会受影响。而使用 `systemd-run`，你是**让 systemd 进程（PID 1）直接接管并运行该任务**。它会获得和正式 systemd 服务一模一样的待遇：独立的 Cgroup、资源限制、日志收集等。
+
+    以下是关于 `systemd-run` 用法的详细拆解：
+
+    ---
+
+    ## 核心应用场景
+
+    * **真正的后台运行：** 替代 `nohup` 或 `screen`/`tmux` 运行临时脚本，不用担心终端关闭导致任务中断。
+    * **资源限制测试：** 临时限制某个高负载命令的 CPU 或内存占用，防止系统卡死。
+    * **定时任务：** 替代 `cron`，临时创建一个只执行一次（或周期执行）的定时任务。
+    * **安全沙箱：** 利用 systemd 的安全特性，在隔离的环境中运行不信任的程序。
+
+    ---
+
+    ## 基础语法与常用参数
+
+    基础结构非常简单：
+
+    ```bash
+    systemd-run [options] COMMAND [arguments...]
+
+    ```
+
+    ### 常用核心参数：
+
+    * `--user`：以当前登录用户的身份（用户级 systemd 实例）运行，不需要 root 权限。如果不加，默认是 `--system`（需要 root 权限）。
+    * `--unit=名称`：给这个临时服务起个名字。方便后面用 `systemctl` 控制。
+    * `--scope`：默认情况下，命令会在一个独立的 **Service** 单元中异步运行（后台）。如果加上 `--scope`，它会在当前前台进程中运行，但受 systemd 的 **Scope** 单元管理（常用于限制当前 Shell 及其子进程的资源）。
+    * `-p` 或 `--property=键=值`：这是最强大的参数，允许你直接注入任意的 systemd 配置项（如内存限制、环境变量等）。
+
+    ---
+
+    ## 经典使用场景与示例
+
+    ### 1. 后台异步运行长耗时任务
+
+    假设你有一个需要运行几小时的备份脚本 `backup.sh`：
+
+    ```bash
+    sudo systemd-run --unit=my-backup /usr/local/bin/backup.sh
+
+    ```
+
+    * **效果：** 任务立刻在后台运行，终端会返回一行提示：`Running as unit: my-backup.service`。
+    * **如何查看日志？** ```bash
+    journalctl -u my-backup.service -f
+    ```
+
+    ```
+
+
+    * **如何停止它？** ```bash
+    sudo systemctl stop my-backup.service
+    ```
+
+
+    ```
+
+
+
+    ### 2. 限制命令的资源占用（防止系统宕机）
+
+    如果你要编译一个超大项目，或者运行一个极度消耗内存的 Python 脚本，可以限制它最多使用 2 个 CPU 核心和 4G 内存：
+
+    ```bash
+    sudo systemd-run -p CPUQuota=200% -p MemoryMax=4G --unit=heavy-job ./run-heavy-simulation.sh
+
+    ```
+
+    > **注：** `CPUQuota=200%` 意味着最多压满 2 个 CPU 核心。如果程序超出了 4G 内存，systemd 会直接触发 OOM 杀死它，保护宿主机安全。
+
+    ### 3. 作为定时任务（替代 `cron`）
+
+    `systemd-run` 可以通过 `--on-active`（从现在起多久后）、`--on-calendar`（绝对时间）等参数直接生成临时的 **Timer** 单元。
+
+    * **30分钟后执行一次：**
+    ```bash
+    sudo systemd-run --on-active="30m" --unit=delayed-task /usr/local/bin/clean.sh
+
+    ```
+
+
+    * **每周五凌晨 2 点执行：**
+    ```bash
+    sudo systemd-run --on-calendar="Fri *-*-* 02:00:00" --unit=weekly-clean /usr/local/bin/clean.sh
+
+    ```
+
+
+    *(查看排队的定时任务：`systemctl list-timers --all`)*
+
+    ### 4. 普通用户身份运行（无需 root）
+
+    普通用户想丢一个后台任务，加上 `--user` 即可：
+
+    ```bash
+    systemd-run --user --unit=my-crawler python3 spider.py
+
+    ```
+
+    * **注意：** 查看和管理时也要带上 `--user`：
+    ```bash
+    journalctl --user -u my-crawler.service
+    systemctl --user status my-crawler.service
+
+    ```
+
+    ### 5. 限制当前终端（或后续命令）的资源
+
+    如果你想限制**接下来的操作**，可以使用 `--scope`：
+
+    ```bash
+    sudo systemd-run --scope -p MemoryMax=1G stress --vm 1 --vm-bytes 1.5G
+
+    ```
+
+    * **效果：** `stress` 压测程序刚试图申请 1.5G 内存，就会立刻被 systemd 强行终止，因为整个 Scope 被限制在 1G 内存内。
+
+    ---
+
+    ## systemd-run 与传统工具的对比
+
+    | 特性 | `nohup` / `&` | `screen` / `tmux` | `systemd-run` |
+    | --- | --- | --- | --- |
+    | **生命周期** | 绑定在当前用户会话（即使 nohup 偶尔也会因为 SIGHUP 异常退出） | 绑定在 tmux 后台进程 | **完全由 PID 1 (systemd) 接管**，与用户登录状态彻底脱钩 |
+    | **日志收集** | 重定向到文件（如 `nohup.out`） | 屏幕缓存，断开就看不到了 | **自动整合进 `journalctl**`，支持动态轮转、时间筛选 |
+    | **资源限制** | 极弱（依赖 `ulimit`） | 无 | **极强**（支持 cgroups 的 CPU、内存、I/O 动态限制） |
+    | **状态查询** | 只能用 `ps` 查 PID | `tmux ls` | 标准的 `systemctl status` 观察，包含运行时间、Cgroup 树 |
+
+    ---
+
+    ## 总结与小贴士
+
+    * **自动清理：** `systemd-run` 创建的 unit 是临时（Transient）的。当命令运行结束退出后，对应的 service 单元会自动销毁，不会在系统里留下垃圾配置文件。
+    * **配合环境变量：** 如果你的命令依赖当前环境的环境变量，记得用 `-E KEY=VALUE` 传进去，因为由 systemd 启动的命令默认只有最基础的系统环境变量。
+
+    你目前是有具体的后台任务需要迁移到 `systemd-run` 来管理，还是在设计某种自动化的运维脚本呢？
+* 简述 glow, mdcat, catwalk 的作用
+
+    好的，我们来简单说明一下 `glow`、`mdcat` 和 `catwalk` 这三个命令行工具的作用。
+
+    它们的共同点是都用于在**终端**中更好地处理和展示文本内容，但各自的侧重点不同。
+
+    ---
+
+    1. Glow
+
+        **核心作用：在终端中渲染并浏览 Markdown 文件。**
+
+        `glow` 就像一个终端里的 Markdown 阅读器。它不仅能以纯文本方式显示 Markdown，还能对其进行**格式化渲染**，使其在终端中看起来更美观、易读，就像在图形化编辑器里看到的一样（支持加粗、斜体、颜色、表格、代码块高亮等）。
+
+        **主要特点：**
+        *   **本地文件渲染**：可以直接在终端里漂亮地查看本地的 `.md` 文件。
+            ```bash
+            glow README.md
+            ```
+        *   **暂存区管理**：它有一个独特的“暂存区”功能，可以让你将一些笔记或 Markdown 片段暂存起来，随时查阅。
+        *   **浏览在线 Markdown**：可以直接查看 GitHub 等在线仓库的 Markdown 文件（需要配置 GitHub Token）。
+        *   **交互式浏览**：不加任何参数直接运行 `glow`，会进入一个交互式界面，可以浏览和管理本地的 Markdown 文件以及暂存区内容。
+
+        **一句话总结：想在终端里优雅地阅读 Markdown 文档？用 `glow`。**
+
+    ---
+
+    2. Mdcat
+
+        **核心作用：在终端中**准确地**渲染 Markdown 文件。**
+
+        `mdcat` 的功能和 `glow` 非常相似，也是用于在终端中渲染 Markdown。它是 [Rust 版本的 `bat`](https://github.com/sharkdp/bat) 生态的一部分。
+
+        **主要特点：**
+        *   **强调标准兼容**：`mdcat` 非常注重对 CommonMark 标准的遵循，力求渲染结果准确无误。
+        *   **语法高亮**：它对代码块的语法高亮支持非常出色，通常比 `glow` 更强大和准确。
+        *   **集成终端特性**：它能更好地处理终端特性，比如支持某些终端的**超链接点击**功能。
+        *   **功能更纯粹**：它主要就是一个渲染器，没有像 `glow` 那样的暂存区等额外管理功能。
+
+        **一句话总结：需要一个标准兼容、代码高亮精准的终端 Markdown 渲染器？用 `mdcat`。**
+
+    ---
+
+    3. Catwalk
+
+        **核心作用：快速预览图像、视频等多媒体文件在终端中的显示效果。**
+
+        `catwalk` 与前面两个工具完全不同。它利用现代终端（如 iTerm2, Kitty, WezTerm）的**图形协议**，直接在终端窗口中显示图像、GIF 和视频的缩略图。
+
+        **主要特点：**
+        *   **多媒体预览**：无需打开专门的图片查看器或视频播放器，就能在终端里快速看到文件内容。
+        *   **批量查看**：可以一次性传入多个文件，它会将它们并排显示，方便你快速浏览和比较。
+        *   **开发/设计工作流**：对于开发者或设计师，在命令行中处理图片资源时，可以快速确认文件内容，极大提升效率。
+        *   **依赖终端支持**：它的效果取决于你使用的终端是否支持相应的图形协议。
+
+        **一句话总结：想在终端里快速预览图片或视频文件？用 `catwalk`。**
+
+    ---
+
+    总结对比
+
+    | 工具名 | 主要处理内容 | 核心作用 | 一句话场景 |
+    | :--- | :--- | :--- | :--- |
+    | **`glow`** | Markdown 文本 | **渲染和浏览** Markdown | “在终端里优雅地看我的笔记和文档。” |
+    | **`mdcat`** | Markdown 文本 | **精准渲染** Markdown（尤其代码） | “我要在终端里准确无误地查看这个 API 文档。” |
+    | **`catwalk`** | 图像、视频 | **预览多媒体**文件 | “我刚下载了一堆图片，在命令行里快速看看哪个是我要的。” |
+
+    简单来说，`glow` 和 `mdcat` 是处理**文本（Markdown）**的，让你读得更舒服；而 `catwalk` 是处理**二进制（多媒体）**的，让你看得见内容。在 `glow` 和 `mdcat` 之间，`glow` 更像一个功能全面的阅读器，而 `mdcat` 则是一个精准的渲染器。
 * 我该如何查看 fail2ban 的 filter 的 sshd.conf 中提取出来的 <HOST> 的值？
 
     `<HOST>` 是 Fail2ban **从日志里匹配出来的 IP 地址**，但 **Fail2ban 默认不会直接把它打印出来**。不过你有几种可靠的方法可以看到 Fail2ban 实际提取到的 `<HOST>` 值。
