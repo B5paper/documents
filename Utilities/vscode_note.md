@@ -2,6 +2,58 @@
 
 ## cache
 
+* vscode 里如何添加自定义 python module 的路径
+
+    1. 使用 `.env` 文件
+
+        ```conf
+        PYTHONPATH=../
+        ```
+
+        注：
+
+        1. `.env`文件中的`PYTHONPATH`会同时影响 vscode 的静态符号提示和 f5 代码调试
+
+        1. vscode 会默认在当前工作目录里找`.env`文件。如果`.env`文件不在当前工作区目录，那么可以在`launch.json`里使用`"envFile"`指定`.env`文件的位置
+
+        1. `.env`文件不会影响 vscode 的内置 bash。如果需要，必须手动 export `.env`文件中的各个环境变量。不能直接`source .env`。
+
+            同样地，`.env`文件也不能使用 bash 的语法，比如`PYTHONPATH=new_path:${PYTHONPATH}`
+
+    2. 使用 `launch.json` 配置`"env`变量
+
+        ```json
+        {
+         "version": "0.2.0",
+         "configurations": [
+           {
+             "name": "Python: Current File",
+             "type": "python",
+             "request": "launch",
+             "program": "${file}",
+             "console": "integratedTerminal",
+             "env": {
+               "PYTHONPATH": "${workspaceFolder}/../"
+             }
+           }
+         ]
+        }
+        ```
+
+    3. 使用 settings.json 配置
+
+        1. 打开设置
+
+            命令面板 → "Preferences: Open Settings (JSON)"
+           
+        2. 添加工作区设置
+
+           ```json
+           {
+             "python.envFile": "${workspaceFolder}/.env",
+             "python.terminal.executeInFileDir": true
+           }
+           ```
 * vscode 可以使用`Ctrl + Shift + O`打开 Markdown 标题导航
 
 * vscode 调试在 for 循环 / while 循环中的代码时，如何方便地跳出循环？

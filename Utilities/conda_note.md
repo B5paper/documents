@@ -16,6 +16,22 @@
 
 ## cache
 
+* windows 中安装 conda 后，如何在 powershell  中自动激活
+
+    在Windows PowerShell中让Conda自动激活，有以下几种方法：
+
+    方法： 使用 conda init 命令
+
+    1. **以管理员身份打开PowerShell**
+    2. **运行以下命令**：
+
+       ```powershell
+       conda init powershell
+       ```
+
+    3. **重启PowerShell**
+
+    这个命令会自动修改PowerShell配置文件，添加必要的初始化代码。
 * cygwin 下的 conda init
 
     请尝试以下步骤解决：

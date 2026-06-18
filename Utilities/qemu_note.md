@@ -2,6 +2,189 @@
 
 ## cache
 
+* > qemu-system-x86_64: We need to set caching-mode=on for intel-iommu to enable de.
+
+    这个报错是QEMU的警告信息，不是致命的错误。主要涉及以下几个方面：
+
+    1. NUMA节点配置问题
+
+        ```
+        qemu-system-x86_64: warning: CPU(s) not present in any NUMA nodes: CPU 96 [sock]
+        qemu-system-x86_64: warning: All CPU(s) up to maxcpus should be described in NUMA nodes
+        ```
+
+        原因： QEMU配置了多个CPU，但没有正确分配到NUMA（非统一内存访问）节点中
+
+        影响： 性能警告，不会导致功能故障，但可能影响多核性能优化
+
+    2. Intel IOMMU缓存模式警告
+
+        ```
+        qemu-system-x86_64: We need to set caching-mode=on for intel-iommu to enable de.
+        ```
+
+        原因： Intel IOMMU（输入输出内存管理单元）需要启用缓存模式
+
+        影响： IOMMU功能可能受限，但对于基本PCIe设备模拟通常不影响
+
+    建议解决方案：
+
+    1. **修复NUMA警告**（如果需要）
+
+        在QEMU启动参数中添加NUMA配置：
+
+        ```bash
+        -numa node,nodeid=0,cpus=0-95 -numa node,nodeid=1,cpus=96-127
+        ```
+
+        （根据你的CPU总数调整范围）
+
+    2. **添加IOMMU缓存模式**
+
+        在QEMU参数中添加：
+
+        ```bash
+        -machine q35,accel=kvm -device intel-iommu,caching-mode=on
+        ```
+
+* 我想让几个指定的 pci device 进行 iommu passthrough，剩下的正常走 iommu，怎么办
+
+    实现 **部分 PCIe 设备使用 IOMMU passthrough，其他走普通 IOMMU** 在 QEMU 中有几种方法，主要取决于你的具体需求：
+
+    方法一：使用 **VFIO 和 iommu=pt** 模式（推荐）
+
+    1. **配置 GRUB 和内核参数**
+
+        ```bash
+        # 在 /etc/default/grub 中添加
+        GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt"
+        # 对于 AMD 平台：amd_iommu=on iommu=pt
+        ```
+
+    2. **为不同设备使用不同的驱动**
+
+        ```bash
+        # 将需要 passthrough 的设备绑定到 vfio-pci
+        # 假设要透传的设备是 00:02.0 和 00:03.0
+        sudo lspci -n -s 00:02.0  # 获取 vendor:device ID
+        # 输出示例：10de:1b80
+        ```
+
+        ```bash
+        # 在 QEMU 启动参数中区分设备：
+        -device vfio-pci,host=00:02.0,id=passthrough_dev1
+        -device vfio-pci,host=00:03.0,id=passthrough_dev2
+        # 其他设备会自动走标准 IOMMU
+        ```
+
+    方法二：在 QEMU 命令行中混合配置
+
+    完整示例：
+
+    ```bash
+    qemu-system-x86_64 \
+      -machine q35,accel=kvm \
+      -device intel-iommu,caching-mode=on \
+      # Passthrough 设备使用 VFIO
+      -device vfio-pci,host=00:02.0,multifunction=on,id=sipu1 \
+      -device vfio-pci,host=00:03.0,id=sipu2 \
+      # 其他设备正常模拟（会走 IOMMU 重映射）
+      -device e1000e,netdev=net0 \
+      -device virtio-blk-pci,drive=disk0 \
+      # VFIO 需要的内存锁定
+      -object memory-backend-file,id=mem,size=4G,mem-path=/dev/hugepages,share=on \
+      -numa node,memdev=mem \
+      -mem-prealloc
+    ```
+
+    方法三：使用 **iommu_platform=on/off** 控制（对于 virtio 设备）
+
+    ```bash
+    # 某些设备支持直接控制 IOMMU 行为
+    -device virtio-blk-pci,iommu_platform=on  # 走 IOMMU
+    -device virtio-blk-pci,iommu_platform=off # 绕过 IOMMU
+    ```
+
+    方法四：通过 **ACS（Access Control Services）** 分组
+
+    如果硬件支持 ACS，可以创建不同的 IOMMU 组：
+
+    ```bash
+    # 检查设备的 IOMMU 组
+    ls -l /sys/kernel/iommu_groups/*/devices/
+
+    # 在 QEMU 中可以为不同组设置不同策略
+    -device ioh3420,id=root_port1 \
+    -device x3130-upstream,id=upstream1,bus=root_port1 \
+    -device xio3130-downstream,id=downstream1,bus=upstream1,acs=on
+    ```
+
+    SIPU 设备的具体示例：
+
+    假设你想要：
+    - sipu_id 0-1: IOMMU passthrough（直接访问物理设备）
+    - sipu_id 2-3: 正常 IOMMU 重映射（虚拟化）
+
+    ```bash
+    qemu-system-x86_64 \
+      -machine q35,accel=kvm \
+      -device intel-iommu,caching-mode=on,intremap=on \
+      # Passthrough 设备（直通物理 SIPU 0 和 1）
+      -device vfio-pci,host=01:00.0,id=sipu0 \
+      -device vfio-pci,host=01:00.1,id=sipu1 \
+      # 虚拟设备（会通过 IOMMU 重映射）
+      -device x-sipu-device,id=sipu2,bus=pcie.1 \
+      -device x-sipu-device,id=sipu3,bus=pcie.1
+    ```
+
+    重要配置步骤：
+
+    1. **加载必要的内核模块**
+
+        ```bash
+        sudo modprobe vfio
+        sudo modprobe vfio-pci
+        sudo modprobe vfio_iommu_type1
+        ```
+
+    2. **解除设备原驱动绑定**
+
+        ```bash
+        # 查找设备
+        sudo lspci -nn | grep SIPU  # 或你的设备标识
+        # 假设设备是 01:00.0 和 01:00.1
+        sudo sh -c "echo 0000:01:00.0 > /sys/bus/pci/devices/0000:01:00.0/driver/unbind"
+        sudo sh -c "echo 0000:01:00.1 > /sys/bus/pci/devices/0000:01:00.1/driver/unbind"
+        ```
+
+    3. **绑定到 vfio-pci**
+
+        ```bash
+        # 获取 vendor:device ID
+        sudo lspci -n -s 01:00.0
+        # 输出：1234:5678
+
+        sudo sh -c "echo 1234 5678 > /sys/bus/pci/drivers/vfio-pci/new_id"
+        ```
+
+    验证配置：
+
+    1. **检查 IOMMU 是否启用：**
+
+        ```bash
+        dmesg | grep -i iommu
+        ```
+
+    2. **检查设备分配：**
+
+        ```bash
+        # 查看哪些设备使用了 VFIO
+        lspci -k
+        # 查看 IOMMU 组
+        find /sys/kernel/iommu_groups/ -type l | sort -n
+        ```
+
+    哪种场景更符合你的需求？是需要直通物理 SIPU 设备，还是在 QEMU 内混合虚拟和直通设备？
 * 详细讲讲 qemu 中的 tap
 
     在 QEMU/KVM 虚拟化环境中，**TAP** 是一种非常高效且常用的**网络虚拟化技术**。

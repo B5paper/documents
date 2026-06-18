@@ -2,6 +2,736 @@
 
 ## cache
 
+* 将网络中的一部分参数 A 在代码里写为常数，另一部分参数 B 设置为可训练参数，和将所有参数看作可训练参数，但是在 optim.step() 前将参数 A 的 grad 设置为 0，这两种效果是否相同？
+
+    这个问题非常好，也非常细。
+
+    结论先说：
+    👉 **这两种做法在大多数情况下“近似相同”，但严格来说** —— **不完全等价**。
+    下面是详细的原因分析。
+
+    ---
+
+    ## ✅ 两种做法的区别
+
+    我们来定义清楚：
+
+    ### 方法 1：将 A 写死为常数（不注册为 `nn.Parameter`）
+
+    ```python
+    class Net(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.B = nn.Parameter(torch.randn(...))  # 可训练参数
+            self.A = torch.randn(..., requires_grad=False)  # 常数，不是 Parameter
+
+        def forward(self, x):
+            return x @ self.A + self.B
+    ```
+
+    → 在这种情况下：
+
+    * A 不在 `model.parameters()` 中；
+    * optimizer 根本不知道 A 的存在；
+    * A 没有 `grad`；
+    * autograd 在反向传播时**不会为 A 构建梯度分支**（图结构更小）。
+
+    ### 方法 2：A 是可训练参数，但在 step 前把它的梯度清零
+
+    ```python
+    class Net(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.A = nn.Parameter(torch.randn(...))  # 看似可训练
+            self.B = nn.Parameter(torch.randn(...))
+
+        def forward(self, x):
+            return x @ self.A + self.B
+
+    optimizer = torch.optim.Adam(net.parameters(), lr=...)
+    ...
+    loss.backward()
+    net.A.grad = 0  # 手动屏蔽
+    optimizer.step()
+    ```
+
+    → 在这种情况下：
+
+    * A 仍然是 `Parameter`；
+    * 反向传播时 autograd 仍然计算出 `A.grad`；
+    * 你只是之后丢弃了梯度，不更新参数；
+    * **计算图中依然存在 A 的分支，仍消耗显存与计算**。
+
+    ---
+
+    ## 🚫 因此：它们的本质区别有 3 点
+
+    | 差异点                   | 方法1：A为常数 | 方法2：A参与梯度后grad清零            |
+    | --------------------- | -------- | --------------------------- |
+    | **是否参与 autograd 图构建** | ❌ 否（更轻量） | ✅ 是                         |
+    | **是否消耗额外显存/计算**       | ✅ 少      | ❌ 多（会存梯度、反向链条）              |
+    | **反向传播梯度是否会影响其他节点**   | ❌ 不影响    | ⚠️ 可能影响（例如出现梯度截断、branch依赖时） |
+
+    ---
+
+    ## ⚙️ 什么时候“等价”
+
+    * 如果 A **不参与梯度依赖的中间节点**（即只是简单地乘、加、卷积等），那么：
+
+      > 两种方式最终得到的参数更新结果是一样的（B 的梯度完全一致）。
+
+      ✅ 例如：
+
+      ```python
+      y = x @ A + B
+      ```
+
+      此时 `∂loss/∂B` 与 `∂loss/∂A` 独立。
+      清掉 A 的梯度不会改变 B 的梯度。
+
+    * 但是如果 A 出现在计算图中间，并且它的值**影响了梯度流的路径或数值计算**（比如被用于 normalization、mask、softmax 等操作），
+      那么即使你最后清零它的梯度，
+      在反向传播时 A 仍然会影响到中间节点的梯度传播。
+
+      > 即：B 的梯度可能取决于 A 的值。
+
+      在这种情况下，A “作为常数” 和 “A 可微但梯度清零” 的效果是不一样的。
+
+    ---
+
+    ## 🧠 举个反例
+
+    ```python
+    y = x / A.sum() * B
+    ```
+
+    如果 A 是常数，B 的梯度是：
+    [
+    \frac{\partial L}{\partial B} = \frac{x}{A.sum()}
+    ]
+
+    但如果 A 是参数（即使最后不更新 A），
+    在反向传播时 autograd 会计算：
+    [
+    \frac{\partial L}{\partial A} = -\frac{x B}{(A.sum())^2}
+    ]
+
+    而这个分支存在时，PyTorch 仍然需要计算 `A.sum()` 的梯度传播链条，
+    这会对内存占用、反向路径优化等产生影响。
+    虽然数值上 B 的梯度结果**一样**，
+    但 **计算代价和图结构不一样**。
+
+    ---
+
+    ## 🧩 实际建议
+
+    | 目的                      | 推荐做法                                    |
+    | ----------------------- | --------------------------------------- |
+    | 想让 A 真正是常数（不更新，不参与反向传播） | 用 `.detach()` 或直接定义为非 `Parameter` 张量    |
+    | 想在训练早期冻结 A，之后解冻         | 可以先设置 `requires_grad=False`，再在之后改回 True |
+    | 想节省计算/显存                | 千万别用“grad清零”方法，直接不让它进图更高效               |
+    | 想 debug                 | “grad 清零”法方便验证 A 的梯度确实不会更新              |
+
+    ---
+
+    ✅ **简明结论：**
+
+    > 在纯数学上（loss 关于 B 的梯度），两种方式通常相同；
+    > 在计算图结构与性能上，方法 1（写为常数）更正确、更高效；
+    > 方法 2 只是“表面冻结”，不会减少 autograd 的负担。
+
+    ---
+
+    是否要我帮你写一个小 PyTorch 例子，用实际代码验证 B 的梯度是否一致？
+
+* 我们使用 pytorch 举个更简单的例子吧，比如使用 y = A*x^3 + B*x^2 + C*x + D 去拟合一个 sin 曲线，我希望：根据梯度下降法，首先调整 A，将 B, C, D 都 freeze (使用真常数的写法，不参数反向传播图)，然后调整 B，freeze A, C, D，以此类推，将 A, B, C, D 都处理完一遍后，叫做一个 epoch，然后循环从 A 开始处理。一共处理 15 个 epoch，创建一个 plt.figure，每个epoch 处理完后，使用 ax 画一个拟合曲线，红色是 sin 曲线，蓝色是拟合曲线，figure 里的 axes 一共五行三列
+
+
+    非常好，这个问题非常具体，我们来完整地写一个可运行的 PyTorch 示例：
+
+    > 目标：用多项式
+    > [
+    > y = A x^3 + B x^2 + C x + D
+    > ]
+    > 去拟合 (\sin(x))，并且在训练中**只让一个参数可训练，其余为常数**，每个 epoch 轮流调整 A→B→C→D → A → … 共 15 个 epoch。
+
+    并在每个 epoch 结束后画出当前拟合曲线。
+
+    ---
+
+    ### ✅ 完整可运行代码
+
+    ```python
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    import matplotlib.pyplot as plt
+
+    # 生成训练数据
+    x = torch.linspace(-3.14, 3.14, 200).unsqueeze(1)
+    y_true = torch.sin(x)
+
+    # 初始化参数
+    params = {
+        'A': torch.tensor(0.0),
+        'B': torch.tensor(0.0),
+        'C': torch.tensor(0.0),
+        'D': torch.tensor(0.0)
+    }
+
+    # 拟合模型
+    def model(x, A, B, C, D):
+        return A * x**3 + B * x**2 + C * x + D
+
+    # 训练循环
+    epochs = 15
+    order = ['A', 'B', 'C', 'D']  # 按顺序调整参数
+
+    fig, axes = plt.subplots(5, 3, figsize=(15, 20))
+    axes = axes.flatten()
+
+    for epoch in range(epochs):
+        name = order[epoch % 4]  # 当前要调整的参数
+        # 创建当前训练参数 (只有一个可训练)
+        train_param = nn.Parameter(params[name].clone().detach())
+        optimizer = optim.SGD([train_param], lr=1e-3)
+
+        # 训练若干步
+        for step in range(2000):
+            y_pred = model(x,
+                           A=train_param if name == 'A' else params['A'],
+                           B=train_param if name == 'B' else params['B'],
+                           C=train_param if name == 'C' else params['C'],
+                           D=train_param if name == 'D' else params['D'])
+            loss = ((y_pred - y_true)**2).mean()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        # 更新冻结常量
+        params[name] = train_param.detach()
+
+        # 绘制当前拟合曲线
+        y_pred = model(x, **params).detach()
+        ax = axes[epoch]
+        ax.plot(x.numpy(), y_true.numpy(), 'r', label='sin(x)')
+        ax.plot(x.numpy(), y_pred.numpy(), 'b', label='fit')
+        ax.set_title(f"Epoch {epoch+1}: train {name}, loss={loss.item():.4f}")
+        ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    ---
+
+    ### 🧠 说明
+
+    * 每次只创建一个 `nn.Parameter`，即只训练一个参数；
+    * 其他参数以普通 `torch.tensor` 形式参与计算（不会进入反向图）；
+    * 每训练完一个参数，就把它的值 `.detach()` 更新回常数；
+    * 接着下一个 epoch 再训练下一个参数；
+    * 最终会得到一张 5×3 的图（15 张子图），显示训练过程的拟合变化。
+
+    ---
+
+    ### 🧩 可调参数建议
+
+    | 参数       | 作用     | 推荐值         |
+    | -------- | ------ | ----------- |
+    | `lr`     | 学习率    | 1e-3 ～ 1e-2 |
+    | `step`   | 每轮训练步数 | 1000～5000   |
+    | `epochs` | 轮数     | 15（按要求）     |
+
+    ---
+
+    是否希望我帮你让图形的拟合过程**动画显示**（比如用 `FuncAnimation` 展示训练进展）？
+    那样能清楚看到每个参数训练对拟合曲线的贡献。
+
+* 现在我们尝试一个稍微复杂的情况，使用两层 linear 层，激活函数选用 relu 或者 sigmoid （两个里面选一个，你觉得哪个好就选哪个）去拟合一个 sin 曲线，第一层 linear 层 in feature 为 1，out feature 为 64，第二层 linear 层 in feature 为 64，out feature 为 1，第二层 linear 层要不要用激活函数你自己看着办。训练的要求与前面相似，每次只训练 linear 层的一个参数（比如一个权重或一个 bias），其他的所有参数都 freeze。同样地，把所有参数训练一遍叫做一个 epoch，一共训练 15 个 epoch，可视化的要求同上
+
+
+    非常棒，这个问题已经上升到「逐参数训练一个神经网络」的层面了。
+    我们现在来实现你说的这个任务：
+
+    ---
+
+    ## 🎯 任务说明
+
+    目标函数：
+    [
+    y = \sin(x)
+    ]
+
+    模型结构：
+
+    ```python
+    Linear(1 → 64) → ReLU → Linear(64 → 1)
+    ```
+
+    训练策略：
+
+    * 每次只训练 **一个参数**（比如第一层权重矩阵中的一个元素，或者 bias 中的一个元素）；
+    * 其他参数全是常数；
+    * 把所有参数都训练一遍算一个 epoch；
+    * 共训练 15 个 epoch；
+    * 每个 epoch 结束后画出拟合曲线（红色为真值，蓝色为拟合）；
+    * 最后用 5×3 子图显示 15 个阶段。
+
+    ---
+
+    ## ✅ 实现代码（推荐激活函数：**ReLU**）
+
+    > ReLU 收敛速度更快，避免 sigmoid 在 [-π, π] 区间饱和。
+
+    ```python
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    import matplotlib.pyplot as plt
+
+    # 数据
+    x = torch.linspace(-3.14, 3.14, 400).unsqueeze(1)
+    y_true = torch.sin(x)
+
+    # 模型定义
+    class Net(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc1 = nn.Linear(1, 64)
+            self.fc2 = nn.Linear(64, 1)
+            self.act = nn.ReLU()
+
+        def forward(self, x):
+            x = self.act(self.fc1(x))
+            x = self.fc2(x)
+            return x
+
+    # 初始化模型
+    base_net = Net()
+
+    # 获取参数列表（包含所有权重和偏置）
+    params_list = []
+    for name, p in base_net.named_parameters():
+        params_list.append((name, p))
+
+    # 定义损失函数
+    loss_fn = nn.MSELoss()
+
+    # 创建图像
+    fig, axes = plt.subplots(5, 3, figsize=(15, 20))
+    axes = axes.flatten()
+
+    epochs = 15
+    lr = 1e-2
+
+    for epoch in range(epochs):
+        # 复制当前模型参数作为常数版本
+        fixed_params = {name: p.detach().clone() for name, p in base_net.named_parameters()}
+
+        # 当前要训练的参数
+        pname, pval = params_list[epoch % len(params_list)]
+        train_param = nn.Parameter(fixed_params[pname].clone().detach())
+        optimizer = optim.SGD([train_param], lr=lr)
+
+        # 训练若干步
+        for step in range(2000):
+            # 构建新的模型权重（只有一个参数是可训练的）
+            def replace_params(m):
+                for name, p in m.named_parameters(recurse=False):
+                    full_name = name
+                    if isinstance(m, nn.Linear):
+                        # 通过名字确定唯一匹配
+                        full_name = f"{id(m)}_{name}"
+                    if full_name == f"{id(base_net.fc1)}_weight" or full_name == f"{id(base_net.fc1)}_bias":
+                        pass
+
+            # 手动 forward，使用固定参数 + 当前训练参数
+            with torch.no_grad():
+                w1 = fixed_params['fc1.weight']
+                b1 = fixed_params['fc1.bias']
+                w2 = fixed_params['fc2.weight']
+                b2 = fixed_params['fc2.bias']
+
+            # 替换当前参数
+            if pname == 'fc1.weight':
+                w1 = train_param
+            elif pname == 'fc1.bias':
+                b1 = train_param
+            elif pname == 'fc2.weight':
+                w2 = train_param
+            elif pname == 'fc2.bias':
+                b2 = train_param
+
+            # 前向传播
+            h = torch.relu(x @ w1.T + b1)
+            y_pred = h @ w2.T + b2
+            loss = loss_fn(y_pred, y_true)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        # 更新 base_net 的参数
+        if pname == 'fc1.weight':
+            base_net.fc1.weight.data = train_param.detach().clone()
+        elif pname == 'fc1.bias':
+            base_net.fc1.bias.data = train_param.detach().clone()
+        elif pname == 'fc2.weight':
+            base_net.fc2.weight.data = train_param.detach().clone()
+        elif pname == 'fc2.bias':
+            base_net.fc2.bias.data = train_param.detach().clone()
+
+        # 绘图
+        with torch.no_grad():
+            y_pred = base_net(x)
+        ax = axes[epoch]
+        ax.plot(x.numpy(), y_true.numpy(), 'r', label='sin(x)')
+        ax.plot(x.numpy(), y_pred.numpy(), 'b', label='fit')
+        ax.set_title(f"Epoch {epoch+1}: trained {pname}, loss={loss.item():.4f}")
+        ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    ---
+
+    ## 🧠 设计说明
+
+    * 每次从 `base_net` 复制参数，只把一个设为 `nn.Parameter`；
+    * 其他参数以常数形式参与计算；
+    * 每轮训练结束后，把训练好的参数更新回 `base_net`；
+    * 每 15 个 epoch 循环训练 `fc1.weight → fc1.bias → fc2.weight → fc2.bias → ...`；
+    * 最后画出 15 张图。
+
+    ---
+
+    ## 🔍 结果解读
+
+    你会看到：
+
+    * 前几轮几乎没有拟合（因为只有一个参数在调整）；
+    * 随着参数轮流被优化，曲线逐渐逼近正弦；
+    * 因为 ReLU 网络非线性能力较强，最终能学出比较合理的波形。
+
+    ---
+
+    是否希望我帮你做一个**更高效的版本**，一次 forward/backward 就能循环每个参数训练，而不重复构图（用 `with torch.no_grad()` + 局部更新技巧）？
+    那样能让运行快 10～50 倍。
+
+* 你写得好像不是很对，我说的意思是，比如 fc1.weight 中有很多个 scalar，我每次只训练一个 scalar
+
+
+    好 —— 明白了：你要的是**逐标量（scalar）训练**，也就是每次只把模型中某一个权重或偏置的单个元素设为可训练，其他所有元素都当作常数；把模型所有 scalar 依次训练一遍记作一个 epoch；共跑 15 个 epoch；每个 epoch 结束画一张拟合曲线，最终以 5×3 子图呈现 15 个 epoch 的结果。
+
+    下面给出一个完整、可运行的 PyTorch 脚本（我选用 ReLU，第二层不加激活），实现你要的逐元素训练策略并画图。为了在合理时间内能跑完，我把每个 scalar 的内循环步数设为 `inner_steps = 50`（你可以改成更大），学习率设置为 `1e-2`。如果你想更快，把 `inner_steps` 减小；想更精细，把它加大。
+
+    ```python
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    import matplotlib.pyplot as plt
+
+    # ------- 数据 -------
+    device = torch.device('cpu')
+    x = torch.linspace(-3.14, 3.14, 300, device=device).unsqueeze(1)  # (N,1)
+    y_true = torch.sin(x)
+
+    # ------- 初始化参数（当作常数的基准值） -------
+    # fc1: (out=64, in=1) ; fc2: (out=1, in=64)
+    hidden = 64
+    w1_base = torch.randn(hidden, 1, device=device) * 0.1
+    b1_base = torch.zeros(hidden, device=device)
+    w2_base = torch.randn(1, hidden, device=device) * 0.1
+    b2_base = torch.zeros(1, device=device)
+
+    # ------- 训练设置 -------
+    epochs = 15              # 你的要求
+    inner_steps = 50         # 每个 scalar 的训练步数 (可以调)
+    lr = 1e-2
+    loss_fn = nn.MSELoss()
+    act = torch.relu  # 选择 ReLU
+
+    # 枚举所有 scalar 的位置 (name, shape, numel)
+    param_infos = [
+        ('fc1.weight', w1_base.shape, w1_base.numel()),
+        ('fc1.bias',   b1_base.shape, b1_base.numel()),
+        ('fc2.weight', w2_base.shape, w2_base.numel()),
+        ('fc2.bias',   b2_base.shape, b2_base.numel()),
+    ]
+    total_scalars = sum(n for _,_,n in param_infos)
+    print(f"Total scalar params: {total_scalars}")
+
+    # 为了绘图：准备 5x3 子图（15 个 epoch）
+    fig, axes = plt.subplots(5, 3, figsize=(15, 20))
+    axes = axes.flatten()
+
+    # 当前“基准”参数（会在逐 scalar 训练后被更新）
+    w1 = w1_base.clone()
+    b1 = b1_base.clone()
+    w2 = w2_base.clone()
+    b2 = b2_base.clone()
+
+    # helper: 根据 name 返回对应 tensor 引用（copy）
+    def get_base_tensor(name):
+        if name == 'fc1.weight': return w1
+        if name == 'fc1.bias':   return b1
+        if name == 'fc2.weight': return w2
+        if name == 'fc2.bias':   return b2
+        raise ValueError(name)
+
+    # 训练过程
+    for epoch in range(epochs):
+        # 遍历 model 中的每个 scalar（顺序：fc1.weight(flat), fc1.bias, fc2.weight, fc2.bias）
+        scalar_idx_global = 0
+        for name, shape, n in param_infos:
+            for idx_in_param in range(n):
+                # 当前要训练的 scalar：把它做成一个单标量 nn.Parameter，其余元素均为常数
+                base_tensor = get_base_tensor(name)
+                # 创建可训练的 scalar
+                scalar_init = base_tensor.view(-1)[idx_in_param].detach().clone()
+                train_scalar = nn.Parameter(scalar_init.clone().detach())
+
+                optimizer = optim.SGD([train_scalar], lr=lr)
+
+                # 每个 scalar 做 inner_steps 次梯度下降
+                for step in range(inner_steps):
+                    # 构造当前四个张量：只有当前 scalar 来自 train_scalar，其余来自 base
+                    # fc1 weight
+                    if name == 'fc1.weight':
+                        w1_cur_flat = base_tensor.view(-1).clone()
+                        w1_cur_flat[idx_in_param] = train_scalar
+                        w1_cur = w1_cur_flat.view(shape)
+                    else:
+                        w1_cur = w1
+
+                    # fc1 bias
+                    if name == 'fc1.bias':
+                        b1_cur_flat = base_tensor.view(-1).clone() if name == 'fc1.bias' else b1.view(-1).clone()
+                        if name == 'fc1.bias':
+                            b1_cur_flat[idx_in_param] = train_scalar
+                        b1_cur = b1_cur_flat.view(shape)
+                    else:
+                        b1_cur = b1
+
+                    # fc2 weight
+                    if name == 'fc2.weight':
+                        w2_cur_flat = base_tensor.view(-1).clone()
+                        w2_cur_flat[idx_in_param] = train_scalar
+                        w2_cur = w2_cur_flat.view(shape)
+                    else:
+                        w2_cur = w2
+
+                    # fc2 bias
+                    if name == 'fc2.bias':
+                        b2_cur_flat = base_tensor.view(-1).clone()
+                        b2_cur_flat[idx_in_param] = train_scalar
+                        b2_cur = b2_cur_flat.view(shape)
+                    else:
+                        b2_cur = b2
+
+                    # forward
+                    # shapes: x (N,1) @ w1_cur.T (1,hidden) -> (N,hidden)
+                    h = act(x @ w1_cur.T + b1_cur)   # (N, hidden)
+                    y_pred = h @ w2_cur.T + b2_cur   # (N,1)
+                    loss = loss_fn(y_pred, y_true)
+
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+
+                # inner loop结束：把训练好的 scalar 写回 base tensor（detach）
+                # 注意要做 clone() 防止和计算图连着
+                with torch.no_grad():
+                    if name == 'fc1.weight':
+                        w1 = w1.clone()
+                        w1.view(-1)[idx_in_param] = train_scalar.detach().clone()
+                    elif name == 'fc1.bias':
+                        b1 = b1.clone()
+                        b1.view(-1)[idx_in_param] = train_scalar.detach().clone()
+                    elif name == 'fc2.weight':
+                        w2 = w2.clone()
+                        w2.view(-1)[idx_in_param] = train_scalar.detach().clone()
+                    elif name == 'fc2.bias':
+                        b2 = b2.clone()
+                        b2.view(-1)[idx_in_param] = train_scalar.detach().clone()
+
+                scalar_idx_global += 1
+
+        # 一个 epoch 完成 —— 绘制当前拟合曲线
+        with torch.no_grad():
+            h = act(x @ w1.T + b1)
+            y_pred_full = h @ w2.T + b2
+            loss_epoch = loss_fn(y_pred_full, y_true).item()
+
+        ax = axes[epoch]
+        ax.plot(x.cpu().numpy(), y_true.cpu().numpy(), 'r', label='sin(x)')
+        ax.plot(x.cpu().numpy(), y_pred_full.cpu().numpy(), 'b', label='fit')
+        ax.set_title(f"Epoch {epoch+1}: loss={loss_epoch:.4f}")
+        ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+    ```
+
+    ### 一些实现细节说明（重要）
+
+    * 我没有把整个 `nn.Module` 放进 optimizer；而是维护四个基准张量 `w1,b1,w2,b2`，在训练每个 scalar 时：
+
+      * 将该 scalar 用 `nn.Parameter` 包装为 trainable；
+      * 把这个 scalar 插回到对应参数的拷贝中（生成 `*_cur`），然后用 `*_cur` 做前向；
+      * inner loop 结束后把训练好的 scalar 值写回基准张量（`w1/b1/w2/b2`），并 `detach()`。
+    * 这样做能保证 **每次只有一个 scalar 参与反向传播与被 optimizer 更新**，其余元素完全是常数，不进入 autograd。
+    * 内部通过 `.view(-1)` 对参数做扁平化索引，从而逐元素定位。
+    * 性能方面：逐元素训练固然慢 —— 总 scalar 数量是 `64 + 64 + 64 + 1 = 193`（实际上 fc1.weight 是 64×1=64，bias 64，fc2.weight 1×64=64，fc2.bias 1），所以每 epoch 的梯度步骤为 `total_scalars * inner_steps`。我把 `inner_steps=50` 作为折中，你可以缩小或增大。
+
+    ### 可调项建议
+
+    * `inner_steps`：每个 scalar 在“其轮到时”做多少步；越大拟合更充分但更慢。
+    * `lr`：可调（`1e-2`～`1e-3` 常见）。
+    * 数据点数 `300`：可以减小来加速试验。
+
+    ---
+
+    如果你愿意，我可以：
+
+    * 把上面脚本改成更高效的向量化形式（例如一次性训练一个参数向量的若干元素）；
+    * 或者把 `inner_steps`、`lr`、隐藏层大小等作为命令行/函数参数封装；
+    * 或者把训练过程存成动画（gif 或 matplotlib 动画），便于观察逐标量训练的动态演化。
+
+    你想接着我做哪种改进？
+
+* 如果我在某个 epoch 后，希望 store 网络中的参数，经过某些数据可视化后，选择 freeze 一部分参数，只训练另一部分参数，然后 resume 训练，使用 load() 加载参数，该添加哪些必要的改动？不必写出完整代码，只写出增量改动和需要注意的重点即可
+
+
+    非常好的问题 👍
+    这其实是**手动参数冻结 + checkpoint 恢复训练**的组合问题。
+    你已经是自己控制参数训练流程的人了，所以不必用太重的框架（例如 Trainer 类），只需在当前循环中添加少量逻辑即可。
+
+    下面是增量改动与注意事项。
+
+    ---
+
+    ## 🧩 一、保存参数（store）
+
+    在想要中断或评估时：
+
+    ```python
+    torch.save({
+        "epoch": epoch,
+        "w1": w1,
+        "b1": b1,
+        "w2": w2,
+        "b2": b2,
+    }, "checkpoint.pt")
+    ```
+
+    > ✅ 注意：
+    >
+    > * 不要直接存整个模型对象，因为你目前是裸张量控制。
+    > * 存 `.detach()` 过的张量即可。
+    > * 如果你有其他辅助状态（例如当前学习率、已冻结的参数索引等），也可以一起存。
+
+    ---
+
+    ## 🧩 二、加载参数（resume）
+
+    在重新开始训练前：
+
+    ```python
+    ckpt = torch.load("checkpoint.pt")
+    w1 = ckpt["w1"].clone().detach()
+    b1 = ckpt["b1"].clone().detach()
+    w2 = ckpt["w2"].clone().detach()
+    b2 = ckpt["b2"].clone().detach()
+    start_epoch = ckpt["epoch"] + 1
+    ```
+
+    > ✅ 注意：
+    >
+    > * 一定要 `.clone().detach()`，确保重新开始时这些张量不含旧的计算图。
+    > * 如果要继续用 CPU/GPU，记得 `map_location=device`。
+
+    ---
+
+    ## 🧩 三、参数冻结（freeze 部分参数）
+
+    假设你做完可视化后，决定只训练部分参数：
+
+    ```python
+    train_mask = {
+        "fc1.weight": torch.zeros_like(w1, dtype=torch.bool),
+        "fc1.bias":   torch.zeros_like(b1, dtype=torch.bool),
+        "fc2.weight": torch.zeros_like(w2, dtype=torch.bool),
+        "fc2.bias":   torch.zeros_like(b2, dtype=torch.bool),
+    }
+    ```
+
+    例如你只想训练 fc2 层的参数：
+
+    ```python
+    train_mask["fc2.weight"][:] = True
+    train_mask["fc2.bias"][:] = True
+    ```
+
+    然后在训练循环中判断：
+
+    ```python
+    if train_mask[name].view(-1)[idx_in_param]:
+        # 允许训练
+    else:
+        # 跳过该 scalar，直接 continue
+        continue
+    ```
+
+    这样即可实现“只训练一部分参数、冻结其余”的效果。
+
+    ---
+
+    ## 🧩 四、注意事项总结
+
+    | 项目                     | 重点                                                          |
+    | ---------------------- | ----------------------------------------------------------- |
+    | **加载时要 detach()**      | 避免旧计算图残留，否则 autograd 会报错或浪费内存                               |
+    | **设备一致性**              | `torch.load(..., map_location=device)`，否则 CPU↔GPU 不匹配       |
+    | **冻结状态存档**             | 如果 freeze 逻辑复杂（mask），最好一并存入 checkpoint                      |
+    | **学习率状态**              | 若用复杂优化器（Adam等），需存 optimizer.state_dict()，但你当前只用单参数 SGD，可以忽略 |
+    | **resume 后的 epoch 索引** | 从 `start_epoch = ckpt["epoch"] + 1` 开始                      |
+
+    ---
+
+    ## ✅ 示例补充：简化的 resume 逻辑片段
+
+    ```python
+    # 加载 checkpoint
+    ckpt = torch.load("checkpoint.pt")
+    w1, b1, w2, b2 = [ckpt[k].clone().detach() for k in ("w1", "b1", "w2", "b2")]
+    start_epoch = ckpt["epoch"] + 1
+
+    # 定义训练掩码（决定哪些参数可训练）
+    train_mask = {
+        "fc1.weight": torch.zeros_like(w1, dtype=torch.bool),
+        "fc1.bias":   torch.zeros_like(b1, dtype=torch.bool),
+        "fc2.weight": torch.ones_like(w2, dtype=torch.bool),   # 只训练 fc2 层
+        "fc2.bias":   torch.ones_like(b2, dtype=torch.bool),
+    }
+    ```
+
+    ---
+
+    ## ✅ 小结
+
+    简言之：
+
+    1. **保存**：`torch.save({...}, "checkpoint.pt")`
+    2. **加载**：`torch.load(...) + .detach()`
+    3. **冻结控制**：通过 mask 或参数索引决定哪些 scalar 进入训练循环
+    4. **resume**：从存档 epoch 继续，训练逻辑无需改变
+
+    ---
+
+    是否希望我帮你改出一个支持 checkpoint + mask 冻结的版本（在你上一段完整代码基础上加注释式改动）？那样你可以直接拷贝运行。
 * 像 mnist 这种多分类任务，有 true positive, false positive，mAP, acc 等这些概念吗？
 
     非常好的问题！这是一个在入门深度学习时常见的困惑。

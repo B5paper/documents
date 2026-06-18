@@ -2,6 +2,10 @@
 
 ## cache
 
+* python 在 import 时，格式为`import package_dir.modile_file`
+
+    使用函数时，格式为`package_dir.module_file.func_name()`，不能写成`module_file.func_name()`
+
 * 简述 python 中 datetime 的用法
 
     好的，Python 中的 `datetime` 模块是处理日期和时间的核心模块，它提供了多个类来分别表示日期、时间、日期时间、时间间隔等。

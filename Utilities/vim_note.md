@@ -2,6 +2,437 @@
 
 ## cache
 
+* vim 中如何使用 ctags 对 python 文件中的符号自动补全
+
+    在 Vim 中使用 ctags 对 Python 文件进行自动补全，需要以下几个步骤：
+
+    1. 安装 ctags
+
+        首先确保系统已安装 ctags：
+
+        ```bash
+        # Ubuntu/Debian
+        sudo apt-get install exuberant-ctags
+
+        # CentOS/RHEL
+        sudo yum install ctags
+
+        # macOS (使用 Homebrew)
+        brew install ctags
+        ```
+
+    2. 生成 ctags 文件
+
+        为你的 Python 项目生成 tags 文件：
+
+        ```bash
+        # 在当前目录生成
+        ctags -R .
+
+        # 为 Python 文件生成（更精确）
+        ctags -R --fields=+l --languages=python --python-kinds=-iv -f ./tags .
+
+        # 包含系统 Python 库
+        ctags -R --fields=+l --languages=python --python-kinds=-iv -f ./tags /usr/lib/python*/ ./
+        ```
+
+    3. 配置 Vim
+
+        在 `~/.vimrc` 中添加以下配置：
+
+        ```vim
+        " 设置 tags 文件路径
+        set tags=./tags,tags,./.tags;,.tags;
+
+        " 自动补全相关配置
+        set completeopt=menu,menuone,preview
+
+        " 使用 Ctrl+] 跳转到定义
+        nnoremap <C-]> g<C-]>
+
+        " 使用 Ctrl+t 返回
+        nnoremap <C-t> <C-t>
+
+        " 自动生成 tags 的命令
+        command! MakeTags !ctags -R --fields=+l --languages=python --python-kinds=-iv -f ./tags .
+        ```
+
+    4. 使用自动补全
+
+        在 Vim 编辑 Python 文件时，可以使用以下快捷键：
+
+        - **Ctrl+x Ctrl+]** - 使用 tags 补全
+        - **Ctrl+n** - 普通关键字补全（也会使用 tags）
+        - **Ctrl+]** - 跳转到符号定义
+        - **Ctrl+t** - 返回跳转前的位置
+        - **Ctrl+x Ctrl+o** - Omni 补全（需要开启文件类型检测）
+
+    5. 增强配置
+
+        为了更好的 Python 开发体验，可以添加更多配置：
+
+        ```vim
+        " 启用文件类型检测和自动缩进
+        filetype plugin indent on
+
+        " 设置 Python 特定的配置
+        autocmd FileType python setlocal completeopt=menu,menuone,preview,noselect
+
+        " 自动在保存时更新 tags（可选）
+        autocmd BufWritePost *.py silent! !ctags -R --fields=+l --languages=python --python-kinds=-iv -f ./tags . &
+        ```
+
+    6. 使用插件增强（推荐）
+
+        安装以下插件可以获得更好的体验：
+
+        **Tagbar**
+
+        ```vim
+        " 使用 vim-plug 安装
+        Plug 'preservim/tagbar'
+
+        " 配置
+        nmap <F8> :TagbarToggle<CR>
+        let g:tagbar_type_python = {
+            \ 'ctagstype' : 'python',
+            \ 'kinds'     : [
+                \ 'c:classes',
+                \ 'f:functions',
+                \ 'm:members',
+                \ 'v:variables',
+                \ 'i:imports'
+            \ ]
+        \ }
+        ```
+
+        **Gutentags（自动管理 tags）**
+
+        ```vim
+        Plug 'ludovicchabant/vim-gutentags'
+
+        " 配置
+        let g:gutentags_cache_dir = '~/.cache/tags'
+        let g:gutentags_file_list_command = 'find . -name "*.py"'
+        ```
+
+    7. 实际使用示例
+
+        1. **生成 tags**：在项目根目录执行 `:MakeTags`
+        2. **查看符号**：按 `F8` 打开 Tagbar 浏览
+        3. **补全代码**：输入部分函数名后按 `Ctrl+n`
+        4. **跳转定义**：光标在函数名上按 `Ctrl+]`
+        5. **返回**：按 `Ctrl+t` 返回
+
+    这样配置后，你就可以在 Vim 中高效地使用 ctags 进行 Python 代码的自动补全和导航了。
+
+* vim 里我觉得按 esc 按得太频繁了，有没有什么替代方案
+
+    确实，频繁按 Esc 很麻烦！有很多更好的替代方案：
+
+    1. 键盘映射替代 Esc
+
+        在 `~/.vimrc` 中添加：
+
+        ```vim
+        " 最常用的方案：jj 或 jk 替代 Esc
+        inoremap jj <Esc>
+        inoremap jk <Esc>
+        inoremap kj <Esc>
+
+        " Ctrl+c 替代 Esc（很多人的习惯）
+        inoremap <C-c> <Esc>
+        ```
+
+    2. 使用 Leader 键组合
+
+        ```vim
+        " 设置 Leader 键为空格（很流行）
+        let mapleader = " "
+
+        " 然后可以用空格组合键
+        inoremap <leader>q <Esc>
+        vnoremap <leader>q <Esc>
+        ```
+
+    3. 其他便捷映射
+
+        ```vim
+        " Ctrl+[ 等同于 Esc（无需映射，系统默认支持）
+        " 但位置可能不太方便
+
+        " fd 快速退出（类似 vscode 的 ideavim）
+        inoremap fd <Esc>
+
+        " 分号快速进入命令模式
+        nnoremap ; :
+        vnoremap ; :
+        ```
+
+    4. 系统级修改 CapsLock
+
+        **macOS**（使用 Karabiner-Elements）：
+        ```json
+        {
+          "rules": [
+            {
+              "description": "Change caps_lock to escape",
+              "manipulators": [
+                {
+                  "type": "basic",
+                  "from": { "key_code": "caps_lock" },
+                  "to": { "key_code": "escape" }
+                }
+              ]
+            }
+          ]
+        }
+        ```
+
+        **Linux**：
+        ```bash
+        # 临时修改
+        setxkbmap -option caps:escape
+
+        # 永久修改，添加到 ~/.bashrc 或 ~/.xprofile
+        setxkbmap -option caps:escape
+        ```
+
+        **Windows**（使用 AutoHotkey脚本）：
+        ```autohotkey
+        ; caps_lock.ahk
+        CapsLock::Esc
+        ```
+
+    5. 插件解决方案
+
+        **vim-easyescape**
+
+        ```vim
+        Plug 'zhou13/vim-easyescape'
+        let g:easyescape_chars = { "j": 1, "k": 1 }
+        let g:easyescape_timeout = 100
+        cnoremap jk <C-c>
+        cnoremap kj <C-c>
+        ```
+
+        **better-escape.vim**
+
+        ```vim
+        Plug 'jdhao/better-escape.vim'
+        let g:better_escape_shortcut = 'jk'
+        let g:better_escape_interval = 200
+        ```
+
+    6. 我的个人推荐配置
+
+        ```vim
+        " 我的完整配置方案：
+        inoremap jk <Esc>
+        inoremap kj <Esc>
+        cnoremap jk <C-c>
+        cnoremap kj <C-c>
+
+        " 同时保留一些其他便捷映射
+        inoremap <C-c> <Esc>
+        vnoremap <C-c> <Esc>
+
+        " 空格作为 Leader，配合其他快捷键
+        let mapleader = " "
+        nnoremap <leader>w :w<CR>
+        nnoremap <leader>q :q<CR>
+        nnoremap <leader>e :e<CR>
+        ```
+
+    7. 额外技巧
+
+        ```vim
+        " 快速保存退出组合
+        nnoremap <leader>z :wq<CR>
+
+        " 快速进入插入模式的不同位置
+        nnoremap <leader>i i
+        nnoremap <leader>a a
+        nnoremap <leader>o o
+        nnoremap <leader>O O
+
+        " 使用 Ctrl+s 保存（需要终端设置）
+        nnoremap <C-s> :w<CR>
+        inoremap <C-s> <Esc>:w<CR>a
+        ```
+
+    **最推荐的方案**
+
+    1. **首选**：`jj` 或 `jk` 映射（最自然，不需要硬件修改）
+    2. **次选**：CapsLock 映射为 Esc（系统级，所有应用受益）
+    3. **备选**：Ctrl+[ 或 Ctrl+c（如果习惯的话）
+
+    我个人使用 `jk` 映射 + CapsLock 作为 Ctrl（用于其他快捷键），这样手基本不需要离开主键盘区！
+
+* vim + ctags 如何给出函数的参数提示？
+
+    Vim + ctags 本身对函数参数提示的支持有限，但可以通过以下几种方案来增强参数提示功能：
+
+    1. 使用 Omni 补全
+
+        Vim 内置的 Omni 补全可以对 Python 提供一定的参数提示：
+
+        ```vim
+        " 在 ~/.vimrc 中配置
+        filetype plugin indent on
+
+        " 启用 Omni 补全
+        autocmd FileType python setlocal omnifunc=python3complete#Complete
+
+        " 使用快捷键触发
+        inoremap <C-space> <C-x><C-o>
+        ```
+
+        使用方法：在函数名后输入 `(`，然后按 `Ctrl+x Ctrl+o` 或 `Ctrl+空格`
+
+    2. 使用 Jedi-vim 插件（推荐）
+
+        这是最完善的 Python 参数提示解决方案：
+
+        ```vim
+        " 安装
+        Plug 'davidhalter/jedi-vim'
+
+        " 配置
+        let g:jedi#completions_enabled = 1
+        let g:jedi#show_call_signatures = 1  " 显示函数签名
+        let g:jedi#popup_on_dot = 1          " 输入 . 时自动提示
+        let g:jedi#use_tabs_not_buffers = 1
+
+        " 禁用 Jedi 的自动补全，使用其他补全插件
+        " let g:jedi#completions_enabled = 0
+        ```
+
+        安装后，在函数调用处会实时显示函数签名。
+
+    3. 使用 YouCompleteMe + Jedi
+
+        ```vim
+        Plug 'ycm-core/YouCompleteMe'
+
+        " 配置 YCM 使用 Jedi
+        let g:ycm_python_interpreter_path = 'python'
+        let g:ycm_python_binary_path = 'python'
+        let g:ycm_auto_trigger = 1
+        let g:ycm_show_diagnostics_ui = 0
+
+        " 自动触发补全
+        let g:ycm_min_num_of_chars_for_completion = 2
+        let g:ycm_seed_identifiers_with_syntax = 1
+        ```
+
+    4. 使用 coc.nvim
+
+        ```vim
+        Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+        " 安装 coc-python 扩展
+        :CocInstall coc-python
+
+        " 配置
+        nmap <silent> gd <Plug>(coc-definition)
+        nmap <silent> gy <Plug>(coc-type-definition)
+        nmap <silent> gi <Plug>(coc-implementation)
+        nmap <silent> gr <Plug>(coc-references)
+
+        " 显示文档
+        nnoremap <silent> K :call ShowDocumentation()<CR>
+
+        function! ShowDocumentation()
+          if CocAction('hasProvider', 'hover')
+            call CocActionAsync('doHover')
+          else
+            call feedkeys('K', 'in')
+          endif
+        endfunction
+        ```
+
+    5. 纯 ctags 的有限方案
+
+        如果坚持只用 ctags，可以这样优化：
+
+        ```bash
+        # 生成更详细的 tags
+        ctags -R --fields=+l --languages=python --python-kinds=-iv --extras=+q .
+        ```
+
+        然后在 Vim 中：
+
+        ```vim
+        " 查看函数定义
+        nnoremap <leader>d :tag <C-r><C-w><CR>
+
+        " 在命令行预览
+        nnoremap <leader>s :ptag <C-r><C-w><CR>
+        ```
+
+    6. 使用参数提示插件
+
+        **echodoc.vim**
+
+        ```vim
+        Plug 'Shougo/echodoc.vim'
+        set noshowmode  " 如果状态栏已显示模式，可以关闭重复显示
+        ```
+
+        **ALE**
+
+        ```vim
+        Plug 'dense-analysis/ale'
+        let g:ale_completion_enabled = 1
+        let g:ale_hover_to_floating_preview = 1
+        ```
+
+    7. 完整配置示例
+
+        这是我的 Python 开发配置：
+
+        ```vim
+        " ~/.vimrc
+        call plug#begin('~/.vim/plugged')
+        Plug 'davidhalter/jedi-vim'
+        Plug 'Shougo/echodoc.vim'
+        call plug#end()
+
+        " 基本设置
+        filetype plugin indent on
+        syntax enable
+
+        " Jedi-vim 配置
+        let g:jedi#show_call_signatures = 2  " 在命令行显示签名
+        let g:jedi#popup_on_dot = 1
+        let g:jedi#use_splits_not_buffers = "right"
+
+        " echodoc 配置
+        set cmdheight=2  " 为 echodoc 留出空间
+
+        " 快捷键映射
+        inoremap <silent> <C-space> <C-x><C-o>  " 手动触发补全
+        nnoremap <leader>d :JediGoToDefinition<CR>
+        nnoremap <leader>s :JediShowDocumentation<CR>
+
+        " ctags 后备
+        set tags=./tags,tags;
+        command! MakeTags !ctags -R --fields=+l --languages=python --python-kinds=-iv --extras=+q .
+        ```
+
+    8. 使用技巧
+
+        1. **自动显示参数**：安装 Jedi-vim 后，输入函数名加 `(` 会自动显示参数
+        2. **查看文档**：光标在函数上按 `K` 查看文档
+        3. **手动触发**：`Ctrl+x Ctrl+o` 手动触发补全
+        4. **跳转定义**：`gd` 或 `Ctrl+]`
+
+    **推荐方案**
+
+    对于 Python 开发，**Jedi-vim** 是最简单有效的参数提示方案。如果追求更现代化的体验，可以考虑 **coc.nvim** 或 **YouCompleteMe**。
+
+    纯 ctags 的方案功能有限，建议配合上述插件使用。
 * 使用 apt 安装的 vim 插件
 
     虽然 vim-plug 不能通过 apt 安装，但有些插件管理器可以：
