@@ -2,6 +2,1157 @@
 
 ## cache
 
+* 像 mnist 这种多分类任务，有 true positive, false positive，mAP, acc 等这些概念吗？
+
+    非常好的问题！这是一个在入门深度学习时常见的困惑。
+
+    **直接回答：** 是的，像 MNIST 这样的多分类任务，**True Positive, False Positive, mAP 这些概念都存在，但它们的使用方式、重要性和普遍性与二分类或目标检测任务有所不同。**
+
+    下面我们来详细拆解这些概念在 MNIST 多分类场景下的应用。
+
+    ---
+
+    1. 准确率 - Accuracy
+
+        这是最直接、最常用的指标，尤其在类别均衡的数据集 like MNIST 上。
+
+        - **定义：** 预测正确的样本数占总样本数的比例。
+        - **计算：** `(预测正确的图片数量) / (总图片数量)`
+        - **在 MNIST 中：** 如果你有 10,000 张测试图片，模型预测对了 9,850 张，那么准确率就是 98.5%。
+        - **评价：** 简单直观，是 MNIST 任务中最核心的评估指标。
+
+    ---
+
+    2. True Positive, False Positive, False Negative, True Negative
+
+        在多分类中，这些概念需要为**每个类别**单独计算。我们通常使用 **“一对一”** 的策略。例如，当我们关心数字 “7” 时：
+
+        - **True Positive for "7"：** 真实标签是“7”，且模型也预测为“7”的样本。
+        - **False Positive for "7"：** 真实标签**不是**“7”，但模型**错误地**预测为“7”的样本。（例如，把“1”或“9”预测成了“7”）
+        - **False Negative for "7"：** 真实标签是“7”，但模型**没有**预测为“7”的样本。（例如，把“7”预测成了“1”或“9”）
+        - **True Negative for "7"：** 真实标签**不是**“7”，模型也**没有**预测为“7”的样本。
+
+        有了这些基础，我们就可以为每个类别计算更细致的指标。
+
+    ---
+
+    3. 精确率 & 召回率 - Precision & Recall
+
+        这些指标也是**按类别**计算的。
+
+        - **精确率 for class "i"：**
+          `Precision_i = TP_i / (TP_i + FP_i)`
+          - **含义：** 在所有被预测为“i”的样本中，有多少是真的“i”。**衡量模型的“准度”**。如果模型对于数字“5”的精确率很低，说明它经常把别的数字（比如“3”、“6”）误认为“5”。
+
+        - **召回率 for class "i"：**
+          `Recall_i = TP_i / (TP_i + FN_i)`
+          - **含义：** 在所有真实的“i”样本中，模型找出了多少。**衡量模型的“查全率”**。如果模型对于数字“1”的召回率很低，说明很多真正的“1”被它漏掉了，预测成了别的数字。
+
+        **宏平均：** 为了得到一个整体的 Precision 和 Recall，通常会计算所有类别的 Precision 和 Recall 的算术平均值，即宏精确率和宏召回率。
+
+    ---
+
+    4. F1-Score
+
+        F1-Score 是 Precision 和 Recall 的调和平均数，它试图找到一个平衡点。
+
+        - **计算 for class "i"：**
+          `F1_i = 2 * (Precision_i * Recall_i) / (Precision_i + Recall_i)`
+        - **宏平均 F1：** 同样，可以计算所有类别 F1-Score 的平均值，作为模型的一个综合性能指标。当数据分布可能不均衡时，它比单纯的准确率更能反映模型性能。
+
+    ---
+
+    5. mAP - 平均精度均值
+
+        这是最容易引起混淆的概念。
+
+        - **来源：** mAP 主要来源于**目标检测**和**信息检索**领域。
+        - **核心思想：** mAP 评估的是模型在不同置信度阈值下的整体性能，它考虑了模型输出的“排名”好坏。
+        - **在 MNIST 中的应用（不常见）：**
+            - 理论上，你可以让模型不仅输出预测的类别（如“7”），还输出属于这个类别的**概率/置信度**（如 0.95）。
+            - 然后，你可以为每个类别绘制 **Precision-Recall 曲线**。这条曲线展示了随着置信度阈值从高到低变化，Precision 和 Recall 的权衡关系。
+            - **AP** 就是这个 P-R 曲线下的面积。
+            - **mAP** 就是所有类别 AP 的平均值。
+
+    **结论：** 在 MNIST 这种简单的图像分类任务中，**几乎没有人会使用 mAP**。因为：
+
+    1.  **任务简单：** 我们通常只关心最终的类别预测（argmax），而不是所有类别的概率排序。
+    2.  **计算复杂：** 计算 mAP 比计算准确率或宏平均 F1 要复杂。
+    3.  **惯例：** 学术界和工业界对 MNIST 的惯例就是报告 **测试集准确率**。
+
+    mAP 在需要排序和考虑置信度的任务中才大放异彩，比如：
+    - **目标检测：** 模型会输出很多个候选框，每个框都有置信度，需要用 mAP 来评估这些框的好坏。
+    - **图像检索：** 返回的图片列表有相关性的排序，mAP 非常适合评估排序质量。
+
+    ---
+
+    总结
+
+    | 概念 | 在 MNIST 多分类中的角色 | 常见度 |
+    | :--- | :--- | :--- |
+    | **Accuracy** | **核心指标**，直接反映整体正确率。 | ⭐⭐⭐⭐⭐ |
+    | **Precision/Recall** | 按类别分析的**重要诊断工具**，用于发现模型在特定类别上的弱点。 | ⭐⭐⭐⭐ |
+    | **F1-Score** | 综合 Precision 和 Recall 的**优秀综合指标**，尤其在类别不均衡时。 | ⭐⭐⭐⭐ |
+    | **mAP** | **理论上存在，但实践中极少使用**。MNIST 任务不需要它。 | ⭐ |
+
+    **简单来说：对于 MNIST，你首要关注的是 Accuracy。如果你想深入分析模型为什么错了，错在哪里，那么就需要为每个类别计算 Precision、Recall 和 F1-Score。而 mAP，你可以暂时把它忘在脑后，直到你学习目标检测任务时再捡起来。**
+
+* def calc_mnist_score(modeL: Net, dataset: MNIST):
+    return
+
+    除了 mAP，计算上面提到的所有指标，完成上面的函数，返回一个 Score 对象，Score 的定义如下：
+
+    ```py
+    class Score:
+        accuracy: float = 0.0
+        tp: float = 0.0
+        fp: float = 0.0
+        tn: float = 0.0
+        fn: float = 0.0
+        precision: float = 0.0
+        recall: float = 0.0
+        f1_score: float = 0.0
+    ```
+
+    我来为您实现这个计算 MNIST 评分的函数。由于是多分类任务，我们需要为每个指标计算宏平均（macro-average）。
+
+    ```python
+    import torch
+    from torch.utils.data import DataLoader
+    import numpy as np
+    from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+
+    class Score:
+        accuracy: float = 0.0
+        tp: float = 0.0  # 宏平均 True Positive
+        fp: float = 0.0  # 宏平均 False Positive  
+        tn: float = 0.0  # 宏平均 True Negative
+        fn: float = 0.0  # 宏平均 False Negative
+        precision: float = 0.0  # 宏平均精确率
+        recall: float = 0.0     # 宏平均召回率
+        f1_score: float = 0.0   # 宏平均 F1-score
+
+    def calc_mnist_score(model: Net, dataset: MNIST) -> Score:
+        """
+        计算模型在MNIST数据集上的各项评估指标
+        
+        Args:
+            model: 训练好的神经网络模型
+            dataset: MNIST数据集
+            
+        Returns:
+            Score: 包含各项评估指标的对象
+        """
+        model.eval()
+        device = next(model.parameters()).device
+        
+        # 创建数据加载器
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        
+        all_predictions = []
+        all_targets = []
+        
+        # 获取模型预测
+        with torch.no_grad():
+            for batch in dataloader:
+                if isinstance(batch, (list, tuple)):
+                    images, targets = batch
+                else:
+                    images, targets = batch, batch[1] if hasattr(batch, '__getitem__') else None
+                
+                images = images.to(device)
+                if targets is not None:
+                    targets = targets.to(device)
+                
+                outputs = model(images)
+                _, predictions = torch.max(outputs, 1)
+                
+                all_predictions.extend(predictions.cpu().numpy())
+                if targets is not None:
+                    all_targets.extend(targets.cpu().numpy())
+        
+        all_predictions = np.array(all_predictions)
+        all_targets = np.array(all_targets)
+        
+        # 创建 Score 对象
+        score = Score()
+        
+        # 计算准确率
+        score.accuracy = np.mean(all_predictions == all_targets)
+        
+        # 计算混淆矩阵
+        cm = confusion_matrix(all_targets, all_predictions)
+        num_classes = cm.shape[0]
+        
+        # 为每个类别计算 TP, FP, TN, FN
+        tp_per_class = np.zeros(num_classes)
+        fp_per_class = np.zeros(num_classes)
+        tn_per_class = np.zeros(num_classes)
+        fn_per_class = np.zeros(num_classes)
+        
+        for i in range(num_classes):
+            # True Positive: 正确预测为该类的样本
+            tp_per_class[i] = cm[i, i]
+            
+            # False Positive: 错误预测为该类的样本 (其他类被预测为当前类)
+            fp_per_class[i] = np.sum(cm[:, i]) - cm[i, i]
+            
+            # False Negative: 本应预测为该类但预测为其他类的样本
+            fn_per_class[i] = np.sum(cm[i, :]) - cm[i, i]
+            
+            # True Negative: 正确预测为不是该类的样本
+            tn_per_class[i] = np.sum(cm) - (tp_per_class[i] + fp_per_class[i] + fn_per_class[i])
+        
+        # 计算宏平均
+        score.tp = np.mean(tp_per_class)
+        score.fp = np.mean(fp_per_class)
+        score.tn = np.mean(tn_per_class)
+        score.fn = np.mean(fn_per_class)
+        
+        # 使用 sklearn 计算精确率、召回率、F1-score (宏平均)
+        score.precision = precision_score(all_targets, all_predictions, average='macro', zero_division=0)
+        score.recall = recall_score(all_targets, all_predictions, average='macro', zero_division=0)
+        score.f1_score = f1_score(all_targets, all_predictions, average='macro', zero_division=0)
+        
+        return score
+
+    # 使用示例
+    def print_score_details(score: Score):
+        """打印详细的评分信息"""
+        print(f"Accuracy: {score.accuracy:.4f}")
+        print(f"Precision (Macro): {score.precision:.4f}")
+        print(f"Recall (Macro): {score.recall:.4f}")
+        print(f"F1-Score (Macro): {score.f1_score:.4f}")
+        print(f"TP (Macro Avg): {score.tp:.2f}")
+        print(f"FP (Macro Avg): {score.fp:.2f}")
+        print(f"TN (Macro Avg): {score.tn:.2f}")
+        print(f"FN (Macro Avg): {score.fn:.2f}")
+
+    # 假设您有以下变量：
+    # model = Net()  # 您的模型实例
+    # test_dataset = MNIST(...)  # 您的测试数据集
+
+    # 使用方式：
+    # score = calc_mnist_score(model, test_dataset)
+    # print_score_details(score)
+    ```
+
+    这个实现的特点：
+
+    1. **宏平均处理**：所有指标（TP, FP, TN, FN, Precision, Recall, F1）都采用宏平均，为每个类别单独计算后取平均
+    2. **完整的指标计算**：
+       - **Accuracy**: 整体准确率
+       - **TP/FP/TN/FN**: 每个类别的平均值
+       - **Precision/Recall/F1**: 宏平均版本
+    3. **使用混淆矩阵**：基于混淆矩阵准确计算每个类别的 TP, FP, TN, FN
+    4. **批处理推理**：使用 DataLoader 进行高效的批处理预测
+    5. **设备兼容性**：自动检测模型所在的设备（CPU/GPU）
+
+    使用示例：
+
+    ```python
+    # 计算评分
+    score = calc_mnist_score(your_model, test_dataset)
+
+    # 打印结果
+    print(f"模型准确率: {score.accuracy:.2%}")
+    print(f"宏平均F1分数: {score.f1_score:.4f}")
+    ```
+
+    这样您就可以全面评估模型在 MNIST 数据集上的性能了。
+
+* 再实现一个返回 list[Score] 的版本，每个类别都给出指标
+
+    我来为您实现一个返回每个类别详细指标的版本。
+
+    ```python
+    import torch
+    from torch.utils.data import DataLoader
+    import numpy as np
+    from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+    from typing import List
+
+    class Score:
+        accuracy: float = 0.0
+        tp: float = 0.0
+        fp: float = 0.0
+        tn: float = 0.0
+        fn: float = 0.0
+        precision: float = 0.0
+        recall: float = 0.0
+        f1_score: float = 0.0
+
+    class ClassScore(Score):
+        def __init__(self, class_id: int, class_name: str = None):
+            super().__init__()
+            self.class_id = class_id
+            self.class_name = class_name or f"Class_{class_id}"
+            
+        def __str__(self):
+            return (f"{self.class_name}:\n"
+                    f"  TP: {self.tp:.0f}, FP: {self.fp:.0f}, TN: {self.tn:.0f}, FN: {self.fn:.0f}\n"
+                    f"  Precision: {self.precision:.4f}, Recall: {self.recall:.4f}, F1: {self.f1_score:.4f}")
+
+    def calc_mnist_score_per_class(model: Net, dataset: MNIST) -> List[ClassScore]:
+        """
+        计算模型在MNIST数据集上每个类别的评估指标
+        
+        Args:
+            model: 训练好的神经网络模型
+            dataset: MNIST数据集
+            
+        Returns:
+            List[ClassScore]: 每个类别的评估指标列表
+        """
+        model.eval()
+        device = next(model.parameters()).device
+        
+        # 创建数据加载器
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        
+        all_predictions = []
+        all_targets = []
+        
+        # 获取模型预测
+        with torch.no_grad():
+            for batch in dataloader:
+                if isinstance(batch, (list, tuple)):
+                    images, targets = batch
+                else:
+                    images, targets = batch, batch[1] if hasattr(batch, '__getitem__') else None
+                
+                images = images.to(device)
+                if targets is not None:
+                    targets = targets.to(device)
+                
+                outputs = model(images)
+                _, predictions = torch.max(outputs, 1)
+                
+                all_predictions.extend(predictions.cpu().numpy())
+                if targets is not None:
+                    all_targets.extend(targets.cpu().numpy())
+        
+        all_predictions = np.array(all_predictions)
+        all_targets = np.array(all_targets)
+        
+        # 计算混淆矩阵
+        cm = confusion_matrix(all_targets, all_predictions)
+        num_classes = cm.shape[0]
+        
+        # 为每个类别创建 ClassScore 对象
+        class_scores = []
+        
+        for class_id in range(num_classes):
+            class_score = ClassScore(class_id, f"Digit_{class_id}")
+            
+            # 计算当前类别的 TP, FP, TN, FN
+            # True Positive: 正确预测为该类的样本
+            class_score.tp = cm[class_id, class_id]
+            
+            # False Positive: 错误预测为该类的样本 (其他类被预测为当前类)
+            class_score.fp = np.sum(cm[:, class_id]) - cm[class_id, class_id]
+            
+            # False Negative: 本应预测为该类但预测为其他类的样本
+            class_score.fn = np.sum(cm[class_id, :]) - cm[class_id, class_id]
+            
+            # True Negative: 正确预测为不是该类的样本
+            class_score.tn = np.sum(cm) - (class_score.tp + class_score.fp + class_score.fn)
+            
+            # 计算当前类别的 Precision, Recall, F1
+            if class_score.tp + class_score.fp > 0:
+                class_score.precision = class_score.tp / (class_score.tp + class_score.fp)
+            else:
+                class_score.precision = 0.0
+                
+            if class_score.tp + class_score.fn > 0:
+                class_score.recall = class_score.tp / (class_score.tp + class_score.fn)
+            else:
+                class_score.recall = 0.0
+                
+            if class_score.precision + class_score.recall > 0:
+                class_score.f1_score = (2 * class_score.precision * class_score.recall) / (class_score.precision + class_score.recall)
+            else:
+                class_score.f1_score = 0.0
+            
+            # 当前类别的准确率（对于二分类视角）
+            class_score.accuracy = (class_score.tp + class_score.tn) / np.sum(cm)
+            
+            class_scores.append(class_score)
+        
+        return class_scores
+
+    def calc_mnist_score_with_overview(model: Net, dataset: MNIST) -> tuple[Score, List[ClassScore]]:
+        """
+        计算模型的总体评分和每个类别的详细评分
+        
+        Args:
+            model: 训练好的神经网络模型
+            dataset: MNIST数据集
+            
+        Returns:
+            tuple: (总体评分, 每个类别的评分列表)
+        """
+        # 获取每个类别的评分
+        class_scores = calc_mnist_score_per_class(model, dataset)
+        
+        # 计算总体评分（宏平均）
+        overall_score = Score()
+        
+        # 计算宏平均指标
+        overall_score.tp = np.mean([score.tp for score in class_scores])
+        overall_score.fp = np.mean([score.fp for score in class_scores])
+        overall_score.tn = np.mean([score.tn for score in class_scores])
+        overall_score.fn = np.mean([score.fn for score in class_scores])
+        overall_score.precision = np.mean([score.precision for score in class_scores])
+        overall_score.recall = np.mean([score.recall for score in class_scores])
+        overall_score.f1_score = np.mean([score.f1_score for score in class_scores])
+        
+        # 计算整体准确率
+        all_predictions = []
+        all_targets = []
+        
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        device = next(model.parameters()).device
+        
+        with torch.no_grad():
+            for batch in dataloader:
+                if isinstance(batch, (list, tuple)):
+                    images, targets = batch
+                else:
+                    images, targets = batch, batch[1] if hasattr(batch, '__getitem__') else None
+                
+                images = images.to(device)
+                if targets is not None:
+                    targets = targets.to(device)
+                
+                outputs = model(images)
+                _, predictions = torch.max(outputs, 1)
+                
+                all_predictions.extend(predictions.cpu().numpy())
+                if targets is not None:
+                    all_targets.extend(targets.cpu().numpy())
+        
+        all_predictions = np.array(all_predictions)
+        all_targets = np.array(all_targets)
+        overall_score.accuracy = np.mean(all_predictions == all_targets)
+        
+        return overall_score, class_scores
+
+    # 使用示例和工具函数
+    def print_detailed_scores(overall_score: Score, class_scores: List[ClassScore]):
+        """打印详细的评分信息"""
+        print("=" * 50)
+        print("OVERALL PERFORMANCE (Macro Average)")
+        print("=" * 50)
+        print(f"Accuracy: {overall_score.accuracy:.4f}")
+        print(f"Precision: {overall_score.precision:.4f}")
+        print(f"Recall: {overall_score.recall:.4f}")
+        print(f"F1-Score: {overall_score.f1_score:.4f}")
+        print(f"TP (avg): {overall_score.tp:.2f}")
+        print(f"FP (avg): {overall_score.fp:.2f}")
+        print(f"TN (avg): {overall_score.tn:.2f}")
+        print(f"FN (avg): {overall_score.fn:.2f}")
+        
+        print("\n" + "=" * 50)
+        print("PER-CLASS PERFORMANCE")
+        print("=" * 50)
+        
+        for class_score in class_scores:
+            print(f"\n{class_score}")
+        
+        # 打印性能总结
+        print("\n" + "=" * 50)
+        print("PERFORMANCE SUMMARY")
+        print("=" * 50)
+        
+        # 找出表现最好和最差的类别
+        best_f1 = max(class_scores, key=lambda x: x.f1_score)
+        worst_f1 = min(class_scores, key=lambda x: x.f1_score)
+        
+        print(f"Best performing class: {best_f1.class_name} (F1: {best_f1.f1_score:.4f})")
+        print(f"Worst performing class: {worst_f1.class_name} (F1: {worst_f1.f1_score:.4f})")
+        
+        # 计算各类别指标的方差
+        precisions = [score.precision for score in class_scores]
+        recalls = [score.recall for score in class_scores]
+        f1_scores = [score.f1_score for score in class_scores]
+        
+        print(f"Precision std: {np.std(precisions):.4f}")
+        print(f"Recall std: {np.std(recalls):.4f}")
+        print(f"F1-Score std: {np.std(f1_scores):.4f}")
+
+    # 使用示例
+    def analyze_model_performance(model: Net, test_dataset: MNIST):
+        """
+        完整的模型性能分析
+        """
+        overall_score, class_scores = calc_mnist_score_with_overview(model, test_dataset)
+        print_detailed_scores(overall_score, class_scores)
+        
+        return overall_score, class_scores
+
+    # 如果您只需要每个类别的评分，可以直接使用：
+    # class_scores = calc_mnist_score_per_class(model, test_dataset)
+    # for score in class_scores:
+    #     print(score)
+    ```
+
+    这个实现提供了两个主要函数：
+
+    1. **`calc_mnist_score_per_class`**: 返回每个类别的详细指标 `List[ClassScore]`
+    2. **`calc_mnist_score_with_overview`**: 返回总体评分和每个类别的评分
+
+    **主要特点：**
+
+    - **`ClassScore` 类**: 继承自 `Score`，增加了类别ID和名称
+    - **每个类别的完整指标**: 为每个数字（0-9）计算独立的 TP, FP, TN, FN, Precision, Recall, F1
+    - **详细的性能分析**: 包含最佳/最差类别识别、指标方差计算等
+    - **灵活的接口**: 可以根据需要选择使用总体评分或详细类别评分
+
+    **使用示例：**
+
+    ```python
+    # 完整分析
+    overall, per_class = calc_mnist_score_with_overview(model, test_dataset)
+    print_detailed_scores(overall, per_class)
+
+    # 或者只获取每个类别的评分
+    class_scores = calc_mnist_score_per_class(model, test_dataset)
+    for score in class_scores:
+        if score.f1_score < 0.9:  # 找出表现较差的类别
+            print(f"需要关注的类别: {score}")
+    ```
+
+    这样您就可以清楚地看到模型在每个数字上的具体表现，识别出哪些数字容易被混淆，从而进行针对性的改进。
+
+* 除了 sklearn，在 torch 或 torchvision 中是否有类似的 metric 的实现？
+
+    是的，PyTorch 和 TorchMetrics 库中都有丰富的指标实现。让我为您介绍这些替代方案：
+
+    1. TorchMetrics - 推荐方案
+
+        TorchMetrics 是 PyTorch 生态中专门用于机器学习指标计算的库。
+
+        ```python
+        import torch
+        import torchmetrics
+        from torchmetrics import Accuracy, Precision, Recall, F1Score, ConfusionMatrix
+        from torchmetrics.classification import MultilabelAccuracy
+
+        def calc_mnist_score_torchmetrics(model: Net, dataset: MNIST) -> List[ClassScore]:
+            """
+            使用 TorchMetrics 计算 MNIST 评分
+            """
+            model.eval()
+            device = next(model.parameters()).device
+            
+            # 初始化指标计算器
+            num_classes = 10
+            
+            accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(device)
+            precision_metric = Precision(task="multiclass", num_classes=num_classes, average='none').to(device)
+            recall_metric = Recall(task="multiclass", num_classes=num_classes, average='none').to(device)
+            f1_metric = F1Score(task="multiclass", num_classes=num_classes, average='none').to(device)
+            confusion_matrix = ConfusionMatrix(task="multiclass", num_classes=num_classes).to(device)
+            
+            dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+            
+            # 批量计算指标
+            with torch.no_grad():
+                for batch in dataloader:
+                    if isinstance(batch, (list, tuple)):
+                        images, targets = batch
+                    else:
+                        images, targets = batch, batch[1]
+                    
+                    images = images.to(device)
+                    targets = targets.to(device)
+                    
+                    outputs = model(images)
+                    _, predictions = torch.max(outputs, 1)
+                    
+                    # 更新指标
+                    accuracy_metric.update(predictions, targets)
+                    precision_metric.update(predictions, targets)
+                    recall_metric.update(predictions, targets)
+                    f1_metric.update(predictions, targets)
+                    confusion_matrix.update(predictions, targets)
+            
+            # 计算最终结果
+            accuracy = accuracy_metric.compute()
+            precisions = precision_metric.compute()
+            recalls = recall_metric.compute()
+            f1_scores = f1_metric.compute()
+            cm = confusion_matrix.compute()
+            
+            # 转换为 ClassScore 对象
+            class_scores = []
+            for class_id in range(num_classes):
+                class_score = ClassScore(class_id, f"Digit_{class_id}")
+                
+                # 从混淆矩阵计算 TP, FP, TN, FN
+                class_score.tp = cm[class_id, class_id].item()
+                class_score.fp = torch.sum(cm[:, class_id]).item() - class_score.tp
+                class_score.fn = torch.sum(cm[class_id, :]).item() - class_score.tp
+                class_score.tn = torch.sum(cm).item() - (class_score.tp + class_score.fp + class_score.fn)
+                
+                # 使用 TorchMetrics 计算的指标
+                class_score.precision = precisions[class_id].item()
+                class_score.recall = recalls[class_id].item()
+                class_score.f1_score = f1_scores[class_id].item()
+                class_score.accuracy = accuracy.item()  # 整体准确率
+                
+                class_scores.append(class_score)
+            
+            return class_scores
+        ```
+
+    2. PyTorch 原生实现
+
+        PyTorch 也提供了一些基础的指标计算功能：
+
+        ```python
+        import torch
+        from torch import nn
+
+        def calc_mnist_score_pytorch_native(model: Net, dataset: MNIST) -> List[ClassScore]:
+            """
+            使用 PyTorch 原生方法计算指标
+            """
+            model.eval()
+            device = next(model.parameters()).device
+            num_classes = 10
+            
+            dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+            
+            all_predictions = []
+            all_targets = []
+            
+            with torch.no_grad():
+                for batch in dataloader:
+                    if isinstance(batch, (list, tuple)):
+                        images, targets = batch
+                    else:
+                        images, targets = batch, batch[1]
+                    
+                    images = images.to(device)
+                    targets = targets.to(device)
+                    
+                    outputs = model(images)
+                    _, predictions = torch.max(outputs, 1)
+                    
+                    all_predictions.append(predictions.cpu())
+                    all_targets.append(targets.cpu())
+            
+            # 合并所有批次
+            all_predictions = torch.cat(all_predictions)
+            all_targets = torch.cat(all_targets)
+            
+            # 计算混淆矩阵
+            cm = torch.zeros(num_classes, num_classes, dtype=torch.int64)
+            for t, p in zip(all_targets, all_predictions):
+                cm[t, p] += 1
+            
+            # 计算每个类别的指标
+            class_scores = []
+            for class_id in range(num_classes):
+                class_score = ClassScore(class_id, f"Digit_{class_id}")
+                
+                # TP, FP, TN, FN
+                class_score.tp = cm[class_id, class_id].item()
+                class_score.fp = torch.sum(cm[:, class_id]).item() - class_score.tp
+                class_score.fn = torch.sum(cm[class_id, :]).item() - class_score.tp
+                class_score.tn = torch.sum(cm).item() - (class_score.tp + class_score.fp + class_score.fn)
+                
+                # Precision, Recall, F1
+                if class_score.tp + class_score.fp > 0:
+                    class_score.precision = class_score.tp / (class_score.tp + class_score.fp)
+                else:
+                    class_score.precision = 0.0
+                    
+                if class_score.tp + class_score.fn > 0:
+                    class_score.recall = class_score.tp / (class_score.tp + class_score.fn)
+                else:
+                    class_score.recall = 0.0
+                    
+                if class_score.precision + class_score.recall > 0:
+                    class_score.f1_score = (2 * class_score.precision * class_score.recall) / (class_score.precision + class_score.recall)
+                else:
+                    class_score.f1_score = 0.0
+                
+                # 准确率
+                class_score.accuracy = (all_predictions == all_targets).float().mean().item()
+                
+                class_scores.append(class_score)
+            
+            return class_scores
+        ```
+
+    3. 完整的 TorchMetrics 解决方案
+
+        ```python
+        import torchmetrics
+
+        class MNISTMetricsCalculator:
+            """使用 TorchMetrics 的完整指标计算器"""
+            
+            def __init__(self, num_classes=10, device='cuda' if torch.cuda.is_available() else 'cpu'):
+                self.device = device
+                self.num_classes = num_classes
+                
+                # 初始化所有指标
+                self.metrics = {
+                    'accuracy': Accuracy(task="multiclass", num_classes=num_classes).to(device),
+                    'precision_macro': Precision(task="multiclass", num_classes=num_classes, average='macro').to(device),
+                    'recall_macro': Recall(task="multiclass", num_classes=num_classes, average='macro').to(device),
+                    'f1_macro': F1Score(task="multiclass", num_classes=num_classes, average='macro').to(device),
+                    'precision_per_class': Precision(task="multiclass", num_classes=num_classes, average='none').to(device),
+                    'recall_per_class': Recall(task="multiclass", num_classes=num_classes, average='none').to(device),
+                    'f1_per_class': F1Score(task="multiclass", num_classes=num_classes, average='none').to(device),
+                    'confusion_matrix': ConfusionMatrix(task="multiclass", num_classes=num_classes).to(device),
+                }
+            
+            def compute_metrics(self, model: Net, dataset: MNIST) -> dict:
+                """计算所有指标"""
+                model.eval()
+                
+                dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+                
+                # 重置所有指标
+                for metric in self.metrics.values():
+                    metric.reset()
+                
+                # 批量更新指标
+                with torch.no_grad():
+                    for batch in dataloader:
+                        if isinstance(batch, (list, tuple)):
+                            images, targets = batch
+                        else:
+                            images, targets = batch, batch[1]
+                        
+                        images = images.to(self.device)
+                        targets = targets.to(self.device)
+                        
+                        outputs = model(images)
+                        _, predictions = torch.max(outputs, 1)
+                        
+                        # 更新所有指标
+                        for metric in self.metrics.values():
+                            metric.update(predictions, targets)
+                
+                # 计算最终结果
+                results = {}
+                for name, metric in self.metrics.items():
+                    results[name] = metric.compute()
+                
+                return results
+            
+            def get_detailed_scores(self, model: Net, dataset: MNIST) -> List[ClassScore]:
+                """获取详细的每个类别评分"""
+                results = self.compute_metrics(model, dataset)
+                cm = results['confusion_matrix']
+                
+                class_scores = []
+                for class_id in range(self.num_classes):
+                    class_score = ClassScore(class_id, f"Digit_{class_id}")
+                    
+                    # 从混淆矩阵计算
+                    class_score.tp = cm[class_id, class_id].item()
+                    class_score.fp = torch.sum(cm[:, class_id]).item() - class_score.tp
+                    class_score.fn = torch.sum(cm[class_id, :]).item() - class_score.tp
+                    class_score.tn = torch.sum(cm).item() - (class_score.tp + class_score.fp + class_score.fn)
+                    
+                    # 使用预计算的指标
+                    class_score.precision = results['precision_per_class'][class_id].item()
+                    class_score.recall = results['recall_per_class'][class_id].item()
+                    class_score.f1_score = results['f1_per_class'][class_id].item()
+                    class_score.accuracy = results['accuracy'].item()
+                    
+                    class_scores.append(class_score)
+                
+                return class_scores
+
+        # 使用示例
+        def demo_torchmetrics():
+            """演示 TorchMetrics 的使用"""
+            calculator = MNISTMetricsCalculator()
+            
+            # 计算所有指标
+            results = calculator.compute_metrics(model, test_dataset)
+            print("整体指标:")
+            print(f"准确率: {results['accuracy']:.4f}")
+            print(f"宏平均精确率: {results['precision_macro']:.4f}")
+            print(f"宏平均召回率: {results['recall_macro']:.4f}")
+            print(f"宏平均F1: {results['f1_macro']:.4f}")
+            
+            # 获取详细类别评分
+            class_scores = calculator.get_detailed_scores(model, test_dataset)
+            for score in class_scores:
+                print(score)
+        ```
+
+    总结对比
+
+    | 方法 | 优点 | 缺点 |
+    |------|------|------|
+    | **TorchMetrics** | ✅ 专门为PyTorch设计<br>✅ GPU加速<br>✅ 丰富的指标<br>✅ 分布式训练支持 | ❌ 需要额外安装<br>❌ 学习曲线 |
+    | **PyTorch原生** | ✅ 无需额外依赖<br>✅ 完全控制实现 | ❌ 需要手动实现复杂指标<br>❌ 容易出错 |
+    | **Scikit-learn** | ✅ 成熟稳定<br>✅ 功能全面 | ❌ CPU only<br>❌ 需要数据转换 |
+
+    **推荐使用 TorchMetrics**，因为它：
+
+    - 与 PyTorch 完美集成
+    - 支持 GPU 加速
+    - 提供分布式训练支持
+    - 有丰富的预实现指标
+
+    安装命令：
+
+    ```bash
+    pip install torchmetrics
+    ```
+
+* 我没有 gpu 环境，使用 numpy 原生实现一下，包括宏指标版本和分类指标版本两个版本的 metric 函数
+
+    我来为您使用 NumPy 原生实现两个版本的指标计算函数。
+
+    ```python
+    import numpy as np
+    from typing import List, Tuple
+
+    class Score:
+        accuracy: float = 0.0
+        tp: float = 0.0
+        fp: float = 0.0
+        tn: float = 0.0
+        fn: float = 0.0
+        precision: float = 0.0
+        recall: float = 0.0
+        f1_score: float = 0.0
+
+    class ClassScore(Score):
+        def __init__(self, class_id: int, class_name: str = None):
+            super().__init__()
+            self.class_id = class_id
+            self.class_name = class_name or f"Class_{class_id}"
+            
+        def __str__(self):
+            return (f"{self.class_name}:\n"
+                    f"  TP: {self.tp:.0f}, FP: {self.fp:.0f}, TN: {self.tn:.0f}, FN: {self.fn:.0f}\n"
+                    f"  Precision: {self.precision:.4f}, Recall: {self.recall:.4f}, F1: {self.f1_score:.4f}")
+
+    def compute_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, num_classes: int) -> np.ndarray:
+        """
+        计算多分类混淆矩阵
+        
+        Args:
+            y_true: 真实标签, shape (n_samples,)
+            y_pred: 预测标签, shape (n_samples,)
+            num_classes: 类别数量
+            
+        Returns:
+            confusion_matrix: shape (num_classes, num_classes)
+        """
+        cm = np.zeros((num_classes, num_classes), dtype=np.int64)
+        for true_label, pred_label in zip(y_true, y_pred):
+            cm[true_label, pred_label] += 1
+        return cm
+
+    def compute_class_metrics_from_cm(confusion_matrix: np.ndarray, class_id: int) -> dict:
+        """
+        从混淆矩阵计算单个类别的指标
+        
+        Args:
+            confusion_matrix: 混淆矩阵
+            class_id: 类别ID
+            
+        Returns:
+            包含该类指标的数字
+        """
+        tp = confusion_matrix[class_id, class_id]
+        fp = np.sum(confusion_matrix[:, class_id]) - tp
+        fn = np.sum(confusion_matrix[class_id, :]) - tp
+        tn = np.sum(confusion_matrix) - (tp + fp + fn)
+        
+        # 计算 precision, recall, f1
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        
+        return {
+            'tp': tp,
+            'fp': fp,
+            'tn': tn,
+            'fn': fn,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1
+        }
+
+    def calc_mnist_macro_metrics(model: Net, dataset: MNIST) -> Score:
+        """
+        计算宏平均指标版本
+        
+        Args:
+            model: 神经网络模型
+            dataset: MNIST数据集
+            
+        Returns:
+            Score: 包含宏平均指标的对象
+        """
+        # 获取预测结果
+        y_true, y_pred = get_predictions(model, dataset)
+        num_classes = 10
+        
+        # 计算混淆矩阵
+        cm = compute_confusion_matrix(y_true, y_pred, num_classes)
+        
+        # 初始化宏平均指标
+        macro_precisions = []
+        macro_recalls = []
+        macro_f1s = []
+        macro_tp = []
+        macro_fp = []
+        macro_tn = []
+        macro_fn = []
+        
+        # 计算每个类别的指标
+        for class_id in range(num_classes):
+            metrics = compute_class_metrics_from_cm(cm, class_id)
+            
+            macro_precisions.append(metrics['precision'])
+            macro_recalls.append(metrics['recall'])
+            macro_f1s.append(metrics['f1'])
+            macro_tp.append(metrics['tp'])
+            macro_fp.append(metrics['fp'])
+            macro_tn.append(metrics['tn'])
+            macro_fn.append(metrics['fn'])
+        
+        # 创建 Score 对象并填充宏平均指标
+        score = Score()
+        score.accuracy = np.mean(y_true == y_pred)
+        score.precision = np.mean(macro_precisions)
+        score.recall = np.mean(macro_recalls)
+        score.f1_score = np.mean(macro_f1s)
+        score.tp = np.mean(macro_tp)
+        score.fp = np.mean(macro_fp)
+        score.tn = np.mean(macro_tn)
+        score.fn = np.mean(macro_fn)
+        
+        return score
+
+    def calc_mnist_per_class_metrics(model: Net, dataset: MNIST) -> List[ClassScore]:
+        """
+        计算每个类别的详细指标版本
+        
+        Args:
+            model: 神经网络模型
+            dataset: MNIST数据集
+            
+        Returns:
+            List[ClassScore]: 每个类别的详细指标列表
+        """
+        # 获取预测结果
+        y_true, y_pred = get_predictions(model, dataset)
+        num_classes = 10
+        
+        # 计算混淆矩阵
+        cm = compute_confusion_matrix(y_true, y_pred, num_classes)
+        overall_accuracy = np.mean(y_true == y_pred)
+        
+        # 为每个类别创建 ClassScore 对象
+        class_scores = []
+        
+        for class_id in range(num_classes):
+            class_score = ClassScore(class_id, f"Digit_{class_id}")
+            metrics = compute_class_metrics_from_cm(cm, class_id)
+            
+            # 填充指标
+            class_score.tp = metrics['tp']
+            class_score.fp = metrics['fp']
+            class_score.tn = metrics['tn']
+            class_score.fn = metrics['fn']
+            class_score.precision = metrics['precision']
+            class_score.recall = metrics['recall']
+            class_score.f1_score = metrics['f1']
+            class_score.accuracy = overall_accuracy  # 使用整体准确率
+            
+            class_scores.append(class_score)
+        
+        return class_scores
+
+    def get_predictions(model: Net, dataset: MNIST) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        获取模型在数据集上的预测结果
+        
+        Args:
+            model: 神经网络模型
+            dataset: MNIST数据集
+            
+        Returns:
+            Tuple: (真实标签, 预测标签)
+        """
+        model.eval()
+        
+        # 这里需要根据您的实际数据加载方式进行调整
+        # 假设 dataset 可以像列表一样迭代
+        all_predictions = []
+        all_targets = []
+        
+        # 简化版本 - 实际使用时需要根据您的数据加载器调整
+        for i in range(len(dataset)):
+            data, target = dataset[i]
+            
+            # 添加批次维度
+            if isinstance(data, np.ndarray):
+                data = torch.from_numpy(data)
+            if len(data.shape) == 3:  # CHW
+                data = data.unsqueeze(0)  # 添加批次维度
+                
+            with torch.no_grad():
+                output = model(data)
+                prediction = torch.argmax(output, dim=1).item()
+                
+            all_predictions.append(prediction)
+            all_targets.append(target)
+        
+        return np.array(all_targets), np.array(all_predictions)
+
+    # 工具函数：打印结果
+    def print_macro_metrics(score: Score):
+        """打印宏平均指标"""
+        print("=" * 50)
+        print("MACRO AVERAGE METRICS")
+        print("=" * 50)
+        print(f"Accuracy:  {score.accuracy:.4f}")
+        print(f"Precision: {score.precision:.4f}")
+        print(f"Recall:    {score.recall:.4f}")
+        print(f"F1-Score:  {score.f1_score:.4f}")
+        print(f"TP (avg):  {score.tp:.2f}")
+        print(f"FP (avg):  {score.fp:.2f}")
+        print(f"TN (avg):  {score.tn:.2f}")
+        print(f"FN (avg):  {score.fn:.2f}")
+
+    def print_per_class_metrics(class_scores: List[ClassScore]):
+        """打印每个类别的指标"""
+        print("=" * 50)
+        print("PER-CLASS METRICS")
+        print("=" * 50)
+        
+        for score in class_scores:
+            print(f"\n{score}")
+        
+        # 性能分析
+        print("\n" + "=" * 50)
+        print("PERFORMANCE ANALYSIS")
+        print("=" * 50)
+        
+        best_f1 = max(class_scores, key=lambda x: x.f1_score)
+        worst_f1 = min(class_scores, key=lambda x: x.f1_score)
+        
+        print(f"Best F1:  {best_f1.class_name} ({best_f1.f1_score:.4f})")
+        print(f"Worst F1: {worst_f1.class_name} ({worst_f1.f1_score:.4f})")
+        
+        # 计算指标方差
+        precisions = [s.precision for s in class_scores]
+        recalls = [s.recall for s in class_scores]
+        f1_scores = [s.f1_score for s in class_scores]
+        
+        print(f"Precision std: {np.std(precisions):.4f}")
+        print(f"Recall std:    {np.std(recalls):.4f}")
+        print(f"F1-Score std:  {np.std(f1_scores):.4f}")
+
+    # 综合函数：同时计算两种指标
+    def calc_comprehensive_metrics(model: Net, dataset: MNIST) -> Tuple[Score, List[ClassScore]]:
+        """
+        同时计算宏平均指标和每个类别的详细指标
+        
+        Returns:
+            Tuple: (宏平均指标, 每个类别指标列表)
+        """
+        # 获取预测结果（只计算一次）
+        y_true, y_pred = get_predictions(model, dataset)
+        num_classes = 10
+        cm = compute_confusion_matrix(y_true, y_pred, num_classes)
+        overall_accuracy = np.mean(y_true == y_pred)
+        
+        # 计算宏平均指标
+        macro_score = Score()
+        macro_score.accuracy = overall_accuracy
+        
+        # 计算每个类别指标
+        class_scores = []
+        macro_precisions = []
+        macro_recalls = []
+        macro_f1s = []
+        macro_tp = []
+        macro_fp = []
+        macro_tn = []
+        macro_fn = []
+        
+        for class_id in range(num_classes):
+            metrics = compute_class_metrics_from_cm(cm, class_id)
+            
+            # 类别详细指标
+            class_score = ClassScore(class_id, f"Digit_{class_id}")
+            class_score.tp = metrics['tp']
+            class_score.fp = metrics['fp']
+            class_score.tn = metrics['tn']
+            class_score.fn = metrics['fn']
+            class_score.precision = metrics['precision']
+            class_score.recall = metrics['recall']
+            class_score.f1_score = metrics['f1']
+            class_score.accuracy = overall_accuracy
+            class_scores.append(class_score)
+            
+            # 宏平均累加
+            macro_precisions.append(metrics['precision'])
+            macro_recalls.append(metrics['recall'])
+            macro_f1s.append(metrics['f1'])
+            macro_tp.append(metrics['tp'])
+            macro_fp.append(metrics['fp'])
+            macro_tn.append(metrics['tn'])
+            macro_fn.append(metrics['fn'])
+        
+        # 设置宏平均指标
+        macro_score.precision = np.mean(macro_precisions)
+        macro_score.recall = np.mean(macro_recalls)
+        macro_score.f1_score = np.mean(macro_f1s)
+        macro_score.tp = np.mean(macro_tp)
+        macro_score.fp = np.mean(macro_fp)
+        macro_score.tn = np.mean(macro_tn)
+        macro_score.fn = np.mean(macro_fn)
+        
+        return macro_score, class_scores
+
+    # 使用示例
+    def demo_metrics():
+        """演示两个版本指标的使用"""
+        # 方法1：只获取宏平均指标
+        macro_score = calc_mnist_macro_metrics(model, test_dataset)
+        print_macro_metrics(macro_score)
+        
+        # 方法2：只获取每个类别指标
+        class_scores = calc_mnist_per_class_metrics(model, test_dataset)
+        print_per_class_metrics(class_scores)
+        
+        # 方法3：同时获取两种指标（推荐，效率更高）
+        macro_score, class_scores = calc_comprehensive_metrics(model, test_dataset)
+        print_macro_metrics(macro_score)
+        print_per_class_metrics(class_scores)
+    ```
+
+    这个实现的特点：
+
+    1. **纯 NumPy 实现**：不依赖 GPU 或外部机器学习库
+    2. **两个版本**：
+       - `calc_mnist_macro_metrics`: 返回宏平均指标
+       - `calc_mnist_per_class_metrics`: 返回每个类别的详细指标
+    3. **高效计算**：`calc_comprehensive_metrics` 同时计算两种指标，避免重复计算
+    4. **模块化设计**：核心计算函数可复用
+    5. **完整指标**：包含 TP, FP, TN, FN, Precision, Recall, F1-Score, Accuracy
+
+    使用时只需要根据您的数据加载方式调整 `get_predictions` 函数即可。
 * 假如给定直线 y = ax ＋ b，其中 a = 1.6, b = -2.3，那么如何使用层数尽量少的 linear module 拟合这条直线中的 a 和 b？
 
     你的问题其实是在问：**如何用最少的神经网络层（linear module）来拟合一个线性函数 $ y = 1.6x - 2.3 $**。  

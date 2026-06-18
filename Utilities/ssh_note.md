@@ -2,6 +2,130 @@
 
 ## cache
 
+* disown 在 ssh 中的行为
+
+    不同情况下`pstree -s <sleep_pid>`的输出：
+
+    * `ssh user@host "sleep 10"`
+
+        `systemd───sshd───sshd───sshd───sleep`
+
+    * `ssh user@host "sleep 10 &"`
+
+        `systemd───sleep`
+    
+    * `ssh user@host "sleep 10 & disown"`
+
+        `systemd───sleep`
+
+    上面这些情况都不会让 ssh 立即返回，本质原因都是 stdout 和 stderr 没有重定向到文件。
+
+    ssh 立即返回的 example:
+
+    * `ssh user@host "(sleep 10 &) > /dev/null 2>&1"`
+
+    * `ssh user@host "(sleep 10 & disown) > /dev/null 2>&1"`
+
+    * `ssh user@host "sleep 10 > /dev/null 2>&1 &"`
+
+    上面三个的进程树都是`systemd───sleep`
+
+    ssh 阻塞等待的 example:
+
+    * `ssh 54 "sleep 20 > /dev/null 2>&1"`
+
+    上面的进程树是`systemd───sshd───sshd───sshd───bash───sleep`
+
+* nohup 在 ssh 中的行为
+
+    方法 1：使用 nohup（推荐）
+
+    ```bash
+    ssh user@host "nohup sleep 5 > /dev/null 2>&1 &"
+    ```
+
+    方法 2：使用 setsid
+
+    ```bash
+    ssh user@host "setsid sleep 5 > /dev/null 2>&1 &"
+    ```
+
+    方法 3：重定向输出并完全脱离
+
+    ```bash
+    ssh user@host "sleep 5 > /dev/null 2>&1 < /dev/null &"
+    ```
+
+    方法 4：使用 screen 或 tmux（适合长时间运行的任务）
+
+    ```bash
+    ssh user@host "screen -dm sleep 5"
+    # 或者
+    ssh user@host "tmux new-session -d sleep 5"
+    ```
+
+    方法 5：使用 at 命令
+
+    ```bash
+    ssh user@host "echo 'sleep 5' | at now"
+    ```
+
+    推荐方案
+
+    **对于简单的后台任务**，使用 `nohup` 是最简单可靠的方法：
+
+    ```bash
+    ssh user@host "nohup sleep 5 > /dev/null 2>&1 &"
+    ```
+
+    **对于需要更复杂管理的长时间运行任务**，建议使用 `screen` 或 `tmux`，这样可以随时重新连接到进程查看状态。
+
+    这些方法都能确保 SSH 命令立即返回，同时在远程主机上继续执行 sleep 进程。
+
+    **什么 ssh user@host "nohup sleep 5 &" 就可以， ssh user@host "sleep 5 &"  就不行?**
+
+    - `nohup` 做了两件关键事情：
+        1. **忽略 SIGHUP 信号**：防止进程在终端关闭时被终止
+        2. **重定向输出**：默认重定向到 nohup.out，避免输出到已关闭的终端
+    - `nohup` 让 sleep 进程与原始会话完全脱离关系
+    - bash 退出后，SSH 不再关心后续进程
+
+    **其他类似的解决方案**
+
+    ```bash
+    # 使用 setsid 创建新会话
+    ssh user@host "setsid sleep 5"
+    ```
+
+    **总结**
+
+    | 命令 | 效果 | 原因 |
+    |------|------|------|
+    | `sleep 5 &` | 不立即返回 | sleep 仍是SSH子进程，SSH会等待 |
+    | `nohup sleep 5 &` | 立即返回 | nohup 使进程脱离会话，不受SIGHUP影响 |
+
+    所以关键区别在于 `nohup` 让进程完全脱离了原来的会话层次结构，使得 SSH 不再需要等待该进程完成。
+
+    `nohup` 的工作原理:
+
+    ```bash
+    ssh user@host "nohup sleep 5 &"
+    ```
+
+    - `nohup` 让 `sleep` 进程：
+        1. 忽略 SIGHUP 信号
+        2. 脱离控制终端的影响
+        3. 完全独立于原始会话
+
+    `setsid` 的工作原理:
+
+    ```bash
+    ssh user@host "setsid sleep 5"
+    ```
+
+    - `setsid` 创建一个全新的会话
+    - `sleep` 进程成为新会话的领导者
+    - 完全脱离原来的 SSH 会话树
 * ssh user@host "for i in {0..5}; do echo $i >> ssh_test.log; sleep 1; done"
 
     我执行这个命令后，远程机器上只出现了 ssh_test.log 文件，但文件是空的。如何解决这个问题
@@ -1288,7 +1412,7 @@
 
     * `ssh user@host "sleep 5 > /dev/null 2>&1 &"`
 
-        OK，stdout 和 stderr 被重定向到`/dev/null`文件，并且命令的最后有`&`表示在后台执行。此时 ssh 会立即返回。
+        OK. stdout 和 stderr 被重定向到`/dev/null`文件，并且命令的最后有`&`表示在后台执行。此时 ssh 会立即返回。
 
     * `ssh user@host "sleep 5 2>&1 > /dev/null &"`
 

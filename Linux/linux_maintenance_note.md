@@ -5,6 +5,7 @@
 这里不记录编程相关，操作系统原理相关。
 
 ## cache
+
 * 详细讲讲 systemd-run 的用法
 
     `systemd-run` 是 systemd 工具家族中非常强大但常被低估的一个命令。它的核心作用是：**在临时（Transient）的 systemd 单元（Unit）中运行程序。**
@@ -6338,7 +6339,9 @@
 
 * `disown`
 
-    `disown`将指定作业从 Shell 的作业列表中删除，但进程仍继续运行。
+    `disown`将指定作业从 Shell 的作业列表中删除，但进程仍继续运行。退出 shell 后作业仍继续运行。
+
+    被 disown 的进程仍属于当前用户，但会变成孤儿进程（由 init/systemd 接管）（这一点存疑，在本机测试，无论是`sleep 10`, `sleep 10 &`, 还是`sleep 10 & disown`，`pstree -s <sleep_pid>`输出都是`systemd───systemd───gnome-terminal-───bash───sleep`）
 
     常见用法：
 
@@ -6346,24 +6349,33 @@
     disown <jobspec>      # 移除指定作业（如 %1）
     disown -a             # 移除所有作业
     disown -r             # 仅移除运行中的作业
-    disown -h             # 将任务保留在 job list 但对其屏蔽 SIGHUP 信号（推荐用法）
     ```
 
-    启动后台任务后使用 disown -h，即使退出 Shell 也不终止进程（类似 nohup 效果）。
+    * `disown -h`
 
-    disown 不会自动重定向输出
+        将任务保留在 job list 但对其屏蔽 SIGHUP 信号。
 
-    被 disown 的进程仍属于当前用户，但会变成孤儿进程（由 init/systemd 接管）
+        启动后台任务后使用 `disown -h`，即使退出 Shell 也不终止进程（类似 nohup 效果）。
 
-    example:
+        example:
 
-    ```
-    $ long_task &       # 启动后台任务
-    $ disown -h %1      # 屏蔽 SIGHUP 并移除作业
-    $ exit              # 退出 Shell，任务继续运行
-    ```
+        ```
+        $ long_task &       # 启动后台任务
+        $ disown -h %1      # 使任务屏蔽 SIGHUP，但是不从 job list 中移除
+        $ exit              # 退出 Shell，任务继续运行
+        ```
 
-    被 disown 解除绑定的任务，无法使用`kill <PID>`的方式结束（为什么？），但可以通过`kill -kill <PID>`结束任务。
+    * `./long_job & disown`
+
+        在任务开始时就直接从当前 shell 的 job list 中清除，并保持后台执行。
+
+    注意事项：
+
+    1. `disown` 不会自动重定向输出。
+
+    2. 被 `disown` 解除绑定的任务，可以使用`kill <PID>`的方式结束
+    
+        如果是 `disown -h` 解除绑定并屏蔽 `SIGHUP` 信号的任务，可以通过 `kill -kill <PID>` 的方式结束。
 
 * 符号链接本身的大小是其指向的路径字符串的长度
 
