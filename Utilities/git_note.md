@@ -2,6 +2,102 @@
 
 ## cache
 
+* git 使用 ssh 仓库的问题
+
+    1. 验证 SSH 连接
+
+        ```bash
+        # 测试 SSH 连接（替换 your-server 为实际地址）
+        ssh -T git@your-server
+        ```
+
+        或
+
+        ```bash
+        ssh -vT git@your-server  # 详细模式
+        ```
+
+    2. 重新添加 SSH 密钥
+
+        ```bash
+        # 检查本地密钥
+        ls -la ~/.ssh/
+
+        # 重新添加密钥到 ssh-agent
+        ssh-add ~/.ssh/id_rsa  # 或您的密钥文件
+        ssh-add -l  # 确认已添加
+        ```
+
+    3. 更新 Git 远程 URL
+
+        ```bash
+        # 如果使用 SSH
+        git remote set-url origin git@github.com:username/repo.git
+
+        # 或暂时使用 HTTPS（测试用）
+        git remote set-url origin https://github.com/username/repo.git
+        ```
+
+    4. 重新生成密钥对（如果密钥损坏）
+
+        ```bash
+        # 备份旧密钥
+        mkdir ~/.ssh/backup
+        mv ~/.ssh/id_rsa* ~/.ssh/backup/
+
+        # 生成新密钥
+        ssh-keygen -t rsa -b 4096 -C "your-email@example.com"
+
+        # 添加新公钥到 Git 服务器（GitHub/GitLab 等）
+        cat ~/.ssh/id_rsa.pub
+        ```
+
+    5. 检查 SSH 配置
+
+        ```bash
+        # 确保 ~/.ssh/config 配置正确
+        Host github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/id_rsa
+            IdentitiesOnly yes
+        ```
+
+    **总结**
+
+    您看到的错误是 **SSH 客户端认证问题**，不是攻击。原因是您的 git push 使用的 SSH 连接在加密数据包验证时失败。按照上述步骤排查 SSH 密钥和配置即可解决。
+
+    **关键检查点**：
+
+    - SSH 密钥是否正确加载
+    - Git 远程 URL 是否是 SSH 格式
+    - 服务器上的公钥是否匹配本地私钥
+
+    **问题根源分析**
+
+    根据你的错误信息，问题可以拆解为两部分：
+
+    1.  **安全警告**：你看到的关于“未使用后量子密钥交换算法”的警告，是 OpenSSH 10.1 及更高版本引入的提示。它只是告知你当前连接使用的加密算法在未来可能不够安全（抵御量子计算机攻击），**不会**导致连接中断，可以**暂时忽略**。
+
+    2.  **致命错误**：`Connection reset by peer`、`Broken pipe`、`the remote end hung up unexpectedly` 这类错误，才是推送失败的元凶。它们几乎总是由**网络问题**引起的，与上述安全警告无关。
+
+    🔧 解决“连接中断”的排查步骤
+
+    你可以按以下步骤，由易到难地排查和解决：
+
+    | 步骤 | 操作 | 目的与说明 |
+    | :--- | :--- | :--- |
+    | **1** | **确认当前网络状况** | 访问网页，看网络是否稳定。如果正在使用VPN或代理，尝试关闭后重试。 |
+    | **2** | **切换远程仓库协议** | 这是**最可能有效**的快速解决方案。如果当前使用SSH，切换到HTTPS（或反之）。命令：`git remote set-url origin https://github.com/用户名/仓库.git` 或 `git remote set-url origin git@github.com:用户名/仓库.git`。 |
+    | **3** | **清除Git代理设置** | 不正确的代理设置会干扰连接。在命令行执行：`git config --global --unset http.proxy` 和 `git config --global --unset https.proxy`。 |
+    | **4** | **检查SSH连接** | 如果使用SSH，用此命令测试连接本身是否通畅：`ssh -T git@github.com` (示例)。 |
+    | **5** | **增加Git缓冲区大小** | 有时数据包太大可能导致连接被重置。尝试设置：`git config --global http.postBuffer 524288000`。 |
+    | **6** | **重试并耐心等待** | 网络瞬时波动或远程服务器（如GitHub）的临时问题也可能导致此错误，稍后再试可能成功。 |
+
+    总结与核心建议
+
+    总结来说，导致你推送失败的核心是网络连接问题，而非安全警告。
+
 * 那我先 merge commit 4，后 merge commit 2，为什么在 git log 中 commit 2 的位置更靠下？
 
     这是一个很好的观察！让我解释一下 Git 的显示顺序和实际历史关系的区别。
