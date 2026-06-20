@@ -2,6 +2,187 @@
 
 ## cache
 
+* fnirs channel 数据如果取平均，那么容易辨别病人和正常人，但是对于刺激事件，平均值可能意义不大，而是对同一刺激事件的不同 fnirs 数据波动程度更有意义
+
+    如果您的 fNIRS 数据中包含刺激事件（如视觉、触觉刺激），那么简单地取整个时间序列的平均值确实可能丢失与刺激相关的动态信息。常用的做法是提取刺激后特定时间窗口内的特征，或计算能够反映信号波动程度的统计量。以下提供几种替代方案，并给出相应的代码示例。
+
+    1. 提取多个时间序列统计量（推荐作为基线）
+
+        对每个通道-波长组合计算多种统计特征，包括：
+
+        - **均值**（整体水平）
+        - **标准差**（波动程度）
+        - **斜率**（变化趋势）
+        - **峰值幅度**（最大响应）
+        - **曲线下面积**（积分）
+        - **偏度/峰度**（分布形态）
+
+        这样既保留了均值信息，也加入了波动程度的度量。
+
+        **代码实现**（基于原始数据，每个样本 shape 为 `(num_timestamps, num_features)`）：
+
+        ```python
+        import numpy as np
+        from scipy import stats
+
+        def extract_multiple_features(data_list, add_slope=True, add_std=True, add_skew=True):
+            """
+            从每个样本的时间序列中提取多种统计特征。
+            返回特征矩阵，每一行是一个样本的特征向量。
+            """
+            features_list = []
+            for sample in data_list:
+                # sample shape: (T, D)
+                feat_per_channel = []
+                for ch in range(sample.shape[1]):  # 对每个通道-波长组合
+                    ts = sample[:, ch]  # 该特征的时间序列
+                    # 基本统计
+                    feats = [np.mean(ts), np.std(ts), np.min(ts), np.max(ts)]
+                    if add_slope:
+                        # 计算线性斜率（使用最小二乘法）
+                        x = np.arange(len(ts))
+                        slope, _ = np.polyfit(x, ts, 1)  # 一次多项式拟合，返回斜率和截距
+                        feats.append(slope)
+                    if add_skew:
+                        feats.append(stats.skew(ts))
+                    # 可继续添加其他特征，如峰度、峰峰值等
+                    feat_per_channel.extend(feats)
+                features_list.append(feat_per_channel)
+            return np.array(features_list)
+        ```
+
+        然后合并所有样本的特征，进行标准化和分类。
+
+    ---
+
+    2. 基于事件相关时间窗口的特征
+
+        如果您有刺激开始的时间点（例如每个 trial 的 onset 索引），可以对每个 trial 提取特定窗口（如刺激后 2-7 秒）的均值、斜率等。假设您的数据是多个 trial 拼接而成，通常需要先按事件分段。
+
+        **示例**：假设每个样本是一个 trial 的数据，并且已知刺激发生在时间点 `t_stim`（或默认在时间序列的起始点），您可以选择刺激后的一段区间：
+
+        ```python
+        def extract_window_features(data_list, window_start, window_end):
+            """
+            data_list: 每个元素 shape (T, D)
+            window_start, window_end: 时间点索引（假设所有样本时间轴对齐）
+            """
+            features = []
+            for sample in data_list:
+                # 提取窗口内的数据
+                window_data = sample[window_start:window_end, :]  # shape (window_len, D)
+                # 对窗口内取均值（也可加入其他统计）
+                feat = np.mean(window_data, axis=0)
+                features.append(feat)
+            return np.array(features)
+        ```
+
+        若刺激时间未知，可能需要对整个序列使用滑动窗口或基于变化点检测的方法，但这更复杂，不在此展开。
+
+    ---
+
+    3. 频域特征
+
+        fNIRS 信号常包含生理噪声（心跳、呼吸等），频域特征（如特定频带能量）也可用于分类。可以使用傅里叶变换或小波变换提取频带能量。
+
+        **示例**（使用功率谱密度）：
+
+        ```python
+        from scipy.signal import welch
+
+        def extract_band_power(data_list, fs, bands):
+            """
+            data_list: 每个元素 shape (T, D)
+            fs: 采样率 (Hz)
+            bands: 频带列表，如 [(0.01, 0.1), (0.1, 0.5)] 对应低频漂移和呼吸
+            """
+            features = []
+            for sample in data_list:
+                band_powers = []
+                for ch in range(sample.shape[1]):
+                    f, psd = welch(sample[:, ch], fs, nperseg=min(256, len(sample[:, ch])))
+                    for low, high in bands:
+                        idx = np.where((f >= low) & (f <= high))[0]
+                        bp = np.trapz(psd[idx], f[idx])  # 积分求功率
+                        band_powers.append(bp)
+                features.append(band_powers)
+            return np.array(features)
+        ```
+
+    ---
+
+    综合建议
+
+    - 根据实验设计选择特征：如果是**块设计**（Block design），通常计算每个块内的时间序列均值；如果是**事件相关设计**，则提取刺激后特定窗口的均值或峰值。
+    - 若无明确的刺激时间点，统计特征（均值+标准差+斜率）是一个稳健的起点。
+    - 尝试多种特征组合，并通过交叉验证选择最佳方案。
+
+    以下是一个整合多种特征的示例脚本，您可以根据需要启用或禁用不同的特征提取方式：
+
+    ```python
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.svm import SVC
+    from sklearn.metrics import accuracy_score, classification_report
+    from scipy import stats
+
+    # ========== 特征提取函数 ==========
+    def extract_features(data_list, use_mean=True, use_std=True, use_slope=True, use_skew=False):
+        """提取每个样本的时间序列统计特征"""
+        feature_vectors = []
+        for sample in data_list:
+            sample_feats = []
+            for ch in range(sample.shape[1]):
+                ts = sample[:, ch]
+                if use_mean:
+                    sample_feats.append(np.mean(ts))
+                if use_std:
+                    sample_feats.append(np.std(ts))
+                if use_slope:
+                    x = np.arange(len(ts))
+                    slope, _ = np.polyfit(x, ts, 1)
+                    sample_feats.append(slope)
+                if use_skew:
+                    sample_feats.append(stats.skew(ts))
+            feature_vectors.append(sample_feats)
+        return np.array(feature_vectors)
+
+    # ========== 准备数据 ==========
+    # normal_data, stroke_data 已定义，每个样本 shape (T, D)
+    X_normal = extract_features(normal_data)
+    X_stroke = extract_features(stroke_data)
+
+    y_normal = np.zeros(len(X_normal))
+    y_stroke = np.ones(len(X_stroke))
+
+    X = np.vstack((X_normal, X_stroke))
+    y = np.hstack((y_normal, y_stroke))
+
+    # 拆分
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+    # 标准化
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_val_scaled = scaler.transform(X_val)
+
+    # SVM 训练
+    svm = SVC(kernel='rbf', C=1.0, gamma='scale', random_state=42)
+    svm.fit(X_train_scaled, y_train)
+
+    # 评估
+    y_pred = svm.predict(X_val_scaled)
+    print(f"Accuracy: {accuracy_score(y_val, y_pred):.4f}")
+    print(classification_report(y_val, y_pred, target_names=['Normal', 'Stroke']))
+    ```
+
+    您可以根据数据特性调整 `extract_features` 中的参数，或自行添加其他特征（如峰度、峰峰值、熵等）。如果数据包含事件时间信息，强烈建议使用基于窗口的特征提取。
+
+    注：
+
+    1. 还可以把一个 trail 的时间窗口改成很多个小 block，对每个 block 求均值和方差等，然后将多个通道的 block 进行组合预测类别。
+
 * 我想处理 EGG / fnirs 时间序列数据，对一段时间序列数据的 action / event 进行分类。目前常用方法有哪些
 
     处理 EEG（脑电）与 fNIRS（功能性近红外光谱）的多模态时间序列数据并进行动作/事件分类（Action/Event Classification）是目前脑机接口（BCI）和认知神经科学领域非常热门的方向。

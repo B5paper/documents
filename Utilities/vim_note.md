@@ -2,6 +2,172 @@
 
 ## cache
 
+* vim 如何像 vscode 那样打断点？
+
+    方法一：使用专用调试插件（最推荐，最接近 VSCode 体验）
+
+    这类插件提供了类似现代 IDE 的调试界面，包括侧边栏断点标记、变量监视、调用栈查看等。
+
+    1. vimspector
+
+        这是目前功能最强大、体验最接近 VSCode 的 Vim 调试插件。它支持多种语言（C/C++, Python, Go, JavaScript, Rust 等），通过配置文件来适配不同的调试器。
+
+        特点：
+
+        * 有独立的图形化窗口显示变量、调用栈、断点等。
+        * 支持条件断点、日志断点。
+        * 需要在项目根目录创建一个 `.vimspector.json` 配置文件来告诉插件如何使用调试器。
+
+        安装（使用 vim-plug）：
+
+        ```vim
+        Plug 'puremourning/vimspector'
+        ```
+
+        基本使用：
+
+        1.  **安装插件**并执行 `:PlugInstall`。
+
+        2.  **安装调试器适配器**，例如对于 Python，需要安装 `debugpy`：`pip install debugpy`。
+
+        3.  **创建配置文件** `.vimspector.json`（以 Python 为例）:
+
+            ```json
+            {
+              "configurations": {
+                "Python: Launch": {
+                  "adapter": "debugpy",
+                  "configuration": {
+                    "name": "Launch Python",
+                    "type": "python",
+                    "request": "launch",
+                    "program": "${file}",
+                    "console": "integratedTerminal"
+                  }
+                }
+              }
+            }
+            ```
+
+        4. 使用：
+
+            *   `:VimspectorInstall`：安装调试适配器。
+            *   `<F5>`：启动/继续调试。
+            *   `<F9>`：在当前行**切换断点**。
+            *   `<F10>`：单步跳过。
+            *   `<F11>`：单步进入。
+            *   `:VimspectorReset`：停止调试。
+
+        官网：[https://github.com/puremourning/vimspector](https://github.com/puremourning/vimspector)
+
+    2. nvim-dap (NeoVim 专属)
+
+        如果你是 NeoVim 用户，`nvim-dap` 是一个类似于 vimspector 但更模块化的调试插件。它本身是核心，需要配合其他 UI 插件（如 `nvim-dap-ui`）来提供图形界面。
+
+        特点：
+
+        *   高度可定制和模块化。
+        *   社区活跃，扩展性强。
+
+        安装与配置示例：
+
+        ```vim
+        " 使用 packer.nvim
+        use { "mfussenegger/nvim-dap" }
+        use { "rcarriga/nvim-dap-ui", requires = {"mfussenegger/nvim-dap"} }
+        ```
+
+        ```lua
+        -- 在 Lua 配置中
+        local dap = require('dap')
+        local dapui = require('dapui')
+
+        -- 设置适配器（例如 Python）
+        dap.adapters.python = {
+          type = 'executable';
+          command = 'path/to/your/python';
+          args = { '-m', 'debugpy.adapter' };
+        }
+        dap.configurations.python = {
+          {
+            type = 'python';
+            request = 'launch';
+            name = "Launch file";
+            program = "${file}";
+            pythonPath = function() return '/usr/bin/python3' end;
+          },
+        }
+
+        -- 自动打开 UI
+        dap.listeners.after.event_initialized['dapui_config'] = function()
+          dapui.open()
+        end
+        dap.listeners.before.event_terminated['dapui_config'] = function()
+          dapui.close()
+        end
+        dap.listeners.before.event_exited['dapui_config'] = function()
+          dapui.close()
+        end
+        ```
+
+        **基本使用：**
+
+        *   `<F5>`：开始调试（需要在配置中映射）。
+        *   `:lua require'dap'.toggle_breakpoint()`：切换断点。
+        *   `:lua require'dap'.step_over()`：单步跳过。
+
+    方法二：使用更传统的插件（轻量级）
+
+    #### Termdebug (Vim 8.1+ / NeoVim 内置)
+
+    这是 Vim 自带的插件，非常轻量，适合 C/C++ 调试（使用 GDB）。
+
+    **特点：**
+    *   无需安装，开箱即用。
+    *   界面传统，分为源代码、GDB 命令和程序输出三个窗口。
+
+    **启用和使用：**
+    1.  在 vim 中执行：
+        ```vim
+        :packadd termdebug
+        :Termdebug <你的可执行文件路径>
+        ```
+    2.  会打开三个窗口。
+    3.  在源代码窗口中，将光标移动到某行，按 `<F8>` 即可在该行**设置/取消断点**。
+    4.  在 GDB 窗口中可以输入任何 GDB 命令。
+
+    方法三：手动与 GDB/LLDB 集成（最灵活，学习曲线高）
+
+    如果你不想用插件，可以直接在 Vim 的终端模式下运行 GDB，或者通过 `:!gdb` 执行。
+
+    1.  **在 Terminal 模式下运行**：
+
+        ```vim
+        :term gdb your_program
+        ```
+
+        然后就可以直接使用 GDB 命令，如 `b main`（在 main 函数设断点），`run` 等。
+
+    2.  **通过快捷键发送命令**：
+
+        你可以映射一些 Vim 快捷键来向 GDB 发送特定命令。这种方式比较原始，但非常灵活。
+
+    总结与建议
+
+    | 方法 | 适用场景 | 优点 | 缺点 |
+    | :--- | :--- | :--- | :--- |
+    | **vimspector** | **所有 Vim/NeoVim 用户，追求接近 VSCode 的体验** | 功能强大，图形化好，支持多语言 | 需要额外配置文件 |
+    | **nvim-dap** | **NeoVim 用户，喜欢高度定制** | 模块化，可扩展性强 | 配置相对复杂 |
+    | **Termdebug** | **Vim 8.1+ 用户，快速调试 C/C++** | 轻量，无需安装 | 功能相对基础，界面传统 |
+    | **手动 GDB** | **高手，需要最大灵活性** | 完全控制，无需依赖 | 学习曲线高，体验不友好 |
+
+    **给你的建议：**
+
+    *   如果你想要一个**开箱即用、功能全面、最像 VSCode** 的体验，请直接选择 **vimspector**。
+    *   如果你是 **NeoVim 用户**并且喜欢折腾和定制，可以尝试 **nvim-dap + nvim-dap-ui** 的组合。
+    *   如果你只是偶尔**快速调试一个 C/C++ 程序**，可以试试内置的 `Termdebug`。
+
+    无论选择哪种，你都能在 Vim 里获得强大的调试能力，一旦熟悉，效率会非常高。
 * 讲讲 vim 中 :echo expand('%:p') 这个命令的作用
 
     `:echo expand('%:p')` 的作用是：**打印当前编辑文件的“绝对路径”**。
