@@ -2,6 +2,85 @@
 
 ## cache
 
+* git subtree 中，如何只 pull 一个单独的 commit 或 tag，我不想 pull 整个 branch
+
+    在标准的 `git subtree` 设计中，`git subtree pull` 命令本质上是连结了 `fetch` 和 `merge` 两个步骤，它默认期望的是一个**分支（Branch）**。如果你直接尝试对一个单独的 Commit SHA 或 Tag 运行 `pull`，Git 通常会报错。
+
+    不过，你完全可以通过**手动拆解步骤**来实现这个需求。核心思路是：先将远程仓库的特定 Commit 或 Tag `fetch` 到本地，然后再利用 `git subtree merge` 将其合并。
+
+    以下是具体的精简操作步骤：
+
+    ---
+
+    ### 💡 核心解决方案
+
+    假设你的子项目远程仓库别名是 `upstream`（或者直接用 URL），本地的子目录路径是 `lib/mysubproject`。
+
+    #### 第一步：Fetch 目标的 Commit 或 Tag 到本地
+
+    你不需要拉取整个分支，只需要把这一个特定的 Commit 或 Tag 抓取下来。
+
+    * **如果是 Tag：**
+    ```bash
+    git fetch upstream refs/tags/v1.2.3
+
+    ```
+
+
+    * **如果是特定的 Commit SHA：**
+    ```bash
+    git fetch upstream <commit-sha>
+
+    ```
+
+
+    *(注：部分 Git 服务器默认不允许直接 fetch 未命名的 commit SHA。如果报错，最稳妥的方法还是通过 Tag，或者让对方临时给该 commit 挂一个分支名)*
+
+    #### 第二步：使用 Subtree Merge 合并到指定目录
+
+    Fetch 成功后，Git 会把最新的指针存在 `FETCH_HEAD` 中。现在你可以直接把 `FETCH_HEAD` 作为源，合并进你的子目录：
+
+    ```bash
+    git subtree merge --prefix=lib/mysubproject FETCH_HEAD --squash
+
+    ```
+
+    > 📌 **强烈建议加上 `--squash**`：这样可以把该 Commit 之前的所有历史记录压缩成一个干净的 Commit，避免将子项目的冗余历史塞满 your 主项目的 Git 历史。
+
+    ---
+
+    ### 🛠️ 备选方案：通过临时本地分支（最稳妥）
+
+    如果你担心 `FETCH_HEAD` 意图不够明确，或者上面的第一步因为服务器限制无法直接 fetch 孤立的 commit，你可以用这个百分百成功的迂回战术：
+
+    1. **Fetch 包含该 commit 的分支（只拉取，不合并）：**
+    ```bash
+    git fetch upstream main
+
+    ```
+
+
+    2. **基于目标 Commit 或 Tag 创建一个本地临时分支：**
+    ```bash
+    git branch temp-checkpoint <commit-sha-or-tag>
+
+    ```
+
+
+    3. **正常使用 subtree merge 合并该临时分支：**
+    ```bash
+    git subtree merge --prefix=lib/mysubproject temp-checkpoint --squash
+
+    ```
+
+
+    4. **过河拆桥，删掉临时分支：**
+    ```bash
+    git branch -D temp-checkpoint
+
+    ```
+
+    通过这种方式，你既享受了 `git subtree` 的目录隔离优势，又精准控制了引入的代码版本，不会把整个远程分支的最新演进一股脑拉进来。
 * git 使用 ssh 仓库的问题
 
     1. 验证 SSH 连接

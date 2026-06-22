@@ -2,6 +2,74 @@
 
 ## cache
 
+* xfreerdp 如何更改分辨率？
+
+    xfreerdp 可以通过多种方式更改连接分辨率，以下是常用方法：
+
+    ## 1. **使用 `/size` 参数**
+    ```bash
+    xfreerdp /v:服务器地址 /u:用户名 /size:1920x1080
+    ```
+    或指定百分比：
+    ```bash
+    xfreerdp /v:服务器地址 /u:用户名 /size:100%
+    ```
+
+    ## 2. **使用 `/w` 和 `/h` 参数**
+    ```bash
+    xfreerdp /v:服务器地址 /u:用户名 /w:1920 /h:1080
+    ```
+
+    ## 3. **使用动态分辨率（调整窗口时自动改变）**
+    ```bash
+    xfreerdp /v:服务器地址 /u:用户名 /dynamic-resolution
+    ```
+
+    ## 4. **常用分辨率示例**
+    ```bash
+    # 全屏
+    xfreerdp /v:服务器地址 /u:用户名 /f
+
+    # 4K分辨率
+    xfreerdp /v:服务器地址 /u:用户名 /size:3840x2160
+
+    # 2K分辨率
+    xfreerdp /v:服务器地址 /u:用户名 /size:2560x1440
+
+    # 高清
+    xfreerdp /v:服务器地址 /u:用户名 /size:1280x720
+    ```
+
+    ## 5. **使用配置文件**
+    在 `~/.freerdp/` 目录创建配置文件：
+    ```bash
+    xfreerdp /v:服务器地址 /u:用户名 /size:1920x1080 /sec:tls /clipboard /drive:home,/home/user
+    ```
+
+    ## 6. **完整示例命令**
+    ```bash
+    xfreerdp \
+      /v:192.168.1.100 \
+      /u:administrator \
+      /p:密码 \
+      /size:1920x1080 \
+      /dynamic-resolution \
+      /clipboard \
+      +home-drive \
+      /sound:sys:alsa \
+      /network:auto
+    ```
+
+    ## 注意事项：
+    - 某些服务器可能限制可用分辨率
+    - `/dynamic-resolution` 需要服务器端支持
+    - 全屏模式下可以使用 `Ctrl+Alt+Enter` 切换窗口模式
+    - 使用 `+fonts` 参数可以获得更好的字体渲染
+
+    查看所有选项：
+    ```bash
+    xfreerdp --help
+    ```
 * rdp 通信时的数据加密吗
 
     RDP (Remote Desktop Protocol) 在通信过程中是**加密的**。

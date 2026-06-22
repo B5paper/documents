@@ -2,6 +2,81 @@
 
 ## cache
 
+* sklearn pipeline
+
+    ```py
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score
+    # create a pipeline object
+    pipe = make_pipeline(
+        StandardScaler(),
+        LogisticRegression()
+    )
+    # load the iris dataset and split it into train and test sets
+    X, y = load_iris(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    # fit the whole pipeline
+    pipe.fit(X_train, y_train)
+    # we can now use it like any other estimator
+    score = accuracy_score(pipe.predict(X_test), y_test)
+    print(score)  # 0.9736842105263158
+    ```
+
+    preprocessin 中还有哪些函数？
+
+    除了 linear model，还有什么 model?
+
+    load_iris 返回的原始数据是什么？
+
+    为什么划分数据切片的 train_test_split 会被放在 model_selection 里？
+* sklearn 中的 transormers and pre-processors
+
+    ```py
+    from sklearn.preprocessing import StandardScaler
+    X = [[0, 15],
+         [1, -10]]
+    # scale data according to computed scaling values
+    out = StandardScaler().fit(X).transform(X)
+    print(out)
+    # array([[-1.,  1.],
+    #        [ 1., -1.]])
+    ```
+
+    注：
+
+    1. transforms 竟然都继承于 BaseEstimator，这样确实方便了链式调用，但是类的意义变不对了
+* sklearn tutorial
+
+    随机森林的 example:
+
+    ```py
+    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+    def main():
+        clf = RandomForestClassifier(random_state=0)
+        X = [[1, 2, 3],
+             [11, 12, 13]]
+        y = [0, 1]
+        clf.fit(X, y)
+        pred = clf.predict(X)
+        print(pred)  # array([0, 1])
+        clf.predict([[4, 5, 6], [14, 15, 16]])
+        print(pred)  # array([0, 1])
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    如果这段代码可以跑通，说明 sklearn 环境没有问题。
+
+    sklearn 中默认 X 的 shape 为`(num_samples, num_features)` 
+    
+    y 通常是个 vector，行或列无所谓，用行就行。第 i 个元素代表 X 中第 i 个 sample 的 target.
 * 写一段 python 代码，使用 sklern 的 svm 训练 fnirs channel 数据，做正常人和中风病人的二分类。目前 normal_data 和 stroke_data 是 list[np.ndarray] 的类型，已经准备好，其中 ndarray 的 shape 为 (num_timestamps, num_channels * num_wavelengths)。你需要把他们按七三开拆分成训练集和验证集。
 
     以下是一段使用 scikit-learn 的 SVM 对 fNIRS 通道数据进行二分类的 Python 代码。假设 `normal_data` 和 `stroke_data` 已按照问题描述准备好，代码会将每个样本的时间维度取平均作为特征，然后按 70/30 拆分训练集和验证集，训练 SVM 模型并评估性能。

@@ -35,7 +35,9 @@
     实际执行时，可以将这项任务拆解为更小的，便于启动的任务。
 
 ## cache
+* [ ] vim-gutentags
 
+* [new] `ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .`
 * [asso] Mercurial 或者更现代的 Jujutsu
 
 * [asso] 调研 vim multiple line 插件
