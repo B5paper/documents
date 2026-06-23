@@ -80,6 +80,7 @@
     ```cpp
     extern int get_host_hash(unsigned long &);
     ```
+
 * 详细讲讲 if constexpr 的用法
 
     `if constexpr` 是 C++17 引入的一个重量级特性，被称为**编译期条件分支**。
@@ -167,13 +168,14 @@
         * 当你想要避开复杂的 **SFINAE** 或 **标签分发 (Tag Dispatching)** 时。
 
     它是现代 C++ 模板编程中提升代码简洁度和维护性的“神技”。
+
 * 我有两个数组  int arr[] = {3, 5, 2, 1};  int ind[] = {0, 1, 2, 3}。我希望在给 arr 排序时，ind 中的元素也跟随着 arr 中元素的移动而移动，比如 arr 中 3 和 2 交换位置时， ind 中 0 和 2 交换位置。c++ 中如何实现？
 
     在 C++ 中实现这种“联动排序”最标准且高效的方法是：**不要直接对 `arr` 进行物理排序，而是通过排序索引数组 `ind` 来间接反映 `arr` 的顺序。**
 
     通过自定义 `std::sort` 的比较行为，你可以让索引按照其对应值的大小进行重排。
 
-    ### 核心实现代码
+    核心实现代码
 
     ```cpp
     #include <iostream>
@@ -206,7 +208,7 @@
 
     -----
 
-    ### 方案解析
+    方案解析
 
     1.  **Lambda 表达式引用捕捉 `[&]`**：
         我们把 `arr` 传入 `std::sort` 的比较函数中。虽然 `std::sort` 正在移动 `ind` 里的数字，但它每次都会对比 `arr[ind[a]]` 和 `arr[ind[b]]` 的大小。
@@ -222,10 +224,10 @@
         // 排序 Node 数组会更直观，但会消耗额外内存
         ```
 
-    ### 为什么推荐这种做法？
+    为什么推荐这种做法？
 
-      * **性能优异**：避免了频繁交换大型结构体或多个数组。
-      * **灵活性高**：原始数组 `arr` 可以保持不变，这在很多算法场景（如离散化、计算逆序对）中是必需的。
+    * **性能优异**：避免了频繁交换大型结构体或多个数组。
+    * **灵活性高**：原始数组 `arr` 可以保持不变，这在很多算法场景（如离散化、计算逆序对）中是必需的。
 
     您可以尝试将此逻辑封装成通用函数，或处理更复杂的数据结构。
 
@@ -1666,297 +1668,6 @@
     }
     ```
 
-* 自定义哈希函数
-
-    * 函数对象（仿函数）
-
-        ```cpp
-        struct MyHash {
-            size_t operator()(const MyClass& obj) const {
-                // 计算哈希值
-                return ...;
-            }
-        };
-        ```
-
-        example:
-
-        ```cpp
-        #include <stdio.h>
-        #include <string>
-        #include <unordered_map>
-        using std::string;
-        using std::unordered_map;
-
-        struct MyObj {
-            string name;
-            int age;
-
-            // operator==() is necessary
-            // these two const are both necessary
-            bool operator==(const MyObj &obj_2) const {
-                if (name == obj_2.name && age == obj_2.age) {
-                    return true;
-                }
-                return false;
-            }
-        };
-
-        struct MyHash {
-            // these two const are both necessary
-            size_t operator()(const MyObj &obj) const {
-                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
-            }
-        };
-
-        int main() {
-            unordered_map<MyObj, int, MyHash> my_map;
-            MyObj obj{"zhangsan", 15};
-            my_map.insert({obj, 1});
-            my_map.insert({{"lisi", 18}, 2});
-            auto iter = my_map.find({"lisi", 18});
-            if (iter != my_map.end()) {
-                printf("lisi exists, val: %d\n", iter->second);
-            } else {
-                printf("lisi doesn't exist, val: %d\n", iter->second);
-            }
-            return 0;
-        }
-        ```
-
-        output:
-
-        ```
-        lisi exists, val: 2
-        ```
-
-    * 模板特化
-
-        ```cpp
-        namespace std {
-            template<>
-            struct hash<MyClass> {
-                size_t operator()(const MyClass& obj) const {
-                    // 计算哈希值
-                    return ...;
-                }
-            };
-        }
-        ```
-
-        这个比较神奇，我们竟然能动态拓展标准库。
-
-        example:
-
-        ```cpp
-        #include <stdio.h>
-        #include <string>
-        #include <unordered_map>
-        using std::string;
-        using std::unordered_map;
-
-        struct MyObj {
-            string name;
-            int age;
-
-            bool operator==(const MyObj &obj_2) const {
-                if (name == obj_2.name && age == obj_2.age) {
-                    return true;
-                }
-                return false;
-            }
-        };
-
-        namespace std {
-        template<>
-        struct hash<MyObj> {
-            size_t operator()(const MyObj &obj) const {
-                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
-            }
-        };
-        };
-
-        int main() {
-            unordered_map<MyObj, int> my_map;
-            MyObj obj{"zhangsan", 15};
-            my_map.insert({obj, 1});
-            my_map.insert({{"lisi", 18}, 2});
-            auto iter = my_map.find({"lisi", 18});
-            if (iter != my_map.end()) {
-                printf("lisi exists, val: %d\n", iter->second);
-            } else {
-                printf("lisi doesn't exist, val: %d\n", iter->second);
-            }
-            return 0;
-        }
-
-        ```
-
-* `std::hash<void*>()(src_dst.first)`**不会**每次都创建一个对象，从而降低性能,编译器会对此进行大量优化.
-
-    std::hash<void*> 通常是一个空类（无成员变量）, 构造空类的开销几乎为0, 编译器可以完全优化掉构造过程.
-
-    如果使用局部变量，编译器也会优化：
-
-    ```cpp
-    struct VertexPtrHash {
-        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
-            std::hash<void*> hasher;  // 构造一次，使用两次
-            return hasher(src_dst.first) ^ hasher(src_dst.second);
-        }
-    };
-    ```
-
-    或者使用静态对象？（如果编译器总是优化，那么静态也没什么性能提升吧？）：
-
-    ```cpp
-    struct VertexPtrHash {
-        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
-            static std::hash<void*> hasher;
-            return hasher(src_dst.first) ^ hasher(src_dst.second);
-        }
-    };
-    ```
-
-    真正的优化应该关注哈希函数的质量（减少碰撞），而不是这种微小的构造开销。
-
-* 使用 lambda 表达式作为自定义哈希函数
-
-    example:
-
-    ```cpp
-    #include <stdio.h>
-    #include <string>
-    #include <unordered_map>
-    using std::string;
-    using std::unordered_map;
-
-    struct MyObj {
-        string name;
-        int age;
-
-        bool operator==(const MyObj &obj_2) const {
-            if (name == obj_2.name && age == obj_2.age) {
-                return true;
-            }
-            return false;
-        }
-    };
-
-    auto my_hasher = [](const MyObj& obj) {
-        return std::hash<string>{}(obj.name) ^ std::hash<int>{}(obj.age);
-    };
-
-    int main() {
-        // decltype(my_haser) and (0, my_haser) are necessary
-        unordered_map<MyObj, int, decltype(my_hasher)> my_map(0, my_hasher);
-        MyObj obj{"zhangsan", 15};
-        my_map.insert({obj, 1});
-        my_map.insert({{"lisi", 18}, 2});
-        auto iter = my_map.find({"lisi", 18});
-        if (iter != my_map.end()) {
-            printf("lisi exists, val: %d\n", iter->second);
-        } else {
-            printf("lisi doesn't exist, val: %d\n", iter->second);
-        }
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    lisi exists, val: 2
-    ```
-
-    注：
-
-    1. `my_hasher`会被编译器转换成一个没有默认构造函数的仿函数实例
-
-    1. unordered_map 第三个模板参数是类型模板参数，所以不能填`my_hasher`，只能用`decltype(my_hasher)`拿到其类型
-
-    1. `my_map(0, my_hasher)`是必须的，因为`my_hasher`没有构造函数，所以 unordered_map 拿到类型后，无法构造出实例，必须由我们传递一个实例给它。
-
-    1. 之所以写成`my_map(0, my_hasher)`而不是`my_map(my_hasher)`，是因为 int 值可能隐式转换为 hash 值，导致歧义
-
-* 使用函数指针实现自定义哈希函数
-
-    ```cpp
-    #include <stdio.h>
-    #include <string>
-    #include <unordered_map>
-    using std::string;
-    using std::unordered_map;
-
-    struct MyObj {
-        string name;
-        int age;
-
-        bool operator==(const MyObj &obj_2) const {
-            if (name == obj_2.name && age == obj_2.age) {
-                return true;
-            }
-            return false;
-        }
-    };
-
-    size_t calc_hash(const MyObj &obj) {
-        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
-    }
-
-    int main() {
-        unordered_map<MyObj, int, decltype(&calc_hash)> my_map(0, calc_hash);
-        MyObj obj{"zhangsan", 15};
-        my_map.insert({obj, 1});
-        my_map.insert({{"lisi", 18}, 2});
-        auto iter = my_map.find({"lisi", 18});
-        if (iter != my_map.end()) {
-            printf("lisi exists, val: %d\n", iter->second);
-        } else {
-            printf("lisi doesn't exist, val: %d\n", iter->second);
-        }
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    lisi exists, val: 2
-    ```
-
-    注：
-
-    1. `calc_hash`函数参数的`const MyObj &obj`中，`const`是必须的。
-
-        但是`size_t calc_hash(const MyObj &obj) {`不能写成`size_t calc_hash(const MyObj &obj) const {`，因为 const 函数只对成员函数有效。
-
-    1. 必须使用`decltype(&calc_hash)`得到**函数指针的类型**，比如`size_t(*)(const MyObj&)`
-    
-        不能使用`decltype(calc_hash)`，这样得到的是**函数类型**，比如`size_t(const MyObj&)`。函数类型是 c++ 区别于 C 的新概念。
-
-        如果不使用`decltype()`，也可以手动指定类型：
-
-        `unordered_map<MyObj, int, > my_map(0, calc_hash);`
-
-    1. `my_map(0, calc_hash);`中的两个参数都是必须的，理由与 labmda 表达式相似。
-
-        如果写成`unordered_map<MyObj, int, decltype(&calc_hash)> my_map;`，那么可以编译通过，但是运行时输出为：
-
-        ```
-        Segmentation fault (core dumped)
-        ```
-
-        labmda 完全禁用了构造函数，函数指针有构造函数，但是会返回`nullptr`，所以运行时还是会报错。
-
-    局限性：
-
-    * 函数指针不能有状态
-
-    * 不能内联，可能影响性能
-
-    * 语法相对复杂
-
 * int 类型的局部变量`aaa`，在传给函数参数时，如果使用`(size_t*) &aaa`强制类型转换，那么在函数内部赋值后，会导致 segmentation fault
 
 * 如果遇到了 segmentation fault，并且当前行似乎没有问题，那么可能是在之前就发生了内存踩踏。那么可以在前面几行的时候就跟踪异常指针值的变化，从指针有效单步跟踪到指针无效，出现变化的地方就是有 bug 的代码行。
@@ -2889,7 +2600,6 @@
     #include <string>
     #include <iostream>
     using namespace std;
-
 
     struct MyObj {
         vector<int> ints;
@@ -5933,6 +5643,843 @@
     因此 const 实际限制修改的是形参，而不管实参是按值传递还是按引用传递。
 
     这样一来，const type 和 type 为什么会是相同的类型，就又不得而知了。
+
+## Topics
+
+### 哈希表
+
+* 自定义哈希函数
+
+    * 函数对象（仿函数）
+
+        ```cpp
+        struct MyHash {
+            size_t operator()(const MyClass& obj) const {
+                // 计算哈希值
+                return ...;
+            }
+        };
+        ```
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            // operator==() is necessary
+            // these two const are both necessary
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        struct MyHash {
+            // these two const are both necessary
+            size_t operator()(const MyObj &obj) const {
+                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
+            }
+        };
+
+        int main() {
+            unordered_map<MyObj, int, MyHash> my_map;
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        lisi exists, val: 2
+        ```
+
+        * `std::hash<void*>()(src_dst.first)`**不会**每次都创建一个对象，从而降低性能,编译器会对此进行大量优化.
+
+            std::hash<void*> 通常是一个空类（无成员变量）, 构造空类的开销几乎为0, 编译器可以完全优化掉构造过程.
+
+            如果使用局部变量，编译器也会优化：
+
+            ```cpp
+            struct VertexPtrHash {
+                size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+                    std::hash<void*> hasher;  // 构造一次，使用两次
+                    return hasher(src_dst.first) ^ hasher(src_dst.second);
+                }
+            };
+            ```
+
+            真正的优化应该关注哈希函数的质量（减少碰撞），而不是这种微小的构造开销。
+
+        注：
+
+        1. 除了使用仿函数，也可以使用函数指针，只不过需要 decltype 得到函数指针的类型。（为什么一定需要填 hash 函数的类型？不写类型不行吗）
+
+    * 模板特化
+
+        ```cpp
+        namespace std {
+            template<>
+            struct hash<MyClass> {
+                size_t operator()(const MyClass& obj) const {
+                    // 计算哈希值
+                    return ...;
+                }
+            };
+        }
+        ```
+
+        这个比较神奇，我们竟然能动态拓展标准库。
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        namespace std {
+        template<>
+        struct hash<MyObj> {
+            size_t operator()(const MyObj &obj) const {
+                return std::hash<int>()(obj.age) ^ std::hash<string>()(obj.name);
+            }
+        };
+        };
+
+        int main() {
+            unordered_map<MyObj, int> my_map;
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+        ```
+
+    * lambda 表达式
+
+        example:
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        auto my_hasher = [](const MyObj& obj) {
+            return std::hash<string>{}(obj.name) ^ std::hash<int>{}(obj.age);
+        };
+
+        int main() {
+            // decltype(my_haser) and (0, my_haser) are necessary
+            unordered_map<MyObj, int, decltype(my_hasher)> my_map(0, my_hasher);
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        lisi exists, val: 2
+        ```
+
+        注：
+
+        1. `my_hasher`会被编译器转换成一个没有默认构造函数的仿函数实例
+
+        1. unordered_map 第三个模板参数是类型模板参数，所以不能填`my_hasher`，只能用`decltype(my_hasher)`拿到其类型
+
+        1. `my_map(0, my_hasher)`是必须的，因为`my_hasher`没有构造函数，所以 unordered_map 拿到类型后，无法构造出实例，必须由我们传递一个实例给它。
+
+        1. 之所以写成`my_map(0, my_hasher)`而不是`my_map(my_hasher)`，是因为 int 值可能隐式转换为 hash 值，导致歧义
+
+            （这里应该改成 my_hasher 是个指针值，有可能隐式转换为 int 吧？导致构造出 my_map 并传一个 int 值作为构造函数的第一个参数）
+
+    * 函数指针
+
+        ```cpp
+        #include <stdio.h>
+        #include <string>
+        #include <unordered_map>
+        using std::string;
+        using std::unordered_map;
+
+        struct MyObj {
+            string name;
+            int age;
+
+            bool operator==(const MyObj &obj_2) const {
+                if (name == obj_2.name && age == obj_2.age) {
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        size_t calc_hash(const MyObj &obj) {
+            return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+        }
+
+        int main() {
+            unordered_map<MyObj, int, decltype(&calc_hash)> my_map(0, calc_hash);
+            MyObj obj{"zhangsan", 15};
+            my_map.insert({obj, 1});
+            my_map.insert({{"lisi", 18}, 2});
+            auto iter = my_map.find({"lisi", 18});
+            if (iter != my_map.end()) {
+                printf("lisi exists, val: %d\n", iter->second);
+            } else {
+                printf("lisi doesn't exist, val: %d\n", iter->second);
+            }
+            return 0;
+        }
+        ```
+
+        output:
+
+        ```
+        lisi exists, val: 2
+        ```
+
+        注：
+
+        1. `calc_hash`函数参数的`const MyObj &obj`中，`const`是必须的。
+
+            但是`size_t calc_hash(const MyObj &obj) {`不能写成`size_t calc_hash(const MyObj &obj) const {`，因为 const 函数只对成员函数有效。
+
+        1. 必须使用`decltype(&calc_hash)`得到**函数指针的类型**，比如`size_t(*)(const MyObj&)`
+        
+            不能使用`decltype(calc_hash)`，这样得到的是**函数类型**，比如`size_t(const MyObj&)`。函数类型是 c++ 区别于 C 的新概念。
+
+            如果不使用`decltype()`，也可以手动指定类型：
+
+            `unordered_map<MyObj, int, > my_map(0, calc_hash);`
+
+        1. `my_map(0, calc_hash);`中的两个参数都是必须的，理由与 labmda 表达式相似。
+
+            如果写成`unordered_map<MyObj, int, decltype(&calc_hash)> my_map;`，那么可以编译通过，但是运行时输出为：
+
+            ```
+            Segmentation fault (core dumped)
+            ```
+
+            labmda 完全禁用了构造函数，函数指针有构造函数，但是会返回`nullptr`，所以运行时还是会报错。
+
+        局限性：
+
+        * 函数指针不能有状态
+
+        * 不能内联，可能影响性能
+
+        * 语法相对复杂
+
+    * std::function（C++11起）
+
+        ```cpp
+        std::function<size_t(const pair<Vertex*, Vertex*>&)> vertexHash = 
+            [](const pair<Vertex*, Vertex*>& src_dst) {
+                return std::hash<void*>{}(src_dst.first) ^ 
+                       std::hash<void*>{}(src_dst.second);
+            };
+
+        unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, 
+                      decltype(vertexHash)> paths(0, vertexHash);
+        ```
+
+        **特点**：
+
+        - 类型擦除，可以包装各种可调用对象
+        - 有一定性能开销（虚函数调用/小对象优化）
+        - 灵活性高，但效率不如直接使用仿函数
+
+* 解析下面有关哈希表的代码
+
+    没想到使用组合内置类型还能这么写。
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*> &src_dst) const {
+            return std::hash<void*>()(src_dst.first) ^
+                std::hash<void*>()(src_dst.second);
+        }
+    };
+    // <<src, dst>, path>
+    unordered_map<pair<Vertex*, Vertex*>, vector<Vertex*>, VertexPtrHash> paths;
+    ```
+
+    **改进建议**：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            // 使用旋转和组合减少碰撞
+            size_t h1 = std::hash<void*>()(src_dst.first);
+            size_t h2 = std::hash<void*>()(src_dst.second);
+            return h1 ^ (h2 << 1) ^ (h2 >> (sizeof(size_t)*8 - 1));
+        }
+    };
+    ```
+
+    或者使用更成熟的组合方式：
+
+    ```cpp
+    struct VertexPtrHash {
+        size_t operator()(const pair<Vertex*, Vertex*>& src_dst) const {
+            size_t h1 = std::hash<void*>()(src_dst.first);
+            size_t h2 = std::hash<void*>()(src_dst.second);
+            // 使用 boost::hash_combine 类似的方法
+            return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+        }
+    };
+    ```
+
+    这个设计适用于需要快速查找顶点对之间路径的图算法场景。
+
+    `std::hash<void*>` 是一个无状态函数对象：
+
+    - 没有虚函数
+    - 没有需要初始化的成员变量
+    - 构造和析构都是平凡的
+### character encoding
+
+`codecvt.h`头文件专门用于处理字符编码。
+
+`locale.h`有些函数对`codecvt.h`中的函数进行了封装，可以更方便地处理`wchar_t`之类的字符。
+
+Examples:
+
+utf-8 与 utf-16 字符串之间的互相转换：
+
+```cpp
+#include <codecvt>
+#include <locale>
+#include <string>
+using namespace std;
+
+int main()
+{
+    wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> convertor;
+
+    // 将 utf-8 编码的“你好”转换成 utf-16 编码的“你好”
+    wstring wstr = convertor.from_bytes("\xE4\xBD\xA0\xE5\xA5\xBD");
+
+    // 将 utf-16 le 编码的“你好”转换成 utf-8 编码的"你好"
+    string str = convertor.to_bytes((wchar_t*)"\x60\x4f\x7d\x59\0");  // 末尾的 \0 是必须的，我猜可能是因为 wchar_t 必须有两个字节都为 \0，才能作为字符串的结尾
+
+    return 0;
+}
+```
+
+我们可以在编码查询网站<https://www.qqxiuzi.cn/bianma/zifuji.php>上查到，`你好`的 utf-8 编码为`E4BDA0E5A5BD`，utf-16le 编码为`604F7D59`。前面这两串编码都是从低字节向高字节来写的。由于程序中实际使用的是小端存储模式，所以如果两个字节合起来读，实际上“你”的编码为`4f60`，“好”的编码为`7d59`。
+
+`<codecvt>`头文件中有三个 class:
+
+* `std::codecvt_utf8`：用于在 utf-8 和 UCS-2 or UCS-4 之间相互转换
+
+* `std::codecvt_utf16`：用于在 utf-8 和 Elem (either UCS-2 or UCS-4) 之间互相转换
+
+* `std::codecvt_utf8_utf16`：用于在 utf-8 和 utf-16 之间互相转换
+
+我们主要看`codecvt_utf8_utf16`怎么用。
+
+```cpp
+template < class Elem, unsigned long MaxCode = 0x10ffffUL, codecvt_mode Mode = (codecvt_mode)0 >
+class codecvt_utf8_utf16
+: public codecvt <Elem, char, mbstate_t>
+```
+
+这是一个模板类，其中`codecvt_utf8_utf16`的模板参数`Elem`表示“内部”数据使用的编码方式，`codecvt`的第二个模板参数`char`表示“外部”数据使用的编码方式。
+
+由于`char`表示以字节进行编码，所以指的是 utf-8。而`Elem`可以取值`wchar_t`，`char16_t `，`char32_t`。
+
+常用函数：
+
+* `std::codecvt::in()`
+
+    Syntax:
+
+    ```cpp
+    result in (
+        state_type& state,   
+        const extern_type* from, 
+        const extern_type* from_end, 
+        const extern_type*& from_next,        
+        intern_type* to, 
+        intern_type* to_limit, 
+        intern_type*& to_next
+    ) const;
+    ```
+
+    由于对`codecvt_utf8_utf16`类型为说，“内部”数据指的是`wchar_t`之类的固定长度编码字符串，“外部”数据指的是 utf-8 编码的字符串。所以`in()`函数的作用就是把 utf-8 转换成`wchar_t`之类。
+
+    Parameters:
+
+    * `state`: 盲猜存储 shift 的作用。实际上它是一个`int`类型的值，直接填 0 就行。（可能需要做个类型转换）
+
+    * `from`：utf-8 字符串的起始地址，`from_end`指的是字符串的结束地址。它们组成了一个左闭右开的区间`[from, from_end)`。
+
+    * `from_next`：无论什么原因导致函数返回（比如成功解析完字符串，或者转换失败），`from_next`都指向待转换的字符串中，下一个待翻译的字节。
+
+    * `to`：指定缓冲区的地址。同理，`to`和`to_limit`构成了左闭右开的区间`[to, to_limit)`。
+
+    * `to_next`：无论什么原因导致函数返回，`to_next`都指向下一个待填充的缓冲区。
+
+    Example:
+
+    ```cpp
+    #include <codecvt>
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        codecvt_utf8_utf16<wchar_t> cvt;
+        char *utf8_nihao = "\xE4\xBD\xA0\xE5\xA5\xBD";
+        const char *from_next;
+        wchar_t utf16_buf[3];
+        wchar_t *dst_next;
+        mbstate_t mbs = mbstate_t();
+        cvt.in(mbs, utf8_nihao, utf8_nihao + 6, from_next,
+            utf16_buf, utf16_buf + 2, dst_next);
+        for (int i = 0; i < 4; ++i)
+        {
+            cout << hex << (int)*((char*)utf16_buf + i) << ", ";
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    60, 4f, 7d, 59,
+    ```
+
+* `std::codecvt::out`
+
+    Syntax:
+
+    ```cpp
+    result out (
+        state_type& state,   
+        const intern_type* from, 
+        const intern_type* from_end, 
+        const intern_type*& from_next,        
+        extern_type* to, 
+        extern_type* to_limit, 
+        extern_type*& to_next
+    ) const;
+    ```
+
+    各个参数的作用可以参考`in()`，这里就不再详细写了。
+
+### String processing
+
+* 去除字符串左侧的指定字符（一个或多个）
+
+    * 一个
+
+    * 多个
+
+* 去除字符串左侧的指定子串
+
+* 去除字符串右侧的指定字符（一个或多个）
+
+    * 一个
+
+    * 多个
+
+* 去除字符串右侧的指定子串
+
+* 分隔以`,`以及空白字符隔开的字符串
+
+    ```cpp
+
+    ```
+
+* 模式匹配
+
+### 内存与对象
+
+本话题主要讨论对象在内存中存储时遇到的各种问题。
+
+#### 有关 vector 和 array 的一个猜想
+
+如果是`vector<vector<int>> arr`，那么`arr`不会占用一大块连续的内存；如果是`vector<array<int, 3>> arr`，那么`arr`会占用一大块连续的内存。
+
+#### 有关指针与 struct
+
+如果不使用指针，那么只能把包含这个对象的 struct 的指针传来传去，然后配合 id 或哈希值拿到具体的资源。
+
+* 假如一个场景中包含了很多物体，我想根据物体对象，拿到它所在的场景，该怎么写 c++ 代码？
+
+    显然要用到指针。但是需不需要用到智能指针？
+
+    一个比较简单的情况：
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct Scene;
+
+    struct Object
+    {
+        string name;
+        Scene *pscene;
+
+        string get_scene_name();
+    };
+
+    struct Scene
+    {
+        string name;
+        vector<Object> objs;
+    };
+
+    string Object::get_scene_name() {
+        return pscene->name;
+    }
+
+    int main()
+    {
+        Scene scene;
+        scene.name = "m_scene";
+        Object obj;
+        obj.name = "hello";
+        obj.pscene = &scene;
+        scene.objs.push_back(obj);
+
+        Object &inner_obj = scene.objs[0];
+        cout << "scene name: " << inner_obj.get_scene_name() << endl;
+        return09;
+    }
+    ```
+
+    输出：
+
+    ```
+    scene name: m_scene
+    ```
+
+    但是如果 scene 在 obj 不知道的时候，偷偷失效了，会发生什么？
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct Scene;
+
+    struct Object
+    {
+        string name;
+        Scene *pscene;
+
+        string get_scene_name();
+    };
+
+    struct Scene
+    {
+        string name;
+        vector<Object> objs;
+    };
+
+    string Object::get_scene_name() {
+        return pscene->name;
+    }
+
+    int main()
+    {
+        Scene *scene = new Scene;
+        scene->name = "m_scene";
+        Object obj;
+        obj.name = "hello";
+        obj.pscene = scene;
+        scene->objs.push_back(obj);
+
+        Object &inner_obj = scene->objs[0];
+        delete scene;  // 在 inner_obj 不知道的时候，scene 已经失效了
+        cout << "scene name: " << inner_obj.get_scene_name() << endl;
+        return 0;
+    }
+    ```
+
+    这段代码会报运行时错误：
+
+    ```
+    terminate called after throwing an instance of 'std::length_error'
+        what():  basic_string::_M_create
+    ```
+
+    可以看到`scene`会失效，`inner_obj`本身也会失效。
+
+    假如两个对象没有包含的关系，即一个对象中，不使用 stl 容器包含另一个对象，会发生什么？
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct B;
+
+    struct A
+    {
+        string name;
+        B *pb;
+    };
+
+    struct B
+    {
+        string name;
+        A *pa;
+    };
+
+    int main()
+    {
+        A *a = new A;
+        a->name = "a";
+        B *b = new B;
+        b->name = "b";
+        b->pa = a;
+        a->pb = b;
+
+        delete a;
+        cout << b->name << endl;
+        cout << b->pa->name << endl;  // 在这一行会出现运行时错误
+        return 0;
+    }
+    ```
+
+    可见，一个对象的消失，并不会通知另外一个对象。
+
+    如果換成智能指针呢？会发生什么？
+
+    ```cpp
+    #include <iostream>
+    #include <memory>
+    #include <vector>
+    using namespace std;
+
+    struct B;
+
+    struct A
+    {
+        string name;
+        shared_ptr<B> pb;
+        A() {
+            cout << "in A constructor" << endl;
+        }
+        ~A() {
+            cout << "in A destructor" << endl;
+        }
+    };
+
+    struct B
+    {
+        string name;
+        shared_ptr<A> pa;
+        B() {
+            cout << "in B constructor" << endl;
+        }
+        ~B() {
+            cout << "in B destructor" << endl;
+        }
+    };
+
+    int main()
+    {
+        A *a = new A;
+        a->name = "a";
+        B *b = new B;
+        b->name = "b";
+        b->pa = make_shared<A>(*a);
+        a->pb = make_shared<B>(*b);
+
+        delete a;
+        cout << b->name << endl;
+        cout << b->pa->name << endl;
+        return 0;
+    }
+    ```
+
+    输出：
+
+    ```
+    in A constructor
+    in B constructor
+    in A destructor
+    in B destructor
+    b
+    a
+    ```
+
+    可以看到，在`delete a;`时，`A`和`B`两个对象就已经被销毁了，后面的输出其实是不可靠的。
+
+    有一个想法是给`A`和`B`互设友元，这样当某个对象失效的时候，可以在析构函数里告诉互相链接的对象。但是这样要求你提前知道哪些类是需要互相通信的，而且当类的数量变多的时候，通信连接数会指数增长。
+
+    其实智能指针和 move 语义也都只能保证有关联的两个指针，如果一个有效，那么另一个也一定有效。无法保证一个失效时，对另外一个指针进行通知；或者让一个指针总是能查询与之相关联的另一个指针是否有效。
+
+    或许可以增加一个全局对象，或者用一个额外的类，来对资源进行管理，提供对象是否失效的查询接口。这样要求每次有新的对象创建，必须在这个资源管理对象中进行注册，当对象被销毁时，在资源管理对象中反注册。这样就又涉及到整个程序的设计思想了，是否真的需要这样做，还得权衡代码复杂度和性能。
+
+    如果让`B`对象包含`A`的指针，如果仅仅是为了传参方便，我觉得没有必要这样做。如果他们确实存在包含关系，那么只需要用到 c++ 的局部变量内存管理就好了。如果两个对象存在依赖关系，那么可以考虑用智能指针。
+
+### 构造函数与析构函数调用次数不一致
+
+c++ 中将一个自动管理的对象（比如局部变量，全局变量等）交给另外一个自动管理的系统（比如 shared_ptr，stl 容器）时，由于会调用移动构造函数，所以有可能不调用构造函数，造成构造函数和析构函数调用的次数不成对，最终导致内存错误。
+
+一个经典的错误是，在程序结束时，构造函数调用一次，析构函数调用两次。
+
+example:
+
+```cpp
+#include <iostream>
+#include <memory>
+using namespace std;
+
+struct B;
+
+struct A
+{
+    int val;
+    shared_ptr<B> to_b;
+    A() {
+        cout << "in A constructor" << endl;
+    }
+    ~A() {
+        cout << "in A destructor, val: " << val << endl;
+    }
+};
+
+struct B
+{
+    int val;
+    weak_ptr<A> to_a;
+    B() {
+        cout << "in B constructor" << endl;
+    }
+    ~B() {
+        cout << "in B destructor, val: " << val << endl;
+    }
+};
+
+int main()
+{
+    A a;
+    a.val = 1;
+    B b;
+    b.val = 2;
+    a.to_b = make_shared<B>(b);
+    b.to_a = make_shared<A>(a);
+    return 0;
+}
+```
+
+输出：
+
+```
+in A constructor
+in B constructor
+in A destructor, val: 1
+in B destructor, val: 2
+in A destructor, val: 1
+in B destructor, val: 2
+```
+
+### extern C
+
+### cache
+
+* 如果一个函数同时在`extern "C"`和`extern "C"`以外的区域声明或定义，那么它会被编译器视为定义了两次
+
+* gcc 编译器编译 g++ 编译器编译出来的`.o`文件，会报错没有 c++ 标准库。如果只链接 g++ 编译出来的`.so`文件，则没有问题。
+
+* gcc 编译器不识别`extern "C"`, g++ 才识别
+
+    所以如果一个头文件被 c 和 c++ 共用，那么可以这样写：
+
+    ```cpp
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+
+    void func_1(int aaa);
+    int func_2(char *bbb);
+    // ....
+
+    #ifdef __cplusplus
+    }
+    #endif
+    ```
+
+    ref: <https://stackoverflow.com/questions/43602910/extern-c-causing-an-error-expected-before-string-constant>
+
+### note
 
 ## Variable
 
@@ -11917,488 +12464,6 @@ hello
 
     Ref: <https://stackoverflow.com/questions/915128/merge-multiple-so-shared-libraries>
 
-## Topics
-
-### character encoding
-
-`codecvt.h`头文件专门用于处理字符编码。
-
-`locale.h`有些函数对`codecvt.h`中的函数进行了封装，可以更方便地处理`wchar_t`之类的字符。
-
-Examples:
-
-utf-8 与 utf-16 字符串之间的互相转换：
-
-```cpp
-#include <codecvt>
-#include <locale>
-#include <string>
-using namespace std;
-
-int main()
-{
-    wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> convertor;
-
-    // 将 utf-8 编码的“你好”转换成 utf-16 编码的“你好”
-    wstring wstr = convertor.from_bytes("\xE4\xBD\xA0\xE5\xA5\xBD");
-
-    // 将 utf-16 le 编码的“你好”转换成 utf-8 编码的"你好"
-    string str = convertor.to_bytes((wchar_t*)"\x60\x4f\x7d\x59\0");  // 末尾的 \0 是必须的，我猜可能是因为 wchar_t 必须有两个字节都为 \0，才能作为字符串的结尾
-
-    return 0;
-}
-```
-
-我们可以在编码查询网站<https://www.qqxiuzi.cn/bianma/zifuji.php>上查到，`你好`的 utf-8 编码为`E4BDA0E5A5BD`，utf-16le 编码为`604F7D59`。前面这两串编码都是从低字节向高字节来写的。由于程序中实际使用的是小端存储模式，所以如果两个字节合起来读，实际上“你”的编码为`4f60`，“好”的编码为`7d59`。
-
-`<codecvt>`头文件中有三个 class:
-
-* `std::codecvt_utf8`：用于在 utf-8 和 UCS-2 or UCS-4 之间相互转换
-
-* `std::codecvt_utf16`：用于在 utf-8 和 Elem (either UCS-2 or UCS-4) 之间互相转换
-
-* `std::codecvt_utf8_utf16`：用于在 utf-8 和 utf-16 之间互相转换
-
-我们主要看`codecvt_utf8_utf16`怎么用。
-
-```cpp
-template < class Elem, unsigned long MaxCode = 0x10ffffUL, codecvt_mode Mode = (codecvt_mode)0 >
-class codecvt_utf8_utf16
-: public codecvt <Elem, char, mbstate_t>
-```
-
-这是一个模板类，其中`codecvt_utf8_utf16`的模板参数`Elem`表示“内部”数据使用的编码方式，`codecvt`的第二个模板参数`char`表示“外部”数据使用的编码方式。
-
-由于`char`表示以字节进行编码，所以指的是 utf-8。而`Elem`可以取值`wchar_t`，`char16_t `，`char32_t`。
-
-常用函数：
-
-* `std::codecvt::in()`
-
-    Syntax:
-
-    ```cpp
-    result in (
-        state_type& state,   
-        const extern_type* from, 
-        const extern_type* from_end, 
-        const extern_type*& from_next,        
-        intern_type* to, 
-        intern_type* to_limit, 
-        intern_type*& to_next
-    ) const;
-    ```
-
-    由于对`codecvt_utf8_utf16`类型为说，“内部”数据指的是`wchar_t`之类的固定长度编码字符串，“外部”数据指的是 utf-8 编码的字符串。所以`in()`函数的作用就是把 utf-8 转换成`wchar_t`之类。
-
-    Parameters:
-
-    * `state`: 盲猜存储 shift 的作用。实际上它是一个`int`类型的值，直接填 0 就行。（可能需要做个类型转换）
-
-    * `from`：utf-8 字符串的起始地址，`from_end`指的是字符串的结束地址。它们组成了一个左闭右开的区间`[from, from_end)`。
-
-    * `from_next`：无论什么原因导致函数返回（比如成功解析完字符串，或者转换失败），`from_next`都指向待转换的字符串中，下一个待翻译的字节。
-
-    * `to`：指定缓冲区的地址。同理，`to`和`to_limit`构成了左闭右开的区间`[to, to_limit)`。
-
-    * `to_next`：无论什么原因导致函数返回，`to_next`都指向下一个待填充的缓冲区。
-
-    Example:
-
-    ```cpp
-    #include <codecvt>
-    #include <iostream>
-    using namespace std;
-
-    int main()
-    {
-        codecvt_utf8_utf16<wchar_t> cvt;
-        char *utf8_nihao = "\xE4\xBD\xA0\xE5\xA5\xBD";
-        const char *from_next;
-        wchar_t utf16_buf[3];
-        wchar_t *dst_next;
-        mbstate_t mbs = mbstate_t();
-        cvt.in(mbs, utf8_nihao, utf8_nihao + 6, from_next,
-            utf16_buf, utf16_buf + 2, dst_next);
-        for (int i = 0; i < 4; ++i)
-        {
-            cout << hex << (int)*((char*)utf16_buf + i) << ", ";
-        }
-        cout << endl;
-        return 0;
-    }
-    ```
-
-    输出：
-
-    ```
-    60, 4f, 7d, 59,
-    ```
-
-* `std::codecvt::out`
-
-    Syntax:
-
-    ```cpp
-    result out (
-        state_type& state,   
-        const intern_type* from, 
-        const intern_type* from_end, 
-        const intern_type*& from_next,        
-        extern_type* to, 
-        extern_type* to_limit, 
-        extern_type*& to_next
-    ) const;
-    ```
-
-    各个参数的作用可以参考`in()`，这里就不再详细写了。
-
-### String processing
-
-* 去除字符串左侧的指定字符（一个或多个）
-
-    * 一个
-
-    * 多个
-
-* 去除字符串左侧的指定子串
-
-* 去除字符串右侧的指定字符（一个或多个）
-
-    * 一个
-
-    * 多个
-
-* 去除字符串右侧的指定子串
-
-* 分隔以`,`以及空白字符隔开的字符串
-
-    ```cpp
-
-    ```
-
-* 模式匹配
-
-### 内存与对象
-
-本话题主要讨论对象在内存中存储时遇到的各种问题。
-
-#### 有关 vector 和 array 的一个猜想
-
-如果是`vector<vector<int>> arr`，那么`arr`不会占用一大块连续的内存；如果是`vector<array<int, 3>> arr`，那么`arr`会占用一大块连续的内存。
-
-#### 有关指针与 struct
-
-如果不使用指针，那么只能把包含这个对象的 struct 的指针传来传去，然后配合 id 或哈希值拿到具体的资源。
-
-* 假如一个场景中包含了很多物体，我想根据物体对象，拿到它所在的场景，该怎么写 c++ 代码？
-
-    显然要用到指针。但是需不需要用到智能指针？
-
-    一个比较简单的情况：
-
-    ```cpp
-    #include <iostream>
-    #include <memory>
-    #include <vector>
-    using namespace std;
-
-    struct Scene;
-
-    struct Object
-    {
-        string name;
-        Scene *pscene;
-
-        string get_scene_name();
-    };
-
-    struct Scene
-    {
-        string name;
-        vector<Object> objs;
-    };
-
-    string Object::get_scene_name() {
-        return pscene->name;
-    }
-
-    int main()
-    {
-        Scene scene;
-        scene.name = "m_scene";
-        Object obj;
-        obj.name = "hello";
-        obj.pscene = &scene;
-        scene.objs.push_back(obj);
-
-        Object &inner_obj = scene.objs[0];
-        cout << "scene name: " << inner_obj.get_scene_name() << endl;
-        return09;
-    }
-    ```
-
-    输出：
-
-    ```
-    scene name: m_scene
-    ```
-
-    但是如果 scene 在 obj 不知道的时候，偷偷失效了，会发生什么？
-
-    ```cpp
-    #include <iostream>
-    #include <memory>
-    #include <vector>
-    using namespace std;
-
-    struct Scene;
-
-    struct Object
-    {
-        string name;
-        Scene *pscene;
-
-        string get_scene_name();
-    };
-
-    struct Scene
-    {
-        string name;
-        vector<Object> objs;
-    };
-
-    string Object::get_scene_name() {
-        return pscene->name;
-    }
-
-    int main()
-    {
-        Scene *scene = new Scene;
-        scene->name = "m_scene";
-        Object obj;
-        obj.name = "hello";
-        obj.pscene = scene;
-        scene->objs.push_back(obj);
-
-        Object &inner_obj = scene->objs[0];
-        delete scene;  // 在 inner_obj 不知道的时候，scene 已经失效了
-        cout << "scene name: " << inner_obj.get_scene_name() << endl;
-        return 0;
-    }
-    ```
-
-    这段代码会报运行时错误：
-
-    ```
-    terminate called after throwing an instance of 'std::length_error'
-        what():  basic_string::_M_create
-    ```
-
-    可以看到`scene`会失效，`inner_obj`本身也会失效。
-
-    假如两个对象没有包含的关系，即一个对象中，不使用 stl 容器包含另一个对象，会发生什么？
-
-    ```cpp
-    #include <iostream>
-    #include <memory>
-    #include <vector>
-    using namespace std;
-
-    struct B;
-
-    struct A
-    {
-        string name;
-        B *pb;
-    };
-
-    struct B
-    {
-        string name;
-        A *pa;
-    };
-
-    int main()
-    {
-        A *a = new A;
-        a->name = "a";
-        B *b = new B;
-        b->name = "b";
-        b->pa = a;
-        a->pb = b;
-
-        delete a;
-        cout << b->name << endl;
-        cout << b->pa->name << endl;  // 在这一行会出现运行时错误
-        return 0;
-    }
-    ```
-
-    可见，一个对象的消失，并不会通知另外一个对象。
-
-    如果換成智能指针呢？会发生什么？
-
-    ```cpp
-    #include <iostream>
-    #include <memory>
-    #include <vector>
-    using namespace std;
-
-    struct B;
-
-    struct A
-    {
-        string name;
-        shared_ptr<B> pb;
-        A() {
-            cout << "in A constructor" << endl;
-        }
-        ~A() {
-            cout << "in A destructor" << endl;
-        }
-    };
-
-    struct B
-    {
-        string name;
-        shared_ptr<A> pa;
-        B() {
-            cout << "in B constructor" << endl;
-        }
-        ~B() {
-            cout << "in B destructor" << endl;
-        }
-    };
-
-    int main()
-    {
-        A *a = new A;
-        a->name = "a";
-        B *b = new B;
-        b->name = "b";
-        b->pa = make_shared<A>(*a);
-        a->pb = make_shared<B>(*b);
-
-        delete a;
-        cout << b->name << endl;
-        cout << b->pa->name << endl;
-        return 0;
-    }
-    ```
-
-    输出：
-
-    ```
-    in A constructor
-    in B constructor
-    in A destructor
-    in B destructor
-    b
-    a
-    ```
-
-    可以看到，在`delete a;`时，`A`和`B`两个对象就已经被销毁了，后面的输出其实是不可靠的。
-
-    有一个想法是给`A`和`B`互设友元，这样当某个对象失效的时候，可以在析构函数里告诉互相链接的对象。但是这样要求你提前知道哪些类是需要互相通信的，而且当类的数量变多的时候，通信连接数会指数增长。
-
-    其实智能指针和 move 语义也都只能保证有关联的两个指针，如果一个有效，那么另一个也一定有效。无法保证一个失效时，对另外一个指针进行通知；或者让一个指针总是能查询与之相关联的另一个指针是否有效。
-
-    或许可以增加一个全局对象，或者用一个额外的类，来对资源进行管理，提供对象是否失效的查询接口。这样要求每次有新的对象创建，必须在这个资源管理对象中进行注册，当对象被销毁时，在资源管理对象中反注册。这样就又涉及到整个程序的设计思想了，是否真的需要这样做，还得权衡代码复杂度和性能。
-
-    如果让`B`对象包含`A`的指针，如果仅仅是为了传参方便，我觉得没有必要这样做。如果他们确实存在包含关系，那么只需要用到 c++ 的局部变量内存管理就好了。如果两个对象存在依赖关系，那么可以考虑用智能指针。
-
-### 构造函数与析构函数调用次数不一致
-
-c++ 中将一个自动管理的对象（比如局部变量，全局变量等）交给另外一个自动管理的系统（比如 shared_ptr，stl 容器）时，由于会调用移动构造函数，所以有可能不调用构造函数，造成构造函数和析构函数调用的次数不成对，最终导致内存错误。
-
-一个经典的错误是，在程序结束时，构造函数调用一次，析构函数调用两次。
-
-example:
-
-```cpp
-#include <iostream>
-#include <memory>
-using namespace std;
-
-struct B;
-
-struct A
-{
-    int val;
-    shared_ptr<B> to_b;
-    A() {
-        cout << "in A constructor" << endl;
-    }
-    ~A() {
-        cout << "in A destructor, val: " << val << endl;
-    }
-};
-
-struct B
-{
-    int val;
-    weak_ptr<A> to_a;
-    B() {
-        cout << "in B constructor" << endl;
-    }
-    ~B() {
-        cout << "in B destructor, val: " << val << endl;
-    }
-};
-
-int main()
-{
-    A a;
-    a.val = 1;
-    B b;
-    b.val = 2;
-    a.to_b = make_shared<B>(b);
-    b.to_a = make_shared<A>(a);
-    return 0;
-}
-```
-
-输出：
-
-```
-in A constructor
-in B constructor
-in A destructor, val: 1
-in B destructor, val: 2
-in A destructor, val: 1
-in B destructor, val: 2
-```
-
-### extern C
-
-### cache
-
-* 如果一个函数同时在`extern "C"`和`extern "C"`以外的区域声明或定义，那么它会被编译器视为定义了两次
-
-* gcc 编译器编译 g++ 编译器编译出来的`.o`文件，会报错没有 c++ 标准库。如果只链接 g++ 编译出来的`.so`文件，则没有问题。
-
-* gcc 编译器不识别`extern "C"`, g++ 才识别
-
-    所以如果一个头文件被 c 和 c++ 共用，那么可以这样写：
-
-    ```cpp
-    #ifdef __cplusplus
-    extern "C" {
-    #endif
-
-    void func_1(int aaa);
-    int func_2(char *bbb);
-    // ....
-
-    #ifdef __cplusplus
-    }
-    #endif
-    ```
-
-    ref: <https://stackoverflow.com/questions/43602910/extern-c-causing-an-error-expected-before-string-constant>
-
-### note
 
 ## gcc attribute
 
