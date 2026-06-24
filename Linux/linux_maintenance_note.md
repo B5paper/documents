@@ -6,6 +6,87 @@
 
 ## cache
 
+* journactl 如何只查看最近两天的日志
+
+    你可以通过以下几种方式使用 `journalctl` 查看最近两天的日志：
+
+    * 使用 `--since` 参数
+
+        ```bash
+        # 查看最近48小时的日志
+        journalctl --since "2 days ago"
+
+        # 或使用更精确的时间格式
+        journalctl --since "2 days ago" --until "now"
+        ```
+
+    * 查看今天和昨天的日志
+
+        ```bash
+        # 查看今天和昨天的所有日志
+        journalctl --since yesterday --until tomorrow
+
+        # 或查看特定日期范围
+        journalctl --since "2023-12-01" --until "2023-12-03"
+        ```
+
+    * 使用相对时间
+
+        ```bash
+        # 查看过去48小时的日志
+        journalctl --since "-2 days"
+
+        # 结合其他筛选条件
+        journalctl --since "2 days ago" -p err       # 只看错误日志
+        journalctl --since "2 days ago" -u nginx     # 只看特定服务
+        ```
+
+    * 查看最近一定数量的条目
+
+        ```bash
+        # 查看最近1000条日志（如果日志非常密集）
+        journalctl -n 1000
+
+        # 或实时查看最新日志
+        journalctl -f
+        ```
+
+    **实用组合命令**
+
+    ```bash
+    # 查看最近两天并分页显示
+    journalctl --since "2 days ago" | less
+
+    # 查看最近两天并导出到文件
+    journalctl --since "2 days ago" > recent_logs.txt
+
+    # 查看最近两天的特定优先级以上的日志
+    journalctl --since "2 days ago" -p warning
+
+    # 查看最近两天特定服务的日志
+    journalctl --since "2 days ago" -u ssh.service
+    ```
+
+    **注意事项**
+
+    1. **时间格式**：journalctl 支持多种时间格式：
+
+        - `"2 days ago"`
+        - `"yesterday"`
+        - `"2023-12-01 14:30:00"`
+        - `"-1h30min"`
+
+    2. **权限**：可能需要 sudo 权限才能查看所有日志
+
+        ```bash
+        sudo journalctl --since "2 days ago"
+        ```
+
+    3. **时区**：默认使用系统时区，可以用 `--utc` 显示 UTC 时间
+
+        ```bash
+        journalctl --since "2 days ago" --utc
+        ```
 * linux 下查看进程树
 
     * `pstree`: 查看系统所有进程
