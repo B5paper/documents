@@ -2,6 +2,57 @@
 
 ## cache
 
+* 查看 vim 识别到的当前文件的类型：`set filetype?`
+
+* coc.nvim 的 pyright 加载失败原因排查
+
+    1. 现象：py 文件中，pyright 无法弹出提示
+
+    2. 检查 coc 插件是否正常加载：`:CocList extensions` 
+
+        如果插件前面是`+`，表示已安装，但未激活。
+
+        如果插件前面是`*`，表示已激活。
+
+        可以使用方向键选择，然后按 tab 键，根据提示，按 t 键手动激活插件
+
+    3. 如果手动激活失败，那么可以使用`:CocInfo`看 coc 的日志
+
+        通常原因是 vim 版本太老，或者其它版本相关的问题。
+
+    4. 更新 coc.nvim
+
+        先把`.vimrc`中的 coc.nvim 版本改成：
+
+        `Plug 'neoclide/coc.nvim', {'branch': 'release'}`
+
+        然后更新：
+
+        `PlugUpdate coc.nvim`
+
+        清除用不到的插件的缓存：`:PlugClean`
+
+    5. 如果提示 vim 版本过低（可能当前的 vim 版本是 8.2，而最新的 coc.nvim 需要 9.1 以上的 vim），那么可以去 vim 官网更新 vim 版本
+
+        vim git repo: <https://github.com/vim/vim>
+
+        clone: `git clone --depah 1 https://github.com/vim/vim`
+
+        编译：`make`
+
+        安装：`sudo make install`
+
+        此时会把 vim 安装在`/usr/local/bin/`下，这个目录的优先级默认比`/usr/bin/`高
+
+        还可以强制手动指定版本：`alias vim='/usr/local/bin/vim'`
+
+    6. 如果`vim --version | head 3`仍显示 vim 8.2 版本，那么有可能是 bash 中的缓存没有刷新
+
+        可以使用`hash -r`刷新缓存
+
+        再次查看`vim --version | head 3`，可以看到 vim 9.2，版本已经正常。
+
+        此时 coc.nvim, pyright 应该都可以正常使用了。
 * vim 中我想使用 vnoremap <leader>b 对选中的文件左右各添加两个星号 **，
 
     vnoremap <leader>b mboma<esc>`ai**<esc>`ba**<esc> 为什么不行？正确方法是什么？
