@@ -2,6 +2,38 @@
 
 ## cache
 
+* git-annex
+    
+    git-annex 是 Git 的大文件扩展, 管理 Git 仓库中的大文件, Git 仓库只跟踪文件位置而不存储文件内容, 支持分布式文件存储
+
+    工作流程：
+    
+    1. 初始化 git-annex (`git annex init`)
+
+    2. 手动添加文件 (`git annex add bigfile.zip`)
+
+    3. 文件可以存储在多个位置（USB、云存储、服务器）
+
+    4. 手动同步到指定存储库 (`git annex copy --to=remote`)
+
+    5. 需要时获取文件 (`git annex get`)
+
+    **发展历程**
+
+    * 2009 年 Joey Hess（Debian 开发者、Git 贡献者）为了个人需求管理照片和音乐收藏，简单的 shell 脚本集合，Git 可以跟踪文件位置而不存储内容，而写的 git-annex 第一个版本。
+
+    * 2010 - 2011 年, 首次在 Git 邮件列表提及，公布了首个公开版本, 支持多种存储后端（本地、SSH、Amazon S3）.
+
+    * 2012 - 2014 年, Kickstarter 众筹成功（目标 $10k，筹集 $20k+），实现了 Windows 支持、加密支持，并实现了git-annex 助手（Web界面）, 同步冲突解决机制完善, 元数据系统增强.
+
+    **git-annex 的设计哲学**
+
+    Joey Hess 的几个关键设计决策：
+
+    1. **去中心化优先**：任何位置都可以是存储后端
+    2. **离线友好**：即使在飞机上也能工作
+    3. **用户控制**：明确控制文件位置，不自动同步所有内容
+    4. **隐私意识**：本地加密支持
 * git subtree 中，如何只 pull 一个单独的 commit 或 tag，我不想 pull 整个 branch
 
     在标准的 `git subtree` 设计中，`git subtree pull` 命令本质上是连结了 `fetch` 和 `merge` 两个步骤，它默认期望的是一个**分支（Branch）**。如果你直接尝试对一个单独的 Commit SHA 或 Tag 运行 `pull`，Git 通常会报错。
