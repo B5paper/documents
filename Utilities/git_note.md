@@ -2,6 +2,56 @@
 
 ## cache
 
+* git subtree 没有类似 --depth 1 的参数吗 
+
+    `git subtree` 命令本身没有直接的 `--depth 1` 参数。不过，你可以通过一个组合技巧来实现类似“浅克隆”的效果：**先创建一个本地的一次性浅克隆，然后从这个本地目录执行 `subtree add`**。
+
+    这个方法的原理是，让 `git subtree` 从一个**本地的、只有最新提交**的仓库去读取数据，而不是从远程仓库。
+
+    具体操作步骤
+
+    1.  **为仓库B创建一个浅克隆（本地临时仓库）**
+
+        ```bash
+        # 进入你的项目A目录
+        cd /path/to/repoA
+        # 为仓库B创建一个浅克隆，只获取最新一次提交，放在临时目录 temp_repoB 中
+        git clone <仓库B的URL> --depth 1 temp_repoB
+        ```
+
+    2.  **将浅克隆作为本地源，添加到项目A中**
+
+        ```bash
+        # 注意：这里 add 的来源是本地路径 ./temp_repoB，而不是远程别名
+        git subtree add --prefix=path/to/subdir ./temp_repoB main --squash
+        ```
+        > 注：加上 `--squash` 是双重保险，确保即使浅克隆里有多个提交（虽然深度为1，但可能包含合并提交等），也只会生成一个合并提交到你的主历史中。
+
+    3.  **（可选）清理临时仓库**
+
+        ```bash
+        # 添加成功后，可以删除这个临时的浅克隆
+        rm -rf temp_repoB
+        ```
+
+    后续更新如何操作？
+
+    由于 `git subtree pull` 只能从已注册的远程仓库拉取，所以后续更新也需要使用类似的“本地中转”方法：
+
+    ```bash
+    # 1. 再次创建或更新你的浅克隆
+    # 如果临时目录还在，可以进入并 `git pull --depth 1`
+    # 更推荐每次都重新克隆，确保最新
+    git clone <仓库B的URL> --depth 1 temp_repoB
+
+    # 2. 从本地临时仓库拉取更新
+    # 使用 subtree pull，源指定为本地路径
+    git subtree pull --prefix=path/to/subdir ./temp_repoB main --squash
+
+    # 3. 清理
+    rm -rf temp_repoB
+    ```
+
 * git-annex 与 git lfs 对比
 
     **核心相同点**:

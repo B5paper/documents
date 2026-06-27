@@ -2,6 +2,108 @@
 
 ## cache
 
+* DataLad
+
+    定位：数据管理和分发平台
+
+    核心功能：
+
+    * 基于 Git 和 git-annex 的数据版本控制
+
+    * 管理大型数据集（TB/PB级别）
+
+    * 支持数据共享和协作
+
+    * 数据溯源和可重复性
+
+    * 分层存储（只下载需要的数据）
+
+    * 常用于科学研究和数据科学
+
+    **datalad 如何配置代理**
+
+    为 DataLad 配置代理需要根据其底层工具链（主要是Git、git-annex）进行分层设置，因为DataLad本身不直接处理网络传输。下面我为你梳理了清晰的配置流程和验证方法。
+
+    🗺️ 配置思路概览
+
+    DataLad的通信主要依赖两个组件，需要分别配置：
+
+    | 组件 | 作用 | 是否需要配置代理 |
+    | :--- | :--- | :--- |
+    | **Git** | 下载数据集元数据、目录结构等小文件。 | **是**，这是基础。 |
+    | **git-annex** | 下载实际的大文件内容。 | **是**，这是关键。 |
+
+    ⚙️ 具体配置步骤
+
+    1. 配置 Git 代理
+
+        这是所有操作的基础。在命令行中执行以下命令（替换为你自己的代理地址和端口）：
+        ```bash
+        # 设置 HTTP/HTTPS 代理
+        git config --global http.proxy http://your-proxy-address:port
+        git config --global https.proxy https://your-proxy-address:port
+
+        # 如果不需要代理了，可以这样取消
+        git config --global --unset http.proxy
+        git config --global --unset https.proxy
+        ```
+        **提示**：如果你的代理需要认证，格式为 `http://用户名:密码@代理地址:端口`。出于安全考虑，建议使用无密码的代理或配置环境变量。
+
+    2. 配置 git-annex 代理
+
+        这是下载大文件内容的关键。git-annex 的 HTTP/HTTPS 传输会尝试**复用 Git 的代理设置**。如果复用失败，你可以显式地通过环境变量来设置：
+
+        ```bash
+        # 在 Linux/macOS 的终端或 Windows 的 Git Bash 中
+        export http_proxy=http://your-proxy-address:port
+        export https_proxy=http://your-proxy-address:port  # 注意：很多HTTPS代理也用http://开头
+
+        # Windows的命令提示符(cmd)中
+        set http_proxy=http://your-proxy-address:port
+        set https_proxy=http://your-proxy-address:port
+        ```
+        **注意**：环境变量是临时生效的。要永久生效，需要将 `export` 或 `set` 命令添加到你的 shell 配置文件（如 `~/.bashrc` 或 `~/.zshrc`）或系统环境变量中。
+
+    3. 针对特殊存储后端的代理
+
+        如果你的数据集存储在 **Amazon S3、Google Cloud Storage** 等“特殊远程”上，这些后端的传输库可能有自己的代理配置，需要查阅其官方文档。
+
+        ✅ 验证配置是否生效
+
+        执行一次下载操作是测试代理是否生效的最佳方法。
+
+        1.  **克隆一个已知的公共数据集**：
+
+            ```bash
+            datalad clone ///openneuro/ds000001  # 这是一个神经科学测试数据集
+            ```
+
+        2.  在克隆过程中，观察命令行输出或使用网络监控工具，查看流量是否经过了你配置的代理服务器。
+
+        3.  **调试**：如果失败，可以尝试增加 git-annex 的日志级别来获取更多信息：
+
+            ```bash
+            git annex web
+            ```
+
+            然后访问输出的本地网址，在“转移”页面查看详细的下载日志。
+
+    🔧 高级情况处理
+
+    *   **SSH协议的数据源**：如果数据源使用 `git@github.com:` 或 `ssh://` 这类地址，Git的HTTP代理对其无效。此时需要配置 **SSH 通过代理连接**，即在你的 `~/.ssh/config` 文件中为相应主机添加 `ProxyCommand` 配置。
+
+    *   **公司或机构内部代理**：很多机构会使用自动配置脚本（PAC）。你可以将PAC脚本地址设置给Git：
+
+        ```bash
+        git config --global http.proxy http://your-proxy:port
+        # 或者指向PAC文件
+        git config --global http.proxyautoconfigurl http://your-company.com/proxy.pac
+        ```
+
+    💡 总结与建议
+
+    配置的核心是 **Git代理 + git-annex环境变量**。最推荐的做法是：**同时设置 Git 的全局代理配置和系统的 `http_proxy` 环境变量**，这样可以最大程度地覆盖所有传输场景。
+
 * DataLad使用指南与最佳实践
 
     我来详细介绍 DataLad 的使用方法。DataLad 是一个分布式数据管理系统，基于 Git 和 Git-annex，专门用于管理大型数据集。

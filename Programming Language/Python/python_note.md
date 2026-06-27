@@ -1199,6 +1199,7 @@
         print(obj["add"]()) # 11
         print(obj["sub"]()) # 10
         ```
+
         这就是 JavaScript 早期在没有 `class` 语法糖时，常用的**模块模式（Module Pattern）**，本质上就是用闭包模拟完整的类实例。
 
     ---
