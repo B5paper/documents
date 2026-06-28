@@ -2,6 +2,45 @@
 
 ## cache
 
+* git lfs, git annex 对大文件支持多线程下载，断点续传以及代理吗
+
+    **Git LFS 在主流平台上原生支持多线程和断点续传，而 git-annex 的实现则取决于具体的传输后端**。
+
+    下面这个表格详细对比了两者在多线程、断点续传和代理支持上的具体情况：
+
+    | 功能 | **Git LFS** | **Git Annex** |
+    | :--- | :--- | :--- |
+    | **多线程下载** | **✅ 原生支持**<br>• Git LFS 客户端（>=2.4.0）支持。<br>• 通过 `git config lfs.concurrenttransfers 8` 配置线程数。 | **⛔ 不普遍支持**<br>• 核心传输协议（SSH、本地）不支持。<br>• **特殊后端可能支持**（如 Amazon S3）。 |
+    | **断点续传** | **✅ 原生支持**<br>• 其 HTTP 协议实现支持 Range 请求。<br>• 下载意外中断后，重试会从断点继续。 | **✅ 广泛支持**<br>• 多数后端（HTTP、S3、rsync）自身就支持。<br>• 是后端特性而非 git-annex 核心功能。 |
+    | **代理支持** | **✅ 支持良好**<br>• 支持 HTTP/HTTPS 代理（如 `http.proxy` 配置）。<br>• 与 `git` 命令使用同一套代理配置。 | **⚠️ 有限支持**<br>• **仅限 HTTP/HTTPS 后端**。<br>• 对 SSH、Git 等后端**需要配置 SSH 隧道或系统级代理**，较为复杂。 |
+
+    🧩 核心差异总结与操作要点
+
+    两者的核心差异源于设计：**Git LFS 是一个统一的客户端-服务器协议**，可以方便地在客户端增加功能；而 **git-annex 更像一个“适配器”**，其能力高度依赖后端存储（如S3、WebDAV）自身是否支持。
+
+    关于 Git LFS
+
+    对于多线程下载，你可以通过以下命令调整性能：
+
+    ```bash
+    # 设置同时传输的文件数（默认3）
+    git config lfs.concurrenttransfers 8
+    # 设置单个文件的分块传输（实验性功能）
+    git config lfs.transfer.maxfetchsize 1G
+    ```
+    代理设置完全遵循Git的配置，例如：
+    ```bash
+    git config --global http.proxy http://proxy.example.com:8080
+    ```
+
+    关于 git-annex
+
+    它的功能取决于**特殊远程类型**：
+
+    *   **支持高级传输的远程**：如 **Amazon S3**、**Google Cloud Storage** 等对象存储，通常本身就支持多线程和断点续传。
+    *   **基础远程**：如普通的 **HTTP**、**SSH**、**rsync**，通常不具备这些高级特性。
+
+    因此，如果你需要多线程下载，选择支持该特性的存储后端是关键。
 * git subtree 没有类似 --depth 1 的参数吗 
 
     `git subtree` 命令本身没有直接的 `--depth 1` 参数。不过，你可以通过一个组合技巧来实现类似“浅克隆”的效果：**先创建一个本地的一次性浅克隆，然后从这个本地目录执行 `subtree add`**。
