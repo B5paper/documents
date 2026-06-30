@@ -2,6 +2,142 @@
 
 ## cache
 
+* qemu iommu no space left
+
+    ```
+    qemu-system-x86_64: VFIO_MAP_DMA failed: No space left on device
+    qemu-system-x86_64: vfio_container_dma_map(0x55a5c3949a80,. 0x7c561000, 0x1000, 0x7f56e556d000) = -28 (No space lefton device)
+    ```
+
+    这个错误是因为 **IOMMU IOVA（Input/Output Virtual Address）空间不足**，导致VFIO无法为虚拟机分配DMA映射空间。
+
+    **原因分析**
+
+    1. **IOVA空间耗尽**：Linux内核分配给IOMMU的地址空间不足
+    2. **过多的DMA映射**：可能因为虚拟机频繁的PCIe设备操作或内存热插拔
+    3. **IOMMU表碎片化**：长期运行后IOMMU映射表出现碎片
+
+    **解决方案**
+
+    1. 立即解决方法
+
+        ```bash
+        # 重启宿主机 - 最直接的方法
+        sudo reboot
+
+        # 或者重启IOMMU子系统
+        sudo sh -c "echo 1 > /sys/class/iommu/dmar*/reset"
+        ```
+
+    2. 增加 IOVA 空间
+        
+        修改 GRUB 配置增加 IOMMU 地址空间：
+
+        ```bash
+        # 编辑GRUB配置
+        sudo nano /etc/default/grub
+        ```
+
+        在 GRUB_CMDLINE_LINUX 中添加：
+
+        ```bash
+        # iommu=pt,force  # 强制使用IOMMU
+        # iommu.passthrough=1  # 直通模式
+        # 增加IOVA空间（64GB示例）
+        iommu=relaxable iommu.forcedac=0 iommu.strict=0
+        ```
+
+        更新 GRUB:
+
+        ```bash
+        sudo update-grub
+        sudo reboot
+        ```
+
+        注：
+
+        1. 没看明白这个
+
+    3. 检查当前 IOMMU 状态
+        
+        ```bash
+        # 查看IOMMU状态
+        dmesg | grep -i iommu
+        sudo cat /sys/kernel/debug/iommu/intel-iommu/registers  # Intel
+        sudo cat /sys/kernel/debug/iommu/amd-iommu/registers    # AMD
+
+        # 查看VFIO映射
+        sudo cat /sys/kernel/debug/iommu/domain*/info
+        ```
+
+    4. QEMU 参数优化
+
+        ```bash
+        # 在启动QEMU时添加这些参数：
+        -object iommu-ioas,id=ioa0,max-ioas=64
+        -iommu iova=ioa0
+
+        # 或者使用更大的IOMMU页面
+        -machine q35,iommu=on,iommu-type=smmuv3
+        ```
+
+    5. **内核参数调优**
+        
+        ```bash
+        # 临时调整
+        sudo sh -c "echo 512 > /sys/module/vfio_iommu_type1/parameters/max_dma_mask"
+        sudo sh -c "echo 65536 > /sys/module/vfio_iommu_type1/parameters/dma_entry_limit"
+
+        # 永久配置
+        sudo nano /etc/modprobe.d/vfio.conf
+        # 添加：
+        options vfio_iommu_type1 dma_entry_limit=65536 max_dma_mask=512
+        ```
+
+    6. 清理 IOMMU 映射
+
+        ```bash
+        # 卸载所有VFIO设备
+        virsh nodedev-detach pci_xxxx_xx_xx_x
+
+        # 重新加载VFIO模块
+        sudo modprobe -r vfio_iommu_type1 vfio
+        sudo modprobe vfio
+        sudo modprobe vfio_iommu_type1
+        ```
+
+    7. 预防措施
+
+        * 监控 IOMMU 使用情况
+
+            ```bash
+            watch -n 1 'cat /sys/kernel/debug/iommu/domain*/info 2>/dev/null'
+            ```
+
+        * 定期重启长时间运行的虚拟机
+
+        * 减少PCIe设备的热插拔操作
+
+    8. **如果使用 Libvirt**
+
+        ```xml
+        <!-- 在domain配置中添加 -->
+        <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+          <qemu:commandline>
+            <qemu:arg value='-object'/>
+            <qemu:arg value='iommu-ioas,id=ioa0,max-ioas=128'/>
+            <qemu:arg value='-iommu'/>
+            <qemu:arg value='iova=ioa0'/>
+          </qemu:commandline>
+        </domain>
+        ```
+
+    这个问题通常出现在：
+
+    - 运行多个GPU直通的虚拟机
+    - 虚拟机进行大量 DMA 操作
+    - 宿主机长时间运行不重启
+    - 使用老版本内核（<5.4）
 * qemu-system-x86_64: -net tap,ifname=tap0,script=no,downscript=no: could not configure /dev/net/tun (tap0): Operation not permitted
 
     这是什么问题？

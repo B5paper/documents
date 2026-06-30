@@ -2,6 +2,231 @@
 
 ## cache
 
+* 如果我希望 cuda kernel 完全异步执行，互相不依赖，怎么办
+
+    要让kernel完全异步执行、互相不依赖，你需要使用**多个不同的CUDA流（multiple streams）**。这样可以实现kernel并发执行，最大化GPU利用率。
+
+    基本方法：多流并行
+
+    ```cpp
+    #include <cuda_runtime.h>
+
+    #define NUM_STREAMS 4
+
+    int main() {
+        const int N = 1024 * 1024;
+        float *d_data[NUM_STREAMS];
+        cudaStream_t streams[NUM_STREAMS];
+        
+        // 创建多个流
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            cudaStreamCreate(&streams[i]);
+            cudaMalloc(&d_data[i], N * sizeof(float));
+        }
+        
+        // 在不同的流中并发执行kernel
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            kernel1<<<256, 256, 0, streams[i]>>>(d_data[i], N);
+            kernel2<<<256, 256, 0, streams[i]>>>(d_data[i], N);
+        }
+        
+        // 同步所有流
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            cudaStreamSynchronize(streams[i]);
+        }
+        
+        // 清理
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            cudaFree(d_data[i]);
+            cudaStreamDestroy(streams[i]);
+        }
+        
+        return 0;
+    }
+    ```
+
+    高级技巧：多级流水线
+
+    1. **任务级并行**
+
+        不同流处理不同的数据块：
+
+        ```cpp
+        void process_data(float* data, int total_size, int num_streams) {
+            int chunk_size = total_size / num_streams;
+            cudaStream_t streams[num_streams];
+            
+            for (int i = 0; i < num_streams; i++) {
+                cudaStreamCreate(&streams[i]);
+                int offset = i * chunk_size;
+                
+                // 每个流处理自己的数据块，完全独立
+                preprocess_kernel<<<..., 0, streams[i]>>>(data + offset, chunk_size);
+                compute_kernel<<<..., 0, streams[i]>>>(data + offset, chunk_size);
+                postprocess_kernel<<<..., 0, streams[i]>>>(data + offset, chunk_size);
+            }
+            
+            // 等待所有流完成
+            for (int i = 0; i < num_streams; i++) {
+                cudaStreamSynchronize(streams[i]);
+                cudaStreamDestroy(streams[i]);
+            }
+        }
+        ```
+
+    2. **计算与数据传输重叠**
+
+        ```cpp
+        cudaStream_t compute_stream, h2d_stream, d2h_stream;
+        cudaStreamCreate(&compute_stream);
+        cudaStreamCreate(&h2d_stream);  // 主机到设备传输流
+        cudaStreamCreate(&d2h_stream);  // 设备到主机传输流
+
+        // 流水线执行：
+        // 1. 传输第1块数据
+        cudaMemcpyAsync(d_data1, h_data1, size, cudaMemcpyHostToDevice, h2d_stream);
+        // 2. 同时计算第0块数据（假设已传输）
+        kernel<<<..., compute_stream>>>(d_data0);
+        // 3. 同时回传计算结果
+        cudaMemcpyAsync(h_result0, d_result0, size, cudaMemcpyDeviceToHost, d2h_stream);
+        ```
+
+    3. **使用事件进行精细控制**
+
+        ```cpp
+        cudaEvent_t events[NUM_STREAMS];
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            cudaEventCreate(&events[i]);
+        }
+
+        // 设置流间依赖（如果需要部分同步）
+        kernelA<<<..., streams[0]>>>(data);
+        cudaEventRecord(events[0], streams[0]);
+
+        // streams[1]等待streams[0]的kernelA完成
+        cudaStreamWaitEvent(streams[1], events[0], 0);
+        kernelB<<<..., streams[1]>>>(data);
+
+        // streams[2]完全独立，不需要等待
+        kernelC<<<..., streams[2]>>>(data);  // 异步执行
+        ```
+
+    重要注意事项
+
+    1. **避免流间资源竞争**
+
+        ```cuda
+        // ❌ 错误：不同流同时访问同一设备内存
+        kernel1<<<..., stream1>>>(d_shared_data);
+        kernel2<<<..., stream2>>>(d_shared_data);  // 可能导致竞争
+
+        // ✅ 正确：每个流有自己的内存区域
+        kernel1<<<..., stream1>>>(d_data1);
+        kernel2<<<..., stream2>>>(d_data2);
+        ```
+
+    2. **默认流的同步行为**
+
+        ```cuda
+        // 默认流（stream 0/null stream）会与其他所有流同步
+        kernel_default<<<..., 0>>>(data);  // 这会阻塞所有其他流的执行
+
+        // 使用非阻塞流避免这个问题
+        kernel_async<<<..., stream1>>>(data);  // 可以与其他非阻塞流并发
+        ```
+
+    3. **流数量优化**
+
+        ```cuda
+        // 通常4-8个流是最优的
+        // 太多流会增加调度开销
+        cudaStream_t streams[8];
+        for (int i = 0; i < 8; i++) {
+            cudaStreamCreate(&streams[i]);
+            // 每个流处理不同的任务
+        }
+        ```
+
+    实际示例：矩阵乘法流水线
+
+    ```cpp
+    #define NUM_STREAMS 4
+
+    void async_matrix_multiply(float* A, float* B, float* C, int M, int N, int K) {
+        cudaStream_t streams[NUM_STREAMS];
+        float *d_A[NUM_STREAMS], *d_B[NUM_STREAMS], *d_C[NUM_STREAMS];
+        
+        int tile_M = M / NUM_STREAMS;
+        
+        // 初始化所有流和设备内存
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            cudaStreamCreate(&streams[i]);
+            cudaMalloc(&d_A[i], tile_M * K * sizeof(float));
+            cudaMalloc(&d_B[i], K * N * sizeof(float));
+            cudaMalloc(&d_C[i], tile_M * N * sizeof(float));
+            
+            // 异步传输数据到设备
+            int offset = i * tile_M * K;
+            cudaMemcpyAsync(d_A[i], A + offset, 
+                           tile_M * K * sizeof(float),
+                           cudaMemcpyHostToDevice, streams[i]);
+        }
+        
+        // 在所有流中并发执行kernel
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            dim3 blocks((tile_M + 15)/16, (N + 15)/16);
+            dim3 threads(16, 16);
+            
+            matrix_multiply_kernel<<<blocks, threads, 0, streams[i]>>>(
+                d_A[i], d_B[i], d_C[i], tile_M, N, K);
+            
+            // 异步回传结果
+            int offset = i * tile_M * N;
+            cudaMemcpyAsync(C + offset, d_C[i],
+                           tile_M * N * sizeof(float),
+                           cudaMemcpyDeviceToHost, streams[i]);
+        }
+        
+        // 等待所有流完成
+        for (int i = 0; i < NUM_STREAMS; i++) {
+            cudaStreamSynchronize(streams[i]);
+            cudaFree(d_A[i]);
+            cudaFree(d_B[i]);
+            cudaFree(d_C[i]);
+            cudaStreamDestroy(streams[i]);
+        }
+    }
+    ```
+
+    性能建议
+
+    1. **找到最佳流数量**：通常4-8个，具体取决于GPU和kernel特性
+    2. **避免过多的流**：每个流有调度开销
+    3. **使用非默认流**：默认流会阻塞其他流
+    4. **考虑GPU能力**：
+       - 计算能力3.5+：支持更多并发kernel
+       - 计算能力7.0+：支持更好的流优先级
+
+    检测工具
+
+    使用 Nsight Systems 或 nvprof 查看流并发情况:
+
+    ```cpp
+    nsys profile --trace=cuda ./your_program
+    nvprof --print-gpu-trace ./your_program
+    ```
+
+    总结
+
+    要实现kernel完全异步执行：
+
+    1. **创建多个CUDA流**
+    2. **将独立任务分配到不同流**
+    3. **避免共享资源竞争**
+    4. **使用非阻塞内存传输**
+    5. **适当使用事件进行必要同步**
+
+    这样可以让GPU同时执行多个kernel，充分利用计算和内存带宽资源。
 * gpu 通过 launch kernel 把数据从显存拷到 host 上时，使用 uvm 了吗？
 
     使用统一虚拟内存（UVM）模式

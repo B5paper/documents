@@ -6,6 +6,408 @@
 
 ## cache
 
+* 详细讲讲 wireguard 的用法
+
+    WireGuard 是一种极其高效、轻量且现代的 VPN 协议。相比于传统的 OpenVPN 或 IPsec，它的代码量极小（仅几千行），速度极快，延迟低，且在移动端断线重连的表现堪称完美。
+
+    WireGuard 的核心哲学是 **“对等体（Peer-to-peer）”**。无论是服务器还是客户端，在 WireGuard 眼里都是一个 `Peer`。两端各自生成一对密钥（公钥和私钥），互相交换公钥并配置对方的 IP 地址，即可建立加密通道。
+
+    下面为你详细拆解 WireGuard 的安装、核心概念以及最常见的主客配置（Server-Client）实现。
+
+    ---
+
+    核心概念
+
+    在开始配置前，理解这几个词能让你少走很多弯路：
+
+    * **PrivateKey（私钥）：** 本地生成的绝密密钥，绝对不能泄露给任何人。
+    * **PublicKey（公钥）：** 由私钥推导而来，公开的。需要复制给对方（Peer）。
+    * **Endpoint（对端地址）：** 对方的公网 IP 和端口（例如 `1.2.3.4:51820`）。通常只有客户端需要配置服务器的 Endpoint。
+    * **AllowedIPs（允许的 IP）：**
+    * **在服务端：** 规定这个客户端允许使用的内网 IP。
+    * **在客户端：** 规定哪些流量要走 VPN。如果是 `0.0.0.0/0`，代表**全局代理**（所有流量都走 VPN）；如果是 `10.0.0.0/24`，代表只有去往该网段的流量走 VPN。
+
+    ---
+
+    ## 核心实战：搭建一个“服务器 - 客户端”网络
+
+    **场景假设：**
+
+    * **服务器（Server）：** 有公网 IP（假设为 `8.8.8.8`），网卡名为 `eth0`。我们给它的 WireGuard 内网 IP 设为 `10.0.0.1`。
+    * **客户端（Client）：** 手机或电脑，内网 IP 设为 `10.0.0.2`。
+
+    ### 第一步：两端安装 WireGuard
+
+    绝大多数现代 Linux 内核已原生集成 WireGuard。
+
+    ```bash
+    # Ubuntu / Debian
+    sudo apt update && sudo apt install wireguard -y
+
+    # CentOS / RHEL 9
+    sudo dnf install wireguard-tools -y
+
+    ```
+
+    ### 第二步：生成密钥对（两端都要做）
+
+    在服务器和客户端上分别执行以下命令，生成各自的私钥和公钥：
+
+    ```bash
+    # 修改权限，确保密钥安全
+    umask 077
+
+    # 生成服务器/客户端的密钥
+    wg genkey | tee privatekey | wg pubkey > publickey
+
+    ```
+
+    > 执行后，当前目录下会多出 `privatekey`（私钥）和 `publickey`（公钥）两个文件。可以使用 `cat privatekey` 查看内容。
+
+    ---
+
+    ### 第三步：配置服务器端 (Server)
+
+    在服务器上创建并编辑配置文件 `/etc/wireguard/wg0.conf`：
+
+    ```ini
+    [Interface]
+    # 服务器自身的 WireGuard 内网 IP
+    Address = 10.0.0.1/24
+    # 服务器监听的 UDP 端口
+    ListenPort = 51820
+    # 服务器的私钥（填入刚才在服务器生成的 privatekey 内容）
+    PrivateKey = <服务器的私钥>
+
+    # 【核心：NAT 转发规则】当客户端流量到达服务器后，转发到公网网卡（假设是 eth0）
+    PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+    ### 下面是客户端（Peer）的配置，有几个客户端就写几个 [Peer] ###
+    [Peer]
+    # 客户端的公钥（填入在客户端生成的 publickey 内容）
+    PublicKey = <客户端的公钥>
+    # 允许这个客户端使用的内网 IP
+    AllowedIPs = 10.0.0.2/32
+
+    ```
+
+    **开启服务器的内核 IPv4 转发：**
+    要让服务器帮客户端转发流量，必须开启 Linux 的路由转发功能：
+
+    ```bash
+    echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+    sudo sysctl -p
+
+    ```
+
+    ---
+
+    ### 第四步：配置客户端 (Client)
+
+    在客户端（电脑或手机）上，创建配置文件 `wg0.conf`：
+
+    ```ini
+    [Interface]
+    # 客户端自身的 WireGuard 内网 IP
+    Address = 10.0.0.2/24
+    # 客户端的私钥（填入在客户端生成的 privatekey 内容）
+    PrivateKey = <客户端的私钥>
+    # 可选：设置 DNS
+    DNS = 1.1.1.1
+
+    [Peer]
+    # 服务器的公钥（填入服务器的 publickey 内容）
+    PublicKey = <服务器的公钥>
+    # 服务器的公网 IP 和端口
+    Endpoint = 8.8.8.8:51820
+    # 0.0.0.0/0 代表手机/电脑的所有流量都通过服务器转发（科学上网/全局代理模式）
+    # 如果只想访问服务器内网，可以改成 10.0.0.0/24
+    AllowedIPs = 0.0.0.0/0
+    # 保持连接活跃（每25秒发一次心跳包，防止防火墙断开 UDP 连接）
+    PersistentKeepalive = 25
+
+    ```
+
+    ---
+
+    ### 第五步：启动与管理
+
+    **在服务器端：**
+
+    ```bash
+    # 启动 WireGuard 接口 wg0
+    sudo wg-quick up wg0
+
+    # 设置开机自启
+    sudo systemctl enable wg-quick@wg0
+
+    # 查看当前的 VPN 连接状态
+    sudo wg
+
+    ```
+
+    **在客户端：**
+
+    * **Linux / macOS 命令行：** 同样使用 `sudo wg-quick up ./wg0.conf` 启动。
+    * **手机 / Windows 客户端：**
+    * 官方提供了图形化客户端。
+    * 如果给手机用，可以在服务器上把客户端配置转成二维码，用手机 App 扫码导入：
+    ```bash
+    # 安装 qrencode 工具
+    sudo apt install qrencode -y
+    # 将客户端配置生成二维码展示在终端
+    qrencode -t ansiutf8 < client.conf
+
+    ```
+
+    ## 常用命令与排错技巧
+
+    ### 1. 常用控制命令
+
+    * **停止 VPN：** `sudo wg-quick down wg0`
+    * **不重启服务更新配置：** 如果你修改了 `wg0.conf`（比如增加了新 Peer），不想断开现有连接，可以执行：
+    `sudo wg syncconf wg0 <(sudo wg-quick strip wg0)`
+
+    ### 2. 常见排错方向
+
+    * **能连上但无法上网 / 无法 Ping 通服务器：**
+    * 检查服务器防火墙（如 UFW 或 Firewalld），是否放行了 **UDP 51820** 端口。
+    * 检查服务器的 `net.ipv4.ip_forward` 是否确实为 `1`。
+    * 检查服务器 `wg0.conf` 里的 `PostUp` 规则中，网卡名称（如 `eth0`）是否与你服务器通过 `ip route` 查到的公网网卡名一致。
+
+
+    * **隧道没有流量（Latest handshake 没显示）：**
+    * 双向检查 `PublicKey` 和 `PrivateKey` 是不是配反了。记住：**Peer 里填对方的公钥**。
+    * 检查客户端的 `Endpoint` IP 和端口是否正确。
+
+
+
+    WireGuard 的配置非常清爽，一旦你理顺了“**私钥本地留，公钥给对端，IP 互相指**”的逻辑，几分钟就能轻松拉起一个安全的专属网络。
+* centos 如何启动 vfio-pci
+
+    在 CentOS 中启动VFIO-PCI驱动涉及以下步骤：
+
+    1. 检查系统要求
+
+        首先确认系统支持IOMMU：
+        
+        ```bash
+        # 检查CPU是否支持虚拟化
+        cat /proc/cpuinfo | grep -E 'vmx|svm'
+
+        # 检查是否启用IOMMU
+        dmesg | grep -E 'DMAR|IOMMU'
+        ```
+
+    2. 启用IOMMU
+
+        编辑 GRUB 配置文件：
+
+        ```bash
+        # 编辑grub配置
+        vi /etc/default/grub
+        ```
+
+        对于 Intel CPU，在`GRUB_CMDLINE_LINUX`行添加：
+
+        `intel_iommu=on iommu=pt`
+
+        对于 AMD CPU：
+
+        `amd_iommu=on iommu=pt`
+
+        更新GRUB并重启：
+
+        ```bash
+        # 对于BIOS系统
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+
+        # 对于UEFI系统
+        grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+
+        # 重启系统
+        reboot
+        ```
+
+    3. 确认IOMMU已启用
+
+        重启后验证：
+
+        ```bash
+        dmesg | grep -E 'DMAR|IOMMU'
+        # 应看到类似：DMAR: IOMMU enabled
+        ```
+
+        检查IOMMU分组：
+
+        ```bash
+        # 安装必要工具
+        yum install -y pciutils
+
+        # 查看IOMMU分组
+        lspci -nnk
+        ```
+
+    4. 绑定设备到VFIO驱动
+
+        方法二：使用内核参数（永久）
+
+        ```bash
+        # 编辑grub配置
+        vi /etc/default/grub
+        ```
+
+        在`GRUB_CMDLINE_LINUX`添加：
+
+        ```
+        vfio-pci.ids=10de:1b80,10de:10f0
+        ```
+
+        （多个设备用逗号分隔）
+
+        更新GRUB并重启：
+
+        ```bash
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+        reboot
+        ```
+
+    6. 配置自动加载（可选）
+
+        ```bash
+        # 创建模块配置文件
+        echo "options vfio-pci ids=10de:1b80" > /etc/modprobe.d/vfio.conf
+
+        # 设置模块自动加载
+        echo "vfio" >> /etc/modules-load.d/vfio-pci.conf
+        echo "vfio-pci" >> /etc/modules-load.d/vfio-pci.conf
+
+        # 屏蔽原驱动（防止冲突）
+        echo "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
+        echo "blacklist nvidia" >> /etc/modprobe.d/blacklist.conf
+        ```
+
+    7. 常见问题排查
+
+        查看IOMMU分组详细信息：
+
+        ```bash
+        #!/bin/bash
+        shopt -s nullglob
+        for g in /sys/kernel/iommu_groups/*; do
+            echo "IOMMU Group ${g##*/}:"
+            for d in $g/devices/*; do
+                echo -e "\t$(lspci -nns ${d##*/})"
+            done;
+        done
+        ```
+
+        检查设备是否支持透传：
+
+        ```bash
+        # 检查ACS支持
+        dmesg | grep -i acs
+        ```
+
+        如果遇到权限问题：
+
+        ```bash
+        # 确保用户有访问权限
+        chmod 0666 /dev/vfio/*
+        ```
+* 检查 vfio-pci 的状态
+
+    **在CentOS 7/8中，VFIO-PCI通常不需要单独安装，它是内核的一部分**，但需要正确配置和启用。
+
+    1. 查看VFIO模块是否可用
+
+        ```bash
+        # 查看内核中是否有 vfio-pci 模块
+        modinfo vfio-pci
+
+        # 列出所有可用的 vfio 相关模块
+        ls /lib/modules/$(uname -r)/kernel/drivers/vfio/ | grep -i vfio
+        ```
+
+    2. 不同 CentOS 版本的情况
+
+        * CentOS 7
+
+            - VFIO从内核3.6+开始包含
+            - CentOS 7.3+默认包含（内核3.10+）
+            - 通常已内置，无需安装
+
+        * CentOS 8/Stream：
+
+            - 肯定包含在内核中
+            - 更完善的支持
+
+    尝试加载 vfio-pci 模块:
+
+    ```bash
+    modprobe vfio
+    modprobe vfio-pci
+
+    # 验证已加载
+    lsmod | grep vfio
+    ```
+
+    输出应包含：
+
+    ```
+    vfio_pci               45056  0
+    vfio_virqfd            16384  1 vfio_pci
+    vfio_iommu_type1       32768  0
+    vfio                   32768  2 vfio_iommu_type1,vfio_pci
+    ```
+
+* 绑定设备到 VFIO（两种方法）
+
+    **方法一：使用内核参数（推荐，永久生效）**
+
+    ```bash
+    # 查找设备 ID
+    lspci -nn | grep -i "nvidia\|amd"
+
+    # 示例输出：01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP104 [10de:1b80] (rev a1)
+    # 设备 ID 是 10de:1b80
+
+    # 编辑 GRUB 配置
+    sudo nano /etc/default/grub
+
+    # 在 GRUB_CMDLINE_LINUX_DEFAULT 添加
+    # vfio-pci.ids=10de:1b80,10de:10f0
+
+    # 更新并重启
+    sudo update-grub
+    sudo reboot
+    ```
+
+    **方法二：使用驱动覆盖（临时）**
+
+    ```bash
+    # 解除当前驱动
+    echo "0000:01:00.0" | sudo tee /sys/bus/pci/devices/0000:01:00.0/driver/unbind
+
+    # 绑定到 VFIO
+    echo "vfio-pci" | sudo tee /sys/bus/pci/devices/0000:01:00.0/driver_override
+    echo "0000:01:00.0" | sudo tee /sys/bus/pci/drivers/vfio-pci/bind
+    ```
+
+    验证配置:
+
+    ```bash
+    # 检查设备是否绑定到 VFIO
+    lspci -nnk -s 01:00.0
+
+    # 应该显示：
+    # Kernel driver in use: vfio-pci
+    # Kernel modules: nvidiafb, nouveau, vfio-pci
+
+    # 检查权限
+    ls -la /dev/vfio/
+    ```
 * hash -r 是什么功能
 
     什么是 `hash`？

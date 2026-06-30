@@ -1,5 +1,38 @@
 # Matlab Note
 
+* matlab 是否有原生的网页开发能力，如果没有，是否有接口可以直接调用第三方的库？
+
+    MATLAB **没有原生的完整网页开发能力**（如完整的Web框架），但提供了多种与Web交互和构建Web应用的接口和工具：
+
+    一、MATLAB自带的Web相关功能
+
+    1. **MATLAB Web App Server**
+
+        - 部署和运行MATLAB Web应用
+        - 支持通过浏览器访问MATLAB应用
+        - 需要单独的服务器安装
+
+    2. **MATLAB Compiler SDK**
+
+        - 将MATLAB代码编译为：
+          - .NET组件
+          - Java组件
+          - Python包
+          - COM组件
+        - 可在Web应用中调用这些组件
+
+    3. **直接Web功能**
+
+        ```matlab
+        % 读取网页内容
+        urlread('https://example.com')
+
+        % 发送HTTP请求
+        weboptions, webread, webwrite
+
+        % 创建简单的Web应用
+        webapp = createWebApp('MyApp');
+        ```
 * matlab 如何进行数学符号计算
 
     在MATLAB中进行符号计算主要使用 **Symbolic Math Toolbox**。以下是核心功能和示例：

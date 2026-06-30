@@ -4,6 +4,497 @@
 
 ## cached
 
+* 那如果使用函数指针，为什么不需要传递函数对象？
+
+    问得非常好！这确实是 C++ 中一个微妙的区别。让我解释函数指针和 lambda 在这个上下文中的不同行为。
+
+    函数指针可以**默认构造**
+
+    1. 函数指针类型的特性
+
+        函数指针类型有一个特殊的属性：**函数指针类型的默认构造函数会将其初始化为空指针**（`nullptr`）。
+
+        ```cpp
+        using HashFunc = size_t (*)(const Key&);
+
+        // 默认构造的函数指针
+        HashFunc ptr = HashFunc();  // 等同于 nullptr
+        ```
+
+    2. unordered_map 如何处理函数指针
+
+        当你在模板参数中使用函数指针类型时：
+
+        ```cpp
+        size_t hashFunction(const std::string& s) {
+            return std::hash<std::string>{}(s);
+        }
+
+        // 函数指针作为模板参数
+        std::unordered_map<std::string, int, 
+                          size_t (*)(const std::string&)> 
+            myMap;
+        ```
+
+        这里发生了什么？
+        - 模板参数 `Hash` 是函数指针类型：`size_t (*)(const std::string&)`
+        - `unordered_map` 的构造函数默认会使用 `Hash()` 创建对象
+        - 对于函数指针类型，`Hash()` 产生一个空函数指针
+
+    3. 关键问题：空函数指针不能使用！
+
+        **这才是重点**：如果你这样创建 map，实际上是创建了一个包含空函数指针的 map，当你尝试插入元素时会**崩溃**（空指针解引用）：
+
+        ```cpp
+        // 危险！包含空函数指针
+        std::unordered_map<std::string, int, 
+                          size_t (*)(const std::string&)> 
+            myMap;
+
+        myMap["test"] = 1;  // 运行时崩溃！尝试调用空函数指针
+        ```
+
+    4. 正确使用函数指针的方式
+
+        你必须**在构造函数中传递函数指针对象**：
+
+        ```cpp
+        size_t hashFunction(const std::string& s) {
+            return std::hash<std::string>{}(s);
+        }
+
+        // 正确：在构造函数中传递函数指针
+        std::unordered_map<std::string, int, 
+                          size_t (*)(const std::string&)> 
+            myMap(0,  // bucket_count
+                  hashFunction);  // 传递函数指针对象
+
+        myMap["test"] = 1;  // 正常工作
+        ```
+
+    为什么看起来有时"不需要"传递？
+
+    情况1：使用 `std::function`
+
+    `std::function` 可以默认构造为"空"状态，但使用时需要检查：
+
+    ```cpp
+    std::unordered_map<std::string, int, 
+                      std::function<size_t(const std::string&)>> 
+        myMap;
+
+    // myMap 可以构造，但插入时会抛出异常
+    // 因为哈希函数是空的
+    ```
+
+    情况2：使用函数对象类
+
+    函数对象类（functor class）有默认构造函数：
+
+    ```cpp
+    struct MyHash {
+        size_t operator()(const std::string& s) const {
+            return std::hash<std::string>{}(s);
+        }
+    };
+
+    // 可以直接使用，因为 MyHash 可以默认构造
+    std::unordered_map<std::string, int, MyHash> myMap;
+    myMap["test"] = 1;  // 正常工作
+    ```
+
+    情况3：模板推导的错觉
+
+    有时候模板推导会让事情看起来更简单：
+
+    ```cpp
+    // 使用 std::hash 作为模板参数
+    std::unordered_map<std::string, int> map1;  // 使用默认的 std::hash<std::string>
+
+    // 等价于
+    std::unordered_map<std::string, int, 
+                      std::hash<std::string>> 
+        map2;
+    ```
+
+    实际示例
+
+    ```cpp
+    #include <iostream>
+    #include <unordered_map>
+    #include <functional>
+
+    // 1. 函数指针 - 必须传递对象
+    size_t hash1(const std::string& s) {
+        return std::hash<std::string>{}(s);
+    }
+
+    // 2. 函数对象 - 可以只传类型
+    struct Hash2 {
+        size_t operator()(const std::string& s) const {
+            return std::hash<std::string>{}(s);
+        }
+    };
+
+    int main() {
+        // 函数指针：模板中传类型，构造函数中传对象
+        std::unordered_map<std::string, int, 
+                          size_t (*)(const std::string&)> 
+            map1(0, hash1);  // 必须传递 hash1
+        
+        // 函数对象：可以只传类型
+        std::unordered_map<std::string, int, Hash2> map2;
+        
+        // lambda：必须传类型和对象
+        auto lambdaHash = [](const std::string& s) {
+            return std::hash<std::string>{}(s);
+        };
+        std::unordered_map<std::string, int, 
+                          decltype(lambdaHash)> 
+            map3(0, lambdaHash);  // 必须传递 lambda 对象
+        
+        map1["test"] = 1;
+        map2["test"] = 2;
+        map3["test"] = 3;
+        
+        std::cout << "All work correctly" << std::endl;
+        return 0;
+    }
+    ```
+
+    总结
+
+    **核心区别**：
+    - **函数指针可以默认构造（为 `nullptr`）**，但构造出来的空指针不能使用
+    - **lambda 类型不能默认构造**，所以编译器会强制你在构造函数中传递对象
+    - **函数对象类通常可以默认构造**，所以可以只传递类型
+
+* 下面代码为什么不能写成`unordered_map<MyObj, int, decltype(calc_hash)> my_map;`
+
+    ```cpp
+    size_t calc_hash(const MyObj &obj) {
+        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+    }
+
+    int main() {
+        unordered_map<MyObj, int, size_t(*)(const MyObj&)> my_map;
+    ```
+
+    这个问题触及了 C++ 类型系统的核心细节。`decltype(calc_hash)` 和 `size_t(*)(const MyObj&)` 是不同的类型，让我详细解释：
+
+    **类型区别**
+
+    ```cpp
+    size_t calc_hash(const MyObj &obj) {
+        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+    }
+
+    // decltype(calc_hash) 的类型是：size_t (const MyObj&)
+    // 这是一个函数类型，不是函数指针类型！
+
+    // size_t(*)(const MyObj&) 是：指向函数的指针类型
+    ```
+
+    关键区别：函数类型 vs 函数指针类型
+
+    1. **函数类型不能作为模板参数**
+
+        C++ 中，**函数类型不能直接作为模板类型参数**，因为它不是一个完整的对象类型。
+
+        ```cpp
+        // 这是函数类型（function type）
+        using FuncType = size_t(const MyObj&);  // 注意：没有 *
+
+        // 这是函数指针类型（function pointer type）
+        using FuncPtrType = size_t(*)(const MyObj&);  // 注意：有 *
+        ```
+
+    2. `decltype` 对函数名的行为
+
+        ```cpp
+        decltype(calc_hash)       // 得到的是函数类型：size_t(const MyObj&)
+        decltype(&calc_hash)      // 得到的是函数指针类型：size_t(*)(const MyObj&)
+        ```
+
+    为什么不行？
+
+    错误示例
+
+    ```cpp
+    // 错误：不能使用函数类型作为模板参数
+    unordered_map<MyObj, int, decltype(calc_hash)> my_map;  // 编译错误！
+
+    // 正确：需要函数指针类型
+    unordered_map<MyObj, int, decltype(&calc_hash)> my_map(0, calc_hash);  // 正确
+    // 或者
+    unordered_map<MyObj, int, size_t(*)(const MyObj&)> my_map(0, calc_hash);  // 正确
+    ```
+
+    证明示例
+
+    ```cpp
+    #include <iostream>
+    #include <type_traits>
+
+    size_t calc_hash(const std::string& s) {
+        return std::hash<std::string>{}(s);
+    }
+
+    int main() {
+        // 使用 typeid 查看类型
+        std::cout << "decltype(calc_hash): " 
+                  << typeid(decltype(calc_hash)).name() << std::endl;
+        std::cout << "decltype(&calc_hash): " 
+                  << typeid(decltype(&calc_hash)).name() << std::endl;
+        
+        // 使用 type_traits 验证
+        std::cout << "Is decltype(calc_hash) a function type? "
+                  << std::is_function<decltype(calc_hash)>::value << std::endl;
+        
+        std::cout << "Is decltype(&calc_hash) a pointer? "
+                  << std::is_pointer<decltype(&calc_hash)>::value << std::endl;
+        
+        return 0;
+    }
+    ```
+
+    方案5：使用类型别名
+
+    ```cpp
+    // 定义类型别名
+    using HashFunc = size_t(*)(const MyObj&);
+
+    // 使用别名
+    unordered_map<MyObj, int, HashFunc> my_map(0, calc_hash);
+    ```
+
+    深入理解：函数到指针的转换
+
+    C++ 中有一个特殊的规则：**在大多数上下文中，函数名会自动转换为函数指针**。
+
+    ```cpp
+    // 这些是等价的
+    calc_hash;           // 自动转换为函数指针
+    &calc_hash;          // 显式获取地址
+
+    // 但在 decltype 中不会发生这种转换
+    decltype(calc_hash)  // 不会转换为指针，保持为函数类型
+    ```
+
+    实际使用建议
+
+    **对于函数作为哈希函数**，推荐函数指针 + 类型别名
+
+    ```cpp
+    size_t calc_hash(const MyObj &obj) {
+        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+    }
+
+    using MyHashFunc = decltype(&calc_hash);  // 或 size_t(*)(const MyObj&)
+
+    unordered_map<MyObj, int, MyHashFunc> my_map(0, calc_hash);
+    ```
+
+* 对于重载的函数，decltype 如何取类型？
+
+    对于重载函数，`decltype` **无法直接确定类型**，因为重载函数名本身具有歧义性。这是一个有趣且重要的问题。
+
+    问题示例
+
+    ```cpp
+    void func(int) {}
+    void func(double) {}
+
+    int main() {
+        // 错误：func 有歧义，不知道引用哪个重载
+        // decltype(func) t;  // 编译错误！
+        
+        return 0;
+    }
+    ```
+
+    解决重载函数类型的方法
+
+    方法1：使用静态转型（static_cast）
+
+    ```cpp
+    void func(int) {}
+    void func(double) {}
+
+    // 明确指定使用哪个重载
+    using FuncType1 = decltype(static_cast<void(*)(int)>(func));      // void(*)(int)
+    using FuncType2 = decltype(static_cast<void(*)(double)>(func));   // void(*)(double)
+
+    // 或者更简洁的写法
+    using FuncPtr1 = void(*)(int);
+    using FuncPtr2 = void(*)(double);
+    ```
+
+    方法2：使用类型别名辅助
+
+    ```cpp
+    // 定义明确的函数类型
+    using FuncInt = void(int);
+    using FuncDouble = void(double);
+
+    void func(int) {}
+    void func(double) {}
+
+    // 通过函数指针类型来消除歧义
+    using Ptr1 = decltype(static_cast<FuncInt*>(func));    // void(*)(int)
+    using Ptr2 = decltype(static_cast<FuncDouble*>(func)); // void(*)(double)
+    ```
+
+    方法3：在模板中使用时直接指定
+
+    ```cpp
+    #include <unordered_map>
+    #include <string>
+
+    struct MyObj {
+        std::string name;
+        int age;
+    };
+
+    // 重载的哈希函数
+    size_t calc_hash(const MyObj& obj) {
+        return std::hash<std::string>{}(obj.name) ^ std::hash<int>{}(obj.age);
+    }
+
+    size_t calc_hash(const std::string& s) {
+        return std::hash<std::string>{}(s);
+    }
+
+    int main() {
+        // 明确指定使用哪个重载版本
+        using HashFunc = decltype(static_cast<size_t(*)(const MyObj&)>(calc_hash));
+        
+        std::unordered_map<MyObj, int, HashFunc> my_map(0, 
+            static_cast<size_t(*)(const MyObj&)>(calc_hash));
+        
+        // 或者更直接的方式
+        std::unordered_map<MyObj, int, size_t(*)(const MyObj&)> 
+            my_map2(0, static_cast<size_t(*)(const MyObj&)>(calc_hash));
+        
+        return 0;
+    }
+    ```
+
+    实际场景中处理重载函数的技巧
+
+    技巧1：使用类型推导的辅助函数
+
+    ```cpp
+    #include <type_traits>
+
+    template<typename T>
+    struct get_func_type;
+
+    template<typename Ret, typename... Args>
+    struct get_func_type<Ret(Args...)> {
+        using type = Ret(Args...);
+        using ptr_type = Ret(*)(Args...);
+    };
+
+    // 使用示例
+    using MyFuncType = get_func_type<void(int)>::type;      // void(int)
+    using MyFuncPtr = get_func_type<void(int)>::ptr_type;   // void(*)(int)
+    ```
+
+    技巧2：C++17 的 auto 非类型模板参数
+
+    ```cpp
+    // C++17 允许 auto 非类型模板参数
+    template<auto FuncPtr>
+    struct FunctionWrapper;
+
+    // 使用
+    void func(int) {}
+    void func(double) {}
+
+    FunctionWrapper<static_cast<void(*)(int)>(func)> wrapper1;
+    FunctionWrapper<static_cast<void(*)(double)>(func)> wrapper2;
+    ```
+
+    技巧3：使用宏简化（不推荐，但有时实用）
+
+    ```cpp
+    #define GET_FUNC_TYPE(func, signature) \
+        decltype(static_cast<signature>(func))
+
+    // 使用
+    GET_FUNC_TYPE(calc_hash, size_t(*)(const MyObj&)) var1;
+    GET_FUNC_TYPE(calc_hash, size_t(*)(const std::string&)) var2;
+    ```
+
+* 那么可以写成 `static_cast<void(*)(int)>(&func)` 吗
+
+    **可以，而且这是更正确的写法！** 让我详细解释：
+
+    两种写法的区别
+
+    ```cpp
+    void func(int) {}
+    void func(double) {}
+
+    // 方法1：static_cast<void(*)(int)>(func)
+    // 方法2：static_cast<void(*)(int)>(&func)
+    ```
+
+    这两种写法**效果完全相同**，都能编译通过并得到正确的函数指针。因为在 C++ 中，函数名在需要函数指针的上下文中会自动转换为函数指针
+
+* 那为什么 calc_hash() 不能写成
+
+    ```cpp
+    size_t calc_hash(const MyObj &obj) const {
+        return std::hash<string>()(obj.name) ^ std::hash<int>()(obj.age);
+    }
+    ```
+
+    这个问题问到了 C++ 中函数修饰符的核心区别。`const` 修饰符的使用有特定的规则，让我详细解释：
+
+    关键区别：成员函数 vs 自由函数
+
+    1. `const` 只能修饰成员函数
+
+        `const` 修饰符**只能用于类的成员函数**，表示该函数不会修改对象的状态。
+
+        ```cpp
+        class MyClass {
+        public:
+            void normal_func() { /* 可以修改成员 */ }
+            void const_func() const { /* 不能修改成员 */ }
+        };
+
+        // 错误：const 不能用于自由函数
+        void free_func() const { /* 编译错误！ */ }
+        ```
+
+    `const` 的语义:
+
+    `const` 成员函数表示：
+    - 不修改对象的任何成员变量（除非是 `mutable` 的）
+    - 只能调用其他 `const` 成员函数
+    - `this` 指针是 `const T*` 类型
+
+    lambda 的特殊情况
+
+    lambda 默认的 `operator()` 是 const 的，除非标记 `mutable`：
+
+    ```cpp
+    int counter = 0;
+
+    // 默认：operator() 是 const
+    auto lambda1 = [](int x) { return x + 1; };
+    // 等价于：size_t operator()(int x) const;
+
+    // mutable：operator() 非 const
+    auto lambda2 = [counter](int x) mutable { 
+        ++counter;  // 可以修改捕获的变量
+        return x + counter; 
+    };
+    // 等价于：size_t operator()(int x);
+    ```
 * 我在 prelib.h 和 prelib.c 中定义了函数 int pre()，然后在 mylib.c 中使用了 pre()，但是 mylib.h 中并没有 pre() 的声明。如果 libmylib.so 是根据 mylib.c 生成的，那么我在编译 ext_main.cpp 时，可以 include "mylib.h"，并且 -lmylib，那么是否可以在 ext_main.cpp 中调用到 pre()?
 
     符号可见性与链接（Symbol Visibility）

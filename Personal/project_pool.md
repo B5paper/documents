@@ -35,6 +35,19 @@
     实际执行时，可以将这项任务拆解为更小的，便于启动的任务。
 
 ## cache
+
+* [ ] deoplete.nvim (异步补全)
+
+    ```vim
+    Plug 'Shougo/deoplete.nvim'
+    Plug 'zchee/deoplete-jedi'  " Python 补全源
+
+    let g:deoplete#enable_at_startup = 1
+    ```
+* 对于长程任务，应该引入按时间阶段性总结的功能。
+
+    不然这个任务算是完成还是未完成？只能说正在进行中。
+
 * [ ] vim-gutentags
 
 * [new] `ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .`

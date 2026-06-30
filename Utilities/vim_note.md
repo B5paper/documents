@@ -2,6 +2,643 @@
 
 ## cache
 
+* 是否有对 `*` 无序列表生成大纲的
+
+    一般的导航/大纲插件（如 Vista、Tagbar）都是基于标题（Heading，即 `#`、`##`）来生成的，**默认都不会对无序列表（`*`、`-`）生成大纲**。
+
+    不过，想要实现“把无序列表当成大纲来导航”的需求，Vim 有几种非常巧妙的解决办法：
+
+    ---
+
+    方案一：使用原生 `Ctrl-P` 模糊搜索（免插件，最快）
+
+    如果你想在当前文件的所有无序列表中快速跳转，不需要安装任何大纲插件，直接利用 Vim 的搜索缓冲区配合快捷键就能搞定：
+
+    1. 在 Vim 中输入以下命令（可以临时列出所有无序列表并让你选择跳转）：
+
+        ```vim
+        :ilist /^\s*[\*+-]\s/
+        ```
+
+    2. **更高效的做法**：直接在输入模式或正常模式下，按下快捷键 `/`，输入 `^\s*[*+-] `，然后配合 `n` 或 `N` 在无序列表之间像跳表单一样切换。
+
+    ---
+
+    方案二：利用 Vim 的折叠功能（Folding）
+
+    无序列表通常有嵌套结构（缩进）。你可以利用 Vim 的缩进折叠，把列表以外的内容过滤掉，只留下缩进大纲。
+
+    在你的 `.vimrc` 中加入或者临时输入：
+
+    ```vim
+    :set foldmethod=indent
+    ```
+
+    * 此时按 `zM` 可以折叠所有有缩进的列表。
+    * 整个文件会变成一个由无序列表构成的“可折叠大纲”。
+    * 移动到你想去的列表项上，按 `zo` 展开，`zc` 折叠。
+
+    ---
+
+    方案三：如果你使用的是 `CtrlP` 插件
+
+    如果你装了经典的模糊搜索插件 `ctrlp.vim`，它有一个内置的 `crypto-line` 功能，可以通过自定义正则来把无序列表抽出来做成一个弹窗导航。
+
+    在 `.vimrc` 中配置一个快捷键（比如 `<leader>l`）：
+
+    ```vim
+    nnoremap <leader>l :CtrlPLine<CR>^\s*[\*+-]\s
+    ```
+
+    按下快捷键后，会弹出一个动态模糊搜索框，**里面只实时显示你的无序列表行**，上下键选择，回车直接跳转。
+
+    ---
+
+    方案四：如果你使用的是 `Telescope` (Neovim 用户)
+
+    如果你使用的是 Neovim 并装了 `Telescope`，那就简单太多了。你可以直接利用 `live_grep` 或 `current_buffer_fuzzy_find` 传入正则。
+
+    可以绑定一个快捷键：
+
+    ```lua
+    vim.keymap.set('n', '<leader>gl', function()
+      require('telescope.builtin').current_buffer_fuzzy_find({ default_text = "^\\s*[\\*+-]\\s" })
+    end, { desc = "无序列表大纲" })
+    ```
+
+    这会在下方弹出一个非常优雅的浮动窗，里面全是你的无序列表，支持模糊过滤和实时预览跳转。
+
+    ---
+
+    **总结**：由于插件作者通常认为“标题”才算大纲，因此想要给“无序列表”做导航，最完美的体验是**方案三（Vim 用户）**或**方案四（Neovim 用户）**，通过模糊搜索插件过滤出列表项。你目前使用的 Vim 核心是原生的 Vim 还是 Neovim 呢？
+* vim 如何显示 markdown 文件的导航
+
+    在 Vim 中显示 Markdown 文件的导航（大纲/目录结构），最有效的方法是使用**插件**。因为 Vim 本身没有内置的侧边栏大纲功能，但通过社区插件，你可以获得像 IDE 一样丝滑的导航体验。
+
+    以下是目前最流行、最好用的几种解决方案：
+
+    ---
+
+    方案一：使用 `vim-markdown-toc`（自动生成目录）
+
+    如果你不想在侧边栏挂一个不断渲染的窗口，而是想直接在 Markdown 文件中**插入一个可以跳转的目录（TOC）**，这是最佳选择。
+
+    * **插件地址**：`mzlogin/vim-markdown-toc`
+    * **常用命令**：
+    * `:GenTocGFM`：生成 GFM 风格的目录。
+    * `:UpdateToc`：手动更新目录（通常保存时会自动更新）。
+
+    > **提示**：生成的目录中，把光标移到某个标题上按 `gd`（Go to Definition）或者如果你配合了其他跳转快捷键，就能直接跳到对应段落。
+
+    ---
+
+    方案二：使用 `Tagbar` 或 `Vista.vim`（侧边栏大纲）
+
+    如果你想要一个像 VS Code 那样在左侧或右侧独立显示的**悬浮/固定大纲栏**，可以使用基于 Ctags 的插件。
+
+    1. Vista.vim（强烈推荐，现代且美观）
+
+        `liuchengxu/vista.vim` 是一个非常现代的大纲插件，支持异步渲染，对 Markdown 的支持极好。
+
+        * **安装要求**：需要安装 `universal-ctags`（通过 `brew install ctags` 或 `sudo apt install ctags`）。
+        * **使用方法**：
+        * 在 Vim 中输入 `:Vista` 即可打开右侧大纲栏。
+        * 在大纲栏中，按 `Enter` 键即可跳转到对应的标题。
+
+    2. Tagbar（老牌经典）
+
+        `majutsushi/tagbar` 是最经典的大纲插件。
+
+        * **配置**：因为 Tagbar 默认对 Markdown 的支持一般，你需要在 `.vimrc` 中加上以下配置来让它识别 Markdown 标题：
+        ```vim
+        let g:tagbar_type_markdown = {
+            \ 'ctagstype' : 'markdown',
+            \ 'kinds' : [
+                \ 'h:Heading_L1',
+                \ 'i:Heading_L2',
+                \ 'k:Heading_L3',
+                \ 'u:Heading_L4',
+                \ 'm:Heading_L5',
+                \ 'p:Heading_L6'
+            \ ]
+        \ }
+        ```
+
+        **使用方法**：输入 `:TagbarToggle` 打开或关闭。
+
+    ---
+
+    方案三：使用 `coc-outline`（如果你用了 Coc.nvim）
+
+    如果你是用 `coc.nvim` 作为你的补全和 LSP 引擎，你完全不需要额外安装基于 Ctags 的插件。
+
+    * **安装命令**：在 Vim 中运行 `:CocInstall coc-outline`
+    * **使用方法**：输入 `:CocOutline`，就会在侧边栏弹出一个非常精准的 Markdown 目录树。
+
+    ---
+
+    方案四：纯原生 Vim 技巧（无需任何插件）
+
+    如果你在没有配置插件的服务器上，想要临时瞅一眼导航，可以利用 Vim 的**折叠（Folding）**或**搜索定位**功能：
+
+    1. **利用折叠看大纲**
+
+        * 输入 `:set filetype=markdown`（确保开启了 Markdown 语法）。
+        * 输入 `:set foldmethod=expr`（或者有些配置里直接按 `zi` 打开折叠）。
+        * 这时候所有的章节会被折叠起来，只显示标题，你可以通过 `zo`（打开折叠）和 `zc`（关闭折叠）来当成目录浏览。
+
+    2. **快捷搜索标题**：
+
+        * 输入 `/[#]\+ ` 然后按回车，配合 `n` 或 `N` 在各个标题之间快速跳跃。
+
+    ---
+
+    **总结建议**：如果你追求颜值和流畅度，首推 **`Vista.vim`**；如果你喜欢直接在文章里塞一个目录，用 **`vim-markdown-toc`**。你平时有在使用什么 Vim 插件管理器（如 vim-plug）吗？
+* 下面是我的自定义函数：
+
+    ```vim
+    function AddStar()
+        let start_line = line("'<")
+        let end_line = line("'>")
+        echo "选中的行范围: " . start_line . " 到 " . end_line
+        for lnum in range(start_line, end_line)
+            let line = getline(lnum)
+            if line !~ '\S'
+                continue
+            endif
+            execute lnum . 'normal! ^i* '
+        endfor
+        return 1
+    endfunction
+    ```
+
+    该如何修改这个函数，避免重复处理数据？
+
+    你需要修改函数来避免重复处理。有几种方法：
+
+    方法1：添加 `range` 关键字（推荐）
+
+    ```vim
+    function! AddStar() range  " 注意：添加 range 关键字
+        echo "选中的行范围: " . a:firstline . " 到 " . a:lastline
+        for lnum in range(a:firstline, a:lastline)
+            let line = getline(lnum)
+            if line !~ '\S'  " 跳过空行或只有空白字符的行
+                continue
+            endif
+            execute lnum . 'normal! ^i* '
+        endfor
+        return 1
+    endfunction
+    ```
+    **使用方法**：
+    ```vim
+    :'<,'>call AddStar()  " 只会执行一次，正确处理所有行
+    ```
+
+    方法2：在 Visual 模式下使用特殊调用方式
+
+    ```vim
+    function! AddStar()
+        " 检查是否是从命令行调用的（避免重复）
+        if exists('s:in_addstar') && s:in_addstar
+            return 1
+        endif
+        
+        let s:in_addstar = 1  " 设置标记
+        
+        let start_line = line("'<")
+        let end_line = line("'>")
+        echo "选中的行范围: " . start_line . " 到 " . end_line
+        
+        for lnum in range(start_line, end_line)
+            let line = getline(lnum)
+            if line !~ '\S'
+                continue
+            endif
+            execute lnum . 'normal! ^i* '
+        endfor
+        
+        let s:in_addstar = 0  " 清除标记
+        return 1
+    endfunction
+    ```
+
+    方法3：使用不同的函数名映射（最实用）
+
+    ```vim
+    " 在 .vimrc 中添加映射
+    vnoremap <leader>* :<C-u>call AddStarVisual()<CR>
+
+    function! AddStarVisual()
+        let start_line = line("'<")
+        let end_line = line("'>")
+        echo "选中的行范围: " . start_line . " 到 " . end_line
+        
+        for lnum in range(start_line, end_line)
+            let line = getline(lnum)
+            if line !~ '\S'
+                continue
+            endif
+            execute lnum . 'normal! ^i* '
+        endfor
+        
+        return 1
+    endfunction
+    ```
+
+    方法4：检查命令行内容（通用解决方案）
+
+    ```vim
+    function! AddStar()
+        " 获取当前命令行内容
+        let cmdline = getcmdline()
+        
+        " 如果命令行以 :'<,'> 开头，说明是范围调用
+        if cmdline =~ "^'<,'>"
+            " 我们只需要处理一次，所以直接返回
+            return 1
+        endif
+        
+        " 正常处理逻辑
+        let start_line = line("'<")
+        let end_line = line("'>")
+        echo "选中的行范围: " . start_line . " 到 " . end_line
+        
+        for lnum in range(start_line, end_line)
+            let line = getline(lnum)
+            if line !~ '\S'
+                continue
+            endif
+            execute lnum . 'normal! ^i* '
+        endfor
+        
+        return 1
+    endfunction
+    ```
+
+    最佳解决方案：使用 `range` + 改进逻辑
+
+    ```vim
+    function! AddStar() range
+        echo "选中的行范围: " . a:firstline . " 到 " . a:lastline
+        
+        " 保存光标位置
+        let save_pos = getpos('.')
+        
+        " 遍历选中的行
+        for lnum in range(a:firstline, a:lastline)
+            let line = getline(lnum)
+            
+            " 跳过空行或只有空白字符的行
+            if line !~ '\S'
+                continue
+            endif
+            
+            " 检查是否已经以星号开头（避免重复添加）
+            if line =~ '^\s*\*'
+                echo "跳过第 " . lnum . " 行（已以星号开头）"
+                continue
+            endif
+            
+            " 添加星号
+            execute lnum . 'normal! ^i* '
+            echo "已处理第 " . lnum . " 行"
+        endfor
+        
+        " 恢复光标位置
+        call setpos('.', save_pos)
+        
+        echo "处理完成！"
+        return 1
+    endfunction
+
+    " 同时添加一个非 range 版本供普通调用
+    function! AddStarSingle()
+        " 获取当前行
+        let lnum = line('.')
+        let line = getline(lnum)
+        
+        if line !~ '\S'
+            echo "当前行为空，跳过"
+            return
+        endif
+        
+        if line =~ '^\s*\*'
+            echo "当前行已以星号开头"
+            return
+        endif
+        
+        execute lnum . 'normal! ^i* '
+        echo "已为当前行添加星号"
+    endfunction
+
+    " 创建映射
+    nnoremap <leader>* :call AddStarSingle()<CR>
+    vnoremap <leader>* :call AddStar()<CR>
+    ```
+
+    使用建议：
+
+    1. **如果你希望用 `:'<,'>call AddStar()` 调用**：使用 `range` 版本（方法1）
+    2. **如果你希望用映射调用**：使用方法3的映射方式
+    3. **如果你希望函数更智能**：使用方法4，但注意获取命令行内容只在命令行模式下有效
+
+    推荐**使用方法1的 `range` 版本**，这是 Vim 的标准做法，语义清晰，不易出错。
+* 进入 visual 模式后，进入命令窗口总会自动弹出这个 :'<,'>， 此时如果我想调用函数 call MyFunc()，会导致每一行都会调用 MyFunc()，从而数据被重复处理，有没有什么好的解决办法？
+
+    这是 Vim 的常见问题。当你在 Visual 模式下选中文本后，命令行会自动添加 `:'<,'>` 范围标记，这表示 "对选中的每一行执行命令"。有几种解决方法：
+
+    1. **临时取消范围（最简单）**
+
+        按 `<C-u>` 或 `<C-w>` 删除命令行中的 `:'<,'>`：
+        ```vim
+        :'<,'>  " 自动出现
+        <C-u>   " 删除 :'<,'
+        call MyFunc()  " 正常调用
+        ```
+
+    2. **在函数内部处理范围**
+
+        ```vim
+        function! MyFunc() range
+            " 使用 a:firstline 和 a:lastline 获取范围
+            for lnum in range(a:firstline, a:lastline)
+                let line = getline(lnum)
+                " 处理每一行
+                call setline(lnum, '* ' . line)
+            endfor
+        endfunction
+        ```
+
+        然后在 Visual 模式下：
+
+        ```vim
+        :'<,'>call MyFunc()  " 这时会正确处理每一行，不会重复
+        ```
+
+    3. **使用 `<C-r>=` 进入表达式寄存器**
+
+        ```vim
+        :  " 先按冒号
+        <C-r>=  " 按 Ctrl+r 再按 =，进入表达式输入
+        MyFunc()<CR>  " 输入函数调用并回车
+        ```
+
+        这样不会带入 `:'<,'>`。
+
+    4. **创建映射避免此问题**
+
+        在 `.vimrc` 中添加：
+
+        ```vim
+        " 映射调用函数，不传递范围
+        vnoremap <leader>f :<C-u>call MyFunc()<CR>
+        ```
+
+        使用时：
+
+        1. 选中文本（Visual 模式）
+        2. 按 `<leader>f`
+        3. 函数被调用一次，而不是每行调用
+
+    5. **判断并处理重复调用**
+
+        在函数内部检测和处理：
+
+        ```vim
+        function! MyFunc()
+            " 检查是否在范围内调用
+            if exists('b:myfunc_called') && b:myfunc_called
+                return
+            endif
+            
+            " 标记已调用
+            let b:myfunc_called = 1
+            
+            " 你的逻辑...
+            
+            " 处理完后清除标记
+            let b:myfunc_called = 0
+        endfunction
+        ```
+
+    6. **使用 `normal` 命令代替范围**
+
+        ```vim
+        function! ProcessSelection()
+            " 获取可视模式选择的范围
+            let start_line = line("'<")
+            let end_line = line("'>")
+            
+            " 对范围内的每一行处理
+            for lnum in range(start_line, end_line)
+                " 处理每一行...
+            endfor
+        endfunction
+        ```
+
+    最佳实践推荐：
+
+    方案A：使用 `range` 函数（最规范）
+
+    ```vim
+    function! AddStar() range
+        for lnum in range(a:firstline, a:lastline)
+            let line = getline(lnum)
+            call setline(lnum, '* ' . line)
+        endfor
+    endfunction
+
+    " 在 Visual 模式下使用：
+    :'<,'>call AddStar()
+    ```
+
+    方案B：使用映射（最方便）
+
+    ```vim
+    " 在 .vimrc 中添加
+    vnoremap <leader>* :<C-u>call AddStarToSelection()<CR>
+
+    function! AddStarToSelection()
+        let start = line("'<")
+        let end = line("'>")
+        
+        for lnum in range(start, end)
+            call setline(lnum, '* ' . getline(lnum))
+        endfor
+    endfunction
+    ```
+
+    方案C：直接编辑时用 `<C-u>`
+
+    临时需要调用函数时：
+    1. `:'<,'>` 出现
+    2. 按 `<C-u>` 删除
+    3. 输入 `call MyFunc()`
+
+    总结：
+
+    - **如果函数需要处理多行**：使用 `function! MyFunc() range`
+    - **如果函数只需执行一次**：用 `<C-u>` 删除范围前缀，或使用映射
+    - **避免重复处理**：在函数内部合理设计逻辑，不依赖调用次数
+
+    这样就能避免 Visual 模式下 `:'<,'>` 导致的重复调用问题了。
+* 简述 vimscript 中正则表达式的用法
+
+    在 Vimscript 中，正则表达式有**两种模式**，用法有重要区别：
+
+    1. **两种模式区分**
+
+        **魔术模式（Magic）**
+
+        ```vim
+        /hello\s\+world  " \+ 表示1个或多个空白字符
+        ```
+        - 大多数元字符有特殊含义：`. * ^ $ [ ] \`
+        - 默认模式（搜索命令中使用）
+
+        **字面模式（Literal/Very Magic）**
+
+        ```vim
+        \vhello\s+world  " 使用 \v 前缀，+ 不需要转义
+        ```
+        - `\v` 开启 "very magic" 模式
+        - 几乎所有标点符号都有特殊含义（类似 Perl 正则）
+        - 推荐使用，更清晰
+
+    2. **常用语法**
+
+        **基础匹配**
+
+        ```vim
+        " 字符串开头和结尾
+        if str =~ '^start'     " 以 start 开头
+        if str =~ 'end$'       " 以 end 结尾
+
+        " 任意字符和数量
+        'x.y'      " x任意单个字符y
+        'xy*'      " x 后跟0个或多个 y
+        'xy\+'     " x 后跟1个或多个 y (魔术模式)
+        'xy+'      " x 后跟1个或多个 y (\v模式)
+        'xy\?'     " x 后跟0个或1个 y
+        'xy{2,4}'  " x 后跟2到4个 y
+        ```
+
+        **字符类**
+
+        ```vim
+        '[aeiou]'     " 任意元音字母
+        '[0-9]'       " 任意数字
+        '[a-zA-Z]'    " 任意字母
+        '[^0-9]'      " 非数字（[^] 表示否定）
+        '\d'          " 数字，同 [0-9]
+        '\w'          " 单词字符 [a-zA-Z0-9_]
+        '\s'          " 空白字符（空格、制表符等）
+        ```
+
+    3. **在 Vimscript 中的使用场景**
+
+        **模式匹配操作符**
+
+        ```vim
+        " 匹配
+        if str =~ pattern    " 匹配成功返回 1
+        if str !~ pattern    " 不匹配时返回 1
+
+        " 示例
+        let str = "hello world"
+        if str =~ '^hello'   " 真
+        if str !~ 'goodbye$' " 真
+        ```
+
+        **字符串函数中使用**
+
+        ```vim
+        " substitute() - 替换
+        let new = substitute(str, '\s\+', ' ', 'g')  " 多个空格变一个
+
+        " matchstr() - 提取匹配部分
+        let matched = matchstr(str, 'hel\?lo')  " 返回匹配的子串
+
+        " match() - 返回匹配位置
+        let pos = match(str, 'world')  " 返回索引（从0开始），未找到返回-1
+        ```
+
+    4. **转义规则示例**
+
+        ```vim
+        " 魔术模式（默认）需要转义：
+        'hello\.world'    " 匹配 hello.world（. 需要转义）
+        'example\d\+'     " example后跟1个或多个数字
+
+        " \v 模式更简洁：
+        \vhello\.world    " 匹配 hello.world（. 仍需转义，因为是字面点）
+        \vexample\d+      " example后跟1个或多个数字（+ 不用转义）
+        ```
+
+    5. **实际应用示例**
+
+        ```vim
+        " 1. 验证邮箱格式
+        if email =~ '\v^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            echo "有效邮箱"
+        endif
+
+        " 2. 提取数字
+        let numbers = matchstr(text, '\v\d+')
+
+        " 3. 分割字符串
+        let parts = split(text, '\s*,\s*')  " 按逗号分割，忽略周围空格
+
+        " 4. 替换操作
+        let cleaned = substitute(text, '\v\s+', ' ', 'g')  " 多个空格合并为一个
+        ```
+
+    6. **重要提示**
+
+        - 在 Vimscript 中**单引号字符串**更安全（双引号会解释 `\` 转义）
+        - 推荐**总是使用 `\v` 模式**，更直观易读
+        - 搜索时用 `/` 命令，脚本中用字符串函数
+        - 使用 `:help pattern` 查看详细文档
+
+    记住这个规则：**脚本中用 `\v`，搜索时可选，单引号更安全**。
+
+* 简述 vim 中 if "hello" =~ '^h' 是什么意思
+
+    在 Vim 脚本中，`if "hello" =~ '^h'` 是一个条件判断语句，它的意思是：
+
+    **检查字符串 "hello" 是否匹配正则表达式 `'^h'`**
+
+    具体解释：
+
+    - `"hello"`：要检查的字符串
+    - `=~`：Vim 中的模式匹配操作符（类似其他语言中的 `=~` 或 `match`）
+    - `'^h'`：正则表达式，`^` 表示字符串开头，`h` 表示字符 'h'
+    - 整个表达式判断字符串是否以 'h' 开头
+
+    这个表达式会返回 **真（1）**，因为：
+
+    - `"hello"` 确实以 'h' 开头
+
+    **其他相关操作符：**
+
+    - `!~`：不匹配操作符
+    - 例如：`if "hello" !~ '^x'` 返回真，因为 "hello" 不以 'x' 开头
+
+    **简单示例：**
+
+    ```vim
+    if "hello" =~ '^h'
+        echo "以 h 开头"
+    else
+        echo "不以 h 开头"
+    endif
+    ```
+    
+    输出：`以 h 开头`
+
+    这是一个 Vim 脚本中常用的模式匹配方式，用于字符串验证和条件判断。
 * 详细讲讲 ctags 可以跳转哪些符号，不能跳转哪些符号。对于这些不能跳转的符号，又该如何跳转（如果不使用 lsp，只使用静态符号的话）
 
     要彻底搞懂 `ctags` 的边界，我们需要先理清它的底层逻辑：`ctags` 是一个**基于语法标签的静态索引工具**。它能否跳转某个符号，取决于这个符号是否具有“全局（或类/结构体级别）的唯一性或可识别性”。
@@ -368,7 +1005,7 @@
 
     ---
 
-    ## 一、 前提条件：如何开启全能补全？
+    一、 前提条件：如何开启全能补全？
 
     Vim 内置了对数十种主流语言（C, C++, Python, JavaScript, HTML, CSS, SQL 等）的全能补全支持，但默认可能没有打开。你需要在你的 `~/.vimrc` 文件中加入以下基础配置：
 
@@ -381,7 +1018,7 @@
 
     ```
 
-    ### 检查是否生效
+    **检查是否生效**
 
     打开一个代码文件（比如 `test.py` 或 `index.html`），在末行模式输入：
     `:set omnifunc?`
@@ -389,91 +1026,93 @@
 
     ---
 
-    ## 二、 核心用法：如何触发与操作？
+    二、 核心用法：如何触发与操作？
 
-    ### 1. 触发快捷键
+    1. 触发快捷键
 
-    在插入模式（Insert Mode）下，紧接着你要补全的代码，依次按下：
-    **`Ctrl + x`** 然后按下 **`Ctrl + o`** （这里的 `o` 代表 Omni）
+        在插入模式（Insert Mode）下，紧接着你要补全的代码，依次按下：
 
-    ### 2. 补全菜单的操作指南
+        **`Ctrl + x`** 然后按下 **`Ctrl + o`** （这里的 `o` 代表 Omni）
 
-    一旦弹出补全列表，千万不要把手移到方向键去选，Vim 有一套更高效的快捷键：
+    2. 补全菜单的操作指南
 
-    | 快捷键 | 作用 |
-    | --- | --- |
-    | **`Ctrl + n`** | 在菜单中**向下**移动（Next） |
-    | **`Ctrl + p`** | 在菜单中**向上**移动（Previous） |
-    | **`Ctrl + y`** | **确认**选择当前高亮的条目（Yes） |
-    | **`Ctrl + e`** | **取消**补全，关闭菜单并回到输入前的状态（Exit/End） |
-    | **`回车键 (Enter)`** | 确认选择并换行（通常建议用 `Ctrl + y` 只确认不换行） |
+        一旦弹出补全列表，千万不要把手移到方向键去选，Vim 有一套更高效的快捷键：
+
+        | 快捷键 | 作用 |
+        | --- | --- |
+        | **`Ctrl + n`** | 在菜单中**向下**移动（Next） |
+        | **`Ctrl + p`** | 在菜单中**向上**移动（Previous） |
+        | **`Ctrl + y`** | **确认**选择当前高亮的条目（Yes） |
+        | **`Ctrl + e`** | **取消**补全，关闭菜单并回到输入前的状态（Exit/End） |
+        | **`回车键 (Enter)`** | 确认选择并换行（通常建议用 `Ctrl + y` 只确认不换行） |
 
     ---
 
-    ## 三、 实战场景示例
+    三、 实战场景示例
 
     全能补全在不同的语言里表现形式不同，体验一下它在常见场景下的威力：
 
-    ### 1. HTML / XML
+    1. HTML / XML
 
-    如果你输入 `<div>` 并在后面输入 `</` 然后按下 `Ctrl + x` `Ctrl + o`，Vim 会自动帮你闭合标签，准确补全 `</div>`。
-    在标签内部输入空格，按下组合键，它会列出该标签支持的所有 **属性**（如 `class`, `id`, `style`）。
+        如果你输入 `<div>` 并在后面输入 `</` 然后按下 `Ctrl + x` `Ctrl + o`，Vim 会自动帮你闭合标签，准确补全 `</div>`。
 
-    ### 2. CSS
+        在标签内部输入空格，按下组合键，它会列出该标签支持的所有 **属性**（如 `class`, `id`, `style`）。
 
-    在输入 `body { flat` 之后按下组合键，它会提示 `float`；在 `float: ` 后面按下组合键，它会聪明地只列出 `left`, `right`, `none` 等有效**属性值**。
+    2. CSS
 
-    ### 3. C / C++
+        在输入 `body { flat` 之后按下组合键，它会提示 `float`；在 `float: ` 后面按下组合键，它会聪明地只列出 `left`, `right`, `none` 等有效**属性值**。
 
-    需要借助系统生成的 `tags` 文件。当你输入 `struct_name.` 或 `pointer->` 之后按下组合键，它会弹出该结构体或类内部的所有成员变量和函数。
+    3. C / C++
+
+        需要借助系统生成的 `tags` 文件。当你输入 `struct_name.` 或 `pointer->` 之后按下组合键，它会弹出该结构体或类内部的所有成员变量和函数。
 
     ---
 
-    ## 四、 体验优化：让全能补全更像 IDE
+    四、 体验优化：让全能补全更像 IDE
 
     原生的 `Ctrl + x` ➔ `Ctrl + o` 按起来有点反人类，而且每次都要手动触发。我们可以通过以下配置让它更好用。
 
-    ### 1. 优化弹出菜单的行为（Preview 窗口）
+    1. 优化弹出菜单的行为（Preview 窗口）
 
-    默认情况下，全能补全可能会在屏幕上方弹出一个临时的 `preview` 窗口显示函数签名，有时挺烦人的。可以通过 `completeopt` 来控制：
+        默认情况下，全能补全可能会在屏幕上方弹出一个临时的 `preview` 窗口显示函数签名，有时挺烦人的。可以通过 `completeopt` 来控制：
 
-    ```vim
-    " longest: 只补全最长公共前缀
-    " menuone: 即使只有一个匹配项也弹出菜单
-    " preview: 显示函数原型信息（如果你不需要，可以去掉这个词）
-    set completeopt=longest,menuone,preview
+        ```vim
+        " longest: 只补全最长公共前缀
+        " menuone: 即使只有一个匹配项也弹出菜单
+        " preview: 显示函数原型信息（如果你不需要，可以去掉这个词）
+        set completeopt=longest,menuone,preview
 
-    ```
+        ```
 
-    如果你想在补全结束后**自动关闭**那个预览窗口，可以加上这行自动化命令：
+        如果你想在补全结束后**自动关闭**那个预览窗口，可以加上这行自动化命令：
 
-    ```vim
-    autocmd InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
+        ```vim
+        autocmd InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
 
-    ```
+        ```
 
-    ### 2. 映射快捷键（解放你的手指）
+    2. 映射快捷键（解放你的手指）
 
-    `Ctrl + x` 加上 `Ctrl + o` 太长了？把全能补全映射到 `Tab` 键或者更容易按的组合上：
+        `Ctrl + x` 加上 `Ctrl + o` 太长了？把全能补全映射到 `Tab` 键或者更容易按的组合上：
 
-    ```vim
-    " 将 Tab 键映射为：如果前面有字符就触发全能补全，否则输入普通的 Tab
-    function! SmartTab()
-        let col = col('.') - 1
-        if !col || getline('.')[col - 1] !~ '\k'
-            return "\<Tab>"
-        else
-            return "\<C-x>\<C-o>"
-        endif
-    endfunction
+        ```vim
+        " 将 Tab 键映射为：如果前面有字符就触发全能补全，否则输入普通的 Tab
+        function! SmartTab()
+            let col = col('.') - 1
+            if !col || getline('.')[col - 1] !~ '\k'
+                return "\<Tab>"
+            else
+                return "\<C-x>\<C-o>"
+            endif
+        endfunction
 
-    inoremap <Tab> <C-r>=SmartTab()<CR>
+        inoremap <Tab> <C-r>=SmartTab()<CR>
 
-    ```
+        ```
 
     ---
 
-    ## 💡 终极进阶提示
+    **终极进阶提示**
 
     虽然 Vim 内置的 Omni completion 很轻量且无需安装第三方软件，但它的代码分析能力依赖于传统的正规表达式和内置脚本。
 
@@ -483,6 +1122,7 @@
     * **Vim 8+ 用户**：可以使用 `coc.nvim` 或 `vim-lsc` 插件。
 
     通过 LSP 插件接管后，你依然可以使用 `Ctrl + x` `Ctrl + o` 来触发补全，但弹出的内容质量会产生质的飞跃！
+    
 * 我想查看 vim 中 ctrl + i 当前是什么作用，如何查看
 
     在 Vim 中，想要查看某个快捷键（包括组合键）当前被映射成了什么功能，可以使用 `:map` 系列命令。

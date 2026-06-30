@@ -2,6 +2,19 @@
 
 ## cache
 
+* windows 上的 x11 server
+
+    VcXsrv 或 Xming
+
+* OSC 52 终端序列 (现代、高效、无需 X11)
+
+   OSC 52 是一种通过文本流直接将内容发送给终端模拟器（Cygwin 的 Mintty 完美支持）的协议。
+
+   有空了再调研。
+
+* cygwin 无法使用 "+ 寄存器的问题，无法使用安装 cygwin gvim 安装包解决, 但是可以通过 wsl 解决
+
+    或者可以使用 sshfs 解决这个问题
 * `.\ssh-tunnel-ali.exe install` 这个安装的 ssh service 似乎不能使用 public key 连接到 host，是否还需要额外的参数指定 private key?
 
     是的，确实需要额外处理。当你将 SSH 封装为 Windows 服务运行时，它通常以 **LocalSystem** 账户身份运行，而该账户无法访问你个人用户目录下的 `.ssh\id_rsa` 私钥文件。
