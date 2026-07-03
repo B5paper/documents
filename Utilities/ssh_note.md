@@ -2,6 +2,143 @@
 
 ## cache
 
+* ssh 的 tcp keepalive 有什么用
+
+    SSH 的 TCP Keepalive 是一个**传输层保活机制**，用于检测 SSH 连接的另一端是否仍然存活。它的主要作用和应用场景如下：
+
+    ---
+
+    **主要作用**
+
+    1. **检测连接中断**
+
+        - 当网络中间设备（如路由器、防火墙、NAT）故障或重启时，可能静默丢弃连接而不发送 RST/FIN 包。
+        - 当客户端主机崩溃、断电或网络断连时，服务器端可能不知道连接已失效。
+        - TCP Keepalive 通过定期发送空 ACK 包探测对方，如果多次无响应则断开连接。
+
+    2. **防止连接被中间设备清理**
+
+        - 防火墙/NAT 通常会为 TCP 连接维护状态表，并有**空闲超时**机制（如 30 分钟、1 小时无流量则删除记录）。
+        - SSH 连接可能长时间空闲（如你挂着连接但不操作），Keepalive 保持少量流量，防止被误清理。
+
+    3. **释放被占用的资源**
+
+        - 及时发现僵尸连接，释放服务器端的 SSH 进程、内存、端口等资源。
+
+    ---
+
+    **SSH 中 Keepalive 的实现方式**
+
+    由操作系统内核实现，SSH 可以启用它：
+
+    ```bash
+    # SSH 客户端启用 TCP Keepalive
+    ssh -o ServerAliveInterval=60 user@host
+    ```
+
+    ```bash
+    # 每 60 秒向服务器发送一次保活请求
+    ServerAliveInterval 60
+    # 连续 3 次无响应则断开连接
+    ServerAliveCountMax 3
+    # 总超时时间 = Interval × CountMax = 60×3 = 180秒
+    ```
+
+    **服务器配置**（`/etc/ssh/sshd_config`）
+
+    ```bash
+    # 每 120 秒向客户端发送一次保活
+    ClientAliveInterval 120
+    # 最多发送 2 次
+    ClientAliveCountMax 2
+    # 同时启用 TCP Keepalive
+    TCPKeepAlive yes
+    ```
+
+    ```bash
+    # 查看系统 TCP Keepalive 参数（Linux）
+    cat /proc/sys/net/ipv4/tcp_keepalive_time
+    cat /proc/sys/net/ipv4/tcp_keepalive_intvl
+    ```
+
+    ```bash
+    # 1. 查看当前SSH连接的TCP Keepalive状态（Linux）
+    ss -to state established '( dport = :22 or sport = :22 )'
+
+    **如果没有开启保活，ssl 连接不活动一会儿会自动退出，为什么**
+
+    **如何验证是哪里触发的关闭？**
+
+    **方法1：抓包分析**
+
+    ```bash
+    # 使用 tcpdump 观察关闭过程
+    sudo tcpdump -i any -nn port 443 -w https.pcap
+    ```
+    查看谁先发送了 FIN 包：
+    - 如果是服务器先发送 FIN → 服务器主动关闭
+    - 如果是客户端先发送 FIN → 客户端主动关闭
+
+    **方法2：查看服务器日志**
+    ```nginx
+    # Nginx 日志格式添加连接时间
+    log_format timed '$remote_addr - $remote_user [$time_local] '
+                     '"$request" $status $body_bytes_sent '
+                     '"$http_referer" "$http_user_agent" '
+                     '$request_time $upstream_response_time '
+                     '$connection $connection_requests';
+    ```
+
+    **方法3：客户端测试**
+
+    ```javascript
+    // 保持 HTTPS 连接但不发送请求
+    const https = require('https');
+    const req = https.get('https://example.com', (res) => {
+      console.log('connected');
+      // 不读取数据，等待超时
+    });
+
+    req.on('close', () => {
+      console.log('Connection closed after', Date.now() - start, 'ms');
+    });
+    ```
+
+    **如何确定具体原因？**
+
+    **1. 抓包分析（最准确）**
+
+    ```bash
+    # 在服务器端抓包
+    sudo tcpdump -i eth0 port 22 -w ssh.pcap
+
+    # 分析谁先发送FIN/RST
+    tcpdump -r ssh.pcap -nn | tail -20
+    ```
+
+    **2. 检查系统日志时间模式**
+
+    ```bash
+    # 统计断开时间间隔
+    sudo grep "Disconnected from" /var/log/auth.log | \
+      awk '{print $1" "$2" "$3}' | uniq -c
+
+    # 如果总在固定时间（如30分钟）断开 → 防火墙策略
+    # 如果随机断开 → 可能是网络不稳定
+    ```
+
+    **3. 测试不同网络环境**
+
+    ```bash
+    # 测试1：直接连接（无中间设备）
+    ssh server_local_network
+
+    # 测试2：通过VPN/跳板机
+    ssh server_via_vpn
+
+    # 测试3：不同时间段测试
+    # （某些企业防火墙工作时间策略更严格）
+    ```
 * disown 在 ssh 中的行为
 
     不同情况下`pstree -s <sleep_pid>`的输出：

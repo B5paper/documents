@@ -2,6 +2,253 @@
 
 ## cache
 
+* AtlasViewer
+
+    这个是什么，干嘛用的？
+
+    **AtlasViewer** 是一个专门用于**近红外光谱（NIRS/fNIRS）脑成像数据可视化**的 MATLAB 工具箱。它是 **DOT-HUB** 生态系统的一部分，主要用于脑功能成像数据的可视化分析。
+
+    AtlasViewer 的主要功能：
+
+    1. **核心功能**
+
+        - **3D 脑皮层可视化**：显示 fNIRS 通道在脑皮层上的位置
+        - **探针布局显示**：可视化光源（sources）和探测器（detectors）的 3D 配置
+        - **数据覆盖显示**：将脑激活图覆盖在 3D 脑模型上
+        - **多模态配准**：将 fNIRS 数据与 MRI 结构像配准
+
+    2. **主要用途**
+
+        - **实验设计验证**：检查 fNIRS 探针放置位置
+        - **数据质量检查**：可视化信号质量和通道位置
+        - **结果展示**：展示脑激活图、连接性分析结果
+        - **教育演示**：教学 fNIRS 原理和数据解释
+
+    AtlasViewer 在 DOTHUB 工作流中的位置：
+
+    ```
+    原始 LUMO/Hitachi 数据
+         ↓
+    DOTHUB_LUMO2nirs  (转换格式)
+         ↓
+    AtlasViewerGUI    (可视化检查)
+         ↓
+    数据处理分析 (Homer2, NIRS工具箱)
+         ↓
+    AtlasViewer       (结果可视化)
+    ```
+
+    基本使用方法：
+
+    1. **启动 AtlasViewer**
+
+        ```matlab
+        % 在 MATLAB 中启动
+        AtlasViewerGUI
+
+        % 或通过命令行
+        avg = AtlasViewerGUI();
+        ```
+
+    2. **加载数据**
+
+        ```matlab
+        % 加载 .nirs 文件
+        avg = loadNIRS('your_data.nirs');
+
+        % 或从 DOTHUB 工作流
+        [nirs, ~, SD3D] = DOTHUB_LUMO2nirs(LUMO_data_folder);
+        avg = AtlasViewerGUI('init', SD3D, nirs);
+        ```
+
+    3. **主要可视化功能**
+
+        ```matlab
+        % 显示探针布局
+        avg.DisplayProbe();
+
+        % 显示脑激活图
+        avg.DisplayActivation(hbO, hbR);  % hbO: 氧合血红蛋白，hbR: 脱氧血红蛋白
+
+        % 显示 3D 脑模型
+        avg.DisplayCortex();
+
+        % 保存图像
+        avg.SaveImage('output.png');
+        ```
+
+    AtlasViewer 的主要界面模块：
+
+    1. **Probe Geometry（探针几何）**
+
+        - 查看光源和探测器位置
+        - 检查通道距离和方向
+        - 验证实验设置
+
+    2. **Anatomical Viewer（解剖查看器）**
+
+        - 3D 脑皮层显示
+        - 不同脑区标记
+        - Brodmann 分区显示
+
+    3. **Data Overlay（数据覆盖）**
+
+        - 时程数据可视化
+        - 统计映射图
+        - 连接性矩阵显示
+
+    4. **Registration（配准）**
+
+        - fNIRS-MRI 配准工具
+        - 数字化头部坐标处理
+        - 模板脑配准
+
+    实际应用示例：
+
+    示例 1：检查 LUMO 数据
+
+    ```matlab
+    % 转换 LUMO 数据
+    [nirs, nirsFileName, SD3DFileName] = DOTHUB_LUMO2nirs(LUMODirName);
+
+    % 使用 AtlasViewer 查看
+    avg = AtlasViewerGUI();
+    avg.loadProbe(SD3DFileName);  % 加载探针布局
+    avg.loadData(nirsFileName);   % 加载 nirs 数据
+    avg.plotProbe();              % 显示探针
+    ```
+
+    示例 2：可视化脑激活结果
+
+    ```matlab
+    % 假设已经完成 Homer2 处理
+    load('processed_data.mat');  % 包含 hbO, hbR 等变量
+
+    % 创建 AtlasViewer 对象
+    avg = AtlasViewerGUI();
+
+    % 设置探针和脑模型
+    avg.probe = SD3D;
+    avg.atlas = loadDefaultAtlas();  % 加载默认脑图谱
+
+    % 显示激活图
+    t = 10;  % 时间点
+    avg.display(hbO(:,t), 'threshold', 0.5, 'colormap', 'jet');
+    ```
+
+    示例 3：批处理可视化
+
+    ```matlab
+    % 批量处理多个被试
+    subjects = {'subj01', 'subj02', 'subj03'};
+    outputDir = 'figures';
+
+    for i = 1:length(subjects)
+        % 加载数据
+        nirsFile = fullfile('data', subjects{i}, 'processed.nirs');
+        avg = AtlasViewerGUI();
+        avg.loadData(nirsFile);
+        
+        % 生成可视化
+        h = figure('Visible', 'off');
+        avg.plotProbe();
+        avg.plotActivation();
+        
+        % 保存
+        saveas(h, fullfile(outputDir, [subjects{i} '_activation.png']));
+        close(h);
+    end
+    ```
+
+    AtlasViewer 的配置文件：
+
+    AtlasViewer 使用配置文件来保存设置：
+    - `atlasviewer.cfg`：主配置文件
+    - `probe.cfg`：探针配置文件
+    - `display.cfg`：显示设置
+
+    常见问题解决：
+
+    问题 1：无法显示脑模型
+
+    ```matlab
+    % 确保安装了必要的工具包
+    % AtlasViewer 需要：
+    % 1. 脑图谱数据（已包含）
+    % 2. 图形处理工具箱
+    % 3. OpenGL 支持
+
+    opengl info  % 检查 OpenGL
+    ```
+
+    问题 2：探针显示不正确
+
+    ```matlab
+    % 检查 SD3D 结构
+    if isfield(SD3D, 'SrcPos') && isfield(SD3D, 'DetPos')
+        disp('探针数据格式正确');
+    else
+        error('SD3D 结构不完整');
+    end
+
+    % 重新配准探针
+    avg.registerProbe(digpts);  % digpts: 数字化头点数据
+    ```
+
+    问题 3：性能问题（渲染慢）
+
+    ```matlab
+    % 简化显示
+    avg.set('simplifyMesh', true);
+    avg.set('reducePatch', 0.3);  % 减少面片数量
+
+    % 关闭不必要的功能
+    avg.set('showLabels', false);
+    avg.set('showAxes', false);
+    ```
+
+    与其他工具集成：
+
+    * 与 Homer2 集成：
+
+        ```matlab
+        % 使用 Homer2 处理后的数据
+        load('hmrR_Data.mat');  % Homer2 输出
+
+        % 在 AtlasViewer 中显示
+        avg.display(dcAvg);  % dcAvg: Homer2 的平均浓度变化
+        ```
+
+    * 与 BrainStorm 集成：
+
+        ```matlab
+        % 导出为 BrainStorm 格式
+        avg.exportBrainStorm('output_bst.mat');
+        ```
+
+    * 与 SPM 集成：
+
+        ```matlab
+        % 导出为 NIfTI 格式
+        avg.exportNifti('activation.nii', statistical_map);
+        ```
+
+    学习资源：
+
+    1. **官方文档**：在 AtlasViewer 界面中按 F1 键
+    2. **示例数据**：通常包含在安装包中
+    3. **DOTHUB 教程**：查看 DOTHUB 的示例脚本
+    4. **论文参考**：
+       - "AtlasViewer: A MATLAB GUI for fNIRS data visualization"
+       - "Visualization tools for fNIRS data analysis"
+
+    **总结**：AtlasViewer 是 fNIRS 研究中非常重要的**可视化工具**，特别适合：
+    - **实验设计阶段**：验证探针布局
+    - **数据处理阶段**：检查数据质量  
+    - **结果展示阶段**：生成发表级别的图表
+    - **教学演示**：直观展示 fNIRS 原理
+
+    对于使用 LUMO 或 Hitachi 等 fNIRS 设备的用户，AtlasViewer 通常是数据分析流程中不可或缺的一环。
 * fnirs channel 数据如果取平均，那么容易辨别病人和正常人，但是对于刺激事件，平均值可能意义不大，而是对同一刺激事件的不同 fnirs 数据波动程度更有意义
 
     如果您的 fNIRS 数据中包含刺激事件（如视觉、触觉刺激），那么简单地取整个时间序列的平均值确实可能丢失与刺激相关的动态信息。常用的做法是提取刺激后特定时间窗口内的特征，或计算能够反映信号波动程度的统计量。以下提供几种替代方案，并给出相应的代码示例。

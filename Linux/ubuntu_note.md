@@ -4,6 +4,102 @@
 
 ## cache
 
+* seahouse 设置 keyring 为空密码
+
+    说的是 **Seahorse**（GNOME Keyring 管理器）。这是最直接的方法：
+
+    **使用 Seahorse 设置空密码/解锁 Keyring**
+
+    **方法1：图形界面操作**
+
+    ```bash
+    # 1. 安装 Seahorse
+    sudo apt update
+    sudo apt install seahorse
+
+    # 2. 打开 Seahorse
+    seahorse
+    # 或通过菜单：应用程序 → 附件 → 密码和密钥
+
+    # 3. 操作步骤：
+    #    - 左侧选择"登录"（Login）
+    #    - 右键点击"登录"钥匙环 → "更改密码"
+    #    - 输入当前密码
+    #    - 新密码留空 → 点击"继续"
+    #    - 提示警告时选择"使用不安全存储"或"确定"
+    ```
+
+    **方法2：命令行设置空密码**
+
+    ```bash
+    # 停止 keyring 服务
+    pkill gnome-keyring-daemon
+
+    # 备份现有 keyring
+    cp -r ~/.local/share/keyrings ~/.local/share/keyrings.backup
+
+    # 删除现有 keyring
+    rm ~/.local/share/keyrings/login.keyring
+
+    # 重启 GNOME Keyring（会在下次登录时创建空密码keyring）
+    gnome-keyring-daemon --start --components=secrets
+
+    # 或者重启系统，登录时不输入keyring密码
+    ```
+
+    **方法3：配置自动登录时解锁**
+
+    ```bash
+    # 编辑 GNOME 自动启动配置
+    mkdir -p ~/.config/autostart
+    cat > ~/.config/autostart/gnome-keyring-unlock.desktop << EOF
+    [Desktop Entry]
+    Type=Application
+    Name=Unlock GNOME Keyring
+    Exec=/usr/bin/gnome-keyring-daemon --start --components=secrets
+    OnlyShowIn=GNOME;
+    AutostartCondition=GSettings org.gnome.desktop.remote-desktop.rdp screen-share-enabled
+    EOF
+    ```
+
+    **方法4：通过 PAM 配置自动解锁**
+
+    ```bash
+    # 编辑 PAM 配置
+    sudo nano /etc/pam.d/gnome-remote-desktop
+
+    # 添加以下内容（如果文件不存在则创建）：
+    auth    optional    pam_gnome_keyring.so
+    session optional    pam_gnome_keyring.so auto_start
+
+    # 编辑 lightdm/gdm 的 PAM 配置
+    sudo nano /etc/pam.d/lightdm-autologin
+    # 或
+    sudo nano /etc/pam.d/gdm-password
+
+    # 在文件末尾添加：
+    auth optional pam_gnome_keyring.so
+    session optional pam_gnome_keyring.so auto_start
+    ```
+
+    **方法5：使用 expect 脚本自动解锁**
+
+    ```bash
+    # 创建解锁脚本
+    cat > ~/unlock-keyring.sh << 'EOF'
+    #!/usr/bin/expect -f
+    set timeout 10
+    spawn gnome-keyring-daemon --unlock
+    expect "密码："
+    send "\r"  # 发送空密码（回车）
+    expect eof
+    EOF
+
+    chmod +x ~/unlock-keyring.sh
+
+    # 添加到自动启动
+    ln -s ~/unlock-keyring.sh ~/.config/autostart/
+    ```
 * ubuntu gnome 里 ctrl + alt + left/right 可以切换桌面，但是并没有年到 setting 里有设置的地方， 为什么
 
     这是因为：

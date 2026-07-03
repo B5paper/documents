@@ -1,5 +1,194 @@
 # Matlab Note
 
+* Matlab MCRInstalled
+
+    这个 mcr 是干嘛用的？
+
+    **MCR（MATLAB Compiler Runtime）** 是 MATLAB 的一个运行时环境，它允许你在**没有安装完整 MATLAB 软件**的计算机上运行编译过的 MATLAB 应用程序。
+
+    MCR 的主要用途：
+
+    1. **部署 MATLAB 应用程序**
+
+        当开发者使用 MATLAB Compiler 将 `.m` 文件编译成独立应用程序（如 `.exe`、`.dll`、`.jar` 等）后，用户只需要安装 MCR 就能运行这些程序，无需购买 MATLAB 许可证。
+
+    2. **应用场景**
+
+        - **独立可执行文件**：MATLAB 程序打包成 `.exe` 文件
+        - **共享库**：将 MATLAB 算法作为 `.dll`（Windows）或 `.so`（Linux）供其他语言调用
+        - **Web 应用程序**：部署 MATLAB 应用到服务器
+        - **组件**：创建 Excel 插件、.NET 组件等
+
+    MCR 与完整 MATLAB 的区别：
+
+    | 特性 | MCR（运行时） | 完整 MATLAB |
+    |------|--------------|-------------|
+    | **许可证** | 免费 | 需要付费许可证 |
+    | **功能** | 只能运行编译后的程序 | 完整开发环境 |
+    | **大小** | 较小（几GB） | 较大（10+GB） |
+    | **命令行** | 无 | 有（可交互编程） |
+    | **编辑器** | 无 | 有 |
+    | **工具箱** | 仅包含程序用到的 | 完整工具箱 |
+
+    检查 MCR 是否安装：
+
+    ```matlab
+    % 检查 MCR 版本
+    version -runtime
+
+    % 或者检查环境变量
+    getenv('MCR_ROOT')
+    ```
+
+    常见 MCR 相关命令：
+
+    * 编译 MATLAB 代码：
+
+        ```matlab
+        % 编译为独立应用程序
+        mcc -m myScript.m
+
+        % 编译为 C 共享库
+        mcc -W cpplib:myLib -T link:lib myFunction.m
+
+        % 编译为 .NET 组件
+        mcc -W 'dotnet:myAssembly,myClass,1.0' -T link:lib myFunction.m
+        ```
+
+    * MCR 的安装位置（Windows）：
+
+        ```
+        C:\Program Files\MATLAB\MATLAB Runtime\v9xx  % v9xx 对应 MATLAB 版本
+        ```
+
+    在 DOTHUB 项目中的可能用途：
+
+    DOTHUB 可能使用 MCR 来：
+
+    1. **部署工具箱**：让没有 MATLAB 的用户也能使用某些功能
+    2. **创建独立工具**：如数据转换器、可视化工具
+    3. **与外部系统集成**：通过 MCR 让其他软件调用 MATLAB 算法
+
+    如果你看到 "Matlab MCRInstalled" 信息：
+
+    这可能意味着：
+
+    1. **系统检测到 MCR 已安装**：某些工具会自动检查
+    2. **程序试图调用 MCR 环境**：可能在运行编译后的 MATLAB 程序
+    3. **部署相关**：可能在准备创建独立应用程序
+
+    安装 MCR：
+
+    ```bash
+    # 从 MathWorks 官网下载对应版本的 MCR
+    # 安装命令（Linux示例）
+    ./install -mode silent -agreeToLicense yes
+    ```
+
+    设置环境变量：
+
+    ```bash
+    # Windows
+    setx MCR_ROOT "C:\Program Files\MATLAB\MATLAB Runtime\v912"
+
+    # Linux/Mac
+    export LD_LIBRARY_PATH=$MCR_ROOT/runtime/glnxa64:$LD_LIBRARY_PATH
+    ```
+
+    卸载 MCR：
+
+    ```bash
+    # Windows：通过控制面板卸载
+    # Linux：运行 uninstall 脚本
+    ```
+
+    实际问题解决：
+
+    如果你在使用 DOTHUB 时遇到 MCR 相关问题：
+
+    错误："Could not find version X.X of the MATLAB Runtime"
+
+    ```matlab
+    % 解决方法：安装正确版本的 MCR
+    % 1. 检查程序需要的 MCR 版本
+    % 2. 从 MathWorks 下载对应版本：https://www.mathworks.com/products/compiler/mcr.html
+    ```
+
+    错误："MCR is not properly installed"
+
+    ```matlab
+    % 重新安装 MCR
+    % 或设置正确的环境变量
+    setenv('MCR_ROOT', 'C:\Program Files\MATLAB\MATLAB Runtime\v912');
+    ```
+
+    对于 DOTHUB 用户：
+
+    如果你只是使用 DOTHUB 工具箱进行开发（有完整 MATLAB），**通常不需要关心 MCR**。MCR 主要用于：
+    - 你要部署 DOTHUB 算法给其他用户使用
+    - 你要在服务器上运行 DOTHUB 处理流水线
+    - 你要将 DOTHUB 功能集成到其他软件中
+
+    **总结**：MCR 是 MATLAB 的"运行环境"，让你能在没有 MATLAB 的电脑上运行 MATLAB 程序。对于普通 MATLAB 用户，只有在部署或使用他人编译的程序时才需要接触 MCR。
+* matlab 中，A 文件夹下有B文件夹和脚本 A_test.m，B 文件夹下有函数文件 B_func.m，我希望在 A_test.m 中调用到 B_func()，怎么办
+
+    在 MATLAB 中调用子文件夹中的函数，有几种方法可以解决：
+
+    方法1：添加路径到搜索路径（推荐）
+
+    在 `A_test.m` 中添加：
+
+    ```matlab
+    % 获取当前脚本所在目录
+    currentDir = fileparts(mfilename('fullpath'));
+
+    % 将 B 文件夹添加到搜索路径
+    addpath(fullfile(currentDir, 'B'));
+
+    % 现在可以调用 B_func
+    result = B_func();
+    ```
+
+    方法2：使用相对路径直接调用
+
+    ```matlab
+    % 使用相对路径调用
+    result = B.B_func();  % 需要 B 文件夹在搜索路径中
+
+    % 或者使用完整路径
+    result = feval(fullfile(pwd, 'B', 'B_func'));
+    ```
+
+    方法3：创建函数句柄
+
+    ```matlab
+    % 创建函数句柄
+    b_func_path = fullfile(fileparts(mfilename('fullpath')), 'B', 'B_func.m');
+    B_func_handle = str2func('B_func');
+
+    % 调用
+    result = B_func_handle();
+    ```
+
+    方法4：使用 import 语句（如果 B 文件夹是包文件夹）
+
+    将 B 文件夹重命名为 `+B`（前面加加号），使其成为包：
+
+    ```matlab
+    % 在 A_test.m 中
+    import B.*;  % 导入 B 包中的所有函数
+    result = B_func();
+    ```
+
+    方法5：永久添加路径
+
+    在 MATLAB 主界面或启动脚本中：
+    ```matlab
+    % 或者添加到 MATLAB 永久搜索路径
+    userpath('reset');  % 重置用户路径
+    addpath(genpath('你的A文件夹路径'));
+    savepath;  % 保存路径设置
+    ```
 * matlab 是否有原生的网页开发能力，如果没有，是否有接口可以直接调用第三方的库？
 
     MATLAB **没有原生的完整网页开发能力**（如完整的Web框架），但提供了多种与Web交互和构建Web应用的接口和工具：

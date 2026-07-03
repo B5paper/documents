@@ -1,5 +1,9 @@
 # English Words
 
+* Ridge regression 岭回归
+
+* impute vt. 把（错误等）归咎于
+
 * roughly adv. 粗略地; 大体上; 大致上; 粗暴地
 
 * hinder prn. [ˈhɪndər] vt.& vi. 阻碍，妨碍; 成为阻碍

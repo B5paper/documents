@@ -2,6 +2,278 @@
 
 ## cache
 
+* 如果我在 socket 编程，如何找到一个可用的端口
+
+    在 socket 编程中，有多种方法可以找到可用端口：
+
+    1. 让系统自动分配（推荐）
+
+        ```python
+        import socket
+
+        def get_free_port():
+            """让系统自动分配一个可用端口"""
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(('', 0))  # 绑定到所有地址，端口设为0（系统自动分配）
+            port = sock.getsockname()[1]  # 获取系统分配的端口
+            sock.close()
+            return port
+
+        # 使用
+        free_port = get_free_port()
+        print(f"系统分配的可用端口: {free_port}")
+        ```
+
+        **优点**：最简单可靠，系统保证端口可用
+
+    2. 在指定范围内查找可用端口
+
+        ```python
+        import socket
+
+        def find_free_port(start_port=1024, end_port=65535, max_attempts=100):
+            """在指定范围内查找可用端口"""
+            import random
+            
+            # 随机尝试，避免总是从固定端口开始
+            ports = list(range(start_port, end_port + 1))
+            random.shuffle(ports)
+            
+            for i, port in enumerate(ports[:max_attempts]):
+                try:
+                    # 尝试绑定 TCP 端口
+                    tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    tcp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    tcp_sock.bind(('localhost', port))
+                    tcp_sock.close()
+                    
+                    # 尝试绑定 UDP 端口（可选）
+                    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    udp_sock.bind(('localhost', port))
+                    udp_sock.close()
+                    
+                    return port
+                except OSError:
+                    continue
+            
+            raise RuntimeError(f"在端口 {start_port}-{end_port} 范围内未找到可用端口")
+
+        # 使用
+        try:
+            port = find_free_port(8000, 9000)
+            print(f"找到可用端口: {port}")
+        except RuntimeError as e:
+            print(e)
+        ```
+
+    3. 检查并绑定特定端口
+
+        ```python
+        import socket
+
+        def check_and_bind_port(port, host='localhost'):
+            """检查并绑定到指定端口"""
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            try:
+                sock.bind((host, port))
+                return sock, port  # 返回 socket 和端口
+            except OSError as e:
+                sock.close()
+                raise RuntimeError(f"端口 {port} 不可用: {e}")
+
+        # 使用
+        try:
+            sock, port = check_and_bind_port(8080)
+            print(f"成功绑定到端口: {port}")
+        except RuntimeError as e:
+            print(e)
+        ```
+
+    4. 完整的使用示例
+
+        ```python
+        import socket
+        import random
+
+        class PortFinder:
+            def __init__(self, min_port=1024, max_port=65535):
+                self.min_port = min_port
+                self.max_port = max_port
+            
+            def is_port_available(self, port, host='0.0.0.0', socket_type='tcp'):
+                """检查端口是否可用"""
+                try:
+                    if socket_type.lower() == 'tcp':
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    else:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.bind((host, port))
+                    sock.close()
+                    return True
+                except OSError:
+                    return False
+            
+            def find_free_port(self, preferred_ports=None):
+                """查找可用端口，可指定优先端口列表"""
+                # 1. 先尝试优先端口
+                if preferred_ports:
+                    for port in preferred_ports:
+                        if self.is_port_available(port):
+                            return port
+                
+                # 2. 系统自动分配
+                try:
+                    return self.get_system_allocated_port()
+                except:
+                    pass
+                
+                # 3. 在范围内随机查找
+                attempts = min(100, self.max_port - self.min_port)
+                ports = random.sample(range(self.min_port, self.max_port + 1), attempts)
+                
+                for port in ports:
+                    if self.is_port_available(port):
+                        return port
+                
+                raise RuntimeError("未找到可用端口")
+            
+            def get_system_allocated_port(self):
+                """让系统分配端口"""
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.bind(('', 0))
+                port = sock.getsockname()[1]
+                sock.close()
+                return port
+
+        # 使用示例
+        finder = PortFinder(min_port=8000, max_port=9000)
+
+        # 方法1：系统自动分配
+        auto_port = finder.get_system_allocated_port()
+        print(f"系统分配端口: {auto_port}")
+
+        # 方法2：查找可用端口
+        free_port = finder.find_free_port(preferred_ports=[8080, 8888, 3000])
+        print(f"找到的可用端口: {free_port}")
+
+        # 方法3：检查特定端口
+        if finder.is_port_available(8080):
+            print("端口 8080 可用")
+        else:
+            print("端口 8080 已被占用")
+        ```
+
+    5. 结合上下文管理器使用
+
+        ```python
+        import socket
+        from contextlib import contextmanager
+
+        @contextmanager
+        def acquire_free_port(host='localhost', socket_type='tcp'):
+            """上下文管理器，自动获取并释放端口"""
+            sock = None
+            try:
+                if socket_type.lower() == 'tcp':
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                else:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                
+                sock.bind((host, 0))
+                port = sock.getsockname()[1]
+                yield sock, port
+            finally:
+                if sock:
+                    sock.close()
+
+        # 使用
+        with acquire_free_port() as (sock, port):
+            print(f"获取到端口: {port}")
+            # 在这里使用 socket
+            sock.listen(5)
+            # ... 其他操作
+        # 退出上下文后自动关闭
+        ```
+
+    6. 考虑竞态条件的版本
+
+        ```python
+        import socket
+        import errno
+
+        def find_and_reserve_port(start_port=1024, max_attempts=100):
+            """查找并立即绑定端口，避免竞态条件"""
+            for port in range(start_port, start_port + max_attempts):
+                try:
+                    # 创建 socket 并立即绑定
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.bind(('localhost', port))
+                    
+                    # 可以在这里设置监听，防止其他进程占用
+                    sock.listen(5)
+                    
+                    return sock, port  # 返回已绑定的 socket
+                    
+                except socket.error as e:
+                    if e.errno == errno.EADDRINUSE:
+                        continue  # 端口被占用，尝试下一个
+                    else:
+                        raise  # 其他错误
+            
+            raise RuntimeError(f"在 {max_attempts} 次尝试后未找到可用端口")
+
+        # 使用
+        try:
+            sock, port = find_and_reserve_port(8000)
+            print(f"已绑定并保留端口: {port}")
+            # 使用 sock 进行后续操作
+        finally:
+            sock.close()
+        ```
+
+    最佳实践建议：
+
+    1. **生产环境**：使用 `bind(('', 0))` 让系统自动分配
+    2. **测试环境**：可以在固定范围内查找，便于调试
+    3. **重要提示**：
+       - 使用 `SO_REUSEADDR` 选项可以更快地重用端口
+       - 检查端口后应立即绑定，避免竞态条件
+       - 考虑同时检查 TCP 和 UDP 端口（如果需要）
+       - 处理 `EADDRINUSE` 等特定错误
+
+    **简单封装函数**
+
+    ```python
+    def get_available_port(host='localhost', default=0):
+        """
+        获取可用端口
+        :param host: 绑定主机
+        :param default: 0 表示系统分配，>0 表示检查该端口是否可用
+        :return: 可用端口号
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((host, default))
+                return s.getsockname()[1]
+            except OSError:
+                if default > 0:
+                    # 如果指定端口不可用，让系统分配
+                    s.bind((host, 0))
+                    return s.getsockname()[1]
+                raise
+
+    # 使用
+    port1 = get_available_port()  # 系统分配
+    port2 = get_available_port(default=8080)  # 尝试8080，不行则系统分配
+    ```
+
+    **推荐使用第一种方法（系统自动分配）**，它最简单、最可靠，且避免了竞态条件问题。
 * 我的 haproxy 配置如下：
 
     ```conf

@@ -2,6 +2,190 @@
 
 ## cache
 
+* 只有 x 和 y 时处最小二乘法线性回归好处理，那多变量的最小二乘法，是怎么推导出来的？
+
+    多元线性最小二乘完整推导
+
+    一、模型设定
+
+    单变量：$y = \beta_0 + \beta_1 x_1$
+
+    多元（$p$ 个自变量，$n$ 组样本）：
+
+    $$
+    y_i = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip} + \varepsilon_i,\quad i=1,2,\dots,n
+    $$
+
+    写成矩阵形式简化计算：
+
+    1. 构造设计矩阵 $X$
+
+        $$
+        X_{n\times(p+1)}=
+        \begin{bmatrix}
+        1 & x_{11} & x_{12} & \dots & x_{1p}\\
+        1 & x_{21} & x_{22} & \dots & x_{2p}\\
+        \vdots & \vdots & \vdots & & \vdots\\
+        1 & x_{n1} & x_{n2} & \dots & x_{np}
+        \end{bmatrix}
+        $$
+
+        第一列全1对应截距 $\beta_0$。
+
+    2. 参数向量、响应向量
+
+        $$
+        \boldsymbol{\beta}=
+        \begin{bmatrix}\beta_0\\\beta_1\\\vdots\\\beta_p\end{bmatrix},\quad
+        \boldsymbol{y}=
+        \begin{bmatrix}y_1\\y_2\\\vdots\\y_n\end{bmatrix},\quad
+        \boldsymbol{\varepsilon}=
+        \begin{bmatrix}\varepsilon_1\\\varepsilon_2\\\vdots\\\varepsilon_n\end{bmatrix}
+        $$
+
+        整体模型：
+
+        $$
+        \boldsymbol{y} = X\boldsymbol{\beta} + \boldsymbol{\varepsilon}
+        $$
+
+    二、最小二乘目标：最小化残差平方和
+
+    残差：$\boldsymbol{e} = \boldsymbol{y} - X\boldsymbol{\hat\beta}$
+
+    残差平方和（损失函数）：
+
+    $$
+    S(\boldsymbol{\hat\beta}) = \sum_{i=1}^n e_i^2 = \boldsymbol{e}^\top \boldsymbol{e}
+    $$
+
+    代入残差：
+
+    $$
+    S(\boldsymbol{\hat\beta})
+    = (\boldsymbol{y} - X\boldsymbol{\hat\beta})^\top (\boldsymbol{y} - X\boldsymbol{\hat\beta})
+    $$
+
+    展开矩阵乘法：
+
+    $$
+    \begin{aligned}
+    S &= \boldsymbol{y}^\top\boldsymbol{y} - \boldsymbol{y}^\top X\boldsymbol{\hat\beta} - \boldsymbol{\hat\beta}^\top X^\top \boldsymbol{y} + \boldsymbol{\hat\beta}^\top X^\top X \boldsymbol{\hat\beta}
+    \end{aligned}
+    $$
+
+    标量转置不变：$\boldsymbol{y}^\top X\boldsymbol{\hat\beta} = \boldsymbol{\hat\beta}^\top X^\top \boldsymbol{y}$，化简：
+
+    $$
+    S(\boldsymbol{\hat\beta})
+    = \boldsymbol{y}^\top\boldsymbol{y} - 2\boldsymbol{\hat\beta}^\top X^\top \boldsymbol{y}
+    + \boldsymbol{\hat\beta}^\top X^\top X \boldsymbol{\hat\beta}
+    $$
+
+    三、求极值：对 $\boldsymbol{\hat\beta}$ 求梯度并置0
+
+    矩阵求导法则：
+
+    1. $\displaystyle \frac{\partial}{\partial \boldsymbol{\beta}} \boldsymbol{\beta}^\top A \boldsymbol{\beta} = 2A\boldsymbol{\beta}$（$A$ 对称）
+
+    2. $\displaystyle \frac{\partial}{\partial \boldsymbol{\beta}} \boldsymbol{\beta}^\top \boldsymbol{c} = \boldsymbol{c}$
+
+    对 $S$ 求梯度：
+
+    $$
+    \frac{\partial S}{\partial \boldsymbol{\hat\beta}}
+    = -2X^\top \boldsymbol{y} + 2X^\top X \boldsymbol{\hat\beta}
+    $$
+
+    最小二乘要求梯度=0（极小值点，$X^\top X$ 正定保证是最小值）：
+
+    $$
+    -2X^\top \boldsymbol{y} + 2X^\top X \boldsymbol{\hat\beta} = \boldsymbol{0}
+    $$
+
+    两边约去2，得到**正规方程组（Normal Equation）**：
+
+    $$
+    \boldsymbol{X^\top X}\;\boldsymbol{\hat\beta} = X^\top \boldsymbol{y}
+    $$
+
+    四、解出回归系数
+
+    若 $X^\top X$ 可逆（自变量无完全多重共线性），左乘逆矩阵：
+
+    $$
+    \boldsymbol{\hat\beta} = \big(X^\top X\big)^{-1} X^\top \boldsymbol{y}
+    $$
+
+    这就是多元最小二乘参数的闭式解。
+
+    五、和一元线性回归做对照验证
+
+    一元：$y=\beta_0+\beta_1 x$
+
+    $$
+    X=
+    \begin{bmatrix}
+    1 & x_1\\
+    1 & x_2\\
+    \vdots & \vdots\\
+    1 & x_n
+    \end{bmatrix}
+    $$
+
+    计算 $X^\top X$：
+
+    $$
+    X^\top X
+    =
+    \begin{bmatrix}
+    n & \sum x_i\\
+    \sum x_i & \sum x_i^2
+    \end{bmatrix},\quad
+    X^\top y
+    =
+    \begin{bmatrix}
+    \sum y_i\\
+    \sum x_i y_i
+    \end{bmatrix}
+    $$
+
+    求逆代入 $\hat\beta=(X^\top X)^{-1}X^\top y$，解出来的 $\hat\beta_0,\hat\beta_1$ 和课本一元最小二乘公式完全一致，说明多元公式是一元的通用扩展。
+
+    六、直观理解
+
+    1. 一元只用两个求和式就能解方程；
+    2. 多元自变量变多，方程组数量同步增加，手写求和式极繁琐；
+    3. 矩阵把一整套求和打包成 $X^\top X$ 和 $X^\top y$，一套公式兼容任意多自变量；
+    4. 核心逻辑没变：**最小化残差平方和 → 求导置零 → 线性方程组求解**，只是用矩阵简化高维运算。
+
+    补充：几何意义（可选）
+
+    $X$ 的列张成自变量构成的超平面，$X\hat\beta$ 是 $y$ 在该超平面上的正交投影；残差向量 $\boldsymbol{e}$ 和所有自变量列向量垂直，等价于 $X^\top \boldsymbol{e}=0$，展开直接得到正规方程，是另一种不依赖求导的推导思路。
+
+* 所以说如果有 y, x1, x2 三个那么最小的乘法的话，其实是求一个平面，对吗？
+
+    完全正确，给你捋清楚：
+
+    1. 单自变量 $y = \beta_0+\beta_1 x_1$
+
+        二维平面，拟合出来是**一条直线**。
+
+    2. 两个自变量 $y = \beta_0+\beta_1 x_1+\beta_2 x_2$
+
+        变量是 $y,x_1,x_2$，三维空间，拟合得到的是**一个平面**。
+
+        最小二乘的目标：让所有样本点到这个平面的竖直距离（y方向残差）平方总和最小。
+
+    3. 再多自变量 $x_3,x_4...$
+
+        维度超过3，没法画图，数学上统一叫**超平面**，公式还是那套矩阵正规方程不变。
+
+    补充小细节
+
+    点到平面的几何垂直距离 ≠ 最小二乘的残差
+
+    最小二乘只优化**y轴方向**的差值，不是空间垂直距离，这点和几何平面拟合有区别，但整体模型形态确实是平面。
 * 使用 numpy 实现一维卷积
 
     ```python
