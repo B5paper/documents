@@ -2,6 +2,81 @@
 
 ## cache
 
+* vim 配置 python lsp 插件
+
+    1. 安装 node.js
+
+    2. 使用 vim plug 安装 coc: <https://github.com/neoclide/coc.nvim> 
+
+    3. 使用 coc 安装 pyright: `:CocInstall coc-pyright`
+
+    4. ai 建议的配置快捷键
+
+        将以下经典配置复制到你的 `~/.vimrc` 中，它能让你像在 VS Code 中一样，使用快捷键进行代码跳转和查看文档：
+
+        ```vim
+        " --- coc.nvim 快捷键配置 ---
+
+        " 使用 Tab 键触发补全
+        inoremap <silent><expr> <TAB>
+              \ coc#pum#visible() ? coc#pum#next(1) :
+              \ CheckBackspace() ? "\<Tab>" :
+              \ coc#refresh()
+        inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+
+        " 使用 Enter 回车键确认补全
+        inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                                      \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+        function! CheckBackspace() abort
+          let col = col('.') - 1
+          return !col || getline('.')[col - 1]  =~# '\s'
+        endfunction
+
+        " 跳转到定义 (Go To Definition)
+        nmap <silent> gd <Plug>(coc-definition)
+
+        " 跳转到类型定义
+        nmap <silent> gy <Plug>(coc-type-definition)
+
+        " 跳转到实现
+        nmap <silent> gi <Plug>(coc-implementation)
+
+        " 查看引用过该变量/函数的地方
+        nmap <silent> gr <Plug>(coc-references)
+
+        " 使用 K 查看文档提示 (Hover)
+        nnoremap <silent> K :call ShowDocumentation()<CR>
+
+        function! ShowDocumentation()
+          if CocAction('hasProvider', 'hover')
+            call CocActionAsync('doHover')
+          else
+            call feedkeys('K', 'in')
+          endif
+        endfunction
+
+        " 重命名变量/函数 (Rename)
+        nmap <leader>rn <Plug>(coc-rename)
+
+        ```
+
+    **进阶：如何让 LSP 识别虚拟环境（venv）？**
+
+    Python 项目经常使用虚拟环境。`coc-pyright` 非常智能，它会自动寻找项目根目录下的 `.venv` 或 `venv` 文件夹。
+
+    如果你的虚拟环境在别的地方（比如 `~/.virtualenvs`），你可以在项目根目录下创建一个 `.vim` 文件夹，并在其中新建 `coc-settings.json` 文件：
+
+    ```json
+    {
+      "python.venvPath": "~/.virtualenvs",
+      "python.formatting.provider": "black"
+    }
+    ```
+
+    或者，你也可以在激活虚拟环境后（例如运行 `source venv/bin/activate`），**直接在同一个终端窗口里启动 Vim**，LSP 会自动使用当前激活的 Python 环境。
+
+    你目前使用的是原生的 Vim 还是 Neovim？如果是 Neovim 的话，我们还可以用内置的 Lua LSP 来做一套更现代、不需要 Node.js 依赖的配置。
 * 修改 vim prompt 等的配色
 
     在 `coc.nvim` 和 `coc-pyright` 中，LSP 弹出的提示窗口（也就是你说的 prompt、补全菜单或悬浮文档窗口）的配色，实际上是由 Vim 的高亮组（Highlight Groups）控制的。

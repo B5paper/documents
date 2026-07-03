@@ -6,6 +6,334 @@
 
 ## cache
 
+* 如何检测本地某个端口 p 是否被占用？
+
+    检测本地端口是否被占用，有多种方法：
+
+    1. 使用命令行工具
+
+        Windows 系统：
+
+        ```cmd
+        # 查看所有端口占用情况
+        netstat -ano | findstr :端口号
+
+        # 例如检测 8080 端口
+        netstat -ano | findstr :8080
+
+        # 查看指定端口的进程
+        netstat -ano | findstr :端口号
+        ```
+
+        Linux/macOS 系统：
+
+        ```bash
+        # 使用 netstat
+        netstat -tuln | grep :端口号
+
+        # 使用 ss（更现代的工具）
+        ss -tuln | grep :端口号
+
+        # 使用 lsof（显示进程信息）
+        lsof -i :端口号
+
+        # 例如检测 8080 端口
+        lsof -i :8080
+        ```
+
+    2. 使用 telnet（测试连接）
+
+        ```bash
+        telnet localhost 端口号
+        # 如果连接失败，可能是端口未开放或被占用
+        ```
+
+    3. 使用编程语言检测
+
+        Python 示例：
+
+        ```python
+        import socket
+
+        def check_port(port):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('localhost', port))
+            sock.close()
+            return result == 0  # 0 表示端口被占用
+
+        if check_port(8080):
+            print("端口 8080 被占用")
+        else:
+            print("端口 8080 可用")
+        ```
+
+        PowerShell（Windows）：
+
+        ```powershell
+        # 测试端口是否被监听
+        Test-NetConnection -ComputerName localhost -Port 8080
+        ```
+
+    4. **常用命令参数解释**
+
+        - `-t`：TCP 端口
+        - `-u`：UDP 端口
+        - `-l`：监听状态
+        - `-n`：显示数字地址
+        - `-p`：显示进程ID/名称（Linux）
+        - `-a`：显示所有连接
+
+    5. **找出占用端口的进程并结束**
+
+        Windows：
+
+        ```cmd
+        # 1. 查找占用端口的进程 ID
+        netstat -ano | findstr :8080
+
+        # 2. 根据进程 ID 结束进程
+        taskkill /PID 进程ID /F
+        ```
+
+        Linux/macOS：
+
+        ```bash
+        # 1. 查找进程 ID
+        lsof -i :8080
+
+        # 2. 结束进程
+        kill 进程 ID
+        # 强制结束
+        kill -9 进程 ID
+        ```
+
+    选择哪种方法取决于你的操作系统和具体需求。命令行方法最直接，编程方法适合自动化脚本。
+
+* linux下是否有好用的小工具来检测？
+
+    是的，Linux 下有很多好用的小工具来检测端口占用：
+
+    1. 内置网络工具
+
+        **lsof** - 最详细的工具
+
+        ```bash
+        # 查看指定端口
+        lsof -i :8080
+
+        # 查看所有监听端口
+        lsof -i -P -n | grep LISTEN
+
+        # 查看 TCP/UDP 端口
+        lsof -i tcp:8080
+        lsof -i udp:53
+
+        # 显示进程名和用户
+        lsof -i :8080 -P -n -t
+        ```
+
+        **ss** - netstat 的现代替代品（推荐）
+
+        ```bash
+        # 基本用法
+        ss -tuln | grep :8080
+
+        # 显示进程信息（需要 sudo）
+        ss -tulnp | grep :8080
+
+        # 查看特定协议的端口
+        ss -tlpn  # 所有TCP监听端口
+        ss -ulpn  # 所有UDP监听端口
+
+        # 只显示监听状态的端口
+        ss -tln
+        ```
+
+        **netstat** - 传统工具（很多系统已预装）
+
+        ```bash
+        netstat -tulnp | grep :8080
+        ```
+
+    2. 专用检测工具
+
+        **nmap** - 强大的端口扫描器
+
+        ```bash
+        # 扫描本地端口
+        nmap localhost -p 8080
+
+        # 扫描端口范围
+        nmap localhost -p 1-1000
+
+        # 快速扫描常用端口
+        nmap localhost -F
+        ```
+
+        **ncat/nc** - 网络瑞士军刀
+
+        ```bash
+        # 测试端口是否开放
+        nc -zv localhost 8080
+
+        # 监听模式（测试端口）
+        nc -l -p 8080 &
+        ```
+
+        **telnet** - 简单的连接测试
+
+        ```bash
+        telnet localhost 8080
+        # 如果连接成功或显示 "Connected"，说明端口开放
+        ```
+
+    3. 系统文件直接查看
+
+        ```bash
+        # 查看所有端口绑定
+        cat /proc/net/tcp
+        cat /proc/net/udp
+
+        # 查看特定进程打开的端口
+        ls -l /proc/<PID>/fd/ | grep socket
+        ```
+
+    4. 便捷的脚本工具
+
+        **port-check.sh**（自制脚本）
+
+        ```bash
+        #!/bin/bash
+        check_port() {
+            if ss -tuln | grep -q ":$1 "; then
+                echo "端口 $1 被以下进程占用:"
+                lsof -i :$1
+                return 0
+            else
+                echo "端口 $1 未被占用"
+                return 1
+            fi
+        }
+
+        # 使用
+        check_port 8080
+        ```
+
+        **快速测试端口的小函数**（加入 ~/.bashrc）
+
+        ```bash
+        # 添加到 ~/.bashrc
+        port() {
+            if [ -z "$1" ]; then
+                echo "用法: port <端口号>"
+                return 1
+            fi
+            echo "检测端口 $1 ..."
+            echo "=== ss 输出 ==="
+            sudo ss -tulnp | grep :$1
+            echo "=== lsof 输出 ==="
+            sudo lsof -i :$1
+            echo "=== 进程信息 ==="
+            pid=$(sudo lsof -t -i :$1 2>/dev/null)
+            if [ -n "$pid" ]; then
+                ps -p $pid -o pid,user,cmd
+            fi
+        }
+
+        # 重新加载配置后使用：port 8080
+        ```
+
+    5. 推荐组合用法
+
+        **快速检查脚本**
+
+        ```bash
+        #!/bin/bash
+        # 保存为 checkport
+        PORT=$1
+
+        echo "=== 端口 $PORT 占用情况 ==="
+        echo "1. ss 检测:"
+        sudo ss -tulnp | grep :$PORT
+
+        echo -e "\n2. lsof 检测:"
+        sudo lsof -i :$PORT
+
+        echo -e "\n3. 进程详情:"
+        PID=$(sudo lsof -t -i :$PORT 2>/dev/null)
+        if [ -n "$PID" ]; then
+            ps -p $PID -o pid,user,%cpu,%mem,cmd
+        fi
+        ```
+
+        **一键释放端口**
+
+        ```bash
+        #!/bin/bash
+        # 保存为 freeport
+        PORT=$1
+        PID=$(sudo lsof -t -i :$PORT 2>/dev/null)
+
+        if [ -n "$PID" ]; then
+            echo "找到进程 PID: $PID"
+            ps -p $PID -o pid,user,cmd
+            read -p "是否结束进程? [y/N] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo kill -9 $PID
+                echo "已结束进程 $PID"
+            fi
+        else
+            echo "端口 $PORT 未被占用"
+        fi
+        ```
+
+    6. 图形化工具（如有桌面环境）
+
+        ```bash
+        # 安装网络工具包
+        sudo apt-get install gnome-nettool  # Debian/Ubuntu
+
+        # 或使用 nmap 前端
+        sudo apt-get install zenmap
+        ```
+
+    使用建议：
+
+    1. **日常使用推荐 `ss`** - 速度快，信息全
+    2. **需要详细进程信息用 `lsof`** - 显示进程、用户、文件描述符
+    3. **网络调试用 `nmap` 或 `nc`** - 功能强大
+    4. **脚本中使用 `ss` 或检查 `/proc/net/tcp`** - 解析方便
+
+    大多数场景下，`ss -tulnp | grep :端口号` 就足够了。
+* 在 X11 中，剪贴板由 X Server 统一管理，任何程序只要有 X11 连接就能读写。而 Wayland 为了安全，不允许程序在后台静默读取其他窗口的内容。剪贴板的读写必须通过 合成器（Compositor，如 Mutti, Kwin, Sway） 严格控制。
+
+   wayland server 没有统一的剪贴板 api, 但是可以通过 wl-clipboard 解决 
+   
+   cygwin 里，可以使用 /dev/clipboard，配置示例：
+
+    ```vim
+    " 检测是否在 Cygwin 环境
+    if has("unix") && match(system("uname"), "CYGWIN") != -1
+        " 复制：将选中的文本写入 Windows 剪贴板
+        vnoremap "+y :w !cat > /dev/clipboard<CR><CR>
+        
+        " 粘贴：从 Windows 剪贴板读取内容并插入
+        nnoremap "+p :set paste<CR>:read /dev/clipboard<CR>:set nopaste<CR>
+    endif
+    ```
+
+    将普通的 y 和 p 和系统共享：
+
+    ```vim
+    if has("unix") && match(system("uname"), "CYGWIN") != -1
+        " 每次离开 Text 或是读取时，与 Windows 剪贴板同步
+        autocmd TextYankPost * if v:event.regname == '' | call system('cat > /dev/clipboard', getreg('"')) | endif
+        
+        " 甚至可以直接把 unnamed 寄存器映射
+        set clipboard=unnamed
+    endif
+    ```
 * 详细讲讲 wireguard 的用法
 
     WireGuard 是一种极其高效、轻量且现代的 VPN 协议。相比于传统的 OpenVPN 或 IPsec，它的代码量极小（仅几千行），速度极快，延迟低，且在移动端断线重连的表现堪称完美。
