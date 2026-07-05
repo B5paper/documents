@@ -2,6 +2,142 @@
 
 ## cache
 
+* 分段解释这个函数`ncclTopoSearchRec`
+
+    ```cpp
+    ncclResult_t ncclTopoSearchRec(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, int* time) {
+    int backToNet, backToFirstRank;
+    NCCLCHECK(ncclTopoSearchParams(system, graph->pattern, &backToNet, &backToFirstRank));
+    if (system->nodes[NET].count) {
+        // Start from NET
+        ncclTopoSearchRecNet(system, graph, saveGraph, backToNet, backToFirstRank, time);
+    } else {
+        // Intra-node only.
+        if (graph->pattern == NCCL_TOPO_PATTERN_NVLS) {
+        NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, 0, time, -1, -1, graph->nChannels));
+        return ncclSuccess;
+        } else if (graph->nChannels == 0) {
+        // Try PCI order first
+        NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, FORCED_ORDER_PCI, time, -1, -1, 0));
+        } else {
+        // Also try to replay previous channel
+        int g;
+        NCCLCHECK(ncclTopoReplayGetGpu(system, graph, -1, &g));
+        NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, FORCED_ORDER_REPLAY, time, -1, -1, g));
+        }
+        if (graph->sameChannels == 0 || graph->nChannels == 0) {
+        // Finally, try all other possibilities unless we are forced to use the same channels
+        for (int g=0; g<system->nodes[GPU].count; g++) {
+            NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, 0, time, -1, -1, g));
+        }
+        }
+    }
+    return ncclSuccess;
+    }
+    ```
+
+
+
+    这是一个NCCL拓扑搜索的递归函数，用于寻找最优的通信路径。让我分段解释：
+
+    ## 1. 函数定义和参数
+    ```c
+    ncclResult_t ncclTopoSearchRec(struct ncclTopoSystem* system, struct ncclTopoGraph* graph, struct ncclTopoGraph* saveGraph, int* time) {
+    ```
+    - `system`: 拓扑系统结构体，包含所有节点（GPU、NET、CPU等）
+    - `graph`: 当前搜索的拓扑图
+    - `saveGraph`: 保存最佳结果的拓扑图
+    - `time`: 时间参数，可能用于超时控制或性能评估
+
+    ## 2. 获取搜索参数
+    ```c
+    int backToNet, backToFirstRank;
+    NCCLCHECK(ncclTopoSearchParams(system, graph->pattern, &backToNet, &backToFirstRank));
+    ```
+    - 根据通信模式（pattern）获取搜索参数
+    - `backToNet`: 是否需要回到网络节点
+    - `backToFirstRank`: 是否需要回到第一个rank
+
+    ## 3. 处理网络通信情况
+    ```c
+    if (system->nodes[NET].count) {
+        // Start from NET
+        ncclTopoSearchRecNet(system, graph, saveGraph, backToNet, backToFirstRank, time);
+    }
+    ```
+    - 如果系统中有网络节点（跨节点通信）
+    - 从网络节点开始递归搜索
+
+    ## 4. 处理节点内通信情况
+    ```c
+    } else {
+        // Intra-node only.
+    ```
+    - 如果没有网络节点（单节点内通信）
+
+    ### 4.1 NVLS模式处理
+    ```c
+    if (graph->pattern == NCCL_TOPO_PATTERN_NVLS) {
+        NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, 0, time, -1, -1, graph->nChannels));
+        return ncclSuccess;
+    }
+    ```
+    - 如果是NVLS（NVLink SHARP）模式
+    - 直接尝试GPU搜索，传入当前通道数作为起始GPU
+
+    ### 4.2 首次搜索（无通道时）
+    ```c
+    else if (graph->nChannels == 0) {
+        // Try PCI order first
+        NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, FORCED_ORDER_PCI, time, -1, -1, 0));
+    }
+    ```
+    - 如果还没有分配任何通道
+    - 首先尝试按照PCI顺序搜索（从GPU 0开始）
+
+    ### 4.3 重放之前的最佳通道
+    ```c
+    } else {
+        // Also try to replay previous channel
+        int g;
+        NCCLCHECK(ncclTopoReplayGetGpu(system, graph, -1, &g));
+        NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, FORCED_ORDER_REPLAY, time, -1, -1, g));
+    }
+    ```
+    - 如果已有分配的通道
+    - 尝试重放（replay）之前的最佳配置
+    - 获取之前使用的GPU作为起始点
+
+    ### 4.4 全面搜索（非强制相同通道时）
+    ```c
+    if (graph->sameChannels == 0 || graph->nChannels == 0) {
+        // Finally, try all other possibilities unless we are forced to use the same channels
+        for (int g=0; g<system->nodes[GPU].count; g++) {
+            NCCLCHECK(ncclTopoSearchTryGpu(system, graph, saveGraph, 0, backToNet, backToFirstRank, 0, time, -1, -1, g));
+        }
+    }
+    ```
+    - 如果不要求所有通道相同，或者还没有通道
+    - 遍历所有GPU进行尝试
+    - 这是最全面的搜索策略
+
+    ## 5. 返回成功
+    ```c
+    return ncclSuccess;
+    }
+    ```
+
+    ## 总结
+    这个函数是NCCL拓扑搜索的核心，它根据不同的场景采用不同的搜索策略：
+    1. **跨节点通信**：从网络节点开始搜索
+    2. **节点内通信**：
+       - NVLS模式：特殊处理
+       - 首次搜索：优先PCI顺序
+       - 已有配置：尝试重放优化
+       - 全面搜索：遍历所有可能性
+
+    函数通过递归和分支限界的方式寻找最优的通信路径，平衡了搜索效率和结果质量。
+
 * 最近新出了一个开源集合通信库，叫什么
 
     根据你的问题，我找到了几款最近发布的**开源集合通信库**，它们都在高性能计算和AI大模型训练领域备受关注。下表汇总了主要信息：

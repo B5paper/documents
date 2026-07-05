@@ -2,6 +2,1062 @@
 
 ## cache
 
+* 简述 llvm 的用法
+
+    使用 LLVM 实现自定义语言需要多个步骤，下面是一个完整的指南：
+
+    ## 1. **项目架构设计**
+
+    ```
+    your-language/
+    ├── src/
+    │   ├── lexer/      # 词法分析
+    │   ├── parser/     # 语法分析
+    │   ├── ast/        # 抽象语法树
+    │   ├── sema/       # 语义分析
+    │   ├── codegen/    # LLVM 代码生成
+    │   └── main.cpp    # 主程序
+    ├── include/
+    ├── tests/
+    └── CMakeLists.txt
+    ```
+
+    ## 2. **基本实现步骤**
+
+    ### **第 1 步：创建词法分析器（Lexer）**
+    ```cpp
+    // lexer.h
+    #pragma once
+    #include <string>
+    #include <vector>
+
+    enum TokenType {
+        TOK_EOF, TOK_IDENTIFIER, TOK_NUMBER,
+        TOK_PLUS, TOK_MINUS, TOK_MULTIPLY, TOK_DIVIDE,
+        TOK_LPAREN, TOK_RPAREN, TOK_ASSIGN,
+        TOK_IF, TOK_ELSE, TOK_WHILE, TOK_RETURN,
+        TOK_INT, TOK_FLOAT
+    };
+
+    struct Token {
+        TokenType type;
+        std::string value;
+        int line, column;
+    };
+
+    class Lexer {
+    public:
+        Lexer(const std::string& source);
+        Token getNextToken();
+    private:
+        std::string source;
+        size_t position;
+        int line, column;
+        char currentChar();
+        void advance();
+        void skipWhitespace();
+    };
+    ```
+
+    ### **第 2 步：创建语法分析器（Parser）和 AST**
+    ```cpp
+    // ast.h
+    #pragma once
+    #include <memory>
+    #include <vector>
+    #include <string>
+
+    class ASTNode {
+    public:
+        virtual ~ASTNode() = default;
+    };
+
+    class ExprAST : public ASTNode {};
+    class StmtAST : public ASTNode {};
+
+    // 表达å节点
+    class NumberExprAST : public ExprAST {
+    public:
+        double value;
+        NumberExprAST(double val) : value(val) {}
+    };
+
+    class VariableExprAST : public ExprAST {
+    public:
+        std::string name;
+        VariableExprAST(const std::string& name) : name(name) {}
+    };
+
+    class BinaryExprAST : public ExprAST {
+    public:
+        char op;
+        std::unique_ptr<ExprAST> LHS, RHS;
+        BinaryExprAST(char op, std::unique_ptr<ExprAST> lhs, 
+                      std::unique_ptr<ExprAST> rhs)
+            : op(op), LHS(std::move(lhs)), RHS(std::move(rhs)) {}
+    };
+
+    // 函数节点
+    class FunctionAST {
+    public:
+        std::unique_ptr<PrototypeAST> proto;
+        std::unique_ptr<ExprAST> body;
+        
+        FunctionAST(std::unique_ptr<PrototypeAST> proto,
+                    std::unique_ptr<ExprAST> body)
+            : proto(std::move(proto)), body(std::move(body)) {}
+    };
+    ```
+
+    ### **第 3 步：集成 LLVM - 代码生成器**
+    ```cpp
+    // codegen.h
+    #pragma once
+    #include "llvm/IR/IRBuilder.h"
+    #include "llvm/IR/LLVMContext.h"
+    #include "llvm/IR/Module.h"
+    #include "llvm/IR/Verifier.h"
+    #include <map>
+
+    class CodeGen {
+    public:
+        CodeGen();
+        llvm::Value* codegen(ExprAST* ast);
+        llvm::Function* codegen(FunctionAST* ast);
+        
+    private:
+        std::unique_ptr<llvm::LLVMContext> context;
+        std::unique_ptr<llvm::IRBuilder<>> builder;
+        std::unique_ptr<llvm::Module> module;
+        std::map<std::string, llvm::Value*> namedValues;
+        
+        llvm::Value* logErrorV(const char* str);
+        llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function,
+                                                 const std::string& varName);
+    };
+    ```
+
+    ### **第 4 步：实现代码生成逻辑**
+    ```cpp
+    // codegen.cpp
+    #include "codegen.h"
+    #include "ast.h"
+
+    CodeGen::CodeGen() {
+        context = std::make_unique<llvm::LLVMContext>();
+        module = std::make_unique<llvm::Module>("MyLanguage", *context);
+        builder = std::make_unique<llvm::IRBuilder<>>(*context);
+    }
+
+    llvm::Value* CodeGen::codegen(NumberExprAST* num) {
+        return llvm::ConstantFP::get(*context, llvm::APFloat(num->value));
+    }
+
+    llvm::Value* CodeGen::codegen(VariableExprAST* var) {
+        llvm::Value* V = namedValues[var->name];
+        if (!V) {
+            // 错误处理：未定义的变量
+            return logErrorV("Unknown variable name");
+        }
+        return V;
+    }
+
+    llvm::Value* CodeGen::codegen(BinaryExprAST* bin) {
+        llvm::Value* L = codegen(bin->LHS.get());
+        llvm::Value* R = codegen(bin->RHS.get());
+        if (!L || !R) return nullptr;
+        
+        switch (bin->op) {
+            case '+': return builder->CreateFAdd(L, R, "addtmp");
+            case '-': return builder->CreateFSub(L, R, "subtmp");
+            case '*': return builder->CreateFMul(L, R, "multmp");
+            case '/': return builder->CreateFDiv(L, R, "divtmp");
+            default:
+                return logErrorV("Invalid binary operator");
+        }
+    }
+
+    llvm::Function* CodeGen::codegen(FunctionAST* func) {
+        // 创建函数类型：double func()
+        llvm::FunctionType* FT = llvm::FunctionType::get(
+            llvm::Type::getDoubleTy(*context), false);
+        
+        llvm::Function* F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage,
+            func->proto->name, module.get());
+        
+        // 创建基本块
+        llvm::BasicBlock* BB = llvm::BasicBlock::Create(*context, "entry", F);
+        builder->SetInsertPoint(BB);
+        
+        // 生成函数体
+        namedValues.clear();
+        llvm::Value* retVal = codegen(func->body.get());
+        if (!retVal) {
+            F->eraseFromParent();
+            return nullptr;
+        }
+        
+        // 创建返回指令
+        builder->CreateRet(retVal);
+        
+        // 验证函数
+        llvm::verifyFunction(*F);
+        
+        return F;
+    }
+    ```
+
+    ### **第 5 步：主程序入口**
+    ```cpp
+    // main.cpp
+    #include "lexer.h"
+    #include "parser.h"
+    #include "codegen.h"
+    #include <fstream>
+    #include <iostream>
+
+    int main(int argc, char* argv[]) {
+        if (argc < 2) {
+            std::cerr << "Usage: " << argv[0] << " <source_file>" << std::endl;
+            return 1;
+        }
+        
+        // 读取源文件
+        std::ifstream file(argv[1]);
+        std::string source((std::istreambuf_iterator<char>(file)),
+                           std::istreambuf_iterator<char>());
+        
+        // 词法分析
+        Lexer lexer(source);
+        
+        // 语法分析
+        Parser parser(lexer);
+        auto ast = parser.parse();
+        
+        if (!ast) {
+            std::cerr << "Parse failed!" << std::endl;
+            return 1;
+        }
+        
+        // 代码生成
+        CodeGen generator;
+        generator.codegen(ast.get());
+        
+        // 输出 LLVM IR
+        generator.dumpIR();
+        
+        return 0;
+    }
+    ```
+
+    ## 3. **CMake 配置**
+    ```cmake
+    cmake_minimum_required(VERSION 3.10)
+    project(MyLanguage)
+
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+    # 查找 LLVM
+    find_package(LLVM REQUIRED CONFIG)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+    include_directories(${LLVM_INCLUDE_DIRS})
+    add_definitions(${LLVM_DEFINITIONS})
+
+    # 添加 LLVM 组件
+    llvm_map_components_to_libnames(llvm_libs
+        core
+        irreader
+        mcjit
+        native
+        support
+    )
+
+    add_executable(mylang
+        src/main.cpp
+        src/lexer/lexer.cpp
+        src/parser/parser.cpp
+        src/codegen/codegen.cpp
+    )
+
+    target_link_libraries(mylang ${llvm_libs})
+    ```
+
+    ## 4. **编译和运行示例**
+
+    ### 创建示例语言程序
+    ```c
+    // example.mylang
+    def main() {
+        x = 10 + 5 * 2;
+        y = (x - 5) / 3;
+        return y;
+    }
+    ```
+
+    ### 编译你的编译器
+    ```bash
+    mkdir build && cd build
+    cmake ..
+    make
+    ```
+
+    ### 运行编译器
+    ```bash
+    # 生成 LLVM IR
+    ./mylang example.mylang > output.ll
+
+    # 使用 clang 编译成可执行文件
+    clang output.ll -o example
+
+    # 运行程序
+    ./example
+    echo $?  # 查看返回值
+    ```
+
+    ## 5. **进阶功能**
+
+    ### **添加 JIT 支持**
+    ```cpp
+    #include "llvm/ExecutionEngine/ExecutionEngine.h"
+    #include "llvm/ExecutionEngine/GenericValue.h"
+
+    class JITCompiler {
+    public:
+        llvm::GenericValue runFunction(llvm::Function* F,
+                                       const std::vector<llvm::GenericValue>& args) {
+            std::string errStr;
+            llvm::ExecutionEngine* EE = llvm::EngineBuilder(std::move(module))
+                .setErrorStr(&errStr)
+                .create();
+            
+            if (!EE) {
+                llvm::errs() << "Failed to create ExecutionEngine: " << errStr << "\n";
+                return llvm::GenericValue();
+            }
+            
+            llvm::GenericValue result = EE->runFunction(F, args);
+            delete EE;
+            return result;
+        }
+    };
+    ```
+
+    ### **添加控制流（if/while）**
+    ```cpp
+    llvm::Value* CodeGen::codegen(IfExprAST* ifExpr) {
+        llvm::Value* cond = codegen(ifExpr->cond.get());
+        cond = builder->CreateFCmpONE(
+            cond, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), "ifcond");
+        
+        llvm::Function* F = builder->GetInsertBlock()->getParent();
+        llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(*context, "then", F);
+        llvm::BasicBlock* elseBB = llvm::BasicBlock::Create(*context, "else");
+        llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(*context, "ifcont");
+        
+        builder->CreateCondBr(cond, thenBB, elseBB);
+        
+        // 生成 then 块
+        builder->SetInsertPoint(thenBB);
+        llvm::Value* thenVal = codegen(ifExpr->thenExpr.get());
+        builder->CreateBr(mergeBB);
+        thenBB = builder->GetInsertBlock();
+        
+        // 生成 else 块
+        F->getBasicBlockList().push_back(elseBB);
+        builder->SetInsertPoint(elseBB);
+        llvm::Value* elseVal = codegen(ifExpr->elseExpr.get());
+        builder->CreateBr(mergeBB);
+        elseBB = builder->GetInsertBlock();
+        
+        // 合并块
+        F->getBasicBlockList().push_back(mergeBB);
+        builder->SetInsertPoint(mergeBB);
+        
+        // 创建 phi 节点
+        llvm::PHINode* PN = builder->CreatePHI(
+            llvm::Type::getDoubleTy(*context), 2, "iftmp");
+        PN->addIncoming(thenVal, thenBB);
+        PN->addIncoming(elseVal, elseBB);
+        
+        return PN;
+    }
+    ```
+
+    ## 6. **学习资源**
+
+    1. **官方教程**：Kaleidoscope 教程（LLVM 官方）
+    2. **书籍**：《Getting Started with LLVM Core Libraries》
+    3. **参考实现**：
+       - [Kaleidoscope 实现](https://llvm.org/docs/tutorial/)
+       - [TinyPython](https://github.com/rui314/minilisp)
+       - [Simple Language](https://github.com/eliben/llvm-clang-samples)
+
+    ## 7. **调试工具**
+    ```bash
+    # 查看生成的 IR
+    opt -S -O2 output.ll -o optimized.ll
+
+    # 可视化控制流
+    opt -dot-cfg output.ll
+    dot -Tpng .main.dot -o cfg.png
+
+    # 使用 LLVM 调试器
+    lli -jit-kind=mcjit output.ll
+    ```
+
+    实现自定义语言的关键是逐步构建：从词法分析 → 语法分析 → AST → 语义分析 → LLVM IR 生成。建议先实现简单的算术表达式，再逐步添加变量、函数、控制流等特性。
+
+
+* 那如果我仅想用 llvm 分析 js 或 c/c++ 或 markdown 的 ast，怎么做
+
+    使用 LLVM 分析现有语言的 AST 有几种不同的方法，下面分别针对不同语言说明：
+
+    ## 1. **分析 C/C++ AST - 使用 Clang**
+
+    ### **方法 1：使用 libclang（推荐）**
+    ```cpp
+    // analyze_c_ast.cpp
+    #include <clang-c/Index.h>
+    #include <iostream>
+    #include <vector>
+
+    // AST 访问者回调函数
+    CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
+        CXSourceLocation loc = clang_getCursorLocation(cursor);
+        if (clang_Location_isInSystemHeader(loc)) {
+            return CXChildVisit_Continue;
+        }
+        
+        // 获取光标信息
+        CXString cursorKind = clang_getCursorKindSpelling(clang_getCursorKind(cursor));
+        CXString cursorName = clang_getCursorSpelling(cursor);
+        CXString cursorType = clang_getTypeSpelling(clang_getCursorType(cursor));
+        
+        // 打印 AST 节点信息
+        std::cout << "Cursor: " << clang_getCString(cursorKind)
+                  << " | Name: " << clang_getCString(cursorName)
+                  << " | Type: " << clang_getCString(cursorType) << std::endl;
+        
+        clang_disposeString(cursorKind);
+        clang_disposeString(cursorName);
+        clang_disposeString(cursorType);
+        
+        // 递归访问子节点
+        clang_visitChildren(cursor, visitor, client_data);
+        
+        return CXChildVisit_Continue;
+    }
+
+    int main(int argc, char** argv) {
+        if (argc < 2) {
+            std::cerr << "Usage: " << argv[0] << " <source_file.cpp>" << std::endl;
+            return 1;
+        }
+        
+        // 创建索引
+        CXIndex index = clang_createIndex(0, 0);
+        
+        // 解析文件
+        const char* args[] = {"-std=c++17"};
+        CXTranslationUnit unit = clang_parseTranslationUnit(
+            index,
+            argv[1],
+            args, 1,
+            nullptr, 0,
+            CXTranslationUnit_None
+        );
+        
+        if (!unit) {
+            std::cerr << "Failed to parse translation unit" << std::endl;
+            return 1;
+        }
+        
+        // 获取顶层 AST 节点
+        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        
+        // 遍历 AST
+        std::cout << "=== AST Dump ===" << std::endl;
+        clang_visitChildren(cursor, visitor, nullptr);
+        
+        // 获取诊断信息
+        unsigned diagnosticCount = clang_getNumDiagnostics(unit);
+        std::cout << "\n=== Diagnostics (" << diagnosticCount << ") ===" << std::endl;
+        for (unsigned i = 0; i < diagnosticCount; ++i) {
+            CXDiagnostic diag = clang_getDiagnostic(unit, i);
+            CXString diagStr = clang_formatDiagnostic(diag, clang_defaultDiagnosticDisplayOptions());
+            std::cout << clang_getCString(diagStr) << std::endl;
+            clang_disposeString(diagStr);
+            clang_disposeDiagnostic(diag);
+        }
+        
+        // 清理
+        clang_disposeTranslationUnit(unit);
+        clang_disposeIndex(index);
+        
+        return 0;
+    }
+    ```
+
+    ### **方法 2：使用 Clang AST Matchers（更强大的分析）**
+    ```cpp
+    // ast_matcher.cpp
+    #include <clang/ASTMatchers/ASTMatchers.h>
+    #include <clang/ASTMatchers/ASTMatchFinder.h>
+    #include <clang/Tooling/Tooling.h>
+    #include <clang/Frontend/CompilerInstance.h>
+
+    using namespace clang;
+    using namespace clang::ast_matchers;
+    using namespace clang::tooling;
+
+    class FunctionPrinter : public MatchFinder::MatchCallback {
+    public:
+        virtual void run(const MatchFinder::MatchResult &Result) {
+            if (const FunctionDecl* func = Result.Nodes.getNodeAs<FunctionDecl>("function")) {
+                // 获取函数信息
+                SourceManager& sm = *Result.SourceManager;
+                SourceLocation loc = func->getLocation();
+                
+                std::cout << "Found function: " << func->getNameAsString() 
+                          << " at " << sm.getFilename(loc).str()
+                          << ":" << sm.getSpellingLineNumber(loc) << std::endl;
+                
+                // 打印参数
+                for (auto param : func->parameters()) {
+                    std::cout << "  Param: " << param->getNameAsString()
+                             << " : " << param->getType().getAsString() << std::endl;
+                }
+            }
+            
+            if (const VarDecl* var = Result.Nodes.getNodeAs<VarDecl>("globalVar")) {
+                std::cout << "Global variable: " << var->getNameAsString()
+                          << " : " << var->getType().getAsString() << std::endl;
+            }
+        }
+    };
+
+    int main(int argc, char** argv) {
+        if (argc < 2) {
+            std::cerr << "Usage: " << argv[0] << " <source_file.cpp>" << std::endl;
+            return 1;
+        }
+        
+        std::string code = R"cpp(
+            #include <iostream>
+            
+            int global_var = 42;
+            
+            void hello_world() {
+                std::cout << "Hello, World!" << std::endl;
+            }
+            
+            int add(int a, int b) {
+                return a + b;
+            }
+        )cpp";
+        
+        // 创建匹配器
+        FunctionPrinter printer;
+        MatchFinder finder;
+        
+        // 定义匹配规则
+        finder.addMatcher(
+            functionDecl(unless(isExpansionInSystemHeader()))
+                .bind("function"),
+            &printer);
+        
+        finder.addMatcher(
+            varDecl(hasGlobalStorage(), unless(isExpansionInSystemHeader()))
+                .bind("globalVar"),
+            &printer);
+        
+        // 创建并运行工具
+        std::vector<std::string> args = {"-std=c++17"};
+        ClangTool tool(getCompilationDatabaseFromCommandLine(args), {argv[1]});
+        
+        return tool.run(newFrontendActionFactory(&finder).get());
+    }
+    ```
+
+    ### **编译 Clang 工具**
+    ```bash
+    # CMakeLists.txt
+    cmake_minimum_required(VERSION 3.10)
+    project(ASTAnalyzer)
+
+    find_package(Clang REQUIRED)
+    include_directories(${CLANG_INCLUDE_DIRS})
+
+    add_executable(analyze_c_ast analyze_c_ast.cpp)
+    target_link_libraries(analyze_c_ast clang-cpp)
+
+    add_executable(ast_matcher ast_matcher.cpp)
+    target_link_libraries(ast_matcher
+        clangASTMatchers
+        clangTooling
+        clangBasic
+        clangAST
+    )
+    ```
+
+    ## 2. **分析 JavaScript AST**
+
+    ### **方法 1：使用 JavaScript 解析库生成 AST，然后用 LLVM 分析**
+    ```cpp
+    // 先使用 QuickJS 或 V8 解析 JavaScript
+    // 然后转换为 LLVM 可以处理的格式
+
+    #include <iostream>
+    #include <fstream>
+    #include <string>
+
+    // 使用 QuickJS 解析 JavaScript
+    extern "C" {
+    #include "quickjs.h"
+    #include "quickjs-libc.h"
+    }
+
+    void analyze_js_ast(const std::string& js_code) {
+        JSRuntime* rt = JS_NewRuntime();
+        JSContext* ctx = JS_NewContext(rt);
+        
+        // 解析 JavaScript
+        const char* filename = "input.js";
+        JSValue result = JS_Eval(ctx, js_code.c_str(), js_code.length(),
+                                filename, JS_EVAL_FLAG_COMPILE_ONLY);
+        
+        if (JS_IsException(result)) {
+            JSValue exception = JS_GetException(ctx);
+            const char* err_str = JS_ToCString(ctx, exception);
+            std::cerr << "Parse error: " << err_str << std::endl;
+            JS_FreeCString(ctx, err_str);
+        } else {
+            // 获取字节码并分析
+            size_t bc_len;
+            uint8_t* bc_buf = JS_WriteObject(ctx, &bc_len, result, JS_WRITE_OBJ_BYTECODE);
+            
+            if (bc_buf) {
+                // 这里可以分析字节码结构
+                std::cout << "Generated bytecode of length: " << bc_len << std::endl;
+                js_free(ctx, bc_buf);
+            }
+        }
+        
+        JS_FreeValue(ctx, result);
+        JS_FreeContext(ctx);
+        JS_FreeRuntime(rt);
+    }
+    ```
+
+    ### **方法 2：使用 Babel/Esprima 生成 JSON AST，然后用 C++ 分析**
+    ```python
+    # 先用 Python 预处理，生成标准 AST
+    import json
+    import subprocess
+    import sys
+
+    def get_js_ast(js_file):
+        # 使用 esprima 解析 JavaScript
+        esprima_code = f"""
+        const esprima = require('esprima');
+        const fs = require('fs');
+        const code = fs.readFileSync('{js_file}', 'utf-8');
+        const ast = esprima.parseScript(code, {{ 
+            tokens: true, 
+            comment: true,
+            loc: true,
+            range: true,
+            tolerant: true
+        }});
+        console.log(JSON.stringify(ast, null, 2));
+        """
+        
+        result = subprocess.run(['node', '-e', esprima_code], 
+                              capture_output=True, text=True)
+        return json.loads(result.stdout)
+
+    # 然后在 C++ 中分析这个 JSON AST
+    ```
+
+    ```cpp
+    // analyze_js_json.cpp
+    #include <iostream>
+    #include <fstream>
+    #include <nlohmann/json.hpp>
+
+    using json = nlohmann::json;
+
+    void traverse_js_ast(const json& node, int depth = 0) {
+        if (!node.is_object()) return;
+        
+        std::string indent(depth * 2, ' ');
+        
+        // 打印节点信息
+        if (node.contains("type")) {
+            std::cout << indent << "Type: " << node["type"] << std::endl;
+            
+            if (node["type"] == "VariableDeclaration") {
+                std::cout << indent << "  Kind: " << node["kind"] << std::endl;
+            }
+            
+            if (node.contains("loc")) {
+                std::cout << indent << "  Location: " 
+                         << node["loc"]["start"]["line"] << ":" 
+                         << node["loc"]["start"]["column"] << std::endl;
+            }
+        }
+        
+        // 递归遍历子节点
+        for (auto& [key, value] : node.items()) {
+            if (key == "type" || key == "loc" || key == "range") continue;
+            
+            if (value.is_array()) {
+                std::cout << indent << "  " << key << ": [" << std::endl;
+                for (auto& child : value) {
+                    traverse_js_ast(child, depth + 2);
+                }
+                std::cout << indent << "  ]" << std::endl;
+            } else if (value.is_object()) {
+                std::cout << indent << "  " << key << ": {" << std::endl;
+                traverse_js_ast(value, depth + 2);
+                std::cout << indent << "  }" << std::endl;
+            }
+        }
+    }
+
+    int main() {
+        std::ifstream file("ast.json");
+        json ast = json::parse(file);
+        traverse_js_ast(ast);
+        return 0;
+    }
+    ```
+
+    ## 3. **分析 Markdown AST**
+
+    ### **使用 CommonMark 解析器**
+    ```cpp
+    // analyze_markdown.cpp
+    #include <iostream>
+    #include <fstream>
+    #include <string>
+    #include <vector>
+    #include <cmark.h>
+
+    // 定义 AST 节点结构
+    struct MarkdownNode {
+        enum Type {
+            DOCUMENT, PARAGRAPH, TEXT, HEADING,
+            LIST, LIST_ITEM, CODE_BLOCK, LINK
+        };
+        
+        Type type;
+        std::string content;
+        int level;  // 用于 heading 级别
+        std::string url;  // 用于 link
+        std::vector<MarkdownNode*> children;
+        
+        ~MarkdownNode() {
+            for (auto child : children) delete child;
+        }
+    };
+
+    class MarkdownAnalyzer {
+    public:
+        MarkdownAnalyzer(const std::string& filename) {
+            std::ifstream file(filename);
+            std::string content((std::istreambuf_iterator<char>(file)),
+                               std::istreambuf_iterator<char>());
+            ast_root = parseMarkdown(content);
+        }
+        
+        void analyze() {
+            std::cout << "=== Markdown Analysis ===" << std::endl;
+            std::cout << "Total headings: " << countHeadings() << std::endl;
+            std::cout << "Total links: " << countLinks() << std::endl;
+            std::cout << "Total code blocks: " << countCodeBlocks() << std::endl;
+            
+            // 打印大纲
+            std::cout << "\n=== Document Outline ===" << std::endl;
+            printOutline(ast_root, 0);
+        }
+        
+    private:
+        MarkdownNode* ast_root;
+        
+        MarkdownNode* parseMarkdown(const std::string& content) {
+            // 使用 CommonMark 解析
+            cmark_parser* parser = cmark_parser_new(CMARK_OPT_DEFAULT);
+            cmark_parser_feed(parser, content.c_str(), content.size());
+            cmark_node* doc = cmark_parser_finish(parser);
+            cmark_parser_free(parser);
+            
+            // 转换为自定义 AST
+            MarkdownNode* root = convertCmarkToAST(doc);
+            cmark_node_free(doc);
+            
+            return root;
+        }
+        
+        MarkdownNode* convertCmarkToAST(cmark_node* node) {
+            if (!node) return nullptr;
+            
+            MarkdownNode* md_node = new MarkdownNode();
+            
+            // 转换节点类型
+            switch (cmark_node_get_type(node)) {
+                case CMARK_NODE_DOCUMENT:
+                    md_node->type = MarkdownNode::DOCUMENT;
+                    break;
+                case CMARK_NODE_PARAGRAPH:
+                    md_node->type = MarkdownNode::PARAGRAPH;
+                    break;
+                case CMARK_NODE_TEXT:
+                    md_node->type = MarkdownNode::TEXT;
+                    md_node->content = cmark_node_get_literal(node);
+                    break;
+                case CMARK_NODE_HEADING:
+                    md_node->type = MarkdownNode::HEADING;
+                    md_node->level = cmark_node_get_heading_level(node);
+                    break;
+                case CMARK_NODE_LINK:
+                    md_node->type = MarkdownNode::LINK;
+                    md_node->url = cmark_node_get_url(node);
+                    break;
+                case CMARK_NODE_CODE_BLOCK:
+                    md_node->type = MarkdownNode::CODE_BLOCK;
+                    md_node->content = cmark_node_get_literal(node);
+                    break;
+                default:
+                    // 处理其他节点类型
+                    break;
+            }
+            
+            // 递归处理子节点
+            cmark_node* child = cmark_node_first_child(node);
+            while (child) {
+                MarkdownNode* child_ast = convertCmarkToAST(child);
+                if (child_ast) {
+                    md_node->children.push_back(child_ast);
+                }
+                child = cmark_node_next(child);
+            }
+            
+            return md_node;
+        }
+        
+        int countHeadings() const { return countNodes(ast_root, MarkdownNode::HEADING); }
+        int countLinks() const { return countNodes(ast_root, MarkdownNode::LINK); }
+        int countCodeBlocks() const { return countNodes(ast_root, MarkdownNode::CODE_BLOCK); }
+        
+        int countNodes(MarkdownNode* node, MarkdownNode::Type type) const {
+            if (!node) return 0;
+            
+            int count = (node->type == type) ? 1 : 0;
+            for (auto child : node->children) {
+                count += countNodes(child, type);
+            }
+            return count;
+        }
+        
+        void printOutline(MarkdownNode* node, int depth) {
+            if (!node) return;
+            
+            std::string indent(depth * 2, ' ');
+            
+            if (node->type == MarkdownNode::HEADING) {
+                std::cout << indent << "H" << node->level << ": ";
+                // 提取标题文本
+                for (auto child : node->children) {
+                    if (child->type == MarkdownNode::TEXT) {
+                        std::cout << child->content;
+                    }
+                }
+                std::cout << std::endl;
+            }
+            
+            for (auto child : node->children) {
+                printOutline(child, depth + 1);
+            }
+        }
+    };
+
+    int main(int argc, char** argv) {
+        if (argc < 2) {
+            std::cerr << "Usage: " << argv[0] << " <markdown_file>" << std::endl;
+            return 1;
+        }
+        
+        MarkdownAnalyzer analyzer(argv[1]);
+        analyzer.analyze();
+        
+        return 0;
+    }
+    ```
+
+    ### **编译 Markdown 分析器**
+    ```bash
+    # 安装 CommonMark
+    git clone https://github.com/commonmark/cmark.git
+    cd cmark
+    make
+    sudo make install
+
+    # 编译
+    g++ -std=c++11 analyze_markdown.cpp -o analyze_markdown -lcmark
+    ```
+
+    ## 4. **通用 AST 分析框架**
+
+    ### **设计通用 AST 接口**
+    ```cpp
+    // generic_ast.h
+    #pragma once
+    #include <string>
+    #include <vector>
+    #include <memory>
+    #include <map>
+
+    class ASTNode {
+    public:
+        enum NodeType {
+            NT_UNKNOWN,
+            NT_FUNCTION, NT_VARIABLE, NT_CLASS,
+            NT_CALL, NT_LOOP, NT_CONDITIONAL,
+            NT_LITERAL, NT_IDENTIFIER
+        };
+        
+        NodeType type;
+        std::string name;
+        std::string value;
+        std::vector<std::unique_ptr<ASTNode>> children;
+        std::map<std::string, std::string> attributes;
+        
+        ASTNode(NodeType t = NT_UNKNOWN) : type(t) {}
+        virtual ~ASTNode() = default;
+        
+        void addChild(std::unique_ptr<ASTNode> child) {
+            children.push_back(std::move(child));
+        }
+    };
+
+    class ASTAnalyzer {
+    public:
+        virtual std::unique_ptr<ASTNode> parse(const std::string& source) = 0;
+        virtual void analyze(const ASTNode* root) = 0;
+        virtual void transform(ASTNode* root) = 0;
+        virtual void generate(const ASTNode* root, const std::string& output_file) = 0;
+    };
+
+    // 具体的语言分析器
+    class CppASTAnalyzer : public ASTAnalyzer {
+    public:
+        std::unique_ptr<ASTNode> parse(const std::string& source) override;
+        void analyze(const ASTNode* root) override;
+        void transform(ASTNode* root) override;
+        void generate(const ASTNode* root, const std::string& output_file) override;
+    };
+
+    class JSASTAnalyzer : public ASTAnalyzer {
+    public:
+        std::unique_ptr<ASTNode> parse(const std::string& source) override;
+        void analyze(const ASTNode* root) override;
+        void transform(ASTNode* root) override;
+        void generate(const ASTNode* root, const std::string& output_file) override;
+    };
+    ```
+
+    ## 5. **实用工具和命令**
+
+    ### **直接使用 Clang 工具**
+    ```bash
+    # 查看 C/C++ AST
+    clang -Xclang -ast-dump -fsyntax-only example.cpp
+
+    # 导出为 JSON
+    clang -Xclang -ast-dump=json -fsyntax-only example.cpp > ast.json
+
+    # 使用 clang-query 交互式查询
+    clang-query example.cpp -- -std=c++17
+    # 然后在 clang-query 中输入: match functionDecl()
+    ```
+
+    ### **使用 LLVM 进行静态分析**
+    ```bash
+    # 使用 clang-tidy 进行代码检查
+    clang-tidy example.cpp --checks='*' -- -std=c++17
+
+    # 使用 scan-build 进行静态分析
+    scan-build clang++ example.cpp -o example
+    ```
+
+    ## 6. **集成 LLVM Pass 进行分析**
+
+    ```cpp
+    // custom_pass.cpp
+    #include "llvm/IR/Function.h"
+    #include "llvm/IR/Instructions.h"
+    #include "llvm/IR/LegacyPassManager.h"
+    #include "llvm/Pass.h"
+    #include "llvm/Support/raw_ostream.h"
+
+    using namespace llvm;
+
+    namespace {
+        class FunctionInfoPass : public FunctionPass {
+        public:
+            static char ID;
+            FunctionInfoPass() : FunctionPass(ID) {}
+            
+            bool runOnFunction(Function &F) override {
+                errs() << "Function: " << F.getName() << "\n";
+                errs() << "  Number of arguments: " << F.arg_size() << "\n";
+                errs() << "  Number of basic blocks: " << F.size() << "\n";
+                errs() << "  Number of instructions: " << F.getInstructionCount() << "\n";
+                
+                // 分析指令类型
+                int numCalls = 0, numLoads = 0, numStores = 0;
+                for (auto& BB : F) {
+                    for (auto& I : BB) {
+                        if (isa<CallInst>(&I)) numCalls++;
+                        if (isa<LoadInst>(&I)) numLoads++;
+                        if (isa<StoreInst>(&I)) numStores++;
+                    }
+                }
+                
+                errs() << "  Call instructions: " << numCalls << "\n";
+                errs() << "  Load instructions: " << numLoads << "\n";
+                errs() << "  Store instructions: " << numStores << "\n";
+                
+                return false;  // 没有修改函数
+            }
+        };
+    }
+
+    char FunctionInfoPass::ID = 0;
+    static RegisterPass<FunctionInfoPass> X("func-info", "Function Information Pass");
+
+    // 编译和使用
+    // opt -load ./CustomPass.so -func-info < input.bc > /dev/null
+    ```
+
+    ## **总结建议**
+
+    1. **对于 C/C++**：直接使用 Clang，它已经提供了完整的 AST
+    2. **对于 JavaScript**：
+       - 使用 QuickJS/V8 解析，然后转换为自己的 AST 格式
+       - 或用 Node.js 生成标准 ESTree AST，再在 C++ 中分析
+    3. **对于 Markdown**：使用 CommonMark 等成熟解析器
+    4. **通用方法**：设计统一的 AST 接口，为每种语言实现适配器
+
+    **最推荐的方式**：
+    - 对于 C/C++：直接用 Clang 的 libclang 或 AST Matchers
+    - 对于其他语言：先用该语言的最佳解析器生成 AST，再设计通用接口用 C++ 分析
+
 * 和`%{`配对的是`%}`，不是`}%`。百分号永远在前。
 
     ```c

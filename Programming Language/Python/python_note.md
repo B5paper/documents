@@ -2,6 +2,290 @@
 
 ## cache
 
+* python 中 os 中常用的函数
+
+    1. `os.getcwd()`
+
+        **作用**：返回当前工作目录的绝对路径字符串。即当前 Python 进程所在的目录。
+
+        **用例**：
+
+        ```python
+        import os
+        cwd = os.getcwd()
+        print(f"当前工作目录: {cwd}")
+        # 输出示例: 当前工作目录: /home/user/project
+        ```
+
+    2. `os.chdir(path)`
+
+        **作用**：改变当前工作目录到 `path`。
+
+        **用例**：
+
+        ```python
+        os.chdir('/tmp')
+        print(os.getcwd())  # 输出: /tmp
+        ```
+
+    3. `os.listdir(path='.')`
+
+        **作用**：返回指定目录下所有文件和子目录名称的**列表**（不包含 `.` 和 `..`）。
+
+        **用例**：
+
+        ```python
+        items = os.listdir('.')
+        print(items)  # 输出: ['file1.txt', 'folder1', 'script.py', ...]
+        ```
+
+    4. `os.mkdir(path, mode=0o777, *, dir_fd=None)`
+
+        **作用**：创建一个名为 `path` 的目录。**只能创建最后一级**，若父目录不存在会报 `FileNotFoundError`。
+
+        **用例**：
+
+        ```python
+        os.mkdir('new_folder')          # 在当前目录下创建
+        os.mkdir('/tmp/test_dir')       # 绝对路径创建
+        ```
+
+    5. `os.makedirs(path, mode=0o777, exist_ok=False)`
+
+        **作用**：递归创建目录，若父目录不存在则一并创建。`exist_ok=True` 时，目录已存在也不报错。
+
+        **用例**：
+
+        ```python
+        os.makedirs('a/b/c/d', exist_ok=True)  # 一次性创建多层目录
+        ```
+
+    6. `os.rmdir(path)`
+
+        **作用**：删除一个**空目录**。若目录非空会报 `OSError`。
+
+        **用例**：
+
+        ```python
+        os.rmdir('empty_folder')
+        ```
+
+    7. `os.removedirs(path)`
+
+        **作用**：递归删除空目录，从最底层开始向上删除，遇到非空目录则停止。
+
+        **用例**：
+
+        ```python
+        os.removedirs('a/b/c/d')  # 若 d,c,b 都为空，则全部删除，a 不为空则停止
+        ```
+
+    8. `os.remove(path)` / `os.unlink(path)`
+
+        **作用**：删除一个文件（不能用于目录）。
+
+        **用例**：
+
+        ```python
+        os.remove('temp.txt')
+        ```
+
+    9. `os.rename(src, dst)`
+
+        **原型**：`os.rename(src, dst, *, src_dir_fd=None, dst_dir_fd=None)`
+
+        **作用**：重命名文件或目录（也可用于移动文件）。
+
+        **用例**：
+
+        ```python
+        os.rename('old_name.txt', 'new_name.txt')
+        os.rename('/tmp/file.txt', '/home/user/file.txt')  # 移动并重命名
+        ```
+
+    10. `os.path` 子模块（路径字符串处理）
+
+        虽然 `os.path` 是子模块，但极其常用，常与 `os` 一起使用：
+
+        | 函数 | 作用 | 示例 |
+        |------|------|------|
+        | `os.path.join(a, b)` | 拼接路径（自动处理分隔符） | `os.path.join('/home', 'user', 'file.txt')` → `/home/user/file.txt` |
+        | `os.path.exists(path)` | 判断路径是否存在 | `if os.path.exists('data.csv'): ...` |
+        | `os.path.isfile(path)` | 是否为文件 | `os.path.isfile('/etc/passwd')` → `True` |
+        | `os.path.isdir(path)` | 是否为目录 | `os.path.isdir('/tmp')` → `True` |
+        | `os.path.abspath(path)` | 返回绝对路径 | `os.path.abspath('.')` |
+        | `os.path.basename(path)` | 取文件名 | `os.path.basename('/a/b/c.txt')` → `'c.txt'` |
+        | `os.path.dirname(path)` | 取目录名 | `os.path.dirname('/a/b/c.txt')` → `'/a/b'` |
+        | `os.path.splitext(path)` | 分离扩展名 | `os.path.splitext('data.csv')` → `('data', '.csv')` |
+        | `os.path.getsize(path)` | 获取文件大小（字节） | `os.path.getsize('bigfile.bin')` |
+        | `os.path.getmtime(path)` | 获取最后修改时间戳 | `os.path.getmtime('config.ini')` |
+
+    **环境变量操作**
+
+    1. `os.environ`
+
+        **原型**：`os.environ` 是一个类字典对象（`os._Environ`），表示当前进程的环境变量。
+
+        **作用**：获取、设置、删除环境变量。
+        
+        **常用方法**：
+          - `os.environ.get(key, default=None)` —— 获取环境变量，若不存在返回默认值。
+          - `os.environ[key] = value` —— 设置环境变量（仅当前进程及其子进程生效）。
+          - `del os.environ[key]` —— 删除环境变量。
+
+        - **用例**：
+
+        ```python
+        import os
+
+        # 获取
+        home = os.environ.get('HOME', '/default/home')
+        print(home)
+
+        # 设置（临时）
+        os.environ['MY_VAR'] = 'hello'
+        print(os.environ['MY_VAR'])
+
+        # 删除（小心）
+        if 'TEMP_VAR' in os.environ:
+            del os.environ['TEMP_VAR']
+
+        # 遍历所有环境变量
+        for key, value in os.environ.items():
+            print(f"{key} = {value}")
+        ```
+
+    3. 系统信息和命令执行
+
+        ① `os.system(command)`
+        - **原型**：`os.system(command)`
+        - **作用**：在子 shell 中执行系统命令，返回命令的退出状态码（0 通常表示成功）。
+        - **注意**：不推荐用于需要捕获输出的场景（应使用 `subprocess` 模块）。
+        - **用例**：
+        ```python
+        ret = os.system('ls -l')
+        print(f"命令执行返回码: {ret}")
+        ```
+
+        ---
+
+        ② `os.popen(command, mode='r', buffering=-1)`
+        - **原型**：`os.popen(cmd, mode='r', buffering=-1)`
+        - **作用**：执行命令并返回一个**文件对象**，可以读取输出。
+        - **用例**：
+        ```python
+        with os.popen('df -h') as f:
+            output = f.read()
+            print(output)
+        ```
+        > **更推荐**：`subprocess.run()` 或 `subprocess.check_output()` 替代 `os.popen`。
+
+    ---
+
+    4. 进程管理
+
+        ① `os.getpid()`
+        - **原型**：`os.getpid()`
+        - **作用**：返回当前进程的 PID（进程 ID）。
+        - **用例**：
+        ```python
+        print(f"当前进程 PID: {os.getpid()}")
+        ```
+
+        ② `os.getppid()`
+        - **原型**：`os.getppid()`
+        - **作用**：返回父进程的 PID。
+        - **用例**：
+        ```python
+        print(f"父进程 PID: {os.getppid()}")
+        ```
+
+        ③ `os.kill(pid, signal)`
+        - **原型**：`os.kill(pid, sig)`
+        - **作用**：向指定 PID 的进程发送信号（如 `SIGTERM` 终止）。
+        - **用例**（需要 `import signal`）：
+        ```python
+        import signal
+        os.kill(12345, signal.SIGTERM)  # 终止 PID 为 12345 的进程
+        ```
+
+    ---
+
+    5. 文件和目录权限与属性
+
+    ① `os.stat(path)`
+    - **原型**：`os.stat(path)`
+    - **作用**：获取文件或目录的元信息（大小、权限、修改时间等），返回 `os.stat_result` 对象。
+    - **常用属性**：
+      - `st_size` —— 文件大小（字节）
+      - `st_mtime` —— 最后修改时间戳
+      - `st_mode` —— 权限模式
+    - **用例**：
+    ```python
+    info = os.stat('data.csv')
+    print(f"大小: {info.st_size} 字节")
+    print(f"修改时间: {info.st_mtime}")
+    ```
+
+    ② `os.chmod(path, mode)`
+    - **原型**：`os.chmod(path, mode)`
+    - **作用**：修改文件或目录的权限（八进制表示）。
+    - **用例**：
+    ```python
+    # 给所有者添加读写权限，组和其他只读
+    os.chmod('script.py', 0o644)  
+    ```
+
+    ---
+
+    6. 目录遍历（高级）
+
+        **`os.walk(top, topdown=True, onerror=None, followlinks=False)`**
+
+        - **原型**：`os.walk(top, ...)`
+        - **作用**：递归遍历目录树，生成三元组 `(dirpath, dirnames, filenames)`，用于批量处理文件。
+        - **用例**（统计所有 `.py` 文件数量）：
+
+        ```python
+        py_count = 0
+        for root, dirs, files in os.walk('/my_project'):
+            for file in files:
+                if file.endswith('.py'):
+                    py_count += 1
+        print(f"找到 {py_count} 个 Python 文件")
+        ```
+
+    ---
+
+    7. 特殊常量（跨平台相关）
+
+        | 常量 | 含义 |
+        |------|------|
+        | `os.sep` | 路径分隔符（Windows: `\`, Linux/macOS: `/`） |
+        | `os.pathsep` | 环境变量路径分隔符（Windows: `;`, Linux: `:`） |
+        | `os.linesep` | 换行符（Windows: `\r\n`, Linux: `\n`） |
+        | `os.name` | 操作系统名称（`'posix'`, `'nt'`, `'java'`） |
+
+        - **用例**：
+        ```python
+        print(os.sep)          # 输出: / 或 \
+        print(os.name)         # 输出: posix 或 nt
+        ```
+
+    ---
+
+    **重点提醒（最佳实践）**
+
+    1. **路径拼接**：永远使用 `os.path.join()` 而不是手动加 `/` 或 `\`，以保障跨平台。
+    2. **文件操作前检查**：使用 `os.path.exists()`、`os.path.isfile()` 等先判断。
+    3. **优先使用 `pathlib`**（Python 3.4+）：现代推荐用 `pathlib.Path` 替代大部分 `os.path` 和部分 `os` 操作，代码更简洁、面向对象。
+    4. **执行系统命令**：建议使用 `subprocess` 模块，功能更强大、更安全。
+    5. **环境变量修改**：仅影响当前进程及子进程，不会改变系统全局环境。
+
+    ---
+
+    如果你还想了解 `os.path` 和 `pathlib` 的对比，或者 `subprocess` 替代 `os.system` 的详细用法，我也可以继续为你展开。需要吗？
+
 * python 在 import 时，格式为`import package_dir.modile_file`
 
     使用函数时，格式为`package_dir.module_file.func_name()`，不能写成`module_file.func_name()`

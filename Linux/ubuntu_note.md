@@ -4,6 +4,263 @@
 
 ## cache
 
+* 没带鼠标，只有触摸板，无法实现边选中边滚动。是否有工具可以辅助实现？
+
+    轻量级软件工具（按需选择）
+
+    如果系统自带功能不够用，这些工具可以显著提升效率：
+
+    **1. DragScroll（Windows，免费开源）**
+    - **特点**：按住设定的按键（如右键或中键）即可临时进入“拖动滚动模式”。
+    - **适用场景**：浏览长网页、阅读PDF时特别有用。
+
+    **2. AutoHotkey（Windows，免费）**
+    - 可以自定义脚本，例如设置一个热键让鼠标悬停时自动滚动。
+    - 示例简单脚本（保存为`.ahk`文件）：
+      ```autohotkey
+      #IfWinActive  ; 适用于所有窗口
+      F1::  ; 按F1开启自动滚动
+      ScrollMode := !ScrollMode
+      If ScrollMode
+          SetTimer, AutoScroll, 50
+      Else
+          SetTimer, AutoScroll, Off
+      Return
+
+      AutoScroll:
+      MouseGetPos, , , , ControlUnderMouse
+      ; 向上滚动
+      ControlSend, %ControlUnderMouse%, {WheelUp}
+      Return
+      ```
+
+    **3. ScrollAnywhere（Chrome/Firefox扩展）**
+    - 在浏览器中，按住右键拖动即可滚动，完美替代鼠标滚轮。
+
+    **最推荐**：先从**系统自带的触控板三指拖移（macOS）或双指/单击设置（Windows）** 开始尝试，通常能满足80%的需求。如果经常遇到此问题，再根据主要使用场景选择一款轻量工具辅助。
+
+    Ubuntu/Linux 系统下同样有非常丰富的解决方案，很多比 Windows/macOS 更强大。
+
+    一、系统级触控板增强（GNOME / KDE）
+
+    **1. 启用“中间点击粘贴”模拟**
+
+    - 在很多Linux桌面环境中，你可以用 **同时点击左键和右键** 来模拟中键点击。
+    - 检查设置：`设置` → `鼠标和触控板` → 查看是否有“模拟中键点击”选项。
+
+    **2. 安装并配置 `libinput-gestures`（强烈推荐）**
+
+    这是目前Linux上最强大的触控板手势工具之一：
+
+    ```bash
+    # 1. 安装
+    sudo gpasswd -a $USER input  # 将用户加入input组
+    sudo apt install wmctrl xdotool libinput-tools
+
+    # 2. 安装libinput-gestures
+    git clone https://github.com/bulletmark/libinput-gestures.git
+    cd libinput-gestures
+    sudo make install
+
+    # 3. 安装GUI配置工具（可选但方便）
+    sudo apt install libinput-gestures-gui
+
+    # 4. 启动并设为自启
+    libinput-gestures-setup autostart
+    libinput-gestures-setup start
+    ```
+
+    **配置示例**（编辑 `~/.config/libinput-gestures.conf`）：
+
+    ```
+    # 三指向上：显示所有窗口（类似macOS Mission Control）
+    gesture swipe up 3 xdotool key super+s
+
+    # 三指向下：显示桌面
+    gesture swipe down 3 xdotool key super+d
+
+    # 四指左右：切换工作区
+    gesture swipe left 4 xdotool key ctrl+alt+Left
+    gesture swipe right 4 xdotool key ctrl+alt+Right
+
+    # 按住右键时双指滚动（解决你问题的核心！）
+    gesture hold right 2 xdotool click --delay 100 3  # 按住右键模拟中键
+    ```
+
+    **3. 使用 `touchegg` 触控板手势守护进程**
+
+    ```bash
+    sudo apt install touchegg
+    # 安装后需要重启或启动服务
+    sudo systemctl start touchegg
+    sudo systemctl enable touchegg
+    ```
+    - 图形化配置：`sudo apt install touchegg-gui`
+    - 可以配置如“三指拖拽”等高级手势
+
+    二、专用滚动/选择工具
+
+    **1. `xautomation` 工具包（命令行神器）**
+    ```bash
+    sudo apt install xautomation
+    # 查看鼠标位置
+    xmousepos
+
+    # 模拟鼠标滚动（向下滚动5个单位）
+    xte 'mouseclick 5'
+
+    # 编写脚本实现“按住某键时触摸板滑动变为滚动”
+    ```
+
+    **2. 简单脚本方案：滚动锁定模式**
+    创建脚本 `~/.local/bin/scroll-toggle.sh`：
+    ```bash
+    #!/bin/bash
+    # 切换滚动模式：按F6启动，触摸板滑动变为滚动，再按F6恢复
+
+    TOGGLE_FILE="/tmp/scroll_mode.toggle"
+
+    if [ -f "$TOGGLE_FILE" ]; then
+        rm "$TOGGLE_FILE"
+        notify-send "滚动模式" "已关闭 - 恢复正常选择"
+        exit 0
+    fi
+
+    touch "$TOGGLE_FILE"
+    notify-send "滚动模式" "已开启 - 触摸板滑动将滚动页面"
+
+    # 监听触控板事件，当滚动模式开启时转换事件
+    # 这里需要根据你的触控板设备进行调整
+    ```
+
+    **3. 使用 `imwheel` 增强滚轮行为**
+    虽然主要针对鼠标，但也能配置触控板：
+    ```bash
+    sudo apt install imwheel
+    # 编辑 ~/.imwheelrc
+    ```
+
+    三、桌面环境特定方案
+
+    **GNOME 用户**：
+    1. 安装扩展管理器：
+    ```bash
+    sudo apt install gnome-shell-extension-manager
+    ```
+    2. 推荐扩展：
+       - **Gesture Improvements**：增强原生手势
+       - **Touchpad Indicator**：快速切换触控板模式
+       - **Two-finger Scroll to Top/Bottom**：双指快速跳转
+
+    **KDE Plasma 用户**：
+    1. 系统设置 → `输入设备` → `触控板`
+    2. 开启“启用手势支持”
+    3. 在`高级`选项卡中自定义手势
+
+    **通用方法：使用 `xbindkeys` + `xdotool` 自定义热键**
+    ```bash
+    sudo apt install xbindkeys xdotool
+    # 生成默认配置
+    xbindkeys --defaults > ~/.xbindkeysrc
+    ```
+    在 `~/.xbindkeysrc` 中添加：
+    ```
+    # 按住Super键时，触摸板滑动变为滚动
+    "xdotool click 5"
+       m:0x40 + b:2  # 按住Super时移动鼠标
+    ```
+
+    四、应用层技巧
+
+    **终端（Terminal）**：
+    - `Shift + Page Up/Page Down`：滚动终端输出
+    - `Ctrl + Shift + ↑/↓`：按行滚动
+    - `tmux` 用户：`Ctrl-b` 然后 `[` 进入滚动模式
+
+    **Vim/Neovim**：
+    ```vimrc
+    " 在可视模式下用触摸板滑动
+    set mouse=a  " 允许所有鼠标模式
+    " 或者使用插件：vim-smoothie
+    ```
+
+    **VS Code**：
+    1. 设置中搜索 "Scroll"
+    2. 开启 `Editor: Mouse Wheel Scroll Sensitivity`
+    3. 安装扩展 **"Touchpad Scroll"**
+
+    **Firefox/Chrome**：
+    - 安装扩展 **Auto Scroll**（设置自定义触发键）
+    - 或使用 `Alt + 左键拖动`（部分Linux版本已内置）
+
+    五、进阶方案：修改内核级触控板参数
+
+    查看触控板设备：
+    ```bash
+    libinput list-devices | grep -A5 "Touchpad"
+    ```
+
+    临时修改参数（重启后失效）：
+    ```bash
+    # 提高滚动速度
+    xinput set-prop "ELAN Touchpad" "libinput Scrolling Pixel Distance" 30
+
+    # 开启自然滚动
+    xinput set-prop "ELAN Touchpad" "libinput Natural Scrolling Enabled" 1
+
+    # 查看所有可用属性
+    xinput list-props "设备名"
+    ```
+
+    永久修改：创建 `/etc/X11/xorg.conf.d/40-libinput.conf`（需根据设备调整）
+
+    六、最简实践路线
+
+    1. **立即生效**：
+       ```bash
+       # 安装xdotool临时解决问题
+       sudo apt install xdotool
+       # 按住Super键时模拟中键滚动
+       xbindkeys -f ~/.xbindkeysrc
+       ```
+
+    2. **中期方案**：
+       ```bash
+       # 安装libinput-gestures
+       # 配置三指拖拽用于选择，四指滑动用于滚动
+       ```
+
+    3. **长期最佳**：
+       - 确定你的桌面环境（GNOME/KDE/Xfce等）
+       - 安装对应手势扩展
+       - 为不同应用（终端/编辑器/浏览器）分别优化
+
+    七、特殊情况处理
+
+    **如果你用的是Wayland**：
+    ```bash
+    # 查看手势支持
+    gsettings list-keys org.gnome.desktop.peripherals.touchpad
+
+    # 启用边缘滚动
+    gsettings set org.gnome.desktop.peripherals.touchpad edge-scrolling-enabled true
+    ```
+
+    **触控板型号问题**：
+    ```bash
+    # 查看详细触控板信息
+    sudo evtest  # 选择你的触控板设备
+    # 或
+    cat /proc/bus/input/devices | grep -A5 Touchpad
+    ```
+
+    **推荐组合方案**：
+    1. **日常使用**：`libinput-gestures` + 浏览器扩展
+    2. **编程工作**：终端使用 `tmux`，编辑器配置好键盘快捷键
+    3. **文档处理**：LibreOffice中多用 `Ctrl+Shift+方向键`
+
+    Ubuntu/Linux 的优势在于高度可定制性。从简单的 `xdotool` 脚本到完整的触控板手势套件，你可以构建完全符合自己工作流的解决方案。建议从 `libinput-gestures` 开始，它相对稳定且功能全面。
+
 * seahouse 设置 keyring 为空密码
 
     说的是 **Seahorse**（GNOME Keyring 管理器）。这是最直接的方法：

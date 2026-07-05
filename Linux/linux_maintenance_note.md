@@ -6,6 +6,139 @@
 
 ## cache
 
+* 简述 wireguard 的作用和用法
+
+    好的，我们来简单、清晰地介绍一下 WireGuard。
+
+    **一、WireGuard 的作用**
+
+    **一句话概括：**
+    WireGuard 是一个现代、高效、易用的 **VPN（虚拟专用网）** 协议和软件。它的主要作用是在不安全的网络（如互联网）上，安全地连接两台或多台计算机，让它们仿佛在同一个安全的本地网络中一样通信。
+
+    **核心作用体现在：**
+
+    1.  **安全通信**：对所有流量进行加密，防止窃听和篡改。
+    2.  **组建虚拟局域网**：将分布在全球不同网络下的设备（如家庭电脑、公司服务器、云主机）逻辑上组建成一个局域网，直接用私有IP地址访问。
+    3.  **远程访问**：从外部网络（如在咖啡馆）安全地访问家庭或公司内部的网络资源（如NAS、打印机、内部网站）。
+    4.  **绕过网络限制**：通过连接到特定的服务器来访问受地域或网络限制的资源。
+
+    **WireGuard 的突出优点：**
+
+    *   **极简高效**：代码量极少（约4000行），更容易审计和维护，性能远超 OpenVPN、IPSec 等传统协议。
+    *   **速度快，延迟低**：采用最新的加密协议，对网络性能影响极小。
+    *   **配置简单**：通常只需一个配置文件，设置非常快捷。
+
+    ---
+
+    **二、WireGuard 的用法**
+
+    WireGuard 采用 **对等（Peer-to-Peer）** 架构，没有严格的客户端/服务器之分，只有“对等体”。但在实际应用中，我们通常会把一个长期在线的节点称为“服务器”，其他节点称为“客户端”。
+
+    **核心概念**
+
+    *   **接口**：在每台机器上创建一个虚拟网络接口（如 `wg0`）。
+    *   **私钥/公钥**：每个对等体都有一对自己生成的、独一无二的密钥对。**私钥绝对保密**，**公钥则告诉其他对等体**。
+    *   **对等体**：每个节点的配置中，需要指定它要连接的其他对等体（通过对方的公钥来识别）。
+    *   **允许的IPs**：这是一个非常重要的配置项。它告诉 WireGuard：
+        *   哪些 IP 地址的流量应该通过这个对等体进行路由。
+        *   这个对等体允许使用哪些 IP 地址进行通信。
+
+    **典型用法：组建“客户端-服务器”式 VPN**
+
+    这是最常见的场景：你有一台有公网IP的云服务器（Server），和一台在家的笔记本电脑（Client）。你想让笔记本通过服务器来安全上网。
+
+    **步骤 1：在所有机器上安装 WireGuard**
+    几乎所有主流操作系统（Linux, Windows, macOS, Android, iOS）都支持。
+
+    *   **Linux (Ubuntu/Debian)**： `sudo apt install wireguard`
+    *   **Windows/macOS**： 从官网下载图形化客户端。
+
+    **步骤 2：生成密钥对（在服务器和客户端上分别执行）**
+
+    ```bash
+    # 生成私钥
+    wg genkey > privatekey
+
+    # 从私钥生成公钥
+    wg pubkey < privatekey > publickey
+    ```
+    现在每台机器上都会有一个 `privatekey` 文件和一个 `publickey` 文件。
+
+    **步骤 3：配置服务器（假设公网IP为 `1.1.1.1`）**
+
+    编辑服务器的配置文件，例如 `/etc/wireguard/wg0.conf`：
+
+    ```ini
+    [Interface]
+    # 服务器自身的私钥
+    PrivateKey = <服务器的privatekey内容>
+    # 服务器虚拟接口的IP地址
+    Address = 10.0.0.1/24
+    # 服务启动后执行的命令，配置防火墙和NAT转发
+    PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+    # 服务监听的端口
+    ListenPort = 51820
+
+    [Peer]
+    # 客户端A的公钥
+    PublicKey = <客户端A的publickey内容>
+    # 允许客户端使用这个IP地址连接到服务器，并告诉服务器去往 10.0.0.2 的流量应发给这个客户端
+    AllowedIPs = 10.0.0.2/32
+
+    [Peer]
+    # 客户端B的公钥
+    PublicKey = <客户端B的publickey内容>
+    AllowedIPs = 10.0.0.3/32
+    # 可以继续添加更多 [Peer]...
+    ```
+
+    **步骤 4：配置客户端（以客户端A为例）**
+
+    编辑客户端的配置文件，例如 `clientA.conf`：
+
+    ```ini
+    [Interface]
+    # 客户端A自身的私钥
+    PrivateKey = <客户端A的privatekey内容>
+    # 客户端虚拟接口的IP地址
+    Address = 10.0.0.2/24
+    # 如果需要所有流量都走VPN，可以配置DNS
+    # DNS = 8.8.8.8
+
+    [Peer]
+    # 服务器的公钥
+    PublicKey = <服务器的publickey内容>
+    # 服务器的公网IP和端口
+    Endpoint = 1.1.1.1:51820
+    # 允许通过这个VPN连接发送流量的目标IP段
+    # 0.0.0.0/0 表示所有流量都通过服务器转发（全局VPN）
+    AllowedIPs = 0.0.0.0/0
+    # 如果只想访问服务器局域网，可以设为 10.0.0.0/24
+    ```
+
+    **步骤 5：启动并测试**
+
+    *   **在服务器上**： `sudo wg-quick up wg0`
+    *   **在客户端上**：导入 `clientA.conf` 文件并激活连接（图形界面通常一键完成）。
+
+    现在，客户端 A 的 IP 在服务器看来就是 `10.0.0.2`，并且所有互联网流量都会通过服务器 `1.1.1.1` 转发。
+
+    ---
+
+    **总结**
+
+    | 特性 | 描述 |
+    | :--- | :--- |
+    | **角色** | 对等体，无严格C/S之分，但可模拟该模式。 |
+    | **安全基础** | 基于Curve25519的密钥交换。 |
+    | **配置核心** | `[Interface]` 配置自己，`[Peer]` 配置要连接的对象。 |
+    | **关键配置项** | `PrivateKey`, `PublicKey`, `Endpoint`, `AllowedIPs`。 |
+    | **启动命令** | `sudo wg-quick up <接口名>` |
+    | **停止命令** | `sudo wg-quick down <接口名>` |
+    | **状态查看** | `sudo wg show` |
+
+    WireGuard 以其简洁性和高性能，正在迅速成为下一代 VPN 的标准，被整合进 Linux 内核，并被许多商业VPN服务商采用。
 * 可以在 guest 里装 ZeroTier / Tailscale / WireGuard 之类的 overlay 网络
 
 * 详细讲讲 linux 中 lsof 的用法
