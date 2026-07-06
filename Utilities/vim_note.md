@@ -2,6 +2,795 @@
 
 ## cache
 
+* `let g:netrw_ftpextracmd = 'ssh'`
+
+    配置完这个之后呢，怎么打开远程文件？
+
+    配置了 `let g:netrw_ftpextracmd = 'ssh'` 之后，你可以通过以下几种方式打开远程文件：
+
+    ## 方法一：直接在 Vim 命令中打开
+
+    ### 基本语法：
+    ```vim
+    :e scp://[user@]hostname[:port]/path/to/file
+    ```
+
+    ### 具体示例：
+    ```vim
+    " 使用默认用户名（当前本地用户名）
+    :e scp://remote-server/home/user/project/file.txt
+
+    " 指定用户名
+    :e scp://username@remote-server/path/to/file.txt
+
+    " 指定端口
+    :e scp://username@remote-server:2222/path/to/file
+
+    " 绝对路径
+    :e scp://user@host//home/user/file.txt
+
+    " 相对用户home的路径
+    :e scp://user@host/file.txt
+    ```
+
+    ## 方法二：使用 Netrw 浏览器
+
+    ### 打开远程目录浏览：
+    ```vim
+    :Explore scp://user@host/path/to/directory/
+    :Vexplore scp://user@host/path/to/directory/
+    :Sexplore scp://user@host/path/to/directory/
+    ```
+
+    ### 示例：
+    ```vim
+    " 浏览远程用户home目录
+    :Explore scp://user@host/
+
+    " 浏览远程项目目录
+    :Explore scp://user@host/path/to/project/
+    ```
+
+    ## 方法三：命令行直接启动
+
+    ### 在终端中直接使用：
+    ```bash
+    vim scp://user@host/path/to/file.txt
+    ```
+
+    ## 方法四：简化命令的技巧
+
+    ### 在 .vimrc 中创建快捷命令：
+    ```vim
+    " 定义快捷命令
+    command! -nargs=1 Rvim :e scp://user@host/<args>
+
+    " 或者使用函数更灵活
+    function! RemoteEdit(host, file)
+        execute 'e scp://' . a:host . '/' . a:file
+    endfunction
+
+    command! -nargs=+ RE :call RemoteEdit(<f-args>)
+    ```
+
+    ### 使用示例：
+    ```vim
+    " 使用自定义命令
+    :Rvim path/to/file.txt
+    :RE myhost /home/user/project/file.c
+    ```
+
+    ## 实际使用示例
+
+    假设你要编辑远程服务器上的一个 Python 文件：
+
+    ```vim
+    " 打开远程文件
+    :e scp://developer@192.168.1.100/home/developer/project/app.py
+
+    " 保存文件
+    :w  " 会自动通过SCP上传
+
+    " 打开同目录下的另一个文件
+    :e scp://developer@192.168.1.100/home/developer/project/utils.py
+
+    " 浏览远程目录
+    :Explore scp://developer@192.168.1.100/home/developer/project/
+    ```
+
+    ## 注意事项
+
+    1. **认证方式**：需要配置 SSH 密钥认证，否则会频繁输入密码
+    2. **网络延迟**：操作可能会有延迟，特别是大文件
+    3. **文件权限**：保存时会使用 SSH 用户的权限
+    4. **临时文件**：Vim 会在本地创建临时文件，操作完成后再上传
+
+    ## SSH 配置优化
+
+    为了更方便使用，可以在 `~/.ssh/config` 中配置主机别名：
+
+    ```
+    Host dev-server
+        HostName 192.168.1.100
+        User developer
+        Port 22
+        IdentityFile ~/.ssh/id_rsa
+    ```
+
+    然后就可以简化为：
+    ```vim
+    :e scp://dev-server/path/to/file.txt
+    ```
+
+    这样配置后，你就可以像编辑本地文件一样方便地编辑远程文件了。
+
+* 那如果不配置 let g:netrw_ftpextracmd = 'ssh'，会发生什么？
+
+    如果不配置 `let g:netrw_ftpextracmd = 'ssh'`，Netrw 的行为会有一些变化：
+
+    ## 默认行为
+
+    ### 1. 仍然可以使用 SCP，但 Netrw 会尝试猜测协议
+    ```vim
+    :e scp://user@host/path/to/file
+    ```
+    Netrw 会检测到 `scp://` 前缀，仍然会使用 SSH/SCP，但可能会使用不同的默认参数。
+
+    ### 2. 主要差异在于其他协议的处理
+    没有这个配置时：
+    - 对于 `ftp://` 开头的 URL，Netrw 会尝试使用 FTP 命令
+    - 对于没有明确协议但看起来像主机名的路径，行为可能不同
+
+    ## 实际测试示例
+
+    ### 有配置的情况：
+    ```vim
+    let g:netrw_ftpextracmd = 'ssh'
+    :e scp://user@host/file.txt
+    ```
+    Netrw 明确使用 `ssh` 命令进行传输。
+
+    ### 无配置的情况：
+    ```vim
+    " 从 .vimrc 中移除或注释该配置
+    " let g:netrw_ftpextracmd = 'ssh'
+    :e scp://user@host/file.txt
+    ```
+    Netrw 仍然能工作，但：
+    - 可能使用 `scp` 命令而不是 `ssh`
+    - 参数传递可能略有不同
+    - 对于某些边缘情况处理可能不一致
+
+    ## 具体影响
+
+    ### 1. 命令行构建差异
+    **有配置时**：
+    ```bash
+    ssh user@host cat /path/to/file
+    ```
+
+    **无配置时**：
+    ```bash
+    scp user@host:/path/to/file /tmp/vimXXXXXX
+    ```
+
+    ### 2. 性能差异
+    - `ssh + cat`：流式传输，内存友好
+    - `scp`：需要临时文件，可能稍慢
+
+    ### 3. 错误处理差异
+    不同的命令可能有不同的错误信息和处理方式。
+
+    ## 验证测试
+
+    你可以通过以下方式观察差异：
+
+    ```vim
+    " 打开 verbose 模式查看实际执行的命令
+    :set verbose=9
+    :e scp://user@host/file.txt
+    ```
+
+    ## 实际建议
+
+    ### 推荐配置的原因：
+    ```vim
+    let g:netrw_ftpextracmd = 'ssh'
+    ```
+    1. **一致性**：明确指定使用 SSH
+    2. **可靠性**：避免 Netrw 的错误猜测
+    3. **性能**：SSH 方式通常更高效
+    4. **调试**：错误信息更清晰
+
+    ### 不配置的情况：
+    - 简单使用时可能感觉不到差异
+    - 如果你的环境 `scp` 工作更好，可以不配置
+    - 某些旧系统可能 `scp` 更稳定
+
+    替代配置
+
+    如果你遇到问题，也可以尝试更明确的配置：
+
+    ```vim
+    " 明确指定 scp
+    let g:netrw_ftpextracmd = 'scp'
+
+    " 或者指定完整路径
+    let g:netrw_ftpextracmd = '/usr/bin/ssh'
+
+    " 或者带参数
+    let g:netrw_ftpextracmd = 'ssh -q -o ConnectTimeout=10'
+    ```
+
+    总结
+
+    **不配置 `let g:netrw_ftpextracmd = 'ssh'` 的影响**：
+    - 基本功能仍然工作
+    - Netrw 会尝试自动选择传输方式
+    - 可能使用 `scp` 而不是 `ssh`
+    - 在某些边缘情况下可能不如明确配置稳定
+
+    对于生产环境使用，建议明确配置以获得更可靠的行为。
+
+    实际支持的协议
+
+    Netrw 实际支持这些协议前缀：
+    ```vim
+    " 文件传输协议
+    :e scp://...          " SSH 文件传输
+    :e ftp://...          " FTP
+    :e http://...         " HTTP
+    :e fetch://...        " FreeBSD fetch
+
+    " 本地和特殊协议
+    :e file://...         " 本地文件（显式）
+    :e dav://...          " WebDAV
+    :e rcp://...          " RCP（已很少使用）
+    ```
+
+* 不支持 ssh://to_file，但是支持 let g:netrw_ftpextracmd = 'ssh' 对吧。除了配置成 ssh，还能配置成什么？
+
+    对的，你的理解正确！`let g:netrw_ftpextracmd = 'ssh'` 是配置 Netrw 使用什么**命令**来处理文件传输，而不是协议前缀。
+
+    可配置的命令选项
+
+    1. **SSH 相关命令**
+    ```vim
+    " 使用 ssh（推荐）
+    let g:netrw_ftpextracmd = 'ssh'
+
+    " 使用 scp
+    let g:netrw_ftpextracmd = 'scp'
+
+    " 使用带参数的 ssh
+    let g:netrw_ftpextracmd = 'ssh -q -o ConnectTimeout=10'
+
+    " 使用特定路径的 ssh
+    let g:netrw_ftpextracmd = '/usr/bin/ssh'
+    ```
+
+    2. **FTP 相关命令**
+    ```vim
+    " 使用 ftp 命令
+    let g:netrw_ftpextracmd = 'ftp'
+
+    " 使用其他 FTP 客户端
+    let g:netrw_ftpextracmd = 'ncftp'
+    let g:netrw_ftpextracmd = 'lftp'
+
+    " 使用带认证的 FTP
+    let g:netrw_ftpextracmd = 'ftp -i -n'
+    ```
+
+    3. **其他文件传输命令**
+    ```vim
+    " 使用 wget
+    let g:netrw_ftpextracmd = 'wget'
+
+    " 使用 curl
+    let g:netrw_ftpextracmd = 'curl'
+
+    " 使用 rsh/rcp（已不推荐）
+    let g:netrw_ftpextracmd = 'rsh'
+    let g:netrw_ftpextracmd = 'rcp'
+    ```
+
+    4. **协议特定的配置**
+    你还可以为不同协议配置不同的命令：
+
+    ```vim
+    " 为不同协议设置不同的命令
+    let g:netrw_ftp_cmd = "ftp -i -n"      " 用于 ftp://
+    let g:netrw_ssh_cmd = "ssh"            " 用于 scp://
+    let g:netrw_http_cmd = "wget -q -O"    " 用于 http://
+    ```
+
+    实际应用示例
+
+    针对不同环境的优化配置：
+    ```vim
+    " 开发环境 - 使用 SSH 并禁用主机密钥检查
+    let g:netrw_ftpextracmd = 'ssh -o StrictHostKeyChecking=no'
+
+    " 生产环境 - 使用详细日志
+    let g:netrw_ftpextracmd = 'ssh -v'
+
+    " 慢速网络 - 增加超时时间
+    let g:netrw_ftpextracmd = 'ssh -o ConnectTimeout=30 -o ServerAliveInterval=60'
+
+    " 代理环境 - 通过跳板机
+    let g:netrw_ftpextracmd = 'ssh -o ProxyCommand="ssh user@jumpbox nc %h %p"'
+    ```
+
+    多协议配置：
+    ```vim
+    " 完整的 Netrw 传输配置
+    let g:netrw_ssh_cmd = 'ssh -q'
+    let g:netrw_ftp_cmd = 'ftp -i'
+    let g:netrw_http_cmd = 'curl -s -o'
+    let g:netrw_https_cmd = 'curl -s -o'
+    ```
+
+    查看当前配置
+
+    你可以通过以下命令检查 Netrw 的当前配置：
+    ```vim
+    " 查看所有 Netrw 变量
+    :let g:netrw_
+
+    " 查看特定变量
+    :echo g:netrw_ftpextracmd
+    :echo g:netrw_ssh_cmd
+    :echo g:netrw_ftp_cmd
+    ```
+
+    调试配置
+
+    如果遇到问题，可以启用详细模式查看实际执行的命令：
+    ```vim
+    " 设置高详细级别
+    :set verbose=9
+
+    " 然后尝试打开远程文件
+    :e scp://user@host/file.txt
+
+    " 查看 Vim 执行的底层命令
+    ```
+
+    推荐配置
+
+    对于大多数使用场景，推荐：
+    ```vim
+    " 基本配置
+    let g:netrw_ftpextracmd = 'ssh'
+
+    " 或者更详细的分别配置
+    let g:netrw_ssh_cmd = 'ssh'
+    let g:netrw_ftp_cmd = 'ftp -i'
+    ```
+
+    所以总结来说，`g:netrw_ftpextracmd` 可以配置为任何能在命令行中执行文件传输的命令，而不仅仅是 `ssh`。
+
+    * 查看帮助：
+
+        ```vim
+        :help netrw
+        :help netrw-start
+        ```
+
+    * 查看版本：
+
+        ```vim
+        :echo g:loaded_netrw
+        :echo g:netrw_version
+        ```
+
+    支持 Netrw 的快捷键（`Enter` 进入，`-` 上级目录等）
+
+* 调研 explorer 相关的命令
+
+    使用 `:Explore` 命令：
+
+    ```vim
+    :Explore scp://user@host/path/to/directory/
+    ```
+
+    ```vim
+    :Vexplore scp://user@host/path/to/directory/    " 垂直分割
+    :Sexplore scp://user@host/path/to/directory/    " 水平分割
+    :Texplore scp://user@host/path/to/directory/    " 新标签页
+    ```
+
+    ```vim
+    " 先打开远程文件
+    :e scp://user@host/path/to/file.txt
+
+    " 然后切换到所在目录
+    :Ex    " 或者 :Explore - 打开当前文件所在目录
+    :Hex   " 水平分割打开目录
+    :Vex   " 垂直分割打开目录
+    ```
+
+    浏览远程项目：
+
+    ```vim
+    :Explore scp://developer@myserver/~/projects/myapp/
+
+    " 在目录中：
+    - 按 Enter 进入子目录或打开文件
+    - 按 - 返回上级目录
+    - 按 o 在新窗口打开
+    - 按 v 垂直分割打开
+    - 按 s 按不同方式排序
+    ```
+
+    多窗口浏览：
+
+    ```vim
+    " 垂直分割浏览远程目录
+    :Vexplore scp://user@host/project/
+
+    " 水平分割浏览
+    :Sexplore scp://user@host/project/
+    ```
+
+    ```vim
+    " 创建文件
+    :new filename.txt
+
+    " 创建目录
+    :call mkdir("new_directory")
+
+    " 删除文件（谨慎使用）
+    :call delete("file_to_delete")
+
+    " 重命名
+    :call rename("oldname", "newname")
+    ```
+
+    实用技巧
+
+    1. 创建书签命令
+
+    ```vim
+    " 在 .vimrc 中定义常用远程目录
+    command! RemoteProject :Explore scp://user@host/~/project/
+    command! RemoteLogs :Explore scp://user@host/var/log/
+    ```
+
+    3. 目录缓存
+
+        Netrw 会缓存目录列表，如果需要刷新：
+        ```vim
+        R    " 在 Netrw 窗口中按 R 刷新目录列表
+        ```
+
+    注意事项
+    
+    4. **隐藏文件**：按 `a` 键切换显示隐藏文件
+
+* vim pyright 在 normal 模式下使用`:call CocAction('showSignatureHelp')`不会看到函数原型的提示框。
+
+    检查 Coc 是否认为有 signature help provider: `:echo CocAction('hasProvider', 'signature')`
+
+    如果需要在 normal 模式下显示函数签名，可以使用`:call CocAction('doHover')`。这个函数调用与`K`并不绑定。
+
+* markdown-preview.nvim 这个怎么安装
+
+    我来详细介绍一下 `markdown-preview.nvim` 的安装和配置方法：
+
+    安装方法
+
+    1. 使用包管理器安装（推荐）
+
+        **使用 packer.nvim**
+
+        ```lua
+        -- 在 plugins.lua 文件中添加
+        use({
+            "iamcco/markdown-preview.nvim",
+            run = function() vim.fn["mkdp#util#install"]() end,
+        })
+        ```
+
+        **使用 lazy.nvim**
+
+        ```lua
+        -- 在 plugins 目录下创建 markdown-preview.lua
+        return {
+            "iamcco/markdown-preview.nvim",
+            cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+            ft = { "markdown" },
+            build = function() vim.fn["mkdp#util#install"]() end,
+        }
+        ```
+
+        **使用 vim-plug**
+
+        ```vim
+        " 在 .vimrc 或 init.vim 中添加
+        Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
+        ```
+
+    2. 安装步骤
+
+        1. **添加插件配置**到你的 Neovim 配置文件中
+
+        2. **重新加载配置**并安装插件：
+
+            ```vim
+            :source %
+            :PackerSync    " 如果使用 packer
+            :Lazy sync     " 如果使用 lazy
+            :PlugInstall   " 如果使用 vim-plug
+            ```
+
+        3. **等待安装完成**，插件会自动下载并编译必要的组件
+
+    3. 基本配置
+
+        **Lua 配置（Neovim）**
+
+        ```lua
+        -- 在 init.lua 或 plugins/markdown-preview.lua 中
+        vim.g.mkdp_theme = 'dark'
+        vim.g.mkdp_browser = 'firefox'  -- 或 'chrome', 'safari' 等
+        vim.g.mkdp_auto_start = 0       -- 不自动启动预览
+        vim.g.mkdp_auto_close = 1       -- 切换缓冲区时自动关闭预览
+        vim.g.mkdp_refresh_slow = 0     -- 快速刷新
+        vim.g.mkdp_command_for_global = 0 -- 仅对 markdown 文件启用
+        ```
+
+        **Vimscript 配置**
+
+        ```vim
+        " 在 .vimrc 或 init.vim 中
+        let g:mkdp_theme = 'dark'
+        let g:mkdp_browser = 'firefox'
+        let g:mkdp_auto_start = 0
+        let g:mkdp_auto_close = 1
+        let g:mkdp_refresh_slow = 0
+        let g:mkdp_command_for_global = 0
+        ```
+
+    4. 常用命令
+
+        ```vim
+        :MarkdownPreview        " 启动预览
+        :MarkdownPreviewStop    " 停止预览  
+        :MarkdownPreviewToggle  " 切换预览状态
+        ```
+
+    5. 键位映射建议
+
+        ```lua
+        -- 在 keymaps.lua 或 init.lua 中
+        vim.api.nvim_set_keymap('n', '<leader>mp', ':MarkdownPreview<CR>', {noremap = true})
+        vim.api.nvim_set_keymap('n', '<leader>ms', ':MarkdownPreviewStop<CR>', {noremap = true})
+        vim.api.nvim_set_keymap('n', '<leader>mt', ':MarkdownPreviewToggle<CR>', {noremap = true})
+        ```
+
+    6. 高级配置（滚动同步）
+
+        ```lua
+        vim.g.mkdp_preview_options = {
+            mkit = {},
+            katex = {},
+            uml = {},
+            maid = {},
+            disable_sync_scroll = 0,  -- 启用同步滚动
+            sync_scroll_type = 'relative',
+            hide_yaml_meta = 1,
+            sequence_diagrams = {},
+            flowchart_diagrams = {},
+            content_editable = false,
+            disable_filename = 0,
+            toc = {}
+        }
+        ```
+
+    **常见问题解决**
+
+    **如果预览没有启动：**
+
+    - 确保已安装 Node.js（插件依赖）
+    - 重新构建插件：`:call mkdp#util#install()`
+    - 检查浏览器是否被正确指定
+
+    **如果同步滚动不工作：**
+
+    - 检查 `disable_sync_scroll` 设置为 0
+    - 确保浏览器没有阻止弹出窗口
+
+    安装完成后，你就可以享受实时的 Markdown 预览和同步滚动了！
+
+* 安装 `markdown-preview.nvim` 时配置代理
+
+    在内网环境下安装 `markdown-preview.nvim` 需要配置代理。以下是几种解决方案：
+
+    方案一：配置 Git 和 npm 代理
+
+    1. 设置 Git 代理
+
+        ```bash
+        # 设置 HTTP 代理
+        git config --global http.proxy http://your-proxy-server:port
+        git config --global https.proxy https://your-proxy-server:port
+
+        # 如果需要认证
+        git config --global http.proxy http://username:password@proxy-server:port
+        ```
+
+    2. 设置 npm 代理（插件依赖 Node.js）
+
+        ```bash
+        npm config set proxy http://your-proxy-server:port
+        npm config set https-proxy https://your-proxy-server:port
+        npm config set strict-ssl false  # 如果证书有问题
+        ```
+
+    方案二：离线安装方法
+
+    1. 在外网环境下载插件
+
+        ```bash
+        # 克隆插件到本地
+        git clone https://github.com/iamcco/markdown-preview.nvim.git
+
+        # 进入目录并构建
+        cd markdown-preview.nvim
+        npm install  # 在外网环境执行
+        ```
+
+    2. 将整个插件目录打包
+
+        ```bash
+        tar -czf markdown-preview.nvim.tar.gz markdown-preview.nvim
+        ```
+
+    3. 在内网环境安装
+
+        ```bash
+        # 解压到 Neovim 插件目录
+        tar -xzf markdown-preview.nvim.tar.gz -C ~/.local/share/nvim/site/pack/plugins/start/
+        ```
+
+    方案四：使用离线包管理器
+
+    1. 使用 Packer 的离线安装
+
+        ```lua
+        -- 如果插件已经在本地目录
+        use({
+            "iamcco/markdown-preview.nvim",
+            run = function() 
+                -- 手动指定构建命令，跳过网络下载
+                vim.cmd('!cd ' .. vim.fn.stdpath('data') .. '/site/pack/packer/start/markdown-preview.nvim && npm install --offline')
+            end,
+        })
+        ```
+
+* vim 中 markdown 实时渲染、跟随滚动的方案
+
+    现有插件（推荐）
+
+    1. Markdown 预览
+
+        - **vim-preview**：专门为 Markdown 和 LaTeX 设计的预览插件
+        - **markdown-preview.nvim**：支持实时预览和滚动同步
+        - **vim-markdown-preview**：轻量级的 Markdown 预览方案
+
+    2. LaTeX 预览
+
+        - **vimtex**：功能强大的 LaTeX 插件，支持正向和反向同步
+        - **vim-latex-live-preview**：实时预览 LaTeX 文档
+
+    **自定义解决方案**
+
+    1. 设置 Vim 自动保存和光标位置跟踪
+
+        ```vim
+        " 自动保存
+        autocmd TextChanged,TextChangedI *.md,*.tex write
+
+        " 跟踪光标位置
+        function! SendCursorPosition()
+            let line = line('.')
+            let col = col('.')
+            " 将位置信息发送给外部程序
+            call system('echo "'.line.','.col.'" > /tmp/vim_cursor_position')
+        endfunction
+
+        autocmd CursorMoved *.md,*.tex call SendCursorPosition()
+        ```
+
+    2. 外部渲染程序示例（Python）
+
+        ```python
+        #!/usr/bin/env python3
+        import os
+        import time
+        import subprocess
+        from pathlib import Path
+
+        def monitor_file_and_cursor(file_path):
+            last_mtime = 0
+            last_pos = None
+            
+            while True:
+                # 检查文件修改时间
+                current_mtime = os.path.getmtime(file_path)
+                if current_mtime != last_mtime:
+                    # 文件已修改，重新渲染
+                    render_file(file_path)
+                    last_mtime = current_mtime
+                
+                # 检查光标位置
+                try:
+                    with open('/tmp/vim_cursor_position', 'r') as f:
+                        pos = f.read().strip()
+                        if pos != last_pos:
+                            # 光标位置变化，同步滚动
+                            scroll_to_position(pos)
+                            last_pos = pos
+                except:
+                    pass
+                
+                time.sleep(0.1)
+
+        def render_file(file_path):
+            # 调用实际的渲染逻辑
+            if file_path.endswith('.md'):
+                # 渲染 Markdown
+                subprocess.run(['pandoc', file_path, '-o', '/tmp/preview.html'])
+            elif file_path.endswith('.tex'):
+                # 渲染 LaTeX
+                subprocess.run(['pdflatex', file_path])
+
+        def scroll_to_position(position):
+            # 根据位置信息滚动预览窗口
+            line, col = position.split(',')
+            print(f"Scrolling to line {line}, column {col}")
+
+        if __name__ == "__main__":
+            import sys
+            if len(sys.argv) > 1:
+                monitor_file_and_cursor(sys.argv[1])
+        ```
+
+    3. 更高级的通信方式
+        
+        使用 socket 或命名管道进行更可靠的通信：
+
+        ```vim
+        " Vim 端设置
+        function! SendToPreview(command)
+            call system('echo "'.a:command.'" > /tmp/vim_preview_pipe')
+        endfunction
+
+        autocmd CursorMoved *.md,*.tex call SendToPreview('cursor:'.line('.').':'.col('.'))
+        autocmd BufWritePost *.md,*.tex call SendToPreview('render:'.expand('%:p'))
+        ```
+
+    **方案三：使用现有工具组合**
+
+    1. 对于 Markdown
+
+        ```bash
+        # 使用 inotifywait 监控文件变化
+        inotifywait -m -e close_write your_file.md | while read; do
+            pandoc your_file.md -o preview.html
+            # 触发预览程序刷新
+        done
+        ```
+
+    2. 对于 LaTeX
+        
+        ```bash
+        # 使用 latexmk 进行持续编译
+        latexmk -pvc -view=pdf your_file.tex
+        ```
+
 * 为什么使用vim使用 scp:// 打开一个远程文件，显示
 
     ```

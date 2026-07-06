@@ -2,6 +2,219 @@
 
 ## cache
 
+* 详细讲讲 `np.count_nonzero()` 的用法
+
+    好的，我们来详细讲解一下 NumPy 中的 `np.count_nonzero()` 函数。
+
+    这个函数非常直观且实用：**它用于统计数组中非零元素的数量**。但它的用法远不止统计整个数组这么简单，通过参数控制，你可以按行、按列或按特定轴进行统计。
+
+    ---
+
+    ## 1. 基本语法
+
+    ```python
+    numpy.count_nonzero(a, axis=None, *, keepdims=False)
+    ```
+
+    **参数说明**：
+
+    - `a` : 需要统计的数组（array_like）。
+    - `axis` : 可选，整数或整数元组。指定沿哪个轴进行统计。默认为 `None`，表示统计整个数组的非零元素总数。
+    - `keepdims` : 可选，布尔值。如果为 `True`，则结果数组会保持与原数组相同的维度数（长度为1的轴会被保留）。
+
+    **返回值**：
+    - 整数或数组（当指定 `axis` 时，返回一个数组）。
+
+    ---
+
+    ## 2. 基础用法：统计整个数组
+
+    直接传入一个数组，返回其中所有非零元素的个数。
+
+    ```python
+    import numpy as np
+
+    arr = np.array([[1, 0, 3],
+                    [0, 5, 0],
+                    [7, 8, 9]])
+
+    print(np.count_nonzero(arr))  # 输出: 6
+    # 非零元素是: 1, 3, 5, 7, 8, 9 → 共6个
+    ```
+
+    ---
+
+    ## 3. 沿指定轴统计（axis 参数）
+
+    这是最常用的功能，尤其在处理二维表格或多维数据时。
+
+    ### 对二维数组按列统计（axis=0）
+
+    `axis=0` 表示沿着**行方向**遍历，即统计**每一列**的非零元素个数。
+
+    ```python
+    arr = np.array([[1, 0, 3],
+                    [0, 5, 0],
+                    [7, 8, 9]])
+
+    result = np.count_nonzero(arr, axis=0)
+    print(result)  # 输出: [2 2 2]
+    # 解释：
+    # 第0列: 1,0,7 → 2个非零
+    # 第1列: 0,5,8 → 2个非零
+    # 第2列: 3,0,9 → 2个非零
+    ```
+
+    ### 对二维数组按行统计（axis=1）
+
+    `axis=1` 表示沿着**列方向**遍历，即统计**每一行**的非零元素个数。
+
+    ```python
+    result = np.count_nonzero(arr, axis=1)
+    print(result)  # 输出: [2 1 3]
+    # 解释：
+    # 第0行: 1,0,3 → 2个
+    # 第1行: 0,5,0 → 1个
+    # 第2行: 7,8,9 → 3个
+    ```
+
+    ---
+
+    ## 4. 多维数组的 axis 使用
+
+    对于三维或更高维数组，`axis` 可以指定多个维度（元组形式），也可以使用负数索引（-1 表示最后一个轴）。
+
+    ```python
+    arr_3d = np.array([[[1, 0], [2, 3]],
+                       [[0, 4], [5, 0]]])
+    # shape: (2, 2, 2)
+
+    # 沿第0轴统计（每个2x2矩阵的非零总数）
+    print(np.count_nonzero(arr_3d, axis=0))
+    # 输出: [[1 1]
+    #        [2 1]]
+    # 解释：对应位置元素相加（非零计数），不是数值相加
+
+    # 沿最后两个轴统计（每个“深度”层的非零总数）
+    print(np.count_nonzero(arr_3d, axis=(1, 2)))
+    # 输出: [3 2]  # 第一个2x2层有3个非零，第二个层有2个
+    ```
+
+    ---
+
+    ## 5. keepdims 参数的作用
+
+    当指定 `axis` 后，结果数组的维度会减少。如果设置 `keepdims=True`，结果会保留原来的维度数（对应轴变为长度1），这在广播运算中很有用。
+
+    ```python
+    arr = np.array([[1, 0, 3],
+                    [0, 5, 0]])
+
+    # 不保留维度
+    res = np.count_nonzero(arr, axis=1)
+    print(res.shape)  # (2,)
+
+    # 保留维度
+    res_keep = np.count_nonzero(arr, axis=1, keepdims=True)
+    print(res_keep.shape)  # (2, 1)
+    print(res_keep)
+    # 输出:
+    # [[2]
+    #  [1]]
+    ```
+
+    ---
+
+    ## 6. 统计满足特定条件的元素个数（重要技巧）
+
+    `np.count_nonzero` 经常与条件表达式结合使用，因为条件表达式会生成布尔数组，而 `True` 被视为 1，`False` 被视为 0。
+
+    **统计数组中大于某个值的元素个数**：
+
+    ```python
+    arr = np.array([1, 5, -2, 10, 3, 0])
+
+    # 统计大于3的元素个数
+    count = np.count_nonzero(arr > 3)
+    print(count)  # 输出: 2 (5 和 10)
+    ```
+
+    **统计满足多个条件的元素个数**（使用逻辑运算符）：
+
+    ```python
+    # 统计大于0且小于5的元素个数
+    arr = np.array([1, 5, -2, 10, 3, 0])
+    count = np.count_nonzero((arr > 0) & (arr < 5))
+    print(count)  # 输出: 2 (1 和 3)
+    ```
+
+    注意：这里必须用 `&` 而不是 `and`，因为 NumPy 数组不支持 `and`。
+
+    ---
+
+    ## 7. 与其他函数的对比与替代
+
+    | 函数 | 用途 | 差异 |
+    |------|------|------|
+    | `np.count_nonzero(a)` | 统计非零个数 | 最快，最直接 |
+    | `np.sum(a != 0)` | 统计非零个数 | 等效，但稍慢，因为多了一次比较 |
+    | `np.sum(a)` | 求和 | 完全不同，除非数组只有0和1 |
+    | `len(np.nonzero(a)[0])` | 统计非零个数 | 功能相同，但效率更低（生成索引数组） |
+
+    **效率建议**：如果需要统计非零个数，`np.count_nonzero` 是最优选择。
+
+    ---
+
+    ## 8. 常见错误与注意事项
+
+    - **布尔数组**：在布尔数组中，`True` 视为 1，`False` 视为 0。所以 `np.count_nonzero(np.array([True, False, True]))` 结果是 2。
+    - **复数数组**：实部或虚部非零即视为非零元素。
+    - **空数组**：`np.count_nonzero(np.array([]))` 返回 0，不会报错。
+    - **axis 为元组**：可以同时沿多个轴统计，结果会减少对应维度。
+    - **数据类型**：对浮点数，要注意 `-0.0` 被视为 0（非零判断基于数值，不区分正负零）。
+
+    ---
+
+    ## 9. 实战案例
+
+    **案例1：统计矩阵中每行的缺失值（NaN）数量**
+
+    虽然 `count_nonzero` 不直接统计 NaN，但可以结合 `np.isnan`：
+
+    ```python
+    arr = np.array([[1, np.nan, 3],
+                    [np.nan, 5, 6]])
+    # 统计每行 NaN 的数量
+    nan_count_per_row = np.count_nonzero(np.isnan(arr), axis=1)
+    print(nan_count_per_row)  # 输出: [1 1]
+    ```
+
+    **案例2：计算稀疏矩阵的非零元素比例**
+
+    ```python
+    arr = np.random.choice([0, 1], size=(100, 100), p=[0.9, 0.1])
+    sparsity = 1 - np.count_nonzero(arr) / arr.size
+    print(f"稀疏度: {sparsity:.2%}")
+    ```
+
+    ---
+
+    ## 10. 总结速记表
+
+    | 使用场景 | 代码示例 |
+    |----------|----------|
+    | 全数组非零总数 | `np.count_nonzero(arr)` |
+    | 每列非零个数 | `np.count_nonzero(arr, axis=0)` |
+    | 每行非零个数 | `np.count_nonzero(arr, axis=1)` |
+    | 统计符合条件的元素 | `np.count_nonzero(arr > 5)` |
+    | 统计满足多条件 | `np.count_nonzero((arr>a) & (arr<b))` |
+    | 保留维度输出 | `np.count_nonzero(arr, axis=1, keepdims=True)` |
+
+    ---
+
+    如果你还想了解它与 `np.nonzero()` 的区别，或者想知道如何用它来统计某个具体值（而非非零）的出现次数，我也可以继续为你展开。你目前有具体的使用场景吗？
+
+
 * 详细讲讲 np.flatnonzero() 的用法
 
     好的，我们来详细讲解一下 NumPy 中的 `np.flatnonzero()` 函数。
