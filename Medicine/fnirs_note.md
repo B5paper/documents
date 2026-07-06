@@ -2,6 +2,48 @@
 
 ## cache
 
+* normal and stroke 的处理流程
+
+    1. 传入 pkl 路径，先是 normal，然后是 stroke
+
+    2. 构建 dataset, class 为`FnirsPklDataset`，主要保存 3 个数据
+
+        ```py
+        self.samples  # channel od
+        self.labels  # 0 for normal, 1 for stroke
+        self.fnirs_datas  # pkl 中各份数据，10 个 normal, 18 个 stroke  
+        ```
+
+        这三个数据都是 list，所以相当于用索引把数据统一到了一起
+
+    3. 使用 sklearn 的 `train_test_split()`，把数据（索引）划分为 train 和 val，比例为 1: 1。`stratify`参数考虑到了分层抽样
+
+        这个函数本身是支持对 array 进行划分的，但是这里使用了对数据索引划分
+
+    4. 生成 batch size 为 1 的 train, val dataloader
+
+        确实数据量太少，batch size 只能是 1 了。另外 val dataloader 不设置 shuffle，细节。
+
+    5. 将 train / val dataloader 中的数据重新转换为 list，因为每个人的 channel 数据的长度不同, 6877, 5581, 5024, ... 啥长度的都有
+
+        公共最小长度为 4764
+
+    6. 取每个数据样本的前 4760 个样本点，按 20 个样本点一组，划分成 block，共有 238 个 block
+
+    7. 计算每一个 block 的时间维度的 mean，组成一个 408 维的 vector，再将所有的 block 的 vec 拼接起来，作为这个样本的 feat, feat vec 的长度为 97104
+
+        （后续可以考虑把这个 feat 画成拆线图，可视化一下。病人和正常人的差异应该非常明显才对，否则不会准确率为 1）
+
+    8. 最终得到 train set / val set 的 shape 为 (14, 97104)
+
+    9. 对数据集进行归一化处理，StandardScaler()，均值为 0，标准差为 1
+
+        （有空可以验证一下 StandardScaler() 这个函数的效果, x_scaled = (x - mean) / std）
+
+        得到的 mean 是对样本数量进行统计，不是 feat channel 数量，所以 mean 和 var 都是长度为 97104 的 vector
+
+        (`scaler.scale_` 这个是什么意思？)
+
 * AtlasViewer
 
     这个是什么，干嘛用的？

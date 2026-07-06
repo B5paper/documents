@@ -2,6 +2,213 @@
 
 ## cache
 
+* 详细讲讲 sklearn 中 train_test_split() 的原型、作用和用例
+
+    好的，我们来详细讲解一下 `sklearn.model_selection.train_test_split()` 这个函数。它是 scikit-learn 中最常用、最基础的数据划分工具。
+
+    ---
+
+    1. 函数原型
+
+        ```python
+        sklearn.model_selection.train_test_split(
+            *arrays,
+            test_size=None,
+            train_size=None,
+            random_state=None,
+            shuffle=True,
+            stratify=None
+        )
+        ```
+
+        **参数详解：**
+
+        - **`*arrays`**（位置参数）：
+        - 接受一个或多个数组/矩阵（如特征矩阵 `X` 和标签向量 `y`）。
+        - 它们必须具有相同的**第一维度（样本数）**。
+        - 常见用法：`train_test_split(X, y)` 或 `train_test_split(X, y, group_ids)`。
+
+        - **`test_size`**（浮点数或整数，默认 `None`）：
+        - 决定测试集的大小。
+        - 如果为浮点数（0.0~1.0），表示测试集占总样本的比例。
+        - 如果为整数，表示测试集的绝对样本数量。
+        - 如果为 `None`，则使用 `train_size` 的补集（若 `train_size` 也为 `None`，则默认 `test_size=0.25`）。
+
+        - **`train_size`**（浮点数或整数，默认 `None`）：
+        - 决定训练集的大小，规则同 `test_size`。
+        - 通常只设置 `test_size`，让 `train_size` 自动为 `1 - test_size`。
+
+        - **`random_state`**（整数或 `None`，默认 `None`）：
+        - 控制随机打乱过程的随机种子。
+        - 设置固定整数（如 `42`）可保证每次运行得到相同的划分结果，便于复现实验。
+
+        - **`shuffle`**（布尔值，默认 `True`）：
+        - 是否在划分前对数据进行随机打乱。
+        - 如果数据本身是时间序列或有序的，通常设为 `False`。
+        - 若 `stratify` 有值，则 `shuffle` 必须为 `True`（内部强制）。
+
+        - **`stratify`**（数组或 `None`，默认 `None`）：
+        - 用于**分层抽样**的标签数组。
+        - 传入 `y` 后，函数会保证训练集和测试集中各类别（分类问题）的比例与原始数据集一致。
+        - 对不平衡数据集非常关键。
+
+    ---
+
+    2. 返回值
+
+        - 返回一个**元组（tuple）**，顺序严格为：
+        ```
+        X_train, X_test, y_train, y_test
+        ```
+        或更一般地：
+        ```
+        array1_train, array1_test, array2_train, array2_test, ...
+        ```
+        - 每个返回的数组都是原数组的**随机子集**，且训练集和测试集互不重叠。
+
+    ---
+
+    3. 核心作用
+
+        1. **模拟泛化能力**  
+        用训练集训练模型，用测试集评估其在新数据上的表现，防止过拟合。
+
+        2. **快速原型验证**  
+        在模型调参、特征工程时快速迭代。
+
+        3. **保持数据分布**（配合 `stratify`）  
+        避免因随机划分导致类别分布失衡，尤其在小样本或不平衡数据中。
+
+        4. **固定随机性**（配合 `random_state`）  
+        使实验结果可复现。
+
+    ---
+
+    4. 典型用例（代码示例）
+
+        示例 1：基本用法（二分类）
+
+        ```python
+        from sklearn.model_selection import train_test_split
+        from sklearn.datasets import load_iris
+        from sklearn.svm import SVC
+
+        # 加载数据
+        X, y = load_iris(return_X_y=True)
+
+        # 划分（默认 75% 训练，25% 测试）
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.3, random_state=42
+        )
+
+        print(f"训练集样本数: {X_train.shape[0]}")
+        print(f"测试集样本数: {X_test.shape[0]}")
+
+        # 训练并评估
+        clf = SVC().fit(X_train, y_train)
+        print(f"测试集准确率: {clf.score(X_test, y_test):.3f}")
+        ```
+
+        ---
+
+        示例 2：分层抽样（处理不平衡数据）
+
+        ```python
+        from sklearn.datasets import make_classification
+
+        # 生成一个不平衡数据集（类别 0: 900, 类别 1: 100）
+        X, y = make_classification(
+            n_samples=1000, weights=[0.9, 0.1], random_state=42
+        )
+
+        # 普通划分（可能使测试集中类别 1 更少）
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+        print("普通划分 - 训练集类别1比例:", y_train.mean())
+        print("普通划分 - 测试集类别1比例:", y_test.mean())
+
+        # 分层划分（保持比例）
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
+        print("分层划分 - 训练集类别1比例:", y_train.mean())
+        print("分层划分 - 测试集类别1比例:", y_test.mean())
+        ```
+        输出会显示分层划分后训练/测试集的类别比例几乎一致（约 0.1）。
+
+        ---
+
+        示例 3：同时划分多个数组（如特征、标签、样本权重）
+
+        ```python
+        import numpy as np
+
+        X = np.random.rand(100, 5)
+        y = np.random.randint(0, 2, 100)
+        sample_weight = np.random.rand(100)
+
+        X_train, X_test, y_train, y_test, sw_train, sw_test = train_test_split(
+            X, y, sample_weight, test_size=0.2, random_state=7
+        )
+
+        print(len(X_train), len(y_train), len(sw_train))  # 均为 80
+        ```
+
+        ---
+
+        示例 4：时间序列数据（不随机打乱）
+
+        ```python
+        # 假设数据是按时间排序的
+        time_series_X = np.arange(1000).reshape(-1, 1)
+        time_series_y = np.arange(1000)
+
+        # 取前 80% 作为训练，后 20% 作为测试
+        X_train, X_test, y_train, y_test = train_test_split(
+            time_series_X, time_series_y, 
+            test_size=0.2, shuffle=False, random_state=None
+        )
+
+        print("训练集最后一条:", X_train[-1], "测试集第一条:", X_test[0])
+        # 输出: 训练集最后一条: [799] 测试集第一条: [800]
+        # 保持顺序不交叉
+        ```
+
+    ---
+
+    5. 注意事项与常见陷阱
+
+        | 注意事项 | 说明 |
+        |--------|------|
+        | **数据泄露** | 不要在划分前做任何基于全数据的预处理（如标准化），应先 `fit` 在训练集上，再 `transform` 测试集。 |
+        | **小样本数据** | 如果样本极少，测试集会过小导致评估方差大，建议使用交叉验证。 |
+        | **分类问题的分层** | 若 `y` 是多分类，`stratify=y` 同样有效，但必须保证每个类别至少有一个样本。 |
+        | **回归问题** | 不能使用 `stratify`（除非手动将连续值离散化），可采用 `sklearn.model_selection.StratifiedShuffleSplit` 或自定义分箱。 |
+        | **随机种子** | 调参时固定 `random_state`，最终评估时可换多个种子取平均。 |
+
+    ---
+
+    6. 与其他划分方法的对比
+
+        | 方法 | 适用场景 |
+        |------|---------|
+        | **train_test_split** | 单次快速划分，适合初步实验。 |
+        | **KFold / StratifiedKFold** | 交叉验证，更稳定地评估模型。 |
+        | **TimeSeriesSplit** | 时间序列数据，保证训练集在测试集之前。 |
+        | **ShuffleSplit** | 多次随机划分，可控制训练/测试比例。 |
+
+    ---
+
+    7. 总结
+
+        - **功能**：一行代码完成数据集随机/分层划分。
+        - **核心参数**：`test_size`（规模）、`random_state`（复现）、`stratify`（保分布）。
+        - **返回值顺序**：严格按照传入数组的顺序，前半部分为训练集，后半部分为测试集。
+        - **最佳实践**：配合 Pipeline 使用，避免数据泄露；分类问题优先使用 `stratify=y`。
+
+    掌握 `train_test_split` 是机器学习流程的第一步，也是确保实验科学性的基础。如果你有更多关于划分策略的疑问（如如何划分多标签数据、如何自定义划分比例等），可以继续提问！
+
 * sklearn iris dataset inspect
 
     sklearn 中的 iris 数据集是个 toy 数据集，即不需要联网下载，内置的数据集。， 

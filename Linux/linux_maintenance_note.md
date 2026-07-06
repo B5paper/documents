@@ -6,6 +6,502 @@
 
 ## cache
 
+* systemd 中，After=network.target 如何替换成一个指定的自定义 service
+
+    在 systemd 中，你可以通过多种方式替换 `After=network.target` 为自定义 service。以下是几种常见方法：
+
+    ## 方法1：直接指定自定义 service
+
+    ```ini
+    [Unit]
+    # 完全替换 network.target
+    After=your-custom.service
+    Wants=your-custom.service
+
+    # 或者同时包含两者（如果都需要）
+    After=network.target your-custom.service
+    Wants=network.target your-custom.service
+    ```
+
+    ## 方法2：使用 Requires 确保依赖关系
+
+    ```ini
+    [Unit]
+    Description=My Service
+    After=your-custom.service
+    Requires=your-custom.service
+
+    [Service]
+    ExecStart=/path/to/your/command
+    Type=simple
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ## 方法3：使用 PartOf 或 BindsTo（如果需要联动）
+
+    ```ini
+    [Unit]
+    Description=My Service
+    After=your-custom.service
+    BindsTo=your-custom.service  # 如果自定义服务停止，本服务也会停止
+    PartOf=your-custom.service   # 作为自定义服务的一部分管理
+    ```
+
+    ## 方法4：创建模板化的依赖（如果自定义服务有多个实例）
+
+    ```ini
+    [Unit]
+    Description=My Service
+    After=your-custom@%i.service  # 使用模板实例
+    Wants=your-custom@%i.service
+
+    [Service]
+    ExecStart=/path/to/your/command
+    ```
+
+    ## 方法5：在 systemd drop-in 目录中覆盖（推荐）
+
+    创建一个覆盖配置，而不是修改原 service 文件：
+
+    ```bash
+    # 创建配置目录
+    sudo mkdir -p /etc/systemd/system/your-service.d/
+
+    # 创建覆盖配置
+    sudo tee /etc/systemd/system/your-service.d/custom-dependency.conf > /dev/null << EOF
+    [Unit]
+    After=your-custom.service
+    Wants=your-custom.service
+    # 移除对 network.target 的依赖
+    # 如果需要完全移除，可以设置为空
+    Upholds=your-custom.service  # systemd v244+，自动重启依赖的服务
+    EOF
+
+    # 重新加载 systemd
+    sudo systemctl daemon-reload
+    ```
+
+    ## 方法6：完全自定义启动顺序
+
+    ```ini
+    [Unit]
+    Description=My Service
+    # 定义完整的依赖链
+    After=sysinit.target local-fs.target swap.target
+    Before=multi-user.target
+    RequiresMountsFor=/var /etc
+    After=your-custom.service
+    Requires=your-custom.service
+
+    # 显式说明不需要 network.target
+    # （在某些情况下 network.target 仍可能被隐式依赖）
+    ```
+
+    ## 示例：完整的 service 文件替换
+
+    ```ini
+    [Unit]
+    Description=My Application
+    Documentation=https://example.com
+    After=your-custom.service
+    Requires=your-custom.service
+    # 如果还需要网络但要在自定义服务之后
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=appuser
+    Group=appgroup
+    ExecStart=/usr/local/bin/myapp
+    Restart=on-failure
+    RestartSec=5
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ## 验证和调试
+
+    ```bash
+    # 检查依赖关系
+    systemctl show your-service.service -p After,Before,Requires,Wants
+
+    # 列出所有依赖
+    systemctl list-dependencies your-service.service
+
+    # 测试启动顺序
+    systemd-analyze critical-chain your-service.service
+
+    # 查看详细的 unit 信息
+    systemctl cat your-service.service
+    ```
+
+    ## 重要注意事项
+
+    1. **确保自定义 service 已正确定义**：自定义 service 需要正确处理自己的依赖和启动类型。
+
+    2. **考虑网络需求**：如果服务确实需要网络功能，建议保留：
+       ```ini
+       After=network-online.target  # 等待网络真正就绪
+       Wants=network-online.target
+       ```
+
+    3. **启动类型**：如果自定义服务是 `Type=oneshot`，你可能需要：
+       ```ini
+       After=your-custom.service
+       Requires=your-custom.service
+       ```
+
+    选择哪种方法取决于你的具体需求。如果只是简单的依赖关系，方法1或方法2通常就足够了。
+
+* 简述 systemd 配置文件的语法和注意事项，给出一些常见的例子
+
+    # Systemd 配置文件的语法和注意事项
+
+    ## 一、基本语法结构
+
+    ### 1. 配置文件格式
+    ```
+    [Unit]           # 第一节：单元元数据和依赖关系
+    Description=...
+    After=...
+    Requires=...
+
+    [Service]        # 第二节：服务配置（仅 Service 类型）
+    Type=...
+    ExecStart=...
+
+    [Install]        # 第三节：安装信息
+    WantedBy=...
+
+    [Socket]         # 其他节：对应不同类型的单元
+    [Timer]
+    [Path]
+    [Mount]
+    [Swap]
+    ```
+
+    ### 2. 语法规则
+    - **区分大小写**：所有指令和值都是大小写敏感的
+    - **键值对**：`指令=值` 格式
+    - **注释**：以 `#` 开头
+    - **多值**：用空格分隔多个值
+    - **续行**：用反斜杠 `\` 续行
+    - **布尔值**：`true`/`false`、`yes`/`no`、`1`/`0` 都可以接受
+
+    ## 二、配置文件位置和优先级
+
+    ### 文件位置优先级（从高到低）：
+    1. `/etc/systemd/system/` - 系统管理员配置（最高优先级）
+    2. `/run/systemd/system/` - 运行时配置
+    3. `/usr/lib/systemd/system/` - 软件包安装的默认配置
+    4. `/lib/systemd/system/` - 旧系统兼容位置
+
+    ### Drop-in 目录（覆盖配置）：
+    ```
+    /etc/systemd/system/service-name.d/
+    /etc/systemd/system/service-name.d/override.conf
+    ```
+
+    ## 三、[Unit] 节常见指令
+
+    ```ini
+    [Unit]
+    # 基本描述
+    Description=My Application Service
+    Documentation=man:app(8) https://example.com/docs
+
+    # 依赖关系（启动顺序）
+    After=network.target nginx.service
+    Before=multi-user.target
+    Requires=nginx.service          # 强依赖，失败则本服务也失败
+    Wants=network.target           # 弱依赖，失败不影响本服务
+    Conflicts=old-service.service  # 互斥服务
+    RequiresMountsFor=/var/log     # 依赖挂载点
+
+    # 条件判断
+    ConditionPathExists=/etc/app/config.conf
+    ConditionFileNotEmpty=/var/lib/app/data.db
+    ConditionKernelVersion=>=4.0
+    ConditionUser=!root
+    ConditionVirtualization=no
+    ```
+
+    ## 四、[Service] 节常见指令
+
+    ### 服务类型：
+    ```ini
+    [Service]
+    # 服务类型（必填）
+    Type=simple          # 默认，ExecStart 进程为主进程
+    Type=forking         # 传统守护进程，需要自己 fork
+    Type=oneshot         # 一次性任务，执行后退出
+    Type=dbus            # D-Bus 服务
+    Type=notify          # 通过 sd_notify() 通知就绪
+    Type=idle            # 等待所有任务完成后启动
+
+    # 启动配置
+    ExecStart=/usr/bin/myapp --daemon
+    ExecStartPre=/usr/bin/init-script.sh    # 启动前执行
+    ExecStartPost=/usr/bin/post-script.sh   # 启动后执行
+    ExecStop=/usr/bin/shutdown-script.sh    # 停止时执行
+    ExecReload=/usr/bin/reload-script.sh    # 重载配置
+
+    # 进程管理
+    Restart=on-failure          # 失败时重启
+    RestartSec=5                # 重启等待时间
+    StartLimitInterval=60       # 启动频率限制时间段
+    StartLimitBurst=3           # 时间段内允许的启动次数
+
+    # 权限控制
+    User=appuser
+    Group=appgroup
+    DynamicUser=yes            # 动态创建用户
+    AmbientCapabilities=CAP_NET_BIND_SERVICE  # 赋予能力
+    NoNewPrivileges=yes        # 禁止提升权限
+
+    # 资源限制
+    LimitNOFILE=65536          # 文件描述符限制
+    LimitNPROC=512             # 进程数限制
+    MemoryMax=500M             # 内存限制
+    CPUQuota=80%               # CPU 配额
+    ```
+
+    ## 五、[Install] 节常见指令
+
+    ```ini
+    [Install]
+    # 启用时创建符号链接到哪个 target
+    WantedBy=multi-user.target    # 多用户模式
+    WantedBy=graphical.target     # 图形界面模式
+    WantedBy=default.target       # 默认 target
+
+    # 别名
+    Alias=myapp.service
+
+    # 同时安装
+    Also=app-socket.service app-timer.service
+    ```
+
+    ## 六、常见配置文件示例
+
+    ### 示例1：简单的 Web 服务
+    ```ini
+    [Unit]
+    Description=My Web Application
+    After=network.target nginx.service
+    Requires=nginx.service
+
+    [Service]
+    Type=simple
+    User=webapp
+    Group=webapp
+    WorkingDirectory=/var/www/myapp
+    Environment="NODE_ENV=production"
+    EnvironmentFile=/etc/default/myapp
+    ExecStart=/usr/bin/node /var/www/myapp/server.js
+    Restart=on-failure
+    RestartSec=10
+    StandardOutput=journal
+    StandardError=journal
+
+    # 安全加固
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectSystem=strict
+    ReadWritePaths=/var/log/myapp /var/lib/myapp
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ### 示例2：定时任务
+    ```ini
+    [Unit]
+    Description=Daily Backup Service
+
+    [Service]
+    Type=oneshot
+    User=backup
+    ExecStart=/usr/local/bin/backup.sh
+    Nice=19                          # 低优先级
+    IOSchedulingClass=idle           # IO 空闲时运行
+
+    [Install]
+    WantedBy=timers.target
+    ```
+
+    ### 示例3：带 Socket 激活的服务
+    ```ini
+    # socket.service
+    [Unit]
+    Description=My App Socket
+
+    [Socket]
+    ListenStream=8080
+    Accept=no
+    SocketUser=appuser
+    SocketGroup=appgroup
+
+    [Install]
+    WantedBy=sockets.target
+    ```
+
+    ### 示例4：挂载服务
+    ```ini
+    [Unit]
+    Description=Mount NFS Share
+
+    [Mount]
+    What=192.168.1.100:/share
+    Where=/mnt/nfs
+    Type=nfs
+    Options=defaults,noatime
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ### 示例5：定时器服务
+    ```ini
+    [Unit]
+    Description=Run cleanup daily
+
+    [Timer]
+    OnCalendar=daily
+    Persistent=true
+    RandomizedDelaySec=300
+
+    [Install]
+    WantedBy=timers.target
+    ```
+
+    ## 七、重要注意事项
+
+    ### 1. 路径相关注意事项
+    ```ini
+    # ✅ 正确：使用绝对路径
+    ExecStart=/usr/bin/myapp
+
+    # ❌ 错误：使用相对路径
+    ExecStart=./myapp
+    ExecStart=myapp
+
+    # ✅ 环境变量（仅在 ExecStart 中有效）
+    Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+    ```
+
+    ### 2. 命令参数注意事项
+    ```ini
+    # ✅ 正确：整个命令作为一个字符串
+    ExecStart=/usr/bin/myapp --port 8080 --config /etc/myapp.conf
+
+    # ✅ 也可以：使用多个 ExecStart 参数
+    ExecStart=/usr/bin/myapp --port 8080 --config /etc/myapp.conf
+
+    # ❌ 错误：使用 shell 特性（除非指定 shell）
+    ExecStart=myapp > /var/log/myapp.log 2>&1  # 错误！
+    ExecStart=/bin/sh -c 'myapp > /var/log/myapp.log 2>&1'  # 正确
+    ```
+
+    ### 3. 重启策略注意事项
+    ```ini
+    # 避免无限重启循环
+    Restart=on-failure
+    RestartSec=5
+    StartLimitIntervalSec=100
+    StartLimitBurst=5
+    ```
+
+    ### 4. 权限安全注意事项
+    ```ini
+    # 最小权限原则
+    User=nobody
+    Group=nogroup
+    NoNewPrivileges=yes
+    PrivateTmp=yes
+    ProtectHome=yes
+    ProtectSystem=strict
+    ReadOnlyPaths=/
+    ReadWritePaths=/var/lib/myapp
+    ```
+
+    ### 5. 日志配置
+    ```ini
+    # 标准输出处理
+    StandardOutput=journal      # 发送到 journal
+    StandardOutput=null         # 丢弃
+    StandardOutput=file:/var/log/myapp.log  # 输出到文件
+    StandardOutput=append:/var/log/myapp.log  # 追加到文件
+
+    # 日志重定向
+    StandardError=inherit       # 与标准输出相同
+    ```
+
+    ### 6. 环境变量最佳实践
+    ```ini
+    # 推荐方式
+    EnvironmentFile=/etc/default/myapp
+    Environment="MYAPP_HOME=/var/lib/myapp"
+
+    # 不推荐直接在 ExecStart 中使用环境变量
+    ExecStart=/usr/bin/myapp $OPTIONS  # 可能不会展开
+    ```
+
+    ## 八、调试和验证
+
+    ```bash
+    # 检查语法
+    systemd-analyze verify /etc/systemd/system/myapp.service
+
+    # 检查依赖关系
+    systemd-analyze critical-chain myapp.service
+
+    # 测试运行
+    systemctl start myapp.service --dry-run
+
+    # 检查日志
+    journalctl -u myapp.service -f
+
+    # 查看完整配置
+    systemctl show myapp.service
+
+    # 图形化分析
+    systemd-analyze plot > plot.svg
+    ```
+
+    ## 九、特殊指令说明
+
+    ### `Type=notify` 的额外要求：
+    ```ini
+    [Service]
+    Type=notify
+    # 应用必须调用 sd_notify(0, "READY=1")
+    NotifyAccess=all  # 谁可以发送通知：all/main/none
+    ```
+
+    ### 资源限制单位：
+    ```
+    Memory: K, M, G, T (默认字节)
+    CPU: 百分比 (如 50%)
+    Time: s, min, h, d, w, ms, us (默认秒)
+    ```
+
+    ### 特殊路径：
+    ```
+    %h - 用户家目录
+    %t - 运行时目录 (/run)
+    %s - 配置目录 (/etc)
+    %u - 用户名
+    %U - 用户ID
+    %H - 主机名
+    ```
+
+    通过遵循这些语法规则和注意事项，可以编写出稳定、安全、可维护的 systemd 服务配置文件。
+
 * 简述 wireguard 的作用和用法
 
     好的，我们来简单、清晰地介绍一下 WireGuard。

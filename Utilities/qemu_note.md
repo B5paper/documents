@@ -2,6 +2,862 @@
 
 ## cache
 
+* linux 如何拿到网卡的理由速率，比如 max_link_speed
+
+    在 Linux 中获取网卡的理论速率（最大链路速度）有多种方法，以下是几种常用的方式：
+
+    1. **使用 `ethtool` 命令（最常用）**
+
+        ```bash
+        # 查看指定网卡的信息
+        ethtool eth0
+
+        # 或直接查看速度和双工模式
+        ethtool eth0 | grep -E "Speed|Duplex"
+        ```
+
+        输出示例：
+        ```
+        Settings for eth0:
+            Speed: 1000Mb/s
+            Duplex: Full
+            Port: Twisted Pair
+            ...
+        ```
+
+    2. **查看 `/sys/class/net/` 系统文件**
+
+        ```bash
+        # 查看当前实际速度
+        cat /sys/class/net/eth0/speed
+
+        # 查看支持的速度列表
+        cat /sys/class/net/eth0/supported
+
+        # 查看最大支持速度
+        cat /sys/class/net/eth0/speed 2>/dev/null || \
+        echo "查看支持的速率: $(cat /sys/class/net/eth0/supported)"
+        ```
+
+    3. **使用 `ip` 命令**
+
+        ```bash
+        # 查看网络接口状态（包含部分速率信息）
+        ip -s link show eth0
+        ```
+
+    4. **查看 `/proc/net/dev`**
+
+        ```bash
+        # 显示所有网络接口统计信息
+        cat /proc/net/dev
+
+        # 或者
+        less /proc/net/dev
+        ```
+
+    5. **使用 `lshw` 命令**
+
+        ```bash
+        # 查看详细的网络硬件信息
+        sudo lshw -class network
+
+        # 或针对特定网卡
+        sudo lshw -class network | grep -A 20 "eth0"
+        ```
+
+    6. **使用 `dmidecode`（查看主板集成的网卡信息）**
+
+        ```bash
+        sudo dmidecode -t baseboard
+        ```
+
+    7. **查看 PCI 信息**
+
+        ```bash
+        # 找到网卡的PCI地址
+        lspci | grep -i ethernet
+
+        # 查看详细信息（替换为你的PCI地址）
+        lspci -vvv -s 00:03.0 | grep -i speed
+        ```
+
+    8. **脚本示例：自动获取网卡最大速率**
+
+        ```bash
+        #!/bin/bash
+
+        # 获取所有网卡名称
+        INTERFACES=$(ls /sys/class/net/ | grep -v lo)
+
+        for iface in $INTERFACES; do
+            echo "=== 网卡: $iface ==="
+            
+            # 尝试获取当前速度
+            if [ -f "/sys/class/net/$iface/speed" ]; then
+                speed=$(cat /sys/class/net/$iface/speed)
+                if [ "$speed" -ge 0 ]; then
+                    echo "当前速率: ${speed}Mb/s"
+                fi
+            fi
+            
+            # 获取支持的速度列表
+            if [ -f "/sys/class/net/$iface/supported" ]; then
+                echo "支持速率: $(cat /sys/class/net/$iface/supported)"
+            fi
+            
+            # 使用ethtool获取更多信息
+            ethtool $iface 2>/dev/null | grep -E "Speed|Duplex|Supported link modes" | head -5
+            echo ""
+        done
+        ```
+
+    9. **使用 NetworkManager 工具（如果使用NetworkManager）**
+
+        ```bash
+        # 查看连接信息
+        nmcli device show eth0 | grep -i speed
+        ```
+
+    注意事项：
+
+    1. **权限需求**：大部分命令需要 root 权限或 sudo
+
+    2. **速度单位**：
+
+       - 大部分输出以 Mb/s（兆比特每秒）为单位
+       - 注意区分 Mb（兆比特）和 MB（兆字节）：1 MB = 8 Mb
+
+    3. **实际速度 vs 理论速度**：
+
+       - 这些命令显示的是链路的协商速度
+       - 实际传输速度受多种因素影响（协议开销、网络拥塞等）
+
+    常见速率的对应关系：
+
+    - 10 Mbps：标准以太网
+    - 100 Mbps：快速以太网
+    - 1000 Mbps（1 Gbps）：千兆以太网
+    - 2500 Mbps（2.5 Gbps）
+    - 5000 Mbps（5 Gbps）
+    - 10000 Mbps（10 Gbps）：万兆以太网
+
+    **推荐使用 `ethtool` 命令**，因为它提供的信息最全面，包括：
+
+    - 当前协商的速度
+    - 支持的速度模式
+    - 双工模式
+    - 自协商状态
+    - 物理连接类型等
+
+* qemu 中网卡的速率为 unknown
+
+    ```
+    (base) siorigin@q35:/sys/devices/pci0000:00/0000:00:02.0$ lspci | grep -i ether
+    00:02.0 Ethernet controller: Intel Corporation 82574L Gigabit Network Connection
+    (base) siorigin@q35:/sys/devices/pci0000:00/0000:00:02.0$ cat ./max_link_speed 
+    Unknown
+    ```
+
+    这是为什么
+
+    这个问题很典型，我来解释一下原因和解决方法：
+
+    **虚拟环境下的正确查看方法**
+
+    1. 通过ethtool查看虚拟网卡的能力
+
+        ```bash
+        # 在宿主机或虚拟机内执行
+        ethtool eth0
+
+        # 查看支持的模式
+        ethtool eth0 | grep -i "supported"
+        ```
+
+    2. 查看虚拟机的配置
+
+        ```bash
+        # 检查虚拟机 XML 配置（在宿主机上）
+        virsh dumpxml <虚拟机名称> | grep -i "model" -A 2 -B 2
+
+        # 对于 QEMU 直接启动的情况
+        ps aux | grep qemu | grep -o "net[^ ]*"
+        ```
+
+    3. 通过设备ID确认能力
+
+        ```bash
+        # 查看详细的PCI信息
+        lspci -vvv -s 00:02.0
+
+        # 查找Capabilities部分
+        lspci -vvv -s 00:02.0 | grep -i "capability\|speed"
+        ```
+
+    4. 虚拟网卡速率的实际情况
+
+        对于虚拟环境：
+
+        1. **82574L是模拟的Intel千兆网卡**，理论上支持 1 Gbps
+
+        2. **实际速率受限于**：
+
+           - 宿主机的物理网卡速度
+           - 虚拟化层的限制
+           - 虚拟机的CPU和内存资源
+           - 宿主机的负载
+
+    5. 获取虚拟网卡最大速率的正确脚本
+
+        ```bash
+        #!/bin/bash
+
+        # 尝试从多个来源获取网卡速度
+        INTERFACE="eth0"  # 修改为你的网卡名
+
+        echo "=== 检查网卡: $INTERFACE ==="
+
+        # 1. 首先尝试ethtool
+        echo "1. ethtool 信息:"
+        if command -v ethtool &> /dev/null; then
+            ethtool $INTERFACE 2>/dev/null | grep -E "Speed|Supported link modes|Advertised link modes"
+        else
+            echo "ethtool 未安装"
+        fi
+
+        # 2. 查看sysfs
+        echo -e "\n2. sysfs 信息:"
+        SYSFS_PATH="/sys/class/net/$INTERFACE"
+        if [ -d "$SYSFS_PATH" ]; then
+            if [ -f "$SYSFS_PATH/speed" ]; then
+                speed=$(cat "$SYSFS_PATH/speed" 2>/dev/null)
+                echo "速度: ${speed:-Unknown} Mb/s"
+            fi
+            
+            if [ -f "$SYSFS_PATH/device/max_link_speed" ]; then
+                max_speed=$(cat "$SYSFS_PATH/device/max_link_speed" 2>/dev/null)
+                echo "最大链路速度: ${max_speed}"
+            fi
+        fi
+
+        # 3. 查看PCI信息
+        echo -e "\n3. PCI 信息:"
+        if command -v lspci &> /dev/null; then
+            PCI_ADDR=$(basename $(readlink -f "$SYSFS_PATH/device"))
+            echo "PCI地址: $PCI_ADDR"
+            lspci -s "$PCI_ADDR" -vvv 2>/dev/null | grep -i "ethernet\|controller\|gigabit"
+        fi
+
+        # 4. 检查是否是虚拟设备
+        echo -e "\n4. 设备类型:"
+        if [ -f "$SYSFS_PATH/device/driver/module" ]; then
+            driver=$(basename $(readlink -f "$SYSFS_PATH/device/driver"))
+            echo "驱动: $driver"
+            
+            # 检查是否是虚拟设备驱动
+            if [[ "$driver" == *virtio* ]] || [[ "$driver" == *veth* ]] || [[ "$driver" == *vmxnet* ]]; then
+                echo "这是虚拟网卡设备"
+            fi
+        fi
+        ```
+
+    6. **对于虚拟化环境的建议**
+
+        1. **如果需要在虚拟机中获得确定的速率**：
+
+            ```bash
+            # 设置固定的链路速度（如果有权限）
+            ethtool -s eth0 speed 1000 duplex full autoneg off
+
+            # 或者通过虚拟机管理器配置
+            ```
+
+        2. **实际测试速率**：
+
+           ```bash
+           # 使用iperf3测试实际吞吐量
+           # 在一台机器上运行服务器
+           iperf3 -s
+           
+           # 在另一台机器上运行客户端
+           iperf3 -c <服务器IP>
+           ```
+
+        3. **查看QEMU虚拟机的网络配置**：
+
+           ```bash
+           # 在宿主机上查看虚拟机的网卡类型
+           virsh domiflist <虚拟机名称>
+           ```
+
+    **总结**
+
+    你的`max_link_speed`显示"Unknown"是因为：
+
+    1. **虚拟化环境**：QEMU模拟的82574L网卡可能没有完全实现所有硬件特性
+    2. **驱动限制**：虚拟设备的驱动可能不提供这个信息
+    3. **sysfs属性不完整**：虚拟设备通常只实现必要的功能
+
+    **最可靠的方法是使用 `ethtool eth0`**，它会显示当前协商的速度，对于82574L这种模拟的千兆网卡，通常会显示1000Mb/s（如果网络环境支持）。
+
+    * 我没法使用工具，是否有编程的方式获得网卡的最大速率
+
+    有！以下是几种纯编程方式获取网卡最大速率的实现：
+
+    1. **使用 sysfs 接口（C语言）**
+
+        ```c
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <dirent.h>
+        #include <unistd.h>
+
+        // 从/sys/class/net/读取网卡最大速率
+        int get_max_speed_sysfs(const char *ifname) {
+            char path[256];
+            FILE *fp;
+            int speed = -1;
+            
+            // 方法1：尝试读取speed文件（当前协商速度）
+            snprintf(path, sizeof(path), "/sys/class/net/%s/speed", ifname);
+            fp = fopen(path, "r");
+            if (fp) {
+                fscanf(fp, "%d", &speed);
+                fclose(fp);
+                if (speed > 0) return speed;
+            }
+            
+            // 方法2：尝试读取supported文件解析最大速度
+            snprintf(path, sizeof(path), "/sys/class/net/%s/supported", ifname);
+            fp = fopen(path, "r");
+            if (fp) {
+                char line[256];
+                int max_speed = 0;
+                
+                while (fgets(line, sizeof(line), fp)) {
+                    // 解析支持的速率，格式如: 1000baseT/Full
+                    char *token = strtok(line, " \n");
+                    while (token) {
+                        if (strstr(token, "base")) {
+                            char *base = strstr(token, "base");
+                            char speed_str[32] = {0};
+                            strncpy(speed_str, token, base - token);
+                            int s = atoi(speed_str);
+                            if (s > max_speed) max_speed = s;
+                        }
+                        token = strtok(NULL, " \n");
+                    }
+                }
+                fclose(fp);
+                if (max_speed > 0) return max_speed;
+            }
+            
+            return -1; // 无法获取
+        }
+
+        int main() {
+            const char *ifname = "eth0";
+            int speed = get_max_speed_sysfs(ifname);
+            if (speed > 0) {
+                printf("%s max speed: %d Mbps\n", ifname, speed);
+            } else {
+                printf("Cannot get max speed for %s\n", ifname);
+            }
+            return 0;
+        }
+        ```
+
+    2. **使用 ioctl 和 SIOCETHTOOL（C语言）**
+
+        ```c
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <sys/ioctl.h>
+        #include <net/if.h>
+        #include <linux/ethtool.h>
+        #include <linux/sockios.h>
+        #include <unistd.h>
+        #include <errno.h>
+
+        // 获取网卡支持的最大速率
+        int get_max_speed_ethtool(const char *ifname) {
+            int sockfd;
+            struct ifreq ifr;
+            struct ethtool_cmd edata;
+            int max_speed = 0;
+            
+            // 创建socket
+            sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sockfd < 0) {
+                perror("socket");
+                return -1;
+            }
+            
+            // 设置ifreq结构
+            memset(&ifr, 0, sizeof(ifr));
+            strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+            
+            // 设置ethtool命令
+            memset(&edata, 0, sizeof(edata));
+            edata.cmd = ETHTOOL_GSET;
+            ifr.ifr_data = (char *)&edata;
+            
+            // 执行ioctl调用
+            if (ioctl(sockfd, SIOCETHTOOL, &ifr) < 0) {
+                perror("ioctl");
+                close(sockfd);
+                return -1;
+            }
+            
+            close(sockfd);
+            
+            // 从ethtool_cmd解析速度
+            // 检查是否有有效速度
+            if (edata.speed != SPEED_UNKNOWN && edata.speed != 0) {
+                max_speed = edata.speed;
+            }
+            
+            // 如果当前速度为0，尝试从支持的模式中获取
+            if (max_speed <= 0) {
+                // 从supported字段解析支持的速度
+                // supported是位掩码，需要解析
+                u32 supported = edata.supported;
+                
+                // 检查支持的速度（单位：Mb/s）
+                if (supported & SUPPORTED_10000baseT_Full) max_speed = 10000;
+                else if (supported & SUPPORTED_5000baseT_Full) max_speed = 5000;
+                else if (supported & SUPPORTED_2500baseT_Full) max_speed = 2500;
+                else if (supported & SUPPORTED_1000baseT_Full) max_speed = 1000;
+                else if (supported & SUPPORTED_100baseT_Full) max_speed = 100;
+                else if (supported & SUPPORTED_10baseT_Full) max_speed = 10;
+            }
+            
+            return max_speed;
+        }
+
+        int main() {
+            const char *ifname = "eth0";
+            int speed = get_max_speed_ethtool(ifname);
+            if (speed > 0) {
+                printf("%s max speed: %d Mbps\n", ifname, speed);
+            } else {
+                printf("Cannot get max speed for %s\n", ifname);
+            }
+            return 0;
+        }
+        ```
+
+    3. **使用 netlink 接口（C语言）**
+
+        ```c
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <unistd.h>
+        #include <sys/socket.h>
+        #include <linux/netlink.h>
+        #include <linux/rtnetlink.h>
+        #include <linux/if_link.h>
+
+        #define BUFFER_SIZE 8192
+
+        int get_link_speed_netlink(const char *ifname) {
+            int sockfd;
+            struct sockaddr_nl sa;
+            struct nlmsghdr *nlh;
+            struct ifinfomsg *ifinfo;
+            char buffer[BUFFER_SIZE];
+            int len;
+            
+            // 创建netlink socket
+            sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+            if (sockfd < 0) {
+                perror("socket");
+                return -1;
+            }
+            
+            memset(&sa, 0, sizeof(sa));
+            sa.nl_family = AF_NETLINK;
+            sa.nl_pid = getpid();
+            
+            if (bind(sockfd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+                perror("bind");
+                close(sockfd);
+                return -1;
+            }
+            
+            // 准备netlink消息
+            nlh = (struct nlmsghdr *)buffer;
+            nlh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+            nlh->nlmsg_type = RTM_GETLINK;
+            nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+            nlh->nlmsg_seq = 1;
+            nlh->nlmsg_pid = getpid();
+            
+            ifinfo = NLMSG_DATA(nlh);
+            memset(ifinfo, 0, sizeof(struct ifinfomsg));
+            
+            // 发送请求
+            if (send(sockfd, nlh, nlh->nlmsg_len, 0) < 0) {
+                perror("send");
+                close(sockfd);
+                return -1;
+            }
+            
+            // 接收响应
+            len = recv(sockfd, buffer, BUFFER_SIZE, 0);
+            if (len < 0) {
+                perror("recv");
+                close(sockfd);
+                return -1;
+            }
+            
+            // 解析响应
+            for (nlh = (struct nlmsghdr *)buffer; NLMSG_OK(nlh, len); nlh = NLMSG_NEXT(nlh, len)) {
+                struct rtattr *rta;
+                int rtalen;
+                
+                ifinfo = NLMSG_DATA(nlh);
+                
+                // 查找IFLA_LINKINFO属性
+                rta = IFLA_RTA(ifinfo);
+                rtalen = IFLA_PAYLOAD(nlh);
+                
+                for (; RTA_OK(rta, rtalen); rta = RTA_NEXT(rta, rtalen)) {
+                    if (rta->rta_type == IFLA_IFNAME) {
+                        char *name = (char *)RTA_DATA(rta);
+                        if (strcmp(name, ifname) == 0) {
+                            // 找到目标网卡，查找速度属性
+                            // 注意：标准netlink可能不直接提供最大速度
+                            // 需要进一步解析IFLA_LINKINFO
+                            close(sockfd);
+                            // 这里需要更复杂的解析，通常需要结合ethtool
+                            return -1; // 简化处理
+                        }
+                    }
+                }
+            }
+            
+            close(sockfd);
+            return -1;
+        }
+        ```
+
+    4. **使用 /proc/net/dev 解析（C语言）**
+
+        ```c
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <ctype.h>
+
+        // 从/proc/net/dev获取接口信息
+        int parse_proc_net_dev(const char *ifname) {
+            FILE *fp;
+            char line[512];
+            
+            fp = fopen("/proc/net/dev", "r");
+            if (!fp) {
+                return -1;
+            }
+            
+            // 跳过前两行表头
+            fgets(line, sizeof(line), fp);
+            fgets(line, sizeof(line), fp);
+            
+            while (fgets(line, sizeof(line), fp)) {
+                char *name;
+                char *ptr = line;
+                
+                // 跳过前导空格
+                while (*ptr && isspace(*ptr)) ptr++;
+                
+                name = ptr;
+                
+                // 找到接口名结束位置
+                while (*ptr && *ptr != ':') ptr++;
+                if (*ptr == ':') {
+                    *ptr = '\0';
+                    
+                    // 去掉接口名末尾的空格
+                    char *end = ptr - 1;
+                    while (end > name && isspace(*end)) {
+                        *end = '\0';
+                        end--;
+                    }
+                    
+                    if (strcmp(name, ifname) == 0) {
+                        fclose(fp);
+                        // /proc/net/dev 不包含速度信息，只包含统计
+                        // 这里只返回找到了接口
+                        return 0;
+                    }
+                }
+            }
+            
+            fclose(fp);
+            return -1;
+        }
+        ```
+
+    5. **综合方法：自动选择最佳途径（C语言）**
+
+        ```c
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <unistd.h>
+        #include <sys/ioctl.h>
+        #include <net/if.h>
+        #include <linux/ethtool.h>
+        #include <linux/sockios.h>
+        #include <dirent.h>
+
+        // 尝试多种方法获取网卡最大速率
+        int get_network_speed(const char *ifname) {
+            int speed = -1;
+            char path[256];
+            FILE *fp;
+            
+            // 方法1：尝试sysfs speed文件
+            snprintf(path, sizeof(path), "/sys/class/net/%s/speed", ifname);
+            fp = fopen(path, "r");
+            if (fp) {
+                fscanf(fp, "%d", &speed);
+                fclose(fp);
+                if (speed > 0) return speed;
+            }
+            
+            // 方法2：尝试ioctl+ethtool
+            int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sockfd >= 0) {
+                struct ifreq ifr;
+                struct ethtool_cmd edata;
+                
+                memset(&ifr, 0, sizeof(ifr));
+                strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+                
+                memset(&edata, 0, sizeof(edata));
+                edata.cmd = ETHTOOL_GSET;
+                ifr.ifr_data = (char *)&edata;
+                
+                if (ioctl(sockfd, SIOCETHTOOL, &ifr) >= 0) {
+                    if (edata.speed != SPEED_UNKNOWN && edata.speed != 0) {
+                        speed = edata.speed;
+                    }
+                }
+                close(sockfd);
+            }
+            
+            return speed;
+        }
+
+        // 列出所有网络接口及其速度
+        void list_network_interfaces() {
+            DIR *dir;
+            struct dirent *entry;
+            
+            dir = opendir("/sys/class/net");
+            if (!dir) {
+                return;
+            }
+            
+            printf("Network Interfaces:\n");
+            printf("===================\n");
+            
+            while ((entry = readdir(dir)) != NULL) {
+                if (entry->d_name[0] == '.') continue;
+                if (strcmp(entry->d_name, "lo") == 0) continue;
+                
+                int speed = get_network_speed(entry->d_name);
+                if (speed > 0) {
+                    printf("%-10s: %4d Mbps\n", entry->d_name, speed);
+                } else {
+                    printf("%-10s: Unknown speed\n", entry->d_name);
+                }
+            }
+            
+            closedir(dir);
+        }
+
+        int main(int argc, char *argv[]) {
+            if (argc > 1) {
+                // 获取指定接口的速度
+                int speed = get_network_speed(argv[1]);
+                if (speed > 0) {
+                    printf("%s: %d Mbps\n", argv[1], speed);
+                } else {
+                    printf("Cannot determine speed for %s\n", argv[1]);
+                }
+            } else {
+                // 列出所有接口
+                list_network_interfaces();
+            }
+            
+            return 0;
+        }
+        ```
+
+    6. **Python实现（使用纯Python，无需外部工具）**
+
+        ```python
+        #!/usr/bin/env python3
+        import os
+        import struct
+        import socket
+        import fcntl
+        from ctypes import *
+
+        # Linux ioctl常量
+        SIOCETHTOOL = 0x8946
+        ETHTOOL_GSET = 0x00000001
+
+        # ifreq结构
+        class ifreq(Structure):
+            _fields_ = [
+                ("ifr_name", c_char * 16),
+                ("ifr_data", c_void_p)
+            ]
+
+        # ethtool_cmd结构（简化）
+        class ethtool_cmd(Structure):
+            _fields_ = [
+                ("cmd", c_uint32),
+                ("supported", c_uint32),
+                ("advertising", c_uint32),
+                ("speed", c_uint16),
+                ("duplex", c_uint8),
+                ("port", c_uint8),
+                ("phy_address", c_uint8),
+                ("transceiver", c_uint8),
+                ("autoneg", c_uint8),
+                ("mdio_support", c_uint8),
+                ("maxtxpkt", c_uint32),
+                ("maxrxpkt", c_uint32),
+                ("reserved", c_uint32 * 2)
+            ]
+
+        def get_ethtool_speed(interface):
+            """使用ioctl获取网卡速度"""
+            try:
+                # 创建socket
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                
+                # 准备ifreq结构
+                ifr = ifreq()
+                ifr.ifr_name = interface.encode()
+                
+                # 准备ethtool_cmd结构
+                edata = ethtool_cmd()
+                edata.cmd = ETHTOOL_GSET
+                ifr.ifr_data = addressof(edata)
+                
+                # 调用ioctl
+                fcntl.ioctl(sock.fileno(), SIOCETHTOOL, ifr)
+                
+                # 返回速度
+                speed = edata.speed
+                sock.close()
+                
+                if speed == 65535 or speed == 0:  # SPEED_UNKNOWN
+                    return -1
+                return speed
+                
+            except Exception as e:
+                return -1
+
+        def get_sysfs_speed(interface):
+            """从sysfs获取网卡速度"""
+            speed_path = f"/sys/class/net/{interface}/speed"
+            if os.path.exists(speed_path):
+                try:
+                    with open(speed_path, 'r') as f:
+                        speed = int(f.read().strip())
+                        if speed > 0:
+                            return speed
+                except:
+                    pass
+            return -1
+
+        def get_max_link_speed(interface="eth0"):
+            """获取网卡最大链路速度"""
+            # 尝试sysfs
+            speed = get_sysfs_speed(interface)
+            if speed > 0:
+                return speed
+            
+            # 尝试ethtool ioctl
+            speed = get_ethtool_speed(interface)
+            if speed > 0:
+                return speed
+            
+            return -1
+
+        # 使用示例
+        if __name__ == "__main__":
+            interfaces = [d for d in os.listdir("/sys/class/net") 
+                          if d != "lo" and not d.startswith('.')]
+            
+            for iface in interfaces:
+                speed = get_max_link_speed(iface)
+                if speed > 0:
+                    print(f"{iface}: {speed} Mbps")
+                else:
+                    print(f"{iface}: Unknown speed")
+        ```
+
+    7. 最简化的 sysfs 读取（C语言）
+
+        ```c
+        #include <stdio.h>
+
+        int main() {
+            FILE *fp = fopen("/sys/class/net/eth0/speed", "r");
+            if (fp) {
+                int speed;
+                fscanf(fp, "%d", &speed);
+                fclose(fp);
+                printf("Speed: %d Mbps\n", speed);
+            } else {
+                printf("Cannot read speed file\n");
+            }
+            return 0;
+        }
+        ```
+
+    **编译和使用**
+
+    ```bash
+    # 编译C程序
+    gcc -o get_speed get_speed.c
+
+    # 运行（需要root权限读取ethtool信息）
+    sudo ./get_speed eth0
+    ```
+
+    **注意事项**
+
+    1. **权限问题**：
+
+        - 读取 `/sys/class/net/eth0/speed` 通常不需要特殊权限
+        - 使用 `ioctl` 需要root权限或CAP_NET_ADMIN能力
+
+    2. **返回值说明**：
+
+        - `-1` 或 `65535` 通常表示速度未知
+        - `0` 可能表示链路断开
+        - 正值表示速度（单位：Mb/s）
+
+    3. **虚拟环境限制**：
+
+        - 在虚拟化环境中，某些方法可能返回未知
+        - 最可靠的是读取 `/sys/class/net/eth0/speed`
+
+    **推荐使用第一种sysfs方法**，它最简单且不需要特殊权限。如果获取失败，再尝试使用ioctl方法（需要root权限）。
+
 * qemu iommu no space left
 
     ```

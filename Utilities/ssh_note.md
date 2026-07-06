@@ -2,6 +2,444 @@
 
 ## cache
 
+* windows 下 ncat.exe 如何用于 ssh 的代理
+
+    在 Windows 下使用 `ncat.exe`（Nmap 的一部分）建立 SSH 代理主要有两种方式：
+
+    1. **本地端口转发（SOCKS代理）**
+
+        通过 SSH 建立 SOCKS5 代理：
+
+        ```bash
+        ncat.exe --proxy-type socks5 --proxy 127.0.0.1:1080 -l 8080 --keep-open --broker
+        ```
+
+        但这需要先建立 SSH 连接。更常见的是结合 SSH 客户端：
+
+        方法一：使用 Plink（PuTTY 的命令行工具）
+
+        ```bash
+        plink.exe -N -D 1080 user@ssh-server
+        ```
+        然后在 ncat 中使用这个 SOCKS 代理：
+        ```bash
+        ncat.exe --proxy-type socks5 --proxy 127.0.0.1:1080 target_host target_port
+        ```
+
+        方法二：直接端口转发
+
+        ```bash
+        # 通过 ncat 将本地端口转发到远程
+        ncat.exe -k -l 2222 -c "ncat.exe ssh-server 22"
+        ```
+
+    2. **ncat 作为 SSH 跳板**
+
+        如果要用 ncat 作为 SSH 的中继：
+
+        ```bash
+        # 在中间服务器上运行
+        ncat.exe -l 2222 --keep-open --exec "ncat.exe target_host 22"
+
+        # 本地连接
+        ssh -p 2222 user@middle_server
+        ```
+
+    3. **完整代理示例**
+
+        建立 SSH SOCKS 代理：
+
+        ```bash
+        # 使用 SSH 客户端建立 SOCKS5（非 ncat 直接功能）
+        ssh -D 1080 user@ssh-server
+
+        # 然后使用 ncat 通过代理连接
+        ncat.exe --proxy-type socks5 --proxy 127.0.0.1:1080 example.com 80
+        ```
+
+        端口转发链：
+
+        ```bash
+        # 本地 -> ncat -> SSH服务器 -> 目标
+        ncat.exe -l 3333 -c "ncat.exe --proxy-type socks5 --proxy 127.0.0.1:1080 target_host target_port"
+        ```
+
+    4. **注意事项**
+
+        1. **ncat 版本**：确保使用 Nmap 附带的 `ncat.exe`，而不是旧版的 `netcat`
+        2. **SSH 客户端**：Windows 需要安装 SSH 客户端（OpenSSH、PuTTY 等）
+        3. **防火墙**：确保相关端口未被阻止
+        4. **参数说明**：
+           - `--keep-open`：保持监听
+           - `--broker`：允许多个连接
+           - `-l`：监听模式
+           - `-c`：连接后执行命令
+
+    5. **推荐替代方案**
+
+        对于 SSH 代理，更直接的方法是：
+
+        1. **使用 OpenSSH for Windows**（Windows 10+ 内置）
+
+            ```bash
+            ssh -D 1080 -N user@ssh-server
+            ```
+
+        2. **使用 PuTTY/Plink**
+
+        3. **专用代理工具**：如 Proxifier、SocksCap
+
+    如果需要详细的自动化脚本或特定场景配置，请告诉我你的具体需求。
+
+* 我想配置 ssh 的 proxycommand，如何配置
+
+    在 Windows 下配置 SSH 的 `ProxyCommand` 有多种方式，以下是详细配置方法：
+
+    ## 1. **使用 Windows OpenSSH（推荐）**
+
+    Windows 10 1809+ 和 Windows 11 内置了 OpenSSH 客户端。
+
+    ### 在 `~/.ssh/config` 中配置：
+
+    ```ssh-config
+    # 直接通过 HTTP/HTTPS 代理
+    Host my-server
+        HostName ssh.example.com
+        User username
+        Port 22
+        ProxyCommand connect.exe -H proxy.company.com:8080 %h %p
+
+    # 通过 SOCKS5 代理
+    Host github.com
+        HostName github.com
+        User git
+        ProxyCommand connect.exe -S 127.0.0.1:1080 %h %p
+
+    # 使用 ncat 作为代理
+    Host server-behind-firewall
+        HostName target-server.com
+        User myuser
+        ProxyCommand ncat.exe --proxy-type http --proxy proxy.server.com:3128 %h %p
+    ```
+
+    ## 2. **安装必要工具**
+
+    ### 方法一：安装 connect 工具
+    1. 下载 Windows 版 connect：[GitHub releases](https://github.com/gotoh/ssh-connect/releases)
+    2. 将 `connect.exe` 放到 PATH 路径（如 `C:\Windows\` 或 `C:\Program Files\Git\usr\bin\`）
+
+    ### 方法二：使用 Git for Windows 自带的 connect
+    如果安装了 Git for Windows，connect.exe 通常在：
+    ```
+    C:\Program Files\Git\mingw64\bin\connect.exe
+    ```
+
+    ## 3. **不同代理类型的配置示例**
+
+    ### SOCKS5 代理（如 Shadowsocks/V2Ray）：
+    ```ssh-config
+    Host *
+        User username
+        ProxyCommand connect -S 127.0.0.1:10808 %h %p
+    ```
+
+    ### HTTP 代理：
+    ```ssh-config
+    Host company-server
+        HostName server.company.com
+        User employee
+        ProxyCommand connect -H http-proxy.company.com:8080 %h %p
+    ```
+
+    ### 使用 ncat 的 HTTP 代理：
+    ```ssh-config
+    Host via-ncat
+        HostName destination.com
+        ProxyCommand ncat.exe --proxy-type http --proxy proxy.com:8080 %h %p
+    ```
+
+    ## 4. **链式代理配置**
+
+    ### 多级跳转（Jump Host）：
+    ```ssh-config
+    # 先跳转到堡垒机，再到目标服务器
+    Host target-server
+        HostName 192.168.1.100
+        User admin
+        ProxyCommand ssh -W %h:%p bastion-host
+
+    Host bastion-host
+        HostName bastion.company.com
+        User jumper
+        ProxyCommand connect -S 127.0.0.1:1080 %h %p
+    ```
+
+    ### 使用 nc (netcat) 替代方案：
+    ```ssh-config
+    Host via-nc
+        HostName final-target.com
+        ProxyCommand ssh gateway-server "nc %h %p"
+    ```
+
+    ## 5. **完整配置文件示例**
+
+    `C:\Users\你的用户名\.ssh\config`：
+    ```ssh-config
+    # 全局设置
+    Host *
+        ServerAliveInterval 30
+        ServerAliveCountMax 3
+        TCPKeepAlive yes
+        IdentitiesOnly yes
+
+    # 公司服务器通过HTTP代理
+    Host company-ssh
+        HostName ssh.company.com
+        User workuser
+        Port 2222
+        IdentityFile ~/.ssh/id_rsa_work
+        ProxyCommand C:/tools/connect.exe -H proxy.company.com:8080 %h %p
+
+    # GitHub通过SOCKS5代理
+    Host github github.com
+        HostName github.com
+        User git
+        IdentityFile ~/.ssh/id_rsa_github
+        ProxyCommand connect -S 127.0.0.1:1080 %h %p
+
+    # 内部服务器通过跳板机
+    Host internal-*
+        User admin
+        IdentityFile ~/.ssh/id_rsa_internal
+        ProxyCommand ssh -q -W %h:%p bastion
+
+    Host bastion
+        HostName 203.0.113.1
+        User jumpuser
+        IdentityFile ~/.ssh/id_rsa_bastion
+    ```
+
+    ## 6. **测试配置**
+
+    ```bash
+    # 测试连接（详细模式）
+    ssh -vvv company-ssh
+
+    # 测试特定配置
+    ssh -F ~/.ssh/config -o "ProxyCommand=connect -S 127.0.0.1:1080 %h %p" github.com
+    ```
+
+    ## 7. **Windows 特定问题解决**
+
+    ### 路径问题：
+    ```ssh-config
+    # 使用正斜杠或双反斜杠
+    ProxyCommand C:/Program Files/Git/mingw64/bin/connect.exe -S 127.0.0.1:1080 %h %p
+    # 或
+    ProxyCommand "C:\\Program Files\\Git\\mingw64\\bin\\connect.exe" -S 127.0.0.1:1080 %h %p
+    ```
+
+    ### 代理认证：
+    ```ssh-config
+    # 需要认证的代理
+    ProxyCommand connect -H proxyuser:proxypass@proxy.com:8080 %h %p
+    ```
+
+    ## 8. **替代方案：使用 PuTTY/Plink**
+
+    如果不想用 OpenSSH，可以使用 PuTTY：
+
+    ```bash
+    # 在 ~/.ssh/config 中使用 plink
+    ProxyCommand plink.exe -nc %h:%p proxy-server
+    ```
+
+    ## 9. **验证步骤**
+
+    1. 检查配置文件位置和权限：
+       ```bash
+       icacls "%USERPROFILE%\.ssh\config"
+       ```
+
+    2. 测试 connect 工具：
+       ```bash
+       connect -S 127.0.0.1:1080 github.com 22
+       ```
+
+    3. 测试 SSH 连接：
+       ```bash
+       ssh -T git@github.com
+       ```
+
+    如果遇到具体错误，请提供详细信息以便进一步诊断。
+
+* ssh 使用 ncat 代理
+
+    ```
+    ProxyCommand ncat --proxy-type http --proxy 192.168.56.1:10809 %h %p
+    ```
+
+    这个配置有什么问题吗，似乎无法 work:
+
+    ```
+    PS D:\Documents\documents> git pull
+    libnsock ssl_init_helper(): OpenSSL legacy provider failed to load.
+
+    Connection closed by UNKNOWN port 65535
+    fatal: Could not read from remote repository.
+
+    Please make sure you have the correct access rights
+    and the repository exists.
+    ```
+
+    看起来是 OpenSSL 相关的问题。这个问题有几个可能的原因和解决方案：
+
+    1. **问题分析**
+
+        错误信息 `libnsock ssl_init_helper(): OpenSSL legacy provider failed to load.` 表明：
+        - ncat 尝试使用 SSL/TLS 功能
+        - 但你的代理服务器（192.168.56.1:10809）可能是 SOCKS5 而不是 HTTP 代理
+        - 或者 OpenSSL 库有问题
+
+    2. **解决方案**
+
+        方案一：使用正确的代理类型
+
+        如果你的代理是 **SOCKS5**（如 Shadowsocks/V2Ray）：
+        ```ssh-config
+        ProxyCommand ncat --proxy-type socks5 --proxy 192.168.56.1:10809 %h %p
+        ```
+
+        如果是 **SOCKS4**：
+        ```ssh-config
+        ProxyCommand ncat --proxy-type socks4 --proxy 192.168.56.1:10809 %h %p
+        ```
+
+        方案二：简化 ncat 命令
+
+        有时 ncat 的 SSL 功能会带来问题：
+        ```ssh-config
+        # 不使用 SSL 验证
+        ProxyCommand ncat --proxy 192.168.56.1:10809 %h %p
+
+        # 或完全禁用 SSL
+        ProxyCommand ncat --ssl --ssl-verify --proxy 192.168.56.1:10809 %h %p
+        ```
+
+        方案三：使用 connect 工具（推荐）
+
+        下载并安装 [connect.exe](https://github.com/gotoh/ssh-connect/releases)：
+
+        ```ssh-config
+        # SOCKS5 代理
+        ProxyCommand connect -S 192.168.56.1:10809 %h %p
+
+        # HTTP 代理
+        ProxyCommand connect -H 192.168.56.1:10809 %h %p
+        ```
+
+        方案四：使用 corkscrew（类似 connect）
+
+        ```ssh-config
+        ProxyCommand corkscrew 192.168.56.1 10809 %h %p
+        ```
+
+    3. **测试代理类型**
+
+        先确定你的代理类型：
+
+        ```bash
+        # 测试 HTTP 代理
+        curl -x http://192.168.56.1:10809 https://github.com
+
+        # 测试 SOCKS5 代理
+        curl --socks5 192.168.56.1:10809 https://github.com
+
+        # 直接测试端口
+        ncat -zv 192.168.56.1 10809
+        ```
+
+    4. **临时调试方法**
+
+        ```bash
+        # 1. 直接测试 ncat 命令
+        ncat --proxy-type http --proxy 192.168.56.1:10809 github.com 22
+
+        # 2. 使用详细模式
+        ssh -vvv -o "ProxyCommand=ncat --proxy-type http --proxy 192.168.56.1:10809 %h %p" git@github.com
+
+        # 3. 简化测试
+        ssh -o "ProxyCommand=ncat --proxy 192.168.56.1:10809 %h %p" git@github.com
+        ```
+
+    5. **完整配置示例**
+
+        基于最常见的 SOCKS5 代理场景：
+
+        ```ssh-config
+        Host github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/id_rsa
+            # 方法1：使用 connect（最稳定）
+            ProxyCommand connect -S 192.168.56.1:10809 %h %p
+            # 方法2：使用 ncat（如果 connect 不可用）
+            # ProxyCommand ncat --proxy-type socks5 --proxy 192.168.56.1:10809 %h %p
+        ```
+
+    6. **Windows 特定建议**
+
+        如果使用 Git Bash 或 WSL：
+
+        ```ssh-config
+        # 在 Git Bash 中
+        Host github.com
+            ProxyCommand /c/Program\ Files/Git/mingw64/bin/connect.exe -S 192.168.56.1:10809 %h %p
+
+        # 指定 ncat 完整路径
+        Host github.com
+            ProxyCommand "C:\Program Files (x86)\Nmap\ncat.exe" --proxy-type socks5 --proxy 192.168.56.1:10809 %h %p
+        ```
+
+    7. **快速诊断步骤**
+
+        1. **检查代理是否工作**：
+
+           ```bash
+           ncat --proxy-type socks5 --proxy 192.168.56.1:10809 --exec "echo GET / HTTP/1.0" github.com 80
+           ```
+
+        2. **测试直接连接**：
+
+           ```bash
+           ssh -T git@github.com -o "ProxyCommand=nc %h %p"
+           ```
+
+        3. **检查 ncat 版本**：
+
+           ```bash
+           ncat --version
+           ```
+
+    8. **备用方案：使用 Git 的代理配置**
+
+        如果 SSH 代理配置困难，可以改用 HTTPS：
+
+        ```bash
+        # 设置 Git HTTP 代理
+        git config --global http.proxy socks5://192.168.56.1:10809
+        git config --global https.proxy socks5://192.168.56.1:10809
+
+        # 然后使用 HTTPS 方式的 Git
+        git remote set-url origin https://github.com/username/repo.git
+        ```
+
+    **最可能的原因**：你的代理是 SOCKS5 而不是 HTTP。请尝试：
+    ```ssh-config
+    ProxyCommand ncat --proxy-type socks5 --proxy 192.168.56.1:10809 %h %p
+    ```
+
+    或者更好的是使用 `connect.exe`。你能否先确认一下代理的类型？
 * 简述 ssh -D 的作用与用法
 
     **SSH -D 的作用与用法**

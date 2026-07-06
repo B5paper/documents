@@ -2,6 +2,288 @@
 
 ## cache
 
+* python datetime 中，如何判断一个时期在另一个日期的前面还是后面，比如是否有 dt_1 < dt_2 这样的比较？另外，datetime 是否有加法、减法，判断一个时期比另一个日期多了几天？
+
+    在 Python 的 `datetime` 模块中，日期时间的比较和运算非常直观和强大。让我为你详细解释：
+
+    1. 日期比较
+
+        你可以直接使用比较运算符（`<`, `>`, `<=`, `>=`, `==`, `!=`）来比较两个 datetime 对象：
+
+        ```python
+        from datetime import datetime, date
+
+        # 创建两个日期时间对象
+        dt_1 = datetime(2023, 5, 15, 10, 30, 0)
+        dt_2 = datetime(2023, 6, 20, 14, 45, 0)
+
+        # 比较日期时间
+        print(dt_1 < dt_2)   # True
+        print(dt_1 > dt_2)   # False
+        print(dt_1 == dt_2)  # False
+
+        # date 对象也可以直接比较
+        date_1 = date(2023, 5, 15)
+        date_2 = date(2023, 6, 20)
+        print(date_1 < date_2)  # True
+        ```
+
+    2. 日期加减法
+
+        使用 `timedelta` 进行加减运算：
+
+        ```python
+        from datetime import datetime, timedelta
+
+        dt = datetime(2023, 5, 15, 10, 30, 0)
+
+        # 加法
+        future_dt = dt + timedelta(days=5)        # 加5天
+        print(future_dt)  # 2023-05-20 10:30:00
+
+        future_dt = dt + timedelta(days=2, hours=3, minutes=15)
+        print(future_dt)  # 2023-05-17 13:45:00
+
+        # 减法
+        past_dt = dt - timedelta(weeks=2)         # 减2周
+        print(past_dt)    # 2023-05-01 10:30:00
+        ```
+
+    3. 计算日期差值
+
+        计算两个日期之间的天数差：
+
+        ```python
+        from datetime import datetime, date
+
+        # 方法1：直接相减得到 timedelta
+        dt_1 = datetime(2023, 5, 15)
+        dt_2 = datetime(2023, 6, 20)
+
+        time_diff = dt_2 - dt_1
+        print(time_diff)           # 36 days, 0:00:00
+        print(time_diff.days)      # 36（天数）
+        print(time_diff.total_seconds())  # 3110400.0（总秒数）
+
+        # 方法2：使用 date 对象
+        date_1 = date(2023, 5, 15)
+        date_2 = date(2023, 6, 20)
+
+        days_diff = (date_2 - date_1).days
+        print(days_diff)  # 36
+        ```
+
+    4. 完整示例
+
+        ```python
+        from datetime import datetime, timedelta
+
+        def compare_and_calculate_dates():
+            # 创建测试日期
+            start_date = datetime(2023, 1, 1)
+            end_date = datetime(2023, 12, 31)
+            
+            # 比较日期
+            if start_date < end_date:
+                print(f"{start_date} 在 {end_date} 之前")
+            
+            # 计算日期差
+            days_between = (end_date - start_date).days
+            print(f"两个日期相差 {days_between} 天")
+            
+            # 日期运算
+            three_months_later = start_date + timedelta(days=90)
+            print(f"90天后是: {three_months_later}")
+            
+            # 判断是否在某个范围内
+            check_date = datetime(2023, 6, 15)
+            if start_date <= check_date <= end_date:
+                print(f"{check_date} 在日期范围内")
+
+        compare_and_calculate_dates()
+        ```
+
+    5. 实用技巧
+
+        ```python
+        from datetime import datetime, timedelta
+
+        # 获取当前日期时间
+        now = datetime.now()
+
+        # 计算上周和下周的日期
+        last_week = now - timedelta(weeks=1)
+        next_week = now + timedelta(weeks=1)
+
+        # 计算年龄
+        birth_date = datetime(1990, 5, 15)
+        age_days = (now - birth_date).days
+        age_years = age_days // 365
+
+        print(f"年龄: {age_years} 年 ({age_days} 天)")
+
+        # 判断是否为未来日期
+        future_date = datetime(2025, 1, 1)
+        if future_date > now:
+            print("这是未来日期")
+        ```
+
+    总结：
+
+    - **比较**：直接使用 `<`, `>`, `==` 等运算符
+    - **加减**：使用 `timedelta` 对象
+    - **计算差值**：两个 datetime 对象相减得到 `timedelta`，然后获取 `.days` 属性
+    - 所有操作都非常直观和 Pythonic！
+
+* TypeError: can't compare datetime.datetime to datetime.date
+
+    这个错误是因为你试图比较 `datetime.datetime` 对象和 `datetime.date` 对象，它们是不同的类型。让我为你解释如何解决这个问题：
+
+    **问题原因**
+
+    `datetime.datetime` 包含日期和时间信息，而 `datetime.date` 只包含日期信息，Python 不允许直接比较这两种不同类型的对象。
+
+    **解决方案**
+
+    1. 方法1：统一类型后再比较
+
+        ```python
+        from datetime import datetime, date
+
+        # 创建示例数据
+        dt_obj = datetime(2023, 5, 15, 10, 30, 0)  # datetime 对象
+        date_obj = date(2023, 6, 20)               # date 对象
+
+        # 将 date 转换为 datetime
+        dt_from_date = datetime.combine(date_obj, datetime.min.time())
+        print(dt_obj < dt_from_date)  # True
+
+        # 或者将 datetime 转换为 date
+        date_from_dt = dt_obj.date()
+        print(date_from_dt < date_obj)  # True
+        ```
+
+    2. 方法2：使用 `.date()` 方法统一为 date 类型
+
+        ```python
+        from datetime import datetime, date
+
+        dt_obj = datetime(2023, 5, 15, 10, 30, 0)
+        date_obj = date(2023, 6, 20)
+
+        # 比较日期部分（忽略时间）
+        if dt_obj.date() < date_obj:
+            print("dt_obj 的日期在 date_obj 之前")
+        else:
+            print("dt_obj 的日期在 date_obj 之后或相同")
+
+        # 或者比较具体的年月日
+        if dt_obj.date() == date_obj:
+            print("日期相同")
+        ```
+
+    3. 方法3：创建比较函数
+
+        ```python
+        from datetime import datetime, date
+
+        def compare_dates(dt1, dt2):
+            """比较两个日期/日期时间对象"""
+            # 统一转换为 date 对象
+            if isinstance(dt1, datetime):
+                dt1 = dt1.date()
+            if isinstance(dt2, datetime):
+                dt2 = dt2.date()
+            
+            return dt1, dt2
+
+        # 使用示例
+        dt_obj = datetime(2023, 5, 15, 10, 30, 0)
+        date_obj = date(2023, 6, 20)
+
+        date1, date2 = compare_dates(dt_obj, date_obj)
+        print(date1 < date2)  # True
+        ```
+
+    4. 方法4：使用类型检查和转换
+
+        ```python
+        from datetime import datetime, date
+
+        def safe_date_compare(obj1, obj2):
+            """安全地比较两个日期/日期时间对象"""
+            if isinstance(obj1, datetime) and isinstance(obj2, date):
+                return obj1.date() < obj2
+            elif isinstance(obj1, date) and isinstance(obj2, datetime):
+                return obj1 < obj2.date()
+            else:
+                return obj1 < obj2
+
+        # 使用示例
+        dt_obj = datetime(2023, 5, 15, 10, 30, 0)
+        date_obj = date(2023, 6, 20)
+
+        print(safe_date_compare(dt_obj, date_obj))  # True
+        print(safe_date_compare(date_obj, dt_obj))  # False
+        ```
+
+    实际应用示例
+
+    ```python
+    from datetime import datetime, date, timedelta
+
+    # 实际场景：检查任务是否在截止日期前
+    def is_task_on_time(task_datetime, deadline_date):
+        """检查任务时间是否在截止日期前"""
+        return task_datetime.date() <= deadline_date
+
+    # 使用示例
+    task_time = datetime(2023, 6, 15, 23, 59, 59)  # 任务完成时间
+    deadline = date(2023, 6, 20)                   # 截止日期
+
+    if is_task_on_time(task_time, deadline):
+        print("任务按时完成")
+    else:
+        print("任务超期")
+
+    # 计算日期差（混合类型）
+    def days_between(date1, date2):
+        """计算两个日期/日期时间之间的天数差"""
+        if isinstance(date1, datetime):
+            date1 = date1.date()
+        if isinstance(date2, datetime):
+            date2 = date2.date()
+        
+        return abs((date2 - date1).days)
+
+    dt_obj = datetime(2023, 5, 15, 10, 30, 0)
+    date_obj = date(2023, 6, 20)
+
+    days_diff = days_between(dt_obj, date_obj)
+    print(f"相差 {days_diff} 天")  # 相差 36 天
+    ```
+
+    **最佳实践建议**
+
+    1. **在代码中保持类型一致性**：要么全部使用 `datetime`，要么全部使用 `date`
+    2. **比较前进行类型转换**：使用 `.date()` 方法统一类型
+    3. **明确比较意图**：你是要比较完整的日期时间，还是只比较日期部分？
+
+    ```python
+    # 推荐的做法：统一类型
+    def process_dates(start_date, end_date):
+        # 统一转换为 date 对象进行比较
+        start = start_date.date() if isinstance(start_date, datetime) else start_date
+        end = end_date.date() if isinstance(end_date, datetime) else end_date
+        
+        if start < end:
+            return f"{start} 在 {end} 之前"
+        else:
+            return f"{start} 在 {end} 之后或相同"
+    ```
+
+    这样就能避免 `TypeError: can't compare datetime.datetime to datetime.date` 错误了。
+
 * python 中 os 中常用的函数
 
     1. `os.getcwd()`
