@@ -2,6 +2,32 @@
 
 ## cache
 
+* ssh `~/.ssh/aughorized_keys`的权限设置
+
+    SSH 要求 `authorized_keys` 文件及其父目录必须具有严格的文件权限，以防止未授权访问。
+
+    否则会报错：
+
+    > bad ownership or modes for file /home/med/.ssh/authorized_keys
+
+    ```bash
+    # 确保 .ssh 目录存在且权限正确
+    chmod 700 ~/.ssh
+
+    # 修复 authorized_keys 文件权限
+    chmod 600 ~/.ssh/authorized_keys
+
+    # 确保文件所有者为当前用户
+    chown $USER:$USER ~/.ssh/authorized_keys
+    chown $USER:$USER ~/.ssh
+    ```
+
+    如果问题仍然存在，请检查系统日志获取更多信息：
+
+    ```bash
+    sudo tail -f /var/log/auth.log
+    ```
+
 * windows 下 ncat.exe 如何用于 ssh 的代理
 
     在 Windows 下使用 `ncat.exe`（Nmap 的一部分）建立 SSH 代理主要有两种方式：

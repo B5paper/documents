@@ -2,6 +2,154 @@
 
 ## cache
 
+* 详细讲讲 np.flatnonzero() 的用法
+
+    好的，我们来详细讲解一下 NumPy 中的 `np.flatnonzero()` 函数。
+
+    ### 1. 基本概念
+
+    `np.flatnonzero()` 的作用是：**返回输入数组中所有非零元素的索引，但这些索引是“扁平化”（一维）后的索引**。
+
+    简单来说，无论你的数组是几维的（1维、2维、3维...），这个函数都会先把它“拉直”成一个一维数组，然后找出这个一维数组中所有非零元素的位置（索引），最后返回这些索引组成的一维数组。
+
+    ---
+
+    ### 2. 函数语法
+
+    ```python
+    numpy.flatnonzero(a)
+    ```
+
+    - **参数 `a`** : 输入数组（可以是任何形状）。
+    - **返回值** : 一维数组（ndarray），包含所有非零元素的扁平索引。
+
+    ---
+
+    ### 3. 与 `np.nonzero()` 的区别
+
+    这是最容易混淆的地方，我们来对比一下：
+
+    | 函数 | 返回值的形状 | 索引的含义 |
+    | :--- | :--- | :--- |
+    | `np.nonzero(a)` | 返回一个元组，元组里每个元素都是一个数组，分别对应每个维度上的索引。 | 多维索引（适合直接用于原数组的切片）。 |
+    | `np.flatnonzero(a)` | 直接返回一个一维数组。 | 扁平索引（适合用于 `np.ravel()` 或 `np.take()` 后的数组）。 |
+
+    **举个例子更清楚：**
+
+    ```python
+    import numpy as np
+
+    arr = np.array([[0, 1, 0],
+                    [2, 0, 3]])
+
+    print("原数组:\n", arr)
+
+    # 1. 使用 nonzero（多维索引）
+    indices_multi = np.nonzero(arr)
+    print("np.nonzero 返回:", indices_multi)  
+    # 输出: (array([0, 1, 1]), array([1, 0, 2]))
+    # 解释：第一个数组是行索引 [0,1,1]，第二个是列索引 [1,0,2]
+    # 代表非零元素在 (0,1), (1,0), (1,2) 位置
+
+    # 2. 使用 flatnonzero（扁平索引）
+    indices_flat = np.flatnonzero(arr)
+    print("np.flatnonzero 返回:", indices_flat)  
+    # 输出: [1, 3, 5]
+    # 解释：把 arr 拉直成 [0,1,0, 2,0,3]，非零元素在位置 1, 3, 5
+    ```
+
+    ---
+
+    ### 4. 核心用法和场景
+
+    #### 场景 1：快速找到满足条件的元素位置
+    `flatnonzero` 常与条件判断结合使用（因为条件判断会生成布尔数组，`True` 视为 1，`False` 视为 0）。
+
+    ```python
+    arr = np.array([1, -2, 3, -4, 5])
+
+    # 找出所有大于 0 的元素的扁平索引
+    positive_indices = np.flatnonzero(arr > 0)
+    print(positive_indices)  # 输出: [0 2 4]
+    ```
+
+    #### 场景 2：直接用于一维数组（最自然的用法）
+    当你的数组本身就是一维时，`flatnonzero` 和 `nonzero` 返回的结果一模一样，但 `flatnonzero` 写法更简洁。
+
+    ```python
+    arr_1d = np.array([0, 5, 0, 7, 8])
+    print(np.flatnonzero(arr_1d))  # 输出: [1 3 4]
+    print(np.nonzero(arr_1d)[0])   # 输出: [1 3 4] (需要取元组的第一个元素)
+    ```
+
+    #### 场景 3：利用返回的索引取出原数组中的非零元素
+    你可以用这些扁平索引配合 `np.take()` 来提取元素。
+
+    ```python
+    arr = np.array([[0, 4, 0],
+                    [0, 0, 9]])
+
+    indices = np.flatnonzero(arr)
+    print(indices)                # 输出: [1, 5]
+    print(arr.ravel()[indices])   # 输出: [4 9] (先拉平，再索引)
+    # 或者直接用 np.take
+    print(np.take(arr, indices))  # 输出: [4 9] (更简洁)
+    ```
+
+    #### 场景 4：统计非零元素个数
+    虽然 `np.count_nonzero()` 更直接，但 `flatnonzero` 返回的数组长度也能表示个数。
+
+    ```python
+    arr = np.array([0, 1, 0, 2])
+    count = len(np.flatnonzero(arr))
+    print(count)  # 输出: 2
+    ```
+
+    ---
+
+    ### 5. 注意事项
+
+    1. **数据类型**：如果数组是浮点数，`np.nan`（非数字）和 `np.inf`（无穷大）也被视为**非零**，所以 `flatnonzero` 会返回它们的索引。如果你不想包含它们，需要先手动处理（如用 `np.isfinite()` 过滤）。
+    2. **性能**：因为 `flatnonzero` 内部实现更专注于一维索引，对于大规模数组，它通常比 `np.nonzero` 稍快一些，且内存占用略小（因为不需要存储多个维度的数组）。
+    3. **返回值永远是 `int` 类型**：返回的索引数组类型是 `int` 或 `int64`，适合直接用于整数索引。
+
+    ---
+
+    ### 6. 综合示例
+
+    假设我们在处理图像数据（二维），想找到所有像素值大于 200 的位置（扁平索引），然后把这些位置的像素值置为 255。
+
+    ```python
+    # 模拟一个 3x3 的灰度图
+    img = np.array([[100, 210, 50],
+                    [230, 80, 220],
+                    [40, 190, 255]])
+
+    # 找出所有大于 200 的像素点的扁平索引
+    bright_spots = np.flatnonzero(img > 200)
+    print("亮点的扁平索引:", bright_spots)  # 输出: [1, 3, 5, 8]
+
+    # 使用 np.put 修改这些位置的值（或者用 ravel 修改）
+    np.put(img, bright_spots, 255)
+    print("修改后的图像:\n", img)
+    # 输出:
+    # [[100 255  50]
+    #  [255  80 255]
+    #  [ 40 190 255]]
+    ```
+
+    ---
+
+    ### 总结
+
+    - **`np.flatnonzero()`** 是找“非零元素的**一维索引**”的利器。
+    - 当你只需要知道元素的位置，并且后续打算用 `arr.ravel()` 或 `np.take()` 来处理时，它非常方便。
+    - 当你需要分别按行、列（或多维）索引时，请使用 `np.nonzero()`。
+
+    记住一个口诀：**“想拉直了找位置，就用 flatnonzero”**。
+
+    如果你有特定的使用场景或想进一步了解它和 `argwhere` 的区别，欢迎继续提问！
+
 * numpy 中的数据如何转换到 py 内置类型
 
     将 NumPy 数据转换回 Python 内置类型（如 `int`, `float`, `list`, `dict`）非常重要，尤其是在你需要将结果写入 JSON 文件、数据库，或者进行非数值逻辑判断时。

@@ -2,6 +2,28 @@
 
 ## cache
 
+* motion cls 的处理过程
+
+    1. 加载数据文件，并将每个文件按 1 sec 拆分成 window (slice)
+
+        1. numeric_data 太耗费时间
+
+        2. load motion csv row, 生成 numeric_data，ndarray, shape (6705, 417)
+
+            其第 1 列为时间戳，根据这一列得到 start_time，final_time
+
+        3. 按 slice size (1 sec) 拆分成 slice
+
+        4. 将 window padding 到指定长度
+
+        5. 根据 window (slice) 和 action length 的 overlap 长度判断这个 slice 属于哪个 action 类别
+
+    2. 构建 MotionWindowInfo, 作为 dataset 的 sample
+
+    3. 划分训练集和验证集的方式似乎和 sklearn 不一样，没太看明白
+
+        先使用 sorted(set(lables)) 拿到所有的 label，其实就是 0，1，2，3，4
+
 * normal and stroke 的处理流程
 
     1. 传入 pkl 路径，先是 normal，然后是 stroke

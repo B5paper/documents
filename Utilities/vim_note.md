@@ -2,6 +2,26 @@
 
 ## cache
 
+* 为什么使用vim使用 scp:// 打开一个远程文件，显示
+
+    ```
+    "/tmp/vvWIsyd/0.cu" 281L, 8701B
+    Press ENTER or type command to continue
+    但是使用 ls 看不到这个文件：
+    (base) hlc@hlc-VirtualBox:~$ ls -lh /tmp/vvWIsyd/0.cu
+    ls: cannot access '/tmp/vvWIsyd/0.cu': No such file or directory
+    ```
+
+    这个问题很常见，是因为你对 Vim 的 scp 功能工作原理有误解。让我详细解释一下：
+
+    **问题原因**
+
+    当你使用 `vim scp://user@host/path/to/file` 时，Vim 实际上是这样工作的：
+
+    1. **不直接在本地创建文件**：Vim 不会在本地 `/tmp` 目录创建永久的文件副本
+    2. **临时存储**：Vim 会在内存或临时位置处理文件内容
+    3. **路径显示是虚拟的**：显示的文件路径只是一个临时的、虚拟的表示
+ 
 * vim 中 `set completeopt=menuone,noinsert,noselect` 是什么意思？
     `completeopt=menu,preview` 又是什么意思？
 

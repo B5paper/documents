@@ -2,6 +2,484 @@
 
 ## cache
 
+* 详细讲讲 python 中 sorted() 的用法
+
+    `sorted()` 是 Python 中非常强大且常用的内置函数，用于对**可迭代对象**进行排序，并**返回一个新的排序后的列表**。
+
+    与列表自带的 `list.sort()` 方法不同，`sorted()` **不会修改原始数据**，因此适用范围更广（字符串、字典、元组、生成器等都可以）。
+
+    下面从基础到高级，详细拆解它的用法。
+
+    ---
+
+    ### 1. 基础语法
+    ```python
+    sorted(iterable, key=None, reverse=False)
+    ```
+    - **iterable**：要排序的可迭代对象（必填）。
+    - **key**：指定排序依据的函数（选填，默认为 `None`）。
+    - **reverse**：布尔值，`True` 为降序，`False` 为升序（选填，默认为 `False`）。
+
+    ---
+
+    ### 2. 基础排序示例
+
+    #### 对数字和字符串排序
+    ```python
+    # 数字升序
+    print(sorted([3, 1, 4, 1, 5]))          # [1, 1, 3, 4, 5]
+
+    # 数字降序
+    print(sorted([3, 1, 4, 1, 5], reverse=True)) # [5, 4, 3, 1, 1]
+
+    # 字符串按 ASCII 码排序（大写在前，小写在后）
+    print(sorted(['banana', 'Apple', 'cat'])) # ['Apple', 'banana', 'cat']
+
+    # 对元组排序，返回列表
+    print(sorted((3, 1, 2)))                # [1, 2, 3]
+    ```
+
+    ---
+
+    ### 3. 核心参数 `key`（自定义排序规则）
+
+    `key` 接受一个**函数**，该函数会被应用到每个元素上，`sorted()` 根据函数的**返回值**进行排序。
+
+    #### 例1：按字符串长度排序
+    ```python
+    words = ['python', 'java', 'c', 'rust']
+    sorted_words = sorted(words, key=len)
+    print(sorted_words)  # ['c', 'java', 'rust', 'python']
+    ```
+
+    #### 例2：忽略大小写排序
+    ```python
+    words = ['banana', 'Apple', 'cat']
+    print(sorted(words, key=str.lower))  # ['Apple', 'banana', 'cat']
+    ```
+
+    #### 例3：对字典列表按某个键排序（非常常见）
+    ```python
+    students = [
+        {'name': 'Alice', 'score': 88},
+        {'name': 'Bob', 'score': 75},
+        {'name': 'Charlie', 'score': 95}
+    ]
+    # 按分数升序
+    sorted_by_score = sorted(students, key=lambda x: x['score'])
+    print(sorted_by_score)
+    # [{'name': 'Bob', 'score': 75}, {'name': 'Alice', 'score': 88}, {'name': 'Charlie', 'score': 95}]
+    ```
+
+    #### 例4：对元组列表按第二个元素排序
+    ```python
+    data = [(1, 'banana'), (2, 'apple'), (3, 'Cherry')]
+    print(sorted(data, key=lambda x: x[1].lower())) 
+    # [(2, 'apple'), (1, 'banana'), (3, 'Cherry')]
+    ```
+
+    ---
+
+    ### 4. 高级技巧：`key` 配合 `operator` 模块
+
+    当 `key` 需要获取对象的属性或下标时，使用 `operator.itemgetter` 和 `operator.attrgetter` 比 `lambda` 更快、更简洁。
+
+    ```python
+    from operator import itemgetter, attrgetter
+
+    # 对字典列表按多个键排序（先按分数降序，再按姓名升序）
+    students = [
+        {'name': 'Alice', 'score': 88},
+        {'name': 'Bob', 'score': 75},
+        {'name': 'Charlie', 'score': 88}
+    ]
+    # 先按 score 降序，再按 name 升序
+    sorted_students = sorted(students, key=itemgetter('score', 'name'), reverse=True)
+    # 注意：reverse=True 会对所有 key 都反转，如果你只想对 score 降序，需要借助下面讲的“稳定排序”技巧。
+    ```
+
+    #### 对自定义对象排序
+    ```python
+    class Student:
+        def __init__(self, name, grade):
+            self.name = name
+            self.grade = grade
+
+    s1 = Student('Alice', 88)
+    s2 = Student('Bob', 75)
+    s3 = Student('Charlie', 95)
+
+    sorted_students = sorted([s1, s2, s3], key=attrgetter('grade'))
+    print([s.name for s in sorted_students])  # ['Bob', 'Alice', 'Charlie']
+    ```
+
+    ---
+
+    ### 5. 复杂排序：多重条件（先按 A 排，再按 B 排）
+
+    因为 Python 的排序是**稳定**的（即相同键值的元素保持原顺序），可以利用这一点实现多重排序。
+
+    **需求**：先按分数降序，分数相同则按年龄升序。
+
+    ```python
+    students = [
+        {'name': 'Alice', 'score': 88, 'age': 20},
+        {'name': 'Bob', 'score': 75, 'age': 22},
+        {'name': 'Charlie', 'score': 88, 'age': 19}
+    ]
+
+    # 技巧：先排次要条件（age 升序），再排主要条件（score 降序）
+    # 因为稳定排序，后一次的排序不会打乱前一次的顺序
+    sorted_students = sorted(students, key=lambda x: x['age'])          # 先按年龄升序
+    sorted_students = sorted(sorted_students, key=lambda x: x['score'], reverse=True) # 再按分数降序
+    print(sorted_students)
+    # 输出：Charlie (88,19) 排在 Alice (88,20) 前面
+    ```
+    或者使用 `itemgetter` 返回元组（但要注意 `reverse` 会对所有字段生效）：
+    ```python
+    # 如果所有字段排序方向相同，直接用元组
+    sorted(students, key=lambda x: (x['score'], x['age']), reverse=True) 
+    # 这样会先按 score 降序，再按 age 降序
+    ```
+
+    ---
+
+    ### 6. 排序字典（按 key 或按 value）
+
+    - **按 key 排序**：
+    ```python
+    d = {'banana': 3, 'apple': 4, 'pear': 1}
+    sorted_keys = sorted(d)  # 默认按 key 排序
+    print(sorted_keys)       # ['apple', 'banana', 'pear']
+    ```
+
+    - **按 value 排序**（返回键列表或键值对列表）：
+    ```python
+    # 返回排序后的键列表
+    sorted_keys_by_value = sorted(d, key=lambda k: d[k])
+    print(sorted_keys_by_value)  # ['pear', 'banana', 'apple']
+
+    # 返回排序后的 (key, value) 元组列表
+    sorted_items = sorted(d.items(), key=lambda item: item[1])
+    print(sorted_items)  # [('pear', 1), ('banana', 3), ('apple', 4)]
+    ```
+
+    ---
+
+    ### 7. `reverse` 参数与 `key` 的配合
+
+    注意：`reverse=True` 是对**排序结果**整体反转，而不是只反转 `key` 函数返回的值。
+
+    ```python
+    # 按数字大小降序
+    sorted([1, 5, 3], reverse=True)  # [5, 3, 1]
+
+    # 按绝对值大小升序，但整体反转（等同于按绝对值降序）
+    sorted([-5, 3, -1], key=abs, reverse=True)  # [-5, 3, -1]
+    ```
+
+    ---
+
+    ### 8. 性能与注意事项
+
+    - **时间复杂度**：`sorted()` 使用 **Timsort** 算法（混合稳定排序），最坏时间复杂度 O(n log n)。
+    - **内存占用**：`sorted()` 会生成新列表，对于超大迭代器（如文件行），建议使用 `list.sort()` 原地排序以节省内存。
+    - **`key` 函数只计算一次**（Schwartzian transform 装饰-排序-去装饰），所以不用担心重复计算开销。
+
+    ---
+
+    ### 9. 常见错误与避坑
+
+    | 错误写法 | 原因 | 正确写法 |
+    | :--- | :--- | :--- |
+    | `sorted(123)` | 整数不可迭代 | 传入列表/元组等 |
+    | `sorted(['a', 1])` | 不同类型无法比较 | 确保同类型或自定义 key |
+    | `sorted(dict)` | 只排 key，不排 value | 用 `dict.items()` 配合 key |
+    | `reverse=True` 作用于多个 key 的元组时 | 所有字段都反转 | 分两次稳定排序或使用 `functools.cmp_to_key` |
+
+    ---
+
+    ### 10. 进阶：自定义比较函数（Python 3 已废弃 `cmp`）
+
+    Python 3 不再支持 `cmp` 参数，但可以使用 `functools.cmp_to_key` 转换：
+
+    ```python
+    from functools import cmp_to_key
+
+    def compare(a, b):
+        # 返回负数表示 a < b，正数表示 a > b
+        return a - b
+
+    sorted([3, 1, 4], key=cmp_to_key(compare))  # [1, 3, 4]
+    ```
+    不过大多数情况下，使用 `key` 更简洁高效，**不推荐**使用 `cmp_to_key`。
+
+    ---
+
+    ### 总结脑图（便于记忆）
+
+    ```
+    sorted(iterable, key=None, reverse=False)
+            │
+            ├── 基础：数字/字符串升序降序
+            ├── key ── 函数 ── 常见：
+            │              ├── len（按长度）
+            │              ├── str.lower（忽略大小写）
+            │              ├── lambda x: x['key']（字典）
+            │              ├── itemgetter / attrgetter（多字段/对象）
+            │              └── 自定义函数
+            ├── 稳定排序 ── 先排次要，再排主要
+            └── reverse ── 整体翻转排序结果
+    ```
+
+    如果你有具体场景（比如排序中文、排序日期、排序嵌套结构），可以告诉我，我可以针对性给出示例。
+
+* 还有哪些与 sorted() 类似的常用函数
+
+    除了 `sorted()`，Python 中还有几个非常常用的排序/顺序相关函数，它们各有侧重。我按**功能类别**给你梳理一下：
+
+    ---
+
+    ## 一、原地排序：`list.sort()`
+
+    这是 `sorted()` 最直接的"兄弟"，但**只适用于列表**，且**直接修改原列表**，不返回新对象。
+
+    ```python
+    nums = [3, 1, 4, 1, 5]
+    nums.sort()              # 原地升序，返回 None
+    print(nums)              # [1, 1, 3, 4, 5]
+
+    nums.sort(reverse=True)  # 原地降序
+    print(nums)              # [5, 4, 3, 1, 1]
+
+    # 同样支持 key 参数
+    words = ['banana', 'Apple', 'cat']
+    words.sort(key=str.lower)
+    print(words)             # ['Apple', 'banana', 'cat']
+    ```
+
+    | 特性 | `sorted()` | `list.sort()` |
+    |------|-----------|---------------|
+    | 适用范围 | 任何可迭代对象 | 仅列表 |
+    | 是否修改原数据 | ❌ 返回新列表 | ✅ 原地修改 |
+    | 返回值 | 新列表 | `None` |
+    | 内存占用 | 较大（复制一份） | 较小（原地操作） |
+
+    **使用建议**：
+    - 需要保留原数据 → 用 `sorted()`
+    - 数据量大且不需要原数据 → 用 `list.sort()` 节省内存
+
+    ---
+
+    ## 二、反转顺序：`reversed()`
+
+    返回一个**反向迭代器**，不修改原数据，惰性求值。
+
+    ```python
+    nums = [1, 2, 3, 4, 5]
+    rev = reversed(nums)
+    print(list(rev))         # [5, 4, 3, 2, 1]
+    print(nums)              # [1, 2, 3, 4, 5] 原数据不变
+
+    # 也可以用于字符串
+    s = "hello"
+    print(''.join(reversed(s)))  # 'olleh'
+
+    # 注意：reversed() 要求对象支持 __len__() 和 __getitem__()
+    # 对集合 set、字典 dict 无效（无序）
+    ```
+
+    **与 `sorted(..., reverse=True)` 的区别**：
+    - `reversed()` 只是简单反转**原有顺序**，不排序
+    - `sorted(..., reverse=True)` 是**先排序再反转**
+
+    ```python
+    nums = [3, 1, 4, 1, 5]
+    print(list(reversed(nums)))           # [5, 1, 4, 1, 3]（只是倒序）
+    print(sorted(nums, reverse=True))     # [5, 4, 3, 1, 1]（排序后倒序）
+    ```
+
+    ---
+
+    ## 三、获取极值：`min()` 和 `max()`
+
+    虽然不是排序函数，但经常与排序场景配合使用，同样支持 `key` 参数。
+
+    ```python
+    nums = [3, 1, 4, 1, 5]
+    print(min(nums))          # 1
+    print(max(nums))          # 5
+
+    # 按自定义规则取极值
+    students = [
+        {'name': 'Alice', 'score': 88},
+        {'name': 'Bob', 'score': 75},
+        {'name': 'Charlie', 'score': 95}
+    ]
+    # 分数最高的学生
+    best = max(students, key=lambda x: x['score'])
+    print(best)               # {'name': 'Charlie', 'score': 95}
+
+    # 也可以比较多个参数
+    print(min(3, 1, 4, 1, 5)) # 1（直接传多个参数）
+    ```
+
+    **与排序的关系**：
+    - 如果只需要最大/最小值，用 `min()`/`max()` 比 `sorted()[0]` 或 `sorted()[-1]` **效率更高**（O(n) vs O(n log n)）
+
+    ---
+
+    ## 四、部分排序/获取前N个：`heapq.nsmallest()` 和 `heapq.nlargest()`
+
+    来自 `heapq` 模块，当只需要**前 N 个最大/最小**元素时，比完整排序更高效。
+
+    ```python
+    import heapq
+
+    nums = [3, 1, 4, 1, 5, 9, 2, 6]
+    # 获取最小的3个
+    print(heapq.nsmallest(3, nums))   # [1, 1, 2]
+    # 获取最大的3个
+    print(heapq.nlargest(3, nums))    # [9, 6, 5]
+
+    # 同样支持 key 参数
+    students = [
+        {'name': 'Alice', 'score': 88},
+        {'name': 'Bob', 'score': 75},
+        {'name': 'Charlie', 'score': 95},
+        {'name': 'David', 'score': 82}
+    ]
+    # 分数最高的2人
+    top2 = heapq.nlargest(2, students, key=lambda x: x['score'])
+    print([s['name'] for s in top2])  # ['Charlie', 'Alice']
+    ```
+
+    **适用场景**：
+    - N 远小于总数量时（如从 100 万条数据中取前 10 名）
+    - N 接近总数时，直接用 `sorted()` 更快
+
+    ---
+
+    ## 五、合并排序：`heapq.merge()`
+
+    将多个**已排序**的迭代器合并成一个排序后的迭代器（惰性求值）。
+
+    ```python
+    import heapq
+
+    a = [1, 3, 5, 7]
+    b = [2, 4, 6, 8]
+    c = [0, 9, 10]
+
+    merged = heapq.merge(a, b, c)
+    print(list(merged))  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    # 注意：输入必须已经是排序好的
+    # 也支持 key 和 reverse 参数（Python 3.5+）
+    ```
+
+    **适用场景**：合并多个有序文件/大数据流时非常高效（归并排序思想）。
+
+    ---
+
+    ## 六、排序字典：`collections.OrderedDict`
+
+    虽然不直接排序，但用于**记住插入顺序**的字典，常用于需要保持排序结果的场景。
+
+    ```python
+    from collections import OrderedDict
+
+    # 普通字典（Python 3.7+ 也保留插入顺序，但 OrderedDict 有额外方法）
+    d = {'banana': 3, 'apple': 4, 'pear': 1}
+    # 按 key 排序后存入 OrderedDict
+    sorted_dict = OrderedDict(sorted(d.items()))
+    print(sorted_dict)  # OrderedDict([('apple', 4), ('banana', 3), ('pear', 1)])
+
+    # OrderedDict 特有方法：move_to_end()
+    sorted_dict.move_to_end('banana')  # 移到末尾
+    ```
+
+    ---
+
+    ## 七、自定义排序类：`bisect`（插入排序）
+
+    `bisect` 模块用于在**已排序列表**中查找插入位置，保持列表有序。
+
+    ```python
+    import bisect
+
+    nums = [1, 3, 4, 7]
+    # 查找插入位置（保持有序）
+    pos = bisect.bisect_left(nums, 5)   # 返回 3（应插入在索引3位置）
+    bisect.insort(nums, 5)              # 插入并保持有序
+    print(nums)  # [1, 3, 4, 5, 7]
+
+    # bisect_right 和 bisect_left 的区别：处理重复值
+    nums = [1, 3, 3, 7]
+    print(bisect.bisect_left(nums, 3))   # 1（插入到第一个3之前）
+    print(bisect.bisect_right(nums, 3))  # 3（插入到最后一个3之后）
+    ```
+
+    **适用场景**：频繁插入且需要保持有序的场景（如维护排行榜）。
+
+    ---
+
+    ## 八、排序相关装饰器：`functools.cmp_to_key`
+
+    前面提过，用于将 Python 2 风格的比较函数转换为 `key` 函数。
+
+    ```python
+    from functools import cmp_to_key
+
+    def compare(a, b):
+        # 自定义比较逻辑：按绝对值大小排序
+        return abs(a) - abs(b)
+
+    nums = [-5, 3, -1, 4]
+    sorted_nums = sorted(nums, key=cmp_to_key(compare))
+    print(sorted_nums)  # [-1, 3, 4, -5]（绝对值升序）
+    ```
+
+    **现代 Python 不推荐**，仅在复杂比较逻辑（如需要多字段不同排序方向）时使用。
+
+    ---
+
+    ## 九、对比总结表
+
+    | 函数/方法 | 返回类型 | 是否修改原数据 | 时间复杂度 | 适用场景 |
+    |-----------|---------|--------------|-----------|----------|
+    | `sorted()` | 新列表 | ❌ | O(n log n) | 通用排序，保留原数据 |
+    | `list.sort()` | None | ✅ | O(n log n) | 列表原地排序，省内存 |
+    | `reversed()` | 迭代器 | ❌ | O(n) | 简单反转顺序 |
+    | `min()`/`max()` | 单个元素 | ❌ | O(n) | 只需最大/最小值 |
+    | `heapq.nsmallest()` | 列表 | ❌ | O(n log k) | 取前N小/大（N << 总数） |
+    | `heapq.merge()` | 迭代器 | ❌ | O(n) | 合并多个已排序序列 |
+    | `bisect.insort()` | None | ✅ | O(n) | 维护有序列表的插入 |
+    | `cmp_to_key()` | key函数 | - | - | 复杂自定义比较逻辑 |
+
+    ---
+
+    ## 实战建议
+
+    ```python
+    # 场景1：数据量小，需要保留原数据
+    result = sorted(data, key=lambda x: x['age'])
+
+    # 场景2：数据量大，不需要原数据
+    data.sort(key=lambda x: x['age'])
+
+    # 场景3：只需要前10名（100万条数据）
+    import heapq
+    top10 = heapq.nlargest(10, data, key=lambda x: x['score'])
+
+    # 场景4：合并多个有序文件
+    import heapq
+    with open('file1.txt') as f1, open('file2.txt') as f2:
+        merged = heapq.merge(f1, f2)  # 逐行合并（假设文件已排序）
+    ```
+
+    如果还有特定场景（如排序中文、排序时间、自定义对象排序等），可以继续问我，我帮你写具体代码！
+
 * python datetime 中，如何判断一个时期在另一个日期的前面还是后面，比如是否有 dt_1 < dt_2 这样的比较？另外，datetime 是否有加法、减法，判断一个时期比另一个日期多了几天？
 
     在 Python 的 `datetime` 模块中，日期时间的比较和运算非常直观和强大。让我为你详细解释：

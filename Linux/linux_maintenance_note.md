@@ -6,6 +6,143 @@
 
 ## cache
 
+* 系统日志有哪些常见的查看方法？journalctl 如何查看指定服务的日志，比如 sshd？
+
+    系统日志有多种查看方法，以下是常见的日志查看方式：
+
+    ## 系统日志常见查看方法
+
+    ### 1. `journalctl` (systemd 系统)
+    ```bash
+    # 查看所有日志
+    journalctl
+
+    # 查看最新日志并实时刷新
+    journalctl -f
+
+    # 查看指定时间范围的日志
+    journalctl --since "2024-01-01 00:00:00" --until "2024-01-01 12:00:00"
+    journalctl --since "1 hour ago"
+    journalctl --since yesterday
+    ```
+
+    ### 2. 传统 syslog 文件
+    ```bash
+    # 主要系统日志
+    tail -f /var/log/syslog
+    tail -f /var/log/messages
+
+    # 认证相关日志
+    tail -f /var/log/auth.log
+    tail -f /var/log/secure
+
+    # 特定服务日志
+    tail -f /var/log/nginx/error.log
+    ```
+
+    ## 使用 `journalctl` 查看 SSH 服务日志
+
+    ### 查看 sshd 服务日志
+    ```bash
+    # 查看 sshd 服务的所有日志
+    journalctl -u ssh
+    journalctl -u sshd
+
+    # 实时查看 sshd 日志
+    journalctl -u ssh -f
+    journalctl -u sshd -f
+
+    # 查看今天的 sshd 日志
+    journalctl -u ssh --since today
+
+    # 查看最近 100 行 sshd 日志
+    journalctl -u ssh -n 100
+
+    # 按时间倒序显示（最新的在前）
+    journalctl -u ssh -r
+    ```
+
+    ### 更精确的 SSH 相关日志查询
+    ```bash
+    # 查看所有与 SSH 相关的日志
+    journalctl _COMM=sshd
+
+    # 查看特定进程的日志
+    journalctl _PID=1234
+
+    # 结合时间范围和优先级
+    journalctl -u ssh --since "1 hour ago" -p err
+    ```
+
+    ### 常用过滤选项
+    ```bash
+    # 按优先级过滤
+    journalctl -p emerg    # 紧急
+    journalctl -p alert    # 警告
+    journalctl -p crit     # 严重
+    journalctl -p err      # 错误
+    journalctl -p warning  # 警告
+    journalctl -p info     # 信息
+
+    # 查看内核相关日志
+    journalctl -k
+
+    # 查看启动相关日志
+    journalctl -b
+
+    # 查看指定用户的日志
+    journalctl _UID=1000
+    ```
+
+    ## 针对 SSH 连接问题的具体排查
+
+    ```bash
+    # 查看 SSH 连接失败的详细日志
+    journalctl -u ssh -f
+
+    # 查看最近的 SSH 错误
+    journalctl -u ssh -p err --since "10 minutes ago"
+
+    # 查看认证相关的详细日志
+    journalctl -u ssh SYSLOG_FACILITY=10 SYSLOG_FACILITY=4
+    ```
+
+    ## 其他有用的日志文件
+
+    ```bash
+    # 如果 journalctl 不可用，查看传统日志文件
+    tail -f /var/log/secure          # CentOS/RHEL
+    tail -f /var/log/auth.log        # Debian/Ubuntu
+    tail -f /var/log/messages        # 通用系统消息
+
+    # 最后登录信息
+    last
+    lastlog
+
+    # 失败的登录尝试
+    lastb
+    ```
+
+    ## 实用技巧
+
+    ```bash
+    # 将日志输出到文件
+    journalctl -u ssh --since "1 hour ago" > ssh_debug.log
+
+    # 使用 grep 过滤特定内容
+    journalctl -u ssh | grep "Failed password"
+    journalctl -u ssh | grep "Accepted"
+
+    # 查看磁盘使用情况
+    journalctl --disk-usage
+    ```
+
+    对于你的 SSH 密钥认证问题，建议使用：
+    ```bash
+    journalctl -u ssh -f
+    ```
+    然后在另一个终端尝试 SSH 连接，观察实时的错误信息。
+ 
 * systemd 中，After=network.target 如何替换成一个指定的自定义 service
 
     在 systemd 中，你可以通过多种方式替换 `After=network.target` 为自定义 service。以下是几种常见方法：
