@@ -2,6 +2,1270 @@
 
 ## cache
 
+* 简述 plt.figure() 的作用和函数型，以及常见的example
+
+	plt.figure() 的作用和函数签名
+
+	作用
+
+	`plt.figure()` 是 Matplotlib 中用于创建新图形窗口或激活现有图形窗口的函数。它可以控制图形的各种属性，如大小、分辨率、背景色等。
+
+	函数签名
+
+	```python
+	plt.figure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None, frameon=True, FigureClass=<class 'matplotlib.figure.Figure'>, clear=False, **kwargs)
+	```
+
+	**主要参数说明：**
+	- `num`: 图形标识符（数字或字符串）
+	- `figsize`: 图形尺寸（宽度, 高度），单位为英寸
+	- `dpi`: 分辨率，每英寸点数
+	- `facecolor`: 图形背景颜色
+	- `edgecolor`: 图形边框颜色
+	- `clear`: 如果为 True 且图形已存在，则清除该图形
+
+	常见示例
+
+	1. 基础用法
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # 创建数据
+        x = np.linspace(0, 10, 100)
+        y = np.sin(x)
+
+        # 创建图形
+        plt.figure()
+        plt.plot(x, y)
+        plt.title('基础图形')
+        plt.show()
+        ```
+
+	2. 指定图形尺寸
+
+        ```python
+        # 创建指定大小的图形
+        plt.figure(figsize=(8, 6))
+        plt.plot(x, y, 'r-', linewidth=2)
+        plt.title('自定义尺寸图形')
+        plt.grid(True)
+        plt.show()
+        ```
+
+	3. 多图形管理
+
+        ```python
+        # 创建第一个图形
+        plt.figure(1, figsize=(6, 4))
+        plt.plot(x, np.sin(x), 'b-')
+        plt.title('图形 1: 正弦函数')
+
+        # 创建第二个图形
+        plt.figure(2, figsize=(6, 4))
+        plt.plot(x, np.cos(x), 'g-')
+        plt.title('图形 2: 余弦函数')
+
+        # 切换回第一个图形并添加内容
+        plt.figure(1)
+        plt.plot(x, np.cos(x), 'r--', alpha=0.5)
+        plt.legend(['sin', 'cos'])
+
+        plt.show()
+        ```
+
+	4. 自定义背景和分辨率
+
+        ```python
+        # 高分辨率、自定义背景
+        plt.figure(figsize=(10, 6), dpi=100, facecolor='lightgray')
+        plt.plot(x, np.sin(x), label='sin(x)')
+        plt.plot(x, np.cos(x), label='cos(x)')
+        plt.legend()
+        plt.title('高分辨率自定义背景图形')
+        plt.grid(True, alpha=0.3)
+        plt.show()
+        ```
+
+	5. 清除现有图形
+
+        ```python
+        # 先创建一个图形
+        plt.figure(1)
+        plt.plot(x, y)
+        plt.title('原始图形')
+
+        # 清除并重新绘制
+        plt.figure(1, clear=True)
+        plt.plot(x, np.tan(x))
+        plt.title('清除后重新绘制的图形')
+        plt.ylim(-5, 5)
+        plt.show()
+        ```
+
+	6. 使用子图
+
+        ```python
+        # 创建图形并添加子图
+        fig = plt.figure(figsize=(12, 4))
+
+        # 添加第一个子图
+        ax1 = fig.add_subplot(131)
+        ax1.plot(x, np.sin(x))
+        ax1.set_title('正弦函数')
+
+        # 添加第二个子图
+        ax2 = fig.add_subplot(132)
+        ax2.plot(x, np.cos(x), 'r-')
+        ax2.set_title('余弦函数')
+
+        # 添加第三个子图
+        ax3 = fig.add_subplot(133)
+        ax3.plot(x, np.exp(-x), 'g-')
+        ax3.set_title('指数衰减')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	7. 保存高质量图形
+
+        ```python
+        # 创建高分辨率图形用于保存
+        plt.figure(figsize=(8, 6), dpi=150)
+        x = np.linspace(0, 2*np.pi, 100)
+        y1 = np.sin(x)
+        y2 = np.cos(x)
+
+        plt.plot(x, y1, 'b-', label='sin(x)', linewidth=2)
+        plt.plot(x, y2, 'r--', label='cos(x)', linewidth=2)
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('三角函数')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+
+        # 保存为高质量图片
+        plt.savefig('high_quality_plot.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        ```
+
+	总结
+
+	`plt.figure()` 是 Matplotlib 绘图的起点，它提供了对图形属性的精细控制。通过合理使用该函数，可以创建符合出版物要求的高质量图形，并有效管理多个图形窗口。
+
+* 那那些 subplot 的用法呢
+
+	plt.subplot() 的详细用法
+
+	作用
+
+	`plt.subplot()` 用于在当前图形中创建子图，实现多个坐标轴在同一个图形窗口中排列显示。
+
+	函数签名
+
+	```python
+	plt.subplot(nrows, ncols, index, **kwargs)
+	# 或者
+	plt.subplot(pos, **kwargs)
+	```
+
+	**参数说明：**
+	- `nrows`: 子图行数
+	- `ncols`: 子图列数  
+	- `index`: 子图位置（从1开始）
+	- `pos`: 三位整数（如235表示2行3列的第5个位置）
+
+	**常见示例**
+
+	1. 基础子图创建
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # 创建数据
+        x = np.linspace(0, 2*np.pi, 100)
+
+        plt.figure(figsize=(10, 6))
+
+        # 第一个子图
+        plt.subplot(2, 2, 1)  # 2行2列的第1个位置
+        plt.plot(x, np.sin(x))
+        plt.title('sin(x)')
+
+        # 第二个子图
+        plt.subplot(2, 2, 2)  # 2行2列的第2个位置
+        plt.plot(x, np.cos(x), 'r-')
+        plt.title('cos(x)')
+
+        # 第三个子图
+        plt.subplot(2, 2, 3)  # 2行2列的第3个位置
+        plt.plot(x, np.tan(x), 'g-')
+        plt.title('tan(x)')
+        plt.ylim(-5, 5)
+
+        # 第四个子图
+        plt.subplot(2, 2, 4)  # 2行2列的第4个位置
+        plt.plot(x, np.exp(-x), 'm-')
+        plt.title('exp(-x)')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	2. 三位数简写方式
+
+        ```python
+        plt.figure(figsize=(12, 4))
+
+        # 使用三位数简写：235 表示 2行3列第5个位置
+        plt.subplot(231)
+        plt.plot(x, np.sin(x))
+        plt.title('子图 1')
+
+        plt.subplot(232)
+        plt.plot(x, np.cos(x))
+        plt.title('子图 2')
+
+        plt.subplot(233)
+        plt.plot(x, np.tan(x))
+        plt.title('子图 3')
+
+        plt.subplot(234)
+        plt.plot(x, np.sinh(x))
+        plt.title('子图 4')
+
+        plt.subplot(235)
+        plt.plot(x, np.cosh(x))
+        plt.title('子图 5')
+
+        plt.subplot(236)
+        plt.plot(x, np.tanh(x))
+        plt.title('子图 6')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	3. 不规则子图布局
+
+        ```python
+        plt.figure(figsize=(10, 8))
+
+        # 创建不规则布局
+        plt.subplot(2, 2, 1)  # 左上
+        plt.plot(x, np.sin(x))
+        plt.title('左上 - 2x2 第1个')
+
+        plt.subplot(2, 2, 2)  # 右上
+        plt.plot(x, np.cos(x))
+        plt.title('右上 - 2x2 第2个')
+
+        # 跨越多个位置
+        plt.subplot(2, 1, 2)  # 底部整行
+        plt.plot(x, np.sin(x), label='sin(x)')
+        plt.plot(x, np.cos(x), label='cos(x)')
+        plt.legend()
+        plt.title('底部 - 跨越整行')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	4. 更复杂的不规则布局
+
+        ```python
+        import matplotlib.gridspec as gridspec
+
+        plt.figure(figsize=(12, 8))
+
+        # 方法1: 使用 subplot2grid
+        ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=2)
+        ax1.plot(x, np.sin(x))
+        ax1.set_title('subplot2grid - 跨越2列')
+
+        ax2 = plt.subplot2grid((3, 3), (0, 2), rowspan=2)
+        ax2.plot(x, np.cos(x))
+        ax2.set_title('subplot2grid - 跨越2行')
+
+        ax3 = plt.subplot2grid((3, 3), (1, 0))
+        ax3.plot(x, np.tan(x))
+        ax3.set_title('subplot2grid - 单个')
+
+        ax4 = plt.subplot2grid((3, 3), (1, 1))
+        ax4.plot(x, np.exp(-x))
+        ax4.set_title('subplot2grid - 单个')
+
+        ax5 = plt.subplot2grid((3, 3), (2, 0), colspan=3)
+        ax5.plot(x, np.sin(x) * np.cos(x))
+        ax5.set_title('subplot2grid - 跨越3列')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	5. 使用 GridSpec 精确控制
+
+        ```python
+        plt.figure(figsize=(12, 8))
+
+        # 创建 GridSpec 布局
+        gs = gridspec.GridSpec(3, 3)
+
+        # 使用 GridSpec 创建子图
+        ax1 = plt.subplot(gs[0, :])  # 第一行全部
+        ax1.plot(x, np.sin(x))
+        ax1.set_title('第一行 - 全部列')
+
+        ax2 = plt.subplot(gs[1, :-1])  # 第二行，除最后一列
+        ax2.plot(x, np.cos(x))
+        ax2.set_title('第二行 - 前两列')
+
+        ax3 = plt.subplot(gs[1:, -1])  # 从第二行开始到最后一行，最后一列
+        ax3.plot(x, np.tan(x))
+        ax3.set_title('第二三行 - 最后一列')
+
+        ax4 = plt.subplot(gs[-1, 0])  # 最后一行，第一列
+        ax4.plot(x, np.sinh(x))
+        ax4.set_title('最后一行 - 第一列')
+
+        ax5 = plt.subplot(gs[-1, -2])  # 最后一行，倒数第二列
+        ax5.plot(x, np.cosh(x))
+        ax5.set_title('最后一行 - 第二列')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	6. 子图共享坐标轴
+
+        ```python
+        plt.figure(figsize=(12, 6))
+
+        # 共享x轴
+        plt.subplot(2, 2, 1)
+        plt.plot(x, np.sin(x))
+        plt.title('sin(x)')
+
+        plt.subplot(2, 2, 2, sharex=plt.gca())  # 共享x轴
+        plt.plot(x, np.cos(x), 'r-')
+        plt.title('cos(x) - 共享x轴')
+
+        # 共享y轴
+        plt.subplot(2, 2, 3)
+        plt.plot(np.sin(x), x)
+        plt.title('x vs sin(x)')
+
+        plt.subplot(2, 2, 4, sharey=plt.gca())  # 共享y轴
+        plt.plot(np.cos(x), x, 'g-')
+        plt.title('x vs cos(x) - 共享y轴')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	7. 面向对象方式的子图
+
+        ```python
+        # 创建图形和子图数组
+        fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+
+        # 访问各个子图
+        axes[0, 0].plot(x, np.sin(x))
+        axes[0, 0].set_title('sin(x)')
+
+        axes[0, 1].plot(x, np.cos(x))
+        axes[0, 1].set_title('cos(x)')
+
+        axes[0, 2].plot(x, np.tan(x))
+        axes[0, 2].set_title('tan(x)')
+        axes[0, 2].set_ylim(-2, 2)
+
+        axes[1, 0].plot(x, np.sinh(x))
+        axes[1, 0].set_title('sinh(x)')
+
+        axes[1, 1].plot(x, np.cosh(x))
+        axes[1, 1].set_title('cosh(x)')
+
+        axes[1, 2].plot(x, np.tanh(x))
+        axes[1, 2].set_title('tanh(x)')
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	8. 混合使用 figure 和 subplot
+
+        ```python
+        # 创建多个图形，每个图形包含多个子图
+        for i in range(2):
+            plt.figure(i+1, figsize=(10, 6))
+            
+            plt.subplot(1, 2, 1)
+            plt.plot(x, np.sin(x * (i+1)))
+            plt.title(f'图形 {i+1} - 左子图')
+            
+            plt.subplot(1, 2, 2)
+            plt.plot(x, np.cos(x * (i+1)))
+            plt.title(f'图形 {i+1} - 右子图')
+            
+            plt.tight_layout()
+
+        plt.show()
+        ```
+
+	**实用技巧**
+
+	1. 自动调整布局
+
+        ```python
+        plt.figure(figsize=(10, 6))
+        plt.subplot(2, 2, 1)
+        # ... 绘制子图
+
+        # 自动调整子图间距
+        plt.tight_layout(pad=2.0, w_pad=1.0, h_pad=1.0)
+        plt.show()
+        ```
+
+	2. 获取当前坐标轴
+
+        ```python
+        plt.figure(figsize=(8, 6))
+        plt.subplot(1, 2, 1)
+        plt.plot(x, np.sin(x))
+
+        # 获取当前坐标轴并进行操作
+        ax = plt.gca()
+        ax.set_facecolor('lightgray')
+        ax.grid(True, alpha=0.3)
+
+        plt.subplot(1, 2, 2)
+        plt.plot(x, np.cos(x))
+
+        plt.tight_layout()
+        plt.show()
+        ```
+
+	**总结**
+
+	`plt.subplot()` 提供了灵活的子图创建方式：
+	- **基础网格布局**：使用 `(nrows, ncols, index)` 或三位数简写
+	- **不规则布局**：使用 `subplot2grid` 或 `GridSpec`
+	- **面向对象方式**：使用 `plt.subplots()` 返回坐标轴数组
+	- **共享坐标轴**：通过 `sharex` 和 `sharey` 参数
+	- **自动布局**：使用 `plt.tight_layout()` 优化间距
+
+	这些方法可以满足从简单到复杂的各种可视化布局需求。
+
+* 我见别人的代码里还有 fig = plt.figure() 相关的代码
+
+	您观察得很对！`fig = plt.figure()` 是 Matplotlib 的**面向对象（OO）编程风格**，这是更推荐的使用方式。让我详细解释这种用法。
+
+	**面向对象风格 vs 函数式风格**
+
+	### 1. 基础面向对象用法
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	# 创建图形对象
+	fig = plt.figure(figsize=(10, 6))
+
+	# 创建数据
+	x = np.linspace(0, 10, 100)
+	y = np.sin(x)
+
+	# 在图形上添加坐标轴
+	ax = fig.add_subplot(111)  # 1行1列第1个子图
+	ax.plot(x, y)
+	ax.set_title('面向对象风格')
+	ax.set_xlabel('X轴')
+	ax.set_ylabel('Y轴')
+
+	plt.show()
+	```
+
+	### 2. 创建多个子图（面向对象方式）
+	```python
+	# 创建图形和子图
+	fig = plt.figure(figsize=(12, 8))
+
+	# 添加多个子图
+	ax1 = fig.add_subplot(2, 2, 1)  # 2行2列第1个
+	ax2 = fig.add_subplot(2, 2, 2)  # 2行2列第2个
+	ax3 = fig.add_subplot(2, 2, 3)  # 2行2列第3个
+	ax4 = fig.add_subplot(2, 2, 4)  # 2行2列第4个
+
+	# 在各个子图上绘图
+	ax1.plot(x, np.sin(x))
+	ax1.set_title('正弦函数')
+
+	ax2.plot(x, np.cos(x), 'r-')
+	ax2.set_title('余弦函数')
+
+	ax3.plot(x, np.tan(x), 'g-')
+	ax3.set_title('正切函数')
+	ax3.set_ylim(-3, 3)
+
+	ax4.plot(x, np.exp(-x), 'm-')
+	ax4.set_title('指数衰减')
+
+	plt.tight_layout()
+	plt.show()
+	```
+
+	### 3. 更简洁的面向对象方式：plt.subplots()
+	```python
+	# 创建图形和子图数组（推荐方式）
+	fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+
+	# 数据
+	x = np.linspace(0, 2*np.pi, 100)
+
+	# 直接通过数组索引访问各个子图
+	axes[0, 0].plot(x, np.sin(x))
+	axes[0, 0].set_title('sin(x)')
+	axes[0, 0].grid(True)
+
+	axes[0, 1].plot(x, np.cos(x), 'r-')
+	axes[0, 1].set_title('cos(x)')
+	axes[0, 1].grid(True)
+
+	axes[1, 0].plot(x, np.sin(2*x), 'g-')
+	axes[1, 0].set_title('sin(2x)')
+	axes[1, 0].grid(True)
+
+	axes[1, 1].plot(x, np.cos(2*x), 'm-')
+	axes[1, 1].set_title('cos(2x)')
+	axes[1, 1].grid(True)
+
+	plt.tight_layout()
+	plt.show()
+	```
+
+	### 4. 复杂布局的面向对象控制
+	```python
+	# 创建复杂布局
+	fig = plt.figure(figsize=(12, 8))
+
+	# 使用 add_axes 手动指定位置 [left, bottom, width, height]
+	ax1 = fig.add_axes([0.1, 0.6, 0.3, 0.3])  # 手动指定位置和大小
+	ax2 = fig.add_axes([0.5, 0.6, 0.4, 0.3])
+	ax3 = fig.add_axes([0.1, 0.1, 0.8, 0.4])
+
+	# 在各个坐标轴上绘图
+	ax1.plot(x, np.sin(x), 'b-')
+	ax1.set_title('主图')
+
+	ax2.plot(x, np.cos(x), 'r-')
+	ax2.set_title('右上角小图')
+
+	ax3.plot(x, np.sin(x) * np.cos(x), 'g-')
+	ax3.set_title('底部大图')
+
+	plt.show()
+	```
+
+	### 5. 图形级别的设置和操作
+	```python
+	# 图形级别的精细控制
+	fig = plt.figure(
+		figsize=(10, 6),
+		dpi=100,
+		facecolor='lightgray',
+		edgecolor='black',
+		linewidth=2
+	)
+
+	ax = fig.add_subplot(111)
+	ax.plot(x, np.sin(x), linewidth=2, label='sin(x)')
+	ax.plot(x, np.cos(x), linewidth=2, label='cos(x)')
+
+	ax.set_xlabel('X轴', fontsize=12)
+	ax.set_ylabel('Y轴', fontsize=12)
+	ax.set_title('图形级别控制示例', fontsize=14)
+	ax.legend()
+	ax.grid(True, alpha=0.3)
+
+	# 设置坐标轴背景色
+	ax.set_facecolor('white')
+
+	plt.show()
+	```
+
+	### 6. 保存图形时的优势
+	```python
+	# 创建图形
+	fig, ax = plt.subplots(figsize=(8, 6))
+
+	# 绘图
+	x = np.linspace(0, 10, 100)
+	ax.plot(x, np.sin(x), label='sin(x)')
+	ax.plot(x, np.cos(x), label='cos(x)')
+	ax.legend()
+	ax.grid(True)
+
+	# 使用图形对象保存（更精确的控制）
+	fig.savefig('my_plot.png', 
+			   dpi=300, 
+			   bbox_inches='tight',
+			   facecolor='white',
+			   edgecolor='black')
+
+	plt.show()
+	```
+
+	### 7. 多个图形管理
+	```python
+	# 创建多个图形对象
+	fig1 = plt.figure(1, figsize=(8, 6))
+	ax1 = fig1.add_subplot(111)
+	ax1.plot(x, np.sin(x))
+	ax1.set_title('图形 1')
+
+	fig2 = plt.figure(2, figsize=(8, 6))
+	ax2 = fig2.add_subplot(111)
+	ax2.plot(x, np.cos(x), 'r-')
+	ax2.set_title('图形 2')
+
+	# 可以分别操作不同的图形
+	plt.figure(1)  # 切换到图形1
+	ax1.grid(True)
+
+	plt.figure(2)  # 切换到图形2  
+	ax2.grid(True)
+
+	plt.show()
+	```
+
+	### 8. 高级：自定义图形属性
+	```python
+	# 创建图形
+	fig = plt.figure(figsize=(10, 6))
+
+	# 添加子图
+	ax = fig.add_subplot(111)
+
+	# 绘图
+	x = np.linspace(0, 4*np.pi, 200)
+	line1, = ax.plot(x, np.sin(x), 'b-', linewidth=2, label='sin(x)')
+	line2, = ax.plot(x, np.cos(x), 'r--', linewidth=2, label='cos(x)')
+
+	# 精细控制
+	ax.set_xlim(0, 4*np.pi)
+	ax.set_ylim(-1.5, 1.5)
+	ax.set_xlabel('角度 (rad)', fontsize=12)
+	ax.set_ylabel('幅值', fontsize=12)
+	ax.set_title('三角函数', fontsize=14)
+	ax.legend(fontsize=10)
+	ax.grid(True, alpha=0.3)
+
+	# 添加文本注释
+	ax.text(2, 0.5, '最大值区域', fontsize=10, 
+			bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.5))
+
+	plt.tight_layout()
+	plt.show()
+	```
+
+	## 为什么推荐面向对象风格？
+
+	1. **更清晰的代码结构**：明确区分图形(fig)和坐标轴(ax)对象
+	2. **更好的控制**：可以直接操作具体的图形和坐标轴属性
+	3. **避免副作用**：不会意外影响到其他图形
+	4. **更适合复杂应用**：在GUI应用、Web应用等中表现更好
+	5. **更Pythonic**：符合面向对象编程思想
+
+	## 两种风格对比
+
+	```python
+	# 函数式风格（简单但限制多）
+	plt.figure(figsize=(8, 6))
+	plt.subplot(111)
+	plt.plot(x, y)
+	plt.title('函数式风格')
+	plt.xlabel('X')
+	plt.ylabel('Y')
+	plt.show()
+
+	# 面向对象风格（推荐）
+	fig, ax = plt.subplots(figsize=(8, 6))
+	ax.plot(x, y)
+	ax.set_title('面向对象风格')
+	ax.set_xlabel('X')
+	ax.set_ylabel('Y')
+	plt.show()
+	```
+
+	**建议**：对于简单的脚本，两种方式都可以；但对于复杂的可视化或应用程序，强烈推荐使用面向对象风格。
+
+* matplotlib 中，使用 ax.imshow(img, cmap='gray') 时，是否会将 img 的最小值映射到最黑，将最大值映射到最白？
+
+	**是的，默认情况下是这样的。**
+
+	在 `ax.imshow(img, cmap='gray')` 中：
+
+	- **最小值**会被映射到**最黑**（RGB: 0,0,0 或 #000000）
+	- **最大值**会被映射到**最白**（RGB: 255,255,255 或 #FFFFFF）
+	- 中间值会线性映射到相应的灰度级别
+
+	**验证示例：**
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	# 创建一个简单的测试图像
+	img = np.array([
+		[0, 50, 100],
+		[150, 200, 255]
+	])
+
+	fig, ax = plt.subplots(1, 1, figsize=(4, 3))
+	im = ax.imshow(img, cmap='gray')
+	ax.set_title('默认线性映射: 0→黑, 255→白')
+	plt.colorbar(im)
+	plt.show()
+	```
+
+	**自定义映射关系：**
+
+	如果你想改变这种默认行为，可以使用 `vmin` 和 `vmax` 参数：
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	img = np.random.rand(10, 10) * 100  # 值范围: 0-100
+
+	fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+	# 默认映射
+	im1 = ax1.imshow(img, cmap='gray')
+	ax1.set_title('默认: min→黑, max→白')
+	plt.colorbar(im1, ax=ax1)
+
+	# 自定义映射范围
+	im2 = ax2.imshow(img, cmap='gray', vmin=20, vmax=80)
+	ax2.set_title('自定义: 20→黑, 80→白')
+	plt.colorbar(im2, ax=ax2)
+
+	plt.tight_layout()
+	plt.show()
+	```
+
+	**反转颜色映射：**
+
+	你也可以反转灰度映射（最小值→白色，最大值→黑色）：
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	img = np.array([
+		[0, 50, 100],
+		[150, 200, 255]
+	])
+
+	fig, ax = plt.subplots(1, 1, figsize=(4, 3))
+	im = ax.imshow(img, cmap='gray_r')  # 注意 '_r' 表示反转
+	ax.set_title('反转: 0→白, 255→黑')
+	plt.colorbar(im)
+	plt.show()
+	```
+
+	**重要说明：**
+
+	1. **数据类型影响**：
+	   - 对于 `uint8` 类型：0=黑，255=白
+	   - 对于 `float` 类型：0.0=黑，1.0=白
+
+	2. **自动缩放**：
+	   - 如果没有指定 `vmin`/`vmax`，matplotlib 会自动使用数据的最小/最大值
+	   - 使用 `vmin`/`vmax` 可以手动设置映射范围
+
+	3. **归一化**：
+	   - 映射是通过 `Normalize` 类完成的
+	   - 可以使用 `norm` 参数指定自定义的归一化方法
+
+	所以你的理解是正确的：默认情况下，`imshow(img, cmap='gray')` 确实会将最小值映射为黑色，最大值映射为白色。
+
+* 如果我希望在一个 fig 里的多个 axes 在 imshow() 时，共享同一个标度，统计完所有图像后，找到 vmin 和 vmax，然后让所有图像根据这个 shared 的 vmin 和 vmax 进行灰度映射，该怎么办？
+
+	有几种方法可以实现多个axes共享同一个vmin/vmax标度。以下是几种常用的方法：
+
+	**方法1：手动计算并统一设置**
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	# 生成示例数据
+	images = [
+		np.random.randn(50, 50) * 0.5 + 1,  # 均值为1
+		np.random.randn(50, 50) * 0.8 - 1,  # 均值为-1
+		np.random.randn(50, 50) * 1.2 + 0.5 # 均值为0.5
+	]
+
+	# 计算所有图像的全局最小值和最大值
+	global_min = min(img.min() for img in images)
+	global_max = max(img.max() for img in images)
+
+	print(f"全局范围: vmin={global_min:.2f}, vmax={global_max:.2f}")
+
+	# 创建子图并统一设置vmin/vmax
+	fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+	for i, (ax, img) in enumerate(zip(axes, images)):
+		im = ax.imshow(img, cmap='gray', vmin=global_min, vmax=global_max)
+		ax.set_title(f'图像 {i+1}\n范围: [{img.min():.2f}, {img.max():.2f}]')
+
+	plt.tight_layout()
+	plt.show()
+	```
+
+	**方法2：使用函数封装（推荐）**
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	def create_shared_scale_plot(images, nrows=1, ncols=None, figsize=(10, 4)):
+		"""
+		创建共享颜色标度的多子图显示
+		"""
+		if ncols is None:
+			ncols = len(images)
+		
+		# 计算全局范围
+		global_min = min(img.min() for img in images)
+		global_max = max(img.max() for img in images)
+		
+		# 创建图形
+		fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+		if nrows == 1 and ncols == 1:
+			axes = np.array([axes])
+		axes = axes.flatten()
+		
+		# 显示图像
+		for i, (ax, img) in enumerate(zip(axes, images)):
+			im = ax.imshow(img, cmap='gray', vmin=global_min, vmax=global_max)
+			ax.set_title(f'图像 {i+1}')
+			ax.axis('off')
+		
+		# 添加颜色条
+		plt.tight_layout()
+		cbar = fig.colorbar(im, ax=axes.tolist(), shrink=0.8)
+		cbar.set_label('强度值')
+		
+		return fig, axes
+
+	# 使用示例
+	images = [np.random.randn(50, 50) for _ in range(4)]
+	fig, axes = create_shared_scale_plot(images, 2, 2, figsize=(10, 5))
+	plt.show()
+	```
+
+	**方法3：使用matplotlib的Normalize类**
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+	from matplotlib.colors import Normalize
+
+	# 生成数据
+	images = [
+		np.random.rand(50, 50) * 100,
+		np.random.rand(50, 50) * 200 - 50,
+		np.random.rand(50, 50) * 150 + 25
+	]
+
+	# 计算全局范围并创建归一化对象
+	global_min = min(img.min() for img in images)
+	global_max = max(img.max() for img in images)
+	norm = Normalize(vmin=global_min, vmax=global_max)
+
+	print(f"共享归一化范围: [{global_min:.2f}, {global_max:.2f}]")
+
+	# 创建子图
+	fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+	for i, (ax, img) in enumerate(zip(axes, images)):
+		im = ax.imshow(img, cmap='gray', norm=norm)
+		ax.set_title(f'图像 {i+1}\n实际: [{img.min():.2f}, {img.max():.2f}]')
+		ax.axis('off')
+
+	# 添加共享的颜色条
+	plt.tight_layout()
+	cbar = fig.colorbar(im, ax=axes, shrink=0.8)
+	cbar.set_label('共享强度标度')
+	plt.show()
+	```
+
+	**方法4：处理大量图像的优化版本**
+
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	def compute_global_range(images, percentile=1):
+		"""
+		计算所有图像的全局范围，可选使用百分位数去除异常值
+		"""
+		# 将所有图像堆叠
+		all_data = np.concatenate([img.flatten() for img in images])
+		
+		if percentile > 0:
+			# 使用百分位数去除异常值
+			vmin = np.percentile(all_data, percentile)
+			vmax = np.percentile(all_data, 100 - percentile)
+		else:
+			# 使用最小最大值
+			vmin = all_data.min()
+			vmax = all_data.max()
+		
+		return vmin, vmax
+
+	# 生成示例数据（包含一些异常值）
+	images = []
+	for i in range(6):
+		img = np.random.randn(50, 50) * 0.5 + i
+		# 添加一些异常值
+		if i % 2 == 0:
+			img[0, 0] = 10  # 异常高值
+			img[1, 1] = -10 # 异常低值
+		images.append(img)
+
+	# 计算全局范围（去除1%的异常值）
+	vmin, vmax = compute_global_range(images, percentile=1)
+
+	print(f"去除异常值后的范围: [{vmin:.2f}, {vmax:.2f}]")
+	print(f"原始数据范围: [{min(img.min() for img in images):.2f}, {max(img.max() for img in images):.2f}]")
+
+	# 创建子图
+	fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+	axes = axes.flatten()
+
+	for i, (ax, img) in enumerate(zip(axes, images)):
+		im = ax.imshow(img, cmap='gray', vmin=vmin, vmax=vmax)
+		ax.set_title(f'图像 {i+1}')
+		ax.axis('off')
+
+	plt.tight_layout()
+	plt.show()
+	```
+
+	**关键要点：**
+
+	1. **计算全局范围**：先遍历所有图像找到最小值和最大值
+	2. **统一应用**：在所有 `imshow()` 调用中使用相同的 `vmin` 和 `vmax`
+	3. **异常值处理**：对于包含异常值的数据，可以使用百分位数方法
+	4. **共享颜色条**：使用 `fig.colorbar(im, ax=axes)` 创建共享的颜色条
+
+	**推荐使用方法2或方法3**，它们提供了更好的代码组织和可重用性。
+
+* fig.subplots_adjust()时，我希望 top, bottom 采用绝对值，不使用相对值，怎么办
+
+	在Matplotlib中，`fig.subplots_adjust()` 默认使用相对坐标（0-1之间），但你可以通过结合使用绝对单位和坐标转换来实现绝对值的调整。
+
+	以下是几种解决方案：
+
+	**方法1：使用绝对单位并手动转换**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	# 创建图形和子图
+	fig, ax = plt.subplots(figsize=(8, 6))
+
+	# 定义绝对边距（以英寸为单位）
+	top_margin_inches = 0.5    # 上边距 0.5英寸
+	bottom_margin_inches = 0.5 # 下边距 0.5英寸
+
+	# 获取图形尺寸（英寸）
+	fig_width_inches, fig_height_inches = fig.get_size_inches()
+
+	# 转换为相对坐标
+	top_relative = 1 - (top_margin_inches / fig_height_inches)
+	bottom_relative = bottom_margin_inches / fig_height_inches
+
+	# 应用调整
+	fig.subplots_adjust(top=top_relative, bottom=bottom_relative)
+
+	plt.show()
+	```
+
+	**方法2：创建函数简化转换**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	def absolute_subplots_adjust(fig, top=None, bottom=None, left=None, right=None):
+		"""
+		使用绝对单位（英寸）调整子图边距
+		"""
+		fig_width, fig_height = fig.get_size_inches()
+		kwargs = {}
+		
+		if top is not None:
+			kwargs['top'] = 1 - (top / fig_height)
+		if bottom is not None:
+			kwargs['bottom'] = bottom / fig_height
+		if left is not None:
+			kwargs['left'] = left / fig_width
+		if right is not None:
+			kwargs['right'] = 1 - (right / fig_width)
+		
+		fig.subplots_adjust(**kwargs)
+
+	# 使用示例
+	fig, ax = plt.subplots(figsize=(8, 6))
+	absolute_subplots_adjust(fig, top=0.8, bottom=0.5, left=0.5, right=0.5)
+	plt.show()
+	```
+
+	**方法3：使用plt.subplots的subplot_kw参数**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	# 在创建图形时直接指定绝对边距
+	fig = plt.figure(figsize=(8, 6))
+
+	# 计算绝对边距对应的相对坐标
+	fig_width, fig_height = fig.get_size_inches()
+	top_abs, bottom_abs = 0.8, 0.5  # 绝对边距（英寸）
+	left_abs, right_abs = 0.5, 0.5
+
+	# 转换为相对坐标
+	left_rel = left_abs / fig_width
+	bottom_rel = bottom_abs / fig_height
+	right_rel = 1 - (right_abs / fig_width)
+	top_rel = 1 - (top_abs / fig_height)
+
+	# 计算子图的宽度和高度
+	width_rel = right_rel - left_rel
+	height_rel = top_rel - bottom_rel
+
+	# 创建子图时指定绝对位置
+	ax = fig.add_axes([left_rel, bottom_rel, width_rel, height_rel])
+
+	plt.show()
+	```
+
+	**方法4：使用GridSpec（推荐用于复杂布局）**
+
+	```python
+	import matplotlib.pyplot as plt
+	from matplotlib.gridspec import GridSpec
+
+	fig = plt.figure(figsize=(8, 6))
+
+	# 定义绝对边距（英寸）
+	top_margin = 0.8
+	bottom_margin = 0.5
+	left_margin = 0.5
+	right_margin = 0.5
+
+	fig_width, fig_height = fig.get_size_inches()
+
+	# 计算可用空间
+	usable_height = fig_height - top_margin - bottom_margin
+	usable_width = fig_width - left_margin - right_margin
+
+	# 创建GridSpec
+	gs = GridSpec(1, 1, 
+				  left=left_margin/fig_width,
+				  bottom=bottom_margin/fig_height,
+				  right=1 - right_margin/fig_width,
+				  top=1 - top_margin/fig_height)
+
+	ax = fig.add_subplot(gs[0, 0])
+	plt.show()
+	```
+
+	**推荐使用方法2**，因为它提供了清晰的接口并且易于使用。如果你需要更复杂的布局控制，方法4（GridSpec）是最灵活的选择。
+
+* 简述 plt.subplots() 的作用
+
+    `plt.subplots()` 是 Matplotlib 中用于创建图形（Figure）和一组子图（Axes）的便捷函数。
+
+    **主要作用：**
+
+    1. **一次性创建图形和子图网格** - 无需分别调用 `plt.figure()` 和 `plt.subplot()`
+    2. **返回图形对象和子图数组** - 便于精确控制每个子图
+    3. **简化多子图布局** - 自动处理子图的排列
+
+    **基本语法：**
+    ```python
+    fig, axes = plt.subplots(nrows=行数, ncols=列数)
+    ```
+
+    **常用参数：**
+    - `nrows`, `ncols`：子图的行数和列数
+    - `figsize`：图形大小
+    - `sharex`, `sharey`：是否共享坐标轴
+    - `constrained_layout`：自动调整布局
+
+    **示例：**
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建2×2的子图网格
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 8))
+
+    # 在每个子图上绘图
+    axes[0, 0].plot([1, 2, 3], [1, 2, 3])  # 左上子图
+    axes[0, 1].scatter([1, 2, 3], [3, 2, 1])  # 右上子图
+    axes[1, 0].bar(['A', 'B', 'C'], [1, 2, 3])  # 左下子图
+    axes[1, 1].hist([1, 2, 3, 4, 5])  # 右下子图
+
+    plt.show()
+    ```
+
+    这种方法比逐个创建子图更简洁，特别适合需要创建多个子图的场景。
+
+* 可以 axes[row][col]  这样访问吗？
+
+    **不可以！** 这是一个常见的误区。
+
+    `plt.subplots()` 返回的 `axes` 对象的索引方式取决于子图的布局：
+
+    ## 正确的索引方式：
+
+    ### 1. 单行或多行子图（nrows≥1, ncols>1）
+    **使用二维数组索引：** `axes[row, col]`
+    ```python
+    fig, axes = plt.subplots(2, 2)  # 2行2列
+    axes[0, 0].plot(...)  # 左上
+    axes[0, 1].plot(...)  # 右上  
+    axes[1, 0].plot(...)  # 左下
+    axes[1, 1].plot(...)  # 右下
+    ```
+
+    ### 2. 单列子图（nrows>1, ncols=1）
+    **使用一维数组索引：** `axes[row]`
+    ```python
+    fig, axes = plt.subplots(3, 1)  # 3行1列
+    axes[0].plot(...)  # 上
+    axes[1].plot(...)  # 中
+    axes[2].plot(...)  # 下
+    ```
+
+    ### 3. 单行子图（nrows=1, ncols>1）  
+    **使用一维数组索引：** `axes[col]`
+    ```python
+    fig, axes = plt.subplots(1, 3)  # 1行3列
+    axes[0].plot(...)  # 左
+    axes[1].plot(...)  # 中
+    axes[2].plot(...)  # 右
+    ```
+
+    ### 4. 单个子图
+    **直接使用：** `axes`
+    ```python
+    fig, ax = plt.subplots()  # 单个子图
+    ax.plot(...)
+    ```
+
+    ## 为什么不能使用 `axes[row][col]`？
+    因为 `axes` 是一个 NumPy 数组（在多维情况下），不是列表的列表。尝试 `axes[0][1]` 实际上会先取 `axes[0]`（第一行），然后再取该行的第1个元素，这在某些情况下可能意外工作，但不是标准用法。
+
+    **最佳实践：** 始终使用 `axes[row, col]` 的格式，这样代码更清晰且不会出错。
+
+* axes 和 axes[row, col] 分别是什么类型，给出类型 hint
+
+    好的，这是一个非常好的问题，明确类型有助于写出更健壮的代码。
+
+    `plt.subplots()` 返回的 `axes` 对象的类型取决于你创建的子图网格形状。以下是常见的几种情况及其类型提示。
+
+    ### 1. 多个子图（nrows > 1 且 ncols > 1）
+    这是最通用的形式，`axes` 是一个二维NumPy数组，其元素是 `Axes` 对象。
+
+    ```python
+    import matplotlib.pyplot as plt
+    from matplotlib.axes import Axes
+    import numpy as np
+
+    # 创建 2x2 的子图网格
+    fig, axes = plt.subplots(nrows=2, ncols=2)
+    # 类型提示:
+    # fig: Figure
+    # axes: np.ndarray[Axes]  (更精确地说是 np.ndarray[Axes, np.dtype[np.object_]])
+
+    # 访问单个子图
+    ax: Axes = axes[0, 0]  # 左上角的子图
+    # ax 的类型是 Axes
+    ```
+
+    ### 2. 单行子图（nrows = 1, ncols > 1）
+    此时，`axes` 是一个一维NumPy数组。
+
+    ```python
+    # 创建 1x3 的子图网格
+    fig, axes = plt.subplots(nrows=1, ncols=3)
+    # 类型提示:
+    # fig: Figure
+    # axes: np.ndarray[Axes]  # 这是一个一维数组！
+
+    # 访问单个子图
+    ax: Axes = axes[0]  # 最左边的子图
+    # 或者，虽然不推荐，但可以工作: ax = axes[0, 0]
+    ```
+
+    ### 3. 单列子图（nrows > 1, ncols = 1）
+    与单行类似，`axes` 也是一个一维NumPy数组。
+
+    ```python
+    # 创建 3x1 的子图网格
+    fig, axes = plt.subplots(nrows=3, ncols=1)
+    # 类型提示:
+    # fig: Figure
+    # axes: np.ndarray[Axes]  # 这是一个一维数组！
+
+    # 访问单个子图
+    ax: Axes = axes[1]  # 中间的子图
+    ```
+
+    ### 4. 单个子图（nrows = 1, ncols = 1）
+    这是最简单的形式，直接返回一个 `Axes` 对象，而不是数组。
+
+    ```python
+    # 创建单个子图
+    fig, ax = plt.subplots(nrows=1, ncols=1) # 参数 (1,1) 可以省略
+    # 类型提示:
+    # fig: Figure
+    # ax: Axes  # 注意这里不是数组，是单个 Axes 对象
+    ```
+
+    ---
+
+    ### 总结与最佳实践
+
+    | 网格形状 | `axes` 变量类型 | 访问方式 | 单个子图 (`ax`) 类型 |
+    | :--- | :--- | :--- | :--- |
+    | 1x1 (单个) | `Axes` | `ax` | `Axes` |
+    | 1xN (单行) | `np.ndarray[Axes]` (1D) | `axes[col]` | `Axes` |
+    | Nx1 (单列) | `np.ndarray[Axes]` (1D) | `axes[row]` | `Axes` |
+    | NxM (多行多列) | `np.ndarray[Axes]` (2D) | `axes[row, col]` | `Axes` |
+
+    **为了代码的清晰和一致性，强烈建议：**
+
+    1.  **使用 `axes[row, col]` 的语法**，即使对于一维数组它也适用（例如 `axes[0, 1]` 对于 `subplots(1, 3)` 是有效的）。
+    2.  **在编写函数时，使用类型检查**（如mypy）并相应地注释你的代码。你可以根据传入的 `nrows` 和 `ncols` 来判断返回的类型。
+
+    ```python
+    from typing import Tuple, Union
+    import numpy as np
+
+    def create_my_plots(nrows: int, ncols: int) -> Tuple[Figure, Union[Axes, np.ndarray]]:
+        fig, axes = plt.subplots(nrows, ncols)
+        return fig, axes
+    ```
+
 * matplotlib 做横向排版占满屏幕
 
     如果你只想让所有图像**横向排列铺满屏幕**（即一行多列显示），下面是最简洁的做法：

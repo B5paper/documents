@@ -6,6 +6,102 @@
 
 ## cache
 
+* 简述 realpath() 的作用以及原型
+
+	好的，我们来简述 `realpath()` 的作用和原型。
+
+	一、作用
+
+	`realpath()` 函数的主要作用是**解析一个路径名，返回其对应的绝对路径（完整路径），并解析其中所有的符号链接（软链接）以及 `./`、`../` 等相对路径成分**。
+
+	你可以把它理解为，它告诉你“这个文件/目录在文件系统中的确切位置”。
+
+	**具体来说，它会：**
+
+	1.  **展开绝对路径：** 将相对路径（如 `./project/config.txt`）转换为从根目录（`/`）开始的绝对路径（如 `/home/user/project/config.txt`）。
+	2.  **解析符号链接：** 如果路径中包含符号链接，它会追踪链接指向的最终目标文件，并返回目标的路径，而不是链接本身的路径。
+	3.  **规范化路径：** 处理路径中的 `/./`（当前目录）、`/../`（上级目录）和多余的 `/`，生成一个最简洁、无二义性的绝对路径。
+
+	**简单比喻：** 如果你给 `realpath()` 一个文件的“快捷方式”或一个“模糊地址”，它会返回这个文件的“详细家庭住址”。
+
+	---
+
+	二、函数原型
+
+	`realpath()` 函数的原型定义在 `<stdlib.h>` 头文件中。
+
+	```c
+	#include <stdlib.h>
+
+	char *realpath(const char *path, char *resolved_path);
+	```
+
+	参数说明：
+
+	*   `const char *path`
+		*   **输入参数**。这是一个字符串指针，指向需要被解析的原始路径名。它可以是相对路径，也可以是绝对路径，可以包含符号链接。
+
+	*   `char *resolved_path`
+		*   **输出参数**。这是一个指向缓冲区的指针，函数会将解析后得到的绝对路径字符串存入这个缓冲区。
+
+	返回值：
+
+	*   **成功时**：返回一个指向解析后路径字符串的指针，这个指针的值通常与传入的 `resolved_path` 参数相同。
+	*   **失败时**：返回 `NULL`，并且会设置全局变量 `errno` 以指示具体的错误原因（如文件不存在、没有权限等）。
+
+	---
+
+	三、使用示例
+
+	以下是一个简单的 C 语言示例，展示如何使用 `realpath()`。
+
+	```c
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <limits.h> // 定义了 PATH_MAX 常量
+
+	int main() {
+		// 定义一个缓冲区来存放解析后的路径
+		char resolved_path[PATH_MAX];
+
+		// 要解析的路径，这里是一个相对路径，其中 mylink 是一个符号链接
+		const char *original_path = "../project/mylink";
+
+		// 调用 realpath
+		char *result = realpath(original_path, resolved_path);
+
+		if (result == NULL) {
+			perror("realpath 解析失败");
+			exit(EXIT_FAILURE);
+		}
+
+		printf("原始路径: %s\n", original_path);
+		printf("绝对路径: %s\n", resolved_path);
+
+		return 0;
+	}
+	```
+
+	**可能的输出：**
+
+	```
+	原始路径: ../project/mylink
+	绝对路径: /home/username/documents/target_file.txt
+	```
+	（假设 `mylink` 指向 `/home/username/documents/target_file.txt`）
+
+	重要注意事项：
+
+	*   **缓冲区大小：** 你需要确保 `resolved_path` 缓冲区足够大，以容纳任何可能的路径名。通常使用 `<limits.h>` 中定义的 `PATH_MAX` 常量来指定缓冲区大小，它表示系统支持的最大路径长度。
+	*   **现代用法（更安全）：** 在一些支持 POSIX.1-2008 标准的系统上，`realpath()` 允许将 `resolved_path` 参数设为 `NULL`。在这种情况下，函数会动态分配足够大的缓冲区，调用者在使用完后需要手动 `free()` 释放内存。这是一种更便捷和安全的方式。
+		```c
+		char *resolved_path = realpath(original_path, NULL);
+		if (resolved_path != NULL) {
+			printf("绝对路径: %s\n", resolved_path);
+			free(resolved_path); // 切记要释放！
+		}
+		```
+
 * 详细讲讲 timer_create() 的原型、作用及用法
 
     在 Linux 系统编程中，`timer_create()` 是 POSIX 定时器接口的核心函数。相比于传统的 `alarm()` 或 `setitimer()`，它提供了更高的精度，并支持多实例、多种通知方式（信号、线程等）。

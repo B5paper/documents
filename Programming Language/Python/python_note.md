@@ -2,6 +2,156 @@
 
 ## cache
 
+* python 里，如果我写一个函数
+	def save_param(model: MyModel)
+	如果我知道 model 是一个继承自 Module 的类型的对象，但是不知道 model 的具体类型，该怎么写类型标注
+
+	在 Python 中，你有几种方式来处理这种情况：
+
+	1. 使用 `torch.nn.Module`（推荐）
+
+        ```python
+        import torch.nn as nn
+
+        def save_param(model: nn.Module) -> None:
+            # 你的代码
+            pass
+        ```
+
+	2. 使用类型模块的 `Module`
+
+        ```python
+        from torch.nn.modules.module import Module
+
+        def save_param(model: Module) -> None:
+            # 你的代码
+            pass
+        ```
+
+	3. 使用 Protocols（更灵活）
+
+        如果你想要更通用的类型标注，可以使用 Protocol：
+
+        ```python
+        from typing import Protocol, Any
+        import torch.nn as nn
+
+        class ModelProtocol(Protocol):
+            def state_dict(self) -> dict: ...
+            def load_state_dict(self, state_dict: dict) -> Any: ...
+            def parameters(self) -> Any: ...
+            # 添加其他你需要的方法
+
+        def save_param(model: ModelProtocol) -> None:
+            # 你的代码
+            pass
+        ```
+
+	4. 使用 Union 或 TypeVar（如果需要更具体）
+
+        ```python
+        from typing import TypeVar, Union
+        import torch.nn as nn
+
+        # 如果 MyModel 是你自定义的基类
+        T = TypeVar('T', bound=nn.Module)  # 或者 bound=MyModel
+
+        def save_param(model: T) -> None:
+            # 你的代码
+            pass
+        ```
+
+	5. 最通用的方式
+
+        ```python
+        from typing import Any
+        import torch.nn as nn
+
+        def save_param(model: nn.Module) -> None:
+            """保存模型参数
+            
+            Args:
+                model: 任何继承自 torch.nn.Module 的模型
+            """
+            # 你的代码
+            pass
+        ```
+
+	**推荐使用第一种方式**，因为：
+	- 明确表示需要 PyTorch 的 Module
+	- 类型检查器能够正确识别
+	- 代码可读性好
+	- 支持所有 Module 的子类
+
+	如果你的 MyModel 有特殊的接口要求，可以考虑使用 Protocol 来定义更精确的接口约束。
+
+* python 中 int() 我希望能直接截断小数，怎么办？如果我希望 around，或者 ceil, floor，又怎么办？
+
+    在Python中，`int()` 函数默认就是**截断小数**（向零取整）。如果你需要其他取整方式，可以使用不同的函数：
+
+    ## 1. 截断小数（向零取整） - `int()`
+    ```python
+    print(int(3.7))   # 输出: 3
+    print(int(-2.9))  # 输出: -2 (向零取整)
+    ```
+
+    ## 2. 四舍五入 - `round()`
+    ```python
+    print(round(3.4))   # 输出: 3
+    print(round(3.5))   # 输出: 4 (银行家舍入)
+    print(round(3.678, 1))  # 输出: 3.7 (保留1位小数)
+    ```
+
+    ## 3. 向上取整 - `math.ceil()`
+    ```python
+    import math
+
+    print(math.ceil(3.1))   # 输出: 4
+    print(math.ceil(-2.9))  # 输出: -2
+    ```
+
+    ## 4. 向下取整 - `math.floor()`
+    ```python
+    import math
+
+    print(math.floor(3.9))   # 输出: 3
+    print(math.floor(-2.1))  # 输出: -3
+    ```
+
+    ## 5. 向零取整（与int()相同）- `math.trunc()`
+    ```python
+    import math
+
+    print(math.trunc(3.7))   # 输出: 3
+    print(math.trunc(-2.9))  # 输出: -2
+    ```
+
+    ## 总结对比
+
+    | 函数 | 3.7 | -2.9 | 描述 |
+    |------|-----|------|------|
+    | `int()` | 3 | -2 | **截断小数**（向零取整） |
+    | `round()` | 4 | -3 | 四舍五入 |
+    | `math.ceil()` | 4 | -2 | 向上取整 |
+    | `math.floor()` | 3 | -3 | 向下取整 |
+    | `math.trunc()` | 3 | -2 | 向零取整（同int()） |
+
+    ## 实用技巧
+
+    ```python
+    import math
+
+    # 如果你想要更明确的截断
+    def truncate_float(x):
+        return int(x) if x >= 0 else math.ceil(x)
+
+    # 或者直接使用
+    def truncate_float(x):
+        return math.trunc(x)
+    ```
+
+    **注意：** `int()` 和 `math.trunc()` 对于正数表现相同（都向下），对于负数表现也相同（都向上），都是"向零取整"。
+
 * 详细讲讲 python 中 sorted() 的用法
 
     `sorted()` 是 Python 中非常强大且常用的内置函数，用于对**可迭代对象**进行排序，并**返回一个新的排序后的列表**。

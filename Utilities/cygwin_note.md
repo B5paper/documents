@@ -4,6 +4,43 @@
 
 ## cache
 
+* cygwin 中，挂载远程文件权限不对，导致无法修改文件/创建文件
+
+    原因：用户和用户组在挂载时未指定，因此设置得不正确
+
+    现象：
+
+    `-rw-rw-r-- 1 Other Organization Other Organization  87  6月  5 15:03 hello.txt`
+
+    解决方案：
+
+    * 使用`sshfs -o uid=-1,gid=-1 user@host:remote_dir local_dir`
+
+        `-1`可以让 sshfs 自动选择本机用户的 user 和 group
+
+    * 手动查看 user id 和 group id，并在挂载时指定
+
+        ```bash
+        id -u
+        id -g
+        ```
+
+        挂载命令：
+
+        ```bash
+        sshfs [user@]host:[dir] [mountpoint] -o uid=你的UID -o gid=你的GID -o umask=000 -o create_umask=000
+        ```
+
+        * umask=000 和 create_umask=000：为新创建的文件和目录设置最宽松的权限（777），确保可写
+
+            注：
+
+            1. 这条未验证。
+
+    * 如果挂载点正在使用，需要先卸载：
+
+        `fusermount3 -u [挂载点]`
+
 * cygwin 中如何使用 sudo
 
     这是一个非常经典的问题。简单直接的答案是：**Cygwin 环境中并没有原生的 `sudo` 命令。**
