@@ -2,6 +2,477 @@
 
 ## cache
 
+* plt.scatter() 里，我想把 marker 搞得大一点粗一点，怎么办
+
+	在 `plt.scatter()` 中，你可以通过以下参数来调整 marker 的大小和粗细：
+
+	1. 调整 marker 大小 - `s` 参数
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        x = np.random.rand(20)
+        y = np.random.rand(20)
+
+        # 基础用法 - 设置统一大小
+        plt.scatter(x, y, s=100)  # s 控制点的大小
+
+        plt.show()
+        ```
+
+	2. 调整 marker 边缘粗细 - `linewidths` 参数
+
+        ```python
+        # 设置边缘线条粗细
+        plt.scatter(x, y, s=100, linewidths=2)  # 边缘线条宽度为2
+        plt.show()
+        ```
+
+	3. 综合调整大小和粗细
+
+        ```python
+        # 同时调整大小和边缘粗细
+        plt.scatter(x, y, s=150, linewidths=3, edgecolors='black')
+        plt.show()
+        ```
+
+	4. 不同点设置不同大小
+
+        ```python
+        # 为每个点设置不同的大小
+        sizes = np.random.randint(50, 200, 20)  # 随机大小
+        plt.scatter(x, y, s=sizes, linewidths=2, edgecolors='black')
+        plt.show()
+        ```
+
+	5. 完整示例
+
+        ```python
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # 生成示例数据
+        np.random.seed(42)
+        x = np.random.rand(30)
+        y = np.random.rand(30)
+        colors = np.random.rand(30)
+        sizes = np.random.randint(50, 300, 30)
+
+        plt.figure(figsize=(10, 6))
+        plt.scatter(x, y, 
+                   s=sizes,           # 点的大小
+                   c=colors,          # 点的颜色
+                   alpha=0.7,         # 透明度
+                   linewidths=2,      # 边缘线条宽度
+                   edgecolors='black') # 边缘颜色
+
+        plt.title('自定义大小的散点图')
+        plt.xlabel('X轴')
+        plt.ylabel('Y轴')
+        plt.show()
+        ```
+
+	参数说明：
+
+	- **`s`**: marker 的面积（以点为单位^2）
+	- **`linewidths`**: marker 边缘线条的宽度
+	- **`edgecolors`**: marker 边缘的颜色
+
+	**提示**：`s` 参数的值是面积的平方，所以如果你想让点看起来是原来的2倍大，应该设置 `s` 为原来的4倍左右。
+
+* matplotlib 如何关闭所有 ax 的坐标轴
+
+	在 matplotlib 中，有几种方法可以关闭所有坐标轴（包括刻度、标签等）。以下是几种常用的方法：
+
+	**方法1：使用 `axis('off')`**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	# 创建图形和坐标轴
+	fig, axes = plt.subplots(2, 2)
+
+	# 遍历所有坐标轴并关闭
+	for ax in axes.flat:
+		ax.axis('off')
+
+	plt.show()
+	```
+
+	**方法2：使用 `set_axis_off()`**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	fig, axes = plt.subplots(2, 2)
+
+	for ax in axes.flat:
+		ax.set_axis_off()
+
+	plt.show()
+	```
+
+	**方法3：在创建子图时设置**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	# 创建图形但不创建坐标轴
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	ax.axis('off')  # 或者 ax.set_axis_off()
+
+	plt.show()
+	```
+
+	**方法4：对于单个图形**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	plt.plot([1, 2, 3], [1, 2, 3])
+	plt.axis('off')  # 关闭当前坐标轴
+	plt.show()
+	```
+
+	**方法5：批量处理现有图形**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	# 假设已经有一些坐标轴
+	fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+
+	# 获取图形中的所有坐标轴并关闭
+	for ax in fig.get_axes():
+		ax.axis('off')
+
+	plt.show()
+	```
+
+	**方法6：完全自定义显示内容**
+
+	```python
+	import matplotlib.pyplot as plt
+
+	fig, axes = plt.subplots(2, 2)
+
+	for ax in axes.flat:
+		# 分别控制各个元素的显示
+		ax.set_xticks([])      # 隐藏x轴刻度
+		ax.set_yticks([])      # 隐藏y轴刻度
+		ax.set_xlabel('')      # 清空x轴标签
+		ax.set_ylabel('')      # 清空y轴标签
+		ax.set_title('')       # 清空标题
+		# 隐藏边框
+		for spine in ax.spines.values():
+			spine.set_visible(False)
+
+	plt.show()
+	```
+
+	**推荐使用方法1或方法2**，因为它们最简单且效果最好。`axis('off')` 和 `set_axis_off()` 都会隐藏坐标轴的所有元素（轴线、刻度、标签等），让图形区域完全空白。
+
+* 如果没有要 plot 的内容，或者没有 imshow() 的内容，这个方法似乎没用
+
+	您说得对！如果没有实际绘制内容，只是创建了空的坐标轴，那么关闭坐标轴后确实看起来没有任何变化。这是因为空白的图形区域本身就是白色的。
+
+	## 解决方案
+
+	### 方法1：设置背景色来验证
+	```python
+	import matplotlib.pyplot as plt
+
+	fig, axes = plt.subplots(2, 2)
+
+	# 设置图形背景色（不是坐标轴背景色）
+	fig.patch.set_facecolor('lightblue')
+
+	for ax in axes.flat:
+		ax.axis('off')
+
+	plt.show()
+	```
+
+	### 方法2：设置坐标轴背景色
+	```python
+	import matplotlib.pyplot as plt
+
+	fig, axes = plt.subplots(2, 2)
+
+	for ax in axes.flat:
+		ax.axis('off')
+		ax.set_facecolor('lightgray')  # 设置坐标轴区域背景色
+
+	plt.show()
+	```
+
+	### 方法3：添加一些虚拟内容来验证
+	```python
+	import matplotlib.pyplot as plt
+	import numpy as np
+
+	fig, axes = plt.subplots(2, 2)
+
+	for i, ax in enumerate(axes.flat):
+		# 添加一些文本或简单图形
+		ax.text(0.5, 0.5, f'Axes {i+1}', ha='center', va='center', fontsize=12)
+		ax.axis('off')
+
+	plt.show()
+	```
+
+	### 方法4：调整图形尺寸和间距
+	```python
+	import matplotlib.pyplot as plt
+
+	# 调整图形尺寸和子图间距
+	fig, axes = plt.subplots(2, 2, figsize=(8, 6))
+	fig.tight_layout(pad=3.0)  # 增加间距
+
+	for ax in axes.flat:
+		ax.axis('off')
+		ax.set_facecolor('whitesmoke')  # 浅灰色背景
+
+	plt.show()
+	```
+
+	### 方法5：完全移除坐标轴（最彻底的方法）
+	```python
+	import matplotlib.pyplot as plt
+
+	# 如果不想要任何坐标轴，可以直接不创建
+	fig = plt.figure(figsize=(6, 4))
+
+	# 添加一些文本或其他元素，但不创建坐标轴
+	plt.figtext(0.5, 0.5, 'No axes here!', ha='center', va='center', fontsize=16)
+
+	plt.show()
+	```
+
+	### 方法6：检查是否真的关闭了坐标轴
+	```python
+	import matplotlib.pyplot as plt
+
+	fig, axes = plt.subplots(1, 2)
+
+	# 第一个子图：关闭坐标轴
+	axes[0].axis('off')
+	axes[0].set_title('Axis OFF')
+
+	# 第二个子图：保持坐标轴开启作为对比
+	axes[1].set_title('Axis ON')
+
+	plt.show()
+	```
+
+	**关键点：**
+	- 空白的坐标轴关闭后看起来确实像"没变化"，因为都是白色背景
+	- 通过设置背景色或添加内容可以验证坐标轴确实被关闭了
+	- 如果完全不需要坐标轴，考虑直接创建图形而不创建坐标轴
+
+	您可以根据具体需求选择合适的方法！
+
+* 写一个python函数，判断两张图片的相似度。可以使用 numpy
+
+	我来写一个使用numpy计算图片相似度的函数，提供多种相似度度量方法：
+
+	```python
+	import numpy as np
+	from PIL import Image
+	import cv2
+
+	def image_similarity(img1_path, img2_path, method='ssim', resize_to=(256, 256)):
+		"""
+		计算两张图片的相似度
+		
+		参数:
+		img1_path: 第一张图片路径或numpy数组
+		img2_path: 第二张图片路径或numpy数组
+		method: 相似度计算方法 ('ssim', 'mse', 'histogram', 'phash')
+		resize_to: 统一调整的图片尺寸
+		
+		返回:
+		similarity: 相似度分数 (不同方法范围不同)
+		"""
+		
+		# 读取图片
+		if isinstance(img1_path, str):
+			img1 = cv2.imread(img1_path)
+			img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+		else:
+			img1 = img1_path.copy()
+		
+		if isinstance(img2_path, str):
+			img2 = cv2.imread(img2_path)
+			img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+		else:
+			img2 = img2_path.copy()
+		
+		# 统一尺寸
+		img1 = cv2.resize(img1, resize_to)
+		img2 = cv2.resize(img2, resize_to)
+		
+		# 转换为float32并归一化
+		img1 = img1.astype(np.float32) / 255.0
+		img2 = img2.astype(np.float32) / 255.0
+		
+		if method == 'mse':
+			return _mse_similarity(img1, img2)
+		elif method == 'ssim':
+			return _ssim_similarity(img1, img2)
+		elif method == 'histogram':
+			return _histogram_similarity(img1, img2)
+		elif method == 'phash':
+			return _phash_similarity(img1, img2)
+		else:
+			raise ValueError("不支持的相似度计算方法")
+
+	def _mse_similarity(img1, img2):
+		"""
+		使用均方误差(MSE)计算相似度
+		MSE越小越相似
+		"""
+		mse = np.mean((img1 - img2) ** 2)
+		# 将MSE转换为相似度分数 (0-1范围，1表示完全相同)
+		similarity = 1 / (1 + mse)
+		return similarity
+
+	def _ssim_similarity(img1, img2, window_size=11):
+		"""
+		使用结构相似性指数(SSIM)计算相似度
+		SSIM范围[-1, 1]，1表示完全相同
+		"""
+		# 如果是彩色图像，分别计算每个通道的SSIM然后取平均
+		if len(img1.shape) == 3:
+			ssim_values = []
+			for i in range(3):
+				channel_ssim = _calculate_ssim(img1[:,:,i], img2[:,:,i], window_size)
+				ssim_values.append(channel_ssim)
+			return np.mean(ssim_values)
+		else:
+			return _calculate_ssim(img1, img2, window_size)
+
+	def _calculate_ssim(img1, img2, window_size=11):
+		"""
+		计算单通道图像的SSIM
+		"""
+		C1 = (0.01 * 255) ** 2
+		C2 = (0.03 * 255) ** 2
+		
+		img1 = img1 * 255
+		img2 = img2 * 255
+		
+		kernel = cv2.getGaussianKernel(window_size, 1.5)
+		window = np.outer(kernel, kernel.transpose())
+		
+		mu1 = cv2.filter2D(img1, -1, window)[5:-5, 5:-5]
+		mu2 = cv2.filter2D(img2, -1, window)[5:-5, 5:-5]
+		
+		mu1_sq = mu1 ** 2
+		mu2_sq = mu2 ** 2
+		mu1_mu2 = mu1 * mu2
+		
+		sigma1_sq = cv2.filter2D(img1 ** 2, -1, window)[5:-5, 5:-5] - mu1_sq
+		sigma2_sq = cv2.filter2D(img2 ** 2, -1, window)[5:-5, 5:-5] - mu2_sq
+		sigma12 = cv2.filter2D(img1 * img2, -1, window)[5:-5, 5:-5] - mu1_mu2
+		
+		ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / ((mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2))
+		return ssim_map.mean()
+
+	def _histogram_similarity(img1, img2):
+		"""
+		使用直方图相关性计算相似度
+		范围[0, 1]，1表示完全相同
+		"""
+		# 计算HSV直方图
+		img1_hsv = cv2.cvtColor((img1 * 255).astype(np.uint8), cv2.COLOR_RGB2HSV)
+		img2_hsv = cv2.cvtColor((img2 * 255).astype(np.uint8), cv2.COLOR_RGB2HSV)
+		
+		# 计算直方图
+		hist1 = cv2.calcHist([img1_hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
+		hist2 = cv2.calcHist([img2_hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
+		
+		# 归一化直方图
+		cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+		cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+		
+		# 计算直方图相关性
+		similarity = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+		return max(0, similarity)  # 确保非负
+
+	def _phash_similarity(img1, img2, hash_size=8):
+		"""
+		使用感知哈希(pHash)计算相似度
+		返回汉明距离，距离越小越相似
+		"""
+		def phash(image, hash_size=8):
+			# 转换为灰度图
+			gray = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+			# 调整大小
+			resized = cv2.resize(gray, (hash_size, hash_size))
+			# 计算DCT
+			dct = cv2.dct(np.float32(resized))
+			# 取左上角8x8 (或hash_size x hash_size)
+			dct_roi = dct[:hash_size, :hash_size]
+			# 计算均值
+			avg = np.mean(dct_roi)
+			# 生成哈希
+			hash_val = (dct_roi > avg).flatten()
+			return hash_val
+		
+		hash1 = phash(img1, hash_size)
+		hash2 = phash(img2, hash_size)
+		
+		# 计算汉明距离
+		hamming_distance = np.sum(hash1 != hash2)
+		# 转换为相似度分数
+		similarity = 1 - (hamming_distance / len(hash1))
+		return similarity
+
+	# 使用示例
+	if __name__ == "__main__":
+		# 示例用法
+		img1_path = "image1.jpg"
+		img2_path = "image2.jpg"
+		
+		try:
+			# 使用不同的方法计算相似度
+			ssim_score = image_similarity(img1_path, img2_path, method='ssim')
+			mse_score = image_similarity(img1_path, img2_path, method='mse')
+			hist_score = image_similarity(img1_path, img2_path, method='histogram')
+			phash_score = image_similarity(img1_path, img2_path, method='phash')
+			
+			print(f"SSIM相似度: {ssim_score:.4f}")
+			print(f"MSE相似度: {mse_score:.4f}")
+			print(f"直方图相似度: {hist_score:.4f}")
+			print(f"感知哈希相似度: {phash_score:.4f}")
+			
+		except Exception as e:
+			print(f"错误: {e}")
+	```
+
+	这个函数提供了四种不同的图片相似度计算方法：
+
+	1. **MSE (均方误差)**: 计算像素级别的差异，值越小越相似
+	2. **SSIM (结构相似性)**: 考虑亮度、对比度和结构信息，更符合人类视觉
+	3. **直方图相似度**: 比较颜色分布，对几何变换不敏感
+	4. **感知哈希**: 生成图片的指纹，适合快速比较
+
+	**特点**:
+	- 支持直接传入图片路径或numpy数组
+	- 自动统一图片尺寸
+	- 返回标准化的相似度分数（0-1范围）
+	- 使用numpy进行高效计算
+
+	**使用建议**:
+	- 对于精确的相似度比较，推荐使用SSIM
+	- 对于快速比较，可以使用感知哈希
+	- 对于颜色相似的图片，可以使用直方图方法
+
+	记得安装依赖：`pip install opencv-python pillow numpy`
+
 * 我设置了 x11 forward，为什么还是报这个错：
     /home/test/Documents/sci/poly.py:59: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
   plt.show()

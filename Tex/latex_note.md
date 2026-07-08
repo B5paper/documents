@@ -2,6 +2,194 @@
 
 ## cache
 
+* 给出常用 latex 符号对照表
+
+	好的，这是一份常用的 LaTeX 符号对照表，特别是那些与常规键盘符号差异较大或需要特殊命令的符号。
+
+	### LaTeX 常用符号对照表
+
+	#### 1. 希腊字母（Greek Letters）
+
+	| 符号名称         | 小写 LaTeX        | 大写 LaTeX        |
+	| :--------------- | :---------------- | :---------------- |
+	| Alpha            | `\alpha` $\alpha$     | `A` $A$               |
+	| Beta             | `\beta` $\beta$      | `B` $B$               |
+	| Gamma            | `\gamma` $\gamma$    | `\Gamma` $\Gamma$     |
+	| Delta            | `\delta` $\delta$    | `\Delta` $\Delta$     |
+	| Epsilon          | `\epsilon` $\epsilon$| `E` $E$               |
+	| Zeta             | `\zeta` $\zeta$     | `Z` $Z$               |
+	| Eta              | `\eta` $\eta$      | `H` $H$               |
+	| Theta            | `\theta` $\theta$   | `\Theta` $\Theta$     |
+	| Lambda           | `\lambda` $\lambda$ | `\Lambda` $\Lambda$   |
+	| Mu               | `\mu` $\mu$       | `M` $M$               |
+	| Nu               | `\nu` $\nu$       | `N` $N$               |
+	| Xi               | `\xi` $\xi$       | `\Xi` $\Xi$           |
+	| Pi               | `\pi` $\pi$       | `\Pi` $\Pi$           |
+	| Rho              | `\rho` $\rho$      | `P` $P$               |
+	| Sigma            | `\sigma` $\sigma$   | `\Sigma` $\Sigma$     |
+	| Tau              | `\tau` $\tau$      | `T` $T$               |
+	| Phi              | `\phi` $\phi$      | `\Phi` $\Phi$         |
+	| Psi              | `\psi` $\psi$      | `\Psi` $\Psi$         |
+	| Omega            | `\omega` $\omega$   | `\Omega` $\Omega$     |
+
+	#### 2. 关系符号（Relational Symbols）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 约等于           | `\approx`             | $\approx$           |
+	| 不等于           | `\neq`                | $\neq$              |
+	| 恒等于           | `\equiv`              | $\equiv$            |
+	| 大于等于         | `\geq`                | $\geq$              |
+	| 小于等于         | `\leq`                | $\leq$              |
+	| 远大于           | `\gg`                 | $\gg$               |
+	| 远小于           | `\ll`                 | $\ll$               |
+	| 正比于           | `\propto`             | $\propto$           |
+	| 相似于（波浪）   | `\sim`                | $\sim$              |
+	| 平行             | `\parallel`           | $\parallel$         |
+	| 垂直             | `\perp`               | $\perp$             |
+
+	#### 3. 运算符（Operators）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 加减             | `\pm`                 | $\pm$               |
+	| 减加             | `\mp`                 | $\mp$               |
+	| 乘（点）         | `\cdot`               | $\cdot$             |
+	| 乘（叉）         | `\times`              | $\times$            |
+	| 除（分式）       | `\div`                | $\div$              |
+	| 无限             | `\infty`              | $\infty$            |
+	| 偏微分           | `\partial`            | $\partial$          |
+	| 梯度（Nabla）    | `\nabla`              | $\nabla$            |
+	| 积分             | `\int`                | $\int$              |
+	| 二重积分         | `\iint`               | $\iint$             |
+	| 三重积分         | `\iiint`              | $\iiint$            |
+	| 求和             | `\sum`                | $\sum$              |
+	| 连乘             | `\prod`               | $\prod$             |
+	| 平方根           | `\sqrt{x}`            | $\sqrt{x}$          |
+	| n次方根          | `\sqrt[n]{x}`         | $\sqrt[n]{x}$       |
+
+	#### 4. 箭头（Arrows）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 左箭头           | `\leftarrow`          | $\leftarrow$        |
+	| 右箭头           | `\rightarrow`         | $\rightarrow$       |
+	| 双向箭头         | `\leftrightarrow`     | $\leftrightarrow$   |
+	| 向上箭头         | `\uparrow`            | $\uparrow$          |
+	| 向下箭头         | `\downarrow`          | $\downarrow$        |
+	| 长右箭头（推导） | `\longrightarrow`     | $\longrightarrow$   |
+	| 映射             | `\mapsto`             | $\mapsto$           |
+	| 推出             | `\implies`            | $\implies$          |
+
+	#### 5. 集合论（Set Theory）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 属于             | `\in`                 | $\in$               |
+	| 不属于           | `\notin`              | $\notin$            |
+	| 子集             | `\subset`             | $\subset$           |
+	| 真子集           | `\subsetneq`          | $\subsetneq$        |
+	| 并集             | `\cup`                | $\cup$              |
+	| 交集             | `\cap`                | $\cap$              |
+	| 空集             | `\emptyset`           | $\emptyset$         |
+	| 全体实数集       | `\mathbb{R}`          | $\mathbb{R}$        |
+	| 全体整数集       | `\mathbb{Z}`          | $\mathbb{Z}$        |
+	| forall           | `\forall`             | $\forall$           |
+	| exists           | `\exists`             | $\exists$           |
+
+	#### 6. 几何与逻辑（Geometry & Logic）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 角               | `\angle`              | $\angle$            |
+	| 三角形           | `\triangle`           | $\triangle$         |
+	| 平行四边形       | `\parallelogram`      | $\parallelogram$    |
+	| 度               | `\degree`             | $\degree$           |
+	| 因为             | `\because`            | $\because$          |
+	| 所以             | `\therefore`          | $\therefore$        |
+	| 逻辑与           | `\land`               | $\land$             |
+	| 逻辑或           | `\lor`                | $\lor$              |
+	| 逻辑非           | `\lnot`               | $\lnot$             |
+
+	#### 7. 括号与定界符（Brackets & Delimiters）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 绝对值           | `\| x \|`             | $\| x \|$           |
+	| 范数             | `\Vert x \Vert`       | $\Vert x \Vert$     |
+	| 向上取整         | `\lceil x \rceil`     | $\lceil x \rceil$   |
+	| 向下取整         | `\lfloor x \rfloor`   | $\lfloor x \rfloor$ |
+	| **可伸缩括号**   |                       |                     |
+	| 普通括号         | `( )`                 | $( )$               |
+	| 可伸缩圆括号     | `\left( ... \right)`  | $\left( \frac{a}{b} \right)$ |
+	| 可伸缩方括号     | `\left[ ... \right]`  | $\left[ \frac{a}{b} \right]$ |
+	| 可伸缩花括号     | `\left\{ ... \right\}`| $\left\{ \frac{a}{b} \right\}$ |
+
+	#### 8. 装饰与标记（Accents & Decorations）
+
+	| 符号名称         | LaTeX                 | 效果                |
+	| :--------------- | :-------------------- | :------------------ |
+	| 向量箭头         | `\vec{v}`             | $\vec{v}$           |
+	| 向量粗体         | `\mathbf{v}`          | $\mathbf{v}$        |
+	| 点在上           | `\dot{x}`             | $\dot{x}$           |
+	| 两点在上         | `\ddot{x}`            | $\ddot{x}$          |
+	| 横线在上（平均） | `\bar{x}`             | $\bar{x}$           |
+	| 尖角在上（估计） | `\hat{x}`             | $\hat{x}$           |
+	| 波浪在上         | `\tilde{x}`           | $\tilde{x}$         |
+
+	使用提示：
+
+	1.  **空格**：LaTeX 会忽略大多数空格。要添加空格，使用 `\,` (小空格), `\ ` (反斜杠+空格，中等空格), `\quad` (大空格), `\qquad` (更大空格)。
+	
+    2.  **转义字符**：要输入本身是命令的字符（如 `#`, `$`, `%`, `&`, `_`, `{`, `}`, `\`），需要在它们前面加上反斜杠 `\`，例如 `\$` 输出 `$`。
+	
+    3.  **公式环境**：这些符号通常用在数学环境中：
+
+		* **行内公式**：使用 `$ ... $`，例如 `$\infty$` 在行内显示为 $\infty$。
+		* **显示公式**：使用 `\[ ... \]` 或 `$$ ... $$`，公式会单独居中显示在一行。
+
+* latex 中小于等于号
+
+	* `\le` 或 `\leq`
+
+    * 更扁一些：`\leqslant`
+
+* 空集用 latex 怎么写
+
+	`\varnothing`
+
+	这是最常用、最标准的空集符号，是一个带斜线的圆圈。
+
+	方法二：使用 `\emptyset`（不推荐）
+
+	这是 LaTeX 内置的命令，不需要额外宏包，但它显示的符号更像数字 0 加上斜线，在数学排版中不如 `\varnothing` 美观。
+
+* 去心邻域使用 latex 怎么表示，比如 U 上面有个小圆圈
+
+	好的，在 LaTeX 中表示去心邻域（即在字母 U 上加一个小圆圈）有几种方法，最常用和推荐的是使用 `amsmath` 或 `amssymb` 宏包提供的 `\mathring` 命令。
+
+	这里为您详细说明：
+
+	方法一：使用 `\mathring{}` 命令（最标准）
+
+	这是数学模式下最标准和语义化的表示方法。
+
+	\mathring{U}`：
+
+    ```latex
+    $\mathring{U}(x_0, \delta)$
+    ```
+
+	方法二：使用 `\overset{\circ}{U}`
+
+	这种方法使用 `\overset` 命令将小圆圈放在 U 的上方。它也需要 `amsmath` 宏包。
+
+	```latex
+	$\overset{\circ}{U}$
+	```
+
+	这个方法的好处是语义非常清晰，一看就知道是在上面加一个圈。
+
 * latex 中各种双竖线怎么写？
 
     在 LaTeX 里，“双竖线”可能指不同的符号，下面把常见几类全部列出来，给你对应的写法和渲染效果。

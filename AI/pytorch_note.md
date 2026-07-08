@@ -2,6 +2,93 @@
 
 ## cache
 
+* torch 中的 tensor 如何转换成 numpy array
+
+    在 PyTorch 中，将 Tensor 转换为 NumPy array 有以下几种方法：
+
+    1. 使用 `.numpy()` 方法（最常用）
+
+        ```python
+        import torch
+        import numpy as np
+
+        # 创建 PyTorch tensor
+        tensor = torch.tensor([1, 2, 3, 4, 5])
+
+        # 转换为 numpy array
+        numpy_array = tensor.numpy()
+        print(numpy_array)  # 输出: [1 2 3 4 5]
+        print(type(numpy_array))  # 输出: <class 'numpy.ndarray'>
+        ```
+
+    2. 使用 `numpy()` 函数
+
+        ```python
+        import torch
+        import numpy as np
+
+        tensor = torch.tensor([1.0, 2.0, 3.0])
+        numpy_array = np.array(tensor)
+        print(numpy_array)  # 输出: [1. 2. 3.]
+        ```
+
+    3. 对于 GPU Tensor 的处理
+
+        如果 Tensor 在 GPU 上，需要先移到 CPU：
+
+        ```python
+        # 如果 tensor 在 GPU 上
+        tensor_gpu = torch.tensor([1, 2, 3]).cuda()
+
+        # 先移到 CPU，再转换
+        numpy_array = tensor_gpu.cpu().numpy()
+        ```
+
+    **重要注意事项**
+
+    **内存共享**
+
+    使用 `.numpy()` 方法时，Tensor 和 NumPy array 会**共享内存**：
+
+    ```python
+    tensor = torch.tensor([1, 2, 3])
+    numpy_array = tensor.numpy()
+
+    # 修改 numpy array
+    numpy_array[0] = 100
+
+    print(tensor)  # 输出: tensor([100,   2,   3]) - 原始 tensor 也被修改了！
+    ```
+
+    **避免内存共享**
+
+    如果需要独立的副本：
+
+    ```python
+    tensor = torch.tensor([1, 2, 3])
+    numpy_array = tensor.detach().cpu().numpy().copy()  # 创建独立副本
+    ```
+
+    **梯度追踪**
+
+    对于需要梯度的 Tensor：
+
+    ```python
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+
+    # 这样会报错，因为需要梯度的 tensor 不能直接转换
+    # numpy_array = x.numpy()  # 错误！
+
+    # 正确做法：先 detach()
+    numpy_array = x.detach().numpy()
+    ```
+
+    记住最重要的几点：
+
+    1. GPU Tensor 需要先 `.cpu()`
+    2. 需要梯度的 Tensor 需要先 `.detach()`
+    3. 默认情况下会共享内存，如果需要独立副本要加 `.copy()`
+
 * 禁止联网，简介一下 torchmetrics 的基本用法
 
 	好的，当然可以。以下是对 `torchmetrics` 库的基本用法的简介，全程无需联网。

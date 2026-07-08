@@ -2,6 +2,659 @@
 
 ## cache
 
+* 按下 `:` 进入命令行模式时，Vim 已经退出了 Visual 模式，此时 mode() 得到的并不是 v 或 V，而大概率是 n 模式。此时必须使用`visualmode()`得到上一次的 visual mode。
+
+    它返回最近一次 Visual 模式的字符：
+
+    * 'v' → 字符选择（v）
+
+    * 'V' → 行选择（V）
+
+    * '^V' → 块选择（<C-v>）
+
+    * 空字符串 → 没有 Visual 选择
+
+* 为什么 Vim 正则表达式常用单引号？
+
+    在 Vim 脚本中，字符串有两种写法：
+
+    | 写法 | 含义 | 转义 |
+    |------|------|------|
+    | `"双引号"` | 支持转义序列（如 `\n`、`\t`、`\\`） | `\` 会被特殊处理 |
+    | `'单引号'` | 原样保留所有字符，`''` 表示一个单引号 | 几乎不转义 |
+
+    **为什么正则常用单引号？**
+
+    因为正则表达式里充满了 `\`（如 `\d`、`\s`、`\1`、`\.`）。如果用双引号，你需要写两个反斜杠：
+
+    ```vim
+    " 双引号写法（丑陋）
+    if "\\d\\+" =~ "\\d"
+
+    " 单引号写法（清爽）
+    if '\d\+' =~ '\d'
+    ```
+
+    **结论**：用单引号是为了**避免反斜杠爆炸**，让正则表达式可读性更高。
+
+* vim 中 `=~#` 是什么意思？
+
+    `=~` 是 Vim 脚本中的**匹配操作符**，用来判断字符串是否匹配某个正则表达式。
+
+    而 `=~#` 是它的变体，加了一个 `#`，表示**大小写敏感匹配**。
+
+    **Vim 的匹配操作符家族**
+
+    | 操作符 | 含义 |
+    |--------|------|
+    | `=~` | 匹配（根据当前 `'ignorecase'` 设置决定大小写是否敏感） |
+    | `=~#` | 匹配，**强制大小写敏感**（case-sensitive） |
+    | `=~?` | 匹配，**强制大小写不敏感**（case-insensitive） |
+    | `!~` | 不匹配（根据当前设置） |
+    | `!~#` | 不匹配，强制大小写敏感 |
+    | `!~?` | 不匹配，强制大小写不敏感 |
+
+    **示例**
+
+    ```vim
+    if 'Hello' =~# 'h'      " 返回 false，因为 H 不等于 h（敏感）
+    if 'Hello' =~? 'h'      " 返回 true，忽略大小写
+    if 'Hello' =~ 'h'       " 结果取决于 set ignorecase? 的设置
+    ```
+
+    如果你还想了解 Vim 正则里 `\%[ ]` 这种魔法语法，或者 `\v`（very magic）模式，我可以接着讲。
+
+* 在 Vim 中，任何通过编程方式移动光标（如 setpos()、cursor()、normal! 等）都会导致 Visual 模式退出。
+
+    通常的解决方案是
+
+    ```vim
+    let move_lines = target_line - end_line
+    if move_lines > 0
+        execute "normal! " . move_lines . "j"
+    ```
+
+    或者使用
+
+    `call feedkeys("V" . target_line . "G", "n")`
+
+    添加硬件：
+
+    `vnoremap <leader>fn :<C-u>call FindNextSharp()<CR>`
+
+    * `<C-u>` 用于清空命令行，防止 Vim 自动插入 '<,'> 范围标记。
+
+    * 也可以使用 `gv`: 重新选择上一次 Visual 选择
+
+        ```
+        if target_line > 0
+            " 先恢复到原来的 Visual 选择
+            execute "normal! gv"
+            " 然后扩展选择到目标行
+            let move_lines = target_line - line("'>")
+            if move_lines > 0
+                execute "normal! " . move_lines . "j"
+            endif
+        endif
+        ```
+
+    * 或者使用范围参数重新选择
+
+        ```vim
+        " 重新选择从原始位置到目标行
+        execute "normal! " . a:firstline . "GV" . target_line . "G"
+        ```
+
+    * 或者使用按键序列
+
+        ```vim
+        " 在 Visual 模式下按 :，然后输入：
+        :normal gv0V/^[[:space:]]*#\+<CR>
+
+        " 或者使用自定义函数
+        :normal :call FindNextSharp()<CR>
+        ```
+
+        甚至使用 execute 嵌套两层：
+
+        ```vim
+        " 在 Visual 模式下
+        :execute "normal! gv" . line("'>") . "GV" . FindTargetLine() . "G"
+        ```
+
+* 讲讲 vim 中 :save 的用法
+
+    `:save`, 全称 `:saveas`
+
+    功能: **“另存为（Save As）”**，同时将当前编辑的缓冲区（Buffer）切换到新文件上。
+
+    1. 基础语法
+
+        在命令模式下输入：
+
+        ```vim
+        :saveas <新文件名>
+        # 或者缩写
+        :save <新文件名>
+        ```
+
+    2. 与 `:w` 的区别
+
+        `:w <新文件名>`（写入新文件）
+
+        假设你当前正在编辑文件 `A.txt`：
+
+        场景 A：使用 `:w B.txt`
+
+        1. Vim 会把当前内容保存一份到 `B.txt`。
+        2. **但是**，你当前光标所在的编辑窗口**依然停留在 `A.txt**`。你继续写的内容，依然会保存到 `A.txt`。
+
+        场景 B：使用 `:save B.txt`
+
+        1. Vim 会把当前内容保存一份到 `B.txt`。
+        2. **关键点**：Vim 会**自动把当前窗口切换到 `B.txt**`。你接下来继续写字并执行 `:w`，内容会被保存到 `B.txt`，而原来的 `A.txt` 就被留在原地，不受后续修改的影响了。
+
+        **总结**：`:save` 就是标准现代编辑器（如 VS Code、Word）里的 **“另存为”**；而 `:w <文件名>` 更像是 **“备份一份副本”**。
+
+    **原文件未保存时的特殊情况**
+
+    如果你修改了 `A.txt` 但**没有执行过 `:w` 保存**，直接运行 `:save B.txt`：
+
+    * Vim 会把**当前修改后**的内容直接写入 `B.txt`。
+    * 此时你的编辑窗口切到了 `B.txt`。
+    * **注意**：原来的 `A.txt` 依然保持在你动笔修改之前的状态（未保存状态）。
+
+    注：
+
+    1. 使用 save 切换到新 buffer 后，旧 buffer 还在 vim 的 buffert list 里吗？
+
+* bash 中如何展开文件路径的 tab 自动补全？
+
+    在 Bash 中，文件路径的 Tab 自动补全功能通常是默认启用的。以下是关于如何使用和配置这个功能的详细说明：
+
+    **基本使用方法**
+
+    1. **输入部分路径**后按一次 `Tab`：
+
+        ```bash
+        cd /usr/loc[TAB]  # 会自动补全为 /usr/local/
+        ```
+
+    2. **按两次 `Tab`** 显示所有可能的补全选项：
+
+        ```bash
+        cd /usr/l[TAB][TAB]
+        # 显示所有以 /usr/l 开头的可能路径
+        lib/ local/ libexec/
+        ```
+
+    **配置选项**
+
+    **检查是否启用补全**
+
+    ```bash
+    # 查看当前补全设置
+    shopt | grep autocd
+    shopt | grep cdable_vars
+    ```
+
+    **启用相关选项**
+
+    ```bash
+    # 在 ~/.bashrc 中添加以下配置
+    shopt -s autocd          # 允许直接输入目录名进入该目录
+    shopt -s cdspell         # 自动纠正目录名的拼写错误
+    shopt -s direxpand       # 在补全时展开变量
+    shopt -s dirspell        # 在补全时尝试纠正拼写错误
+    ```
+
+    **自定义补全行为**
+
+    **修改补全设置**
+
+    ```bash
+    # 在 ~/.inputrc 中配置（影响所有 Readline 应用程序）
+    set show-all-if-ambiguous on     # 按一次 Tab 就显示所有选项
+    set completion-ignore-case on    # 补全时忽略大小写
+    set menu-complete on             # 循环显示补全选项
+    ```
+
+    **重新加载配置**
+
+    ```bash
+    # 使配置生效
+    source ~/.bashrc
+    bind -f ~/.inputrc
+    ```
+
+    **特殊情况处理**
+
+    **处理包含空格的文件名**
+
+    Bash 会自动用反斜杠转义空格：
+
+    ```bash
+    # 对于文件 "my file.txt"
+    my[TAB]  # 会自动补全为 my\ file.txt
+    ```
+
+    **使用变量补全**
+
+    ```bash
+    cd $HOME/Doc[TAB]  # 会自动补全变量和路径
+    ```
+
+    **故障排除**
+
+    如果 Tab 补全不工作，可以检查：
+
+    ```bash
+    # 确认补全功能已安装
+    complete -p  # 应该显示一系列补全命令
+
+    # 如果缺少补全功能，可以安装 bash-completion 包
+    # Ubuntu/Debian:
+    sudo apt-get install bash-completion
+
+    # CentOS/RHEL:
+    sudo yum install bash-completion
+    ```
+
+    **高级技巧**
+
+    **创建自定义补全**
+
+    你可以为特定命令创建自定义补全规则：
+
+    ```bash
+    # 示例：为 mycommand 创建自定义补全
+    complete -W "option1 option2 option3" mycommand
+    ```
+
+    **使用通配符补全**
+
+    ```bash
+    ls *.txt[TAB]  # 补全所有 .txt 文件
+    ls file{1..10}[TAB]  # 使用花括号扩展
+    ```
+
+    这些设置应该能帮助你在 Bash 中更高效地使用 Tab 自动补全功能。记得在修改配置文件后重新加载它们使其生效。
+
+    在 Vim 中编辑 bash 脚本时的 Tab 自动补全功能。以下是几种在 Vim 中实现文件路径补全的方法：
+
+    1. 内置补全功能
+
+        **文件路径补全**
+
+        在插入模式下，输入部分路径后按 `Ctrl-x Ctrl-f`：
+
+        ```bash
+        # 输入 /usr/l 然后按 Ctrl-x Ctrl-f
+        cd /usr/l█
+        ```
+
+    2. 插件增强补全
+
+        **安装 coc.nvim (推荐)**
+
+        ```bash
+        # 使用 vim-plug 安装
+        Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+        # 安装 coc-bash 扩展
+        :CocInstall coc-bash
+        ```
+
+        **安装 YouCompleteMe**
+
+        ```bash
+        Plug 'ycm-core/YouCompleteMe'
+        ```
+
+    3. 配置 Vim 的 bash 文件类型补全
+
+        在 `~/.vimrc` 中添加：
+
+        ```vim
+        " 为 bash 文件启用特定补全
+        autocmd FileType sh setlocal complete+=k~/.vim/bash-completion
+        autocmd FileType sh setlocal iskeyword+=@-@  " 包含 @ 在关键字中
+
+        " 设置补全菜单
+        set wildmenu
+        set wildmode=list:longest,full
+
+        " 设置文件路径补全的忽略模式
+        set wildignore+=*.o,*.obj,*.bak,*.exe,*.pyc,*.DS_Store
+
+        " 使用 Tab 键触发补全
+        inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+        inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+        ```
+
+    4. 使用 omni 补全
+
+        在 bash 文件中，可以按 `Ctrl-x Ctrl-o` 触发 omni 补全，需要安装 bash 补全插件：
+
+        ```vim
+        " 安装 bash 支持插件
+        Plug 'vim-scripts/bash-support.vim'
+        ```
+
+    5. 简单键位映射
+
+        ```vim
+        " 在插入模式下快速补全文件路径
+        inoremap <C-f> <C-x><C-f>
+
+        " 快速补全单词
+        inoremap <C-l> <C-x><C-n>
+        ```
+
+    6. 实用的补全命令
+
+        在编辑 bash 脚本时可以使用这些组合键：
+
+        | 快捷键 | 功能 |
+        |--------|------|
+        | `Ctrl-x Ctrl-f` | 文件路径补全 |
+        | `Ctrl-x Ctrl-v` | Vim 命令补全 |
+        | `Ctrl-x Ctrl-l` | 整行补全 |
+        | `Ctrl-n` / `Ctrl-p` | 关键字补全 |
+
+    7. 安装专门的 bash 插件
+
+        ```vim
+        " 安装 bash 增强插件
+        Plug 'WolfgangMehner/bash-support'
+        Plug 'aliou/bats.vim'
+        Plug 'tmux-plugins/vim-tmux'
+
+        " 重新加载配置后运行
+        :PlugInstall
+        ```
+
+    8. 使用 snippets 插件
+
+        ```vim
+        " 安装 UltiSnips
+        Plug 'SirVer/ultisnips'
+        Plug 'honza/vim-snippets'
+
+        " 在 bash 文件中使用 snippet 补全
+        ```
+
+    这样配置后，在 Vim 中编辑 bash 脚本时就可以使用丰富的自动补全功能了。推荐使用 `coc.nvim` + `coc-bash` 的组合，它能提供最智能的补全体验。
+
+* vim 中如何映射 alt 键
+
+	在 Vim 中映射 **Alt 键（Meta 键）** 是出了名的“老大难”问题。这是因为许多终端（Terminal）在按下 `Alt + 键` 时，默认会发送一个 `Esc` 字符加上该键的组合（比如 `Alt+j` 会变成 `^[j`），导致 Vim 无法直接识别它。
+
+	不过别慌，解决这个问题主要有以下三种黄金法则，你可以根据自己的需求和终端类型来选择：
+
+	---
+
+	**方法一：直接映射法（适用于 Neovim / 现代终端）**
+
+	如果你使用的是 **Neovim**，或者支持 `modifyOtherKeys` 的现代终端（如 Kitty, Alacritty, iTerm2 最新版，Windows Terminal），你可以像映射其他键一样直接使用 `<M-...>`（M 代表 Meta/Alt）：
+
+	```vim
+	" 正常模式下，Alt + j 向下移动一行
+	nnoremap <M-j> :m .+1<CR>==
+
+	" 插入模式下，Alt + 左右键 快速切换标签页
+	inoremap <M-Left> <Esc>:tabprevious<CR>
+	inoremap <M-Right> <Esc>:tabnext<CR>
+
+	```
+
+	---
+
+	**方法二：利用终端转换法（最通用、最省心）**
+
+	如果你使用的是常规终端（如 SecureCRT, Xshell, Mac 自带 Terminal），最稳妥的办法是**在终端软件的设置里，将 Alt 键配置为 Meta 键或 Escape 键**。
+
+	* **iTerm2**: `Preferences` -> `Profiles` -> `Keys` -> 将 Left/Right Option key 改为 `Esc+`。
+	* **SecureCRT / Xshell**: 在键盘映射设置中，勾选“Use Alt as Meta key”或“将 Alt 键作为 Esc 键的前缀”。
+
+	设置好后，在 Vim 中你可以通过映射 `<Esc>` 组合来代替 Alt。例如，终端收到 `Alt+j` 会认为是 `Esc + j`：
+
+	```vim
+	" 相当于映射了 Alt + j
+	nnoremap <Esc>j :m .+1<CR>==
+
+	```
+
+	> ⚠️ **注意**：这种方法有一个小副作用，如果你手动按下 `Esc` 键后再按 `j`，也会触发这个映射。不过在实际连击中影响不大。
+
+	---
+
+	**方法三：映射终端转义序列（适用于原生老版本 Vim）**
+
+	如果你坚持在Linux服务器的原生 Vim 中使用，且不想改终端设置，可以通过在 `.vimrc` 中捕获终端发送的转义序列来“欺骗” Vim。
+
+	你可以利用 Vim 的 `set <M-...>` 语法来手动定义。在插入模式下，按下 `Ctrl + V` 然后按下你的 `Alt + 键`，通常会打出类似 `^[j` 的字符（其中 `^[` 是真正的 Esc 字符）。
+
+	```vim
+	" 1. 先把终端的转义序列赋给 Vim 的虚拟键位
+	execute "set <M-j>=\e j"
+
+	" 2. 然后再像平常一样映射这个键
+	nnoremap <M-j> :m .+1<CR>==
+
+	```
+
+	*(注：上面的 `\e` 代表 Esc 字符，部分 Vim 版本需要直接写入原始的 `^[j`)*
+
+	---
+
+	**💡 避坑总结**
+
+	* **如果你用的是 Neovim**：直接用 `<M-j>`，绝大多数现代终端都开箱即用。
+	* **如果你用的是老 Vim 且经常远程连接**：修改你本地终端软件的设置（将 Alt 映射为 `Esc+`），然后在 Vim 里用 `<Esc>j` 映射，这是最不会出幺蛾子的方案。
+
+	注：
+
+    1. 在映射时直接使用`<esc>`代替 alt 就好了。
+
+        比如：`nnoremap <esc>j 2j` 就等同于 alt + j 映射为 2j.
+
+* 终端为什么把 alt 转换成 esc
+
+	这是一个非常经典的历史遗留问题。要理解为什么终端把 `Alt` 键转换成 `Esc`（准确地说是 `Esc` 前缀，比如把 `Alt + j` 变成 `Esc` 紧接着 `j`，即 `^[j`），我们需要把时间拨回到 **20 世纪 70-80 年代**，去看看计算机刚诞生时的窘境。
+
+	简单来说，原因可以归结为：**ASCII 码的限制** 和 **物理键盘的演变**。
+
+	---
+
+	1. ASCII 编码的“坑”：装不下那么多键
+
+        早期的计算机和终端（比如著名的 VT100 终端）使用的是 **ASCII 编码**。
+
+        * ASCII 编码非常紧凑，总共只有 **128 个字符**（7 位二进制）。
+        * 这 128 个字符里，包含了大小写字母、数字、标点符号，以及一些控制字符（比如换行 `LF`、回车 `CR`）。
+
+        在这个标准制定的时候，**根本就没有 `Alt` 键（甚至也没有 `Ctrl` 键）**。
+        后来，为了让键盘能发出更多指令，硬件厂商发明了 `Ctrl` 键和 `Alt` 键。
+
+        * **`Ctrl` 键的解决办法**：它通过修改字母的二进制位，直接映射到了 ASCII 码前 32 个原本就存在的“控制字符”上。例如，按下 `Ctrl + M` 发送的就是回车符（`CR`）。
+        * **`Alt` 键的尴尬**：轮到 `Alt` 键（又称 Meta 键）时，ASCII 码已经**全满**了，没有任何多余的空位可以分给 `Alt + 字母` 的组合。
+
+	---
+
+	2. 聪明的妥协：用“带头大哥” `Esc` 来组合
+
+        既然不能发明新的单字符编码，工程师们只能想出一个折中方案：**用多个现有字符组合起来，表示一个新按键。**
+
+        他们盯上了 `Esc` 键（Escape 字符，ASCII 码为 27）。`Esc` 的本意就是“退出当前状态、改变接下来字符的含义”。
+
+        于是，终端协议规定：
+
+        > 当用户按下 `Alt + X` 时，终端不发送一个单一字符，而是发送**两个连续的字符**：先发送一个 `Esc` 字符（在终端里常显示为 `^[`），紧接着发送 `X`。
+
+        这就是大名鼎鼎的 **Escape Sequence（转义序列）**。
+
+	---
+
+	3. 为什么沿用至今？
+
+        虽然现在的操作系统（Windows, macOS, Linux）和现代图形界面（GUI）早就支持了 Unicode 和更复杂的键盘事件，能够轻松识别 `Alt` 键，但**终端（Terminal）和命令行工具（如 Vim, Emacs）依然活着历史里**。
+
+        为了保持 **向后兼容性（Backward Compatibility）**，让 40 年前的老软件依然能在今天的最新电脑上运行，现代终端（如 iTerm2、Xshell、macOS Terminal）默认依然在模拟老旧的 VT100/VT220 终端行为。因此，它们依然敬业地把 `Alt + 键` 转换成 `Esc + 键` 发送给后台。
+
+	---
+
+	**总结**
+
+	终端把 `Alt` 变成 `Esc`，就像**用电报发送复杂的表情包**——因为电报机（ASCII 码）没有这个表情，所以人们只能用一串特定的标点符号（`Esc` 前缀）来拼出这个意思。 
+
+* 详细讲讲 vim 中的 ttimeout 和 ttimeoutlen
+
+	在 Vim 中，`ttimeout` 和 `ttimeoutlen` 是两个专门用来控制**键盘映射（Mappings）和终端转义序列（Escape Sequences）超时行为**的特殊设置。
+
+	如果你曾经在 Vim 中遇到过“按 `Esc` 键退出插入模式时有明显的延迟”，或者“在终端里按方向键结果冒出奇怪的字母”，通常就是这两个选项没有配置好。
+
+	下面我们逐一拆解它们的工作原理和配置方法。
+
+	---
+
+	1. 核心概念：为什么需要“超时”？
+
+        在终端（Terminal）中，很多功能键（如方向键、`PageUp/PageDown`、`F1-F12` 等）在被按下时，终端并不会发送一个单一的字符，而是发送一串以 `Esc` 开头的**转义序列**。
+
+        * 例如：按下 **方向键上 ($\uparrow$)**，终端实际发送给 Vim 的是：`\x1b[A`（其中 `\x1b` 就是 `Esc` 键）。
+
+        这就带来了一个冲突：
+        当你在 Vim 的插入模式下按下了 `Esc` 键，Vim 怎么知道你是在**单纯地想退出插入模式**，还是**刚刚按下了方向键的开头，后面还有字符没传过来**？
+
+        为了解决这个问题，Vim 引入了**超时机制**。
+
+	---
+
+	2. 两个参数的详细解释
+
+        🕒 `ttimeout` (Terminal Timeout)
+
+        * **类型**：布尔值 (`on` 或 `off`)
+        * **默认值**：在现代 Vim/Neovim 中通常默认开启 (`on`)
+        * **作用**：决定 Vim 在接收到终端转义序列（如方向键、功能键等以 `Esc` 开头的代码）未完成时，**是否应用超时限制**。
+        * `set ttimeout`：开启限制。如果后续字符没有在规定时间内到达，Vim 就判定你只按了 `Esc`。
+        * `set nottimeout`：关闭限制。Vim 会死等下一个字符，直到确定它不是某个功能键的一部分。这就容易导致按 `Esc` 出现严重卡顿。
+
+
+        ⏱️ `ttimeoutlen` (Terminal Timeout Length)
+
+        * **类型**：数值（单位：毫秒 ms）
+        * **默认值**：在传统 Vim 中默认是 `-1`（此时它会退而去同步 `timeoutlen` 的值，通常是 1000ms）
+        * **作用**：当 `ttimeout` 开启时，Vim 等待**终端转义序列**下一个字符到达的**最大时间**。
+
+        > ⚠️ **重要对比**：
+        > Vim 中还有一个叫 `timeoutlen`（没有开头的 `t`）的参数。
+        > * `timeoutlen`：针对你**自己设置的 multi-key 映射**（比如你设置了 `inoremap jj <Esc>`，它控制你敲完第一个 `j` 后，等第二个 `j` 的时间，默认 1000ms）。
+        > * `ttimeoutlen`：专门针对**终端自身的功能键/转义序列**（比如方向键，默认 `-1` 或很小的值）。
+        > 
+        > 
+
+	---
+
+	3. 经典痛点：为什么按 `Esc` 会延迟？
+
+        如果你发现按 `Esc` 退出插入模式要等足足 1 秒钟，原因通常是：
+
+        1. `ttimeout` 没开，或者 `ttimeoutlen` 没有独立设置（保持了默认的 `-1`）。
+        2. 此时 `ttimeoutlen` 自动套用了 `timeoutlen` 的值（1000 毫秒）。
+        3. 当你按 `Esc` 时，Vim 为了确认你是不是要按方向键，硬生生等了 1000 毫秒，发现没后续，才执行 `Esc`。
+
+        最佳实践配置
+
+        完美解决这个问题，既让 `Esc` 秒回弹，又不影响你自己设置的复合快捷键（如 `jj` 或 `leader` 键），可以在你的 `.vimrc` 中加入以下配置：
+
+        ``vim
+        开启用户自定义映射的超时（比如你自定义的 <Leader> 键序列）
+        et timeout
+        用户自定义映射的等待超时时间设置为 500 毫秒（可根据手速调整）
+        set timeoutlen=500
+
+        " 开启终端转义序列（方向键、功能键等）的超时
+        set ttimeout
+        " 终端转义序列的等待超时时间设置为 20 毫秒（重点！）
+        " 现代计算机和终端传输速度极快，20ms 足够判定是不是方向键了
+        set ttimeoutlen=20
+        ```
+
+	---
+
+	4. 总结与常见表现
+
+        | 参数与组合 | `Esc` 键的响应速度 | 方向键/功能键的表现 | 适用场景 |
+        | --- | --- | --- | --- |
+        | `set nottimeout` | **极其缓慢**（需要等很久或按其他键才触发） | 极其稳定，绝对不会识别断开 | 不推荐，除非你在极度高延迟的远程 SSH 连线上 |
+        | `set ttimeout` <br>
+
+        <br> `set ttimeoutlen=1000` | **有明显 1 秒延迟** | 稳定 | 默认未优化状态，体验较差 |
+        | `set ttimeout` <br>
+
+        <br> `set ttimeoutlen=20` | **瞬间响应（推荐）** | 正常识别 | **最佳推荐配置** |
+        | `set ttimeoutlen=0` | 瞬间响应 | 可能会导致方向键失效，变成输入 `A` `B` `C` `D` | 不建议设为 0，给终端留一丁点缓冲时间 |
+
+        > 💡 **Neovim 用户注意**：如果你使用的是 **Neovim**，它在初始化时已经默认帮你把 `ttimeout` 设为了 `on`，且 `ttimeoutlen` 设为了 `50` 毫秒，所以通常不需要手动修复 `Esc` 延迟问题。但如果是原生 Vim，这几行配置属于必加项。
+
+* vim coc.nvim 如何手动显示函数参数的悬浮窗
+
+	在 `coc.nvim` 中，手动触发显示当前函数参数或函数签名的悬浮窗（Signature Help），默认的命令是 `:call CocActionAsync('showSignatureHelp')`。
+
+	为了方便使用，你可以将其绑定到一个快捷键上。请将以下代码加入到你的 `init.vim` 或 `.vimrc` 中：
+
+	```vim
+	" 使用 <leader>k 手动触发函数参数悬浮窗
+	nmap <silent> <leader>k <Plug>(coc-signature-help)
+	imap <silent> <c-k> <Plug>(coc-signature-help)
+	```
+
+	💡 进阶技巧：让它在输入时自动显示
+
+	如果你希望在输入括号 `(` 或逗号 `,` 时自动弹出参数提示，可以在 Vim 中运行 `:CocConfig` 打开配置文件，并添加/确认以下配置：
+
+	```json
+	{
+	  "suggest.autoTrigger": "always",
+	  "signature.autoTrigger": true,
+	  "signature.triggerSignatureHelp": true
+	}
+	```
+
+	这样通常就不需要频繁手动去按快捷键了。 
+
+    注：
+
+    1. 如果是正常模式下希望手动显示函数签名，那么 `call CocActionAsync('showSignatureHelp')` 这个似乎没什么用。
+
+	    此时可以触发“悬浮窗文档”（Hover）:
+
+        ```vim
+        " 使用 K (大写) 键触发悬浮窗文档
+        nnoremap <silent> K :call ShowDocumentation()<CR>
+
+        function! ShowDocumentation()
+          if CocAction('hasProvider', 'hover')
+            call CocActionAsync('doHover')
+          else
+            call feedkeys('K', 'in')
+          endif
+        endfunction
+
+        ```
+
+        > **使用方法**：在普通模式下，把光标移到函数名上，按下大写的 **`K`**。
+
+        `call CocActionAsync('doHover')`这个似乎是可行的。
+
+* 是否有 vscode 快捷键，可以找到下一个以`##`或`###`开头的行？
+
+    这个可能是在说是否有能识别 markdown 段落布局的 vscode 快捷键，可以快速在段落之间跳转。
+
+    如果是个意思的话，vscode 没有现成的快捷键或功能。只有 ctrl + f 或 f3 的搜索功能。
+
 * vim 映射中，alt 键如何表示
 
 	在 Vim 的映射命令中，Alt 键最标准的表示法是 `<M-...>`，`M` 代表 Meta。
