@@ -2,6 +2,378 @@
 
 ## cache
 
+* tmux 相比 screen，优势在哪里
+
+    `tmux` 和 `screen` 都是终端复用器（terminal multiplexer），都能实现会话保持、窗口管理、断线重连等功能。
+
+    不过，现在绝大多数 Linux 用户都会推荐 **tmux**，因为它在架构、功能和可扩展性方面都比 `screen` 更现代。
+
+    下面从几个方面比较。
+
+    | 功能       | tmux       | screen  |
+    | -------- | ---------- | ------- |
+    | 开发活跃度    | ⭐⭐⭐⭐⭐ 持续维护 | ⭐⭐ 更新较少 |
+    | 配置能力     | 很强（类似 vim） | 一般      |
+    | 窗口布局     | 非常灵活       | 比较有限    |
+    | Pane（分屏） | 原生支持       | 支持较弱    |
+    | 脚本控制     | 很强         | 一般      |
+    | 鼠标支持     | 完整         | 较弱      |
+    | 状态栏      | 可高度自定义     | 简单      |
+    | 插件生态     | 丰富         | 基本没有    |
+
+    ---
+
+    ## 1. Pane（分屏）能力更强
+
+    这是 tmux 最大的优势之一。
+
+    例如：
+
+    ```
+    +-----------------------+
+    |           |           |
+    |  vim      |  htop     |
+    |           |           |
+    +-----------+-----------+
+    |      shell            |
+    +-----------------------+
+    ```
+
+    tmux 可以方便地：
+
+    ```
+    Ctrl+b %
+    ```
+
+    左右分屏
+
+    ```
+    Ctrl+b "
+    ```
+
+    上下分屏
+
+    而 screen 虽然也支持 split，但：
+
+    * 操作复杂
+    * 切换不方便
+    * 功能没有 tmux 丰富
+
+    ---
+
+    ## 2. Layout 自动调整
+
+    tmux 可以自动重新排列 Pane。
+
+    例如：
+
+    ```
+    Ctrl+b Space
+    ```
+
+    循环不同布局：
+
+    ```
+    even-horizontal
+
+    even-vertical
+
+    main-horizontal
+
+    main-vertical
+
+    tiled
+    ```
+
+    screen 基本没有这些能力。
+
+    ---
+
+    ## 3. 配置更现代
+
+    tmux：
+
+    ```
+    ~/.tmux.conf
+    ```
+
+    例如：
+
+    ```bash
+    set -g mouse on
+
+    setw -g mode-keys vi
+
+    bind r source-file ~/.tmux.conf
+    ```
+
+    修改后：
+
+    ```
+    Ctrl+b r
+    ```
+
+    立即重新加载。
+
+    screen：
+
+    ```
+    ~/.screenrc
+    ```
+
+    功能相对少很多。
+
+    ---
+
+    ## 4. 鼠标支持
+
+    tmux：
+
+    ```
+    set -g mouse on
+    ```
+
+    以后可以：
+
+    * 点击 Pane
+    * 拖动滚动
+    * Resize Pane
+    * 复制
+
+    screen 对鼠标支持一直不好。
+
+    ---
+
+    ## 5. Copy Mode 更舒服
+
+    tmux 可以使用 vi 风格：
+
+    ```bash
+    setw -g mode-keys vi
+    ```
+
+    之后：
+
+    ```
+    Ctrl+b [
+
+    ```
+
+    进入复制模式。
+
+    操作和 vim 一样：
+
+    ```
+    hjkl
+    w
+    b
+    gg
+    G
+    /
+    ?
+    ```
+
+    复制：
+
+    ```
+    Space
+    Enter
+    ```
+
+    screen 默认按 Emacs 风格，更不符合很多开发者习惯。
+
+    ---
+
+    ## 6. Session 管理更方便
+
+    例如：
+
+    ```
+    tmux ls
+    ```
+
+    ```
+    work
+    test
+    gpu
+    debug
+    ```
+
+    进入：
+
+    ```
+    tmux attach -t gpu
+    ```
+
+    新建：
+
+    ```
+    tmux new -s gpu
+    ```
+
+    重命名：
+
+    ```
+    Ctrl+b $
+    ```
+
+    删除：
+
+    ```
+    tmux kill-session -t gpu
+    ```
+
+    整体体验比 screen 更自然。
+
+    ---
+
+    ## 7. 命令接口更强
+
+    tmux 几乎所有操作都有命令。
+
+    例如：
+
+    创建窗口：
+
+    ```bash
+    tmux new-window
+    ```
+
+    发送命令：
+
+    ```bash
+    tmux send-keys \
+        -t work:0 \
+        "python train.py" C-m
+    ```
+
+    切 Pane：
+
+    ```bash
+    tmux select-pane -L
+    ```
+
+    Resize：
+
+    ```bash
+    tmux resize-pane -L 10
+    ```
+
+    所以很多自动化工具都会控制 tmux。
+
+    screen 虽然也支持 `screen -X`，但命令远没有 tmux 丰富。
+
+    ---
+
+    ## 8. 更好的脚本能力
+
+    例如：
+
+    ```bash
+    tmux new-session -d -s train
+
+    tmux split-window -h
+
+    tmux send-keys "python train.py" C-m
+
+    tmux send-keys -t 1 "watch nvidia-smi" C-m
+    ```
+
+    一条脚本直接生成：
+
+    ```
+    +--------------------+
+    | python train.py    |
+    |                    |
+    +---------+----------+
+    |watch    | shell    |
+    +----------+---------+
+    ```
+
+    很多 CI、远程开发、机器学习训练都会这么做。
+
+    ---
+
+    ## 9. 插件生态
+
+    tmux 有成熟的插件管理器：
+
+    **Tmux Plugin Manager（TPM）**
+
+    常见插件：
+
+    * tmux-resurrect（保存/恢复 Session）
+    * tmux-continuum（自动恢复）
+    * tmux-yank（复制到系统剪贴板）
+    * tmux-prefix-highlight
+    * catppuccin 主题
+
+    screen 几乎没有成熟插件生态。
+
+    ---
+
+    ## 10. 状态栏高度可定制
+
+    tmux 可以显示：
+
+    ```
+    CPU
+    MEM
+    GPU
+    Git Branch
+    Battery
+    Network
+    Load
+    Time
+    Hostname
+    ```
+
+    例如：
+
+    ```
+    [GPU 73%][RAM 12G][CPU 35%][12:35]
+    ```
+
+    screen 的状态栏功能比较基础。
+
+    ---
+
+    ## 11. 性能
+
+    两者都很轻量。
+
+    一般来说：
+
+    * 内存占用都只有几 MB。
+    * CPU 占用都很低。
+
+    对于 SSH、日志查看、开发、训练等场景，性能差异通常可以忽略。
+
+    ---
+
+    ## 什么时候还会用 screen？
+
+    虽然 `screen` 已经不是多数人的首选，但仍有一些场景适合：
+
+    * **老旧 Linux 系统**：很多企业发行版默认安装 `screen`，而没有 `tmux`。
+    * **极简需求**：如果只需要启动一个长期运行的程序、断线后重新连接，`screen` 已经足够。
+    * **兼容历史脚本**：一些老环境和运维脚本仍然依赖 `screen`。
+
+    ---
+
+    ## 总结
+
+    如果今天开始学习终端复用器，我建议直接学习 **tmux**。它相较于 `screen` 的主要优势是：
+
+    * 更强大的分屏（Pane）和布局管理。
+    * 更现代、可读性更好的配置文件。
+    * 更完善的鼠标支持和 `vi` 风格复制模式。
+    * 丰富的命令接口，便于自动化脚本控制。
+    * 活跃的插件生态和高度可定制的状态栏。
+    * 社区活跃，文档和教程更加丰富。
+
+    对于软件开发、远程服务器管理、机器学习训练、多任务调试等日常工作，`tmux` 通常是更高效、更值得投入学习成本的选择。
+    
 * screen 如何切换窗口顺序
 
     在 GNU `screen` 中，默认情况下它会按照你创建窗口的顺序自动分配编号（0, 1, 2...）。如果你想切换、交换或重新排列这些窗口的顺序，可以使用以下几种方法：

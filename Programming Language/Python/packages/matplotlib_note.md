@@ -2,6 +2,213 @@
 
 ## cache
 
+* 我设置了 x11 forward，为什么还是报这个错：
+    /home/test/Documents/sci/poly.py:59: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+
+
+    非常好的问题，这其实已经**不是 SSH X11 转发的问题**了 😄——
+    从这条警告信息看：
+
+    ```
+    UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    ```
+
+    这是 **matplotlib** 自身发出的警告，意思是：
+
+    > 你当前使用的绘图后端（backend）是非交互式的 `Agg`，它不会弹出窗口显示图像。
+
+    也就是说：
+    即使 SSH 的 X11 Forward 已经启用成功了，`matplotlib` 仍然在用一个“离屏渲染”的 backend（通常是 `Agg`，为无显示环境准备的）。
+
+    ---
+
+    ## ✅ 解决办法
+
+    你只需要**切换 matplotlib 的 backend** 到一个支持 GUI 的后端，比如 `TkAgg`、`Qt5Agg`、`GTK3Agg` 等。
+
+    ---
+
+    ### ✅ 方法 1：在代码最开头加上
+
+    在 `import matplotlib.pyplot as plt` 之前，添加：
+
+    ```python
+    import matplotlib
+    matplotlib.use('TkAgg')   # 或 'Qt5Agg', 取决于系统安装了哪个 GUI 库
+    import matplotlib.pyplot as plt
+    ```
+
+    然后再 `plt.show()` 就会弹出窗口。
+
+    ---
+
+    ### ✅ 方法 2：设置环境变量（推荐）
+
+    临时设置：
+
+    ```bash
+    export MPLBACKEND=TkAgg
+    ```
+
+    然后运行你的脚本：
+
+    ```bash
+    python3 poly.py
+    ```
+
+    ---
+
+    ### ✅ 方法 3：检查是否有可用的 X11 显示
+
+    先在 SSH 会话里确认：
+
+    ```bash
+    echo $DISPLAY
+    ```
+
+    如果有输出（比如 `localhost:10.0`），说明 X11 forwarding 成功。
+    如果为空，那就是 SSH 没真正转发显示（虽然你启用了 `ForwardX11`，但连接时可能忘了带 `-X` 或 `-Y`，或者被防火墙阻断）。
+
+    你可以显式加：
+
+    ```bash
+    ssh -Y user@server
+    ```
+
+    再运行你的程序。
+
+    ---
+
+    ## ⚠️ 注意事项
+
+    | 问题                                      | 原因                                           | 解决方案                          |
+    | --------------------------------------- | -------------------------------------------- | ----------------------------- |
+    | `FigureCanvasAgg` 警告                    | 后端是 `Agg`                                    | `matplotlib.use('TkAgg')`     |
+    | `plt.show()` 无窗口弹出                      | X11 未转发                                      | `ssh -Y` 或检查 `$DISPLAY`       |
+    | `ImportError: No module named _tkinter` | 系统没装 Tkinter                                 | `sudo apt install python3-tk` |
+    | 在远程服务器但想保存图片                            | 使用 `plt.savefig('xxx.png')` 而不是 `plt.show()` |                               |
+
+    ---
+
+    ## ✅ 快速验证命令
+
+    在远程端执行：
+
+    ```bash
+    python3 -c "import matplotlib; print(matplotlib.get_backend())"
+    ```
+
+    * 如果输出 `Agg` → 非交互式后端；
+    * 如果输出 `TkAgg` 或 `Qt5Agg` → 可交互，可以显示窗口。
+
+    ---
+
+    想让我帮你根据你服务器环境（比如 Ubuntu + SSH 转发 + matplotlib）写一份最稳妥的配置脚本，让远程绘图既能显示窗口、又能保存文件吗？
+
+* 报错：ModuleNotFoundError: No module named 'tkinter'
+
+    👌 很明确，这次不是 matplotlib 的问题，而是系统里**没有安装 Tkinter GUI 库**。
+
+    matplotlib 的 `TkAgg` 后端依赖 Python 的 `tkinter` 模块（其实是 Tcl/Tk GUI 库的 Python 封装）。
+    如果没有它，就会报你这个错：
+
+    ```
+    ModuleNotFoundError: No module named 'tkinter'
+    ```
+
+    ---
+
+    ## ✅ 解决办法
+
+    ### 🧩 1. 安装 tkinter（系统级）
+
+    在 **Ubuntu / Debian** 系统上：
+
+    ```bash
+    sudo apt update
+    sudo apt install python3-tk
+    ```
+
+    在 **CentOS / RHEL / Rocky / Alma** 上：
+
+    ```bash
+    sudo yum install python3-tkinter
+    ```
+
+    在 **Arch / Manjaro** 上：
+
+    ```bash
+    sudo pacman -S tk
+    ```
+
+    ---
+
+    ### 🧪 2. 验证安装是否成功
+
+    执行：
+
+    ```bash
+    python3 -c "import tkinter; print('tkinter ok')"
+    ```
+
+    如果输出：
+
+    ```
+    tkinter ok
+    ```
+
+    就说明安装成功。
+
+    ---
+
+    ### 💡 3. 再次运行绘图代码
+
+    确保在代码最前面写：
+
+    ```python
+    import matplotlib
+    matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
+    ```
+
+    运行后就应该可以通过 X11 弹出窗口显示图像了（前提是你 `ssh -Y` 或在 config 里 `ForwardX11Trusted yes`）。
+
+    ---
+
+    ### 🧠 补充：为什么默认没装 tkinter？
+
+    因为在大多数 Python 发行版中：
+
+    * `python3` 包里不包含 GUI 组件；
+    * `python3-tk` 是可选依赖（为减少容器体积）。
+
+    ---
+
+    ### ⚡ 如果你是用虚拟环境（venv / conda）
+
+    安装完系统包后，直接在虚拟环境中运行即可，不需要重新 pip install。
+
+    如果是 Conda，可用：
+
+    ```bash
+    conda install tk
+    ```
+
+    ---
+
+    执行完这些步骤后再试试：
+
+    ```bash
+    python3 -c "import matplotlib; matplotlib.use('TkAgg'); import matplotlib.pyplot as plt; plt.plot([1,2,3]); plt.show()"
+    ```
+
+    如果本地弹出一个图形窗口，就说明 X11 + TkAgg 全部成功 ✅
+
+    ---
+
+    要不要我帮你确认一下你当前环境是 apt 还是 yum？我可以直接给出对应命令行组合。
+
 * 简述 plt.figure() 的作用和函数型，以及常见的example
 
 	plt.figure() 的作用和函数签名

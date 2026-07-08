@@ -2,6 +2,217 @@
 
 ## cache
 
+* python 中的 fire 模块如何 parse arg？
+
+	在 Python 的 `fire` 模块中，参数解析是自动处理的，但你可以通过多种方式来控制和自定义参数解析。以下是详细说明：
+
+	## 1. 基本参数解析
+
+	### 位置参数
+	```python
+	import fire
+
+	def greet(name, greeting="Hello"):
+		print(f"{greeting}, {name}!")
+
+	if __name__ == "__main__":
+		fire.Fire(greet)
+	```
+
+	使用方式：
+	```bash
+	python script.py John
+	python script.py John --greeting "Hi"
+	python script.py --name John --greeting "Hi"
+	```
+
+	### 类方法参数
+	```python
+	import fire
+
+	class Calculator:
+		def add(self, a, b):
+			return a + b
+		
+		def multiply(self, a, b=1):
+			return a * b
+
+	if __name__ == "__main__":
+		fire.Fire(Calculator)
+	```
+
+	使用方式：
+	```bash
+	python script.py add 5 3
+	python script.py multiply 5 --b 3
+	```
+
+	## 2. 复杂类型解析
+
+	### 使用类型注解
+	```python
+	import fire
+	from typing import List, Dict
+
+	def process_data(
+		numbers: List[int],
+		config: Dict[str, str],
+		verbose: bool = False
+	):
+		if verbose:
+			print(f"Processing {numbers} with config {config}")
+		return sum(numbers)
+
+	if __name__ == "__main__":
+		fire.Fire(process_data)
+	```
+
+	使用方式：
+	```bash
+	python script.py --numbers 1 2 3 4 --config key1=value1 key2=value2 --verbose
+	```
+
+	### 自定义解析器
+	```python
+	import fire
+	import json
+
+	def parse_json(s):
+		return json.loads(s)
+
+	def process_with_json(config_json: parse_json, count: int = 1):
+		print(f"Config: {config_json}, Count: {count}")
+
+	if __name__ == "__main__":
+		fire.Fire(process_with_json)
+	```
+
+	使用方式：
+	```bash
+	python script.py --config-json '{"key": "value"}' --count 5
+	```
+
+	## 3. 高级参数处理
+
+	### 使用 Fire 装饰器
+	```python
+	import fire
+
+	@fire.decorators.SetParseFn(str.upper)
+	def shout_message(message, repeat=1):
+		for _ in range(repeat):
+			print(message)
+
+	if __name__ == "__main__":
+		fire.Fire(shout_message)
+	```
+
+	### 自定义参数解析
+	```python
+	import fire
+
+	def custom_parser(value):
+		if value.lower() in ('yes', 'true', 't', 'y', '1'):
+			return True
+		elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+			return False
+		else:
+			raise ValueError(f"Boolean value expected: {value}")
+
+	def run_task(enable_feature: custom_parser, count: int):
+		print(f"Feature enabled: {enable_feature}, Count: {count}")
+
+	if __name__ == "__main__":
+		fire.Fire(run_task)
+	```
+
+	## 4. 命令行参数组
+
+	### 使用字典接收剩余参数
+	```python
+	import fire
+
+	def complex_command(main_arg, **kwargs):
+		print(f"Main argument: {main_arg}")
+		print(f"Additional arguments: {kwargs}")
+
+	if __name__ == "__main__":
+		fire.Fire(complex_command)
+	```
+
+	使用方式：
+	```bash
+	python script.py primary --option1 value1 --option2 value2
+	```
+
+	## 5. 配置 Fire 行为
+
+	### 自定义 Fire 配置
+	```python
+	import fire
+
+	def my_function(name, age=25):
+		print(f"Name: {name}, Age: {age}")
+
+	if __name__ == "__main__":
+		fire.Fire(my_function, name='Fire CLI')
+	```
+
+	### 使用 Fire 的完整配置
+	```python
+	import fire
+
+	class App:
+		def __init__(self, debug=False):
+			self.debug = debug
+		
+		def run(self, input_file, output_file=None):
+			if self.debug:
+				print(f"Processing {input_file} -> {output_file}")
+			# 处理逻辑
+
+	if __name__ == "__main__":
+		fire.Fire(App)
+	```
+
+	使用方式：
+	```bash
+	python script.py --debug run input.txt --output-file output.txt
+	```
+
+	## 6. 处理布尔参数
+
+	```python
+	import fire
+
+	def toggle_features(
+		feature_a: bool = False,
+		feature_b: bool = True,
+		verbose: bool = False
+	):
+		print(f"Feature A: {feature_a}")
+		print(f"Feature B: {feature_b}")
+		print(f"Verbose: {verbose}")
+
+	if __name__ == "__main__":
+		fire.Fire(toggle_features)
+	```
+
+	使用方式：
+	```bash
+	python script.py --feature-a --no-feature-b --verbose
+	```
+
+	## 关键要点：
+
+	1. **自动类型推断**：Fire 会自动根据函数签名推断参数类型
+	2. **灵活的参数格式**：支持位置参数、关键字参数、标志等
+	3. **类型注解支持**：可以利用 Python 的类型注解进行更精确的解析
+	4. **自定义解析器**：可以创建自定义函数来处理特定格式的参数
+	5. **布尔参数**：使用 `--flag` 和 `--no-flag` 格式处理布尔值
+
+	Fire 的设计理念是让参数解析尽可能简单直观，同时在需要时提供足够的灵活性来自定义行为。
+
 * python 里，如果我写一个函数
 	def save_param(model: MyModel)
 	如果我知道 model 是一个继承自 Module 的类型的对象，但是不知道 model 的具体类型，该怎么写类型标注

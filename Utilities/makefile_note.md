@@ -2,6 +2,138 @@
 
 ## cache
 
+* @export SHELL_VAR="I am a Shell variable"; \
+        echo "Shell var: $$SHELL_VAR"
+    这个 makefile 命令中，为什么需要用到反斜杠 \？makefile 中的 bash 命令是在同一个 bash 环境下吗，或者这么说：
+    target:
+        export $SHELL_VAR="hello"
+        echo $$SHELL_VAR
+    可以正常输出吗？
+
+    在 Makefile 中使用反斜杠 `\` 主要是为了将多行命令合并为单行，让 Make 将它们作为同一个 shell 会话执行。
+
+    ## 为什么需要反斜杠 \？
+
+    在 Makefile 中，**每个命令都在独立的 shell 中执行**。所以：
+
+    ```makefile
+    target:
+        export SHELL_VAR="I am a Shell variable"
+        echo $$SHELL_VAR
+    ```
+
+    这会启动两个独立的 shell：
+    1. 第一个 shell 设置变量，然后退出（变量丢失）
+    2. 第二个 shell 尝试读取变量，但变量不存在
+
+    ## 解决方案
+
+    ### 方法1：使用反斜杠合并命令
+    ```makefile
+    target:
+        export SHELL_VAR="I am a Shell variable"; \
+        echo "Shell var: $$SHELL_VAR"
+    ```
+
+    ### 方法2：使用 .ONESHELL 指令（GNU Make 3.82+）
+    ```makefile
+    .ONESHELL:
+    target:
+        export SHELL_VAR="I am a Shell variable"
+        echo "Shell var: $$SHELL_VAR"
+    ```
+
+    ### 方法3：使用行继续符
+    ```makefile
+    target:
+        export SHELL_VAR="I am a Shell variable"; \
+        echo "Shell var: $$SHELL_VAR"
+    ```
+
+    ## 你的具体问题
+
+    ```makefile
+    @export SHELL_VAR="I am a Shell variable"; \
+    echo "Shell var: $$SHELL_VAR"
+    ```
+
+    - `@` 前缀：隐藏命令本身的输出，只显示命令结果
+    - `\`：将两行命令合并为一个 shell 会话
+    - `$$`：Makefile 中需要双 `$` 来转义，实际传递给 shell 的是单 `$`
+
+    ## 可以正常输出吗？
+
+    **是的，可以正常输出**，因为：
+    1. 反斜杠让 export 和 echo 在同一个 shell 中执行
+    2. 变量设置后立即在同一 shell 中使用
+    3. 输出会是：`Shell var: I am a Shell variable`
+
+    如果没有反斜杠，第二个 echo 命令会在新的 shell 中执行，变量将不存在，输出会是空值。
+
+
+* makefile 中，如何达到`KERN_DIR=/lib/modules/$(uname -r)/build`这样的效果？
+
+    在 Makefile 中，你需要使用 **shell 函数** 来执行 `uname -r` 命令并获取其输出。有几种方法可以实现：
+
+    ## 方法1：使用 `$(shell )` 函数（推荐）
+
+    ```makefile
+    KERN_DIR := /lib/modules/$(shell uname -r)/build
+
+    all:
+        @echo "Kernel directory: $(KERN_DIR)"
+    ```
+
+    ## 方法2：在规则中使用反斜杠合并命令
+
+    ```makefile
+    all:
+        @KERN_DIR=/lib/modules/$$(uname -r)/build; \
+        echo "Kernel directory: $$KERN_DIR"; \
+        # 其他使用 $$KERN_DIR 的命令
+    ```
+
+    ## 方法3：使用 `=` 赋值（每次使用时重新计算）
+
+    ```makefile
+    KERN_DIR = /lib/modules/$(shell uname -r)/build
+
+    all:
+        @echo "Kernel directory: $(KERN_DIR)"
+    ```
+
+    ## 重要区别：
+
+    - **`:=`** (立即展开)：在定义时立即执行 `uname -r`，只执行一次
+    - **`=`** (延迟展开)：每次使用变量时都会重新执行 `uname -r`
+    - **`\`**：在规则内部保持 shell 会话连续性
+
+    ## 完整示例：
+
+    ```makefile
+    # 使用 := 立即展开（推荐）
+    KERN_DIR := /lib/modules/$(shell uname -r)/build
+
+    obj-m := hello.o
+
+    all:
+        make -C $(KERN_DIR) M=$(PWD) modules
+
+    clean:
+        make -C $(KERN_DIR) M=$(PWD) clean
+
+    .PHONY: all clean
+    ```
+
+    ## 验证：
+
+    ```bash
+    $ make -n  # 查看实际执行的命令
+    make -C /lib/modules/5.15.0-86-generic/build M=/your/path modules
+    ```
+
+    这样就可以正确获取当前运行内核的构建目录路径了。
+
 * makefile 中，不能使用`$(command)`得到 command 的输出，必须使用`$(shell command)`才可以。
 
 * makefile 中，如何将 include_dirs = aaa bbb ccc 替换成 -Iaaa -Ibbb -Iccc

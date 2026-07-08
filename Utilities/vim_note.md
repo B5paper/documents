@@ -2,6 +2,238 @@
 
 ## cache
 
+* vim 映射中，alt 键如何表示
+
+	在 Vim 的映射命令中，Alt 键最标准的表示法是 `<M-...>`，`M` 代表 Meta。
+
+	*   **`<M-key>`**: 这是最通用和推荐的写法。
+	*   **`<A-key>`**: `A` 代表 Alt，是 `<M-key>` 的同义词。
+
+	例如，要将 Alt+j 映射为在普通模式下向下移动一行，你可以在 `.vimrc` 中这样写：
+
+	```vim
+	nnoremap <M-j> j
+	nnoremap <A-j> j
+	```
+
+* `\e` 在 Vim 脚本中代表 `Esc` 字符
+
+	未验证。
+
+* vim buffer 的使用
+
+	Vim 完全可以将多个文件以**隐藏缓冲区（hidden buffers）**的方式打开，并在它们之间快速切换，就像 Screen 的多个窗口一样——每次只显示一个文件，占满整个终端。
+
+	---
+
+	**基础操作**
+
+	1. 打开多个文件
+
+		```bash
+		vim file1 file2 file3        # 启动时打开多个
+		: e file4                    # 在当前 Vim 中再打开一个（添加到 buffer 列表）
+		: badd file5                 # 添加文件到 buffer 列表但不切换过去
+		```
+
+	2. 切换缓冲区（核心命令）
+
+		```vim
+		:ls          " 列出所有缓冲区（带编号）
+		:b N         " 切换到编号为 N 的缓冲区（N 是数字）
+		:bn          " 下一个缓冲区（next）
+		:bp          " 上一个缓冲区（previous）
+		:bf          " 第一个缓冲区（first）
+		:bl          " 最后一个缓冲区（last）
+		:b filename  " 按文件名切换（支持 Tab 补全）
+		```
+
+		ls 的输出说明：
+
+		```
+		1 %a   "file1.txt"          line 10
+		2 #h   "file2.txt"          line 25
+		3      "file3.txt"          line 5
+		```
+
+		标记说明：
+
+		%a = 当前显示的缓冲区
+
+		# = 上一个缓冲区（可用 :e# 切换回来）
+
+		h = 隐藏的缓冲区（有未保存修改）
+
+		+ = 有修改但已保存的？其实是 + 表示已修改但未保存
+
+	**配置快捷键（像 Screen 一样操作）**
+
+	```vim
+	" 切换缓冲区（类似 Screen 的 Ctrl+A n 和 Ctrl+A p）
+	nnoremap <leader>n :bn<CR>
+	nnoremap <leader>p :bp<CR>
+
+	" 快速列出所有缓冲区并选择
+	nnoremap <leader>l :ls<CR>:b<Space>
+	```
+
+	**高级技巧：模糊查找切换**
+
+	**使用内置的 `:buffer` 配合通配符**
+
+	```vim
+	:buffer foo<Tab>   " 自动补全
+	:buffer *bar       " 匹配包含 bar 的文件名
+	:buffer /pattern   " 用正则匹配缓冲区名
+	```
+
+	**使用 fzf.vim（强烈推荐）**
+
+	安装 [fzf](https://github.com/junegunn/fzf.vim) 后：
+
+	```vim
+	:Buffers          " 模糊搜索所有缓冲区，回车即切换
+	```
+
+	**使用 CtrlP 插件**
+
+	```vim
+	:CtrlPBuffer      " 列出所有缓冲区进行模糊匹配
+	```
+
+	---
+
+	**管理缓冲区（删除/隐藏）**
+
+	```vim
+	:bd              " bdelete, 删除当前缓冲区（unload，关闭文件）
+	:bd N            " 删除编号为 N 的缓冲区
+	:bd file         " 删除指定文件的缓冲区
+	:bw              " bwipeout, 彻底擦除（wipeout），比 bd 更彻底
+
+	:bufdo bd        " 删除所有缓冲区, 谨慎使用！
+	:bd hidden       " 删除所有隐藏的缓冲区
+	```
+
+	如果在 bd 时，buffer 中有未保存的改动，vim 会提示。如果需要强制退出 buffer，可以使用`bd!`
+
+	bw 会额外删除撤销历史、标记、文件类型设置、语法高亮设置、缩进设置等。通常不会用到这个命令，等用到了再查用法。
+
+	```vim
+	set autowrite      " 切换时自动保存（不是隐藏）
+	set hidden         " 切换时不保存（隐藏）
+	" 这两个可以同时使用（只使用 set autowrite 会发生什么？）
+	```
+
+	查看哪些 buffer 有未保存修改:
+
+	```vim
+	:ls               " 有 + 标记的就是未保存
+	:echo &modified  " 当前 buffer 是否修改
+	```
+
+	---
+
+	**关键设置：让切换更流畅**
+
+	在 `.vimrc` 中添加：
+
+	```vim
+	" 允许在未保存时切换缓冲区（而不是报错）
+	set hidden
+
+	" 显示缓冲区编号（方便 :b N）
+	set ls=2          " 始终显示状态栏
+	set statusline=%{bufnr('%')}:\ %f\ %m\ %r   " 状态栏显示编号
+
+	" 更智能的切换：按编号直接跳转
+	" 输入 5 然后 Ctrl+N 跳到缓冲区 5（需要自定义映射）
+	```
+
+	注：
+
+	1. 即使设置了 hidden，如果有未保存的修改，直接 :q 退出，也会提示保存
+
+	---
+
+	**保存会话（相当于 Screen 的 session 恢复）**
+
+	```vim
+	:mksession! ~/mysession.vim   " 保存当前所有缓冲区状态
+	vim -S ~/mysession.vim        " 下次启动恢复
+	```
+
+	```vim
+	:wa             " wall, 保存所有缓冲区（write all）
+	:wqa            " 保存所有并退出（write quit all）
+	:xall           " 同 :wqa
+	:qa!            " 强制退出所有，丢弃修改
+	:qall!          " 同 :qa!
+	```
+
+	```vim
+	" 显示缓冲区列表和编号
+	set statusline=%{bufnr('%')}\ %f\ %m\ %r
+	```
+	---
+
+	## 实际工作流示例
+
+	1. **启动 Vim 打开多个文件**：
+	   ```bash
+	   vim main.c util.c header.h
+	   ```
+
+	2. **在 Vim 中切换**：
+	   - 按 `:bn` 或 `:bp` 前后切换
+	   - 按 `:ls` 查看所有文件，然后 `:b 2` 跳转到第二个
+
+	3. **遇到新文件需要编辑**：
+	   ```vim
+	   :e newfile.c      " 自动加入 buffer 列表
+	   ```
+
+	4. **不想看到某个文件**：
+
+	   ```vim
+	   :bd               " 关闭当前 buffer，自动切换到下一个
+	   ```
+
+	---
+
+	**终极技巧：结合 `arglist`（参数列表）**
+
+	如果你打开很多文件，可以这样：
+	```bash
+	vim *.c                    " 打开所有 .c 文件
+	```
+
+	然后用参数列表切换：
+	```vim
+	:args          " 列出参数列表
+	:next          " 下一个参数文件（类似 :bn）
+	:prev          " 上一个
+	:first         " 第一个
+	```
+
+	区别：`arglist` 是启动时指定的文件列表，`buffer list` 是 Vim 中所有打开过的文件（包括后来 `:e` 添加的）。
+
+	---
+
+	**总结**
+
+	- **最简方案**：用 `:bn` 和 `:bp` 切换，设置 `set hidden` 后无需保存即可切换。
+	- **效率提升**：映射 `<C-n>` 和 `<C-p>`，加上 `:ls` 查看所有 buffer。
+	- **生产力飞跃**：安装 fzf.vim 用 `:Buffers` 模糊搜索。
+
+	这样你就拥有一个比 Screen 更强大的多文件编辑环境——所有文件都在同一个 Vim 进程内，**所有寄存器（包括 `"+` 剪贴板）完全共享**，复制粘贴毫无障碍！
+
+* 在 cygwin 中使用 ssh 连接到远程 linux server，开启 screen, 并在 screen 的多个虚拟 terminal 中打开 vim，即使远程 host 安装了 x11，多个 vim 之间也无法使用 "+ 寄存器。
+
+    目前不清楚为什么，可能是因为 cygwin 没有 x11 server，所以 ssh 在打开 bash session 时，就没有开启 x11 以及 DISPLAY 等相关的环境变量。
+
+    在 cygwin 中无论是直接使用 ssh 连接 remote ubuntu server，还是使用 ssh -X 连接，还是使用 ssh -Y 连接，登陆 bash 后，环境变量 DISPLAY 都没有被设置。 
+
 * vim 中没有 enumerate
 
 * 详细讲讲 vim 中的 if, for 等条件控制语句

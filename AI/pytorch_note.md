@@ -2,6 +2,403 @@
 
 ## cache
 
+* 禁止联网，简介一下 torchmetrics 的基本用法
+
+	好的，当然可以。以下是对 `torchmetrics` 库的基本用法的简介，全程无需联网。
+
+	### 1. 什么是 TorchMetrics？
+
+	`torchmetrics` 是一个专门为 PyTorch 设计的库，用于**可靠地、正确地**评估机器学习模型的性能。它提供了一系列开箱即用的指标（Metrics），涵盖了分类、回归、目标检测、自然语言处理等多个领域。
+
+	**核心优势：**
+
+	*   **与 PyTorch 无缝集成**：指标本身就是 `torch.nn.Module`，可以像模型层一样使用 GPU、支持自动微分（虽然评估通常不需要）。
+	*   **分布式训练支持**：自动处理多 GPU 或分布式训练环境下的指标同步和聚合，你无需手动编写复杂的同步代码。
+	*   **高可靠性**：经过充分测试，确保计算的正确性，避免了手动实现时可能出现的错误。
+	*   **模块化设计**：每个指标都是一个独立的模块，可以轻松组合到你的训练流程中。
+
+	---
+
+	### 2. 基本用法
+
+	#### 安装
+
+	首先，你需要安装它（假设你已安装 PyTorch）：
+
+	```bash
+	pip install torchmetrics
+	```
+
+	#### 基础四步走
+
+	使用任何一个指标通常遵循以下四个步骤：
+
+	1.  **初始化**：在代码开头或初始化函数中创建指标实例。
+	2.  **更新**：在训练循环或验证循环中，使用新的模型预测和真实标签来更新指标状态。
+	3.  **计算**：在所有数据经过更新后，调用计算方法来获取最终的指标值。
+	4.  **重置**：在下一个 epoch 或评估阶段开始前，重置指标的内部状态。
+
+	#### 代码示例：以准确率为例
+
+	```python
+	import torch
+	from torchmetrics import Accuracy
+
+	# 1. 初始化指标
+	# 假设是一个10分类任务
+	accuracy = Accuracy(task="multiclass", num_classes=10)
+
+	# 模拟一个验证循环
+	# 假设我们有两个 batch 的数据
+	batch1_preds = torch.tensor([0, 1, 2, 3]) # 模型预测的类别索引
+	batch1_target = torch.tensor([0, 1, 1, 3]) # 真实的类别索引
+
+	batch2_preds = torch.tensor([1, 0, 2])
+	batch2_target = torch.tensor([1, 0, 1])
+
+	# 2. 更新指标状态
+	accuracy.update(batch1_preds, batch1_target)
+	accuracy.update(batch2_preds, batch2_target)
+
+	# 3. 计算最终准确率
+	final_accuracy = accuracy.compute()
+	print(f"最终准确率: {final_accuracy}") # 例如：tensor(0.7143)
+
+	# 4. 重置指标，为下一个验证阶段做准备
+	accuracy.reset()
+	```
+
+	**输出可能类似于：**
+	```
+	最终准确率： tensor(0.7143)
+	```
+
+	**计算过程解释：**
+	*   Batch1: 预测为 `[0, 1, 2, 3]`，真实为 `[0, 1, 1, 3]` -> 正确数：3（第0,1,3个样本）
+	*   Batch2: 预测为 `[1, 0, 2]`，真实为 `[1, 0, 1]` -> 正确数：2（第0,1个样本）
+	*   总样本数：7，总正确数：5 -> 准确率：5/7 ≈ 0.7143
+
+	---
+
+	### 3. 与 PyTorch Lightning 集成
+
+	`torchmetrics` 与 PyTorch Lightning 配合得非常好，可以极大地简化代码。
+
+	```python
+	import pytorch_lightning as pl
+	from torchmetrics import Accuracy
+
+	class MyLightningModule(pl.LightningModule):
+		def __init__(self):
+			super().__init__()
+			self.model = ... # 你的模型
+			# 直接定义指标，它们会被自动移动到正确的设备上
+			self.train_accuracy = Accuracy(task="multiclass", num_classes=10)
+			self.val_accuracy = Accuracy(task="multiclass", num_classes=10)
+
+		def training_step(self, batch, batch_idx):
+			x, y = batch
+			logits = self.model(x)
+			loss = ...
+			preds = torch.argmax(logits, dim=1)
+			# 更新指标
+			self.train_accuracy(preds, y) # 也可以使用 .update()
+			self.log('train_loss', loss)
+			self.log('train_acc', self.train_accuracy, on_step=True, on_epoch=True)
+			return loss
+
+		def validation_step(self, batch, batch_idx):
+			x, y = batch
+			logits = self.model(x)
+			preds = torch.argmax(logits, dim=1)
+			# 更新指标
+			self.val_accuracy(preds, y)
+			self.log('val_acc', self.val_accuracy, on_epoch=True) # 通常只在epoch结束时记录验证指标
+
+		# ... 配置优化器等方法 ...
+	```
+
+	在 Lightning 中，你通常不需要手动调用 `compute()` 和 `reset()`，框架会自动处理。
+
+	---
+
+	### 4. 常用指标一览
+
+	`torchmetrics` 提供了丰富的指标，以下是一些常见类别：
+
+	*   **分类**：
+		*   `Accuracy`, `Precision`, `Recall`, `F1Score`
+		*   `AUROC`, `AveragePrecision`
+		*   `ConfusionMatrix`
+	*   **回归**：
+		*   `MeanSquaredError`, `MeanAbsoluteError`
+		*   `R2Score`, `PearsonCorrCoef`
+	*   **多模态/其他**：
+		*   `BLEUScore` (NLP)
+		*   `StructuralSimilarityIndexMeasure` (图像质量)
+
+	### 总结
+
+	`torchmetrics` 的核心思想是**将指标计算封装成可复用的、状态化的模块**。通过 `update` -> `compute` -> `reset` 的工作流，它确保了在各种复杂训练场景下指标计算的**正确性和便捷性**，是 PyTorch 生态中模型评估不可或缺的工具。
+
+* 那 Precision 的用法呢，简介一下
+
+	好的，以下是 `torchmetrics` 中 `Precision` 指标的基本用法简介。
+
+	### Precision 简介
+
+	**精确率** 衡量的是在所有被模型预测为**正例**的样本中，**真正为正例**的比例。
+
+	公式：`Precision = TP / (TP + FP)`
+	*   **TP**: 真正例（预测为正，实际也为正）
+	*   **FP**: 假正例（预测为正，实际为负）
+
+	它关注的是**预测结果的准确性**。
+
+	---
+
+	### 基本用法
+
+	#### 1. 初始化参数
+
+	创建 `Precision` 实例时，最关键的是根据任务类型设置 `task` 和 `num_classes` 等参数。
+
+	```python
+	from torchmetrics import Precision
+
+	# 示例1：二分类任务
+	precision_binary = Precision(task="binary")
+	# 或者更传统的初始化方式（新版本推荐用task）
+	# precision_binary = Precision(num_classes=1, task='binary')
+
+	# 示例2：多分类任务（例如3个类别）
+	precision_multiclass = Precision(task="multiclass", num_classes=3)
+
+	# 示例3：多标签任务（例如3个标签）
+	precision_multilabel = Precision(task="multilabel", num_classes=3)
+	```
+
+	**常用参数：**
+	*   `task`：任务类型 (`"binary"`, `"multiclass"`, `"multilabel"`)
+	*   `num_classes`：类别数（多分类/多标签任务必需）
+	*   `average`：
+		*   `"micro"`：全局计算（考虑所有类别的贡献）
+		*   `"macro"`：对所有类别的precision取平均
+		*   `"weighted"`：按各类别的支持度（样本数）加权平均
+		*   `"none"`：返回每个类别的precision
+	*   `threshold`：二分类任务的决策阈值（默认0.5）
+	*   `num_labels`：多标签任务的标签数
+
+	#### 2. 使用流程（更新→计算→重置）
+
+	```python
+	import torch
+	from torchmetrics import Precision
+
+	# 1. 初始化：三分类任务，使用宏平均
+	precision = Precision(task="multiclass", num_classes=3, average="macro")
+
+	# 模拟两个batch的预测和真实标签
+	# 预测值是logits或概率，需要是浮点 tensor
+	batch1_preds = torch.tensor([[0.9, 0.1, 0.1],  # 类别0的概率最高
+								 [0.1, 0.8, 0.1],  # 类别1
+								 [0.1, 0.2, 0.7]]) # 类别2
+	batch1_target = torch.tensor([0, 1, 2])  # 真实类别
+
+	batch2_preds = torch.tensor([[0.1, 0.6, 0.3],
+								 [0.3, 0.2, 0.5]])
+	batch2_target = torch.tensor([1, 2])
+
+	# 2. 更新指标状态
+	precision.update(batch1_preds, batch1_target)
+	precision.update(batch2_preds, batch2_target)
+
+	# 3. 计算最终precision
+	final_precision = precision.compute()
+	print(f"最终精确率: {final_precision}")
+
+	# 4. 重置指标
+	precision.reset()
+	```
+
+	#### 3. 不同任务类型的输入格式
+
+	**二分类任务：**
+	```python
+	precision_binary = Precision(task="binary")
+	# 预测值可以是logits或概率，目标值是0或1
+	preds = torch.tensor([0.8, 0.2, 0.6, 0.1])  # 4个样本的预测概率
+	target = torch.tensor([1, 0, 1, 0])         # 真实标签
+	```
+
+	**多分类任务：**
+	```python
+	precision_multi = Precision(task="multiclass", num_classes=3, average="macro")
+	# 方式1：提供概率/logits (shape: [N, C])
+	preds = torch.tensor([[0.9, 0.05, 0.05],
+						  [0.1, 0.8, 0.1]])
+	target = torch.tensor([0, 1])
+
+	# 方式2：直接提供预测的类别索引 (shape: [N])
+	preds = torch.tensor([0, 1, 2, 0])  # 直接是类别索引
+	target = torch.tensor([0, 1, 1, 0])
+	```
+
+	**多标签任务：**
+	```python
+	precision_ml = Precision(task="multilabel", num_classes=3)
+	# 预测值和目标值都是多维的，每个位置独立判断
+	preds = torch.tensor([[0.8, 0.2, 0.9],  # 预测：标签0和2为正
+						  [0.1, 0.7, 0.4]]) # 预测：标签1为正
+	target = torch.tensor([[1, 0, 1],
+						   [0, 1, 0]])
+	```
+
+	### 在 PyTorch Lightning 中的使用
+
+	```python
+	import pytorch_lightning as pl
+	from torchmetrics import Precision
+
+	class MyModel(pl.LightningModule):
+		def __init__(self):
+			super().__init__()
+			self.model = ...
+			self.val_precision = Precision(task="multiclass", num_classes=10, average="macro")
+		
+		def validation_step(self, batch, batch_idx):
+			x, y = batch
+			logits = self.model(x)
+			
+			# 更新precision指标
+			self.val_precision(logits, y)
+			
+			# 记录到日志
+			self.log('val_precision', self.val_precision, on_epoch=True, prog_bar=True)
+	```
+
+	### 总结
+
+	`Precision` 的关键要点：
+	1. **关注点**：模型预测为正的样本中有多少是真正的正例
+	2. **初始化**：根据任务类型正确设置 `task` 和 `num_classes`
+	3. **输入格式**：注意不同任务对预测值和目标值形状的要求
+	4. **平均方式**：`average` 参数影响多类别场景下的计算结果
+	5. **工作流**：遵循 `update()` → `compute()` → `reset()` 的标准流程
+
+	通过 `torchmetrics` 使用 `Precision` 可以避免手动实现的复杂性，特别是在分布式训练环境中。
+
+* 为什么我将 average 设置为 'micro' 时，precision 的输出和 accuracy 相同？
+
+	这是一个非常好的观察！当你将 `average='micro'` 时，Precision 和 Accuracy 确实可能输出相同的值，**但这只在特定的多分类情况下发生**。让我来解释为什么。
+
+	## 根本原因
+
+	在**多分类任务**中，`average='micro'` 的 Precision 计算方式是：**将所有类别的 TP、FP、FN 分别求和，然后计算全局的 Precision**。
+
+	公式：`Micro-Precision = ΣTP / (ΣTP + ΣFP)`
+
+	而在多分类任务中：
+	- 每个样本只能属于一个真实类别
+	- 模型对每个样本只能预测一个类别
+
+	这导致了一个关键性质：**在多分类中，全局的 FP 数量等于全局的 FN 数量**。
+
+	## 数学推导
+
+	假设有 N 个样本，K 个类别：
+
+	- **Accuracy** = (正确预测的样本数) / N = (ΣTP) / N
+
+	- **Micro-Precision** = ΣTP / (ΣTP + ΣFP)
+
+	由于在多分类中：
+	- 每个错误预测既是某个类别的 FP，也是另一个类别的 FN
+	- 因此：ΣFP = ΣFN
+	- 总样本数 N = ΣTP + ΣFP + ΣFN + ΣTN
+
+	但在多分类中，TN 的概念比较复杂。实际上可以证明：
+	**ΣTP + ΣFP = N**（因为每个样本都会有一个预测类别）
+
+	所以：
+	```
+	Micro-Precision = ΣTP / (ΣTP + ΣFP) = ΣTP / N = Accuracy
+	```
+
+	## 代码验证
+
+	```python
+	import torch
+	from torchmetrics import Precision, Accuracy
+
+	# 三分类任务
+	num_classes = 3
+	preds = torch.tensor([0, 1, 2, 0, 1])  # 预测类别
+	target = torch.tensor([0, 1, 1, 2, 1]) # 真实类别
+
+	# 计算 micro-precision
+	precision_micro = Precision(task="multiclass", num_classes=num_classes, average='micro')
+	precision_micro.update(preds, target)
+	micro_precision = precision_micro.compute()
+
+	# 计算 accuracy
+	accuracy = Accuracy(task="multiclass", num_classes=num_classes)
+	accuracy.update(preds, target)
+	acc = accuracy.compute()
+
+	print(f"Micro Precision: {micro_precision}")  # tensor(0.6000)
+	print(f"Accuracy: {acc}")                    # tensor(0.6000)
+	```
+
+	**计算过程：**
+	- 总样本数：5
+	- 正确预测：样本0, 1, 4 → 3个正确
+	- Accuracy = 3/5 = 0.6
+	- Micro-Precision = 3/5 = 0.6
+
+	## 什么时候不相等？
+
+	在以下情况下，Micro-Precision 和 Accuracy 可能不相等：
+
+	1. **多标签分类**：
+	   ```python
+	   # 多标签任务 - 结果可能不同
+	   preds = torch.tensor([[1, 0, 1], [0, 1, 0]])
+	   target = torch.tensor([[1, 0, 1], [0, 1, 1]])
+	   
+	   precision_ml = Precision(task="multilabel", num_classes=3, average='micro')
+	   accuracy_ml = Accuracy(task="multilabel", num_classes=3, average='micro')
+	   ```
+
+	2. **样本权重不同**
+
+	3. **存在未标注或特殊类别**
+
+	## 应该使用哪种 average？
+
+	根据你的需求：
+	- **`micro`**：关注整体性能，每个样本同等重要
+	- **`macro`**：关注每个类别的平等重要性，不考虑类别不平衡
+	- **`weighted`**：考虑类别不平衡，按类别样本数加权
+
+	```python
+	# 比较不同 average 方式
+	preds = torch.tensor([0, 1, 2, 0, 1, 2])
+	target = torch.tensor([0, 1, 1, 0, 2, 2])
+
+	precision_micro = Precision(task="multiclass", num_classes=3, average='micro')
+	precision_macro = Precision(task="multiclass", num_classes=3, average='macro')
+	precision_weighted = Precision(task="multiclass", num_classes=3, average='weighted')
+
+	print(f"Micro: {precision_micro(preds, target)}")    # 与accuracy相同
+	print(f"Macro: {precision_macro(preds, target)}")    # 各类别precision的平均
+	print(f"Weighted: {precision_weighted(preds, target)}") # 按支持度加权
+	```
+
+	## 总结
+
+	你的观察是正确的！在多分类任务中，`average='micro'` 的 Precision 确实等于 Accuracy，这是因为多分类问题的特殊性质导致的。这提醒我们要根据具体任务需求选择合适的评估指标和平均方式。
+
 * pytorch 中 nn.ReLU(True) 里的 True 是什么意思？
 
 	在 PyTorch 中，`nn.ReLU(True)` 里的 `True` 参数表示是否进行 **原地操作**（in-place operation）。
