@@ -6655,7 +6655,7 @@
 
     default merge to current branch.
 
-    执行 merge 操作时，`<to_branch>`必须存在。
+    执行 merge 操作时，`<to_branch>`必须存在，不能 merge 到未创建的
 
     `git merge <branch_name>`：把`<branch_name>`分支 merge 到当前分支。即对比`<branch_name>`分支最新的一次 commit 与当前分支的最新 commit，如果这两个 commit 在同一条线上，那么直接使用 fast-forward，改变当前 branch 的指针。如果这两个 commit 不在同一条线上，那么对当前 branch 创建一个新的 merge commit，并要求你手动处理 conflict。
 
