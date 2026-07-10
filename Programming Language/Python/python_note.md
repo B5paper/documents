@@ -2,6 +2,253 @@
 
 ## cache
 
+* python 不支持对多个变量做类型注释
+
+    `A_train, A_test: tuple[NDArray, NDArray] = train_test_split(A)`
+
+    只支持单变量的类型注释：
+
+    ```py
+    A_train, A_test = train_test_split(A)
+    A_train: NDArray
+    A_test; NDArray
+    ```
+
+* 简述`python -m xxx.py`与 python xxx.py 的区别？关于其中 import 的 package 和 module，又有什么需要注意的？
+
+    **核心区别：执行方式与 `__name__` 变量**
+
+    最根本的区别在于 Python 解释器执行代码的方式和当前模块的 `__name__` 属性。
+
+    | 特性 | `python xxx.py` | `python -m xxx.py` |
+    | :--- | :--- | :--- |
+    | **执行方式** | 将 `xxx.py` 作为**一个脚本文件**直接执行。 | 将 `xxx.py` 作为一个**模块**来定位并执行。 |
+    | **`__name__`** | 被设置为 `'__main__'`。 | **注意：** 这种用法通常是错误的，见下文详解。 |
+    | **sys.path** | 脚本所在目录被添加到**系统路径** 的开头。 | 当前工作目录（你执行命令的目录）会被添加到系统路径开头。 |
+    | **模块寻址** | 基于脚本所在目录进行寻址。 | 基于当前工作目录进行模块寻址。 |
+
+    详细解释与注意事项
+
+    1. `python xxx.py`（直接运行脚本）
+
+        - **行为**：Python 解释器找到你提供的文件路径（`xxx.py`），然后直接执行它。
+
+        - **`__name__`**：在这种情况下，该文件的 `__name__` 被设置为 `'__main__'`。这就是 `if __name__ == '__main__':` 语句成立的条件。
+
+        - **Import 影响**：脚本文件所在的目录会被添加到 `sys.path`（Python 查找模块的路径列表）的最前面。这意味着，该目录下的其他模块和包可以很容易地被脚本中的 `import` 语句找到。
+
+    2. `python -m xxx.py`（作为模块运行——通常为错误用法）
+
+        **重要**：`python -m` 后面跟的应该是一个**模块名**，而不是一个文件名。所以 `python -m xxx.py` 在大多数情况下是一个**错误**，或者会产生意想不到的行为。
+
+        - **正确用法**：`python -m package_name.module_name`
+
+            - 例如，你有一个模块 `mymodule.py` 在包 `mypkg` 里，你应该用 `python -m mypkg.mymodule`。
+            - 再如，内置的 `http.server` 模块：`python -m http.server`。
+
+        - **`python -m xxx.py` 到底发生了什么？**
+
+            1. Python 会去掉后缀 `.py`，将其视为模块名 `xxx`。
+
+            2. 然后，Python 解释器会在 `sys.path` 的所有路径中寻找一个叫做 `xxx` 的模块（即 `xxx.py` 文件）或者包（即包含 `__init__.py` 的 `xxx` 目录）。
+
+            3. **关键点**：它**从当前工作目录开始查找**，而不是从 `xxx.py` 文件所在目录。如果你的当前工作目录不是 `xxx.py` 所在的目录，很可能找不到模块，报错 `No module named xxx`。
+
+        - **`__name__`**：当使用 `-m` 方式正确运行时，模块的 `__name__` 不会被设置为 `'__main__'`，而是其**完整的模块名**（例如 `mypkg.mymodule`）。但是，Python 解释器会特殊处理，仍然执行该模块的代码，就像它是主程序一样。
+
+    **关于 Import 的 Package 和 Module 的注意事项**
+
+    这是问题的核心，也是两种方式差异最大的地方。
+
+    1. 相对导入（Relative Imports）的陷阱
+
+        **相对导入**（例如 `from . import sibling_module` 或 `from ..parent_pkg import something`）**强烈依赖于模块的 `__name__`** 来定位其在包结构中的位置。
+
+        - **`python xxx.py`（直接运行）**：
+
+            - 此时，脚本的 `__name__` 是 `'__main__'`，**它不再被认为是一个包的一部分**。
+
+            - 如果你在脚本中使用了相对导入，Python 无法确定其父包是什么，会抛出错误：
+
+              ```
+              ImportError: attempted relative import with no known parent package
+              ```
+
+            - **结论**：直接运行的脚本**不能**使用相对导入。
+
+        - **`python -m package.module`（作为模块运行）**：
+
+            - 此时，模块的 `__name__` 是 `'package.module'`。Python 清楚地知道它在 `package` 这个包里。
+
+            - 因此，相对导入可以**正常工作**。这是运行一个包内模块并使其相对导入生效的**标准且推荐的方式**。
+
+    2. 执行目录对 Import 的影响
+
+        假设你有以下目录结构：
+        ```
+        project/
+        ├── pkg/
+        │   ├── __init__.py
+        │   ├── module_a.py
+        │   └── module_b.py
+        └── main_script.py
+        ```
+
+        - 你在 `project/` 目录下执行 `python pkg/module_a.py`：
+
+            - `sys.path` 的第一个路径是 `project/pkg/`。
+            - `module_a.py` 可以 `import module_b`，因为它们在同一个目录下。
+            - 但 `module_a.py` 很难导入 `main_script.py`，因为 `main_script.py` 在 `project/` 目录，不在 `sys.path` 的开头。
+
+        - 你在 `project/` 目录下执行 `python -m pkg.module_a`：
+
+            - `sys.path` 的第一个路径是 `project/`（当前工作目录）。
+            - `module_a.py` 可以 `import pkg.module_b`（绝对导入）或 `from . import module_b`（相对导入）。
+            - `module_a.py` 也可以 `import main_script`，因为 `project/` 在 `sys.path` 里。
+
+    **总结与最佳实践**
+
+    | 场景 | 推荐执行方式 | 理由 |
+    | :--- | :--- | :--- |
+    | **运行一个独立的、顶层的脚本** | `python main_script.py` | 简单直接，适合不属于任何包的脚本。 |
+    | **运行一个包内部的模块** | `python -m mypkg.mymodule` | 能正确处理相对导入，模块寻址基于项目根目录，更符合模块化思想。 |
+    | **运行标准库模块** | `python -m http.server` | 这是运行库模块的标准方式。 |
+
+    **核心要点**：
+
+    1.  **避免使用 `python -m xxx.py`**，正确的模块运行方式是 `python -m module_name`（不带 `.py` 后缀）。
+
+    2.  如果你的代码使用了**相对导入**，你**必须**使用 `python -m` 方式来运行。
+
+    3.  理解 `sys.path` 是如何被这两种方式影响的，这对于调试 `ImportError` 至关重要。
+
+    4.  当开发一个可安装的包时，通常会在 `setup.py` 中配置入口点，使得用户可以通过命令行工具直接运行，而不需要关心使用哪种方式。但对于开发者来说，在包内部测试时，应优先使用 `python -m`。
+
+
+    **为什么推荐保留 `__init__.py`？**
+
+    虽然现在不是必须的，但在很多情况下仍然推荐使用：
+
+    1. **明确性**：明确表明这是一个 Python 包，而不是普通目录
+    2. **兼容性**：保证与旧版本 Python 的兼容
+    3. **包初始化**：可以在 `__init__.py` 中执行初始化代码
+    4. **控制导入**：使用 `__all__` 列表控制 `from package import *` 的行为
+    5. **包元数据**：定义包级别的变量和文档
+
+    ```python
+    # __init__.py 的常见用途
+    __version__ = "1.0.0"
+    __all__ = ["mod_1", "mod_2"]
+
+    # 包初始化代码
+    print(f"Initializing {__name__}")
+
+    # 简化导入
+    from .mod_1 import main_function
+    ```
+
+    **最佳实践建议**
+
+    1. **在包内部**：使用相对导入（`from . import module`）
+    2. **执行时**：从项目根目录使用 `python -m package.module`
+    3. **简单脚本**：使用绝对导入，直接运行 `python script.py`
+    4. **避免**：在包内模块中直接运行含有相对导入的脚本
+
+* 基于 mod 本身位置的相对导入
+
+    * 方案1：使用 `__package__` 和动态导入
+
+        ```python
+        # mod_2.py
+        import os
+        import sys
+        import importlib
+
+        # 获取当前文件所在目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # 将当前目录添加到 Python 路径
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+
+        # 现在可以绝对导入同目录的模块
+        import mod_1
+
+        mod_1.print_hello()
+        ```
+
+    * 方案2：使用 `importlib` 动态导入
+
+        ```python
+        # mod_2.py
+        import os
+        import importlib.util
+
+        # 基于文件路径导入
+        mod_1_path = os.path.join(os.path.dirname(__file__), 'mod_1.py')
+        spec = importlib.util.spec_from_file_location("mod_1", mod_1_path)
+        mod_1 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod_1)
+
+        mod_1.print_hello()
+        ```
+
+    * 方案3：使用 `pkgutil` 和 `sys.path`  hack
+
+        ```python
+        # mod_2.py
+        import os
+        import sys
+
+        # 添加当前目录到 Python 路径
+        sys.path.insert(0, os.path.dirname(__file__))
+
+        try:
+            import mod_1
+        finally:
+            # 清理，避免影响其他导入
+            sys.path.pop(0)
+
+        mod_1.print_hello()
+        ```
+
+    **实际项目中的最佳实践**
+
+    **对于应用程序（可执行的项目）**
+
+    ```python
+    # mod_2.py
+    import os
+    import sys
+
+    # 添加上级目录到路径，这样就可以从项目根目录导入
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+    from package_test import mod_1
+
+    mod_1.print_hello()
+    ```
+
+    **对于库/包（要分发的）**
+
+    **使用标准的包结构**，从项目根目录执行：
+    ```
+    my_project/
+    ├── setup.py
+    └── src/
+        └── my_package/
+            ├── __init__.py
+            ├── mod_1.py
+            └── mod_2.py
+    ```
+
+    ```python
+    # mod_2.py
+    from . import mod_1  # 标准相对导入
+
+    def some_function():
+        mod_1.print_hello()
+    ```
+
 * python 中的 fire 模块如何 parse arg？
 
 	在 Python 的 `fire` 模块中，参数解析是自动处理的，但你可以通过多种方式来控制和自定义参数解析。以下是详细说明：

@@ -2,6 +2,949 @@
 
 ## cache
 
+* 为什么 fig.show() 不显示图片，plt.show() 可以
+
+    你好！这是一个很常见的问题，主要原因在于 `fig.show()` 和 `plt.show()` 的设计目的和工作方式有本质区别。
+
+    ### 核心区别
+
+    - **`plt.show()`**：这是 **阻塞式** 的、**完整图形界面** 的显示方法。它会启动一个事件循环，打开一个完整的 GUI 窗口，你可以在这个窗口里缩放、平移、保存图片，与图表进行交互。
+    - **`fig.show()`**：这是一个 **轻量级** 的、**非阻塞式** 的显示方法。它主要依赖于浏览器的渲染引擎或者一些内置的图片查看器来快速显示一个静态图片，**交互性非常有限**。
+
+    ---
+
+    ### 详细解释和对比
+
+    | 特性 | `plt.show()` | `fig.show()` |
+    | :--- | :--- | :--- |
+    | **后端** | 需要完整的 GUI 后端 (TkAgg, Qt5Agg, etc.) | 通常使用内置的图片查看器或浏览器 |
+    | **阻塞性** | **阻塞** 程序执行，直到你关闭窗口 | **非阻塞**，代码会继续执行 |
+    | **交互性** | **高**，可以缩放、平移、保存 | **极低**，通常是静态图片 |
+    | **主要用途** | 在脚本或交互式环境中显示完整图形 | 在 Notebook 环境或快速查看时使用 |
+    | **可靠性** | **高**，是标准的显示方式 | **较低**，依赖系统环境，容易出问题 |
+
+    ---
+
+    ### 为什么 `fig.show()` 可能不工作？
+
+    `fig.show()` 的行为不太稳定，具体取决于你的环境和配置：
+
+    1.  **在 Jupyter Notebook/Lab 中**：
+        - 这是 `fig.show()` **最有效** 的地方。它会直接在 Notebook 的输出单元格中渲染图像。
+        - 但即使在这里，有时也需要先运行 `%matplotlib inline` 或 `%matplotlib widget` 等魔术命令。
+
+    2.  **在脚本或 IDE (如 PyCharm, VSCode) 中**：
+        - `fig.show()` 的行为非常不确定。
+        - 它可能会尝试调用系统的默认图片查看器来打开一个临时生成的 PNG 文件。
+        - 如果系统没有关联的图片查看器，或者路径有问题，它就**什么也不做**，也不会报错，让你感觉“没反应”。
+        - 在某些 IDE 中，它可能能正常显示，但在另一些中则完全失败。
+
+    3.  **后端不兼容**：
+        - 如果你设置了一个非交互式后端（如 `Agg`），`fig.show()` 很可能无法工作，因为它无法生成 GUI 窗口。
+
+    ---
+
+    ### 解决方案和最佳实践
+
+    #### 1. 在脚本中，始终坚持使用 `plt.show()`
+
+    这是最可靠、最标准的方法。
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3, 4])
+    plt.show() # 阻塞，会打开一个窗口，关闭后代码才继续
+    ```
+
+    #### 2. 在 Jupyter Notebook 中，使用魔术命令
+
+    使用 `%matplotlib inline` 可以自动在单元格下方显示图形，你甚至不需要显式调用 `show()`。
+
+    ```python
+    %matplotlib inline
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3, 4])
+    # 在 Notebook 中，图形会自动显示，不需要 plt.show() 或 fig.show()
+    ```
+
+    如果你想在 Notebook 中获得更好的交互体验，可以使用：
+    ```python
+    %matplotlib widget
+    # 然后绘图，你可以缩放和平移
+    ```
+
+    #### 3. 如果你想快速查看且不阻塞，可以尝试 `fig.show()`
+
+    但请做好它可能失败的心理准备。一个更健壮的“快速查看”方法是配合 `plt.ion()`（交互模式）使用 `plt.show()`，但它仍然会打开一个完整的 GUI 窗口。
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    plt.ion() # 打开交互模式
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3, 4])
+    plt.show(block=False) # 不阻塞，窗口会显示，但代码会继续
+
+    # ... 你可以继续执行其他代码 ...
+    input("按回车键关闭窗口...") # 用一个输入来保持程序运行，否则窗口可能一闪而过
+    plt.close(fig)
+    ```
+
+    ### 总结
+
+    - **`plt.show()` 是“正式”的显示方法**，它在所有环境下都最可靠。
+    - **`fig.show()` 是“便捷”的显示方法**，它的行为高度依赖环境，尤其在脚本中非常不可靠。
+
+    所以，当你发现 `fig.show()` 不显示图片时，**请直接换成 `plt.show()`**，这是解决问题最直接有效的方法。在 Notebook 中，则优先使用魔术命令 `%matplotlib inline`。
+
+* 我现在已经有了一个 Figure 对象fig，如何显示它
+
+    当你已经有一个 Figure 对象 `fig` 时，有几种方法可以显示它。以下是各种情况的解决方案：
+
+    ## 1. 在脚本或通用环境中（最推荐）
+
+    ### 使用 `plt.show()`
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 假设你已经有了 fig 对象
+    plt.show()  # 这会显示当前活动的图形，也就是你刚创建的 fig
+    ```
+
+    ### 或者明确指定要显示的图形
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 明确显示特定的 fig 对象
+    plt.figure(fig.number)  # 激活这个图形
+    plt.show()
+    ```
+
+    ## 2. 在 Jupyter Notebook 中
+
+    ### 使用魔术命令 + 直接显示
+    ```python
+    %matplotlib inline
+    import matplotlib.pyplot as plt
+
+    # 在 Notebook 中，图形会自动显示
+    # 如果你已经创建了 fig，它可能已经显示了
+
+    # 如果需要强制重新显示
+    display(fig)  # 这是最直接的方法
+    ```
+
+    ### 或者使用 matplotlib 的显示函数
+    ```python
+    from IPython.display import display
+    %matplotlib inline
+
+    display(fig)
+    ```
+
+    ## 3. 保存为图片文件
+
+    如果你只是想查看图形，也可以保存为图片：
+    ```python
+    fig.savefig('my_plot.png', dpi=300, bbox_inches='tight')
+
+    # 然后在文件管理器中打开图片查看
+    ```
+
+    ## 4. 完整的示例代码
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # 创建示例数据
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+
+    # 创建图形对象
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(x, y)
+    ax.set_title('Sine Wave')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+
+    # 方法1：使用 plt.show() （最推荐）
+    plt.show()
+
+    # 方法2：在 Notebook 中使用
+    # %matplotlib inline
+    # display(fig)
+
+    # 方法3：保存图片
+    # fig.savefig('sine_wave.png')
+    ```
+
+    ## 5. 如果你在使用交互式后端
+
+    ```python
+    # 设置交互模式
+    plt.ion()  # 打开交互模式
+
+    # 你的绘图代码...
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3, 4])
+
+    # 图形会自动显示，但为了确保显示
+    plt.draw()
+    plt.pause(0.001)  # 短暂的暂停以确保图形更新
+    ```
+
+    ## 总结
+
+    对于你的情况，**最简单的解决方案就是直接调用 `plt.show()`**：
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 假设 fig 是你已经创建好的 Figure 对象
+    plt.show()
+    ```
+
+    这会在大多数环境下正常工作，无论是脚本、IDE还是终端。在 Jupyter Notebook 中，使用 `%matplotlib inline` 加上 `display(fig)` 或直接让图形自动显示。
+
+* 如果我创建了多个 fig 对象呢
+
+    当你创建了多个 Figure 对象时，显示和管理它们需要一些技巧。以下是几种处理方法：
+
+    ## 1. 分别显示每个图形（依次显示）
+
+    ### 方法A：使用 `plt.figure()` 激活后显示
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建多个图形
+    fig1, ax1 = plt.subplots()
+    ax1.plot([1, 2, 3, 4], [1, 4, 2, 3])
+    ax1.set_title('Figure 1')
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot([1, 2, 3, 4], [4, 1, 3, 2])
+    ax2.set_title('Figure 2')
+
+    fig3, ax3 = plt.subplots()
+    ax3.plot([1, 2, 3, 4], [2, 3, 4, 1])
+    ax3.set_title('Figure 3')
+
+    # 依次显示每个图形
+    plt.figure(fig1.number)
+    plt.show()  # 显示第一个，关闭后继续
+
+    plt.figure(fig2.number)
+    plt.show()  # 显示第二个，关闭后继续
+
+    plt.figure(fig3.number)
+    plt.show()  # 显示第三个
+    ```
+
+    ### 方法B：使用非阻塞模式一次性打开所有窗口
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建多个图形
+    fig1, ax1 = plt.subplots()
+    ax1.plot([1, 2, 3, 4], [1, 4, 2, 3])
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot([1, 2, 3, 4], [4, 1, 3, 2])
+
+    fig3, ax3 = plt.subplots()
+    ax3.plot([1, 2, 3, 4], [2, 3, 4, 1])
+
+    # 非阻塞方式显示所有图形
+    plt.show(block=False)
+
+    # 保持程序运行，直到所有窗口关闭
+    input("按回车键退出...")  # 或者使用 plt.show(block=True)
+    ```
+
+    ## 2. 在 Jupyter Notebook 中显示多个图形
+
+    ```python
+    %matplotlib inline
+    import matplotlib.pyplot as plt
+
+    # 创建多个图形
+    fig1, ax1 = plt.subplots()
+    ax1.plot([1, 2, 3, 4], [1, 4, 2, 3])
+    ax1.set_title('Figure 1')
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot([1, 2, 3, 4], [4, 1, 3, 2])
+    ax2.set_title('Figure 2')
+
+    # 在 Notebook 中会自动显示最后一个创建的图形
+    # 要显示特定的图形，使用：
+    from IPython.display import display
+    display(fig1)
+    display(fig2)
+    ```
+
+    ## 3. 使用子图在一个窗口中显示多个图形
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建一个图形，多个子图
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+
+    ax1.plot([1, 2, 3, 4], [1, 4, 2, 3])
+    ax1.set_title('Subplot 1')
+
+    ax2.plot([1, 2, 3, 4], [4, 1, 3, 2])
+    ax2.set_title('Subplot 2')
+
+    ax3.plot([1, 2, 3, 4], [2, 3, 4, 1])
+    ax3.set_title('Subplot 3')
+
+    plt.tight_layout()  # 自动调整子图间距
+    plt.show()  # 一次性显示所有子图
+    ```
+
+    ## 4. 管理多个图形对象
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 存储图形对象的列表
+    figures = []
+
+    # 批量创建图形
+    for i in range(3):
+        fig, ax = plt.subplots()
+        ax.plot([1, 2, 3, 4], [i+1, i+2, i+3, i+4])
+        ax.set_title(f'Figure {i+1}')
+        figures.append(fig)
+
+    # 批量显示
+    for i, fig in enumerate(figures):
+        print(f"显示图形 {i+1}")
+        plt.figure(fig.number)
+        if i < len(figures) - 1:
+            plt.show(block=False)  # 非阻塞显示前几个
+        else:
+            plt.show(block=True)   # 最后一个阻塞显示
+
+    # 或者一次性非阻塞显示所有
+    # plt.show(block=False)
+    # input("按回车键关闭所有窗口...")
+    ```
+
+    ## 5. 使用图形管理器
+
+    ```python
+    import matplotlib.pyplot as plt
+    import matplotlib._pylab_helpers as pylab_helpers
+
+    # 创建多个图形
+    fig1 = plt.figure()
+    plt.plot([1, 2, 3, 4], [1, 4, 2, 3])
+
+    fig2 = plt.figure()
+    plt.plot([1, 2, 3, 4], [4, 1, 3, 2])
+
+    # 获取所有图形管理器
+    fig_managers = pylab_helpers.Gcf.get_all_fig_managers()
+
+    print(f"当前有 {len(fig_managers)} 个图形窗口")
+
+    # 显示所有图形
+    plt.show()
+    ```
+
+    ## 6. 保存多个图形到文件
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建多个图形
+    figures = []
+    for i in range(3):
+        fig, ax = plt.subplots()
+        ax.plot([1, 2, 3, 4], [i+1, i+2, i+3, i+4])
+        ax.set_title(f'Figure {i+1}')
+        figures.append(fig)
+
+    # 保存所有图形到文件
+    for i, fig in enumerate(figures):
+        fig.savefig(f'figure_{i+1}.png', dpi=300, bbox_inches='tight')
+        plt.close(fig)  # 关闭图形释放内存
+
+    print("所有图形已保存为文件")
+    ```
+
+    ## 推荐做法
+
+    1. **对于脚本开发**：使用 `plt.show(block=False)` 一次性显示所有窗口
+    2. **对于数据分析**：考虑使用子图而不是多个独立图形
+    3. **对于批量处理**：保存为图片文件而不是显示
+    4. **在 Jupyter 中**：使用 `display(fig)` 精确控制显示哪个图形
+
+    选择哪种方法取决于你的具体需求和运行环境。
+
+* 为什么 fig.number 没有在 vscode 里自动提示出来？
+
+    这是一个很好的问题！`fig.number` 没有在 VSCode 中自动提示的原因有几个：
+
+    ## 1. 类型提示和代码补全的限制
+
+    Matplotlib 的 Figure 类使用了一些动态属性，这些属性可能不会在静态类型检查中显示出来。
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    print(type(fig))  # <class 'matplotlib.figure.Figure'>
+    # fig.number 是运行时动态设置的属性
+    ```
+
+    ## 2. `number` 属性的特殊性
+
+    `fig.number` 实际上是一个**实例属性**，而不是类属性。它在 Figure 对象创建时被动态设置：
+
+    ```python
+    # 当你创建 Figure 时：
+    fig1 = plt.figure()  # 内部会设置 fig1.number = 1
+    fig2 = plt.figure()  # 内部会设置 fig2.number = 2
+    ```
+
+    ## 3. VSCode 的 Python 扩展限制
+
+    即使你安装了 Pylance 或 Jedi 作为语言服务器，对于一些动态设置的属性，自动补全可能无法识别。
+
+    ## 解决方案
+
+    ### 方法1：使用已知的属性和方法
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    # 这些通常会有自动提示：
+    print(fig.get_label())      # 获取标签
+    print(fig.get_figwidth())   # 获取宽度
+    print(fig.get_figheight())  # 获取高度
+
+    # number 属性虽然存在，但可能没有提示
+    print(fig.number)  # 这能正常工作，只是没有自动提示
+    ```
+
+    ### 方法2：使用 plt 的图形管理功能
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig1 = plt.figure(1)  # 明确指定图形编号
+    fig2 = plt.figure(2)
+
+    # 通过 plt 模块来管理
+    current_fig = plt.gcf()  # 获取当前图形
+    print(f"当前图形编号: {plt.gcf().number}")
+
+    # 获取所有图形
+    fig_managers = plt._pylab_helpers.Gcf.get_all_fig_managers()
+    for manager in fig_managers:
+        print(f"图形 {manager.num} 正在显示")
+    ```
+
+    ### 方法3：添加类型提示（有助于自动补全）
+    ```python
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
+    # 明确指定类型
+    fig: Figure = plt.figure()
+    # 这样可能会有更好的自动补全支持
+
+    # 现在尝试输入 fig. 看看是否有更多提示
+    ```
+
+    ### 方法4：检查可用属性
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+
+    # 查看所有可用属性
+    print([attr for attr in dir(fig) if not attr.startswith('_')])
+
+    # 或者使用 vars() 查看实例属性
+    print(vars(fig).keys())
+    ```
+
+    ### 方法5：使用 VSCode 的设置
+    在 VSCode 的 settings.json 中添加：
+    ```json
+    {
+        "python.analysis.extraPaths": [
+            "/path/to/your/python/site-packages"
+        ],
+        "python.analysis.typeCheckingMode": "basic"
+    }
+    ```
+
+    ## 实际验证 `fig.number` 的存在
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建多个图形来验证 number 属性
+    figures = []
+    for i in range(3):
+        fig = plt.figure()
+        figures.append(fig)
+        print(f"图形 {i+1} 的编号: {fig.number}")  # 这会正常输出
+
+    # 关闭所有图形
+    plt.close('all')
+    ```
+
+    ## 总结
+
+    - `fig.number` **确实存在**并且可以正常工作
+    - 缺少自动提示是因为它是**运行时设置的实例属性**
+    - 这**不影响代码功能**，只是 IDE 的提示限制
+    - 你可以放心使用 `fig.number`，即使没有自动提示
+
+    如果你非常依赖自动提示，可以考虑使用其他图形管理方法，或者直接相信代码能正常运行，即使 IDE 没有提示。
+
+* 这是否说明 matplotlib 设计得不好
+
+    这是一个很有深度的观察！但我不认为这完全说明 matplotlib 设计得"不好"，更多是反映了它的**历史背景、设计哲学和权衡取舍**。
+
+    ## matplotlib 的设计背景
+
+    matplotlib 诞生于 **2002 年**，比现代 IDE 和类型提示的普及要早得多。它的设计受到 MATLAB 的强烈影响，当时的编程范式与现在有很大不同。
+
+    ## 为什么会有这样的设计选择？
+
+    ### 1. **历史兼容性负担**
+    ```python
+    # matplotlib 必须保持向后兼容
+    # 20年前的代码在今天仍然要能运行
+    import matplotlib.pyplot as plt
+    plt.plot([1, 2, 3], [1, 4, 2])  # 这行代码在 2003 年就能运行
+    plt.show()
+    ```
+
+    ### 2. **动态性的代价**
+    matplotlib 为了灵活性使用了大量动态属性设置：
+    ```python
+    fig = plt.figure()
+    # 这些属性都是运行时动态添加的：
+    fig.number = 1           # 图形编号
+    fig.axes = []            # 包含的坐标轴列表
+    fig.canvas = ...         # 画布对象
+    # 静态类型系统很难推断这些
+    ```
+
+    ### 3. **面向不同用户群体**
+    matplotlib 要同时满足：
+    - **MATLAB 转来的科学家**（习惯命令式编程）
+    - **Python 新手**（需要简单接口）
+    - **高级开发者**（需要精细控制）
+
+    ## 确实存在的设计问题
+
+    ### 1. **状态机模式令人困惑**
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 令人困惑的地方：
+    plt.figure(1)           # 创建图形1
+    plt.plot([1, 2, 3])     # 在当前图形上绘图
+    fig2 = plt.figure(2)    # 创建图形2，但图形1仍然是"当前图形"吗？
+    plt.plot([4, 5, 6])     # 这个画在哪个图形上？
+    ```
+
+    ### 2. **多种方式做同一件事**
+    ```python
+    # 创建图形的多种方式：
+    fig = plt.figure()
+    fig, ax = plt.subplots()
+    fig = Figure()
+    fig = plt.gcf()
+
+    # 设置标题的多种方式：
+    ax.set_title('Title')
+    plt.title('Title')
+    fig.suptitle('Title')
+    ```
+
+    ### 3. **文档字符串不完整**
+    很多属性和方法缺乏完整的类型注解，影响 IDE 支持。
+
+    ## 现代的改进和替代方案
+
+    ### 1. **面向对象接口（推荐）**
+    ```python
+    # 现代的最佳实践：明确使用面向对象方式
+    fig, ax = plt.subplots()
+    ax.plot(x, y)
+    ax.set_xlabel('X')
+    # 这种方式更清晰，IDE 支持更好
+    ```
+
+    ### 2. **类型提示的改进**
+    较新版本的 matplotlib 在逐步添加类型提示：
+    ```python
+    from matplotlib.figure import Figure
+    from matplotlib.axes import Axes
+
+    def create_plot() -> tuple[Figure, Axes]:
+        fig, ax = plt.subplots()
+        return fig, ax  # 明确的类型提示
+    ```
+
+    ### 3. **现代替代库**
+    像 **Plotly**、**Altair**、**Bokeh** 等新库在设计时考虑了现代开发需求：
+    ```python
+    # Plotly 示例 - 更一致的 API
+    import plotly.express as px
+    fig = px.scatter(df, x='x', y='y')
+    fig.show()  # 更一致的 API
+    ```
+
+    ## 公平的评价
+
+    ### matplotlib 的优点：
+    - **极其成熟稳定**（20+ 年的测试）
+    - **功能极其丰富**（几乎能画任何图）
+    - **广泛的社区支持**
+    - **与其他科学计算库完美集成**
+
+    ### 确实存在的缺点：
+    - **API 不一致性**
+    - **学习曲线较陡**
+    - **IDE 支持不如现代库**
+    - **一些历史设计决策显得过时**
+
+    ## 结论
+
+    **matplotlib 不是"设计不好"，而是"为不同时代设计"**。
+
+    它是在 Python 生态还很年轻的时期创建的，主要目标是**功能强大**和**MATLAB兼容**，而不是**IDE友好**或**类型安全**。
+
+    对于今天的标准，某些设计确实显得笨拙，但要考虑到：
+    - 重写整个库会破坏无数现有项目
+    - 它的核心价值（稳定性和功能丰富性）仍然无可替代
+    - 它在逐步现代化，但必须保持向后兼容
+
+    所以，`fig.number` 没有自动提示更多反映了**历史背景和技术债务**，而不是根本性的设计缺陷。对于新项目，建议使用更现代的绘图库；对于需要 matplotlib 强大功能的项目，理解它的历史背景有助于更好地使用它。
+
+* 如果同时指定了fig.set_size_inches()和fig.set_dpi()，那么哪个会生效？
+
+    **两个都会生效，它们共同决定了最终图像的像素尺寸和显示/打印质量。**
+
+    让我通过代码示例详细解释：
+
+    ## 核心关系公式
+
+    ```python
+    # 像素尺寸 = 物理尺寸(英寸) × DPI(每英寸点数)
+    pixel_width = width_inches * dpi
+    pixel_height = height_inches * dpi
+    ```
+
+    ## 实际演示
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    # 创建图形并同时设置尺寸和DPI
+    fig = plt.figure(figsize=(6, 4), dpi=100)  # 初始设置
+
+    # 后续修改
+    fig.set_size_inches(8, 6)   # 设置为 8×6 英寸
+    fig.set_dpi(150)            # 设置为 150 DPI
+
+    # 验证最终效果
+    print(f"物理尺寸: {fig.get_size_inches()} 英寸")  # [8. 6.]
+    print(f"DPI: {fig.get_dpi()}")                   # 150.0
+    print(f"像素尺寸: {fig.get_size_inches() * fig.get_dpi()} 像素")  # [1200. 900.]
+    ```
+
+    ## 不同场景的影响
+
+    ### 场景1：显示在屏幕上
+    ```python
+    fig1 = plt.figure(figsize=(6, 4), dpi=100)
+    ax1 = fig1.add_subplot(111)
+    ax1.plot([1, 2, 3, 4])
+    ax1.set_title('屏幕显示: 6×4英寸 @ 100DPI')
+
+    # 在屏幕上，DPI主要影响文本和线条的清晰度
+    # 更高的DPI = 更清晰的文字，但窗口尺寸由物理尺寸决定
+    ```
+
+    ### 场景2：保存为图片文件
+    ```python
+    fig2 = plt.figure(figsize=(6, 4), dpi=100)
+    fig2.set_size_inches(3, 2)   # 修改尺寸
+    fig2.set_dpi(200)            # 修改DPI
+
+    ax2 = fig2.add_subplot(111)
+    ax2.plot([1, 2, 3, 4])
+    ax2.set_title('保存文件: 3×2英寸 @ 200DPI')
+
+    # 保存时，两者共同决定文件分辨率
+    fig2.savefig('high_res.png', dpi=200, bbox_inches='tight')
+    # 最终文件像素尺寸: (3*200) × (2*200) = 600×400 像素
+    ```
+
+    ## 优先级和覆盖规则
+
+    ### 规则1：最后设置的生效
+    ```python
+    fig = plt.figure()
+
+    fig.set_size_inches(5, 5)    # 尺寸: 5×5英寸
+    fig.set_dpi(100)             # DPI: 100
+    fig.set_size_inches(8, 6)    # 尺寸被覆盖: 8×6英寸
+    fig.set_dpi(150)             # DPI被覆盖: 150
+
+    # 最终: 8×6英寸 @ 150DPI = 1200×900像素
+    ```
+
+    ### 规则2：savefig() 的 dpi 参数可以临时覆盖
+    ```python
+    fig = plt.figure(figsize=(6, 4), dpi=100)
+
+    # 保存时使用不同的DPI
+    fig.savefig('image1.png')                    # 使用fig的DPI: 100 → 600×400像素
+    fig.savefig('image2.png', dpi=300)           # 临时覆盖为300 → 1800×1200像素
+    fig.savefig('image3.png', dpi=50)            # 临时覆盖为50 → 300×200像素
+
+    # 注意: fig本身的DPI设置不变，仍然是100
+    print(f"图形DPI设置未变: {fig.get_dpi()}")  # 100.0
+    ```
+
+    ## 实用建议
+
+    ### 对于出版物或打印：
+    ```python
+    # 需要高DPI和精确尺寸
+    fig = plt.figure(figsize=(3.5, 2.5))  # 期刊要求的尺寸
+    fig.set_dpi(600)                      # 印刷质量
+    ```
+
+    ### 对于网页显示：
+    ```python
+    # 关注像素尺寸而非物理尺寸
+    desired_pixels = (1200, 800)
+    dpi = 100
+    fig_size = (desired_pixels[0]/dpi, desired_pixels[1]/dpi)
+
+    fig = plt.figure(figsize=fig_size, dpi=dpi)
+    ```
+
+    ### 对于屏幕交互：
+    ```python
+    # DPI影响清晰度，尺寸影响窗口大小
+    fig = plt.figure(figsize=(10, 6), dpi=150)  # 大窗口 + 清晰显示
+    ```
+
+    ## 总结
+
+    - **`set_size_inches()`**：控制物理尺寸（英寸）
+    - **`set_dpi()`**：控制分辨率（点/英寸）
+    - **两者共同决定**最终的像素尺寸和图像质量
+    - **没有优先级冲突**，它们是互补关系
+    - **保存图片时**，`savefig(dpi=...)` 可以临时覆盖图形的DPI设置
+
+    所以回答你的问题：**两个都生效，它们协同工作而不是相互竞争。**
+
+* def plot_imgs(imgs: list[ndarray] | ndarray, ncols: int=6, ax_width: float=3) -> Figure:
+    # imgs: (n, h, w)
+    nimgs = len(imgs)
+    nrows = int(nimgs / ncols) if nimgs % ncols == 0 else int(nimgs / ncols) + 1
+    fig, axes = plt.subplots(nrows, ncols)
+    for row in range(nrows):
+        for col in range(ncols):
+            ith = row * ncols + col
+            ax: Axes = axes[row, col]
+            ax.set_axis_off()
+            if ith >= nimgs:
+                continue
+            ax.imshow(imgs[ith], cmap='gray')
+
+    fig.tight_layout(pad=0)
+    fig.subplots_adjust(top=0.99, bottom=0.01, wspace=0, hspace=0.1)
+    ax_height = ax_width
+    fig.set_size_inches(ax_width * ncols, ax_height * nrows)
+    fig.set_dpi(200)
+    return fig
+仿照着上面 plot_imgs()，完成下面 export_imgs() 的功能：
+def export_imgs(imgs: list[ndarray], dir_path: str):
+    # imgs: (n, h, w)
+    fig = plt.figure()
+    fig.tight_layout(pad=0)
+    fig.subplots_adjust(top=0.99, bottom=0.01, wspace=0, hspace=0.1)
+    fig.set_dpi(200)
+    ax = plt.gca()
+    for i, img in enumerate(imgs):
+        ax.imshow(img)
+        file_path = os.path.join(dir_path, '{}.png'.format(i))
+        fig.savefig(file_path)
+        fig.clear()
+
+    看到你的 `export_imgs()` 函数有几个问题，我来帮你修正并完善它：
+
+    ## 问题分析
+
+    1. **重复使用同一个坐标轴**：`plt.gca()` 只获取一次坐标轴，但每次 `fig.clear()` 后需要重新创建
+    2. **尺寸设置缺失**：没有设置合适的图形尺寸
+    3. **坐标轴设置不完整**：需要关闭坐标轴显示
+
+    ## 修正版本
+
+    ```python
+    def export_imgs(imgs: list[ndarray], dir_path: str, img_height: float=3):
+        """
+        将多张图像分别导出为单独的PNG文件
+        
+        Args:
+            imgs: 图像列表，每个图像为 (h, w) 的ndarray
+            dir_path: 输出目录路径
+            img_height: 单张图像的显示高度（英寸）
+        """
+        import os
+        import matplotlib.pyplot as plt
+        from matplotlib.figure import Figure
+        import numpy as np
+        
+        # 确保输出目录存在
+        os.makedirs(dir_path, exist_ok=True)
+        
+        # 创建图形，不立即显示
+        fig = plt.figure(frameon=False)
+        
+        # 设置图形属性
+        fig.tight_layout(pad=0)
+        fig.set_dpi(200)
+        
+        for i, img in enumerate(imgs):
+            # 清除之前的图形内容
+            fig.clear()
+            
+            # 根据图像宽高比计算宽度
+            h, w = img.shape[:2] if len(img.shape) >= 2 else img.shape
+            aspect_ratio = w / h
+            img_width = img_height * aspect_ratio
+            
+            # 设置图形尺寸
+            fig.set_size_inches(img_width, img_height)
+            
+            # 添加坐标轴并设置
+            ax = fig.add_axes([0, 0, 1, 1])  # [left, bottom, width, height]
+            ax.set_axis_off()
+            ax.imshow(img, cmap='gray', aspect='auto')
+            
+            # 保存图像
+            file_path = os.path.join(dir_path, f'{i}.png')
+            fig.savefig(file_path, bbox_inches='tight', pad_inches=0, dpi=200)
+            
+            print(f"已保存: {file_path}")
+        
+        # 关闭图形释放资源
+        plt.close(fig)
+    ```
+
+    ## 更简洁的版本（如果你不需要精确控制尺寸）
+
+    ```python
+    def export_imgs(imgs: list[ndarray], dir_path: str):
+        """
+        简化版本 - 自动适应图像尺寸
+        """
+        import os
+        import matplotlib.pyplot as plt
+        
+        os.makedirs(dir_path, exist_ok=True)
+        
+        for i, img in enumerate(imgs):
+            # 为每张图像创建新的图形
+            fig, ax = plt.subplots(figsize=(6, 6), dpi=200)
+            ax.set_axis_off()
+            ax.imshow(img, cmap='gray')
+            
+            # 紧密布局
+            fig.tight_layout(pad=0)
+            
+            # 保存
+            file_path = os.path.join(dir_path, f'{i}.png')
+            fig.savefig(file_path, bbox_inches='tight', pad_inches=0)
+            
+            # 立即关闭释放内存
+            plt.close(fig)
+            print(f"已保存: {file_path}")
+    ```
+
+    ## 与 plot_imgs() 保持一致的版本
+
+    ```python
+    def export_imgs(imgs: list[ndarray], dir_path: str, ax_width: float=3):
+        """
+        保持与 plot_imgs 相同风格的版本
+        """
+        import os
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        os.makedirs(dir_path, exist_ok=True)
+        
+        # 使用单张图像的方式处理
+        for i, img in enumerate(imgs):
+            # 为每张图像创建单独的图形
+            fig, ax = plt.subplots(1, 1, figsize=(ax_width, ax_width), dpi=200)
+            
+            # 设置与 plot_imgs 相同的样式
+            ax.set_axis_off()
+            ax.imshow(img, cmap='gray')
+            
+            # 相同的布局设置
+            fig.tight_layout(pad=0)
+            fig.subplots_adjust(top=0.99, bottom=0.01, left=0.01, right=0.99, wspace=0, hspace=0)
+            
+            # 保存
+            file_path = os.path.join(dir_path, f'{i:04d}.png')  # 使用4位数字编号
+            fig.savefig(file_path, bbox_inches='tight', pad_inches=0)
+            
+            plt.close(fig)  # 重要：关闭图形释放内存
+        
+        print(f"已导出 {len(imgs)} 张图像到 {dir_path}")
+    ```
+
+    ## 使用示例
+
+    ```python
+    # 示例用法
+    import numpy as np
+
+    # 创建一些示例图像
+    sample_imgs = [np.random.rand(64, 64) for _ in range(10)]
+
+    # 导出图像
+    export_imgs(sample_imgs, './output_images', ax_width=3)
+    ```
+
+    ## 主要改进点
+
+    1. **修复坐标轴问题**：每次循环重新创建坐标轴
+    2. **添加尺寸控制**：根据宽高比自动计算合适的尺寸
+    3. **优化保存设置**：使用 `bbox_inches='tight'` 和 `pad_inches=0` 去除白边
+    4. **内存管理**：及时关闭图形释放内存
+    5. **错误处理**：确保输出目录存在
+    6. **进度反馈**：添加保存进度输出
+
+    推荐使用第三个版本，因为它与你的 `plot_imgs()` 函数风格一致，且更稳定可靠。
+
 * plt.scatter() 里，我想把 marker 搞得大一点粗一点，怎么办
 
 	在 `plt.scatter()` 中，你可以通过以下参数来调整 marker 的大小和粗细：
