@@ -2,6 +2,104 @@
 
 ## cache
 
+* os.path.join(dir_path, f'{i}.png')
+
+    我希望格式是 000.png, 001.png, ... 这行该怎么改
+
+    只需要修改数字的格式化方式即可。有几种写法：
+
+    **方法1：使用 f-string 格式化（推荐）**
+
+    ```python
+    file_path = os.path.join(dir_path, f'{i:03d}.png')
+    ```
+
+    **方法2：使用 str.format()**
+
+    ```python
+    file_path = os.path.join(dir_path, '{:03d}.png'.format(i))
+    ```
+
+    **方法3：使用 zfill() 方法**
+
+    ```python
+    file_path = os.path.join(dir_path, str(i).zfill(3) + '.png')
+    ```
+
+    **完整的函数修改**
+
+    ```python
+    def export_imgs(imgs: list[ndarray], dir_path: str, ax_width: float=3):
+        """
+        保持与 plot_imgs 相同风格的版本
+        """
+        import os
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        os.makedirs(dir_path, exist_ok=True)
+        
+        # 使用单张图像的方式处理
+        for i, img in enumerate(imgs):
+            # 为每张图像创建单独的图形
+            fig, ax = plt.subplots(1, 1, figsize=(ax_width, ax_width), dpi=200)
+            
+            # 设置与 plot_imgs 相同的样式
+            ax.set_axis_off()
+            ax.imshow(img, cmap='gray')
+            
+            # 相同的布局设置
+            fig.tight_layout(pad=0)
+            fig.subplots_adjust(top=0.99, bottom=0.01, left=0.01, right=0.99, wspace=0, hspace=0)
+            
+            # 保存 - 使用3位数字编号
+            file_path = os.path.join(dir_path, f'{i:03d}.png')
+            fig.savefig(file_path, bbox_inches='tight', pad_inches=0)
+            
+            plt.close(fig)  # 重要：关闭图形释放内存
+        
+        print(f"已导出 {len(imgs)} 张图像到 {dir_path}")
+    ```
+
+    **格式化说明**
+
+    - `:03d` 表示：
+      - `d` - 十进制整数
+      - `3` - 总宽度为3位
+      - `0` - 用0填充左侧空白
+
+    **效果示例**
+
+    ```python
+    for i in range(5):
+        print(f'{i:03d}.png')
+    ```
+
+    输出：
+
+    ```
+    000.png
+    001.png
+    002.png
+    003.png
+    004.png
+    ```
+
+    **如果需要更多位数**
+
+    如果你的图像数量可能超过999张，可以使用更多位数：
+
+    ```python
+    # 4位数：0000.png, 0001.png, ...
+    file_path = os.path.join(dir_path, f'{i:04d}.png')
+
+    # 根据图像数量自动确定位数
+    num_digits = len(str(len(imgs)))  # 自动计算需要的位数
+    file_path = os.path.join(dir_path, f'{i:0{num_digits}d}.png')
+    ```
+
+    **推荐使用 `f'{i:03d}.png'`**，这是最简洁和Pythonic的方式。
+
 * 讲讲 scipy 或 numpy 是否能计算斯皮尔曼相关系数，是否还有其他的 python 统计领域常用库可以算这个
 
     当然可以，Python 生态里有好几个库都能轻松计算斯皮尔曼相关系数。不过，NumPy 本身**没有直接的函数**来计算斯皮尔曼相关系数，而 SciPy 和 Pandas 则是主流选择。

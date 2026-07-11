@@ -2,6 +2,56 @@
 
 ## cache
 
+* 现在有个 ndarray 的 shape 为 (10, 128)，我希望将它变为 shape (10, 144)，缺失的数据补 0，该怎么办
+
+    有几种方法可以实现这个需求。以下是几种常用的方法：
+
+    ## 方法1：使用 `np.pad()`（推荐）
+
+    ```python
+    import numpy as np
+
+    # 原始数组
+    arr = np.random.rand(10, 128)
+    print(f"原始形状: {arr.shape}")  # (10, 128)
+
+    # 使用 np.pad 在第二维右侧补0
+    padded_arr = np.pad(arr, ((0, 0), (0, 16)), mode='constant', constant_values=0)
+    print(f"填充后形状: {padded_arr.shape}")  # (10, 144)
+    ```
+
+    ## 方法2：创建新数组并赋值
+
+    ```python
+    import numpy as np
+
+    arr = np.random.rand(10, 128)
+    print(f"原始形状: {arr.shape}")  # (10, 128)
+
+    # 创建目标形状的全零数组
+    padded_arr = np.zeros((10, 144), dtype=arr.dtype)
+    # 将原始数据复制到新数组的前面部分
+    padded_arr[:, :128] = arr
+    print(f"填充后形状: {padded_arr.shape}")  # (10, 144)
+    ```
+
+    ## 方法3：使用 `np.concatenate()`
+
+    ```python
+    import numpy as np
+
+    arr = np.random.rand(10, 128)
+    print(f"原始形状: {arr.shape}")  # (10, 128)
+
+    # 创建要拼接的零数组
+    zeros_to_add = np.zeros((10, 16), dtype=arr.dtype)
+    # 沿第二维拼接
+    padded_arr = np.concatenate([arr, zeros_to_add], axis=1)
+    print(f"填充后形状: {padded_arr.shape}")  # (10, 144)
+    ```
+
+    ## 通用函数（适用于任意形状）
+
 * 详细讲讲 np.bincount() 的用法
 
     好的，我们来详细讲解一下 NumPy 中的 `np.bincount()` 函数。这个函数虽然简单，但在处理**整数计数**和**权重聚合**时非常高效和有用。
