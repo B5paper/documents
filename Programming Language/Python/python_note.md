@@ -118,84 +118,30 @@
     *   **日常数据分析**：用 **SciPy** 或 **Pandas** 就足够了。SciPy 的 `spearmanr` 功能最经典全面，而 Pandas 的 `.corr()` 在处理表格数据时非常方便。
     *   **需要更高级的统计指标（如置信区间）**：可以试试 **Pingouin**，它提供了更丰富的统计细节。
     *   **处理超大规模数据**：当数据量巨大，内存和计算速度成为瓶颈时，**pyNetCor** 这类为性能而生的库会更合适。
-* 讲讲如何在 python 中计算皮尔逊相关系数
 
-    皮尔逊相关系数（Pearson correlation coefficient）
+* 使用 Pandas 计算皮尔逊相关系数
 
-    1. 使用 SciPy（最推荐）
+    如果你在处理 DataFrame，`pandas.DataFrame.corr` 非常方便。
 
-        `scipy.stats.pearsonr` 是最标准、最常用的方法，不仅返回相关系数，还返回 **p-value**（检验相关系数是否显著不为 0）。
+    ```python
+    import pandas as pd
 
-        ```python
-        from scipy.stats import pearsonr
+    df = pd.DataFrame({
+        'A': [1, 2, 3, 4, 5],
+        'B': [2, 4, 6, 8, 10],
+        'C': [5, 4, 3, 2, 1]
+    })
 
-        x = [1, 2, 3, 4, 5]
-        y = [2, 4, 6, 8, 10]
+    # 计算所有列之间的相关系数矩阵
+    corr_matrix = df.corr()
+    print(corr_matrix)
 
-        r, p_value = pearsonr(x, y)
-        print(f"皮尔逊相关系数: {r:.4f}")   # 输出: 1.0000
-        print(f"p-value: {p_value:.4e}")    # 输出: 0.0000e+00
-        ```
+    # 只获取 A 和 B 的相关系数
+    r = df['A'].corr(df['B'])
+    print(f"A 和 B 的相关系数: {r:.4f}")
+    ```
 
-        **注意**：
-        - 输入可以是列表、元组或 NumPy 数组
-        - 如果数据中有 `NaN`，会返回 `NaN`
-        - p-value 是双尾检验，原假设是相关系数为 0
-
-    ---
-
-    2. 使用 NumPy
-
-        `numpy.corrcoef` 返回相关系数矩阵，适合处理多个变量。
-
-        ```python
-        import numpy as np
-
-        x = [1, 2, 3, 4, 5]
-        y = [2, 4, 6, 8, 10]
-
-        corr_matrix = np.corrcoef(x, y)
-        r = corr_matrix[0, 1]  # 取上三角或下三角的值
-        print(f"相关系数: {r:.4f}")  # 输出: 1.0000
-        ```
-
-        如果是多个变量：
-
-        ```python
-        data = np.array([[1, 2, 3],
-                         [4, 5, 6],
-                         [7, 8, 9]])
-        corr_matrix = np.corrcoef(data)  # 每行是一个变量
-        print(corr_matrix)
-        ```
-
-    ---
-
-    3. 使用 Pandas
-
-        如果你在处理 DataFrame，`pandas.DataFrame.corr` 非常方便。
-
-        ```python
-        import pandas as pd
-
-        df = pd.DataFrame({
-            'A': [1, 2, 3, 4, 5],
-            'B': [2, 4, 6, 8, 10],
-            'C': [5, 4, 3, 2, 1]
-        })
-
-        # 计算所有列之间的相关系数矩阵
-        corr_matrix = df.corr()
-        print(corr_matrix)
-
-        # 只获取 A 和 B 的相关系数
-        r = df['A'].corr(df['B'])
-        print(f"A 和 B 的相关系数: {r:.4f}")
-        ```
-
-        `df.corr()` 默认使用皮尔逊方法，也支持 `method='spearman'` 或 `method='kendall'`。
-
-    ---
+    `df.corr()` 默认使用皮尔逊方法，也支持 `method='spearman'` 或 `method='kendall'`。
 
     4. 手写公式（理解原理）
 

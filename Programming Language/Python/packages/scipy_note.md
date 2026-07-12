@@ -1,4 +1,27 @@
+# Scipy Note
+
 ## cache
+
+* 皮尔逊相关系数（Pearson correlation coefficient）
+
+    `scipy.stats.pearsonr` 是最标准、最常用的方法，不仅返回相关系数，还返回 **p-value**（检验相关系数是否显著不为 0）。
+
+    ```python
+    from scipy.stats import pearsonr
+
+    x = [1, 2, 3, 4, 5]
+    y = [2, 4, 6, 8, 10]
+
+    r, p_value = pearsonr(x, y)
+    print(f"皮尔逊相关系数: {r:.4f}")   # 输出: 1.0000
+    print(f"p-value: {p_value:.4e}")    # 输出: 0.0000e+00
+    ```
+
+    **注意**：
+
+    - 输入可以是列表、元组或 NumPy 数组
+    - 如果数据中有 `NaN`，会返回 `NaN`
+    - p-value 是双尾检验，原假设是相关系数为 0
 
 * scipy 中的稀疏矩阵的运算有类似 numpy 那样的多线程或 smid 加速机制吗
 
