@@ -36,6 +36,175 @@
 
 ## cache
 
+* [ ] 方法五：使用 pyproject.toml（现代Python项目推荐）
+
+    创建 `pyproject.toml` 文件：
+    ```toml
+    [build-system]
+    requires = ["setuptools", "wheel"]
+
+    [tool.setuptools.packages.find]
+    where = ["."]
+    include = ["*"]
+    ```
+
+* [ ] vfio_virqfd
+
+    echo "vfio_virqfd" | sudo tee -a /etc/modules-load.d/vfio.conf
+
+* [ ] 屏蔽显卡驱动
+
+    ### 8. 屏蔽原驱动（防止冲突）
+    对于 NVIDIA 显卡：
+    ```bash
+    # 创建黑名单文件
+    echo "blacklist nouveau" | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
+    echo "blacklist nvidia" | sudo tee /etc/modprobe.d/blacklist-nvidia.conf
+    echo "options nouveau modeset=0" | sudo tee -a /etc/modprobe.d/blacklist-nouveau.conf
+
+    # 更新 initramfs
+    sudo update-initramfs -u
+    ```
+
+    对于 AMD 显卡：
+    ```bash
+    echo "blacklist radeon" | sudo tee /etc/modprobe.d/blacklist-radeon.conf
+    echo "blacklist amdgpu" | sudo tee /etc/modprobe.d/blacklist-amdgpu.conf
+    echo "options amdgpu cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-amdgpu.conf
+    echo "options radeon cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-radeon.conf
+    ```
+
+* [ ] driverctl
+
+    ```bash
+    # 安装 driverctl
+    sudo apt install -y driverctl
+
+    # 查看设备当前驱动
+    sudo driverctl list-devices
+
+    # 设置设备使用 VFIO
+    sudo driverctl set-override 0000:01:00.0 vfio-pci
+
+    # 永久保存
+    sudo driverctl set-override --persistent 0000:01:00.0 vfio-pci
+    ```
+
+* [ ] lspci -k -s $device
+
+* [ ] `update-initramfs -u`
+
+* [ ]
+
+    ```bash
+    # 检查当前内核参数
+    cat /proc/cmdline
+
+    # 如果参数不对，检查所有 GRUB 文件
+    cat /boot/grub/grub.cfg | grep linux
+    ```
+
+* [ ] rules.d
+
+    ```bash
+    # 设置设备权限
+    echo 'SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"' | sudo tee /etc/udev/rules.d/10-vfio.rules
+    sudo udevadm control --reload-rules
+    ```
+
+* [ ] centos 更新 kernel
+
+    如果内核版本太旧，更新到较新版本：
+    ```bash
+    # CentOS 7
+    yum install -y kernel kernel-devel
+    # 或安装ELRepo内核
+    yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+    yum --enablerepo=elrepo-kernel install kernel-ml -y
+
+    # CentOS 8
+    dnf update kernel kernel-core kernel-modules
+    ```
+
+* [ ] centos 编译内核模块
+
+    ```bash
+    # 需要开发工具
+    yum groupinstall -y "Development Tools"
+    yum install -y kernel-devel
+
+    # 编译vfio模块
+    cd /usr/src/kernels/$(uname -r)
+    make M=drivers/vfio/pci modules
+    cp drivers/vfio/pci/vfio-pci.ko /lib/modules/$(uname -r)/kernel/drivers/vfio/pci/
+    depmod -a
+    ```
+
+* [ ] centos 更新内核
+
+   ```bash
+    # 更新内核并重启
+    yum update kernel -y
+    reboot
+    ```
+
+* [ ] 调研 modules-load.d
+
+    ```bash
+    # 创建模块加载配置文件
+    echo "vfio" > /etc/modules-load.d/vfio.conf
+    echo "vfio-pci" >> /etc/modules-load.d/vfio.conf
+    echo "vfio_iommu_type1" >> /etc/modules-load.d/vfio.conf
+    ```
+
+* [ ] 检查 module 依赖关系
+
+    ```bash
+    # 查看模块依赖
+    modinfo vfio-pci | grep depends
+    # 通常显示：depends:        vfio,vfio_iommu_type1
+    ```
+
+* [ ] 使用 vfio
+
+    ```bash
+    # 测试绑定一个设备（示例）
+    echo "8086 10d3" > /sys/bus/pci/drivers/vfio-pci/new_id
+
+    # 检查vfio设备文件
+    ls -l /dev/vfio/
+    # 应该看到vfio目录和设备文件
+    ```
+
+* [ ] 检查内核配置
+
+    ```bash
+    # 检查内核配置
+    zcat /proc/config.gz | grep VFIO
+    # 或
+    cat /boot/config-$(uname -r) | grep -i vfio
+
+    # 应看到：
+    # CONFIG_VFIO=m
+    # CONFIG_VFIO_PCI=m
+    # CONFIG_VFIO_IOMMU_TYPE1=m
+    ```
+
+* [ ] 什么是 elrepo
+
+    ```bash
+    # 安装ELRepo最新内核（更简单）
+    rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+    yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+    yum --enablerepo=elrepo-kernel install kernel-ml -y
+    reboot
+    ```
+
+* [ ] lsmod | grep vfio || echo "VFIO模块未加载"
+
+* [ ] vfio_iommu_type1
+
+
 * 写一个工具，用于扩展 vim 打开文件时的 tab 补全。记录下常用文件的名称和 path，当用户输入 `hvim he<tab>` 后，自动补全成`hvim MyProjects/vim_test/hello_world.md`，用户按回车后，使用 vim 打开这个文件。
 
     这个工具可以防止在多层结构的目录里跳来跳去。

@@ -2,6 +2,8 @@
 
 ## cache
 
+* `train_test_split()`即使不指定 `random_state`，也会每次都使用不同的随机状态种子
+
 * 详细讲讲 `classification_report()` 的用法
 
     好的，我们来详细讲解 `sklearn.metrics.classification_report()` 的用法。这是分类任务中**最全面的单函数评估工具**，能一次性输出多个核心指标。

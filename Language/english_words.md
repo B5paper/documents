@@ -1,5 +1,7 @@
 # English Words
 
+* stratify prn. [ˈstrætəˌfaɪ] vt. （使）分层，成层
+
 * Ridge regression 岭回归
 
 * impute vt. 把（错误等）归咎于
