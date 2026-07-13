@@ -4,6 +4,14 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 设置忽略`\r`字符
+
+    `set -o igncr`
+
+    在运行脚本时临时显式指定：
+
+    `bash -o igncr your_script.sh`
+
 * 关于 bash 中 ssh 与 nc 执行顺序与同步的问题
 
     ```bash

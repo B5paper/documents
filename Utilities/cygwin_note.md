@@ -4,6 +4,54 @@
 
 ## cache
 
+* 在 cygwin 使用 ssh 登陆到远程 linux 后，打开 screen，在 bash 中使用 tab 补全时，屏幕会闪烁
+
+    原因：tab 补全时，如果补全完成或者无法补全，那么会有响铃，由于远程 ssh 没有声音，所以被替换成了屏幕闪烁
+
+    解决方案：
+
+    * 方案一：关闭响铃
+
+        在远程主机的`~/.screenrc`中配置：
+
+        ```conf
+        vbell off
+        ```
+
+* vim 在 cygwin 原生 xterm-256color 下，没有出现乱码
+
+* cygwin 中的 ssh 补全
+
+    检查下面几个点：
+
+    * `which ssh`，看是否是`/usr/bin/vim`，如果不是，需要在 cygwin 中安装 ssh
+
+    * `echo $HOME`，看是否为`/homee/hlc`
+
+        这个不能是 windows 下的那个 ssh 目录
+
+        或者检查`realpath ~`，看是否为`/home/hlc`
+
+    * `~/.ssh/config`下必须有 Host 的配置
+
+    * 检查 bash completion 是否安装：
+
+        在`/usr/share/bash-completion/`目录下，看是否有`bash_completion`文件。
+
+        如果没有，那么在 cygwin 中安装软件包`bash-completion`
+
+    * 检查`~/.bashrc`中是否有 bash completion 的启动脚本：
+
+        ```bash
+		if [[ -f /usr/share/bash-completion/bash_completion ]]; then
+		  . /usr/share/bash-completion/bash_completion
+		fi
+        ```
+
+* cygwin 中 vim 打开文件有乱码解决办法
+
+    在`~/.bashrc`中添加 `export LANG="zh_CN.UTF-8"`
+
 * cygwin 中，挂载远程文件权限不对，导致无法修改文件/创建文件
 
     原因：用户和用户组在挂载时未指定，因此设置得不正确

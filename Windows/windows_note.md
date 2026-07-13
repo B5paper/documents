@@ -2,6 +2,67 @@
 
 ## cache
 
+* wndows 上如果某个 user 账户比如 hlc 是 administrators 账户组，那么在`~/.ssh/authorized_keys`里写 public key 是无效的，必须在`/c/ProgramData/ssh/administrators_authorized_keys`里写 public key，才能登陆 hlc 账户。
+
+    如果配置了还不行，可以检查下相关的文件权限，是否符合 windows 下的 ssh 安全要求。
+
+* windows 下的 vscode 通过 ssh 连接到远程 linux 后，matplotlib 画的图是否可以在本地显示
+
+    可以的，通过配置 **X11 转发**，就能在 Windows 本地看到远程 Linux 服务器上 matplotlib 绘制的图表。
+
+    核心原理是，matplotlib 的图形界面（GUI）默认在服务器端无法显示。而 X11 转发会通过 SSH 建立一个“隧道”，将服务器生成图形的指令安全地传送到你 Windows 电脑上的一个“显示服务器”软件（如 VcXsrv）进行渲染，从而实现本地显示。
+
+    ### 配置步骤（以 Windows + VcXsrv 为例）
+
+    **1. 本地 Windows 安装 X Server 软件**
+    这是让 Windows 能“接收”并显示图形界面的关键。推荐免费且常用的 **VcXsrv** 或 **Xming**。
+
+    安装 VcXsrv 后，从开始菜单找到并运行 **XLaunch**，在配置向导中：
+    *   **Display settings**：选择 “Multiple windows”。
+    *   **Client startup**：选择 “Start no client”。
+    *   **Extra settings**：务必勾选 **“Disable access control”**，然后取消勾选 “Native opengl” 以避免可能的显示错误。
+    *   完成后，任务栏会出现一个“X”形图标。
+
+    **2. 配置 SSH 连接（关键）**
+    你需要在连接时告诉 SSH 启用 X11 转发，方法有两种（选其一即可）：
+    *   **临时方法**：在 VSCode 连接服务器时，在 SSH 命令中加上 `-X` 或 `-Y` 参数。例如：`ssh -X username@your_server_ip`。`-Y` 通常兼容性更好，`-X` 则更安全。
+    *   **一劳永逸的方法**：编辑你 Windows 本地的 SSH 配置文件（通常在 `C:\Users\你的用户名\.ssh\config`），为你的服务器添加以下两行：
+        ```ssh-config
+        Host your_server_hostname
+            ForwardX11 yes
+            ForwardX11Trusted yes
+        ```
+    这样每次连接都会自动开启转发。
+
+    **3. 在 VSCode 中测试**
+    确保 VSCode 已通过 Remote-SSH 连接到服务器。之后，可以在服务器的终端中进行测试：
+    *   输入 `echo $DISPLAY`，如果能看到类似 `localhost:10.0` 的输出，说明 X11 转发已在工作。
+    *   可以输入 `xclock` 测试（如未安装，先用 `sudo apt install x11-apps` 安装）。如果本地弹出一个时钟窗口，则说明整个链路已打通。
+
+    **4. 配置 Matplotlib 后端**
+    为了让 matplotlib 能通过 X11 转发显示，需要确保其使用支持 GUI 的后端。在服务器端，可以：
+    *   **方法一（永久配置）**：创建或修改 `~/.config/matplotlib/matplotlibrc` 文件，写入一行 `backend : TkAgg`。
+    *   **方法二（临时在代码中指定）**：在导入 `pyplot` 之前，添加：
+        ```python
+        import matplotlib
+        matplotlib.use('TkAgg')
+        import matplotlib.pyplot as plt
+        ```
+
+    配置完成后，再运行带有 `plt.show()` 的绘图脚本，图表窗口应该就能在你的 Windows 桌面上弹出了。
+
+    ### 备选思路：无需 X11 转发的方案
+
+    如果配置 X11 转发遇到困难，或网络延迟较大导致窗口响应慢，也可以考虑下面这种更现代的替代方案：
+    *   **终端内联绘图**：可以使用 **`plotty`** 这类库。它能将 matplotlib 图形渲染为 **Sixel** 格式，直接在支持 Sixel 的终端（如 Windows Terminal 或 VSCode 内置终端）内显示，无需任何 X11 转发配置。
+
+    ### 常见问题排查
+
+    *   **`$DISPLAY` 环境变量为空**：通常是因为 SSH 连接时未开启 `-X` 或 `-Y` 参数，或者 `ForwardX11` 配置未生效。请检查连接方式和配置文件。
+    *   **`TclError: no display name`**：表明 `$DISPLAY` 变量未设置成功，原因同上。
+    *   **本地 VcXsrv 启动后无反应**：请检查 Windows 防火墙是否允许了 VcXsrv 的入站连接，确保在首次运行弹窗时允许了访问。
+    *   **图表显示空白或卡顿**：可能与网络环境有关，也可以尝试在 VcXsrv 配置中取消勾选 “Native opengl”。
+
 * windows 上的 x11 server
 
     VcXsrv 或 Xming

@@ -2,6 +2,8 @@
 
 ## cache
 
+* screen 重绘窗口：ctrl + A, ctrl + L
+
 * tmux 相比 screen，优势在哪里
 
     `tmux` 和 `screen` 都是终端复用器（terminal multiplexer），都能实现会话保持、窗口管理、断线重连等功能。

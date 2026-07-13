@@ -2,6 +2,10 @@
 
 ## cache
 
+* git 禁止 LF 和 CRLF 互相转换
+
+    `git config --global core.autocrlf false`
+
 * git 处理大文件需要注意些什么，比如 10G 的深度学习图片数据集
 
     **方案1：Git LFS（最推荐）**

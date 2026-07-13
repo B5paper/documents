@@ -2,6 +2,76 @@
 
 ## cache
 
+* 讲讲 pytorch 中的 AdamW 优化器
+
+    PyTorch 中的 `AdamW` 是经典 **Adam** 优化器的一个变体，它修正了 Adam 中权重衰减（L2 正则化）的实现方式，将权重衰减与梯度更新的损失函数解耦。这使得它在许多任务上，尤其是训练大型深度学习模型时，拥有更好的泛化性能和稳定性。
+
+    **核心工作原理**
+
+    AdamW 的更新过程可以分解为几个关键步骤，它结合了动量、自适应学习率和解耦的权重衰减：
+
+    1. **解耦权重衰减 (Decoupled Weight Decay)**：这是 AdamW 的核心。在每次更新时，它**首先**对参数执行权重衰减：`θ_t = θ_{t-1} - γ * λ * θ_{t-1}`。其中 `γ` 是学习率，`λ` 是权重衰减系数。这个操作完全独立于梯度，确保了正则化的效果不受梯度大小的影响。
+
+    2. **计算梯度并更新动量**：计算当前损失函数关于参数的梯度 `g_t`。然后，更新一阶矩估计（动量）`m_t` 和二阶矩估计（速度）`v_t`，它们分别是梯度及其平方的指数移动平均：
+
+        *   `m_t = β1 * m_{t-1} + (1 - β1) * g_t`
+        *   `v_t = β2 * v_{t-1} + (1 - β2) * g_t²`
+
+    3. **偏差修正 (Bias Correction)**：由于 `m_t` 和 `v_t` 初始为0，在训练初期会向0偏斜，因此需要进行修正：`m_t_hat = m_t / (1 - β1^t)`，`v_t_hat = v_t / (1 - β2^t)`。
+
+    4. **更新参数**：使用修正后的动量和速度更新参数。注意这里更新的是**经过权重衰减后的参数** `θ_t`：`θ_t = θ_t - γ * m_t_hat / (√v_t_hat + ε)`。
+
+    **如何在 PyTorch 中使用**
+
+    在 PyTorch 中使用 `AdamW` 非常简单。创建优化器实例的方式与使用 `Adam` 几乎完全相同：
+
+    ```python
+    import torch
+    import torch.nn as nn
+    from torch.optim import AdamW
+
+    # 假设你有一个模型
+    model = nn.Linear(10, 5)
+
+    # 创建 AdamW 优化器
+    optimizer = AdamW(
+        model.parameters(),          # 模型参数
+        lr=1e-3,                     # 学习率，默认 1e-3
+        betas=(0.9, 0.999),          # 动量衰减系数，默认 (0.9, 0.999)
+        eps=1e-8,                    # 数值稳定项，默认 1e-8
+        weight_decay=0.01            # 权重衰减系数，默认 1e-2
+    )
+
+    # 在训练循环中使用
+    for input, target in dataloader:
+        optimizer.zero_grad()        # 清空梯度
+        output = model(input)
+        loss = loss_fn(output, target)
+        loss.backward()              # 反向传播
+        optimizer.step()             # 执行 AdamW 更新
+    ```
+
+    为了获得更好的训练效果，一个常见的最佳实践是**为不同的参数组设置不同的权重衰减**。例如，通常不对偏置项（bias）和归一化层（如 LayerNorm）的参数进行权重衰减：
+
+    ```python
+    # 为不同参数组设定不同的超参数
+    param_groups = [
+        {'params': [p for n, p in model.named_parameters() if p.dim() >= 2], 'weight_decay': 0.01},
+        {'params': [p for n, p in model.named_parameters() if p.dim() < 2], 'weight_decay': 0.0},
+    ]
+    optimizer = AdamW(param_groups, lr=1e-3)
+    ```
+
+    **关键参数调优与性能考量**
+
+    *   **建议的默认参数**：对于 Transformer 等现代架构，有一些经过大量实践验证的默认值可以参考：`lr = 3e-4`，`betas = (0.9, 0.95)`，`weight_decay = 0.1`。这些值可以作为你调参的起点。
+
+    *   **参数 `amsgrad`**：这是一个布尔值参数。如果设为 `True`，优化器会使用 AMSGrad 变体，它会记录二阶矩估计的历史最大值，而不是直接使用其指数移动平均，这有时能带来更稳定的收敛。
+
+    *   **内存占用**：AdamW 需要为每个参数维护两个动量状态（`exp_avg` 和 `exp_avg_sq`），这会消耗大约 2 倍于模型参数的内存。例如，一个 6500 万参数的模型，优化器状态就可能占用约 500 MB 的内存。使用时需要考虑 GPU 显存是否充足。
+
+    *   **性能优化**：PyTorch 提供了 `foreach` 和 `fused` 两种后端实现来加速优化器的计算。`fused` 实现理论上速度最快，但由于相对较新，需要显式指定 `fused=True` 来启用。
+
 * torch 中的 tensor 如何转换成 numpy array
 
     在 PyTorch 中，将 Tensor 转换为 NumPy array 有以下几种方法：
