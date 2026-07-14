@@ -1,17 +1,5 @@
 ## tasks
 
-* [v] 再崩溃一次 qemu，记录日志，看是否有 0x128 报错
-
-* [v] 如果 ccl 的代码已经修好，那么理论上可以运行通过。尝试跑一下
-
-* [v] 尝试改 device kernel bug，跑通 p2p
-
-* [v] 分析 nccl multi node nvlink 的数据传递路径
-
-* [v] 把 nccl 2.26 代码复制到 /share 目录，
-
-* [v] 在 init 的时候增加 mnnvl
-
 * [v] eth switch node 为什么没有生成？怀疑是单个机器上只有单卡，而 p2p check 又有问题
 
 * [v] 在 init 函数中增加  chip id 的逻辑
@@ -31,6 +19,22 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* 在 cuda wrap `ncclCudaLibraryInit()` -> `sipuGetDevice()` 处报的错
+
+    不清楚原因，可能是驱动不兼容。暂时不看了，先看功能拆分。
+
+* 运行 ./allreduce 0 1 会直接报错
+
+    ```
+    Using 2 device(s): 0, 1
+    Start initialize
+    Segmentation fault (core dumped)
+    ```
+
+    不清楚原因。
+
+* 0713 的 sdk 无法通过编译，0625 的可以通过编译
 
 * 关键点已经比较清楚了：MNNVL 在 initTransportsRank() 里做两件事，一是把“哪些跨节点 GPU 其实还能当作 NVLink 邻居”这个事实注入拓扑；二是让后续 P2P transport 改用 FABRIC shareable handle，把远端 GPU 内存映射进本地 GPU。最后补齐几处精确行号，我给你一版按初始化面和数据面拆开的说明
 
