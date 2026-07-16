@@ -2,6 +2,47 @@
 
 ## cache
 
+* `for i, arg in enumerate(argv[2:]):` 我希望这里的 i 从 2 开始，怎么办
+    
+    你可以通过以下几种方式让 `i` 从 2 开始：
+
+    ## 方法1：直接设置起始值（推荐）
+    ```python
+    for i, arg in enumerate(argv[2:], start=2):
+        print(f"Index: {i}, Argument: {arg}")
+    ```
+
+    `enumerate()` 函数的 `start` 参数可以指定计数的起始值。
+
+    ## 方法2：手动计算索引
+    ```python
+    for i, arg in enumerate(argv[2:]):
+        actual_index = i + 2
+        print(f"Index: {actual_index}, Argument: {arg}")
+    ```
+
+    ## 方法3：使用 zip 和 range
+    ```python
+    for i, arg in zip(range(2, len(argv)), argv[2:]):
+        print(f"Index: {i}, Argument: {arg}")
+    ```
+
+    ## 示例演示
+    ```python
+    argv = ['script.py', 'arg0', 'arg1', 'arg2', 'arg3', 'arg4']
+
+    print("Using enumerate with start=2:")
+    for i, arg in enumerate(argv[2:], start=2):
+        print(f"Index: {i}, Argument: {arg}")
+
+    # 输出：
+    # Index: 2, Argument: arg2
+    # Index: 3, Argument: arg3
+    # Index: 4, Argument: arg4
+    ```
+
+    **推荐使用方法1**，因为它最简洁且意图明确。
+
 * py 如何删除一个文件？
 
     在 Python 中删除文件有多种方法，以下是常用的几种方式：

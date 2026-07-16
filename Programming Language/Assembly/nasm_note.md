@@ -2,6 +2,96 @@
 
 ## cache
 
+* arm linux 环境下是否有类似 nasm 的工具？
+
+    是的，ARM Linux 环境下有多个类似 NASM 的汇编工具。以下是主要的选择：
+
+    ## 主要工具
+
+    ### 1. **GNU Assembler (as)**
+    - 最常用的 ARM 汇编器，随 GCC 一起安装
+    - 使用 AT&T 语法或 GNU 的 ARM 汇编语法
+    - 示例：
+    ```bash
+    as -o program.o program.s
+    ld -o program program.o
+    ```
+
+    ### 2. **ARM Compiler (armasm)**
+    - ARM 官方工具链的一部分
+    - 使用 ARM 官方的汇编语法
+    - 需要安装 ARM Development Studio 或 ARM Compiler
+
+    ### 3. **Netwide Assembler (NASM) 的替代方案**
+
+    #### **YASM**
+    - 支持 x86 和 AMD64 架构
+    - 语法与 NASM 兼容
+    - 安装：`sudo apt-get install yasm`
+
+    #### **FASM (Flat Assembler)**
+    - 支持多种架构包括 ARM
+    - 语法简洁
+    - 官网：https://flatassembler.net/
+
+    ## 推荐的 ARM 专用工具
+
+    ### **ARM GNU Toolchain**
+    ```bash
+    # 安装
+    sudo apt-get install gcc-arm-linux-gnueabi
+    sudo apt-get install binutils-arm-linux-gnueabi
+
+    # 使用
+    arm-linux-gnueabi-as -o hello.o hello.s
+    arm-linux-gnueabi-ld -o hello hello.o
+    ```
+
+    ### **AArch64 开发**
+    ```bash
+    # 对于 64位 ARM
+    sudo apt-get install gcc-aarch64-linux-gnu
+    sudo apt-get install binutils-aarch64-linux-gnu
+    ```
+
+    ## 简单示例
+
+    **GNU 语法的 ARM 汇编文件 (hello.s)：**
+    ```assembly
+    .text
+    .global _start
+
+    _start:
+        mov r7, #4      @ 系统调用号 (sys_write)
+        mov r0, #1      @ 文件描述符 (stdout)
+        ldr r1, =msg    @ 消息地址
+        mov r2, =len    @ 消息长度
+        swi 0           @ 系统调用
+
+        mov r7, #1      @ 系统调用号 (sys_exit)
+        mov r0, #0      @ 退出状态
+        swi 0
+
+    .data
+    msg:
+        .ascii "Hello, ARM!\n"
+    len = . - msg
+    ```
+
+    **编译运行：**
+    ```bash
+    as -o hello.o hello.s
+    ld -o hello hello.o
+    ./hello
+    ```
+
+    ## 建议
+    - **初学者**：使用 GNU Assembler，资料丰富且与 GCC 工具链集成
+    - **需要 NASM 类似体验**：尝试 YASM
+    - **专业 ARM 开发**：考虑 ARM 官方的工具链
+
+    根据你的具体需求选择合适的工具即可。
+
 * 给出学习 nasm 的推荐书籍、网站、博客等学习资源
 
     好的，学习 NASM 汇编语言是一个深入理解计算机底层工作原理的绝佳途径。下面我为你整理了一份从入门到进阶的推荐资源清单，包括书籍、网站、博客和社区。
