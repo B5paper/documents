@@ -2,6 +2,258 @@
 
 ## cache
 
+* 给出 pytorch 中 save() 和 load() 的常见用法
+
+    我来为您详细介绍 PyTorch 中 `save()` 和 `load()` 的常见用法。
+
+    ## 1. 保存和加载模型
+
+    ### 基本用法
+    ```python
+    import torch
+    import torch.nn as nn
+
+    # 定义一个简单的模型
+    class SimpleModel(nn.Module):
+        def __init__(self):
+            super(SimpleModel, self).__init__()
+            self.fc = nn.Linear(10, 1)
+        
+        def forward(self, x):
+            return self.fc(x)
+
+    model = SimpleModel()
+
+    # 保存模型
+    torch.save(model.state_dict(), 'model_weights.pth')
+
+    # 加载模型
+    new_model = SimpleModel()
+    new_model.load_state_dict(torch.load('model_weights.pth'))
+    ```
+
+    ### 保存整个模型
+    ```python
+    # 保存整个模型（包含结构和参数）
+    torch.save(model, 'entire_model.pth')
+
+    # 加载整个模型
+    loaded_model = torch.load('entire_model.pth')
+    ```
+
+    ## 2. 保存和加载检查点（Checkpoint）
+
+    ### 训练过程中的检查点
+    ```python
+    # 保存检查点
+    checkpoint = {
+        'epoch': 10,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': loss,
+        'accuracy': accuracy
+    }
+    torch.save(checkpoint, 'checkpoint.pth')
+
+    # 加载检查点
+    checkpoint = torch.load('checkpoint.pth')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
+    ```
+
+    ## 3. 多 GPU 训练模型的保存和加载
+
+    ```python
+    # 使用 DataParallel 训练后保存
+    model = nn.DataParallel(model)
+    torch.save(model.module.state_dict(), 'multigpu_model.pth')
+
+    # 加载到单 GPU
+    model = SimpleModel()
+    model.load_state_dict(torch.load('multigpu_model.pth'))
+    ```
+
+    ## 4. 设备相关的保存和加载
+
+    ```python
+    # 指定设备保存和加载
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # 保存时指定设备
+    torch.save(model.state_dict(), 'model.pth')
+
+    # 加载时指定设备
+    model.load_state_dict(torch.load('model.pth', map_location=device))
+
+    # 或者加载到特定设备
+    model.load_state_dict(torch.load('model.pth', map_location='cuda:0'))
+    ```
+
+    ## 5. 保存和加载优化器状态
+
+    ```python
+    # 定义模型和优化器
+    model = SimpleModel()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    # 训练...
+    # 保存模型和优化器状态
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+    }, 'model_optimizer.pth')
+
+    # 加载模型和优化器状态
+    checkpoint = torch.load('model_optimizer.pth')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    ```
+
+    ## 6. 保存和加载自定义对象
+
+    ```python
+    # 保存自定义对象
+    class CustomObject:
+        def __init__(self, data):
+            self.data = data
+
+    obj = CustomObject(torch.randn(5, 5))
+    torch.save(obj, 'custom_object.pth')
+
+    # 加载自定义对象
+    loaded_obj = torch.load('custom_object.pth')
+    ```
+
+    ## 7. 实际训练示例
+
+    ```python
+    import torch
+    import torch.nn as nn
+
+    def train_model(model, train_loader, epochs=10):
+        optimizer = torch.optim.Adam(model.parameters())
+        criterion = nn.CrossEntropyLoss()
+        
+        for epoch in range(epochs):
+            model.train()
+            running_loss = 0.0
+            
+            for batch_idx, (data, target) in enumerate(train_loader):
+                optimizer.zero_grad()
+                output = model(data)
+                loss = criterion(output, target)
+                loss.backward()
+                optimizer.step()
+                
+                running_loss += loss.item()
+            
+            # 每5个epoch保存一次检查点
+            if (epoch + 1) % 5 == 0:
+                checkpoint = {
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': running_loss / len(train_loader)
+                }
+                torch.save(checkpoint, f'checkpoint_epoch_{epoch+1}.pth')
+        
+        # 保存最终模型
+        torch.save(model.state_dict(), 'final_model.pth')
+
+    def load_and_continue_training(checkpoint_path):
+        # 加载检查点继续训练
+        checkpoint = torch.load(checkpoint_path)
+        
+        model = SimpleModel()
+        optimizer = torch.optim.Adam(model.parameters())
+        
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch']
+        
+        return model, optimizer, start_epoch
+    ```
+
+    ## 8. 最佳实践建议
+
+    1. **使用 `.state_dict()`** 而不是保存整个模型，这样更灵活
+    2. **包含元数据** 在检查点中，如 epoch、loss 等
+    3. **使用有意义的文件名**，包含 epoch 数或验证分数
+    4. **定期保存检查点**，防止训练中断
+    5. **验证加载的模型**，确保正确加载
+
+    ```python
+    # 验证加载的模型
+    def verify_model_loading(original_model, loaded_model, test_input):
+        original_model.eval()
+        loaded_model.eval()
+        
+        with torch.no_grad():
+            orig_output = original_model(test_input)
+            loaded_output = loaded_model(test_input)
+        
+        # 检查输出是否相同
+        print(f"输出是否相同: {torch.allclose(orig_output, loaded_output)}")
+    ```
+
+    这些是 PyTorch 中 `save()` 和 `load()` 的最常见用法，涵盖了大多数实际应用场景。
+
+* 有关 pytorch weights_only 的报错
+
+    ```
+    /home/hlc/Documents/Projects/torch_test/load/main.py:75: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly.
+    ```
+
+    这个警告是关于 PyTorch 加载模型时的安全问题，让我详细解释一下：
+
+    ## 警告含义
+
+    1. **当前行为**：你使用 `torch.load()` 时没有指定 `weights_only` 参数，默认是 `False`
+    2. **安全风险**：当 `weights_only=False` 时，PyTorch 使用 Python 的 pickle 模块，可能执行恶意代码
+    3. **未来变化**：将来 PyTorch 会把默认值改为 `True`，限制可执行的函数
+
+    ## 解决方案
+
+    ### 方案1：使用 weights_only=True（推荐）
+    ```python
+    # 如果你确定文件只包含模型权重
+    new_model.load_state_dict(t.load('model_weights.pth', weights_only=True))
+    ```
+
+    ### 方案2：显式设置 weights_only=False（保持当前行为）
+    ```python
+    # 如果你需要加载包含复杂对象的文件
+    new_model.load_state_dict(t.load('model_weights.pth', weights_only=False))
+    ```
+
+    ### 方案3：抑制警告（不推荐）
+    ```python
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    # 然后执行你的加载代码
+    ```
+
+    ## 什么时候用哪个选项？
+
+    - **weights_only=True**：只加载张量、数字等简单数据类型，更安全
+    - **weights_only=False**：需要加载自定义类、复杂对象时使用
+
+    ## 最佳实践
+
+    ```python
+    try:
+        # 首先尝试安全模式
+        new_model.load_state_dict(t.load('model_weights.pth', weights_only=True))
+    except Exception as e:
+        print(f"安全模式加载失败: {e}")
+        # 如果失败，回退到传统模式（确保文件来源可信）
+        new_model.load_state_dict(t.load('model_weights.pth', weights_only=False))
+    ```
+
+    **建议**：如果文件是你自己生成的，且只包含模型权重，优先使用 `weights_only=True`。
+
 * 讲讲 pytorch 中的 AdamW 优化器
 
     PyTorch 中的 `AdamW` 是经典 **Adam** 优化器的一个变体，它修正了 Adam 中权重衰减（L2 正则化）的实现方式，将权重衰减与梯度更新的损失函数解耦。这使得它在许多任务上，尤其是训练大型深度学习模型时，拥有更好的泛化性能和稳定性。

@@ -36,6 +36,97 @@
 
 ## cache
 
+* 一次性地，用英语怎么说
+
+    有多种表达"一次性地"的英语说法，根据上下文不同：
+
+    ## 最常用表达
+    - **One-time** (形容词) - 最通用
+    - **One-off** (形容词) - 英式英语常用
+    - **Single-use** (形容词) - 强调只用一次
+
+    ## 具体场景用法
+
+    ### 1. 一次性付款/交易
+    ```
+    One-time payment
+    One-off transaction
+    Single payment
+    ```
+
+    ### 2. 一次性用品
+    ```
+    Disposable items
+    Single-use products
+    One-time use items
+    ```
+
+    ### 3. 一次性完成某事
+    ```
+    Do something in one go
+    Do something all at once
+    Complete something in a single operation
+    ```
+
+    ### 4. 副词形式（一次性做某事）
+    ```
+    Do something once and for all
+    Do something in one shot
+    Do something in a single attempt
+    ```
+
+    ## 完整例句
+    - "This is a **one-time** operation."
+    - "We need a **one-off** solution for this problem."
+    - "It's a **single-use** code that expires after first use."
+    - "Let's handle this **once and for all**."
+
+    **推荐**：对于大多数情况，**"one-time"** 是最通用和易懂的表达。
+
+* 区分 switch 类型的 silink 和 p2p 类型的 silink，用英语怎么说
+
+    区分 switch 类型的 silink 和 p2p 类型的 silink，可以用以下几种英语表达：
+
+    ## 专业术语表达
+
+    **Distinguish between switch-type silink and p2p-type silink**
+
+    **Differentiate switch-based silink from peer-to-peer silink**
+
+    **Tell apart switch-mode silink and p2p-mode silink**
+
+    ## 更详细的描述方式
+
+    **"We need to distinguish between the two silink architectures: switch-based versus peer-to-peer."**
+
+    **"There are two types of silink configurations: the switch-type and the point-to-point type."**
+
+    **"Identifying whether a silink operates in switch mode or p2p mode is crucial for proper configuration."**
+
+    ## 在文档或对话中的自然表达
+
+    **"How do we differentiate switch silinks from p2p silinks?"**
+
+    **"What distinguishes a switch-type silink from a peer-to-peer silink?"**
+
+    **"The key differences between switch-based and p2p silink topologies are..."**
+
+    ## 技术规格写法
+
+    **"Silink operates in two modes:**
+    - **Switch-type silink (hub-spoke topology)**
+    - **P2P-type silink (mesh topology)"**
+
+    ## 推荐用法
+
+    对于技术文档和正式场合，推荐：
+    **"Distinguish between switch-type silink and p2p-type silink"**
+
+    对于日常技术讨论：
+    **"Differentiate switch-based silink from p2p silink"**
+
+    这样既专业又清晰，能够准确表达你的意思。
+
 * 应该给任务列表增加一个`[a]`状态，表示 async，异步任务，已经开始执行，但是还未完成，空出来的时间先去做其他事情，定期来回访这个任务，直至完成或者退出。
 
 * [ ] 方法五：使用 pyproject.toml（现代Python项目推荐）

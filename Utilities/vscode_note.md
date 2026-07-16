@@ -2,6 +2,101 @@
 
 ## cache
 
+* vscode 在输入路径字符串后，如何自动提示目录下的文件
+
+    在 VS Code 中，当你在字符串中输入路径时，它会自动提示目录下的文件。如果这个功能没有正常工作，这里有几个解决方案：
+
+    ## 1. 启用路径自动补全
+
+    确保路径智能感知功能已开启：
+
+    ```json
+    // settings.json
+    {
+      "editor.quickSuggestions": {
+        "other": true,
+        "comments": false,
+        "strings": true
+      },
+      "editor.suggest.snippetsPreventQuickSuggestions": false
+    }
+    ```
+
+    ## 2. 检查文件类型关联
+
+    某些文件类型可能需要明确设置：
+
+    ```json
+    // settings.json
+    {
+      "files.associations": {
+        "*.js": "javascript",
+        "*.jsx": "javascriptreact",
+        "*.ts": "typescript",
+        "*.tsx": "typescriptreact",
+        "*.vue": "vue",
+        "*.php": "php"
+      }
+    }
+    ```
+
+    ## 3. 安装相关扩展
+
+    安装路径智能感知扩展来增强功能：
+
+    - **Path Intellisense** - 最常用的路径补全扩展
+    - **Auto Rename Tag** - 对于 HTML 文件中的路径也有帮助
+
+    ## 4. 配置 Path Intellisense
+
+    如果安装了 Path Intellisense，可以配置：
+
+    ```json
+    // settings.json
+    {
+      "path-intellisense.extensionOnImport": true,
+      "path-intellisense.showHiddenFiles": true,
+      "path-intellisense.autoSlashAfterDirectory": true
+    }
+    ```
+
+    ## 5. 工作区设置
+
+    确保你是在正确的工作区中工作：
+    - 打开包含项目的文件夹（File > Open Folder）
+    - 确保文件已保存（未保存的文件可能无法正确识别路径）
+
+    ## 6. 触发建议的快捷键
+
+    手动触发建议：
+    - `Ctrl + Space` (Windows/Linux)
+    - `Cmd + Space` (macOS)
+
+    ## 7. 检查排除模式
+
+    确保要访问的目录没有被排除：
+
+    ```json
+    // settings.json
+    {
+      "files.exclude": {
+        "**/node_modules": false  // 设为 false 以包含 node_modules
+      },
+      "search.exclude": {
+        "**/node_modules": false
+      }
+    }
+    ```
+
+    ## 常见问题排查
+
+    1. **字符串类型检查**：确保路径在字符串中（单引号或双引号）
+    2. **相对路径**：使用 `./` 或 `../` 开头的相对路径
+    3. **文件存在性**：确保引用的文件或目录实际存在
+    4. **重新加载窗口**：Ctrl+Shift+P → "Developer: Reload Window"
+
+    这些设置应该能恢复 VS Code 的路径自动提示功能。
+
 * vscode 里如何添加自定义 python module 的路径
 
     1. 使用 `.env` 文件

@@ -2,6 +2,157 @@
 
 ## cache
 
+* 简述 dropbear 的用法
+
+    好的，Dropbear 是一个轻量级的 SSH 服务器和客户端，常用于资源受限的嵌入式系统（如 OpenWrt 路由器、BusyBox 环境等）。它的目标是体积小、内存占用低，同时保持足够的安全性。
+
+    下面简述其核心用法，分为服务器和客户端两部分。
+
+    ---
+
+    ### 一、Dropbear SSH 服务器
+
+    #### 1. 启动服务器
+    Dropbear 可以作为守护进程运行，也可以在前台运行（便于调试）。
+
+    *   **作为守护进程启动：**
+        ```bash
+        dropbear -F -E -m -w -j -k -p 2222
+        ```
+        *   `-F`：在前台运行（通常与 `-E` 一起用于调试，守护进程模式则用 `-B`）。
+        *   `-E`：将日志输出到 stderr（标准错误）。
+        *   `-m`：不允许密码登录，只允许密钥登录。
+        *   `-w`：只允许基于口令的认证（与 `-m` 相反）。
+        *   `-j`：禁用本地端口转发。
+        *   `-k`：禁用远程端口转发。
+        *   `-p 2222`：在 2222 端口监听（默认是 22）。
+        *   **注意**：在实际的嵌入式系统中，通常是通过 init 脚本（如 `/etc/init.d/dropbear`）来启动和管理服务的。
+
+    *   **在 OpenWrt 中配置：**
+        使用 UCI 命令修改配置后重启服务。
+        ```bash
+        # 查看当前配置
+        uci show dropbear
+
+        # 修改端口
+        uci set dropbear.@dropbear[0].Port='2222'
+
+        # 禁用密码登录，只允许密钥
+        uci set dropbear.@dropbear[0].PasswordAuth='off'
+        uci set dropbear.@dropbear[0].RootPasswordAuth='off'
+
+        # 提交更改并重启服务
+        uci commit dropbear
+        /etc/init.d/dropbear restart
+        ```
+
+    #### 2. 生成服务器主机密钥
+    首次运行 Dropbear 前，需要生成主机密钥。
+
+    ```bash
+    dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key
+    dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
+    # 也可以使用 ed25519
+    dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key
+    ```
+
+    ---
+
+    ### 二、Dropbear SSH 客户端
+
+    Dropbear 提供了 `dbclient`（有时也直接链接为 `dropbear` 或 `ssh`）作为客户端。
+
+    #### 1. 基本连接
+    ```bash
+    # 使用用户名密码连接
+    dbclient username@hostname -p 22
+
+    # 使用指定端口
+    dbclient username@hostname -p 2222
+
+    # 使用密钥文件连接
+    dbclient -i /path/to/private/key username@hostname
+    ```
+
+    #### 2. 常用选项
+    *   `-i <identityfile>`：指定要使用的私钥文件。
+    *   `-p <port>`：指定远程主机的端口。
+    *   `-y`：总是接受远程主机密钥（自动信任，有安全风险，慎用）。
+    *   `-L <[bind_address:]port:host:hostport>`：设置本地端口转发。
+        ```bash
+        # 将本地的 8080 端口转发到远程主机内部的 192.168.1.100:80
+        dbclient -L 8080:192.168.1.100:80 username@gateway.example.com
+        ```
+    *   `-R <[bind_address:]port:host:hostport>`：设置远程端口转发。
+        ```bash
+        # 将远程主机的 9090 端口转发到本地的 127.0.0.1:3000
+        dbclient -R 9090:127.0.0.1:3000 username@remote.example.com
+        ```
+    *   `-N`：不执行远程命令，用于端口转发。
+    *   `-T`：禁止分配伪 TTY。
+
+    ---
+
+    ### 三、密钥管理工具 `dropbearkey`
+
+    Dropbear 使用自己的密钥格式，但它可以和 OpenSSH 的密钥互相转换。
+
+    #### 1. 生成密钥对
+    ```bash
+    # 生成 Dropbear 格式的 RSA 私钥
+    dropbearkey -t rsa -f my_dropbear_key
+
+    # 生成时同时打印公钥
+    dropbearkey -t rsa -f my_dropbear_key -s 2048 | grep "^ssh-rsa"
+    ```
+
+    #### 2. 转换密钥格式
+    *   **将 Dropbear 私钥转换为 OpenSSH 格式：**
+        ```bash
+        dropbearconvert dropbear openssh my_dropbear_key my_openssh_key
+        ```
+
+    *   **将 OpenSSH 私钥转换为 Dropbear 格式：**
+        ```bash
+        dropbearconvert openssh dropbear my_openssh_key my_dropbear_key
+        ```
+
+    *   **从 Dropbear 私钥中提取 OpenSSH 格式的公钥：**
+        ```bash
+        dropbearkey -y -f my_dropbear_key
+        ```
+        将输出的 `ssh-rsa ...` 整行内容复制到远程服务器的 `~/.ssh/authorized_keys` 文件中。
+
+    ---
+
+    ### 四、文件传输工具 `dropbear` 与 `scp`
+
+    Dropbear 本身不包含 `sftp-server`，所以不支持 SFTP。但它提供了一个简单的 `scp` 客户端。
+
+    #### 1. 使用 `scp` 传输文件
+    ```bash
+    # 从本地复制文件到远程
+    dropbear scp localfile.txt username@remotehost:/path/to/destination/
+
+    # 从远程复制文件到本地
+    dropbear scp username@remotehost:/path/to/file.txt ./
+    ```
+
+    ---
+
+    ### 总结与要点
+
+    1.  **定位**：轻量级，为嵌入式设计。
+    2.  **服务器**：`dropbear` 命令，配置通常通过系统初始化脚本或 UCI（在 OpenWrt 上）完成。
+    3.  **客户端**：`dbclient` 命令，语法与 OpenSSH 的 `ssh` 类似。
+    4.  **密钥工具**：`dropbearkey` 用于生成和管理密钥，并可与其他格式互相转换。
+    5.  **文件传输**：仅支持 `scp`，**不支持 SFTP**。
+    6.  **功能限制**：相比 OpenSSH，其支持的加密算法、认证方法和功能选项较少，但核心功能完备。
+
+    对于大多数嵌入式环境，你只需要：
+    *   在服务器端：正确配置 `/etc/config/dropbear`（OpenWrt）并启动服务。
+    *   在客户端：使用 `dbclient user@ip` 连接，或用 `dropbear scp` 传文件。
+
 * 简述 Traefik 的作用与用法
 
 	好的，我们来简单明了地介绍一下 Traefik。

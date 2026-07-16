@@ -4,6 +4,472 @@
 
 ## cached
 
+* 假如一个 .so 里有个函数 func()，里面有 static int count变量，每次 func() 被调用，count += 1, 现在有一个进程起了两个线程，调用 .so 库里的 func()，线程 join 后，count 是 1 还是 2？
+
+    这个问题涉及到**静态局部变量在多线程环境中的行为**，我来帮你分析一下。
+
+    ## 关键点分析
+
+    1. **static 局部变量的存储**：`static int count` 在数据段（BSS段）分配内存，生命周期贯穿整个程序运行期间
+    2. **多线程访问**：两个线程共享同一个进程地址空间，因此访问的是**同一个** `count` 变量
+    3. **竞态条件**：`count += 1` 不是原子操作，包含：
+       - 读取 count 值
+       - 计算 count + 1  
+       - 写回新值
+
+    ## 结果预测
+
+    **count 最终可能是 1 或 2，但大概率是 2**
+
+    ### 可能的情况：
+
+    1. **正常情况（无竞争）**：两个线程顺序执行，count 最终为 2
+    2. **竞态条件**：如果线程执行时间重叠，可能出现：
+       - 两个线程同时读取 count (值为 0)
+       - 都计算 0 + 1 = 1
+       - 都写回 1
+       - 最终 count = 1（丢失了一次递增）
+
+    ## 验证代码示例
+
+    ```c
+    // libexample.c
+    #include <stdio.h>
+
+    void func() {
+        static int count = 0;
+        count += 1;
+        printf("count = %d\n", count);
+    }
+    ```
+
+    ```c
+    // main.c
+    #include <stdio.h>
+    #include <pthread.h>
+    #include <unistd.h>
+
+    extern void func();
+
+    void* thread_func(void* arg) {
+        func();
+        return NULL;
+    }
+
+    int main() {
+        pthread_t t1, t2;
+        
+        pthread_create(&t1, NULL, thread_func, NULL);
+        pthread_create(&t2, NULL, thread_func, NULL);
+        
+        pthread_join(t1, NULL);
+        pthread_join(t2, NULL);
+        
+        return 0;
+    }
+    ```
+
+    ## 保证正确性的方法
+
+    ```c
+    #include <pthread.h>
+
+    void func() {
+        static int count = 0;
+        static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        
+        pthread_mutex_lock(&mutex);
+        count += 1;
+        pthread_mutex_unlock(&mutex);
+        
+        printf("count = %d\n", count);
+    }
+    ```
+
+    ## 总结
+
+    - **理论上**：count 可能是 1 或 2
+    - **实践中**：在简单测试中很可能得到 2（因为操作很快）
+    - **生产环境**：必须加锁保护，否则会出现不确定的结果
+
+    所以你的问题的答案是：**可能是 1 也可能是 2，存在不确定性，需要同步机制来保证正确性**。
+
+    * 我希望 func() 是个 yield 函数，但是对于每个线程又互相独立地 yield （两个线程不共享 static 变量），该怎么办
+
+        如果你希望每个线程有自己独立的 `count` 变量（线程局部存储），有几种方法可以实现：
+
+        ## 方法1：使用 `__thread` (GCC/Clang)
+
+        ```c
+        void func() {
+            static __thread int count = 0;  // 每个线程有自己的 count
+            count += 1;
+            printf("Thread %lu: count = %d\n", pthread_self(), count);
+            
+            // yield 操作
+            // usleep(1000);  // 或者 sched_yield();
+        }
+        ```
+
+        ## 方法2：使用 `_Thread_local` (C11 标准)
+
+        ```c
+        void func() {
+            static _Thread_local int count = 0;  // C11 线程局部存储
+            count += 1;
+            printf("Thread %lu: count = %d\n", pthread_self(), count);
+        }
+        ```
+
+        ## 方法3：使用 pthread 线程特定数据
+
+        ```c
+        #include <pthread.h>
+
+        static pthread_once_t once_control = PTHREAD_ONCE_INIT;
+        static pthread_key_t count_key;
+
+        static void create_key(void) {
+            pthread_key_create(&count_key, free);
+        }
+
+        void func() {
+            pthread_once(&once_control, create_key);
+            
+            int *count = pthread_getspecific(count_key);
+            if (count == NULL) {
+                count = malloc(sizeof(int));
+                *count = 0;
+                pthread_setspecific(count_key, count);
+            }
+            
+            *count += 1;
+            printf("Thread %lu: count = %d\n", pthread_self(), *count);
+        }
+        ```
+
+        ## 方法4：使用线程局部存储 API (Windows/Linux)
+
+        ```c
+        #ifdef _WIN32
+        #include <windows.h>
+        static DWORD count_tls_index;
+        #else
+        #include <pthread.h>
+        static pthread_key_t count_key;
+        #endif
+
+        void init_tls(void) {
+        #ifndef _WIN32
+            pthread_key_create(&count_key, free);
+        #endif
+        }
+
+        void func() {
+            static int init_done = 0;
+            if (!init_done) {
+                init_tls();
+                init_done = 1;
+            }
+            
+            int *count;
+            
+        #ifdef _WIN32
+            count = TlsGetValue(count_tls_index);
+            if (count == NULL) {
+                count = LocalAlloc(LPTR, sizeof(int));
+                TlsSetValue(count_tls_index, count);
+            }
+        #else
+            count = pthread_getspecific(count_key);
+            if (count == NULL) {
+                count = malloc(sizeof(int));
+                *count = 0;
+                pthread_setspecific(count_key, count);
+            }
+        #endif
+            
+            *count += 1;
+            printf("Thread %lu: count = %d\n", 
+        #ifdef _WIN32
+                   GetCurrentThreadId(),
+        #else
+                   pthread_self(),
+        #endif
+                   *count);
+        }
+        ```
+
+        ## 推荐方案
+
+        **对于简单情况，推荐使用方法1或方法2：**
+
+        ```c
+        // 方案1：GCC/Clang
+        void func() {
+            static __thread int count = 0;
+            count += 1;
+            // yield 或其他操作
+        }
+
+        // 方案2：C11 标准
+        void func() {
+            static _Thread_local int count = 0;
+            count += 1;
+            // yield 或其他操作
+        }
+        ```
+
+        ## 验证示例
+
+        ```c
+        #include <stdio.h>
+        #include <pthread.h>
+        #include <unistd.h>
+
+        void func() {
+            static __thread int count = 0;
+            count += 1;
+            printf("Thread %lu: count = %d (address: %p)\n", 
+                   pthread_self(), count, &count);
+            
+            // 模拟 yield
+            usleep(1000);
+        }
+
+        void* thread_func(void* arg) {
+            for (int i = 0; i < 3; i++) {
+                func();
+            }
+            return NULL;
+        }
+
+        int main() {
+            pthread_t t1, t2;
+            
+            pthread_create(&t1, NULL, thread_func, NULL);
+            pthread_create(&t2, NULL, thread_func, NULL);
+            
+            pthread_join(t1, NULL);
+            pthread_join(t2, NULL);
+            
+            return 0;
+        }
+        ```
+
+        **输出结果类似：**
+        ```
+        Thread 123456: count = 1 (address: 0x7f1234)
+        Thread 123457: count = 1 (address: 0x7f5678)  // 不同地址！
+        Thread 123456: count = 2 (address: 0x7f1234)
+        Thread 123457: count = 2 (address: 0x7f5678)
+        Thread 123456: count = 3 (address: 0x7f1234)
+        Thread 123457: count = 3 (address: 0x7f5678)
+        ```
+
+        这样每个线程都有自己的 `count` 变量，互不干扰！
+
+    * 我希望不依赖编译器的功能，也不依赖操作系统的 api
+
+        如果不依赖编译器功能和操作系统API，仍然有几种纯C语言的方法可以实现线程独立的计数器：
+
+        ## 方法1：通过函数参数传递上下文
+
+        ```c
+        // 调用方维护线程状态
+        struct thread_ctx {
+            int count;
+            // 可以添加其他线程局部状态
+        };
+
+        void func(struct thread_ctx *ctx) {
+            if (ctx == NULL) return;
+            
+            ctx->count += 1;
+            printf("count = %d\n", ctx->count);
+            
+            // yield 或其他操作
+        }
+
+        // 使用示例
+        void* thread_func(void* arg) {
+            struct thread_ctx ctx = {0};  // 每个线程有自己的上下文
+            
+            for (int i = 0; i < 3; i++) {
+                func(&ctx);
+            }
+            return NULL;
+        }
+        ```
+
+        ## 方法2：线程ID作为键值的查找表
+
+        ```c
+        #define MAX_THREADS 64
+
+        struct thread_data {
+            int count;
+            // 其他线程局部数据
+        };
+
+        static struct thread_data thread_states[MAX_THREADS] = {0};
+        static int thread_count = 0;
+
+        // 简单的线程标识（基于调用顺序）
+        int get_thread_id() {
+            // 这个简单的实现假设线程按顺序创建和调用
+            // 在实际中需要更复杂的线程识别机制
+            static int counter = 0;
+            return counter++ % MAX_THREADS;
+        }
+
+        void func() {
+            int thread_id = get_thread_id();
+            thread_states[thread_id].count += 1;
+            
+            printf("Thread %d: count = %d\n", thread_id, thread_states[thread_id].count);
+        }
+        ```
+
+        ## 方法3：基于调用栈的线程识别
+
+        ```c
+        static int thread_sequence = 0;
+
+        struct thread_info {
+            int id;
+            int count;
+            void *stack_base;  // 用于识别不同线程的栈
+        };
+
+        static struct thread_info threads[MAX_THREADS] = {0};
+
+        int identify_thread() {
+            int dummy;
+            void *stack_addr = &dummy;  // 获取当前栈的大致位置
+            
+            for (int i = 0; i < thread_sequence; i++) {
+                // 简单的栈范围检测
+                if (abs((char*)stack_addr - (char*)threads[i].stack_base) < 1024 * 1024) {
+                    return i;  // 认为是同一个线程
+                }
+            }
+            
+            // 新线程
+            if (thread_sequence < MAX_THREADS) {
+                threads[thread_sequence].id = thread_sequence;
+                threads[thread_sequence].stack_base = stack_addr;
+                return thread_sequence++;
+            }
+            
+            return 0;  // 回退
+        }
+
+        void func() {
+            int tid = identify_thread();
+            threads[tid].count += 1;
+            
+            printf("Thread %d: count = %d\n", tid, threads[tid].count);
+        }
+        ```
+
+        ## 方法4：调用方维护的回调模式
+
+        ```c
+        // 函数原型：调用方提供状态获取回调
+        typedef int* (*get_state_func)(void);
+
+        void func_with_callback(get_state_func get_state) {
+            int *count_ptr = get_state();
+            if (count_ptr) {
+                *count_ptr += 1;
+                printf("count = %d\n", *count_ptr);
+            }
+        }
+
+        // 线程局部状态
+        __thread int thread_local_count = 0;  // 这里只是示例，实际可以避免使用__thread
+
+        int* get_my_count() {
+            // 实际实现中可以避免使用__thread，比如：
+            // static int counts[MAX_THREADS];
+            // return &counts[calculate_thread_index()];
+            return &thread_local_count;
+        }
+
+        void* thread_func(void* arg) {
+            for (int i = 0; i < 3; i++) {
+                func_with_callback(get_my_count);
+            }
+            return NULL;
+        }
+        ```
+
+        ## 方法5：完全避免静态状态的设计
+
+        ```c
+        // 将函数设计为无状态的，所有状态由调用方管理
+        struct func_state {
+            int count;
+            // 其他必要的状态
+        };
+
+        struct func_state* create_func_state() {
+            struct func_state *state = malloc(sizeof(struct func_state));
+            state->count = 0;
+            return state;
+        }
+
+        void func_stateless(struct func_state *state) {
+            if (state == NULL) return;
+            
+            state->count += 1;
+            printf("count = %d\n", state->count);
+            
+            // yield 操作
+        }
+
+        void destroy_func_state(struct func_state *state) {
+            free(state);
+        }
+        ```
+
+        ## 推荐方案
+
+        **最实用且不依赖特定功能的是方法1（参数传递）：**
+
+        ```c
+        struct thread_context {
+            int count;
+            // 可以扩展其他线程局部状态
+        };
+
+        void yield_function(struct thread_context *ctx) {
+            ctx->count += 1;
+            printf("Count: %d\n", ctx->count);
+            
+            // 这里可以执行 yield 或其他操作
+            // 每个线程的 ctx 都是独立的
+        }
+
+        // 使用
+        void* thread_func(void* arg) {
+            struct thread_context ctx = {0};  // 每个线程独立实例
+            
+            for (int i = 0; i < 5; i++) {
+                yield_function(&ctx);
+            }
+            return NULL;
+        }
+        ```
+
+        这种方法：
+        - ✅ 完全不依赖编译器特定功能
+        - ✅ 不依赖操作系统API  
+        - ✅ 线程安全
+        - ✅ 可扩展性好
+        - ✅ 代码清晰易懂
+
 * 为什么 std::hash<string>()(p.name) 无法自动推导 p.name 类型？
 
     因为`std::hash`的构造函数没有参数。类模板的类型推导只能发生在调用构造函数时。

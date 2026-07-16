@@ -2,6 +2,96 @@
 
 ## cache
 
+* 我使用 plt.imshow() 画出了图片，又希望使用一个红框把这个 img 框起来，该怎么办？
+
+    你可以使用 `matplotlib.patches.Rectangle` 在图片上添加红框。以下是几种实现方式：
+
+    ## 方法一：使用 Rectangle 补丁
+
+    ```python
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    # 显示图片
+    plt.imshow(img)
+
+    # 获取当前坐标轴
+    ax = plt.gca()
+
+    # 添加红框
+    # (x, y) 是左下角坐标，width 和 height 是宽度和高度
+    rect = patches.Rectangle((0, 0), img.shape[1], img.shape[0], 
+                            linewidth=2, edgecolor='red', facecolor='none')
+    ax.add_patch(rect)
+
+    plt.show()
+    ```
+
+    ## 方法二：精确控制边框位置
+
+    ```python
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    fig, ax = plt.subplots()
+    ax.imshow(img)
+
+    # 添加红框，可以精确控制位置和大小
+    # 这里的参数表示：从 (0,0) 开始，宽度为图片宽度，高度为图片高度
+    rect = patches.Rectangle((0, 0), img.shape[1]-1, img.shape[0]-1, 
+                            linewidth=3, edgecolor='red', 
+                            facecolor='none', linestyle='-')
+    ax.add_patch(rect)
+
+    plt.show()
+    ```
+
+    ## 方法三：使用 plot 绘制边框
+
+    ```python
+    import matplotlib.pyplot as plt
+
+    plt.imshow(img)
+
+    # 使用 plot 绘制四条边
+    x_min, x_max = 0, img.shape[1]
+    y_min, y_max = 0, img.shape[0]
+
+    plt.plot([x_min, x_max, x_max, x_min, x_min], 
+             [y_min, y_min, y_max, y_max, y_min], 
+             'r-', linewidth=2)  # 'r-' 表示红色实线
+
+    plt.show()
+    ```
+
+    ## 方法四：如果只想框出图片的一部分
+
+    ```python
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    plt.imshow(img)
+
+    # 框出特定区域，比如从 (50,50) 开始，宽200，高150的区域
+    rect = patches.Rectangle((50, 50), 200, 150, 
+                            linewidth=2, edgecolor='red', 
+                            facecolor='none')
+    plt.gca().add_patch(rect)
+
+    plt.show()
+    ```
+
+    ## 参数说明：
+
+    - `(x, y)`：矩形左下角坐标
+    - `width`, `height`：矩形的宽度和高度
+    - `linewidth`：边框线宽
+    - `edgecolor`：边框颜色（'red', '#FF0000' 等）
+    - `facecolor`：填充颜色，'none' 表示不填充
+    - `linestyle`：线型（'-' 实线，'--' 虚线等）
+
+    选择其中一种方法即可，推荐使用**方法一**，它最简洁直观。
+
 * 为什么 fig.show() 不显示图片，plt.show() 可以
 
     你好！这是一个很常见的问题，主要原因在于 `fig.show()` 和 `plt.show()` 的设计目的和工作方式有本质区别。

@@ -4,6 +4,8 @@
 
 ## cache
 
+* cygwin 中，bash 将`LANG`设置为`export LANG=en_US.UTF-8`也不会出现乱码。没必要设置成`export LANG=zh_CN.UTF-8`
+
 * 详细讲讲 cygpath 的用法
 
     `cygpath` 是在 Cygwin 环境中使用的一个核心工具，专门用于转换 Windows 和 Unix（Cygwin）风格的路径 。它就像一个“翻译官”，让来自两个世界的程序能看懂彼此的文件位置。
