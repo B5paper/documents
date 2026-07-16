@@ -2,6 +2,163 @@
 
 ## cache
 
+* 详细讲讲 scipy.stats 模块
+
+	`scipy.stats` 是 SciPy 生态系统中专门用于**统计学**的核心模块。它包含了连续和离散概率分布、描述性统计、假设检验、非参数统计、生存分析等极其丰富的工具。
+
+	对于数据分析师、数据科学家和科研人员来说，这个模块几乎是必不可少的。下面为你系统、详细地拆解 `scipy.stats` 的核心功能与用法。
+
+	---
+
+	## 1. 核心基石：概率分布（Distributions）
+
+	`scipy.stats` 包含了上百种概率分布，它们被统一划分为两大类：
+
+	* **连续型分布**（继承自 `rv_continuous`）：如正态分布 (`norm`)、t 分布 (`t`)、指数分布 (`expon`)。
+	* **离散型分布**（继承自 `rv_discrete`）：如二项分布 (`binom`)、泊松分布 (`poisson`)。
+
+	### 核心方法（所有分布通用）
+
+	无论是哪种分布，SciPy 都设计了统一的方法接口，这让它的学习曲线非常平缓：
+
+	| 方法名称 | 全称 / 含义 | 作用 |
+	| --- | --- | --- |
+	| `pdf(x)` | Probability Density Function | **概率密度函数**（仅限连续型），返回 $x$ 处的密度值。 |
+	| `pmf(k)` | Probability Mass Function | **概率质量函数**（仅限离散型），返回离散值 $k$ 的具体概率。 |
+	| `cdf(x)` | Cumulative Distribution Function | **累积分布函数**，返回 $P(X \le x)$，即左侧面积。 |
+	| `sf(x)` | Survival Function | **生存函数**，等于 $1 - \text{cdf}(x)$，即右侧面积（常用于 $p\text{-value}$ 计算）。 |
+	| `ppf(q)` | Percent Point Function | **百分点函数**（CDF 的逆函数），已知概率 $q$，求对应的分位数 $x$。 |
+	| `rvs(size)` | Random Variates | **生成随机数**，根据该分布的特征抽取样本。 |
+	| `stats()` | Statistics | 返回分布的均值、方差、偏度（Skewness）和峰度（Kurtosis）。 |
+
+	### 代码实战：正态分布的标准操作
+
+	```python
+	import numpy as np
+	from scipy import stats
+
+	# 定义一个正态分布，均值(loc)=10，标准差(scale)=2
+	my_norm = stats.norm(loc=10, scale=2)
+
+	# 1. 计算 x=10 处的概率密度 (PDF)
+	print("PDF at 10:", my_norm.pdf(10))  # 输出最高点密度
+
+	# 2. 计算 x <= 12 的累积概率 (CDF)
+	print("CDF at 12:", my_norm.cdf(12))  # 约 0.8413 (即均值加一个标准差的左侧面积)
+
+	# 3. 已知左侧面积为 0.95，求对应的 x 值 (PPF)
+	print("95th percentile:", my_norm.ppf(0.95))
+
+	# 4. 生成 5 个符合该分布的随机数 (RVS)
+	print("Random samples:", my_norm.rvs(size=5))
+
+	```
+
+	---
+
+	## 2. 统计推断与假设检验（Hypothesis Testing）
+
+	这是科研和 A/B 测试中最常用的功能。`scipy.stats` 提供了几乎所有主流的假设检验方法。**注意：SciPy 的检验函数默认返回一个包含 `(statistic, pvalue)` 的命名元组。**
+
+	### A. T 检验（T-test）—— 均值比较
+
+	* **单样本 T 检验 (`ttest_1samp`)**：检验样本均值是否与某个已知总体均值有显著差异。
+	* **独立双样本 T 检验 (`ttest_ind`)**：比较两组独立样本的均值（如 A/B 测试的两组用户）。
+	* **配对样本 T 检验 (`ttest_rel`)**：比较同一组对象在前后的变化（如服药前后的血压）。
+
+	```python
+	# 独立双样本 T 检验示例
+	group_A = [12, 15, 14, 11, 13, 17, 12]
+	group_B = [18, 20, 19, 16, 22, 19, 21]
+
+	stat, p_val = stats.ttest_ind(group_A, group_B)
+	print(f"T-statistic: {stat:.4f}, p-value: {p_val:.4f}")
+	# 如果 p-value < 0.05，则拒绝原假设，认为两组有显著差异。
+
+	```
+
+	### B. 方差分析（ANOVA）—— 多组均值比较
+
+	* **单因素方差分析 (`f_oneway`)**：检验三组或更多组数据的均值是否存在显著差异。
+
+	### C. 卡方检验（Chi-Square Test）—— 分类变量分类
+
+	* **卡方独立性检验 (`chi2_contingency`)**：分析两个分类变量之间是否有相关性（如：性别与购买意愿是否相关）。
+
+	### D. 正态性检验（Normality Tests）
+
+	很多参数检验（如 T 检验）要求数据服从正态分布。
+
+	* `shapiro` (Shapiro-Wilk 检验，小样本首选)
+	* `normaltest` (D'Agostino and Pearson 检验)
+
+	---
+
+	## 3. 描述性统计（Descriptive Statistics）
+
+	虽然 Pandas 的 `.describe()` 很好用，但 `scipy.stats` 提供了更深入的统计量计算：
+
+	* `stats.describe(data)`：一次性返回样本大小、极值、均值、方差、偏度和峰度。
+	* `stats.gmean(data)` / `stats.hmean(data)`：计算**几何均值**和**调和均值**。
+	* `stats.iqr(data)`：计算**四分位距（IQR）**，常用于检测异常值。
+	* `stats.zscore(data)`：计算 **Z-score**（将数据标准化为均值为 0、方差为 1 的分布）。
+
+	---
+
+	## 4. 相关性与回归（Correlation）
+
+	用于研究变量之间的关系：
+
+	* **皮尔逊相关系数 (`pearsonr`)**：衡量连续变量之间的**线性**相关性（要求正态分布）。
+	* **斯皮尔曼等级相关系数 (`spearmanr`)**：非参数相关系数，衡量**单调**关系（对异常值更鲁棒）。
+	* **线性回归 (`linregress`)**：快速拟合一条一元线性回归方程 $y = kx + b$，并返回斜率、截距、$R^2$、p 值等。
+
+	```python
+	x = [1, 2, 3, 4, 5]
+	y = [2, 4, 5, 4, 5]
+	res = stats.linregress(x, y)
+	print(f"斜率: {res.slope}, 截距: {res.intercept}, R²: {res.rvalue**2:.4f}")
+
+	```
+
+	---
+
+	## 5. 高级功能：数据转换与拟合
+
+	### A. 分布拟合 (`fit`)
+
+	如果你有一组未知规律的数据，想知道它最符合什么分布，可以使用 `fit()` 方法来**估计分布的参数**。
+
+	```python
+	data = stats.norm.rvs(loc=5, scale=1.5, size=1000) # 生成模拟数据
+	# 假设我们猜它是正态分布，用 norm.fit 逆向求解参数
+	le_loc, le_scale = stats.norm.fit(data)
+	print(f"拟合出的均值: {le_loc:.2f}, 标准差: {le_scale:.2f}")
+
+	```
+
+	### B. Box-Cox 转换 (`boxcox`)
+
+	在回归分析中，如果数据严重偏态（非正态），可以使用 Box-Cox 转换将数据**正态化**，以满足线性模型的假设。
+
+	```python
+	# 生成一个严重右偏的指数分布数据
+	skewed_data = stats.expon.rvs(size=500)
+	# 转换成接近正态分布的数据
+	transformed_data, best_lam = stats.boxcox(skewed_data)
+
+	```
+
+	---
+
+	## 总结：如何高效使用 `scipy.stats`？
+
+	1. **查阅具体分布**：当你需要某种分布时，直接去查它的官方缩写（如 `gamma`, `beta`, `poisson`），然后直接套用 `pdf/pmf/cdf/rvs` 即可。
+	2. **注重 p 值判断**：在假设检验中，几乎所有的函数输出都包含 `pvalue`。通常约定 $p < 0.05$ 时拒绝原假设（即结果具有统计学显著性）。
+	3. **配合大生态**：通常由 `numpy` 提供或生成数据，用 `scipy.stats` 做核心数学计算，再用 `matplotlib`/`seaborn` 进行可视化，用 `pandas` 进行表格化管理。
+
+	你目前是在处理具体的科研数据，还是在准备 A/B 测试相关的业务分析？如果有具体的应用场景，我可以为你提供针对性的代码模版。
+
 * 皮尔逊相关系数（Pearson correlation coefficient）
 
     `scipy.stats.pearsonr` 是最标准、最常用的方法，不仅返回相关系数，还返回 **p-value**（检验相关系数是否显著不为 0）。

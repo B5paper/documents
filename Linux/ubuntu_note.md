@@ -4,6 +4,116 @@
 
 ## cache
 
+* wayland + gnome 桌面是否可以启动 vncserver?
+
+    是的，Wayland + GNOME 桌面可以启动 VNC server，但有一些重要的注意事项和技术细节需要了解。
+
+    ## 原生支持方式
+
+    ### 1. GNOME 内置的 VNC 支持
+    GNOME 在 Wayland 下提供了原生的远程桌面功能：
+
+    ```bash
+    # 启用 GNOME 远程桌面
+    gsettings set org.gnome.desktop.remote-desktop.vnc enable true
+
+    # 设置认证方式
+    gsettings set org.gnome.desktop.remote-desktop.vnc auth-method 'password'
+
+    # 设置查看权限
+    gsettings set org.gnome.desktop.remote-desktop.vnc view-only false
+    ```
+
+    ### 2. 使用 GNOME 控制中心配置
+    1. 打开「设置」→「共享」
+    2. 开启「远程桌面」
+    3. 点击配置，启用 VNC 协议
+
+    ## 第三方解决方案
+
+    ### 1. WayVNC
+    专为 Wayland 设计的 VNC 服务器：
+
+    ```bash
+    # 安装 WayVNC
+    sudo apt install wayvnc  # Ubuntu/Debian
+    sudo dnf install wayvnc  # Fedora
+
+    # 启动 WayVNC
+    wayvnc -S /tmp/wayvnc.sock :0
+    ```
+
+    ### 2. 使用 X11 回退方案
+    如果应用兼容性有问题，可以临时切换到 X11：
+
+    ```bash
+    # 在 GDM 登录界面选择 GNOME on Xorg
+    # 然后使用传统的 VNC 服务器
+    sudo apt install tigervnc-server
+    vncserver :1
+    ```
+
+    ## 配置示例
+
+    ### GNOME 远程桌面配置
+    ```bash
+    # 设置 VNC 密码
+    gsettings set org.gnome.desktop.remote-desktop.vnc password '$(echo -n "yourpassword" | base64)'
+
+    # 启用加密
+    gsettings set org.gnome.desktop.remote-desktop.vnc enable-auth true
+    ```
+
+    ### WayVNC 配置文件
+    创建 `~/.config/wayvnc/config`：
+    ```ini
+    [output]
+    name=DP-1
+
+    [server]
+    bind=0.0.0.0
+    port=5900
+
+    [security]
+    require_auth=true
+    username=
+    password=
+    ```
+
+    ## 连接方式
+
+    使用 VNC 客户端连接：
+    ```bash
+    # 使用 vncviewer 连接
+    vncviewer 192.168.1.100:5900
+
+    # 或者使用 Remmina
+    remmina
+    ```
+
+    ## 注意事项
+
+    1. **性能考虑**：Wayland 下的 VNC 性能可能不如 X11
+    2. **安全性**：确保使用防火墙限制访问
+    3. **功能限制**：某些 VNC 功能在 Wayland 下可能不可用
+    4. **多显示器**：WayVNC 支持指定输出显示器
+
+    ## 故障排除
+
+    如果遇到问题：
+    ```bash
+    # 检查 GNOME 远程桌面状态
+    gsettings list-recursively org.gnome.desktop.remote-desktop
+
+    # 查看 WayVNC 日志
+    wayvnc --debug
+
+    # 检查防火墙设置
+    sudo ufw status
+    ```
+
+    总的来说，Wayland + GNOME 确实可以运行 VNC server，但推荐使用 GNOME 内置的远程桌面功能或 WayVNC 等专为 Wayland 设计的解决方案。
+
 * 没带鼠标，只有触摸板，无法实现边选中边滚动。是否有工具可以辅助实现？
 
     轻量级软件工具（按需选择）

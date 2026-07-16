@@ -2,6 +2,205 @@
 
 ## cache
 
+* pyhton `Path` 中的 `.parents`： Path对象的属性，返回一个不可变的元组，包含从当前路径的父目录开始，一直向上到根目录的所有祖先目录。
+
+    `parents[3]`： 索引取值。parents[0]是当前文件所在目录（即__file__的父级），parents[1]是祖父级，parents[2]是曾祖父级，parents[3]就是向上移动4级（当前目录 → 父 → 祖父 → 曾祖父 → 目标根目录）。
+
+* python pathlib `.resolve()`: 将路径解析为绝对路径，并消除符号链接（软链接）
+
+* python pathlib 将 Path 转换为字符串：`str(PROJECT_ROOT)`
+
+* 详细讲讲 python-dotenv 的用法
+
+    `python-dotenv` 是一个用于管理环境变量的 Python 库，它能将 `.env` 文件中的配置加载到程序的环境变量中，从而将配置与代码分离，是遵循“12-Factor”应用原则的重要工具。下面我为你详细讲解它的用法。
+
+    **安装**
+
+    通过 pip 可以很方便地安装：
+
+    ```bash
+    pip install python-dotenv
+    ```
+
+    如果需要使用它的命令行工具，可以安装 CLI 扩展：
+
+    ```bash
+    pip install "python-dotenv[cli]"
+    ```
+
+    **基础用法**
+
+    最常用的方式是利用 `load_dotenv()` 加载 `.env` 文件，并通过 `os.getenv()` 读取配置。
+
+    1.  **创建 `.env` 文件**
+
+        在项目根目录下创建 `.env` 文件，其语法类似于 Bash 脚本，支持注释和变量引用。
+
+        ```bash
+        # .env 文件示例
+        DATABASE_URL=postgresql://user:password@localhost/dbname
+        API_KEY=your_secret_api_key_here
+        DEBUG=True
+
+        # 支持变量引用 (注意必须使用 ${VARIABLE} 格式)
+        DOMAIN=example.com
+        FULL_URL=https://${DOMAIN}/api
+        ```
+
+    2.  **在代码中加载并使用**
+
+        ```python
+        import os
+        from dotenv import load_dotenv
+
+        # 加载 .env 文件
+        load_dotenv()
+
+        # 读取环境变量
+        database_url = os.getenv("DATABASE_URL")
+        api_key = os.getenv("API_KEY")
+        # 可以设置默认值，防止变量未定义导致错误
+        debug_mode = os.getenv("DEBUG", "False").lower() == "true"
+
+        print(f"数据库地址: {database_url}")
+        ```
+
+        `load_dotenv()` 默认会在当前脚本所在目录及其父目录中查找 `.env` 文件。你也可以通过 `dotenv_path` 参数指定文件路径。
+
+    **核心行为与参数**
+
+    `load_dotenv()` 的行为可以通过几个关键参数控制：
+
+    * **`override`**: 决定是否覆盖系统环境中已存在的同名变量。
+
+        * **默认 `False`**: 以系统环境变量为优先，`.env` 文件中的值不会覆盖它们。
+
+        * **`override=True`**: `.env` 文件中的值将覆盖系统环境变量。
+
+        ```python
+        # 强制使用 .env 文件中的值
+        load_dotenv(override=True)
+        ```
+
+    * **`verbose`**: 当设为 `True` 时，会在加载过程中输出日志信息，方便调试。
+
+    **高级用法**
+
+    1. 不修改系统环境，仅读取配置 (`dotenv_values`)
+
+        如果不想将配置写入 `os.environ`，可以使用 `dotenv_values()`，它会将 `.env` 文件解析后以字典形式返回。
+
+        ```python
+        from dotenv import dotenv_values
+
+        config = dotenv_values(".env")
+        print(config.get("API_KEY")) 
+        ```
+
+        这个特性非常适合进行灵活的配置管理，例如合并多个配置源：
+
+        ```python
+        import os
+        from dotenv import dotenv_values
+
+        config = {
+            **dotenv_values(".env.shared"),  # 基础配置
+            **dotenv_values(".env.secret"),  # 敏感配置，会覆盖基础配置的同名项
+            **os.environ,                    # 系统环境变量，拥有最高优先级
+        }
+        ```
+
+    2. 从流（Stream）中加载配置
+
+        `load_dotenv` 和 `dotenv_values` 支持传入流对象，这意味着你可以从网络、内存字符串等来源加载配置。
+
+        ```python
+        from io import StringIO
+        from dotenv import load_dotenv
+
+        # 从字符串流中加载
+        fake_env = StringIO("USER=foo\nEMAIL=foo@example.org")
+        load_dotenv(stream=fake_env)
+        ```
+
+    3. 在 IPython / Jupyter 中使用
+
+        在 IPython 或 Jupyter Notebook 中，可以加载魔法命令来使用它：
+
+        ```python
+        %load_ext dotenv
+        %dotenv
+        ```
+
+        也可以指定文件路径或使用 `-o` 参数来覆盖现有变量。
+
+    4. 命令行接口 (CLI)
+
+        安装 `[cli]` 扩展后，可以在终端直接操作 `.env` 文件，方便调试。
+
+        ```bash
+        # 设置一个变量
+        $ dotenv set USER foo
+
+        # 设置另一个变量
+        $ dotenv set EMAIL foo@example.org
+
+        # 列出所有变量
+        $ dotenv list
+        USER=foo
+        EMAIL=foo@example.org
+
+        # 以 JSON 格式输出
+        $ dotenv list --format=json
+        {
+          "USER": "foo",
+          "EMAIL": "foo@example.org"
+        }
+
+        # 在加载了 .env 变量的环境中运行 Python 脚本
+        $ dotenv run -- python foo.py
+        ```
+
+    **`.env` 文件格式规范**
+
+    为了保证正确解析，需要了解其格式细节：
+
+    *   **变量引用**: 必须使用 `${VARIABLE_NAME}` 格式，不支持 `$VARIABLE_NAME` 这种写法。
+
+    *   **导出声明**: 行首的 `export` 关键字会被忽略，所以 `export FOO=bar` 和 `FOO=bar` 效果一样。
+
+    *   **空格处理**: 键名、等号、值前后的空格会被自动忽略。
+
+    *   **注释**: 使用 `#` 开头。
+
+    *   **引号与转义**:
+
+        * 单引号值中支持转义：`\\`, `\'`
+
+        * 双引号值中支持更多转义：`\\`, `\'`, `\"`, `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`
+
+    *   **多行值**: 使用引号包裹的值可以跨越多行。
+
+    *   **无值变量**: 如果变量没有值 (`FOO`)，`dotenv_values` 会将其值设为 `None`，而 `load_dotenv` 会忽略它。
+
+    **安全最佳实践**
+
+    *   **将 `.env` 添加到 `.gitignore`**：这是最重要的一步，防止密钥、密码等敏感信息被提交到版本控制系统。
+    *   **提供 `.env.example` 模板**：在仓库中保留一个 `.env.example` 文件，包含所有需要的变量名和示例值（不包含真实敏感数据），方便项目新成员快速上手。
+    *   **生产环境禁用**：在线上环境，可以通过设置环境变量 `PYTHON_DOTENV_DISABLED=1` 来禁用 `load_dotenv()` 的加载，强制程序从系统环境变量中读取配置，避免意外读取到不应存在的本地 `.env` 文件。
+
+    如果想了解关于 `.env` 文件更复杂的写法，或者在生产环境中如何结合其他配置管理工具使用，可以随时告诉我。
+
+* 如果你只是想注解「可迭代的整数序列」，建议使用 collections.abc.Iterable 或 Sequence：
+    ```python
+    from collections.abc import Iterable
+
+    def process_range(r: Iterable[int]) -> list[int]:
+        return list(r)
+    ```
+
+    这样更灵活，既能接受 range，也能接受 list、tuple 等。
+
 * 如果我在 pythin main.py 运行 python 程序的时候，改了 main.py 中的内容，那么程序会执行修改之前的，还是执行修改之后的？
 
     程序会继续执行修改之前的内容，不会实时更新。

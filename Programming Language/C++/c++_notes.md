@@ -4,6 +4,22 @@
 
 ## cached
 
+* 为什么 std::hash<string>()(p.name) 无法自动推导 p.name 类型？
+
+    因为`std::hash`的构造函数没有参数。类模板的类型推导只能发生在调用构造函数时。
+
+    如果希望写法更简洁，可以这样写：
+
+    ```cpp
+    template<typename T>
+    size_t hash_value(const T& value) {
+        return std::hash<T>()(value);
+    }
+
+    // 使用
+    auto h = hash_value(p.name);  // 自动推导 T
+    ```
+
 * 那如果使用函数指针，为什么不需要传递函数对象？
 
     问得非常好！这确实是 C++ 中一个微妙的区别。让我解释函数指针和 lambda 在这个上下文中的不同行为。

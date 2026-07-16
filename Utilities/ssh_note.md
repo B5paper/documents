@@ -2,6 +2,35 @@
 
 ## cache
 
+* ssh 通过多层 jump 中转
+
+    1. 命令行
+
+        `ssh -J user1@跳板机1,user2@跳板机2 目标服务器IP`
+
+    2. `~/.ssh/config`配置文件
+
+        ```conf
+        Host jump_1
+            HostName ip_1
+            User user_1
+
+        Host jump_2
+            HostName ip_2
+            User user_2
+
+        Host target
+            HostName 目标服务器IP
+            User root
+            ProxyJump jump_1,jump_2
+        ```
+
+        执行逻辑： 本机 -> 跳板机1 -> 跳板机2 -> 目标服务器。
+
+        注意，jump_1 和 jump_2 都是在**本地的**config 文件里配置的，jump_2 不在 jump_1 的 config 文件里配置。
+
+        但是 ip_2 是在 jump_1 视角下看到的 jump_2 的 ip，这一点不能搞混。
+
 * 使用 sshfs 将远程目录挂载到本地后，在 git 项目中使用`code .`打开 vscode，如果 git 仓库过大，那么 vscode 会把所有的 `.git` 信息拉下来后才能看 branch 去处理 diff 之类的，非常慢。这个时候还不如用 vscode remote ssh 连接到远程 repo。
 
     不清楚对于 sshfs 映射的单个大文件，在本地打开时，是按需读取并传输数据，还是像 scp 那样把文件全部复制到本地，才打开并读取？

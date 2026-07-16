@@ -1,6 +1,42 @@
 ## tasks
 
-* [v] eth switch node 为什么没有生成？怀疑是单个机器上只有单卡，而 p2p check 又有问题
+* [ ] 整理 topo system 要处理的任务，通过编译
+
+* [ ] 查看 topo system 的 load / dump, 是否支持带网卡
+
+* [ ] 编译 debug_utils
+
+* [ ] 对照 siccl graph 中，ai 改了什么函数
+
+* [ ] fprint_xml 同理，改成 nccl_sio_fprint_xml()，而 fprintf_xml() 使用原始的 fprintf()
+
+* [ ] 查看 amd ccl 的单元测试组织方式
+
+* [ ] 给每个 xml 函数都写一个单元测试
+
+* siccl
+
+    4. 函数名称前加 siccl_xxx()
+
+    5. graph 主要依赖 PATH_LOC ... PATH_DIS，nccl_compact.h
+
+    * local res 中 get_host_hash 应该放到 utils 里
+
+    * local_res.cc 里有 SICCL_COMPATIBLE_WITH_NCCL，这些代码都可以删掉了
+
+    * local res 后续可以加入网卡检测, switch, link 等资源的检测
+
+    * [ ] 增加 topo 对网卡的支持
+
+    * [ ] 继续精简 local res 的功能
+
+    * [ ] 对比 local res 和 nccl 229 xml 对应的功能
+
+    * [ ] 整理 ccl topo test case 部分，并上传
+
+    * [ ] ccl 绕过 check p2p
+
+    * [ ] runtime 给出 ipa 映射的接口的文档
 
 * [v] 在 init 函数中增加  chip id 的逻辑
 
@@ -19,6 +55,30 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+1. 在 67 机器上启动 model server，因为只有 67 机器的 home 目录装了 pyenv，而装了 pyenv 后，有了个 3.12.12 虚拟环境，这才能装 jinja2
+
+2. 在 60 机器上 qemu 的启动命令
+
+    ``
+
+    启动后使用 source env.sh 260625 加载 0625 版本的驱动，此时运行 sipu-smi 会显示一部分信息，然后报 core dump
+
+    dmesg 报错：
+
+    ```log
+    [  441.759229] sipu-smi[3492]: segfault at 758bcff052b6 ip 0000758bcff052b6 sp 00007ffcc566a300 error 14 in libc.so.6[758bd0000000+28000] likely on CPU 51 (core 51, socket 0)
+    [  441.759343] Code: Unable to access opcode bytes at 0x758bcff0528c.
+    [  442.963745] sipu: [core] sipu_mmu_notifier_release pid:3492
+    ```
+
+3. 运行 siccl graph 中的 case，全部正常
+
+4. 无法使用 ssh-copy-id 60 给 60 机器添加 ssh pub key，因为`.ssh`权限被设置为了 root:
+
+    ```
+    drwxrwxrwx 2 root root 4.0K  六  22 14:06 .ssh
+    ```
 
 * 在 cuda wrap `ncclCudaLibraryInit()` -> `sipuGetDevice()` 处报的错
 
