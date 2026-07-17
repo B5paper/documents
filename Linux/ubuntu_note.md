@@ -4,6 +4,152 @@
 
 ## cache
 
+* ubuntu gnome 里 ctrl + alt + left/right 可以切换桌面，但是并没有年到 setting 里有设置的地方， 为什么
+
+    您观察得很仔细！这是一个很好的问题。
+
+    在 Ubuntu GNOME（以及大多数使用 GNOME 桌面的现代 Linux 发行版）中，`Ctrl + Alt + ↑/↓/←/→` 默认用于**切换工作区（Workspaces）**，而不是虚拟桌面（Virtual Desktops），虽然这两个概念在功能上非常相似。
+
+    您之所以在设置中找不到这个特定的快捷键配置，主要有以下两个原因：
+
+    ### 1. 它是 GNOME Shell 的“硬编码”默认行为
+
+    这些特定的工作区导航快捷键是 **GNOME Shell 本身内置的核心功能**。它们被视为桌面环境基本操作的一部分，就像点击、拖动窗口或打开活动概述一样。
+
+    *   **`Ctrl + Alt + ↑/↓`**: 打开**活动概述（Activities Overview）** 并直接进入工作区选择界面。
+    *   **`Ctrl + Alt + ←/→`**: 直接在**相邻的工作区之间切换**。
+
+    因为这些快捷键被视为桌面体验的基石，所以它们没有像用户自定义的应用程序快捷键那样被放在普通的“键盘快捷键”设置面板中。
+
+    ### 2. 设置面板的局限性
+
+    标准的“设置” -> “键盘” -> “键盘快捷键”界面主要用来管理：
+    *   自定义应用程序快捷键
+    *   系统功能快捷键（如音量、亮度、启动器）
+    *   可选的、非核心的导航快捷键
+
+    像工作区导航这样的核心元操作（meta-operations）通常不在此列。
+
+    ---
+
+    ### 那么，如何查看、修改或禁用这些快捷键呢？
+
+    虽然不在图形化设置里，但你仍然有几种方法可以管理它们：
+
+    #### 方法一：使用 `dconf-editor` (推荐给高级用户)
+
+    这是最直接的方法，可以精确控制这些内置快捷键。
+
+    1.  **安装 dconf Editor** (如果尚未安装):
+        ```bash
+        sudo apt install dconf-editor
+        ```
+    2.  **打开 dconf Editor**。
+    3.  导航到这个路径：
+        ```
+        /org/gnome/desktop/wm/keybindings/
+        ```
+    4.  在右侧，你会找到所有窗口管理器的键绑定。你需要关注这几个选项：
+        *   `switch-to-workspace-left`
+        *   `switch-to-workspace-right`
+        *   `switch-to-workspace-up` (通常与打开概述相关)
+        *   `switch-to-workspace-down` (通常与打开概述相关)
+
+    5.  你可以点击这些键，然后修改其赋值。例如，你可以将 `switch-to-workspace-left` 的值从 `['<Ctrl><Alt>Left']` 改为 `['<Super>Left']` 或者直接设为 `[]` 来禁用它。
+
+    **警告：** 在 `dconf-editor` 中修改设置时要小心，错误的更改可能会影响系统的稳定性。
+
+    #### 方法二：使用 `gsettings` 命令
+
+    如果你更喜欢命令行，可以使用 `gsettings` 来查看和修改。
+
+    *   **查看当前向左切换工作区的快捷键**：
+        ```bash
+        gsettings get org.gnome.desktop.wm.keybindings switch-to-workspace-left
+        ```
+        (输出通常是 `['<Ctrl><Alt>Left']`)
+
+    *   **将其修改为 `Super + Left`**：
+        ```bash
+        gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left "['<Super>Left']"
+        ```
+
+    *   **完全禁用向左切换**：
+        ```bash
+        gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left "[]"
+        ```
+
+    #### 方法三：使用 GNOME 扩展
+
+    有一些 GNOME 扩展（例如 **“Just Perfection”**）提供了非常详细的界面来调整 GNOME Shell 的各个方面，其中也包括**禁用**某些特定的默认快捷键，虽然可能不提供完全的自定义。
+
+    ### 总结
+
+    | 特性 | 解释 |
+    | :--- | :--- |
+    | **为什么找不到？** | 因为 `Ctrl + Alt + 方向键` 是 GNOME Shell **核心的、硬编码的**工作区管理功能，不属于用户可自定义的“快捷键”范畴。 |
+    | **它是什么功能？** | 是**工作区（Workspace）** 切换，这是 GNOME 对“虚拟桌面”的实现。 |
+    | **如何修改它？** | 需要通过高级工具如 **`dconf-editor`** 或 **`gsettings` 命令行**来修改底层配置。 |
+
+    所以，您的发现是正确的——它确实存在，只是被“隐藏”在了更底层的系统配置中。
+
+    * Ctrl + Alt + → 并不能移动到下个词的结尾， 为什么
+
+        您说得完全正确！我之前的回答有误，非常抱歉。`Ctrl + Alt + →/←` 在 Ubuntu GNOME 中**默认并不是**用于单词导航的快捷键。
+
+        您遇到的情况是完全正常的，原因如下：
+
+        ## 主要原因：快捷键被系统桌面环境占用
+
+        在 Ubuntu GNOME（以及大多数 Linux 发行版）中，`Ctrl + Alt + →` 和 `Ctrl + Alt + ←` 这个组合键被 **GNOME 桌面环境本身**占用了，用于**在工作区（虚拟桌面）之间切换**。
+
+        **系统级快捷键的优先级高于应用程序级快捷键**。当您按下 `Ctrl + Alt + →` 时，GNOME 桌面管理器会先拦截这个按键组合，执行切换工作区的操作，因此这个信号根本不会传递到 VS Code 中。
+
+        ## 为什么会有这个 confusion？
+
+        1.  **我的错误**：我之前的回答列出了不准确的信息，将一些不常见的或特定配置下的行为当作了默认行为。
+        2.  **不同软件的差异**：某些终端模拟器（如 GNOME Terminal）或文本编辑器（如 Kate）可能自定义了这些快捷键来实现类似功能，但这绝不是 VS Code 或系统的默认行为。
+
+        ## 如何在 VS Code 中实现“移动到词尾”？
+
+        如果您想在 VS Code 中快速移动到单词的结尾，最可靠的方法是使用以下**默认有效**的快捷键：
+
+        ### 方法一：分解操作（最通用）
+        1.  **`Ctrl + →`** (Win/Linux) / **`Option + →`** (Mac)：移动到**下一个词的开头**
+        2.  紧接着按 **`End`** 键（或 `Fn + →` 在笔记本上）：移动到**当前行的行尾**（如果光标已在词中，则先跳到词尾）
+
+        *虽然这不是一键到位，但通过肌肉记忆会非常快。*
+
+        ### 方法二：使用更精确的快捷键
+        - **`Ctrl + End`**：直接移动到**整个文档的末尾**
+        - **`End`**：移动到**当前行的行尾**
+
+        ### 方法三：自定义快捷键（推荐一劳永逸）
+
+        如果您确实需要“移动到下一个词尾”这个功能，最好的解决方案是在 VS Code 中自己定义一个快捷键。
+
+        1.  打开 VS Code
+        2.  按下 `Ctrl + K Ctrl + S` 打开键盘快捷键设置
+        3.  在搜索框中输入 `cursorWordEndRight`
+        4.  你会找到名为“**Cursor Word End Right**”的命令，它默认**没有分配快捷键**
+        5.  点击左边的“+”号，添加您喜欢的快捷键组合，例如：
+            - `Ctrl + Alt + L` (因为右边是 L)
+            - `Ctrl + ]`
+            - 或者其他任何不与系统冲突的组合键。
+
+        ![VS Code Keybinding Example](https://code.visualstudio.com/assets/docs/getstarted/keybindings/add-keybinding.png)
+
+        同样，您可以搜索 `cursorWordStartLeft` 来为“移动到上一个词的开头”添加快捷键。
+
+        ## 总结
+
+        | 按键组合 | 在 Ubuntu GNOME 中的实际行为 | 原因 |
+        | :--- | :--- | :--- |
+        | **`Ctrl + Alt + →/←`** | **切换工作区（虚拟桌面）** | 被 GNOME 桌面环境优先拦截 |
+        | **`Ctrl + →/←`** | **移动到下一个/上一个词的开头** (在VS Code内有效) | 应用程序级快捷键，未被系统占用 |
+
+        再次为我之前回答中的错误信息致歉，并感谢您的指正！自定义快捷键是解决这类需求的最佳途径。
+
 * xtightvncviewer 适用于 vulkan 吗
 
     很好的问题！这是一个涉及技术细节的疑问。

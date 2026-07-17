@@ -2,6 +2,423 @@
 
 ## cache
 
+* 简述 matplotlib 画 surface
+
+    # 使用Matplotlib绘制3D曲面图
+
+    Matplotlib是Python中最常用的数据可视化库之一，它提供了强大的3D绘图功能，包括绘制曲面图(surface plot)。下面简要介绍如何使用Matplotlib创建3D曲面图。
+
+    ## 基本步骤
+
+    1. **导入必要的库**
+       ```python
+       import numpy as np
+       import matplotlib.pyplot as plt
+       from mpl_toolkits.mplot3d import Axes3D
+       ```
+
+    2. **创建数据**
+       ```python
+       # 生成网格数据
+       x = np.linspace(-5, 5, 100)
+       y = np.linspace(-5, 5, 100)
+       X, Y = np.meshgrid(x, y)
+       
+       # 创建Z值（曲面高度）
+       Z = np.sin(np.sqrt(X**2 + Y**2))
+       ```
+
+    3. **创建图形和3D坐标轴**
+       ```python
+       fig = plt.figure(figsize=(10, 8))
+       ax = fig.add_subplot(111, projection='3d')
+       ```
+
+    4. **绘制曲面**
+       ```python
+       surf = ax.plot_surface(X, Y, Z, cmap='viridis')
+       ```
+
+    5. **添加颜色条**
+       ```python
+       fig.colorbar(surf)
+       ```
+
+    6. **设置标签和标题**
+       ```python
+       ax.set_xlabel('X轴')
+       ax.set_ylabel('Y轴')
+       ax.set_zlabel('Z轴')
+       ax.set_title('3D曲面图')
+       ```
+
+    7. **显示图形**
+       ```python
+       plt.show()
+       ```
+
+    ## 完整示例代码
+
+    ```python
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+
+    # 创建数据
+    x = np.linspace(-5, 5, 100)
+    y = np.linspace(-5, 5, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+
+    # 创建图形
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 绘制曲面
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+    # 添加颜色条
+    fig.colorbar(surf)
+
+    # 设置标签
+    ax.set_xlabel('X轴')
+    ax.set_ylabel('Y轴')
+    ax.set_zlabel('Z轴')
+    ax.set_title('3D曲面图示例')
+
+    plt.show()
+    ```
+
+    ## 常用参数
+
+    - `cmap`: 颜色映射，如'viridis', 'plasma', 'coolwarm'等
+    - `alpha`: 透明度(0-1)
+    - `rstride`和`cstride`: 控制网格密度
+    - `linewidth`: 网格线宽度
+    - `antialiased`: 抗锯齿
+
+    Matplotlib的3D曲面图功能强大，可以用于可视化各种数学函数和科学数据。
+
+    * 所有的汉字都显示成了小方块，怎么修复？
+
+        # 解决Matplotlib中文显示为方块的问题
+
+        Matplotlib默认不支持中文字体，需要手动设置字体。以下是几种解决方案：
+
+        ## 方法一：使用系统支持的中文字体（推荐）
+
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.font_manager as fm
+
+        # 设置中文字体
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+        plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
+
+        # 创建数据
+        x = np.linspace(-5, 5, 100)
+        y = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(np.sqrt(X**2 + Y**2))
+
+        # 创建图形
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 绘制曲面
+        surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+        # 添加颜色条
+        fig.colorbar(surf)
+
+        # 设置标签 - 现在中文可以正常显示
+        ax.set_xlabel('X轴')
+        ax.set_ylabel('Y轴')
+        ax.set_zlabel('Z轴')
+        ax.set_title('3D曲面图示例')
+
+        plt.show()
+        ```
+
+        ## 方法二：指定具体字体文件路径
+
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.font_manager as fm
+
+        # 方法二：指定字体文件路径（适用于知道字体文件位置的情况）
+        font_path = 'C:/Windows/Fonts/simhei.ttf'  # Windows系统黑体路径
+        # font_path = '/System/Library/Fonts/PingFang.ttc'  # macOS系统字体路径
+        # font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'  # Linux系统字体路径
+
+        font_prop = fm.FontProperties(fname=font_path)
+        plt.rcParams['font.family'] = font_prop.get_name()
+        plt.rcParams['axes.unicode_minus'] = False
+
+        # 其余代码与方法一相同
+        # ...
+        ```
+
+        ## 方法三：查看可用中文字体
+
+        ```python
+        # 查看系统所有可用字体
+        from matplotlib.font_manager import fontManager
+        import matplotlib.pyplot as plt
+
+        # 获取所有字体名称
+        all_fonts = [f.name for f in fontManager.ttflist]
+        chinese_fonts = [f for f in all_fonts if any(char in f for char in ['黑体', '宋体', '微软', 'Sim', 'Hei', 'Kai'])]
+
+        print("可用的中文字体:")
+        for font in chinese_fonts:
+            print(font)
+
+        # 然后选择其中一个可用的字体名称
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 或者选择上面列出的其他字体
+        plt.rcParams['axes.unicode_minus'] = False
+        ```
+
+        ## 常用中文字体名称
+
+        - **Windows系统**:
+          - `'SimHei'` - 黑体
+          - `'SimSun'` - 宋体
+          - `'Microsoft YaHei'` - 微软雅黑
+          - `'KaiTi'` - 楷体
+
+        - **macOS系统**:
+          - `'PingFang SC'` - 苹方
+          - `'STHeiti'` - 华文黑体
+          - `'Songti SC'` - 宋体
+
+        - **Linux系统**:
+          - `'WenQuanYi Zen Hei'` - 文泉驿正黑
+          - `'AR PL UMing CN'` - 中易宋体
+
+        ## 完整修复后的代码
+
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
+        # 设置中文字体
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+        plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示问题
+
+        # 创建数据
+        x = np.linspace(-5, 5, 100)
+        y = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(np.sqrt(X**2 + Y**2))
+
+        # 创建图形
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 绘制曲面
+        surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+        # 添加颜色条
+        fig.colorbar(surf)
+
+        # 设置标签
+        ax.set_xlabel('X轴')
+        ax.set_ylabel('Y轴')
+        ax.set_zlabel('Z轴')
+        ax.set_title('3D曲面图示例')
+
+        plt.show()
+        ```
+
+        选择适合您系统的字体设置方法，中文应该就能正常显示了。如果仍然有问题，请尝试方法三查看您系统上可用的具体字体名称。
+
+    * findfont: Generic family 'sans-serif' not found because none of the following families were found: SimHe
+        我是 ubuntu 系统
+
+        # 解决Ubuntu系统Matplotlib中文显示问题
+
+        在Ubuntu系统上，默认可能没有安装中文字体，需要先安装字体，然后配置Matplotlib。
+
+        ## 方法一：安装中文字体并配置（推荐）
+
+        ### 1. 安装中文字体包
+
+        ```bash
+        # 更新包列表
+        sudo apt update
+
+        # 安装常用中文字体
+        sudo apt install fonts-wqy-microhei fonts-wqy-zenhei ttf-wqy-microhei ttf-wqy-zenhei
+
+        # 安装微软字体（可选）
+        sudo apt install ttf-mscorefonts-installer
+
+        # 安装思源字体（可选）
+        sudo apt install fonts-noto-cjk
+        ```
+
+        ### 2. 清除Matplotlib缓存
+
+        ```bash
+        rm -rf ~/.cache/matplotlib
+        ```
+
+        ### 3. Python代码配置
+
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.font_manager as fm
+
+        # 方法1：使用文泉驿微米黑（Ubuntu常用）
+        plt.rcParams['font.sans-serif'] = ['WenQuanYi Micro Hei']  # 文泉驿微米黑
+        plt.rcParams['axes.unicode_minus'] = False
+
+        # 或者方法2：使用Noto Sans CJK（更现代）
+        # plt.rcParams['font.sans-serif'] = ['Noto Sans CJK JP']  # 思源黑体
+        # plt.rcParams['axes.unicode_minus'] = False
+
+        # 或者方法3：指定具体字体文件路径
+        # font_path = '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc'
+        # font_prop = fm.FontProperties(fname=font_path)
+        # plt.rcParams['font.family'] = [font_prop.get_name()]
+
+        # 创建数据
+        x = np.linspace(-5, 5, 100)
+        y = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(np.sqrt(X**2 + Y**2))
+
+        # 创建图形
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 绘制曲面
+        surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+        # 添加颜色条
+        fig.colorbar(surf)
+
+        # 设置标签
+        ax.set_xlabel('X轴')
+        ax.set_ylabel('Y轴')
+        ax.set_zlabel('Z轴')
+        ax.set_title('3D曲面图示例')
+
+        plt.show()
+        ```
+
+        ## 方法二：查看并选择可用字体
+
+        ```python
+        import matplotlib.pyplot as plt
+        import matplotlib.font_manager as fm
+
+        # 查看所有可用字体
+        font_list = [f.name for f in fm.fontManager.ttflist]
+        print("所有可用字体:")
+        for font in sorted(set(font_list)):
+            print(font)
+
+        # 筛选可能的中文字体
+        chinese_keywords = ['WenQuanYi', 'Micro', 'Hei', 'Noto', 'Sans', 'CJK', 'Zen', 'wqy']
+        chinese_fonts = [f for f in font_list if any(keyword in f for keyword in chinese_keywords)]
+
+        print("\n可能的中文字体:")
+        for font in sorted(set(chinese_fonts)):
+            print(font)
+        ```
+
+        ## 方法三：使用字体管理器动态设置
+
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.font_manager as fm
+
+        def set_chinese_font():
+            """尝试设置中文字体"""
+            # 尝试多种常见的中文字体
+            font_candidates = [
+                'WenQuanYi Micro Hei',
+                'Noto Sans CJK JP',
+                'Noto Sans CJK SC',
+                'DejaVu Sans',
+                'Liberation Sans',
+                'Droid Sans Fallback'
+            ]
+            
+            for font in font_candidates:
+                if any(f.name == font for f in fm.fontManager.ttflist):
+                    plt.rcParams['font.sans-serif'] = [font]
+                    plt.rcParams['axes.unicode_minus'] = False
+                    print(f"使用字体: {font}")
+                    return True
+            
+            print("未找到合适的中文字体，请安装中文字体包")
+            return False
+
+        # 设置中文字体
+        set_chinese_font()
+
+        # 创建数据
+        x = np.linspace(-5, 5, 100)
+        y = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(np.sqrt(X**2 + Y**2))
+
+        # 创建图形
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 绘制曲面
+        surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+
+        # 添加颜色条
+        fig.colorbar(surf)
+
+        # 设置标签
+        ax.set_xlabel('X轴')
+        ax.set_ylabel('Y轴')
+        ax.set_zlabel('Z轴')
+        ax.set_title('3D曲面图示例')
+
+        plt.show()
+        ```
+
+        ## 如果仍然无法显示中文
+
+        如果上述方法都不行，可以尝试：
+
+        1. **重新生成字体缓存**：
+           ```bash
+           python -c "import matplotlib.font_manager; matplotlib.font_manager._rebuild()"
+           ```
+
+        2. **检查字体配置文件**：
+           ```bash
+           # 查看matplotlib字体配置
+           python -c "import matplotlib; print(matplotlib.matplotlib_fname())"
+           ```
+
+        3. **使用英文标签**（临时解决方案）：
+           ```python
+           ax.set_xlabel('X Axis')
+           ax.set_ylabel('Y Axis')
+           ax.set_zlabel('Z Axis')
+           ax.set_title('3D Surface Plot Example')
+           ```
+
+        推荐先使用方法一安装字体包，这是最根本的解决方案。安装完成后，通常使用 `'WenQuanYi Micro Hei'` 或 `'Noto Sans CJK SC'` 就能正常显示中文。
+
 * 我使用 plt.imshow() 画出了图片，又希望使用一个红框把这个 img 框起来，该怎么办？
 
     你可以使用 `matplotlib.patches.Rectangle` 在图片上添加红框。以下是几种实现方式：
