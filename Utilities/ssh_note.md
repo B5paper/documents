@@ -2,6 +2,229 @@
 
 ## cache
 
+* 如何优雅地往 ~/.ssh/config 中添加新远程服务器
+
+	ssh-import-id
+
+	pip install ssh-config-manager
+
+* sshguard 这个呢
+
+	`sshguard` 是一个很重要的网络安全工具，专门用于保护 SSH 服务。让我详细介绍一下：
+
+	## sshguard 是什么
+
+	**sshguard** 是一个轻量级的入侵防御工具，主要功能是：
+
+	- 监控系统日志，检测 SSH 暴力破解攻击
+	- 自动屏蔽有恶意行为的 IP 地址
+	- 保护 SSH 服务和其他网络服务
+
+	## 工作原理
+
+	### 基本流程
+	1. **监控日志**：实时分析 `/var/log/auth.log`、`/var/log/secure` 等日志文件
+	2. **检测攻击**：识别失败的登录尝试、暴力破解等模式
+	3. **动态屏蔽**：通过防火墙规则（iptables、pf、ipfw 等）临时或永久屏蔽攻击者 IP
+	4. **自动解封**：在配置的时间后自动解除封锁
+
+	## 安装和配置
+
+	### 安装方法
+	```bash
+	# Ubuntu/Debian
+	sudo apt update && sudo apt install sshguard
+
+	# CentOS/RHEL/Fedora
+	sudo dnf install sshguard
+	# 或
+	sudo yum install sshguard
+
+	# macOS (Homebrew)
+	brew install sshguard
+
+	# Alpine Linux
+	sudo apk add sshguard
+	```
+
+	### 基本配置
+	配置文件通常位于 `/etc/sshguard/sshguard.conf`：
+
+	```bash
+	# 阻止阈值：达到多少攻击分数后封锁
+	THRESHOLD=30
+
+	# 封锁时间（秒）
+	BLOCK_TIME=1200
+
+	# 检测时间窗口（秒）
+	DETECTION_TIME=120
+
+	# 永久封锁前的攻击次数
+	PERMANENT_BAN_THRESHOLD=10
+	```
+
+	## 集成方式
+
+	### 1. 与系统防火墙集成
+	```bash
+	# 查看当前防火墙规则
+	sudo iptables -L
+	sudo pfctl -s rules  # macOS
+
+	# sshguard 会自动添加类似这样的规则：
+	# -A sshguard -s 192.168.1.100 -j DROP
+	```
+
+	### 2. 与 systemd 集成
+	```bash
+	# 启动服务
+	sudo systemctl start sshguard
+	sudo systemctl enable sshguard
+
+	# 查看状态
+	sudo systemctl status sshguard
+
+	# 查看日志
+	sudo journalctl -u sshguard -f
+	```
+
+	## 监控和管理
+
+	### 查看被封锁的 IP
+	```bash
+	# 查看 iptables 规则（Linux）
+	sudo iptables -L sshguard -n
+
+	# 查看 pf 规则（macOS/BSD）
+	sudo pfctl -t sshguard -T show
+
+	# 查看实时日志
+	sudo tail -f /var/log/auth.log | grep sshguard
+	```
+
+	### 手动管理封锁列表
+	```bash
+	# 手动解除封锁某个 IP
+	sudo iptables -D sshguard -s 192.168.1.100 -j DROP
+
+	# 清空所有封锁规则
+	sudo iptables -F sshguard
+
+	# 在 macOS/BSD 上
+	sudo pfctl -t sshguard -T delete 192.168.1.100
+	```
+
+	## 高级配置
+
+	### 自定义配置示例
+	```bash
+	# /etc/sshguard/sshguard.conf
+
+	# 攻击检测阈值
+	THRESHOLD=20
+
+	# 初始封锁时间（秒）
+	BLOCK_TIME=600
+
+	# 攻击分数衰减时间（秒）
+	DETECTION_TIME=3600
+
+	# 永久封锁阈值
+	PERMANENT_BAN_THRESHOLD=8
+
+	# 监控的日志文件
+	LOGREADER="/usr/bin/logread -f"  # OpenWrt
+	# 或
+	LOGREADER="/usr/bin/tail -f -n 0 /var/log/auth.log"
+
+	# 忽略的 IP 范围（白名单）
+	WHITELIST_FILE=/etc/sshguard/whitelist
+	```
+
+	### 创建白名单
+	```bash
+	# /etc/sshguard/whitelist
+	192.168.1.0/24
+	10.0.0.50
+	# 信任的 IP 不会触发封锁
+	```
+
+	## 与其他工具对比
+
+	### vs fail2ban
+	| 特性 | sshguard | fail2ban |
+	|------|----------|----------|
+	| 资源占用 | 更轻量 | 相对较重 |
+	| 配置复杂度 | 简单 | 复杂 |
+	| 功能范围 | 专注 SSH 保护 | 支持多种服务 |
+	| 性能 | 更高 | 中等 |
+
+	## 实际应用场景
+
+	### 1. 保护云服务器
+	```bash
+	# 在云服务器上安装后，观察效果
+	sudo tail -f /var/log/auth.log
+
+	# 你会看到类似记录：
+	# sshguard: Blocking 61.177.173.2 for 1200 seconds (28 attacks in 180 sec)
+	```
+
+	### 2. 开发环境保护
+	即使是非生产环境，sshguard 也能：
+	- 减少日志噪音
+	- 防止密码猜测尝试
+	- 降低系统负载
+
+	### 3. 与 SSH 加固配合
+	```bash
+	# /etc/ssh/sshd_config 加固配置
+	Port 2222                          # 非标准端口
+	PermitRootLogin no                 # 禁止 root 登录
+	PasswordAuthentication no          # 禁用密码认证
+	PubkeyAuthentication yes           # 仅使用密钥认证
+
+	# 配合 sshguard 提供双重保护
+	```
+
+	## 故障排除
+
+	### 常见问题解决
+	```bash
+	# 1. 检查服务状态
+	sudo systemctl status sshguard
+
+	# 2. 查看日志
+	sudo journalctl -u sshguard -n 50
+
+	# 3. 验证防火墙规则
+	sudo iptables -L -n | grep sshguard
+
+	# 4. 测试日志监控
+	sudo tail -f /var/log/auth.log | grep -i ssh
+	```
+
+	### 调试模式
+	```bash
+	# 前台运行并显示调试信息
+	sudo sshguard -d -v
+
+	# 或者检查配置
+	sudo sshguard -p  # 解析并显示配置
+	```
+
+	## 总结
+
+	**sshguard** 是一个简单有效的 SSH 保护工具，特别适合：
+
+	- ✅ 需要轻量级安全防护的场景
+	- ✅ 防止 SSH 暴力破解攻击  
+	- ✅ 自动化的 IP 封锁管理
+	- ✅ 资源受限的环境
+
+	对于更复杂的需求，可以考虑 `fail2ban`，但对于大多数 SSH 保护场景，`sshguard` 已经足够且更高效。
+
 * 简述 ssh-keyscan 和 ssh-argv0 的作用
 
 	好的，这是一个关于 `ssh-keyscan` 和 `ssh-argv0` 的简明解释。

@@ -2,6 +2,467 @@
 
 ## cache
 
+* 详细讲讲 csv.reader()
+
+    `csv.reader()` 是 Python 标准库 `csv` 模块中最核心的函数之一。它的作用非常简单：**将包含 CSV（逗号分隔值）格式文本的文件或字符串，逐行解析为 Python 的列表（List）对象**。
+
+    下面我从**基础用法、核心参数、进阶技巧、常见陷阱**四个维度，给你详细拆解。
+
+    ---
+
+    ### 1. 基础用法（最简模式）
+
+    假设你有一个 `data.csv` 文件：
+
+    ```csv
+    name,age,city
+    Alice,30,New York
+    Bob,25,London
+    ```
+
+    **代码：**
+
+    ```python
+    import csv
+
+    with open('data.csv', 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            print(row)
+    ```
+
+    **输出：**
+
+    ```
+    ['name', 'age', 'city']
+    ['Alice', '30', 'New York']
+    ['Bob', '25', 'London']
+    ```
+
+    **关键点：**
+
+    - `reader` 是一个**迭代器（iterator）**，你可以用 `for` 循环遍历，也可以用 `next(reader)` 取下一行。
+    - 每一行都是一个 **字符串列表**。注意：数字 `30` 在这里是字符串 `'30'`，不会自动转成 int。
+    - **必须**以文本模式（`'r'`）打开文件，且通常需要指定 `encoding`（尤其是 Windows 下常用 `gbk`）。
+
+    ---
+
+    ### 2. 核心参数详解（`delimiter` 和 `quotechar`）
+
+    `csv.reader()` 最关键的参数是 **`delimiter`**（分隔符）和 **`quotechar`**（引用符）。
+
+    #### (1) `delimiter` —— 处理非逗号分隔符
+    CSV 不一定是逗号，可能是制表符（TSV）、分号（欧洲常用）或管道符 `|`。
+
+    ```python
+    # 制表符分隔的文件
+    reader = csv.reader(f, delimiter='\t')
+    ```
+
+    #### (2) `quotechar` —— 处理内容中的特殊字符
+    如果字段里本身就包含逗号或换行符，需要用引号括起来：
+
+    ```csv
+    name,description
+    Alice,"Hello, world"
+    Bob,"Line1\nLine2"
+    ```
+
+    默认 `quotechar='"'`。reader 会自动去掉外层引号，并正确处理内部逗号（不会把它当分隔符）。
+
+    ```python
+    reader = csv.reader(f)  # 默认 quotechar='"'
+    for row in reader:
+        print(row)
+    # 输出：['Alice', 'Hello, world']  （注意内部逗号被保留了）
+    ```
+
+    ---
+
+    ### 3. 进阶技巧：与 `next()` 配合跳过表头
+
+    很多 CSV 第一行是列名，你不想处理它：
+
+    ```python
+    with open('data.csv') as f:
+        reader = csv.reader(f)
+        header = next(reader)  # 取走第一行
+        print(f"列名: {header}")
+        for row in reader:     # 从第二行开始遍历
+            print(row)
+    ```
+
+    ---
+
+    ### 4. 处理空白行和空值
+
+    - **空白行**：reader 默认会返回一个空列表 `[]`。你可以通过 `if row:` 过滤掉。
+    - **空字段**：连续两个分隔符（如 `a,,b`）会被解析为 `['a', '', 'b']`。
+
+    ---
+
+    ### 5. 重要陷阱（新手必坑）
+
+    #### (1) **文件指针与迭代器一次性**
+    `reader` 是迭代器，只能从头到尾读一次。如果想再读一遍，必须重新 `open()` 或 `f.seek(0)`。
+
+    #### (2) **`newline=''` 参数必须加（Python 官方强烈建议）**
+    打开 CSV 文件时，**强烈推荐**加上 `newline=''`，否则在 Windows 上可能会把 `\r\n` 搞乱，导致多出空行或字段错乱。
+
+    ```python
+    with open('data.csv', 'r', newline='', encoding='utf-8') as f:  # 注意 newline=''
+        reader = csv.reader(f)
+    ```
+
+    #### (3) **性能问题**
+    `csv.reader` 是纯 Python 实现的，对于几 GB 的超大文件，逐行读取没问题（内存友好），但速度较慢。如果追求极致速度，可考虑 `pandas.read_csv()` 或 `pyarrow`。
+
+    ---
+
+    ### 6. 与其他方法的对比
+
+    | 方法 | 返回类型 | 适用场景 |
+    | :--- | :--- | :--- |
+    | `csv.reader()` | 每行 `list` | 通用，最灵活，手动处理列 |
+    | `csv.DictReader()` | 每行 `dict`（键为表头） | 列名明确，代码可读性高 |
+    | `pandas.read_csv()` | DataFrame | 数据分析、复杂清洗、高性能 |
+
+    ---
+
+    ### 7. 实战示例：解析并转换数据类型
+
+    ```python
+    import csv
+
+    with open('data.csv', 'r', newline='', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        header = next(reader)  # ['name', 'age', 'score']
+        
+        for name, age, score in reader:  # 直接解包
+            age = int(age)
+            score = float(score)
+            print(f"{name} 年龄 {age}, 分数 {score}")
+    ```
+
+    ---
+
+    ### 8. 处理非文件来源（字符串或网络流）
+
+    `csv.reader()` 要求传入的是一个**迭代器**，每次 `__next__()` 返回一个字符串。因此：
+
+    - **字符串**：用 `io.StringIO` 包裹。
+    - **网络响应**（如 `requests.get().text`）：同样用 `StringIO`。
+
+    ```python
+    import csv
+    from io import StringIO
+
+    csv_data = "a,b,c\n1,2,3"
+    reader = csv.reader(StringIO(csv_data))
+    for row in reader:
+        print(row)
+    ```
+
+    ---
+
+    ### 总结一句话
+
+    `csv.reader()` 是 Python 处理 CSV 的**底层、轻量、内存友好**的工具，适合脚本化、快速原型和中小型文件。它不依赖第三方库，但你需要手动处理数据类型、编码和表头逻辑。
+
+    如果你需要更高级的用法（如自定义方言、异常处理），或者想对比 `DictReader` 和 `pandas`，随时可以追问。
+
+* 讲讲 python str glob
+
+    ## Python `str` 与 `glob` 详解
+
+    在 Python 中，`str` 是内置字符串类型，而 `glob` 是标准库中的文件名模式匹配模块。这两者经常结合使用，用于文件路径的匹配和处理。
+
+    ---
+
+    ## 1. Python `str` 字符串基础
+
+    ### 创建字符串
+    ```python
+    # 多种创建方式
+    s1 = 'hello'
+    s2 = "world"
+    s3 = '''多行
+    字符串'''
+    s4 = """也支持双引号"""
+    ```
+
+    ### 常用字符串方法
+
+    ```python
+    s = "hello world"
+
+    # 大小写转换
+    s.upper()          # 'HELLO WORLD'
+    s.lower()          # 'hello world'
+    s.capitalize()     # 'Hello world'
+    s.title()          # 'Hello World'
+
+    # 查找与替换
+    s.find('world')    # 6
+    s.replace('world', 'Python')  # 'hello Python'
+
+    # 分割与连接
+    s.split()          # ['hello', 'world']
+    '-'.join(['a', 'b'])  # 'a-b'
+
+    # 去除空白
+    '  hello  '.strip()  # 'hello'
+
+    # 判断方法
+    s.startswith('hello')  # True
+    s.endswith('world')    # True
+    s.isdigit()           # False
+    s.isalpha()           # False (因为有空格)
+    ```
+
+    ### 字符串格式化
+
+    ```python
+    # f-string (Python 3.6+)
+    name = "Alice"
+    age = 25
+    print(f"Name: {name}, Age: {age}")
+
+    # format() 方法
+    print("Name: {}, Age: {}".format(name, age))
+
+    # % 格式化 (旧式)
+    print("Name: %s, Age: %d" % (name, age))
+    ```
+
+    ---
+
+    ## 2. `glob` 模块 - 文件路径模式匹配
+
+    `glob` 模块使用 Unix shell 风格的通配符来匹配文件路径。
+
+    ### 基本通配符
+
+    | 通配符 | 含义 | 示例 |
+    |--------|------|------|
+    | `*` | 匹配任意数量字符（包括0个） | `*.txt` 匹配所有txt文件 |
+    | `?` | 匹配单个字符 | `file?.txt` 匹配 file1.txt, fileA.txt |
+    | `[abc]` | 匹配指定字符之一 | `file[0-9].txt` 匹配 file0.txt-file9.txt |
+    | `[!abc]` | 匹配不在指定范围内的字符 | `file[!0-9].txt` 匹配非数字文件 |
+
+    ### 主要函数
+
+    #### `glob.glob(pathname, recursive=False)`
+    返回匹配路径的列表
+
+    ```python
+    import glob
+
+    # 当前目录所有 Python 文件
+    files = glob.glob('*.py')
+    print(files)  # ['main.py', 'utils.py', ...]
+
+    # 子目录中的图片文件
+    images = glob.glob('images/*.jpg')
+    print(images)  # ['images/photo1.jpg', 'images/photo2.jpg']
+
+    # 使用 ? 匹配单个字符
+    files = glob.glob('file?.txt')  # file1.txt, fileA.txt
+
+    # 使用字符范围
+    files = glob.glob('file[0-9].txt')  # file0.txt - file9.txt
+
+    # 递归搜索 (recursive=True)
+    # 匹配所有子目录中的 .py 文件
+    files = glob.glob('**/*.py', recursive=True)
+    # 匹配所有子目录（包括深层）中的 .txt 文件
+    files = glob.glob('**/*.txt', recursive=True)
+    ```
+
+    #### `glob.iglob(pathname, recursive=False)`
+    返回迭代器，适合处理大量文件
+
+    ```python
+    import glob
+
+    # 使用迭代器节省内存
+    for file in glob.iglob('**/*.log', recursive=True):
+        print(file)
+        # 处理每个文件
+    ```
+
+    ---
+
+    ## 3. `str` 与 `glob` 结合使用
+
+    ### 场景1：处理匹配到的文件路径
+
+    ```python
+    import glob
+    import os
+
+    # 获取所有 txt 文件
+    txt_files = glob.glob('*.txt')
+
+    for file in txt_files:
+        # 字符串操作处理文件名
+        base_name = os.path.basename(file)  # 提取文件名
+        name_without_ext = os.path.splitext(base_name)[0]  # 去掉扩展名
+        
+        # 生成新文件名
+        new_name = f"{name_without_ext}_backup.txt"
+        
+        print(f"处理: {file} -> {new_name}")
+    ```
+
+    ### 场景2：过滤和筛选文件
+
+    ```python
+    import glob
+
+    # 获取所有文件
+    all_files = glob.glob('*')
+
+    # 使用字符串方法过滤
+    python_files = [f for f in all_files if f.endswith('.py')]
+    txt_files = [f for f in all_files if f.startswith('data') and f.endswith('.txt')]
+
+    # 更复杂的过滤
+    important_files = [f for f in all_files 
+                       if 'backup' in f and not f.startswith('temp')]
+    ```
+
+    ### 场景3：批量重命名文件
+
+    ```python
+    import glob
+    import os
+
+    # 批量重命名所有 jpg 文件
+    for old_name in glob.glob('*.jpg'):
+        # 修改文件名
+        new_name = old_name.replace(' ', '_').lower()
+        if old_name != new_name:
+            os.rename(old_name, new_name)
+            print(f"重命名: {old_name} -> {new_name}")
+    ```
+
+    ### 场景4：按模式分组处理
+
+    ```python
+    import glob
+    from collections import defaultdict
+
+    # 按文件扩展名分组
+    files_by_ext = defaultdict(list)
+
+    for file in glob.glob('*'):
+        # 使用字符串分割获取扩展名
+        ext = file.split('.')[-1] if '.' in file else 'no_ext'
+        files_by_ext[ext].append(file)
+
+    for ext, files in files_by_ext.items():
+        print(f".{ext}: {len(files)} 个文件")
+    ```
+
+    ---
+
+    ## 4. 高级技巧
+
+    ### 使用 `pathlib` 替代（现代推荐）
+
+    Python 3.4+ 的 `pathlib` 提供了更面向对象的方式：
+
+    ```python
+    from pathlib import Path
+
+    # 更优雅的 glob
+    for file in Path('.').glob('*.py'):
+        print(file.name)  # 文件名
+        print(file.stem)  # 不含扩展名的文件名
+        print(file.suffix)  # 扩展名
+
+    # 递归搜索
+    for file in Path('.').glob('**/*.txt'):
+        print(file)
+
+    # 结合字符串方法
+    for file in Path('.').glob('*.txt'):
+        if 'backup' in file.name:
+            print(f"备份文件: {file}")
+    ```
+
+    ### 忽略某些目录
+
+    ```python
+    import glob
+
+    # 排除特定目录
+    def get_files(pattern, exclude_dirs=None):
+        exclude_dirs = exclude_dirs or []
+        files = glob.glob(pattern, recursive=True)
+        
+        return [f for f in files 
+                if not any(exclude in f for exclude in exclude_dirs)]
+
+    # 使用
+    files = get_files('**/*.py', exclude_dirs=['venv', '__pycache__'])
+    ```
+
+    ---
+
+    ## 5. 常见陷阱与注意事项
+
+    ### 通配符只匹配文件名，不是路径
+
+    ```python
+    # 错误：试图匹配路径中的目录
+    glob.glob('/home/*/data.txt')  # 不会递归查找
+
+    # 正确：使用递归
+    glob.glob('/home/**/data.txt', recursive=True)
+    ```
+
+    ### 隐藏文件（以 . 开头）
+
+    ```python
+    # 默认不匹配隐藏文件
+    glob.glob('.*')  # 返回 . 和 ..
+
+    # 匹配隐藏文件需要使用特殊处理
+    import os
+    import glob
+
+    hidden_files = [f for f in glob.glob('*') if f.startswith('.')]
+    ```
+
+    ### 性能考虑
+
+    ```python
+    # 大量文件时使用 iglob
+    for file in glob.iglob('**/*.log', recursive=True):
+        # 逐個处理，不占用大量内存
+        process(file)
+
+    # 不要做不必要的列表转换
+    # 坏
+    files = list(glob.iglob('*.txt'))  # 浪费内存
+
+    # 好
+    for file in glob.iglob('*.txt'):  # 直接迭代
+        process(file)
+    ```
+
+    ---
+
+    ## 总结
+
+    - **`str`** 是处理文本的基础，提供丰富的字符串操作方法
+    - **`glob`** 用于文件路径的模式匹配，支持 `*`、`?`、`[]` 等通配符
+    - 两者结合使用可以实现灵活的文件批处理操作
+    - 现代开发推荐使用 **`pathlib`** 替代 `glob`，代码更加清晰和面向对象
+    - 处理大量文件时注意使用 `iglob()` 节省内存
+
 * `for i, arg in enumerate(argv[2:]):` 我希望这里的 i 从 2 开始，怎么办
     
     你可以通过以下几种方式让 `i` 从 2 开始：

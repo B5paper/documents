@@ -1,7 +1,5 @@
 ## tasks
 
-* [ ] 整理 topo system 要处理的任务，通过编译
-
 * [ ] 查看 topo system 的 load / dump, 是否支持带网卡
 
 * [ ] 编译 debug_utils

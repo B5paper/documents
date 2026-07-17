@@ -2,6 +2,154 @@
 
 ## cache
 
+* 详细讲讲 np.random 模块
+
+    好的，我们来详细聊聊 `numpy.random` 模块。
+
+    这是 NumPy 中用于生成随机数（确切地说是**伪随机数**）的核心模块。在数据科学、机器学习、模拟和游戏开发中，它都是不可或缺的工具。
+
+    为了讲得透彻，我会从**核心概念**、**主要功能分类**、**新一代接口**以及**最佳实践**这几个方面展开。
+
+    ---
+
+    ### 1. 核心概念：伪随机数与种子 (Seed)
+
+    - **伪随机数**：计算机无法产生真正的随机数，`np.random` 生成的其实是通过一个确定的数学算法（如梅森旋转算法）计算出的数列。这个数列看起来是随机的，但如果你知道初始状态（种子），就可以完全重现它。
+    - **种子 (Seed)**：种子是随机数生成器的起始状态。
+      - 设置相同的种子，每次运行代码生成的随机数序列完全相同。这保证了**实验的可重复性**。
+      - 如果不设置，NumPy 会基于系统时间或操作系统熵源自动设置种子，每次运行结果都不同。
+
+    **传统写法（已逐渐被淘汰）：**
+    ```python
+    import numpy as np
+    np.random.seed(42)  # 设置全局种子
+    print(np.random.rand())  # 0.374540...
+    ```
+
+    **新版推荐写法：**
+    ```python
+    rng = np.random.default_rng(seed=42)  # 创建一个独立的随机数生成器
+    print(rng.random())  # 0.773956...
+    ```
+
+    ---
+
+    ### 2. 主要功能分类（以新版 `default_rng` 为例）
+
+    新版接口（`rng = np.random.default_rng()`）比旧版（`np.random.xxx`）更快、算法更先进（使用 PCG64 算法），且分布更均匀。我们按用途分类来看：
+
+    #### (1) 生成基础随机数（均匀分布）
+    - `rng.random(size)` 或 `rng.ranf(size)`：生成 `[0.0, 1.0)` 区间内的均匀分布浮点数。
+    - `rng.integers(low, high, size)`：生成指定范围内的随机整数（可以包含端点）。
+    - `rng.choice(a, size, replace, p)`：从给定数组 `a` 中随机抽取元素（可带权重 `p`，可放回或不放回）。
+
+    ```python
+    rng = np.random.default_rng()
+    rng.random((2, 3))          # 2行3列，值在0~1之间
+    rng.integers(0, 10, size=5) # 5个0到9的整数
+    rng.choice(['a','b','c'], size=2, replace=False) # 不放回抽样
+    ```
+
+    #### (2) 常见概率分布
+    这些是统计学和模拟中最常用的：
+
+    - **正态分布（高斯分布）**：`rng.normal(loc=均值, scale=标准差, size)`
+    - **标准正态分布**：`rng.standard_normal(size)`
+    - **均匀分布**：`rng.uniform(low, high, size)`
+    - **二项分布**：`rng.binomial(n, p, size)`（n次试验，成功概率p）
+    - **泊松分布**：`rng.poisson(lam, size)`（单位时间事件发生次数）
+    - **指数分布**：`rng.exponential(scale, size)`（常用于寿命或等待时间）
+    - **beta / gamma / chi-square** 等更多统计分布也都支持。
+
+    ```python
+    samples = rng.normal(loc=0, scale=1, size=1000)  # 生成1000个标准正态分布样本
+    ```
+
+    #### (3) 数组操作与随机重排
+    - `rng.shuffle(x)`：**原地**打乱数组或列表的顺序（改变原数据）。
+    - `rng.permutation(x)`：返回一个新的打乱顺序的数组，不改变原数组。
+    - `rng.permuted(x)`：更高级的随机排列，可以沿指定轴独立打乱（比 permutation 更灵活）。
+
+    ```python
+    arr = np.arange(10)
+    rng.shuffle(arr)        # arr 本身被打乱
+    new_arr = rng.permutation(10)  # 返回 [3,1,7,...] 的新数组
+    ```
+
+    ---
+
+    ### 3. 对比：旧版 (np.random.xxx) vs 新版 (default_rng)
+
+    | 功能 | 旧版 (Legacy) | 新版 (Recommended) |
+    |------|---------------|---------------------|
+    | 创建生成器 | `np.random.seed(42)`（全局） | `rng = np.random.default_rng(42)`（独立对象） |
+    | 均匀浮点数 | `np.random.rand()` / `randn()` | `rng.random()` |
+    | 整数 | `np.random.randint()` | `rng.integers()` （注意：新版包含右端点） |
+    | 正态分布 | `np.random.normal()` | `rng.normal()` |
+    | 打乱 | `np.random.shuffle()` | `rng.shuffle()` |
+    | 算法 | 梅森旋转 (MT19937) | PCG64 (更优) |
+    | 线程安全 | 全局状态，多线程易冲突 | 独立生成器，适合并行 |
+
+    > **重要提示**：新版 `integers` 的 `high` 参数是**包含**的（例如 `high=5` 可生成5），而旧版 `randint` 的 `high` 是**不包含**的。
+
+    ---
+
+    ### 4. 高级用法与技巧
+
+    #### (1) 独立生成器（不使用全局状态）
+    这是新版最大的优势。你可以创建多个互不干扰的生成器：
+    ```python
+    rng1 = np.random.default_rng(1)
+    rng2 = np.random.default_rng(2)
+    data1 = rng1.random(10)  # 与data2完全独立
+    ```
+
+    #### (2) 从流中随机（Streaming）
+    可以使用 `rng.bit_generator` 直接操作底层的随机比特流，适合高性能需求。
+
+    #### (3) 随机种子与并行计算
+    在并行任务中，为每个进程或线程分配**不同的种子**（例如基于进程ID），避免生成相同的随机序列：
+    ```python
+    import multiprocessing
+    def worker(seed):
+        rng = np.random.default_rng(seed)
+        return rng.random(1000)
+    ```
+
+    #### (4) 自定义分布
+    如果需要生成不属于内置分布的随机数，可以使用**逆变换法**或**接受-拒绝采样**。`rng.uniform` 配合自定义函数即可实现。
+
+    ---
+
+    ### 5. 常见错误与避坑指南
+
+    - **不要混用旧版和新版**：`np.random.seed(0)` 不会影响 `default_rng()` 生成的序列，两者是独立的。
+    - **不要在循环内重复创建生成器**：生成器实例化有开销，应创建一次，多次调用其方法。
+    - **注意整数范围**：新版 `integers` 的 `high` 是包含的，易与旧版混淆。
+    - **随机打乱多维数组的轴**：`rng.shuffle` 默认打乱第0轴，如果想打乱其他轴，需使用 `rng.permuted`。
+
+    ---
+
+    ### 6. 总结对比表（供快速查阅）
+
+    | 任务 | 旧版写法 | 新版推荐写法 |
+    |------|----------|--------------|
+    | 设置种子 | `np.random.seed(42)` | `rng = np.random.default_rng(42)` |
+    | [0,1) 浮点数 | `np.random.rand(3)` | `rng.random(3)` |
+    | 整数 [0,5) | `np.random.randint(0,5)` | `rng.integers(0,4)` (注意右边界) |
+    | 正态分布 | `np.random.randn(3)` | `rng.standard_normal(3)` |
+    | 从列表选一个 | `np.random.choice([1,2,3])` | `rng.choice([1,2,3])` |
+    | 打乱列表 | `np.random.shuffle(lst)` | `rng.shuffle(lst)` |
+
+    ---
+
+    ### 最后给个建议：
+    - **新项目一律使用** `default_rng`。
+    - **旧项目需要维护**时，可以继续用旧版，但迁移到新版能获得更好的性能和随机质量。
+    - 如果你是搞科研或需要可复现结果，**一定要固定种子**并记录该种子值。
+
+    如果你有具体的场景（比如生成特定分布的随机数、做蒙特卡洛模拟、或用于深度学习数据增强），可以告诉我，我可以给出更针对性的代码示例。
+
 * numpy 中一个矩阵 arr，如何只取它的右上角三角阵，或者左下角三角阵？
 
 	在 NumPy 中，提取矩阵的右上角或左下角三角阵，最常用的是 **`np.triu`**（上三角）和 **`np.tril`**（下三角）函数。
