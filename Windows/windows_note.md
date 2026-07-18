@@ -505,33 +505,49 @@
     *   **Extra settings**：务必勾选 **“Disable access control”**，然后取消勾选 “Native opengl” 以避免可能的显示错误。
     *   完成后，任务栏会出现一个“X”形图标。
 
-    **2. 配置 SSH 连接（关键）**
-    你需要在连接时告诉 SSH 启用 X11 转发，方法有两种（选其一即可）：
-    *   **临时方法**：在 VSCode 连接服务器时，在 SSH 命令中加上 `-X` 或 `-Y` 参数。例如：`ssh -X username@your_server_ip`。`-Y` 通常兼容性更好，`-X` 则更安全。
-    *   **一劳永逸的方法**：编辑你 Windows 本地的 SSH 配置文件（通常在 `C:\Users\你的用户名\.ssh\config`），为你的服务器添加以下两行：
-        ```ssh-config
-        Host your_server_hostname
-            ForwardX11 yes
-            ForwardX11Trusted yes
-        ```
-    这样每次连接都会自动开启转发。
+    2. 配置 SSH 连接（关键）
 
-    **3. 在 VSCode 中测试**
-    确保 VSCode 已通过 Remote-SSH 连接到服务器。之后，可以在服务器的终端中进行测试：
-    *   输入 `echo $DISPLAY`，如果能看到类似 `localhost:10.0` 的输出，说明 X11 转发已在工作。
-    *   可以输入 `xclock` 测试（如未安装，先用 `sudo apt install x11-apps` 安装）。如果本地弹出一个时钟窗口，则说明整个链路已打通。
+        你需要在连接时告诉 SSH 启用 X11 转发，方法有两种（选其一即可）：
 
-    **4. 配置 Matplotlib 后端**
-    为了让 matplotlib 能通过 X11 转发显示，需要确保其使用支持 GUI 的后端。在服务器端，可以：
-    *   **方法一（永久配置）**：创建或修改 `~/.config/matplotlib/matplotlibrc` 文件，写入一行 `backend : TkAgg`。
-    *   **方法二（临时在代码中指定）**：在导入 `pyplot` 之前，添加：
-        ```python
-        import matplotlib
-        matplotlib.use('TkAgg')
-        import matplotlib.pyplot as plt
-        ```
+        *   **临时方法**：在 VSCode 连接服务器时，在 SSH 命令中加上 `-X` 或 `-Y` 参数。例如：`ssh -X username@your_server_ip`。`-Y` 通常兼容性更好，`-X` 则更安全。
 
-    配置完成后，再运行带有 `plt.show()` 的绘图脚本，图表窗口应该就能在你的 Windows 桌面上弹出了。
+        *   **一劳永逸的方法**：编辑你 Windows 本地的 SSH 配置文件（通常在 `C:\Users\你的用户名\.ssh\config`），为你的服务器添加以下两行：
+
+            ```ssh-config
+            Host your_server_hostname
+                ForwardX11 yes
+                ForwardX11Trusted yes
+            ```
+
+        这样每次连接都会自动开启转发。
+
+    3. 在 VSCode 中测试
+
+        首先需要在本地设置`export DISPLAY=localhost:0.0`, 具体设置的内容可以参考任务栏上的 X server 的图标，鼠标悬停上后，会显示类似`hd-lp:0.0 - 0 clients`，我们直接使用 localhost 表示本机就可以。
+
+        此时使用 ssh 登陆到远程后，远程 bash 中的`DISPLAY`会被自动改写，比如会被改成`localhost:11.0`，我们不用管这个，直接用就好了。
+
+        确保 VSCode 已通过 Remote-SSH 连接到服务器。之后，可以在服务器的终端中进行测试：
+
+        *   输入 `echo $DISPLAY`，如果能看到类似 `localhost:10.0` 的输出，说明 X11 转发已在工作。
+
+        *   可以输入 `xclock` 测试（如未安装，先用 `sudo apt install x11-apps` 安装）。如果本地弹出一个时钟窗口，则说明整个链路已打通。
+
+    4. 配置 Matplotlib 后端
+
+        为了让 matplotlib 能通过 X11 转发显示，需要确保其使用支持 GUI 的后端。在服务器端，可以：
+
+        *   **方法一（永久配置）**：创建或修改 `~/.config/matplotlib/matplotlibrc` 文件，写入一行 `backend : TkAgg`。
+
+        *   **方法二（临时在代码中指定）**：在导入 `pyplot` 之前，添加：
+
+            ```python
+            import matplotlib
+            matplotlib.use('TkAgg')
+            import matplotlib.pyplot as plt
+            ```
+
+        配置完成后，再运行带有 `plt.show()` 的绘图脚本，图表窗口应该就能在你的 Windows 桌面上弹出了。
 
     ### 备选思路：无需 X11 转发的方案
 

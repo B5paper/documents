@@ -2,307 +2,6 @@
 
 ## cache
 
-* `train_test_split()`即使不指定 `random_state`，也会每次都使用不同的随机状态种子
-
-* 详细讲讲 `classification_report()` 的用法
-
-    好的，我们来详细讲解 `sklearn.metrics.classification_report()` 的用法。这是分类任务中**最全面的单函数评估工具**，能一次性输出多个核心指标。
-
-    1. 函数作用
-
-        `classification_report` 用于构建一个**文本报告**，展示每个类别的：
-
-        - **精确率（Precision）**
-        - **召回率（Recall）**
-        - **F1-score**
-        - **支持数（Support）**
-
-        它帮助您快速了解模型在每个类别上的表现，而不仅仅是总体准确率。
-
-    2. 导入方式
-
-        ```python
-        from sklearn.metrics import classification_report
-        ```
-
-    3. 函数签名与参数
-
-        ```python
-        classification_report(y_true, y_pred, *, labels=None, target_names=None, 
-                            sample_weight=None, digits=2, output_dict=False, 
-                            zero_division='warn')
-        ```
-
-        **核心参数详解：**
-
-        | 参数 | 类型 | 说明 |
-        |------|------|------|
-        | `y_true` | 1d array-like | 真实标签 |
-        | `y_pred` | 1d array-like | 预测标签 |
-        | `labels` | list, 可选 | 指定要报告的类别列表（默认使用所有类别） |
-        | `target_names` | list, 可选 | 类别的显示名称（用于美化输出） |
-        | `sample_weight` | array-like, 可选 | 样本权重 |
-        | `digits` | int, 默认 2 | 保留小数位数 |
-        | `output_dict` | bool, 默认 False | 若为 True，返回字典而非字符串 |
-        | `zero_division` | str, 默认 'warn' | 当分母为0时的处理方式：'warn'（警告并返回0）、'0'（返回0）、'1'（返回1） |
-
-    4. 基本用法示例
-
-        1. 二分类
-
-            ```python
-            from sklearn.metrics import classification_report
-
-            y_true = [0, 1, 0, 1, 0, 1, 0, 1]
-            y_pred = [0, 1, 0, 0, 0, 1, 1, 1]
-
-            print(classification_report(y_true, y_pred))
-            ```
-
-            **输出：**
-
-            ```
-                        precision    recall  f1-score   support
-
-                    0       0.67      0.75      0.71         4
-                    1       0.75      0.67      0.71         4
-
-                accuracy                           0.71         8
-            macro avg       0.71      0.71      0.71         8
-            weighted avg       0.71      0.71      0.71         8
-            ```
-
-        2. 多分类
-
-            ```python
-            y_true = [0, 1, 2, 2, 1, 0, 2, 1]
-            y_pred = [0, 2, 2, 1, 1, 0, 1, 1]
-
-            print(classification_report(y_true, y_pred))
-            ```
-
-            **输出：**
-
-            ```
-                        precision    recall  f1-score   support
-
-                    0       1.00      1.00      1.00         2
-                    1       0.67      1.00      0.80         3
-                    2       0.50      0.33      0.40         3
-
-                accuracy                           0.75         8
-            macro avg       0.72      0.78      0.73         8
-            weighted avg       0.69      0.75      0.70         8
-            ```
-
-    5. 参数详解与高级用法
-
-        1. 使用 `target_names` 自定义类别名称
-
-            当类别是数字时，可以替换为有意义的名称：
-
-            ```python
-            y_true = [0, 1, 2, 2, 1]
-            y_pred = [0, 2, 2, 1, 1]
-
-            print(classification_report(
-                y_true, 
-                y_pred, 
-                target_names=['苹果', '香蕉', '橙子']
-            ))
-            ```
-
-            **输出：**
-
-            ```
-                        precision    recall  f1-score   support
-
-                    苹果       1.00      1.00      1.00         1
-                    香蕉       0.50      1.00      0.67         2
-                    橙子       0.50      0.50      0.50         2
-
-                accuracy                           0.60         5
-            macro avg       0.67      0.83      0.72         5
-            weighted avg       0.60      0.60      0.57         5
-            ```
-
-        2. 使用 `labels` 指定报告的类别顺序
-
-            ```python
-            # 强制按 [2, 0, 1] 顺序报告
-            print(classification_report(
-                y_true, 
-                y_pred, 
-                labels=[2, 0, 1],
-                target_names=['橙子', '苹果', '香蕉']
-            ))
-            ```
-
-        3. 使用 `digits` 控制精度
-
-            ```python
-            print(classification_report(y_true, y_pred, digits=4))
-            ```
-
-        4. 使用 `output_dict` 返回字典（便于程序处理）
-
-            ```python
-            report_dict = classification_report(
-                y_true, 
-                y_pred, 
-                output_dict=True
-            )
-
-            print(report_dict['0'])          # 类别0的指标
-            print(report_dict['accuracy'])   # 准确率
-            print(report_dict['macro avg'])  # 宏平均
-            ```
-
-            **返回的字典结构：**
-
-            ```python
-            {
-                '0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 1},
-                '1': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.666..., 'support': 2},
-                '2': {'precision': 0.5, 'recall': 0.5, 'f1-score': 0.5, 'support': 2},
-                'accuracy': 0.6,
-                'macro avg': {'precision': 0.666..., 'recall': 0.833..., 'f1-score': 0.722..., 'support': 5},
-                'weighted avg': {'precision': 0.6, 'recall': 0.6, 'f1-score': 0.566..., 'support': 5}
-            }
-            ```
-
-        5. 使用 `sample_weight` 加权
-
-            ```python
-            weights = [1, 1, 0.5, 0.5, 1]  # 第3、4个样本权重减半
-            print(classification_report(y_true, y_pred, sample_weight=weights))
-            ```
-
-        6. 处理 `zero_division`（防止除以零）
-
-            当某个类别在真实标签或预测标签中完全不存在时：
-
-            ```python
-            y_true = [0, 0, 0]
-            y_pred = [0, 0, 1]  # 类别1从未真实出现
-
-            # 默认会警告，并给类别1的 precision 设为 0.0
-            print(classification_report(y_true, y_pred))
-
-            # 安静模式，返回 0
-            print(classification_report(y_true, y_pred, zero_division=0))
-
-            # 或者返回 1
-            print(classification_report(y_true, y_pred, zero_division=1))
-            ```
-
-    6. 报告中的指标详解
-
-        1. 每类指标
-
-            假设二分类，关注类别 A：
-
-            | 指标 | 公式 | 含义 |
-            |------|------|------|
-            | **Precision** | TP / (TP + FP) | 预测为 A 的样本中，真正是 A 的比例 |
-            | **Recall** | TP / (TP + FN) | 真正的 A 中，被正确预测出来的比例 |
-            | **F1-score** | 2 × (P × R) / (P + R) | Precision 和 Recall 的调和平均 |
-            | **Support** | TP + FN | 该类在真实标签中的样本数 |
-
-        2. 总体平均指标
-
-            | 指标 | 计算方式 | 适用场景 |
-            |------|----------|----------|
-            | **accuracy** | (TP+TN) / 总数 | 总体正确率 |
-            | **macro avg** | 对每个类别的指标**简单平均** | 每个类别同等重要（不考虑类别不平衡） |
-            | **weighted avg** | 按每个类别的 support 加权平均 | 类别不平衡时更合理 |
-
-        **举例说明区别：**
-
-        ```python
-        # 极度不平衡数据
-        y_true = [0]*90 + [1]*10
-        y_pred = [0]*90 + [0]*10  # 全预测为0
-
-        report = classification_report(y_true, y_pred, output_dict=True)
-        print(f"类别0的 recall: {report['0']['recall']}")      # 1.0
-        print(f"类别1的 recall: {report['1']['recall']}")      # 0.0
-        print(f"macro avg recall: {report['macro avg']['recall']}")  # 0.5
-        print(f"weighted avg recall: {report['weighted avg']['recall']}")  # 0.9
-        print(f"accuracy: {report['accuracy']}")                # 0.9
-        ```
-
-    7. 注意事项与常见坑
-
-        1. 输入必须是一维
-            
-            不支持多标签分类（multi-label），多标签应使用 `multilabel_confusion_matrix` 等。
-
-        2. 类别顺序影响 `macro avg`
-            
-            `macro avg` 对每个类别同等对待，即使某个类别样本极少。
-
-            如果类别不平衡严重且想体现多数类影响，看 `weighted avg`。
-
-        3. 与 `accuracy_score` 的区别
-
-            | | `accuracy_score` | `classification_report` |
-            |---|---|---|
-            | 输出 | 单一数值 | 完整报告（多个指标） |
-            | 信息量 | 少 | 丰富 |
-            | 适用 | 快速评估 | 深入分析 |
-            | 不平衡敏感 | 严重 | 通过 macro/weighted 可缓解 |
-
-    8. 完整实战示例
-
-        ```python
-        from sklearn.metrics import classification_report
-        from sklearn.datasets import make_classification
-        from sklearn.model_selection import train_test_split
-        from sklearn.ensemble import RandomForestClassifier
-
-        # 生成数据
-        X, y = make_classification(n_samples=1000, n_classes=3, weights=[0.7, 0.2, 0.1], random_state=42)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-        # 训练
-        clf = RandomForestClassifier(random_state=42)
-        clf.fit(X_train, y_train)
-
-        # 预测
-        y_pred = clf.predict(X_test)
-
-        # 生成报告
-        print(classification_report(
-            y_test, 
-            y_pred, 
-            target_names=['多数类', '中等类', '少数类'],
-            digits=3
-        ))
-
-        # 获取字典用于后续分析
-        report_dict = classification_report(y_test, y_pred, output_dict=True)
-        print(f"\n少数类的 F1: {report_dict['少数类']['f1-score']:.3f}")
-        print(f"加权平均精确率: {report_dict['weighted avg']['precision']:.3f}")
-        ```
-
-    9. 总结
-
-        - `classification_report` 是**分类问题分析的标准起点**
-        - 同时提供 P/R/F1，比 `accuracy_score` 信息丰富得多
-        - 通过 `macro avg` 和 `weighted avg` 可以判断模型在不同类别上的平衡性
-        - 使用 `output_dict=True` 可以将结果集成到自动化流程中
-
-    ---
-
-    如果你还想了解：
-    
-    - 如何处理多标签分类（multi-label）的评估？
-    - 如何画出每个类别的混淆矩阵？
-    - 如何自定义指标添加到报告中？
-
-    欢迎继续问我，我可以再展开讲解！
-
 * 详细讲讲 sklearn 中 accuracy_score() 的用法
 
     1. 函数作用
@@ -1011,24 +710,720 @@
 
     如果你还有具体的使用场景（比如大数据集、稀疏数据、在线学习等），我可以进一步展开。
 
+* sklearn pca
 
-* sklearn iris dataset inspect
+    <https://scikit-learn.org/stable/auto_examples/decomposition/plot_pca_iris.html#sphx-glr-auto-examples-decomposition-plot-pca-iris-py>
 
-    sklearn 中的 iris 数据集是个 toy 数据集，即不需要联网下载，内置的数据集。， 
+* sklearn examples
 
-    简介：
+    <https://scikit-learn.org/stable/auto_examples/index.html#general-examples>
 
-    Classes: 3
+* sklearn random forest
 
-    Samples per class: 50
+    <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html#sklearn.ensemble.RandomForestClassifier>
 
-    Samples total: 150
+* sklearn tutorial
 
-    Dimensionality: 4
+    随机森林的 example:
 
-    Features: real, positive
+    ```py
+    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+    def main():
+        clf = RandomForestClassifier(random_state=0)
+        X = [[1, 2, 3],
+             [11, 12, 13]]
+        y = [0, 1]
+        clf.fit(X, y)
+        pred = clf.predict(X)
+        print(pred)  # array([0, 1])
+        clf.predict([[4, 5, 6], [14, 15, 16]])
+        print(pred)  # array([0, 1])
+        return
+
+    if __name__ == '__main__':
+        main()
+    ```
+
+    如果这段代码可以跑通，说明 sklearn 环境没有问题。
+
+    sklearn 中默认 X 的 shape 为`(num_samples, num_features)` 
     
-    * 普通模式，会返回一个类字典的数据结构（Bunch）
+    y 通常是个 vector，行或列无所谓，用行就行。第 i 个元素代表 X 中第 i 个 sample 的 target.
+
+* 写一段 python 代码，使用 sklern 的 svm 训练 fnirs channel 数据，做正常人和中风病人的二分类。目前 normal_data 和 stroke_data 是 list[np.ndarray] 的类型，已经准备好，其中 ndarray 的 shape 为 (num_timestamps, num_channels * num_wavelengths)。你需要把他们按七三开拆分成训练集和验证集。
+
+    以下是一段使用 scikit-learn 的 SVM 对 fNIRS 通道数据进行二分类的 Python 代码。假设 `normal_data` 和 `stroke_data` 已按照问题描述准备好，代码会将每个样本的时间维度取平均作为特征，然后按 70/30 拆分训练集和验证集，训练 SVM 模型并评估性能。
+
+    ```python
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.svm import SVC
+    from sklearn.metrics import accuracy_score, classification_report
+
+    # 假设 normal_data 和 stroke_data 已经定义好
+    # normal_data: list of np.ndarray, each shape (num_timestamps, num_channels * num_wavelengths)
+    # stroke_data: list of np.ndarray, same format
+
+    def extract_mean_features(data_list):
+        """
+        对每个样本的时间维度取平均，生成特征向量。
+        """
+        features = []
+        for sample in data_list:
+            # sample shape: (num_timestamps, num_features)
+            mean_feat = np.mean(sample, axis=0)  # 沿时间轴取平均
+            features.append(mean_feat)
+        return np.array(features)
+
+    # 提取特征
+    X_normal = extract_mean_features(normal_data)
+    X_stroke = extract_mean_features(stroke_data)
+
+    # 创建标签：正常人为 0，中风病人为 1
+    y_normal = np.zeros(len(X_normal))
+    y_stroke = np.ones(len(X_stroke))
+
+    # 合并数据和标签
+    X = np.vstack((X_normal, X_stroke))
+    y = np.hstack((y_normal, y_stroke))
+
+    # 按 70% 训练，30% 验证拆分，并保持类别比例
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.3, random_state=42, stratify=y
+    )
+
+    # 标准化特征（使用训练集拟合，再转换验证集）
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_val_scaled = scaler.transform(X_val)
+
+    # 训练 SVM（此处使用 RBF 核，可根据需要调整超参数）
+    svm = SVC(kernel='rbf', C=1.0, gamma='scale', random_state=42)
+    svm.fit(X_train_scaled, y_train)
+
+    # 在验证集上预测
+    y_pred = svm.predict(X_val_scaled)
+
+    # 输出评估结果
+    accuracy = accuracy_score(y_val, y_pred)
+    print(f"Validation Accuracy: {accuracy:.4f}")
+    print("\nClassification Report:")
+    print(classification_report(y_val, y_pred, target_names=['Normal', 'Stroke']))
+    ```
+
+    代码说明
+
+    1. **特征提取**：由于每个样本是一个时间序列矩阵，代码通过 `np.mean(axis=0)` 计算每个通道-波长组合在整个时间上的平均值，作为该样本的特征向量。
+
+    2. **数据拆分**：使用 `train_test_split` 按 70% 训练、30% 验证的比例拆分，并设置 `stratify=y` 确保两个类别在训练/验证集中的比例与原数据一致。
+
+    3. **标准化**：使用 `StandardScaler` 对特征进行标准化，以消除量纲影响，提升 SVM 的收敛速度和性能。
+
+    4. **模型训练与评估**：采用 RBF 核的 SVM，训练后输出验证集准确率和详细的分类报告（精确率、召回率、F1 值等）。
+
+    如果时间序列长度不一致，取平均的方法依然适用；若需要更复杂的特征（如方差、斜率等），可相应修改 `extract_mean_features` 函数。
+
+## Topics
+
+### metrics
+
+* 详细讲讲 `classification_report()` 的用法
+
+    `classification_report()` 是分类任务中**最全面的单函数评估工具**，能一次性输出多个核心指标。
+
+    1. 函数作用
+
+        `classification_report` 用于构建一个**文本报告**，展示每个类别的：
+
+        - **精确率（Precision）**
+        - **召回率（Recall）**
+        - **F1-score**
+        - **支持数（Support）**
+
+        它帮助您快速了解模型在每个类别上的表现，而不仅仅是总体准确率。
+
+    2. 导入方式
+
+        ```python
+        from sklearn.metrics import classification_report
+        ```
+
+    3. 函数签名与参数
+
+        ```python
+        classification_report(
+            y_true,
+            y_pred,
+            *,
+            labels=None,
+            target_names=None, 
+            sample_weight=None,
+            digits=2,
+            output_dict=False, 
+            zero_division='warn'
+        )
+        ```
+
+        **核心参数详解：**
+
+        * `y_true`: 1d array-like, 真实标签
+        * `y_pred`: 1d array-like, 预测标签
+        * `labels`: list, 可选, 指定要报告的类别列表（默认使用所有类别）
+        * `target_names`, list, 可选, 类别的显示名称（用于美化输出）
+        * `sample_weight`, array-like, 可选, 样本权重
+        * `digits`: int, 默认 2, 保留小数位数
+        * `output_dict`: bool, 默认 False, 若为 True，返回字典而非字符串
+        * `zero_division`: str, 默认 'warn', 当分母为0时的处理方式：'warn'（警告并返回0）、'0'（返回0）、'1'（返回1）
+
+    4. 基本用法示例
+
+        1. 二分类
+
+            ```python
+            from sklearn.metrics import classification_report
+
+            y_true = [0, 1, 0, 1, 0, 1, 0, 1]
+            y_pred = [0, 1, 0, 0, 0, 1, 1, 1]
+
+            print(classification_report(y_true, y_pred))
+            ```
+
+            **输出：**
+
+            ```
+                        precision    recall  f1-score   support
+
+                    0       0.67      0.75      0.71         4
+                    1       0.75      0.67      0.71         4
+
+                accuracy                           0.71         8
+            macro avg       0.71      0.71      0.71         8
+            weighted avg       0.71      0.71      0.71         8
+            ```
+
+        2. 多分类
+
+            ```python
+            y_true = [0, 1, 2, 2, 1, 0, 2, 1]
+            y_pred = [0, 2, 2, 1, 1, 0, 1, 1]
+
+            print(classification_report(y_true, y_pred))
+            ```
+
+            **输出：**
+
+            ```
+                        precision    recall  f1-score   support
+
+                    0       1.00      1.00      1.00         2
+                    1       0.67      1.00      0.80         3
+                    2       0.50      0.33      0.40         3
+
+                accuracy                           0.75         8
+            macro avg       0.72      0.78      0.73         8
+            weighted avg       0.69      0.75      0.70         8
+            ```
+
+    5. 参数详解与高级用法
+
+        1. 使用 `target_names` 自定义类别名称
+
+            当类别是数字时，可以替换为有意义的名称：
+
+            ```python
+            y_true = [0, 1, 2, 2, 1]
+            y_pred = [0, 2, 2, 1, 1]
+
+            print(classification_report(
+                y_true, 
+                y_pred, 
+                target_names=['苹果', '香蕉', '橙子']
+            ))
+            ```
+
+            **输出：**
+
+            ```
+                        precision    recall  f1-score   support
+
+                    苹果       1.00      1.00      1.00         1
+                    香蕉       0.50      1.00      0.67         2
+                    橙子       0.50      0.50      0.50         2
+
+                accuracy                           0.60         5
+            macro avg       0.67      0.83      0.72         5
+            weighted avg       0.60      0.60      0.57         5
+            ```
+
+        2. 使用 `labels` 指定报告的类别顺序
+
+            ```python
+            # 强制按 [2, 0, 1] 顺序报告
+            print(classification_report(
+                y_true, 
+                y_pred, 
+                labels=[2, 0, 1],
+                target_names=['橙子', '苹果', '香蕉']
+            ))
+            ```
+
+        3. 使用 `digits` 控制精度
+
+            ```python
+            print(classification_report(y_true, y_pred, digits=4))
+            ```
+
+        4. 使用 `output_dict` 返回字典（便于程序处理）
+
+            ```python
+            report_dict = classification_report(
+                y_true, 
+                y_pred, 
+                output_dict=True
+            )
+
+            print(report_dict['0'])          # 类别0的指标
+            print(report_dict['accuracy'])   # 准确率
+            print(report_dict['macro avg'])  # 宏平均
+            ```
+
+            **返回的字典结构：**
+
+            ```python
+            {
+                '0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 1},
+                '1': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.666..., 'support': 2},
+                '2': {'precision': 0.5, 'recall': 0.5, 'f1-score': 0.5, 'support': 2},
+                'accuracy': 0.6,
+                'macro avg': {'precision': 0.666..., 'recall': 0.833..., 'f1-score': 0.722..., 'support': 5},
+                'weighted avg': {'precision': 0.6, 'recall': 0.6, 'f1-score': 0.566..., 'support': 5}
+            }
+            ```
+
+        5. 使用 `sample_weight` 加权
+
+            ```python
+            weights = [1, 1, 0.5, 0.5, 1]  # 第3、4个样本权重减半
+            print(classification_report(y_true, y_pred, sample_weight=weights))
+            ```
+
+        6. 处理 `zero_division`（防止除以零）
+
+            当某个类别在真实标签或预测标签中完全不存在时：
+
+            ```python
+            y_true = [0, 0, 0]
+            y_pred = [0, 0, 1]  # 类别1从未真实出现
+
+            # 默认会警告，并给类别1的 precision 设为 0.0
+            print(classification_report(y_true, y_pred))
+
+            # 安静模式，返回 0
+            print(classification_report(y_true, y_pred, zero_division=0))
+
+            # 或者返回 1
+            print(classification_report(y_true, y_pred, zero_division=1))
+            ```
+
+    6. 报告中的指标详解
+
+        1. 每类指标
+
+            假设二分类，关注类别 A：
+
+            | 指标 | 公式 | 含义 |
+            |------|------|------|
+            | **Precision** | TP / (TP + FP) | 预测为 A 的样本中，真正是 A 的比例 |
+            | **Recall** | TP / (TP + FN) | 真正的 A 中，被正确预测出来的比例 |
+            | **F1-score** | 2 × (P × R) / (P + R) | Precision 和 Recall 的调和平均 |
+            | **Support** | TP + FN | 该类在真实标签中的样本数 |
+
+        2. 总体平均指标
+
+            | 指标 | 计算方式 | 适用场景 |
+            |------|----------|----------|
+            | **accuracy** | (TP+TN) / 总数 | 总体正确率 |
+            | **macro avg** | 对每个类别的指标**简单平均** | 每个类别同等重要（不考虑类别不平衡） |
+            | **weighted avg** | 按每个类别的 support 加权平均 | 类别不平衡时更合理 |
+
+        **举例说明区别：**
+
+        ```python
+        # 极度不平衡数据
+        y_true = [0]*90 + [1]*10
+        y_pred = [0]*90 + [0]*10  # 全预测为0
+
+        report = classification_report(y_true, y_pred, output_dict=True)
+        print(f"类别0的 recall: {report['0']['recall']}")      # 1.0
+        print(f"类别1的 recall: {report['1']['recall']}")      # 0.0
+        print(f"macro avg recall: {report['macro avg']['recall']}")  # 0.5
+        print(f"weighted avg recall: {report['weighted avg']['recall']}")  # 0.9
+        print(f"accuracy: {report['accuracy']}")                # 0.9
+        ```
+
+    7. 注意事项与常见坑
+
+        1. 输入必须是一维
+            
+            不支持多标签分类（multi-label），多标签应使用 `multilabel_confusion_matrix` 等。
+
+        2. 类别顺序影响 `macro avg`
+            
+            `macro avg` 对每个类别同等对待，即使某个类别样本极少。
+
+            如果类别不平衡严重且想体现多数类影响，看 `weighted avg`。
+
+        3. 与 `accuracy_score` 的区别
+
+            | | `accuracy_score` | `classification_report` |
+            |---|---|---|
+            | 输出 | 单一数值 | 完整报告（多个指标） |
+            | 信息量 | 少 | 丰富 |
+            | 适用 | 快速评估 | 深入分析 |
+            | 不平衡敏感 | 严重 | 通过 macro/weighted 可缓解 |
+
+    8. 完整实战示例
+
+        ```python
+        from sklearn.metrics import classification_report
+        from sklearn.datasets import make_classification
+        from sklearn.model_selection import train_test_split
+        from sklearn.ensemble import RandomForestClassifier
+
+        # 生成数据
+        X, y = make_classification(n_samples=1000, n_classes=3, weights=[0.7, 0.2, 0.1], random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+        # 训练
+        clf = RandomForestClassifier(random_state=42)
+        clf.fit(X_train, y_train)
+
+        # 预测
+        y_pred = clf.predict(X_test)
+
+        # 生成报告
+        print(classification_report(
+            y_test, 
+            y_pred, 
+            target_names=['多数类', '中等类', '少数类'],
+            digits=3
+        ))
+
+        # 获取字典用于后续分析
+        report_dict = classification_report(y_test, y_pred, output_dict=True)
+        print(f"\n少数类的 F1: {report_dict['少数类']['f1-score']:.3f}")
+        print(f"加权平均精确率: {report_dict['weighted avg']['precision']:.3f}")
+        ```
+
+    9. 总结
+
+        - `classification_report` 是**分类问题分析的标准起点**
+        - 同时提供 P/R/F1，比 `accuracy_score` 信息丰富得多
+        - 通过 `macro avg` 和 `weighted avg` 可以判断模型在不同类别上的平衡性
+        - 使用 `output_dict=True` 可以将结果集成到自动化流程中
+
+    ---
+
+    如果你还想了解：
+    
+    - 如何处理多标签分类（multi-label）的评估？
+    - 如何画出每个类别的混淆矩阵？
+    - 如何自定义指标添加到报告中？
+
+    欢迎继续问我，我可以再展开讲解！
+
+### 常用模型
+
+* linear regression
+
+    ```py
+    from sklearn import linear_model
+    reg = linear_model.LinearRegression()
+
+    X = [[0, 0],
+         [1, 1],
+         [2, 2]]
+    y = [0, 1, 2]
+    reg.fit(X, y)
+    coef = reg.coef_
+    inte = reg.intercept_
+
+    print('coef: {}'.format(coef))
+    print('inte: {}'.format(inte))
+    ```
+
+    output:
+
+    ```
+    coef: [0.5 0.5]
+    inte: 1.1102230246251565e-16
+    ```
+
+    `X`第一列是$x_1$，第二列是$x_2$。$y = c_0 + c_1 \cdot x_1 + c_2 \cdot x_2$
+
+    拟合得到的结果`coef`即$[c_1, c_2]$，而`inte`即$c_0$
+
+    对于二个 x 变量的线性拟合，得到的是一个平面，使得 y 到平面沿 y 轴方向的距离的平方和最小。
+
+    对于一个 x 变量的线性拟合，得到的是一条直线，使得 y 到直线沿 y 轴方向的距离的平方和最小。即最小二乘法 (Ordinary Least Squares)。(这里的 ordinary 是什么意思？)
+
+### 自定义数据集
+
+* pipeline
+
+    ```py
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score
+
+    # create a pipeline object
+    pipe = make_pipeline(
+        StandardScaler(),
+        LogisticRegression()
+    )
+
+    # load the iris dataset and split it into train and test sets
+    X, y = load_iris(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+
+    # fit the whole pipeline
+    pipe.fit(X_train, y_train)
+
+    # we can now use it like any other estimator
+    score = accuracy_score(pipe.predict(X_test), y_test)
+    print(score)  # 0.9736842105263158
+    ```
+
+* sklearn 中的 transormers and pre-processors
+
+    ```py
+    from sklearn.preprocessing import StandardScaler
+    X = [[0, 15],
+         [1, -10]]
+    # scale data according to computed scaling values
+    out = StandardScaler().fit(X).transform(X)
+    print(out)
+    # array([[-1.,  1.],
+    #        [ 1., -1.]])
+    ```
+
+    注：
+
+    1. transforms 竟然都继承于 BaseEstimator，这样确实方便了链式调用，但是类的意义变不对了
+
+* `train_test_split()`
+
+    它是 scikit-learn 中最常用、最基础的数据划分工具。
+
+    * 函数原型
+
+        ```py
+        sklearn.model_selection.train_test_split(
+            *arrays,
+            test_size=None,
+            train_size=None,
+            random_state=None,
+            shuffle=True,
+            stratify=None
+        )
+        ```
+
+    * 参数详解
+
+        * `*arrays`（位置参数）
+
+            * 接受一个或多个数组/矩阵（如特征矩阵 `X` 和标签向量 `y`）。
+
+            * 它们必须具有相同的**第一维度（样本数）**。
+
+            * 常见用法：`train_test_split(X, y)` 或 `train_test_split(X, y, group_ids)`。
+
+        * `test_size`（浮点数或整数，默认 `None`）：
+            
+            - 决定测试集的大小。
+            - 如果为浮点数（0.0~1.0），表示测试集占总样本的比例。
+            - 如果为整数，表示测试集的绝对样本数量。
+            - 如果为 `None`，则使用 `train_size` 的补集（若 `train_size` 也为 `None`，则默认 `test_size=0.25`）。
+
+        * `train_size`（浮点数或整数，默认 `None`）：
+
+            - 决定训练集的大小，规则同 `test_size`。
+            - 通常只设置 `test_size`，让 `train_size` 自动为 `1 - test_size`。
+
+        * `random_state`（整数或 `None`，默认 `None`）：
+
+            - 控制随机打乱过程的随机种子。
+
+            - 设置固定整数（如 `42`）可保证每次运行得到相同的划分结果，便于复现实验。
+
+        * `shuffle`（布尔值，默认 `True`）：
+
+            - 是否在划分前对数据进行随机打乱。
+
+            - 如果数据本身是时间序列或有序的，通常设为 `False`。
+
+            - 若 `stratify` 有值，则 `shuffle` 必须为 `True`（内部强制）。
+
+        * `stratify`（数组或 `None`，默认 `None`）：
+
+            - 用于**分层抽样**的标签数组。
+
+            - 传入 `y` 后，函数会保证训练集和测试集中各类别（分类问题）的比例与原始数据集一致。
+
+            - 对不平衡数据集非常关键。
+
+    * 返回值
+
+        返回一个**元组（tuple）**，顺序为：
+
+        ```py
+        X_train, X_test, y_train, y_test
+        ```
+
+        或更一般地：
+
+        ```py
+        array1_train, array1_test, array2_train, array2_test, ...
+        ```
+
+        每个返回的数组都是原数组的**随机子集**，且训练集和测试集互不重叠。
+
+    * 典型用法（代码示例）
+
+        * 示例 1：基本用法（二分类）
+
+            ```python
+            from sklearn.model_selection import train_test_split
+            from sklearn.datasets import load_iris
+            from sklearn.svm import SVC
+
+            # 加载数据
+            X, y = load_iris(return_X_y=True)
+
+            # 划分（默认 75% 训练，25% 测试）
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42
+            )
+
+            print(f"训练集样本数: {X_train.shape[0]}")
+            print(f"测试集样本数: {X_test.shape[0]}")
+
+            # 训练并评估
+            clf = SVC().fit(X_train, y_train)
+            print(f"测试集准确率: {clf.score(X_test, y_test):.3f}")
+            ```
+
+        * 示例 2：分层抽样（处理不平衡数据）
+
+            ```python
+            from sklearn.datasets import make_classification
+
+            # 生成一个不平衡数据集（类别 0: 900, 类别 1: 100）
+            X, y = make_classification(
+                n_samples=1000, weights=[0.9, 0.1], random_state=42
+            )
+
+            # 普通划分（可能使测试集中类别 1 更少）
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+            print("普通划分 - 训练集类别1比例:", y_train.mean())
+            print("普通划分 - 测试集类别1比例:", y_test.mean())
+
+            # 分层划分（保持比例）
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
+            print("分层划分 - 训练集类别1比例:", y_train.mean())
+            print("分层划分 - 测试集类别1比例:", y_test.mean())
+            ```
+
+            输出会显示分层划分后训练/测试集的类别比例几乎一致（约 0.1）。
+
+        * 示例 3：同时划分多个数组（如特征、标签、样本权重）
+
+            ```python
+            import numpy as np
+
+            X = np.random.rand(100, 5)
+            y = np.random.randint(0, 2, 100)
+            sample_weight = np.random.rand(100)
+
+            X_train, X_test, y_train, y_test, sw_train, sw_test = train_test_split(
+                X, y, sample_weight, test_size=0.2, random_state=7
+            )
+
+            print(len(X_train), len(y_train), len(sw_train))  # 均为 80
+            ```
+
+        * 示例 4：时间序列数据（不随机打乱）
+
+            ```py
+            # 假设数据是按时间排序的
+            time_series_X = np.arange(1000).reshape(-1, 1)
+            time_series_y = np.arange(1000)
+
+            # 取前 80% 作为训练，后 20% 作为测试
+            X_train, X_test, y_train, y_test = train_test_split(
+                time_series_X, time_series_y, 
+                test_size=0.2, shuffle=False, random_state=None
+            )
+
+            print("训练集最后一条:", X_train[-1], "测试集第一条:", X_test[0])
+            # 输出: 训练集最后一条: [799] 测试集第一条: [800]
+            # 保持顺序不交叉
+            ```
+
+    * 注意事项与常见陷阱
+
+        * 数据泄露
+        
+            不要在划分前做任何基于全数据的预处理（如标准化），应先 `fit` 在训练集上，再 `transform` 测试集
+
+        * 小样本数据
+        
+            如果样本极少，测试集会过小导致评估方差大，建议使用交叉验证。
+            
+        * 分类问题的分层
+        
+            若 `y` 是多分类，`stratify=y` 同样有效，但必须保证每个类别至少有一个样本。
+        
+        * 回归问题
+        
+            不能使用 `stratify`（除非手动将连续值离散化），可采用 `sklearn.model_selection.StratifiedShuffleSplit` 或自定义分箱。
+
+        * 随机种子
+        
+            调参时固定 `random_state`，最终评估时可换多个种子取平均
+
+            注：
+            
+            1. `train_test_split()` 即使不指定 `random_state`，也会每次都使用不同的随机状态种子
+
+### 内置数据集
+
+* iris
+
+    sklearn 中的 iris 数据集是个 toy 数据集，即不需要联网下载，内置的数据集
+
+    * 简介：
+
+        Classes: 3
+
+        Samples per class: 50
+
+        Samples total: 150
+
+        Dimensionality (num features): 4
+
+        Features: real, positive
+    
+    * `load_iris()`函数的普通模式，会返回一个类字典的数据结构（Bunch）
 
         这个数据结构不只有字符串形式的 key，还直接有成员名形式的字段。有点像 matlab 中的 struct
 
@@ -1089,7 +1484,6 @@
         print()
 
         print('End.')
-
         ```
 
         output:
@@ -1192,7 +1586,13 @@
         End.
         ```
 
-    * `return_X_y`模式
+    * `load_iris()`函数的 `return_X_y` 模式
+
+        直接返回用于训练的 feature 和 label
+        
+        * feature (X) shape: `(150, 4)`
+        
+        * label (y) shape: `(150, )`
 
         ```py
         import sklearn.datasets as D
@@ -1217,388 +1617,14 @@
         y type: <class 'numpy.ndarray'>, shape: (150,)
         ```
 
+* toy dataset list
+
     其他的 toy dataset list: <https://scikit-learn.org/stable/datasets/toy_dataset.html#toy-datasets>
 
     除了 toy dataset 之外的 dataset: <https://scikit-learn.org/stable/datasets.html>
 
-* sklearn pca
-
-    <https://scikit-learn.org/stable/auto_examples/decomposition/plot_pca_iris.html#sphx-glr-auto-examples-decomposition-plot-pca-iris-py>
-
-* sklearn examples
-
-    <https://scikit-learn.org/stable/auto_examples/index.html#general-examples>
-
-* sklearn random forest
-
-    <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html#sklearn.ensemble.RandomForestClassifier>
-* sklearn linear regression
-
-    ```py
-    from sklearn import linear_model
-    reg = linear_model.LinearRegression()
-
-    X = [[0, 0],
-         [1, 1],
-         [2, 2]]
-    y = [0, 1, 2]
-    reg.fit(X, y)
-    coef = reg.coef_
-    inte = reg.intercept_
-
-    print('coef: {}'.format(coef))
-    print('inte: {}'.format(inte))
-    ```
-
-    output:
-
-    ```
-    coef: [0.5 0.5]
-    inte: 1.1102230246251565e-16
-    ```
-
-    `X`第一列是$x_1$，第二列是$x_2$。$y = c_0 + c_1 \cdot x_1 + c_2 \cdot x_2$
-
-    拟合得到的结果`coef`即$[c_1, c_2]$，而`inte`即$c_0$
-
-    对于二个 x 变量的线性拟合，得到的是一个平面，使得 y 到平面沿 y 轴方向的距离的平方和最小。
-
-    对于一个 x 变量的线性拟合，得到的是一条直线，使得 y 到直线沿 y 轴方向的距离的平方和最小。即最小二乘法 (Ordinary Least Squares)。(这里的 ordinary 是什么意思？)
-* sklearn pipeline
-
-    ```py
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.pipeline import make_pipeline
-    from sklearn.datasets import load_iris
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import accuracy_score
-    # create a pipeline object
-    pipe = make_pipeline(
-        StandardScaler(),
-        LogisticRegression()
-    )
-    # load the iris dataset and split it into train and test sets
-    X, y = load_iris(return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-    # fit the whole pipeline
-    pipe.fit(X_train, y_train)
-    # we can now use it like any other estimator
-    score = accuracy_score(pipe.predict(X_test), y_test)
-    print(score)  # 0.9736842105263158
-    ```
-
-    preprocessin 中还有哪些函数？
-
-    除了 linear model，还有什么 model?
-
-    load_iris 返回的原始数据是什么？
-
-    为什么划分数据切片的 train_test_split 会被放在 model_selection 里？
-* sklearn 中的 transormers and pre-processors
-
-    ```py
-    from sklearn.preprocessing import StandardScaler
-    X = [[0, 15],
-         [1, -10]]
-    # scale data according to computed scaling values
-    out = StandardScaler().fit(X).transform(X)
-    print(out)
-    # array([[-1.,  1.],
-    #        [ 1., -1.]])
-    ```
-
-    注：
-
-    1. transforms 竟然都继承于 BaseEstimator，这样确实方便了链式调用，但是类的意义变不对了
-* sklearn tutorial
-
-    随机森林的 example:
-
-    ```py
-    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-
-    def main():
-        clf = RandomForestClassifier(random_state=0)
-        X = [[1, 2, 3],
-             [11, 12, 13]]
-        y = [0, 1]
-        clf.fit(X, y)
-        pred = clf.predict(X)
-        print(pred)  # array([0, 1])
-        clf.predict([[4, 5, 6], [14, 15, 16]])
-        print(pred)  # array([0, 1])
-        return
-
-    if __name__ == '__main__':
-        main()
-    ```
-
-    如果这段代码可以跑通，说明 sklearn 环境没有问题。
-
-    sklearn 中默认 X 的 shape 为`(num_samples, num_features)` 
-    
-    y 通常是个 vector，行或列无所谓，用行就行。第 i 个元素代表 X 中第 i 个 sample 的 target.
-* 写一段 python 代码，使用 sklern 的 svm 训练 fnirs channel 数据，做正常人和中风病人的二分类。目前 normal_data 和 stroke_data 是 list[np.ndarray] 的类型，已经准备好，其中 ndarray 的 shape 为 (num_timestamps, num_channels * num_wavelengths)。你需要把他们按七三开拆分成训练集和验证集。
-
-    以下是一段使用 scikit-learn 的 SVM 对 fNIRS 通道数据进行二分类的 Python 代码。假设 `normal_data` 和 `stroke_data` 已按照问题描述准备好，代码会将每个样本的时间维度取平均作为特征，然后按 70/30 拆分训练集和验证集，训练 SVM 模型并评估性能。
-
-    ```python
-    import numpy as np
-    from sklearn.model_selection import train_test_split
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.svm import SVC
-    from sklearn.metrics import accuracy_score, classification_report
-
-    # 假设 normal_data 和 stroke_data 已经定义好
-    # normal_data: list of np.ndarray, each shape (num_timestamps, num_channels * num_wavelengths)
-    # stroke_data: list of np.ndarray, same format
-
-    def extract_mean_features(data_list):
-        """
-        对每个样本的时间维度取平均，生成特征向量。
-        """
-        features = []
-        for sample in data_list:
-            # sample shape: (num_timestamps, num_features)
-            mean_feat = np.mean(sample, axis=0)  # 沿时间轴取平均
-            features.append(mean_feat)
-        return np.array(features)
-
-    # 提取特征
-    X_normal = extract_mean_features(normal_data)
-    X_stroke = extract_mean_features(stroke_data)
-
-    # 创建标签：正常人为 0，中风病人为 1
-    y_normal = np.zeros(len(X_normal))
-    y_stroke = np.ones(len(X_stroke))
-
-    # 合并数据和标签
-    X = np.vstack((X_normal, X_stroke))
-    y = np.hstack((y_normal, y_stroke))
-
-    # 按 70% 训练，30% 验证拆分，并保持类别比例
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
-    )
-
-    # 标准化特征（使用训练集拟合，再转换验证集）
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
-
-    # 训练 SVM（此处使用 RBF 核，可根据需要调整超参数）
-    svm = SVC(kernel='rbf', C=1.0, gamma='scale', random_state=42)
-    svm.fit(X_train_scaled, y_train)
-
-    # 在验证集上预测
-    y_pred = svm.predict(X_val_scaled)
-
-    # 输出评估结果
-    accuracy = accuracy_score(y_val, y_pred)
-    print(f"Validation Accuracy: {accuracy:.4f}")
-    print("\nClassification Report:")
-    print(classification_report(y_val, y_pred, target_names=['Normal', 'Stroke']))
-    ```
-
-    代码说明
-
-    1. **特征提取**：由于每个样本是一个时间序列矩阵，代码通过 `np.mean(axis=0)` 计算每个通道-波长组合在整个时间上的平均值，作为该样本的特征向量。  
-    2. **数据拆分**：使用 `train_test_split` 按 70% 训练、30% 验证的比例拆分，并设置 `stratify=y` 确保两个类别在训练/验证集中的比例与原数据一致。  
-    3. **标准化**：使用 `StandardScaler` 对特征进行标准化，以消除量纲影响，提升 SVM 的收敛速度和性能。  
-    4. **模型训练与评估**：采用 RBF 核的 SVM，训练后输出验证集准确率和详细的分类报告（精确率、召回率、F1 值等）。
-
-    如果时间序列长度不一致，取平均的方法依然适用；若需要更复杂的特征（如方差、斜率等），可相应修改 `extract_mean_features` 函数。
-
-## Topics
-
 ### 常用函数
 
-* `train_test_split()`
-
-    它是 scikit-learn 中最常用、最基础的数据划分工具。
-
-    1. 函数原型
-
-        ```py
-        sklearn.model_selection.train_test_split(
-            *arrays,
-            test_size=None,
-            train_size=None,
-            random_state=None,
-            shuffle=True,
-            stratify=None
-        )
-        ```
-
-        参数详解：
-
-        * `*arrays`（位置参数）
-
-            * 接受一个或多个数组/矩阵（如特征矩阵 `X` 和标签向量 `y`）。
-
-            * 它们必须具有相同的**第一维度（样本数）**。
-
-            * 常见用法：`train_test_split(X, y)` 或 `train_test_split(X, y, group_ids)`。
-
-        * `test_size`（浮点数或整数，默认 `None`）：
-            
-            - 决定测试集的大小。
-            - 如果为浮点数（0.0~1.0），表示测试集占总样本的比例。
-            - 如果为整数，表示测试集的绝对样本数量。
-            - 如果为 `None`，则使用 `train_size` 的补集（若 `train_size` 也为 `None`，则默认 `test_size=0.25`）。
-
-        - `train_size`（浮点数或整数，默认 `None`）：
-
-            - 决定训练集的大小，规则同 `test_size`。
-            - 通常只设置 `test_size`，让 `train_size` 自动为 `1 - test_size`。
-
-        - `random_state`（整数或 `None`，默认 `None`）：
-
-            - 控制随机打乱过程的随机种子。
-
-            - 设置固定整数（如 `42`）可保证每次运行得到相同的划分结果，便于复现实验。
-
-        - `shuffle`（布尔值，默认 `True`）：
-
-            - 是否在划分前对数据进行随机打乱。
-
-            - 如果数据本身是时间序列或有序的，通常设为 `False`。
-
-            - 若 `stratify` 有值，则 `shuffle` 必须为 `True`（内部强制）。
-
-        - `stratify`（数组或 `None`，默认 `None`）：
-
-            - 用于**分层抽样**的标签数组。
-
-            - 传入 `y` 后，函数会保证训练集和测试集中各类别（分类问题）的比例与原始数据集一致。
-
-            - 对不平衡数据集非常关键。
-
-    2. 返回值
-
-        返回一个**元组（tuple）**，顺序为：
-
-        ```
-        X_train, X_test, y_train, y_test
-        ```
-
-        或更一般地：
-
-        ```
-        array1_train, array1_test, array2_train, array2_test, ...
-        ```
-
-        每个返回的数组都是原数组的**随机子集**，且训练集和测试集互不重叠。
-
-
-    4. 典型用例（代码示例）
-
-        * 示例 1：基本用法（二分类）
-
-            ```python
-            from sklearn.model_selection import train_test_split
-            from sklearn.datasets import load_iris
-            from sklearn.svm import SVC
-
-            # 加载数据
-            X, y = load_iris(return_X_y=True)
-
-            # 划分（默认 75% 训练，25% 测试）
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.3, random_state=42
-            )
-
-            print(f"训练集样本数: {X_train.shape[0]}")
-            print(f"测试集样本数: {X_test.shape[0]}")
-
-            # 训练并评估
-            clf = SVC().fit(X_train, y_train)
-            print(f"测试集准确率: {clf.score(X_test, y_test):.3f}")
-            ```
-
-        * 示例 2：分层抽样（处理不平衡数据）
-
-            ```python
-            from sklearn.datasets import make_classification
-
-            # 生成一个不平衡数据集（类别 0: 900, 类别 1: 100）
-            X, y = make_classification(
-                n_samples=1000, weights=[0.9, 0.1], random_state=42
-            )
-
-            # 普通划分（可能使测试集中类别 1 更少）
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42
-            )
-            print("普通划分 - 训练集类别1比例:", y_train.mean())
-            print("普通划分 - 测试集类别1比例:", y_test.mean())
-
-            # 分层划分（保持比例）
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42, stratify=y
-            )
-            print("分层划分 - 训练集类别1比例:", y_train.mean())
-            print("分层划分 - 测试集类别1比例:", y_test.mean())
-            ```
-
-            输出会显示分层划分后训练/测试集的类别比例几乎一致（约 0.1）。
-
-        * 示例 3：同时划分多个数组（如特征、标签、样本权重）
-
-            ```python
-            import numpy as np
-
-            X = np.random.rand(100, 5)
-            y = np.random.randint(0, 2, 100)
-            sample_weight = np.random.rand(100)
-
-            X_train, X_test, y_train, y_test, sw_train, sw_test = train_test_split(
-                X, y, sample_weight, test_size=0.2, random_state=7
-            )
-
-            print(len(X_train), len(y_train), len(sw_train))  # 均为 80
-            ```
-
-        * 示例 4：时间序列数据（不随机打乱）
-
-            ```python
-            # 假设数据是按时间排序的
-            time_series_X = np.arange(1000).reshape(-1, 1)
-            time_series_y = np.arange(1000)
-
-            # 取前 80% 作为训练，后 20% 作为测试
-            X_train, X_test, y_train, y_test = train_test_split(
-                time_series_X, time_series_y, 
-                test_size=0.2, shuffle=False, random_state=None
-            )
-
-            print("训练集最后一条:", X_train[-1], "测试集第一条:", X_test[0])
-            # 输出: 训练集最后一条: [799] 测试集第一条: [800]
-            # 保持顺序不交叉
-            ```
-
-    5. 注意事项与常见陷阱
-
-        * 数据泄露
-        
-            不要在划分前做任何基于全数据的预处理（如标准化），应先 `fit` 在训练集上，再 `transform` 测试集
-
-        * 小样本数据
-        
-            如果样本极少，测试集会过小导致评估方差大，建议使用交叉验证。
-            
-        * 分类问题的分层
-        
-            若 `y` 是多分类，`stratify=y` 同样有效，但必须保证每个类别至少有一个样本。
-        
-        * 回归问题
-        
-            不能使用 `stratify`（除非手动将连续值离散化），可采用 `sklearn.model_selection.StratifiedShuffleSplit` 或自定义分箱。
-
-        * 随机种子
-        
-            调参时固定 `random_state`，最终评估时可换多个种子取平均
 
 ## note
 
