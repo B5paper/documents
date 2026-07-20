@@ -2,6 +2,69 @@
 
 ## cache
 
+* socat port forwarding
+
+	# Socat Port Forwarding Guide
+
+	Socat is a powerful command-line utility that establishes bidirectional byte streams between two endpoints, making it excellent for port forwarding and network redirection.
+
+	## Basic Port Forwarding
+
+	### Forward local port to remote server
+	```bash
+	socat TCP-LISTEN:<local-port>,fork TCP:<remote-host>:<remote-port>
+	```
+
+	Example (forward local port 8080 to example.com:80):
+	```bash
+	socat TCP-LISTEN:8080,fork TCP:example.com:80
+	```
+
+	### Forward between two remote hosts
+	```bash
+	socat TCP-LISTEN:<local-port>,fork TCP:<destination-host>:<destination-port>
+	```
+
+	## Advanced Options
+
+	### With SSL encryption
+	```bash
+	socat OPENSSL-LISTEN:<port>,cert=server.pem,cafile=client.crt,fork OPENSSL:<remote-host>:<port>,cert=client.pem,cafile=server.crt
+	```
+
+	### UDP port forwarding
+	```bash
+	socat UDP-LISTEN:<local-port>,fork UDP:<remote-host>:<remote-port>
+	```
+
+	### IPv4 to IPv6 forwarding
+	```bash
+	socat TCP-LISTEN:<port>,fork TCP6:[<ipv6-address>]:<port>
+	```
+
+	## Common Flags
+	- `fork`: Allows multiple connections (essential for servers)
+	- `reuseaddr`: Allows immediate restart of the listener
+	- `keepalive`: Maintains persistent connections
+	- `nodelay`: Disables Nagle's algorithm for reduced latency
+
+	## Persistent Forwarding
+	To keep socat running persistently, consider using:
+	```bash
+	nohup socat [options] &
+	```
+	or
+	```bash
+	screen -dmS socat_session socat [options]
+	```
+
+	## Security Note
+	- Avoid running as root when possible
+	- Consider firewall rules to restrict access
+	- For production use, consider more robust solutions like iptables, nginx, or dedicated proxy servers
+
+	Socat is extremely versatile - you can also use it for file transfers, serial port redirection, and more complex network scenarios.
+
 * how to use socat to forward tcp link from 10.0.2.5:7860 to 127.0.0.1:7860, use chinese to answer
 
 	可以使用以下 socat 命令来将 TCP 连接从 10.0.2.5:7860 转发到 127.0.0.1:7860：

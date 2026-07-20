@@ -1,20 +1,6 @@
 ## tasks
 
-* [ ] `apt-cyg install tmux`
-
-* [ ] nvim-tree、telescope、fzf
-
-* [ ] vim-rooter
-
-* [ ] 增加 sipu 驱动的 test case
-
-    做一些小型测试，比如 get device, get silink status, uuid, bo import export
-
-* [ ] 整理 topo system 要处理的任务，通过编译
-
 * [ ] 对比 siccl graph 与 graph 中 xml.h/.cc, topo_system.h/.cc，看 ai 瞎改了哪些地方
-
-* [ ] 查看 topo system 的 load / dump, 是否支持带网卡
 
 * [ ] 编译 debug_utils
 
@@ -72,7 +58,7 @@
 
 2. 在 60 机器上 qemu 的启动命令
 
-    ``
+    `SI_SDK_ROOT=/share_data/sicx_sdk/release/260625/ MODEL_SERVER_HOST=10.193.64.51 HOST_ID=0 ./hlc_start_single_qemu.sh /share_data/hlc/multi_node/qemu/vms0.qcow2`
 
     启动后使用 source env.sh 260625 加载 0625 版本的驱动，此时运行 sipu-smi 会显示一部分信息，然后报 core dump
 
