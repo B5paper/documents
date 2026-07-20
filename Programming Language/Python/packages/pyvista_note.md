@@ -2,13 +2,291 @@
 
 ## cache
 
+* 如何在 pyvista 中画出 xyz 轴
+
+    在 PyVista 中显示坐标轴非常方便。根据你的需求（是想在**角落**显示参考轴，还是在**坐标原点**画出真实的轴线），主要有以下三种方式：
+
+    1. 最常用：在窗口角落添加交互式轴 (`add_axes`)
+        
+        这种方式会在窗口的左下角生成一个小的 XYZ 坐标轴，它会随着你旋转视角而旋转。
+
+        ```python
+        import pyvista as pv
+
+        plotter = pv.Plotter()
+        mesh = pv.Sphere()
+        plotter.add_mesh(mesh)
+
+        # 添加角落坐标轴
+        plotter.add_axes()
+
+        plotter.show()
+        ```
+
+    2. 在原点绘制真实的 XYZ 轴线 (`add_axes_at_origin`)
+        
+        如果你希望轴线位于 $(0, 0, 0)$ 点，并且穿过你的模型，可以使用这个方法。
+
+        ```python
+        plotter = pv.Plotter()
+        plotter.add_mesh(pv.Box(), opacity=0.5)
+
+        # 在原点添加轴，并可以设置标签和长度
+        plotter.add_axes_at_origin(labels_off=False, line_width=5)
+
+        plotter.show()
+        ```
+
+    3. 显示整个场景的坐标网格 (`show_grid` / `show_bounds`)
+        
+        如果你想看清楚模型在空间中的具体数值坐标，显示外围的坐标边界盒是最直观的。
+
+        ```python
+        plotter = pv.Plotter()
+        plotter.add_mesh(pv.Cylinder())
+
+        # 显示带数值刻度的坐标网格
+        plotter.show_grid()
+
+        # 或者只显示外框刻度
+        # plotter.show_bounds(grid='back', location='outer')
+
+        plotter.show()
+        ```
+
+    **进阶定制：自定义轴的样式**
+
+    你可以通过参数精细控制轴的外观，比如改变颜色或标签：
+
+    ```python
+    plotter.add_axes(
+        line_width=5, 
+        cone_radius=0.6, 
+        shaft_length=0.7, 
+        tip_length=0.3, 
+        ambient=0.5, 
+        label_size=(0.1, 0.1)
+    )
+    ```
+
+    **总结建议：**
+    
+    * **只想分清上下左右**：用 `add_axes()`。
+    * **需要看模型具体尺寸**：用 `show_grid()`。
+    * **做物理仿真/参考系**：用 `add_axes_at_origin()`。
+
+    你的模型是在原点附近，还是偏移到了很远的地方？（如果是远距离模型，建议使用 `show_grid`）
+
+* pyvista 如何显示动图
+
+    在 PyVista 中显示动图（动画）通常有两种主要方式：**生成视频文件**（如 `.mp4` 或 `.gif`）或者**在交互式窗口中实时更新**。
+
+    核心逻辑都是一致的：创建一个 `Plotter` 对象，打开一个写操作（Movie），然后在循环中修改 Mesh 的数据或位置，最后捕获帧。
+
+    1. 制作并保存动画（推荐）
+        
+        这是最稳健的方法，可以保存为 MP4 或 GIF 供以后查看。
+
+        ```python
+        import pyvista as pv
+        import numpy as np
+
+        # 1. 创建模型
+        mesh = pv.Sphere()
+
+        # 2. 创建 Plotter
+        plotter = pv.Plotter()
+        plotter.add_mesh(mesh, color="tan", show_edges=True)
+
+        # 3. 设置保存路径并打开文件（如果是 GIF，后缀改为 .gif）
+        plotter.open_movie("sphere_pulse.mp4") 
+
+        # 4. 动画循环
+        n_frames = 100
+        for i in range(n_frames):
+            # 修改顶点坐标（让球体脉动）
+            # mesh.points 是一个 (n, 3) 的数组
+            displacement = np.sin(i / 5.0) * 0.05
+            mesh.points += mesh.point_normals * displacement
+            
+            # 必须调用 write_frame() 来记录当前画面
+            plotter.write_frame()
+
+        # 5. 关闭并保存
+        plotter.close()
+        ```
+
+    2. 实时交互式显示（无需保存）
+        
+        如果你只想在屏幕上看到模型“动起来”，而不需要保存文件，可以使用 `show(interactive_update=True)`。
+
+        ```python
+        import pyvista as pv
+        import time
+
+        plotter = pv.Plotter()
+        mesh = pv.Cube()
+        plotter.add_mesh(mesh, color='orange')
+
+        plotter.show(interactive_update=True) # 开启交互式更新模式
+
+        for i in range(200):
+            # 旋转模型
+            mesh.rotate_z(2, inplace=True)
+            
+            # 更新窗口
+            plotter.update()
+            
+            # 控制刷新频率，避免跑太快
+            time.sleep(0.01)
+
+        plotter.close()
+        ```
+
+    3. 三种常见的动画操作方式
+
+        你可以通过以下几种方式让网格“动”起来：
+
+        * **形变**：直接修改 `mesh.points` 的坐标值。
+        * **变换**：使用 `mesh.rotate_x()`、`mesh.translate()` 或 `mesh.transform()`。
+        * **标量更新**：如果只是想让颜色变化，可以修改 `mesh.point_data['my_data'] = new_values`。
+
+    4. 进阶：使用回调函数 (Background Plotter)
+
+        如果你使用的是 `pyvistaqt`（需要额外安装 `pip install pyvistaqt`），可以使用后台绘图器，这样动画运行的同时，你还可以继续在 Python 终端输入命令。
+
+        ```python
+        from pyvistaqt import BackgroundPlotter
+
+        plotter = BackgroundPlotter()
+        mesh = pv.Cone()
+        plotter.add_mesh(mesh)
+
+        def update_scene():
+            mesh.rotate_y(5, inplace=True)
+
+        # 定时触发更新
+        plotter.add_callback(update_scene, interval=50) 
+        ```
+
+    **注意事项**
+
+    1.  **FFmpeg**：如果你想保存 `.mp4` 格式，请确保你的系统中安装了 `ffmpeg`。如果没装，建议先尝试保存为 `.gif`。
+    
+    2.  **Inplace 参数**：在循环中更新模型位置时，记得设置 `inplace=True`，这样会直接修改原始对象而不是创建新副本。
+
+    你准备展示的是物体的**整体运动**（如旋转、平移），还是物体的**内部形变**（如受力分析的变形）？
+
+* add_mesh 的常用进阶参数
+
+    | 参数 | 说明 | 示例 |
+    | - | - | - |
+    | scalars | 指定要显示的标量数据（颜色映射） | scalars='elevation' |
+    | cmap | 指定颜色表 | cmap='viridis' |
+    | opacity | 设置透明度 (0 到 1) | opacity=0.5 |
+    | style | 显示模式：'surface', 'wireframe', 'points' | style='wireframe' |
+    | texture | 绑定纹理对象 | texture=my_texture |
+    | smooth_shading | 开启平滑着色（让模型看起来更圆润） | smooth_shading=True |
+
+* pyvista 如何加载 obj 文件
+
+    在 PyVista 中加载 `.obj` 文件非常简单。PyVista 提供了一个通用的读取函数 `pv.read()`，它会自动识别文件扩展名并调用相应的底层读取器。
+
+    以下是加载和可视化 OBJ 文件的几种常见方式：
+
+    1. 基础加载与显示
+        
+        这是最直接的方法，适用于大多数标准 OBJ 文件。
+
+        ```python
+        import pyvista as pv
+
+        # 加载 OBJ 文件
+        mesh = pv.read('your_model.obj')
+
+        # 检查网格信息
+        print(mesh)
+
+        # 可视化
+        mesh.plot(color='silver', show_edges=True)
+        ```
+
+    ---
+
+    2. 加载带纹理的 OBJ
+
+        OBJ 文件通常伴随着 `.mtl` 文件和贴图。如果你的 OBJ 文件定义了纹理坐标（UVs），你可以手动加载图片并将其映射到模型上。
+
+        ```python
+        import pyvista as pv
+
+        # 加载几何体
+        mesh = pv.read('model.obj')
+
+        # 加载纹理图片 (例如 .jpg 或 .png)
+        texture = pv.read_texture('texture_image.jpg')
+
+        # 显示带纹理的模型
+        mesh.plot(texture=texture)
+        ```
+
+    ---
+
+    3. 常见问题处理
+
+        **处理多个对象 (MultiBlock)**
+
+        有些 OBJ 文件包含多个独立的物体。在这种情况下，`pv.read()` 可能会返回一个 `MultiBlock` 格式的数据集。
+
+        ```python
+        data = pv.read('complex_scene.obj')
+
+        if isinstance(data, pv.MultiBlock):
+            # 打印包含的子网格名称
+            print(data.keys())
+            # 访问特定的子网格
+            mesh = data[0] 
+        ```
+
+        **如果网格显示为“点云”**
+
+        如果加载后的 OBJ 只显示点而没有面，可能是因为文件只包含了顶点信息，或者面信息格式不兼容。你可以尝试重新进行三角剖分（虽然这通常是最后的手段）：
+        ```python
+        mesh = mesh.delaunay_3d() # 针对体网格
+        # 或者
+        mesh = mesh.reconstruct_surface() # 针对表面重建
+        ```
+
+    ---
+
+    4. 导出为其他格式
+
+        加载 OBJ 后，你可以轻松将其转换为 PyVista 原生的 `.vtk` 格式或其他格式，以便更快地加载：
+
+        ```python
+        mesh.save('model.vtk')
+        ```
+
+    **小贴士**
+
+    * **确保路径正确**：如果代码报错，请先检查 `.obj` 文件路径是否存在。
+    * **依赖项**：PyVista 依赖 `vtk`。如果某些复杂的 OBJ 文件加载失败，请确保你的 `vtk` 版本是最新的（`pip install -U vtk`）。
+
+    如果你在加载过程中遇到了具体的报错信息，可以发给我，我来帮你排查。
+
+    注：
+
+    1. `pv.read()`得到的 mesh，可以直接放到`plotter.add_mesh()`里：
+
+        ```py
+        plotter.add_mesh(mesh, color='lightblue', show_edges=True)
+        ```
+
 * pyvista 中，小四面体组成的 mesh 密度太高，如何才能降采样
 
     在 PyVista（以及它背后的 VTK 引擎）中，针对由小四面体（Tetrahedrons）组成的**非结构化网格（Unstructured Grid）**进行降采样，通常有几种不同的思路，具体取决于你是想保持体积网格（Volumetric Mesh）还是仅仅处理表面。
 
     以下是几种主流的方法：
-
-    ---
 
     1. 表面抽稀 (Decimation)
         
@@ -27,8 +305,6 @@
         simplified_surf.plot(show_edges=True)
         ```
 
-    ---
-
     2. 体素重采样 (Resampling via Voxelization)
         
         如果你需要保留内部的体积数据，最稳健的方法是将复杂的非结构化网格重采样到规则的线性网格（Uniform Grid）上。这可以极大地降低数据复杂度，同时平滑噪声。
@@ -43,8 +319,6 @@
         # 过滤掉落在原始网格之外的空值
         resampled_mesh = resampled_mesh.threshold()
         ```
-
-    ---
 
     3. 使用剪裁或切片 (Sub-sampling by Selection)
         
@@ -61,8 +335,6 @@
         downsampled_mesh.plot(show_edges=True)
         ```
 
-    ---
-
     4. 顶点聚类 (Vertex Clustering)
         
         这是处理超高密度网格最快的方法之一。它通过将空间划分为小格子，并把落在同一个格子内的所有顶点合并为一个。
@@ -72,8 +344,6 @@
         # tolerance 参数控制合并的力度
         downsampled_mesh = mesh.clean(tolerance=0.01, remove_unused_points=True)
         ```
-
-    ---
 
     **总结建议**
 
@@ -104,8 +374,6 @@
             # 或者查看当前绘图器的相机属性说明
             print(pv.Plotter.camera.__doc__)
             ```
-
-    ---
 
     2. 查看当前相机位置 (Position) 和 焦点 (Lookat)
         
@@ -152,8 +420,6 @@
         pl.show()
         ```
 
-    ---
-
     3. 常用相机属性总结
 
         | 属性 | 说明 |
@@ -166,71 +432,72 @@
 
     > **提示：** 如果你想把当前调整好的视角应用到下一个脚本中，可以直接复制 `pl.camera_position` 打印出来的那个元组，然后在下次绘图时设置 `pl.camera_position = [(...)]` 即可完美复刻视角。
 
-* 按 h 没反应
+    * 按 h 没反应
 
-    如果在按下 **`h`** 键时没有反应，通常是因为当前的 **交互后端（Interactive Backend）** 不支持键盘事件，或者窗口没有获得 **焦点**。
+        如果在按下 **`h`** 键时没有反应，通常是因为当前的 **交互后端（Interactive Backend）** 不支持键盘事件，或者窗口没有获得 **焦点**。
 
-    这种情况最常出现在 **Jupyter Notebook / Lab** 环境中，或者是使用了非交互式的静态渲染器。
+        这种情况最常出现在 **Jupyter Notebook / Lab** 环境中，或者是使用了非交互式的静态渲染器。
 
-    你可以根据你的运行环境尝试以下对策：
+        你可以根据你的运行环境尝试以下对策：
 
-    1. 确保窗口处于“交互模式”
+        1. 确保窗口处于“交互模式”
+            
+            如果你是在本地 Python 脚本中运行，请检查 `show()` 的调用方式：
+
+            * **确保窗口被激活：** 点击一下弹出的 3D 渲染窗口，确保它是当前操作的活动窗口，然后再按 `h`。
+
+            * **不要在非交互环境运行：** 如果你在某些 IDE（如 PyCharm 的 SciView 或某些远程服务器）中，它们可能会拦截键盘输入。
+
+        2. Jupyter 环境下的特殊处理
+
+            在 Jupyter 中，默认渲染可能被设置为静态图片。请尝试在代码最上方强制开启交互窗口：
+
+            ```python
+            import pyvista as pv
+
+            # 强制使用传统的 VTK 交互窗口（会弹出独立窗口）
+            pv.set_jupyter_backend('static') # 或者不设置，直接运行以下代码
+            pl = pv.Plotter()
+            pl.add_mesh(pv.Sphere())
+            pl.show(interactive_update=True) 
+            ```
+            *注意：在 JupyterLab 里，建议使用 `pl.show(jupyter_backend='trame')`，这通常能更好地支持交互。*
+
+        3. 代码替代方案：直接打印快捷键列表
+            
+            既然按下 `h` 没反应，我们可以直接用 Python 代码把这些“隐藏”的帮助信息打印出来。PyVista 的交互帮助本质上是 `RenderWindowInteractor` 的功能。
+
+            你可以运行以下代码查看所有内置快捷键：
+
+            ```python
+            import pyvista as pv
+            print(pv.Plotter.KEY_HELP_MSG)
+            ```
+
+        4. 无法查看相机位置？直接用“实时同步”
         
-        如果你是在本地 Python 脚本中运行，请检查 `show()` 的调用方式：
-        * **确保窗口被激活：** 点击一下弹出的 3D 渲染窗口，确保它是当前操作的活动窗口，然后再按 `h`。
-        * **不要在非交互环境运行：** 如果你在某些 IDE（如 PyCharm 的 SciView 或某些远程服务器）中，它们可能会拦截键盘输入。
+            如果你的目标是查看相机位置，但交互式操作受限，可以使用 **`camera_set`** 功能，或者在代码中强制打印。
 
-    2. Jupyter 环境下的特殊处理
+            **最硬核的调试方法（无论按键是否失效）：**
+            使用 `pl.enable_trackball_style()` 确保处于轨迹球缩放模式，并手动获取位置：
 
-        在 Jupyter 中，默认渲染可能被设置为静态图片。请尝试在代码最上方强制开启交互窗口：
+            ```python
+            import pyvista as pv
 
-        ```python
-        import pyvista as pv
+            pl = pv.Plotter()
+            pl.add_mesh(pv.Cube(), color='cyan')
 
-        # 强制使用传统的 VTK 交互窗口（会弹出独立窗口）
-        pv.set_jupyter_backend('static') # 或者不设置，直接运行以下代码
-        pl = pv.Plotter()
-        pl.add_mesh(pv.Sphere())
-        pl.show(interactive_update=True) 
-        ```
-        *注意：在 JupyterLab 里，建议使用 `pl.show(jupyter_backend='trame')`，这通常能更好地支持交互。*
+            # 即使按键没反应，你也可以在程序关闭时获取最后停留的位置
+            pl.show() 
 
-    3. 代码替代方案：直接打印快捷键列表
+            # 窗口关闭后，这里会自动打印你刚才手动调整好的位置
+            print("最后调整的相机参数为：")
+            print(pl.camera_position)
+            ```
+
+        **总结：**
         
-        既然按下 `h` 没反应，我们可以直接用 Python 代码把这些“隐藏”的帮助信息打印出来。PyVista 的交互帮助本质上是 `RenderWindowInteractor` 的功能。
-
-        你可以运行以下代码查看所有内置快捷键：
-
-        ```python
-        import pyvista as pv
-        print(pv.Plotter.KEY_HELP_MSG)
-        ```
-
-    ---
-
-    4. 无法查看相机位置？直接用“实时同步”
-    
-        如果你的目标是查看相机位置，但交互式操作受限，可以使用 **`camera_set`** 功能，或者在代码中强制打印。
-
-        **最硬核的调试方法（无论按键是否失效）：**
-        使用 `pl.enable_trackball_style()` 确保处于轨迹球缩放模式，并手动获取位置：
-
-        ```python
-        import pyvista as pv
-
-        pl = pv.Plotter()
-        pl.add_mesh(pv.Cube(), color='cyan')
-
-        # 即使按键没反应，你也可以在程序关闭时获取最后停留的位置
-        pl.show() 
-
-        # 窗口关闭后，这里会自动打印你刚才手动调整好的位置
-        print("最后调整的相机参数为：")
-        print(pl.camera_position)
-        ```
-
-    **总结：**
-    如果 `h` 没反应，说明你的环境限制了键盘映射。请确认你是在**本地电脑**运行 `python script.py` 还是在 **Jupyter/远程** 环境？如果是后者，键盘交互通常会被屏蔽。
+        如果 `h` 没反应，说明你的环境限制了键盘映射。请确认你是在**本地电脑**运行 `python script.py` 还是在 **Jupyter/远程** 环境？如果是后者，键盘交互通常会被屏蔽。
 
 * plotter.render() 用的这个
 
@@ -860,6 +1127,7 @@
 
     plotter.show()
     ```
+
 * 简述 pyvista 画如何画二维折线图，并给出 example
 
     PyVista 本身主要专注于三维网格和表面可视化，但它可以非常方便地结合 Matplotlib 来绘制二维折线图，或者利用 PyVista 的 `pyvista.Chart2D` 功能（如果可用）。

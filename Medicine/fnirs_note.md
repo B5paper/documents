@@ -2,259 +2,13 @@
 
 ## cache
 
-* AtlasViewer
-
-    这个是什么，干嘛用的？
-
-    **AtlasViewer** 是一个专门用于**近红外光谱（NIRS/fNIRS）脑成像数据可视化**的 MATLAB 工具箱。它是 **DOT-HUB** 生态系统的一部分，主要用于脑功能成像数据的可视化分析。
-
-    AtlasViewer 的主要功能：
-
-    1. **核心功能**
-
-        - **3D 脑皮层可视化**：显示 fNIRS 通道在脑皮层上的位置
-        - **探针布局显示**：可视化光源（sources）和探测器（detectors）的 3D 配置
-        - **数据覆盖显示**：将脑激活图覆盖在 3D 脑模型上
-        - **多模态配准**：将 fNIRS 数据与 MRI 结构像配准
-
-    2. **主要用途**
-
-        - **实验设计验证**：检查 fNIRS 探针放置位置
-        - **数据质量检查**：可视化信号质量和通道位置
-        - **结果展示**：展示脑激活图、连接性分析结果
-        - **教育演示**：教学 fNIRS 原理和数据解释
-
-    AtlasViewer 在 DOTHUB 工作流中的位置：
-
-    ```
-    原始 LUMO/Hitachi 数据
-         ↓
-    DOTHUB_LUMO2nirs  (转换格式)
-         ↓
-    AtlasViewerGUI    (可视化检查)
-         ↓
-    数据处理分析 (Homer2, NIRS工具箱)
-         ↓
-    AtlasViewer       (结果可视化)
-    ```
-
-    基本使用方法：
-
-    1. **启动 AtlasViewer**
-
-        ```matlab
-        % 在 MATLAB 中启动
-        AtlasViewerGUI
-
-        % 或通过命令行
-        avg = AtlasViewerGUI();
-        ```
-
-    2. **加载数据**
-
-        ```matlab
-        % 加载 .nirs 文件
-        avg = loadNIRS('your_data.nirs');
-
-        % 或从 DOTHUB 工作流
-        [nirs, ~, SD3D] = DOTHUB_LUMO2nirs(LUMO_data_folder);
-        avg = AtlasViewerGUI('init', SD3D, nirs);
-        ```
-
-    3. **主要可视化功能**
-
-        ```matlab
-        % 显示探针布局
-        avg.DisplayProbe();
-
-        % 显示脑激活图
-        avg.DisplayActivation(hbO, hbR);  % hbO: 氧合血红蛋白，hbR: 脱氧血红蛋白
-
-        % 显示 3D 脑模型
-        avg.DisplayCortex();
-
-        % 保存图像
-        avg.SaveImage('output.png');
-        ```
-
-    AtlasViewer 的主要界面模块：
-
-    1. **Probe Geometry（探针几何）**
-
-        - 查看光源和探测器位置
-        - 检查通道距离和方向
-        - 验证实验设置
-
-    2. **Anatomical Viewer（解剖查看器）**
-
-        - 3D 脑皮层显示
-        - 不同脑区标记
-        - Brodmann 分区显示
-
-    3. **Data Overlay（数据覆盖）**
-
-        - 时程数据可视化
-        - 统计映射图
-        - 连接性矩阵显示
-
-    4. **Registration（配准）**
-
-        - fNIRS-MRI 配准工具
-        - 数字化头部坐标处理
-        - 模板脑配准
-
-    实际应用示例：
-
-    示例 1：检查 LUMO 数据
-
-    ```matlab
-    % 转换 LUMO 数据
-    [nirs, nirsFileName, SD3DFileName] = DOTHUB_LUMO2nirs(LUMODirName);
-
-    % 使用 AtlasViewer 查看
-    avg = AtlasViewerGUI();
-    avg.loadProbe(SD3DFileName);  % 加载探针布局
-    avg.loadData(nirsFileName);   % 加载 nirs 数据
-    avg.plotProbe();              % 显示探针
-    ```
-
-    示例 2：可视化脑激活结果
-
-    ```matlab
-    % 假设已经完成 Homer2 处理
-    load('processed_data.mat');  % 包含 hbO, hbR 等变量
-
-    % 创建 AtlasViewer 对象
-    avg = AtlasViewerGUI();
-
-    % 设置探针和脑模型
-    avg.probe = SD3D;
-    avg.atlas = loadDefaultAtlas();  % 加载默认脑图谱
-
-    % 显示激活图
-    t = 10;  % 时间点
-    avg.display(hbO(:,t), 'threshold', 0.5, 'colormap', 'jet');
-    ```
-
-    示例 3：批处理可视化
-
-    ```matlab
-    % 批量处理多个被试
-    subjects = {'subj01', 'subj02', 'subj03'};
-    outputDir = 'figures';
-
-    for i = 1:length(subjects)
-        % 加载数据
-        nirsFile = fullfile('data', subjects{i}, 'processed.nirs');
-        avg = AtlasViewerGUI();
-        avg.loadData(nirsFile);
-        
-        % 生成可视化
-        h = figure('Visible', 'off');
-        avg.plotProbe();
-        avg.plotActivation();
-        
-        % 保存
-        saveas(h, fullfile(outputDir, [subjects{i} '_activation.png']));
-        close(h);
-    end
-    ```
-
-    AtlasViewer 的配置文件：
-
-    AtlasViewer 使用配置文件来保存设置：
-    - `atlasviewer.cfg`：主配置文件
-    - `probe.cfg`：探针配置文件
-    - `display.cfg`：显示设置
-
-    常见问题解决：
-
-    问题 1：无法显示脑模型
-
-    ```matlab
-    % 确保安装了必要的工具包
-    % AtlasViewer 需要：
-    % 1. 脑图谱数据（已包含）
-    % 2. 图形处理工具箱
-    % 3. OpenGL 支持
-
-    opengl info  % 检查 OpenGL
-    ```
-
-    问题 2：探针显示不正确
-
-    ```matlab
-    % 检查 SD3D 结构
-    if isfield(SD3D, 'SrcPos') && isfield(SD3D, 'DetPos')
-        disp('探针数据格式正确');
-    else
-        error('SD3D 结构不完整');
-    end
-
-    % 重新配准探针
-    avg.registerProbe(digpts);  % digpts: 数字化头点数据
-    ```
-
-    问题 3：性能问题（渲染慢）
-
-    ```matlab
-    % 简化显示
-    avg.set('simplifyMesh', true);
-    avg.set('reducePatch', 0.3);  % 减少面片数量
-
-    % 关闭不必要的功能
-    avg.set('showLabels', false);
-    avg.set('showAxes', false);
-    ```
-
-    与其他工具集成：
-
-    * 与 Homer2 集成：
-
-        ```matlab
-        % 使用 Homer2 处理后的数据
-        load('hmrR_Data.mat');  % Homer2 输出
-
-        % 在 AtlasViewer 中显示
-        avg.display(dcAvg);  % dcAvg: Homer2 的平均浓度变化
-        ```
-
-    * 与 BrainStorm 集成：
-
-        ```matlab
-        % 导出为 BrainStorm 格式
-        avg.exportBrainStorm('output_bst.mat');
-        ```
-
-    * 与 SPM 集成：
-
-        ```matlab
-        % 导出为 NIfTI 格式
-        avg.exportNifti('activation.nii', statistical_map);
-        ```
-
-    学习资源：
-
-    1. **官方文档**：在 AtlasViewer 界面中按 F1 键
-    2. **示例数据**：通常包含在安装包中
-    3. **DOTHUB 教程**：查看 DOTHUB 的示例脚本
-    4. **论文参考**：
-       - "AtlasViewer: A MATLAB GUI for fNIRS data visualization"
-       - "Visualization tools for fNIRS data analysis"
-
-    **总结**：AtlasViewer 是 fNIRS 研究中非常重要的**可视化工具**，特别适合：
-    - **实验设计阶段**：验证探针布局
-    - **数据处理阶段**：检查数据质量  
-    - **结果展示阶段**：生成发表级别的图表
-    - **教学演示**：直观展示 fNIRS 原理
-
-    对于使用 LUMO 或 Hitachi 等 fNIRS 设备的用户，AtlasViewer 通常是数据分析流程中不可或缺的一环。
-
 * fnirs channel 数据如果取平均，那么容易辨别病人和正常人，但是对于刺激事件，平均值可能意义不大，而是对同一刺激事件的不同 fnirs 数据波动程度更有意义
 
-    如果您的 fNIRS 数据中包含刺激事件（如视觉、触觉刺激），那么简单地取整个时间序列的平均值确实可能丢失与刺激相关的动态信息。常用的做法是提取刺激后特定时间窗口内的特征，或计算能够反映信号波动程度的统计量。以下提供几种替代方案，并给出相应的代码示例。
+    如果 fNIRS 数据中包含刺激事件（如视觉、触觉刺激），那么简单地取整个时间序列的平均值确实可能丢失与刺激相关的动态信息。常用的做法是提取刺激后特定时间窗口内的特征，或计算能够反映信号波动程度的统计量。
+    
+    以下提供几种替代方案：
 
-    1. 提取多个时间序列统计量（推荐作为基线）
+    1. 提取多个时间序列统计量（作为基线）
 
         对每个通道-波长组合计算多种统计特征，包括：
 
@@ -301,8 +55,6 @@
 
         然后合并所有样本的特征，进行标准化和分类。
 
-    ---
-
     2. 基于事件相关时间窗口的特征
 
         如果您有刺激开始的时间点（例如每个 trial 的 onset 索引），可以对每个 trial 提取特定窗口（如刺激后 2-7 秒）的均值、斜率等。假设您的数据是多个 trial 拼接而成，通常需要先按事件分段。
@@ -326,8 +78,6 @@
         ```
 
         若刺激时间未知，可能需要对整个序列使用滑动窗口或基于变化点检测的方法，但这更复杂，不在此展开。
-
-    ---
 
     3. 频域特征
 
@@ -356,8 +106,6 @@
                 features.append(band_powers)
             return np.array(features)
         ```
-
-    ---
 
     综合建议
 
@@ -1274,142 +1022,142 @@
 
     想了解如何修改这个网格的分辨率（比如改成更精细的 200x200）对速度的影响吗？
 
-* 这些是干嘛用的
+    * 这些是干嘛用的
 
-    ```py
-    # Map parameter estimates to solution basis
-    bmua = basis_inv.Map('M->B', mua)
-    bmus = basis_inv.Map('M->B', mus)
-    bkap = basis_inv.Map('M->B', kap)
-    bcmua = bmua * cm
-    bckap = bkap * cm
-    scmua = basis_inv.Map('B->S', bcmua)
-    sckap = basis_inv.Map('B->S', bckap)
-    ```
-
-    这部分代码的作用是**将物理参数从“有限元网格”转换到“优化算法所使用的变量空间”**。
-
-    简单来说，重建算法并不是直接在三角形网格的节点上乱试，而是将参数映射到一个更规整、更利于数学计算的“解空间”（Solution Basis）中。
-
-    以下是逐行的详细解释：
-
-    1. 物理场到像素基底的转换 (M -> B)
-
-        ```python
+        ```py
+        # Map parameter estimates to solution basis
         bmua = basis_inv.Map('M->B', mua)
         bmus = basis_inv.Map('M->B', mus)
         bkap = basis_inv.Map('M->B', kap)
-
-        ```
-
-        * **M (Mesh)**: 指有限元网格节点上的数据。
-        * **B (Basis)**: 指像素网格（即之前定义的 100x100 `grd`）上的数据。
-        * **作用**: 将定义在不规则网格节点上的吸收系数（$\mu_a$）、散射系数（$\mu_s$）和扩散系数（$\kappa$）插值映射到 100x100 的规则图像像素中。
-
-    2. 物理量单位缩放 (乘以 cm)
-
-        ```python
         bcmua = bmua * cm
         bckap = bkap * cm
-
-        ```
-
-        * **cm**: 是介质中的光速（`c0/refind`）。
-        * **作用**: 在 TOAST++ 的底层数学模型中，通常处理的是“变换后的参数”。乘以光速是为了匹配前向方程（Diffusion Equation）中对时间尺度或传播特性的定义，使其符合求解器的数值量级。
-
-    3. 像素基底到解向量的转换 (B -> S)
-
-        ```python
         scmua = basis_inv.Map('B->S', bcmua)
         sckap = basis_inv.Map('B->S', bckap)
+        ```
+
+        这部分代码的作用是**将物理参数从“有限元网格”转换到“优化算法所使用的变量空间”**。
+
+        简单来说，重建算法并不是直接在三角形网格的节点上乱试，而是将参数映射到一个更规整、更利于数学计算的“解空间”（Solution Basis）中。
+
+        以下是逐行的详细解释：
+
+        1. 物理场到像素基底的转换 (M -> B)
+
+            ```python
+            bmua = basis_inv.Map('M->B', mua)
+            bmus = basis_inv.Map('M->B', mus)
+            bkap = basis_inv.Map('M->B', kap)
+
+            ```
+
+            * **M (Mesh)**: 指有限元网格节点上的数据。
+            * **B (Basis)**: 指像素网格（即之前定义的 100x100 `grd`）上的数据。
+            * **作用**: 将定义在不规则网格节点上的吸收系数（$\mu_a$）、散射系数（$\mu_s$）和扩散系数（$\kappa$）插值映射到 100x100 的规则图像像素中。
+
+        2. 物理量单位缩放 (乘以 cm)
+
+            ```python
+            bcmua = bmua * cm
+            bckap = bkap * cm
+
+            ```
+
+            * **cm**: 是介质中的光速（`c0/refind`）。
+            * **作用**: 在 TOAST++ 的底层数学模型中，通常处理的是“变换后的参数”。乘以光速是为了匹配前向方程（Diffusion Equation）中对时间尺度或传播特性的定义，使其符合求解器的数值量级。
+
+        3. 像素基底到解向量的转换 (B -> S)
+
+            ```python
+            scmua = basis_inv.Map('B->S', bcmua)
+            sckap = basis_inv.Map('B->S', bckap)
+
+            ```
+
+            * **S (Solution)**: 代表“解空间”向量。
+            * **作用**: 这是最后一步映射。
+            * 在很多情况下，**B** 和 **S** 是等价的（都是像素点）。
+            * 但如果使用了特殊的正则化或基函数压缩，`B->S` 会将图像数据压缩成优化算法实际要调整的一维长向量。
+            * **scmua** (Solution-space c*mua) 就是算法最终要优化的“未知数”。
+
+        **总结：为什么要绕这么多圈？**
+
+        这几行代码完成了一个“数据格式标准化”的过程：
+
+        1. **从几何出发**：把长得像“渔网”一样的节点数据（Mesh），变成长得像“照片”一样的像素数据（Basis）。
+        2. **从物理出发**：引入光速 $c_m$，转换成算法内部定义的物理量。
+        3. **从数学出发**：将其打包成一个纯数值向量（Solution），交给后面的非线性共轭梯度法（NLCG）去不断迭代寻找最优解。
+
+        **形象比喻：**
+        这就像是你要装修房子。
+
+        * **M** 是施工图纸（不规则、复杂）。
+        * **B** 是实际的墙面（规整、分块）。
+        * **S** 是你的装修预算清单（纯数字列表）。
+        这几行代码就是把“图纸上的设计”转化为“预算清单上的数字”，这样你才能用计算器（优化算法）去算怎么省钱。
+
+    * 为什么要用户手动计算非线性共轭梯度循环？没有省略细节，一步到位的方法吗？
+
+        这是一个非常深刻的问题。在深度学习时代，我们习惯了 `model.fit()` 或 `loss.backward()` 这种“黑盒”操作，但 **TOAST++** 作为一个科研级的偏微分方程（PDE）反演框架，故意把这些细节暴露给用户。
+
+        之所以要手动写这个循环，主要有以下三个原因：
+
+        1. 物理反演的复杂性：非线性与约束
+
+            与简单的机器学习不同，光学断层扫描（DOT）是一个**高度非线性的病态问题**。
+
+            * **参数约束**：物理参数（如 $\mu_a, \kappa$）必须为正数。代码中通过 `logx = np.log(x)` 将问题转入对数域，这在通用库里很难自动实现。
+            * **多参数耦合**：你同时在重建两个物理场（吸收和散射）。手动循环允许你对不同的参数设置不同的权重或正则化惩罚。
+
+        2. 计算开销的权衡
+
+            在 DOT 中，每一步迭代最耗时的不是梯度更新，而是前向模型（Forward Model）的求解。
+
+            * 手动写循环可以让你精确控制什么时候调用 `mesh_inv.Fields`（求解 PDE）。
+            * 你可以自定义线搜索（Line Search）的策略。如果步长选得不好，物理计算可能会发散，手动控制能提高鲁棒性。
+
+        3. TOAST++ 的设计哲学
+
+            TOAST++ 定位为一个**工具箱（Toolkit）**，而不是一个**黑盒软件**。它提供了最难写的“零件”：
+
+            * 高性能的有限元求解器（FEM Solver）
+            * 高效的伴随场梯度计算（Jacobian）
+            * 网格与基底的映射（Mapper）
+
+            至于如何利用这些零件去“跑”优化，它把控制权交给了科研人员，方便你随时加入自定义的**正则化项（Regularization）**、**空间先验信息**或**多波长约束**。
+
+        **有没有“一步到位”的方法？**
+
+        如果你觉得手动写 NLCG 太麻烦，确实有几种简化方案：
+
+        方案 A：使用 SciPy 的优化库 (推荐)
+
+        你可以把前向求解和梯度计算封装成一个 Python 函数，直接丢给 `scipy.optimize.minimize`。这样你就不用写 beta 的计算和线搜索逻辑了：
+
+        ```python
+        from scipy.optimize import minimize
+
+        def func(logx):
+            # 这里写前向计算和目标函数
+            return f, grad
+
+        # 一行代码代替整个 while 循环
+        res = minimize(func, logx0, method='L-BFGS-B', jac=True)
 
         ```
 
-        * **S (Solution)**: 代表“解空间”向量。
-        * **作用**: 这是最后一步映射。
-        * 在很多情况下，**B** 和 **S** 是等价的（都是像素点）。
-        * 但如果使用了特殊的正则化或基函数压缩，`B->S` 会将图像数据压缩成优化算法实际要调整的一维长向量。
-        * **scmua** (Solution-space c*mua) 就是算法最终要优化的“未知数”。
+        * **优点**：省去了写 CG 逻辑的麻烦，且 L-BFGS 通常比 NLCG 收敛更快。
+        * **缺点**：在大规模 3D 重建中，SciPy 的内存管理可能不如手动控制精细。
 
-    **总结：为什么要绕这么多圈？**
+        方案 B：使用更高层的封装（如 PyTorch）
 
-    这几行代码完成了一个“数据格式标准化”的过程：
+        现在有些研究者会将 TOAST 的前向算子包装成 **PyTorch Autograd Function**。
 
-    1. **从几何出发**：把长得像“渔网”一样的节点数据（Mesh），变成长得像“照片”一样的像素数据（Basis）。
-    2. **从物理出发**：引入光速 $c_m$，转换成算法内部定义的物理量。
-    3. **从数学出发**：将其打包成一个纯数值向量（Solution），交给后面的非线性共轭梯度法（NLCG）去不断迭代寻找最优解。
+        * **优点**：你可以直接用 `optimizer.step()`，甚至结合神经网络（深度先验）。
+        * **现状**：这需要你自己写一个桥接层（Wrapper），目前 TOAST++ 官方示例仍倾向于展示底层的数值过程。
 
-    **形象比喻：**
-    这就像是你要装修房子。
+        **总结**
 
-    * **M** 是施工图纸（不规则、复杂）。
-    * **B** 是实际的墙面（规整、分块）。
-    * **S** 是你的装修预算清单（纯数字列表）。
-    这几行代码就是把“图纸上的设计”转化为“预算清单上的数字”，这样你才能用计算器（优化算法）去算怎么省钱。
-
-* 为什么要用户手动计算非线性共轭梯度循环？没有省略细节，一步到位的方法吗？
-
-    这是一个非常深刻的问题。在深度学习时代，我们习惯了 `model.fit()` 或 `loss.backward()` 这种“黑盒”操作，但 **TOAST++** 作为一个科研级的偏微分方程（PDE）反演框架，故意把这些细节暴露给用户。
-
-    之所以要手动写这个循环，主要有以下三个原因：
-
-    1. 物理反演的复杂性：非线性与约束
-
-        与简单的机器学习不同，光学断层扫描（DOT）是一个**高度非线性的病态问题**。
-
-        * **参数约束**：物理参数（如 $\mu_a, \kappa$）必须为正数。代码中通过 `logx = np.log(x)` 将问题转入对数域，这在通用库里很难自动实现。
-        * **多参数耦合**：你同时在重建两个物理场（吸收和散射）。手动循环允许你对不同的参数设置不同的权重或正则化惩罚。
-
-    2. 计算开销的权衡
-
-        在 DOT 中，每一步迭代最耗时的不是梯度更新，而是前向模型（Forward Model）的求解。
-
-        * 手动写循环可以让你精确控制什么时候调用 `mesh_inv.Fields`（求解 PDE）。
-        * 你可以自定义线搜索（Line Search）的策略。如果步长选得不好，物理计算可能会发散，手动控制能提高鲁棒性。
-
-    3. TOAST++ 的设计哲学
-
-        TOAST++ 定位为一个**工具箱（Toolkit）**，而不是一个**黑盒软件**。它提供了最难写的“零件”：
-
-        * 高性能的有限元求解器（FEM Solver）
-        * 高效的伴随场梯度计算（Jacobian）
-        * 网格与基底的映射（Mapper）
-
-        至于如何利用这些零件去“跑”优化，它把控制权交给了科研人员，方便你随时加入自定义的**正则化项（Regularization）**、**空间先验信息**或**多波长约束**。
-
-    **有没有“一步到位”的方法？**
-
-    如果你觉得手动写 NLCG 太麻烦，确实有几种简化方案：
-
-    方案 A：使用 SciPy 的优化库 (推荐)
-
-    你可以把前向求解和梯度计算封装成一个 Python 函数，直接丢给 `scipy.optimize.minimize`。这样你就不用写 beta 的计算和线搜索逻辑了：
-
-    ```python
-    from scipy.optimize import minimize
-
-    def func(logx):
-        # 这里写前向计算和目标函数
-        return f, grad
-
-    # 一行代码代替整个 while 循环
-    res = minimize(func, logx0, method='L-BFGS-B', jac=True)
-
-    ```
-
-    * **优点**：省去了写 CG 逻辑的麻烦，且 L-BFGS 通常比 NLCG 收敛更快。
-    * **缺点**：在大规模 3D 重建中，SciPy 的内存管理可能不如手动控制精细。
-
-    方案 B：使用更高层的封装（如 PyTorch）
-
-    现在有些研究者会将 TOAST 的前向算子包装成 **PyTorch Autograd Function**。
-
-    * **优点**：你可以直接用 `optimizer.step()`，甚至结合神经网络（深度先验）。
-    * **现状**：这需要你自己写一个桥接层（Wrapper），目前 TOAST++ 官方示例仍倾向于展示底层的数值过程。
-
-    **总结**
-
-    手动写循环虽然看起来“原始”，但在科研中它提供了**极致的透明度**。当你发现重建图像有伪影时，你可以直接在循环里检查是梯度方向错了，还是步长选得太大。
+        手动写循环虽然看起来“原始”，但在科研中它提供了**极致的透明度**。当你发现重建图像有伪影时，你可以直接在循环里检查是梯度方向错了，还是步长选得太大。
 
 * 翻译这段话
 
@@ -1449,72 +1197,72 @@
 
     3. **结论**：这就是为什么你的代码里必须有一个 `while` 循环不断迭代。每一步你都要用当前的参数估值去更新 PMDF（即代码中的 `J = mesh_inv.Jacobian(...)`），然后再用更新后的 PMDF 去修正参数估值。
 
-* 我看不懂这段话，给我详细讲讲。另外为什么光子测量密度函数 (PMDF)被翻译成雅可比矩阵？灵敏度区域又是什么意思？
+    * 我看不懂这段话，给我详细讲讲。另外为什么光子测量密度函数 (PMDF)被翻译成雅可比矩阵？灵敏度区域又是什么意思？
 
-    这段话其实揭示了为什么光学断层扫描（DOT/ODT）比 X 光（CT）难做一百倍的底层逻辑。
+        这段话其实揭示了为什么光学断层扫描（DOT/ODT）比 X 光（CT）难做一百倍的底层逻辑。
 
-    我们分三个层次来拆解你的疑问：
+        我们分三个层次来拆解你的疑问：
 
-    1. 形象理解：什么是“灵敏度区域”？
+        1. 形象理解：什么是“灵敏度区域”？
 
-        想象你在大雾天玩手电筒：
+            想象你在大雾天玩手电筒：
 
-        * **CT（X光）**：光像激光笔一样直来直去。如果你在路径上放个硬币，只有挡住那条线的检测器有反应。它的“灵敏度区域”是一条**直线**。
-        * **DOT（红外光）**：光进入皮肤后像滴入水中的墨水一样**散开了**。光子在组织里乱撞，最后从检测器出来的光子，可能走过了一个像“香蕉”一样的肥大区域。
+            * **CT（X光）**：光像激光笔一样直来直去。如果你在路径上放个硬币，只有挡住那条线的检测器有反应。它的“灵敏度区域”是一条**直线**。
+            * **DOT（红外光）**：光进入皮肤后像滴入水中的墨水一样**散开了**。光子在组织里乱撞，最后从检测器出来的光子，可能走过了一个像“香蕉”一样的肥大区域。
 
-        这个“香蕉形”的肥大区域就是**灵敏度区域**。
+            这个“香蕉形”的肥大区域就是**灵敏度区域**。
 
-        * **意思就是**：在这个区域内，任何一个点的组织发生变化（比如长了个肿瘤），都会影响到这个检测器的读数。
-        * **难点**：因为这个区域太宽了，检测器只知道“香蕉”里出事了，但不知道具体在哪。
+            * **意思就是**：在这个区域内，任何一个点的组织发生变化（比如长了个肿瘤），都会影响到这个检测器的读数。
+            * **难点**：因为这个区域太宽了，检测器只知道“香蕉”里出事了，但不知道具体在哪。
 
-    ---
+        ---
 
-    2. PMDF 为什么被翻译成“雅可比矩阵”？
+        2. PMDF 为什么被翻译成“雅可比矩阵”？
 
-        严格来说，**PMDF 是物理概念，雅可比矩阵是数学表达**。
+            严格来说，**PMDF 是物理概念，雅可比矩阵是数学表达**。
 
-        * **PMDF (光子测量密度函数)**：描述的是物理上的“贡献度”。即：内部某点的光学参数改变了 $\Delta \mu_a$，外部测量值会改变多少？
-        * **雅可比矩阵 (Jacobian Matrix)**：在数学上，它是**多元函数的偏导数矩阵**。
-        * 矩阵的每一行对应一个“探测对”。
-        * 矩阵的每一列对应图像里的一个“像素（或节点）”。
-        * $J_{ij}$ 这个数值，就是第 $j$ 个像素对第 $i$ 个检测对的**贡献权重**。
+            * **PMDF (光子测量密度函数)**：描述的是物理上的“贡献度”。即：内部某点的光学参数改变了 $\Delta \mu_a$，外部测量值会改变多少？
+            * **雅可比矩阵 (Jacobian Matrix)**：在数学上，它是**多元函数的偏导数矩阵**。
+            * 矩阵的每一行对应一个“探测对”。
+            * 矩阵的每一列对应图像里的一个“像素（或节点）”。
+            * $J_{ij}$ 这个数值，就是第 $j$ 个像素对第 $i$ 个检测对的**贡献权重**。
 
-        **结论**：在代码实现时，我们把所有探测对的 PMDF 按照空间位置排列起来，就组成了雅可比矩阵 $J$。所以在那段话的语境下，计算 PMDF 的过程就是在构建雅可比矩阵。
+            **结论**：在代码实现时，我们把所有探测对的 PMDF 按照空间位置排列起来，就组成了雅可比矩阵 $J$。所以在那段话的语境下，计算 PMDF 的过程就是在构建雅可比矩阵。
 
-    ---
+        ---
 
-    3. 详细解释：这段话到底在说什么“难点”？
+        3. 详细解释：这段话到底在说什么“难点”？
 
-        这段话的核心逻辑是一个“鸡生蛋、蛋生鸡”的死循环：
+            这段话的核心逻辑是一个“鸡生蛋、蛋生鸡”的死循环：
 
-        1. **光路取决于介质**：光在组织里怎么走（PMDF 的形状），取决于组织长什么样（光学参数分布）。
-        2. **重建需要光路**：你想通过测量值反推“组织长什么样”，你必须先知道“光是怎么走的”。
-        3. **非线性的死结**：
-        * 为了求**组织分布**，你需要知道**光路 (PMDF)**。
-        * 为了知道**光路 (PMDF)**，你必须先知道**组织分布**。
+            1. **光路取决于介质**：光在组织里怎么走（PMDF 的形状），取决于组织长什么样（光学参数分布）。
+            2. **重建需要光路**：你想通过测量值反推“组织长什么样”，你必须先知道“光是怎么走的”。
+            3. **非线性的死结**：
+            * 为了求**组织分布**，你需要知道**光路 (PMDF)**。
+            * 为了知道**光路 (PMDF)**，你必须先知道**组织分布**。
 
-        **这就是为什么你不能像普通公式那样一步算出答案。**
+            **这就是为什么你不能像普通公式那样一步算出答案。**
 
-    4. 结合你的代码：为什么要迭代？
+        4. 结合你的代码：为什么要迭代？
 
-        再看你之前的代码逻辑，它其实是在玩一个“猜谜游戏”：
+            再看你之前的代码逻辑，它其实是在玩一个“猜谜游戏”：
 
-        * **第一步（瞎猜）**：假设组织是均匀的（初始 `mua=0.025`）。
-        * **第二步（算光路）**：基于这个均匀的假设，算出一个“香蕉形”的光路（计算 `Jacobian`）。
-        * **第三步（修正）**：用这个光路去对比实际测量数据，发现不对劲，于是微调一下图像。
-        * **第四步（更新光路）**：既然图像变了，光路肯定也变了！于是重新计算 `Jacobian`。
-        * **循环**：重复以上步骤，直到图像和光路互相吻合。
+            * **第一步（瞎猜）**：假设组织是均匀的（初始 `mua=0.025`）。
+            * **第二步（算光路）**：基于这个均匀的假设，算出一个“香蕉形”的光路（计算 `Jacobian`）。
+            * **第三步（修正）**：用这个光路去对比实际测量数据，发现不对劲，于是微调一下图像。
+            * **第四步（更新光路）**：既然图像变了，光路肯定也变了！于是重新计算 `Jacobian`。
+            * **循环**：重复以上步骤，直到图像和光路互相吻合。
 
-    **总结**
+        **总结**
 
-    * **灵敏度区域**：光子在组织里“由于散射”扫过的一个肥大空间。
-    * **PMDF**：这个空间里每一点对信号的贡献大小。
-    * **雅可比矩阵**：PMDF 的数字化清单。
-    * **非线性**：因为“光路会随组织变化而扭曲”，所以必须一边改图像，一边改光路（迭代）。
+        * **灵敏度区域**：光子在组织里“由于散射”扫过的一个肥大空间。
+        * **PMDF**：这个空间里每一点对信号的贡献大小。
+        * **雅可比矩阵**：PMDF 的数字化清单。
+        * **非线性**：因为“光路会随组织变化而扭曲”，所以必须一边改图像，一边改光路（迭代）。
 
-    **如果你还是觉得抽象，可以想象：** 你在玩一个拼图，但每当你放上一块拼图，剩下的拼图块形状就会发生微小的改变。你必须不断地拆了重拼，直到所有的块都能对上。这就是你在做的事情。
+        **如果你还是觉得抽象，可以想象：** 你在玩一个拼图，但每当你放上一块拼图，剩下的拼图块形状就会发生微小的改变。你必须不断地拆了重拼，直到所有的块都能对上。这就是你在做的事情。
 
-    想看看代码中哪一部分是在更新光路（Jacobian）吗？
+        想看看代码中哪一部分是在更新光路（Jacobian）吗？
 
 * 哪里有问题
 
@@ -3009,8 +2757,7 @@
 
     **你目前是在尝试编写计算这个雅可比矩阵的代码（例如使用有限元法 FEM），还是在研究如何求解这个反问题的优化算法？**
 
-* 但是我既不知道 $D(r)$，也不知道 $\mu_a (r)$，我该如何计算全空间的通量分布 Φs
-​(r) ？
+* 但是我既不知道 $D(r)$，也不知道 $\mu_a (r)$，我该如何计算全空间的通量分布 Φs(r) ？
 
     这是一个非常关键的逻辑关卡，也是所有**断层扫描（Tomography）**算法必须跨过的坎。
 
@@ -3154,6 +2901,7 @@
     * 神经网络是通过海量模拟数据的训练，直接学习从测量数据 $y$ 到 $\mu_a$ 地图的**映射函数**。它在一定程度上能跨越局部最优，但也带来了“黑箱”和泛化性的新问题。
 
     **既然你提到了 EM 算法和局部最优，你是不是在考虑如何设计一个更稳健的收敛准则，或者是想在目标函数里加入某种特定的先验知识？**
+
 * 科研项目前后端分离方案
 
     这是一个非常典型的**计算密集型任务 vs. 资源受限型环境**的架构问题。将后端拆分为微服务不仅能解决编译环境复杂的痛点，还能实现“算力剥离”。
@@ -3509,7 +3257,7 @@
 
     **你目前的科研后端，单次计算大概需要跑多久？** 如果超过 10 秒，强烈建议直接上 Celery。
 
-* toast++ github repo: <https://github.com/toastpp/toastpp>
+
 
 * NIRS-Toolbox 是个基于 matlab 的工具箱
 
@@ -3717,168 +3465,168 @@
 
     **需要我针对某个特定部分（如如何把 Mshs 对象转换成 Toast 兼容格式）深入写一下代码吗？**
 
-* 我可以确认探头经过 regi_xxx 函数配准后，一定贴在 mni scalp mesh 头皮上，我已经做了可视化驻
+    * 我可以确认探头经过 regi_xxx 函数配准后，一定贴在 mni scalp mesh 头皮上，我已经做了可视化驻
 
-    太棒了！既然坐标配准（Registration）已经解决，且探头已精准“贴合”在头皮上，我们接下来的核心任务是**打通数据流**：将 MNE 处理后的物理信号（$\Delta OD$）映射到 Toast++ 的前向模型矩阵（Jacobian）中，完成 3D 空间的反演。
+        太棒了！既然坐标配准（Registration）已经解决，且探头已精准“贴合”在头皮上，我们接下来的核心任务是**打通数据流**：将 MNE 处理后的物理信号（$\Delta OD$）映射到 Toast++ 的前向模型矩阵（Jacobian）中，完成 3D 空间的反演。
 
-    由于 Lumo 是 **CW（连续波）** 设备，我们通常只重建吸收系数的变化 $\Delta\mu_a$。
+        由于 Lumo 是 **CW（连续波）** 设备，我们通常只重建吸收系数的变化 $\Delta\mu_a$。
 
-    **核心实现逻辑**
+        **核心实现逻辑**
 
-    1. **物理量对齐**：MNE-NIRS 输出的是 $\Delta OD = -\ln(I/I_0)$。在 Toast++ 中，对于 CW 数据，前向模型对应的 Jacobian 元素 $J_{ij} = \frac{\partial \ln \Phi_i}{\partial \mu_{a,j}}$。
-    2. **网格转换**：将 `mshs.headVolumeMesh` 的节点和四面体单元导入 Toast。
-    3. **正则化反演**：使用 Tikhonov 正则化处理高度欠定（Underdetermined）的问题。
+        1. **物理量对齐**：MNE-NIRS 输出的是 $\Delta OD = -\ln(I/I_0)$。在 Toast++ 中，对于 CW 数据，前向模型对应的 Jacobian 元素 $J_{ij} = \frac{\partial \ln \Phi_i}{\partial \mu_{a,j}}$。
+        2. **网格转换**：将 `mshs.headVolumeMesh` 的节点和四面体单元导入 Toast。
+        3. **正则化反演**：使用 Tikhonov 正则化处理高度欠定（Underdetermined）的问题。
 
-    ---
+        ---
 
-    **3D 重建完整示例代码**
-
-    ```python
-    import numpy as np
-    import toast
-    import mne
-    import mne_nirs
-    import pyvista as pv
-    from scipy.sparse import linalg
-
-    def run_lumo_toast_reconstruction(int_bin, rec_data, sd_layout, mshs, mni_landmarks):
-        """
-        基于已配准坐标的 3D 重建流程
-        """
-        
-        # --- 1. MNE-NIRS 预处理获取 Delta OD ---
-        # 构造 MNE 格式 (简化版，仅演示数据流)
-        data = int_bin.data.T  # [channels, time]
-        info = mne.create_info(ch_names=[f'CH{i}' for i in range(rec_data.n_chans)], 
-                            sfreq=rec_data.framerate, ch_types='fnirs_cw_amplitude')
-        raw = mne.io.RawArray(data, info)
-        
-        # 预处理：强度 -> 光密度 -> 滤波 -> 提取均值变化
-        raw_od = mne.preprocessing.nirs.optical_density(raw)
-        raw_od.filter(0.01, 0.1)
-        
-        # 假设我们要重建全段相对于初始时刻的变化
-        od_data = raw_od.get_data()
-        delta_od = od_data[:, -1] - od_data[:, 0] # 最后一个时刻 vs 第一个时刻
-        
-        # --- 2. Toast++ 网格加载 ---
-        # 将 MNI152 的头模型转为 Toast 可识别的 Mesh
-        nodes = mshs.headVolumeMesh.node
-        # 注意：matlab 加载的索引通常从1开始，需要确认是否需 -1
-        # 且四面体在 toast 中通常是 [n, 4]
-        elems = mshs.headVolumeMesh.elem[:, :4] 
-        
-        tm = toast.Mesh()
-        tm.SetNodes(nodes)
-        tm.SetElements(elems)
-        
-        # --- 3. 设置源探测器 (Qvec & Mvec) ---
-        # 使用你已经验证过的配准坐标
-        src_mni = regi_coords_sd_to_mni(sd_layout.src_coords_3d, sd_layout.landmark_coords, mni_landmarks)
-        det_mni = regi_coords_sd_to_mni(sd_layout.det_coords_3d, sd_layout.landmark_coords, mni_landmarks)
-        
-        # 将源和探测器放置在头皮表面（Neumann 边界条件）
-        qvec = tm.Qvec(type='Neumann', shape='Gaussian', width=2, pos=src_mni)
-        mvec = tm.Mvec(shape='Gaussian', width=2, pos=det_mni)
-        
-        # --- 4. 配置光学参数 ---
-        nlen = tm.NodeCount()
-        # 典型生物组织背景值 (单位: mm^-1)
-        mua = np.ones(nlen) * 0.01 
-        mus = np.ones(nlen) * 1.0  
-        ref = np.ones(nlen) * 1.4
-        freq = 0  # CW 模式
-        
-        # --- 5. 计算 Jacobian ---
-        print("Building Forward Model...")
-        phi = tm.Fields(None, qvec, mua, mus, ref, freq)
-        aphi = tm.Fields(None, mvec, mua, mus, ref, freq)
-        
-        # 计算灵敏度矩阵 (Jacobian)
-        # 对于 CW，我们需要的是对 log 强度的导数
-        proj = tm.Projection(phi, mvec) 
-        # 获取 Jacobian (映射到节点空间)
-        J = tm.Jacobian(None, phi, aphi, proj)
-        
-        # --- 6. 线性线性反演 ---
-        # 因为通道数可能远小于节点数，这是一个极度病态的问题
-        # 使用 Tikhonov 正则化: x = J^T * (J*J^T + alpha*I)^-1 * y
-        print("Inverting...")
-        # 选取正则化参数，通常根据最大奇异值的一定比例
-        alpha = 1e-3 * np.linalg.norm(J @ J.T)
-        
-        # 求解: (J*J.T + alpha*I) * beta = delta_od
-        A = J @ J.T + alpha * np.eye(J.shape[0])
-        beta = np.linalg.solve(A, delta_od)
-        # 映射回 3D 空间
-        delta_mua = J.T @ beta
-
-        return tm, delta_mua
-
-    # --- 7. 可视化函数 ---
-    def plot_3d_result(tm, delta_mua, mshs):
-        nodes = tm.Nodes()
-        elems = tm.Elements()
-        
-        # 创建 PyVista 对象
-        # cells 数组格式: [n_points, p1, p2, p3, p4, n_points, ...]
-        cells = np.hstack(np.c_[np.full(elems.shape[0], 4), elems])
-        grid = pv.UnstructuredGrid(cells, [pv.CellType.TETRA]*elems.shape[0], nodes)
-        
-        grid.point_data["delta_mua"] = delta_mua
-        
-        plotter = pv.Plotter()
-        
-        # 添加半透明头皮作为背景
-        scalp_poly = pv.PolyData(mshs.scalpSurfaceMesh.node, 
-                                np.hstack(np.c_[np.full(mshs.scalpSurfaceMesh.face.shape[0], 3), 
-                                                mshs.scalpSurfaceMesh.face]))
-        plotter.add_mesh(scalp_poly, color="tan", opacity=0.15)
-        
-        # 关键：使用切片可视化脑内吸收变化
-        slices = grid.slice_orthogonal(x=0, y=0, z=0)
-        plotter.add_mesh(slices, cmap="RdBu_r", scalars="delta_mua", 
-                        stitle="Absorption Change", clim=[-max(abs(delta_mua)), max(abs(delta_mua))])
-        
-        # 或者展示高吸收区域的等值面
-        # threshold = grid.threshold(np.max(delta_mua) * 0.5)
-        # plotter.add_mesh(threshold, color="red")
-        
-        plotter.add_scalar_bar()
-        plotter.show()
-
-    ```
-
-    ---
-
-    **几个关键细节提醒：**
-
-    1. **Lumo 数据索引映射**：
-        
-        Lumo 的 `chans_list` 定义了哪些源-探测器对组成了通道。在 `tm.Qvec` 和 `tm.Mvec` 之后产生的 `phi` 和 `aphi` 矩阵，计算出的 `J` 矩阵行数默认是 `N_src * N_det`。你可能需要根据 `rec_data.chans_list_act` 提取出对应的行，使得 `J` 的行数与 `delta_od` 的长度一致。
+        **3D 重建完整示例代码**
 
         ```python
-        # 假设 J 原始大小是 (Nsrc*Ndet, Nnodes)
-        # 需要根据实际通道配置过滤
-        J = J[active_channel_indices, :]
+        import numpy as np
+        import toast
+        import mne
+        import mne_nirs
+        import pyvista as pv
+        from scipy.sparse import linalg
+
+        def run_lumo_toast_reconstruction(int_bin, rec_data, sd_layout, mshs, mni_landmarks):
+            """
+            基于已配准坐标的 3D 重建流程
+            """
+            
+            # --- 1. MNE-NIRS 预处理获取 Delta OD ---
+            # 构造 MNE 格式 (简化版，仅演示数据流)
+            data = int_bin.data.T  # [channels, time]
+            info = mne.create_info(ch_names=[f'CH{i}' for i in range(rec_data.n_chans)], 
+                                sfreq=rec_data.framerate, ch_types='fnirs_cw_amplitude')
+            raw = mne.io.RawArray(data, info)
+            
+            # 预处理：强度 -> 光密度 -> 滤波 -> 提取均值变化
+            raw_od = mne.preprocessing.nirs.optical_density(raw)
+            raw_od.filter(0.01, 0.1)
+            
+            # 假设我们要重建全段相对于初始时刻的变化
+            od_data = raw_od.get_data()
+            delta_od = od_data[:, -1] - od_data[:, 0] # 最后一个时刻 vs 第一个时刻
+            
+            # --- 2. Toast++ 网格加载 ---
+            # 将 MNI152 的头模型转为 Toast 可识别的 Mesh
+            nodes = mshs.headVolumeMesh.node
+            # 注意：matlab 加载的索引通常从1开始，需要确认是否需 -1
+            # 且四面体在 toast 中通常是 [n, 4]
+            elems = mshs.headVolumeMesh.elem[:, :4] 
+            
+            tm = toast.Mesh()
+            tm.SetNodes(nodes)
+            tm.SetElements(elems)
+            
+            # --- 3. 设置源探测器 (Qvec & Mvec) ---
+            # 使用你已经验证过的配准坐标
+            src_mni = regi_coords_sd_to_mni(sd_layout.src_coords_3d, sd_layout.landmark_coords, mni_landmarks)
+            det_mni = regi_coords_sd_to_mni(sd_layout.det_coords_3d, sd_layout.landmark_coords, mni_landmarks)
+            
+            # 将源和探测器放置在头皮表面（Neumann 边界条件）
+            qvec = tm.Qvec(type='Neumann', shape='Gaussian', width=2, pos=src_mni)
+            mvec = tm.Mvec(shape='Gaussian', width=2, pos=det_mni)
+            
+            # --- 4. 配置光学参数 ---
+            nlen = tm.NodeCount()
+            # 典型生物组织背景值 (单位: mm^-1)
+            mua = np.ones(nlen) * 0.01 
+            mus = np.ones(nlen) * 1.0  
+            ref = np.ones(nlen) * 1.4
+            freq = 0  # CW 模式
+            
+            # --- 5. 计算 Jacobian ---
+            print("Building Forward Model...")
+            phi = tm.Fields(None, qvec, mua, mus, ref, freq)
+            aphi = tm.Fields(None, mvec, mua, mus, ref, freq)
+            
+            # 计算灵敏度矩阵 (Jacobian)
+            # 对于 CW，我们需要的是对 log 强度的导数
+            proj = tm.Projection(phi, mvec) 
+            # 获取 Jacobian (映射到节点空间)
+            J = tm.Jacobian(None, phi, aphi, proj)
+            
+            # --- 6. 线性线性反演 ---
+            # 因为通道数可能远小于节点数，这是一个极度病态的问题
+            # 使用 Tikhonov 正则化: x = J^T * (J*J^T + alpha*I)^-1 * y
+            print("Inverting...")
+            # 选取正则化参数，通常根据最大奇异值的一定比例
+            alpha = 1e-3 * np.linalg.norm(J @ J.T)
+            
+            # 求解: (J*J.T + alpha*I) * beta = delta_od
+            A = J @ J.T + alpha * np.eye(J.shape[0])
+            beta = np.linalg.solve(A, delta_od)
+            # 映射回 3D 空间
+            delta_mua = J.T @ beta
+
+            return tm, delta_mua
+
+        # --- 7. 可视化函数 ---
+        def plot_3d_result(tm, delta_mua, mshs):
+            nodes = tm.Nodes()
+            elems = tm.Elements()
+            
+            # 创建 PyVista 对象
+            # cells 数组格式: [n_points, p1, p2, p3, p4, n_points, ...]
+            cells = np.hstack(np.c_[np.full(elems.shape[0], 4), elems])
+            grid = pv.UnstructuredGrid(cells, [pv.CellType.TETRA]*elems.shape[0], nodes)
+            
+            grid.point_data["delta_mua"] = delta_mua
+            
+            plotter = pv.Plotter()
+            
+            # 添加半透明头皮作为背景
+            scalp_poly = pv.PolyData(mshs.scalpSurfaceMesh.node, 
+                                    np.hstack(np.c_[np.full(mshs.scalpSurfaceMesh.face.shape[0], 3), 
+                                                    mshs.scalpSurfaceMesh.face]))
+            plotter.add_mesh(scalp_poly, color="tan", opacity=0.15)
+            
+            # 关键：使用切片可视化脑内吸收变化
+            slices = grid.slice_orthogonal(x=0, y=0, z=0)
+            plotter.add_mesh(slices, cmap="RdBu_r", scalars="delta_mua", 
+                            stitle="Absorption Change", clim=[-max(abs(delta_mua)), max(abs(delta_mua))])
+            
+            # 或者展示高吸收区域的等值面
+            # threshold = grid.threshold(np.max(delta_mua) * 0.5)
+            # plotter.add_mesh(threshold, color="red")
+            
+            plotter.add_scalar_bar()
+            plotter.show()
 
         ```
 
-    2. **MNI152 组织分层**：
+        ---
 
-        你加载的 `headVolumeMesh` 包含 `labels` (Scalp, Skull, CSF, GM, WM)。
-        * **进阶技巧**：在反演时，可以对不同的组织层设置不同的先验权重。例如，让 GM（灰质）层的正则化系数更小，从而引导重建结果更多地出现在脑皮层上。
+        **几个关键细节提醒：**
+
+        1. **Lumo 数据索引映射**：
+            
+            Lumo 的 `chans_list` 定义了哪些源-探测器对组成了通道。在 `tm.Qvec` 和 `tm.Mvec` 之后产生的 `phi` 和 `aphi` 矩阵，计算出的 `J` 矩阵行数默认是 `N_src * N_det`。你可能需要根据 `rec_data.chans_list_act` 提取出对应的行，使得 `J` 的行数与 `delta_od` 的长度一致。
+
+            ```python
+            # 假设 J 原始大小是 (Nsrc*Ndet, Nnodes)
+            # 需要根据实际通道配置过滤
+            J = J[active_channel_indices, :]
+
+            ```
+
+        2. **MNI152 组织分层**：
+
+            你加载的 `headVolumeMesh` 包含 `labels` (Scalp, Skull, CSF, GM, WM)。
+            * **进阶技巧**：在反演时，可以对不同的组织层设置不同的先验权重。例如，让 GM（灰质）层的正则化系数更小，从而引导重建结果更多地出现在脑皮层上。
 
 
-    3. **单位一致性**：
+        3. **单位一致性**：
 
-        Toast 内部默认通常使用 `mm`。请确保你的 `mshs.node` 和 `sd_layout` 的坐标单位均为 `mm`。如果 MNI 坐标单位是厘米，请务必统一乘以 10。
+            Toast 内部默认通常使用 `mm`。请确保你的 `mshs.node` 和 `sd_layout` 的坐标单位均为 `mm`。如果 MNI 坐标单位是厘米，请务必统一乘以 10。
 
-    **下一步建议**
+        **下一步建议**
 
-    你可以先尝试运行 `tm.Fields` 这一步。如果能顺利跑通前向计算并生成 `phi`（光通量分布），说明网格和源探测器配置完全正确。
+        你可以先尝试运行 `tm.Fields` 这一步。如果能顺利跑通前向计算并生成 `phi`（光通量分布），说明网格和源探测器配置完全正确。
 
-    **要不要我帮你写一段代码，根据 Lumo 的 `chans_list` 自动从 Toast 的全采样 Jacobian 中提取出对应通道的子集？**
+        **要不要我帮你写一段代码，根据 Lumo 的 `chans_list` 自动从 Toast 的全采样 Jacobian 中提取出对应通道的子集？**
 
 * `.nim` 文件
 
@@ -3972,6 +3720,3 @@
         |  | `0.01 0.02 ...` | 1024 个浮点数值 |
         |  | `Image 2` | 第二个数据块开始 |
         |  | ... | ... |
-
-## topics
-

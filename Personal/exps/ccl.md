@@ -1,5 +1,19 @@
 ## tasks
 
+* [ ] `apt-cyg install tmux`
+
+* [ ] nvim-tree、telescope、fzf
+
+* [ ] vim-rooter
+
+* [ ] 增加 sipu 驱动的 test case
+
+    做一些小型测试，比如 get device, get silink status, uuid, bo import export
+
+* [ ] 整理 topo system 要处理的任务，通过编译
+
+* [ ] 对比 siccl graph 与 graph 中 xml.h/.cc, topo_system.h/.cc，看 ai 瞎改了哪些地方
+
 * [ ] 查看 topo system 的 load / dump, 是否支持带网卡
 
 * [ ] 编译 debug_utils

@@ -2,6 +2,8 @@
 
 ## cache
 
+* numpy 中 ndarray 没有 `.abs()` 方法，只能使用`np.abs()`
+
 * 详细讲讲 np.random 模块
 
     好的，我们来详细聊聊 `numpy.random` 模块。

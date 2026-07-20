@@ -2,6 +2,196 @@
 
 ## cache
 
+* 详细讲讲 vim 中 session 的用法
+
+    在 Vim 中，**Session（会话）** 是一个非常强大但常被忽视的功能。它的核心作用是**保存当前 Vim 的完整“状态”快照**，并在下次打开时精准恢复。
+
+    简单来说，它不仅仅是保存你打开了哪些文件，而是保存了你的**布局、窗口大小、光标位置、折叠、寄存器、映射**等几乎所有环境细节。
+
+    下面我从**核心原理**到**实战用法**，为你详细拆解。
+
+    ---
+
+    ### 1. Session 到底保存了什么？
+
+    当你执行 `:mksession` 时，Vim 会生成一个 `.vim` 脚本文件。这个文件里的内容全是 Vim 命令，执行这些命令就能重建你的环境。
+
+    默认情况下，它保存以下内容（可通过 `'sessionoptions'` 控制）：
+
+    - **窗口布局**：所有分割窗口（`split` / `vsplit`）的位置和大小。
+    - **缓冲区列表**：打开的所有文件（包括隐藏的）。
+    - **光标位置**：每个文件最后编辑的行号和列号。
+    - **当前工作目录**（`pwd`）。
+    - **全局变量**（以大写字母开头的）。
+    - **键盘映射**（Mappings）和选项（Options）。
+    - **命令行历史**和**搜索历史**。
+    - **折叠**（Folds）的打开/关闭状态。
+
+    ---
+
+    ### 2. 核心操作命令
+
+    | 命令 | 作用 |
+    | :--- | :--- |
+    | `:mksession` | 在当前目录生成 `Session.vim` 文件。 |
+    | `:mksession ~/my_proj.vim` | 指定路径和文件名保存。 |
+    | `:source Session.vim` | **手动**加载恢复会话（在 Vim 内部执行）。 |
+    | `vim -S Session.vim` | **最常用**：启动 Vim 时自动加载会话（在终端执行）。 |
+    | `:Obsession` | **强烈推荐**：使用插件 `tpope/vim-obsession` 的无感自动保存命令（下文会讲）。 |
+
+    ---
+
+    ### 3. 实战工作流（推荐做法）
+
+    假设你正在开发一个名为 `Blog` 的项目，打开了 5 个文件，切分了 3 个窗口。
+
+    #### 步骤一：保存会话
+    ```vim
+    :cd ~/projects/Blog   " 确保进入项目根目录
+    :mksession .          " 注意最后的点号，表示在当前目录生成 Session.vim
+    ```
+    **最佳实践**：**不要把 `Session.vim` 提交到 Git**。请将它加入 `.gitignore`，因为路径通常是绝对路径，换电脑可能失效。
+
+    #### 步骤二：退出 Vim
+    `:qa` 退出。
+
+    #### 步骤三：下次恢复
+    在终端项目根目录下执行：
+    ```bash
+    vim -S
+    ```
+    或者简写：
+    ```bash
+    vim -S Session.vim
+    ```
+    此时，Vim 会瞬间恢复所有窗口、光标位置，你直接继续编码。
+
+    ---
+
+    ### 4. 至关重要的配置：`'sessionoptions'`
+
+    这个选项决定了 Session 要保存哪些内容。默认值通常够用，但我推荐你修改一下。
+
+    在 `.vimrc` 中加入：
+    ```vim
+    set sessionoptions+=resize,winpos,terminal
+    set sessionoptions-=options
+    ```
+
+    - **`+=resize`**：保存窗口的大小（宽度和高度）。
+    - **`+=winpos`**：保存 Vim 整个窗口在操作系统屏幕上的位置。
+    - **`+=terminal`**：如果你在 Vim 里打开了内置终端（`:term`），保存终端的命令历史。
+    - **`-=options`**：**强烈建议删掉它**。如果保存了 `options`，当你加载 Session 时，会覆盖你当前 `.vimrc` 的设置，导致混乱。删掉后，Session 只负责文件和布局，设置永远走 `.vimrc`。
+
+    ---
+
+    ### 5. 进阶用法：多项目切换（项目即 Session）
+
+    如果你同时维护多个代码仓库，不要只用一个 `Session.vim`。可以按项目分开：
+
+    ```bash
+    # 进入项目 A
+    cd ~/work/project_a
+    vim -S proj.vim
+
+    # 进入项目 B (完全隔离)
+    cd ~/work/project_b
+    vim -S proj.vim
+    ```
+    **技巧**：在终端配置文件（`.zshrc` / `.bashrc`）里设置别名：
+    ```bash
+    alias vima='vim -S ~/work/project_a/session.vim'
+    alias vimb='vim -S ~/work/project_b/session.vim'
+    ```
+
+    ---
+
+    ### 6. 杀手级插件：`vim-obsession` (tpope)
+
+    原生 `:mksession` 有一个**痛点**：你必须记得在退出前手动执行 `:mksession`。如果你忘了，之前的窗口布局就白调了。
+
+    **解决方案**：安装 [tpope/vim-obsession](https://github.com/tpope/vim-obsession)。
+
+    **使用方法**：
+    ```vim
+    :Obsession ~/projects/blog/session.vim   " 开始追踪当前会话
+    ```
+    之后，**你什么都不用管了**。每次你增删窗口、移动光标、打开新文件，`Obsession` 都会在后台自动静默更新 `.vim` 文件。退出 Vim 时无需任何操作，下次 `vim -S` 打开，永远是最新的状态。
+
+    停止追踪：
+    ```vim
+    :Obsession!   " 加感叹号停止，并删除session文件（可选）
+    ```
+
+    ---
+
+    ### 7. 极客玩法：Session 与 `vim-startify` 结合
+
+    如果你安装了插件 [Startify](https://github.com/mhinz/vim-startify)，启动 Vim 时会有一个漂亮的欢迎界面，上面会列出你最近的项目。你可以配置 Startify 展示你指定目录下的 Session 文件列表，点一下数字键就能直接加载项目，完全脱离鼠标和终端指令。
+
+    ---
+
+    ### 8. 容易踩的坑（避雷区）
+
+    1.  **绝对路径问题**：如果你在 `/home/user/proj` 保存 Session，移到 `/home/newuser/proj` 恢复时，`Session.vim` 里的绝对路径会报错。解决方案是保存时**先用 `:cd %:p:h` 进入文件目录**，并在 `sessionoptions` 中包含 `curdir`。
+    2.  **远程文件 (NetRW)**：如果你通过 `:e scp://...` 打开远程文件，保存 Session 会导致恢复时卡顿。建议这类临时文件单独开一个 Vim 进程，不保存 Session。
+    3.  **大项目性能**：如果你的 Session 包含 50+ 个文件，恢复时 Vim 会同时加载所有缓冲区，可能变慢。建议只用 Session 保存**核心窗口的布局**，辅助文件用插件（如 CtrlP/FZF）动态打开。
+
+    ---
+
+    ### 总结建议
+
+    - **轻度用户**：直接用 `:mksession` + `vim -S`，隔三差五手动存一次。
+    - **重度开发/多项目**：安装 `vim-obsession` + 设置 `sessionoptions-=options`，每个项目根目录放一个 `session.vim`。
+    - **核心心法**：把 Session 看作是 Vim 的“休眠（Hibernate）”功能——让你可以随时中断复杂的思维上下文，关机走人，第二天开机瞬间回到“心流”状态。
+
+* 在正常模式下，按下 <C-o> 可以跳转到光标之前的位置，即使那个位置在另一个被关闭的文件中，这也能帮你切回去
+
+    注：
+
+    1. 验证过，确实可以。甚至是 rm 过的文件，都可以创建个 new 文件出来。当然这个文件并没有保存到磁盘上，需要手动 :w 才会保存。
+
+* vim 使用 find 自动查找并打开文件
+
+    1.  **设置 `path` 选项**：在你的 `~/.vimrc` 中添加以下配置，让 Vim 在当前目录及所有子目录中搜索文件：
+
+        ```vim
+        set path=.,,**
+        ```
+
+        *   `.` 代表当前文件所在目录。
+        *   `,` 代表当前工作目录。
+        *   `**` 代表递归搜索所有子目录。
+
+    2.  **使用 `:find` 命令**：之后，在命令模式下输入 `:find` 并配合 `<Tab>` 键即可使用 `path` 进行补全。
+
+        ```vim
+        :find fil<Tab>
+        ```
+
+    高级技巧与替代方案
+
+    * **配合 `wildmenu` 使用**：启用 `wildmenu` 可以让你在补全时看到所有匹配的文件列表，并通过 `<Tab>` 或方向键选择，这能有效避免因文件名重复而打开错误的文件。
+
+        ```vim
+        set wildmenu
+        set wildmode=full
+        ```
+
+    * **快速打开同目录文件**：如果你只是想快速打开与当前文件在同一目录下的其他文件，可以定义一个缩写：
+
+        ```vim
+        " 输入 :e %% 会展开为 :e /当前文件所在目录/
+        cabbr <expr> %% expand('%:p:h')
+        ```
+
+        例如，编辑 `/project/src/main.c` 时，输入 `:e %%/<Tab>` 即可补全 `src` 目录下的文件。
+
+    * **在新标签或分屏中打开**：`:find` 也有变体命令，可以让你在新窗口中打开文件：
+
+        *   `:sfind <filename>`：在水平分屏中打开。
+        *   `:tabfind <filename>`：在新标签页中打开。
+
 * vim 中，即使一个 buffer 被关闭，也可以使用 :b# 找到上一个 buffer
 
 * 我希望自己开发vim插件，为vim添加这样一个功能：

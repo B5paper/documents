@@ -36,48 +36,138 @@
 
 ## cache
 
+* [ ] winpty python
+
+    * [ ] 使用 python -i 或者安装 winpty
+
+* [new] PS1 变量
+
+* [new] pip install -e .
+
+* [new] C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
+
+* [new] `arr: "NDArray" = cp.array([1, 2, 3])`
+
+* [new] GitLens
+
+* [new] git diff
+
+    终端版:
+
+    ```bash
+    git diff <commit_id> -- <file_path>
+    ```
+
+    如果你配置了 VS Code 作为默认的 diff tool，可以使用：
+
+    ```bash
+    git difftool <commit_id> -- <file_path>
+    ```
+
+    这会自动弹出 VS Code 的对比窗口。
+
+* [new] 调研 numpy 中 flatten 和 reshape 的实现，P 进制数的合成与取各个位的数字的实现
+
+    分别实现从高位到低位，从低位到高位
+
+* [ ] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
+
+* [ ] pyserial, struct
+
+* [ ] OpenBCI GUI、LSL Lab Streaming Layer
+
+* [asso] 查看所有可用的方法（过滤掉内置方法）
+
+    ```py
+    methods = [method for method in dir(raw) if not method.startswith('_')]
+    print("可用的方法：", methods)
+    ```
+
+* [ ] Nilearn
+
+* [ ] sudo sh -c "echo 1 > /sys/class/iommu/dmar*/reset"
+
+* [ ] iommu=relaxable iommu.forcedac=0 iommu.strict=0
+
+* [ ] `echo "vfio-pci" > /sys/bus/pci/devices/0000:01:00.0/driver_override`
+
+* [ ] `ls -l /sys/bus/pci/devices/0000:01:00.0/iommu_group/devices/`
+
+* [ ] 
+
+    ```bash
+    sudo usermod -L admin
+    sudo passwd -l admin
+    ```
+
+    或者直接删除：
+
+    ```bash
+    sudo userdel -r admin
+    ```
+
+    ```bash
+    ip neigh | grep 100.104.94.244
+    ```
+
+    ```bash
+    arp -an | grep 100.104.94.244
+    ```
+
+* [ ] cywgin 中是否默认安装了`ncurses`和`terminfo`
+
+* [ ] ZoomWin：这个插件可以让你用 <C-w> o 暂时最大化当前窗口，再次按下同一个快捷键就能完美恢复之前的布局。
+
+    vim-winzoom：它的作用和 ZoomWin 类似，可以搜索这个插件。
+
 * 与 find 相关的笔记只有一些常用场景的用法，并没有针对每个参数的详解
 
 * 一次性地，用英语怎么说
 
     有多种表达"一次性地"的英语说法，根据上下文不同：
 
-    ## 最常用表达
+    最常用表达
+
     - **One-time** (形容词) - 最通用
     - **One-off** (形容词) - 英式英语常用
     - **Single-use** (形容词) - 强调只用一次
 
-    ## 具体场景用法
+    **具体场景用法**
 
-    ### 1. 一次性付款/交易
-    ```
-    One-time payment
-    One-off transaction
-    Single payment
-    ```
+    1. 一次性付款/交易
 
-    ### 2. 一次性用品
-    ```
-    Disposable items
-    Single-use products
-    One-time use items
-    ```
+        ```
+        One-time payment
+        One-off transaction
+        Single payment
+        ```
 
-    ### 3. 一次性完成某事
-    ```
-    Do something in one go
-    Do something all at once
-    Complete something in a single operation
-    ```
+    2. 一次性用品
 
-    ### 4. 副词形式（一次性做某事）
-    ```
-    Do something once and for all
-    Do something in one shot
-    Do something in a single attempt
-    ```
+        ```
+        Disposable items
+        Single-use products
+        One-time use items
+        ```
 
-    ## 完整例句
+    3. 一次性完成某事
+
+        ```
+        Do something in one go
+        Do something all at once
+        Complete something in a single operation
+        ```
+
+    4. 副词形式（一次性做某事）
+
+        ```
+        Do something once and for all
+        Do something in one shot
+        Do something in a single attempt
+        ```
+
+    完整例句
+
     - "This is a **one-time** operation."
     - "We need a **one-off** solution for this problem."
     - "It's a **single-use** code that expires after first use."
@@ -89,7 +179,7 @@
 
     区分 switch 类型的 silink 和 p2p 类型的 silink，可以用以下几种英语表达：
 
-    ## 专业术语表达
+    **专业术语表达**
 
     **Distinguish between switch-type silink and p2p-type silink**
 
@@ -97,7 +187,7 @@
 
     **Tell apart switch-mode silink and p2p-mode silink**
 
-    ## 更详细的描述方式
+    **更详细的描述方式**
 
     **"We need to distinguish between the two silink architectures: switch-based versus peer-to-peer."**
 
@@ -105,7 +195,7 @@
 
     **"Identifying whether a silink operates in switch mode or p2p mode is crucial for proper configuration."**
 
-    ## 在文档或对话中的自然表达
+    **在文档或对话中的自然表达**
 
     **"How do we differentiate switch silinks from p2p silinks?"**
 
@@ -113,13 +203,13 @@
 
     **"The key differences between switch-based and p2p silink topologies are..."**
 
-    ## 技术规格写法
+    **技术规格写法**
 
     **"Silink operates in two modes:**
     - **Switch-type silink (hub-spoke topology)**
     - **P2P-type silink (mesh topology)"**
 
-    ## 推荐用法
+    **推荐用法**
 
     对于技术文档和正式场合，推荐：
     **"Distinguish between switch-type silink and p2p-type silink"**
@@ -2292,65 +2382,6 @@ english words 由 { } reorg: english words 进化而来。
 * [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
 
 * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
-
-## fnirs
-
-### tasks
-
-* [new] 使用 python -i 或者安装 winpty
-
-* [new] cygpath
-
-* [new] winpty python
-
-* [new] PS1 变量
-
-* [new] pip install -e .
-
-* [new] VS Code 的 `Remote - WSL` 插件
-
-* [new] C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
-
-* [new] `arr: "NDArray" = cp.array([1, 2, 3])`
-
-* [v] divmod, np.unravel_index
-
-* [new] GitLens
-
-* [new] git diff
-
-    终端版:
-
-    ```bash
-    git diff <commit_id> -- <file_path>
-    ```
-
-    如果你配置了 VS Code 作为默认的 diff tool，可以使用：
-
-    ```bash
-    git difftool <commit_id> -- <file_path>
-    ```
-
-    这会自动弹出 VS Code 的对比窗口。
-
-* [new] 调研 numpy 中 flatten 和 reshape 的实现，P 进制数的合成与取各个位的数字的实现
-
-    分别实现从高位到低位，从低位到高位
-
-* [v] `ax.annotate()`
-
-* [ ] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
-
-* [ ] pyserial, struct
-
-* [ ] OpenBCI GUI、LSL Lab Streaming Layer
-
-* [asso] 查看所有可用的方法（过滤掉内置方法）
-
-    ```py
-    methods = [method for method in dir(raw) if not method.startswith('_')]
-    print("可用的方法：", methods)
-    ```
 
 ## Torch
 
