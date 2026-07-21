@@ -1,7 +1,5 @@
 ## tasks
 
-* [ ] 对比 siccl graph 与 graph 中 xml.h/.cc, topo_system.h/.cc，看 ai 瞎改了哪些地方
-
 * [ ] 编译 debug_utils
 
 * [ ] 对照 siccl graph 中，ai 改了什么函数
@@ -53,6 +51,107 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* recur add nv link
+
+    ```cpp
+    #if SICCL_COMPATIBLE_WITH_NCCL == 1
+    int _recur_add_link(TopoSystem &topo_system, XmlTag &xml_tag) {
+        if (xml_tag.name == "nvlink") {
+            XmlTag &gpu_tag = *xml_tag.parent;
+            XmlTag *cpu_tag_ptr = xml_tag.parent;
+            while (cpu_tag_ptr->name != "cpu") {
+                cpu_tag_ptr = cpu_tag_ptr->parent;
+            }
+            XmlTag &cpu_tag = *cpu_tag_ptr;
+            const string &host_hash_str = cpu_tag.attrs["host_hash"];
+            uint64_t system_id;
+            int ret = find_host_hash(system_id, topo_system.host_hashes,
+                host_hash_str);
+            if (ret != 0) {
+                WARN("fail to find host hash");
+                return -1;
+            }
+
+            uint64_t bus_id;
+            const string &bus_id_str = gpu_tag.parent->attrs.at("busid");
+            ret = bus_id_str_to_uint64(bus_id_str.c_str(), &bus_id);
+            if (ret != 0) {
+                WARN("fail to convert bus id from str to uint64");
+                return -1;
+            }
+            uint64_t gpu_topo_id = compose_topo_id(system_id, bus_id);
+
+            TopoNode &gpu_node = topo_system.get_node(GPU, gpu_topo_id);
+
+            int count;
+            const string &count_str = xml_tag.attrs.at("count");
+            count = std::stoi(count_str);
+
+            int target_pci_type;
+            const string &tclass_str = xml_tag.attrs.at("tclass");
+            target_pci_type = Pci_Class_Str_To_Id[tclass_str];
+
+            TopoNode *remote_node_ptr = NULL;
+            if (target_pci_type == GPU) {
+                // to be implemented ...
+            } else if (target_pci_type == CPU) {
+                // to be implemented ...
+            } else  if (target_pci_type == NVS) {
+                // topo_system only has **one** nvswitch
+                if (topo_system.nodes[NVS].empty()) {
+                    remote_node_ptr = &topo_system.add_node(NVS);
+                    remote_node_ptr->id = 0;
+                } else {
+                    remote_node_ptr = topo_system.nodes[NVS][0];
+                }
+            } else {
+                WARN("unknown target pci type: %d", target_pci_type);
+                return -1;
+            }
+
+            if (remote_node_ptr == NULL) {
+                WARN("fail to get remote node ptr");
+                return -1;
+            }
+
+            float bw = get_nvlink_bw(gpu_node.gpu.cudaCompCap);
+            // nccl regards gpu 1 --nvlink--> gpu 2 as a single direction
+            // connection，and if it is a nvswitch, such as gpu 1 -->nvlink--> nvswitch
+            // then nv adds gpu 1 bi-directional edges between two nvswitches
+            // siccl thinks all edges of gpu 1 and gpu 2 are directional edges
+            ret = mutually_connect_nodes(topo_system,
+                gpu_node, *remote_node_ptr, LINK_NVL, count * bw);
+            if (ret != 0) {
+                WARN("fail to mutually connect nodes");
+                return -1;
+            }
+
+            return 0;
+        }
+
+        for (int i = 0; i < xml_tag.child_tags.size(); ++i) {
+            XmlTag &child_tag = *xml_tag.child_tags[i];
+            int ret = _recur_add_link(topo_system, child_tag);
+            if (ret != 0) {
+                WARN("fail to recur add nvlink");
+                return -1;
+            }
+        }
+
+        return 0;
+    }
+
+    int topo_system_add_nvlink(TopoSystem &topo_system, XmlTag &root_tag) {
+        int ret = _recur_add_link(topo_system, root_tag);
+        if (ret != 0) {
+            WARN("fail to recur add link");
+            return -1;
+        }
+        return 0;
+    }
+    #else
+    ```
 
 1. 在 67 机器上启动 model server，因为只有 67 机器的 home 目录装了 pyenv，而装了 pyenv 后，有了个 3.12.12 虚拟环境，这才能装 jinja2
 
