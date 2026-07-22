@@ -1,5 +1,29 @@
 ## tasks
 
+1. [ ] 为什么 print topo xml 无法使用 2>&1 > tmp.xml 捕获？
+
+1. [ ] `< version="1">`, `</>` 没有 system 的问题
+
+* topo system test 1 有保留必要，用于探测本机的 单线程多 gpu，避免 bootstrap all gather
+
+1. smi_bus_id_to_uint64()
+
+1. getUuid()
+
+1. smi_dev_get_pci_info()
+
+1. smi_init()
+
+    smi_dev_get_handle_by_index()
+
+    smi_dev_get_count()
+
+1. 无法 dump system，因为其中要用到 bootstrap all gather，而这个会 include nccl.h，发生严重耦合
+
+    只能先实现 load system
+
+    后续可以考虑把 bootstrap all gather 功能单独拆出来，再去实现 dump system
+
 * [ ] 编译 debug_utils
 
 * [ ] 对照 siccl graph 中，ai 改了什么函数
@@ -51,6 +75,58 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* `uuit_t`与`sipuUUID_t`底层都是 16 字节，直接使用 memcpy 复制数据就可以。
+
+* `sipuError_t sipuDeviceGetPCIBusId(char* pciBusId, int len, int device);`
+
+    include: `"sipu_runtime.h"`
+
+    返回格式为 `[domain]:[bus]:[device].[function]`，文档要求缓冲区至少 13 字节。
+
+    example:
+
+    ```cpp
+    const int pci_bus_id_len = 16;
+    char pciBusId[pci_bus_id_len];
+    int device = 0;
+    si_ret = sipuDeviceGetPCIBusId(pciBusId, pci_bus_id_len, device);
+    if (si_ret != sipuSuccess) {
+        printf("fail to get pci bus id\n");
+        return -1;
+    }
+    printf("pci bus id: %s\n", pciBusId);
+    ```
+
+* `sipuGetDeviceProperties()`
+
+    根据 device idx 填充`prop`。其中`prop.uuid`是个`sipuUUID_t`类型，内容是 16 字节 char bytes[16]
+
+    `sipuUUID_t` 头文件：`sipurt/driver_types.h`
+
+    example:
+
+    ```cpp
+    sipuDeviceProp prop{};
+    si_ret = sipuGetDeviceProperties(&prop, device);
+    if (si_ret != sipuSuccess) {
+        printf("fail to get device prop\n");
+        return -1;
+    }
+    printf("uuid: ");
+    for (int i = 0; i < 16; ++i) {
+        printf("%02x ", (unsigned char) prop.uuid.bytes[i]);
+    }
+    putchar('\n');
+    ```
+
+* sipu driver note
+
+    1. 在 malloc, free 之前，都需要 set device，不然会报错。尤其是 free 前。因为目前没有 uva，无法识别指针对应的 device
+
+    2. memcpy 前也需要 set device
+
+    3. p2p 的 memcpy 需要用 sipuMemcpyPeer
 
 * recur add nv link
 
