@@ -2,6 +2,10 @@
 
 ## cache
 
+* vscode 把标签页往左移：Windows / Linux：Ctrl + Shift + PageUp
+
+    插件 "Move Tab" 或 "Editor Tabs"
+
 * 介绍点常用的vscode 快捷键，比如跳转到下个单词的开头/结尾之类的
 
     好的！为您整理一份非常实用的 VS Code 快捷键清单，特别包含了您关心的单词导航和其他高效操作。这些快捷键主要在 **Windows/Linux** 下，macOS 用户通常将 `Ctrl` 替换为 `Cmd`，将 `Alt` 替换为 `Option` 即可。

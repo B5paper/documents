@@ -4,6 +4,149 @@
 
 ## cached
 
+* c++ 中如何给一个 namespace 取别名
+
+    在C++中，给命名空间（namespace）取别名使用 **`namespace alias`**（命名空间别名）语法。
+
+    ## 基本语法
+
+    ```cpp
+    namespace new_name = original_name;
+    ```
+
+    ## 常见用法示例
+
+    ### 1. 简化长命名空间名称
+    ```cpp
+    namespace very_long_project_name {
+        void foo() {}
+    }
+
+    // 取别名
+    namespace vl = very_long_project_name;
+
+    int main() {
+        vl::foo();  // 使用别名调用
+        return 0;
+    }
+    ```
+
+    ### 2. 嵌套命名空间简化
+    ```cpp
+    namespace outer {
+        namespace inner {
+            namespace nested {
+                void bar() {}
+            }
+        }
+    }
+
+    // 为深层嵌套取别名
+    namespace nested = outer::inner::nested;
+
+    int main() {
+        nested::bar();  // 简化调用
+        return 0;
+    }
+    ```
+
+    ### 3. 标准库命名空间别名
+    ```cpp
+    // 为 std 取别名（虽然不常见）
+    namespace st = std;
+
+    int main() {
+        st::cout << "Hello" << st::endl;
+        return 0;
+    }
+    ```
+
+    ### 4. 条件编译中使用别名
+    ```cpp
+    #ifdef USE_OPTIMIZED
+        namespace algo = optimized_algorithm;
+    #else
+        namespace algo = basic_algorithm;
+    #endif
+
+    int main() {
+        algo::compute();  // 根据条件使用不同的实现
+        return 0;
+    }
+    ```
+
+    ## 重要注意事项
+
+    ### ✅ 可以做的：
+    - 别名可以定义在**全局作用域**
+    - 别名可以定义在**函数内部**（C++11起）
+    - 别名可以定义在**类内部**（C++11起）
+
+    ### ❌ 不能做的：
+    - 别名**不能**在命名空间作用域内与现有名称冲突
+    - 别名**不能**为已存在的别名再次取别名（但可以传递）
+
+    ```cpp
+    namespace A {}
+    namespace B = A;   // OK
+    namespace C = B;   // OK，C 也指向 A
+    // namespace A = B; // 错误！不能给 A 重新赋值
+    ```
+
+    ### 作用域示例
+    ```cpp
+    namespace foo {
+        void func() {}
+    }
+
+    void test() {
+        namespace f = foo;  // 函数局部别名（C++11）
+        f::func();
+    }
+
+    namespace {
+        namespace f = foo;  // 匿名命名空间中的别名
+    }
+    ```
+
+    ## 与 using 指令的区别
+
+    | 特性 | `namespace alias` | `using namespace` |
+    |------|-------------------|-------------------|
+    | 用途 | 缩短命名空间名称 | 导入所有名称到当前作用域 |
+    | 作用域 | 创建新名称 | 不创建新名称 |
+    | 冲突风险 | 低（需要前缀） | 高（名称污染） |
+
+    ```cpp
+    namespace math = std::__detail;  // 取别名
+    using namespace std;              // 导入所有 std 名称
+    ```
+
+    ## 实际应用场景
+
+    ### 1. 库版本切换
+    ```cpp
+    // 根据版本选择不同的命名空间
+    namespace json = rapidjson;  // 或 nlohmann::json
+    ```
+
+    ### 2. 测试代码
+    ```cpp
+    namespace prod = production_code;
+    namespace test = test_code;
+
+    // 在测试文件中
+    test::run_tests();
+    ```
+
+    ### 3. 避免宏冲突
+    ```cpp
+    // 使用别名避免与宏同名
+    namespace Windows = win32_api;
+    ```
+
+    这个特性在大型项目中非常有用，可以大幅提高代码的可读性和可维护性。
+
 * 假如一个 .so 里有个函数 func()，里面有 static int count变量，每次 func() 被调用，count += 1, 现在有一个进程起了两个线程，调用 .so 库里的 func()，线程 join 后，count 是 1 还是 2？
 
     这个问题涉及到**静态局部变量在多线程环境中的行为**，我来帮你分析一下。

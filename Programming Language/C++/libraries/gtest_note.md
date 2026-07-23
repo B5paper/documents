@@ -1,5 +1,176 @@
 ## cache
 
+* 详细讲讲 gtest 的用法
+
+    Google Test (通常称为 gtest) 是一个广泛应用于 C++ 项目的单元测试框架，用于编写和运行测试用例，以验证代码的正确性。下面将详细介绍它的核心用法。
+
+    ### 核心概念：断言 (Assertions)
+
+    断言是 gtest 中最基本的单元，用来检查某个条件是否为真。一个测试用例（test case）就是由一系列断言构成的。
+
+    断言主要分为两类，区别在于失败时的影响：
+
+    *   **`EXPECT_*` 系列**：当断言失败时，会生成一个**非致命性**错误。测试函数会继续执行，因此一个测试中可以有多个 `EXPECT_*` 断言失败，并一并报告。**这是最常用的方式**，因为它能提供更全面的失败信息。
+    *   **`ASSERT_*` 系列**：当断言失败时，会生成一个**致命性**错误，并**立即中止**当前的测试函数。如果后续代码在没有前置条件的情况下运行没有意义，应使用此系列。
+
+    你还可以使用 `<<` 运算符为断言添加自定义失败信息，这对调试非常有帮助。
+
+    ```cpp
+    EXPECT_EQ(x.size(), y.size()) << "Vectors x and y are of unequal length";
+    ```
+
+    #### 常用断言宏
+
+    | 分类 | 常用宏 | 作用 |
+    | :--- | :--- | :--- |
+    | **布尔值检查** | `EXPECT_TRUE(condition)`<br>`ASSERT_TRUE(condition)` | 检查条件是否为 `true`。 |
+    | | `EXPECT_FALSE(condition)`<br>`ASSERT_FALSE(condition)` | 检查条件是否为 `false`。 |
+    | **数值比较** | `EXPECT_EQ(expected, actual)`<br>`ASSERT_EQ(expected, actual)` | 检查 `expected` 和 `actual` 是否相等。 |
+    | | `EXPECT_NE(val1, val2)`<br>`ASSERT_NE(val1, val2)` | 检查 `val1` 和 `val2` 是否不相等。 |
+    | | `EXPECT_LT(val1, val2)`<br>`ASSERT_LT(val1, val2)` | 检查 `val1` 是否小于 `val2`。 |
+    | | `EXPECT_LE(val1, val2)`<br>`ASSERT_LE(val1, val2)` | 检查 `val1` 是否小于等于 `val2`。 |
+    | | `EXPECT_GT(val1, val2)`<br>`ASSERT_GT(val1, val2)` | 检查 `val1` 是否大于 `val2`。 |
+    | | `EXPECT_GE(val1, val2)`<br>`ASSERT_GE(val1, val2)` | 检查 `val1` 是否大于等于 `val2`。 |
+    | **字符串比较** | `EXPECT_STREQ(str1, str2)`<br>`ASSERT_STREQ(str1, str2)` | 检查两个 C 风格字符串 (`const char*`) 的内容是否相同。 |
+    | | `EXPECT_STRNE(str1, str2)`<br>`ASSERT_STRNE(str1, str2)` | 检查两个 C 风格字符串的内容是否不同。 |
+    | | `EXPECT_STRCASEEQ(str1, str2)` | 忽略大小写，检查内容是否相同。 |
+    | | `EXPECT_STRCASENE(str1, str2)` | 忽略大小写，检查内容是否不同。 |
+    | **浮点数比较** | `EXPECT_FLOAT_EQ(expected, actual)` | 检查两个 `float` 值是否近似相等（基于 4 个 ULPs）。 |
+    | | `EXPECT_DOUBLE_EQ(expected, actual)` | 检查两个 `double` 值是否近似相等（基于 4 个 ULPs）。 |
+    | | `EXPECT_NEAR(val1, val2, abs_error)` | 检查 `val1` 和 `val2` 之间的差值是否不超过用户指定的绝对误差 `abs_error`。 |
+    | **异常检查** | `EXPECT_THROW(statement, exception_type)` | 检查 `statement` 是否抛出了指定类型的异常。 |
+    | | `EXPECT_ANY_THROW(statement)` | 检查 `statement` 是否抛出了任何类型的异常。 |
+    | | `EXPECT_NO_THROW(statement)` | 检查 `statement` 是否没有抛出任何异常。 |
+
+    ### 编写测试：`TEST` 和 `TEST_F`
+
+    #### 1. 基础测试：`TEST` 宏
+
+    对于大多数独立的、不需要复杂初始化的测试，使用 `TEST` 宏即可。
+
+    ```cpp
+    #include <gtest/gtest.h>
+
+    // 被测试函数
+    int add(int a, int b) {
+        return a + b;
+    }
+
+    // 测试套件名称: AddTest, 测试名称: HandlesPositiveInput
+    TEST(AddTest, HandlesPositiveInput) {
+        EXPECT_EQ(3, add(1, 2));
+        EXPECT_EQ(5, add(2, 3));
+    }
+
+    TEST(AddTest, HandlesZeroAndNegative) {
+        EXPECT_EQ(1, add(1, 0));
+        EXPECT_EQ(-1, add(-2, 1));
+    }
+    ```
+    在这个例子中，`AddTest` 是**测试套件（test suite）** 的名称，`HandlesPositiveInput` 是具体**测试（test）** 的名称。它们共同构成了测试的全名。
+
+    #### 2. 测试夹具：`TEST_F` 宏
+
+    当多个测试需要共享同一组数据或相同的初始化/清理代码时，可以使用**测试夹具（Test Fixture）**。这需要创建一个继承自 `testing::Test` 的类，并重写 `SetUp()` 和 `TearDown()` 方法。
+
+    ```cpp
+    #include <gtest/gtest.h>
+
+    class MyStringTest : public ::testing::Test {
+    protected:
+        // 在每次测试执行前运行
+        void SetUp() override {
+            str = new std::string("Hello, World!");
+        }
+
+        // 在每次测试执行后运行
+        void TearDown() override {
+            delete str;
+            str = nullptr;
+        }
+
+        std::string* str;
+    };
+
+    // 使用 TEST_F 宏，第一个参数必须是测试夹具的类名
+    TEST_F(MyStringTest, LengthIsCorrect) {
+        EXPECT_EQ(13, str->length());
+    }
+
+    TEST_F(MyStringTest, ContainsHello) {
+        EXPECT_NE(std::string::npos, str->find("Hello"));
+    }
+    ```
+    `SetUp()` 和 `TearDown()` 方法会在**每个** `TEST_F` 测试用例执行前后被调用，确保了测试之间的独立性。
+
+    ### 高级特性
+
+    #### 1. 参数化测试：`TEST_P`
+
+    当你需要用多组不同的数据来测试同一段代码逻辑时，参数化测试可以避免重复编写相似的测试代码。你需要创建一个继承自 `testing::TestWithParam<T>` 的类，并用 `TEST_P` 定义测试。
+
+    ```cpp
+    #include <gtest/gtest.h>
+
+    class CalculatorTest : public ::testing::TestWithParam<std::tuple<int, int, int>> {
+    };
+
+    TEST_P(CalculatorTest, HandlesAddition) {
+        int a = std::get<0>(GetParam());
+        int b = std::get<1>(GetParam());
+        int expected_sum = std::get<2>(GetParam());
+        Calculator calc;
+        EXPECT_EQ(expected_sum, calc.add(a, b));
+    }
+
+    // 使用 INSTANTIATE_TEST_SUITE_P 来实例化参数集
+    INSTANTIATE_TEST_SUITE_P(
+        AdditionTests,
+        CalculatorTest,
+        testing::Values(
+            std::make_tuple(1, 2, 3),
+            std::make_tuple(-1, 1, 0),
+            std::make_tuple(0, 0, 0)
+        )
+    );
+    ```
+    `INSTANTIATE_TEST_SUITE_P` 宏会为 `testing::Values` 中的每一组参数生成一个独立的测试用例。
+
+    #### 2. 死亡测试：`EXPECT_DEATH`
+
+    **死亡测试（Death Test）** 用于验证程序在特定情况下是否按照预期崩溃或退出。这通常用来检查断言 (`assert`) 或异常处理代码。
+
+    ```cpp
+    void Foo() {
+        int *pInt = nullptr;
+        *pInt = 42 ; // 这将导致程序崩溃
+    }
+
+    TEST(FooDeathTest, DiesOnNullPointerDereference) {
+        // 期望 Foo() 函数会使程序崩溃
+        EXPECT_DEATH(Foo(), "");
+    }
+    ```
+    **重要提示**：编写死亡测试时，通常建议将测试套件（`TEST` 的第一个参数）命名为以 `DeathTest` 结尾（如 `FooDeathTest`），这样 gtest 会优先运行它们，以确保线程安全。
+
+    #### 3. 运行控制
+
+    *   **初始化**：在 `main` 函数中，通过 `testing::InitGoogleTest(&argc, argv);` 初始化 gtest，然后调用 `RUN_ALL_TESTS()` 运行所有测试。
+    *   **重复测试**：可以使用 `--gtest_repeat` 命令行标志或设置 `GTEST_REPEAT` 环境变量来重复运行测试，这对于发现不稳定（flaky）的测试很有用。
+
+    ### 总结
+
+    | 特性 | 关键点 |
+    | :--- | :--- |
+    | **断言** | `EXPECT_*` (非致命, 推荐) 和 `ASSERT_*` (致命)。支持 `<<` 输出自定义信息。 |
+    | **基本测试** | 使用 `TEST(TestSuiteName, TestName)` 宏。 |
+    | **测试夹具** | 使用 `TEST_F` 宏，并创建一个继承 `testing::Test` 的类，重写 `SetUp`/`TearDown`。 |
+    | **参数化测试** | 使用 `TEST_P` 和 `INSTANTIATE_TEST_SUITE_P`，继承 `testing::TestWithParam<T>`。 |
+    | **死亡测试** | 使用 `EXPECT_DEATH` 等宏，测试套件名以 `DeathTest` 为后缀。 |
+    | **运行** | `RUN_ALL_TESTS()` 执行所有测试，通过命令行参数或环境变量控制执行行为。 |
+
+    掌握了这些核心用法，你就可以开始为自己的 C++ 代码编写健壮的单元测试了。如果希望了解更细节的用法，可以查阅 gtest 的官方文档。
+
 * 简述 gtest 的用法
 
     **GTest（Google Test）** 是C++的跨平台单元测试框架，核心用法可概括为**定义测试用例、编写断言、运行测试**三步，以下是极简核心流程：
