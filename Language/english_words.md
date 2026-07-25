@@ -1,5 +1,56 @@
 # English Words
 
+* in the interests of 为第一部分，phrase. 为了...的利益 为第二部分，再匹配一次
+
+	如果需要将句子分成两部分：
+	- 第一部分：`in the interests of`
+	- 第二部分：`phrase. 为了...的利益`
+
+	可以使用以下正则表达式：
+
+	```regex
+	^(in the interests of)\s*(phrase\. .*)$
+	```
+
+	### 解释：
+	1. `^` 匹配字符串的开始。
+	2. `(in the interests of)` 精确匹配 "in the interests of"，这部分会被捕获为第一个分组。
+	3. `\s*` 匹配任意数量的空白字符（包括空格、制表符等）。
+	4. `(phrase\. .*)$` 匹配从 "phrase." 开始的所有字符，直到字符串的末尾。这部分会被捕获为第二个分组。
+
+	### 示例：
+	假设输入句子为：
+	```
+	in the interests of phrase. 为了...的利益
+	```
+
+	使用上述正则表达式进行匹配后，结果如下：
+	- 第一部分（分组1）：`in the interests of`
+	- 第二部分（分组2）：`phrase. 为了...的利益`
+
+	### Python 示例代码：
+	```python
+	import re
+
+	text = "in the interests of phrase. 为了...的利益"
+	pattern = r'^(in the interests of)\s*(phrase\. .*)$'
+
+	match = re.match(pattern, text)
+	if match:
+		part1 = match.group(1)
+		part2 = match.group(2)
+		print("Part 1:", part1)
+		print("Part 2:", part2)
+	```
+
+	输出：
+	```
+	Part 1: in the interests of
+	Part 2: phrase. 为了...的利益
+	```
+
+	这个正则表达式可以精确地将句子分成两部分，分别捕获 `in the interests of` 和 `phrase. 为了...的利益`。
+
 * stratify prn. [ˈstrætəˌfaɪ] vt. （使）分层，成层
 
 * Ridge regression 岭回归

@@ -1,5 +1,25 @@
 ## tasks
 
+* [ ] sicclTopoComputePaths
+
+* [ ] topo.h 中目前都有哪些函数？哪些是和 init.cc 形成关键连接的？
+
+* [ ] 增加 channel 的 case
+
+* [ ] 在 nv + ib 机器上 dump 带网卡数据的 xml
+
+* [ ] 编译 tests 文件夹时，需要编译两次。后面看下为啥，是不是 makefile 里文件之间有依赖
+
+* [ ] 驱动是否可以知道一个 pci bus id 下有几个 usipu?
+
+* [ ] siccl_graph 下除了 topo.h/.cc 的其他文件，编译成一个 .o 或 .so （和 ai 讨论一下），然后 topo.h/.cc 作为一个兼容层和 nccl 其他文件一起参与编译，最终在链接时，topo.cc 生成 topo.o 参与链接？或者是 topo.cc 参与编译，其他.o 参与链接？
+
+* [ ] nccl_compact 这个能不能删了？把仅有的几个函数移动到 path.cc 里？
+
+* [ ] 使用 namespace 来隔离 nccl 和 siccl 的重定义冲突
+
+* [ ] 对比 siccl graph 与 graph 中 xml.h/.cc, topo_system.h/.cc，看 ai 瞎改了哪些地方
+
 1. [ ] 为什么 print topo xml 无法使用 2>&1 > tmp.xml 捕获？
 
 1. [ ] `< version="1">`, `</>` 没有 system 的问题
@@ -75,6 +95,10 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* 直接原因: uuid 不匹配，导致没有创建 gpu tag
+
+    根因：smi 未初始化，导致 get dev handle 失败，从而未拿到 uuid，导致 uuid 数据全为 0.
 
 * test makefile 里是先编译 .o，再 link 到 binary
 

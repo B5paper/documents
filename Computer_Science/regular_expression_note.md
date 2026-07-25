@@ -4,6 +4,196 @@
 
 ## cache
 
+* in the interests of phrase. 为了...的利益，用一个正则表达式匹配这个句子，分成两部分，前面一部分的短语可以有空格，从 phrase. 开始是解释含义
+
+	要匹配句子 "in the interests of phrase. 为了...的利益" 并将其分成两部分，其中第一部分是短语（可以包含空格），第二部分是从 "phrase." 开始的解释含义，可以使用以下正则表达式：
+
+	```regex
+	^(.*?phrase\.)\s*(.*)$
+	```
+
+	### 解释：
+	1. `^` 匹配字符串的开始。
+	2. `(.*?phrase\.)` 非贪婪匹配任意字符（包括空格），直到遇到 "phrase."。这个部分会被捕获为第一个分组。
+	3. `\s*` 匹配任意数量的空白字符（包括空格、制表符等）。
+	4. `(.*)$` 匹配从 "phrase." 之后的所有字符，直到字符串的末尾。这个部分会被捕获为第二个分组。
+
+	### 示例：
+	假设输入句子为：
+	```
+	in the interests of phrase. 为了...的利益
+	```
+
+	使用上述正则表达式进行匹配后，结果如下：
+	- 第一部分（分组1）：`in the interests of phrase.`
+	- 第二部分（分组2）：`为了...的利益`
+
+	### Python 示例代码：
+	```python
+	import re
+
+	text = "in the interests of phrase. 为了...的利益"
+	pattern = r'^(.*?phrase\.)\s*(.*)$'
+
+	match = re.match(pattern, text)
+	if match:
+		part1 = match.group(1)
+		part2 = match.group(2)
+		print("Part 1:", part1)
+		print("Part 2:", part2)
+	```
+
+	输出：
+	```
+	Part 1: in the interests of phrase.
+	Part 2: 为了...的利益
+	```
+
+	这个正则表达式可以有效地将句子分成两部分，分别捕获短语和解释含义。
+
+    * 写得更通用一些
+
+        为了使正则表达式更通用，可以设计一个模式，能够匹配任意以 `in the interests of` 开头的句子，并将其分成两部分：
+
+        - 第一部分：`in the interests of`
+        - 第二部分：`phrase. 为了...的利益` 或其他后续内容。
+
+        以下是更通用的正则表达式：
+
+        ```regex
+        ^(in the interests of)\s*(.*)$
+        ```
+
+        ### 解释：
+        1. `^` 匹配字符串的开始。
+        2. `(in the interests of)` 精确匹配 "in the interests of"，这部分会被捕获为第一个分组。
+        3. `\s*` 匹配任意数量的空白字符（包括空格、制表符等）。
+        4. `(.*)$` 匹配从 "in the interests of" 之后的所有字符，直到字符串的末尾。这部分会被捕获为第二个分组。
+
+        ### 示例：
+        假设输入句子为：
+        ```
+        in the interests of phrase. 为了...的利益
+        ```
+
+        使用上述正则表达式进行匹配后，结果如下：
+        - 第一部分（分组1）：`in the interests of`
+        - 第二部分（分组2）：`phrase. 为了...的利益`
+
+        ### Python 示例代码：
+        ```python
+        import re
+
+        text = "in the interests of phrase. 为了...的利益"
+        pattern = r'^(in the interests of)\s*(.*)$'
+
+        match = re.match(pattern, text)
+        if match:
+            part1 = match.group(1)
+            part2 = match.group(2)
+            print("Part 1:", part1)
+            print("Part 2:", part2)
+        ```
+
+        输出：
+        ```
+        Part 1: in the interests of
+        Part 2: phrase. 为了...的利益
+        ```
+
+        ### 更通用的应用场景：
+        这个正则表达式可以匹配任何以 `in the interests of` 开头的句子，并将句子分成两部分：
+        - 第一部分是固定的 `in the interests of`。
+        - 第二部分是 `in the interests of` 之后的所有内容。
+
+        例如：
+        - 输入：`in the interests of something. 这是解释`
+          - 第一部分：`in the interests of`
+          - 第二部分：`something. 这是解释`
+
+        - 输入：`in the interests of another phrase. 这是另一个解释`
+          - 第一部分：`in the interests of`
+          - 第二部分：`another phrase. 这是另一个解释`
+
+        这个正则表达式非常通用，适用于所有以 `in the interests of` 开头的句子。
+
+    * 什么是非贪婪匹配任意字符（包括空格）
+
+        非贪婪匹配（也称为惰性匹配或最小匹配）是正则表达式中一种匹配模式，它会尽可能少地匹配字符。
+
+        ## 非贪婪匹配 vs 贪婪匹配
+
+        ### 贪婪匹配（默认行为）
+        - `.*` - 匹配任意字符（包括空格）**尽可能多**
+        - 示例：`a.*b` 匹配 "a x b y b" 中的 "a x b y b"
+
+        ### 非贪婪匹配
+        - `.*?` - 匹配任意字符（包括空格）**尽可能少**
+        - 示例：`a.*?b` 匹配 "a x b y b" 中的 "a x b"
+
+        ## 具体区别
+
+        **输入字符串**: `"abc def ghi"`
+
+        | 正则表达式 | 匹配结果 | 说明 |
+        |------------|----------|------|
+        | `a.*i` | `"abc def ghi"` | 贪婪匹配，匹配从第一个a到最后一个i的所有内容 |
+        | `a.*?i` | `"abc def ghi"` | 非贪婪匹配，但这里结果相同（因为只有一个i） |
+        | `a.*?d` | `"abc d"` | 非贪婪匹配，匹配从a到第一个d的内容 |
+
+        **输入字符串**: `"<div>内容1</div><div>内容2</div>"`
+
+        | 正则表达式 | 匹配结果 | 说明 |
+        |------------|----------|------|
+        | `<div>.*</div>` | 整个字符串 | 贪婪匹配，匹配从第一个<div>到最后一个</div> |
+        | `<div>.*?</div>` | `<div>内容1</div>` | 非贪婪匹配，匹配第一个完整的<div>标签 |
+
+        ## 非贪婪匹配的语法
+
+        在量词后面加上 `?` 就变成了非贪婪匹配：
+
+        - `*?` - 匹配0次或多次，但尽可能少
+        - `+?` - 匹配1次或多次，但尽可能少  
+        - `??` - 匹配0次或1次，但尽可能少
+        - `{n,}?` - 匹配至少n次，但尽可能少
+        - `{n,m}?` - 匹配n到m次，但尽可能少
+
+        ## 实际应用示例
+
+        ```python
+        import re
+
+        # 示例1：提取第一个短语
+        text = "in the interests of phrase. 为了...的利益"
+        pattern1 = r'^(.*?phrase\.)'  # 非贪婪匹配到第一个phrase.
+        match1 = re.match(pattern1, text)
+        print("非贪婪匹配:", match1.group(1))  # 输出: in the interests of phrase.
+
+        # 示例2：对比贪婪匹配
+        pattern2 = r'^(.*phrase\.)'  # 贪婪匹配到最后一个phrase.
+        match2 = re.match(pattern2, text)
+        print("贪婪匹配:", match2.group(1))  # 输出: in the interests of phrase.
+
+        # 示例3：HTML标签提取
+        html = "<div>第一个</div><div>第二个</div>"
+        div_pattern = r'<div>(.*?)</div>'  # 非贪婪匹配
+        matches = re.findall(div_pattern, html)
+        print("非贪婪提取:", matches)  # 输出: ['第一个', '第二个']
+        ```
+
+        ## 总结
+
+        **非贪婪匹配 `.*?`**：
+        - 匹配任意字符（包括空格、换行等）
+        - 尽可能少地匹配字符
+        - 遇到第一个满足条件的模式就停止
+        - 常用于提取最短的可能匹配
+
+        **适用场景**：
+        - 提取HTML/XML标签内容
+        - 匹配特定模式之间的最短内容
+        - 避免过度匹配的问题
+
 * 正则表达式中`^`指的是字符串的开头还是`\n`的下一个字符？
 
     在正则表达式中，^ 的行为取决于具体的模式修饰符（flags）：

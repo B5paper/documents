@@ -2,6 +2,10 @@
 
 ## cache
 
+* 在 windows 中，使用 start menu 打开 vscode 后，并不能直接使用 cygwin 中配置好的 .ssh 相关的配置。后续再使用 cygwin 中`code`或`code .`打开的 vscode，也无法使用 cygwin 中 .ssh 以及 bash 相关的配置。
+
+	必须把 vscode 窗口全部关闭后，再在 cygwin 中使用`code`或`code .`打开 vscode，此时 vscode 才会自动使用 cygwin 中的 .ssh 以及 bash 配置（比如 DISPLAY 环境变量）
+
 * vscode 把标签页往左移：Windows / Linux：Ctrl + Shift + PageUp
 
     插件 "Move Tab" 或 "Editor Tabs"

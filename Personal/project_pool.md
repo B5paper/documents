@@ -36,6 +36,74 @@
 
 ## cache
 
+* [ ] nvim-tree、telescope、fzf
+
+* [ ] vim-rooter
+
+* 项目架构
+
+	* log
+
+		任务量比较大时，可能有不同领域的 entry，不止当前领域，所以无法把 entry 放到当前 proj 的 note 的 cache 里。而放到 exp 里也不合适，因为 exp 其实是草稿纸，只有稳定的 exp 才能放到 log 或 note 里。因此，必须要有一个`log.md`文件，专门拿来存放这些 entry。
+
+		常见模板如下：
+
+		```md
+		# log
+
+		按时间顺序存储的笔记。
+
+		## content
+
+		* xxxx
+
+			xxx, yyy
+
+		* zzz
+
+			xxx, zzz
+		```
+
+	* exp
+
+		草稿纸。经过验证的经验、规律、结论，可以放到`稳定`里。稳定的 entry 可以随时移动到 log, note 等文件里。
+
+		模板：
+
+		```md
+		## 不稳定
+
+		### 纯缓存
+
+		* xxx
+
+		### 下一步可验证
+
+		* yyy
+
+		## 稳定
+
+		* zzz
+		```
+
+	* note
+
+		笔记。cache 里存储的是未来得及分类的 entry，等攒够一波就放到 topics 里分流。
+
+		模板
+
+		```md
+		# note
+
+		## cache
+
+		## topics
+
+		### xxx
+
+		### yyy
+		```
+
 * [ ] winpty python
 
     * [ ] 使用 python -i 或者安装 winpty
