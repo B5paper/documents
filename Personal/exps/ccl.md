@@ -76,6 +76,12 @@
 
 ## cache
 
+* test makefile 里是先编译 .o，再 link 到 binary
+
+    编译 .o 时使用的是 CPPFLAGS
+
+* 两套定义：在 utils.h 等头文件里定义了一套，比如 uuid_t，供 siccl_graph 使用。在 nccl.h 里又定义了一套，供 topo.h 及其他模块使用。此时当 topo.h 去 include utils.h 时，就会发生定义冲突。这两套定义还都不能删。此时可以使用 namespace 隔开。
+
 * `uuit_t`与`sipuUUID_t`底层都是 16 字节，直接使用 memcpy 复制数据就可以。
 
 * `sipuError_t sipuDeviceGetPCIBusId(char* pciBusId, int len, int device);`
