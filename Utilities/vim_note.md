@@ -2,6 +2,10 @@
 
 ## cache
 
+* vim Ctrl + w 可以删除光标前的一个单词，insert 模式和 :command 模式中有效，normal 模式下无效。
+
+* vim 中撤销补全：ctrl + e
+
 * 详细讲讲 vim 中 session 的用法
 
     在 Vim 中，**Session（会话）** 是一个非常强大但常被忽视的功能。它的核心作用是**保存当前 Vim 的完整“状态”快照**，并在下次打开时精准恢复。

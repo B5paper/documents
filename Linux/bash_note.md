@@ -4,6 +4,323 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 快捷键
+
+	```bash
+	# 先输入 rm，然后按 Alt+. 或 Esc+. 
+	# 这会自动插入上一条命令的最后一个参数
+	rm 2026.07.23.md  # Alt+. 会自动补全文件路径
+	```
+
+* 详细讲讲 alias 的用法
+
+    好的，我们来详细讲讲 Linux/macOS 中 `alias` 的用法。`alias` 是一个 shell 内置命令，用来为长命令或复杂命令创建**快捷键**（别名）。用好它，可以极大地提高你的命令行操作效率。
+
+    下面我从基础到进阶，分几个部分详细讲解。
+
+    ---
+
+    ### 1. 基础用法
+
+    **基本语法：**
+    ```bash
+    alias 别名='命令'
+    ```
+
+    **注意：**
+    - 等号两边**不能有空格**。
+    - 如果命令中包含空格或特殊字符，必须用引号（单引号或双引号）括起来。
+    - 别名通常用小写字母，但也可以混合大小写。
+
+    **基础示例：**
+    ```bash
+    # 简单缩写
+    alias ll='ls -alF'
+    alias gs='git status'
+    alias c='clear'
+
+    # 带常用选项
+    alias rm='rm -i'        # 删除前询问确认
+    alias cp='cp -i'        # 覆盖前询问
+    alias df='df -h'        # 以人类可读格式显示磁盘空间
+    alias du='du -h -c'     # 汇总目录大小
+    ```
+
+    ---
+
+    ### 2. 查看与删除别名
+
+    - **查看所有已定义的别名：**
+      ```bash
+      alias
+      ```
+      或者查看特定别名：
+      ```bash
+      alias 别名
+      # 例如：alias ll
+      ```
+
+    - **删除（取消）别名：**
+      ```bash
+      unalias 别名
+      # 例如：unalias ll
+      ```
+
+    - **临时绕过别名（执行原始命令）：**
+      如果你定义了 `alias rm='rm -i'`，但某次想强制删除不想确认，可以在命令前加反斜杠：
+      ```bash
+      \rm -rf temp_folder
+      ```
+      或者使用完整路径 `/bin/rm -rf temp_folder`。
+
+    ---
+
+    ### 3. 进阶用法：组合与嵌套
+
+    别名可以执行多条命令，也可以调用其他别名。
+
+    **执行多条命令：**
+    用分号 `;` 或逻辑运算符 `&&`、`||` 连接。
+    ```bash
+    # 进入目录并列出内容
+    alias cdls='cd /var/log && ls -la'
+
+    # 创建目录并进入
+    alias mcd='mkdir -p $1 && cd $1'   # 注意：此处 $1 不生效，后面会讲函数
+    ```
+
+    **嵌套别名（别名里调用另一个别名）：**
+    ```bash
+    alias ll='ls -l'
+    alias la='ll -A'   # 别名 la 调用了别名 ll，可以正常工作
+    ```
+
+    ---
+
+    ### 4. 带参数怎么办？—— 使用 Shell 函数
+
+    **核心要点：** `alias` **不支持**直接传递位置参数（如 `$1`, `$2`）。如果你需要参数，必须使用 **Shell 函数**，然后给函数起一个短名字。
+
+    **错误示范（不会按预期工作）：**
+    ```bash
+    alias mcd='mkdir -p $1 && cd $1'   # $1 不会传给 alias
+    ```
+
+    **正确做法（用函数替代 alias）：**
+    ```bash
+    # 定义函数：创建目录并进入
+    mcd() {
+      mkdir -p "$1" && cd "$1"
+    }
+
+    # 或者写成一行（注意分号）
+    mcd() { mkdir -p "$1" && cd "$1"; }
+    ```
+
+    **带多个参数的函数示例：**
+    ```bash
+    # 查找并 grep 内容
+    findgrep() {
+      find "$1" -type f -exec grep -l "$2" {} \;
+    }
+    # 使用：findgrep /home/user "error"
+    ```
+
+    ---
+
+    ### 5. 如何让别名永久生效？
+
+    你在终端直接输入 `alias ll='ls -alF'`，只对**当前终端会话**有效。关闭终端就没了。
+
+    要让别名永久生效，需要把它写入 shell 的配置文件。
+
+    | **Shell 类型** | **全局配置文件（所有用户）** | **用户级配置文件（推荐）** |
+    | :--- | :--- | :--- |
+    | **Bash** | `/etc/bash.bashrc` 或 `/etc/profile` | `~/.bashrc` （登录 shell 可能是 `~/.bash_profile` 或 `~/.profile`） |
+    | **Zsh** (macOS 默认) | `/etc/zshrc` | `~/.zshrc` |
+
+    **推荐做法：**
+    1. 打开你的配置文件：`vim ~/.bashrc` 或 `vim ~/.zshrc`
+    2. 在文件末尾添加别名定义：
+       ```bash
+       # 我的自定义别名
+       alias ll='ls -alF'
+       alias update='sudo apt update && sudo apt upgrade'   # Ubuntu/Debian
+       alias ip='ip -c'      # 带颜色显示
+       ```
+    3. 保存退出后，让配置立即生效：
+       ```bash
+       source ~/.bashrc   # 或 source ~/.zshrc
+       ```
+
+    ---
+
+    ### 6. 实用且高效的 alias 示例合集
+
+    这里分享一些我最常用且能显著提效的别名：
+
+    #### 系统与文件管理
+    ```bash
+    # 列出目录
+    alias l='ls -CF'
+    alias ll='ls -alF'
+    alias la='ls -A'
+    alias lr='ls -ltr'   # 按时间排序（最新在最后）
+
+    # 安全操作
+    alias rm='rm -i'
+    alias mv='mv -i'
+    alias cp='cp -i'
+
+    # 磁盘与内存
+    alias df='df -h'
+    alias du='du -h -c'
+    alias free='free -m'   # 以 MB 显示内存
+
+    # 历史命令
+    alias h='history'
+    alias hg='history | grep'   # 搜索历史命令
+    ```
+
+    #### Git 快捷操作
+    ```bash
+    alias gs='git status'
+    alias ga='git add'
+    alias gc='git commit -m'
+    alias gp='git push'
+    alias gl='git log --oneline --graph --decorate'
+    alias gd='git diff'
+    alias gco='git checkout'
+    alias gb='git branch'
+    ```
+
+    #### 网络相关
+    ```bash
+    # 查看端口占用
+    alias ports='sudo netstat -tulpn | grep LISTEN'
+    # 或者用 lsof
+    alias port='lsof -i :'   # 后面加端口号，如 port 8080
+
+    # 查看外网 IP
+    alias myip='curl ifconfig.me'
+    # 或
+    alias myip='dig +short myip.opendns.com @resolver1.opendns.com'
+    ```
+
+    #### 程序启动
+    ```bash
+    # Python
+    alias py='python3'
+    alias pi='pip install'
+    alias pir='pip install -r requirements.txt'
+
+    # 编辑器
+    alias v='vim'
+    alias s='subl .'   # 用 Sublime 打开当前目录
+    alias c='code .'   # 用 VSCode 打开当前目录
+    ```
+
+    #### 便捷导航
+    ```bash
+    # 快速到常用目录
+    alias docs='cd ~/Documents'
+    alias down='cd ~/Downloads'
+    alias work='cd ~/workspace'
+    alias ..='cd ..'
+    alias ...='cd ../..'
+    alias ....='cd ../../..'
+    ```
+
+    ---
+
+    ### 7. 高级技巧
+
+    #### 根据操作系统/主机区分别名
+    有时你在不同机器上（如 Linux 服务器 vs macOS 本地），命令参数不同，可以加条件判断：
+    ```bash
+    # 在 ~/.bashrc 中
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        alias ls='ls --color=auto'
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        alias ls='ls -G'   # macOS 用 -G 开启颜色
+    fi
+    ```
+
+    #### 安全提醒：警惕 `alias sudo='sudo '`
+    如果你想给 `sudo` 后面的命令也自动应用别名（比如 `sudo ll` 能生效），可以定义：
+    ```bash
+    alias sudo='sudo '    # 注意末尾有一个空格！
+    ```
+    当别名末尾有空格时，shell 会解析空格后的下一个单词，并检查它是否也是别名。这样 `sudo ll` 就会先展开 `ll`。
+
+    ---
+
+    ### 8. 注意事项与陷阱
+
+    1. **别名的优先级**：别名优先于函数和内置命令，但低于 `which` 找到的外部命令路径。
+    2. **脚本中慎用**：在 shell 脚本（`.sh` 文件）里，默认**不加载** `~/.bashrc`，所以别名在脚本中不可用。如果需要，可以在脚本里 `source ~/.bashrc`，但更推荐在脚本中直接写完整命令或函数。
+    3. **避免与系统命令重名**：例如 `alias ls='ls -l'`，如果你又需要原始 `ls`，就得用 `\ls`。这会增加记忆负担，所以尽量起新名字（如 `ll`）。
+    4. **引号的使用**：如果别名值中有变量或命令替换，使用双引号会在定义时展开；使用单引号会保留为字面量，在调用时展开。通常推荐用**单引号**。
+       ```bash
+       # 双引号：定义时立刻展开，获取当前时间
+       alias now="date +%T"   # 这里会把 date +%T 的执行结果存进去，错误！
+       
+       # 单引号：调用时才展开（正确）
+       alias now='date +%T'   # 每次输入 now，都会执行 date 命令
+       ```
+
+    ---
+
+    ### 总结
+
+    | **功能** | **命令/方法** |
+    | :--- | :--- |
+    | 创建临时别名 | `alias 短名='长命令'` |
+    | 永久生效 | 写入 `~/.bashrc` 或 `~/.zshrc` |
+    | 查看所有别名 | `alias` |
+    | 删除别名 | `unalias 短名` |
+    | 需要参数时 | 用 Shell **函数**代替别名 |
+    | 绕过别名 | 用 `\命令` 或绝对路径 |
+
+    掌握 `alias` 是成为命令行高手的必经之路。花 10 分钟整理一套自己顺手的别名，长期来看能节省大量时间。建议从今天就开始累积你的 `.bashrc` 配置文件吧！如果还有特定场景（比如 Docker、Kubernetes 别名）需要进一步展开，随时告诉我。
+
+* 使用 mv 代替 rm 的一个技巧
+
+    ```bash
+    hlc_rm() {
+        if [ -z "$1" ]; then
+            echo "错误：请指定要删除的文件" >&2
+            return 1
+        fi
+        mv -- "$1" "/tmp/hlc_trash/"
+    }
+    alias rm='hlc_rm'
+    ```
+
+	解释：
+
+	* -- 是"参数结束标记"，防止文件名以 - 开头被误认为选项（如 rm "-f"）
+
+	* 检查参数是否为空，避免误操作
+
+    这种定法主要是为了处理 rm 不带参数时的报错：
+
+	`rm ""` 或 `rm` 不带参数:
+
+	不加引号的版本：
+
+	```bash
+	mv  /tmp/hlc_trash/
+	```
+
+	这时 `$1` 为空，mv 接收到的参数变成：
+
+	* 参数1：（空）
+
+	* 参数2：`/tmp/hlc_trash/`
+
+	mv 会报错 missing file operand
+
 * 我在 .env 中定义了 PYTHONPATH=..，如何才能在 bash 里 export .env
 
     有几种方法可以在 bash 中导出 .env 文件中定义的环境变量：

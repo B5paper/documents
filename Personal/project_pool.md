@@ -36,6 +36,8 @@
 
 ## cache
 
+* [ ] python `transformers`
+
 * [ ] nvim-tree、telescope、fzf
 
 * [ ] vim-rooter

@@ -2,6 +2,383 @@
 
 ## cache
 
+* 详细讲讲 matplotlib 中 plt.plot() 的用法、常用参数
+
+	好的，我们来详细讲解一下 Matplotlib 中最核心、最常用的函数之一：`plt.plot()`。
+
+	`plt.plot()` 主要用于**绘制折线图**（也可以绘制散点图、函数曲线等），它是 pyplot 模块中用于将数据点连接成线的基础函数。
+
+	---
+
+	## 1. 基本用法
+
+	最简调用方式：
+	```python
+	import matplotlib.pyplot as plt
+
+	plt.plot(x, y)
+	plt.show()
+	```
+	- `x`：x 轴数据（列表、数组或标量）
+	- `y`：y 轴数据（列表、数组或标量）
+	- 如果只传入一个参数，如 `plt.plot(y)`，则默认 x 为 `range(len(y))`
+
+	---
+
+	## 2. 常用参数详解
+
+	`plt.plot()` 的参数非常多，我们按类别来讲解最常用的。
+
+	### 2.1 颜色、线条样式、标记样式（格式化字符串）
+	这是最直观的用法，用一个字符串组合表示：
+	```python
+	plt.plot(x, y, 'r--o')   # 红色、虚线、圆形标记
+	```
+	格式为：`[颜色][线条样式][标记样式]`
+
+	#### 常用颜色（color）：
+	| 字符 | 颜色   |
+	|------|--------|
+	| `'b'`| 蓝色   |
+	| `'g'`| 绿色   |
+	| `'r'`| 红色   |
+	| `'c'`| 青色   |
+	| `'m'`| 洋红   |
+	| `'y'`| 黄色   |
+	| `'k'`| 黑色   |
+	| `'w'`| 白色   |
+
+	也可以用全名或十六进制：`color='orange'`、`color='#FF5733'`
+
+	#### 常用线条样式（linestyle）：
+	| 字符   | 含义     |
+	|--------|----------|
+	| `'-'`  | 实线     |
+	| `'--'` | 虚线     |
+	| `'-.'` | 点划线   |
+	| `':'`  | 点线     |
+	| `'None'`| 无线条  |
+
+	#### 常用标记样式（marker）：
+	| 字符   | 含义     |
+	|--------|----------|
+	| `'o'`  | 圆点     |
+	| `'^'`  | 上三角   |
+	| `'s'`  | 方块     |
+	| `'*'`  | 星形     |
+	| `'+'`  | 加号     |
+	| `'x'`  | 叉号     |
+	| `'.'`  | 小点     |
+
+	---
+
+	### 2.2 独立的关键字参数（更灵活）
+
+	除了格式化字符串，你也可以用独立参数，更清晰：
+
+	| 参数名         | 说明                                    | 示例                          |
+	|----------------|-----------------------------------------|-------------------------------|
+	| `color` / `c`  | 线条颜色                                | `color='red'`                 |
+	| `linestyle` / `ls` | 线条样式                           | `linestyle='--'`              |
+	| `linewidth` / `lw` | 线宽（浮点数）                    | `linewidth=2.5`               |
+	| `marker`       | 标记样式                                | `marker='o'`                  |
+	| `markersize` / `ms` | 标记大小                         | `markersize=8`                |
+	| `markerfacecolor` / `mfc` | 标记填充颜色               | `markerfacecolor='yellow'`    |
+	| `markeredgecolor` / `mec` | 标记边缘颜色             | `markeredgecolor='black'`     |
+	| `markeredgewidth` / `mew` | 标记边缘宽度           | `markeredgewidth=1`           |
+	| `alpha`        | 透明度（0~1）                          | `alpha=0.7`                   |
+	| `label`        | 图例标签                                | `label='sin(x)'`              |
+
+	---
+
+	### 2.3 其他常用参数
+
+	| 参数名         | 说明                                    |
+	|----------------|-----------------------------------------|
+	| `xdata`, `ydata` | 显式指定数据（较少用）                |
+	| `dash_capstyle` | 虚线端头样式（`'butt'`,`'round'`,`'projecting'`） |
+	| `solid_capstyle` | 实线端头样式                           |
+	| `zorder`       | 图层顺序（数值越大越靠上）              |
+
+	---
+
+	## 3. 多个数据系列
+
+	可以一次调用绘制多条线：
+	```python
+	plt.plot(x1, y1, 'r-', x2, y2, 'b--')
+	```
+	或者分多次调用：
+	```python
+	plt.plot(x1, y1, 'r-', label='Line1')
+	plt.plot(x2, y2, 'b--', label='Line2')
+	plt.legend()
+	```
+
+	---
+
+	## 4. 常用组合示例
+
+	```python
+	import numpy as np
+	import matplotlib.pyplot as plt
+
+	x = np.linspace(0, 10, 100)
+	y = np.sin(x)
+
+	plt.plot(x, y, 
+			 color='green', 
+			 linestyle='-.', 
+			 linewidth=2, 
+			 marker='o', 
+			 markersize=4,
+			 markerfacecolor='red',
+			 markeredgecolor='black',
+			 alpha=0.8,
+			 label='sin(x)')
+
+	plt.xlabel('x')
+	plt.ylabel('y')
+	plt.title('Sin Curve')
+	plt.legend()
+	plt.grid(True)
+	plt.show()
+	```
+
+	---
+
+	## 5. 实用技巧
+
+	### 5.1 快速绘制无折线的散点图
+	```python
+	plt.plot(x, y, 'o', linestyle='None')
+	```
+
+	### 5.2 只画线，无标记
+	```python
+	plt.plot(x, y, '-')
+	```
+
+	### 5.3 自定义颜色为RGB或十六进制
+	```python
+	plt.plot(x, y, color=(0.1, 0.5, 0.8))   # RGB 0~1
+	plt.plot(x, y, color='#2A6D8C')
+	```
+
+	### 5.4 绘制竖向/横向线条
+	如果要画垂直线，可以用 `axvline`，但 `plot` 也可以：
+	```python
+	plt.plot([2, 2], [0, 5], 'r--')  # 在x=2处画竖线
+	```
+
+	---
+
+	## 6. 返回值
+
+	`plt.plot()` 返回一个 `Line2D` 对象的列表，你可以保存它用来后续修改：
+	```python
+	lines = plt.plot(x, y, 'r-')
+	lines[0].set_linewidth(3)
+	```
+
+	---
+
+	## 7. 注意事项（常见坑）
+
+	- **x 和 y 长度必须一致**，否则报错。
+	- 如果使用格式化字符串，顺序必须是 `颜色 + 线条 + 标记`，例如 `'ro--'` 是红色圆点虚线。
+	- 同时使用格式化字符串和关键字参数时，关键字参数优先级更高。
+	- 如果数据是二维数组，`plot` 会按列绘制多条线。
+
+	---
+
+	## 8. 快速速查表（常用组合）
+
+	| 目的                     | 代码示例                          |
+	|--------------------------|-----------------------------------|
+	| 红色实线                 | `'r-'` 或 `color='r', ls='-'`     |
+	| 蓝色虚线带圆圈标记       | `'bo--'`                          |
+	| 绿色星形标记无连线       | `'g*'` （默认无连线）            |
+	| 黑色粗点划线             | `'k-.' , lw=3`                    |
+	| 透明橙色线               | `color='orange', alpha=0.5`       |
+
+	---
+
+	如果你愿意，我还可以接着给你讲：
+	- **`plt.plot()` 与 `ax.plot()`（面向对象方式）的区别**
+	- **如何用 `plt.plot()` 绘制多条子图**
+	- **动态更新 `plot` 的交互式用法**
+
+	你想先了解哪个？
+
+    * 我想画指定范围内的数据
+
+        针对“画指定范围内的数据”，我分**3种常见场景**给你讲，每种都附带可直接运行的代码示例。
+
+        ---
+
+        ## 场景 1：只绘制 x 轴在某个区间内的数据（最常见）
+
+        如果你已经有完整数据，但只想显示 x 在 `[2, 5]` 之间的部分，有两种方法：
+
+        ### 方法 A：用 `plt.xlim()` 设置显示范围（不修改数据）
+        ```python
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        x = np.linspace(0, 10, 200)
+        y = np.sin(x)
+
+        plt.plot(x, y, 'b-', linewidth=2)
+        plt.xlim(2, 5)   # 只显示 x 在 2~5 之间的部分
+        plt.grid(True)
+        plt.show()
+        ```
+        **特点**：数据完整保留，只是视图缩放，适合交互式查看。
+
+        ---
+
+        ### 方法 B：用布尔索引截取数据（真正只取子集）
+        ```python
+        x = np.linspace(0, 10, 200)
+        y = np.sin(x)
+
+        # 只取 x 在 [2, 5] 范围内的数据点
+        mask = (x >= 2) & (x <= 5)
+        x_sub = x[mask]
+        y_sub = y[mask]
+
+        plt.plot(x_sub, y_sub, 'r-', linewidth=3)
+        plt.grid(True)
+        plt.show()
+        ```
+        **特点**：只绘制指定区间的数据，适合后续计算或存图。
+
+        ---
+
+        ## 场景 2：绘制 y 值在指定范围内的数据（过滤异常值）
+
+        比如只想画 y 在 `[-0.5, 0.5]` 之间的点：
+
+        ```python
+        x = np.linspace(0, 10, 200)
+        y = np.sin(x) * 2   # 范围 -2~2
+
+        # 过滤 y 在 [-0.5, 0.5] 之间的点
+        mask = (y >= -0.5) & (y <= 0.5)
+        x_filtered = x[mask]
+        y_filtered = y[mask]
+
+        plt.plot(x_filtered, y_filtered, 'go', markersize=5, linestyle='None')
+        plt.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+        plt.axhline(y=-0.5, color='gray', linestyle='--', alpha=0.5)
+        plt.grid(True)
+        plt.show()
+        ```
+
+        ---
+
+        ## 场景 3：同时限制 x 和 y 的范围（最完整）
+
+        ```python
+        x = np.linspace(0, 10, 300)
+        y = np.exp(-x/3) * np.sin(2*x)
+
+        # 同时取 x in [1, 6] 且 y in [-0.3, 0.5]
+        mask = (x >= 1) & (x <= 6) & (y >= -0.3) & (y <= 0.5)
+        x_final = x[mask]
+        y_final = y[mask]
+
+        plt.plot(x_final, y_final, 'b-o', markersize=3, linewidth=1.5)
+        plt.grid(True)
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Filtered by both x and y range')
+        plt.show()
+        ```
+
+        ---
+
+        ## 场景 4：根据索引范围截取（适合序列数据）
+
+        如果你用的是列表或数组，想取第 10 到第 50 个点：
+
+        ```python
+        x = np.arange(100)
+        y = np.random.randn(100).cumsum()  # 随机游走
+
+        # 取索引 10~50（左闭右开）
+        plt.plot(x[10:50], y[10:50], 'r-', linewidth=2)
+        plt.grid(True)
+        plt.show()
+        ```
+
+        ---
+
+        ## 场景 5：多个数据子集用不同颜色区分（分段绘制）
+
+        比如想画 x<3 用蓝色，x>=3 用红色：
+
+        ```python
+        x = np.linspace(0, 6, 100)
+        y = np.sin(x)
+
+        mask1 = x < 3
+        mask2 = x >= 3
+
+        plt.plot(x[mask1], y[mask1], 'b-', label='x < 3')
+        plt.plot(x[mask2], y[mask2], 'r-', label='x >= 3')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        ```
+
+        ---
+
+        ## 补充：如果数据是 pandas DataFrame
+
+        ```python
+        import pandas as pd
+
+        df = pd.DataFrame({
+            'x': np.linspace(0, 10, 200),
+            'y': np.sin(np.linspace(0, 10, 200))
+        })
+
+        # 用 query 或条件筛选
+        df_sub = df[(df['x'] >= 2) & (df['x'] <= 5)]
+        plt.plot(df_sub['x'], df_sub['y'], 'b-')
+        plt.show()
+        ```
+
+        ---
+
+        ## 常见错误提醒
+
+        | 错误写法 | 原因 | 正确写法 |
+        |---------|------|---------|
+        | `x >= 2 & x <= 5` | 运算符优先级问题 | `(x >= 2) & (x <= 5)` |
+        | `mask = (x >= 2 and x <= 5)` | numpy数组不能用 `and` | 必须用 `&` |
+        | `plt.xlim(5, 2)` | 范围反了 | `plt.xlim(2, 5)` |
+
+        ---
+
+        ## 总结速查表
+
+        | 需求 | 代码 |
+        |------|------|
+        | 仅视图缩放 x | `plt.xlim(2, 5)` |
+        | 仅视图缩放 y | `plt.ylim(-1, 1)` |
+        | 同时缩放 | `plt.axis([2, 5, -1, 1])` |
+        | 截取 x 范围 | `mask = (x>=2) & (x<=5)` |
+        | 截取 y 范围 | `mask = (y>=-1) & (y<=1)` |
+        | 截取索引范围 | `x[10:50], y[10:50]` |
+        | 自适应范围（不包含0） | `plt.axis('tight')` |
+
+        ---
+
+        如果你能告诉我你具体的数据结构（是列表、numpy数组还是DataFrame）以及你想截取的条件（比如按时间、按数值、按索引），我可以给你写一段**完全匹配你需求**的代码。你也可以把数据样例发给我，我帮你处理。
+
 * 简述 matplotlib 画 surface
 
     # 使用Matplotlib绘制3D曲面图

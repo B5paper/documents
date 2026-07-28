@@ -1,12 +1,6 @@
 ## tasks
 
-* [ ] sicclTopoComputePaths
-
 * [ ] topo.h 中目前都有哪些函数？哪些是和 init.cc 形成关键连接的？
-
-* [ ] 增加 channel 的 case
-
-* [ ] 在 nv + ib 机器上 dump 带网卡数据的 xml
 
 * [ ] 编译 tests 文件夹时，需要编译两次。后面看下为啥，是不是 makefile 里文件之间有依赖
 

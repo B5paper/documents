@@ -2,6 +2,101 @@
 
 ## cache
 
+* numpy 如何计算中位数
+
+    在 NumPy 中，计算中位数最直接的方法是使用 **`numpy.median()`** 函数。
+
+    以下是详细的使用方法、参数说明和注意事项：
+
+    ### 1. 基本用法（一维数组）
+
+    ```python
+    import numpy as np
+
+    data = np.array([1, 3, 5, 7, 9])
+    median_value = np.median(data)
+    print(median_value)  # 输出：5.0
+    ```
+
+    **注意：** 返回结果总是 **浮点数**（float），即使输入是整数。
+
+    ---
+
+    ### 2. 指定轴向（多维数组）
+
+    对于二维或多维数组，可以通过 `axis` 参数指定计算中位数的方向。
+
+    ```python
+    data = np.array([[1, 2, 10],
+                     [4, 5, 6]])
+
+    # 计算全局中位数（所有元素）
+    print(np.median(data))          # 输出：4.5
+
+    # 按列计算（axis=0）：每列的中位数
+    print(np.median(data, axis=0))  # 输出：[2.5 3.5 8.0]
+
+    # 按行计算（axis=1）：每行的中位数
+    print(np.median(data, axis=1))  # 输出：[2.0 5.0]
+    ```
+
+    ---
+
+    ### 3. 保持维度（keepdims）
+
+    如果希望计算结果保留原来的维度（方便广播运算），可以设置 `keepdims=True`：
+
+    ```python
+    data = np.array([[1, 2, 3],
+                     [4, 5, 6]])
+    result = np.median(data, axis=0, keepdims=True)
+    print(result.shape)  # 输出：(1, 3)
+    ```
+
+    ---
+
+    ### 4. 处理偶数个元素
+
+    当数据个数为偶数时，`np.median` 默认取中间两个数的**平均值**：
+
+    ```python
+    data = np.array([1, 2, 3, 4])
+    print(np.median(data))  # 输出：2.5 (即 (2+3)/2 )
+    ```
+
+    ---
+
+    ### 5. 掩码数组（忽略缺失值）
+
+    如果你有带 `NaN` 的数据，普通的 `np.median` 会返回 `NaN`。此时需要使用 **`np.nanmedian`**：
+
+    ```python
+    data = np.array([1, 2, np.nan, 4])
+    print(np.median(data))      # 输出：nan
+    print(np.nanmedian(data))   # 输出：2.0 （忽略 nan 后排序为 [1,2,4]，中位数为2）
+    ```
+
+    ---
+
+    ### 6. 替代方法（适用于特定场景）
+
+    虽然 `np.median` 是最常用的，但你也可以使用：
+
+    - **`np.percentile(data, 50)`**：计算第 50 百分位数，结果与中位数完全一致。
+    - **`np.sort(data)[len(data)//2]`**：手动排序后取值（但仅适用于奇数个元素且不处理平均值的情况，不推荐）。
+
+    ---
+
+    ### 总结对比
+
+    | 函数 | 适用场景 |
+    | :--- | :--- |
+    | `np.median(arr)` | 普通数组，快速计算中位数 |
+    | `np.nanmedian(arr)` | 数据中包含 `NaN` 缺失值时 |
+    | `np.percentile(arr, 50)` | 需要统一使用百分位数接口时 |
+
+    如果你需要计算的是**加权中位数**，NumPy 原生不直接支持，需要借助 `scipy.stats` 或自己实现逻辑。需要我展开讲讲吗？
+
 * 详细讲讲 np.tile 的用法
 
     好的，我们来详细讲解一下 NumPy 中的 `np.tile` 函数。

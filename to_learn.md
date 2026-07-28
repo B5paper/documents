@@ -8579,3 +8579,9 @@
 
         <https://www.geeksforgeeks.org/machine-learning/activation-functions-neural-networks/>
 
+* gnn-explainer
+
+    <https://github.com/RexYing/gnn-model-explainer>
+
+    This repository contains the source code for the paper GNNExplainer: Generating Explanations for Graph Neural Networks
+
