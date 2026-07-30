@@ -4,6 +4,750 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* 详细讲讲 mapfile 的用法
+
+    `mapfile`（也叫 `readarray`）是 Bash 4.0 版本开始提供的一个内置命令，用于高效地将文件或标准输入中的**每一行**，完整地读取到一个索引数组（Array）中。相比 `while read` 循环，它的速度要快得多，尤其适合处理大文件。
+
+    `mapfile` 和 `readarray` 是完全等价的，你可以根据自己的习惯选用。它的核心用法如下。
+
+    **基本用法**
+
+    最基础的用法是将一个文件的所有行读入数组，数组的每个元素对应文件中的一行。
+
+    ```bash
+    # 将 /path/to/file.txt 的每一行读入名为 my_array 的数组
+    mapfile my_array < /path/to/file.txt
+
+    # 如果不指定数组名，默认存入 MAPFILE 数组
+    mapfile < /path/to/file.txt
+    echo "${MAPFILE[0]}"  # 打印文件第一行
+    ```
+
+    **常用选项 (Options)**
+
+    `mapfile` 提供了多个选项，让你能灵活地控制读取过程。
+
+    | 选项 | 说明 | 示例 |
+    | :--- | :--- | :--- |
+    | **`-t`** | **移除行尾的定界符**（默认为换行符 `\n`）。这是最常用的选项，避免数组中每个元素都带着一个换行符。 | `mapfile -t my_array < file.txt` |
+    | **`-n COUNT`** | **最多读取 `COUNT` 行**。如果 `COUNT` 是 0，则读取所有行。 | `mapfile -n 10 my_array < file.txt` # 只读前10行 |
+    | **`-s COUNT`** | **跳过开头的 `COUNT` 行**，从第 `COUNT+1` 行开始读取。 | `mapfile -s 5 my_array < file.txt` # 跳过前5行 |
+    | **`-O ORIGIN`** | **从数组的 `ORIGIN` 索引处开始赋值**。默认从 0 开始，这会**清空**数组原有内容。 | `mapfile -O 10 my_array < file.txt` # 从索引10开始存 |
+    | **`-d DELIM`** | **使用自定义定界符 `DELIM`** 来分隔记录，而不是换行符。此选项需要 Bash 4.4 或更高版本。 | `mapfile -d ':' my_array < file.txt` # 用冒号分隔 |
+    | **`-u FD`** | **从指定的文件描述符 `FD`** 读取，而不是标准输入。 | `mapfile -u 3 my_array` # 从文件描述符3读取 |
+
+    **高级技巧与示例**
+
+    1. 读取特定行或范围 (`-s` 与 `-n`)
+
+        结合 `-s` 和 `-n`，可以轻松提取文件中的某一段内容。例如，要读取文件的第 42 行（不包括行尾换行符）：
+
+        ```bash
+        # -s 41 跳过前41行，-n 1 只读取1行
+        mapfile -t -s 41 -n 1 line_array < file.txt
+        printf '%s' "${line_array[0]}"
+        ```
+
+        要读取第 42 到 666 行（共 625 行），可以这样计算：
+
+        ```bash
+        start_line=42
+        end_line=666
+        # -s 41 跳过前41行，-n 625 读取625行
+        mapfile -t -s $((start_line - 1)) -n $((end_line - start_line + 1)) range_array < file.txt
+        printf '%s\n' "${range_array[@]}"
+        ```
+
+    2. 处理非换行符分隔的数据 (`-d`)
+
+        `-d` 选项让你能处理用其他字符分隔的数据。一个非常强大的用法是处理以 **null 字符 (`\0`)** 结尾的数据流，这可以有效处理包含空格、换行符等特殊字符的文件名。
+
+        ```bash
+        # 使用 find 命令打印以 null 结尾的文件名，并读入数组
+        # 注意：mapfile -d '' 表示使用 null 字符作为定界符
+        mapfile -d '' file_array < <(find . -type f -print0)
+        printf "[%s]\n" "${file_array[@]}"
+        ```
+        **重要提示**：使用管道 `|` 将数据传给 `mapfile` 会使其在子 shell 中执行，导致数组变量在父 shell 中不可用。推荐使用进程替换 `< <(command)`。
+
+    3. 追加数据到已有数组 (`-O`)
+
+        如果不想覆盖数组原有内容，可以用 `-O` 指定起始索引，实现追加效果。
+
+        ```bash
+        my_array=("existing_item")
+        # 从当前数组长度处开始追加
+        mapfile -t -O "${#my_array[@]}" my_array < additional_data.txt
+        ```
+
+    4. 使用回调函数显示进度 (`-C` 与 `-c`)
+
+        对于处理大文件，可以用 `-C callback` 和 `-c quantum` 选项定义一个回调函数，每处理一定行数就执行一次，可以用来显示进度条。
+
+        ```bash
+        # 定义一个简单的进度显示函数
+        show_progress() {
+            echo "已处理第 $1 行: $2"
+        }
+
+        # -c 10 每10行调用一次 show_progress 函数
+        mapfile -c 10 -C show_progress -t big_array < huge_file.txt
+        ```
+
+    **注意事项**
+
+    *   **Bash 版本**：`mapfile` 命令在 Bash 4.0 及更高版本中可用。`-d` 选项需要 Bash 4.4+。如果你的脚本需要在旧版 Bash（如 macOS 默认的 Bash 3.2）中运行，需要使用 `while read` 循环等替代方案。
+
+    *   **默认数组**：如果未指定数组名，`mapfile` 会将数据存入名为 `MAPFILE` 的数组。
+
+    *   **性能**：`mapfile` 是 Bash 内置命令，比管道或循环读取要快得多，是处理大型文本文件的首选。
+
+* 用中文详细讲讲 while IFS= read
+
+    这是一个非常经典且强大的 Bash 用法，常用于**逐行处理文本文件**。下面我为你由浅入深地详细拆解。
+
+    1. 完整命令结构
+
+        最常见的模板是：
+        
+        ```bash
+        while IFS= read -r line; do
+            # 对 $line 进行处理
+            echo "$line"
+        done < "filename.txt"
+        ```
+
+    2. 逐个拆解核心零件
+
+        1. `read`
+
+            - **作用**：从标准输入（或文件描述符）中读取**一行**数据。
+            - **默认行为**：读到换行符（`\n`）为止，并将该行内容赋值给变量（此处是 `line`）。
+            - **注意**：`read` 默认会对反斜杠（`\`）进行转义处理（比如 `\n` 会被解释成换行，`\t` 会被解释成制表符），所以通常配合 `-r` 使用。
+
+        2. `-r` 参数
+
+            - **含义**：`raw`（原始模式）。
+            - **作用**：禁止 `read` 对反斜杠进行转义。让反斜杠作为普通字符原样保留。
+            - **建议**：**几乎总是加上 `-r`**，除非你明确需要转义功能。
+
+        3. `IFS=` （重点）
+
+            - **全称**：Internal Field Separator（内部字段分隔符）。
+            - **默认值**：通常是空格、制表符、换行符（`' \t\n'`）。
+            - **这里写成 `IFS=` 是什么意思？**
+              - **把 IFS 设为空字符串**。
+              - **效果**：**去除行首和行尾的空白字符（空格和 Tab）**。
+              - **对比**：如果不加 `IFS=`，`read` 会自动去掉行首和行尾的空格/缩进。
+              - **例子**：
+                - 文件某行是 `"    Hello World    "`
+                - 不加 `IFS=` → 读到的变量是 `"Hello World"`（空格被削掉了）
+                - 加 `IFS=` → 读到的变量是 `"    Hello World    "`（保留了原始缩进和尾随空格）
+
+            > **注意语法**：是 `IFS=` 紧挨着 `read`，**没有空格**（`IFS= read`）。这是临时环境变量赋值，只对后面的 `read` 命令生效。
+
+        4. `while ...; do ... done`
+
+            - 循环结构。`read` 每次读取一行，如果有数据则返回状态码 `0`（真），循环继续；读到文件末尾（EOF）返回非零，循环结束。
+
+        5. 输入重定向 `< "filename.txt"`
+
+            - 将文件内容作为整个 `while` 循环的标准输入，`read` 会逐行从该文件中读取。
+
+    3. 为什么要用 `while IFS= read` 而不是 `for` 循环？
+
+        | 方式 | 问题 |
+        | :--- | :--- |
+        | `for line in $(cat file)` | 会将文件按**空格/换行**拆分成单词，且会展开通配符（`*`），无法处理包含空格的行。 |
+        | `while read` | 严格按**换行符**分割，保留每行的完整性。 |
+
+        **所以 `while IFS= read` 是处理包含空格、缩进、特殊符号的文本文件最稳健的方法。**
+
+    4. 完整实战例子
+
+        假设有一个 `data.txt` 文件，内容如下（注意行首和行尾有空格）：
+
+        ```
+          Alice   30
+         Bob  25  
+        Charlie   28
+        ```
+
+        **脚本：**
+        
+        ```bash
+        #!/bin/bash
+        while IFS= read -r line; do
+            echo "原始行: [$line]"
+        done < "data.txt"
+        ```
+
+        **输出：**
+
+        ```
+        原始行: [  Alice   30]
+        原始行: [ Bob  25  ]
+        原始行: [Charlie   28]
+        ```
+
+        （保留了行首空格和行尾空格）
+
+    5. 进阶：同时拆分成多个变量
+
+        如果想按列拆分（比如用空格或冒号分隔），可以给 `read` 多个变量名：
+
+        ```bash
+        while IFS=: read -r name age; do
+            echo "Name: $name, Age: $age"
+        done < "passwd.txt"
+        ```
+
+        此时 `IFS=:` 表示以冒号作为分隔符，第一段给 `name`，第二段给 `age`。
+
+    6. 处理管道输入（如 `find | while`）
+
+        ```bash
+        find . -name "*.txt" | while IFS= read -r file; do
+            echo "找到文件: $file"
+        done
+        ```
+
+        **注意**：管道会开启子 shell，导致循环内修改的变量在循环外失效。如果需要在循环外保留变量，建议使用重定向 `< <(command)`（进程替换）而不是管道。
+
+    7. 常见陷阱与避坑指南
+
+        | 陷阱 | 解决方案 |
+        | :--- | :--- |
+        | 忘记写 `-r`，导致 `\` 被吃掉 | 永远写成 `read -r` |
+        | 忘记写 `IFS=`，行首空格被删除 | 永远写成 `IFS= read` |
+        | 从管道读取时变量赋值失效 | 改用 `while ...; do ...; done < <(command)` |
+        | 文件最后一行没有换行符 | `read` 依然能正常读取（只要不是空文件） |
+
+    8. 终极记忆口诀
+
+        > **"无空格，不转义，逐行读，最稳健"**
+        > —— `IFS=`（去空格）+ `-r`（防转义）= 逐行原样读取。
+
+    如果你需要我进一步讲解如何搭配 `数组` 或 `关联数组` 处理复杂文本，或者结合 `sed/awk` 对比，可以告诉我。
+
+* `$()`命令替换会去除字符串中的换行符，但如果文件名包含换行符（极少数情况），会导致补全结果错乱
+
+    example:
+
+    ```bash
+    echo -e "hello\nworld\n"
+    ```
+
+    output:
+
+    ```
+    hello
+    world
+
+    ```
+
+    而
+
+    ```bash
+    echo $(echo -e "hello\nworld\n")
+    ```
+
+    输出为
+
+    ```
+    hello world
+    ```
+
+* echo -e（启用反斜杠转义）
+
+    example:
+
+    ```bash
+    echo -e "hello\nworld"
+    ```
+
+* `printf`可以直接输出`\n`
+
+    ```bash
+    printf "hello\nworld\n"
+    ```
+
+* 在单引号或双引号内按 Enter 也可以换行：
+
+    ```bash
+    echo "hello
+    world"
+    ```
+
+* 普通 echo（不加 -e）默认不会解析 \n，会直接输出 hello\nworld
+
+* `find ... | sed ... | compgen -W "$(cat)" -- "$cur"`
+
+    example:
+
+    ```bash
+    find . -name main* | sed 's|^./||' | compgen -W "$(cat)" -- "ma"
+    ```
+
+    output:
+
+    ```
+    main.sh
+    ```
+
+    这种写法比`$(compgen -W "$(find xxx | sed xxx)" -- "$cur")`稍微自然一点。
+
+* `$(< <(find . -type f | sed 's|^\./||'))`详细解释
+
+    将当前目录下（包含子目录）所有文件的文件名（去掉开头的 ./）作为一个字符串数组/列表，传递给外层的命令（由于外层没有具体命令，它会被当作参数列表，通常会导致报错或输出第一个文件名）。
+
+    * `find . -type f`
+
+        递归查找当前目录（.）下的所有普通文件（-type f）。
+
+    * `<( ... )`: 进程替换
+
+        这是 Bash 特有的语法（不是所有 Shell 都支持）。
+
+        作用：将括号内命令的输出，伪装成一个临时文件（FIFO 或 /dev/fd/63）。即返回的是一个文件路径（比如 /dev/fd/63），这个文件的内容就是刚才的命令的输出字符串。
+
+    * `< <( ... )`: 输入重定向
+
+        这里把 `<` 和 `<( ... )` 结合，将进程替换生成的临时文件，作为标准输入（stdin）。
+
+        相当于：`< /dev/fd/63`，把文件内容喂给外层命令。
+
+    * `$(< <(...))`
+
+        执行一个空命令（因为没有外层命令），但将它的标准输入重定向到临时文件。然后 $() 捕获这个命令的输出。
+
+        在 Bash 中，如果 $() 内部只有一个输入重定向而没有实际命令，它会将这个重定向的文件的内容删掉所有換行符，然后作为命令行的参数，并执行。
+
+        example:
+
+        ```bash
+        # hello.txt
+        echo hello
+        echo world
+        ```
+
+        run:
+
+        `$(< hello.txt)`
+
+        output:
+
+        ```
+        hello echo world
+        ```
+
+        可以看到，原文件内容被删除了`\n`，并变成了命令：`echo hello echo world`，所以就输出了 echo 的内容。
+
+        如果使用变量来保存的话，那么效果是存入变量或数组：
+
+        ```bash
+        a=$(< hello.txt)
+        echo $a
+        a=($(< hello.txt))
+        echo $a
+        echo ${a[@]}
+        ```
+
+        output:
+
+        ```
+        echo hello echo world
+        echo
+        echo hello echo world
+        ```
+
+* `compgen` 或许可以被替换成 `mapfile`:
+
+    `mapfile -t COMPREPLY < <(find . -type f -name "*${cur}*" | sed 's|^\./||')`
+
+    compgen 会自动转义空格和特殊字符，但是这里是 mapfile 是按行读取的，所以没有问题。
+
+    如果写成这样：`COMPREPLY=($(find ...))  # 没有 mapfile，直接用命令替换`，可能会变成`COMPREPLY=("aaa bbb cc dd")`，即变成了 4 个元素。如果是 compgen ，则会变成`COMPREPLY=("aaa bbb cc\ dd")`，对空格进行转义。
+
+* bash 中检查某个函数是否存在：
+
+    ```bash
+    type <func_name>
+    # 应该显示 "<func_name> is a function" 或 "<func_name> is aliased to ..."
+    ```
+
+* 详细讲讲 compgen 的用法
+
+    `compgen` 是 Bash 的一个内置命令，用于**生成可能的自动补全匹配项**。它是 Bash 可编程补全功能的核心，当你在终端里按下 `Tab` 键时，背后就有它的身影。
+
+    你可以把它理解成一个用于“查询”或“生成”补全候选列表的工具，通常有三种核心用法：
+
+    ### 🚀 核心用法一：快速查询系统信息
+
+    这是最直接的用法，可以迅速列出系统中各类可用的名称，非常适合用来探索和调试。
+
+    | 选项 | 功能描述 | 示例 |
+    | :--- | :--- | :--- |
+    | `-c` | 列出所有可执行的命令（包括内置命令、函数和`$PATH`里的程序） | `compgen -c` |
+    | `-a` | 列出所有已定义的别名 | `compgen -a` |
+    | `-b` | 列出所有 Shell 内置命令 | `compgen -b` |
+    | `-k` | 列出所有 Shell 保留关键字（如 `if`, `for`, `then`） | `compgen -k` |
+    | `-A function` | 列出所有 Shell 函数 | `compgen -A function` |
+    | `-v` / `-e` | 列出所有变量 / 环境变量 | `compgen -v` |
+    | `-u` / `-g` | 列出系统用户 / 用户组 | `compgen -u` |
+
+    > **注意**：`-A` 选项后面需要跟一个“动作（action）”，比如 `function`、`variable`、`service` 等，可以实现与单字母选项相同的功能，并且能覆盖更多类型，如 `-A hostname` 列出主机名。
+
+    ### 🎯 核心用法二：带前缀过滤的查询
+
+    你可以在命令后面加上一个“单词（word）”，这样 `compgen` 就只会**列出以该单词开头的匹配项**。
+
+    ```bash
+    # 列出所有以 'git' 开头的命令
+    compgen -c git
+
+    # 列出所有以 'HO' 开头的变量
+    compgen -v HO
+    ```
+
+    ### ⚙️ 核心用法三：高级补全生成
+
+    这部分是 `compgen` 真正强大的地方，也是编写自定义补全脚本时的关键。
+
+    #### 1. 自定义单词列表 (`-W`)
+    `-W` 选项允许你提供一个用空格分隔的单词列表作为补全候选。这在脚本中非常实用。
+    ```bash
+    # 从列表中匹配以 's' 开头的项
+    compgen -W "start stop restart status" s
+    # 输出: start, stop, status
+    ```
+
+    #### 2. 文件名匹配 (`-G`)
+    `-G` 选项允许你使用通配符（Glob）模式来匹配文件名作为补全结果。
+    ```bash
+    # 列出当前目录下所有 .txt 文件
+    compgen -G "*.txt"
+    ```
+
+    #### 3. 添加前缀和后缀 (`-P`, `-S`)
+    这两个选项可以为所有生成的补全项统一添加前缀或后缀。
+    ```bash
+    # 为所有目录名添加前缀和后缀
+    compgen -d -P "dir-" -S "/"
+    ```
+
+    #### 4. 过滤结果 (`-X`)
+    `-X` 选项可以根据一个模式**过滤掉**匹配的项。如果模式以 `!` 开头，则效果反转，即只保留不匹配的项。
+    ```bash
+    # 列出所有命令，但排除包含 'grep' 的命令
+    compgen -c -X "*grep*"
+
+    # 只列出包含 'grep' 的命令
+    compgen -c -X "!*grep*"
+    ```
+
+    ### 🛠️ 实战演练：自定义命令补全
+
+    `compgen` 最常见的实战场景是与 `complete` 命令配合，为自定义脚本添加补全功能。
+
+    ```bash
+    # 1. 定义一个补全函数
+    _my_script_completions() {
+        # 获取当前正在输入的单词
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        
+        # 使用 compgen 生成补全列表，并存入 COMPREPLY 数组
+        COMPREPLY=( $(compgen -W "build test deploy --verbose --help" -- "$cur") )
+    }
+
+    # 2. 将补全函数关联到你的脚本
+    complete -F _my_script_completions my_script
+    ```
+
+    这样，当你在终端输入 `my_script ` 后再按 `Tab` 键时，就会自动补全 `build`、`test` 等选项了。
+
+    ### 💎 总结
+
+    *   **`compgen` 是 `Tab` 补全背后的核心引擎**，用于**生成**候选列表。
+    *   它的基本用法是**查询信息**（`-c`, `-a`, `-v` 等）。
+    *   它的高级用法用于**生成自定义补全**（`-W`, `-G`, `-P`, `-S`, `-X`）。
+    *   在编写补全脚本时，`compgen` 与 `complete` 和 `COMPREPLY` 数组是黄金搭档。
+
+* `COMPREPLY=( ... )`：这是 Bash 补全机制的核心数组变量。当用户按下 Tab 键时，Bash 会读取这个数组的内容，并将其作为候选词显示在终端上。
+
+* 详细讲讲 bash 中的 Ctrl + S 和 CTRL + R
+
+    在 Bash 中，`Ctrl + S` 和 `Ctrl + R` 都是与**终端输入输出控制**和**历史命令管理**密切相关的快捷键。但它们的功能截然不同，而且 `Ctrl + S` 有一个非常著名的“坑”会让新手误以为终端卡死了。
+
+    下面为你详细拆解这两个快捷键的底层原理和使用场景。
+
+    ---
+
+    ### 1. Ctrl + S：终端流量控制（XOFF）
+
+    **功能**：**暂停终端输出**（Flow Control / Stop）。
+
+    当你按下 `Ctrl + S` 时，你并不是在“保存”任何东西（那是图形软件里的快捷键），而是在向终端发送一个 **XOFF**（停止传输）信号。
+
+    -   **现象**：终端屏幕会瞬间冻结。你继续打字或者程序正在输出内容，屏幕上都不会有任何变化，看起来像是“卡死”或“无响应”了。
+    -   **底层原理**：这是 Unix/Linux 系统古老的软件流控制（Software Flow Control）机制。终端会阻塞程序的输出，防止屏幕被刷爆，但程序实际上**依然在后台正常运行**，只是输出被挂起了。
+
+    **如何解除（救命技能）**：
+    按下 **`Ctrl + Q`**（XON / 恢复传输）。
+    按下后，之前被暂停的所有输出会瞬间全部喷涌而出，终端恢复响应。
+
+    > **避坑指南**：
+    > 很多 Vim 用户习惯按 `Ctrl + S` 保存文件，在终端下误按后会卡死。此时千万不要强行关闭终端或重启电脑，只需按 `Ctrl + Q` 即可恢复。
+
+    **如何永久禁用这个功能**：
+    如果你觉得这个快捷键很烦人，可以在 `~/.bashrc` 中添加 `stty -ixon` 来关闭 XON/XOFF 流量控制，之后 `Ctrl + S` 和 `Ctrl + Q` 将不再起任何作用。
+
+    ---
+
+    ### 2. Ctrl + R：反向历史搜索（Reverse-i-search）
+
+    **功能**：**在命令历史中逆向增量搜索**（Reverse Search History）。
+
+    这是 Bash 中最强大的“时光机”功能，用于快速找回之前输入过的长命令。
+
+    -   **现象**：按下后，提示符会变成 `(reverse-i-search)` 并等待你输入关键词。
+    -   **操作逻辑**：
+        1. 按下 `Ctrl + R`。
+        2. 开始输入命令的某一部分（哪怕是中间的几个字母）。
+        3. Bash 会实时显示最近一条匹配该关键词的历史命令（高亮显示匹配部分）。
+        4. **继续按 `Ctrl + R`**：会向上回溯，查找更早之前的匹配记录。
+        5. **按 `Ctrl + S`（特殊用法）**：在某些配置下，按下 `Ctrl + S` 可以**正向搜索**（即从旧记录向新记录搜索），但这通常需要你先关闭流量控制功能（`stty -ixon`），否则它会触发上面的屏幕冻结。
+
+    **找到命令后的操作**：
+
+    -   按 **`Enter`**：直接执行该命令。
+    -   按 **`Tab`** 或 **`Esc`** 或 **`左右方向键`**：将命令调取到当前命令行中，供你编辑修改后再执行。
+    -   按 **`Ctrl + G`**：放弃搜索，退出搜索模式。
+
+    ---
+
+    ### 3. 两者的对比总结
+
+    | 特性 | **Ctrl + S** | **Ctrl + R** |
+    | :--- | :--- | :--- |
+    | **核心作用** | 暂停/冻结屏幕输出（XOFF） | 反向搜索历史命令 |
+    | **常见误解** | 以为是“保存”，导致终端卡死 | 以为是普通查找，需配合输入关键词 |
+    | **解除/退出方式** | 按 **`Ctrl + Q`** 解除冻结 | 按 **`Ctrl + G`** 或 `Enter` 退出搜索 |
+    | **操作对象** | 当前正在输出的程序（如日志、编译过程） | 存储在 `~/.bash_history` 中的历史指令 |
+    | **配合使用** | 若想用 `Ctrl + S` 做正向搜索，需先执行 `stty -ixon` 取消流量控制 | 默认逆向搜索，反复按可跳转更早匹配项 |
+
+    ---
+
+    ### 4. 高级技巧：让 Ctrl + R 更好用
+
+    原生的 `Ctrl + R` 只能按时间顺序一条条翻找，效率略低。如果你经常使用它，强烈建议安装 **`fzf`**（模糊查找器）。
+
+    安装 `fzf` 后，按下 `Ctrl + R` 会弹出一个**可预览的模糊匹配列表**，你可以用方向键上下选择，或者直接输入空格分隔的关键词进行模糊过滤，查找命令的效率会提升数倍。
+
+    ---
+
+    ### 5. 扩展提醒（极易踩坑）
+
+    如果你在 **SSH 远程连接** 的终端中按下 `Ctrl + S`，**冻结的是你的本地终端显示**，而不是远程服务器。此时：
+
+    1.  远程服务器上的程序依然在跑。
+    2.  你的键盘输入依然被 SSH 客户端接收，只是不显示在屏幕上。
+    3.  千万不要断网或重启 SSH，只需要心平气和地按一下 **`Ctrl + Q`**，一切就会恢复原样。
+
+    如果你还想了解如何自定义这些快捷键，或者想知道 `Ctrl + Z`（挂起进程）和 `Ctrl + C`（中断进程）的区别，我可以继续为你讲解。
+
+* bash 自动补全文件名
+
+    * 方案一：直接补全当前目录下的文件（最简单的情况）
+
+        在 `~/.bashrc` 中添加：
+
+        ```bash
+        hvim() {
+            if [ $# -eq 0 ]; then
+                echo "Usage: ffind <filename>"
+                return 1
+            fi
+            # 经过补全后，补全的内容直接就是应用的参数，可以直接使用
+            vim "$1"
+        }
+
+        # 定义 find 风格的补全函数
+        _hvim_complete() {
+            local cur="${COMP_WORDS[COMP_CWORD]}"
+            # 使用 find 搜索当前目录及子目录中的文件
+            # 这里搜索的是以 cur 开头的文件，但是搜索出来的路径带有前缀目录
+            # 2>/dev/null 剔除没有权限的目录的输出
+            cands=$(find . -type f -name "${cur}*" 2>/dev/null | sed 's|^\./||')
+            COMPREPLY=($(compgen -W "${cands}" -- "$cur"))
+        }
+
+        # complete 只能作用于已有的命令或函数，所以我们在开头额外创建了个 hvim 函数
+        complete -F _hvim_complete hvim
+        ```
+
+        然后使用：
+
+        ```bash
+        hvim myfile<Tab>
+        ```
+
+        会列出所有包含 `myfile` 的文件名。
+
+        **详细解释：**
+
+        * `${COMP_WORDS[...]}`：这是一个数组元素引用。`COMP_WORDS` 是 Bash 自动补全系统维护的一个特殊数组，它保存了当前正在输入的命令行被空格分割后的所有单词。
+        
+            如果有引号，比如`"he llo`或者`"he llo"`，那么这算作一个单词，而不是两个。如果有引号，引号也算在单词内。
+
+        * `COMP_CWORD`：这是一个特殊整数变量，表示当前光标（光标位置）所在的那个单词，在 COMP_WORDS 数组中的索引下标。索引从 0 开始计数。
+
+        * `${COMP_WORDS[COMP_CWORD]}`: 从当前输入的命令行中，取出光标正在输入的那个单词。
+
+        * `sed 's|^\./||`: 删除每一行开头出现的 ./ 字符。
+
+            sed 标准格式：`sed 's|旧内容|新内容|'`
+
+            * s：代表替换（substitute）操作。
+
+            * |：是分隔符（通常习惯用 /，但这里用了 |，目的是为了避免与路径中的斜杠混淆，让代码更清晰）。
+
+            * `^\./`: 精确匹配以 ./ 开头的这三个字符
+
+            * `||`: 替换为空字符串。
+
+        * `COMPREPLY=($(compgen -W "${cands}" -- "$cur"))`
+
+            `COMPREPLY`是个特殊 bash 数组变量，用于输出所有的候选词。
+
+            `compgen -W "${cands}" -- "$cur"`: 从候选词中筛选出以`$cur`开头的词语构成数组。`-W`表示 words，表示候选词。`--`表示选项的结束，防止`$cur`被当作 cands。`$cur`表示当前 bash 正在输入的词。
+
+        **潜在问题：**
+
+        * find 搜索的输出包含前缀路径，比如`subdir/myfile.txt`，但是`compgen -W "${cands}" -- "${cur}"`只筛选以`${cur}`开头的词，假如 cur 是 myf，那么就无法补全到`subdir/myfile.txt`。
+
+            所以这个代码只适用于当前目录，无法补全子目录中的文件。而对于当前目录，bash 有默认补全行为，可以直接补全当前目录下的文件。我们写这个 hvim 纯粹是又造了个轮子，所以称其为“最简单的情况”。
+
+    * 方案二：按路径逐级展开
+
+        ```bash
+        # 在 ~/.bashrc 中添加
+        _find_like_vim() {
+            local cur="${COMP_WORDS[COMP_CWORD]}"
+            # 搜索当前目录及子目录（排除隐藏文件）
+            COMPREPLY=($(compgen -W "$(find . -type f -not -path '*/.*' 2>/dev/null | sed 's|^\./||')" -- "$cur"))
+        }
+        complete -F _find_like_vim findfile
+        ```
+
+        使用：
+
+        ```bash
+        findfile sub<tab>  # 展开为 findfile subdir/he
+        findfile subdir/hell<tab>  # 展开为 findfile subdir/hello.txt
+        ```
+
+        详细解释：
+
+        * `find . -type f -not -path '*/.*'`: 在当前目录（包括所有子目录）中，查找所有普通文件，但排除那些路径中包含隐藏目录的文件。
+
+            简单说就是：只找“非隐藏目录”里的普通文件。
+
+            实际效果如下：
+
+            ```
+            ./script_2.sh
+            ./subdir/hello.txt
+            ./subdir/he_world.txt
+            ./main.sh
+            ./script.sh
+            ```
+
+            经过 sed 删除前缀`./`后，即得到纯净的路径。
+
+        * `-type f`
+
+            限定只查找普通文件（regular file）。
+
+            排除目录、符号链接、设备文件等。
+
+        * `-not -path '*/.*'`
+
+            这是核心过滤条件，分两层理解：
+
+            * `-path '*/.*'`
+
+                * `-path` 会匹配整个路径字符串（不是仅文件名）。
+
+                * `'*/.*'` 是一个通配符模式：
+
+                    * `*/` 表示任意层级的目录（包括当前目录）
+
+                    * `.*` 表示以点开头的文件名或目录名
+
+                * 所以 `*/.*` 会匹配任何路径中包含隐藏元素的情况，例如：
+
+                    * `./.git/config`
+
+                    * `./src/.cache/temp`
+
+                    * `./.env`
+
+            * `-not`
+
+                * 逻辑取反，即不匹配上述模式。
+
+                * 最终效果：排除所有路径中包含隐藏目录或隐藏文件的条目。
+
+        这个功能其实 bash 也是默认实现的，我们再次造了轮子。
+
+        **潜在问题：**
+
+        * 这个本质是 find 把所有非隐藏文件列出来，然后让 compgen 使用`-- $cur`前缀做选择。因为`$cur`只能用作前缀，所以我们只能递进地补全路径。无法像 vim find 那样，输入文件名，然后自动展开为完整路径。
+
+    * 方案三：搜索子目录 + 匹配文件名（自定义写法）
+
+        ```bash
+        hvim() {
+            if [ $# -eq 0 ]; then
+                echo "Usage: ffind <filename>"
+                return 1
+            fi
+            vim "$1"
+        }
+
+        _hvim_complete() {
+            local cur="${COMP_WORDS[COMP_CWORD]}"
+            cands=$(find . -type f -name "${cur}*" 2>/dev/null | sed 's|^\./||')
+            COMPREPLY=($(compgen -W "${cands}" -X '!'"*$cur*"))
+        }
+
+        complete -F _hvim_complete hvim
+        ```
+
+        **详细解释：**
+
+        * `-name "${cur}*"`: 只搜索`${cur}`开头的文件名。注意此时 find 输出的是完整路径。
+
+        * `-X '!'"*$cur*"`: `-X`表示“排除这些通配符匹配到的 word”
+        
+            * `'!'`：单引号包裹的叹号。首先叹号表示取反，即“不排除这些 word”，即“只包含这些 word”。单引号表示不要把叹号转义成 bash 的“历史命令”功能。可以使用`set -o | grep histexpand`查看当前 bash 是否开启对 ! 历史扩展（History Expansion）的转义。
+
+            * `"*$cur*"`：整个路径中只要包含`$cur`就可以，防止`-- "$cur"`无法匹配到`subdir/myfile.txt`的输出。这里用双引号包裹，防止`$cur`中有空格。
+
+        * 为什么不直接用 grep 过滤？
+
+            因为 compgen 额外提供了自动转义功能，这在补全包含空格的文件名时至关重要：
+
+            ```bash
+            # 假设文件名为 "my file.txt"
+            # 直接用 grep 输出：my file.txt（未转义，会导致补全错误）
+            # compgen 输出：my\ file.txt 或 "my file.txt"（已转义，安全可用）
+            ```
+
+        **潜在问题：**
+
+        * `"*$cur*"`匹配的范围有点太大了，其实应该只匹配最后一段路径的内容，比如`../../myfile.txt`，应该只匹配`myfile.txt`。
 * bash 快捷键
 
 	```bash

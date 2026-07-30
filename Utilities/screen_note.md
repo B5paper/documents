@@ -2,6 +2,80 @@
 
 ## cache
 
+* screen 中，vim 无法正常自动 reload 文件
+
+    啊，原来是 **screen** 的问题！这就说得通了。
+
+    ### 问题根源
+
+    在 **screen** 或 **tmux** 这样的终端复用器中，Vim 无法正确接收到“焦点事件”（Focus Events）。具体来说：
+
+    - 当你在 screen 会话中切换窗口时，screen 会拦截这些终端事件
+    - Vim 的 `autoread` 依赖焦点事件来触发文件检查
+    - 导致 Vim 无法自动检测文件变更，也就不会弹出 "Load file" 的提示
+
+    ### 解决方案
+
+    **方案一：手动触发检查（最简单）**
+
+    在 Vim 中执行：
+
+    ```vim
+    :checktime
+    ```
+
+    或简写：
+
+    ```vim
+    :che
+    ```
+
+    这会强制 Vim 检查所有缓冲区是否被外部修改，如果文件有变化，就会弹出提示让你按 `l` 重新加载。
+
+    **方案二：设置自动检查（推荐）**
+
+    在 `~/.vimrc` 中添加：
+
+    ```vim
+    " 定时检查文件是否被外部修改
+    set autoread
+    au CursorHold,CursorHoldI * checktime
+    ```
+
+    `CursorHold` 会在你停止操作几秒后触发，这样即使在 screen 中没有焦点事件，Vim 也会定期检查文件变化。
+
+    **方案三：映射快捷键手动检查**
+
+    ```vim
+    " 映射 F5 为检查所有文件
+    nnoremap <F5> :checktime<CR>
+    ```
+
+    然后每次从 VSCode 切回来后，按 `F5` 就能触发检查。
+
+    **方案四：退出 screen 时的处理**
+
+    如果经常需要切换，可以考虑在执行外部操作前先保存：
+
+    ```vim
+    :wa  " 保存所有文件
+    ```
+
+    ### screen 特定配置
+
+    如果想彻底解决，可以在 `~/.screenrc` 中添加：
+
+    ```screen
+    altscreen on
+    termcapinfo xterm* ti@:te@
+    ```
+
+    这有助于改善 screen 对终端转义序列的处理，但可能对焦点事件的改善有限，主要还是依赖上述 Vim 层面的解决方案。
+
+    ---
+
+    所以，你现在可以用 `:checktime` 手动触发检查，或者配置 `CursorHold` 让它自动检测。screen 确实是这类问题的常见“元凶”！
+
 * 讲讲 screen 中 defflow off 的作用
 
 	`defflow off` 命令用于**关闭 GNU Screen 对`XON`/`XOFF`（即 `Ctrl-S` 和 `Ctrl-Q`）流量控制信号的拦截和处理**。简而言之，它告诉 Screen 不要"吃掉"这两个按键，而是将它们直接传递给在窗口中运行的程序。

@@ -90,6 +90,10 @@
 
 ## cache
 
+* `./topo_test 2>&1`才能看到完整输出
+
+    可能是因为 _indented_print 中输出是 stdout，而 INFO 输出的是 stderr，两个独立的缓冲队列导致输出不稳定。（具体原因不清楚为什么）
+
 * 直接原因: uuid 不匹配，导致没有创建 gpu tag
 
     根因：smi 未初始化，导致 get dev handle 失败，从而未拿到 uuid，导致 uuid 数据全为 0.
