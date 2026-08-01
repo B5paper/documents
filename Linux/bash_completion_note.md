@@ -1,4 +1,50 @@
+# Bash completion note
+
 ## cache
+
+* 一个 ai 给的 bash completion 的 example
+
+    ```bash
+    # ~/.bashrc
+    # 定义搜索目录（类似 Vim 的 path 设置）
+    VIM_PATH=".:./src:./lib:./include"
+
+    _find_vim_style() {
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        local dirs=(${VIM_PATH//:/ })
+        local files=""
+        
+        for dir in "${dirs[@]}"; do
+            if [[ -d "$dir" ]]; then
+                files+=$(find "$dir" -type f -name "*${cur}*" 2>/dev/null | sed 's|^\./||')" "
+            fi
+        done
+        
+        COMPREPLY=($(compgen -W "$files" -- "$cur"))
+    }
+
+    # 创建别名
+    alias findf='_find_vim_style'
+    complete -F _find_vim_style findf
+    ```
+
+    使用：
+
+    ```bash
+    findf main.c<Tab>
+    ```
+
+	注：
+
+	1. 这段代码是想列出几个备选目录，然后使用 find 轮询这几个备选目录做搜索，再将所有搜索出来的文件放到 compgen 里进行二次过滤。
+
+		但是它仍没解决 find 搜出来的文件是`subdir/file_name.txt`形式，而 compgen 只过滤`file_name`开头的字符串，与 find 的输出不兼容的问题。
+
+	2. 之所以留这段代码，是想学习下面这些主题
+
+		1. 可以使用补全函数本身作为 alias 别名，然后再将这个别名作为 complete 的参数。相当于自己补全自己。
+
+		2. 不一定只调用一次 find，可以调用多次 find 搜索多个目录。
 
 * 我自己写了个 ./main <subcommand> 程序，现在希望输入 ./main some-half-command 后，按 tab 键能补全 subcommand，该怎么办
 

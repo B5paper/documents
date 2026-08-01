@@ -4,6 +4,156 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* stdout 默认是“行缓冲”或“全缓冲”，而 stderr 默认是“无缓冲”。
+
+    stderr：一有数据，立刻显示在屏幕上。
+
+    stdout：数据会先攒在内存里，遇到换行符 \n 或缓冲区满了才显示。
+
+* `stdbuf -o0 ./your_program`
+
+	这行命令用于控制程序的输出缓冲行为。让我详细解释每个部分：
+
+	## 命令结构
+	```bash
+	stdbuf -o0 ./your_program
+	```
+
+	## 各部分详解
+
+	### `stdbuf`
+	- 这是一个 GNU coreutils 提供的工具
+	- 用于改变程序的**标准流缓冲策略**
+	- 可以控制 stdin、stdout、stderr 的缓冲行为
+
+	### `-o0`
+	- `-o` 表示设置 **stdout（标准输出）** 的缓冲
+	- `0` 表示**无缓冲**（unbuffered）
+	- 其他可选值：
+	  - `0` = 无缓冲（立即输出）
+	  - `L` = 行缓冲（遇到换行符时输出）
+	  - 数字（如 `4096`）= 指定大小的块缓冲
+
+	## 三种缓冲模式对比
+
+	| 模式 | 参数 | 行为 | 适用场景 |
+	|------|------|------|----------|
+	| 无缓冲 | `-o0` | 立即输出每个字符 | 实时交互、调试 |
+	| 行缓冲 | `-oL` | 遇到换行符时输出 | 日志记录、交互式程序 |
+	| 块缓冲 | `-o4096` | 缓冲区满时输出 | 大量数据处理（默认） |
+
+	## 注意事项
+
+	### 1. **对已编译程序的影响**
+	```bash
+	# 对动态链接的程序有效
+	stdbuf -o0 ./dynamic_program
+
+	# 对静态链接的程序可能无效
+	stdbuf -o0 ./static_program
+	```
+
+	### 2. **与 C 函数的关系**
+	```c
+	// setbuf 等函数会覆盖 stdbuf 设置
+	setbuf(stdout, NULL);  // 这会使 stdbuf -o0 失效
+	```
+
+	### 3. **Python 中的等价方法**
+	```bash
+	# 使用 stdbuf
+	stdbuf -o0 python script.py
+
+	# Python 内置方法
+	python -u script.py  # -u 强制无缓冲
+	# 或在脚本中：
+	import sys
+	sys.stdout.reconfigure(line_buffering=True)
+	```
+
+	### 组合使用
+	```bash
+	# 同时设置 stdout 和 stderr 为无缓冲
+	stdbuf -o0 -e0 ./program
+
+	# 设置不同的缓冲策略
+	stdbuf -o0 -eL ./program  # stdout无缓冲，stderr行缓冲
+	```
+
+	这个命令在需要**实时输出**、**管道处理**或**调试**时特别有用，可以避免因缓冲导致的输出延迟问题。
+
+* 为什么 make 2>&1 > compile.log 没有输出 error log
+
+    这是一个非常经典且容易混淆的 Unix/Linux 重定向问题。
+
+    **直接原因：顺序错误。** 
+
+    `2>&1` 必须写在 `>` 的**后面**才有效。
+
+    **详细解析**
+
+    你的命令：
+
+    ```bash
+    make 2>&1 > compile.log
+    ```
+
+    **Shell 执行流程（从左到右）：**
+
+    1. **第一步：`2>&1`**
+
+       - 此时，标准输出（fd 1）**还没有被重定向**，它仍然指向终端（屏幕）。
+
+       - 这个操作的意思是：**“将标准错误（fd 2）复制到标准输出（fd 1）当前的指向位置”**。
+       - 因为 fd 1 当前指向终端，所以 **stderr 被指向了终端**。
+
+    2. **第二步：`> compile.log`**
+
+       - 此时，**仅将标准输出（fd 1）**重定向到 `compile.log` 文件。
+
+       - 注意：这一步**不会影响**标准错误（fd 2），因为 fd 2 在上一步已经被“固化”指向终端了。
+
+    **最终结果：**
+
+    - `stdout`（标准输出）→ `compile.log`（文件）
+
+    - `stderr`（标准错误）→ **终端（屏幕）**
+
+    所以你看不到 error log 在文件里，因为它们留在了屏幕上。
+
+    **正确的写法**
+
+    如果你想**把标准输出和标准错误都放进 `compile.log`**，有两种写法：
+
+    **写法一（推荐，最清晰）：**
+
+    ```bash
+    make > compile.log 2>&1
+    ```
+
+    - 先改 stdout 指向文件。
+
+    - 再将 stderr 复制到 stdout（此时 stdout 已指向文件，所以 stderr 也进文件）。
+
+    **写法二（Bash 简写）：**
+
+    ```bash
+    make &> compile.log
+    ```
+
+    或者
+
+    ```bash
+    make >& compile.log
+    ```
+
+    （这两种写法等价于“全部重定向到文件”）
+
+    **记忆口诀**
+
+    > **“先改目标，再复制指向”**。
+    > 把 `2>&1` 想象成“把 2 的指向改成和 1 一样”，所以它必须放在 `1` 被修改**之后**才能生效。
+
 * `local cur="${COMP_WORDS[COMP_CWORD]}"`中，用户输入空格的情况
 
     如果用户输入了`he\ ll<tab>`，或`'he ll<tab>`，或`"he ll<tab>`等带有空格的输入，那么这样可以防止让 bash 以为你输入的是被空格分开的 command 或参数，但是在`COMP_WORDS`中，`\`，`'`以及`"`会原封不动地存储。这意味着数组中的元素的“分隔”是正确的，但我们在后面匹配的过程中，需要额外处理这几个特殊字符。

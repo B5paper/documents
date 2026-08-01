@@ -2,6 +2,52 @@
 
 ## cache
 
+* vim 使用 :find some_d<tab> 补全为 :find some_dir/ 后，我想在 some_dir/file_a.txt some_dir/file_b.txt 等文件之间切换。但是如果我在 :find some_dir/ 这里直接按 <tab>，会切换到下一个比如 :find some_dir_2/ 。该如何解决这介问题
+
+    方法 1：使用 `*` 通配符（最推荐，最顺手）
+
+    在路径后面加一个 `*`，明确告诉 Vim “我要补全这个目录**里面**的内容”。
+
+    操作步骤：
+    1.  输入 `:find some_dir/`（用 Tab 补全出这个路径）
+    2.  在末尾手动加上 `*`，变成 `:find some_dir/*`
+    3.  此时再按 `<Tab>`，就会在 `some_dir/file_a.txt`、`some_dir/file_b.txt` 等文件间循环切换。
+
+    ---
+
+    ### 方法 2：按 `<C-d>` 列出候选，再按数字选择
+
+    当补全卡在目录层级时，可以查看当前目录下的所有候选，然后直接选择。
+
+    操作步骤：
+    1.  输入 `:find some_dir/`
+    2.  按 **`<C-d>`**（Ctrl + d），Vim 会在命令行下方列出该目录下的所有文件和子目录。
+    3.  输入列表中目标文件对应的**数字序号**（如 `1`），然后按 `<Tab>` 或直接回车，即可补全为那个文件。
+
+    ---
+
+    ### 方法 3：修改 `wildmenu` 行为（全局设置）
+
+    如果你希望 Vim 在补全时永远优先进入目录，而不是跳到同级目录，可以设置 `wildmenu` 的展示模式。
+
+    在 `~/.vimrc` 中添加：
+    ```vim
+    set wildmenu
+    set wildmode=longest:full,full
+    ```
+    - 这样当你输入 `:find some_dir/` 后按 `<Tab>`，Vim 会**直接列出该目录下的文件**供你选择，而不会跳到 `some_dir_2/`。
+
+    ---
+
+    ### ⚠️ 补充提醒（重要）
+
+    `:find` 命令依赖 Vim 的 `path` 选项。如果你在当前目录下无法用 `:find some_dir/file_a.txt` 补全，说明 `path` 里可能没有包含 `.`（当前目录）。
+
+    在 `~/.vimrc` 中添加：
+    ```vim
+    set path+=.
+    ```
+    然后重启 Vim，`:find` 就能正确识别当前目录下的所有文件了。
 * vim `diffupdate`
 
     如何查看改动：在 Vim 中执行命令 `:diffupdate`（或 `:dif`），Vim 会打开一个比对窗口，高亮显示当前缓冲区内容与硬盘上文件内容的所有差异（增加、删除、修改的行）。
