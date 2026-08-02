@@ -470,174 +470,6 @@
 
 	如果你希望我进一步展示**多级异常链**（三层及以上）的堆栈追踪形态，或者讲解如何在日志系统中完整记录 `__cause__` 和 `__context__`，随时告诉我，我可以继续深入。
 
-* 详细讲讲 csv.reader()
-
-    `csv.reader()` 是 Python 标准库 `csv` 模块中最核心的函数之一。它的作用非常简单：**将包含 CSV（逗号分隔值）格式文本的文件或字符串，逐行解析为 Python 的列表（List）对象**。
-
-    下面我从**基础用法、核心参数、进阶技巧、常见陷阱**四个维度，给你详细拆解。
-
-    ---
-
-    ### 1. 基础用法（最简模式）
-
-    假设你有一个 `data.csv` 文件：
-
-    ```csv
-    name,age,city
-    Alice,30,New York
-    Bob,25,London
-    ```
-
-    **代码：**
-
-    ```python
-    import csv
-
-    with open('data.csv', 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            print(row)
-    ```
-
-    **输出：**
-
-    ```
-    ['name', 'age', 'city']
-    ['Alice', '30', 'New York']
-    ['Bob', '25', 'London']
-    ```
-
-    **关键点：**
-
-    - `reader` 是一个**迭代器（iterator）**，你可以用 `for` 循环遍历，也可以用 `next(reader)` 取下一行。
-    - 每一行都是一个 **字符串列表**。注意：数字 `30` 在这里是字符串 `'30'`，不会自动转成 int。
-    - **必须**以文本模式（`'r'`）打开文件，且通常需要指定 `encoding`（尤其是 Windows 下常用 `gbk`）。
-
-    ---
-
-    ### 2. 核心参数详解（`delimiter` 和 `quotechar`）
-
-    `csv.reader()` 最关键的参数是 **`delimiter`**（分隔符）和 **`quotechar`**（引用符）。
-
-    #### (1) `delimiter` —— 处理非逗号分隔符
-    CSV 不一定是逗号，可能是制表符（TSV）、分号（欧洲常用）或管道符 `|`。
-
-    ```python
-    # 制表符分隔的文件
-    reader = csv.reader(f, delimiter='\t')
-    ```
-
-    #### (2) `quotechar` —— 处理内容中的特殊字符
-    如果字段里本身就包含逗号或换行符，需要用引号括起来：
-
-    ```csv
-    name,description
-    Alice,"Hello, world"
-    Bob,"Line1\nLine2"
-    ```
-
-    默认 `quotechar='"'`。reader 会自动去掉外层引号，并正确处理内部逗号（不会把它当分隔符）。
-
-    ```python
-    reader = csv.reader(f)  # 默认 quotechar='"'
-    for row in reader:
-        print(row)
-    # 输出：['Alice', 'Hello, world']  （注意内部逗号被保留了）
-    ```
-
-    ---
-
-    ### 3. 进阶技巧：与 `next()` 配合跳过表头
-
-    很多 CSV 第一行是列名，你不想处理它：
-
-    ```python
-    with open('data.csv') as f:
-        reader = csv.reader(f)
-        header = next(reader)  # 取走第一行
-        print(f"列名: {header}")
-        for row in reader:     # 从第二行开始遍历
-            print(row)
-    ```
-
-    ---
-
-    ### 4. 处理空白行和空值
-
-    - **空白行**：reader 默认会返回一个空列表 `[]`。你可以通过 `if row:` 过滤掉。
-    - **空字段**：连续两个分隔符（如 `a,,b`）会被解析为 `['a', '', 'b']`。
-
-    ---
-
-    ### 5. 重要陷阱（新手必坑）
-
-    #### (1) **文件指针与迭代器一次性**
-    `reader` 是迭代器，只能从头到尾读一次。如果想再读一遍，必须重新 `open()` 或 `f.seek(0)`。
-
-    #### (2) **`newline=''` 参数必须加（Python 官方强烈建议）**
-    打开 CSV 文件时，**强烈推荐**加上 `newline=''`，否则在 Windows 上可能会把 `\r\n` 搞乱，导致多出空行或字段错乱。
-
-    ```python
-    with open('data.csv', 'r', newline='', encoding='utf-8') as f:  # 注意 newline=''
-        reader = csv.reader(f)
-    ```
-
-    #### (3) **性能问题**
-    `csv.reader` 是纯 Python 实现的，对于几 GB 的超大文件，逐行读取没问题（内存友好），但速度较慢。如果追求极致速度，可考虑 `pandas.read_csv()` 或 `pyarrow`。
-
-    ---
-
-    ### 6. 与其他方法的对比
-
-    | 方法 | 返回类型 | 适用场景 |
-    | :--- | :--- | :--- |
-    | `csv.reader()` | 每行 `list` | 通用，最灵活，手动处理列 |
-    | `csv.DictReader()` | 每行 `dict`（键为表头） | 列名明确，代码可读性高 |
-    | `pandas.read_csv()` | DataFrame | 数据分析、复杂清洗、高性能 |
-
-    ---
-
-    ### 7. 实战示例：解析并转换数据类型
-
-    ```python
-    import csv
-
-    with open('data.csv', 'r', newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        header = next(reader)  # ['name', 'age', 'score']
-        
-        for name, age, score in reader:  # 直接解包
-            age = int(age)
-            score = float(score)
-            print(f"{name} 年龄 {age}, 分数 {score}")
-    ```
-
-    ---
-
-    ### 8. 处理非文件来源（字符串或网络流）
-
-    `csv.reader()` 要求传入的是一个**迭代器**，每次 `__next__()` 返回一个字符串。因此：
-
-    - **字符串**：用 `io.StringIO` 包裹。
-    - **网络响应**（如 `requests.get().text`）：同样用 `StringIO`。
-
-    ```python
-    import csv
-    from io import StringIO
-
-    csv_data = "a,b,c\n1,2,3"
-    reader = csv.reader(StringIO(csv_data))
-    for row in reader:
-        print(row)
-    ```
-
-    ---
-
-    ### 总结一句话
-
-    `csv.reader()` 是 Python 处理 CSV 的**底层、轻量、内存友好**的工具，适合脚本化、快速原型和中小型文件。它不依赖第三方库，但你需要手动处理数据类型、编码和表头逻辑。
-
-    如果你需要更高级的用法（如自定义方言、异常处理），或者想对比 `DictReader` 和 `pandas`，随时可以追问。
 
 * 讲讲 python str glob
 
@@ -13067,7 +12899,174 @@
 
 ## topics
 
-### re
+### 常用内置 packages
+
+* `csv.reader()`
+
+    `csv.reader()` 是 Python 标准库 `csv` 模块中最核心的函数之一。它的作用非常简单：**将包含 CSV（逗号分隔值）格式文本的文件或字符串，逐行解析为 Python 的列表（List）对象**。
+
+    1. 基础用法（最简模式）
+
+        假设你有一个 `data.csv` 文件：
+
+        ```csv
+        name,age,city
+        Alice,30,New York
+        Bob,25,London
+        ```
+
+        **代码：**
+
+        ```python
+        import csv
+
+        with open('data.csv', 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                print(row)
+        ```
+
+        **输出：**
+
+        ```
+        ['name', 'age', 'city']
+        ['Alice', '30', 'New York']
+        ['Bob', '25', 'London']
+        ```
+
+        **关键点：**
+
+        - `reader` 是一个**迭代器（iterator）**，你可以用 `for` 循环遍历，也可以用 `next(reader)` 取下一行。
+
+        - 每一行都是一个 **字符串列表**。注意：数字 `30` 在这里是字符串 `'30'`，不会自动转成 int。
+
+        - **必须**以文本模式（`'r'`）打开文件，且通常需要指定 `encoding`（尤其是 Windows 下常用 `gbk`）。
+
+    2. 核心参数详解（`delimiter` 和 `quotechar`）
+
+        `csv.reader()` 最关键的参数是 **`delimiter`**（分隔符）和 **`quotechar`**（引用符）。
+
+        1. `delimiter`: 处理非逗号分隔符
+            
+            CSV 不一定是逗号，可能是制表符（TSV）、分号（欧洲常用）或管道符 `|`。
+
+            ```python
+            # 制表符分隔的文件
+            reader = csv.reader(f, delimiter='\t')
+            ```
+
+        2. `quotechar`: 处理内容中的特殊字符
+
+            如果字段里本身就包含逗号或换行符，需要用引号括起来：
+
+            ```csv
+            name,description
+            Alice,"Hello, world"
+            Bob,"Line1\nLine2"
+            ```
+
+            默认 `quotechar='"'`。reader 会自动去掉外层引号，并正确处理内部逗号（不会把它当分隔符）。
+
+            ```python
+            reader = csv.reader(f)  # 默认 quotechar='"'
+            for row in reader:
+                print(row)
+            # 输出：['Alice', 'Hello, world']  （注意内部逗号被保留了）
+            ```
+
+    3. 进阶技巧：与 `next()` 配合跳过表头
+
+        很多 CSV 第一行是列名，你不想处理它：
+
+        ```python
+        with open('data.csv') as f:
+            reader = csv.reader(f)
+            header = next(reader)  # 取走第一行
+            print(f"列名: {header}")
+            for row in reader:     # 从第二行开始遍历
+                print(row)
+        ```
+
+    4. 处理空白行和空值
+
+        - **空白行**：reader 默认会返回一个空列表 `[]`。你可以通过 `if row:` 过滤掉。
+
+        - **空字段**：连续两个分隔符（如 `a,,b`）会被解析为 `['a', '', 'b']`。
+
+    5. 重要陷阱（新手必坑）
+
+        1. **文件指针与迭代器一次性**
+
+            `reader` 是迭代器，只能从头到尾读一次。如果想再读一遍，必须重新 `open()` 或 `f.seek(0)`。
+
+        2. **`newline=''` 参数必须加（Python 官方强烈建议）**
+            
+            打开 CSV 文件时，**强烈推荐**加上 `newline=''`，否则在 Windows 上可能会把 `\r\n` 搞乱，导致多出空行或字段错乱。
+
+            ```python
+            with open('data.csv', 'r', newline='', encoding='utf-8') as f:  # 注意 newline=''
+                reader = csv.reader(f)
+            ```
+
+        3. **性能问题**
+
+            `csv.reader` 是纯 Python 实现的，对于几 GB 的超大文件，逐行读取没问题（内存友好），但速度较慢。如果追求极致速度，可考虑 `pandas.read_csv()` 或 `pyarrow`。
+
+    6. 与其他方法的对比
+
+        | 方法 | 返回类型 | 适用场景 |
+        | :--- | :--- | :--- |
+        | `csv.reader()` | 每行 `list` | 通用，最灵活，手动处理列 |
+        | `csv.DictReader()` | 每行 `dict`（键为表头） | 列名明确，代码可读性高 |
+        | `pandas.read_csv()` | DataFrame | 数据分析、复杂清洗、高性能 |
+
+    7. 实战示例：解析并转换数据类型
+
+        ```python
+        import csv
+
+        with open('data.csv', 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader)  # ['name', 'age', 'score']
+            
+            for name, age, score in reader:  # 直接解包
+                age = int(age)
+                score = float(score)
+                print(f"{name} 年龄 {age}, 分数 {score}")
+        ```
+
+    8. 处理非文件来源（字符串或网络流）
+
+        `csv.reader()` 要求传入的是一个**迭代器**，每次 `__next__()` 返回一个字符串。因此：
+
+        - **字符串**：用 `io.StringIO` 包裹。
+        - **网络响应**（如 `requests.get().text`）：同样用 `StringIO`。
+
+        ```python
+        import csv
+        from io import StringIO
+
+        csv_data = "a,b,c\n1,2,3"
+        reader = csv.reader(StringIO(csv_data))
+        for row in reader:
+            print(row)
+        ```
+
+    **总结一句话**
+
+    `csv.reader()` 是 Python 处理 CSV 的**底层、轻量、内存友好**的工具，适合脚本化、快速原型和中小型文件。它不依赖第三方库，但你需要手动处理数据类型、编码和表头逻辑。
+
+    注：
+
+    1. 如果 csv 某一行全是`,`，即全是空元素，那么`line`不是`None`，而仍是 list
+
+### pypi mirror
+
+在上海使用上交的镜像比较快：<https://mirrors.sjtug.sjtu.edu.cn/docs/pypi/web/simple>
+
+临时使用：`pip install -i https://mirror.sjtu.edu.cn/pypi/web/simple numpy`
+
+### regular expression
 
 * finditer
 
@@ -13144,15 +13143,7 @@
 
     `search()`区别于`match()`，`match()`表示从头开始匹配。
 
-## pypi mirror
-
-在上海使用上交的镜像比较快：<https://mirrors.sjtug.sjtu.edu.cn/docs/pypi/web/simple>
-
-临时使用：`pip install -i https://mirror.sjtu.edu.cn/pypi/web/simple numpy`
-
-## regular expression
-
-### cache
+#### cache
 
 * 如果一个字符串后面有很多`\n`，但是想清除多余的换行，只保留一个，可以用下面的正则表达式：
 
@@ -13214,7 +13205,7 @@
 
 
 
-### group
+#### group
 
 ```python
 import re
@@ -13258,9 +13249,9 @@ print(d['last_name'])
 
 `groupdict()`以字典的形式返回命名匹配。如果表达式中没有命名子匹配，那么字典为空。
 
-## subprocess
+### subprocess
 
-### cache
+#### cache
 
 * 使用`subprocess.run()`将子程序的 stdout 重定向到程序内部的内存
 
@@ -13357,7 +13348,7 @@ print(d['last_name'])
 
     需要注意的是，`['my_cmd', '-my_arg val']`和`['my_cmd', '-my_arg', 'val']`在大部分情况下功能相同，但是对一小部分软件来说是有区别的，这两种形式可能只有一种可以正确执行。
 
-### note
+#### note
 
 ## Miscellaneous
 

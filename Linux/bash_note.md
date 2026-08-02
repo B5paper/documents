@@ -4,6 +4,522 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* find 搜索东西时并不是正则匹配，必须加通配符`*keyword*`，而 grep 是正则匹配，直接使用`keyword`就能匹配字符串中的关键字。
+
+* 详细讲讲 fd 命令 (fdfind)
+
+	`fd` 是一个用于在文件系统中查找条目的程序，它被设计为经典 `find` 命令的一个简单、快速且更友好的替代品。它通过更直观的语法和合理的默认设置，让日常的文件查找工作变得更加轻松。
+
+	### 🎯 核心特点与优势
+
+	*   **语法简单直观**：默认搜索模式是“文件名包含”，你不需要像 `find` 那样写 `-iname '*PATTERN*'`。例如，在当前目录查找所有包含 "readme" 的文件，只需执行 `fd readme` 即可。
+	*   **开箱即用的智能默认值**：
+		*   **自动忽略**：默认会**忽略隐藏文件**和目录，以及来自 `.gitignore`、`.ignore` 或 `.fdignore` 中定义的规则，避免搜索结果被干扰。
+		*   **智能大小写**：搜索模式默认**不区分大小写**。但如果你的搜索模式中包含大写字母，它会自动切换为**区分大小写**，非常灵活。
+	*   **高性能**：通过并行遍历目录树来实现快速搜索，充分利用多核CPU。
+
+	### 🚀 常用选项与示例
+
+	#### 1. 基础搜索与路径
+	| 操作 | 命令示例 | 说明 |
+	| :--- | :--- | :--- |
+	| 列出所有文件 | `fd` | 递归列出当前目录下所有未被忽略的文件和目录。 |
+	| 指定搜索目录 | `fd passwd /etc` | 在 `/etc` 目录下搜索包含 "passwd" 的文件。 |
+	| 显示隐藏文件 | `fd -H .gitignore` | 查找所有名为 `.gitignore` 的文件，包括隐藏文件。 |
+	| 完全忽略忽略规则 | `fd -I numcpu` | 搜索时忽略所有忽略规则（如 `.gitignore`），显示所有文件。 |
+	| 进行“无限制”搜索 | `fd -u` | 等同于 `--hidden --no-ignore`，搜索所有文件。 |
+
+	#### 2. 文件类型与扩展名过滤
+	| 操作 | 命令示例 | 说明 |
+	| :--- | :--- | :--- |
+	| 只查找目录 | `fd -t d` | `-t` 参数后跟类型指示符，`d` 代表目录（`f`为文件，`l`为符号链接）。 |
+	| 按扩展名过滤 | `fd -e md` | 查找所有扩展名为 `.md` 的文件。 |
+	| 查找空文件/目录 | `fd -t e` | 查找所有空的文件和目录。 |
+
+	#### 3. 搜索模式与技巧
+	| 操作 | 命令示例 | 说明 |
+	| :--- | :--- | :--- |
+	| 使用Glob模式 | `fd -g '*.jpg'` | `fd` 默认使用正则表达式，通过 `-g` 切换到glob模式，更符合直觉。 |
+	| 使用正则表达式 | `fd '^x.*rc$'` | 使用正则表达式进行更精确的匹配，例如查找以 `x` 开头并以 `rc` 结尾的文件。 |
+	| 匹配完整路径 | `fd -p -g '*.md'` | `-p` 选项让搜索模式匹配文件的完整路径，而不仅仅是文件名。 |
+
+	#### 4. 高级操作：排除、执行与时间过滤
+	| 操作 | 命令示例 | 说明 |
+	| :--- | :--- | :--- |
+	| 排除特定目录 | `fd -E node_modules` | 使用 `-E` 排除匹配特定glob模式的结果，常用于排除依赖目录。 |
+	| 对结果执行命令 | `fd -e zip -x unzip` | 对每个搜索结果执行 `unzip` 命令。`{}` 代表文件路径。 |
+	| 批量执行命令 | `fd -e cpp -X vim` | 将**所有**搜索结果作为参数一次性传递给 `vim`，用于打开多个文件。 |
+	| 按修改时间查找 | `fd --changed-within 1week` | 查找在过去一周内修改过的文件。 |
+
+	### ⚙️ 安装与别名
+
+	*   **安装**：在Debian/Ubuntu上，包名通常是 `fd-find`，安装命令为 `sudo apt install fd-find`。在Red Hat/Fedora上类似，为 `sudo dnf install fd-find`。
+	*   **设置别名**：安装后，命令可能为 `fdfind`。为了方便，可以在shell配置文件中添加别名：`alias fd='fdfind'`。如果你希望 `fd` 默认也搜索隐藏文件，可以设置 `alias fd='fdfind --hidden'`。
+
+* `if command -v fzf &>/dev/null; then`
+
+	command -v fzf：检查 fzf 命令是否可用
+
+	&>/dev/null：将标准输出和错误输出都重定向到 /dev/null（即丢弃所有输出）
+
+	如果 fzf 可用，则执行 if 分支；否则执行 else 分支
+
+* `| grep --color=always "$1"`：在结果中高亮显示搜索模式
+
+* `echo $'hello\nworld'`
+
+	这行命令使用 Bash 的 **ANSI-C 引用**机制来解析转义字符。让我详细解释：
+
+	## 命令结构
+	```bash
+	echo $'hello\nworld'
+	```
+
+	## 核心概念：`$'...'` ANSI-C 引用
+
+	### 什么是 ANSI-C 引用？
+	- 这是 Bash 提供的一种特殊引用方式
+	- 使用 `$'` 开头，`'` 结尾
+	- 会解析其中的**转义序列**（类似 C 语言风格）
+	- 比普通单引号更强大，比双引号更可控
+
+	### 执行过程
+	```bash
+	# 1. Shell 解析 $'hello\nworld'
+	# 2. 将 \n 转换为实际换行符
+	# 3. 传递给 echo 命令
+	# 4. echo 输出两行
+	```
+
+	## 输出结果
+	```
+	hello
+	world
+	```
+
+	## 与其他引用方式对比
+
+	### 1. **普通单引号** `'...'`
+	```bash
+	echo 'hello\nworld'
+	# 输出：hello\nworld  （原样输出，不解析）
+	```
+
+	### 2. **双引号** `"..."`
+	```bash
+	echo "hello\nworld"
+	# 输出：hello\nworld  （不解析 \n，但会解析变量）
+	```
+
+	### 3. **ANSI-C 引用** `$'...'`
+	```bash
+	echo $'hello\nworld'
+	# 输出：
+	# hello
+	# world
+	```
+
+	## 支持的转义序列
+
+	### 常见转义字符
+	| 序列 | 含义 | 示例 |
+	|------|------|------|
+	| `\n` | 换行符 | `$'line1\nline2'` |
+	| `\t` | 制表符(Tab) | `$'col1\tcol2'` |
+	| `\r` | 回车符 | `$'text\r'` |
+	| `\\` | 反斜杠 | `$'path\\to\\file'` |
+	| `\'` | 单引号 | `$'It\'s great'` |
+	| `\"` | 双引号 | `$'She said \"Hi\"'` |
+	| `\a` | 响铃 | `$'\a'` |
+	| `\b` | 退格 | `$'abc\bdef'` |
+	| `\v` | 垂直制表符 | `$'line1\vline2'` |
+	| `\f` | 换页符 | `$'page1\fpage2'` |
+
+	### 八进制/十六进制
+	```bash
+	# 八进制
+	echo $'\101\102\103'        # 输出：ABC
+	echo $'\n\101\102\103\n'    # 输出换行 + ABC + 换行
+
+	# 十六进制
+	echo $'\x41\x42\x43'        # 输出：ABC
+	echo $'\u4E2D\u6587'        # 输出：中文 (Unicode)
+	```
+
+	## 实际应用场景
+
+	### 1. **多行输出**
+	```bash
+	# 生成多行文本
+	echo $'Line 1\nLine 2\nLine 3'
+	# 输出三行
+
+	# 用于脚本帮助信息
+	usage=$'Usage: script.sh [options]\n  -h    Show help\n  -v    Verbose mode'
+	echo "$usage"
+	```
+
+	### 2. **处理特殊字符**
+	```bash
+	# 包含引号的文本
+	echo $'He said, "It\'s fine"'
+	# 输出：He said, "It's fine"
+
+	# Windows 路径（需要反斜杠）
+	echo $'C:\\Users\\Name\\Documents'
+	# 输出：C:\Users\Name\Documents
+	```
+
+	### 3. **格式化输出**
+	```bash
+	# 表格样式
+	echo $'Name\tAge\tCity'
+	echo $'Alice\t25\tNYC'
+	echo $'Bob\t30\tLA'
+
+	# 带颜色的文本（使用 ANSI 转义）
+	RED=$'\033[31m'
+	GREEN=$'\033[32m'
+	RESET=$'\033[0m'
+	echo "${RED}Error${RESET}: ${GREEN}Success${RESET}"
+	```
+
+	### 4. **变量赋值**
+	```bash
+	# 多行字符串变量
+	multiline=$'First line\nSecond line\nThird line'
+	echo "$multiline"
+
+	# 特殊字符变量
+	tab_separated=$'col1\tcol2\tcol3'
+	echo "$tab_separated" | cat -A  # 显示制表符
+	```
+
+	## 与其他命令配合
+
+	### 与 printf 配合
+	```bash
+	# printf 本身就支持 \n，但 $'' 在某些场景更有用
+	printf '%b' $'hello\nworld'  # %b 也解析转义字符
+	```
+
+	### 与 sed/awk 配合
+	```bash
+	# 在替换中使用
+	sed $'s/old/new/g' file.txt
+
+	# 使用分隔符
+	awk -F $'\t' '{print $1}' file.tsv
+	```
+
+	### 与 find 配合
+	```bash
+	# 查找包含换行符的文件名（虽然不常见）
+	find . -name $'file\nname.txt'
+	```
+
+	## 注意事项
+
+	### 1. **与变量扩展的区别**
+	```bash
+	name="world"
+	echo $'hello\n$name'   # 输出 hello 和 $name（不解析变量）
+	echo "hello\n$name"    # 输出 hello\nworld（解析变量但不解析\n）
+	```
+
+	### 2. **嵌套引号**
+	```bash
+	# ANSI-C 引用内不能包含 ANSI-C 引用
+	echo $'$'hello''       # 错误
+
+	# 但可以混合使用
+	echo $'hello '"world"  # 输出：hello world
+	```
+
+	### 3. **Shell 兼容性**
+	```bash
+	# $'' 是 Bash/Zsh 特性，POSIX sh 不支持
+	#!/bin/sh
+	echo $'hello\nworld'   # 可能在 /bin/sh 中报错
+
+	# POSIX 兼容方式
+	printf "hello\nworld\n"
+	```
+
+	## 高级用法
+
+	### 动态构建
+	```bash
+	# 构建包含控制字符的字符串
+	ctrl_c=$'\x03'
+	echo "Press ${ctrl_c} to cancel"
+	```
+
+	### 结合 read
+	```bash
+	# 读取多行输入
+	IFS=$'\n' read -r -d '' multiline <<'EOF'
+	line1
+	line2
+	line3
+	EOF
+	```
+
+	### 数组创建
+	```bash
+	# 用换行符分割创建数组
+	IFS=$'\n' read -r -d '' -a lines <<< $'line1\nline2\nline3'
+	echo "${lines[1]}"  # 输出：line2
+	```
+
+	## 总结
+
+	`$'...'` 提供了一种**安全、清晰**的方式来在 shell 脚本中使用转义字符。相比 `echo -e` 或 `printf`：
+	- **更可控**：只在 `$''` 内解析转义，不影响其他地方
+	- **更安全**：避免 `echo -e` 在不同平台的行为差异
+	- **更直观**：类似 C 语言的语法，易于理解
+
+	这使它成为处理**特殊字符**、**多行文本**和**格式化输出**的首选方式。
+
+* 详细讲讲 bash 中的 Here Document（多行文本）
+
+	在 Bash 中，**Here Document**（简称 Here-doc）是一种强大的**输入重定向**方式，它允许你在脚本中直接嵌入多行文本，并将这些文本作为标准输入传递给命令。
+
+	它的核心价值在于：**让多行文本的输入变得整洁、可读，且支持变量替换和命令替换。**
+
+	---
+
+	## 一、基础语法
+
+	```bash
+	命令 << 分隔符
+	文本内容...
+	...
+	分隔符
+	```
+
+	- `<<` 是重定向操作符。
+	- `分隔符`（通常用 `EOF`、`END` 或 `EOT`）是一个**任意的标识词**，用来标记文本的起始和结束。
+	- **结束的分隔符必须独占一行**，且**行首不能有空格或制表符**（除非特殊处理）。
+
+	### 最简单的例子
+
+	```bash
+	cat << EOF
+	这是第一行
+	这是第二行
+	当前日期是：$(date)
+	EOF
+	```
+
+	输出：
+	```
+	这是第一行
+	这是第二行
+	当前日期是：2026-08-01 10:00:00
+	```
+
+	---
+
+	## 二、核心行为：变量替换和命令替换
+
+	默认情况下，Here Document 会像双引号字符串一样，**自动解析**内部的变量（`$var`）和命令替换（`$(cmd)`）。
+
+	```bash
+	name="Alice"
+	cat << EOF
+	Hello $name
+	Today is $(date +%A)
+	EOF
+	```
+
+	输出：
+	```
+	Hello Alice
+	Today is Saturday
+	```
+
+	---
+
+	## 三、禁用替换：使用 `<<'EOF'` 或 `<<\EOF`
+
+	如果你希望**原样输出**所有内容（不解析变量、不执行命令），需要将分隔符**用引号括起来**或**转义**。
+
+	```bash
+	name="Alice"
+	cat << 'EOF'
+	Hello $name
+	Today is $(date +%A)
+	EOF
+	```
+
+	输出：
+	```
+	Hello $name
+	Today is $(date +%A)
+	```
+
+	三种等效写法：
+	- `<< 'EOF'`
+	- `<< "EOF"`
+	- `<< \EOF`
+
+	---
+
+	## 四、缩进处理：使用 `<<-`（忽略前导 Tab）
+
+	标准 Here Document 要求结束分隔符必须在行首，这会破坏脚本的缩进美观。
+
+	使用 `<<-` 操作符，可以**忽略所有前导 Tab 字符**（注意：**只能是 Tab，不能是空格**）。
+
+	```bash
+	if true; then
+		cat <<- EOF
+			This line starts with a Tab (not spaces)
+			So does this one
+		EOF          # 这一行也必须以 Tab 开头，不能有空格
+	fi
+	```
+
+	如果你的编辑器使用空格缩进，这个功能会失效，建议仅在确保使用 Tab 缩进时使用。
+
+	---
+
+	## 五、高级应用场景
+
+	### 1. 向文件写入多行内容（覆盖或追加）
+
+	```bash
+	# 覆盖文件
+	cat > config.txt << EOF
+	server=192.168.1.1
+	port=8080
+	EOF
+
+	# 追加到文件
+	cat >> config.txt << EOF
+	timeout=30
+	EOF
+	```
+
+	### 2. 与管道结合
+
+	```bash
+	grep "error" << EOF | wc -l
+	log: error in module A
+	log: info
+	log: error in module B
+	EOF
+	# 输出：2
+	```
+
+	### 3. 交互式程序的自动应答
+
+	```bash
+	# 自动登录 FTP（仅示例）
+	ftp -n << EOF
+	open ftp.example.com
+	user username password
+	ls
+	bye
+	EOF
+	```
+
+	### 4. 在循环或函数中使用
+
+	```bash
+	function show_help() {
+		cat << EOF
+	Usage: $0 [options]
+	  -h    Show this help
+	  -v    Verbose mode
+	EOF
+	}
+	```
+
+	---
+
+	## 六、与其他多行方式对比
+
+	| 方式 | 语法 | 是否支持变量 | 是否支持缩进 |
+	|------|------|-------------|-------------|
+	| **Here Document** | `<< EOF` | ✅ 默认支持 | ❌（除非用 `<<-` + Tab） |
+	| **Here String** | `<<< "$var"` | ✅ | 仅单行 |
+	| **单引号多行字符串** | `var='line1\nline2'` | ❌ | 依赖 `\n` |
+	| **双引号多行字符串** | `var="line1\nline2"` | ✅ | 依赖 `\n` |
+	| **换行拼接** | `var="line1"$'\n'"line2"` | ✅ | 较繁琐 |
+
+	Here Document 的最大优势是**可读性**，特别适合配置片段、SQL 语句、HTML 模板等。
+
+	---
+
+	## 七、常见陷阱与注意事项
+
+	1. **结束分隔符行首不能有空格/ Tab**  
+	   除非使用 `<<-`，否则会报错 `here-document at line X delimited by end-of-file`。
+
+	2. **分隔符必须是唯一的**  
+	   文本内容中如果包含 `EOF` 且独占一行，会导致提前结束。应选择不常见的关键词，如 `_END_`、`EOF_MARKER`。
+
+	3. **变量替换发生在读取时**  
+	   如果变量在 Here Document 定义**之后**才赋值，不会生效（因为解析时变量为空）。如需动态内容，应将命令放在 Here Document 内部执行。
+
+	4. **命令替换会立即执行**  
+	   如果需要延迟执行，需转义 `\$` 或 `\$(cmd)`。
+
+	5. **性能影响**  
+	   Here Document 会创建临时文件或管道，对于超大文本（GB 级）需谨慎，但常规用途无影响。
+
+	---
+
+	## 八、进阶技巧
+
+	### 嵌套 Here Document
+	可以嵌套，但外层的分隔符必须与外层对应，内层用不同分隔符。
+
+	```bash
+	cat << OUTER
+	外层内容
+	$(cat << INNER
+	内层内容
+	INNER
+	)
+	外层继续
+	OUTER
+	```
+
+	### 动态选择分隔符
+	分隔符可以是变量（但很少用，容易混乱）：
+
+	```bash
+	delim="MARK"
+	cat << $delim
+	...
+	$delim
+	```
+
+	### 将 Here Document 赋值给变量
+	需结合 `read` 或 `mapfile`，但更推荐直接使用变量存储多行字符串（Bash 4+）：
+
+	```bash
+	var=$(cat << 'EOF'
+	第一行
+	第二行
+	EOF
+	)
+	echo "$var"
+	```
+
+	---
+
+	## 九、总结口诀
+
+	- **默认**：变量会展开，结束符顶格写。
+	- **加引号**：原样输出，不解析。
+	- **加短横**：忽略前导 Tab，缩进友好。
+	- **用途广**：写文件、发命令、生成配置、交互输入。
+
+	掌握 Here Document，能让你在 Shell 脚本中处理多行文本时更加优雅、高效。如果在实际使用中遇到具体问题（比如缩进冲突或变量解析异常），欢迎继续提问，我可以针对你的场景给出更具体的建议。
 * stdout 默认是“行缓冲”或“全缓冲”，而 stderr 默认是“无缓冲”。
 
     stderr：一有数据，立刻显示在屏幕上。
