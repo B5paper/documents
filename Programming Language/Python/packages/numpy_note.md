@@ -2,101 +2,6 @@
 
 ## cache
 
-* numpy 如何计算中位数
-
-    在 NumPy 中，计算中位数最直接的方法是使用 **`numpy.median()`** 函数。
-
-    以下是详细的使用方法、参数说明和注意事项：
-
-    ### 1. 基本用法（一维数组）
-
-    ```python
-    import numpy as np
-
-    data = np.array([1, 3, 5, 7, 9])
-    median_value = np.median(data)
-    print(median_value)  # 输出：5.0
-    ```
-
-    **注意：** 返回结果总是 **浮点数**（float），即使输入是整数。
-
-    ---
-
-    ### 2. 指定轴向（多维数组）
-
-    对于二维或多维数组，可以通过 `axis` 参数指定计算中位数的方向。
-
-    ```python
-    data = np.array([[1, 2, 10],
-                     [4, 5, 6]])
-
-    # 计算全局中位数（所有元素）
-    print(np.median(data))          # 输出：4.5
-
-    # 按列计算（axis=0）：每列的中位数
-    print(np.median(data, axis=0))  # 输出：[2.5 3.5 8.0]
-
-    # 按行计算（axis=1）：每行的中位数
-    print(np.median(data, axis=1))  # 输出：[2.0 5.0]
-    ```
-
-    ---
-
-    ### 3. 保持维度（keepdims）
-
-    如果希望计算结果保留原来的维度（方便广播运算），可以设置 `keepdims=True`：
-
-    ```python
-    data = np.array([[1, 2, 3],
-                     [4, 5, 6]])
-    result = np.median(data, axis=0, keepdims=True)
-    print(result.shape)  # 输出：(1, 3)
-    ```
-
-    ---
-
-    ### 4. 处理偶数个元素
-
-    当数据个数为偶数时，`np.median` 默认取中间两个数的**平均值**：
-
-    ```python
-    data = np.array([1, 2, 3, 4])
-    print(np.median(data))  # 输出：2.5 (即 (2+3)/2 )
-    ```
-
-    ---
-
-    ### 5. 掩码数组（忽略缺失值）
-
-    如果你有带 `NaN` 的数据，普通的 `np.median` 会返回 `NaN`。此时需要使用 **`np.nanmedian`**：
-
-    ```python
-    data = np.array([1, 2, np.nan, 4])
-    print(np.median(data))      # 输出：nan
-    print(np.nanmedian(data))   # 输出：2.0 （忽略 nan 后排序为 [1,2,4]，中位数为2）
-    ```
-
-    ---
-
-    ### 6. 替代方法（适用于特定场景）
-
-    虽然 `np.median` 是最常用的，但你也可以使用：
-
-    - **`np.percentile(data, 50)`**：计算第 50 百分位数，结果与中位数完全一致。
-    - **`np.sort(data)[len(data)//2]`**：手动排序后取值（但仅适用于奇数个元素且不处理平均值的情况，不推荐）。
-
-    ---
-
-    ### 总结对比
-
-    | 函数 | 适用场景 |
-    | :--- | :--- |
-    | `np.median(arr)` | 普通数组，快速计算中位数 |
-    | `np.nanmedian(arr)` | 数据中包含 `NaN` 缺失值时 |
-    | `np.percentile(arr, 50)` | 需要统一使用百分位数接口时 |
-
-    如果你需要计算的是**加权中位数**，NumPy 原生不直接支持，需要借助 `scipy.stats` 或自己实现逻辑。需要我展开讲讲吗？
-
 * 详细讲讲 np.tile 的用法
 
     好的，我们来详细讲解一下 NumPy 中的 `np.tile` 函数。
@@ -3194,112 +3099,6 @@
 
     **一句话建议：** 如果你的目的是为了解决“内存不连续”导致的报错或性能问题，请永远使用 `np.ascontiguousarray()`。
 
-* 讲讲 np.asarray()，这个和 np.array() 有什么区别？
-
-    这是一个非常经典的面试题，也是编写高性能 NumPy 代码时必须理解的细节。
-
-    简单来说：**`np.array()` 倾向于“创建副本”，而 `np.asarray()` 倾向于“按需引用”。**
-
-    ---
-
-    1. 核心区别：Copy vs. No Copy
-
-        **`np.array()`**
-        无论输入是什么，它默认都会**创建一个新的副本**（占据新的内存地址）。
-        * 即使你传入的已经是一个 NumPy 数组，它依然会复制一份。
-
-        **`np.asarray()`**
-        它会**尽可能地避免复制**。
-        * 如果输入已经是 `ndarray`，且数据类型（dtype）也符合要求，它就直接返回原对象的引用，不产生新内存开销。
-        * 只有当输入是 Python 列表、元组，或者数据类型需要转换时，它才会创建新数组。
-
-    ---
-
-    2. 代码实验对比
-
-        **情况 A：输入是普通的 Python 列表**
-        在这种情况下，两者没有区别，都会创建新数组。
-
-        ```python
-        import numpy as np
-
-        a = [1, 2, 3]
-        n1 = np.array(a)
-        n2 = np.asarray(a)
-
-        print(n1 is a) # False
-        print(n2 is a) # False
-        ```
-
-        **情况 B：输入已经是一个 NumPy 数组（重点）**
-        这是两者拉开差距的地方。
-
-        ```python
-        import numpy as np
-
-        a = np.array([1, 2, 3])
-
-        n1 = np.array(a)
-        n2 = np.asarray(a)
-
-        print(n1 is a) # False -> 复制了，内存里有两份 [1, 2, 3]
-        print(n2 is a) # True  -> 没复制，n2 只是 a 的别名
-        ```
-
-    ---
-
-    3. 为什么需要这两个方法？
-
-        **什么时候用 `np.asarray()`？—— 追求性能**
-
-        当你写一个函数，希望无论用户传入的是列表还是数组，都能统一当作数组处理，但又**不想浪费内存**去复制已有的数组时，用它。
-
-        ```python
-        def my_process(data):
-            data = np.asarray(data) # 如果 data 已经是数组，这行操作耗时几乎为 0
-            return data * 2
-        ```
-
-        **什么时候用 `np.array()`？—— 追求数据安全**
-
-        如果你需要修改处理后的数组，但**不希望影响原始数据**，你应该强制复制一份。
-
-        ```python
-        a = np.array([1, 2, 3])
-        b = np.array(a) # 强制副本
-        b[0] = 99
-        print(a[0]) # 依然是 1，a 没被破坏
-        ```
-
-    ---
-
-    4. 总结表
-
-        | 特性 | `np.array()` | `np.asarray()` |
-        | :--- | :--- | :--- |
-        | **主要目的** | 创建新数组 | 转换输入为数组（尽量复用） |
-        | **若输入是 ndarray** | 默认复制 (copy) | 返回引用 (no copy) |
-        | **若输入是 List/Tuple** | 创建新数组 | 创建新数组 |
-        | **修改结果是否影响原件** | 不影响 | **会影响**（如果原件是数组） |
-        | **性能** | 较低（涉及内存分配） | 较高（如果是数组则直接引用） |
-
-    ---
-
-    **一个微妙的细节：dtype**
-
-    即便是 `np.asarray()`，如果你指定了不同的 `dtype`，它**依然会触发复制**。
-
-    ```python
-    a = np.array([1, 2, 3], dtype='int32')
-    # 虽然是 asarray，但因为要转换成 float，必须创建新内存空间
-    b = np.asarray(a, dtype='float64') 
-
-    print(b is a) # False
-    ```
-
-    这就像你之前感悟的闭包一样，NumPy 也在底层通过这种细微的设计来平衡**内存安全**（类实例的隔离性）和**运行效率**（引用的轻量化）。
-
-    你是在优化处理大规模数据的算法性能吗？
 
 * 详细讲讲 np.lexsort() 的原型、作用及用法
 
@@ -4174,3 +3973,188 @@
     一直以为只有 matlab 支持。
 
 ## topics
+
+### 统计 stat
+
+* numpy 如何计算中位数
+
+    在 NumPy 中，计算中位数最直接的方法是使用 **`numpy.median()`** 函数。
+
+    以下是详细的使用方法、参数说明和注意事项：
+
+    1. 基本用法（一维数组）
+
+        ```python
+        import numpy as np
+
+        data = np.array([1, 3, 5, 7, 9])
+        median_value = np.median(data)
+        print(median_value)  # 输出：5.0
+        ```
+
+        **注意：** 返回结果总是 **浮点数**（float），即使输入是整数。
+
+    2. 指定轴向（多维数组）
+
+        对于二维或多维数组，可以通过 `axis` 参数指定计算中位数的方向。
+
+        ```python
+        data = np.array([[1, 2, 10],
+                        [4, 5, 6]])
+
+        # 计算全局中位数（所有元素）
+        print(np.median(data))          # 输出：4.5
+
+        # 按列计算（axis=0）：每列的中位数
+        print(np.median(data, axis=0))  # 输出：[2.5 3.5 8.0]
+
+        # 按行计算（axis=1）：每行的中位数
+        print(np.median(data, axis=1))  # 输出：[2.0 5.0]
+        ```
+
+    3. 保持维度（keepdims）
+
+        如果希望计算结果保留原来的维度（方便广播运算），可以设置 `keepdims=True`：
+
+        ```python
+        data = np.array([[1, 2, 3],
+                        [4, 5, 6]])
+        result = np.median(data, axis=0, keepdims=True)
+        print(result.shape)  # 输出：(1, 3)
+        ```
+
+    4. 处理偶数个元素
+
+        当数据个数为偶数时，`np.median` 默认取中间两个数的**平均值**：
+
+        ```python
+        data = np.array([1, 2, 3, 4])
+        print(np.median(data))  # 输出：2.5 (即 (2+3)/2 )
+        ```
+
+    5. 掩码数组（忽略缺失值）
+
+        如果你有带 `NaN` 的数据，普通的 `np.median` 会返回 `NaN`。此时需要使用 **`np.nanmedian`**：
+
+        ```python
+        data = np.array([1, 2, np.nan, 4])
+        print(np.median(data))      # 输出：nan
+        print(np.nanmedian(data))   # 输出：2.0 （忽略 nan 后排序为 [1,2,4]，中位数为2）
+        ```
+
+    6. 替代方法（适用于特定场景）
+
+        虽然 `np.median` 是最常用的，但你也可以使用：
+
+        - **`np.percentile(data, 50)`**：计算第 50 百分位数，结果与中位数完全一致。
+        - **`np.sort(data)[len(data)//2]`**：手动排序后取值（但仅适用于奇数个元素且不处理平均值的情况，不推荐）。
+
+    总结对比
+
+    | 函数 | 适用场景 |
+    | :--- | :--- |
+    | `np.median(arr)` | 普通数组，快速计算中位数 |
+    | `np.nanmedian(arr)` | 数据中包含 `NaN` 缺失值时 |
+    | `np.percentile(arr, 50)` | 需要统一使用百分位数接口时 |
+
+    如果你需要计算的是**加权中位数**，NumPy 原生不直接支持，需要借助 `scipy.stats` 或自己实现逻辑。需要我展开讲讲吗？
+
+### ndarray 的创建
+
+* `np.asarray()` 和 `np.array()` 的区别
+
+    简单来说：**`np.array()` 倾向于“创建副本”，而 `np.asarray()` 倾向于“按需引用”。**
+
+    1. 核心区别：Copy vs. No Copy
+
+        * `np.array()`
+
+            无论输入是什么，它默认都会**创建一个新的副本**（占据新的内存地址）。
+
+            即使你传入的已经是一个 NumPy 数组，它依然会复制一份。
+
+        * `np.asarray()`
+
+            它会**尽可能地避免复制**。
+
+            如果输入已经是 `ndarray`，且数据类型（dtype）也符合要求，它就直接返回原对象的引用，不产生新内存开销。
+
+            只有当输入是 Python 列表、元组，或者数据类型需要转换时，它才会创建新数组。
+
+    2. 代码实验对比
+
+        **情况 A：输入是普通的 Python 列表**
+
+        在这种情况下，两者没有区别，都会创建新数组。
+
+        ```python
+        import numpy as np
+
+        a = [1, 2, 3]
+        n1 = np.array(a)
+        n2 = np.asarray(a)
+
+        print(n1 is a)  # False
+        print(n2 is a)  # False
+        ```
+
+        **情况 B：输入已经是一个 NumPy 数组（重点）**
+
+        这是两者拉开差距的地方。
+
+        ```python
+        import numpy as np
+
+        a = np.array([1, 2, 3])
+
+        n1 = np.array(a)
+        n2 = np.asarray(a)
+
+        print(n1 is a)  # False -> 复制了，内存里有两份 [1, 2, 3]
+        print(n2 is a)  # True  -> 没复制，n2 只是 a 的别名
+        ```
+
+    3. 为什么需要这两个方法？
+
+        * 什么时候用 `np.asarray()`？—— 追求性能
+
+            当你写一个函数，希望无论用户传入的是列表还是数组，都能统一当作数组处理，但又**不想浪费内存**去复制已有的数组时，用它。
+
+            ```python
+            def my_process(data):
+                data = np.asarray(data)  # 如果 data 已经是数组，这行操作耗时几乎为 0
+                return data * 2
+            ```
+
+        * 什么时候用 `np.array()`？—— 追求数据安全
+
+            如果你需要修改处理后的数组，但**不希望影响原始数据**，你应该强制复制一份。
+
+            ```python
+            a = np.array([1, 2, 3])
+            b = np.array(a)  # 强制副本
+            b[0] = 99
+            print(a[0])  # 依然是 1，a 没被破坏
+            ```
+
+    4. 总结表
+
+        | 特性 | `np.array()` | `np.asarray()` |
+        | :--- | :--- | :--- |
+        | **主要目的** | 创建新数组 | 转换输入为数组（尽量复用） |
+        | **若输入是 ndarray** | 默认复制 (copy) | 返回引用 (no copy) |
+        | **若输入是 List/Tuple** | 创建新数组 | 创建新数组 |
+        | **修改结果是否影响原件** | 不影响 | **会影响**（如果原件是数组） |
+        | **性能** | 较低（涉及内存分配） | 较高（如果是数组则直接引用） |
+
+    **一个微妙的细节：dtype**
+
+    即便是 `np.asarray()`，如果你指定了不同的 `dtype`，它**依然会触发复制**。
+
+    ```python
+    a = np.array([1, 2, 3], dtype='int32')
+    # 虽然是 asarray，但因为要转换成 float，必须创建新内存空间
+    b = np.asarray(a, dtype='float64') 
+
+    print(b is a) # False
+    ```

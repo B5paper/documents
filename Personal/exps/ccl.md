@@ -1,5 +1,13 @@
 ## tasks
 
+* `sicclTopoAssignSystemID()`在 nccl 中对应的代码和作用
+
+    feedback:
+
+    1. 额外观察：目前独立 siccl_graph 中 TopoSystem::system_id 的读取点很少，但节点 ID 的高 8 位广泛表示 host 下标。之前的 fallback 即使暂时不触发本机筛选，也会埋下跨机节点误匹配与 ID 截断风险。
+
+    1. [ ] makefile 中`/share_data/sicx_sdk/release/260625`改成 si_sdk_home
+
 * [ ] topo.h 中目前都有哪些函数？哪些是和 init.cc 形成关键连接的？
 
 * [ ] 编译 tests 文件夹时，需要编译两次。后面看下为啥，是不是 makefile 里文件之间有依赖
@@ -89,6 +97,47 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* `CPPFLAGS += -DNCCL_OS_LINUX  # 跳过 mem_manager.h:21-32 的重复 typedef，直接使用 SDK 类型`
+
+* `CPPFLAGS += -DWA_NOT_SUPPORTED=1  # 修复日志里 ncclSocketDescriptor、ncclAffinity 未定义的一串错误`
+
+* `CPPFLAGS += -DSIPURT_VERSION=12040  # 让独立模块的条件编译与主工程一致`
+
+* `nccl_tuner.h`在`src/include/plugin/nccl_tuner.h`，因此添加`CPPFLAGS += -I../../include/plugin`
+
+* `struct ncclPeerInfo`的定义在`transport.h`中，这个头文件在`comm.h`中被注释掉了。在使用时需要手动添加。
+
+* NCCL 的普通多机场景不加载或融合一份“跨多机的全局 XML”。
+
+    nccl load xml 和 dump xml 都是只保存或加载本机信息，然后通过 all gather 将数据汇合到一起。
+
+    每个 rank 在各自机器上独立加载 NCCL_TOPO_FILE，并把文件中所有 <cpu> 的
+    host_hash 改写为当前机器的 getHostHash()。然后只在同机 ranks 之间做 XML all-gather 和 fusion：
+
+    ```cpp
+    if (peerInfo[i].hostHash == peerInfo[rank].hostHash) {
+    localRanks[nLocalRanks++] = i;
+    }
+    bootstrapIntraNodeAllGather(...);
+    ```
+
+    见 `/share_data/hlc/nccl/src/graph/topo.cc:1503`。
+
+    因此普通多机 NCCL 的结构是：
+
+    每台机器：
+
+    本机拓扑 XML -> host_hash 改写为本机 -> 同机 rank 融合
+    -> 构建仅描述本机硬件的 ncclTopoSystem
+
+    全局 communicator：
+
+    通过 bootstrap / peerInfo all-gather 收集 rank、hostHash、网络能力、局部图结果 -> 连接跨机网络路径并生成集体通信图
+
+    也就是说，NCCL 不会把 A 机器的 CPU/PCI/GPU 节点与 B 机器的 CPU/PCI/GPU 节点放入同一个普通 ncclTopoSystem 中，所以不存在加载全局 XML 后该如何选择本机 systemId 的问题。
+
+    例外是 MNNVL clique：代码允许按 clique 范围融合，并为 XML 分配更大容量，但这不是通常的 TCP/IB 多机拓扑路径。例外仍是 MNNVL clique：其代码允许在 clique 内扩大 XML 容量并融合多个节点，但普通多机 NCCL dump 不属于这个例外。
 
 * `./topo_test 2>&1`才能看到完整输出
 

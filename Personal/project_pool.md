@@ -36,6 +36,14 @@
 
 ## cache
 
+hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
+
+    feedback:
+
+    1. 可以尝试如果 compgen -- $cur 匹配不到时，使用 compgen -X 匹配做一次通配符匹配，`*${cur}*`，如果还是匹配不到，再放弃匹配
+
+        这样一来，输入文件名后按 tab，find 展开成路径，compgen 先使用`-- $cur`匹配失败，然后再使用`-X`匹配，得到结果。此时再用户追加输入一些字后，按 tab，只要保证 find 按 -path 搜索，find 继续给出所有候选路径，此时 compgen 回到`-- $cur`匹配，非常完美。
+
 * [ ] python `transformers`
 
 * [ ] nvim-tree、telescope、fzf
