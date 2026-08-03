@@ -2,6 +2,8 @@
 
 ## cache
 
+* numpy 没有办法在将 list 转换为 ndarray 时，直接指定维度顺序。必须在转换完成后，使用`transpose()`，`.T`等方法进行变换。
+
 * 详细讲讲 np.tile 的用法
 
     好的，我们来详细讲解一下 NumPy 中的 `np.tile` 函数。

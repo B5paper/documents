@@ -3518,135 +3518,135 @@
 
     好的，我们来简单、清晰地介绍一下 WireGuard。
 
-    **一、WireGuard 的作用**
+    * 一、WireGuard 的作用
 
-    **一句话概括：**
-    WireGuard 是一个现代、高效、易用的 **VPN（虚拟专用网）** 协议和软件。它的主要作用是在不安全的网络（如互联网）上，安全地连接两台或多台计算机，让它们仿佛在同一个安全的本地网络中一样通信。
+        **一句话概括：**
+        WireGuard 是一个现代、高效、易用的 **VPN（虚拟专用网）** 协议和软件。它的主要作用是在不安全的网络（如互联网）上，安全地连接两台或多台计算机，让它们仿佛在同一个安全的本地网络中一样通信。
 
-    **核心作用体现在：**
+        **核心作用体现在：**
 
-    1.  **安全通信**：对所有流量进行加密，防止窃听和篡改。
-    2.  **组建虚拟局域网**：将分布在全球不同网络下的设备（如家庭电脑、公司服务器、云主机）逻辑上组建成一个局域网，直接用私有IP地址访问。
-    3.  **远程访问**：从外部网络（如在咖啡馆）安全地访问家庭或公司内部的网络资源（如NAS、打印机、内部网站）。
-    4.  **绕过网络限制**：通过连接到特定的服务器来访问受地域或网络限制的资源。
+        1.  **安全通信**：对所有流量进行加密，防止窃听和篡改。
+        2.  **组建虚拟局域网**：将分布在全球不同网络下的设备（如家庭电脑、公司服务器、云主机）逻辑上组建成一个局域网，直接用私有IP地址访问。
+        3.  **远程访问**：从外部网络（如在咖啡馆）安全地访问家庭或公司内部的网络资源（如NAS、打印机、内部网站）。
+        4.  **绕过网络限制**：通过连接到特定的服务器来访问受地域或网络限制的资源。
 
-    **WireGuard 的突出优点：**
+        **WireGuard 的突出优点：**
 
-    *   **极简高效**：代码量极少（约4000行），更容易审计和维护，性能远超 OpenVPN、IPSec 等传统协议。
-    *   **速度快，延迟低**：采用最新的加密协议，对网络性能影响极小。
-    *   **配置简单**：通常只需一个配置文件，设置非常快捷。
+        *   **极简高效**：代码量极少（约4000行），更容易审计和维护，性能远超 OpenVPN、IPSec 等传统协议。
+        *   **速度快，延迟低**：采用最新的加密协议，对网络性能影响极小。
+        *   **配置简单**：通常只需一个配置文件，设置非常快捷。
 
-    ---
+    * 二、WireGuard 的用法
 
-    **二、WireGuard 的用法**
+        WireGuard 采用 **对等（Peer-to-Peer）** 架构，没有严格的客户端/服务器之分，只有“对等体”。但在实际应用中，我们通常会把一个长期在线的节点称为“服务器”，其他节点称为“客户端”。
 
-    WireGuard 采用 **对等（Peer-to-Peer）** 架构，没有严格的客户端/服务器之分，只有“对等体”。但在实际应用中，我们通常会把一个长期在线的节点称为“服务器”，其他节点称为“客户端”。
+        * **核心概念**
 
-    **核心概念**
+            *   **接口**：在每台机器上创建一个虚拟网络接口（如 `wg0`）。
+            *   **私钥/公钥**：每个对等体都有一对自己生成的、独一无二的密钥对。**私钥绝对保密**，**公钥则告诉其他对等体**。
+            *   **对等体**：每个节点的配置中，需要指定它要连接的其他对等体（通过对方的公钥来识别）。
+            *   **允许的IPs**：这是一个非常重要的配置项。它告诉 WireGuard：
+                *   哪些 IP 地址的流量应该通过这个对等体进行路由。
+                *   这个对等体允许使用哪些 IP 地址进行通信。
 
-    *   **接口**：在每台机器上创建一个虚拟网络接口（如 `wg0`）。
-    *   **私钥/公钥**：每个对等体都有一对自己生成的、独一无二的密钥对。**私钥绝对保密**，**公钥则告诉其他对等体**。
-    *   **对等体**：每个节点的配置中，需要指定它要连接的其他对等体（通过对方的公钥来识别）。
-    *   **允许的IPs**：这是一个非常重要的配置项。它告诉 WireGuard：
-        *   哪些 IP 地址的流量应该通过这个对等体进行路由。
-        *   这个对等体允许使用哪些 IP 地址进行通信。
+        * 典型用法：组建“客户端-服务器”式 VPN
 
-    **典型用法：组建“客户端-服务器”式 VPN**
+            这是最常见的场景：你有一台有公网IP的云服务器（Server），和一台在家的笔记本电脑（Client）。你想让笔记本通过服务器来安全上网。
 
-    这是最常见的场景：你有一台有公网IP的云服务器（Server），和一台在家的笔记本电脑（Client）。你想让笔记本通过服务器来安全上网。
+            * 步骤 1：在所有机器上安装 WireGuard
+            
+                几乎所有主流操作系统（Linux, Windows, macOS, Android, iOS）都支持。
 
-    **步骤 1：在所有机器上安装 WireGuard**
-    几乎所有主流操作系统（Linux, Windows, macOS, Android, iOS）都支持。
+                *   **Linux (Ubuntu/Debian)**： `sudo apt install wireguard`
+                *   **Windows/macOS**： 从官网下载图形化客户端。
 
-    *   **Linux (Ubuntu/Debian)**： `sudo apt install wireguard`
-    *   **Windows/macOS**： 从官网下载图形化客户端。
+            * 步骤 2：生成密钥对（在服务器和客户端上分别执行）
 
-    **步骤 2：生成密钥对（在服务器和客户端上分别执行）**
+                ```bash
+                # 生成私钥
+                wg genkey > privatekey
 
-    ```bash
-    # 生成私钥
-    wg genkey > privatekey
+                # 从私钥生成公钥
+                wg pubkey < privatekey > publickey
+                ```
 
-    # 从私钥生成公钥
-    wg pubkey < privatekey > publickey
-    ```
-    现在每台机器上都会有一个 `privatekey` 文件和一个 `publickey` 文件。
+                现在每台机器上都会有一个 `privatekey` 文件和一个 `publickey` 文件。
 
-    **步骤 3：配置服务器（假设公网IP为 `1.1.1.1`）**
+            * 步骤 3：配置服务器（假设公网IP为 `1.1.1.1`）
 
-    编辑服务器的配置文件，例如 `/etc/wireguard/wg0.conf`：
+                编辑服务器的配置文件，例如 `/etc/wireguard/wg0.conf`：
 
-    ```ini
-    [Interface]
-    # 服务器自身的私钥
-    PrivateKey = <服务器的privatekey内容>
-    # 服务器虚拟接口的IP地址
-    Address = 10.0.0.1/24
-    # 服务启动后执行的命令，配置防火墙和NAT转发
-    PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-    PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
-    # 服务监听的端口
-    ListenPort = 51820
+                ```ini
+                [Interface]
+                # 服务器自身的私钥
+                PrivateKey = <服务器的privatekey内容>
+                # 服务器虚拟接口的IP地址
+                Address = 10.0.0.1/24
+                # 服务启动后执行的命令，配置防火墙和NAT转发
+                PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+                PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+                # 服务监听的端口
+                ListenPort = 51820
 
-    [Peer]
-    # 客户端A的公钥
-    PublicKey = <客户端A的publickey内容>
-    # 允许客户端使用这个IP地址连接到服务器，并告诉服务器去往 10.0.0.2 的流量应发给这个客户端
-    AllowedIPs = 10.0.0.2/32
+                [Peer]
+                # 客户端A的公钥
+                PublicKey = <客户端A的publickey内容>
+                # 允许客户端使用这个IP地址连接到服务器，并告诉服务器去往 10.0.0.2 的流量应发给这个客户端
+                AllowedIPs = 10.0.0.2/32
 
-    [Peer]
-    # 客户端B的公钥
-    PublicKey = <客户端B的publickey内容>
-    AllowedIPs = 10.0.0.3/32
-    # 可以继续添加更多 [Peer]...
-    ```
+                [Peer]
+                # 客户端B的公钥
+                PublicKey = <客户端B的publickey内容>
+                AllowedIPs = 10.0.0.3/32
+                # 可以继续添加更多 [Peer]...
+                ```
 
-    **步骤 4：配置客户端（以客户端A为例）**
+            * 步骤 4：配置客户端（以客户端A为例）
 
-    编辑客户端的配置文件，例如 `clientA.conf`：
+                编辑客户端的配置文件，例如 `clientA.conf`：
 
-    ```ini
-    [Interface]
-    # 客户端A自身的私钥
-    PrivateKey = <客户端A的privatekey内容>
-    # 客户端虚拟接口的IP地址
-    Address = 10.0.0.2/24
-    # 如果需要所有流量都走VPN，可以配置DNS
-    # DNS = 8.8.8.8
+                ```ini
+                [Interface]
+                # 客户端A自身的私钥
+                PrivateKey = <客户端A的privatekey内容>
+                # 客户端虚拟接口的IP地址
+                Address = 10.0.0.2/24
+                # 如果需要所有流量都走VPN，可以配置DNS
+                # DNS = 8.8.8.8
 
-    [Peer]
-    # 服务器的公钥
-    PublicKey = <服务器的publickey内容>
-    # 服务器的公网IP和端口
-    Endpoint = 1.1.1.1:51820
-    # 允许通过这个VPN连接发送流量的目标IP段
-    # 0.0.0.0/0 表示所有流量都通过服务器转发（全局VPN）
-    AllowedIPs = 0.0.0.0/0
-    # 如果只想访问服务器局域网，可以设为 10.0.0.0/24
-    ```
+                [Peer]
+                # 服务器的公钥
+                PublicKey = <服务器的publickey内容>
+                # 服务器的公网IP和端口
+                Endpoint = 1.1.1.1:51820
+                # 允许通过这个VPN连接发送流量的目标IP段
+                # 0.0.0.0/0 表示所有流量都通过服务器转发（全局VPN）
+                AllowedIPs = 0.0.0.0/0
+                # 如果只想访问服务器局域网，可以设为 10.0.0.0/24
+                ```
 
-    **步骤 5：启动并测试**
+            * 步骤 5：启动并测试
 
-    *   **在服务器上**： `sudo wg-quick up wg0`
-    *   **在客户端上**：导入 `clientA.conf` 文件并激活连接（图形界面通常一键完成）。
+                * 在服务器上： `sudo wg-quick up wg0`
 
-    现在，客户端 A 的 IP 在服务器看来就是 `10.0.0.2`，并且所有互联网流量都会通过服务器 `1.1.1.1` 转发。
+                * 在客户端上：导入 `clientA.conf` 文件并激活连接（图形界面通常一键完成）。
 
-    ---
+            现在，客户端 A 的 IP 在服务器看来就是 `10.0.0.2`，并且所有互联网流量都会通过服务器 `1.1.1.1` 转发。
 
-    **总结**
+    * 总结
 
-    | 特性 | 描述 |
-    | :--- | :--- |
-    | **角色** | 对等体，无严格C/S之分，但可模拟该模式。 |
-    | **安全基础** | 基于Curve25519的密钥交换。 |
-    | **配置核心** | `[Interface]` 配置自己，`[Peer]` 配置要连接的对象。 |
-    | **关键配置项** | `PrivateKey`, `PublicKey`, `Endpoint`, `AllowedIPs`。 |
-    | **启动命令** | `sudo wg-quick up <接口名>` |
-    | **停止命令** | `sudo wg-quick down <接口名>` |
-    | **状态查看** | `sudo wg show` |
+        | 特性 | 描述 |
+        | :--- | :--- |
+        | **角色** | 对等体，无严格C/S之分，但可模拟该模式。 |
+        | **安全基础** | 基于Curve25519的密钥交换。 |
+        | **配置核心** | `[Interface]` 配置自己，`[Peer]` 配置要连接的对象。 |
+        | **关键配置项** | `PrivateKey`, `PublicKey`, `Endpoint`, `AllowedIPs`。 |
+        | **启动命令** | `sudo wg-quick up <接口名>` |
+        | **停止命令** | `sudo wg-quick down <接口名>` |
+        | **状态查看** | `sudo wg show` |
 
     WireGuard 以其简洁性和高性能，正在迅速成为下一代 VPN 的标准，被整合进 Linux 内核，并被许多商业VPN服务商采用。
+
 * 可以在 guest 里装 ZeroTier / Tailscale / WireGuard 之类的 overlay 网络
 
 * 详细讲讲 linux 中 lsof 的用法
@@ -4262,169 +4262,175 @@
     在开始配置前，理解这几个词能让你少走很多弯路：
 
     * **PrivateKey（私钥）：** 本地生成的绝密密钥，绝对不能泄露给任何人。
+
     * **PublicKey（公钥）：** 由私钥推导而来，公开的。需要复制给对方（Peer）。
+
     * **Endpoint（对端地址）：** 对方的公网 IP 和端口（例如 `1.2.3.4:51820`）。通常只有客户端需要配置服务器的 Endpoint。
-    * **AllowedIPs（允许的 IP）：**
-    * **在服务端：** 规定这个客户端允许使用的内网 IP。
-    * **在客户端：** 规定哪些流量要走 VPN。如果是 `0.0.0.0/0`，代表**全局代理**（所有流量都走 VPN）；如果是 `10.0.0.0/24`，代表只有去往该网段的流量走 VPN。
+
+    * AllowedIPs（允许的 IP）：
+
+        * **在服务端：** 规定这个客户端允许使用的内网 IP。
+
+        * **在客户端：** 规定哪些流量要走 VPN。如果是 `0.0.0.0/0`，代表**全局代理**（所有流量都走 VPN）；如果是 `10.0.0.0/24`，代表只有去往该网段的流量走 VPN。
 
     ---
 
-    ## 核心实战：搭建一个“服务器 - 客户端”网络
+    核心实战：搭建一个“服务器 - 客户端”网络
 
     **场景假设：**
 
-    * **服务器（Server）：** 有公网 IP（假设为 `8.8.8.8`），网卡名为 `eth0`。我们给它的 WireGuard 内网 IP 设为 `10.0.0.1`。
-    * **客户端（Client）：** 手机或电脑，内网 IP 设为 `10.0.0.2`。
+    * 服务器（Server）： 有公网 IP（假设为 `8.8.8.8`），网卡名为 `eth0`。我们给它的 WireGuard 内网 IP 设为 `10.0.0.1`。
 
-    ### 第一步：两端安装 WireGuard
+    * 客户端（Client）： 手机或电脑，内网 IP 设为 `10.0.0.2`。
 
-    绝大多数现代 Linux 内核已原生集成 WireGuard。
+    1. 第一步：两端安装 WireGuard
 
-    ```bash
-    # Ubuntu / Debian
-    sudo apt update && sudo apt install wireguard -y
+        绝大多数现代 Linux 内核已原生集成 WireGuard。
 
-    # CentOS / RHEL 9
-    sudo dnf install wireguard-tools -y
+        ```bash
+        # Ubuntu / Debian
+        sudo apt update && sudo apt install wireguard -y
 
-    ```
+        # CentOS / RHEL 9
+        sudo dnf install wireguard-tools -y
+        ```
 
-    ### 第二步：生成密钥对（两端都要做）
+    2. 第二步：生成密钥对（两端都要做）
 
-    在服务器和客户端上分别执行以下命令，生成各自的私钥和公钥：
+        在服务器和客户端上分别执行以下命令，生成各自的私钥和公钥：
 
-    ```bash
-    # 修改权限，确保密钥安全
-    umask 077
+        ```bash
+        # 修改权限，确保密钥安全
+        umask 077
 
-    # 生成服务器/客户端的密钥
-    wg genkey | tee privatekey | wg pubkey > publickey
+        # 生成服务器/客户端的密钥
+        wg genkey | tee privatekey | wg pubkey > publickey
+        ```
 
-    ```
+        > 执行后，当前目录下会多出 `privatekey`（私钥）和 `publickey`（公钥）两个文件。可以使用 `cat privatekey` 查看内容。
 
-    > 执行后，当前目录下会多出 `privatekey`（私钥）和 `publickey`（公钥）两个文件。可以使用 `cat privatekey` 查看内容。
+    3. 第三步：配置服务器端 (Server)
 
-    ---
+        在服务器上创建并编辑配置文件 `/etc/wireguard/wg0.conf`：
 
-    ### 第三步：配置服务器端 (Server)
+        ```ini
+        [Interface]
+        # 服务器自身的 WireGuard 内网 IP
+        Address = 10.0.0.1/24
+        # 服务器监听的 UDP 端口
+        ListenPort = 51820
+        # 服务器的私钥（填入刚才在服务器生成的 privatekey 内容）
+        PrivateKey = <服务器的私钥>
 
-    在服务器上创建并编辑配置文件 `/etc/wireguard/wg0.conf`：
+        # 【核心：NAT 转发规则】当客户端流量到达服务器后，转发到公网网卡（假设是 eth0）
+        PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+        PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
-    ```ini
-    [Interface]
-    # 服务器自身的 WireGuard 内网 IP
-    Address = 10.0.0.1/24
-    # 服务器监听的 UDP 端口
-    ListenPort = 51820
-    # 服务器的私钥（填入刚才在服务器生成的 privatekey 内容）
-    PrivateKey = <服务器的私钥>
+        ### 下面是客户端（Peer）的配置，有几个客户端就写几个 [Peer] ###
+        [Peer]
+        # 客户端的公钥（填入在客户端生成的 publickey 内容）
+        PublicKey = <客户端的公钥>
+        # 允许这个客户端使用的内网 IP
+        AllowedIPs = 10.0.0.2/32
+        ```
 
-    # 【核心：NAT 转发规则】当客户端流量到达服务器后，转发到公网网卡（假设是 eth0）
-    PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-    PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+        **开启服务器的内核 IPv4 转发：**
 
-    ### 下面是客户端（Peer）的配置，有几个客户端就写几个 [Peer] ###
-    [Peer]
-    # 客户端的公钥（填入在客户端生成的 publickey 内容）
-    PublicKey = <客户端的公钥>
-    # 允许这个客户端使用的内网 IP
-    AllowedIPs = 10.0.0.2/32
+        要让服务器帮客户端转发流量，必须开启 Linux 的路由转发功能：
 
-    ```
+        ```bash
+        echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+        sudo sysctl -p
+        ```
 
-    **开启服务器的内核 IPv4 转发：**
-    要让服务器帮客户端转发流量，必须开启 Linux 的路由转发功能：
+    4. 第四步：配置客户端 (Client)
 
-    ```bash
-    echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
-    sudo sysctl -p
+        在客户端（电脑或手机）上，创建配置文件 `wg0.conf`：
 
-    ```
+        ```ini
+        [Interface]
+        # 客户端自身的 WireGuard 内网 IP
+        Address = 10.0.0.2/24
+        # 客户端的私钥（填入在客户端生成的 privatekey 内容）
+        PrivateKey = <客户端的私钥>
+        # 可选：设置 DNS
+        DNS = 1.1.1.1
 
-    ---
+        [Peer]
+        # 服务器的公钥（填入服务器的 publickey 内容）
+        PublicKey = <服务器的公钥>
+        # 服务器的公网 IP 和端口
+        Endpoint = 8.8.8.8:51820
+        # 0.0.0.0/0 代表手机/电脑的所有流量都通过服务器转发（科学上网/全局代理模式）
+        # 如果只想访问服务器内网，可以改成 10.0.0.0/24
+        AllowedIPs = 0.0.0.0/0
+        # 保持连接活跃（每25秒发一次心跳包，防止防火墙断开 UDP 连接）
+        PersistentKeepalive = 25
+        ```
 
-    ### 第四步：配置客户端 (Client)
+    5. 第五步：启动与管理
 
-    在客户端（电脑或手机）上，创建配置文件 `wg0.conf`：
+        **在服务器端：**
 
-    ```ini
-    [Interface]
-    # 客户端自身的 WireGuard 内网 IP
-    Address = 10.0.0.2/24
-    # 客户端的私钥（填入在客户端生成的 privatekey 内容）
-    PrivateKey = <客户端的私钥>
-    # 可选：设置 DNS
-    DNS = 1.1.1.1
+        ```bash
+        # 启动 WireGuard 接口 wg0
+        sudo wg-quick up wg0
 
-    [Peer]
-    # 服务器的公钥（填入服务器的 publickey 内容）
-    PublicKey = <服务器的公钥>
-    # 服务器的公网 IP 和端口
-    Endpoint = 8.8.8.8:51820
-    # 0.0.0.0/0 代表手机/电脑的所有流量都通过服务器转发（科学上网/全局代理模式）
-    # 如果只想访问服务器内网，可以改成 10.0.0.0/24
-    AllowedIPs = 0.0.0.0/0
-    # 保持连接活跃（每25秒发一次心跳包，防止防火墙断开 UDP 连接）
-    PersistentKeepalive = 25
+        # 设置开机自启
+        sudo systemctl enable wg-quick@wg0
 
-    ```
+        # 查看当前的 VPN 连接状态
+        sudo wg
+        ```
 
-    ---
+        **在客户端：**
 
-    ### 第五步：启动与管理
+        * Linux / macOS 命令行：
+        
+            同样使用 `sudo wg-quick up ./wg0.conf` 启动。
 
-    **在服务器端：**
+        * 手机 / Windows 客户端：
 
-    ```bash
-    # 启动 WireGuard 接口 wg0
-    sudo wg-quick up wg0
+            * 官方提供了图形化客户端。
 
-    # 设置开机自启
-    sudo systemctl enable wg-quick@wg0
+            * 如果给手机用，可以在服务器上把客户端配置转成二维码，用手机 App 扫码导入
 
-    # 查看当前的 VPN 连接状态
-    sudo wg
+                ```bash
+                # 安装 qrencode 工具
+                sudo apt install qrencode -y
+                # 将客户端配置生成二维码展示在终端
+                qrencode -t ansiutf8 < client.conf
+                ```
 
-    ```
+    **常用命令与排错技巧**
 
-    **在客户端：**
+    1. 常用控制命令
 
-    * **Linux / macOS 命令行：** 同样使用 `sudo wg-quick up ./wg0.conf` 启动。
-    * **手机 / Windows 客户端：**
-    * 官方提供了图形化客户端。
-    * 如果给手机用，可以在服务器上把客户端配置转成二维码，用手机 App 扫码导入：
-    ```bash
-    # 安装 qrencode 工具
-    sudo apt install qrencode -y
-    # 将客户端配置生成二维码展示在终端
-    qrencode -t ansiutf8 < client.conf
+        * 停止 VPN： `sudo wg-quick down wg0`
 
-    ```
+        * 不重启服务更新配置： 如果你修改了 `wg0.conf`（比如增加了新 Peer），不想断开现有连接，可以执行：
 
-    ## 常用命令与排错技巧
+            `sudo wg syncconf wg0 <(sudo wg-quick strip wg0)`
 
-    ### 1. 常用控制命令
+    2. 常见排错方向
 
-    * **停止 VPN：** `sudo wg-quick down wg0`
-    * **不重启服务更新配置：** 如果你修改了 `wg0.conf`（比如增加了新 Peer），不想断开现有连接，可以执行：
-    `sudo wg syncconf wg0 <(sudo wg-quick strip wg0)`
+        * 能连上但无法上网 / 无法 Ping 通服务器：
 
-    ### 2. 常见排错方向
+            * 检查服务器防火墙（如 UFW 或 Firewalld），是否放行了 **UDP 51820** 端口。
 
-    * **能连上但无法上网 / 无法 Ping 通服务器：**
-    * 检查服务器防火墙（如 UFW 或 Firewalld），是否放行了 **UDP 51820** 端口。
-    * 检查服务器的 `net.ipv4.ip_forward` 是否确实为 `1`。
-    * 检查服务器 `wg0.conf` 里的 `PostUp` 规则中，网卡名称（如 `eth0`）是否与你服务器通过 `ip route` 查到的公网网卡名一致。
+            * 检查服务器的 `net.ipv4.ip_forward` 是否确实为 `1`。
 
-
-    * **隧道没有流量（Latest handshake 没显示）：**
-    * 双向检查 `PublicKey` 和 `PrivateKey` 是不是配反了。记住：**Peer 里填对方的公钥**。
-    * 检查客户端的 `Endpoint` IP 和端口是否正确。
+            * 检查服务器 `wg0.conf` 里的 `PostUp` 规则中，网卡名称（如 `eth0`）是否与你服务器通过 `ip route` 查到的公网网卡名一致。
 
 
+        * 隧道没有流量（Latest handshake 没显示）：
+
+            * 双向检查 `PublicKey` 和 `PrivateKey` 是不是配反了。记住：**Peer 里填对方的公钥**。
+
+            * 检查客户端的 `Endpoint` IP 和端口是否正确。
 
     WireGuard 的配置非常清爽，一旦你理顺了“**私钥本地留，公钥给对端，IP 互相指**”的逻辑，几分钟就能轻松拉起一个安全的专属网络。
+
 * centos 如何启动 vfio-pci
 
     在 CentOS 中启动VFIO-PCI驱动涉及以下步骤：

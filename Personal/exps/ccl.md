@@ -1,5 +1,7 @@
 ## tasks
 
+* [ ] topo.cc 中 sicclTopoGetTopoSystem 使用 ncclGetEnv 拿到 NCCL_TOPO_FILE
+
 * `sicclTopoAssignSystemID()`在 nccl 中对应的代码和作用
 
     feedback:
@@ -28,19 +30,19 @@
 
 * topo system test 1 有保留必要，用于探测本机的 单线程多 gpu，避免 bootstrap all gather
 
-1. smi_bus_id_to_uint64()
+*  smi_bus_id_to_uint64()
 
-1. getUuid()
+*  getUuid()
 
-1. smi_dev_get_pci_info()
+*  smi_dev_get_pci_info()
 
-1. smi_init()
+*  smi_init()
 
     smi_dev_get_handle_by_index()
 
     smi_dev_get_count()
 
-1. 无法 dump system，因为其中要用到 bootstrap all gather，而这个会 include nccl.h，发生严重耦合
+*  无法 dump system，因为其中要用到 bootstrap all gather，而这个会 include nccl.h，发生严重耦合
 
     只能先实现 load system
 
@@ -97,6 +99,26 @@
 * [ ] 写一个 nccl c 语言 app，跑通 2 卡上的 all reduce，要求可以指定卡的索引号（比如 0, 1）和 data buffer 的大小（比如 256K, 4M, 16M 等）
 
 ## cache
+
+* `CPPFLAGS += -DNCCL_OS_LINUX  # 跳过 mem_manager.h:21-32 的重复 typedef，直接使用 SDK 类型`
+
+* `CPPFLAGS += -DWA_NOT_SUPPORTED=1  # 修复日志里 ncclSocketDescriptor、ncclAffinity 未定义的一串错误`
+
+* `CPPFLAGS += -DSIPURT_VERSION=12040  # 让独立模块的条件编译与主工程一致`
+
+* `nccl_tuner.h`在`src/include/plugin/nccl_tuner.h`，因此添加`CPPFLAGS += -I../../include/plugin`
+
+* `struct ncclPeerInfo`的定义在`transport.h`中，这个头文件在`comm.h`中被注释掉了。在使用时需要手动添加。
+
+* `CPPFLAGS += -DNCCL_OS_LINUX  # 跳过 mem_manager.h:21-32 的重复 typedef，直接使用 SDK 类型`
+
+* `CPPFLAGS += -DWA_NOT_SUPPORTED=1  # 修复日志里 ncclSocketDescriptor、ncclAffinity 未定义的一串错误`
+
+* `CPPFLAGS += -DSIPURT_VERSION=12040  # 让独立模块的条件编译与主工程一致`
+
+* `nccl_tuner.h`在`src/include/plugin/nccl_tuner.h`，因此添加`CPPFLAGS += -I../../include/plugin`
+
+* `struct ncclPeerInfo`的定义在`transport.h`中，这个头文件在`comm.h`中被注释掉了。在使用时需要手动添加。
 
 * `CPPFLAGS += -DNCCL_OS_LINUX  # 跳过 mem_manager.h:21-32 的重复 typedef，直接使用 SDK 类型`
 

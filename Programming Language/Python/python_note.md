@@ -2,6 +2,335 @@
 
 ## cache
 
+* `find_header_row`
+
+	看一下 ai 是怎么在 csv 中半自动地找 header 行的。
+
+	```py
+	def find_header_row(rows: list[list[str]], data_row_index: int) -> int:
+		for row_idx in range(data_row_index - 1, -1, -1):
+			row = rows[row_idx]
+			if len(row) >= 2 and row[:2] == ['Time', 'Marker']:
+				return row_idx
+		raise ValueError('failed to find header row starting with Time, Marker')
+	```
+
+	看起来就是已知 header 行的内容后，用 csv 每一行的前 2 列和 header 行的前 2 列匹配。
+
+	这样可以避免在 parse csv 时把 header 行的行号写死。
+
+* python 中 csv.reader() 只是个 iterator，不是 iterable，所以从 for line in csv_reader 中出来后，仍可以 next(csv_reader) 接着处理下一行
+
+* python 中，假如 lines 是个 iterator，我执行 
+    for line in lines:
+        xxx
+    for line in lines:
+       yyy
+    第二次的 for  会从第一次 for 的进度往后走吗，还是重新开始？
+
+	在 Python 中，这**取决于 `lines` 的具体类型**：
+
+	## 情况 1：`lines` 是 **迭代器（Iterator）**
+
+	**第二次 `for` 会从第一次结束的地方继续往后走**，不会重新开始。
+
+	```python
+	lines = iter([1, 2, 3, 4, 5])  # 这是一个迭代器
+
+	for line in lines:
+		print(f"第一次: {line}")
+		if line == 3:
+			break
+	# 输出: 1, 2, 3
+
+	for line in lines:
+		print(f"第二次: {line}")
+	# 输出: 4, 5  ← 从 3 之后继续
+	```
+
+	**原因**：迭代器有内部状态，记录当前遍历到的位置。第一次遍历消耗掉一部分后，状态已经前移，第二次会从剩余部分开始。
+
+	---
+
+	## 情况 2：`lines` 是 **可迭代对象（Iterable）但不是迭代器**
+
+	比如 `list`、`tuple`、`str` 等，**每次 `for` 都会重新创建一个新的迭代器**，所以会**重新开始**。
+
+	```python
+	lines = [1, 2, 3, 4, 5]  # 这是 list，是可迭代对象
+
+	for line in lines:
+		print(f"第一次: {line}")
+		if line == 3:
+			break
+	# 输出: 1, 2, 3
+
+	for line in lines:
+		print(f"第二次: {line}")
+	# 输出: 1, 2, 3, 4, 5  ← 重新从头开始
+	```
+
+	---
+
+	## 如何判断？
+
+	```python
+	import collections.abc
+
+	print(isinstance(lines, collections.abc.Iterator))  # True 表示是迭代器
+	print(isinstance(lines, collections.abc.Iterable))  # True 表示是可迭代对象
+	```
+
+	---
+
+	## 实际文件读取场景
+
+	如果你是从 `open()` 返回的文件对象：
+
+	```python
+	with open("file.txt") as f:
+		for line in f:
+			...
+		for line in f:
+			...  # 第二次不会读取任何内容，因为文件指针已经在末尾
+	```
+
+	文件对象本身是迭代器，所以第二次 `for` 会**从上次结束的位置继续**，也就是文件末尾，因此不会读到任何行。
+
+	---
+
+	## 总结
+
+	| `lines` 类型 | 第二次 `for` 行为 |
+	|-------------|------------------|
+	| **迭代器**（如 `iter(list)`、文件对象、生成器） | 从上次结束的位置**继续** |
+	| **可迭代对象**（如 `list`、`tuple`、`str`） | 重新从**开头**开始 |
+
+	如果你想让迭代器“重新开始”，可以重新创建它，比如 `lines = iter(new_list)` 或重新打开文件。
+
+* python 将按行存储的 sample 数据转换成按列存储的 feature
+
+	`lines = list(zip(*lines))`
+
+* 详细讲讲 python 中 zip 的作用
+
+	`zip` 是 Python 中一个非常强大且常用的内置函数。它的核心作用可以概括为：**将多个可迭代对象（如列表、元组、字符串等）中对应位置的元素“打包”成一个个元组，然后返回一个由这些元组组成的迭代器。**
+
+	简单来说，它就像一个“拉链”，把多个序列平行地“拉”在一起。
+
+	---
+
+	### 1. 基本用法
+
+	`zip` 的基本语法是：`zip(iterable1, iterable2, ...)`
+
+	- **参数**：接受一个或多个可迭代对象。
+	- **返回值**：返回一个 `zip` 对象，它是一个迭代器。这意味着它不会一次性生成所有元组，而是在你遍历它时才逐个生成，这有助于节省内存。
+
+	**示例 1：打包两个列表**
+
+	```python
+	names = ["Alice", "Bob", "Charlie"]
+	scores = [85, 92, 78]
+
+	# 使用 zip 打包
+	zipped = zip(names, scores)
+
+	# 查看 zip 对象的类型
+	print(zipped)  # 输出: <zip object at 0x...>
+
+	# 将其转换为列表以查看内容
+	print(list(zipped))  
+	# 输出: [('Alice', 85), ('Bob', 92), ('Charlie', 78)]
+	```
+
+	可以看到，`zip` 将两个列表下标相同的元素配对，形成了新的元组。
+
+	**示例 2：打包多个可迭代对象**
+
+	```python
+	names = ["Alice", "Bob"]
+	scores = [85, 92]
+	grades = ["A", "A-"]
+
+	zipped = list(zip(names, scores, grades))
+	print(zipped)  
+	# 输出: [('Alice', 85, 'A'), ('Bob', 92, 'A-')]
+	```
+
+	---
+
+	### 2. 核心特性：长度匹配与截断
+
+	当传入的多个可迭代对象长度**不一致**时，`zip` 会以**最短**的那个对象为准，多余的元素会被忽略。这是一个非常重要的特性。
+
+	**示例 3：长度不同时自动截断**
+
+	```python
+	names = ["Alice", "Bob", "Charlie"]
+	scores = [85, 92]  # 只有两个元素
+
+	result = list(zip(names, scores))
+	print(result)  
+	# 输出: [('Alice', 85), ('Bob', 92)]  
+	# 注意：'Charlie' 和对应的第三个分数被忽略了
+	```
+
+	如果你想保留所有元素，并在缺失的位置填充默认值，可以使用 `itertools.zip_longest()`。
+
+	```python
+	from itertools import zip_longest
+
+	names = ["Alice", "Bob", "Charlie"]
+	scores = [85, 92]
+
+	result = list(zip_longest(names, scores, fillvalue=0))
+	print(result)  
+	# 输出: [('Alice', 85), ('Bob', 92), ('Charlie', 0)]
+	```
+
+	---
+
+	### 3. 主要应用场景
+
+	`zip` 在数据处理和循环中应用非常广泛。
+
+	#### 场景一：并行遍历多个序列
+
+	这是 `zip` 最常见的用途。当你需要同时在两个或更多的列表上循环时，`zip` 让代码更简洁、更 Pythonic。
+
+	```python
+	names = ["Alice", "Bob", "Charlie"]
+	ages = [25, 30, 22]
+
+	# 使用索引遍历 (不推荐)
+	for i in range(len(names)):
+		print(f"{names[i]} is {ages[i]} years old.")
+
+	# 使用 zip 并行遍历 (推荐)
+	for name, age in zip(names, ages):
+		print(f"{name} is {age} years old.")
+	```
+
+	#### 场景二：构建字典
+
+	`zip` 可以轻松地将两个列表组合成一个字典，一个作为键，一个作为值。
+
+	```python
+	keys = ["name", "age", "city"]
+	values = ["Alice", 25, "New York"]
+
+	my_dict = dict(zip(keys, values))
+	print(my_dict)  
+	# 输出: {'name': 'Alice', 'age': 25, 'city': 'New York'}
+	```
+
+	#### 场景三：矩阵转置
+
+	在处理嵌套列表（如矩阵）时，`zip` 配合星号 `*` 操作符可以实现矩阵的行列转置。
+
+	```python
+	matrix = [
+		[1, 2, 3],
+		[4, 5, 6],
+		[7, 8, 9]
+	]
+
+	# *matrix 将矩阵解压为三个独立的列表：[1,2,3], [4,5,6], [7,8,9]
+	# zip 再将它们的对应元素组合起来
+	transposed = list(zip(*matrix))
+	print(transposed)  
+	# 输出: [(1, 4, 7), (2, 5, 8), (3, 6, 9)]
+	```
+
+	#### 场景四：将成对的数据拆分回多个序列
+
+	`zip` 也可以作为“解压”工具，与星号 `*` 配合使用，将打包好的数据拆分回原始序列。
+
+	```python
+	zipped_data = [('Alice', 85), ('Bob', 92), ('Charlie', 78)]
+	# 使用 * 解包 zip 对象，再打包回两个独立的元组
+	names, scores = zip(*zipped_data)
+	print(names)   # 输出: ('Alice', 'Bob', 'Charlie')
+	print(scores)  # 输出: (85, 92, 78)
+	```
+
+	---
+
+	### 4. 与 `enumerate` 的区别和结合
+
+	- **`enumerate`**：用于在遍历一个序列时同时获取**索引和元素**。
+	- **`zip`**：用于在遍历**多个序列**时，获取它们**对应位置的元素**。
+
+	两者可以结合使用，实现在多个序列上同时获取索引和元素。
+
+	```python
+	names = ["Alice", "Bob", "Charlie"]
+	scores = [85, 92, 78]
+
+	# 同时获取索引、姓名和分数
+	for i, (name, score) in enumerate(zip(names, scores)):
+		print(f"排名 {i+1}: {name} 得了 {score} 分")
+	# 输出:
+	# 排名 1: Alice 得了 85 分
+	# 排名 2: Bob 得了 92 分
+	# 排名 3: Charlie 得了 78 分
+	```
+
+	---
+
+	### 5. 在 Python 3 中的注意事项
+
+	- `zip` 在 Python 3 中返回的是一个**迭代器**，而不是列表。这意味着：
+	  - 优点：节省内存，处理大数据集时性能更好。
+	  - 缺点：只能遍历一次。如果你需要多次使用，可以提前转换为列表 `list(zip(...))`，或者每次使用时重新调用 `zip`。
+
+	```python
+	numbers = [1, 2, 3]
+	letters = ['a', 'b', 'c']
+	zipped = zip(numbers, letters)
+
+	print(list(zipped))  # 第一次使用：[(1, 'a'), (2, 'b'), (3, 'c')]
+	print(list(zipped))  # 第二次使用：[]  因为迭代器已经耗尽
+	```
+
+	---
+
+	### 总结
+
+	| 特性 | 描述 |
+	| :--- | :--- |
+	| **核心功能** | 将多个可迭代对象的对应元素打包成元组，返回一个迭代器。 |
+	| **长度处理** | 以最短的可迭代对象为准，自动截断。 |
+	| **主要用途** | 并行遍历多个序列、构建字典、矩阵转置、数据配对与拆分。 |
+	| **重要搭档** | 星号 `*`（用于解包和转置）、`enumerate`（用于获取索引）。 |
+	| **内存效率** | Python 3 中返回迭代器，惰性求值，节省内存。 |
+	| **注意点** | 迭代器只能遍历一次，如需复用请转换为列表或重新生成。 |
+
+	总的来说，`zip` 是 Python 中处理序列数据时不可或缺的工具，它让代码更简洁、可读性更高，并且高效地处理了多数据流对齐的问题。掌握它的用法是写出优质 Python 代码的重要一步。
+
+* find_data_start_row
+
+	看下 AI 是怎么半自动在 csv 文件里找数据开始的那一行的。
+
+	整体思路就是尝试 float() 第一个字符串，看是否能转换成功。
+
+	```py
+	def find_data_start_row(rows: list[list[str]]) -> int:
+		for row_idx, row in enumerate(rows):
+			if len(row) < 3:
+				continue
+			try:
+				float(row[0])
+				float(row[1])
+				return row_idx
+			except ValueError:
+				continue
+		raise ValueError('failed to find numeric data rows in csv file')
+	```
+
+	python 没有函数判断一个字符串是否是有效的小数 / 整数。try ... except 是唯一方法。
+
 * python 中如何将 list 中的 np.int64 元素转换成 python 原生数据类型？
 
 	在 Python 中，将 list 中的 `np.int64` 元素转换为 Python 原生 `int` 类型，有几种常用方法。

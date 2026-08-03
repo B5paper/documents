@@ -4,6 +4,364 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* 详细讲讲 bash 中  sort  命令的用法
+
+	`sort` 是 Linux 系统中用来对文本文件内容进行排序的核心工具。它的设计哲学是“按行处理”，即默认以换行符作为记录分隔符，对每一行的内容进行排序。
+
+	下面我将从**基础用法**、**核心参数**、**高级技巧**和**实战场景**四个维度为你详细拆解。
+
+	---
+
+	### 1. 基础用法（无参数）
+
+	- **`sort filename`**：将文件内容按**字典顺序**（ASCII 码）排序并输出到屏幕（原文件不变）。
+	- **`sort -n filename`**：按**数值大小**排序（重要：如果不加 `-n`，`10` 会排在 `2` 前面，因为 `1` < `2`）。
+	- **`sort -r filename`**：**反向排序**（从大到小 或 z->a）。
+
+	**示例**：
+	```bash
+	# 文件 data.txt 内容：3, 10, 1, 2
+	sort data.txt      # 输出：1, 10, 2, 3 （因为按字符）
+	sort -n data.txt   # 输出：1, 2, 3, 10
+	```
+
+	---
+
+	### 2. 关键参数详解（必知必会）
+
+	#### 2.1 指定分隔符与排序字段（`-t` 和 `-k`）
+	这是 `sort` 最强大的功能，用于处理 CSV 或日志等结构化数据。
+
+	- **`-t`**：指定字段分隔符（默认是空白符）。
+	- **`-k`**：指定按第几个字段排序（从 1 开始计数）。
+
+	**示例**：按 CSV 的第二列（数字）排序
+	```bash
+	cat score.csv
+	# Alice,80
+	# Bob,75
+	# Charlie,90
+
+	sort -t ',' -k 2 -n score.csv
+	# 输出：
+	# Bob,75
+	# Alice,80
+	# Charlie,90
+	```
+
+	**`-k` 的高级写法**：`-k 2,3` 表示从第 2 个字段开始到第 3 个字段结束作为排序键（常用于联合排序）。
+
+	#### 2.2 忽略大小写（`-f`）
+	默认大写字母（A-Z）排在小写字母（a-z）之前。加上 `-f` 会让 `A` 和 `a` 视为相同。
+
+	#### 2.3 去除重复行（`-u`）
+	结合排序功能，只输出不重复的行（**必须排序后才能去重**，功能类似于 `sort | uniq`）。
+
+	```bash
+	sort -u list.txt   # 排序并删除相邻的重复行
+	```
+
+	#### 2.4 人类可读数字（`-h`）
+	专门处理带单位的数据，如 `1K`、`2M`、`1G`。常用于 `du` 和 `ls -lh` 的输出。
+
+	```bash
+	du -h * | sort -h   # 按文件大小从小到大排列
+	```
+
+	#### 2.5 随机排序（`-R`）
+	完全打乱行序（基于哈希随机），适合抽奖或数据洗牌。
+
+	```bash
+	sort -R data.txt   # 每次输出顺序都不同
+	```
+
+	---
+
+	### 3. 进阶技巧与边缘情况
+
+	#### 3.1 稳定排序（`-s`）
+	默认情况下，如果两个键值相同，`sort` 可能会改变它们的相对顺序。加上 `-s`（stable）可以保留原始输入顺序。
+	**场景**：先按日期排序，再按名字排序，且希望名字相同的人保持原来的时间顺序。
+
+	#### 3.2 只检查是否已排序（`-c`）
+	不输出内容，仅检查文件是否已经排好序。如果未排序，返回非 0 退出码并提示第一处错误。
+
+	```bash
+	sort -c data.txt && echo "已排序" || echo "未排序"
+	```
+
+	#### 3.3 指定输出文件（`-o`）
+	避免重定向时误删原文件（重定向 `>` 会先清空文件）。`-o` 是安全的写入方式。
+
+	```bash
+	sort -n numbers.txt -o sorted_numbers.txt
+	```
+
+	#### 3.4 内存与性能（`-S` 和 `--parallel`）
+	- **`-S`**：指定内存缓冲区大小（如 `-S 50%` 或 `-S 2G`）。如果文件极大，增加内存能减少磁盘 IO。
+	- **`--parallel=N`**：指定并行线程数（GNU 扩展），加速大文件排序。
+
+	---
+
+	### 4. 实战组合场景
+
+	#### 场景 1：查看日志中访问量最大的 IP（结合 `uniq -c`）
+	```bash
+	cat access.log | awk '{print $1}' | sort | uniq -c | sort -nr | head -10
+	```
+	*流程*：提取 IP -> 排序让相同 IP 相邻 -> 去重计数 -> 按次数倒序 -> 取前 10。
+
+	#### 场景 2：按文件扩展名排序（字典序忽略后缀）
+	```bash
+	sort -t '.' -k 2 filelist.txt
+	```
+
+	#### 场景 3：按第三列数字排序，且第二列作为辅助键
+	```bash
+	sort -t ',' -k 3,3n -k 2,2 data.csv
+	```
+	*含义*：主要按第 3 列数值升序；若第 3 列相同，再按第 2 列字典序排序。
+
+	#### 场景 4：排序时排除表头（使用 `tail` 或 `sed`）
+	```bash
+	cat data.csv | (read -r header; echo "$header"; sort -t ',' -k 2 -n)
+	```
+	或者使用 `sed '1d'` 去掉头部排序后再加回来。
+
+	---
+
+	### 5. 环境变量影响（重要）
+	- **`LC_ALL=C`**：如果你把 `sort` 放在脚本中，建议在前面加上 `LC_ALL=C sort`。这会强制使用 ASCII 排序，否则系统会根据中文语言包（如 zh_CN.UTF-8）进行字典排序，这会导致 `-k` 和字符范围判断变慢且行为不同。
+	- **`TMPDIR`**：如果文件巨大无法装入内存，`sort` 会使用 `/tmp` 做临时缓存。可通过 `export TMPDIR=/big_disk` 更改临时路径。
+
+	---
+
+	### 6. 总结速查表
+
+	| 需求 | 命令 |
+	| :--- | :--- |
+	| 按字母升序 | `sort file` |
+	| 按数字升序 | `sort -n file` |
+	| 按数字降序 | `sort -nr file` |
+	| 按第2列排序（逗号分隔） | `sort -t',' -k2 file` |
+	| 按第2列数字排序 | `sort -t',' -k2n file` |
+	| 去重排序 | `sort -u file` |
+	| 打乱顺序 | `sort -R file` |
+	| 仅检查是否已排序 | `sort -c file` |
+	| 忽略大小写 | `sort -f file` |
+
+	**最后提醒**：`sort` 默认是**整行**作为排序单元，除非你使用 `-k`。如果你觉得排序结果不符合预期，首先检查是否忘了加 `-n`（数字排序），其次检查 `locale` 环境变量。
+
+* 详细讲讲 compopt -o filenames 的作用
+
+	`compopt -o filenames` 是一个 Bash 内建命令，它在**可编程补全函数**内部使用，核心作用是**告诉 Bash 的 Readline 库，当前正在补全的内容是文件名或路径**。
+
+	在 Bash 中，`complete -F <函数名> <命令>` 只是定义了补全函数，但默认情况下补全系统不会对 `COMPREPLY` 数组里的结果做特殊处理。`compopt -o filenames` 的加入会带来以下关键效果：
+
+	### 🎯 核心作用：让 Readline “认识” 文件名
+
+	*   **正确的转义与引用**：文件名可能包含空格、`$`、`(` 等特殊字符。启用此选项后，Readline 会自动对补全结果进行正确转义，确保插入到命令行时是一个完整的、可被解析的字符串，而不是被错误分割。
+	*   **在目录后自动追加 `/`**：这是最直观的表现。当补全结果是目录时，系统会自动在末尾加上斜杠 ` / `，以便直接进入下一级路径。
+	*   **使用 Readline 的默认文件补全逻辑**：当自定义的 `COMPREPLY` 为空时，Bash 可以退回到 Readline 自带的文件补全机制，输入 `cd ~/Doc` 再按 Tab 也能自动补齐为 `cd ~/Documents/`。
+
+	### 💡 关键实践：动态启用而非全局固定
+
+	在复杂的补全函数中，往往需要同时处理命令选项、子命令和文件路径。如果简单地在定义补全时使用 `complete -o filenames`，会导致所有补全结果（包括选项）都被当成文件名来转义，可能引发错误的转义行为。
+
+	因此，更推荐的实践是在补全函数内部，**仅在需要补全文件路径时，动态执行 `compopt -o filenames`**。这通常放在函数将文件路径填入 `COMPREPLY` 数组之后。例如：
+
+	```bash
+	_my_command_completion() {
+		local cur="${COMP_WORDS[COMP_CWORD]}"
+		COMPREPLY=()
+
+		# 假设处理某个参数，需要补全文件
+		if [[ ... ]]; then
+			# 使用 compgen 生成文件名候选项
+			COMPREPLY=($(compgen -f -- "$cur"))
+			# 关键：动态开启文件名处理
+			compopt -o filenames
+		fi
+	}
+	complete -F _my_command_completion my_command
+	```
+
+	### ⚠️ 注意事项
+
+	*   **与 `noquote` 的关系**：Bash 4.3 引入了 `compopt -o noquote`，可以在启用 `filenames` 时，禁止 Readline 对补全结果进行过多的转义，用于处理更精细的补全场景。
+	*   **与 `nospace` 的配合**：`compopt -o nospace` 可以控制补全后是否自动添加空格，常与 `filenames` 配合处理更复杂的路径补全逻辑，例如在仅完成不完整路径时不追加空格，以便用户继续输入。
+
+	总结来说，`compopt -o filenames` 是编写高质量 Bash 补全脚本的**最佳实践**，它能让自定义的文件路径补全看起来和原生的 `Tab` 键补全一样自然、流畅。
+
+	关闭`filenames`: `compopt -o nofilenames`
+
+* 详细讲讲 bash 中 _get_comp_words_by_ref 的作用
+
+	`_get_comp_words_by_ref` 是 Bash 补全系统（来自 `bash-completion` 包）中的一个核心工具函数。它的主要作用是**以一种更智能、更可控的方式，解析和提取当前命令行中正在被补全的单词及其上下文信息**。
+
+	### 核心作用：解决 `COMP_WORDS` 的痛点
+
+	Bash 补全脚本默认通过 `COMP_WORDS` 数组和 `COMP_CWORD` 变量来获取命令行信息，但这在处理特殊情况时存在缺陷：
+
+	1.  **当光标在单词中间时**：`COMP_WORDS[COMP_CWORD]` 只能获取光标所在的**完整单词**，无法正确识别光标左侧的部分，导致补全不准确。
+	2.  **当单词包含特殊字符时**：Bash 默认的单词分割符（`COMP_WORDBREAKS`）包含 `=`、`:` 等字符。对于 `--date=<type>` 或 `host:path` 这类格式，这些字符会被错误地当作分隔符，将单词拆分成多个部分，干扰补全逻辑。
+
+	`_get_comp_words_by_ref` 函数完美解决了这些问题。它通过参数传递，将重新解析和组装后的结果赋值给指定的变量。
+
+	### 核心用法与参数
+
+	基本用法是调用函数并传入变量名，它会为你填充这些变量。
+
+	```bash
+	_get_comp_words_by_ref cur prev words cword
+	```
+	*   `cur`: 获取**光标所在位置的当前单词**（考虑了光标在单词中间的情况，更准确）。
+	*   `prev`: 获取**当前单词的前一个单词**。
+	*   `words`: 获取经过重新解析的**完整单词数组**（已修正因特殊字符导致的错误分割）。
+	*   `cword`: 获取 `cur` 在 `words` 数组中的**索引位置**。
+
+	### 关键选项：`-n EXCLUDE`
+
+	这是该函数最强大的功能之一。通过 `-n` 选项，你可以指定一些**本应被 Bash 视为分隔符的字符，让函数在重新解析单词时将它们视为普通字符**。
+
+	例如，对于 `scp user@host:` 的补全场景，你可以使用 `_get_comp_words_by_ref -n : cur`。这能确保包含 `:` 的 `host:` 部分作为一个整体被当作一个单词来处理，从而正确地进行主机名补全。
+
+	### 实际应用示例
+
+	下面是一个使用该函数的补全脚本片段，展示了如何优雅地处理子命令补全：
+
+	```bash
+	function _program_completion() {
+	  # 获取补全所需信息，并将结果存入自定义变量
+	  _get_comp_words_by_ref -c current_word -p previous_word -w words_array -i current_word_index
+
+	  # 根据当前单词的索引和上一个单词来决定补全内容
+	  if test "$current_word_index" -eq 1 && test "$previous_word" = "program"; then
+		# 补全一级子命令
+		COMPREPLY=( $( compgen -W "task config" -- "$current_word" ) )
+	  elif test "$current_word_index" -eq 2 && test "$previous_word" = "task"; then
+		# 补全二级子命令
+		COMPREPLY=( $( compgen -W "start stop" -- "$current_word" ) )
+	  fi
+	}
+	complete -F _program_completion program
+	```
+
+	### 总结
+
+	`_get_comp_words_by_ref` 是一个专门用于处理命令行补全的解析器。它通过**准确获取光标位置的单词（`cur`）** 和**允许自定义单词分割符（`-n`）**，解决了直接使用 `COMP_WORDS` 数组时的两大核心问题，使得编写健壮、准确的 Bash 补全脚本变得简单可靠。
+
+* 详细讲讲 bash 中 COMP_LINE 的作用
+
+	在 Bash 中，`COMP_LINE` 是一个**由可编程补全（Programmable Completion）机制自动设置的只读特殊变量**。它的核心作用是**存储当前命令行输入的完整文本内容**，为补全函数提供最原始的输入源。
+
+	为了让你彻底理解它，我从**基础定义、实际场景、与其他变量的区别、典型用法和注意事项**五个层面来详细拆解。
+
+	---
+
+	### 1. 基础定义
+	- **全称**：Completion Line
+	- **值**：当前光标所在位置之前的整个命令行字符串（包含所有单词和空格，未经任何解析）。
+	- **设置者**：Bash 的 `readline` 库在调用补全函数（如 `-F` 指定的函数）之前自动设置。
+	- **范围**：只读，补全函数内部可以读取，但不能修改它（修改无效）。
+
+	---
+
+	### 2. 与其他相关变量的区别（核心）
+	要理解 `COMP_LINE`，必须分清它与另外三个兄弟变量：
+
+	| 变量 | 含义 | 示例（输入 `ls /etc/host` 且光标在末尾） |
+	| :--- | :--- | :--- |
+	| **`COMP_LINE`** | 完整的命令行文本 | `ls /etc/host` |
+	| **`COMP_POINT`** | 光标在 `COMP_LINE` 中的索引位置（从 0 开始） | `12`（因为`ls /etc/host`长度为12） |
+	| **`COMP_WORDS`** | 将 `COMP_LINE` 按空格分割成的**数组**（类似`$@`） | `([0]="ls" [1]="/etc/host")` |
+	| **`COMP_CWORD`** | 当前光标所在的单词在 `COMP_WORDS` 数组中的索引 | `1`（因为光标在第2个单词末尾） |
+
+	> **关键区别**：`COMP_WORDS` 是经过 Bash 简单分词（按空格、制表符等）后的结果，会丢失多余的空格或引号。而 **`COMP_LINE` 是原始纯文本**，保留了所有空白符和特殊字符的原貌。
+
+	---
+
+	### 3. 实际作用场景（为什么需要它？）
+
+	#### 场景一：处理包含空格或特殊字符的路径
+	当你需要补全带空格的文件名时，`COMP_WORDS` 会把 `my file.txt` 拆成 `my` 和 `file.txt`，导致补全逻辑出错。此时必须使用 `COMP_LINE` 配合 `COMP_POINT`，截取光标前的子串，手动进行上下文解析。
+
+	```bash
+	_my_completion() {
+		# 获取光标前的完整输入
+		local cur="${COMP_LINE:0:$COMP_POINT}"
+		# 现在 cur 是完整的 "ls /home/my "，保留空格
+		# 可以基于此做更精确的补全
+	}
+	```
+
+	#### 场景二：嵌套补全（如 `sudo` 或 `time` 等前置命令）
+	当输入 `sudo ls /et` 时，`COMP_WORDS` 会包含 `sudo`，导致补全逻辑误以为是补全 `sudo` 的参数。但有了 `COMP_LINE`，补全函数可以检测到 `sudo` 后跟的是另一个命令，从而提取 `ls` 作为实际的补全目标命令。
+
+	#### 场景三：解析引号或转义符
+	`COMP_LINE` 保留了 `\`（转义）和 `'` `"`（引号）。补全函数可以通过分析 `COMP_LINE` 来判断当前单词是否处于引号内，从而决定是否需要对补全结果加引号转义（这是 `compgen -o filenames` 无法替代的复杂场景）。
+
+	---
+
+	### 4. 典型用法示例（代码实战）
+
+	假设我们想编写一个补全函数，判断用户是否在输入一个以 `-` 开头的选项，且不受前一个单词影响：
+
+	```bash
+	_my_script_completion() {
+		# 取出光标之前的所有内容
+		local before_cursor="${COMP_LINE:0:$COMP_POINT}"
+		
+		# 检测光标前的最后一个单词（可能含空格，用正则取）
+		if [[ "$before_cursor" =~ \ -\w+$ ]]; then
+			# 如果光标前是以 -option 结尾，补全选项参数
+			COMPREPLY=($(compgen -W "value1 value2" -- ""))
+		else
+			# 否则补全普通文件名
+			COMPREPLY=($(compgen -f -- "${COMP_WORDS[$COMP_CWORD]}"))
+		fi
+	}
+	complete -F _my_script_completion my_script
+	```
+
+	---
+
+	### 5. 重要注意事项（坑点）
+
+	| 注意点 | 说明 |
+	| :--- | :--- |
+	| **只读性** | 在补全函数中，`COMP_LINE="new"` 不会报错，但实际不会改变 Bash 的命令行。 |
+	| **不受 `set` 影响** | `COMP_LINE` 始终以用户在键盘上输入的原始字符为准，不受 Bash 的 `histchars` 或别名扩展影响。 |
+	| **与 `$READLINE_LINE` 的区别** | `$READLINE_LINE` 是 `readline` 的通用变量，用于自定义绑定；而 `COMP_LINE` 专用于补全，且包含 `bash` 补全特有的上下文（比如在 `complete -E` 空行补全时也能工作）。 |
+	| **性能** | 当命令行极长（数千字符）时，频繁操作 `COMP_LINE` 的子串截取会有轻微性能开销，但通常可忽略。 |
+
+	---
+
+	### 6. 调试技巧
+	如果你想实时观察 `COMP_LINE` 的值，可以定义如下补全：
+
+	```bash
+	_debug_complete() {
+		echo "COMP_LINE: $COMP_LINE" > /tmp/bash_debug
+		echo "COMP_POINT: $COMP_POINT" >> /tmp/bash_debug
+	}
+	complete -F _debug_complete your_cmd
+	```
+	然后输入 `your_cmd abcd` 并按 Tab，查看 `/tmp/bash_debug` 文件。
+
+	---
+
+	### 总结一句话
+	**`COMP_LINE` 是 Bash 补全的“原始素材”**，它让你摆脱了分词后的“二手信息”，能够直接操作用户输入的完整字符串，从而处理带空格、引号、嵌套命令等复杂场景。它与 `COMP_POINT` 配合，是编写高级、健壮补全函数的基石。
+
+* `find -print0`
+
+    用空字符\0分隔输出（处理文件名中的空格/换行等特殊字符）
+
+    此时如果使用 mapfile 接收并处理字符串，必须使用
+
+    `mapfile -d $'\0'`, 指定输入分隔符为空字符（与find的-print0匹配）
+
 * find 搜索东西时并不是正则匹配，必须加通配符`*keyword*`，而 grep 是正则匹配，直接使用`keyword`就能匹配字符串中的关键字。
 
 * 详细讲讲 fd 命令 (fdfind)
