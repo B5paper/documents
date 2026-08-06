@@ -2,6 +2,60 @@
 
 ## cache
 
+* vim 的几个插件
+
+    * vim-visual-multi
+
+        Multiple cursors plugin for vim/neovim
+
+        <https://github.com/mg979/vim-visual-multi> 
+
+    * targets.vim
+
+        Vim plugin that provides additional text objects
+
+        <https://github.com/wellle/targets.vim>
+
+    *  vim-indent-object
+
+        <https://github.com/michaeljsmith/vim-indent-object>
+
+* 详细讲讲 vim 中 va 的用法
+
+    `va` 是 Vim 中一个非常高效的操作，它的核心是**基于文本对象（Text Object）的选中操作**。它的基本结构是 `v` + `a` + `{文本对象}`。
+
+    简单来说，`va` 的含义就是 **v**isual select **a**round，即**选中一个文本对象及其周围配套的符号**。
+
+    ### `va` 的核心用法：`v` + `a` + `text-object`
+
+    它的命令格式是 `v`（进入可视模式） + `a`（选择整个对象，包括边界） + 一个代表文本对象的字符。
+
+    以你问的 `va(` 为例，它的作用是：**选中从当前光标所在位置开始，向前的第一对圆括号 `(...)`，并且包括这对圆括号本身**。
+
+    *   **与 `vi(` 的区别**：`vi(` 是 `v` + `i`（inner，内部） + `(`，它只会选中括号**内部**的内容，不包含括号本身。`va(` 则会选中括号**以及括号本身**。
+
+    #### 常见用法对照表
+
+    这个模式不仅适用于圆括号，也适用于其他成对的符号。
+
+    | 文本对象 | `vi` (inner, 只选内容) | `va` (around, 包含符号) |
+    | :--- | :--- | :--- |
+    | 圆括号 `()` | `vi(` 或 `vi)` | `va(` 或 `va)` |
+    | 花括号 `{}` | `vi{` 或 `vi}` | `va{` 或 `va}` |
+    | 方括号 `[]` | `vi[` 或 `vi]` | `va[` 或 `va]` |
+    | 双引号 `""` | `vi"` | `va"` |
+    | 单引号 `''` | `vi'` | `va'` |
+
+    这个技巧也可以和其他操作符（Operator）组合使用，不仅仅是可视模式。常见的操作符有 `d`（删除 delete）、`y`（复制 yank）、`c`（修改 change）。
+
+    例如：
+    *   `da(`：删除光标所在位置的一对圆括号及其内部所有内容。
+    *   `ya{`：复制光标所在位置的一对花括号及其内部所有内容（相当于 `va{y`）。
+    *   `ci"`：修改光标所在位置的一对双引号内的内容（引号保留，内容被替换）。
+
+
+	* `vit` — 选择标签内部内容（HTML/XML）
+
 * 详细讲讲 vim 中的可视块模式（Visual Block Mode）
 
 	好的，我们来详细讲讲 Vim 中的可视块模式（Visual Block Mode）。它是 Vim 三种可视模式中最强大、也最具“编辑器黑科技”色彩的一种。

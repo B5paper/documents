@@ -2,6 +2,274 @@
 
 ## cache
 
+* 在 python 中，对于二维 numpy 数组 arr，如果使用 for vec in arr: ，那么是按行（或者说第一个维度）进行遍历。如何才能按列（第二个维度）进行遍历？
+
+    在 Python 中，对于二维 NumPy 数组 `arr`，使用 `for vec in arr:` 默认是按**行**（第一个维度）遍历的。要按**列**（第二个维度）遍历，有以下几种常用方法：
+
+    ---
+
+    ## 方法 1：转置后遍历（最简洁）
+
+    ```python
+    for col in arr.T:
+        # col 是每一列（一维数组）
+        print(col)
+    ```
+
+    `arr.T` 是转置，原来的列变成了行，所以遍历转置后的行就是遍历原数组的列。
+
+    ---
+
+    ## 方法 2：按索引遍历列
+
+    ```python
+    for i in range(arr.shape[1]):
+        col = arr[:, i]
+        # 处理第 i 列
+    ```
+
+    ---
+
+    ## 方法 3：使用 `np.nditer`（不推荐，因为默认是行主序）
+
+    ```python
+    # 这种方式不太直观，不推荐用于简单列遍历
+    for col in np.nditer(arr, order='F'):  # 按 Fortran 顺序（列优先）
+        # 但这样得到的是单个元素，不是整列
+    ```
+
+    如果一定要用 `nditer`，需要配合 `external_loop`，但不如前两种方法直接。
+
+    ---
+
+    ## 方法 4：使用 `np.split`（按列分割）
+
+    ```python
+    for col in np.split(arr, arr.shape[1], axis=1):
+        # col 是二维数组（列向量），可以用 col.ravel() 转成一维
+        print(col.ravel())
+    ```
+
+    ---
+
+    ## 示例对比
+
+    ```python
+    import numpy as np
+
+    arr = np.array([[1, 2, 3],
+                    [4, 5, 6]])
+
+    # 默认按行
+    for row in arr:
+        print(row)   # [1 2 3], [4 5 6]
+
+    # 按列（方法1）
+    for col in arr.T:
+        print(col)   # [1 4], [2 5], [3 6]
+
+    # 按列（方法2）
+    for i in range(arr.shape[1]):
+        col = arr[:, i]
+        print(col)   # [1 4], [2 5], [3 6]
+    ```
+
+    ---
+
+    ## 性能考虑
+
+    - **方法 1（`arr.T`）** 不会复制数据，只返回视图，性能最好且代码最简洁。
+    - **方法 2** 每次索引也会返回视图，性能也很好。
+    - 两种方法本质上都是零拷贝，推荐使用 **方法 1**。
+
+    ---
+
+    ## 总结
+
+    **最推荐**：
+    ```python
+    for col in arr.T:
+        # 处理每一列
+    ```
+
+    这种方式最 Pythonic、性能最优、代码最清晰。
+
+* 高效构建 numpy ndarray 的方法
+
+    如果不使用 `np.array()`，NumPy 还提供了其他直接从 Python 数据源/内存构造数组的接口。
+
+    以下是不用 `np.array()` 实现 `(num_samples, num_feats)` 维度的几种核心方法：
+
+    ---
+
+    ### 方法 1：使用 `np.fromiter` 扁平化构建（最推荐、性能最高）
+
+    如果数据量很大，可以通过内置的 `chain.from_iterable` 或 `zip` 将列表扁平化，再通过 `np.fromiter` 直接填入内存空间，最后 reshape。
+
+    **这种做法避免了 Python 嵌套对象的多次映射，通常比常规转换更快：**
+
+    ```python
+    from itertools import chain
+    import numpy as np
+
+    # 假设 3 个特征，2 个样本
+    my_lst = [[1, 2], [3, 4], [5, 6]]
+    num_feats = len(my_lst)
+    num_samples = len(my_lst[0])
+
+    # 1. 结合 zip(*my_lst) 扁平化：先转置再压平
+    flat_iter = chain.from_iterable(zip(*my_lst))
+
+    # 2. 从迭代器直接构造 1D 数组，并 reshape 为目标形状
+    arr = np.fromiter(flat_iter, dtype=float).reshape(num_samples, num_feats)
+
+    print(arr.shape)  # (2, 3)
+
+    ```
+
+    ---
+
+    ### 方法 2：先预分配内存，再逐行填充（`np.empty` / `np.zeros`）
+
+    如果你追求明确的内存分配，可以先创建一个指定形状 `(num_samples, num_feats)` 的空数组，然后把列表中的特征数据按列（或按行）填进去。
+
+    ```python
+    import numpy as np
+
+    my_lst = [[1, 2], [3, 4], [5, 6]]
+    num_feats = len(my_lst)
+    num_samples = len(my_lst[0])
+
+    # 1. 预分配目标形状的内存
+    arr = np.empty((num_samples, num_feats))
+
+    # 2. 将列表中的每个 feature 写入对应的列
+    for i, feat in enumerate(my_lst):
+        arr[:, i] = feat
+
+    print(arr.shape)  # (2, 3)
+
+    ```
+
+    ---
+
+    ### 方法 3：使用 `np.stack` 或 `np.column_stack` 拼接
+
+    你可以把外层列表里的每个特征数组当成一列，利用专门的列拼接函数将它们组合起来：
+
+    ```python
+    import numpy as np
+
+    my_lst = [[1, 2], [3, 4], [5, 6]]
+
+    # column_stack 会自动把各个 1D 列表/数组当成列拼在一起
+    arr = np.column_stack(my_lst)
+
+    print(arr.shape)  # (2, 3)
+
+    ```
+
+    ---
+
+    ### 方法 4：使用 `np.packbits` / `np.ctypeslib` 或底层的 `np.frombuffer`（高级内存操作）
+
+    如果你希望借用 Python 内置的 `array` 模块或 `ctypes` 预先将数据放入连续内存缓冲中，可以直接用 `np.frombuffer` 读取：
+
+    ```python
+    from array import array
+    import numpy as np
+
+    my_lst = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+    num_feats = len(my_lst)
+    num_samples = len(my_lst[0])
+
+    # 利用 Python 原生 array 先将 zip 转置后的数据打平放入内存缓冲区
+    flat_zipped = [val for sample in zip(*my_lst) for val in sample]
+    buf = array("d", flat_zipped)  # 'd' 代表 double 浮点数
+
+    # 直接从 buffer 读取，无需 np.array()
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(num_samples, num_feats)
+
+    print(arr.shape)  # (2, 3)
+
+    ```
+
+    ---
+
+    ### 总结比较
+
+    | 方法 | 代码核心 | 适用场景 / 特点 |
+    | --- | --- | --- |
+    | **`np.fromiter()`** | `np.fromiter(chain.from_iterable(zip(*my_lst)), dtype=...).reshape(...)` | **最推荐**，流式构建，避免大量中间 NumPy 对象的创建 |
+    | **`np.column_stack()`** | `np.column_stack(my_lst)` | 代码极简，语义明确（将每个 list 视为一列） |
+    | **预分配内存** | `arr = np.empty(...)` + 按列赋值 | 大矩阵填充或数据动态生成时效率极高 |
+
+    **真正的性能瓶颈在哪？**
+
+    对于嵌套列表（Nested Python List），真正的耗时瓶颈**不在 NumPy 内部**，而在 **Python List 本身**：
+
+    > **Python List 遍历与解析的开销：**
+    > 将 `my_lst` 转为 NumPy 数组时，NumPy 必须通过 Python C-API 逐个遍历外层和内层列表，解包 Python 对象并转为 C 语言数据类型。**这个解析过程本身就包含了一次完整的内存复制（从 Python 对象到 NumPy C 缓冲区）。**
+
+    在嵌套列表中，外层长为 `num_feats`，内层长为 `num_samples`。NumPy 只能按照 Python 列表在内存里的物理嵌套顺序去读取，因此**不可能在不经过 Python 迭代/解包的情况下，直接以相反的布局创建 ndarray**。
+
+    ---
+
+    **如果数据量极庞大，如何获得极限性能？**
+
+    如果你处理的是海量数据（如几 GB 的特征矩阵），有以下两个优化方向：
+
+    #### 方案 A：流式扁平化构建（内存利用率最高，速度极快）
+
+    不让 NumPy 去逐层解析嵌套列表，而是用 Python 内置的 `itertools` 配合 `zip` 在 C 层生成流，直接写入 NumPy 预分配的连续内存：
+
+    ```python
+    from itertools import chain
+    import numpy as np
+
+    num_feats = len(my_lst)
+    num_samples = len(my_lst[0])
+
+    # 1. zip(*my_lst) 可以在不复制内层数据的前提下，实现按样本（sample）提取
+    # 2. chain.from_iterable 拼成一维流
+    flat_stream = chain.from_iterable(zip(*my_lst))
+
+    # 3. np.fromiter 直接向 C 内存分配空间，一步到位写入并 reshape
+    arr = np.fromiter(flat_stream, dtype=np.float64, count=num_feats * num_samples)
+    arr = arr.reshape(num_samples, num_feats)
+
+    ```
+
+    > **优势**：显式声明了 `count`，NumPy 会**一次性分配完整块 C 内存**，避免了动态扩容，且无需生成中间的 Python 转置列表。
+
+    ---
+
+    #### 方案 B：追溯源头——从数据生成阶段改变结构（终极方案）
+
+    如果这个 `my_lst` 是你在 Python 中通过循环生成的：
+
+    ```python
+    # ❌ 耗费大量内存和 Python 对象开销的写法
+    my_lst = []
+    for f in range(num_feats):
+        feat_data = ... # 得到了一个 feature 的所有 samples
+        my_lst.append(feat_data)
+
+    ```
+
+    **推荐优化方式：直接预分配 NumPy 矩阵**
+    在数据生成之初就创建好目标形状的 `ndarray`，直接按列写入，完全绕过 Python 嵌套列表：
+
+    ```python
+    # ✅ 预分配内存，完全避开 Python List 开销
+    arr = np.empty((num_samples, num_feats), dtype=np.float64)
+
+    for f in range(num_feats):
+        # 假设每次获取/计算出一个 feature 数组
+        arr[:, f] = compute_feature(f)  # 直接写入目标列
+
+    ```
+
 * numpy 没有办法在将 list 转换为 ndarray 时，直接指定维度顺序。必须在转换完成后，使用`transpose()`，`.T`等方法进行变换。
 
 * 详细讲讲 np.tile 的用法

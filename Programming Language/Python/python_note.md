@@ -2,6 +2,261 @@
 
 ## cache
 
+* python 中，在 print('val: {:.2f}'.format(val)) 中，我希望使用 num_dig 来控制`.2f`中的 2，比如 print('val: {:(num_dig)f}'.format(val))，该怎么办？
+
+    很好的问题！当你需要在同一个格式化字符串中**多个变量使用相同的动态精度**时，有几种优雅的写法：
+
+    ---
+
+    ## 方法 1：使用关键字参数（推荐）
+
+    ```python
+    val1 = 3.14159
+    val2 = 2.71828
+    num_dig = 2
+
+    print('val 1: {:{prec}f}, val 2: {:{prec}f}'.format(val1, val2, prec=num_dig))
+    # 输出: val 1: 3.14, val 2: 2.72
+    ```
+
+    **原理：** 位置参数 `val1, val2` 按顺序填充到 `{}` 中，而 `prec=num_dig` 作为关键字参数被两个 `{prec}` 共享。
+
+    ---
+
+    ## 方法 2：使用位置参数和字典解包
+
+    ```python
+    val1 = 3.14159
+    val2 = 2.71828
+    num_dig = 2
+
+    print('val 1: {:.{prec}f}, val 2: {:.{prec}f}'.format(val1, val2, prec=num_dig))
+    # 输出: val 1: 3.14, val 2: 2.72
+    ```
+
+    注意这里 `{:.{prec}f}` 中的 `.` 和 `{prec}` 之间没有空格。
+
+    ---
+
+    ## 方法 3：全部使用关键字参数（最清晰）
+
+    ```python
+    val1 = 3.14159
+    val2 = 2.71828
+    num_dig = 2
+
+    print('val 1: {v1:.{prec}f}, val 2: {v2:.{prec}f}'.format(v1=val1, v2=val2, prec=num_dig))
+    # 输出: val 1: 3.14, val 2: 2.72
+    ```
+
+    这种方式最清晰，因为每个占位符都明确指定了变量名。
+
+    ---
+
+    ## 方法 4：使用 f-string（更简洁，Python 3.6+）
+
+    ```python
+    val1 = 3.14159
+    val2 = 2.71828
+    num_dig = 2
+
+    print(f'val 1: {val1:.{num_dig}f}, val 2: {val2:.{num_dig}f}')
+    # 输出: val 1: 3.14, val 2: 2.72
+    ```
+
+    这是最直观的方式！
+
+    ---
+
+    ## 方法 5：不同变量使用不同的精度
+
+    ```python
+    val1 = 3.14159
+    val2 = 2.71828
+    prec1 = 2
+    prec2 = 4
+
+    # 使用关键字参数
+    print('val 1: {v1:.{p1}f}, val 2: {v2:.{p2}f}'.format(v1=val1, v2=val2, p1=prec1, p2=prec2))
+    # 输出: val 1: 3.14, val 2: 2.7183
+
+    # 使用 f-string
+    print(f'val 1: {val1:.{prec1}f}, val 2: {val2:.{prec2}f}')
+    # 输出: val 1: 3.14, val 2: 2.7183
+    ```
+
+    ---
+
+    ## 方法 6：使用循环或列表推导（处理大量变量）
+
+    ```python
+    vals = [3.14159, 2.71828, 1.41421, 1.73205]
+    num_dig = 2
+
+    # 方式 1: 使用 join
+    print(', '.join(f'val {i+1}: {v:.{num_dig}f}' for i, v in enumerate(vals)))
+    # 输出: val 1: 3.14, val 2: 2.72, val 3: 1.41, val 4: 1.73
+
+    # 方式 2: 使用 format 的 * 解包
+    template = 'val {}: {:.{}f}' + ', ' * (len(vals) - 1) + 'val {}: {:.{}f}'
+    # 这个方法比较复杂，不推荐
+    ```
+
+    ---
+
+    ## 完整对比示例
+
+    ```python
+    val1 = 3.14159
+    val2 = 2.71828
+    num_dig = 2
+
+    # 方法 1: .format() + 关键字参数
+    print('val 1: {:{prec}f}, val 2: {:{prec}f}'.format(val1, val2, prec=num_dig))
+
+    # 方法 2: .format() + 位置参数
+    print('val 1: {:.{prec}f}, val 2: {:.{prec}f}'.format(val1, val2, prec=num_dig))
+
+    # 方法 3: 全关键字参数
+    print('val 1: {v1:.{prec}f}, val 2: {v2:.{prec}f}'.format(v1=val1, v2=val2, prec=num_dig))
+
+    # 方法 4: f-string（最推荐）
+    print(f'val 1: {val1:.{num_dig}f}, val 2: {val2:.{num_dig}f}')
+    ```
+
+    ---
+
+    ## 格式化语法完整说明
+
+    在 `.format()` 中，完整的占位符语法是：
+
+    ```
+    {[字段名]:[填充][对齐][宽度][,][.精度][类型]}
+    ```
+
+    其中 `精度` 部分可以：
+    - 写死：`{:.2f}`
+    - 用变量：`{:.{prec}f}` 或 `{:{prec}f}`（注意 `.` 在 `{prec}` 前面）
+    - 嵌套多层：`{:{prec}.{width}f}`
+
+    ---
+
+    ## 推荐使用
+
+    | 场景 | 推荐方式 |
+    |------|----------|
+    | Python 3.6+，变量已知 | **f-string**：`f'val1: {val1:.{num_dig}f}, val2: {val2:.{num_dig}f}'` |
+    | 需要兼容旧版本 | `.format()` + 关键字参数：`'val1: {v1:.{prec}f}, val2: {v2:.{prec}f}'.format(v1=val1, v2=val2, prec=num_dig)` |
+    | 动态生成（如循环） | 使用 f-string 在循环中拼接 |
+
+    **最简单答案：** 直接用 `f'val 1: {val1:.{num_dig}f}, val 2: {val2:.{num_dig}f}'` 或者 `'val 1: {:.{prec}f}, val 2: {:.{prec}f}'.format(val1, val2, prec=num_dig)`。
+
+* python 中，当我使用 from xxx.yyy import zzz 后，我改了 zzz 函数的内容，如何才能重新 import 这个 zzz?
+
+    在 Python 中，当你使用 `from xxx.yyy import zzz` 后，`zzz` 是一个**直接引用**（指向函数对象的变量）。修改了源文件后，简单地重新执行 `from xxx.yyy import zzz` 通常**不会生效**，因为 Python 的 import 机制会缓存已加载的模块（`sys.modules`）。
+
+    有几种方法可以解决这个问题，取决于你的使用场景（交互式开发、脚本运行、或生产环境）：
+
+    ---
+
+    ### 方法 1：使用 `importlib.reload()`（推荐用于交互式开发）
+
+    这是 Python 官方提供的内置方法，专门用于重新加载已修改的模块。
+
+    ```python
+    import importlib
+    import xxx.yyy  # 注意：需要先导入整个模块，而不能只导入函数
+
+    # 重新加载模块（这会更新模块命名空间里的函数定义）
+    importlib.reload(xxx.yyy)
+
+    # 然后再重新获取引用
+    from xxx.yyy import zzz
+
+    # 现在 zzz 指向的是新版本的函数
+    ```
+
+    **注意：**
+    - `reload()` 接收的是**模块对象**，不是字符串。
+    - 必须先 `import xxx.yyy`（导入整个模块），再 `reload`。
+    - `reload()` 会执行模块文件中的代码，但已存在的对象（如类的实例）不会自动更新，只有新获取的引用会指向新定义。
+
+    ---
+
+    ### 方法 2：直接删除 `sys.modules` 中的缓存（暴力但有效）
+
+    ```python
+    import sys
+
+    # 删除已缓存的模块
+    del sys.modules['xxx.yyy']
+
+    # 然后重新导入
+    from xxx.yyy import zzz
+
+    # 现在 zzz 是最新版本
+    ```
+
+    **适用场景：** 当 `reload()` 因为循环依赖或其他原因失效时，这个方法更彻底。
+
+    ---
+
+    ### 方法 3：在 Jupyter / IPython 中使用自动重载扩展
+
+    如果你在 Jupyter Notebook 或 IPython 中开发，可以使用 `autoreload` 扩展，它会自动在每次执行单元格前重新加载所有修改过的模块。
+
+    ```python
+    %load_ext autoreload
+    %autoreload 2
+
+    # 之后直接再次执行 import 即可
+    from xxx.yyy import zzz
+    ```
+
+    `%autoreload 2` 表示自动重新加载所有模块。这样你修改 `zzz` 后，重新运行该单元格即可生效。
+
+    ---
+
+    ### 方法 4：避免使用 `from ... import`，改用模块引用
+
+    如果这是你反复修改调试的代码，可以考虑改变导入方式，这样就不需要重新导入函数了：
+
+    ```python
+    import xxx.yyy
+
+    # 使用时：xxx.yyy.zzz()
+    # 修改源文件后，只需：
+    importlib.reload(xxx.yyy)
+
+    # 然后 xxx.yyy.zzz 自动指向新函数
+    ```
+
+    这样你不需要重新执行 `from` 语句，因为 `xxx.yyy.zzz` 始终从模块中读取当前定义。
+
+    ---
+
+    ### 重要注意事项
+
+    1. **`reload()` 不会更新已存在的引用**
+       如果你已经用 `from xxx.yyy import zzz` 获取了 `zzz`，即使你 `reload` 了模块，原来的 `zzz` 变量仍然指向旧函数对象。必须**重新执行 import 语句**来获取新引用。
+
+    2. **`reload()` 有副作用**
+       如果模块中有全局变量、单例、类实例等，`reload()` 可能会创建新对象但旧对象仍然存活，导致不一致状态。在生产环境中应避免使用。
+
+    3. **修改的是源文件，而不是运行中的函数**
+       确保你确实修改了磁盘上的 `.py` 文件，并且 Python 重新读取了它。
+
+    ---
+
+    ### 总结建议
+
+    | 场景 | 推荐方法 |
+    |------|----------|
+    | 交互式调试（命令行或脚本） | `importlib.reload(xxx.yyy)` + 重新 `from xxx.yyy import zzz` |
+    | Jupyter Notebook | `%autoreload 2`，然后重新运行 import 单元格 |
+    | 需要更彻底的重新加载 | `del sys.modules['xxx.yyy']` + 重新 import |
+    | 长期开发调试 | 改为 `import xxx.yyy`，配合 `reload` 使用 |
+
 * `find_header_row`
 
 	看一下 ai 是怎么在 csv 中半自动地找 header 行的。

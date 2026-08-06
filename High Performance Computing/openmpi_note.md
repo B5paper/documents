@@ -4,6 +4,50 @@ Doc: <https://docs.open-mpi.org/en/v5.0.x/>
 
 ## cache
 
+* mpirun 的时候，如何给不同的 rank 分配不同的环境变量，比如对于 rank 0，mpirun -x RANK_ENV=./rank_0_env ./main，对于 rank 1，则为 mpirun -x RANK_ENV=./rank_1_env ./main
+
+    你想要的这种“每个rank有自己专属环境变量”的效果，**直接用 `mpirun -x` 是做不到的**。
+
+    `-x` 选项的作用是为**所有**的rank统一地传递或设置同一个环境变量，无法根据rank的不同来分配不同的值。
+
+    不过，可以通过下面两种方法来实现你的目标：
+
+    ### 方法一：在程序内部根据rank进行判断（最推荐）
+
+    这是最标准、最可靠的方法。让每个rank在程序启动后，通过MPI接口获取自己的rank，然后根据rank值去读取对应的文件或设置不同的行为。
+
+    *   **核心逻辑**：在 `main` 函数中，利用 `MPI_Comm_rank` 获取当前进程的rank ID，然后基于这个ID去构建对应的环境变量文件名（如 `./rank_0_env`），并加载其中的配置。
+    *   **优势**：代码逻辑清晰，完全由程序自身控制，不依赖于特定的启动器命令，可移植性最好。
+    *   **执行命令**：你只需要启动程序，无需在命令行中指定每个rank的变量。
+        ```bash
+        mpirun -n 2 ./main
+        ```
+
+    ### 方法二：使用Rankfile（更复杂的场景）
+
+    如果你的需求非常特殊，必须在启动时由 `mpirun` 来分配，可以使用 **rankfile**。这种方法允许你为每个rank指定详细的运行参数，包括其环境变量。
+
+    1.  **创建一个名为 `rankfile` 的文件**，内容如下：
+        ```text
+        rank 0=localhost env=RANK_ENV=./rank_0_env
+        rank 1=localhost env=RANK_ENV=./rank_1_env
+        ```
+        > **注意**：`rankfile` 的具体语法可能因MPI实现（如Open MPI、MPICH等）而异，上面的例子比较通用。
+
+    2.  **启动任务时，通过 `--rankfile` 或 `-rf` 选项指定这个文件**：
+        ```bash
+        mpirun -np 2 --rankfile rankfile ./main
+        ```
+
+    ### 为什么 `-x` 的方法行不通？
+
+    *   `mpirun -x RANK_ENV=./rank_0_env ./main` 会把这个变量赋值给**所有**的rank，导致 rank 1 也错误地使用了 rank 0 的环境文件。
+    *   你看到的 `OMPI_COMM_WORLD_RANK` 这类变量是由 `mpirun` 自动为每个rank设置的，但你不能在 `mpirun` 命令中用 `-x` 去修改它。
+
+    ### 最佳实践建议
+
+    从软件工程和可维护性的角度来看，**在程序内部处理这个问题（方法一）是更好的选择**。这让你的程序更“自包含”，也更容易在不同环境下运行和调试，无需依赖外部启动文件的复杂配置。
+
 * 我使用 SSH 隧道，把机器 A 的 22 端口映射到机器 B 的 127.0.0.1:3322 端口，把机器 B 的 22 端口映射到机器 A 的 127.0.0.1:3323 端口，此时在机器 A 上，该如何使用 mpi 跑起来这个集群？
 
     这是一个非常有趣的配置。你实际上通过 SSH 隧道构建了一个“互为跳板”的内网穿透环境。

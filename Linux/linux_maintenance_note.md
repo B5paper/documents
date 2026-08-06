@@ -2650,7 +2650,9 @@
 
         **💡 实用进阶选项：**
 
-        * **强制卸载 (`-z`)**：如果某个挂载点被程序占用了（提示 `target is busy`），导致无法正常卸载，可以加上 `-z` 参数进行**懒卸载（Lazy unmount）**。它会立即把挂载点从文件系统树中摘除，等占用的程序退出后再真正释放。
+        * 强制卸载 (`-z`)
+        
+            如果某个挂载点被程序占用了（提示 `target is busy`），导致无法正常卸载，可以加上 `-z` 参数进行**懒卸载（Lazy unmount）**。它会立即把挂载点从文件系统树中摘除，等占用的程序退出后再真正释放。
 
             ```bash
             fusermount -uz <挂载点路径>
@@ -4797,107 +4799,97 @@
 
     下面为你详细拆解 `fusermount` 的常用命令、核心参数、常见应用场景以及排错技巧。
 
-    ---
-
-    ## 核心参数与常用命令
+    **核心参数与常用命令**
 
     `fusermount` 的语法非常简单：
 
     ```bash
     fusermount [选项] 挂载点
-
     ```
 
-    ### 1. 卸载文件系统（最常用）
+    1. 卸载文件系统（最常用）
 
-    当你使用普通用户挂载了一个 FUSE 文件系统，想要断开时，**不要**使用标准的 `umount`（那通常需要 root 权限），而是使用 `-u` 参数：
+        当你使用普通用户挂载了一个 FUSE 文件系统，想要断开时，**不要**使用标准的 `umount`（那通常需要 root 权限），而是使用 `-u` 参数：
 
-    ```bash
-    fusermount -u /path/to/mountpoint
+        ```bash
+        fusermount -u /path/to/mountpoint
+        ```
 
-    ```
+    2. 强行/延迟卸载（Lazy Unmount）
 
-    ### 2. 强行/延迟卸载（Lazy Unmount）
+        有时候挂载点正被某个程序占用（比如终端正处于该目录下，或者有文件正在读写），直接卸载会报错 `Device or resource busy`。此时可以使用 `-z` 参数进行延迟卸载：
 
-    有时候挂载点正被某个程序占用（比如终端正处于该目录下，或者有文件正在读写），直接卸载会报错 `Device or resource busy`。此时可以使用 `-z` 参数进行延迟卸载：
+        ```bash
+        fusermount -uz /path/to/mountpoint
+        ```
 
-    ```bash
-    fusermount -uz /path/to/mountpoint
+        > **注：** `-z` (lazy unmount) 会立即将该文件系统从目录树中隔离，让其他程序无法访问，等当前占用该目录的进程结束运行后，系统会自动在后台完成实际的卸载。
 
-    ```
+    3. 查看版本信息
 
-    > **注：** `-z` (lazy unmount) 会立即将该文件系统从目录树中隔离，让其他程序无法访问，等当前占用该目录的进程结束运行后，系统会自动在后台完成实际的卸载。
+        ```bash
+        fusermount -V
+        ```
 
-    ### 3. 查看版本信息
-
-    ```bash
-    fusermount -V
-
-    ```
-
-    ---
-
-    ## 常见应用场景示例
+    **常见应用场景示例**
 
     实际工作中，我们很少单独直接运行 `fusermount` 来**挂载**，因为各种 FUSE 工具（如 `sshfs`）会自动在后台调用它。我们最常手动用到 `fusermount` 的场景是**卸载**。
 
-    ### 场景一：使用 SSHFS 挂载远程目录与卸载
+    * 场景一：使用 SSHFS 挂载远程目录与卸载
 
-    ```bash
-    # 挂载远程服务器目录到本地
-    sshfs user@remote:/remote/dir /home/user/local_dir
+        ```bash
+        # 挂载远程服务器目录到本地
+        sshfs user@remote:/remote/dir /home/user/local_dir
 
-    # 当你用完后，安全卸载
-    fusermount -u /home/user/local_dir
+        # 当你用完后，安全卸载
+        fusermount -u /home/user/local_dir
+        ```
 
-    ```
+    * 场景二：使用 Rclone 挂载网盘与卸载
 
-    ### 场景二：使用 Rclone 挂载网盘与卸载
+        ```bash
+        # 挂载 OneDrive 到本地
+        rclone mount onedrive: /newData --daemon
 
-    ```bash
-    # 挂载 OneDrive 到本地
-    rclone mount onedrive: /newData --daemon
+        # 结束使用时卸载
+        fusermount -u /newData
+        ```
 
-    # 结束使用时卸载
-    fusermount -u /newData
+    **避坑指南与常见错误处理**
 
-    ```
+    1. 报错：`Device or resource busy`
 
-    ---
+        * **原因：** 有进程正在访问该挂载点。
 
-    ## 避坑指南与常见错误处理
+        * **解决办法：**
+        
+        1. 使用 `lsof /path/to/mountpoint` 或 `fuser -m /path/to/mountpoint` 查出是哪个进程在占用，杀掉该进程后再卸载。
 
-    ### 1. 报错：`Device or resource busy`
+        2. 或者直接使用上面提到的延迟卸载命令：`fusermount -uz /path/to/mountpoint`。
 
-    * **原因：** 有进程正在访问该挂载点。
-    * **解决办法：** 1. 使用 `lsof /path/to/mountpoint` 或 `fuser -m /path/to/mountpoint` 查出是哪个进程在占用，杀掉该进程后再卸载。
-    2. 或者直接使用上面提到的延迟卸载命令：`fusermount -uz /path/to/mountpoint`。
+    2. 报错：`Transport endpoint is not connected`
 
-    ### 2. 报错：`Transport endpoint is not connected`
+        * **原因：** FUSE 后台进程挂掉了（例如网络断开导致 sshfs 崩溃，或者 rclone 进程被系统杀掉），导致挂载点变成了一个“死节点”，既无法访问也无法正常读写。
 
-    * **原因：** FUSE 后台进程挂掉了（例如网络断开导致 sshfs 崩溃，或者 rclone 进程被系统杀掉），导致挂载点变成了一个“死节点”，既无法访问也无法正常读写。
-    * **解决办法：** 这种情况下必须强制卸载清理现场，否则该目录将一直不可用：
-    ```bash
-    fusermount -u /path/to/mountpoint
-    # 如果不行，加 -z
-    fusermount -uz /path/to/mountpoint
+        * **解决办法：** 这种情况下必须强制卸载清理现场，否则该目录将一直不可用：
 
-    ```
+            ```bash
+            fusermount -u /path/to/mountpoint
+            # 如果不行，加 -z
+            fusermount -uz /path/to/mountpoint
+            ```
 
+    3. 普通用户挂载后，Root 用户或其他用户无权访问
 
+        * **原因：** 出于安全考虑，FUSE 默认只允许执行挂载命令的那个特定用户访问该目录，即使 root 用户去执行 `ls` 也会被拒绝（Permission denied）。
+        
+        * **解决办法：** 如果需要允许其他用户访问，在**挂载时**（注意：是挂载工具的参数，不是 fusermount 本身）需要加入 `-o allow_other` 参数。
+        
+        * 例如：`sshfs -o allow_other user@remote:/dir /local/dir`
+        
+        * *注意：使用该参数通常需要修改 `/etc/fuse.conf` 文件，取消 `#user_allow_other` 前面的注释（#号）。*
 
-    ### 3. 普通用户挂载后，Root 用户或其他用户无权访问
-
-    * **原因：** 出于安全考虑，FUSE 默认只允许执行挂载命令的那个特定用户访问该目录，即使 root 用户去执行 `ls` 也会被拒绝（Permission denied）。
-    * **解决办法：** 如果需要允许其他用户访问，在**挂载时**（注意：是挂载工具的参数，不是 fusermount 本身）需要加入 `-o allow_other` 参数。
-    * 例如：`sshfs -o allow_other user@remote:/dir /local/dir`
-    * *注意：使用该参数通常需要修改 `/etc/fuse.conf` 文件，取消 `#user_allow_other` 前面的注释（#号）。*
-
-
-
-    ---
-
-    ## 补充：fusermount 与 fusermount3 的区别
+    **补充：fusermount 与 fusermount3 的区别**
 
     在较新的 Linux 发行版（如 Ubuntu 20.04+，CentOS 8+）中，你可能会看到 `fusermount3`。
 
@@ -8232,6 +8224,7 @@
         方案 A：符号链接（Symbolic Link/Soft Link）—— **最常用**
         
         这是最标准的做法，类似于 Windows 的“快捷方式”。
+
         ```bash
         ln -s /source/path /target/link_name
         ```
