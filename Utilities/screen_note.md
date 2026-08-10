@@ -2,6 +2,48 @@
 
 ## cache
 
+* 如果在 screen 里启动了一个 qemu，导致 qemu 的 ctrl + A 和 screen 的 ctrl + A 冲突了，怎么办，怎么才能把 ctrl + A 传递到 qemu 里
+
+    在 `screen` 里运行 `qemu` 时，解决 `Ctrl + A` 冲突主要有下面两种办法。如果想用临时方法，可以参考方法一；如果需要长期使用，建议配置方法二。
+
+    * 方法一：临时传递快捷键（最简单）
+
+        在不改动任何配置的情况下，可以直接通过`screen`的转义功能将 `Ctrl + A` 传递给 QEMU。
+
+        **操作方法**：按 **`Ctrl + A`**，然后再按一次 **`A`** 。
+
+        这个操作的原理是，先使用 `Ctrl + A` 告诉 `screen`“我要输入一个命令”，紧接着再按一次 `A`，`screen` 就会理解你想要把 `Ctrl + A` 这个按键组合直接发送给当前窗口里的程序（也就是 QEMU），而不是作为 `screen` 自己的快捷键 。
+
+        注：
+
+        1. 经验证，这个方法可行，qemu 可以正常进入后台模式s
+
+    * 方法二：修改 `screen` 的快捷键（一劳永逸）
+
+        如果你需要频繁向 QEMU 发送 `Ctrl + A`，每次都按两下会比较麻烦。更彻底的办法是修改 `screen` 的默认命令前缀键。
+
+        **操作方法**：编辑 `~/.screenrc` 文件，添加一行配置，把 `screen` 的命令前缀从 `Ctrl + A` 换成其他组合键。例如，改为 `Ctrl + B`：
+
+        ```conf
+        escape ^Bb
+        ```
+
+        保存文件后，新开的 `screen` 会话就会生效。之后，所有 `screen` 的命令（如新建窗口、分屏等）都要用 `Ctrl + B` 来触发，而 `Ctrl + A` 就可以完全交给 QEMU 来使用了。
+
+    **补充说明**
+
+    1. 确认你的 QEMU 启动参数
+    
+        上述的 `Ctrl + A` 快捷键生效的前提是，你在启动 QEMU 时使用了 `-nographic` 或 `-curses` 参数，这会启用 QEMU 的字符后端多路复用器（multiplexer）。
+
+    2. 切换 QEMU 控制台
+    
+        在 QEMU 的 `-nographic` 模式下，如果你需要切换到 QEMU 的 Monitor 控制台，可以使用 `Ctrl + A`，然后按 `C` 。
+
+    3. 高级技巧：修改 QEMU 快捷键
+    
+        如果你不想修改 `screen`，也可以考虑在启动 QEMU 时添加 `-echr 十六进制键码` 参数，将 QEMU 自己的 escape 键改成其他按键。不过这种方法不如修改 `screen` 那么直接和常用 。
+
 * screen 中，vim 无法正常自动 reload 文件
 
     啊，原来是 **screen** 的问题！这就说得通了。

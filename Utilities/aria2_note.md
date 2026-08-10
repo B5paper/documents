@@ -2,6 +2,204 @@
 
 ## cache
 
+* aria2c 如何在下载时添加浏览器等信息
+
+    在使用 `aria2c` 下载文件时，可以通过设置 `User-Agent`（用户代理）和其他 HTTP 请求头来模拟浏览器的行为。这样可以避免某些服务器对非浏览器客户端的限制。
+
+    ### 方法 1：通过 `--user-agent` 参数设置浏览器标识
+    ```bash
+    aria2c --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" "下载链接"
+    ```
+
+    ### 方法 2：通过 `--header` 参数添加自定义 HTTP 头
+    如果目标网站需要额外的请求头（如 `Referer`），可以这样设置：
+    ```bash
+    aria2c --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" --header="Referer: https://example.com" "下载链接"
+    ```
+
+    ### 方法 3：使用配置文件（推荐）
+    在 `aria2` 的配置文件（如 `aria2.conf`）中设置默认的 `User-Agent` 和其他 HTTP 头：
+    ```
+    user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36
+    header=Referer: https://example.com
+    ```
+    然后运行：
+    ```bash
+    aria2c --conf-path=/path/to/aria2.conf "下载链接"
+    ```
+
+    ### 常见的浏览器 User-Agent 示例
+    - **Chrome (Windows)**
+      ```
+      Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36
+      ```
+    - **Firefox (Windows)**
+      ```
+      Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0
+      ```
+    - **Safari (Mac)**
+      ```
+      Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15
+      ```
+
+    ### 注意事项
+    1. **遵守网站规则**：某些网站可能禁止非浏览器访问，请确保你的操作符合目标网站的使用条款。
+    2. **动态 User-Agent**：某些网站可能会检测固定的 UA，可以尝试使用随机的 UA 来避免被封禁。
+    3. **Cookie 支持**：如果网站需要登录，可以使用 `--load-cookies` 加载浏览器的 Cookie 文件。
+
+    希望这些方法能帮助你成功模拟浏览器下载！ 🚀
+
+    * 如何使 aria2c 模拟 get 请求
+
+        要使 `aria2c` 模拟 **GET 请求**，可以通过设置 **HTTP 请求头** 和 **查询参数** 来实现。GET 请求通常用于从服务器获取数据，而 `aria2c` 默认就是使用 GET 请求下载文件，但你可以进一步自定义请求头、Referer、Cookie 等，使其更像浏览器发起的请求。
+
+        ---
+
+        ## **方法 1：直接下载（默认 GET 请求）**
+        默认情况下，`aria2c` 使用 GET 请求下载文件：
+        ```bash
+        aria2c "https://example.com/file.zip"
+        ```
+        这相当于浏览器直接访问该链接并下载文件。
+
+        ---
+
+        ## **方法 2：添加自定义 HTTP 头（模拟浏览器）**
+        如果目标服务器检查 `User-Agent`、`Referer` 等请求头，可以这样设置：
+        ```bash
+        aria2c \
+            --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
+            --header="Referer: https://example.com" \
+            "https://example.com/download?file=123"
+        ```
+        - `--header="User-Agent: ..."`：模拟浏览器访问
+        - `--header="Referer: ..."`：设置来源页（某些网站会检查）
+
+        ---
+
+        ## **方法 3：携带 Cookie（模拟登录状态）**
+        如果目标网站需要登录，可以使用 `--header` 携带 Cookie：
+        ```bash
+        aria2c \
+            --header="Cookie: sessionid=123abc; csrftoken=xyz456" \
+            "https://example.com/protected/file.zip"
+        ```
+        或者从浏览器导出 Cookie 文件（如 `cookies.txt`），然后加载：
+        ```bash
+        aria2c --load-cookies=cookies.txt "https://example.com/protected/file.zip"
+        ```
+
+        ---
+
+        ## **方法 4：GET 请求带查询参数**
+        如果 URL 本身包含查询参数（`?key=value`），可以直接传入：
+        ```bash
+        aria2c "https://example.com/api/data?id=123&token=abc"
+        ```
+        如果参数较长，可以使用 `--uri-encode` 自动编码特殊字符：
+        ```bash
+        aria2c --uri-encode "https://example.com/api/data?query=hello world&page=1"
+        ```
+
+        ---
+
+        ## **方法 5：使用配置文件（推荐）**
+        如果经常需要模拟 GET 请求，可以创建 `aria2.conf` 配置文件：
+        ```
+        user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36
+        referer=https://example.com
+        load-cookies=/path/to/cookies.txt
+        ```
+        然后运行：
+        ```bash
+        aria2c --conf-path=aria2.conf "https://example.com/file.zip"
+        ```
+
+        ---
+
+        ## **验证请求**
+        如果想确认 `aria2c` 发送的 HTTP 请求是否符合预期，可以使用 `--log` 记录日志：
+        ```bash
+        aria2c --log=aria2.log --log-level=debug "https://example.com/file.zip"
+        ```
+        然后查看 `aria2.log`，检查请求头是否符合预期。
+
+        ---
+
+        ### **总结**
+        | 需求 | 命令示例 |
+        |------|----------|
+        | **基本 GET 请求** | `aria2c "https://example.com/file.zip"` |
+        | **自定义 User-Agent** | `aria2c --header="User-Agent: ..." "URL"` |
+        | **携带 Referer** | `aria2c --header="Referer: ..." "URL"` |
+        | **携带 Cookie** | `aria2c --header="Cookie: ..." "URL"` 或 `--load-cookies=cookies.txt` |
+        | **带查询参数的 URL** | `aria2c "https://example.com/api?param=value"` |
+        | **使用配置文件** | `aria2c --conf-path=aria2.conf "URL"` |
+
+        这样，`aria2c` 就能模拟浏览器的 GET 请求进行下载了！🚀
+
+    * aria2c 使用 -i 时，指定的 --header 仍有效吗
+
+        是的，**`aria2c` 在使用 `-i`（`--input-file`）批量下载时，通过 `--header` 指定的 HTTP 头仍然有效**，但需要注意作用范围。以下是详细说明：
+
+        ---
+
+        ### **1. `--header` 对 `-i` 的所有下载任务生效**
+        - 如果直接在命令行中使用 `--header`，它会应用到 `-i` 文件中的所有任务：
+          ```bash
+          aria2c -i urls.txt --header="User-Agent: Mozilla/5.0" --header="Referer: https://example.com"
+          ```
+          **效果**：`urls.txt` 中的每个链接都会携带相同的请求头。
+
+        ---
+
+        ### **2. 为不同任务单独指定请求头**
+        如果需要对 `-i` 文件中的不同链接设置不同的请求头，可以在 `urls.txt` 中按行指定：
+        #### **`urls.txt` 格式示例**：
+        ```plaintext
+        https://example.com/file1.zip
+          header=User-Agent: Custom-Agent/1.0
+          header=Referer: https://site1.com
+        https://example.com/file2.zip
+          header=User-Agent: Another-Agent/2.0
+          header=Cookie: token=abc123
+        ```
+        **运行命令**：
+        ```bash
+        aria2c -i urls.txt
+        ```
+        **效果**：
+        - `file1.zip` 使用 `Custom-Agent/1.0` 和 `Referer: https://site1.com`。
+        - `file2.zip` 使用 `Another-Agent/2.0` 和 `Cookie: token=abc123`。
+
+        ---
+
+        ### **3. 优先级规则**
+        - **命令行 `--header` 的优先级低于文件内指定的头**  
+          如果同时在命令行和 `urls.txt` 中设置相同头（如 `User-Agent`），文件内的设置会覆盖命令行参数。
+
+        ---
+
+        ### **4. 其他注意事项**
+        1. **`--header` 仅适用于 HTTP/HTTPS 协议**  
+           对 FTP、磁力链接等无效。
+        2. **日志验证**  
+           可通过 `--log` 和 `--log-level=debug` 检查实际发送的请求头：
+           ```bash
+           aria2c -i urls.txt --log=aria2.log --log-level=debug
+           ```
+
+        ---
+
+        ### **总结**
+        | 场景 | 配置方式 | 生效范围 |
+        |------|----------|----------|
+        | **全局统一请求头** | 命令行 `--header` | 对所有 `-i` 文件中的任务生效 |
+        | **按任务自定义请求头** | 在 `urls.txt` 中每行添加 `header=XXX` | 仅对当前链接生效 |
+        | **冲突时的优先级** | 文件内 `header=` > 命令行 `--header` | 后者被前者覆盖 |
+
+        如果需要灵活控制，推荐在 `urls.txt` 中为每个任务单独指定请求头！
+
 * 我用 aria2 下载东西时，遇到这个报错：
 
     ```

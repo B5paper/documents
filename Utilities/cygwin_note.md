@@ -4,6 +4,10 @@
 
 ## cache
 
+* xlaunch 里，即使勾选 native opengl，不勾选 disable access control，matplotlib 也能正常画图。
+
+    但是疑似无法正常运行 vscode 里的 jupyter notebook。
+
 * 如果一开始没有启动 windows 下的 x11 server XLaunch，那么即使在 ssh 到远程主机后，再在本地启动 XLaunch，也是可以成功 X11 forward 的。只要远程主机和本地的 DISPLAY 环境变量都正常就可以。
 
 * apt-cyg 是 15 年左右停止维护的一个 bash 脚本，用于在 cygwin 里方便安装软件，本质是 wget 下载软件包。

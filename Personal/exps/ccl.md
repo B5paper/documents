@@ -100,6 +100,21 @@
 
 ## cache
 
+* `SI_SDK_ROOT=/share_data/sicx_sdk/release/260713/ MODEL_SERVER_HOST=127.0.0.1 HOST_ID=1 ./hlc_start_single_qemu.sh ~/Data/hlc_shanghai/multi_node/qemu/vms1.qcow2`
+
+    sipu-dkms 版本：`20260716`
+
+    run:
+
+    `NCCL_DEBUG=TRACE NCCL_DEBUG_SUBSYS=GRAPH ./siccl-sample-case/comm_init_smoke/run.sh --ksipu 1`
+
+    ```
+      make -C src \
+        /home/siorigin/proj/siccl_229_dev/build_ksipu/obj/init.o \
+        BUILDDIR=/home/siorigin/proj/siccl_229_dev/build_ksipu \
+        TRACE=1 WA=1 SYNCMEM=1 SICCL_UNSUPPORT=1 -j1
+    ```
+
 * nccl procedure
 
     NCCL 的实际流程是：
