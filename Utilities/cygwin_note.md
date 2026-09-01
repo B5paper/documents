@@ -4,6 +4,17 @@
 
 ## cache
 
+* 修复 cygwin + screen + vim 中字符错位的问题
+
+    `~/.bashrc`:
+
+    ```
+    # 告诉 screen 禁用终端的硬件滚动特性
+    termcapinfo xterm* ti@:te@:cs@
+    ```
+
+    最终的根源确实就是出在 **`cs`（Change Scrolling Region，改变滚动区域）** 这个控制序列上——Vim 翻页时通过 `screen` 向终端发出了“局部滚动”的指令，而 Windows Terminal 的 ConPTY 偏偏在解析 Cygwin 传过来的 `cs` 指令时抽风，导致了那出“行号与代码齐飞”的显示惨剧。
+
 * xlaunch 里，即使勾选 native opengl，不勾选 disable access control，matplotlib 也能正常画图。
 
     但是疑似无法正常运行 vscode 里的 jupyter notebook。
