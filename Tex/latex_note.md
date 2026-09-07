@@ -2,6 +2,61 @@
 
 ## cache
 
+* 日志显示仓库内的 arxiv.sty 强制使用 Times 字体 ptm，而当前 TeX 环境缺少对应字体文件
+    这个问题怎么解决？
+
+    这个问题的根源在于 `arxiv.sty` 强制将默认罗马字体族 (`\rmdefault`) 设为 `ptm`，即 PostScript Times 字体。而你的 TeX 环境缺少相应的字体定义文件 (`.fd` 文件) 或字体度量文件 (`.tfm` 文件)，导致系统无法找到该字体。根据编译引擎不同，问题有细微差别，但解决方法类似。
+
+    ### 核心原因
+
+    `ptm` 是 LaTeX 字体方案 **PSNFSS**（PostScript Font Selection Scheme）中定义的 Times 字体系列名称。当 LaTeX 遇到 `\fontfamily{ptm}` 指令时，它会尝试加载名为 `t1ptm.fd`（或 `ot1ptm.fd` 等）的字体定义文件来获取字体信息。如果系统找不到这些文件，或者找到了但对应的 `.tfm` 文件（如 `ptmr7t.tfm`）缺失，就会报错并触发字体替换机制。
+
+    出现这种情况最常见的原因是 TeX 系统安装不完整，缺少了包含标准 PostScript 字体支持的包。
+
+    ### 解决方案
+
+    根据你的操作系统和 TeX 发行版，可以选择以下一种方法解决。
+
+    #### 方案一：安装缺失的字体包（推荐）
+
+    最直接的方法是安装包含 Times 字体支持的 LaTeX 包，这些包会提供所需的 `.fd` 和 `.tfm` 文件。
+
+    *   **如果你使用 TeX Live（Linux, macOS）或 MiKTeX（Windows）：**
+        可以通过包管理器安装 `psnfss` 和 `times`（或 `mathptmx`）包。
+
+        *   **在 Ubuntu/Debian 系统**，安装以下包即可，它们包含了绝大多数常用字体和包：
+            ```bash
+            sudo apt-get install texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+            ```
+        *   **在 macOS (MacTeX/TeX Live)**，如果安装的是 BasicTeX 这类精简版，可能缺少字体。可以通过 `tlmgr` 安装 `times` 包：
+            ```bash
+            sudo tlmgr install times
+            ```
+        *   **在 Windows (MiKTeX)**，MiKTeX 通常会在编译时自动提示并安装缺失的包，你只需在弹窗时选择安装即可。
+
+    #### 方案二：强制使用替代字体
+
+    如果你不想或无法安装 Times 字体，可以尝试在文档中改用其他已安装的字体，覆盖 `arxiv.sty` 的设置。
+
+    在你的主 `.tex` 文件开头（`\documentclass` 之后，`\begin{document}` 之前）加入以下代码，将默认罗马字体改为 Computer Modern 或其他字体：
+
+    ```latex
+    \renewcommand{\rmdefault}{lmr} % lmr 是 Latin Modern，是 Computer Modern 的替代
+    ```
+
+    这样便覆写了 `arxiv.sty` 中 `\renewcommand{\rmdefault}{ptm}` 的设置。
+
+    #### 方案三：检查编译引擎
+
+    如果你在编译时看到的警告与 `TU/ptm/m/n` 相关（多见于使用 XeLaTeX 或 LuaLaTeX），这意味着问题源于字体编码在 Unicode 引擎下的映射。
+
+    *   最简单的方法仍然是**方案一**，安装 `texlive-fonts-extra` 等包可以解决大部分 TU 编码下的字体映射问题。
+    *   或者，你可以尝试将编译引擎切换为 **pdfLaTeX**，它对传统的 `ptm` 字体族支持更直接。
+
+    ### 总结
+
+    建议优先尝试**方案一**，安装缺失的字体包。这是从根源解决问题的方法，也能避免未来使用其他模板时遇到类似情况。`texlive-fonts-recommended` 和 `texlive-fonts-extra` 包含了绝大部分常用字体，安装后通常可以一劳永逸地解决此类问题。
+
 * latex 如何换行？
 
 	好的，在 LaTeX 中换行有多种方式，适用于不同的场景。下面我将从最常用到最不常用的方式为您详细介绍。

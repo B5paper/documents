@@ -1,4 +1,22 @@
 ## cache
+* fzf 实现自动补全的一个 example
+
+    ```bash
+    ff() {
+        local file
+        file=$(find . -type f 2>/dev/null | fzf --height 40% --preview 'head -50 {}')
+        if [[ -n $file ]]; then
+            # 去掉 ./ 前缀
+            echo "${file#./}"
+            # 或者直接打开文件
+            # vim "${file}"
+        fi
+    }
+    ```
+    
+    运行：`ff`
+
+    此时输入字母，会模糊匹配, 按回车进行选择。
 
 * 详细讲讲 bash 中的 fzf
 

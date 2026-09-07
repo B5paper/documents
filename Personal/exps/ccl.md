@@ -100,6 +100,414 @@
 
 ## cache
 
+• 按当前设计，正常的本地 XML 场景不会冲突。
+
+  NCCL_TOPO_FILE 在 SICCL 中被当作“本机 topology 模板”：
+
+  1. 每个 rank 读取本机 XML；
+  2. 将 XML 中 CPU 的 host_hash 改成当前主机 hash；
+  3. 只在本机 XML 内匹配当前 rank 的 GPU；
+  4. 匹配完成后，各 rank 再通过 bootstrap all-gather 汇总。
+* topo trim
+
+  - 从 keep="1" 节点向上保留父路径；
+  - 自底向上递归；
+  - 删除没有 kept 后代的 pci、cpu、nic、net；
+  - 删除后清除 keep 属性；
+  - 被直接标记为 kept 的节点，其整棵子树都保留。
+
+### trim
+
+  ```
+  ## 1. 当前实现做什么
+  
+  src/graph/xml.cc 中的流程是：
+  
+  1. 如果节点自身有 keep="1"，保留整个子树，并删除 keep 属性；
+  2. 否则递归处理所有子节点；
+  3. 对没有任何 kept 后代的节点，删除以下类型：
+  
+  cpu
+  pci
+  gpu
+  nic
+  net
+  
+  当前 NCCL_TOPO_FILE 路径只给当前 rank 的 GPU 设置：
+  
+  keep="1"
+  
+  然后执行 trim，因此每个 rank 只贡献：
+  
+  当前 rank 的 GPU
+  以及它的 CPU/NUMA、PCI 父路径
+  
+  其他 GPU、PCI 分支和无关 NIC 会被删除，之后各 rank 再通过 XML merge 合成完整拓扑。
+  ```
+
+  ```
+  ## 2. 和 NCCL 2.29 的一致之处
+  
+  NCCL 的 ncclTopoTrimXmlRec() 也是：
+  
+  - 从 keep="1" 节点向上保留父路径；
+  - 自底向上递归；
+  - 删除没有 kept 后代的 pci、cpu、nic、net；
+  - 删除后清除 keep 属性；
+  - 被直接标记为 kept 的节点，其整棵子树都保留。
+  
+  因此当前 SICCL 的基本算法、keep 语义和删除策略是对齐 NCCL 的。
+  ```
+
+  ```
+  ## 3. SICCL 必须保留的差异：删除 gpu
+  
+  NCCL 的删除列表里没有 gpu，而当前 SICCL 增加了：
+  
+  child.name == "gpu"
+  
+  这是合理且必要的。
+  
+  原因是 SICCL 一个 PCI 节点下可能有多个 micro-SIPU：
+  
+  <pci busid="...">
+    <gpu uuid="sipu-0"/>
+    <gpu uuid="sipu-1"/>
+  </pci>
+  
+  如果只保留 PCI，不删除未标记的 GPU，那么 rank 0 的 XML 贡献会把同一 PCI 下其他 rank 的 micro-SIPU 也带进去，破坏“每个 rank 只贡献自己的设备”这一设计。
+  
+  所以这里不能机械照搬 NCCL：
+  
+  NCCL：一个 PCI 通常对应一个 GPU，trim GPU 不必要
+  SICCL：一个 PCI 可有多个 micro-SIPU，必须 trim 未保留 GPU
+  
+  这部分应继续保留。
+  ```
+
+  ```
+  ## 4. 当前实现和 NCCL 的真正差异：调用时机
+  
+  这是目前更值得注意的问题。
+  
+  NCCL 2.29 的顺序大致是：
+  
+  读取/探测 XML
+  导入 NET/NIC
+  设置 NIC 的 keep 属性
+  Trim XML
+  进行 intra-node XML fusion
+  
+  而当前 SICCL 的 NCCL_TOPO_FILE 路径是：
+  
+  读取 XML
+  改写 host hash
+  标记当前 GPU keep=1
+  Trim XML
+  导入 NET plugin 的 NIC/NET
+  
+  也就是说，SICCL 在 NET plugin 枚举之前就 trim 了 XML。
+  
+  这会带来两个影响：
+  
+  1. NCCL_TOPO_FILE 中原有但未标记 keep=1 的 NIC/NET 节点会被删除；
+  2. 后续 plugin 新增的 NET 节点不会参与这次 trim。
+  
+  当前代码通过后续 plugin 枚举重新添加 NET，所以在现有测试中可以工作，但语义和 NCCL 不完全一致。尤其是用户 XML 中带有明确 NIC 拓扑、或者未来支持多 NIC/NET 属性
+  时，可能出现：
+  
+  - 用户指定的 NIC 被提前删掉；
+  - plugin 加入的 NIC 没有统一的 trim/keep 处理；
+  - XML 中残留不符合预期的 NET 分支。
+  ```
+
+  ```
+  ## 5. 是否需要完全向 NCCL 看齐
+  
+  不建议完全照搬，但建议对齐“调用顺序”和“keep 语义”。
+  
+  建议保留的 SICCL 特化：
+  
+  - gpu 作为可 trim 节点；
+  - 一个 PCI 下多个 micro-SIPU；
+  - 使用 UUID 区分同一 PCI 下的多个 SIPU；
+  - 每个 rank 只保留当前 rank 的 GPU。
+  
+  建议向 NCCL 对齐的部分：
+  
+  本机 XML 标准化
+  -> 导入/补充 NET 资源
+  -> 设置 NET keep 状态
+  -> 统一 trim
+  -> all-gather / merge
+  
+  不过这不是简单把一行 sicclTopoTrimXml() 往后移动就结束了。需要先明确：
+  
+  - NCCL_TOPO_FILE 中的 NET 是用户静态描述，还是完全由 plugin 生成；
+  - 哪些 NET 应当由当前 rank 保留；
+  - plugin 添加的 NET 是否需要 keep="1"；
+  - 多 rank 场景下 NIC 是每 rank 独立贡献，还是每个 host 只贡献一次。
+  
+  因此这属于后续 NIC/NET 适配任务，不建议现在直接修改。
+  ```
+
+  ```
+  ## 6. 还有一个潜在问题
+  
+  当前 trim 只判断：
+  
+  keep == 0 && child.name in {cpu,pci,gpu,nic,net}
+  
+  对于其他节点类型，例如 nvs、silink、nvlink，不会单独删除。但通常它们位于已被删除的 GPU/PCI 子树中，因此会随父节点一起消失。
+  
+  如果某些交换机节点直接挂在 CPU 或 system 下，而没有 kept 后代，它们可能残留。当前 XML 样例和现有拓扑结构没有暴露这个问题，但后续扩展多级交换机时需要专门确认。
+  
+  ## 结论
+  
+  当前 trim 算法不是主要问题，结论是：
+  
+  - 核心递归逻辑已经基本对齐 NCCL；
+  - gpu 删除是 SICCL 对 micro-SIPU 层级的必要适配，不能删；
+  - 当前最大差异是 trim 发生在 NET plugin 导入之前；
+  - 不需要现在完全重写；
+  - 后续处理 NIC/IB/NET 时，应把 NET 枚举、keep 标记和 trim 的顺序重新整理，使其更接近 NCCL 2.29；
+  - topo_doc.md 中应明确说明：SICCL 的 trim 与 NCCL 的唯一关键结构差异是“PCI 下存在多个 GPU/SIPU，因此 GPU 也必须参与裁剪”。
+  ```
+
+### other
+
+* `git push siccl hlc-dev:hlc-dev-graph-migration`
+
+* • OpenSM 不是没有启动，而是 GUID 参数错了。日志明确显示：
+
+  Unable to find requested CA guid 0xa088
+
+  你传入的是 node GUID：
+
+  a088:c203:00e6:e320
+
+  但 opensm -g 需要的是可打开的 CA/port GUID，当前这个参数被错误解析成了 0xa088。
+
+  先在 vms0 上停止失败的实例，然后让 OpenSM 自动选择唯一的 IB CA：
+
+  sudo pkill -x opensm
+  sudo opensm -B
+
+  不要带 -g 参数。
+
+  然后查看日志：
+
+  sleep 3
+  tail -n 50 /var/log/opensm.log
+  cat /sys/class/infiniband/mlx5_0/ports/1/state
+
+  如果 OpenSM 正常绑定，日志里不应再出现：
+
+  Unable to find requested CA guid
+
+  端口应逐渐从：
+
+  2: INIT
+
+  变为：
+
+  4: ACTIVE
+
+  如果仍然是 INIT，把新的 /var/log/opensm.log 最后 50 行发给我。
+
+*   原因是 ib_umad 内核模块没有加载。ib_uverbs 已加载，但 OpenSM 需要 ib_umad 访问管理报文。
+
+  请先在 vms0 执行：
+
+  sudo modprobe ib_umad
+  lsmod | grep ib_umad
+  ls -l /dev/infiniband/umad*
+  sudo opensm -B
+
+  然后等待几秒，再检查：
+
+  cat /sys/class/infiniband/mlx5_0/ports/1/state
+  cat /sys/class/infiniband/mlx5_0/ports/1/lid
+  cat /sys/class/infiniband/mlx5_0/ports/1/sm_lid
+
+  如果 vms0 的 OpenSM 成功运行，再在 vms1 执行：
+
+  sudo modprobe ib_umad
+
+  通常只需要 vms0 运行一个 OpenSM，vms1 加载 ib_umad 后等待它被 vms0 的 SM 配置即可。不要在 vms1 同时启动第二个 OpenSM。
+
+* vfio_iommu_type1
+
+*   echo 0000:5e:00.0 | sudo tee /sys/bus/pci/drivers/vfio-pci/unbind
+  echo -n | sudo tee /sys/bus/pci/devices/0000:5e:00.0/driver_override
+  echo 0000:5e:00.0 | sudo tee /sys/bus/pci/drivers/mlx5_core/bind
+
+
+*   4. 查询固件和设备健康状态
+
+  如果机器上有 NVIDIA/Mellanox 工具：
+
+  sudo mst start
+  sudo mst status
+  sudo mlxlink -d /dev/mst/<对应设备> -c
+  sudo mlxfwmanager --query
+
+  或者使用：
+
+  sudo devlink dev info pci/0000:5e:00.0
+  sudo devlink health show pci/0000:5e:00.0
+
+*   关闭 QEMU 后，在 host 上：
+
+  sudo driverctl unset-override 0000:5e:00.0
+  sudo modprobe mlx5_core
+  sudo modprobe mlx5_ib
+
+  然后检查：
+
+  sudo lspci -nnk -s 5e:00.0
+  sudo rdma link
+  sudo ibv_devinfo
+  sudo dmesg -T | grep -Ei '5e:00.0|mlx5|aer|pcie|fatal|link down|power'
+
+*   如果允许暂时恢复 host 驱动，也可以分别验证原生状态：
+
+  sudo driverctl unset-override 0000:5e:00.0
+
+*  再查驱动和固件：
+
+  sudo devlink dev info pci/0000:3c:00.0
+  sudo devlink dev info pci/0000:5e:00.0
+
+* `SI_SDK_ROOT=/share_data/arch_cmodel_release/sipu1.5/2607300400 MODEL_SERVER_HOST=127.0.0.1 HOST_ID=1 VFIO_PCI_BDF=0000:5e:00.0 sudo -E ./hlc_start_single_qemu.sh ../qemu/vms1.qcow2`
+
+    `SI_SDK_ROOT=/share_data/arch_cmodel_release/sipu1.5/2607300400 MODEL_SERVER_HOST=127.0.0.1 HOST_ID=0 VFIO_PCI_BDF=0000:3c:00.0 sudo -E ./hlc_start_single_qemu.sh ../qemu/vms0.qcow2`
+
+*   建议启动前确认：
+
+  lspci -nnk -s 3c:00.0
+  lspci -nnk -s 5e:00.0
+
+  readlink /sys/bus/pci/devices/0000:3c:00.0/driver
+  readlink /sys/bus/pci/devices/0000:5e:00.0/driver
+
+  应当看到：
+
+  Kernel driver in use: vfio-pci
+
+
+  同时检查两个 VFIO group：
+
+  readlink /sys/bus/pci/devices/0000:3c:00.0/iommu_group
+  readlink /sys/bus/pci/devices/0000:5e:00.0/iommu_group
+
+  根据前面的结果，它们分别是 group 48 和 73，并且每个 group 只有一个设备，因此不需要额外透传同组设备。
+
+  如果 QEMU 报：
+
+  group is not viable
+
+  检查：
+
+  ls -l /dev/vfio
+  ls -l /dev/vfio/48 /dev/vfio/73
+
+  QEMU 运行用户必须有权限访问 /dev/vfio/vfio 以及对应的 group 设备。用 root 启动可以先排除权限问题：
+
+  sudo qemu-system-x86_64 ..
+
+* 这个测试必须使用两个 MPI rank：
+  
+    rank 0: 分配并写入 device buffer
+    rank 1: 通过 remote IPA 读取 rank 0 的 buffer
+
+    当前推荐使用双节点运行。
+
+    先在 vms0 上编译：
+
+    `cd /home/siorigin/proj/siccl_229_dev`
+
+    `source env.sh latest --skip-driver`
+
+    `make -C src/graph/tests c2c_remote_read_test`
+
+    然后确认两台机器都有 SIPU 设备：
+
+    `ls -l /dev/sipu`
+
+    两台机器都应该能看到对应设备。如果出现：
+
+    `opendir /dev/sipu/ failed`
+
+    说明驱动还没有正常加载，此时不能判断 C2C 是否连通。
+
+    双节点运行命令：
+
+    `cd /home/siorigin/proj/siccl_229_dev`
+  
+    ```bash
+    SDK=/share_data/sicx_sdk/release/latest
+    MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi
+    ```
+  
+    `source env.sh latest --skip-driver`
+  
+    ```bash
+    export SIPU_HOME=$SDK
+    export LD_LIBRARY_PATH=$SDK/lib:$MPI_HOME/lib:/opt/siorigin/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}
+    ```
+
+    ```bash
+    mpirun -np 2 \
+        --tag-output \
+        --host 10.0.0.2:1,10.0.0.3:1 \
+        --mca btl self,tcp \
+        --mca btl_tcp_if_include wg0 \
+        --mca oob_tcp_if_include wg0 \
+        -x SIPU_HOME \
+        -x LD_LIBRARY_PATH \
+        /bin/bash -lc \
+        'source /share_data/sicx_sdk/release/latest/sipu_sdk_setup.sh && exec /home/siorigin/proj/siccl_229_dev/src/graph/tests/c2c_remote_read_test'
+    ```
+  
+    预期输出中应看到：
+  
+    ```
+    [OK]   rank 0: cudaMalloc ...
+    [OK]   rank 0: filled dev_buf ...
+    [OK]   rank 0: sent LOCAL addr ...
+    [OK]   rank 1: received rank 0 LOCAL addr ...
+    [OK]   rank 1: LOCAL ... -> REMOTE IPA ... chip_id=0
+    [OK]   rank 1: remoteReadKernel done
+    [PASS] rank 1: remote read data matches rank 0's data!
+    ```
+  
+    注意，这个源码当前硬编码了：
+  
+    `const int rank0_chip_id = 0;`
+  
+    所以它假设 rank 0 的实际 chip ID 是 0。如果 rank 0 的实际 chip ID 不是 0，测试结果没有意义，需要先修改测试通过 MPI 传递真实 chip ID。
+  
+    也可以先做单机控制流测试：
+   
+  source env.sh latest --skip-driver
+  
+  SDK=/share_data/sicx_sdk/release/latest
+  MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi
+  
+  export LD_LIBRARY_PATH=$SDK/lib:$MPI_HOME/lib:/opt/siorigin/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}
+  
+  mpirun -np 2 \
+    --host localhost:2 \
+    -x LD_LIBRARY_PATH \
+    /home/siorigin/proj/siccl_229_dev/src/graph/tests/c2c_remote_read_test
+  
+  但这个单机命令中两个进程默认都使用 device 0，主要只能验证 MPI、kernel launch 和地址转换流程，不能充分验证两个不同 SIPU chip 之间的 C2C remote read。
+  
+* dns server: `10.97.1.50`
+
+* `SI_SDK_ROOT=/share_data/arch_cmodel_release/sipu1.5/2607300400 MODEL_SERVER_HOST=127.0.0.1 HOST_ID=0 ./hlc_start_single_qemu.sh ../qemu/vms0.qcow2`
+
 * `SI_SDK_ROOT=/share_data/sicx_sdk/release/260713/ MODEL_SERVER_HOST=127.0.0.1 HOST_ID=1 ./hlc_start_single_qemu.sh ~/Data/hlc_shanghai/multi_node/qemu/vms1.qcow2`
 
     sipu-dkms 版本：`20260716`

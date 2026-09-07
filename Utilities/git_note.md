@@ -2,6 +2,895 @@
 
 ## cache
 
+* git stash push -u -m "before siccl remote migration"
+
+    讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**将当前工作目录和暂存区的所有修改（包括未跟踪的新文件）保存到一个新的储藏（stash）条目中，并附带一条描述信息，以便后续识别。**
+
+    下面我们拆解每个参数的具体含义：
+
+    1. `git stash push`
+
+        - 这是 Git 储藏功能的主要命令形式（较新版本的推荐用法，比旧的 `git stash save` 更灵活）。
+        - 它的核心作用是：**把当前未提交的修改（已跟踪文件的改动）从工作区“移走”**，并保存到一个栈（stack）结构中，同时将工作区恢复到上一次 `HEAD` 提交时的干净状态。
+
+    2. `-u` （即 `--include-untracked`）
+
+        - **关键参数**。默认情况下，`git stash` 只会储藏**已被 Git 跟踪**的文件（即 `git add` 过的或之前提交过的文件）。
+        - 加上 `-u` 后，**连那些从未被跟踪过的新文件（Untracked files）也会一并被储藏起来**。
+        - *注意：它不会储藏被 `.gitignore` 忽略的文件。*
+
+    3. `-m "before siccl remote migration"`
+
+        - `-m` 即 `--message`，用于给这个储藏条目添加一条**注释/描述**。
+        - 当你日后使用 `git stash list` 查看储藏列表时，这条信息会显示出来，帮助你记住这个储藏是在什么场景下创建的（例如本例中是为了“在 siccl 远程仓库迁移之前”保存现场）。
+
+    **这条命令的典型使用场景**
+
+    结合你的注释 **“before siccl remote migration”**，这条命令通常用于以下流程：
+
+    1. **正在开发中**，代码还没写完，不方便提交（因为提交会留下不完整的 commit 历史）。
+    2. 突然需要**切换分支**，或者进行**危险的远程仓库迁移操作**（如修改 remote URL、强制推送等）。
+    3. 为了防止冲突或丢失本地未保存的成果，执行此命令，把所有改动（包括新建的文件）**“打包封存”**到储藏区。
+    4. 此时工作区变得完全干净，你可以安全地执行 `git remote` 迁移、拉取远程代码等操作。
+    5. 操作完毕后，执行 `git stash pop` 或 `git stash apply`，就能把刚才的修改完整地拿回来继续开发。
+
+    **补充提醒**
+
+    - 如果你日后想查看这个储藏，可以运行：`git stash list`，你会看到类似 `stash@{0}: On <分支名>: before siccl remote migration` 的记录。
+    - 恢复时，建议先用 `git stash apply`（保留储藏副本）测试，确认无误后再用 `git stash drop` 删除，或者直接使用 `git stash pop`（恢复并删除储藏）。
+
+* git fetch siccl --prune
+
+    详细讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**从名为 `siccl` 的远程仓库下载最新的对象和引用（分支、标签等），并在本地删除那些在远程仓库中已被删除的远程跟踪分支。**
+
+    下面我们拆解每个部分的含义和背后的机制：
+
+    1. `git fetch`
+
+        - **核心作用**：这是 Git 中用于“下载”数据的命令。它会访问指定的远程仓库，拉取该仓库中**本地还没有**的提交记录、文件对象等。
+        - **重要特性**：`fetch` **只下载数据，不会自动合并或修改你当前正在工作的本地分支**。它只是把远程的更新同步到本地的“远程跟踪分支”（如 `siccl/main`、`siccl/develop`）上，让你可以查看或后续手动合并。
+
+    2. `siccl`（远程仓库名）
+
+        - 这是你本地 Git 配置中给某个远程仓库起的**别名**（通常 `origin` 是默认名）。
+        - 执行此命令意味着你只想从 `siccl` 这个远程仓库获取更新，而不会影响其他远程仓库（如果有的话）。
+        - 你可以通过 `git remote -v` 查看 `siccl` 对应的实际 URL 地址。
+
+    3. `--prune`（修剪）
+
+        - **这是本命令最关键的参数**，也是与你单独使用 `git fetch siccl` 的区别所在。
+        - **它的作用**：在拉取远程更新后，**自动删除本地那些在远程仓库中已不存在的远程跟踪分支引用**。
+
+    **举个例子说明：**
+
+    假设你之前执行过 `git fetch siccl`，本地创建了远程跟踪分支：
+
+    ```
+    siccl/main
+    siccl/feature-a
+    siccl/hotfix-b
+    ```
+
+    后来，团队成员在远程仓库中**删除了** `feature-a` 这个分支（合并后清理掉了）。
+
+    - 如果你运行 **`git fetch siccl`**（不带 `--prune`）：本地仍然会保留 `siccl/feature-a` 这个远程跟踪分支，即使远程已经没了。它不会报错，也不会删除，导致你本地看到的远程分支列表是**过时**的。
+    - 如果你运行 **`git fetch siccl --prune`**：Git 会发现远程已没有 `feature-a`，于是**自动删除本地的 `siccl/feature-a`**，保持本地远程跟踪分支与真实远程状态**完全一致**。
+
+    4. 等价命令
+
+        - 该命令等同于 `git fetch siccl -p`（`-p` 是 `--prune` 的简写）。
+        - 也可以单独运行 `git remote prune siccl`，但后者只做修剪，不会拉取新的更新。而 `git fetch siccl --prune` 是**先拉取新数据，再修剪**，一步到位。
+
+    **结合你上一个问题的上下文**
+
+    你之前用 `git stash` 保存了本地修改，现在执行 `git fetch siccl --prune`，通常是为了：
+
+    1. **在远程仓库迁移（`siccl`）之后**，同步最新的远程分支状态。
+    2. 清理本地过时的远程分支引用，避免在后续操作（如切换分支、查看分支列表）时被陈旧信息干扰。
+    3. 为后续操作做准备，比如：
+       - `git merge siccl/main`（合并远程主分支的最新代码）
+       - `git rebase siccl/main`（变基）
+       - `git branch -a`（查看准确的所有分支列表）
+
+    **补充提醒**
+
+    - 这个命令**只删除本地的远程跟踪分支引用**（类似“快捷方式”），**不会删除你本地自己创建并正在工作的本地分支**（如 `main`、`develop`），所以是安全的。
+    - 如果你希望更彻底，可以用 `git fetch --all --prune` 来修剪所有远程仓库的过时分支。
+    - 执行后，建议用 `git branch -r` 查看远程分支列表，验证清理结果。
+
+* git rebase --onto siccl/dev fe6d482 hlc-dev
+    详细讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**将 `hlc-dev` 分支上从 `fe6d482` 之后的提交，整体“移植”到 `siccl/dev` 分支的最新提交之上。**
+
+    这是一个**高级变基（rebase）操作**，用于将某个分支的一段特定提交历史剪切下来，并粘贴到另一个目标分支的顶端。
+
+    下面我们拆解每个参数的含义和背后的操作逻辑：
+
+    1. `git rebase --onto`
+
+        - 这是 Git 提供的 **“三段式变基”** 命令，允许你**精确指定**要把哪些提交移走，以及移到哪里。
+        - 与普通的 `git rebase A B`（将 B 变基到 A 上）不同，`--onto` 让你可以**不局限于从共同祖先开始**，而是能从任意指定的起点开始截取提交。
+
+    2. 参数拆解
+
+        * `siccl/dev`（目标位置）
+
+            - 这是**变基的目标**。你截取出来的提交，最终会被接在 `siccl/dev` 这个分支的**最新提交**后面。
+            - 也就是说，你的提交会以 `siccl/dev` 的最新状态为新的基础（parent）。
+
+        * `fe6d482`（截取起点，**不包含**）
+
+            - 这是一个 commit hash（提交 ID），指定了**从哪里开始截取**。
+            - **关键点**：Git 会截取 **从 `fe6d482` 之后**（不含该提交本身）一直到当前分支顶端的所有提交。
+            - 你可以把它理解为一个“分界点”：这个提交及其之前的历史**不会被移动**，只有它之后的提交才会被移植。
+
+        * `hlc-dev`（被操作的分支）
+
+            - 这是**要被变基的分支名**。Git 会先切换到该分支，然后从它的历史中截取符合条件的提交。
+            - 操作完成后，`hlc-dev` 分支会指向变基后的新提交链。
+
+    3. 实际操作的完整流程
+
+        假设当前的提交历史是这样的：
+
+        ```
+                          A---B---C---D  (hlc-dev)
+                         /
+                    X---Y---Z  (siccl/dev)
+                        |
+                    fe6d482 (这个提交在 siccl/dev 上)
+        ```
+
+        **执行命令**：`git rebase --onto siccl/dev fe6d482 hlc-dev`
+
+        Git 会做以下事情：
+
+        1. **识别要移动的提交**：找出 `hlc-dev` 上所有提交，但**排除** `fe6d482` 及其之前的历史。结果就是提交 **C 和 D**（假设 C 是 fe6d482 之后的第一个提交）。
+        2. **暂存这些提交**：将 C 和 D 的改动保存为临时补丁。
+        3. **切换到目标**：将 `hlc-dev` 的指针重置到 `siccl/dev` 的最新提交 Z 上。
+        4. **逐个应用补丁**：将 C 和 D **依次**应用到 Z 的上面，生成新的提交 C' 和 D'（它们会有新的 commit hash，因为 parent 变了）。
+
+        **变基后的历史**：
+
+        ```
+                          A---B  (hlc-dev 的旧历史，不再被引用)
+                         /
+                    X---Y---Z---C'---D'  (hlc-dev 的新位置)
+                        |
+                    fe6d482
+        ```
+
+    4. 适用场景
+
+        结合你之前的命令（先 stash 保存修改，再 fetch 远程更新），这个命令通常用于以下场景：
+
+        | 场景 | 说明 |
+        |------|------|
+        | **分支落后于目标** | 你本地的 `hlc-dev` 分支是基于旧的 `fe6d482` 开发的，但现在需要将其改动**迁移到最新的 `siccl/dev`** 之上。 |
+        | **避免合并提交** | 相比 `git merge`（会产生合并 commit），`rebase` 能保持线性、干净的历史。 |
+        | **提取部分提交** | 如果你只想移植 `hlc-dev` 上的部分提交（而不是全部），`--onto` 正好满足这个需求。 |
+        | **调整分支起点** | 当 `hlc-dev` 错误地从某个旧提交拉出，而现在需要“修正”它的基础分支时使用。 |
+
+    5. 注意事项（重要）
+
+        - **改写历史**：变基会**改写提交 hash**，因此**绝对不要**在一个已经推送到远程、且其他人正在使用的分支上执行此操作（除非你是唯一开发者）。
+        - **冲突处理**：在逐个应用补丁时，如果 C' 或 D' 与 Z 上的内容有冲突，Git 会暂停让你解决。解决后执行：
+          ```bash
+          git add <冲突文件>
+          git rebase --continue
+          ```
+        - **放弃操作**：如果变基过程中出错或后悔了，可以执行 `git rebase --abort` 回到操作前的状态。
+        - **确认起点**：在执行前，建议先用 `git log --oneline hlc-dev` 确认 `fe6d482` 是否确实是正确的截取起点，避免多移或少移提交。
+
+    6. 执行后的状态
+
+        - `hlc-dev` 分支会被**快进**到变基后的新提交链末尾（即 C' 和 D'）。
+        - 原来的提交 C 和 D 会变成“悬空”对象（dangling commits），一段时间后会被 Git 垃圾回收清理掉。
+        - 你可以用 `git log --oneline --graph --all` 查看更新后的历史树，验证是否已正确接在 `siccl/dev` 之后。
+
+* git diff --name-only --diff-filter=U
+    详细讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**列出当前工作区中所有存在合并冲突（Unmerged）的文件路径，且只显示文件名，不显示具体差异内容。**
+
+    这是一个**冲突检查命令**，常用于合并或变基操作后快速查看哪些文件需要手动解决冲突。
+
+    ---
+
+    1. 参数拆解
+
+        * `git diff`
+
+            - 这是 Git 的差异对比命令，通常用于显示工作区、暂存区、提交之间的文件改动。
+
+        * `--name-only`
+
+            - **只显示文件名**，不显示具体的代码差异内容。
+            - 正常 `git diff` 会输出详细的行级增删内容（`+` 和 `-`），而加上此参数后，输出会非常简洁，只有文件路径列表。
+
+        * `--diff-filter=U`
+
+            - 这是**过滤条件**，指定只显示特定状态的文件。
+            - `U` 代表 **Unmerged**（未合并），即存在冲突、尚未完成合并的文件。
+            - 其他常见过滤选项：
+              - `A`：新增文件（Added）
+              - `M`：修改文件（Modified）
+              - `D`：删除文件（Deleted）
+              - `R`：重命名文件（Renamed）
+
+    2. 输出示例
+
+        假设你在执行 `git merge` 或 `git rebase` 后产生了冲突，运行此命令会得到类似输出：
+
+        ```
+        src/main.py
+        docs/README.md
+        config/settings.yml
+        ```
+
+        这表明上述 **3 个文件**存在合并冲突，需要手动编辑解决。
+
+    3. 与 `git status` 的区别
+
+        | 命令 | 特点 |
+        |------|------|
+        | `git status` | 会显示冲突文件，但同时显示分支状态、暂存状态、未跟踪文件等**额外信息**，输出较冗长。 |
+        | `git diff --name-only --diff-filter=U` | **只输出冲突文件的路径**，没有任何多余信息，非常适合脚本处理或快速查看。 |
+
+        **举例**：`git status` 可能显示：
+        ```
+        You have unmerged paths.
+          (fix conflicts and run "git commit")
+          (use "git merge --abort" to abort the merge)
+
+        Unmerged paths:
+          (use "git add <file>..." to mark resolution)
+                both modified:   src/main.py
+                both modified:   docs/README.md
+        ```
+        而 `git diff --name-only --diff-filter=U` 只输出：
+        ```
+        src/main.py
+        docs/README.md
+        ```
+
+    ---
+
+    ## 4. 常见使用场景
+
+    | 场景 | 说明 |
+    |------|------|
+    | **合并冲突后** | 执行 `git merge` 后出现冲突，用此命令快速查看哪些文件需要修复。 |
+    | **变基冲突后** | 执行 `git rebase` 过程中暂停，用此命令查看当前待解决的文件列表。 |
+    | **批量处理** | 配合 `xargs` 或循环，批量打开冲突文件进行编辑，例如：<br>`git diff --name-only --diff-filter=U \| xargs vim` |
+    | **CI/CD 检查** | 在自动化脚本中检查是否存在未解决的冲突，避免意外提交。 |
+
+    ---
+
+    ## 5. 处理冲突的后续步骤
+
+    1. **查看冲突文件列表**：
+       ```bash
+       git diff --name-only --diff-filter=U
+       ```
+
+    2. **编辑冲突文件**：用编辑器打开这些文件，搜索 `<<<<<<<`、`=======`、`>>>>>>>` 标记，手动解决冲突。
+
+    3. **标记为已解决**：
+       ```bash
+       git add <已解决的文件>
+       ```
+       或者一次性添加所有：
+       ```bash
+       git add .
+       ```
+
+    4. **继续合并/变基**：
+       - 如果是 `git merge`：执行 `git commit` 完成合并。
+       - 如果是 `git rebase`：执行 `git rebase --continue` 继续变基。
+
+    5. **确认所有冲突已解决**：
+       ```bash
+       git diff --name-only --diff-filter=U
+       ```
+       如果输出为空，说明所有冲突都已处理完毕。
+
+    ---
+
+    ## 6. 补充提醒
+
+    - 这个命令**只显示当前工作区**中的冲突文件，如果你已经 `git add` 了某个冲突文件（标记为已解决），它就不会再出现在列表中。
+    - 如果你想查看某个冲突文件的具体差异（冲突内容），可以用：
+      ```bash
+      git diff <文件名>
+      ```
+      或查看带有冲突标记的原文件内容：
+      ```bash
+      cat <文件名>
+      ```
+
+* git log --oneline --decorate --graph -n 30
+    详细讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**以简洁、可视化的方式显示最近 30 条提交历史，清晰展示分支结构和引用位置（如分支指针、HEAD 等）。**
+
+    这是一个**提交历史查看命令**，也是 Git 使用者最常用的日志组合参数之一，能让你一目了然地看清项目的发展脉络和分支走向。
+
+    ---
+
+    ## 1. 参数拆解
+
+    ### `git log`
+    - 这是 Git 的**提交历史查看**命令，用于显示项目从创建到现在的所有提交记录。
+
+    ### `--oneline`
+    - **单行显示**：每个提交只显示一行，包含**简短的 commit hash**（前 7 位）和**提交标题**（commit message 的第一行）。
+    - 这样可以让屏幕容纳更多的提交记录，方便快速浏览。
+
+    **正常 vs 精简对比**：
+    ```bash
+    # 不带 --oneline（完整显示）
+    commit a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
+    Author: Zhang San <zhangsan@example.com>
+    Date:   Wed Aug 13 10:30:00 2026 +0800
+
+        修复用户登录时的空指针异常
+
+    # 带 --oneline（精简显示）
+    a1b2c3d 修复用户登录时的空指针异常
+    ```
+
+    ### `--decorate`
+    - **显示引用**：在提交后面显示该提交所关联的**分支指针**（如 `HEAD`、`main`、`dev`）和**标签**（如 `v1.0.0`）。
+    - 这让你清楚地知道每个提交当前被哪些分支或标签指向。
+
+    **示例输出**：
+    ```
+    a1b2c3d (HEAD -> main, origin/main) 修复用户登录空指针
+    e4f5g6h (dev) 添加用户注册功能
+    i7j8k9l (tag: v1.0.0) 发布版本1.0.0
+    ```
+
+    ### `--graph`
+    - **显示字符图形**：用 ASCII 字符（`*`、`|`、`/`、`\`）在左侧绘制提交历史的**分支拓扑图**。
+    - 这对于理解分支的分叉、合并、变基操作后的结构非常有帮助。
+
+    **示例图形化输出**：
+    ```
+    * a1b2c3d (HEAD -> main) 合并 dev 分支
+    |\  
+    | * e4f5g6h (dev) 添加新功能
+    | * i7j8k9l 修复bug
+    * | m4n5o6p 主分支提交
+    |/  
+    * q7r8s9t 初始提交
+    ```
+
+    ### `-n 30`
+    - 等同于 `--max-count=30`，表示**只显示最近的 30 条提交**。
+    - 如果项目提交数很多，不加这个参数会输出所有历史，可能刷屏。限制数量后可以快速查看近期动态。
+
+    ---
+
+    ## 2. 输出示例及解读
+
+    假设你在一个项目中有多个分支，执行此命令后可能看到：
+
+    ```
+    * d4e5f6g (HEAD -> feature/login, origin/feature/login) 完善登录验证逻辑
+    * c3d4e5f 添加登录接口
+    | * b2c3d4e (dev) 修复用户注册bug
+    | * a1b2c3d 优化数据库查询
+    |/  
+    * z9y8x7w (main) 合并dev分支到主分支
+    * y8x7w6v 初始化项目
+    ```
+
+    **解读**：
+    - 当前 `HEAD` 指向 `feature/login` 分支（最新提交是 `d4e5f6g`）
+    - `dev` 分支有 2 个提交（`b2c3d4e` 和 `a1b2c3d`）
+    - 从 `z9y8x7w` 处分叉，`main` 分支和 `dev`/`feature/login` 分支走向不同
+    - `origin/feature/login` 显示远程分支也指向同样的提交
+
+    ---
+
+    ## 3. 与其他命令的对比
+
+    | 命令 | 特点 | 适用场景 |
+    |------|------|----------|
+    | `git log` | 完整详细输出（hash、作者、日期、完整提交信息） | 需要查看详细提交信息时 |
+    | `git log --oneline` | 单行精简输出 | 快速浏览提交列表 |
+    | `git log --graph --oneline` | 带图形，但不显示分支引用 | 看拓扑结构，不需要知道分支指针 |
+    | `git log --oneline --decorate --graph -n 30` | **图形 + 引用 + 精简 + 数量限制** | **日常开发中最实用的历史查看方式** |
+
+    ---
+
+    ## 4. 常用扩展用法
+
+    ### 显示所有分支（包括远程分支）
+    ```bash
+    git log --oneline --decorate --graph --all -n 30
+    ```
+    加上 `--all` 会显示所有分支（本地 + 远程）的提交，而不局限于当前分支。
+
+    ### 更紧凑的显示（自定义格式）
+    ```bash
+    git log --pretty=format:"%h %s %d" --graph -n 30
+    ```
+    `%h` = 短 hash，`%s` = 提交标题，`%d` = 分支/标签引用。效果类似 `--oneline --decorate`。
+
+    ### 显示作者和日期
+    ```bash
+    git log --oneline --decorate --graph --date=short --pretty=format:"%h %ad %s %d" -n 30
+    ```
+    可以同时看到提交日期。
+
+    ### 别名设置
+    因为此命令太常用，可以设置为 Git 别名：
+    ```bash
+    git config --global alias.lg "log --oneline --decorate --graph -n 30"
+    ```
+    之后只需输入 `git lg` 即可快速调用。
+
+    ---
+
+    ## 5. 结合实际场景
+
+    结合你之前的操作链条（stash → fetch → rebase → diff 检查冲突），现在执行 `git log` 可以用于：
+
+    - **验证变基结果**：查看 `hlc-dev` 分支是否已成功接在 `siccl/dev` 之上，图形化确认历史是否线性。
+    - **确认分支指向**：看看 `HEAD`、各种分支指针是否都在预期的位置。
+    - **检查提交范围**：确认最近 30 条提交中包含了你想要的所有改动。
+
+    ---
+
+    ## 6. 补充提醒
+
+    - 如果分支图太复杂，可以加上 `--simplify-by-decoration` 只显示有分支/标签引用的提交，简化输出。
+    - 在较新的 Git 版本（2.13+）中，`--decorate` 已**默认开启**，即使不写也会显示引用，但显式写出可以保持兼容性。
+    - 如果你想查看**更早的历史**，可以将 `-n 30` 改为 `-n 100` 或更大的数字，或者去掉限制查看全部。
+
+* git stash apply stash@{0}
+    详细讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**将指定的储藏条目（`stash@{0}`）恢复到工作区中，但保留该储藏条目在储藏栈中不删除。**
+
+    这是一个**恢复储藏**的命令，用于把你之前用 `git stash` 保存的修改重新应用到当前工作目录，同时保留储藏副本以备后续再次使用。
+
+    ---
+
+    ## 1. 参数拆解
+
+    ### `git stash apply`
+    - 这是 Git 储藏命令的**应用**子命令，用于将某个储藏条目的改动恢复到当前工作区。
+    - 与 `git stash pop` 不同，**`apply` 只会恢复改动，不会删除储藏条目**。
+
+    ### `stash@{0}`
+    - 这是**储藏条目的引用标识**，指定要恢复哪个储藏。
+    - `stash@{0}` 表示**最近一次**储藏（栈顶）。
+    - `stash@{1}` 表示倒数第二次储藏，依此类推。
+    - 如果省略 `stash@{0}`，直接执行 `git stash apply`，默认也会应用最近一次储藏。
+
+    ---
+
+    ## 2. 执行过程
+
+    当你执行此命令时，Git 会做以下事情：
+
+    1. **查找储藏**：在储藏栈中找到 `stash@{0}` 对应的储藏条目。
+    2. **合并改动**：尝试将该储藏中的改动（包括已跟踪文件的修改、暂存区的改动、未跟踪文件等）**合并**到当前工作区。
+    3. **冲突处理**：
+       - 如果当前工作区的文件与储藏中的改动没有重叠，直接应用成功。
+       - 如果有重叠且冲突，Git 会提示冲突，需要手动解决。
+    4. **保留储藏**：无论应用成功还是部分失败，**`stash@{0}` 依然保留在储藏栈中**，不会被删除。
+
+    ---
+
+    ## 3. 与其他命令的对比
+
+    | 命令 | 特点 | 适用场景 |
+    |------|------|----------|
+    | `git stash apply` | 恢复改动，**保留**储藏 | 想恢复改动，但可能需要再次应用到其他分支 |
+    | `git stash apply stash@{1}` | 恢复指定的历史储藏 | 需要恢复不是最近一次的储藏 |
+    | `git stash pop` | 恢复改动，**删除**储藏 | 确定不再需要该储藏，恢复后自动清理 |
+    | `git stash branch <分支名>` | 从储藏创建新分支 | 储藏与当前分支差异太大，不方便直接 apply |
+
+    ---
+
+    ## 4. 完整工作流示例
+
+    结合你之前的操作链条，完整流程可能是这样的：
+
+    ### 第一步：保存现场
+    ```bash
+    # 保存当前所有改动（包括未跟踪文件）
+    git stash push -u -m "before siccl remote migration"
+    ```
+
+    ### 第二步：执行远程操作
+    ```bash
+    # 获取远程更新并清理过时分支
+    git fetch siccl --prune
+
+    # 变基到目标分支
+    git rebase --onto siccl/dev fe6d482 hlc-dev
+    ```
+
+    ### 第三步：检查状态
+    ```bash
+    # 查看是否有冲突
+    git diff --name-only --diff-filter=U
+
+    # 查看提交历史确认变基结果
+    git log --oneline --decorate --graph -n 30
+    ```
+
+    ### 第四步：恢复改动
+    ```bash
+    # 将之前保存的改动恢复到工作区
+    git stash apply stash@{0}
+    ```
+
+    ### 第五步：确认恢复成功
+    ```bash
+    # 查看当前工作区状态
+    git status
+
+    # 查看储藏栈是否还在
+    git stash list  # 会看到 stash@{0} 仍然存在
+    ```
+
+    ### 第六步（可选）：清理储藏
+    ```bash
+    # 确认改动已完全应用且不需要后，删除该储藏
+    git stash drop stash@{0}
+    # 或一次性清理所有储藏
+    git stash clear
+    ```
+
+    ---
+
+    ## 5. 常见问题及处理
+
+    ### 冲突处理
+    如果 `git stash apply` 出现冲突，会看到类似提示：
+    ```
+    Auto-merging src/main.py
+    CONFLICT (content): Merge conflict in src/main.py
+    ```
+    **解决方法**：
+    1. 手动编辑冲突文件（搜索 `<<<<<<<`、`=======`、`>>>>>>>` 标记）
+    2. 标记为已解决：
+       ```bash
+       git add src/main.py
+       ```
+    3. Git 不会自动提交，此时改动已应用到工作区，可以继续开发
+
+    ### 应用后不想保留储藏
+    如果想在应用的同时删除储藏，改用：
+    ```bash
+    git stash pop stash@{0}
+    ```
+
+    ### 查看储藏内容（应用前预览）
+    ```bash
+    # 查看某个储藏包含了哪些文件的改动
+    git stash show stash@{0}
+
+    # 查看详细差异
+    git stash show -p stash@{0}
+    ```
+
+    ### 应用时忽略未跟踪文件
+    如果当前工作区有同名未跟踪文件，可能导致应用失败。可以先用 `git clean -fd` 清理未跟踪文件，或使用 `git stash apply --index` 尝试恢复暂存区状态。
+
+    ---
+
+    ## 6. 注意事项
+
+    1. **储藏序号可能变化**：如果你在 `stash apply` 之前又执行了其他 `git stash`，原来的 `stash@{0}` 可能变成了 `stash@{1}`。建议先用 `git stash list` 确认正确的序号。
+
+    2. **分支切换后的应用**：`git stash apply` 可以在**任意分支**上执行，只要改动不冲突。这是储藏比 `git commit` 更灵活的地方。
+
+    3. **暂存区恢复**：如果你在 `stash` 时有些文件在暂存区（`git add` 过），默认 `apply` 会将这些改动恢复为**未暂存**状态。如果想保持暂存状态，使用：
+       ```bash
+       git stash apply --index stash@{0}
+       ```
+
+    4. **多个储藏管理**：
+       ```bash
+       # 查看所有储藏
+       git stash list
+       
+       # 应用特定储藏（例如第二次储藏）
+       git stash apply stash@{1}
+       ```
+
+    ---
+
+    ## 7. 实战场景总结
+
+    结合你的完整命令链条，你现在的状态应该是：
+
+    | 步骤 | 命令 | 状态 |
+    |------|------|------|
+    | 1 | `git stash push -u -m "before siccl remote migration"` | 改动已保存到储藏 |
+    | 2 | `git fetch siccl --prune` | 远程分支已同步 |
+    | 3 | `git rebase --onto siccl/dev fe6d482 hlc-dev` | 分支已变基完成 |
+    | 4 | `git diff --name-only --diff-filter=U` | 确认没有冲突（或已解决） |
+    | 5 | `git log --oneline --decorate --graph -n 30` | 确认历史正确 |
+    | 6 | `git stash apply stash@{0}` | **现在执行：恢复之前的改动** |
+
+    执行完第 6 步后，你就可以继续在最新的 `siccl/dev` 基础上开发之前未完成的工作了！
+
+* 详细讲讲 --force-with-lease
+
+    `--force-with-lease` 是 Git 中一个**更安全的强制推送选项**，它在强制执行推送的同时，会进行**安全检查**，确保你不会意外覆盖别人已推送到远程的新提交。
+
+    这是一个**保护性强制推送**命令，相比 `--force` 更加安全和专业。
+
+    ---
+
+    ## 1. 核心概念：为什么需要它？
+
+    ### 传统 `--force` 的问题
+    正常情况下，如果你的本地分支落后于远程，Git 会拒绝推送：
+    ```bash
+    $ git push origin main
+     ! [rejected]        main -> main (fetch first)
+    error: failed to push some refs
+    ```
+
+    但如果你使用 `git push --force`，Git 会**无条件覆盖**远程分支，即使远程已经有别人推送的新提交。这会导致：
+    - **丢失他人的工作**
+    - **破坏团队协作**
+    - 可能造成难以恢复的数据丢失
+
+    ### `--force-with-lease` 的解决方案
+    它会在推送前**检查远程分支是否与你上次拉取时一致**：
+    - 如果一致 → 允许强制推送（安全）
+    - 如果不一致 → 拒绝推送，提示你远程已有新变化
+
+    ---
+
+    ## 2. 工作原理详解
+
+    ### 本地记录的"期望值"
+    每次你执行 `git fetch` 或 `git pull` 时，Git 会在本地保存远程分支的状态（commit hash），存储在**远程跟踪分支**中（如 `origin/main`）。
+
+    `--force-with-lease` 的逻辑是：
+
+    ```
+    if (本地的 origin/main == 实际的远程 main) {
+        允许强制推送
+    } else {
+        拒绝推送，提示远程已被更新
+    }
+    ```
+
+    ### 示意图
+
+    **场景 1：安全推送（本地期望值与远程一致）**
+    ```
+    本地：origin/main = A
+    远程：main      = A  ✅ 一致
+
+    执行 force-with-lease → 允许推送
+    推送后：远程 main = B（你的新提交）
+    ```
+
+    **场景 2：被拒绝（本地期望值与远程不一致）**
+    ```
+    本地：origin/main = A  （你上次 fetch 时的状态）
+    远程：main      = C  （同事已经推送了 C）  ❌ 不一致
+
+    执行 force-with-lease → 拒绝推送！
+    错误：remote rejected (stale info)
+    ```
+
+    ---
+
+    ## 3. 命令格式
+
+    ### 基本语法
+    ```bash
+    git push --force-with-lease <远程仓库> <本地分支>[:<远程分支>]
+    ```
+
+    ### 常见用法
+
+    | 命令 | 说明 |
+    |------|------|
+    | `git push --force-with-lease origin main` | 推送 main 到 origin/main，检查安全性 |
+    | `git push --force-with-lease` | 推送当前分支到默认远程，安全检查 |
+    | `git push --force-with-lease origin` | 推送所有本地分支到 origin，逐个检查 |
+    | `git push --force-with-lease=origin/main main` | 明确指定要检查的远程引用 |
+
+    ### 简写形式
+    ```bash
+    git push --force-with-lease origin main
+    # 等同于
+    git push -f --force-with-lease origin main  # -f 会被忽略，因为 --force-with-lease 优先级更高
+
+    # 更简短的别名
+    git config --global alias.fwl "push --force-with-lease"
+    # 之后使用：git fwl origin main
+    ```
+
+    ---
+
+    ## 4. 与其他强制推送方式的对比
+
+    | 命令 | 安全检查 | 风险等级 | 适用场景 |
+    |------|---------|---------|----------|
+    | `git push` | ✅ 检查是否快进 | 低 | 日常正常推送 |
+    | `git push --force` | ❌ 无条件覆盖 | **高** | 个人分支、紧急情况 |
+    | `git push --force-with-lease` | ✅ 检查远程是否变化 | **低** | **推荐的专业做法** |
+    | `git push --force-if-includes` | ✅ 检查本地是否包含远程提交 | 低 | 更严格的检查（Git 2.30+） |
+
+    ---
+
+    ## 5. 实际使用场景
+
+    ### 场景 1：变基后推送（最常见）
+    ```bash
+    # 1. 拉取最新代码
+    git fetch origin
+
+    # 2. 变基到最新 main
+    git rebase origin/main
+
+    # 3. 推送变基后的分支（需要强制推送）
+    git push --force-with-lease origin feature-branch
+    ```
+    如果变基期间没人推送新提交到远程的 `feature-branch`，推送成功。否则被拒绝，需要重新 fetch 和 rebase。
+
+    ### 场景 2：修改历史后推送
+    ```bash
+    # 修正最后一次提交
+    git commit --amend -m "更新提交信息"
+
+    # 安全强制推送
+    git push --force-with-lease origin main
+    ```
+
+    ### 场景 3：多人协作的个人分支
+    ```bash
+    # 在个人功能分支上工作，想保持历史整洁
+    git rebase -i HEAD~3  # 交互式变基，合并/修改提交
+    git push --force-with-lease origin my-feature
+    ```
+    即使其他协作者也有这个分支的权限，`--force-with-lease` 也能防止覆盖他们的工作。
+
+    ---
+
+    ## 6. 高级用法
+
+    ### 指定要检查的远程引用
+    ```bash
+    # 明确告诉 Git 检查 origin/main 的状态
+    git push --force-with-lease=origin/main main
+
+    # 推送本地的 main 到远程的 main，但检查远程的 main 是否等于本地的 origin/main
+    git push --force-with-lease=refs/remotes/origin/main:refs/heads/main main
+    ```
+
+    ### 为所有分支设置
+    ```bash
+    # 推送所有匹配的分支，并为每个分支进行安全检查
+    git push --force-with-lease --all origin
+    ```
+
+    ### Git 2.30+ 的新选项
+    ```bash
+    # 更严格的检查：确保本地包含了远程的所有提交
+    git push --force-if-includes origin main
+    ```
+
+    ---
+
+    ## 7. 错误信息及处理
+
+    ### 错误 1：远程已更新
+    ```
+    ! [rejected]        main -> main (stale info)
+    error: failed to push some refs
+    ```
+    **原因**：远程分支已被其他人更新，你的本地期望值过时。
+
+    **解决**：
+    ```bash
+    # 1. 获取最新的远程状态
+    git fetch origin
+
+    # 2. 查看远程的新提交
+    git log origin/main --oneline -10
+
+    # 3. 将你的工作基于最新远程重新变基
+    git rebase origin/main
+
+    # 4. 再次尝试推送
+    git push --force-with-lease origin main
+    ```
+
+    ### 错误 2：本地没有远程引用
+    ```
+    fatal: cannot compare with remote ref
+    ```
+    **原因**：本地没有对应的远程跟踪分支（首次 clone 后或手动删除过）。
+
+    **解决**：
+    ```bash
+    # 先设置上游分支
+    git push -u origin main
+    # 或先 fetch
+    git fetch origin
+    ```
+
+    ---
+
+    ## 8. 最佳实践建议
+
+    1. **默认使用 `--force-with-lease` 替代 `--force`**
+       ```bash
+       # 设置默认强制推送方式
+       git config --global push.default current
+       alias fpush="push --force-with-lease"
+       ```
+
+    2. **推送前先检查状态**
+       ```bash
+       # 查看本地与远程的差异
+       git fetch origin
+       git log origin/main..HEAD --oneline  # 本地的领先提交
+       git log HEAD..origin/main --oneline  # 远程的领先提交
+       ```
+
+    3. **不要对共享主分支（main/dev）使用强制推送**
+       - 即使有 `--force-with-lease` 保护，也不建议对团队主干分支强制推送
+       - 应该通过 PR/MR 流程合并
+
+    4. **推送后通知团队**
+       ```bash
+       # 强制推送会改写历史，及时通知协作者
+       git push --force-with-lease origin feature-branch
+       # 告知同事需要重新拉取：git fetch && git reset --hard origin/feature-branch
+       ```
+
+    ---
+
+    ## 9. 底层原理（深入理解）
+
+    `--force-with-lease` 实际上是在推送请求中携带了一个"期望值"（expectation），即**本地记录的远程分支的 commit hash**。
+
+    推送时，Git 服务器会检查：
+    - 如果远程分支的当前 hash **等于**你提供的期望值 → 允许推送（fast-forward 或 force）
+    - 如果远程分支的当前 hash **不等于**期望值 → 拒绝推送（"stale info"）
+
+    这相当于实现了一个**乐观锁**（Optimistic Locking）机制，类似于数据库中的版本号控制。
+
+    ---
+
+    ## 10. 总结对比表
+
+    | 特性 | `--force` | `--force-with-lease` |
+    |------|-----------|---------------------|
+    | 覆盖远程分支 | ✅ 是 | ✅ 是 |
+    | 检查远程状态 | ❌ 不检查 | ✅ 检查是否变化 |
+    | 防止覆盖他人提交 | ❌ 不防止 | ✅ 防止 |
+    | 适用场景 | 个人分支、紧急修复 | **所有需要强制推送的场景** |
+    | 团队推荐度 | ❌ 不推荐 | ✅ **强烈推荐** |
+    | Git 版本要求 | 所有版本 | Git 1.8.5+ (2013年) |
+
+    ---
+
+    **一句话总结**：永远使用 `--force-with-lease` 替代 `--force`，它能在你需要强制推送时保护团队协作安全，避免意外覆盖他人的工作成果。
+
 * 详细讲讲 git add --renormalize . 的作用
 
     `git add --renormalize .` 是一个在 Git 中相对“高级”但非常实用的命令。它的核心作用是**强制刷新工作区中所有文件的索引（暂存区）状态，严格按照当前仓库根目录下 `.gitattributes` 文件中定义的规则，重新计算文件的换行符（CRLF/LF）和文本编码，并将其更新到暂存区。**
