@@ -6,6 +6,820 @@
 
 ## cache
 
+* 我们平时编译项目时运行的 ./configure，底层原理是什么？
+
+        `./configure` 脚本是 GNU 构建系统（Autotools）的核心组件之一，它的底层原理可以分解为以下几个关键方面：
+
+        ## 一、核心目的
+        **探测系统环境并生成适配的 Makefile**，主要解决：
+        1. 不同平台（Linux/BSD/macOS）的兼容性差异
+        2. 库文件、头文件位置和版本差异
+        3. 编译器特性和选项差异
+        4. 可选的组件/功能开关
+
+        ## 二、工作流程详解
+
+        ### 1. **系统探测（System Probing）**
+        ```bash
+        # 检查编译器
+        checking for gcc... gcc
+        checking whether the C compiler works... yes
+
+        # 检查库文件
+        checking for library containing printf... none required
+        checking for zlib.h... yes
+
+        # 检查函数存在性
+        checking for memset... yes
+
+        # 检查结构体成员
+        checking for struct tm.tm_gmtoff... yes
+        ```
+
+        ### 2. **生成配置文件**
+        脚本使用 `config.status` 和 `config.h` 来记录探测结果：
+        - `config.status`：用于重新生成文件
+        - `config.h`：C/C++ 头文件，包含 `#define HAVE_LIBZ 1` 之类的宏定义
+
+        ### 3. **模板文件转换**
+        使用 `.in` 模板文件，通过变量替换生成最终文件：
+        ```makefile
+        # Makefile.in（模板）
+        CFLAGS = @CFLAGS@
+        prefix = @prefix@
+
+        # 转换为 Makefile
+        CFLAGS = -O2 -g
+        prefix = /usr/local
+        ```
+
+        ## 三、技术实现
+
+        ### 1. **M4 宏处理器**
+        Configure 脚本实际是 M4 宏的扩展：
+        ```m4
+        AC_INIT([program], [1.0])
+        AC_PROG_CC
+        AC_CHECK_HEADER([zlib.h])
+        AC_CHECK_LIB([z], [inflate])
+        AC_OUTPUT(Makefile)
+        ```
+
+        ### 2. **Autoconf 生成的 shell 脚本**
+        运行 `autoconf` 会将 `configure.ac` 转换为可执行的 shell 脚本：
+        ```
+        configure.ac (M4宏) 
+            → autoconf → 
+        configure (shell脚本)
+        ```
+
+        ### 3. **关键检查函数**
+        ```bash
+        # 检查头文件
+        AC_CHECK_HEADERS([stdlib.h unistd.h])
+
+        # 检查库函数
+        AC_CHECK_FUNCS([strdup memset])
+
+        # 检查库文件
+        AC_CHECK_LIB([pthread], [pthread_create])
+
+        # 检查结构成员
+        AC_CHECK_MEMBERS([struct passwd.pw_gecos])
+        ```
+
+        ## 四、实际示例分析
+
+        ### 简单 configure.ac：
+        ```m4
+        AC_INIT([myapp], [1.0])
+        AC_PROG_CC
+        AC_CHECK_HEADER([zlib.h], 
+            [AC_DEFINE([HAVE_ZLIB], [1], [Have zlib])])
+        AC_CHECK_LIB([z], [inflateEnd])
+        AC_CONFIG_FILES([Makefile])
+        AC_OUTPUT
+        ```
+
+        ### 生成的检查代码片段：
+        ```bash
+        # configure 脚本中的实际检查代码
+        ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" \
+            "ac_cv_header_zlib_h" "$ac_includes_default"
+        if test "x$ac_cv_header_zlib_h" = xyes; then :
+          printf "%s\n" "#define HAVE_ZLIB_H 1" >>confdefs.h
+        fi
+        ```
+
+        ## 五、缓存机制
+        支持缓存结果加速重复配置：
+        ```bash
+        ./configure -C                    # 使用缓存
+        config.cache                     # 缓存文件内容
+        ac_cv_header_zlib_h=yes
+        ac_cv_lib_z_inflateEnd=yes
+        ```
+
+        ## 六、生成的文件
+
+        1. **config.log** - 完整的检查日志
+        2. **config.status** - 用于重新生成文件
+        3. **config.h** - 平台相关的宏定义
+        4. **Makefile** - 最终构建脚本
+        5. **libtool** 相关文件（如果使用）
+
+        ## 七、现代替代方案
+
+        虽然 Autotools 仍是主流，但现代替代方案包括：
+        - **CMake**：跨平台，更简洁
+        - **Meson**：速度快，语法清晰
+        - **Bazel**：支持大规模构建
+
+        ## 总结
+        `./configure` 本质是一个**自动化的系统兼容性适配器**，通过：
+        1. 探测系统特性和能力
+        2. 将结果记录到配置文件中
+        3. 基于模板生成平台特定的构建文件
+
+        这种机制虽然复杂，但解决了源代码在多样化的 Unix-like 系统间移植的难题，是早期开源软件能够广泛移植的关键技术。
+
+    * 给一个实际的 example，说明在我的项目里如何加上 ./configure 的支持
+
+        我来用一个实际示例演示如何为C语言项目添加`./configure`支持。假设我们有一个简单的数学库项目。
+
+        ## 一、项目结构准备
+
+        ### 初始项目结构：
+        ```
+        my-math-lib/
+        ├── src/
+        │   ├── math_utils.c
+        │   └── math_utils.h
+        ├── examples/
+        │   └── example.c
+        └── Makefile  # 原始硬编码的
+        ```
+
+        ### 代码文件示例：
+
+        **src/math_utils.h:**
+        ```c
+        #ifndef MATH_UTILS_H
+        #define MATH_UTILS_H
+
+        double add(double a, double b);
+        double subtract(double a, double b);
+        double multiply(double a, double b);
+
+        /* 可选功能：如果启用统计支持 */
+        #ifdef HAVE_STATS
+        double mean(double *array, int size);
+        double variance(double *array, int size);
+        #endif
+
+        #endif
+        ```
+
+        **src/math_utils.c:**
+        ```c
+        #include "math_utils.h"
+        #include <math.h>
+
+        double add(double a, double b) { return a + b; }
+        double subtract(double a, double b) { return a - b; }
+        double multiply(double a, double b) { return a * b; }
+
+        #ifdef HAVE_STATS
+        double mean(double *array, int size) {
+            double sum = 0.0;
+            for (int i = 0; i < size; i++) sum += array[i];
+            return sum / size;
+        }
+
+        double variance(double *array, int size) {
+            double m = mean(array, size);
+            double sum = 0.0;
+            for (int i = 0; i < size; i++) {
+                double diff = array[i] - m;
+                sum += diff * diff;
+            }
+            return sum / size;
+        }
+        #endif
+        ```
+
+        ## 二、添加Autotools支持
+
+        ### 步骤1：创建 `configure.ac`
+
+        在项目根目录创建 `configure.ac`：
+
+        ```m4
+        # -*- Autoconf -*-
+        # Process this file with autoconf to produce a configure script.
+
+        AC_PREREQ([2.69])
+        AC_INIT([my-math-lib], [1.0], [bugs@example.com])
+        AC_CONFIG_SRCDIR([src/math_utils.c])
+        AC_CONFIG_HEADERS([config.h])
+        AC_CONFIG_AUX_DIR([build-aux])
+        AM_INIT_AUTOMAKE([foreign subdir-objects])
+
+        # 检查C编译器
+        AC_PROG_CC
+        AC_PROG_INSTALL
+        AC_PROG_MAKE_SET
+
+        # 检查标准C库函数
+        AC_CHECK_FUNCS([sqrt pow])
+
+        # 检查数学库，可能需要 -lm
+        AC_CHECK_LIB([m], [sqrt], 
+            [LIBS="-lm $LIBS"],
+            [AC_MSG_WARN([数学库未找到，某些功能可能受限])])
+
+        # 检查可选依赖：用于统计功能的GSL库（可选）
+        AC_ARG_WITH([gsl],
+            [AS_HELP_STRING([--with-gsl],
+                [启用GSL库支持（用于高级统计功能）])],
+            [],
+            [with_gsl=no])
+
+        AS_IF([test "x$with_gsl" != "xno"],
+            [PKG_CHECK_MODULES([GSL], [gsl >= 2.0],
+                [AC_DEFINE([HAVE_GSL], [1], [有GSL库支持])
+                 CFLAGS="$CFLAGS $GSL_CFLAGS"
+                 LIBS="$LIBS $GSL_LIBS"],
+                [AS_IF([test "x$with_gsl" = "xyes"],
+                    [AC_MSG_ERROR([GSL库未找到但被请求])])])])
+
+        # 是否启用统计功能
+        AC_ARG_ENABLE([stats],
+            [AS_HELP_STRING([--enable-stats],
+                [启用统计功能（需要GSL库）])],
+            [],
+            [enable_stats=no])
+
+        AS_IF([test "x$enable_stats" = "xyes"],
+            [AC_DEFINE([HAVE_STATS], [1], [启用统计功能])
+             AC_SUBST([ENABLE_STATS], [1])],
+            [AC_SUBST([ENABLE_STATS], [0])])
+
+        # 检查头文件
+        AC_CHECK_HEADERS([stdlib.h string.h math.h])
+
+        # 生成输出文件
+        AC_CONFIG_FILES([
+            Makefile
+            src/Makefile
+            examples/Makefile
+            doc/Makefile
+        ])
+        AC_OUTPUT
+
+        echo "配置摘要："
+        echo "=========="
+        echo "编译器: $CC"
+        echo "CFLAGS: $CFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "统计功能: $enable_stats"
+        AS_IF([test "x$with_gsl" != "xno"],
+            [echo "GSL支持: 是"],
+            [echo "GSL支持: 否"])
+        ```
+
+        ### 步骤2：创建 `Makefile.am` 文件
+
+        #### 根目录 `Makefile.am`:
+        ```makefile
+        # 递归处理子目录
+        SUBDIRS = src examples doc
+
+        # 分发额外的文件
+        EXTRA_DIST = README.md LICENSE autogen.sh
+
+        # pkg-config支持
+        pkgconfigdir = $(libdir)/pkgconfig
+        pkgconfig_DATA = my-math-lib.pc
+        ```
+
+        #### `src/Makefile.am`:
+        ```makefile
+        # 库版本信息
+        lib_LTLIBRARIES = libmathutils.la
+
+        libmathutils_la_SOURCES = math_utils.c
+        libmathutils_la_HEADERS = math_utils.h
+        libmathutils_ladir = $(includedir)/mathutils
+
+        libmathutils_la_LDFLAGS = -version-info 1:0:0
+
+        # 如果启用统计功能，添加额外的源文件
+        if ENABLE_STATS
+        libmathutils_la_SOURCES += stats.c
+        endif
+
+        include_HEADERS = math_utils.h
+        ```
+
+        #### `examples/Makefile.am`:
+        ```makefile
+        # 示例程序
+        bin_PROGRAMS = math_example
+
+        math_example_SOURCES = example.c
+        math_example_LDADD = ../src/libmathutils.la
+        math_example_CPPFLAGS = -I$(top_srcdir)/src
+        ```
+
+        #### `doc/Makefile.am`:
+        ```makefile
+        # 文档
+        dist_doc_DATA = README.md
+
+        man_MANS = mathutils.3
+
+        if BUILD_MANPAGES
+        mathutils.3: math_utils.h
+            help2man --output=$@ --name="数学工具库" ../src/math_utils
+        endif
+        ```
+
+        ### 步骤3：创建 `my-math-lib.pc.in`（用于pkg-config）
+        ```makefile
+        prefix=@prefix@
+        exec_prefix=@exec_prefix@
+        libdir=@libdir@
+        includedir=@includedir@
+
+        Name: @PACKAGE_NAME@
+        Description: 简单的数学工具库
+        Version: @PACKAGE_VERSION@
+        Requires: @GSL_PACKAGE@
+        Libs: -L${libdir} -lmathutils
+        Cflags: -I${includedir}
+        ```
+
+        ### 步骤4：创建 `autogen.sh` 脚本
+        ```bash
+        #!/bin/sh
+        # 自动生成configure脚本
+
+        # 清理旧文件
+        rm -f aclocal.m4 configure config.h.in Makefile.in
+        rm -rf autom4te.cache build-aux
+
+        # 创建必要的目录
+        mkdir -p build-aux
+
+        # 运行autotools命令序列
+        autoreconf --install --force --verbose
+
+        # 如果是第一次，可能需要手动创建这些文件
+        if [ ! -f "build-aux/install-sh" ]; then
+            automake --add-missing --copy 2>/dev/null || true
+        fi
+
+        echo "现在可以运行 ./configure && make"
+        ```
+
+        ## 三、完整的文件结构
+
+        完成后的项目结构：
+        ```
+        my-math-lib/
+        ├── configure.ac              # 主配置文件
+        ├── Makefile.am               # 根目录Makefile模板
+        ├── my-math-lib.pc.in         # pkg-config模板
+        ├── autogen.sh               # 自动生成脚本
+        ├── build-aux/               # 辅助文件目录
+        ├── src/
+        │   ├── math_utils.c
+        │   ├── math_utils.h
+        │   ├── stats.c              # 可选功能
+        │   └── Makefile.am
+        ├── examples/
+        │   ├── example.c
+        │   └── Makefile.am
+        ├── doc/
+        │   └── Makefile.am
+        └── README.md
+        ```
+
+        ## 四、使用方式
+
+        ### 1. **首次生成configure脚本：**
+        ```bash
+        chmod +x autogen.sh
+        ./autogen.sh
+        ```
+
+        ### 2. **配置和构建：**
+        ```bash
+        # 基本配置
+        ./configure
+        make
+        sudo make install
+
+        # 启用所有功能
+        ./configure --enable-stats --with-gsl
+        make clean && make
+
+        # 指定安装路径
+        ./configure --prefix=/usr/local
+        ./configure --prefix=$HOME/.local
+
+        # 交叉编译
+        ./configure --host=arm-linux-gnueabihf
+        ```
+
+        ### 3. **使用自定义选项：**
+        ```bash
+        # 查看所有选项
+        ./configure --help
+
+        # 带调试信息
+        ./configure CFLAGS="-g -O0"
+
+        # 禁用依赖检查
+        ./configure --disable-dependency-tracking
+
+        # 静态链接
+        ./configure --enable-static --disable-shared
+        ```
+
+        ## 五、实际测试
+
+        创建测试程序 `examples/example.c`：
+        ```c
+        #include <stdio.h>
+        #include <math_utils.h>
+
+        int main() {
+            printf("3 + 4 = %.2f\n", add(3, 4));
+            printf("5 * 6 = %.2f\n", multiply(5, 6));
+            
+            #ifdef HAVE_STATS
+            double data[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+            printf("均值: %.2f\n", mean(data, 5));
+            #endif
+            
+            return 0;
+        }
+        ```
+
+        ## 六、工作原理总结
+
+        1. **`autogen.sh`** 调用 `autoreconf` 生成：
+           - `configure`（shell脚本）
+           - `Makefile.in`（模板文件）
+           - `config.h.in`（配置头文件模板）
+
+        2. **用户运行 `./configure`** 时：
+           - 检测系统环境和依赖
+           - 根据检测结果修改 `config.h`
+           - 用实际值替换 `Makefile.in` 中的 `@变量@`
+
+        3. **生成文件**：
+           ```
+           config.h → #define HAVE_GSL 1
+           Makefile → prefix=/usr/local
+           my-math-lib.pc → 供pkg-config使用
+           ```
+
+        这个示例展示了完整的Autotools集成，包括了：
+        - 可选功能（`--enable-stats`）
+        - 可选依赖（`--with-gsl`）
+        - 库版本控制
+        - pkg-config支持
+        - 条件编译
+
+        实际项目中，可以根据需要调整 `configure.ac` 中的检测逻辑。
+
+    * M4 宏是什么？
+
+        **M4是一个通用的宏处理器**，它是Autoconf（生成`configure`脚本的工具）的核心语言。让我详细解释：
+
+        ## 一、M4的基本概念
+
+        ### 1. **什么是宏处理器？**
+        宏处理器通过**模式匹配和替换**来转换文本。类似于C语言的`#define`，但功能强大得多。
+
+        ```m4
+        # 简单示例：定义宏
+        define(`PI', `3.1415926')dnl
+        # 使用宏
+        圆的面积是：PI * r * r
+        # 展开为：圆的面积是：3.1415926 * r * r
+        ```
+
+        ### 2. **M4在Autotools中的角色**
+        ```
+        configure.ac (M4宏) → autoconf (M4处理器) → configure (shell脚本)
+        ```
+
+        ## 二、M4语法基础
+
+        ### 基本语法：
+        ```m4
+        # 注释
+        # 定义宏
+        define(`MACRO_NAME', `replacement text')
+
+        # 调用宏
+        MACRO_NAME
+
+        # dnl 删除到换行（相当于注释）
+        define(`VERSION', `1.0')dnl 这是注释
+
+        # 引号（反引号和正引号）
+        `这是被引用的文本'
+        ```
+
+        ### 实际示例：
+        ```m4
+        # 定义常量
+        define(`PACKAGE_NAME', `MyProgram')
+        define(`VERSION', `1.2.3')
+
+        # 使用宏
+        程序 PACKAGE_NAME 版本 VERSION 已安装。
+        # 展开为：程序 MyProgram 版本 1.2.3 已安装。
+        ```
+
+        ## 三、Autoconf中的M4宏
+
+        ### 1. **Autoconf预定义宏**
+
+        ```m4
+        # 初始化Autoconf
+        AC_INIT([程序名], [版本号], [bug报告邮箱])
+
+        # 检查C编译器
+        AC_PROG_CC
+
+        # 检查函数是否存在
+        AC_CHECK_FUNCS([malloc memset])
+
+        # 检查库
+        AC_CHECK_LIB([m], [sin])
+
+        # 检查头文件
+        AC_CHECK_HEADERS([stdio.h stdlib.h])
+
+        # 输出文件
+        AC_OUTPUT([Makefile])
+        ```
+
+        ### 2. **宏参数处理**
+        ```m4
+        # 带参数的宏
+        AC_CHECK_LIB([library], [function], [成功动作], [失败动作], [其他库])
+
+        # 实际使用
+        AC_CHECK_LIB([z], [compress],
+            [AC_DEFINE([HAVE_LIBZ], [1], [有zlib库])],
+            [AC_MSG_ERROR([需要zlib库])],
+            [])
+        ```
+
+        ## 四、深入理解：M4如何工作
+
+        ### 示例：跟踪宏展开
+        ```m4
+        # 定义链式宏
+        define(`ONE', `1')
+        define(`TWO', `ONE + ONE')
+        define(`THREE', `TWO + ONE')
+
+        # 逐步展开
+        THREE
+        # 1. TWO + ONE
+        # 2. ONE + ONE + ONE  
+        # 3. 1 + 1 + 1
+        ```
+
+        ### 递归展开：
+        ```m4
+        # 危险的递归定义
+        define(`recursive', `recursive')dnl
+        recursive  # 会无限展开！
+
+        # 正确的递归
+        define(`factorial', `ifelse(`$1', 0, 1,
+            `eval($1 * factorial(decr($1)))')')
+        factorial(5)  # 展开为 120
+        ```
+
+        ## 五、Autoconf宏的实际展开过程
+
+        ### `configure.ac` 片段：
+        ```m4
+        AC_INIT([hello], [1.0])
+        AC_PROG_CC
+        AC_OUTPUT([Makefile])
+        ```
+
+        ### 被 `autoconf` 展开为：
+        ```bash
+        #!/bin/sh
+        # configure 脚本的一部分
+
+        # AC_INIT 展开为：
+        PACKAGE_NAME='hello'
+        PACKAGE_VERSION='1.0'
+        ...
+
+        # AC_PROG_CC 展开为数百行shell代码：
+        # 检查gcc、clang等编译器
+        if test -z "$CC"; then
+          for ac_prog in gcc cc clang
+          do
+            # 详细检查逻辑...
+          done
+        fi
+
+        # AC_OUTPUT 展开为文件生成逻辑
+        for ac_file in Makefile
+        do
+          # 用 sed 替换 @variable@
+        done
+        ```
+
+        ## 六、M4的高级特性
+
+        ### 1. **条件判断**
+        ```m4
+        # ifelse 宏 - M4的if语句
+        ifelse(`$1', `linux', `这是Linux系统',
+               `$1', `darwin', `这是macOS系统',
+                             `未知系统')
+        ```
+
+        ### 2. **参数计数**
+        ```m4
+        # $# 获取参数数量
+        define(`print_args', `参数数量：$#, 第一个参数：$1')
+
+        print_args(`a', `b', `c')
+        # 展开为：参数数量：3, 第一个参数：a
+        ```
+
+        ### 3. **字符串操作**
+        ```m4
+        # 连接字符串
+        define(`concat', `$1$2')
+        concat(`Hello', `World')  # HelloWorld
+
+        # 子串
+        define(`substr', `substr($@)')
+        substr(`Hello', 1, 3)  # ell
+        ```
+
+        ## 七、Autoconf中的真实示例
+
+        ### 查看 `AC_PROG_CC` 的定义：
+        ```bash
+        # 查看Autoconf宏定义
+        grep -r "AC_PROG_CC" /usr/share/autoconf/
+        ```
+
+        ### 简化的 `AC_CHECK_LIB` 实现：
+        ```m4
+        # 伪代码展示原理
+        define(`AC_CHECK_LIB',
+          `AC_MSG_CHECKING([for $2 in -l$1])
+           # 尝试编译测试程序
+           AC_LINK_IFELSE(
+             [AC_LANG_PROGRAM([], [$2()])],
+             [AC_MSG_RESULT([yes])
+              $3],
+             [AC_MSG_RESULT([no])
+              $4])
+           $5')
+        ```
+
+        ## 八、自定义M4宏
+
+        ### 创建 `m4/` 目录存放自定义宏：
+        ```m4
+        # m4/ax_check_openmp.m4
+        AC_DEFUN([AX_CHECK_OPENMP],
+          [AC_CACHE_CHECK([for OpenMP support], [ax_cv_openmp],
+             [ax_cv_openmp=no
+              # 尝试编译OpenMP测试程序
+              AC_LANG_PUSH([C])
+              save_CFLAGS="$CFLAGS"
+              CFLAGS="$CFLAGS -fopenmp"
+              AC_LINK_IFELSE([...],
+                [ax_cv_openmp=-fopenmp])
+              AC_LANG_POP([C])])
+           AS_IF([test "x$ax_cv_openmp" != xno],
+             [OPENMP_CFLAGS=$ax_cv_openmp])
+           AC_SUBST([OPENMP_CFLAGS])])
+        ```
+
+        ### 在 `configure.ac` 中使用：
+        ```m4
+        # 包含自定义宏
+        m4_include([m4/ax_check_openmp.m4])
+
+        # 使用宏
+        AX_CHECK_OPENMP
+        ```
+
+        ## 九、调试M4宏
+
+        ### 1. **查看宏展开**：
+        ```bash
+        # 使用autoconf的调试选项
+        autoconf --trace=AC_CHECK_LIB
+        autoconf --trace='AC_CHECK_$'
+
+        # 查看特定宏调用
+        autoconf --trace=AC_CHECK_LIB:'$1:$2:$3' configure.ac
+        ```
+
+        ### 2. **逐步展开**：
+        ```bash
+        # 1. 只预处理，不生成configure
+        autom4te --language=Autoconf -o configure.tmp configure.ac
+
+        # 2. 查看中间结果
+        m4 -P -I /usr/share/autoconf configure.ac | less
+        ```
+
+        ## 十、M4的独特特性
+
+        ### 1. **延迟展开（Call-by-name）**
+        ```m4
+        define(`a', `A')
+        define(`b', `a')
+        b  # 展开为 a，然后展开为 A
+        ```
+
+        ### 2. **参数引用**
+        ```m4
+        # $@ 所有参数
+        # $* 所有参数（连接）
+        # $1, $2... 位置参数
+        define(`show', `Args: $@, First: $1')
+        show(`x', `y', `z')  # Args: x,y,z, First: x
+        ```
+
+        ### 3. **宏重定义**
+        ```m4
+        define(`func', `Version 1')
+        func  # Version 1
+
+        # 重定义
+        define(`func', `Version 2')
+        func  # Version 2
+        ```
+
+        ## 十一、为什么Autotools选择M4？
+
+        1. **模式匹配能力强** - 适合文本生成
+        2. **图灵完备** - 可以实现复杂逻辑
+        3. **简单但强大** - 核心概念简单但能处理复杂需求
+        4. **稳定可靠** - 几十年的历史验证
+
+        ## 十二、M4的替代方案
+
+        现代构建系统用其他方式实现类似功能：
+
+        ### CMake（使用CMake语言）：
+        ```cmake
+        # CMakeLists.txt
+        check_function_exists(malloc HAVE_MALLOC)
+        check_library_exists(m sin "" HAVE_LIBM)
+
+        if(HAVE_MALLOC AND HAVE_LIBM)
+          add_definitions(-DUSE_MATH=1)
+        endif()
+        ```
+
+        ### Meson（使用Python）：
+        ```python
+        # meson.build
+        cc = meson.get_compiler('c')
+        has_malloc = cc.has_function('malloc')
+        has_libm = cc.has_function('sin', prefix: '#include <math.h>')
+        ```
+
+        ## 总结
+
+        **M4是Autotools的引擎**：
+        - 它是一个**宏处理器**，通过模式匹配转换文本
+        - **`configure.ac`是用M4写的**，`autoconf`将其转换为shell脚本
+        - Autoconf提供了一套**预定义M4宏**（`AC_*`）来检测系统特性
+        - 虽然M4语法怪异，但它让Autotools能够：
+          - 生成可移植的shell脚本
+          - 处理复杂的条件逻辑
+          - 创建可重用的检测模式
+
+        理解M4是理解Autotools工作原理的关键，虽然现在大多数开发者不需要直接写M4，但知道它的存在有助于调试复杂的构建问题。
+
 * 我使用 sudo sshfs remote_dir /local_dir 后，普通用户无法访问 /local_dir，如何使 /local_dir 让普通用户可以访问，即每个用户看到的 /local_dir 的权限都是 775
 
     要让普通用户也能访问你用 `sudo` 挂载的 `/local_dir`，关键在于使用 SSHFS 的 `allow_other` 挂载选项。不过，因为你是用 `sudo` 挂载的（即 root 用户），所以直接使用这个选项就行，不需要修改系统配置文件。

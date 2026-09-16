@@ -100,6 +100,10 @@
 
 ## cache
 
+* compile
+
+    `make -j DEBUG=1 NVCC_GENCODE="-gencode=arch=compute_90,code=sm_90" src.build`
+
 • 按当前设计，正常的本地 XML 场景不会冲突。
 
   NCCL_TOPO_FILE 在 SICCL 中被当作“本机 topology 模板”：

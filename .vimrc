@@ -7,6 +7,7 @@ Plug 'tpope/vim-fugitive'
 
 Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
 
+
 call plug#end()
 
 " autocmd FileType c,cpp setlocal iskeyword+=#
