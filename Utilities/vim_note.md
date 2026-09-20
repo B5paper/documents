@@ -2,6 +2,25 @@
 
 ## cache
 
+* vim 显示 buffer 的标签栏，可以使用插件`vim-buftabline`。这个插件只显示 tabline，无其他功能。
+
+    `Plug 'ap/vim-buftabline'`
+
+* vim 状态栏常驻插件：`vim-airline`
+
+    这个插件还可以通过配置显示 tag
+
+    ```vim
+    " 在你的 .vimrc 中
+    Plug 'vim-airline/vim-airline'
+
+    " 启用 tabline 扩展，自动显示所有缓冲区
+    let g:airline#extensions#tabline#enabled = 1
+
+    " 可选：设置路径显示格式，让标签页更简洁
+    let g:airline#extensions#tabline#formatter = 'unique_tail'
+    ```
+
 * vim中，我使用 :e 打开了多个 buffer，当我在 buffer 1 中使用 y 复制了一行内容后，使用 :bn 切换到下一个 buffer 2，此时我想在 buffer 2 中使用 /<paste> 搜索刚才使用 y 复制的内容。这个时候按 p 肯定不管用，那么该怎么办？
 
     在 Vim 中，你复制的内容（yank）默认存储在寄存器 `"`（未命名寄存器）中，这个寄存器是全局的，跨 buffer 有效。所以问题不是内容丢失，而是**如何在命令行（`/` 搜索模式）中粘贴寄存器内容**。
