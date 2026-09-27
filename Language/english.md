@@ -2,6 +2,23 @@
 
 ## cache
 
+* 我想表达我的英语口语水平足够应付工作日常，但是并不是精通 ，该怎么用英语说？
+
+    这里有几个地道的英文表达，可以根据你的简历风格和自信程度来选择：
+
+    **1. 简洁专业版**
+    这个版本使用“proficient”和“routine”等标准商务词汇，表达自信且专业，是简历中最常见稳妥的写法。
+    > Proficient in English for routine workplace communication.
+
+    **2. 谦逊务实版**
+    这个版本通过“comfortable”和“daily professional use”强调能在日常工作中自如使用，同时用“not fluent”主动降低预期，显得谦逊务实。
+    > Comfortable with English for daily professional use, though not fluent.
+
+    **3. 自信进取版**
+    这个版本采用“working proficiency”这一国际通用标准来描述水平，并主动说明足以应对各类工作场景，表达非常自信。
+    > Working proficiency in English; capable of handling daily tasks and collaboration.
+
+    你可以根据个人偏好和申请职位的沟通需求来选择。如果需要进一步调整，请随时告诉我。
 * 简历中的 籍贯 翻译成英文应该翻译成什么比较合适
 
     在英文简历中，"籍贯" 的翻译可以根据具体语境和深度需求选择以下几种常见表达：

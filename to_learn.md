@@ -8585,3 +8585,15 @@
 
     This repository contains the source code for the paper GNNExplainer: Generating Explanations for Graph Neural Networks
 
+* GraIL - Graph Inductive Learning
+
+    <https://github.com/kkteru/grail>
+
+* awesome-graph-explainability-papers
+
+    <https://github.com/flyingdoog/awesome-graph-explainability-papers>
+
+* fNIRS 有哪些公开数据集？
+
+    <https://zhuanlan.zhihu.com/p/388014630>
+

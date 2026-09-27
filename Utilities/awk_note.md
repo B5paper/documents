@@ -11,6 +11,7 @@
     	```bash
     	awk '模式 {动作}' 文件名
     	```
+
     	- **模式**：可选，用于筛选行（如 `/正则/`、`条件表达式`）。
     	- **动作**：对匹配的行执行的操作（如 `print`、计算）。
 
@@ -25,47 +26,33 @@
 
 	3. 常见用法示例
 
-    	1) 打印指定列
+    	1. 打印指定列
 
-    	```bash
-    	awk '{print $1, $3}' file.txt      # 打印第1列和第3列
-    	```
+            ```bash
+            awk '{print $1, $3}' file.txt      # 打印第1列和第3列
+            ```
 
-    	2) 条件过滤
+            注：
 
-    	```bash
-    	awk '$2 > 100 {print $0}' data.txt # 打印第2列大于100的行
-    	awk '/error/ {print NR, $0}' log.txt # 打印包含"error"的行及其行号
-    	```
+            1. 如果文件最后有一行空行，那么空行也会被输出
 
-    	3) 设置分隔符
+            2. 逗号不会被输出，只在 $1 和 $3 之间输出空格
 
-    	```bash
-    	awk -F',' '{print $2}' file.csv    # 输入分隔符为逗号
-    	awk -F: '{print $1, $3}' /etc/passwd # 以冒号分隔，打印用户名和UID
-    	```
+    	2. 条件过滤
 
-    	4) 数值统计
-
-    	```bash
-    	awk '{sum += $1} END {print sum}' data.txt  # 对第1列求和
-    	awk '{if ($1 > max) max=$1} END {print max}' data.txt # 求最大值
-    	```
-
-    	5) 使用 BEGIN/END
-
-    	```bash
-    	awk 'BEGIN {FS=":"; OFS="|"} {print $1, $3} END {print "处理完成"}' file.txt
-    	```
-    	- `BEGIN`：在处理前执行（如初始化变量）。
-    	- `END`：在处理后执行（如输出结果）。
+            ```bash
+            awk '$2 > 100 {print $0}' data.txt  # 打印第 2 列大于 100 的行
+            awk '/error/ {print NR, $0}' log.txt  # 打印包含 "error" 的行及其行号
+            ```
 
 	4. 高级功能
 
     	- **数组操作**：支持关联数组，用于计数、去重等。
-    	  ```bash
-    	  awk '{count[$1]++} END {for (k in count) print k, count[k]}' log.txt
-    	  ```
+
+            ```bash
+            awk '{count[$1]++} END {for (k in count) print k, count[k]}' log.txt
+            ```
+
     	- **字符串函数**：`length()`、`substr()`、`gsub()` 等。
     	- **自定义变量**：直接在动作中定义变量（如 `awk '{total=$2+$3; print total}'`）。
 
@@ -82,74 +69,77 @@
 * 'awk '$2 > 100 {print $0}' data.txt'
     如果文本中第二行有非数字的，awk会如何处理？
 
-	当`awk '$2 > 100 {print $0}' data.txt`遇到第二列包含非数字内容时，**awk会将非数字字符串当作0来处理**。
+	当`awk '$2 > 100 {print $0}' data.txt`遇到第二列包含非数字内容时，**awk会将非数字字符串当作 0 来处理**。
 
-	## **具体行为示例**
+	* 具体行为示例
 
-	假设`data.txt`内容为：
-	```
-	abc 150
-	def twohundred
-	ghi 50
-	jkl 200
-	mno "123"
-	```
+        假设`data.txt`内容为：
 
-	**执行结果：**
-	```
-	abc 150
-	jkl 200
-	```
+        ```
+        abc 150
+        def twohundred
+        ghi 50
+        jkl 200
+        mno "123"
+        ```
 
-	## **处理逻辑**
+        **执行结果：**
+        ```
+        abc 150
+        jkl 200
+        ```
 
-	1. **`def twohundred`**：`$2 = "twohundred"` → 转换为数字 `0` → `0 > 100` 为假 → 不打印
-	2. **`ghi 50`**：`$2 = "50"` → 转换为数字 `50` → `50 > 100` 为假 → 不打印  
-	3. **`mno "123"`**：`$2 = "\"123\""` → 转换为数字 `0`（因为有引号）→ `0 > 100` 为假 → 不打印
+	* 处理逻辑
 
-	## **验证测试**
+        1. **`def twohundred`**：`$2 = "twohundred"` → 转换为数字 `0` → `0 > 100` 为假 → 不打印
+        2. **`ghi 50`**：`$2 = "50"` → 转换为数字 `50` → `50 > 100` 为假 → 不打印  
+        3. **`mno "123"`**：`$2 = "\"123\""` → 转换为数字 `0`（因为有引号）→ `0 > 100` 为假 → 不打印
 
-	```bash
-	# 测试awk对非数字的转换
-	echo "abc twohundred" | awk '{print $2, ($2+0)}'
-	# 输出：twohundred 0
+    * 验证测试
 
-	echo "abc 123abc" | awk '{print $2, ($2+0)}'  
-	# 输出：123abc 123  (部分转换)
-	```
+        ```bash
+        # 测试awk对非数字的转换
+        echo "abc twohundred" | awk '{print $2, ($2+0)}'
+        # 输出：twohundred 0
 
-	## **解决方案**
+        echo "abc 123abc" | awk '{print $2, ($2+0)}'  
+        # 输出：123abc 123  (部分转换)
+        ```
 
-	如果需要更严格的数值检查，可以：
+	* 解决方案
 
-	### **1. 明确检查是否为数字**
-	```bash
-	awk '$2+0 == $2 && $2 > 100 {print $0}' data.txt
-	```
+        如果需要更严格的数值检查，可以：
 
-	### **2. 使用正则表达式验证**
-	```bash
-	awk '$2 ~ /^[0-9]+$/ && $2 > 100 {print $0}' data.txt
-	```
+        1. 明确检查是否为数字
 
-	### **3. 处理非数字时给出警告**
-	```bash
-	awk '{
-		if ($2+0 != $2) 
-			print "警告: 第" NR "行第2列不是纯数字: " $2 > "/dev/stderr"
-		else if ($2 > 100) 
-			print $0
-	}' data.txt
-	```
+            ```bash
+            awk '$2+0 == $2 && $2 > 100 {print $0}' data.txt
+            ```
 
-	## **总结**
-	- **非数字字符串在数值比较时会被当作0**
-	- **混合字符串**（如"123abc"）会**部分转换**（提取开头的数字部分）
-	- 在需要精确处理的场景中，建议**先验证字段是否为纯数字**
+        2. 使用正则表达式验证
 
-* awk
+            ```bash
+            awk '$2 ~ /^[0-9]+$/ && $2 > 100 {print $0}' data.txt
+            ```
 
-    命令基本结构：
+        3. 处理非数字时给出警告
+
+            ```bash
+            awk '{
+                if ($2+0 != $2) 
+                    print "警告: 第" NR "行第2列不是纯数字: " $2 > "/dev/stderr"
+                else if ($2 > 100) 
+                    print $0
+            }' data.txt
+            ```
+
+	* 总结
+
+        - **非数字字符串在数值比较时会被当作0**
+        - **混合字符串**（如"123abc"）会**部分转换**（提取开头的数字部分）
+        - 在需要精确处理的场景中，建议**先验证字段是否为纯数字**
+
+* awk 命令基本结构：
     
     `awk '模式 {动作}' 文件名`
 
@@ -157,7 +147,7 @@
 
     * 动作：对匹配的行执行的操作（如 `print`、计算）。
 
-    常用内置变量:
+* 常用内置变量:
 
     * `$0`：整行内容。
 
@@ -171,58 +161,89 @@
 
     * `OFS`：输出字段分隔符（默认为空格）。
 
-    常见用法:
-
-    * 打印指定列
-
-        `msg.txt`:
-
-        ```
-        hello world nihao zaijian
-        haha hehe haihai huaihuai
-        1 2 3 4
-        ```
-
-        ```bash
-        awk '{print $1, $3}' msg.txt      # 打印第1列和第3列
-        ```
-
-        output:
-
-        ```
-        hello nihao
-        haha haihai
-        1 3
-        ```
-
-    * 条件过滤
-
-        `data.txt`:
-
-        ```
-        1 2 3
-        4 5 6
-        7 8 9
-        10 11hehe 12
-        ```
-
-        ```bash
-        awk '$2 >= 5 {print $0}' data.txt # 打印第 2 列大于等于 5 的行
-        ```
-
-        output:
-
-        ```
-        4 5 6
-        7 8 9
-        ```
-
-        如果在比较时，发现有非数字项，那么会被当作`0`处理。所以`11hehe`没有被输出。数据中的小数也可以被正确处理。
-
-        如果需要做“等于”比较，那么可以使用两个等号`==`。
-
-        ```bash
-        awk '/error/ {print NR, $0}' log.txt # 打印包含"error"的行及其行号
-        ```
-
 ## topics
+
+### 常见用法
+
+* 打印指定列
+
+    `msg.txt`:
+
+    ```
+    hello world nihao zaijian
+    haha hehe haihai huaihuai
+    1 2 3 4
+    ```
+
+    ```bash
+    awk '{print $1, $3}' msg.txt      # 打印第1列和第3列
+    ```
+
+    output:
+
+    ```
+    hello nihao
+    haha haihai
+    1 3
+    ```
+
+* 条件过滤
+
+    `data.txt`:
+
+    ```
+    1 2 3
+    4 5 6
+    7 8 9
+    10 11hehe 12
+    ```
+
+    ```bash
+    awk '$2 >= 5 {print $0}' data.txt # 打印第 2 列大于等于 5 的行
+    ```
+
+    output:
+
+    ```
+    4 5 6
+    7 8 9
+    ```
+
+    如果在比较时，发现有非数字项，那么会被当作`0`处理。所以`11hehe`没有被输出。数据中的小数也可以被正确处理。
+
+    如果需要做“等于”比较，那么可以使用两个等号`==`。
+
+    ```bash
+    awk '/error/ {print NR, $0}' log.txt # 打印包含"error"的行及其行号
+    ```
+
+* 设置分隔符
+
+    ```bash
+    awk -F',' '{print $2}' file.csv    # 输入分隔符为逗号
+    awk -F: '{print $1, $3}' /etc/passwd # 以冒号分隔，打印用户名和UID
+    ```
+
+    注：
+
+    1. `-F,`也是可以的，逗号不需要加引号
+
+* 数值统计
+
+    ```bash
+    awk '{sum += $1} END {print sum}' data.txt  # 对第1列求和
+    awk '{if ($1 > max) max=$1} END {print max}' data.txt  # 求最大值
+    ```
+
+* 使用 BEGIN/END
+
+    ```bash
+    awk 'BEGIN {FS=":"; OFS="|"} {print $1, $3} END {print "处理完成"}' file.txt
+    ```
+
+    - `BEGIN`：在处理前执行（如初始化变量）。
+    - `END`：在处理后执行（如输出结果）。
+
+    注：
+
+    1. 必须是大写的 END。awk 对大小写敏感

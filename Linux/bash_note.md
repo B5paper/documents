@@ -4,6 +4,1618 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* 这个 bash 中，为什么第 4 个匹配项，? 前有一个 \
+
+    ```bash
+    while getopts "ab:c" opt; do
+      case $opt in
+        a) echo "选项 -a 被触发" ;;
+        b) echo "选项 -b，参数为: $OPTARG" ;;
+        c) echo "选项 -c 被触发" ;;
+        \?) echo "未知选项: -$OPTARG" ;;
+      esac
+    done
+    ```
+
+    在 Bash 的 `case` 语句中，`\?` 前面的反斜杠 `\` 是用来**转义问号 `?`** 的。
+
+    **原因**
+
+    在 `case` 语句的模式匹配（pattern matching）中，`?` 是一个**通配符**，表示"匹配任意单个字符"。
+
+    ```bash
+    case $opt in
+      \?) ... ;;   # 匹配字面上的问号字符 "?"
+      ?)  ... ;;   # 匹配任意单个字符
+    esac
+    ```
+
+    - **不加 `\`**：`?)` 会匹配任意单个字符，比如 `a`、`b`、`x`、`1` 等，语义完全不同。
+    - **加上 `\`**：`\?)` 中的 `\?` 被转义，表示字面上的问号字符 `?` 本身。
+
+    **在 getopts 语境下的含义**
+
+    `getopts` 在遇到**未知选项**（即不在 `"ab:c"` 里定义的选项）时，会把 `$opt` 设置为字符 `?`，并把该未知选项字符放入 `$OPTARG`。
+
+    所以这里：
+
+    ```bash
+    \?) echo "未知选项: -$OPTARG" ;;
+    ```
+
+    意思是：当 `$opt` 的值是字面上的问号 `?`（即遇到未知选项）时，执行这个分支，打印出未知选项的名字。
+
+    **对比说明**
+
+    | 模式 | 匹配内容 |
+    |------|----------|
+    | `?)` | 任意单个字符（通配符 `?`） |
+    | `\?)` | 字面上的问号字符 `?` |
+    | `a)` | 字面上的 `a`（字母不是通配符，无需转义） |
+
+    只有 `?`、`*`、`[` 这些在模式中有特殊含义的字符才需要转义。字母和数字本身不是通配符，所以 `a)`、`b)` 不需要加 `\`。
+
+    **顺带一提**
+
+    `case` 里的其他分支 `a)`、`b)`、`c)` 是精确匹配（因为字母不是通配符），而 `\?)` 是精确匹配字面问号——它必须放在能"兜底"处理未知选项的位置，才能正确捕获 getopts 传来的 `?`。
+
+* shellcheck
+
+    <https://github.com/koalaman/shellcheck>
+
+    apt 中也能搜索到 shellcheck
+
+    ShellCheck 是一款专为 shell 脚本设计的**静态分析工具**（Linter）。它的核心目标是帮助你提前发现脚本中的语法错误、语义陷阱以及可移植性问题，避免它们在运行时才以“神秘”的方式暴露出来。
+
+    **🎯 它能帮你解决什么问题？**
+
+    ShellCheck 主要关注以下几类容易引发问题的模式：
+
+    *   **初学者语法错误**：指出导致 Shell 给出“神秘错误”的典型语法问题。
+    *   **中间级语义陷阱**：发现那些让脚本行为“怪异且反直觉”的代码逻辑。
+    *   **高级隐蔽风险**：提醒可能在未来特定情况下导致失败的边缘场景和陷阱。
+    *   **可移植性检查**：如果你声明使用 `#!/bin/sh`，它会警告你使用了 `[[ ]]`、`(( ))` 等非 POSIX 标准特性。
+
+    **🚀 核心功能与用法**
+
+    ShellCheck 的命令行用法非常直观：`shellcheck [选项] 你的脚本文件`。
+
+    **常用命令行选项**
+
+    | 选项 | 作用 |
+    | :--- | :--- |
+    | `-e CODE` | 排除特定的检查规则（如 `-e SC2086`）。 |
+    | `-s shell` | 指定目标 Shell 方言（如 `-s bash`、`-s sh`）。 |
+    | `-f format` | 指定输出格式，如 `gcc`（便于编辑器集成）、`json`、`diff` 等。 |
+    | `-x` | 跟踪 `source` 引用的外部文件，以进行更全面的分析。 |
+
+    **以 Bash 为例的典型检查**
+
+    ShellCheck 的规则通常以 `SC` 开头，并带有编号。以下是一些 Bash 脚本中常见的检查项：
+
+    1. 引用问题 (Quoting)
+
+        这是最常触发的检查之一。Bash 中变量如果不加双引号，会发生单词分割（Word Splitting）和通配符扩展，导致意外结果。
+
+        *   **问题代码**：`for f in $(ls *.txt); do echo $f; done`
+        *   **ShellCheck 警告**：`SC2045`（建议用 glob）或 `SC2086`（双引号防止分割）。
+        *   **修复**：`for f in *.txt; do echo "$f"; done`
+
+    2. 声明与赋值分离 (SC2155)
+
+        将变量声明和命令替换放在同一行，会掩盖命令的退出状态码，导致错误处理失效。
+
+        *   **问题代码**：`local result=$(grep "error" log.txt)`
+        *   **修复**：
+            ```bash
+            local result
+            result=$(grep "error" log.txt)
+            ```
+
+    3. 目录切换检查 (SC2164)
+
+        `cd` 命令失败时脚本默认会继续执行，可能导致后续操作在错误的目录下进行。
+
+        *   **问题代码**：`cd /opt/myapp`
+        *   **修复**：`cd /opt/myapp || exit 1`
+
+    4. 反引号替代 (SC2006)
+
+        虽然 `` `...` `` 在 Bash 中能用，但 `$(...)` 更清晰且易于嵌套。
+        *   **问题代码**：`tag=\`git describe\``
+        *   **修复**：`tag=$(git describe)`
+
+    5. Bash 特有的语义警告
+
+        ShellCheck 会根据你指定的 Shell（如 Bash）给出特定建议。例如，对于 `(( area = 3.14*r*r ))`，在 `bash` 下它会警告 Bash 的算术上下文不支持小数。
+
+    **⚙️ 配置与例外处理**
+
+    有些时候，特定的检查规则可能不适用于你的项目（例如，你确实需要利用单词分割）。ShellCheck 提供了灵活的配置方式。
+
+    1. 项目级配置 (`.shellcheckrc`)
+
+        你可以在项目根目录创建 `.shellcheckrc` 文件来统一配置。
+
+        ```ini
+        # .shellcheckrc
+        shell=bash
+        # 排除特定警告
+        disable=SC2086,SC1091
+        # 启用可选检查
+        enable=avoid-nullary-conditions
+        ```
+
+    2. 源码内指令 (Directives)
+
+        你也可以在脚本中通过注释来局部调整检查行为。
+
+        *   **禁用下一行的特定检查**：
+            ```bash
+            # shellcheck disable=SC2086
+            echo $intentionally_unquoted
+            ```
+
+        *   **告知 ShellCheck 动态 source 文件的位置**：
+            ```bash
+            # shellcheck source=./lib.sh
+            source "$(find_lib_dir)/lib.sh"
+            ```
+
+    **🛠️ 集成到你的工作流**
+
+    ShellCheck 几乎可以集成到任何开发环境中：
+
+    *   **编辑器/IDE**：VS Code、Vim、Sublime Text、IntelliJ 等主流编辑器都有官方或社区插件，能在你编写时实时标出问题。
+
+    *   **CI/CD 流水线**：GitHub Actions、GitLab CI 等平台可以轻松调用 ShellCheck，作为代码提交的门禁检查，确保只有质量合格的脚本才能被合并。
+
+    *   **在线尝试**：你可以直接访问 `shellcheck.net`，粘贴脚本代码即可快速查看分析结果，非常适合快速验证。
+
+    总的来说，ShellCheck 是 Bash 脚本开发中提升代码质量、增强健壮性、避免隐蔽 Bug 的必备工具。对于任何需要编写或维护 Shell 脚本的开发者，它都值得成为你工具链中的标准配置。
+
+    如果你有具体的脚本片段想要分析，或者想了解某个特定的 `SC` 警告代码，随时可以发给我。
+
+* Bash 中的进程与作业控制详解
+
+    **一、进程 vs 作业（Job）**
+
+    在理解 Bash 的作业控制之前，先区分两个概念：
+
+    | 概念 | 含义 |
+    |------|------|
+    | **进程（Process）** | 操作系统调度的基本单位，每个进程有独立的 PID |
+    | **作业（Job）** | Shell 层面的概念，通常对应一个**管道（pipeline）**，可能包含多个进程 |
+
+    一个作业可能由多个进程组成，比如 `ls | grep txt | wc -l` 就是一个作业包含 3 个进程。
+
+    Bash 把作业分为两类：
+
+    - **前台作业（foreground）**：占用终端，用户等待其结束
+    - **后台作业（background）**：在后台运行，终端可以继续接受输入
+
+    **二、后台运行：`cmd &`**
+
+    在命令末尾加 `&`，会让命令在后台运行，Shell 立即返回并打印作业号与 PID：
+
+    ```bash
+    $ sleep 100 &
+    [1] 12345
+    ```
+
+    - `[1]` 是**作业号（job number）**，仅在当前 Shell 会话内有效
+    - `12345` 是**进程 PID**，全局唯一
+
+    **注意**：
+
+    - 后台进程仍与当前终端关联，关闭终端时会收到 `SIGHUP` 信号（可能被杀掉）
+    - 后台进程若尝试从终端读取输入，会被 `SIGTTIN` 暂停
+    - 若向终端写输出，默认允许（可能干扰前台输出），可用 `stty tostop` 禁止
+
+    **三、查看与管理作业：`jobs`、`fg`、`bg`**
+
+    1. `jobs` — 列出当前 Shell 的作业
+
+        ```bash
+        $ jobs
+        [1]-  Running    sleep 100 &
+        [2]+  Stopped    vim file.txt
+        ```
+
+        符号说明：
+
+        - `+`：当前作业（默认被 `fg`/`bg` 操作的对象）
+        - `-`：上一个作业
+        - 状态：`Running`、`Stopped`、`Done`、`Terminated` 等
+
+        常用参数：
+
+        ```bash
+        jobs -l    # 显示 PID
+        jobs -r    # 只显示运行中的
+        jobs -s    # 只显示已停止的
+        jobs -p    # 只显示 PID
+        ```
+
+    2. 暂停前台作业
+
+        在前台按 `Ctrl+Z` 会发送 `SIGTSTP`，将当前前台作业**暂停**并放入后台（状态为 Stopped）。
+
+    3. `fg` — 把作业调回前台
+
+        ```bash
+        fg          # 恢复当前作业（带 + 的）
+        fg %1       # 恢复作业号 1
+        fg %sleep   # 按命令名匹配（前缀）
+        fg %?leep   # 按命令名包含匹配
+        ```
+
+    4. `bg` — 让暂停的作业在后台继续运行
+
+        ```bash
+        bg          # 让当前作业在后台继续
+        bg %2       # 指定作业号
+        ```
+
+        **典型工作流**：
+
+        ```bash
+        $ vim bigfile        # 编辑中
+        Ctrl+Z               # 暂停，回到 Shell
+        $ bg                 # 让 vim 在后台继续运行
+        $ fg                 # 想继续编辑时再调回前台
+        ```
+
+    **四、`wait` — 等待子进程结束**
+
+    ```bash
+    cmd1 &
+    cmd2 &
+    wait                 # 等待所有后台子进程结束
+    wait $PID            # 等待指定 PID
+    wait %1              # 等待作业 1
+    ```
+
+    常用于脚本中并行执行任务后再统一处理：
+
+    ```bash
+    #!/bin/bash
+    for i in 1 2 3; do
+        process_data $i &
+    done
+    wait
+    echo "全部完成"
+    ```
+
+    **返回值**：`wait` 返回被等待进程的退出状态；若进程不存在，返回 127。
+
+    **五、`kill` — 发送信号**
+
+    `kill` 本质是**发送信号**给进程，默认发送 `SIGTERM(15)`。
+
+    ```bash
+    kill PID             # 发送 SIGTERM，礼貌请求退出
+    kill -9 PID          # 发送 SIGKILL，强制杀死（不可捕获）
+    kill -l              # 列出所有信号
+    kill -s SIGINT PID   # 指定信号名
+    kill %1              # 也可以对作业号操作
+    ```
+
+    **常用信号**
+
+    | 信号 | 编号 | 含义 |
+    |------|------|------|
+    | SIGHUP | 1 | 终端挂断，常用于重载配置 |
+    | SIGINT | 2 | Ctrl+C，中断 |
+    | SIGQUIT | 3 | Ctrl+\，退出并 core dump |
+    | SIGKILL | 9 | 强制杀死，不可捕获 |
+    | SIGTERM | 15 | 默认，可捕获，优雅退出 |
+    | SIGSTOP | 19 | 强制暂停，不可捕获 |
+    | SIGTSTP | 20 | Ctrl+Z，可捕获的暂停 |
+    | SIGCONT | 18 | 继续执行 |
+
+    **最佳实践**：先 `kill PID`（SIGTERM），给程序清理机会；若无效再 `kill -9 PID`。
+
+    **杀死整个进程组**
+
+    后台作业通常自成进程组，PID 等于 PGID。要杀整个作业：
+
+    ```bash
+    kill -- -PGID        # 负号表示进程组
+    ```
+
+    **六、`nohup` — 忽略挂断信号**
+
+    `nohup` 让命令忽略 `SIGHUP`，从而在关闭终端后仍能继续运行。
+
+    ```bash
+    nohup ./long_task.sh &
+    ```
+
+    默认行为：
+
+    - 忽略 SIGHUP
+    - 若标准输出是终端，则重定向到 `nohup.out`
+    - 标准错误也会重定向到同一文件
+
+    通常配合重定向使用：
+
+    ```bash
+    nohup ./task.sh > task.log 2>&1 &
+    ```
+
+    **`nohup` vs `disown`**：
+
+    - `nohup cmd &`：启动时就忽略 HUP
+    - `disown -h %1`：把已运行的后台作业从 Shell 作业表中移除，同样避免 HUP
+    - `disown -a`：移除所有作业
+    - `disown -r`：移除正在运行的作业
+
+    更彻底的方案是用 `setsid` 让进程脱离控制终端：
+
+    ```bash
+    setsid ./task.sh > task.log 2>&1 < /dev/null &
+    ```
+
+    **七、`ps` — 查看进程快照**
+
+    ```bash
+    ps                   # 当前终端关联的进程
+    ps aux               # BSD 风格，显示所有用户的所有进程
+    ps -ef               # System V 风格，显示所有进程
+    ps -ef f             # 树状显示
+    ps -u username       # 指定用户
+    ps -p PID            # 指定 PID
+    ps -C name           # 按命令名（精确）
+    ```
+
+    **常用字段（`ps aux`）**
+
+    | 列 | 含义 |
+    |----|------|
+    | USER | 用户 |
+    | PID | 进程 ID |
+    | %CPU | CPU 占用 |
+    | %MEM | 内存占用 |
+    | VSZ | 虚拟内存大小 |
+    | RSS | 常驻内存集 |
+    | STAT | 状态码（见下） |
+    | START | 启动时间 |
+    | TIME | 累计 CPU 时间 |
+    | COMMAND | 命令 |
+
+    **进程状态码（STAT）**
+
+    | 码 | 含义 |
+    |----|------|
+    | R | Running / Runnable |
+    | S | 可中断睡眠 |
+    | D | 不可中断睡眠（通常 IO） |
+    | T | 停止（Ctrl+Z 或 SIGSTOP） |
+    | Z | 僵尸进程 |
+    | s | 会话首进程 |
+    | l | 多线程 |
+    | + | 前台进程组 |
+
+    **自定义输出**
+
+    ```bash
+    ps -eo pid,ppid,pgid,sid,stat,comm
+    ```
+
+    **八、`pgrep` — 按条件查找进程 PID**
+
+    ```bash
+    pgrep sshd              # 按名称
+    pgrep -u alice bash     # 指定用户
+    pgrep -f "python.*app"  # 匹配完整命令行
+    pgrep -l nginx          # 同时显示进程名
+    pgrep -a nginx          # 显示完整命令行
+    pgrep -n nginx          # 只显示最新的一个
+    pgrep -o nginx          # 只显示最老的一个
+    pgrep -c nginx          # 只输出计数
+    pgrep -P 1234           # 父进程为 1234 的子进程
+    pgrep -x bash           # 精确匹配进程名
+    ```
+
+    对应还有 `pkill`（见下）和 `pstree`。
+
+    **九、`pkill` — 按条件杀进程**
+
+    `pkill` 是 `pgrep` 的"发信号"版本，参数基本一致：
+
+    ```bash
+    pkill sshd                        # 杀名为 sshd 的进程
+    pkill -9 -f "python app.py"       # 强制杀掉匹配完整命令行的
+    pkill -u alice                    # 杀掉某用户的所有进程
+    pkill -P 1234                     # 杀掉某进程的子进程
+    pkill -SIGTERM -x bash            # 精确匹配发 SIGTERM
+    ```
+
+    **危险提示**：
+    - `pkill -f` 会匹配整条命令行，容易误伤（比如匹配到自己）
+    - `pkill -u $USER` 会杀掉自己会话的所有进程，包括当前 Shell
+    - 生产环境建议先 `pgrep` 确认，再 `pkill`
+
+    **十、综合示例**
+
+    **示例 1：后台运行并管理**
+
+    ```bash
+    $ tar czf backup.tar.gz /data &      # 后台打包
+    [1] 23456
+    $ jobs -l
+    [1]+ 23456 Running    tar czf backup.tar.gz /data &
+    $ fg %1                              # 调回前台看进度
+    $ bg %1                              # 再放回后台
+    ```
+
+    **示例 2：脚本中并行执行**
+
+    ```bash
+    #!/bin/bash
+    set -e
+    pids=()
+    for host in host1 host2 host3; do
+        ssh "$host" "deploy.sh" &
+        pids+=($!)
+    done
+    for pid in "${pids[@]}"; do
+        wait "$pid" || echo "PID $pid 失败"
+    done
+    echo "部署完成"
+    ```
+
+    **示例 3：长期运行任务**
+
+    ```bash
+    nohup ./server > server.log 2>&1 &
+    echo $! > server.pid          # 保存 PID
+    # 以后需要停止时：
+    kill "$(cat server.pid)"
+    ```
+
+    **示例 4：清理僵尸/无用进程**
+
+    ```bash
+    pgrep -u alice -f "python worker"    # 先查看
+    pkill -u alice -f "python worker"    # 再杀
+    ```
+
+    **十一、常见坑与最佳实践**
+
+    1. **`&` 不等于守护进程**：关终端仍可能被杀，需 `nohup` / `setsid` / `disown`。
+    2. **`kill -9` 是最后手段**：跳过清理逻辑，可能留下锁文件、临时文件、损坏数据。
+    3. **作业号只在当前 Shell 有效**：新开终端用不了 `%1`。
+    4. **`wait` 只能等当前 Shell 的子进程**：孙子进程等不到。
+    5. **`pkill -f` 慎用**：匹配范围广，可能误杀。
+    6. **信号是可捕获的**：程序可自定义 SIGTERM/SIGINT 处理，SIGKILL/SIGSTOP 不可捕获。
+    7. **Ctrl+C 发给整个前台进程组**，不仅是当前命令。
+    8. **查看进程树**：用 `pstree -p` 或 `ps -ef f` 更直观。
+
+    **十二、速查表**
+
+    | 命令 | 作用 |
+    |------|------|
+    | `cmd &` | 后台运行 |
+    | `Ctrl+Z` | 暂停前台作业 |
+    | `jobs -l` | 列出作业及 PID |
+    | `fg %n` | 作业 n 调前台 |
+    | `bg %n` | 作业 n 后台继续 |
+    | `wait [pid]` | 等待子进程 |
+    | `kill [-sig] pid` | 发信号 |
+    | `nohup cmd &` | 忽略 HUP 运行 |
+    | `disown %n` | 从作业表移除 |
+    | `setsid cmd` | 脱离控制终端 |
+    | `ps aux` | 查看所有进程 |
+    | `pgrep -af pat` | 查找进程 |
+    | `pkill -f pat` | 杀匹配进程 |
+
+    掌握这些工具的组合，就能在交互式 Shell 和脚本中灵活地调度、监控和管理进程了。
+
+* 详细讲讲 bash 调试技巧
+
+    bash -x script.sh 跟踪执行
+
+    set -x / set +x 局部调试
+
+    shellcheck script.sh 静态检查
+
+    # Bash 调试技巧详解
+
+    Bash 脚本调试往往令人头疼，但掌握以下技巧后，定位问题会高效很多。下面从**动态跟踪**、**局部调试**、**静态检查**三个层面详细展开，并补充一些实战中非常有用的进阶技巧。
+
+    ---
+
+    ## 一、动态跟踪：`bash -x script.sh`
+
+    ### 基本用法
+
+    ```bash
+    bash -x script.sh
+    ```
+
+    `-x`（xtrace）会让 Bash 在执行每条命令前，把**展开后的命令**打印到 stderr，前缀是 `+`。
+
+    ### 输出示例
+
+    ```bash
+    #!/bin/bash
+    name="world"
+    echo "hello $name"
+    ```
+
+    执行 `bash -x script.sh`：
+
+    ```
+    + name=world
+    + echo 'hello world'
+    hello world
+    ```
+
+    注意两点：
+    - `+` 后面是**变量展开后**的实际命令，能看出变量的真实值。
+    - 赋值语句也会被打印，方便追踪变量变化。
+
+    ### 常用组合
+
+    | 参数 | 作用 |
+    |------|------|
+    | `-x` | 打印执行的命令（xtrace） |
+    | `-v` | 打印读入的原始行（verbose），与 `-x` 不同，它不展开变量 |
+    | `-n` | 只做语法检查，不执行 |
+    | `-e` | 命令失败立即退出（errexit） |
+    | `-u` | 使用未定义变量时报错（nounset） |
+    | `-o pipefail` | 管道中任一命令失败即视为失败 |
+
+    组合使用：
+
+    ```bash
+    bash -euxo pipefail script.sh
+    ```
+
+    这是很多生产脚本的推荐起点，能提前暴露大量问题。但注意 `-e` 有陷阱（见后文）。
+
+    ### 让 `+` 前缀更易读
+
+    多层嵌套或函数调用时，`+` 前缀会越来越长。可以自定义 `PS4`：
+
+    ```bash
+    export PS4='+[${BASH_SOURCE}:${LINENO}] ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    bash -x script.sh
+    ```
+
+    输出会变成：
+
+    ```
+    +[script.sh:3] main(): echo 'hello world'
+    ```
+
+    直接显示**文件名、行号、函数名**，定位快很多。
+
+    ---
+
+    ## 二、局部调试：`set -x` / `set +x`
+
+    ### 基本用法
+
+    ```bash
+    #!/bin/bash
+
+    set -x          # 开始跟踪
+    可疑的代码块
+    set +x          # 关闭跟踪
+    ```
+
+    只对你关心的片段开启跟踪，避免整份脚本输出刷屏。
+
+    ### 实战技巧
+
+    **1. 用函数包裹，避免忘记关闭**
+
+    ```bash
+    debug() { set -x; }
+    nodebug() { set +x; }
+
+    debug
+    result=$(复杂命令)
+    nodebug
+    ```
+
+    **2. 只在需要时开启（条件调试）**
+
+    ```bash
+    [[ "${DEBUG:-}" == "1" ]] && set -x
+    ```
+
+    运行 `DEBUG=1 ./script.sh` 才输出跟踪，正常运行时干净。
+
+    **3. 结合 `trap` 打印出错行号**
+
+    `set -e` 出错退出时不会告诉你哪一行出错。用 `ERR` trap 补上：
+
+    ```bash
+    set -e
+    trap 'echo "ERROR at ${BASH_SOURCE}:${LINENO}: ${BASH_COMMAND}" >&2' ERR
+    ```
+
+    出错时输出类似：
+
+    ```
+    ERROR at script.sh:42: cp /nonexist /tmp/
+    ```
+
+    **4. 小心 `set -e` 的陷阱**
+
+    `set -e` 在以下场景**不会**退出，容易误判：
+    - 命令在 `if`、`while`、`&&`、`||`、`!` 中
+    - 函数返回非零但被调用处忽略
+    - 子 shell 中的失败
+
+    ```bash
+    set -e
+    f() { false; echo "still here"; }   # false 失败但不会退出
+    f
+    ```
+
+    需要严格退出时，可显式处理，或使用 `trap ... ERR` 配合。
+
+    **5. 打印变量值而不是命令**
+
+    `set -x` 打印的是命令。要专门打印变量，用：
+
+    ```bash
+    set -x
+    var="value"
+    set +x
+    echo "var=$var" >&2   # 显式输出
+    ```
+
+    或使用 `declare -p var` 打印变量的定义形式（含类型）。
+
+    ---
+
+    ## 三、静态检查：`shellcheck`
+
+    ### 安装
+
+    ```bash
+    # Debian/Ubuntu
+    apt install shellcheck
+    # macOS
+    brew install shellcheck
+    # 或者从 https://www.shellcheck.net 在线检查
+    ```
+
+    ### 基本用法
+
+    ```bash
+    shellcheck script.sh
+    ```
+
+    它会指出：
+    - 未加引号的变量（`$var` vs `"$var"`）
+    - `[ ]` 与 `[[ ]]` 的误用
+    - `rm -rf $dir/` 之类的危险写法
+    - 未使用的变量
+    - POSIX sh 兼容性问题
+    - 常见逻辑错误
+
+    ### 示例
+
+    ```bash
+    #!/bin/bash
+    files=$(ls *.txt)
+    for f in $files; do
+      echo $f
+    done
+    ```
+
+    ShellCheck 会警告：
+
+    ```
+    SC2045: Iterating over ls output is fragile. Use a glob.
+    SC2086: Double quote to prevent globbing and word splitting.
+    ```
+
+    ### 实用选项
+
+    | 选项 | 说明 |
+    |------|------|
+    | `-s sh` / `-s bash` | 指定 shell 方言 |
+    | `-S warning` | 只显示 warning 及以上 |
+    | `-f gcc` | 输出格式化为编译器风格，便于编辑器集成 |
+    | `-e SC2086` | 忽略指定规则 |
+    | `-x` | 跟随 `source` 的文件一起检查 |
+
+    ### 在脚本中忽略单行
+
+    ```bash
+    # shellcheck disable=SC2086
+    echo $unquoted
+    ```
+
+    ### 集成到 CI / pre-commit
+
+    ```bash
+    # pre-commit 配置
+    - repo: https://github.com/koalaman/shellcheck-precommit
+      rev: v0.10.0
+      hooks:
+        - id: shellcheck
+    ```
+
+    ---
+
+    ## 四、进阶技巧补充
+
+    ### 1. `bash -n` 语法检查
+
+    执行前先检查语法，不运行：
+
+    ```bash
+    bash -n script.sh
+    ```
+
+    适合放进 CI 快速拦截低级错误。
+
+    ### 2. `trap` 调试退出原因
+
+    ```bash
+    trap 'echo "exit code=$? at line $LINENO"' EXIT
+    ```
+
+    能捕获脚本以何种状态退出。
+
+    ### 3. `BASH_XTRACEFD` 分离调试输出
+
+    把 `-x` 的输出写到单独文件，不污染 stderr：
+
+    ```bash
+    exec 19> /tmp/trace.log
+    BASH_XTRACEFD=19
+    set -x
+    ...
+    ```
+
+    ### 4. 用 `DEBUG` trap 做逐步执行
+
+    ```bash
+    trap 'read -p "line $LINENO: $BASH_COMMAND, press enter..."' DEBUG
+    ```
+
+    每执行一条命令前暂停，类似 gdb 的单步。生产慎用，调试交互脚本很爽。
+
+    ### 5. 打印调用栈
+
+    ```bash
+    print_stack() {
+      local i
+      for ((i=1; i<${#FUNCNAME[@]}; i++)); do
+        echo "  at ${FUNCNAME[$i]} (${BASH_SOURCE[$i]}:${BASH_LINENO[$i-1]})" >&2
+      done
+    }
+    ```
+
+    在出错 trap 中调用，快速看清调用链。
+
+    ### 6. 检查命令是否存在的干净写法
+
+    ```bash
+    if ! command -v jq >/dev/null 2>&1; then
+      echo "jq not found" >&2
+      exit 1
+    fi
+    ```
+
+    比 `which` 更可靠（`which` 行为在不同系统不一致）。
+
+    ### 7. 时间戳跟踪
+
+    ```bash
+    export PS4='+$(date +%s.%N) ${BASH_SOURCE}:${LINENO}: '
+    set -x
+    ```
+
+    适合排查**性能问题**，能看到每条命令的耗时。
+
+    ---
+
+    ## 五、推荐调试流程
+
+    1. **写脚本时**：边写边用 `shellcheck`，配好编辑器插件（VSCode / vim ALE）。
+    2. **首次运行**：`bash -n` 过语法，再 `bash -euxo pipefail` 跑一遍。
+    3. **出问题时**：在可疑区域前后加 `set -x` / `set +x`，配合自定义 `PS4` 显示行号。
+    4. **复杂逻辑**：用 `trap ERR` 打印出错行，用 `DEBUG` trap 单步。
+    5. **性能排查**：PS4 加时间戳，或用 `time` 包裹关键块。
+    6. **上线前**：CI 里跑 `shellcheck -S warning` + `bash -n`。
+
+    ---
+
+    ## 六、一页速查
+
+    ```bash
+    bash -n script.sh              # 语法检查
+    bash -x script.sh              # 全量跟踪
+    bash -euxo pipefail script.sh  # 严格模式 + 跟踪
+
+    # 脚本内
+    set -x / set +x                # 局部跟踪
+    set -euo pipefail              # 严格模式
+    trap '...' ERR EXIT DEBUG      # 错误/退出/单步
+    export PS4='+${BASH_SOURCE}:${LINENO}: '  # 更有用的跟踪前缀
+
+    shellcheck script.sh           # 静态检查
+    shellcheck -s bash -S warning script.sh
+    ```
+
+    掌握这些，Bash 调试基本可以做到**快速定位、静态预防、动态追踪**三位一体。最关键的实战习惯是：**严格模式打底 + shellcheck 兜底 + 局部 set -x 精确定位**。
+
+* 详细讲讲 awk 的用法
+
+    **awk 详解**
+
+    awk 是 Linux/Unix 下强大的文本处理工具，适合按行、按列处理结构化文本。下面从基础到进阶系统讲解。
+
+    **一、基本工作模式**
+
+    awk 逐行读取输入，对每一行执行 `pattern { action }` 规则：
+
+    ```bash
+    awk 'pattern { action }' file
+    ```
+
+    - **pattern**：匹配条件（可省略，表示每行都执行）
+
+    - **action**：要执行的操作（可省略，默认打印整行）
+
+    ```bash
+    awk '{ print }' file.txt          # 打印每行（类似 cat）
+    awk '/error/ { print }' file.txt  # 打印含 error 的行
+    awk '/error/' file.txt            # pattern 省略 action，默认打印
+    ```
+
+    **二、字段与内置变量**
+
+    awk 按**分隔符**把每行拆成字段，用 `$1, $2, ...` 引用：
+
+    | 变量 | 含义 |
+    |------|------|
+    | `$0` | 整行内容 |
+    | `$1, $2...` | 第 1、2... 个字段 |
+    | `$NF` | 最后一个字段 |
+    | `NF` | 当前行的字段数 |
+    | `NR` | 当前处理的行号（跨文件累计） |
+    | `FNR` | 当前文件内的行号 |
+    | `FS` | 输入字段分隔符（默认空格/Tab） |
+    | `OFS` | 输出字段分隔符（默认空格） |
+    | `RS` | 输入记录分隔符（默认换行） |
+    | `ORS` | 输出记录分隔符（默认换行） |
+    | `FILENAME` | 当前文件名 |
+
+    ```bash
+    awk '{ print $1, $3 }' file.txt        # 打印第1、3列
+    awk '{ print $NF }' file.txt           # 打印最后一列
+    awk '{ print NF }' file.txt            # 打印每行字段数
+    awk '{ print NR": "$0 }' file.txt      # 带行号打印
+    ```
+
+    **三、分隔符设置**
+
+    ```bash
+    # -F 指定分隔符
+    awk -F: '{ print $1 }' /etc/passwd
+    awk -F'\t' '{ print $2 }' file.tsv
+    awk -F'[,;]' '{ print $1 }' file.txt   # 支持正则作为分隔符
+
+    # 用 FS 变量
+    awk 'BEGIN{FS=":"} { print $1 }' /etc/passwd
+
+    # 输出分隔符 OFS
+    awk 'BEGIN{FS=":";OFS="-"}{ print $1,$3 }' /etc/passwd
+    ```
+
+    **四、BEGIN / END 块**
+
+    ```bash
+    awk 'BEGIN{ print "开始" } { print $1 } END{ print "结束" }' file.txt
+    ```
+
+    - `BEGIN`：处理输入前执行一次（常用于初始化、打印表头）
+
+    - `END`：处理完所有输入后执行一次（常用于汇总统计）
+
+    ```bash
+    # 统计行数
+    awk 'END{ print NR }' file.txt
+
+    # 求和
+    awk '{ sum += $1 } END{ print sum }' nums.txt
+
+    # 求平均
+    awk '{ sum += $1 } END{ print sum/NR }' nums.txt
+    ```
+
+    **五、条件与模式**
+
+    ```bash
+    # 数值比较
+    awk '$3 > 100 { print $1, $3 }' file.txt
+
+    # 字符串匹配
+    awk '$1 == "root" { print }' /etc/passwd
+    awk '$1 ~ /^ro/ { print }' /etc/passwd      # 正则匹配
+    awk '$1 !~ /^ro/ { print }' /etc/passwd     # 不匹配
+
+    # 逻辑运算
+    awk '$3 > 50 && $3 < 100 { print }' file.txt
+    awk '$1 == "a" || $1 == "b" { print }' file.txt
+
+    # 范围模式
+    awk '/START/,/END/ { print }' file.txt      # 打印两个标记之间的行
+
+    # 行号条件
+    awk 'NR==1 { print }' file.txt              # 第一行
+    awk 'NR>1 { print }' file.txt               # 除第一行外
+    ```
+
+    注：
+
+    1. `NR == 1`等号左右可以有空格，也可以没有。
+
+    2. 范围模式，更像是选中多个匹配模式，不像是范围。没看明白这个。
+
+    **六、变量与运算**
+
+    awk 变量无需声明，默认为 0 或空字符串：
+
+    ```bash
+    awk '{ count++ } END{ print count }' file.txt
+    awk '{ sum += $2 } END{ print sum }' file.txt
+    awk '{ max = ($1 > max) ? $1 : max } END{ print max }' nums.txt
+    ```
+
+    支持算术 `+ - * / %`、比较、逻辑、三目运算符。
+
+    **七、流程控制**
+
+    ```bash
+    # if-else
+    awk '{ if ($1 > 60) print "及格"; else print "不及格" }' scores.txt
+
+    # for 循环
+    awk '{ for (i=1; i<=NF; i++) print $i }' file.txt
+
+    # while
+    awk '{ i=1; while (i<=NF) { print $i; i++ } }' file.txt
+
+    # 数组遍历
+    awk '{ count[$1]++ } END{ for (k in count) print k, count[k] }' file.txt
+
+    # break / continue / next / exit
+    awk '{ if ($1 == "skip") next; print }' file.txt   # next 跳过本行
+    awk 'NR==5 { exit } { print }' file.txt            # exit 提前结束
+    ```
+
+    **八、数组**
+
+    awk 的数组是关联数组（哈希表），是统计的利器：
+
+    ```bash
+    # 统计每个单词出现次数
+    awk '{ for (i=1; i<=NF; i++) count[$i]++ } END{ for (w in count) print w, count[w] }' file.txt
+
+    # 判断键是否存在
+    awk '{ if ($1 in seen) print "重复:", $1; seen[$1]=1 }' file.txt
+
+    # 删除数组元素
+    awk '{ delete arr[$1] }' file.txt
+
+    # 多维数组（用 SUBSEP 连接）
+    awk '{ a[$1,$2]++ } END{ for (k in a) print k, a[k] }' file.txt
+    ```
+
+    **九、常用内置函数**
+
+    **字符串函数：**
+
+    | 函数 | 说明 |
+    |------|------|
+    | `length(s)` | 字符串长度 |
+    | `substr(s,m,n)` | 从 m 取 n 个字符 |
+    | `index(s,t)` | t 在 s 中的位置 |
+    | `split(s,a,fs)` | 按 fs 分割 s 到数组 a |
+    | `sub(r,t,s)` | 替换第一个匹配 |
+    | `gsub(r,t,s)` | 替换所有匹配 |
+    | `match(s,r)` | 返回匹配位置 |
+    | `tolower(s)` / `toupper(s)` | 大小写转换 |
+    | `sprintf(fmt,...)` | 格式化字符串 |
+
+    ```bash
+    awk '{ print length($0) }' file.txt
+    awk '{ print substr($1,1,3) }' file.txt
+    awk '{ gsub(/foo/,"bar"); print }' file.txt
+    awk '{ n=split($0,arr,","); print n, arr[1] }' file.txt
+    ```
+
+    **数学函数：**
+
+    `int()`, `sqrt()`, `exp()`, `log()`, `sin()`, `cos()`, `rand()`, `srand()`
+
+    ```bash
+    awk '{ print int($1) }' nums.txt
+    awk 'BEGIN{ srand(); print rand() }'
+    ```
+
+    **格式化输出 printf：**
+
+    ```bash
+    awk '{ printf "%-10s %5d\n", $1, $2 }' file.txt
+    awk '{ printf "%.2f\n", $1 }' nums.txt
+    ```
+
+    格式符：`%s` 字符串、`%d` 整数、`%f` 浮点、`%x` 十六进制、`%c` 字符。
+
+    **十、实战示例**
+
+    ```bash
+    # 1. 统计文件行数、字数、字符数
+    awk '{ chars+=length($0)+1; words+=NF } END{ print NR, words, chars }' file.txt
+
+    # 2. 打印 /etc/passwd 的用户名和 shell
+    awk -F: '{ print $1, $7 }' /etc/passwd
+
+    # 3. 求某列总和与平均
+    awk '{ s+=$3 } END{ printf "sum=%d avg=%.2f\n", s, s/NR }' data.txt
+
+    # 4. 按第一列分组求和
+    awk '{ sum[$1]+=$2 } END{ for (k in sum) print k, sum[k] }' data.txt
+
+    # 5. 找出重复行
+    awk 'seen[$0]++' file.txt
+
+    # 6. 去重（保留首次出现）
+    awk '!seen[$0]++' file.txt
+
+    # 7. 打印第 10-20 行
+    awk 'NR>=10 && NR<=20' file.txt
+
+    # 8. 交换前两列
+    awk '{ t=$1; $1=$2; $2=t; print }' file.txt
+
+    # 9. 统计日志中各 IP 的访问次数并排序
+    awk '{ ip[$1]++ } END{ for (i in ip) print ip[i], i }' access.log | sort -rn
+
+    # 10. 处理 CSV 某列求和
+    awk -F, 'NR>1 { sum+=$3 } END{ print sum }' data.csv
+    ```
+
+    **十一、进阶技巧**
+
+    **多个规则组合：**
+
+    ```bash
+    awk 'NR==1 { print "表头:", $0 } $3>100 { print "大值:", $1 }' file.txt
+    ```
+
+    **变量传递：**
+
+    ```bash
+    awk -v threshold=100 '$3 > threshold { print }' file.txt
+    ```
+
+    **多文件处理：**
+
+    ```bash
+    awk '{ print FILENAME, FNR, $0 }' a.txt b.txt
+    ```
+
+    **使用外部脚本文件：**
+
+    ```bash
+    # script.awk
+    BEGIN { FS=":" }
+    $3 > 100 { print $1 }
+    END { print "done" }
+
+    awk -f script.awk /etc/passwd
+    ```
+
+    **gawk 扩展（GNU awk 特有）：**
+
+    ```bash
+    awk 'BEGIN{ PROCINFO["sorted_in"]="@ind_str_asc"; } ...'  # 数组排序遍历
+    awk '{ a[NR]=$0 } END{ ... }'                              # 排序文本
+    ```
+
+    **十二、awk vs 其他工具**
+
+    | 场景 | 推荐 |
+    |------|------|
+    | 按列提取/简单过滤 | awk |
+    | 复杂正则替换 | sed |
+    | 结构化统计/汇总 | awk |
+    | JSON 处理 | jq |
+
+    **核心记忆点：**
+    1. `pattern { action }` 是基本结构
+    2. `$0` 整行，`$1..$NF` 字段，`NR/NF/FS/OFS` 常用变量
+    3. `BEGIN/END` 做初始化和汇总
+    4. 关联数组是统计核心
+    5. 条件、循环、函数齐备，几乎是一门小语言
+
+    掌握以上内容，日常文本处理基本够用。需要某个方向（如日志分析、性能优化）深入可以再展开。
+
+* 详细讲讲 date 命令的用法
+
+    `date` 命令主要用于**显示或设置**系统日期与时间。最常用的场景是**自定义格式输出**，通过 `+` 号后接格式字符串来实现。
+
+    **📝 基础用法与格式控制**
+
+    默认情况下，直接输入 `date` 会显示类似 `Thu Jul  9 17:00:00 EDT 2026` 的本地时间。要自定义输出，需使用 `+` 号，格式字符串中的 `%` 是转换符。
+
+    **常用格式符速查**：
+
+    | 格式符 | 含义 | 示例输出 |
+    | :--- | :--- | :--- |
+    | `%Y` | 4位年份 | `2026` |
+    | `%m` | 月份 (01-12) | `07` |
+    | `%d` | 日 (01-31) | `09` |
+    | `%H` | 小时 (00-23) | `17` |
+    | `%M` | 分钟 (00-59) | `00` |
+    | `%S` | 秒 (00-60) | `00` |
+    | `%F` | 完整日期 (等同 `%Y-%m-%d`) | `2026-07-09` |
+    | `%T` | 完整时间 (等同 `%H:%M:%S`) | `17:00:00` |
+    | `%A` | 星期全称 | `Thursday` |
+    | `%B` | 月份全称 | `July` |
+
+    **组合示例**：
+
+    *   `date +"%Y-%m-%d %H:%M:%S"` 会输出 `2026-07-09 17:00:00`。
+    *   如果你想输出不带补零的日期（例如 `2026-7-9`），可以使用 GNU 扩展的 `-` 修饰符，如 `date +"%-Y-%-m-%-d"`。
+
+    **⏰ 显示指定时间（-d 选项）**
+
+    `-d` 选项非常强大，它允许你根据**人类可读的字符串**来显示时间，而不是当前时间。
+
+    *   **相对时间**：`date -d "yesterday"`（昨天）、`date -d "2 days ago"`（前天）、`date -d "3 months 1 day"`（3个月零1天后）。
+    *   **特定日期**：`date -d "2026-12-25"` 或 `date -d "25 Dec"`。
+    *   **时间戳转换**：`date -d @1595289600` 可以将 Unix 时间戳转换为可读日期。
+
+    **🌍 时区与 UTC（-u 选项）**
+
+    默认显示的是系统本地时间。使用 `-u` 或 `--utc` 可以强制以**协调世界时 (UTC)** 显示。
+
+    在 `-d` 中也可以进行时区转换，例如，查看纽约时间 2023年5月7日 12:23 对应的东京时间：
+    `TZ="Asia/Tokyo" date -d 'TZ="America/New_York" 2023-05-07 12:23'`。
+
+    **⚙️ 设置系统时间（-s 选项）**
+
+    **需要 root 权限**。使用 `-s` 或 `--set` 选项来设置系统时间。
+    *   `date -s "2026-07-09 17:30:00"`：将时间设置为指定的日期和时间。
+    *   注意：只设置日期而不指定时间，会导致时间被重置为 `00:00:00`。
+
+    **📄 其他实用选项**
+
+    *   **-f, --file=日期文件**：从文件中读取多行日期字符串，并逐一显示对应的时间。如果文件名为 `-`，则从标准输入读取。
+    *   **-r, --reference=文件**：显示指定文件的**最后修改时间**。
+    *   **--iso-8601**：以 ISO 8601 标准格式输出（如 `2026-07-09` 或 `2026-07-09T17:00:00+08:00`），后接 `date`、`hours`、`minutes`、`seconds` 可控制精度。
+    *   **-R, --rfc-email**：以 RFC 5322 电子邮件格式输出，例如 `Thu, 09 Jul 2026 17:00:00 +0800`。
+
+* 详细讲讲 bash 中 uniq 的用法
+
+    `uniq` 用于**去除或统计相邻的重复行**。关键点：它只能处理**相邻**的重复行，所以通常要配合 `sort` 使用。
+
+    **一、基本语法**
+
+    ```bash
+    uniq [选项] [输入文件] [输出文件]
+    ```
+
+    - 如果不指定输入文件，从标准输入读取
+    - 如果不指定输出文件，输出到标准输出
+
+    **二、核心特性：只处理相邻重复行**
+
+    这是新手最容易踩的坑：
+
+    ```bash
+    $ cat test.txt
+    apple
+    banana
+    apple
+    banana
+
+    $ uniq test.txt
+    apple
+    banana
+    apple
+    banana      # 没有去重！因为不重复的行不相邻
+    ```
+
+    正确做法是先排序：
+
+    ```bash
+    $ sort test.txt | uniq
+    apple
+    banana
+    ```
+
+    **三、常用选项**
+
+    | 选项 | 说明 |
+    |------|------|
+    | `-c` | 在每行前显示该行出现的次数 |
+    | `-d` | 只显示重复的行（每组只显示一次） |
+    | `-D` | 显示所有重复的行（每组全部显示） |
+    | `-u` | 只显示不重复的行（出现一次的行） |
+    | `-i` | 忽略大小写 |
+    | `-f N` | 跳过前 N 个字段再比较 |
+    | `-s N` | 跳过前 N 个字符再比较 |
+    | `-w N` | 只比较前 N 个字符 |
+    | `-z` | 以 NUL 而非换行作为行分隔符 |
+
+    **四、常用选项示例**
+
+    1. `-c` 统计出现次数（最常用）
+
+        ```bash
+        $ cat test.txt
+        apple
+        apple
+        banana
+        apple
+
+        $ sort test.txt | uniq -c
+              3 apple
+              1 banana
+        ```
+
+        常配合排序找出出现最多的行：
+
+        ```bash
+        $ sort test.txt | uniq -c | sort -rn
+              3 apple
+              1 banana
+        ```
+
+    2. `-d` 只显示重复行
+
+        ```bash
+        $ sort test.txt | uniq -d
+        apple
+        ```
+
+    3. `-D` 显示所有重复行（不折叠）
+
+        ```bash
+        $ sort test.txt | uniq -D
+        apple
+        apple
+        apple
+        ```
+
+    4. `-u` 只显示唯一行
+
+        ```bash
+        $ sort test.txt | uniq -u
+        banana
+        ```
+
+    5. `-i` 忽略大小写
+
+        ```bash
+        $ printf "Apple\napple\nbanana\n" | uniq -i
+        Apple
+        banana
+        ```
+
+        注意：`uniq -i` 也要求相邻，所以通常配合 `sort -f`：
+
+        ```bash
+        $ printf "Apple\napple\nbanana\n" | sort -f | uniq -i
+        Apple
+        banana
+        ```
+
+    6. `-f N` 跳过前 N 个字段
+
+        按空白分隔，跳过前面字段再比较：
+
+        ```bash
+        $ cat log.txt
+        2024-01-01 error foo
+        2024-01-02 error bar
+        2024-01-03 warn baz
+
+        # 跳过第一个字段（日期），只看后面的内容
+        $ uniq -f 1 log.txt
+        2024-01-01 error foo
+        2024-01-03 warn baz
+        ```
+
+    7. `-s N` 跳过前 N 个字符
+
+        ```bash
+        $ cat test.txt
+        AAA123
+        BBB123
+        CCC456
+
+        $ uniq -s 3 test.txt
+        AAA123
+        CCC456      # 前3个字符不同，比较后3位
+        ```
+
+    8. `-w N` 只比较前 N 个字符
+
+        ```bash
+        $ cat test.txt
+        hello_world
+        hello_there
+        goodbye
+
+        $ uniq -w 5 test.txt
+        hello_world
+        goodbye
+        ```
+
+    9. 组合使用：`-f` 和 `-w`
+
+        ```bash
+        uniq -f 2 -w 10 file.txt
+        ```
+
+        跳过前 2 个字段，然后只比较接下来的 10 个字符。
+
+    **五、典型实战场景**
+
+    1. 统计文件中某列出现的频率
+
+        ```bash
+        # 统计访问日志中 IP 出现次数，Top 10
+        awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -10
+        ```
+
+    2. 找出重复的文件名
+
+        ```bash
+        find . -type f -printf "%f\n" | sort | uniq -d
+        ```
+
+    3. 找出只出现一次的行
+
+        ```bash
+        sort file.txt | uniq -u
+        ```
+
+    4. 合并两个文件的并集/交集/差集
+
+        ```bash
+        # 并集
+        cat a.txt b.txt | sort | uniq
+
+        # 交集
+        cat a.txt b.txt | sort | uniq -d
+
+        # 只在 a.txt 中（差集）
+        sort a.txt b.txt b.txt | uniq -u
+        ```
+
+    5. 去重但保留原顺序
+
+        `uniq` 会破坏顺序，若想保留首次出现的顺序：
+
+        ```bash
+        awk '!seen[$0]++' file.txt
+        ```
+
+    6. 忽略大小写去重
+
+        ```bash
+        sort -f file.txt | uniq -i
+        ```
+
+    7. 去除连续空行（只留一个空行）
+
+        ```bash
+        cat file.txt | uniq
+        ```
+
+        （空行连续时会被折叠成一个）
+
+    **六、常见误区**
+
+    | 误区 | 说明 |
+    |------|------|
+    | 直接 `uniq file` 就以为能全部去重 | 只去重**相邻**行，需先 `sort` |
+    | `uniq -c` 单独用 | 会因不相邻而统计错误，通常要 `sort` 先 |
+    | `uniq -i` 单独用 | 大小写不同的行不相邻时无效，用 `sort -f` 配合 |
+    | `-D` 和 `-d` 混淆 | `-d` 每组只输出一次；`-D` 输出所有重复行 |
+    | 大文件忽略 `LC_ALL=C` | 排序很慢时可以 `LC_ALL=C sort file \| uniq` 提速 |
+
+    **七、性能小贴士**
+
+    处理大文件时：
+
+    ```bash
+    LC_ALL=C sort file.txt | LC_ALL=C uniq -c
+    ```
+
+    `LC_ALL=C` 使用字节比较，比本地化排序快很多。
+
+    **八、快速记忆口诀**
+
+    - **`sort | uniq`**：标准组合，先去重
+    - **`uniq -c`**：计数
+    - **`uniq -d`**：看重复
+    - **`uniq -u`**：看唯一
+    - **`-f/-s/-w`**：按字段/字符位置比较（处理结构化日志很有用）
+
+    如果你想深入某个具体场景（比如日志分析、文件比对），可以告诉我，我再给针对性示例。
+
+* bash 会特殊处理哪些字符
+
+    bash 在解析命令行时，有一批字符具有特殊含义，如果不加引号（或转义），shell 会先处理它们，再传给程序。下面按类别整理。
+
+    **一、通配符（Globbing / Pathname Expansion）**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `*` | 匹配任意长度字符串（不含 `/`） |
+    | `?` | 匹配任意单个字符 |
+    | `[abc]` | 匹配括号内任一字符 |
+    | `[a-z]` | 匹配范围 |
+    | `[!abc]` / `[^abc]` | 匹配不在集合内的字符 |
+    | `{a,b,c}` | 花括号展开（brace expansion） |
+    | `{1..10}` | 序列展开 |
+
+    例：
+
+    ```bash
+    echo *.txt        # 展开成当前目录所有 .txt 文件
+    echo {a,b}.txt    # 展开成 a.txt b.txt
+    ```
+
+    **二、变量与命令替换**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `$var` | 变量替换 |
+    | `${var}` | 变量替换（明确边界） |
+    | `$(cmd)` | 命令替换 |
+    | `` `cmd` `` | 命令替换（旧写法） |
+    | `$((...))` | 算术展开 |
+    | `$?`、`$$`、`$!`、`$#`、`$@`、`$*` | 特殊变量 |
+
+    例：
+
+    ```bash
+    echo $HOME        # 展开为家目录
+    echo $(date)      # 展开为当前日期
+    ```
+
+    **三、引号与转义**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `'...'` | 单引号：内部全部原样，不展开 |
+    | `"..."` | 双引号：阻止通配符和分词，但允许 `$`、`` ` ``、`\` 展开 |
+    | `\` | 转义下一个字符 |
+
+    例：
+
+    ```bash
+    echo '$HOME'      # 输出 $HOME
+    echo "$HOME"      # 输出 /home/user
+    echo \$HOME       # 输出 $HOME
+    ```
+
+    **四、重定向**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `>` | 输出重定向（覆盖） |
+    | `>>` | 输出重定向（追加） |
+    | `<` | 输入重定向 |
+    | `<<` | Here document |
+    | `<<<` | Here string |
+    | `2>`、`&>`、`&>>` | 错误/全部输出重定向 |
+    | `>&`、`<&` | 文件描述符复制 |
+
+    例：
+
+    ```bash
+    echo hi > out.txt
+    cmd 2>&1
+    ```
+
+    **五、管道与控制符**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `\|` | 管道 |
+    | `&` | 后台执行 |
+    | `&&` | 前一个成功才执行后一个 |
+    | `\|\|` | 前一个失败才执行后一个 |
+    | `;` | 顺序执行 |
+    | `(` `)` | 子 shell |
+    | `{ }` | 当前 shell 分组（注意与花括号展开区分） |
+
+    例：
+
+    ```bash
+    cmd1 && cmd2
+    cmd1 | cmd2
+    ```
+
+    **六、分词（Word Splitting）**
+
+    未加引号的变量展开结果，会按 `IFS`（默认空格、制表符、换行）再次拆分：
+
+    ```bash
+    x="a b c"
+    for i in $x; do echo $i; done   # 输出三行：a、b、c
+    for i in "$x"; do echo $i; done # 输出一行：a b c
+    ```
+
+    **七、历史展开（History Expansion，交互式）**
+
+    在交互式 bash 中：
+
+    | 字符 | 含义 |
+    |------|------|
+    | `!` | 历史命令展开 |
+
+    例：
+    ```bash
+    !!        # 上一条命令
+    !$        # 上一条命令的最后一个参数
+    ```
+
+    在脚本中默认关闭，所以写脚本时 `!` 一般安全。
+
+    **八、注释与换行**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `#` | 注释（在行首或词首时） |
+    | `\` + 换行 | 续行 |
+
+    **九、其他特殊字符**
+
+    | 字符 | 含义 |
+    |------|------|
+    | `~` | 家目录展开（在词首） |
+    | `=` | 变量赋值（在命令首位） |
+    | `%`、`^` | 某些 shell 的历史替换（bash 默认不用） |
+
+    **十、为什么 awk 那段必须加单引号**
+
+    回到你的例子：
+
+    ```bash
+    awk -F',' '{print $2}' file.csv
+    ```
+
+    - `$2`：如果不加引号，shell 会先做变量替换，把 `$2` 换成脚本的第二个位置参数（通常是空）。
+    - `{}`：花括号展开可能被触发。
+    - 空格：会导致 awk 收到多个参数。
+
+    所以用单引号把整个 awk 程序包起来，**阻止 shell 的一切展开**，原样交给 awk。
+
+    **小结：需要引号保护的常见字符**
+
+    ```
+    *  ?  [  ]  {  }  $  `  \  "  '  |  &  ;  <  >  (  )  #  ~  !  空格  制表符  换行
+    ```
+
+    **经验法则**：
+
+    - 传给程序的**代码/表达式**（awk、sed、find 的 `-exec` 等）→ 用**单引号**最安全。
+    - 需要 shell 展开变量的地方 → 用**双引号**。
+    - 单个特殊字符 → 用 `\` 转义。
+
 * posix 定义了 stdin_fileno, stdout_fileno 和 stderr_fileno 来代替 0, 1, 2。这三个符号常量的定义位于头文件 unistd.h
 
     文件描述符的有效范围是 0 到 OPEN_MAX。一般来说，每个进程最多可以打开 64 个文件。
@@ -5003,6 +6615,472 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## topics
 
+### 练手项目
+
+* 任务：系统监控小工具
+
+    写 monitor.sh：
+
+        每 5 秒打印一次 CPU、内存、磁盘使用率
+
+        超过阈值时输出警告
+
+        支持 Ctrl+C 优雅退出（用 trap）
+
+    ai 参考答案：
+
+    这是用 Bash 实现的系统监控脚本，按您的要求每 5 秒打印 CPU、内存、磁盘使用率，超阈值时告警，并支持 Ctrl+C 优雅退出。
+
+    ```bash
+    #!/usr/bin/env bash
+    #
+    # monitor.sh —— 简易系统监控小工具（Linux）
+    #
+    # 功能:
+    #   1. 每 5 秒打印一次 CPU / 内存 / 磁盘 使用率
+    #   2. 超过阈值时输出警告
+    #   3. Ctrl+C 优雅退出
+    #
+    # 可通过环境变量覆盖默认值:
+    #   INTERVAL=5 CPU_THRESHOLD=80 MEM_THRESHOLD=80 DISK_THRESHOLD=90 DISK_MOUNT=/
+    #   例: INTERVAL=2 CPU_THRESHOLD=70 ./monitor.sh
+    #
+    set -uo pipefail
+
+    INTERVAL="${INTERVAL:-5}"
+    CPU_THRESHOLD="${CPU_THRESHOLD:-80}"
+    MEM_THRESHOLD="${MEM_THRESHOLD:-80}"
+    DISK_THRESHOLD="${DISK_THRESHOLD:-90}"
+    DISK_MOUNT="${DISK_MOUNT:-/}"
+
+    # ---------- 颜色（非终端时自动关闭） ----------
+    if [[ -t 1 ]]; then
+        RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'
+        BLD=$'\033[1m';  DIM=$'\033[2m';  RST=$'\033[0m'
+    else
+        RED=''; YEL=''; GRN=''; BLD=''; DIM=''; RST=''
+    fi
+
+    # ---------- 采集函数 ----------
+
+    # 读 /proc/stat 第一行，输出 "<总jiffies> <空闲jiffies>"
+    cpu_snapshot() {
+        local f user nice system idle iowait irq softirq steal rest
+        read -r f user nice system idle iowait irq softirq steal rest < /proc/stat
+        printf '%d %d\n' \
+            "$(( ${user:-0} + ${nice:-0} + ${system:-0} + ${idle:-0} \
+                 + ${iowait:-0} + ${irq:-0} + ${softirq:-0} + ${steal:-0} ))" \
+            "$(( ${idle:-0} + ${iowait:-0} ))"
+    }
+
+    # 内存使用率（整数百分比），用 MemAvailable 更接近真实"已用"
+    memory_usage() {
+        local total avail free buffers cached
+        total=$(awk '/^MemTotal:/     {print $2}' /proc/meminfo)
+        avail=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+
+        if [[ -z $avail ]]; then            # 老内核回退方案
+            free=$(awk    '/^MemFree:/ {print $2}' /proc/meminfo)
+            buffers=$(awk '/^Buffers:/ {print $2}' /proc/meminfo)
+            cached=$(awk  '/^Cached:/  {print $2}' /proc/meminfo)
+            avail=$(( ${free:-0} + ${buffers:-0} + ${cached:-0} ))
+        fi
+
+        (( ${total:-0} > 0 )) || { echo 0; return; }
+        echo $(( (total - avail) * 100 / total ))
+    }
+
+    # 磁盘使用率（整数百分比）；失败返回 -1
+    disk_usage() {
+        df -P "$DISK_MOUNT" 2>/dev/null \
+            | awk 'NR==2 {gsub(/%/,"",$5); print $5+0; found=1}
+                   END   {if (!found) print -1}'
+    }
+
+    # 根据使用率和阈值选择颜色
+    usage_color() {   # $1=使用率  $2=阈值
+        if   (( $1 >= $2 ));          then printf '%s' "$RED"
+        elif (( $1 >= $2 * 8 / 10 )); then printf '%s' "$YEL"
+        else                               printf '%s' "$GRN"
+        fi
+    }
+
+    # ---------- 退出处理 ----------
+    on_exit() {
+        printf '\n%s监控已停止。%s\n' "$BLD" "$RST"
+        exit 0
+    }
+    trap on_exit INT TERM
+
+    # ---------- 主循环 ----------
+    main() {
+        printf '%s系统监控启动%s  间隔 %ss | 阈值 CPU %s%% / MEM %s%% / DISK %s%%\n' \
+            "$BLD" "$RST" "$INTERVAL" "$CPU_THRESHOLD" "$MEM_THRESHOLD" "$DISK_THRESHOLD"
+        printf '%s按 Ctrl+C 退出%s\n\n' "$DIM" "$RST"
+
+        local prev_total=0 prev_idle=0 cpu=0 first=1
+        local snap total idle dt di mem disk
+        local ts cpu_str mem_str disk_str cc mc dc
+
+        while :; do
+            ts=$(date '+%Y-%m-%d %H:%M:%S')
+
+            # ---- CPU：用两次采样的差值算，比瞬时值准确 ----
+            snap=$(cpu_snapshot)
+            total=${snap%% *}
+            idle=${snap##* }
+
+            if (( first )); then
+                cpu_str='  --'; cc=$DIM          # 第一次没有基准，跳过
+            else
+                dt=$(( total - prev_total ))
+                di=$(( idle  - prev_idle ))
+                if (( dt > 0 )); then
+                    cpu=$(( (dt - di) * 100 / dt ))
+                    (( cpu < 0 )) && cpu=0
+                fi
+                cpu_str=$(printf '%3d%%' "$cpu")
+                cc=$(usage_color "$cpu" "$CPU_THRESHOLD")
+            fi
+            prev_total=$total; prev_idle=$idle
+
+            # ---- 内存 ----
+            mem=$(memory_usage)
+            mem_str=$(printf '%3d%%' "$mem")
+            mc=$(usage_color "$mem" "$MEM_THRESHOLD")
+
+            # ---- 磁盘 ----
+            disk=$(disk_usage)
+            if (( disk >= 0 )); then
+                disk_str=$(printf '%3d%%' "$disk")
+                dc=$(usage_color "$disk" "$DISK_THRESHOLD")
+            else
+                disk_str='  n/a'; dc=$DIM
+            fi
+
+            # ---- 一行输出 ----
+            printf '[%s]  CPU %s%s%s   MEM %s%s%s   DISK(%s) %s%s%s\n' \
+                "$ts" \
+                "$cc" "$cpu_str" "$RST" \
+                "$mc" "$mem_str" "$RST" \
+                "$DISK_MOUNT" \
+                "$dc" "$disk_str" "$RST"
+
+            # ---- 超阈值告警 ----
+            (( ! first && cpu >= CPU_THRESHOLD )) && \
+                printf '%s  [!] CPU 使用率 %d%% 超过阈值 %d%%%s\n' \
+                       "$RED" "$cpu" "$CPU_THRESHOLD" "$RST"
+
+            (( mem >= MEM_THRESHOLD )) && \
+                printf '%s  [!] 内存使用率 %d%% 超过阈值 %d%%%s\n' \
+                       "$RED" "$mem" "$MEM_THRESHOLD" "$RST"
+
+            (( disk >= 0 && disk >= DISK_THRESHOLD )) && \
+                printf '%s  [!] 磁盘(%s) 使用率 %d%% 超过阈值 %d%%%s\n' \
+                       "$RED" "$DISK_MOUNT" "$disk" "$DISK_THRESHOLD" "$RST"
+
+            first=0
+            sleep "$INTERVAL"
+        done
+    }
+
+    main "$@"
+    ```
+
+    ### 监控与告警机制
+
+    #### 采集逻辑
+    CPU 使用率通过两次读取 `/proc/stat` 计算差值，比瞬时值更准确；内存使用率优先采用 `MemAvailable` 字段，更贴近真实“已用”内存；磁盘使用率则通过 `df -P` 解析指定挂载点。
+
+    #### 告警与配色
+    使用率低于阈值 80% 时显示绿色，达到阈值 80% 到 100% 之间显示黄色预警，达到或超过阈值时显示红色并输出 `[!]` 告警行，方便快速定位异常。
+
+    #### 退出与参数
+    脚本用 `trap` 捕获 `INT` 和 `TERM` 信号，按 Ctrl+C 后会打印停止信息并正常退出。间隔和各项阈值均可通过环境变量覆盖，例如 `INTERVAL=2 CPU_THRESHOLD=70 ./monitor.sh`。
+    ---
+
+    **优化建议：** 如需调整默认阈值或监控间隔，可直接修改脚本开头的 `INTERVAL`、`CPU_THRESHOLD`、`MEM_THRESHOLD`、`DISK_THRESHOLD` 等变量，无需改动逻辑。
+
+* 批量重命名工具
+
+    写 rename.sh：
+
+        把目录下所有 .jpeg 改成 .jpg
+
+        支持 --dry-run 只预览不执行
+
+        冲突时提示
+
+    用到的：for、参数解析、mv、字符串替换 ${f%.jpeg}.jpg
+
+    ai 参考答案：
+
+    这是您需要的 `rename.sh` 脚本，它使用 Bash 的 `for` 循环和字符串替换功能，安全地批量将 `.jpeg` 文件重命名为 `.jpg`，并支持预览与冲突提示。
+    ```bash
+    #!/usr/bin/env bash
+    # rename.sh - 批量将 .jpeg 重命名为 .jpg
+    # 用法: ./rename.sh [--dry-run] [目录]
+
+    set -euo pipefail
+
+    # ---------- 参数解析 ----------
+    DRY_RUN=0
+    TARGET_DIR="."
+
+    for arg in "$@"; do
+        case "$arg" in
+            --dry-run|-n)
+                DRY_RUN=1
+                ;;
+            -h|--help)
+                echo "用法: $0 [--dry-run] [目录]"
+                echo "  --dry-run, -n   只预览，不实际重命名"
+                exit 0
+                ;;
+            -*)
+                echo "未知选项: $arg" >&2
+                exit 1
+                ;;
+            *)
+                TARGET_DIR="$arg"
+                ;;
+        esac
+    done
+
+    if [[ ! -d "$TARGET_DIR" ]]; then
+        echo "错误: 目录不存在: $TARGET_DIR" >&2
+        exit 1
+    fi
+
+    # ---------- 主逻辑 ----------
+    shopt -s nullglob      # 没有匹配时展开为空，而不是保留字面量
+    count=0
+    skipped=0
+
+    for f in "$TARGET_DIR"/*.jpeg; do
+        # 去掉路径前缀，只保留文件名部分用于展示
+        base="${f##*/}"
+        # 字符串替换：把结尾的 .jpeg 换成 .jpg
+        new="${f%.jpeg}.jpg"
+
+        # 冲突检查：目标文件已存在
+        if [[ -e "$new" ]]; then
+            echo "跳过（冲突）: $base -> $(basename "$new") 已存在"
+            ((skipped++)) || true
+            continue
+        fi
+
+        if (( DRY_RUN )); then
+            echo "[dry-run] mv \"$f\" \"$new\""
+        else
+            mv -- "$f" "$new"
+            echo "重命名: $base -> $(basename "$new")"
+        fi
+        ((count++)) || true
+    done
+
+    # ---------- 汇总 ----------
+    echo "----------------------------------------"
+    if (( DRY_RUN )); then
+        echo "预览完成: 将重命名 $count 个文件, 跳过 $skipped 个"
+    else
+        echo "完成: 已重命名 $count 个文件, 跳过 $skipped 个"
+    fi
+    ```
+    ### 脚本功能与操作说明
+
+    您可以先通过 `--dry-run` 预览重命名结果，确认无误后再执行。
+
+    - **参数解析与预览模式**：脚本会解析 `--dry-run` 或 `-n` 参数。启用后，它仅打印将要执行的 `mv` 命令，而不会真正修改文件，方便您核对。
+    - **冲突检测与跳过**：在重命名前，脚本会检查目标 `.jpg` 文件是否已存在。如果存在，则跳过该文件并给出“跳过（冲突）”的提示，避免覆盖数据。
+    - **字符串替换与执行**：核心逻辑使用 `${f%.jpeg}.jpg` 将文件名后缀从 `.jpeg` 替换为 `.jpg`。在非预览模式下，会执行 `mv` 命令完成实际重命名，并输出每个文件的操作结果。
+
+    ---
+
+    **优化建议：** 您可以根据需要修改脚本开头的 `TARGET_DIR` 默认值（当前为 `.`），或直接在命令行指定目标目录，例如 `./rename.sh --dry-run /path/to/images`。
+
+* 备份脚本
+
+    任务：备份脚本
+
+    写 backup.sh：
+
+        把指定目录打包成 tar.gz
+
+        文件名带时间戳
+
+        保留最近 7 个备份，删除更早的
+
+        出错时退出并打印信息
+
+    用到的：tar、date、find、set -e、trap
+
+    **ai 参考答案：**
+
+    # backup.sh
+
+    ```bash
+    #!/usr/bin/env bash
+    #
+    # 用法: ./backup.sh <要备份的目录> [备份存放目录]
+    # 示例: ./backup.sh /var/www /backups
+
+    set -euo pipefail
+
+    # ---------- 错误处理：出错时打印信息并退出 ----------
+    on_error() {
+        local exit_code=$?
+        echo "[ERROR] 脚本在第 ${BASH_LINENO[0]} 行失败 (exit=$exit_code)，已中止。" >&2
+        exit "$exit_code"
+    }
+    trap on_error ERR
+
+    # 也可以捕获中断，做清理提示
+    trap 'echo "[WARN] 收到中断信号，退出。" >&2; exit 130' INT TERM
+
+    # ---------- 参数检查 ----------
+    if [ $# -lt 1 ]; then
+        echo "用法: $0 <要备份的目录> [备份存放目录]" >&2
+        exit 1
+    fi
+
+    SRC_DIR=$(realpath "$1")
+    DEST_DIR=$(realpath "${2:-.}")
+    KEEP=7
+
+    if [ ! -d "$SRC_DIR" ]; then
+        echo "[ERROR] 源目录不存在: $SRC_DIR" >&2
+        exit 1
+    fi
+
+    mkdir -p "$DEST_DIR"
+
+    # ---------- 生成带时间戳的文件名 ----------
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BASE_NAME=$(basename "$SRC_DIR")
+    ARCHIVE="$DEST_DIR/${BASE_NAME}_${TIMESTAMP}.tar.gz"
+
+    echo "[INFO] 开始备份: $SRC_DIR -> $ARCHIVE"
+
+    # ---------- 打包 ----------
+    # -C 到父目录，只打包目录名本身，避免绝对路径
+    tar -czf "$ARCHIVE" -C "$(dirname "$SRC_DIR")" "$BASE_NAME"
+
+    echo "[INFO] 备份完成: $ARCHIVE"
+
+    # ---------- 清理旧备份：只保留最近 $KEEP 个 ----------
+    # 按文件名匹配，找时间戳较旧的删除
+    echo "[INFO] 清理旧备份，保留最近 $KEEP 个..."
+
+    # 用 find 列出所有匹配的备份，按时间从新到旧排序，跳过前 KEEP 个，剩下的删除
+    mapfile -t OLD_BACKUPS < <(
+        find "$DEST_DIR" -maxdepth 1 -type f -name "${BASE_NAME}_*.tar.gz" \
+            -printf '%T@ %p\n' \
+        | sort -rn \
+        | awk -v keep="$KEEP" 'NR > keep { $1=""; sub(/^ /,""); print }'
+    )
+
+    if [ ${#OLD_BACKUPS[@]} -gt 0 ]; then
+        for f in "${OLD_BACKUPS[@]}"; do
+            echo "[INFO] 删除旧备份: $f"
+            rm -f -- "$f"
+        done
+    else
+        echo "[INFO] 无需清理。"
+    fi
+
+    echo "[INFO] 全部完成。"
+    ```
+
+    注：
+
+    1. -v 用来在 awk 程序外把 shell 变量传进去，赋值给 awk 变量 keep。
+
+    2. { $1=""; sub(/^ /,""); print }
+
+        这是对满足条件行执行的动作：
+
+        * $1=""
+
+            * 默认情况下 awk 按空白（空格/制表符）分词，$1 是第一列，$2 是第二列……
+
+            * 把 $1 赋值为空字符串后，awk 会重新拼接整行：用 OFS（默认是空格）把 $1 $2 ... 连起来。
+
+            * 因为 $1 空了，拼出来的行就变成 " /backups/xxx.tar.gz" —— 前面多了一个空格。
+
+            * 这一步的目的是丢掉时间戳，只留路径。
+
+        * sub(/^ /,"")
+
+            * sub(regex, replacement)：把第一个匹配 regex 的部分替换成 replacement。
+
+            * /^ /：匹配行首的一个空格。
+
+            * 替换成 ""，即删掉它。
+
+            * 于是 " /backups/xxx.tar.gz" → "/backups/xxx.tar.gz"，正好是干净的文件路径。
+
+            * 如果不做这一步，变量里会带前导空格，rm -f -- "$f" 虽然多半也能删（rm 会忽略首尾空白？不会，会当成文件名的一部分），所以必须去掉。这也是容易踩坑的地方。
+
+        * print
+
+            * 输出当前记录（此时已经是处理过的整行），默认加换行符。
+
+            * 结果就是一行一个纯文件路径。
+
+    3. 为什么不直接用 $2？
+
+        因为文件路径里可能含空格。比如：
+
+        ```text
+        1758364800 /backups/my data_20250920.tar.gz
+        ```
+
+        awk 默认按空白分词，$1 是时间戳，$2 只是 /backups/my，路径就被截断了。
+
+        而 $1="" 这种写法，是利用 awk 重新拼接整行的机制，等价于"删掉第一列，其余原样保留"，路径即使有空格也不会被拆坏。这是比 print $2 更稳的写法。
+
+        更严格的写法是用 -print0 + xargs -0，但这里为了可读性和常见场景，用 $1="" 已足够。
+
+    ## 关键点说明
+
+    | 需求 | 实现 |
+    |------|------|
+    | 打包成 tar.gz | `tar -czf` |
+    | 文件名带时间戳 | `date +%Y%m%d_%H%M%S` |
+    | 保留最近 7 个 | `find ... \| sort -rn \| awk 'NR>keep'` 选出旧的，逐个 `rm` |
+    | 出错退出并打印 | `set -euo pipefail` + `trap on_error ERR` |
+    | 中断清理 | `trap ... INT TERM` |
+
+    ## 几个细节
+
+    1. **`-C "$(dirname "$SRC_DIR")" "$BASE_NAME"`**
+       避免 tar 把绝对路径存进去（解包时会很麻烦），同时保证备份的是整个目录。
+
+    2. **用 `find -printf '%T@ %p'` + `sort -rn` 而不是 `ls -t`**
+       文件名里虽然有时间戳，但用文件 mtime 排序更稳妥，也不怕文件名有空格。`-print0` 版本更严格，这里为可读性用了 `-printf`。
+
+    3. **`sort -rn` 按修改时间数字降序**，`awk 'NR > keep'` 就是跳过最新的 7 个，剩下的打印出来删除。
+
+    4. **`set -euo pipefail`** 会让任何命令失败、未定义变量、管道中任一环节失败都触发 `ERR` trap，从而打印行号并退出。
+
+    ## 测试
+
+    ```bash
+    chmod +x backup.sh
+
+    # 造点数据
+    mkdir -p /tmp/testdata && echo hi > /tmp/testdata/a.txt
+
+    # 跑几次看清理效果
+    for i in {1..10}; do ./backup.sh /tmp/testdata /tmp/backups; sleep 1; done
+
+    # 应该只剩 7 个
+    ls -1 /tmp/backups
+    ```
+
+    如果想要更严格的并发安全，可以在清理前加个 `flock`；如果想要增量/压缩级别控制，可以在 `tar` 上加 `--exclude` 和 `-I 'gzip -9'`。
+
 ### while 语句
 
 * 详细讲讲 bash 中的 while 语句
@@ -7900,151 +9978,171 @@ Reference: <https://www.computerhope.com/unix.htm>
     
         `find . -maxdepth 1 -type f ! -name '.*'`
 
-* 详细讲讲 bash 中 sort 命令的用法
+* sort 命令
 
 	`sort` 是 Linux 系统中用来对文本文件内容进行排序的核心工具。它的设计哲学是“按行处理”，即默认以换行符作为记录分隔符，对每一行的内容进行排序。
 
 	下面我将从**基础用法**、**核心参数**、**高级技巧**和**实战场景**四个维度为你详细拆解。
 
-	---
+	1. 基础用法（无参数）
 
-	### 1. 基础用法（无参数）
+        - **`sort filename`**：将文件内容按**字典顺序**（ASCII 码）排序并输出到屏幕（原文件不变）。
+        - **`sort -n filename`**：按**数值大小**排序（重要：如果不加 `-n`，`10` 会排在 `2` 前面，因为 `1` < `2`）。
+        - **`sort -r filename`**：**反向排序**（从大到小 或 z->a）。
 
-	- **`sort filename`**：将文件内容按**字典顺序**（ASCII 码）排序并输出到屏幕（原文件不变）。
-	- **`sort -n filename`**：按**数值大小**排序（重要：如果不加 `-n`，`10` 会排在 `2` 前面，因为 `1` < `2`）。
-	- **`sort -r filename`**：**反向排序**（从大到小 或 z->a）。
+        **示例**：
 
-	**示例**：
-	```bash
-	# 文件 data.txt 内容：3, 10, 1, 2
-	sort data.txt      # 输出：1, 10, 2, 3 （因为按字符）
-	sort -n data.txt   # 输出：1, 2, 3, 10
-	```
+        `data.txt`:
 
-	---
+        ```
+        3
+        10
+        1
+        2
+        ```
 
-	### 2. 关键参数详解（必知必会）
+        ```bash
+        sort data.txt      # 输出：1, 10, 2, 3 （因为按字符）
+        sort -n data.txt   # 输出：1, 2, 3, 10
+        ```
 
-	#### 2.1 指定分隔符与排序字段（`-t` 和 `-k`）
-	这是 `sort` 最强大的功能，用于处理 CSV 或日志等结构化数据。
+        注：
 
-	- **`-t`**：指定字段分隔符（默认是空白符）。
-	- **`-k`**：指定按第几个字段排序（从 1 开始计数）。
+        1. sort 只对行进行排序，不改变行的内容
 
-	**示例**：按 CSV 的第二列（数字）排序
-	```bash
-	cat score.csv
-	# Alice,80
-	# Bob,75
-	# Charlie,90
+	2. 关键参数详解（必知必会）
 
-	sort -t ',' -k 2 -n score.csv
-	# 输出：
-	# Bob,75
-	# Alice,80
-	# Charlie,90
-	```
+        * 2.1 指定分隔符与排序字段（`-t` 和 `-k`）
 
-	**`-k` 的高级写法**：`-k 2,3` 表示从第 2 个字段开始到第 3 个字段结束作为排序键（常用于联合排序）。
+            这是 `sort` 最强大的功能，用于处理 CSV 或日志等结构化数据。
 
-	#### 2.2 忽略大小写（`-f`）
-	默认大写字母（A-Z）排在小写字母（a-z）之前。加上 `-f` 会让 `A` 和 `a` 视为相同。
+            - **`-t`**：指定字段分隔符（默认是空白符）。
+            - **`-k`**：指定按第几个字段排序（从 1 开始计数）。
 
-	#### 2.3 去除重复行（`-u`）
-	结合排序功能，只输出不重复的行（**必须排序后才能去重**，功能类似于 `sort | uniq`）。
+            **示例**：按 CSV 的第二列（数字）排序
 
-	```bash
-	sort -u list.txt   # 排序并删除相邻的重复行
-	```
+            ```bash
+            cat score.csv
+            # Alice,80
+            # Bob,75
+            # Charlie,90
 
-	#### 2.4 人类可读数字（`-h`）
-	专门处理带单位的数据，如 `1K`、`2M`、`1G`。常用于 `du` 和 `ls -lh` 的输出。
+            sort -t ',' -k 2 -n score.csv
+            # 输出：
+            # Bob,75
+            # Alice,80
+            # Charlie,90
+            ```
 
-	```bash
-	du -h * | sort -h   # 按文件大小从小到大排列
-	```
+            **`-k` 的高级写法**：`-k 2,3` 表示从第 2 个字段开始到第 3 个字段结束作为排序键（常用于联合排序）。
 
-	#### 2.5 随机排序（`-R`）
-	完全打乱行序（基于哈希随机），适合抽奖或数据洗牌。
+        * 2.2 忽略大小写（`-f`）
 
-	```bash
-	sort -R data.txt   # 每次输出顺序都不同
-	```
+            默认大写字母（A-Z）排在小写字母（a-z）之前。加上 `-f` 会让 `A` 和 `a` 视为相同。
 
-	---
+        * 2.3 去除重复行（`-u`）
 
-	### 3. 进阶技巧与边缘情况
+            结合排序功能，只输出不重复的行（**必须排序后才能去重**，功能类似于 `sort | uniq`）。
 
-	#### 3.1 稳定排序（`-s`）
-	默认情况下，如果两个键值相同，`sort` 可能会改变它们的相对顺序。加上 `-s`（stable）可以保留原始输入顺序。
-	**场景**：先按日期排序，再按名字排序，且希望名字相同的人保持原来的时间顺序。
+            ```bash
+            sort -u list.txt   # 排序并删除相邻的重复行
+            ```
 
-	#### 3.2 只检查是否已排序（`-c`）
-	不输出内容，仅检查文件是否已经排好序。如果未排序，返回非 0 退出码并提示第一处错误。
+        * 2.4 人类可读数字（`-h`）
 
-	```bash
-	sort -c data.txt && echo "已排序" || echo "未排序"
-	```
+            专门处理带单位的数据，如 `1K`、`2M`、`1G`。常用于 `du` 和 `ls -lh` 的输出。
 
-	#### 3.3 指定输出文件（`-o`）
-	避免重定向时误删原文件（重定向 `>` 会先清空文件）。`-o` 是安全的写入方式。
+            ```bash
+            du -h * | sort -h   # 按文件大小从小到大排列
+            ```
 
-	```bash
-	sort -n numbers.txt -o sorted_numbers.txt
-	```
+        * 2.5 随机排序（`-R`）
 
-	#### 3.4 内存与性能（`-S` 和 `--parallel`）
-	- **`-S`**：指定内存缓冲区大小（如 `-S 50%` 或 `-S 2G`）。如果文件极大，增加内存能减少磁盘 IO。
-	- **`--parallel=N`**：指定并行线程数（GNU 扩展），加速大文件排序。
+            完全打乱行序（基于哈希随机），适合抽奖或数据洗牌。
 
-	---
+            ```bash
+            sort -R data.txt   # 每次输出顺序都不同
+            ```
 
-	### 4. 实战组合场景
+	3. 进阶技巧与边缘情况
 
-	#### 场景 1：查看日志中访问量最大的 IP（结合 `uniq -c`）
-	```bash
-	cat access.log | awk '{print $1}' | sort | uniq -c | sort -nr | head -10
-	```
-	*流程*：提取 IP -> 排序让相同 IP 相邻 -> 去重计数 -> 按次数倒序 -> 取前 10。
+        * 3.1 稳定排序（`-s`）
 
-	#### 场景 2：按文件扩展名排序（字典序忽略后缀）
-	```bash
-	sort -t '.' -k 2 filelist.txt
-	```
+            默认情况下，如果两个键值相同，`sort` 可能会改变它们的相对顺序。加上 `-s`（stable）可以保留原始输入顺序。
+            **场景**：先按日期排序，再按名字排序，且希望名字相同的人保持原来的时间顺序。
 
-	#### 场景 3：按第三列数字排序，且第二列作为辅助键
-	```bash
-	sort -t ',' -k 3,3n -k 2,2 data.csv
-	```
-	*含义*：主要按第 3 列数值升序；若第 3 列相同，再按第 2 列字典序排序。
+        * 3.2 只检查是否已排序（`-c`）
 
-	#### 场景 4：排序时排除表头（使用 `tail` 或 `sed`）
-	```bash
-	cat data.csv | (read -r header; echo "$header"; sort -t ',' -k 2 -n)
-	```
-	或者使用 `sed '1d'` 去掉头部排序后再加回来。
+            不输出内容，仅检查文件是否已经排好序。如果未排序，返回非 0 退出码并提示第一处错误。
 
-	---
+            ```bash
+            sort -c data.txt && echo "已排序" || echo "未排序"
+            ```
 
-	### 5. 环境变量影响（重要）
-	- **`LC_ALL=C`**：如果你把 `sort` 放在脚本中，建议在前面加上 `LC_ALL=C sort`。这会强制使用 ASCII 排序，否则系统会根据中文语言包（如 zh_CN.UTF-8）进行字典排序，这会导致 `-k` 和字符范围判断变慢且行为不同。
-	- **`TMPDIR`**：如果文件巨大无法装入内存，`sort` 会使用 `/tmp` 做临时缓存。可通过 `export TMPDIR=/big_disk` 更改临时路径。
+        * 3.3 指定输出文件（`-o`）
 
-	---
+            避免重定向时误删原文件（重定向 `>` 会先清空文件）。`-o` 是安全的写入方式。
 
-	### 6. 总结速查表
+            ```bash
+            sort -n numbers.txt -o sorted_numbers.txt
+            ```
 
-	| 需求 | 命令 |
-	| :--- | :--- |
-	| 按字母升序 | `sort file` |
-	| 按数字升序 | `sort -n file` |
-	| 按数字降序 | `sort -nr file` |
-	| 按第2列排序（逗号分隔） | `sort -t',' -k2 file` |
-	| 按第2列数字排序 | `sort -t',' -k2n file` |
-	| 去重排序 | `sort -u file` |
-	| 打乱顺序 | `sort -R file` |
-	| 仅检查是否已排序 | `sort -c file` |
-	| 忽略大小写 | `sort -f file` |
+        * 3.4 内存与性能（`-S` 和 `--parallel`）
+
+            - **`-S`**：指定内存缓冲区大小（如 `-S 50%` 或 `-S 2G`）。如果文件极大，增加内存能减少磁盘 IO。
+            - **`--parallel=N`**：指定并行线程数（GNU 扩展），加速大文件排序。
+
+	4. 实战组合场景
+
+        * 场景 1：查看日志中访问量最大的 IP（结合 `uniq -c`）
+
+            ```bash
+            cat access.log | awk '{print $1}' | sort | uniq -c | sort -nr | head -10
+            ```
+
+            *流程*：提取 IP -> 排序让相同 IP 相邻 -> 去重计数 -> 按次数倒序 -> 取前 10。
+
+        * 场景 2：按文件扩展名排序（字典序忽略后缀）
+
+            ```bash
+            sort -t '.' -k 2 filelist.txt
+            ```
+
+        * 场景 3：按第三列数字排序，且第二列作为辅助键
+
+            ```bash
+            sort -t ',' -k 3,3n -k 2,2 data.csv
+            ```
+
+            *含义*：主要按第 3 列数值升序；若第 3 列相同，再按第 2 列字典序排序。
+
+        * 场景 4：排序时排除表头（使用 `tail` 或 `sed`）
+
+            ```bash
+            cat data.csv | (read -r header; echo "$header"; sort -t ',' -k 2 -n)
+            ```
+
+            或者使用 `sed '1d'` 去掉头部排序后再加回来。
+
+	5. 环境变量影响（重要）
+
+        - **`LC_ALL=C`**：如果你把 `sort` 放在脚本中，建议在前面加上 `LC_ALL=C sort`。这会强制使用 ASCII 排序，否则系统会根据中文语言包（如 zh_CN.UTF-8）进行字典排序，这会导致 `-k` 和字符范围判断变慢且行为不同。
+
+        - **`TMPDIR`**：如果文件巨大无法装入内存，`sort` 会使用 `/tmp` 做临时缓存。可通过 `export TMPDIR=/big_disk` 更改临时路径。
+
+	6. 总结速查表
+
+        | 需求 | 命令 |
+        | :--- | :--- |
+        | 按字母升序 | `sort file` |
+        | 按数字升序 | `sort -n file` |
+        | 按数字降序 | `sort -nr file` |
+        | 按第2列排序（逗号分隔） | `sort -t',' -k2 file` |
+        | 按第2列数字排序 | `sort -t',' -k2n file` |
+        | 去重排序 | `sort -u file` |
+        | 打乱顺序 | `sort -R file` |
+        | 仅检查是否已排序 | `sort -c file` |
+        | 忽略大小写 | `sort -f file` |
 
 	**最后提醒**：`sort` 默认是**整行**作为排序单元，除非你使用 `-k`。如果你觉得排序结果不符合预期，首先检查是否忘了加 `-n`（数字排序），其次检查 `locale` 环境变量。
 

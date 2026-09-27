@@ -2,6 +2,230 @@
 
 ## cache
 
+* git 里，我想看看未 track 的文件一共有多大，怎么看
+
+    你可以用 `git ls-files --others --exclude-standard` 列出所有未跟踪（且未被 `.gitignore` 忽略）的文件，然后交给 `du` 或 `wc` 统计大小。
+
+    **最常用的命令：**
+
+    ```bash
+    git ls-files --others --exclude-standard -z | xargs -0 du -ch | tail -1
+    ```
+
+    输出示例：
+    ```
+    4.2M    total
+    ```
+
+    **解释：**
+    - `git ls-files --others --exclude-standard`：列出未跟踪文件（`--others`），并排除 `.gitignore` 中的文件（`--exclude-standard`）
+    - `-z` + `xargs -0`：用 NUL 分隔，避免文件名含空格/特殊字符出错
+    - `du -ch`：显示每个文件大小并给出总计
+    - `tail -1`：只取总计那一行
+
+    ---
+
+    **如果只想看总字节数（便于脚本处理）：**
+
+    ```bash
+    git ls-files --others --exclude-standard -z | xargs -0 du -cb | tail -1
+    ```
+
+    `-b` 表示以字节为单位。
+
+    ---
+
+    **只统计当前目录下的未跟踪文件：**
+
+    ```bash
+    git ls-files --others --exclude-standard -z | xargs -0 du -ch --max-depth=0
+    ```
+
+    ---
+
+    **注意：**
+    - 如果文件很多，`xargs` 可能分批调用 `du`，导致出现多个 `total` 行。稳妥做法：
+
+    ```bash
+    git ls-files --others --exclude-standard -z | xargs -0 du -cb | awk '{s=$1} END {print s}'
+    ```
+
+    这里 `awk` 取最后一行的字节数即为总和（因为 `du -cb` 最后一行是 total）。
+
+    - macOS 的 `du` 没有 `-b`，可以用 `-k`（KB）或改用 `stat`：
+
+    ```bash
+    git ls-files --others --exclude-standard -z | xargs -0 stat -f%z | awk '{s+=$1} END {print s}'
+    ```
+
+    Linux 上用：
+
+    ```bash
+    git ls-files --others --exclude-standard -z | xargs -0 stat -c%s | awk '{s+=$1} END {print s}'
+    ```
+
+* 我在 git clone 某个 repo 后，本地 branch 只有一个，但是 remote branch 有很多个。如下：
+
+    ```
+    siorigin@vms0:~/proj/sipu_rt/sirt$ git branch -a
+      remotes/origin/HEAD -> origin/main
+      remotes/origin/HipPerformance
+      remotes/origin/dataflowAPI1
+      remotes/origin/ddmafill
+    siorigin@vms0:~/proj/sipu_rt/sirt$ git branch
+    * main
+    ```
+
+    这是什么情况？
+
+    这是一个非常正常且常见的情况。我来为你解释为什么会出现这种现象，以及如何操作。
+
+    1. 为什么会出现这种情况？
+
+        - **`git branch`**（不带参数）只显示**本地**已经存在的分支。
+        - **`git branch -a`** 显示**所有**分支，包括本地分支和远程跟踪分支（`remotes/origin/...`）。
+
+        **核心原因**：当你执行 `git clone` 时，Git 默认只会自动为你创建一个本地分支（通常是 `main` 或 `master`），并且这个分支会跟踪远程的 `origin/main`。
+
+        对于远程仓库里的其他分支（如 `HipPerformance`、`dataflowAPI1` 等），Git 只是把它们的信息下载到了你的本地仓库（作为“远程引用”），但**并没有**在本地创建同名的分支工作区。这就是为什么你看到远程有很多，但本地只有 `main`。
+
+    2. 如何操作这些远程分支？
+
+        你有两种方式来处理这些远程分支：
+
+        **方式一：切换到远程分支（并自动创建本地分支）**
+
+        如果你想在某个远程分支上工作，只需直接切换过去：
+
+        ```bash
+        git checkout HipPerformance
+        ```
+
+        或者（Git 较新版本推荐）：
+
+        ```bash
+        git switch HipPerformance
+        ```
+
+        **原理**：Git 检测到你没有本地 `HipPerformance` 分支，但远程有，它会自动创建一个本地 `HipPerformance` 分支，并设置为跟踪 `origin/HipPerformance`。
+
+        执行后，你再运行 `git branch`，就会看到 `HipPerformance` 出现了。
+
+        **方式二：只查看内容，不切换（Detached HEAD）**
+
+        如果你想查看某个远程分支的代码，但不想创建本地分支，可以直接基于远程哈希检出：
+
+        ```bash
+        git checkout origin/dataflowAPI1
+        ```
+
+        **注意**：这会使你处于“分离头指针”状态，不建议在此状态下修改代码，只适合浏览。
+
+    3. 如何一次性拉取所有远程分支？
+
+        如果你想把所有远程分支都在本地创建一份（通常不需要，除非分支很多），可以用脚本循环：
+
+        ```bash
+        for branch in $(git branch -r | grep -v HEAD | grep -v main); do
+            git branch --track ${branch#origin/} $branch
+        done
+        ```
+
+        但通常**不需要**这么做，因为**按需切换**（方式一）是最干净、最常用的做法。
+
+    4. 补充：如果 `git switch` 报错怎么办？
+
+        极少数情况下，如果本地有未提交的修改，切换可能会被阻止。你可以先暂存修改：
+
+        ```bash
+        git stash
+        git switch HipPerformance
+        git stash pop
+        ```
+
+    **总结**
+
+    - **现象正常**：远程分支多，本地分支少，是因为 Git 只在需要时才会创建本地分支。
+    - **解决办法**：直接用 `git checkout 分支名` 或 `git switch 分支名` 即可自动创建并切换到该远程分支的本地版本。
+
+* google shell style guide
+
+    <https://google.github.io/styleguide/shellguide.html>
+
+* explainshell
+
+    <https://explainshell.com/>
+
+* git pull 如何强制拉取远程分支覆盖本地分支
+
+    要强制用远程分支覆盖本地分支，有几种方法，根据你的需求选择：
+
+    ## 方法一：fetch + reset（推荐，最常用）
+
+    ```bash
+    # 1. 拉取远程最新内容（不合并）
+    git fetch origin
+
+    # 2. 强制将本地分支重置到远程分支
+    git reset --hard origin/<分支名>
+
+    # 例如当前在 main 分支
+    git reset --hard origin/main
+    ```
+
+    这会**丢弃本地所有未提交的修改和本地提交**，让本地分支和远程完全一致。
+
+    ## 方法二：强制 checkout
+
+    ```bash
+    git fetch origin
+    git checkout -B <分支名> origin/<分支名>
+
+    # 例如
+    git checkout -B main origin/main
+    ```
+
+    `-B` 会强制重置已存在的分支。
+
+    ## 方法三：pull 加强制参数（不推荐）
+
+    `git pull` 本身没有真正的 `--force` 选项，`git pull --force` 只是允许 fetch 时覆盖本地 tag，**不会覆盖本地提交**。所以不要用这个来覆盖分支。
+
+    ## 清理未跟踪文件（可选）
+
+    如果本地还有远程没有的新文件，需要额外清理：
+
+    ```bash
+    # 查看会被删除的文件（先预览，安全）
+    git clean -nd
+
+    # 确认后真正删除
+    git clean -fd
+    ```
+
+    ## 操作前建议备份
+
+    如果本地有想保留的改动，先存起来：
+
+    ```bash
+    # 方式1：暂存
+    git stash
+
+    # 方式2：新建分支备份
+    git branch backup-mywork
+    ```
+
+    ## 完整示例
+
+    ```bash
+    git fetch origin
+    git stash              # 如有需要保留的改动
+    git reset --hard origin/main
+    git clean -fd          # 清理多余文件（谨慎）
+    ```
+
+    ⚠️ **注意**：`reset --hard` 和 `clean -fd` 都会造成数据丢失，执行前请确认本地没有需要保留的内容。
+
 * git stash push -u -m "before siccl remote migration"
 
     讲讲这行命令的作用

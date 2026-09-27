@@ -2,6 +2,153 @@
 
 ## cache
 
+* sudo 如果无法 sshfs 挂载远程的目录，可能是因为 root 家目录下没有`.ssh/`存储 remote host 的信息。
+
+    * 我想使用 sudo sshfs 把远程的目录挂载到本地根目录 / 下的某个目录下，比如 /mnt/local_dir，但是本地的 root 用户的 .ssh 没有存储相关的 key，只有本地用户 user_1 目录下 .ssh 有远程登录的信息。该怎么办
+
+        有几种方法可以解决这个问题，按推荐程度排序：
+
+        ## 方法一：使用 `-o ssh_command` 指定本地用户的密钥（推荐）
+
+        这是最简洁的方法，让 sshfs 以 root 身份运行，但使用 `user_1` 的私钥：
+
+        ```bash
+        sudo sshfs -o ssh_command='ssh -i /home/user_1/.ssh/id_rsa' \
+            user_1@remote_host:/remote/path /mnt/local_dir
+        ```
+
+        如果密钥有 passphrase，可能还需要 `-o password_stdin` 或配合 ssh-agent。
+
+        也可以直接指定 IdentityFile：
+
+        ```bash
+        sudo sshfs -o IdentityFile=/home/user_1/.ssh/id_rsa \
+            user_1@remote_host:/remote/path /mnt/local_dir
+        ```
+
+        **注意**：`/home/user_1/.ssh/id_rsa` 的权限必须是 `600`，且所有者为 `user_1`，否则 ssh 会拒绝使用。由于是 root 在读取，通常没问题，但如果启用了 `StrictModes`（默认开启），root 读取其他用户的 key 可能会被拒绝。此时可以加上：
+
+        ```bash
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/home/user_1/.ssh/known_hosts
+        ```
+
+        或者临时把 key 复制到 root 下并改权限。
+
+        ---
+
+        ## 方法二：复制密钥到 root（简单直接）
+
+        ```bash
+        sudo mkdir -p /root/.ssh
+        sudo cp /home/user_1/.ssh/id_rsa /root/.ssh/
+        sudo cp /home/user_1/.ssh/known_hosts /root/.ssh/ 2>/dev/null
+        sudo chmod 700 /root/.ssh
+        sudo chmod 600 /root/.ssh/id_rsa
+        ```
+
+        之后就可以直接：
+
+        ```bash
+        sudo sshfs user_1@remote_host:/remote/path /mnt/local_dir
+        ```
+
+        **缺点**：密钥被复制到 root，安全上不如方法一，且密钥轮换时需要重新复制。
+
+        ---
+
+        ## 方法三：配置 root 的 ssh config
+
+        编辑 `/root/.ssh/config`：
+
+        ```
+        Host remote_host
+            User user_1
+            IdentityFile /home/user_1/.ssh/id_rsa
+            IdentitiesOnly yes
+        ```
+
+        然后：
+
+        ```bash
+        sudo sshfs remote_host:/remote/path /mnt/local_dir
+        ```
+
+        ---
+
+        ## 方法四：通过 ssh-agent 转发（较复杂）
+
+        以 `user_1` 身份启动 ssh-agent 并把 key 加进去，然后让 root 使用该 agent socket：
+
+        ```bash
+        # 以 user_1 运行
+        eval $(ssh-agent)
+        ssh-add ~/.ssh/id_rsa
+
+        # 查看 socket
+        echo $SSH_AUTH_SOCK
+        ```
+
+        然后：
+
+        ```bash
+        sudo SSH_AUTH_SOCK=/tmp/ssh-XXXX/agent.YYY sshfs user_1@remote_host:/remote/path /mnt/local_dir
+        ```
+
+        但 root 默认无法访问 user_1 的 agent socket（权限问题），需要调整 socket 权限或用 `sudo -E`，比较麻烦。
+
+        ---
+
+        ## 关于挂载到 `/` 下目录的额外提醒
+
+        1. **目录必须先存在**：`sudo mkdir -p /mnt/local_dir`
+        2. **推荐加上 `allow_other`**：这样非 root 用户也能访问挂载点：
+
+        ```bash
+        sudo sshfs -o allow_other -o IdentityFile=/home/user_1/.ssh/id_rsa \
+            user_1@remote_host:/remote/path /mnt/local_dir
+        ```
+
+        需要在 `/etc/fuse.conf` 中取消注释 `user_allow_other`。
+
+        3. **卸载**：`sudo umount /mnt/local_dir` 或 `fusermount -u /mnt/local_dir`
+
+        ---
+
+        ## 总结
+
+        最推荐 **方法一**，一条命令搞定，不改动任何文件权限：
+
+        ```bash
+        sudo sshfs -o IdentityFile=/home/user_1/.ssh/id_rsa,allow_other \
+            user_1@remote_host:/remote/path /mnt/local_dir
+        ```
+
+        如果遇到 `StrictModes` 报错，再考虑方法二或方法三。
+
+* sshfs 中报 fusermount3: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf，如何解决？
+
+    这个报错是因为你使用了 `allow_other` 选项，但 FUSE 出于安全考虑，默认只允许 root 用户使用这个选项。你需要修改 `/etc/fuse.conf` 文件来授权普通用户。
+
+    ### 🛠️ 解决方法
+
+    1.  **编辑配置文件**：使用 root 权限打开 `/etc/fuse.conf`。
+        ```bash
+        sudo nano /etc/fuse.conf
+        ```
+
+    2.  **启用选项**：找到 **`# user_allow_other`** 这一行，**去掉行首的 `#` 号**，使其变为：
+        ```
+        user_allow_other
+        ```
+        保存并退出即可。
+
+    完成上述修改后，**重新执行你原本的 `sshfs` 挂载命令**，应该就不会再报这个错了。
+
+    ### 💡 补充提示
+
+    *   **权限与安全**：`allow_other` 的主要作用是让**其他用户（包括 root）** 也能访问你挂载的远程目录。如果你还需要让挂载点遵循远程服务器的权限规则，通常建议同时加上 `-o default_permissions` 选项。
+    *   **如果仍报错**：极少数情况下，如果修改后依然失败，可以检查一下 `/etc/fuse.conf` 的权限。确保普通用户对该文件有**读取权限**，否则 `fusermount` 可能无法读取到配置。
+
 * 假如我现在使用 ssh -R 将远程主机 A 的 8825 端口映射到了本机的 127.0.0.1 8825 端口，我又想让 127.0.0.1:8825 端口的数据转发到远程主机 B 上，该如何操作，使用 socat 可以完成吗
 
 	是的，你可以使用 `socat` 来完成这个需求。具体步骤如下：

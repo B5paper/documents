@@ -100,6 +100,13 @@
 
 ## cache
 
+* start qemu
+
+    ```bash
+    (base) hlc@zjxj:~/mnt/share_data/hlc/hlc_shanghai_54/multi_node/qemu_latest$ export SHARE_DATA_PATH=/home/hlc/mnt/share_data
+    (base) hlc@zjxj:~/mnt/share_data/hlc/hlc_shanghai_54/multi_node/qemu_latest$ SI_SDK_ROOT=/home/hlc/mnt/share_data/arch_cmodel_release/sipu1.5/2607300400 MODEL_SERVER_HOST=127.0.0.1 HOST_ID=0 VFIO_PCI_BDF=0000:ca:00.0 sudo -E ./hlc_start_single_qemu.sh /home/hlc/Data/qemu_imgs_siccl/vms0.qcow2
+    ```
+
 * compile
 
     `make -j DEBUG=1 NVCC_GENCODE="-gencode=arch=compute_90,code=sm_90" src.build`

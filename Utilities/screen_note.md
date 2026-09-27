@@ -2,6 +2,76 @@
 
 ## cache
 
+* screen 如何删除一个 session
+
+    在 `screen` 中删除（终止）一个 session 有以下几种方法：
+
+    ## 1. 在 session 内部退出（推荐）
+
+    如果你当前正在某个 screen session 里：
+
+    ```bash
+    exit
+    ```
+    或按快捷键：
+    ```
+    Ctrl + A, 然后按 K
+    ```
+    然后按 `y` 确认，即可杀掉当前 session。
+
+    ## 2. 从外部杀掉指定 session
+
+    先列出所有 session：
+    ```bash
+    screen -ls
+    ```
+
+    输出示例：
+    ```
+    There are screens on:
+        12345.pts-0.hostname    (Detached)
+        67890.pts-1.hostname    (Attached)
+    ```
+
+    然后杀掉指定 session：
+    ```bash
+    screen -S 12345 -X quit
+    ```
+    或：
+    ```bash
+    screen -S 12345.pts-0.hostname -X quit
+    ```
+
+    ## 3. 杀掉所有 session
+
+    ```bash
+    screen -ls | grep Detached | cut -d. -f1 | awk '{print $1}' | xargs kill
+    ```
+
+    或者：
+    ```bash
+    pkill screen
+    ```
+
+    ## 4. 强制杀掉（会话卡死时）
+
+    ```bash
+    kill -9 <PID>
+    ```
+
+    PID 就是 `screen -ls` 中显示的进程号。
+
+    ## 常用组合
+
+    | 操作 | 命令 |
+    |------|------|
+    | 列出 session | `screen -ls` |
+    | 进入 session | `screen -r <name/PID>` |
+    | 分离 session | `Ctrl+A, D` |
+    | 杀掉 session | `screen -S <name/PID> -X quit` |
+
+    **注意**：`screen -wipe` 只能清理已经死掉的 session 记录，不能删除正在运行的 session。
+
 * screen 如何强制 attach 到一个 session 上
 
     在 `screen` 中，要强制接入一个已经被其他终端**Attached（连接中）** 的会话，最直接的方法是使用 `-x` 选项。它的作用是让多个终端同时连接到一个会话，实现多屏协作。
