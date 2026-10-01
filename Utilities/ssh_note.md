@@ -1086,15 +1086,13 @@
 
     ---
 
-    ### **4️⃣ 配置继承与优先级**
+    **4️⃣ 配置继承与优先级**
 
     * `Host *` 是默认全局匹配；
     * 更具体的匹配（例如 `Host github.com`）会覆盖全局；
     * 最终字段值以最后一条匹配的配置为准。
 
-    ---
-
-    ### 🧩 举个小例子
+    **🧩 举个小例子**
 
     ```bash
     Host my-github
@@ -1118,9 +1116,7 @@
     → 可以清楚看到 `%h` 被替换成 `HostName`。
     这就表明匹配和解析两个阶段都正确。
 
-    ---
-
-    ### ✅ 总结表
+    **✅ 总结表**
 
     | 字段             | 用途        | 是否影响连接目标 | 示例                                    |
     | -------------- | --------- | -------- | ------------------------------------- |
@@ -1129,9 +1125,15 @@
     | `User`         | 登录用户名     | ✅ 是      | `User git`                            |
     | `ProxyCommand` | 代理命令      | ✅ 是      | `ProxyCommand ncat --proxy ... %h %p` |
 
-    ---
-
     想要我帮你画一个小图（SSH 配置匹配流程图）吗？能清楚看到“Host 匹配阶段 → HostName 解析阶段 → ProxyCommand 调用阶段”的关系。
+
+    注：
+
+    1. 使用 ssh 给 git 做代理时，host 和 hostname 都要写成 github.com。
+
+        host 写成 github.com 是因为在执行 git pull / push 时，会自动查找 github.com 这个字段，进行 ssh config 的匹配
+
+        hostname 写成 github.com，是为了 proxy command 里的 nc 在写 %h 时的占位符。
 
 * x11forward 在 ssh config 里怎么配置
 

@@ -2,6 +2,16 @@
 
 ## cache
 
+* `rsync`中，src dir 的下面四种写法是等价的
+
+    `.`, `./`, `*`, `./*`
+
+* `rsync`中, `--progress`可以显示进度，`--partial`支持断点续传
+
+    `-P`则表示同时 enable `--progress --partial`。
+
+* `rsync -z`表示在传输过程中对要传输的文件进行压缩。如果传输过程文本文件比较多，可以使用`-z`大幅提高传输效率。
+
 * rsync `--dry-run`或`-n`会列出将要被传输的文件清单。
 
 * `rsync -h`

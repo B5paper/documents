@@ -2,6 +2,76 @@
 
 ## cache
 
+* git pull 产生 divergent branches 的解决办法
+
+    你的本地 `main` 分支和 `origin/main` 已经分叉了：本地有 1 个提交是远端没有的，远端有 80 个提交是本地没有的。所以 `git pull` 需要你告诉它怎么合并。
+
+    **先搞清楚你本地那 1 个提交是什么**
+
+    ```bash
+    git log origin/main..main --oneline
+    ```
+
+    看看这个提交是不是你需要的。根据情况选择下面的方案。
+
+    1. **方案一：你本地那个提交不要了，直接用远端的（最常见）**
+
+        如果那 1 个提交是误操作/临时改动，想完全跟远端一致：
+
+        ```bash
+        git fetch origin
+        git reset --hard origin/main
+        ```
+
+        这样本地就变成和 `origin/main` 完全一样了。
+
+    2. **方案二：保留本地提交，用 merge 合并**
+
+        ```bash
+        git config pull.rebase false   # 设置 merge 方式
+        git pull
+        ```
+
+        或者一次性：
+
+        ```bash
+        git pull --no-rebase
+        ```
+
+        这会产生一个 merge commit，把远端 80 个提交和你的 1 个提交合并。如果有冲突需要手动解决。
+
+    3. **方案三：保留本地提交，用 rebase（历史更线性）**
+
+        ```bash
+        git config pull.rebase true
+        git pull
+        ```
+
+        或者：
+
+        ```bash
+        git pull --rebase
+        ```
+
+        这会把你的 1 个提交“挪”到远端 80 个提交之后。如果有冲突需要逐个解决。
+
+    4. **方案四：只想快进，但当前分叉会失败**
+
+        ```bash
+        git config pull.ff only
+        git pull
+        ```
+
+        因为你分叉了，这个会直接报错，一般不适合你当前情况。
+
+    **建议**
+
+    1. **先执行** `git log origin/main..main --oneline` 看本地那 1 个提交是不是重要。
+    2. 如果不重要 → **方案一**（最干净）。
+    3. 如果重要 → **方案三**（`git pull --rebase`），历史更整洁；有冲突时解决后再 `git rebase --continue`。
+
+    另外提醒：`git pull --force` 并不能解决分叉问题，`--force` 对 pull 来说主要是传给 fetch 的，不会覆盖本地提交。真正要“强制对齐远端”用的是 `git reset --hard origin/main`。
+
 * git 里，我想看看未 track 的文件一共有多大，怎么看
 
     你可以用 `git ls-files --others --exclude-standard` 列出所有未跟踪（且未被 `.gitignore` 忽略）的文件，然后交给 `du` 或 `wc` 统计大小。

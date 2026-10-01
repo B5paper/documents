@@ -6,178 +6,11 @@
 
 ## cache
 
-* 如何查看 ifconfig 的网絡接口对应哪个 pci 网卡设备？
-
-    在 Linux 中，`ifconfig` 显示的是网络接口名（如 `eth0`），要找到它对应哪块物理 PCI 网卡，最直接的方法是通过 `sysfs` 文件系统或 `ethtool` 命令查看它们之间的对应关系。
-
-    这里有几种常用且可靠的方法，你可以根据情况选择：
-
-    *  方法一：通过 `/sys/class/net/` 查看符号链接（最推荐）
-
-        Linux 内核会将所有网络接口的信息以符号链接的形式放在 `/sys/class/net/` 目录下，每个接口的链接都指向其真实的设备路径，路径中包含了 PCI 地址信息。
-
-        你可以使用 `ls -l` 命令来查看这个链接指向的路径：
-
-        ```bash
-        ls -l /sys/class/net/
-        ```
-
-        输出示例：
-
-        ```
-        lrwxrwxrwx 1 root root 0 ... enp0s31f6 -> ../../devices/pci0000:00/0000:00:1f.6/net/enp0s31f6
-        lrwxrwxrwx 1 root root 0 ... wlp4s0 -> ../../devices/pci0000:00/0000:00:1c.6/0000:04:00.0/net/wlp4s0
-        ```
-
-        从路径中的 `0000:04:00.0` 这类数字，你就可以直接看到它对应的 PCI 总线地址（BDF，即总线-设备-功能编号）。
-
-    *  方法二：使用 `ethtool` 命令（更直观）
-
-        `ethtool` 是一个专门用来查询和配置网卡参数的工具，通过 `-i` 参数可以直接显示网卡的驱动和总线信息。
-
-        ```bash
-        ethtool -i eth0
-        ```
-        在输出中，找到 `bus-info` 这一行，它后面的 `0000:01:00.0` 就是该网卡的 PCI 地址。
-
-    *  方法三：对比中断号（适合老系统或备用方案）**
-
-        这是一种比较传统的思路。`ifconfig -a` 的输出中，每个接口通常会显示其使用的 IRQ（中断号）。而 `lspci -v` 命令也能列出每个 PCI 设备占用的 IRQ。
-
-        *   **第一步**：运行 `ifconfig -a`，记下目标接口的 IRQ 号（例如 `eth0` 的 IRQ 是 `43`）。
-        *   **第二步**：运行 `lspci -v`，在输出中查找同样使用 IRQ 43 的以太网控制器，从而确定它们是同一个设备。
-
-    **💡 补充技巧：物理定位网卡**
-
-    如果服务器就在手边，而且你只是想物理上找到哪个网口对应 `eth0`，可以试试 `ethtool` 的另一个功能：
-
-    ```bash
-    ethtool -p eth0
-    ```
-
-    这个命令会让对应网卡端口上的指示灯闪烁，从而帮助你直接在机箱背后定位到它。
-
-* 不使用 sudo，使得普通用户也可以透传 vfio 设备到 qemu
-
-   1. 找到网卡所在的 IOMMU 组：
-
-        `readlink /sys/bus/pci/devices/0000:ca:00.0/iommu_group` 
-
-        输出类似于 ../../../../kernel/iommu_groups/XX，其中 XX 就是组号。
-
-    2. 修改设备节点权限，允许你的用户访问：
-
-        `sudo chown $USER /dev/vfio/XX`
-
-        如果不行，再加上`sudo chmod 660 /dev/vfio/$GROUP`
-
-    注意：每次重启或重新绑定 vfio-pci 后，/dev/vfio/<group> 会重建，chown 会失效，需要重新执行。可以写个小脚本或加 udev 规则持久化。
-
-* 使用 sshfs 挂载文件时，如果没有 allow_other，那么普通用户挂载的目录，即使是 root 用户也无法访问
-
-* 讲讲 sudo -i 和 su - 的作用
-
-    `sudo -i` 和 `su -` 都是用来**切换到 root（或其他用户）身份**的命令，但它们在**认证方式、环境变量处理、安全性**上有明显区别。
-
-    ## 一句话对比
-
-    | 命令 | 本质 | 需要什么密码 | 环境 |
-    |------|------|-------------|------|
-    | `su -` | 切换到目标用户 | **目标用户的密码**（通常是 root 密码） | 加载目标用户的登录环境 |
-    | `sudo -i` | 以目标用户身份启动登录 shell | **当前用户自己的密码** | 加载目标用户的登录环境 |
-
-    ---
-
-    ## su - 的作用
-
-    `su` = switch user（切换用户）。
-
-    ```bash
-    su -          # 切换到 root，并加载 root 的登录环境
-    su - alice    # 切换到 alice 用户
-    ```
-
-    - 中间的 `-`（等价于 `-l` / `--login`）表示**模拟一次完整登录**：
-      - 切换到家目录（root 就是 `/root`）
-      - 加载目标用户的 shell 配置文件（`.bash_profile`、`.profile` 等）
-      - 重置环境变量（PATH、USER、HOME 等）
-    - 不加 `-` 的 `su` 只是切换身份，但保留原用户的环境变量和当前目录，容易出问题（比如 PATH 混乱）。
-    - **关键点**：它要求你输入**目标用户的密码**。也就是说，普通用户想 `su -` 到 root，必须知道 root 密码。
-
-    ---
-
-    ## sudo -i 的作用
-
-    `sudo` = 以其他用户身份执行命令（默认 root），`-i` = simulate initial login（模拟初始登录）。
-
-    ```bash
-    sudo -i        # 以 root 身份启动一个登录 shell
-    sudo -i -u alice   # 以 alice 身份启动登录 shell
-    ```
-
-    - 效果和 `su -` 很像：进入 root 的登录环境，家目录变成 `/root`，加载 root 的配置文件。
-    - **关键区别**：它要求你输入**自己的密码**（而不是 root 密码），前提是当前用户在 `sudoers` 里有权限。
-    - 相关选项：
-      - `sudo -i`：登录 shell，加载完整环境（最接近 `su -`）
-      - `sudo -s`：非登录 shell，保留部分当前环境
-      - `sudo command`：只以 root 执行一条命令，不切换 shell
-
-    ---
-
-    ## 核心区别总结
-
-    **1. 认证方式（最重要）**
-    - `su -`：验证**目标用户**的密码 → 需要知道 root 密码。
-    - `sudo -i`：验证**自己**的密码 → 不需要知道 root 密码，靠 sudoers 授权。
-
-    **2. 安全性 / 可审计性**
-    - `sudo` 可以精细化授权（谁能用、能跑哪些命令），并且每次操作都有日志（`/var/log/auth.log` 等）。
-    - `su` 一旦知道 root 密码就等于完全控制，且较难做细粒度控制和审计。
-    - 因此现代发行版（Ubuntu 默认禁用 root 密码登录）**推荐用 sudo，而不是 su**。
-
-    **3. 环境变量**
-    - 两者加登录选项后都会加载目标用户环境。
-    - `sudo -i` 更彻底地模拟登录；`sudo -s` 则保留更多当前环境。
-
-    **4. 使用场景**
-    - 系统里 root 密码被锁定 / 不知道怎么用 → 用 `sudo -i`。
-    - 需要切换到某个普通用户（如 `su - deploy`）且知道其密码 → 用 `su -`。
-    - 只想跑一条特权命令 → `sudo command` 更合适，不必开 shell。
-
-    ---
-
-    ## 实践建议
-
-    - 日常运维：优先 `sudo command`，需要长时间 root 操作时用 `sudo -i`。
-    - 尽量**不要**直接用 `su -` 到 root，尤其是在 root 密码共享的团队环境里，安全和审计都差。
-    - 退出时用 `exit` 或 `Ctrl+D` 回到原用户。
-
-    一个容易忽略的点：`sudo -i` 和 `su -` 进入后 `$HOME` 都是 `/root`，但 `sudo -i` 下 `$SUDO_USER` 会记录你原来的用户名，方便追溯是谁提权的。
-
 * 文件开头可以指定`#!/usr/bin/python`，从而直接运行 python 脚本
 
     甚至可以指定`#!/bin/rm`，`#!/bin/more`，运行文件时，等价于命令后面直接跟文件名`<command> <script_file_path>`
 
 * `whereis python`可以列出所有 python 的路径
-
-* 讲讲 ps -e Lf 的作用
-
-    `ps -e Lf` 的作用是**以长格式列出系统中所有进程，并且显示每个进程内部的所有线程**。
-
-    ### 参数拆解
-    *   **`-e`**：显示**所有**进程，而不仅仅是当前用户的。
-    *   **`-L`**：开启**线程视图**。它会让 ps 列出每个进程下的所有线程（LWP），而不是只显示主进程。
-    *   **`-f`**：使用**全格式**（full-format）列出，提供更详细的列信息（如 UID、PID、PPID、C、STIME 等）。
-
-    ### 输出解读
-    由于加了 `-L`，输出会多出两个关键列：
-    *   **LWP**：轻量级进程 ID，也就是**线程 ID**。对于主线程，这个值通常与进程的 PID 相同。
-    *   **NLWP**：该进程包含的**线程总数**。
-
-    因此，一个进程如果有 5 个线程，在 `ps -e Lf` 的输出中就会占据 **5 行**，每行对应一个线程，且它们的 PID 相同，但 LWP 不同。
-
-    ### 典型用途
-    这个命令常用来排查多线程程序（如 Java、MySQL）的运行状态，查看某个进程具体派生了多少个线程，以及每个线程的 CPU/内存占用情况。
 
 * 详细讲讲 tac 命令的用法
 
@@ -1058,29 +891,6 @@
 
         理解M4是理解Autotools工作原理的关键，虽然现在大多数开发者不需要直接写M4，但知道它的存在有助于调试复杂的构建问题。
 
-* 我使用 sudo sshfs remote_dir /local_dir 后，普通用户无法访问 /local_dir，如何使 /local_dir 让普通用户可以访问，即每个用户看到的 /local_dir 的权限都是 775
-
-    要让普通用户也能访问你用 `sudo` 挂载的 `/local_dir`，关键在于使用 SSHFS 的 `allow_other` 挂载选项。不过，因为你是用 `sudo` 挂载的（即 root 用户），所以直接使用这个选项就行，不需要修改系统配置文件。
-
-    你可以用下面这个命令重新挂载：
-
-    ```bash
-    sudo sshfs -o allow_other,default_permissions remote_dir /local_dir
-    ```
-
-    ### 📝 参数解释
-
-    *   **`-o allow_other`**：这个选项是关键。默认情况下，只有执行挂载命令的用户（这里是 `root`）才能访问挂载点。加上这个选项后，系统上的其他用户就也能访问了。
-    *   **`-o default_permissions`**：加上这个选项，系统内核会依据标准的 Linux 权限（读、写、执行）对每个访问请求进行检查。**官方文档建议，在使用 `allow_other` 时最好加上这个选项**，让权限管理更清晰安全。
-
-    注：
-
-    1. 这个方法经测试可行
-
-    ### ⚠️ 重要提醒：权限的本质
-
-    `/local_dir` 显示的权限（比如 `775`）由远程服务器决定。你用 `sudo sshfs` 登录远程服务器时，操作权限与 `root` 用户一致，因此本地普通用户最终能做什么操作，还是取决于远程 `root` 用户的权限。简单的理解就是：**本地用户能否访问挂载点由 `allow_other` 控制；而进入挂载点后能对文件做什么，则完全取决于你在远程服务器上登录的用户（本例中是`root`）的权限**。
-
 * 如何使 mv 命令防止意外覆盖文件
 
     在 Linux 中，`mv` 命令默认会**直接覆盖**目标路径的同名文件（如果存在），且没有任何提示。要防止意外覆盖，有以下几种常用方法：
@@ -1620,686 +1430,6 @@
 
         抱歉没能帮你彻底解决这个问题。调试过程辛苦了！
 
-* 在使用 grep -z 'block.*pattern' test.txt 匹配时，点号（.）不是代表除了 \n 以外的字符吗，为什么可以匹配到 \n？
-
-    **你说得非常对！这是一个很好的观察点，这里有一个关键的技术细节。**
-
-    ## 标准的正则表达式规则
-
-    在**标准**正则表达式中，点号（`.`）确实**只匹配除换行符（`\n`）以外的任何字符**。
-
-    ## 但是 `grep -z` 改变了这个规则！
-
-    当使用 `grep -z` 时，它实际上**重新定义了什么是"行"**，这导致了点号行为的改变：
-
-    ### 技术原理：
-
-    1. **`-z` 改变了输入解析**：
-       - 默认：输入被 `\n` 分割成多行
-       - `-z`：输入被 `\0` (NUL字符) 分割成"记录"
-
-    2. **在 `grep -z` 模式下**：
-       - 每个"记录"可能包含多个 `\n` 字符
-       - 点号（`.`）**将 `\n` 视为普通字符**，就像字母 'a' 或空格一样
-       - 因此 `.` 可以匹配 `\n`
-
-    ### 验证示例：
-
-    创建测试文件 `test.txt`：
-    ```text
-    line 1: start
-    line 2: block
-    line 3: middle  
-    line 4: pattern
-    line 5: end
-    ```
-
-    运行：
-    ```bash
-    grep -z 'block.*pattern' test.txt
-    ```
-
-    **输出：**
-    ```
-    line 1: start
-    line 2: block
-    line 3: middle  
-    line 4: pattern
-    line 5: end
-    ```
-
-    点号 `.*` 成功匹配了 `\nline 3: middle\nline 4: ` 这部分内容，包含了换行符。
-
-    ### 对比验证：
-
-    **不使用 `-z`（正常模式）：**
-    ```bash
-    grep 'block.*pattern' test.txt
-    ```
-    **没有输出**，因为 `.` 无法跨越换行符匹配。
-
-    **使用 `-z`（NUL分隔模式）：**
-    ```bash
-    grep -z 'block.*pattern' test.txt
-    ```
-    **有输出**，因为 `.` 可以匹配换行符。
-
-    ## 其他类似的模式修饰符
-
-    在其他正则表达式引擎中，也有类似改变点号行为的修饰符：
-
-    - **PCRE（Perl兼容正则）**：`/s` 修饰符（单行模式）让 `.` 匹配包括换行符的所有字符
-    - **JavaScript**：`/s` 标志（dotAll模式）
-    - **Python**：`re.DOTALL` 标志
-    - **Vim**：`\_.` 匹配任何字符（包括换行符）
-
-    ## 总结
-
-    `grep -z` 通过**改变输入数据的根本结构**（从换行分隔变为NUL分隔），间接地改变了正则表达式引擎中点号的行为，使其能够匹配换行符。这是一种比较特殊的技术实现，不同于传统的模式修饰符方法。
-
-    * 点号（.）匹配的是一个char字符（一个字节），还是一个真正的字符（比如一个汉字）？
-
-        **这是一个非常棒的问题！答案取决于使用的工具和编码。**
-
-        ## 简短回答
-
-        **点号（.）匹配的是单个字节，而不是逻辑上的"字符"**（如一个汉字）。
-
-        ---
-
-        ## 详细解释
-
-        ### 1. 在 ASCII 文本中
-
-        对于 ASCII 文本（英文字母、数字、符号），这个区别不明显，因为：
-        - 每个 ASCII 字符 = 1 个字节
-        - 所以点号匹配 1 个字节 = 1 个字符
-
-        ### 2. 在 UTF-8 编码的多字节文本中
-
-        对于包含中文、日文、表情符号等的 UTF-8 文本：
-        - **一个汉字** = 通常 3 个字节（UTF-8 编码）
-        - **点号（.）** = 匹配 **1 个字节**
-
-        这就会导致问题！
-
-        ### 演示示例
-
-        创建包含中文的测试文件 `chinese.txt`：
-        ```text
-        Hello 世界 pattern
-        测试 block 例子
-        ```
-
-        **使用 grep 搜索：**
-        ```bash
-        grep -o '.' chinese.txt | head -10
-        ```
-
-        你会发现点号可能匹配到多字节字符的中间字节，导致乱码。
-
-        ### 3. 解决方案：使用支持 Unicode 的工具
-
-        #### 方案A：使用 `grep -P`（Perl 正则，如果支持）
-        ```bash
-        # 需要 GNU grep 且支持 -P 选项
-        grep -P '世.*pattern' chinese.txt
-        ```
-
-        #### 方案B：使用 `pcregrep`
-        ```bash
-        pcregrep '世.*pattern' chinese.txt
-        ```
-
-        #### 方案C：使用 `rg`（ripgrep） - **推荐**
-        ```bash
-        # 安装：cargo install ripgrep
-        rg '世.*pattern' chinese.txt
-        ```
-
-        `ripgrep` 默认支持 UTF-8，能正确处理多字节字符。
-
-        ### 4. 不同工具的比较
-
-        | 工具 | 点号匹配 | UTF-8 支持 | 推荐度 |
-        |------|----------|------------|--------|
-        | `grep` | 1 个字节 | ❌ 基础版本不支持 | ⭐⭐ |
-        | `grep -P` | 1 个码点 | ✅ 较好 | ⭐⭐⭐ |
-        | `pcregrep` | 1 个码点 | ✅ 好 | ⭐⭐⭐⭐ |
-        | `ripgrep (rg)` | 1 个 Unicode 标量 | ✅ 优秀 | ⭐⭐⭐⭐⭐ |
-
-        ### 5. 实际测试
-
-        创建测试文件：
-        ```bash
-        echo "Hello 世界 🌟 pattern" > test_unicode.txt
-        ```
-
-        **使用基础 grep（可能出错）：**
-        ```bash
-        grep -o '.' test_unicode.txt
-        # 可能输出乱码，因为匹配了多字节字符的中间字节
-        ```
-
-        **使用 ripgrep（正确处理）：**
-        ```bash
-        rg -o '.' test_unicode.txt
-        # 正确输出：H e l l o   世 界   🌟   p a t t e r n
-        ```
-
-        ### 6. 在 Vim 中的行为
-
-        在 Vim 中，点号（.）的行为也不同：
-        - 默认：匹配单个字节（可能破坏多字节字符）
-        - 使用 `\X`：匹配完整的显示字符（glyph）
-        - 使用 `\C` 前缀：强制字节模式
-        - 使用 `\Z` 前缀：强制字符模式
-
-        ```vim
-        " 可能破坏多字节字符
-        /世.
-
-        " 更好的方式：使用 [] 匹配字符类
-        /世[^[:space:]]
-
-        " 或者使用 \X（如果支持）
-        /\X
-        ```
-
-        ## 总结
-
-        - **基础 `grep`**：点号匹配 **1 个字节**，可能破坏多字节字符
-        - **现代工具（rg, pcregrep）**：点号匹配 **1 个 Unicode 标量值**，能正确处理多字节字符
-        - **对于处理中文等多字节文本**：推荐使用 `ripgrep` 或 `pcregrep` 而不是基础 `grep`
-
-        因此，在处理包含中文等多字节字符的文本时，选择正确的工具非常重要！
-
-    * 看来不同的工具里，点号`.`的含义不一样。那么 python 的 re 模块里，点号 . 代表的是一个字节还是一个unicode字符？
-
-        **在 Python 的 `re` 模块中，点号（`.`）的行为取决于使用的字符串类型和标志位。**
-
-        ## 核心规则
-
-        ### 1. 使用 **str 字符串**（Python 3 默认）
-        点号（`.`）匹配 **一个 Unicode 字符**（代码点），而不是一个字节。
-
-        ```python
-        import re
-
-        text = "Hello 世界 🌟 pattern"
-
-        # 点号匹配 Unicode 字符
-        matches = re.findall(r'.', text)
-        print(matches)
-        # 输出：['H', 'e', 'l', 'l', 'o', ' ', '世', '界', ' ', '🌟', ' ', 'p', 'a', 't', 't', 'e', 'r', 'n']
-        # 注意：'世', '界', '🌟' 都被正确识别为单个字符
-        ```
-
-        ### 2. 使用 **bytes 字符串**
-        点号（`.`）匹配 **一个字节**。
-
-        ```python
-        import re
-
-        text_bytes = "Hello 世界 🌟 pattern".encode('utf-8')
-
-        # 点号匹配单个字节
-        matches = re.findall(rb'.', text_bytes)
-        print(matches[:20])  # 只显示前20个结果
-        # 输出：[b'H', b'e', b'l', b'l', 'o', b' ', b'\xe4', b'\xb8', b'\x96', ...]
-        # 注意：汉字被拆分成多个字节
-        ```
-
-        ## 标志位的影响
-
-        ### `re.DOTALL` / `re.S`
-        让点号匹配 **包括换行符在内的任何字符**，但不改变字符/字节的基本单位。
-
-        ```python
-        import re
-
-        text = """第一行
-        第二行 世界
-        第三行"""
-
-        # 默认：点号不匹配换行符
-        result1 = re.findall(r'.*世界', text)
-        print(result1)  # [] - 匹配失败，因为 . 不能跨行
-
-        # 使用 DOTALL：点号匹配包括换行符的任何字符
-        result2 = re.findall(r'.*世界', text, re.DOTALL)
-        print(result2)  # ['第一行\n第二行 世界'] - 成功匹配
-        ```
-
-        ### `re.ASCII` / `re.A`
-        在 Python 3.6+ 中，让 `\w`, `\W`, `\b`, `\B`, `\d`, `\D`, `\s`, `\S` 只匹配 ASCII 字符，但**点号仍然匹配任何 Unicode 字符**。
-
-        ## 实际示例对比
-
-        ```python
-        import re
-
-        # 测试文本包含多语言字符
-        test_text = "A 世 𝄞 😀"
-
-        print("使用 str 字符串（Unicode 字符）:")
-        for match in re.finditer(r'.', test_text):
-            print(f"位置 {match.start()}-{match.end()}: '{match.group()}'")
-
-        print("\n使用 bytes 字符串（单个字节）:")
-        test_bytes = test_text.encode('utf-8')
-        for match in re.finditer(rb'.', test_bytes):
-            print(f"位置 {match.start()}-{match.end()}: {match.group()}")
-        ```
-
-        **输出：**
-        ```
-        使用 str 字符串（Unicode 字符）:
-        位置 0-1: 'A'
-        位置 1-2: ' '
-        位置 2-3: '世'
-        位置 3-4: ' '
-        位置 4-5: '𝄞'
-        位置 5-6: ' '
-        位置 6-7: '😀'
-
-        使用 bytes 字符串（单个字节）:
-        位置 0-1: b'A'
-        位置 1-2: b' '
-        位置 2-3: b'\xe4'
-        位置 3-4: b'\xb8'
-        位置 4-5: b'\x96'
-        位置 5-6: b' '
-        ...
-        ```
-
-        ## 处理特殊情况的技巧
-
-        ### 匹配任意字符（包括换行符）
-        ```python
-        # 方法1：使用 DOTALL 标志
-        re.findall(r'.*', text, re.DOTALL)
-
-        # 方法2：使用 [\s\S] 或 [\d\D] 等
-        re.findall(r'[\s\S]*', text)
-        ```
-
-        ### 精确控制匹配范围
-        ```python
-        # 匹配除了特定字符外的任何字符
-        re.findall(r'[^。]*', text)  # 匹配直到遇到句号
-
-        # 非贪婪匹配
-        re.findall(r'<.*?>', html_text)  # 匹配最短的标签
-        ```
-
-        ## 总结
-
-        在 Python `re` 模块中：
-
-        | 字符串类型 | 点号（`.`）匹配 | 处理中文等多字节字符 |
-        |------------|-----------------|---------------------|
-        | **str**    | **1个Unicode字符** | ✅ 正确，不会拆散 |
-        | **bytes**  | **1个字节**       | ❌ 会拆散多字节字符 |
-
-        **最佳实践：**
-        - 在 Python 3 中，**始终使用 str 字符串**进行正则匹配
-        - 需要跨行匹配时使用 `re.DOTALL`
-        - 处理文件时确保用正确的编码读取：
-          ```python
-          with open('file.txt', 'r', encoding='utf-8') as f:
-              text = f.read()
-          ```
-
-        Python 的这种设计让文本处理更加直观，避免了其他工具中常见的字节/字符混淆问题。
-
-    * windows 中的换行是 \r\n，那么点号 . 的匹配在 windows 里是如何处理这个问题的？
-
-        **这是一个很好的问题！Windows 的 `\r\n` 换行确实带来了特殊的处理情况。**
-
-        ## 核心答案
-
-        **点号（`.`）在正则表达式中仍然只匹配单个字符**，所以：
-        - 在 Windows 文本中，`\r\n` 是**两个独立的字符**
-        - 点号（`.`）需要**两次**才能匹配完整的 `\r\n`
-        - 但具体行为取决于工具和模式
-
-        ---
-
-        ## 不同工具的处理方式
-
-        ### 1. Python `re` 模块
-
-        Python 的 `re` 模块将 `\r` 和 `\n` 视为两个独立的字符：
-
-        ```python
-        import re
-
-        # 模拟 Windows 换行文本
-        windows_text = "第一行\r\n第二行\r\n第三行"
-
-        print("默认模式（不匹配换行符）:")
-        matches = re.findall(r'.+', windows_text)
-        print(matches)  # 输出: ['第一行\r', '第二行\r', '第三行']
-
-        print("\n使用 DOTALL 模式（匹配所有字符）:")
-        matches = re.findall(r'.+', windows_text, re.DOTALL)
-        print(matches)  # 输出: ['第一行\r\n第二行\r\n第三行']
-        ```
-
-        **关键观察：**
-        - 默认模式下，`.` 不匹配 `\n`，但会匹配 `\r`
-        - 所以 `第一行\r` 被作为一个"行"匹配
-        - `\n` 成为行分隔符
-
-        ### 2. 使用 `re.MULTILINE` 标志
-
-        ```python
-        import re
-
-        windows_text = "第一行\r\n第二行\r\n第三行"
-
-        # 多行模式，^ 和 $ 匹配每行的开始和结束
-        matches = re.findall(r'^.*$', windows_text, re.MULTILINE)
-        print(matches)  # 输出: ['第一行\r', '第二行\r', '第三行']
-        ```
-
-        ### 3. 通用解决方案
-
-        为了正确处理 Windows 换行，可以使用字符类：
-
-        ```python
-        import re
-
-        windows_text = "第一行\r\n第二行\r\n第三行"
-
-        # 匹配任何字符，包括 \r 和 \n
-        matches = re.findall(r'[\s\S]*', windows_text)
-        print(matches)  # 正确匹配整个文本
-
-        # 或者匹配直到行尾（包括 \r\n）
-        matches = re.findall(r'.*?(?:\r\n|\r|\n|$)', windows_text)
-        print(matches)  # 正确分割行
-        ```
-
-        ---
-
-        ## 其他工具的处理
-
-        ### 1. `grep` 在 Windows/Unix 中的行为
-
-        `grep` 通常能智能处理不同平台的换行符：
-
-        ```bash
-        # 在 Windows 上使用 grep（如 Git Bash）
-        grep 'pattern' windows_file.txt
-        # grep 会自动处理 \r\n，通常将 \r\n 视为行结束符
-        ```
-
-        ### 2. 文本编辑器的处理
-
-        大多数现代文本编辑器（VS Code、Sublime、Notepad++等）在正则表达式搜索时：
-        - 将 `\r\n` 视为行分隔符
-        - 点号默认不匹配 `\r` 或 `\n`
-        - 但有选项可以启用"点匹配换行"
-
-        ---
-
-        ## 实际开发中的最佳实践
-
-        ### 1. 明确处理换行符
-
-        ```python
-        import re
-
-        def process_windows_text(text):
-            # 方法1：标准化换行符
-            normalized_text = text.replace('\r\n', '\n').replace('\r', '\n')
-            
-            # 方法2：使用通用换行模式匹配
-            matches = re.findall(r'.*?(?:\r\n|\r|\n|$)', text)
-            
-            # 方法3：匹配任何字符（包括换行）
-            matches = re.findall(r'[\s\S]*', text)
-            
-            return matches
-        ```
-
-        ### 2. 文件读取时处理
-
-        ```python
-        # 方法1：使用通用换行支持（Python 默认）
-        with open('windows_file.txt', 'r') as f:
-            text = f.read()  # Python 会自动将 \r\n 转换为 \n
-
-        # 方法2：明确指定换行处理
-        with open('windows_file.txt', 'r', newline='') as f:
-            text = f.read()  # 保持原始的 \r\n
-        ```
-
-        ### 3. 跨平台正则表达式
-
-        ```python
-        import re
-
-        def cross_platform_match(pattern, text):
-            # 处理所有类型的换行符
-            pattern = pattern.replace(r'\n', r'(?:\r\n|\r|\n)')
-            return re.findall(pattern, text)
-        ```
-
-        ---
-
-        ## 总结
-
-        | 场景 | 点号（`.`）行为 | 建议 |
-        |------|----------------|------|
-        | **Python re 默认** | 匹配除 `\n` 外的字符，但会匹配 `\r` | 使用 `[\s\S]` 或 `re.DOTALL` |
-        | **Python re + DOTALL** | 匹配所有字符，包括 `\r` 和 `\n` | 适合处理完整文本 |
-        | **grep** | 通常智能处理，将 `\r\n` 视为行结束 | 在 Windows 上测试具体行为 |
-        | **文本编辑器** | 通常将 `\r\n` 视为单一行分隔符 | 查看编辑器的具体设置 |
-
-        **核心要点：**
-        - Windows 的 `\r\n` 是**两个字符**，不是单个实体
-        - 点号（`.`）在正则表达式中**一次只匹配一个字符**
-        - 为了可靠地处理 Windows 文本，最好：
-          1. **标准化换行符**，或
-          2. **使用 `[\s\S]` 代替 `.`**，或
-          3. **使用支持所有换行符的模式**
-
-* 简述`grep -z`的作用
-
-    好的，我们来简述 `grep -z` 的作用。
-
-    **一句话概括：**
-    `grep -z` 将输入数据中的 **空字符（NUL, `\0`）** 视为**行分隔符**，而不是默认的换行符。这使得它能够处理包含多行文本的“记录”，甚至处理二进制文件。
-
-    ---
-
-    ### 详细解释
-
-    为了更好地理解，我们将其与 `grep` 的默认行为进行对比。
-
-    #### 1. 默认行为 (`grep` 不加 `-z`)
-
-    *   **记录分隔符：** 换行符 (`\n`)
-    *   **工作方式：** `grep` 一次读取一行（以 `\n` 分隔）进行模式匹配。
-    *   **问题：** 如果一段文本跨越多行，并且你希望将这多行作为一个整体来搜索，默认的 `grep` 就无法直接做到。
-
-    #### 2. 使用 `-z` 或 `--null-data` 的行为
-
-    *   **记录分隔符：** 空字符 (`\0`)
-    *   **工作方式：** `grep` 会读取数据，直到遇到一个 `NUL` 字符，然后将这整个数据块（可能包含很多换行符）作为一个单一的“记录”进行模式匹配。
-
-    ---
-
-    ### 主要用途和场景
-
-    #### 1. 处理 `find -print0` 或 `xargs -0` 的输出
-
-    这是 `grep -z` 最常见和最有用的场景，用于安全地处理包含空格或特殊字符的文件名。
-
-    **不安全的方式：**
-    ```bash
-    find . -name "*.txt" | xargs grep "pattern"
-    ```
-    如果文件名包含空格或换行，`xargs` 会错误地将其分割。
-
-    **安全的方式（结合 `-z`）：**
-    ```bash
-    find . -name "*.txt" -print0 | xargs -0 grep -z -l "pattern"
-    ```
-    *   `find -print0`：在输出的每个文件名后用 `NUL` 字符分隔，而不是换行符。
-    *   `xargs -0`：期望输入是用 `NUL` 字符分隔的。
-    *   `grep -z`：同样将输入视为由 `NUL` 分隔的记录。这里的 `-l` 选项表示只打印匹配的文件名。
-
-    #### 2. 在多行中搜索模式
-
-    当你需要匹配一个跨越多行的模式时，`grep -z` 就变得非常有用。
-
-    **示例文件 `test.txt`：**
-    ```
-    Start of block
-    This is a pattern we want
-    End of block
-    Another line
-    ```
-
-    你想找到包含 “block” 和 “pattern” 的整个文本块。
-
-    **使用 `grep -z`：**
-    ```bash
-    grep -z ‘block.*pattern’ test.txt
-    ```
-    **输出：**
-    ```
-    Start of block\nThis is a pattern we want\nEnd of block
-    ```
-    (注意：输出中会包含换行符，但 `grep` 将它们视为普通字符，整个文本块作为一行输出)
-
-    #### 3. 处理二进制文件
-
-    由于二进制文件中通常包含 `NUL` 字符而很少包含换行符，`grep -z` 可以用于在二进制文件中搜索特定的字节序列或字符串。
-
-    ---
-
-    ### 重要注意事项
-
-    *   **输出分隔符：** 当使用 `-z` 时，`grep` 默认也会用 `NUL` 字符来分隔匹配到的结果。这通常会使输出在终端上看起来像一行（因为 `NUL` 字符不显示）。你可以使用 `-a` 选项将其视为文本，或者用 `tr` 等工具将 `NUL` 转换回换行符以便阅读。
-        ```bash
-        grep -z ‘pattern’ file.bin | tr ‘\0’ ‘\n’
-        ```
-    *   **GNU 扩展：** `-z` 是 GNU `grep` 的扩展选项，并非所有 Unix 系统上的 `grep` 都支持（例如，BSD 系统上的可能不支持）。
-
-    ### 总结
-
-    `grep -z` 的作用是**改变 `grep` 处理输入数据的“记录”边界**，从基于换行符变为基于空字符。这使得它在以下场景中非常强大：
-    1.  **安全地处理文件名**（与 `find -print0` 和 `xargs -0` 配合）。
-    2.  **进行跨越多行的模式匹配**。
-    3.  **搜索二进制文件**。
-
-* grep -z 搜索多行文本时，我只想输出被搜索到的那几行，或者那几行再加上上下几行，类似 -C N，不想输出全部文本，该怎么办？
-
-    这是一个很好的问题！`grep -z` 在处理多行文本时，由于它将整个文本块作为单个"行"来处理，所以 `-A`, `-B`, `-C` 这些上下文选项会失效。
-
-    这里有几种解决方案：
-
-    ## 方案1：使用 `pcregrep`（推荐）
-
-    `pcregrep` 支持多行匹配，并且与 `-A`, `-B`, `-C` 选项兼容：
-
-    ```bash
-    # 安装 pcregrep（如果尚未安装）
-    # Ubuntu/Debian: sudo apt-get install pcregrep
-    # CentOS/RHEL: sudo yum install pcre2-tools
-
-    # 使用 pcregrep 进行多行搜索并显示上下文
-    pcregrep -M 'block.*pattern' -A 2 -B 2 test.txt
-    ```
-
-    `-M` 选项启用多行模式。
-
-    ## 方案2：预处理文本，将空字符转换回换行符
-
-    ```bash
-    # 先用 grep -z 搜索，然后将 NUL 分隔符转换回换行符
-    grep -z 'pattern' file.txt | tr '\0' '\n' | grep -A 2 -B 2 'pattern'
-    ```
-
-    ## 方案3：使用 GNU awk 进行多行处理
-
-    ```bash
-    # 将整个文件读入内存，然后进行多行匹配
-    awk -v RS='\0' '{
-        if (match($0, /block[^\n]*\n[^\n]*pattern/)) {
-            print "Found at line", NR
-            print substr($0, RSTART, RLENGTH)
-        }
-    }' file.txt
-    ```
-
-    ## 方案4：使用 sed 处理多行模式空间
-
-    ```bash
-    # 使用 sed 的多行模式空间
-    sed -n '/block/,/pattern/p' file.txt
-    ```
-
-    ## 方案5：组合使用 grep 和 awk（较复杂但灵活）
-
-    ```bash
-    # 先用 grep -z 找到匹配的块，然后用 awk 格式化输出
-    grep -z 'block.*pattern' file.txt | awk -v RS='\0' '{
-        n = split($0, lines, "\n")
-        for (i = 1; i <= n; i++) {
-            if (lines[i] ~ /block|pattern/) {
-                # 打印匹配行及其上下文
-                start = (i-2 > 1) ? i-2 : 1
-                end = (i+2 < n) ? i+2 : n
-                for (j = start; j <= end; j++) {
-                    print lines[j]
-                }
-                print "---"
-            }
-        }
-    }'
-    ```
-
-    ## 实际示例
-
-    假设 `test.txt` 内容如下：
-    ```
-    Line 1: Start
-    Line 2: Middle
-    Line 3: block data
-    Line 4: This has the pattern
-    Line 5: End of block
-    Line 6: Other text
-    ```
-
-    **使用 pcregrep（推荐）：**
-    ```bash
-    pcregrep -M 'block.*pattern' -A 1 -B 1 test.txt
-    ```
-
-    **输出：**
-    ```
-    Line 3: block data
-    Line 4: This has the pattern
-    Line 5: End of block
-    ```
-
-    ## 总结
-
-    | 方法 | 优点 | 缺点 |
-    |------|------|------|
-    | **pcregrep** | ✅ 最简洁，支持标准上下文选项 | ❌ 需要额外安装 |
-    | **tr 转换** | ✅ 使用标准工具 | ❌ 需要多次处理，可能重复匹配 |
-    | **awk** | ✅ 高度灵活可控 | ❌ 语法较复杂 |
-    | **sed** | ✅ 适合连续行匹配 | ❌ 模式较简单 |
-
-    **推荐使用 `pcregrep`**，因为它专门为解决这类多行匹配问题而设计，并且与 `grep` 的选项兼容性最好。
-
 * 简述 disown 的用法，给出 syntax 以及 example
 
     好的，我们来简述一下 `disown` 命令的用法。
@@ -2728,27 +1858,6 @@
 
         只需要注意如果需要保存输出，加上重定向即可。
 
-* 简述 readelf -l /bin/bash | grep interpreter 的作用
-
-    `readelf -l /bin/bash | grep interpreter` 这条命令的作用是：
-
-    **查找 /bin/bash 可执行文件所使用的动态链接器（interpreter）的路径。**
-
-    具体分解：
-    1. `readelf -l /bin/bash`：读取 /bin/bash 的程序头表（Program Headers），其中包含 ELF 文件segments的信息。
-    2. `grep interpreter`：过滤出包含 "interpreter" 的行，该行会显示动态链接器的路径。
-
-    典型输出示例：
-    ```
-          [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
-    ```
-
-    这表示：
-    - `/bin/bash` 依赖于动态链接器 `/lib64/ld-linux-x86-64.so.2` 来加载运行所需的共享库（如 libc.so）。
-    - 系统内核在执行 `/bin/bash` 时，会先加载这个指定的动态链接器，再由它处理后续的库依赖和符号解析。
-
-    **作用总结**：快速确认一个ELF可执行文件使用的动态链接器位置，对于调试库依赖问题或跨系统兼容性检查很有用。
-
 * 讲讲 find -type 的用法
 
 	`find -type` 是 Linux 中 `find` 命令最核心、最常用的参数之一，用于**根据文件类型**来筛选搜索目标。
@@ -2906,94 +2015,6 @@
     `-q` 参数让命令静默执行，然后根据结果直接打印中文提示。
 
     如果你执行后输出的是 `0`，需要我教你怎么检查 BIOS 是否开启虚拟化吗？
-
-* 讲讲 grep -q 的作用
-
-    `grep -q` 的作用是**静默搜索**，即**不输出任何匹配结果**，仅通过**退出状态码（Exit Code）**来告诉用户是否找到了匹配的内容。
-
-    它在 Shell 脚本编程中极其常用，主要用于**条件判断**。
-
-    ---
-
-    ### 1. 核心机制
-
-    - **`-q`** 代表 `--quiet` 或 `--silent`。
-    - **正常情况**：`grep` 找到匹配行时，会把该行打印到屏幕（标准输出）。
-    - **加上 `-q`**：无论是否找到，屏幕都**不会有任何输出**。
-    - **返回值（关键）**：
-      - 找到匹配 → 返回 **`0`**（在 Shell 中代表 True）
-      - 没找到匹配 → 返回 **`1`**（在 Shell 中代表 False）
-
-    ---
-
-    ### 2. 典型用法（脚本中的条件判断）
-
-    #### 场景：检查进程是否存在
-    ```bash
-    if ps aux | grep -q "nginx"; then
-        echo "Nginx 正在运行"
-    else
-        echo "Nginx 未运行"
-    fi
-    ```
-    *如果没有 `-q`，`grep` 会把进程列表打印出来，干扰脚本逻辑。*
-
-    #### 场景：检查配置文件是否包含特定设置
-    ```bash
-    if grep -q "error_log" /etc/nginx/nginx.conf; then
-        echo "配置文件中已定义错误日志"
-    fi
-    ```
-
-    #### 场景：管道组合中的条件中止
-    ```bash
-    dmesg | grep -q "Out of memory" && echo "检测到内存溢出！" 
-    ```
-    *`&&` 表示只有前一个命令返回 0（即找到）时才执行后面的 `echo`。*
-
-    ---
-
-    ### 3. 与其他选项的对比
-
-    | 选项 | 作用 | 有无输出 | 主要用途 |
-    | :--- | :--- | :--- | :--- |
-    | **`grep`** | 默认搜索 | **有**（打印匹配行） | 查看具体内容 |
-    | **`grep -q`** | 静默搜索 | **无** | **脚本条件判断**（if/while） |
-    | **`grep -l`** | 只打印文件名 | 有（打印文件名） | 查找哪些文件包含内容 |
-    | **`grep -c`** | 统计行数 | 有（打印数字） | 需要知道匹配次数时 |
-
-    ---
-
-    ### 4. 性能优势（重要）
-
-    使用 `-q` 时，`grep` 会在**找到第一个匹配项后立即停止读取文件**，而不是像普通 `grep` 那样扫描整个文件。
-
-    **示例对比**：
-    ```bash
-    # 普通 grep：会读完整个 10GB 的日志文件（极慢）
-    grep "ERROR" huge_log.log
-
-    # grep -q：只要找到第一个 "ERROR" 就立刻停止（极快）
-    grep -q "ERROR" huge_log.log
-    ```
-    当你**只关心“有没有”**，而不关心“有多少”或“在哪一行”时，`-q` 能极大地节省时间。
-
-    ---
-
-    ### 5. 进阶提示
-
-    - **静默错误**：`-q` 只抑制标准输出（stdout），但**错误信息（stderr）**仍然会打印。如果你想连报错（比如文件不存在）也屏蔽，需要加上 `2>/dev/null`：
-      ```bash
-      grep -q "root" /etc/passwd 2>/dev/null
-      ```
-
-    - **替代写法**：在 Bash 中，也可以使用 `[[ ... =~ ... ]]` 正则匹配，但 `grep -q` 的优势在于可以直接处理**文件**和**管道数据流**。
-
-    ---
-
-    总结一句话：**`grep -q` 就是“只问是与否，不看具体内容”，是 Shell 脚本里做逻辑判断的利器。** 
-
-    如果你正在编写复杂的条件判断脚本，想了解如何结合 `&&`、`||` 或 `case` 语句使用它，我可以进一步为你演示。
 
 * 讲讲 cut -d' ' -f1 的作用
 
@@ -3707,165 +2728,6 @@
     *   **安全第一**：永远不要对不信任的 `.envrc` 文件执行 `direnv allow`，因为它实际上是一个 Bash 脚本，可以执行任何命令。
     *   **功能限制**：`direnv` 通过子 shell 捕获环境变量变更，因此**无法加载 shell 别名、函数或修改 `$PS1` 提示符**。如果需要这些功能，可以使用 `devbox shell` 等替代方案。
 
-* 讲讲 linux 中 fusermount 的用法
-
-    在 Linux 系统中，`fusermount` 是一个非常实用的用户空间工具，专门用于管理 **FUSE（Filesystem in Userspace，用户空间文件系统）** 的挂载和卸载。
-
-    因为 FUSE 允许普通用户创建自己的文件系统（比如挂载网盘、解压镜像、SSH 远程目录等），所以普通用户没有权限直接使用传统的 `mount` 和 `umount` 命令。而 `fusermount` 就是给普通用户开的“绿灯”。
-
-    1. 核心用法：卸载文件系统（最常用）
-
-        日常使用中，我们接触 `fusermount` **90% 的场景都是为了卸载（unmount）**。
-
-        当你想断开一个 FUSE 挂载点（比如用 `rclone` 挂载的网盘，或者 `sshfs` 挂载的远程目录）时，使用以下命令：
-
-        ```bash
-        fusermount -u <挂载点路径>
-        ```
-
-        **💡 实用进阶选项：**
-
-        * 强制卸载 (`-z`)
-        
-            如果某个挂载点被程序占用了（提示 `target is busy`），导致无法正常卸载，可以加上 `-z` 参数进行**懒卸载（Lazy unmount）**。它会立即把挂载点从文件系统树中摘除，等占用的程序退出后再真正释放。
-
-            ```bash
-            fusermount -uz <挂载点路径>
-            ```
-
-    2. 核心用法：挂载（通常由 FUSE 程序自动调用）
-
-        虽然 `fusermount` 可以用来挂载，但通常**不需要你手动直接运行它来挂载**。
-
-        当你运行 `sshfs`、`rclone mount` 或 `goofys` 等 FUSE 工具时，这些程序在底层会自动调用 `fusermount` 来完成挂载工作。
-
-        如果你非要手动测试底层挂载（通常需要配合 FUSE 设备的特殊文件描述符，比较少见），它的基本格式是：
-
-        ```bash
-        fusermount [选项] <挂载点路径>
-        ```
-
-    3. 常用参数一览表
-
-        | 参数 | 全称 | 说明 |
-        | --- | --- | --- |
-        | `-u` | `--unmount` | 卸载指定的挂载点。 |
-        | `-z` | `--lazy` | 懒卸载。即使挂载点正忙，也立即断开连接。 |
-        | `-q` | `--quiet` | 安静模式，不输出错误信息。 |
-        | `-V` | `--version` | 显示 `fusermount` 的版本信息。 |
-        | `-h` | `--help` | 显示帮助信息。 |
-
-    4. 常见问题与报错
-
-        **⚠️ 报错：`fusermount: failed to unmount /path: Device or resource busy`**
-
-        * **原因**：有终端正处于该目录下，或者有程序（如文件管理器、播放器）正在读写该目录下的文件。
-        * **解决办法**：
-        1. 退出该目录（`cd ~`）。
-        2. 找出占用进程并关闭：`lsof <挂载点路径>`。
-        3. 或者直接使用大招：`fusermount -uz <挂载点路径>`。
-
-        **⚠️ 报错：`fusermount: command not found`**
-
-        * **原因**：系统没有安装 FUSE 工具包。
-        * **解决办法**：
-        * **Ubuntu/Debian**: `sudo apt install fuse3` (或 `fuse`)
-        * **CentOS/RHEL**: `sudo yum install fuse`
-
-    5. 补充：新版 Linux 中的 `fusermount3`
-
-        如果你使用的是较新的 Linux 发行版（如 Ubuntu 22.04+ 等），你可能会发现系统里使用的是 `fusermount3`（属于 FUSE3 版本）。
-
-        * **用法完全一致**：它的参数和 `fusermount` 没有任何区别。
-        * **命令**：`fusermount3 -u <挂载点路径>`。
-
-    你平时主要是在使用哪款 FUSE 工具（比如 `rclone`、`sshfs` 还是 `AppImage`）时遇到了这个命令呢？
-
-*  那为什么不直接用 mount 和 umount
-
-    这是一个非常核心的问题。答案用一句话概括就是：**为了安全，以及让普通用户拥有自由。**
-
-    传统的 `mount` 和 `umount` 是**内核级别**的操作，而 `fusermount` 是为了 **FUSE（用户空间文件系统）** 量身定制的特殊通道。
-
-    具体原因可以拆解为以下三个最核心的痛点：
-
-    1. 权限与安全隐患（最关键的原因）
-
-        在 Linux 中，传统的 `mount` 必须由 **root（超级用户）** 权限执行。
-
-        * **为什么不直接给普通用户 `mount` 权限？** 因为直接允许普通用户挂载任意文件系统是非常危险的。例如，恶意用户可以自己制作一个恶意的 `ext4` 镜像，里面包含一个伪造的 `suid` 程序（比如带有 root 权限的后门 shell），然后通过 `mount` 挂载到系统中，直接完成提权。
-
-        * **`fusermount` 是如何解决的？**
-
-        `fusermount` 程序的底层带有 **SUID 权限**（也就是说它虽然由普通用户运行，但执行时会临时获得 root 权限）。不过，它在执行时会受到严格的内核安全检查。它**只允许**普通用户挂载属于他们自己的目录，并且默认带有 `nosuid` 和 `nodev` 等安全限制，从机制上堵死了用户借此提权的可能。
-
-    2. 谁搞出来的，谁负责“擦屁股”
-
-        传统的 `mount` 挂载的是**内核驱动**支持的文件系统（如 ext4, xfs, nfs）。如果这些文件系统出了问题（比如网络共享断开、硬件坏道），内核会去处理。
-
-        而 FUSE 文件系统是**用户编写的程序**（比如你运行了一个 `rclone` 进程来挂载网盘）。
-
-        * **如果用 `umount`：** `umount` 属于内核层面的强制拆除。如果直接用它去断开，内核可能无法优雅地通知底层的那个用户空间程序（比如 `rclone`），导致程序崩溃、内存泄漏，甚至导致内核的挂载点陷入“僵死”状态。
-
-        * **如果用 `fusermount -u`：** 它专门负责沟通**内核的 FUSE 模块**和**底层的用户空间程序**。它会通知你的挂载程序：“注意，现在要断开连接了，请保存好缓存，释放资源，然后优雅地退出。”
-
-    3. 避免污染系统的 `/etc/mtab` 和管理配置
-
-        传统的 `mount` 往往需要配合 `/etc/fstab` 配置，或者在 `/etc/mtab` 中记录全局的挂载信息。普通用户是没有权限修改这些系统级文件的。
-
-        `fusermount` 能够让每个普通用户在自己的家目录（`~`）下独立挂载、独立管理，互不干扰，完全不需要动系统的全局配置文件。
-
-* sshfs 挂载的目录只能用 fusermount -u 卸载吗？
-
-    答案是：**不是绝对的，但它是最推荐、最安全的方式。**
-
-    实际上，你也可以使用传统的 `umount`，或者甚至使用 `kill` 命令。这取决于你的**用户身份**以及**挂载点的状态**。
-
-    以下是三种主要的卸载方式及它们的区别：
-
-    方法 1：`fusermount -u <挂载点>`（最推荐）
-
-    * **谁能用**：普通用户、Root 用户。
-    * **为什么推荐**：这是专门为 FUSE 架构设计的。它不仅能把目录安全地卸载掉，还会同时通知后台的 `sshfs` 进程：“现在可以收工了”，让该进程**优雅地退出**，释放内存和网络连接。
-
-    方法 2：`umount <挂载点>`（传统方式）
-
-    * **谁能用**：通常需要 **Root 权限**（除非你在 `/etc/fstab` 里特意为该目录配置了 `user` 属性）。
-    * **效果**：如果你是 Root 用户，直接运行 `sudo umount /path` 也可以成功卸载 `sshfs` 挂载的目录。
-    * **缺点**：它属于系统级的强行拆除，有时候无法完美地让底层的 `sshfs` 进程优雅退出，可能会留下残留进程。
-
-    方法 3：强制断开进程（大招）
-
-    有时候网络断开了，或者远程服务器死机了，导致 `sshfs` 卡死。这时候无论用 `fusermount -u` 还是 `umount` 都会提示 **`Device or resource busy`** 或直接卡住没有响应。
-
-    此时，你可以通过杀掉进程来强行卸载：
-
-    1. **懒卸载（推荐首选）**：
-
-        ```bash
-        fusermount -uz <挂载点>
-        ```
-
-        *（`-z` 会立刻让这个目录在系统里消失，等后台把死锁的文件处理完后再自动退出进程。）*
-
-    2. **强杀进程（终极大招）**：
-
-        直接找出并杀掉那个 `sshfs` 进程，进程死掉后，挂载点会自动消失：
-
-        ```bash
-        pkill -9 -f "sshfs.*<挂载点>"
-        ```
-
-    **总结建议**
-
-    如果你是**普通用户**，不用纠结，**永远优先使用 `fusermount -u**`。
-
-    只有当网络卡死、命令失效时，再考虑加上 `-z` 参数（`fusermount -uz`）或者让管理员用 `sudo umount` 来解决。
-
-    注：
-
-    1. 尝试在 cygwin 下进行 mount / umount，看普通的挂载是否支持。然后尝试 sshfs + umount，看是否支持。
-
 * 详细讲讲 linux 中 ulimit 的用法
 
     `ulimit` 是 Linux 系统管理中一个非常核心的工具，它是一个 Shell 内置命令，用来控制你当前 Shell 会话及其启动的进程可以使用的系统资源。它能有效防止单个进程耗尽系统资源，是保障系统稳定运行的第一道防线。
@@ -4095,635 +2957,6 @@
     ```
     然后在另一个终端尝试 SSH 连接，观察实时的错误信息。
  
-* systemd 中，After=network.target 如何替换成一个指定的自定义 service
-
-    在 systemd 中，你可以通过多种方式替换 `After=network.target` 为自定义 service。以下是几种常见方法：
-
-    ## 方法1：直接指定自定义 service
-
-    ```ini
-    [Unit]
-    # 完全替换 network.target
-    After=your-custom.service
-    Wants=your-custom.service
-
-    # 或者同时包含两者（如果都需要）
-    After=network.target your-custom.service
-    Wants=network.target your-custom.service
-    ```
-
-    ## 方法2：使用 Requires 确保依赖关系
-
-    ```ini
-    [Unit]
-    Description=My Service
-    After=your-custom.service
-    Requires=your-custom.service
-
-    [Service]
-    ExecStart=/path/to/your/command
-    Type=simple
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    ## 方法3：使用 PartOf 或 BindsTo（如果需要联动）
-
-    ```ini
-    [Unit]
-    Description=My Service
-    After=your-custom.service
-    BindsTo=your-custom.service  # 如果自定义服务停止，本服务也会停止
-    PartOf=your-custom.service   # 作为自定义服务的一部分管理
-    ```
-
-    ## 方法4：创建模板化的依赖（如果自定义服务有多个实例）
-
-    ```ini
-    [Unit]
-    Description=My Service
-    After=your-custom@%i.service  # 使用模板实例
-    Wants=your-custom@%i.service
-
-    [Service]
-    ExecStart=/path/to/your/command
-    ```
-
-    ## 方法5：在 systemd drop-in 目录中覆盖（推荐）
-
-    创建一个覆盖配置，而不是修改原 service 文件：
-
-    ```bash
-    # 创建配置目录
-    sudo mkdir -p /etc/systemd/system/your-service.d/
-
-    # 创建覆盖配置
-    sudo tee /etc/systemd/system/your-service.d/custom-dependency.conf > /dev/null << EOF
-    [Unit]
-    After=your-custom.service
-    Wants=your-custom.service
-    # 移除对 network.target 的依赖
-    # 如果需要完全移除，可以设置为空
-    Upholds=your-custom.service  # systemd v244+，自动重启依赖的服务
-    EOF
-
-    # 重新加载 systemd
-    sudo systemctl daemon-reload
-    ```
-
-    ## 方法6：完全自定义启动顺序
-
-    ```ini
-    [Unit]
-    Description=My Service
-    # 定义完整的依赖链
-    After=sysinit.target local-fs.target swap.target
-    Before=multi-user.target
-    RequiresMountsFor=/var /etc
-    After=your-custom.service
-    Requires=your-custom.service
-
-    # 显式说明不需要 network.target
-    # （在某些情况下 network.target 仍可能被隐式依赖）
-    ```
-
-    ## 示例：完整的 service 文件替换
-
-    ```ini
-    [Unit]
-    Description=My Application
-    Documentation=https://example.com
-    After=your-custom.service
-    Requires=your-custom.service
-    # 如果还需要网络但要在自定义服务之后
-    After=network-online.target
-    Wants=network-online.target
-
-    [Service]
-    Type=simple
-    User=appuser
-    Group=appgroup
-    ExecStart=/usr/local/bin/myapp
-    Restart=on-failure
-    RestartSec=5
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    ## 验证和调试
-
-    ```bash
-    # 检查依赖关系
-    systemctl show your-service.service -p After,Before,Requires,Wants
-
-    # 列出所有依赖
-    systemctl list-dependencies your-service.service
-
-    # 测试启动顺序
-    systemd-analyze critical-chain your-service.service
-
-    # 查看详细的 unit 信息
-    systemctl cat your-service.service
-    ```
-
-    ## 重要注意事项
-
-    1. **确保自定义 service 已正确定义**：自定义 service 需要正确处理自己的依赖和启动类型。
-
-    2. **考虑网络需求**：如果服务确实需要网络功能，建议保留：
-       ```ini
-       After=network-online.target  # 等待网络真正就绪
-       Wants=network-online.target
-       ```
-
-    3. **启动类型**：如果自定义服务是 `Type=oneshot`，你可能需要：
-       ```ini
-       After=your-custom.service
-       Requires=your-custom.service
-       ```
-
-    选择哪种方法取决于你的具体需求。如果只是简单的依赖关系，方法1或方法2通常就足够了。
-
-* 简述 systemd 配置文件的语法和注意事项，给出一些常见的例子
-
-    # Systemd 配置文件的语法和注意事项
-
-    ## 一、基本语法结构
-
-    ### 1. 配置文件格式
-    ```
-    [Unit]           # 第一节：单元元数据和依赖关系
-    Description=...
-    After=...
-    Requires=...
-
-    [Service]        # 第二节：服务配置（仅 Service 类型）
-    Type=...
-    ExecStart=...
-
-    [Install]        # 第三节：安装信息
-    WantedBy=...
-
-    [Socket]         # 其他节：对应不同类型的单元
-    [Timer]
-    [Path]
-    [Mount]
-    [Swap]
-    ```
-
-    ### 2. 语法规则
-    - **区分大小写**：所有指令和值都是大小写敏感的
-    - **键值对**：`指令=值` 格式
-    - **注释**：以 `#` 开头
-    - **多值**：用空格分隔多个值
-    - **续行**：用反斜杠 `\` 续行
-    - **布尔值**：`true`/`false`、`yes`/`no`、`1`/`0` 都可以接受
-
-    ## 二、配置文件位置和优先级
-
-    ### 文件位置优先级（从高到低）：
-    1. `/etc/systemd/system/` - 系统管理员配置（最高优先级）
-    2. `/run/systemd/system/` - 运行时配置
-    3. `/usr/lib/systemd/system/` - 软件包安装的默认配置
-    4. `/lib/systemd/system/` - 旧系统兼容位置
-
-    ### Drop-in 目录（覆盖配置）：
-    ```
-    /etc/systemd/system/service-name.d/
-    /etc/systemd/system/service-name.d/override.conf
-    ```
-
-    ## 三、[Unit] 节常见指令
-
-    ```ini
-    [Unit]
-    # 基本描述
-    Description=My Application Service
-    Documentation=man:app(8) https://example.com/docs
-
-    # 依赖关系（启动顺序）
-    After=network.target nginx.service
-    Before=multi-user.target
-    Requires=nginx.service          # 强依赖，失败则本服务也失败
-    Wants=network.target           # 弱依赖，失败不影响本服务
-    Conflicts=old-service.service  # 互斥服务
-    RequiresMountsFor=/var/log     # 依赖挂载点
-
-    # 条件判断
-    ConditionPathExists=/etc/app/config.conf
-    ConditionFileNotEmpty=/var/lib/app/data.db
-    ConditionKernelVersion=>=4.0
-    ConditionUser=!root
-    ConditionVirtualization=no
-    ```
-
-    ## 四、[Service] 节常见指令
-
-    ### 服务类型：
-    ```ini
-    [Service]
-    # 服务类型（必填）
-    Type=simple          # 默认，ExecStart 进程为主进程
-    Type=forking         # 传统守护进程，需要自己 fork
-    Type=oneshot         # 一次性任务，执行后退出
-    Type=dbus            # D-Bus 服务
-    Type=notify          # 通过 sd_notify() 通知就绪
-    Type=idle            # 等待所有任务完成后启动
-
-    # 启动配置
-    ExecStart=/usr/bin/myapp --daemon
-    ExecStartPre=/usr/bin/init-script.sh    # 启动前执行
-    ExecStartPost=/usr/bin/post-script.sh   # 启动后执行
-    ExecStop=/usr/bin/shutdown-script.sh    # 停止时执行
-    ExecReload=/usr/bin/reload-script.sh    # 重载配置
-
-    # 进程管理
-    Restart=on-failure          # 失败时重启
-    RestartSec=5                # 重启等待时间
-    StartLimitInterval=60       # 启动频率限制时间段
-    StartLimitBurst=3           # 时间段内允许的启动次数
-
-    # 权限控制
-    User=appuser
-    Group=appgroup
-    DynamicUser=yes            # 动态创建用户
-    AmbientCapabilities=CAP_NET_BIND_SERVICE  # 赋予能力
-    NoNewPrivileges=yes        # 禁止提升权限
-
-    # 资源限制
-    LimitNOFILE=65536          # 文件描述符限制
-    LimitNPROC=512             # 进程数限制
-    MemoryMax=500M             # 内存限制
-    CPUQuota=80%               # CPU 配额
-    ```
-
-    ## 五、[Install] 节常见指令
-
-    ```ini
-    [Install]
-    # 启用时创建符号链接到哪个 target
-    WantedBy=multi-user.target    # 多用户模式
-    WantedBy=graphical.target     # 图形界面模式
-    WantedBy=default.target       # 默认 target
-
-    # 别名
-    Alias=myapp.service
-
-    # 同时安装
-    Also=app-socket.service app-timer.service
-    ```
-
-    ## 六、常见配置文件示例
-
-    ### 示例1：简单的 Web 服务
-    ```ini
-    [Unit]
-    Description=My Web Application
-    After=network.target nginx.service
-    Requires=nginx.service
-
-    [Service]
-    Type=simple
-    User=webapp
-    Group=webapp
-    WorkingDirectory=/var/www/myapp
-    Environment="NODE_ENV=production"
-    EnvironmentFile=/etc/default/myapp
-    ExecStart=/usr/bin/node /var/www/myapp/server.js
-    Restart=on-failure
-    RestartSec=10
-    StandardOutput=journal
-    StandardError=journal
-
-    # 安全加固
-    NoNewPrivileges=yes
-    PrivateTmp=yes
-    ProtectSystem=strict
-    ReadWritePaths=/var/log/myapp /var/lib/myapp
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    ### 示例2：定时任务
-    ```ini
-    [Unit]
-    Description=Daily Backup Service
-
-    [Service]
-    Type=oneshot
-    User=backup
-    ExecStart=/usr/local/bin/backup.sh
-    Nice=19                          # 低优先级
-    IOSchedulingClass=idle           # IO 空闲时运行
-
-    [Install]
-    WantedBy=timers.target
-    ```
-
-    ### 示例3：带 Socket 激活的服务
-    ```ini
-    # socket.service
-    [Unit]
-    Description=My App Socket
-
-    [Socket]
-    ListenStream=8080
-    Accept=no
-    SocketUser=appuser
-    SocketGroup=appgroup
-
-    [Install]
-    WantedBy=sockets.target
-    ```
-
-    ### 示例4：挂载服务
-    ```ini
-    [Unit]
-    Description=Mount NFS Share
-
-    [Mount]
-    What=192.168.1.100:/share
-    Where=/mnt/nfs
-    Type=nfs
-    Options=defaults,noatime
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    ### 示例5：定时器服务
-    ```ini
-    [Unit]
-    Description=Run cleanup daily
-
-    [Timer]
-    OnCalendar=daily
-    Persistent=true
-    RandomizedDelaySec=300
-
-    [Install]
-    WantedBy=timers.target
-    ```
-
-    ## 七、重要注意事项
-
-    ### 1. 路径相关注意事项
-    ```ini
-    # ✅ 正确：使用绝对路径
-    ExecStart=/usr/bin/myapp
-
-    # ❌ 错误：使用相对路径
-    ExecStart=./myapp
-    ExecStart=myapp
-
-    # ✅ 环境变量（仅在 ExecStart 中有效）
-    Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
-    ```
-
-    ### 2. 命令参数注意事项
-    ```ini
-    # ✅ 正确：整个命令作为一个字符串
-    ExecStart=/usr/bin/myapp --port 8080 --config /etc/myapp.conf
-
-    # ✅ 也可以：使用多个 ExecStart 参数
-    ExecStart=/usr/bin/myapp --port 8080 --config /etc/myapp.conf
-
-    # ❌ 错误：使用 shell 特性（除非指定 shell）
-    ExecStart=myapp > /var/log/myapp.log 2>&1  # 错误！
-    ExecStart=/bin/sh -c 'myapp > /var/log/myapp.log 2>&1'  # 正确
-    ```
-
-    ### 3. 重启策略注意事项
-    ```ini
-    # 避免无限重启循环
-    Restart=on-failure
-    RestartSec=5
-    StartLimitIntervalSec=100
-    StartLimitBurst=5
-    ```
-
-    ### 4. 权限安全注意事项
-    ```ini
-    # 最小权限原则
-    User=nobody
-    Group=nogroup
-    NoNewPrivileges=yes
-    PrivateTmp=yes
-    ProtectHome=yes
-    ProtectSystem=strict
-    ReadOnlyPaths=/
-    ReadWritePaths=/var/lib/myapp
-    ```
-
-    ### 5. 日志配置
-    ```ini
-    # 标准输出处理
-    StandardOutput=journal      # 发送到 journal
-    StandardOutput=null         # 丢弃
-    StandardOutput=file:/var/log/myapp.log  # 输出到文件
-    StandardOutput=append:/var/log/myapp.log  # 追加到文件
-
-    # 日志重定向
-    StandardError=inherit       # 与标准输出相同
-    ```
-
-    ### 6. 环境变量最佳实践
-    ```ini
-    # 推荐方式
-    EnvironmentFile=/etc/default/myapp
-    Environment="MYAPP_HOME=/var/lib/myapp"
-
-    # 不推荐直接在 ExecStart 中使用环境变量
-    ExecStart=/usr/bin/myapp $OPTIONS  # 可能不会展开
-    ```
-
-    ## 八、调试和验证
-
-    ```bash
-    # 检查语法
-    systemd-analyze verify /etc/systemd/system/myapp.service
-
-    # 检查依赖关系
-    systemd-analyze critical-chain myapp.service
-
-    # 测试运行
-    systemctl start myapp.service --dry-run
-
-    # 检查日志
-    journalctl -u myapp.service -f
-
-    # 查看完整配置
-    systemctl show myapp.service
-
-    # 图形化分析
-    systemd-analyze plot > plot.svg
-    ```
-
-    ## 九、特殊指令说明
-
-    ### `Type=notify` 的额外要求：
-    ```ini
-    [Service]
-    Type=notify
-    # 应用必须调用 sd_notify(0, "READY=1")
-    NotifyAccess=all  # 谁可以发送通知：all/main/none
-    ```
-
-    ### 资源限制单位：
-    ```
-    Memory: K, M, G, T (默认字节)
-    CPU: 百分比 (如 50%)
-    Time: s, min, h, d, w, ms, us (默认秒)
-    ```
-
-    ### 特殊路径：
-    ```
-    %h - 用户家目录
-    %t - 运行时目录 (/run)
-    %s - 配置目录 (/etc)
-    %u - 用户名
-    %U - 用户ID
-    %H - 主机名
-    ```
-
-    通过遵循这些语法规则和注意事项，可以编写出稳定、安全、可维护的 systemd 服务配置文件。
-
-* 简述 wireguard 的作用和用法
-
-    好的，我们来简单、清晰地介绍一下 WireGuard。
-
-    * 一、WireGuard 的作用
-
-        **一句话概括：**
-        WireGuard 是一个现代、高效、易用的 **VPN（虚拟专用网）** 协议和软件。它的主要作用是在不安全的网络（如互联网）上，安全地连接两台或多台计算机，让它们仿佛在同一个安全的本地网络中一样通信。
-
-        **核心作用体现在：**
-
-        1.  **安全通信**：对所有流量进行加密，防止窃听和篡改。
-        2.  **组建虚拟局域网**：将分布在全球不同网络下的设备（如家庭电脑、公司服务器、云主机）逻辑上组建成一个局域网，直接用私有IP地址访问。
-        3.  **远程访问**：从外部网络（如在咖啡馆）安全地访问家庭或公司内部的网络资源（如NAS、打印机、内部网站）。
-        4.  **绕过网络限制**：通过连接到特定的服务器来访问受地域或网络限制的资源。
-
-        **WireGuard 的突出优点：**
-
-        *   **极简高效**：代码量极少（约4000行），更容易审计和维护，性能远超 OpenVPN、IPSec 等传统协议。
-        *   **速度快，延迟低**：采用最新的加密协议，对网络性能影响极小。
-        *   **配置简单**：通常只需一个配置文件，设置非常快捷。
-
-    * 二、WireGuard 的用法
-
-        WireGuard 采用 **对等（Peer-to-Peer）** 架构，没有严格的客户端/服务器之分，只有“对等体”。但在实际应用中，我们通常会把一个长期在线的节点称为“服务器”，其他节点称为“客户端”。
-
-        * **核心概念**
-
-            *   **接口**：在每台机器上创建一个虚拟网络接口（如 `wg0`）。
-            *   **私钥/公钥**：每个对等体都有一对自己生成的、独一无二的密钥对。**私钥绝对保密**，**公钥则告诉其他对等体**。
-            *   **对等体**：每个节点的配置中，需要指定它要连接的其他对等体（通过对方的公钥来识别）。
-            *   **允许的IPs**：这是一个非常重要的配置项。它告诉 WireGuard：
-                *   哪些 IP 地址的流量应该通过这个对等体进行路由。
-                *   这个对等体允许使用哪些 IP 地址进行通信。
-
-        * 典型用法：组建“客户端-服务器”式 VPN
-
-            这是最常见的场景：你有一台有公网IP的云服务器（Server），和一台在家的笔记本电脑（Client）。你想让笔记本通过服务器来安全上网。
-
-            * 步骤 1：在所有机器上安装 WireGuard
-            
-                几乎所有主流操作系统（Linux, Windows, macOS, Android, iOS）都支持。
-
-                *   **Linux (Ubuntu/Debian)**： `sudo apt install wireguard`
-                *   **Windows/macOS**： 从官网下载图形化客户端。
-
-            * 步骤 2：生成密钥对（在服务器和客户端上分别执行）
-
-                ```bash
-                # 生成私钥
-                wg genkey > privatekey
-
-                # 从私钥生成公钥
-                wg pubkey < privatekey > publickey
-                ```
-
-                现在每台机器上都会有一个 `privatekey` 文件和一个 `publickey` 文件。
-
-            * 步骤 3：配置服务器（假设公网IP为 `1.1.1.1`）
-
-                编辑服务器的配置文件，例如 `/etc/wireguard/wg0.conf`：
-
-                ```ini
-                [Interface]
-                # 服务器自身的私钥
-                PrivateKey = <服务器的privatekey内容>
-                # 服务器虚拟接口的IP地址
-                Address = 10.0.0.1/24
-                # 服务启动后执行的命令，配置防火墙和NAT转发
-                PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-                PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
-                # 服务监听的端口
-                ListenPort = 51820
-
-                [Peer]
-                # 客户端A的公钥
-                PublicKey = <客户端A的publickey内容>
-                # 允许客户端使用这个IP地址连接到服务器，并告诉服务器去往 10.0.0.2 的流量应发给这个客户端
-                AllowedIPs = 10.0.0.2/32
-
-                [Peer]
-                # 客户端B的公钥
-                PublicKey = <客户端B的publickey内容>
-                AllowedIPs = 10.0.0.3/32
-                # 可以继续添加更多 [Peer]...
-                ```
-
-            * 步骤 4：配置客户端（以客户端A为例）
-
-                编辑客户端的配置文件，例如 `clientA.conf`：
-
-                ```ini
-                [Interface]
-                # 客户端A自身的私钥
-                PrivateKey = <客户端A的privatekey内容>
-                # 客户端虚拟接口的IP地址
-                Address = 10.0.0.2/24
-                # 如果需要所有流量都走VPN，可以配置DNS
-                # DNS = 8.8.8.8
-
-                [Peer]
-                # 服务器的公钥
-                PublicKey = <服务器的publickey内容>
-                # 服务器的公网IP和端口
-                Endpoint = 1.1.1.1:51820
-                # 允许通过这个VPN连接发送流量的目标IP段
-                # 0.0.0.0/0 表示所有流量都通过服务器转发（全局VPN）
-                AllowedIPs = 0.0.0.0/0
-                # 如果只想访问服务器局域网，可以设为 10.0.0.0/24
-                ```
-
-            * 步骤 5：启动并测试
-
-                * 在服务器上： `sudo wg-quick up wg0`
-
-                * 在客户端上：导入 `clientA.conf` 文件并激活连接（图形界面通常一键完成）。
-
-            现在，客户端 A 的 IP 在服务器看来就是 `10.0.0.2`，并且所有互联网流量都会通过服务器 `1.1.1.1` 转发。
-
-    * 总结
-
-        | 特性 | 描述 |
-        | :--- | :--- |
-        | **角色** | 对等体，无严格C/S之分，但可模拟该模式。 |
-        | **安全基础** | 基于Curve25519的密钥交换。 |
-        | **配置核心** | `[Interface]` 配置自己，`[Peer]` 配置要连接的对象。 |
-        | **关键配置项** | `PrivateKey`, `PublicKey`, `Endpoint`, `AllowedIPs`。 |
-        | **启动命令** | `sudo wg-quick up <接口名>` |
-        | **停止命令** | `sudo wg-quick down <接口名>` |
-        | **状态查看** | `sudo wg show` |
-
-    WireGuard 以其简洁性和高性能，正在迅速成为下一代 VPN 的标准，被整合进 Linux 内核，并被许多商业VPN服务商采用。
-
 * 可以在 guest 里装 ZeroTier / Tailscale / WireGuard 之类的 overlay 网络
 
 * 详细讲讲 linux 中 lsof 的用法
@@ -4934,368 +3167,7 @@
     | 排除某些结果（取反） | `lsof -u ^root` |
 
     掌握了 `lsof`，你就能在 Linux 系统上精准定位**端口冲突、文件占用、进程异常、磁盘空间未释放**等 80% 的疑难杂症。它是运维和开发工程师必须精通的“瑞士军刀”。
-* tcp socket 断开连接后，timeout 的时间是多少？
 
-    TCP 连接断开后的超时时间取决于多个因素，主要包括：**操作系统内核参数**、**TCP 状态**和**具体场景**。以下是主要情况的说明：
-
-    1. **主动关闭方（发送 FIN 后进入 `TIME_WAIT`）**
-
-        - **`TIME_WAIT` 状态**：默认保持 **2MSL**（Maximum Segment Lifetime，最大报文生存时间）。
-          - **MSL 值**：不同系统定义不同（RFC 793 建议 2 分钟，但常见系统更短）。
-          - **Linux**：通常 `MSL=60s`，所以 `TIME_WAIT` 默认 **120秒**（可通过 `/proc/sys/net/ipv4/tcp_fin_timeout` 调整，但实际控制的是 `FIN_WAIT_2` 状态）。
-          - **Windows**：默认 MSL 为 120秒，`TIME_WAIT` 通常 **240秒**。
-          - 作用：确保网络中旧的重复报文消失，避免影响新连接。
-
-    2. **被动关闭方（收到 FIN 后进入 `CLOSE_WAIT`）**
-
-        - `CLOSE_WAIT`：等待应用层调用 `close()`，**无固定超时**（依赖应用）。
-        - 若应用不关闭，连接可能一直悬挂（导致连接泄漏）。
-        - 之后发送 FIN 进入 `LAST_ACK`，等待对方 ACK（超时重传依赖 TCP 重传机制）。
-
-    3. **异常断开（连接半开或未正常关闭）**
-
-        **Keepalive 机制**
-
-        如果未开启 TCP Keepalive，可能永远不发现对端死亡。开启后：
-
-        - **Linux**：默认参数（可调整）：
-          ```bash
-          net.ipv4.tcp_keepalive_time = 7200 秒（2小时）
-          net.ipv4.tcp_keepalive_intvl = 75 秒
-          net.ipv4.tcp_keepalive_probes = 9
-          ```
-          即无数据 2 小时后开始探测，每 75 秒发一次，连续 9 次无响应则断开，总耗时约 **2h + 75s * 9 ≈ 2小时11分**。
-
-        **应用层超时**
-
-        - 由应用协议或 socket 选项（如 `SO_RCVTIMEO`/`SO_SNDTIMEO`）设置。
-        - 若无设置，可能永久阻塞在 `read()`/`write()`。
-
-    4. **系统内核参数示例（Linux）**
-
-        ```bash
-        # TIME_WAIT 持续时间（实际由 MSL 决定，不可直接改）
-        cat /proc/sys/net/ipv4/tcp_fin_timeout  # 默认 60（单位秒，实际是FIN_WAIT_2状态超时）
-
-        # 修改 MSL 影响 TIME_WAIT（需改内核源码或调整参数，如 net.ipv4.tcp_max_tw_buckets 限制数量）
-        ```
-
-    5. **重要场景区别**
-
-        | 场景                     | 典型超时                                    |
-        |--------------------------|---------------------------------------------|
-        | 正常关闭（TIME_WAIT）     | 2MSL（Linux 通常 60-120秒）                  |
-        | 对端崩溃无 FIN（Keepalive）| 依赖 Keepalive 设置（默认约2小时以上）       |
-        | 对端断电（无响应）        | 应用/传输层超时或 TCP 重传超时（分钟级）     |
-        | 连接尝试（SYN 超时）      | 指数退避重试，总超时约 75秒-数分钟           |
-
-    6. **总结建议**
-
-        - **正常断开**：关注 `TIME_WAIT`（2MSL）对端口重用影响。
-        - **异常断开**：若需快速检测，应启用 TCP Keepalive 并调小参数，或在应用层实现心跳。
-        - **编程注意**：设置 socket 超时选项，避免僵尸连接。
-
-    如果需要具体系统的默认值或调整方法，请告知操作系统类型（Linux/Windows/macOS等）。
-* 如何检测本地某个端口 p 是否被占用？
-
-    检测本地端口是否被占用，有多种方法：
-
-    1. 使用命令行工具
-
-        Windows 系统：
-
-        ```cmd
-        # 查看所有端口占用情况
-        netstat -ano | findstr :端口号
-
-        # 例如检测 8080 端口
-        netstat -ano | findstr :8080
-
-        # 查看指定端口的进程
-        netstat -ano | findstr :端口号
-        ```
-
-        Linux/macOS 系统：
-
-        ```bash
-        # 使用 netstat
-        netstat -tuln | grep :端口号
-
-        # 使用 ss（更现代的工具）
-        ss -tuln | grep :端口号
-
-        # 使用 lsof（显示进程信息）
-        lsof -i :端口号
-
-        # 例如检测 8080 端口
-        lsof -i :8080
-        ```
-
-    2. 使用 telnet（测试连接）
-
-        ```bash
-        telnet localhost 端口号
-        # 如果连接失败，可能是端口未开放或被占用
-        ```
-
-    3. 使用编程语言检测
-
-        Python 示例：
-
-        ```python
-        import socket
-
-        def check_port(port):
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('localhost', port))
-            sock.close()
-            return result == 0  # 0 表示端口被占用
-
-        if check_port(8080):
-            print("端口 8080 被占用")
-        else:
-            print("端口 8080 可用")
-        ```
-
-        PowerShell（Windows）：
-
-        ```powershell
-        # 测试端口是否被监听
-        Test-NetConnection -ComputerName localhost -Port 8080
-        ```
-
-    4. **常用命令参数解释**
-
-        - `-t`：TCP 端口
-        - `-u`：UDP 端口
-        - `-l`：监听状态
-        - `-n`：显示数字地址
-        - `-p`：显示进程ID/名称（Linux）
-        - `-a`：显示所有连接
-
-    5. **找出占用端口的进程并结束**
-
-        Windows：
-
-        ```cmd
-        # 1. 查找占用端口的进程 ID
-        netstat -ano | findstr :8080
-
-        # 2. 根据进程 ID 结束进程
-        taskkill /PID 进程ID /F
-        ```
-
-        Linux/macOS：
-
-        ```bash
-        # 1. 查找进程 ID
-        lsof -i :8080
-
-        # 2. 结束进程
-        kill 进程 ID
-        # 强制结束
-        kill -9 进程 ID
-        ```
-
-    选择哪种方法取决于你的操作系统和具体需求。命令行方法最直接，编程方法适合自动化脚本。
-
-* linux下是否有好用的小工具来检测？
-
-    是的，Linux 下有很多好用的小工具来检测端口占用：
-
-    1. 内置网络工具
-
-        **lsof** - 最详细的工具
-
-        ```bash
-        # 查看指定端口
-        lsof -i :8080
-
-        # 查看所有监听端口
-        lsof -i -P -n | grep LISTEN
-
-        # 查看 TCP/UDP 端口
-        lsof -i tcp:8080
-        lsof -i udp:53
-
-        # 显示进程名和用户
-        lsof -i :8080 -P -n -t
-        ```
-
-        **ss** - netstat 的现代替代品（推荐）
-
-        ```bash
-        # 基本用法
-        ss -tuln | grep :8080
-
-        # 显示进程信息（需要 sudo）
-        ss -tulnp | grep :8080
-
-        # 查看特定协议的端口
-        ss -tlpn  # 所有TCP监听端口
-        ss -ulpn  # 所有UDP监听端口
-
-        # 只显示监听状态的端口
-        ss -tln
-        ```
-
-        **netstat** - 传统工具（很多系统已预装）
-
-        ```bash
-        netstat -tulnp | grep :8080
-        ```
-
-    2. 专用检测工具
-
-        **nmap** - 强大的端口扫描器
-
-        ```bash
-        # 扫描本地端口
-        nmap localhost -p 8080
-
-        # 扫描端口范围
-        nmap localhost -p 1-1000
-
-        # 快速扫描常用端口
-        nmap localhost -F
-        ```
-
-        **ncat/nc** - 网络瑞士军刀
-
-        ```bash
-        # 测试端口是否开放
-        nc -zv localhost 8080
-
-        # 监听模式（测试端口）
-        nc -l -p 8080 &
-        ```
-
-        **telnet** - 简单的连接测试
-
-        ```bash
-        telnet localhost 8080
-        # 如果连接成功或显示 "Connected"，说明端口开放
-        ```
-
-    3. 系统文件直接查看
-
-        ```bash
-        # 查看所有端口绑定
-        cat /proc/net/tcp
-        cat /proc/net/udp
-
-        # 查看特定进程打开的端口
-        ls -l /proc/<PID>/fd/ | grep socket
-        ```
-
-    4. 便捷的脚本工具
-
-        **port-check.sh**（自制脚本）
-
-        ```bash
-        #!/bin/bash
-        check_port() {
-            if ss -tuln | grep -q ":$1 "; then
-                echo "端口 $1 被以下进程占用:"
-                lsof -i :$1
-                return 0
-            else
-                echo "端口 $1 未被占用"
-                return 1
-            fi
-        }
-
-        # 使用
-        check_port 8080
-        ```
-
-        **快速测试端口的小函数**（加入 ~/.bashrc）
-
-        ```bash
-        # 添加到 ~/.bashrc
-        port() {
-            if [ -z "$1" ]; then
-                echo "用法: port <端口号>"
-                return 1
-            fi
-            echo "检测端口 $1 ..."
-            echo "=== ss 输出 ==="
-            sudo ss -tulnp | grep :$1
-            echo "=== lsof 输出 ==="
-            sudo lsof -i :$1
-            echo "=== 进程信息 ==="
-            pid=$(sudo lsof -t -i :$1 2>/dev/null)
-            if [ -n "$pid" ]; then
-                ps -p $pid -o pid,user,cmd
-            fi
-        }
-
-        # 重新加载配置后使用：port 8080
-        ```
-
-    5. 推荐组合用法
-
-        **快速检查脚本**
-
-        ```bash
-        #!/bin/bash
-        # 保存为 checkport
-        PORT=$1
-
-        echo "=== 端口 $PORT 占用情况 ==="
-        echo "1. ss 检测:"
-        sudo ss -tulnp | grep :$PORT
-
-        echo -e "\n2. lsof 检测:"
-        sudo lsof -i :$PORT
-
-        echo -e "\n3. 进程详情:"
-        PID=$(sudo lsof -t -i :$PORT 2>/dev/null)
-        if [ -n "$PID" ]; then
-            ps -p $PID -o pid,user,%cpu,%mem,cmd
-        fi
-        ```
-
-        **一键释放端口**
-
-        ```bash
-        #!/bin/bash
-        # 保存为 freeport
-        PORT=$1
-        PID=$(sudo lsof -t -i :$PORT 2>/dev/null)
-
-        if [ -n "$PID" ]; then
-            echo "找到进程 PID: $PID"
-            ps -p $PID -o pid,user,cmd
-            read -p "是否结束进程? [y/N] " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                sudo kill -9 $PID
-                echo "已结束进程 $PID"
-            fi
-        else
-            echo "端口 $PORT 未被占用"
-        fi
-        ```
-
-    6. 图形化工具（如有桌面环境）
-
-        ```bash
-        # 安装网络工具包
-        sudo apt-get install gnome-nettool  # Debian/Ubuntu
-
-        # 或使用 nmap 前端
-        sudo apt-get install zenmap
-        ```
-
-    使用建议：
-
-    1. **日常使用推荐 `ss`** - 速度快，信息全
-    2. **需要详细进程信息用 `lsof`** - 显示进程、用户、文件描述符
-    3. **网络调试用 `nmap` 或 `nc`** - 功能强大
-    4. **脚本中使用 `ss` 或检查 `/proc/net/tcp`** - 解析方便
-
-    大多数场景下，`ss -tulnp | grep :端口号` 就足够了。
 * 在 X11 中，剪贴板由 X Server 统一管理，任何程序只要有 X11 连接就能读写。而 Wayland 为了安全，不允许程序在后台静默读取其他窗口的内容。剪贴板的读写必须通过 合成器（Compositor，如 Mutti, Kwin, Sway） 严格控制。
 
    wayland server 没有统一的剪贴板 api, 但是可以通过 wl-clipboard 解决 
@@ -5324,414 +3196,7 @@
         set clipboard=unnamed
     endif
     ```
-* 详细讲讲 wireguard 的用法
 
-    WireGuard 是一种极其高效、轻量且现代的 VPN 协议。相比于传统的 OpenVPN 或 IPsec，它的代码量极小（仅几千行），速度极快，延迟低，且在移动端断线重连的表现堪称完美。
-
-    WireGuard 的核心哲学是 **“对等体（Peer-to-peer）”**。无论是服务器还是客户端，在 WireGuard 眼里都是一个 `Peer`。两端各自生成一对密钥（公钥和私钥），互相交换公钥并配置对方的 IP 地址，即可建立加密通道。
-
-    下面为你详细拆解 WireGuard 的安装、核心概念以及最常见的主客配置（Server-Client）实现。
-
-    ---
-
-    核心概念
-
-    在开始配置前，理解这几个词能让你少走很多弯路：
-
-    * **PrivateKey（私钥）：** 本地生成的绝密密钥，绝对不能泄露给任何人。
-
-    * **PublicKey（公钥）：** 由私钥推导而来，公开的。需要复制给对方（Peer）。
-
-    * **Endpoint（对端地址）：** 对方的公网 IP 和端口（例如 `1.2.3.4:51820`）。通常只有客户端需要配置服务器的 Endpoint。
-
-    * AllowedIPs（允许的 IP）：
-
-        * **在服务端：** 规定这个客户端允许使用的内网 IP。
-
-        * **在客户端：** 规定哪些流量要走 VPN。如果是 `0.0.0.0/0`，代表**全局代理**（所有流量都走 VPN）；如果是 `10.0.0.0/24`，代表只有去往该网段的流量走 VPN。
-
-    ---
-
-    核心实战：搭建一个“服务器 - 客户端”网络
-
-    **场景假设：**
-
-    * 服务器（Server）： 有公网 IP（假设为 `8.8.8.8`），网卡名为 `eth0`。我们给它的 WireGuard 内网 IP 设为 `10.0.0.1`。
-
-    * 客户端（Client）： 手机或电脑，内网 IP 设为 `10.0.0.2`。
-
-    1. 第一步：两端安装 WireGuard
-
-        绝大多数现代 Linux 内核已原生集成 WireGuard。
-
-        ```bash
-        # Ubuntu / Debian
-        sudo apt update && sudo apt install wireguard -y
-
-        # CentOS / RHEL 9
-        sudo dnf install wireguard-tools -y
-        ```
-
-    2. 第二步：生成密钥对（两端都要做）
-
-        在服务器和客户端上分别执行以下命令，生成各自的私钥和公钥：
-
-        ```bash
-        # 修改权限，确保密钥安全
-        umask 077
-
-        # 生成服务器/客户端的密钥
-        wg genkey | tee privatekey | wg pubkey > publickey
-        ```
-
-        > 执行后，当前目录下会多出 `privatekey`（私钥）和 `publickey`（公钥）两个文件。可以使用 `cat privatekey` 查看内容。
-
-    3. 第三步：配置服务器端 (Server)
-
-        在服务器上创建并编辑配置文件 `/etc/wireguard/wg0.conf`：
-
-        ```ini
-        [Interface]
-        # 服务器自身的 WireGuard 内网 IP
-        Address = 10.0.0.1/24
-        # 服务器监听的 UDP 端口
-        ListenPort = 51820
-        # 服务器的私钥（填入刚才在服务器生成的 privatekey 内容）
-        PrivateKey = <服务器的私钥>
-
-        # 【核心：NAT 转发规则】当客户端流量到达服务器后，转发到公网网卡（假设是 eth0）
-        PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-        PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
-
-        ### 下面是客户端（Peer）的配置，有几个客户端就写几个 [Peer] ###
-        [Peer]
-        # 客户端的公钥（填入在客户端生成的 publickey 内容）
-        PublicKey = <客户端的公钥>
-        # 允许这个客户端使用的内网 IP
-        AllowedIPs = 10.0.0.2/32
-        ```
-
-        **开启服务器的内核 IPv4 转发：**
-
-        要让服务器帮客户端转发流量，必须开启 Linux 的路由转发功能：
-
-        ```bash
-        echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
-        sudo sysctl -p
-        ```
-
-    4. 第四步：配置客户端 (Client)
-
-        在客户端（电脑或手机）上，创建配置文件 `wg0.conf`：
-
-        ```ini
-        [Interface]
-        # 客户端自身的 WireGuard 内网 IP
-        Address = 10.0.0.2/24
-        # 客户端的私钥（填入在客户端生成的 privatekey 内容）
-        PrivateKey = <客户端的私钥>
-        # 可选：设置 DNS
-        DNS = 1.1.1.1
-
-        [Peer]
-        # 服务器的公钥（填入服务器的 publickey 内容）
-        PublicKey = <服务器的公钥>
-        # 服务器的公网 IP 和端口
-        Endpoint = 8.8.8.8:51820
-        # 0.0.0.0/0 代表手机/电脑的所有流量都通过服务器转发（科学上网/全局代理模式）
-        # 如果只想访问服务器内网，可以改成 10.0.0.0/24
-        AllowedIPs = 0.0.0.0/0
-        # 保持连接活跃（每25秒发一次心跳包，防止防火墙断开 UDP 连接）
-        PersistentKeepalive = 25
-        ```
-
-    5. 第五步：启动与管理
-
-        **在服务器端：**
-
-        ```bash
-        # 启动 WireGuard 接口 wg0
-        sudo wg-quick up wg0
-
-        # 设置开机自启
-        sudo systemctl enable wg-quick@wg0
-
-        # 查看当前的 VPN 连接状态
-        sudo wg
-        ```
-
-        **在客户端：**
-
-        * Linux / macOS 命令行：
-        
-            同样使用 `sudo wg-quick up ./wg0.conf` 启动。
-
-        * 手机 / Windows 客户端：
-
-            * 官方提供了图形化客户端。
-
-            * 如果给手机用，可以在服务器上把客户端配置转成二维码，用手机 App 扫码导入
-
-                ```bash
-                # 安装 qrencode 工具
-                sudo apt install qrencode -y
-                # 将客户端配置生成二维码展示在终端
-                qrencode -t ansiutf8 < client.conf
-                ```
-
-    **常用命令与排错技巧**
-
-    1. 常用控制命令
-
-        * 停止 VPN： `sudo wg-quick down wg0`
-
-        * 不重启服务更新配置： 如果你修改了 `wg0.conf`（比如增加了新 Peer），不想断开现有连接，可以执行：
-
-            `sudo wg syncconf wg0 <(sudo wg-quick strip wg0)`
-
-    2. 常见排错方向
-
-        * 能连上但无法上网 / 无法 Ping 通服务器：
-
-            * 检查服务器防火墙（如 UFW 或 Firewalld），是否放行了 **UDP 51820** 端口。
-
-            * 检查服务器的 `net.ipv4.ip_forward` 是否确实为 `1`。
-
-            * 检查服务器 `wg0.conf` 里的 `PostUp` 规则中，网卡名称（如 `eth0`）是否与你服务器通过 `ip route` 查到的公网网卡名一致。
-
-
-        * 隧道没有流量（Latest handshake 没显示）：
-
-            * 双向检查 `PublicKey` 和 `PrivateKey` 是不是配反了。记住：**Peer 里填对方的公钥**。
-
-            * 检查客户端的 `Endpoint` IP 和端口是否正确。
-
-    WireGuard 的配置非常清爽，一旦你理顺了“**私钥本地留，公钥给对端，IP 互相指**”的逻辑，几分钟就能轻松拉起一个安全的专属网络。
-
-* centos 如何启动 vfio-pci
-
-    在 CentOS 中启动VFIO-PCI驱动涉及以下步骤：
-
-    1. 检查系统要求
-
-        首先确认系统支持IOMMU：
-        
-        ```bash
-        # 检查CPU是否支持虚拟化
-        cat /proc/cpuinfo | grep -E 'vmx|svm'
-
-        # 检查是否启用IOMMU
-        dmesg | grep -E 'DMAR|IOMMU'
-        ```
-
-    2. 启用IOMMU
-
-        编辑 GRUB 配置文件：
-
-        ```bash
-        # 编辑grub配置
-        vi /etc/default/grub
-        ```
-
-        对于 Intel CPU，在`GRUB_CMDLINE_LINUX`行添加：
-
-        `intel_iommu=on iommu=pt`
-
-        对于 AMD CPU：
-
-        `amd_iommu=on iommu=pt`
-
-        更新GRUB并重启：
-
-        ```bash
-        # 对于BIOS系统
-        grub2-mkconfig -o /boot/grub2/grub.cfg
-
-        # 对于UEFI系统
-        grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
-
-        # 重启系统
-        reboot
-        ```
-
-    3. 确认IOMMU已启用
-
-        重启后验证：
-
-        ```bash
-        dmesg | grep -E 'DMAR|IOMMU'
-        # 应看到类似：DMAR: IOMMU enabled
-        ```
-
-        检查IOMMU分组：
-
-        ```bash
-        # 安装必要工具
-        yum install -y pciutils
-
-        # 查看IOMMU分组
-        lspci -nnk
-        ```
-
-    4. 绑定设备到VFIO驱动
-
-        方法二：使用内核参数（永久）
-
-        ```bash
-        # 编辑grub配置
-        vi /etc/default/grub
-        ```
-
-        在`GRUB_CMDLINE_LINUX`添加：
-
-        ```
-        vfio-pci.ids=10de:1b80,10de:10f0
-        ```
-
-        （多个设备用逗号分隔）
-
-        更新GRUB并重启：
-
-        ```bash
-        grub2-mkconfig -o /boot/grub2/grub.cfg
-        reboot
-        ```
-
-    6. 配置自动加载（可选）
-
-        ```bash
-        # 创建模块配置文件
-        echo "options vfio-pci ids=10de:1b80" > /etc/modprobe.d/vfio.conf
-
-        # 设置模块自动加载
-        echo "vfio" >> /etc/modules-load.d/vfio-pci.conf
-        echo "vfio-pci" >> /etc/modules-load.d/vfio-pci.conf
-
-        # 屏蔽原驱动（防止冲突）
-        echo "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
-        echo "blacklist nvidia" >> /etc/modprobe.d/blacklist.conf
-        ```
-
-    7. 常见问题排查
-
-        查看IOMMU分组详细信息：
-
-        ```bash
-        #!/bin/bash
-        shopt -s nullglob
-        for g in /sys/kernel/iommu_groups/*; do
-            echo "IOMMU Group ${g##*/}:"
-            for d in $g/devices/*; do
-                echo -e "\t$(lspci -nns ${d##*/})"
-            done;
-        done
-        ```
-
-        检查设备是否支持透传：
-
-        ```bash
-        # 检查ACS支持
-        dmesg | grep -i acs
-        ```
-
-        如果遇到权限问题：
-
-        ```bash
-        # 确保用户有访问权限
-        chmod 0666 /dev/vfio/*
-        ```
-* 检查 vfio-pci 的状态
-
-    **在CentOS 7/8中，VFIO-PCI通常不需要单独安装，它是内核的一部分**，但需要正确配置和启用。
-
-    1. 查看VFIO模块是否可用
-
-        ```bash
-        # 查看内核中是否有 vfio-pci 模块
-        modinfo vfio-pci
-
-        # 列出所有可用的 vfio 相关模块
-        ls /lib/modules/$(uname -r)/kernel/drivers/vfio/ | grep -i vfio
-        ```
-
-    2. 不同 CentOS 版本的情况
-
-        * CentOS 7
-
-            - VFIO从内核3.6+开始包含
-            - CentOS 7.3+默认包含（内核3.10+）
-            - 通常已内置，无需安装
-
-        * CentOS 8/Stream：
-
-            - 肯定包含在内核中
-            - 更完善的支持
-
-    尝试加载 vfio-pci 模块:
-
-    ```bash
-    modprobe vfio
-    modprobe vfio-pci
-
-    # 验证已加载
-    lsmod | grep vfio
-    ```
-
-    输出应包含：
-
-    ```
-    vfio_pci               45056  0
-    vfio_virqfd            16384  1 vfio_pci
-    vfio_iommu_type1       32768  0
-    vfio                   32768  2 vfio_iommu_type1,vfio_pci
-    ```
-
-* 绑定设备到 VFIO（两种方法）
-
-    **方法一：使用内核参数（推荐，永久生效）**
-
-    ```bash
-    # 查找设备 ID
-    lspci -nn | grep -i "nvidia\|amd"
-
-    # 示例输出：01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP104 [10de:1b80] (rev a1)
-    # 设备 ID 是 10de:1b80
-
-    # 编辑 GRUB 配置
-    sudo nano /etc/default/grub
-
-    # 在 GRUB_CMDLINE_LINUX_DEFAULT 添加
-    # vfio-pci.ids=10de:1b80,10de:10f0
-
-    # 更新并重启
-    sudo update-grub
-    sudo reboot
-    ```
-
-    **方法二：使用驱动覆盖（临时）**
-
-    ```bash
-    # 解除当前驱动
-    echo "0000:01:00.0" | sudo tee /sys/bus/pci/devices/0000:01:00.0/driver/unbind
-
-    # 绑定到 VFIO
-    echo "vfio-pci" | sudo tee /sys/bus/pci/devices/0000:01:00.0/driver_override
-    echo "0000:01:00.0" | sudo tee /sys/bus/pci/drivers/vfio-pci/bind
-    ```
-
-    验证配置:
-
-    ```bash
-    # 检查设备是否绑定到 VFIO
-    lspci -nnk -s 01:00.0
-
-    # 应该显示：
-    # Kernel driver in use: vfio-pci
-    # Kernel modules: nvidiafb, nouveau, vfio-pci
-
-    # 检查权限
-    ls -la /dev/vfio/
-    ```
 * hash -r 是什么功能
 
     什么是 `hash`？
@@ -5752,87 +3217,7 @@
     * `hash -r` 的意思是：**“把 Bash 内存里记录命令路径的小本本直接撕掉，全部清空！”**
 
     当你执行完 `hash -r` 再次输入 `vim` 时，Bash 发现小本本空了，只能老老实实去 `$PATH` 里重新挨个搜寻。这一搜，就率先找到了你刚刚编译好的、位于 `/usr/local/bin/vim` 的 Vim 9.2，并把新路径重新记在了小本本上。
-* journactl 如何只查看最近两天的日志
 
-    你可以通过以下几种方式使用 `journalctl` 查看最近两天的日志：
-
-    * 使用 `--since` 参数
-
-        ```bash
-        # 查看最近48小时的日志
-        journalctl --since "2 days ago"
-
-        # 或使用更精确的时间格式
-        journalctl --since "2 days ago" --until "now"
-        ```
-
-    * 查看今天和昨天的日志
-
-        ```bash
-        # 查看今天和昨天的所有日志
-        journalctl --since yesterday --until tomorrow
-
-        # 或查看特定日期范围
-        journalctl --since "2023-12-01" --until "2023-12-03"
-        ```
-
-    * 使用相对时间
-
-        ```bash
-        # 查看过去48小时的日志
-        journalctl --since "-2 days"
-
-        # 结合其他筛选条件
-        journalctl --since "2 days ago" -p err       # 只看错误日志
-        journalctl --since "2 days ago" -u nginx     # 只看特定服务
-        ```
-
-    * 查看最近一定数量的条目
-
-        ```bash
-        # 查看最近1000条日志（如果日志非常密集）
-        journalctl -n 1000
-
-        # 或实时查看最新日志
-        journalctl -f
-        ```
-
-    **实用组合命令**
-
-    ```bash
-    # 查看最近两天并分页显示
-    journalctl --since "2 days ago" | less
-
-    # 查看最近两天并导出到文件
-    journalctl --since "2 days ago" > recent_logs.txt
-
-    # 查看最近两天的特定优先级以上的日志
-    journalctl --since "2 days ago" -p warning
-
-    # 查看最近两天特定服务的日志
-    journalctl --since "2 days ago" -u ssh.service
-    ```
-
-    **注意事项**
-
-    1. **时间格式**：journalctl 支持多种时间格式：
-
-        - `"2 days ago"`
-        - `"yesterday"`
-        - `"2023-12-01 14:30:00"`
-        - `"-1h30min"`
-
-    2. **权限**：可能需要 sudo 权限才能查看所有日志
-
-        ```bash
-        sudo journalctl --since "2 days ago"
-        ```
-
-    3. **时区**：默认使用系统时区，可以用 `--utc` 显示 UTC 时间
-
-        ```bash
-        journalctl --since "2 days ago" --utc
-        ```
 * linux 下查看进程树
 
     * `pstree`: 查看系统所有进程
@@ -5866,117 +3251,7 @@
     * `pstree -s <PID>`
 
         `-s` 参数（show parents）可以让你查看指定进程的祖先进程（即父进程、祖父进程等）。
-* 详细讲讲 fusermount 的用法
 
-    `fusermount` 是 Linux 系统中用于管理 **FUSE（Filesystem in Userspace，用户空间文件系统）** 的挂载和卸载的辅助工具。
-
-    通常情况下，只有 root 用户才能执行挂载（mount）和卸载（umount）操作。但借助 `fusermount`，普通用户也可以安全地挂载和卸载自己创建的用户空间文件系统（比如 sshfs、rclone、gcsfuse 等），而不需要 sudo 权限。
-
-    下面为你详细拆解 `fusermount` 的常用命令、核心参数、常见应用场景以及排错技巧。
-
-    **核心参数与常用命令**
-
-    `fusermount` 的语法非常简单：
-
-    ```bash
-    fusermount [选项] 挂载点
-    ```
-
-    1. 卸载文件系统（最常用）
-
-        当你使用普通用户挂载了一个 FUSE 文件系统，想要断开时，**不要**使用标准的 `umount`（那通常需要 root 权限），而是使用 `-u` 参数：
-
-        ```bash
-        fusermount -u /path/to/mountpoint
-        ```
-
-    2. 强行/延迟卸载（Lazy Unmount）
-
-        有时候挂载点正被某个程序占用（比如终端正处于该目录下，或者有文件正在读写），直接卸载会报错 `Device or resource busy`。此时可以使用 `-z` 参数进行延迟卸载：
-
-        ```bash
-        fusermount -uz /path/to/mountpoint
-        ```
-
-        > **注：** `-z` (lazy unmount) 会立即将该文件系统从目录树中隔离，让其他程序无法访问，等当前占用该目录的进程结束运行后，系统会自动在后台完成实际的卸载。
-
-    3. 查看版本信息
-
-        ```bash
-        fusermount -V
-        ```
-
-    **常见应用场景示例**
-
-    实际工作中，我们很少单独直接运行 `fusermount` 来**挂载**，因为各种 FUSE 工具（如 `sshfs`）会自动在后台调用它。我们最常手动用到 `fusermount` 的场景是**卸载**。
-
-    * 场景一：使用 SSHFS 挂载远程目录与卸载
-
-        ```bash
-        # 挂载远程服务器目录到本地
-        sshfs user@remote:/remote/dir /home/user/local_dir
-
-        # 当你用完后，安全卸载
-        fusermount -u /home/user/local_dir
-        ```
-
-    * 场景二：使用 Rclone 挂载网盘与卸载
-
-        ```bash
-        # 挂载 OneDrive 到本地
-        rclone mount onedrive: /newData --daemon
-
-        # 结束使用时卸载
-        fusermount -u /newData
-        ```
-
-    **避坑指南与常见错误处理**
-
-    1. 报错：`Device or resource busy`
-
-        * **原因：** 有进程正在访问该挂载点。
-
-        * **解决办法：**
-        
-        1. 使用 `lsof /path/to/mountpoint` 或 `fuser -m /path/to/mountpoint` 查出是哪个进程在占用，杀掉该进程后再卸载。
-
-        2. 或者直接使用上面提到的延迟卸载命令：`fusermount -uz /path/to/mountpoint`。
-
-    2. 报错：`Transport endpoint is not connected`
-
-        * **原因：** FUSE 后台进程挂掉了（例如网络断开导致 sshfs 崩溃，或者 rclone 进程被系统杀掉），导致挂载点变成了一个“死节点”，既无法访问也无法正常读写。
-
-        * **解决办法：** 这种情况下必须强制卸载清理现场，否则该目录将一直不可用：
-
-            ```bash
-            fusermount -u /path/to/mountpoint
-            # 如果不行，加 -z
-            fusermount -uz /path/to/mountpoint
-            ```
-
-    3. 普通用户挂载后，Root 用户或其他用户无权访问
-
-        * **原因：** 出于安全考虑，FUSE 默认只允许执行挂载命令的那个特定用户访问该目录，即使 root 用户去执行 `ls` 也会被拒绝（Permission denied）。
-        
-        * **解决办法：** 如果需要允许其他用户访问，在**挂载时**（注意：是挂载工具的参数，不是 fusermount 本身）需要加入 `-o allow_other` 参数。
-        
-        * 例如：`sshfs -o allow_other user@remote:/dir /local/dir`
-        
-        * *注意：使用该参数通常需要修改 `/etc/fuse.conf` 文件，取消 `#user_allow_other` 前面的注释（#号）。*
-
-    **补充：fusermount 与 fusermount3 的区别**
-
-    在较新的 Linux 发行版（如 Ubuntu 20.04+，CentOS 8+）中，你可能会看到 `fusermount3`。
-
-    * `fusermount` 对应的是 **FUSE v2** 版本。
-    * `fusermount3` 对应的是 **FUSE v3** 版本（带来了性能提升和更好的 API 支持）。
-
-    两者的基本用法和参数（`-u`, `-z`）完全一致。如果你的挂载工具使用了 FUSE3，当你执行 `fusermount -u` 报错找不到挂载点时，可以尝试换成：
-
-    ```bash
-    fusermount3 -u /path/to/mountpoint
-
-    ```
 * 详细讲讲 haproxy 的用法
 
     HAProxy（High Availability Proxy）是一个极其高效、稳定且功能强大的**开源负载均衡器和反向代理服务器**。它因能处理数万个并发连接、极低的内存占用和强大的吞吐量，成为了现代互联网架构中不可或缺的组件。
@@ -6293,290 +3568,7 @@
     sudo journalctl -u haproxy -n 50 --no-pager
 
     ```
-* 详细讲讲 basename 的用法
 
-    `basename` 是 Linux/Unix 系统中另一个非常高频且实用的小工具。它的核心作用很简单：**从一个完整的路径中，把文件名（或者最后一层的目录名）剥离出来**。
-
-    简单来说，就是把路径里的“前缀目录”全部砍掉，只留下最后那个“尾巴”。
-
-    ---
-
-    ## 核心功能与基本语法
-
-    ```bash
-    basename OPTION... NAME...
-
-    ```
-
-    ### 1. 基础用法：提取文件名
-
-    如果不加任何选项，直接传入一个路径，`basename` 会去掉所有的目录前缀，只输出最后的文件名。
-
-    ```bash
-    basename /usr/local/bin/nginx
-    # 输出: nginx
-
-    basename /var/log/syslog
-    # 输出: syslog
-
-    ```
-
-    > **注意：** `basename` 只是一个**纯粹的字符串处理工具**。它不会去检查这个文件在系统里是否真实存在，它只看你给的字符串。
-
-    ### 2. 尾部斜杠（`/`）的处理
-
-    如果路径最后带有一个或多个斜杠，`basename` 会聪明地忽略掉末尾的斜杠，依然返回最后一层的名字。
-
-    ```bash
-    basename /etc/nginx/
-    # 输出: nginx
-
-    basename /home/user/Downloads///
-    # 输出: Downloads
-
-    ```
-
-    ---
-
-    ## 常用选项与高级技巧
-
-    ### 1. 除去文件后缀（`-s` 或 直接指定）
-
-    这是 `basename` 最常用的功能之一。当你写脚本处理批量文件（比如把 `.txt` 转换成 `.md`）时，需要拿到不带后缀的“裸文件名”。
-
-    有两种写法：
-
-    **写法 A：直接把后缀作为第二个参数（传统写法，一次只能处理一个）**
-
-    ```bash
-    basename /home/user/photo.jpg .jpg
-    # 输出: photo
-
-    ```
-
-    **写法 B：使用 `-s` 选项（现代写法，支持批量，更推荐）**
-
-    ```bash
-    basename -s .jpg /home/user/photo.jpg
-    # 输出: photo
-
-    ```
-
-    ### 2. 支持多个路径批量处理（`-a`）
-
-    默认情况下，传统的 `basename` 一次只能处理一个路径。如果你加上 `-a`（或者 --multiple）选项，它就可以同时处理多个路径。
-
-    ```bash
-    basename -a /etc/passwd /etc/hosts /var/log/nginx.conf
-    # 输出:
-    # passwd
-    # hosts
-    # nginx.conf
-
-    ```
-
-    **结合 `-s` 选项进行批量去后缀：**
-
-    ```bash
-    basename -a -s .mp4 /video/movie1.mp4 /video/movie2.mp4
-    # 输出:
-    # movie1
-    # movie2
-
-    ```
-
-    ---
-
-    ## 经典应用场景
-
-    ### 场景一：在 Shell 脚本中获取当前脚本的名字
-
-    在写脚本时，如果你想在日志或者帮助信息（`--help`）中打印出脚本自己的名字，用 `basename $0` 是最优雅的方式。
-
-    ```bash
-    #!/bin/bash
-
-    # 获取当前脚本的文件名
-    SCRIPT_NAME=$(basename "$0")
-
-    if [ "$1" == "--help" ]; then
-        echo "用法: $SCRIPT_NAME [选项] [参数]"
-        exit 0
-    fi
-
-    ```
-
-    无论用户是用 `./test.sh`、`/home/user/test.sh` 还是 `bash test.sh` 执行，`$SCRIPT_NAME` 拿到的永远是 `test.sh`。
-
-    ### 场景二：批量修改文件后缀（循环结构）
-
-    假设你有一堆 `.png` 图片，你想把它们全部转换成 `.webp` 格式，并且保留原名。你可以用 `basename` 来提取出“裸文件名”：
-
-    ```bash
-    for file in /path/to/images/*.png; do
-        # 提取不带后缀的文件名
-        name=$(basename "$file" .png)
-        
-        # 假设使用 cwebp 工具进行转换
-        cwebp "$file" -o "/path/to/images/${name}.webp"
-    done
-
-    ```
-
-    ---
-
-    ## 💡 拓展：与 `dirname` 的黄金搭档
-
-    在 Linux 中，`basename` 通常和 `dirname` 结对出现：
-
-    * `basename`：要尾部（文件名）。
-    * `dirname`：要头部（目录路径）。
-
-    ```bash
-    FULL_PATH="/var/www/html/index.html"
-
-    basename "$FULL_PATH"  # 输出: index.html
-    dirname "$FULL_PATH"   # 输出: /var/www/html
-
-    ```
-
-    ## 🛠 现代 Shell 的替代方案（Bash 内置变量切片）
-
-    虽然 `basename` 很好用，但在编写追求性能的 Bash 脚本时，频繁调用外部命令（如 `basename`）会带来额外的进程开销（fork 损耗）。
-
-    Bash 本身提供了更高效的内置参数扩展（Parameter Expansion）语法来替代 `basename`：
-
-    ```bash
-    FILE="/usr/local/bin/myapp.sh"
-
-    # 替代无参数的 basename（从右往左删除第一个 / 及其左边的所有内容）
-    echo "${FILE##*/}"   # 输出: myapp.sh
-
-    # 替代带后缀的 basename
-    BASE="${FILE##*/}"
-    echo "${BASE%.sh}"   # 输出: myapp
-
-    ```
-
-    *提示：如果你只是偶尔在终端敲命令，用 `basename` 更直观；如果是在大型循环脚本里，用 Bash 内置的 `${FILE##*/}` 速度会快很多。*
-* 详细讲讲 readlink 的用法
-
-    `readlink` 是 Linux 和 Unix-like 系统中一个非常实用的小工具，它的核心作用就是**找出符号链接（软链接，Symbolic Link）背后的真实面目**。
-
-    简单来说，软链接就像是 Windows 里的“快捷方式”，而 `readlink` 就是用来查看这个快捷方式究竟指向哪里的。
-
-    ---
-
-    ## 核心功能与基本语法
-
-    ```bash
-    readlink [选项] [文件...]
-
-    ```
-
-    ### 1. 基础用法：查看链接指向
-
-    在不带任何参数时，`readlink` 会直接打印出符号链接所指向的**原始路径**。如果目标文件不是符号链接，它什么都不会输出，并且会返回一个非 0 的错误码。
-
-    ```bash
-    # 创建一个测试软链接
-    ln -s /var/log/nginx/access.log my_access.log
-
-    # 使用 readlink 查看
-    readlink my_access.log
-    # 输出: /var/log/nginx/access.log
-
-    ```
-
-    ---
-
-    ## 常用选项（核心大招）
-
-    实际开发或运维中，我们最常用的是它的 `-f` 或 `-e` 选项，因为它们具备“路径规范化（Canonicalization）”的能力。
-
-    ### 1. `-f, --canonicalize`（最常用）
-
-    **规范化路径。** 它会顺藤摸瓜，追踪所有的符号链接，递归地解析出最终的**绝对路径**。
-
-    * **超强容错：** 即使路径中最后的那部分文件/目录还不存在，它也能拼出绝对路径。
-    * **普通文件也适用：** 如果你对一个普通的非链接文件使用 `readlink -f`，它会直接输出该文件的绝对路径。
-
-    ```bash
-    # 假设当前在 /home/user 目录下
-    readlink -f my_access.log
-    # 输出: /var/log/nginx/access.log
-
-    # 哪怕目标是一个普通目录
-    readlink -f ../user/Documents
-    # 输出: /home/user/Documents
-
-    ```
-
-    ### 2. `-e, --canonicalize-existing`
-
-    **严格规范化路径。** 它的工作原理和 `-f` 类似，但要求**路径中的所有组成部分都必须真实存在**。如果链条中的任何一个文件或目录不存在，它就会报错或不输出。
-
-    ### 3. `-m, --canonicalize-missing`
-
-    **完全不检查存在性。** 哪怕路径里有一大半目录都是你瞎编的、根本不存在的，它也会帮你把其中的 `.`、`..` 和软链接理干净，拼出一个理论上的绝对路径。
-
-    ### 4. `-n, --no-newline`
-
-    **不输出换行符。** 默认情况下，`readlink` 输出结果后会换行。在写 Shell 脚本时，如果你想把结果赋值给变量，或者不想让换行符干扰后续处理，这个选项非常有用。
-
-    ---
-
-    ## 三种规范化选项的对比 (`-f` vs `-e` vs `-m`)
-
-    为了让你更直观地理解这三个最让人头疼的参数，我们来看这个对比表：
-
-    | 选项 | 作用 | 终点文件不存在 | 上级目录不存在 |
-    | --- | --- | --- | --- |
-    | **`-f`** | 追踪绝对路径（最宽容） | **允许**（正常输出） | 不允许（报错） |
-    | **`-e`** | 严格检查存在性（最严格） | 不允许（报错） | 不允许（报错） |
-    | **`-m`** | 纯逻辑路径拼接（最放任） | **允许**（正常输出） | **允许**（正常输出） |
-
-    ---
-
-    ## 经典应用场景
-
-    ### 场景一：在 Shell 脚本中获取脚本自身的绝对路径
-
-    这是写 Shell 脚本的“刚需”。很多时候你想在脚本里调用同目录下的其他文件，但用户执行脚本时的当前目录（PWD）是不确定的。
-
-    用下面这行神操作，无论你在哪执行、怎么调用（哪怕是通过软链接调用），都能精准定位脚本所在的目录：
-
-    ```bash
-    # 获取当前脚本的绝对路径（解析了所有软链接）
-    SCRIPT_PATH=$(readlink -f "$0")
-
-    # 获取脚本所在的绝对目录
-    SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
-
-    echo "脚本绝对路径是: $SCRIPT_PATH"
-    echo "脚本所在目录是: $SCRIPT_DIR"
-
-    ```
-
-    ### 场景二：排查“多层套娃”的软链接
-
-    有时候系统里的某个命令经过了层层链接（比如 Java 的版本管理）。你想知道它到底用的是哪个路径的二进制文件：
-
-    ```bash
-    # 看看 java 命令指向哪
-    readlink -f $(which java)
-    # 输出可能是: /usr/lib/jvm/java-11-openjdk-amd64/bin/java
-
-    ```
-
-    ---
-
-    ## 💡 小贴士与替代方案
-
-    在现代 Linux 系统中，其实还有一个专门用来规范化路径的命令叫 **`realpath`**。
-
-    * `readlink -f` 的功能与 `realpath` 几乎完全一致。
-    * **移植性建议：** `readlink` 在各个老版本 Unix 和 macOS 上的表现行为可能略有差异（例如 macOS 默认的 `readlink` 不支持 `-f` 选项）。如果你在写跨平台的脚本，需要注意平台兼容性问题（在 Mac 上通常需要安装 `coreutils` 并使用 `greadlink`）。
 * 把执行完 `ls -t` 后的第一个文件复制到粘贴板上
 
     ```bash
@@ -6586,579 +3578,7 @@
     * `head -n 1`： 只取 `ls -t` 输出的第一行（最新修改的文件）
 
     * `tr -d '\n'`： 删掉文件名末尾的换行符
-* 详细讲讲 ip tuntap 命令的用法
 
-    在 Linux 中，`ip tuntap` 是 `iproute2` 工具包中的一个子命令，用于**创建、删除和管理 TUN/TAP 虚拟网络接口**。
-
-    在详细讲解命令之前，我们需要先简单理清 **TUN** 和 **TAP** 的区别，这决定了你在什么场景下该用哪种模式：
-
-    * **TUN (Network Tunnel)**：工作在**网络层（Layer 3）**。它处理的是 **IP 数据包**。常用于 VPN（如 OpenVPN、WireGuard）、数据加密隧道等。
-
-    * **TAP (Network Tap)**：工作在**数据链路层（Layer 2）**。它处理的是 **以太网帧（Ethernet Frames）**，就像一根虚拟的网线。常用于虚拟机网络（KVM/QEMU）、网桥（Bridge）等需要绑定 MAC 地址的场景。
-
-    一、`ip tuntap` 基本语法
-
-    核心语法结构如下：
-
-    ```bash
-    ip tuntap { add | del } [ dev NAME ] [ mode { tun | tap } ] [ user USER ] [ group GROUP ] [ one_queue ] [ pi ] [ vnet_hdr ] [ multi_queue ]
-    ```
-
-    常用参数解析：
-
-    * `add` / `del`：添加（创建）或删除一个虚拟接口。
-    * `dev NAME`：指定接口的名称（如 `tun0`, `tap1`）。如果不指定，系统会自动生成（如 `tun0`, `tap0`）。
-    * `mode`：指定工作模式，可选 `tun` 或 `tap`。
-    * `user USER`：指定哪个非 root 用户可以访问/控制该接口（极其实用，避免了让应用程序以 root 权限运行）。
-    * `group GROUP`：指定哪个用户组可以访问该接口。
-    * `multi_queue`：启用多队列支持，以提高多核 CPU 下的网络吞吐量。
-
-    ---
-
-    二、 核心操作实例
-
-    1. 创建虚拟接口
-
-        **示例 A：创建一个名为 `tun0` 的 TUN 接口，并允许普通用户 `vpnuser` 使用**
-
-        ```bash
-        sudo ip tuntap add dev tun0 mode tun user vpnuser
-        ```
-
-        **示例 B：创建一个名为 `tap0` 的 TAP 接口**
-
-        ```bash
-        sudo ip tuntap add dev tap0 mode tap
-        ```
-
-        > **注意**：刚创建好的接口默认是 **DOWN**（关闭）状态的。你需要将它启动并分配 IP 地址才能使用：
-        > ```bash
-        > sudo ip link set dev tun0 up
-        > sudo ip addr add 10.0.0.1/24 dev tun0
-        > 
-        > ```
-        > 
-
-    2. 查看虚拟接口
-
-        虽然 `ip tuntap` 没有专门的 `show` 子命令，但你可以通过以下两种方式查看系统中的 TUN/TAP 接口：
-
-        * **方式一（推荐，专看 tuntap）**：
-
-            直接查看系统的网络设备列表，或者使用 `ip link` 过滤：
-
-            ```bash
-            ip link show type tun
-            ```
-
-            注：在较新的 Linux 内核中，`tun` 和 `tap` 都可以通过 `type tun` 来查看
-
-        * 方式二（看详细状态）：
-
-            ```bash
-            ip -d link show tun0
-            ```
-
-            加上 `-d` (details) 参数可以看到该接口是 `tun` 还是 `tap`，以及它所属的 `user` 和 `group`。
-
-    3. 删除虚拟接口
-
-        当你不再需要这个虚拟接口时，可以将其删除。
-
-        **示例：删除 `tun0` 接口**
-
-        ```bash
-        sudo ip tuntap del dev tun0 mode tun
-        ```
-
-        > **提示**：删除时**必须**指定 `mode`（`tun` 或 `tap`），否则系统可能会报错或无法识别。
-
-    ---
-
-    三、 进阶与高级特性
-
-    1. 免 Root 运行网络程序（User/Group 限制）
-
-        这是 `ip tuntap` 最强大的地方之一。传统的 `tunctl` 或旧方法创建的接口通常需要 root 权限。而使用 `ip tuntap`，你可以提前为某个特定用户创建好接口：
-
-        ```bash
-        # 1. 由 root 创建接口并分配给普通用户 tom
-        sudo ip tuntap add dev tun1 mode tun user tom
-
-        # 2. 切换到 tom 用户，tom 可以直接用这个接口运行自己的 VPN 客户端，无需 sudo
-        ```
-
-    2. 多队列模式 (`multi_queue`)
-
-        在高并发、高吞吐量的服务器场景下（比如作为高性能 KVM 宿主机），单队列的 TAP 接口可能会成为 CPU 0 的瓶颈。
-
-        ```bash
-        sudo ip tuntap add dev tap0 mode tap multi_queue
-        ```
-
-        开启 `multi_queue` 后，多个 CPU 核心可以同时处理该网卡的数据包，显著提升网络 I/O 性能。
-
-    3. `pi` 参数 (Packet Information)
-
-        默认情况下，TUN/TAP 接口会在传递给用户空间的数据包头部加上 4 个字节的额外信息（Flags 和 Protocol）。如果你不需要这些信息，或者你的应用程序明确要求不需要，可以在创建时加上 `pi` 参数（通常是配合特定的底层网络开发）：
-
-        ```bash
-        sudo ip tuntap add dev tun0 mode tun pi
-        ```
-
-    四、 常见工作流对比（老工具 vs 新工具）
-
-    如果你在一些老的教程里看到 `tunctl` 或 `openvpn --mktun`，请自动将它们替换为 `ip tuntap`，因为前者在现代 Linux 中大已被淘汰。
-
-    | 历史老命令 (已过时) | 现代标准命令 (`iproute2`) |
-    | --- | --- |
-    | `tunctl -t tap0` | `ip tuntap add dev tap0 mode tap` |
-    | `tunctl -d tap0` | `ip tuntap del dev tap0 mode tap` |
-    | `openvpn --mktun --dev tun0` | `ip tuntap add dev tun0 mode tun` |
-
-    五、 快速总结清单
-
-    * **创建 TUN**：`sudo ip tuntap add dev <名字> mode tun`
-    * **创建 TAP**：`sudo ip tuntap add dev <名字> mode tap`
-    * **删除**：`sudo ip tuntap del dev <名字> mode <tun|tap>`
-    * **激活接口**：`sudo ip link set dev <名字> up`
-
-* 详细讲讲 linux 中 brctl 命令的用法
-
-    在 Linux 中，`brctl`（Bridge Control）是一个用于配置和管理 **网桥（Network Bridge）** 的经典命令行工具。网桥可以看作是一个虚拟的物理交换机，用来将多个物理或虚拟网卡连接在同一个局域网（LAN）中。
-
-    虽然在较新的 Linux 发行版中，`brctl` 逐渐被 `ip link` 命令取代（属于 `iproute2` 工具包），但 `brctl`（属于 `bridge-utils` 工具包）因其简单直观，依然在很多自动化脚本和老系统中被广泛使用。
-
-    1. 安装 brctl
-
-        如果你的系统提示找不到 `brctl` 命令，可以通过以下方式安装：
-
-        * **Ubuntu / Debian:** `sudo apt install bridge-utils`
-        * **CentOS / RHEL / Fedora:** `sudo yum install bridge-utils` 或 `sudo dnf install bridge-utils`
-
-    2. 核心操作分类详解
-
-        `brctl` 的核心操作主要分为四类：**管理网桥**、**管理网口**、**查看状态** 以及 **配置 STP（生成树协议）**。
-
-        **基础：管理网桥（创建与删除）**
-
-        这类命令用于建立或销毁网桥实例本身。
-
-        * **创建网桥**
-
-            ```bash
-            sudo brctl addbr br0
-            ```
-
-            解释：创建一个名为 `br0` 的虚拟网桥。
-
-        * **删除网桥**
-
-            ```bash
-            sudo brctl delbr br0
-            ```
-
-            注意：在删除网桥之前，必须先让它处于 `down`（关闭）状态（使用 `sudo ip link set br0 down`）。
-
-        ---
-
-        **进阶：管理网口（绑定与解绑）**
-
-        创建网桥后，它就像一个没有插网线的交换机。你需要把物理网卡（如 `eth0`）或虚拟网卡（如 `vnet0`）“插”到这个网桥上。
-
-        * **将网卡添加到网桥（绑定）**
-
-            ```bash
-            sudo brctl addif br0 eth0
-            ```
-
-            解释：将 `eth0` 网卡绑定到 `br0` 网桥上。此时 `eth0` 将作为网桥的一个端口工作。
-
-        * **将网卡从网桥中移除（解绑）**
-
-            ```bash
-            sudo brctl delif br0 eth0
-            ```
-
-        **监控：查看网桥状态与 MAC 地址表**
-
-        * **查看当前系统中所有的网桥信息**
-
-            ```bash
-            brctl show
-            ```
-
-
-            *输出示例：*
-
-            ```text
-            bridge name    bridge id            STP enabled    interfaces
-            br0            8000.000c29abcdef    no             eth0
-                                                               eth1
-            ```
-
-        * **查看网桥的学习到的 MAC 地址表（FDB 表）**
-
-            ```bash
-            brctl showmacs br0
-            ```
-
-            解释：网桥像交换机一样会学习 MAC 地址。这个命令可以让你看到哪些 MAC 地址正连接在网桥的哪个端口上，以及它们是否是本地（local）地址。
-
-        ---
-
-        **高级：配置 STP（生成树协议）**
-
-        当多个网桥连接形成环路时，会导致网络风暴。STP 可以防止环路。
-
-        * **开启 / 关闭 STP**
-
-            ```bash
-            sudo brctl stp br0 on   # 开启
-            sudo brctl stp br0 off  # 关闭
-            ```
-
-        * **修改网桥的各项时间参数（通常保持默认即可）**
-
-            ```bash
-            sudo brctl setfd br0 15       # 设置 Forward Delay（转发延迟）为 15 秒
-            sudo brctl sethello br0 2     # 设置 Hello Time（问候时间）为 2 秒
-            sudo brctl maxage br0 20      # 设置最大老化时间为 20 秒
-            ```
-
-    3. 一个完整的实战配置流程
-
-        假设你要把物理网卡 `eth1` 变成一个网桥 `br0`，供虚拟机使用，标准的操作流程如下：
-
-        ```bash
-        # 1. 创建网桥
-        sudo brctl addbr br0
-
-        # 2. 把物理网卡绑定到网桥
-        sudo brctl addif br0 eth1
-
-        # 3. 清空物理网卡的 IP（网桥接管后，物理网卡不需要独立 IP）
-        sudo ip addr flush dev eth1
-
-        # 4. 启动物理网卡和网桥
-        sudo ip link set eth1 up
-        sudo ip link set br0 up
-
-        # 5. 给网桥配置 IP 地址（可选：让宿主机可以通过这个网桥上网）
-        sudo dhclient br0  # 或者使用 ip addr add 分配静态 IP
-        ```
-
-        > ⚠️ **重要提示：**
-        > 
-        > 使用 `brctl` 命令所做的所有配置都是**临时生效**的，系统重启后会丢失。如果需要永久生效，需要修改系统的网络配置文件（如 Ubuntu 的 `/etc/netplan/*.yaml` 或 CentOS 的 `/etc/sysconfig/network-scripts/ifcfg-*`）。
-
-    ---
-
-    **时代在变：`brctl` 与 `ip link` 的对比**
-
-    由于 `brctl` 属于老旧工具，现代 Linux 更推荐使用 `iproute2` 工具链。你可以参考下表进行语法转换：
-
-    | 操作目的 | 老命令 (`brctl`) | 新命令 (`ip link` / `bridge`) |
-    | --- | --- | --- |
-    | **创建网桥** | `brctl addbr br0` | `ip link add br0 type bridge` |
-    | **删除网桥** | `brctl delbr br0` | `ip link del br0` |
-    | **绑定网口** | `brctl addif br0 eth0` | `ip link set eth0 master br0` |
-    | **解绑网口** | `brctl delif br0 eth0` | `ip link set eth0 nomaster` |
-    | **查看网桥** | `brctl show` | `ip link show type bridge` 或 `bridge link` |
-    | **查看 MAC 表** | `brctl showmacs br0` | `bridge fdb show br br0` |
-
-    你是准备在特定的项目（比如 KVM 虚拟机、Docker 网络）中使用网桥，还是在排查现有的网络问题呢？如果有具体的应用场景，我可以为你提供更针对性的配置方案。
-
-* 详细讲讲 linux 中 nmcli device 相关的命令的作用和用法
-
-    在 Linux 中，`nmcli`（NetworkManager Client）是一个极其强大的命令行工具，用于控制 NetworkManager 并报告网络状态。
-
-    在 `nmcli` 的世界里，有两个核心概念：
-
-    1. **Device（设备）**：指系统中的**物理或虚拟网络接口**（如 `eth0`, `wlan0`, `br0`）。
-
-    2. **Connection（连接）**：指一组**配置好的网络参数**（如 IP 地址、DNS、Wi-Fi 密码）。
-
-    `nmcli device`（可简写为 `nmcli d`）主要负责**直接操作和查看这些网络硬件接口**。
-
-    ---
-
-    一、 核心基础命令
-
-    1. 查看所有网络设备的状态
-
-        ```bash
-        nmcli device status
-        # 或者简写
-        nmcli d
-        ```
-
-        * 作用：列出系统识别到的所有网络接口，并显示它们当前的状态（已连接、已断开、未管理等）以及关联的连接名称。
-
-        * 输出示例：
-
-            | DEVICE | TYPE | STATE | CONNECTION |
-            | --- | --- | --- | --- |
-            | eth0 | ethernet | connected | Wired connection 1 |
-            | wlan0 | wifi | disconnected | -- |
-            | lo | loopback | unmanaged | -- |
-
-    2. 查看设备的详细信息
-
-        ```bash
-        nmcli device show [interface]
-        # 例如
-        nmcli d show eth0
-        ```
-
-        * 作用：显示指定设备（如果不加设备名，则显示所有设备）的极其详细的信息，包括 MAC 地址、IP 地址、子网掩码、网关、DNS、路由信息等。**这相当于 NetworkManager 版的 `ifconfig` 或 `ip addr**`。
-
-    ---
-
-    二、 设备激活与断开（上下线）
-
-    这些命令用于直接控制硬件接口的启用和禁用。
-
-    1. 断开设备连接
-
-        ```bash
-        nmcli device disconnect <interface>
-        # 例如
-        nmcli d disconnect eth0
-        ```
-
-        * 作用：让指定设备断开当前的连接，并阻止该设备自动重新连接。
-        * 注意：这**不会**关闭网卡硬件，只是让它处于 `disconnected`（空闲）状态。
-
-    2. 激活/连接设备
-
-        ```bash
-        nmcli device connect <interface>
-        # 例如
-        nmcli d connect eth0
-        ```
-
-        * 作用：激活该网卡。NetworkManager 会尝试为该接口寻找并应用最合适的可用“连接配置”（Connection）。
-
-    ---
-
-    三、 Wi-Fi 设备专属命令（nmcli device wifi）
-
-    如果你的网卡支持无线，`nmcli d wifi` 是管理无线网络的神器。
-
-    1. 扫描周边的 Wi-Fi 热点
-
-        ```bash
-        nmcli device wifi list
-        # 或者简写
-        nmcli d wifi
-        ```
-
-        * **作用**：扫描并列出当前范围内所有可用的 Wi-Fi 网络，显示 SSID、信道、速率、信号强度（BARS）和加密方式。
-
-    2. 连接到指定的 Wi-Fi
-
-        ```bash
-        nmcli device wifi connect "WiFi_Name" password "WiFi_Password"
-        ```
-
-        * **作用**：连接到指定的无线网络。如果连接成功，NetworkManager 会**自动创建一个同名的连接配置文件**，以后开机就会自动连接。
-
-    3. 强制重新扫描
-
-        ```bash
-        nmcli device wifi rescan
-        ```
-
-        * **作用**：告诉网卡立刻刷新周围的 Wi-Fi 列表（默认情况下，NetworkManager 会在后台定期自动扫描）。
-
-    ---
-
-    四、 高级操作：修改与重新加载
-
-    1. 实时重新加载配置（不重启网卡）
-
-        ```bash
-        nmcli device reapply <interface>
-        ```
-
-        * 作用：如果你手动修改了某个连接的配置（比如改了静态 IP），使用 `reapply` 可以让修改**立刻应用到当前运行的设备上**，而不需要先 `disconnect` 再 `connect`。
-
-    2. 修改设备层面的属性
-
-        ```bash
-        nmcli device modify <interface> <setting>.<property> <value>
-        # 例如临时修改 DNS
-        nmcli d modify eth0 ipv4.dns "8.8.8.8"
-        ```
-
-        * 作用：对正在运行的设备进行**临时修改**。这种修改是临时的，设备重启或断开后会失效（不会写入持久化配置文件）。
-
-    3. 开启/关闭网卡的自动连接属性
-
-        ```bash
-        nmcli device set <interface> autoconnect yes|no
-        ```
-
-        * **作用**：控制该硬件设备未来是否允许自动连接网络。
-
-    五、 实用场景速查表
-
-    > **安全提示**：在远程 SSH 连接服务器时，千万不要轻易对正在使用的网卡执行 `disconnect`，否则会导致连接瞬间切断且无法远程连回！
-
-    | 想要实现的操作 | 命令 |
-    | --- | --- |
-    | **查 IP、网关、DNS 等全部网络信息** | `nmcli d show` |
-    | **看看哪块网卡没插网线/没连上** | `nmcli d` |
-    | **让某块网卡彻底罢工（断网）** | `nmcli d disconnect eth0` |
-    | **让某块网卡重新工作（联网）** | `nmcli d connect eth0` |
-    | **用命令行连公司的 Wi-Fi** | `nmcli d wifi connect "Office-Net" password "123456"` |
-    | **临时换个 IP（测试用）** | `nmcli d modify eth0 ipv4.addresses 192.168.1.100/24` |
-
-    你目前是在配置服务器的静态网络，还是在调试笔记本的无线网络呢？如果有具体的应用场景，我可以为你提供更针对性的命令示例。
-
-* 详细讲讲 systemd-run 的用法
-
-    `systemd-run` 是 systemd 工具家族中非常强大但常被低估的一个命令。它的核心作用是：**在临时（Transient）的 systemd 单元（Unit）中运行程序。**
-
-    简单来说，平时你用 `&` 或 `nohup` 在后台运行任务，一旦终端断开或者父进程挂了，任务可能就会受影响。而使用 `systemd-run`，你是**让 systemd 进程（PID 1）直接接管并运行该任务**。它会获得和正式 systemd 服务一模一样的待遇：独立的 Cgroup、资源限制、日志收集等。
-
-    以下是关于 `systemd-run` 用法的详细拆解：
-
-    ---
-
-    ## 核心应用场景
-
-    * **真正的后台运行：** 替代 `nohup` 或 `screen`/`tmux` 运行临时脚本，不用担心终端关闭导致任务中断。
-    * **资源限制测试：** 临时限制某个高负载命令的 CPU 或内存占用，防止系统卡死。
-    * **定时任务：** 替代 `cron`，临时创建一个只执行一次（或周期执行）的定时任务。
-    * **安全沙箱：** 利用 systemd 的安全特性，在隔离的环境中运行不信任的程序。
-
-    ---
-
-    ## 基础语法与常用参数
-
-    基础结构非常简单：
-
-    ```bash
-    systemd-run [options] COMMAND [arguments...]
-
-    ```
-
-    ### 常用核心参数：
-
-    * `--user`：以当前登录用户的身份（用户级 systemd 实例）运行，不需要 root 权限。如果不加，默认是 `--system`（需要 root 权限）。
-    * `--unit=名称`：给这个临时服务起个名字。方便后面用 `systemctl` 控制。
-    * `--scope`：默认情况下，命令会在一个独立的 **Service** 单元中异步运行（后台）。如果加上 `--scope`，它会在当前前台进程中运行，但受 systemd 的 **Scope** 单元管理（常用于限制当前 Shell 及其子进程的资源）。
-    * `-p` 或 `--property=键=值`：这是最强大的参数，允许你直接注入任意的 systemd 配置项（如内存限制、环境变量等）。
-
-    ---
-
-    ## 经典使用场景与示例
-
-    ### 1. 后台异步运行长耗时任务
-
-    假设你有一个需要运行几小时的备份脚本 `backup.sh`：
-
-    ```bash
-    sudo systemd-run --unit=my-backup /usr/local/bin/backup.sh
-
-    ```
-
-    * **效果：** 任务立刻在后台运行，终端会返回一行提示：`Running as unit: my-backup.service`。
-    * **如何查看日志？** ```bash
-    journalctl -u my-backup.service -f
-    ```
-
-    ```
-
-
-    * **如何停止它？** ```bash
-    sudo systemctl stop my-backup.service
-    ```
-
-
-    ```
-
-
-
-    ### 2. 限制命令的资源占用（防止系统宕机）
-
-    如果你要编译一个超大项目，或者运行一个极度消耗内存的 Python 脚本，可以限制它最多使用 2 个 CPU 核心和 4G 内存：
-
-    ```bash
-    sudo systemd-run -p CPUQuota=200% -p MemoryMax=4G --unit=heavy-job ./run-heavy-simulation.sh
-
-    ```
-
-    > **注：** `CPUQuota=200%` 意味着最多压满 2 个 CPU 核心。如果程序超出了 4G 内存，systemd 会直接触发 OOM 杀死它，保护宿主机安全。
-
-    ### 3. 作为定时任务（替代 `cron`）
-
-    `systemd-run` 可以通过 `--on-active`（从现在起多久后）、`--on-calendar`（绝对时间）等参数直接生成临时的 **Timer** 单元。
-
-    * **30分钟后执行一次：**
-    ```bash
-    sudo systemd-run --on-active="30m" --unit=delayed-task /usr/local/bin/clean.sh
-
-    ```
-
-
-    * **每周五凌晨 2 点执行：**
-    ```bash
-    sudo systemd-run --on-calendar="Fri *-*-* 02:00:00" --unit=weekly-clean /usr/local/bin/clean.sh
-
-    ```
-
-
-    *(查看排队的定时任务：`systemctl list-timers --all`)*
-
-    ### 4. 普通用户身份运行（无需 root）
-
-    普通用户想丢一个后台任务，加上 `--user` 即可：
-
-    ```bash
-    systemd-run --user --unit=my-crawler python3 spider.py
-
-    ```
-
-    * **注意：** 查看和管理时也要带上 `--user`：
-    ```bash
-    journalctl --user -u my-crawler.service
-    systemctl --user status my-crawler.service
-
-    ```
-
-    ### 5. 限制当前终端（或后续命令）的资源
-
-    如果你想限制**接下来的操作**，可以使用 `--scope`：
-
-    ```bash
-    sudo systemd-run --scope -p MemoryMax=1G stress --vm 1 --vm-bytes 1.5G
-
-    ```
-
-    * **效果：** `stress` 压测程序刚试图申请 1.5G 内存，就会立刻被 systemd 强行终止，因为整个 Scope 被限制在 1G 内存内。
-
-    ---
-
-    ## systemd-run 与传统工具的对比
-
-    | 特性 | `nohup` / `&` | `screen` / `tmux` | `systemd-run` |
-    | --- | --- | --- | --- |
-    | **生命周期** | 绑定在当前用户会话（即使 nohup 偶尔也会因为 SIGHUP 异常退出） | 绑定在 tmux 后台进程 | **完全由 PID 1 (systemd) 接管**，与用户登录状态彻底脱钩 |
-    | **日志收集** | 重定向到文件（如 `nohup.out`） | 屏幕缓存，断开就看不到了 | **自动整合进 `journalctl**`，支持动态轮转、时间筛选 |
-    | **资源限制** | 极弱（依赖 `ulimit`） | 无 | **极强**（支持 cgroups 的 CPU、内存、I/O 动态限制） |
-    | **状态查询** | 只能用 `ps` 查 PID | `tmux ls` | 标准的 `systemctl status` 观察，包含运行时间、Cgroup 树 |
-
-    ---
-
-    ## 总结与小贴士
-
-    * **自动清理：** `systemd-run` 创建的 unit 是临时（Transient）的。当命令运行结束退出后，对应的 service 单元会自动销毁，不会在系统里留下垃圾配置文件。
-    * **配合环境变量：** 如果你的命令依赖当前环境的环境变量，记得用 `-E KEY=VALUE` 传进去，因为由 systemd 启动的命令默认只有最基础的系统环境变量。
-
-    你目前是有具体的后台任务需要迁移到 `systemd-run` 来管理，还是在设计某种自动化的运维脚本呢？
 * 简述 glow, mdcat, catwalk 的作用
 
     好的，我们来简单说明一下 `glow`、`mdcat` 和 `catwalk` 这三个命令行工具的作用。
@@ -7227,6 +3647,7 @@
     | **`catwalk`** | 图像、视频 | **预览多媒体**文件 | “我刚下载了一堆图片，在命令行里快速看看哪个是我要的。” |
 
     简单来说，`glow` 和 `mdcat` 是处理**文本（Markdown）**的，让你读得更舒服；而 `catwalk` 是处理**二进制（多媒体）**的，让你看得见内容。在 `glow` 和 `mdcat` 之间，`glow` 更像一个功能全面的阅读器，而 `mdcat` 则是一个精准的渲染器。
+
 * 我该如何查看 fail2ban 的 filter 的 sshd.conf 中提取出来的 <HOST> 的值？
 
     `<HOST>` 是 Fail2ban **从日志里匹配出来的 IP 地址**，但 **Fail2ban 默认不会直接把它打印出来**。不过你有几种可靠的方法可以看到 Fail2ban 实际提取到的 `<HOST>` 值。
@@ -7402,23 +3823,7 @@
 
               1. 改 `mode = extra` 或 `mode = aggressive`
               2. 或直接把规则写在 failregex= 块里，不依赖 `<mdre-<mode>>`
-* linux 中清空一个文件的方法
 
-    * `> filename`
-
-    * `truncate -s 0 filename`
-
-    * `echo -n "" > filename`
-
-        `-n`表示不输出最后的换行符
-
-    如果文件需要 sudo 权限才能修改，那么需要配合 `tee` 命令：
-
-    ```bash
-    sudo tee filename < /dev/null
-    # 或者用前面提到的 truncate
-    sudo truncate -s 0 filename
-    ```
 * Zip 分卷压缩
 
     你遇到的这种文件列表，属于典型的 **Zip 分卷压缩（Split Zip Archive）**。
@@ -7474,6 +3879,7 @@
     ```bash
     unzip -d data correct_single.zip
     ```
+
 * unzip 的 -x  exclude files that follow (in xlist) 是什么含义
 
     在 `unzip` 命令中，`-x` 参数的作用是**在解压时「排除」指定的文件或文件夹**。
@@ -7521,31 +3927,7 @@
         * **正确做法**：`unzip target.zip -d /output/dir/ -x "secret/*"`
 
         * **错误做法**：`unzip target.zip -x "secret/*" -d /output/dir/` （这可能会让 unzip 误以为 `-d` 也是你想排除的文件名）
-* linux 上查看磁盘配额
 
-    * 最常用的命令：`quota`
-
-        这是查看个人配额的标准工具。建议加上 `-s`（human-readable）参数：
-
-        ```bash
-        quota -s
-        ```
-
-        * **blocks (used):** 当前已使用的空间。
-        * **quota (soft):** 软限制。达到此限制后你还能写入，但会收到警告。
-        * **limit (hard):** 硬限制。**一旦达到这个值，就会触发你看到的 `Disk quota exceeded` 错误。**
-        * **grace:** 如果超过了软限制，这里会显示你还有多长时间来清理文件。
-
-        注：
-
-        1. quota 命令需要使用 apt 安装
-
-    * 如果发现配额确实满了，可以用 `du` 命令排查“大户”：
-
-        ```bash
-        # 查看当前目录下各一级子目录的大小，并按大小排序
-        du -h --max-depth=1 | sort -hr
-        ```
 * 关于 ptrace 权限的修改
 
     在使用 GDB 调试 MPI 程序或进行多进程附加（Attach）调试时，你指的应该是 Linux 的 **`ptrace_scope`** 权限设置。
@@ -7611,6 +3993,7 @@
         运行后，手动用 `gdb -p <PID>` 附加，然后 `set var i = 1` 继续执行。
 
     需要我帮你写一段自动打印 PID 并等待 GDB 附加的 C/C++ 调试代码段吗？
+
 * 详细讲讲 linux 中 pidstat, sy, si, perf, strace 这几个概念
 
     在 Linux 性能调优和故障排查中，你提到的这几个工具和指标构成了从**宏观系统监控**到**微观代码追踪**的完整链路。
@@ -7681,7 +4064,8 @@
 
     **排查建议：**
     先看 `top` 确定 **sy/si** 是否异常；若异常，用 `pidstat` 锁定可疑 **进程**；接着用 `perf` 分析该进程的 **函数耗时**；最后用 `strace` 确认具体的 **系统调用** 行为。
-* ubuntu 如何设置开机自动运行某个basH脚本
+
+* ubuntu 如何设置开机自动运行某个 bash 脚本
 
     在 **Ubuntu** 下，你有好几种方式可以设置开机自动运行某个 `bash` 脚本，取决于你是想让它 **在用户登录时运行**，还是 **开机不需要登录就运行**（system-level）。我给你分情况列一下：
 
@@ -7779,670 +4163,480 @@
     * 如果要 **系统启动就运行（不用登录）** → 用 **systemd**（方法一）。
     * 如果只要 **用户登录后运行** → 用 **crontab @reboot** 或 **Startup Applications**。
 
-* 我记得不是有个类似 bashrc 的设置
+    * 我记得不是有个类似 bashrc 的设置
 
-    对的 👍，你记得的是 **用户登录时执行的脚本**，跟 `.bashrc`、`.profile` 之类有关：
+        对的 👍，你记得的是 **用户登录时执行的脚本**，跟 `.bashrc`、`.profile` 之类有关：
 
-    ---
+        ---
 
-    **区别几个常见文件**
+        **区别几个常见文件**
 
-    * **`~/.bashrc`**
-      每次启动一个 *交互式 shell* 时执行（例如你开一个终端窗口）。
-      ⚠️ 不会在纯开机时自动执行，只有开了终端才会跑。
+        * **`~/.bashrc`**
+          每次启动一个 *交互式 shell* 时执行（例如你开一个终端窗口）。
+          ⚠️ 不会在纯开机时自动执行，只有开了终端才会跑。
 
-    * **`~/.profile`** 或 **`~/.bash_profile`**
-      在用户登录时（无论是图形界面还是 TTY）执行一次。
-      适合放一些只需要在用户登录时跑的脚本。
+        * **`~/.profile`** 或 **`~/.bash_profile`**
+          在用户登录时（无论是图形界面还是 TTY）执行一次。
+          适合放一些只需要在用户登录时跑的脚本。
 
-    * **`/etc/profile`**
-      系统范围的，所有用户登录时都会执行。
+        * **`/etc/profile`**
+          系统范围的，所有用户登录时都会执行。
 
-    ---
+        ---
 
-    **如果你想在登录时跑脚本**
+        **如果你想在登录时跑脚本**
 
-    比如脚本 `/home/username/myscript.sh`：
+        比如脚本 `/home/username/myscript.sh`：
 
-    1. 编辑 `~/.profile`：
+        1. 编辑 `~/.profile`：
 
-       ```bash
-       nano ~/.profile
-       ```
+           ```bash
+           nano ~/.profile
+           ```
 
-    2. 在文件末尾加：
+        2. 在文件末尾加：
 
-       ```bash
-       # 开机登录后自动执行
-       /home/username/myscript.sh &
-       ```
-
-    3. 保存后退出。
-
-        这样每次你 **登录这个用户** 时脚本就会跑了（包括图形界面和 ssh 登录）。
-
-    ---
-
-    **如果你想在开机但不登录时也能跑**
-
-    那就不能只靠 `.bashrc` / `.profile`，要用我之前说的 **systemd** 或 **cron @reboot**。
-
-* 我希望在用户登录时只启动一次，再登录就不启动了
-
-    明白了。你要的是 **用户第一次登录时启动一次脚本**，但之后再登录同一会话时 **不再重复执行**。
-
-    这种情况 `.bashrc` 不合适，因为它每开一个终端都会执行；
-    `.profile` 虽然是登录时执行，但你可能还想限制为「只执行一次」。
-
-    ---
-
-    解决方法：加一个 **标记文件**
-
-    思路就是：
-
-    * 用户登录时，`.profile` 调用你的脚本
-    * 但在执行前先检查一个「标记文件」是否存在
-    * 如果不存在，就运行脚本并创建标记
-    * 如果存在，就什么也不做
-
-    ---
-
-    **实现步骤**
-
-    假设你的脚本是 `/home/username/myscript.sh`
-
-    1. 编辑 `~/.profile`：
-
-       ```bash
-       nano ~/.profile
-       ```
-
-    2. 在文件末尾加上：
-
-       ```bash
-       # 仅第一次登录时执行脚本
-       FLAG="$HOME/.myscript_ran"
-       if [ ! -f "$FLAG" ]; then
+           ```bash
+           # 开机登录后自动执行
            /home/username/myscript.sh &
-           touch "$FLAG"
-       fi
-       ```
+           ```
 
-    3. 确保脚本可执行：
+        3. 保存后退出。
 
-       ```bash
-       chmod +x /home/username/myscript.sh
-       ```
-
-    ---
-
-    **如果想每次重启后都再执行一次**
-
-    那就在 `~/.profile` 里不变，但把「标记文件」放到 `/tmp`（因为 `/tmp` 每次开机都会清空）：
-
-    ```bash
-    FLAG="/tmp/.myscript_ran"
-    ```
-
-    ---
-
-    这样，你就可以控制：
-
-    * **同一次开机 → 登录一次就执行，后面不执行**
-    * **下次重启 → 又会执行一次**
-
-    ---
-
-    要不要我给你写一个完整的 `myscript.sh` 示例（带日志输出），这样你可以确认它到底有没有只执行一次？
-
-* /etc/profile 中的命令并不是开机运行，而是登录了用户才运行，有没有开机就运行的配置文件或脚本？
-
-    你理解得对：
-
-    * `/etc/profile` 和 `~/.bashrc` 之类的文件只会在**用户登录时**运行，根本不属于“开机自启”。
-    * 如果想要 **开机（还没登录）就运行脚本**，有几种常见方式：
-
-    ---
-
-    ### 1. `systemd` 服务（推荐）
-
-    适合所有现代 Linux 发行版（Ubuntu, CentOS, Debian…）。
-
-    1. 写一个脚本，例如 `/usr/local/bin/myscript.sh`：
-
-       ```bash
-       #!/bin/bash
-       echo "Boot script running at $(date)" >> /var/log/myscript.log
-       ```
-
-       记得赋予可执行权限：
-
-       ```bash
-       chmod +x /usr/local/bin/myscript.sh
-       ```
-
-    2. 新建一个 systemd unit：
-
-       ```bash
-       sudo nano /etc/systemd/system/myscript.service
-       ```
-
-       内容：
-
-       ```ini
-       [Unit]
-       Description=Run my script at boot
-       After=network.target
-
-       [Service]
-       Type=oneshot
-       ExecStart=/usr/local/bin/myscript.sh
-       RemainAfterExit=yes
-
-       [Install]
-       WantedBy=multi-user.target
-       ```
-
-    3. 启用并启动：
-
-       ```bash
-       sudo systemctl daemon-reload
-       sudo systemctl enable myscript.service
-       sudo systemctl start myscript.service
-       ```
-
-    这样脚本会在**系统启动**（到 multi-user.target）时自动运行，无需用户登录。
-
-    ---
-
-    ### 2. `/etc/rc.local`（旧方法）
-
-    部分系统不再默认支持，但可以手动启用。
-
-    * 在 `/etc/rc.local` 文件里加入命令，例如：
-
-      ```bash
-      /usr/local/bin/myscript.sh &
-      exit 0
-      ```
-    * 确保文件可执行：
-
-      ```bash
-      sudo chmod +x /etc/rc.local
-      ```
-
-    然后 rc.local 就会在开机最后阶段运行。
-
-    ---
-
-    ### 3. `cron @reboot`
-
-    使用 `crontab -e` 添加：
-
-    ```bash
-    @reboot /usr/local/bin/myscript.sh
-    ```
-
-    这样每次开机时都会执行。
-
-    ---
-
-    ✅ 总结：
-
-    * 如果是现代系统（Ubuntu 16.04+），**systemd** 是最稳定、可控的方式。
-    * 如果只想简单快速，可以用 `cron @reboot`。
-
-    ---
-
-    要不要我给你写一个最小的 **systemd service 文件**，你只需要改脚本路径就能直接用？
-
-* @reboot /usr/local/bin/myscript.sh 这个方法根本无法用
-
-    你说得对，在一些 Linux（特别是 Ubuntu 20.04+）上，`cron` 默认并不会在开机阶段正常运行 `@reboot`，需要额外条件满足（比如 `cron` 服务已经启动，并且脚本路径/权限没问题）。
-
-    为了避免这种坑，最稳妥的就是 **用 systemd 服务**。这是现在 Linux 的主流方式。
-
-    ---
-
-    ### 最小可用的 systemd 服务示例
-
-    假设你的脚本是 `/usr/local/bin/myscript.sh`：
-
-    1. **检查脚本权限**
-
-       ```bash
-       chmod +x /usr/local/bin/myscript.sh
-       ```
-
-    2. **创建 service 文件**
-
-       ```bash
-       sudo nano /etc/systemd/system/myscript.service
-       ```
-
-       写入：
-
-       ```ini
-       [Unit]
-       Description=Run my script at boot
-       After=network.target
-
-       [Service]
-       Type=oneshot
-       ExecStart=/usr/local/bin/myscript.sh
-       RemainAfterExit=yes
-
-       [Install]
-       WantedBy=multi-user.target
-       ```
-
-    3. **启用并启动**
-
-       ```bash
-       sudo systemctl daemon-reload
-       sudo systemctl enable myscript.service
-       sudo systemctl start myscript.service
-       ```
-
-    4. **验证开机自启**
-       重启后查看日志：
-
-       ```bash
-       journalctl -u myscript.service -b
-       ```
-
-    ---
-
-    🔑 和 `@reboot` 不同，这种方式**百分百可靠**，不会依赖 cron。
-
-    要不要我帮你写一个版本，支持后台常驻运行（比如脚本里有 while true 循环，systemd 会自动守护它）？
-
-* 除了multi-user.target，是否还有其他 target？我希望图形界面和文字界面都能自动启动服务
-
-    对的，`systemd` 里有很多 **target**，用来表示系统处于不同的运行级别（类似 SysV 的 runlevel）。
-
-    ---
-
-    ### 常见的几个 target
-
-    1. **`multi-user.target`**
-
-       * 文字界面（无图形），相当于传统的 runlevel 3。
-       * 网络、多用户登录都可用，常用于服务器环境。
-
-    2. **`graphical.target`**
-
-       * 图形界面（桌面环境），相当于传统的 runlevel 5。
-       * 一般桌面 Linux 在启动时会最终进入这个 target。
-
-    3. **`basic.target`**
-
-       * 提供基本的系统服务，但没有网络、多用户等。
-
-    4. **`rescue.target`**
-
-       * 单用户模式，类似 runlevel 1。
-
-    5. **`emergency.target`**
-
-       * 紧急维护模式，几乎只有 root shell 和最小挂载。
-
-    6. **`network.target`**
-
-       * 网络服务可用时的 target，常用作依赖。
-
-    ---
-
-    ### 你的需求：
-
-    如果希望 **不论是文字界面还是图形界面** 都能自启动服务，直接把 `[Install]` 部分改成：
-
-    ```ini
-    [Install]
-    WantedBy=multi-user.target graphical.target
-    ```
-
-    这样无论系统最终进入文字模式（multi-user）还是图形模式（graphical），你的服务都会被拉起来。
-
-    ---
-
-    ### 完整示例
-
-    ```ini
-    [Unit]
-    Description=Run my script at boot
-    After=network.target
-
-    [Service]
-    Type=oneshot
-    ExecStart=/usr/local/bin/myscript.sh
-    RemainAfterExit=yes
-
-    [Install]
-    WantedBy=multi-user.target graphical.target
-    ```
-
-    然后：
-
-    ```bash
-    sudo systemctl daemon-reload
-    sudo systemctl enable myscript.service
-    ```
-
-    这样就能保证：
-
-    * 在服务器（只有文字界面）环境 → 会运行
-    * 在桌面（进入图形界面）环境 → 也会运行
-
-    ---
-
-    要不要我帮你整理一个 **对照表：SysV runlevel ↔ systemd target**，这样你可以一眼看懂该挂到哪个 target？
-
-* RemainAfterExit=yes 这个是干嘛用的？
-
-    好问题 👍，这个参数在 `systemd` 里很容易被忽略。
-
-    ---
-
-    **`RemainAfterExit=yes` 的作用**
-
-    * **默认情况下**，如果一个 service 是 `Type=oneshot`，那么 `ExecStart` 命令跑完进程退出后，`systemd` 会认为这个 service **已经 stopped**。
-    * 加了 `RemainAfterExit=yes` 以后，即使 `ExecStart` 的进程退出了，`systemd` 依然会把这个服务标记为 **active (exited)** 状态。
-
-    换句话说：
-
-    * **不加** → 你的脚本跑完后，`systemctl status` 会显示 `inactive (dead)`。
-    * **加了** → 你的脚本跑完后，`systemctl status` 会显示 `active (exited)`。
-
-    ---
-
-    **什么时候需要？**
-
-    * 如果你只是想在开机时执行一次脚本（比如写个日志、调整系统参数），其实不需要 `RemainAfterExit=yes`，默认跑完就结束就行。
-    * 如果你的脚本只执行一次，但你希望之后通过 `systemctl status` 还能看到它“执行过”，那么就加上 `RemainAfterExit=yes`。
-
-    ---
-
-    **举个例子**
-
-    ```ini
-    [Service]
-    Type=oneshot
-    ExecStart=/usr/local/bin/myscript.sh
-    RemainAfterExit=yes
-    ```
-
-    执行结果：
-
-    ```bash
-    ● myscript.service - Run my script at boot
-       Loaded: loaded (/etc/systemd/system/myscript.service; enabled)
-       Active: active (exited) since Fri 2025-09-12 09:00:00 CST; 10s ago
-    ```
-
-    如果没写 `RemainAfterExit=yes`：
-
-    ```bash
-    ● myscript.service - Run my script at boot
-       Loaded: loaded (/etc/systemd/system/myscript.service; enabled)
-       Active: inactive (dead) since Fri 2025-09-12 09:00:00 CST; 10s ago
-    ```
-
-    ---
-
-    **总结：**
-
-    * `RemainAfterExit=yes` = **保持服务在 systemd 状态机里“激活”**，即使脚本已经退出。
-    * 对“只执行一次就完事”的脚本不是必须，但有助于用 `systemctl status` 判断是否运行过。
-
-* 报错：
-
-    connect: network is unreachable. With loginFailExit enabled, no additional retries will b
-
-
-    这个报错信息看起来像是 **systemd 在启动时跑了你的脚本，但脚本里依赖网络**，结果网络还没起来，于是直接失败了。
-
-    关键点在这里：
-
-    ```
-    connect: network is unreachable
-    With loginFailExit enabled, no additional retries will b...
-    ```
-
-    说明你的脚本在尝试连接网络的时候，网络接口还没 ready。
-
-    ---
-
-    ### 解决方法
-
-    在你的 `.service` 文件里，**增加网络依赖**：
-
-    ```ini
-    [Unit]
-    Description=Run my script at boot
-    After=network-online.target
-    Wants=network-online.target
-
-    [Service]
-    Type=oneshot
-    ExecStart=/usr/local/bin/myscript.sh
-    RemainAfterExit=yes
-
-    [Install]
-    WantedBy=multi-user.target graphical.target
-    ```
-
-    解释：
-
-    * `After=network-online.target`
-      确保脚本在“网络完全就绪”之后再执行。
-    * `Wants=network-online.target`
-      保证 systemd 会启动 `network-online.target` 这个服务。
-    * 注意：`network.target` 只保证“网络服务启动”，但不保证网卡真正拿到 IP。很多脚本需要等到 **network-online.target**。
-
-    ---
-
-    ### 另外注意
-
-    如果你在云环境（比如 AWS、Azure、KVM）或容器里跑，有些 Linux 没有默认启用 `systemd-networkd-wait-online.service`，可能还要手动启用：
-
-    ```bash
-    sudo systemctl enable systemd-networkd-wait-online.service
-    ```
-
-    ---
-
-    要不要我帮你写一个 **同时支持联网前等待 + 重试机制** 的 service 配置？这样即使网络一开始不可用，脚本也能延迟或自动重试。
-
-* systemd 开机启动脚本
-
-    ```conf
-    [Unit]
-    Description=hlc script init frpc
-    After=network.target
-    After=network-online.target
-    Wants=network-online.target
-    ```
-
-    可以这样写吗，两个 after 算重复吗？
-
-    可以这样写，不算错误 👍。
-
-    在 `systemd` 里：
-
-    * `[Unit]` 段的 **多个 `After=`** 并不是互斥的，都会生效，表示“本服务要在这些 target 之后启动”。
-    * 相当于把依赖条件加在一起 → 启动顺序约束更严格。
-
-    所以你写成：
-
-    ```ini
-    [Unit]
-    Description=hlc script init frpc
-    After=network.target
-    After=network-online.target
-    Wants=network-online.target
-    ```
-
-    实际上等价于：
-
-    ```ini
-    [Unit]
-    Description=hlc script init frpc
-    After=network.target network-online.target
-    Wants=network-online.target
-    ```
-
-    ---
-
-    **推荐写法**
-
-    一般直接写成一行更简洁：
-
-    ```ini
-    [Unit]
-    Description=hlc script init frpc
-    After=network-online.target
-    Wants=network-online.target
-    ```
-
-    因为：
-
-    * `network-online.target` 本身已经隐含了 `network.target`。
-    * 所以单独写 `After=network.target` 没必要，但写了也不会有坏处。
-
-    ---
-
-    **总结：**
-
-    * 你写的那种方式 **能正常用**，只是稍微重复。
-    * 如果追求简洁，直接用 `After=network-online.target` 就够了。
-
-* Top 命令的 cpu 使用量中，按下 t  后看到占用率有的线粗，有的线细，是什么含义
-
-    在 `top` 命令界面按下 **`t`** 键，实际上是在切换 **CPU 占用率的显示模式**（由数据变为图形化柱状图）。
-
-    你看到的“线粗”和“线细”，本质上是 `top` 用不同的字符来表示 **CPU 处理不同任务时的状态分布**。这是一种字符级的高低配比图：
-
-    1. 粗线与细线的含义
-        
-        在默认的彩色模式或特定的字符模式下，柱状图通常由以下两部分组成：
-
-        * **粗块/深色部分 (`#` 或 亮色块)：** 代表 **用户态 (User)** 和 **内核态 (System)** 的消耗。这部分是你运行的任务（如浏览器、编译任务）以及系统内核处理请求所占用的“实打实”的算力。
-        * **细线/浅色部分 (`+` 或 暗色块)：** 代表 **低优先级用户态 (Nice)**。如果你手动调高了某些任务的 nice 值（让它们“礼让”其他进程），它们消耗的 CPU 就会以这种形态显示。
-
-    2. 为什么会有这种区分？
-
-        这种设计是为了让你一眼看出 CPU 的**负载质量**：
-
-        * **全是粗块：** 说明系统正在全力处理高优先级的正常任务。
-        * **粗块中混杂大量细线：** 说明虽然 CPU 很忙，但很大一部分资源是被那些“不着急”的后台任务占用的。如果此时有紧急任务进来，这些“细线”任务会被系统自动压后。
-
-    3. 如何操作切换？
-        
-        按下 `t` 键会在以下四种状态间轮转：
-        1.  **纯文字模式：** 传统的 `us, sy, ni, id...` 百分比数值。
-        2.  **带分类的柱状图：** 用不同字符表示 `user`、`system` 和 `nice`。
-        3.  **合并的柱状图：** 不区分具体类型，只显示总占用。
-        4.  **关闭显示：** 直接隐藏 CPU 状态行。
-
-    ---
-
-    **小贴士：**
-    如果你觉得 `top` 的界面太简陋，推荐尝试 **`htop`**。它的颜色区分更直观：**蓝色**代表低优先级 (nice)，**绿色**代表普通用户任务 (user)，**红色**代表内核任务 (system)。
-
-    需要我帮你对比一下 `top` 里的其他快捷键（比如内存显示的 `m`）或者如何看具体的进程占用吗？
-
-* top 中的 nice value
-
-    在 top 或 ps 命令中，你可以查看 NI (Nice value) 这一列：
-
-    * 范围： -20 到 19。
-
-    * 越“Nice”越慢： 数值越高（比如 10 到 19），说明这个进程越“客气”，它会主动把 CPU 让给别人。这就是你在 top 里看到的那些细线。
-
-    * 默认值： 普通任务的 Nice 值通常是 0。
-
-        小知识：
-
-        如果你想手动启动一个“不着急”的任务，可以在命令前加 nice。例如：
-        nice -n 19 tar -czvf backup.tar.gz /large_data
-        这样即使压缩几百 GB 的数据，你的电脑用起来依然会很流畅。
-
-
-* 在执行 Linux 的 top 命令中，我看到那个进度条有虚线有实线，各代表什么意思？
-
-    在 `top` 的 CPU 进度条里：
-    - **实线** = 正在被使用的 CPU 时间（us、sy、ni、wa、hi、si、st）
-    - **虚线** = **空闲（id）** 的 CPU 时间
-
-    ### 一、快速看懂
-    - 整条进度条 = 100% CPU
-    - **实线部分**：用户态、内核态、IO等待、中断等已占用的时间
-    - **虚线部分**：CPU 空闲、没干活的时间
-
-    ### 二、切换显示方式
-    按 `t` 键循环切换：
-    1. 纯数字（默认）
-    2. 进度条 + 数字
-    3. 纯进度条
-    4. 隐藏 CPU 行
-
-    ### 三、小技巧
-    - 按 `1` 可查看每个 CPU 核心的独立进度条
-    - 按 `h` 打开帮助，查看所有交互快捷键
-
-    要不要我给你整理一份 top 常用快捷键速查表，方便你快速切换显示和排序？
-
-    * 我希望下方的任务列表按 Memory 的使用量倒序排列，该怎么办？
-
-        ### 一、运行中按内存倒序（最常用）
-        1. 先运行 `top` 进入界面
-        2. 按 **Shift+M**（大写 M）
-        3. 进程列表立刻按 **%MEM（内存使用率）** 从高到低倒序排列
-
-        ### 二、启动时直接按内存排序
-        ```bash
-        top -o %MEM
-        ```
-        启动后直接按内存倒序，不用再按键
-
-        ### 三、切换排序方向
-        - 按 **R**：反转排序（升序 ↔ 降序）
-        - 再按 **M**：切回内存倒序
-
-        ### 四、小技巧
-        - 按 **E**：切换内存单位（KB/MB/GB）
-        - 按 **1**：看每个 CPU 核心的独立进度条
-        - 按 **W**：保存当前排序设置，下次启动自动生效
-
-        要不要我再给你一份 top 常用排序/显示快捷键速查表，方便你快速切换？
-
-    * 那我如果想按 CPU 的使用量倒序排列呢？
-
-        按 **CPU 使用率倒序** 就更简单了：
-
-        ### 正在运行 top 时
-        直接按：
-        **Shift + P**（大写 P）
-
-        进程立刻按 **%CPU** 从高到低排序。
+            这样每次你 **登录这个用户** 时脚本就会跑了（包括图形界面和 ssh 登录）。
 
         ---
 
-        ### 启动时就按 CPU 排序
+        **如果你想在开机但不登录时也能跑**
+
+        那就不能只靠 `.bashrc` / `.profile`，要用我之前说的 **systemd** 或 **cron @reboot**。
+
+    * 我希望在用户登录时只启动一次，再登录就不启动了
+
+        明白了。你要的是 **用户第一次登录时启动一次脚本**，但之后再登录同一会话时 **不再重复执行**。
+
+        这种情况 `.bashrc` 不合适，因为它每开一个终端都会执行；
+        `.profile` 虽然是登录时执行，但你可能还想限制为「只执行一次」。
+
+        ---
+
+        解决方法：加一个 **标记文件**
+
+        思路就是：
+
+        * 用户登录时，`.profile` 调用你的脚本
+        * 但在执行前先检查一个「标记文件」是否存在
+        * 如果不存在，就运行脚本并创建标记
+        * 如果存在，就什么也不做
+
+        ---
+
+        **实现步骤**
+
+        假设你的脚本是 `/home/username/myscript.sh`
+
+        1. 编辑 `~/.profile`：
+
+           ```bash
+           nano ~/.profile
+           ```
+
+        2. 在文件末尾加上：
+
+           ```bash
+           # 仅第一次登录时执行脚本
+           FLAG="$HOME/.myscript_ran"
+           if [ ! -f "$FLAG" ]; then
+               /home/username/myscript.sh &
+               touch "$FLAG"
+           fi
+           ```
+
+        3. 确保脚本可执行：
+
+           ```bash
+           chmod +x /home/username/myscript.sh
+           ```
+
+        ---
+
+        **如果想每次重启后都再执行一次**
+
+        那就在 `~/.profile` 里不变，但把「标记文件」放到 `/tmp`（因为 `/tmp` 每次开机都会清空）：
+
         ```bash
-        top -o %CPU
+        FLAG="/tmp/.myscript_ran"
         ```
 
         ---
 
-        ### 小总结（超好记）
-        - **Shift + M** → 按内存排序
-        - **Shift + P** → 按 CPU 排序
-        - **Shift + N** → 按 PID 排序
-        - **R** → 反转排序（升序 ↔ 降序）
+        这样，你就可以控制：
 
-        需要我帮你把这些常用快捷键整理成**一行速记版**吗？
+        * **同一次开机 → 登录一次就执行，后面不执行**
+        * **下次重启 → 又会执行一次**
+
+        ---
+
+        要不要我给你写一个完整的 `myscript.sh` 示例（带日志输出），这样你可以确认它到底有没有只执行一次？
+
+    * /etc/profile 中的命令并不是开机运行，而是登录了用户才运行，有没有开机就运行的配置文件或脚本？
+
+        你理解得对：
+
+        * `/etc/profile` 和 `~/.bashrc` 之类的文件只会在**用户登录时**运行，根本不属于“开机自启”。
+        * 如果想要 **开机（还没登录）就运行脚本**，有几种常见方式：
+
+        ---
+
+        ### 1. `systemd` 服务（推荐）
+
+        适合所有现代 Linux 发行版（Ubuntu, CentOS, Debian…）。
+
+        1. 写一个脚本，例如 `/usr/local/bin/myscript.sh`：
+
+           ```bash
+           #!/bin/bash
+           echo "Boot script running at $(date)" >> /var/log/myscript.log
+           ```
+
+           记得赋予可执行权限：
+
+           ```bash
+           chmod +x /usr/local/bin/myscript.sh
+           ```
+
+        2. 新建一个 systemd unit：
+
+           ```bash
+           sudo nano /etc/systemd/system/myscript.service
+           ```
+
+           内容：
+
+           ```ini
+           [Unit]
+           Description=Run my script at boot
+           After=network.target
+
+           [Service]
+           Type=oneshot
+           ExecStart=/usr/local/bin/myscript.sh
+           RemainAfterExit=yes
+
+           [Install]
+           WantedBy=multi-user.target
+           ```
+
+        3. 启用并启动：
+
+           ```bash
+           sudo systemctl daemon-reload
+           sudo systemctl enable myscript.service
+           sudo systemctl start myscript.service
+           ```
+
+        这样脚本会在**系统启动**（到 multi-user.target）时自动运行，无需用户登录。
+
+        ---
+
+        ### 2. `/etc/rc.local`（旧方法）
+
+        部分系统不再默认支持，但可以手动启用。
+
+        * 在 `/etc/rc.local` 文件里加入命令，例如：
+
+          ```bash
+          /usr/local/bin/myscript.sh &
+          exit 0
+          ```
+        * 确保文件可执行：
+
+          ```bash
+          sudo chmod +x /etc/rc.local
+          ```
+
+        然后 rc.local 就会在开机最后阶段运行。
+
+        ---
+
+        ### 3. `cron @reboot`
+
+        使用 `crontab -e` 添加：
+
+        ```bash
+        @reboot /usr/local/bin/myscript.sh
+        ```
+
+        这样每次开机时都会执行。
+
+        ---
+
+        ✅ 总结：
+
+        * 如果是现代系统（Ubuntu 16.04+），**systemd** 是最稳定、可控的方式。
+        * 如果只想简单快速，可以用 `cron @reboot`。
+
+        ---
+
+        要不要我给你写一个最小的 **systemd service 文件**，你只需要改脚本路径就能直接用？
+
+    * @reboot /usr/local/bin/myscript.sh 这个方法根本无法用
+
+        你说得对，在一些 Linux（特别是 Ubuntu 20.04+）上，`cron` 默认并不会在开机阶段正常运行 `@reboot`，需要额外条件满足（比如 `cron` 服务已经启动，并且脚本路径/权限没问题）。
+
+        为了避免这种坑，最稳妥的就是 **用 systemd 服务**。这是现在 Linux 的主流方式。
+
+        ---
+
+        ### 最小可用的 systemd 服务示例
+
+        假设你的脚本是 `/usr/local/bin/myscript.sh`：
+
+        1. **检查脚本权限**
+
+           ```bash
+           chmod +x /usr/local/bin/myscript.sh
+           ```
+
+        2. **创建 service 文件**
+
+           ```bash
+           sudo nano /etc/systemd/system/myscript.service
+           ```
+
+           写入：
+
+           ```ini
+           [Unit]
+           Description=Run my script at boot
+           After=network.target
+
+           [Service]
+           Type=oneshot
+           ExecStart=/usr/local/bin/myscript.sh
+           RemainAfterExit=yes
+
+           [Install]
+           WantedBy=multi-user.target
+           ```
+
+        3. **启用并启动**
+
+           ```bash
+           sudo systemctl daemon-reload
+           sudo systemctl enable myscript.service
+           sudo systemctl start myscript.service
+           ```
+
+        4. **验证开机自启**
+           重启后查看日志：
+
+           ```bash
+           journalctl -u myscript.service -b
+           ```
+
+        ---
+
+        🔑 和 `@reboot` 不同，这种方式**百分百可靠**，不会依赖 cron。
+
+        要不要我帮你写一个版本，支持后台常驻运行（比如脚本里有 while true 循环，systemd 会自动守护它）？
+
+    * 除了multi-user.target，是否还有其他 target？我希望图形界面和文字界面都能自动启动服务
+
+        对的，`systemd` 里有很多 **target**，用来表示系统处于不同的运行级别（类似 SysV 的 runlevel）。
+
+        ---
+
+        ### 常见的几个 target
+
+        1. **`multi-user.target`**
+
+           * 文字界面（无图形），相当于传统的 runlevel 3。
+           * 网络、多用户登录都可用，常用于服务器环境。
+
+        2. **`graphical.target`**
+
+           * 图形界面（桌面环境），相当于传统的 runlevel 5。
+           * 一般桌面 Linux 在启动时会最终进入这个 target。
+
+        3. **`basic.target`**
+
+           * 提供基本的系统服务，但没有网络、多用户等。
+
+        4. **`rescue.target`**
+
+           * 单用户模式，类似 runlevel 1。
+
+        5. **`emergency.target`**
+
+           * 紧急维护模式，几乎只有 root shell 和最小挂载。
+
+        6. **`network.target`**
+
+           * 网络服务可用时的 target，常用作依赖。
+
+        ---
+
+        ### 你的需求：
+
+        如果希望 **不论是文字界面还是图形界面** 都能自启动服务，直接把 `[Install]` 部分改成：
+
+        ```ini
+        [Install]
+        WantedBy=multi-user.target graphical.target
+        ```
+
+        这样无论系统最终进入文字模式（multi-user）还是图形模式（graphical），你的服务都会被拉起来。
+
+        ---
+
+        ### 完整示例
+
+        ```ini
+        [Unit]
+        Description=Run my script at boot
+        After=network.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/myscript.sh
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target graphical.target
+        ```
+
+        然后：
+
+        ```bash
+        sudo systemctl daemon-reload
+        sudo systemctl enable myscript.service
+        ```
+
+        这样就能保证：
+
+        * 在服务器（只有文字界面）环境 → 会运行
+        * 在桌面（进入图形界面）环境 → 也会运行
+
+        ---
+
+        要不要我帮你整理一个 **对照表：SysV runlevel ↔ systemd target**，这样你可以一眼看懂该挂到哪个 target？
+
+    * RemainAfterExit=yes 这个是干嘛用的？
+
+        好问题 👍，这个参数在 `systemd` 里很容易被忽略。
+
+        ---
+
+        **`RemainAfterExit=yes` 的作用**
+
+        * **默认情况下**，如果一个 service 是 `Type=oneshot`，那么 `ExecStart` 命令跑完进程退出后，`systemd` 会认为这个 service **已经 stopped**。
+        * 加了 `RemainAfterExit=yes` 以后，即使 `ExecStart` 的进程退出了，`systemd` 依然会把这个服务标记为 **active (exited)** 状态。
+
+        换句话说：
+
+        * **不加** → 你的脚本跑完后，`systemctl status` 会显示 `inactive (dead)`。
+        * **加了** → 你的脚本跑完后，`systemctl status` 会显示 `active (exited)`。
+
+        ---
+
+        **什么时候需要？**
+
+        * 如果你只是想在开机时执行一次脚本（比如写个日志、调整系统参数），其实不需要 `RemainAfterExit=yes`，默认跑完就结束就行。
+        * 如果你的脚本只执行一次，但你希望之后通过 `systemctl status` 还能看到它“执行过”，那么就加上 `RemainAfterExit=yes`。
+
+        ---
+
+        **举个例子**
+
+        ```ini
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/myscript.sh
+        RemainAfterExit=yes
+        ```
+
+        执行结果：
+
+        ```bash
+        ● myscript.service - Run my script at boot
+           Loaded: loaded (/etc/systemd/system/myscript.service; enabled)
+           Active: active (exited) since Fri 2025-09-12 09:00:00 CST; 10s ago
+        ```
+
+        如果没写 `RemainAfterExit=yes`：
+
+        ```bash
+        ● myscript.service - Run my script at boot
+           Loaded: loaded (/etc/systemd/system/myscript.service; enabled)
+           Active: inactive (dead) since Fri 2025-09-12 09:00:00 CST; 10s ago
+        ```
+
+        ---
+
+        **总结：**
+
+        * `RemainAfterExit=yes` = **保持服务在 systemd 状态机里“激活”**，即使脚本已经退出。
+        * 对“只执行一次就完事”的脚本不是必须，但有助于用 `systemctl status` 判断是否运行过。
+
+    * 报错：
+
+        connect: network is unreachable. With loginFailExit enabled, no additional retries will b
+
+
+        这个报错信息看起来像是 **systemd 在启动时跑了你的脚本，但脚本里依赖网络**，结果网络还没起来，于是直接失败了。
+
+        关键点在这里：
+
+        ```
+        connect: network is unreachable
+        With loginFailExit enabled, no additional retries will b...
+        ```
+
+        说明你的脚本在尝试连接网络的时候，网络接口还没 ready。
+
+        ---
+
+        ### 解决方法
+
+        在你的 `.service` 文件里，**增加网络依赖**：
+
+        ```ini
+        [Unit]
+        Description=Run my script at boot
+        After=network-online.target
+        Wants=network-online.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/myscript.sh
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target graphical.target
+        ```
+
+        解释：
+
+        * `After=network-online.target`
+          确保脚本在“网络完全就绪”之后再执行。
+        * `Wants=network-online.target`
+          保证 systemd 会启动 `network-online.target` 这个服务。
+        * 注意：`network.target` 只保证“网络服务启动”，但不保证网卡真正拿到 IP。很多脚本需要等到 **network-online.target**。
+
+        ---
+
+        ### 另外注意
+
+        如果你在云环境（比如 AWS、Azure、KVM）或容器里跑，有些 Linux 没有默认启用 `systemd-networkd-wait-online.service`，可能还要手动启用：
+
+        ```bash
+        sudo systemctl enable systemd-networkd-wait-online.service
+        ```
+
+        ---
+
+        要不要我帮你写一个 **同时支持联网前等待 + 重试机制** 的 service 配置？这样即使网络一开始不可用，脚本也能延迟或自动重试。
 
 * tar -t 我希望只查看顶层目录，怎么办
 
@@ -8512,291 +4706,6 @@
     3.  压缩归档文件只需添加对应解压参数（`-z`/`-j`/`-J`），核心参数不变。
 
 * apt 安装软件可以直接使用 http_proxy, https_proxy，但是如果使用 sudo apt 安装，需要添加 sudo -E apt install xxx
-
-* `ps -xu mkeac | grep qemu`，报错：`error: must set personality to get -x option`，这个报错是为什么
-
-    (ds 回答)
-
-    这个错误是因为在 Linux 系统中，`ps` 命令的选项语法有 **标准语法** 和 **BSD 语法** 的区别，你混用了这两种语法导致的问题。
-
-    **错误原因**
-
-    你的命令 `ps -xu mkeac | grep qemu` 中：
-
-    - `-x` 是 BSD 风格的选项
-    - `-u` 是标准语法选项
-
-    在 Linux 系统中，`ps` 命令不允许这样混合使用不同的语法风格。
-
-    **解决方案**
-
-    **方案1：使用纯 BSD 语法（推荐）**
-
-    ```bash
-    ps aux | grep qemu | grep mkeac
-    # 或者直接过滤
-    ps aux | grep qemu | grep -v grep
-    ```
-
-    **方案2：使用纯标准语法**
-
-    ```bash
-    # 显示所有进程并过滤
-    ps -ef | grep qemu | grep mkeac
-
-    # 或者指定用户
-    ps -u mkeac -f | grep qemu
-    ```
-
-    **方案3：正确的混合使用方式**
-
-    ```bash
-    # 先指定用户，再用 BSD 风格显示
-    ps -u mkeac --forest | grep qemu
-
-    # 或者用 -U 指定用户
-    ps -U mkeac -o pid,cmd | grep qemu
-    ```
-
-    **正确示例**
-
-    根据你的需求（查看 mkeac 用户的 qemu 进程），这里有几个推荐的方法：
-
-    ```bash
-    # 方法1：最常用（推荐）
-    ps -u mkeac -f | grep qemu
-
-    # 方法2：查看所有进程后过滤
-    ps aux | grep qemu | grep mkeac
-
-    # 方法3：如果只想看 qemu 进程
-    ps -C qemu -f -u mkeac
-
-    # 方法4：更详细的进程信息
-    ps -u mkeac -f --forest | grep -E "qemu|PID"
-    ```
-
-    **语法说明**
-
-    **标准语法**（使用 `-` 前缀）：
-    - `ps -ef`：显示所有进程
-    - `ps -u username`：显示指定用户
-    - `ps -C command`：显示指定命令
-
-    **BSD 语法**（不使用 `-` 前缀）：
-    - `ps aux`：显示所有进程（BSD风格）
-    - `ps ax`：显示所有进程
-    - `ps u`：显示用户格式
-
-    **最简单的解决方法**
-
-    对于你的需求，直接用这个命令就行：
-    ```bash
-    ps -fu mkeac | grep qemu
-    # 或
-    ps -u mkeac -f | grep qemu
-    ```
-
-    这两个命令都能正确显示 mkeac 用户下的 qemu 进程信息。
-
-* 详细讲讲 linux 中 ps 的用法
-
-    **Linux `ps` 命令详解**
-
-    `ps` (process status) 是 Linux 中最基础的进程查看命令，用于显示当前系统的进程状态。
-
-    1. **基础用法**
-
-        ```bash
-        ps
-        ```
-        默认显示当前终端下的进程，通常只显示两列：
-        - PID：进程ID
-        - TTY：终端类型
-        - TIME：CPU使用时间
-        - CMD：命令名称
-
-    2. **常用选项组合**
-
-        **查看所有进程**
-
-        ```bash
-        # 这三种方式都能查看所有进程
-        ps -ef          # 标准语法
-        ps aux          # BSD 语法  
-        ps -eF          # 显示更多字段
-        ```
-
-        **常用参数详解**
-
-        ```bash
-        # 常用选项
-        -e   # 显示所有进程
-        -f   # 显示完整格式信息
-        -l   # 长格式显示
-        -u   # 按用户显示
-        -p   # 指定PID显示
-
-        # BSD风格参数
-        a    # 显示所有终端进程
-        u    # 显示面向用户的格式
-        x    # 显示没有终端的进程
-        ```
-
-    3. **输出字段说明**
-
-        ```bash
-        # ps aux 的输出示例
-        USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
-        root         1  0.0  0.1 128116  6712 ?        Ss   Nov15   0:03 /usr/lib/systemd
-        ```
-
-        **字段含义：**
-        - **USER**：进程所有者
-        - **PID**：进程ID
-        - **%CPU**：CPU使用率
-        - **%MEM**：内存使用率
-        - **VSZ**：虚拟内存大小(KB)
-        - **RSS**：物理内存大小(KB)
-        - **TTY**：终端类型
-        - **STAT**：进程状态
-        - **START**：启动时间
-        - **TIME**：CPU占用时间
-        - **COMMAND**：命令名称
-
-    4. **进程状态(STAT)**
-
-        ```
-        R  # 运行 (Running)
-        S  # 可中断睡眠 (Sleeping)
-        D  # 不可中断睡眠 (Disk sleep)
-        T  # 停止 (Stopped)
-        Z  # 僵尸进程 (Zombie)
-        X  # 死亡进程 (Dead)
-        <  # 高优先级进程
-        N  # 低优先级进程
-        s  # 会话领导者
-        l  # 多线程进程
-        +  # 前台进程组
-        ```
-
-    5. **常用查询示例**
-
-        **按用户过滤**
-        
-        ```bash
-        ps -u username        # 查看指定用户的进程
-        ps -U root -u root    # 查看root用户的进程
-        ```
-
-        **按进程名查找**
-
-        ```bash
-        ps -C nginx          # 显示nginx进程
-        ps -C sshd -o pid,cmd  # 只显示PID和命令
-        ```
-
-        **自定义输出列**
-
-        ```bash
-        ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu
-        # 自定义列并按CPU降序排列
-        ```
-
-        **显示进程树**
-
-        ```bash
-        ps -ef --forest      # 树形结构显示父子进程
-        ps axjf              # BSD风格的进程树
-        ```
-
-    6. **实用组合命令**
-
-        ```bash
-        # 查找特定进程的PID
-        ps aux | grep nginx
-
-        # 显示CPU/内存占用前10的进程
-        ps aux --sort=-%cpu | head -11
-        ps aux --sort=-%mem | head -11
-
-        # 显示进程的详细环境变量
-        ps eww -p PID
-
-        # 显示指定PID的进程
-        ps -p 1234,5678 -f
-
-        # 实时监控进程
-        watch -n 1 'ps aux --sort=-%cpu | head -20'
-        ```
-
-    7. **性能相关用法**
-
-        ```bash
-        # 查看线程信息
-        ps -eLf              # 显示所有线程
-        ps -T -p PID         # 查看指定进程的线程
-
-        # 查看进程的CPU亲和性
-        ps -o pid,psr,cmd -p PID
-
-        # 查看进程的内存映射
-        ps -o pid,cmd,vsize,rssize -p PID
-        ```
-
-    8. **常见问题排查**
-
-        **查找僵尸进程**
-
-        ```bash
-        ps aux | grep Z
-        ps -eo pid,stat,cmd | grep Z
-        ```
-
-        **查找CPU占用过高的进程**
-
-        ```bash
-        ps aux --sort=-pcpu | head -5
-        ```
-
-        **查找内存占用过高的进程**
-
-        ```bash
-        ps aux --sort=-pmem | head -5
-        ```
-
-    9. **高级用法示例**
-
-        ```bash
-        # 显示所有进程的完整命令行，包括参数
-        ps auxww
-
-        # 结合其他命令处理进程
-        kill -9 $(ps aux | grep 'process_name' | awk '{print $2}')
-
-        # 按CPU使用率排序，并显示指定列
-        ps -e -o pid,pcpu,pmem,args --sort=-pcpu | head -20
-
-        # 显示进程的执行时间
-        ps -eo pid,comm,etime,time
-        ```
-
-    10. **ps vs top/htop**
-
-        | 命令 | 特点 | 适用场景 |
-        |------|------|----------|
-        | `ps` | 静态快照，适合脚本处理 | 一次性查看、脚本分析 |
-        | `top` | 动态刷新，交互式 | 实时监控、交互操作 |
-        | `htop` | 增强版top，界面友好 | 需要可视化操作的场景 |
-
-    **小贴士**
-
-    - `ps aux` 是最常用的组合，足够应付大多数场景
-    - 结合 `grep` 可以快速过滤特定进程
-    - 使用 `--sort` 参数可以方便地排序查看
-    - 在脚本中建议使用完整的选项名（如 `--pid` 而不是 `-p`）以提高可读性
-
-    掌握 `ps` 命令是 Linux 系统管理和问题排查的基础技能之一。
 
 * 我想知道一个文件夹里，包括所有子文件夹，哪些文件最近被修改了
 
@@ -9016,44 +4925,6 @@
     ```
     这会显示当前频率、最小和最大频率，适合大多数使用场景。
 
-* 已经进入 less 后，如何显示行号
-
-    在 `less` 界面内（已经打开文件的情况下），显示行号最快的方法是：
-
-    1. 实时切换行号
-
-        在 `less` 运行状态下，直接按下键盘上的：
-        > **`-N`** (注意是大写的 N，或者先按 `-` 再按 `shift + n`)
-
-        * **效果**：你会看到左下角出现 `line numbers enabled` 的提示，随后屏幕左侧会立即显示行号。
-        * **关闭**：再次输入 `-N` 即可取消显示。
-
-    ---
-
-    2. 常用相关快捷键
-
-        既然你已经进入了 `less`，这些操作配合行号会非常高效：
-
-        * **跳到指定行**：直接输入 **行号** 然后按 **`G`** (大写)。例如想去第 500 行，输入 `500G`。
-        * **当前百分比/行数信息**：按下 **`Ctrl + G`**，底部的状态栏会显示当前文件的行数范围和百分比。
-
-    ---
-
-    3. 一劳永逸的办法（下次使用）
-        
-        如果你希望以后每次用 `less` 都默认带行号，而不用进去再按键，可以采用以下两种方式：
-
-        * **临时命令**：
-            ```bash
-            less -N filename
-            ```
-        * **永久环境变量**（推荐）：
-            在你的 `~/.bashrc` 或 `~/.zshrc` 中添加一行：
-            ```bash
-            export LESS="-N"
-            ```
-            这样以后你只需要输入 `less filename`，行号就会自动在那儿等着你了。
-
 * 如何在 linux terminal 中查看图片文件，不需要很精细，看个大概就行
 
     在 Linux 终端看图片，这听起来有点“硬核”，但实际上有很多有趣的工具可以满足你“看个大概”的需求。根据你使用的终端模拟器和对画质的要求，有以下几种方案：
@@ -9124,7 +4995,6 @@
     > **温馨提示：** 在使用这些工具时，建议**缩小终端字体**或者**拉大终端窗口**，这样“像素点”会更多，图片看起来会更清晰。
 
     你目前使用的是哪种终端（比如 GNOME Terminal, Alacritty, 还是 VS Code 的内置终端）？我可以帮你针对性地选一个效果最好的。
-
 
 * 详细讲讲 find /some/dir -maxdepth 1
 
@@ -9220,19 +5090,19 @@
 
     这是目前最智能的命令行日志查看工具，它就像是一个带有 SQL 引擎的 dmesg。
 
-        安装：sudo apt install lnav
+    安装：sudo apt install lnav
 
-        用法：lnav /var/log/
+    用法：lnav /var/log/
 
-        核心特性：
+    核心特性：
 
-            自动合并：如果你给它一个目录，它会按时间戳将所有日志文件合并成一个流显示。
+    * 自动合并：如果你给它一个目录，它会按时间戳将所有日志文件合并成一个流显示。
 
-            智能语义高亮：它能自动识别日志中的 IP、日期、错误码。
+    * 智能语义高亮：它能自动识别日志中的 IP、日期、错误码。
 
-            热键导航：按 e 跳到下一个错误，按 w 跳到下一个警告。
+    * 热键导航：按 e 跳到下一个错误，按 w 跳到下一个警告。
 
-            实时更新：默认就是实时追踪模式。
+    * 实时更新：默认就是实时追踪模式。
 
 * grc (给普通命令加特技)
 
@@ -9242,14 +5112,6 @@
 
         效果：它会根据配置文件为输出内容上色，让原本混乱的日志流变得像代码编辑器一样清晰。
 
-* journalctl -f
-
-    如果你的目标是 Linux 系统服务日志（现在的发行版基本都是 Systemd），不要去翻 /var/log，直接用原生的工具：
-
-        用法：journalctl -u nginx.service -f
-
-        特点：这才是最接近 dmesg -w 体验的官方命令。-f 参数就是 follow。
-
 * tee -a：这是一个“三通”命令。
 
     它的功能是将输入的内容打印在屏幕上，同时写入到文件中。
@@ -9257,75 +5119,6 @@
     -a (append) 参数表示追加。它不会覆盖文件原有的内容，而是把 drm 加在文件末尾。
 
 * 在 Linux 系统中，存放在 modules-load.d 目录下的 .conf 文件会在系统启动阶段被读取，并加载其中列出的内核模块。
-
-* ln 是否能创建文件夹的 hard link?
-
-    简单直接的回答是：**不能。**（在绝大多数现代操作系统和文件系统中，这是被严格禁止的。）
-
-    如果你尝试执行 `ln /path/to/dir /path/to/hardlink`，通常会收到如下报错：
-    > `ln: /path/to/dir: hard link not allowed for directory`
-
-    ---
-
-    1. 为什么禁止文件夹硬链接？
-
-        禁止文件夹硬链接主要有两个深层原因：
-
-        * **避免循环引用（Cycles）**：
-
-            硬链接允许一个目标有多个父节点。如果允许对文件夹建立硬链接，你可能会无意中创建一个死循环（例如：文件夹 A 链接到文件夹 B，而 B 又是 A 的子目录）。这会导致文件系统遍历工具（如 `find`、`du`、`ls -R`）陷入无限循环，甚至导致文件系统损坏。
-
-        * **维护树状结构的完整性**：
-
-            文件系统（如 Ext4, XFS, NTFS）依赖于清晰的树状结构来管理 `..`（父目录）指针。如果一个文件夹有两个硬链接，那么它的 `..` 应该指向哪一个父目录呢？这会破坏文件系统的逻辑一致性。
-
-    ---
-
-    2. 例外情况（历史与特殊场景）
-
-        * **`.` 和 `..`**：
-            实际上，每个文件夹内部都自带了两个“硬链接”：`.` 指向自己，`..` 指向父目录。这也是为什么一个空文件夹的链接计数（Link Count）通常是 **2** 的原因。
-        * **超级用户特权**：
-            在某些非常古老的 Unix 系统或特定的底层工具中，系统允许 root 用户强制创建文件夹硬链接（使用 `ln -d`），但这极度危险，现代 Linux 内核已经禁用了这一能力。
-        * **macOS 的 Time Machine**：
-            苹果的 HFS+ 和 APFS 文件系统在底层使用了一种特殊的“目录硬链接”技术来实现高效备份，但这由内核专门管理，用户层无法通过常规 `ln` 命令随意创建。
-
-    ---
-
-    3. 如果你想实现类似功能，该怎么办？
-
-        如果你需要让一个文件夹出现在多个位置，有三种成熟的替代方案：
-
-        方案 A：符号链接（Symbolic Link/Soft Link）—— **最常用**
-        
-        这是最标准的做法，类似于 Windows 的“快捷方式”。
-
-        ```bash
-        ln -s /source/path /target/link_name
-        ```
-
-        方案 B：挂载绑定（Bind Mount）—— **最接近硬链接效果**
-        
-        如果你希望在文件系统层面让两个路径“完全等价”（例如为了绕过 `chroot` 限制），可以使用 `mount --bind`。这在应用看来和原文件夹一模一样。
-        ```bash
-        sudo mount --bind /source/path /target/path
-        ```
-
-        方案 C：硬链接文件夹内的所有文件
-        
-        如果你只是想让文件同步，而不是文件夹本身，可以批量建立文件的硬链接：
-        ```bash
-        cp -al /source/path /target/path
-        ```
-        *注：`-l` 参数会让 `cp` 创建硬链接而不是复制数据内容。*
-
-    ---
-
-    **总结**
-
-    **不支持。** 为了防止文件系统逻辑崩溃，Linux/Unix 限制了 `ln` 只能对文件创建硬链接。
-
-    你想了解如何使用 **`mount --bind`** 来解决某些特定的目录同步问题吗？或是想深入了解文件系统中 **Inode** 的工作原理？
 
 * 简述`ssh-add`，`ssh-agent`的作用
 
@@ -9392,395 +5185,6 @@
     **温馨提示**：在现代 macOS 和 Linux 桌面版中，`ssh-agent` 通常在登录系统时就已自动启动并集成了系统的“钥匙串”（Keychain），所以你可能很少手动运行它。
 
     你想了解如何在 `.bashrc` 中配置自动启动 `ssh-agent`，还是想看看如何配置 `~/.ssh/config` 来自动管理不同的密钥？
-
-* ifconfig eth0:0 192.168.1.200/24 这里的 eth0:0 中的 :0 是什么意思？
-
-    **eth0:0 的含义**
-
-    **eth0:0** 表示**虚拟网络接口**（也称为子接口、别名接口）。
-
-    **详细解释**
-
-    1. **eth0**：物理网卡名称
-    2. **:0**：虚拟接口标识号（从0开始编号）
-    3. **整体含义**：在物理网卡eth0上创建的**第一个虚拟子接口**
-
-    **主要作用**
-
-    1. **绑定多个IP地址**
-
-        ```bash
-        # 为同一块物理网卡配置多个IP
-        ifconfig eth0 192.168.1.100/24          # 主IP
-        ifconfig eth0:0 192.168.1.200/24        # 第二个IP
-        ifconfig eth0:1 192.168.1.201/24        # 第三个IP
-        ifconfig eth0:2 192.168.1.202/24        # 第四个IP
-        ```
-
-    2. **查看所有虚拟接口**
-
-        ```bash
-        ifconfig                    # 显示所有接口（包括虚拟接口）
-        ifconfig -a                 # 显示所有接口（包括未激活的）
-        ifconfig eth0:0             # 只显示指定虚拟接口
-
-        ip addr show                # 使用ip命令查看（虚拟接口显示为eth0:0）
-        ```
-
-    **应用场景**
-
-    1. **虚拟主机托管**
-
-        ```bash
-        # 为不同域名绑定不同IP
-        ifconfig eth0:0 192.168.1.100/24   # www.site1.com
-        ifconfig eth0:1 192.168.1.101/24   # www.site2.com
-        ifconfig eth0:2 192.168.1.102/24   # www.site3.com
-        ```
-
-    2. **服务隔离**
-
-        ```bash
-        # 不同服务使用不同IP
-        ifconfig eth0:0 192.168.1.200/24   # Web服务
-        ifconfig eth0:1 192.168.1.201/24   # FTP服务
-        ifconfig eth0:2 192.168.1.202/24   # 数据库服务
-        ```
-
-    3. **测试环境**
-        
-        ```bash
-        # 模拟多台机器进行网络测试
-        ifconfig eth0:0 10.0.0.1/24        # 模拟主机A
-        ifconfig eth0:1 10.0.0.2/24        # 模拟主机B
-        ifconfig eth0:2 10.0.0.3/24        # 模拟主机C
-        ```
-
-    **管理虚拟接口**
-
-    **创建虚拟接口**
-
-    ```bash
-    # 方法1：ifconfig
-    ifconfig eth0:0 192.168.1.200/24 up
-
-    # 方法2：ip命令（推荐）
-    ip addr add 192.168.1.200/24 dev eth0 label eth0:0
-    ```
-
-    **删除虚拟接口**
-
-    ```bash
-    # 方法1：ifconfig
-    ifconfig eth0:0 down
-
-    # 方法2：ip命令
-    ip addr del 192.168.1.200/24 dev eth0 label eth0:0
-    ```
-
-    **永久配置（以CentOS/RHEL为例）**
-
-    ```bash
-    # /etc/sysconfig/network-scripts/ifcfg-eth0:0
-    DEVICE=eth0:0
-    IPADDR=192.168.1.200
-    NETMASK=255.255.255.0
-    ONBOOT=yes
-    ```
-
-    **注意事项**
-
-    1. **传统 vs 现代**
-       - `eth0:0` 是老式别名接口表示法
-       - 现代Linux推荐使用 `ip` 命令的标签功能
-
-    2. **与物理接口区别**
-       - 虚拟接口共享物理网卡的带宽
-       - 虚拟接口状态依赖于物理接口（eth0 down时所有eth0:x都down）
-
-    3. **限制**
-       - 不同Linux发行版支持数量可能不同
-       - 某些网络服务可能需要特殊配置才能监听特定IP
-
-    **现代替代方案（ip命令）**
-
-    ```bash
-    # 现代Linux使用ip命令管理多IP
-    ip addr add 192.168.1.100/24 dev eth0        # 主IP
-    ip addr add 192.168.1.200/24 dev eth0        # 添加第二个IP
-    ip addr add 192.168.1.201/24 dev eth0        # 添加第三个IP
-
-    # 查看
-    ip addr show eth0
-    ```
-
-    这种方法更清晰，所有IP都属于eth0设备，没有虚拟接口的概念。
-
-* 简述 ifconfig 的用法
-
-    **ifconfig 命令简述**
-
-    **ifconfig**（interface configuration）是 Linux/Unix 系统中用于配置和显示网络接口信息的命令。
-
-    **基本用法**
-
-    1. **查看网络接口信息**
-        
-        ```bash
-        ifconfig                    # 查看所有已激活的网卡
-        ifconfig -a                 # 查看所有网卡（包括未激活的）
-        ifconfig eth0               # 查看指定网卡（如eth0）
-        ```
-
-    2. **配置网络接口**
-        
-        ```bash
-        # 配置IP地址
-        ifconfig eth0 192.168.1.100 netmask 255.255.255.0
-
-        # 配置IP和子网掩码（简写）
-        ifconfig eth0 192.168.1.100/24
-
-        # 添加第二个IP地址
-        ifconfig eth0:0 192.168.1.200/24
-        ```
-
-    3. **启动/关闭网卡**
-
-        ```bash
-        ifconfig eth0 up            # 激活网卡
-        ifconfig eth0 down          # 关闭网卡
-        ```
-
-    4. **修改MAC地址**
-
-        ```bash
-        ifconfig eth0 hw ether 00:11:22:33:44:55
-        ```
-
-    **输出信息说明**
-
-    - **eth0**：网卡名称
-    - **inet addr**：IPv4地址
-    - **inet6 addr**：IPv6地址
-    - **HWaddr**：MAC地址
-    - **Bcast**：广播地址
-    - **Mask**：子网掩码
-    - **MTU**：最大传输单元
-    - **RX/TX**：接收/发送的数据包统计
-
-    **注意事项**
-
-    - 现代Linux系统推荐使用 **ip** 命令替代（`ip addr`、`ip link`等）
-    - 需要root权限执行配置操作
-    - 临时配置，重启网络服务或系统后失效
-
-* 简述 ip 命令的用法
-
-    **ip 命令简述**
-
-    **ip** 是Linux系统中现代且强大的网络配置命令，用于替代ifconfig、route等传统网络工具。
-
-    **基本语法**
-
-    ```bash
-    ip [选项] 对象 命令
-    ```
-
-    常用对象：link（网络设备）、addr（地址）、route（路由）、neigh（邻居）
-
-    **常用用法**
-
-    1. 网络接口管理（link）
-
-        ```bash
-        ip link show                    # 查看所有网络接口
-        ip link show eth0               # 查看指定接口
-        ip link set eth0 up             # 启动接口
-        ip link set eth0 down           # 关闭接口
-        ip link set eth0 mtu 1500       # 设置MTU值
-        ip link set eth0 address 00:11:22:33:44:55  # 修改MAC地址
-        ```
-
-    2. IP地址管理（addr）
-        
-        ```bash
-        ip addr show                    # 查看所有IP地址
-        ip addr show eth0               # 查看指定接口IP
-        ip addr add 192.168.1.100/24 dev eth0     # 添加IP地址
-        ip addr del 192.168.1.100/24 dev eth0     # 删除IP地址
-        ip addr flush dev eth0          # 清空接口所有IP
-        ```
-
-    3. 路由管理（route）
-
-        ```bash
-        ip route show                   # 查看路由表
-        ip route add default via 192.168.1.1     # 添加默认网关
-        ip route add 10.0.0.0/8 via 192.168.1.1  # 添加静态路由
-        ip route del 10.0.0.0/8         # 删除路由
-        ```
-
-    4. ARP管理（neigh）
-        
-        ```bash
-        ip neigh show                   # 查看ARP缓存
-        ip neigh add 192.168.1.200 lladdr 00:11:22:33:44:55 dev eth0  # 添加静态ARP
-        ip neigh del 192.168.1.200 dev eth0      # 删除ARP条目
-        ```
-
-    **常用选项**
-
-    ```bash
-    ip -4 addr show                 # 只显示IPv4地址
-    ip -6 addr show                 # 只显示IPv6地址
-    ip -s link show eth0            # 显示接口统计信息
-    ip -br addr show                # 简洁显示（brief模式）
-    ```
-
-    **优势特点**
-
-    - 功能更强大，整合了多个网络命令
-    - 输出更规范，易于脚本处理
-    - 支持网络命名空间等高级特性
-    - 配置立即生效，无需重启服务
-
-* 当没有颜色区分时，ls 看不出哪个是文件，哪个是文件夹。ls -l 又输出太多，我只想看哪个是文件，哪个是文件夹，不关心其他信息。如何解决这个问题？
-
-    你这个问题很常见！有几种简单的方法可以只区分文件和文件夹，而不显示`ls -l`的详细信息：
-
-    方法1：使用 `ls -F`（最推荐）
-
-    ```bash
-    ls -F
-    ```
-
-    这个命令会在文件名后面添加标识符：
-
-    - `/` 表示目录（文件夹）
-    - `*` 表示可执行文件
-    - `@` 表示符号链接
-    - `=` 表示套接字
-    - `|` 表示命名管道
-
-    示例输出：
-
-    ```
-    file1.txt  file2.sh*  folder1/  folder2/
-    ```
-
-    方法2：使用 `ls -p`
-
-    ```bash
-    ls -p
-    ```
-
-    只在目录后面添加 `/`，其他文件没有标记：
-
-    ```
-    file1.txt  file2.sh  folder1/  folder2/
-    ```
-
-    方法3：使用 `ls --classify`
-
-    ```bash
-    ls --classify
-    ```
-
-    这是 `-F` 的完整参数形式，功能相同。
-
-    方法4：使用 `ls -l | grep`
-
-    如果你想要更清晰的区分：
-
-    ```bash
-    ls -l | grep "^d"  # 只显示目录
-    ls -l | grep "^-"  # 只显示普通文件
-    ```
-
-    方法5：创建别名
-
-    如果你经常使用，可以在 `.bashrc` 或 `.zshrc` 中添加：
-
-    ```bash
-    alias lsf='ls -F'
-    alias lsp='ls -p'
-    ```
-
-    然后就可以直接使用 `lsf` 或 `lsp` 了。
-
-    我个人最推荐 **`ls -F`**，因为它不仅能区分目录，还能识别可执行文件等其他特殊类型的文件。
-
-* 那如果一个符号链接 A 链到文件夹 B 上，我使用 ls -F 查看 A 时，看不出来它是文件还是文件夹
-
-    你说得对！这是一个很好的观察。对于符号链接的情况，`ls -F` 确实有特殊处理：
-
-    `ls -F` 对符号链接的显示规则：
-
-    - 如果符号链接指向**目录**：显示为 `A@` （带 @ 符号）
-    - 如果符号链接指向**文件**：显示为 `B@` （同样是带 @ 符号）
-
-    所以 `ls -F` 只能识别出这是一个链接（通过 @），但无法直接看出它指向的是文件还是目录。
-
-    解决方法：
-
-    方法1：使用 `ls -l` 查看具体指向
-
-    ```bash
-    ls -l
-    ```
-
-    输出示例：
-
-    ```
-    lrwxrwxrwx 1 user user 5 Feb 23 10:00 A -> B/
-    ```
-
-    这里的 `B/` 表示指向目录，如果只是 `B` 则表示指向文件。
-
-    方法2：使用 `ls -F` 加上 `-L` 选项
-
-    ```bash
-    ls -FL
-    ```
-
-    这会显示链接指向的目标的类型（会跟随链接）：
-
-    - 如果 A 指向目录：显示为 `A/`
-    - 如果 A 指向文件：显示为 `A`
-
-    方法3：组合使用 `ls -F` 和 `file` 命令
-
-    ```bash
-    ls -F && file */ 2>/dev/null
-    ```
-
-    或者针对特定链接：
-
-    ```bash
-    file A
-    ```
-
-    输出示例：
-
-    ```
-    A: symbolic link to B/
-    ```
-
-    方法4：使用 `ls -l` 配合 grep 过滤
-
-    ```bash
-    ls -l | grep "^l"  # 查看所有链接
-    ```
-
-    所以，如果你主要关心是文件还是目录，并且需要处理符号链接的情况，可以：
-
-    - 如果想**跟随链接看实际类型**：`ls -FL`
-    - 如果想**保留链接信息但想知道指向什么**：`ls -l` 查看详情
-
-    注：
-
-    1. 最终选择了`alias ll='ls -pL'`
 
 * 简述 linux 中创建磁盘文件，并制作为 swap，最后使用 swapon 开启的过程
 
@@ -10366,117 +5770,6 @@
 
     Bear 极大地简化了为现有项目配置语言服务器和静态分析工具的过程，是 C/C++ 开发工作流中很有用的工具。
 
-* `grep -w`
-
-    grep -w 是 grep 命令的一个常用选项，用于精确匹配整个单词，而不是单词的一部分。
-
-    主要功能
-
-    * 只匹配完整的单词，不会匹配单词中的一部分
-
-    * 匹配的单词必须被非单词字符包围或位于行首/行尾
-
-    * 非单词字符包括：空格、标点、特殊符号等
-
-    基本语法
-
-    ```bash
-    grep -w "pattern" filename
-    ```
-
-    示例说明
-
-    示例文件 (file.txt)
-
-    ```text
-    apple
-    pineapple
-    apples
-    an apple a day
-    apple123
-    apple-pie
-    ```
-
-    使用示例
-
-    ```bash
-    # 1. 只匹配完整的 "apple"
-    grep -w "apple" file.txt
-    ```
-
-    输出：
-
-    ```text
-    apple
-    an apple a day
-    ```
-
-    解释：只匹配独立的单词 "apple"，不匹配 "pineapple"、"apples" 等包含 "apple" 的单词
-
-    **对比不带 -w 的情况**
-
-    ```bash
-    # 不指定 -w 会匹配所有包含 "apple" 的字符串
-    grep "apple" file.txt
-    ```
-
-    输出：
-
-    ```text
-    apple
-    pineapple
-    apples
-    an apple a day
-    apple123
-    apple-pie
-    ```
-
-    更多实用例子
-
-    ```bash
-    # 在日志中查找特定错误代码（精确匹配）
-    grep -w "ERROR" logfile.txt
-
-    # 统计文件中某个单词出现的次数
-    grep -w "success" file.txt | wc -l
-
-    # 查找包含特定单词的行，忽略大小写
-    grep -iw "error" file.txt
-
-    # 在多个文件中查找
-    grep -w "TODO" *.py
-    ```
-
-    常见组合选项
-
-    * -i + -w: 忽略大小写并精确匹配单词
-
-        ```bash
-        grep -iw "error" file.txt  # 匹配 Error, ERROR, error 等
-        ```
-
-    * -n + -w: 显示匹配行的行号
-
-        ```bash
-        grep -nw "pattern" file.txt
-        ```
-
-    * -v + -w: 反向匹配（不包含指定单词的行）
-
-        ```bash
-        grep -vw "debug" file.txt
-        ```
-
-    注意事项
-
-    * 下划线 (_) 被视为单词字符的一部分
-
-    * 数字和字母的组合被视为单词
-
-    * 连字符（-）在单词中间时，整个连字符字符串可能被视为一个单词
-
-    简单来说，grep -w 相当于在模式两边自动加上了单词边界 \b 锚点，类似于正则表达式中的 \bpattern\b。
-
 * linux 中`wc`是否可以统计汉字的字节数，单词数？
 
     是的，wc 命令可以统计包含汉字的文件，但理解其统计方式很重要：
@@ -10718,91 +6011,6 @@
 
     结论：wc 不适合统计中文的字数/词数，需要借助中文分词工具才能准确统计。
 
-* 简述 `/var/log/syslog`, `/var/log/messages` 的作用与区别
-
-    /var/log/syslog 和 /var/log/messages 都是 Linux 系统中用于记录系统日志的重要文件，但它们的用途和内容因发行版而异。
-
-    主要作用
-
-    /var/log/syslog
-
-    * 记录系统范围的日志信息
-
-    * 包含内核、服务、应用程序等多种日志
-
-    * 通常由 rsyslog 或 syslog-ng 管理
-
-    * 是 syslog 服务的默认主日志文件
-
-    /var/log/messages
-
-    * 传统系统日志文件
-
-    * 记录系统启动、运行状态、硬件检测等信息
-
-    * 包含非关键性系统消息
-
-    主要区别
-
-    | 特性 | /var/log/syslog | /var/log/messages |
-    | - | - | - |
-    | 主要使用发行版 | Debian/Ubuntu 等 | RHEL/CentOS/Fedora 等 |
-    | 日志详细程度 | 更详细，包含大多数日志 | 较简略，主要为系统级消息 |
-    | 默认包含设施 | 所有设施（facility） | 通常排除 mail, authpriv, cron 等 |
-    | 优先级 | 通常记录 info 及以上 | 通常记录 warning/err 及以上 |
-
-    配置差异
-
-    在 Debian/Ubuntu 系统中：
-
-    * /var/log/syslog 是主要日志文件
-
-    * 配置通常在 /etc/rsyslog.conf 或 /etc/rsyslog.d/50-default.conf
-
-    在 RHEL/CentOS 系统中：
-
-    * /var/log/messages 是主要系统日志
-
-    * /var/log/syslog 可能不存在或为空
-
-    * 配置在 /etc/rsyslog.conf
-
-    查看建议
-
-    * 快速查看系统问题：
-
-        ```bash
-        # Debian/Ubuntu
-        tail -f /var/log/syslog
-
-        # RHEL/CentOS
-        tail -f /var/log/messages
-        ```
-
-    * 使用统一工具：
-
-        ```bash
-        # 使用 journalctl（systemd 系统）
-        journalctl -f
-
-        # 按优先级过滤
-        grep -i error /var/log/syslog
-        ```
-
-    最佳实践
-
-    * 不要手动删除：使用 logrotate 管理日志轮转
-
-    * 监控关键日志：设置日志监控告警
-
-    * 了解发行版差异：根据系统类型查看相应日志文件
-
-    * 使用集中式日志：生产环境建议使用 ELK、Graylog 等集中日志系统
-
-    在实际运维中，了解所用 Linux 发行版的日志配置习惯非常重要，这能帮助快速定位和解决系统问题。
-
-
-
 * bash 中，有时候需要复制当前窗口中的内容，除了用鼠标，还有什么办法
 
     在 bash 中，除了鼠标操作，还有多种复制终端内容的方法：
@@ -10915,7 +6123,7 @@
 
     建议：在 ~/.bashrc 中设置别名，方便日常使用。不同系统的剪贴板工具不同，建议根据你的操作系统选择合适的方法。
 
-* linux中，如何按进程显示实时的网络流量？
+* linux 中，如何按进程显示实时的网络流量？
 
     在 Linux 中，有几种方法可以按进程显示实时的网络流量：
 
@@ -11101,117 +6309,6 @@
         ```
 
     最常用的是方法1：直接输入 reset 回车即可恢复正常。
-
-* 将 journactl 中的中文日期改成英文
-
-    方法1：临时设置环境变量（当前会话有效）
-
-    ```bash
-    # 设置语言为英文
-    export lang=en_us.utf-8
-    export lc_time=en_us.utf-8
-
-    # 查看日志
-    journalctl -u sshd
-    ```
-
-    方法2：永久修改系统语言
-
-    ```bash
-    # 编辑 locale 配置文件
-    sudo vim /etc/locale.conf
-
-    # 添加或修改以下内容
-    lang="en_us.utf-8"
-    lc_time="en_us.utf-8"
-
-    # 或者使用 sed 命令
-    sudo sed -i 's/lang=.*/lang="en_us.utf-8"/' /etc/locale.conf
-    echo 'lc_time="en_us.utf-8"' | sudo tee -a /etc/locale.conf
-
-    # 重启系统或重新加载环境
-    sudo systemctl restart systemd-journald
-    ```
-
-    方法3：journalctl 特定命令选项
-
-    ```bash
-    # 使用 --no-full 和特定输出格式
-    journalctl -u sshd --since "2023-12-02 21:27:27" --output json
-
-    # 或者使用特定字段显示
-    journalctl -u sshd -o json-pretty | grep -e '(message|__realtime_timestamp)'
-    ```
-    
-* less 中实现大小写不敏感的搜索
-
-    1. 启动 less 时设置参数
-
-        ```bash
-        less -I filename
-        ```
-
-        或
-
-        ```bash
-        less -i filename
-        ```
-
-        区别：
-
-        * -I：搜索时完全忽略大小写
-
-        * -i：搜索时智能忽略大小写（如果搜索模式包含大写字母，则区分大小写）
-
-    2. 在 less 内部设置
-
-        进入 less 后，可以输入
-
-        `-I`或`-i`   
-
-        来切换大小写敏感设置。
-
-    3. 使用环境变量
-
-        可以在 shell 配置文件中设置默认选项：
-
-        ```bash
-        # 在 ~/.bashrc 或 ~/.zshrc 中添加
-        export LESS="-I"
-        ```
-
-    4. 搜索时指定选项
-
-        在 less 中使用 / 搜索时，可以：
-
-        * 先输入 -i 再按回车，然后进行搜索
-
-        * 或者直接在搜索模式前加 -i：
-
-        ```text
-        /-itext
-        ```
-
-        这将搜索 "text" 并忽略大小写
-
-    5. 永久配置
-
-        编辑 ~/.lesskey 文件（如果不存在则创建）：
-
-        ```text
-        # 设置默认忽略大小写
-        -i
-        ```
-
-    提示：
-
-    * 在 less 中，按 -i 可以切换大小写敏感模式
-
-    * 当前设置状态会显示在左下角（如果有 -i 标志表示忽略大小写）
-
-    * 按 = 可以查看当前 less 的设置状态
-
-* 在 less 中，无法实现输入 /xx 后不按回车立即搜索。
 
 * Here Document
 
@@ -11434,173 +6531,6 @@
 
     * 资源占用: 长时间运行时可结合 -o ConnectTimeout=30 优化超时设置。
 
-* tail 的常用选项：
-
-    ```bash
-    # 从第N行开始显示
-    tail -f -n +50 filename
-
-    # 同时跟踪多个文件
-    tail -f file1 file2 file3
-
-    # 高亮显示关键字
-    tail -f filename | grep --color=auto "keyword"
-    ```
-
-    对于日志文件的特殊处理：
-
-    ```bash
-    # 过滤包含特定关键词的行
-    tail -f filename | grep "error"
-
-    # 排除特定内容
-    tail -f filename | grep -v "debug"
-
-    # 彩色输出
-    tail -f filename | ccze -A
-    ```
-
-* 实时追踪文本文件的最新内容
-
-    * tail -f (最常用)
-
-        ```bash
-        # 基本用法
-        tail -f filename
-
-        # 显示行号
-        tail -f -n 20 filename
-
-        # 等同于 --follow=descriptor，文件被移动或重命名后仍能跟踪
-        tail -F filename
-        ```
-
-    * less 的实时模式
-
-        ```bash
-        # 打开文件后，按 Shift+F 进入实时跟踪模式
-        less filename
-        # 然后按 Shift+F 开始跟踪，Ctrl+C 停止跟踪，回到普通浏览模式
-        ```
-
-        或者直接使用`less +F /var/log/syslog`
-
-    * multitail (功能更强大)
-
-        ```bash
-        # 安装 multitail
-        sudo apt install multitail  # Ubuntu/Debian
-        sudo yum install multitail  # CentOS/RHEL
-
-        # 使用 multitail
-        multitail filename
-        ```
-
-        监控多个文件：
-
-        `multitail -i log1.log -i log2.log`
-
-        功能：
-
-            分屏：在同一个终端窗口开多个子窗口监控。
-
-            着色：自动识别日志等级（Error, Warn）并高亮。
-
-            过滤：支持正则过滤，只看你想看的内容。
-
-    * 使用 awk 实时处理
-
-        ```bash
-        # 结合 tail 和 awk 进行实时处理
-        tail -f filename | awk '{print "New line:", $0}'
-        ```
-
-* linux 查看当前目录的大小
-
-    1. du 命令（最常用）
-
-        ```bash
-        # 显示当前目录的总大小（人类可读格式）
-        du -sh .
-
-        # 显示详细的大小信息（包括子目录）
-        du -sh *
-        ```
-
-        常用参数：
-
-        * `-s`：汇总，只显示总大小
-
-        * `-h`：人类可读格式（KB、MB、GB）
-
-        * `-c`：显示总计
-
-        * `--max-depth=N`：限制显示层级
-
-    2. 显示当前目录的详细大小信息
-
-        ```bash
-        # 显示当前目录及所有子目录的大小
-        du -h --max-depth=1
-
-        # 按大小排序显示
-        du -h --max-depth=1 | sort -hr
-        ```
-
-    3. 使用 ncdu（需要安装，但非常直观）
-    
-        ```bash
-        # 安装ncdu
-        sudo apt install ncdu    # Debian/Ubuntu
-        sudo yum install ncdu    # CentOS/RHEL
-
-        # 使用ncdu
-        ncdu
-        ```
-
-    4. 显示磁盘使用情况
-
-        ```bash
-        # 查看整个文件系统的使用情况
-        df -h .
-
-        # 只显示当前目录所在分区的使用情况
-        df -h $PWD
-        ```
-
-    5. 其他实用命令
-
-        ```bash
-        # 快速查看当前目录大小（以字节为单位）
-        du -sb
-
-        # 排除某些文件类型（如排除.log文件）
-        du -sh --exclude="*.log" .
-
-        # 仅显示超过特定大小的目录
-        du -h --max-depth=1 | grep '[0-9]G\>'  # 显示GB级别的目录
-        ```
-
-    主要区别：
-
-    * `du`：计算文件和目录占用的实际磁盘空间
-
-    * `df`：显示文件系统的整体使用情况
-
-    * `ncdu`：交互式磁盘使用分析器，更适合深入分析
-
-    常用组合命令：
-
-    ```bash
-    # 查找当前目录下最大的10个文件/目录
-    du -ah . | sort -rh | head -10
-
-    # 只显示目录大小（不包括文件）
-    du -h --max-depth=1 -t 1M .  # 只显示大于1MB的目录
-    ```
-
-    推荐使用：`du -sh .` 这是最简单直接的查看当前目录大小的方法。
-
 * `watch "ps -aux | grep v2ray"`没输出, `watch bash -c "ps -aux | grep v2ray"`也没输出
 
     尝试了多种方法都未能解决，将这个作为疑难杂症问题长期保存吧
@@ -11632,66 +6562,6 @@
         bash run_main.sh
         ```
 
-* systemd 与 ssh tunnel
-
-    systemd 中启动 ssh tunnel 时，不要使用`ssh -f`，因为这会
-
-    1. 创建一个 ssh 的前台程序，执行登陆认证等操作，假设其 pid 为 PID_1
-
-    2. 成功登录后，fork 一份进程到后台，此时后台进程的 pid 为 PID_2
-
-    3. 退出 PID_1 的 ssh 前台进程
-
-    systemd 检测到 PID_1 退出，会认为 ssh 进程已经结束，从而导致 systemd 错误判断 service 的状态。
-
-    因此我们直接使用`ssh -NL`或`ssh -NR`就可以。
-
-    example:
-
-    ```conf
-    [Unit]
-    Description=SSH Reverse Tunnel
-    After=network.target
-
-    [Service]
-    Type=simple
-    User=your_username
-    # 使用密钥认证，避免交互
-    ExecStart=/usr/bin/ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -R 12345:localhost:22 user@remote-server
-    Restart=always
-    RestartSec=10
-    # 密钥权限很重要
-    Environment="HOME=/home/your_username"
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    ```bash
-    # 添加这些选项提高稳定性
-    -o ExitOnForwardFailure=yes    # 端口转发失败时退出
-    -o ServerAliveInterval=30      # 30秒发送一次保活包
-    -o ServerAliveCountMax=3       # 3次无响应后断开
-    -o TCPKeepAlive=yes
-    -o BatchMode=yes               # 禁用交互提示
-    ```
-
-* `xrdp`
-
-    这是一个 独立的、完整的 RDP 服务器 软件。它运行在 Linux 系统上，等待来自 RDP 客户端的连接请求。
-
-    为了提供桌面，`xrdp` 需要依赖一个后端的图形会话管理器。最常见的是：
-
-    * Xvnc：xrdp 会启动一个 VNC 服务器（如 TigerVNC、X11VNC）来承载桌面，然后 xrdp 在 RDP 和 VNC 协议之间进行转换。这是最常见的配置。
-
-    * Xorg：较新的版本支持使用一个专门的 Xorg 会话作为后端（xrdp-xorg 模块），性能比 VNC 模式更好。
-
-    与 FreeRDP 模块的核心区别：
-
-    * xrdp 是一个常驻的系统服务（systemd 服务），监听 3389 端口，允许多个用户建立独立的、全新的桌面会话（登录屏幕 -> 输入用户名密码 -> 进入一个独立的桌面环境）。
-
-    * freerdp2-shadow-x11 是一个临时工具，用于共享已经登录的、正在使用的现有桌面会话。它不提供登录管理器，不创建新会话。
-
 * 查看当前 session 是 x11 还是 wayland
 
     `echo $XDG_SESSION_TYPE`
@@ -11699,166 +6569,6 @@
     output:
 
     `wayland`
-
-* FreeRDP2
-
-    FreeRDP 是一个开源的 RDP 客户端和服务器端库。`freerdp2-x11`和`freerdp2-wayland`是它的命令行工具`xfreerdp`的两个后端。
-
-    * `freerdp2-x11`
-
-        这是 RDP 客户端 在 X11 显示系统下的主程序。你用它来连接远程的 Windows 机器或其他 RDP 服务器。
-
-    * `freerdp2-wayland`
-
-        同样是 RDP 客户端，它使用 Wayland 原生接口进行渲染，而不是 X11。
-
-    * `freerdp2-shadow-x11`
-
-        这是 FreeRDP 的 “影子服务器” 或 “桌面共享” 组件。它用于将本机的 X11 桌面会话共享出去，供其他 RDP 客户端连接。
-
-        它捕获当前 X11 显示器的输出，将其作为一个 RDP 会话对外提供。其他用户可以使用任意的 RDP 客户端（如 Windows 自带的 mstsc.exe、Android 客户端、或 xfreerdp 本身）来接入你的当前桌面。
-
-        它不是客户端，而是一个服务端。但它不创建新的桌面会话，只是“投影”现有会话。
-
-        通常通过命令行启动，例如 xfreerdp-shadow-subsystem。
-
-    通常 xfreerdp 可以自动选择后端，但是我们也可手动指定后端：
-
-    ```bash
-    # 强制使用 X11 后端（即使在 Wayland 会话中）
-    xfreerdp /b:x11 ...
-
-    # 强制使用 Wayland 后端
-    xfreerdp /b:wayland ...
-    ```
-
-* network.target vs network-online.target
-
-    network.target：
-
-        网络配置完成（接口已配置）
-
-        不保证实际网络连通性
-
-        启动较快
-
-    network-online.target：
-
-        网络真正连通（可以访问外部网络）
-
-        等待 DHCP、DNS 等完全就绪
-
-        启动较慢，可能超时
-
-    所以这两个区别是，一个内网能访问通，一个能访问到公网？
-
-* systemd 服务设置 ssh -R 反向隧道开机自启动
-
-    1. 创建 systemd 服务文件
-
-        ```bash
-        sudo nano /etc/systemd/system/ssh-reverse-tunnel.service
-        ```
-
-    2. 编辑服务文件内容
-
-        ```conf
-        [Unit]
-        Description=SSH Reverse Tunnel
-        After=network.target
-
-        [Service]
-        Type=simple
-        User=your_username
-        ExecStart=/usr/bin/ssh -N -R remote_port:localhost:local_port username@remote_host -p remote_ssh_port -o ServerAliveInterval=60 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=accept-new
-        Restart=always
-        RestartSec=10
-
-        [Install]
-        WantedBy=multi-user.target
-        ```
-
-    3. 设置和启动服务
-
-        ```bash
-        # 重新加载 systemd
-        sudo systemctl daemon-reload
-
-        # 设置开机自启动
-        sudo systemctl enable ssh-reverse-tunnel.service
-
-        # 立即启动服务
-        sudo systemctl start ssh-reverse-tunnel.service
-
-        # 检查服务状态
-        sudo systemctl status ssh-reverse-tunnel.service
-        ```
-
-    注意事项
-
-        确保网络连通性: 服务在网络就绪后启动
-
-        使用非特权端口: 如果非root用户运行，remote_port通常需要大于1024
-
-        监控日志: 使用 journalctl -u ssh-reverse-tunnel.service -f 查看日志
-
-        安全考虑: 确保远程服务器是可信的，因为反向隧道会暴露本地服务
-
-    注：
-
-    1. `After=network.target`
-    
-        不写`After=network-online.target`是因为后面有无限重连做保证。
-
-        但是我觉得直接写成`After=network-online.target`更好，直接一步到位。
-
-    1. `ExitOnForwardFailure=yes`
-
-        如果无法端口转发，那么 ssh 连接直接报错。如果远程的端口被其他程序占用，那么 ssh 报错退出。
-
-        ssh 的默认设置是如果端口转发失败（比如远程端口已被占用），SSH 连接仍然会建立，端口转发功能实际上没有工作。
-
-        这个设置配合 systemd 的自动重启服务，可以一定程序上解决远程端口被占用的问题。
-
-    1. `Type=simple`
-
-        SSH 命令会长期运行，保持连接和隧道。进程在前台持续运行，不会立即退出。systemd 会监控这个长期运行的进程。
-
-        如果使用`Type=oneshot`，那么程序执行完就退出。这个配置配合`RemainAfterExit=yes`使用，检查 status 时的效果如下：
-
-        ```
-        active (exited)
-        ```
-
-        如果不设置`RemainAfterExit=yes`，则会变成
-
-        ```
-        inactive
-        ```
-
-        使用 simple 的好处：
-
-        * systemd 直接监控主进程
-
-        * 进程退出时自动重启
-
-        * 完整的生命周期管理
-
-        * 简单的日志收集
-
-        * systemctl stop 能正确终止进程
-
-* 把 rdp 的流量包在 ssh 流量里
-
-    通常使用`ssh -L`进行转发：
-
-    `ssh -N -L 本地端口:目标RDP服务器地址:3389 SSH用户名@SSH服务器地址`
-
-    然后使用 xfreerdp 连接本地隧道端口：
-
-    `xfreerdp /v:127.0.0.1:13389 /u:RDP用户名 /p:RDP密码`
-
-    xfreerdp 本身没有原生支持 ssh tunnel 的方法
 
 * `http://security.ubuntu.com/ubuntu/ jammy-security restricted multiverse universe main`的 ip 为`1.1.1.3`，属于 cloudflare 的机器，国内不一定能访问到。
 
@@ -11887,126 +6597,9 @@
     tar cf - "$1" | pv | tar xf - -C "$2"
     ```
 
-* ls 按访问时间排序
-
-    ```bash
-    ls -ltu
-    ```
-
-    -l：长格式显示
-
-    -t：按时间排序（默认是 mtime，但配合 -u 就是按 atime 排序）
-
-    -u：使用访问时间（atime）而不是修改时间（mtime）
-
-* `ls`默认不支持直接按文件创建时间（birth time）排序
-
-    ls 主要显示的是文件的修改时间（mtime）、访问时间（atime）和状态变更时间（ctime）
-
-    较新的内核支持按创建时间排序：
-
-    ```bash
-    ls -lt --time=birth
-    ```
-
-    -l：长格式显示
-
-    -t：按时间排序（默认是 mtime，但配合 --time=birth 就是按创建时间排序）
-
-    --time=birth：显示并按创建时间排序
-
-* `ls -l`命令将最近修改时间的文件放到最上面
-
-    `ls -lt`
-
-    * -t：按修改时间排序，最新的文件在最前面。
-
-    ls 的其他选项：
-
-    * `-r`：倒序
-
-    * `-a`：显示隐藏文件
-
-* `grep -E`
-
-    主要特点：
-
-    * 支持扩展正则语法：可以使用 |, +, ?, {} 等元字符而无需转义
-
-    * 等同于 egrep：grep -E 与 egrep 命令功能相同
-
-    * 更强大的模式匹配：相比基本正则表达式，提供更丰富的模式匹配能力
-
-    `grep -E "keyword1|keyword2|keyword3" file.txt`: 在 file.txt 文件中搜索包含 keyword1 或 keyword2 或 keyword3 任意一个关键词的所有行。
-
-    ```bash
-    # 使用基本正则表达式（需要转义 |）
-    grep "keyword1\|keyword2\|keyword3" file.txt
-
-    # 使用扩展正则表达式（更简洁）
-    grep -E "keyword1|keyword2|keyword3" file.txt
-    ```
-
-    `|`前后不能有空格，如果有空格，那么空格也会被匹配，是 keyword 的一部分。
-
-* `ls -R`
-
-    递归列出目录及其所有子目录中的内容。
-
-    -R 是 “Recursive”（递归）的缩写。
-
-* `ls -lS`
-
-    以长格式列出文件，并按文件大小降序排序（从大到小）。
-
-    -l 是 “long format” 的缩写，会显示详细信息（权限、所有者、大小、修改时间等）。
-
-    -S 是 “Sort by size” 的缩写（注意是大写S）。
-
-* `ls -lr`
-
-    以反向（逆序） 方式列出文件和目录。
-
-    -r 是 “reverse” 的缩写（注意是小写r）。
-
-    组合使用后，它会将排序结果反转。默认情况下（没有其他排序选项），ls -l 是按文件名升序排序（a-z, 0-9），加上 -r 后就变成了降序（z-a, 9-0）。
-
-    与其他排序选项结合时，用于反转排序顺序。例如，ls -lSr 会按文件大小升序排列（从小到大），因为 -S（大小降序）被 -r 反转了。
-
 * 不默认保持中文输入法的另外一个原因
 
     有时候需要按`shift` + 鼠标滚轮横向滚动，但是`shift`又正好是切换中英文的，这样会导致每横向滚动一次，就在中英文中间切换一次。
-
-* `ulimit -a`
-
-    查看当前用户 Shell 进程及其子进程所能使用的系统资源限制情况。
-
-    ulimit（User Limit）是一个 Shell 内建命令，用于控制和显示用户可用的资源限制。
-
-    -a 是 --all 的缩写，表示 显示所有（All）当前的资源限制设置。
-
-    常见和重要的限制项：
-
-    | 限制项 | 参数 | 示例值 | 含义解释 |
-    | - | - | - | - |
-    | open files | -n | 1024 | 单个进程能同时打开的最大文件数量。这是最常需要调整的项，比如数据库服务器就需要很高的值。 |
-    | max user processes | -u | 7873 | 该用户能同时运行的最大进程数（包括线程）。 |
-    | stack size | -s | 8192 | 进程栈的最大大小（KB）。如果程序递归太深可能导致栈溢出，有时需要调整此项。 |
-    | core file size | -c | 0 | 核心转储文件（core dump）的最大大小。0 表示禁止生成 core dump 文件。用于程序崩溃调试。 |
-    | virtual memory | -v | unlimited | 进程可使用的最大虚拟内存大小。unlimited 表示无限制。 |
-    | file size | -f | unlimited | Shell 创建的文件的最大大小。 |
-
-    ulimit 命令本身也可以用来修改限制, 修改通常只对 当前 Shell 会话 有效，退出后即失效。永久修改需要在用户配置文件（如 ~/.bashrc、~/.bash_profile）或系统级配置文件（如 /etc/security/limits.conf）中设置
-
-    example:
-
-    ```bash
-    # 将“打开文件数”限制临时改为 2048
-    ulimit -n 2048
-
-    # 将“核心文件大小”限制改为无限制
-    ulimit -c unlimited
-    ```
 
 * `sudo lsof /dev/shm/nccl-AoFK4o`
 
@@ -12035,41 +6628,6 @@
 * 如果 linux 系统里安装了 systemd，那么可以使用`journalctl -k`查看历史日志
 
     如果想把新增的日志写入文件，可以使用`dmesg --follow-new | tee <log_file>`
-
-* `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
-
-    将 /dev/shm 目录重新挂载为大小为 2GB 的 tmpfs（临时文件系统）。
-
-    这个操作会：
-
-    * 覆盖现有的 /dev/shm 挂载
-
-    * 之前存储在 /dev/shm 中的所有数据都会丢失
-
-    * 新的大小限制会影响所有使用共享内存的应用程序
-
-    默认的 /dev/shm 大小通常是系统物理内存的 50%。
-
-* `df -T /dev/shm`
-
-    显示 /dev/shm 目录所在文件系统的磁盘空间使用情况和文件系统类型信息。
-
-    * df：disk free 的缩写，用于显示文件系统的磁盘空间使用情况
-
-    * -T：选项，显示文件系统类型
-
-    example output:
-
-    ```
-    Filesystem     Type  1K-blocks  Used Available Use% Mounted on
-    tmpfs          tmpfs   8180620 55444   8125176   1% /dev/shm
-    ```
-
-    * 文件系统：tmpfs - 临时文件系统
-
-    * 类型：tmpfs - 基于内存的临时文件系统
-
-    * 1K-块：总容量（以 1KB 为单位）
 
 * `ipcs -m`
 
@@ -12107,345 +6665,6 @@
     NATTCH: 当前关联（attach）到这个内存段的进程数量。如果为 0，表示没有进程在使用它，但它可能仍然存在系统中。
 
     STATUS: 状态信息（在某些系统上可能显示更多细节，如被锁定的内存段）。
-
-* `objdump -p <文件名> | grep NEEDED`
-
-    -p 选项：代表显示文件头信息。
-
-* elf dynamic section lookup table
-
-    | 标签名 (Tag) | 十六进制值 (Hex) | 含义简述 |
-    | - | - | - |
-    | DT_NULL | 0x0 | 标记动态段的结束 |
-    | DT_NEEDED | 0x1 | 所需共享库的名称（字符串表偏移） |
-    | DT_PLTGOT | 0x3 | 全局偏移表（GOT）和/或过程链接表（PLT）的地址 |
-    | DT_HASH | 0x4 | 符号哈希表的地址 |
-    | DT_STRTAB | 0x5 | 字符串表的地址 |
-    | DT_SYMTAB | 0x6 | 符号表的地址 |
-    | DT_INIT | 0xC | 初始化函数的地址 |
-    | DT_FINI | 0xD | 终止函数的地址 |
-    | DT_SONAME | 0xE | 共享库自身的SONAME（字符串表偏移） |
-    | DT_RPATH | 0xF | 库搜索路径（已过时，被DT_RUNPATH取代） |
-    | DT_SYMBOLIC | 0x10 | 提示链接器从该库本身开始符号解析 |
-    | DT_DEBUG | 0x15 | 用于调试（运行时地址由调试器填充） |
-    | DT_TEXTREL | 0x16 | 存在代码段重定位，表明非PIC代码 |
-    | DT_JMPREL | 0x17 | PLT重定位条目的地址 |
-    | DT_RUNPATH | 0x1D | 库搜索路径 |
-    | DT_GNU_HASH | 0x6FFFFEF5 | GNU扩展的哈希表样式 |
-    | DT_INIT_ARRAY | 0x19 | 初始化函数指针数组的地址 |
-    | DT_FINI_ARRAY | 0x1A | 终止函数指针数组的地址 |
-
-* `objdump -p <文件名> | grep NEEDED`
-
-    * -p 选项： 代表 --private-headers，用于显示文件格式中特定于该文件的“私有”头信息。对于 ELF 格式的文件（Linux 和大多数Unix-like系统上的标准格式），这个选项会显示出程序头表（Program Headers） 和动态段（Dynamic Section） 等关键信息。
-
-    ldd 会实际尝试加载库并模拟运行，在某些不安全的情况下可能执行恶意代码。而 objdump -p | grep NEEDED 是静态分析，只读取文件头信息，因此更安全，尤其是在分析来源不可信的二进制文件时。
-
-    其他常见的标签：
-
-    * 核心依赖与加载相关
-
-        * `NEEDED`
-
-            该文件运行时所依赖的共享库的名称（如 libc.so.6）。一个文件可以有多个 NEEDED 条目。
-
-        * `SONAME`(Shared Object Name)
-
-            仅存在于共享库（.so 文件）中。它包含了该库的共享对象名称。链接器在链接时会把这个名字（而不是文件名）记录到最终的可执行文件中。这就是实现库版本兼容性的关键机制。
-
-            例如，你有一个文件名为 libxyz.so.1.2.3 的库，但其 SONAME 可能是 libxyz.so.1。可执行文件在运行时寻找的将是 libxyz.so.1，而不是具体的 libxyz.so.1.2.3。
-
-        * `RPATH` / `RUNPATH`
-
-            包含一个用冒号分隔的目录列表。动态链接器在查找 NEEDED 库时，会优先在这些目录中搜索，然后再去默认的系统库路径（如 /lib, /usr/lib）中查找。
-
-            RPATH 是较老的属性，其优先级很高。
-
-            RUNPATH 是新标准，其优先级规则不同（在 LD_LIBRARY_PATH 之后查找）。
-
-    * 符号解析相关
-
-        * HASH / GNU_HASH: 指向一个符号哈希表。动态链接器使用这个表来快速查找函数和变量（符号）在库中的地址，极大地加快了动态链接的过程。GNU_HASH 是现代 Linux 系统上更优的格式。
-
-        * STRTAB: 指向字符串表的地址。该表存储了所有动态链接所需的字符串，如符号名、库名等。
-
-        * SYMTAB: 指向符号表的地址。该表包含了所有需要被动态链接的符号（函数名、变量名）的详细信息（名称、值、大小等）。链接器通常结合 HASH 和 STRTAB 来使用它。
-
-        * PLT (Procedure Linkage Table) / PLTGOT (通常显示为 JMPREL): 指向重定位表的地址。这个表包含了所有需要延迟绑定（Lazy Binding）的函数引用信息。这是实现“第一次调用函数时才进行链接”机制的关键。
-
-    * 初始化与终止相关
-
-        * INIT: 指向初始化函数的地址。这个函数（通常命名为 _init）会在该共享库被加载到内存后、任何其他代码执行之前，由动态链接器自动调用。用于完成该库的全局构造和初始化工作。
-
-        * FINI: 指向终止函数的地址。这个函数（通常命名为 _fini）会在该共享库从内存中卸载之前，由动态链接器自动调用。用于完成清理工作（如释放资源）。
-
-            注意：现代代码更推荐使用 `__attribute__((constructor))` 和 `__attribute__((destructor))` 函数属性来代替直接使用 _init 和 _fini 节。
-
-    * 其他重要标签
-
-        * TEXTREL: 这是一个标志。如果存在，表明链接器需要修改代码段（.text段）的权限（例如将其设为可写）以便进行重定位。这通常意味着共享库不是用 -fPIC 选项编译的（位置无关代码），会带来安全性和性能上的损失。看到这个标志通常不是好事情。
-
-        * FLAGS / FLAGS_1: 一些特殊的标志位。例如 FLAGS_1 中的 PIE 标志表示该可执行文件是位置无关的可执行文件（Position-Independent Executable），这是现代Linux系统上ASLR（地址空间布局随机化）的基础。
-
-        * DEBUG: 这是一个占位符，用于调试信息，通常没有运行时语义。
-
-    ref: 
-    
-    1. <https://docs.oracle.com/cd/E53394_01/html/E54813/chapter6-42444.html>
-
-    1. `man 5 elf`
-
-    1. <https://www.gnu.org/software/binutils/>
-
-* `od -A`
-
-    od -A 选项用于指定输出偏移量（地址）的显示格式。这里的 -A 代表 "Address"。
-
-    * `-A x`: 十六进制（hexadecimal）
-    
-        `0000000`, `0000010`
-    
-    * `-A d`: 十进制（decimal）
-    
-        `0000000`, `0000016`
-
-    * `-A o`: 八进制（octal）, 默认情况
-    
-        `0000000`, `0000020`
-
-    * `-A n`: 不显示偏移量（none）
-    
-        （左侧偏移量栏为空）
-
-* 创建`tmpfs`类型的目录
-
-    ```bash
-    sudo mkdir /mnt/shm
-    sudo mount -t tmpfs -o size=2G tmpfs /mnt/shm
-    ```
-
-    解释：
-
-    * `-t tmpfs`: 挂载`tmpfs`类型的文件系统。`tmpfs`表示使用 ram，如果 ram 不够，则使用 swap
-
-    * `-o size=2G`：限制目录最大大小为 2G
-
-    * `tmpfs`: 这是“源设备”参数。对于像`tmpfs`这样的虚拟文件系统，这个位置通常就填写文件系统类型本身。
-
-    * `/mnt/shm`: 挂载点（mount point）
-
-    特点：
-
-    * 存储在内存中：所有存放在 /mnt/shm 目录下的文件和目录都位于高速的 RAM 中，因此读写速度非常快。
-
-    * 临时性：这是一个临时存储。当系统重启、崩溃或你手动卸载（umount /mnt/shm）这个文件系统时，其中的所有数据都会消失。
-
-    * 动态分配：tmpfs 只会实际占用它已存储数据大小的内存。例如，如果你创建了一个 100MB 的文件，tmpfs 就只占用约 100MB 的 RAM（和少量元数据开销），而不是一开始就占满 2GB。它会根据存储内容的增加而动态增长，但最大不会超过 size 参数的限制（2GB）。
-
-    * 可能使用交换空间（Swap）：如果系统内存不足，tmpfs 中不活跃的数据可能会被换出到硬盘的交换分区（swap）上，从而释放物理内存。这意味着它的大小可以超过物理 RAM，但性能会下降。
-
-* `sudo mount -o remount /dev/shm`
-
-    重新挂载 /dev/shm 文件系统，并在此过程中应用或刷新其挂载选项。
-
-    如果没有在命令中指定新的挂载选项（例如 size=2G 或 noexec），那么它将使用系统默认的或之前在 /etc/fstab 文件中配置的选项来重新挂载。
-
-    常见使用场景
-
-    * 应用 /etc/fstab 中的新配置：
-
-        如果你修改了 /etc/fstab 中关于 /dev/shm 的配置（比如改变了大小限制 size=512M），你可以运行此命令来立即应用新的配置，而无需重启系统。
-
-    * 修复权限或属性问题：
-
-        如果 /dev/shm 的权限意外被更改（例如，某个脚本错误地执行了 chmod 700 /dev/shm），导致某些程序无法正常使用共享内存，通过重新挂载可以将其恢复为正确的默认权限。
-
-    * 清除所有内容（不常用）：
-
-        虽然 remount 本身不是为了清除数据，但结合某些选项（如 noexec 然后再 remount 回默认值）可以间接达到目的。更直接的方法是直接重启（数据会丢失）或手动删除其中的文件。
-
-* `truncate -s <bytes>`
-
-    如果文件不存在, 创建指定大小的空文件，内容全部用空字节（\0）填充。如果文件已存在, 若文件原大小 > 指定大小，则截断文件，丢弃超出部分；若文件原大小 < 指定大小，则扩展文件，用空字节填充新增部分。
-
-    example:
-
-    `truncate -s 4096 /dev/shm/my_tmp_file`
-
-    在`/dev/shm`中创建大小为 4096 字节的文件`my_tmp_file`。
-
-* `od -t x<N>`
-
-    按`<N>`字节一组，打印十六进制数据。
-
-    其中`<N>`可以取值 1, 2, 4, 8，如果不指定`<N>`，则默认取`2`。
-
-    注意多字节显示时，输出受字节序的影响，比如单字节显示的`01 02`，使用小端序 + `-x2`显示时可能变成`0201`。
-
-* `objdump`
-
-    主要用于反汇编和分析目标文件及可执行文件。
-
-    常用功能：
-
-    1. 反汇编
-
-        将二进制可执行文件或目标文件（.o, .exe, .so, .dll 等）中的机器代码转换回汇编语言代码。
-
-        `objdump -d ./my_program`
-
-        * `-d`选项表示反汇编包含指令的节（section）。
-
-    2. 查看目标文件结构
-
-        显示文件的头部信息和各个节（Section）的详细信息。包括文件的格式（如ELF、PE）、入口地址、节的大小和位置等。
-
-        `objdump -h ./my_program`
-        
-        * `-h`选项显示节的头部摘要。
-
-    3. 查看符号表
-
-        列出文件中定义和引用的所有符号（如函数名、全局变量名）。
-
-        `objdump -t ./my_program`
-
-        * `-t`选项显示符号表。
-
-    4. 查看文件头信息
-
-        显示二进制文件的元数据，例如目标架构（如x86-64、ARM）、操作系统ABI、文件类型（可执行、共享库等）和入口点地址。
-
-        `objdump -f ./my_program`
-
-        * `-f`选项显示文件头信息。
-
-    5. 以十六进制格式查看文件内容
-
-        除了反汇编，objdump 还可以直接显示文件的十六进制和ASCII表示，类似于 hexdump 或 xxd 命令。
-
-        `objdump -s -j .text ./my_program`
-
-        * `-s` 显示所有节的内容。
-
-        * `-j` 指定只显示某个节（如 .text 节）的内容。
-
-    6. 查看动态链接信息
-
-        对于动态链接的可执行文件或共享库，可以显示其依赖的共享库（如Linux下的 .so 文件）以及动态符号表。
-
-        `objdump -p ./my_program`
-
-        * `-p`显示与动态链接相关的信息（在 ELF 文件中，这类似于`readelf -d`命令）。
-
-* `readelf -l /bin/bash | grep interpreter`
-
-    查找 /bin/bash 可执行文件所使用的动态链接器（interpreter）的路径。
-
-    output:
-    
-    ```
-          [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
-    ```
-
-    这表示：
-
-    * `/bin/bash`依赖于动态链接器 /lib64/ld-linux-x86-64.so.2 来加载运行所需的共享库（如 libc.so）。
-
-    * 系统内核在执行 /bin/bash 时，会先加载这个指定的动态链接器，再由它处理后续的库依赖和符号解析。
-
-* `readelf`的用法
-
-    用于显示关于 ELF (Executable and Linkable Format) 格式目标文件的信息。
-
-    ELF 是现代 Linux 系统上的一种文件格式，用于：
-
-    * 可执行文件 (例如编译生成的`a.out`)
-
-    * 共享库 (例如：libc.so.6)
-
-    * 目标文件 (例如：file.o)
-
-    * 核心转储文件 (core dumps)
-
-    常用选项：
-
-    * 查看文件头 (`-h`)
-
-        这是最常用的选项之一。它显示了 ELF 文件的概要信息，包括：
-
-        * 文件类型（可执行文件、共享库、目标文件等）
-
-        * 目标机器的体系结构（如 x86-64, ARM）
-
-        * 程序的入口点地址（Entry point）
-
-        * 程序头表（Program Headers）和节头表（Section Headers）的起始位置和大小。
-
-    * 查看节头信息 (`-S`)
-
-        显示文件中所有的 “节” (Sections) 的信息。节是 ELF 文件的重要组成部分，例如：
-
-        * `.text`： 存放可执行代码。
-
-        * `.data`： 存放已初始化的全局变量和静态变量。
-
-        * `.bss`： 存放未初始化的全局变量和静态变量。
-
-        * `.rodata`： 存放只读数据（如字符串常量）。
-
-        * `.symtab`： 符号表。
-
-        * `.strtab`： 字符串表。
-
-    * 查看程序头信息 (`-l`)
-
-        显示 “段” (Segments) 或称为 程序头 (Program Headers) 的信息。段告诉操作系统或动态链接器如何将文件加载到内存中并执行。这对于理解程序运行时布局至关重要。
-
-    * 查看符号表 (`-s`)
-
-        显示文件中定义和引用的所有符号，如函数名、变量名。这对于解决“未定义引用”等链接错误非常有用。
-
-    * 查看动态段信息 (`-d`)
-
-        对于动态链接的可执行文件或共享库，此选项显示其依赖的共享库（如 libc.so.6）以及动态链接器需要的其他信息（如重定位信息、符号表地址等）。
-
-    * 查看重定位信息 (`-r`)
-
-        显示文件中需要重定位的条目信息，这在分析目标文件(.o)时尤其有用。
-
-    * 查看节的内容 (`-x` 或 `-p`)
-
-        以十六进制或其他格式转储指定节的具体内容。
-
-    example:
-
-    `readelf -h main`
-
-    output:
-
-    ```
-    ELF Header:
-      Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
-      Class:                             ELF64
-      Data:                              2's complement, little endian
-      Version:                           1 (current)
-      OS/ABI:                            UNIX - System V
-      ABI Version:                       0
-      Type:                              DYN (Position-Independent Executable file)
-      Machine:                           Advanced Micro Devices X86-64
-      Version:                           0x1
-      Entry point address:               0x1060
-      Start of program headers:          64 (bytes into file)
-      Start of section headers:          14048 (bytes into file)
-      Flags:                             0x0
-      Size of this header:               64 (bytes)
-      Size of program headers:           56 (bytes)
-      Number of program headers:         13
-      Size of section headers:           64 (bytes)
-      Number of section headers:         31
-      Section header string table index: 30
-    ```
 
 * `at`
 
@@ -12644,23 +6863,6 @@
 
     这条命令成功执行后，域名 newserver.example.com 就会立刻指向 203.0.113.10。
 
-* `od -t x1`
-
-    以十六进制（HEX）字节的形式，逐个字节地显示文件或输入流的内容。
-
-    * `-t` (`--format`) : 用于指定输出数据的格式。它告诉 od 如何解释和显示文件中的字节。
-
-    * `x1`: `x`表示 16 进制，`1`代表每个输出单元的大小是 1 个字节。
-
-    example:
-
-    ```
-    0000000 7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
-    0000020 03 00 3e 00 01 00 00 00 10 0a 00 00 00 00 00 00
-    0000040 40 00 00 00 00 00 00 00 38 4e 00 00 00 00 00 00
-    ...
-    ```
-
 * `/etc/ld.so.conf.d/myapp.conf`
 
     将一个自定义的库路径（例如`/opt/myapp/lib`）添加到系统中所有应用程序的共享库搜索路径中。`ld-linux.so`会搜索`/etc/ld.so.conf.d`这个目录下的所有配置。
@@ -12825,94 +7027,9 @@
 
     它的工作原理是设置适当的环境变量（如 LD_TRACE_LOADED_OBJECTS），然后调用目标程序。目标程序在这种特殊环境下启动时，并不会真正运行其主逻辑，而是会列出其所有依赖的共享库信息后退出。
 
-* `vncviewer`
-
-    使用方法：
-
-    * `vncviewer 192.168.1.100`
-
-    * `vncviewer 192.168.1.100:5901`
-
 * dig 命令包含在`bind-utils`软件包中
 
 * 查看 glibc 版本：`ldd --version`
-
-* `od -c <file>`
-
-    以 字符形式（character）显示文件内容，不可打印字符会用转义符（如`\n`, `\t`, `\0`）或八进制表示。
-
-* `od -x`
-
-    od: 是 Octal Dump 的缩写。这个名字源于其最初的主要功能是以八进制（Octal）格式显示文件内容。虽然现在它支持多种格式，但名字保留了下来。
-
-    以十六进制（Hex）格式显示文件的内容.
-
-    `-x`代表输出为“十六进制。
-    
-    example:
-
-    `od -x msg.txt`
-
-    output:
-
-    ```
-    0000000 6568 6c6c 2c6f 7720 726f 646c 202c 696e
-    0000020 6168 2c6f 7a20 6961 696a 6e61 202c 6568
-    0000040 6568 202c 6168 6168 000a
-    0000051
-    ```
-
-    * 最左边的一列: 偏移量地址. 表示当前行数据在文件中的起始位置（偏移量），默认以八进制数显示。
-
-    * 中间的多列: 数据内容. -x 选项规定每2个字节（16位）为一组进行显示。
-    
-        由于计算机的字节序（Endianness）问题，od -x 在显示时使用的是主机本身的字节序（对于大多数x86架构的电脑是小端序）。
-
-        如果文件中连续的2个字节是 0x61 和 0x62（即字符 'a' 和 'b' 的ASCII码），在小端序机器上，od -x 会将其显示为一组：6261（即 0x62 在高位，0x61 在低位）。
-
-    * 如果使用 -x 的同时再加上 -c 选项（即 od -xc），输出还会在最右边增加一列，显示数据对应的ASCII字符。不可打印的字符会显示为转义序列（如 \n）或问号（?）。
-
-        比较神奇的是 ascii 字符会按 2 个字节的间隔自动把顺序倒过来：
-
-        `od -xc msg.txt`:
-
-        ```
-        0000000    6568    6c6c    2c6f    7720    726f    646c    202c    696e
-                  h   e   l   l   o   ,       w   o   r   l   d   ,       n   i
-        0000020    6168    2c6f    7a20    6961    696a    6e61    202c    6568
-                  h   a   o   ,       z   a   i   j   i   a   n   ,       h   e
-        0000040    6568    202c    6168    6168    000a
-                  h   e   ,       h   a   h   a  \n
-        0000051
-        ```
-
-        可以看到，本来`e = 0x65`，`h = 0x68`，但是在显示的时候 od 自动把顺序纠正了。
-
-* `ps aux`
-
-    ps: 进程状态（Process Status）
-
-    * `a`： 显示所有用户的进程（而不仅仅是当前用户的）。
-
-    * `u`： 以面向用户的格式显示，这会提供更详细的信息（如 CPU、内存占用率、用户等）。
-
-    * `x`： 列出没有控制终端的进程。这很重要，因为很多系统守护进程（后台服务）是不依赖于终端的。加上 x 才能看到所有这些后台进程。
-
-    输出的关键列的含义：
-
-    | 列名 |全称 | 含义 |
-    | - | - | - |
-    | `USER` | User | 进程的所有者（是哪个用户启动的） |
-    | `PID` | Process ID | 进程的唯一ID号，用于识别和管理进程 |
-    | `%CPU` | CPU Percentage | 进程占用CPU的百分比 |
-    | `%MEM` | Memory Percentage | 进程占用物理内存的百分比 |
-    | `VSZ` | Virtual Set Size | 进程使用的虚拟内存大小（单位：KB） |
-    | `RSS` | Resident Set Size | 进程使用的、未被换出的物理内存大小（单位：KB） |
-    | `TTY` | Teletypewriter | 进程是在哪个终端上运行的。? 表示不是从终端启动的。 |
-    | `STAT` | Process State | 进程状态码（非常重要），例如：<br>- `R`： 正在运行或可运行<br>- `S`： 可中断的睡眠状态（等待事件完成）<br>- `D`： 不可中断的睡眠（通常与IO有关）<br>- `Z`： 僵尸进程（已终止但未被父进程回收）<br>- `T`： 已停止（通常由信号控制） |
-    | `START` | Start Time | 进程启动的时间 |
-    | `TIME` | CPU Time | 进程实际使用CPU运行的总时间 |
-    | `COMMAND` | Command | 启动该进程所用的命令行名称 |
 
 * `timeout`
 
@@ -12965,32 +7082,6 @@
 * `sync`
 
     `sync`可以作为一个命令使用，效果和调用`sync()`相同。
-
-* `od`命令
-
-    od（Octal Dump），用于以各种格式显示文件的内容，通常用于查看或诊断文件中那些不可打印的字符（如控制字符、换行符、空字符等）。
-
-    * `od -c`: 将文件的每个字节（byte）解释为 ASCII 字符或转义序列，并以更可读的形式输出。
-
-    example:
-
-    `msg.txt`:
-
-    ```
-    hello, world
-    nihao
-    zaijian
-    ```
-
-    `od -c msg.txt` output:
-
-    ```
-    0000000   h   e   l   l   o   ,       w   o   r   l   d  \n   n   i   h
-    0000020   a   o  \n   z   a   i   j   i   a   n  \n
-    0000033
-    ```
-
-    前面的偏移是 8 进制。
 
 * strace
 
@@ -13150,137 +7241,6 @@
 
     向 ed 发送命令 `,w`（写入文件）和 `q`（退出）
 
-* `ip route get <dst_ip>`可以显示访问`dst_ip`是从本机的哪个路由表出去
-
-    example:
-
-    ```
-    (base) hlc@hlc-VirtualBox:~$ ip route get 223.5.5.5
-    223.5.5.5 via 10.0.2.1 dev enp0s3 src 10.0.2.4 uid 1000 
-        cache
-    ```
-
-    其中`via 10.0.2.1`表示网关（下一跳的地址），`dev enp0s3`表示使用的网卡设备，`src 10.0.2.4`表示源地址。
-
-    `ip route get <dst_ip> from <src_ip>`可以指定源地址。
-
-    ip route get 仅本地查询，不发送真实数据包。
-
-* `ethtool`
-
-    install: `sudo apt install ethtool`
-
-    * 查看网卡基本信息: `ethtool <网卡名>`
-    
-        `ethtool enp0s3`
-
-        output:
-
-        ```
-        Settings for enp0s3:
-        	Supported ports: [ TP ]
-        	Supported link modes:   10baseT/Half 10baseT/Full
-        	                        100baseT/Half 100baseT/Full
-        	                        1000baseT/Full
-        	Supported pause frame use: No
-        	Supports auto-negotiation: Yes
-        	Supported FEC modes: Not reported
-        	Advertised link modes:  10baseT/Half 10baseT/Full
-        	                        100baseT/Half 100baseT/Full
-        	                        1000baseT/Full
-        	Advertised pause frame use: No
-        	Advertised auto-negotiation: Yes
-        	Advertised FEC modes: Not reported
-        	Speed: 1000Mb/s
-        	Duplex: Full
-        	Auto-negotiation: on
-        	Port: Twisted Pair
-        	PHYAD: 0
-        	Transceiver: internal
-        	MDI-X: off (auto)
-        netlink error: Operation not permitted
-                Current message level: 0x00000007 (7)
-                                       drv probe link
-        	Link detected: yes
-        ```
-
-    * 查看驱动信息: `ethtool -i <网卡名>`
-
-        `ethtool -i enp0s3`
-
-        output:
-
-        ```
-        driver: e1000
-        version: 6.8.0-65-generic
-        firmware-version: 
-        expansion-rom-version: 
-        bus-info: 0000:00:03.0
-        supports-statistics: yes
-        supports-test: yes
-        supports-eeprom-access: yes
-        supports-register-dump: yes
-        supports-priv-flags: no
-        ```
-
-    * 查看统计信息: `ethtool -S <网卡名>`
-
-        `ethtool -S enp0s3`
-
-        output:
-
-        ```
-        NIC statistics:
-             rx_packets: 7599541
-             tx_packets: 3763596
-             rx_bytes: 7471543776
-             tx_bytes: 5835620961
-             rx_broadcast: 40
-             tx_broadcast: 6
-             rx_multicast: 0
-             tx_multicast: 828
-             rx_errors: 0
-             tx_errors: 0
-             tx_dropped: 0
-             multicast: 0
-             collisions: 0
-             rx_length_errors: 0
-             rx_over_errors: 0
-             rx_crc_errors: 0
-             rx_frame_errors: 0
-             rx_no_buffer_count: 0
-             rx_missed_errors: 0
-             tx_aborted_errors: 0
-             tx_carrier_errors: 0
-             tx_fifo_errors: 0
-             tx_heartbeat_errors: 0
-             tx_window_errors: 0
-             tx_abort_late_coll: 0
-             tx_deferred_ok: 0
-             tx_single_coll_ok: 0
-             tx_multi_coll_ok: 0
-             tx_timeout_count: 0
-             tx_restart_queue: 0
-             rx_long_length_errors: 0
-             rx_short_length_errors: 0
-             rx_align_errors: 0
-             tx_tcp_seg_good: 1456528
-             tx_tcp_seg_failed: 0
-             rx_flow_control_xon: 0
-             rx_flow_control_xoff: 0
-             tx_flow_control_xon: 0
-             tx_flow_control_xoff: 0
-             rx_long_byte_count: 7471543776
-             rx_csum_offload_good: 0
-             rx_csum_offload_errors: 0
-             alloc_rx_buff_failed: 0
-             tx_smbus: 0
-             rx_smbus: 0
-             dropped_smbus: 0
-        ```
-
-    其他还有些功能，目前看上去用处不大。如果专业做网卡这块了再去了解。
-
 * glob 匹配
 
     * 匹配任意字符（包括空字符）。
@@ -13318,36 +7278,6 @@
     Change: 2025-06-06 09:55:17.893493034 +0800
      Birth: 2025-06-05 16:56:25.016703429 +0800
     ```
-
-* `netstat`
-
-    `netstat -a`: 显示所有连接
-
-    `netstat -s`: 显示统计摘要
-
-    `netstat -r`: 查看系统的路由表信息
-
-    `netstat -i`: 显示网络接口的配置和流量统计
-
-    `netstat -tuln`: 列出所有处于监听（LISTEN）状态的端口
-
-    `netstat -tulnp`: 查看占用端口的进程ID（PID）和程序名（需管理员权限）
-
-    常用参数：
-
-    * `-a`: 显示所有连接和监听端口。
-
-    * `-n`: 以数字形式显示地址和端口（禁用DNS解析）。
-
-    * `-t/-u`: 仅显示TCP/UDP连接。
-
-    * `-p`: 显示进程信息（Linux）。
-
-    * `-o`: 显示进程ID（Windows）。
-
-    * `-r`: 显示路由表。
-
-    * `-s`: 显示协议统计信息。
 
 * `disown`
 
@@ -13400,45 +7330,6 @@
 * `git-credential-libsecret`可以将 git 凭据存储在`libsecret`密钥管理服务中。
 
     需要系统安装 libsecret，还需要 git 去配置，略显复杂。有需求了再看。
-
-* `less`
-
-    less 用于分页查看。
-
-    syntax:
-
-    ```bash
-    less [选项] 文件名
-    ```
-
-    常用选项：
-
-        -N：显示行号。
-
-        -i：忽略搜索时的大小写（除非搜索词包含大写字母）。
-
-        -F：若文件可一屏显示，直接退出（类似 cat）。
-
-        -S：禁用自动换行（超长行需左右滚动查看）。
-
-        `less +F growing_file.log`: 类似 `tail -f`，按 `Ctrl+C` 退出跟踪模式
-
-    交互式操作
-    快捷键	功能
-    空格 / f	向下翻一页
-    b	向上翻一页
-    Enter	向下翻一行
-    /关键词	向前搜索（按 n 跳转到下一个）
-    ?关键词	向后搜索（按 N 跳转到上一个）
-    g	跳转到文件首行
-    G	跳转到文件末行
-    :n	查看下一个文件（多文件打开时）
-    :p	查看上一个文件
-    q	退出 less
-
-    按 v 键可在当前光标位置启动默认编辑器（如 vi）编辑文件。
-
-    使用 & 过滤显示匹配行（如 &error 只显示含 "error" 的行）。
 
 * `stty -echo`
 
@@ -13531,39 +7422,6 @@
         command <<< "string"
         ```
 
-* `pstree`
-
-    `pstree`可以以树状结构显示 ps 的内容。
-
-    example:
-
-    ```
-    (base) hlc@hlc-VirtualBox:~$ pstree 
-    systemd─┬─ModemManager───2*[{ModemManager}]
-            ├─NetworkManager───2*[{NetworkManager}]
-            ├─accounts-daemon───2*[{accounts-daemon}]
-            ├─acpid
-            ├─avahi-daemon───avahi-daemon
-            ├─blkmapd
-            ├─colord───2*[{colord}]
-    ```
-
-    其中数字表示多个相同的进程/线程。
-
-    常用参数：
-
-    * `-c` 选项禁用合并
-
-    * `-p`：显示进程的 PID。
-
-    * `-n`：按 PID 数字排序（默认按进程名排序）。
-
-    * `-a`：显示进程的完整命令行参数。
-
-    * `pstree [username]`: 查看某用户启动的进程树
-
-    * `-A`: 使用 ASCII 字符绘制树（兼容性更好）
-
 * `finger`是一个早期的网络工具，用于查询系统上的用户信息，现代系统默认禁用
 
 * inotify
@@ -13632,25 +7490,9 @@
 
         h：重新显示邮件列表。
 
-* `tail -f`
-
-    用于动态追踪文件末尾的新内容, 默认显示文件最后 10 行
-
-    其他选项：
-
-    * `-n <行数>`：指定初始显示的行数（如 tail -f -n 20 file.log 显示最后 20 行）。
-
-    * `-F`：比 -f 更健壮，会跟踪文件重命名或重建（如日志轮转场景）。
-
-    使用 -F 时，tail 会定期检查文件的 inode 编号 是否变化（例如日志轮转后新文件的 inode 不同）。如果变化，则关闭旧文件描述符，重新打开新文件继续跟踪。
-
 * 任何以`.`开头的文件或目录都会被系统视为隐藏文件
 
     `..xxx`并不是例外的隐藏文件。
-
-* `ls -A`
-
-    查看用户创建的隐藏文件
 
 * 删除当前目录下的所有内容（包括隐藏文件）
 
@@ -13842,7 +7684,6 @@
 
         通过日志或临时邮件检查任务是否运行
 
-
 * crontab 其他常用命令
 
     * `crontab -l`
@@ -13951,34 +7792,6 @@
     2792818
     2823794
     ```
-
-* `sudo -S`
-
-    用于从标准输入（stdin）读取密码，而非交互式终端提示.
-
-    `-S`等价于`--stdin`
-
-    example:
-
-    ```bash
-    echo "你的密码" | sudo -S command
-
-    cat password.txt | sudo -S apt update  # 从文件读取密码
-    ```
-
-    需要注意的是 echo 不会换行：
-
-    ```bash
-    echo xxx | sudo -S echo hello
-    ```
-
-    output:
-
-    ```
-    [sudo] password for hlc: hello
-    ```
-
-    似乎没有什么好的解决方案。
 
 * `yum list`和`yum search`的区别
 
@@ -14118,6 +7931,1050 @@
     查看历史操作
     yum history
 
+* `ssh-askpass`简介
+
+    安装：`apt install ssh-askpass`
+
+    直接运行`./ssh-askpass`时，会弹出一个窗口，输入密码并按回车后，输入的内容会出现在 terminal 里。
+
+    `sudo`和`ssh`都可以使用`ssh-askpass`程序弹出 gui 输入密码。
+
+    以`sudo`为例，首先配置环境变量，然后使用`sudo -A <command>`激活：
+
+    ```bash
+    export SUDO_ASKPASS=/usr/bin/ssh-askpass
+    sudo -A -v
+    ```
+
+    此时在弹出的窗口中输入密码，terminal 不会回显。
+
+    如果未检测到环境变量，sudo 会报错：
+
+    `sudo: no askpass program specified, try setting SUDO_ASKPASS`
+
+    `ssh`使用`ssh-askpass`同样需要使用环境变量：
+
+    ```bash
+    export SSH_ASKPASS="/usr/bin/ssh-askpass"
+    ```
+
+    经验证，ssh 很难启动 askpass 弹窗，目前不清楚原因。
+
+* `/proc/<PID>/cmdline` 是 Linux 系统 伪文件系统（procfs） 中的一个特殊文件，用于 获取指定进程（PID）的完整命令行启动参数，以`\0`（空字符）分隔各个参数。
+
+    如果进程本身就是以相对路径启动的，比如`bash`，那么`cmdline`不会显示其绝对路径。
+
+    `cmdline`的结尾没有`\n`。
+
+    因为 cmdline 使用`\0`进行参数分隔，所以避免了很多字符转义的问题。
+
+* `tr`的用法
+
+    `tr`指的是 translate，通常用于字符替换
+
+    example:
+
+    ```bash
+    echo hello | tr a-z A-Z
+    ```
+
+    output:
+
+    ```
+    HELLO
+    ```
+
+    也可以删除字符：
+
+    ```bash
+    echo "hello 123 world" | tr -d 0-9
+    ```
+
+    output:
+
+    ```
+    hello  world
+    ```
+
+    还可以去重：
+
+    ```bash
+    echo hello | tr -s l
+    ```
+
+    output:
+
+    ```
+    helo
+    ```
+
+    这里的`-s`可能是 squash 的意思。
+
+    过滤（filter in，保留指定的字符）：
+
+    ```bash
+    echo "hello 123" | tr -cd 'a-z'
+    ```
+
+    output:
+
+    ```
+    hello
+    ```
+
+    output 末尾无换行符。`tr`只保留`a-z`小字字母字符。
+
+    这里的`-c`可能是补集（complementary）的意思
+
+    一一映射：
+
+    ```bash
+    echo abc | tr cba xzy
+    ```
+
+    output:
+
+    ```
+    yzx
+    ```
+
+    注：
+
+    1. `tr`在处理`\n`时。需要给`\n`加上引号（单引号双引号都可以），否则会被 bash 转义。
+
+        example:
+
+        ```bash
+        echo hello | tr '\n' N
+        ```
+
+        output:
+
+        ```
+        helloN
+        ```
+
+        output 后无换行。
+
+    1. `tr`只能处理单个字符，不能处理字符串和正则表达式。
+
+* `/proc/<PID>/environ`是一个在内存中的文件，以只读的形式存储了指定 PID 进程在启用时的环境变量信息
+
+    example:
+
+    `cat /proc/3273/environ`
+
+    output:
+
+    ```
+    SYSTEMD_EXEC_PID=2451SSH_AUTH_SOCK=/run/user/1000/keyring/sshSESSION_MANAGER=local/hlc-VirtualBox:@/tmp/.ICE-unix/2235,unix/hlc-VirtualBox:/tmp/.ICE-unix/2235GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/16e4c141_024c_4318_9398_96a803c31884LANG=en_US.UTF-8XDG_CURRENT_DESKTOP=ubuntu:GNOMEPWD=/home/hlcWAYLAND_DISPLAY=wayland-0LC_IDENTIFICATION=zh_CN.UTF-8IM_CONFIG_PHASE=1...
+    ```
+
+    其形式为`key=value`，环境变量之间使用`\0`间隔。
+
+    此文件为只读属性，无法修改。
+
+    可以将`\0`替换为`\n`，便于阅读：
+
+    `cat /proc/<PID>/environ | tr '\0' '\n'`
+
+    output:
+
+    ```
+    SYSTEMD_EXEC_PID=2451
+    SSH_AUTH_SOCK=/run/user/1000/keyring/ssh
+    SESSION_MANAGER=local/hlc-VirtualBox:@/tmp/.ICE-unix/2235,unix/hlc-VirtualBox:/tmp/.ICE-unix/2235
+    GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/16e4c141_024c_4318_9398_96a803c31884
+    LANG=en_US.UTF-8
+    XDG_CURRENT_DESKTOP=ubuntu:GNOME
+    PWD=/home/hlc
+    WAYLAND_DISPLAY=wayland-0
+    LC_IDENTIFICATION=zh_CN.UTF-8
+    IM_CONFIG_PHASE=1
+    ...
+    ```
+
+    说明：
+
+    1. `/proc/<PID>/environ`不是实时的，如果在程序中运行`setenv()`，那么此文件内容不会被改变。
+
+    1. 仅允许进程所有者或 root 用户读取（权限为`-r--------`）
+
+        这样看来，这个文件的用处似乎不大？
+
+* `sudo yum check-update`相当于`sudo apt update`
+
+* `tee -a`表示在文件末尾追加
+
+    如果文件不存在，则会创建文件。
+
+    echo 本身会在行尾加`\n`，因此不需要额外考虑`\n`。
+
+    ```bash
+    echo 'heloo' | tee -a log.txt
+    echo 'heloo' | tee -a log.txt
+    cat log.txt
+    ```
+
+    output:
+
+    ```
+    heloo
+    heloo
+    heloo
+    heloo
+    ```
+
+* find 不输出没有权限的文件
+
+    find 对没有权限的文件会输出类似
+
+    ```
+    ...
+    find: ‘/proc/1188309/task/1188309/ns’: Permission denied
+    find: ‘/proc/1188309/fd’: Permission denied
+    find: ‘/proc/1188309/map_files’: Permission denied
+    find: ‘/proc/1188309/fdinfo’: Permission denied
+    find: ‘/proc/1188309/ns’: Permission denied
+    ...
+    ```
+
+    的信息。这些信息其实都是 stderr。因此可以考虑过滤掉 stderr 的输出：
+
+    `find <path> -name <pattern> 2>/dev/null`
+
+    example:
+
+    `find / -name hello 2>/dev/null`
+
+    output:
+
+    ```
+    /home/hlc/miniconda3/pkgs/tk-8.6.14-h39e8969_0/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/envs/torch/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/envs/vllm/lib/tk8.6/demos/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt4/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt3/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/hello
+    /home/hlc/Documents/Projects/chisel-tutorial/src/main/scala/hello
+    /home/hlc/Documents/Projects/makefile_test/hello
+    ```
+
+* linux host name 相关
+
+    * 显示当前的 host name: `hostname`
+
+        example:
+
+        run: `hostname`
+
+        output: `hlc-VirtualBox`
+
+    * 显示当前系统的基本信息：`hostnamectl`
+
+        example:
+
+        run: `hostnamectl`
+
+        output:
+
+        ```
+         Static hostname: hlc-VirtualBox
+               Icon name: computer-vm
+                 Chassis: vm
+              Machine ID: d3dcf00f11234838acfafd0a40493023
+                 Boot ID: 5ce8f551956f4b14ab4c447a4a2ecbd0
+          Virtualization: oracle
+        Operating System: Ubuntu 22.04.4 LTS              
+                  Kernel: Linux 6.8.0-52-generic
+            Architecture: x86-64
+         Hardware Vendor: innotek GmbH
+          Hardware Model: VirtualBox
+        ```
+
+    * 修改 hostname `hostnamectl set-hostname <new-hostname>`
+
+    * 可以通过修改`/etc/hostname`文件和`/etc/hosts`并重启系统来修改 hostname。
+
+    * ubuntu 中，可以通过 settings -> about 修改 hostname。
+
+    * 临时修改 hostname: `sudo hostname new-hostname` （未测试过）
+
+## Topics
+
+### remote desktop
+
+* `vncviewer`
+
+    使用方法：
+
+    * `vncviewer 192.168.1.100`
+
+    * `vncviewer 192.168.1.100:5901`
+
+* FreeRDP2
+
+    FreeRDP 是一个开源的 RDP 客户端和服务器端库。`freerdp2-x11`和`freerdp2-wayland`是它的命令行工具`xfreerdp`的两个后端。
+
+    * `freerdp2-x11`
+
+        这是 RDP 客户端 在 X11 显示系统下的主程序。你用它来连接远程的 Windows 机器或其他 RDP 服务器。
+
+    * `freerdp2-wayland`
+
+        同样是 RDP 客户端，它使用 Wayland 原生接口进行渲染，而不是 X11。
+
+    * `freerdp2-shadow-x11`
+
+        这是 FreeRDP 的 “影子服务器” 或 “桌面共享” 组件。它用于将本机的 X11 桌面会话共享出去，供其他 RDP 客户端连接。
+
+        它捕获当前 X11 显示器的输出，将其作为一个 RDP 会话对外提供。其他用户可以使用任意的 RDP 客户端（如 Windows 自带的 mstsc.exe、Android 客户端、或 xfreerdp 本身）来接入你的当前桌面。
+
+        它不是客户端，而是一个服务端。但它不创建新的桌面会话，只是“投影”现有会话。
+
+        通常通过命令行启动，例如 xfreerdp-shadow-subsystem。
+
+    通常 xfreerdp 可以自动选择后端，但是我们也可手动指定后端：
+
+    ```bash
+    # 强制使用 X11 后端（即使在 Wayland 会话中）
+    xfreerdp /b:x11 ...
+
+    # 强制使用 Wayland 后端
+    xfreerdp /b:wayland ...
+    ```
+
+* 把 rdp 的流量包在 ssh 流量里
+
+    通常使用`ssh -L`进行转发：
+
+    `ssh -N -L 本地端口:目标RDP服务器地址:3389 SSH用户名@SSH服务器地址`
+
+    然后使用 xfreerdp 连接本地隧道端口：
+
+    `xfreerdp /v:127.0.0.1:13389 /u:RDP用户名 /p:RDP密码`
+
+    xfreerdp 本身没有原生支持 ssh tunnel 的方法
+
+* `xrdp`
+
+    这是一个 独立的、完整的 RDP 服务器 软件。它运行在 Linux 系统上，等待来自 RDP 客户端的连接请求。
+
+    为了提供桌面，`xrdp` 需要依赖一个后端的图形会话管理器。最常见的是：
+
+    * Xvnc：xrdp 会启动一个 VNC 服务器（如 TigerVNC、X11VNC）来承载桌面，然后 xrdp 在 RDP 和 VNC 协议之间进行转换。这是最常见的配置。
+
+    * Xorg：较新的版本支持使用一个专门的 Xorg 会话作为后端（xrdp-xorg 模块），性能比 VNC 模式更好。
+
+    与 FreeRDP 模块的核心区别：
+
+    * xrdp 是一个常驻的系统服务（systemd 服务），监听 3389 端口，允许多个用户建立独立的、全新的桌面会话（登录屏幕 -> 输入用户名密码 -> 进入一个独立的桌面环境）。
+
+    * freerdp2-shadow-x11 是一个临时工具，用于共享已经登录的、正在使用的现有桌面会话。它不提供登录管理器，不创建新会话。
+
+### top
+
+* Top 命令的 cpu 使用量中，按下 t 后看到占用率有的线粗，有的线细，是什么含义
+
+    在 `top` 命令界面按下 **`t`** 键，实际上是在切换 **CPU 占用率的显示模式**（由数据变为图形化柱状图）。
+
+    你看到的“线粗”和“线细”，本质上是 `top` 用不同的字符来表示 **CPU 处理不同任务时的状态分布**。这是一种字符级的高低配比图：
+
+    1. 粗线与细线的含义
+        
+        在默认的彩色模式或特定的字符模式下，柱状图通常由以下两部分组成：
+
+        * **粗块/深色部分 (`#` 或 亮色块)：** 代表 **用户态 (User)** 和 **内核态 (System)** 的消耗。这部分是你运行的任务（如浏览器、编译任务）以及系统内核处理请求所占用的“实打实”的算力。
+        * **细线/浅色部分 (`+` 或 暗色块)：** 代表 **低优先级用户态 (Nice)**。如果你手动调高了某些任务的 nice 值（让它们“礼让”其他进程），它们消耗的 CPU 就会以这种形态显示。
+
+    2. 为什么会有这种区分？
+
+        这种设计是为了让你一眼看出 CPU 的**负载质量**：
+
+        * **全是粗块：** 说明系统正在全力处理高优先级的正常任务。
+        * **粗块中混杂大量细线：** 说明虽然 CPU 很忙，但很大一部分资源是被那些“不着急”的后台任务占用的。如果此时有紧急任务进来，这些“细线”任务会被系统自动压后。
+
+    3. 如何操作切换？
+        
+        按下 `t` 键会在以下四种状态间轮转：
+        1.  **纯文字模式：** 传统的 `us, sy, ni, id...` 百分比数值。
+        2.  **带分类的柱状图：** 用不同字符表示 `user`、`system` 和 `nice`。
+        3.  **合并的柱状图：** 不区分具体类型，只显示总占用。
+        4.  **关闭显示：** 直接隐藏 CPU 状态行。
+
+    ---
+
+    **小贴士：**
+    如果你觉得 `top` 的界面太简陋，推荐尝试 **`htop`**。它的颜色区分更直观：**蓝色**代表低优先级 (nice)，**绿色**代表普通用户任务 (user)，**红色**代表内核任务 (system)。
+
+    需要我帮你对比一下 `top` 里的其他快捷键（比如内存显示的 `m`）或者如何看具体的进程占用吗？
+
+* top 中的 nice value
+
+    在 top 或 ps 命令中，你可以查看 NI (Nice value) 这一列：
+
+    * 范围： -20 到 19。
+
+    * 越“Nice”越慢： 数值越高（比如 10 到 19），说明这个进程越“客气”，它会主动把 CPU 让给别人。这就是你在 top 里看到的那些细线。
+
+    * 默认值： 普通任务的 Nice 值通常是 0。
+
+        小知识：
+
+        如果你想手动启动一个“不着急”的任务，可以在命令前加 nice。例如：
+        nice -n 19 tar -czvf backup.tar.gz /large_data
+        这样即使压缩几百 GB 的数据，你的电脑用起来依然会很流畅。
+
+* 在执行 Linux 的 top 命令中，我看到那个进度条有虚线有实线，各代表什么意思？
+
+    在 `top` 的 CPU 进度条里：
+    - **实线** = 正在被使用的 CPU 时间（us、sy、ni、wa、hi、si、st）
+    - **虚线** = **空闲（id）** 的 CPU 时间
+
+    ### 一、快速看懂
+    - 整条进度条 = 100% CPU
+    - **实线部分**：用户态、内核态、IO等待、中断等已占用的时间
+    - **虚线部分**：CPU 空闲、没干活的时间
+
+    ### 二、切换显示方式
+    按 `t` 键循环切换：
+    1. 纯数字（默认）
+    2. 进度条 + 数字
+    3. 纯进度条
+    4. 隐藏 CPU 行
+
+    ### 三、小技巧
+    - 按 `1` 可查看每个 CPU 核心的独立进度条
+    - 按 `h` 打开帮助，查看所有交互快捷键
+
+    要不要我给你整理一份 top 常用快捷键速查表，方便你快速切换显示和排序？
+
+    * 我希望下方的任务列表按 Memory 的使用量倒序排列，该怎么办？
+
+        ### 一、运行中按内存倒序（最常用）
+        1. 先运行 `top` 进入界面
+        2. 按 **Shift+M**（大写 M）
+        3. 进程列表立刻按 **%MEM（内存使用率）** 从高到低倒序排列
+
+        ### 二、启动时直接按内存排序
+        ```bash
+        top -o %MEM
+        ```
+        启动后直接按内存倒序，不用再按键
+
+        ### 三、切换排序方向
+        - 按 **R**：反转排序（升序 ↔ 降序）
+        - 再按 **M**：切回内存倒序
+
+        ### 四、小技巧
+        - 按 **E**：切换内存单位（KB/MB/GB）
+        - 按 **1**：看每个 CPU 核心的独立进度条
+        - 按 **W**：保存当前排序设置，下次启动自动生效
+
+        要不要我再给你一份 top 常用排序/显示快捷键速查表，方便你快速切换？
+
+    * 那我如果想按 CPU 的使用量倒序排列呢？
+
+        按 **CPU 使用率倒序** 就更简单了：
+
+        ### 正在运行 top 时
+        直接按：
+        **Shift + P**（大写 P）
+
+        进程立刻按 **%CPU** 从高到低排序。
+
+        ---
+
+        ### 启动时就按 CPU 排序
+        ```bash
+        top -o %CPU
+        ```
+
+        ---
+
+        ### 小总结（超好记）
+        - **Shift + M** → 按内存排序
+        - **Shift + P** → 按 CPU 排序
+        - **Shift + N** → 按 PID 排序
+        - **R** → 反转排序（升序 ↔ 降序）
+
+        需要我帮你把这些常用快捷键整理成**一行速记版**吗？
+
+### 磁盘占用与目录
+
+* `df -T /dev/shm`
+
+    显示 /dev/shm 目录所在文件系统的磁盘空间使用情况和文件系统类型信息。
+
+    * df：disk free 的缩写，用于显示文件系统的磁盘空间使用情况
+
+    * -T：选项，显示文件系统类型
+
+    example output:
+
+    ```
+    Filesystem     Type  1K-blocks  Used Available Use% Mounted on
+    tmpfs          tmpfs   8180620 55444   8125176   1% /dev/shm
+    ```
+
+    * 文件系统：tmpfs - 临时文件系统
+
+    * 类型：tmpfs - 基于内存的临时文件系统
+
+    * 1K-块：总容量（以 1KB 为单位）
+
+* `ulimit -a`
+
+    查看当前用户 Shell 进程及其子进程所能使用的系统资源限制情况。
+
+    ulimit（User Limit）是一个 Shell 内建命令，用于控制和显示用户可用的资源限制。
+
+    -a 是 --all 的缩写，表示 显示所有（All）当前的资源限制设置。
+
+    常见和重要的限制项：
+
+    | 限制项 | 参数 | 示例值 | 含义解释 |
+    | - | - | - | - |
+    | open files | -n | 1024 | 单个进程能同时打开的最大文件数量。这是最常需要调整的项，比如数据库服务器就需要很高的值。 |
+    | max user processes | -u | 7873 | 该用户能同时运行的最大进程数（包括线程）。 |
+    | stack size | -s | 8192 | 进程栈的最大大小（KB）。如果程序递归太深可能导致栈溢出，有时需要调整此项。 |
+    | core file size | -c | 0 | 核心转储文件（core dump）的最大大小。0 表示禁止生成 core dump 文件。用于程序崩溃调试。 |
+    | virtual memory | -v | unlimited | 进程可使用的最大虚拟内存大小。unlimited 表示无限制。 |
+    | file size | -f | unlimited | Shell 创建的文件的最大大小。 |
+
+    ulimit 命令本身也可以用来修改限制, 修改通常只对 当前 Shell 会话 有效，退出后即失效。永久修改需要在用户配置文件（如 ~/.bashrc、~/.bash_profile）或系统级配置文件（如 /etc/security/limits.conf）中设置
+
+    example:
+
+    ```bash
+    # 将“打开文件数”限制临时改为 2048
+    ulimit -n 2048
+
+    # 将“核心文件大小”限制改为无限制
+    ulimit -c unlimited
+    ```
+
+* linux 查看当前目录的大小
+
+    1. du 命令（最常用）
+
+        ```bash
+        # 显示当前目录的总大小（人类可读格式）
+        du -sh .
+
+        # 显示详细的大小信息（包括子目录）
+        du -sh *
+        ```
+
+        常用参数：
+
+        * `-s`：汇总，只显示总大小
+
+        * `-h`：人类可读格式（KB、MB、GB）
+
+        * `-c`：显示总计
+
+        * `--max-depth=N`：限制显示层级
+
+    2. 显示当前目录的详细大小信息
+
+        ```bash
+        # 显示当前目录及所有子目录的大小
+        du -h --max-depth=1
+
+        # 按大小排序显示
+        du -h --max-depth=1 | sort -hr
+        ```
+
+    3. 使用 ncdu（需要安装，但非常直观）
+    
+        ```bash
+        # 安装ncdu
+        sudo apt install ncdu    # Debian/Ubuntu
+        sudo yum install ncdu    # CentOS/RHEL
+
+        # 使用ncdu
+        ncdu
+        ```
+
+    4. 显示磁盘使用情况
+
+        ```bash
+        # 查看整个文件系统的使用情况
+        df -h .
+
+        # 只显示当前目录所在分区的使用情况
+        df -h $PWD
+        ```
+
+    5. 其他实用命令
+
+        ```bash
+        # 快速查看当前目录大小（以字节为单位）
+        du -sb
+
+        # 排除某些文件类型（如排除.log文件）
+        du -sh --exclude="*.log" .
+
+        # 仅显示超过特定大小的目录
+        du -h --max-depth=1 | grep '[0-9]G\>'  # 显示GB级别的目录
+        ```
+
+    主要区别：
+
+    * `du`：计算文件和目录占用的实际磁盘空间
+
+    * `df`：显示文件系统的整体使用情况
+
+    * `ncdu`：交互式磁盘使用分析器，更适合深入分析
+
+    常用组合命令：
+
+    ```bash
+    # 查找当前目录下最大的10个文件/目录
+    du -ah . | sort -rh | head -10
+
+    # 只显示目录大小（不包括文件）
+    du -h --max-depth=1 -t 1M .  # 只显示大于1MB的目录
+    ```
+
+    推荐使用：`du -sh .` 这是最简单直接的查看当前目录大小的方法。
+
+* linux 上查看磁盘配额
+
+    * 最常用的命令：`quota`
+
+        这是查看个人配额的标准工具。建议加上 `-s`（human-readable）参数：
+
+        ```bash
+        quota -s
+        ```
+
+        * **blocks (used):** 当前已使用的空间。
+        * **quota (soft):** 软限制。达到此限制后你还能写入，但会收到警告。
+        * **limit (hard):** 硬限制。**一旦达到这个值，就会触发你看到的 `Disk quota exceeded` 错误。**
+        * **grace:** 如果超过了软限制，这里会显示你还有多长时间来清理文件。
+
+        注：
+
+        1. quota 命令需要使用 apt 安装
+
+    * 如果发现配额确实满了，可以用 `du` 命令排查“大户”：
+
+        ```bash
+        # 查看当前目录下各一级子目录的大小，并按大小排序
+        du -h --max-depth=1 | sort -hr
+        ```
+
+### 文件内容
+
+* 已经进入 less 后，如何显示行号
+
+    在 `less` 界面内（已经打开文件的情况下），显示行号最快的方法是：
+
+    1. 实时切换行号
+
+        在 `less` 运行状态下，直接按下键盘上的：
+        > **`-N`** (注意是大写的 N，或者先按 `-` 再按 `shift + n`)
+
+        * **效果**：你会看到左下角出现 `line numbers enabled` 的提示，随后屏幕左侧会立即显示行号。
+        * **关闭**：再次输入 `-N` 即可取消显示。
+
+    ---
+
+    2. 常用相关快捷键
+
+        既然你已经进入了 `less`，这些操作配合行号会非常高效：
+
+        * **跳到指定行**：直接输入 **行号** 然后按 **`G`** (大写)。例如想去第 500 行，输入 `500G`。
+        * **当前百分比/行数信息**：按下 **`Ctrl + G`**，底部的状态栏会显示当前文件的行数范围和百分比。
+
+    ---
+
+    3. 一劳永逸的办法（下次使用）
+        
+        如果你希望以后每次用 `less` 都默认带行号，而不用进去再按键，可以采用以下两种方式：
+
+        * **临时命令**：
+            ```bash
+            less -N filename
+            ```
+        * **永久环境变量**（推荐）：
+            在你的 `~/.bashrc` 或 `~/.zshrc` 中添加一行：
+            ```bash
+            export LESS="-N"
+            ```
+            这样以后你只需要输入 `less filename`，行号就会自动在那儿等着你了。
+
+* `tail -f`
+
+    用于动态追踪文件末尾的新内容, 默认显示文件最后 10 行
+
+    其他选项：
+
+    * `-n <行数>`：指定初始显示的行数（如 tail -f -n 20 file.log 显示最后 20 行）。
+
+    * `-F`：比 -f 更健壮，会跟踪文件重命名或重建（如日志轮转场景）。
+
+    使用 -F 时，tail 会定期检查文件的 inode 编号 是否变化（例如日志轮转后新文件的 inode 不同）。如果变化，则关闭旧文件描述符，重新打开新文件继续跟踪。
+
+* `less`
+
+    less 用于分页查看。
+
+    syntax:
+
+    ```bash
+    less [选项] 文件名
+    ```
+
+    常用选项：
+
+        -N：显示行号。
+
+        -i：忽略搜索时的大小写（除非搜索词包含大写字母）。
+
+        -F：若文件可一屏显示，直接退出（类似 cat）。
+
+        -S：禁用自动换行（超长行需左右滚动查看）。
+
+        `less +F growing_file.log`: 类似 `tail -f`，按 `Ctrl+C` 退出跟踪模式
+
+    交互式操作
+    快捷键	功能
+    空格 / f	向下翻一页
+    b	向上翻一页
+    Enter	向下翻一行
+    /关键词	向前搜索（按 n 跳转到下一个）
+    ?关键词	向后搜索（按 N 跳转到上一个）
+    g	跳转到文件首行
+    G	跳转到文件末行
+    :n	查看下一个文件（多文件打开时）
+    :p	查看上一个文件
+    q	退出 less
+
+    按 v 键可在当前光标位置启动默认编辑器（如 vi）编辑文件。
+
+    使用 & 过滤显示匹配行（如 &error 只显示含 "error" 的行）。
+
+* tail 的常用选项：
+
+    ```bash
+    # 从第N行开始显示
+    tail -f -n +50 filename
+
+    # 同时跟踪多个文件
+    tail -f file1 file2 file3
+
+    # 高亮显示关键字
+    tail -f filename | grep --color=auto "keyword"
+    ```
+
+    对于日志文件的特殊处理：
+
+    ```bash
+    # 过滤包含特定关键词的行
+    tail -f filename | grep "error"
+
+    # 排除特定内容
+    tail -f filename | grep -v "debug"
+
+    # 彩色输出
+    tail -f filename | ccze -A
+    ```
+
+* 实时追踪文本文件的最新内容
+
+    * tail -f (最常用)
+
+        ```bash
+        # 基本用法
+        tail -f filename
+
+        # 显示行号
+        tail -f -n 20 filename
+
+        # 等同于 --follow=descriptor，文件被移动或重命名后仍能跟踪
+        tail -F filename
+        ```
+
+    * less 的实时模式
+
+        ```bash
+        # 打开文件后，按 Shift+F 进入实时跟踪模式
+        less filename
+        # 然后按 Shift+F 开始跟踪，Ctrl+C 停止跟踪，回到普通浏览模式
+        ```
+
+        或者直接使用`less +F /var/log/syslog`
+
+    * multitail (功能更强大)
+
+        ```bash
+        # 安装 multitail
+        sudo apt install multitail  # Ubuntu/Debian
+        sudo yum install multitail  # CentOS/RHEL
+
+        # 使用 multitail
+        multitail filename
+        ```
+
+        监控多个文件：
+
+        `multitail -i log1.log -i log2.log`
+
+        功能：
+
+            分屏：在同一个终端窗口开多个子窗口监控。
+
+            着色：自动识别日志等级（Error, Warn）并高亮。
+
+            过滤：支持正则过滤，只看你想看的内容。
+
+    * 使用 awk 实时处理
+
+        ```bash
+        # 结合 tail 和 awk 进行实时处理
+        tail -f filename | awk '{print "New line:", $0}'
+        ```
+
+* less 中实现大小写不敏感的搜索
+
+    1. 启动 less 时设置参数
+
+        ```bash
+        less -I filename
+        ```
+
+        或
+
+        ```bash
+        less -i filename
+        ```
+
+        区别：
+
+        * -I：搜索时完全忽略大小写
+
+        * -i：搜索时智能忽略大小写（如果搜索模式包含大写字母，则区分大小写）
+
+    2. 在 less 内部设置
+
+        进入 less 后，可以输入
+
+        `-I`或`-i`   
+
+        来切换大小写敏感设置。
+
+    3. 使用环境变量
+
+        可以在 shell 配置文件中设置默认选项：
+
+        ```bash
+        # 在 ~/.bashrc 或 ~/.zshrc 中添加
+        export LESS="-I"
+        ```
+
+    4. 搜索时指定选项
+
+        在 less 中使用 / 搜索时，可以：
+
+        * 先输入 -i 再按回车，然后进行搜索
+
+        * 或者直接在搜索模式前加 -i：
+
+        ```text
+        /-itext
+        ```
+
+        这将搜索 "text" 并忽略大小写
+
+    5. 永久配置
+
+        编辑 ~/.lesskey 文件（如果不存在则创建）：
+
+        ```text
+        # 设置默认忽略大小写
+        -i
+        ```
+
+    提示：
+
+    * 在 less 中，按 -i 可以切换大小写敏感模式
+
+    * 当前设置状态会显示在左下角（如果有 -i 标志表示忽略大小写）
+
+    * 按 = 可以查看当前 less 的设置状态
+
+* 在 less 中，无法实现输入 /xx 后不按回车立即搜索。
+
+* linux 中清空一个文件的方法
+
+    * `> filename`
+
+    * `truncate -s 0 filename`
+
+    * `echo -n "" > filename`
+
+        `-n`表示不输出最后的换行符
+
+    如果文件需要 sudo 权限才能修改，那么需要配合 `tee` 命令：
+
+    ```bash
+    sudo tee filename < /dev/null
+    # 或者用前面提到的 truncate
+    sudo truncate -s 0 filename
+    ```
+
+### sudo
+
+* centos 加入 sudo 权限
+
+    `usermod -aG wheel 用户名`
+
+    在 centos 中，`wheel`组有 sudo 权限。
+
+* `sudo -S`
+
+    用于从标准输入（stdin）读取密码，而非交互式终端提示.
+
+    `-S`等价于`--stdin`
+
+    example:
+
+    ```bash
+    echo "你的密码" | sudo -S command
+
+    cat password.txt | sudo -S apt update  # 从文件读取密码
+    ```
+
+    需要注意的是 echo 不会换行：
+
+    ```bash
+    echo xxx | sudo -S echo hello
+    ```
+
+    output:
+
+    ```
+    [sudo] password for hlc: hello
+    ```
+
+    似乎没有什么好的解决方案。
+
+* 讲讲 sudo -i 和 su - 的作用
+
+    `sudo -i` 和 `su -` 都是用来**切换到 root（或其他用户）身份**的命令，但它们在**认证方式、环境变量处理、安全性**上有明显区别。
+
+    ## 一句话对比
+
+    | 命令 | 本质 | 需要什么密码 | 环境 |
+    |------|------|-------------|------|
+    | `su -` | 切换到目标用户 | **目标用户的密码**（通常是 root 密码） | 加载目标用户的登录环境 |
+    | `sudo -i` | 以目标用户身份启动登录 shell | **当前用户自己的密码** | 加载目标用户的登录环境 |
+
+    ---
+
+    ## su - 的作用
+
+    `su` = switch user（切换用户）。
+
+    ```bash
+    su -          # 切换到 root，并加载 root 的登录环境
+    su - alice    # 切换到 alice 用户
+    ```
+
+    - 中间的 `-`（等价于 `-l` / `--login`）表示**模拟一次完整登录**：
+      - 切换到家目录（root 就是 `/root`）
+      - 加载目标用户的 shell 配置文件（`.bash_profile`、`.profile` 等）
+      - 重置环境变量（PATH、USER、HOME 等）
+    - 不加 `-` 的 `su` 只是切换身份，但保留原用户的环境变量和当前目录，容易出问题（比如 PATH 混乱）。
+    - **关键点**：它要求你输入**目标用户的密码**。也就是说，普通用户想 `su -` 到 root，必须知道 root 密码。
+
+    ---
+
+    ## sudo -i 的作用
+
+    `sudo` = 以其他用户身份执行命令（默认 root），`-i` = simulate initial login（模拟初始登录）。
+
+    ```bash
+    sudo -i        # 以 root 身份启动一个登录 shell
+    sudo -i -u alice   # 以 alice 身份启动登录 shell
+    ```
+
+    - 效果和 `su -` 很像：进入 root 的登录环境，家目录变成 `/root`，加载 root 的配置文件。
+    - **关键区别**：它要求你输入**自己的密码**（而不是 root 密码），前提是当前用户在 `sudoers` 里有权限。
+    - 相关选项：
+      - `sudo -i`：登录 shell，加载完整环境（最接近 `su -`）
+      - `sudo -s`：非登录 shell，保留部分当前环境
+      - `sudo command`：只以 root 执行一条命令，不切换 shell
+
+    ---
+
+    ## 核心区别总结
+
+    **1. 认证方式（最重要）**
+    - `su -`：验证**目标用户**的密码 → 需要知道 root 密码。
+    - `sudo -i`：验证**自己**的密码 → 不需要知道 root 密码，靠 sudoers 授权。
+
+    **2. 安全性 / 可审计性**
+    - `sudo` 可以精细化授权（谁能用、能跑哪些命令），并且每次操作都有日志（`/var/log/auth.log` 等）。
+    - `su` 一旦知道 root 密码就等于完全控制，且较难做细粒度控制和审计。
+    - 因此现代发行版（Ubuntu 默认禁用 root 密码登录）**推荐用 sudo，而不是 su**。
+
+    **3. 环境变量**
+    - 两者加登录选项后都会加载目标用户环境。
+    - `sudo -i` 更彻底地模拟登录；`sudo -s` 则保留更多当前环境。
+
+    **4. 使用场景**
+    - 系统里 root 密码被锁定 / 不知道怎么用 → 用 `sudo -i`。
+    - 需要切换到某个普通用户（如 `su - deploy`）且知道其密码 → 用 `su -`。
+    - 只想跑一条特权命令 → `sudo command` 更合适，不必开 shell。
+
+    ---
+
+    ## 实践建议
+
+    - 日常运维：优先 `sudo command`，需要长时间 root 操作时用 `sudo -i`。
+    - 尽量**不要**直接用 `su -` 到 root，尤其是在 root 密码共享的团队环境里，安全和审计都差。
+    - 退出时用 `exit` 或 `Ctrl+D` 回到原用户。
+
+    一个容易忽略的点：`sudo -i` 和 `su -` 进入后 `$HOME` 都是 `/root`，但 `sudo -i` 下 `$SUDO_USER` 会记录你原来的用户名，方便追溯是谁提权的。
+
+* sudo 与环境变量的关系
+
+    sudo 应该写在环境变量的前面。
+    
+    example:
+
+    `sudo http_proxy=http://127.0.0.1:8822 https_proxy=http://127,0,0,1:8822 apt update`
+
+* `sudo -l`
+
+    列出当前用户可以使用`sudo`执行哪些 root 操作。
+
+    `sudo -ll`可以列出更详细的输出。
+
+    `sudo -U user -l`可以查看其他用户的 root 权限。
+
+* `sudo -v`用于延长 sudo 的密码缓存时间
+
+    `sudo`第一次缓存密码的时间为 15 分钟，执行`sudo -v`会重置这个计时器。
+
+    这里的`-v`代表 validate
+
+    通常在脚本开头检查权限，防止脚本因为 sudo 密码问题中断：
+
+    ```bash
+    if ! sudo -v; then
+        echo "Error: No sudo access or incorrect password."
+        exit 1
+    fi
+    ```
+
+    `sudo -k`可以清空密码缓存。执行`sudo -k`不需要 sudo 密码。
+
 * `/etc/sudoers`中，`@includedir /etc/sudoers.d`用于 加载`/etc/sudoers.d`目录下的所有配置文件
 
     例如：
@@ -14240,67 +9097,2299 @@
 
     因为编辑这个文件可能会影响到当前虚拟机环境，所以上面的命令都没有验证过。
 
-* `ssh-askpass`简介
+### elf
 
-    安装：`apt install ssh-askpass`
+* 简述 readelf -l /bin/bash | grep interpreter 的作用
 
-    直接运行`./ssh-askpass`时，会弹出一个窗口，输入密码并按回车后，输入的内容会出现在 terminal 里。
+    `readelf -l /bin/bash | grep interpreter` 这条命令的作用是：
 
-    `sudo`和`ssh`都可以使用`ssh-askpass`程序弹出 gui 输入密码。
+    **查找 /bin/bash 可执行文件所使用的动态链接器（interpreter）的路径。**
 
-    以`sudo`为例，首先配置环境变量，然后使用`sudo -A <command>`激活：
+    具体分解：
+    1. `readelf -l /bin/bash`：读取 /bin/bash 的程序头表（Program Headers），其中包含 ELF 文件segments的信息。
+    2. `grep interpreter`：过滤出包含 "interpreter" 的行，该行会显示动态链接器的路径。
 
-    ```bash
-    export SUDO_ASKPASS=/usr/bin/ssh-askpass
-    sudo -A -v
+    典型输出示例：
+    ```
+          [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
     ```
 
-    此时在弹出的窗口中输入密码，terminal 不会回显。
+    这表示：
+    - `/bin/bash` 依赖于动态链接器 `/lib64/ld-linux-x86-64.so.2` 来加载运行所需的共享库（如 libc.so）。
+    - 系统内核在执行 `/bin/bash` 时，会先加载这个指定的动态链接器，再由它处理后续的库依赖和符号解析。
 
-    如果未检测到环境变量，sudo 会报错：
+    **作用总结**：快速确认一个ELF可执行文件使用的动态链接器位置，对于调试库依赖问题或跨系统兼容性检查很有用。
 
-    `sudo: no askpass program specified, try setting SUDO_ASKPASS`
+* elf dynamic section lookup table
 
-    `ssh`使用`ssh-askpass`同样需要使用环境变量：
+    | 标签名 (Tag) | 十六进制值 (Hex) | 含义简述 |
+    | - | - | - |
+    | DT_NULL | 0x0 | 标记动态段的结束 |
+    | DT_NEEDED | 0x1 | 所需共享库的名称（字符串表偏移） |
+    | DT_PLTGOT | 0x3 | 全局偏移表（GOT）和/或过程链接表（PLT）的地址 |
+    | DT_HASH | 0x4 | 符号哈希表的地址 |
+    | DT_STRTAB | 0x5 | 字符串表的地址 |
+    | DT_SYMTAB | 0x6 | 符号表的地址 |
+    | DT_INIT | 0xC | 初始化函数的地址 |
+    | DT_FINI | 0xD | 终止函数的地址 |
+    | DT_SONAME | 0xE | 共享库自身的SONAME（字符串表偏移） |
+    | DT_RPATH | 0xF | 库搜索路径（已过时，被DT_RUNPATH取代） |
+    | DT_SYMBOLIC | 0x10 | 提示链接器从该库本身开始符号解析 |
+    | DT_DEBUG | 0x15 | 用于调试（运行时地址由调试器填充） |
+    | DT_TEXTREL | 0x16 | 存在代码段重定位，表明非PIC代码 |
+    | DT_JMPREL | 0x17 | PLT重定位条目的地址 |
+    | DT_RUNPATH | 0x1D | 库搜索路径 |
+    | DT_GNU_HASH | 0x6FFFFEF5 | GNU扩展的哈希表样式 |
+    | DT_INIT_ARRAY | 0x19 | 初始化函数指针数组的地址 |
+    | DT_FINI_ARRAY | 0x1A | 终止函数指针数组的地址 |
 
-    ```bash
-    export SSH_ASKPASS="/usr/bin/ssh-askpass"
+* `readelf -l /bin/bash | grep interpreter`
+
+    查找 /bin/bash 可执行文件所使用的动态链接器（interpreter）的路径。
+
+    output:
+    
+    ```
+          [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
     ```
 
-    经验证，ssh 很难启动 askpass 弹窗，目前不清楚原因。
+    这表示：
 
-* `sudo -v`用于延长 sudo 的密码缓存时间
+    * `/bin/bash`依赖于动态链接器 /lib64/ld-linux-x86-64.so.2 来加载运行所需的共享库（如 libc.so）。
 
-    `sudo`第一次缓存密码的时间为 15 分钟，执行`sudo -v`会重置这个计时器。
+    * 系统内核在执行 /bin/bash 时，会先加载这个指定的动态链接器，再由它处理后续的库依赖和符号解析。
 
-    这里的`-v`代表 validate
+* `readelf`的用法
 
-    通常在脚本开头检查权限，防止脚本因为 sudo 密码问题中断：
+    用于显示关于 ELF (Executable and Linkable Format) 格式目标文件的信息。
+
+    ELF 是现代 Linux 系统上的一种文件格式，用于：
+
+    * 可执行文件 (例如编译生成的`a.out`)
+
+    * 共享库 (例如：libc.so.6)
+
+    * 目标文件 (例如：file.o)
+
+    * 核心转储文件 (core dumps)
+
+    常用选项：
+
+    * 查看文件头 (`-h`)
+
+        这是最常用的选项之一。它显示了 ELF 文件的概要信息，包括：
+
+        * 文件类型（可执行文件、共享库、目标文件等）
+
+        * 目标机器的体系结构（如 x86-64, ARM）
+
+        * 程序的入口点地址（Entry point）
+
+        * 程序头表（Program Headers）和节头表（Section Headers）的起始位置和大小。
+
+    * 查看节头信息 (`-S`)
+
+        显示文件中所有的 “节” (Sections) 的信息。节是 ELF 文件的重要组成部分，例如：
+
+        * `.text`： 存放可执行代码。
+
+        * `.data`： 存放已初始化的全局变量和静态变量。
+
+        * `.bss`： 存放未初始化的全局变量和静态变量。
+
+        * `.rodata`： 存放只读数据（如字符串常量）。
+
+        * `.symtab`： 符号表。
+
+        * `.strtab`： 字符串表。
+
+    * 查看程序头信息 (`-l`)
+
+        显示 “段” (Segments) 或称为 程序头 (Program Headers) 的信息。段告诉操作系统或动态链接器如何将文件加载到内存中并执行。这对于理解程序运行时布局至关重要。
+
+    * 查看符号表 (`-s`)
+
+        显示文件中定义和引用的所有符号，如函数名、变量名。这对于解决“未定义引用”等链接错误非常有用。
+
+    * 查看动态段信息 (`-d`)
+
+        对于动态链接的可执行文件或共享库，此选项显示其依赖的共享库（如 libc.so.6）以及动态链接器需要的其他信息（如重定位信息、符号表地址等）。
+
+    * 查看重定位信息 (`-r`)
+
+        显示文件中需要重定位的条目信息，这在分析目标文件(.o)时尤其有用。
+
+    * 查看节的内容 (`-x` 或 `-p`)
+
+        以十六进制或其他格式转储指定节的具体内容。
+
+    example:
+
+    `readelf -h main`
+
+    output:
+
+    ```
+    ELF Header:
+      Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+      Class:                             ELF64
+      Data:                              2's complement, little endian
+      Version:                           1 (current)
+      OS/ABI:                            UNIX - System V
+      ABI Version:                       0
+      Type:                              DYN (Position-Independent Executable file)
+      Machine:                           Advanced Micro Devices X86-64
+      Version:                           0x1
+      Entry point address:               0x1060
+      Start of program headers:          64 (bytes into file)
+      Start of section headers:          14048 (bytes into file)
+      Flags:                             0x0
+      Size of this header:               64 (bytes)
+      Size of program headers:           56 (bytes)
+      Number of program headers:         13
+      Size of section headers:           64 (bytes)
+      Number of section headers:         31
+      Section header string table index: 30
+    ```
+
+### objdump
+
+* `od`命令
+
+    od（Octal Dump），用于以各种格式显示文件的内容，通常用于查看或诊断文件中那些不可打印的字符（如控制字符、换行符、空字符等）。
+
+    * `od -c`: 将文件的每个字节（byte）解释为 ASCII 字符或转义序列，并以更可读的形式输出。
+
+    example:
+
+    `msg.txt`:
+
+    ```
+    hello, world
+    nihao
+    zaijian
+    ```
+
+    `od -c msg.txt` output:
+
+    ```
+    0000000   h   e   l   l   o   ,       w   o   r   l   d  \n   n   i   h
+    0000020   a   o  \n   z   a   i   j   i   a   n  \n
+    0000033
+    ```
+
+    前面的偏移是 8 进制。
+
+* `od -c <file>`
+
+    以 字符形式（character）显示文件内容，不可打印字符会用转义符（如`\n`, `\t`, `\0`）或八进制表示。
+
+* `od -x`
+
+    od: 是 Octal Dump 的缩写。这个名字源于其最初的主要功能是以八进制（Octal）格式显示文件内容。虽然现在它支持多种格式，但名字保留了下来。
+
+    以十六进制（Hex）格式显示文件的内容.
+
+    `-x`代表输出为“十六进制。
+    
+    example:
+
+    `od -x msg.txt`
+
+    output:
+
+    ```
+    0000000 6568 6c6c 2c6f 7720 726f 646c 202c 696e
+    0000020 6168 2c6f 7a20 6961 696a 6e61 202c 6568
+    0000040 6568 202c 6168 6168 000a
+    0000051
+    ```
+
+    * 最左边的一列: 偏移量地址. 表示当前行数据在文件中的起始位置（偏移量），默认以八进制数显示。
+
+    * 中间的多列: 数据内容. -x 选项规定每2个字节（16位）为一组进行显示。
+    
+        由于计算机的字节序（Endianness）问题，od -x 在显示时使用的是主机本身的字节序（对于大多数x86架构的电脑是小端序）。
+
+        如果文件中连续的2个字节是 0x61 和 0x62（即字符 'a' 和 'b' 的ASCII码），在小端序机器上，od -x 会将其显示为一组：6261（即 0x62 在高位，0x61 在低位）。
+
+    * 如果使用 -x 的同时再加上 -c 选项（即 od -xc），输出还会在最右边增加一列，显示数据对应的ASCII字符。不可打印的字符会显示为转义序列（如 \n）或问号（?）。
+
+        比较神奇的是 ascii 字符会按 2 个字节的间隔自动把顺序倒过来：
+
+        `od -xc msg.txt`:
+
+        ```
+        0000000    6568    6c6c    2c6f    7720    726f    646c    202c    696e
+                  h   e   l   l   o   ,       w   o   r   l   d   ,       n   i
+        0000020    6168    2c6f    7a20    6961    696a    6e61    202c    6568
+                  h   a   o   ,       z   a   i   j   i   a   n   ,       h   e
+        0000040    6568    202c    6168    6168    000a
+                  h   e   ,       h   a   h   a  \n
+        0000051
+        ```
+
+        可以看到，本来`e = 0x65`，`h = 0x68`，但是在显示的时候 od 自动把顺序纠正了。
+
+* `od -t x1`
+
+    以十六进制（HEX）字节的形式，逐个字节地显示文件或输入流的内容。
+
+    * `-t` (`--format`) : 用于指定输出数据的格式。它告诉 od 如何解释和显示文件中的字节。
+
+    * `x1`: `x`表示 16 进制，`1`代表每个输出单元的大小是 1 个字节。
+
+    example:
+
+    ```
+    0000000 7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
+    0000020 03 00 3e 00 01 00 00 00 10 0a 00 00 00 00 00 00
+    0000040 40 00 00 00 00 00 00 00 38 4e 00 00 00 00 00 00
+    ...
+    ```
+
+* `objdump -p <文件名> | grep NEEDED`
+
+    * -p 选项： 代表 --private-headers，用于显示文件格式中特定于该文件的“私有”头信息。对于 ELF 格式的文件（Linux 和大多数Unix-like系统上的标准格式），这个选项会显示出程序头表（Program Headers） 和动态段（Dynamic Section） 等关键信息。
+
+    ldd 会实际尝试加载库并模拟运行，在某些不安全的情况下可能执行恶意代码。而 objdump -p | grep NEEDED 是静态分析，只读取文件头信息，因此更安全，尤其是在分析来源不可信的二进制文件时。
+
+    其他常见的标签：
+
+    * 核心依赖与加载相关
+
+        * `NEEDED`
+
+            该文件运行时所依赖的共享库的名称（如 libc.so.6）。一个文件可以有多个 NEEDED 条目。
+
+        * `SONAME`(Shared Object Name)
+
+            仅存在于共享库（.so 文件）中。它包含了该库的共享对象名称。链接器在链接时会把这个名字（而不是文件名）记录到最终的可执行文件中。这就是实现库版本兼容性的关键机制。
+
+            例如，你有一个文件名为 libxyz.so.1.2.3 的库，但其 SONAME 可能是 libxyz.so.1。可执行文件在运行时寻找的将是 libxyz.so.1，而不是具体的 libxyz.so.1.2.3。
+
+        * `RPATH` / `RUNPATH`
+
+            包含一个用冒号分隔的目录列表。动态链接器在查找 NEEDED 库时，会优先在这些目录中搜索，然后再去默认的系统库路径（如 /lib, /usr/lib）中查找。
+
+            RPATH 是较老的属性，其优先级很高。
+
+            RUNPATH 是新标准，其优先级规则不同（在 LD_LIBRARY_PATH 之后查找）。
+
+    * 符号解析相关
+
+        * HASH / GNU_HASH: 指向一个符号哈希表。动态链接器使用这个表来快速查找函数和变量（符号）在库中的地址，极大地加快了动态链接的过程。GNU_HASH 是现代 Linux 系统上更优的格式。
+
+        * STRTAB: 指向字符串表的地址。该表存储了所有动态链接所需的字符串，如符号名、库名等。
+
+        * SYMTAB: 指向符号表的地址。该表包含了所有需要被动态链接的符号（函数名、变量名）的详细信息（名称、值、大小等）。链接器通常结合 HASH 和 STRTAB 来使用它。
+
+        * PLT (Procedure Linkage Table) / PLTGOT (通常显示为 JMPREL): 指向重定位表的地址。这个表包含了所有需要延迟绑定（Lazy Binding）的函数引用信息。这是实现“第一次调用函数时才进行链接”机制的关键。
+
+    * 初始化与终止相关
+
+        * INIT: 指向初始化函数的地址。这个函数（通常命名为 _init）会在该共享库被加载到内存后、任何其他代码执行之前，由动态链接器自动调用。用于完成该库的全局构造和初始化工作。
+
+        * FINI: 指向终止函数的地址。这个函数（通常命名为 _fini）会在该共享库从内存中卸载之前，由动态链接器自动调用。用于完成清理工作（如释放资源）。
+
+            注意：现代代码更推荐使用 `__attribute__((constructor))` 和 `__attribute__((destructor))` 函数属性来代替直接使用 _init 和 _fini 节。
+
+    * 其他重要标签
+
+        * TEXTREL: 这是一个标志。如果存在，表明链接器需要修改代码段（.text段）的权限（例如将其设为可写）以便进行重定位。这通常意味着共享库不是用 -fPIC 选项编译的（位置无关代码），会带来安全性和性能上的损失。看到这个标志通常不是好事情。
+
+        * FLAGS / FLAGS_1: 一些特殊的标志位。例如 FLAGS_1 中的 PIE 标志表示该可执行文件是位置无关的可执行文件（Position-Independent Executable），这是现代Linux系统上ASLR（地址空间布局随机化）的基础。
+
+        * DEBUG: 这是一个占位符，用于调试信息，通常没有运行时语义。
+
+    ref: 
+    
+    1. <https://docs.oracle.com/cd/E53394_01/html/E54813/chapter6-42444.html>
+
+    1. `man 5 elf`
+
+    1. <https://www.gnu.org/software/binutils/>
+
+* `od -A`
+
+    od -A 选项用于指定输出偏移量（地址）的显示格式。这里的 -A 代表 "Address"。
+
+    * `-A x`: 十六进制（hexadecimal）
+    
+        `0000000`, `0000010`
+    
+    * `-A d`: 十进制（decimal）
+    
+        `0000000`, `0000016`
+
+    * `-A o`: 八进制（octal）, 默认情况
+    
+        `0000000`, `0000020`
+
+    * `-A n`: 不显示偏移量（none）
+    
+        （左侧偏移量栏为空）
+
+* `od -t x<N>`
+
+    按`<N>`字节一组，打印十六进制数据。
+
+    其中`<N>`可以取值 1, 2, 4, 8，如果不指定`<N>`，则默认取`2`。
+
+    注意多字节显示时，输出受字节序的影响，比如单字节显示的`01 02`，使用小端序 + `-x2`显示时可能变成`0201`。
+
+* `objdump`
+
+    主要用于反汇编和分析目标文件及可执行文件。
+
+    常用功能：
+
+    1. 反汇编
+
+        将二进制可执行文件或目标文件（.o, .exe, .so, .dll 等）中的机器代码转换回汇编语言代码。
+
+        `objdump -d ./my_program`
+
+        * `-d`选项表示反汇编包含指令的节（section）。
+
+    2. 查看目标文件结构
+
+        显示文件的头部信息和各个节（Section）的详细信息。包括文件的格式（如ELF、PE）、入口地址、节的大小和位置等。
+
+        `objdump -h ./my_program`
+        
+        * `-h`选项显示节的头部摘要。
+
+    3. 查看符号表
+
+        列出文件中定义和引用的所有符号（如函数名、全局变量名）。
+
+        `objdump -t ./my_program`
+
+        * `-t`选项显示符号表。
+
+    4. 查看文件头信息
+
+        显示二进制文件的元数据，例如目标架构（如x86-64、ARM）、操作系统ABI、文件类型（可执行、共享库等）和入口点地址。
+
+        `objdump -f ./my_program`
+
+        * `-f`选项显示文件头信息。
+
+    5. 以十六进制格式查看文件内容
+
+        除了反汇编，objdump 还可以直接显示文件的十六进制和ASCII表示，类似于 hexdump 或 xxd 命令。
+
+        `objdump -s -j .text ./my_program`
+
+        * `-s` 显示所有节的内容。
+
+        * `-j` 指定只显示某个节（如 .text 节）的内容。
+
+    6. 查看动态链接信息
+
+        对于动态链接的可执行文件或共享库，可以显示其依赖的共享库（如Linux下的 .so 文件）以及动态符号表。
+
+        `objdump -p ./my_program`
+
+        * `-p`显示与动态链接相关的信息（在 ELF 文件中，这类似于`readelf -d`命令）。
+
+* `objdump -p <文件名> | grep NEEDED`
+
+    -p 选项：代表显示文件头信息。
+
+### file / path / symbol
+
+* 详细讲讲 basename 的用法
+
+    `basename` 是 Linux/Unix 系统中另一个非常高频且实用的小工具。它的核心作用很简单：**从一个完整的路径中，把文件名（或者最后一层的目录名）剥离出来**。
+
+    简单来说，就是把路径里的“前缀目录”全部砍掉，只留下最后那个“尾巴”。
+
+    ---
+
+    ## 核心功能与基本语法
 
     ```bash
-    if ! sudo -v; then
-        echo "Error: No sudo access or incorrect password."
-        exit 1
+    basename OPTION... NAME...
+
+    ```
+
+    ### 1. 基础用法：提取文件名
+
+    如果不加任何选项，直接传入一个路径，`basename` 会去掉所有的目录前缀，只输出最后的文件名。
+
+    ```bash
+    basename /usr/local/bin/nginx
+    # 输出: nginx
+
+    basename /var/log/syslog
+    # 输出: syslog
+
+    ```
+
+    > **注意：** `basename` 只是一个**纯粹的字符串处理工具**。它不会去检查这个文件在系统里是否真实存在，它只看你给的字符串。
+
+    ### 2. 尾部斜杠（`/`）的处理
+
+    如果路径最后带有一个或多个斜杠，`basename` 会聪明地忽略掉末尾的斜杠，依然返回最后一层的名字。
+
+    ```bash
+    basename /etc/nginx/
+    # 输出: nginx
+
+    basename /home/user/Downloads///
+    # 输出: Downloads
+
+    ```
+
+    ---
+
+    ## 常用选项与高级技巧
+
+    ### 1. 除去文件后缀（`-s` 或 直接指定）
+
+    这是 `basename` 最常用的功能之一。当你写脚本处理批量文件（比如把 `.txt` 转换成 `.md`）时，需要拿到不带后缀的“裸文件名”。
+
+    有两种写法：
+
+    **写法 A：直接把后缀作为第二个参数（传统写法，一次只能处理一个）**
+
+    ```bash
+    basename /home/user/photo.jpg .jpg
+    # 输出: photo
+
+    ```
+
+    **写法 B：使用 `-s` 选项（现代写法，支持批量，更推荐）**
+
+    ```bash
+    basename -s .jpg /home/user/photo.jpg
+    # 输出: photo
+
+    ```
+
+    ### 2. 支持多个路径批量处理（`-a`）
+
+    默认情况下，传统的 `basename` 一次只能处理一个路径。如果你加上 `-a`（或者 --multiple）选项，它就可以同时处理多个路径。
+
+    ```bash
+    basename -a /etc/passwd /etc/hosts /var/log/nginx.conf
+    # 输出:
+    # passwd
+    # hosts
+    # nginx.conf
+
+    ```
+
+    **结合 `-s` 选项进行批量去后缀：**
+
+    ```bash
+    basename -a -s .mp4 /video/movie1.mp4 /video/movie2.mp4
+    # 输出:
+    # movie1
+    # movie2
+
+    ```
+
+    ---
+
+    ## 经典应用场景
+
+    ### 场景一：在 Shell 脚本中获取当前脚本的名字
+
+    在写脚本时，如果你想在日志或者帮助信息（`--help`）中打印出脚本自己的名字，用 `basename $0` 是最优雅的方式。
+
+    ```bash
+    #!/bin/bash
+
+    # 获取当前脚本的文件名
+    SCRIPT_NAME=$(basename "$0")
+
+    if [ "$1" == "--help" ]; then
+        echo "用法: $SCRIPT_NAME [选项] [参数]"
+        exit 0
     fi
+
     ```
 
-    `sudo -k`可以清空密码缓存。执行`sudo -k`不需要 sudo 密码。
+    无论用户是用 `./test.sh`、`/home/user/test.sh` 还是 `bash test.sh` 执行，`$SCRIPT_NAME` 拿到的永远是 `test.sh`。
 
-* `/proc/<PID>/cmdline` 是 Linux 系统 伪文件系统（procfs） 中的一个特殊文件，用于 获取指定进程（PID）的完整命令行启动参数，以`\0`（空字符）分隔各个参数。
+    ### 场景二：批量修改文件后缀（循环结构）
 
-    如果进程本身就是以相对路径启动的，比如`bash`，那么`cmdline`不会显示其绝对路径。
+    假设你有一堆 `.png` 图片，你想把它们全部转换成 `.webp` 格式，并且保留原名。你可以用 `basename` 来提取出“裸文件名”：
 
-    `cmdline`的结尾没有`\n`。
+    ```bash
+    for file in /path/to/images/*.png; do
+        # 提取不带后缀的文件名
+        name=$(basename "$file" .png)
+        
+        # 假设使用 cwebp 工具进行转换
+        cwebp "$file" -o "/path/to/images/${name}.webp"
+    done
 
-    因为 cmdline 使用`\0`进行参数分隔，所以避免了很多字符转义的问题。
+    ```
 
-* `sudo -l`
+    ---
 
-    列出当前用户可以使用`sudo`执行哪些 root 操作。
+    ## 💡 拓展：与 `dirname` 的黄金搭档
 
-    `sudo -ll`可以列出更详细的输出。
+    在 Linux 中，`basename` 通常和 `dirname` 结对出现：
 
-    `sudo -U user -l`可以查看其他用户的 root 权限。
+    * `basename`：要尾部（文件名）。
+    * `dirname`：要头部（目录路径）。
+
+    ```bash
+    FULL_PATH="/var/www/html/index.html"
+
+    basename "$FULL_PATH"  # 输出: index.html
+    dirname "$FULL_PATH"   # 输出: /var/www/html
+
+    ```
+
+    ## 🛠 现代 Shell 的替代方案（Bash 内置变量切片）
+
+    虽然 `basename` 很好用，但在编写追求性能的 Bash 脚本时，频繁调用外部命令（如 `basename`）会带来额外的进程开销（fork 损耗）。
+
+    Bash 本身提供了更高效的内置参数扩展（Parameter Expansion）语法来替代 `basename`：
+
+    ```bash
+    FILE="/usr/local/bin/myapp.sh"
+
+    # 替代无参数的 basename（从右往左删除第一个 / 及其左边的所有内容）
+    echo "${FILE##*/}"   # 输出: myapp.sh
+
+    # 替代带后缀的 basename
+    BASE="${FILE##*/}"
+    echo "${BASE%.sh}"   # 输出: myapp
+
+    ```
+
+    *提示：如果你只是偶尔在终端敲命令，用 `basename` 更直观；如果是在大型循环脚本里，用 Bash 内置的 `${FILE##*/}` 速度会快很多。*
+
+* 详细讲讲 readlink 的用法
+
+    `readlink` 是 Linux 和 Unix-like 系统中一个非常实用的小工具，它的核心作用就是**找出符号链接（软链接，Symbolic Link）背后的真实面目**。
+
+    简单来说，软链接就像是 Windows 里的“快捷方式”，而 `readlink` 就是用来查看这个快捷方式究竟指向哪里的。
+
+    ---
+
+    ## 核心功能与基本语法
+
+    ```bash
+    readlink [选项] [文件...]
+
+    ```
+
+    ### 1. 基础用法：查看链接指向
+
+    在不带任何参数时，`readlink` 会直接打印出符号链接所指向的**原始路径**。如果目标文件不是符号链接，它什么都不会输出，并且会返回一个非 0 的错误码。
+
+    ```bash
+    # 创建一个测试软链接
+    ln -s /var/log/nginx/access.log my_access.log
+
+    # 使用 readlink 查看
+    readlink my_access.log
+    # 输出: /var/log/nginx/access.log
+
+    ```
+
+    ---
+
+    ## 常用选项（核心大招）
+
+    实际开发或运维中，我们最常用的是它的 `-f` 或 `-e` 选项，因为它们具备“路径规范化（Canonicalization）”的能力。
+
+    ### 1. `-f, --canonicalize`（最常用）
+
+    **规范化路径。** 它会顺藤摸瓜，追踪所有的符号链接，递归地解析出最终的**绝对路径**。
+
+    * **超强容错：** 即使路径中最后的那部分文件/目录还不存在，它也能拼出绝对路径。
+    * **普通文件也适用：** 如果你对一个普通的非链接文件使用 `readlink -f`，它会直接输出该文件的绝对路径。
+
+    ```bash
+    # 假设当前在 /home/user 目录下
+    readlink -f my_access.log
+    # 输出: /var/log/nginx/access.log
+
+    # 哪怕目标是一个普通目录
+    readlink -f ../user/Documents
+    # 输出: /home/user/Documents
+
+    ```
+
+    ### 2. `-e, --canonicalize-existing`
+
+    **严格规范化路径。** 它的工作原理和 `-f` 类似，但要求**路径中的所有组成部分都必须真实存在**。如果链条中的任何一个文件或目录不存在，它就会报错或不输出。
+
+    ### 3. `-m, --canonicalize-missing`
+
+    **完全不检查存在性。** 哪怕路径里有一大半目录都是你瞎编的、根本不存在的，它也会帮你把其中的 `.`、`..` 和软链接理干净，拼出一个理论上的绝对路径。
+
+    ### 4. `-n, --no-newline`
+
+    **不输出换行符。** 默认情况下，`readlink` 输出结果后会换行。在写 Shell 脚本时，如果你想把结果赋值给变量，或者不想让换行符干扰后续处理，这个选项非常有用。
+
+    ---
+
+    ## 三种规范化选项的对比 (`-f` vs `-e` vs `-m`)
+
+    为了让你更直观地理解这三个最让人头疼的参数，我们来看这个对比表：
+
+    | 选项 | 作用 | 终点文件不存在 | 上级目录不存在 |
+    | --- | --- | --- | --- |
+    | **`-f`** | 追踪绝对路径（最宽容） | **允许**（正常输出） | 不允许（报错） |
+    | **`-e`** | 严格检查存在性（最严格） | 不允许（报错） | 不允许（报错） |
+    | **`-m`** | 纯逻辑路径拼接（最放任） | **允许**（正常输出） | **允许**（正常输出） |
+
+    ---
+
+    ## 经典应用场景
+
+    ### 场景一：在 Shell 脚本中获取脚本自身的绝对路径
+
+    这是写 Shell 脚本的“刚需”。很多时候你想在脚本里调用同目录下的其他文件，但用户执行脚本时的当前目录（PWD）是不确定的。
+
+    用下面这行神操作，无论你在哪执行、怎么调用（哪怕是通过软链接调用），都能精准定位脚本所在的目录：
+
+    ```bash
+    # 获取当前脚本的绝对路径（解析了所有软链接）
+    SCRIPT_PATH=$(readlink -f "$0")
+
+    # 获取脚本所在的绝对目录
+    SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+
+    echo "脚本绝对路径是: $SCRIPT_PATH"
+    echo "脚本所在目录是: $SCRIPT_DIR"
+
+    ```
+
+    ### 场景二：排查“多层套娃”的软链接
+
+    有时候系统里的某个命令经过了层层链接（比如 Java 的版本管理）。你想知道它到底用的是哪个路径的二进制文件：
+
+    ```bash
+    # 看看 java 命令指向哪
+    readlink -f $(which java)
+    # 输出可能是: /usr/lib/jvm/java-11-openjdk-amd64/bin/java
+
+    ```
+
+    ---
+
+    ## 💡 小贴士与替代方案
+
+    在现代 Linux 系统中，其实还有一个专门用来规范化路径的命令叫 **`realpath`**。
+
+    * `readlink -f` 的功能与 `realpath` 几乎完全一致。
+    * **移植性建议：** `readlink` 在各个老版本 Unix 和 macOS 上的表现行为可能略有差异（例如 macOS 默认的 `readlink` 不支持 `-f` 选项）。如果你在写跨平台的脚本，需要注意平台兼容性问题（在 Mac 上通常需要安装 `coreutils` 并使用 `greadlink`）。
+
+* `ls -A`
+
+    查看用户创建的隐藏文件
+
+* `truncate -s <bytes>`
+
+    如果文件不存在, 创建指定大小的空文件，内容全部用空字节（\0）填充。如果文件已存在, 若文件原大小 > 指定大小，则截断文件，丢弃超出部分；若文件原大小 < 指定大小，则扩展文件，用空字节填充新增部分。
+
+    example:
+
+    `truncate -s 4096 /dev/shm/my_tmp_file`
+
+    在`/dev/shm`中创建大小为 4096 字节的文件`my_tmp_file`。
+
+* `ls -R`
+
+    递归列出目录及其所有子目录中的内容。
+
+    -R 是 “Recursive”（递归）的缩写。
+
+* `ls -lS`
+
+    以长格式列出文件，并按文件大小降序排序（从大到小）。
+
+    -l 是 “long format” 的缩写，会显示详细信息（权限、所有者、大小、修改时间等）。
+
+    -S 是 “Sort by size” 的缩写（注意是大写S）。
+
+* `ls -lr`
+
+    以反向（逆序） 方式列出文件和目录。
+
+    -r 是 “reverse” 的缩写（注意是小写r）。
+
+    组合使用后，它会将排序结果反转。默认情况下（没有其他排序选项），ls -l 是按文件名升序排序（a-z, 0-9），加上 -r 后就变成了降序（z-a, 9-0）。
+
+    与其他排序选项结合时，用于反转排序顺序。例如，ls -lSr 会按文件大小升序排列（从小到大），因为 -S（大小降序）被 -r 反转了。
+
+* ls 按访问时间排序
+
+    ```bash
+    ls -ltu
+    ```
+
+    -l：长格式显示
+
+    -t：按时间排序（默认是 mtime，但配合 -u 就是按 atime 排序）
+
+    -u：使用访问时间（atime）而不是修改时间（mtime）
+
+* `ls`默认不支持直接按文件创建时间（birth time）排序
+
+    ls 主要显示的是文件的修改时间（mtime）、访问时间（atime）和状态变更时间（ctime）
+
+    较新的内核支持按创建时间排序：
+
+    ```bash
+    ls -lt --time=birth
+    ```
+
+    -l：长格式显示
+
+    -t：按时间排序（默认是 mtime，但配合 --time=birth 就是按创建时间排序）
+
+    --time=birth：显示并按创建时间排序
+
+* `ls -l`命令将最近修改时间的文件放到最上面
+
+    `ls -lt`
+
+    * -t：按修改时间排序，最新的文件在最前面。
+
+    ls 的其他选项：
+
+    * `-r`：倒序
+
+    * `-a`：显示隐藏文件
+
+* ln 是否能创建文件夹的 hard link?
+
+    简单直接的回答是：**不能。**（在绝大多数现代操作系统和文件系统中，这是被严格禁止的。）
+
+    如果你尝试执行 `ln /path/to/dir /path/to/hardlink`，通常会收到如下报错：
+    > `ln: /path/to/dir: hard link not allowed for directory`
+
+    ---
+
+    1. 为什么禁止文件夹硬链接？
+
+        禁止文件夹硬链接主要有两个深层原因：
+
+        * **避免循环引用（Cycles）**：
+
+            硬链接允许一个目标有多个父节点。如果允许对文件夹建立硬链接，你可能会无意中创建一个死循环（例如：文件夹 A 链接到文件夹 B，而 B 又是 A 的子目录）。这会导致文件系统遍历工具（如 `find`、`du`、`ls -R`）陷入无限循环，甚至导致文件系统损坏。
+
+        * **维护树状结构的完整性**：
+
+            文件系统（如 Ext4, XFS, NTFS）依赖于清晰的树状结构来管理 `..`（父目录）指针。如果一个文件夹有两个硬链接，那么它的 `..` 应该指向哪一个父目录呢？这会破坏文件系统的逻辑一致性。
+
+    ---
+
+    2. 例外情况（历史与特殊场景）
+
+        * **`.` 和 `..`**：
+            实际上，每个文件夹内部都自带了两个“硬链接”：`.` 指向自己，`..` 指向父目录。这也是为什么一个空文件夹的链接计数（Link Count）通常是 **2** 的原因。
+        * **超级用户特权**：
+            在某些非常古老的 Unix 系统或特定的底层工具中，系统允许 root 用户强制创建文件夹硬链接（使用 `ln -d`），但这极度危险，现代 Linux 内核已经禁用了这一能力。
+        * **macOS 的 Time Machine**：
+            苹果的 HFS+ 和 APFS 文件系统在底层使用了一种特殊的“目录硬链接”技术来实现高效备份，但这由内核专门管理，用户层无法通过常规 `ln` 命令随意创建。
+
+    ---
+
+    3. 如果你想实现类似功能，该怎么办？
+
+        如果你需要让一个文件夹出现在多个位置，有三种成熟的替代方案：
+
+        方案 A：符号链接（Symbolic Link/Soft Link）—— **最常用**
+        
+        这是最标准的做法，类似于 Windows 的“快捷方式”。
+
+        ```bash
+        ln -s /source/path /target/link_name
+        ```
+
+        方案 B：挂载绑定（Bind Mount）—— **最接近硬链接效果**
+        
+        如果你希望在文件系统层面让两个路径“完全等价”（例如为了绕过 `chroot` 限制），可以使用 `mount --bind`。这在应用看来和原文件夹一模一样。
+        ```bash
+        sudo mount --bind /source/path /target/path
+        ```
+
+        方案 C：硬链接文件夹内的所有文件
+        
+        如果你只是想让文件同步，而不是文件夹本身，可以批量建立文件的硬链接：
+        ```bash
+        cp -al /source/path /target/path
+        ```
+        *注：`-l` 参数会让 `cp` 创建硬链接而不是复制数据内容。*
+
+    ---
+
+    **总结**
+
+    **不支持。** 为了防止文件系统逻辑崩溃，Linux/Unix 限制了 `ln` 只能对文件创建硬链接。
+
+    你想了解如何使用 **`mount --bind`** 来解决某些特定的目录同步问题吗？或是想深入了解文件系统中 **Inode** 的工作原理？
+
+* 当没有颜色区分时，ls 看不出哪个是文件，哪个是文件夹。ls -l 又输出太多，我只想看哪个是文件，哪个是文件夹，不关心其他信息。如何解决这个问题？
+
+    你这个问题很常见！有几种简单的方法可以只区分文件和文件夹，而不显示`ls -l`的详细信息：
+
+    方法1：使用 `ls -F`（最推荐）
+
+    ```bash
+    ls -F
+    ```
+
+    这个命令会在文件名后面添加标识符：
+
+    - `/` 表示目录（文件夹）
+    - `*` 表示可执行文件
+    - `@` 表示符号链接
+    - `=` 表示套接字
+    - `|` 表示命名管道
+
+    示例输出：
+
+    ```
+    file1.txt  file2.sh*  folder1/  folder2/
+    ```
+
+    方法2：使用 `ls -p`
+
+    ```bash
+    ls -p
+    ```
+
+    只在目录后面添加 `/`，其他文件没有标记：
+
+    ```
+    file1.txt  file2.sh  folder1/  folder2/
+    ```
+
+    方法3：使用 `ls --classify`
+
+    ```bash
+    ls --classify
+    ```
+
+    这是 `-F` 的完整参数形式，功能相同。
+
+    方法4：使用 `ls -l | grep`
+
+    如果你想要更清晰的区分：
+
+    ```bash
+    ls -l | grep "^d"  # 只显示目录
+    ls -l | grep "^-"  # 只显示普通文件
+    ```
+
+    方法5：创建别名
+
+    如果你经常使用，可以在 `.bashrc` 或 `.zshrc` 中添加：
+
+    ```bash
+    alias lsf='ls -F'
+    alias lsp='ls -p'
+    ```
+
+    然后就可以直接使用 `lsf` 或 `lsp` 了。
+
+    我个人最推荐 **`ls -F`**，因为它不仅能区分目录，还能识别可执行文件等其他特殊类型的文件。
+
+* 那如果一个符号链接 A 链到文件夹 B 上，我使用 ls -F 查看 A 时，看不出来它是文件还是文件夹
+
+    你说得对！这是一个很好的观察。对于符号链接的情况，`ls -F` 确实有特殊处理：
+
+    `ls -F` 对符号链接的显示规则：
+
+    - 如果符号链接指向**目录**：显示为 `A@` （带 @ 符号）
+    - 如果符号链接指向**文件**：显示为 `B@` （同样是带 @ 符号）
+
+    所以 `ls -F` 只能识别出这是一个链接（通过 @），但无法直接看出它指向的是文件还是目录。
+
+    解决方法：
+
+    方法1：使用 `ls -l` 查看具体指向
+
+    ```bash
+    ls -l
+    ```
+
+    输出示例：
+
+    ```
+    lrwxrwxrwx 1 user user 5 Feb 23 10:00 A -> B/
+    ```
+
+    这里的 `B/` 表示指向目录，如果只是 `B` 则表示指向文件。
+
+    方法2：使用 `ls -F` 加上 `-L` 选项
+
+    ```bash
+    ls -FL
+    ```
+
+    这会显示链接指向的目标的类型（会跟随链接）：
+
+    - 如果 A 指向目录：显示为 `A/`
+    - 如果 A 指向文件：显示为 `A`
+
+    方法3：组合使用 `ls -F` 和 `file` 命令
+
+    ```bash
+    ls -F && file */ 2>/dev/null
+    ```
+
+    或者针对特定链接：
+
+    ```bash
+    file A
+    ```
+
+    输出示例：
+
+    ```
+    A: symbolic link to B/
+    ```
+
+    方法4：使用 `ls -l` 配合 grep 过滤
+
+    ```bash
+    ls -l | grep "^l"  # 查看所有链接
+    ```
+
+    所以，如果你主要关心是文件还是目录，并且需要处理符号链接的情况，可以：
+
+    - 如果想**跟随链接看实际类型**：`ls -FL`
+    - 如果想**保留链接信息但想知道指向什么**：`ls -l` 查看详情
+
+    注：
+
+    1. 最终选择了`alias ll='ls -pL'`
+
+### network
+
+* 如何查看 ifconfig 的网絡接口对应哪个 pci 网卡设备？
+
+    在 Linux 中，`ifconfig` 显示的是网络接口名（如 `eth0`），要找到它对应哪块物理 PCI 网卡，最直接的方法是通过 `sysfs` 文件系统或 `ethtool` 命令查看它们之间的对应关系。
+
+    这里有几种常用且可靠的方法，你可以根据情况选择：
+
+    *  方法一：通过 `/sys/class/net/` 查看符号链接（最推荐）
+
+        Linux 内核会将所有网络接口的信息以符号链接的形式放在 `/sys/class/net/` 目录下，每个接口的链接都指向其真实的设备路径，路径中包含了 PCI 地址信息。
+
+        你可以使用 `ls -l` 命令来查看这个链接指向的路径：
+
+        ```bash
+        ls -l /sys/class/net/
+        ```
+
+        输出示例：
+
+        ```
+        lrwxrwxrwx 1 root root 0 ... enp0s31f6 -> ../../devices/pci0000:00/0000:00:1f.6/net/enp0s31f6
+        lrwxrwxrwx 1 root root 0 ... wlp4s0 -> ../../devices/pci0000:00/0000:00:1c.6/0000:04:00.0/net/wlp4s0
+        ```
+
+        从路径中的 `0000:04:00.0` 这类数字，你就可以直接看到它对应的 PCI 总线地址（BDF，即总线-设备-功能编号）。
+
+    *  方法二：使用 `ethtool` 命令（更直观）
+
+        `ethtool` 是一个专门用来查询和配置网卡参数的工具，通过 `-i` 参数可以直接显示网卡的驱动和总线信息。
+
+        ```bash
+        ethtool -i eth0
+        ```
+        在输出中，找到 `bus-info` 这一行，它后面的 `0000:01:00.0` 就是该网卡的 PCI 地址。
+
+    *  方法三：对比中断号（适合老系统或备用方案）**
+
+        这是一种比较传统的思路。`ifconfig -a` 的输出中，每个接口通常会显示其使用的 IRQ（中断号）。而 `lspci -v` 命令也能列出每个 PCI 设备占用的 IRQ。
+
+        *   **第一步**：运行 `ifconfig -a`，记下目标接口的 IRQ 号（例如 `eth0` 的 IRQ 是 `43`）。
+        *   **第二步**：运行 `lspci -v`，在输出中查找同样使用 IRQ 43 的以太网控制器，从而确定它们是同一个设备。
+
+    **💡 补充技巧：物理定位网卡**
+
+    如果服务器就在手边，而且你只是想物理上找到哪个网口对应 `eth0`，可以试试 `ethtool` 的另一个功能：
+
+    ```bash
+    ethtool -p eth0
+    ```
+
+    这个命令会让对应网卡端口上的指示灯闪烁，从而帮助你直接在机箱背后定位到它。
+
+* `netstat`
+
+    `netstat -a`: 显示所有连接
+
+    `netstat -s`: 显示统计摘要
+
+    `netstat -r`: 查看系统的路由表信息
+
+    `netstat -i`: 显示网络接口的配置和流量统计
+
+    `netstat -tuln`: 列出所有处于监听（LISTEN）状态的端口
+
+    `netstat -tulnp`: 查看占用端口的进程ID（PID）和程序名（需管理员权限）
+
+    常用参数：
+
+    * `-a`: 显示所有连接和监听端口。
+
+    * `-n`: 以数字形式显示地址和端口（禁用DNS解析）。
+
+    * `-t/-u`: 仅显示TCP/UDP连接。
+
+    * `-p`: 显示进程信息（Linux）。
+
+    * `-o`: 显示进程ID（Windows）。
+
+    * `-r`: 显示路由表。
+
+    * `-s`: 显示协议统计信息。
+
+* 详细讲讲 ip tuntap 命令的用法
+
+    在 Linux 中，`ip tuntap` 是 `iproute2` 工具包中的一个子命令，用于**创建、删除和管理 TUN/TAP 虚拟网络接口**。
+
+    在详细讲解命令之前，我们需要先简单理清 **TUN** 和 **TAP** 的区别，这决定了你在什么场景下该用哪种模式：
+
+    * **TUN (Network Tunnel)**：工作在**网络层（Layer 3）**。它处理的是 **IP 数据包**。常用于 VPN（如 OpenVPN、WireGuard）、数据加密隧道等。
+
+    * **TAP (Network Tap)**：工作在**数据链路层（Layer 2）**。它处理的是 **以太网帧（Ethernet Frames）**，就像一根虚拟的网线。常用于虚拟机网络（KVM/QEMU）、网桥（Bridge）等需要绑定 MAC 地址的场景。
+
+    一、`ip tuntap` 基本语法
+
+    核心语法结构如下：
+
+    ```bash
+    ip tuntap { add | del } [ dev NAME ] [ mode { tun | tap } ] [ user USER ] [ group GROUP ] [ one_queue ] [ pi ] [ vnet_hdr ] [ multi_queue ]
+    ```
+
+    常用参数解析：
+
+    * `add` / `del`：添加（创建）或删除一个虚拟接口。
+    * `dev NAME`：指定接口的名称（如 `tun0`, `tap1`）。如果不指定，系统会自动生成（如 `tun0`, `tap0`）。
+    * `mode`：指定工作模式，可选 `tun` 或 `tap`。
+    * `user USER`：指定哪个非 root 用户可以访问/控制该接口（极其实用，避免了让应用程序以 root 权限运行）。
+    * `group GROUP`：指定哪个用户组可以访问该接口。
+    * `multi_queue`：启用多队列支持，以提高多核 CPU 下的网络吞吐量。
+
+    ---
+
+    二、 核心操作实例
+
+    1. 创建虚拟接口
+
+        **示例 A：创建一个名为 `tun0` 的 TUN 接口，并允许普通用户 `vpnuser` 使用**
+
+        ```bash
+        sudo ip tuntap add dev tun0 mode tun user vpnuser
+        ```
+
+        **示例 B：创建一个名为 `tap0` 的 TAP 接口**
+
+        ```bash
+        sudo ip tuntap add dev tap0 mode tap
+        ```
+
+        > **注意**：刚创建好的接口默认是 **DOWN**（关闭）状态的。你需要将它启动并分配 IP 地址才能使用：
+        > ```bash
+        > sudo ip link set dev tun0 up
+        > sudo ip addr add 10.0.0.1/24 dev tun0
+        > 
+        > ```
+        > 
+
+    2. 查看虚拟接口
+
+        虽然 `ip tuntap` 没有专门的 `show` 子命令，但你可以通过以下两种方式查看系统中的 TUN/TAP 接口：
+
+        * **方式一（推荐，专看 tuntap）**：
+
+            直接查看系统的网络设备列表，或者使用 `ip link` 过滤：
+
+            ```bash
+            ip link show type tun
+            ```
+
+            注：在较新的 Linux 内核中，`tun` 和 `tap` 都可以通过 `type tun` 来查看
+
+        * 方式二（看详细状态）：
+
+            ```bash
+            ip -d link show tun0
+            ```
+
+            加上 `-d` (details) 参数可以看到该接口是 `tun` 还是 `tap`，以及它所属的 `user` 和 `group`。
+
+    3. 删除虚拟接口
+
+        当你不再需要这个虚拟接口时，可以将其删除。
+
+        **示例：删除 `tun0` 接口**
+
+        ```bash
+        sudo ip tuntap del dev tun0 mode tun
+        ```
+
+        > **提示**：删除时**必须**指定 `mode`（`tun` 或 `tap`），否则系统可能会报错或无法识别。
+
+    ---
+
+    三、 进阶与高级特性
+
+    1. 免 Root 运行网络程序（User/Group 限制）
+
+        这是 `ip tuntap` 最强大的地方之一。传统的 `tunctl` 或旧方法创建的接口通常需要 root 权限。而使用 `ip tuntap`，你可以提前为某个特定用户创建好接口：
+
+        ```bash
+        # 1. 由 root 创建接口并分配给普通用户 tom
+        sudo ip tuntap add dev tun1 mode tun user tom
+
+        # 2. 切换到 tom 用户，tom 可以直接用这个接口运行自己的 VPN 客户端，无需 sudo
+        ```
+
+    2. 多队列模式 (`multi_queue`)
+
+        在高并发、高吞吐量的服务器场景下（比如作为高性能 KVM 宿主机），单队列的 TAP 接口可能会成为 CPU 0 的瓶颈。
+
+        ```bash
+        sudo ip tuntap add dev tap0 mode tap multi_queue
+        ```
+
+        开启 `multi_queue` 后，多个 CPU 核心可以同时处理该网卡的数据包，显著提升网络 I/O 性能。
+
+    3. `pi` 参数 (Packet Information)
+
+        默认情况下，TUN/TAP 接口会在传递给用户空间的数据包头部加上 4 个字节的额外信息（Flags 和 Protocol）。如果你不需要这些信息，或者你的应用程序明确要求不需要，可以在创建时加上 `pi` 参数（通常是配合特定的底层网络开发）：
+
+        ```bash
+        sudo ip tuntap add dev tun0 mode tun pi
+        ```
+
+    四、 常见工作流对比（老工具 vs 新工具）
+
+    如果你在一些老的教程里看到 `tunctl` 或 `openvpn --mktun`，请自动将它们替换为 `ip tuntap`，因为前者在现代 Linux 中大已被淘汰。
+
+    | 历史老命令 (已过时) | 现代标准命令 (`iproute2`) |
+    | --- | --- |
+    | `tunctl -t tap0` | `ip tuntap add dev tap0 mode tap` |
+    | `tunctl -d tap0` | `ip tuntap del dev tap0 mode tap` |
+    | `openvpn --mktun --dev tun0` | `ip tuntap add dev tun0 mode tun` |
+
+    五、 快速总结清单
+
+    * **创建 TUN**：`sudo ip tuntap add dev <名字> mode tun`
+    * **创建 TAP**：`sudo ip tuntap add dev <名字> mode tap`
+    * **删除**：`sudo ip tuntap del dev <名字> mode <tun|tap>`
+    * **激活接口**：`sudo ip link set dev <名字> up`
+
+* 详细讲讲 linux 中 brctl 命令的用法
+
+    在 Linux 中，`brctl`（Bridge Control）是一个用于配置和管理 **网桥（Network Bridge）** 的经典命令行工具。网桥可以看作是一个虚拟的物理交换机，用来将多个物理或虚拟网卡连接在同一个局域网（LAN）中。
+
+    虽然在较新的 Linux 发行版中，`brctl` 逐渐被 `ip link` 命令取代（属于 `iproute2` 工具包），但 `brctl`（属于 `bridge-utils` 工具包）因其简单直观，依然在很多自动化脚本和老系统中被广泛使用。
+
+    1. 安装 brctl
+
+        如果你的系统提示找不到 `brctl` 命令，可以通过以下方式安装：
+
+        * **Ubuntu / Debian:** `sudo apt install bridge-utils`
+        * **CentOS / RHEL / Fedora:** `sudo yum install bridge-utils` 或 `sudo dnf install bridge-utils`
+
+    2. 核心操作分类详解
+
+        `brctl` 的核心操作主要分为四类：**管理网桥**、**管理网口**、**查看状态** 以及 **配置 STP（生成树协议）**。
+
+        **基础：管理网桥（创建与删除）**
+
+        这类命令用于建立或销毁网桥实例本身。
+
+        * **创建网桥**
+
+            ```bash
+            sudo brctl addbr br0
+            ```
+
+            解释：创建一个名为 `br0` 的虚拟网桥。
+
+        * **删除网桥**
+
+            ```bash
+            sudo brctl delbr br0
+            ```
+
+            注意：在删除网桥之前，必须先让它处于 `down`（关闭）状态（使用 `sudo ip link set br0 down`）。
+
+        ---
+
+        **进阶：管理网口（绑定与解绑）**
+
+        创建网桥后，它就像一个没有插网线的交换机。你需要把物理网卡（如 `eth0`）或虚拟网卡（如 `vnet0`）“插”到这个网桥上。
+
+        * **将网卡添加到网桥（绑定）**
+
+            ```bash
+            sudo brctl addif br0 eth0
+            ```
+
+            解释：将 `eth0` 网卡绑定到 `br0` 网桥上。此时 `eth0` 将作为网桥的一个端口工作。
+
+        * **将网卡从网桥中移除（解绑）**
+
+            ```bash
+            sudo brctl delif br0 eth0
+            ```
+
+        **监控：查看网桥状态与 MAC 地址表**
+
+        * **查看当前系统中所有的网桥信息**
+
+            ```bash
+            brctl show
+            ```
+
+
+            *输出示例：*
+
+            ```text
+            bridge name    bridge id            STP enabled    interfaces
+            br0            8000.000c29abcdef    no             eth0
+                                                               eth1
+            ```
+
+        * **查看网桥的学习到的 MAC 地址表（FDB 表）**
+
+            ```bash
+            brctl showmacs br0
+            ```
+
+            解释：网桥像交换机一样会学习 MAC 地址。这个命令可以让你看到哪些 MAC 地址正连接在网桥的哪个端口上，以及它们是否是本地（local）地址。
+
+        ---
+
+        **高级：配置 STP（生成树协议）**
+
+        当多个网桥连接形成环路时，会导致网络风暴。STP 可以防止环路。
+
+        * **开启 / 关闭 STP**
+
+            ```bash
+            sudo brctl stp br0 on   # 开启
+            sudo brctl stp br0 off  # 关闭
+            ```
+
+        * **修改网桥的各项时间参数（通常保持默认即可）**
+
+            ```bash
+            sudo brctl setfd br0 15       # 设置 Forward Delay（转发延迟）为 15 秒
+            sudo brctl sethello br0 2     # 设置 Hello Time（问候时间）为 2 秒
+            sudo brctl maxage br0 20      # 设置最大老化时间为 20 秒
+            ```
+
+    3. 一个完整的实战配置流程
+
+        假设你要把物理网卡 `eth1` 变成一个网桥 `br0`，供虚拟机使用，标准的操作流程如下：
+
+        ```bash
+        # 1. 创建网桥
+        sudo brctl addbr br0
+
+        # 2. 把物理网卡绑定到网桥
+        sudo brctl addif br0 eth1
+
+        # 3. 清空物理网卡的 IP（网桥接管后，物理网卡不需要独立 IP）
+        sudo ip addr flush dev eth1
+
+        # 4. 启动物理网卡和网桥
+        sudo ip link set eth1 up
+        sudo ip link set br0 up
+
+        # 5. 给网桥配置 IP 地址（可选：让宿主机可以通过这个网桥上网）
+        sudo dhclient br0  # 或者使用 ip addr add 分配静态 IP
+        ```
+
+        > ⚠️ **重要提示：**
+        > 
+        > 使用 `brctl` 命令所做的所有配置都是**临时生效**的，系统重启后会丢失。如果需要永久生效，需要修改系统的网络配置文件（如 Ubuntu 的 `/etc/netplan/*.yaml` 或 CentOS 的 `/etc/sysconfig/network-scripts/ifcfg-*`）。
+
+    ---
+
+    **时代在变：`brctl` 与 `ip link` 的对比**
+
+    由于 `brctl` 属于老旧工具，现代 Linux 更推荐使用 `iproute2` 工具链。你可以参考下表进行语法转换：
+
+    | 操作目的 | 老命令 (`brctl`) | 新命令 (`ip link` / `bridge`) |
+    | --- | --- | --- |
+    | **创建网桥** | `brctl addbr br0` | `ip link add br0 type bridge` |
+    | **删除网桥** | `brctl delbr br0` | `ip link del br0` |
+    | **绑定网口** | `brctl addif br0 eth0` | `ip link set eth0 master br0` |
+    | **解绑网口** | `brctl delif br0 eth0` | `ip link set eth0 nomaster` |
+    | **查看网桥** | `brctl show` | `ip link show type bridge` 或 `bridge link` |
+    | **查看 MAC 表** | `brctl showmacs br0` | `bridge fdb show br br0` |
+
+    你是准备在特定的项目（比如 KVM 虚拟机、Docker 网络）中使用网桥，还是在排查现有的网络问题呢？如果有具体的应用场景，我可以为你提供更针对性的配置方案。
+
+* 详细讲讲 linux 中 nmcli device 相关的命令的作用和用法
+
+    在 Linux 中，`nmcli`（NetworkManager Client）是一个极其强大的命令行工具，用于控制 NetworkManager 并报告网络状态。
+
+    在 `nmcli` 的世界里，有两个核心概念：
+
+    1. **Device（设备）**：指系统中的**物理或虚拟网络接口**（如 `eth0`, `wlan0`, `br0`）。
+
+    2. **Connection（连接）**：指一组**配置好的网络参数**（如 IP 地址、DNS、Wi-Fi 密码）。
+
+    `nmcli device`（可简写为 `nmcli d`）主要负责**直接操作和查看这些网络硬件接口**。
+
+    ---
+
+    一、 核心基础命令
+
+    1. 查看所有网络设备的状态
+
+        ```bash
+        nmcli device status
+        # 或者简写
+        nmcli d
+        ```
+
+        * 作用：列出系统识别到的所有网络接口，并显示它们当前的状态（已连接、已断开、未管理等）以及关联的连接名称。
+
+        * 输出示例：
+
+            | DEVICE | TYPE | STATE | CONNECTION |
+            | --- | --- | --- | --- |
+            | eth0 | ethernet | connected | Wired connection 1 |
+            | wlan0 | wifi | disconnected | -- |
+            | lo | loopback | unmanaged | -- |
+
+    2. 查看设备的详细信息
+
+        ```bash
+        nmcli device show [interface]
+        # 例如
+        nmcli d show eth0
+        ```
+
+        * 作用：显示指定设备（如果不加设备名，则显示所有设备）的极其详细的信息，包括 MAC 地址、IP 地址、子网掩码、网关、DNS、路由信息等。**这相当于 NetworkManager 版的 `ifconfig` 或 `ip addr**`。
+
+    ---
+
+    二、 设备激活与断开（上下线）
+
+    这些命令用于直接控制硬件接口的启用和禁用。
+
+    1. 断开设备连接
+
+        ```bash
+        nmcli device disconnect <interface>
+        # 例如
+        nmcli d disconnect eth0
+        ```
+
+        * 作用：让指定设备断开当前的连接，并阻止该设备自动重新连接。
+        * 注意：这**不会**关闭网卡硬件，只是让它处于 `disconnected`（空闲）状态。
+
+    2. 激活/连接设备
+
+        ```bash
+        nmcli device connect <interface>
+        # 例如
+        nmcli d connect eth0
+        ```
+
+        * 作用：激活该网卡。NetworkManager 会尝试为该接口寻找并应用最合适的可用“连接配置”（Connection）。
+
+    ---
+
+    三、 Wi-Fi 设备专属命令（nmcli device wifi）
+
+    如果你的网卡支持无线，`nmcli d wifi` 是管理无线网络的神器。
+
+    1. 扫描周边的 Wi-Fi 热点
+
+        ```bash
+        nmcli device wifi list
+        # 或者简写
+        nmcli d wifi
+        ```
+
+        * **作用**：扫描并列出当前范围内所有可用的 Wi-Fi 网络，显示 SSID、信道、速率、信号强度（BARS）和加密方式。
+
+    2. 连接到指定的 Wi-Fi
+
+        ```bash
+        nmcli device wifi connect "WiFi_Name" password "WiFi_Password"
+        ```
+
+        * **作用**：连接到指定的无线网络。如果连接成功，NetworkManager 会**自动创建一个同名的连接配置文件**，以后开机就会自动连接。
+
+    3. 强制重新扫描
+
+        ```bash
+        nmcli device wifi rescan
+        ```
+
+        * **作用**：告诉网卡立刻刷新周围的 Wi-Fi 列表（默认情况下，NetworkManager 会在后台定期自动扫描）。
+
+    ---
+
+    四、 高级操作：修改与重新加载
+
+    1. 实时重新加载配置（不重启网卡）
+
+        ```bash
+        nmcli device reapply <interface>
+        ```
+
+        * 作用：如果你手动修改了某个连接的配置（比如改了静态 IP），使用 `reapply` 可以让修改**立刻应用到当前运行的设备上**，而不需要先 `disconnect` 再 `connect`。
+
+    2. 修改设备层面的属性
+
+        ```bash
+        nmcli device modify <interface> <setting>.<property> <value>
+        # 例如临时修改 DNS
+        nmcli d modify eth0 ipv4.dns "8.8.8.8"
+        ```
+
+        * 作用：对正在运行的设备进行**临时修改**。这种修改是临时的，设备重启或断开后会失效（不会写入持久化配置文件）。
+
+    3. 开启/关闭网卡的自动连接属性
+
+        ```bash
+        nmcli device set <interface> autoconnect yes|no
+        ```
+
+        * **作用**：控制该硬件设备未来是否允许自动连接网络。
+
+    五、 实用场景速查表
+
+    > **安全提示**：在远程 SSH 连接服务器时，千万不要轻易对正在使用的网卡执行 `disconnect`，否则会导致连接瞬间切断且无法远程连回！
+
+    | 想要实现的操作 | 命令 |
+    | --- | --- |
+    | **查 IP、网关、DNS 等全部网络信息** | `nmcli d show` |
+    | **看看哪块网卡没插网线/没连上** | `nmcli d` |
+    | **让某块网卡彻底罢工（断网）** | `nmcli d disconnect eth0` |
+    | **让某块网卡重新工作（联网）** | `nmcli d connect eth0` |
+    | **用命令行连公司的 Wi-Fi** | `nmcli d wifi connect "Office-Net" password "123456"` |
+    | **临时换个 IP（测试用）** | `nmcli d modify eth0 ipv4.addresses 192.168.1.100/24` |
+
+    你目前是在配置服务器的静态网络，还是在调试笔记本的无线网络呢？如果有具体的应用场景，我可以为你提供更针对性的命令示例。
+
+* tcp socket 断开连接后，timeout 的时间是多少？
+
+    TCP 连接断开后的超时时间取决于多个因素，主要包括：**操作系统内核参数**、**TCP 状态**和**具体场景**。以下是主要情况的说明：
+
+    1. **主动关闭方（发送 FIN 后进入 `TIME_WAIT`）**
+
+        - **`TIME_WAIT` 状态**：默认保持 **2MSL**（Maximum Segment Lifetime，最大报文生存时间）。
+          - **MSL 值**：不同系统定义不同（RFC 793 建议 2 分钟，但常见系统更短）。
+          - **Linux**：通常 `MSL=60s`，所以 `TIME_WAIT` 默认 **120秒**（可通过 `/proc/sys/net/ipv4/tcp_fin_timeout` 调整，但实际控制的是 `FIN_WAIT_2` 状态）。
+          - **Windows**：默认 MSL 为 120秒，`TIME_WAIT` 通常 **240秒**。
+          - 作用：确保网络中旧的重复报文消失，避免影响新连接。
+
+    2. **被动关闭方（收到 FIN 后进入 `CLOSE_WAIT`）**
+
+        - `CLOSE_WAIT`：等待应用层调用 `close()`，**无固定超时**（依赖应用）。
+        - 若应用不关闭，连接可能一直悬挂（导致连接泄漏）。
+        - 之后发送 FIN 进入 `LAST_ACK`，等待对方 ACK（超时重传依赖 TCP 重传机制）。
+
+    3. **异常断开（连接半开或未正常关闭）**
+
+        **Keepalive 机制**
+
+        如果未开启 TCP Keepalive，可能永远不发现对端死亡。开启后：
+
+        - **Linux**：默认参数（可调整）：
+          ```bash
+          net.ipv4.tcp_keepalive_time = 7200 秒（2小时）
+          net.ipv4.tcp_keepalive_intvl = 75 秒
+          net.ipv4.tcp_keepalive_probes = 9
+          ```
+          即无数据 2 小时后开始探测，每 75 秒发一次，连续 9 次无响应则断开，总耗时约 **2h + 75s * 9 ≈ 2小时11分**。
+
+        **应用层超时**
+
+        - 由应用协议或 socket 选项（如 `SO_RCVTIMEO`/`SO_SNDTIMEO`）设置。
+        - 若无设置，可能永久阻塞在 `read()`/`write()`。
+
+    4. **系统内核参数示例（Linux）**
+
+        ```bash
+        # TIME_WAIT 持续时间（实际由 MSL 决定，不可直接改）
+        cat /proc/sys/net/ipv4/tcp_fin_timeout  # 默认 60（单位秒，实际是FIN_WAIT_2状态超时）
+
+        # 修改 MSL 影响 TIME_WAIT（需改内核源码或调整参数，如 net.ipv4.tcp_max_tw_buckets 限制数量）
+        ```
+
+    5. **重要场景区别**
+
+        | 场景                     | 典型超时                                    |
+        |--------------------------|---------------------------------------------|
+        | 正常关闭（TIME_WAIT）     | 2MSL（Linux 通常 60-120秒）                  |
+        | 对端崩溃无 FIN（Keepalive）| 依赖 Keepalive 设置（默认约2小时以上）       |
+        | 对端断电（无响应）        | 应用/传输层超时或 TCP 重传超时（分钟级）     |
+        | 连接尝试（SYN 超时）      | 指数退避重试，总超时约 75秒-数分钟           |
+
+    6. **总结建议**
+
+        - **正常断开**：关注 `TIME_WAIT`（2MSL）对端口重用影响。
+        - **异常断开**：若需快速检测，应启用 TCP Keepalive 并调小参数，或在应用层实现心跳。
+        - **编程注意**：设置 socket 超时选项，避免僵尸连接。
+
+    如果需要具体系统的默认值或调整方法，请告知操作系统类型（Linux/Windows/macOS等）。
+
+* 如何检测本地某个端口 p 是否被占用？
+
+    检测本地端口是否被占用，有多种方法：
+
+    1. 使用命令行工具
+
+        Windows 系统：
+
+        ```cmd
+        # 查看所有端口占用情况
+        netstat -ano | findstr :端口号
+
+        # 例如检测 8080 端口
+        netstat -ano | findstr :8080
+
+        # 查看指定端口的进程
+        netstat -ano | findstr :端口号
+        ```
+
+        Linux/macOS 系统：
+
+        ```bash
+        # 使用 netstat
+        netstat -tuln | grep :端口号
+
+        # 使用 ss（更现代的工具）
+        ss -tuln | grep :端口号
+
+        # 使用 lsof（显示进程信息）
+        lsof -i :端口号
+
+        # 例如检测 8080 端口
+        lsof -i :8080
+        ```
+
+    2. 使用 telnet（测试连接）
+
+        ```bash
+        telnet localhost 端口号
+        # 如果连接失败，可能是端口未开放或被占用
+        ```
+
+    3. 使用编程语言检测
+
+        Python 示例：
+
+        ```python
+        import socket
+
+        def check_port(port):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('localhost', port))
+            sock.close()
+            return result == 0  # 0 表示端口被占用
+
+        if check_port(8080):
+            print("端口 8080 被占用")
+        else:
+            print("端口 8080 可用")
+        ```
+
+        PowerShell（Windows）：
+
+        ```powershell
+        # 测试端口是否被监听
+        Test-NetConnection -ComputerName localhost -Port 8080
+        ```
+
+    4. **常用命令参数解释**
+
+        - `-t`：TCP 端口
+        - `-u`：UDP 端口
+        - `-l`：监听状态
+        - `-n`：显示数字地址
+        - `-p`：显示进程ID/名称（Linux）
+        - `-a`：显示所有连接
+
+    5. **找出占用端口的进程并结束**
+
+        Windows：
+
+        ```cmd
+        # 1. 查找占用端口的进程 ID
+        netstat -ano | findstr :8080
+
+        # 2. 根据进程 ID 结束进程
+        taskkill /PID 进程ID /F
+        ```
+
+        Linux/macOS：
+
+        ```bash
+        # 1. 查找进程 ID
+        lsof -i :8080
+
+        # 2. 结束进程
+        kill 进程 ID
+        # 强制结束
+        kill -9 进程 ID
+        ```
+
+    选择哪种方法取决于你的操作系统和具体需求。命令行方法最直接，编程方法适合自动化脚本。
+
+    * linux下是否有好用的小工具来检测？
+
+        是的，Linux 下有很多好用的小工具来检测端口占用：
+
+        1. 内置网络工具
+
+            **lsof** - 最详细的工具
+
+            ```bash
+            # 查看指定端口
+            lsof -i :8080
+
+            # 查看所有监听端口
+            lsof -i -P -n | grep LISTEN
+
+            # 查看 TCP/UDP 端口
+            lsof -i tcp:8080
+            lsof -i udp:53
+
+            # 显示进程名和用户
+            lsof -i :8080 -P -n -t
+            ```
+
+            **ss** - netstat 的现代替代品（推荐）
+
+            ```bash
+            # 基本用法
+            ss -tuln | grep :8080
+
+            # 显示进程信息（需要 sudo）
+            ss -tulnp | grep :8080
+
+            # 查看特定协议的端口
+            ss -tlpn  # 所有TCP监听端口
+            ss -ulpn  # 所有UDP监听端口
+
+            # 只显示监听状态的端口
+            ss -tln
+            ```
+
+            **netstat** - 传统工具（很多系统已预装）
+
+            ```bash
+            netstat -tulnp | grep :8080
+            ```
+
+        2. 专用检测工具
+
+            **nmap** - 强大的端口扫描器
+
+            ```bash
+            # 扫描本地端口
+            nmap localhost -p 8080
+
+            # 扫描端口范围
+            nmap localhost -p 1-1000
+
+            # 快速扫描常用端口
+            nmap localhost -F
+            ```
+
+            **ncat/nc** - 网络瑞士军刀
+
+            ```bash
+            # 测试端口是否开放
+            nc -zv localhost 8080
+
+            # 监听模式（测试端口）
+            nc -l -p 8080 &
+            ```
+
+            **telnet** - 简单的连接测试
+
+            ```bash
+            telnet localhost 8080
+            # 如果连接成功或显示 "Connected"，说明端口开放
+            ```
+
+        3. 系统文件直接查看
+
+            ```bash
+            # 查看所有端口绑定
+            cat /proc/net/tcp
+            cat /proc/net/udp
+
+            # 查看特定进程打开的端口
+            ls -l /proc/<PID>/fd/ | grep socket
+            ```
+
+        4. 便捷的脚本工具
+
+            **port-check.sh**（自制脚本）
+
+            ```bash
+            #!/bin/bash
+            check_port() {
+                if ss -tuln | grep -q ":$1 "; then
+                    echo "端口 $1 被以下进程占用:"
+                    lsof -i :$1
+                    return 0
+                else
+                    echo "端口 $1 未被占用"
+                    return 1
+                fi
+            }
+
+            # 使用
+            check_port 8080
+            ```
+
+            **快速测试端口的小函数**（加入 ~/.bashrc）
+
+            ```bash
+            # 添加到 ~/.bashrc
+            port() {
+                if [ -z "$1" ]; then
+                    echo "用法: port <端口号>"
+                    return 1
+                fi
+                echo "检测端口 $1 ..."
+                echo "=== ss 输出 ==="
+                sudo ss -tulnp | grep :$1
+                echo "=== lsof 输出 ==="
+                sudo lsof -i :$1
+                echo "=== 进程信息 ==="
+                pid=$(sudo lsof -t -i :$1 2>/dev/null)
+                if [ -n "$pid" ]; then
+                    ps -p $pid -o pid,user,cmd
+                fi
+            }
+
+            # 重新加载配置后使用：port 8080
+            ```
+
+        5. 推荐组合用法
+
+            **快速检查脚本**
+
+            ```bash
+            #!/bin/bash
+            # 保存为 checkport
+            PORT=$1
+
+            echo "=== 端口 $PORT 占用情况 ==="
+            echo "1. ss 检测:"
+            sudo ss -tulnp | grep :$PORT
+
+            echo -e "\n2. lsof 检测:"
+            sudo lsof -i :$PORT
+
+            echo -e "\n3. 进程详情:"
+            PID=$(sudo lsof -t -i :$PORT 2>/dev/null)
+            if [ -n "$PID" ]; then
+                ps -p $PID -o pid,user,%cpu,%mem,cmd
+            fi
+            ```
+
+            **一键释放端口**
+
+            ```bash
+            #!/bin/bash
+            # 保存为 freeport
+            PORT=$1
+            PID=$(sudo lsof -t -i :$PORT 2>/dev/null)
+
+            if [ -n "$PID" ]; then
+                echo "找到进程 PID: $PID"
+                ps -p $PID -o pid,user,cmd
+                read -p "是否结束进程? [y/N] " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    sudo kill -9 $PID
+                    echo "已结束进程 $PID"
+                fi
+            else
+                echo "端口 $PORT 未被占用"
+            fi
+            ```
+
+        6. 图形化工具（如有桌面环境）
+
+            ```bash
+            # 安装网络工具包
+            sudo apt-get install gnome-nettool  # Debian/Ubuntu
+
+            # 或使用 nmap 前端
+            sudo apt-get install zenmap
+            ```
+
+        使用建议：
+
+        1. **日常使用推荐 `ss`** - 速度快，信息全
+        2. **需要详细进程信息用 `lsof`** - 显示进程、用户、文件描述符
+        3. **网络调试用 `nmap` 或 `nc`** - 功能强大
+        4. **脚本中使用 `ss` 或检查 `/proc/net/tcp`** - 解析方便
+
+        大多数场景下，`ss -tulnp | grep :端口号` 就足够了。
+
+* `ip route get <dst_ip>`可以显示访问`dst_ip`是从本机的哪个路由表出去
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ip route get 223.5.5.5
+    223.5.5.5 via 10.0.2.1 dev enp0s3 src 10.0.2.4 uid 1000 
+        cache
+    ```
+
+    其中`via 10.0.2.1`表示网关（下一跳的地址），`dev enp0s3`表示使用的网卡设备，`src 10.0.2.4`表示源地址。
+
+    `ip route get <dst_ip> from <src_ip>`可以指定源地址。
+
+    ip route get 仅本地查询，不发送真实数据包。
+
+* `ethtool`
+
+    install: `sudo apt install ethtool`
+
+    * 查看网卡基本信息: `ethtool <网卡名>`
+    
+        `ethtool enp0s3`
+
+        output:
+
+        ```
+        Settings for enp0s3:
+        	Supported ports: [ TP ]
+        	Supported link modes:   10baseT/Half 10baseT/Full
+        	                        100baseT/Half 100baseT/Full
+        	                        1000baseT/Full
+        	Supported pause frame use: No
+        	Supports auto-negotiation: Yes
+        	Supported FEC modes: Not reported
+        	Advertised link modes:  10baseT/Half 10baseT/Full
+        	                        100baseT/Half 100baseT/Full
+        	                        1000baseT/Full
+        	Advertised pause frame use: No
+        	Advertised auto-negotiation: Yes
+        	Advertised FEC modes: Not reported
+        	Speed: 1000Mb/s
+        	Duplex: Full
+        	Auto-negotiation: on
+        	Port: Twisted Pair
+        	PHYAD: 0
+        	Transceiver: internal
+        	MDI-X: off (auto)
+        netlink error: Operation not permitted
+                Current message level: 0x00000007 (7)
+                                       drv probe link
+        	Link detected: yes
+        ```
+
+    * 查看驱动信息: `ethtool -i <网卡名>`
+
+        `ethtool -i enp0s3`
+
+        output:
+
+        ```
+        driver: e1000
+        version: 6.8.0-65-generic
+        firmware-version: 
+        expansion-rom-version: 
+        bus-info: 0000:00:03.0
+        supports-statistics: yes
+        supports-test: yes
+        supports-eeprom-access: yes
+        supports-register-dump: yes
+        supports-priv-flags: no
+        ```
+
+    * 查看统计信息: `ethtool -S <网卡名>`
+
+        `ethtool -S enp0s3`
+
+        output:
+
+        ```
+        NIC statistics:
+             rx_packets: 7599541
+             tx_packets: 3763596
+             rx_bytes: 7471543776
+             tx_bytes: 5835620961
+             rx_broadcast: 40
+             tx_broadcast: 6
+             rx_multicast: 0
+             tx_multicast: 828
+             rx_errors: 0
+             tx_errors: 0
+             tx_dropped: 0
+             multicast: 0
+             collisions: 0
+             rx_length_errors: 0
+             rx_over_errors: 0
+             rx_crc_errors: 0
+             rx_frame_errors: 0
+             rx_no_buffer_count: 0
+             rx_missed_errors: 0
+             tx_aborted_errors: 0
+             tx_carrier_errors: 0
+             tx_fifo_errors: 0
+             tx_heartbeat_errors: 0
+             tx_window_errors: 0
+             tx_abort_late_coll: 0
+             tx_deferred_ok: 0
+             tx_single_coll_ok: 0
+             tx_multi_coll_ok: 0
+             tx_timeout_count: 0
+             tx_restart_queue: 0
+             rx_long_length_errors: 0
+             rx_short_length_errors: 0
+             rx_align_errors: 0
+             tx_tcp_seg_good: 1456528
+             tx_tcp_seg_failed: 0
+             rx_flow_control_xon: 0
+             rx_flow_control_xoff: 0
+             tx_flow_control_xon: 0
+             tx_flow_control_xoff: 0
+             rx_long_byte_count: 7471543776
+             rx_csum_offload_good: 0
+             rx_csum_offload_errors: 0
+             alloc_rx_buff_failed: 0
+             tx_smbus: 0
+             rx_smbus: 0
+             dropped_smbus: 0
+        ```
+
+    其他还有些功能，目前看上去用处不大。如果专业做网卡这块了再去了解。
+
+* ifconfig eth0:0 192.168.1.200/24 这里的 eth0:0 中的 :0 是什么意思？
+
+    **eth0:0 的含义**
+
+    **eth0:0** 表示**虚拟网络接口**（也称为子接口、别名接口）。
+
+    **详细解释**
+
+    1. **eth0**：物理网卡名称
+    2. **:0**：虚拟接口标识号（从0开始编号）
+    3. **整体含义**：在物理网卡eth0上创建的**第一个虚拟子接口**
+
+    **主要作用**
+
+    1. **绑定多个IP地址**
+
+        ```bash
+        # 为同一块物理网卡配置多个IP
+        ifconfig eth0 192.168.1.100/24          # 主IP
+        ifconfig eth0:0 192.168.1.200/24        # 第二个IP
+        ifconfig eth0:1 192.168.1.201/24        # 第三个IP
+        ifconfig eth0:2 192.168.1.202/24        # 第四个IP
+        ```
+
+    2. **查看所有虚拟接口**
+
+        ```bash
+        ifconfig                    # 显示所有接口（包括虚拟接口）
+        ifconfig -a                 # 显示所有接口（包括未激活的）
+        ifconfig eth0:0             # 只显示指定虚拟接口
+
+        ip addr show                # 使用ip命令查看（虚拟接口显示为eth0:0）
+        ```
+
+    **应用场景**
+
+    1. **虚拟主机托管**
+
+        ```bash
+        # 为不同域名绑定不同IP
+        ifconfig eth0:0 192.168.1.100/24   # www.site1.com
+        ifconfig eth0:1 192.168.1.101/24   # www.site2.com
+        ifconfig eth0:2 192.168.1.102/24   # www.site3.com
+        ```
+
+    2. **服务隔离**
+
+        ```bash
+        # 不同服务使用不同IP
+        ifconfig eth0:0 192.168.1.200/24   # Web服务
+        ifconfig eth0:1 192.168.1.201/24   # FTP服务
+        ifconfig eth0:2 192.168.1.202/24   # 数据库服务
+        ```
+
+    3. **测试环境**
+        
+        ```bash
+        # 模拟多台机器进行网络测试
+        ifconfig eth0:0 10.0.0.1/24        # 模拟主机A
+        ifconfig eth0:1 10.0.0.2/24        # 模拟主机B
+        ifconfig eth0:2 10.0.0.3/24        # 模拟主机C
+        ```
+
+    **管理虚拟接口**
+
+    **创建虚拟接口**
+
+    ```bash
+    # 方法1：ifconfig
+    ifconfig eth0:0 192.168.1.200/24 up
+
+    # 方法2：ip命令（推荐）
+    ip addr add 192.168.1.200/24 dev eth0 label eth0:0
+    ```
+
+    **删除虚拟接口**
+
+    ```bash
+    # 方法1：ifconfig
+    ifconfig eth0:0 down
+
+    # 方法2：ip命令
+    ip addr del 192.168.1.200/24 dev eth0 label eth0:0
+    ```
+
+    **永久配置（以CentOS/RHEL为例）**
+
+    ```bash
+    # /etc/sysconfig/network-scripts/ifcfg-eth0:0
+    DEVICE=eth0:0
+    IPADDR=192.168.1.200
+    NETMASK=255.255.255.0
+    ONBOOT=yes
+    ```
+
+    **注意事项**
+
+    1. **传统 vs 现代**
+       - `eth0:0` 是老式别名接口表示法
+       - 现代Linux推荐使用 `ip` 命令的标签功能
+
+    2. **与物理接口区别**
+       - 虚拟接口共享物理网卡的带宽
+       - 虚拟接口状态依赖于物理接口（eth0 down时所有eth0:x都down）
+
+    3. **限制**
+       - 不同Linux发行版支持数量可能不同
+       - 某些网络服务可能需要特殊配置才能监听特定IP
+
+    **现代替代方案（ip命令）**
+
+    ```bash
+    # 现代Linux使用ip命令管理多IP
+    ip addr add 192.168.1.100/24 dev eth0        # 主IP
+    ip addr add 192.168.1.200/24 dev eth0        # 添加第二个IP
+    ip addr add 192.168.1.201/24 dev eth0        # 添加第三个IP
+
+    # 查看
+    ip addr show eth0
+    ```
+
+    这种方法更清晰，所有IP都属于eth0设备，没有虚拟接口的概念。
+
+* 简述 ifconfig 的用法
+
+    **ifconfig 命令简述**
+
+    **ifconfig**（interface configuration）是 Linux/Unix 系统中用于配置和显示网络接口信息的命令。
+
+    **基本用法**
+
+    1. **查看网络接口信息**
+        
+        ```bash
+        ifconfig                    # 查看所有已激活的网卡
+        ifconfig -a                 # 查看所有网卡（包括未激活的）
+        ifconfig eth0               # 查看指定网卡（如eth0）
+        ```
+
+    2. **配置网络接口**
+        
+        ```bash
+        # 配置IP地址
+        ifconfig eth0 192.168.1.100 netmask 255.255.255.0
+
+        # 配置IP和子网掩码（简写）
+        ifconfig eth0 192.168.1.100/24
+
+        # 添加第二个IP地址
+        ifconfig eth0:0 192.168.1.200/24
+        ```
+
+    3. **启动/关闭网卡**
+
+        ```bash
+        ifconfig eth0 up            # 激活网卡
+        ifconfig eth0 down          # 关闭网卡
+        ```
+
+    4. **修改MAC地址**
+
+        ```bash
+        ifconfig eth0 hw ether 00:11:22:33:44:55
+        ```
+
+    **输出信息说明**
+
+    - **eth0**：网卡名称
+    - **inet addr**：IPv4地址
+    - **inet6 addr**：IPv6地址
+    - **HWaddr**：MAC地址
+    - **Bcast**：广播地址
+    - **Mask**：子网掩码
+    - **MTU**：最大传输单元
+    - **RX/TX**：接收/发送的数据包统计
+
+    **注意事项**
+
+    - 现代Linux系统推荐使用 **ip** 命令替代（`ip addr`、`ip link`等）
+    - 需要root权限执行配置操作
+    - 临时配置，重启网络服务或系统后失效
+
+* 简述 ip 命令的用法
+
+    **ip 命令简述**
+
+    **ip** 是Linux系统中现代且强大的网络配置命令，用于替代ifconfig、route等传统网络工具。
+
+    **基本语法**
+
+    ```bash
+    ip [选项] 对象 命令
+    ```
+
+    常用对象：link（网络设备）、addr（地址）、route（路由）、neigh（邻居）
+
+    **常用用法**
+
+    1. 网络接口管理（link）
+
+        ```bash
+        ip link show                    # 查看所有网络接口
+        ip link show eth0               # 查看指定接口
+        ip link set eth0 up             # 启动接口
+        ip link set eth0 down           # 关闭接口
+        ip link set eth0 mtu 1500       # 设置MTU值
+        ip link set eth0 address 00:11:22:33:44:55  # 修改MAC地址
+        ```
+
+    2. IP地址管理（addr）
+        
+        ```bash
+        ip addr show                    # 查看所有IP地址
+        ip addr show eth0               # 查看指定接口IP
+        ip addr add 192.168.1.100/24 dev eth0     # 添加IP地址
+        ip addr del 192.168.1.100/24 dev eth0     # 删除IP地址
+        ip addr flush dev eth0          # 清空接口所有IP
+        ```
+
+    3. 路由管理（route）
+
+        ```bash
+        ip route show                   # 查看路由表
+        ip route add default via 192.168.1.1     # 添加默认网关
+        ip route add 10.0.0.0/8 via 192.168.1.1  # 添加静态路由
+        ip route del 10.0.0.0/8         # 删除路由
+        ```
+
+    4. ARP管理（neigh）
+        
+        ```bash
+        ip neigh show                   # 查看ARP缓存
+        ip neigh add 192.168.1.200 lladdr 00:11:22:33:44:55 dev eth0  # 添加静态ARP
+        ip neigh del 192.168.1.200 dev eth0      # 删除ARP条目
+        ```
+
+    **常用选项**
+
+    ```bash
+    ip -4 addr show                 # 只显示IPv4地址
+    ip -6 addr show                 # 只显示IPv6地址
+    ip -s link show eth0            # 显示接口统计信息
+    ip -br addr show                # 简洁显示（brief模式）
+    ```
+
+    **优势特点**
+
+    - 功能更强大，整合了多个网络命令
+    - 输出更规范，易于脚本处理
+    - 支持网络命名空间等高级特性
+    - 配置立即生效，无需重启服务
+
+### ps
+
+* 讲讲 ps -e Lf 的作用
+
+    `ps -e Lf` 的作用是**以长格式列出系统中所有进程，并且显示每个进程内部的所有线程**。
+
+    ### 参数拆解
+    *   **`-e`**：显示**所有**进程，而不仅仅是当前用户的。
+    *   **`-L`**：开启**线程视图**。它会让 ps 列出每个进程下的所有线程（LWP），而不是只显示主进程。
+    *   **`-f`**：使用**全格式**（full-format）列出，提供更详细的列信息（如 UID、PID、PPID、C、STIME 等）。
+
+    ### 输出解读
+    由于加了 `-L`，输出会多出两个关键列：
+    *   **LWP**：轻量级进程 ID，也就是**线程 ID**。对于主线程，这个值通常与进程的 PID 相同。
+    *   **NLWP**：该进程包含的**线程总数**。
+
+    因此，一个进程如果有 5 个线程，在 `ps -e Lf` 的输出中就会占据 **5 行**，每行对应一个线程，且它们的 PID 相同，但 LWP 不同。
+
+    ### 典型用途
+    这个命令常用来排查多线程程序（如 Java、MySQL）的运行状态，查看某个进程具体派生了多少个线程，以及每个线程的 CPU/内存占用情况。
+
+* 解析`ps -ef`
+
+    ps 指的是 process status
+
+    `-e`：显示所有进程（包括其他用户的进程）。
+
+    `-f`：以完整格式（full-format）输出详细信息。
+
+    example:
+
+    ```
+    (base) hlc@hlc-VirtualBox:~$ ps -ef
+    UID          PID    PPID  C STIME TTY          TIME CMD
+    root           1       0  0 09:50 ?        00:00:01 /sbin/init splash
+    root           2       0  0 09:50 ?        00:00:00 [kthreadd]
+    root           3       2  0 09:50 ?        00:00:00 [pool_workqueue_release]
+    root           4       2  0 09:50 ?        00:00:00 [kworker/R-rcu_g]
+    root           5       2  0 09:50 ?        00:00:00 [kworker/R-rcu_p]
+    root           6       2  0 09:50 ?        00:00:00 [kworker/R-slub_]
+    root           7       2  0 09:50 ?        00:00:00 [kworker/R-netns]
+    ...
+    ```
+
+    UID：进程所属用户。
+
+    PID：进程的唯一ID。
+
+    PPID：父进程ID。
+
+    C：CPU占用率。
+
+    STIME：进程启动时间。
+
+    TTY：启动进程的终端（?表示与终端无关，如守护进程）。
+
+    TIME：进程占用CPU总时间。
+
+    CMD：进程对应的完整命令或程序路径。
 
 * `ps -f`
 
@@ -14354,375 +11443,2371 @@
 
         其输出中使用`\_`而不是`|_`，目前仍不清楚原因。
 
-* `tr`的用法
+* `pstree`
 
-    `tr`指的是 translate，通常用于字符替换
+    `pstree`可以以树状结构显示 ps 的内容。
 
     example:
 
+    ```
+    (base) hlc@hlc-VirtualBox:~$ pstree 
+    systemd─┬─ModemManager───2*[{ModemManager}]
+            ├─NetworkManager───2*[{NetworkManager}]
+            ├─accounts-daemon───2*[{accounts-daemon}]
+            ├─acpid
+            ├─avahi-daemon───avahi-daemon
+            ├─blkmapd
+            ├─colord───2*[{colord}]
+    ```
+
+    其中数字表示多个相同的进程/线程。
+
+    常用参数：
+
+    * `-c` 选项禁用合并
+
+    * `-p`：显示进程的 PID。
+
+    * `-n`：按 PID 数字排序（默认按进程名排序）。
+
+    * `-a`：显示进程的完整命令行参数。
+
+    * `pstree [username]`: 查看某用户启动的进程树
+
+    * `-A`: 使用 ASCII 字符绘制树（兼容性更好）
+
+* `ps aux`
+
+    ps: 进程状态（Process Status）
+
+    * `a`： 显示所有用户的进程（而不仅仅是当前用户的）。
+
+    * `u`： 以面向用户的格式显示，这会提供更详细的信息（如 CPU、内存占用率、用户等）。
+
+    * `x`： 列出没有控制终端的进程。这很重要，因为很多系统守护进程（后台服务）是不依赖于终端的。加上 x 才能看到所有这些后台进程。
+
+    输出的关键列的含义：
+
+    | 列名 |全称 | 含义 |
+    | - | - | - |
+    | `USER` | User | 进程的所有者（是哪个用户启动的） |
+    | `PID` | Process ID | 进程的唯一ID号，用于识别和管理进程 |
+    | `%CPU` | CPU Percentage | 进程占用CPU的百分比 |
+    | `%MEM` | Memory Percentage | 进程占用物理内存的百分比 |
+    | `VSZ` | Virtual Set Size | 进程使用的虚拟内存大小（单位：KB） |
+    | `RSS` | Resident Set Size | 进程使用的、未被换出的物理内存大小（单位：KB） |
+    | `TTY` | Teletypewriter | 进程是在哪个终端上运行的。? 表示不是从终端启动的。 |
+    | `STAT` | Process State | 进程状态码（非常重要），例如：<br>- `R`： 正在运行或可运行<br>- `S`： 可中断的睡眠状态（等待事件完成）<br>- `D`： 不可中断的睡眠（通常与IO有关）<br>- `Z`： 僵尸进程（已终止但未被父进程回收）<br>- `T`： 已停止（通常由信号控制） |
+    | `START` | Start Time | 进程启动的时间 |
+    | `TIME` | CPU Time | 进程实际使用CPU运行的总时间 |
+    | `COMMAND` | Command | 启动该进程所用的命令行名称 |
+
+* `ps -xu mkeac | grep qemu`，报错：`error: must set personality to get -x option`，这个报错是为什么
+
+    (ds 回答)
+
+    这个错误是因为在 Linux 系统中，`ps` 命令的选项语法有 **标准语法** 和 **BSD 语法** 的区别，你混用了这两种语法导致的问题。
+
+    **错误原因**
+
+    你的命令 `ps -xu mkeac | grep qemu` 中：
+
+    - `-x` 是 BSD 风格的选项
+    - `-u` 是标准语法选项
+
+    在 Linux 系统中，`ps` 命令不允许这样混合使用不同的语法风格。
+
+    **解决方案**
+
+    **方案1：使用纯 BSD 语法（推荐）**
+
     ```bash
-    echo hello | tr a-z A-Z
+    ps aux | grep qemu | grep mkeac
+    # 或者直接过滤
+    ps aux | grep qemu | grep -v grep
     ```
 
-    output:
-
-    ```
-    HELLO
-    ```
-
-    也可以删除字符：
+    **方案2：使用纯标准语法**
 
     ```bash
-    echo "hello 123 world" | tr -d 0-9
+    # 显示所有进程并过滤
+    ps -ef | grep qemu | grep mkeac
+
+    # 或者指定用户
+    ps -u mkeac -f | grep qemu
     ```
 
-    output:
-
-    ```
-    hello  world
-    ```
-
-    还可以去重：
+    **方案3：正确的混合使用方式**
 
     ```bash
-    echo hello | tr -s l
+    # 先指定用户，再用 BSD 风格显示
+    ps -u mkeac --forest | grep qemu
+
+    # 或者用 -U 指定用户
+    ps -U mkeac -o pid,cmd | grep qemu
     ```
 
-    output:
+    **正确示例**
 
-    ```
-    helo
-    ```
-
-    这里的`-s`可能是 squash 的意思。
-
-    过滤（filter in，保留指定的字符）：
+    根据你的需求（查看 mkeac 用户的 qemu 进程），这里有几个推荐的方法：
 
     ```bash
-    echo "hello 123" | tr -cd 'a-z'
+    # 方法1：最常用（推荐）
+    ps -u mkeac -f | grep qemu
+
+    # 方法2：查看所有进程后过滤
+    ps aux | grep qemu | grep mkeac
+
+    # 方法3：如果只想看 qemu 进程
+    ps -C qemu -f -u mkeac
+
+    # 方法4：更详细的进程信息
+    ps -u mkeac -f --forest | grep -E "qemu|PID"
     ```
 
-    output:
+    **语法说明**
 
-    ```
-    hello
-    ```
+    **标准语法**（使用 `-` 前缀）：
+    - `ps -ef`：显示所有进程
+    - `ps -u username`：显示指定用户
+    - `ps -C command`：显示指定命令
 
-    output 末尾无换行符。`tr`只保留`a-z`小字字母字符。
+    **BSD 语法**（不使用 `-` 前缀）：
+    - `ps aux`：显示所有进程（BSD风格）
+    - `ps ax`：显示所有进程
+    - `ps u`：显示用户格式
 
-    这里的`-c`可能是补集（complementary）的意思
+    **最简单的解决方法**
 
-    一一映射：
-
+    对于你的需求，直接用这个命令就行：
     ```bash
-    echo abc | tr cba xzy
+    ps -fu mkeac | grep qemu
+    # 或
+    ps -u mkeac -f | grep qemu
     ```
 
-    output:
+    这两个命令都能正确显示 mkeac 用户下的 qemu 进程信息。
 
-    ```
-    yzx
-    ```
+* 详细讲讲 linux 中 ps 的用法
 
-    注：
+    **Linux `ps` 命令详解**
 
-    1. `tr`在处理`\n`时。需要给`\n`加上引号（单引号双引号都可以），否则会被 bash 转义。
+    `ps` (process status) 是 Linux 中最基础的进程查看命令，用于显示当前系统的进程状态。
 
-        example:
+    1. **基础用法**
 
         ```bash
-        echo hello | tr '\n' N
+        ps
+        ```
+        默认显示当前终端下的进程，通常只显示两列：
+        - PID：进程ID
+        - TTY：终端类型
+        - TIME：CPU使用时间
+        - CMD：命令名称
+
+    2. **常用选项组合**
+
+        **查看所有进程**
+
+        ```bash
+        # 这三种方式都能查看所有进程
+        ps -ef          # 标准语法
+        ps aux          # BSD 语法  
+        ps -eF          # 显示更多字段
         ```
 
-        output:
+        **常用参数详解**
+
+        ```bash
+        # 常用选项
+        -e   # 显示所有进程
+        -f   # 显示完整格式信息
+        -l   # 长格式显示
+        -u   # 按用户显示
+        -p   # 指定PID显示
+
+        # BSD风格参数
+        a    # 显示所有终端进程
+        u    # 显示面向用户的格式
+        x    # 显示没有终端的进程
+        ```
+
+    3. **输出字段说明**
+
+        ```bash
+        # ps aux 的输出示例
+        USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+        root         1  0.0  0.1 128116  6712 ?        Ss   Nov15   0:03 /usr/lib/systemd
+        ```
+
+        **字段含义：**
+        - **USER**：进程所有者
+        - **PID**：进程ID
+        - **%CPU**：CPU使用率
+        - **%MEM**：内存使用率
+        - **VSZ**：虚拟内存大小(KB)
+        - **RSS**：物理内存大小(KB)
+        - **TTY**：终端类型
+        - **STAT**：进程状态
+        - **START**：启动时间
+        - **TIME**：CPU占用时间
+        - **COMMAND**：命令名称
+
+    4. **进程状态(STAT)**
 
         ```
-        helloN
+        R  # 运行 (Running)
+        S  # 可中断睡眠 (Sleeping)
+        D  # 不可中断睡眠 (Disk sleep)
+        T  # 停止 (Stopped)
+        Z  # 僵尸进程 (Zombie)
+        X  # 死亡进程 (Dead)
+        <  # 高优先级进程
+        N  # 低优先级进程
+        s  # 会话领导者
+        l  # 多线程进程
+        +  # 前台进程组
         ```
 
-        output 后无换行。
+    5. **常用查询示例**
 
-    1. `tr`只能处理单个字符，不能处理字符串和正则表达式。
+        **按用户过滤**
+        
+        ```bash
+        ps -u username        # 查看指定用户的进程
+        ps -U root -u root    # 查看root用户的进程
+        ```
 
-* `grep -F`表示不进行正则解析
+        **按进程名查找**
 
-    example:
+        ```bash
+        ps -C nginx          # 显示nginx进程
+        ps -C sshd -o pid,cmd  # 只显示PID和命令
+        ```
 
-    `grep -F "hello" content.txt`
+        **自定义输出列**
 
-    只查找`hello`字符串。
+        ```bash
+        ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu
+        # 自定义列并按CPU降序排列
+        ```
 
-    `grep -F "a.*b" content.txt`
+        **显示进程树**
 
-    匹配`a.*b`字符串。
+        ```bash
+        ps -ef --forest      # 树形结构显示父子进程
+        ps axjf              # BSD风格的进程树
+        ```
 
-    `grep -F`等价于`fgrep`。
+    6. **实用组合命令**
 
-* `/proc/<PID>/environ`是一个在内存中的文件，以只读的形式存储了指定 PID 进程在启用时的环境变量信息
+        ```bash
+        # 查找特定进程的PID
+        ps aux | grep nginx
 
-    example:
+        # 显示CPU/内存占用前10的进程
+        ps aux --sort=-%cpu | head -11
+        ps aux --sort=-%mem | head -11
 
-    `cat /proc/3273/environ`
+        # 显示进程的详细环境变量
+        ps eww -p PID
 
-    output:
+        # 显示指定PID的进程
+        ps -p 1234,5678 -f
 
-    ```
-    SYSTEMD_EXEC_PID=2451SSH_AUTH_SOCK=/run/user/1000/keyring/sshSESSION_MANAGER=local/hlc-VirtualBox:@/tmp/.ICE-unix/2235,unix/hlc-VirtualBox:/tmp/.ICE-unix/2235GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/16e4c141_024c_4318_9398_96a803c31884LANG=en_US.UTF-8XDG_CURRENT_DESKTOP=ubuntu:GNOMEPWD=/home/hlcWAYLAND_DISPLAY=wayland-0LC_IDENTIFICATION=zh_CN.UTF-8IM_CONFIG_PHASE=1...
-    ```
+        # 实时监控进程
+        watch -n 1 'ps aux --sort=-%cpu | head -20'
+        ```
 
-    其形式为`key=value`，环境变量之间使用`\0`间隔。
+    7. **性能相关用法**
 
-    此文件为只读属性，无法修改。
+        ```bash
+        # 查看线程信息
+        ps -eLf              # 显示所有线程
+        ps -T -p PID         # 查看指定进程的线程
 
-    可以将`\0`替换为`\n`，便于阅读：
+        # 查看进程的CPU亲和性
+        ps -o pid,psr,cmd -p PID
 
-    `cat /proc/<PID>/environ | tr '\0' '\n'`
+        # 查看进程的内存映射
+        ps -o pid,cmd,vsize,rssize -p PID
+        ```
 
-    output:
+    8. **常见问题排查**
 
-    ```
-    SYSTEMD_EXEC_PID=2451
-    SSH_AUTH_SOCK=/run/user/1000/keyring/ssh
-    SESSION_MANAGER=local/hlc-VirtualBox:@/tmp/.ICE-unix/2235,unix/hlc-VirtualBox:/tmp/.ICE-unix/2235
-    GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/16e4c141_024c_4318_9398_96a803c31884
-    LANG=en_US.UTF-8
-    XDG_CURRENT_DESKTOP=ubuntu:GNOME
-    PWD=/home/hlc
-    WAYLAND_DISPLAY=wayland-0
-    LC_IDENTIFICATION=zh_CN.UTF-8
-    IM_CONFIG_PHASE=1
-    ...
-    ```
+        **查找僵尸进程**
 
-    说明：
+        ```bash
+        ps aux | grep Z
+        ps -eo pid,stat,cmd | grep Z
+        ```
 
-    1. `/proc/<PID>/environ`不是实时的，如果在程序中运行`setenv()`，那么此文件内容不会被改变。
+        **查找CPU占用过高的进程**
 
-    1. 仅允许进程所有者或 root 用户读取（权限为`-r--------`）
+        ```bash
+        ps aux --sort=-pcpu | head -5
+        ```
 
-        这样看来，这个文件的用处似乎不大？
+        **查找内存占用过高的进程**
 
-* `sudo yum check-update`相当于`sudo apt update`
+        ```bash
+        ps aux --sort=-pmem | head -5
+        ```
 
-* centos 加入 sudo 权限
+    9. **高级用法示例**
 
-    `usermod -aG wheel 用户名`
+        ```bash
+        # 显示所有进程的完整命令行，包括参数
+        ps auxww
 
-    在 centos 中，`wheel`组有 sudo 权限。
+        # 结合其他命令处理进程
+        kill -9 $(ps aux | grep 'process_name' | awk '{print $2}')
 
-* 解析`ps -ef`
+        # 按CPU使用率排序，并显示指定列
+        ps -e -o pid,pcpu,pmem,args --sort=-pcpu | head -20
 
-    ps 指的是 process status
+        # 显示进程的执行时间
+        ps -eo pid,comm,etime,time
+        ```
 
-    `-e`：显示所有进程（包括其他用户的进程）。
+    10. **ps vs top/htop**
 
-    `-f`：以完整格式（full-format）输出详细信息。
+        | 命令 | 特点 | 适用场景 |
+        |------|------|----------|
+        | `ps` | 静态快照，适合脚本处理 | 一次性查看、脚本分析 |
+        | `top` | 动态刷新，交互式 | 实时监控、交互操作 |
+        | `htop` | 增强版top，界面友好 | 需要可视化操作的场景 |
 
-    example:
+    **小贴士**
 
-    ```
-    (base) hlc@hlc-VirtualBox:~$ ps -ef
-    UID          PID    PPID  C STIME TTY          TIME CMD
-    root           1       0  0 09:50 ?        00:00:01 /sbin/init splash
-    root           2       0  0 09:50 ?        00:00:00 [kthreadd]
-    root           3       2  0 09:50 ?        00:00:00 [pool_workqueue_release]
-    root           4       2  0 09:50 ?        00:00:00 [kworker/R-rcu_g]
-    root           5       2  0 09:50 ?        00:00:00 [kworker/R-rcu_p]
-    root           6       2  0 09:50 ?        00:00:00 [kworker/R-slub_]
-    root           7       2  0 09:50 ?        00:00:00 [kworker/R-netns]
-    ...
-    ```
+    - `ps aux` 是最常用的组合，足够应付大多数场景
+    - 结合 `grep` 可以快速过滤特定进程
+    - 使用 `--sort` 参数可以方便地排序查看
+    - 在脚本中建议使用完整的选项名（如 `--pid` 而不是 `-p`）以提高可读性
 
-    UID：进程所属用户。
+    掌握 `ps` 命令是 Linux 系统管理和问题排查的基础技能之一。
 
-    PID：进程的唯一ID。
+### log / journal
 
-    PPID：父进程ID。
+* 简述 `/var/log/syslog`, `/var/log/messages` 的作用与区别
 
-    C：CPU占用率。
+    /var/log/syslog 和 /var/log/messages 都是 Linux 系统中用于记录系统日志的重要文件，但它们的用途和内容因发行版而异。
 
-    STIME：进程启动时间。
+    主要作用
 
-    TTY：启动进程的终端（?表示与终端无关，如守护进程）。
+    /var/log/syslog
 
-    TIME：进程占用CPU总时间。
+    * 记录系统范围的日志信息
 
-    CMD：进程对应的完整命令或程序路径。
+    * 包含内核、服务、应用程序等多种日志
 
-* `rsync`中，src dir 的下面四种写法是等价的
+    * 通常由 rsyslog 或 syslog-ng 管理
 
-    `.`, `./`, `*`, `./*`
+    * 是 syslog 服务的默认主日志文件
 
-* `rsync`中, `--progress`可以显示进度，`--partial`支持断点续传
+    /var/log/messages
 
-    `-P`则表示同时 enable `--progress --partial`。
+    * 传统系统日志文件
 
-* grep 开启`-E`时，可以使用`|`匹配多个模式。
+    * 记录系统启动、运行状态、硬件检测等信息
 
-    `grep -E haha\|hehe msg.txt`
+    * 包含非关键性系统消息
 
-    `grep -E 'haha|hehe' msg.txt`
+    主要区别
 
-    bash 会将`|`默认解释为管道，如果希望 bash 将`|`解释为字符`|`，那么要么在之前加`\`，要么使用单引号`''`。
-    
-    注：
+    | 特性 | /var/log/syslog | /var/log/messages |
+    | - | - | - |
+    | 主要使用发行版 | Debian/Ubuntu 等 | RHEL/CentOS/Fedora 等 |
+    | 日志详细程度 | 更详细，包含大多数日志 | 较简略，主要为系统级消息 |
+    | 默认包含设施 | 所有设施（facility） | 通常排除 mail, authpriv, cron 等 |
+    | 优先级 | 通常记录 info 及以上 | 通常记录 warning/err 及以上 |
 
-    1. 标准的正则表达式支持`|`，比如 python 的`re`模块。
+    配置差异
 
-    1. `|`的前后不能有空格，或者说，空格不会被忽略。
+    在 Debian/Ubuntu 系统中：
 
-* `rsync -z`表示在传输过程中对要传输的文件进行压缩。如果传输过程文本文件比较多，可以使用`-z`大幅提高传输效率。
+    * /var/log/syslog 是主要日志文件
 
-* `tee -a`表示在文件末尾追加
+    * 配置通常在 /etc/rsyslog.conf 或 /etc/rsyslog.d/50-default.conf
 
-    如果文件不存在，则会创建文件。
+    在 RHEL/CentOS 系统中：
 
-    echo 本身会在行尾加`\n`，因此不需要额外考虑`\n`。
+    * /var/log/messages 是主要系统日志
+
+    * /var/log/syslog 可能不存在或为空
+
+    * 配置在 /etc/rsyslog.conf
+
+    查看建议
+
+    * 快速查看系统问题：
+
+        ```bash
+        # Debian/Ubuntu
+        tail -f /var/log/syslog
+
+        # RHEL/CentOS
+        tail -f /var/log/messages
+        ```
+
+    * 使用统一工具：
+
+        ```bash
+        # 使用 journalctl（systemd 系统）
+        journalctl -f
+
+        # 按优先级过滤
+        grep -i error /var/log/syslog
+        ```
+
+    最佳实践
+
+    * 不要手动删除：使用 logrotate 管理日志轮转
+
+    * 监控关键日志：设置日志监控告警
+
+    * 了解发行版差异：根据系统类型查看相应日志文件
+
+    * 使用集中式日志：生产环境建议使用 ELK、Graylog 等集中日志系统
+
+    在实际运维中，了解所用 Linux 发行版的日志配置习惯非常重要，这能帮助快速定位和解决系统问题。
+
+* 将 journactl 中的中文日期改成英文
+
+    方法1：临时设置环境变量（当前会话有效）
 
     ```bash
-    echo 'heloo' | tee -a log.txt
-    echo 'heloo' | tee -a log.txt
-    cat log.txt
+    # 设置语言为英文
+    export lang=en_us.utf-8
+    export lc_time=en_us.utf-8
+
+    # 查看日志
+    journalctl -u sshd
     ```
 
-    output:
+    方法2：永久修改系统语言
 
-    ```
-    heloo
-    heloo
-    heloo
-    heloo
-    ```
+    ```bash
+    # 编辑 locale 配置文件
+    sudo vim /etc/locale.conf
 
-* grep 查看前后 n 行文本
+    # 添加或修改以下内容
+    lang="en_us.utf-8"
+    lc_time="en_us.utf-8"
 
-    * 向前 n 行：`grep -B n`
+    # 或者使用 sed 命令
+    sudo sed -i 's/lang=.*/lang="en_us.utf-8"/' /etc/locale.conf
+    echo 'lc_time="en_us.utf-8"' | sudo tee -a /etc/locale.conf
 
-    * 向后 n 行：`grep -A n`
-
-    * 前后各 n 行：`grep -C n`
-
-    其中 A 表示 after，B 表示 before，C 表示 context。
-
-    example:
-
-    `msg.txt`:
-
-    ```
-    hello, world, nihao, zaijian
-    123, 234, 345, 456, nihao
-    hello, 345
-    haha
-    hehesdf
-    aaaaa
-    bbb
+    # 重启系统或重新加载环境
+    sudo systemctl restart systemd-journald
     ```
 
-    run: `grep -B 1 -A 2 345 msg.txt`
+    方法3：journalctl 特定命令选项
 
-    output:
+    ```bash
+    # 使用 --no-full 和特定输出格式
+    journalctl -u sshd --since "2023-12-02 21:27:27" --output json
 
+    # 或者使用特定字段显示
+    journalctl -u sshd -o json-pretty | grep -e '(message|__realtime_timestamp)'
     ```
-    hello, world, nihao, zaijian
-    123, 234, 345, 456, nihao
-    hello, 345
-    haha
-    hehesdf
-    ```
-
-    run : `grep -C 1 345 msg.txt`
-
-    output:
-
-    ```
-    hello, world, nihao, zaijian
-    123, 234, 345, 456, nihao
-    hello, 345
-    haha
-    ```
-
-* find 不输出没有权限的文件
-
-    find 对没有权限的文件会输出类似
-
-    ```
-    ...
-    find: ‘/proc/1188309/task/1188309/ns’: Permission denied
-    find: ‘/proc/1188309/fd’: Permission denied
-    find: ‘/proc/1188309/map_files’: Permission denied
-    find: ‘/proc/1188309/fdinfo’: Permission denied
-    find: ‘/proc/1188309/ns’: Permission denied
-    ...
-    ```
-
-    的信息。这些信息其实都是 stderr。因此可以考虑过滤掉 stderr 的输出：
-
-    `find <path> -name <pattern> 2>/dev/null`
-
-    example:
-
-    `find / -name hello 2>/dev/null`
-
-    output:
-
-    ```
-    /home/hlc/miniconda3/pkgs/tk-8.6.14-h39e8969_0/lib/tk8.6/demos/hello
-    /home/hlc/miniconda3/lib/tk8.6/demos/hello
-    /home/hlc/miniconda3/envs/torch/lib/tk8.6/demos/hello
-    /home/hlc/miniconda3/envs/vllm/lib/tk8.6/demos/hello
-    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt4/hello
-    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt3/hello
-    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/hello
-    /home/hlc/Documents/Projects/chisel-tutorial/src/main/scala/hello
-    /home/hlc/Documents/Projects/makefile_test/hello
-    ```
-
-* sudo 与环境变量的关系
-
-    sudo 应该写在环境变量的前面。
     
+* journalctl -f
+
+    如果你的目标是 Linux 系统服务日志（现在的发行版基本都是 Systemd），不要去翻 /var/log，直接用原生的工具：
+
+        用法：journalctl -u nginx.service -f
+
+        特点：这才是最接近 dmesg -w 体验的官方命令。-f 参数就是 follow。
+
+* journactl 如何只查看最近两天的日志
+
+    你可以通过以下几种方式使用 `journalctl` 查看最近两天的日志：
+
+    * 使用 `--since` 参数
+
+        ```bash
+        # 查看最近48小时的日志
+        journalctl --since "2 days ago"
+
+        # 或使用更精确的时间格式
+        journalctl --since "2 days ago" --until "now"
+        ```
+
+    * 查看今天和昨天的日志
+
+        ```bash
+        # 查看今天和昨天的所有日志
+        journalctl --since yesterday --until tomorrow
+
+        # 或查看特定日期范围
+        journalctl --since "2023-12-01" --until "2023-12-03"
+        ```
+
+    * 使用相对时间
+
+        ```bash
+        # 查看过去48小时的日志
+        journalctl --since "-2 days"
+
+        # 结合其他筛选条件
+        journalctl --since "2 days ago" -p err       # 只看错误日志
+        journalctl --since "2 days ago" -u nginx     # 只看特定服务
+        ```
+
+    * 查看最近一定数量的条目
+
+        ```bash
+        # 查看最近1000条日志（如果日志非常密集）
+        journalctl -n 1000
+
+        # 或实时查看最新日志
+        journalctl -f
+        ```
+
+    **实用组合命令**
+
+    ```bash
+    # 查看最近两天并分页显示
+    journalctl --since "2 days ago" | less
+
+    # 查看最近两天并导出到文件
+    journalctl --since "2 days ago" > recent_logs.txt
+
+    # 查看最近两天的特定优先级以上的日志
+    journalctl --since "2 days ago" -p warning
+
+    # 查看最近两天特定服务的日志
+    journalctl --since "2 days ago" -u ssh.service
+    ```
+
+    **注意事项**
+
+    1. **时间格式**：journalctl 支持多种时间格式：
+
+        - `"2 days ago"`
+        - `"yesterday"`
+        - `"2023-12-01 14:30:00"`
+        - `"-1h30min"`
+
+    2. **权限**：可能需要 sudo 权限才能查看所有日志
+
+        ```bash
+        sudo journalctl --since "2 days ago"
+        ```
+
+    3. **时区**：默认使用系统时区，可以用 `--utc` 显示 UTC 时间
+
+        ```bash
+        journalctl --since "2 days ago" --utc
+        ```
+
+### vfio-pci
+
+* 不使用 sudo，使得普通用户也可以透传 vfio 设备到 qemu
+
+   1. 找到网卡所在的 IOMMU 组：
+
+        `readlink /sys/bus/pci/devices/0000:ca:00.0/iommu_group` 
+
+        输出类似于 ../../../../kernel/iommu_groups/XX，其中 XX 就是组号。
+
+    2. 修改设备节点权限，允许你的用户访问：
+
+        `sudo chown $USER /dev/vfio/XX`
+
+        如果不行，再加上`sudo chmod 660 /dev/vfio/$GROUP`
+
+    注意：每次重启或重新绑定 vfio-pci 后，/dev/vfio/<group> 会重建，chown 会失效，需要重新执行。可以写个小脚本或加 udev 规则持久化。
+
+* centos 如何启动 vfio-pci
+
+    在 CentOS 中启动VFIO-PCI驱动涉及以下步骤：
+
+    1. 检查系统要求
+
+        首先确认系统支持IOMMU：
+        
+        ```bash
+        # 检查CPU是否支持虚拟化
+        cat /proc/cpuinfo | grep -E 'vmx|svm'
+
+        # 检查是否启用IOMMU
+        dmesg | grep -E 'DMAR|IOMMU'
+        ```
+
+    2. 启用IOMMU
+
+        编辑 GRUB 配置文件：
+
+        ```bash
+        # 编辑grub配置
+        vi /etc/default/grub
+        ```
+
+        对于 Intel CPU，在`GRUB_CMDLINE_LINUX`行添加：
+
+        `intel_iommu=on iommu=pt`
+
+        对于 AMD CPU：
+
+        `amd_iommu=on iommu=pt`
+
+        更新GRUB并重启：
+
+        ```bash
+        # 对于BIOS系统
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+
+        # 对于UEFI系统
+        grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+
+        # 重启系统
+        reboot
+        ```
+
+    3. 确认IOMMU已启用
+
+        重启后验证：
+
+        ```bash
+        dmesg | grep -E 'DMAR|IOMMU'
+        # 应看到类似：DMAR: IOMMU enabled
+        ```
+
+        检查IOMMU分组：
+
+        ```bash
+        # 安装必要工具
+        yum install -y pciutils
+
+        # 查看IOMMU分组
+        lspci -nnk
+        ```
+
+    4. 绑定设备到VFIO驱动
+
+        方法二：使用内核参数（永久）
+
+        ```bash
+        # 编辑grub配置
+        vi /etc/default/grub
+        ```
+
+        在`GRUB_CMDLINE_LINUX`添加：
+
+        ```
+        vfio-pci.ids=10de:1b80,10de:10f0
+        ```
+
+        （多个设备用逗号分隔）
+
+        更新GRUB并重启：
+
+        ```bash
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+        reboot
+        ```
+
+    6. 配置自动加载（可选）
+
+        ```bash
+        # 创建模块配置文件
+        echo "options vfio-pci ids=10de:1b80" > /etc/modprobe.d/vfio.conf
+
+        # 设置模块自动加载
+        echo "vfio" >> /etc/modules-load.d/vfio-pci.conf
+        echo "vfio-pci" >> /etc/modules-load.d/vfio-pci.conf
+
+        # 屏蔽原驱动（防止冲突）
+        echo "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
+        echo "blacklist nvidia" >> /etc/modprobe.d/blacklist.conf
+        ```
+
+    7. 常见问题排查
+
+        查看IOMMU分组详细信息：
+
+        ```bash
+        #!/bin/bash
+        shopt -s nullglob
+        for g in /sys/kernel/iommu_groups/*; do
+            echo "IOMMU Group ${g##*/}:"
+            for d in $g/devices/*; do
+                echo -e "\t$(lspci -nns ${d##*/})"
+            done;
+        done
+        ```
+
+        检查设备是否支持透传：
+
+        ```bash
+        # 检查ACS支持
+        dmesg | grep -i acs
+        ```
+
+        如果遇到权限问题：
+
+        ```bash
+        # 确保用户有访问权限
+        chmod 0666 /dev/vfio/*
+        ```
+
+* 检查 vfio-pci 的状态
+
+    **在CentOS 7/8中，VFIO-PCI通常不需要单独安装，它是内核的一部分**，但需要正确配置和启用。
+
+    1. 查看VFIO模块是否可用
+
+        ```bash
+        # 查看内核中是否有 vfio-pci 模块
+        modinfo vfio-pci
+
+        # 列出所有可用的 vfio 相关模块
+        ls /lib/modules/$(uname -r)/kernel/drivers/vfio/ | grep -i vfio
+        ```
+
+    2. 不同 CentOS 版本的情况
+
+        * CentOS 7
+
+            - VFIO从内核3.6+开始包含
+            - CentOS 7.3+默认包含（内核3.10+）
+            - 通常已内置，无需安装
+
+        * CentOS 8/Stream：
+
+            - 肯定包含在内核中
+            - 更完善的支持
+
+    尝试加载 vfio-pci 模块:
+
+    ```bash
+    modprobe vfio
+    modprobe vfio-pci
+
+    # 验证已加载
+    lsmod | grep vfio
+    ```
+
+    输出应包含：
+
+    ```
+    vfio_pci               45056  0
+    vfio_virqfd            16384  1 vfio_pci
+    vfio_iommu_type1       32768  0
+    vfio                   32768  2 vfio_iommu_type1,vfio_pci
+    ```
+
+* 绑定设备到 VFIO（两种方法）
+
+    **方法一：使用内核参数（推荐，永久生效）**
+
+    ```bash
+    # 查找设备 ID
+    lspci -nn | grep -i "nvidia\|amd"
+
+    # 示例输出：01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP104 [10de:1b80] (rev a1)
+    # 设备 ID 是 10de:1b80
+
+    # 编辑 GRUB 配置
+    sudo nano /etc/default/grub
+
+    # 在 GRUB_CMDLINE_LINUX_DEFAULT 添加
+    # vfio-pci.ids=10de:1b80,10de:10f0
+
+    # 更新并重启
+    sudo update-grub
+    sudo reboot
+    ```
+
+    **方法二：使用驱动覆盖（临时）**
+
+    ```bash
+    # 解除当前驱动
+    echo "0000:01:00.0" | sudo tee /sys/bus/pci/devices/0000:01:00.0/driver/unbind
+
+    # 绑定到 VFIO
+    echo "vfio-pci" | sudo tee /sys/bus/pci/devices/0000:01:00.0/driver_override
+    echo "0000:01:00.0" | sudo tee /sys/bus/pci/drivers/vfio-pci/bind
+    ```
+
+    验证配置:
+
+    ```bash
+    # 检查设备是否绑定到 VFIO
+    lspci -nnk -s 01:00.0
+
+    # 应该显示：
+    # Kernel driver in use: vfio-pci
+    # Kernel modules: nvidiafb, nouveau, vfio-pci
+
+    # 检查权限
+    ls -la /dev/vfio/
+    ```
+
+### wireguard
+
+* 详细讲讲 wireguard 的用法
+
+    WireGuard 是一种极其高效、轻量且现代的 VPN 协议。相比于传统的 OpenVPN 或 IPsec，它的代码量极小（仅几千行），速度极快，延迟低，且在移动端断线重连的表现堪称完美。
+
+    WireGuard 的核心哲学是 **“对等体（Peer-to-peer）”**。无论是服务器还是客户端，在 WireGuard 眼里都是一个 `Peer`。两端各自生成一对密钥（公钥和私钥），互相交换公钥并配置对方的 IP 地址，即可建立加密通道。
+
+    下面为你详细拆解 WireGuard 的安装、核心概念以及最常见的主客配置（Server-Client）实现。
+
+    ---
+
+    核心概念
+
+    在开始配置前，理解这几个词能让你少走很多弯路：
+
+    * **PrivateKey（私钥）：** 本地生成的绝密密钥，绝对不能泄露给任何人。
+
+    * **PublicKey（公钥）：** 由私钥推导而来，公开的。需要复制给对方（Peer）。
+
+    * **Endpoint（对端地址）：** 对方的公网 IP 和端口（例如 `1.2.3.4:51820`）。通常只有客户端需要配置服务器的 Endpoint。
+
+    * AllowedIPs（允许的 IP）：
+
+        * **在服务端：** 规定这个客户端允许使用的内网 IP。
+
+        * **在客户端：** 规定哪些流量要走 VPN。如果是 `0.0.0.0/0`，代表**全局代理**（所有流量都走 VPN）；如果是 `10.0.0.0/24`，代表只有去往该网段的流量走 VPN。
+
+    ---
+
+    核心实战：搭建一个“服务器 - 客户端”网络
+
+    **场景假设：**
+
+    * 服务器（Server）： 有公网 IP（假设为 `8.8.8.8`），网卡名为 `eth0`。我们给它的 WireGuard 内网 IP 设为 `10.0.0.1`。
+
+    * 客户端（Client）： 手机或电脑，内网 IP 设为 `10.0.0.2`。
+
+    1. 第一步：两端安装 WireGuard
+
+        绝大多数现代 Linux 内核已原生集成 WireGuard。
+
+        ```bash
+        # Ubuntu / Debian
+        sudo apt update && sudo apt install wireguard -y
+
+        # CentOS / RHEL 9
+        sudo dnf install wireguard-tools -y
+        ```
+
+    2. 第二步：生成密钥对（两端都要做）
+
+        在服务器和客户端上分别执行以下命令，生成各自的私钥和公钥：
+
+        ```bash
+        # 修改权限，确保密钥安全
+        umask 077
+
+        # 生成服务器/客户端的密钥
+        wg genkey | tee privatekey | wg pubkey > publickey
+        ```
+
+        > 执行后，当前目录下会多出 `privatekey`（私钥）和 `publickey`（公钥）两个文件。可以使用 `cat privatekey` 查看内容。
+
+    3. 第三步：配置服务器端 (Server)
+
+        在服务器上创建并编辑配置文件 `/etc/wireguard/wg0.conf`：
+
+        ```ini
+        [Interface]
+        # 服务器自身的 WireGuard 内网 IP
+        Address = 10.0.0.1/24
+        # 服务器监听的 UDP 端口
+        ListenPort = 51820
+        # 服务器的私钥（填入刚才在服务器生成的 privatekey 内容）
+        PrivateKey = <服务器的私钥>
+
+        # 【核心：NAT 转发规则】当客户端流量到达服务器后，转发到公网网卡（假设是 eth0）
+        PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+        PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+        ### 下面是客户端（Peer）的配置，有几个客户端就写几个 [Peer] ###
+        [Peer]
+        # 客户端的公钥（填入在客户端生成的 publickey 内容）
+        PublicKey = <客户端的公钥>
+        # 允许这个客户端使用的内网 IP
+        AllowedIPs = 10.0.0.2/32
+        ```
+
+        **开启服务器的内核 IPv4 转发：**
+
+        要让服务器帮客户端转发流量，必须开启 Linux 的路由转发功能：
+
+        ```bash
+        echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+        sudo sysctl -p
+        ```
+
+    4. 第四步：配置客户端 (Client)
+
+        在客户端（电脑或手机）上，创建配置文件 `wg0.conf`：
+
+        ```ini
+        [Interface]
+        # 客户端自身的 WireGuard 内网 IP
+        Address = 10.0.0.2/24
+        # 客户端的私钥（填入在客户端生成的 privatekey 内容）
+        PrivateKey = <客户端的私钥>
+        # 可选：设置 DNS
+        DNS = 1.1.1.1
+
+        [Peer]
+        # 服务器的公钥（填入服务器的 publickey 内容）
+        PublicKey = <服务器的公钥>
+        # 服务器的公网 IP 和端口
+        Endpoint = 8.8.8.8:51820
+        # 0.0.0.0/0 代表手机/电脑的所有流量都通过服务器转发（科学上网/全局代理模式）
+        # 如果只想访问服务器内网，可以改成 10.0.0.0/24
+        AllowedIPs = 0.0.0.0/0
+        # 保持连接活跃（每25秒发一次心跳包，防止防火墙断开 UDP 连接）
+        PersistentKeepalive = 25
+        ```
+
+    5. 第五步：启动与管理
+
+        **在服务器端：**
+
+        ```bash
+        # 启动 WireGuard 接口 wg0
+        sudo wg-quick up wg0
+
+        # 设置开机自启
+        sudo systemctl enable wg-quick@wg0
+
+        # 查看当前的 VPN 连接状态
+        sudo wg
+        ```
+
+        **在客户端：**
+
+        * Linux / macOS 命令行：
+        
+            同样使用 `sudo wg-quick up ./wg0.conf` 启动。
+
+        * 手机 / Windows 客户端：
+
+            * 官方提供了图形化客户端。
+
+            * 如果给手机用，可以在服务器上把客户端配置转成二维码，用手机 App 扫码导入
+
+                ```bash
+                # 安装 qrencode 工具
+                sudo apt install qrencode -y
+                # 将客户端配置生成二维码展示在终端
+                qrencode -t ansiutf8 < client.conf
+                ```
+
+    **常用命令与排错技巧**
+
+    1. 常用控制命令
+
+        * 停止 VPN： `sudo wg-quick down wg0`
+
+        * 不重启服务更新配置： 如果你修改了 `wg0.conf`（比如增加了新 Peer），不想断开现有连接，可以执行：
+
+            `sudo wg syncconf wg0 <(sudo wg-quick strip wg0)`
+
+    2. 常见排错方向
+
+        * 能连上但无法上网 / 无法 Ping 通服务器：
+
+            * 检查服务器防火墙（如 UFW 或 Firewalld），是否放行了 **UDP 51820** 端口。
+
+            * 检查服务器的 `net.ipv4.ip_forward` 是否确实为 `1`。
+
+            * 检查服务器 `wg0.conf` 里的 `PostUp` 规则中，网卡名称（如 `eth0`）是否与你服务器通过 `ip route` 查到的公网网卡名一致。
+
+
+        * 隧道没有流量（Latest handshake 没显示）：
+
+            * 双向检查 `PublicKey` 和 `PrivateKey` 是不是配反了。记住：**Peer 里填对方的公钥**。
+
+            * 检查客户端的 `Endpoint` IP 和端口是否正确。
+
+    WireGuard 的配置非常清爽，一旦你理顺了“**私钥本地留，公钥给对端，IP 互相指**”的逻辑，几分钟就能轻松拉起一个安全的专属网络。
+
+* 简述 wireguard 的作用和用法
+
+    好的，我们来简单、清晰地介绍一下 WireGuard。
+
+    * 一、WireGuard 的作用
+
+        **一句话概括：**
+        WireGuard 是一个现代、高效、易用的 **VPN（虚拟专用网）** 协议和软件。它的主要作用是在不安全的网络（如互联网）上，安全地连接两台或多台计算机，让它们仿佛在同一个安全的本地网络中一样通信。
+
+        **核心作用体现在：**
+
+        1.  **安全通信**：对所有流量进行加密，防止窃听和篡改。
+        2.  **组建虚拟局域网**：将分布在全球不同网络下的设备（如家庭电脑、公司服务器、云主机）逻辑上组建成一个局域网，直接用私有IP地址访问。
+        3.  **远程访问**：从外部网络（如在咖啡馆）安全地访问家庭或公司内部的网络资源（如NAS、打印机、内部网站）。
+        4.  **绕过网络限制**：通过连接到特定的服务器来访问受地域或网络限制的资源。
+
+        **WireGuard 的突出优点：**
+
+        *   **极简高效**：代码量极少（约4000行），更容易审计和维护，性能远超 OpenVPN、IPSec 等传统协议。
+        *   **速度快，延迟低**：采用最新的加密协议，对网络性能影响极小。
+        *   **配置简单**：通常只需一个配置文件，设置非常快捷。
+
+    * 二、WireGuard 的用法
+
+        WireGuard 采用 **对等（Peer-to-Peer）** 架构，没有严格的客户端/服务器之分，只有“对等体”。但在实际应用中，我们通常会把一个长期在线的节点称为“服务器”，其他节点称为“客户端”。
+
+        * **核心概念**
+
+            *   **接口**：在每台机器上创建一个虚拟网络接口（如 `wg0`）。
+            *   **私钥/公钥**：每个对等体都有一对自己生成的、独一无二的密钥对。**私钥绝对保密**，**公钥则告诉其他对等体**。
+            *   **对等体**：每个节点的配置中，需要指定它要连接的其他对等体（通过对方的公钥来识别）。
+            *   **允许的IPs**：这是一个非常重要的配置项。它告诉 WireGuard：
+                *   哪些 IP 地址的流量应该通过这个对等体进行路由。
+                *   这个对等体允许使用哪些 IP 地址进行通信。
+
+        * 典型用法：组建“客户端-服务器”式 VPN
+
+            这是最常见的场景：你有一台有公网IP的云服务器（Server），和一台在家的笔记本电脑（Client）。你想让笔记本通过服务器来安全上网。
+
+            * 步骤 1：在所有机器上安装 WireGuard
+            
+                几乎所有主流操作系统（Linux, Windows, macOS, Android, iOS）都支持。
+
+                *   **Linux (Ubuntu/Debian)**： `sudo apt install wireguard`
+                *   **Windows/macOS**： 从官网下载图形化客户端。
+
+            * 步骤 2：生成密钥对（在服务器和客户端上分别执行）
+
+                ```bash
+                # 生成私钥
+                wg genkey > privatekey
+
+                # 从私钥生成公钥
+                wg pubkey < privatekey > publickey
+                ```
+
+                现在每台机器上都会有一个 `privatekey` 文件和一个 `publickey` 文件。
+
+            * 步骤 3：配置服务器（假设公网IP为 `1.1.1.1`）
+
+                编辑服务器的配置文件，例如 `/etc/wireguard/wg0.conf`：
+
+                ```ini
+                [Interface]
+                # 服务器自身的私钥
+                PrivateKey = <服务器的privatekey内容>
+                # 服务器虚拟接口的IP地址
+                Address = 10.0.0.1/24
+                # 服务启动后执行的命令，配置防火墙和NAT转发
+                PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+                PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+                # 服务监听的端口
+                ListenPort = 51820
+
+                [Peer]
+                # 客户端A的公钥
+                PublicKey = <客户端A的publickey内容>
+                # 允许客户端使用这个IP地址连接到服务器，并告诉服务器去往 10.0.0.2 的流量应发给这个客户端
+                AllowedIPs = 10.0.0.2/32
+
+                [Peer]
+                # 客户端B的公钥
+                PublicKey = <客户端B的publickey内容>
+                AllowedIPs = 10.0.0.3/32
+                # 可以继续添加更多 [Peer]...
+                ```
+
+            * 步骤 4：配置客户端（以客户端A为例）
+
+                编辑客户端的配置文件，例如 `clientA.conf`：
+
+                ```ini
+                [Interface]
+                # 客户端A自身的私钥
+                PrivateKey = <客户端A的privatekey内容>
+                # 客户端虚拟接口的IP地址
+                Address = 10.0.0.2/24
+                # 如果需要所有流量都走VPN，可以配置DNS
+                # DNS = 8.8.8.8
+
+                [Peer]
+                # 服务器的公钥
+                PublicKey = <服务器的publickey内容>
+                # 服务器的公网IP和端口
+                Endpoint = 1.1.1.1:51820
+                # 允许通过这个VPN连接发送流量的目标IP段
+                # 0.0.0.0/0 表示所有流量都通过服务器转发（全局VPN）
+                AllowedIPs = 0.0.0.0/0
+                # 如果只想访问服务器局域网，可以设为 10.0.0.0/24
+                ```
+
+            * 步骤 5：启动并测试
+
+                * 在服务器上： `sudo wg-quick up wg0`
+
+                * 在客户端上：导入 `clientA.conf` 文件并激活连接（图形界面通常一键完成）。
+
+            现在，客户端 A 的 IP 在服务器看来就是 `10.0.0.2`，并且所有互联网流量都会通过服务器 `1.1.1.1` 转发。
+
+    * 总结
+
+        | 特性 | 描述 |
+        | :--- | :--- |
+        | **角色** | 对等体，无严格C/S之分，但可模拟该模式。 |
+        | **安全基础** | 基于Curve25519的密钥交换。 |
+        | **配置核心** | `[Interface]` 配置自己，`[Peer]` 配置要连接的对象。 |
+        | **关键配置项** | `PrivateKey`, `PublicKey`, `Endpoint`, `AllowedIPs`。 |
+        | **启动命令** | `sudo wg-quick up <接口名>` |
+        | **停止命令** | `sudo wg-quick down <接口名>` |
+        | **状态查看** | `sudo wg show` |
+
+    WireGuard 以其简洁性和高性能，正在迅速成为下一代 VPN 的标准，被整合进 Linux 内核，并被许多商业VPN服务商采用。
+
+### systemd
+
+* network.target vs network-online.target
+
+    network.target：
+
+        网络配置完成（接口已配置）
+
+        不保证实际网络连通性
+
+        启动较快
+
+    network-online.target：
+
+        网络真正连通（可以访问外部网络）
+
+        等待 DHCP、DNS 等完全就绪
+
+        启动较慢，可能超时
+
+    所以这两个区别是，一个内网能访问通，一个能访问到公网？
+
+* systemd 服务设置 ssh -R 反向隧道开机自启动
+
+    1. 创建 systemd 服务文件
+
+        ```bash
+        sudo nano /etc/systemd/system/ssh-reverse-tunnel.service
+        ```
+
+    2. 编辑服务文件内容
+
+        ```conf
+        [Unit]
+        Description=SSH Reverse Tunnel
+        After=network.target
+
+        [Service]
+        Type=simple
+        User=your_username
+        ExecStart=/usr/bin/ssh -N -R remote_port:localhost:local_port username@remote_host -p remote_ssh_port -o ServerAliveInterval=60 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=accept-new
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=multi-user.target
+        ```
+
+    3. 设置和启动服务
+
+        ```bash
+        # 重新加载 systemd
+        sudo systemctl daemon-reload
+
+        # 设置开机自启动
+        sudo systemctl enable ssh-reverse-tunnel.service
+
+        # 立即启动服务
+        sudo systemctl start ssh-reverse-tunnel.service
+
+        # 检查服务状态
+        sudo systemctl status ssh-reverse-tunnel.service
+        ```
+
+    注意事项
+
+        确保网络连通性: 服务在网络就绪后启动
+
+        使用非特权端口: 如果非root用户运行，remote_port通常需要大于1024
+
+        监控日志: 使用 journalctl -u ssh-reverse-tunnel.service -f 查看日志
+
+        安全考虑: 确保远程服务器是可信的，因为反向隧道会暴露本地服务
+
+    注：
+
+    1. `After=network.target`
+    
+        不写`After=network-online.target`是因为后面有无限重连做保证。
+
+        但是我觉得直接写成`After=network-online.target`更好，直接一步到位。
+
+    1. `ExitOnForwardFailure=yes`
+
+        如果无法端口转发，那么 ssh 连接直接报错。如果远程的端口被其他程序占用，那么 ssh 报错退出。
+
+        ssh 的默认设置是如果端口转发失败（比如远程端口已被占用），SSH 连接仍然会建立，端口转发功能实际上没有工作。
+
+        这个设置配合 systemd 的自动重启服务，可以一定程序上解决远程端口被占用的问题。
+
+    1. `Type=simple`
+
+        SSH 命令会长期运行，保持连接和隧道。进程在前台持续运行，不会立即退出。systemd 会监控这个长期运行的进程。
+
+        如果使用`Type=oneshot`，那么程序执行完就退出。这个配置配合`RemainAfterExit=yes`使用，检查 status 时的效果如下：
+
+        ```
+        active (exited)
+        ```
+
+        如果不设置`RemainAfterExit=yes`，则会变成
+
+        ```
+        inactive
+        ```
+
+        使用 simple 的好处：
+
+        * systemd 直接监控主进程
+
+        * 进程退出时自动重启
+
+        * 完整的生命周期管理
+
+        * 简单的日志收集
+
+        * systemctl stop 能正确终止进程
+
+* systemd 与 ssh tunnel
+
+    systemd 中启动 ssh tunnel 时，不要使用`ssh -f`，因为这会
+
+    1. 创建一个 ssh 的前台程序，执行登陆认证等操作，假设其 pid 为 PID_1
+
+    2. 成功登录后，fork 一份进程到后台，此时后台进程的 pid 为 PID_2
+
+    3. 退出 PID_1 的 ssh 前台进程
+
+    systemd 检测到 PID_1 退出，会认为 ssh 进程已经结束，从而导致 systemd 错误判断 service 的状态。
+
+    因此我们直接使用`ssh -NL`或`ssh -NR`就可以。
+
     example:
 
-    `sudo http_proxy=http://127.0.0.1:8822 https_proxy=http://127,0,0,1:8822 apt update`
+    ```conf
+    [Unit]
+    Description=SSH Reverse Tunnel
+    After=network.target
 
-* linux host name 相关
+    [Service]
+    Type=simple
+    User=your_username
+    # 使用密钥认证，避免交互
+    ExecStart=/usr/bin/ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -R 12345:localhost:22 user@remote-server
+    Restart=always
+    RestartSec=10
+    # 密钥权限很重要
+    Environment="HOME=/home/your_username"
 
-    * 显示当前的 host name: `hostname`
+    [Install]
+    WantedBy=multi-user.target
+    ```
 
-        example:
+    ```bash
+    # 添加这些选项提高稳定性
+    -o ExitOnForwardFailure=yes    # 端口转发失败时退出
+    -o ServerAliveInterval=30      # 30秒发送一次保活包
+    -o ServerAliveCountMax=3       # 3次无响应后断开
+    -o TCPKeepAlive=yes
+    -o BatchMode=yes               # 禁用交互提示
+    ```
 
-        run: `hostname`
+* systemd 开机启动脚本
 
-        output: `hlc-VirtualBox`
+    ```conf
+    [Unit]
+    Description=hlc script init frpc
+    After=network.target
+    After=network-online.target
+    Wants=network-online.target
+    ```
 
-    * 显示当前系统的基本信息：`hostnamectl`
+    可以这样写吗，两个 after 算重复吗？
 
-        example:
+    可以这样写，不算错误 👍。
 
-        run: `hostnamectl`
+    在 `systemd` 里：
 
-        output:
+    * `[Unit]` 段的 **多个 `After=`** 并不是互斥的，都会生效，表示“本服务要在这些 target 之后启动”。
+    * 相当于把依赖条件加在一起 → 启动顺序约束更严格。
+
+    所以你写成：
+
+    ```ini
+    [Unit]
+    Description=hlc script init frpc
+    After=network.target
+    After=network-online.target
+    Wants=network-online.target
+    ```
+
+    实际上等价于：
+
+    ```ini
+    [Unit]
+    Description=hlc script init frpc
+    After=network.target network-online.target
+    Wants=network-online.target
+    ```
+
+    ---
+
+    **推荐写法**
+
+    一般直接写成一行更简洁：
+
+    ```ini
+    [Unit]
+    Description=hlc script init frpc
+    After=network-online.target
+    Wants=network-online.target
+    ```
+
+    因为：
+
+    * `network-online.target` 本身已经隐含了 `network.target`。
+    * 所以单独写 `After=network.target` 没必要，但写了也不会有坏处。
+
+    ---
+
+    **总结：**
+
+    * 你写的那种方式 **能正常用**，只是稍微重复。
+    * 如果追求简洁，直接用 `After=network-online.target` 就够了。
+
+* 详细讲讲 systemd-run 的用法
+
+    `systemd-run` 是 systemd 工具家族中非常强大但常被低估的一个命令。它的核心作用是：**在临时（Transient）的 systemd 单元（Unit）中运行程序。**
+
+    简单来说，平时你用 `&` 或 `nohup` 在后台运行任务，一旦终端断开或者父进程挂了，任务可能就会受影响。而使用 `systemd-run`，你是**让 systemd 进程（PID 1）直接接管并运行该任务**。它会获得和正式 systemd 服务一模一样的待遇：独立的 Cgroup、资源限制、日志收集等。
+
+    以下是关于 `systemd-run` 用法的详细拆解：
+
+    ---
+
+    ## 核心应用场景
+
+    * **真正的后台运行：** 替代 `nohup` 或 `screen`/`tmux` 运行临时脚本，不用担心终端关闭导致任务中断。
+    * **资源限制测试：** 临时限制某个高负载命令的 CPU 或内存占用，防止系统卡死。
+    * **定时任务：** 替代 `cron`，临时创建一个只执行一次（或周期执行）的定时任务。
+    * **安全沙箱：** 利用 systemd 的安全特性，在隔离的环境中运行不信任的程序。
+
+    ---
+
+    ## 基础语法与常用参数
+
+    基础结构非常简单：
+
+    ```bash
+    systemd-run [options] COMMAND [arguments...]
+
+    ```
+
+    ### 常用核心参数：
+
+    * `--user`：以当前登录用户的身份（用户级 systemd 实例）运行，不需要 root 权限。如果不加，默认是 `--system`（需要 root 权限）。
+    * `--unit=名称`：给这个临时服务起个名字。方便后面用 `systemctl` 控制。
+    * `--scope`：默认情况下，命令会在一个独立的 **Service** 单元中异步运行（后台）。如果加上 `--scope`，它会在当前前台进程中运行，但受 systemd 的 **Scope** 单元管理（常用于限制当前 Shell 及其子进程的资源）。
+    * `-p` 或 `--property=键=值`：这是最强大的参数，允许你直接注入任意的 systemd 配置项（如内存限制、环境变量等）。
+
+    ---
+
+    ## 经典使用场景与示例
+
+    ### 1. 后台异步运行长耗时任务
+
+    假设你有一个需要运行几小时的备份脚本 `backup.sh`：
+
+    ```bash
+    sudo systemd-run --unit=my-backup /usr/local/bin/backup.sh
+
+    ```
+
+    * **效果：** 任务立刻在后台运行，终端会返回一行提示：`Running as unit: my-backup.service`。
+    * **如何查看日志？** ```bash
+    journalctl -u my-backup.service -f
+    ```
+
+    ```
+
+
+    * **如何停止它？** ```bash
+    sudo systemctl stop my-backup.service
+    ```
+
+
+    ```
+
+
+
+    ### 2. 限制命令的资源占用（防止系统宕机）
+
+    如果你要编译一个超大项目，或者运行一个极度消耗内存的 Python 脚本，可以限制它最多使用 2 个 CPU 核心和 4G 内存：
+
+    ```bash
+    sudo systemd-run -p CPUQuota=200% -p MemoryMax=4G --unit=heavy-job ./run-heavy-simulation.sh
+
+    ```
+
+    > **注：** `CPUQuota=200%` 意味着最多压满 2 个 CPU 核心。如果程序超出了 4G 内存，systemd 会直接触发 OOM 杀死它，保护宿主机安全。
+
+    ### 3. 作为定时任务（替代 `cron`）
+
+    `systemd-run` 可以通过 `--on-active`（从现在起多久后）、`--on-calendar`（绝对时间）等参数直接生成临时的 **Timer** 单元。
+
+    * **30分钟后执行一次：**
+    ```bash
+    sudo systemd-run --on-active="30m" --unit=delayed-task /usr/local/bin/clean.sh
+
+    ```
+
+
+    * **每周五凌晨 2 点执行：**
+    ```bash
+    sudo systemd-run --on-calendar="Fri *-*-* 02:00:00" --unit=weekly-clean /usr/local/bin/clean.sh
+
+    ```
+
+
+    *(查看排队的定时任务：`systemctl list-timers --all`)*
+
+    ### 4. 普通用户身份运行（无需 root）
+
+    普通用户想丢一个后台任务，加上 `--user` 即可：
+
+    ```bash
+    systemd-run --user --unit=my-crawler python3 spider.py
+
+    ```
+
+    * **注意：** 查看和管理时也要带上 `--user`：
+    ```bash
+    journalctl --user -u my-crawler.service
+    systemctl --user status my-crawler.service
+
+    ```
+
+    ### 5. 限制当前终端（或后续命令）的资源
+
+    如果你想限制**接下来的操作**，可以使用 `--scope`：
+
+    ```bash
+    sudo systemd-run --scope -p MemoryMax=1G stress --vm 1 --vm-bytes 1.5G
+
+    ```
+
+    * **效果：** `stress` 压测程序刚试图申请 1.5G 内存，就会立刻被 systemd 强行终止，因为整个 Scope 被限制在 1G 内存内。
+
+    ---
+
+    ## systemd-run 与传统工具的对比
+
+    | 特性 | `nohup` / `&` | `screen` / `tmux` | `systemd-run` |
+    | --- | --- | --- | --- |
+    | **生命周期** | 绑定在当前用户会话（即使 nohup 偶尔也会因为 SIGHUP 异常退出） | 绑定在 tmux 后台进程 | **完全由 PID 1 (systemd) 接管**，与用户登录状态彻底脱钩 |
+    | **日志收集** | 重定向到文件（如 `nohup.out`） | 屏幕缓存，断开就看不到了 | **自动整合进 `journalctl**`，支持动态轮转、时间筛选 |
+    | **资源限制** | 极弱（依赖 `ulimit`） | 无 | **极强**（支持 cgroups 的 CPU、内存、I/O 动态限制） |
+    | **状态查询** | 只能用 `ps` 查 PID | `tmux ls` | 标准的 `systemctl status` 观察，包含运行时间、Cgroup 树 |
+
+    ---
+
+    ## 总结与小贴士
+
+    * **自动清理：** `systemd-run` 创建的 unit 是临时（Transient）的。当命令运行结束退出后，对应的 service 单元会自动销毁，不会在系统里留下垃圾配置文件。
+    * **配合环境变量：** 如果你的命令依赖当前环境的环境变量，记得用 `-E KEY=VALUE` 传进去，因为由 systemd 启动的命令默认只有最基础的系统环境变量。
+
+    你目前是有具体的后台任务需要迁移到 `systemd-run` 来管理，还是在设计某种自动化的运维脚本呢？
+
+* systemd 中，After=network.target 如何替换成一个指定的自定义 service
+
+    在 systemd 中，你可以通过多种方式替换 `After=network.target` 为自定义 service。以下是几种常见方法：
+
+    ## 方法1：直接指定自定义 service
+
+    ```ini
+    [Unit]
+    # 完全替换 network.target
+    After=your-custom.service
+    Wants=your-custom.service
+
+    # 或者同时包含两者（如果都需要）
+    After=network.target your-custom.service
+    Wants=network.target your-custom.service
+    ```
+
+    ## 方法2：使用 Requires 确保依赖关系
+
+    ```ini
+    [Unit]
+    Description=My Service
+    After=your-custom.service
+    Requires=your-custom.service
+
+    [Service]
+    ExecStart=/path/to/your/command
+    Type=simple
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ## 方法3：使用 PartOf 或 BindsTo（如果需要联动）
+
+    ```ini
+    [Unit]
+    Description=My Service
+    After=your-custom.service
+    BindsTo=your-custom.service  # 如果自定义服务停止，本服务也会停止
+    PartOf=your-custom.service   # 作为自定义服务的一部分管理
+    ```
+
+    ## 方法4：创建模板化的依赖（如果自定义服务有多个实例）
+
+    ```ini
+    [Unit]
+    Description=My Service
+    After=your-custom@%i.service  # 使用模板实例
+    Wants=your-custom@%i.service
+
+    [Service]
+    ExecStart=/path/to/your/command
+    ```
+
+    ## 方法5：在 systemd drop-in 目录中覆盖（推荐）
+
+    创建一个覆盖配置，而不是修改原 service 文件：
+
+    ```bash
+    # 创建配置目录
+    sudo mkdir -p /etc/systemd/system/your-service.d/
+
+    # 创建覆盖配置
+    sudo tee /etc/systemd/system/your-service.d/custom-dependency.conf > /dev/null << EOF
+    [Unit]
+    After=your-custom.service
+    Wants=your-custom.service
+    # 移除对 network.target 的依赖
+    # 如果需要完全移除，可以设置为空
+    Upholds=your-custom.service  # systemd v244+，自动重启依赖的服务
+    EOF
+
+    # 重新加载 systemd
+    sudo systemctl daemon-reload
+    ```
+
+    ## 方法6：完全自定义启动顺序
+
+    ```ini
+    [Unit]
+    Description=My Service
+    # 定义完整的依赖链
+    After=sysinit.target local-fs.target swap.target
+    Before=multi-user.target
+    RequiresMountsFor=/var /etc
+    After=your-custom.service
+    Requires=your-custom.service
+
+    # 显式说明不需要 network.target
+    # （在某些情况下 network.target 仍可能被隐式依赖）
+    ```
+
+    ## 示例：完整的 service 文件替换
+
+    ```ini
+    [Unit]
+    Description=My Application
+    Documentation=https://example.com
+    After=your-custom.service
+    Requires=your-custom.service
+    # 如果还需要网络但要在自定义服务之后
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=appuser
+    Group=appgroup
+    ExecStart=/usr/local/bin/myapp
+    Restart=on-failure
+    RestartSec=5
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ## 验证和调试
+
+    ```bash
+    # 检查依赖关系
+    systemctl show your-service.service -p After,Before,Requires,Wants
+
+    # 列出所有依赖
+    systemctl list-dependencies your-service.service
+
+    # 测试启动顺序
+    systemd-analyze critical-chain your-service.service
+
+    # 查看详细的 unit 信息
+    systemctl cat your-service.service
+    ```
+
+    ## 重要注意事项
+
+    1. **确保自定义 service 已正确定义**：自定义 service 需要正确处理自己的依赖和启动类型。
+
+    2. **考虑网络需求**：如果服务确实需要网络功能，建议保留：
+       ```ini
+       After=network-online.target  # 等待网络真正就绪
+       Wants=network-online.target
+       ```
+
+    3. **启动类型**：如果自定义服务是 `Type=oneshot`，你可能需要：
+       ```ini
+       After=your-custom.service
+       Requires=your-custom.service
+       ```
+
+    选择哪种方法取决于你的具体需求。如果只是简单的依赖关系，方法1或方法2通常就足够了。
+
+* 简述 systemd 配置文件的语法和注意事项，给出一些常见的例子
+
+    **Systemd 配置文件的语法和注意事项**
+
+    **一、基本语法结构**
+
+    1. 配置文件格式
 
         ```
-         Static hostname: hlc-VirtualBox
-               Icon name: computer-vm
-                 Chassis: vm
-              Machine ID: d3dcf00f11234838acfafd0a40493023
-                 Boot ID: 5ce8f551956f4b14ab4c447a4a2ecbd0
-          Virtualization: oracle
-        Operating System: Ubuntu 22.04.4 LTS              
-                  Kernel: Linux 6.8.0-52-generic
-            Architecture: x86-64
-         Hardware Vendor: innotek GmbH
-          Hardware Model: VirtualBox
+        [Unit]           # 第一节：单元元数据和依赖关系
+        Description=...
+        After=...
+        Requires=...
+
+        [Service]        # 第二节：服务配置（仅 Service 类型）
+        Type=...
+        ExecStart=...
+
+        [Install]        # 第三节：安装信息
+        WantedBy=...
+
+        [Socket]         # 其他节：对应不同类型的单元
+        [Timer]
+        [Path]
+        [Mount]
+        [Swap]
         ```
 
-    * 修改 hostname `hostnamectl set-hostname <new-hostname>`
+    2. 语法规则
 
-    * 可以通过修改`/etc/hostname`文件和`/etc/hosts`并重启系统来修改 hostname。
+        - **区分大小写**：所有指令和值都是大小写敏感的
+        - **键值对**：`指令=值` 格式
+        - **注释**：以 `#` 开头
+        - **多值**：用空格分隔多个值
+        - **续行**：用反斜杠 `\` 续行
+        - **布尔值**：`true`/`false`、`yes`/`no`、`1`/`0` 都可以接受
 
-    * ubuntu 中，可以通过 settings -> about 修改 hostname。
+    **二、配置文件位置和优先级**
 
-    * 临时修改 hostname: `sudo hostname new-hostname` （未测试过）
+    1. 文件位置优先级（从高到低）：
+
+        1. `/etc/systemd/system/` - 系统管理员配置（最高优先级）
+        2. `/run/systemd/system/` - 运行时配置
+        3. `/usr/lib/systemd/system/` - 软件包安装的默认配置
+        4. `/lib/systemd/system/` - 旧系统兼容位置
+
+    2. Drop-in 目录（覆盖配置）：
+
+        ```
+        /etc/systemd/system/service-name.d/
+        /etc/systemd/system/service-name.d/override.conf
+        ```
+
+    **三、[Unit] 节常见指令**
+
+    ```ini
+    [Unit]
+    # 基本描述
+    Description=My Application Service
+    Documentation=man:app(8) https://example.com/docs
+
+    # 依赖关系（启动顺序）
+    After=network.target nginx.service
+    Before=multi-user.target
+    Requires=nginx.service          # 强依赖，失败则本服务也失败
+    Wants=network.target           # 弱依赖，失败不影响本服务
+    Conflicts=old-service.service  # 互斥服务
+    RequiresMountsFor=/var/log     # 依赖挂载点
+
+    # 条件判断
+    ConditionPathExists=/etc/app/config.conf
+    ConditionFileNotEmpty=/var/lib/app/data.db
+    ConditionKernelVersion=>=4.0
+    ConditionUser=!root
+    ConditionVirtualization=no
+    ```
+
+    **四、[Service] 节常见指令**
+
+    服务类型：
+
+    ```ini
+    [Service]
+    # 服务类型（必填）
+    Type=simple          # 默认，ExecStart 进程为主进程
+    Type=forking         # 传统守护进程，需要自己 fork
+    Type=oneshot         # 一次性任务，执行后退出
+    Type=dbus            # D-Bus 服务
+    Type=notify          # 通过 sd_notify() 通知就绪
+    Type=idle            # 等待所有任务完成后启动
+
+    # 启动配置
+    ExecStart=/usr/bin/myapp --daemon
+    ExecStartPre=/usr/bin/init-script.sh    # 启动前执行
+    ExecStartPost=/usr/bin/post-script.sh   # 启动后执行
+    ExecStop=/usr/bin/shutdown-script.sh    # 停止时执行
+    ExecReload=/usr/bin/reload-script.sh    # 重载配置
+
+    # 进程管理
+    Restart=on-failure          # 失败时重启
+    RestartSec=5                # 重启等待时间
+    StartLimitInterval=60       # 启动频率限制时间段
+    StartLimitBurst=3           # 时间段内允许的启动次数
+
+    # 权限控制
+    User=appuser
+    Group=appgroup
+    DynamicUser=yes            # 动态创建用户
+    AmbientCapabilities=CAP_NET_BIND_SERVICE  # 赋予能力
+    NoNewPrivileges=yes        # 禁止提升权限
+
+    # 资源限制
+    LimitNOFILE=65536          # 文件描述符限制
+    LimitNPROC=512             # 进程数限制
+    MemoryMax=500M             # 内存限制
+    CPUQuota=80%               # CPU 配额
+    ```
+
+    **五、[Install] 节常见指令**
+
+    ```ini
+    [Install]
+    # 启用时创建符号链接到哪个 target
+    WantedBy=multi-user.target    # 多用户模式
+    WantedBy=graphical.target     # 图形界面模式
+    WantedBy=default.target       # 默认 target
+
+    # 别名
+    Alias=myapp.service
+
+    # 同时安装
+    Also=app-socket.service app-timer.service
+    ```
+
+    **六、常见配置文件示例**
+
+    * 示例1：简单的 Web 服务
+
+        ```ini
+        [Unit]
+        Description=My Web Application
+        After=network.target nginx.service
+        Requires=nginx.service
+
+        [Service]
+        Type=simple
+        User=webapp
+        Group=webapp
+        WorkingDirectory=/var/www/myapp
+        Environment="NODE_ENV=production"
+        EnvironmentFile=/etc/default/myapp
+        ExecStart=/usr/bin/node /var/www/myapp/server.js
+        Restart=on-failure
+        RestartSec=10
+        StandardOutput=journal
+        StandardError=journal
+
+        # 安全加固
+        NoNewPrivileges=yes
+        PrivateTmp=yes
+        ProtectSystem=strict
+        ReadWritePaths=/var/log/myapp /var/lib/myapp
+
+        [Install]
+        WantedBy=multi-user.target
+        ```
+
+    * 示例2：定时任务
+
+        ```ini
+        [Unit]
+        Description=Daily Backup Service
+
+        [Service]
+        Type=oneshot
+        User=backup
+        ExecStart=/usr/local/bin/backup.sh
+        Nice=19                          # 低优先级
+        IOSchedulingClass=idle           # IO 空闲时运行
+
+        [Install]
+        WantedBy=timers.target
+        ```
+
+    * 示例3：带 Socket 激活的服务
+
+        ```ini
+        # socket.service
+        [Unit]
+        Description=My App Socket
+
+        [Socket]
+        ListenStream=8080
+        Accept=no
+        SocketUser=appuser
+        SocketGroup=appgroup
+
+        [Install]
+        WantedBy=sockets.target
+        ```
+
+    * 示例4：挂载服务
+
+        ```ini
+        [Unit]
+        Description=Mount NFS Share
+
+        [Mount]
+        What=192.168.1.100:/share
+        Where=/mnt/nfs
+        Type=nfs
+        Options=defaults,noatime
+
+        [Install]
+        WantedBy=multi-user.target
+        ```
+
+    * 示例5：定时器服务
+
+        ```ini
+        [Unit]
+        Description=Run cleanup daily
+
+        [Timer]
+        OnCalendar=daily
+        Persistent=true
+        RandomizedDelaySec=300
+
+        [Install]
+        WantedBy=timers.target
+        ```
+
+    **七、重要注意事项**
+
+    1. 路径相关注意事项
+
+        ```ini
+        # ✅ 正确：使用绝对路径
+        ExecStart=/usr/bin/myapp
+
+        # ❌ 错误：使用相对路径
+        ExecStart=./myapp
+        ExecStart=myapp
+
+        # ✅ 环境变量（仅在 ExecStart 中有效）
+        Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+        ```
+
+    2. 命令参数注意事项
+
+        ```ini
+        # ✅ 正确：整个命令作为一个字符串
+        ExecStart=/usr/bin/myapp --port 8080 --config /etc/myapp.conf
+
+        # ✅ 也可以：使用多个 ExecStart 参数
+        ExecStart=/usr/bin/myapp --port 8080 --config /etc/myapp.conf
+
+        # ❌ 错误：使用 shell 特性（除非指定 shell）
+        ExecStart=myapp > /var/log/myapp.log 2>&1  # 错误！
+        ExecStart=/bin/sh -c 'myapp > /var/log/myapp.log 2>&1'  # 正确
+        ```
+
+    3. 重启策略注意事项
+
+        ```ini
+        # 避免无限重启循环
+        Restart=on-failure
+        RestartSec=5
+        StartLimitIntervalSec=100
+        StartLimitBurst=5
+        ```
+
+    4. 权限安全注意事项
+
+        ```ini
+        # 最小权限原则
+        User=nobody
+        Group=nogroup
+        NoNewPrivileges=yes
+        PrivateTmp=yes
+        ProtectHome=yes
+        ProtectSystem=strict
+        ReadOnlyPaths=/
+        ReadWritePaths=/var/lib/myapp
+        ```
+
+    5. 日志配置
+
+        ```ini
+        # 标准输出处理
+        StandardOutput=journal      # 发送到 journal
+        StandardOutput=null         # 丢弃
+        StandardOutput=file:/var/log/myapp.log  # 输出到文件
+        StandardOutput=append:/var/log/myapp.log  # 追加到文件
+
+        # 日志重定向
+        StandardError=inherit       # 与标准输出相同
+        ```
+
+    6. 环境变量最佳实践
+
+        ```ini
+        # 推荐方式
+        EnvironmentFile=/etc/default/myapp
+        Environment="MYAPP_HOME=/var/lib/myapp"
+
+        # 不推荐直接在 ExecStart 中使用环境变量
+        ExecStart=/usr/bin/myapp $OPTIONS  # 可能不会展开
+        ```
+
+    **八、调试和验证**
+
+    ```bash
+    # 检查语法
+    systemd-analyze verify /etc/systemd/system/myapp.service
+
+    # 检查依赖关系
+    systemd-analyze critical-chain myapp.service
+
+    # 测试运行
+    systemctl start myapp.service --dry-run
+
+    # 检查日志
+    journalctl -u myapp.service -f
+
+    # 查看完整配置
+    systemctl show myapp.service
+
+    # 图形化分析
+    systemd-analyze plot > plot.svg
+    ```
+
+    **九、特殊指令说明**
+
+    * `Type=notify` 的额外要求：
+
+        ```ini
+        [Service]
+        Type=notify
+        # 应用必须调用 sd_notify(0, "READY=1")
+        NotifyAccess=all  # 谁可以发送通知：all/main/none
+        ```
+
+    * 资源限制单位：
+
+        ```
+        Memory: K, M, G, T (默认字节)
+        CPU: 百分比 (如 50%)
+        Time: s, min, h, d, w, ms, us (默认秒)
+        ```
+
+    * 特殊路径：
+
+        ```
+        %h - 用户家目录
+        %t - 运行时目录 (/run)
+        %s - 配置目录 (/etc)
+        %u - 用户名
+        %U - 用户ID
+        %H - 主机名
+        ```
+
+    通过遵循这些语法规则和注意事项，可以编写出稳定、安全、可维护的 systemd 服务配置文件。
+
+### mount
+
+* 创建`tmpfs`类型的目录
+
+    ```bash
+    sudo mkdir /mnt/shm
+    sudo mount -t tmpfs -o size=2G tmpfs /mnt/shm
+    ```
+
+    解释：
+
+    * `-t tmpfs`: 挂载`tmpfs`类型的文件系统。`tmpfs`表示使用 ram，如果 ram 不够，则使用 swap
+
+    * `-o size=2G`：限制目录最大大小为 2G
+
+    * `tmpfs`: 这是“源设备”参数。对于像`tmpfs`这样的虚拟文件系统，这个位置通常就填写文件系统类型本身。
+
+    * `/mnt/shm`: 挂载点（mount point）
+
+    特点：
+
+    * 存储在内存中：所有存放在 /mnt/shm 目录下的文件和目录都位于高速的 RAM 中，因此读写速度非常快。
+
+    * 临时性：这是一个临时存储。当系统重启、崩溃或你手动卸载（umount /mnt/shm）这个文件系统时，其中的所有数据都会消失。
+
+    * 动态分配：tmpfs 只会实际占用它已存储数据大小的内存。例如，如果你创建了一个 100MB 的文件，tmpfs 就只占用约 100MB 的 RAM（和少量元数据开销），而不是一开始就占满 2GB。它会根据存储内容的增加而动态增长，但最大不会超过 size 参数的限制（2GB）。
+
+    * 可能使用交换空间（Swap）：如果系统内存不足，tmpfs 中不活跃的数据可能会被换出到硬盘的交换分区（swap）上，从而释放物理内存。这意味着它的大小可以超过物理 RAM，但性能会下降。
+
+* `sudo mount -o remount /dev/shm`
+
+    重新挂载 /dev/shm 文件系统，并在此过程中应用或刷新其挂载选项。
+
+    如果没有在命令中指定新的挂载选项（例如 size=2G 或 noexec），那么它将使用系统默认的或之前在 /etc/fstab 文件中配置的选项来重新挂载。
+
+    常见使用场景
+
+    * 应用 /etc/fstab 中的新配置：
+
+        如果你修改了 /etc/fstab 中关于 /dev/shm 的配置（比如改变了大小限制 size=512M），你可以运行此命令来立即应用新的配置，而无需重启系统。
+
+    * 修复权限或属性问题：
+
+        如果 /dev/shm 的权限意外被更改（例如，某个脚本错误地执行了 chmod 700 /dev/shm），导致某些程序无法正常使用共享内存，通过重新挂载可以将其恢复为正确的默认权限。
+
+    * 清除所有内容（不常用）：
+
+        虽然 remount 本身不是为了清除数据，但结合某些选项（如 noexec 然后再 remount 回默认值）可以间接达到目的。更直接的方法是直接重启（数据会丢失）或手动删除其中的文件。
+
+* `sudo mount -t tmpfs -o size=2G tmpfs /dev/shm`
+
+    将 /dev/shm 目录重新挂载为大小为 2GB 的 tmpfs（临时文件系统）。
+
+    这个操作会：
+
+    * 覆盖现有的 /dev/shm 挂载
+
+    * 之前存储在 /dev/shm 中的所有数据都会丢失
+
+    * 新的大小限制会影响所有使用共享内存的应用程序
+
+    默认的 /dev/shm 大小通常是系统物理内存的 50%。
+
+* 详细讲讲 fusermount 的用法
+
+    `fusermount` 是 Linux 系统中用于管理 **FUSE（Filesystem in Userspace，用户空间文件系统）** 的挂载和卸载的辅助工具。
+
+    通常情况下，只有 root 用户才能执行挂载（mount）和卸载（umount）操作。但借助 `fusermount`，普通用户也可以安全地挂载和卸载自己创建的用户空间文件系统（比如 sshfs、rclone、gcsfuse 等），而不需要 sudo 权限。
+
+    下面为你详细拆解 `fusermount` 的常用命令、核心参数、常见应用场景以及排错技巧。
+
+    **核心参数与常用命令**
+
+    `fusermount` 的语法非常简单：
+
+    ```bash
+    fusermount [选项] 挂载点
+    ```
+
+    1. 卸载文件系统（最常用）
+
+        当你使用普通用户挂载了一个 FUSE 文件系统，想要断开时，**不要**使用标准的 `umount`（那通常需要 root 权限），而是使用 `-u` 参数：
+
+        ```bash
+        fusermount -u /path/to/mountpoint
+        ```
+
+    2. 强行/延迟卸载（Lazy Unmount）
+
+        有时候挂载点正被某个程序占用（比如终端正处于该目录下，或者有文件正在读写），直接卸载会报错 `Device or resource busy`。此时可以使用 `-z` 参数进行延迟卸载：
+
+        ```bash
+        fusermount -uz /path/to/mountpoint
+        ```
+
+        > **注：** `-z` (lazy unmount) 会立即将该文件系统从目录树中隔离，让其他程序无法访问，等当前占用该目录的进程结束运行后，系统会自动在后台完成实际的卸载。
+
+    3. 查看版本信息
+
+        ```bash
+        fusermount -V
+        ```
+
+    **常见应用场景示例**
+
+    实际工作中，我们很少单独直接运行 `fusermount` 来**挂载**，因为各种 FUSE 工具（如 `sshfs`）会自动在后台调用它。我们最常手动用到 `fusermount` 的场景是**卸载**。
+
+    * 场景一：使用 SSHFS 挂载远程目录与卸载
+
+        ```bash
+        # 挂载远程服务器目录到本地
+        sshfs user@remote:/remote/dir /home/user/local_dir
+
+        # 当你用完后，安全卸载
+        fusermount -u /home/user/local_dir
+        ```
+
+    * 场景二：使用 Rclone 挂载网盘与卸载
+
+        ```bash
+        # 挂载 OneDrive 到本地
+        rclone mount onedrive: /newData --daemon
+
+        # 结束使用时卸载
+        fusermount -u /newData
+        ```
+
+    **避坑指南与常见错误处理**
+
+    1. 报错：`Device or resource busy`
+
+        * **原因：** 有进程正在访问该挂载点。
+
+        * **解决办法：**
+        
+        1. 使用 `lsof /path/to/mountpoint` 或 `fuser -m /path/to/mountpoint` 查出是哪个进程在占用，杀掉该进程后再卸载。
+
+        2. 或者直接使用上面提到的延迟卸载命令：`fusermount -uz /path/to/mountpoint`。
+
+    2. 报错：`Transport endpoint is not connected`
+
+        * **原因：** FUSE 后台进程挂掉了（例如网络断开导致 sshfs 崩溃，或者 rclone 进程被系统杀掉），导致挂载点变成了一个“死节点”，既无法访问也无法正常读写。
+
+        * **解决办法：** 这种情况下必须强制卸载清理现场，否则该目录将一直不可用：
+
+            ```bash
+            fusermount -u /path/to/mountpoint
+            # 如果不行，加 -z
+            fusermount -uz /path/to/mountpoint
+            ```
+
+    3. 普通用户挂载后，Root 用户或其他用户无权访问
+
+        * **原因：** 出于安全考虑，FUSE 默认只允许执行挂载命令的那个特定用户访问该目录，即使 root 用户去执行 `ls` 也会被拒绝（Permission denied）。
+        
+        * **解决办法：** 如果需要允许其他用户访问，在**挂载时**（注意：是挂载工具的参数，不是 fusermount 本身）需要加入 `-o allow_other` 参数。
+        
+        * 例如：`sshfs -o allow_other user@remote:/dir /local/dir`
+        
+        * *注意：使用该参数通常需要修改 `/etc/fuse.conf` 文件，取消 `#user_allow_other` 前面的注释（#号）。*
+
+    **补充：fusermount 与 fusermount3 的区别**
+
+    在较新的 Linux 发行版（如 Ubuntu 20.04+，CentOS 8+）中，你可能会看到 `fusermount3`。
+
+    * `fusermount` 对应的是 **FUSE v2** 版本。
+    * `fusermount3` 对应的是 **FUSE v3** 版本（带来了性能提升和更好的 API 支持）。
+
+    两者的基本用法和参数（`-u`, `-z`）完全一致。如果你的挂载工具使用了 FUSE3，当你执行 `fusermount -u` 报错找不到挂载点时，可以尝试换成：
+
+    ```bash
+    fusermount3 -u /path/to/mountpoint
+
+    ```
+
+* 讲讲 linux 中 fusermount 的用法
+
+    在 Linux 系统中，`fusermount` 是一个非常实用的用户空间工具，专门用于管理 **FUSE（Filesystem in Userspace，用户空间文件系统）** 的挂载和卸载。
+
+    因为 FUSE 允许普通用户创建自己的文件系统（比如挂载网盘、解压镜像、SSH 远程目录等），所以普通用户没有权限直接使用传统的 `mount` 和 `umount` 命令。而 `fusermount` 就是给普通用户开的“绿灯”。
+
+    1. 核心用法：卸载文件系统（最常用）
+
+        日常使用中，我们接触 `fusermount` **90% 的场景都是为了卸载（unmount）**。
+
+        当你想断开一个 FUSE 挂载点（比如用 `rclone` 挂载的网盘，或者 `sshfs` 挂载的远程目录）时，使用以下命令：
+
+        ```bash
+        fusermount -u <挂载点路径>
+        ```
+
+        **💡 实用进阶选项：**
+
+        * 强制卸载 (`-z`)
+        
+            如果某个挂载点被程序占用了（提示 `target is busy`），导致无法正常卸载，可以加上 `-z` 参数进行**懒卸载（Lazy unmount）**。它会立即把挂载点从文件系统树中摘除，等占用的程序退出后再真正释放。
+
+            ```bash
+            fusermount -uz <挂载点路径>
+            ```
+
+    2. 核心用法：挂载（通常由 FUSE 程序自动调用）
+
+        虽然 `fusermount` 可以用来挂载，但通常**不需要你手动直接运行它来挂载**。
+
+        当你运行 `sshfs`、`rclone mount` 或 `goofys` 等 FUSE 工具时，这些程序在底层会自动调用 `fusermount` 来完成挂载工作。
+
+        如果你非要手动测试底层挂载（通常需要配合 FUSE 设备的特殊文件描述符，比较少见），它的基本格式是：
+
+        ```bash
+        fusermount [选项] <挂载点路径>
+        ```
+
+    3. 常用参数一览表
+
+        | 参数 | 全称 | 说明 |
+        | --- | --- | --- |
+        | `-u` | `--unmount` | 卸载指定的挂载点。 |
+        | `-z` | `--lazy` | 懒卸载。即使挂载点正忙，也立即断开连接。 |
+        | `-q` | `--quiet` | 安静模式，不输出错误信息。 |
+        | `-V` | `--version` | 显示 `fusermount` 的版本信息。 |
+        | `-h` | `--help` | 显示帮助信息。 |
+
+    4. 常见问题与报错
+
+        **⚠️ 报错：`fusermount: failed to unmount /path: Device or resource busy`**
+
+        * **原因**：有终端正处于该目录下，或者有程序（如文件管理器、播放器）正在读写该目录下的文件。
+        * **解决办法**：
+        1. 退出该目录（`cd ~`）。
+        2. 找出占用进程并关闭：`lsof <挂载点路径>`。
+        3. 或者直接使用大招：`fusermount -uz <挂载点路径>`。
+
+        **⚠️ 报错：`fusermount: command not found`**
+
+        * **原因**：系统没有安装 FUSE 工具包。
+        * **解决办法**：
+        * **Ubuntu/Debian**: `sudo apt install fuse3` (或 `fuse`)
+        * **CentOS/RHEL**: `sudo yum install fuse`
+
+    5. 补充：新版 Linux 中的 `fusermount3`
+
+        如果你使用的是较新的 Linux 发行版（如 Ubuntu 22.04+ 等），你可能会发现系统里使用的是 `fusermount3`（属于 FUSE3 版本）。
+
+        * **用法完全一致**：它的参数和 `fusermount` 没有任何区别。
+        * **命令**：`fusermount3 -u <挂载点路径>`。
+
+    你平时主要是在使用哪款 FUSE 工具（比如 `rclone`、`sshfs` 还是 `AppImage`）时遇到了这个命令呢？
+
+*  那为什么不直接用 mount 和 umount
+
+    这是一个非常核心的问题。答案用一句话概括就是：**为了安全，以及让普通用户拥有自由。**
+
+    传统的 `mount` 和 `umount` 是**内核级别**的操作，而 `fusermount` 是为了 **FUSE（用户空间文件系统）** 量身定制的特殊通道。
+
+    具体原因可以拆解为以下三个最核心的痛点：
+
+    1. 权限与安全隐患（最关键的原因）
+
+        在 Linux 中，传统的 `mount` 必须由 **root（超级用户）** 权限执行。
+
+        * **为什么不直接给普通用户 `mount` 权限？** 因为直接允许普通用户挂载任意文件系统是非常危险的。例如，恶意用户可以自己制作一个恶意的 `ext4` 镜像，里面包含一个伪造的 `suid` 程序（比如带有 root 权限的后门 shell），然后通过 `mount` 挂载到系统中，直接完成提权。
+
+        * **`fusermount` 是如何解决的？**
+
+        `fusermount` 程序的底层带有 **SUID 权限**（也就是说它虽然由普通用户运行，但执行时会临时获得 root 权限）。不过，它在执行时会受到严格的内核安全检查。它**只允许**普通用户挂载属于他们自己的目录，并且默认带有 `nosuid` 和 `nodev` 等安全限制，从机制上堵死了用户借此提权的可能。
+
+    2. 谁搞出来的，谁负责“擦屁股”
+
+        传统的 `mount` 挂载的是**内核驱动**支持的文件系统（如 ext4, xfs, nfs）。如果这些文件系统出了问题（比如网络共享断开、硬件坏道），内核会去处理。
+
+        而 FUSE 文件系统是**用户编写的程序**（比如你运行了一个 `rclone` 进程来挂载网盘）。
+
+        * **如果用 `umount`：** `umount` 属于内核层面的强制拆除。如果直接用它去断开，内核可能无法优雅地通知底层的那个用户空间程序（比如 `rclone`），导致程序崩溃、内存泄漏，甚至导致内核的挂载点陷入“僵死”状态。
+
+        * **如果用 `fusermount -u`：** 它专门负责沟通**内核的 FUSE 模块**和**底层的用户空间程序**。它会通知你的挂载程序：“注意，现在要断开连接了，请保存好缓存，释放资源，然后优雅地退出。”
+
+    3. 避免污染系统的 `/etc/mtab` 和管理配置
+
+        传统的 `mount` 往往需要配合 `/etc/fstab` 配置，或者在 `/etc/mtab` 中记录全局的挂载信息。普通用户是没有权限修改这些系统级文件的。
+
+        `fusermount` 能够让每个普通用户在自己的家目录（`~`）下独立挂载、独立管理，互不干扰，完全不需要动系统的全局配置文件。
+
+* sshfs 挂载的目录只能用 fusermount -u 卸载吗？
+
+    答案是：**不是绝对的，但它是最推荐、最安全的方式。**
+
+    实际上，你也可以使用传统的 `umount`，或者甚至使用 `kill` 命令。这取决于你的**用户身份**以及**挂载点的状态**。
+
+    以下是三种主要的卸载方式及它们的区别：
+
+    方法 1：`fusermount -u <挂载点>`（最推荐）
+
+    * **谁能用**：普通用户、Root 用户。
+    * **为什么推荐**：这是专门为 FUSE 架构设计的。它不仅能把目录安全地卸载掉，还会同时通知后台的 `sshfs` 进程：“现在可以收工了”，让该进程**优雅地退出**，释放内存和网络连接。
+
+    方法 2：`umount <挂载点>`（传统方式）
+
+    * **谁能用**：通常需要 **Root 权限**（除非你在 `/etc/fstab` 里特意为该目录配置了 `user` 属性）。
+    * **效果**：如果你是 Root 用户，直接运行 `sudo umount /path` 也可以成功卸载 `sshfs` 挂载的目录。
+    * **缺点**：它属于系统级的强行拆除，有时候无法完美地让底层的 `sshfs` 进程优雅退出，可能会留下残留进程。
+
+    方法 3：强制断开进程（大招）
+
+    有时候网络断开了，或者远程服务器死机了，导致 `sshfs` 卡死。这时候无论用 `fusermount -u` 还是 `umount` 都会提示 **`Device or resource busy`** 或直接卡住没有响应。
+
+    此时，你可以通过杀掉进程来强行卸载：
+
+    1. **懒卸载（推荐首选）**：
+
+        ```bash
+        fusermount -uz <挂载点>
+        ```
+
+        *（`-z` 会立刻让这个目录在系统里消失，等后台把死锁的文件处理完后再自动退出进程。）*
+
+    2. **强杀进程（终极大招）**：
+
+        直接找出并杀掉那个 `sshfs` 进程，进程死掉后，挂载点会自动消失：
+
+        ```bash
+        pkill -9 -f "sshfs.*<挂载点>"
+        ```
+
+    **总结建议**
+
+    如果你是**普通用户**，不用纠结，**永远优先使用 `fusermount -u**`。
+
+    只有当网络卡死、命令失效时，再考虑加上 `-z` 参数（`fusermount -uz`）或者让管理员用 `sudo umount` 来解决。
+
+    注：
+
+    1. 尝试在 cygwin 下进行 mount / umount，看普通的挂载是否支持。然后尝试 sshfs + umount，看是否支持。
+
+### sshfs
+
+* 使用 sshfs 挂载文件时，如果没有 allow_other，那么普通用户挂载的目录，即使是 root 用户也无法访问
+
+* 我使用 sudo sshfs remote_dir /local_dir 后，普通用户无法访问 /local_dir，如何使 /local_dir 让普通用户可以访问，即每个用户看到的 /local_dir 的权限都是 775
+
+    要让普通用户也能访问你用 `sudo` 挂载的 `/local_dir`，关键在于使用 SSHFS 的 `allow_other` 挂载选项。不过，因为你是用 `sudo` 挂载的（即 root 用户），所以直接使用这个选项就行，不需要修改系统配置文件。
+
+    你可以用下面这个命令重新挂载：
+
+    ```bash
+    sudo sshfs -o allow_other,default_permissions remote_dir /local_dir
+    ```
+
+    ### 📝 参数解释
+
+    *   **`-o allow_other`**：这个选项是关键。默认情况下，只有执行挂载命令的用户（这里是 `root`）才能访问挂载点。加上这个选项后，系统上的其他用户就也能访问了。
+    *   **`-o default_permissions`**：加上这个选项，系统内核会依据标准的 Linux 权限（读、写、执行）对每个访问请求进行检查。**官方文档建议，在使用 `allow_other` 时最好加上这个选项**，让权限管理更清晰安全。
+
+    注：
+
+    1. 这个方法经测试可行
+
+    ### ⚠️ 重要提醒：权限的本质
+
+    `/local_dir` 显示的权限（比如 `775`）由远程服务器决定。你用 `sudo sshfs` 登录远程服务器时，操作权限与 `root` 用户一致，因此本地普通用户最终能做什么操作，还是取决于远程 `root` 用户的权限。简单的理解就是：**本地用户能否访问挂载点由 `allow_other` 控制；而进入挂载点后能对文件做什么，则完全取决于你在远程服务器上登录的用户（本例中是`root`）的权限**。
 
 ## note

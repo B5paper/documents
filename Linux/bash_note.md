@@ -4,6 +4,30 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 中循环的常见用法
+
+    * `for i in 1 2 3; do echo $i; done`
+
+    * `for f in *.txt; do ...; done`
+
+        注：
+
+        1. 如果文件名里有空格，echo $f 即使不写双引号`"$f"`，也能正确打印带空格的文件名，不会把带空格的文件名拆分成两个字符串
+
+    * `while read line; do ...; done < file`
+
+        注：
+
+        1. 这个的含义是用 while 处理 file 文件，将 file 文件重定向为 while 语句的输入。
+
+            如果没有`< file`，那么会从 stdin 读取输入。
+
+        2. `< file`之间的空格可以不写
+
+    * until、break、continue
+
+    练习：遍历当前目录所有 .sh 文件并打印文件名。
+
 * 这个 bash 中，为什么第 4 个匹配项，? 前有一个 \
 
     ```bash

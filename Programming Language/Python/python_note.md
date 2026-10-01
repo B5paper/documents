@@ -2,6 +2,109 @@
 
 ## cache
 
+* 讲讲 python -i  的作用
+
+    `python -i` 是 Python 解释器的一个命令行选项，作用是在**执行完指定的脚本或命令后，进入交互式模式（REPL）**，而不是直接退出。
+
+    ## 基本用法
+
+    ```bash
+    python -i script.py
+    ```
+
+    正常情况下，`python script.py` 执行完脚本就会退出。加上 `-i` 后，脚本执行完毕不会退出，而是进入 `>>>` 交互提示符，让你继续操作。
+
+    ## 核心价值：保留脚本的运行状态
+
+    这是 `-i` 最有用的地方——脚本里定义的所有**变量、函数、类、导入的模块**都还在内存里，你可以在交互环境中直接查看和调试。
+
+    ### 示例
+
+    假设有 `demo.py`：
+
+    ```python
+    import math
+
+    def square(x):
+        return x * x
+
+    data = [1, 2, 3, 4, 5]
+    result = [square(n) for n in data]
+    print("done:", result)
+    ```
+
+    运行：
+
+    ```bash
+    python -i demo.py
+    ```
+
+    输出：
+
+    ```
+    done: [1, 4, 9, 16, 25]
+    >>> 
+    ```
+
+    此时你可以继续：
+
+    ```python
+    >>> data
+    [1, 2, 3, 4, 5]
+    >>> square(10)
+    100
+    >>> math.sqrt(16)
+    4.0
+    >>> sum(result)
+    55
+    ```
+
+    脚本里的东西全都可用，就像你手动在 REPL 里敲了一遍一样。
+
+    ## 常见使用场景
+
+    1. **调试脚本**：脚本跑出问题或结果不对，用 `-i` 进去检查中间变量，比反复加 `print` 高效。
+    2. **探索数据**：跑完一段数据加载/处理代码后，在交互环境里试各种操作。
+    3. **教学演示**：先执行一段初始化代码，再逐步演示。
+    4. **当作"带预加载的 REPL"**：把常用导入和配置写进一个脚本，用 `-i` 启动。
+
+    ## 其他相关形式
+
+    ```bash
+    # 执行 -c 的代码后进入交互
+    python -i -c "x = 42; print(x)"
+
+    # 从 stdin 读取脚本后进入交互
+    echo "y = 100" | python -i
+    ```
+
+    ## 配合 PYTHONSTARTUP
+
+    如果你希望**每次**进入交互模式都自动执行一些代码（比如导入常用模块），可以设置环境变量 `PYTHONSTARTUP` 指向一个启动脚本：
+
+    ```bash
+    export PYTHONSTARTUP=~/.pythonrc
+    python -i myscript.py
+    ```
+
+    注意：`PYTHONSTARTUP` 只在交互模式生效，`-i` 进入的交互模式也会触发它。
+
+    ## 退出交互模式
+
+    - Linux/macOS：`Ctrl+D`
+    - Windows：`Ctrl+Z` 然后回车
+    - 或输入 `exit()` / `quit()`
+
+    ## 小结
+
+    | 命令 | 行为 |
+    |------|------|
+    | `python script.py` | 执行脚本，然后退出 |
+    | `python -i script.py` | 执行脚本，然后进入交互模式，保留所有状态 |
+    | `python` | 直接进入交互模式 |
+
+    一句话：**`-i` = 先跑脚本，再留下来让你继续玩。**
+
 * python 中，在 print('val: {:.2f}'.format(val)) 中，我希望使用 num_dig 来控制`.2f`中的 2，比如 print('val: {:(num_dig)f}'.format(val))，该怎么办？
 
     很好的问题！当你需要在同一个格式化字符串中**多个变量使用相同的动态精度**时，有几种优雅的写法：

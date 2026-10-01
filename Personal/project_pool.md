@@ -36,7 +36,7 @@
 
 ## cache
 
-hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
+* hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
 
     feedback:
 
@@ -114,9 +114,9 @@ hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdi
 		### yyy
 		```
 
-* [ ] winpty python
+* [v] winpty python
 
-    * [ ] 使用 python -i 或者安装 winpty
+    * [v] 使用 python -i 或者安装 winpty
 
 * [new] PS1 变量
 
