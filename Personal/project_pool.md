@@ -36,6 +36,8 @@
 
 ## cache
 
+* 加载 sipu 驱动需要先 modprobe drm_suballoc_helper
+
 * hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
 
     feedback:
@@ -114,11 +116,7 @@
 		### yyy
 		```
 
-* [v] winpty python
-
-    * [v] 使用 python -i 或者安装 winpty
-
-* [new] PS1 变量
+* [v] PS1 变量
 
 * [new] pip install -e .
 
@@ -163,14 +161,6 @@
 
 * [ ] Nilearn
 
-* [ ] sudo sh -c "echo 1 > /sys/class/iommu/dmar*/reset"
-
-* [ ] iommu=relaxable iommu.forcedac=0 iommu.strict=0
-
-* [ ] `echo "vfio-pci" > /sys/bus/pci/devices/0000:01:00.0/driver_override`
-
-* [ ] `ls -l /sys/bus/pci/devices/0000:01:00.0/iommu_group/devices/`
-
 * [ ] 
 
     ```bash
@@ -198,107 +188,6 @@
 
     vim-winzoom：它的作用和 ZoomWin 类似，可以搜索这个插件。
 
-* 与 find 相关的笔记只有一些常用场景的用法，并没有针对每个参数的详解
-
-* 一次性地，用英语怎么说
-
-    有多种表达"一次性地"的英语说法，根据上下文不同：
-
-    最常用表达
-
-    - **One-time** (形容词) - 最通用
-    - **One-off** (形容词) - 英式英语常用
-    - **Single-use** (形容词) - 强调只用一次
-
-    **具体场景用法**
-
-    1. 一次性付款/交易
-
-        ```
-        One-time payment
-        One-off transaction
-        Single payment
-        ```
-
-    2. 一次性用品
-
-        ```
-        Disposable items
-        Single-use products
-        One-time use items
-        ```
-
-    3. 一次性完成某事
-
-        ```
-        Do something in one go
-        Do something all at once
-        Complete something in a single operation
-        ```
-
-    4. 副词形式（一次性做某事）
-
-        ```
-        Do something once and for all
-        Do something in one shot
-        Do something in a single attempt
-        ```
-
-    完整例句
-
-    - "This is a **one-time** operation."
-    - "We need a **one-off** solution for this problem."
-    - "It's a **single-use** code that expires after first use."
-    - "Let's handle this **once and for all**."
-
-    **推荐**：对于大多数情况，**"one-time"** 是最通用和易懂的表达。
-
-* 区分 switch 类型的 silink 和 p2p 类型的 silink，用英语怎么说
-
-    区分 switch 类型的 silink 和 p2p 类型的 silink，可以用以下几种英语表达：
-
-    **专业术语表达**
-
-    **Distinguish between switch-type silink and p2p-type silink**
-
-    **Differentiate switch-based silink from peer-to-peer silink**
-
-    **Tell apart switch-mode silink and p2p-mode silink**
-
-    **更详细的描述方式**
-
-    **"We need to distinguish between the two silink architectures: switch-based versus peer-to-peer."**
-
-    **"There are two types of silink configurations: the switch-type and the point-to-point type."**
-
-    **"Identifying whether a silink operates in switch mode or p2p mode is crucial for proper configuration."**
-
-    **在文档或对话中的自然表达**
-
-    **"How do we differentiate switch silinks from p2p silinks?"**
-
-    **"What distinguishes a switch-type silink from a peer-to-peer silink?"**
-
-    **"The key differences between switch-based and p2p silink topologies are..."**
-
-    **技术规格写法**
-
-    **"Silink operates in two modes:**
-    - **Switch-type silink (hub-spoke topology)**
-    - **P2P-type silink (mesh topology)"**
-
-    **推荐用法**
-
-    对于技术文档和正式场合，推荐：
-    **"Distinguish between switch-type silink and p2p-type silink"**
-
-    对于日常技术讨论：
-    **"Differentiate switch-based silink from p2p silink"**
-
-    这样既专业又清晰，能够准确表达你的意思。
-
-* 应该给任务列表增加一个`[a]`状态，表示 async，异步任务，已经开始执行，但是还未完成，空出来的时间先去做其他事情，定期来回访这个任务，直至完成或者退出。
-
 * [ ] 方法五：使用 pyproject.toml（现代Python项目推荐）
 
     创建 `pyproject.toml` 文件：
@@ -311,14 +200,12 @@
     include = ["*"]
     ```
 
-* [ ] vfio_virqfd
-
-    echo "vfio_virqfd" | sudo tee -a /etc/modules-load.d/vfio.conf
-
 * [ ] 屏蔽显卡驱动
 
-    ### 8. 屏蔽原驱动（防止冲突）
+    屏蔽原驱动（防止冲突）
+
     对于 NVIDIA 显卡：
+
     ```bash
     # 创建黑名单文件
     echo "blacklist nouveau" | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
@@ -330,6 +217,7 @@
     ```
 
     对于 AMD 显卡：
+
     ```bash
     echo "blacklist radeon" | sudo tee /etc/modprobe.d/blacklist-radeon.conf
     echo "blacklist amdgpu" | sudo tee /etc/modprobe.d/blacklist-amdgpu.conf
@@ -420,7 +308,7 @@
     echo "vfio_iommu_type1" >> /etc/modules-load.d/vfio.conf
     ```
 
-* [ ] 检查 module 依赖关系
+* [v] 检查 module 依赖关系
 
     ```bash
     # 查看模块依赖
@@ -428,191 +316,21 @@
     # 通常显示：depends:        vfio,vfio_iommu_type1
     ```
 
-* [ ] 使用 vfio
-
-    ```bash
-    # 测试绑定一个设备（示例）
-    echo "8086 10d3" > /sys/bus/pci/drivers/vfio-pci/new_id
-
-    # 检查vfio设备文件
-    ls -l /dev/vfio/
-    # 应该看到vfio目录和设备文件
-    ```
-
-* [ ] 检查内核配置
-
-    ```bash
-    # 检查内核配置
-    zcat /proc/config.gz | grep VFIO
-    # 或
-    cat /boot/config-$(uname -r) | grep -i vfio
-
-    # 应看到：
-    # CONFIG_VFIO=m
-    # CONFIG_VFIO_PCI=m
-    # CONFIG_VFIO_IOMMU_TYPE1=m
-    ```
-
 * [ ] 什么是 elrepo
 
     ```bash
-    # 安装ELRepo最新内核（更简单）
+    # 安装 ELRepo 最新内核（更简单）
     rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
     yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
     yum --enablerepo=elrepo-kernel install kernel-ml -y
     reboot
     ```
 
-* [ ] lsmod | grep vfio || echo "VFIO模块未加载"
-
-* [ ] vfio_iommu_type1
-
+* [v] lsmod | grep vfio || echo "VFIO模块未加载"
 
 * 写一个工具，用于扩展 vim 打开文件时的 tab 补全。记录下常用文件的名称和 path，当用户输入 `hvim he<tab>` 后，自动补全成`hvim MyProjects/vim_test/hello_world.md`，用户按回车后，使用 vim 打开这个文件。
 
     这个工具可以防止在多层结构的目录里跳来跳去。
-
-* 买断式逆回购是否意味着回购的性质发生了根本性的变化，相当于实质性的印钞票发钱
-
-	这是一个非常好的问题，它触及了中国金融市场中一个复杂且常被误解的操作。
-
-	简单直接的回答是：**不，标准的、常规的买断式逆回购并不意味着根本性质的改变，也不等同于实质性的印钞票发钱。** 它本质上仍然是一种有抵押的短期贷款。
-
-	但是，您的疑问并非空穴来风。在**极端且特殊的情况下**，如果央行大规模、长期地使用某种特定形式的买断式回购，其经济效果**可能接近于**量化宽松（QE），从而具有“类印钞”的效果。
-
-	下面我们来详细拆解这个问题：
-
-	1. 首先，理解标准的逆回购（包括买断式）是什么
-
-    	无论是质押式还是买断式，逆回购的核心都是**中央银行向市场注入短期流动性的操作**。
-
-    	* **角色定义**：
-
-    		* 正回购：央行卖出债券，回笼货币，是**收紧流动性**。
-
-    		* 逆回购：央行买入债券，投放货币，是**释放流动性**。
-
-    	*   **交易本质**：逆回购是央行与商业银行之间的一笔**有抵押的短期贷款**。商业银行把债券抵押给央行，获得资金；到期后，商业银行还本付息，赎回债券。
-
-	2. 关键区别：质押式 vs. 买断式
-
-    	这里的关键在于债券所有权的转移。
-
-    	* **质押式逆回购**：
-
-    		* **债券所有权不变**，只是被“质押”或“冻结”在央行那里。
-    		
-            * 到期前，商业银行不能使用或卖出这些债券。
-    		
-            * **性质**：这完全是一笔**纯粹的抵押贷款**。央行资产负债表上，资产端增加“对其他存款性公司债权”，负债端增加“商业银行准备金”。没有任何争议，就是短期流动性调节工具。
-
-    	* **买断式逆回购**：
-
-    		* **债券所有权发生转移**，从商业银行暂时转移到央行手中。
-
-    		* 在回购期间，央行**确实拥有了这些债券**，理论上可以处置它们（尽管在标准操作中不会）。
-
-    		* **性质**：在法律形式上，这是一笔**即期的债券买卖**，附带一个远期的回购协议。但这并没有改变其**短期、有到期日、需要偿还**的借贷本质。
-
-	3. 为什么说标准的买断式逆回购不是“印钞票”？
-
-    	“印钞票”或“发钱”在经济学上通常指**基础货币的永久性、无对冲的投放**，比如央行直接在一级市场购买国债（财政赤字货币化），或者典型的量化宽松（QE）。
-
-    	买断式逆回购与它们的根本区别在于 **“临时性”和“可逆性”**：
-
-    	1. **有明确的到期日**：操作之初就约定好了回购日期，资金投放是暂时的。
-    	
-        2. **需要偿还**：商业银行到期必须连本带息把钱还给央行，否则央行将出售其债券。这是一个借贷行为，不是赠与。
-    	
-        3. **不改变基础货币的长期总量**：到期后，流动性被收回，相当于“把放出去的水又抽了回来”。它只是平滑了短期的资金波动。
-
-    	**一个比喻**：
-
-    	* **印钞票/发钱**：像是给你一笔**赠款**，你不用还，这笔钱永久留在市场里。
-
-    	* **逆回购**：像是你用手表作抵押，向朋友借了一笔**周转金**，说好下周五还钱并付点利息，把手表赎回来。下周五，钱还回去了，市场里的总钱数没变。
-
-    	因此，常规的买断式逆回购，尽管所有权转移，但其经济实质和效果与质押式逆回购一样，都是**货币政策微调工具**，而非根本性的货币创造。
-
-	4. 在什么情况下，它会“接近”于印钞票？
-
-    	您的疑虑可能源于对国外央行非常规政策的观察。在以下**极端假设**下，买断式回购的性质可能会发生“根本性变化”：
-
-    	1.  **操作期限极长甚至无限期**：如果央行进行的买断式回购期限非常长（比如数年），并且不断滚动续作，那么这笔“临时”资金就变成了“永久”资金。这在效果上就接近了长期流动性投放。
-    	2.  **操作规模极其巨大**：如果央行通过买断式回购吞下了市场上绝大部分的债券，其资产负债表会急剧扩张，向市场注入了天量流动性，这与QE的效果类似。
-    	3.  **央行明确声明“在到期前不会出售或要求赎回”**：这相当于向市场保证，这些债券已经从市场中永久移除，其持有的资金是长期可用的。
-
-	    **以美联储的QE为例**：QE 的本质就是美联储在二级市场上**直接购买**国债和MBS（这本身就是一种“买断”），并且没有设定明确的回购（卖出）日期，目的是**永久性地**扩大其资产负债表，压低长期利率。如果把买断式逆回购的“临时性”特征去掉，它就变成了QE。
-
-	**结论**
-
-	总结一下：
-
-	* **在常规操作框架下**：中国的买断式逆回购是一种**高级的流动性管理工具**。虽然债券所有权转移带来了更大的灵活性（例如，央行在必要时确实可以出售这些债券来主动收紧流动性），但其**短期、有偿、可逆**的核心属性没有变。**它不是印钞票，也不是发钱。**
-
-	* **在极端理论假设下**：如果央行抛弃了“短期”和“可逆”的原则，将买断式回购**长期化、永久化、大规模化**，那么其性质就会发生根本变化，演变为一种类似量化宽松的“印钞票”行为。
-
-	目前，中国人民银行的各类逆回购操作都严格遵守其作为短期流动性调节工具的定位，与“实质性的印钞票发钱”有本质区别。市场和分析师也会密切关注这些操作的期限、规模和续作情况，以判断央行政策的真实意图。
-
-* 那为什么不采用普通逆回购，而要采用买断式？
-
-	这个问题问到了关键点上！既然买断式逆回购听起来更复杂，而且其“债券所有权转移”的特性容易引发“是否在印钱”的误解，那为什么央行不简单地只用普通逆回购呢？
-
-	选择买断式逆回购而非质押式逆回购，主要是基于其在**流动性管理、市场建设和风险控制**方面提供的**独特灵活性和功能**。
-
-	我们可以从三个核心维度来理解这种选择背后的逻辑：
-
-	一、对央行而言：操作工具箱的丰富与精准化
-
-	央行追求的是对市场流动性的精准调控。买断式逆回购提供了质押式逆回购所不具备的“主动管理”能力。
-
-	1.  **提供了“主动收紧”的选项**
-
-		*   **质押式逆回购**：到期时，央行只能被动等待商业银行还钱来收回流动性。如果中途市场突然过热，央行无法主动出击。
-		*   **买断式逆回购**：由于债券所有权在央行手里，**央行有权在回购协议到期前，在二级市场上直接卖出这些债券**。这相当于一种“核选项”，允许央行在流动性过剩、需要紧急收紧时，**主动、迅速、无预警地**从市场抽水，而不必等到回购到期。这极大地增强了央行调控的威慑力和灵活性。
-
-	2.  **优化抵押品管理，盘活市场**
-
-		*   央行可以通过买断式逆回购，**有针对性地吸收市场中的特定债券**。比如，当某类债券（如地方政府债）流动性较差时，央行通过买断式操作将其纳入囊中，可以有效地为这些债券提供流动性支持，盘活整个债券市场。
-
-	二、对交易对手方（商业银行）而言：资产管理的灵活性
-
-	商业银行不仅是政策的接受者，也是市场的参与者。买断式逆回购为它们解决了质押式下的一个核心痛点。
-
-	1.  **释放了抵押品的流动性**
-		*   **质押式逆回购**：债券被质押冻结后，在到期前无法被银行用于其他用途（如再次质押融资、或作为流动性资产应对监管要求）。这相当于“资产沉睡”，降低了银行的资产使用效率。
-		*   **买断式逆回购**：债券已经卖断给央行，**从银行的资产负债表上暂时消失**。银行获得了现金，同时释放了自身的资产负债表空间。它们可以用这些空间去做其他更有利可图的业务，或者满足流动性覆盖率（LCR）等监管指标。这对于银行来说是一个巨大的吸引力。
-
-	三、对金融市场而言：价格发现与基准建设
-
-	一个健康的金融市场需要透明、可靠的价格信号。
-
-	1.  **更纯粹的价格发现机制**
-		*   买断式逆回购因为转移了所有权和风险，其利率**更纯粹地反映了资金的真实价格和信用风险**，受抵押品具体特征（如流动性、信用等级）的干扰较小。
-		*   相比之下，质押式逆回购的利率会受到抵押品质量的影响（用烂债券抵押，利率自然要高一些），其利率信号相对“嘈杂”。
-
-	2.  **为衍生品市场提供基石**
-		*   买断式回购创造的“真实卖出”行为，是构建**回购利率期货**等利率衍生品市场的理想基础。这些衍生品是市场管理利率风险的重要工具，而一个只有质押式回购的市场很难发展出这类产品。
-
-	**总结：一个形象的比喻**
-
-	为了更好地理解，我们可以打一个比方：
-
-	*   **质押式逆回购** 就像 **“典当”**。
-		*   你把一块名表押给当铺（央行），换一笔钱。表还是你的，只是暂时不能戴了。到期你还钱付息，把手表赎回来。过程简单，但资产（手表）在你赎回前是“死”的。
-
-	*   **买断式逆回购** 就像 **“卖旧书”**。
-		*   你把一本书卖给旧书店（央行），换一笔钱。书的所有权归书店了，你可以用这笔钱和空出来的书架空间做别的事。同时，书店有权随时把这本书再卖给其他顾客（央行主动卖出债券）。约定到期后，你可以用同样的价格把书买回来（回购）。这个过程更灵活，资产（书）在期间是“活”的。
-
-	**结论：**
-
-	央行不只用普通逆回购，而引入买断式逆回购，是出于**打造一个更现代化、更高效、更具弹性的金融市场的战略考量**。它不是要改变回购“短期借贷”的根本性质，而是为了：
-    
-	1.  **给央行自己增加一个“紧急刹车”的按钮。**
-	2.  **给商业银行释放资产活力，提高资金使用效率。**
-	3.  **给整个市场提供更清晰的利率信号和更丰富的金融工具。**
-
-	这是一种从粗放式管理向精细化管理的演进，体现了中国货币政策工具日趋成熟。
 
 * 按照现在这个节奏，似乎连 random exam 的时间都没有了，只有 rand walk。在随机看笔记的时候，直接就开始记忆。不再通过牢固的记忆来进行开发，而是在用的时候直接去查，查的时候直接开始记。留给 random exam 的时间少一些。
 
@@ -624,7 +342,7 @@
 
 * [ ] writefile(), getreg(), readfile()
 
-* [ ] tmux
+* [v] tmux
 
 * [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
 
@@ -650,6 +368,7 @@
 
     let g:deoplete#enable_at_startup = 1
     ```
+
 * 对于长程任务，应该引入按时间阶段性总结的功能。
 
     不然这个任务算是完成还是未完成？只能说正在进行中。
@@ -657,6 +376,7 @@
 * [ ] vim-gutentags
 
 * [new] `ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .`
+
 * [asso] Mercurial 或者更现代的 Jujutsu
 
 * [asso] 调研 vim multiple line 插件
@@ -685,7 +405,7 @@
 
 * [new] telescope.nvim
 
-* [new] lsof 命令
+* [v] lsof 命令
 
 * [new] libpci
 
@@ -772,6 +492,7 @@
     **我的建议：**
     如果你只是想快速让实验环境跑起来，**Tailscale** 是首选。如果你是在学习 Linux 网络或构建高性能集群，研究一下 **VXLAN** 会让你受益匪浅。
     ```
+
 * [new] 如果 cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
 
 * 既需要 explore，又需要输出，对接现实世界
@@ -962,7 +683,7 @@
         * 02.02  30 mins
     ```
 
-* c语言中，调试字符串相关的代码，经常有拿到某个字符对应的位置、以及拿到某个位置对应的字符的需求，自己动手数比较麻烦，是否有工具可以解决这个问题
+* c 语言中，调试字符串相关的代码，经常有拿到某个字符对应的位置、以及拿到某个位置对应的字符的需求，自己动手数比较麻烦，是否有工具可以解决这个问题
 
     是的，完全有工具可以解决这个手动数位置的问题！以下是几种实用的解决方案：
 
@@ -1153,8 +874,6 @@
 
     把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
 
-* [v] 如果有$x_1$，$x_2$两个变量，是否优化目标为修改曲面在指定点处的高度？
-
 * [ ] 需要一个 graph 工具，建立不同的东西之间的连接
 
     stack 工具只适合任务的 trace
@@ -1332,8 +1051,6 @@ english words 由 { } reorg: english words 进化而来。
     可以参考`ref_5`
 
 * [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
-
-* [v] py 中，如果有函数 A(), B()，并且 B() 在 A() 的下面，那么 A() 如何调用到 B()？
 
 * [P] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
@@ -1594,54 +1311,6 @@ english words 由 { } reorg: english words 进化而来。
 * 可以使用 youtube 学一些英语课，比如 julia，octave 等，这样既锻炼了英语，也学到了东西
 
 ### tasks
-
-* [v] 如果使用 DKMS
-
-    ```bash
-    # 重新注册和构建 DKMS 模块
-    sudo dkms remove sipu/version -k $(uname -r)
-    sudo dkms add /path/to/sipu
-    sudo dkms build sipu/version -k $(uname -r)
-    sudo dkms install sipu/version -k $(uname -r)
-    ```
-
-* [v] 调研 vim-surround 插件
-
-    <https://github.com/tpope/vim-surround>
-
-    安装插件后
-
-    选中文本，输入：
-    
-    ```vim
-    S```
-    ```
-
-    就会自动在选中文本两侧添加三个反引号
-
-* [ ] 调研下述说法是否正确
-
-    ❌ Gemini 的说法
-
-    .gitmodules 里的 url = ../repo-server-2 是相对于主仓库的远程地址（origin URL）
-
-    这句话 只有在“主仓库是远程 URL（如 https://、ssh://）”时才成立，
-    在你这个 case（本地路径 clone）里是错误的理解延伸。
-
-* [ ] 调研下述说法是否正确
-
-    Git 的规则是：
-
-    子模块的相对 URL 是相对于“父仓库的 superproject URL”解析的
-
-    而你的 superproject URL 是：
-
-    git clone ../repo-server .
-
-
-    也就是说：
-
-    superproject URL = ../repo-server
 
 * [ ] `git ls-files --stage`
 
@@ -2460,6 +2129,49 @@ english words 由 { } reorg: english words 进化而来。
 * [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
 
 * [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
+
+## vfio / vfio-pci / iommu
+
+### cache
+
+* [ ] vfio_iommu_type1
+
+* [ ] 使用 vfio
+
+    ```bash
+    # 测试绑定一个设备（示例）
+    echo "8086 10d3" > /sys/bus/pci/drivers/vfio-pci/new_id
+
+    # 检查vfio设备文件
+    ls -l /dev/vfio/
+    # 应该看到vfio目录和设备文件
+    ```
+
+* [ ] 检查内核配置
+
+    ```bash
+    # 检查内核配置
+    zcat /proc/config.gz | grep VFIO
+    # 或
+    cat /boot/config-$(uname -r) | grep -i vfio
+
+    # 应看到：
+    # CONFIG_VFIO=m
+    # CONFIG_VFIO_PCI=m
+    # CONFIG_VFIO_IOMMU_TYPE1=m
+    ```
+
+* [ ] vfio_virqfd
+
+    echo "vfio_virqfd" | sudo tee -a /etc/modules-load.d/vfio.conf
+
+* [ ] sudo sh -c "echo 1 > /sys/class/iommu/dmar*/reset"
+
+* [ ] iommu=relaxable iommu.forcedac=0 iommu.strict=0
+
+* [ ] `echo "vfio-pci" > /sys/bus/pci/devices/0000:01:00.0/driver_override`
+
+* [ ] `ls -l /sys/bus/pci/devices/0000:01:00.0/iommu_group/devices/`
 
 ## Torch
 

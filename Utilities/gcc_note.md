@@ -2,6 +2,124 @@
 
 ## cache
 
+* 目前我的系统只装了 gcc-13，我希望系统里只剩 gcc-11，怎么办
+
+    在 Linux 系统（尤其是 Ubuntu/Debian 系）里，从“只有 gcc-13”变成“只有 gcc-11”，需要分两步走：**先装新的，再删旧的**。直接卸载 gcc-13 可能会破坏系统依赖，非常危险。
+
+    1. 第一步：安装 gcc-11 和 g++-11
+
+        在终端执行以下命令。同时安装 `g++-11` 是为了保证 C++ 编译器版本一致，避免后续编译混乱。
+
+        ```bash
+        sudo apt update
+        sudo apt install gcc-11 g++-11
+        ```
+
+        安装完成后，可以用 `ls /usr/bin/gcc*` 确认一下，应该能同时看到 `gcc-11` 和 `gcc-13` 两个文件。
+
+    2. 第二步：将 gcc-11 设为默认版本
+
+        不要手动去改 `/usr/bin/gcc` 的软链接，推荐用系统自带的 `update-alternatives` 工具来管理。
+
+        这里建议使用 `--slave` 参数，让 `g++` 能跟随 `gcc` 自动联动切换，避免 C 和 C++ 编译器版本不一致引发奇怪的链接错误。
+
+        ```bash
+        # 注册 gcc-11 和 g++-11，并设置一个较高的优先级
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11
+        ```
+
+        如果系统里之前没有注册过 gcc-13，为了完整性，可以顺便把它也注册进去（优先级设低一点，比如 90），这样 `update-alternatives` 的管理列表会更清晰：
+
+        ```bash
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 90 --slave /usr/bin/g++ g++ /usr/bin/g++-13
+        ```
+
+        接下来手动切换到 gcc-11：
+
+        ```bash
+        sudo update-alternatives --config gcc
+        ```
+
+        终端会列出一个菜单，找到 `gcc-11` 对应的编号，输入数字回车即可。最后用 `gcc --version` 验证，确认输出是 11.x 版本。
+
+    3. 第三步：卸载 gcc-13
+
+        **⚠️ 重要提醒**：在 Ubuntu 等系统中，`gcc-13` 很可能是系统的基础依赖包。直接 `apt remove gcc-13` 可能会连带卸载大量系统组件，导致桌面或核心工具无法使用。
+
+        因此，更安全的做法是**保留 gcc-13 但不再使用它**，因为你的目标“系统里只剩 gcc-11”在逻辑上已经通过切换默认版本实现了。
+
+        如果你确实想彻底删除 gcc-13，请先模拟运行卸载命令，看看会牵连哪些包：
+
+        ```bash
+        # 模拟卸载，-s 参数不会真正执行删除，仅作演示
+        sudo apt remove -s gcc-13 g++-13
+        ```
+
+        **观察输出**：如果它只显示要删除 `gcc-13` 和 `g++-13` 本身，那就可以安全执行 `sudo apt remove gcc-13 g++-13`。如果它同时列出了很多其他包（如 `build-essential`、`libc6-dev` 等），**请立即放弃删除**，否则系统可能会损坏。
+
+    ** 验证与排查**
+
+    切换完成后，建议在**新开的终端**里执行以下命令确认：
+
+    ```bash
+    # 检查 gcc 和 g++ 是否都指向了 11 版本
+    readlink -f $(which gcc)
+    readlink -f $(which g++)
+    ```
+
+    两个命令的输出结尾都应该是 `-11`。如果 g++ 还是指向旧版本，可能是之前单独注册过，导致 `--slave` 联动失效，需要先清理旧配置再重新注册。
+
+* gcc default 版本如何从 gcc13 切换到 gcc 12
+
+    在大多数基于 Debian 或 Ubuntu 的系统中，将默认的 GCC 从 13 切换到 12，推荐使用 `update-alternatives` 工具来管理。这种方法安全，且便于以后随时切回。
+
+    **操作步骤**
+
+    1. 安装 GCC 12（如果尚未安装）
+
+        首先确保系统中已经安装了 GCC 12。如果还没有，请先安装：
+
+        ```bash
+        sudo apt update
+        sudo apt install gcc-12 g++-12
+        ```
+
+    2. 将 GCC 12 添加到 alternatives 管理列表中
+
+        执行以下命令，将其注册为一个候选版本。这里使用了 `--slave` 选项，可以确保 `gcc` 和 `g++` 版本同步切换，避免版本不一致：
+
+        ```bash
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12
+        ```
+
+        > 命令中的 `100` 是优先级。数值越大，在自动模式下越容易被选中。
+
+    3. 切换默认版本
+
+        运行交互式配置命令：
+
+        ```bash
+        sudo update-alternatives --config gcc
+        ```
+
+        系统会列出所有可用的 GCC 版本。找到对应 `/usr/bin/gcc-12` 的编号，输入该编号并按回车即可。
+
+    4. 验证切换结果
+
+        检查当前版本，确认已成功切换：
+
+        ```bash
+        gcc --version
+        g++ --version
+        ```
+
+    **备选方案：仅临时使用**
+
+    如果你不想改变系统全局的默认设置，只是在某个项目或终端会话中临时使用 GCC 12，可以直接使用完整路径或设置环境变量：
+
+    *   **指定版本**：`gcc-12 -o output source.c`
+    *   **Make/CMake**：在编译时指定 `CC=gcc-12 CXX=g++-12`。
+
 * g++ 的头文件搜索过程
 
     `g++` 拥有一套完整的**头文件搜索优先级（Search Order）**。当你使用 `#include <xxx.h>`（尖括号形式）时，即使没有在 `-I` 中指定路径，编译器也会去其**默认的系统路径**和**环境变量路径**中查找。
@@ -57,6 +175,7 @@
         * **`#include "file.h"`**：先在**当前源文件所在目录**找，找不到再按上述 `<>` 的顺序找。
 
         * **`#include <file.h>`**：直接跳过当前目录，从 `-I` 路径开始找。
+
 * makefile 中 -Ipath 会递归搜索 path 以及其子文件夹吗？
 
     只会搜索 path 目录下文件，不会递归搜索 path 子目录下的文件。

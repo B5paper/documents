@@ -2,6 +2,59 @@
 
 ## cache
 
+* 一次性地，用英语怎么说
+
+    有多种表达"一次性地"的英语说法，根据上下文不同：
+
+    最常用表达
+
+    - **One-time** (形容词) - 最通用
+    - **One-off** (形容词) - 英式英语常用
+    - **Single-use** (形容词) - 强调只用一次
+
+    **具体场景用法**
+
+    1. 一次性付款/交易
+
+        ```
+        One-time payment
+        One-off transaction
+        Single payment
+        ```
+
+    2. 一次性用品
+
+        ```
+        Disposable items
+        Single-use products
+        One-time use items
+        ```
+
+    3. 一次性完成某事
+
+        ```
+        Do something in one go
+        Do something all at once
+        Complete something in a single operation
+        ```
+
+    4. 副词形式（一次性做某事）
+
+        ```
+        Do something once and for all
+        Do something in one shot
+        Do something in a single attempt
+        ```
+
+    完整例句
+
+    - "This is a **one-time** operation."
+    - "We need a **one-off** solution for this problem."
+    - "It's a **single-use** code that expires after first use."
+    - "Let's handle this **once and for all**."
+
+    **推荐**：对于大多数情况，**"one-time"** 是最通用和易懂的表达。
+
 * 我想表达我的英语口语水平足够应付工作日常，但是并不是精通 ，该怎么用英语说？
 
     这里有几个地道的英文表达，可以根据你的简历风格和自信程度来选择：

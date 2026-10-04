@@ -1858,112 +1858,6 @@
 
         只需要注意如果需要保存输出，加上重定向即可。
 
-* 讲讲 find -type 的用法
-
-	`find -type` 是 Linux 中 `find` 命令最核心、最常用的参数之一，用于**根据文件类型**来筛选搜索目标。
-
-	它的基本语法是：
-
-	```bash
-	find [搜索路径] -type [类型代号] [其他条件]
-	```
-
-	---
-
-	### 1. 最常用的文件类型代号
-
-	| 代号 | 含义 | 通俗解释 |
-	| :--- | :--- | :--- |
-	| **`f`** | **普通文件** | 最常见的文本、图片、压缩包、可执行程序等。 |
-	| **`d`** | **目录** | 文件夹。 |
-	| **`l`** | **符号链接** | 软链接（快捷方式）。 |
-	| **`b`** | **块设备** | 硬盘、U盘等存储设备文件（通常在 `/dev` 下）。 |
-	| **`c`** | **字符设备** | 键盘、串口等（也在 `/dev` 下）。 |
-	| **`p`** | **管道文件** | 用于进程间通信的命名管道。 |
-	| **`s`** | **套接字文件** | 用于网络通信的 socket 文件。 |
-
-	---
-
-	### 2. 实战举例（由浅入深）
-
-	**① 查找当前目录下所有普通文件（不包括文件夹）**
-	```bash
-	find . -type f
-	```
-
-	**② 查找 `/var/log` 下所有目录（文件夹）**
-	```bash
-	find /var/log -type d
-	```
-	*（通常用来配合 `-maxdepth` 限制层级，避免刷屏）*
-
-	**③ 查找所有软链接文件**
-	```bash
-	find /usr/bin -type l
-	```
-
-	---
-
-	### 3. 高级组合用法（重点）
-
-	`-type` 最强大的地方在于和 `-name`、`-size`、`-mtime` 以及 `-exec` 组合使用。
-
-	**① 查找所有 `.log` 结尾的普通文件**
-	```bash
-	find /var -type f -name "*.log"
-	```
-
-	**② 查找所有大于 100M 的普通文件（清理大文件时常用）**
-	```bash
-	find /home -type f -size +100M
-	```
-
-	**③ 查找所有 7 天前修改过的目录（清理空老目录）**
-	```bash
-	find /tmp -type d -mtime +7
-	```
-
-	**④ 批量操作（经典场景）**
-
-	- **删除当前目录下所有 `.tmp` 临时文件（只删文件，不删文件夹）**
-	```bash
-	find . -type f -name "*.tmp" -delete
-	```
-
-	- **给当前目录下所有 `.sh` 脚本加执行权限（只针对文件）**
-	```bash
-	find . -type f -name "*.sh" -exec chmod +x {} \;
-	```
-
-	- **统计当前目录下所有普通文件的总大小（排除目录干扰）**
-	```bash
-	find . -type f -exec du -ch {} + | grep total$
-	```
-
-	---
-
-	### 4. 极易踩坑的注意点（必看）
-
-	- **`-type f` 不包括目录**：如果你用 `find . -name "test"` 不加 `-type`，它会同时找出名为 `test` 的文件 **和** 名为 `test` 的文件夹。加上 `-type f` 后，文件夹会被过滤掉。
-	- **`-type l` 检查的是链接本身**，而不是链接指向的目标文件类型。
-	- **在 macOS/BSD 系统中**，`-type` 的用法完全一样，但后面的 `-exec` 语法有时略有不同（不过 `{} \;` 和 `{} +` 是通用的）。
-
-	---
-
-	### 5. 特殊情况：使用 `-xtype` 代替 `-type`
-
-	如果你查找符号链接（`-type l`），但又想**根据链接指向的目标类型**来过滤，可以用 `-xtype`。
-
-	```bash
-	# 找出指向目录的软链接
-	find . -xtype d
-	```
-	*（这个在日常运维中偶尔会用到，属于进阶技巧）*
-
-	---
-
-	如果你告诉我你想查**哪类文件**（比如只想删文件不删文件夹，或者只查可执行文件），我可以帮你写一条精准的命令。
-
 * 讲讲 egrep -c '(vmx|svm)' /proc/cpuinfo 这行命令的作用
 
     这条命令的作用是**快速检查你的 CPU 是否支持硬件虚拟化技术**。
@@ -7249,18 +7143,6 @@
 
     [abc] 匹配 a、b 或 c。
 
-* `find`的匹配模式
-
-    -name 和 -iname： 使用 glob 模式，按文件名匹配。`-iname`表示大小写不敏感。
-
-    -regex 和 -iregex：使用正则表达式。正则匹配的是完整路径（如 ./dir/file.txt），而非仅文件名。
-
-    其他匹配方式:
-
-    * -path：类似 -name，但匹配完整路径（使用 glob 语法）。
-
-    * -perm、-size 等：按权限、大小等属性匹配，与正则/glob 无关。
-
 * `stat <file_path>`
 
     输出文件的基本信息。
@@ -8125,42 +8007,6 @@
     heloo
     ```
 
-* find 不输出没有权限的文件
-
-    find 对没有权限的文件会输出类似
-
-    ```
-    ...
-    find: ‘/proc/1188309/task/1188309/ns’: Permission denied
-    find: ‘/proc/1188309/fd’: Permission denied
-    find: ‘/proc/1188309/map_files’: Permission denied
-    find: ‘/proc/1188309/fdinfo’: Permission denied
-    find: ‘/proc/1188309/ns’: Permission denied
-    ...
-    ```
-
-    的信息。这些信息其实都是 stderr。因此可以考虑过滤掉 stderr 的输出：
-
-    `find <path> -name <pattern> 2>/dev/null`
-
-    example:
-
-    `find / -name hello 2>/dev/null`
-
-    output:
-
-    ```
-    /home/hlc/miniconda3/pkgs/tk-8.6.14-h39e8969_0/lib/tk8.6/demos/hello
-    /home/hlc/miniconda3/lib/tk8.6/demos/hello
-    /home/hlc/miniconda3/envs/torch/lib/tk8.6/demos/hello
-    /home/hlc/miniconda3/envs/vllm/lib/tk8.6/demos/hello
-    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt4/hello
-    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt3/hello
-    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/hello
-    /home/hlc/Documents/Projects/chisel-tutorial/src/main/scala/hello
-    /home/hlc/Documents/Projects/makefile_test/hello
-    ```
-
 * linux host name 相关
 
     * 显示当前的 host name: `hostname`
@@ -8202,6 +8048,333 @@
     * 临时修改 hostname: `sudo hostname new-hostname` （未测试过）
 
 ## Topics
+
+### find
+
+* find 不输出没有权限的文件
+
+    find 对没有权限的文件会输出类似
+
+    ```
+    ...
+    find: ‘/proc/1188309/task/1188309/ns’: Permission denied
+    find: ‘/proc/1188309/fd’: Permission denied
+    find: ‘/proc/1188309/map_files’: Permission denied
+    find: ‘/proc/1188309/fdinfo’: Permission denied
+    find: ‘/proc/1188309/ns’: Permission denied
+    ...
+    ```
+
+    的信息。这些信息其实都是 stderr。因此可以考虑过滤掉 stderr 的输出：
+
+    `find <path> -name <pattern> 2>/dev/null`
+
+    example:
+
+    `find / -name hello 2>/dev/null`
+
+    output:
+
+    ```
+    /home/hlc/miniconda3/pkgs/tk-8.6.14-h39e8969_0/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/envs/torch/lib/tk8.6/demos/hello
+    /home/hlc/miniconda3/envs/vllm/lib/tk8.6/demos/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt4/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/qt/qt3/hello
+    /home/hlc/Documents/Projects/boost_1_87_0/tools/build/example/hello
+    /home/hlc/Documents/Projects/chisel-tutorial/src/main/scala/hello
+    /home/hlc/Documents/Projects/makefile_test/hello
+    ```
+
+* `find`的匹配模式
+
+    -name 和 -iname： 使用 glob 模式，按文件名匹配。`-iname`表示大小写不敏感。
+
+    -regex 和 -iregex：使用正则表达式。正则匹配的是完整路径（如 ./dir/file.txt），而非仅文件名。
+
+    其他匹配方式:
+
+    * -path：类似 -name，但匹配完整路径（使用 glob 语法）。
+
+    * -perm、-size 等：按权限、大小等属性匹配，与正则/glob 无关。
+
+* 讲讲 find -type 的用法
+
+	`find -type` 是 Linux 中 `find` 命令最核心、最常用的参数之一，用于**根据文件类型**来筛选搜索目标。
+
+	它的基本语法是：
+
+	```bash
+	find [搜索路径] -type [类型代号] [其他条件]
+	```
+
+	---
+
+	### 1. 最常用的文件类型代号
+
+	| 代号 | 含义 | 通俗解释 |
+	| :--- | :--- | :--- |
+	| **`f`** | **普通文件** | 最常见的文本、图片、压缩包、可执行程序等。 |
+	| **`d`** | **目录** | 文件夹。 |
+	| **`l`** | **符号链接** | 软链接（快捷方式）。 |
+	| **`b`** | **块设备** | 硬盘、U盘等存储设备文件（通常在 `/dev` 下）。 |
+	| **`c`** | **字符设备** | 键盘、串口等（也在 `/dev` 下）。 |
+	| **`p`** | **管道文件** | 用于进程间通信的命名管道。 |
+	| **`s`** | **套接字文件** | 用于网络通信的 socket 文件。 |
+
+	---
+
+	### 2. 实战举例（由浅入深）
+
+	**① 查找当前目录下所有普通文件（不包括文件夹）**
+	```bash
+	find . -type f
+	```
+
+	**② 查找 `/var/log` 下所有目录（文件夹）**
+	```bash
+	find /var/log -type d
+	```
+	*（通常用来配合 `-maxdepth` 限制层级，避免刷屏）*
+
+	**③ 查找所有软链接文件**
+	```bash
+	find /usr/bin -type l
+	```
+
+	---
+
+	### 3. 高级组合用法（重点）
+
+	`-type` 最强大的地方在于和 `-name`、`-size`、`-mtime` 以及 `-exec` 组合使用。
+
+	**① 查找所有 `.log` 结尾的普通文件**
+	```bash
+	find /var -type f -name "*.log"
+	```
+
+	**② 查找所有大于 100M 的普通文件（清理大文件时常用）**
+	```bash
+	find /home -type f -size +100M
+	```
+
+	**③ 查找所有 7 天前修改过的目录（清理空老目录）**
+	```bash
+	find /tmp -type d -mtime +7
+	```
+
+	**④ 批量操作（经典场景）**
+
+	- **删除当前目录下所有 `.tmp` 临时文件（只删文件，不删文件夹）**
+	```bash
+	find . -type f -name "*.tmp" -delete
+	```
+
+	- **给当前目录下所有 `.sh` 脚本加执行权限（只针对文件）**
+	```bash
+	find . -type f -name "*.sh" -exec chmod +x {} \;
+	```
+
+	- **统计当前目录下所有普通文件的总大小（排除目录干扰）**
+	```bash
+	find . -type f -exec du -ch {} + | grep total$
+	```
+
+	---
+
+	### 4. 极易踩坑的注意点（必看）
+
+	- **`-type f` 不包括目录**：如果你用 `find . -name "test"` 不加 `-type`，它会同时找出名为 `test` 的文件 **和** 名为 `test` 的文件夹。加上 `-type f` 后，文件夹会被过滤掉。
+	- **`-type l` 检查的是链接本身**，而不是链接指向的目标文件类型。
+	- **在 macOS/BSD 系统中**，`-type` 的用法完全一样，但后面的 `-exec` 语法有时略有不同（不过 `{} \;` 和 `{} +` 是通用的）。
+
+	---
+
+	### 5. 特殊情况：使用 `-xtype` 代替 `-type`
+
+	如果你查找符号链接（`-type l`），但又想**根据链接指向的目标类型**来过滤，可以用 `-xtype`。
+
+	```bash
+	# 找出指向目录的软链接
+	find . -xtype d
+	```
+	*（这个在日常运维中偶尔会用到，属于进阶技巧）*
+
+	---
+
+	如果你告诉我你想查**哪类文件**（比如只想删文件不删文件夹，或者只查可执行文件），我可以帮你写一条精准的命令。
+
+* 详细讲讲 find 命令的用法
+
+    `find` 是 Linux/Unix 下最强大的文件查找命令之一，能按名称、类型、大小、时间、权限等条件递归查找文件，并对结果执行操作。下面按使用频率和难度分层讲解。
+
+    **一、基本语法**
+
+    ```bash
+    find [搜索路径...] [表达式/条件] [动作]
+    ```
+
+    - 搜索路径：可以写多个，默认是当前目录 `.`
+    - 表达式：由选项、测试条件、动作组成，多个条件默认是**与（AND）**关系
+    - 动作：默认是 `-print`（打印路径）
+
+    最简单的例子：
+
+    ```bash
+    find .              # 列出当前目录下所有文件（递归）
+    find /var/log       # 列出 /var/log 下所有内容
+    ```
+
+    **二、按名称查找**
+
+    ```bash
+    find . -name "*.log"          # 精确匹配，区分大小写
+    find . -iname "*.LOG"         # 忽略大小写
+    find . -name "test?.txt"      # ? 匹配单个字符
+    find . -name "[abc]*"         # [] 匹配字符集
+    find . -path "*/conf/*.xml"   # 按路径匹配（含目录部分）
+    ```
+
+    注意：`-name` 的匹配是**整个文件名**，不是子串。要匹配子串就用通配符，如 `-name "*test*"`。
+
+    > 提示：模式要用引号包起来，防止 shell 提前展开通配符。
+
+    **三、按类型查找**
+
+    ```bash
+    find . -type f    # 普通文件
+    find . -type d    # 目录
+    find . -type l    # 符号链接
+    find . -type s    # socket
+    find . -type p    # 命名管道
+    ```
+
+    **四、按大小查找**
+
+    单位：`c`(字节) `k` `M` `G`。`+` 表示大于，`-` 表示小于，无符号表示等于（按块向上取整）。
+
+    ```bash
+    find . -size +100M           # 大于 100MB
+    find . -size -1k             # 小于 1KB
+    find . -size 0               # 空文件
+    find . -empty                # 空文件或空目录（更直观）
+    ```
+
+    **五、按时间查找**
+
+    以“天”为单位：`-atime`(访问) `-mtime`(修改内容) `-ctime`(改变元数据)
+    以“分钟”为单位：`-amin` `-mmin` `-cmin`
+
+    ```bash
+    find . -mtime -7      # 7天内修改过
+    find . -mtime +30     # 30天前修改过
+    find . -mtime 0       # 今天修改过
+    find . -mmin -60      # 60分钟内修改过
+    find . -newer file.txt   # 比 file.txt 更新的文件
+    ```
+
+    注意 `-mtime -7` 的语义：`-7` 表示“小于 7 天”，即最近 7 天内。
+
+    **六、按权限和属主**
+
+    ```bash
+    find . -perm 644              # 权限正好是 644
+    find . -perm -u+w             # 用户有写权限（至少满足）
+    find . -perm /u+w             # 任一类别有写权限（任意满足）
+    find . -user alice            # 属主是 alice
+    find . -group dev             # 属组是 dev
+    find . -nouser                # 无有效属主
+    find . -uid 1000
+    ```
+
+    `-perm` 的三种写法容易混：
+    - `644`：完全相等
+    - `-644`：包含这些位（全部满足）
+    - `/644`：包含任意一位
+
+    **七、逻辑组合**
+
+    ```bash
+    find . -name "*.log" -a -size +10M      # 与（默认）
+    find . -name "*.log" -o -name "*.txt"   # 或
+    find . ! -name "*.tmp"                  # 非
+    find . \( -name "*.log" -o -name "*.txt" \) -size +1M   # 括号分组
+    ```
+
+    括号要转义 `\( \)`，因为对 shell 有特殊含义。多个 `-o` 时括号常用来明确优先级。
+
+    **八、限制搜索深度**
+
+    ```bash
+    find . -maxdepth 1 -name "*.conf"    # 只查当前层
+    find . -mindepth 2 -maxdepth 3       # 限定层级范围
+    find . -prune                        # 配合 -path 排除目录
+    ```
+
+    排除某目录的经典写法：
+
+    ```bash
+    find . -path ./node_modules -prune -o -name "*.js" -print
+    ```
+
+    含义：遇到 `./node_modules` 就剪枝不再进入，否则打印 `.js` 文件。
+
+    **九、对结果执行动作**
+
+    ```bash
+    find . -name "*.tmp" -delete                 # 删除
+    find . -name "*.sh" -exec chmod +x {} \;     # 逐个执行
+    find . -name "*.log" -exec rm {} +           # 批量执行（更高效）
+    find . -name "*.txt" -ok rm {} \;            # 执行前询问
+    find . -name "*.c" -print0 | xargs -0 wc -l  # 处理含空格文件名
+    ```
+
+    关键区别：
+
+    - `{}` 是文件名占位符
+    - `\;` 每个文件调用一次命令
+    - `+` 尽量把所有文件一次性传给命令（性能好）
+    - `-print0` + `xargs -0` 用 NUL 分隔，避免文件名含空格/换行出错
+
+    **十、实用组合示例**
+
+    **清理 30 天前的日志**
+    ```bash
+    find /var/log -name "*.log" -mtime +30 -delete
+    ```
+
+    **找出占用空间大的前 10 个文件**
+    ```bash
+    find . -type f -size +100M -exec ls -lh {} + | sort -k5 -h | tail -10
+    ```
+
+    **批量把所有 .JPG 改名为 .jpg**
+    ```bash
+    find . -name "*.JPG" -exec bash -c 'mv "$1" "${1%.JPG}.jpg"' _ {} \;
+    ```
+
+    **统计目录下各类型文件数量**
+    ```bash
+    find . -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn
+    ```
+
+    **找出最近 1 小时被修改且大于 1M 的文件**
+    ```bash
+    find /data -type f -mmin -60 -size +1M
+    ```
+
+    **十一、性能与注意事项**
+
+    1. **优先用 `-name` 而不是 `-path`**，后者更慢。
+    2. **尽量缩小搜索路径**，别一上来就 `find /`。
+    3. **`-exec ... +` 比 `\;` 快很多**，能批量就批量。
+    4. **文件名含空格**：用 `-print0 | xargs -0` 或 `-exec ... {} +`。
+    5. **`-delete` 隐含 `-depth`**，且删除前不会提示，先用 `-print` 确认。
+    6. **软链接**：默认不跟随符号链接，需 `-L` 才进入链接指向的目录。
+    7. **权限不足**时会有大量报错，可 `2>/dev/null` 屏蔽，或用 `-readable`。
+
+    如果你有具体场景（比如“找出某目录下所有超过 1G 的旧视频并删除”），我可以直接给你写一条现成命令。
 
 ### remote desktop
 

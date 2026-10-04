@@ -4,6 +4,10 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* 使用 || 指定任务失败时报错的一个技巧
+
+    lsmod | grep vfio || echo "VFIO模块未加载"
+
 * bash 中循环的常见用法
 
     * `for i in 1 2 3; do echo $i; done`
