@@ -2,6 +2,196 @@
 
 ## cache
 
+* 详细解释一下这一段
+
+    ```vim
+    let g:tagbar_type_markdown = {
+      \ 'ctagstype'	: 'markdown',
+      \ 'kinds'		: [
+        \ 'c:chapter:0:1',
+        \ 's:section:0:1',
+        \ 'S:subsection:0:1',
+        \ 't:subsubsection:0:1',
+        \ 'T:l4subsection:0:1',
+        \ 'u:l5subsection:0:1',
+      \ ],
+      \ 'sro'			: '""',
+      \ 'kind2scope'	: {
+        \ 'c' : 'chapter',
+        \ 's' : 'section',
+        \ 'S' : 'subsection',
+        \ 't' : 'subsubsection',
+        \ 'T' : 'l4subsection',
+      \ },
+      \ 'scope2kind'	: {
+        \ 'chapter' : 'c',
+        \ 'section' : 's',
+        \ 'subsection' : 'S',
+        \ 'subsubsection' : 't',
+        \ 'l4subsection' : 'T',
+      \ },
+    \ }
+    ```
+
+    这段配置是 Vim 插件 **Tagbar** 的自定义类型定义，用于让 Tagbar 能够正确解析 Markdown 文件，并在侧边栏以层级结构展示标题。
+
+    Tagbar 本身不解析文件，它依赖 ctags 生成标签数据，然后把 ctags 输出的信息按你定义的规则组织成树形结构。这段配置做的事情就是：**告诉 Tagbar，Markdown 的标签有哪些种类、它们之间如何嵌套、以及如何在侧边栏里显示。**
+
+    下面逐项拆解。
+
+    ---
+
+    ### 1. `ctagstype : 'markdown'`
+
+    ```vim
+    'ctagstype' : 'markdown',
+    ```
+
+    这表示这套配置对应 ctags 输出中语言名为 `markdown` 的那一批标签。
+
+    当 ctags 扫描一个 `.md` 文件时，输出的每一行标签都带有语言字段（默认在 `tags` 文件中通过 `language:markdown` 这样的扩展字段体现，或者由 Tagbar 内部根据文件类型判断）。Tagbar 会拿这个值去匹配 `g:tagbar_type_<filetype>` 变量，这里就是 `g:tagbar_type_markdown`。
+
+    **关键点**：这个名字必须和 ctags 实际使用的语言名一致。如果你的 ctags 把 Markdown 识别为 `markdown`，这里就写 `markdown`；如果识别为 `md`，这里也要相应改成 `md`。
+
+    ---
+
+    ### 2. `kinds`：定义标签种类和显示方式
+
+    ```vim
+    'kinds' : [
+      \ 'c:chapter:0:1',
+      \ 's:section:0:1',
+      \ 'S:subsection:0:1',
+      \ 't:subsubsection:0:1',
+      \ 'T:l4subsection:0:1',
+      \ 'u:l5subsection:0:1',
+    \ ],
+    ```
+
+    每一项的格式是：
+
+    ```text
+    <kind字母>:<显示名>:<是否折叠>:<是否显示在侧边栏>
+    ```
+
+    逐个看：
+
+    | 字段 | 含义 |
+    |---|---|
+    | `c` / `s` / `S` / `t` / `T` / `u` | ctags 输出中该标签的 kind 字母 |
+    | `chapter` / `section` / ... | Tagbar 侧边栏里显示的类别名称 |
+    | `0` | 该类别默认是否折叠（0 = 不折叠，即展开） |
+    | `1` | 是否在 Tagbar 中显示（1 = 显示） |
+
+    也就是说，Markdown 的六级标题被映射成了：
+
+    - `c` → chapter（一级标题 `#`）
+    - `s` → section（二级标题 `##`）
+    - `S` → subsection（三级标题 `###`）
+    - `t` → subsubsection（四级标题 `####`）
+    - `T` → l4subsection（五级标题 `#####`）
+    - `u` → l5subsection（六级标题 `######`）
+
+    注意这里 kind 字母用了大小写区分：`s` 和 `S`、`t` 和 `T` 是不同的种类。ctags 的 kind 字母本身区分大小写，所以这样是合法的。
+
+    **前提**：ctags 必须真的为 Markdown 输出这些 kind 字母。如果你用的 ctags 版本对 Markdown 的 kind 定义不同（比如只有 `s` 表示 section），那这里就要跟着改，否则 Tagbar 找不到对应标签。
+
+    ---
+
+    ### 3. `sro`：作用域分隔符
+
+    ```vim
+    'sro' : '""',
+    ```
+
+    `sro` 是 **scope root operator** 的缩写，表示在 Tagbar 中显示嵌套层级时，父级和子级之间用什么符号连接。
+
+    这里写成 `'""'` 比较特殊：它实际上是一个 Vim 字符串，内容是两个双引号字符。但在 Tagbar 的约定里，`""` 通常表示**不使用分隔符**，而是直接利用 ctags 提供的 scope 信息来构建树。
+
+    更常见的写法是 `'sro' : '.'` 或 `'sro' : '::'`，表示用点号或双冒号连接作用域。对于 Markdown 这种标题嵌套，用 `""` 是合理的，因为标题的层级关系不是通过名字拼接体现的，而是通过 `kind2scope` / `scope2kind` 以及 ctags 的 scope 字段来体现。
+
+    ---
+
+    ### 4. `kind2scope`：kind 字母 → 作用域名称
+
+    ```vim
+    'kind2scope' : {
+      \ 'c' : 'chapter',
+      \ 's' : 'section',
+      \ 'S' : 'subsection',
+      \ 't' : 'subsubsection',
+      \ 'T' : 'l4subsection',
+    \ },
+    ```
+
+    这个映射告诉 Tagbar：**哪些 kind 可以作为“作用域”（即父节点）**，以及它的作用域名称是什么。
+
+    在 ctags 输出中，一个标签可以带有 `scope` 字段，表示它属于哪个父级。例如一个三级标题可能带有 `scope:section:某个二级标题`。Tagbar 通过 `kind2scope` 知道：kind 为 `s` 的标签，其作用域类型叫 `section`。
+
+    这样当它看到某个标签的 scope 类型是 `section` 时，就能找到对应的父节点。
+
+    注意这里**没有包含 `u`**（l5subsection）。这意味着六级标题不会被当作其他标签的父作用域。这通常是合理的，因为六级标题下面一般不会再嵌套更深的标题了。
+
+    ---
+
+    ### 5. `scope2kind`：作用域名称 → kind 字母
+
+    ```vim
+    'scope2kind' : {
+      \ 'chapter' : 'c',
+      \ 'section' : 's',
+      \ 'subsection' : 'S',
+      \ 'subsubsection' : 't',
+      \ 'l4subsection' : 'T',
+    \ },
+    ```
+
+    这是 `kind2scope` 的反向映射。Tagbar 在构建树时，如果知道某个标签的 scope 名称是 `section`，就需要知道该用哪个 kind 字母去匹配父节点，`scope2kind` 提供了这个反向查找。
+
+    两个映射配合使用，Tagbar 才能正确地把一个标题挂到它的父标题下面。
+
+    同样，这里也没有 `l5subsection`，与 `kind2scope` 保持一致。
+
+    ---
+
+    ### 整体工作流程
+
+    1. 你打开一个 Markdown 文件，执行 `:TagbarToggle`。
+    2. Tagbar 调用 ctags 扫描该文件，ctags 根据自身对 Markdown 的解析规则输出标签，每个标签带有 kind 字母和可能的 scope 信息。
+    3. Tagbar 读取 `g:tagbar_type_markdown`，知道：
+       - 只关心 kind 为 `c/s/S/t/T/u` 的标签；
+       - 这些标签分别显示为 chapter/section/...；
+       - `c/s/S/t/T` 可以作为父作用域；
+       - 作用域名称和 kind 字母如何互相转换。
+    4. Tagbar 根据 scope 字段把标签组织成树：一级标题在最上层，二级标题挂在对应的一级标题下，依此类推。
+    5. 侧边栏显示出层级化的标题列表，点击即可跳转。
+
+    ---
+
+    ### 需要注意的几点
+
+    **第一，ctags 端必须支持 Markdown。** 这段配置只是 Tagbar 的显示层配置，真正的解析靠 ctags。Universal Ctags 内置了 Markdown 解析器，但不同版本输出的 kind 字母可能不同。你可以用下面的命令检查：
+
+    ```bash
+    ctags --list-kinds=Markdown
+    ```
+
+    如果输出的字母和配置里的不一致，需要修改 `kinds`、`kind2scope`、`scope2kind` 三处，保持统一。
+
+    **第二，`ctagstype` 的值要和 ctags 输出的语言名一致。** 可以用：
+
+    ```bash
+    ctags --list-languages | grep -i markdown
+    ```
+
+    确认实际名称。
+
+    **第三，这段配置是 Vimscript 的字典语法。** `\` 是续行符，`g:` 表示全局变量。Tagbar 在初始化时会读取所有 `g:tagbar_type_*` 变量来建立各文件类型的配置。
+
+    **第四，`kinds` 中每项的第 3、4 个字段。** 第 3 个是“是否折叠”，0 表示展开；第 4 个是“是否显示”，1 表示显示。如果你想让某一级标题默认折叠，可以把对应的 0 改成 1。
+
+    总结来说，这段配置的核心作用就是**把 ctags 对 Markdown 的扁平标签输出，通过 kind 和作用域映射，转换成 Tagbar 能展示的层级标题树**。
+
 * 详细讲讲 Plug 'VimWei/vim9-toc' 的用法
 
     `VimWei/vim9-toc` 插件为 Vim 提供了一个统一的交互式目录（TOC）入口。无论你是在编辑 Markdown、LaTeX 还是普通的 YAML、TOML 文件，都可以通过一条命令 `:Toc` 调出层级目录并快速跳转。
