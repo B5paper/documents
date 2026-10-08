@@ -12,7 +12,7 @@
 
     ```cpp
     namespace new_name = original_name;
-    ```
+     ```
 
     ## 常见用法示例
 
@@ -1904,7 +1904,7 @@
 
     **怎么解决？（三种方法，任选其一）**
 
-    你需要修改 `/home/hlc/Documents/Projects/hd-dot/projs/toast_test/toast_py3/src/libmath/nr.cc` 这个文件。
+    你需要修改 `/home/hlc/Documents/Projects/hd-dot/projs/toast_test/toast_py4/src/libmath/nr.cc` 这个文件。
 
     **方法 A：加上全局作用域符 `::`（最快、最安全）**
 
@@ -7116,6 +7116,7 @@
     - 没有虚函数
     - 没有需要初始化的成员变量
     - 构造和析构都是平凡的
+
 ### character encoding
 
 `codecvt.h`头文件专门用于处理字符编码。

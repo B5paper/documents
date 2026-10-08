@@ -2,6 +2,62 @@
 
 ## cache
 
+* VOoM : Vim two-pane outliner
+
+	<https://www.vim.org/scripts/script.php?script_id=2657>
+
+	<https://vim-voom.github.io>
+
+* md-outline.nvim
+
+	makrdown 大纲，只适用于 neovim
+
+	<https://github.com/tttol/md-outline.nvim>
+
+* <https://vimawesome.com>
+
+* tagbar 用法
+
+	repo: <https://github.com/preservim/tagbar>
+
+	tagbar wiki: <https://github.com/preservim/tagbar/wiki>
+
+	安装：`Plug 'preservim/tagbar'`
+
+	* 跳转后自动关闭 tagbar: 设置`g:tagbar_autoclose`
+
+		只临时使用一次：`:TagbarOpenAutoClose`
+ 
+	* 打开与关闭
+
+		`:TagbarOpen`, `:TagbarClose`, `:TagbarToggle`
+
+		设置快捷键：`nnoremap <silent> <F8> :TagbarToggle<CR>`
+
+		tagbar 默认在右侧打开，也可以通过`g:tagbar_position`设置其他位置。
+
+		阻止 tagbar 随文件切换：`:TagbarTogglePause`
+
+	* 标签跳转
+
+		使用 enter 键，或鼠标双击。
+
+		enter 也可以折叠或者展开标签
+
+	* 排序：s 键
+
+		顺序有两种：按名称，或按出现位置（又叫文件顺序）
+
+	* 当 Tagbar 窗口打开时，如果光标没有移动，当前标签会在短暂停顿后自动在其中高亮显示。这个时间由 updatetime 控制。（似乎是类似 vscode 中 prompt 弹出窗的机制）
+
+	* 显示标签的行定义（又叫做原型，prototype）
+
+		方法一：按 <space>
+
+		方法二：鼠标悬停
+
+		方法三：光标停在 tag 上 updatetime 毫秒
+
 * 详细解释一下这一段
 
     ```vim
@@ -81,7 +137,11 @@
     | `c` / `s` / `S` / `t` / `T` / `u` | ctags 输出中该标签的 kind 字母 |
     | `chapter` / `section` / ... | Tagbar 侧边栏里显示的类别名称 |
     | `0` | 该类别默认是否折叠（0 = 不折叠，即展开） |
-    | `1` | 是否在 Tagbar 中显示（1 = 显示） |
+    | `1` | 是否参与 `tagbar#currenttag()` 状态栏显示, 是否用于跨行的当前 scope 高亮 |
+
+    注：
+
+    1. `0:1`中的 1 表示光标落在正文中时，反查 tag，使对应的 tag 高亮。
 
     也就是说，Markdown 的六级标题被映射成了：
 

@@ -1,3 +1,118 @@
+# ctags note
+
+* {postrun}{scope=intervaltab}
+
+    先让内建 Markdown parser 建立各级标题的 `line/end` 区间，再把列表项归入包含它的最内层标题 scope
+
+    在 `~/.ctags.d/markdown-list.ctags` 写入：
+
+    ```
+    --kinddef-Markdown=i,listItem,list items
+    --regex-Markdown=/^[ \t]*[*][ \t]+(.+)$/\1/i/{postrun}{scope=intervaltab}
+    ```
+
+    验证：
+
+    ```
+    ctags --fields=+nKse --sort=no -o - msg.md
+    ```
+
+* ctags --list-kinds=Markdown
+
+    Ctags 会输出它内置的 Markdown Kind 定义
+
+* 详细讲讲这两行是什么意思
+
+    --kinddef-Markdown=i,listItem,list items
+    --regex-Markdown=/^[ \t]*[*][ \t]+(.+)$/\1/i/
+
+    结论：这两行是 **Universal Ctags 的 optlib 正则解析器定义语法**。第一行定义了一个新的 tag 种类（kind），第二行用正则规则告诉 ctags 如何从 Markdown 文件中识别这种 kind 并生成 tag。
+
+    ---
+
+    ## 第一行：定义 Kind
+
+    ```
+    --kinddef-Markdown=i,listItem,list items
+    ```
+
+    这是 ctags 的 `--kinddef-<LANG>` 选项，用于为某种语言定义一个自定义的 tag 种类（kind）。
+
+    **格式拆解：**
+
+    | 部分 | 值 | 含义 |
+    |------|-----|------|
+    | `Markdown` | 语言名 | 这个 kind 定义属于 Markdown 解析器 |
+    | `i` | 单字母缩写 | 该 kind 的 letter 形式，后续在 regex 中引用 |
+    | `listItem` | 长名称 | kind 的内部名称 |
+    | `list items` | 描述 | 人类可读的说明 |
+
+    **作用：** 在 Markdown 语言中注册一个名为 `listItem` 的 tag 种类，缩写为 `i`。这样 ctags 就知道 Markdown 文件里可以提取出“列表项”这种类型的 tag。
+
+    ---
+
+    ## 第二行：定义正则匹配规则
+
+    ```
+    --regex-Markdown=/^[ \t]*[*][ \t]+(.+)$/\1/i/
+    ```
+
+    这是 ctags 的 `--regex-<LANG>` 选项，用于通过正则表达式提取 tag。
+
+    **格式拆解：**
+
+    ```
+    --regex-Markdown=/正则表达式/替换/flag/
+    ```
+
+    | 部分 | 内容 | 含义 |
+    |------|------|------|
+    | 正则 | `^[ \t]*[*][ \t]+(.+)$` | 匹配以可选空白开头、后跟 `*` 和空白、再跟内容的行 |
+    | 替换 | `\1` | 用捕获组 1（即列表项文字）作为 tag 名 |
+    | flag | `i` | 指定生成的 tag 种类为 `listItem`（对应第一行的缩写） |
+
+    **正则细节：**
+
+    - `^[ \t]*` — 允许行首有缩进（空格或制表符），支持嵌套列表
+    - `[*]` — 字面量星号（用方括号避免被当作量词）
+    - `[ \t]+` — `*` 后必须至少有一个空白
+    - `(.+)` — 捕获组，匹配列表项的文本内容
+    - `$` — 行尾
+
+    **匹配示例：**
+
+    | 源代码行 | 生成的 tag 名 |
+    |----------|---------------|
+    | `* 苹果` | `苹果` |
+    | `  * 香蕉` | `香蕉` |
+    | `- 橙子` | **不匹配**（只认 `*`） |
+
+    ---
+
+    ## 整体效果
+
+    这两行组合起来的效果是：
+
+    让 ctags 在解析 Markdown 文件时，把每一行 `* 内容` 格式的列表项提取出来，以“内容”作为 tag 名，并标记 tag 种类为 `listItem`。
+
+    生成 tags 文件后，在 Vim 中把光标放在某个列表项文字上按 `Ctrl-]`，就能跳转到该列表项的定义位置。
+
+* git repo
+
+   <https://github.com/universal-ctags/ctags> 
+
+   build and install:
+
+   <https://docs.ctags.io/en/latest/autotools.html#gnu-linux-distributions>
+
+* optlib doc
+
+    <https://docs.ctags.io/en/latest/man/ctags-optlib.7.html>
+
+    Extending ctags with Regex parser (optlib):
+
+    <https://docs.ctags.io/en/latest/optlib.html>
+
 * kind字母只能是单个字母吗
 
     **是的，ctags 的 kind 字母严格限定为单个字符。**
@@ -447,3 +562,8 @@
     *   `{scope=...}`：用于维护层级关系（如章节嵌套），但这属于较复杂的用法。
 
     自定义正则解析的核心是“**定义语言 → 映射文件 → 定义标签类型 → 编写正则**”这四个步骤。你可以先从简单的标签（如 `TODO`、`FIXME`）开始尝试，熟悉后再逐步增加复杂规则。
+
+* ctags --list-languages
+
+	ctags --version
+
