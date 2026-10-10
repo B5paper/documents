@@ -2,6 +2,222 @@
 
 ## cache
 
+* 详细讲讲 gpu 中的 persistant kernel
+
+    # GPU Persistent Kernel（常驻内核）
+
+    > 
+    > Persistent Kernel，也叫长驻内核、持久核。简单一句话定义：**启动一次，不会退出，一直在GPU上驻留运行，等待主机下发任务的CUDA Kernel**。
+    > 普通kernel：CPU调用`cudaLaunchKernel`，GPU执行，跑完立刻退出，线程网格销毁。
+    > Persistent Kernel：**网格一旦启动，就永远不return，在GPU侧死循环，等待任务，自主处理任务**，不需要CPU反复Launch。
+
+    ## 一、传统Kernel的痛点（为什么需要Persistent Kernel）
+
+    普通CUDA编程模型：
+
+    1. CPU准备数据，把命令、参数拷到GPU
+    2. CPU发起Kernel Launch（内核调用）
+    3. GPU调度，分配SM，启动线程块，执行kernel
+    4. Kernel跑完，线程块退出，网格销毁，返回CPU
+
+    **开销来源：**
+
+    1. **Kernel Launch 开销**：即使很小的任务，一次launch大约几us。高频短任务（几千/几万次每秒），launch开销会占到总耗时很大比例。
+    2. **CPU‑GPU同步开销**：CPU要不断提交任务，CPU成为调度瓶颈。CPU需要轮询、流同步，主机线程占用高。
+    3. 任务粒度很小的时候，**启动延迟 > 任务本身计算时间**。
+
+    > 
+    > 举个例子：每秒几十万次很小的推理预处理、短向量运算，如果每次都从CPU发起kernel，launch开销会把系统吞吐量卡死。
+
+    Persistent Kernel 的目标：**只Launch一次，之后任务提交完全走GPU内存队列，避开CPU反复launch的开销，把调度下沉到GPU端。**
+
+    ## 二、Persistent Kernel 基础架构
+
+    整体架构分为三部分：
+
+    1. **Persistent Kernel（GPU端）**：一个巨大的死循环，常驻GPU，网格永远存活。
+    2. **GPU任务队列（Ring Buffer，位于Device内存）**：CPU往这个队列写入任务描述符（任务类型、输入输出指针、参数）。
+    3. **CPU主机侧**：**只执行一次kernel启动**，之后只往设备内存队列压入任务，不再调用cudaLaunch。
+
+    > 
+    > ⚠️注意：Persistent Kernel一旦启动，**这块网格占用的SM资源不会释放**，直到这个kernel主动退出，或者进程销毁。
+
+    ### 伪代码（GPU端 Persistent Kernel）
+
+    ```
+    __global__ void persistent_kernel(TaskRingBuffer* ring)
+    {
+        uint32_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+        // 常驻死循环，永远不退出
+        while(true)
+        {
+            // 1.从环形队列取任务
+            Task task = ring->fetch_task(tid);
+
+            if(task.valid)
+            {
+                // 执行真正计算任务
+                execute_task(task);
+            }
+            else
+            {
+                // 没有任务，sleep/yield，让出SM，避免100%忙等
+                __nanosleep(500);
+            }
+
+            // 退出标记：如果收到stop指令，跳出循环，kernel结束，网格销毁
+            if(ring->stop_flag)
+                break;
+        }
+    }
+    ```
+
+    > 
+    > 关键点：**while(true) 是常驻的根本。**
+    > 普通kernel执行完函数return，网格销毁；persistent kernel线程块一直在循环，不会return。
+
+    ### CPU侧流程
+
+    ```
+    // 1.分配设备上的任务环形缓冲区
+    TaskRingBuffer *d_ring;
+    cudaMalloc(&d_ring, sizeof(TaskRingBuffer));
+
+    // 2.【仅仅一次】启动常驻内核！
+    persistent_kernel<<<num_blocks, block_size>>>(d_ring);
+
+    // 3.循环提交大量任务，**不再launch kernel**
+    for(...)
+    {
+        // 将任务描述符写入device ring buffer（可以CPU写，也可以别的GPU kernel写）
+        enqueue_task(d_ring, task_param);
+    }
+
+    // 4.结束：下发stop信号，让persistent kernel退出循环，释放SM资源
+    set_stop_flag(d_ring);
+    cudaDeviceSynchronize();
+    ```
+
+    > 
+    > ✅重要：任务队列是**设备内存**，不需要cudaMemcpy来回拷贝，CPU只写队列头部指针，GPU读队列。甚至**别的Kernel、CUDA图、NCCL可以直接向这个队列提交任务，完全绕过CPU**，实现GPU自调度。
+
+    ## 三、两个关键实现难点：任务队列 + 忙等待优化
+
+    ### 1）环形队列 RingBuffer
+
+    队列放在 **Device Memory**，不能用CPU锁，要用**GPU原子操作（atomicCAS）**实现生产者‑消费者。
+
+    - Producer：CPU（或者其他GPU Kernel）写任务槽，原子更新写指针。
+    - Consumer：Persistent kernel内的线程块，原子读读指针，取任务。
+
+    > 
+    > 注意：**不能用std::mutex，那是CPU锁，GPU不能用。全部基于CUDA原子指令。**
+
+    ### 2）空闲状态：忙等 vs nanosleep
+
+    如果队列空，有两种选择：
+
+    1. **while(队列为空) 空循环忙等**
+       - 延迟极低，来任务立刻处理。
+       - ❌缺点：**占满SM算力，GPU利用率100%，功耗拉高，和其他kernel抢资源。**
+    2. **__nanosleep(N) 休眠让出SM**
+       - GPU硬件线程休眠，SM可以调度别的warp。
+       - ❌代价：引入微秒级休眠延迟。
+
+    生产环境一般做自适应：短时间spin忙等，超过阈值就nanosleep。
+
+    ## 四、硬件调度层面发生了什么（非常关键）
+
+    CUDA GPU硬件调度单元是 **Warp，Block，SM**。
+
+    当你启动persistent kernel：
+
+    - GPU把你指定数量的Block调度到各个SM。
+    - 这些Block的 warp **不会退休，一直在SM上循环运行**。> 
+    > CUDA硬件本身**没有专门的daemon/后台进程概念**。Persistent kernel只是一个普通kernel，只是代码写了无限循环，逻辑上变成守护进程。
+
+    ⚠️**资源锁定！**
+    分配给这个persistent kernel的Block，**对应的寄存器、shared memory、SM资源被永久占用，直到kernel退出循环return。**
+
+    > 
+    > 如果你开很大网格，比如几百个block常驻，**剩下给其他kernel的SM资源就变少了，会造成其他任务卡顿。**
+    > 所以工业实现一般**只分配少量block作为worker池**，不是占满整张卡。
+
+    举个例子：一张GPU 72个SM，每个SM放1个block做常驻worker，总共72个worker，作为任务池，处理成千上万的小任务。
+
+    ## 五、Persistent Kernel 的优缺点
+
+    ### ✅优点
+
+    1. **消除kernel launch开销**，这是最大收益。高频微小任务场景，吞吐量提升巨大。
+    2. **调度下沉GPU**，CPU不再需要不停提交kernel，释放CPU核心，CPU可以做别的业务。
+    3. 支持**GPU自调度**：其他kernel、NCCL通信完成之后，直接往ring buffer投递任务，**完全零CPU参与**，做成GPU流水线。
+    4. 可以做GPU侧常驻服务：比如一张卡启动一个常驻推理服务，像GPU上的rpc worker。
+
+    ### ❌缺点 & 坑（工程最容易踩）
+
+    1. **资源永久占用**。只要while循环跑着，寄存器、SM、shared memory不会释放。如果常驻worker池开太大，整张卡算力被占死，别的作业跑不动。
+    2. **死锁风险很高**。环形队列原子bug、队列满阻塞，会让persistent kernel卡住死循环，**GPU线程卡死，只能销毁CUDA上下文或者重启进程，不能简单终止。**
+    3. **调试困难**。普通kernel跑完可以看报错，常驻内核一旦卡死，Nsight调试很难断点，GPU挂起。
+    4. **不能动态扩容worker数量**。启动的时候block数量就固定死了。worker池大小在launch那一刻确定，运行时不能动态增加block。> 
+    > 变通方案：启动足够多worker block，内部做动态休眠，空闲worker休眠，而不是运行时新增block。
+    5. **和CUDA流、CUDA图交互有边界**。persistent kernel本身是一个网格，不属于某个流；内部自己实现任务调度，脱离了CUDA默认流调度模型。
+    6. **注意Warp Scheduling**：长时间循环的warp，如果不加sleep，会持续占用SM，造成别的任务延迟抖动。
+
+    ## 六、现实工业应用场景
+
+    1. **低延迟推理服务器**：大模型KV缓存管理、微小token迭代，每step任务很小，不想每一步都CPU launch kernel。persistent kernel常驻GPU，token到达队列立刻处理，降低端到端延迟。
+    2. **GPU‑GPU流水线，多阶段计算**：前一个kernel输出完成，直接写任务队列，触发persistent worker执行下一阶段，**绕过CPU，实现全GPU流水线**，典型在推荐、视频编解码、HPC。
+    3. **高性能网络 RDMA + GPU**：RDMA网卡收到数据，写入GPU内存，**不需要CPU介入**，persistent kernel检测到新数据包，立刻做解析计算，实现GPU直连网络零拷贝。
+    4. **图调度、自定义任务调度器**：不使用CUDA默认调度，自己在GPU实现任务池，做优先级调度、抢占（需要自己实现，硬件不支持抢占kernel）。
+
+    > 
+    > ⚠️注意：**Persistent Kernel不能做kernel抢占！**
+    > CUDA硬件**不支持kernel抢占**。一旦persistent kernel正在跑一个任务，这个block必须把当前task跑完，才能取下一个任务。**操作系统不能把这个kernel停下来**。它只是用户态的常驻循环，不是操作系统内核。
+
+    ## 七、Persistent Kernel vs CUDA Graph
+
+    很多人混淆两者，都是减少launch开销：
+
+    | 方案 | 原理 | 调度源 |
+    | --- | --- | --- |
+    | Persistent Kernel | **只Launch一次，GPU内部循环取任务**，任务在Device队列提交，完全绕开launch | GPU自调度 |
+    | CUDA Graph | 提前把一堆kernel记录成图对象，CPU只提交一次Graph Launch，内部还是一个个标准kernel。**每个子kernel依然要硬件launch，只是CPU提交合并了** | CPU发起Graph提交 |
+
+    > 
+    > CUDA Graph只是减少CPU提交开销，**Graph里面每个节点依然是标准kernel，有硬件调度开销。Persistent Kernel是把调度逻辑搬到GPU，网格只启动一回。**
+    > 两者可以组合：CUDA Graph输出，直接投递到persistent kernel任务队列。
+
+    ## 八、高级拓展：Multi‑GPU Persistent Service
+
+    多卡场景，可以每一张卡启动一个persistent kernel worker池，GPU之间通过NVLink通信，一张卡persistent kernel直接把任务投递到另一张卡的ring buffer，**完全不需要CPU中转**，做成分布式GPU服务。
+
+    ## 九、重要误区澄清
+
+    1. ❌Persistent kernel不是CUDA硬件提供的特殊模式！
+    ✅只是普通CUDA kernel，用while(true)无限循环实现常驻，CUDA没有专门的API来开启persistent模式。
+    2. ❌可以随时动态增加block数量
+    ✅不行，网格大小在<<<N,B>>>启动那一刻固定。
+    3. ❌GPU可以抢占常驻kernel
+    ✅**CUDA不支持kernel抢占。** 除非代码自己检查stop flag主动break退出，否则这个网格会一直占资源，直到进程退出。
+    4. ❌队列可以用CPU的pthread锁
+    ✅不行，GPU不能访问CPU主机锁，队列全部用**GPU原子操作**实现。
+
+    ## 十、延伸阅读方向
+
+    如果你要继续深入，可以看：
+
+    1. NVIDIA GTC 的 persistent kernel 范例，RDMA‑GPU zero copy。
+    2. NVIDIA Magnum IO，GPU直连网络，底层大量使用persistent kernel做数据包轮询。
+    3. 大模型推理框架vLLM、TensorRTLLM里面部分调度模块，有用persistent kernel做GPU侧调度，减少CPU反复launch带来的token延迟。
+
+    如果你需要，下一步我可以：
+
+    1. 给出一份**可编译最小Persistent Kernel示例代码（ringbuffer+原子）**
+    2. 讲解Nsight怎么profiling persistent kernel，看SM利用率、休眠、任务队列延迟。
+    3. 对比Persistent Kernel和MPS（多进程服务），区分两者概念。
+
 * compute-sanitizer 是静态检查吗
 
 	**`compute-sanitizer` 不是静态检查工具**，而是 NVIDIA 提供的 **动态运行时检查工具**，属于 **动态分析工具** 类别。  

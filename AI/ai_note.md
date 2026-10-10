@@ -2,6 +2,90 @@
 
 ## cache
 
+* 详细讲讲 deepep
+
+    # DeepEP（Deep‑Expert‑Parallelism）
+    > DeepEP 是 **DeepSeek（深度求索）开源、专为 MoE（混合专家）模型专家并行 EP 设计的GPU通信库**，2025‑02‑25 在开源周发布，GitHub：deepseek‑ai/DeepEP。
+    > 定位：**全球首个专门面向MoE专家并行的开源通信库**，用来解决MoE最大痛点：**专家路由带来昂贵的All‑to‑All全对全通信开销**。
+
+    > ❗注意：名字是 DeepEP，不是 DeepEp / Deepep。EP = Expert Parallelism，专家并行。
+
+    ## 背景：MoE为什么特别需要DeepEP？
+    标准MoE层两步：
+    1. **Dispatch（分发）**：门控路由，把Token发送到对应GPU上的专家；Token打散，分发到各个专家卡。
+    2. **Combine（合并）**：专家计算完成，把Token结果路由回原来对应的GPU，继续Transformer主干计算。
+
+    这两步本质就是 **All‑to‑All（全对全）通信**。
+    - 通用通信库（PyTorch自带dist、NCCL）是通用集合通信，**没有针对MoE非均匀路由做优化**。
+    - MoE流量很不均衡：门控路由后，每个GPU收到的token数量不一样；**NCCL的标准all‑to‑all对这种稀疏、不均衡流量效率很差，成为MoE速度瓶颈**。
+    - 训练、Prefill（预填充）是**大batch高吞吐场景**；Decode（逐token生成）是**极小batch、超低延迟场景**，二者对通信内核需求完全不同。通用库很难同时兼顾两者。
+
+    **DeepEP目标：替换NCCL的MoE分发/合并链路，把MoE通信做到硬件极限。**
+
+    ## 硬件前提
+    DeepEP**主要针对Hopper架构（H100、H200、B200）**，充分利用NVLink（节点内GPU高速互联）+ RDMA（跨节点InfiniBand网卡）。
+    > 旧架构A100可以编译，但很多优化特性无法生效，性能大打折扣。
+
+    ## 两大内核集（最核心设计）
+    DeepEP提供两套独立内核，分别适配**吞吐优先**和**延迟优先**，而不是一套内核跑全部场景。
+
+    ### 1）高吞吐内核（Training训练 + Prefill预填充）
+    适用：大批次训练、Prompt预填充阶段，目标最大化每秒token数，容忍一定延迟。
+    - 同时支持**节点内NVLink，跨节点RDMA**，支持**NVLink→RDMA异构转发**（非常关键！DeepSeek‑V3的分组限门控 group‑limited gating 就依赖这个特性）。
+    > Group‑limited gating（组限制门控）：专家按服务器节点分组，token优先路由本机专家，减少跨机流量；但仍然需要少量流量跨节点，产生NVLink域到RDMA域转发，标准NCCL很难优化这个非对称流量。DeepEP专门针对这个模式定制。
+    - 原生支持 **FP8 dispatch**，FP8直接在通信层传输，不需要先转BF16，降低带宽占用。
+    - **可控SM占用**：可以手动配置用多少个GPU流多处理器SM跑通信，预留SM给计算算子，避免通信抢占专家GEMM算力。
+
+    ### 2）低延迟内核（Decode 解码，线上服务生成）
+    适用：线上推理，每次只生成1个token，batch很小，**延迟压倒一切**。
+    - **纯RDMA实现，完全绕过GPU SM**：基于Hook机制，通信卸载，**通信不占用GPU流多处理器资源**，GPU全部算力留给专家矩阵乘，通信与计算真正重叠。
+    > NCCL很多版本需要占用SM来做通信拷贝，小batch下SM被通信占住，专家计算被卡住，decode延迟飙升。DeepEP低延迟内核规避这个问题。
+    - 双缓冲、减少主机CPU介入，降低单次dispatch+combine往返时延，适合在线大模型服务。
+
+    ## 和 NCCL 的区别
+    |项目|NCCL|DeepEP|
+    |---|---|---|
+    |定位|通用集合通信库（allreduce, all‑to‑all）|**MoE专属dispatch/compute路由库**|
+    |流量假设|均衡流量，每张卡数据量差不多|**MoE稀疏、不均衡路由流量，支持组门控本地优先**|
+    |场景拆分|一套内核兼顾训练推理，小batch decode性能差|两套独立内核：高吞吐训练/Prefill，低延迟Decode服务|
+    |FP8|需要上层转精度|原生FP8通信路径|
+    |NVLink‑RDMA跨域转发|没有专门优化|针对DeepSeek‑V3分组门控定制优化|
+    |SM控制|自动占用，不可控|可配置通信使用多少SM，通信计算资源隔离|
+
+    > DeepEP **不是完全替代NCCL**：Transformer层内普通张量并行、数据并行仍然用NCCL；**只替换MoE层dispatch和combine这两段all‑to‑all**。
+
+    ## 性能收益（公开实测）
+    DeepSeek‑V3 671B MoE，B200集群：
+    - 仅启用DeepEP通信加速，吞吐量**+32%**；
+    - DeepEP+MXFP8混合精度训练，整体吞吐量**提升41%**。
+
+    生产环境：大规模MoE集群，通信开销从总时间30‑40%下降到10‑15%。
+
+    ## 架构栈与集成
+    1. CUDA C++ 底层Kernel；上层Python绑定，PyTorch扩展。
+    2. 已经集成：DeepSeek训练框架TorchTitan、vLLM、SGLang，支持MoE推理加速。
+    3. 开源，企业可以自部署MoE，不再被闭源通信组件锁定。
+
+    ### 使用流程简化
+    1. 门控算出每个token要路由到哪个专家GPU。
+    2. DeepEP dispatch：把token张量路由分发到目标专家卡。
+    3. 专家并行EP：各GPU专家独立做FFN计算。
+    4. DeepEP combine：把输出token路由回原卡，回到Transformer主干。
+
+    ## 局限性
+    1. **硬件绑定Hopper**，旧代GPU（A100）优化缺失；
+    2. 主要优化**专家并行EP**，对张量并行TP、数据并行DP没有优化；
+    3. 目前主要适配DeepSeek风格Group‑Gating MoE，其他MoE架构（Switch‑Transformer、GPT‑4风格MoE）需要适配修改。
+
+    ## 总结一句话
+    MoE大模型最大短板不在算力，而在**专家路由通信**；DeepEP就是DeepSeek开源出来，把MoE分发‑合并通信推到硬件极限的基础设施，也是DeepSeek‑V3能低成本大规模训练的底层关键组件。
+
+    如果你需要，我下一步可以：
+    1. 讲DeepEP源码架构；
+    2. 讲dispatch/combine算子数据流；
+    3. 讲组限制门控和NVLink‑RDMA转发原理；
+    4. 或者部署、benchmark测试。
+
 * 详细讲讲条件随机场
 
 	**条件随机场（Conditional Random Field, 简称 CRF）**是一种用于**序列标注和判别式概率建模**的无向图模型。它在自然语言处理（NLP）、生物信息学和计算机视觉领域（如词性标注、命名实体识别、图像分割）中有着极广的应用。

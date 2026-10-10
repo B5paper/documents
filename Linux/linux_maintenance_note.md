@@ -6,6 +6,20 @@
 
 ## cache
 
+* 查看当前机器的 dns ip
+
+    `resolvectl status`
+
+    `nmcli dev show | grep -i dns`
+
+    修改指定网卡的 dns: `sudo resolvectl dns ens9f0 10.97.1.50`
+
+    强制刷新 dns 缓存：`sudo resolvectl flush-caches`
+
+    注：
+
+    1. 即使更改了 /etc/resolv.conf，网卡也有可能不使用这个配置
+
 * 文件开头可以指定`#!/usr/bin/python`，从而直接运行 python 脚本
 
     甚至可以指定`#!/bin/rm`，`#!/bin/more`，运行文件时，等价于命令后面直接跟文件名`<command> <script_file_path>`

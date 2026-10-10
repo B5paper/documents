@@ -6,6 +6,158 @@ Ref:
 
 ## cache
 
+* 内核态驱动面试会问哪些内容
+
+    # Linux内核态驱动面试考点
+    > 面向Linux内核、设备驱动，偏内核态开发（字符驱动、platform、PCIe、DMA、中断、锁、内存管理、内核调试、KMD显卡驱动等），分基础、核心模块、内存、并发锁、中断DMA、总线、调试、项目、进阶难点、实操。
+
+    ## 一、C语言 & 内核C基础（必问）
+    1. C指针、位操作、结构体对齐，`container_of`原理，`offsetof`。
+    2. `volatile`在内核的作用，能不能随便用？
+    3. 内核没有libc：**不能用标准库malloc、printf**，用什么替代？
+    4. 内核栈大小很小（一般8K），**不能定义大数组局部变量**，为什么？
+    5. 指针强转，void*，内核地址和用户地址区别。
+
+    ## 二、内核基础概念
+    1. **内核态 vs 用户态**
+        - 区别：权限、地址空间、栈、上下文、是否可以访问硬件。
+        - 用户态如何进入内核态：系统调用、异常、中断。
+    2. 虚拟地址、物理地址，**内核空间/用户空间地址划分（32/64位）**。
+    3. 进程上下文 vs 中断上下文，**非常高频考点**
+        - 进程上下文：有current，可以休眠，可以调度。
+        - 中断上下文：**不能休眠、不能schedule、不能访问用户空间**，没有current。
+    4. `current`宏是什么？如何拿到当前进程task_struct。
+    5. 内核启动流程：bootloader → zImage → start_kernel。
+    6. 内核版本、mainline，stable分支，out‑of‑tree驱动，树内驱动区别。
+
+    ## 三、字符设备驱动（最基础必考）
+    1. 字符设备开发流程：`cdev`，`register_chrdev`新旧接口区别。
+    2. `file_operations`结构体，各个回调：open/read/write/ioctl/release。
+    3. ioctl：旧版ioctl，新版unlocked_ioctl，为什么废弃老ioctl？
+    4. **用户态和内核态数据拷贝**：`copy_from_user` / `copy_to_user`，为什么不能直接指针访问用户空间？
+    > 用户虚拟地址不映射、缺页、用户空间页可能被换出，**禁止内核直接解引用用户指针**。
+    5. 自动创建设备节点：`class_create`、`device_create`，udev/mdev。
+    6. 阻塞read/write，等待队列wait_queue。
+        - 等待队列原理，什么时候休眠，什么时候wakeup。
+    7. poll/select，驱动里poll实现。
+
+    ## 四、平台驱动 Platform（Linux标准框架，面试高频）
+    1. platform总线为什么是虚拟总线？
+    2. platform_driver、platform_device，设备树匹配。
+    3. **设备树DTS**：节点、compatible属性，match table匹配规则。
+    4. `of_address_to_resource`，`platform_get_resource`拿寄存器地址、中断号。
+    5. ioremap，物理地址映射成内核虚拟地址，**iounmap释放**。
+    6. probe什么时候执行？bind时机。remove什么时候调用？
+    7. suspend/resume，电源管理，驱动休眠唤醒。
+
+    > 很多面试官会让你手写一个极简platform驱动框架。
+
+    ## 五、内核内存管理（重中之重）
+    1. `kmalloc`、`kzalloc`，GFP_*标志
+        - GFP_KERNEL：可以休眠，分配内存，只能**进程上下文**
+        - GFP_ATOMIC：原子分配，**中断上下文必须用**，不能休眠
+    2. vmalloc：虚拟地址连续，物理页不连续；kmalloc物理连续。两者区别，什么时候选哪个？
+    3. **DMA需要物理连续内存，为什么不能用vmalloc？**
+    4. 页分配器：`alloc_page`。
+    5. slab内存池，kmem_cache，小对象分配，减少碎片。
+    6. 高端内存 HIGHMEM（32位内核）概念。
+    7. dma_alloc_coherent：**DMA一致性内存，物理连续，无cache**。
+        - coherent(一致内存) vs streaming DMA（dma_map_single）区别。
+    8. **cache一致性问题**，DMA为什么要考虑cache？CPU写在cache，内存还没更新，DMA看不到。
+    9. IOMMU作用，DMA地址重映射。
+
+    ## 六、并发与同步锁（内核面试超级高频，必准备）
+    > 内核是抢占式，多核SMP，中断，各种竞态场景。
+    1. 自旋锁 `spinlock_t`
+        - **自旋，忙等，不能休眠**，可以用于中断上下文。
+        - spin_lock_irqsave：关本地中断，防止中断抢占造成死锁。
+    2. 互斥锁 `struct mutex`
+        - 可以休眠，**只能进程上下文，不能中断上下文**。
+    3. semaphore信号量，completion完成量。completion相比mutex适合什么场景？
+    4. rwlock读写锁，rw_semaphore读写信号量。
+    5. **RCU读拷贝更新**，原理，适合什么场景？读多写少。
+    6. 死锁产生条件，内核锁死锁场景。
+    7. **中断和进程上下文竞态怎么处理？**
+    > 案例：进程上下文拿自旋锁，刚好来了中断，中断里也要拿同一个锁 →死锁。解决：拿锁同时关闭本地中断。
+    8. 内核抢占，抢占开关preempt_enable/preempt_disable。
+
+    ## 七、中断处理
+    1. request_irq注册中断，中断顶半部bottom半部概念。
+    2. **为什么顶半部要快，不能耗时？**
+    3. 底半部三种机制：tasklet、workqueue、softirq，三者区别，使用场景。
+        - softirq：硬中断之后运行，原子上下文，不能休眠。
+        - tasklet：基于softirq，原子上下文，不能休眠。
+        - workqueue：内核线程，可以休眠，可以调度，**最常用**。
+    4. threaded_irq 线程化中断。
+    5. 中断标志：IRQF_SHARED共享中断。
+    6. 中断栈，中断嵌套。
+
+    ## 八、PCIe驱动（很多显卡、SOC、网卡驱动必考）
+    1. PCIe枚举流程，BIOS/内核扫描PCI总线。
+    2. pci_driver，probe，vendor_id device_id匹配。
+    3. BAR空间，pci_resource，ioremap映射BAR寄存器。
+    4. MSI/MSI‑X中断，区别传统INTx。
+    5. PCIe DMA，PCIe地址，总线地址、物理地址。
+    6. PCIe config space配置空间读写。
+
+    ## 九、内核调试、BUG排查（非常看重实战经验）
+    1. oops是什么？oops日志怎么看，PC指针，栈回溯，栈溢出，空指针。
+    2. dmesg，printk，日志级别，注意printk不要疯狂刷屏，性能问题。
+    3. `dev_err/dev_info`设备打印，优先于printk。
+    4. kgdb内核调试，gdb调试内核。
+    5. ftrace，perf，查看函数调用，性能分析。
+    6. 内存泄漏，kmalloc忘记释放，slab leak。
+    7. **死锁、锁竞争，hung task，内核卡死怎么排查？**
+    8. 模块编译 Makefile，`MODULE_LICENSE`，GPL许可证重要性。
+    9. ko模块加载：insmod modprobe rmmod。
+    10. 树内驱动编译 vs out‑of‑tree模块。
+
+    ## 十、项目与简历深挖（面试官重点）
+    > 如果你写了GPU KMD、PCIe驱动、SOC驱动，一定会深挖：
+    1. 你的probe流程做了哪些工作？寄存器初始化，DMA缓冲区申请，中断注册。
+    2. 用户态lib/应用如何和驱动交互？ioctl？mmap？
+    3. mmap实现：驱动mmap回调，`remap_pfn_range`，把内核物理页映射到用户虚拟空间。
+    4. DMA调试遇到过什么坑？cache一致性、页不连续、IOMMU、地址越界。
+    5. 有没有遇到竞态bug？怎么复现，怎么加锁修复？
+    6. 有没有做电源管理suspend/resume，设备断电恢复，寄存器丢失问题？
+    7. 适配不同内核版本，API变更，例如5.4→6.1迁移遇到哪些接口废弃？
+
+    ## 十一、高频面试问答题（笔试/口头）
+    1. spinlock和mutex区别？什么时候选谁？
+    2. copy_from_user失败的原因？
+    3. 中断上下文为什么不能休眠？
+    4. kmalloc GFP_KERNEL分配失败会怎么样？会不会阻塞？
+    5. dma_map_single 和 dma_alloc_coherent区别？
+    6. platform和PCIe框架区别？
+    7. mmap为什么要在驱动实现remap_pfn_range，能不能直接ioremap给用户？
+    8. RCU原理？
+    9. 内核抢占和SMP多核带来哪些并发问题？
+    10. oops产生原因，如何定位出错代码行？
+
+    ## 十二、高阶（GPU KMD，芯片驱动岗位重点）
+    1. GPU驱动架构：KMD内核驱动 + UMD用户驱动。内核态职责是什么？用户态职责？**内核不能做复杂3D渲染**。
+    2. GPU内存管理：GEM，TTM显存管理器。
+    3. GPU调度，硬件队列，中断处理，Fence同步。
+    4. 电源DVFS，GPU时钟、电源域控制。
+    5. MMU，GPU页表，IOMMU。
+    6. 内核ECO，芯片bug，驱动workaround，寄存器patch。
+    7. NOC总线，硬件异常，报错中断，驱动处理。
+
+    ## 十三、手写代码考题
+    1. 写一个简单字符设备框架。
+    2. platform驱动框架 + dts匹配。
+    3. 等待队列实现阻塞读。
+    4. mmap回调实现。
+    5. request_irq + tasklet/workqueue底半部。
+
+    如果你需要，我可以：
+    1. 整理一份**驱动面试100题带答案版**
+    2. KMD显卡驱动专项面试题
+    3. 准备面试简历项目描述话术
+    4. 模拟面试问答
+
+    要不要？
+
 * 查看模块依赖
 
     ```bash

@@ -2,6 +2,14 @@
 
 ## cache
 
+* feishu doc
+
+    <https://siorigin.feishu.cn/drive/home/>
+
+* wheel: Any line in any file is only a few keys away. Quick navigation for Vim and Neovim 
+
+    <https://github.com/chimay/wheel>
+
 * VOoM : Vim two-pane outliner
 
 	<https://www.vim.org/scripts/script.php?script_id=2657>

@@ -4,6 +4,14 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* Introduction To Bash Scripting
+
+    <https://ebook.bobby.sh/>
+
+* 阮一峰 bash 脚本教程
+
+    <https://www.ruanyifeng.com/blog/2020/04/bash-tutorial.html>
+
 * 使用 || 指定任务失败时报错的一个技巧
 
     lsmod | grep vfio || echo "VFIO模块未加载"
