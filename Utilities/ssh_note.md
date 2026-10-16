@@ -2,6 +2,20 @@
 
 ## cache
 
+* sshfs 使用心跳包后，似乎会稳定一些
+
+    sshfs -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o reconnect user@host:/remote/path /local/mountpoint
+
+    umount 时，挂载点 busy, 查看占用进程：
+
+    * lsof +D <挂载点>：列出所有打开了该目录下文件的进程。
+
+    * fuser -vm <挂载点>：更精确地显示哪些进程（PID）正在使用这个挂载点。
+
+    结束进程：`kill <PID>`，或者 kill -9 <PID>
+
+    结束所有相关的进程：`sudo fuser -km <挂载点>`
+
 * sudo 如果无法 sshfs 挂载远程的目录，可能是因为 root 家目录下没有`.ssh/`存储 remote host 的信息。
 
     * 我想使用 sudo sshfs 把远程的目录挂载到本地根目录 / 下的某个目录下，比如 /mnt/local_dir，但是本地的 root 用户的 .ssh 没有存储相关的 key，只有本地用户 user_1 目录下 .ssh 有远程登录的信息。该怎么办
@@ -894,7 +908,7 @@
 
 * ssh -Y 和 -X 有什么区别？
 
-    非常好的问题👏 —— 这个细节经常被忽略，但在 **SSH + X11 转发** 时，`-X` 和 `-Y` 的区别非常关键。
+    非常好 的   问题👏 —— 这个细节经常被忽略，但在 **SSH + X11 转发** 时，`-X` 和 `-Y` 的区别非常关键。
 
     ---
 

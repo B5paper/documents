@@ -113,7 +113,7 @@
 
     <https://docs.ctags.io/en/latest/optlib.html>
 
-* kind字母只能是单个字母吗
+* kind 字母只能是单个字母吗
 
     **是的，ctags 的 kind 字母严格限定为单个字符。**
 

@@ -2,6 +2,746 @@
 
 ## cache
 
+* 详细讲讲 vim 中的 fakeclip 插件
+
+    `fakeclip` 是一个为没有原生剪贴板支持（即未编译 `+clipboard` 特性）的 Vim 版本提供**伪剪贴板寄存器**的插件。它的核心价值在于，让你能在终端环境（如 Cygwin、Mac OS X、Linux）以及终端复用器（如 `tmux`、`screen`）中，依然能方便地与系统剪贴板或粘贴缓冲区进行交互。
+
+    ### 🧩 核心功能与原理
+
+    `fakeclip` 通过调用外部工具来模拟剪贴板功能，而非依赖 Vim 自身的剪贴板支持。它会自动检测你所在的平台和环境，并选择可用的工具。
+
+    *   **平台支持**：
+        *   **Cygwin**：使用 `getclip` / `putclip` 命令。
+        *   **Mac OS X**：使用 `pbcopy` / `pbpaste` 命令。
+        *   **X Window System**：使用 `xclip` 或 `xsel` 命令。
+    *   **终端复用器支持**：当在 `GNU screen` 或 `tmux` 中运行时，`fakeclip` 会利用它们自身的粘贴缓冲区（paste buffer），实现 Vim 与终端复用器之间的内容共享。
+
+    ### 📦 安装与配置
+
+    `fakeclip` 的安装与其他 Vim 插件类似，但需要注意目录结构。推荐使用现代插件管理器（如 Vim-Plug、Vundle、Pathogen）进行安装，以避免手动放置文件可能引发的 `E117: Unknown function: fakeclip#yank` 错误。
+
+    *   **使用 Vim-Plug**：在 `.vimrc` 中添加 `Plug 'kana/vim-fakeclip'`，然后运行 `:PlugInstall`。
+    *   **手动安装**：需将文件正确放置到 `~/.vim/` 下的对应目录中：
+        ```
+        autoload/fakeclip.vim  --->  ~/.vim/autoload/fakeclip.vim
+        doc/fakeclip.txt       --->  ~/.vim/doc/fakeclip.txt
+        plugin/fakeclip.vim    --->  ~/.vim/plugin/fakeclip.vim
+        ```
+
+    ### 🕹️ 使用说明
+
+    `fakeclip` 的使用方式非常直观，它复用了 Vim 原生的剪贴板寄存器 `+` 和 `*`。
+
+    *   **复制到系统剪贴板**：在可视模式或普通模式下，使用 `"+y` 或 `"*y` 进行复制（Yank）。
+    *   **从系统剪贴板粘贴**：使用 `"+p` 或 `"*p` 进行粘贴（Put）。
+    *   **与 tmux 缓冲区交互**：`fakeclip` 新增了一个 `&` 寄存器，专门用于访问 `tmux` 的粘贴缓冲区。你可以使用 `"&y` 将内容复制到 `tmux` 缓冲区，用 `"&p` 从中粘贴。
+    *   **删除操作**：插件也支持将删除的内容（如 `"+d`、`"+dd`、`"+D`）发送到剪贴板。
+
+    ### 💡 适用场景与注意事项
+
+    *   **适用场景**：
+        *   在**不支持剪贴板的终端 Vim** 中，实现与系统剪贴板的互通。
+        *   在 **`tmux` 或 `screen` 会话**中，方便地在不同窗格或 Vim 实例间共享文本。
+        *   在 **WSL (Windows Subsystem for Linux)** 环境下，从 Windows 剪贴板粘贴内容。
+    *   **注意事项**：
+        *   需要确保系统中已安装对应的外部工具（如 `xclip`、`xsel` 等）。
+        *   在 Mac 上，如果遇到多字节字符复制粘贴问题，可参考插件的相关说明。
+
+    ### 🔄 插件现状与替代方案
+
+    `fakeclip` 是一个相对成熟但更新较少的插件。其替代品 **`fauxClip`** 被明确标记为“已弃用，建议使用原生剪贴板提供商”。因此，如果你的 Vim 版本支持 `+clipboard` 特性，应优先使用原生功能。对于仍然需要伪剪贴板的场景，`fakeclip` 或其分支（如 `congma/vim-fakeclip`）依然是可用的选择。
+
+    ### 🔧 常见问题与排错
+
+    *   **`E117: Unknown function: fakeclip#yank`**：通常表示插件未正确安装。请检查文件是否放置在 `autoload/` 目录下，或使用插件管理器重新安装。
+    *   **复制粘贴无效**：首先确认系统是否安装了所需的命令行工具（如 `xclip`）。其次，检查是否在 `tmux` 或 `screen` 会话中，插件可能需要正确的终端复用器类型检测。
+
+    总的来说，`fakeclip` 是一个在特定环境下解决剪贴板问题的实用工具。如果你的 Vim 环境受限，它值得一试。
+
+* 详细讲讲 vim 中的 screenpaste.vim 插件
+
+    `screenpaste.vim` 是一个专门解决在 GNU Screen 会话中向 Vim 粘贴内容时出现格式错乱问题的插件。它通过调用 Screen 的命令，将缓冲区内容写入临时文件，再由 Vim 读取，从而在各种模式下都能获得正确的粘贴结果。
+
+    ### 🎯 为什么需要 screenpaste.vim
+
+    在 GNU Screen 中，直接使用默认快捷键 `Ctrl-a ]` 向 Vim 粘贴内容时，如果 Vim 没有开启 `paste` 模式，或者在命令行模式下粘贴，常常会出现**自动缩进错乱、多余空格**等问题。`screenpaste.vim` 的核心目的就是提供一套映射和命令，确保从 Screen 缓冲区粘贴到 Vim 时，无论在什么模式下，结果都是正确、整洁的。
+
+    ### ⚙️ 工作原理
+
+    该插件的工作机制可以概括为以下几步：
+    1.  **获取缓冲区**：调用 `screen` 命令，将当前 Screen 的粘贴缓冲区内容写入一个临时文件。
+    2.  **Vim 读取**：Vim 读取这个临时文件的内容。
+    3.  **按模式处理**：
+        *   在**插入、替换或命令行模式**下，直接将内容插入光标处。
+        *   在**普通或可视模式**下，先将内容写入一个寄存器（默认为无名寄存器 `"`），然后再执行类似 `p` 或 `P` 的操作。
+
+    正因为如此，它的默认键位设计模仿了 Vim 原生的 `p`、`P`、`gp`、`gP`，只是加上了前缀 `\`（取决于你的 `mapleader`）。
+
+    ### 📦 安装与激活
+
+    **安装方式**取决于你使用的插件管理器。
+
+    *   **手动安装**：将 `screenpaste.vim` 复制到你的 `~/.vim/plugin/` 目录，或将 `screenpaste.vim` 放到 `~/.vim/macros/` 目录并在 `.vimrc` 中通过 `:runtime macros/screenpaste.vim` 手动加载。
+    *   **插件管理器**：对于较新的变体（如 `kiyoon/vim-screenpaste`），可以使用 `vim-plug` 等管理器安装。
+
+    **激活前提**：你的系统 `$PATH` 中必须包含 GNU Screen 的可执行文件，否则插件会报错并退出。
+
+    ### ⌨️ 核心映射与命令
+
+    假设你的 `mapleader` 是默认的 `\`，以下是插件提供的主要操作：
+
+    | 模式 | 映射/命令 | 功能描述 |
+    | :--- | :--- | :--- |
+    | **普通模式** | `\p` | 将 Screen 缓冲区内容粘贴到光标后（类似 `p`） |
+    | | `\P` | 将 Screen 缓冲区内容粘贴到光标前（类似 `P`） |
+    | | `\gp` | 粘贴到光标后，并将光标留在新文本之后（类似 `gp`） |
+    | | `\gP` | 粘贴到光标前，并将光标留在新文本之后（类似 `gP`） |
+    | **可视模式** | `\p` | 用 Screen 缓冲区内容替换选中内容 |
+    | | `\gp` | 用 Screen 缓冲区内容替换选中内容，并将光标留在新文本之后 |
+    | **插入/替换模式** | `\p` | 在光标处插入 Screen 缓冲区内容 |
+    | **命令行模式** | `\p` | 在命令行中插入 Screen 缓冲区内容 |
+    | **Ex 命令** | `:ScreenYank [x]` | 将 Screen 缓冲区内容存入寄存器 `[x]`（默认为无名寄存器） |
+    | | `:[line]ScreenPut [x]` | 将 Screen 缓冲区内容粘贴到 `[line]` 行之后（类似 `:put`） |
+    | | `:[line]ScreenPut! [x]` | 将 Screen 缓冲区内容粘贴到 `[line]` 行之前 |
+
+    ### 🔧 配置选项
+
+    你可以通过在 `.vimrc` 中设置以下变量来调整插件行为：
+
+    *   **`g:screen_clmode`**：设置在命令行模式下插入时的转换方式。可选值有 `"search"`（用于搜索）、`"sub"`（用于替换）、`"noesc"`（仅处理行尾）。例如，`let g:screen_clmode = "sub"`。
+    *   **`g:screen_executable`**：指定 Screen 可执行文件的路径，默认为 `"screen"`。例如，`let g:screen_executable = "/usr/local/bin/screen"`。
+    *   **`g:screen_register`**：指定用于存储 Screen 缓冲区的 Vim 寄存器，默认为无名寄存器 `"`。例如，`let g:screen_register = "s"`。
+    *   **`g:screen_visualselect`**：设置为 `1` 时，在可视模式下粘贴后会自动选中粘贴的文本。例如，`let g:screen_visualselect = 1`。
+    *   **`g:screen_wait`**：设置等待 Screen 写入交换文件的时间，默认为 `'500m'`（500毫秒）。如果 Screen 响应较慢，可以增加此值。
+
+    ### 💡 使用技巧与注意事项
+
+    *   **命令行自动检测**：在 Vim 7 及以上版本中，当你使用 `:s/` 等命令时，插件能自动识别当前是搜索还是替换模式，并调整粘贴内容的转义方式。
+    *   **缓冲区共享**：一个有用的特性是，即使你的 Vim 实例不在当前的 Screen 会话内，也能通过该插件访问到 Screen 的粘贴缓冲区。
+    *   **命令映射修改**：如果你不喜欢默认的 `\p` 映射，可以在 `.vimrc` 中重新映射。例如，将普通和可视模式的粘贴改为 `<Leader>P`：`map <Leader>P <Plug>ScreenpastePut`。
+
+    ### ⚠️ 已知限制
+
+    该插件也存在一些已知的限制，例如 Screen 可能会扩展制表符，导致粘贴内容与预期不完全一致。此外，它的功能依赖于外部 `screen` 命令，因此在纯 Vim 环境（无 Screen）中无法工作。
+
+    ### 🔄 与类似插件的区别
+
+    需要注意的是，存在一些名称相似的插件，但功能定位不同。例如，`kiyoon/vim-screenpaste` 主要专注于将 Vim 中的内容**发送到**另一个 GNU Screen 窗口（如 Bash 或 IPython），其映射（如 `[num]-`）和工作流与 `screenpaste.vim` 完全不同。
+
+    总的来说，`screenpaste.vim` 是一个解决特定痛点（Screen 到 Vim 的粘贴格式问题）的实用工具。如果你经常在 GNU Screen 中使用 Vim，并且对默认粘贴的格式感到困扰，它会是一个非常值得尝试的插件。
+
+* 详细讲讲 vim-oscyank
+
+    `vim-oscyank` 是一个解决 Vim/Neovim 在终端环境下“剪贴板隔离”问题的 Vim 插件。它的核心价值在于，**即使你通过 SSH 连接到远程服务器，也能将从远程 Vim 中复制的内容，直接送入你本地计算机的系统剪贴板**。
+
+    ### 🧬 核心原理：OSC 52 序列
+
+    `vim-oscyank` 的实现依赖于 ANSI 转义序列中的 **OSC 52** 协议。
+
+    它的工作流程大致如下：
+    1.  **封装**：当你触发复制命令时，插件会将选中的文本进行 Base64 编码，然后包装在一个特定的 OSC 52 转义序列中。
+    2.  **输出**：这个序列会被写入 Vim 的 `stderr`（标准错误输出）。
+    3.  **终端解析**：你的终端模拟器（如 iTerm2, Kitty, Alacritty 等）会“看到”这个序列，并自动解析其中的 Base64 数据，将其解码后放入**本地系统剪贴板**。
+
+    整个过程完全绕过了远程服务器的剪贴板，实现了“位置无关”的复制。
+
+    ### ⚙️ 安装与基础配置
+
+    推荐使用 `vim-plug` 进行安装：
+
+    ```vim
+    Plug 'ojroques/vim-oscyank', {'branch': 'main'}
+    ```
+
+    安装后，你可以将以下键位映射加入你的 `vimrc`，这是最常见的使用方式：
+
+    ```vim
+    nmap <leader>c <Plug>OSCYankOperator
+    nmap <leader>cc <leader>c_
+    vmap <leader>c <Plug>OSCYankVisual
+    ```
+
+    配置完成后：
+    *   **普通模式**：按 `<leader>c` 会进入操作符模式，等待你输入一个文本对象（如 `iw` 表示内部单词）。按 `<leader>cc` 则直接复制当前行。
+    *   **可视模式**：选中文本后，按 `<leader>c` 即可复制选中内容。
+
+    ### 🛠️ 高级用法与配置选项
+
+    #### 常用配置选项
+    你可以通过设置全局变量来调整插件行为：
+
+    ```vim
+    " 设置复制内容的最大长度（字符数），0 表示无限制。对于非常大的文本，某些终端可能会截断。
+    let g:oscyank_max_length = 0
+    " 设置为 1 可以禁止成功复制后的提示信息。
+    let g:oscyank_silent = 0
+    " 设置为 1 可以在复制前自动去除选中文本的首尾空白字符。
+    let g:oscyank_trim = 0
+    ```
+
+    #### 命令行操作
+    除了键位映射，你也可以直接使用命令：
+    *   `:OSCYank(text)`：直接复制指定的文本 `text`。
+    *   `:OSCYankRegister(register)`：复制指定寄存器（如 `+`）中的内容。
+
+    #### 与 Tmux 集成
+    如果你在 Tmux 会话中使用 Vim，需要额外配置 Tmux 以允许 OSC 52 序列通过。
+    1.  确保 Tmux 版本较新，并在 `~/.tmux.conf` 中添加：
+        ```tmux
+        set -s set-clipboard on
+        ```
+    2.  之后可能需要重新加载 Tmux 配置或重启 Tmux 服务。
+
+    ### 💡 与 Neovim 的关系
+
+    **Neovim 从 0.10 版本开始，已经原生支持了 OSC 52 剪贴板**。如果你使用的是 Neovim 0.10 或更高版本，可能不再需要安装 `vim-oscyank` 插件。
+
+    如果你想在 Neovim 中显式启用原生支持，可以在配置中添加：
+    ```lua
+    vim.g.clipboard = "osc52"
+    ```
+    如果你仍希望使用 `vim-oscyank` 的键位映射，可以这样配置：
+    ```lua
+    vim.keymap.set('n', '<leader>c', '<Plug>OSCYankOperator')
+    vim.keymap.set('n', '<leader>cc', '<leader>c_', {remap = true})
+    vim.keymap.set('v', '<leader>c', '<Plug>OSCYankVisual')
+    ```
+
+    ### 📋 终端支持情况
+
+    `vim-oscyank` 能否工作，**完全取决于你使用的终端模拟器是否支持 OSC 52**。以下是常见终端的支持情况（截至 2021 年 5 月的数据，最新情况请查阅终端文档）：
+
+    | 终端 | OSC 52 支持 |
+    | :--- | :--- |
+    | **Alacritty** | ✅ 支持 |
+    | **iTerm2** | ✅ 支持 |
+    | **kitty** | ✅ 支持 |
+    | **Windows Terminal** | ✅ 支持 |
+    | **tmux** (需配置) | ✅ 支持 |
+    | **hterm (Chromebook)** | ✅ 支持 |
+    | **screen** | ✅ 支持 |
+    | **GNOME Terminal** (及其他 VTE 终端) | ❌ 当时不支持 |
+    | **Terminal.app (macOS)** | ❌ 不支持，需变通方案 |
+
+    ### 💎 总结
+
+    `vim-oscyank` 是一个轻巧但极其强大的工具，它巧妙地利用终端协议解决了远程编辑时长期存在的剪贴板痛点。如果你经常在 SSH 环境下使用 Vim 或 Neovim，并且你的终端支持 OSC 52，那么它几乎是必备的插件。
+
+    如果你的终端不支持 OSC 52，或者你使用的是 Neovim 0.10+ 并希望使用原生功能，也可以考虑 `nvim-osc52` 等替代方案，但 `vim-oscyank` 的成熟度和广泛兼容性依然是它的优势所在。
+
+* 安装 vim-gtk3 后，再打开 vim，+ 剪贴板马上就可以用了，不需要重启系统
+
+* 详细讲讲 vim 中 ctags 相关的跳转
+
+    1. 生成 tags 文件
+
+        在 Vim 中使用跳转功能前，需要先用 ctags 工具生成索引文件。通常在你的项目根目录执行：
+
+        ```bash
+        ctags -R .
+        ```
+
+        `-R` 表示递归扫描子目录，`.` 代表当前目录。这会在当前目录生成一个名为 `tags` 的文件，里面包含了所有标识符的定义位置信息。为了让 Vim 能找到这个文件，你可以在 `~/.vimrc` 中设置 `set tags=./tags,tags`，这样 Vim 会从当前目录向上查找 `tags` 文件。
+
+        注：
+
+        1. 也可以使用`ctags <file_path>`直接生成指定代码文件的 tags
+
+        2. 在 vim 中，也可以使用`:set tags=./tags`精确指定 tags 文件
+
+    2. 最常用的跳转
+
+        *   **跳转到定义 (`Ctrl + ]`)**：将光标移到函数名或变量上，按下 `Ctrl + ]`，Vim 会直接跳到其定义处。
+        *   **返回原处 (`Ctrl + t`)**：跳转后想回到刚才的位置，按 `Ctrl + t` 即可。Vim 会维护一个跳转历史列表，可以连续按 `Ctrl + t` 一路回溯。
+
+        **当存在多个定义时**
+
+        如果同一个函数名在项目中有多个定义（比如不同文件中的同名方法），直接按 `Ctrl + ]` 会跳到第一个匹配项。此时，你可以：
+
+        *   使用 **`g Ctrl + ]`**（或 `:tjump` 命令）：它会列出所有匹配的定义，并弹出一个菜单让你选择。
+        *   使用 **`:tselect` 命令**：即使你已经跳错了，也可以通过 `:tselect` 重新调出候选列表进行选择。
+        *   在候选菜单中，你可以用 **`:tnext`** 和 **`:tprevious`** 在各个匹配项之间切换。
+
+        **不使用光标直接跳转**
+
+        你也可以直接在命令行输入 `:tag {关键字}` 来跳转，Vim 支持 Tab 键补全。
+
+    **补充技巧**
+
+    *   **预览定义**：如果你只想快速看一眼定义而不想跳过去，可以使用 `Ctrl + w ]`（或 `Ctrl + w g]`），它会在预览窗口里显示定义，光标仍停留在原处。
+
+    *   **自动化更新**：代码变动后 `tags` 文件会过时。对于大型项目，建议用脚本或 Git 钩子在保存或提交时自动更新 `tags` 文件，避免手动重复执行命令。
+
+    在 Vim 中，如果你的光标停在某个标识符（比如 `symbol_name`）上，想**跳到下一个同名标识符**，用的是 Vim 的搜索功能，而不是 ctags。
+
+    1. 方案一：单纯在文件内找下一个同名
+
+        把光标放在 `symbol_name` 上，然后：
+
+        | 操作 | 效果 |
+        |------|------|
+        | `*` | 向下搜索光标下的**整个单词**，跳到下一个匹配 |
+        | `#` | 向上搜索光标下的整个单词，跳到上一个匹配 |
+        | `g*` / `g#` | 同上，但不要求单词边界（会匹配子串） |
+        | `n` / `N` | 在 `*` 或 `#` 之后，继续向下 / 向上跳 |
+
+        这是最符合你需求的做法：光标放在 `symbol_name` 上按 `*`，然后连续按 `n` 就能一个个往下跳。
+
+        如果想高亮所有匹配，可以先 `:set hlsearch`，再用 `*`。
+
+    2. 方案二：想跳到「下一个同名符号的定义」
+
+        如果一个项目里 `symbol_name` 有多个定义（不同文件或不同作用域），ctags 会记录多个 tag。这时：
+
+        - **`:tnext`** —— 跳到 tag 列表中的**下一个**匹配定义
+        - **`:tprevious`** —— 跳到上一个匹配定义
+        - **`:tfirst`** / **`:tlast`** —— 跳到第一个 / 最后一个
+        - **`:tselect symbol_name`** —— 列出所有匹配，手动选一个
+
+        典型用法：先用 `Ctrl + ]` 或 `:tag symbol_name` 跳到第一个定义，然后反复用 `:tnext` 在多个定义间切换。
+
+    3. 方案三：跨文件全局查找下一个
+
+        如果你不关心是不是定义，只想在整个项目里找下一个 `symbol_name`：
+
+        ```vim
+        :vimgrep /\<symbol_name\>/ **/*.c
+        :cnext      " 跳到下一个匹配
+        :cprev      " 上一个
+        ```
+
+        或者用 `:grep`、`:lgrep` 配合 quickfix 列表，再 `:cnext` / `:cprev` 跳转。
+
+* 详细讲讲 vim 中的 fold
+
+    **Vim 中的 Folding（代码折叠）详解**
+
+    折叠是 Vim 中一个非常强大的功能，它可以把一段代码"卷起来"，只显示一行摘要，让长文件更容易浏览和导航。
+
+    **一、基本概念**
+
+    折叠的最小单位是**一个 fold（折叠）**，它可以包含若干行。折叠有**打开（open）**和**关闭（closed）**两种状态：
+
+    - **打开**：正常显示所有行
+    - **关闭**：只显示一行，行首会有折叠标记
+
+    折叠是可以**嵌套**的，一个 fold 里可以包含另一个 fold。
+
+    **二、折叠的六种方法（foldmethod）**
+
+    Vim 通过 `foldmethod` 选项决定如何创建折叠。可以用 `:set foldmethod=xxx` 设置。
+
+    1. `manual`（手动）
+
+        完全由用户手动创建，最灵活但最费事。
+
+        ```vim
+        :set foldmethod=manual
+        ```
+
+        创建折叠：在可视模式下选中若干行，然后按 `zf`。
+
+    2. `indent`（缩进）
+
+        根据行的缩进层级自动折叠。相同缩进的连续行归为一组。
+
+        ```vim
+        :set foldmethod=indent
+        ```
+
+        这是 Python 等缩进敏感语言最常用的方式。可以用 `foldlevel` 控制折叠的层级。
+
+    3. `syntax`（语法）
+
+        根据语法高亮定义的折叠区域来折叠，比如 `{}`、`if...endif` 等。需要文件类型支持 folding。
+
+        ```vim
+        :set foldmethod=syntax
+        ```
+
+    4. `expr`（表达式）
+
+        用自定义表达式（通常是 `foldexpr`）决定每一行的折叠层级，最强大也最灵活。
+
+        ```vim
+        :set foldmethod=expr
+        :set foldexpr=...
+        ```
+
+        例如用正则判断 Markdown 标题：
+
+        ```vim
+        :set foldexpr=getline(v:lnum)=~'^#'?'>1':'='
+        ```
+
+    5. `marker`（标记）
+
+        用特定的标记文本（默认是 `{{{` 和 `}}}`）来界定折叠区域。
+
+        ```vim
+        :set foldmethod=marker
+        :set foldmarker={{{,}}}
+        ```
+
+        例如：
+
+        ```c
+        // {{{ 这是折叠区
+        code...
+        // }}}
+        ```
+
+    6. `diff`（差异）
+
+        在 diff 模式下自动折叠未改变的行，用于 `vimdiff`。一般不用手动设置。
+
+    **三、常用操作（命令与快捷键）**
+
+    **打开/关闭**
+
+    | 命令 | 快捷键 | 说明 |
+    |------|--------|------|
+    | `zo` | | 打开光标下的折叠 |
+    | `zc` | | 关闭光标下的折叠 |
+    | `za` | | 切换（toggle）光标下的折叠 |
+    | `zO` | | 递归打开所有嵌套折叠 |
+    | `zC` | | 递归关闭所有嵌套折叠 |
+    | `zA` | | 递归切换 |
+
+    **全局操作**
+
+    | 命令 | 说明 |
+    |------|------|
+    | `zR` | 打开**所有**折叠（R = Reduce? 记作 "打开全部"） |
+    | `zM` | 关闭**所有**折叠（M = More，全部关闭） |
+    | `zm` | 增加折叠层级（foldlevel - 1，关得更多） |
+    | `zr` | 减少折叠层级（foldlevel + 1，开得更多） |
+
+    记忆技巧：**小写逐级，大写全部**。
+
+    **移动**
+
+    | 命令 | 说明 |
+    |------|------|
+    | `zj` | 移到下一个折叠的开头 |
+    | `zk` | 移到上一个折叠的开头 |
+    | `[z` | 移到当前折叠的开头 |
+    | `]z` | 移到当前折叠的结尾 |
+
+    **删除**
+
+    | 命令 | 说明 |
+    |------|------|
+    | `zd` | 删除光标下的折叠 |
+    | `zD` | 递归删除折叠 |
+    | `zE` | 删除所有折叠（仅 manual/expr 有意义） |
+
+    **创建（manual 模式）**
+
+    | 命令 | 说明 |
+    |------|------|
+    | `zf` | 在可视模式下选中后创建折叠 |
+    | `zF` | 创建折叠并指定行数，如 `3zF` |
+    | `zf%` | 配合 `%` 匹配括号创建折叠 |
+
+    **四、重要选项**
+
+    ```vim
+    :set foldenable          " 启用折叠（默认开启）
+    :set nofoldenable        " 临时关闭所有折叠显示
+    :set foldlevel=0         " 当前折叠层级，0 表示全部关闭
+    :set foldcolumn=2        " 左侧显示折叠列，宽度 2
+    :set foldminlines=1      " 至少几行才折叠
+    :set foldnestmax=10      " 最大嵌套层数
+    :set foldtext=...        " 自定义折叠后显示的文本
+    :set foldopen=...        " 哪些操作会自动打开折叠
+    :set foldclose=...       " 是否自动关闭
+    ```
+
+    **常用组合**
+
+    ```vim
+    " 打开文件时记住折叠状态
+    :set foldmethod=indent
+    :set foldlevel=99        " 打开时全部展开
+    ```
+
+    **自定义 foldtext**
+
+    默认折叠显示是类似 `+-- 10 lines: ...`。可以自定义，比如显示行数和首行：
+
+    ```vim
+    function! MyFoldText()
+        let line = getline(v:foldstart)
+        let nucolwidth = &fdc + &number * &numberwidth
+        let windowwidth = winwidth(0) - nucolwidth - 3
+        let foldedlinecount = v:foldend - v:foldstart
+        let line = strpart(line, 0, windowwidth - 2 - len(foldedlinecount))
+        let fillcharcount = windowwidth - len(line) - len(foldedlinecount)
+        return line . '…' . repeat(" ",fillcharcount) . foldedlinecount . '…'
+    endfunction
+    :set foldtext=MyFoldText()
+    ```
+
+    **五、持久化折叠状态**
+
+    Vim 有内置的视图（view）功能，可以保存折叠状态：
+
+    ```vim
+    " 保存时自动保存视图
+    :autocmd BufWinLeave *.* mkview
+    :autocmd BufWinEnter *.* silent loadview
+    ```
+
+    这样重新打开文件时，折叠状态会被恢复。
+
+    也可以只保存折叠：
+
+    ```vim
+    :set viewoptions=folds
+    ```
+
+    **六、实用配置示例**
+
+    1. Python / 缩进语言
+
+        ```vim
+        autocmd FileType python setlocal foldmethod=indent
+        autocmd FileType python setlocal foldlevel=1
+        ```
+
+    2. Markdown 按标题折叠
+
+        ```vim
+        autocmd FileType markdown setlocal foldmethod=expr
+        autocmd FileType markdown setlocal foldexpr=getline(v:lnum)=~'^#'?'>1':'='
+        ```
+
+    3. 键位映射建议（放在 .vimrc）
+
+        ```vim
+        " 空格切换折叠
+        nnoremap <space> za
+        " 快捷打开所有
+        nnoremap zR zR
+        " 快速跳转
+        nnoremap <leader>zj zj
+        nnoremap <leader>zk zk
+        ```
+
+    **七、常见问题**
+
+    **Q: 为什么我按 zc 没反应？**
+    A: 检查 `foldmethod` 是否为 `manual` 但没创建折叠，或 `foldenable` 被关闭。也确认光标所在行确实在折叠区域内。
+
+    **Q: 折叠后行号乱了？**
+    A: 这是正常现象，折叠行只占一个行号显示。可用 `foldcolumn` 辅助查看。
+
+    **Q: syntax 折叠对某些文件不生效？**
+    A: 需要该文件类型的语法文件里定义了 `fold` 区域。可以改用 `indent` 或 `expr`。
+
+    **Q: 怎么让折叠默认全部关闭？**
+    A: `:set foldlevel=0`。想让某文件类型默认关闭折叠，可在 ftplugin 里设置 `foldlevel=0`。
+
+    **八、总结速查表**
+
+    ```
+    创建：zf, zF, zf%
+    切换：za, zA
+    打开：zo, zO, zr, zR
+    关闭：zc, zC, zm, zM
+    删除：zd, zD, zE
+    跳转：zj, zk, [z, ]z
+    选项：foldmethod, foldlevel, foldcolumn, foldtext, foldenable
+    ```
+
+    掌握折叠能显著提升浏览大型代码文件的效率，建议从 `indent` 或 `marker` 入手，熟练后再尝试 `expr` 定制。
+
+* Tagbar 提供了专门的映射配置。若要取消 t 的暂停功能，在 .vimrc 的 call plug#end() 之前加入：
+
+    let g:tagbar_map_togglepause = ''
+  
+    例如：
+  
+    Plug 'majutsushi/tagbar'
+  
+    let g:tagbar_map_togglepause = ''
+  
+    call plug#end()
+  
+    若想把暂停功能改到其他按键，例如 <Leader>t：
+  
+    let g:tagbar_map_togglepause = '<Leader>t'
+  
+    也可以配置多个按键：
+  
+    let g:tagbar_map_togglepause = ['<Leader>t', '<F9>']
+  
+    如果你希望在 Tagbar 中把 t 用作自己的操作，先用上述配置禁用原映射，再添加仅对 Tagbar buffer 生效的映射：
+  
+    let g:tagbar_map_togglepause = ''
+  
+    augroup MyTagbarMappings
+        autocmd!
+        autocmd FileType tagbar nnoremap <silent><buffer> t :echo "custom action"<CR>
+    augroup END
+  
+    可在 Tagbar 窗口里检查最终映射来自哪里：
+  
+    :verbose nmap <buffer> t
+  
+    你的配置入口在 .vimrc:26。只想避免误触的话，直接设为空字符串最合适。
+
+* 可以写一个只处理当前行的函数：从光标位置向左找最近的 **，向右找最近的 **，然后同时删除它们。把下面内容加入 .vimrc：
+
+	```vim
+    function! s:UnwrapMarkdownBold() abort
+        let l:text = getline('.')
+        let l:cursor = col('.') - 1
+
+        " 光标左侧最近的 **
+        let l:left = strridx(strpart(l:text, 0, l:cursor), '**')
+
+        " 光标右侧最近的 **
+        let l:right = match(l:text, '\V**', l:cursor + 1)
+
+        if l:left < 0 || l:right < 0 || l:left + 2 > l:right
+            echohl WarningMsg
+            echom '光标不在 **...** 内'
+            echohl None
+            return
+        endif
+
+        let l:newline =
+            \ strpart(l:text, 0, l:left)
+            \ . strpart(l:text, l:left + 2, l:right - l:left - 2)
+            \ . strpart(l:text, l:right + 2)
+
+        call setline('.', l:newline)
+        call cursor(line('.'), max([1, col('.') - 2]))
+    endfunction
+
+    nnoremap <silent> <leader>ub :call <SID>UnwrapMarkdownBold()<CR>
+	```
+
+    在下面任意内容字符上：
+
+	```
+    **hello, *world*!**
+             ^
+	```
+
+    按 <Leader>ub 后得到：
+
+    hello, *world*!
+
+    内部的单个 * 不受影响。这个版本限定左右 ** 位于同一行；若光标不在有效的 **...** 中，它不会修改内容。
+
+    * 使用 :/s 进行删除环绕的两个 **
+
+        可以，Vim 正则中的 \%# 表示当前光标位置。对当前行执行：
+
+        :s/.*\zs\*\*\(.\{-}\%#.\{-}\)\*\*/\1/
+
+        对应快捷键：
+
+        nnoremap <silent> <leader>ub :silent! s/.*\zs\*\*\(.\{-}\%#.\{-}\)\*\*/\1/<CR>
+
+        例如光标位于内容中的任意字符：
+
+        **hello, *world*!**
+
+        执行后变为：
+
+        hello, *world*!
+
+        其中：
+
+        • .*\zs：寻找光标前最近的起始 **，但不修改更前面的内容
+        • \%#：要求匹配范围经过当前光标
+        • .\{-}：非贪婪匹配
+        • \1：保留两个 ** 之间的内容
+
+        它也能正确处理同一行存在多个粗体片段的情况，但要求左右两个 ** 在同一行。跨行 Markdown 粗体更适合用函数实现。
+
+    * 替换后回到`**`内的第一个字符
+
+        可以在替换前记录左侧 ** 的列号，替换后回到该列。此时 ** 已删除，该位置正好是内容的第一个字符：
+
+        ```bash  
+        function! s:UnwrapMarkdownBold() abort
+            " 找到光标左侧最近的 **，但不移动光标
+            let l:start_col = searchpos('\V**', 'bnW', line('.'))[1]
+      
+            if l:start_col == 0
+                echohl WarningMsg
+                echom '光标不在 **...** 内'
+                echohl None
+                return
+            endif
+      
+            let l:oldline = getline('.')
+      
+            silent! s/.*\zs\*\*\(.\{-}\%#.\{-}\)\*\*/\1/
+      
+            if getline('.') ==# l:oldline
+                echohl WarningMsg
+                echom '光标不在 **...** 内'
+                echohl None
+                return
+            endif
+      
+            " 删除 ** 后，原左侧标记的位置就是内容开头
+            call cursor(line('.'), l:start_col)
+        endfunction
+      
+        nnoremap <silent> <leader>ub :call <SID>UnwrapMarkdownBold()<CR>
+        ```
+      
+    * 替换后光标回到原位置
+
+        需要在替换前保存光标位置。由于左侧的 ** 被删除，同一个字符的新列号会向左移动 2 列，所以替换后恢复到“原列号减 2”。
+
+        ```vim
+        function! s:UnwrapMarkdownBold() abort
+            let l:oldline = getline('.')
+            let l:cursor_pos = getpos('.')
+
+            silent! s/.*\zs\*\*\(.\{-}\%#.\{-}\)\*\*/\1/
+
+            if getline('.') ==# l:oldline
+                echohl WarningMsg
+                echom '光标不在 **...** 内'
+                echohl None
+                return
+            endif
+
+            " 左侧删除了两个字符，保持光标停留在原来的字符上
+            let l:cursor_pos[2] -= 2
+            call setpos('.', l:cursor_pos)
+        endfunction
+
+        nnoremap <silent> <leader>ub :call <SID>UnwrapMarkdownBold()<CR>
+        ```
+
+* vim 关于 fold 的指令
+
+	zR: 打开所有 fold
+
+	zM: 关闭所有 fold
+
+	zr: 只打开一层光标所在的层级
+
+	zm: 只关闭一层
+
+	rO: 递归展开光标下所有嵌套 fold
+
+	还可以 set foldlevel:
+
+	```vim
+	:set foldlevel=0
+	:set foldlevel=999
+	```
 * 详细讲讲 vim 中的可视块模式（Visual Block Mode）
 
 	好的，我们来详细讲讲 Vim 中的可视块模式（Visual Block Mode）。它是 Vim 三种可视模式中最强大、也最具“编辑器黑科技”色彩的一种。
@@ -1363,16 +2103,6 @@
     *   `Ctrl-\` `t`：查找光标下的文本字符串
 
     > **注意**：`cscope` 对 C 和 C++ 的支持最好，但通过指定文件列表，也可以用于 Java、Python 等其他语言，只是精确度可能稍逊。
-
-* vim ctags
-
-    生成 `tags` 文件后，你就可以在 Vim 中通过以下操作快速跳转：
-
-    *   **Ctrl + ]**：跳转到光标所在函数、变量或类的**定义处**。
-    *   **Ctrl + T**：从定义处**返回**到跳转前的位置，可以连续使用，按路径返回。
-    *   **`:tag <name>`**：直接在命令行跳转到名为 `<name>` 的标签定义处。
-    *   **`:tselect <name>`**：当一个标签名有多个定义（比如同名函数在不同文件中）时，列出所有选项供你选择。
-    *   **`:tags`**：显示你通过标签跳转功能所走过的路径历史。
 
 * 讲讲 command! -range FindSharp <line1>,<line2>call FindNextSharp() 这行命令的作用
 
@@ -7212,7 +7942,7 @@
 
     local host 应该也得安装`vim-gtk3`。
 
-    ssh 连接时是否需要开 -X 或 -Y，不清楚。
+    ssh 连接时需要开 -X 或 -Y，不然在 vim 中输入 :reg 后，仍看不到 + 寄存器。
 
 * 大写字母`U`
 
@@ -19617,6 +20347,16 @@
     * `[a^bc]`
 
 ### 导航、跳转、marker
+
+* vim ctags
+
+    生成 `tags` 文件后，你就可以在 Vim 中通过以下操作快速跳转：
+
+    * `Ctrl + ]`：跳转到光标所在函数、变量或类的**定义处**。
+    * `Ctrl + T`：从定义处**返回**到跳转前的位置，可以连续使用，按路径返回。
+    * `:tag <name>`：直接在命令行跳转到名为 `<name>` 的标签定义处。
+    * `:tselect <name>`：当一个标签名有多个定义（比如同名函数在不同文件中）时，列出所有选项供你选择。
+    * `:tags`：显示你通过标签跳转功能所走过的路径历史。
 
 * vim 打开文件后，跳转到上次关闭时候的位置：
 

@@ -2,6 +2,94 @@
 
 ## cache
 
+* 详细讲讲 git worktree
+
+    Git Worktree 让你能在同一个仓库下拥有多个独立的工作目录，每个目录可以检出不同的分支，共享底层的对象库。它最直接的好处是：**当你正在开发新功能时突然需要修复线上 Bug，不再需要 stash 或切换分支，直接新建一个 worktree 就能在不影响当前工作的前提下处理紧急任务**。
+
+    **核心原理：共享与隔离的边界**
+
+    理解 Worktree 的关键，在于分清哪些数据是共享的，哪些是每个工作目录独有的。
+
+    **共享的部分**（存放在主仓库的 `.git` 目录中）：
+
+    * 对象库 (`objects`)：所有的提交记录、文件内容、目录树。这是仓库体积的大头，共享意味着开再多的 worktree 也不会显著增加磁盘占用。
+
+    * 引用 (`refs`)：所有分支、标签、远程分支的指针。
+
+    **隔离的部分**（每个 worktree 各有一套）：
+
+    * HEAD 指针：决定当前工作目录指向哪个分支或提交。
+
+    * 暂存区 (`index`)：`git add` 的内容保存在这里。
+
+    * 工作目录文件：你实际编辑的源码文件。
+
+    正因为分支引用是全局共享的，Git 默认**禁止同一个分支在两个 worktree 中同时被检出**。否则在一个 worktree 里提交后，另一个 worktree 的工作区和暂存区就会与分支指针脱节，导致状态混乱。
+
+    从文件结构上看，你创建的链接工作树目录下并没有完整的 `.git` 目录，只有一个名为 `.git` 的**文本文件**，里面写着一行路径，指向主仓库中对应的管理目录（如 `/path/main/.git/worktrees/xxx`）。
+
+    **常用命令一览**
+
+    以下命令覆盖了 Worktree 的日常操作，核心是 `add`、`list`、`remove` 和 `prune`。
+
+    **创建 worktree**
+
+    ```bash
+    # 基于当前 HEAD 创建新分支并检出到新目录（分支名 = 目录名）
+    git worktree add ../hotfix
+
+    # 基于指定分支创建新分支
+    git worktree add ../feature-x -b feature-x develop
+
+    # 检出已存在的分支（该分支不能在其他 worktree 中已检出）
+    git worktree add ../review-branch review-branch
+
+    # 创建游离 HEAD 的临时 worktree（适合只读查看或测试）
+    git worktree add -d ../test-detached
+    ```
+
+    **查看与清理**
+
+    ```bash
+    # 列出所有 worktree 及其当前分支/提交
+    git worktree list
+
+    # 移除一个干净的 worktree（有未提交修改时会拒绝）
+    git worktree remove ../hotfix
+
+    # 强制移除（丢弃未提交的修改）
+    git worktree remove --force ../hotfix
+
+    # 清理已被手动删除的 worktree 的管理文件
+    git worktree prune
+    ```
+
+    **锁定与修复**
+
+    ```bash
+    # 锁定 worktree（防止被 prune 清理，适合外置设备上的 worktree）
+    git worktree lock --reason "移动硬盘上的测试环境" ../portable-wt
+
+    # 修复因手动移动目录而损坏的链接
+    git worktree repair
+    ```
+
+    **典型使用场景**
+
+    **紧急修复线上 Bug**。你在 feature 分支写了一堆未提交的代码，这时线上出问题了。无需 stash 或提交 wip，直接 `git worktree add ../hotfix -b hotfix` 基于 main 创建修复目录。改完、提交、推送、合入主线后，`git worktree remove ../hotfix` 删掉目录即可，原来的 feature 分支工作区完全不受影响。
+
+    **并行评审多个 PR**。每个 PR 创建一个 worktree，并行打开多个编辑器窗口对照审查，比反复切换分支高效得多。
+
+    **多版本维护**。同时维护 `main`、`release-1.x`、`release-2.x` 等多个分支时，可以为每个版本保持一个常驻 worktree，随时切换窗口即可工作。
+
+    **需要注意的坑**
+
+    **不要用 `rm -rf` 删除 worktree**。直接删目录不会清理主仓库中的管理文件，需要用 `git worktree remove` 或事后 `git worktree prune`。
+
+    **子模块限制**。包含子模块的 worktree 不能用 `git worktree move` 移动，移除时也可能需要 `--force`。
+
+    **配置隔离**。默认所有 worktree 共享主仓库的 `.git/config`。如果某个 worktree 需要独立配置（如不同的 user.name），需要开启 `extensions.worktreeConfig`，然后用 `git config --worktree` 写入独立的 `config.worktree` 文件。
+
 * 详细讲讲 git ls-files 的用法
 
     `git ls-files` 是一个底层的“管道”（plumbing）命令，用于直接查看 Git 索引（暂存区）与工作区中文件的状态。它不像 `git status` 那样友好，但能提供更精确、更适合脚本处理的文件列表。
@@ -385,67 +473,6 @@
 
     - 如果你日后想查看这个储藏，可以运行：`git stash list`，你会看到类似 `stash@{0}: On <分支名>: before siccl remote migration` 的记录。
     - 恢复时，建议先用 `git stash apply`（保留储藏副本）测试，确认无误后再用 `git stash drop` 删除，或者直接使用 `git stash pop`（恢复并删除储藏）。
-
-* git fetch siccl --prune
-
-    详细讲讲这行命令的作用
-
-    这行 Git 命令的作用是：**从名为 `siccl` 的远程仓库下载最新的对象和引用（分支、标签等），并在本地删除那些在远程仓库中已被删除的远程跟踪分支。**
-
-    下面我们拆解每个部分的含义和背后的机制：
-
-    1. `git fetch`
-
-        - **核心作用**：这是 Git 中用于“下载”数据的命令。它会访问指定的远程仓库，拉取该仓库中**本地还没有**的提交记录、文件对象等。
-        - **重要特性**：`fetch` **只下载数据，不会自动合并或修改你当前正在工作的本地分支**。它只是把远程的更新同步到本地的“远程跟踪分支”（如 `siccl/main`、`siccl/develop`）上，让你可以查看或后续手动合并。
-
-    2. `siccl`（远程仓库名）
-
-        - 这是你本地 Git 配置中给某个远程仓库起的**别名**（通常 `origin` 是默认名）。
-        - 执行此命令意味着你只想从 `siccl` 这个远程仓库获取更新，而不会影响其他远程仓库（如果有的话）。
-        - 你可以通过 `git remote -v` 查看 `siccl` 对应的实际 URL 地址。
-
-    3. `--prune`（修剪）
-
-        - **这是本命令最关键的参数**，也是与你单独使用 `git fetch siccl` 的区别所在。
-        - **它的作用**：在拉取远程更新后，**自动删除本地那些在远程仓库中已不存在的远程跟踪分支引用**。
-
-    **举个例子说明：**
-
-    假设你之前执行过 `git fetch siccl`，本地创建了远程跟踪分支：
-
-    ```
-    siccl/main
-    siccl/feature-a
-    siccl/hotfix-b
-    ```
-
-    后来，团队成员在远程仓库中**删除了** `feature-a` 这个分支（合并后清理掉了）。
-
-    - 如果你运行 **`git fetch siccl`**（不带 `--prune`）：本地仍然会保留 `siccl/feature-a` 这个远程跟踪分支，即使远程已经没了。它不会报错，也不会删除，导致你本地看到的远程分支列表是**过时**的。
-    - 如果你运行 **`git fetch siccl --prune`**：Git 会发现远程已没有 `feature-a`，于是**自动删除本地的 `siccl/feature-a`**，保持本地远程跟踪分支与真实远程状态**完全一致**。
-
-    4. 等价命令
-
-        - 该命令等同于 `git fetch siccl -p`（`-p` 是 `--prune` 的简写）。
-        - 也可以单独运行 `git remote prune siccl`，但后者只做修剪，不会拉取新的更新。而 `git fetch siccl --prune` 是**先拉取新数据，再修剪**，一步到位。
-
-    **结合你上一个问题的上下文**
-
-    你之前用 `git stash` 保存了本地修改，现在执行 `git fetch siccl --prune`，通常是为了：
-
-    1. **在远程仓库迁移（`siccl`）之后**，同步最新的远程分支状态。
-    2. 清理本地过时的远程分支引用，避免在后续操作（如切换分支、查看分支列表）时被陈旧信息干扰。
-    3. 为后续操作做准备，比如：
-       - `git merge siccl/main`（合并远程主分支的最新代码）
-       - `git rebase siccl/main`（变基）
-       - `git branch -a`（查看准确的所有分支列表）
-
-    **补充提醒**
-
-    - 这个命令**只删除本地的远程跟踪分支引用**（类似“快捷方式”），**不会删除你本地自己创建并正在工作的本地分支**（如 `main`、`develop`），所以是安全的。
-    - 如果你希望更彻底，可以用 `git fetch --all --prune` 来修剪所有远程仓库的过时分支。
-    - 执行后，建议用 `git branch -r` 查看远程分支列表，验证清理结果。
 
 * git rebase --onto siccl/dev fe6d482 hlc-dev
     详细讲讲这行命令的作用
@@ -5400,26 +5427,29 @@
         ```
         * `pop` 会把存起来的改动拿出来并从储藏室删除。你的代码、暂存区状态（Add 过的文件）都会回来。
 
-    ---
-
     **方案二：最高效做法 —— `git worktree` (多开工作区)**
 
     如果你觉得切换分支、编译、再切回来太慢（尤其是大项目，编译缓存可能失效），这是**进阶神技**。它允许你在不同的文件夹里同时打开两个分支。
 
     1.  **在另一个文件夹打开 main**：
+
         （假设你在项目根目录）
+
         ```bash
         git worktree add ../temp-main-dir main
         ```
+
     2.  **去新文件夹演示**：
+
         你现在的 `my-branch` 文件夹**纹丝不动**，完全不需要做任何 `stash` 或 `commit`。你直接进入 `../temp-main-dir` 这个新目录进行演示。
+
     3.  **演示完删掉即可**：
+
         客人走后，删掉那个临时文件夹，回到原来的目录继续写你的代码。
+
         ```bash
         git worktree remove ../temp-main-dir
         ```
-
-    ---
 
     **方案三：最保险做法 —— 临时 Commit (WIP)**
 
@@ -5443,6 +5473,7 @@
     **深度建议**
 
     * **如果你追求快**：用 **`git stash -u`**。它不需要创建新目录，几秒钟就能清空现场。
+
     * **如果你的项目很大（编译很久）**：一定要学 **`git worktree`**。因为切换分支会导致大量文件的时间戳改变，可能触发重新编译；而 `worktree` 让 `main` 和 `my-branch` 拥有各自独立的编译输出，演示时互不干扰。
 
     **VS Code 小贴士**：
@@ -8294,6 +8325,107 @@
 * `git branch -a`: List all remote branches. 
 
 ### 常见场景
+
+* 不切换 branch，设置其他 branch 的 upstream
+
+	git branch --set-upstream-to=siccl/dev dev
+
+* 不切换工作区，使用 fast forward 更新其他 branch 到最新
+
+	git fetch siccl dev:dev 会：
+ 
+  • 获取远程 siccl/dev
+  • 直接更新本地 dev
+  • 只允许 fast-forward
+  • 不修改当前分支和工作区                                                                                                                                      
+  • 不生成额外 merge commit
+
+* git fetch siccl --prune
+
+    详细讲讲这行命令的作用
+
+    这行 Git 命令的作用是：**从名为 `siccl` 的远程仓库下载最新的对象和引用（分支、标签等），并在本地删除那些在远程仓库中已被删除的远程跟踪分支。**
+
+    下面我们拆解每个部分的含义和背后的机制：
+
+    1. `git fetch`
+
+        - **核心作用**：这是 Git 中用于“下载”数据的命令。它会访问指定的远程仓库，拉取该仓库中**本地还没有**的提交记录、文件对象等。
+        - **重要特性**：`fetch` **只下载数据，不会自动合并或修改你当前正在工作的本地分支**。它只是把远程的更新同步到本地的“远程跟踪分支”（如 `siccl/main`、`siccl/develop`）上，让你可以查看或后续手动合并。
+
+    2. `siccl`（远程仓库名）
+
+        - 这是你本地 Git 配置中给某个远程仓库起的**别名**（通常 `origin` 是默认名）。
+        - 执行此命令意味着你只想从 `siccl` 这个远程仓库获取更新，而不会影响其他远程仓库（如果有的话）。
+        - 你可以通过 `git remote -v` 查看 `siccl` 对应的实际 URL 地址。
+
+    3. `--prune`（修剪）
+
+        - **这是本命令最关键的参数**，也是与你单独使用 `git fetch siccl` 的区别所在。
+        - **它的作用**：在拉取远程更新后，**自动删除本地那些在远程仓库中已不存在的远程跟踪分支引用**。
+
+    **举个例子说明：**
+
+    假设你之前执行过 `git fetch siccl`，本地创建了远程跟踪分支：
+
+    ```
+    siccl/main
+    siccl/feature-a
+    siccl/hotfix-b
+    ```
+
+    后来，团队成员在远程仓库中**删除了** `feature-a` 这个分支（合并后清理掉了）。
+
+    - 如果你运行 **`git fetch siccl`**（不带 `--prune`）：本地仍然会保留 `siccl/feature-a` 这个远程跟踪分支，即使远程已经没了。它不会报错，也不会删除，导致你本地看到的远程分支列表是**过时**的。
+    - 如果你运行 **`git fetch siccl --prune`**：Git 会发现远程已没有 `feature-a`，于是**自动删除本地的 `siccl/feature-a`**，保持本地远程跟踪分支与真实远程状态**完全一致**。
+
+    4. 等价命令
+
+        - 该命令等同于 `git fetch siccl -p`（`-p` 是 `--prune` 的简写）。
+        - 也可以单独运行 `git remote prune siccl`，但后者只做修剪，不会拉取新的更新。而 `git fetch siccl --prune` 是**先拉取新数据，再修剪**，一步到位。
+
+    **结合你上一个问题的上下文**
+
+    你之前用 `git stash` 保存了本地修改，现在执行 `git fetch siccl --prune`，通常是为了：
+
+    1. **在远程仓库迁移（`siccl`）之后**，同步最新的远程分支状态。
+    2. 清理本地过时的远程分支引用，避免在后续操作（如切换分支、查看分支列表）时被陈旧信息干扰。
+    3. 为后续操作做准备，比如：
+       - `git merge siccl/main`（合并远程主分支的最新代码）
+       - `git rebase siccl/main`（变基）
+       - `git branch -a`（查看准确的所有分支列表）
+
+    **补充提醒**
+
+    - 这个命令**只删除本地的远程跟踪分支引用**（类似“快捷方式”），**不会删除你本地自己创建并正在工作的本地分支**（如 `main`、`develop`），所以是安全的。
+    - 如果你希望更彻底，可以用 `git fetch --all --prune` 来修剪所有远程仓库的过时分支。
+    - 执行后，建议用 `git branch -r` 查看远程分支列表，验证清理结果。
+
+    注：
+
+    1. 只 fetch 单独分支：git fetch siccl dev --prune
+
+    2. 查看 fetch 后的 git log: `git log --oneline --decorate --graph -30 siccl/dev`
+
+        注意， 这个时候还没有把 siccl/dev merge 到本地的 dev 分支
+
+  	3. 查看 siccl/dev 相对当前分支新增了什么：
+ 
+		git log --oneline --left-right --graph HEAD...siccl/dev
+
+	4. 只查看 siccl/dev 比当前分支多出的提交：
+ 
+		git log --oneline HEAD..siccl/dev
+ 
+	5. 只查看当前分支比 siccl/dev 多出的提交：
+ 
+		git log --oneline siccl/dev..HEAD
+ 
+ 	6. 检查两边各自领先多少：
+
+		git rev-list --left-right --count HEAD...siccl/dev
+
+		输出两个数字依次表示：当前分支独有提交数、siccl/dev 独有提交数。git fetch 只更新远程跟踪引用，不会修改当前工作区或执行 merge/rebase。
 
 * add a new remote repo and push the local branch to remote
 
