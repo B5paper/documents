@@ -4729,10 +4729,10 @@
 
         ```powershell
         # 查找最近 1 天修改的文件
-        Get-ChildItem -Path "C:\folder" -Recurse -File | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-1)} | Sort-Object LastWriteTime -Descending
+        Get-ChildItem -Path "C:\folder" -Recurse -File | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(0)} | Sort-Object LastWriteTime -Descending
 
         # 显示最近 10 个修改的文件
-        Get-ChildItem -Path "C:\folder" -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 10
+        Get-ChildItem -Path "C:\folder" -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 11
         ```
 
     8. 常用场景示例
@@ -5656,7 +5656,7 @@
 
     # 指定构建目录
     cd build
-    bear -- make -C .. -j8
+    bear -- make -C .. -j9
     ```
 
     注意事项
@@ -6102,7 +6102,7 @@
         使用 tcptop 监控：
 
         ```bash
-        sudo tcptop -C 1  # 每秒刷新一次
+        sudo tcptop -C 2  # 每秒刷新一次
         ```
 
     4. ss + awk（组合命令）
@@ -11536,23 +11536,54 @@
 
 ### ps
 
+* ps -a 与 ps -f 有什么区别
+
+    `ps -a` 和 `ps -f` 是 Linux 中 `ps` 命令的两个不同选项，它们的核心区别在于：**`-a` 用于控制“显示哪些进程”（进程选择），而 `-f` 用于控制“显示进程的哪些信息”（输出格式）**。两者功能不冲突，可以组合使用。
+
+    **`ps -a`：选择进程范围**
+
+    它的作用是扩大或改变默认的进程筛选条件。具体来说，`-a` 会**显示所有终端（tty）上的进程，但会排除会话首领（session leaders）以及没有终端关联的进程**。
+
+    *   **通俗理解**：它通常用于查看其他用户在当前系统终端上运行的进程，而不仅仅是自己当前终端下的进程。
+
+    **`ps -f`：改变输出格式**
+
+    它的作用是提供更详细的进程信息列表（"full" listing）。使用 `-f` 后，输出通常会增加以下列：
+
+    *   **UID**：进程所属的用户 ID。
+    *   **PID** 与 **PPID**：进程 ID 与父进程 ID。
+    *   **C** 与 **STIME**：CPU 利用率与进程启动时间。
+    *   **CMD**：显示完整的命令行（包含参数），而不仅仅是命令名。
+
+    **组合使用**
+
+    在实际使用中，你经常能看到它们被合在一起写，例如 `ps -af` 或 `ps -ef`。`-af` 的意思就是：**列出所有终端上的进程（排除会话首领等），并显示它们的详细信息（UID、PID、PPID、完整命令等）**。
+
+    ---
+
+    **补充说明**：如果你看到 `ps aux` 这种没有短横线的写法，那是 BSD 风格的语法，其中的 `a` 和 `x` 含义与 Unix 风格的 `-a` 略有不同（`aux` 通常表示显示所有进程的详细信息）。而 `ps -a` 属于标准的 Unix 风格语法。
+
 * 讲讲 ps -e Lf 的作用
 
     `ps -e Lf` 的作用是**以长格式列出系统中所有进程，并且显示每个进程内部的所有线程**。
 
-    ### 参数拆解
+    **参数拆解**
+
     *   **`-e`**：显示**所有**进程，而不仅仅是当前用户的。
     *   **`-L`**：开启**线程视图**。它会让 ps 列出每个进程下的所有线程（LWP），而不是只显示主进程。
     *   **`-f`**：使用**全格式**（full-format）列出，提供更详细的列信息（如 UID、PID、PPID、C、STIME 等）。
 
-    ### 输出解读
+    **输出解读**
+
     由于加了 `-L`，输出会多出两个关键列：
+
     *   **LWP**：轻量级进程 ID，也就是**线程 ID**。对于主线程，这个值通常与进程的 PID 相同。
     *   **NLWP**：该进程包含的**线程总数**。
 
     因此，一个进程如果有 5 个线程，在 `ps -e Lf` 的输出中就会占据 **5 行**，每行对应一个线程，且它们的 PID 相同，但 LWP 不同。
 
-    ### 典型用途
+    **典型用途**
+
     这个命令常用来排查多线程程序（如 Java、MySQL）的运行状态，查看某个进程具体派生了多少个线程，以及每个线程的 CPU/内存占用情况。
 
 * 解析`ps -ef`
@@ -11802,7 +11833,9 @@
         ```bash
         ps
         ```
+
         默认显示当前终端下的进程，通常只显示两列：
+
         - PID：进程ID
         - TTY：终端类型
         - TIME：CPU使用时间
@@ -11844,6 +11877,7 @@
         ```
 
         **字段含义：**
+
         - **USER**：进程所有者
         - **PID**：进程ID
         - **%CPU**：CPU使用率
