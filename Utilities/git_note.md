@@ -2,6 +2,107 @@
 
 ## cache
 
+* git log --oneline -- .gitmodules 讲讲这条命令的作用
+
+	# `git log --oneline -- .gitmodules` 命令详解
+
+	## 命令拆解
+
+	这条命令由三部分组成：
+
+	| 部分 | 作用 |
+	|------|------|
+	| `git log` | 查看提交历史 |
+	| `--oneline` | 每个提交压缩成一行显示（短 hash + 提交标题） |
+	| `-- .gitmodules` | **路径过滤**：只显示影响 `.gitmodules` 文件的提交 |
+
+	## 整体作用
+
+	> **查看 `.gitmodules` 文件（子模块配置文件）的修改历史，每条记录一行展示。**
+
+	## 关键点：`--` 的作用
+
+	`--` 是"分隔符"，用来区分**选项**和**路径**：
+
+	```bash
+	git log [选项] -- [路径]
+	```
+
+	- `--` 之前的 `.gitmodules` 可能被误认为是某个选项参数
+	- `--` 之后的内容一律被视为**文件/目录路径**
+	- 这是规范写法，能避免歧义（尤其是文件名和分支名/选项名相同时）
+
+	## 典型使用场景
+
+	### 1. 查看子模块配置的历史变化
+	```bash
+	git log --oneline -- .gitmodules
+	```
+	输出类似：
+	```
+	a1b2c3d add new submodule: libs/foo
+	e4f5g6h remove obsolete submodule: libs/old
+	i7j8k9l update submodule url for libs/bar
+	```
+	能快速看出**子模块何时被添加、删除、URL 修改**。
+
+	### 2. 配合其他选项细化
+	```bash
+	# 显示每次改动的具体内容
+	git log -p -- .gitmodules
+
+	# 看最近 5 次改动
+	git log --oneline -5 -- .gitmodules
+
+	# 看某个人的改动
+	git log --oneline --author="Alice" -- .gitmodules
+	```
+
+	### 3. 对比只看目录 vs 只看文件
+	```bash
+	git log --oneline -- .gitmodules      # 只看这个文件的改动
+	git log --oneline -- .                # 看整个仓库所有文件的改动（因为 . 是当前目录）
+	```
+
+	## 补充：`.gitmodules` 是什么
+
+	`.gitmodules` 是 Git 子模块（submodule）的配置文件，通常长这样：
+
+	```ini
+	[submodule "libs/foo"]
+		path = libs/foo
+		url = https://github.com/user/foo.git
+	```
+
+	所以这条命令本质上是**追溯子模块配置的演变历史**，排查"某个子模块是什么时候、由谁加入/移出仓库的"非常有用。
+
+	## 一个容易踩的坑
+
+	```bash
+	git log --oneline .gitmodules    # 有时也能工作，但依赖 git 解析
+	git log --oneline -- .gitmodules # 推荐写法，明确路径边界
+	```
+	养成加 `--` 的习惯更安全。
+
+* 我想知道某个 commit 相对于前一个 commit 改动了什么，怎么办
+
+	用 git show 即可，默认显示该 commit 相对于父 commit 的改动：
+
+	git show <commit>
+
+	常见用法：
+
+	git show --stat <commit>         # 文件及增删行数概览
+	git show --name-status <commit>  # 文件列表及新增/修改/删除状态
+	git show <commit> -- src/graph/  # 只看指定目录
+	git show HEAD                   # 查看最新 commit
+
+	也可以明确对比父 commit：
+
+	git diff <commit>^ <commit>
+
+	这里 ^ 表示第一个父 commit；若是 merge commit，查看时需要留意选择哪个父节点。
+
 * 详细讲讲 git worktree
 
     Git Worktree 让你能在同一个仓库下拥有多个独立的工作目录，每个目录可以检出不同的分支，共享底层的对象库。它最直接的好处是：**当你正在开发新功能时突然需要修复线上 Bug，不再需要 stash 或切换分支，直接新建一个 worktree 就能在不影响当前工作的前提下处理紧急任务**。

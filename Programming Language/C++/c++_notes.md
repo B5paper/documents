@@ -4,6 +4,46 @@
 
 ## cached
 
+* 详细讲讲 cppman
+
+    cppman is a command-line tool that converts online C++ reference documentation (from cplusplus.com and cppreference.com) into local manual pages, allowing you to read C++ standard library and keyword documentation in the terminal just like using the `man` command, without needing to open a browser.
+
+    ### Core Features
+
+    Its main appeal lies in integrating C++ reference documentation into the Unix terminal workflow:
+
+    *   **Dual Documentation Sources**: Supports fetching content from **cplusplus.com** and **cppreference.com**, and you can switch between them at any time using `cppman -s`.
+    *   **man-style Experience**: The interface and usage are very similar to the system's `man` command, making it easy to get started.
+    *   **Syntax Highlighting**: Provides syntax highlighting for document sections and example code, making it easier to read in the terminal.
+    *   **Hyperlink Navigation**: When using `vim` as the pager (the default), you can press `Ctrl-]` on a keyword to jump to its corresponding documentation page, and `Ctrl-T` to go back.
+    *   **Offline Caching**: By default, documentation is fetched from the internet on demand. You can use `cppman -c` to cache all available pages locally, enabling offline viewing.
+    *   **Integration with System man**: With `cppman -m true`, cached documentation can be integrated into the system's `man` command database, so you can directly use `man std::vector` to view documentation.
+
+    ### Installation
+
+    It is written in Python and is available in the package repositories of mainstream systems:
+
+    *   **Ubuntu/Debian**: `sudo apt install cppman`
+    *   **macOS (Homebrew)**: `brew install cppman`
+    *   **PyPI**: `pip install cppman` (requires Python 3)
+
+    ### Common Commands
+
+    The most commonly used options are as follows (some versions may differ slightly):
+
+    *   `cppman <keyword>`: Directly view documentation for a keyword (e.g., `cppman vector`).
+    *   `cppman -c`: Cache all documentation for offline use.
+    *   `cppman -s cppreference.com`: Switch to the cppreference documentation source.
+    *   `cppman -f <keyword>`: Find and list matching pages (in newer versions, `-f` is typically used to bring up a selection menu).
+    *   `cppman -m true`: Enable integration with the system `man` command.
+
+    ### Notes
+
+    *   **Content Copyright**: The tool itself does not include pre-cached content; all documentation is downloaded and cached by the user. The cached content comes from third-party websites, so please note the copyright restrictions of the respective websites when using or distributing it.
+    *   **Version Changes**: Newer versions (such as 0.6.x) have adjusted the behavior of `-f` and search, defaulting to directly displaying the first match rather than popping up a selection menu; if you need to select from multiple results, you usually need to use `-f`.
+
+    If you are a developer who frequently writes C++ in the terminal, cppman can significantly reduce the need to switch to a browser to look up standard library details.
+
 * c++ 中如何给一个 namespace 取别名
 
     在C++中，给命名空间（namespace）取别名使用 **`namespace alias`**（命名空间别名）语法。

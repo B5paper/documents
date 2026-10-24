@@ -6,6 +6,118 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
 ## cache
 
+* c 语言中，调试字符串相关的代码，经常有拿到某个字符对应的位置、以及拿到某个位置对应的字符的需求，自己动手数比较麻烦，是否有工具可以解决这个问题
+
+    是的，完全有工具可以解决这个手动数位置的问题！以下是几种实用的解决方案：
+
+    1. 在线字符串可视化工具
+
+        推荐工具：
+
+        * Online String Tools - 支持各种字符串分析
+
+    2. IDE/编辑器插件
+
+        VS Code 扩展：
+
+        * String Manipulation - 高亮显示字符位置
+
+        * Rainbow CSV - 对字符串进行彩色标记
+
+        * Bracket Pair Colorizer - 帮助识别字符串边界
+
+        配置方法：
+
+        ```json
+        // VS Code settings.json
+        {
+            "editor.renderWhitespace": "all",
+            "editor.renderControlCharacters": true,
+            "editor.wordWrap": "off"
+        }
+        ```
+
+    3. C语言调试技巧
+
+        使用gdb调试：
+
+        ```c
+        // 示例代码
+        #include <stdio.h>
+        #include <string.h>
+
+        int main() {
+            char str[] = "Debug this string";
+            
+            // 使用gdb时：
+            // print str[5]      // 查看第6个字符
+            // x/s &str[0]       // 查看整个字符串
+            // print &str[7] - &str[0]  // 计算偏移量
+            return 0;
+        }
+        ```
+
+        gdb命令：
+
+        ```bash
+        (gdb) p str
+        (gdb) p str[3]        # 位置3的字符
+        (gdb) x/20cb str      # 以字符形式查看内存
+        (gdb) printf "%d\n", strchr(str, 's') - str  # 查找's'的位置
+        ```
+
+    4. 自制辅助函数
+
+        ```c
+        #include <stdio.h>
+        #include <string.h>
+
+        void print_string_with_indices(const char *str) {
+            printf("字符串: \"%s\"\n", str);
+            printf("索引:    ");
+            for(int i = 0; i < strlen(str); i++) {
+                printf("%d", i % 10);
+            }
+            printf("\n字符:    ");
+            for(int i = 0; i < strlen(str); i++) {
+                printf("%c", str[i]);
+                if(i < strlen(str)-1) {
+                    // 对齐空格
+                    int spaces = 1;
+                    if(i >= 10) spaces = 2;
+                    for(int j = 0; j < spaces; j++) printf(" ");
+                }
+            }
+            printf("\n");
+            
+            printf("\n详细分析:\n");
+            for(int i = 0; i < strlen(str); i++) {
+                printf("位置 %2d: '%c' (ASCII: %3d)\n", 
+                       i, str[i], (int)str[i]);
+            }
+        }
+
+        int main() {
+            char test_str[] = "C语言调试";
+            print_string_with_indices(test_str);
+            return 0;
+        }
+        ```
+
+    5. 推荐实用技巧
+
+        ```c
+        // 快速定位技巧
+        #define DEBUG_CHAR(str, pos) \
+            printf("str[%d] = '%c' (ASCII: %d)\n", \
+                   pos, str[pos], str[pos])
+
+        // 使用示例
+        DEBUG_CHAR("Hello World", 6);  // 输出: str[6] = 'W' (ASCII: 87)
+        ```
+
+    最佳实践：对于中文字符串调试，建议使用支持UTF-8的在线工具，并注意一个中文字符可能对应2-4个字节的存储位置。
+
 * 详细讲讲 c 中的 printf 函数
 
     好的，我们详细地来剖析 C 语言中的 `printf` 函数。它不仅仅是“打印输出”那么简单，其背后涉及可变参数、格式化解析、缓冲区管理，甚至是系统调用。
@@ -2591,6 +2703,10 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
     1. 嵌套调用变长参数函数时，`args`的含义为从已经解析的参数的下一个开始，传入内层函数中。另外内层 print 函数必须使用`vprintf()`，否则会报 segmentation fault 错误。这个函数是专门为内层变长参数函数准备的。
 
     1. 如果无法一开始就确定所有参数的类型，通常做法是仿照`printf()`，第一个参数传字符串，字符串里包含后面参数类型的信息，比如`%d`,`%f`之类，在函数里只需要解析字符串就可以了。
+
+    1. 对于`va_start(args, int_val);`，首先 args 是一个还没有被赋值的指针，`va_start()`的作用正是对其赋值。`int_val`提供了两个信息：函数参数栈的起始位置以及第一个参数的类型，既然知道了第一个参数的类型，那么就知道了第一个参数的字节大小，所以就可以让指针`args`跳过第一个参数，指向第二个参数。
+
+        当然，如果`int_val`不是函数的第一个参数，那么就相当于从参数栈的中间位置开始计算指针的位置，原理是一样的。
 
 * 因为有补码，所以`int a = 0xffffffff;`并不是`INT32_MIN`，而是`-1`。而`INT32_MIN`的 16 进制是`0x80000000`。
 

@@ -2,6 +2,47 @@
 
 ## cache
 
+* 详细讲讲 vim-rooter 插件的作用和用法
+
+	vim-rooter 是一个 Vim 插件，它的核心作用是**在你打开文件或目录时，自动将 Vim 的当前工作目录切换到该文件所属项目的根目录**。
+
+	这样做的好处是，当你在项目中使用 `:e` 命令编辑文件、或者用 `:grep`、`:Ag` 等工具搜索时，路径的起点默认就是项目根目录，而不是你打开 Vim 时所在的随便一个子目录，能省去很多手动 `cd` 的麻烦。
+
+	### 🚀 基本用法
+
+	默认情况下，你**不需要做任何操作**。只要你打开一个文件，vim-rooter 就会自动运行，并在命令行回显切换后的新工作目录。
+
+	如果你需要手动触发，可以使用 `:Rooter` 命令。当目录切换成功时，插件会触发一个名为 `RooterChDir` 的用户自动命令（autocmd），方便你进行后续操作。
+
+	### ⚙️ 核心配置
+
+	你可以通过修改 `.vimrc` 来定制它的行为。以下是几个最常用的配置项：
+
+	**1. 定义项目根目录的标识 (`g:rooter_patterns`)**
+	这是最重要的配置。插件会从当前文件所在目录向上逐级查找，一旦找到匹配的文件或目录，就将其认定为项目根。默认通常识别 `.git`、`Makefile` 等。你可以通过前缀符来精确定义规则：
+	*   **直接写名称**：表示根目录**包含**该文件或目录。例如 `['.git', 'Makefile']`。
+	*   **前缀 `=`**：表示根目录**就是**该目录。例如 `['=src']`。
+	*   **前缀 `>`**：表示根目录是该目录的**直接父级**。例如 `['>projects']`。
+	*   **前缀 `!`**：用于**排除**特定模式，需放在列表前面。例如 `['!.git/worktrees', '.git']`。
+
+	**2. 控制触发时机 (`g:rooter_targets`)**
+	默认所有文件和目录都会触发切换。你可以限制只在打开特定文件时触发，例如只对 YAML 文件生效：`let g:rooter_targets = '*.yml,*.yaml'`。
+
+	**3. 处理非项目文件 (`g:rooter_change_directory_for_non_project_files`)**
+	如果打开的文件不在任何已识别的项目内，默认**不切换**目录。你可以将其设为 `'current'` 切换到文件所在目录，或设为 `'home'` 切换到用户主目录。
+
+	**4. 切换方式 (`g:rooter_cd_cmd`)**
+	默认使用 `:cd`（全局切换）。如果你希望只切换当前窗口的目录，可以设置为 `'lcd'`。
+
+	**5. 静默模式 (`g:rooter_silent_chdir`)**
+	如果你不想在切换目录时看到回显信息，可以设置 `let g:rooter_silent_chdir = 1`。
+
+	### 💡 补充说明
+	*   **与 `autochdir` 冲突**：如果你开启了 Vim 自带的 `autochdir` 选项，vim-rooter 会自动将其关闭，以避免两者打架。
+	*   **编程调用**：如果你在写 Vim 脚本，可以直接调用 `FindRootDirectory()` 函数，它只会返回检测到的根目录路径字符串，而不会实际切换目录。
+
+* 在 screen 中在 vim，有时无法正常执行 "+ 粘贴板寄存器，可能原因是 screen -r xxx 恢复 session 后，`DISPLAY`环境变量和 host 上已经不同。此时只需要在 screen 内，`export DISPLAY=XXXX`设置与 host 上相同即可，vim 中的 "+ 寄存器即可恢复使用。
+
 * 详细讲讲 mkdx.vim 插件
 
     `mkdx.vim` 是一款专为 Vim/Neovim 设计的 Markdown 编辑增强插件。它的核心目标是减少你在格式化 Markdown 文档时花费的时间，通过提供大量可配置的映射（Mappings）和功能，让列表、复选框、代码块、表格和链接的管理变得更加高效。
@@ -940,6 +981,7 @@
 	:set foldlevel=0
 	:set foldlevel=999
 	```
+
 * 详细讲讲 vim 中的可视块模式（Visual Block Mode）
 
 	好的，我们来详细讲讲 Vim 中的可视块模式（Visual Block Mode）。它是 Vim 三种可视模式中最强大、也最具“编辑器黑科技”色彩的一种。
@@ -22721,19 +22763,17 @@
 
 * 简述 vim-gutentags
 
-    好的，我们来简单介绍一下 Vim-Gutentags。
-
-    ### 核心概念
+    **核心概念**
 
     **Vim-Gutentags** 是一个 Vim 插件，它的核心功能是**自动化管理 Vim 的标签文件（tags files）**。
 
     标签文件是 `ctags`（或类似 `universal-ctags`, `etags`）这类工具生成的索引文件，它记录了源代码中函数、类、变量、宏等符号及其位置。Vim 借助这个文件，可以实现快速跳转到定义、自动补全等强大功能。
 
-    ### 要解决什么问题？
+    **要解决什么问题？**
 
     在没有 Gutentags 之前，开发者通常需要手动运行 `ctags -R .` 来生成标签文件，并且在项目代码更新后，还需要重新运行该命令来更新标签，否则索引就会过时。这个过程非常繁琐且容易忘记。
 
-    ### Gutentags 的解决方案
+    **Gutentags 的解决方案**
 
     Gutentags 完美地解决了这个问题，它的工作方式是：
 
@@ -22741,7 +22781,7 @@
     2.  **自动更新**：当你保存（write）一个文件后，Gutentags 会在后台**静默地、异步地**只更新刚才修改的那个文件的标签，而不是重新生成整个项目。这极大地提升了效率，避免了大型项目生成标签时造成的 Vim 卡顿。
     3.  **自动管理**：你完全无需手动干预整个过程。它“Just Works”。
 
-    ### 主要特点
+    **主要特点**
 
     *   **后台异步运行**：使用 Vim 的 `job` 功能（或其它兼容插件）在后台运行 `ctags`，不会阻塞你的编辑操作。
     *   **增量更新**：只更新改变的文件，速度极快。
@@ -22749,106 +22789,107 @@
     *   **高度可定制**：你可以配置使用哪种 `ctags` 工具、标签文件存放位置、哪些文件需要被索引等。
     *   **支持多种标签生成工具**：默认支持 `ctags` 和 `etags`，通过配置也可以支持其它工具。
 
-    ### 简单总结
+    **简单总结**
 
     你可以把 **Vim-Gutentags** 理解为一个为你**自动、高效、无感地生成和管理代码索引**的智能助手。它免去了手动处理 `tags` 文件的所有麻烦，让你可以专注于 coding，并随时随地享受快速跳转定义带来的便利。
 
     **一句话简述：**
+
     > Vim-Gutentags 是一个能自动在后台异步生成和更新 ctags 标签文件的 Vim 插件，让你无需手动管理即可享受高效的代码导航功能。
 
     * 如何安装？
 
         好的，安装 Vim-Gutentags 通常需要两个部分：**插件本身**和**一个后台异步执行工具**。以下是详细的安装步骤。
 
-        ### 方法一：使用插件管理器安装（推荐）
+        **方法一：使用插件管理器安装（推荐）**
 
         这是最简单和最常用的方法。请根据你使用的插件管理器选择相应的命令。
 
-        #### 1. 安装 Vim-Gutentags
+        1. 安装 Vim-Gutentags
 
-        **Vim-Plug**
-        1.  在你的 `~/.vimrc` 文件中添加：
-            ```vim
-            Plug 'ludovicchabant/vim-gutentags'
-            ```
-        2.  重启 Vim 并执行：
-            ```vim
-            :PlugInstall
-            ```
+			**Vim-Plug**
+			1.  在你的 `~/.vimrc` 文件中添加：
+				```vim
+				Plug 'ludovicchabant/vim-gutentags'
+				```
+			2.  重启 Vim 并执行：
+				```vim
+				:PlugInstall
+				```
 
-        **Vundle**
-        1.  在你的 `~/.vimrc` 文件中添加：
-            ```vim
-            Plugin 'ludovicchabant/vim-gutentags'
-            ```
-        2.  重启 Vim 并执行：
-            ```vim
-            :PluginInstall
-            ```
+			**Vundle**
+			1.  在你的 `~/.vimrc` 文件中添加：
+				```vim
+				Plugin 'ludovicchabant/vim-gutentags'
+				```
+			2.  重启 Vim 并执行：
+				```vim
+				:PluginInstall
+				```
 
-        **dein.vim**
-        1.  在你的 `~/.vimrc` 文件中添加：
-            ```vim
-            call dein#add('ludovicchabant/vim-gutentags')
-            ```
-        2.  重启 Vim 并执行：
-            ```vim
-            :call dein#install()
-            ```
+			**dein.vim**
+			1.  在你的 `~/.vimrc` 文件中添加：
+				```vim
+				call dein#add('ludovicchabant/vim-gutentags')
+				```
+			2.  重启 Vim 并执行：
+				```vim
+				:call dein#install()
+				```
 
-        **packer.nvim (Neovim)**
-        1.  在你的 `~/.config/nvim/init.lua` 文件中添加：
-            ```lua
-            use 'ludovicchabant/vim-gutentags'
-            ```
-        2.  重启 Neovim 并执行：
-            ```vim
-            :PackerSync
-            ```
+			**packer.nvim (Neovim)**
+			1.  在你的 `~/.config/nvim/init.lua` 文件中添加：
+				```lua
+				use 'ludovicchabant/vim-gutentags'
+				```
+			2.  重启 Neovim 并执行：
+				```vim
+				:PackerSync
+				```
 
-        #### 2. 确保已安装 Ctags
+        2. 确保已安装 Ctags
 
-        Gutentags 只是一个管理器，它需要依赖 `ctags` 这个实际生成标签的工具。
+			Gutentags 只是一个管理器，它需要依赖 `ctags` 这个实际生成标签的工具。
 
-        *   **Linux (Debian/Ubuntu):**
-            ```bash
-            sudo apt-get install universal-ctags
-            ```
-            （`universal-ctags` 是活跃维护的 `ctags` 分支，比古老的 `exuberant-ctags` 更推荐）
+			*   **Linux (Debian/Ubuntu):**
+				```bash
+				sudo apt-get install universal-ctags
+				```
+				（`universal-ctags` 是活跃维护的 `ctags` 分支，比古老的 `exuberant-ctags` 更推荐）
 
-        *   **macOS:**
-            ```bash
-            # 使用 Homebrew
-            brew install universal-ctags
-            ```
+			*   **macOS:**
+				```bash
+				# 使用 Homebrew
+				brew install universal-ctags
+				```
 
-        *   **Windows:**
-            1.  从 [universal-ctags](https://github.com/universal-ctags/ctags-win32/releases) 下载预编译的 `ctags.exe`。
-            2.  将其所在目录添加到系统的 `PATH` 环境变量中。
+			*   **Windows:**
+				1.  从 [universal-ctags](https://github.com/universal-ctags/ctags-win32/releases) 下载预编译的 `ctags.exe`。
+				2.  将其所在目录添加到系统的 `PATH` 环境变量中。
 
-        #### 3. （可选但强烈推荐）安装异步支持插件
+        3. （可选但强烈推荐）安装异步支持插件
 
-        为了让 Gutentags 在后台异步运行而不阻塞 Vim，你需要安装一个异步执行辅助插件。现代 Vim 8+ 和 Neovim 通常内置了异步支持，但安装以下插件可以提供更好、更通用的体验：
+			为了让 Gutentags 在后台异步运行而不阻塞 Vim，你需要安装一个异步执行辅助插件。现代 Vim 8+ 和 Neovim 通常内置了异步支持，但安装以下插件可以提供更好、更通用的体验：
 
-        **vim-dispatch** 或 **asyncrun.vim**
+			**vim-dispatch** 或 **asyncrun.vim**
 
-        安装其中一个即可（Gutentags 会优先使用 `vim-dispatch`）。
+			安装其中一个即可（Gutentags 会优先使用 `vim-dispatch`）。
 
-        **Vim-Plug 示例：**
-        在 `~/.vimrc` 的 `Plug` 部分添加一行：
+			**Vim-Plug 示例：**
+			在 `~/.vimrc` 的 `Plug` 部分添加一行：
 
-        ```vim
-        " 选择安装一个即可
-        Plug 'tpope/vim-dispatch'        " 更强大，支持多种策略
-        " 或者
-        Plug 'skywind3000/asyncrun.vim'  " 更轻量易用
-        ```
+			```vim
+			" 选择安装一个即可
+			Plug 'tpope/vim-dispatch'        " 更强大，支持多种策略
+			" 或者
+			Plug 'skywind3000/asyncrun.vim'  " 更轻量易用
+			```
 
-        然后再次运行 `:PlugInstall`。
+			然后再次运行 `:PlugInstall`。
 
         ---
 
-        ### 方法二：手动安装（不推荐）
+        **方法二：手动安装（不推荐）**
 
         1.  前往项目的 GitHub 页面：[https://github.com/ludovicchabant/vim-gutentags](https://github.com/ludovicchabant/vim-gutentags)
         2.  下载插件包，并将其内容解压到 Vim 的运行时目录（通常是 `~/.vim/` 对于 Linux/macOS，或 `%USERPROFILE%\vimfiles\` 对于 Windows）。
@@ -22856,7 +22897,7 @@
 
         ---
 
-        ### 验证安装
+        **验证安装**
 
         完成以上步骤后，你可以通过以下方式验证安装是否成功：
 
@@ -22868,7 +22909,7 @@
 
         如果成功跳转到该符号的定义处，说明 Gutentags 已经自动为你生成并管理好了 tags 文件，安装成功！
 
-        ### 常见问题
+        **常见问题**
 
         *   **Gutentags 不工作？**
             *   首先运行 `:checkhealth gutentags`（如果支持）或 `:echo gutentags#status()` 来查看状态和错误信息。

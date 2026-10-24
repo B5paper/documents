@@ -4,6 +4,8 @@
 
 ## cache
 
+* cywgin 中默认安装了`ncurses`和`terminfo`
+
 * 修复 cygwin + screen + vim 中字符错位的问题
 
     `~/.bashrc`:

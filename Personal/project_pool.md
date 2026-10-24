@@ -36,8 +36,6 @@
 
 ## cache
 
-* 加载 sipu 驱动需要先 modprobe drm_suballoc_helper
-
 * hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
 
     feedback:
@@ -50,7 +48,7 @@
 
 * [ ] nvim-tree、telescope、fzf
 
-* [ ] vim-rooter
+* [v] vim-rooter
 
 * 项目架构
 
@@ -124,7 +122,7 @@
 
 * [new] `arr: "NDArray" = cp.array([1, 2, 3])`
 
-* [new] GitLens
+* [v] GitLens
 
 * [new] git diff
 
@@ -182,15 +180,16 @@
     arp -an | grep 100.104.94.244
     ```
 
-* [ ] cywgin 中是否默认安装了`ncurses`和`terminfo`
+* [v] cywgin 中是否默认安装了`ncurses`和`terminfo`
 
 * [ ] ZoomWin：这个插件可以让你用 <C-w> o 暂时最大化当前窗口，再次按下同一个快捷键就能完美恢复之前的布局。
 
     vim-winzoom：它的作用和 ZoomWin 类似，可以搜索这个插件。
 
-* [ ] 方法五：使用 pyproject.toml（现代Python项目推荐）
+* [v] 方法五：使用 pyproject.toml（现代Python项目推荐）
 
     创建 `pyproject.toml` 文件：
+
     ```toml
     [build-system]
     requires = ["setuptools", "wheel"]
@@ -225,7 +224,7 @@
     echo "options radeon cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-radeon.conf
     ```
 
-* [ ] driverctl
+* [v] driverctl
 
     ```bash
     # 安装 driverctl
@@ -241,7 +240,7 @@
     sudo driverctl set-override --persistent 0000:01:00.0 vfio-pci
     ```
 
-* [ ] lspci -k -s $device
+* [v] lspci -k -s $device
 
 * [ ] `update-initramfs -u`
 
@@ -308,14 +307,6 @@
     echo "vfio_iommu_type1" >> /etc/modules-load.d/vfio.conf
     ```
 
-* [v] 检查 module 依赖关系
-
-    ```bash
-    # 查看模块依赖
-    modinfo vfio-pci | grep depends
-    # 通常显示：depends:        vfio,vfio_iommu_type1
-    ```
-
 * [ ] 什么是 elrepo
 
     ```bash
@@ -325,8 +316,6 @@
     yum --enablerepo=elrepo-kernel install kernel-ml -y
     reboot
     ```
-
-* [v] lsmod | grep vfio || echo "VFIO模块未加载"
 
 * 写一个工具，用于扩展 vim 打开文件时的 tab 补全。记录下常用文件的名称和 path，当用户输入 `hvim he<tab>` 后，自动补全成`hvim MyProjects/vim_test/hello_world.md`，用户按回车后，使用 vim 打开这个文件。
 
@@ -341,8 +330,6 @@
     另外一个新功能 ：跳转到下一个非代码块中的、当前行第一个非空白字符是 # 的上一个非空白字符。这个用于快速区域选择。
 
 * [ ] writefile(), getreg(), readfile()
-
-* [v] tmux
 
 * [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
 
@@ -373,41 +360,17 @@
 
     不然这个任务算是完成还是未完成？只能说正在进行中。
 
-* [ ] vim-gutentags
+* [v] vim-gutentags
 
-* [new] `ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .`
+* [v] `ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .`
 
 * [asso] Mercurial 或者更现代的 Jujutsu
 
-* [asso] 调研 vim multiple line 插件
-
-    [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
-
-* [new] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
+* [ ] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
 
 * [ ] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
 
-* [new] markdown-aware, vim-markdown
-
-* [new] 调研 vim 中的 textobj 或 treesitter
-
-* [new] vim-textobj-function, vim-treesitter-textobjects
-
-* [new] vim-lsp, coc.nvim, nvim-lspconfig
-
-* [new] nvim-treesitter
-
-* [new] `nvim-cmp` + `cmp-nvim-lsp`
-
-* [new] aerial.nvim, symbols-outline.nvim
-
-* [new] clang-format, `formatter.nvim` / `conform.nvim`
-
-* [new] telescope.nvim
-
-* [v] lsof 命令
-
-* [new] libpci
+* [ ] libpci
 
 * [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和
 
@@ -683,155 +646,6 @@
         * 02.02  30 mins
     ```
 
-* c 语言中，调试字符串相关的代码，经常有拿到某个字符对应的位置、以及拿到某个位置对应的字符的需求，自己动手数比较麻烦，是否有工具可以解决这个问题
-
-    是的，完全有工具可以解决这个手动数位置的问题！以下是几种实用的解决方案：
-
-    1. 在线字符串可视化工具
-
-        推荐工具：
-
-        * CodeBeautify String Viewer - 显示每个字符的索引位置
-
-        * Online String Tools - 支持各种字符串分析
-
-        * strview - 专门为C语言开发者设计
-
-        功能特点：
-
-        ```text
-        字符串: "Hello, World!"
-        索引:    0123456789012
-        字符:    Hello, World!
-                 ^    ^ ^    ^
-                 |    | |    |
-        位置:    0    5 7    12
-        ```
-
-        实时显示每个字符的索引位置和ASCII值
-
-    2. IDE/编辑器插件
-
-        VS Code 扩展：
-
-        * String Manipulation - 高亮显示字符位置
-
-        * Rainbow CSV - 对字符串进行彩色标记
-
-        * Bracket Pair Colorizer - 帮助识别字符串边界
-
-        配置方法：
-
-        ```json
-        // VS Code settings.json
-        {
-            "editor.renderWhitespace": "all",
-            "editor.renderControlCharacters": true,
-            "editor.wordWrap": "off"
-        }
-        ```
-
-    3. C语言调试技巧
-
-        使用gdb调试：
-
-        ```c
-        // 示例代码
-        #include <stdio.h>
-        #include <string.h>
-
-        int main() {
-            char str[] = "Debug this string";
-            
-            // 使用gdb时：
-            // print str[5]      // 查看第6个字符
-            // x/s &str[0]       // 查看整个字符串
-            // print &str[7] - &str[0]  // 计算偏移量
-            return 0;
-        }
-        ```
-
-        gdb命令：
-
-        ```bash
-        (gdb) p str
-        (gdb) p str[3]        # 位置3的字符
-        (gdb) x/20cb str      # 以字符形式查看内存
-        (gdb) printf "%d\n", strchr(str, 's') - str  # 查找's'的位置
-        ```
-
-    4. 自制辅助函数
-
-        ```c
-        #include <stdio.h>
-        #include <string.h>
-
-        void print_string_with_indices(const char *str) {
-            printf("字符串: \"%s\"\n", str);
-            printf("索引:    ");
-            for(int i = 0; i < strlen(str); i++) {
-                printf("%d", i % 10);
-            }
-            printf("\n字符:    ");
-            for(int i = 0; i < strlen(str); i++) {
-                printf("%c", str[i]);
-                if(i < strlen(str)-1) {
-                    // 对齐空格
-                    int spaces = 1;
-                    if(i >= 10) spaces = 2;
-                    for(int j = 0; j < spaces; j++) printf(" ");
-                }
-            }
-            printf("\n");
-            
-            printf("\n详细分析:\n");
-            for(int i = 0; i < strlen(str); i++) {
-                printf("位置 %2d: '%c' (ASCII: %3d)\n", 
-                       i, str[i], (int)str[i]);
-            }
-        }
-
-        int main() {
-            char test_str[] = "C语言调试";
-            print_string_with_indices(test_str);
-            return 0;
-        }
-        ```
-
-    5. 推荐组合方案
-
-        日常开发：
-
-        * VSCode + 字符串插件 - 编写时实时查看
-
-        * 在线工具 - 快速分析复杂字符串
-
-        * gdb - 运行时调试
-
-        实用技巧：
-
-        ```c
-        // 快速定位技巧
-        #define DEBUG_CHAR(str, pos) \
-            printf("str[%d] = '%c' (ASCII: %d)\n", \
-                   pos, str[pos], str[pos])
-
-        // 使用示例
-        DEBUG_CHAR("Hello World", 6);  // 输出: str[6] = 'W' (ASCII: 87)
-        ```
-
-    6. 特殊字符处理
-
-        这些工具特别有助于处理：
-
-        * 转义字符：\n, \t, \\
-
-        * Unicode/中文字符（注意：中文字符占多个字节）
-
-        * 空终止符 \0
-
-    最佳实践：对于中文字符串调试，建议使用支持UTF-8的在线工具，并注意一个中文字符可能对应2-4个字节的存储位置。
-
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -869,10 +683,6 @@
     自动求导、符号求导等相关知识可能和这个概念有关。
 
 * [asso] 写一个数字图像处理库，暂时不包含深度学习
-
-* [asso] 调研多 gpu inference
-
-    把不同的 layer 放到不同的 gpu 上，使用一个 layer 的 output 作为另一个 layer 的 input。
 
 * [ ] 需要一个 graph 工具，建立不同的东西之间的连接
 
@@ -1086,7 +896,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] Dash/Zeal（离线API查看器）
 
-* [asso] cppman
+* [v] cppman
 
 ## qa
 
@@ -1189,8 +999,6 @@ english words 由 { } reorg: english words 进化而来。
 * [asso] latex/pdflatex/xelatex
 
 * [asso] 终端图片显示工具（如 chafa, img2sixel, Kitty 的 icat）
-
-* [asso] convert (ImageMagick) 
 
 * [asso] latex2img 脚本或 catimg（简单图片显示
 
@@ -1300,7 +1108,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] catwalk
 
-* [asso] linux 中的管道（pipe）底层是如何实现的？
+* [v] linux 中的管道（pipe）底层是如何实现的？
 
 ## cache tabs / process urls / process tab
 
@@ -1317,15 +1125,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] `git config --get-all submodule.repo_B.url`
 
 * [ ] `git clone --recursive ../repo-server .`
-
-* [ ] 手动初始化并指定 URL：
-
-    ```bash
-    git submodule init
-    # 如果自动获取的 URL 不对，可以手动设置（注意路径）
-    git config submodule.repo_B.url ../repo-server-2 
-    git submodule update
-    ```
 
 * [ ] `fatal: transport 'file' not allowed`
 
@@ -1383,7 +1182,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
 
-* [ ] 调研下述用法
+* [v] 调研下述用法
 
     ```bash
     # 检查是否有子模块相关记录
@@ -1435,11 +1234,11 @@ english words 由 { } reorg: english words 进化而来。
 
     `ssh -t user@hostname "cd my_dir && ./main"`
 
-* [asso] 调研 screen 和 tmux
+* [v] 调研 screen 和 tmux
 
     `ssh user@host "cd my_dir && screen -dmS my_session ./main"`
 
-* [asso] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
+* [ ] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
 
 * [O] 调研 PyTorch Loss Functions 11.22
 
@@ -1662,15 +1461,11 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研`-kernel`使用 qemu 时，是否有 console 输出？如果加上`-append 'console=ttyS0'`是否会有 console 输出？
 
-* [v] `setitimer()`
-
-* [v] `timer_create()`
-
 * [ ] python `threading.Timer`, `sched`, `asyncio.sleep()`
 
 * [ ] Node.js
 
-* [ ] 调研`gcc -static`静态链接
+* [v] 调研`gcc -static`静态链接
 
 * [ ] 调研`nm -D`
 
@@ -1686,7 +1481,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `getconf`
 
-* [ ] `source`
+* [v] `source`
 
 * [ ] 调研 Floyd 最短路径
 
@@ -1820,7 +1615,7 @@ english words 由 { } reorg: english words 进化而来。
 
     `nohup bash -c "{ sleep 5 && echo hello; }"`
 
-* [ ] 调研 vscode 的"代码片段（Snippet）"
+* [v] 调研 vscode 的"代码片段（Snippet）"
 
 * [ ] dns 的`MX`, `NS`记录类型
 
@@ -1910,56 +1705,6 @@ english words 由 { } reorg: english words 进化而来。
 * [asso] 调研 python `regex`及其递归匹配
 
 * [asso] 调研正则表达式`(?:...)`
-
-* [v] `if constexpr`
-
-    这个似乎可以编译期让不同类型走不同的 if 分支
-
-    ```cpp
-    #include <type_traits>
-    #include <iostream>
-
-    class MyClass {
-    public:
-        template <typename T>
-        MyClass(T value) {
-            if constexpr (std::is_same_v<T, int>) {
-                std::cout << "int constructor: " << value << std::endl;
-            } else if constexpr (std::is_same_v<T, float>) {
-                std::cout << "float constructor: " << value << std::endl;
-            } else {
-                std::cout << "generic constructor: " << value << std::endl;
-            }
-        }
-    };
-
-    int main() {
-        MyClass a(10);      // int 版本
-        MyClass b(3.14f);   // float 版本
-        MyClass c("hello"); // 通用版本
-    }#include <type_traits>
-    #include <iostream>
-
-    class MyClass {
-    public:
-        template <typename T>
-        MyClass(T value) {
-            if constexpr (std::is_same_v<T, int>) {
-                std::cout << "int constructor: " << value << std::endl;
-            } else if constexpr (std::is_same_v<T, float>) {
-                std::cout << "float constructor: " << value << std::endl;
-            } else {
-                std::cout << "generic constructor: " << value << std::endl;
-            }
-        }
-    };
-
-    int main() {
-        MyClass a(10);      // int 版本
-        MyClass b(3.14f);   // float 版本
-        MyClass c("hello"); // 通用版本
-    }
-    ```
 
 * [asso] C++20 Concepts
 
@@ -2812,25 +2557,13 @@ resources:
 
 * [ ] 设备如何通过CPU控制的PIO（编程I/O）方式来访问内存（尽管可能是低效的）？
 
-* [ ] 调研 makefile 中 target 的执行机制
+* [v] 调研 makefile 中 target 的执行机制
 
 * [ ] 调研 USB 协议
 
 * [ ] 调研 I2C 协议
 
 * [ ] 调研 SPI 协议
-
-* [v] `linux/list_sort.h`
-
-* [v] `kmalloc_array()`, `kmalloc_caches()`
-
-* [v] `devm_kmalloc()`, `devm_kzalloc()`
-
-* [v] `class_create_file()`
-
-* [v] `class_device_destructor()`
-
-* [v] `class_dev_iter`
 
 * [ ] 如果写成`module_param_array(m_arr, int, NULL, 0766);`，那么无法通过静态检查，从而通不过编译，为什么？
 
@@ -3306,8 +3039,6 @@ resources:
     ```
 
     处触发`goto done;`，而 nccl 并没有。是因为 siccl 没有调用 search init 函数，导致 system->totalBw 为 0
-
-* 目前看来 siccl 和 nccl 的 net 输出都是相同的，net idx 都为 1，0, net id 总为 2, 1
 
 * `ncclTopoGetLocalNet()`返回的 net id 是 1，因为当`net = 1`, `localNetCount = 2`, `localGpuCount = 1`时，根据下面的规律，可看出当`channel = 0`时，`net`最终算出来为`1`。
 
@@ -6443,6 +6174,28 @@ resources:
 
 ### cache
 
+* [ ] 调研 vim multiple line 插件
+
+    [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
+
+* [new] markdown-aware, vim-markdown
+
+* [new] 调研 vim 中的 textobj 或 treesitter
+
+* [new] vim-textobj-function, vim-treesitter-textobjects
+
+* [new] vim-lsp, coc.nvim, nvim-lspconfig
+
+* [new] nvim-treesitter
+
+* [new] `nvim-cmp` + `cmp-nvim-lsp`
+
+* [new] aerial.nvim, symbols-outline.nvim
+
+* [new] clang-format, `formatter.nvim` / `conform.nvim`
+
+* [new] telescope.nvim
+
 * [new] vim-repeat (https://github.com/tpope/vim-repeat) 插件
 
 * [new] 命令模式（命令行）方法
@@ -6965,8 +6718,6 @@ resources:
     这个网站<https://www.atlassian.com/git/glossary#terminology>上关于 git 的资料还挺多的，有时间了看看
 
 * [new] `git clone --filter=blob:none --no-checkout <repo-url>`
-
-* [v] `git fetch --deepen 5  # 再获取5个历史提交`
 
 * [new] `git checkout --orphan new-history  # 创建无父提交的新分支`
 

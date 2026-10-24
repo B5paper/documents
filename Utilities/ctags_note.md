@@ -1,5 +1,33 @@
 # ctags note
 
+* ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .
+    详细讲讲这行代码的作用
+
+    这行 `ctags` 命令的作用是：**递归扫描当前目录下的 Python 代码，生成一份包含“语言”字段的标签文件，同时严格限制只解析 Python 文件，并且特意排除掉变量等无关符号，最后跳过虚拟环境、缓存等干扰目录。**
+
+    下面逐项拆解每个参数的具体含义：
+
+    ### 核心扫描与语言控制
+    *   **`ctags`**：调用 Universal Ctags（或兼容版本）工具，用于生成代码索引（tags 文件），方便编辑器跳转。
+    *   **`-R`**：递归扫描。表示从当前目录开始，深入所有子目录查找源文件。
+    *   **`--languages=python`**：强制仅处理 Python。这会忽略 C、Java、Markdown 等其他语言的文件，防止生成无关标签。
+    *   **`.`**：代表当前目录作为扫描的起始路径。
+
+    ### 标签内容定制
+    *   **`--fields=+l`**：在生成的标签条目中**增加（`+`）语言（`l`）字段**。这会在 tags 文件中明确记录该标签属于哪种编程语言（例如 `language:Python`），方便后续工具进行过滤或识别。
+    *   **`--python-kinds=-iv`**：**排除（`-`）** Python 解析器默认会生成的两类标签：
+        *   `i`：通常代表 **import**（导入的模块/名称）。
+        *   `v`：通常代表 **variable**（变量）。
+        *   这意味着生成的索引里主要保留函数（`f`）、类（`c`）等结构性符号，而不会把大量的变量名或 import 语句也塞进去，使标签文件更干净。
+
+    ### 目录排除规则
+    *   **`--exclude=__pycache__`**：跳过 Python 字节码缓存目录。
+    *   **`--exclude=.venv`**：跳过虚拟环境目录（通常包含大量第三方库源码，扫进去会污染索引）。
+    *   **`--exclude=*.egg-info`**：跳过打包生成的元数据目录。
+    *   **`--exclude=.git`**：跳过 Git 版本控制元数据，避免扫描到历史对象或钩子脚本。
+
+    **补充**：由于你用了 `--languages=python`，理论上 ctags 已经不会去解析 `.git` 里的非 Python 文件了，但显式加上 `--exclude` 可以减少工具遍历目录的开销，属于好习惯。
+
 * {postrun}{scope=intervaltab}
 
     先让内建 Markdown parser 建立各级标题的 `line/end` 区间，再把列表项归入包含它的最内层标题 scope
