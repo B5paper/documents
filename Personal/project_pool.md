@@ -36,14 +36,491 @@
 
 ## cache
 
-* [v] 如何为一个用户增加指定目录的各种权限？
+* 现在主流的安卓app开发流程是什么
 
-* [v] 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
+	# 主流原生安卓App完整开发流程（2026，大厂标准MAD Modern Android Development）
+	> 当前行业新标准：**Kotlin + Jetpack Compose + MVVM + Repository**；老项目仍大量存在 XML + View体系，新项目优先Compose声明式UI
 
-* 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
+
+	## 阶段1：需求与产品设计（编码前）
+	1. **需求评审**：产品输出PRD，确定业务、页面、交互、目标最低Android版本（一般minSdk 24~26），确定接入第三方SDK（推送、支付、地图、埋点）
+	2. **原型+UI设计**：Figma做原型、高保真UI，输出切图、色值、间距规范，遵循Material3设计规范
+	3. **技术方案评审**
+		- 架构选型：MVVM（主流）/ MVI；模块拆分（模块化/多Module）
+		- 接口约定：和后端对齐REST/gRPC接口、数据结构、错误码
+		- 存储、权限、安全、性能指标（启动时间、内存上限）评估
+
+	## 阶段2：环境搭建 & 项目初始化
+	- IDE：**Android Studio**（官方唯一IDE，内置Android SDK、模拟器、Gradle构建系统）
+	- 语言：**Kotlin（官方主推）**；Java仅维护老项目，新项目基本不用
+	- 基础组件引入（Jetpack全家桶）
+	  - UI：Jetpack Compose + Material3
+	  - 导航：Navigation Compose
+	  - 生命周期：ViewModel、Lifecycle、StateFlow/SharedFlow
+	  - 依赖注入：Hilt
+	  - 网络：Retrofit + OkHttp + Kotlin协程Coroutine
+	  - 本地存储：Room数据库、DataStore（替代旧SP）
+	- 工程配置：包名、签名文件、gradle版本、代码规范（Detekt/ktlint）、Git仓库、CI流水线
+
+	## 阶段3：编码开发（核心阶段）
+	### 标准分层架构（从上到下）
+	1. **View层（UI）**：Compose组件（页面、控件），只负责渲染、采集用户点击事件，**不写业务逻辑**
+	2. **ViewModel层**：持有UI状态，接收UI事件，调用Repository；生命周期独立于页面旋转
+	3. **Repository仓库层**：统一数据入口，协调**远端接口（网络）** + **本地数据源（Room）**
+	4. **DataSources**：远程API、本地数据库、本地文件等原始数据来源
+
+	> 开发模式：**单Activity架构**，全部页面用Compose导航跳转，是现在新项目主流方案
+
+	开发顺序：
+	1. 先封装底层基础库：网络封装、基础组件、权限工具、埋点、异常捕获
+	2. 开发公共组件、路由框架
+	3. 按模块并行开发页面、业务逻辑
+	4. 联调后端接口，做异常处理（断网、重试、token失效）
+	5. 本地缓存、权限适配、多机型适配（不同分辨率、折叠屏）
+
+	## 阶段4：测试环节
+	1. **单元测试**：JUnit + MockK，测试ViewModel、Repository逻辑
+	2. **UI自动化测试**：Compose测试框架，页面自动化
+	3. **人工功能测试**：模拟器 + 多台真机（小米、华为、OPPO、vivo），覆盖不同Android版本
+	4. **专项测试**
+		- 性能：启动耗时、内存泄漏、CPU/耗电、内存抖动（Android Profiler）
+		- 兼容性：碎片化适配，不同厂商系统特殊权限/坑
+		- 安全测试：代码混淆、HTTPS、敏感数据加密、防逆向、隐私合规（隐私政策、个人信息采集）
+	5. Bug闭环，回归测试
+
+	## 阶段5：打包、签名、上架发布
+	1. 生成**正式签名证书（jks/keystore）**，证书必须妥善保存，丢了无法升级App
+	2. Gradle打包：生成 **AAB（Android App Bundle，国内应用商店/Google Play推荐）**；APK为传统安装包
+	3. 准备商店资料：应用图标、截图、简介、隐私政策文档
+	4. 多渠道上架：国内（华为、小米、OPPO、vivo、应用宝）、海外Google Play
+	5. 灰度/内测，小流量放量，监控崩溃率（Firebase/友盟）
+
+	## 阶段6：上线后维护迭代
+	- 线上监控：崩溃、ANR、性能指标、用户反馈
+	- 版本迭代：新需求、bug修复、适配新版Android系统
+	- 定期升级依赖库、安全补丁
+
+	# 补充：两种技术栈对比
+	| | 新项目主流（Compose） | 存量老项目（XML View） |
+	|---|---|---|
+	| UI写法 | 声明式，Kotlin代码写UI | XML布局文件 + Kotlin/Java代码 |
+	| 架构 | MVVM + Flow + Hilt，单Activity | Activity/Fragment，MVVM/MVP都有 |
+	| 优点 | 代码少、复用性强、适配折叠屏简单 | 生态成熟，大量现成组件，工程师储备多 |
+	| 缺点 | 部分小众SDK适配还有坑，学习成本高 | 样板代码多，页面维护成本高 |
+
+	# 跨平台区分（容易混淆）
+	上面是**原生Android**；如果是Flutter/React Native属于跨平台，一套代码跑安卓+iOS，性能和系统深度能力弱于原生。
+
+	## 常见坑点
+	安卓最大痛点是**系统碎片化**：不同厂商（小米/华为）对原生Android做定制，权限、后台限制、文件沙盒行为不一致，需要大量机型适配。
+
+
+
+	如果你想，我可以给你一份最小Demo工程结构（Compose+MVVM）目录树，直接看懂分层代码怎么组织。
+
+	* 个人开发者呢
+
+		# 个人开发者 Android 开发流程（2026，原生，区别于大厂）
+		> 核心特点：**砍掉大量流程、一人全包；优先快速验证，轻量化架构，不搞复杂多Module、CI、严格单元测试**。技术栈依然可选 Kotlin + Jetpack Compose（推荐新项目），老方案XML也可以。
+		> 个人开发者大多做小工具、轻量App，不做复杂大型业务。
+
+		## 一、前期：需求&设计（极简版）
+		大厂：PRD、Figma高保真、多轮评审
+		个人：
+		1. 写简单需求清单：核心功能、次要功能，先锁定MVP最小可用版本，**不要一开始堆功能**
+		2. UI：可以用Figma画简单草图，甚至直接边写代码边调样式；优先用Material3自带组件，省去大量美工工作量
+		3. 技术选型：
+			- 原生：Kotlin + Compose，单Module足够（绝大多数个人项目不需要多Module）
+			- 不想啃原生：Flutter跨平台，一套代码安卓+iOS，适合个人，但底层安卓能力（通知、后台、文件）深度适配会麻烦
+		> 个人推荐：如果只发安卓，优先原生Compose；想同时出iOS，选Flutter。
+
+		## 二、搭建工程 & 开发
+		IDE：Android Studio，下载SDK，新建Compose项目
+		### 架构选择（个人最重要取舍）
+		- ✅ 首选：简化版 MVVM + Repository，**但不用上Hilt**（Hilt依赖注入会增加学习与编译复杂度，个人小项目没必要），手动创建实例即可。
+		- 超小型工具App：甚至可以直接 ViewModel + 页面，省略Repository层，代码量最小。
+		> 不要照搬大厂全套架构，过度设计是个人开发者最容易踩的坑。
+
+		依赖库常用（个人版精简清单）
+		- 网络：Retrofit + OkHttp + Coroutine协程
+		- 本地存储：DataStore / Room（需要数据库才用Room，简单键值用DataStore）
+		- 图片：Coil（Compose配套，简单好用）
+		- 权限：Accompanist Permission
+
+		开发顺序：
+		1. 先做核心功能，边缘功能后置
+		2. 本地优先：先写本地逻辑，后面再接后端；很多个人工具App甚至不需要后端
+		3. 自测：Android Studio模拟器 + 自己的安卓真机调试
+
+		## 三、测试（轻量化，没有专职测试）
+		大厂：单元测试、UI自动化、多机型专项测试
+		个人：
+		1. 自己真机 + 模拟器来回测，重点测Android不同版本
+		2. 重点排查：权限、后台限制、文件沙盒（Android10+存储机制改动很大）
+		3. 崩溃监控：集成 **Bugly**（腾讯，个人免费额度足够），看线上崩溃、ANR
+		4. 兼容性：有条件借1~2台不同品牌手机（小米、OPPO）简单测；个人很难覆盖全机型，上线后靠线上崩溃日志持续修复
+
+		> 个人一般**不写大量单元测试**，只对核心算法写少量测试，节省时间。
+
+		## 四、打包、签名、上架
+		1. 生成签名密钥（jks），**务必备份！丢了无法更新App**
+		2. 打包：可以打APK，国内商店也支持AAB；APK方便直接发给别人安装测试
+		3. 上架渠道分两类：
+			- 国内应用商店（小米、华为、OPPO、vivo）：需要**软件著作权**、隐私政策文本，企业/个人开发者账号，审核严格，周期长。⚠️ 很多工具类App国内商店容易被拒。
+			- 海外 Google Play：个人开发者账号一次性注册费25美元，审核相对透明，不需要软著，适合个人开发者出海。
+			- 私下发包：直接分发APK，不上商店，适合小范围使用；缺点：用户安装需要手动开启允许未知来源应用。
+
+		> 国内个人上架注意：隐私合规是红线，只要App收集任何个人信息，必须提供隐私政策。
+
+		## 五、上线后迭代
+		- 看Bugly崩溃日志，修复问题
+		- 根据用户反馈迭代功能
+		- 适配新版Android系统，每年大版本安卓更新会带来API变更、权限改动，需要维护
+
+		# ✅ 个人 vs 大厂流程对比
+		| 环节 | 大厂 | 个人开发者 |
+		|---|---|---|
+		| 架构 | 多Module、Hilt、完整MVVM+Repository，强制单元测试、CI | 单Module为主，简化架构，按需取舍，CI可选 |
+		| 人力 | 产品、UI、后端、安卓、测试、安全 | 一个人：产品+UI+后端+安卓+测试全包 |
+		| 测试 | 自动化测试、多机型专项、安全测试 | 真机自测 + 线上崩溃监控，少量回归 |
+		| 发布 | 灰度放量，多轮评审 | 直接全量发布，小版本快速迭代 |
+		| 约束 | 代码规范、CR、安全审计 | 自己管理代码，Git做好版本备份即可 |
+
+		# 个人开发者高频坑
+		1. **过度设计**：一上来照搬企业级架构，写一堆抽象层，功能还没做出来就耗尽精力
+		2. **国内商店上架门槛**：个人上架国内应用市场，软著、隐私审核、资质要求麻烦，很多人选择Google Play
+		3. **安卓碎片化**：国内厂商ROM的后台、权限限制，后台任务很容易被杀，这个坑个人很难全覆盖
+		4. 版本维护成本：如果App用户量变大，后续适配、bug修复会持续占用时间
+
+		# 额外可选：要不要自建CI？
+		个人可做可不做：
+		- 简单：本地Android Studio手动打包
+		- 想偷懒：GitHub Actions，提交代码自动打包APK/AAB，免费额度足够个人项目。
+
+		如果你打算上手，我可以给你一份**个人开发者最小Compose项目目录结构**，拿来就能直接新建项目。
+
+* 我使用 cygwin + ssh 打开远程后，再打开 screen + codex，看到光标疯狂闪烁，似乎还听到铃响。但是使用 cygwin + ssh + codex，就比较正常。可能是什么原因？如何解决？
+
+	这通常是典型的**终端转义序列（Escape Sequence）不匹配导致的死循环**。
+
+	在终端中，如果光标疯狂闪烁并伴有“滴滴”的警报声（Terminal Bell），通常是因为应用程序（你的 `codex`）正在通过 ANSI 转义序列向终端查询某些状态（例如获取光标位置或终端颜色能力）。
+
+	当你直接使用 `cygwin + ssh` 时，环境变量 `$TERM` 通常是 `xterm-256color`，应用能正常识别并解析返回值。但是，当你套了一层 `screen` 后，`screen` 会拦截并接管终端输出，将 `$TERM` 环境变量强行修改为 `screen` 或 `screen-256color`。如果 `codex` 无法正确识别 `screen` 的终端类型，它会把终端返回的“状态报告”当成键盘乱码输入，从而触发报错（响铃）并不断重试（导致光标疯狂闪烁）。
+
+	你可以通过以下几种方法来解决这个问题：
+
+	### 方法一：在运行 codex 时临时覆盖 `$TERM` 变量（最快验证）
+
+	在进入 `screen` 会话后，不要直接运行 `codex`，而是在命令前加上环境变量覆盖，欺骗它认为自己还在标准的 xterm 终端里：
+
+	```bash
+	TERM=xterm-256color codex
+
+	```
+
+	如果这样运行恢复了正常，说明确实验证了是终端类型不兼容导致的。如果你觉得每次加前缀太麻烦，可以在你的远程主机的 `~/.bashrc` 或 `~/.zshrc` 中添加一个别名：
+
+	```bash
+	alias codex="TERM=xterm-256color codex"
+
+	```
+
+	### 方法二：配置远程主机的 `.screenrc`
+
+	如果上面的方法有效，或者你希望从根本上调整 `screen` 的行为，可以在远程主机（你 SSH 登录的那台服务器）上新建或修改 `~/.screenrc` 文件：
+
+	1. 打开或创建配置：`nano ~/.screenrc`
+	2. 添加以下配置来禁用响铃并设置默认终端类型：
+
+	```text
+	# 关闭可视响铃和声音响铃
+	vbell off
+	bell_msg ""
+
+	# 告诉应用当前终端兼容 xterm-256color
+	term xterm-256color
+
+	# 开启备用屏幕（可以让退出 TUI 应用时恢复终端原本的文字）
+	altscreen on
+
+	```
+
+	3. 保存后，完全退出当前的 `screen` 进程并重新启动一个 `screen` 即可生效。
+
+	### 方法三：在 Cygwin / mintty 端彻底禁用响铃（治标不治本，但能防精神污染）
+
+	如果你只是想关掉那个烦人的声音：
+
+	1. 右键点击 Cygwin 窗口的标题栏，选择 **Options (选项)**。
+	2. 找到 **Terminal (终端)** 设置页。
+	3. 在 **Bell (响铃)** 选项卡中，将其设置为 **no beep (无声音)** 或者是 **Visual bell (视觉闪烁)**。
+
+	### 💡 附加建议：尝试切换到 tmux
+
+	`screen` 是一个非常老牌的终端复用工具，但在处理现代 CLI 工具（尤其是使用复杂 UI、光标定位和真色彩的工具）时，经常会出现各种各样的小毛病。
+
+	如果在你的远程服务器上有条件，强烈建议尝试使用 `tmux` 替代 `screen`。`tmux` 的终端兼容性和默认配置对现代工具要友好得多，基本可以开箱即用地避免此类光标抽风问题。
+
+	* 但是我在远程主机屏幕前直接使用 ubuntu terminal + screen + codex，一切正常，没有什么问题
+
+		这是一个非常关键的线索！这说明远程主机上的 `screen` 和 `codex` 本身没有任何问题，它们在标准的 Linux 桌面终端（gnome-terminal）下配合得非常完美。
+
+		问题被精准地定位在了 **Cygwin 的终端模拟器（mintty）与远程主机的 `screen` 之间的“沟通障碍”上**。
+
+		`screen` 的工作原理相当于一个“翻译官”。当你在 Ubuntu 直接操作时，`screen` 和 Ubuntu 终端使用的是同一种“方言”（标准的 Xterm 解析与完美的 UTF-8 配合）；但当你通过 Cygwin (mintty) + SSH 连入时，环境变量、编码或状态报告在 `mintty -> SSH -> screen` 的传递过程中出现了丢失或乱码。`codex` 收到了被截断或乱码的响应，导致它以为输入了错误字符，从而疯狂报错（响铃）并不断重试刷新（闪烁）。
+
+		针对 Cygwin + SSH + screen 的这种经典水土不服，你可以按照以下优先级排查和解决：
+
+		### 1. 强制 `screen` 使用 UTF-8 编码（最常见原因）
+
+		通过 Cygwin SSH 登录时，本地的语言环境变量（Locale）往往没有正确传递给远程主机，导致 `screen` 误以为你在使用老式的 ASCII 终端。当 `codex` 输出复杂的图形字符或控制码时就会崩溃。
+
+		**解决方法：**
+		在启动 screen 或重新连接 screen 时，**强行加上 `-U` 参数**（告诉 screen 强制使用 UTF-8）：
+
+		```bash
+		screen -U
+		# 如果是恢复之前的会话，使用：
+		screen -U -r
+
+		```
+
+		### 2. 修正 Cygwin 传递的 `$TERM` 环境变量
+
+		Cygwin 默认的终端类型有时候会被设置为 `cygwin`，或者在 SSH 传递时出现了偏差。`screen` 如果看到不认识的终端类型，它的转义翻译就会出错。
+
+		**解决方法：**
+		不要直接输入 `ssh user@host`，而是在连接时强行指定终端类型为最通用的 `xterm-256color`：
+
+		```bash
+		TERM=xterm-256color ssh user@host
+
+		```
+
+		连上之后，再运行 `screen`，看看问题是否解决。如果有效，你可以在 Cygwin 本地的 `~/.bashrc` 中写一个 alias：`alias ssh="TERM=xterm-256color ssh"`。
+
+		### 3. 检查远程主机的 Locale 是否断层
+
+		即使你用了 `screen -U`，如果远程系统的基础环境没有被正确设置为 UTF-8，依然会出问题。
+
+		**验证方法：**
+		在使用 Cygwin SSH 连上远程主机后（**不要进 screen**），输入 `locale` 命令查看输出。
+		如果你看到 `LANG=C` 或者 `LANG=POSIX`，说明环境变量丢了。
+
+		**解决方法：**
+		在远程主机的 `~/.bashrc` 或 `~/.zshrc` 底部加上两行，强制统一语言环境：
+
+		```bash
+		export LANG="en_US.UTF-8"
+		export LC_ALL="en_US.UTF-8"
+
+		```
+
+		保存后，执行 `source ~/.bashrc`，然后再开启 `screen` 和 `codex`。
+
+		### 4. 调整 Cygwin/mintty 的本地设置
+
+		如果以上服务端的调整都不管用，可能是 Cygwin 终端自身的设置不符合要求：
+
+		1. 右键点击 Cygwin 窗口的标题栏，选择 **Options (选项)**。
+		2. 找到 **Text (文本)** 选项卡，确保 **Locale** 设置为 `C` 或 `en_US`，并且 **Character set (字符集)** 必须是 `UTF-8`。
+		3. 找到 **Terminal (终端)** 选项卡，确保 **Type** 设置为 `xterm-256color` 或 `xterm`。
+		4. 确保 **Features** 里的 `Application Cursor Keys` 等选项保持默认设置。
+
+		**总结排查顺序：**
+		下次登录后，先尝试执行 `screen -U`，这是解决跨平台 SSH 终端排版错乱、光标乱飞最有效的一招。
+
+	* (base) hlc@hlc-VirtualBox:~/Documents/Projects/codex_test$ locale
+		LANG=en_US.UTF-8
+		LANGUAGE=
+		LC_CTYPE="en_US.UTF-8"
+		LC_NUMERIC=zh_CN.UTF-8
+		LC_TIME=zh_CN.UTF-8
+		LC_COLLATE="en_US.UTF-8"
+		LC_MONETARY=zh_CN.UTF-8
+		LC_MESSAGES="en_US.UTF-8"
+		LC_PAPER=zh_CN.UTF-8
+		LC_NAME=zh_CN.UTF-8
+		LC_ADDRESS=zh_CN.UTF-8
+		LC_TELEPHONE=zh_CN.UTF-8
+		LC_MEASUREMENT=zh_CN.UTF-8
+		LC_IDENTIFICATION=zh_CN.UTF-8
+		LC_ALL=
+		(base) hlc@hlc-VirtualBox:~/Documents/Projects/codex_test$ echo $TERM
+		screen.xterm-256color
+		不是  term 和编码的问题
+
+		既然排除了环境变量和基础编码的问题，结合你的测试结果（单去 `screen` 正常，单换本地终端也正常），这个现象高度吻合终端交互中一个非常隐蔽的坑：**终端状态报告（DSR）的响应延迟与转义序列截断（Escape Sequence Fragmentation）**。
+
+		### 为什么会闪烁且狂响铃？
+
+		像 `codex` 这类带有复杂 TUI（字符界面）的程序，在渲染界面时，经常会向终端发送一个不可见的查询指令（比如 `\033[6n`），用来询问“**光标现在在第几行第几列？**”。
+
+		终端（此时是你的 Cygwin mintty）收到后，会偷偷模拟键盘输入一串字符作为回答，格式类似 `\033[24;10R`。
+
+		这就是问题的核心所在：
+
+		1. **Ubuntu 直连**：本地响应是瞬间完成的，程序能完整读到 `\033[24;10R`。
+		2. **直连 SSH**：虽然有网络延迟，但指令通常在同一个 TCP 数据包里完整到达。
+		3. **Cygwin + SSH + screen**：`screen` 会在中间进行一次数据流的重组和代理。如果因为 SSH 延迟或 `screen` 的缓冲机制，导致 `\033`（即 `ESC` 键）先到达了 `codex`，而剩下的 `[24;10R` 晚了几十毫秒才到，`codex` 的输入检测逻辑就会**超时**。
+
+		**结果就是：**
+
+		* `codex` 以为你按下了 `ESC` 键，接着又收到了不明所以的按键 `[`、`2`、`4`、`;`……
+		* 面对这些“无效输入”，`codex` 的处理方式是发出警告（**响铃**）。
+		* 状态没获取成功，它只能清屏重新请求（**光标狂闪**）。
+		* 再次请求，再次被截断，从而陷入**死循环**。
+
+		---
+
+		### 进一步的排查与解决方案
+
+		既然是时序和输入缓冲的问题，你可以尝试以下几个方向：
+
+		#### 1. 调整 Cygwin/mintty 的终端响应设置
+
+		尝试更换 Mintty 向上游汇报自身类型的方式，这能改变转义序列的发送模式。
+
+		* 右键 Cygwin 窗口标题栏 -> **Options (选项)**。
+		* 找到 **Terminal (终端)** 设置页。
+		* 尝试勾选或取消勾选 **Application Cursor Keys** 和 **Application Keypad**，然后重启终端再连 SSH 试试。这有时能改变 `screen` 对输入流的缓冲策略。
+
+		#### 2. 刷新屏幕尺寸 (SIGWINCH 信号丢失)
+
+		有时 `screen` 通过 SSH 连接时，没有正确获取到 Cygwin 窗口的尺寸，导致程序以为窗口极小（比如 0x0），从而不断报错重绘。
+
+		* 在进入 `screen` 且尚未运行 `codex` 时，手动拉伸一下 Cygwin 窗口的边缘（改变一下窗口大小），强制触发屏幕尺寸同步。
+		* 或者输入 `stty size` 看看返回的行数和列数是否正常（比如 `24 80`）。如果不正常，说明是尺寸没同步导致的崩溃。
+
+		#### 3. 环境变量降级测试
+
+		既然 `$TERM` 是 `screen.xterm-256color`，某些程序底层的库（比如 ncurses 或 prompt_toolkit）可能对带 `screen.` 前缀的 256 色支持有超时 bug。
+
+		* 在 screen 内部，强行将其降级为最基础的 xterm 测一下时序：
+		```bash
+		TERM=xterm codex
+
+		```
+
+
+		*(注：虽然你说过不是 term 的问题，但这步是为了剔除 256 色复杂的查询握手过程，测试是否能打破死循环。)*
+
+		---
+
+		为了更精准地定位这个时序问题，我想了解一下：你运行的这个 `codex` 具体是什么程序？（是基于 Python 的 OpenAI Codex CLI、某个特定的代码编辑器，还是用 Go/Node.js 编写的自定义脚本？）
+
+	* # 关闭可视响铃和声音响铃
+		vbell off
+		bell_msg ""
+		这个不行， 这个已经设置过了
+
+		确实，`vbell off` 和 `bell_msg ""` 只是“止痛药”，关掉了声音和闪烁的提示，但并没有解决**程序依然陷在死循环里**这个根本问题。
+
+		既然确定不是环境变量和基础编码的问题，并且只有在 `Cygwin -> SSH -> screen` 这个特定链条下才会爆发，那我们可以进一步锁定这是 `screen` 在处理跨网络输入流时的**高级时序或控制流问题**。
+
+		请尝试在你的 `~/.screenrc` 中加入以下三个针对性的底层配置，它们专门用来解决 `screen` 与某些终端模拟器之间的通讯“怪癖”：
+
+		### 1. 延长转义序列的等待超时时间（最有可能的救星）
+
+		这是 SSH 延迟加 `screen` 代理时最常见的坑。`screen` 默认只等待很短的时间（通常是 300 毫秒）来将连续的字符组合成一个转义指令。如果因为网络或 Cygwin 的缓冲，终端的返回序列（比如光标位置反馈 `\033[24;1R`）被拆分到达，`screen` 就会判定超时，把它强行拆成单独的 `ESC` 键和普通字符喂给你的程序，从而导致程序解析崩溃并疯狂循环。
+
+		在 `~/.screenrc` 中添加：
+
+		```text
+		# 将映射序列的超时时间延长到 1000 毫秒（1秒）
+		maptimeout 1000
+
+		```
+
+		*（你也可以在现有的 screen 窗口里按下 `Ctrl-A` 然后输入 `:maptimeout 1000` 直接热生效测试。）*
+
+		### 2. 禁用 8-bit 控制字符 (C1 Controls)
+
+		有些终端模拟器（像 mintty）在开启 256 色或某些特殊功能时，可能会发送 8-bit 的 C1 控制字符。标准的 Ubuntu 终端和 `screen` 对这些字符的解析方式不同，如果 `screen` 把它当成普通文本传递，TUI 程序就会疯狂报错。
+
+		在 `~/.screenrc` 中添加：
+
+		```text
+		# 强制使用 7-bit 的标准转义，忽略 8-bit 的 C1 控制符
+		defc1 off
+
+		```
+
+		### 3. 关闭软流控 (XON/XOFF Flow Control)
+
+		有时 SSH 客户端的底层网络包会导致 `Ctrl-S` (暂停输出) 和 `Ctrl-Q` (恢复输出) 信号被误触发，导致终端状态机混乱，程序试图不断刷新屏幕却卡死。
+
+		在 `~/.screenrc` 中添加：
+
+		```text
+		# 禁用终端的软件流控制
+		defflow off
+
+		```
+
+		---
+
+		你可以将这三行加入配置后，彻底杀掉旧的 screen 会话（`killall screen`）然后再开一个新的测试一下。
+
+		如果上述底层配置依然无法打破死循环，这可能和 `codex` 使用的具体 UI 渲染库与 Cygwin 伪终端的兼容性有关。为了更精准地定位，你能告诉我你运行的这个 `codex` 是基于什么语言或框架开发的吗（比如是用 Python 的 `prompt_toolkit`、Rust 的 `ratatui`，还是 Node.js 的某个库编写的）？
+
+	* 这三个都试了，没用
+
+		这确实是一个非常顽固的兼容性黑洞。既然底层时序、流控以及超时设置（`maptimeout`）都无法打破这个死循环，说明问题大概率不是出在“输入流被截断”上，而是出在 **`codex` 强行请求的某个终端特性，被 `screen` 和 Cygwin (mintty) 之间的代理机制彻底卡死了**。
+
+		结合之前的排查，现在最有可能的“元凶”集中在以下两个特定的终端高级特性上：
+
+		### 1. Bracketed Paste Mode（括号粘贴模式）冲突
+
+		很多现代 CLI 工具（尤其是用 Python `prompt_toolkit` 或 Go `charmbracelet` 写的工具）启动时会自动开启“括号粘贴模式”（用来区分用户手动输入和从剪贴板粘贴的代码）。
+		当 `codex` 向 `screen` 发送开启指令（`\e[?2004h`）时，如果在 Cygwin 环境下 `screen` 没能正确向外层传递或内层解析失败，`codex` 的输入循环就会因为持续收到未预期的控制码而彻底崩溃。
+
+		**排查方案：**
+		看看 `codex` 本身是否提供禁用“括号粘贴模式”或“鼠标支持”的参数。如果是基于 Python 或 Node.js 的工具，有时会有类似 `--no-bracketed-paste` 或通过环境变量关闭特性的选项。
+
+		### 2. Alternate Screen（备用屏幕）握手失败
+
+		`codex` 启动时为了保护终端之前的输出，通常会请求切换到“备用屏幕”（Alternate Screen）。在 Cygwin 嵌套 SSH 再嵌套 `screen` 时，这个屏幕切换指令经常会引起两端状态机不同步，导致程序以为自己在一块 0x0 尺寸的错误画布上不断尝试重绘（闪烁）。
+
+		**强制干预方案：**
+		在 `.screenrc` 中加入或者修改对终端特性的强制覆盖（Termcap/Terminfo 覆写）。
+		把这行加入 `~/.screenrc`，强行告诉 `screen` 不要对 xterm 类型的终端使用特定的备用屏幕切换序列：
+
+		```text
+		termcapinfo xterm* 'ti@:te@'
+
+		```
+
+		（保存后，记得完全关掉旧的 screen，重新启动一个新的测试）。
+
+		---
+
+		如果连禁用 `ti/te` 序列都无法阻止闪烁，那我们就只能直接针对 `codex` 这个程序进行“开刀”分析了。为了能找出这个具体循环的死结在哪，这个 `codex` 工具具体是用什么语言编写的，或者它是哪个开源项目/商业工具？
+
+* [ ] jupyter-vim
+
+* [ ] Jupytext
+
+* [ ] neo vim + jupiter
+
+	• molten-nvim：
+
+		• 直接通过 Jupyter 内核在 NeoVim 中运行代码，并在 Cell 下方浮窗显示运行结果、甚至直接在终端渲染 Matplotlib 等图表（配合支持图表协议的终端如 Kitty）。
+
+	• iron.nvim：
+
+		• 一个高度可定制的交互式 REPL（交互式解释器）插件，支持将代码块、选中文本发送到 IPython/Jupyter 会话中运行。
+
+	• jupynium.nvim（或类似同步方案）：
+
+		• 通过浏览器自动化（如 Selenium）实现 NeoVim 与真正的 Jupyter Notebook 页面实时双向同步，一边在 NeoVim 里写代码，一边在浏览器里看 Notebook 效果。
+
+* [ ] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
+
+* [v] 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
 
     ```bash
-    sed 's.*/##' <<< "/tmp/dir/target"
+    sed 's#.*/##' <<< "/tmp/dir/target"
     target
 
     awk -F'/' '{print $NF}' <<< "/tmp/dir/target"
@@ -61,9 +538,9 @@
     target
     ```
 
-* [ ] 调研 makefile 的 submodule
+* [v] 调研 makefile 的 submodule
 
-* [ ] 调研 linux `time` command
+* [v] 调研 linux `time` command
 
     `time ./my_app`
 
@@ -71,71 +548,11 @@
 
 * [ ] 调研`cudaMallocManaged(&x, N*sizeof(float));`
 
-* [v] 屏蔽显卡驱动
-
-    屏蔽原驱动（防止冲突）
-
-    对于 NVIDIA 显卡：
-
-    ```bash
-    # 创建黑名单文件
-    echo "blacklist nouveau" | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
-    echo "blacklist nvidia" | sudo tee /etc/modprobe.d/blacklist-nvidia.conf
-    echo "options nouveau modeset=0" | sudo tee -a /etc/modprobe.d/blacklist-nouveau.conf
-
-    # 更新 initramfs
-    sudo update-initramfs -u
-    ```
-
-    对于 AMD 显卡：
-
-    ```bash
-    echo "blacklist radeon" | sudo tee /etc/modprobe.d/blacklist-radeon.conf
-    echo "blacklist amdgpu" | sudo tee /etc/modprobe.d/blacklist-amdgpu.conf
-    echo "options amdgpu cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-amdgpu.conf
-    echo "options radeon cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-radeon.conf
-    ```
-
-* [v] 调研 modules-load.d
-
-    ```bash
-    # 创建模块加载配置文件
-    echo "vfio" > /etc/modules-load.d/vfio.conf
-    echo "vfio-pci" >> /etc/modules-load.d/vfio.conf
-    echo "vfio_iommu_type1" >> /etc/modules-load.d/vfio.conf
-    ```
-
-* [v] 什么是 elrepo
-
-    ```bash
-    # 安装 ELRepo 最新内核（更简单）
-    rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-    yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
-    yum --enablerepo=elrepo-kernel install kernel-ml -y
-    reboot
-    ```
-
-* 写一个工具，用于扩展 vim 打开文件时的 tab 补全。记录下常用文件的名称和 path，当用户输入 `hvim he<tab>` 后，自动补全成`hvim MyProjects/vim_test/hello_world.md`，用户按回车后，使用 vim 打开这个文件。
-
-    这个工具可以防止在多层结构的目录里跳来跳去。
-
-    2026/10/25/00: 这个工具可以使用 vim 里的 find 功能实现，非常方便.
-
 * [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
 
+    2026/10/25/00: 这个功能的优先级不高，因为 vim 内打开多个文件，即可使用 vim 本身的寄存器交换剪贴板数据，而跨进程、跨机器的数据交换，只需要使用 vim 的 + 寄存器。screen 与 vim 交换数据，只需要 vim 打开 paste 模式，再使用 screen 的粘贴功能即可，目前没有看到什么不方便的地方。
+
 * 岭回归中，为什么让系数绝对值更小是有效的（能阻止过拟合的）？
-
-* 对于长程任务，应该引入按时间阶段性总结的功能。
-
-    不然这个任务算是完成还是未完成？只能说正在进行中。
-
-* [v] Mercurial 或者更现代的 Jujutsu
-
-* [v] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
-
-* [v] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
-
-* [v] libpci
 
 * [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和
 
@@ -144,8 +561,6 @@
 * [ ] pyacvd, tetgen, gmsh
 
 * qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
-
-* [v] cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
 
 * [ ] matplotlib.tri 或 Mayavi
 
@@ -193,8 +608,6 @@
 
     stack 工具只适合任务的 trace
 
-* [v] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
-
 * [ ] 调研如何判断一个新的 example 是否已经在 qa 文件中
 
     可能的方向：向量数据库，llm + rag
@@ -202,8 +615,6 @@
     目标是在 qa file 中找到与 example 相似或相近的 unit
 
 * [ ] 如何使用模板（卷积）的方式识别缺陷？
-
-## cached questions
 
 * [ ] 思考：文件中使用引用标记来引用其它文件中的内容
 
@@ -493,11 +904,9 @@ english words 由 { } reorg: english words 进化而来。
 
     1. 实现一个函数，将指定字节处（从 0 开始索引）的字节替换成指定字节
 
-* [asso] 调研文件编辑器如何实现插入/删除功能？
+* [ ] 调研文件编辑器如何实现插入/删除功能？
 
-* [asso] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
-
-* [asso] `cublasSgemm`
+* [ ] `cublasSgemm`
 
 * [asso] latex/pdflatex/xelatex
 

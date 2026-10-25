@@ -2,6 +2,90 @@
 
 ## cache
 
+* 详细讲讲 ai 通信库里的 multicast
+
+    # AI通信库 Multicast（多播）
+    > 常见于 NCCL、OneCCL、MPI、Ascend HCCL，大模型训练/推理里的 **Multicast（多播）**，也常叫**组播**。
+    一句话：**一个发送源，把同一份数据一次性发给组内所有接收者**。和点对点 send/recv、allgather、broadcast 容易混淆，先分清概念边界。
+
+    ## 1. 基础定义
+    - **Unicast 单播**：1发 → 1收（一对一）
+    - **Multicast 多播**：1发 → N收（一对多，同一份数据发给一组rank）
+    - **Broadcast（广播）**：在NCCL/HCCL语境，很多人会把broadcast当成multicast特例。
+      > 严格区分：
+      > - Multicast：可以**任意一个rank作为sender**，接收者是自定义子集，不一定是全部进程；
+      > - Broadcast：sender固定，**接收者是通信域内全部rank**，是multicast的全集版本。
+
+    > ⚠️ 重点：网络层IP组播 和 AI通信库的multicast不是一回事！
+    > NCCL的multicast**默认不是IP组播**，大多是**在GPU/NoC/IB硬件上做的多拷贝转发**，或者利用硬件多播卸载（IB multicast、GPU片上multicast、Switch多播）。
+
+    ## 2. 硬件层面两种实现（AI集群核心）
+    ### ① 软件多播（无硬件卸载，NCCL默认旧路径）
+    Sender 先把数据发给交换机，交换机**多次复制数据包**转发给各个receiver；
+    或者sender主动发起N次点对点发送。
+    - 缺点：发送端带宽被占用N倍；数据重复拷贝，带宽压力大。
+    - 适合小规模、低带宽场景。
+
+    ### ② 硬件卸载 Multicast（IB/ROCE/部分GPU NoC支持）
+    **InfiniBand交换机支持Multicast组**：数据包只从sender发出**一份**，交换机硬件内部复制，分发到多个端口。
+    ✅ 发送端只消耗**1倍带宽**，这是AI集群用它的核心价值。
+    > 注意：GPU内部DNoC也有硬件多播，例如一个GPU片上的SM把数据同时发给多个片上接收节点，在芯片内部总线完成复制，不用走外部网卡。
+
+    ## 3. 在大模型训练/推理里的使用场景
+    1. **参数广播（初始化场景）**
+    训练刚开始，rank0保存初始化权重，一次性发给所有其他rank。
+    > 很多框架 `broadcast` 底层会尝试映射到硬件multicast。
+
+    2. **推理：prefill阶段的KV Cache分发、权重预分发**
+    分布式推理，主节点把权重/指令发给所有worker，非常适合multicast。
+
+    3. **集合通信的底层构件**
+    很多集合算子底层会复用multicast：
+    `broadcast`、`reduce-scatter`、allreduce的部分树状拓扑，都可以基于multicast树来组织。
+
+    > 反过来：AllGather **不是multicast**。AllGather是每个rank都发数据，最后所有人拿到全部数据，是多对多。
+
+    ## 4. 和 NCCL Broadcast 的关键区别（很多人踩坑）
+    | 项目 | Multicast（多播） | Broadcast（广播） |
+    |---|---|---|
+    | 接收范围 | 自定义子集rank，不需要全部进程 | 整个通信组**全部rank**接收 |
+    | 发送者 | 组内任意rank | 指定唯一root rank |
+    | NCCL原生素材 | NCCL有multicast API（相对少用） | NCCL核心原生集合API，最常用 |
+    | 硬件卸载 | IB交换机multicast组 | 优先复用multicast硬件路径 |
+
+    > 工程坑：NCCL `ncclBroadcast` 在IB环境下**会自动尝试走IB硬件multicast**，但在以太网ROCE环境，硬件组播支持差，会降级成软件点对点转发，带宽性能暴跌。
+
+    ## 5. Multicast 的优缺点
+    ✅ 优点
+    1. **节省发送端带宽**（硬件卸载时）：只发一份包，交换机硬件复制。大尺寸张量分发收益巨大。
+    2. 延迟比多次单播更低，减少sender侧的发射队列压力。
+    3. 分布式推理权重预分发的理想原语。
+
+    ❌ 缺点
+    1. **IB Multicast组建立有开销**：创建/销毁multicast组需要管理开销，不适合极频繁动态变更接收成员。
+    2. 硬件组播丢包问题：IB组播一旦丢包，**没有逐接收者重传**，整组报文失效，可靠性弱于单播。所以训练allreduce很少完全依赖纯multicast。
+    3. 以太网RDMA（ROCE）硬件multicast支持弱，生产集群一般禁用。
+    4. 硬件multicast的交换机资源有限，multicast组数量有上限，大规模集群容易碰到交换机硬件资源瓶颈。
+
+    ## 6. 工程常见误区
+    1. ❌ 混淆：Multicast ≠ AllReduce
+    AllReduce是所有rank交换数据，最终每个rank都得到总和；Multicast只是一对多下发，接收方不会回传数据。
+    2. ❌ 以为NCCL multicast就是IP组播：AI集群几乎不用IP组播，是RDMA层的硬件多播。
+    3. ❌ 所有场景都开硬件multicast：大模型训练allreduce通常不用硬件multicast做主路径，就是因为**可靠性问题**；它更多用于**单向下发**（权重、指令）。
+
+    ## 7. 简单数据流示例
+    通信组：rank0, rank1, rank2, rank3
+    Multicast：sender=rank0，接收子集={rank1,rank3}
+    1. rank0 发出一份张量
+    2. IB交换机硬件复制报文
+    3. rank1、rank3同时收到这份张量
+    rank2 不会收到任何数据。
+
+    如果你想，我可以继续讲：
+    1. NCCL里multicast底层的树拓扑实现；
+    2. 硬件multicast为什么不适合allreduce；
+    3. 或者一段极简伪代码展示ncclMulticast的调用。
+
 * ncclCommPushCudaHostFree()这个函数干嘛用的
 
     `ncclCommPushCudaHostFree()` 是 NCCL 库中的一个函数，主要用于**管理CUDA主机内存的释放与NCCL通信的同步**。

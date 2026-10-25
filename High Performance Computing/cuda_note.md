@@ -2,6 +2,91 @@
 
 ## cache
 
+* nvidia gpu 里 warp 有状态吗，如何调度
+
+    # NVIDIA GPU warp（线程束）有没有状态、调度机制
+    ## 1. Warp有没有状态？
+    ✅ **Warp本身是有硬件状态的，但warp不是独立的执行单元，不拥有自己的PC寄存器；状态保存在SM里。**
+
+    >基础：一个warp = 32个并行线程。
+    - 每个thread有自己的PC(程序计数器)、通用寄存器、predicate掩码
+    - **warp级状态（SM维护）**
+    1. **Warp PC**：整个warp共享一份Program Counter（同一时刻绝大多数线程执行同一条指令）
+    2. **Active mask（活跃掩码）**：32bit，标记哪些线程当前激活；分支 divergence（分支发散）时用。不活跃线程只是被屏蔽，不退出。
+    3. Scheduler状态：ready、stall、pending、completed
+    4. Barrier同步状态、wait‑for‑scoreboard（等待寄存器依赖、显存返回）
+
+    >重点误区：
+    >❌ warp不是一块独立硬件，不能随便“保存全部上下文扔出去休眠”。
+    >✅ Warp上下文 = 线程寄存器堆 + warp‑sharedPC + active mask，寄存于SM内部寄存器文件。
+    >当warp stall（卡住），**上下文不会被清空，可以稍后继续执行**。
+
+    ---
+
+    ## 2. SM内部调度器怎么调度warp
+    ### 架构简述
+    一个SM含有若干Warp Scheduler（调度器），例如：
+    - Ampere：4个warp scheduler / SM
+    每个调度器负责从**就绪warp池**挑选一个可执行warp，发射指令给执行单元。
+
+    ### warp 的几种状态
+    1. **Ready（就绪）**
+    没有寄存器依赖，没有内存未返回，可以立刻发指令。
+    2. **Stall（阻塞）**
+    - 等待显存/L1 cache返回（global memory read）
+    - 等待前一条指令写完寄存器（scoreboard冲突）
+    - __syncthreads() 栅栏等待warp内所有线程到达
+    - 等待special function unit、tensor core空闲
+    >阻塞时warp**保留全部上下文**，调度器跳过它，去跑别的就绪warp。
+    3. **Retired**：warp所有线程执行完毕，释放寄存器资源。
+
+    >🔥 NVIDIA调度核心思想：**用大量warp掩盖延迟**
+    访存延迟几百cycle；不要等这一个warp，切去跑别的warp。
+    硬件没有操作系统那种“上下文保存到内存”的重量级切换；
+    只是调度器**换一个就绪warp发射指令**，寄存器堆还在片上。
+    **warp切换零开销，不需要保存到外部存储器。**
+
+    ---
+
+    ## 3. 分支发散 divergence 怎么处理
+    warp遇到if‑else，32线程走不同分支：
+    1. 先执行条件为true的线程（mask打开，其余屏蔽）
+    2. PC跳转到else分支，打开else掩码
+    两条路径串行执行。
+    warp不会拆成两个独立warp；只是更改active mask。
+
+    ---
+
+    ## 4. 几个高频误区澄清
+    1. **能不能抢占（preempt）正在执行指令的warp？**
+    >硬件指令一旦发射到执行单元，这条指令必须跑完；
+    调度器只能在**两条指令之间**选择下一个warp。
+    不是任意cycle打断正在跑的指令。
+
+    2. Warp会不会在不同调度器之间迁移？
+    >**不会**。一个warp分配给SM内某一个warp scheduler之后，一般固定归它调度。
+
+    3. 一个warp一次只能发射一条指令？
+    是的；但多个warp scheduler可以同时发射不同warp的指令，做到指令级并行。
+
+    4. Block退出时warp才销毁？
+    一个线程块（threadblock）内所有warp全部retired，Block资源释放（共享内存等）。
+
+    ---
+
+    ## 极简调度流程
+    1. Kernel启动，block分配到某个SM；block切分成若干warp，分配寄存器，进入warp池
+    2. Warp scheduler扫描warp池
+    3. 跳过stall的warp，挑选一个ready warp
+    4. 发射该warp当前PC对应的一条指令到执行单元
+    5. 如果指令是访存，warp标记stall；等数据回来后回到ready池
+    6. 循环直到warp全部retired
+
+    如果你需要，我可以顺带讲：
+    - scoreboard是怎么做寄存器依赖检测
+    - 和AMD wavefront调度的区别
+    或者讲**为什么warp大小固定32，为什么不做成可配置**。
+
 * cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
 
     可以。CUDA 0 的 stream 不仅可以等待 CUDA 1 上 kernel 的结束，而且这个操作是 NVIDIA 官方支持的，主要通过 **CUDA Event** 和 `cudaStreamWaitEvent` API 实现。对于跨进程场景，CUDA 也提供了 **IPC Event** 机制来达成同样目的。

@@ -2,6 +2,70 @@
 
 ## cache
 
+* Calculating the Scalp Coupling IndexÁ
+
+    <https://doc.ibs.tu-berlin.de/cedalion/doc/dev/examples/signal_quality/20_scalp_coupling_index.html>
+
+* Group Level GLM Analysis
+
+    <https://mne.tools/mne-nirs/stable/auto_examples/general/plot_12_group_glm.html>
+
+* fNIRS finger tapping data for GLM Analysis 🧠📊
+
+    <https://github.com/shashankatthaluri/fNIRS-Finger-tapping-for-GLM-analysis>
+
+* GLM FIR Analysis
+
+    <https://mne.tools/mne-nirs/stable/auto_examples/general/plot_13_fir_glm.html#tut-fnirs-fir>
+
+* Using general linear modeling to analyze NIRS timeseries data
+
+    <https://www.fieldtriptoolbox.org/example/stats/nirs_glm/>
+
+* GLM and Design Matrix Parameters
+
+    <https://mne.tools/mne-nirs/dev/auto_examples/general/plot_14_glm_components.html>
+
+* Frequency and Filter Commentary
+
+    <https://mne.tools/mne-nirs/dev/auto_examples/general/plot_30_frequency.html>
+
+* Preprocessing and averaging of single-channel NIRS data
+
+    <https://www.fieldtriptoolbox.org/tutorial/nirs/nirs_singlechannel/>
+
+* benchnirs
+
+    <https://hanbnrd.gitlab.io/benchnirs/examples/simple-example.html>
+
+* Preprocessing functional near-infrared spectroscopy (fNIRS) data
+
+    <https://mne.tools/1.11/auto_tutorials/preprocessing/70_fnirs_processing.html#tut-fnirs-processing>
+
+* neuralset.extractors.neuro.FnirsExtractor
+
+    <https://facebookresearch.github.io/neuroai/neuralset/reference/generated/neuralset.extractors.neuro.FnirsExtractor.html#neuralset.extractors.neuro.FnirsExtractor>
+
+* Brainstorm
+
+    Brainstorm is a collaborative, open-source application dedicated to the analysis of brain recordings:
+
+    MEG, EEG, fNIRS, ECoG, depth electrodes and multiunit electrophysiology. The application is free; a Matlab license is not required to use it. 
+
+    <https://neuroimage.usc.edu/brainstorm/Introduction>
+
+* fNIRS Preprocessing & Analysis Pipelines for PARAM
+
+    <https://github.com/hollabharath/fNIRS_PARAM>
+
+* fNIRSTransformer 论文对应的代码仓库 
+
+    <https://github.com/vbankers/fNIRSTransformer>
+
+*  Transformer-based deep learning model for predicting fNIRS short-channel signals
+
+    <https://pubmed.ncbi.nlm.nih.gov/41245625/>
+
 * 解释这段代码的作用
 
         def prepro_hmr_od_to_conc(dod, sd, ppf, pair_index=None, rho=None):

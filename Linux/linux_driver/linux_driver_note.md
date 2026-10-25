@@ -6,6 +6,302 @@ Ref:
 
 ## cache
 
+* 想要编写 linux 驱动，练手 iommu 相关的概念，有什么方法
+
+    学习 Linux 内核的 IOMMU（Input-Output Memory Management Unit）是一个非常硬核但极具价值的方向。因为 IOMMU 深度依赖硬件（Intel VT-d, AMD-Vi, ARM SMMU），直接在物理机上调试不仅容易死机，而且门槛高。
+
+    为了帮你高效练手，我整理了一套从**虚拟化仿真**到**驱动编写**的实战方案。
+
+    ---
+
+    ## 1. 搭建实验环境：QEMU 虚拟化（最推荐）
+
+    你不需要购买昂贵的服务器，利用 QEMU 可以在普通的 Linux 电脑上模拟出完整的 IOMMU 硬件。
+
+    ### 核心步骤：
+
+    1. **启动 QEMU 并启用 IOMMU 仿真**：
+    在 QEMU 启动参数中加入 `intel-iommu`（Intel 平台）或 `smmuv3`（ARM 平台）。例如模拟一个支持 Intel IOMMU 的虚拟机：
+    ```bash
+    qemu-system-x86_64 -M q35,accel=kvm,kernel-irqchip=split -m 4G \
+      -device intel-iommu,intremap=on,caching-mode=on \
+      -drive file=your_image.qcow2,format=qcow2 ...
+
+    ```
+
+
+    2. **在虚拟机内核中开启 IOMMU**：
+    修改虚拟机的 Grub 引导参数，加入 `intel_iommu=on`，启动后通过 `dmesg | grep -i iommu` 确认看到 `Intel-IOMMU: enabled`。
+
+    ---
+
+    ## 2. 练手路径：从易到难的 3 个阶段
+
+    ### 阶段一：使用 VFIO 驱动（零内核代码，快速理解概念）
+
+    在写自己的驱动之前，先理解 IOMMU 是怎么给用户态用的。**VFIO (Virtual Function I/O)** 是 Linux 内核中利用 IOMMU 将设备安全暴露给用户态的框架。
+
+    * **实验方法**：
+    1. 在 QEMU 虚拟机里挂载一个虚拟网卡（如 `e1000e`）。
+    2. 使用 `lspci -v` 查看它的 **IOMMU Group**。
+    3. 解绑原有的网卡驱动，将其绑定到 `vfio-pci`。
+    4. 编写一个简单的用户态 C 程序，通过 `/dev/vfio/` 接口去配置 IOMMU 映射（`VFIO_IOMMU_MAP_DMA`），实现用户态直接对设备进行 DMA。
+
+
+
+    ### 阶段二：编写自定义 PCI 驱动（核心练手点）
+
+    这是真正的内核驱动编写。你可以编写一个虚构的（或者针对 QEMU 模拟的）PCI 设备驱动，并在驱动中显式使用 Linux 的 DMA API（它底层会自动调用 IOMMU）。
+
+    * **核心编写逻辑**：
+    * **初始化**：在 `probe` 函数中，调用 `dma_set_mask_and_coherent()` 声明设备支持的寻址位数。
+    * **DMA 映射（重点）**：
+    * **流式映射（Streaming Mapping）**：使用 `dma_map_single()` 或 `dma_map_sg()`。这一步在开启 IOMMU 时，**会在 IOMMU 页表中建立映射，并返回一个 IOMMU 转换后的虚拟地址（`dma_addr_t`）**。
+    * **一致性映射（Coherent Mapping）**：使用 `dma_alloc_coherent()` 分配一段开箱即用的 DMA 内存。
+
+
+    * **触发 DMA**：将获取到的 `dma_addr_t` 写入设备的寄存器，让设备发起 DMA 传输。
+    * **解绑映射**：传输完成后调用 `dma_unmap_single()`。
+
+
+
+    > **💡 进阶实验（制造 IOMMU 异常）**：
+    > 故意将一个未经过 `dma_map_single()` 映射的物理地址（或者已经 unmap 的地址）写进设备寄存器，让设备去访问。这时候你会立刻在内核日志中看到 **IOMMU Page Fault / DMAR Fault** 报错。这是理解 IOMMU 安全隔离机制最好的方法。
+
+    ### 阶段三：直接调用 IOMMU API（深度定制）
+
+    如果你的设备不走标准的 DMA 映射流程（比如某些 GPU 或特定的 SOC 模块），你可以直接在驱动中操作 IOMMU 域（Domain）。
+
+    * **核心 API**：
+    * `iommu_domain_alloc()`：分配一个独立的 IOMMU 隔离域。
+    * `iommu_attach_device(domain, dev)`：将你的设备加入到这个域中。
+    * `iommu_map(domain, iova, paddr, size, prot)`：**手动建立 IOVA（I/O 虚拟地址）到物理地址的映射**。
+    * `iommu_unmap()`：解除映射。
+
+
+
+    ---
+
+    ## 3. 源码阅读与参考对象
+
+    在写代码时，Linux 内核源码是最好的教科书。你可以重点参考以下部分：
+
+    * **优秀的参考驱动**：
+    * `drivers/vfio/vfio_iommu_type1.c`：看内核是如何管理 IOMMU 映射和 Group 的。
+    * `drivers/gpu/drm/` 目录下的某些 GPU 驱动（如 AMDGPU）：看它们是如何大批量映射内存给显卡使用的。
+
+
+    * **IOMMU 驱动底层实现**（如果你想看 IOMMU 本身是怎么工作的）：
+    * Intel 平台：`drivers/iommu/intel/`
+    * ARM 平台：`drivers/iommu/arm/arm-smmu-v3/`
+
+
+
+    ---
+
+    ## 💡 避坑建议
+
+    1. **区分 IOVA 和 CPU VA**：在有 IOMMU 的情况下，设备看到的地址叫 **IOVA (I/O Virtual Address)**，CPU 看到的叫 **VA (Virtual Address)**。给设备寄存器传地址时，**绝对不能**传 `void*` 指针，必须传 `dma_addr_t`。
+    2. **注意 DMA 方向**：`dma_map_single` 的最后一个参数 `DMA_TO_DEVICE` / `DMA_FROM_DEVICE` 一定要写对，IOMMU 会根据这个参数在页表中设置只读/只写权限，搞错会导致硬件触发 Permission Fault。
+
+    你目前对哪种场景更感兴趣？是想写一个利用 IOMMU 做安全 DMA 的普通设备驱动，还是想研究 IOMMU 驱动本身的硬件映射机制？
+
+    * 有没有什么书籍或资料推荐
+
+        因为 IOMMU 属于系统级核心架构，且深度融入在内核的虚拟化与内存管理中，市场上**几乎没有**专门只讲 IOMMU 的整本书。学习它最好的资料是**官方设计文档、硬件规范（Spec）以及内核源码本身的评注**。
+
+        我为你筛选了以下四个维度的优质资料，从浅入深：
+
+        ---
+
+        ## 1. 核心文档与白皮书（权威首选）
+
+        这是理解 IOMMU 架构设计意图最快的方式：
+
+        * **Linux 内核官方文档 (`Documentation/iommu/` 或 `Documentation/x86/iommu.html`)**
+        * 直接在线阅读 Linux Kernel Docs。重点看 **Intel IOMMU Support** 和 **AMD IOMMU Support**，它非常清晰地用几页纸阐述了内核是如何生成 IOVA、如何处理 IOMMU Group、以及 Fault reporting（页错误报告）的机制。
+
+
+        * **LWN (Linux Weekly News) 有关 IOMMU/SVA 的文章**
+        * LWN 是学习内核演进最硬核的网站。推荐搜索其关于 **SVA (Shared Virtual Addressing)**、**PASID**、以及 **RISC-V IOMMU Support** 的技术评述文章（这些技术允许硬件设备直接共享进程的内核/用户态页表）。
+
+
+        * **硬件厂商的 Specs (选读)**
+        * 如果你想知道 IOMMU 硬件上是怎么查多级页表的（类似 CPU 的 MMU），可以直接翻阅 *Intel Virtualization Technology for Directed I/O (VT-d) Spec* 或 *ARM System Memory Management Unit (SMMU) Architecture Spec*。不需要全读，只看有关 **DMA Remapping** 的部分。
+
+
+
+        ---
+
+        ## 2. 推荐书籍（理解上下文背景）
+
+        以下书籍虽不专讲 IOMMU，但它们会讲透 **DMA、PCIe 拓扑和内核虚拟化框架**，这是 IOMMU 的根基。
+
+        * **《Linux设备驱动开发详解》（宋宝华 著）** 或 **《Linux Device Drivers》 (LDD3)**
+        * 重点看 **DMA 和内存映射（Memory Mapping and DMA）** 这一章。它会教会你最基础的 `dma_map_single` / `dma_alloc_coherent` 的内核规范写法，这是包裹在 IOMMU 外面的“外壳 API”。
+
+
+        * **《深入理解Linux虚拟化：KVM 架构与实现原理》（或同类 KVM 虚拟化书籍）**
+        * IOMMU 在现实中最庞大的应用场景就是**设备直通 (Device Passthrough)**。这类书籍在讲解 KVM 是如何将一个网卡或显卡完整塞给虚拟机（VM）时，会从逻辑上把 **IOMMU Group、VFIO 容器、以及硬件 IOMMU 页表** 的三层关系连起来讲得很透。
+
+
+
+        ---
+
+        ## 3. 开源社区优秀教程与案例
+
+        * **DPDK (Data Plane Development Kit) 官方文档中的 "Linux Drivers" 章节**
+        * DPDK 作为一个高性能用户态网络框架，对 VFIO 和 IOMMU 的依赖极深。其文档专门有一节介绍为什么需要开启 IOMMU、如何配置 `vfio-pci`、以及如何绕过 IOMMU（unsafe noiommu 模式）。对比阅读能让你对“安全隔离”有更深的体会。
+
+
+        * **OpenEuler / 厂商的技术博客**
+        * 推荐搜索如 openEuler 社区、Red Hat 技术博客中关于 **《VFIO Device Passthrough Principles》（VFIO 设备直通原理）** 的系列文章。里面通常会有非常漂亮的数据流图，画出用户态 `ioctl` 是如何一步步通过 VFIO 驱动最终在硬件 IOMMU 里配置好 IOVA 的。
+
+
+
+        ---
+
+        ## 4. 源码练手对照（教科书式的代码）
+
+        在看内核源码时，千万别一头扎进 `drivers/iommu/` 那些复杂的寄存器操作里。你可以顺着这两段精简且典型的代码去读：
+
+        1. **内核内置的 PCI 示例驱动**：
+        你可以去搜 `drivers/net/ethernet/intel/e1000e/`（Intel 老网卡驱动），看它的 `e1000_alloc_ring_resources` 和 `e1000_open` 阶段是如何进行 DMA 内存分配和映射的。
+        2. **Linux 内核自带的测试样本 (`samples/`)**：
+        新版 Linux 内核的 `samples/vfio-mdev/` 目录下有一些虚拟设备的示例代码（如 `mtty.c` 模拟串行端口）。虽然它是介于物理和虚拟之间的介质，但非常适合用来观察内核是如何抽象设备并塞进 IOMMU 组里去的。
+
+        ---
+
+        ### 🛠️ 我的建议：
+
+        先花半天时间读一下 **Linux Kernel Documentation 里的 Intel/AMD IOMMU 的基本概念**，搞清楚什么是 IOVA（I/O虚拟地址）和 DMAR（DMA重定向）。然后立刻按照我上一条回答里提到的 **QEMU 启动参数** 把虚拟机搭起来。
+
+        在虚拟机里用 `readlink /sys/bus/pci/devices/<你的PCI编号>/iommu_group` 去肉眼观察一下硬件拓扑结构。这时候再对照着写代码，感受会完全不一样。
+
+    * 我写过 kmd module, qemu edu device driver
+
+        原来你已经写过 `qemu-edu` 的驱动了！那太棒了，咱们直接跳过小白阶段，进入硬核模式。
+
+        `qemu-edu`（Education Device）是一个完美的跳板。它本身自带一个 DMA 引擎（通过寄存器 `0x80` 到 `0x98` 控制），但默认情况下，它在 QEMU 里是直接访问物理内存（GPA）的。
+
+        要深度练手 IOMMU，最爽、最直接的办法就是**把 `qemu-edu` 扔进 IOMMU 的管辖范围，修改你之前的驱动去适配它**。
+
+        ---
+
+        ## 🛠️ 进阶实战：对 `qemu-edu` 进行 IOMMU 改造
+
+        你可以分三步来玩：
+
+        ### 第一步：强制 QEMU 将 edu 设备挂在 IOMMU 之下
+
+        默认的 QEMU 启动命令可能只是 `-device edu`。为了让 IOMMU 介入，你需要使用 `q35` 机型，并显式将 edu 设备挂载到支持 IOMMU 的 PCI 总线上。
+
+        **QEMU 启动参数修改：**
+
+        ```bash
+        qemu-system-x86_64 -M q35,accel=kvm,kernel-irqchip=split -m 4G \
+          -device intel-iommu,intremap=on,caching-mode=on \
+          -device edu,id=edu0,bus=pcie.0,addr=04.0 ...
+
+        ```
+
+        启动后，在虚拟机内通过 `/sys` 检查 edu 设备是否已经被划分到了某个 **IOMMU Group**：
+
+        ```bash
+        # 查看 edu 设备的 IOMMU 组
+        readlink /sys/bus/pci/devices/0000:00:04.0/iommu_group
+
+        ```
+
+        如果能看到类似 `../../../../kernel/iommu_groups/3` 的输出，说明硬件层面的 IOMMU 已经成功拦截了该设备。
+
+        ---
+
+        ### 第二步：修改你的 edu 驱动（从物理地址到 IOVA）
+
+        在你之前的 `qemu-edu` 驱动中，触发 DMA 的逻辑大概是这样的：
+
+        1. 用 `dma_alloc_coherent` 或 `kmalloc` + `virt_to_phys` 获取一个地址。
+        2. 把这个地址直接写到 edu 的 `0x80` (DMA source) 或 `0x84` (DMA destination) 寄存器。
+        3. 往 `0x98` 写 `1` 启动转存。
+
+        **在开启 IOMMU 后，如果你还把物理地址（`paddr`）写进寄存器，IOMMU 硬件会立刻拦截并报 DMAR Fault！**
+
+        **你需要做的修改：**
+
+        ```c
+        // 1. 声明 DMA 掩码（告诉 IOMMU 你的设备支持多少位寻址，edu 支持 64 位）
+        dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
+
+        // 2. 如果你用的是 kmalloc 分配的内存，必须使用流式 DMA 映射
+        void *buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+        dma_addr_t iova;
+
+        // 核心：这一步会调用 IOMMU 驱动，在 IOMMU 页表里建立映射，并返回一个 I/O 虚拟地址 (IOVA)
+        iova = dma_map_single(&pdev->dev, buf, BUFFER_SIZE, DMA_FROM_DEVICE);
+        if (dma_mapping_error(&pdev->dev, iova)) {
+            pr_err("IOMMU mapping failed!\n");
+            return -ENOMEM;
+        }
+
+        // 3. 将 IOVA（而不是物理地址！）写进 edu 的寄存器
+        iowrite32((u32)iova, mmio_base + 0x80); 
+        iowrite32((u32)(iova >> 32), mmio_base + 0x84); // 如果是 64 位地址
+
+        // 4. 触发 DMA 并等待中断完成...
+
+        // 5. 传输完成后，记得解绑（释放 IOMMU 页表和 IOVA 资源）
+        dma_unmap_single(&pdev->dev, iova, BUFFER_SIZE, DMA_FROM_DEVICE);
+
+        ```
+
+        ---
+
+        ### 第三步：制造一个真正的 DMAR Fault（抓取硬件报错）
+
+        既然是在虚拟环境，不搞坏一次不尽兴。你可以故意写一段测试代码来验证 IOMMU 的防错/隔离机制：
+
+        1. 映射一段内存获取 `iova`。
+        2. 调用 `dma_unmap_single` 提前把这个映射销毁掉。
+        3. 故意把这个已经失效的 `iova`（或者随便写一个瞎编的虚拟地址）写入 edu 的 DMA 寄存器并触发 DMA。
+        4. **见证奇迹的时刻**：查看虚拟机的 `dmesg`。你不会看到虚拟机崩溃，而是会看到 Intel IOMMU 硬件打印出的严厉警告：
+        ```text
+        DMAR: [DMA Read NO_PASID] Request device [00:04.0] fault addr 0x7fff0000 [fault reason 0x06] PTE Read access is not set
+
+        ```
+
+
+        通过这个报错，去对照 Intel VT-d Spec 中的 `Fault Reason` 寄存器定义，你会对 IOMMU 的硬件工作原理有极其深刻的理解。
+
+        ---
+
+        ## 🎯 更高级的玩法：在驱动中玩转多 Domain 隔离
+
+        如果你觉得上面用标准的 `dma_map_single`（底层的默认 Domain）还不够过瘾，想直接操作 IOMMU 拓扑，可以在你的 edu 驱动中尝试**手动创建 IOMMU Domain**：
+
+        ```c
+        #include <linux/iommu.h>
+
+        // 1. 手动为你的设备分配一个独立的 IOMMU 域（通常是 UNMANAGED 类型）
+        struct iommu_domain *my_domain = iommu_domain_alloc(&pci_bus_type);
+
+        // 2. 将 edu 设备从默认域剥离，加入你创建的新域
+        iommu_attach_device(my_domain, &pdev->dev);
+
+        // 3. 手动操控页表：把内核的一块物理内存映射到你指定的任意自定义 IOVA 上
+        phys_addr_t paddr = virt_to_phys(my_buffer);
+        dma_addr_t my_fancy_iova = 0xDEADC0DE; // 你甚至可以指定一个好玩的虚拟地址
+
+        iommu_map(my_domain, my_fancy_iova, paddr, PAGE_SIZE, IOMMU_READ | IOMMU_WRITE, GFP_KERNEL);
+
+        // 4. 让 edu 去访问 0xDEADC0DE，看它能不能正确读写内存！
+
+        ```
+
+        *(注：直接调用 `iommu_map` 在新版内核中可能需要注意设备所属的 `iommu_group` 状态，但这是最接近硬件 IOMMU 页表控制的操作方式。)*
+
+        既然你有 `qemu-edu` 的经验，这条路对你来说是最顺手的。把现有的驱动重构一下，你就能把 IOMMU 的 DMA 映射、页表建立、错误拦截机制全部吃透！
+
 * 详细讲讲 libpci
 
     **libpci 是 pciutils 软件包提供的可移植共享库，主要用于在用户空间访问 PCI 总线的配置空间，是 `lspci` 等工具的基础。** 它封装了不同操作系统访问 PCI 配置空间的底层差异，为开发者提供了一套统一的 C 语言 API。
