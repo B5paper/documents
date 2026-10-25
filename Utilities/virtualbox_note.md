@@ -2,6 +2,8 @@
 
 ## cache
 
+* virtuslbox 退出缩放模式：右侧 ctrl + C
+
 * vbox + ubuntu 22.04.4 + vmsvga + 3d accel 在使用 xrdp client 时，远程桌面的矩形 update 有问题
 
     更新 vbox 增强功能后 rdp 仍有问题。

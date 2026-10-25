@@ -2,6 +2,46 @@
 
 ## cache
 
+* 讲讲 rsync --backup 的用法
+
+    `rsync --backup` 的核心作用是：**在覆盖或删除目标端文件之前，先把旧版本文件保留下来**。它本身只是开启“备份”开关，通常必须配合 `--backup-dir` 或 `--suffix` 才能达到符合预期的效果。
+
+    ### 基本用法与常见组合
+
+    单独使用 `-b`（即 `--backup`）时，被覆盖的文件默认会以 `filename~` 的形式留在目标目录里。但在实际备份场景中，更常用的是把它和 `--backup-dir` 组合起来，把旧文件统一挪到指定目录，保持目标目录整洁。
+
+    | 选项 | 作用 |
+    | :--- | :--- |
+    | `-b` / `--backup` | 开启备份功能，覆盖/删除前先保留旧文件 |
+    | `--backup-dir=DIR` | 指定备份文件的存放目录，而不是留在原地 |
+    | `--suffix=SUFFIX` | 自定义备份文件后缀，默认是 `~` |
+
+    ### 典型使用场景
+
+    **场景一：简单保留旧版本（原地备份）**
+    如果只是想防止误覆盖，让每个被替换的文件旁边多出一个带 `~` 的副本：
+    ```bash
+    rsync -av --backup source/ destination/
+    ```
+    执行后，若 `destination/file.txt` 被更新，旧版本会变成 `destination/file.txt~`。
+
+    **场景二：集中存放旧版本（配合 --backup-dir）**
+    这是做增量或滚动备份时更规范的做法。把被覆盖的文件按时间或分类挪到专门目录：
+    ```bash
+    rsync -av --backup --backup-dir=/backup/old_versions/ source/ destination/
+    ```
+    这样，被替换的文件不会弄乱 `destination/`，而是被移动到 `/backup/old_versions/` 下对应路径中。
+
+    **场景三：结合 --delete 使用**
+    `--backup` 对 `--delete` 同样生效。当源端文件被删除，目标端执行 `--delete` 移除它时，如果开了备份，该文件不会被真正删掉，而是被备份起来：
+    ```bash
+    rsync -av --delete --backup --backup-dir=/backup/deleted/ source/ destination/
+    ```
+
+    ### 需要注意的一点
+
+    `--backup` 只负责“保留即将被覆盖或删除的**旧版本**”。如果目标端原本就没有某个文件（即全新创建），不会产生备份。另外，如果多次运行都使用同一个 `--backup-dir`，后一次备份的同名旧文件会覆盖前一次的备份，若需要保留多个历史版本，通常需要自己在脚本里按日期生成不同的备份子目录。
+
 * `rsync`中，src dir 的下面四种写法是等价的
 
     `.`, `./`, `*`, `./*`

@@ -2,6 +2,85 @@
 
 ## cache
 
+* 详细讲讲 git diff 的用法
+
+	`git diff` 的核心作用是展示不同“版本”之间的代码差异。它的用法取决于你给了它什么参数，最常用的场景是查看**工作区、暂存区、提交历史**这三者中任意两者之间的区别。
+
+	### 最常用的几种场景
+
+	**1. 查看尚未暂存的修改**
+	直接运行 `git diff`，比较的是**工作区**与**暂存区**。它显示的是你改了但还没 `git add` 的内容。
+	```bash
+	git diff
+	```
+
+	**2. 查看已暂存、待提交的修改**
+	加上 `--staged`（或 `--cached`），比较的是**暂存区**与**最后一次提交（HEAD）**。这是提交前检查的好习惯。
+	```bash
+	git diff --staged
+	```
+
+	**3. 比较两个提交之间**
+	直接跟两个 commit 的引用（分支名、哈希等），查看两者之间的全部差异。
+	```bash
+	git diff <commit1> <commit2>
+	# 例如：git diff main feature-branch
+	```
+
+	**4. 查看工作区与指定提交的差异**
+	如果你想知道当前工作区相对于某个历史提交（比如 `HEAD` 或某个旧版本）改了什么。
+	```bash
+	git diff HEAD
+	git diff <某个旧commit>
+	```
+
+	### 实用参数与技巧
+
+	**只看改了哪些文件（摘要）**
+	不想看具体代码行，只想看文件名和增删行数统计：
+	```bash
+	git diff --stat
+	```
+	输出类似：` file.txt | 5 +++--`，非常直观。
+
+	**只看指定文件或目录**
+	把路径加在最后（用 `--` 隔开可以避免歧义）：
+	```bash
+	git diff -- src/app.js
+	git diff HEAD -- src/
+	```
+
+	**忽略空白字符的干扰**
+	当有人只是调整了缩进或行尾空格时，可以用 `-w` 忽略所有空白差异，让 diff 更聚焦于逻辑改动。
+	```bash
+	git diff -w
+	```
+
+	**比较分支时只看“分叉后”的改动**
+	直接 `git diff A B` 会把 A 领先 B 的提交也显示出来。如果你只想看 B 分支从 A 分叉后**自己新增**了什么，用三点语法：
+	```bash
+	git diff A...B
+	```
+	它等价于 `git diff $(git merge-base A B) B`，只展示 B 侧独有的变化。
+
+	**检查冲突文件**
+	在合并冲突时，可以用 `--ours` 或 `--theirs` 单独查看某一方的版本差异，辅助解决冲突：
+	```bash
+	git diff --ours <冲突文件>
+	git diff --theirs <冲突文件>
+	```
+
+	### 补充说明
+	如果你习惯用图形化工具（如 Beyond Compare、VS Code 内置 diff），可以用 `git difftool` 替代 `git diff`，它会调用配置好的外部工具来展示差异。
+
+    如果你配置了 VS Code 作为默认的 diff tool，可以使用：
+
+    ```bash
+    git difftool <commit_id> -- <file_path>
+    ```
+
+    这会自动弹出 VS Code 的对比窗口。
+
 * git log --oneline -- .gitmodules 讲讲这条命令的作用
 
 	# `git log --oneline -- .gitmodules` 命令详解
@@ -8897,6 +8976,12 @@ doc/**/*.pdf
     1 file changed, 64 insertions(+)
     ```
 
+    * git diff
+
+        `git diff`会对比 working directory 和 staging area 中的改动。如果 staged area 中没有内容，那么会直接对比 working directory 和 last commit 中的变化。
+
+        `git diff --staged`或`git diff --cached`会对比 staged area 和 last commit 中的改动。
+
 * `git commit`
 
     `git commit`选择的 editor 与 shell 的`$EDITOR`环境变量有关。也可以用`git config --global core.editor`设置。
@@ -9096,12 +9181,6 @@ git add README
         简单讲了一些 git tag 的用法。
 
         问题：如果我们在不同的 branch 中打 tag，那么在 github 中跳转到对应的 tag 时，会自动切换不同的 branch 吗？
-
-* git diff
-
-    `git diff`会对比 working directory 和 staging area 中的改动。如果 staged area 中没有内容，那么会直接对比 working directory 和 last commit 中的变化。
-
-    `git diff --staged`或`git diff --cached`会对比 staged area 和 last commit 中的改动。
 
 * `git rm`
 

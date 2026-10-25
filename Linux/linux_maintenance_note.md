@@ -6,6 +6,470 @@
 
 ## cache
 
+* linux 下，我希望根据进程号 pid，显示 pid 的父进程和子进程以及 pid 本进程构成的进程树，怎么办
+
+    在 Linux 下要根据 PID 显示一个包含父进程、子进程及自身的进程树，最直接和常用的工具是 **`pstree`**，它专为展示进程层级关系而设计。当然，**`ps`** 命令配合特定选项也能实现类似效果。
+
+    ### 🌳 方法一：使用 `pstree` 命令（推荐）
+
+    `pstree` 能以树状图的形式直观显示进程关系。要查看指定 PID 的完整关联树，可以使用以下组合选项：
+
+    ```bash
+    pstree -sp <PID>
+    ```
+
+    - **`-p`**：显示每个进程的 PID，方便对照。
+    - **`-s`**：显示指定进程的**父进程**（Show parents）。这是关键选项，它会向上追溯并展示父进程链，从而形成一个从祖先到子孙的完整树状图。
+
+    **示例**：假设你想查看 PID 为 `1234` 的进程树，可以执行：
+    ```bash
+    pstree -sp 1234
+    ```
+    输出会以树形结构展示 `1234` 的父进程、`1234` 本身以及它的所有子进程。
+
+    ### 🛠️ 方法二：使用 `ps` 命令的森林视图
+
+    `ps` 命令的 `--forest` 选项可以以树状（ASCII艺术）形式显示进程层级。不过，`ps` 通常用于展示系统全局的进程树，要精确聚焦于单个 PID 及其相关进程，需要组合使用过滤选项。
+
+    一种可行的方式是使用 `-g` 选项（按进程组 ID 过滤）。你需要先用 `ps` 或其他工具查找到目标进程的 **PGID (进程组 ID)**，然后执行：
+    ```bash
+    ps -o pid,ppid,cmd --forest -g <PGID>
+    ```
+    这会显示该进程组下的所有进程树状结构。但需要注意的是，一个进程组可能包含多个不直接相关的进程，未必能精确对应你想要的“父-子-孙”单线关系。
+
+    相比之下，`pstree` 的 `-s` 和 `-p` 组合在精确性和易用性上更胜一筹，是完成此任务的首选。
+
+    ### 💎 总结
+
+    对于你“根据 PID 显示父、子、本进程构成的进程树”的需求，**`pstree -sp <PID>` 是最简洁、准确的方案**。它一步到位地解决了问题，无需额外查找进程组 ID，是日常排查进程关系时最值得信赖的命令。
+
+    * 那如果我想同时显示完整命令呢
+
+        想让进程树同时显示完整命令，只需在之前 `pstree -sp` 的基础上再加一个 **`-a`** 选项即可。
+
+        ### 🌳 核心方案：`pstree -spa <PID>`
+
+        这个组合可以一步到位满足你的所有需求：展示指定 PID 的**父进程链**、**自身**及**所有子进程**的树状关系，并附上每个进程的**完整命令行**（包括路径和参数）。
+
+        ```bash
+        pstree -spa <PID>
+        ```
+
+        - **`-a` (arguments)**：核心选项，用于显示每个进程的完整命令行参数。
+        - **`-s` (show parents)**：向上追溯并显示父进程，构成完整的树状结构。
+        - **`-p` (show pids)**：在每个进程名旁显示其 PID，方便对照。
+
+        ### 📏 补充：防止长命令被截断
+
+        如果进程的命令行非常长，`pstree` 默认可能会将其截断（通常到 132 个字符）。为了确保显示完整的命令，可以额外加上 **`-l` (long)** 选项，它会禁止截断，显示完整的长行。
+
+        ```bash
+        pstree -spal <PID>
+        ```
+
+        ### 🔄 替代方案：`ps` 命令
+
+        `ps` 命令也可以显示完整命令和树状结构，但若要精确聚焦于“某个 PID 的父、子、本身”这一特定范围，不如 `pstree` 直接。
+
+        一个通用的组合是使用 `-ef`（显示所有进程的完整格式）和 `--forest`（树状图）：
+
+        ```bash
+        ps -ef --forest
+        ```
+        这会显示整个系统的进程森林。你可以通过管道 `grep` 来查找特定 PID，但这样会丢失树状结构信息，且可能混入无关进程。
+
+        因此，对于你的需求，**`pstree -spa <PID>`（或 `pstree -spal <PID>`）仍然是最精确、最简洁的选择**。
+
+    * pstree -spal 确实挺不错，但是我发现一个问题，在运行命令时，只有命令或脚本本身，没有运行这条命令时的目录路径。有什么办法能看到路径信息吗
+
+        `pstree` 本身确实没有直接显示工作目录（CWD）的选项，它的 `-a` 和 `-l` 关注的是命令行本身。要获取这个信息，需要借助 Linux 的 `/proc` 文件系统或其他命令，再与进程树的输出结合起来。
+
+        ### 📂 核心方法：查询 `/proc/<PID>/cwd`
+
+        Linux 为每个进程在 `/proc` 下维护了一个目录，其中的 `cwd` 是一个符号链接，指向该进程的**当前工作目录**。这是最底层、最可靠的信息来源。
+
+        你可以使用 `readlink` 来解析这个链接，获取真实路径：
+        ```bash
+        readlink /proc/<PID>/cwd
+        ```
+        或者使用 `ls -l` 查看链接指向：
+        ```bash
+        ls -l /proc/<PID>/cwd
+        ```
+
+        ### 🔧 将工作目录整合到进程树视图
+
+        `pstree` 的输出本身不包含 CWD，但你可以手动或通过脚本来组合这两个信息。
+
+        #### 方案一：使用 `pwdx` 命令（最简便）
+
+        `pwdx` 是一个专门用于**P**rint **W**orking **D**irectory e**X**panded 的命令，可以直接显示一个或多个进程的工作目录。
+
+        ```bash
+        pwdx <PID>
+        ```
+        输出示例：`5620: /home/pi`。
+
+        你可以先将 `pstree` 输出中的 PID 提取出来，再交给 `pwdx`。有一个单行命令可以实现这个组合，它会模仿 `pstree` 的树状结构，并在每个进程名后附上其工作目录：
+
+        ```bash
+        pstree -spal <PID> | grep -oP '\(\K[0-9]+' | xargs -I{} sh -c 'echo -n "{}: "; pwdx {} | cut -d" " -f2-'
+        ```
+        这个命令会输出类似下面的格式，将 PID 和工作目录附加在 `pstree` 树形图的下方：
+        ```
+        systemd(1)---...
+          └─bash(1234)---...
+        1234: /home/user/project
+        5678: /var/log
+        ```
+
+        #### 方案二：使用 `lsof`
+
+        `lsof` 可以列出进程打开的文件，其中也包括 `cwd`。通过管道过滤，可以只显示工作目录：
+        ```bash
+        sudo lsof -p <PID> | grep cwd
+        ```
+        这需要 `sudo` 权限才能可靠地查看其他用户的进程。
+
+        #### 方案三：使用 `ps` 命令
+
+        `ps` 命令本身也支持直接显示 `cwd` 字段，但通常**需要 root 权限**才能查看所有进程的工作目录。
+        ```bash
+        ps -eo pid,cwd,cmd
+        ```
+        你可以用 `grep` 或 `pgrep` 来筛选特定的 PID，但它不会像 `pstree` 那样生成树状结构。
+
+        ### 💎 总结与建议
+
+        `pstree` 负责展示**树形结构**，而工作目录的信息需要通过 `/proc/<PID>/cwd`、`pwdx` 或 `lsof` 来获取。
+
+        对于你的需求，最实用的路径是：
+        1. **快速查看单个进程**：直接使用 `pwdx <PID>`。
+        2. **需要一份包含工作目录的树状报告**：使用上面提供的 `pstree` 与 `pwdx` 的组合命令。如果脚本较长不便记忆，也可以分两步走：先运行 `pstree -spal <PID>` 获取树状图和 PID，再针对感兴趣的 PID 运行 `pwdx`。
+
+        最后需要注意权限：普通用户通常只能查看**自己拥有**的进程的工作目录，查看系统或其他用户的进程信息往往需要 `root` 权限。
+
+    * 为什么 ps 只显示两个进程，ps -C 显示了这么多进程
+
+        这是因为 `ps` 和 `ps -C bash` 的**默认作用范围不同**。
+
+        ### 🔍 根本原因
+
+        - **`ps`（不带选项）**：默认只显示**当前终端（TTY）**上、属于**当前用户**的进程。你当前所在的终端是 `pts/7`，所以它只列出了这个终端上的 `bash`（PID 2251720）和刚执行的 `ps` 命令本身（PID 2286912）。
+        - **`ps -C bash`**：`-C` 选项表示**按命令名选择进程**，它会在**系统中所有进程**里查找命令名为 `bash` 的进程，不受当前终端限制。因此它列出了你名下所有终端（`pts/0` 到 `pts/7`）上的 `bash` 进程。
+
+        ### 📌 验证方法
+
+        你可以用以下命令对比确认：
+
+        ```bash
+        # 查看当前终端的进程（与直接 ps 效果类似）
+        ps -t $(tty)
+
+        # 查看所有进程中的 bash
+        ps -e -o pid,tty,cmd | grep bash
+
+        # 或者用 -C 加上完整信息
+        ps -C bash -o pid,tty,cmd
+        ```
+
+        ### 💡 补充说明
+
+        你看到的 8 个 `bash` 进程，对应你打开了 8 个终端会话（`pts/0` ~ `pts/7`），每个终端会话都有一个独立的 `bash` 进程。`ps` 默认只关心"我自己这个终端里发生了什么"，而 `-C` 则是全局搜索。
+
+        如果想让 `ps` 显示所有进程，可以使用 `ps -e` 或 `ps aux`。
+
+    * 那如果我想查看当前 terminal 中的进程，又想使用类似 -C 的功能来选择进程，该怎么办
+
+        可以。`ps` 的 `-C`（按命令名选择）和 `-t`（按终端选择）都是**选择器**，它们可以组合使用，结果是取**交集**——即"当前终端上、命令名为 X 的进程"。
+
+        ### 🎯 核心方案
+
+        ```bash
+        ps -C <命令名> -t $(tty | sed 's|/dev/||')
+        ```
+
+        关键点在于 `tty` 命令输出的是 `/dev/pts/7` 这种带 `/dev/` 前缀的路径，而 `ps -t` 需要的是 `pts/7`，所以用 `sed` 去掉前缀。
+
+        **示例**：在当前终端查看所有 `bash` 进程：
+
+        ```bash
+        ps -C bash -t $(tty | sed 's|/dev/||')
+        ```
+
+        输出只会包含当前终端（如 `pts/7`）上的 `bash`，而不会列出其他终端的。
+
+        ### 📋 加上自定义字段
+
+        如果想同时看到 PID、终端、完整命令等，可以配合 `-o`：
+
+        ```bash
+        ps -C bash -t $(tty | sed 's|/dev/||') -o pid,tty,stat,cmd
+        ```
+
+        ### 🔗 与进程树结合
+
+        如果你还想把这个筛选结果交给 `pstree` 看树状结构，可以先用 `pgrep` 拿到 PID：
+
+        ```bash
+        pstree -spal $(pgrep -t $(tty | sed 's|/dev/||') -x bash)
+        ```
+
+        - `pgrep -t <tty>`：按终端筛选
+        - `-x bash`：精确匹配命令名（等价于 `ps -C` 的精确匹配语义）
+        - 把得到的 PID 交给 `pstree -spal`
+
+        ### 💡 小技巧：先确认当前终端名
+
+        如果不确定 `tty` 的输出格式，可以先单独跑一下：
+
+        ```bash
+        tty
+        # 输出例如：/dev/pts/7
+        ```
+
+        然后再套用上面的命令即可。如果嫌每次写 `sed` 麻烦，也可以在 shell 里定义一个别名：
+
+        ```bash
+        alias pst='ps -t $(tty | sed "s|/dev/||")'
+        ```
+
+        之后直接 `pst -C bash` 就能查看当前终端上的 bash 进程了。
+
+* 为什么 find ./ -name *common.h* 没有搜.出来 common.h
+
+    ```bash
+    $ find ./ -name *common.h*
+    ./sipu_common.h
+    $ find ./ -name common.h*
+    ./spdlog/common.h
+    ```
+
+    **原因：Shell 通配符展开（globbing）**
+
+    问题出在 **shell 先于 `find` 处理了 `*common.h*`**，而不是 `find` 本身。
+
+    **详细过程**
+
+    在 `~/proj/sdk/2610092012/include` 目录下，实际存在 `sipu_common.h`，所以：
+
+    ```bash
+    find ./ -name *common.h*
+    ```
+
+    Shell 看到 `*common.h*`（**没有引号**）时，会先在**当前目录**做 glob 匹配：
+
+    - 当前目录里有 `sipu_common.h` → 匹配 `*common.h*` ✅
+    - 当前目录里没有 `common.h`（它在 `spdlog/` 子目录下）→ 不参与当前目录的 glob
+
+    于是 `*common.h*` 被 shell 展开成了 `sipu_common.h`，真正执行的命令变成：
+
+    ```bash
+    find ./ -name sipu_common.h
+    ```
+
+    结果自然只有 `./sipu_common.h`。
+
+    **为什么第二条能成功**
+
+    ```bash
+    find ./ -name common.h*
+    ```
+
+    当前目录里**没有**文件匹配 `common.h*`（`sipu_common.h` 不匹配，因为它以 `sipu_` 开头），所以 shell 保留原样把 `common.h*` 传给 `find`，`find` 就正确地在子目录里找到了 `./spdlog/common.h`。
+
+    **正确写法**
+
+    给模式加引号，阻止 shell 展开：
+
+    ```bash
+    find ./ -name '*common.h*'
+    ```
+
+    这样无论当前目录里有什么文件，模式都会原样传给 `find`，结果就会包含：
+
+    ```
+    ./sipu_common.h
+    ./spdlog/common.h
+    ```
+
+    **小技巧**
+
+    以后用 `find -name`、`grep`、`rsync` 等带通配符的场景，**一律加引号**，就能避免这类“找不到文件”的坑。
+
+* less 开启搜索的方式与 vim 一样，都是`/`
+
+    less 搜索时，可以使用正则表达式。
+
+* 详细讲讲 less 打开一个文件后，如何搜索内容？
+
+    在 `less` 中搜索内容，核心操作是输入 `/` 后跟关键词。以下是具体步骤和常用技巧。
+
+    ### 🔍 基本搜索流程
+    1.  **向下搜索**：按 `/` 键，屏幕底部会出现 `/` 提示符。输入你要找的内容（支持正则表达式），然后按 **Enter** 开始搜索。
+    2.  **向上搜索**：如果你需要向文件开头方向查找，按 `?` 键，输入内容后按 Enter。
+    3.  **跳转匹配**：
+        *   按 `n`：跳转到**下一个**匹配项（与搜索方向一致）。
+        *   按 `N`：跳转到**上一个**匹配项（与搜索方向相反）。
+
+    ### ⚙️ 进阶技巧
+    *   **忽略大小写**：默认搜索区分大小写。如果想忽略大小写，可以在打开文件时就加上 `-i` 参数（例如 `less -i filename`），或者使用 `-I` 参数。
+    *   **取消高亮**：搜索后匹配的文字通常会高亮。如果不想要高亮，可以按 `ESC` 然后按 `u` 来清除。
+    *   **退出搜索**：按 `q` 键可以退出 `less` 查看模式。
+
+    如果你是想在文件里找**不包含**某关键词的行，或者有更复杂的匹配需求，可以告诉我。
+
+* 使用 / 进行搜索时，使用的是正则表达式，还是类似 vim 那样的 magic 模式？
+
+    `less` 的 `/` 搜索使用的是**正则表达式**，但它并不像 Vim 那样有一套独立的“magic 模式”体系。它的具体语法和行为，取决于你系统底层的正则表达式库。
+
+    ### 🧬 它用的是哪种正则？
+    `less` 本身并不完全从头实现正则引擎，它的搜索模式遵循**系统提供的正则表达式库**所认可的规则。这意味着：
+
+    *   **它不是 Vim 的 magic 模式**：Vim 的 magic 模式（如 `\v`、`\m`）是 Vim 编辑器特有的语法糖，`less` 并不识别这些开关。你不需要用 Vim 的思维去理解它。
+    *   **它通常是 POSIX 风格**：在大多数 Linux 系统上，你接触到的是 POSIX 基本或扩展正则表达式。例如，它支持 `[0-9]` 或 `[[:digit:]]` 来匹配数字，但**不支持** Perl 风格的 `\d`。
+
+    ### 💡 一个实用的“开关”：`Ctrl+R`
+    虽然 `less` 没有 Vim 那样的模式切换，但它提供了一个非常方便的快捷键来**临时禁用正则**：
+
+    *   当你按下 `/` 进入搜索提示符后，如果先按 **`Ctrl+R`**，再输入内容，`less` 就会把后续的字符当作**普通纯文本**来查找，而不再解释其中的正则元字符（如 `*`、`.` 等）。
+    *   这对于搜索包含大量特殊符号的长字符串（比如代码片段或日志中的 URL）特别有用，可以省去手动转义的麻烦。
+
+* 检查当前内核参数
+
+    ```bash
+    cat /proc/cmdline
+    ```
+
+    如果参数不对，检查所有 GRUB 文件:
+
+    ```bash
+    cat /boot/grub/grub.cfg | grep linux
+    ```
+
+* update-initramfs -u
+    详细讲讲这行命令的作用
+
+    `update-initramfs -u` 的作用是**更新系统中已存在的 initramfs（初始内存文件系统）镜像**。它主要用在 Debian、Ubuntu 等 Linux 发行版中，当你更改了启动相关的配置或驱动后，需要重新生成这个早期启动环境，以确保系统能正常挂载真正的根文件系统。
+
+    ### 🧠 核心概念：什么是 initramfs？
+    在理解命令前，需要知道 initramfs 是什么。它是一个被压缩的 cpio 归档文件，在开机时由内核解压到内存（RAM disk）中，并作为临时的根文件系统使用。它的核心任务是加载必要的驱动（如磁盘、文件系统、LVM、加密模块等），找到并挂载真正的根分区，然后把控制权交还给系统。
+
+    ### ⚙️ 命令拆解：`-u` 具体做了什么？
+    *   **`-u` (Update)**：这是该命令的**模式选项**。它告诉工具，不要新建（`-c`），也不要删除（`-d`），而是去**更新**已经存在的 initramfs 文件。
+    *   **默认目标**：如果不加 `-k` 参数指定内核版本，`-u` 默认会作用于**最新安装的内核版本**的 initramfs。
+    *   **本质操作**：它实际上会调用底层的工具（如 `mkinitramfs`），读取 `/etc/initramfs-tools/` 下的配置和模块列表，把当前系统最新的驱动和脚本重新打包进 `/boot` 目录下的 `initrd.img-*` 文件中。
+
+    ### 📌 什么时候需要运行它？
+    通常在以下场景中，你需要手动执行 `sudo update-initramfs -u`（**必须加 `sudo`**，因为需要写 `/boot` 目录）：
+    1.  **修改了启动相关配置**：例如编辑了 `/etc/initramfs-tools/modules` 强制加载某个驱动，或修改了 `initramfs.conf`。
+    2.  **更新了关键驱动或存储控制器**：比如更换了磁盘控制器模式（如从 IDE 改为 AHCI），或者安装了专有显卡驱动后。
+    3.  **调整了磁盘加密或 LVM 配置**：如果你更改了 LUKS 加密分区的设置，或者调整了 LVM 逻辑卷，必须让 initramfs 里的脚本和工具保持同步。
+    4.  **系统提示或修复引导问题**：某些软件包在安装/升级时（如内核更新）会自动触发该命令；如果你遇到启动时找不到根分区的问题，手动更新一次有时能解决因驱动缺失导致的故障。
+
+    ### ⚠️ 注意事项
+    *   **风险**：如果更新过程中因为配置错误或磁盘空间不足导致生成失败，而旧的 initramfs 又被覆盖了，系统可能会**无法正常开机**。在操作关键服务器前，建议确保 `/boot` 有足够空间。
+    *   **内核版本**：如果你需要为**所有**已安装的内核更新，可以使用 `sudo update-initramfs -u -k all`。
+
+* ip neig
+    arp -an
+    详细讲讲这两行代码的作用
+
+    这两行命令都用于查看 Linux 系统中的 **ARP 缓存表**（也叫邻居表）。核心区别在于：`ip neigh` 是现代 Linux 系统推荐使用的工具，功能更强；`arp -an` 是较老的工具，主要用于查看 IPv4 的 ARP 记录。
+
+    ### `ip neigh`：现代的邻居表管理工具
+
+    `ip neigh` 属于 `iproute2` 工具集，专门用来管理“邻居对象”（即 IP 地址与链路层 MAC 地址的绑定关系）。
+
+    - **作用**：显示、添加、删除或修改邻居表条目。对于 IPv4 来说，它操作的就是我们常说的 ARP 表。
+    - **优势**：它同时支持 IPv4 和 IPv6。在 IPv6 中，对应的地址解析协议叫 NDP（邻居发现协议），`ip neigh` 也能统一查看和管理。
+    - **常见状态**：输出结果中通常会包含状态信息，例如 `REACHABLE`（可达）、`STALE`（陈旧，但条目仍有效）、`DELAY`（延迟验证）、`FAILED`（解析失败）等，帮助你判断网络连接的实时健康状况。
+
+    ### `arp -an`：传统的 ARP 缓存查看命令
+
+    `arp` 是一个比较老的命令，在部分新系统上可能默认未安装，且已被标记为废弃，官方建议用 `ip neigh` 替代。
+
+    - **作用**：专门用来显示和修改 IPv4 的 ARP 缓存。
+    - **参数拆解**：
+        - `-a`：显示当前所有的 ARP 条目。
+        - `-n`：以数字形式显示 IP 地址，不尝试反向解析成主机名。这能加快输出速度并避免因 DNS 解析问题导致的卡顿。
+
+    ### 怎么选？
+
+    如果你只是想快速看一眼 ARP 缓存，两个命令都能用。但在现代 Linux 环境中，**优先使用 `ip neigh`** 是更好的习惯，因为它能统一处理 IPv4 和 IPv6，且是内核和网络栈管理工具的主流方向。
+
+* sudo userdel -r admin
+    讲讲这行命令的作用
+
+    `sudo userdel -r admin` 这行命令的作用是：**以超级用户权限删除名为 `admin` 的用户账号，并同时删除该用户的家目录和邮件池（mail spool）。**
+
+    下面逐部分拆解：
+
+    ## 命令拆解
+
+    | 部分 | 含义 |
+    |------|------|
+    | `sudo` | 以 root（超级用户）权限执行后面的命令。删除用户是特权操作，普通用户无法执行。 |
+    | `userdel` | Linux 中用于删除用户账号的命令。 |
+    | `-r` | `--remove` 选项：删除用户的同时，删除其**家目录**（通常是 `/home/admin`）和**邮件池**（`/var/mail/admin`）。 |
+    | `admin` | 要删除的目标用户名。 |
+
+    ## 具体会做什么
+
+    1. **删除用户账号**：从 `/etc/passwd`、`/etc/shadow`、`/etc/group` 等系统文件中移除 `admin` 的相关条目（如果该用户是某些组的唯一成员，组也可能被处理）。
+    2. **删除家目录**：因为加了 `-r`，会递归删除 `/home/admin` 整个目录及其中的所有文件。
+    3. **删除邮件池**：删除 `/var/mail/admin`（或 `/var/spool/mail/admin`）。
+
+    ## 重要注意事项
+
+    - **不可逆**：家目录里的所有个人文件、配置、数据都会被永久删除，无法恢复（除非有备份）。
+    - **不删除该用户拥有的、位于家目录之外的文件**：`userdel -r` 只删家目录和邮件池；如果该用户在系统其他位置（如 `/opt`、`/srv`、`/tmp`）拥有文件，这些文件会保留，但会变成"孤儿文件"（属主显示为数字 UID）。
+    - **用户必须处于登出状态**：如果 `admin` 当前有进程在运行（已登录或有后台服务），`userdel` 可能报错或无法完全清理，建议先 `pkill -u admin` 或确认其已登出。
+    - **删除前建议确认**：可先用 `id admin`、`ls -la /home/admin`、`getent passwd admin` 确认该用户存在及其家目录内容，避免误删。
+    - **系统账号慎删**：如果 `admin` 是系统服务账号或 sudoers 中的管理员，删除前要确认不会影响系统运行或管理权限。
+
+    简言之：这是一条**彻底删除用户及其个人数据**的高权限命令，执行前务必确认目标用户无误并做好必要备份。
+
+* sudo usermod -L admin
+    sudo passwd -l admin
+    详细讲讲这两行代码的作用
+
+    These two commands both lock the `admin` account, but they work differently and are often used together for defense in depth.
+
+    ### `sudo usermod -L admin`
+
+    The `-L` flag stands for **Lock**. It modifies the user's entry in `/etc/shadow` by prepending an exclamation mark (`!`) to the beginning of the existing password hash.
+
+    - **Effect:** The account can no longer authenticate using its password. Any login attempt via password (SSH, console, `su`) will be rejected.
+    - **Reversibility:** Easy. `sudo usermod -U admin` removes the `!` and restores the original password.
+    - **Limitation:** It **only** blocks *password* authentication. If the user has SSH keys configured, they can still log in via key-based authentication unless `sshd` is specifically configured to deny locked accounts.
+
+    ### `sudo passwd -l admin`
+
+    The `-l` flag (lowercase L) also locks the password. Historically, this also prepends a `!` to the password hash in `/etc/shadow` (similar to `usermod -L`). On modern Linux systems, the behavior is nearly identical to `usermod -L`.
+
+    - **Effect:** Disables password login for `admin`.
+    - **Reversibility:** Use `sudo passwd -u admin` to unlock.
+    - **Key difference from `usermod -L`:** `passwd -l` is specifically a password management tool. Some older implementations or specific distributions may behave slightly differently, but for practical purposes on modern systems, it achieves the same result: the password field is invalidated.
+
+    ### Why run both?
+
+    Running both is somewhat redundant but serves as a **safety net**:
+    1. It ensures the lock is applied even if one command fails (e.g., if the user doesn't exist, both fail; but if there's a filesystem quirk with one tool, the other might succeed).
+    2. It explicitly documents intent: the password is locked, regardless of the method used to check.
+
+    ### Important Caveat: SSH Keys
+
+    **Neither command blocks SSH key-based login.** If `admin` has `~/.ssh/authorized_keys` set up, they can still SSH in. To fully lock the account from SSH, you must also:
+    - Set the shell to `/sbin/nologin` (`sudo usermod -s /sbin/nologin admin`), or
+    - Configure `sshd_config` with `DenyUsers admin` or `AllowUsers` (excluding admin), then restart SSH.
+
+    To **verify** the lock, check `/etc/shadow`:
+    ```bash
+    sudo grep admin /etc/shadow
+    ```
+    You should see the password field starting with `!` (e.g., `admin:!$6$...`).
+
 * 详细讲讲 driverctl 的用法
 
     `driverctl` 是一个用于在 Linux 上查看和强制更改设备驱动绑定的命令行工具。它最核心的用途是**让某个硬件设备不再使用内核默认的驱动，转而绑定到你指定的驱动**（比如为了虚拟化直通、规避驱动 Bug 或测试新驱动）。这种更改默认是**持久化**的，重启后依然生效。

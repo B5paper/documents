@@ -4,6 +4,12 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
+* bash 命令中`&&`和`;`的区别
+
+    * `&&`： 只有前一个命令成功执行（返回0）才会执行下一个命令
+
+    * `;`： 无论前一个命令是否成功都会执行下一个命令
+
 * Introduction To Bash Scripting
 
     <https://ebook.bobby.sh/>

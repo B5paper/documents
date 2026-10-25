@@ -2,6 +2,54 @@
 
 ## cache
 
+* 详细讲讲 C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
+
+    `C_INCLUDE_PATH` 和 `CPLUS_INCLUDE_PATH` 是 GCC 预处理器使用的环境变量，用来为特定编程语言**额外指定头文件的搜索目录**。它们的作用类似于命令行选项 `-isystem`，但通过环境变量来设置，可以影响该环境下的所有编译过程。
+
+    ### 核心区别与作用
+
+    这两个变量的核心区别在于**生效的语言范围**：
+
+    *   **`C_INCLUDE_PATH`**：仅当预处理 **C 语言**代码时生效。
+    *   **`CPLUS_INCLUDE_PATH`**：仅当预处理 **C++ 语言**代码时生效。
+
+    根据 GCC 官方文档，这些变量指定的目录会被当作 `-isystem` 目录来搜索。这意味着这些目录里的头文件通常被视为“系统头文件”，GCC 在处理它们时可能会抑制某些警告（例如，不会对系统头文件里的代码报出一般的编译警告）。
+
+    ### 搜索顺序与优先级
+
+    理解它们何时被搜索至关重要。GCC 在查找头文件时，遵循一个明确的优先级顺序（从高到低）：
+
+    1.  **命令行 `-I` 选项**：你在编译命令中直接指定的目录优先级最高。
+    2.  **环境变量 `CPATH`**：这个变量对所有语言生效，效果类似于 `-I`，但优先级低于命令行中的 `-I`。
+    3.  **特定语言环境变量（`C_INCLUDE_PATH` / `CPLUS_INCLUDE_PATH`）**：这就是你问的变量，它们的效果类似于 `-isystem`，优先级低于 `CPATH` 和命令行 `-I`，但高于 GCC 的内置系统目录。
+    4.  **命令行 `-isystem` 选项**：显式指定的系统目录。
+    5.  **GCC 的内置标准系统目录**：如 `/usr/include` 等。
+
+    **简单记忆**：命令行 `-I` > `CPATH` > `C_INCLUDE_PATH`/`CPLUS_INCLUDE_PATH` > 标准系统路径。
+
+    ### 格式与语法
+
+    *   **分隔符**：变量的值是一个目录列表，目录之间用系统特定的分隔符隔开。在 **Linux/macOS** 等系统上通常是**冒号 `:`**，在 **Windows** 上通常是**分号 `;`**。
+    *   **空元素**：列表中的空元素（例如开头、结尾或连续的分隔符）代表**当前工作目录**。例如，在 Linux 下设置 `C_INCLUDE_PATH=":/my/headers"` 等同于添加了 `-isystem .` 和 `-isystem /my/headers`。
+
+    ### 使用示例
+
+    假设你有一个 C 项目，依赖一个安装在非标准路径 `/opt/custom/include` 的头文件，且不想在每次编译时都加 `-I` 选项。
+
+    **对于 C 语言**（在 Linux/macOS 的 Bash 中）：
+    ```bash
+    export C_INCLUDE_PATH=/opt/custom/include:$C_INCLUDE_PATH
+    gcc -c main.c
+    ```
+
+    **对于 C++ 语言**：
+    ```bash
+    export CPLUS_INCLUDE_PATH=/opt/custom/include:$CPLUS_INCLUDE_PATH
+    g++ -c main.cpp
+    ```
+
+    **注意**：通常建议将变量追加到现有值之后（如 `$C_INCLUDE_PATH`），以免覆盖掉其他工具或脚本可能设置好的路径。
+
 * 详细讲讲 gcc -static
 
     `gcc -static` 是 GCC 的一个链接器选项，它的核心作用是**强制生成一个完全静态链接的可执行文件**。这意味着，程序运行时所需的所有库代码（如 C 标准库、数学库等）都会被直接“打包”进最终的可执行文件里，程序运行时不再需要依赖系统中的动态库文件（`.so`）。

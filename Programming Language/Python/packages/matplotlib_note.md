@@ -2,6 +2,77 @@
 
 ## cache
 
+* 详细讲讲`fig.patch.set_facecolor()`, `plt.figtext()`
+
+    这两个方法/函数分别用于控制 Matplotlib 图表的**最底层背景色**和**在图表任意位置添加文本**。它们的核心区别在于作用对象：`fig.patch` 作用于整个画布的背景，而 `plt.figtext()` 作用于画布上的文字层。
+
+    ### 🎨 `fig.patch.set_facecolor()`
+
+    **作用**：设置整个 Figure（画布）的**背景颜色**。
+
+    在 Matplotlib 中，`fig.patch` 是一个代表画布背景的矩形补丁（Rectangle Patch）实例。调用它的 `set_facecolor()` 方法，就是给这个背景矩形填充颜色。
+
+    **用法示例**：
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    fig.patch.set_facecolor('lightgoldenrodyellow')  # 将画布背景设为浅金黄色
+    ax = fig.add_axes((0.1, 0.3, 0.4, 0.4))
+    ax.patch.set_facecolor('lightslategray')  # 单独设置坐标区背景
+    plt.show()
+    ```
+    **关键点**：
+    - **层级**：它是**最底层**的背景。如果你设置了坐标区（Axes）的背景色，那么坐标区会覆盖在画布背景之上。
+    - **颜色格式**：支持颜色名称（如 `'lightgoldenrodyellow'`）、十六进制（`'#FF0000'`）、RGB/RGBA 元组等。
+
+    ---
+
+    ### 📝 `plt.figtext()`
+
+    **作用**：在 Figure 的**任意位置**添加文本。
+
+    它的坐标系统是**相对于整个画布**的归一化坐标：`(0, 0)` 代表左下角，`(1, 1)` 代表右上角。这与 `plt.text()`（基于坐标轴数据坐标）不同。
+
+    **基本语法**：
+    ```python
+    plt.figtext(x, y, s, fontdict=None, **kwargs)
+    ```
+    - `x, y`：浮点数，范围通常在 `[0, 1]` 之间。
+    - `s`：要显示的字符串。
+    - `**kwargs`：控制文本外观的属性（如字体大小、颜色、对齐方式等）。
+
+    **常用参数**：
+    - `fontsize` / `size`：字号。
+    - `color`：文字颜色。
+    - `ha` (horizontalalignment)：水平对齐（`'center'`, `'right'`, `'left'`）。
+    - `va` (verticalalignment)：垂直对齐（`'center'`, `'top'`, `'bottom'`, `'baseline'`）。
+    - `fontfamily` / `family`：字体族（如 `'serif'`, `'sans-serif'`）。
+    - `style`：字体样式（`'normal'`, `'italic'`, `'oblique'`）。
+    - `weight`：字重（`'light'`, `'normal'`, `'bold'`, `'heavy'` 等）。
+
+    **用法示例**：
+    ```python
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    fig.patch.set_facecolor('lightgray')
+
+    # 在画布顶部居中位置添加标题文本
+    plt.figtext(0.5, 0.95, 'Figure-Level Title', ha='center', va='top', 
+                fontsize=16, weight='bold', color='darkblue')
+
+    # 在左下角添加注释
+    plt.figtext(0.05, 0.05, 'Source: Matplotlib Docs', ha='left', va='bottom',
+                fontsize=8, style='italic')
+    plt.show()
+    ```
+    **关键点**：
+    - **坐标固定**：无论你如何缩放或移动坐标区，`figtext` 的位置相对于画布边框是固定的。
+    - **独立于坐标轴**：它不会随着坐标轴的数据范围或位置变化而移动，非常适合放置**全局标题、图注、水印或来源说明**。
+
+    **总结**：`fig.patch.set_facecolor()` 负责“涂底色”，`plt.figtext()` 负责“贴标签（文字）”。两者都是 Figure 级别的操作，在需要统一控制图表外观或添加全局信息时非常有用。
+
 * 详细讲讲 matplotlib 中 plt.plot() 的用法、常用参数
 
 	好的，我们来详细讲解一下 Matplotlib 中最核心、最常用的函数之一：`plt.plot()`。

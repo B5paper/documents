@@ -1,5 +1,81 @@
 ## cache
 
+* P 进制数的合成与取各个位的数字的实现。分别实现从高位到低位，从低位到高位
+
+    ### P 进制数的合成与取位
+
+    给定一个 P 进制数，其位权展开形式为：
+    \[
+    N = d_n P^n + d_{n-1} P^{n-1} + \dots + d_1 P^1 + d_0 P^0
+    \]
+    其中 \(d_i \in [0, P-1]\)。
+
+    **合成（从各位数字构造数值）**
+    从低位到高位遍历，累加 `digit * P^i`。这对应 **Horner 法则**的逆过程，或者直接按权展开。
+
+    **取各位数字**
+    - **从低位到高位**：反复对 P 取余得到最低位，然后整除 P 去掉该位。这是最自然的方式，先得到低位。
+    - **从高位到低位**：需要先确定最高位的位权（即最大的 \(P^k \le N\)），然后用 \(N\) 整除 \(P^k\) 得到当前最高位，取余后降低位权继续。这种方式天然按书写顺序输出高位到低位。
+
+    ### Python 实现
+
+    ```python
+    def compose_from_low_to_high(digits, P):
+        """从低位到高位的数字列表合成数值。digits[0] 是个位。"""
+        value = 0
+        power = 1
+        for d in digits:
+            value += d * power
+            power *= P
+        return value
+
+    def compose_from_high_to_low(digits, P):
+        """从高位到低位的数字列表合成数值。digits[0] 是最高位。"""
+        value = 0
+        for d in digits:
+            value = value * P + d
+        return value
+
+    def get_digits_low_to_high(n, P):
+        """从低位到高位提取各位数字。返回列表，索引 0 是个位。"""
+        if n == 0:
+            return [0]
+        digits = []
+        while n > 0:
+            digits.append(n % P)
+            n //= P
+        return digits
+
+    def get_digits_high_to_low(n, P):
+        """从高位到低位提取各位数字。返回列表，索引 0 是最高位。"""
+        if n == 0:
+            return [0]
+        # 先找到最高位的位权
+        power = 1
+        while power * P <= n:
+            power *= P
+        digits = []
+        while power > 0:
+            digits.append(n // power)
+            n %= power
+            power //= P
+        return digits
+    ```
+
+    **使用示例**（以 P=16，数值 525 为例，对应十六进制 `20D`）：
+    ```python
+    P = 16
+    n = 525
+    print(get_digits_low_to_high(n, P))  # [13, 0, 2]  （低位在前）
+    print(get_digits_high_to_low(n, P))  # [2, 0, 13]  （高位在前，13 即 D）
+
+    # 验证合成
+    assert compose_from_low_to_high([13, 0, 2], P) == 525
+    assert compose_from_high_to_low([2, 0, 13], P) == 525
+    ```
+
+    **效率说明**：从低位到高位的提取是 \(O(\log_P N)\) 次除法与取余，天然高效。从高位到低位的方式需要先计算最高位权（额外一轮循环），但若已知位数（例如固定宽度的进制转换），可直接从 \(P^{\text{width}-1}\) 开始，避免探测。两种方式的数值处理量级相同，选择取决于你需要的输出顺序。
+
 * 什么是 p vs np 问题？
 
     你好！这是一个非常棒的问题，也是计算机科学领域最重要、最著名的未解难题。

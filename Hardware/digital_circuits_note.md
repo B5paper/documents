@@ -1,4 +1,6 @@
-* 数字电子技术基础
+# 数字电子技术基础
+
+## cache
 
     * 数制
 
@@ -395,3 +397,6 @@
 		常用的其他运算及英文：
 
 		与非（NAND），或非（NOR），与或非（AND - NOR），异或（EXCLUSIVE OR），同或（EXCLUSIVE NOR）
+
+## topics
+

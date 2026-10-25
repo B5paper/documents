@@ -36,95 +36,15 @@
 
 ## cache
 
-* hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
+* [v] nvim-tree、telescope、fzf
 
-    feedback:
+* [v] pip install -e .
 
-    1. 可以尝试如果 compgen -- $cur 匹配不到时，使用 compgen -X 匹配做一次通配符匹配，`*${cur}*`，如果还是匹配不到，再放弃匹配
+* [v] C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
 
-        这样一来，输入文件名后按 tab，find 展开成路径，compgen 先使用`-- $cur`匹配失败，然后再使用`-X`匹配，得到结果。此时再用户追加输入一些字后，按 tab，只要保证 find 按 -path 搜索，find 继续给出所有候选路径，此时 compgen 回到`-- $cur`匹配，非常完美。
+* [v] `arr: "NDArray" = cp.array([1, 2, 3])`
 
-* [ ] python `transformers`
-
-* [ ] nvim-tree、telescope、fzf
-
-* [v] vim-rooter
-
-* 项目架构
-
-	* log
-
-		任务量比较大时，可能有不同领域的 entry，不止当前领域，所以无法把 entry 放到当前 proj 的 note 的 cache 里。而放到 exp 里也不合适，因为 exp 其实是草稿纸，只有稳定的 exp 才能放到 log 或 note 里。因此，必须要有一个`log.md`文件，专门拿来存放这些 entry。
-
-		常见模板如下：
-
-		```md
-		# log
-
-		按时间顺序存储的笔记。
-
-		## content
-
-		* xxxx
-
-			xxx, yyy
-
-		* zzz
-
-			xxx, zzz
-		```
-
-	* exp
-
-		草稿纸。经过验证的经验、规律、结论，可以放到`稳定`里。稳定的 entry 可以随时移动到 log, note 等文件里。
-
-		模板：
-
-		```md
-		## 不稳定
-
-		### 纯缓存
-
-		* xxx
-
-		### 下一步可验证
-
-		* yyy
-
-		## 稳定
-
-		* zzz
-		```
-
-	* note
-
-		笔记。cache 里存储的是未来得及分类的 entry，等攒够一波就放到 topics 里分流。
-
-		模板
-
-		```md
-		# note
-
-		## cache
-
-		## topics
-
-		### xxx
-
-		### yyy
-		```
-
-* [v] PS1 变量
-
-* [new] pip install -e .
-
-* [new] C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
-
-* [new] `arr: "NDArray" = cp.array([1, 2, 3])`
-
-* [v] GitLens
-
-* [new] git diff
+* [v] git diff
 
     终端版:
 
@@ -140,26 +60,22 @@
 
     这会自动弹出 VS Code 的对比窗口。
 
-* [new] 调研 numpy 中 flatten 和 reshape 的实现，P 进制数的合成与取各个位的数字的实现
+* [v] 调研 numpy 中 flatten 和 reshape 的实现，P 进制数的合成与取各个位的数字的实现
 
     分别实现从高位到低位，从低位到高位
 
-* [ ] `fig.patch.set_facecolor()`, `plt.figtext()`, `plt.figtext()`
+* [v] `fig.patch.set_facecolor()`, `plt.figtext()`
 
-* [ ] pyserial, struct
+* [v] pyserial, struct
 
-* [ ] OpenBCI GUI、LSL Lab Streaming Layer
-
-* [asso] 查看所有可用的方法（过滤掉内置方法）
+* [v] 查看所有可用的方法（过滤掉内置方法）
 
     ```py
     methods = [method for method in dir(raw) if not method.startswith('_')]
     print("可用的方法：", methods)
     ```
 
-* [ ] Nilearn
-
-* [ ] 
+* [v] 
 
     ```bash
     sudo usermod -L admin
@@ -178,25 +94,6 @@
 
     ```bash
     arp -an | grep 100.104.94.244
-    ```
-
-* [v] cywgin 中是否默认安装了`ncurses`和`terminfo`
-
-* [ ] ZoomWin：这个插件可以让你用 <C-w> o 暂时最大化当前窗口，再次按下同一个快捷键就能完美恢复之前的布局。
-
-    vim-winzoom：它的作用和 ZoomWin 类似，可以搜索这个插件。
-
-* [v] 方法五：使用 pyproject.toml（现代Python项目推荐）
-
-    创建 `pyproject.toml` 文件：
-
-    ```toml
-    [build-system]
-    requires = ["setuptools", "wheel"]
-
-    [tool.setuptools.packages.find]
-    where = ["."]
-    include = ["*"]
     ```
 
 * [ ] 屏蔽显卡驱动
@@ -224,27 +121,9 @@
     echo "options radeon cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-radeon.conf
     ```
 
-* [v] driverctl
+* [v] `update-initramfs -u`
 
-    ```bash
-    # 安装 driverctl
-    sudo apt install -y driverctl
-
-    # 查看设备当前驱动
-    sudo driverctl list-devices
-
-    # 设置设备使用 VFIO
-    sudo driverctl set-override 0000:01:00.0 vfio-pci
-
-    # 永久保存
-    sudo driverctl set-override --persistent 0000:01:00.0 vfio-pci
-    ```
-
-* [v] lspci -k -s $device
-
-* [ ] `update-initramfs -u`
-
-* [ ]
+* [v]
 
     ```bash
     # 检查当前内核参数
@@ -252,50 +131,6 @@
 
     # 如果参数不对，检查所有 GRUB 文件
     cat /boot/grub/grub.cfg | grep linux
-    ```
-
-* [ ] rules.d
-
-    ```bash
-    # 设置设备权限
-    echo 'SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"' | sudo tee /etc/udev/rules.d/10-vfio.rules
-    sudo udevadm control --reload-rules
-    ```
-
-* [ ] centos 更新 kernel
-
-    如果内核版本太旧，更新到较新版本：
-    ```bash
-    # CentOS 7
-    yum install -y kernel kernel-devel
-    # 或安装ELRepo内核
-    yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
-    yum --enablerepo=elrepo-kernel install kernel-ml -y
-
-    # CentOS 8
-    dnf update kernel kernel-core kernel-modules
-    ```
-
-* [ ] centos 编译内核模块
-
-    ```bash
-    # 需要开发工具
-    yum groupinstall -y "Development Tools"
-    yum install -y kernel-devel
-
-    # 编译vfio模块
-    cd /usr/src/kernels/$(uname -r)
-    make M=drivers/vfio/pci modules
-    cp drivers/vfio/pci/vfio-pci.ko /lib/modules/$(uname -r)/kernel/drivers/vfio/pci/
-    depmod -a
-    ```
-
-* [ ] centos 更新内核
-
-   ```bash
-    # 更新内核并重启
-    yum update kernel -y
-    reboot
     ```
 
 * [ ] 调研 modules-load.d
@@ -325,15 +160,7 @@
 
 * 增加 insert 模式临时延长时间，暂时计时的功能。两种恢复方式，一种是输入一个字符后，另一个是手动退出本次 insert 模式后。这样可以延长思考时间，不至于快速退出 insert。
 
-* 新 vim 脚本：跳转到下一个非代码块中的、当前行第一个非空白字符是 # 的位置。这个用于快速开始处理下一个 # 标题
-
-    另外一个新功能 ：跳转到下一个非代码块中的、当前行第一个非空白字符是 # 的上一个非空白字符。这个用于快速区域选择。
-
-* [ ] writefile(), getreg(), readfile()
-
 * [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
-
-* [ ] :marks
 
 * 动态任务拆分
 
@@ -359,10 +186,6 @@
 * 对于长程任务，应该引入按时间阶段性总结的功能。
 
     不然这个任务算是完成还是未完成？只能说正在进行中。
-
-* [v] vim-gutentags
-
-* [v] `ctags -R --fields=+l --languages=python --python-kinds=-iv --exclude=__pycache__ --exclude=.venv --exclude=*.egg-info --exclude=.git .`
 
 * [asso] Mercurial 或者更现代的 Jujutsu
 
@@ -895,8 +718,6 @@ english words 由 { } reorg: english words 进化而来。
     `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
 
 * [asso] Dash/Zeal（离线API查看器）
-
-* [v] cppman
 
 ## qa
 
@@ -2092,13 +1913,11 @@ resources:
 
 ### cache
 
+* [ ] python `transformers`
+
 * pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
 
 ### tasks
-
-* [v] 看笔记中是否有 cross entropy 的例子，如果没有，给出一个
-
-    只有 pytorch 库的实现，没有 numpy 实现。
 
 * [ ] 《利用Python进行数据分析》（Python for Data Analysis）
 
@@ -3589,11 +3408,69 @@ resources:
 
 ### cache
 
-* [new] `curl -I`
+* [new] 调研 iptables
+
+    ```bash
+    # 查看当前规则
+    sudo iptables -L -n
+
+    # 手动添加规则到 fail2ban-sshd 链
+    sudo iptables -I f2b-sshd -s 192.168.1.100 -j REJECT --reject-with icmp-port-unreachable
+
+    # 或使用 DROP
+    sudo iptables -I f2b-sshd -s 192.168.1.100 -j DROP
+    ```
+
+* [ ] rules.d
+
+    ```bash
+    # 设置设备权限
+    echo 'SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"' | sudo tee /etc/udev/rules.d/10-vfio.rules
+    sudo udevadm control --reload-rules
+    ```
+
+* [ ] centos 更新 kernel
+
+    如果内核版本太旧，更新到较新版本：
+
+    ```bash
+    # CentOS 7
+    yum install -y kernel kernel-devel
+    # 或安装ELRepo内核
+    yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+    yum --enablerepo=elrepo-kernel install kernel-ml -y
+
+    # CentOS 8
+    dnf update kernel kernel-core kernel-modules
+    ```
+
+* [ ] centos 编译内核模块
+
+    ```bash
+    # 需要开发工具
+    yum groupinstall -y "Development Tools"
+    yum install -y kernel-devel
+
+    # 编译vfio模块
+    cd /usr/src/kernels/$(uname -r)
+    make M=drivers/vfio/pci modules
+    cp drivers/vfio/pci/vfio-pci.ko /lib/modules/$(uname -r)/kernel/drivers/vfio/pci/
+    depmod -a
+    ```
+
+* [ ] centos 更新内核
+
+   ```bash
+    # 更新内核并重启
+    yum update kernel -y
+    reboot
+    ```
+
+* [v] `curl -I`
 
     `curl -I https://gitlabsoft.siorigin.com/ccl/siccl_utils`
 
-* [new] 调研 OSC 52 协议
+* [ ] 调研 OSC 52 协议
 
     程序直接操作本地剪贴板：
 
@@ -3613,19 +3490,13 @@ resources:
 
 * [v] 调研 bash 的`exec`命令
 
-* [ ] 调研 rsync `--backup`的用法
+* [v] 调研 rsync `--backup`的用法
 
 * [ ] `less -j 10 +G filename  # 在某些系统中结合使用`
 
 * [ ] `fzf < filename`
 
-* [ ] 调研 less 搜索
-
-    从当前行开始新搜索:
-
-    ```text
-    //pattern
-    ```
+* [v] 调研 less 搜索
 
     在搜索模式中使用正则表达式:
 
@@ -3633,9 +3504,9 @@ resources:
     /[0-9]+\.txt
     ```
 
-* [ ] `ripgrep (rg)：rg -i pattern filename`
+* [v] `ripgrep (rg)：rg -i pattern filename`
 
-* [new] 调研 vim 映射
+* [ ] 调研 vim 映射
 
     ```vim
     " 在 normal 模式下，按 ; 重复上一次的数字动作
@@ -3650,52 +3521,37 @@ resources:
     endfunction
     ```
 
-* [new] 调研 iptables
-
-    ```bash
-    # 查看当前规则
-    sudo iptables -L -n
-
-    # 手动添加规则到 fail2ban-sshd 链
-    sudo iptables -I f2b-sshd -s 192.168.1.100 -j REJECT --reject-with icmp-port-unreachable
-
-    # 或使用 DROP
-    sudo iptables -I f2b-sshd -s 192.168.1.100 -j DROP
-    ```
-
 * [new] 调研`ssh -R 127.0.0.1:2222:127.0.0.1:22 -o GatewayPorts=no ali`
 
     通常 GatewayPorts 是在 server 端指定的，这个命令在 client 端指定，有用吗？
 
-* [ ] 调研 makefile 中的`=`递归展开（lazy evaluation）
+* [v] 调研 makefile 中的`=`递归展开（lazy evaluation）
 
-* [ ] 调研 makefile 中的`:=`立即展开（simple evaluation）
+* [v] 调研 makefile 中的`:=`立即展开（simple evaluation）
 
-* [ ] 调研 makefile 中的`?=`若未定义则赋值
+* [v] 调研 makefile 中的`?=`若未定义则赋值
 
-* [ ] 调研 makefile 中的`+=`追加
+* [v] 调研 makefile 中的`+=`追加
 
-* [asso] makefile `filter`, `filter-out`
+* [ ] makefile `filter`, `filter-out`
 
-* [asso] `grep -P`
+* [ ] `grep -P`
 
-* [ ] 调研 rdp 远程桌面如何降低画质、提升速度
-
-* [asso] 调研 ramfs
+* [ ] 调研 ramfs
 
     `sudo mount -t ramfs -o size=2G ramfs /mnt/shm`
 
-* [asso] 调研`df -T /tmp`
+* [ ] 调研`df -T /tmp`
 
 * [ ] `make -p`
 
-* [asso] `make --print-data-base`
+* [ ] `make --print-data-base`
 
-* [asso] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
+* [ ] 调研`tmpfs /dev/shm tmpfs defaults,size=2G 0 0`
 
     以及`/etc/fstab`的文件格式。
 
-* [asso] `sudo mount -o remount,size=2G /dev/shm`
+* [ ] `sudo mount -o remount,size=2G /dev/shm`
 
     以及除了`size=2G`外，其他的`remount`常跟的选项。
 
@@ -3705,13 +3561,7 @@ resources:
 
 * [ ] `nslookup`
 
-* [ ] `setsid`
-
-* bash 命令中`&&`和`;`的区别
-
-    * `&&`： 只有前一个命令成功执行（返回0）才会执行下一个命令
-
-    * `;`： 无论前一个命令是否成功都会执行下一个命令
+* [v] `setsid`
 
 * [new] `file $(which xfreerdp)`这个是什么意思？
 
@@ -6174,6 +6024,26 @@ resources:
 
 ### cache
 
+* [ ] ZoomWin：这个插件可以让你用 <C-w> o 暂时最大化当前窗口，再次按下同一个快捷键就能完美恢复之前的布局。
+
+    vim-winzoom：它的作用和 ZoomWin 类似，可以搜索这个插件。
+
+* [ ] :marks
+
+* [ ] writefile(), getreg(), readfile()
+
+* 新 vim 脚本：跳转到下一个非代码块中的、当前行第一个非空白字符是 # 的位置。这个用于快速开始处理下一个 # 标题
+
+    另外一个新功能 ：跳转到下一个非代码块中的、当前行第一个非空白字符是 # 的上一个非空白字符。这个用于快速区域选择。
+
+* hvim 在第一次补全后，`subdir/aa<tab>` 无法继续补全后续的 `subdir/aabb`，研究一下解决方案
+
+    feedback:
+
+    1. 可以尝试如果 compgen -- $cur 匹配不到时，使用 compgen -X 匹配做一次通配符匹配，`*${cur}*`，如果还是匹配不到，再放弃匹配
+
+        这样一来，输入文件名后按 tab，find 展开成路径，compgen 先使用`-- $cur`匹配失败，然后再使用`-X`匹配，得到结果。此时再用户追加输入一些字后，按 tab，只要保证 find 按 -path 搜索，find 继续给出所有候选路径，此时 compgen 回到`-- $cur`匹配，非常完美。
+
 * [ ] 调研 vim multiple line 插件
 
     [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
@@ -6766,6 +6636,12 @@ resources:
 * [ ] java 如何进行 socket 编程？
 
 * [ ] java 是否有 gui 的库？
+
+## fnirs
+
+* [ ] OpenBCI GUI、LSL Lab Streaming Layer
+
+* [ ] Nilearn
 
 ## 其他 Miscellaneous
 

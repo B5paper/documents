@@ -4,6 +4,16 @@
 
 ## cache
 
+* 给 ubuntu 下 wayland 设置分辨率，目前似乎没有什么比较好的办法
+
+    displayconfig-mutter 也只能选择最接近的分辨率，不能像 xrandr 那样任意设置。
+
+    xrandr 只支持 x11，不支持 wayland
+
+    Wayland 合成器对显示模式的管理方式完全不同，一般不接受外部的 Modeline
+
+* 查看当前的桌面环境：`echo $XDG_SESSION_TYPE`
+
 * ubuntu gnome 里 ctrl + alt + left/right 可以切换桌面，但是并没有年到 setting 里有设置的地方， 为什么
 
     您观察得很仔细！这是一个很好的问题。
