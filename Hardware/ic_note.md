@@ -2,6 +2,10 @@
 
 ## cache
 
+* 香山 riscv 源代码 repo
+
+    <https://gitee.com/OpenXiangShan/XiangShan/>
+
 * 详细讲讲 3d dram 中的 f2f, f2b
 
     在 3D DRAM（以及更广泛的 3D IC）堆叠中，**F2F（Face-to-Face，面对面）** 和 **F2B（Face-to-Back，面对背）** 是两种最核心的晶圆/芯片键合方向。简单说，它们的区别在于：**两片芯片的“活跃面”（有晶体管和电路的那一面）是彼此相对，还是朝向另一片芯片的背面（硅衬底）。**

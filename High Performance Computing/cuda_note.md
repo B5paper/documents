@@ -2,6 +2,51 @@
 
 ## cache
 
+* cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
+
+    可以。CUDA 0 的 stream 不仅可以等待 CUDA 1 上 kernel 的结束，而且这个操作是 NVIDIA 官方支持的，主要通过 **CUDA Event** 和 `cudaStreamWaitEvent` API 实现。对于跨进程场景，CUDA 也提供了 **IPC Event** 机制来达成同样目的。
+
+    ### 🖥️ 跨设备同步：CUDA 0 等待 CUDA 1
+
+    **结论：完全可行。**
+
+    实现这一功能的核心是 **CUDA Event** 和 **`cudaStreamWaitEvent`** 函数。
+
+    1.  **记录事件 (Record Event)**：在 CUDA 1 上，当 kernel 启动后，使用 `cudaEventRecord()` 将一个事件（Event）记录到该 kernel 所在的 stream 中。这个事件充当了一个标记，表示“此点之前的所有工作（包括那个 kernel）都已完成”。
+    2.  **等待事件 (Stream Wait Event)**：在 CUDA 0 上，调用 `cudaStreamWaitEvent(stream_0, event_from_device1, 0)`。这个调用是非阻塞的，它会指示 CUDA 0 上的 `stream_0`：**在 `event_from_device1` 完成之前，不要开始执行后续提交的任何工作**。
+
+    **关键点：**
+    *   **跨设备支持**：`cudaStreamWaitEvent` 明确支持事件和 stream 属于不同设备的情况，这正是实现多 GPU 同步的官方方式。
+    *   **效率**：这种同步是在设备端高效完成的，不会阻塞主机（CPU）线程。
+    *   **注意事项**：`cudaEventRecord()` 本身要求事件和 stream 必须在**同一个设备**上。因此，你必须先在 CUDA 1 上记录事件，然后才能让 CUDA 0 的 stream 去等待它。
+
+    ### 🔗 跨进程同步：不同进程间的 Stream 等待
+
+    **结论：同样可以实现，但需要借助 CUDA IPC（进程间通信）事件。**
+
+    CUDA 提供了 **Interprocess Event (IPC Event)** 机制，允许一个进程创建的事件被另一个进程安全地引用和等待。
+
+    **实现流程大致如下：**
+
+    1.  **进程 A（生产者）**：在 CUDA 1 上创建一个**支持 IPC** 的事件（例如，在 PyTorch 中设置 `interprocess=True`，或在 CUDA Driver API 中使用 `CU_EVENT_INTERPROCESS` 标志）。当 kernel 执行时，将事件记录到该 stream 上。
+    2.  **获取 IPC 句柄**：进程 A 通过 `cudaIpcGetEventHandle()` 等 API 获取该事件的 IPC 句柄。这个句柄是一个可以传递给其他进程的标识符。
+    3.  **进程 B（消费者）**：进程 B 通过某种进程间通信（如管道、共享内存、socket）接收到这个 IPC 句柄，然后使用 `cudaIpcOpenEventHandle()` 将其“导入”为自己的进程中的一个事件对象。
+    4.  **跨进程等待**：进程 B 现在可以像使用本地事件一样，调用 `cudaStreamWaitEvent(stream_0_in_process_B, imported_event, 0)`，让 CUDA 0 上的 stream 等待该事件完成。
+
+    **关键限制与注意事项：**
+    *   **平台限制**：CUDA IPC 功能主要限制在**支持统一寻址的 Linux 操作系统**上，在 Tegra 等平台上可能不受支持。
+    *   **事件特性**：用于 IPC 的事件通常**不能同时启用计时功能**（`enable_timing=True`），因为计时事件可能包含与特定设备/上下文绑定的资源。
+    *   **安全性与生命周期**：使用 IPC 事件需要谨慎管理事件的生命周期和内存安全，确保在接收进程使用完毕前，发送进程不会销毁事件。
+
+    ### 💎 总结
+
+    | 场景 | 可行性 | 核心机制 | 关键 API / 标志 |
+    | :--- | :--- | :--- | :--- |
+    | **跨设备同步** (CUDA 0 等 CUDA 1) | ✅ **完全支持** | CUDA Event | `cudaStreamWaitEvent`（官方明确支持跨设备） |
+    | **跨进程同步** (进程 A 等 进程 B) | ✅ **支持**（主要限 Linux） | IPC Event | `interprocess=True` / `CU_EVENT_INTERPROCESS`，配合 IPC 句柄传递 |
+
+    所以，无论是跨 GPU 还是跨进程，CUDA 都提供了成熟的 Event 机制来让你实现精确的异步流同步，而无需让 CPU 介入进行昂贵的轮询等待。
+
 * compute-sanitizer 是静态检查吗
 
 	**`compute-sanitizer` 不是静态检查工具**，而是 NVIDIA 提供的 **动态运行时检查工具**，属于 **动态分析工具** 类别。  

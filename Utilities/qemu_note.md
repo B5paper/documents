@@ -2,6 +2,82 @@
 
 ## cache
 
+* 现在我有多个 qemu 虚拟机，不一定在同一个物理机上，如何让它们可以使用 ip 互访？
+
+    要在不同物理机上的 QEMU 虚拟机之间实现 IP 互访，核心挑战在于构建一个**跨主机的二层或三层网络**。
+
+    以下是几种主流的解决方案，按实现难度从易到难排序：
+
+    1. 组网神器：Tailscale / ZeroTier (推荐)
+
+        这是目前最简单、最稳定的方案，完全无视物理网络环境（甚至可以跨公网）。
+
+        * **原理**：在每个虚拟机内部安装客户端，它们会构建一个虚拟网卡（TUN 设备），并分配一个在全球唯一的私网 IP。
+        * **优点**：
+            * 无需配置复杂的网桥或物理交换机。
+            * 自带 NAT 穿透，虚拟机在内网还是外网都能通。
+        *   **操作**：在每台 VM 里运行 `curl -fsSL [https://tailscale.com/install.sh](https://tailscale.com/install.sh) | sh`，登录后直接通过分配的 100.x.x.x 地址互访。
+
+    2. VXLAN 隧道 (进阶原生方案)
+
+        如果你希望在底层网络层面实现透明传输，VXLAN 是工业级标准。它通过将二层数据包封装在 UDP 中，在物理机之间建立“隧道”。
+
+        * **实现步骤**：
+
+            1.  在物理机 A 和 B 上分别创建一个 VXLAN 接口，并指定对端的物理 IP。
+            2.  将该 VXLAN 接口挂载到 QEMU 使用的网桥（如 `br0`）上。
+
+        * **命令示例**（在物理机 A 上）：
+
+            ```bash
+            # 创建 vxlan 接口，vni 是唯一标识，remote 是物理机 B 的 IP
+            ip link add vxlan0 type vxlan id 100 remote [物理机B_IP] dstport 4789 dev eth0
+            ip link set vxlan0 up
+            # 将 vxlan0 加入网桥
+            brctl addif br0 vxlan0
+            ```
+
+        *   **结果**：两台物理机上的 `br0` 像通过一根隐形的网线连在一起了，两边的 VM 只要在同一个网段即可通信。
+
+    3. 桥接物理网卡 (二层直连)
+        
+        如果你的物理机都在同一个局域网（同一交换机下），且你有权限控制物理网络。
+
+        *   **原理**：将物理机的网卡（如 `eth0`）也加入到 QEMU 网桥中。
+        *   **缺点**：物理路由器必须能处理大量的 MAC 地址；如果是在云服务器（阿里云/AWS）上，这种方式通常会被安全策略拦截。
+        *   **配置关键**：
+            
+        ```bash
+        # 物理机配置
+        brctl addif br0 eth0
+        ```
+
+        此时虚拟机就像插在物理交换机上一样，直接通过物理 DHCP 获取 IP。
+
+    4. WireGuard 自建 VPN
+        
+        如果你追求极高性能且不希望依赖 Tailscale 的控制端。
+
+        * 原理：在每台虚拟机或每台物理机上部署 WireGuard
+
+        * 场景：
+
+            * VM-to-VM：每台虚拟机都是一个 Peer，直接点对点。
+            * Host-to-Host：在物理机上打通隧道，并配置路由转发（Static Routes），将指向对方 VM 网段的流量转发到隧道中。
+
+    **方案对比与建议**
+
+    | 方案 | 易用性 | 性能 | 适用场景 |
+    | :--- | :--- | :--- | :--- |
+    | **Tailscale** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 跨地域、不想折腾配置、学习用途 |
+    | **VXLAN** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 实验机房、模拟集群、同局域网 |
+    | **桥接物理网卡** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 只有几台物理机且在同一个交换机下 |
+    | **WireGuard** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 对安全和延迟有极致要求的场景 |
+
+    **我的建议：**
+    如果你只是想快速让实验环境跑起来，**Tailscale** 是首选。如果你是在学习 Linux 网络或构建高性能集群，研究一下 **VXLAN** 会让你受益匪浅。
+    ```
+
 * 如何启动 qemu 能使得 host 访问到 guest ip
 
     # 如何在 QEMU 中配置网络使宿主机能够访问客户机 IP
@@ -290,13 +366,13 @@
     如果你对某个配置选项或它与其他网络模式（如`tap`）的对比有更具体的兴趣，我可以为你进一步解释。
 
 * qemu edu device 中，
-0x20 (RW)status register
-    Bitwise OR of:
-    0x01
-        computing factorial (RO)
-    0x80
-        raise interrupt after finishing factorial computation
-详解解释一下 0x20 这个寄存器是如何使用的
+    0x20 (RW)status register
+        Bitwise OR of:
+        0x01
+            computing factorial (RO)
+        0x80
+            raise interrupt after finishing factorial computation
+    详解解释一下 0x20 这个寄存器是如何使用的
 
     好的，我们来详细解释一下 QEMU edu 设备中偏移地址 `0x20` 这个状态/控制寄存器的用法。
 
@@ -1527,6 +1603,7 @@
     - 虚拟机进行大量 DMA 操作
     - 宿主机长时间运行不重启
     - 使用老版本内核（<5.4）
+
 * qemu-system-x86_64: -net tap,ifname=tap0,script=no,downscript=no: could not configure /dev/net/tun (tap0): Operation not permitted
 
     这是什么问题？

@@ -6,6 +6,266 @@
 
 ## cache
 
+* 如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
+    这个判断是否正确？
+
+    这个判断**基本正确，但需要补充一个关键细节**：对于标准的 `mount` 和 `mount -t nfs`，原有内容是被**隐藏（覆盖）** 而非删除；对于 `sshfs`，在默认情况下它甚至会**拒绝**挂载到非空目录，必须加特定参数才能强行挂载，挂载后同样是覆盖显示。
+
+    ### 标准 `mount` 与 NFS 的行为
+    当你把一个设备或 NFS 共享挂载到一个已有文件的目录时，内核会将这个目录作为挂载点。挂载后，你看到的是被挂载设备/远程共享里的内容。原目录下的文件并没有被删除，它们仍然在底层文件系统上，只是暂时被“遮挡”了，变得不可访问。一旦你执行 `umount` 卸载，原目录的内容就会重新出现。
+
+    ### `sshfs` 的特殊之处
+    `sshfs` 基于 FUSE 实现，出于安全考虑，它**默认会拒绝**挂载到非空目录，以防止意外覆盖数据。如果你确实想覆盖，必须显式添加 `-o nonempty` 选项。加上该选项后，其行为就与普通挂载一致：远程内容会覆盖显示本地内容，卸载后本地原文件恢复。
+
+    ### 注意事项
+    虽然文件不会被删除，但**强烈不建议**将挂载点设在有重要数据的非空目录上。因为在挂载期间，你无法访问原文件；如果此时误以为原文件丢失而向该目录写入新数据，可能会造成混淆。最佳实践始终是使用空目录作为挂载点。
+
+* linux 中，如何为一个用户增加指定目录的各种权限？
+
+    在 Linux 中为特定用户增加指定目录的权限，最精准、安全的方法是使用 **ACL（访问控制列表）**。传统的 `chmod` 只能控制所有者、所属组和其他人，无法单独针对某个用户；而 ACL 允许你直接为指定用户单独赋权，且不影响其他人。
+
+    ### 推荐方案：使用 setfacl 赋予精准权限
+
+    假设用户名为 `alice`，目标目录为 `/data/project`。
+
+    **1. 授予权限**
+    使用 `-m`（修改）选项，配合 `u:用户名:权限` 的格式。`rwx` 代表读、写、执行全部权限，你可以根据需求调整（例如只给 `rx`）。
+
+    ```bash
+    sudo setfacl -R -m u:alice:rwx /data/project
+    ```
+
+    - **`-R`**：递归应用，让该目录及其内部所有现有文件/子目录都继承此权限（如果只需目录本身权限，去掉该参数即可）。
+    - **`u:alice:rwx`**：指定用户 `alice` 拥有读、写、执行权限。
+
+    **2. 验证权限**
+    使用 `getfacl` 查看，确认是否多出了一行针对 `alice` 的规则。
+
+    ```bash
+    getfacl /data/project
+    ```
+    如果输出中包含 `user:alice:rwx`，说明设置成功。
+
+    ---
+
+    ### 备选方案：更改目录所有者（不推荐用于共享目录）
+
+    如果你希望该用户对该目录拥有“完全控制权”（包括修改目录的所有者属性），可以将目录的所有者直接改为该用户，但这会剥夺原所有者的特权，**仅适用于该目录专属于此用户的场景**。
+
+    ```bash
+    sudo chown -R alice:alice /data/project
+    ```
+
+    如果只是想给“组”赋权，可以将用户加入目录的所属组，然后修改组权限（`chmod g+rwx`），但这会让组内所有成员都获得权限，不如 ACL 精准。
+
+    ### 关键注意事项
+
+    - **目录的 `x` 权限**：对于目录，执行权限（`x`）代表“能否进入/穿越该目录”。如果你希望用户能 `cd` 进去，必须包含 `x`；如果只是能列出文件名（`ls`）但不能进入，仅需 `r`。
+    - **文件系统支持**：绝大多数现代 Linux 文件系统（如 ext4, xfs）默认已开启 ACL 支持。如果 `setfacl` 报错“操作不支持”，通常需要检查 `/etc/fstab` 挂载选项是否包含 `acl`。
+
+    ---
+    **如果你希望该用户以后在这个目录里新建的文件也自动拥有相同权限，需要我介绍一下如何设置“默认 ACL（Default ACL）”吗？**
+
+* 详细讲讲什么是 vfio_iommu_type1，是否有 vfio_iommu_type2？
+
+    `vfio_iommu_type1` 是 Linux VFIO 框架中用于管理 IOMMU（输入/输出内存管理单元）的一种核心驱动类型。它允许用户空间（如 QEMU 虚拟机）安全地直接访问物理设备，通过 IOMMU 实现 DMA 重映射和中断隔离。
+
+    ### 🧠 什么是 `vfio_iommu_type1`？
+
+    它是 VFIO 提供的“第一类”IOMMU 操作接口。当用户空间程序打开 `/dev/vfio/vfio` 容器并设置 IOMMU 类型为 `VFIO_TYPE1_IOMMU` 时，就会使用这个驱动。
+
+    它的主要职责包括：
+    *   **管理 IOMMU 域**：为 VFIO 容器分配一个 IOMMU 域，并将设备所属的 IOMMU 组（IOMMU Group）附加（attach）到这个域上，从而建立设备的隔离边界。
+    *   **DMA 映射管理**：提供 `VFIO_IOMMU_MAP_DMA` 和 `VFIO_IOMMU_UNMAP_DMA` 等 ioctl 接口，允许用户空间将虚拟机的物理内存（或进程虚拟地址）映射到设备的 I/O 虚拟地址（IOVA），使设备能直接进行 DMA 访问。
+    *   **安全限制**：在打开时，它会检查硬件是否支持中断重映射（Interrupt Remapping）。如果不支持，出于安全考虑，默认会拒绝操作，除非用户显式加载模块参数 `allow_unsafe_interrupts`。
+
+    它最初的设计目的是为了替代 KVM 中旧的、x86 专用的设备直接分配机制，提供一种更安全、通用（不限于 x86 或 KVM）的设备直通方案。
+
+    ### ❓ 是否有 `vfio_iommu_type2`？
+
+    **没有**。在 Linux 内核的 VFIO 框架中，并不存在名为 `vfio_iommu_type2` 的驱动或标准接口。
+
+    你可能会看到与 “Type1” 相关的 **v2** 版本，但它不是独立的 `type2`，而是 `type1` 驱动的一个功能扩展。具体来说，它被称为 **`VFIO_TYPE1v2_IOMMU`**（或 TYPE1v2）。这个 v2 版本在原有基础上增加了对 **“钉住页面”（Pinning Pages）** 的支持，即允许 VFIO 容器长期锁定用户空间的内存页，以便在需要时（如处理设备的缺页异常）获取对应的物理页帧号。
+
+    ### 🔮 未来趋势：IOMMUFD
+
+    值得注意的是，`vfio_iommu_type1` 及其 legacy 的容器/组模型已被标记为**计划在未来弃用**。取而代之的是新的 **IOMMUFD** 子系统。
+
+    IOMMUFD 提供了更现代的 API，旨在支持嵌套翻译、PASID 等高级特性。在过渡期间，内核提供了兼容模式（如 `CONFIG_IOMMUFD_VFIO_CONTAINER`），允许旧的 VFIO 应用在不修改代码的情况下，底层实际由 IOMMUFD 提供支持。不过，长期来看，用户空间软件应当逐步迁移到基于 cdev 和 IOMMUFD 的新接口上。
+
+* 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
+
+    在 Bash 中实现这个需求，核心是将**进程1的输出**变成一个可以逐行读取的数据流，并在循环中检查每一行。下面介绍三种可靠的方法，你可以根据具体场景选择。
+
+    ---
+
+    ### 方法一：使用 `coproc`（最精确，无缓冲问题）
+
+    `coproc` 是 Bash 内置的协程功能，它能建立一个双向管道，让父 Shell 可以精确地逐行读取子进程的输出，且**不会因为缓冲导致延迟**。这是处理“监控进程输出”最干净的方式。
+
+    ```bash
+    #!/bin/bash
+
+    # 启动进程1作为协程，其输出会连接到 COPROC[0] 文件描述符
+    coproc PROC1 { your_command_for_process_1; }
+
+    # 逐行读取进程1的输出
+    while IFS= read -r line <&"${PROC1[0]}"; do
+        echo "$line"  # 如果需要保留进程1的原始输出，可以加上这行
+
+        # 检测指定内容（这里用 grep 判断，也可以用 [[ "$line" == *"关键词"* ]]）
+        if echo "$line" | grep -q "指定的内容"; then
+            echo "检测到关键词，启动进程2..."
+            your_command_for_process_2 &  # 后台启动进程2，不阻塞监控循环
+            # 如果只想触发一次，可以在这里 break
+            break
+        fi
+    done
+    ```
+
+    **优点**：无缓冲延迟，进程1的输出实时可读；`coproc` 会管理好进程1的生命周期。
+
+    ---
+
+    ### 方法二：`tee` + `grep --line-buffered` + `while read`（最常用）
+
+    通过管道将进程1的输出“复制”一份给过滤器，同时保留一份到标准输出。**关键是要给 `grep` 加上 `--line-buffered`**，否则 `grep` 会缓冲输出，导致触发延迟。
+
+    ```bash
+    #!/bin/bash
+
+    # 进程1 的标准输出 -> 同时送到终端 和 grep
+    your_command_for_process_1 \
+      | tee /dev/tty \
+      | grep --line-buffered "指定的内容" \
+      | while IFS= read -r matched_line; do
+            echo "检测到：$matched_line"
+            your_command_for_process_2 &
+            break   # 如果只需要触发一次，加上 break；需要每次匹配都触发则去掉
+        done
+    ```
+
+    **说明**：
+    - `tee /dev/tty` 确保进程1的输出仍然显示在终端上（如果不需要显示，可以去掉这一段，或改为 `tee output.log`）。
+    - `grep --line-buffered` 强制 `grep` 每收到一行就立即输出，避免管道缓冲带来的延迟。
+    - `while read` 在检测到匹配行后执行进程2。如果进程2需要长时间运行，记得加 `&` 放到后台，避免阻塞监控。
+
+    ---
+
+    ### 方法三：输出到日志文件 + `tail -f`（适合长时间运行、输出量大的进程）
+
+    如果进程1输出非常频繁，或者你希望保留完整的输出日志，可以先将输出写入文件，再用 `tail -f` 实时跟踪。
+
+    ```bash
+    #!/bin/bash
+
+    LOG_FILE="/tmp/proc1.log"
+    > "$LOG_FILE"   # 清空旧日志
+
+    # 进程1 在后台运行，输出写入日志文件
+    your_command_for_process_1 > "$LOG_FILE" 2>&1 &
+
+    # 从日志文件的最新位置开始跟踪
+    tail -n 0 -f "$LOG_FILE" | grep --line-buffered "指定的内容" | while IFS= read -r line; do
+        echo "检测到：$line"
+        your_command_for_process_2 &
+        break
+    done
+    ```
+
+    **注意**：如果进程1的输出有缓冲（例如某些语言的 stdout 缓冲），可能需要强制其无缓冲输出（如 `stdbuf -o0 your_command_for_process_1`），否则日志文件可能不会实时更新。
+
+    ---
+
+    ### 额外选项：专用工具 `trigger`
+
+    GitHub 上有一个名为 **`trigger`** 的小工具，专门用于“监控命令输出，匹配到模式后执行另一个命令”。它的用法非常直观：
+
+    ```bash
+    trigger "指定的内容" -- your_command_for_process_1 ++ your_command_for_process_2
+    ```
+
+    它还支持 `--retrigger`（每次匹配都触发）、`--monitor-tee`（保留监控命令的输出）等选项。如果你不想自己写循环逻辑，可以考虑直接使用这个工具。
+
+    ---
+
+    ### 关键注意事项
+
+    1. **缓冲问题**：管道和 `grep` 默认会缓冲输出，务必使用 `grep --line-buffered` 或 `stdbuf -o0` 来确保实时性。
+    2. **进程2的启动方式**：如果进程2是一个长时间运行的服务，记得用 `&` 放到后台，否则监控循环会被阻塞，无法继续处理进程1的后续输出。
+    3. **触发次数**：上面的示例默认在第一次匹配后就 `break`。如果你希望每次匹配都触发进程2，去掉 `break` 即可（但要注意进程2可能会被重复启动）。
+    4. **进程1的退出**：如果进程1正常结束，`coproc` 和 `while read` 循环会自动结束；而 `tail -f` 方式需要你自己控制退出（例如在匹配后手动终止 `tail`）。
+
+    选择哪种方法取决于你对**实时性**和**代码简洁性**的要求。一般来说，**方法一（`coproc`）** 是最推荐的内置方案，**方法二** 则最容易理解和快速上手。
+
+* echo "vfio" > /etc/modules-load.d/vfio.conf
+    echo "vfio-pci" >> /etc/modules-load.d/vfio.conf
+    echo "vfio_iommu_type1" >> /etc/modules-load.d/vfio.conf
+    详细讲讲这三行代码的含义
+
+    这三行命令的作用是：在系统启动时，自动加载 VFIO 相关的三个内核模块，为设备直通（如虚拟机 GPU 直通）做好准备。
+
+    具体含义拆解如下：
+
+    ### 1. 配置文件的机制
+    命令通过 `>` 和 `>>` 将模块名写入 `/etc/modules-load.d/vfio.conf`。这个目录是 systemd 系统的标准配置位置，`systemd-modules-load.service` 会在开机时读取其中的 `.conf` 文件，并加载里面列出的内核模块。每行写一个模块名即可，系统会按顺序处理。
+
+    ### 2. 三个模块的具体分工
+    这三行分别对应 VFIO 框架中不同层次的组件：
+
+    *   **`vfio`**：**核心基础设施**。它是 VFIO 框架的总入口，负责管理容器（Container）等顶层资源，为上层用户态程序（如 QEMU）提供统一的访问接口。
+    *   **`vfio-pci`**：**PCI 设备驱动**。它负责接管特定的 PCI 设备（如显卡、网卡）。一旦设备绑定到 `vfio-pci`，宿主机原本的驱动就会被解绑，该设备就专供虚拟机或用户态程序使用。
+    *   **`vfio_iommu_type1`**：**IOMMU 重映射驱动**。它利用硬件 IOMMU 的能力，负责管理 I/O 页表，确保设备在进行 DMA 操作时只能访问被允许的内存区域，从而保证直通的安全性，防止恶意设备窥探宿主机内存。
+
+    ### 3. 为什么需要手动配置
+    虽然现代内核大多支持模块自动加载，但 VFIO 模块通常不绑定特定的硬件 ID，系统无法“猜到”你需要直通哪个设备。因此，需要像这样手动写入配置文件，确保这些底层支撑模块在系统启动初期就被加载，以便后续进行设备绑定操作。
+
+    **补充提醒**：如果系统使用的是 `initramfs`（如某些加密根分区场景），修改 `/etc/modules-load.d/` 后可能还需要重新生成 initramfs 镜像，否则模块可能无法在最早期阶段加载。
+
+    * 那为什么不写到 /etc/modprobe.d 目录里？
+
+        因为这两个目录的职责完全不同：`/etc/modules-load.d/` 负责“**开机时加载哪些模块**”，而 `/etc/modprobe.d/` 负责“**加载模块时附带什么参数或规则**”。你之前写入的三行内容只是单纯的模块名，没有任何参数，所以放在 `modules-load.d` 才是正确的位置。
+
+        ### 核心区别
+
+        *   **`/etc/modules-load.d/`：负责“加载”**
+            这里的配置文件由 `systemd-modules-load.service` 在开机时读取，它的唯一任务就是**确保列出的模块被载入内核**。文件里通常只写模块名称，一行一个。你写入 `vfio`、`vfio-pci`、`vfio_iommu_type1` 的目的正是让它们在启动时自动加载，所以这里是对的。
+
+        *   **`/etc/modprobe.d/`：负责“配置”**
+            这里的文件是给 `modprobe` 命令看的，用于定义模块的**参数（options）**、**别名（alias）** 或 **黑名单（blacklist）**。关键在于，**单纯把模块名写进 `modprobe.d` 并不会让它在开机时自动加载**。例如，VFIO 直通中真正需要写入 `modprobe.d` 的，是类似 `options vfio-pci ids=10de:1234` 这样的行，用来指定具体要接管哪个设备。
+
+        ### 你的 VFIO 场景怎么用
+
+        在你当前的 VFIO 配置里，分工应该是这样的：
+
+        1.  **加载基础模块**：用 `/etc/modules-load.d/vfio.conf` 确保 `vfio`、`vfio-pci`、`vfio_iommu_type1` 这三个模块在开机时被载入（也就是你之前做的）。
+        2.  **配置设备绑定**：如果后续需要指定 `vfio-pci` 接管的具体设备 ID，或者需要设置 `softdep` 来解决驱动加载顺序冲突，那部分内容才应该写入 `/etc/modprobe.d/` 下的某个 `.conf` 文件里。
+
+        如果硬把单纯的模块名写进 `modprobe.d`，系统开机时并不会因此去加载它们，你的 VFIO 环境反而可能因为缺少这些模块而无法正常工作。
+
+* 屏蔽显卡驱动方法
+
+    对于 NVIDIA 显卡：
+
+    ```bash
+    # 创建黑名单文件
+    echo "blacklist nouveau" | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
+    echo "blacklist nvidia" | sudo tee /etc/modprobe.d/blacklist-nvidia.conf
+    echo "options nouveau modeset=0" | sudo tee -a /etc/modprobe.d/blacklist-nouveau.conf
+
+    # 更新 initramfs
+    sudo update-initramfs -u
+    ```
+
+    对于 AMD 显卡：
+
+    ```bash
+    echo "blacklist radeon" | sudo tee /etc/modprobe.d/blacklist-radeon.conf
+    echo "blacklist amdgpu" | sudo tee /etc/modprobe.d/blacklist-amdgpu.conf
+    echo "options amdgpu cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-amdgpu.conf
+    echo "options radeon cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-radeon.conf
+    ```
+
 * linux 下，我希望根据进程号 pid，显示 pid 的父进程和子进程以及 pid 本进程构成的进程树，怎么办
 
     在 Linux 下要根据 PID 显示一个包含父进程、子进程及自身的进程树，最直接和常用的工具是 **`pstree`**，它专为展示进程层级关系而设计。当然，**`ps`** 命令配合特定选项也能实现类似效果。
@@ -12809,6 +13069,40 @@
         ```
 
 ### vfio-pci
+
+* vfio-pci 中，将设备添加到 new_id 后，vfio-pci 会自动 bind 吗？
+
+    将设备添加到 `vfio-pci` 的 `new_id` 后，**它不一定会自动绑定，这取决于设备当前的状态**。虽然内核机制在特定条件下会触发自动探测和绑定，但为了确保成功，通常建议显式执行 `bind` 操作。
+
+    ### 自动绑定的条件与机制
+
+    当你向 `/sys/bus/pci/drivers/vfio-pci/new_id` 写入厂商和设备 ID 时，内核会将该 ID 添加到 `vfio-pci` 驱动的动态 ID 表中，并尝试为匹配的设备调用驱动的 `probe` 函数。
+
+    *   **会触发自动绑定的情况**：如果目标设备当前**没有**被任何其他驱动绑定（即处于“未分配”状态），那么 `new_id` 的写入操作确实会触发内核自动将该设备绑定到 `vfio-pci` 上。有开发者在补丁讨论中明确指出，对于未分配的设备，`new_id` 会导致内核自动将其绑定。
+    *   **不会触发自动绑定的情况**：如果该设备**已经被其他驱动（如宿主机默认驱动）占用**，或者该 `vendor:device` ID 组合**已经存在于** `vfio-pci` 的动态 ID 列表中（例如之前已添加过同型号设备），再次写入 `new_id` 通常会返回 `EEXIST` 错误，并且**不会**自动把新设备抢过来绑定。此外，如果设备已经在 `vfio-pci` 的 ID 表中但处于未绑定状态，再次写 `new_id` 也不会有任何动作。
+
+    ### 推荐的操作步骤
+
+    鉴于上述不确定性，在虚拟化直通配置脚本或手动操作中，标准且最稳妥的流程是**两步走**：
+
+    1.  **先解绑**：如果设备当前有驱动（`/sys/bus/pci/devices/<BDF>/driver` 存在），先将设备地址写入该驱动的 `unbind` 文件，或者直接写入 `vfio-pci` 的 `unbind`（如果已绑定）。
+    2.  **再绑定**：将设备的 BDF 地址（如 `0000:01:00.0`）显式写入 `/sys/bus/pci/drivers/vfio-pci/bind`。
+
+    许多自动化工具（如 SPDK 的 setup 脚本或 Proxmox 的修复补丁）之所以在写 `new_id` 后还要写 `bind`，正是为了覆盖“设备已被占用”或“ID 已存在”等无法自动绑定的场景。
+
+    ---
+    **如果你是在编写自动化脚本，建议直接采用“解绑旧驱动 -> 写入 new_id（忽略 EEXIST 错误） -> 显式 bind”的流程，这样能避免因设备状态不同导致的绑定失败。**
+
+* vfio 添加 new id
+
+    ```bash
+    # 测试绑定一个设备（示例）
+    echo "8086 10d3" > /sys/bus/pci/drivers/vfio-pci/new_id
+
+    # 检查vfio设备文件
+    ls -l /dev/vfio/
+    # 应该看到vfio目录和设备文件
+    ```
 
 * 不使用 sudo，使得普通用户也可以透传 vfio 设备到 qemu
 

@@ -36,67 +36,42 @@
 
 ## cache
 
-* [v] nvim-tree、telescope、fzf
+* [v] 如何为一个用户增加指定目录的各种权限？
 
-* [v] pip install -e .
+* [v] 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
 
-* [v] C_INCLUDE_PATH, CPLUS_INCLUDE_PATH
-
-* [v] `arr: "NDArray" = cp.array([1, 2, 3])`
-
-* [v] git diff
-
-    终端版:
+* 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
 
     ```bash
-    git diff <commit_id> -- <file_path>
+    sed 's.*/##' <<< "/tmp/dir/target"
+    target
+
+    awk -F'/' '{print $NF}' <<< "/tmp/dir/target"
+    target
+
+    grep -o '[^/]*$' <<< "/tmp/dir/target" 
+    target
     ```
 
-    如果你配置了 VS Code 作为默认的 diff tool，可以使用：
+    也可以直接使用 bash 脚本：
 
     ```bash
-    git difftool <commit_id> -- <file_path>
+    INPUT="/tmp/dir/target"
+    echo ${INPUT#*/}
+    target
     ```
 
-    这会自动弹出 VS Code 的对比窗口。
+* [ ] 调研 makefile 的 submodule
 
-* [v] 调研 numpy 中 flatten 和 reshape 的实现，P 进制数的合成与取各个位的数字的实现
+* [ ] 调研 linux `time` command
 
-    分别实现从高位到低位，从低位到高位
+    `time ./my_app`
 
-* [v] `fig.patch.set_facecolor()`, `plt.figtext()`
+* [ ] 调研`nvprof ./vector_add`如何给出性能数据
 
-* [v] pyserial, struct
+* [ ] 调研`cudaMallocManaged(&x, N*sizeof(float));`
 
-* [v] 查看所有可用的方法（过滤掉内置方法）
-
-    ```py
-    methods = [method for method in dir(raw) if not method.startswith('_')]
-    print("可用的方法：", methods)
-    ```
-
-* [v] 
-
-    ```bash
-    sudo usermod -L admin
-    sudo passwd -l admin
-    ```
-
-    或者直接删除：
-
-    ```bash
-    sudo userdel -r admin
-    ```
-
-    ```bash
-    ip neigh | grep 100.104.94.244
-    ```
-
-    ```bash
-    arp -an | grep 100.104.94.244
-    ```
-
-* [ ] 屏蔽显卡驱动
+* [v] 屏蔽显卡驱动
 
     屏蔽原驱动（防止冲突）
 
@@ -121,19 +96,7 @@
     echo "options radeon cik_support=0" | sudo tee -a /etc/modprobe.d/blacklist-radeon.conf
     ```
 
-* [v] `update-initramfs -u`
-
-* [v]
-
-    ```bash
-    # 检查当前内核参数
-    cat /proc/cmdline
-
-    # 如果参数不对，检查所有 GRUB 文件
-    cat /boot/grub/grub.cfg | grep linux
-    ```
-
-* [ ] 调研 modules-load.d
+* [v] 调研 modules-load.d
 
     ```bash
     # 创建模块加载配置文件
@@ -142,7 +105,7 @@
     echo "vfio_iommu_type1" >> /etc/modules-load.d/vfio.conf
     ```
 
-* [ ] 什么是 elrepo
+* [v] 什么是 elrepo
 
     ```bash
     # 安装 ELRepo 最新内核（更简单）
@@ -156,288 +119,37 @@
 
     这个工具可以防止在多层结构的目录里跳来跳去。
 
-* 按照现在这个节奏，似乎连 random exam 的时间都没有了，只有 rand walk。在随机看笔记的时候，直接就开始记忆。不再通过牢固的记忆来进行开发，而是在用的时候直接去查，查的时候直接开始记。留给 random exam 的时间少一些。
-
-* 增加 insert 模式临时延长时间，暂时计时的功能。两种恢复方式，一种是输入一个字符后，另一个是手动退出本次 insert 模式后。这样可以延长思考时间，不至于快速退出 insert。
+    2026/10/25/00: 这个工具可以使用 vim 里的 find 功能实现，非常方便.
 
 * [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
 
-* 动态任务拆分
-
-    在规定时间内没有完成的任务，拆分成`已经完成的` + `未完成的`两部分。如果未完成的任务不着急，那么把放到任务列表的最后。如果接下来需要继续处理，那么放到当前任务的下面。
-
-* 从死记硬背定理，所有现象、推论都从定义、定理中找。到自己先看现象，然后提出一个假设或定理，最后比较假设和书本里定理的区别。再到无所谓定理和现象，原来书本是人写的，定理是可以商量的。
-
-* 矩阵的奇异值分解
-
-    引申：为什么奇异值分解可以求解线性回归问题？
-
 * 岭回归中，为什么让系数绝对值更小是有效的（能阻止过拟合的）？
-
-* [ ] deoplete.nvim (异步补全)
-
-    ```vim
-    Plug 'Shougo/deoplete.nvim'
-    Plug 'zchee/deoplete-jedi'  " Python 补全源
-
-    let g:deoplete#enable_at_startup = 1
-    ```
 
 * 对于长程任务，应该引入按时间阶段性总结的功能。
 
     不然这个任务算是完成还是未完成？只能说正在进行中。
 
-* [asso] Mercurial 或者更现代的 Jujutsu
+* [v] Mercurial 或者更现代的 Jujutsu
 
-* [ ] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
+* [v] 在一个 bash 中，我先启动进程 1，进程 1 会不断地输出内容，我希望当检测到指定内容时，启动进程 2，怎么办？
 
-* [ ] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
+* [v] openwrt 中的接口指的是什么含义？二层交换机？还是三层交换机？
 
-* [ ] libpci
+* [v] libpci
 
 * [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和
 
 * [ ] 归并排序、堆排序和快速排序 代码，以及复杂度
 
-* [new] pyacvd, tetgen, gmsh
+* [ ] pyacvd, tetgen, gmsh
 
 * qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
 
-* 现在我有多个 qemu 虚拟机，不一定在同一个物理机上，如何让它们可以使用 ip 互访？
+* [v] cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
 
-    要在不同物理机上的 QEMU 虚拟机之间实现 IP 互访，核心挑战在于构建一个**跨主机的二层或三层网络**。
+* [ ] matplotlib.tri 或 Mayavi
 
-    以下是几种主流的解决方案，按实现难度从易到难排序：
-
-    1. 组网神器：Tailscale / ZeroTier (推荐)
-
-        这是目前最简单、最稳定的方案，完全无视物理网络环境（甚至可以跨公网）。
-
-        * **原理**：在每个虚拟机内部安装客户端，它们会构建一个虚拟网卡（TUN 设备），并分配一个在全球唯一的私网 IP。
-        * **优点**：
-            * 无需配置复杂的网桥或物理交换机。
-            * 自带 NAT 穿透，虚拟机在内网还是外网都能通。
-        *   **操作**：在每台 VM 里运行 `curl -fsSL [https://tailscale.com/install.sh](https://tailscale.com/install.sh) | sh`，登录后直接通过分配的 100.x.x.x 地址互访。
-
-    2. VXLAN 隧道 (进阶原生方案)
-
-        如果你希望在底层网络层面实现透明传输，VXLAN 是工业级标准。它通过将二层数据包封装在 UDP 中，在物理机之间建立“隧道”。
-
-        * **实现步骤**：
-
-            1.  在物理机 A 和 B 上分别创建一个 VXLAN 接口，并指定对端的物理 IP。
-            2.  将该 VXLAN 接口挂载到 QEMU 使用的网桥（如 `br0`）上。
-
-        * **命令示例**（在物理机 A 上）：
-
-            ```bash
-            # 创建 vxlan 接口，vni 是唯一标识，remote 是物理机 B 的 IP
-            ip link add vxlan0 type vxlan id 100 remote [物理机B_IP] dstport 4789 dev eth0
-            ip link set vxlan0 up
-            # 将 vxlan0 加入网桥
-            brctl addif br0 vxlan0
-            ```
-
-        *   **结果**：两台物理机上的 `br0` 像通过一根隐形的网线连在一起了，两边的 VM 只要在同一个网段即可通信。
-
-    3. 桥接物理网卡 (二层直连)
-        
-        如果你的物理机都在同一个局域网（同一交换机下），且你有权限控制物理网络。
-
-        *   **原理**：将物理机的网卡（如 `eth0`）也加入到 QEMU 网桥中。
-        *   **缺点**：物理路由器必须能处理大量的 MAC 地址；如果是在云服务器（阿里云/AWS）上，这种方式通常会被安全策略拦截。
-        *   **配置关键**：
-            
-        ```bash
-        # 物理机配置
-        brctl addif br0 eth0
-        ```
-
-        此时虚拟机就像插在物理交换机上一样，直接通过物理 DHCP 获取 IP。
-
-    4. WireGuard 自建 VPN
-        
-        如果你追求极高性能且不希望依赖 Tailscale 的控制端。
-
-        * 原理：在每台虚拟机或每台物理机上部署 WireGuard
-
-        * 场景：
-
-            * VM-to-VM：每台虚拟机都是一个 Peer，直接点对点。
-            * Host-to-Host：在物理机上打通隧道，并配置路由转发（Static Routes），将指向对方 VM 网段的流量转发到隧道中。
-
-    **方案对比与建议**
-
-    | 方案 | 易用性 | 性能 | 适用场景 |
-    | :--- | :--- | :--- | :--- |
-    | **Tailscale** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 跨地域、不想折腾配置、学习用途 |
-    | **VXLAN** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 实验机房、模拟集群、同局域网 |
-    | **桥接物理网卡** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 只有几台物理机且在同一个交换机下 |
-    | **WireGuard** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 对安全和延迟有极致要求的场景 |
-
-    **我的建议：**
-    如果你只是想快速让实验环境跑起来，**Tailscale** 是首选。如果你是在学习 Linux 网络或构建高性能集群，研究一下 **VXLAN** 会让你受益匪浅。
-    ```
-
-* [new] 如果 cuda 0 的 stream 是否可以等 cuda 1 的 launch kernel 的结束？如何实现的？跨进程是否可以实现这个功能？
-
-* 既需要 explore，又需要输出，对接现实世界
-
-    一个问题展开研究可能非常复杂，需要几个月才能看完，比如 linux 内核。但是现实往往要求马上做出输出，比如找工作。所以，复杂的不是 linux 内核本身，也不是找工作本身，而是靠“人”这个润滑剂在 explore 和对接现实世界之间缓和所有摩擦，在动态的变化中找到平衡。
-
-* 知道“做不到什么”的代价比知道“能做到什么”的代价要大
-
-    如果想知道一个工具、一段代码能做到什么，直接去看它的文档和例子就可以，但是如果想知道它做不到什么，那么需要知道它所有能做到的事，才能取补集推断它做不到的事。
-
-    但是现在有 ai 了，想知道“做不到什么”只需要问一下 ai 就可以了。这个命题又不好说了。
-
-* matplotlib.tri 或 Mayavi
-
-* 解决刷题遗忘的几个（尝试）办法
-
-    1. 定期、长期刷题 -> 对抗遗忘
-
-    2. 线性分析 -> 防止背题解，可以应对变化
-
-    3. 亲自做，亲自推导 -> 防止只看懂，没学会 -> （记忆的本质可能是重构，而不是提取）
-
-    4. 小黄鸭法，假装有人在场，讲思路给别人听 -> 有一桶水，才能输出一杯水
-
-    5. 尝试多种解法，多种题目变形，探讨各种可能性
-
-    6. 看国际版的高票回答：力扣（中国站）和力扣国际站（<LeetCode.com>）的风格不同。国际站的讨论区（Discuss）有很多关于算法本质的精彩讨论，能帮你加深理解。
-
-    7. 分析复杂度：做完题后，养成分析时间复杂度和空间复杂度的习惯。
-
-* 预测未来可能的困难/问题，尝试避免问题，直面当下的困难/问题
-
-* 直觉先行，逻辑殿后
-
-* NV 机器人仿真平台
-
-    * NVIDIA Isaac Sim: 机器人仿真参考应用和合成数据生成工具
-
-        构建高保真虚拟世界，测试和验证机器人算法
-
-        基于NVIDIA Omniverse平台，提供逼真的物理和渲染效果
-
-        导入机器人模型、模拟传感器（如摄像头、激光雷达）、进行ROS开发、生成合成数据（Replicator）
-
-        构建数字孪生、验证导航与操作算法、进行软件在环测试
-
-    * NVIDIA Isaac Lab
-
-        用于机器人学习的GPU加速、开源仿真框架
-
-        大规模并行训练机器人强化学习（RL）和模仿学习（IL）策略
-
-        基于Isaac Sim和OpenUSD，但更侧重GPU上的大规模并行计算
-
-        端到端GPU加速、模块化管理器（场景、奖励、事件）、多模态仿真、与主流RL库无缝集成
-
-        大规模训练人形机器人行走、灵巧手操作等需要数百万次迭代的任务
-
-    * Newton开源物理引擎
-
-        NVIDIA 近期还推出了 Newton 开源物理引擎，这是一个与 Google DeepMind、迪士尼研究院共同开发的 GPU 加速引擎，旨在更精准地模拟复杂机器人动作（如在雪地行走），并与 Isaac Lab 深度集成
-
-    简单来说，你可以根据你的目标来决定：
-
-    * 如果你的目标是构建一个逼真的机器人测试环境，验证传感器效果或与ROS进行集成，那么 Isaac Sim 是你的首选。
-
-    * 如果你的目标是大规模训练一个机器人策略，比如让人形机器人学会行走或抓取，那么你需要的是 Isaac Lab。
-
-    * 实际上，它们并非替代关系，而是协同工作的：Isaac Lab 依赖 Isaac Sim 提供的物理和渲染能力，并将其用于大规模的并行训练
-
-* 为什么无法静心做一件事？
-
-    因为害怕这件事不是最优，如果此时有更优的选项呢？害怕错过信息，转瞬即逝的机会。害怕做这件事过于投入，消耗的时间太多，对身体造成负担，影响下一件事的开始。也可能眼前犹如白纸，不清楚该做什么（有了项目池后，其实已经没有这个问题了，但是在项目池还未诞生时，这个问题是确实存在的）。
-
-    如何对抗浮躁，如何静心做一件事？
-
-    1. 严格交给任务执行系统
-
-    2. 一个小任务一个小任务完成，每个小任务仅持续二十分钟左右，这中间除了记录新想法，以及不可避免的外部中断，尽量不主动去做其他事，比如喝水、看手机等
-
-        这样做的好处：
-
-        1. 十几到二十分钟即有一个明确的反馈，形成刺激正循环
-
-        2. 锻炼并适应中等时间长度集中注意力的能力
-
-        3. 仍保留了最基本的处理中断的能力
-
-    3. 在执行一个小任务时，唯一需要交给外部去处理的，就是定时。
-
-        定时的好处：
-
-        1. 防止身体过载，防止耽误其他任务的开始
-
-        2. 有一定的时间压力和紧迫感，效率更高
-
-    4. 在进入一个小任务时，如果还是无法集中注意力，尝试将任务分解成更小的目标，比如读一句话，理解一行代码，打开一个项目
-
-    5. 辅助方法
-
-        1. 舒缓的音乐，而不是激烈的音乐；也可以没有音乐
-
-        2. 线香或盘香
-
-        3. 自然景色，散步, 在自然中感受灵感、状态和能量。
-
-    6. 读小说，每次高度集中注意力 15 ~ 20 分钟
-
-* 我总感觉人们更经常在很“不完美”的环境中领悟东西，比如事件A的截止日期快到了，但是就在这时候突然有了对B的领悟。或者，啥都还没准备好，根本没有安静的环境，比如在上台演讲前的一分钟，突然有了对C的领悟
-
-    你提出的这个观察非常敏锐，而且切中了领悟发生机制的另一个重要侧面。你说得完全正确，很多关键的领悟确实发生在看起来最糟糕、最不完美的时刻，比如截止日期前、上台前，甚至是混乱之中。
-
-    这看起来和“龙场悟道”所强调的安静环境相矛盾，但实际上，它们是领悟这枚硬币的两面。我们可以从几个层面来理解这个有趣的现象：
-
-    1. 领悟的两种类型：主动营造 vs. 被动触发
-
-        我们可以把领悟大致分为两种，它们需要的环境条件不同：
-
-        -   **沉思型领悟（如龙场悟道）：** 这种领悟是关于**世界观、人生观、价值观**等根本性问题的重塑。它需要深度的内在对话，需要剥离社会角色，回归自我。因此，安静、独处、漫长的思考期是它的温床。
-        -   **应激型领悟（你提到的场景）：** 这种领悟是关于**具体问题、方法、技巧或表达方式**的顿悟。它往往在压力、紧张、注意力高度集中或即将行动的时刻被激发。
-
-    2. 为什么“不完美”的环境反而催生领悟？
-
-        你提到的场景非常典型，可以用心理学和神经科学来解释：
-
-        -   **死线效应与注意力聚焦：** 当截止日期临近，大脑会进入一种高度紧张和专注的状态。这种压力像一个漏斗，筛掉了所有无关紧要的信息，让你有限的认知资源全部聚焦在核心任务上。这种高强度的专注，有时会意外地打通与问题B或C的连接通道。看似在思考A，但大脑后台一直在处理B和C的信息，压力之下，连接突然建立。
-        -   **酝酿效应与潜意识工作：** 你之前可能已经为问题B和C投入了大量精力，但陷入了僵局。当你被迫去处理紧急的事件A时，意识层面停止了主动思考，但**潜意识**还在后台继续工作。它不受逻辑束缚，可以进行更自由、更大胆的连接。突然的领悟，就是潜意识把“成品”递交给了意识。这完美解释了为什么在准备演讲（A）时，突然想通了另一个问题（C）。
-        -   **状态转换的契机：** 从一个环境（如安静的思考）突然转换到另一个环境（如嘈杂的后台准备），大脑的认知模式需要切换。这种切换会打破原有的思维定势，让大脑从一个新的角度看待旧的问题。上台前的紧张感，本身也是一种强烈的生理状态，它能激活与平静时不同的脑区，带来全新的视角。
-        -   **认知资源的“溢出”：** 当你高度专注于A时，大脑的活跃度很高，神经网络处于一种易被激活的状态。对A的思考产生的神经活动，可能会“溢出”到与之相关的、或者仅仅是在物理位置上相邻的、代表问题B和C的神经网络，从而意外地激活了它们之间的联系。
-
-    3. 重新理解“龙场悟道”：它本身就是一种“不完美”
-
-        我们再看王阳明的龙场，它绝不是一个舒适、安逸的完美环境。恰恰相反：
-
-        -   **它充满了**：**生存的威胁**（瘴气、野兽、食物匮乏）、**精神的孤独**（远离亲友、文化圈）、**前途的渺茫**（被贬谪的罪臣）。
-        -   **它极度“不完美”**：正是这种极端的、压迫性的“不完美”，迫使他剥离了一切外在的依赖，向内寻求力量。他的“安静”不是享受，而是**在绝境中被逼出来的、唯一的避难所**。
-
-        所以，你观察到的两种现象其实是统一的：**领悟，往往发生在“常规”认知模式被迫中断的时刻。** 无论是主动寻求的“安静”，还是被动承受的“混乱/压力”，它们共同的作用都是**打破我们习以为常的思维路径依赖**。
-
-        -   **安静**，是通过减少外部刺激，让你自己发现路径的尽头，从而转向。
-        -   **压力/混乱**，是通过外部冲击，强行把你撞离原有路径，逼你跳出来寻找新路。
-
-    **给你的启发**
-
-    你完全不必为没有完美的安静环境而焦虑。领悟的发生机制是多元的，它可以也愿意光顾各种场景。
-
-    -   **拥抱混乱：** 下次在忙乱中突然有灵感时，可以试着快速记下它。这可能是你潜意识送来的珍贵礼物。
-    -   **利用压力：** 可以尝试把“酝酿效应”当作一个工具。遇到难题卡壳时，不妨先去处理一件紧急的、完全不同的事，给潜意识留出工作空间。
-    -   **创造“心理”的安静：** 即使外在环境不安静，也可以练习在内心保留一个小小的安静空间。比如在演讲前那一分钟，深吸一口气，在混乱中瞬间回归内在中心。领悟，有时就诞生于这一呼一吸之间。
-
-    领悟的本质，是信息的新连接。而连接，既可以在寂静的深夜悄然发生，也可以在喧闹的站台被瞬间点燃。关键在于，你是否拥有一个开放、敏锐、时刻准备着的大脑，去捕捉它。
-
-* 仅靠 ai 回答获取知识似乎仍无法代替 tutorial，因为 ai 回答过于注重问题和答案的一一对应，从而缺少了“遍历”整个相关领域的能力。
-
-    向 ai 提出细节的问题 -> ai 帮你扩展到这个问题背后的领域 -> 向 ai 要更多的学习资料 -> 去阅读 tutorial, video, slides, books, API doc, blogs -> 在阅读和学习的时候向 ai 提出遇到的问题 -> 总结笔记，加入复习系统
-
-    这样的学习过程比较好。
-
-* [new] 调研斐波那契数列的并行方法
+* [ ] 调研斐波那契数列的并行方法
 
     ```py
     # 串行计算（必须依赖前值）
@@ -451,24 +163,6 @@
         return matrix_power([[1,1],[1,0]], n)[0][1]
     ```
 
-* project pool 中的任务数量先增大（广度优先搜索），再减少。说明复杂度存在一个最大值。如果我们的处理系统/脑子达不到处理这个最大值的能力，那么说明我们的处理系统/脑子无法处理这么复杂的问题。
-
-* 长期任务`{ } xxx`是不是只需要在下面标注日期就可以了？
-
-    比如：
-
-    ```
-    * { } xxx
-
-        * 02.01  30 mins
-
-            feedback:
-
-            * [ ] yyy
-
-        * 02.02  30 mins
-    ```
-
 * async chain 的实现非常重要，有时间了研究一下
 
 	* js 中的 promise 的原理
@@ -479,19 +173,7 @@
 
 	* libhv 中事件驱动的原理
 
-* 香山 riscv 源代码 repo
-
-    <https://gitee.com/OpenXiangShan/XiangShan/>
-
-* 调研 MLIR, IREE
-
-* 学习资源的调研主要用于完成下面几件事情
-
-    1. 发现学习资源里，是否有需要做实验验证的地方，是否可以用实验验证他说的，是否有可以用实验澄清的模糊不清的表达
-
-    2. 语言表达是否有歧义
-
-    3. 未完待续
+* [ ] 调研 MLIR, IREE
 
 ## cached tasks
 
@@ -511,7 +193,7 @@
 
     stack 工具只适合任务的 trace
 
-* [ ] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
+* [v] v2ray + http 代理是否可以代理 udp？如果不可以那么如何代理 udp？
 
 * [ ] 调研如何判断一个新的 example 是否已经在 qa 文件中
 
@@ -523,7 +205,7 @@
 
 ## cached questions
 
-* [new] 思考：文件中使用引用标记来引用其它文件中的内容
+* [ ] 思考：文件中使用引用标记来引用其它文件中的内容
 
     比如
 
@@ -717,7 +399,7 @@ english words 由 { } reorg: english words 进化而来。
 
     `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
 
-* [asso] Dash/Zeal（离线API查看器）
+* [ ] Dash/Zeal（离线API查看器）
 
 ## qa
 
@@ -825,8 +507,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] texmath（Haskell），pandoc（可以转换格式）
 
-* [asso] Vim/Neovim： 插件如 vim-markdown-composer 或 markdown-preview.nvim
-
 * [asso] Emacs： 功能强大，通过 org-mode 或 latex-preview-pane 等可以在编辑器内渲染公式（通常是生成图片覆盖在文本上）。
 
 * [asso] mdmath + 浏览器
@@ -907,29 +587,25 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] texmath
 
-* [asso] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
+* [ ] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
 
-* [asso] `docker start -ia` 其中`-ia`是什么含义？
+* [ ] `docker start -ia` 其中`-ia`是什么含义？
 
     如果只有`-i`没有`-a`会发生什么，如果只有`-a`没有`-i`会发生什么？如果两个都没有会发生什么？
 
-* [asso] `sysfs_create_group()`, `sysfs_remove_group()`
-
-* [asso] `^(?!\./).*\..*`  
+* [ ] `^(?!\./).*\..*`  
 
     排除以 ./ 开头
 
-* [asso] `(^|/)\.[^/].*`
+* [ ] `(^|/)\.[^/].*`
 
     隐藏文件匹配
 
-* [asso] `(^|/)\.[^/]*(?=/|$)`, `(?:^|/)(?:\.[^/]+)(?=/|$)`, `(?:^|/)(?:\.[^/]+)+(?=/|$)`, `(^|/)\.([^/]+/)+`
+* [ ] `(^|/)\.[^/]*(?=/|$)`, `(?:^|/)(?:\.[^/]+)(?=/|$)`, `(?:^|/)(?:\.[^/]+)+(?=/|$)`, `(^|/)\.([^/]+/)+`
 
     匹配隐藏目录
 
-* [asso] catwalk
-
-* [v] linux 中的管道（pipe）底层是如何实现的？
+* [ ] catwalk
 
 ## cache tabs / process urls / process tab
 
@@ -1003,16 +679,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `git config --file=.gitmodules submodule.repo_B.url /home/hlc/Documents/Projects/git_test/repo-server-2`
 
-* [v] 调研下述用法
-
-    ```bash
-    # 检查是否有子模块相关记录
-    git show HEAD:.gitmodules 2>/dev/null
-
-    # 查看提交历史中是否有 .gitmodules
-    git log --oneline -- .gitmodules
-    ```
-
 * [ ] 使用 ncat 进行 ssh 的 http 代理
 
     ```bash
@@ -1055,10 +721,6 @@ english words 由 { } reorg: english words 进化而来。
 
     `ssh -t user@hostname "cd my_dir && ./main"`
 
-* [v] 调研 screen 和 tmux
-
-    `ssh user@host "cd my_dir && screen -dmS my_session ./main"`
-
 * [ ] 调研`./main & disown`这个命令中，`&`的含义，以及 disown 是否可以这样写（语法是否正确）
 
 * [O] 调研 PyTorch Loss Functions 11.22
@@ -1077,7 +739,7 @@ english words 由 { } reorg: english words 进化而来。
 
     文本中的链接和下面的 explore 可以看看，正文本身没什么要看的。
 
-* [v] Introduction to Deep Learning
+* [ ] Introduction to Deep Learning
 
     <https://www.geeksforgeeks.org/deep-learning/introduction-deep-learning/>
 
@@ -1286,8 +948,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] Node.js
 
-* [v] 调研`gcc -static`静态链接
-
 * [ ] 调研`nm -D`
 
     `nm -D /lib/x86_64-linux-gnu/libc.so.6 | grep strtol`
@@ -1302,8 +962,6 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] `getconf`
 
-* [v] `source`
-
 * [ ] 调研 Floyd 最短路径
 
 * [ ] 调研图的遍历
@@ -1316,7 +974,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研图神经网络
 
-* [ ] 调研Dijkstra
+* [ ] 调研 Dijkstra
 
 * [ ] nvidia-smi
 
@@ -1435,8 +1093,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] 调研括号 `( ... )` 是子 shell，`{ ...; }` 是当前 shell 里的复合命令
 
     `nohup bash -c "{ sleep 5 && echo hello; }"`
-
-* [v] 调研 vscode 的"代码片段（Snippet）"
 
 * [ ] dns 的`MX`, `NS`记录类型
 
@@ -1686,23 +1342,17 @@ english words 由 { } reorg: english words 进化而来。
 
 * [asso] 调研 Winget
 
-* [asso] 调研 Chocolatey
+* [ ] 调研 Chocolatey
 
-* [asso] GitHub Desktop
-
-* [asso] SourceTree
-
-* [asso] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
-
-* [asso] `:s/foo/bar\r/e`中`/e`是什么意思？
+* [ ] SourceTree
 
 ## vfio / vfio-pci / iommu
 
 ### cache
 
-* [ ] vfio_iommu_type1
+* [v] vfio_iommu_type1
 
-* [ ] 使用 vfio
+* [v] 使用 vfio
 
     ```bash
     # 测试绑定一个设备（示例）
@@ -1839,8 +1489,6 @@ resources:
 
 * [ ] `FashionMNIST`, `KMNIST`, `EMNIST`, `QMNIST`
 
-* [v] 在 py 中构建与稀疏矩阵等价的稠密矩阵，比较稀疏乘法和稠密乘法的时间
-
 * [ ] py 可能有内部优化，使用手写的纯 c / c++ 版本再比较一版
 
 * [O] 稀疏矩阵如何加速矩阵乘？
@@ -1868,14 +1516,6 @@ resources:
 * [ ] gpu 如何对 transpose 加速？或者说，高性能 transpose 如何实现？
 
 * [ ] 调研 SG-DMA
-
-* [v] 调研`from typing import Optional, List, Dict, Tuple, Set`
-
-* [v] `nn.Unflatten()`
-
-* [v] `nn.ConvTranspose2d()`
-
-* [v] `nn.BatchNorm2d()`
 
 * [ ] 调研自旋锁、互斥锁的汇编实现
 
@@ -2267,6 +1907,10 @@ resources:
 
 ### cache
 
+* 矩阵的奇异值分解
+
+    引申：为什么奇异值分解可以求解线性回归问题？
+
 * ML-Prerequests: 机器学习的预备知识（矩阵论，概率论，凸优化等）
 
     <https://github.com/robinluodh/ADMM_learning_NJU_HBS>
@@ -2337,6 +1981,8 @@ resources:
 ## Linux Driver
 
 ### cache
+
+* [ ] `sysfs_create_group()`, `sysfs_remove_group()`
 
 * 一个带有 dev file, pci driver init 过程的 edu driver
 
@@ -5089,59 +4735,6 @@ resources:
 
         * <https://tkdocs.com/tutorial/install.html>
 
-## 操作系统 OS Linux 运维
-
-### cache
-
-* ibus 中的`mod`键是 alt 键
-
-* 经常出现 terminal 没有登录虚拟机 ssh 的情况
-
-    有没有什么办法可以避免这个问题？
-
-* 如何为一个用户增加指定目录的各种权限？
-
-* 猜想：如果一个文件夹中已经有内容，那么使用`mount`, `mount -t nfs`, `sshfs`挂载设备或远程目录时，不会删除文件夹下的内容，而是暂时覆盖文件夹下的内容
-
-* 对于字符串`/tmp/dir/target`，如果我们想提取出最后的`target`，可以用下面几种方法
-
-    ```bash
-    sed 's.*/##' <<< "/tmp/dir/target"
-    target
-
-    awk -F'/' '{print $NF}' <<< "/tmp/dir/target"
-    target
-
-    grep -o '[^/]*$' <<< "/tmp/dir/target" 
-    target
-    ```
-
-    也可以直接使用 bash 脚本：
-
-    ```bash
-    INPUT="/tmp/dir/target"
-    echo ${INPUT#*/}
-    target
-    ```
-
-* [v] ln 是否能创建文件夹的 hard link?
-
-* [v] 调研`ssh-add`，`ssh-agent`的作用
-
-* [ ] 调研 makefile 的 submodule
-
-* [v] 调研 diff 命令的用法
-
-* [ ] 调研 linux `time` command
-
-    `time ./my_app`
-
-    调研`nvprof ./vector_add`如何给出性能数据
-
-    调研`cudaMallocManaged(&x, N*sizeof(float));`
-
-### tasks
-
 ## 分布式计算调研
 
 tasks:
@@ -5178,8 +4771,6 @@ tasks:
 
 * [ ] 调研 glx
 
-* [x] 调研 gpa 对一个 opencl command queue 能拿到什么数据
-
 * [ ] 给定 json 格式的 glmark 2 baseline
 
     一些模式：
@@ -5209,8 +4800,6 @@ tasks:
 * [ ] 调研 electron 中的 lifecycle, emitter
 
     <https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app>
-
-* [v] 调研 electron
 
 ## GPU virt
 
@@ -5925,9 +5514,9 @@ resources:
 
 ### tasks
 
-* [new] `perror`
+* [ ] `perror`
 
-* [new] `std::expected`
+* [ ] `std::expected`
 
     std::expected (C++23)
 
@@ -5950,7 +5539,7 @@ resources:
     }
     ```
 
-* [new] extern C 是什么含义？
+* [ ] extern C 是什么含义？
 
     ```cpp
     extern "C" void c_function() {
@@ -5986,7 +5575,7 @@ resources:
 
 * [ ] 为什么`vector<unique_ptr<XmlTag>> root_tags;`无法`root_tags.push_back(new XmlTag);`，但是可以`root_tags.emplace_back(new XmlTag);`？
 
-* [ ] 调研 c++ 20 的 format
+* [v] 调研 c++ 20 的 format
 
 * [ ] 调研 elements 的 Design Aspects
 
@@ -6023,6 +5612,23 @@ resources:
 * vim 中的 redo 是哪个？
 
 ### cache
+
+* [ ] `:s/foo/bar<lt>CR>/g`中的`<lt>`是什么意思？
+
+* [ ] `:s/foo/bar\r/e`中`/e`是什么意思？
+
+* [asso] vim-markdown-composer 或 markdown-preview.nvim
+
+* [ ] deoplete.nvim (异步补全)
+
+    ```vim
+    Plug 'Shougo/deoplete.nvim'
+    Plug 'zchee/deoplete-jedi'  " Python 补全源
+
+    let g:deoplete#enable_at_startup = 1
+    ```
+
+* [ ] 增加 insert 模式临时延长时间，暂时计时的功能。两种恢复方式，一种是输入一个字符后，另一个是手动退出本次 insert 模式后。这样可以延长思考时间，不至于快速退出 insert。
 
 * [ ] ZoomWin：这个插件可以让你用 <C-w> o 暂时最大化当前窗口，再次按下同一个快捷键就能完美恢复之前的布局。
 

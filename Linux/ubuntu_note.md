@@ -4,6 +4,8 @@
 
 ## cache
 
+* ibus 中的`mod`键是 alt 键
+
 * 给 ubuntu 下 wayland 设置分辨率，目前似乎没有什么比较好的办法
 
     displayconfig-mutter 也只能选择最接近的分辨率，不能像 xrandr 那样任意设置。

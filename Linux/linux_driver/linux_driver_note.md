@@ -6,6 +6,39 @@ Ref:
 
 ## cache
 
+* 详细讲讲 libpci
+
+    **libpci 是 pciutils 软件包提供的可移植共享库，主要用于在用户空间访问 PCI 总线的配置空间，是 `lspci` 等工具的基础。** 它封装了不同操作系统访问 PCI 配置空间的底层差异，为开发者提供了一套统一的 C 语言 API。
+
+    ### 核心功能与定位
+
+    libpci 的核心作用是让用户态程序能够读取和设置 PCI 设备的配置信息。它属于 pciutils 项目，在 Debian、Ubuntu、Fedora、Oracle Linux 等主流发行版中通常打包为 `libpci3` 或 `pciutils-libs` 。
+
+    ### 主要 API 与使用流程
+
+    典型的 libpci C 程序遵循一套固定的生命周期流程。根据官方示例代码，基本步骤如下 ：
+
+    1.  **分配上下文**：调用 `pci_alloc()` 获取一个 `pci_access` 结构体指针。
+    2.  **初始化**：调用 `pci_init(pacc)` 初始化库，加载相关配置。
+    3.  **扫描总线**：调用 `pci_scan_bus(pacc)` 获取系统中所有 PCI 设备的列表。
+    4.  **遍历设备**：通过 `pacc->devices` 链表遍历每个 `pci_dev` 结构体。
+    5.  **获取详细信息**：调用 `pci_fill_info(dev, flags)` 填充所需信息（如厂商 ID、设备 ID、基址、中断等）。
+    6.  **读写配置**：使用 `pci_read_byte`、`pci_read_word`、`pci_read_long` 或对应的 `write` 函数直接操作配置空间寄存器。
+    7.  **清理**：调用 `pci_cleanup(pacc)` 释放资源。
+
+    ### 名称查询功能
+
+    libpci 支持通过 `pci.ids` 数据库将数字 ID 转换为人类可读的名称。函数 `pci_lookup_name()` 可以根据传入的厂商 ID、设备 ID、子系统 ID 或类代码，返回对应的文本描述 。
+
+    ### 需要注意的区分
+
+    在查找资料时，需注意区分两个不同的“libpci”：
+
+    *   **Linux/Unix 下的 C 库**：即上文所述由 pciutils 提供的 `libpci.so.3`，这是系统级的基础库。
+    *   **Python 绑定库**：PyPI 上存在一个名为 `libpci` 的纯 Python 包。它通过 `ctypes` 调用系统的 `libpci.so.3`，提供了更 Pythonic 的接口（如 `lookup_device_name` 等方法），方便 Python 开发者使用 。
+
+    此外，在 BSD 系统（如 NetBSD、DragonFly BSD）的手册页中，也存在名为 `libpci` 的库，其 API 名称（如 `pcibus_conf_read`）与 Linux 下 pciutils 的 API（如 `pci_read_byte`）有所不同，若进行跨平台开发需留意 。
+
 * 内核态驱动面试会问哪些内容
 
     # Linux内核态驱动面试考点
