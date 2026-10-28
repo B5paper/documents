@@ -4,7 +4,7 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ## cache
 
-* echo ${INPUT#*/}
+* `echo ${INPUT#*/}`
     详细讲讲这行 bash 命令的作用
 
     # `echo ${INPUT#*/}` 详解
@@ -164,30 +164,6 @@ Reference: <https://www.computerhope.com/unix.htm>
 * 使用 || 指定任务失败时报错的一个技巧
 
     lsmod | grep vfio || echo "VFIO模块未加载"
-
-* bash 中循环的常见用法
-
-    * `for i in 1 2 3; do echo $i; done`
-
-    * `for f in *.txt; do ...; done`
-
-        注：
-
-        1. 如果文件名里有空格，echo $f 即使不写双引号`"$f"`，也能正确打印带空格的文件名，不会把带空格的文件名拆分成两个字符串
-
-    * `while read line; do ...; done < file`
-
-        注：
-
-        1. 这个的含义是用 while 处理 file 文件，将 file 文件重定向为 while 语句的输入。
-
-            如果没有`< file`，那么会从 stdin 读取输入。
-
-        2. `< file`之间的空格可以不写
-
-    * until、break、continue
-
-    练习：遍历当前目录所有 .sh 文件并打印文件名。
 
 * 这个 bash 中，为什么第 4 个匹配项，? 前有一个 \
 
@@ -1036,357 +1012,6 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     掌握这些，Bash 调试基本可以做到**快速定位、静态预防、动态追踪**三位一体。最关键的实战习惯是：**严格模式打底 + shellcheck 兜底 + 局部 set -x 精确定位**。
 
-* 详细讲讲 awk 的用法
-
-    **awk 详解**
-
-    awk 是 Linux/Unix 下强大的文本处理工具，适合按行、按列处理结构化文本。下面从基础到进阶系统讲解。
-
-    **一、基本工作模式**
-
-    awk 逐行读取输入，对每一行执行 `pattern { action }` 规则：
-
-    ```bash
-    awk 'pattern { action }' file
-    ```
-
-    - **pattern**：匹配条件（可省略，表示每行都执行）
-
-    - **action**：要执行的操作（可省略，默认打印整行）
-
-    ```bash
-    awk '{ print }' file.txt          # 打印每行（类似 cat）
-    awk '/error/ { print }' file.txt  # 打印含 error 的行
-    awk '/error/' file.txt            # pattern 省略 action，默认打印
-    ```
-
-    **二、字段与内置变量**
-
-    awk 按**分隔符**把每行拆成字段，用 `$1, $2, ...` 引用：
-
-    | 变量 | 含义 |
-    |------|------|
-    | `$0` | 整行内容 |
-    | `$1, $2...` | 第 1、2... 个字段 |
-    | `$NF` | 最后一个字段 |
-    | `NF` | 当前行的字段数 |
-    | `NR` | 当前处理的行号（跨文件累计） |
-    | `FNR` | 当前文件内的行号 |
-    | `FS` | 输入字段分隔符（默认空格/Tab） |
-    | `OFS` | 输出字段分隔符（默认空格） |
-    | `RS` | 输入记录分隔符（默认换行） |
-    | `ORS` | 输出记录分隔符（默认换行） |
-    | `FILENAME` | 当前文件名 |
-
-    ```bash
-    awk '{ print $1, $3 }' file.txt        # 打印第1、3列
-    awk '{ print $NF }' file.txt           # 打印最后一列
-    awk '{ print NF }' file.txt            # 打印每行字段数
-    awk '{ print NR": "$0 }' file.txt      # 带行号打印
-    ```
-
-    **三、分隔符设置**
-
-    ```bash
-    # -F 指定分隔符
-    awk -F: '{ print $1 }' /etc/passwd
-    awk -F'\t' '{ print $2 }' file.tsv
-    awk -F'[,;]' '{ print $1 }' file.txt   # 支持正则作为分隔符
-
-    # 用 FS 变量
-    awk 'BEGIN{FS=":"} { print $1 }' /etc/passwd
-
-    # 输出分隔符 OFS
-    awk 'BEGIN{FS=":";OFS="-"}{ print $1,$3 }' /etc/passwd
-    ```
-
-    **四、BEGIN / END 块**
-
-    ```bash
-    awk 'BEGIN{ print "开始" } { print $1 } END{ print "结束" }' file.txt
-    ```
-
-    - `BEGIN`：处理输入前执行一次（常用于初始化、打印表头）
-
-    - `END`：处理完所有输入后执行一次（常用于汇总统计）
-
-    ```bash
-    # 统计行数
-    awk 'END{ print NR }' file.txt
-
-    # 求和
-    awk '{ sum += $1 } END{ print sum }' nums.txt
-
-    # 求平均
-    awk '{ sum += $1 } END{ print sum/NR }' nums.txt
-    ```
-
-    **五、条件与模式**
-
-    ```bash
-    # 数值比较
-    awk '$3 > 100 { print $1, $3 }' file.txt
-
-    # 字符串匹配
-    awk '$1 == "root" { print }' /etc/passwd
-    awk '$1 ~ /^ro/ { print }' /etc/passwd      # 正则匹配
-    awk '$1 !~ /^ro/ { print }' /etc/passwd     # 不匹配
-
-    # 逻辑运算
-    awk '$3 > 50 && $3 < 100 { print }' file.txt
-    awk '$1 == "a" || $1 == "b" { print }' file.txt
-
-    # 范围模式
-    awk '/START/,/END/ { print }' file.txt      # 打印两个标记之间的行
-
-    # 行号条件
-    awk 'NR==1 { print }' file.txt              # 第一行
-    awk 'NR>1 { print }' file.txt               # 除第一行外
-    ```
-
-    注：
-
-    1. `NR == 1`等号左右可以有空格，也可以没有。
-
-    2. 范围模式，更像是选中多个匹配模式，不像是范围。没看明白这个。
-
-    **六、变量与运算**
-
-    awk 变量无需声明，默认为 0 或空字符串：
-
-    ```bash
-    awk '{ count++ } END{ print count }' file.txt
-    awk '{ sum += $2 } END{ print sum }' file.txt
-    awk '{ max = ($1 > max) ? $1 : max } END{ print max }' nums.txt
-    ```
-
-    支持算术 `+ - * / %`、比较、逻辑、三目运算符。
-
-    **七、流程控制**
-
-    ```bash
-    # if-else
-    awk '{ if ($1 > 60) print "及格"; else print "不及格" }' scores.txt
-
-    # for 循环
-    awk '{ for (i=1; i<=NF; i++) print $i }' file.txt
-
-    # while
-    awk '{ i=1; while (i<=NF) { print $i; i++ } }' file.txt
-
-    # 数组遍历
-    awk '{ count[$1]++ } END{ for (k in count) print k, count[k] }' file.txt
-
-    # break / continue / next / exit
-    awk '{ if ($1 == "skip") next; print }' file.txt   # next 跳过本行
-    awk 'NR==5 { exit } { print }' file.txt            # exit 提前结束
-    ```
-
-    **八、数组**
-
-    awk 的数组是关联数组（哈希表），是统计的利器：
-
-    ```bash
-    # 统计每个单词出现次数
-    awk '{ for (i=1; i<=NF; i++) count[$i]++ } END{ for (w in count) print w, count[w] }' file.txt
-
-    # 判断键是否存在
-    awk '{ if ($1 in seen) print "重复:", $1; seen[$1]=1 }' file.txt
-
-    # 删除数组元素
-    awk '{ delete arr[$1] }' file.txt
-
-    # 多维数组（用 SUBSEP 连接）
-    awk '{ a[$1,$2]++ } END{ for (k in a) print k, a[k] }' file.txt
-    ```
-
-    **九、常用内置函数**
-
-    **字符串函数：**
-
-    | 函数 | 说明 |
-    |------|------|
-    | `length(s)` | 字符串长度 |
-    | `substr(s,m,n)` | 从 m 取 n 个字符 |
-    | `index(s,t)` | t 在 s 中的位置 |
-    | `split(s,a,fs)` | 按 fs 分割 s 到数组 a |
-    | `sub(r,t,s)` | 替换第一个匹配 |
-    | `gsub(r,t,s)` | 替换所有匹配 |
-    | `match(s,r)` | 返回匹配位置 |
-    | `tolower(s)` / `toupper(s)` | 大小写转换 |
-    | `sprintf(fmt,...)` | 格式化字符串 |
-
-    ```bash
-    awk '{ print length($0) }' file.txt
-    awk '{ print substr($1,1,3) }' file.txt
-    awk '{ gsub(/foo/,"bar"); print }' file.txt
-    awk '{ n=split($0,arr,","); print n, arr[1] }' file.txt
-    ```
-
-    **数学函数：**
-
-    `int()`, `sqrt()`, `exp()`, `log()`, `sin()`, `cos()`, `rand()`, `srand()`
-
-    ```bash
-    awk '{ print int($1) }' nums.txt
-    awk 'BEGIN{ srand(); print rand() }'
-    ```
-
-    **格式化输出 printf：**
-
-    ```bash
-    awk '{ printf "%-10s %5d\n", $1, $2 }' file.txt
-    awk '{ printf "%.2f\n", $1 }' nums.txt
-    ```
-
-    格式符：`%s` 字符串、`%d` 整数、`%f` 浮点、`%x` 十六进制、`%c` 字符。
-
-    **十、实战示例**
-
-    ```bash
-    # 1. 统计文件行数、字数、字符数
-    awk '{ chars+=length($0)+1; words+=NF } END{ print NR, words, chars }' file.txt
-
-    # 2. 打印 /etc/passwd 的用户名和 shell
-    awk -F: '{ print $1, $7 }' /etc/passwd
-
-    # 3. 求某列总和与平均
-    awk '{ s+=$3 } END{ printf "sum=%d avg=%.2f\n", s, s/NR }' data.txt
-
-    # 4. 按第一列分组求和
-    awk '{ sum[$1]+=$2 } END{ for (k in sum) print k, sum[k] }' data.txt
-
-    # 5. 找出重复行
-    awk 'seen[$0]++' file.txt
-
-    # 6. 去重（保留首次出现）
-    awk '!seen[$0]++' file.txt
-
-    # 7. 打印第 10-20 行
-    awk 'NR>=10 && NR<=20' file.txt
-
-    # 8. 交换前两列
-    awk '{ t=$1; $1=$2; $2=t; print }' file.txt
-
-    # 9. 统计日志中各 IP 的访问次数并排序
-    awk '{ ip[$1]++ } END{ for (i in ip) print ip[i], i }' access.log | sort -rn
-
-    # 10. 处理 CSV 某列求和
-    awk -F, 'NR>1 { sum+=$3 } END{ print sum }' data.csv
-    ```
-
-    **十一、进阶技巧**
-
-    **多个规则组合：**
-
-    ```bash
-    awk 'NR==1 { print "表头:", $0 } $3>100 { print "大值:", $1 }' file.txt
-    ```
-
-    **变量传递：**
-
-    ```bash
-    awk -v threshold=100 '$3 > threshold { print }' file.txt
-    ```
-
-    **多文件处理：**
-
-    ```bash
-    awk '{ print FILENAME, FNR, $0 }' a.txt b.txt
-    ```
-
-    **使用外部脚本文件：**
-
-    ```bash
-    # script.awk
-    BEGIN { FS=":" }
-    $3 > 100 { print $1 }
-    END { print "done" }
-
-    awk -f script.awk /etc/passwd
-    ```
-
-    **gawk 扩展（GNU awk 特有）：**
-
-    ```bash
-    awk 'BEGIN{ PROCINFO["sorted_in"]="@ind_str_asc"; } ...'  # 数组排序遍历
-    awk '{ a[NR]=$0 } END{ ... }'                              # 排序文本
-    ```
-
-    **十二、awk vs 其他工具**
-
-    | 场景 | 推荐 |
-    |------|------|
-    | 按列提取/简单过滤 | awk |
-    | 复杂正则替换 | sed |
-    | 结构化统计/汇总 | awk |
-    | JSON 处理 | jq |
-
-    **核心记忆点：**
-    1. `pattern { action }` 是基本结构
-    2. `$0` 整行，`$1..$NF` 字段，`NR/NF/FS/OFS` 常用变量
-    3. `BEGIN/END` 做初始化和汇总
-    4. 关联数组是统计核心
-    5. 条件、循环、函数齐备，几乎是一门小语言
-
-    掌握以上内容，日常文本处理基本够用。需要某个方向（如日志分析、性能优化）深入可以再展开。
-
-* 详细讲讲 date 命令的用法
-
-    `date` 命令主要用于**显示或设置**系统日期与时间。最常用的场景是**自定义格式输出**，通过 `+` 号后接格式字符串来实现。
-
-    **📝 基础用法与格式控制**
-
-    默认情况下，直接输入 `date` 会显示类似 `Thu Jul  9 17:00:00 EDT 2026` 的本地时间。要自定义输出，需使用 `+` 号，格式字符串中的 `%` 是转换符。
-
-    **常用格式符速查**：
-
-    | 格式符 | 含义 | 示例输出 |
-    | :--- | :--- | :--- |
-    | `%Y` | 4位年份 | `2026` |
-    | `%m` | 月份 (01-12) | `07` |
-    | `%d` | 日 (01-31) | `09` |
-    | `%H` | 小时 (00-23) | `17` |
-    | `%M` | 分钟 (00-59) | `00` |
-    | `%S` | 秒 (00-60) | `00` |
-    | `%F` | 完整日期 (等同 `%Y-%m-%d`) | `2026-07-09` |
-    | `%T` | 完整时间 (等同 `%H:%M:%S`) | `17:00:00` |
-    | `%A` | 星期全称 | `Thursday` |
-    | `%B` | 月份全称 | `July` |
-
-    **组合示例**：
-
-    *   `date +"%Y-%m-%d %H:%M:%S"` 会输出 `2026-07-09 17:00:00`。
-    *   如果你想输出不带补零的日期（例如 `2026-7-9`），可以使用 GNU 扩展的 `-` 修饰符，如 `date +"%-Y-%-m-%-d"`。
-
-    **⏰ 显示指定时间（-d 选项）**
-
-    `-d` 选项非常强大，它允许你根据**人类可读的字符串**来显示时间，而不是当前时间。
-
-    *   **相对时间**：`date -d "yesterday"`（昨天）、`date -d "2 days ago"`（前天）、`date -d "3 months 1 day"`（3个月零1天后）。
-    *   **特定日期**：`date -d "2026-12-25"` 或 `date -d "25 Dec"`。
-    *   **时间戳转换**：`date -d @1595289600` 可以将 Unix 时间戳转换为可读日期。
-
-    **🌍 时区与 UTC（-u 选项）**
-
-    默认显示的是系统本地时间。使用 `-u` 或 `--utc` 可以强制以**协调世界时 (UTC)** 显示。
-
-    在 `-d` 中也可以进行时区转换，例如，查看纽约时间 2023年5月7日 12:23 对应的东京时间：
-    `TZ="Asia/Tokyo" date -d 'TZ="America/New_York" 2023-05-07 12:23'`。
-
-    **⚙️ 设置系统时间（-s 选项）**
-
-    **需要 root 权限**。使用 `-s` 或 `--set` 选项来设置系统时间。
-    *   `date -s "2026-07-09 17:30:00"`：将时间设置为指定的日期和时间。
-    *   注意：只设置日期而不指定时间，会导致时间被重置为 `00:00:00`。
-
-    **📄 其他实用选项**
-
-    *   **-f, --file=日期文件**：从文件中读取多行日期字符串，并逐一显示对应的时间。如果文件名为 `-`，则从标准输入读取。
-    *   **-r, --reference=文件**：显示指定文件的**最后修改时间**。
-    *   **--iso-8601**：以 ISO 8601 标准格式输出（如 `2026-07-09` 或 `2026-07-09T17:00:00+08:00`），后接 `date`、`hours`、`minutes`、`seconds` 可控制精度。
-    *   **-R, --rfc-email**：以 RFC 5322 电子邮件格式输出，例如 `Thu, 09 Jul 2026 17:00:00 +0800`。
-
 * 详细讲讲 bash 中 uniq 的用法
 
     `uniq` 用于**去除或统计相邻的重复行**。关键点：它只能处理**相邻**的重复行，所以通常要配合 `sort` 使用。
@@ -1915,33 +1540,11 @@ Reference: <https://www.computerhope.com/unix.htm>
 
             `/dev/tty` 的本质是：**"我当前所属的那个终端"** 的通用引用。它让程序在输入输出被重定向的情况下，依然能够可靠地与用户所在终端通信，是 shell 脚本和系统程序处理交互时的常用工具。
 
-* read
-
-    read [-p] [-r] [-s] [-u [n]] [variable name? prompt]
-
-    [variable name]
-
-    从标准输入中读取一行
-
-    参数：
-
-    -p: 没看明白
-
-    -r: 把 \ 作为输入的一部分，而不把它作为一个控制字符
-
-    -s: 没看懂
-
-    -u [n]: 读取文件描述符作为输入。n 的默认值是 0
-
-    read 命令从标准输入中读取一行，并把输入行的每个字段的值指定给 shell 变量，用 IFS 作为分隔符。第一个字段的值赋给第一个 var，第二个字段的值赋给第二个 var，以此类推。如果 var 的数量比较少，那么把余下的字段都赋给最后一个 shell 变量。如果 var 的个数多，那么剩余 var 都被设置为空字符串。
-
-    如果省略了 var name，则用 REPLY 作为变量名
-
-* 详细讲讲 bash中 declare -p 的作用
+* 详细讲讲 bash 中 declare -p 的作用
 
     `declare -p` 是 Bash 中一个非常实用的内建命令，用来**打印变量（或函数）的声明信息**，而且打印出来的内容是**可以直接被 shell 重新执行**的合法赋值语句。下面详细讲讲它的作用和用法。
 
-    ## 基本语法
+    **基本语法**
 
     ```bash
     declare -p [name ...]
@@ -1950,77 +1553,77 @@ Reference: <https://www.computerhope.com/unix.htm>
     - `name` 可以是一个或多个变量名、函数名。
     - 不带任何参数时，`declare -p` 会打印**当前作用域内所有变量和函数**的声明。
 
-    ## 核心作用
+    **核心作用**
 
-    ### 1. 打印变量及其属性
+    1. 打印变量及其属性
 
-    `declare -p` 不仅输出变量的值，还会带上它的**属性标记**（如 `-i` 整数、`-a` 数组、`-A` 关联数组、`-r` 只读、`-x` 导出等）。
+        `declare -p` 不仅输出变量的值，还会带上它的**属性标记**（如 `-i` 整数、`-a` 数组、`-A` 关联数组、`-r` 只读、`-x` 导出等）。
 
-    ```bash
-    declare -i num=42
-    declare -a arr=(a b c)
-    declare -A map=([k1]=v1 [k2]=v2)
-    declare -r ro="readonly"
-    declare -x exported="env"
+        ```bash
+        declare -i num=42
+        declare -a arr=(a b c)
+        declare -A map=([k1]=v1 [k2]=v2)
+        declare -r ro="readonly"
+        declare -x exported="env"
 
-    declare -p num arr map ro exported
-    ```
+        declare -p num arr map ro exported
+        ```
 
-    输出：
+        输出：
 
-    ```bash
-    declare -i num="42"
-    declare -a arr=([0]="a" [1]="b" [2]="c")
-    declare -A map=([k1]="v1" [k2]="v2" )
-    declare -r ro="readonly"
-    declare -x exported="env"
-    ```
+        ```bash
+        declare -i num="42"
+        declare -a arr=([0]="a" [1]="b" [2]="c")
+        declare -A map=([k1]="v1" [k2]="v2" )
+        declare -r ro="readonly"
+        declare -x exported="env"
+        ```
 
-    注意输出是**可执行语句**，这是关键特性。
+        注意输出是**可执行语句**，这是关键特性。
 
-    ### 2. 输出格式可直接复用
+    2. 输出格式可直接复用
 
-    因为输出是合法的 shell 语句，所以常用于：
+        因为输出是合法的 shell 语句，所以常用于：
 
-    **保存/恢复变量状态：**
+        **保存/恢复变量状态：**
 
-    ```bash
-    save=$(declare -p myvar)
-    # ... 修改 myvar ...
-    eval "$save"   # 恢复原值
-    ```
+        ```bash
+        save=$(declare -p myvar)
+        # ... 修改 myvar ...
+        eval "$save"   # 恢复原值
+        ```
 
-    **在子 shell 或函数间传递变量（含属性）：**
+        **在子 shell 或函数间传递变量（含属性）：**
 
-    ```bash
-    dump_vars() {
-        declare -p var1 var2 var3
-    }
-    ```
+        ```bash
+        dump_vars() {
+            declare -p var1 var2 var3
+        }
+        ```
 
-    ### 3. 检查变量是否存在 / 类型
+    3. 检查变量是否存在 / 类型
 
-    ```bash
-    if declare -p myvar &>/dev/null; then
-        echo "myvar 存在"
-    else
-        echo "myvar 不存在"
-    fi
-    ```
+        ```bash
+        if declare -p myvar &>/dev/null; then
+            echo "myvar 存在"
+        else
+            echo "myvar 不存在"
+        fi
+        ```
 
-    也可以用 `declare -p` 的输出前缀判断类型（`declare -a` 表示数组，`declare -A` 表示关联数组等）。
+        也可以用 `declare -p` 的输出前缀判断类型（`declare -a` 表示数组，`declare -A` 表示关联数组等）。
 
-    ### 4. 打印所有变量 / 函数
+    4. 打印所有变量 / 函数
 
-    ```bash
-    declare -p          # 当前作用域所有变量+函数
-    declare -p -f       # 只打印函数（-f 表示函数）
-    declare -p -F       # 只打印函数名（不带定义）
-    ```
+        ```bash
+        declare -p          # 当前作用域所有变量+函数
+        declare -p -f       # 只打印函数（-f 表示函数）
+        declare -p -F       # 只打印函数名（不带定义）
+        ```
 
-    在函数内部使用时，`declare -p` 只显示**当前局部作用域可见**的内容；在全局作用域则显示全部。
+        在函数内部使用时，`declare -p` 只显示**当前局部作用域可见**的内容；在全局作用域则显示全部。
 
-    ## 常见选项组合
+    **常见选项组合**
 
     | 命令 | 含义 |
     |------|------|
@@ -2031,12 +1634,12 @@ Reference: <https://www.computerhope.com/unix.htm>
     | `declare -p -a` | 只打印数组变量 |
     | `declare -p -x` | 只打印导出的变量 |
 
-    ## 与 `set` 的区别
+    **与 `set` 的区别**
 
     - `set` 输出所有变量和函数，但格式**不保证可重新执行**，且不显示完整属性。
     - `declare -p` 输出**精确、可复用**，保留数组、关联数组、只读、整数等属性。所以脚本里做“变量快照”优先用 `declare -p`。
 
-    ## 注意事项
+    **注意事项**
 
     1. **作用域限制**：在函数内 `declare -p` 只显示该作用域可见的变量，全局变量若被局部遮蔽（shadow）会显示局部版本。
     2. **只读变量**：`declare -p` 能打印只读变量，但恢复时如果目标已存在只读同名变量会失败。
@@ -2044,40 +1647,40 @@ Reference: <https://www.computerhope.com/unix.htm>
     4. **`eval` 安全性**：因为输出是可执行代码，用 `eval "$(declare -p var)"` 恢复时要注意变量内容中若含特殊字符，Bash 会自动做正确的引号转义，一般是安全的。
     5. **Bash 版本**：`declare -p` 在 Bash 2.0+ 可用，关联数组需要 Bash 4.0+。
 
-    ## 实用示例
+    **实用示例**
 
-    **变量快照与恢复：**
+    * 变量快照与恢复：
 
-    ```bash
-    #!/bin/bash
-    foo="hello"
-    bar=(1 2 3)
+        ```bash
+        #!/bin/bash
+        foo="hello"
+        bar=(1 2 3)
 
-    snapshot=$(declare -p foo bar)
+        snapshot=$(declare -p foo bar)
 
-    foo="changed"
-    bar=(9 9 9)
+        foo="changed"
+        bar=(9 9 9)
 
-    eval "$snapshot"
-    echo "$foo"        # hello
-    echo "${bar[@]}"   # 1 2 3
-    ```
+        eval "$snapshot"
+        echo "$foo"        # hello
+        echo "${bar[@]}"   # 1 2 3
+        ```
 
-    **遍历并打印所有整数变量：**
+    * 遍历并打印所有整数变量：
 
-    ```bash
-    for name in $(declare -p | awk '/declare -i/{print $3}' | cut -d= -f1); do
-        echo "$name"
-    done
-    ```
+        ```bash
+        for name in $(declare -p | awk '/declare -i/{print $3}' | cut -d= -f1); do
+            echo "$name"
+        done
+        ```
 
-    **判断是否为关联数组：**
+    * 判断是否为关联数组：
 
-    ```bash
-    if [[ $(declare -p myvar 2>/dev/null) == "declare -A"* ]]; then
-        echo "是关联数组"
-    fi
-    ```
+        ```bash
+        if [[ $(declare -p myvar 2>/dev/null) == "declare -A"* ]]; then
+            echo "是关联数组"
+        fi
+        ```
 
     总的来说，`declare -p` 的核心价值在于：**以可执行格式导出变量的完整声明（值 + 属性）**，是脚本中做变量保存、恢复、类型检查和调试的利器。
 
@@ -2445,7 +2048,7 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     在 Bash 中，`export` 的核心作用是：**把变量标记为“环境变量”，使其能被子进程继承。**
 
-    ## 关键区别：普通变量 vs 环境变量
+    **关键区别：普通变量 vs 环境变量**
 
     ```bash
     # 普通 shell 变量
@@ -2457,7 +2060,7 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     两者在当前 shell 里都能用 `echo $MY_VAR` 访问。区别在于**子进程能否看到它**。
 
-    ## 示例对比
+    **示例对比**
 
     ```bash
     # 情况 1：不 export
@@ -2469,61 +2072,57 @@ Reference: <https://www.computerhope.com/unix.htm>
     bash -c 'echo $MY_VAR'   # 输出 hello（子进程能继承）
     ```
 
-    ## 常见用途
+    **常见用途**
 
-    **1. 让子进程/脚本读取到变量**
-    ```bash
-    export PATH="$PATH:/opt/myapp/bin"
-    export EDITOR=vim
-    export API_KEY=abc123
-    ```
+    1. 让子进程/脚本读取到变量
 
-    **2. 先定义后导出**
-    ```bash
-    MY_VAR="hello"
-    export MY_VAR        # 效果等同于 export MY_VAR="hello"
-    ```
+        ```bash
+        export PATH="$PATH:/opt/myapp/bin"
+        export EDITOR=vim
+        export API_KEY=abc123
+        ```
 
-    **3. 查看已导出的变量**
-    ```bash
-    export -p            # 列出所有环境变量
-    ```
+    2. 先定义后导出
 
-    **4. 取消导出**（变量还在，但不再是环境变量）
-    ```bash
-    export -n MY_VAR
-    ```
+        ```bash
+        MY_VAR="hello"
+        export MY_VAR        # 效果等同于 export MY_VAR="hello"
+        ```
 
-    **5. 在函数中使用**（函数内 export 会影响全局环境）
-    ```bash
-    myfunc() {
-        export FOO=bar
-    }
-    ```
+    3. 查看已导出的变量
 
-    ## 重要注意事项
+        ```bash
+        export -p            # 列出所有环境变量
+        ```
+
+    4. 取消导出（变量还在，但不再是环境变量）
+
+        ```bash
+        export -n MY_VAR
+        ```
+
+    5. 在函数中使用（函数内 export 会影响全局环境）
+
+        ```bash
+        myfunc() {
+            export FOO=bar
+        }
+        ```
+
+    **重要注意事项**
 
     - `export` 只影响**之后创建**的子进程，已经运行的进程不受影响。
+
     - 子进程对继承来的环境变量的修改，**不会反向影响父进程**（进程间环境是复制的）。
+
     - 在 `~/.bashrc`、`~/.bash_profile` 里常用 `export` 来持久化配置环境变量。
+
     - 临时设置只对单条命令生效的写法：
       ```bash
       MY_VAR=hello bash -c 'echo $MY_VAR'   # 只对这个命令生效
       ```
 
     一句话总结：**`export` = 让变量从“当前 shell 私有”变成“可传给子进程的环境变量”。**
-
-* 与 bash 相关的启动文件
-
-    * `/etc/profile`: 系统范围的默认值，大部分用来设置环境（所有由 sh 衍生出的 shell 适用）
-
-    * `/etc/bashrc`: 特定于 bash 的，系统范围函数与别名
-
-    * `$HOME/.bash_profile`：用户定义的, 默认环境配置
-
-    * `$HOME/.bashrc`: 用户定义的 bash 初始化文件。只有交互式的 shell 和用户脚本才会读取这个文件
-
-    * `$HOME/.bash_logout`: 登出文件
 
 * `env -i PATH=./:$PATH echo.sh`
 
@@ -2577,154 +2176,154 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     可以，`local` 变量也能被导出，但行为有几个容易踩坑的点。
 
-    ### 1. 基本用法
+    1. 基本用法
 
-    ```bash
-    f() {
-      local var=123
-      export var
-      declare -p var
-    }
-    f
-    # declare -x var="123"
-    ```
+        ```bash
+        f() {
+          local var=123
+          export var
+          declare -p var
+        }
+        f
+        # declare -x var="123"
+        ```
 
-    `local` 决定作用域，`export` 决定是否进入子进程环境，两者是独立的维度。所以完全可以：
+        `local` 决定作用域，`export` 决定是否进入子进程环境，两者是独立的维度。所以完全可以：
 
-    ```bash
-    local var=123
-    export var
-    ```
+        ```bash
+        local var=123
+        export var
+        ```
 
-    甚至可以写成一行：
+        甚至可以写成一行：
 
-    ```bash
-    local -x var=123
-    ```
+        ```bash
+        local -x var=123
+        ```
 
-    `declare` / `typeset` 的 `-x` 选项就是“导出”。
+        `declare` / `typeset` 的 `-x` 选项就是“导出”。
 
-    ### 2. 导出的 local 变量，子进程能看到
+    2. 导出的 local 变量，子进程能看到
 
-    ```bash
-    f() {
-      local -x var=123
-      bash -c 'echo "$var"'
-    }
-    f
-    # 123
-    ```
+        ```bash
+        f() {
+          local -x var=123
+          bash -c 'echo "$var"'
+        }
+        f
+        # 123
+        ```
 
-    因为 `bash -c` 是子进程，会继承环境变量，而 `var` 被导出了。
+        因为 `bash -c` 是子进程，会继承环境变量，而 `var` 被导出了。
 
-    ### 3. 函数结束后，变量消失，但要注意“环境残留”
+    3. 函数结束后，变量消失，但要注意“环境残留”
 
-    ```bash
-    f() {
-      local -x var=123
-      bash -c 'echo "$var"'
-    }
-    f
-    # 123
+        ```bash
+        f() {
+          local -x var=123
+          bash -c 'echo "$var"'
+        }
+        f
+        # 123
 
-    declare -p var
-    # bash: declare: var: not found
+        declare -p var
+        # bash: declare: var: not found
 
-    bash -c 'echo "$var"'
-    # 空
-    ```
+        bash -c 'echo "$var"'
+        # 空
+        ```
 
-    函数结束后 `var` 作为 shell 变量消失，环境里也没有它了。这点是符合预期的。
+        函数结束后 `var` 作为 shell 变量消失，环境里也没有它了。这点是符合预期的。
 
-    ### 4. 真正容易踩的坑：local 导出的变量会影响同名全局变量吗？
+    4. 真正容易踩的坑：local 导出的变量会影响同名全局变量吗？
 
-    看这个例子：
+        看这个例子：
 
-    ```bash
-    var=global
+        ```bash
+        var=global
 
-    f() {
-      local -x var=local
-      bash -c 'echo "子进程: $var"'
-      echo "函数内: $var"
-    }
+        f() {
+          local -x var=local
+          bash -c 'echo "子进程: $var"'
+          echo "函数内: $var"
+        }
 
-    f
-    echo "函数外: $var"
-    bash -c 'echo "外部子进程: $var"'
-    ```
+        f
+        echo "函数外: $var"
+        bash -c 'echo "外部子进程: $var"'
+        ```
 
-    输出：
+        输出：
 
-    ```
-    子进程: local
-    函数内: local
-    函数外: global
-    外部子进程: 空
-    ```
+        ```
+        子进程: local
+        函数内: local
+        函数外: global
+        外部子进程: 空
+        ```
 
-    解释：
+        解释：
 
-    - 函数内 `local -x var=local` 创建了一个新的局部变量，遮蔽了全局 `var`；
-    - 它被导出，所以函数内启动的子进程看到 `local`；
-    - 函数结束后局部变量销毁，全局 `var=global` 恢复；
-    - 全局 `var` 从未被导出，所以函数外的子进程看不到它。
+        - 函数内 `local -x var=local` 创建了一个新的局部变量，遮蔽了全局 `var`；
+        - 它被导出，所以函数内启动的子进程看到 `local`；
+        - 函数结束后局部变量销毁，全局 `var=global` 恢复；
+        - 全局 `var` 从未被导出，所以函数外的子进程看不到它。
 
-    ### 5. 一个更隐蔽的坑：导出属性可能“泄漏”到同名全局变量
+    5. 一个更隐蔽的坑：导出属性可能“泄漏”到同名全局变量
 
-    在某些 Bash 版本/写法下，如果局部变量遮蔽了一个已存在的全局变量，并且你导出了局部变量，函数结束后全局变量可能意外获得导出属性。看这个：
+        在某些 Bash 版本/写法下，如果局部变量遮蔽了一个已存在的全局变量，并且你导出了局部变量，函数结束后全局变量可能意外获得导出属性。看这个：
 
-    ```bash
-    var=global
-    export var        # 先让全局 var 是导出的
+        ```bash
+        var=global
+        export var        # 先让全局 var 是导出的
 
-    f() {
-      local var=local # 注意：这里没有再 export
-      declare -p var
-    }
-    f
-    declare -p var
-    ```
+        f() {
+          local var=local # 注意：这里没有再 export
+          declare -p var
+        }
+        f
+        declare -p var
+        ```
 
-    不同 Bash 版本行为可能不同，但更常见、更明确的问题是下面这种：
+        不同 Bash 版本行为可能不同，但更常见、更明确的问题是下面这种：
 
-    ```bash
-    var=global
+        ```bash
+        var=global
 
-    f() {
-      local -x var=local
-    }
-    f
+        f() {
+          local -x var=local
+        }
+        f
 
-    declare -p var
-    # declare -x var="global"   <-- 全局 var 可能变成导出的了
-    ```
+        declare -p var
+        # declare -x var="global"   <-- 全局 var 可能变成导出的了
+        ```
 
-    也就是说，`local -x` 可能把“导出”这个属性留在了同名全局变量上。是否发生取决于 Bash 版本和具体写法。安全做法是：**不要让局部变量和外部同名变量混用导出属性**，或者显式在函数结束后清理。
+        也就是说，`local -x` 可能把“导出”这个属性留在了同名全局变量上。是否发生取决于 Bash 版本和具体写法。安全做法是：**不要让局部变量和外部同名变量混用导出属性**，或者显式在函数结束后清理。
 
-    ### 6. 实践建议
+    6. 实践建议
 
-    - 想让 local 变量传给子进程：`local -x var=...` 或 `local var=...; export var`。
-    - 不要依赖“局部导出变量会影响全局同名变量”的行为，这是实现细节，跨版本不稳定。
-    - 如果只是想在函数内临时给某个命令设置环境变量，更推荐：
+        - 想让 local 变量传给子进程：`local -x var=...` 或 `local var=...; export var`。
+        - 不要依赖“局部导出变量会影响全局同名变量”的行为，这是实现细节，跨版本不稳定。
+        - 如果只是想在函数内临时给某个命令设置环境变量，更推荐：
 
-    ```bash
-    f() {
-      var=123 some_command
-    }
-    ```
+        ```bash
+        f() {
+          var=123 some_command
+        }
+        ```
 
-    或
+        或
 
-    ```bash
-    f() {
-      env var=123 some_command
-    }
-    ```
+        ```bash
+        f() {
+          env var=123 some_command
+        }
+        ```
 
-    这样不会污染当前 shell 的变量表，也不涉及 local/export 的作用域纠缠。
+        这样不会污染当前 shell 的变量表，也不涉及 local/export 的作用域纠缠。
 
-    ### 结论
+    **结论**
 
     **可以。** `local` 管作用域，`export` 管是否进入子进程环境，二者正交：
 
@@ -2737,89 +2336,29 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     所以 `local -x` 或 `local` + `export` 都是合法的，局部变量也能成为环境变量，只是它的“环境可见性”只在函数执行期间、对其子进程有效。
 
-* 一些常见的环境变量
-
-    * HOME: 用户的专属目录，在 linux 用 ~ 扩展
-
-    * PATH: 外部命令的搜索路径
-
-    * HISTSIZE: 保存历史命令记录的条数
-
-    * HOSTNAME: 主机的名称
-
-    * SHELL: 当前用户使用的 shell 类型
-
-    * LANG/LANGUAGE: 语言相关的环境变量
-
-    * MAIL: 当前用户的邮件存放目录
-
-    * PS1/PS2: PS1 是基本提示符，对于 root 用户是 #，对于普通用户是 $。
-
-        PS2 是附属提示符，默认是 >
-
-* 编写函数
-
-    ```bash
-    testfunc()
-    {
-        echo "$# parameters";
-        echo "$@";
-    }
-    ```
-
-    $# 表示传入函数的参数个数，$@ 表示所有参数的内容
-
-    执行函数：
-
-    `testfunc()`
-
-    output:
-
-    ```
-    0 parameters
-    ```
-
-    `testfunc a b c`
-
-    output:
-
-    ```
-    3 parameters
-    abc
-    ```
-
-    run:
-
-    `testfunc a "b c"`
-
-    output:
-
-    ```
-    2 parameters
-    a b c
-    ```
-
 * 详细讲讲 bash -l 的作用
 
     `bash -l` 的核心作用是：**让 Bash 以“登录 Shell”的方式启动，从而执行一套特定的启动文件（如 `/etc/profile` 和 `~/.bash_profile`）来初始化环境**。
 
-    ### 🔑 关键机制：启动文件的差异
+    **🔑 关键机制：启动文件的差异**
 
     要理解它的作用，关键是看它读取哪些文件。Bash 的启动文件取决于它是否是“登录 Shell”以及是否交互：
 
-    *   **登录 Shell (`bash -l`)**：会**首先**读取 `/etc/profile`，然后依次查找并读取 `~/.bash_profile`、`~/.bash_login`、`~/.profile` 中**第一个存在且可读**的文件。它通常**不**会自动读取 `~/.bashrc`。
-    *   **交互式非登录 Shell (如直接在终端打开的 Bash)**：**不会**读取 `/etc/profile` 或 `~/.bash_profile`，而是**只读取** `~/.bashrc`。
+    * **登录 Shell (`bash -l`)**：会**首先**读取 `/etc/profile`，然后依次查找并读取 `~/.bash_profile`、`~/.bash_login`、`~/.profile` 中**第一个存在且可读**的文件。它通常**不**会自动读取 `~/.bashrc`。
+
+    * **交互式非登录 Shell (如直接在终端打开的 Bash)**：**不会**读取 `/etc/profile` 或 `~/.bash_profile`，而是**只读取** `~/.bashrc`。
 
     因此，`-l` 参数的作用就是强制 Bash 跳过默认的 `~/.bashrc` 流程，转而执行那套“登录时”才会跑的初始化脚本。
 
-    ### ⚙️ 具体行为差异
+    **⚙️ 具体行为差异**
 
     `-l` 的效果会因 Shell 的交互状态而略有不同：
 
     *   **当用于交互式 Shell 时**：它的效果等同于 `exec -l bash`，会启动一个完整的登录 Shell 环境。
+
     *   **当用于非交互式 Shell 时**（例如在脚本中）：它**仍然会**执行登录 Shell 的启动文件（`/etc/profile` 等）。这在一些需要完整环境变量的自动化任务中很有用。
 
-    ### 💡 典型使用场景
+    **💡 典型使用场景**
 
     1.  **手动加载完整环境**：如果你在终端里修改了 `~/.bash_profile`，可以执行 `source ~/.bash_profile` 或干脆开个 `bash -l` 来让修改生效。
     2.  **确保脚本拥有完整环境**：在 `cron` 任务或 CI/CD 脚本中，有时环境变量很少。通过 `#!/bin/bash -l` 或 `bash -l script.sh` 启动，可以加载系统级和用户级的 Profile 文件，确保脚本能找到需要的环境变量和路径。
@@ -2831,61 +2370,61 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     你提到的 `:=` 和 `?=` 其实**不是 bash 原生的变量赋值语法**，而是 **GNU Make**（Makefile）里的变量赋值操作符。bash 里有类似功能但写法不同。我分两部分讲清楚。
 
-    ## 一、bash 原生的变量赋值
+    **一、bash 原生的变量赋值**
 
-    ### 1. 基本赋值
+    1. 基本赋值
 
-    ```bash
-    name=value        # 注意等号两边不能有空格
-    name="hello world"
-    name='hello $USER'   # 单引号：完全字面量
-    name="hello $USER"   # 双引号：允许变量展开
-    ```
+        ```bash
+        name=value        # 注意等号两边不能有空格
+        name="hello world"
+        name='hello $USER'   # 单引号：完全字面量
+        name="hello $USER"   # 双引号：允许变量展开
+        ```
 
-    ### 2. 命令替换赋值
+    2. 命令替换赋值
 
-    ```bash
-    now=$(date)          # 推荐
-    now=`date`           # 旧写法
-    files=(*.txt)        # 数组赋值
-    ```
+        ```bash
+        now=$(date)          # 推荐
+        now=`date`           # 旧写法
+        files=(*.txt)        # 数组赋值
+        ```
 
-    ### 3. `declare` / `typeset` / `local` / `export`
+    3. `declare` / `typeset` / `local` / `export`
 
-    ```bash
-    declare -i n=10        # 整数
-    declare -r PI=3.14     # 只读
-    declare -a arr=(1 2 3) # 数组
-    declare -A map=([a]=1 [b]=2)  # 关联数组
-    export VAR=value       # 导出为环境变量
-    local x=1              # 函数内局部变量
-    readonly Y=2           # 只读
-    ```
+        ```bash
+        declare -i n=10        # 整数
+        declare -r PI=3.14     # 只读
+        declare -a arr=(1 2 3) # 数组
+        declare -A map=([a]=1 [b]=2)  # 关联数组
+        export VAR=value       # 导出为环境变量
+        local x=1              # 函数内局部变量
+        readonly Y=2           # 只读
+        ```
 
-    ### 4. 参数展开中的默认值（最接近 `:=` 的东西）
+    4. 参数展开中的默认值（最接近 `:=` 的东西）
 
-    这才是你可能真正想找的，bash 用 `${var...}` 形式：
+        这才是你可能真正想找的，bash 用 `${var...}` 形式：
 
-    | 语法 | 含义 |
-    |------|------|
-    | `${var:-default}` | var 未设置或为空 → 用 default（**不修改 var**） |
-    | `${var:=default}` | var 未设置或为空 → 用 default 并**赋给 var** |
-    | `${var:?message}` | var 未设置或为空 → 打印 message 并退出脚本 |
-    | `${var:+value}` | var 已设置且非空 → 用 value，否则空 |
-    | `${var-default}` | 同 `:-` 但只在**未设置**时（空字符串不算） |
-    | `${var=default}` | 同 `:=` 但只在未设置时 |
-    | `${var?message}` | 同 `:?` 但只在未设置时 |
+        | 语法 | 含义 |
+        |------|------|
+        | `${var:-default}` | var 未设置或为空 → 用 default（**不修改 var**） |
+        | `${var:=default}` | var 未设置或为空 → 用 default 并**赋给 var** |
+        | `${var:?message}` | var 未设置或为空 → 打印 message 并退出脚本 |
+        | `${var:+value}` | var 已设置且非空 → 用 value，否则空 |
+        | `${var-default}` | 同 `:-` 但只在**未设置**时（空字符串不算） |
+        | `${var=default}` | 同 `:=` 但只在未设置时 |
+        | `${var?message}` | 同 `:?` 但只在未设置时 |
 
-    例子：
+        例子：
 
-    ```bash
-    echo "${FOO:-bar}"    # 输出 bar，但 FOO 仍是空的
-    echo "${FOO:=bar}"    # 输出 bar，且 FOO 现在等于 bar
-    echo "${FOO:?FOO is required}"  # FOO 为空则报错退出
-    echo "${FOO:+set}"    # FOO 有值则输出 set
-    ```
+        ```bash
+        echo "${FOO:-bar}"    # 输出 bar，但 FOO 仍是空的
+        echo "${FOO:=bar}"    # 输出 bar，且 FOO 现在等于 bar
+        echo "${FOO:?FOO is required}"  # FOO 为空则报错退出
+        echo "${FOO:+set}"    # FOO 有值则输出 set
+        ```
 
-    ## 二、Makefile 中的赋值操作符（你问的 `:=` `?=`）
+    **二、Makefile 中的赋值操作符（你问的 `:=` `?=`）**
 
     如果你确实是在 Makefile 里看到的：
 
@@ -2909,9 +2448,10 @@ Reference: <https://www.computerhope.com/unix.htm>
     FOO ?= default    # FOO 未定义时设为 default
     ```
 
-    ## 总结
+    **总结**
 
     - **bash**：用 `${var:=default}`、`${var:-default}`、`${var:?msg}` 这类参数展开实现“默认值/条件赋值”，没有 `?=` 操作符。
+
     - **Make**：才有 `:=`、`?=`、`+=`、`!=` 这些赋值操作符。
 
     需要我针对某一种（比如 bash 参数展开的所有变体，或 Makefile 的变量展开规则）再深入展开吗？
@@ -3423,57 +2963,57 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     关键点：**先由 shell 解析命令行，再由 `printf` 解析格式字符串里的转义序列**。`\n` 变成换行是 `printf` 的功能，不是 shell 的功能。
 
-    ### `printf hello\ world\n`
+    * `printf hello\ world\n`
 
-    这里 shell 会先处理反斜杠：
+        这里 shell 会先处理反斜杠：
 
-    - `\ `：反斜杠转义空格，使空格成为参数的一部分，不会被 shell 当作分隔符。
-    - `\n`：反斜杠转义 `n`，于是 **反斜杠被 shell 吃掉**，只剩下一个普通字符 `n`。
+        - `\ `：反斜杠转义空格，使空格成为参数的一部分，不会被 shell 当作分隔符。
+        - `\n`：反斜杠转义 `n`，于是 **反斜杠被 shell 吃掉**，只剩下一个普通字符 `n`。
 
-    所以 shell 最终传给 `printf` 的第一个参数是：
+        所以 shell 最终传给 `printf` 的第一个参数是：
 
-    ```text
-    hello worldn
-    ```
+        ```text
+        hello worldn
+        ```
 
-    注意：这里已经**没有反斜杠**了，所以 `printf` 看不到 `\n`，自然不会输出换行。它只会输出：
+        注意：这里已经**没有反斜杠**了，所以 `printf` 看不到 `\n`，自然不会输出换行。它只会输出：
 
-    ```text
-    hello worldn
-    ```
+        ```text
+        hello worldn
+        ```
 
-    ### `printf "hello world\n"`
+    * `printf "hello world\n"`
 
-    双引号里空格被保护，不会被分词。  
-    双引号里的反斜杠只在后跟 `$`、`` ` ``、`"`、`\`、换行等字符时才被 shell 特殊处理；后跟 `n` 时，反斜杠会原样保留。
+        双引号里空格被保护，不会被分词。  
+        双引号里的反斜杠只在后跟 `$`、`` ` ``、`"`、`\`、换行等字符时才被 shell 特殊处理；后跟 `n` 时，反斜杠会原样保留。
 
-    所以传给 `printf` 的是：
+        所以传给 `printf` 的是：
 
-    ```text
-    hello world\n
-    ```
+        ```text
+        hello world\n
+        ```
 
-    这里有真正的反斜杠加 `n`，`printf` 把它解释为换行，于是输出：
+        这里有真正的反斜杠加 `n`，`printf` 把它解释为换行，于是输出：
 
-    ```text
-    hello world
-    ```
+        ```text
+        hello world
+        ```
 
-    并换行。
+        并换行。
 
-    ### `printf 'hello world\n'`
+    * `printf 'hello world\n'`
 
-    单引号里所有字符都原样保留，空格和反斜杠都不会被 shell 特殊处理。
+        单引号里所有字符都原样保留，空格和反斜杠都不会被 shell 特殊处理。
 
-    所以传给 `printf` 的同样是：
+        所以传给 `printf` 的同样是：
 
-    ```text
-    hello world\n
-    ```
+        ```text
+        hello world\n
+        ```
 
-    `printf` 再把 `\n` 解释为换行。
+        `printf` 再把 `\n` 解释为换行。
 
-    ### 总结
+    **总结**
 
     | 写法 | shell 传给 printf 的格式字符串 | printf 输出 |
     |---|---|---|
@@ -3489,420 +3029,50 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     这里 `\\` 被 shell 解析成一个 `\`，于是 `printf` 收到 `hello world\n`，就能输出空格和换行。
 
-* 详细讲讲 bash 中的 for 循环
-
-    # Bash 中的 for 循环详解
-
-    Bash 提供了多种 `for` 循环的写法，用途各不相同。下面从基础到进阶逐一讲解。
-
-    ---
-
-    ## 一、基本语法形式
-
-    Bash 中 `for` 循环主要有 **两种语法**：
-
-    ### 1. 列表式（foreach 风格）
-
-    ```bash
-    for 变量 in 列表
-    do
-        命令
-    done
-    ```
-
-    这是最常用、最符合 Bash 习惯的写法。`列表` 可以是单词、变量、命令替换结果、通配符展开等。
-
-    ### 2. C 语言风格
-
-    ```bash
-    for ((初始化; 条件; 步进))
-    do
-        命令
-    done
-    ```
-
-    类似 C/Java 的 `for`，适合数字计数循环。
-
-    ---
-
-    ## 二、列表式 for 循环
-
-    ### 1. 遍历固定单词
-
-    ```bash
-    for fruit in apple banana cherry
-    do
-        echo "I like $fruit"
-    done
-    ```
-
-    ### 2. 遍历变量中的列表
-
-    ```bash
-    list="one two three"
-    for item in $list
-    do
-        echo "$item"
-    done
-    ```
-
-    > ⚠️ 注意：`$list` 不加引号，才能按空白分词。如果加引号 `"$list"`，整个字符串会被当成**一个**元素。
-
-    ### 3. 遍历命令输出
-
-    ```bash
-    for user in $(cut -d: -f1 /etc/passwd)
-    do
-        echo "$user"
-    done
-    ```
-
-    ### 4. 遍历通配符展开的文件
-
-    ```bash
-    for file in *.txt
-    do
-        echo "处理文件: $file"
-    done
-    ```
-
-    如果没有匹配文件，`*.txt` 会原样保留（除非开启 `nullglob`）。安全写法：
-
-    ```bash
-    shopt -s nullglob
-    for file in *.txt; do
-        echo "$file"
-    done
-    shopt -u nullglob
-    ```
-
-    ### 5. 遍历数组
-
-    ```bash
-    arr=(a b c d)
-    for item in "${arr[@]}"
-    do
-        echo "$item"
-    done
-    ```
-
-    **带索引遍历：**
-
-    ```bash
-    arr=(a b c d)
-    for i in "${!arr[@]}"
-    do
-        echo "$i -> ${arr[$i]}"
-    done
-    ```
-
-    ### 6. 使用位置参数
-
-    ```bash
-    for arg in "$@"
-    do
-        echo "参数: $arg"
-    done
-    ```
-
-    `for arg`（不带 `in`）等价于 `for arg in "$@"`，即遍历脚本/函数的所有参数。
-
-    ### 7. 遍历范围 `{1..10}`
-
-    ```bash
-    for i in {1..10}
-    do
-        echo "$i"
-    done
-    ```
-
-    **带步长：**
-
-    ```bash
-    for i in {0..20..5}   # 0 5 10 15 20
-    do
-        echo "$i"
-    done
-    ```
-
-    **带前导零：**
-
-    ```bash
-    for i in {01..10}     # 01 02 ... 10
-    do
-        echo "$i"
-    done
-    ```
-
-    ---
-
-    ## 三、C 语言风格 for 循环
-
-    ```bash
-    for ((i=0; i<10; i++))
-    do
-        echo "$i"
-    done
-    ```
-
-    特点：
-    - 支持任意算术表达式（`i+=2`、`i--`、`i*=2` 等）
-    - 变量作用域不局限于循环外（Bash 中 `i` 循环后仍然存在）
-    - 性能通常优于 `{1..N}`（对大范围尤其明显）
-
-    **示例：倒序**
-
-    ```bash
-    for ((i=10; i>0; i--))
-    do
-        echo "$i"
-    done
-    ```
-
-    **示例：多变量**
-
-    ```bash
-    for ((i=0, j=10; i<j; i++, j--))
-    do
-        echo "i=$i j=$j"
-    done
-    ```
-
-    **无限循环（用 break 退出）**
-
-    ```bash
-    for (( ; ; ))
-    do
-        read -p "输入 q 退出: " x
-        [[ $x == q ]] && break
-    done
-    ```
-
-    ---
-
-    ## 四、循环控制
-
-    ### break —— 跳出整个循环
-
-    ```bash
-    for i in {1..10}; do
-        [[ $i -eq 5 ]] && break
-        echo "$i"
-    done
-    # 输出 1 2 3 4
-    ```
-
-    ### continue —— 跳过本次迭代
-
-    ```bash
-    for i in {1..5}; do
-        [[ $i -eq 3 ]] && continue
-        echo "$i"
-    done
-    # 输出 1 2 4 5
-    ```
-
-    ### break/continue 带层级
-
-    ```bash
-    for i in 1 2 3; do
-        for j in a b c; do
-            [[ $j == b ]] && break 2   # 跳出两层
-            echo "$i$j"
-        done
-    done
-    ```
-
-    ---
-
-    ## 五、常见陷阱与注意事项
-
-    ### 1. 单词分割问题
-
-    ```bash
-    files="a b.txt c.txt"
-    for f in $files; do echo "$f"; done       # 正确：3 个
-    for f in "$files"; do echo "$f"; done     # 错误：1 个整串
-    ```
-
-    ### 2. 文件名含空格
-
-    用通配符或数组时，务必加引号：
-
-    ```bash
-    for f in *.txt; do
-        echo "$f"          # 引号必须加
-    done
-    ```
-
-    用 `find` 处理更安全：
-
-    ```bash
-    while IFS= read -r -d '' f; do
-        echo "$f"
-    done < <(find . -name '*.txt' -print0)
-    ```
-
-    ### 3. 循环中读 stdin 被吃掉
-
-    ```bash
-    while read -r line; do
-        for x in a b; do
-            ssh host "cmd"   # 若里面读 stdin，会消耗掉 while 的输入
-        done
-    done < file
-    ```
-
-    解决：把内部命令的 stdin 重定向，或改用文件描述符。
-
-    ### 4. 修改数组/变量在子 shell 中无效
-
-    ```bash
-    count=0
-    for f in *; do
-        ((count++))
-    done
-    echo $count   # 正常，for 不在子 shell 中
-    ```
-
-    但如果用管道 `| while`，变量修改会丢失（子 shell 问题），`for` 本身没这问题。
-
-    ### 5. `{1..10}` 不适合大范围
-
-    ```bash
-    for i in {1..1000000}; do :; done   # 很慢，会先展开成超长参数
-    for ((i=1; i<=1000000; i++)); do :; done   # 快很多
-    ```
-
-    ### 6. 一行写法
-
-    ```bash
-    for i in 1 2 3; do echo $i; done
-    ```
-
-    分号 `;` 是必须的（`do` 前）。
-
-    ---
-
-    ## 六、实用示例
-
-    ### 1. 批量重命名
-
-    ```bash
-    for f in *.jpeg; do
-        mv "$f" "${f%.jpeg}.jpg"
-    done
-    ```
-
-    ### 2. 批量 ping 主机
-
-    ```bash
-    for ip in 192.168.1.{1..254}; do
-        ping -c1 -W1 "$ip" &>/dev/null && echo "$ip is up"
-    done
-    ```
-
-    ### 3. 遍历文件并统计行数
-
-    ```bash
-    total=0
-    for f in *.log; do
-        n=$(wc -l < "$f")
-        echo "$f: $n"
-        ((total+=n))
-    done
-    echo "总计: $total"
-    ```
-
-    ### 4. 循环处理 CSV 字段
-
-    ```bash
-    while IFS=, read -r name age city; do
-        for field in "$name" "$age" "$city"; do
-            printf '[%s] ' "$field"
-        done
-        echo
-    done < data.csv
-    ```
-
-    ### 5. 嵌套循环生成组合
-
-    ```bash
-    for x in {1..3}; do
-        for y in a b; do
-            echo "$x$y"
-        done
-    done
-    ```
-
-    ---
-
-    ## 七、列表式 vs C 风格选择建议
-
-    | 场景 | 推荐 |
-    |------|------|
-    | 遍历单词/数组/文件/命令输出 | 列表式 |
-    | 数字计数、步长、倒序 | C 风格 |
-    | 小范围 `{1..10}` | 列表式更简洁 |
-    | 大范围或复杂条件 | C 风格 |
-    | 遍历位置参数 | `for arg in "$@"` 或 `for arg` |
-
-    ---
-
-    ## 八、小结
-
-    - **列表式** `for x in ...; do ...; done` 是 Bash 最地道的循环，适合遍历集合。
-    - **C 风格** `for ((...))` 适合数值迭代。
-    - 一定要**注意引号**，防止单词分割和通配符意外展开。
-    - 循环控制用 `break` / `continue`，可带数字指定层级。
-    - 处理含空格文件名或 `find` 结果时，优先用 `while read` + `-print0`。
-
-    如果你有具体场景（比如批量处理文件、解析日志），可以告诉我，我帮你写出针对性的 `for` 循环。
-
 * bash 中，arr=("$@") 这里的双引号的作用是什么？
 
     在 Bash 中，`arr=("$@")` 里的双引号**非常关键**，它决定了数组元素如何被拆分。
 
-    ## 核心区别
+    **核心区别**
 
-    ### `"$@"`（带双引号）
+    * `"$@"`（带双引号）
 
-    每个位置参数保持为**独立的元素**，即使参数里包含空格或特殊字符：
+        每个位置参数保持为**独立的元素**，即使参数里包含空格或特殊字符：
 
-    ```bash
-    set -- "hello world" "foo bar"
-    arr=("$@")
-    echo "${#arr[@]}"   # 2
-    echo "${arr[0]}"    # hello world
-    echo "${arr[1]}"    # foo bar
-    ```
+        ```bash
+        set -- "hello world" "foo bar"
+        arr=("$@")
+        echo "${#arr[@]}"   # 2
+        echo "${arr[0]}"    # hello world
+        echo "${arr[1]}"    # foo bar
+        ```
 
-    ### `$@`（不带双引号）
+    * `$@`（不带双引号）
 
-    会发生**单词拆分（word splitting）**和**路径扩展（globbing）**，参数被按空白字符切碎：
+        会发生**单词拆分（word splitting）**和**路径扩展（globbing）**，参数被按空白字符切碎：
 
-    ```bash
-    set -- "hello world" "foo bar"
-    arr=($@)
-    echo "${#arr[@]}"   # 4
-    # 元素变成: hello / world / foo / bar
-    ```
+        ```bash
+        set -- "hello world" "foo bar"
+        arr=($@)
+        echo "${#arr[@]}"   # 4
+        # 元素变成: hello / world / foo / bar
+        ```
 
-    ## 为什么必须加双引号
+    **为什么必须加双引号**
 
     1. **保留参数边界**：`"$@"` 是 Bash 中唯一能"原样"传递所有位置参数的形式，每个参数对应数组的一个元素。
     2. **防止单词拆分**：含空格的参数不会被拆成多个。
     3. **防止通配符展开**：参数里的 `*`、`?` 等不会被当作 glob 展开成文件名。
     4. **空参数也保留**：`""` 这种空字符串参数也会被保留为一个空元素。
 
-    ## 对比总结
+    **对比总结**
 
     | 写法 | 含空格参数 | 通配符 | 空参数 |
     |------|-----------|--------|--------|
     | `arr=("$@")` | 保持完整 | 不展开 | 保留 |
     | `arr=($@)` | 被拆开 | 会展开 | 可能丢失 |
 
-    ## 一个直观例子
+    **一个直观例子**
 
     ```bash
     set -- "a b" "*"
@@ -4263,7 +3433,7 @@ Reference: <https://www.computerhope.com/unix.htm>
         - `"$@"` 加引号才能正确处理带空格的参数。
         - 用 C 风格 `for` 循环从末尾往前遍历。
 
-    * 方法二：借助 `tac` 或 `printf` + `tac`
+    2. 方法二：借助 `tac` 或 `printf` + `tac`
 
         ```bash
         #!/usr/bin/env bash
@@ -4278,7 +3448,7 @@ Reference: <https://www.computerhope.com/unix.htm>
         printf '%s\n' "${args[@]}" | tail -r
         ```
 
-    * 方法三：原地反转数组
+    3. 方法三：原地反转数组
 
         ```bash
         #!/usr/bin/env bash
@@ -4296,7 +3466,7 @@ Reference: <https://www.computerhope.com/unix.htm>
         printf '%s\n' "${args[@]}"
         ```
 
-    * 方法四：一行命令版
+    4. 方法四：一行命令版
 
         ```bash
         args=("$@"); for ((i=${#args[@]}-1; i>=0; i--)); do echo "${args[i]}"; done
@@ -7266,7 +6436,388 @@ Reference: <https://www.computerhope.com/unix.htm>
 
     如果想要更严格的并发安全，可以在清理前加个 `flock`；如果想要增量/压缩级别控制，可以在 `tar` 上加 `--exclude` 和 `-I 'gzip -9'`。
 
-### while 语句
+### 循环
+
+* 详细讲讲 bash 中的 for 循环
+
+    **Bash 中的 for 循环详解**
+
+    Bash 提供了多种 `for` 循环的写法，用途各不相同。下面从基础到进阶逐一讲解。
+
+    **一、基本语法形式**
+
+    Bash 中 `for` 循环主要有 **两种语法**：
+
+    1. 列表式（foreach 风格）
+
+        ```bash
+        for 变量 in 列表
+        do
+            命令
+        done
+        ```
+
+        这是最常用、最符合 Bash 习惯的写法。`列表` 可以是单词、变量、命令替换结果、通配符展开等。
+
+    2. C 语言风格
+
+        ```bash
+        for ((初始化; 条件; 步进))
+        do
+            命令
+        done
+        ```
+
+        类似 C/Java 的 `for`，适合数字计数循环。
+
+    **二、列表式 for 循环**
+
+    1. 遍历固定单词
+
+        ```bash
+        for fruit in apple banana cherry
+        do
+            echo "I like $fruit"
+        done
+        ```
+
+    2. 遍历变量中的列表
+
+        ```bash
+        list="one two three"
+        for item in $list
+        do
+            echo "$item"
+        done
+        ```
+
+        > ⚠️ 注意：`$list` 不加引号，才能按空白分词。如果加引号 `"$list"`，整个字符串会被当成**一个**元素。
+
+    3. 遍历命令输出
+
+        ```bash
+        for user in $(cut -d: -f1 /etc/passwd)
+        do
+            echo "$user"
+        done
+        ```
+
+    4. 遍历通配符展开的文件
+
+        ```bash
+        for file in *.txt
+        do
+            echo "处理文件: $file"
+        done
+        ```
+
+        如果没有匹配文件，`*.txt` 会原样保留（除非开启 `nullglob`）。安全写法：
+
+        ```bash
+        shopt -s nullglob
+        for file in *.txt; do
+            echo "$file"
+        done
+        shopt -u nullglob
+        ```
+
+    5. 遍历数组
+
+        ```bash
+        arr=(a b c d)
+        for item in "${arr[@]}"
+        do
+            echo "$item"
+        done
+        ```
+
+        **带索引遍历：**
+
+        ```bash
+        arr=(a b c d)
+        for i in "${!arr[@]}"
+        do
+            echo "$i -> ${arr[$i]}"
+        done
+        ```
+
+    6. 使用位置参数
+
+        ```bash
+        for arg in "$@"
+        do
+            echo "参数: $arg"
+        done
+        ```
+
+        `for arg`（不带 `in`）等价于 `for arg in "$@"`，即遍历脚本/函数的所有参数。
+
+    7. 遍历范围 `{1..10}`
+
+        ```bash
+        for i in {1..10}
+        do
+            echo "$i"
+        done
+        ```
+
+        **带步长：**
+
+        ```bash
+        for i in {0..20..5}   # 0 5 10 15 20
+        do
+            echo "$i"
+        done
+        ```
+
+        **带前导零：**
+
+        ```bash
+        for i in {01..10}     # 01 02 ... 10
+        do
+            echo "$i"
+        done
+        ```
+
+    **三、C 语言风格 for 循环**
+
+    ```bash
+    for ((i=0; i<10; i++))
+    do
+        echo "$i"
+    done
+    ```
+
+    特点：
+
+    - 支持任意算术表达式（`i+=2`、`i--`、`i*=2` 等）
+    - 变量作用域不局限于循环外（Bash 中 `i` 循环后仍然存在）
+    - 性能通常优于 `{1..N}`（对大范围尤其明显）
+
+    **示例：倒序**
+
+    ```bash
+    for ((i=10; i>0; i--))
+    do
+        echo "$i"
+    done
+    ```
+
+    **示例：多变量**
+
+    ```bash
+    for ((i=0, j=10; i<j; i++, j--))
+    do
+        echo "i=$i j=$j"
+    done
+    ```
+
+    **无限循环（用 break 退出）**
+
+    ```bash
+    for (( ; ; ))
+    do
+        read -p "输入 q 退出: " x
+        [[ $x == q ]] && break
+    done
+    ```
+
+    ---
+
+    **四、循环控制**
+
+    * break —— 跳出整个循环
+
+        ```bash
+        for i in {1..10}; do
+            [[ $i -eq 5 ]] && break
+            echo "$i"
+        done
+        # 输出 1 2 3 4
+        ```
+
+    * continue —— 跳过本次迭代
+
+        ```bash
+        for i in {1..5}; do
+            [[ $i -eq 3 ]] && continue
+            echo "$i"
+        done
+        # 输出 1 2 4 5
+        ```
+
+    * break/continue 带层级
+
+        ```bash
+        for i in 1 2 3; do
+            for j in a b c; do
+                [[ $j == b ]] && break 2   # 跳出两层
+                echo "$i$j"
+            done
+        done
+        ```
+
+    **五、常见陷阱与注意事项**
+
+    1. 单词分割问题
+
+        ```bash
+        files="a b.txt c.txt"
+        for f in $files; do echo "$f"; done       # 正确：3 个
+        for f in "$files"; do echo "$f"; done     # 错误：1 个整串
+        ```
+
+    2. 文件名含空格
+
+        用通配符或数组时，务必加引号：
+
+        ```bash
+        for f in *.txt; do
+            echo "$f"          # 引号必须加
+        done
+        ```
+
+        用 `find` 处理更安全：
+
+        ```bash
+        while IFS= read -r -d '' f; do
+            echo "$f"
+        done < <(find . -name '*.txt' -print0)
+        ```
+
+    3. 循环中读 stdin 被吃掉
+
+        ```bash
+        while read -r line; do
+            for x in a b; do
+                ssh host "cmd"   # 若里面读 stdin，会消耗掉 while 的输入
+            done
+        done < file
+        ```
+
+        解决：把内部命令的 stdin 重定向，或改用文件描述符。
+
+    4. 修改数组/变量在子 shell 中无效
+
+        ```bash
+        count=0
+        for f in *; do
+            ((count++))
+        done
+        echo $count   # 正常，for 不在子 shell 中
+        ```
+
+        但如果用管道 `| while`，变量修改会丢失（子 shell 问题），`for` 本身没这问题。
+
+    5. `{1..10}` 不适合大范围
+
+        ```bash
+        for i in {1..1000000}; do :; done   # 很慢，会先展开成超长参数
+        for ((i=1; i<=1000000; i++)); do :; done   # 快很多
+        ```
+
+    6. 一行写法
+
+        ```bash
+        for i in 1 2 3; do echo $i; done
+        ```
+
+        分号 `;` 是必须的（`do` 前）。
+
+    **六、实用示例**
+
+    1. 批量重命名
+
+        ```bash
+        for f in *.jpeg; do
+            mv "$f" "${f%.jpeg}.jpg"
+        done
+        ```
+
+    2. 批量 ping 主机
+
+        ```bash
+        for ip in 192.168.1.{1..254}; do
+            ping -c1 -W1 "$ip" &>/dev/null && echo "$ip is up"
+        done
+        ```
+
+    3. 遍历文件并统计行数
+
+        ```bash
+        total=0
+        for f in *.log; do
+            n=$(wc -l < "$f")
+            echo "$f: $n"
+            ((total+=n))
+        done
+        echo "总计: $total"
+        ```
+
+    4. 循环处理 CSV 字段
+
+        ```bash
+        while IFS=, read -r name age city; do
+            for field in "$name" "$age" "$city"; do
+                printf '[%s] ' "$field"
+            done
+            echo
+        done < data.csv
+        ```
+
+    5. 嵌套循环生成组合
+
+        ```bash
+        for x in {1..3}; do
+            for y in a b; do
+                echo "$x$y"
+            done
+        done
+        ```
+
+    **七、列表式 vs C 风格选择建议**
+
+    | 场景 | 推荐 |
+    |------|------|
+    | 遍历单词/数组/文件/命令输出 | 列表式 |
+    | 数字计数、步长、倒序 | C 风格 |
+    | 小范围 `{1..10}` | 列表式更简洁 |
+    | 大范围或复杂条件 | C 风格 |
+    | 遍历位置参数 | `for arg in "$@"` 或 `for arg` |
+
+    **八、小结**
+
+    - **列表式** `for x in ...; do ...; done` 是 Bash 最地道的循环，适合遍历集合。
+    - **C 风格** `for ((...))` 适合数值迭代。
+    - 一定要**注意引号**，防止单词分割和通配符意外展开。
+    - 循环控制用 `break` / `continue`，可带数字指定层级。
+    - 处理含空格文件名或 `find` 结果时，优先用 `while read` + `-print0`。
+
+    如果你有具体场景（比如批量处理文件、解析日志），可以告诉我，我帮你写出针对性的 `for` 循环。
+
+* bash 中循环的常见用法
+
+    * `for i in 1 2 3; do echo $i; done`
+
+    * `for f in *.txt; do ...; done`
+
+        注：
+
+        1. 如果文件名里有空格，echo $f 即使不写双引号`"$f"`，也能正确打印带空格的文件名，不会把带空格的文件名拆分成两个字符串
+
+    * `while read line; do ...; done < file`
+
+        注：
+
+        1. 这个的含义是用 while 处理 file 文件，将 file 文件重定向为 while 语句的输入。
+
+            如果没有`< file`，那么会从 stdin 读取输入。
+
+        2. `< file`之间的空格可以不写
+
+    * until、break、continue
+
+    练习：遍历当前目录所有 .sh 文件并打印文件名。
 
 * 详细讲讲 bash 中的 while 语句
 
@@ -7794,6 +7345,48 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ### 函数 function
 
+* 编写函数
+
+    ```bash
+    testfunc()
+    {
+        echo "$# parameters";
+        echo "$@";
+    }
+    ```
+
+    $# 表示传入函数的参数个数，$@ 表示所有参数的内容
+
+    执行函数：
+
+    `testfunc()`
+
+    output:
+
+    ```
+    0 parameters
+    ```
+
+    `testfunc a b c`
+
+    output:
+
+    ```
+    3 parameters
+    abc
+    ```
+
+    run:
+
+    `testfunc a "b c"`
+
+    output:
+
+    ```
+    2 parameters
+    a b c
+    ```
+
 * bash 中函数的两种写法
 
     ```bash
@@ -8231,6 +7824,34 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ### 变量 variables
 
+* 一些常见的环境变量
+
+    * HOME: 用户的专属目录，在 linux 用 ~ 扩展
+
+    * PATH: 外部命令的搜索路径
+
+    * HISTSIZE: 保存历史命令记录的条数
+
+    * HOSTNAME: 主机的名称
+
+    * SHELL: 当前用户使用的 shell 类型
+
+        注：
+
+        1. 这个实测是给出的 shell 的路径
+
+    * LANG/LANGUAGE: 语言相关的环境变量
+
+    * MAIL: 当前用户的邮件存放目录
+
+        注：
+
+        1. 实测为空
+
+    * PS1/PS2: PS1 是基本提示符，对于 root 用户是 #，对于普通用户是 $。
+
+        PS2 是附属提示符，默认是 >
+
 * bash 中默认函数内外的变量都是全局变量。可以用`local xxxx`或`local xxx=xxxx`定义局部变量。
 
 * 如果我们创建一个变量，那么它默认是`global`属性的。如果我们在函数中使用`local`关键字创建一个变量，那么这个变量就只能在函数中可见：
@@ -8331,6 +7952,26 @@ Reference: <https://www.computerhope.com/unix.htm>
 
 ### 杂项配置
 
+* 与 bash 相关的启动文件
+
+    * `/etc/profile`: 系统范围的默认值，大部分用来设置环境（所有由 sh 衍生出的 shell 适用）
+
+    * `/etc/bashrc`: 特定于 bash 的，系统范围函数与别名
+
+        注：
+
+        1. 在 ubuntu 22.04 中搜到的是`/etc/bash.bashrc`
+
+    * `$HOME/.bash_profile`：用户定义的, 默认环境配置
+
+        注：
+
+        1. ubuntu 22.04 中没有这个文件，可能需要自己创建？
+
+    * `$HOME/.bashrc`: 用户定义的 bash 初始化文件。只有交互式的 shell 和用户脚本才会读取这个文件
+
+    * `$HOME/.bash_logout`: 登出文件
+
 * 简述 bash 中 alias 的用法
 
     在 Bash 中，`alias`（别名）是一个非常实用的功能。简单来说，它允许你为冗长的命令设定一个**简短的“绰号”**，从而提高敲代码的效率。
@@ -8426,6 +8067,28 @@ Reference: <https://www.computerhope.com/unix.htm>
     ```
 
 ### read
+
+* read
+
+    read [-p] [-r] [-s] [-u [n]] [variable name? prompt]
+
+    [variable name]
+
+    从标准输入中读取一行
+
+    参数：
+
+    -p: 没看明白
+
+    -r: 把 \ 作为输入的一部分，而不把它作为一个控制字符
+
+    -s: 没看懂
+
+    -u [n]: 读取文件描述符作为输入。n 的默认值是 0
+
+    read 命令从标准输入中读取一行，并把输入行的每个字段的值指定给 shell 变量，用 IFS 作为分隔符。第一个字段的值赋给第一个 var，第二个字段的值赋给第二个 var，以此类推。如果 var 的数量比较少，那么把余下的字段都赋给最后一个 shell 变量。如果 var 的个数多，那么剩余 var 都被设置为空字符串。
+
+    如果省略了 var name，则用 REPLY 作为变量名
 
 * read 基本用法
 

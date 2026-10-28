@@ -2,6 +2,161 @@
 
 ## cache
 
+* 在 screen 中打开 vim 后，vim 正常支持 "+ 寄存器。但是如果 ctrl + a, d 保存 screen session 后，换个 terminal 再 screen -r xxx 恢复 session，由于此时 DISPLAY 发生变化，所以 "+ 会失效。现在的问题是，我在 vim 中打开了很多的 buffer，不想关闭 vim 后再次打开。是否可以在不关闭 vim 的情况下，设置 DISPLAY 环境变量，使得 "+ 再次生效？
+
+     不用关闭 Vim 就能让 `"+` 寄存器恢复工作，核心是**在当前 Vim 进程内更新 `$DISPLAY` 环境变量**，让它重新指向你当前终端所对应的 X11 服务器。
+
+    ### 🎯 核心方法：在 Vim 中直接修改 `$DISPLAY`
+
+    Vim 允许你直接操作其内部的环境变量。你只需要在 Vim 的命令模式下执行以下命令，将 `:0` 或 `localhost:10.0` 替换为你当前终端真正的 `DISPLAY` 值即可：
+
+    ```vim
+    :let $DISPLAY=":0"
+    ```
+
+    或者，如果你的环境是 SSH 远程登录并使用 X11 转发，`DISPLAY` 的值可能类似 `localhost:10.0`：
+
+    ```vim
+    :let $DISPLAY="localhost:10.0"
+    ```
+
+    > **如何确认正确的 `DISPLAY` 值？**
+    > 在你重新连接 `screen` 的那个终端里，执行 `echo $DISPLAY`，输出的值就是你需要设置的正确值。
+
+    ### 🛠️ 备选方案与进阶技巧
+
+    如果单纯修改环境变量后 `"+` 寄存器仍然无效，或者你希望操作更自动化，可以试试以下方法：
+
+    1.  **使用 Vim 内置命令 `:xrestore`**
+        Vim 提供了一个专门用于重新建立 X11 连接的命令。在你更新了 `$DISPLAY` 环境变量后，可以执行 `:xrestore` 来强制 Vim 重新连接当前的 X 服务器。
+
+    2.  **手动重新触发剪贴板功能**
+        有时更改环境变量后，Vim 的剪贴板选项可能需要被“提醒”一下。你可以尝试切换一下 `clipboard` 设置：
+        ```vim
+        :set clipboard=unnamedplus
+        ```
+        如果本身已经设置，可以先用 `:set clipboard=` 清空，再重新设置 `:set clipboard=unnamedplus`。
+
+    3.  **自动化方案（通过在 `screen` 外部操作）**
+        为了避免每次恢复 session 后都手动输入 Vim 命令，可以编写一个包装脚本。在脚本中先 `export` 正确的 `DISPLAY` 值，然后再 `screen -r`。但请注意，这只能影响新启动的 Vim，对于**已经在运行**的 Vim 实例无效，因此你最初“不关闭 Vim”的需求还是需要依靠上述的 **:let $DISPLAY** 命令来解决。
+
+    * 那为什么 :!export DISPLAY=:0 不行？
+
+        因为 `:!export DISPLAY=:0` 里的 `export` **只在一个临时子 shell 里生效**，命令一结束子 shell 就退出了，它改不到 Vim 进程自己的环境变量。
+
+        可以这样理解：
+
+        ```text
+        Vim 进程
+          └─ :! 启动一个临时 shell
+                └─ export DISPLAY=:0   # 只影响这个临时 shell
+             shell 退出
+          # Vim 进程的 $DISPLAY 仍然是旧值
+        ```
+
+        而 Vim 的 `"+` 寄存器用的是 **Vim 进程自己的 `$DISPLAY`**，以及 Vim 内部已经建立/缓存的 X11 连接。临时子 shell 里改 `DISPLAY`，对父进程 Vim 没有影响。
+
+        正确的做法是在 Vim 内部直接改 Vim 自己的环境变量：
+
+        ```vim
+        :let $DISPLAY=":0"
+        ```
+
+        这会让 Vim 进程的 `$DISPLAY` 变成 `:0`，之后 Vim 再启动子进程或重新连接 X11 时才能看到新值。
+
+        另外还有两点：
+
+        1. **`export` 是 shell 内建命令**，它修改的是当前 shell 的环境；`:!` 执行的命令运行在子 shell 中，无法反向修改父进程 Vim 的环境。
+        2. 即使你用 `:let $DISPLAY` 改对了，Vim 的 clipboard/X11 连接可能已经初始化过，必要时还要执行：
+           ```vim
+           :xrestore
+           ```
+           或者重新触发 clipboard 设置，让 Vim 重新建立连接。
+
+        所以：
+
+        ```vim
+        :!export DISPLAY=:0      " 不行：只改临时子 shell
+        :let $DISPLAY=":0"       " 可以：改 Vim 进程自己的环境变量
+        ```
+
+        如果改完 `$DISPLAY` 后 `"+` 仍不生效，再配合 `:xrestore` 使用。
+
+    注：
+
+    1. 首先用 let 语句改变 vim 的环境变量 DISPLAY。记得不能使用 :!export DISPLAY=XXX，这个没用。
+
+        然后使用 `:xrestore` 恢复 x11 connect 连接。这两步做完后，当前的 vim 就可以继续使用 "+ reg 寄存器了。
+
+* 详细讲讲 vim-markdown 的用法
+
+    `vim-markdown` 是 Vim 生态中功能最全面的 Markdown 插件之一（通常指 `preservim/vim-markdown`）。它远不止语法高亮，核心价值在于提供了一套完整的**文档导航、链接跳转、目录生成及语法扩展**体系。
+
+    **核心导航与操作**
+
+    安装后，插件会绑定几组高频使用的快捷键（均在普通和可视模式下生效）：
+
+    *   **标题跳转**：使用 `]]` 跳到下一个标题，`[[` 跳到上一个标题。如果文档层级复杂，还可以用 `][` 跳到下一个同级标题，`[]` 跳到上一个同级标题，`]u` 跳到父级标题 。
+    *   **链接操作**：将光标置于链接任意位置，按 `gx` 可用系统默认浏览器打开该 URL；按 `ge` 可直接在 Vim 内打开链接指向的本地文件进行编辑 。
+    *   **目录生成**：输入 `:Toc` 可在侧边栏（位置列表）垂直显示文档大纲，方便快速跳转。若想把目录直接插入文档中，可用 `:InsertToc`（无序列表）或 `:InsertNToc`（有序列表）。
+    *   **标题与表格调整**：支持 `:HeaderIncrease` / `:HeaderDecrease` 批量升降标题级别，以及 `:TableFormat` 自动对齐表格 。
+
+    ### 常用配置项（写入 `.vimrc`）
+
+    插件默认仅开启基础高亮，许多现代 Markdown 特性需要手动启用：
+
+    **1. 语法扩展**
+    如果你使用 Hugo/Jekyll 或数学公式，建议开启：
+    ```vim
+    " 支持 LaTeX 数学公式（$x^2$）
+    let g:vim_markdown_math = 1
+    " 高亮 YAML Front Matter（常用于博客头部）
+    let g:vim_markdown_frontmatter = 1
+    " 高亮 TOML/JSON Front Matter
+    let g:vim_markdown_toml_frontmatter = 1
+    let g:vim_markdown_json_frontmatter = 1
+    " 支持删除线 ~~text~~
+    let g:vim_markdown_strikethrough = 1
+    ```
+
+
+    **2. 链接与锚点**
+    在写长文档或 Wiki 时，支持锚点跳转非常实用：
+    ```vim
+    " 允许 ge 跟随 file#anchor 或 #anchor 形式的锚点
+    let g:vim_markdown_follow_anchor = 1
+    " 忽略 .md 后缀（适合 GitHub/GitLab Wiki 风格）
+    let g:vim_markdown_no_extensions_in_markdown = 1
+    " 跳转链接前自动保存当前修改
+    let g:vim_markdown_autowrite = 1
+    ```
+
+
+    **3. 代码块高亮**
+    插件默认只识别少数几种语言。如果你常在代码块里写 C#、Python、JS，建议扩充：
+    ```vim
+    let g:vim_markdown_fenced_languages = ['csharp=cs', 'python', 'javascript=js']
+    ```
+
+
+    **4. 编辑体验优化**
+    *   **列表缩进**：默认新列表项缩进 4 空格，若习惯 2 空格可设置 `let g:vim_markdown_new_list_item_indent = 2` 。
+    *   **关闭自动列表符号**：如果开启自动补全列表符导致换行写段落时很烦，可关闭：`let g:vim_markdown_auto_insert_bullets = 0` 。
+    *   ** Conceal（ conceal 模式）**：若开启 `set conceallevel=2`，链接和加粗符号会被隐藏，只显示文字。若觉得不便，可设置 `let g:vim_markdown_conceal = 0` 关闭 。
+
+    ### 补充说明
+    如果你需要更轻量或偏重不同功能（如纯语法高亮、或配合其他插件），也可以了解下 `plasticboy/vim-markdown`（preservim 的前身）或 `gabrielelana/vim-markdown`，但上述 `preservim/vim-markdown` 是目前维护最活跃、功能最全的主流选择。
+
+* :normal! zx 表示执行普通模式下的 zx 命令：
+
+    - normal：执行后面的普通模式按键。
+    - !：忽略自定义快捷键映射，使用 Vim 原生命令。
+    - zx：重新计算折叠，按当前 foldlevel 恢复开合状态，再展开光标所在的折叠，让光标可见。
+
+    这里的用途是：重新加载脚本后，让 Vim 按新的规则更新折叠。
+
+    它也可能改变原来的折叠开合状态，但不会修改文本内容。
+
 * ctags + vim, 使用 ctrl + ] 跳转后，出现
 
     ```

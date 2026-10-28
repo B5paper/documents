@@ -2,6 +2,301 @@
 
 ## cache
 
+* 详细讲讲 awk 的用法
+
+    **awk 详解**
+
+    awk 是 Linux/Unix 下强大的文本处理工具，适合按行、按列处理结构化文本。下面从基础到进阶系统讲解。
+
+    **一、基本工作模式**
+
+    awk 逐行读取输入，对每一行执行 `pattern { action }` 规则：
+
+    ```bash
+    awk 'pattern { action }' file
+    ```
+
+    - **pattern**：匹配条件（可省略，表示每行都执行）
+
+    - **action**：要执行的操作（可省略，默认打印整行）
+
+    ```bash
+    awk '{ print }' file.txt          # 打印每行（类似 cat）
+    awk '/error/ { print }' file.txt  # 打印含 error 的行
+    awk '/error/' file.txt            # pattern 省略 action，默认打印
+    ```
+
+    **二、字段与内置变量**
+
+    awk 按**分隔符**把每行拆成字段，用 `$1, $2, ...` 引用：
+
+    | 变量 | 含义 |
+    |------|------|
+    | `$0` | 整行内容 |
+    | `$1, $2...` | 第 1、2... 个字段 |
+    | `$NF` | 最后一个字段 |
+    | `NF` | 当前行的字段数 |
+    | `NR` | 当前处理的行号（跨文件累计） |
+    | `FNR` | 当前文件内的行号 |
+    | `FS` | 输入字段分隔符（默认空格/Tab） |
+    | `OFS` | 输出字段分隔符（默认空格） |
+    | `RS` | 输入记录分隔符（默认换行） |
+    | `ORS` | 输出记录分隔符（默认换行） |
+    | `FILENAME` | 当前文件名 |
+
+    ```bash
+    awk '{ print $1, $3 }' file.txt        # 打印第1、3列
+    awk '{ print $NF }' file.txt           # 打印最后一列
+    awk '{ print NF }' file.txt            # 打印每行字段数
+    awk '{ print NR": "$0 }' file.txt      # 带行号打印
+    ```
+
+    **三、分隔符设置**
+
+    ```bash
+    # -F 指定分隔符
+    awk -F: '{ print $1 }' /etc/passwd
+    awk -F'\t' '{ print $2 }' file.tsv
+    awk -F'[,;]' '{ print $1 }' file.txt   # 支持正则作为分隔符
+
+    # 用 FS 变量
+    awk 'BEGIN{FS=":"} { print $1 }' /etc/passwd
+
+    # 输出分隔符 OFS
+    awk 'BEGIN{FS=":";OFS="-"}{ print $1,$3 }' /etc/passwd
+    ```
+
+    **四、BEGIN / END 块**
+
+    ```bash
+    awk 'BEGIN{ print "开始" } { print $1 } END{ print "结束" }' file.txt
+    ```
+
+    - `BEGIN`：处理输入前执行一次（常用于初始化、打印表头）
+
+    - `END`：处理完所有输入后执行一次（常用于汇总统计）
+
+    ```bash
+    # 统计行数
+    awk 'END{ print NR }' file.txt
+
+    # 求和
+    awk '{ sum += $1 } END{ print sum }' nums.txt
+
+    # 求平均
+    awk '{ sum += $1 } END{ print sum/NR }' nums.txt
+    ```
+
+    **五、条件与模式**
+
+    ```bash
+    # 数值比较
+    awk '$3 > 100 { print $1, $3 }' file.txt
+
+    # 字符串匹配
+    awk '$1 == "root" { print }' /etc/passwd
+    awk '$1 ~ /^ro/ { print }' /etc/passwd      # 正则匹配
+    awk '$1 !~ /^ro/ { print }' /etc/passwd     # 不匹配
+
+    # 逻辑运算
+    awk '$3 > 50 && $3 < 100 { print }' file.txt
+    awk '$1 == "a" || $1 == "b" { print }' file.txt
+
+    # 范围模式
+    awk '/START/,/END/ { print }' file.txt      # 打印两个标记之间的行
+
+    # 行号条件
+    awk 'NR==1 { print }' file.txt              # 第一行
+    awk 'NR>1 { print }' file.txt               # 除第一行外
+    ```
+
+    注：
+
+    1. `NR == 1`等号左右可以有空格，也可以没有。
+
+    2. 范围模式，更像是选中多个匹配模式，不像是范围。没看明白这个。
+
+    **六、变量与运算**
+
+    awk 变量无需声明，默认为 0 或空字符串：
+
+    ```bash
+    awk '{ count++ } END{ print count }' file.txt
+    awk '{ sum += $2 } END{ print sum }' file.txt
+    awk '{ max = ($1 > max) ? $1 : max } END{ print max }' nums.txt
+    ```
+
+    支持算术 `+ - * / %`、比较、逻辑、三目运算符。
+
+    **七、流程控制**
+
+    ```bash
+    # if-else
+    awk '{ if ($1 > 60) print "及格"; else print "不及格" }' scores.txt
+
+    # for 循环
+    awk '{ for (i=1; i<=NF; i++) print $i }' file.txt
+
+    # while
+    awk '{ i=1; while (i<=NF) { print $i; i++ } }' file.txt
+
+    # 数组遍历
+    awk '{ count[$1]++ } END{ for (k in count) print k, count[k] }' file.txt
+
+    # break / continue / next / exit
+    awk '{ if ($1 == "skip") next; print }' file.txt   # next 跳过本行
+    awk 'NR==5 { exit } { print }' file.txt            # exit 提前结束
+    ```
+
+    **八、数组**
+
+    awk 的数组是关联数组（哈希表），是统计的利器：
+
+    ```bash
+    # 统计每个单词出现次数
+    awk '{ for (i=1; i<=NF; i++) count[$i]++ } END{ for (w in count) print w, count[w] }' file.txt
+
+    # 判断键是否存在
+    awk '{ if ($1 in seen) print "重复:", $1; seen[$1]=1 }' file.txt
+
+    # 删除数组元素
+    awk '{ delete arr[$1] }' file.txt
+
+    # 多维数组（用 SUBSEP 连接）
+    awk '{ a[$1,$2]++ } END{ for (k in a) print k, a[k] }' file.txt
+    ```
+
+    **九、常用内置函数**
+
+    **字符串函数：**
+
+    | 函数 | 说明 |
+    |------|------|
+    | `length(s)` | 字符串长度 |
+    | `substr(s,m,n)` | 从 m 取 n 个字符 |
+    | `index(s,t)` | t 在 s 中的位置 |
+    | `split(s,a,fs)` | 按 fs 分割 s 到数组 a |
+    | `sub(r,t,s)` | 替换第一个匹配 |
+    | `gsub(r,t,s)` | 替换所有匹配 |
+    | `match(s,r)` | 返回匹配位置 |
+    | `tolower(s)` / `toupper(s)` | 大小写转换 |
+    | `sprintf(fmt,...)` | 格式化字符串 |
+
+    ```bash
+    awk '{ print length($0) }' file.txt
+    awk '{ print substr($1,1,3) }' file.txt
+    awk '{ gsub(/foo/,"bar"); print }' file.txt
+    awk '{ n=split($0,arr,","); print n, arr[1] }' file.txt
+    ```
+
+    **数学函数：**
+
+    `int()`, `sqrt()`, `exp()`, `log()`, `sin()`, `cos()`, `rand()`, `srand()`
+
+    ```bash
+    awk '{ print int($1) }' nums.txt
+    awk 'BEGIN{ srand(); print rand() }'
+    ```
+
+    **格式化输出 printf：**
+
+    ```bash
+    awk '{ printf "%-10s %5d\n", $1, $2 }' file.txt
+    awk '{ printf "%.2f\n", $1 }' nums.txt
+    ```
+
+    格式符：`%s` 字符串、`%d` 整数、`%f` 浮点、`%x` 十六进制、`%c` 字符。
+
+    **十、实战示例**
+
+    ```bash
+    # 1. 统计文件行数、字数、字符数
+    awk '{ chars+=length($0)+1; words+=NF } END{ print NR, words, chars }' file.txt
+
+    # 2. 打印 /etc/passwd 的用户名和 shell
+    awk -F: '{ print $1, $7 }' /etc/passwd
+
+    # 3. 求某列总和与平均
+    awk '{ s+=$3 } END{ printf "sum=%d avg=%.2f\n", s, s/NR }' data.txt
+
+    # 4. 按第一列分组求和
+    awk '{ sum[$1]+=$2 } END{ for (k in sum) print k, sum[k] }' data.txt
+
+    # 5. 找出重复行
+    awk 'seen[$0]++' file.txt
+
+    # 6. 去重（保留首次出现）
+    awk '!seen[$0]++' file.txt
+
+    # 7. 打印第 10-20 行
+    awk 'NR>=10 && NR<=20' file.txt
+
+    # 8. 交换前两列
+    awk '{ t=$1; $1=$2; $2=t; print }' file.txt
+
+    # 9. 统计日志中各 IP 的访问次数并排序
+    awk '{ ip[$1]++ } END{ for (i in ip) print ip[i], i }' access.log | sort -rn
+
+    # 10. 处理 CSV 某列求和
+    awk -F, 'NR>1 { sum+=$3 } END{ print sum }' data.csv
+    ```
+
+    **十一、进阶技巧**
+
+    **多个规则组合：**
+
+    ```bash
+    awk 'NR==1 { print "表头:", $0 } $3>100 { print "大值:", $1 }' file.txt
+    ```
+
+    **变量传递：**
+
+    ```bash
+    awk -v threshold=100 '$3 > threshold { print }' file.txt
+    ```
+
+    **多文件处理：**
+
+    ```bash
+    awk '{ print FILENAME, FNR, $0 }' a.txt b.txt
+    ```
+
+    **使用外部脚本文件：**
+
+    ```bash
+    # script.awk
+    BEGIN { FS=":" }
+    $3 > 100 { print $1 }
+    END { print "done" }
+
+    awk -f script.awk /etc/passwd
+    ```
+
+    **gawk 扩展（GNU awk 特有）：**
+
+    ```bash
+    awk 'BEGIN{ PROCINFO["sorted_in"]="@ind_str_asc"; } ...'  # 数组排序遍历
+    awk '{ a[NR]=$0 } END{ ... }'                              # 排序文本
+    ```
+
+    **十二、awk vs 其他工具**
+
+    | 场景 | 推荐 |
+    |------|------|
+    | 按列提取/简单过滤 | awk |
+    | 复杂正则替换 | sed |
+    | 结构化统计/汇总 | awk |
+    | JSON 处理 | jq |
+
+    **核心记忆点：**
+    1. `pattern { action }` 是基本结构
+    2. `$0` 整行，`$1..$NF` 字段，`NR/NF/FS/OFS` 常用变量
+    3. `BEGIN/END` 做初始化和汇总
+    4. 关联数组是统计核心
+    5. 条件、循环、函数齐备，几乎是一门小语言
+
+    掌握以上内容，日常文本处理基本够用。需要某个方向（如日志分析、性能优化）深入可以再展开。
+
 * 一种提取路径`/path/to/target`路径中`target`的方法
 
     `awk -F'/' '{print $NF}' <<< "/tmp/dir/target"`
