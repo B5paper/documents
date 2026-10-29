@@ -2,6 +2,36 @@
 
 ## cache
 
+* 详细讲讲什么是芯片中的 write with early resp
+
+    In chip design, "Write with Early Response" (often referred to as Early BRESP or Early Write Response in ARM systems) is a performance optimization mechanism. Its core idea is: **allowing the slave device (such as a memory controller or cache) to return a write completion response to the master device before the write data has actually landed in the final storage medium (such as DRAM), as long as the write address and data have been accepted by the intermediate buffer.**
+
+    ### Standard AXI Protocol vs. Early Response
+
+    To understand it, one must first look at the standard rules. According to the standard AXI protocol, a write response (BRESP) can only be returned to the master after the slave has received the **last beat of write data**. This is safe but slow, because the master must wait for the entire data transfer to complete before proceeding.
+
+    The "Early Response" breaks this rule: when the slave (such as the L2 cache controller L2C-310) receives and accepts the write address, or when the data has merely entered the store buffer, it immediately returns a "success" response to the master. This can significantly improve write throughput because the master can initiate the next operation earlier.
+
+    ### Typical Implementation Mechanisms (Using ARM L2C-310 as an Example)
+
+    In ARM's L2 cache controller, this feature is usually disabled by default because it **does not comply with the standard AXI protocol** and therefore carries risks. When enabled, the typical workflow is as follows:
+
+    1.  **Master Request**: The processor (such as Cortex-A9) sets a specific sideband signal bit (such as `AWUSERSx[11]`) when initiating a write, indicating that it can accept an early response.
+    2.  **Slave Decision**: After receiving the address, the L2C-310 cache controller, if configured to allow this optimization, will**immediately send back a write response** after the data enters its internal buffer, without waiting for the data to be written to the actual memory.
+    3.  **Background Write-back**: The data remains in the cache's buffer, and the actual write to DRAM is completed by the controller at an appropriate later time.
+
+    ### Why Use It (Benefits)
+
+    The main benefit is **reducing latency and improving bus utilization**. For scenarios where large amounts of continuous memory are written (such as DMA operations or graphics rendering), the master does not need to wait for slow DRAM writes, thus maintaining a higher data transmission rate.
+
+    ### Risks and Limitations
+
+    Since the response is "premature," it introduces **data consistency risks**:
+    *   **False Completion**: The master believes the write has completed, but in reality, the data may still be in the buffer. If a power failure occurs or the system crashes at this point, the data will be lost.
+    *   **Read-After-Write Hazard**: If the master initiates a read to the same address immediately after receiving the early response, it must ensure that the read can retrieve the data from the buffer (bypassing), rather than reading stale data directly from DRAM. This requires the memory controller to have complex hazard checking logic.
+
+    Therefore, this feature is typically used only in specific scenarios where "performance priority" is the goal and the system can tolerate a certain degree of risk, and requires explicit configuration to enable (such as setting a specific register bit), rather than being a default behavior.
+
 * 详细讲讲芯片中的 floorplan
 
     芯片 Floorplan（布图规划）是物理设计的第一步，相当于芯片的“建筑蓝图”。它决定了芯片的尺寸、主要功能模块（如 IP 核、存储器）和输入/输出（I/O）单元在硅片上的大致位置，并规划好供电网络。一个糟糕的 Floorplan 会导致后续布线严重拥塞、时序无法收敛，甚至芯片无法正常工作。据统计，从 Floorplan 到完成布局，通常要占据整个物理实施阶段约 **1/3** 的时间。
