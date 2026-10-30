@@ -2,6 +2,68 @@
 
 ## cache
 
+* windows terminal 使用的是 mintty 吗
+
+    不是，Windows Terminal 并没有使用 mintty。
+
+    它们是两个完全独立、由不同团队开发的终端程序：
+
+    ### 🔍 核心区别
+
+    *   **Windows Terminal**：由**微软**开发，是 Windows 10/11 上的现代终端宿主程序，用于替代旧的 `conhost.exe`。它使用自己的渲染引擎（基于 DirectWrite 和 GPU 加速），并非基于 mintty 构建。
+    *   **mintty**：是一个独立的终端模拟器，最初为 Cygwin 设计，目前是 **MSYS2** 环境的默认终端。它基于 Cygwin 的 pty（伪终端）机制运行。
+
+    ### 💡 它们的关系
+
+    虽然底层无关，但你可以**在** Windows Terminal **里**运行 mintty，或者将 MSYS2/Cygwin 的 Shell（如 bash）配置为 Windows Terminal 的一个配置文件来启动。不过，这属于“在一个终端里调用另一个程序”，并不代表它们有技术上的继承关系。
+
+    * 那 cmder 呢
+
+        Cmder 的情况和 Windows Terminal 不太一样：它**本身不是一个从底层开发的独立终端**，而是一个“软件包”。它的核心终端模拟器是 **ConEmu**，而不是 mintty。
+
+        ### 📦 Cmder 的构成
+        官方把它描述为一个打包好的“软件包”，里面集成了几个关键组件：
+        *   **终端模拟器**：**ConEmu**（负责底层窗口和渲染）。
+        *   **命令行增强**：**Clink**（让 cmd.exe 拥有自动补全、历史记录等类 Unix 体验）。
+        *   **Unix 工具**：**Git for Windows**（提供 git 以及 ls、grep 等命令，Mini 版可能不包含）。
+
+        ### 🆚 它和 mintty 的关系
+        虽然 Cmder 的核心不是 mintty，但它**内部确实包含了 mintty**。
+
+        在 Cmder 中新建标签页时，你可以选择打开“Bash/mintty”会话。但要注意，这个 mintty 标签页是作为一个**独立的程序**在 Cmder 窗口里运行的，并不像 Cmder 自带的 cmd 或 PowerShell 标签页那样，完全遵循 ConEmu 的快捷键和设置。所以，它只是 Cmder 提供给用户的一个可选 Shell 入口，并非 Cmder 的底层架构。
+
+        如果你之前用过 Cmder，感觉它的界面和操作逻辑跟 Windows Terminal 或 mintty 都不太一样，正是因为它的底层其实是 ConEmu。
+
+* windows 下除了 windows terminal，还有什么 terminal 比较推荐？
+
+    除了 Windows Terminal，Windows 上还有几款口碑不错的终端，它们各有侧重：有的主打“一站式”远程管理，有的追求极致轻量，还有的专注美观或性能。
+
+    ### 🛠️ 主要推荐
+
+    **Tabby（全能型，功能最丰富）**
+    如果你想要一个能替代 PuTTY、Xshell 的“全家桶”，Tabby 很合适。它集成了 SSH/Telnet 客户端、串口终端和连接管理器，支持分屏、丰富的插件和主题。兼容 PowerShell、WSL、Git-Bash 等多种 Shell，还支持便携模式（在程序目录建 `data` 文件夹即可）。缺点是资源占用相对较高，不算轻量。
+
+    **MobaXterm（运维/网络工程师向）**
+    如果你经常需要连服务器，且依赖 X11 转发或 SFTP 文件浏览，MobaXterm 是经典选择。免费版对大多数人够用，标签页、内置 X Server 和文件浏览器能省去装额外工具的麻烦。
+
+    **Alacritty（极致性能与轻量）**
+    如果你追求速度和低资源占用，且不介意自己搭配 tmux 使用，可以选它。它用 GPU 渲染文字，输出大量内容时很流畅。但需注意：它**刻意不做**标签页和分屏，配置也需手动编辑 TOML 文件，适合愿意折腾的进阶用户。
+
+    **WindTerm（轻量 SSH/串口多会话）**
+    如果你需要同时管理大量会话，且对内存敏感，可以看看 WindTerm。启动仅需几 MB 内存，处理超大日志滚动不卡顿，支持跨平台。短板是没有内置 RDP/VNC，高级配置需手动改 JSON。
+
+    **FluentTerminal（颜值与现代化 UI）**
+    如果你喜欢 Windows Terminal 的现代感但想换换口味，可以试试它。基于 UWP，支持多标签、SSH/Mosh 和丰富的主题自定义（可导入 iTerm 主题），安装包较小。不过作为社区项目，更新活跃度可能不如前几者。
+
+    ### 💡 怎么选？
+
+    *   **想一个工具搞定 SSH、串口、本地 Shell**：优先看 **Tabby**。
+    *   **经常连服务器且需要图形化辅助（X11/SFTP）**：选 **MobaXterm**。
+    *   **老电脑或追求极致响应速度**：考虑 **Alacritty** 或 **WindTerm**。
+    *   **主要看重界面美观和自定义**：试试 **FluentTerminal**。
+
+    你主要用它来做本地开发（如 WSL），还是远程连接服务器？告诉我具体场景，我可以帮你进一步缩小范围。
+
 * 讲讲什么是 winpty
 
     `winpty` 是一个在 Windows 上运行的**工具和库**，它的核心作用是弥合 Windows 原生控制台程序与类 Unix 终端（如 Cygwin、MSYS2、Git Bash）之间的鸿沟。

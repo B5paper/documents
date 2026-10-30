@@ -2,6 +2,8 @@
 
 ## cache
 
+* pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
+
 * 我想用 pytorch 复现一下 RNN 的训练和推理过程，应该看哪个 pytorch 的 tutorial，或者哪个 github repo
 
     非常好！想要用 PyTorch 复现 RNN 的训练和推理过程是一个非常棒的学习方式。根据你的需求，我为你筛选并分类了最优质的学习资源，从官方教程到非常清晰的 GitHub 实现，你可以由浅入深地进行学习。

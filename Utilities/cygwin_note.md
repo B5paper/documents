@@ -4,6 +4,20 @@
 
 ## cache
 
+* 首次使用 cygwin 的坑与配置
+
+    * `cd ~`发现无法进入，因为刚装完 cygwin 只有`/home`目录，没有`/home/<user>`目录
+
+    * 手动创建完`/home/<user>`后，发现之前在 C 盘下的`.ssh`, `.vimrc`之类的配置又要重新搞一套，很麻烦，而且双份的不好维护
+
+    * 使用`ln -s /cygdrive/c/Users/<user> /home/<user>`，然后发现`vim ~/.bashrc`和`cd /home/<user> ; vim .bashrc`竟然不是一个文件，因为 vim 是 windows 版本的 gvim，在处理`~/.bashrc`时会将路径展开为`\home\<user>\.bashrc`，即正斜杠变成了反斜杠，这个目录当然不存在，所以无法编辑文件
+
+    * 解决办法是使用 cygwin 内部的 vim，安装完后，使用`which vim`判断一下 vim 的版本，如果是`/usr/bin/vim`，那么就没有问题了
+
+    * 安装完 cygwin 版本的 vim 后，需要修改系统环境变量 PATH，把 cygwin 的 bin 目录放到 windows gvim 的前面，否则首先找到的仍是 gvim
+
+    * 此时编辑`~/.vimrc`后，vim 启动时仍会报错，这是因为 cygwin 版本的 vim 无法处理 windows 文件的 \r\n 换行。解决办法是执行`:set ff=unix`, 然后`:wq`保存即可.
+
 * 我使用 cygwin + ssh 打开远程后，再打开 screen + codex，看到光标疯狂闪烁，似乎还听到铃响。但是使用 cygwin + ssh + codex，就比较正常。可能是什么原因？如何解决？
 
 	这通常是典型的**终端转义序列（Escape Sequence）不匹配导致的死循环**。

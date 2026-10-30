@@ -278,484 +278,6 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
     最佳实践：对于中文字符串调试，建议使用支持UTF-8的在线工具，并注意一个中文字符可能对应2-4个字节的存储位置。
 
-* 详细讲讲 c 中的 printf 函数
-
-    好的，我们详细地来剖析 C 语言中的 `printf` 函数。它不仅仅是“打印输出”那么简单，其背后涉及可变参数、格式化解析、缓冲区管理，甚至是系统调用。
-
-    ---
-
-    ## 1. 函数原型与头文件
-
-    ```c
-    #include <stdio.h>
-
-    int printf(const char *format, ...);
-    ```
-
-    - **返回值**：成功时返回**输出的字符总数**（不包括结尾的 `'\0'`），失败时返回负数。
-    - **第一个参数**：`format` 是**格式化字符串**，包含普通字符和**格式占位符**（以 `%` 开头）。
-    - **`...`**：表示**可变参数**，数量与类型由 `format` 中的占位符决定。
-
-    ---
-
-    ## 2. 格式化占位符详解
-
-    基本结构：`%[flags][width][.precision][length]specifier`
-
-    ### 2.1 必选部分：转换说明符（specifier）
-
-    | 说明符 | 输出类型                     |
-    |--------|------------------------------|
-    | `d` / `i` | 有符号十进制整数           |
-    | `u`      | 无符号十进制整数           |
-    | `o`      | 无符号八进制               |
-    | `x` / `X`| 无符号十六进制（小写/大写）|
-    | `f` / `F`| 浮点数（小数形式）         |
-    | `e` / `E`| 浮点数（科学计数法）       |
-    | `g` / `G`| 根据数值自动选 `f` 或 `e`  |
-    | `c`      | 单个字符                   |
-    | `s`      | 字符串（以 `\0` 结尾）    |
-    | `p`      | 指针地址（void*）          |
-    | `%`      | 输出一个百分号 `%`         |
-
-    ### 2.2 可选修饰符
-
-    #### （1）标志（flags）
-
-    | 标志 | 含义 |
-    |------|------|
-    | `-`  | 左对齐（默认右对齐） |
-    | `+`  | 强制显示正负号 |
-    | `空格` | 正数显示空格，负数显示 `-` |
-    | `#`  | 对于 `o`/`x`/`X` 显示前缀（0, 0x, 0X）；对浮点强制显示小数点 |
-    | `0`  | 用 `0` 填充宽度（而非空格） |
-
-    #### （2）宽度（width）
-
-    - 数字：最小输出宽度（若不足则填充空格或 `0`）。
-    - `*`：宽度由**下一个参数**提供（int 类型）。
-
-    #### （3）精度（.precision）
-
-    - 对整数：最少数字位数（不足补 `0`）。
-    - 对浮点数：小数点后的位数。
-    - 对字符串：最大输出字符数。
-    - `.*`：精度由下一个参数提供。
-
-    #### （4）长度修饰符（length）
-
-    | 修饰符 | 影响的数据类型 |
-    |--------|---------------|
-    | `hh`   | signed char / unsigned char |
-    | `h`    | short / unsigned short |
-    | `l`    | long / unsigned long |
-    | `ll`   | long long / unsigned long long |
-    | `L`    | long double |
-    | `z`    | size_t |
-    | `t`    | ptrdiff_t |
-
-    ---
-
-    ## 3. 工作原理（底层机制）
-
-    ### 3.1 可变参数处理
-
-    `printf` 使用 `<stdarg.h>` 中的宏来遍历参数列表：
-
-    ```c
-    va_list args;
-    va_start(args, format);
-    // 逐个解析 format 字符串，遇到 % 则根据类型取参数
-    int ret = vprintf(format, args);
-    va_end(args);
-    ```
-
-    内部通常会调用 `vprintf` 或 `vfprintf`，真正实现格式化与输出。
-
-    ### 3.2 格式化解析过程（简化）
-
-    1. 逐字符扫描 `format`。
-    2. 遇到普通字符直接输出。
-    3. 遇到 `%`：
-       - 解析 flags、width、precision、length。
-       - 根据 specifier 从 `va_list` 中取出对应类型的参数。
-       - 按照规则转换成字符串（如整数转十进制/十六进制，浮点数转小数形式等）。
-    4. 将结果字符串放入**缓冲区**。
-
-    ### 3.3 缓冲区与系统调用
-
-    - `printf` 默认使用 **行缓冲**（stdout 是行缓冲模式，除非重定向）。
-    - 数据先写入**用户态缓冲区**，遇到 `\n` 或缓冲区满或程序结束时，调用 `write` 系统调用将数据送入内核，再写到终端或文件。
-    - 可通过 `setbuf` / `setvbuf` 更改缓冲模式。
-
-    ---
-
-    ## 4. 常见使用示例
-
-    ```c
-    printf("Hello\n");                          // 普通字符串
-    printf("%d %x %o", 255, 255, 255);          // 255 ff 377
-    printf("%10d", 42);                         // "        42"
-    printf("%-10d", 42);                        // "42        "
-    printf("%.2f", 3.14159);                    // "3.14"
-    printf("%*.*f", 6, 2, 3.14);                // "  3.14"
-    printf("%s", "abc");                        // "abc"
-    printf("%.5s", "abcdef");                   // "abcde"
-    printf("%p", (void*)&a);                    // 地址如 0x7ffc...
-    printf("%%");                               // "%"
-    ```
-
-    ---
-
-    ## 5. 安全性与常见陷阱
-
-    ### ⚠️ 类型不匹配
-    - `%d` 传 `long` → 可能截断或乱码。
-    - `%f` 传 `int` → 未定义行为。
-    - 必须使用长度修饰符匹配实际类型。
-
-    ### ⚠️ 格式化字符串漏洞
-    - 如果 `format` 来自用户输入（如 `printf(user_input)`），攻击者可利用 `%x`、`%n` 泄露或篡改内存。
-    - **修复**：始终使用 `printf("%s", user_input)`。
-
-    ### ⚠️ 缓冲区溢出风险（极少）
-    - `printf` 自身不会溢出，因为它内部动态分配或使用静态缓冲，但过长的输出可能耗光内存（但很少见）。
-
-    ---
-
-    ## 6. 性能考量
-
-    - 频繁调用 `printf`（尤其是大量小输出）会因系统调用和解析开销变慢。
-    - 建议：大批量输出时先 `sprintf` 到字符串再一次性输出。
-    - 嵌入式系统常使用自定义的微型 `printf` 以节省代码空间。
-
-    ---
-
-    ## 7. 扩展：相关函数族
-
-    | 函数 | 作用 |
-    |------|------|
-    | `fprintf(FILE*, ...)` | 输出到指定文件流 |
-    | `sprintf(char*, ...)` | 输出到字符串（不安全，可能溢出） |
-    | `snprintf(char*, size, ...)` | 安全版，限制输出长度 |
-    | `vprintf` / `vfprintf` / `vsnprintf` | 接受 `va_list`，用于自定义包装函数 |
-
-    ---
-
-    ## 8. 实现简易 printf（思路）
-
-    如果你自己实现一个极简版：
-
-    ```c
-    int my_printf(const char *fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        int ret = my_vprintf(fmt, args);
-        va_end(args);
-        return ret;
-    }
-    ```
-
-    其中 `my_vprintf` 需要：
-    - 手动解析 `%` 和修饰符。
-    - 用 `va_arg` 取参数。
-    - 使用 `itoa` / `ftoa` 转换数字。
-    - 用 `putchar` 或 `write` 输出。
-
-    ---
-
-    ## 9. 标准符合性
-
-    - `printf` 由 **C89 / C99 / C11 / C17** 标准定义。
-    - 各平台（glibc、MSVC、musl）实现细节略有差异，但核心行为一致。
-    - 浮点数转换可能受舍入模式、环境变量（如 `printf` 在 glibc 中受 `LOCALE` 影响）影响。
-
-    ---
-
-    ## 总结
-
-    `printf` 是一个**功能强大但需要谨慎使用**的函数。它通过解析格式字符串和可变参数，将多种类型的数据转化为字符流输出，背后涉及格式化、缓冲、系统调用等机制。正确使用时，注意类型匹配和安全性；在性能敏感或资源受限场景下，可以考虑替代方案或自定义实现。
-
-    如果你对某个具体部分（如浮点数转换细节、自定义 `printf` 实现、漏洞利用）有更深兴趣，我可以继续展开。
-
-* printf("%2x ", prop.uuid.bytes[i]); 为什么打印出来是 uuid: 33 63 70 23 ffffffff 22 4e ffffff84 ffffffa9 ffffffb0 ffffff8a ffffffc0  0  2 20 10，我希望只显示低2 位
-
-    这个问题非常经典！你的代码 `printf("%2x ", prop.uuid.bytes[i])` 打印出 `ffffffff` 而不是期望的 `ff`，根本原因是 **`bytes` 数组的元素类型是有符号的 `char`**（`signed char`），而 `%x` 期望的是 `unsigned int`。
-
-    ## 问题根源
-
-    ### 1. 类型提升（Integer Promotion）
-    在 C 语言中，当传递 `char` 类型给可变参数函数（如 `printf`）时，会发生**整数提升**（Integer Promotion）：
-    - 如果 `char` 是有符号的（默认在很多系统上），且该字节的最高位是 `1`（即值 ≥ 0x80），它会被**符号扩展**（Sign-extend）为 `int`。
-    - 例如，`0x84`（二进制 `1000 0100`）作为 `signed char` 是负数（-124），提升为 `int` 后变成 `0xFFFFFF84`。
-    - 然后 `%x` 将这个 `int` 按十六进制打印，就得到了 `ffffff84`。
-
-    ### 2. 宽度修饰符 `%2x` 的含义
-    - `%2x` 表示**最小宽度为 2**，不是"只取低 2 位"。
-    - 当数值是 `0xFFFFFF84` 时，宽度早已超过 2，所以会原样输出全部 8 位十六进制数字。
-
-    ---
-
-    ## 解决方案
-
-    ### 方案一：强制转换为 `unsigned char`（推荐）
-    ```c
-    printf("%02x ", (unsigned char)prop.uuid.bytes[i]);
-    ```
-    - `(unsigned char)` 强制将值转为无符号字符，范围 0~255。
-    - 整数提升时变成 `unsigned int`（0x00000084），不会符号扩展。
-    - `%02x` 确保至少输出 2 位，不足补零。
-
-    ---
-
-    ### 方案二：使用 `%hhx` 长度修饰符（C99 起）
-    ```c
-    printf("%02hhx ", prop.uuid.bytes[i]);
-    ```
-    - `%hhx` 表示参数是 `unsigned char`（或 `signed char` 也会被正确转换）。
-    - 但某些老旧编译器可能不完全支持，且仍需注意符号扩展问题（建议配合 `unsigned char` 使用）。
-
-    ---
-
-    ### 方案三：手动掩码（最保险）
-    ```c
-    printf("%02x ", prop.uuid.bytes[i] & 0xFF);
-    ```
-    - `& 0xFF` 强制只保留低 8 位，无论原类型是什么。
-
-    ---
-
-    ## 完整对比示例
-
-    ```c
-    #include <stdio.h>
-
-    int main() {
-        signed char bytes[] = {0x84, 0x23, 0x70, 0x33};
-        
-        // 错误写法
-        printf("错误: ");
-        for (int i = 0; i < 4; i++) {
-            printf("%2x ", bytes[i]);  // 输出: ffffff84 23 70 33
-        }
-        printf("\n");
-        
-        // 正确写法1：强制转换
-        printf("正确1: ");
-        for (int i = 0; i < 4; i++) {
-            printf("%02x ", (unsigned char)bytes[i]);  // 输出: 84 23 70 33
-        }
-        printf("\n");
-        
-        // 正确写法2：掩码
-        printf("正确2: ");
-        for (int i = 0; i < 4; i++) {
-            printf("%02x ", bytes[i] & 0xFF);  // 输出: 84 23 70 33
-        }
-        printf("\n");
-        
-        return 0;
-    }
-    ```
-
-    **输出：**
-    ```
-    错误: ffffff84 23 70 33 
-    正确1: 84 23 70 33 
-    正确2: 84 23 70 33 
-    ```
-
-    ---
-
-    ## 额外建议
-
-    ### 1. 用 `%02x` 代替 `%2x`
-    - `%2x`：最小宽度 2，不足补空格 → `" 84"`
-    - `%02x`：最小宽度 2，不足补零 → `"84"`（更符合 UUID 显示习惯）
-
-    ### 2. 声明时就用 `unsigned char`
-    如果 `prop.uuid.bytes` 是数组，考虑定义为：
-    ```c
-    unsigned char bytes[16];  // 更明确表示字节数据
-    ```
-    这样就不需要每次强制转换了。
-
-    ### 3. 检查 UUID 结构定义
-    很多 UUID 结构使用 `uint8_t`（来自 `<stdint.h>`）：
-    ```c
-    #include <stdint.h>
-    uint8_t bytes[16];  // 明确为无符号 8 位
-    ```
-
-    ---
-
-    ## 总结
-
-    | 代码 | 问题 | 解决方案 |
-    |------|------|----------|
-    | `printf("%2x", bytes[i])` | 符号扩展导致高位变 `ff` | 用 `(unsigned char)` 或 `& 0xFF` |
-    | `printf("%2x", ...)` | 宽度不足补空格 | 用 `%02x` 补零 |
-    | 数据类型不明确 | 依赖默认 `char` 符号性 | 使用 `uint8_t` 或 `unsigned char` |
-
-    你的问题核心就是**符号扩展**。加上强制转换后，就能得到你期望的 `33 63 70 23 ff 22 4e 84 a9 b0 8a c0 00 02 20 10` 这样的格式了。
-
-    * 那为什么 (unsigned int)prop.uuid.bytes[i] 不行
-
-        非常好的问题！这涉及到 C 语言中类型转换和整数提升的微妙之处。
-
-        ## 为什么 `(unsigned int)bytes[i]` 不行？
-
-        ```c
-        printf("%02x ", (unsigned int)prop.uuid.bytes[i]);
-        ```
-
-        **结论：这样写依然会打印 `ffffff84`，问题没有解决！**
-
-        ---
-
-        ## 根本原因：转换顺序问题
-
-        关键在于 **类型转换发生在整数提升之前还是之后**：
-
-        ### 错误的执行顺序（你写的代码）：
-        ```
-        1. bytes[i] 是 signed char，值为 0x84（-124）
-        2. (unsigned int) 强制转换 → 将 -124 转为 unsigned int
-           - 转换规则：-124 + UINT_MAX + 1 = 0xFFFFFF84
-           - 结果已经是 0xFFFFFF84（unsigned int）
-        3. 传递给 printf，%x 打印 → ffffff84
-        ```
-
-        ### 正确的执行顺序（我们需要的）：
-        ```
-        1. 先将 signed char 转为 unsigned char → 0x84（132）
-        2. 整数提升为 int → 0x00000084（正数）
-        3. 再转为 unsigned int → 0x00000084
-        4. 打印 → 84
-        ```
-
-        ---
-
-        ## 详细拆解
-
-        ### 情况1：直接转换 `(unsigned int)`
-
-        ```c
-        signed char c = 0x84;  // 二进制 10000100，值为 -124
-        unsigned int u = (unsigned int)c;
-        // 转换过程：-124 → 0xFFFFFF84（UINT_MAX - 123）
-        printf("%x", u);  // 输出: ffffff84
-        ```
-
-        C 标准规定：将有符号整数转换为无符号整数时，如果原值为负，结果 = 原值 + (最大值 + 1)。所以：
-        - -124 + 4294967296 = 4294967172 = 0xFFFFFF84
-
-        ### 情况2：先转 `unsigned char`
-
-        ```c
-        signed char c = 0x84;  // -124
-        unsigned char uc = (unsigned char)c;  // 0x84（132），保留位模式
-        unsigned int u = (unsigned int)uc;    // 132 → 0x00000084
-        printf("%x", u);  // 输出: 84
-        ```
-
-        `unsigned char` 的转换规则是**保持位模式不变**，范围 0~255，所以 0x84 就是 132（正数）。
-
-        ---
-
-        ## 为什么 `unsigned char` 能解决问题？
-
-        因为当 `unsigned char` 参与整数提升时：
-
-        ```c
-        unsigned char uc = 0x84;
-        // uc 在表达式中会被提升为 int
-        // 规则：unsigned char → int（因为 int 能表示所有 unsigned char 的值）
-        // 结果：0x00000084（正数，32位）
-        ```
-
-        而 `signed char` 提升时：
-        ```c
-        signed char sc = 0x84;  // 最高位为1
-        // sc 在表达式中被提升为 int
-        // 规则：保持符号，符号扩展
-        // 结果：0xFFFFFF84（负数）
-        ```
-
-        ---
-
-        ## 完整对比示例
-
-        ```c
-        #include <stdio.h>
-
-        int main() {
-            signed char c = 0x84;
-            
-            // 错误方式1：直接转 unsigned int
-            printf("(unsigned int): %02x\n", (unsigned int)c);
-            // 输出: ffffff84
-            
-            // 错误方式2：转 unsigned int（没有效果）
-            printf("(unsigned int): %02x\n", (unsigned int)(c));
-            // 输出: ffffff84（一样的问题）
-            
-            // 正确方式：先转 unsigned char
-            printf("(unsigned char): %02x\n", (unsigned char)c);
-            // 输出: 84
-            
-            // 正确方式：使用掩码
-            printf("& 0xFF: %02x\n", c & 0xFF);
-            // 输出: 84
-            
-            // 正确方式：使用 uint8_t
-            uint8_t uc = (uint8_t)c;
-            printf("uint8_t: %02x\n", uc);
-            // 输出: 84
-            
-            return 0;
-        }
-        ```
-
-        ---
-
-        ## 为什么 `%hhx` 也有同样的问题？
-
-        ```c
-        printf("%02hhx ", prop.uuid.bytes[i]);  // 仍可能出错！
-        ```
-
-        `%hhx` 只是告诉 `printf` 参数是 `unsigned char` 类型，但**参数传递时已经被提升了**：
-        1. `bytes[i]` 被提升为 `int`（0xFFFFFF84）
-        2. `printf` 收到 `int` 类型的参数
-        3. `%hhx` 会将这个 `int` 截断为 `unsigned char`
-        4. 结果：0xFFFFFF84 截断为 0x84 ✅
-
-        **但这依赖于 `printf` 的实现，不安全！** 因为在某些架构上，`int` 和 `char` 的传递方式可能不同。最佳实践是显式转换。
-
-        ---
-
-        ## 总结
-
-        | 写法 | 结果 | 原因 |
-        |------|------|------|
-        | `(unsigned int)c` | ❌ `ffffff84` | 负值转无符号，值变了 |
-        | `(unsigned char)c` | ✅ `84` | 保留位模式，变为正数 |
-        | `c & 0xFF` | ✅ `84` | 位掩码，强制只取低8位 |
-        | `%02hhx` | ⚠️ 可能对，但不安全 | 依赖 printf 实现 |
-
-        **关键记忆**：
-        - `(unsigned int)` 转换的是**值**，负值会变成很大的正数
-        - `(unsigned char)` 转换的是**位模式**，保留低 8 位
-        - 要解决符号扩展，必须**在整数提升之前**将数据转为无符号小类型
-
-        所以正确的做法是：
-        ```c
-        printf("%02x ", (unsigned char)prop.uuid.bytes[i]);
-        // 或
-        printf("%02x ", prop.uuid.bytes[i] & 0xFF);
-        ```
-
 * 简述内联汇编，并给出 example
 
     好的，我们来简述内联汇编并给出示例。
@@ -1122,6 +644,7 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
     3. **如果这是在处理 PCI 设备地址：** 建议直接参考内核或 `libpci` 的解析逻辑，它们通常会处理更多边界情况。
 
     你想让我帮你写一个完整的、带正则表达式校验的 C 语言函数示例吗？
+
 * __atomic_exchange_n() 简述这个函数的原型、作用、用法
 
     **函数原型**
@@ -2723,31 +2246,6 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
     可以看到，使用 linux 上的 gcc 11.4 编译，这两个函数的实际效果是一样的。
 
-* 使用`fprintf()`向 stderr 输出内容
-
-    ```cpp
-    #include <stdio.h>
-
-    int main(int argc, const char **argv) {
-        fprintf(stderr, "hello, world\n");
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    hello, world
-    ```
-
-    如何证明这是 stderr 的内容，而不是 stdout 的内容？我们已知`tee`命令可以把 stdout 的内容输出到文件里，而 stderr 的内容则不会写入到文件里，而是仅输出到 terminal。
-
-    执行`./main | tee out.txt`，`cat out.txt`，文件内容为空。
-
-    而执行`./main 2>& 1 | tee out.txt`，`cat out.txt`，可以看到文件内容：`hello, world`。
-
-    说明`fprintf(stderr, ...)`确实把输出写到了 stderr 中，而不是 stdout。
-
 * c 定长数据类型 in `<cstdint>`, reference
 
     <https://en.cppreference.com/w/cpp/types/integer.html>
@@ -3023,16 +2521,6 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
     }
     ```
 
-* printf 中的数据解析
-
-    如果一个 long (64位) 数据类型，在填 format 时写成了`%d`，那么有可能导致后续的数据解析错误。
-
-    ```c
-    long a = 1, b = 2;
-    int c = 3;
-    printf("%d, %d, %d\n", a, b, c);  // Error output
-    ```
-
 * 长度为 0 的数组
 
     ```c
@@ -3057,132 +2545,6 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
     可以看到，并不会分配内存，只会创建一个指针。自定义类也是一样的情况，不会调用构造和析构。
 
 * `uint64_t`在`stdint.h`里，不在`stddef.h`里。
-
-* `printf()`使用`"%[-][N]s"`可以指定补全空格
-
-    ```c
-    #include <stdio.h>
-    #include <stdlib.h>
-
-    int main()
-    {
-        printf("%8s\n", "hel");
-        printf("%-8s\n", "hel");
-        printf("%8s\n", "hello, world");
-        printf("%-8s\n", "hello, world");
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-         hel
-    hel     
-    hello, world
-    hello, world
-    ```
-
-    `%8s`会在字符串的左侧补全空格，使得空格 + 字符串的总长度为 8 个字符。`%-8s`则会在字符串的右侧补全空格。`-`表示左对齐。
-
-    如果字符串的长度超过 8 个字符，则会忽视对齐要求，按照字符串的实际长度输出。
-
-* `printf()`格式化打印小数
-
-    ```c
-    #include <stdio.h>
-    #include <stdlib.h>
-
-    int main()
-    {
-        double val = 12.345;
-        printf("%f\n", val);
-        printf("%10f\n", val);
-        printf("%-10f\n", val);
-        printf("%.2f\n", val);
-        printf("%10.2f\n", val);
-        return 0;
-    }
-    ```
-    
-    output:
-
-    ```
-    12.345000
-     12.345000
-    12.345000 
-    12.35
-         12.35
-    ```
-
-    * `%f`: 整数部分不删减，小数部分保留 6 位，如果小数位数不够则补 0，如果多于 6 位则按下面的方法舍入：
-
-        从小数部分的第 7 位开始往后截取，设截取的数字为`x`，若`x <= 500...`，则舍去；若`x > 5000...`，则进位。
-
-        比如`0.12345645`，会被转换为`0.123456`;`0.1234565`，会被转换为`0.123456`；`0.12345651`，会被转换为`0.123457`。
-
-        这个也有可能是用二进制数做截断的，目前还不清楚原理。
-
-    * `%10f`: 首先将小数部分保留 6 位，然后判断整数部分 + 小数点 + 小数部分如果小于 10 个字符，则在最左侧补 0，补够 10 个字符。如果大于等于 10 个字符，则按实际的小数输出。
-
-    * `%-10f`: 行为同`%10f`，但是往右侧补空格。
-
-    * `%.2f`: 把小数部分保留两位，整数部分不限制。
-
-    * `%10.2f`: 把小数部分保留 2 位，整体（整数部分 + 小数点 + 小数部分）一共凑够 10 位，如果小数不够 10 位，则在左侧添 0。如果大于等于 10 位，则按实际小数输出。
-
-* `printf()`格式化打印整数
-
-    `%-8d`: 在整数的右侧补空格，直到凑够 8 个字符。如果整数的字符数大于等于 8，则如实输出。
-
-* `printf()`使用`*`替代格式中的常数
-
-    ```c
-    #include <stdio.h>
-    #include <stdlib.h>
-
-    int main()
-    {
-        int val = 123;
-        for (int i = 0; i < 8; ++i)
-            printf("%*d\n", i, val);
-
-        float fval = 12.3;
-        for (int i = 4; i < 7; ++i)
-        {
-            for (int j = 0; j < 4; ++j)
-            {
-                printf("i = %d, j = %d: %*.*f\n", i, j, i, j, fval);
-            }
-        }
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    123
-    123
-    123
-    123
-     123
-      123
-       123
-        123
-    i = 4, j = 0:   12
-    i = 4, j = 1: 12.3
-    i = 4, j = 2: 12.30
-    i = 4, j = 3: 12.300
-    i = 5, j = 0:    12
-    i = 5, j = 1:  12.3
-    i = 5, j = 2: 12.30
-    i = 5, j = 3: 12.300
-    i = 6, j = 0:     12
-    i = 6, j = 1:   12.3
-    i = 6, j = 2:  12.30
-    i = 6, j = 3: 12.300
-    ```
 
 * c 语言中 static global variable 的含义
 
@@ -3544,68 +2906,6 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
     那么这个存储方式就是大端。
 
-* 十六进制数字打印
-
-    ```c
-    #include <stdio.h>
-
-    int main()
-    {
-        // case 1
-        int a = 0x1234;
-        printf("%08x\n", a);
-
-        // case 2
-        a = 0x12345678;
-        for (int i = 0; i < 4; ++i)
-        {
-            printf("%02x ", *((char*)&a + i));
-        }
-        putchar('\n');
-
-        // case 3
-        a = 0x12345678;
-        printf("%p\n", a);
-        return 0;
-    }
-    ```
-
-    output:
-
-    ```
-    00001234
-    78 56 34 12 
-    0x12345678
-    ```
-
-    说明：
-
-    1. 在 case 1 中，使用`%08x`输出十六进制数字
-
-        其含义为，至少输出 8 位十六进制数，如果不够 8 位，那么在前面补 0.
-
-        如果写成`%8x`的形式，那么如果不够 8 位，则在之前填充空格。
-
-        `%x`要求对应的数值是 int / unsigned int 类型。如果填 short, long 类型，编译器会报 warning。
-
-        `%x`输出的十六进制，abcdef 为小写，且前面不添加`0x`。
-
-    2. 在 case 2 中，循环输出 2 位十六进制
-    
-        `(char*)&a`，先取`a`的地址，然后将其解释为`char*`，为的是后面`+ i`时每次把地址增加 1。
-
-        类似地，如果是`(int16_t*)&a + i`，则当 i = 1 时，地址增加 2.
-
-        最后使用`*((char*)&a + i)`解引用，拿到单个字节的值。
-
-        由于 x86 是小端存储，所以 output 和阅读顺序正好相反。
-
-    3. case 3 使用`%p`将其视作一个指针并输出，会自动在开头加上`0x`。
-
-        缺点是只能处理最大 8 个字节的数字。
-
-    4. 在十六进制表示中，每 2 个十六进制数字正好可以表示 1 个字节。
-
 * 对于每个程序来说，so 文件中的全局变量都是独立的, 函数中的 static 变量也是独立的
 
 * 指针数组
@@ -3659,6 +2959,137 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
     ```
 
     这样的格式了。其中`OK`是绿色的，`Error`是红色的。
+
+* C 语言的接口基本都是 handle pointer, 全是数据是 struct
+
+    如果 C 对接 C++ 接口时还要写 linked list，那就太麻烦了
+
+    C 接口的函数设计也基本只能设计成`my_func(type_pointer *type, args)`的形式。
+
+    这里的 type pointer 如果想偷情的话可以直接设置成`void*`，如果需要有一个类型提示的话可以设置成`MyStruct *`这样的，但是`MyStruct`如果同时也是 c++ 代码里的类型，那么就会冲突。
+
+    这里想到的几个解决方案：
+
+    * c++ 代码里使用`class _MyStruct`避免和 C 接口冲突
+
+    * c++ 代码使用 namespace
+
+    * c 语言接口再另起一套名字，比如`MyStruct`变成`MyCStruct`之类的
+
+        由于名字是稀缺资源，所以这个方案其实并不是太好。
+
+* `uint64_t`这些类型定义在`stdint.h`头文件里。
+
+* 在 c 语言中计算浮点数级的 duration
+
+    ```c
+    #include <time.h>
+    #include <stdio.h>
+
+    void spend_time()
+    {
+        int a = 1, b = 2, c;
+        for (int i = 0; i < 1000; ++i)
+        {
+            for (int j = 0; j < 1000; ++j)
+            {
+                for (int k = 0; k < 100; ++k)
+                {
+                    c = a + b;
+                }
+            }
+        }
+    }
+
+    int main()
+    {
+        timespec tmspec_1, tmspec_2;
+        timespec_get(&tmspec_1, TIME_UTC);
+        spend_time();
+        timespec_get(&tmspec_2, TIME_UTC);
+        time_t secs = tmspec_2.tv_sec - tmspec_1.tv_sec;
+        long nano_secs = tmspec_2.tv_nsec - tmspec_1.tv_nsec;
+        printf("duration: %ld secs + %ld nano secs\n", secs, nano_secs);
+        float fsecs = (float) secs + ((float) nano_secs / 1000 / 1000 / 1000);
+        printf("duration: %f secs\n", fsecs);
+        return 0;
+    }
+    ```
+
+    主要是这个`timespec_get()`函数的使用。注意不要忘了`TIME_UTC`，否则得到的结果不正确。
+
+    ref: <https://en.cppreference.com/w/c/chrono/timespec_get>
+
+* c/c++ 中都不允许两个指针直接相加
+
+    但是 c 将指针显式转换为整数，可以使用指针 + 整数，或整数 + 整数。
+
+* 没有办法知道 enum 中有几个元素，C 有一些比较特别的写法可以提供便捷：
+
+    ```cpp
+    #include <iostream>
+
+    enum MyEnum {
+        mem_1 = 0,
+        mem_2,
+        mem_3,
+        NUM_MYENUM_MEMBERS
+    };
+
+    int main()
+    {
+        printf("the number of MyEnum is %d\n", NUM_MYENUM_MEMBERS);
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    the number of MyEnum is 3
+    ```
+
+    另外，`sizeof(MyEnum)`无法得到整个`MyEnum`的大小，只会得到单个元素（即`int`类型）所占的大小。通常为 4 字节。
+
+* `memcpy()`在`<memory.h>`中，不在`<memory>`中，也不在`<stdlib.h>`中
+
+## Topics
+
+### printf
+
+* `printf`
+
+    `%3d`可以右对齐输出整数，这个整数占 3 位。
+
+    `%f`表示浮点数。
+
+    `%3.0f`表示浮点数至少共占 3 位，没有小数点和小数部分。也可以写成`%3f`。
+
+    `%6.1f`表示浮点数至少共占 6 位，且小数点后有 1 位数字。
+
+    `%.2f`表示浮点数的宽度没有限制，但是小数点后有 2 位小数。
+
+    `%.0f`表示不打印小数点和小数部分。
+
+    `%o`表示八进制数，`%x`表示十六进制数，`%c`表示字符，`%s`表示字符串，`%%`表示百分号。
+    
+    `%ld`表示对应的参数是`long`类型。
+
+* `printf()`的格式化
+
+    使用`%x`打印十六进制数时，不会在前面加上`0x`。如果需要加上前缀，可以使用`%#010x`。不清楚这个 spec 是在哪写的。ref: <https://stackoverflow.com/questions/14733761/printf-formatting-for-hexadecimal>
+
+    `%d`打印的是 integer，`%ld`打印的是 long integer，注意这些都是 signed 值。
+
+    `%u`打印的是 unsigned integer，`%lu`打印的是 unsigned long integer。
+
+    单独一个`%l`没有什么意义。
+
+    long 类型是 64 位，int 类型是 32 位。如果用打印 int 类型的命令打印 long 类型，那么会截取低 32 位打印。
+
+    如果使用打印 signed 的命令打印 unsigned 类型，那么由于对最高位的处理不同，可能会出现负数。
+
+    `printf()`打印不同颜色的字体：<https://blog.csdn.net/qq_41673920/article/details/80334557/>
 
 * c 语言输出多种颜色的字符
 
@@ -3726,102 +3157,28 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
 
     * 这里的 black 其实不是黑色，而是深灰色，white 也不是纯白，而是浅灰
 
-* C 语言的接口基本都是 handle pointer, 全是数据是 struct
-
-    如果 C 对接 C++ 接口时还要写 linked list，那就太麻烦了
-
-    C 接口的函数设计也基本只能设计成`my_func(type_pointer *type, args)`的形式。
-
-    这里的 type pointer 如果想偷情的话可以直接设置成`void*`，如果需要有一个类型提示的话可以设置成`MyStruct *`这样的，但是`MyStruct`如果同时也是 c++ 代码里的类型，那么就会冲突。
-
-    这里想到的几个解决方案：
-
-    * c++ 代码里使用`class _MyStruct`避免和 C 接口冲突
-
-    * c++ 代码使用 namespace
-
-    * c 语言接口再另起一套名字，比如`MyStruct`变成`MyCStruct`之类的
-
-        由于名字是稀缺资源，所以这个方案其实并不是太好。
-
-* `uint64_t`这些类型定义在`stdint.h`头文件里。
-
-* 在 c 语言中计算浮点数级的 duration
+* 十六进制数字打印
 
     ```c
-    #include <time.h>
     #include <stdio.h>
 
-    void spend_time()
+    int main()
     {
-        int a = 1, b = 2, c;
-        for (int i = 0; i < 1000; ++i)
+        // case 1
+        int a = 0x1234;
+        printf("%08x\n", a);
+
+        // case 2
+        a = 0x12345678;
+        for (int i = 0; i < 4; ++i)
         {
-            for (int j = 0; j < 1000; ++j)
-            {
-                for (int k = 0; k < 100; ++k)
-                {
-                    c = a + b;
-                }
-            }
+            printf("%02x ", *((char*)&a + i));
         }
-    }
+        putchar('\n');
 
-    int main()
-    {
-        timespec tmspec_1, tmspec_2;
-        timespec_get(&tmspec_1, TIME_UTC);
-        spend_time();
-        timespec_get(&tmspec_2, TIME_UTC);
-        time_t secs = tmspec_2.tv_sec - tmspec_1.tv_sec;
-        long nano_secs = tmspec_2.tv_nsec - tmspec_1.tv_nsec;
-        printf("duration: %ld secs + %ld nano secs\n", secs, nano_secs);
-        float fsecs = (float) secs + ((float) nano_secs / 1000 / 1000 / 1000);
-        printf("duration: %f secs\n", fsecs);
-        return 0;
-    }
-    ```
-
-    主要是这个`timespec_get()`函数的使用。注意不要忘了`TIME_UTC`，否则得到的结果不正确。
-
-    ref: <https://en.cppreference.com/w/c/chrono/timespec_get>
-
-* c/c++ 中都不允许两个指针直接相加
-
-    但是 c 将指针显式转换为整数，可以使用指针 + 整数，或整数 + 整数。
-
-* `printf()`的格式化
-
-    使用`%x`打印十六进制数时，不会在前面加上`0x`。如果需要加上前缀，可以使用`%#010x`。不清楚这个 spec 是在哪写的。ref: <https://stackoverflow.com/questions/14733761/printf-formatting-for-hexadecimal>
-
-    `%d`打印的是 integer，`%ld`打印的是 long integer，注意这些都是 signed 值。
-
-    `%u`打印的是 unsigned integer，`%lu`打印的是 unsigned long integer。
-
-    单独一个`%l`没有什么意义。
-
-    long 类型是 64 位，int 类型是 32 位。如果用打印 int 类型的命令打印 long 类型，那么会截取低 32 位打印。
-
-    如果使用打印 signed 的命令打印 unsigned 类型，那么由于对最高位的处理不同，可能会出现负数。
-
-    `printf()`打印不同颜色的字体：<https://blog.csdn.net/qq_41673920/article/details/80334557/>
-
-
-* 没有办法知道 enum 中有几个元素，C 有一些比较特别的写法可以提供便捷：
-
-    ```cpp
-    #include <iostream>
-
-    enum MyEnum {
-        mem_1 = 0,
-        mem_2,
-        mem_3,
-        NUM_MYENUM_MEMBERS
-    };
-
-    int main()
-    {
-        printf("the number of MyEnum is %d\n", NUM_MYENUM_MEMBERS);
+        // case 3
+        a = 0x12345678;
+        printf("%p\n", a);
         return 0;
     }
     ```
@@ -3829,34 +3186,686 @@ C 语言标准库 tutorial：<https://www.tutorialspoint.com/c_standard_library/
     output:
 
     ```
-    the number of MyEnum is 3
+    00001234
+    78 56 34 12 
+    0x12345678
     ```
 
-    另外，`sizeof(MyEnum)`无法得到整个`MyEnum`的大小，只会得到单个元素（即`int`类型）所占的大小。通常为 4 字节。
+    说明：
 
-* `memcpy()`在`<memory.h>`中，不在`<memory>`中，也不在`<stdlib.h>`中
+    1. 在 case 1 中，使用`%08x`输出十六进制数字
 
-## Topics
+        其含义为，至少输出 8 位十六进制数，如果不够 8 位，那么在前面补 0.
 
-### 格式化输出
+        如果写成`%8x`的形式，那么如果不够 8 位，则在之前填充空格。
 
-* `printf`
+        `%x`要求对应的数值是 int / unsigned int 类型。如果填 short, long 类型，编译器会报 warning。
 
-    `%3d`可以右对齐输出整数，这个整数占 3 位。
+        `%x`输出的十六进制，abcdef 为小写，且前面不添加`0x`。
 
-    `%f`表示浮点数。
-
-    `%3.0f`表示浮点数至少共占 3 位，没有小数点和小数部分。也可以写成`%3f`。
-
-    `%6.1f`表示浮点数至少共占 6 位，且小数点后有 1 位数字。
-
-    `%.2f`表示浮点数的宽度没有限制，但是小数点后有 2 位小数。
-
-    `%.0f`表示不打印小数点和小数部分。
-
-    `%o`表示八进制数，`%x`表示十六进制数，`%c`表示字符，`%s`表示字符串，`%%`表示百分号。
+    2. 在 case 2 中，循环输出 2 位十六进制
     
-    `%ld`表示对应的参数是`long`类型。
+        `(char*)&a`，先取`a`的地址，然后将其解释为`char*`，为的是后面`+ i`时每次把地址增加 1。
+
+        类似地，如果是`(int16_t*)&a + i`，则当 i = 1 时，地址增加 2.
+
+        最后使用`*((char*)&a + i)`解引用，拿到单个字节的值。
+
+        由于 x86 是小端存储，所以 output 和阅读顺序正好相反。
+
+    3. case 3 使用`%p`将其视作一个指针并输出，会自动在开头加上`0x`。
+
+        缺点是只能处理最大 8 个字节的数字。
+
+    4. 在十六进制表示中，每 2 个十六进制数字正好可以表示 1 个字节。
+
+* `printf()`使用`"%[-][N]s"`可以指定补全空格
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        printf("%8s\n", "hel");
+        printf("%-8s\n", "hel");
+        printf("%8s\n", "hello, world");
+        printf("%-8s\n", "hello, world");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+         hel
+    hel     
+    hello, world
+    hello, world
+    ```
+
+    `%8s`会在字符串的左侧补全空格，使得空格 + 字符串的总长度为 8 个字符。`%-8s`则会在字符串的右侧补全空格。`-`表示左对齐。
+
+    如果字符串的长度超过 8 个字符，则会忽视对齐要求，按照字符串的实际长度输出。
+
+* `printf()`格式化打印小数
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        double val = 12.345;
+        printf("%f\n", val);
+        printf("%10f\n", val);
+        printf("%-10f\n", val);
+        printf("%.2f\n", val);
+        printf("%10.2f\n", val);
+        return 0;
+    }
+    ```
+    
+    output:
+
+    ```
+    12.345000
+     12.345000
+    12.345000 
+    12.35
+         12.35
+    ```
+
+    * `%f`: 整数部分不删减，小数部分保留 6 位，如果小数位数不够则补 0，如果多于 6 位则按下面的方法舍入：
+
+        从小数部分的第 7 位开始往后截取，设截取的数字为`x`，若`x <= 500...`，则舍去；若`x > 5000...`，则进位。
+
+        比如`0.12345645`，会被转换为`0.123456`;`0.1234565`，会被转换为`0.123456`；`0.12345651`，会被转换为`0.123457`。
+
+        这个也有可能是用二进制数做截断的，目前还不清楚原理。
+
+    * `%10f`: 首先将小数部分保留 6 位，然后判断整数部分 + 小数点 + 小数部分如果小于 10 个字符，则在最左侧补 0，补够 10 个字符。如果大于等于 10 个字符，则按实际的小数输出。
+
+    * `%-10f`: 行为同`%10f`，但是往右侧补空格。
+
+    * `%.2f`: 把小数部分保留两位，整数部分不限制。
+
+    * `%10.2f`: 把小数部分保留 2 位，整体（整数部分 + 小数点 + 小数部分）一共凑够 10 位，如果小数不够 10 位，则在左侧添 0。如果大于等于 10 位，则按实际小数输出。
+
+* `printf()`格式化打印整数
+
+    `%-8d`: 在整数的右侧补空格，直到凑够 8 个字符。如果整数的字符数大于等于 8，则如实输出。
+
+* `printf()`使用`*`替代格式中的常数
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    int main()
+    {
+        int val = 123;
+        for (int i = 0; i < 8; ++i)
+            printf("%*d\n", i, val);
+
+        float fval = 12.3;
+        for (int i = 4; i < 7; ++i)
+        {
+            for (int j = 0; j < 4; ++j)
+            {
+                printf("i = %d, j = %d: %*.*f\n", i, j, i, j, fval);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    123
+    123
+    123
+    123
+     123
+      123
+       123
+        123
+    i = 4, j = 0:   12
+    i = 4, j = 1: 12.3
+    i = 4, j = 2: 12.30
+    i = 4, j = 3: 12.300
+    i = 5, j = 0:    12
+    i = 5, j = 1:  12.3
+    i = 5, j = 2: 12.30
+    i = 5, j = 3: 12.300
+    i = 6, j = 0:     12
+    i = 6, j = 1:   12.3
+    i = 6, j = 2:  12.30
+    i = 6, j = 3: 12.300
+    ```
+
+* printf 中的数据解析
+
+    如果一个 long (64位) 数据类型，在填 format 时写成了`%d`，那么有可能导致后续的数据解析错误。
+
+    ```c
+    long a = 1, b = 2;
+    int c = 3;
+    printf("%d, %d, %d\n", a, b, c);  // Error output
+    ```
+
+* 使用`fprintf()`向 stderr 输出内容
+
+    ```cpp
+    #include <stdio.h>
+
+    int main(int argc, const char **argv) {
+        fprintf(stderr, "hello, world\n");
+        return 0;
+    }
+    ```
+
+    output:
+
+    ```
+    hello, world
+    ```
+
+    如何证明这是 stderr 的内容，而不是 stdout 的内容？我们已知`tee`命令可以把 stdout 的内容输出到文件里，而 stderr 的内容则不会写入到文件里，而是仅输出到 terminal。
+
+    执行`./main | tee out.txt`，`cat out.txt`，文件内容为空。
+
+    而执行`./main 2>& 1 | tee out.txt`，`cat out.txt`，可以看到文件内容：`hello, world`。
+
+    说明`fprintf(stderr, ...)`确实把输出写到了 stderr 中，而不是 stdout。
+
+* 详细讲讲 c 中的 printf 函数
+
+    我们详细地来剖析 C 语言中的 `printf` 函数。它不仅仅是“打印输出”那么简单，其背后涉及可变参数、格式化解析、缓冲区管理，甚至是系统调用。
+
+    1. 函数原型与头文件
+
+        ```c
+        #include <stdio.h>
+
+        int printf(const char *format, ...);
+        ```
+
+        - **返回值**：成功时返回**输出的字符总数**（不包括结尾的 `'\0'`），失败时返回负数。
+
+        - **第一个参数**：`format` 是**格式化字符串**，包含普通字符和**格式占位符**（以 `%` 开头）。
+
+        - **`...`**：表示**可变参数**，数量与类型由 `format` 中的占位符决定。
+
+    2. 格式化占位符详解
+
+        基本结构：`%[flags][width][.precision][length]specifier`
+
+        * 2.1 必选部分：转换说明符（specifier）
+
+            | 说明符 | 输出类型                     |
+            |--------|------------------------------|
+            | `d` / `i` | 有符号十进制整数           |
+            | `u`      | 无符号十进制整数           |
+            | `o`      | 无符号八进制               |
+            | `x` / `X`| 无符号十六进制（小写/大写）|
+            | `f` / `F`| 浮点数（小数形式）         |
+            | `e` / `E`| 浮点数（科学计数法）       |
+            | `g` / `G`| 根据数值自动选 `f` 或 `e`  |
+            | `c`      | 单个字符                   |
+            | `s`      | 字符串（以 `\0` 结尾）    |
+            | `p`      | 指针地址（void*）          |
+            | `%`      | 输出一个百分号 `%`         |
+
+        * 2.2 可选修饰符
+
+            1. 标志（flags）
+
+                | 标志 | 含义 |
+                |------|------|
+                | `-`  | 左对齐（默认右对齐） |
+                | `+`  | 强制显示正负号 |
+                | `空格` | 正数显示空格，负数显示 `-` |
+                | `#`  | 对于 `o`/`x`/`X` 显示前缀（0, 0x, 0X）；对浮点强制显示小数点 |
+                | `0`  | 用 `0` 填充宽度（而非空格） |
+
+            2. 宽度（width）
+
+                - 数字：最小输出宽度（若不足则填充空格或 `0`）。
+                - `*`：宽度由**下一个参数**提供（int 类型）。
+
+            3.精度（.precision）
+
+                - 对整数：最少数字位数（不足补 `0`）。
+                - 对浮点数：小数点后的位数。
+                - 对字符串：最大输出字符数。
+                - `.*`：精度由下一个参数提供。
+
+            4. 长度修饰符（length）
+
+                | 修饰符 | 影响的数据类型 |
+                |--------|---------------|
+                | `hh`   | signed char / unsigned char |
+                | `h`    | short / unsigned short |
+                | `l`    | long / unsigned long |
+                | `ll`   | long long / unsigned long long |
+                | `L`    | long double |
+                | `z`    | size_t |
+                | `t`    | ptrdiff_t |
+
+                注：
+
+                1. 有关 l 与 ll
+
+                    %lx 对应 unsigned long(Linux/macOS 64 位下 long 是 8 字节)。
+
+                    %llx 对应 unsigned long long(所有平台上都是 8 字节)。
+
+                    两者在 LP64(Linux/macOS)下都能正确打印 64 位数;但在 Windows(LLP64) 下 long 只有 4 字节,%lx 就打印不了完整 64 位,此时要用 %llx 或 %I64x。
+
+                    若要严格保证 64 位,推荐用 <inttypes.h>:
+
+                    ```c
+                    #include <inttypes.h>
+                    uint64_t v = 0x123456789abcdef0ULL;
+                    printf("0x%016" PRIx64 "\n", v);   // PRIx64 展开为 lx / llx 等,取决于平台
+                    ```
+
+                2. 不存在 %lux 这样的写法。u 的含义不是 unsigned，而是 unsigned 10 进制
+
+                    长度修饰符必须紧挨在转换说明符之前, 比如`%lu`, `%ld`
+
+                    `%ul`不会被解释成 unsigned long，而是解释成 %u (无符号 int 10 进制)，再加上普通字符 l
+
+    3. 工作原理（底层机制）
+
+        * 3.1 可变参数处理
+
+            `printf` 使用 `<stdarg.h>` 中的宏来遍历参数列表：
+
+            ```c
+            va_list args;
+            va_start(args, format);
+            // 逐个解析 format 字符串，遇到 % 则根据类型取参数
+            int ret = vprintf(format, args);
+            va_end(args);
+            ```
+
+            内部通常会调用 `vprintf` 或 `vfprintf`，真正实现格式化与输出。
+
+        * 3.2 格式化解析过程（简化）
+
+            1. 逐字符扫描 `format`。
+            2. 遇到普通字符直接输出。
+            3. 遇到 `%`：
+               - 解析 flags、width、precision、length。
+               - 根据 specifier 从 `va_list` 中取出对应类型的参数。
+               - 按照规则转换成字符串（如整数转十进制/十六进制，浮点数转小数形式等）。
+            4. 将结果字符串放入**缓冲区**。
+
+        * 3.3 缓冲区与系统调用
+
+            - `printf` 默认使用 **行缓冲**（stdout 是行缓冲模式，除非重定向）。
+            - 数据先写入**用户态缓冲区**，遇到 `\n` 或缓冲区满或程序结束时，调用 `write` 系统调用将数据送入内核，再写到终端或文件。
+            - 可通过 `setbuf` / `setvbuf` 更改缓冲模式。
+
+    4. 常见使用示例
+
+        ```c
+        printf("Hello\n");                          // 普通字符串
+        printf("%d %x %o", 255, 255, 255);          // 255 ff 377
+        printf("%10d", 42);                         // "        42"
+        printf("%-10d", 42);                        // "42        "
+        printf("%.2f", 3.14159);                    // "3.14"
+        printf("%*.*f", 6, 2, 3.14);                // "  3.14"
+        printf("%s", "abc");                        // "abc"
+        printf("%.5s", "abcdef");                   // "abcde"
+        printf("%p", (void*)&a);                    // 地址如 0x7ffc...
+        printf("%%");                               // "%"
+        ```
+
+    5. 安全性与常见陷阱
+
+        * ⚠️ 类型不匹配
+
+            - `%d` 传 `long` → 可能截断或乱码。
+            - `%f` 传 `int` → 未定义行为。
+            - 必须使用长度修饰符匹配实际类型。
+
+        * ⚠️ 格式化字符串漏洞
+
+            - 如果 `format` 来自用户输入（如 `printf(user_input)`），攻击者可利用 `%x`、`%n` 泄露或篡改内存。
+            - **修复**：始终使用 `printf("%s", user_input)`。
+
+        * ⚠️ 缓冲区溢出风险（极少）
+
+            - `printf` 自身不会溢出，因为它内部动态分配或使用静态缓冲，但过长的输出可能耗光内存（但很少见）。
+
+    6. 性能考量
+
+        - 频繁调用 `printf`（尤其是大量小输出）会因系统调用和解析开销变慢。
+        - 建议：大批量输出时先 `sprintf` 到字符串再一次性输出。
+        - 嵌入式系统常使用自定义的微型 `printf` 以节省代码空间。
+
+    7. 扩展：相关函数族
+
+        | 函数 | 作用 |
+        |------|------|
+        | `fprintf(FILE*, ...)` | 输出到指定文件流 |
+        | `sprintf(char*, ...)` | 输出到字符串（不安全，可能溢出） |
+        | `snprintf(char*, size, ...)` | 安全版，限制输出长度 |
+        | `vprintf` / `vfprintf` / `vsnprintf` | 接受 `va_list`，用于自定义包装函数 |
+
+    8. 实现简易 printf（思路）
+
+        如果你自己实现一个极简版：
+
+        ```c
+        int my_printf(const char *fmt, ...) {
+            va_list args;
+            va_start(args, fmt);
+            int ret = my_vprintf(fmt, args);
+            va_end(args);
+            return ret;
+        }
+        ```
+
+        其中 `my_vprintf` 需要：
+        - 手动解析 `%` 和修饰符。
+        - 用 `va_arg` 取参数。
+        - 使用 `itoa` / `ftoa` 转换数字。
+        - 用 `putchar` 或 `write` 输出。
+
+    9. 标准符合性
+
+        - `printf` 由 **C89 / C99 / C11 / C17** 标准定义。
+        - 各平台（glibc、MSVC、musl）实现细节略有差异，但核心行为一致。
+        - 浮点数转换可能受舍入模式、环境变量（如 `printf` 在 glibc 中受 `LOCALE` 影响）影响。
+
+    **总结**
+
+    `printf` 是一个**功能强大但需要谨慎使用**的函数。它通过解析格式字符串和可变参数，将多种类型的数据转化为字符流输出，背后涉及格式化、缓冲、系统调用等机制。正确使用时，注意类型匹配和安全性；在性能敏感或资源受限场景下，可以考虑替代方案或自定义实现。
+
+    如果你对某个具体部分（如浮点数转换细节、自定义 `printf` 实现、漏洞利用）有更深兴趣，我可以继续展开。
+
+* printf("%2x ", prop.uuid.bytes[i]); 为什么打印出来是 uuid: 33 63 70 23 ffffffff 22 4e ffffff84 ffffffa9 ffffffb0 ffffff8a ffffffc0  0  2 20 10，我希望只显示低2 位
+
+    这个问题非常经典！你的代码 `printf("%2x ", prop.uuid.bytes[i])` 打印出 `ffffffff` 而不是期望的 `ff`，根本原因是 **`bytes` 数组的元素类型是有符号的 `char`**（`signed char`），而 `%x` 期望的是 `unsigned int`。
+
+    ## 问题根源
+
+    ### 1. 类型提升（Integer Promotion）
+    在 C 语言中，当传递 `char` 类型给可变参数函数（如 `printf`）时，会发生**整数提升**（Integer Promotion）：
+    - 如果 `char` 是有符号的（默认在很多系统上），且该字节的最高位是 `1`（即值 ≥ 0x80），它会被**符号扩展**（Sign-extend）为 `int`。
+    - 例如，`0x84`（二进制 `1000 0100`）作为 `signed char` 是负数（-124），提升为 `int` 后变成 `0xFFFFFF84`。
+    - 然后 `%x` 将这个 `int` 按十六进制打印，就得到了 `ffffff84`。
+
+    ### 2. 宽度修饰符 `%2x` 的含义
+    - `%2x` 表示**最小宽度为 2**，不是"只取低 2 位"。
+    - 当数值是 `0xFFFFFF84` 时，宽度早已超过 2，所以会原样输出全部 8 位十六进制数字。
+
+    ---
+
+    ## 解决方案
+
+    ### 方案一：强制转换为 `unsigned char`（推荐）
+    ```c
+    printf("%02x ", (unsigned char)prop.uuid.bytes[i]);
+    ```
+    - `(unsigned char)` 强制将值转为无符号字符，范围 0~255。
+    - 整数提升时变成 `unsigned int`（0x00000084），不会符号扩展。
+    - `%02x` 确保至少输出 2 位，不足补零。
+
+    ---
+
+    ### 方案二：使用 `%hhx` 长度修饰符（C99 起）
+    ```c
+    printf("%02hhx ", prop.uuid.bytes[i]);
+    ```
+    - `%hhx` 表示参数是 `unsigned char`（或 `signed char` 也会被正确转换）。
+    - 但某些老旧编译器可能不完全支持，且仍需注意符号扩展问题（建议配合 `unsigned char` 使用）。
+
+    ---
+
+    ### 方案三：手动掩码（最保险）
+    ```c
+    printf("%02x ", prop.uuid.bytes[i] & 0xFF);
+    ```
+    - `& 0xFF` 强制只保留低 8 位，无论原类型是什么。
+
+    ---
+
+    ## 完整对比示例
+
+    ```c
+    #include <stdio.h>
+
+    int main() {
+        signed char bytes[] = {0x84, 0x23, 0x70, 0x33};
+        
+        // 错误写法
+        printf("错误: ");
+        for (int i = 0; i < 4; i++) {
+            printf("%2x ", bytes[i]);  // 输出: ffffff84 23 70 33
+        }
+        printf("\n");
+        
+        // 正确写法1：强制转换
+        printf("正确1: ");
+        for (int i = 0; i < 4; i++) {
+            printf("%02x ", (unsigned char)bytes[i]);  // 输出: 84 23 70 33
+        }
+        printf("\n");
+        
+        // 正确写法2：掩码
+        printf("正确2: ");
+        for (int i = 0; i < 4; i++) {
+            printf("%02x ", bytes[i] & 0xFF);  // 输出: 84 23 70 33
+        }
+        printf("\n");
+        
+        return 0;
+    }
+    ```
+
+    **输出：**
+    ```
+    错误: ffffff84 23 70 33 
+    正确1: 84 23 70 33 
+    正确2: 84 23 70 33 
+    ```
+
+    ---
+
+    ## 额外建议
+
+    ### 1. 用 `%02x` 代替 `%2x`
+    - `%2x`：最小宽度 2，不足补空格 → `" 84"`
+    - `%02x`：最小宽度 2，不足补零 → `"84"`（更符合 UUID 显示习惯）
+
+    ### 2. 声明时就用 `unsigned char`
+    如果 `prop.uuid.bytes` 是数组，考虑定义为：
+    ```c
+    unsigned char bytes[16];  // 更明确表示字节数据
+    ```
+    这样就不需要每次强制转换了。
+
+    ### 3. 检查 UUID 结构定义
+    很多 UUID 结构使用 `uint8_t`（来自 `<stdint.h>`）：
+    ```c
+    #include <stdint.h>
+    uint8_t bytes[16];  // 明确为无符号 8 位
+    ```
+
+    ---
+
+    ## 总结
+
+    | 代码 | 问题 | 解决方案 |
+    |------|------|----------|
+    | `printf("%2x", bytes[i])` | 符号扩展导致高位变 `ff` | 用 `(unsigned char)` 或 `& 0xFF` |
+    | `printf("%2x", ...)` | 宽度不足补空格 | 用 `%02x` 补零 |
+    | 数据类型不明确 | 依赖默认 `char` 符号性 | 使用 `uint8_t` 或 `unsigned char` |
+
+    你的问题核心就是**符号扩展**。加上强制转换后，就能得到你期望的 `33 63 70 23 ff 22 4e 84 a9 b0 8a c0 00 02 20 10` 这样的格式了。
+
+    * 那为什么 (unsigned int)prop.uuid.bytes[i] 不行
+
+        非常好的问题！这涉及到 C 语言中类型转换和整数提升的微妙之处。
+
+        ## 为什么 `(unsigned int)bytes[i]` 不行？
+
+        ```c
+        printf("%02x ", (unsigned int)prop.uuid.bytes[i]);
+        ```
+
+        **结论：这样写依然会打印 `ffffff84`，问题没有解决！**
+
+        ---
+
+        ## 根本原因：转换顺序问题
+
+        关键在于 **类型转换发生在整数提升之前还是之后**：
+
+        ### 错误的执行顺序（你写的代码）：
+        ```
+        1. bytes[i] 是 signed char，值为 0x84（-124）
+        2. (unsigned int) 强制转换 → 将 -124 转为 unsigned int
+           - 转换规则：-124 + UINT_MAX + 1 = 0xFFFFFF84
+           - 结果已经是 0xFFFFFF84（unsigned int）
+        3. 传递给 printf，%x 打印 → ffffff84
+        ```
+
+        ### 正确的执行顺序（我们需要的）：
+        ```
+        1. 先将 signed char 转为 unsigned char → 0x84（132）
+        2. 整数提升为 int → 0x00000084（正数）
+        3. 再转为 unsigned int → 0x00000084
+        4. 打印 → 84
+        ```
+
+        ---
+
+        ## 详细拆解
+
+        ### 情况1：直接转换 `(unsigned int)`
+
+        ```c
+        signed char c = 0x84;  // 二进制 10000100，值为 -124
+        unsigned int u = (unsigned int)c;
+        // 转换过程：-124 → 0xFFFFFF84（UINT_MAX - 123）
+        printf("%x", u);  // 输出: ffffff84
+        ```
+
+        C 标准规定：将有符号整数转换为无符号整数时，如果原值为负，结果 = 原值 + (最大值 + 1)。所以：
+        - -124 + 4294967296 = 4294967172 = 0xFFFFFF84
+
+        ### 情况2：先转 `unsigned char`
+
+        ```c
+        signed char c = 0x84;  // -124
+        unsigned char uc = (unsigned char)c;  // 0x84（132），保留位模式
+        unsigned int u = (unsigned int)uc;    // 132 → 0x00000084
+        printf("%x", u);  // 输出: 84
+        ```
+
+        `unsigned char` 的转换规则是**保持位模式不变**，范围 0~255，所以 0x84 就是 132（正数）。
+
+        ---
+
+        ## 为什么 `unsigned char` 能解决问题？
+
+        因为当 `unsigned char` 参与整数提升时：
+
+        ```c
+        unsigned char uc = 0x84;
+        // uc 在表达式中会被提升为 int
+        // 规则：unsigned char → int（因为 int 能表示所有 unsigned char 的值）
+        // 结果：0x00000084（正数，32位）
+        ```
+
+        而 `signed char` 提升时：
+        ```c
+        signed char sc = 0x84;  // 最高位为1
+        // sc 在表达式中被提升为 int
+        // 规则：保持符号，符号扩展
+        // 结果：0xFFFFFF84（负数）
+        ```
+
+        ---
+
+        ## 完整对比示例
+
+        ```c
+        #include <stdio.h>
+
+        int main() {
+            signed char c = 0x84;
+            
+            // 错误方式1：直接转 unsigned int
+            printf("(unsigned int): %02x\n", (unsigned int)c);
+            // 输出: ffffff84
+            
+            // 错误方式2：转 unsigned int（没有效果）
+            printf("(unsigned int): %02x\n", (unsigned int)(c));
+            // 输出: ffffff84（一样的问题）
+            
+            // 正确方式：先转 unsigned char
+            printf("(unsigned char): %02x\n", (unsigned char)c);
+            // 输出: 84
+            
+            // 正确方式：使用掩码
+            printf("& 0xFF: %02x\n", c & 0xFF);
+            // 输出: 84
+            
+            // 正确方式：使用 uint8_t
+            uint8_t uc = (uint8_t)c;
+            printf("uint8_t: %02x\n", uc);
+            // 输出: 84
+            
+            return 0;
+        }
+        ```
+
+        ---
+
+        ## 为什么 `%hhx` 也有同样的问题？
+
+        ```c
+        printf("%02hhx ", prop.uuid.bytes[i]);  // 仍可能出错！
+        ```
+
+        `%hhx` 只是告诉 `printf` 参数是 `unsigned char` 类型，但**参数传递时已经被提升了**：
+        1. `bytes[i]` 被提升为 `int`（0xFFFFFF84）
+        2. `printf` 收到 `int` 类型的参数
+        3. `%hhx` 会将这个 `int` 截断为 `unsigned char`
+        4. 结果：0xFFFFFF84 截断为 0x84 ✅
+
+        **但这依赖于 `printf` 的实现，不安全！** 因为在某些架构上，`int` 和 `char` 的传递方式可能不同。最佳实践是显式转换。
+
+        ---
+
+        ## 总结
+
+        | 写法 | 结果 | 原因 |
+        |------|------|------|
+        | `(unsigned int)c` | ❌ `ffffff84` | 负值转无符号，值变了 |
+        | `(unsigned char)c` | ✅ `84` | 保留位模式，变为正数 |
+        | `c & 0xFF` | ✅ `84` | 位掩码，强制只取低8位 |
+        | `%02hhx` | ⚠️ 可能对，但不安全 | 依赖 printf 实现 |
+
+        **关键记忆**：
+        - `(unsigned int)` 转换的是**值**，负值会变成很大的正数
+        - `(unsigned char)` 转换的是**位模式**，保留低 8 位
+        - 要解决符号扩展，必须**在整数提升之前**将数据转为无符号小类型
+
+        所以正确的做法是：
+        ```c
+        printf("%02x ", (unsigned char)prop.uuid.bytes[i]);
+        // 或
+        printf("%02x ", prop.uuid.bytes[i] & 0xFF);
+        ```
 
 ## other
 

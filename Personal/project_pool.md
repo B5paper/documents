@@ -38,77 +38,13 @@
 
 * [ ] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
 
-* [ ] 调研`nvprof ./vector_add`如何给出性能数据
-
-* [ ] 调研`cudaMallocManaged(&x, N*sizeof(float));`
-
-* [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
-
-    2026/10/25/00: 这个功能的优先级不高，因为 vim 内打开多个文件，即可使用 vim 本身的寄存器交换剪贴板数据，而跨进程、跨机器的数据交换，只需要使用 vim 的 + 寄存器。screen 与 vim 交换数据，只需要 vim 打开 paste 模式，再使用 screen 的粘贴功能即可，目前没有看到什么不方便的地方。
-
-* 岭回归中，为什么让系数绝对值更小是有效的（能阻止过拟合的）？
-
-* [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和
-
-* [ ] 归并排序、堆排序和快速排序 代码，以及复杂度
-
-* [ ] pyacvd, tetgen, gmsh
-
 * qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
-
-* [ ] matplotlib.tri 或 Mayavi
-
-* [ ] 调研斐波那契数列的并行方法
-
-    ```py
-    # 串行计算（必须依赖前值）
-    def fib_serial(n):
-        if n <= 1: return n
-        return fib_serial(n-1) + fib_serial(n-2)  # 必须等待前两个值
-
-    # 但是！我们可以用矩阵快速幂并行化
-    def fib_parallel(n):
-        # 虽然还是顺序计算，但每步可以并行处理多个不相关的计算
-        return matrix_power([[1,1],[1,0]], n)[0][1]
-    ```
-
-* async chain 的实现非常重要，有时间了研究一下
-
-	* js 中的 promise 的原理
-
-	* rust 中 async 的原理
-
-	* c++ 中协程的原理
-
-	* libhv 中事件驱动的原理
-
-* [ ] 调研 MLIR, IREE
-
-## cached tasks
-
-这里主要是暂时难以分类的任务。
-
-* [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
-
-* [ ] 调研 Computer algebra system
-
-    <https://en.wikipedia.org/wiki/Computer_algebra_system#>
-
-    自动求导、符号求导等相关知识可能和这个概念有关。
-
-* [asso] 写一个数字图像处理库，暂时不包含深度学习
-
-* [ ] 需要一个 graph 工具，建立不同的东西之间的连接
-
-    stack 工具只适合任务的 trace
 
 * [ ] 调研如何判断一个新的 example 是否已经在 qa 文件中
 
     可能的方向：向量数据库，llm + rag
 
     目标是在 qa file 中找到与 example 相似或相近的 unit
-
-* [ ] 如何使用模板（卷积）的方式识别缺陷？
 
 * [ ] 思考：文件中使用引用标记来引用其它文件中的内容
 
@@ -236,24 +172,6 @@ english words 由 { } reorg: english words 进化而来。
 
     还需要这个程序具备以下功能：为所有 unit 添加或删除某个属性`[xxx]`，如果缺失，那么就返回 (empty)。我们可以在代码里直接 hardcode 编码所有可用属性，否则就需要一个 meta info 文件，比较麻烦。
 
-* [ ] 调研 freedos live iso
-
-    res:
-
-    1. video tutorial
-    
-        <https://www.youtube.com/watch?v=xXkmOwLPpcg>
-
-    2. official site
-    
-        <https://www.freedos.org/>
-
-    3. Get Started with FreeDOS
-    
-        <https://www.freedos.org/books/get-started/>
-
-* [ ] 调研 freedos bonus iso
-
 * { } windows 文件整理
 
     目前主要整理`D:\Documents\xdx_res`, `D:\shared_folder\ai_resources`, `D:\shared_folder\Downloads`, `D:\Documents\res_processing`这四个文件夹。
@@ -269,8 +187,6 @@ english words 由 { } reorg: english words 进化而来。
     2. 保存图片
 
     可以参考`ref_5`
-
-* [ ] 在 v100 5.15 系统下安装 docker，并尝试透传 nvidia gpu device
 
 * [P] 增加一项功能：是否答对，并将结果记录到 qa 中。
 
@@ -291,20 +207,6 @@ english words 由 { } reorg: english words 进化而来。
 * [ ] 将 project pool 中常用到的 pdf 等 resources 打包成 zip，发送到邮箱里
 
 * [ ] 找到贝叶斯网引论 pdf，上传到邮箱里
-
-* [ ] powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
-
-    目前看完了`Working with objects`中的`Viewing object structure`。
-
-* [asso] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
-
-* [asso] 调研 http 服务器是否支持 aria2 多线程下载文件？
-
-* [asso] python 简易 http 服务器
-
-    `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
-
-* [ ] Dash/Zeal（离线API查看器）
 
 ## qa
 
@@ -398,99 +300,11 @@ english words 由 { } reorg: english words 进化而来。
 
     1. 实现一个函数，将指定字节处（从 0 开始索引）的字节替换成指定字节
 
-* [ ] 调研文件编辑器如何实现插入/删除功能？
+* [v] 调研文件编辑器如何实现插入/删除功能？
 
 * [ ] `cublasSgemm`
 
-* [asso] latex/pdflatex/xelatex
-
-* [asso] 终端图片显示工具（如 chafa, img2sixel, Kitty 的 icat）
-
-* [asso] latex2img 脚本或 catimg（简单图片显示
-
-* [asso] texmath（Haskell），pandoc（可以转换格式）
-
-* [asso] Emacs： 功能强大，通过 org-mode 或 latex-preview-pane 等可以在编辑器内渲染公式（通常是生成图片覆盖在文本上）。
-
-* [asso] mdmath + 浏览器
-
-    ```bash
-    # 将 Markdown 转换为 HTML 并在浏览器中打开
-    pandoc math.md -o math.html --mathjax && xdg-open math.html
-    ```
-
-* [asso] pandoc + lynx
-
-    ```bash
-    # 转换为文本格式查看
-    sudo apt install pandoc lynx
-    pandoc document.md -t plain | less
-    ```
-
-* [asso] 图片变成字符画
-
-    chafa：强烈推荐。功能非常强大，支持多种输出格式（字符、符号、六角形等），色彩还原好，性能高。是目前最好的选择之一。
-
-    catimg： 简单易用，专门用于显示图片，对彩色图片支持不错。
-
-    img2txt（来自 caca-utils 包）： 老牌工具，也能生成字符画。
-
-    ```bash
-    # 安装 chafa (Ubuntu/Debian)
-    sudo apt install chafa
-
-    # 查看图片
-    chafa photo.jpg
-    # 或指定大小为终端宽度的一半
-    chafa -s 80x40 photo.jpg
-    ```
-
-* [asso] 图形协议方式
-
-    这种方法利用终端仿真器支持的特殊协议，直接在其文本网格中渲染图形。效果最好，能显示真彩色的原图。
-
-    * Kitty 图形协议： Kitty 终端自带的协议，效率很高。
-
-        工具： Kitty 终端自带的 icat 命令。
-
-        ```bash
-        # 只在 Kitty 终端中有效
-        kitty +kitten icat image.png
-        ```
-
-    * Sixel： 一种较老的协议，但被许多终端支持（如 XTerm, WezTerm, Mintty）。
-
-        工具： img2sixel, chafa（也支持 Sixel 输出）。
-
-        ```bash
-        # 安装 ImageMagick (通常包含 `convert`，可用于生成 sixel)
-        brew install imagemagick
-        # Ubuntu: sudo apt install imagemagick
-
-        # 转换为 sixel 格式并显示
-        convert image.jpg sixel:-
-        # 或者使用专门工具
-        img2sixel image.jpg
-        ```
-
-    * iTerm2 内联图片协议： 专用于 iTerm2 终端。
-
-        iTerm2 提供了 imgcat 脚本。
-
-        ```bash
-        # 通常在 iTerm2 中，可以这样使用
-        ~/.iterm2/imgcat image.png
-        ```
-
-* [asso] `xdg-open`
-
-* [asso] Kitty, WezTerm
-
-* [asso] Sixel 或 Kitty 的图形协议
-
-* [asso] texmath
-
-* [ ] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
+* [ ] latex/pdflatex/xelatex
 
 * [ ] `docker start -ia` 其中`-ia`是什么含义？
 
@@ -618,7 +432,7 @@ english words 由 { } reorg: english words 进化而来。
         ProxyCommand ncat --proxy-type http --proxy proxy.company.com:3128 --proxy-auth user:pass %h %p
     ```
 
-* [asso] 调研`-t`是否可以让 ssh 保持连接
+* [ ] 调研`-t`是否可以让 ssh 保持连接
 
     > 保持连接：如果需要保持 SSH 连接，可以添加 -t 参数：
 
@@ -1247,7 +1061,7 @@ english words 由 { } reorg: english words 进化而来。
 
 * [ ] 调研 Chocolatey
 
-* [ ] SourceTree
+* [v] SourceTree
 
 ## vfio / vfio-pci / iommu
 
@@ -1444,8 +1258,6 @@ resources:
 ### cache
 
 * [ ] python `transformers`
-
-* pytorch 的 torchtext 已经在 24 年停止维护了，不要再用了
 
 ### tasks
 
@@ -1964,7 +1776,7 @@ resources:
 
 * [ ] `dup2()`, `dup()`
 
-* [ ] Btrfs、ZFS的COW机制
+* [ ] Btrfs、ZFS 的 COW 机制
 
 * [ ] 页帧分配、页表管理、换入换出（Swapping）
 
@@ -2535,22 +2347,6 @@ resources:
 
 * [ ] 手动实现一下 ring + chunk 方式做 broadcast，对比直接调用 mpi 的 broadcast 函数，看看哪个比较快。
 
-* [ ] pci busid 改成 uuid
-
-* [ ] 在 data 目录中构建 load topo 对应的几种情况
-
-    1. 1 cpu + 2 sipu + 2 usipu per sipu
-
-    2. 2 cpu + 2 sipu + 2 usipu per sipu
-
-    3. 2 cpu + 4 sipu + 1 usipu per sipu
-
-    4. 1 cpu + 2 sipu + 2 usipu per sipu + socket net
-
-    5. 1 cpu + 2 sipu + 2 usipu per sipu + rdma net
-
-* [ ] 整理 xml.cpp，添加前缀
-
 * [ ] `ncclSocketStateConnectPolling` socket 也支持 polling 吗？
 
 * [ ] `cudaThreadExchangeStreamCaptureMode()`
@@ -2574,8 +2370,6 @@ resources:
     循环引用问题？编译器不知道 struct 的大小的问题？
 
 * [ ] `struct alignas(32) ncclIbNetCommBase`中 alignas 是什么意思？
-
-* [ ] 调研是否可以区分三种模式，switch, p2p same host, p2p not same host
 
 * [ ] 调研可视化的方案
 
@@ -6124,6 +5918,188 @@ resources:
 * [ ] OpenBCI GUI、LSL Lab Streaming Layer
 
 * [ ] Nilearn
+
+## low priority
+
+* [asso] `xdg-open`
+
+* [asso] Kitty, WezTerm
+
+* [asso] Sixel 或 Kitty 的图形协议
+
+* [asso] texmath
+
+* [ ] MathGL： 一个用于绘制数学数据的科学图形库，它可以在终端中绘制函数图像，但并非渲染任意公式。
+
+* [ ] pandoc + lynx
+
+    ```bash
+    # 转换为文本格式查看
+    sudo apt install pandoc lynx
+    pandoc document.md -t plain | less
+    ```
+
+* [ ] 图片变成字符画
+
+    chafa：强烈推荐。功能非常强大，支持多种输出格式（字符、符号、六角形等），色彩还原好，性能高。是目前最好的选择之一。
+
+    catimg： 简单易用，专门用于显示图片，对彩色图片支持不错。
+
+    img2txt（来自 caca-utils 包）： 老牌工具，也能生成字符画。
+
+    ```bash
+    # 安装 chafa (Ubuntu/Debian)
+    sudo apt install chafa
+
+    # 查看图片
+    chafa photo.jpg
+    # 或指定大小为终端宽度的一半
+    chafa -s 80x40 photo.jpg
+    ```
+
+* [ ] 图形协议方式
+
+    这种方法利用终端仿真器支持的特殊协议，直接在其文本网格中渲染图形。效果最好，能显示真彩色的原图。
+
+    * Kitty 图形协议： Kitty 终端自带的协议，效率很高。
+
+        工具： Kitty 终端自带的 icat 命令。
+
+        ```bash
+        # 只在 Kitty 终端中有效
+        kitty +kitten icat image.png
+        ```
+
+    * Sixel： 一种较老的协议，但被许多终端支持（如 XTerm, WezTerm, Mintty）。
+
+        工具： img2sixel, chafa（也支持 Sixel 输出）。
+
+        ```bash
+        # 安装 ImageMagick (通常包含 `convert`，可用于生成 sixel)
+        brew install imagemagick
+        # Ubuntu: sudo apt install imagemagick
+
+        # 转换为 sixel 格式并显示
+        convert image.jpg sixel:-
+        # 或者使用专门工具
+        img2sixel image.jpg
+        ```
+
+    * iTerm2 内联图片协议： 专用于 iTerm2 终端。
+
+        iTerm2 提供了 imgcat 脚本。
+
+        ```bash
+        # 通常在 iTerm2 中，可以这样使用
+        ~/.iterm2/imgcat image.png
+        ```
+
+* [ ] 终端图片显示工具（如 chafa, img2sixel, Kitty 的 icat）
+
+* [ ] latex2img 脚本或 catimg（简单图片显示
+
+* [ ] texmath（Haskell），pandoc（可以转换格式）
+
+* [ ] Emacs： 功能强大，通过 org-mode 或 latex-preview-pane 等可以在编辑器内渲染公式（通常是生成图片覆盖在文本上）。
+
+* [ ] mdmath + 浏览器
+
+    ```bash
+    # 将 Markdown 转换为 HTML 并在浏览器中打开
+    pandoc math.md -o math.html --mathjax && xdg-open math.html
+    ```
+
+* [ ] 调研自己搭建 ftp 服务器，是否能用 aria2 实现多线程下载？
+
+* [ ] 调研 http 服务器是否支持 aria2 多线程下载文件？
+
+* [ ] python 简易 http 服务器
+
+    `python3 -m http.server 8000 -d /usr/local/cuda/doc/thrust/html/`
+
+* [ ] Dash/Zeal（离线API查看器）
+
+* [ ] powershell 调研<https://learn.microsoft.com/en-us/powershell/scripting/samples/sample-scripts-for-administration?view=powershell-7.4>
+
+    目前看完了`Working with objects`中的`Viewing object structure`。
+
+* [ ] 调研 freedos live iso
+
+    res:
+
+    1. video tutorial
+    
+        <https://www.youtube.com/watch?v=xXkmOwLPpcg>
+
+    2. official site
+    
+        <https://www.freedos.org/>
+
+    3. Get Started with FreeDOS
+    
+        <https://www.freedos.org/books/get-started/>
+
+* [ ] 调研 freedos bonus iso
+
+* [ ] 如何使用模板（卷积）的方式识别缺陷？
+
+* [ ] 量化想法：针对不同板块的 etf，对 dmi 指标进行矩阵回测，找到最好用的 dmi 周期超参数。
+
+* [ ] 调研 Computer algebra system
+
+    <https://en.wikipedia.org/wiki/Computer_algebra_system#>
+
+    自动求导、符号求导等相关知识可能和这个概念有关。
+
+* [ ] 写一个数字图像处理库，暂时不包含深度学习
+
+* [ ] 需要一个 graph 工具，建立不同的东西之间的连接
+
+    stack 工具只适合任务的 trace
+
+* [ ] matplotlib.tri 或 Mayavi
+
+* [ ] 调研斐波那契数列的并行方法
+
+    ```py
+    # 串行计算（必须依赖前值）
+    def fib_serial(n):
+        if n <= 1: return n
+        return fib_serial(n-1) + fib_serial(n-2)  # 必须等待前两个值
+
+    # 但是！我们可以用矩阵快速幂并行化
+    def fib_parallel(n):
+        # 虽然还是顺序计算，但每步可以并行处理多个不相关的计算
+        return matrix_power([[1,1],[1,0]], n)[0][1]
+    ```
+
+* async chain 的实现非常重要，有时间了研究一下
+
+	* js 中的 promise 的原理
+
+	* rust 中 async 的原理
+
+	* c++ 中协程的原理
+
+	* libhv 中事件驱动的原理
+
+* [ ] 调研 MLIR, IREE
+
+* [ ] 调研`nvprof ./vector_add`如何给出性能数据
+
+* [ ] 调研`cudaMallocManaged(&x, N*sizeof(float));`
+
+* [ ] 调研使用 /tmp 文件来交换跨进程 vim 寄存器 / screen 粘贴板内容的可行性
+
+    2026/10/25/00: 这个功能的优先级不高，因为 vim 内打开多个文件，即可使用 vim 本身的寄存器交换剪贴板数据，而跨进程、跨机器的数据交换，只需要使用 vim 的 + 寄存器。screen 与 vim 交换数据，只需要 vim 打开 paste 模式，再使用 screen 的粘贴功能即可，目前没有看到什么不方便的地方。
+
+* 岭回归中，为什么让系数绝对值更小是有效的（能阻止过拟合的）？
+
+* [ ] 最长无重复字符子串, 两数之和 (有序数组), 三数之和
+
+* [ ] 归并排序、堆排序和快速排序 代码，以及复杂度
+
+* [ ] pyacvd, tetgen, gmsh
 
 ## 其他 Miscellaneous
 
