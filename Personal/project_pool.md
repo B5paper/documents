@@ -36,6 +36,34 @@
 
 ## cache
 
+* 启动 kmd driver test qemu
+
+    virtual box: `ssh hlc_test`
+
+    54: ssh test@192.168.122.135
+
+    disk: /home/hlc/Documents/qemu-disks/ccc.qcow2, 120 GB
+
+    kernel: 6.5.0-41-generic
+
+    system: ubuntu 22.04
+
+    compiler: gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04.2) 12.3.0
+
+* [ ] 安装 coc.vim 以及 c/c++ 插件
+
+    * [v] 在 qemu 里打开代理并测试
+
+    * [ ] 调研 vim 插件如何使用代理
+
+    * [ ] 安装 vim plug
+
+    * [ ] vim plug 如何使用代理
+
+    * [ ] vim plug 安装 coc.vim
+
+    * [ ] coc.vim 安装 c++ lsp 插件，并研究 coc.vim 如何使用代理
+
 * [ ] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
 
 * qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
