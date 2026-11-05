@@ -395,41 +395,47 @@
 
 	这个设置主要带来两方面的影响：
 
-	### 核心作用：解决 `Ctrl-S` 的"假死"问题
+	**核心作用：解决 `Ctrl-S` 的"假死"问题**
 
 	默认情况下，Screen 的流量控制是开启的（`defflow on` 或 `auto`）。当你在终端里按下 `Ctrl-S` 时，Screen 会拦截它，并立刻暂停（阻塞）当前窗口的所有输出，直到你按下 `Ctrl-Q` 来恢复。
 
-	*   这个功能来自硬件终端时代，但现代环境下，`Ctrl-S` 常被误触，导致终端莫名其妙"卡住"（输出暂停）。
-	*   设置 `defflow off` 后，Screen 不再处理这两个字符，`Ctrl-S` 按键会直接发送给当前程序，从而避免了这个烦人的问题。
+	* 这个功能来自硬件终端时代，但现代环境下，`Ctrl-S` 常被误触，导致终端莫名其妙"卡住"（输出暂停）。
 
-	### 潜在代价：`Ctrl-S` 与文本编辑器的兼容
+	* 设置 `defflow off` 后，Screen 不再处理这两个字符，`Ctrl-S` 按键会直接发送给当前程序，从而避免了这个烦人的问题。
+
+	**潜在代价：`Ctrl-S` 与文本编辑器的兼容**
 
 	关闭流量控制的代价是，你失去了一种快速暂停屏幕输出的方法。但对大多数用户来说，这不成问题。
 
-	*   对于一些常用的文本编辑器（特别是 Emacs），`Ctrl-S` 是一个非常重要的快捷键（用于搜索）。
-	*   如果在 Screen 中开启了流量控制，你在 Emacs 里按 `Ctrl-S`，Screen 会拦截它，导致搜索功能无法使用。设置 `defflow off` 可以让 `Ctrl-S` 正确传递给 Emacs。
+	* 对于一些常用的文本编辑器（特别是 Emacs），`Ctrl-S` 是一个非常重要的快捷键（用于搜索）。
 
-	### 其他补充说明
+	* 如果在 Screen 中开启了流量控制，你在 Emacs 里按 `Ctrl-S`，Screen 会拦截它，导致搜索功能无法使用。设置 `defflow off` 可以让 `Ctrl-S` 正确传递给 Emacs。
 
-	*   **设置方法**：将 `defflow off` 这一行添加到你的 `~/.screenrc` 配置文件中。
-	*   **作用范围**：`defflow` 设置的是**新创建窗口**的默认流量控制状态，对已存在的窗口没有影响。
-	*   **其他方案**：如果你依然希望保留流量控制功能，同时又想使用 `Ctrl-S`，可以修改 Screen 的默认转义键（例如改为 `Ctrl-J`），但这比直接关闭流量控制要复杂一些。
+	**其他补充说明**
+
+	* 设置方法： 将 `defflow off` 这一行添加到你的 `~/.screenrc` 配置文件中。
+
+	* 作用范围： `defflow` 设置的是**新创建窗口**的默认流量控制状态，对已存在的窗口没有影响。
+
+	* 其他方案： 如果你依然希望保留流量控制功能，同时又想使用 `Ctrl-S`，可以修改 Screen 的默认转义键（例如改为 `Ctrl-J`），但这比直接关闭流量控制要复杂一些。
 
 * 讲讲 screen 中 flow off 的作用
 
     在 GNU Screen 中，**`flow off`**（注意没有 `def` 前缀）与上一条回答中的 **`defflow off`** 有着本质区别。它们的作用对象和作用时机完全不同。
 
     简单来说：
+
     **`defflow off`** 是**全局默认设置**（影响未来新建的窗口）。
     **`flow off`** 是**即时操作命令**（影响当前正在使用的这个窗口）。
 
-    ### 5. 如何查看当前窗口的状态
+    5. 如何查看当前窗口的状态
 
-    如果你想确认当前窗口的流量控制是开还是关，可以在 Screen 命令行中输入：
+        如果你想确认当前窗口的流量控制是开还是关，可以在 Screen 命令行中输入：
 
-    ```bash
-    Ctrl-A : flow
-    ```
+        ```bash
+        Ctrl-A : flow
+        ```
+
     （不加 `on` 或 `off` 参数），Screen 会返回类似 `Flow is on` 或 `Flow is off` 的提示信息。
 
 * 讲讲 screen 中 termcapinfo xterm* ti=\E[?1049h:te=\E[?1049l 的作用
@@ -440,86 +446,84 @@
 
     为了让你彻底理解，我们分三部分拆解：
 
-    ### 1. 基本语法结构
-    `termcapinfo xterm* ti=... : te=...`
+    1. 基本语法结构
 
-    - **`termcapinfo`**：告诉终端模拟器（这里是 screen/tmux）如何将内部的转义序列转换为外部真实终端的转义序列。
-    - **`xterm*`**：通配符，匹配所有以 `xterm` 开头的终端类型（如 `xterm-256color`、`xterm-kitty` 等）。
-    - **`ti=...`**：定义进入“全屏应用程序”模式时发送的指令（`ti` 即 `terminal initialize` 或 `smcup`）。
-    - **`te=...`**：定义退出“全屏应用程序”模式时发送的指令（`te` 即 `terminal end` 或 `rmcup`）。
+        `termcapinfo xterm* ti=... : te=...`
 
-    ---
+        - **`termcapinfo`**：告诉终端模拟器（这里是 screen/tmux）如何将内部的转义序列转换为外部真实终端的转义序列。
+        - **`xterm*`**：通配符，匹配所有以 `xterm` 开头的终端类型（如 `xterm-256color`、`xterm-kitty` 等）。
+        - **`ti=...`**：定义进入“全屏应用程序”模式时发送的指令（`ti` 即 `terminal initialize` 或 `smcup`）。
+        - **`te=...`**：定义退出“全屏应用程序”模式时发送的指令（`te` 即 `terminal end` 或 `rmcup`）。
 
-    ### 2. 转义序列的具体含义
+    2. 转义序列的具体含义
 
-    - **`\E[?1049h`**：
-      - `\E` 代表 ESC 键（ASCII 27），即转义字符。
-      - `[?1049h` 是 DEC 私有模式（Private Mode）的开启指令。
-      - **作用**：**保存当前屏幕内容**（存入备用缓冲区）并**切换到备用屏幕**（Alternate Screen）。全屏程序（如 Vim）会在这个干净的备用缓冲区里绘制界面。
+        - **`\E[?1049h`**：
+          - `\E` 代表 ESC 键（ASCII 27），即转义字符。
+          - `[?1049h` 是 DEC 私有模式（Private Mode）的开启指令。
+          - **作用**：**保存当前屏幕内容**（存入备用缓冲区）并**切换到备用屏幕**（Alternate Screen）。全屏程序（如 Vim）会在这个干净的备用缓冲区里绘制界面。
 
-    - **`\E[?1049l`**：
-      - `l` 代表关闭该模式（low）。
-      - **作用**：**切回主屏幕**（Normal Screen）并**恢复之前保存的屏幕内容**。这样当你退出 Vim 时，你会看到打开 Vim 之前的 `bash` 提示符和输出，而不是 Vim 残留的代码界面。
+        - **`\E[?1049l`**：
+          - `l` 代表关闭该模式（low）。
+          - **作用**：**切回主屏幕**（Normal Screen）并**恢复之前保存的屏幕内容**。这样当你退出 Vim 时，你会看到打开 Vim 之前的 `bash` 提示符和输出，而不是 Vim 残留的代码界面。
 
-    ---
+    3. 为什么要显式写这个配置？（解决历史遗留问题）
 
-    ### 3. 为什么要显式写这个配置？（解决历史遗留问题）
+        在早期的 Xterm 实现中，`smcup`（进入全屏）和 `rmcup`（退出全屏）默认使用的是 **`\E[?47h` 和 `\E[?47l`**（老式备用屏幕）。
 
-    在早期的 Xterm 实现中，`smcup`（进入全屏）和 `rmcup`（退出全屏）默认使用的是 **`\E[?47h` 和 `\E[?47l`**（老式备用屏幕）。
+        **`1049` 是 `47` 的增强版**。区别在于：
 
-    **`1049` 是 `47` 的增强版**。区别在于：
+        - **`47`**：只切换屏幕，**不保存**光标位置和属性。
+        - **`1049`**：切换屏幕的同时，**保存并恢复**光标位置、字符集和视频属性。
 
-    - **`47`**：只切换屏幕，**不保存**光标位置和属性。
-    - **`1049`**：切换屏幕的同时，**保存并恢复**光标位置、字符集和视频属性。
+        **为什么需要强制覆盖？**
 
-    **为什么需要强制覆盖？**
-    有些系统的 terminfo 数据库（`xterm` 条目）可能因为年代久远或自定义，仍然默认使用 `47` 而不是 `1049`。
+        有些系统的 terminfo 数据库（`xterm` 条目）可能因为年代久远或自定义，仍然默认使用 `47` 而不是 `1049`。
 
-    **加上这行配置后，强制效果如下：**
+        **加上这行配置后，强制效果如下：**
 
-    - 当你进入 Vim 时：屏幕完全清空并保存当前 Bash 界面。
-    - 当你退出 Vim 时：Bash 界面**原封不动**地恢复，且光标回到你敲 `vim` 命令之前的那一行，终端滚动历史（Scrollback）也不会被 Vim 的内容污染。
+        - 当你进入 Vim 时：屏幕完全清空并保存当前 Bash 界面。
+        - 当你退出 Vim 时：Bash 界面**原封不动**地恢复，且光标回到你敲 `vim` 命令之前的那一行，终端滚动历史（Scrollback）也不会被 Vim 的内容污染。
 
-    ---
+    4. 补充场景（如果你不用 Screen/Tmux）
 
-    ### 4. 补充场景（如果你不用 Screen/Tmux）
+        - **如果你在原生终端（不带 screen）下**：这行配置无效，因为 `termcapinfo` 是 screen 特有的指令。原生终端直接读取系统的 `terminfo` 数据库，通常现代终端（GNOME Terminal, iTerm2, Windows Terminal）默认已经支持 `1049`，不需要配置。
 
-    - **如果你在原生终端（不带 screen）下**：这行配置无效，因为 `termcapinfo` 是 screen 特有的指令。原生终端直接读取系统的 `terminfo` 数据库，通常现代终端（GNOME Terminal, iTerm2, Windows Terminal）默认已经支持 `1049`，不需要配置。
-    - **如果你在 Tmux 下**：Tmux 的等效配置通常是 `set -g terminal-overrides "xterm*:smcup@:rmcup@"`（强制禁用备用屏幕），因为 Tmux 自己管理滚动缓冲区，不希望内部程序切换屏幕导致混乱。
+        - **如果你在 Tmux 下**：Tmux 的等效配置通常是 `set -g terminal-overrides "xterm*:smcup@:rmcup@"`（强制禁用备用屏幕），因为 Tmux 自己管理滚动缓冲区，不希望内部程序切换屏幕导致混乱。
 
-    ---
+    **总结一句话**
 
-    ### 总结一句话
     **这行配置强制让 Screen 告诉 Xterm：进出全屏程序时，必须使用“保存/恢复主屏幕内容”的现代标准（1049），以防止退出 Vim 后屏幕残留垃圾或丢失之前的命令行历史。**
 
 * 详细讲讲 screen 中 altscreen on 的作用
 
     `altscreen on` 这个设置，是用来解决一个在 `screen` 中很常见但又有点恼人的小问题：当你退出 `vim`、`less` 或 `top` 这类全屏程序后，它们的界面内容仍然会“粘”在终端上，挡住了你之前看到的内容。
 
-    ### 问题的根源：备用屏幕 (Alternate Screen)
+    **问题的根源：备用屏幕 (Alternate Screen)**
 
     要理解这个设置，首先要了解终端的“备用屏幕”机制。
 
     *   **是什么**：终端（如 Terminal.app, iTerm2, PuTTY）通常维护着两个独立的显示缓冲区：**主屏幕 (Main Screen)** 和**备用屏幕 (Alternate Screen)**。
+
     *   **怎么用**：像 `vim`、`less`、`htop` 这样的全屏交互式程序，在启动时会切换到备用屏幕，在这个全新的“画布”上绘制界面。程序退出时，会切换回主屏幕，让一切恢复原样，仿佛程序从未运行过。这样你就能看到启动程序前执行的命令和输出，体验非常流畅。
 
-    ### `screen` 的默认行为：为什么界面会“残留”
+    **`screen` 的默认行为：为什么界面会“残留”**
 
     问题就出在 GNU Screen 本身也是一个终端模拟器。在默认情况下（`altscreen off`），Screen 会告诉其中的程序：“我不支持备用屏幕功能”。
 
     因此，当 `vim` 等程序试图切换屏幕时，这个请求实际上被忽略了。程序只是在当前屏幕（Screen 提供的主视图）上直接绘制和擦除内容。如果程序退出时没有完美地清理自己画的“画布”，它的界面就会残留下来，覆盖了你之前看到的 shell 内容。
 
-    ### `altscreen on`：解决之道
+    **`altscreen on`：解决之道**
 
     `altscreen on` 这个指令，就是明确地告诉 Screen：“请启用备用屏幕支持”。
 
     这样一来，当你在 Screen 中运行 `vim` 时，行为就和你直接在终端里运行一样了：
+
     1.  `vim` 启动，Screen 为其切换到内部的备用屏幕。
     2.  你编辑文件，`vim` 占满整个窗口。
     3.  你退出 `vim`，Screen 自动切回主屏幕。
     4.  **结果**：`vim` 的界面消失了，你启动 `vim` 之前的 shell 内容完好无损地回来了。
 
-    ### 如何启用
+    **如何启用**
 
     要让这个设置永久生效，只需将下面这行配置添加到你的 `~/.screenrc` 文件中即可：
 
@@ -533,16 +537,17 @@
 
     `nonblock on` 这个命令的作用是**防止 `screen` 因为输出目标（比如你的 SSH 客户端）突然变慢或失去响应，而导致 `screen` 里运行的程序被卡死**。
 
-    ### 为什么需要这个命令？
+    **为什么需要这个命令？**
 
     `screen` 内部运行的程序产生输出时，需要将内容发送到你的终端显示。默认情况下（`nonblock off`），如果 `screen` 发现终端暂时无法接收数据，它会**一直等待**直到终端恢复，这个过程中，整个 `screen` 窗口和其中运行的程序都会被阻塞。
 
     这种情况通常发生在：
+
     *   你按下了 `Ctrl+S` 锁住了终端。
     *   网络连接突然变慢或中断，但 SSH 会话还没完全断开。
     *   你的 SSH 客户端（如 PuTTY）暂时失去响应。
 
-    ### `nonblock on` 做了什么？
+    **`nonblock on` 做了什么？**
 
     开启 `nonblock on` 后，`screen` 的行为会改变：
     1.  **设定超时**：当 `screen` 发现终端无法接收数据时，它不会无限期等待。`on` 等同于设置了一个 **1秒** 的超时时间。
@@ -557,14 +562,16 @@
     *   **IRC 客户端 (如 irssi)**：如果 `screen` 因为网络问题被阻塞，irssi 就无法及时响应服务器的 Ping 请求，导致被服务器断开连接。开启 `nonblock on` 可以避免这种情况。
     *   **远程下载或长时间任务**：确保在 SSH 连接不稳定时，`screen` 中的下载或计算任务不会因为输出阻塞而挂起。
 
-    ### 如何设置？
+    **如何设置？**
 
     你可以在 `screen` 会话中临时启用（对当前窗口生效）：
+
     ```text
     Ctrl-a :nonblock on
     ```
 
     也可以将其写入 `~/.screenrc` 配置文件，让所有新窗口都默认启用：
+
     ```text
     nonblock on
     ```
@@ -577,41 +584,47 @@
 
 	这个命令通常是 **`tic` 命令的“前置准备步骤”**，目的是为了导出一个终端描述文件进行修改或备份。让我们也像拆解上个命令一样，把它剖析开来看：
 
-	### 🧐 命令拆解
+	** 命令拆解**
 
-	*   **`infocmp`**：这是 **terminfo 信息比较/查询工具**（terminfo comparison tool）的命令。它的核心作用是从系统的 terminfo 数据库中读取已编译好的终端描述（二进制格式），并将其以人类可读的源格式（Source Format）输出到终端上。它还能用来比较两个终端类型之间的差异。
+	* `infocmp`： 这是 **terminfo 信息比较/查询工具**（terminfo comparison tool）的命令。它的核心作用是从系统的 terminfo 数据库中读取已编译好的终端描述（二进制格式），并将其以人类可读的源格式（Source Format）输出到终端上。它还能用来比较两个终端类型之间的差异。
 
-	*   **`screen.xterm-256color`**：这是要查询的**终端类型名称**。这是一个非常常见的复合终端类型，它通常表示一个运行在支持 256 色（xterm-256color）的 xterm 终端模拟器内部的 GNU Screen 会话。它结合了 `screen` 的基础能力和 `xterm-256color` 的颜色特性。`infocmp` 会在 terminfo 数据库的众多条目中精确定位这个名称。
+	* `screen.xterm-256color`： 这是要查询的**终端类型名称**。这是一个非常常见的复合终端类型，它通常表示一个运行在支持 256 色（xterm-256color）的 xterm 终端模拟器内部的 GNU Screen 会话。它结合了 `screen` 的基础能力和 `xterm-256color` 的颜色特性。`infocmp` 会在 terminfo 数据库的众多条目中精确定位这个名称。
 
-	*   **`>`**：这是 Shell 的**输出重定向符**。它将 `infocmp` 原本要打印到屏幕（标准输出）的内容，完整地写入到 `screen.terminfo` 这个文件中。如果文件已存在，它会被覆盖。
+	* `>`： 这是 Shell 的**输出重定向符**。它将 `infocmp` 原本要打印到屏幕（标准输出）的内容，完整地写入到 `screen.terminfo` 这个文件中。如果文件已存在，它会被覆盖。
 
-	*   **`screen.terminfo`**：这是**输出文件的名称**。这是一个约定俗成的文件名，表示这是一个关于 "screen" 的 terminfo 源文件。你可以把它理解为 **`tic` 命令的“原材料”**。
+	* `screen.terminfo`： 这是**输出文件的名称**。这是一个约定俗成的文件名，表示这是一个关于 "screen" 的 terminfo 源文件。你可以把它理解为 **`tic` 命令的“原材料”**。
 
-	### 💡 命令的实际效果
+	**命令的实际效果**
 
 	当你执行这个命令时，会发生以下两件事：
 
-	1.  **提取数据**：`infocmp` 会在系统的 terminfo 数据库中（通常是 `/etc/terminfo` 或 `/usr/share/terminfo`）找到名为 `screen.xterm-256color` 的条目。
-	2.  **格式转换与保存**：它将该条目的二进制描述转换回文本格式（即 `tic` 命令能读懂的那类源文件），并通过重定向将所有文本内容保存到当前目录下一个叫做 `screen.terminfo` 的文件里。
+	1. **提取数据**：`infocmp` 会在系统的 terminfo 数据库中（通常是 `/etc/terminfo` 或 `/usr/share/terminfo`）找到名为 `screen.xterm-256color` 的条目。
 
-	### 🔗 它和 `tic` 命令的关系
+	2. **格式转换与保存**：它将该条目的二进制描述转换回文本格式（即 `tic` 命令能读懂的那类源文件），并通过重定向将所有文本内容保存到当前目录下一个叫做 `screen.terminfo` 的文件里。
+
+	**它和 `tic` 命令的关系**
 
 	如果你把上次讲的 `tic -x /usr/share/terminfo/s/screen` 和这个命令连起来看，就能明白一个完整的操作流程：
 
 	1.  **导出**：先用 `infocmp screen.xterm-256color > screen.terminfo` 将系统中已有的终端描述**导出**为文本文件。
+
 	2.  **修改**：你可以用文本编辑器（如 `vim`）打开这个 `screen.terminfo` 文件，根据需求添加、删除或修改其中的能力（比如调整功能键映射、更改颜色支持等）。
+
 	3.  **编译安装**：再用 `tic -x screen.terminfo` 将修改后的文本文件**编译**并安装回 terminfo 数据库，从而覆盖或创建新的终端类型描述。
 
-	### 💡 常见使用场景
+	**常见使用场景**
 
-	*   **终端定制**：许多用户会用这个方法导出一个终端描述，然后修改其中的转义序列，让功能键（如 F1-F12）或小键盘在 `screen` 下表现得更符合预期。
-	*   **诊断与检查**：直接查看 `screen.xterm-256color` 具体支持哪些能力（比如 `colors` 字段是否为 256），省得去翻阅晦涩的 terminfo 手册。
-	*   **备份**：在对系统终端数据库进行修改前，先导出一份原始描述的备份。
+	* 终端定制： 许多用户会用这个方法导出一个终端描述，然后修改其中的转义序列，让功能键（如 F1-F12）或小键盘在 `screen` 下表现得更符合预期。
 
-	### ⚠️ 需要注意
+	* 诊断与检查： 直接查看 `screen.xterm-256color` 具体支持哪些能力（比如 `colors` 字段是否为 256），省得去翻阅晦涩的 terminfo 手册。
 
-	*   **文件内容**：生成的 `screen.terminfo` 文件通常以 `screen.xterm-256color|...` 开头，其中 `|` 后面的部分是它的别名（alias）。编辑时要注意语法的正确性。
-	*   **备用名称**：如果你的系统没有 `screen.xterm-256color` 这个条目，`infocmp` 会报错。此时你可以尝试查询更基础的名称，比如 `screen` 或 `screen-256color`。
+	* 备份： 在对系统终端数据库进行修改前，先导出一份原始描述的备份。
+
+	**需要注意**
+
+	* 文件内容： 生成的 `screen.terminfo` 文件通常以 `screen.xterm-256color|...` 开头，其中 `|` 后面的部分是它的别名（alias）。编辑时要注意语法的正确性。
+
+	* 备用名称： 如果你的系统没有 `screen.xterm-256color` 这个条目，`infocmp` 会报错。此时你可以尝试查询更基础的名称，比如 `screen` 或 `screen-256color`。
 
 * 讲讲 tic -x screen.terminfo 这个命令的作用
 
@@ -627,17 +640,18 @@
 
 	为了理解整个过程，我们可以把这个命令拆解成几个部分来看：
 
-	### 🧐 命令拆解
+	**命令拆解**
 
-	*   **`tic`**：这是 **terminfo 编译器**（terminfo compiler）的命令。它的核心作用是把人类可读的终端描述文本（Source Format）编译成程序能高效读取的二进制格式（Compiled Format），并安装到 terminfo 数据库中。像 `vim`、`screen`、`tmux` 这类依赖 `ncurses` 库的程序，正是通过这个数据库来了解特定终端类型支持哪些能力（如移动光标、改变颜色等）。
+	* `tic`： 这是 **terminfo 编译器**（terminfo compiler）的命令。它的核心作用是把人类可读的终端描述文本（Source Format）编译成程序能高效读取的二进制格式（Compiled Format），并安装到 terminfo 数据库中。像 `vim`、`screen`、`tmux` 这类依赖 `ncurses` 库的程序，正是通过这个数据库来了解特定终端类型支持哪些能力（如移动光标、改变颜色等）。
 
-	*   **`-x`**：这是一个关键选项，意思是 **"允许非标准能力"**（Treat unknown capabilities as user-defined）。`tic` 通常只识别标准 terminfo 定义的能力。如果加上 `-x`，当它遇到不认识的扩展能力时，不会报错，而是会将其作为用户自定义能力处理并纳入编译。这能确保一些增强型终端描述或特殊配置不会因为包含非标准字段而编译失败。
+	* `-x`： 这是一个关键选项，意思是 **"允许非标准能力"**（Treat unknown capabilities as user-defined）。`tic` 通常只识别标准 terminfo 定义的能力。如果加上 `-x`，当它遇到不认识的扩展能力时，不会报错，而是会将其作为用户自定义能力处理并纳入编译。这能确保一些增强型终端描述或特殊配置不会因为包含非标准字段而编译失败。
 
-	*   **`/usr/share/terminfo/s/screen`**：这是要编译的**源文件路径**。它通常是一个文本文件，其中包含了 "screen" 这个终端类型的所有能力描述。在 terminfo 数据库的目录树结构中，文件一般按终端名称的首字母存放在子目录下，所以 "screen" 的描述文件就在 `s/` 子目录中。
+	* `/usr/share/terminfo/s/screen`： 这是要编译的**源文件路径**。它通常是一个文本文件，其中包含了 "screen" 这个终端类型的所有能力描述。在 terminfo 数据库的目录树结构中，文件一般按终端名称的首字母存放在子目录下，所以 "screen" 的描述文件就在 `s/` 子目录中。
 
-	### 💡 命令的实际效果
+	**命令的实际效果**
 
 	当你执行这个命令时，`tic` 程序会：
+
 	1.  读取 `/usr/share/terminfo/s/screen` 这个源文件。
 	2.  根据 `-x` 选项，宽容地处理其中的所有能力定义，包括非标准的。
 	3.  将处理后的描述编译成二进制格式。
@@ -645,10 +659,11 @@
 
 	这个操作的一个常见场景是，当系统自带的 "screen" 终端描述缺失、不完整或者需要更新时，通过手动编译来确保它可用。
 
-	### ⚠️ 需要注意
+	** 需要注意**
 
-	*   **权限**：写入系统级别的 terminfo 数据库（如 `/usr/share/terminfo`）通常需要 root 权限。如果权限不足，`tic` 可能会尝试将文件写入用户目录下的 `$HOME/.terminfo`。
-	*   **验证**：如果你想先检查文件是否有语法错误，而不实际安装，可以使用 `-c` 选项（例如 `tic -c -x /usr/share/terminfo/s/screen`）。
+	* 权限： 写入系统级别的 terminfo 数据库（如 `/usr/share/terminfo`）通常需要 root 权限。如果权限不足，`tic` 可能会尝试将文件写入用户目录下的 `$HOME/.terminfo`。
+
+	* 验证： 如果你想先检查文件是否有语法错误，而不实际安装，可以使用 `-c` 选项（例如 `tic -c -x /usr/share/terminfo/s/screen`）。
 
 * screen 是否有记录它接收到的重绘指令序列的 log？
 
@@ -658,54 +673,49 @@
 
 	如果你想揪出 Vim 到底给 Screen 发了什么，以及 Screen 为什么没反应，可以用以下方法抓取 Log：
 
-	### 1. 如何开启重绘指令日志
+	1. 如何开启重绘指令日志
 
-	因为我们要抓取的是**未经过滤的原生控制序列（Raw Control Sequences）**，所以必须同时开启标准日志和 Raw 模式：
+        因为我们要抓取的是**未经过滤的原生控制序列（Raw Control Sequences）**，所以必须同时开启标准日志和 Raw 模式：
 
-	1. 正常打开 `screen`。
-	2. 按快捷键 **`Ctrl + A`**，然后输入 **`:`**（冒号），进入 Screen 的命令行模式。
-	3. 输入以下命令并回车，开启 Raw 模式（记录原始转义字符）：
-	```text
-	log_raw on
+        1. 正常打开 `screen`。
 
-	```
+        2. 按快捷键 **`Ctrl + A`**，然后输入 **`:`**（冒号），进入 Screen 的命令行模式。
 
+        3. 输入以下命令并回车，开启 Raw 模式（记录原始转义字符）：
 
-	4. 再次按 **`Ctrl + A`**，然后按下 **`H`**（大写的 H，即 `Shift + H`）。
-	* 此时屏幕底部会提示：`Creating logfile "screenlog.0"`。
+            ```text
+            log_raw on
+            ```
 
+        4. 再次按 **`Ctrl + A`**，然后按下 **`H`**（大写的 H，即 `Shift + H`）。
 
+            * 此时屏幕底部会提示：`Creating logfile "screenlog.0"`。
 
-	现在，Screen 已经开始把你终端上发生的所有一举一动（包括不可见的重绘控制符）记录到当前目录下的 `screenlog.0` 文件中了。
+        现在，Screen 已经开始把你终端上发生的所有一举一动（包括不可见的重绘控制符）记录到当前目录下的 `screenlog.0` 文件中了。
 
-	---
+	2. 复现并抓取错误
 
-	### 2. 复现并抓取错误
+        1. 在当前 Screen 窗口中打开 `vim`。
+        2. 疯狂做一些会导致页面混乱的操作（比如滚屏、快速切换模式）。
+        3. 当屏幕**刚一变混乱**的时候，立刻按下 **`Ctrl + A`**，然后按 **`H`** 关闭日志录制（保护现场，防止后面的重绘日志把错误的日志冲掉）。
 
-	1. 在当前 Screen 窗口中打开 `vim`。
-	2. 疯狂做一些会导致页面混乱的操作（比如滚屏、快速切换模式）。
-	3. 当屏幕**刚一变混乱**的时候，立刻按下 **`Ctrl + A`**，然后按 **`H`** 关闭日志录制（保护现场，防止后面的重绘日志把错误的日志冲掉）。
+	3. 如何分析 `screenlog.0`
 
-	---
+        由于控制序列包含大量的不可见字符（如 `ESC` 键 `\033` 或 `^[`），直接用 `cat` 或普通的文本编辑器是看不出端倪的。你需要使用 `od`、`hexdump` 或者 `less` 来查看。
 
-	### 3. 如何分析 `screenlog.0`
+        **使用 `less` 查看（推荐）：**
 
-	由于控制序列包含大量的不可见字符（如 `ESC` 键 `\033` 或 `^[`），直接用 `cat` 或普通的文本编辑器是看不出端倪的。你需要使用 `od`、`hexdump` 或者 `less` 来查看。
+        ```bash
+        less -r screenlog.0
+        ```
 
-	**使用 `less` 查看（推荐）：**
+        在日志中，你会看到大量类似这样的底层指令：
 
-	```bash
-	less -r screenlog.0
+        * `^[[H` （将光标移动到左上角）
+        * `^[[2J` （清空整个屏幕）
+        * `^[[m` （重置颜色）
 
-	```
-
-	在日志中，你会看到大量类似这样的底层指令：
-
-	* `^[[H` （将光标移动到左上角）
-	* `^[[2J` （清空整个屏幕）
-	* `^[[m` （重置颜色）
-
-	#### 🔍 核心排查方向：
+	** 核心排查方向：**
 
 	你可以重点搜索 Vim 发送的清屏重绘序列。如果页面混乱时，日志里**只有**文字内容，**完全没有**出现 `^[[2J` 或 `^[[H` 这样的清屏/移动光标序列，那就坐实了：**Vim 压根就没有向 Screen 发出重绘指令**（说明是 Vim 内部的 `term` 驱动判断失误）。
 
@@ -732,347 +742,323 @@
     | 状态栏      | 可高度自定义     | 简单      |
     | 插件生态     | 丰富         | 基本没有    |
 
-    ---
+    1. Pane（分屏）能力更强
 
-    ## 1. Pane（分屏）能力更强
+        这是 tmux 最大的优势之一。
 
-    这是 tmux 最大的优势之一。
+        例如：
 
-    例如：
+        ```
+        +-----------------------+
+        |           |           |
+        |  vim      |  htop     |
+        |           |           |
+        +-----------+-----------+
+        |      shell            |
+        +-----------------------+
+        ```
 
-    ```
-    +-----------------------+
-    |           |           |
-    |  vim      |  htop     |
-    |           |           |
-    +-----------+-----------+
-    |      shell            |
-    +-----------------------+
-    ```
+        tmux 可以方便地：
 
-    tmux 可以方便地：
+        ```
+        Ctrl+b %
+        ```
 
-    ```
-    Ctrl+b %
-    ```
+        左右分屏
 
-    左右分屏
+        ```
+        Ctrl+b "
+        ```
 
-    ```
-    Ctrl+b "
-    ```
+        上下分屏
 
-    上下分屏
+        而 screen 虽然也支持 split，但：
 
-    而 screen 虽然也支持 split，但：
+        * 操作复杂
+        * 切换不方便
+        * 功能没有 tmux 丰富
 
-    * 操作复杂
-    * 切换不方便
-    * 功能没有 tmux 丰富
+    2. Layout 自动调整
 
-    ---
+        tmux 可以自动重新排列 Pane。
 
-    ## 2. Layout 自动调整
+        例如：
 
-    tmux 可以自动重新排列 Pane。
+        ```
+        Ctrl+b Space
+        ```
 
-    例如：
+        循环不同布局：
 
-    ```
-    Ctrl+b Space
-    ```
+        ```
+        even-horizontal
 
-    循环不同布局：
+        even-vertical
 
-    ```
-    even-horizontal
+        main-horizontal
 
-    even-vertical
+        main-vertical
 
-    main-horizontal
+        tiled
+        ```
 
-    main-vertical
+        screen 基本没有这些能力。
 
-    tiled
-    ```
+    3. 配置更现代
 
-    screen 基本没有这些能力。
+        tmux：
 
-    ---
+        ```
+        ~/.tmux.conf
+        ```
 
-    ## 3. 配置更现代
+        例如：
 
-    tmux：
+        ```bash
+        set -g mouse on
 
-    ```
-    ~/.tmux.conf
-    ```
+        setw -g mode-keys vi
 
-    例如：
+        bind r source-file ~/.tmux.conf
+        ```
 
-    ```bash
-    set -g mouse on
+        修改后：
 
-    setw -g mode-keys vi
+        ```
+        Ctrl+b r
+        ```
 
-    bind r source-file ~/.tmux.conf
-    ```
+        立即重新加载。
 
-    修改后：
+        screen：
 
-    ```
-    Ctrl+b r
-    ```
+        ```
+        ~/.screenrc
+        ```
 
-    立即重新加载。
+        功能相对少很多。
 
-    screen：
+    4. 鼠标支持
 
-    ```
-    ~/.screenrc
-    ```
+        tmux：
 
-    功能相对少很多。
+        ```
+        set -g mouse on
+        ```
 
-    ---
+        以后可以：
 
-    ## 4. 鼠标支持
+        * 点击 Pane
+        * 拖动滚动
+        * Resize Pane
+        * 复制
 
-    tmux：
+        screen 对鼠标支持一直不好。
 
-    ```
-    set -g mouse on
-    ```
+    5. Copy Mode 更舒服
 
-    以后可以：
+        tmux 可以使用 vi 风格：
 
-    * 点击 Pane
-    * 拖动滚动
-    * Resize Pane
-    * 复制
+        ```bash
+        setw -g mode-keys vi
+        ```
 
-    screen 对鼠标支持一直不好。
+        之后：
 
-    ---
+        ```
+        Ctrl+b [
 
-    ## 5. Copy Mode 更舒服
+        ```
 
-    tmux 可以使用 vi 风格：
+        进入复制模式。
 
-    ```bash
-    setw -g mode-keys vi
-    ```
+        操作和 vim 一样：
 
-    之后：
+        ```
+        hjkl
+        w
+        b
+        gg
+        G
+        /
+        ?
+        ```
 
-    ```
-    Ctrl+b [
+        复制：
 
-    ```
+        ```
+        Space
+        Enter
+        ```
 
-    进入复制模式。
+        screen 默认按 Emacs 风格，更不符合很多开发者习惯。
 
-    操作和 vim 一样：
+    6. Session 管理更方便
 
-    ```
-    hjkl
-    w
-    b
-    gg
-    G
-    /
-    ?
-    ```
+        例如：
 
-    复制：
+        ```
+        tmux ls
+        ```
 
-    ```
-    Space
-    Enter
-    ```
+        ```
+        work
+        test
+        gpu
+        debug
+        ```
 
-    screen 默认按 Emacs 风格，更不符合很多开发者习惯。
+        进入：
 
-    ---
+        ```
+        tmux attach -t gpu
+        ```
 
-    ## 6. Session 管理更方便
+        新建：
 
-    例如：
+        ```
+        tmux new -s gpu
+        ```
 
-    ```
-    tmux ls
-    ```
+        重命名：
 
-    ```
-    work
-    test
-    gpu
-    debug
-    ```
+        ```
+        Ctrl+b $
+        ```
 
-    进入：
+        删除：
 
-    ```
-    tmux attach -t gpu
-    ```
+        ```
+        tmux kill-session -t gpu
+        ```
 
-    新建：
+        整体体验比 screen 更自然。
 
-    ```
-    tmux new -s gpu
-    ```
+    7. 命令接口更强
 
-    重命名：
+        tmux 几乎所有操作都有命令。
 
-    ```
-    Ctrl+b $
-    ```
+        例如：
 
-    删除：
+        创建窗口：
 
-    ```
-    tmux kill-session -t gpu
-    ```
+        ```bash
+        tmux new-window
+        ```
 
-    整体体验比 screen 更自然。
+        发送命令：
 
-    ---
+        ```bash
+        tmux send-keys \
+            -t work:0 \
+            "python train.py" C-m
+        ```
 
-    ## 7. 命令接口更强
+        切 Pane：
 
-    tmux 几乎所有操作都有命令。
+        ```bash
+        tmux select-pane -L
+        ```
 
-    例如：
+        Resize：
 
-    创建窗口：
+        ```bash
+        tmux resize-pane -L 10
+        ```
 
-    ```bash
-    tmux new-window
-    ```
+        所以很多自动化工具都会控制 tmux。
 
-    发送命令：
+        screen 虽然也支持 `screen -X`，但命令远没有 tmux 丰富。
 
-    ```bash
-    tmux send-keys \
-        -t work:0 \
-        "python train.py" C-m
-    ```
+    8. 更好的脚本能力
 
-    切 Pane：
+        例如：
 
-    ```bash
-    tmux select-pane -L
-    ```
+        ```bash
+        tmux new-session -d -s train
 
-    Resize：
+        tmux split-window -h
 
-    ```bash
-    tmux resize-pane -L 10
-    ```
+        tmux send-keys "python train.py" C-m
 
-    所以很多自动化工具都会控制 tmux。
+        tmux send-keys -t 1 "watch nvidia-smi" C-m
+        ```
 
-    screen 虽然也支持 `screen -X`，但命令远没有 tmux 丰富。
+        一条脚本直接生成：
 
-    ---
+        ```
+        +--------------------+
+        | python train.py    |
+        |                    |
+        +---------+----------+
+        |watch    | shell    |
+        +----------+---------+
+        ```
 
-    ## 8. 更好的脚本能力
+        很多 CI、远程开发、机器学习训练都会这么做。
 
-    例如：
+    9. 插件生态
 
-    ```bash
-    tmux new-session -d -s train
+        tmux 有成熟的插件管理器：
 
-    tmux split-window -h
+        **Tmux Plugin Manager（TPM）**
 
-    tmux send-keys "python train.py" C-m
+        常见插件：
 
-    tmux send-keys -t 1 "watch nvidia-smi" C-m
-    ```
+        * tmux-resurrect（保存/恢复 Session）
+        * tmux-continuum（自动恢复）
+        * tmux-yank（复制到系统剪贴板）
+        * tmux-prefix-highlight
+        * catppuccin 主题
 
-    一条脚本直接生成：
+        screen 几乎没有成熟插件生态。
 
-    ```
-    +--------------------+
-    | python train.py    |
-    |                    |
-    +---------+----------+
-    |watch    | shell    |
-    +----------+---------+
-    ```
+    10. 状态栏高度可定制
 
-    很多 CI、远程开发、机器学习训练都会这么做。
+        tmux 可以显示：
 
-    ---
+        ```
+        CPU
+        MEM
+        GPU
+        Git Branch
+        Battery
+        Network
+        Load
+        Time
+        Hostname
+        ```
 
-    ## 9. 插件生态
+        例如：
 
-    tmux 有成熟的插件管理器：
+        ```
+        [GPU 73%][RAM 12G][CPU 35%][12:35]
+        ```
 
-    **Tmux Plugin Manager（TPM）**
+        screen 的状态栏功能比较基础。
 
-    常见插件：
+    11. 性能
 
-    * tmux-resurrect（保存/恢复 Session）
-    * tmux-continuum（自动恢复）
-    * tmux-yank（复制到系统剪贴板）
-    * tmux-prefix-highlight
-    * catppuccin 主题
+        两者都很轻量。
 
-    screen 几乎没有成熟插件生态。
+        一般来说：
 
-    ---
+        * 内存占用都只有几 MB。
+        * CPU 占用都很低。
 
-    ## 10. 状态栏高度可定制
+        对于 SSH、日志查看、开发、训练等场景，性能差异通常可以忽略。
 
-    tmux 可以显示：
-
-    ```
-    CPU
-    MEM
-    GPU
-    Git Branch
-    Battery
-    Network
-    Load
-    Time
-    Hostname
-    ```
-
-    例如：
-
-    ```
-    [GPU 73%][RAM 12G][CPU 35%][12:35]
-    ```
-
-    screen 的状态栏功能比较基础。
-
-    ---
-
-    ## 11. 性能
-
-    两者都很轻量。
-
-    一般来说：
-
-    * 内存占用都只有几 MB。
-    * CPU 占用都很低。
-
-    对于 SSH、日志查看、开发、训练等场景，性能差异通常可以忽略。
-
-    ---
-
-    ## 什么时候还会用 screen？
+    **什么时候还会用 screen？**
 
     虽然 `screen` 已经不是多数人的首选，但仍有一些场景适合：
 
-    * **老旧 Linux 系统**：很多企业发行版默认安装 `screen`，而没有 `tmux`。
-    * **极简需求**：如果只需要启动一个长期运行的程序、断线后重新连接，`screen` 已经足够。
-    * **兼容历史脚本**：一些老环境和运维脚本仍然依赖 `screen`。
+    * 老旧 Linux 系统： 很多企业发行版默认安装 `screen`，而没有 `tmux`。
 
-    ---
+    * 极简需求： 如果只需要启动一个长期运行的程序、断线后重新连接，`screen` 已经足够。
 
-    ## 总结
+    * 兼容历史脚本： 一些老环境和运维脚本仍然依赖 `screen`。
+
+    **总结**
 
     如果今天开始学习终端复用器，我建议直接学习 **tmux**。它相较于 `screen` 的主要优势是：
 
@@ -1100,8 +1086,6 @@
 
         > ⚠️ **注意：** 如果新编号已经被其他窗口占用了，`screen` 会提示失败。你需要先把占用该编号的窗口改到别的数字上。
 
-    ---
-
     2. 交换两个窗口的编号
 
         如果你用的是较新版本的 `screen`，它支持直接交换（swap）两个窗口的顺序，而不需要担心编号被占用的问题：
@@ -1116,8 +1100,6 @@
         * 将窗口 B 改为 窗口 A 的原编号：`:number <A的原编号>`
         * 将窗口 A 改为 窗口 B 的原编号：`:number <B的原编号>`
 
-    ---
-
     3. 在窗口列表中可视化切换
 
         如果你只是想**查看**并快速跳转，而不是永久改变它们的数字顺序：
@@ -1125,8 +1107,6 @@
         1. 按下 `Ctrl + A` 然后按 `"`（双引号）。
         2. 屏幕上会弹出一个当前所有窗口的列表。
         3. 使用 **方向键** 或 **j/k** 键上下移动光标，按 **回车键 (Enter)** 即可直接切换到该窗口。
-
-    ---
 
     4. 快速左右轮流切换
 
@@ -1237,10 +1217,14 @@
         **使用流程：**
 
         1. 正常用 `Ctrl + a, [` 和双击空格复制第一段。
+
         2. 按下 `Ctrl + a, M`（大写 M），内容被追加到 `/tmp/screen-exchange`。
+
         3. 复制第二段，再次按下 `Ctrl + a, M`……
+
         4. 这样你就可以无限追加。最后在 Vim 中直接用 `:r /tmp/screen-exchange` 一把读入。
-        *(注：用这个方法前，记得先去 `/tmp/screen-exchange` 把旧文件删掉或清空，以免混入以前的历史数据。)*
+
+        注：用这个方法前，记得先去 `/tmp/screen-exchange` 把旧文件删掉或清空，以免混入以前的历史数据。
 
 * screen 如何将默认 shell 设置成 bash?
 
@@ -1251,20 +1235,24 @@
     这是最标准的方法。通过修改当前用户的 `~/.screenrc` 文件，指定 `shell` 参数。
 
     1.  打开（或创建）配置文件：
+
         ```bash
         vim ~/.screenrc
         ```
+
     2.  在文件中添加以下一行：
+
         ```text
         shell /bin/bash
         ```
-        *如果你希望启动的是 **Login Shell**（这样会加载 `~/.bash_profile` 等配置），可以写成：*
+
+        如果你希望启动的是 **Login Shell**（这样会加载 `~/.bash_profile` 等配置），可以写成：
+
         ```text
         shell -/bin/bash
         ```
-        *(注意前面的横杠 `-`)*
 
-    ---
+        注意前面的横杠 `-`
 
     **方法二：启动时临时指定**
 
@@ -1273,8 +1261,6 @@
     ```bash
     screen /bin/bash
     ```
-
-    ---
 
     **方法三：修改系统的默认 Shell（全局影响）**
 
@@ -1285,8 +1271,6 @@
     ```
     > **注意**：执行此命令后通常需要重新登录终端才能生效。
 
-    ---
-
     **验证是否生效**
 
     进入 `screen` 后，你可以运行以下命令来确认当前的 Shell：
@@ -1295,8 +1279,6 @@
     echo $0
     ```
     如果输出是 `-bash` 或 `/bin/bash`，说明设置成功了。
-
-    ---
 
     **小贴士：**
 
@@ -1340,10 +1322,13 @@
         ```bash
         ps -p $PPID -o comm=
         ```
+
         - 输出 `screen`：在 screen 中
+
         - 输出其他（如 `bash`、`zsh`、`sshd`）：不在 screen 中
 
         更详细的父进程信息：
+
         ```bash
         ps -f -p $PPID
         ```
@@ -1353,7 +1338,9 @@
         ```bash
         pstree -p $$ | grep screen
         ```
+
         或
+
         ```bash
         ps -ef | grep -v grep | grep "screen"
         ```
@@ -1361,6 +1348,7 @@
     5. 检查终端内的按键行为
 
         在 screen 中，默认的转义键是 `Ctrl+A`：
+
         - 按 `Ctrl+A` 后按 `?`：会显示 screen 帮助（如果在 screen 中）
         - 按 `Ctrl+A` 后按 `d`：会脱离（detach）screen 会话
 
@@ -1389,6 +1377,7 @@
     **类似工具的环境变量**
 
     其他终端复用工具也有类似的环境变量：
+
     - **tmux**：`echo $TMUX`（有值表示在 tmux 中）
     - **screen**：`echo $STY`（有值表示在 screen 中）
 

@@ -8142,6 +8142,84 @@
 
 ## topics
 
+### basic operations
+
+* initialize a repository
+
+    初始化一个仓库：
+
+    ```bash
+    git init
+    ```
+
+* clone a repository
+
+    ```bash
+    git clone [url]
+    ```
+
+    比如：
+
+    ```bash
+    git clone https://github.com/libgit2/libgit2
+    ```
+
+    这个命令将创建一个`libgit2`文件夹，并将所有内容复制到这个文件夹内。如果想指定文件夹，可以使用
+
+    ```bash
+    git clone https://github.com/libgit2/libgit2 mylibgit
+    ```
+
+    常用的 transfer protocols:
+
+    * `https://`
+
+    * `git://`
+
+    * ssh: `user@server:path/to/repo.git`
+
+* check status of the repo
+
+    查看文件的状态：
+
+    `git status`
+
+    将 untracked 文件放到 staged area 里：
+
+    ```bash
+    git add README
+    ```
+
+    Short status: `git status -s`或`git status --short`
+
+    输出：
+
+    ```
+    M  README
+    MM  Rakefile
+    A   lib/git.rb
+    M   lib/simplegit.rb
+    ??  LICENSE.txt
+    ```
+
+    其中`??`代表 new files that aren't tracked, `A`代表 new files that have been added to the staging area, `M`代表 modified files。
+
+    状态一共有两栏，左侧一栏表示 staging area，右侧一栏表示 working tree。
+
+* add files to staging area
+
+    `git add (files)`
+
+    如果`add`添加的是一个文件夹，那么会递归地添加文件夹中的所有文件。
+
+    `-n`, `--dry-run`: Don’t actually add the file(s), just show if they exist and/or will be ignored.
+
+    example:
+
+    `git add Documentation/\*.txt`: Adds content from all `*.txt` files under Documentation directory and its subdirectories. The asterisk `*` is used to escape from shell.
+
+    `git add git-*.sh`: Add content from all `git-*.sh` files in current directory, not its subdirectories.
+
 ### log
 
 * 可以使用`git log`查看提交历史。`git log -p`可以查看每次提交修改的内容。`git log -p -2`可以只查看最后两次 commit 的内容。`git log --stat`可以查看每次提交中每个文件修改了多少行。
@@ -8908,84 +8986,6 @@ doc/**/*.pdf
 ```
 
 [如果直接输入`TODO`的话，会递归地匹配所有的 TODO 文件吗？]
-
-## Basic operations
-
-* initialize a repository
-
-    初始化一个仓库：
-
-    ```bash
-    git init
-    ```
-
-* clone a repository
-
-    ```bash
-    git clone [url]
-    ```
-
-    比如：
-
-    ```bash
-    git clone https://github.com/libgit2/libgit2
-    ```
-
-    这个命令将创建一个`libgit2`文件夹，并将所有内容复制到这个文件夹内。如果想指定文件夹，可以使用
-
-    ```bash
-    git clone https://github.com/libgit2/libgit2 mylibgit
-    ```
-
-    常用的 transfer protocols:
-
-    * `https://`
-
-    * `git://`
-
-    * ssh: `user@server:path/to/repo.git`
-
-* check status of the repo
-
-    查看文件的状态：
-
-    `git status`
-
-    将 untracked 文件放到 staged area 里：
-
-    ```bash
-    git add README
-    ```
-
-    Short status: `git status -s`或`git status --short`
-
-    输出：
-
-    ```
-    M  README
-    MM  Rakefile
-    A   lib/git.rb
-    M   lib/simplegit.rb
-    ??  LICENSE.txt
-    ```
-
-    其中`??`代表 new files that aren't tracked, `A`代表 new files that have been added to the staging area, `M`代表 modified files。
-
-    状态一共有两栏，左侧一栏表示 staging area，右侧一栏表示 working tree。
-
-* add files to staging area
-
-    `git add (files)`
-
-    如果`add`添加的是一个文件夹，那么会递归地添加文件夹中的所有文件。
-
-    `-n`, `--dry-run`: Don’t actually add the file(s), just show if they exist and/or will be ignored.
-
-    example:
-
-    `git add Documentation/\*.txt`: Adds content from all `*.txt` files under Documentation directory and its subdirectories. The asterisk `*` is used to escape from shell.
-
-    `git add git-*.sh`: Add content from all `git-*.sh` files in current directory, not its subdirectories.
 
 ## Other operations
 

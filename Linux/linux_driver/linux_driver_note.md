@@ -307,155 +307,161 @@ Ref:
 
 * 内核态驱动面试会问哪些内容
 
-    # Linux内核态驱动面试考点
+    **Linux内核态驱动面试考点**
+
     > 面向Linux内核、设备驱动，偏内核态开发（字符驱动、platform、PCIe、DMA、中断、锁、内存管理、内核调试、KMD显卡驱动等），分基础、核心模块、内存、并发锁、中断DMA、总线、调试、项目、进阶难点、实操。
 
-    ## 一、C语言 & 内核C基础（必问）
-    1. C指针、位操作、结构体对齐，`container_of`原理，`offsetof`。
-    2. `volatile`在内核的作用，能不能随便用？
-    3. 内核没有libc：**不能用标准库malloc、printf**，用什么替代？
-    4. 内核栈大小很小（一般8K），**不能定义大数组局部变量**，为什么？
-    5. 指针强转，void*，内核地址和用户地址区别。
+    1. C语言 & 内核C基础（必问）
 
-    ## 二、内核基础概念
-    1. **内核态 vs 用户态**
-        - 区别：权限、地址空间、栈、上下文、是否可以访问硬件。
-        - 用户态如何进入内核态：系统调用、异常、中断。
-    2. 虚拟地址、物理地址，**内核空间/用户空间地址划分（32/64位）**。
-    3. 进程上下文 vs 中断上下文，**非常高频考点**
-        - 进程上下文：有current，可以休眠，可以调度。
-        - 中断上下文：**不能休眠、不能schedule、不能访问用户空间**，没有current。
-    4. `current`宏是什么？如何拿到当前进程task_struct。
-    5. 内核启动流程：bootloader → zImage → start_kernel。
-    6. 内核版本、mainline，stable分支，out‑of‑tree驱动，树内驱动区别。
+        1. C指针、位操作、结构体对齐，`container_of`原理，`offsetof`。
+        2. `volatile`在内核的作用，能不能随便用？
+        3. 内核没有libc：**不能用标准库malloc、printf**，用什么替代？
+        4. 内核栈大小很小（一般8K），**不能定义大数组局部变量**，为什么？
+        5. 指针强转，void*，内核地址和用户地址区别。
 
-    ## 三、字符设备驱动（最基础必考）
-    1. 字符设备开发流程：`cdev`，`register_chrdev`新旧接口区别。
-    2. `file_operations`结构体，各个回调：open/read/write/ioctl/release。
-    3. ioctl：旧版ioctl，新版unlocked_ioctl，为什么废弃老ioctl？
-    4. **用户态和内核态数据拷贝**：`copy_from_user` / `copy_to_user`，为什么不能直接指针访问用户空间？
-    > 用户虚拟地址不映射、缺页、用户空间页可能被换出，**禁止内核直接解引用用户指针**。
-    5. 自动创建设备节点：`class_create`、`device_create`，udev/mdev。
-    6. 阻塞read/write，等待队列wait_queue。
-        - 等待队列原理，什么时候休眠，什么时候wakeup。
-    7. poll/select，驱动里poll实现。
+    2. 内核基础概念
 
-    ## 四、平台驱动 Platform（Linux标准框架，面试高频）
-    1. platform总线为什么是虚拟总线？
-    2. platform_driver、platform_device，设备树匹配。
-    3. **设备树DTS**：节点、compatible属性，match table匹配规则。
-    4. `of_address_to_resource`，`platform_get_resource`拿寄存器地址、中断号。
-    5. ioremap，物理地址映射成内核虚拟地址，**iounmap释放**。
-    6. probe什么时候执行？bind时机。remove什么时候调用？
-    7. suspend/resume，电源管理，驱动休眠唤醒。
+        1. **内核态 vs 用户态**
+            - 区别：权限、地址空间、栈、上下文、是否可以访问硬件。
+            - 用户态如何进入内核态：系统调用、异常、中断。
+        2. 虚拟地址、物理地址，**内核空间/用户空间地址划分（32/64位）**。
+        3. 进程上下文 vs 中断上下文，**非常高频考点**
+            - 进程上下文：有current，可以休眠，可以调度。
+            - 中断上下文：**不能休眠、不能schedule、不能访问用户空间**，没有current。
+        4. `current`宏是什么？如何拿到当前进程task_struct。
+        5. 内核启动流程：bootloader → zImage → start_kernel。
+        6. 内核版本、mainline，stable分支，out‑of‑tree驱动，树内驱动区别。
 
-    > 很多面试官会让你手写一个极简platform驱动框架。
+    3. 字符设备驱动（最基础必考）
 
-    ## 五、内核内存管理（重中之重）
-    1. `kmalloc`、`kzalloc`，GFP_*标志
-        - GFP_KERNEL：可以休眠，分配内存，只能**进程上下文**
-        - GFP_ATOMIC：原子分配，**中断上下文必须用**，不能休眠
-    2. vmalloc：虚拟地址连续，物理页不连续；kmalloc物理连续。两者区别，什么时候选哪个？
-    3. **DMA需要物理连续内存，为什么不能用vmalloc？**
-    4. 页分配器：`alloc_page`。
-    5. slab内存池，kmem_cache，小对象分配，减少碎片。
-    6. 高端内存 HIGHMEM（32位内核）概念。
-    7. dma_alloc_coherent：**DMA一致性内存，物理连续，无cache**。
-        - coherent(一致内存) vs streaming DMA（dma_map_single）区别。
-    8. **cache一致性问题**，DMA为什么要考虑cache？CPU写在cache，内存还没更新，DMA看不到。
-    9. IOMMU作用，DMA地址重映射。
+        1. 字符设备开发流程：`cdev`，`register_chrdev`新旧接口区别。
+        2. `file_operations`结构体，各个回调：open/read/write/ioctl/release。
+        3. ioctl：旧版ioctl，新版unlocked_ioctl，为什么废弃老ioctl？
+        4. **用户态和内核态数据拷贝**：`copy_from_user` / `copy_to_user`，为什么不能直接指针访问用户空间？
+        > 用户虚拟地址不映射、缺页、用户空间页可能被换出，**禁止内核直接解引用用户指针**。
+        5. 自动创建设备节点：`class_create`、`device_create`，udev/mdev。
+        6. 阻塞read/write，等待队列wait_queue。
+            - 等待队列原理，什么时候休眠，什么时候wakeup。
+        7. poll/select，驱动里poll实现。
 
-    ## 六、并发与同步锁（内核面试超级高频，必准备）
-    > 内核是抢占式，多核SMP，中断，各种竞态场景。
-    1. 自旋锁 `spinlock_t`
-        - **自旋，忙等，不能休眠**，可以用于中断上下文。
-        - spin_lock_irqsave：关本地中断，防止中断抢占造成死锁。
-    2. 互斥锁 `struct mutex`
-        - 可以休眠，**只能进程上下文，不能中断上下文**。
-    3. semaphore信号量，completion完成量。completion相比mutex适合什么场景？
-    4. rwlock读写锁，rw_semaphore读写信号量。
-    5. **RCU读拷贝更新**，原理，适合什么场景？读多写少。
-    6. 死锁产生条件，内核锁死锁场景。
-    7. **中断和进程上下文竞态怎么处理？**
-    > 案例：进程上下文拿自旋锁，刚好来了中断，中断里也要拿同一个锁 →死锁。解决：拿锁同时关闭本地中断。
-    8. 内核抢占，抢占开关preempt_enable/preempt_disable。
+    4. 平台驱动 Platform（Linux标准框架，面试高频）
 
-    ## 七、中断处理
-    1. request_irq注册中断，中断顶半部bottom半部概念。
-    2. **为什么顶半部要快，不能耗时？**
-    3. 底半部三种机制：tasklet、workqueue、softirq，三者区别，使用场景。
-        - softirq：硬中断之后运行，原子上下文，不能休眠。
-        - tasklet：基于softirq，原子上下文，不能休眠。
-        - workqueue：内核线程，可以休眠，可以调度，**最常用**。
-    4. threaded_irq 线程化中断。
-    5. 中断标志：IRQF_SHARED共享中断。
-    6. 中断栈，中断嵌套。
+        1. platform总线为什么是虚拟总线？
+        2. platform_driver、platform_device，设备树匹配。
+        3. **设备树DTS**：节点、compatible属性，match table匹配规则。
+        4. `of_address_to_resource`，`platform_get_resource`拿寄存器地址、中断号。
+        5. ioremap，物理地址映射成内核虚拟地址，**iounmap释放**。
+        6. probe什么时候执行？bind时机。remove什么时候调用？
+        7. suspend/resume，电源管理，驱动休眠唤醒。
 
-    ## 八、PCIe驱动（很多显卡、SOC、网卡驱动必考）
-    1. PCIe枚举流程，BIOS/内核扫描PCI总线。
-    2. pci_driver，probe，vendor_id device_id匹配。
-    3. BAR空间，pci_resource，ioremap映射BAR寄存器。
-    4. MSI/MSI‑X中断，区别传统INTx。
-    5. PCIe DMA，PCIe地址，总线地址、物理地址。
-    6. PCIe config space配置空间读写。
+        > 很多面试官会让你手写一个极简platform驱动框架。
 
-    ## 九、内核调试、BUG排查（非常看重实战经验）
-    1. oops是什么？oops日志怎么看，PC指针，栈回溯，栈溢出，空指针。
-    2. dmesg，printk，日志级别，注意printk不要疯狂刷屏，性能问题。
-    3. `dev_err/dev_info`设备打印，优先于printk。
-    4. kgdb内核调试，gdb调试内核。
-    5. ftrace，perf，查看函数调用，性能分析。
-    6. 内存泄漏，kmalloc忘记释放，slab leak。
-    7. **死锁、锁竞争，hung task，内核卡死怎么排查？**
-    8. 模块编译 Makefile，`MODULE_LICENSE`，GPL许可证重要性。
-    9. ko模块加载：insmod modprobe rmmod。
-    10. 树内驱动编译 vs out‑of‑tree模块。
+    5. 内核内存管理（重中之重）
 
-    ## 十、项目与简历深挖（面试官重点）
-    > 如果你写了GPU KMD、PCIe驱动、SOC驱动，一定会深挖：
-    1. 你的probe流程做了哪些工作？寄存器初始化，DMA缓冲区申请，中断注册。
-    2. 用户态lib/应用如何和驱动交互？ioctl？mmap？
-    3. mmap实现：驱动mmap回调，`remap_pfn_range`，把内核物理页映射到用户虚拟空间。
-    4. DMA调试遇到过什么坑？cache一致性、页不连续、IOMMU、地址越界。
-    5. 有没有遇到竞态bug？怎么复现，怎么加锁修复？
-    6. 有没有做电源管理suspend/resume，设备断电恢复，寄存器丢失问题？
-    7. 适配不同内核版本，API变更，例如5.4→6.1迁移遇到哪些接口废弃？
+        1. `kmalloc`、`kzalloc`，GFP_*标志
+            - GFP_KERNEL：可以休眠，分配内存，只能**进程上下文**
+            - GFP_ATOMIC：原子分配，**中断上下文必须用**，不能休眠
+        2. vmalloc：虚拟地址连续，物理页不连续；kmalloc物理连续。两者区别，什么时候选哪个？
+        3. **DMA需要物理连续内存，为什么不能用vmalloc？**
+        4. 页分配器：`alloc_page`。
+        5. slab内存池，kmem_cache，小对象分配，减少碎片。
+        6. 高端内存 HIGHMEM（32位内核）概念。
+        7. dma_alloc_coherent：**DMA一致性内存，物理连续，无cache**。
+            - coherent(一致内存) vs streaming DMA（dma_map_single）区别。
+        8. **cache一致性问题**，DMA为什么要考虑cache？CPU写在cache，内存还没更新，DMA看不到。
+        9. IOMMU作用，DMA地址重映射。
 
-    ## 十一、高频面试问答题（笔试/口头）
-    1. spinlock和mutex区别？什么时候选谁？
-    2. copy_from_user失败的原因？
-    3. 中断上下文为什么不能休眠？
-    4. kmalloc GFP_KERNEL分配失败会怎么样？会不会阻塞？
-    5. dma_map_single 和 dma_alloc_coherent区别？
-    6. platform和PCIe框架区别？
-    7. mmap为什么要在驱动实现remap_pfn_range，能不能直接ioremap给用户？
-    8. RCU原理？
-    9. 内核抢占和SMP多核带来哪些并发问题？
-    10. oops产生原因，如何定位出错代码行？
+    6. 并发与同步锁（内核面试超级高频，必准备）
 
-    ## 十二、高阶（GPU KMD，芯片驱动岗位重点）
-    1. GPU驱动架构：KMD内核驱动 + UMD用户驱动。内核态职责是什么？用户态职责？**内核不能做复杂3D渲染**。
-    2. GPU内存管理：GEM，TTM显存管理器。
-    3. GPU调度，硬件队列，中断处理，Fence同步。
-    4. 电源DVFS，GPU时钟、电源域控制。
-    5. MMU，GPU页表，IOMMU。
-    6. 内核ECO，芯片bug，驱动workaround，寄存器patch。
-    7. NOC总线，硬件异常，报错中断，驱动处理。
+        > 内核是抢占式，多核SMP，中断，各种竞态场景。
+        1. 自旋锁 `spinlock_t`
+            - **自旋，忙等，不能休眠**，可以用于中断上下文。
+            - spin_lock_irqsave：关本地中断，防止中断抢占造成死锁。
+        2. 互斥锁 `struct mutex`
+            - 可以休眠，**只能进程上下文，不能中断上下文**。
+        3. semaphore信号量，completion完成量。completion相比mutex适合什么场景？
+        4. rwlock读写锁，rw_semaphore读写信号量。
+        5. **RCU读拷贝更新**，原理，适合什么场景？读多写少。
+        6. 死锁产生条件，内核锁死锁场景。
+        7. **中断和进程上下文竞态怎么处理？**
+        > 案例：进程上下文拿自旋锁，刚好来了中断，中断里也要拿同一个锁 →死锁。解决：拿锁同时关闭本地中断。
+        8. 内核抢占，抢占开关preempt_enable/preempt_disable。
 
-    ## 十三、手写代码考题
-    1. 写一个简单字符设备框架。
-    2. platform驱动框架 + dts匹配。
-    3. 等待队列实现阻塞读。
-    4. mmap回调实现。
-    5. request_irq + tasklet/workqueue底半部。
+    7. 中断处理
 
-    如果你需要，我可以：
-    1. 整理一份**驱动面试100题带答案版**
-    2. KMD显卡驱动专项面试题
-    3. 准备面试简历项目描述话术
-    4. 模拟面试问答
+        1. request_irq注册中断，中断顶半部bottom半部概念。
+        2. **为什么顶半部要快，不能耗时？**
+        3. 底半部三种机制：tasklet、workqueue、softirq，三者区别，使用场景。
+            - softirq：硬中断之后运行，原子上下文，不能休眠。
+            - tasklet：基于softirq，原子上下文，不能休眠。
+            - workqueue：内核线程，可以休眠，可以调度，**最常用**。
+        4. threaded_irq 线程化中断。
+        5. 中断标志：IRQF_SHARED共享中断。
+        6. 中断栈，中断嵌套。
 
-    要不要？
+    8. PCIe驱动（很多显卡、SOC、网卡驱动必考）
+
+        1. PCIe枚举流程，BIOS/内核扫描PCI总线。
+        2. pci_driver，probe，vendor_id device_id匹配。
+        3. BAR空间，pci_resource，ioremap映射BAR寄存器。
+        4. MSI/MSI‑X中断，区别传统INTx。
+        5. PCIe DMA，PCIe地址，总线地址、物理地址。
+        6. PCIe config space配置空间读写。
+
+    9. 内核调试、BUG排查（非常看重实战经验）
+
+        1. oops是什么？oops日志怎么看，PC指针，栈回溯，栈溢出，空指针。
+        2. dmesg，printk，日志级别，注意printk不要疯狂刷屏，性能问题。
+        3. `dev_err/dev_info`设备打印，优先于printk。
+        4. kgdb内核调试，gdb调试内核。
+        5. ftrace，perf，查看函数调用，性能分析。
+        6. 内存泄漏，kmalloc忘记释放，slab leak。
+        7. **死锁、锁竞争，hung task，内核卡死怎么排查？**
+        8. 模块编译 Makefile，`MODULE_LICENSE`，GPL许可证重要性。
+        9. ko模块加载：insmod modprobe rmmod。
+        10. 树内驱动编译 vs out‑of‑tree模块。
+
+    10. 项目与简历深挖（面试官重点）
+
+        > 如果你写了GPU KMD、PCIe驱动、SOC驱动，一定会深挖：
+        1. 你的probe流程做了哪些工作？寄存器初始化，DMA缓冲区申请，中断注册。
+        2. 用户态lib/应用如何和驱动交互？ioctl？mmap？
+        3. mmap实现：驱动mmap回调，`remap_pfn_range`，把内核物理页映射到用户虚拟空间。
+        4. DMA调试遇到过什么坑？cache一致性、页不连续、IOMMU、地址越界。
+        5. 有没有遇到竞态bug？怎么复现，怎么加锁修复？
+        6. 有没有做电源管理suspend/resume，设备断电恢复，寄存器丢失问题？
+        7. 适配不同内核版本，API变更，例如5.4→6.1迁移遇到哪些接口废弃？
+
+    11. 高频面试问答题（笔试/口头）
+
+        1. spinlock和mutex区别？什么时候选谁？
+        2. copy_from_user失败的原因？
+        3. 中断上下文为什么不能休眠？
+        4. kmalloc GFP_KERNEL分配失败会怎么样？会不会阻塞？
+        5. dma_map_single 和 dma_alloc_coherent区别？
+        6. platform和PCIe框架区别？
+        7. mmap为什么要在驱动实现remap_pfn_range，能不能直接ioremap给用户？
+        8. RCU原理？
+        9. 内核抢占和SMP多核带来哪些并发问题？
+        10. oops产生原因，如何定位出错代码行？
+
+    12. 高阶（GPU KMD，芯片驱动岗位重点）
+
+        1. GPU驱动架构：KMD内核驱动 + UMD用户驱动。内核态职责是什么？用户态职责？**内核不能做复杂3D渲染**。
+        2. GPU内存管理：GEM，TTM显存管理器。
+        3. GPU调度，硬件队列，中断处理，Fence同步。
+        4. 电源DVFS，GPU时钟、电源域控制。
+        5. MMU，GPU页表，IOMMU。
+        6. 内核ECO，芯片bug，驱动workaround，寄存器patch。
+        7. NOC总线，硬件异常，报错中断，驱动处理。
+
+    13. 手写代码考题
+
+        1. 写一个简单字符设备框架。
+        2. platform驱动框架 + dts匹配。
+        3. 等待队列实现阻塞读。
+        4. mmap回调实现。
+        5. request_irq + tasklet/workqueue底半部。
 
 * 简述`kobject_put()`的作用
 
@@ -1376,6 +1382,7 @@ Ref:
     **进程告诉内核自己未来会怎么使用某段虚拟内存，让内核做更优的内存管理。**
 
     核心作用
+
     - 不是强制，只是**建议（hint）**
     - 指导内核：
       - 预读 / 预分配
@@ -1384,6 +1391,7 @@ Ref:
     - 用来**提升性能、减少缺页、降低内存占用**
 
     常用场景（简述）
+
     - `MADV_SEQUENTIAL`：预计顺序访问 → 内核**预读+读完尽快释放**
     - `MADV_RANDOM`：预计随机访问 → 关闭预读
     - `MADV_WILLNEED`：马上要用 → 内核**提前读入内存**
@@ -1444,8 +1452,6 @@ Ref:
 
     在 Linux 系统编程中，`sigaction()` 是处理信号的现代、健壮的首选方式。相比于早期的 `signal()` 函数，它提供了更细致的控制，且在不同 Unix 变体之间表现更一致。
 
-    ---
-
     1. 函数原型
 
         `sigaction()` 定义在 `<signal.h>` 头文件中，其原型如下：
@@ -1461,8 +1467,6 @@ Ref:
         * **`signum`**: 要捕获的信号编号（如 `SIGINT`, `SIGTERM`）。注意：`SIGKILL` 和 `SIGSTOP` 不能被捕获或忽略。
         * **`act`**: 指向 `struct sigaction` 的指针，定义了信号处理的新行为。
         * **`oldact`**: 若不为 `NULL`，则用来保存该信号之前的处理配置（方便后续恢复）。
-
-    ---
 
     2. 核心结构体 `struct sigaction`
 
@@ -1484,16 +1488,12 @@ Ref:
             * `SA_RESTART`: 使被信号中断的系统调用自动重启。
             * `SA_SIGINFO`: 使用 `sa_sigaction` 而非 `sa_handler`，获取更多信号上下文信息（如谁发的信号）。
 
-    ---
-
     3. 主要作用
 
         1.  **防止信号丢失**：在信号处理程序执行期间，自动阻塞相同的信号，直到处理完成。
         2.  **更丰富的信息**：通过 `SA_SIGINFO` 标志，可以得知引发信号的进程 PID、UID 以及导致信号的原因。
         3.  **可靠性**：解决了早期 `signal()` 函数在处理函数触发后会自动重置为默认行为的问题。
         4.  **精细化控制**：可以决定是否重启被中断的慢速系统调用（如 `read()`, `accept()`）。
-
-    ---
 
     4. 基本用法示例
 
@@ -1535,8 +1535,6 @@ Ref:
             return 0;
         }
         ```
-
-    ---
 
     **总结提示**
 
@@ -4200,6 +4198,149 @@ Ref:
     ref: <https://stackoverflow.com/questions/55566038/how-can-i-print-current-time-in-kernel>
 
 ## Topics
+
+### hello, world 驱动
+
+可以使用一个 hello world 项目测试驱动开发环境是否正常。
+
+1. 创建一个项目文件夹：`mkdir driver_test`，并进入这个目录：`cd driver_test`。
+
+2. 创建一个`hello_world.c`文件，然后写入以下内容：
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+
+    int hello_init(void)
+    {
+        printk(KERN_INFO "hello my module\n");
+        return 0;
+    }
+
+    void hello_exit(void)
+    {
+        printk(KERN_INFO "bye bye!\n");
+    }
+
+    module_init(hello_init);
+    module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+3. 创建一个`Makefile`文件：
+
+    ```Makefile
+    KERNEL_DIR=/usr/src/linux-headers-5.19.0-41-generic  # 这里要和我们下载的内核版本保持一致
+    obj-m  +=  hello_world.o
+    default:
+        $(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
+    ```
+
+    注：
+
+    1. `KERNEL_DIR`也可以使用`/lib/modules`目录下对应 kernel 的 build 目录。比如`/lib/modules/6.5.0-41-generic/build`
+
+4. 编译
+
+    ```bash
+    make
+    ```
+
+    编译完成后，我们可以在当前目录下看到`hello_world.ko`文件。
+
+5. 运行，加载内核模块：`sudo insmod hello_world.ko`
+
+    查看 log，检查是否运行成功：`sudo dmesg`
+    
+    如果输出为：
+
+    ```
+	[1098552.030353] hello_world: loading out-of-tree module taints kernel.
+	[1098552.030520] hello_world: module verification failed: signature and/or required key missing - tainting kernel
+	[1098552.038540] hello my module
+    ```
+
+    那么就说明驱动加载成功。
+
+6. 卸载驱动：`sudo rmmod hello_world`
+
+### vscode config
+
+linux kernel module 开发中 vscode 的配置:
+
+`c_cpp_properties.json`:
+
+```json
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/src/linux-headers-6.5.0-18-generic/include/",
+                "/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
+                "/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
+                "/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
+            ],
+            "defines": [
+                "KBUILD_MODNAME=\"hello\"",
+                "__GNUC__",
+                "__KERNEL__",
+                "MODULE"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
+```
+
+`includePath`里新增的 include path 和`defines`里的四个宏，任何一个都不能少，不然 vscode 就会在代码里划红线报错。
+
+下面是一个没有报错的 example code:
+
+`hello.c`:
+
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/ktime.h>
+
+int m_int = 5;
+module_param(m_int, int, S_IRUSR | S_IWUSR);
+
+int hello_init(void)
+{
+    printk(KERN_INFO "hello my module\n");
+    struct timespec64 ts64;
+    ktime_get_ts64(&ts64);
+    time64_t seconds = ktime_get_real_seconds();
+    long nanoseconds = ts64.tv_nsec;
+    printk(KERN_INFO "on init, current time: %ld seconds\n", seconds);
+    return 0;
+}
+
+void hello_exit(void)
+{
+    printk(KERN_INFO "bye bye!\n");
+    struct timespec64 ts64;
+    ktime_get_ts64(&ts64);
+    time64_t seconds = ts64.tv_sec;
+    long nanoseconds = ts64.tv_nsec;
+    printk(KERN_INFO "on exit, current time: %ld seconds\n", seconds);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL");
+```
+
+注：
+
+1. 关于 include 头文件，或许可以用 bear -- make 生成 compile_commands.json 后，再去 json 文件里面拿？
 
 ### devm
 
@@ -9056,6 +9197,54 @@ Ref:
 
 ### kernel module
 
+* modprobe 的作用
+
+    在 linux 中，如果一些内核模块之间有依赖关系，那么必须按依赖关系进行`insmod`，否则会报错。
+
+    `modprobe`会根据`depmod`所产生的相依关系，决定要载入哪些模块。若在载入过程中发生错误，在`modprobe`会卸载整组的模块。
+
+    example:
+
+    载入模块：
+
+    ```bash
+    sudo modprobe -v xdxgpu
+    ```
+
+    尝试制裁模块：
+
+    ```bash
+    sudo modprobe -vr xdxgpu
+    ```
+
+* depmod 命令
+
+    `depmod`通常在`modprobe`之前运行，用于分析可载入模块的依赖关系。
+
+    example:
+
+    分析所有可用模块的依赖关系：
+
+    ```bash
+    sudo depmod -av
+    ```
+
+    注：
+
+    1. 这里没有加路径，可能是会分析到当前目录下？
+
+* 内核模块编程注意事项：
+
+    * 不能使用 C 库和 C 标准头文件
+
+    * 使用 GNU C （在 ANSI C 上加了些语法）
+
+    * 没有内存保护机制
+
+    * 不能处理浮点运算
+
+    * 注意并发互斥和可移植性
+
 * `MODULE_DEVICE_TABLE()`功能（未验证）
 
     一个宏，将 id table 的设备 ID 与 driver 注册到全局信息中。
@@ -9188,7 +9377,287 @@ Ref:
 
     总结来说，`modinfo` 是理解内核模块构成和依赖关系的基础工具。它的 `-F` 字段筛选和 `-n` 路径输出选项在日常管理和脚本自动化中尤为常用。
 
-#### module parameter
+#### module parameters 模块参数
+
+* a simple example
+
+    ```c
+    int param_int = 10;
+    unsigned short param_ushort = 20;
+    char *param_string = "hello";
+    int param_arr[3] = {100, 200, 300};
+
+    module_param(param_int, int, 0775);
+    module_param(param_ushort, ushort, 0);
+    module_param(param_string, charp, 0644);
+    module_param_array(param_arr, int, NULL, 0755);
+
+    int modparam_init(void)  // 这是一个普通函数，函数的名字可以随便改
+    {
+        pr_info("param_int = %d\n", param_int);
+        pr_info("param_ushort = %hu\n", param_ushort);
+        pr_info("param_string = %s\n", param_string);
+        pr_info("param_arr = %d %d %d\n", param_arr[0], param_arr[1], param_arr[2]);
+        return 0;
+    }
+    ```
+
+    说明：
+
+    1. 这里的`0775`并不是和 linux 文件权限一一对应。使用`0775`作为权限后，得到的参数文件的权限如下所示：
+
+        ```
+        -rw-rw-r-- 1 root root 4096  5月 16 10:52 /sys/module/hello_world/parameters/a
+        ```
+
+        因为这个数字和 linux 文件的权限并不是对应关系，所以使用`0776`，`0777`，`777`等作为参数时会编译报错。
+
+        正常情况下还是使用`S_IWUSR`这些标志位吧。
+
+    2. `0775`前面这个`0`必须加上，不然会编译报错。目前不清楚是为什么。
+
+        * [2024.06.29] 可能是因为 755 是八进制，C 语言里表示八进制数需要在前加上 0
+
+            不加 0 表示的是 10 进制数，那就表示七百七十五了，二进制肯定和 0775 不一样。
+
+    3. `unsigned short`定义的变量，在`module_param()`中注册模块参数时，必须使用`ushort`作为类型。
+
+        在`module_param()`中填`unsigned short`会编译报错。
+
+        如果使用`typedef unsigned short us;`，然后在`module_param()`中填`us`，同样也会编译报错。
+
+    4. 如果数组没有被初始化，或初始化的元素数量不够，那么元素的默认值都是 0。
+
+* `module_param();`
+
+    这种函数被称为 Module Parameters Macro。
+
+    `module_param(name, type, perm);`
+
+    `module_param(模块参数名，模块参数，访问权限);`
+
+    This macro is used to initialize the arguments. `module_param` takes three parameters: the name of the variable, its type, and a permissions mask to be used for an accompanying sysfs entry.
+
+    The macro should be placed outside of any function and is typically found near the head of the source file. `module_param()` macro, defined in `linux/moduleparam.h`.
+
+    Parameters:
+
+    * `type`
+
+        可以是下面几个之一：`byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `charp`, `bool`, `invbool`;
+
+        Numerous types are supported for module parameters:
+
+        * `bool`
+
+            A boolean (true or false) value (the associated variable should be of type int).
+
+        * `invbool`
+
+            The invbool type inverts the value, so that true values become false and vice versa.
+
+        * `charp`
+
+            A char pointer value. Memory is allocated for user-provided strings, and the pointer is set accordingly.
+
+        * `int`, `long`, `short`, `uint`, `ulong`, `ushort`
+            
+            Basic integer values of various lengths. The versions starting with `u` are for unsigned values.
+
+    * `perm` is the usual permissions value.
+
+        There are several types of permissions:
+
+        这些宏定义在`stat.h`中
+
+        * `S_IWUSR`, `S_IRUSR`, `S_IXUSR`
+        * `S_IRGRP`, `S_IWGRP`, `S_IXGRP`
+        * `S_IROTH`, `S_IWOTH`, `S_IXOTH`
+
+        可以看出来，`S_I`是一个 common prefix，R = read, W = write, X = Execute. USR = user, GRP = Group。
+
+        Using `|` (OR operation) we can set multiple permissions at a time.
+
+        在使用`S_IROTH`和`S_IWOTH`时会编译时报错，但是如果使用`0775`，可以顺序地给 others 加上`r`权限。不清楚为什么。
+
+    Example:
+
+    `module_param(valueETX, int, S_IWUSR | S_IRUSR);`
+
+* `module_param_array();`
+
+    `module_param_array(name, type, int *num, permissions);`
+
+    `module_param_array(数组模块参数名，数组元素类型，NULL，访问权限);`
+
+    This macro is used to send the array as an argument to the Linux device driver.
+
+    Parameters:
+
+    * `name`
+    
+        The name of the array (and of the parameter)
+
+    * `type`
+    
+        The type of the array elements
+
+    * `num`
+
+        An integer variable (optional) otherwise `NULL`。
+
+        在命令行中传递的数组的元素个数。
+
+        比如`sudo insmod hello_world.ko m_arr=3,4,5`，那么`num`会被改写成`3`。
+
+* 在代码中对模块参数的使用和普通变量没有区别。
+
+* 在命令行中传递模块参数
+
+    ```bash
+    insmod hello_abc.ko param_int=50
+    insmod hello_abc.ko param_string="hello world"
+    insmod mod_param.ko param_arr=111,222,333
+    ```
+
+* 数组可以只传递一部分元素，此时会重新计算数组的长度，并重新赋值。比如在代码中定义了数组容量为`3`，并且初始化了所有元素，但是在命令行中只传递了 2 个元素的数组，那么`/sys/module/xxx/parameters`中的对应文件也只会显示 2 个元素。
+
+    如果命令行传递的元素的数量超出数组的容量，那么会报错。
+
+* 当模块加载成功后，那些访问权限非 0 的模块会在以下路径下：
+
+    `/sys/module/模块名/parameters`
+
+    存在和模块参数名同名的文件，这些文件的权限来自于模块参数的权限。文件的内容与模块参数的值相同。因此可以通过修改文件中保存的数据，对模块参数进行修改：
+
+    ```bash
+    sudo su
+    echo 1 > /sys/module/hello_world_module/parameters/my_param
+    ```
+
+* 监测模块参数的改变
+
+    `module_param_cb()`
+
+    This macro is used to register the callback. Whenever the argument (parameter) got changed, this callback function will be called.
+
+    为了注册 callback，我们首先需要填写一个结构体：
+
+    ```c
+    struct kernel_param_ops 
+    {
+        int (*set)(const char *val, const struct kernel_param *kp);
+        int (*get)(char *buffer, const struct kernel_param *kp);
+        void (*free)(void *arg);
+    };
+    ```
+
+    （不明白这里的`free`有什么用）
+
+    Example:
+
+    ```c
+    #include<linux/kernel.h>
+    #include<linux/init.h>
+    #include<linux/module.h>
+    #include<linux/moduleparam.h>
+     
+    int valueETX, arr_valueETX[4];
+    char *nameETX;
+    int cb_valueETX = 0;
+     
+    module_param(valueETX, int, S_IRUSR|S_IWUSR);                      // integer value
+    module_param(nameETX, charp, S_IRUSR|S_IWUSR);                     // String
+    module_param_array(arr_valueETX, int, NULL, S_IRUSR|S_IWUSR);      // Array of integers
+     
+    /*----------------------Module_param_cb()--------------------------------*/
+    int notify_param(const char *val, const struct kernel_param *kp)
+    {
+        // param_set_int 好像是把字符串转换成 int
+        int res = param_set_int(val, kp); // Use helper for write variable
+        if(res==0) {
+            printk(KERN_INFO "Call back function called...\n");
+            printk(KERN_INFO "New value of cb_valueETX = %d\n", cb_valueETX);
+            return 0;
+        }
+        return -1;
+    }
+     
+    const struct kernel_param_ops my_param_ops = 
+    {
+        .set = &notify_param, // Use our setter ...
+        .get = &param_get_int, // .. and standard getter
+    };
+     
+    module_param_cb(cb_valueETX, &my_param_ops, &cb_valueETX, S_IRUGO|S_IWUSR );
+    /*-------------------------------------------------------------------------*/
+
+    /*
+    ** Module init function
+    */
+    static int __init hello_world_init(void)
+    {
+        int i;
+        printk(KERN_INFO "ValueETX = %d  \n", valueETX);
+        printk(KERN_INFO "cb_valueETX = %d  \n", cb_valueETX);
+        printk(KERN_INFO "NameETX = %s \n", nameETX);
+        for (i = 0; i < (sizeof arr_valueETX / sizeof (int)); i++) {
+                printk(KERN_INFO "Arr_value[%d] = %d\n", i, arr_valueETX[i]);
+        }
+        printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
+        return 0;
+    }
+
+    /*
+    ** Module Exit function
+    */
+    static void __exit hello_world_exit(void)
+    {
+        printk(KERN_INFO "Kernel Module Removed Successfully...\n");
+    }
+     
+    module_init(hello_world_init);
+    module_exit(hello_world_exit);
+     
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("A simple hello world driver");
+    MODULE_VERSION("1.0");
+    ```
+
+    加载模块：
+
+    ```bash
+    sudo insmod hello_world_module.ko valueETX=14 nameETX="EmbeTronicX" arr_valueETX=100,102,104,106
+    ```
+
+    改变模块参数值：
+
+    方法一：
+
+    ```bash
+    sudo sh -c "echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX"
+    ```
+
+    方法二：
+
+    Type sudo su. Then enter the password if it asks. Then do `echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX`
+
+    然后我们可以在`dmesg`里看到参数值变化的消息：
+
+    ```
+    [ 1688.610775] ValueETX = 14  
+    [ 1688.610782] cb_valueETX = 0  
+    [ 1688.610784] NameETX = EmbeTronicX 
+    [ 1688.610785] Arr_value[0] = 100
+    [ 1688.610786] Arr_value[1] = 102
+    [ 1688.610787] Arr_value[2] = 104
+    [ 1688.610788] Arr_value[3] = 106
+    [ 1688.610789] Kernel Module Inserted Successfully...
+    [ 1849.370708] Call back function called...
+    [ 1849.370714] New value of cb_valueETX = 13
+    [ 1880.687099] Kernel Module Removed Successfully...
+    ```
 
 * 对于 parameter 数组，在`cat`的时候，可以看到它是以`,`分隔的一些数字
 
@@ -9460,6 +9929,80 @@ Ref:
 
 ### print and log
 
+* `printk()`
+
+    内核模块中可以使用函数`printk()`将消息打印到日志中，用法和`printf()`几乎相同。
+
+    syntax:
+
+    ```c
+    printk("hello my module\n");
+    ```
+
+    `printk()`如果不加`\n`，则不会在`dmesg`中立即刷新。
+
+    `printk()`可打印的消息有不同的级别，我们可以在字符串前使用下面的宏字符串进行修饰：
+
+    * `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
+
+    * `KERN_ALERT`: A situation requiring immediate action.
+
+    * `KERN_CRIT`: Critical conditions are often related to serious hardware or software failures.
+
+    * `KERN_ERR`: Used to report error conditions; device drivers often use KERN_ERR to report hardware difficulties.
+
+    * `KERN_WARNING`: Warnings about problematic situations that do not, in themselves, create serious problems with the system.
+
+    * `KERN_NOTICE`: Situations that are normal, but still worthy of note. A number of security-related conditions are reported at this level.
+
+    * `KERN_INFO`: Informational messages. Many drivers print information about the hardware they find at startup time at this level.
+
+    * `KERN_DEBUG`: Used for debugging messages.
+
+    Example:
+
+    ```c
+    printk(KERN_INFO "this is a info level log");
+    printk(KERN_WARNING "this is a warning level log");
+    printk("this is a non-level log");
+    ```
+
+    经实际测试，如果不加日志级别，那么为白色粗字，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
+
+* `pr_xxxx()`系列
+
+    In the newer Linux kernels, you can use the APIs below instead of this `printk`.
+
+    * `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
+    * `pr_cont()` – Continues a previous log message in the same line.
+    * `pr_debug()` – Print a debug-level message conditionally.
+    * `pr_warn()` – Print a warning-level message.
+    * `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
+
+    经实测，`pr_info()`为正常白字，`pr_cont()`为白字加粗，`pr_debug()`没有输出，`pr_warn()`为白字加粗，`pr_err()`为红字。
+
+* 默认打印级别
+
+    上面的日志级别可以对应到数字 0 - 7，如果不指定日志级别，那么就是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
+
+    可以参考这几个网站的资料：
+
+    1. <http://www.jyguagua.com/?p=708>
+
+    2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
+
+    我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
+
+    第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
+
+    第二个数为`printk()`的默认打印级别。
+
+    修改内核的默认打印级别（即修改第 1 个数）：
+
+    `echo 5 > /proc/sys/kernel/printk`
+
+    （现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
+
 * `pr_info()`无论写不写`\n`都会换行，但是只有写`\n`才会刷新缓冲区
 
     也就是说，如果只写`pr_info("hello")`，那么`"hello"`可能会放在缓冲区里，不输出到屏幕上。
@@ -9579,6 +10122,93 @@ Ref:
 
 ### 开发环境与编译
 
+* ubuntu 上使用 apt 安装 kmd 开发环境
+
+    如果我们使用 Ubuntu 系统，那么就可以在它编译好的内核库的基础上开发驱动。如果使用其他系统，那么有可能需要自己编译内核。
+
+    linux 驱动是以 module 的形式加载到内核中的。Ubuntu 的内核是 signed 版本，我们自己写的 module 是 unsigned 版本，没有办法直接加载（在执行`insmod`时会报错）。目前我的解决办法是，先更新一下内核，换成 unsigned 版本或者 hwe 版本（hwe 版本表示支持最新硬件）：
+
+    ```bash
+    apt install linux-image-generic-hwe-22.04
+    ```
+
+    可以直接使用
+
+    ```bash
+    apt install linux-image-`uname -r`
+    ```
+
+    来安装。
+
+    接下来我们把原来的 kernel 删掉，然后下载新的：
+
+    ```bash
+    sudo apt update
+    sudo apt remove --purge linux-headers-*
+    sudo apt autoremove && sudo apt autoclean
+    sudo apt install linux-headers-`uname -r`
+    ```
+
+    注：我们可以用`uname -r`查看当前内核的版本，`uname -a`查看系统的完整版本。
+
+    这时候应该可以看见`/lib/modules/xxxxx-generic`路径下（比如`/lib/modules/5.19.0-32-generic/`），有一个`build`文件夹。这个`build`是一个 symbolic link，指向`/usr/src`下对应的内核源码文件夹：
+
+    ```
+    hlc@hlc-Ubuntu2204:~/Documents/Projects/kernel_test$ ls -lh /lib/modules/5.19.0-32-generic/
+    total 6.6M
+    lrwxrwxrwx  1 root root   40  1月 30 23:44 build -> /usr/src/linux-headers-5.19.0-32-generic
+    drwxr-xr-x  2 root root 4.0K  2月 18 09:33 initrd
+    drwxr-xr-x 16 root root 4.0K  2月 18 09:31 kernel
+    -rw-r--r--  1 root root 1.5M  2月 26 14:45 modules.alias
+    ...
+    ```
+
+    如果可以看到对应的内容（即`build`指向`/usr/src/`下的一个目录），那么就说明编译好的内核已经装好了。
+
+* 从源码编译内核
+
+    1. 下载内核源码
+
+        如果使用的是 Ubuntu 系统，下载源码可以在`apt`里下载：
+
+        ```bash
+        apt-cache search linux-source
+        ```
+
+        使用`uname -r`查看当前内核的版本，找到对应的版本。
+
+        编译内核需要用到`flex`, `bison`, `libssh-dev`, `libelf-dev`
+
+    2. 编译内核（在 Ubuntu 22.04 下编译）
+
+        一个写得还不错的 tutorial，可以参考一下：<https://phoenixnap.com/kb/build-linux-kernel>
+
+        编译内核需要一些额外的工具，可以参考这个网页<https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel>装一下：
+
+        ```bash
+        sudo apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm
+        ```
+
+        下载好源码后，首先需要创建一个`.config`文件。我们可以使用 Ubuntu 系统里现成的：
+
+        如果使用这种方法后编译失败，通常是证书设置的问题，参考这个：<https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11>
+
+        在`.config`里把`CONFIG_SYSTEM_TRUSTED_KEYS`和`CONFIG_SYSTEM_REVOCATION_KEYS`都设置成空字符串。
+
+        也可以创建一个默认的：
+
+        ```bash
+        make menuconfig
+        ```
+
+        这种方法会在内核源码目录创建一个`.config`文件。使用这个 config 编译起来比较快，可能是因为有些选项没选上。
+
+        单核编译可以用`make`，多线程编译可以使用`make -j16`（使用 16 线程编译）。
+
+        然后`sudo make modules_install`
+
+        最后`sudo make install`
+
 * gcc 12 要求所有函数必须有声明，不然会报 warning:
 
     ```
@@ -9610,8 +10240,6 @@ Ref:
     在 Linux 内核开发中，`KBUILD_MODNAME` 是一个由 **Kbuild 编译系统**自动定义的宏。它非常实用，主要用于在代码中标识当前模块的名字。
 
     简单来说，它就是当前正在编译的**内核模块（.ko 文件）的名称**。
-
-    ---
 
     1. 它从哪里来？
 
@@ -15652,220 +16280,6 @@ Ref:
 
 ## Introduction
 
-### 驱动开发环境的搭建
-
-#### 基于 Ubuntu 和 apt 的驱动开发环境的搭建
-
-如果我们使用 Ubuntu 系统，那么就可以在它编译好的内核库的基础上开发驱动。如果使用其他系统，那么有可能需要自己编译内核。
-
-linux 驱动是以 module 的形式加载到内核中的。Ubuntu 的内核是 signed 版本，我们自己写的 module 是 unsigned 版本，没有办法直接加载（在执行`insmod`时会报错）。目前我的解决办法是，先更新一下内核，换成 unsigned 版本或者 hwe 版本（hwe 版本表示支持最新硬件）：
-
-```bash
-apt install linux-image-generic-hwe-22.04
-```
-
-可以直接使用
-
-```bash
-apt install linux-image-`uname -r`
-```
-
-来安装。
-
-接下来我们把原来的 kernel 删掉，然后下载新的：
-
-```bash
-sudo apt update && sudo apt upgrade
-sudo apt remove --purge linux-headers-*
-sudo apt autoremove && sudo apt autoclean
-sudo apt-get install linux-headers-`uname -r`
-```
-
-注：我们可以用`uname -r`查看当前内核的版本，`uname -a`查看系统的完整版本。
-
-这时候应该可以看见`/lib/modules/xxxxx-generic`路径下（比如`/lib/modules/5.19.0-32-generic/`），有一个`build`文件夹。这个`build`是一个 symbolic link，指向`/usr/src`下对应的内核源码文件夹：
-
-```
-hlc@hlc-Ubuntu2204:~/Documents/Projects/kernel_test$ ls -lh /lib/modules/5.19.0-32-generic/
-total 6.6M
-lrwxrwxrwx  1 root root   40  1月 30 23:44 build -> /usr/src/linux-headers-5.19.0-32-generic
-drwxr-xr-x  2 root root 4.0K  2月 18 09:33 initrd
-drwxr-xr-x 16 root root 4.0K  2月 18 09:31 kernel
--rw-r--r--  1 root root 1.5M  2月 26 14:45 modules.alias
-...
-```
-
-如果可以看到对应的内容（即`build`指向`/usr/src/`下的一个目录），那么就说明编译好的内核已经装好了。
-
-#### 基于编译内核的驱动开发环境搭建
-
-1. 下载内核源码
-
-（这部分目前用不到，先不写了）
-
-通常我们说的 linux kernel 可以在
-
-如果使用的是 Ubuntu 系统，下载源码可以在`apt`里下载：
-
-```bash
-apt-cache search linux-source
-```
-
-使用`uname -r`查看当前内核的版本，找到对应的版本。
-
-编译内核需要用到`flex`, `bison`, `libssh-dev`, `libelf-dev`
-
-1. 编译内核（在 Ubuntu 22.04 下编译）
-
-    一个写得还不错的 tutorial，可以参考一下：<https://phoenixnap.com/kb/build-linux-kernel>
-
-    编译内核需要一些额外的工具，可以参考这个网页<https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel>装一下：
-
-    ```bash
-    sudo apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm
-    ```
-
-    下载好源码后，首先需要创建一个`.config`文件。我们可以使用 Ubuntu 系统里现成的：
-
-    如果使用这种方法后编译失败，通常是证书设置的问题，参考这个：<https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11>
-
-    在`.config`里把`CONFIG_SYSTEM_TRUSTED_KEYS`和`CONFIG_SYSTEM_REVOCATION_KEYS`都设置成空字符串。
-
-    也可以创建一个默认的：
-
-    ```bash
-    make menuconfig
-    ```
-
-    这种方法会在内核源码目录创建一个`.config`文件。使用这个 config 编译起来比较快，可能是因为有点选项没选上吧。
-
-    单核编译可以用`make`，多线程编译可以使用`make -j16`（使用 16 线程编译）。
-
-    然后`sudo make modules_install`
-
-    最后`sudo make install`
-
-### hello, world 驱动
-
-为了测试上面搭建的驱动开发环境是否成功，我们使用一个 hello world 项目测试一下。
-
-首先，创建一个项目文件夹：`mkdir driver_test`，然后进入这个目录：`cd driver_test`。
-
-接着，创建一个`hello_world.c`文件，然后写入以下内容：
-
-```c
-#include <linux/init.h>
-#include <linux/module.h>
-
-int hello_init(void)
-{
-    printk(KERN_INFO "hello my module\n");
-    return 0;
-}
-
-void hello_exit(void)
-{
-    printk(KERN_INFO "bye bye!\n");
-}
-
-module_init(hello_init);
-module_exit(hello_exit);
-MODULE_LICENSE("GPL");
-```
-
-然后我们创建一个`Makefile`文件：
-
-```Makefile
-KERNEL_DIR=/usr/src/linux-headers-5.19.0-41-generic  # 这里要和我们下载的内核版本保持一致
-obj-m  +=  hello_world.o
-default:
-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
-```
-
-最后进行编译：`make`。编译完成后，我们可以在当前目录下看到`hello_world.ko`文件。
-
-运行：`sudo insmod hello_world.ko`
-
-调出 log，检查是否运行成功：`sudo dmesg`
-
-如果输出的最后几行有`[ 2793.700004] <1>hello my module`，那么就说明驱动运行成功了。
-
-最后卸载驱动：`sudo rmmod hello_world`。
-
-### vscode config
-
-* linux kernel module 开发 vscode 的配置
-
-    `c_cpp_properties.json`:
-
-    ```json
-    {
-        "configurations": [
-            {
-                "name": "Linux",
-                "includePath": [
-                    "${workspaceFolder}/**",
-                    "/usr/src/linux-headers-6.5.0-18-generic/include/",
-                    "/usr/src/linux-headers-6.5.0-18-generic/arch/x86/include/generated/",
-                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/arch/x86/include/",
-                    "/usr/src/linux-hwe-6.5-headers-6.5.0-18/include"
-                ],
-                "defines": [
-                    "KBUILD_MODNAME=\"hello\"",
-                    "__GNUC__",
-                    "__KERNEL__",
-                    "MODULE"
-                ],
-                "compilerPath": "/usr/bin/gcc",
-                "cStandard": "gnu17",
-                "cppStandard": "c++17",
-                "intelliSenseMode": "linux-gcc-x64"
-            }
-        ],
-        "version": 4
-    }
-    ```
-
-    `includePath`里新增的 include path 和`defines`里的四个宏，任何一个都不能少，不然 vscode 就会在代码里划红线报错。
-
-    下面是一个没有报错的 example code:
-
-    `hello.c`:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/ktime.h>
-
-    int m_int = 5;
-    module_param(m_int, int, S_IRUSR | S_IWUSR);
-
-    int hello_init(void)
-    {
-        printk(KERN_INFO "hello my module\n");
-        struct timespec64 ts64;
-        ktime_get_ts64(&ts64);
-        time64_t seconds = ktime_get_real_seconds();
-        long nanoseconds = ts64.tv_nsec;
-        printk(KERN_INFO "on init, current time: %ld seconds\n", seconds);
-        return 0;
-    }
-
-    void hello_exit(void)
-    {
-        printk(KERN_INFO "bye bye!\n");
-        struct timespec64 ts64;
-        ktime_get_ts64(&ts64);
-        time64_t seconds = ts64.tv_sec;
-        long nanoseconds = ts64.tv_nsec;
-        printk(KERN_INFO "on exit, current time: %ld seconds\n", seconds);
-    }
-
-    module_init(hello_init);
-    module_exit(hello_exit);
-    MODULE_LICENSE("GPL");
-    ```
-
 ### 交叉编译
 
 （有时间了填下这个坑）
@@ -15873,18 +16287,6 @@ default:
 交叉编译：`sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-`
 
 ## 内核模块
-
-* 内核模块编程注意事项：
-
-    * 不能使用 C 库和 C 标准头文件
-
-    * 使用 GNU C （在 ANSI C 上加了些语法）
-
-    * 没有内存保护机制
-
-    * 不能处理浮点运算
-
-    * 注意并发互斥和可移植性
 
 ### 内核模块的加载与卸载
 
@@ -15989,9 +16391,19 @@ default:
 
     然后在当前文件夹下运行`make`，会生成`hello_world.ko`文件。这个文件就是我们需要的内核模块文件，ko 代表 kernel object。
 
-* 加载内核模块
+* 内核模块常见操作
 
-    此时可以使用`sudo insmod hello_world.ko`插入模块，使用`sudo rmmod hello_world`移除模块，`sudo lsmod`查看已经加载的模块，`sudo dmesg`查看日志输出。
+    * `sudo insmod hello_world.ko`: 插入模块
+
+    * `sudo rmmod hello_world`: 移除模块
+
+    * `sudo lsmod`: 查看已经加载的模块
+
+        注：
+
+        1. 似乎可以不使用 sudo。那么使用 sudo 会看到的更多一点吗？
+
+    * `sudo dmesg`: 查看日志输出
 
     （如果还是无法`insmod`，或许需要取消 secure boot：<https://askubuntu.com/questions/762254/why-do-i-get-required-key-not-available-when-install-3rd-party-kernel-modules>）
 
@@ -16012,366 +16424,6 @@ default:
         Example: `MODULE_DESCRIPTION("this is my first module")`
 
     获得模块的一些信息：`modinfo hello_world_module.ko`
-
-### 日志消息打印
-
-* `printk()`
-
-    内核模块中可以使用函数`printk()`将消息打印到日志中，用法和`printf()`几乎相同。
-
-    syntax:
-
-    ```c
-    printk("hello my module\n");
-    ```
-
-    `printk()`如果不加`\n`，则不会在`dmesg`中立即刷新。
-
-    `printk()`可打印的消息有不同的级别，我们可以在字符串前使用下面的宏字符串进行修饰：
-
-    * `KERN_EMERG`: Used for emergency messages, usually those that precede a crash.
-
-    * `KERN_ALERT`: A situation requiring immediate action.
-
-    * `KERN_CRIT`: Critical conditions are often related to serious hardware or software failures.
-
-    * `KERN_ERR`: Used to report error conditions; device drivers often use KERN_ERR to report hardware difficulties.
-
-    * `KERN_WARNING`: Warnings about problematic situations that do not, in themselves, create serious problems with the system.
-
-    * `KERN_NOTICE`: Situations that are normal, but still worthy of note. A number of security-related conditions are reported at this level.
-
-    * `KERN_INFO`: Informational messages. Many drivers print information about the hardware they find at startup time at this level.
-
-    * `KERN_DEBUG`: Used for debugging messages.
-
-    Example:
-
-    ```c
-    printk(KERN_INFO "this is a info level log");
-    printk(KERN_WARNING "this is a warning level log");
-    printk("this is a non-level log")
-    ```
-
-    经实际测试，如果不加日志级别，那么为白色粗字，`KERN_NOTICE`及以下，全都是正常白字，`KERN_WARNING`的消息会白字加粗，`KERN_ERR`的消息会变成红字，`KERN_CRIT`消息为红字加粗，`KERN_ALERT`为红底黑字，`KERN_EMERG`又变成正常白字。（这个颜色可能和 terminal 配色有关）
-
-* `pr_xxxx()`系列
-
-    In the newer Linux kernels, you can use the APIs below instead of this `printk`.
-
-    * `pr_info()` – Print an info-level message. (ex. `pr_info("test info message\n")`).
-    * `pr_cont()` – Continues a previous log message in the same line.
-    * `pr_debug()` – Print a debug-level message conditionally.
-    * `pr_warn()` – Print a warning-level message.
-    * `pr_err()` – Print an error-level message. (ex. `pr_err(“test error message\n”)`).
-
-    经实测，`pr_info()`为正常白字，`pr_cont()`为白字加粗，`pr_debug()`没有输出，`pr_warn()`为白字加粗，`pr_err()`为红字。
-
-* 默认打印级别
-
-    上面的日志级别可以对应到数字 0 - 7，如果不指定日志级别，那么就是无级别。之所以映射到数字，似乎是因为可以使用数字控制 console 的输出级别。（但是经实际测试，好像不怎么有用）
-
-    可以参考这几个网站的资料：
-
-    1. <http://www.jyguagua.com/?p=708>
-
-    2. <https://blog.csdn.net/qustDrJHJ/article/details/51382138>
-
-    我们可以使用`cat /proc/sys/kernel/printk`查看当前日志的级别。
-
-    第一个数为内核默认打印级别，只有当`printk`的打印级别高于内核默认打印级别时，`printk`打印的信息才能显示 。
-
-    第二个数为`printk()`的默认打印级别。
-
-    修改内核的默认打印级别（即修改第 1 个数）：
-
-    `echo 5 > /proc/sys/kernel/printk`
-
-    （现在好像已经升级了，不管 printk level 大于还是小于当前 console 的 level，都不会在 console 上输出）
-
-### 模块参数（Module Parameters）
-
-* a simple example
-
-    ```c
-    int param_int = 10;
-    unsigned short param_ushort = 20;
-    char *param_string = "hello";
-    int param_arr[3] = {100, 200, 300};
-
-    module_param(param_int, int, 0775);
-    module_param(param_ushort, ushort, 0);
-    module_param(param_string, charp, 0644);
-    module_param_array(param_arr, int, NULL, 0755);
-
-    int modparam_init(void)  // 这是一个普通函数，函数的名字可以随便改
-    {
-        pr_info("param_int = %d\n", param_int);
-        pr_info("param_ushort = %hu\n", param_ushort);
-        pr_info("param_string = %s\n", param_string);
-        pr_info("param_arr = %d %d %d\n", param_arr[0], param_arr[1], param_arr[2]);
-        return 0;
-    }
-    ```
-
-    说明：
-
-    1. 这里的`0775`并不是和 linux 文件权限一一对应。使用`0775`作为权限后，得到的参数文件的权限如下所示：
-
-        ```
-        -rw-rw-r-- 1 root root 4096  5月 16 10:52 /sys/module/hello_world/parameters/a
-        ```
-
-        因为这个数字和 linux 文件的权限并不是对应关系，所以使用`0776`，`0777`，`777`等作为参数时会编译报错。
-
-        正常情况下还是使用`S_IWUSR`这些标志位吧。
-
-    2. `0775`前面这个`0`必须加上，不然会编译报错。目前不清楚是为什么。
-
-        * [2024.06.29] 可能是因为 755 是八进制，C 语言里表示八进制数需要在前加上 0
-
-            不加 0 表示的是 10 进制数，那就表示七百七十五了，二进制肯定和 0775 不一样。
-
-    3. `unsigned short`定义的变量，在`module_param()`中注册模块参数时，必须使用`ushort`作为类型。
-
-        在`module_param()`中填`unsigned short`会编译报错。
-
-        如果使用`typedef unsigned short us;`，然后在`module_param()`中填`us`，同样也会编译报错。
-
-    4. 如果数组没有被初始化，或初始化的元素数量不够，那么元素的默认值都是 0。
-
-* `module_param();`
-
-    这种函数被称为 Module Parameters Macro。
-
-    `module_param(name, type, perm);`
-
-    `module_param(模块参数名，模块参数，访问权限);`
-
-    This macro is used to initialize the arguments. `module_param` takes three parameters: the name of the variable, its type, and a permissions mask to be used for an accompanying sysfs entry.
-
-    The macro should be placed outside of any function and is typically found near the head of the source file. `module_param()` macro, defined in `linux/moduleparam.h`.
-
-    Parameters:
-
-    * `type`
-
-        可以是下面几个之一：`byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `charp`, `bool`, `invbool`;
-
-        Numerous types are supported for module parameters:
-
-        * `bool`
-
-            A boolean (true or false) value (the associated variable should be of type int).
-
-        * `invbool`
-
-            The invbool type inverts the value, so that true values become false and vice versa.
-
-        * `charp`
-
-            A char pointer value. Memory is allocated for user-provided strings, and the pointer is set accordingly.
-
-        * `int`, `long`, `short`, `uint`, `ulong`, `ushort`
-            
-            Basic integer values of various lengths. The versions starting with `u` are for unsigned values.
-
-    * `perm` is the usual permissions value.
-
-        There are several types of permissions:
-
-        这些宏定义在`stat.h`中
-
-        * `S_IWUSR`, `S_IRUSR`, `S_IXUSR`
-        * `S_IRGRP`, `S_IWGRP`, `S_IXGRP`
-        * `S_IROTH`, `S_IWOTH`, `S_IXOTH`
-
-        可以看出来，`S_I`是一个 common prefix，R = read, W = write, X = Execute. USR = user, GRP = Group。
-
-        Using `|` (OR operation) we can set multiple permissions at a time.
-
-        在使用`S_IROTH`和`S_IWOTH`时会编译时报错，但是如果使用`0775`，可以顺序地给 others 加上`r`权限。不清楚为什么。
-
-    Example:
-
-    `module_param(valueETX, int, S_IWUSR | S_IRUSR);`
-
-* `module_param_array();`
-
-    `module_param_array(name, type, int *num, permissions);`
-
-    `module_param_array(数组模块参数名，数组元素类型，NULL，访问权限);`
-
-    This macro is used to send the array as an argument to the Linux device driver.
-
-    Parameters:
-
-    * `name`
-    
-        The name of the array (and of the parameter)
-
-    * `type`
-    
-        The type of the array elements
-
-    * `num`
-
-        An integer variable (optional) otherwise `NULL`。
-
-        在命令行中传递的数组的元素个数。
-
-        比如`sudo insmod hello_world.ko m_arr=3,4,5`，那么`num`会被改写成`3`。
-
-在代码中对模块参数的使用和普通变量没有区别。
-
-Examples:
-
-**在命令行中传递模块参数**
-
-```bash
-insmod hello_abc.ko param_int=50
-insmod hello_abc.ko param_string="hello world"
-insmod mod_param.ko param_arr=111,222,333
-```
-
-数组可以只传递一部分元素，此时会重新计算数组的长度，并重新赋值。比如在代码中定义了数组容量为`3`，并且初始化了所有元素，但是在命令行中只传递了 2 个元素的数组，那么`/sys/module/xxx/parameters`中的对应文件也只会显示 2 个元素。
-
-如果命令行传递的元素的数量超出数组的容量，那么会报错。
-
-当模块加载成功后，那些访问权限非 0 的模块会在以下路径下：
-
-`/sys/module/模块名/parameters`
-
-存在和模块参数名同名的文件，这些文件的权限来自于模块参数的权限。文件的内容与模块参数的值相同。因此可以通过修改文件中保存的数据，对模块参数进行修改：
-
-```bash
-sudo su
-echo 1 > /sys/module/hello_world_module/parameters/my_param
-```
-
-**监测模块参数的改变**
-
-`module_param_cb()`
-
-This macro is used to register the callback. Whenever the argument (parameter) got changed, this callback function will be called.
-
-为了注册 callback，我们首先需要填写一个结构体：
-
-```c
-struct kernel_param_ops 
-{
-    int (*set)(const char *val, const struct kernel_param *kp);
-    int (*get)(char *buffer, const struct kernel_param *kp);
-    void (*free)(void *arg);
-};
-```
-
-（不明白这里的`free`有什么用）
-
-Example:
-
-```c
-#include<linux/kernel.h>
-#include<linux/init.h>
-#include<linux/module.h>
-#include<linux/moduleparam.h>
- 
-int valueETX, arr_valueETX[4];
-char *nameETX;
-int cb_valueETX = 0;
- 
-module_param(valueETX, int, S_IRUSR|S_IWUSR);                      // integer value
-module_param(nameETX, charp, S_IRUSR|S_IWUSR);                     // String
-module_param_array(arr_valueETX, int, NULL, S_IRUSR|S_IWUSR);      // Array of integers
- 
-/*----------------------Module_param_cb()--------------------------------*/
-int notify_param(const char *val, const struct kernel_param *kp)
-{
-    // param_set_int 好像是把字符串转换成 int
-    int res = param_set_int(val, kp); // Use helper for write variable
-    if(res==0) {
-        printk(KERN_INFO "Call back function called...\n");
-        printk(KERN_INFO "New value of cb_valueETX = %d\n", cb_valueETX);
-        return 0;
-    }
-    return -1;
-}
- 
-const struct kernel_param_ops my_param_ops = 
-{
-    .set = &notify_param, // Use our setter ...
-    .get = &param_get_int, // .. and standard getter
-};
- 
-module_param_cb(cb_valueETX, &my_param_ops, &cb_valueETX, S_IRUGO|S_IWUSR );
-/*-------------------------------------------------------------------------*/
-
-/*
-** Module init function
-*/
-static int __init hello_world_init(void)
-{
-    int i;
-    printk(KERN_INFO "ValueETX = %d  \n", valueETX);
-    printk(KERN_INFO "cb_valueETX = %d  \n", cb_valueETX);
-    printk(KERN_INFO "NameETX = %s \n", nameETX);
-    for (i = 0; i < (sizeof arr_valueETX / sizeof (int)); i++) {
-            printk(KERN_INFO "Arr_value[%d] = %d\n", i, arr_valueETX[i]);
-    }
-    printk(KERN_INFO "Kernel Module Inserted Successfully...\n");
-    return 0;
-}
-
-/*
-** Module Exit function
-*/
-static void __exit hello_world_exit(void)
-{
-    printk(KERN_INFO "Kernel Module Removed Successfully...\n");
-}
- 
-module_init(hello_world_init);
-module_exit(hello_world_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("A simple hello world driver");
-MODULE_VERSION("1.0");
-```
-
-加载模块：
-
-```bash
-sudo insmod hello_world_module.ko valueETX=14 nameETX="EmbeTronicX" arr_valueETX=100,102,104,106
-```
-
-改变模块参数值：
-
-方法一：
-
-```bash
-sudo sh -c "echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX"
-```
-
-方法二：
-
-Type sudo su. Then enter the password if it asks. Then do `echo 13 > /sys/module/hello_world_module/parameters/cb_valueETX`
-
-然后我们可以在`dmesg`里看到参数值变化的消息：
-
-```
-[ 1688.610775] ValueETX = 14  
-[ 1688.610782] cb_valueETX = 0  
-[ 1688.610784] NameETX = EmbeTronicX 
-[ 1688.610785] Arr_value[0] = 100
-[ 1688.610786] Arr_value[1] = 102
-[ 1688.610787] Arr_value[2] = 104
-[ 1688.610788] Arr_value[3] = 106
-[ 1688.610789] Kernel Module Inserted Successfully...
-[ 1849.370708] Call back function called...
-[ 1849.370714] New value of cb_valueETX = 13
-[ 1880.687099] Kernel Module Removed Successfully...
-```
 
 ### 模块符号的导出
 
@@ -22492,40 +22544,3 @@ MODULE_VERSION("1.14");
 
 Latest progress: <https://embetronicx.com/tutorials/linux/device-drivers/tasklet-static-method/>
 
-## Miscellaneous
-
-* modprobe 的作用
-
-    在 linux 中，如果一些内核模块之间有依赖关系，那么必须按依赖关系进行`insmod`，否则会报错。
-
-    `modprobe`会根据`depmod`所产生的相依关系，决定要载入哪些模块。若在载入过程中发生错误，在`modprobe`会卸载整组的模块。
-
-    example:
-
-    载入模块：
-
-    ```bash
-    sudo modprobe -v xdxgpu
-    ```
-
-    尝试制裁模块：
-
-    ```bash
-    sudo modprobe -vr xdxgpu
-    ```
-
-* depmod 命令
-
-    `depmod`通常在`modprobe`之前运行，用于分析可载入模块的依赖关系。
-
-    example:
-
-    分析所有可用模块的依赖关系：
-
-    ```bash
-    sudo depmod -av
-    ```
-
-    注：
-
-    1. 这里没有加路径，可能是会分析到当前目录下？

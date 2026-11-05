@@ -2,393 +2,6 @@
 
 ## cache
 
-* 详细讲讲 coc-clangd 的用法
-
-    coc-clangd 是 coc.nvim 的扩展，作用是把 clangd 语言服务器接入 Vim/Neovim，为 C/C++ 等语言提供补全、诊断、跳转等能力。下面从安装、项目配置、常用命令、关键配置到排查思路，完整讲一下用法。
-
-    ### 安装与首次启动
-
-    先决条件是 Node.js 和 coc.nvim 已经装好。然后在 Vim 中执行 `:CocInstall coc-clangd`。
-
-    coc-clangd 默认会从 `$PATH` 里找 `clangd`。如果找不到，可以用 `:CocCommand clangd.install` 让扩展从 GitHub 下载一份 clangd 二进制。注意：如果你之前已经在 `coc-settings.json` 里把 `clangd` 配成了 `languageserver`，要先删掉那段配置，否则 clangd 会被启动两次。
-
-    ### 项目配置：compile_commands.json 是核心
-
-    clangd 要知道每个源文件的编译参数，才能正确解析代码。最推荐的方式是生成 `compile_commands.json`。CMake 项目可以在配置时加 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`；其他构建系统可以用 Bear 等工具生成。只要这个文件在项目根目录或构建目录里，clangd 通常就能自动找到。
-
-    如果暂时没有编译数据库，可以用 `clangd.fallbackFlags` 给一个保底编译参数，比如 `["-std=c++20"]`。需要指定编译数据库位置时，用 `clangd.compilationDatabasePath`；有多个候选目录时用 `clangd.compilationDatabaseCandidates`，支持 `${workspaceFolder}` 变量。
-
-    ### 常用命令
-
-    coc-clangd 提供了一批以 `:CocCommand` 开头的命令：
-
-    - **`clangd.switchSourceHeader`**：在头文件和实现文件之间切换。加 `vsplit` 参数可以分屏打开，例如 `:CocCommand clangd.switchSourceHeader vsplit`。
-    - **`clangd.symbolInfo`**：查看光标下符号的详细信息。
-    - **`clangd.ast`**：显示当前文件的抽象语法树，调试解析问题时有用。
-    - **`clangd.memoryUsage`**：查看 clangd 的内存占用。
-    - **`clangd.install`** / **`clangd.update`**：安装或检查更新 clangd 二进制。
-    - **`clangd.projectConfig`** / **`clangd.userConfig`**：打开项目级或用户级 clangd 配置文件。
-
-    ### 关键配置项
-
-    配置写在 `coc-settings.json` 里，用 `:CocConfig` 打开全局配置，用 `:CocLocalConfig` 打开项目本地配置。
-
-    几个常用的：
-
-    | 配置项 | 作用 |
-    |---|---|
-    | `clangd.path` | 指定 clangd 可执行文件路径，适合你想手动控制版本时用 |
-    | `clangd.arguments` | 传给 clangd 服务端的启动参数，比如 `["--background-index", "--clang-tidy"]` |
-    | `clangd.fallbackFlags` | 没有编译数据库时使用的保底编译标志 |
-    | `clangd.disableCompletion` | 设为 `true` 可关闭 clangd 的补全，但保留诊断和跳转 |
-    | `clangd.disableDiagnostics` | 关闭 clangd 的诊断信息 |
-
-    另外，coc.nvim 默认关闭语义高亮，想启用的话在配置里加 `"semanticTokens.enable": true`。
-
-    ### 排查思路
-
-    如果 clangd 没正常工作，先看日志：`:CocCommand workspace.showOutput`，选 clangd 的输出，能看到版本信息和报错。确认 clangd 路径和版本没问题后，重点检查 `compile_commands.json` 是否被正确找到，以及其中的编译参数是否适用于你当前打开的文件。如果是系统头文件解析出错，通常是编译数据库里的 include 路径或编译器驱动不匹配导致的。
-
-    * 如何跳转、补全、查看函数原型？
-
-        coc-clangd 本身不直接定义这些操作的快捷键，它只是把 clangd 的能力接入 coc.nvim。因此，**跳转、补全、查看函数原型**的实际按键取决于你在 `coc.nvim` 中的配置。社区最常见的做法如下：
-
-        ### 跳转
-
-        最常用的跳转是“转到定义”。你需要在 Vim 配置中自己映射一个快捷键，比如常用的 `gd`：
-
-        ```vim
-        nmap <silent> gd <Plug>(coc-definition)
-        ```
-
-        这个 `<Plug>(coc-definition)` 会调用 coc.nvim 的定义跳转功能。如果你想用命令，也可以执行 `:call CocAction('jumpDefinition')`。跳转后可以用 `<C-o>` 回到原来的位置。除了定义，coc.nvim 还支持跳转到类型定义（`<Plug>(coc-type-definition)`）、实现（`<Plug>(coc-implementation)`）和引用（`<Plug>(coc-references)`）。
-
-        ### 补全
-
-        补全不需要你手动触发（虽然也可以），正常输入时 clangd 会自动弹出补全列表。关键在于**如何选择和确认**补全项。如果你没有配置过，可能会觉得不顺手。一个常见的配置是让 `<Tab>` 选择下一项，`<CR>`（回车）确认：
-
-        ```vim
-        inoremap <silent><expr> <TAB> coc#pum#visible() ? coc#pum#next(1) : "\<Tab>"
-        inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm() : "\<CR>"
-        ```
-
-        如果想手动触发补全，可以映射 `<C-Space>` 到 `coc#refresh()`。补全能正常工作的大前提是 clangd 找到了 `compile_commands.json`，否则它连头文件里的函数都认不全，补全列表自然会缺失。
-
-        ### 查看函数原型
-
-        查看函数原型（参数提示）在 LSP 中叫“签名帮助”（Signature Help）。clangd 原生支持这个能力。在 coc.nvim 里，它通常**自动触发**：当你输入函数名和左括号 `(`，或者在参数之间输入逗号 `,` 时，签名帮助浮窗应该会自动出现。
-
-        如果浮窗没有出现，或者你想手动查看光标所在函数的签名，可以尝试执行：
-
-        ```vim
-        :call CocAction('showSignatureHelp')
-        ```
-
-        （不同版本的 coc.nvim 命令可能略有差异，如果这条不行，可以查看 `:h coc-actions` 找签名相关的 action。）
-
-        另外，如果你想看的“原型”是指**光标下符号的详细信息**（比如声明处、类型、文档），可以用 coc-clangd 提供的专用命令：
-
-        ```vim
-        :CocCommand clangd.symbolInfo
-        ```
-
-        这个命令会显示光标下符号的解析信息。
-
-        ---
-        ### 想让这些功能生效的前提
-
-        上述所有功能都依赖 clangd 正确解析你的代码。如果你发现跳转找不到定义、补全只有关键字没有函数、或者签名帮助不出现，**首要排查项是项目里有没有被 clangd 识别的 `compile_commands.json`**。没有它，clangd 就不知道你的 include 路径和编译宏，语义功能会大面积失效。
-
-* 详细讲讲 vim 中 Taglist  的用法
-
-    TagList 是 Vim 中一款经典的代码结构浏览插件，它依赖 ctags 生成标签索引，在侧边窗口以树状形式展示函数、变量、类等代码元素，方便你快速跳转和把握文件结构。虽然它是一款老插件，但对于习惯传统 Vim 操作、追求轻量化的用户来说依然实用。
-
-    ### 前提：安装与配置
-
-    使用 TagList 前，必须确保系统已安装 **Exuberant Ctags** 或 **Universal Ctags**，因为 TagList 本身不解析代码，而是调用 ctags 生成标签信息。
-
-    **1. 安装插件**
-    将下载的 `taglist.vim` 放入 `~/.vim/plugin/` 目录，帮助文档放入 `~/.vim/doc/`。若使用 Vim-plug 等插件管理器，在 `.vimrc` 中添加 `Plug 'vim-scripts/taglist.vim'` 并执行安装即可。
-
-    **2. 常用配置**
-    在 `~/.vimrc` 中加入以下配置，可让使用体验更顺手：
-
-    ```vim
-    " 设置 ctags 路径（通常无需改动，若 ctags 不在 PATH 中才需指定）
-    let Tlist_Ctags_Cmd = 'ctags'
-
-    " 仅显示当前文件的标签，避免多文件时列表过长
-    let Tlist_Show_One_File = 1
-
-    " 当 TagList 是最后一个窗口时，退出 Vim
-    let Tlist_Exit_OnlyWindow = 1
-
-    " 将 TagList 窗口放在右侧（默认在左侧）
-    let Tlist_Use_Right_Window = 1
-
-    " 单击标签即跳转（默认需要双击）
-    let Tlist_Use_SingleClick = 1
-
-    " 设置快捷键 F8 切换 TagList 开关
-    nnoremap <silent> <F8> :TlistToggle<CR>
-    ```
-
-
-    ### 核心命令与窗口内操作
-
-    安装配置好后，打开代码文件，输入 `:TlistToggle`（或按你设置的快捷键）即可开关窗口。TagList 窗口本质上是一个 Vim 分割窗口，你可以用 `Ctrl+w` 系列快捷键在它和代码窗口间切换焦点。
-
-    在 **TagList 窗口内**，可使用以下快捷键高效操作：
-
-    | 按键 | 功能 |
-    | :--- | :--- |
-    | **Enter** | 跳转到当前标签的定义处（光标移至代码窗口） |
-    | **o** | 在新分割窗口中打开标签定义 |
-    | **p** | 在预览窗口显示定义（焦点仍留在 TagList） |
-    | **Space** | 在状态栏显示标签原型（如函数签名） |
-    | **u** | 手动更新标签列表（适用于文件修改后未自动刷新的情况） |
-    | **s** | 切换排序方式（按名称或按出现顺序） |
-    | **x** | 放大/缩小 TagList 窗口 |
-    | **+ / -** | 展开 / 折叠当前标签节点 |
-    | **\* / =** | 全部展开 / 全部折叠 |
-    | **[[ / ]]** | 跳到前一个 / 后一个文件的起点 |
-    | **d** | 从列表中移除当前文件 |
-    | **q** | 关闭 TagList 窗口 |
-
-
-    ### 注意事项
-
-    - **保存文件后才更新**：TagList 通常在你保存文件后才会更新标签列表。如果刚添加了一个函数但列表里没有，先保存文件，再在 TagList 窗口按 `u` 手动刷新。
-    - **老旧插件的局限**：TagList 项目更新缓慢，对较新语言或复杂语法的支持可能不如后起之秀 **Tagbar**。如果发现某些代码结构无法正确显示，可以考虑换用 Tagbar（它同样基于 ctags，但解析和展示能力更强）。
-    - **窗口宽度**：如果 TagList 窗口太窄导致函数名显示不全，可以在 `.vimrc` 中设置 `let Tlist_WinWidth = 40`（数值按需调整）来固定宽度。
-
-    总的来说，TagList 的核心用法就是 **`:TlistToggle` 开关 + 回车跳转 + 空格看原型**。掌握这几个操作，就能在阅读大型项目代码时获得不错的导航体验。
-
-* printk()~ f [LS]  int  
-coc.vim 的这个提示是什么意思？
-
-    你看到的这行提示，是 coc.nvim 在你输入或补全时给出的**来源标识与符号信息**。
-
-    ### `[LS]` 的含义
-    `[LS]` 代表 **Language Server**。它明确告诉你，`printk` 这条补全或提示信息，是由后台的语言服务器（在你当前环境里就是 `clangd`）提供的，而不是来自文件系统（`[F]`）或代码片段（`[S]`）。
-
-    ### 整行 `printk()~ f [LS] int` 的拆解
-    虽然搜索结果没有直接解释每一个字符的官方定义，但结合 clangd 和 coc.nvim 的常见行为，可以这样理解：
-
-    *   **`printk()`**：符号名称，带括号表示它是一个函数（或函数式宏）。
-    *   **`~ f`**：这通常是 clangd 返回的**符号种类（Kind）** 的简写。`f` 很可能代表 **Function**。
-    *   **`[LS]`**：来源是 Language Server。
-    *   **`int`**：这是 `clangd` 解析出的**返回类型**。它告诉你，在当前编译配置下，`printk` 最终被解析为一个返回 `int` 的实体。
-
-    ### 结合你之前问题的关键判断
-    这行提示其实**确认了 clangd 正在工作**，并且能识别 `printk`。但它显示为 `int` 返回类型，恰恰暴露了内核开发中的一个典型现象：
-
-    `printk` 在内核中是通过宏（如 `#define printk(fmt, ...)`）包装的。clangd 倾向于展示**宏展开后**的底层函数签名，而不是宏本身。所以它看到的 `printk` 实际上可能是展开后的 `_printk` 或其他底层实现，其返回类型被解析为 `int`。
-
-    这也能解释为什么你之前觉得“看不到原型”——clangd 展示的可能不是你期望的宏定义，而是展开后的底层函数信息。如果你希望跳转到宏定义本身，可能需要依赖 Ctags/Cscope，或者检查 clangd 的索引是否完整覆盖了包含 `printk` 宏定义的头文件。
-
-* hello_exit [A]
-那这个呢
-
-    `[A]` 表示这个补全项来源于**当前缓冲区（buffer）**，也就是你当前正在编辑的文件里已经出现过的单词。
-
-    ### 拆解 `hello_exit [A]`
-
-    *   **`hello_exit`**：这是补全建议的词。结合你之前的上下文，这很可能是你驱动代码里的退出函数名（比如 `module_exit(hello_exit)` 里的那个函数）。
-    *   **`[A]`**：补全来源标识。coc.nvim 从当前 buffer 的文本里提取到了这个单词，并把它作为候选提供给你。它代表的是 **“Around”** 或 **“Buffer”** 来源，和你之前看到的 `[LS]`（来自 Language Server，如 clangd）是并列的。
-
-    所以，`hello_exit [A]` 的意思是：**coc.nvim 在当前文件里发现了 `hello_exit` 这个词，并提示你可以补全它。** 这属于基于文本的快速补全，不涉及语义分析，因此它不知道 `hello_exit` 的具体类型或原型，只是单纯复现你文件里已有的词。
-
-* $ bear -- make
-    wrapper: failed with: gRPC call failed: Socket closed
-
-    这个报错 `gRPC call failed: Socket closed` 的根本原因在于：**Bear 3.x 版本内部使用 gRPC 进行进程间通信，而你的环境中的某些网络配置（如代理设置或特殊网络模式）阻断了 Bear 自身与本地回环地址（localhost/127.0.0.1）的正常连接**。
-
-    针对你的 Linux 开发环境，按以下顺序排查通常能解决问题。
-
-    ### 首选方案：绕过代理
-
-    如果你在终端中设置了 `http_proxy` 或 `https_proxy`，Bear 的 gRPC 通信可能会被错误地导向代理服务器，从而导致连接失败。
-
-    在执行 `bear` 命令时，临时将 `localhost` 和 `127.0.0.1` 加入 `no_proxy` 环境变量：
-
-    ```bash
-    export no_proxy=localhost,127.0.0.1
-    bear -- make
-    ```
-
-    有用户反馈，在提前设置了代理的情况下，仅需 `export no_proxy=localhost` 即可解决该报错。如果上述命令生效，你可以将这一行加入你的 `~/.bashrc` 或 `~/.zshrc` 中永久生效。
-
-    **针对 KMD 开发的建议**
-
-    如果 Bear 在当前环境下始终不稳定，对于生成 `compile_commands.json` 这一目标，你可以考虑**直接让内核构建系统生成**。现代内核（以及部分外部模块的 `Makefile`）支持通过 `make compile_commands.json` 或设置 `COMPILATION_DATABASE=1` 来原生导出数据库，这比依赖 Bear 的拦截机制更可靠。你可以检查一下你的 KMD 构建系统是否支持这一特性。
-
-* 详细讲讲 bear 的用法
-
-    你问的应该是内核开发中用来生成 `compile_commands.json` 的 **Bear**（Build EAR），而不是 Mac 上的笔记软件。它的核心作用是：**拦截你的编译过程，记录下每一条编译命令，并生成一个供 clangd 等工具使用的 JSON 数据库**。有了这个文件，Vim/Neovim 配合 LSP 才能正确解析内核代码的宏、头文件路径和编译选项。
-
-    ### 安装
-
-    在 Ubuntu/Debian 上直接通过包管理器安装即可：
-    ```bash
-    sudo apt install bear
-    ```
-
-
-    ### 基本用法
-
-    Bear 的用法非常直观，就是在你原本的编译命令前加上 `bear --`。
-
-    **通用格式**：
-    ```bash
-    bear -- <你的编译命令>
-    ```
-
-
-    **针对内核模块（KMD）的典型用法**：
-    假设你有一个外部内核模块的 Makefile，通常这样编译：
-    ```bash
-    make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
-    ```
-    要生成数据库，只需要：
-    ```bash
-    bear -- make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
-    ```
-    执行完毕后，当前目录下会生成一个 `compile_commands.json` 文件。
-
-    **更优雅的做法（写入 Makefile）**：
-    为了避免每次手动敲长命令，可以在你的驱动 Makefile 里加一个专用目标，例如 `make bear`：
-    ```makefile
-    bear:
-        bear --append --output $(PWD)/compile_commands.json -- $(MAKE) -C $(KDIR) M=$(PWD) modules
-    ```
-    这样以后只需要运行 `make bear`，既能编译模块，又能顺便更新数据库。
-
-    ### 进阶与注意事项
-
-    **1. 追加模式（`--append`）**
-    如果你有多个独立的编译单元或模块，希望把结果汇总到同一个 `compile_commands.json` 里，一定要加 `--append` 参数，否则后一次 Bear 运行会覆盖掉之前的结果。
-
-    **2. 优先使用原生支持**
-    Bear 的原理是“拦截”编译调用，属于通用方案。如果你的项目（或内核部分构建系统）本身能直接导出 `compile_commands.json`（例如通过 CMake 的 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`），那么优先用原生方式，那样更快也更稳。Bear 更适合那些“只会闷头调用 gcc、不会主动告诉你它在干嘛”的传统 Makefile 工程。
-
-    **3. 版本差异**
-    Bear 在 4.x 版本后对命令结构做过调整（拆分出了 `intercept` 和 `semantic` 子命令）。如果你从旧教程里看到 `bear intercept -- ...` 或 `bear semantic` 的写法，那是针对特定版本的。对于绝大多数日常使用（尤其是通过发行版安装的稳定版），直接 `bear -- make ...` 这种经典写法通常是兼容且够用的。
-
-    **4. 配合 Vim 使用**
-    生成 `compile_commands.json` 后，如果你之前配置了 **coc.nvim + coc-clangd**，只需要确保 clangd 能找到这个文件（通常放在项目根目录或 `.cache` 下即可）。clangd 读取后，就能提供比 Ctags 更精准的语义跳转和补全，尤其是对于内核里那些复杂的宏定义和条件编译。
-
-    **总结**：对于你的 KMD 开发环境，用 `bear -- make ...` 生成数据库，然后交给 clangd 使用，是弥补 Ctags/Cscope 在“理解编译语义”方面不足的最佳补充。
-
-    注：
-
-    1. `bear -- make`增量编译时，make 不会执行任何编译命令，Bear 抓不到东西，会直接覆盖出一个空的 compile_commands.json
-
-        解决方案有两种：
-
-        1. 先 clean，再 make: `make clean && bear -- make`
-
-        2. 使用`--append`参数：`bear --append -- make`
-
-        对于内核源码本身，社区反馈 make compile_commands.json 的效果比 Bear 更好
-
-* 详细讲讲 Cscope 如何安装和使用
-
-    在 Linux KMD 开发中，Cscope 的核心价值在于快速分析函数间的调用关系。以下是针对你的环境整理的安装与使用方法。
-
-    ### 安装 Cscope
-
-    在绝大多数 Linux 发行版上，通过包管理器安装是最直接的方式。
-
-    对于 Ubuntu / Debian 系统，执行以下命令即可：
-    ```bash
-    sudo apt install cscope
-    ```
-
-
-    对于 Arch Linux 用户：
-    ```bash
-    sudo pacman -S cscope
-    ```
-
-
-    如果需要特定版本或包管理器不可用，也可以下载源码编译，标准流程是 `./configure --with-flex`、`make`、`sudo make install`。
-
-    ### 生成索引数据库
-
-    Cscope 需要先生成索引文件（默认为 `cscope.out`）才能工作。针对内核源码这种大型项目，建议在源码根目录执行以下命令：
-
-    ```bash
-    cscope -Rbkq
-    ```
-
-    各参数的含义如下：
-    *   **`-R`**：递归搜索所有子目录，这对于遍历内核树是必须的。
-    *   **`-b`**：仅构建数据库，不启动 Cscope 自带的交互界面。
-    *   **`-q`**：生成额外的 `cscope.in.out` 和 `cscope.po.out` 文件，能显著加快符号查找速度。
-    *   **`-k`**：指定内核模式，在生成索引时**不搜索** `/usr/include` 目录，避免系统头文件干扰内核代码的符号解析。
-
-    如果你只想索引特定的文件类型（例如只索引 `.c` 和 `.h` 文件，排除汇编或脚本），可以先列出文件清单再生成索引：
-    ```bash
-    find . -name "*.c" -o -name "*.h" > cscope.files
-    cscope -bkq -i cscope.files
-    ```
-
-
-    ### 在 Vim 中配置与使用
-
-    Vim 内置了对 Cscope 的支持，但需要手动配置一下，把索引数据库关联进来并映射快捷键。
-
-    **1. 基础配置**
-    将以下核心配置加入你的 `~/.vimrc` 文件中。这会在你打开 Vim 时自动在当前目录查找 `cscope.out`：
-
-    ```vim
-    if has("cscope")
-        " 指定 cscope 程序路径（通常不需要改）
-        set csprg=/usr/bin/cscope
-        " 优先搜索 cscope 数据库，找不到再找 ctags
-        set csto=0
-        " 让 :tag 和 Ctrl-] 也使用 cscope
-        set cst
-        " 加载当前目录的数据库，并关闭加载时的冗余提示
-        set nocsverb
-        if filereadable("cscope.out")
-            cs add cscope.out
-        endif
-        set csverb
-    endif
-    ```
-
-
-    **2. 快捷键映射**
-    手动敲 `:cs find` 比较繁琐，通常我们会把常用的查询映射到快捷键上。一个常见且顺手的方案是使用 `<C-\>`（Ctrl+反斜杠）作为前缀：
-
-    ```vim
-    " 查找符号出现的位置 (s)
-    nmap <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
-    " 查找定义 (g)
-    nmap <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
-    " 查找调用当前函数的函数 (c)
-    nmap <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
-    " 查找当前函数调用的函数 (d)
-    nmap <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
-    ```
-
-
-    **3. 核心查询类型说明**
-    配置好后，将光标放在函数名上，按下对应的快捷键组合即可跳转。以下是 KMD 开发中最常用的几种查询：
-
-    *   **`s` (Find symbol)**：查找函数名、变量、宏等符号**出现**的所有地方。
-    *   **`g` (Find definition)**：直接跳转到符号的**定义**处（类似 Ctags 的功能）。
-    *   **`c` (Find calling)**：查找**谁调用了**当前函数。这在分析驱动入口点或回调函数时非常有用。
-    *   **`d` (Find called)**：查找当前函数**调用了谁**，用于梳理代码逻辑。
-
-    ### 内核开发实用技巧
-
-    *   **保持索引更新**：修改内核代码或拉取新代码后，`cscope.out` 会过时。你可以将 `cscope -Rbkq` 绑定到一个 Vim 快捷键上（例如 `<F5>`），方便随时重建索引。
-    *   **配合 Quickfix 窗口**：设置 `set cscopequickfix=s-,c-,d-,i-,t-,e-` 可以让查询结果直接显示在 Vim 的 quickfix 窗口中，方便你像浏览编译错误一样，在多个匹配项之间快速跳转，而不是逐条查看。
-    *   **数据库路径**：如果你在子目录中打开 Vim 但想使用根目录的 `cscope.out`，可以在 `.vimrc` 中写死绝对路径：`cs add /path/to/kernel/root/cscope.out`。
-
 * Vim 8 自带的包管理（packadd )
 
 * linuxsty.vim (或 vim-linux-coding-style)：专门为内核开发设计的插件。它会自动应用内核的缩进规则（如 8 字符 Tab、行宽限制），并高亮显示违反规范的代码（如超过 100 列的行）。这能帮你避免因格式问题被维护者退回。
@@ -11557,6 +11170,33 @@ coc.vim 的这个提示是什么意思？
         这样，Ctrl + V 就会变回块选择模式，u 依然是撤销，所有 Windows 的“入侵”映射都会消失。
 
 ### 多窗口
+
+* vm 中 vsplit 可以打开远程文件的窗口吗
+
+    可以的，`vsplit` 本身就能在垂直分屏中打开远程文件，前提是远程路径的写法要正确。
+
+    ### 在 Vim 中直接打开
+    你可以在 Vim 命令行模式下，把 `vsplit` 和远程文件路径结合起来用。Vim 的 netrw 插件支持 `scp://`、`ftp://` 等协议。
+
+    例如，用 `scp` 协议打开远程主机上的文件：
+    ```vim
+    :vsplit scp://用户名@远程主机IP//绝对路径/文件名
+    ```
+    注意主机名后面通常是**两个斜杠** `//`，再接文件的绝对路径。
+
+    如果是通过 FTP 或共享文件夹，也可以类似操作：
+    ```vim
+    :vsplit ftp://192.168.10.76/file.txt
+    :vsplit //network_drive/share/file.txt
+    ```
+
+
+    ### 需要注意
+    - **连接前提**：使用 `scp://` 时，你的本机需要能通过 SSH 密钥或密码连接到远程主机，否则 Vim 会提示输入密码。
+    - **如果 `vsplit` 后直接写路径不生效**：可以分两步走，先执行 `:vsplit`（或 `:vsp`）切分窗口，再用 `:e 远程路径` 在空窗口中加载文件。
+
+    ---
+    **补充**：如果你说的 “vm” 是指 **Visual Studio Code** 而不是 Vim，那情况就不同了。VS Code 里没有 `vsplit` 命令，但你可以用 “Remote - SSH” 扩展连接远程机器后，直接正常地分屏打开远程文件。
 
 * vim 设置一个分窗口跟随另一个分窗口滚动
 
@@ -22864,57 +22504,254 @@ coc.vim 的这个提示是什么意思？
 
 ### plugin
 
-* vim-markdown 插件的折叠，只支持按 # 标题折叠，不支持按 * 无序列表折叠
+* 详细讲讲 vim 中 Taglist  的用法
 
-* vim coc.nvim 如何手动显示函数参数的悬浮窗
+    TagList 是 Vim 中一款经典的代码结构浏览插件，它依赖 ctags 生成标签索引，在侧边窗口以树状形式展示函数、变量、类等代码元素，方便你快速跳转和把握文件结构。虽然它是一款老插件，但对于习惯传统 Vim 操作、追求轻量化的用户来说依然实用。
 
-	在 `coc.nvim` 中，手动触发显示当前函数参数或函数签名的悬浮窗（Signature Help），默认的命令是 `:call CocActionAsync('showSignatureHelp')`。
+    ### 前提：安装与配置
 
-	为了方便使用，你可以将其绑定到一个快捷键上。请将以下代码加入到你的 `init.vim` 或 `.vimrc` 中：
+    使用 TagList 前，必须确保系统已安装 **Exuberant Ctags** 或 **Universal Ctags**，因为 TagList 本身不解析代码，而是调用 ctags 生成标签信息。
 
-	```vim
-	" 使用 <leader>k 手动触发函数参数悬浮窗
-	nmap <silent> <leader>k <Plug>(coc-signature-help)
-	imap <silent> <c-k> <Plug>(coc-signature-help)
-	```
+    **1. 安装插件**
+    将下载的 `taglist.vim` 放入 `~/.vim/plugin/` 目录，帮助文档放入 `~/.vim/doc/`。若使用 Vim-plug 等插件管理器，在 `.vimrc` 中添加 `Plug 'vim-scripts/taglist.vim'` 并执行安装即可。
 
-	💡 进阶技巧：让它在输入时自动显示
+    **2. 常用配置**
+    在 `~/.vimrc` 中加入以下配置，可让使用体验更顺手：
 
-	如果你希望在输入括号 `(` 或逗号 `,` 时自动弹出参数提示，可以在 Vim 中运行 `:CocConfig` 打开配置文件，并添加/确认以下配置：
+    ```vim
+    " 设置 ctags 路径（通常无需改动，若 ctags 不在 PATH 中才需指定）
+    let Tlist_Ctags_Cmd = 'ctags'
 
-	```json
-	{
-	  "suggest.autoTrigger": "always",
-	  "signature.autoTrigger": true,
-	  "signature.triggerSignatureHelp": true
-	}
-	```
+    " 仅显示当前文件的标签，避免多文件时列表过长
+    let Tlist_Show_One_File = 1
 
-	这样通常就不需要频繁手动去按快捷键了。 
+    " 当 TagList 是最后一个窗口时，退出 Vim
+    let Tlist_Exit_OnlyWindow = 1
 
-    注：
+    " 将 TagList 窗口放在右侧（默认在左侧）
+    let Tlist_Use_Right_Window = 1
 
-    1. 如果是正常模式下希望手动显示函数签名，那么 `call CocActionAsync('showSignatureHelp')` 这个似乎没什么用。
+    " 单击标签即跳转（默认需要双击）
+    let Tlist_Use_SingleClick = 1
 
-	    此时可以触发“悬浮窗文档”（Hover）:
+    " 设置快捷键 F8 切换 TagList 开关
+    nnoremap <silent> <F8> :TlistToggle<CR>
+    ```
+
+
+    ### 核心命令与窗口内操作
+
+    安装配置好后，打开代码文件，输入 `:TlistToggle`（或按你设置的快捷键）即可开关窗口。TagList 窗口本质上是一个 Vim 分割窗口，你可以用 `Ctrl+w` 系列快捷键在它和代码窗口间切换焦点。
+
+    在 **TagList 窗口内**，可使用以下快捷键高效操作：
+
+    | 按键 | 功能 |
+    | :--- | :--- |
+    | **Enter** | 跳转到当前标签的定义处（光标移至代码窗口） |
+    | **o** | 在新分割窗口中打开标签定义 |
+    | **p** | 在预览窗口显示定义（焦点仍留在 TagList） |
+    | **Space** | 在状态栏显示标签原型（如函数签名） |
+    | **u** | 手动更新标签列表（适用于文件修改后未自动刷新的情况） |
+    | **s** | 切换排序方式（按名称或按出现顺序） |
+    | **x** | 放大/缩小 TagList 窗口 |
+    | **+ / -** | 展开 / 折叠当前标签节点 |
+    | **\* / =** | 全部展开 / 全部折叠 |
+    | **[[ / ]]** | 跳到前一个 / 后一个文件的起点 |
+    | **d** | 从列表中移除当前文件 |
+    | **q** | 关闭 TagList 窗口 |
+
+
+    ### 注意事项
+
+    - **保存文件后才更新**：TagList 通常在你保存文件后才会更新标签列表。如果刚添加了一个函数但列表里没有，先保存文件，再在 TagList 窗口按 `u` 手动刷新。
+    - **老旧插件的局限**：TagList 项目更新缓慢，对较新语言或复杂语法的支持可能不如后起之秀 **Tagbar**。如果发现某些代码结构无法正确显示，可以考虑换用 Tagbar（它同样基于 ctags，但解析和展示能力更强）。
+    - **窗口宽度**：如果 TagList 窗口太窄导致函数名显示不全，可以在 `.vimrc` 中设置 `let Tlist_WinWidth = 40`（数值按需调整）来固定宽度。
+
+    总的来说，TagList 的核心用法就是 **`:TlistToggle` 开关 + 回车跳转 + 空格看原型**。掌握这几个操作，就能在阅读大型项目代码时获得不错的导航体验。
+
+* vim 有什么有关 fold 折叠的插件
+
+    Vim 自带的折叠功能已经比较基础，相关的插件主要围绕**提升性能、增强可读性、针对特定语言/文件类型**以及**提供更便捷的操作**这几个方面展开。下面是一些值得关注的插件：
+
+    ### 性能与体验优化
+
+    - **FastFold**：如果你的折叠操作（尤其是使用语法折叠时）感觉卡顿，这个插件几乎是必备的。它通过延迟计算来显著提升 Vim 折叠的响应速度，常被其他折叠插件推荐配合使用。
+    - **vim-readablefold**：觉得 Vim 默认的折叠文本显示不够美观？这个插件可以改善折叠行的显示效果，让折叠文本从内容开头显示，并用竖线直观地表示折叠层级。
+    - **fold-ribbon.nvim**：针对 Neovim 用户，它可以在 `statuscolumn` 中直观地显示折叠的深度，让你对代码结构一目了然。
+
+    ### 针对特定文件类型
+
+    - **vim-markdown-folding**：专为 Markdown 设计。它能根据标题层级来折叠章节，并且支持折叠围栏代码块，比 Vim 默认的 indent 折叠方式要精准得多。
+    - **SimpylFold**：为 Python 提供更“聪明”的折叠。它只折叠类、函数/方法定义，而不会去折叠循环和条件块，避免了单纯使用 indent 折叠时产生的干扰。
+    - **vim-foldout**：这是一个基于大纲（Outline）的折叠插件，利用 Markdown 风格的注释标题（如 `#`）来定义折叠区域，并自动高亮这些标题，适合在代码中维护结构化注释的场景。
+
+    ### 操作与导航增强
+
+    - **fzf-folds.vim**：如果你喜欢用 fzf 进行模糊查找，这个插件可以让你在所有折叠之间进行模糊搜索和跳转，方便在大型文件中快速定位。
+    - **ZFVimFoldBlock**：提供了基于正则表达式的灵活折叠命令（如 `:ZFFoldBlock`），可以按需折叠匹配特定模式的多行代码块，适合处理非标准结构的折叠需求。
+
+    ### 如何选择
+
+    如果你的痛点是**性能**，优先加装 **FastFold**。如果是**写特定语言**（如 Markdown、Python），选择对应的语言插件效果最直接。如果希望**操作更顺手**，可以试试 **fzf-folds.vim** 或 **ZFVimFoldBlock**。
+
+    另外，如果你在保存文件后经常丢失折叠状态，可以考虑配合 **vim-stay** 使用，它能帮助持久化视图（包括折叠信息）。
+
+* 有没有有关递归折叠的插件
+
+    专门主打“递归折叠”的插件很少，因为 Vim 和 Neovim 本身就内置了递归折叠的命令（`zC` 递归关闭、`zO` 递归打开、`zA` 递归切换）。不过，确实有插件通过自定义快捷键或增强操作逻辑，让递归折叠用起来更顺手。
+
+    ### 可考虑的两个插件
+
+    **nvim-origami**（Neovim 专用）
+    它重新映射了 `h`、`l`、`^`、`$` 键。其中 `^` 和 `$` 的行为就等同于递归折叠/展开：`^` 在折叠行上会递归折叠，`$` 则递归展开。如果你希望用更自然的移动键来触发递归折叠，这个插件符合需求。
+
+    **fold-cycle.nvim**（Neovim）或 **vim-fold-cycle**（Vim/Neovim）
+    这两个插件主打“循环”折叠。它们的 `close_all` / `toggle_all` 功能，会一次性关闭或切换光标下折叠及其内部所有嵌套折叠，本质上就是一种递归操作。如果你想要的是“一键收起当前章节的所有层级”，这类插件比单纯按 `zC` 更直观。
+
+    ### 简单结论
+
+    如果你只是想要递归折叠的功能，**直接用 Vim 内置的 `zC`/`zO`/`zA` 就足够了**，不需要额外装插件。只有当你希望更换操作按键（如 nvim-origami 的 `^`/`$`）或需要“循环式”的层级收放体验时，上述插件才有额外价值。另外，这些增强插件大多面向 Neovim，纯 Vim 用户的选择相对有限。
+
+* 详细讲讲vim-fold-cycle
+
+    `vim-fold-cycle` 是一个为 Vim 提供“循环折叠”功能的插件，其设计灵感类似 Emacs 的 org-mode：每次触发时，它并非简单地打开或关闭折叠，而是逐层展开或收起光标下的嵌套折叠，从而让你在折叠层级间平滑切换。
+
+    ### 核心操作方式
+
+    插件默认不占用太多按键，主要通过两个快捷键工作：
+
+    *   **展开（Cycle Open）**：默认按键是 `<CR>`（回车）。按下后，光标下的折叠会展开**下一层**嵌套内容；如果已经全部展开，再次按下通常会循环回到关闭状态（取决于配置）。
+    *   **收起（Cycle Close）**：默认按键是 `<BS>`（退格）。作用与展开相反，逐层收起嵌套折叠。
+
+    ### 自定义配置
+
+    如果你不想用默认按键，或者想调整循环行为，可以在 `vimrc` 中进行配置。
+
+    **1. 禁用默认映射并修改按键**
+    如果你习惯用 Tab 键操作，可以禁用默认映射，改用 `<Plug>` 映射来绑定自己的快捷键：
+
+    ```vim
+    " 禁用默认的 <CR> 和 <BS> 映射
+    let g:fold_cycle_default_mapping = 0
+
+    " 绑定 <Tab> 展开，<S-Tab> 收起
+    nmap <Tab> <Plug>(fold-cycle-open)
+    nmap <S-Tab> <Plug>(fold-cycle-close)
+    ```
+
+    **2. 控制循环边界行为**
+    你可以通过两个变量控制“全部展开/收起后”是否循环到另一端：
+
+    ```vim
+    " 当折叠已完全展开时，再次按展开键不会将其关闭（设为 0 禁用循环）
+    let g:fold_cycle_toggle_max_open = 0
+
+    " 当折叠已完全关闭时，再次按收起键不会将其展开
+    let g:fold_cycle_toggle_max_close = 0
+    ```
+
+    ### 与 Neovim 替代品的关系
+
+    需要注意，`vim-fold-cycle` 是纯 Vimscript 插件，主要面向 Vim 用户。如果你使用的是 Neovim，社区中有一个受它启发但重写的 Lua 版本 `fold-cycle.nvim`。那个版本默认**不设置任何按键**，需要你手动绑定，并且额外提供了 `open_all`、`close_all`、`toggle_all` 等更丰富的函数接口。如果你在 Neovim 上使用，可以考虑那个版本以获得更原生的 Lua 体验；如果是 Vim 用户，则直接使用 `vim-fold-cycle` 即可。
+
+* 详细讲讲 coc-clangd 的用法
+
+    coc-clangd 是 coc.nvim 的扩展，作用是把 clangd 语言服务器接入 Vim/Neovim，为 C/C++ 等语言提供补全、诊断、跳转等能力。下面从安装、项目配置、常用命令、关键配置到排查思路，完整讲一下用法。
+
+    ### 安装与首次启动
+
+    先决条件是 Node.js 和 coc.nvim 已经装好。然后在 Vim 中执行 `:CocInstall coc-clangd`。
+
+    coc-clangd 默认会从 `$PATH` 里找 `clangd`。如果找不到，可以用 `:CocCommand clangd.install` 让扩展从 GitHub 下载一份 clangd 二进制。注意：如果你之前已经在 `coc-settings.json` 里把 `clangd` 配成了 `languageserver`，要先删掉那段配置，否则 clangd 会被启动两次。
+
+    ### 项目配置：compile_commands.json 是核心
+
+    clangd 要知道每个源文件的编译参数，才能正确解析代码。最推荐的方式是生成 `compile_commands.json`。CMake 项目可以在配置时加 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`；其他构建系统可以用 Bear 等工具生成。只要这个文件在项目根目录或构建目录里，clangd 通常就能自动找到。
+
+    如果暂时没有编译数据库，可以用 `clangd.fallbackFlags` 给一个保底编译参数，比如 `["-std=c++20"]`。需要指定编译数据库位置时，用 `clangd.compilationDatabasePath`；有多个候选目录时用 `clangd.compilationDatabaseCandidates`，支持 `${workspaceFolder}` 变量。
+
+    ### 常用命令
+
+    coc-clangd 提供了一批以 `:CocCommand` 开头的命令：
+
+    - **`clangd.switchSourceHeader`**：在头文件和实现文件之间切换。加 `vsplit` 参数可以分屏打开，例如 `:CocCommand clangd.switchSourceHeader vsplit`。
+    - **`clangd.symbolInfo`**：查看光标下符号的详细信息。
+    - **`clangd.ast`**：显示当前文件的抽象语法树，调试解析问题时有用。
+    - **`clangd.memoryUsage`**：查看 clangd 的内存占用。
+    - **`clangd.install`** / **`clangd.update`**：安装或检查更新 clangd 二进制。
+    - **`clangd.projectConfig`** / **`clangd.userConfig`**：打开项目级或用户级 clangd 配置文件。
+
+    ### 关键配置项
+
+    配置写在 `coc-settings.json` 里，用 `:CocConfig` 打开全局配置，用 `:CocLocalConfig` 打开项目本地配置。
+
+    几个常用的：
+
+    | 配置项 | 作用 |
+    |---|---|
+    | `clangd.path` | 指定 clangd 可执行文件路径，适合你想手动控制版本时用 |
+    | `clangd.arguments` | 传给 clangd 服务端的启动参数，比如 `["--background-index", "--clang-tidy"]` |
+    | `clangd.fallbackFlags` | 没有编译数据库时使用的保底编译标志 |
+    | `clangd.disableCompletion` | 设为 `true` 可关闭 clangd 的补全，但保留诊断和跳转 |
+    | `clangd.disableDiagnostics` | 关闭 clangd 的诊断信息 |
+
+    另外，coc.nvim 默认关闭语义高亮，想启用的话在配置里加 `"semanticTokens.enable": true`。
+
+    ### 排查思路
+
+    如果 clangd 没正常工作，先看日志：`:CocCommand workspace.showOutput`，选 clangd 的输出，能看到版本信息和报错。确认 clangd 路径和版本没问题后，重点检查 `compile_commands.json` 是否被正确找到，以及其中的编译参数是否适用于你当前打开的文件。如果是系统头文件解析出错，通常是编译数据库里的 include 路径或编译器驱动不匹配导致的。
+
+    * 如何跳转、补全、查看函数原型？
+
+        coc-clangd 本身不直接定义这些操作的快捷键，它只是把 clangd 的能力接入 coc.nvim。因此，**跳转、补全、查看函数原型**的实际按键取决于你在 `coc.nvim` 中的配置。社区最常见的做法如下：
+
+        ### 跳转
+
+        最常用的跳转是“转到定义”。你需要在 Vim 配置中自己映射一个快捷键，比如常用的 `gd`：
 
         ```vim
-        " 使用 K (大写) 键触发悬浮窗文档
-        nnoremap <silent> K :call ShowDocumentation()<CR>
-
-        function! ShowDocumentation()
-          if CocAction('hasProvider', 'hover')
-            call CocActionAsync('doHover')
-          else
-            call feedkeys('K', 'in')
-          endif
-        endfunction
-
+        nmap <silent> gd <Plug>(coc-definition)
         ```
 
-        > **使用方法**：在普通模式下，把光标移到函数名上，按下大写的 **`K`**。
+        这个 `<Plug>(coc-definition)` 会调用 coc.nvim 的定义跳转功能。如果你想用命令，也可以执行 `:call CocAction('jumpDefinition')`。跳转后可以用 `<C-o>` 回到原来的位置。除了定义，coc.nvim 还支持跳转到类型定义（`<Plug>(coc-type-definition)`）、实现（`<Plug>(coc-implementation)`）和引用（`<Plug>(coc-references)`）。
 
-        `call CocActionAsync('doHover')`这个似乎是可行的。
+        ### 补全
+
+        补全不需要你手动触发（虽然也可以），正常输入时 clangd 会自动弹出补全列表。关键在于**如何选择和确认**补全项。如果你没有配置过，可能会觉得不顺手。一个常见的配置是让 `<Tab>` 选择下一项，`<CR>`（回车）确认：
+
+        ```vim
+        inoremap <silent><expr> <TAB> coc#pum#visible() ? coc#pum#next(1) : "\<Tab>"
+        inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm() : "\<CR>"
+        ```
+
+        如果想手动触发补全，可以映射 `<C-Space>` 到 `coc#refresh()`。补全能正常工作的大前提是 clangd 找到了 `compile_commands.json`，否则它连头文件里的函数都认不全，补全列表自然会缺失。
+
+        ### 查看函数原型
+
+        查看函数原型（参数提示）在 LSP 中叫“签名帮助”（Signature Help）。clangd 原生支持这个能力。在 coc.nvim 里，它通常**自动触发**：当你输入函数名和左括号 `(`，或者在参数之间输入逗号 `,` 时，签名帮助浮窗应该会自动出现。
+
+        如果浮窗没有出现，或者你想手动查看光标所在函数的签名，可以尝试执行：
+
+        ```vim
+        :call CocAction('showSignatureHelp')
+        ```
+
+        （不同版本的 coc.nvim 命令可能略有差异，如果这条不行，可以查看 `:h coc-actions` 找签名相关的 action。）
+
+        另外，如果你想看的“原型”是指**光标下符号的详细信息**（比如声明处、类型、文档），可以用 coc-clangd 提供的专用命令：
+
+        ```vim
+        :CocCommand clangd.symbolInfo
+        ```
+
+        这个命令会显示光标下符号的解析信息。
+
+        ---
+        ### 想让这些功能生效的前提
+
+        上述所有功能都依赖 clangd 正确解析你的代码。如果你发现跳转找不到定义、补全只有关键字没有函数、或者签名帮助不出现，**首要排查项是项目里有没有被 clangd 识别的 `compile_commands.json`**。没有它，clangd 就不知道你的 include 路径和编译宏，语义功能会大面积失效。
+
+* vim-markdown 插件的折叠，只支持按 # 标题折叠，不支持按 * 无序列表折叠
 
 * 详细讲讲 vim-repeat 插件
 
@@ -26372,6 +26209,472 @@ coc.vim 的这个提示是什么意思？
         :PluginInstall
         ```
 
+#### cscope
+
+* 详细讲讲 vim 中 cscope 的用法
+
+    在 Vim 中使用 cscope，核心流程分为三步：**建库、连库、查库**。它比 ctags 更强大，尤其擅长查找“谁调用了这个函数”、“这个函数调用了谁”这类交叉引用关系，主要服务于 C/C++ 项目。
+
+    **🛠️ 基础准备：建库与连库**
+
+    1. 生成 cscope 数据库
+
+        在项目根目录下执行，`-R` 表示递归，`-b` 表示仅构建数据库不进入界面，`-q` 会生成加速索引文件（可选但推荐）：
+
+        ```bash
+        cscope -Rbq
+        ```
+
+        这会生成 `cscope.out` 文件。如果项目很大，建议将文件列表存入 `cscope.files` 再建库，避免扫描无关文件。
+
+    2. 在 Vim 中连接数据库
+
+        启动 Vim 后，手动执行或在 `.vimrc` 中自动加载：
+
+        ```vim
+        :cs add cscope.out
+        ```
+
+        一个健壮的 `.vimrc` 自动加载配置如下：
+
+        ```vim
+        if has("cscope")
+            " 指定 cscope 程序路径（通常无需修改）
+            " set csprg=/usr/bin/cscope
+            
+            " 优先搜索 cscope 数据库，找不到再找 tags
+            set csto=0
+            " 让 CTRL-] 同时使用 cscope 和 ctags
+            set cst
+            
+            " 自动加载当前目录或 $CSCOPE_DB 指向的数据库
+            if filereadable("cscope.out")
+                cs add cscope.out
+            elseif $CSCOPE_DB != ""
+                cs add $CSCOPE_DB
+            endif
+        endif
+        ```
+
+    **🔍 核心用法：查询命令与快捷键**
+
+    Vim 通过 `:cs find {type} {name}` 调用 cscope。为了高效，通常会把常用查询映射到快捷键上。
+
+    **8 种查询类型（type）**：
+
+    | 缩写 | 数字 | 含义 |
+    | :--- | :--- | :--- |
+    | **s** | 0 | 查找 C 符号（所有出现位置） |
+    | **g** | 1 | 查找**定义**（全局定义） |
+    | **d** | 2 | 查找**本函数调用的函数** |
+    | **c** | 3 | 查找**调用本函数的函数** |
+    | **t** | 4 | 查找文本字符串 |
+    | **e** | 6 | 查找 egrep 模式 |
+    | **f** | 7 | 查找文件 |
+    | **i** | 8 | 查找包含（#include）本文件的文件 |
+
+    **推荐快捷键映射**
+
+    将光标置于函数名上，按 `<C-\>` 然后按 `c`，即可快速查看谁调用了它：
+
+    ```vim
+    " 在当前窗口跳转
+    nmap <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+
+    " 水平分屏显示结果（scs）
+    nmap <C-Space>s :scs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-Space>c :scs find c <C-R>=expand("<cword>")<CR><CR>
+    ```
+
+    **⚙️ 进阶优化与排错**
+
+    1. 使用 Quickfix 窗口收纳结果
+
+        默认 cscope 会在底部弹出选择列表，用 `cscopequickfix` 可以让结果进入 Quickfix 窗口，方便用 `:cn` / `:cp` 跳转：
+
+        ```vim
+        " s-, c-, d- 等表示对应查询类型使用 quickfix，并清空之前结果
+        set cscopequickfix=s-,c-,d-,i-,t-,e-
+        ```
+
+    2. 路径显示优化
+
+        如果结果列表里的文件名路径太长，可以设置 `cspc` 只显示末尾几段：
+
+        ```vim
+        " 只显示文件路径的最后 2 段
+        set cspc=2
+        ```
+
+    3. 常见坑点
+
+        - **找不到定义**：确认是否在**项目根目录**启动的 Vim，或者是否用 `cs add` 添加了正确路径的 `cscope.out`。
+        - **索引过时**：代码改动后，cscope 不会自动更新。需要手动重新执行 `cscope -Rbq`，或在 Vim 内用 `:!cscope -Rbq` 更新。
+        - **跳转回退**：和 ctags 一样，用 `Ctrl-T` 可以跳回跳转前的位置。
+
+* 详细讲讲 Cscope 如何安装和使用
+
+    在 Linux KMD 开发中，Cscope 的核心价值在于快速分析函数间的调用关系。以下是针对你的环境整理的安装与使用方法。
+
+    **安装 Cscope**
+
+    在绝大多数 Linux 发行版上，通过包管理器安装是最直接的方式。
+
+    对于 Ubuntu / Debian 系统，执行以下命令即可：
+
+    ```bash
+    sudo apt install cscope
+    ```
+
+    **生成索引数据库**
+
+    Cscope 需要先生成索引文件（默认为 `cscope.out`）才能工作。针对内核源码这种大型项目，建议在源码根目录执行以下命令：
+
+    ```bash
+    cscope -Rbkq
+    ```
+
+    各参数的含义如下：
+
+    *   `-R`： 递归搜索所有子目录，这对于遍历内核树是必须的。
+    *   `-b`： 仅构建数据库，不启动 Cscope 自带的交互界面。
+    *   `-q`： 生成额外的 `cscope.in.out` 和 `cscope.po.out` 文件，能显著加快符号查找速度。
+    *   `-k`： 指定内核模式，在生成索引时**不搜索** `/usr/include` 目录，避免系统头文件干扰内核代码的符号解析。
+
+    如果你只想索引特定的文件类型（例如只索引 `.c` 和 `.h` 文件，排除汇编或脚本），可以先列出文件清单再生成索引：
+
+    ```bash
+    find . -name "*.c" -o -name "*.h" > cscope.files
+    cscope -bkq -i cscope.files
+    ```
+
+    **在 Vim 中配置与使用**
+
+    Vim 内置了对 Cscope 的支持，但需要手动配置一下，把索引数据库关联进来并映射快捷键。
+
+    1. 基础配置
+
+        将以下核心配置加入你的 `~/.vimrc` 文件中。这会在你打开 Vim 时自动在当前目录查找 `cscope.out`：
+
+        ```vim
+        if has("cscope")
+            " 指定 cscope 程序路径（通常不需要改）
+            set csprg=/usr/bin/cscope
+            " 优先搜索 cscope 数据库，找不到再找 ctags
+            set csto=0
+            " 让 :tag 和 Ctrl-] 也使用 cscope
+            set cst
+            " 加载当前目录的数据库，并关闭加载时的冗余提示
+            set nocsverb
+            if filereadable("cscope.out")
+                cs add cscope.out
+            endif
+            set csverb
+        endif
+        ```
+
+    2. 快捷键映射
+
+        手动敲 `:cs find` 比较繁琐，通常我们会把常用的查询映射到快捷键上。一个常见且顺手的方案是使用 `<C-\>`（Ctrl+反斜杠）作为前缀：
+
+        ```vim
+        " 查找符号出现的位置 (s)
+        nmap <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+        " 查找定义 (g)
+        nmap <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+        " 查找调用当前函数的函数 (c)
+        nmap <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+        " 查找当前函数调用的函数 (d)
+        nmap <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+        ```
+
+    3. 核心查询类型说明
+
+        配置好后，将光标放在函数名上，按下对应的快捷键组合即可跳转。以下是 KMD 开发中最常用的几种查询：
+
+        * `s` (Find symbol)： 查找函数名、变量、宏等符号**出现**的所有地方。
+        * `g` (Find definition)： 直接跳转到符号的**定义**处（类似 Ctags 的功能）。
+        * `c` (Find calling)： 查找**谁调用了**当前函数。这在分析驱动入口点或回调函数时非常有用。
+        * `d` (Find called)： 查找当前函数**调用了谁**，用于梳理代码逻辑。
+
+    **内核开发实用技巧**
+
+    *   **保持索引更新**：修改内核代码或拉取新代码后，`cscope.out` 会过时。你可以将 `cscope -Rbkq` 绑定到一个 Vim 快捷键上（例如 `<F5>`），方便随时重建索引。
+
+    *   **配合 Quickfix 窗口**：设置 `set cscopequickfix=s-,c-,d-,i-,t-,e-` 可以让查询结果直接显示在 Vim 的 quickfix 窗口中，方便你像浏览编译错误一样，在多个匹配项之间快速跳转，而不是逐条查看。
+
+    *   **数据库路径**：如果你在子目录中打开 Vim 但想使用根目录的 `cscope.out`，可以在 `.vimrc` 中写死绝对路径：`cs add /path/to/kernel/root/cscope.out`。
+
+#### coc.vim
+
+* coc.nvim + coc-clangd
+
+    * 安装
+
+        1. 安装 vim-plug
+
+        2. 安装 coc.nvim
+
+            如果是 vim 9，那么直接安装最新版：
+
+            `Plug 'neoclide/coc.nvim'`
+
+            如果是 vim 8.2，那么安装 8.2 版本：
+
+            `Plug 'neoclide/coc.nvim', {'tag': 'v0.0.82'}`
+
+            如果之前安装错版本了，那么只需要`:PlugUpdate`就可以更新过来了。
+
+            在 vim plug 安装 coc.nvim 的过程中，不一定显示 tag 名称。具体查看 coc.nvim 的 tag 的方法，可以到`cd ~/.vim/plugged/coc.nvim`目录下，执行`git describe --tags`来查看。
+
+        3. 安装 clangd
+
+            `sudo apt install clangd`
+
+        4. 安装 nodejs
+
+            直接去官网安装：<https://nodejs.org>
+
+        5. 安装 coc-clangd
+
+            `:CocInstall coc-clangd`
+
+    * 使用 coc-clangd
+
+        你主要需要关注**配置文件**、**编译数据库**和**常用快捷键**这三点：
+
+        1. 配置文件 (`coc-settings.json`)
+
+            在 Vim 中输入 `:CocConfig` 会打开一个 JSON 文件。这是配置 `clangd` 行为的地方。建议加入以下基础配置：
+
+            ```json
+            {
+              "clangd.path": "clangd",
+              "clangd.arguments": [
+                "--background-index",     // 后台索引整个项目
+                "--clang-tidy",           // 开启代码检查
+                "--header-insertion=never" // 禁止自动导入头文件（可选）
+              ]
+            }
+            ```
+
+        2. 编译数据库 (`compile_commands.json`)
+
+            这是 `clangd` 能够精准跳转的关键。`clangd` 需要知道你的代码是怎么编译的（包含哪些头文件路径）。
+
+            * CMake 项目：在执行 cmake 时加上 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`。
+
+            * Makefile/其他项目：安装 `bear` 工具，通过 `bear -- make` 编译来生成该文件。
+
+            * 单文件：如果只是写简单的 `.cpp`，`clangd` 会默认查找系统头文件，通常不需要此文件。
+
+        3. 核心快捷键 (建议配置)
+
+            将以下代码加入你的 `.vimrc`，这样你就能通过快捷键实现 IDE 功能：
+
+            * `gd`: 跳转到定义 (Go Definition)
+            * `K`: 显示悬浮文档 (Hover Documentation)
+            * `<leader>rn`: 变量重命名 (Rename)
+            * `[g` 和 `]g`: 在语法错误间跳转
+
+        **验证使用**
+
+        1. 打开一个 `.cpp` 文件。
+
+        2. 输入 `:CocInfo`，确认 `clangd` 服务处于 `Service: clangd ... running` 状态。
+
+        3. 试着把光标移动到一个函数名上，按下 `gd`，看是否能跳转。
+
+        为了让你的开发环境更加完整，我们可以进一步完善具体的配置细节。
+
+        通过以下操作可以进一步优化你的 C++ 编码体验：
+
+        * 生成 C++ 开发专用的 coc-settings.json 完整模板
+        * 配置 coc.nvim 的 C++ 常用跳转与重构快捷键
+        * 编写针对不同构建系统的编译数据库生成指南
+
+* coc.nvim 如何手动显示函数参数的悬浮窗
+
+	在 `coc.nvim` 中，手动触发显示当前函数参数或函数签名的悬浮窗（Signature Help），默认的命令是 `:call CocActionAsync('showSignatureHelp')`。
+
+	为了方便使用，你可以将其绑定到一个快捷键上。请将以下代码加入到你的 `init.vim` 或 `.vimrc` 中：
+
+	```vim
+	" 使用 <leader>k 手动触发函数参数悬浮窗
+	nmap <silent> <leader>k <Plug>(coc-signature-help)
+	imap <silent> <c-k> <Plug>(coc-signature-help)
+	```
+
+	💡 进阶技巧：让它在输入时自动显示
+
+	如果你希望在输入括号 `(` 或逗号 `,` 时自动弹出参数提示，可以在 Vim 中运行 `:CocConfig` 打开配置文件，并添加/确认以下配置：
+
+	```json
+	{
+	  "suggest.autoTrigger": "always",
+	  "signature.autoTrigger": true,
+	  "signature.triggerSignatureHelp": true
+	}
+	```
+
+	这样通常就不需要频繁手动去按快捷键了。 
+
+    注：
+
+    1. 如果是正常模式下希望手动显示函数签名，那么 `call CocActionAsync('showSignatureHelp')` 这个似乎没什么用。
+
+	    此时可以触发“悬浮窗文档”（Hover）:
+
+        ```vim
+        " 使用 K (大写) 键触发悬浮窗文档
+        nnoremap <silent> K :call ShowDocumentation()<CR>
+
+        function! ShowDocumentation()
+          if CocAction('hasProvider', 'hover')
+            call CocActionAsync('doHover')
+          else
+            call feedkeys('K', 'in')
+          endif
+        endfunction
+
+        ```
+
+        > **使用方法**：在普通模式下，把光标移到函数名上，按下大写的 **`K`**。
+
+        `call CocActionAsync('doHover')`这个似乎是可行的。
+
+* printk()~ f [LS]  int  
+coc.vim 的这个提示是什么意思？
+
+    你看到的这行提示，是 coc.nvim 在你输入或补全时给出的**来源标识与符号信息**。
+
+    ### `[LS]` 的含义
+    `[LS]` 代表 **Language Server**。它明确告诉你，`printk` 这条补全或提示信息，是由后台的语言服务器（在你当前环境里就是 `clangd`）提供的，而不是来自文件系统（`[F]`）或代码片段（`[S]`）。
+
+    ### 整行 `printk()~ f [LS] int` 的拆解
+    虽然搜索结果没有直接解释每一个字符的官方定义，但结合 clangd 和 coc.nvim 的常见行为，可以这样理解：
+
+    *   **`printk()`**：符号名称，带括号表示它是一个函数（或函数式宏）。
+    *   **`~ f`**：这通常是 clangd 返回的**符号种类（Kind）** 的简写。`f` 很可能代表 **Function**。
+    *   **`[LS]`**：来源是 Language Server。
+    *   **`int`**：这是 `clangd` 解析出的**返回类型**。它告诉你，在当前编译配置下，`printk` 最终被解析为一个返回 `int` 的实体。
+
+    ### 结合你之前问题的关键判断
+    这行提示其实**确认了 clangd 正在工作**，并且能识别 `printk`。但它显示为 `int` 返回类型，恰恰暴露了内核开发中的一个典型现象：
+
+    `printk` 在内核中是通过宏（如 `#define printk(fmt, ...)`）包装的。clangd 倾向于展示**宏展开后**的底层函数签名，而不是宏本身。所以它看到的 `printk` 实际上可能是展开后的 `_printk` 或其他底层实现，其返回类型被解析为 `int`。
+
+    这也能解释为什么你之前觉得“看不到原型”——clangd 展示的可能不是你期望的宏定义，而是展开后的底层函数信息。如果你希望跳转到宏定义本身，可能需要依赖 Ctags/Cscope，或者检查 clangd 的索引是否完整覆盖了包含 `printk` 宏定义的头文件。
+
+* hello_exit [A]
+那这个呢
+
+    `[A]` 表示这个补全项来源于**当前缓冲区（buffer）**，也就是你当前正在编辑的文件里已经出现过的单词。
+
+    ### 拆解 `hello_exit [A]`
+
+    *   **`hello_exit`**：这是补全建议的词。结合你之前的上下文，这很可能是你驱动代码里的退出函数名（比如 `module_exit(hello_exit)` 里的那个函数）。
+    *   **`[A]`**：补全来源标识。coc.nvim 从当前 buffer 的文本里提取到了这个单词，并把它作为候选提供给你。它代表的是 **“Around”** 或 **“Buffer”** 来源，和你之前看到的 `[LS]`（来自 Language Server，如 clangd）是并列的。
+
+    所以，`hello_exit [A]` 的意思是：**coc.nvim 在当前文件里发现了 `hello_exit` 这个词，并提示你可以补全它。** 这属于基于文本的快速补全，不涉及语义分析，因此它不知道 `hello_exit` 的具体类型或原型，只是单纯复现你文件里已有的词。
+
+* $ bear -- make
+    wrapper: failed with: gRPC call failed: Socket closed
+
+    这个报错 `gRPC call failed: Socket closed` 的根本原因在于：**Bear 3.x 版本内部使用 gRPC 进行进程间通信，而你的环境中的某些网络配置（如代理设置或特殊网络模式）阻断了 Bear 自身与本地回环地址（localhost/127.0.0.1）的正常连接**。
+
+    针对你的 Linux 开发环境，按以下顺序排查通常能解决问题。
+
+    ### 首选方案：绕过代理
+
+    如果你在终端中设置了 `http_proxy` 或 `https_proxy`，Bear 的 gRPC 通信可能会被错误地导向代理服务器，从而导致连接失败。
+
+    在执行 `bear` 命令时，临时将 `localhost` 和 `127.0.0.1` 加入 `no_proxy` 环境变量：
+
+    ```bash
+    export no_proxy=localhost,127.0.0.1
+    bear -- make
+    ```
+
+    有用户反馈，在提前设置了代理的情况下，仅需 `export no_proxy=localhost` 即可解决该报错。如果上述命令生效，你可以将这一行加入你的 `~/.bashrc` 或 `~/.zshrc` 中永久生效。
+
+    **针对 KMD 开发的建议**
+
+    如果 Bear 在当前环境下始终不稳定，对于生成 `compile_commands.json` 这一目标，你可以考虑**直接让内核构建系统生成**。现代内核（以及部分外部模块的 `Makefile`）支持通过 `make compile_commands.json` 或设置 `COMPILATION_DATABASE=1` 来原生导出数据库，这比依赖 Bear 的拦截机制更可靠。你可以检查一下你的 KMD 构建系统是否支持这一特性。
+
+* 详细讲讲 bear 的用法
+
+    你问的应该是内核开发中用来生成 `compile_commands.json` 的 **Bear**（Build EAR），而不是 Mac 上的笔记软件。它的核心作用是：**拦截你的编译过程，记录下每一条编译命令，并生成一个供 clangd 等工具使用的 JSON 数据库**。有了这个文件，Vim/Neovim 配合 LSP 才能正确解析内核代码的宏、头文件路径和编译选项。
+
+    ### 安装
+
+    在 Ubuntu/Debian 上直接通过包管理器安装即可：
+    ```bash
+    sudo apt install bear
+    ```
+
+
+    ### 基本用法
+
+    Bear 的用法非常直观，就是在你原本的编译命令前加上 `bear --`。
+
+    **通用格式**：
+    ```bash
+    bear -- <你的编译命令>
+    ```
+
+
+    **针对内核模块（KMD）的典型用法**：
+    假设你有一个外部内核模块的 Makefile，通常这样编译：
+    ```bash
+    make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+    ```
+    要生成数据库，只需要：
+    ```bash
+    bear -- make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+    ```
+    执行完毕后，当前目录下会生成一个 `compile_commands.json` 文件。
+
+    **更优雅的做法（写入 Makefile）**：
+    为了避免每次手动敲长命令，可以在你的驱动 Makefile 里加一个专用目标，例如 `make bear`：
+    ```makefile
+    bear:
+        bear --append --output $(PWD)/compile_commands.json -- $(MAKE) -C $(KDIR) M=$(PWD) modules
+    ```
+    这样以后只需要运行 `make bear`，既能编译模块，又能顺便更新数据库。
+
+    ### 进阶与注意事项
+
+    **1. 追加模式（`--append`）**
+    如果你有多个独立的编译单元或模块，希望把结果汇总到同一个 `compile_commands.json` 里，一定要加 `--append` 参数，否则后一次 Bear 运行会覆盖掉之前的结果。
+
+    **2. 优先使用原生支持**
+    Bear 的原理是“拦截”编译调用，属于通用方案。如果你的项目（或内核部分构建系统）本身能直接导出 `compile_commands.json`（例如通过 CMake 的 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`），那么优先用原生方式，那样更快也更稳。Bear 更适合那些“只会闷头调用 gcc、不会主动告诉你它在干嘛”的传统 Makefile 工程。
+
+    **3. 版本差异**
+    Bear 在 4.x 版本后对命令结构做过调整（拆分出了 `intercept` 和 `semantic` 子命令）。如果你从旧教程里看到 `bear intercept -- ...` 或 `bear semantic` 的写法，那是针对特定版本的。对于绝大多数日常使用（尤其是通过发行版安装的稳定版），直接 `bear -- make ...` 这种经典写法通常是兼容且够用的。
+
+    **4. 配合 Vim 使用**
+    生成 `compile_commands.json` 后，如果你之前配置了 **coc.nvim + coc-clangd**，只需要确保 clangd 能找到这个文件（通常放在项目根目录或 `.cache` 下即可）。clangd 读取后，就能提供比 Ctags 更精准的语义跳转和补全，尤其是对于内核里那些复杂的宏定义和条件编译。
+
+    **总结**：对于你的 KMD 开发环境，用 `bear -- make ...` 生成数据库，然后交给 clangd 使用，是弥补 Ctags/Cscope 在“理解编译语义”方面不足的最佳补充。
+
+    注：
+
+    1. `bear -- make`增量编译时，make 不会执行任何编译命令，Bear 抓不到东西，会直接覆盖出一个空的 compile_commands.json
+
+        解决方案有两种：
+
+        1. 先 clean，再 make: `make clean && bear -- make`
+
+        2. 使用`--append`参数：`bear --append -- make`
+
+        对于内核源码本身，社区反馈 make compile_commands.json 的效果比 Bear 更好
+
+
 #### tagbar
 
 * tagbar 用法
@@ -27128,92 +27431,6 @@ coc.vim 的这个提示是什么意思？
     * 切换主题：修改 g:mkdp_theme 或使用CSS自定义
 
 #### C++
-
-* coc.nvim + coc-clangd
-
-    * 安装
-
-        1. 安装 vim-plug
-
-        2. 安装 coc.nvim
-
-            如果是 vim 9，那么直接安装最新版：
-
-            `Plug 'neoclide/coc.nvim'`
-
-            如果是 vim 8.2，那么安装 8.2 版本：
-
-            `Plug 'neoclide/coc.nvim', {'tag': 'v0.0.82'}`
-
-            如果之前安装错版本了，那么只需要`:PlugUpdate`就可以更新过来了。
-
-            在 vim plug 安装 coc.nvim 的过程中，不一定显示 tag 名称。具体查看 coc.nvim 的 tag 的方法，可以到`cd ~/.vim/plugged/coc.nvim`目录下，执行`git describe --tags`来查看。
-
-        3. 安装 clangd
-
-            `sudo apt install clangd`
-
-        4. 安装 nodejs
-
-            直接去官网安装：<https://nodejs.org>
-
-        5. 安装 coc-clangd
-
-            `:CocInstall coc-clangd`
-
-    * 使用 coc-clangd
-
-        你主要需要关注**配置文件**、**编译数据库**和**常用快捷键**这三点：
-
-        1. 配置文件 (`coc-settings.json`)
-
-            在 Vim 中输入 `:CocConfig` 会打开一个 JSON 文件。这是配置 `clangd` 行为的地方。建议加入以下基础配置：
-
-            ```json
-            {
-              "clangd.path": "clangd",
-              "clangd.arguments": [
-                "--background-index",     // 后台索引整个项目
-                "--clang-tidy",           // 开启代码检查
-                "--header-insertion=never" // 禁止自动导入头文件（可选）
-              ]
-            }
-            ```
-
-        2. 编译数据库 (`compile_commands.json`)
-
-            这是 `clangd` 能够精准跳转的关键。`clangd` 需要知道你的代码是怎么编译的（包含哪些头文件路径）。
-
-            * CMake 项目：在执行 cmake 时加上 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`。
-
-            * Makefile/其他项目：安装 `bear` 工具，通过 `bear -- make` 编译来生成该文件。
-
-            * 单文件：如果只是写简单的 `.cpp`，`clangd` 会默认查找系统头文件，通常不需要此文件。
-
-        3. 核心快捷键 (建议配置)
-
-            将以下代码加入你的 `.vimrc`，这样你就能通过快捷键实现 IDE 功能：
-
-            * `gd`: 跳转到定义 (Go Definition)
-            * `K`: 显示悬浮文档 (Hover Documentation)
-            * `<leader>rn`: 变量重命名 (Rename)
-            * `[g` 和 `]g`: 在语法错误间跳转
-
-        **验证使用**
-
-        1. 打开一个 `.cpp` 文件。
-
-        2. 输入 `:CocInfo`，确认 `clangd` 服务处于 `Service: clangd ... running` 状态。
-
-        3. 试着把光标移动到一个函数名上，按下 `gd`，看是否能跳转。
-
-        为了让你的开发环境更加完整，我们可以进一步完善具体的配置细节。
-
-        通过以下操作可以进一步优化你的 C++ 编码体验：
-
-        * 生成 C++ 开发专用的 coc-settings.json 完整模板
-        * 配置 coc.nvim 的 C++ 常用跳转与重构快捷键
-        * 编写针对不同构建系统的编译数据库生成指南
 
 * 我用 vim 8.2，开发 c++ 需要安装哪些插件
 
