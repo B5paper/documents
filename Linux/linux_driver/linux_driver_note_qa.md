@@ -13,21 +13,22 @@
 ```c
 #include <linux/init.h>
 #include <linux/module.h>
-
+                                           
 int hello_init(void)
 {
-    printk("<1>""hello my module\n");
+    printk(KERN_INFO "hello my module\n");
     return 0;
 }
-
+                                           
 void hello_exit(void)
 {
-    printk("<1>""bye bye!\n");
+    printk(KERN_INFO "bye bye!\n");
 }
-
+                                           
 module_init(hello_init);
 module_exit(hello_exit);
 MODULE_LICENSE("GPL");
+
 ```
 
 `Makefile`:
@@ -39,11 +40,11 @@ default:
 	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
 ```
 
-加载：`sudo insmod hello_world.ko`
+加载：`sudo insmod hello.ko`
 
 查看输出：`sudo dmesg`
 
-卸载：`sudo rmmod hello_world`
+卸载：`sudo rmmod hello`
 
 [unit]
 [idx]

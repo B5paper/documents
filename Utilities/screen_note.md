@@ -2,6 +2,8 @@
 
 ## cache
 
+* 设置好 bash 的环境变量后，打开 screen，此时 screen 会继承 bash 中所有的环境变量。
+
 * 那如果我们不考虑 vim，只考虑 screen 呢，如何在 screen -r xxx 恢复 session 时，重置每个 screen 窗口的 DISPLAY 环境变量？
 
     在不考虑 Vim 的情况下，想通过 GNU Screen 本身在 `screen -r` 恢复会话时自动重置所有窗口的 `DISPLAY`，需要先了解一个关键限制：**GNU Screen 原生并不支持这个功能**。这是一个被长期讨论但至今未实现的功能请求，因为 Screen 的设计是让窗口进程的环境在创建后保持独立，恢复会话时不会自动更新已存在窗口的环境变量。

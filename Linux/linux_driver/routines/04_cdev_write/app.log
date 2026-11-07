@@ -1,0 +1,10 @@
+test@Ubuntu22:~$ cd /dev/
+test@Ubuntu22:/dev$ cat hlc_dev
+Hello, user! This is a greeting message sent from hlc_dev.
+test@Ubuntu22:/dev$ echo "hello, world" > hlc_dev
+test@Ubuntu22:/dev$ cat hlc_dev
+hello, world
+This is a greeting message sent from hlc_dev.
+test@Ubuntu22:/dev$ sudo rmmod hlc_cdev
+[sudo] password for test:
+test@Ubuntu22:/dev$

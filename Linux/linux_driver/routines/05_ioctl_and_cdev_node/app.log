@@ -1,0 +1,13 @@
+test@Ubuntu22:~/projs/ioctl$ sudo ./ioctl /dev/hlc_dev 18433 -v 123
+Decoded values: ioctl=0x00004801, direction=NONE, arg size=0 bytes, device number=0x48 ('H'), function number=1
+Used values: ioctl=0x00004801, arg value=0x7b, device number=0x48 ('H'), function number=1
+Returned 0
+test@Ubuntu22:~/projs/ioctl$ sudo ./ioctl /dev/hlc_dev 18434 -v 123
+Decoded values: ioctl=0x00004802, direction=NONE, arg size=0 bytes, device number=0x48 ('H'), function number=2
+Used values: ioctl=0x00004802, arg value=0x7b, device number=0x48 ('H'), function number=2
+Returned 0
+test@Ubuntu22:~/projs/ioctl$ sudo ./ioctl /dev/hlc_dev 18435 -v 123
+Decoded values: ioctl=0x00004803, direction=NONE, arg size=0 bytes, device number=0x48 ('H'), function number=3
+Used values: ioctl=0x00004803, arg value=0x7b, device number=0x48 ('H'), function number=3
+Returned 0
+test@Ubuntu22:~/projs/ioctl$

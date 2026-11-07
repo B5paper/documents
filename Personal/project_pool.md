@@ -36,6 +36,10 @@
 
 ## cache
 
+* printf 里，没有 %ll，只有 %lld。%ll 只表示数据的长度，不表示数据的显示格式
+
+* 谁申请 buffer 谁负责清空 buffer 或者填写字符串的 \0，发送数据的人不负责发送最后的 \0
+
 * 假如一棵树是 1 -> (2, 3, 4), 2 -> (5, 6), 3 -> (7, 8), 4 -> (9, 10)。即 节点 1 下面有节点 2，3，4，以此类推。我们先选择第一层，选择了节点 1；对于第二层，我们有 2, 3, 4 三个候选。如果选择了 2，对于第三层，我们有节点 5，6 两个候选。这算不算回溯？
 
     可以算，取决于你如何使用这些“选择”。 你描述的过程既可以是 DFS 遍历，也可以作为回溯搜索的过程；两者并不互斥。
@@ -95,35 +99,7 @@
 
 * 有关树的递归结构的核心关键点：当我回退到上一级节点时，上一级节点是否正常处理了当前节点。如果有妥善处理，那么递归有有效。
 
-* 启动 kmd driver test qemu
-
-    virtual box: `ssh hlc_test`
-
-    54: ssh test@192.168.122.135
-
-    disk: /home/hlc/Documents/qemu-disks/ccc.qcow2, 120 GB
-
-    kernel: 6.5.0-41-generic
-
-    system: ubuntu 22.04
-
-    compiler: gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04.2) 12.3.0
-
-* [v] 安装 coc.vim 以及 c/c++ 插件
-
-    * [v] 在 qemu 里打开代理并测试
-
-    * [v] 调研 vim 插件如何使用代理
-
-    * [v] 安装 vim plug
-
-    * [v] vim plug 如何使用代理
-
-    * [v] vim plug 安装 coc.vim
-
-    * [v] coc.vim 安装 c++ lsp 插件，并研究 coc.vim 如何使用代理
-
-* [ ] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
+* [ ] 54 hlc_test qemu 上的 verilator
 
 * qa unit 只制作自己已经会的，或者当时已经记住的，不要写没有理解、当时没有记住的
 
@@ -156,6 +132,34 @@
     如果只添加内容，不优化内容，那么东西越来越多，而且组织混乱。
 
     目前正在进行的一个优化是将按时间顺序写下的笔记，重新整理成按结构存储的数据。
+
+## Projects
+
+### rand walk
+
+### verilator hlc_test on 54
+
+### kmd hlc_test on 54
+
+* [ ] char device driver
+
+* 启动 kmd driver test qemu
+
+    virtual box: `ssh hlc_test`
+
+    54: ssh test@192.168.122.135
+
+    disk: /home/hlc/Documents/qemu-disks/ccc.qcow2, 120 GB
+
+    kernel: 6.5.0-41-generic
+
+    system: ubuntu 22.04
+
+    compiler: gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04.2) 12.3.0
+
+* [ ] 调研 qemu edu driver 将寄存器`mmap()`到用户态，使用 polling 的方式代替中断
+
+## Others
 
 ## english words
 

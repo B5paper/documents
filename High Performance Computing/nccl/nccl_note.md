@@ -2,6 +2,25 @@
 
 ## cache
 
+* nccl里使用 cumem 有什么好处
+
+    在 NCCL 中使用 cuMem（即启用 `NCCL_CUMEM_ENABLE`）的核心好处，是让 NCCL 能够利用 CUDA 虚拟内存管理（VMM）API 来分配和操作内存。这带来的主要优势并非单纯的性能提升，而是**解锁高级功能**与**优化特定场景下的内存管理**。
+
+    ### 解锁对称内存与设备端通信
+    这是 cuMem 最关键的作用。NCCL 从 2.28 版本开始提供的设备端 API（Device API），允许在用户 CUDA Kernel 中直接发起通信。该功能依赖**对称内存（Symmetric Memory）**，而对称内存又必须通过 GPU 虚拟内存管理（即 cuMem）来实现。如果没有 cuMem，就无法使用 LSA（Load/Store Accessible）等设备端直接通信能力，也就无法在 Kernel 内实现零拷贝的 AllReduce 等操作。
+
+    ### 支持多节点 NVLink 与 IPC 共享
+    部分高级特性也强制要求 cuMem 支持。例如 `NCCL_MNNVL_ENABLE`（多节点 NVLink）明确要求必须启用 `NCCL_CUMEM_ENABLE`。此外，cuMem 分配的虚拟内存支持通过 handle 进行跨进程共享，这对于需要 GPU 间直接内存访问（如 GPU Direct RDMA）或复杂 IPC 场景是有益的。
+
+    ### 在显存休眠/唤醒中实现内存卸载
+    在 vLLM 等推理框架的实践里，cuMem 被用于实现更彻底的显存节省。通过将 NCCL 通信器占用的内存（以及 CUDA Graph 内存池）路由到 cuMem 分配器，可以在引擎休眠（Sleep）时将这部分内存卸载到 CPU，唤醒时再恢复。由于 cuMem 保留了虚拟地址，恢复时无需重新捕获 Graph 或重建通信器。实测在 H200 上，仅释放 NCCL 通信器内存就能为每 GPU 节省约 **958 MiB**，显著提升了休眠模式的显存回收效果。
+
+    ### 注意事项与历史问题
+    不过，cuMem 并非只有好处。在 NCCL 2.19 版本中，该特性曾被默认开启，导致在 CUDA Graph 捕获时产生额外的显存开销，一度引发问题。虽然该内存开销问题在后续版本（如 NCCL 2.22.3）中已得到解决，且新版 NCCL 默认开启 cuMem 以启用更多优化，但在某些特定拓扑（如双 CPU 系统）下，有实践反馈**禁用** cuMem 反而能获得更好的吞吐量。因此，是否启用通常取决于具体的工作负载与 NCCL 版本。
+
+    ---
+    **如果你想进一步确认在你的环境中是否应该开启，可以告诉我你使用的 NCCL 版本以及主要场景（是训练、推理还是自定义通信 Kernel）。**
+
 * 详细讲讲 ai 通信库里的 multicast
 
     # AI通信库 Multicast（多播）
