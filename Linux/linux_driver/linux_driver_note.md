@@ -6,6 +6,362 @@ Ref:
 
 ## cache
 
+* 合并注册设备号和注册 cdev:
+
+    ```c
+    int register_chrdev(unsigned int major, const char *name, const struct file_operations *fops);
+    ```
+
+    当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
+
+    如果`major`填 0，那么返回值为自动分配的 major。
+
+* 谁申请 buffer 谁负责清空 buffer 或者填写字符串的 \0，发送数据的人不负责发送最后的 \0
+
+* 详细讲讲 __off_t lseek (int __fd, __off_t __offset, int __whence) __THROW; 的用法
+
+    `lseek` 是 Linux/Unix 系统编程中用于**调整文件读写偏移量**的核心系统调用。你给出的声明中，`__THROW` 是 glibc 的内部宏，在 C 语言环境下通常展开为 `__attribute__((__nothrow__ __LEAF))`，用于告诉编译器该函数不会抛出 C++ 异常，且不会回调当前编译单元中的函数，以辅助优化。日常编写 C 代码时，你只需包含 `<unistd.h>` 并正常调用即可，无需理会 `__THROW`。
+
+    ### 核心用法：三个 `whence` 参数
+
+    `lseek` 的行为完全由第三个参数 `__whence` 决定，`__offset` 的含义也随之变化：
+
+    *   **`SEEK_SET`**：将偏移量设置为**从文件开头算起的绝对位置**。`__offset` 必须是非负数。例如，`lseek(fd, 0, SEEK_SET)` 将位置重置到文件开头。
+    *   **`SEEK_CUR`**：将偏移量设置为**当前位置加上 `__offset`**。`__offset` 可正可负。例如，`lseek(fd, -1, SEEK_CUR)` 表示后退一个字节。
+    *   **`SEEK_END`**：将偏移量设置为**文件末尾加上 `__offset`**。`__offset` 可正可负。例如，`lseek(fd, -1, SEEK_END)` 指向文件最后一个字节；`lseek(fd, 0, SEEK_END)` 指向文件末尾（即文件大小处）。
+
+    ### 返回值与关键场景
+
+    *   **返回值**：成功时，返回**新的文件偏移量**（从文件开头算起的字节数）。失败时，返回 `(off_t) -1` 并设置 `errno`。
+    *   **获取当前位置**：调用 `lseek(fd, 0, SEEK_CUR)` 是获取当前文件偏移量的标准做法，因为它不改变位置，只返回当前值。
+    *   **创建“空洞”文件**：`lseek` 允许将偏移量设置到**文件末尾之后**。如果随后写入数据，文件中间会形成“空洞”（hole），读取空洞部分会得到 `\0`，这常用于创建稀疏文件以节省磁盘空间。
+    *   **错误处理**：如果 `fd` 是管道、FIFO 或套接字，`lseek` 会失败并返回 `ESPIPE` 错误，因为这些对象不可寻址。
+
+    ### 简单示例
+
+    ```c
+    #include <unistd.h>
+    #include <fcntl.h>
+
+    int fd = open("test.txt", O_RDWR);
+    off_t pos = lseek(fd, 0, SEEK_END); // 获取文件大小
+    lseek(fd, 10, SEEK_SET);            // 移动到第10个字节
+    lseek(fd, -5, SEEK_CUR);            // 从当前位置后退5字节
+    lseek(fd, 0, SEEK_SET);             // 回到文件开头
+    close(fd);
+    ```
+
+    ### 注意事项
+
+    在**多线程**环境下，如果多个线程共享同一个文件描述符，`lseek` 与随后的 `read`/`write` 组合**不是原子操作**。如果希望指定位置读写且不影响当前偏移量，应使用 `pread` 或 `pwrite`。
+
+* read, write 与 llseek 关于更新 offset 的不同
+
+    | 操作 | 驱动负责 | 内核负责 |
+    |---|---|---|
+    | 普通 read/write | 通过 *offset += bytes_copied 更新传入的位置 | 将更新后的位置写回 file->f_pos |
+    | llseek | 更新 filp->f_pos，返回新位置；也可调用辅助函数完成 | 将回调返回值交给用户态 |
+
+    因此，读写也需要你更新位置，只是通过 *offset 更新，而 seek 需要更新 filp->f_pos。
+
+* 建议把整个函数简化成：
+
+    loff_t my_llseek(struct file *filp, loff_t offset, int whence)
+    {
+        return fixed_size_llseek(filp, offset, whence,
+                                sizeof(hlc_dev_msg) - 1);
+    }
+
+    fixed_size_llseek() 会处理 SEEK_SET / SEEK_CUR / SEEK_END、检查范围，并实际更新 filp->f_pos，适合你当前这个固定大小的缓冲区。
+
+    你原来的实现还有两个相关问题：
+
+    - SEEK_CUR 应以 filp->f_pos 为基准。全局 cur_offset 会被不同的打开实例共享，而且你的 llseek() 没有更新它。换成上述实现后，可删除 cur_offset 及其赋值。
+    - SEEK_END 应计算“末尾 加 offset”，你写成了减法。例如 lseek(fd, -5, SEEK_END) 表示定位到末尾前 5 字节。
+
+* 详细讲讲 filp 中的 private data 如何使用？
+
+    `file->private_data` 是 Linux 驱动开发中用于在文件生命周期内传递设备上下文的核心指针。它的本质是一个 `void *`，允许驱动在 `open()` 时绑定任意自定义结构体，并在后续的 `read()`、`write()`、`ioctl()` 等操作中取回，从而实现“每个打开的文件实例拥有独立上下文”的面向对象设计。
+
+    ### 核心使用范式
+
+    典型的使用流程遵循“在 open 中分配/绑定，在操作中取用，在 release 中释放”的闭环。
+
+    **1. 在 `open()` 中绑定**
+    驱动通常在此阶段为每个文件描述符分配或关联一个设备上下文结构体，并将其地址赋给 `private_data`。
+    ```c
+    static int my_open(struct inode *inode, struct file *file) {
+        struct my_device *dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+        if (!dev) return -ENOMEM;
+        // 初始化 dev 的硬件信息或缓冲区...
+        file->private_data = dev; // 绑定
+        return 0;
+    }
+    ```
+    如果设备是全局唯一的（不支持多实例并发打开），也可以直接指向一个全局静态结构体，而非动态分配。
+
+    **2. 在 `read()` / `write()` 中取用**
+    由于 `private_data` 是 `void *`，必须强制转换回原始类型才能访问其成员。
+    ```c
+    static ssize_t my_write(struct file *file, const char __user *buf, size_t size, loff_t *off) {
+        struct my_device *dev = (struct my_device *)file->private_data;
+        // 使用 dev->buffer 等成员进行 copy_from_user 操作
+    }
+    ```
+    后续的所有操作都通过这个指针访问该文件实例专属的数据，避免了全局变量带来的并发冲突。
+
+    **3. 在 `release()` 中清理**
+    当文件描述符关闭时，如果 `private_data` 是动态分配的，必须在此释放，否则会造成内存泄漏。
+    ```c
+    static int my_release(struct inode *inode, struct file *file) {
+        kfree(file->private_data);
+        return 0;
+    }
+    ```
+    如果绑定的是静态全局变量，则无需释放。
+
+    ### 进阶模式与注意事项
+
+    **嵌入与 container_of**
+    在复杂的子系统（如 V4L2）中，`private_data` 往往不直接指向驱动的主结构体，而是指向一个内嵌的“文件句柄”结构（如 `struct v4l2_fh`）。驱动在需要获取外层结构时，需使用 `container_of` 宏反推：
+    ```c
+    struct v4l2_fh *fh = file->private_data;
+    struct my_fh *my = container_of(fh, struct my_fh, fh);
+    ```
+
+    **避免隐式转换陷阱**
+    由于 `void *` 可以隐式转换为任何指针类型，直接赋值或取用时若类型不匹配，编译器不会报错，可能导致运行时内存越界。建议在取用时显式书写强制转换，或像内核社区那样使用内联辅助函数（如 `file_to_v4l2_fh`）来集中处理类型转换，提升代码安全性。
+
+    **与 seq_file 的冲突**
+    如果驱动使用了 `seq_open()` 机制，内核会接管 `private_data` 来存储 `seq_file` 指针。此时驱动不应再直接覆盖 `file->private_data`，而应将自定义数据挂载到 `seq_file->private` 上，或遵循特定子系统的初始化顺序。
+
+    ---
+    ### 为了帮你判断哪种模式更适合你的场景
+    你当前是在编写一个简单的字符设备驱动，还是在使用某个特定的内核子系统（如 V4L2、input 等）？不同场景下 `private_data` 的初始化时机和所有权规则会有差异。
+
+* 详细讲讲 linux 中的 loff_t (*llseek) (struct file *, loff_t, int);
+
+    这是 Linux 内核驱动开发中用于**实现文件定位（Seek）** 的函数指针。它定义在 `struct file_operations` 结构体中，决定了用户空间调用 `lseek()`（或 `llseek()`）系统调用时，内核具体如何改变文件的读写偏移量。
+
+    ### 函数签名拆解
+
+    该函数的完整原型为：
+    `loff_t (*llseek) (struct file *filp, loff_t offset, int whence);`
+
+    *   **返回值 `loff_t`**：返回调整后的新文件位置。`loff_t` 是内核定义的 64 位有符号长整型（`long long`），专门用于支持大文件偏移。如果定位失败，通常返回负的错误码（如 `-EINVAL`）。
+    *   **参数 `struct file *filp`**：指向打开的文件对象。驱动程序可以通过 `filp->private_data` 获取自定义的设备上下文，并访问 `filp->f_pos`（当前的读写位置）。
+    *   **参数 `loff_t offset`**：期望移动的偏移量。这是 64 位值，允许操作超过 4GB 的文件。
+    *   **参数 `int whence`**：基准位置。通常取以下值（与用户空间 `lseek` 一致）：
+        *   `SEEK_SET`：从文件开头计算。
+        *   `SEEK_CUR`：从当前位置计算。
+        *   `SEEK_END`：从文件末尾计算。
+
+    ### 为什么需要这个函数？
+
+    在 Linux 的“一切皆文件”设计中，并非所有“文件”都有物理意义上的字节流（如串口、键盘、套接字）。对于**字符设备**或某些特殊文件，定位操作可能没有意义。
+
+    因此，驱动开发者**必须**在 `file_operations` 中显式指定 `llseek` 的行为，否则内核可能会采取默认的（通常是不支持或报错）处理。通常有以下几种实现策略：
+
+    1.  **`default_llseek`**：如果驱动实现了常规的读/写，且读写操作会**更新 `filp->f_pos`**，通常使用内核提供的 `default_llseek`。它会根据参数更新 `f_pos` 并返回新位置。
+    2.  **`no_llseek`**：如果设备是**不可定位的**（如串口、鼠标），应在 `open` 时调用 `nonseekable_open()`，并将 `llseek` 设为 `no_llseek`。当用户试图 `lseek` 时，会返回错误（`-ESPIPE`）。
+    3.  **自定义实现**：对于需要特殊逻辑的设备（如只能向前定位的流设备，或块设备），驱动需自己编写函数，解析 `offset` 和 `whence`，校验合法性，更新 `filp->f_pos` 并返回新值。
+
+    ### 在驱动中的典型写法
+
+    ```c
+    static loff_t my_dev_llseek(struct file *filp, loff_t off, int whence)
+    {
+        loff_t newpos;
+
+        switch(whence) {
+            case SEEK_SET:
+                newpos = off;
+                break;
+            case SEEK_CUR:
+                newpos = filp->f_pos + off;
+                break;
+            case SEEK_END:
+                // 假设设备有固定大小或需要计算
+                newpos = my_device_size + off;
+                break;
+            default:
+                return -EINVAL;
+        }
+
+        if (newpos < 0) return -EINVAL; // 不允许负位置
+        filp->f_pos = newpos;
+        return newpos;
+    }
+
+    static const struct file_operations my_fops = {
+        .owner = THIS_MODULE,
+        .llseek = my_dev_llseek,
+        .read = my_dev_read,
+        // ...
+    };
+    ```
+
+    **注意**：对于不支持定位的设备，**不要**简单地返回 0 或假装成功。正确的做法是使用 `no_llseek` 并在 `open` 中标记不可定位，这样用户空间程序（如 `cp` 或 `cat`）在尝试定位时能获得明确的错误反馈，从而正确处理流式数据。
+
+* 为什么 linux 的 ioctl 中，使用 _IO 创建的 cmd 是 unsigned int 类型，而使用 _IOW 创建的 cmd 是 unsigned long 类型？
+
+    #define HLC_CDEV_CMD_1 _IOW('H', 1, int)
+    #define HLC_CDEV_CMD_2 _IO('H', 2)
+    ...
+    pr_info("hlc cdev: supported ioctl cmds:\n");
+    pr_info("\t%lu\n", HLC_CDEV_CMD_1);
+    pr_info("\t%u\n", HLC_CDEV_CMD_2);
+    我说的是这种的
+
+    你贴的代码里：
+
+    ```c
+    pr_info("\t%lu\n", HLC_CDEV_CMD_1);   // _IOW 用 %lu
+    pr_info("\t%u\n",  HLC_CDEV_CMD_2);   // _IO  用 %u
+    ```
+
+    这里 `HLC_CDEV_CMD_1` 和 `HLC_CDEV_CMD_2` **本身都是 32 位整数**，但一个用 `%lu` 打印、一个用 `%u` 打印，看起来像是"类型不同"。真正的原因不是宏产生了不同类型，而是**宏展开后的整数常量的字面量类型不同**，导致在变参函数中提升/传递的方式不同。
+
+    ### 关键：宏展开后的字面量类型
+
+    看 `_IOW` 和 `_IO` 的定义（`include/uapi/asm-generic/ioctl.h`）：
+
+    ```c
+    #define _IOC(dir,type,nr,size) \
+        (((dir)  << _IOC_DIRSHIFT) | \
+         ((type) << _IOC_TYPESHIFT) | \
+         ((nr)   << _IOC_NRSHIFT) | \
+         ((size) << _IOC_SIZESHIFT))
+
+    #define _IO(type,nr)        _IOC(_IOC_NONE,(type),(nr),0)
+    #define _IOW(type,nr,size)  _IOC(_IOC_WRITE,(type),(nr),sizeof(size))
+    ```
+
+    - `_IO('H', 2)`：`dir=0`、`size=0`，展开结果的高位（dir 位、size 位）都是 0，数值很小，编译器把它当作 **`int`**（能放进 int 的最小类型）。
+    - `_IOW('H', 1, int)`：`dir=_IOC_WRITE`（非 0）、`size=sizeof(int)=4`，展开后 `dir` 左移到最高两位。`_IOC_WRITE` 通常是 `1`，左移 `_IOC_DIRSHIFT`（30）后得到 `0x40000000`。这个值 **超过了 `INT_MAX`**（`0x7FFFFFFF`），所以 C 编译器会把它推导为 **`unsigned int`**（如果放得进 unsigned int）或更大的无符号类型。
+
+    ### 变参函数中的后果
+
+    `pr_info` 是变参函数，参数经过默认实参提升：
+
+    - `HLC_CDEV_CMD_2`（`int` 类型，值为正的小数）→ 提升规则下保持 `int`，用 `%u` 读是匹配的（int 与 unsigned int 同宽同表示，值非负时无差异）。
+    - `HLC_CDEV_CMD_1`（`unsigned int` 类型，值 `0x40000000 | ...`）→ 以 `unsigned int` 传入。用 `%lu` 读意味着期望 `unsigned long`（64 位系统上 8 字节），而实际压栈的是 4 字节的 `unsigned int`。**这是格式串与实参类型不匹配**，属于未定义行为（UB）。在 x86-64 上通常"碰巧能工作"，因为变参寄存器/栈槽是 8 字节对齐、小值扩展后高位为 0；但在某些 ABI（如部分 32 位平台）上会读错。
+
+    ### 那为什么作者这么写？
+
+    这其实是**一个常见但不严谨的写法**：作者下意识地把"带指针参数的 `_IOW` 命令"和"`unsigned long`"联系起来（因为 ioctl 的第三个参数在 `_IOW` 场景下是指针，而指针宽度是 `unsigned long`），于是用 `%lu` 打印；而 `_IO` 命令是纯标量，用 `%u`。但从类型系统看，**两个命令号都是 32 位无符号整数，正确且一致的写法应该是都用 `%u`**，或者统一强转：
+
+    ```c
+    pr_info("\t%u\n", (unsigned int)HLC_CDEV_CMD_1);
+    pr_info("\t%u\n", (unsigned int)HLC_CDEV_CMD_2);
+    ```
+
+    ### 结论
+
+    - `_IO` 和 `_IOW` **不产生不同宽度的类型**；命令号都是 32 位。
+    - 你看到 `%lu` vs `%u` 的差别，源于**宏展开后整数字面量的推导类型不同**（`_IOW` 因 dir/size 位使值超过 `INT_MAX`，被推导为 `unsigned int`；`_IO` 被推导为 `int`），再叠加作者对"指针 → unsigned long"的联想。
+    - 用 `%lu` 打印 `_IOW` 命令号在 64 位平台多数情况下不报错但属于类型不匹配；规范做法是统一用 `%u` 并显式转换。
+
+    * 如果我写成  pr_info("\t%u\n", HLC_CDEV_CMD_1);，clangd 会给我报警告：[clang -Wformat] [W] Format specifies type 'unsigned int' but the argument has type 'unsigned long' (fix available)
+
+        你遇到的这个警告，恰好精确地揭示了 `_IOW` 宏类型问题的根源：**`_IOW` 宏内部的 `sizeof` 操作符，导致整个表达式的类型被提升为 `unsigned long`（在 64 位系统上是 `size_t` 的典型宽度）。**
+
+        ### 🔍 根源：`sizeof` 操作符的返回类型是 `size_t`
+
+        在 C 语言中，`sizeof` 操作符的返回值类型并非 `int`，而是 **`size_t`**。`size_t` 是一个与平台相关的无符号整数类型，在 64 位 Linux 系统上，它通常被定义为 `unsigned long`。
+
+        我们来看 `_IOW` 宏的定义（简化版）：
+        ```c
+        #define _IOW(type,nr,size) _IOC(_IOC_WRITE, (type), (nr), sizeof(size))
+        ```
+        这里 `sizeof(int)` 的结果是 `size_t` 类型的 4。
+
+        ### ⚙️ 类型提升：`size_t` 如何“感染”整个表达式
+
+        `_IOC` 宏的核心是一个由多个部分按位或（`|`）组合而成的表达式：
+        ```c
+        #define _IOC(dir,type,nr,size) \
+            (((dir)  << _IOC_DIRSHIFT) | \
+             ((type) << _IOC_TYPESHIFT) | \
+             ((nr)   << _IOC_NRSHIFT) | \
+             ((size) << _IOC_SIZESHIFT))
+        ```
+        当其中一项是 `size_t`（即 `unsigned long`）时，C 语言的**寻常算术转换**规则会起作用：在包含多种类型的表达式中，操作数会被提升为其中“等级”最高的类型。由于 `unsigned long` 的等级高于 `int` 和 `unsigned int`，**整个按位或表达式的结果类型就被提升为 `unsigned long`**。
+
+        因此，`_IOW('H', 1, int)` 展开后，虽然数值上仍然是一个 32 位的值，但它的 **C 语言类型被编译器判定为 `unsigned long`**。
+
+        ### 🤔 为什么 `_IO` 没有这个问题？
+
+        `_IO` 宏的定义是：
+        ```c
+        #define _IO(type,nr) _IOC(_IOC_NONE, (type), (nr), 0)
+        ```
+        它直接将 `size` 参数硬编码为字面量 `0`，而不是 `sizeof(...)`。字面量 `0` 的类型是 `int`，因此不会引入 `size_t`，整个表达式在经过整型提升后，类型是 `unsigned int` 或 `int`，而不是 `unsigned long`。
+
+        ### 💡 如何解决这个警告？
+
+        你有几种选择：
+
+        1.  **顺应类型，修改格式字符串**：既然 clangd 认为它是 `unsigned long`，最直接的修复就是将 `%u` 改为 `%lu`。
+            ```c
+            pr_info("\t%lu\n", (unsigned long)HLC_CDEV_CMD_1);
+            ```
+            添加强制类型转换 `(unsigned long)` 可以让代码意图更清晰，也确保即使在不同平台上，类型也匹配。
+
+        2.  **消除类型提升的源头**：在宏定义层面，可以显式地将 `sizeof` 的结果转换为 `unsigned int`，阻止其“感染”整个表达式。一些 C 库（如 musl）的补丁正是采用了这种方法。但因为你无法修改内核头文件，这一点仅作为原理说明。
+
+        3.  **统一使用一种格式符**：为了代码风格一致，你也可以考虑将 `_IO` 命令也强制转换为 `unsigned long` 后用 `%lu` 打印。
+
+        **总结一下**：clangd 的警告是准确的。`_IOW` 宏因为内部使用了 `sizeof`，其表达式结果的类型被提升为 `unsigned long`（即 `size_t`），而不是我们直觉上的 `unsigned int`。这解释了你在代码中看到的 `%lu` 写法的由来，也说明了为什么改用 `%u` 会触发类型不匹配的警告。
+
+* linux 中，如果使用 _IOR 定义了一个 ioctl  command，但是我在 kmd 里进行了 write 操作，会发生什么？
+
+    在 Linux 中，`_IOR` 宏定义仅用于**标记**该 ioctl 命令的数据传输方向（从内核读到用户空间），它本身**不会**在运行时强制执行任何内存访问检查或阻止你在内核驱动（KMD）中调用 `copy_from_user`（即执行“write”操作）。
+
+    具体来说，会发生以下情况：
+
+    ### 1. 编码层面的结果
+    `_IOR(type, nr, size)` 会将方向位设置为 `_IOC_READ`，并将 `size` 编码进命令号中。在你的 KMD 里，`ioctl` 函数接收到的 `cmd` 参数仍然携带这个标记，但内核的通用 ioctl 处理层**不会**因为这个标记是 READ 就阻止你执行写入逻辑。
+
+    ### 2. 驱动层面的行为
+    如果你在驱动中忽略了方向标记，直接对用户传入的 `arg` 执行了 `copy_from_user`（例如将用户数据写入内核缓冲区），**操作会成功执行**（假设地址合法）。Linux 内核信任驱动开发者正确处理用户空间指针，方向标记主要起文档和约定作用。
+
+    ### 3. 潜在的后果与风险
+    虽然技术上可行，但这属于**违反约定**的行为，会带来隐患：
+    - **兼容性工具误判**：像 `strace` 之类的工具会自动解析 `_IOC_DIR`，如果标记为 `_IOR`（读），`strace` 可能尝试读取用户缓冲区来打印内容，但由于你实际执行的是写操作，可能导致 `strace` 显示错误的数据或产生误导性输出。
+    - **子系统或通用层检查**：某些子系统（如 V4L2、DVB）的通用 ioctl 包装层可能会根据方向标记决定是否预先调用 `copy_from_user` 或 `copy_to_user`。如果标记与实际操作不符，可能导致数据被意外复制或遗漏，甚至引发兼容性问题。
+    - **安全审查与维护**：代码审查时会被视为明显的逻辑错误，因为 ioctl 编号的语义与实现相反，增加了后续维护者的认知负担。
+
+    ### 建议
+    **不要这样做**。如果驱动需要从用户空间读取数据，应使用 `_IOW` 或 `_IOWR` 来定义命令。如果该命令号已经对外发布且不能更改（为了保持 ABI 兼容），你至少需要在驱动代码的注释中明确说明为何标记错误，并确保没有依赖通用层自动拷贝的逻辑。
+
+    ---
+    **如果你是在问“如果用户态用 `_IOR` 的命令号调用 `write()` 系统调用会怎样”**，那完全是另一回事：`write()` 和 `ioctl()` 是不同的系统调用路径，`write()` 不会解析 `_IOR` 宏，它只会把数据交给驱动的 `.write` 方法（如果有的话），两者互不干扰。
+
+* 是否有宏或函数可以反向解码出 ioctl cmd 的各个字段？
+
+    有的。Linux 内核在 `include/uapi/asm-generic/ioctl.h`（或各架构的 `ioctl.h`）中直接提供了一组用于反向解码的宏，它们就是 `_IOC` 系列宏的逆运算。
+
+    ### 核心解码宏
+
+    直接使用以下四个宏，传入你的 `ioctl` 命令号即可提取对应字段：
+
+    | 宏 | 作用 | 提取的字段 |
+    | :--- | :--- | :--- |
+    | `_IOC_DIR(nr)` | 获取数据传输方向 | 返回 `_IOC_NONE`、`_IOC_READ`、`_IOC_WRITE` 或它们的组合 |
+    | `_IOC_TYPE(nr)` | 获取“幻数”（type） | 通常是 8 位，对应 `_IOR('x', ...)` 中的字符 `'x'` |
+    | `_IOC_NR(nr)` | 获取命令序号（nr） | 8 位，对应驱动内具体的功能编号 |
+    | `_IOC_SIZE(nr)` | 获取参数大小 | 14 位（多数架构），即定义时 `sizeof(data_type)` 的结果 |
+
+    这些宏定义在 `ioctl.h` 中，实现方式就是按位右移并掩码，例如 `_IOC_TYPE(nr)` 等价于 `(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)`。
+
+    ### 使用注意
+
+    - **架构差异**：绝大多数架构（如 x86、ARM）使用上述标准的 2 位方向 + 14 位大小布局。但极少数架构（如 PowerPC）可能使用 3 位方向 + 13 位大小的变体，此时应包含对应架构的 `ioctl.h`，直接使用宏即可屏蔽差异，无需手动移位。
+    - **仅解出数值**：`_IOC_TYPE` 解出的是数值（例如 `'r'` 会得到 `0x72`），它不会自动帮你还原成字符，也不包含具体的数据类型信息（只能得到大小）。
+
+    如果你需要在用户态工具（如调试程序）中解码，无法直接包含内核头文件，可以手动复制这几个宏的定义，或者直接按位运算提取。
+
 * 为什么`sys/ioctl.h>`里的`ioctl()`的第 3 个参数要被设计成`...`？
 
     ioctl 函数原型是
@@ -34,12 +390,15 @@ Ref:
 
     这四个宏对应不同的数据流向（**方向是从用户空间视角定义的**）：
 
-    *   **`_IO(type, nr)`**：命令**无参数**。仅用于不需要传递额外数据的场景（如复位设备）。
-    *   **`_IOR(type, nr, data_type)`**：**读**命令。数据从**内核**流向**用户空间**。例如 `ioctl(fd, MY_CMD, &buf)` 中，驱动会将数据写入 `buf`。
-    *   **`_IOW(type, nr, data_type)`**：**写**命令。数据从**用户空间**流向**内核**。用户通过指针将配置参数传给驱动。
+    * `_IO(type, nr)`：命令**无参数**。仅用于不需要传递额外数据的场景（如复位设备）。
+
+    * `_IOR(type, nr, data_type)`：**读**命令。数据从**内核**流向**用户空间**。例如 `ioctl(fd, MY_CMD, &buf)` 中，驱动会将数据写入 `buf`。
+
+    * `_IOW(type, nr, data_type)`：**写**命令。数据从**用户空间**流向**内核**。用户通过指针将配置参数传给驱动。
+
     *   **`_IOWR(type, nr, data_type)`**：**读写**命令。数据双向流动，既传入配置又传出结果。
 
-    ### `cmd` 的内部位域结构
+    **`cmd` 的内部位域结构**
 
     一个典型的 32 位 `cmd` 由以下四个部分拼接而成（以常见的通用架构为例）：
 
@@ -52,34 +411,38 @@ Ref:
 
     **关键注意点**：在 `_IOR/_IOW/_IOWR` 中，**第三个参数必须直接填数据类型名**（如 `int`、`struct my_data`），**绝对不要填 `sizeof(类型)`**。宏内部会自动进行类型检查并计算大小，手动传 `sizeof` 会导致编码进去的大小变成指针的大小（`sizeof(size_t)`），从而引发兼容性问题。
 
-    ### 为什么必须用宏：兼容性与冲突规避
+    **为什么必须用宏：兼容性与冲突规避**
 
     1.  **唯一性保证**：`type`（幻数）是防止冲突的第一道防线。Linux 内核文档维护了一份 `ioctl-number.rst`，列出了已被占用的幻数。开发新驱动前必须查阅该文档，挑选一个未被占用的字符，否则可能导致应用层对 A 设备调用的命令被 B 设备误解。
+
     2.  **32/64 位兼容（compat）**：在 64 位内核上运行 32 位应用时，指针宽度和数据结构对齐可能发生变化。标准宏编码了大小信息，配合内核的 `compat_ioctl` 机制，有助于系统正确处理这种差异。历史上，未正确使用宏定义大小的命令容易在兼容模式下引发内存越界或数据截断。
+
     3.  **可读性与维护**：像 `_IOR('V', 1, struct v4l2_capability)` 这样的定义，一眼就能看出是 Video4Linux 子系统、读操作、获取能力集，远比直接写 `0x80685600` 易于维护。
 
-    ### 应用层的实际例子
+    **应用层的实际例子**
 
     假设你在写一个字符设备驱动，约定幻数为 `'x'`：
 
-    *   **驱动头文件定义**：
+    * **驱动头文件定义**：
+
         ```c
         #define MYDEV_RESET    _IO('x', 0)
         #define MYDEV_GET_VAL  _IOR('x', 1, int)
         #define MYDEV_SET_VAL  _IOW('x', 2, int)
         ```
-    *   **用户空间调用**：
+
+    * **用户空间调用**：
+
         ```c
         int val;
         ioctl(fd, MYDEV_GET_VAL, &val); // 正确：传 int 的地址
         // ioctl(fd, MYDEV_GET_VAL, val); // 错误：传了值而非地址
         ```
 
-    ### 错误处理惯例
+    **错误处理惯例**
 
     当驱动收到一个不认识的 `cmd` 时，标准的返回错误码是 **`-ENOTTY`**（在用户空间表现为 `errno` 被设为 `ENOTTY`，“Inappropriate ioctl for device”）。内核文档明确指出，不要使用 `-EINVAL` 或 `-ENOSYS` 来替代，以免用户空间无法准确区分“参数错误”和“命令不支持”。
 
-    ---
     **顺带一提**：如果你是在排查某个具体的设备问题（比如终端 `TIOCGWINSZ` 或文件属性 `FS_IOC_GETFLAGS`），这些系统自带的 `cmd` 通常不需要你手动定义，直接包含对应的系统头文件（如 `<sys/ioctl.h>`、`<linux/fs.h>`）即可使用。
 
     * 如果我只想传一个 unsigned long 整数下去到 kmd，不需要传整块 buffer，该怎么办
@@ -4560,6 +4923,38 @@ Ref:
 
 ## Topics
 
+### linux 驱动简介与常识
+
+* linux 设备类型
+
+    常见的有字符设备，块设备和网络设备。
+
+    1. 字符设备
+
+        按字节流访问，一般是按顺序访问
+
+        绝大多数设备都是字符设备。比如 led，按键，串口，传感器，LCD
+
+        字符设备的驱动通过字符设备文件来访问
+
+    1. 块设备
+
+        按数据块访问，块的大小固定，通常是 4k，具有随机访问能力
+
+        内存，磁盘，SD卡，U盘
+
+        块设备驱动通过块设备文件来访问
+
+    1. 网络设备
+
+        一般只代表网卡设备。
+
+        驱动实现要结合网络协议栈（TCP/IP）
+
+        访问网络设备不通过文件，通过套接字（网络通信地址）访问
+
+    In fact, all device drivers that are neither storage nor network device drivers are some type of character driver.
+
 ### routines
 
 1. hello, world 与 kmd 开发环境
@@ -4986,6 +5381,22 @@ Ref:
     6. ioctl 是一个测试 ioctl 的第三方小工具，不是 gnu 自带。
 
         对应的 github repo: <https://github.com/jerome-pouiller/ioctl.git>
+
+6. user mode app and seek
+
+    在用户态的程序中，进行 read, write, ioctl。
+
+    由于 read 会修改 /dev/hlc_dev 文件的 offset，后续 write 的时候又希望从头开始覆盖 buffer，所以这个 example 中也给驱动引入了 seek 的功能。
+
+    详细内容见`routines/06_user_mode_app_and_seek`
+
+    注：
+
+    1. 这个 example 使用了全局变量`loff_t cur_offset = 0;`表示固定 buffer 的当前偏移。但是 linux 内核提供了`filp->f_pos`作为文件的偏移，并且解决了多进程并发的冲突问题。
+
+    2. read 函数和 write 函数都有一个参数`*offset`，在这两个函数内更新`*offset`后，内核会根据这个值自动更新`filp->f_pos`的值。但是在`llseek()`函数中，需要手动更新`filp->f_pos`的值。
+
+    3. ioctl 的 command，使用`__IO()`和`__IOW()`等宏定义出来的，都是 32 位数。但是由于`__IOW()`等宏使用了`sizeof()`，所以字面变量变成了 64 位数。编译器可能会报 warning。不想看 warning, 可以手动转换一下类型, 转换成 unsigned int。
 
 ### vscode config
 
@@ -6723,6 +7134,10 @@ MODULE_LICENSE("GPL");
 
 ### char device
 
+* 字符设备驱动的访问
+
+    驱动是沟通硬件和上层应用的媒介，字符设备驱动通过字符设备文件来访问，Linux 中所有的设备文件存放在`/dev`中，在用户层访问设备文件和普通文件的方法是没有区别的。Linux kernel 通过设备号来找到对应的字符设备驱动。
+
 * cdev 设备驱动
 
     cdev 在内核中代表一个字符设备驱动。(char device)
@@ -7065,6 +7480,204 @@ MODULE_LICENSE("GPL");
         * 专用设备文件：复杂数据交换
 
     ioctl 提供了最大的灵活性，但应谨慎使用以确保接口的稳定性和安全性。
+    
+#### 设备号
+
+* 设备号简介
+
+    设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
+
+    The `dev_t` type (defined in `<linux/types.h>`) is used to hold device numbers—both the major and minor parts. `dev_t` is a 32-bit quantity with 12 bits set aside for the major number and 20 for the minor number.
+
+    主设备号用来区分不同类型的设备，次设备号用于区分设备的实例。
+
+    在`/proc/devices`文件中可以查找到设备号与对应的设备类型。
+
+    内核中提供了操作设备号的宏：
+
+    ```c
+    MAJOR(设备号);  // 通过设备号获取主设备号  MAJOR(dev_t dev);
+    MINOR(设备号);  // 通过设备号获取次设备号  MINOR(dev_t dev);
+    MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造设备号  MKDEV(int major, int minor);
+    ```
+
+    这些宏都是位运算，有空可以看看。
+
+* 申请设备号
+
+    设备号在内核中属于资源，需要向内核申请。
+
+    syntax:
+
+    ```c
+    #include <linux/fs.h>
+
+    int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
+    ```
+
+    alloc_chrdev_region - register a range of char device numbers
+
+    params:
+
+    * `dev`: 设备号的指针
+
+    * `baseminor`: 起始次设备号
+
+    * `count`: 设备号个数
+
+    * `name`: device region 的名称
+
+    Return value:
+
+    Returns zero or a negative error code.
+    
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/fs.h>
+
+    dev_t dev_region;
+    const char *dev_region_name = "hlc dev region";
+
+    int mod_init(void) {
+        printk(KERN_INFO "in mod_init() ...\n");
+        int rtv = alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
+        if (rtv != 0) {
+            pr_info("fail to alloc_chrdev_region(), ret: %d\n", rtv);
+        }
+        printk(KERN_INFO "successfully allocate device region. major: %d, minor: %d\n",
+            MAJOR(dev_region), MINOR(dev_region));
+        return 0;
+    }
+    ```
+    
+* 静态申请设备号
+
+    有两种申请方式，一种是静态申请（Statically allocating），一种是动态申请（Dynamically Allocating）。
+
+    我们可以使用`register_chrdev_region()`静态申请设备号。
+
+    Syntax:
+
+    ```c
+    #include <linux/fs.h>
+    register_chrdev_region(dev_t from, unsigned count, const char *name);
+    ```
+
+    Params:
+
+    * `from`: 要申请的起始设备号
+
+    * `count`: 设备数量
+
+        `count` is the total number of contiguous device numbers you are requesting. Note that, if the count is large, the range you request could spill over to the next major number; but everything will still work properly as long as the number range you request is available.
+
+    * `name`: 设备号在内核中对应的名称
+
+    Return value:
+
+    返回 0 表示成功，返回非 0 表示失败。
+
+    example:
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/fs.h>
+
+    dev_t dev = MKDEV(220, 0);
+
+    int hlc_mod_init(void)
+    {
+        printk(KERN_INFO "load my module\n");
+
+        // allocate a device number
+        register_chrdev_region(dev, 1, "hlc_dev");
+        printk(KERN_INFO "hlc dev, major = %d, minor = %d\n", MAJOR(dev), MINOR(dev));
+        return 0;
+    }
+    ```
+
+    上述代码中，使用`MKDEV(220, 0)`构造了一个设备号。构造方法是，首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如`220`。然后根据设备个数分配次设备号，一般从`0`开始。
+
+    `register_chrdev_region()`用于静态申请设备号。这个函数运行成功后，可以使用`cat /proc/devices`看到注册成功的设备号名称`220 hlc_dev`。
+
+* 注销设备号
+
+    不再使用设备号需要注销：
+
+    ```c
+    void unregister_chrdev_region(dev_t from, unsigned count);
+    ```
+
+    header file: `<linux/fs.h>`
+
+    params:
+
+    * `from`: 要注销的起始设备号
+
+    * `count`: 设备号的个数
+
+    一般在卸载模块的时候释放设备号。The usual place to call `unregister_chrdev_region` would be in your module’s cleanup function (Exit Function).
+
+* 设备号的 example
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/fs.h>
+
+    dev_t dev_region;
+    const char *dev_region_name = "hlc dev region";
+
+    int mod_init(void)
+    {
+        printk(KERN_INFO "in mod_init() ...\n");
+        alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
+        printk(KERN_INFO "allocate device region.\n");
+        return 0;
+    }
+
+    void mod_exit(void)
+    {
+        printk(KERN_INFO "in mod_exit() ...\n");
+        unregister_chrdev_region(dev_region, 1);
+        printk(KERN_INFO "unregistered device region.\n");
+    }
+
+    module_init(mod_init);
+    module_exit(mod_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    output:
+
+    ```
+    [ 6790.673894] in mod_init() ...
+    [ 6790.673896] allocate device region.
+    [ 6796.788756] in mod_exit() ...
+    [ 6796.788764] unregistered device region.
+    ```
+
+* 设备号：Difference between static and dynamic method
+
+    A static method is only really useful if you know in advance which major number you want to start with. With the Static method, you are telling the kernel that, what device numbers you want (the start major/minor number and count) and it either gives them to you or not (depending on availability).
+
+    With the Dynamic method, you are telling the kernel that how many device numbers you need (the starting minor number and count) and it will find a starting major number for you, if one is available, of course.
+
+    Partially to avoid conflict with other device drivers, it’s considered preferable to use the Dynamic method function, which will dynamically allocate the device numbers for you.
+
+    The disadvantage of dynamic assignment is that you can’t create the device nodes in advance, because the major number assigned to your module will vary. For normal use of the driver, this is hardly a problem, because once the number has been assigned, you can read it from /proc/devices.
+
+    注：
+
+    1. 这个资源的名字叫设备号（device number），但是相关的函数却都是 device region 相关。
+
+        是不是 device number 有歧义，一方面表示设备号，一方面又表示设备的个数，所以把改了？
+
+        然后设备号的类型还是`dev_t`，有点像 device type。既不含 number 信息，也不含 region 信息，还容易和后面的`device`类型弄混。不清楚为什么要这么起名，可能是为了向上兼容吧。
 
 #### 相关 API
 
@@ -8508,6 +9121,402 @@ MODULE_LICENSE("GPL");
     这些函数为 Linux 驱动提供了灵活的异步任务处理机制，是中断处理、定时任务等场景的重要工具。
 
 ### device
+
+* Manually Creating Device File
+
+    We can create the device file manually by using `mknod`.
+
+    `mknod -m <permissions> <name> <device type> <major> <minor>`
+
+    * `<name>` – your device file name that should have a full path (/dev/name)
+
+    * `<device type>` – Put c or b
+
+        * `c` – Character Device
+
+        * `b` – Block Device
+
+    * `<major>` – major number of your driver
+
+    * `<minor>` – minor number of your driver
+
+    * `-m <permissions>` – optional argument that sets the permission bits of the new device file to permissions
+
+    Example: `sudo mknod -m 666 /dev/etx_device c 246 0`
+
+    然后我们创建一个设备文件：`sudo mknod /dev/hello_dev c 220 0`。这里的主设备号和次设备号要和前面代码中的保持一致。
+
+    最后我们进行测试：`cat /dev/hello_dev`，然后执行`sudo smesg`，可以看到一些输出：
+
+    ```
+    [26495.940998] <1>hello my module
+    [26502.305035] in m_open function ...
+    [26502.305042] in m_read function ...
+    [26502.305048] in m_release function ...
+    ```
+
+    可以看到驱动正常运行。
+
+* Automatically Creating Device File
+
+    The automatic creation of device files can be handled with `udev`. `udev` is the device manager for the Linux kernel that creates/removes device nodes in the `/dev` directory dynamically. Just follow the below steps.
+
+    1. Include the header file `linux/device.h` and `linux/kdev_t.h`
+
+    2. Create the struct `class`
+
+    3. Create `device` with the `class` which is created by the above step
+
+    example:
+
+    `hello.c`
+
+    ```cpp
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+
+    dev_t dev_id;  // 设备号
+    struct cdev cdev;  // cdev handle
+    const char *cdev_name = "hlc_dev";
+    struct class *dev_cls;  // device class, registered at /sys/class
+    struct device *dev;  // device file handle
+
+    int m_open(struct inode *inode, struct file *file_ptr)
+    {
+        printk(KERN_INFO "in m_open()...\n");
+        return 0;
+    }
+
+    int m_release(struct inode *inod, struct file *file_ptr)
+    {
+        printk(KERN_INFO "in m_release()...\n");
+        return 0;
+    }
+
+    ssize_t m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *offset)
+    {
+        printk(KERN_INFO "in m_read()...\n");
+        return 0;
+    }
+
+    ssize_t m_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
+    {
+        printk(KERN_INFO "in m_write()...\n");
+        return 0;
+    }
+
+    ssize_t m_ioctl(struct file *file_ptr, unsigned int, unsigned long)
+    {
+        printk(KERN_INFO "in m_ioctl()...\n");
+        return 0;
+    }
+
+    struct file_operations m_ops = {
+        .owner = THIS_MODULE,
+        .open = m_open,
+        .release = m_release,
+        .read = m_read,
+        .write = m_write,
+        .unlocked_ioctl = m_ioctl
+    };
+
+    int hlc_module_init(void)
+    {
+        printk(KERN_INFO "init hlc module\n");
+        dev_id = MKDEV(255, 0);
+        register_chrdev_region(dev_id, 1, "hlc cdev driver");
+        cdev_init(&cdev, &m_ops);
+        cdev_add(&cdev, dev_id, 1);
+        dev_cls = class_create("hlc_dev_cls");
+        if (IS_ERR(dev_cls)) {
+            printk(KERN_INFO "fail to create device class.\n");
+        }
+        dev = device_create(dev_cls, NULL, dev_id, NULL, "hlc_dev");
+        if (IS_ERR(dev)) {
+            printk(KERN_INFO "fail to create device.\n");
+        }
+        return 0;
+    }
+
+    void hlc_module_exit(void)
+    {
+        printk(KERN_INFO "exit hlc module!\n");
+        device_destroy(dev_cls, dev_id);
+        class_destroy(dev_cls);
+        cdev_del(&cdev);
+        unregister_chrdev_region(dev_id, 1);
+    }
+
+    module_init(hlc_module_init);
+    module_exit(hlc_module_exit);
+    MODULE_LICENSE("GPL");
+    ```
+
+    `Makefile`:
+
+    ```makefile
+    KERNEL_DIR=/usr/src/linux-headers-6.5.0-28-generic
+    obj-m  +=  hello.o
+    default:
+        $(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
+
+    clean:
+        rm -f *.mod *.o *.order *.symvers *.cmd
+    ```
+
+    compile:
+
+    ```bash
+    make
+    ```
+
+    run:
+
+    ```bash
+    sudo insmod hello.ko
+    ```
+
+    `dmesg` output:
+
+    ```
+    [ 4976.473176] init hlc module
+    ```
+
+    `ls /sys/class/ | grep hlc` output:
+
+    ```
+    hlc_dev_cls
+    ```
+
+    `ls /dev/ | grep hlc` output:
+
+    ```
+    hlc_dev
+    ```
+
+    run `sudo bash -c "cat /dev/hlc_dev"`, then `dmesg` output:
+
+    ```
+    [ 5021.619227] in m_open()...
+    [ 5021.619251] in m_read()...
+    [ 5021.619269] in m_release()...
+    ```
+
+    exit:
+
+    ```bash
+    sudo rmmod hello
+    ```
+
+    Explanation:
+
+    * Create the class
+
+        This will create the struct class for our device driver. It will create a structure under `/sys/class/`. 创建的设备类在`/sys/class`目录下。
+
+        `struct class * class_create(struct module *owner, const char *name);`
+
+         ```c
+        struct class *class_create(模块所有者, const char *name);
+        ```
+
+        * `owner` – pointer to the module that is to “own” this struct class
+
+        * `name` – pointer to a string for the name of this class
+
+        This is used to create a struct class pointer that can then be used in calls to class_device_create. The return value can be checked using IS_ERR() macro.
+
+        销毁设备类：
+
+        ```c
+        void class_destroy(struct class *cls);
+        ```
+
+* `device_create`
+
+    创建设备文件（设备节点）
+
+    Syntax:
+
+    ```c
+    struct device *device_create(struct *class, struct device *parent, dev_t dev, void * drvdata, const char *fmt, ...);
+    ```
+
+    Parameters:
+
+    * `class` – pointer to the struct class that this device should be registered to
+
+    * `parent` – pointer to the parent struct device of this new device, if any
+
+        父设备指针
+
+    * `devt` – the dev_t for the char device to be added
+
+        设备号
+
+    * `drvdata` – the data to be added to the device for callbacks
+
+        额外的数据
+
+    * `fmt` – string for the device’s name
+
+        设备文件名
+
+    * `...` – variable arguments
+
+    A “dev” file will be created, showing the `dev_t` for the device, if the `dev_t` is not `0,0`. If a pointer to a parent struct device is passed in, the newly created struct device will be a child of that device in sysfs. The pointer to the struct device will be returned from the call. Any further sysfs files that might be required can be created using this pointer. The return value can be checked using IS_ERR() macro.
+
+    成功会在`/dev`目录下生成对应的设备文件，并返回设备指针
+
+* `device_destroy`
+
+    销毁设备文件
+
+    Syntax:
+
+    ```c
+    void device_destroy(struct class *class, dev_t devt)
+    ```
+
+* device create: 一个更加简洁的版本（没有添加错误处理，以及函数是否正常运行的判断）：
+
+    ```c
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/cdev.h>
+    #include <linux/fs.h>
+    #include <linux/device.h>
+
+    dev_t dev_num;
+    struct cdev my_cdev;
+    struct class *dev_cls;
+    struct device *dev;
+
+    int m_open(struct inode *inode, struct file *file);
+    int m_release(struct inode *inode, struct file *file);
+    ssize_t m_read(struct file *file, char __user *buf, size_t size, loff_t *offset);
+    ssize_t m_write(struct file *file, const char __user *buf, size_t size, loff_t *offset);
+
+    struct file_operations fops = {
+        .open = m_open,
+        .release = m_release,
+        .read = m_read,
+        .write = m_write
+    };
+
+    int init_mod(void)
+    {
+        pr_info("in init_mod()...\n");
+        alloc_chrdev_region(&dev_num, 0, 1, "hlc_dev_num");
+        cdev_init(&my_cdev, &fops);
+        cdev_add(&my_cdev, dev_num, 1);
+        dev_cls = class_create("hlc_dev_cls");
+        dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
+        pr_info("init hlc module done.\n");
+        return 0;
+    }
+
+    void exit_mod(void)
+    {
+        pr_info("in exit_mod()...\n");
+        device_destroy(dev_cls, dev_num);
+        class_destroy(dev_cls);
+        cdev_del(&my_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        pr_info("exit hlc module done.\n");
+    }
+
+    module_init(init_mod);
+    module_exit(exit_mod);
+    MODULE_LICENSE("GPL");
+
+    int m_open(struct inode *inode, struct file *file)
+    {
+        pr_info("in m_open()...\n");
+        return 0;
+    }
+
+    int m_release(struct inode *inode, struct file *file)
+    {
+        pr_info("in m_release()...\n");
+        return 0;
+    }
+
+    ssize_t m_read(struct file *file, char __user *buf, size_t size, loff_t *offset)
+    {
+        pr_info("in m_read()...\n");
+        return 0;
+    }
+
+    ssize_t m_write(struct file *file, const char __user *buf, size_t size, loff_t *offset)
+    {
+        pr_info("in m_write()...\n");
+        return 0;
+    }
+    ```
+
+    ### user mode program for device file
+
+    ### cache
+
+    * ioctl 接口
+
+        ioctl 是一个专用于硬件操作的接口，用于和实际数据传输相区分
+
+        1. 用户层接口
+
+            ```c
+            #include <sys/ioctl.h>
+
+            int ioctl(int fd, unsigned long request, ...);
+            ```
+
+            * `fd`: 文件描述符
+
+        1. 内核接口
+
+            头文件：
+
+            ```c
+            #include <linux/ioctl.h>
+            ```
+
+            对应`file_operations`中的成员：
+
+            ```c
+            long (*unlocked_ioctl) (struct file *filp, unsigned int cmd, unsigned long data);
+            ```
+
+        命令构造：
+
+        Linux 内核提供构造 ioctl 命令的宏：
+
+        ```c
+        #define HELLO_ONE _IO('k',0)
+        #define HELLO_TWO _IO('k',1)
+
+        long cdd_ioctl(struct file *filp, xxxx)
+        {
+            printk("enter cdd_ioctl!\n");
+
+            // 不同的命令对应不同的操作
+            switch(cmd) {
+                case HELLO_ONE:
+                    printk("hello one\n");
+                    break;
+                case HELLO_TWO:
+                    printk("hello two\n");
+                    break;
+                default:
+                    return -EINVAL;
+            }
+        }
+        ```
+
+    我们可以使用`ls -l /dev`查看已经创建的设备文件。First of all, note that the first letter of the permissions field is denoted that driver type. Device files are denoted either by b, for block devices, or c, for character devices. Also, note that the size field in the ls -l listing is replaced by two numbers, separated by a comma. The first value is the major device number and the second is the minor device number.
 
 * 详细讲讲 linux 中 mknod 的用法
 
@@ -17321,702 +18330,7 @@ obj-m += xxx.o xxx_2.o
 
 在加载模块的时候，应该先加载导出符号的模块，再加载使用符号的模块。卸载时，顺序要相反。
 
-## 设备驱动
-
-### cache
-
-* 通过代码测试设备文件
-
-    ```c
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <fcntl.h>
-    #include <sys/stat.h>
-    #include <sys/types.h>
-    #include <unistd.h>
-
-    int main()
-    {
-        char ch = 0;
-        char buf[10] = {};
-
-        int fd = open("/dev/hello_dev", O_RDWR);
-        if (fd == -1)
-        {
-            perror("open");
-            exit(-1);
-        }
-
-        printf("open successed! fd = %d\n", fd);
-
-        while (1) {
-            ch = getchar();
-            getchar();
-
-            if (ch == 'q')
-                break;
-            switch(ch)
-            {
-                case 'r':
-                    read(fd, buf, 0);
-                    break;
-                case 'w':
-                    write(fd, buf, 0);
-                    break;
-                default:
-                    printf("error input\n");
-            }
-        }
-    }
-    ```
-
-* 合并注册设备号和注册 cdev:
-
-    ```c
-    int register_chrdev(unsigned int major, const char *name, const struct file_operations *fops);
-    ```
-
-    当打开一个设备文件时，kernel 会根据设备号遍历 cdev 数组，找到对应的 cdev 结构体对象，然后把里面的`file_operations`里面的函数指针赋值给文件结构体`struct file`的`file_operations`里对应的函数。
-
-    如果`major`填 0，那么返回值为自动分配的 major。
-
-### note
-
-* linux 设备类型
-
-    常见的有字符设备，块设备和网络设备。
-
-    1. 字符设备
-
-        按字节流访问，一般是按顺序访问
-
-        绝大多数设备都是字符设备。比如 led，按键，串口，传感器，LCD
-
-        字符设备的驱动通过字符设备文件来访问
-
-    1. 块设备
-
-        按数据块访问，块的大小固定，通常是 4k，具有随机访问能力
-
-        内存，磁盘，SD卡，U盘
-
-        块设备驱动通过块设备文件来访问
-
-    1. 网络设备
-
-        一般只代表网卡设备。
-
-        驱动实现要结合网络协议栈（TCP/IP）
-
-        访问网络设备不通过文件，通过套接字（网络通信地址）访问
-
-    In fact, all device drivers that are neither storage nor network device drivers are some type of character driver.
-
-    字符设备驱动的访问：
-
-    驱动是沟通硬件和上层应用的媒介，字符设备驱动通过字符设备文件来访问，Linux 中所有的设备文件存放在`/dev`中，在用户层访问设备文件和普通文件的方法是没有区别的。Linux 操作系统实际上是通过设备号来找到对应的字符设备驱动（怎么找？）。
-
-    一个设备文件需要实现和普通文件相同的方法：
-
-    `open, close, read, write, lseek, ioctl, mmap, stat`
-
-* 设备号
-
-    设备号用 32 位的一个`dev_t`类型的变量来表示（无符号整型），高 12 位表示主设备号，后 20 位表示次设备号。
-
-    The `dev_t` type (defined in `<linux/types.h>`) is used to hold device numbers—both the major and minor parts. `dev_t` is a 32-bit quantity with 12 bits set aside for the major number and 20 for the minor number.
-
-    主设备号用来区分不同类型的设备，次设备号用于区分设备的实例。
-
-    在`/proc/devices`文件中可以查找到设备号与对应的设备类型。
-
-    内核中提供了操作设备号的宏：
-
-    ```c
-    MAJOR(设备号);  // 通过设备号获取主设备号  MAJOR(dev_t dev);
-    MINOR(设备号);  // 通过设备号获取次设备号  MINOR(dev_t dev);
-    MKDEV(主设备号, 次设备号);  // 通过主设备号和次设备号构造设备号  MKDEV(int major, int minor);
-    ```
-
-    这些宏都是位运算，有空可以看看。
-
-* 申请设备号
-
-    设备号在内核中属于资源，需要向内核申请。
-
-    syntax:
-
-    ```c
-    #include <linux/fs.h>
-
-    int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name);
-    ```
-
-    alloc_chrdev_region - register a range of char device numbers
-
-    params:
-
-    * `dev`: 设备号的指针
-
-    * `baseminor`: 起始次设备号
-
-    * `count`: 设备号个数
-
-    * `name`: device region 的名称
-
-    Return value:
-
-    Returns zero or a negative error code.
-    
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/fs.h>
-
-    dev_t dev_region;
-    const char *dev_region_name = "hlc dev region";
-
-    int mod_init(void) {
-        printk(KERN_INFO "in mod_init() ...\n");
-        int rtv = alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
-        if (rtv != 0) {
-            pr_info("fail to alloc_chrdev_region(), ret: %d\n", rtv);
-        }
-        printk(KERN_INFO "successfully allocate device region. major: %d, minor: %d\n",
-            MAJOR(dev_region), MINOR(dev_region));
-        return 0;
-    }
-    ```
-    
-* 静态申请设备号
-
-    有两种申请方式，一种是静态申请（Statically allocating），一种是动态申请（Dynamically Allocating）。
-
-    我们可以使用`register_chrdev_region()`静态申请设备号。
-
-    Syntax:
-
-    ```c
-    #include <linux/fs.h>
-    register_chrdev_region(dev_t from, unsigned count, const char *name);
-    ```
-
-    Params:
-
-    * `from`: 要申请的起始设备号
-
-    * `count`: 设备数量
-
-        `count` is the total number of contiguous device numbers you are requesting. Note that, if the count is large, the range you request could spill over to the next major number; but everything will still work properly as long as the number range you request is available.
-
-    * `name`: 设备号在内核中对应的名称
-
-    Return value:
-
-    返回 0 表示成功，返回非 0 表示失败。
-
-    example:
-
-    ```c
-    #include <linux/init.h>
-    #include <linux/module.h>
-    #include <linux/fs.h>
-
-    dev_t dev = MKDEV(220, 0);
-
-    int hlc_mod_init(void)
-    {
-        printk(KERN_INFO "load my module\n");
-
-        // allocate a device number
-        register_chrdev_region(dev, 1, "hlc_dev");
-        printk(KERN_INFO "hlc dev, major = %d, minor = %d\n", MAJOR(dev), MINOR(dev));
-        return 0;
-    }
-    ```
-
-    上述代码中，使用`MKDEV(220, 0)`构造了一个设备号。构造方法是，首先选择一个内核中未被使用的主设备号（`cat /proc/devices`），比如`220`。然后根据设备个数分配次设备号，一般从`0`开始。
-
-    `register_chrdev_region()`用于静态申请设备号。这个函数运行成功后，可以使用`cat /proc/devices`看到注册成功的设备号名称`220 hlc_dev`。
-
-**注销设备号**
-
-不再使用设备号需要注销：
-
-```c
-void unregister_chrdev_region(dev_t from, unsigned count);
-```
-
-header file: `<linux/fs.h>`
-
-params:
-
-* `from`: 要注销的起始设备号
-
-* `count`: 设备号的个数
-
-一般在卸载模块的时候释放设备号。The usual place to call `unregister_chrdev_region` would be in your module’s cleanup function (Exit Function).
-
-Example:
-
-```c
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/fs.h>
-
-dev_t dev_region;
-const char *dev_region_name = "hlc dev region";
-
-int mod_init(void)
-{
-    printk(KERN_INFO "in mod_init() ...\n");
-    alloc_chrdev_region(&dev_region, 0, 1, dev_region_name);
-    printk(KERN_INFO "allocate device region.\n");
-    return 0;
-}
-
-void mod_exit(void)
-{
-    printk(KERN_INFO "in mod_exit() ...\n");
-    unregister_chrdev_region(dev_region, 1);
-    printk(KERN_INFO "unregistered device region.\n");
-}
-
-module_init(mod_init);
-module_exit(mod_exit);
-MODULE_LICENSE("GPL");
-```
-
-output:
-
-```
-[ 6790.673894] in mod_init() ...
-[ 6790.673896] allocate device region.
-[ 6796.788756] in mod_exit() ...
-[ 6796.788764] unregistered device region.
-```
-
-**Difference between static and dynamic method**
-
-A static method is only really useful if you know in advance which major number you want to start with. With the Static method, you are telling the kernel that, what device numbers you want (the start major/minor number and count) and it either gives them to you or not (depending on availability).
-
-With the Dynamic method, you are telling the kernel that how many device numbers you need (the starting minor number and count) and it will find a starting major number for you, if one is available, of course.
-
-Partially to avoid conflict with other device drivers, it’s considered preferable to use the Dynamic method function, which will dynamically allocate the device numbers for you.
-
-The disadvantage of dynamic assignment is that you can’t create the device nodes in advance, because the major number assigned to your module will vary. For normal use of the driver, this is hardly a problem, because once the number has been assigned, you can read it from /proc/devices.
-
-注：
-
-1. 这个资源的名字叫设备号（device number），但是相关的函数却都是 device region 相关。
-
-    是不是 device number 有歧义，一方面表示设备号，一方面又表示设备的个数，所以把改了？
-
-    然后设备号的类型还是`dev_t`，有点像 device type。既不含 number 信息，也不含 region 信息，还容易和后面的`device`类型弄混。不清楚为什么要这么起名，可能是为了向上兼容吧。
-
-### 设备文件
-
-**Manually Creating Device File**
-
-We can create the device file manually by using `mknod`.
-
-`mknod -m <permissions> <name> <device type> <major> <minor>`
-
-* `<name>` – your device file name that should have a full path (/dev/name)
-
-* `<device type>` – Put c or b
-
-    * `c` – Character Device
-
-    * `b` – Block Device
-
-* `<major>` – major number of your driver
-
-* `<minor>` – minor number of your driver
-
-* `-m <permissions>` – optional argument that sets the permission bits of the new device file to permissions
-
-Example: `sudo mknod -m 666 /dev/etx_device c 246 0`
-
-然后我们创建一个设备文件：`sudo mknod /dev/hello_dev c 220 0`。这里的主设备号和次设备号要和前面代码中的保持一致。
-
-最后我们进行测试：`cat /dev/hello_dev`，然后执行`sudo smesg`，可以看到一些输出：
-
-```
-[26495.940998] <1>hello my module
-[26502.305035] in m_open function ...
-[26502.305042] in m_read function ...
-[26502.305048] in m_release function ...
-```
-
-可以看到驱动正常运行。
-
-**Automatically Creating Device File**
-
-The automatic creation of device files can be handled with `udev`. `udev` is the device manager for the Linux kernel that creates/removes device nodes in the `/dev` directory dynamically. Just follow the below steps.
-
-1. Include the header file `linux/device.h` and `linux/kdev_t.h`
-
-2. Create the struct `class`
-
-3. Create `device` with the `class` which is created by the above step
-
-example:
-
-`hello.c`
-
-```cpp
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-
-dev_t dev_id;  // 设备号
-struct cdev cdev;  // cdev handle
-const char *cdev_name = "hlc_dev";
-struct class *dev_cls;  // device class, registered at /sys/class
-struct device *dev;  // device file handle
-
-int m_open(struct inode *inode, struct file *file_ptr)
-{
-    printk(KERN_INFO "in m_open()...\n");
-    return 0;
-}
-
-int m_release(struct inode *inod, struct file *file_ptr)
-{
-    printk(KERN_INFO "in m_release()...\n");
-    return 0;
-}
-
-ssize_t m_read(struct file *file_ptr, char __user *buf, size_t size, loff_t *offset)
-{
-    printk(KERN_INFO "in m_read()...\n");
-    return 0;
-}
-
-ssize_t m_write(struct file *file_ptr, const char __user *buf, size_t size, loff_t *offset)
-{
-    printk(KERN_INFO "in m_write()...\n");
-    return 0;
-}
-
-ssize_t m_ioctl(struct file *file_ptr, unsigned int, unsigned long)
-{
-    printk(KERN_INFO "in m_ioctl()...\n");
-    return 0;
-}
-
-struct file_operations m_ops = {
-    .owner = THIS_MODULE,
-    .open = m_open,
-    .release = m_release,
-    .read = m_read,
-    .write = m_write,
-    .unlocked_ioctl = m_ioctl
-};
-
-int hlc_module_init(void)
-{
-    printk(KERN_INFO "init hlc module\n");
-    dev_id = MKDEV(255, 0);
-    register_chrdev_region(dev_id, 1, "hlc cdev driver");
-    cdev_init(&cdev, &m_ops);
-    cdev_add(&cdev, dev_id, 1);
-    dev_cls = class_create("hlc_dev_cls");
-    if (IS_ERR(dev_cls)) {
-        printk(KERN_INFO "fail to create device class.\n");
-    }
-    dev = device_create(dev_cls, NULL, dev_id, NULL, "hlc_dev");
-    if (IS_ERR(dev)) {
-        printk(KERN_INFO "fail to create device.\n");
-    }
-    return 0;
-}
-
-void hlc_module_exit(void)
-{
-    printk(KERN_INFO "exit hlc module!\n");
-    device_destroy(dev_cls, dev_id);
-    class_destroy(dev_cls);
-    cdev_del(&cdev);
-    unregister_chrdev_region(dev_id, 1);
-}
-
-module_init(hlc_module_init);
-module_exit(hlc_module_exit);
-MODULE_LICENSE("GPL");
-```
-
-`Makefile`:
-
-```makefile
-KERNEL_DIR=/usr/src/linux-headers-6.5.0-28-generic
-obj-m  +=  hello.o
-default:
-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
-
-clean:
-	rm -f *.mod *.o *.order *.symvers *.cmd
-```
-
-compile:
-
-```bash
-make
-```
-
-run:
-
-```bash
-sudo insmod hello.ko
-```
-
-`dmesg` output:
-
-```
-[ 4976.473176] init hlc module
-```
-
-`ls /sys/class/ | grep hlc` output:
-
-```
-hlc_dev_cls
-```
-
-`ls /dev/ | grep hlc` output:
-
-```
-hlc_dev
-```
-
-run `sudo bash -c "cat /dev/hlc_dev"`, then `dmesg` output:
-
-```
-[ 5021.619227] in m_open()...
-[ 5021.619251] in m_read()...
-[ 5021.619269] in m_release()...
-```
-
-exit:
-
-```bash
-sudo rmmod hello
-```
-
-Explanation:
-
-* Create the class
-
-    This will create the struct class for our device driver. It will create a structure under `/sys/class/`. 创建的设备类在`/sys/class`目录下。
-
-    `struct class * class_create(struct module *owner, const char *name);`
-
-     ```c
-    struct class *class_create(模块所有者, const char *name);
-    ```
-
-    * `owner` – pointer to the module that is to “own” this struct class
-
-    * `name` – pointer to a string for the name of this class
-
-    This is used to create a struct class pointer that can then be used in calls to class_device_create. The return value can be checked using IS_ERR() macro.
-
-    销毁设备类：
-
-    ```c
-    void class_destroy(struct class *cls);
-    ```
-
-* `device_create`
-
-    创建设备文件（设备节点）
-
-    Syntax:
-
-    ```c
-    struct device *device_create(struct *class, struct device *parent, dev_t dev, void * drvdata, const char *fmt, ...);
-    ```
-
-    Parameters:
-
-    * `class` – pointer to the struct class that this device should be registered to
-
-    * `parent` – pointer to the parent struct device of this new device, if any
-
-        父设备指针
-
-    * `devt` – the dev_t for the char device to be added
-
-        设备号
-
-    * `drvdata` – the data to be added to the device for callbacks
-
-        额外的数据
-
-    * `fmt` – string for the device’s name
-
-        设备文件名
-
-    * `...` – variable arguments
-
-    A “dev” file will be created, showing the `dev_t` for the device, if the `dev_t` is not `0,0`. If a pointer to a parent struct device is passed in, the newly created struct device will be a child of that device in sysfs. The pointer to the struct device will be returned from the call. Any further sysfs files that might be required can be created using this pointer. The return value can be checked using IS_ERR() macro.
-
-    成功会在`/dev`目录下生成对应的设备文件，并返回设备指针
-
-* `device_destroy`
-
-    销毁设备文件
-
-    Syntax:
-
-    ```c
-    void device_destroy(struct class *class, dev_t devt)
-    ```
-
-一个更加简洁的版本（没有添加错误处理，以及函数是否正常运行的判断）：
-
-```c
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/cdev.h>
-#include <linux/fs.h>
-#include <linux/device.h>
-
-dev_t dev_num;
-struct cdev my_cdev;
-struct class *dev_cls;
-struct device *dev;
-
-int m_open(struct inode *inode, struct file *file);
-int m_release(struct inode *inode, struct file *file);
-ssize_t m_read(struct file *file, char __user *buf, size_t size, loff_t *offset);
-ssize_t m_write(struct file *file, const char __user *buf, size_t size, loff_t *offset);
-
-struct file_operations fops = {
-    .open = m_open,
-    .release = m_release,
-    .read = m_read,
-    .write = m_write
-};
-
-int init_mod(void)
-{
-    pr_info("in init_mod()...\n");
-    alloc_chrdev_region(&dev_num, 0, 1, "hlc_dev_num");
-    cdev_init(&my_cdev, &fops);
-    cdev_add(&my_cdev, dev_num, 1);
-    dev_cls = class_create("hlc_dev_cls");
-    dev = device_create(dev_cls, NULL, dev_num, NULL, "hlc_dev");
-    pr_info("init hlc module done.\n");
-    return 0;
-}
-
-void exit_mod(void)
-{
-    pr_info("in exit_mod()...\n");
-    device_destroy(dev_cls, dev_num);
-    class_destroy(dev_cls);
-    cdev_del(&my_cdev);
-    unregister_chrdev_region(dev_num, 1);
-    pr_info("exit hlc module done.\n");
-}
-
-module_init(init_mod);
-module_exit(exit_mod);
-MODULE_LICENSE("GPL");
-
-int m_open(struct inode *inode, struct file *file)
-{
-    pr_info("in m_open()...\n");
-    return 0;
-}
-
-int m_release(struct inode *inode, struct file *file)
-{
-    pr_info("in m_release()...\n");
-    return 0;
-}
-
-ssize_t m_read(struct file *file, char __user *buf, size_t size, loff_t *offset)
-{
-    pr_info("in m_read()...\n");
-    return 0;
-}
-
-ssize_t m_write(struct file *file, const char __user *buf, size_t size, loff_t *offset)
-{
-    pr_info("in m_write()...\n");
-    return 0;
-}
-```
-
-### user mode program for device file
-
-### cache
-
-* ioctl 接口
-
-    ioctl 是一个专用于硬件操作的接口，用于和实际数据传输相区分
-
-    1. 用户层接口
-
-        ```c
-        #include <sys/ioctl.h>
-
-        int ioctl(int fd, unsigned long request, ...);
-        ```
-
-        * `fd`: 文件描述符
-
-    1. 内核接口
-
-        头文件：
-
-        ```c
-        #include <linux/ioctl.h>
-        ```
-
-        对应`file_operations`中的成员：
-
-        ```c
-        long (*unlocked_ioctl) (struct file *filp, unsigned int cmd, unsigned long data);
-        ```
-
-    命令构造：
-
-    Linux 内核提供构造 ioctl 命令的宏：
-
-    ```c
-    #define HELLO_ONE _IO('k',0)
-    #define HELLO_TWO _IO('k',1)
-
-    long cdd_ioctl(struct file *filp, xxxx)
-    {
-        printk("enter cdd_ioctl!\n");
-
-        // 不同的命令对应不同的操作
-        switch(cmd) {
-            case HELLO_ONE:
-                printk("hello one\n");
-                break;
-            case HELLO_TWO:
-                printk("hello two\n");
-                break;
-            default:
-                return -EINVAL;
-        }
-    }
-    ```
-
-我们可以使用`ls -l /dev`查看已经创建的设备文件。First of all, note that the first letter of the permissions field is denoted that driver type. Device files are denoted either by b, for block devices, or c, for character devices. Also, note that the size field in the ls -l listing is replaced by two numbers, separated by a comma. The first value is the major device number and the second is the minor device number.
-
 ## Data exchange between kernel space and user space
-
-Using this driver we can send strings or data to the kernel device driver using the write function. It will store that string in the kernel space. Then when I read the device file, it will send the data which is written by write by function to the userspace application.
 
 * `void *kmalloc(size_t size, gfp_t flags);`
 
@@ -18083,7 +18397,7 @@ Using this driver we can send strings or data to the kernel device driver using 
 
     * `*objp` – pointer returned by `kmalloc`
 
-`* copy_to_user()`
+* `copy_to_user()`
 
     从内核态向用户态写入数据：
 

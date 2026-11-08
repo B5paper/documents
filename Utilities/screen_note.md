@@ -2,6 +2,45 @@
 
 ## cache
 
+* screen 打开新窗口时，如何自动 cd 到和当前窗口一样的目录下？
+
+    在 GNU Screen 中，默认情况下新窗口会继承 `screen` 启动时的目录，而不是你当前窗口的实时目录。要让新窗口自动 `cd` 到当前目录，主要有两种思路：**修改 `.screenrc` 绑定键**或**在 Shell 层面同步目录**。
+
+    ### 方案一：修改 .screenrc 绑定键（最简单）
+
+    如果你通常是在 Shell 提示符下按 `Ctrl-a c` 新建窗口，可以修改 `~/.screenrc`，让 Screen 模拟输入 `screen` 命令来创建新窗口。因为你在当前 Shell 里输入 `screen` 时，新窗口会继承当前的 PWD。
+
+    在 `~/.screenrc` 中加入：
+    ```screenrc
+    bind c stuff "screen^M"
+    ```
+    这样按 `Ctrl-a c` 就会在当前目录打开新窗口 。
+
+    **关键注意点**：
+    - **不要在 `.screenrc` 里设置登录 Shell**。如果你的配置里有 `shell -$SHELL`，请改为 `shell $SHELL`。登录 Shell 会重置目录，导致上述方法失效 。
+    - **局限性**：这种方法本质是向当前窗口“发送”命令。如果你当前正在运行 `vim`、`top` 等全屏程序或耗时很长的编译任务，Shell 无法接收命令，该快捷键就会失效 。
+
+    ### 方案二：Shell 函数同步（适用于全屏程序运行时）
+
+    如果你需要在运行 `vim` 或 `top` 时也能保持目录同步，需要让 Screen 跟踪你的目录变化。可以在 `~/.bashrc` 中定义一个函数，覆盖 `cd` 命令，让每次切换目录时顺便通知 Screen 更新它的“默认目录”。
+
+    在 `~/.bashrc` 中添加：
+    ```bash
+    scr_cd()
+    {
+        cd "$1"
+        screen -X chdir "$PWD"
+    }
+    if [ "$TERM" == "screen" ]; then
+        alias cd=scr_cd
+    fi
+    ```
+    这样，你每次 `cd` 后，Screen 内部的 `chdir` 设置都会更新。此后无论你当前在运行什么程序，通过 Screen 创建的新窗口都会以该目录为起点 。
+
+    ### 补充：为什么不直接用 `screen -X chdir $PWD`？
+
+    你可能会搜到直接在命令行运行 `screen -X eval "chdir $PWD"` 的方案 。这确实能即时生效，但它**只对这一次操作有效**，且需要你手动在 Shell 里执行。如果你希望把“新建窗口 + 自动切目录”合并成一个快捷键，上述两种方案更合适。
+
 * 设置好 bash 的环境变量后，打开 screen，此时 screen 会继承 bash 中所有的环境变量。
 
 * 那如果我们不考虑 vim，只考虑 screen 呢，如何在 screen -r xxx 恢复 session 时，重置每个 screen 窗口的 DISPLAY 环境变量？

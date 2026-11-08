@@ -1,0 +1,13 @@
+test@Ubuntu22:~/projs/kmd_tuto/06_user_mode_app$ sudo insmod hlc_cdev.ko
+[sudo] password for test:
+test@Ubuntu22:~/projs/kmd_tuto/06_user_mode_app$ sudo ./test
+[OK] open /dev/hlc_cdev, fd = 3.
+[OK] read 59 bytes from /dev/hlc_dev.
+        buf: Hello, user! This is a greeting message sent from hlc_dev.
+
+[OK] lseek, new offset: 0
+[OK] write 29 bytes.
+[OK] ioctl send cmd HLC_CDEV_CMD_2
+[OK] close fd 3.
+test@Ubuntu22:~/projs/kmd_tuto/06_user_mode_app$ sudo rmmod hlc_cdev
+test@Ubuntu22:~/projs/kmd_tuto/06_user_mode_app$

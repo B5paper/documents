@@ -20,6 +20,13 @@
 
     1. 不知道能不能省略 -r?
 
+        2026/11/08/00: 必须加，否则会报错：
+
+        ```
+        test@Ubuntu22:~/projs/kmd_tuto$ cp 05_ioctl_and_cdev_node/. 06_user_mode_app/
+        cp: -r not specified; omitting directory '05_ioctl_and_cdev_node/.'
+        ```
+
 * 详细讲讲 linux 中 smartctl 的用法
 
     `smartctl` 是 `smartmontools` 软件包中的核心命令行工具，用于控制和管理硬盘的 SMART（自我监测、分析与报告技术）功能。它能够读取硬盘的健康状态、运行自检、查看错误日志，是 Linux 下监控磁盘健康状况最常用的工具之一。

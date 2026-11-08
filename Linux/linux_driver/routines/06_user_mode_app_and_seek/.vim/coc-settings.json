@@ -1,0 +1,7 @@
+{
+    "clangd.fallbackFlags": [
+        "-I/usr/src/linux-hwe-6.5-headers-6.5.0-41/include",
+        "-I/usr/src/linux-headers-6.5.0-41-generic/include"
+    ]
+}
+
