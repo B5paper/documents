@@ -22,7 +22,7 @@ Ref:
 
     `lseek` 是 Linux/Unix 系统编程中用于**调整文件读写偏移量**的核心系统调用。你给出的声明中，`__THROW` 是 glibc 的内部宏，在 C 语言环境下通常展开为 `__attribute__((__nothrow__ __LEAF))`，用于告诉编译器该函数不会抛出 C++ 异常，且不会回调当前编译单元中的函数，以辅助优化。日常编写 C 代码时，你只需包含 `<unistd.h>` 并正常调用即可，无需理会 `__THROW`。
 
-    ### 核心用法：三个 `whence` 参数
+    **核心用法：三个 `whence` 参数**
 
     `lseek` 的行为完全由第三个参数 `__whence` 决定，`__offset` 的含义也随之变化：
 
@@ -30,14 +30,14 @@ Ref:
     *   **`SEEK_CUR`**：将偏移量设置为**当前位置加上 `__offset`**。`__offset` 可正可负。例如，`lseek(fd, -1, SEEK_CUR)` 表示后退一个字节。
     *   **`SEEK_END`**：将偏移量设置为**文件末尾加上 `__offset`**。`__offset` 可正可负。例如，`lseek(fd, -1, SEEK_END)` 指向文件最后一个字节；`lseek(fd, 0, SEEK_END)` 指向文件末尾（即文件大小处）。
 
-    ### 返回值与关键场景
+    **返回值与关键场景**
 
     *   **返回值**：成功时，返回**新的文件偏移量**（从文件开头算起的字节数）。失败时，返回 `(off_t) -1` 并设置 `errno`。
     *   **获取当前位置**：调用 `lseek(fd, 0, SEEK_CUR)` 是获取当前文件偏移量的标准做法，因为它不改变位置，只返回当前值。
     *   **创建“空洞”文件**：`lseek` 允许将偏移量设置到**文件末尾之后**。如果随后写入数据，文件中间会形成“空洞”（hole），读取空洞部分会得到 `\0`，这常用于创建稀疏文件以节省磁盘空间。
     *   **错误处理**：如果 `fd` 是管道、FIFO 或套接字，`lseek` 会失败并返回 `ESPIPE` 错误，因为这些对象不可寻址。
 
-    ### 简单示例
+    **简单示例**
 
     ```c
     #include <unistd.h>
@@ -51,7 +51,7 @@ Ref:
     close(fd);
     ```
 
-    ### 注意事项
+    **注意事项**
 
     在**多线程**环境下，如果多个线程共享同一个文件描述符，`lseek` 与随后的 `read`/`write` 组合**不是原子操作**。如果希望指定位置读写且不影响当前偏移量，应使用 `pread` 或 `pwrite`。
 
@@ -7480,6 +7480,8 @@ MODULE_LICENSE("GPL");
         * 专用设备文件：复杂数据交换
 
     ioctl 提供了最大的灵活性，但应谨慎使用以确保接口的稳定性和安全性。
+
+#### ioctl
     
 #### 设备号
 
@@ -7680,6 +7682,34 @@ MODULE_LICENSE("GPL");
         然后设备号的类型还是`dev_t`，有点像 device type。既不含 number 信息，也不含 region 信息，还容易和后面的`device`类型弄混。不清楚为什么要这么起名，可能是为了向上兼容吧。
 
 #### 相关 API
+
+* `copy_to_user()`
+
+    从内核态向用户态写入数据：
+
+    Syntax:
+
+    ```c
+    unsigned long copy_to_user(const void __user *to, const void *from, unsigned long  n);
+    ```
+
+    This function is used to Copy a block of data into userspace (Copy data from kernel space to user space).
+
+    Parameters:
+
+    * `to` – Destination address, in the user space
+
+    * `from` – The source address in the kernel space
+
+    * `n` – Number of bytes to copy
+
+    Returns number of bytes that could not be copied. On success, this will be zero.
+
+    example:
+
+    (empty)
+
+    Note: Instead of using user space application, you can use `echo` and `cat` command.
 
 * `cdev_init()`：将 cdev 与 fops 绑定在一起
 
@@ -10769,6 +10799,73 @@ MODULE_LICENSE("GPL");
 
 ### malloc
 
+* `void *kmalloc(size_t size, gfp_t flags);`
+
+    申请内存：
+
+    ```c
+    #include <linux/slab.h>
+
+    void *kmalloc(size_t size, gfp_t flags);
+    ```
+
+    The allocated region is contiguous in physical memory.
+
+    * `size` - how many bytes of memory are required.
+
+    * `flags`– the type of memory to allocate.
+
+        The flags argument may be one of:
+
+        * `GFP_USER` – Allocate memory on behalf of the user. May sleep.
+
+        * `GFP_KERNEL` – Allocate normal kernel ram. May sleep.
+
+        * `GFP_ATOMIC` – Allocation will not sleep. May use emergency pools. For example, use this inside interrupt handler.
+
+        * `GFP_HIGHUSER` – Allocate pages from high memory.
+
+        * `GFP_NOIO` – Do not do any I/O at all while trying to get memory.
+
+        * `GFP_NOFS` – Do not make any fs calls while trying to get memory.
+
+        * `GFP_NOWAIT` – Allocation will not sleep.
+
+        * `__GFP_THISNODE` – Allocate node-local memory only.
+
+        * `GFP_DMA` – Allocation is suitable for DMA. Should only be used for kmalloc caches. Otherwise, use a slab created with SLAB_DMA.
+
+        Also, it is possible to set different flags by OR’ing in one or more of the following additional flags:
+
+        * `__GFP_COLD` – Request cache-cold pages instead of trying to return cache-warm pages.
+
+
+        * `__GFP_HIGH` – This allocation has high priority and may use emergency pools.
+
+        * `__GFP_NOFAIL` – Indicate that this allocation is in no way allowed to fail (think twice before using).
+
+        * `__GFP_NORETRY` – If memory is not immediately available, then give up at once.
+
+        * `__GFP_NOWARN` – If allocation fails, don’t issue any warnings.
+
+        * `__GFP_REPEAT` – If allocation fails initially, try once more before failing.
+
+        更多的参数，可以参考`linux/gfp.h`
+
+    kmalloc() 在内核空间分配的内存，如果在模块退出函数（module_exit）中没有被显式地使用 kfree() 释放，那么这些内存将永远地泄露，直到系统重启。`vmalloc()`同理。
+
+* `void kfree(const void *objp)`
+
+    释放内存：
+
+    ```c
+    void kfree(const void *objp)
+    ```
+
+    Parameters:
+
+    * `*objp` – pointer returned by `kmalloc`
+
 * `vmalloc()`可以将不连续的物理地址通过链表的形式映射成连续的虚拟内存地址。
 
     头文件：`#include <linux/vmalloc.h>`
@@ -10827,10 +10924,6 @@ MODULE_LICENSE("GPL");
     配对函数：`kvfree()`
 
     感觉这个函数没啥用。什么情况需要优先使用连续物理内存，如果物理内存不连续也无所谓？想不到。
-
-* kmalloc() 在内核空间分配的内存，如果在模块退出函数（module_exit）中没有被显式地使用 kfree() 释放，那么这些内存将永远地泄露，直到系统重启。
-
-    `vmalloc()`同理。
 
 * 讲讲 kmalloc_array()，kmalloc_caches() 的原型、作用及用法
 
@@ -18330,126 +18423,33 @@ obj-m += xxx.o xxx_2.o
 
 在加载模块的时候，应该先加载导出符号的模块，再加载使用符号的模块。卸载时，顺序要相反。
 
-## Data exchange between kernel space and user space
-
-* `void *kmalloc(size_t size, gfp_t flags);`
-
-    申请内存：
-
-    ```c
-    #include <linux/slab.h>
-
-    void *kmalloc(size_t size, gfp_t flags);
-    ```
-
-    The allocated region is contiguous in physical memory.
-
-    * `size` - how many bytes of memory are required.
-
-    * `flags`– the type of memory to allocate.
-
-        The flags argument may be one of:
-
-        * `GFP_USER` – Allocate memory on behalf of the user. May sleep.
-
-        * `GFP_KERNEL` – Allocate normal kernel ram. May sleep.
-
-        * `GFP_ATOMIC` – Allocation will not sleep. May use emergency pools. For example, use this inside interrupt handler.
-
-        * `GFP_HIGHUSER` – Allocate pages from high memory.
-
-        * `GFP_NOIO` – Do not do any I/O at all while trying to get memory.
-
-        * `GFP_NOFS` – Do not make any fs calls while trying to get memory.
-
-        * `GFP_NOWAIT` – Allocation will not sleep.
-
-        * `__GFP_THISNODE` – Allocate node-local memory only.
-
-        * `GFP_DMA` – Allocation is suitable for DMA. Should only be used for kmalloc caches. Otherwise, use a slab created with SLAB_DMA.
-
-        Also, it is possible to set different flags by OR’ing in one or more of the following additional flags:
-
-        * `__GFP_COLD` – Request cache-cold pages instead of trying to return cache-warm pages.
-
-
-        * `__GFP_HIGH` – This allocation has high priority and may use emergency pools.
-
-        * `__GFP_NOFAIL` – Indicate that this allocation is in no way allowed to fail (think twice before using).
-
-        * `__GFP_NORETRY` – If memory is not immediately available, then give up at once.
-
-        * `__GFP_NOWARN` – If allocation fails, don’t issue any warnings.
-
-        * `__GFP_REPEAT` – If allocation fails initially, try once more before failing.
-
-        更多的参数，可以参考`linux/gfp.h`
-
-* `void kfree(const void *objp)`
-
-    释放内存：
-
-    ```c
-    void kfree(const void *objp)
-    ```
-
-    Parameters:
-
-    * `*objp` – pointer returned by `kmalloc`
-
-* `copy_to_user()`
-
-    从内核态向用户态写入数据：
-
-    Syntax:
-
-    ```c
-    unsigned long copy_to_user(const void __user *to, const void *from, unsigned long  n);
-    ```
-
-    This function is used to Copy a block of data into userspace (Copy data from kernel space to user space).
-
-    Parameters:
-
-    * `to` – Destination address, in the user space
-
-    * `from` – The source address in the kernel space
-
-    * `n` – Number of bytes to copy
-
-    Returns number of bytes that could not be copied. On success, this will be zero.
-
-    example:
-
-    (empty)
-
-    Note: Instead of using user space application, you can use `echo` and `cat` command.
-
 ## ioctl
 
-There are many ways to Communicate between the Userspace and Kernel Space, they are:
+* ioctl 简介
 
-* IOCTL
+    There are many ways to Communicate between the Userspace and Kernel Space, they are:
 
-* Procfs
+    * IOCTL
 
-* Sysfs
+    * Procfs
 
-* Configfs
+    * Sysfs
 
-* Debugfs
+    * Configfs
 
-* Sysctl
+    * Debugfs
 
-* UDP Sockets
+    * Sysctl
 
-* Netlink Sockets
+    * UDP Sockets
 
-IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.
+    * Netlink Sockets
 
-Some real-time applications of ioctl are Ejecting the media from a “cd” drive, changing the Baud Rate of Serial port, Adjusting the Volume, Reading or Writing device registers, etc. We already have the write and read function in our device driver. But it is not enough for all cases.
+    IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.
 
-There are some steps involved to use IOCTL.
+    Some real-time applications of ioctl are Ejecting the media from a “cd” drive, changing the Baud Rate of Serial port, Adjusting the Volume, Reading or Writing device registers, etc. We already have the write and read function in our device driver. But it is not enough for all cases.
+
+    There are some steps involved to use IOCTL.
 
 * Create IOCTL command in the driver
 
@@ -18561,222 +18561,222 @@ There are some steps involved to use IOCTL.
     ioctl(fd, RD_VALUE, (int32_t*) &value);
     ```
 
-Driver full code:
+* ioctl driver full code:
 
-```c
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-#include<linux/slab.h>                 // kmalloc()
-#include<linux/uaccess.h>              // copy_to/from_user()
-#include <linux/ioctl.h>
-#include <linux/err.h>
- 
- 
-#define WR_VALUE _IOW('a','a',int32_t*)
-#define RD_VALUE _IOR('a','b',int32_t*)
- 
-int32_t value = 0;
- 
-dev_t dev = 0;
-static struct class *dev_class;
-static struct cdev etx_cdev;
+    ```c
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include<linux/slab.h>                 // kmalloc()
+    #include<linux/uaccess.h>              // copy_to/from_user()
+    #include <linux/ioctl.h>
+    #include <linux/err.h>
+     
+     
+    #define WR_VALUE _IOW('a','a',int32_t*)
+    #define RD_VALUE _IOR('a','b',int32_t*)
+     
+    int32_t value = 0;
+     
+    dev_t dev = 0;
+    static struct class *dev_class;
+    static struct cdev etx_cdev;
 
-/*
-** Function Prototypes
-*/
-static int      __init etx_driver_init(void);
-static void     __exit etx_driver_exit(void);
-static int      etx_open(struct inode *inode, struct file *file);
-static int      etx_release(struct inode *inode, struct file *file);
-static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
-static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
-static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+    /*
+    ** Function Prototypes
+    */
+    static int      __init etx_driver_init(void);
+    static void     __exit etx_driver_exit(void);
+    static int      etx_open(struct inode *inode, struct file *file);
+    static int      etx_release(struct inode *inode, struct file *file);
+    static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+    static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+    static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
-/*
-** File operation sturcture
-*/
-static struct file_operations fops =
-{
-    .owner          = THIS_MODULE,
-    .read           = etx_read,
-    .write          = etx_write,
-    .open           = etx_open,
-    .unlocked_ioctl = etx_ioctl,
-    .release        = etx_release,
-};
+    /*
+    ** File operation sturcture
+    */
+    static struct file_operations fops =
+    {
+        .owner          = THIS_MODULE,
+        .read           = etx_read,
+        .write          = etx_write,
+        .open           = etx_open,
+        .unlocked_ioctl = etx_ioctl,
+        .release        = etx_release,
+    };
 
-/*
-** This function will be called when we open the Device file
-*/
-static int etx_open(struct inode *inode, struct file *file)
-{
-    pr_info("Device File Opened...!!!\n");
-    return 0;
-}
-
-/*
-** This function will be called when we close the Device file
-*/
-static int etx_release(struct inode *inode, struct file *file)
-{
-    pr_info("Device File Closed...!!!\n");
-    return 0;
-}
-
-/*
-** This function will be called when we read the Device file
-*/
-static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
-{
-    pr_info("Read Function\n");
-    return 0;
-}
-
-/*
-** This function will be called when we write the Device file
-*/
-static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
-{
-    pr_info("Write function\n");
-    return len;
-}
-
-/*
-** This function will be called when we write IOCTL on the Device file
-*/
-static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
-    switch(cmd) {
-        case WR_VALUE:
-            if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
-            {
-                pr_err("Data Write : Err!\n");
-            }
-            pr_info("Value = %d\n", value);
-            break;
-        case RD_VALUE:
-            if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
-            {
-                pr_err("Data Read : Err!\n");
-            }
-            break;
-        default:
-            pr_info("Default\n");
-            break;
-    }
-    return 0;
-}
- 
-/*
-** Module Init function
-*/
-static int __init etx_driver_init(void)
-{
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                pr_err("Cannot allocate major number\n");
-                return -1;
-        }
-        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
- 
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
- 
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            pr_err("Cannot add the device to the system\n");
-            goto r_class;
-        }
- 
-        /*Creating struct class*/
-        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-            pr_err("Cannot create the struct class\n");
-            goto r_class;
-        }
- 
-        /*Creating device*/
-        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            pr_err("Cannot create the Device 1\n");
-            goto r_device;
-        }
-        pr_info("Device Driver Insert...Done!!!\n");
+    /*
+    ** This function will be called when we open the Device file
+    */
+    static int etx_open(struct inode *inode, struct file *file)
+    {
+        pr_info("Device File Opened...!!!\n");
         return 0;
- 
-r_device:
+    }
+
+    /*
+    ** This function will be called when we close the Device file
+    */
+    static int etx_release(struct inode *inode, struct file *file)
+    {
+        pr_info("Device File Closed...!!!\n");
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we read the Device file
+    */
+    static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+    {
+        pr_info("Read Function\n");
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we write the Device file
+    */
+    static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+    {
+        pr_info("Write function\n");
+        return len;
+    }
+
+    /*
+    ** This function will be called when we write IOCTL on the Device file
+    */
+    static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+    {
+        switch(cmd) {
+            case WR_VALUE:
+                if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
+                {
+                    pr_err("Data Write : Err!\n");
+                }
+                pr_info("Value = %d\n", value);
+                break;
+            case RD_VALUE:
+                if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
+                {
+                    pr_err("Data Read : Err!\n");
+                }
+                break;
+            default:
+                pr_info("Default\n");
+                break;
+        }
+        return 0;
+    }
+     
+    /*
+    ** Module Init function
+    */
+    static int __init etx_driver_init(void)
+    {
+            /*Allocating Major number*/
+            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                    pr_err("Cannot allocate major number\n");
+                    return -1;
+            }
+            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+     
+            /*Creating cdev structure*/
+            cdev_init(&etx_cdev,&fops);
+     
+            /*Adding character device to the system*/
+            if((cdev_add(&etx_cdev,dev,1)) < 0){
+                pr_err("Cannot add the device to the system\n");
+                goto r_class;
+            }
+     
+            /*Creating struct class*/
+            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+                pr_err("Cannot create the struct class\n");
+                goto r_class;
+            }
+     
+            /*Creating device*/
+            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+                pr_err("Cannot create the Device 1\n");
+                goto r_device;
+            }
+            pr_info("Device Driver Insert...Done!!!\n");
+            return 0;
+     
+    r_device:
+            class_destroy(dev_class);
+    r_class:
+            unregister_chrdev_region(dev,1);
+            return -1;
+    }
+
+    /*
+    ** Module exit function
+    */
+    static void __exit etx_driver_exit(void)
+    {
+        device_destroy(dev_class,dev);
         class_destroy(dev_class);
-r_class:
-        unregister_chrdev_region(dev,1);
-        return -1;
-}
-
-/*
-** Module exit function
-*/
-static void __exit etx_driver_exit(void)
-{
-    device_destroy(dev_class,dev);
-    class_destroy(dev_class);
-    cdev_del(&etx_cdev);
-    unregister_chrdev_region(dev, 1);
-    pr_info("Device Driver Remove...Done!!!\n");
-}
- 
-module_init(etx_driver_init);
-module_exit(etx_driver_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple Linux device driver (IOCTL)");
-MODULE_VERSION("1.5");
-```
-
-User program full code:
-
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
- 
-#define WR_VALUE _IOW('a','a',int32_t*)
-#define RD_VALUE _IOR('a','b',int32_t*)
- 
-int main()
-{
-    int fd;
-    int32_t value, number;
-
-    printf("\nOpening Driver\n");
-    fd = open("/dev/etx_device", O_RDWR);
-    if(fd < 0) {
-        printf("Cannot open device file...\n");
-        return 0;
+        cdev_del(&etx_cdev);
+        unregister_chrdev_region(dev, 1);
+        pr_info("Device Driver Remove...Done!!!\n");
     }
+     
+    module_init(etx_driver_init);
+    module_exit(etx_driver_exit);
+     
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("Simple Linux device driver (IOCTL)");
+    MODULE_VERSION("1.5");
+    ```
 
-    printf("Enter the Value to send\n");
-    scanf("%d",&number);
-    printf("Writing Value to Driver\n");
-    ioctl(fd, WR_VALUE, (int32_t*) &number);
+    User program full code:
 
-    printf("Reading Value from Driver\n");
-    ioctl(fd, RD_VALUE, (int32_t*) &value);
-    printf("Value is %d\n", value);
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+     
+    #define WR_VALUE _IOW('a','a',int32_t*)
+    #define RD_VALUE _IOR('a','b',int32_t*)
+     
+    int main()
+    {
+        int fd;
+        int32_t value, number;
 
-    printf("Closing Driver\n");
-    close(fd);
-}
-```
+        printf("\nOpening Driver\n");
+        fd = open("/dev/etx_device", O_RDWR);
+        if(fd < 0) {
+            printf("Cannot open device file...\n");
+            return 0;
+        }
 
-This is a simple example of using ioctl in a Linux device driver. If you want to send multiple arguments, put those variables into the structure, and pass the address of the structure.
+        printf("Enter the Value to send\n");
+        scanf("%d",&number);
+        printf("Writing Value to Driver\n");
+        ioctl(fd, WR_VALUE, (int32_t*) &number);
+
+        printf("Reading Value from Driver\n");
+        ioctl(fd, RD_VALUE, (int32_t*) &value);
+        printf("Value is %d\n", value);
+
+        printf("Closing Driver\n");
+        close(fd);
+    }
+    ```
+
+    This is a simple example of using ioctl in a Linux device driver. If you want to send multiple arguments, put those variables into the structure, and pass the address of the structure.
 
 ## Procfs
 

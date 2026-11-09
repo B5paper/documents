@@ -133,11 +133,17 @@
 
 ### verilator hlc_test on 54
 
+* [ ] verilator 里实现一个 4 位半加器 alu, 如何给组合逻辑进行输入？
+
+* [ ] led 闪烁，时钟分频， always 时序块，复位写法
+
 * [v] 54 hlc_test qemu 上的 verilator
 
 ### kmd hlc_test on 54
 
-* [ ] process driver note: 18333 ~ 18427
+* [ ] process driver note 18428 ~ 18780
+
+* [v] process driver note: 18333 ~ 18427
 
 * [v] char device driver
 

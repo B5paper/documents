@@ -2,6 +2,26 @@
 
 ## cache
 
+* glow.nvim
+
+    安装：
+
+    ```vim
+    Plug 'ellisonleao/glow.nvim'
+    ```
+
+    * 基于终端渲染引擎 Glow
+
+    * 直接在 Vim 里弹出一个漂亮的预览层
+
+    * 非常适合快速查看 README 文件
+
+    注：
+
+    1. 这个 repo 在 25 年时已经停止更新了。
+
+    2. glow 不支持数学公式渲染。
+
 * cygwin + ssh + screen，启动 vim 后，发现没有在 windows 上启动 x11 server，此时启动 xlaunch，然后再在 vim 里运行`:xrestore`，vim 的 "+ 寄存器立即可用。不需要重新启动整套环境。
 
 * 所以如果 "+ 没有明确的内容，那么 "+ 会回退到 "* 的内容，如果 "+ 被明确设置了内容，那么 "+ 和 "* 就开始独立变化？
@@ -8675,16 +8695,6 @@
               * **语法高亮：** 支持表格、栅栏代码块的高亮。
               * **隐藏链接：** 只有光标移动到链接上时才显示完整的 `[text](url)`，平时只显示 `text`。
 
-    3. 极简主义/命令行预览：glow.nvim
-
-        如果你不想打开浏览器，想直接在终端的浮动窗口里看渲染效果，这个插件非常酷。
-
-          * **插件名：** `ellisonleao/glow.nvim`
-          * **核心优势：**
-              * 基于终端渲染引擎 **Glow**。
-              * 直接在 Vim 里弹出一个漂亮的预览层。
-              * 非常适合快速查看 README 文件。
-
     4. 符号增强：vim-polyglot
 
         如果你不想折腾复杂的配置，直接安装 `sheerun/vim-polyglot`。这是一个语言包集合，它内置了非常扎实的 Markdown 语法高亮和缩进支持。
@@ -8695,7 +8705,6 @@
     | :--- | :--- |
     | **写文档/写书 (最强预览)** | `iamcco/markdown-preview.nvim` |
     | **整理笔记 (极致排版)** | `preservim/vim-markdown` |
-    | **极客/快速查看** | `ellisonleao/glow.nvim` |
 
     **提示：** 很多现代 Vim 用户（尤其是 Neovim 用户）还会配合 `nvim-treesitter` 来获得更精准的代码块高亮。
 
@@ -27638,12 +27647,6 @@ coc.vim 的这个提示是什么意思？
 
             支持数学公式、代码高亮
 
-        * glow.nvim - 使用glow渲染
-
-            ```vim
-            Plug 'ellisonleao/glow.nvim'
-            ```
-
     2. 语法高亮增强
 
         * vim-markdown - 增强Markdown语法高亮
@@ -27699,8 +27702,6 @@ coc.vim 的这个提示是什么意思？
     * 终端内渲染
 
         * mdv - 终端内查看Markdown
-
-        * glow - 美观的终端渲染
 
         * mdcat - cat的Markdown版本
 
