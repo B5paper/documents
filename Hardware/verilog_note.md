@@ -2,6 +2,94 @@
 
 ## cache
 
+* case
+
+    ```verilog
+    case(expr)
+        expr_1: statement_1;
+        expr_2: statement_2;
+        ...
+        default: statement_n;
+    endcase
+    ```
+
+    casex, casez 是一样的用法。
+
+    case 语句的所有表达式值的位宽必须相等。
+
+    真值表：
+
+    * case
+
+        | case | 0 | 1 | x | z |
+        | - | - | - | - | - |
+        | 0 | 1 | 0 | 0 | 0 |
+        | 1 | 0 | 1 | 0 | 0 |
+        | x | 0 | 0 | 1 | 0 |
+        | z | 0 | 0 | 0 | 1 |
+
+    * casez
+
+        | casez | 0 | 1 | x | z |
+        | - | - | - | - | - |
+        | 0 | 1 | 0 | 0 | 1 |
+        | 1 | 0 | 1 | 0 | 1 |
+        | x | 0 | 0 | 1 | 1 |
+        | z | 1 | 1 | 1 | 1 |
+
+    * casex
+
+        | casex | 0 | 1 | x | z |
+        | - | - | - | - | - |
+        | 0 | 1 | 0 | 1 | 1 |
+        | 1 | 0 | 1 | 1 | 1 |
+        | x | 1 | 1 | 1 | 1 |
+        | z | 1 | 1 | 1 | 1 |
+
+* 在 always 块内，如果 if / case 下某个变量没有赋值，那么这个变量将保持原值。此时会生成一个锁存器。
+
+    case 语句中缺少 default 也通常会生成锁存器。
+
+* example: 使用 case 语句实现四选一多路选择器
+
+    ```verilog
+    module mux4_to_1 (out, i0, i1, i2, i3, s1, s0);
+        output out;
+        input i0, i1, i2, i3;
+        input s1, s0;
+
+        reg out;
+
+        always @(s1 or s0 or i0 or i1 or i2 or i3)
+        begin
+            case ({s1, s0})
+                2'b00: out = i0;
+                2'b01: out = i1;
+                2'b10: out = i2;
+                2'b11: out = i3;
+                default: out = 1'bx;
+            endcase
+        end
+    endmodule
+    ```
+
+* 循环语句
+
+    * forever
+
+        ```verilog
+        forever statement;
+
+        forever
+        begin
+            statements;
+        end
+        ```
+
+        forever 语句常用于产生周期性的波形，用来作为仿真测试信号。
+
+        forever 语句必须写在 initial 块中。
+
 * 所以说，如果没有时钟，就没法用 gtkwave 了吧？
 
     不是的，**没有时钟照样可以用 GTKWave 看波形**，这是个常见的误解。GTKWave 只是打开 VCD 文件、按时间轴画信号变化的工具，它不关心"有没有时钟"，只关心 VCD 里有没有记录信号值随时间的变化。
