@@ -2,6 +2,772 @@
 
 ## cache
 
+* 常用的系统任务
+
+    * $display, $write
+
+        ```verilog
+        $display (p1, p2, ..., pn);
+        $write(p1, p2, ..., pn);
+        ```
+
+        输出信息。p1 是 format.
+
+        $display 自动地在输出后进行换行。$write 则可以在一行里输出多个信息。
+
+        format:
+
+        | 输出格式 | 说明 |
+        | - | - |
+        | %h 或 %H | 以十六进制数的形式输出 |
+        | %d 或 %D | 以十进制数的形式输出 |
+        | %o 或 %O | 以八进制的形式输出 |
+        | %b 或 %B | 以二进制数的形式输出 |
+        | %c 或 %C | 以 ascii 码字符的形式输出 |
+        | %v 或 %V | 输出网络型数据信号强度 |
+        | %m 或 %M | 输出等级层次的名字 |
+        | %s 或 %S | 以字符串的形式输出 |
+        | %t 或 %T | 以当前的时间格式输出 |
+        | %e 或 %E | 以指数的形式输出实型数 |
+        | %f 或 %F | 以十进制数的形式输出实型数 |
+        | %g 或 %G | 以指数或十进制数的形式输出实型数。无论何种格式都以较短的结果输出 |
+
+        转码序列：
+
+        | 转码序列 | 功能 |
+        | - | - |
+        | \n | 换行 |
+        | \t | 横向跳格（即跳到下一个输出区） |
+        | \\ | 反斜杠字符 \ |
+        | \" | 双引号字符 " |
+        | \0 | 1 到 3 位八进制数代表的字符 |
+        | %% | 百分号 % |
+
+        * example 1
+
+            ```verilog
+            module disp;
+                reg[31:0] rval;
+                pulldown(pd);
+                initial begin
+                    rval = 101;
+                    $display("rval = %h hex %d decimal", rval, rval);
+                    $display("rval = %o otal %b binary", rval, rval);
+                    $display("rval has %c ascii character value", rval);
+                    $display("pd strength value is %v", pd);
+                    $display("current scope is %m");
+                    $display("%s is ascii value for 101", 101);
+                    $display("simulation time is %t", $time);
+                end
+            endmodule
+            ```
+
+            在位前面补 0：
+
+            ```verilog
+            $display("d = %0h a = %0h", data, addr);
+            ```
+
+        * example 2
+
+            ```verilog
+            module printval;
+                reg[11:0] r1;
+                initial begin
+                    r1 = 10;
+                    $display("Printing with maximum size=%d=%h", 41, r1);
+                    $display("Printing with minimum size=%0d%0h", r1, r1);
+                end
+            endmodule
+            ```
+
+* 带符号函数
+
+    带符号函数的返回值可以作为带符号数进行运算。
+
+    ```verilog
+    module top;
+        ...
+        function signed[63:0] compute_signed(input[63:0] vector);
+            ...
+        endfunction
+
+        if (compute_signed(vector) < -3) begin
+            ...
+        end
+    endmodule
+    ```
+
+* 常量函数
+
+    常量函数用于计算一些复杂的表达式，可以用于代替常量。
+
+    ```verilog
+    module ram(...);
+        parameter RAM_DEPTH = 256;
+        input [clog2(RAM_DEPTH) - 1 : 0] addr_bus;
+        ...
+        function integer clogb2(input integer depth);
+        begin
+            for (clogb2 = 0; depth > 0; clogb2 = clogb2 + 1)
+                depth = depth >> 1;
+            end
+        endfunction
+        ...
+    endmodule
+    ```
+
+* 自动（递归）函数
+
+    如果使用了关键字 automatic，那么仿真器每一次函数调用动态地分配新的地址空间，每一个函数调用对各自的地址空间进行操作。
+
+    自动函数中声明的局部变量不能通过层次名进行访问。
+
+    ```verilog
+    module top;
+        ...
+        function automatic integer factorial;
+        input [31:0]oper;
+        integer i;
+        begin
+            if (operand >= 2)
+                factorial = factorial(oper - 1) * oper;  // 递归调用
+            else
+                factorial = 1;
+        end
+    endfunction
+
+
+    // 调用该函数
+    integer result;
+    initial begin
+        result = factorial(4);  // 调用 4 的阶乘
+        $display("factorial of 4 is % 0d ", result);  // 显示 24
+    end
+    ...
+    endmodule
+    ```
+
+* 与函数相关的 example
+
+    * 奇偶检验位计算
+
+        ```verilog
+        module parity;
+            reg[31:0] addr;
+            reg parity;
+
+            initial begin
+                addr = 32'h3456_789a;
+                # 10 addr = 32'hc4c6_78ff;
+                # 10 addr = 32'hff56_ff9a;
+                # 10 addr = 32'h3faa_aaaa;
+            end
+
+            always @(addr) begin
+                parity = calc_parity(addr);
+                $display("Parity calculated = %b", calc_parity(addr));
+            end
+
+            // 定义偶校验计算函数
+            function calc_parity;
+                input[31:0] address;
+                begin
+                    calc_parity = ^address;  // 返回所有地址位的异或值
+                end
+            endfunction
+        endmodule
+        ```
+
+    * 使用 C 风格进行变量声明的函数定义
+
+        ```verilog
+        function calc_parity(input[31:0] address);
+        begin
+            calc_parity = ^address;
+        end
+        endfunction
+        ```
+
+    * 左 / 右移位寄存器
+
+        ```verilog
+        module shifter;
+
+        'define LEFT_SHIFT 1'b0
+        'define RIGHT_SHIFT 1'b1
+        reg[31:0] addr, left_addr, right_addr;
+        reg control;
+
+        // 每当新地址出现时就计算右移位和左移位的值
+        always @(addr) begin
+            left_addr = shift(addr, 'LEFT_SHIFT);
+            right_addr = shift(addr, 'RIGHT_SHIFT);
+        end
+
+        // 定义移位函数，其输出是一个 32 位的值
+        function[31:0] shift;
+            input[31:0] address;
+            input control;
+            begin
+                // 根据控制信号适当地设置输出值
+                shift = (control == 'LEFT_SHIFT) ? (address << 1) : (address >> 1);
+            end
+        endfunction
+
+        endmodule
+        ```
+
+* function
+
+    syntax:
+
+    ```verilog
+    function <return_val_type_or_range> (function_name);
+        <port_description_statements>
+        <var_type_descrip_statements>
+            begin
+                <statement>
+                ...
+            end
+    endfunction
+    ```
+
+    如果不写返回值类型，那么默认返回值为一位寄存器类型:
+
+    ```verilog
+    function[7:0] getbyte;
+        input[15:0] address;
+        begin
+            <statements>  // 从地址字节中提取低字节的程序
+            getbyte = result_expression;  // 赋值返回值
+        end
+    endfunction
+    ```
+
+    函数的使用规则：
+
+    1. 函数的定义不能包含任何的时间控制语句，即任何用 #, @, 或 wait 来标识的语句
+
+    2. 函数不能启动任务
+
+    3. 定义函数时至少要有一个输入参量
+
+    4. 在函数的定义中必须有一条赋值语句给函数中的一个内部变量赋以函数的结果值，该内部变量具有和函数名相同的名字
+
+    * example: 阶乘函数的定义和调用
+
+        ```verilog
+        module tryfact;
+            function[31:0] factorial;
+                input[3:0] operand;
+                reg[3:0] index;
+                begin
+                    factorial = 1;  // 0 的阶乘为 1，1 的阶乘为 1
+                    for (index = 2; index <= operand; index = index + 1)
+                        factorial = index * factorial;
+                end
+            endfunction
+
+            // 函数的测试
+            reg[31:0] result;
+            reg[3:0] n;
+            
+            initial begin
+                result = 1;
+                for (n = 2; n <= 9; n = n + 1) begin
+                    $display("Partial result n = %d result = %d", n, result);
+                    result = n * factorial(n) / ((n*2) + 1);
+                end
+                $display("Finalresult = %d", result);
+            end
+        endmodule
+        ```
+
+* task
+
+    task definition:
+
+    ```verilog
+    task <task_name>:
+        <port, data type declaration>
+        <statements;>
+    endtask
+    ```
+
+    task invoke:
+
+    ```verilog
+    <task_name>(port_1, port_2, ..., port_n);
+    ```
+
+    example:
+
+    ```verilog
+    task my_task;
+        input a, b;
+        inout c;
+        output d, e;
+        ...
+        <statement>  // 执行任务工作相应的语句
+        ...
+        c = foo1;  // 赋初始值
+        d = foo2;  // 对任务的输出变量赋值
+        e = foo3;
+    endtask
+
+    my_task(v, w, x, y, z);
+    ```
+
+    * example 2: 描述红绿黄交通灯行为的 verilog 模块
+
+        ```verilog
+        module traffic_lights;
+            reg clock, red, amber, green;
+            parameter on = 1, off = 0, red_tics = 350,
+                amber_tics = 30, green_tics = 200;
+            // 交通灯初始化
+            initial red = off;
+            initial amber = off;
+            initial green = off;
+
+            // 交通灯控制时序
+            always begin
+                red = on;  // 开红灯
+                light(red, red_tics);  // 调用等待任务
+                green = on;  // 开绿灯
+                light(green, green_tics);  // 等待
+                amber = on;  // 开黄灯
+                light(amber, amber_tics);  // 等待
+            end
+
+            // 定义交通灯开启时间的任务
+            task light;
+                output color;
+                input[31:0] tics;
+                
+                begin
+                    repeat(tics)
+                        @(posedge clock)  // 等待 tics 个时钟的上升沿
+                    color = off;  // 关灯
+                end
+            endtask
+
+            // 产生时钟脉冲的 always 块
+            always begin
+                # 100 clock = 0;
+                # 100 clock = 1;
+            end
+        endmodule
+        ```
+
+        该模块只是一个行为模块，不能综合成电路网表。
+
+* task 与 function 的不同
+
+    1. 函数只能与主模块共用同一个仿真时间单位，而任务可以定义自己的仿真时间单位
+
+    2. 函数不能启动任务，而任务能启动其他任务和函数
+
+    3. 函数至少要有一个输入变量，而任务可以没有或有多个任务类型的变量
+
+    4. 函数返回一个值，而任务不返回值
+
+    函数的目的是通过返回一个值来响应输入信号的值，任务则可以支持多种目的，能计算多个结果值，这些结果值只能通过被调用的任务的输出或总线端口送出。
+
+* always or
+
+    由关键词 or 连接的多个事件名或者信号名组成的列表称为敏感列表。or 被用来表示这种关系，或者使用 , 来代替。
+
+    1. example 1:
+
+        有异步复位的电平敏感锁存器。
+
+        ```verilog
+        always @ (reset or clock or d)
+        begin
+            if (reset)  // 若 reset 信号为高，把 q 置零
+                q = 1'b0;
+            else if (clock)  // 若 clock 信号为高，锁存输入信号 d
+                q = d;
+        end
+        ```
+
+    2. example 2:
+
+        使用逗号的敏感列表，等价于 or
+
+        ```verilog
+        always @ (reset, clock, d)
+        begin
+            if (reset)
+                q = 1'b0;
+            else if (clock)
+                q = d;
+        end
+        ```
+
+        用 reset 异步下降沿复位，clock 正跳变沿触发的 D 寄存器。
+
+        ```verilog
+        always @ (posedge clk, negedge reset)
+        if (!reset)
+            q <= 0;
+        else
+            q <=d;
+        ```
+
+    * `always @#`, `always @(*)` 表示对其后面语句块中所有输入变量的变化都是敏感的
+
+        ```verilog
+        always @ (a or b or c or d or e or f or g or h or p or m)
+        begin
+            out1 = a ? b + c : d + e;
+            out2 = f ? g + h : p + m;
+        end
+
+
+        always @ (*)
+        begin
+            out1 = a ? b + c : d + e;
+            out2 = f ? g + h : p + m;
+        end
+        ```
+
+    * 电平敏感时序控制
+
+        后面的语句和语句块需要等待某个条件为真才能执行。
+
+        ```verilog
+        always
+            wait (count_enable)  # 20 count = count + 1;
+        ```
+
+        若`count_enable`为 0，则不执行后面的语句。否则在 20 个时间单位后执行`count = count + 1;`。如果`count_enable`始终为 1，那么`count`每过 20 个时间单位加 1
+
+* 结构说明语句
+
+    一个模块中可以有多个 initial 和 always 块。每个 initial 和 always 语句在仿真的一开始同时立即开始执行。
+
+    * initial
+
+        ```verilog
+        initial
+        begin
+            statement_1;
+            statement_2;
+            ...
+            statement_n;
+        end
+        ```
+
+        initial 语句不占用仿真时间，即在 0 ns 内，完成初始化工作。
+
+        example:
+
+        ```verilog
+        initial
+        begin
+            inputs = 'b000000;  // 初始时刻为 0
+            # 10 inputs = 'b011001;
+            # 10 inputs = 'b011011;
+            # 10 inputs = 'b011000;
+            # 10 inputs = 'b001000;
+        end
+        ```
+
+    * always
+
+        ```verilog
+        always  # half_period areg = ~areg;
+        ```
+
+        生成一个周期为 peroid (= 2 * half_period) 的无限延续的信号波形。常用这种方法来描述时钟信号，并作为激励信号来测试所设计的电路。
+
+        ```verilog
+        reg[7:0] counter;
+        reg tick;
+        always @(posedge areg)
+        begin
+            tick = ~tick;
+            counter = counter + 1;
+        end
+        ```
+
+        ```verilog
+        always @(posedge clock or posedge reset)
+        begin
+            ...
+        end
+
+        always @(a or b or c)  // 电平触发，只要 a, b, c 发生变化，就执行 always 块
+        begin
+            ...
+        end
+        ```
+
+* examples
+
+    * 四选一多路选择器
+
+        ```verilog
+        module mux4_to_1(out, i0, i1, i2, i3, s1, s0);
+        output out;
+        input i0, i1, i2, i3;
+        input s1, s0;
+        reg out;
+
+        always @(s1 or s0 or i0 or i1 or i2 or i3)
+        begin
+            case({s1, s0})
+            2'b00: out = i0;
+            2'b01: out = i1;
+            2'b10: out = i2;
+            2'b11: out = i3;
+            default: out = 1'bx;
+            endcase
+        end
+        endmodule
+        ```
+
+    * 四位计数器
+
+        四位脉动进位计数器。
+
+        ```verilog
+        module counter(Q, clock, clear);
+
+        output[3:0] Q;
+        input clock, clear;
+        reg[3:0] Q;
+
+        always @ (posedge clear or negedge clock)
+        begin
+            if (clear)
+                Q <= 4'd0;  // 为了生成诸如触发器一类的时序逻辑，建议使用非阻塞赋值
+            else
+                Q <= Q + 1;  // Q 是一个四位的寄存器，计数超过 15 后又会归零，因此模 16 没有必要
+        end
+        endmodule
+        ```
+
+* 详细讲讲 verilog 中关于参数和参数覆盖的语法
+
+    你之前看到的 `# ( N )` 是 Verilog 参数覆盖机制中的一种写法。Verilog 的参数系统主要涉及两个关键字：`parameter` 和 `localparam`，以及几种在实例化时修改参数值的方法。
+
+    ### 核心概念：parameter 与 localparam 的区别
+
+    在定义模块时，你需要根据用途选择使用 `parameter` 还是 `localparam`。
+
+    *   **`parameter`**：用于定义**可配置**的常量。它的主要目的是作为模块对外的一个“接口”，允许在实例化该模块时，从外部修改这个值，从而让同一个模块设计能适配不同的位宽、深度或延迟需求。例如，你之前代码中的 `parameter N = 4;` 就是一个典型的可覆盖参数。
+    *   **`localparam`**：用于定义**模块内部**的常量。它**不能**在模块实例化时被覆盖。`localparam` 通常用于定义那些由 `parameter` 计算得出的派生值，或者纯粹的内部状态编码，以保护这些值不被外部意外修改。例如，在一个 RAM 模块中，如果 `WORD_SIZE` 和 `ADDR_SIZE` 是参数，那么 `MEM_SIZE` 就应该用 `localparam` 定义，因为它是由前两者算出来的，不应该让用户单独指定一个可能矛盾的值。
+
+    ### 参数覆盖的三种方式
+
+    在实例化一个带有 `parameter` 的模块时，你有三种方式来覆盖它的默认值。**推荐使用第二种（按名称覆盖）**。
+
+    #### 1. 按位置覆盖
+    这种方式要求你严格按照子模块内部定义参数的**顺序**来传值。
+
+    *   **语法**：`模块名 #(值1, 值2, ...) 实例名 (端口连接);`
+    *   **示例**：假设 `adder_cla` 模块内部定义参数的顺序是 `N`，那么 `adder_cla #(N) adder3(...)` 就是把外部 `N` 的值传给 `adder_cla` 的第一个参数。
+    *   **风险**：如果子模块的设计者后来调整了参数的声明顺序，或者增加了一个新参数，你原有的实例化代码就会在不知不觉中把值传错位置，导致功能错误。
+
+    #### 2. 按名称覆盖（推荐）
+    这种方式通过指定参数名来传值，清晰且安全。
+
+    *   **语法**：`模块名 #(.参数名1(值1), .参数名2(值2)) 实例名 (端口连接);`
+    *   **示例**：`adder_cla #(.N(N)) adder3(...)`。这明确告诉编译器：把 `adder_cla` 模块里名为 `N` 的参数，覆盖为上层模块当前的 `N` 值。
+    *   **优势**：代码可读性极强，且完全不受子模块参数声明顺序变化的影响。即使子模块新增了参数，你未指定的参数会继续使用其默认值，不会出错。
+
+    #### 3. 使用 `defparam` 语句（已过时，不推荐）
+    这是一种在模块外部通过层次化路径直接修改参数值的旧方法。
+
+    *   **语法**：`defparam 实例名.参数名 = 新值;`
+    *   **状态**：该语法在 Verilog-2001 中被引入 `#()` 方式后，已被标记为**不推荐使用（deprecated）**，在新的 IEEE 标准（如 SystemVerilog）中甚至可能被移除。
+    *   **缺点**：它会让参数的修改位置与实例化位置分离，代码难以阅读和调试。此外，部分综合工具对它的支持也不够好。
+
+    ### 总结与建议
+
+    对于你之前看到的代码，将 `adder_cla # ( N )` 改为 **`adder_cla # (.N(N))`** 会是更稳健的工程实践。它能明确表达你的意图，并且在未来维护时更不容易出错。
+
+* 条件生成语句
+
+    * example: 根据条件生成参数化乘法器
+
+        ```verilog
+        module multiplier (product, a0, a1);
+        parameter a0_width = 8;
+        parameter a1_width = 8;
+
+        localparam product_width = a0_width + a1_width;
+
+        output[product_width - 1 : 0] product;
+        input[a0_width - 1 : 0] a0;
+        input[a1_width - 1 : 0] a1;
+
+        generate
+            if (a0_width < 8 || a1_width < 8)
+                cal_multiplier  # (a0_width, a1_width) m0 (product, a0, a1);
+            else
+                tree_multiplier  # (a0_width, a1_width) m0 (product, a0, a1);
+        endgenerate
+        endmodule
+        ```
+
+    * 使用 case 生成语句实现 N 位加法器
+
+        ```verilog
+        module adder(co, sum, a0, a1, ci);
+        parameter N = 4;
+
+        output[N-1:0] sum;
+        output co;
+        input[N-1:0] a0, a1;
+        input ci;
+
+        generate
+            case(N)
+                1: adder_1bit adder1(co, sum, a0, a1, ci);  // 1 位加法器
+                2: adder_2bit adder2(co, sum, a0, a1, ci);  // 2 位加法器
+                default: adder_cla  # ( N ) adder3(co, sum, a0, a1, ci);  // 默认选用位宽为 N 的超前进位加法器
+            endcase
+        endgenerate
+        endmodule
+        ```
+
+* 生成块
+
+    1. example: 生成两条 N 位总结变量进行按位异或
+
+        ```verilog
+        module bitwise_xor(out, i0, i1);
+        parameter N = 32;
+
+        output [N-1:0] out;
+        input [N-1:0] i0, i1;
+
+        // 临时变量，只能用于生成块
+        genvar j;
+
+        // 生成许多门级模块
+        generate
+            for (j = 0; j < N; j = j + 1)
+            begin: xor_loop
+                xor gl (out[j], i0[j], i1[j]);
+            end
+        endgenerate
+        ```
+
+        注：
+
+        1. 本质是等价于实现：
+
+            `assign out = i0 ^ i1;`
+
+        2. 如果需要访问具体的异或门实例，可以这样：`xor_loop[j].gl`
+
+        3. always 等价实现
+
+            ```verilog
+            reg[N-1:0] out;
+            generate
+                for (j = 0; j < N; j = j + 1)
+                begin: bit
+                    always @ (i0[j] or i1[j])
+                        out[j] = i0[j] ^ i1[j];
+                end
+            endgenerate
+            ```
+
+    2. example 2: 脉动加法器
+
+        ```verilog
+        module ripple_adder(co, sum, a0, a1, ci);
+        parameter N = 4;
+
+        output[N-1:0] sum;
+        output co;
+        input[N-1:0] a0, a1;
+        input ci;
+
+        wire[N-1:0] carry;
+        assign carry[0] = ci;
+
+        genvar i;
+
+        generate
+            for (i = 0; i < N; i = i + 1) begin : r_loop
+                wire t1, t2, t3;
+                xor g1 (t1, a0[i], a1[i]);
+                xor g2 (sum[i], t1, carry[i]);
+                and g3 (t2, a0[i], a1[i]);
+                and g4 (t3, t1, carry[i]);
+                or g5 (carry[i+1], t2, t3);
+            end
+        endgenerate
+
+        assign co = carry[N];
+        endmodule
+        ```
+
+* 命令块 named block
+
+    特点：
+
+    1. 命令块可以声明局部变量
+
+    2. 命名块是设计层次的一部分，命名块中声明的变量可以通过层次名引用进行访问
+
+    3. 命令块可以被禁用，例如停止其执行
+
+    example:
+
+    1. 命名块的层次名引用
+
+        ```verilog
+        module top;
+        initial
+        begin: block1
+            integer i;  // 静态局部变量，top.block1.i
+            ...
+        end
+
+        initial
+        fork: block2
+            reg i;  // top.block2.i
+            ...
+        join
+        ```
+
+    2. disable 中止命名块执行
+
+        和 C 语言的 break 比较像。
+
+        example:
+
+        ```verilog
+        reg [15:0] flag;
+        integer i;
+
+        initial
+        begin
+            flag = 16'b0010_0000_0000_0000;
+            i = 0;
+            begin: block1
+                while (i < 16)
+                begin
+                    if (flag[i])
+                    begin
+                        $display("encountered a true bit at element number %d", i);
+                        disable block1;  // 发现 1 后，提前中止
+                    end
+                    i = i + 1;
+                end
+            end
+        end
+        ```
+
 * case
 
     ```verilog
@@ -77,6 +843,8 @@
 
     * forever
 
+        连续执行语句。
+
         ```verilog
         forever statement;
 
@@ -89,6 +857,161 @@
         forever 语句常用于产生周期性的波形，用来作为仿真测试信号。
 
         forever 语句必须写在 initial 块中。
+
+    * repeat
+
+        连续执行一条语句 n 次。
+
+        ```verilog
+        repeat (expr) statement;
+        repeat (expr)
+        begin
+            statements;
+        end
+        ```
+
+        example 乘法器：
+
+        ```verilog
+        parameter size=8, longsize=16;
+        reg [size:1] opa, opb;
+        reg [longsize:1] result;
+
+        begin: mult
+            reg [longsize:1] shift_opa, shift_opb;
+            shift_opa = opa;
+            shift_opb = opb;
+            result = 0;
+            repeat(size)
+            begin
+                if (shift_opb[1])
+                    result = result + shift_opa;
+                shift_opa = shift_opa << 1;
+                shift_opb = shift_opb >> 1;
+            end
+        end
+        ```
+
+    * while
+
+        ```verilog
+        while (expr) statement;
+        ```
+
+        执行一条语句直到某个条件不满足。
+
+        example: 使用 while 语句对 rega　这个八位二进制数中值为　１　的位进行计数。
+
+        ```verilog
+        begin: conut1s
+            reg [7:0] tempreg;
+            count = 0;
+            tempreg = rega;
+            while (tempreg)
+                begin
+                    if (tempreg[0]) count = count + 1;
+                    tempreg = tempreg >> 1;
+                end
+            end
+            ...
+        end
+        ```
+
+    * for
+
+        ```verilog
+        for (expr_1; expr_2; expr_3) statement;
+        ```
+
+        * example 1: 初始化 memory
+
+            ```verilog
+            begin: init_mem
+                reg[7:0] tempi;
+                    for (tempi = 0; tempi < memsize; tempi = tempi + 1)
+                        memory[tempi] = 0;
+            end
+            ```
+
+        * example 2: 用 for 语句实现乘法器
+
+            ```verilog
+            parameter size = 8, longsize = 16;
+            reg [size:1] opa, opb;
+            reg [longsize:1] result;
+
+            begin: mult
+                integer bindex;
+                result = 0;
+                for (bindex = 1; bindex <= size; bindex = bindex + 1)
+                    if (opb[bindex])
+                        result = result + (opa << (bindex - 1));
+            end
+            ```
+
+        * example 3: 统计八位寄存器中 1 的个数
+
+            ```verilog
+            begin: count1s
+                reg[7:0] tempreg;
+                count = 0;
+                for (tempreg = rega, tempreg; tempreg = tempreg >> 1)
+                    if (tempreg[0])
+                        count = count + 1;
+            end
+            ```
+
+* initial 语句
+
+    * example 1
+
+        使用 begin ... end ...，无延迟顺序执行。
+
+        ```verilog
+        reg x, y;
+        reg [1:0] z, w;
+
+        initial
+        begin
+            x = 1'b0;
+            y = 1'b1;
+            z = {x, y};
+            w = {y, x};
+        end
+        ```
+
+    * example 2
+
+        使用 begin ... end ...，带延迟顺序执行
+
+        ```verilog
+        reg x, y;
+        reg [1:0] z, w;
+        initial
+        begin
+            x = 1'b0;
+            # 5 y = 1'b1;
+            # 10 z = {x, y};
+            # 20 w = {y, z};
+        end
+        ```
+
+    * example 3
+    
+        使用 fork ... join ...，带延迟并行执行。
+
+        ```verilog
+        reg x, y;
+        reg [1:0] z, w;
+
+        initial
+        fork
+            x = 1'b0;
+            # 5 y = 1'b1;
+            # 10 z = {x, y};
+            # 20 w = {y, x};
+        join
+        ```
 
 * 所以说，如果没有时钟，就没法用 gtkwave 了吧？
 
