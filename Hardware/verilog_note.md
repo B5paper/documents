@@ -2,6 +2,170 @@
 
 ## cache
 
+* 选通显示, strobing, $strobe
+
+    在同一时钟沿内，等其他赋值语句执行完毕后，再显示数据
+
+    ```verilog
+    always @(posedge clock)
+    begin
+        a = b;
+        c = d;
+    end
+
+    always @(posedge clock)
+        $stroke("displaying a = %b, c = %b", a, b);
+    ```
+
+    在这个例子中，如果使用 $display，那么 $display 可能在 a = b, c = d 之前执行。
+
+* 文件输出
+
+    * 打开文件
+
+        ```verilog
+        <file_handler> = $fopen("<file_name>");
+        ```
+
+        $fopen 返回一个多通道描述符（multichannel descriptor）的 32 位值
+
+        多通道描述符中只有一位被设置成 1。
+
+        标准输出的多通道描述符，其最低位被置成 1。标准输出也称为通道 0。标准输出默认是常开的。
+
+        $fopen 的每一次调用打开一个新的通道，并且每次设置新的一位，直到第 30 位。第31 位是保留位。
+
+        example:
+
+        ```verilog
+        // 多通道描述符
+        integer handle1, handle2, handle3;  // 整型数为 32 位
+        // 标准输出是打开的：descriptor = 32'h0000_0001
+        initial begin
+            handle1 = $fopen("file1.out");  // handle1 = 32'h0000_0002 (bit 1 set 1)
+            handle2 = $fopen("file2.out");  // handle2 = 32'h0000_0004 (bit 2 set 1)
+            handle3 = $fopen("file3.out");  // handle3 = 32'h0000_0008 (bit 3 set 1)
+        end
+        ```
+
+    * 写文件
+
+        ```verilog
+        $fdisplay(<file_descriptor>, p1, p2, ..., pn);
+        $fmonitor(<file_descriptor>, p1, p2, ..., pn);
+        $fwrite
+        $fstrobe
+        ```
+
+        * p1, p2, ..., pn 可以是变量、信号名或带引号的字符串
+
+        * 文件描述符是一个多通道描述符，它可以是一个文件句柄或者多个文件句柄按位的组合
+
+        example:
+
+        ```verilog
+        // 所有的句柄已经在前面定义
+        
+        integer desc1, desc2, desc3;
+        initial begin
+            desc1 = handle1 | 1;  // desc1 = 32'h0000_0003
+            $fdisplay(desc1, "display 1");  // 写到文件 file1.out 和标准输出 stdout
+
+            desc2 = handle2 | handle1;  // desc2 = 32'h0000_0006
+            $fdisplay(desc2, "display 2");  // 写到文件 file1.out 和 file2.out
+
+            desc3 = handle3;  // desc3 = 32'h0000_0008
+            $display(desc3, "display 3");
+        end
+        ```
+
+    * 关闭文件
+
+        ```verilog
+        $fclose(<文件描述符>);
+        ```
+
+    * %m 可以显示当前在哪个模块。不需要参数
+
+        ```verilog
+        module M;
+            initial
+                $display("displaying in %m");
+        endmodule
+        ```
+
+        ```verilog
+        module top;
+            M m1();
+            M m2();
+            M m3();
+        endmodule
+        ```
+
+        output:
+
+        ```
+        Displaying in top.m1
+        Displaying in top.m2
+        Displaying in top.m3
+        ```
+
+* 字符串输出的格式控制
+
+    * 使用 %0 可以使用最少的位数显示表达式的值
+
+        ```verilog
+        module printval
+            reg[11:0] rl;
+            initial begin
+                rl = 10;
+                $display("printing with maximum size=%d=%h, rl, rl");
+                $display("printing with minimum size=%0d=%0h", rl, rl);
+            end
+        endmodule
+        ```
+
+        output:
+
+        ```
+        Printing with maximum size=10=00a;
+        Printing with minimum size=10=a;
+        ```
+
+    * 如果输出中表达式的值包含 x 或 z，那么规则如下：
+
+        * 在输出格式为十进制的情况下
+
+            1. 如果表达式值的所有位均为不定值，则输出结果为小写的 x
+
+            2. 如果表达式值的所有位均为高阻值，则输出结果为小写的 z
+
+            3. 如果表达式值的部分位为不定值，则输出结果为大写的 X
+
+            4. 如果表达式值的部分位为高阻值，则输出结果为大写的 Z
+
+        * 在输出格式为十六进制和八进制的情况下
+
+            1. 每 4 位二进制数代表 1 位十六进制数, 每 3 位二进制数代表 1 位八进制数
+
+            2. 如果表达式值相对应的某进制数的所有位均为不定值，则该位进制数的输出的结果为小写的 x
+
+            3. 同理，如果所有位都是高阻值，则结果为小宝的 z
+
+            4. 部分为不定值，则为大写的 X
+
+            5. 部分为高阻值，则为大写的 Z
+
+        * 对于二进制，输出的第一位都为 0, 1, x, z
+
+        examples:
+
+        ```verilog
+        $display("%d", 1'bx);
+        $display("%h", 14'bx0_1010);
+        $display("%h %o", 12'b001x_xx10_1x01, 12'b001_xxx_101_x01);
+        ```
+
 * 常用的系统任务
 
     * $display, $write
