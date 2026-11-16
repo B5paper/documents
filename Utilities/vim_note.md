@@ -2,6 +2,28 @@
 
 ## cache
 
+* some plugins
+
+    * live-preview.nvim
+
+        A Live Preview Plugin for Neovim that allows you to view Markdown, HTML (along with CSS, JavaScript), AsciiDoc, SVG files in a web browser with live updates.
+
+        <https://github.com/brianhuster/live-preview.nvim>
+
+    * vim-instant-markdown
+
+        <https://github.com/instant-markdown/vim-instant-markdown>
+
+        Instant Markdown previews from Vim
+
+    * autopreview.vim
+
+        <https://github.com/mpetazzoni/autopreview.vim>
+
+        Live Markdown preview from Vim
+
+        最后一次更新是十年前了，真的还有人用吗。
+
 * glow.nvim
 
     安装：
@@ -6732,6 +6754,76 @@
 
 ## topics
 
+### 文本对象（text object）
+
+* 有哪些常用的文本对象？
+
+    Vim 的文本对象是 `zf` 这类操作符的绝佳搭档。除了段落（`ap`/`ip`），最常用的文本对象大致可以分成几类：
+
+    * 括号与引号类（最常用）
+
+        这类对象通常有两套：`a` 系列会**包含**括号或引号本身，`i` 系列只取**内部**内容。
+
+        | 文本对象 | 含义 | 示例（光标在括号内） |
+        |---|---|---|
+        | `a(` / `a)` / `ab` | 包含圆括号的一个块 | `zfab` 折叠 `( ... )` 含括号 |
+        | `i(` / `i)` / `ib` | 圆括号内部 | `zfib` 只折叠括号内的内容 |
+        | `a{` / `a}` / `aB` | 包含花括号的块 | `zfaB` 折叠 `{ ... }` |
+        | `i{` / `i}` / `iB` | 花括号内部 | `zfiB` 折叠花括号内部 |
+        | `a[` / `a]` | 包含方括号的块 | `zfa[` |
+        | `i[` / `i]` | 方括号内部 | `zfi[` |
+        | `a<` / `a>` | 包含尖括号的块 | `zfa<` |
+        | `i<` / `i>` | 尖括号内部 | `zfi<` |
+        | `a"` | 包含双引号的字符串 | `zfa"` |
+        | `i"` | 双引号内部 | `zfi"` |
+        | `a'` | 包含单引号的字符串 | `zfa'` |
+        | `i'` | 单引号内部 | `zfi'` |
+        | `` a` `` | 包含反引号的字符串 | `` zfa` `` |
+        | `` i` `` | 反引号内部 | `` zfi` `` |
+
+        > 括号类对象有一个好处：Vim 会自动**匹配**光标所在的括号对，你不需要先把光标精确放在括号上，只要光标在该括号对内部即可。
+
+    * 单词与句子类
+
+        | 文本对象 | 含义 |
+        |---|---|
+        | `aw` | 一个单词，包含其后的空格 |
+        | `iw` | 一个单词，不含空格 |
+        | `as` | 一个句子，包含句末标点和空格 |
+        | `is` | 一个句子，不含句末空格 |
+        | `ap` | 一个段落，包含其后空行 |
+        | `ip` | 一个段落内部 |
+
+        `zfaw`、`zfiw` 在折叠单个标识符或短词时偶尔有用，但折叠场景下 `ap`/`ip` 更常见。
+
+    * 标签与块类（写 HTML/XML 时很有用）
+
+        | 文本对象 | 含义 |
+        |---|---|
+        | `at` | 一个标签块，包含开始和结束标签 |
+        | `it` | 标签内部内容（不含标签本身） |
+
+        例如光标在 `<div>...</div>` 内，`zfat` 会折叠整个 `<div>` 块，`zfit` 只折叠标签之间的内容。这对前端或 XML 编辑非常实用。
+
+    * 其他实用对象
+
+        | 文本对象 | 含义 |
+        |---|---|
+        | `a]` / `i]` | 方括号（已在上面列出，但值得单独记住） |
+        | `af` / `if` | 一个函数（需要 `vim` 的 `textobj` 插件或较新版本支持） |
+
+        `af`/`if` 在原生 Vim 中支持有限，通常需要安装 `targets.vim` 或 `textobj-user` 等插件才能获得更丰富的函数、参数、注释等文本对象。
+
+    **快速记忆建议**
+
+    - **`a` = around（包含边界）**，**`i` = inner（仅内部）**。
+
+    - 折叠代码块最常用：`zfaB`（花括号块）、`zfab`（圆括号块）、`zfat`（HTML 标签块）。
+
+    - 折叠文本段落：`zfap` 或 `zfip`。
+
+    - 如果你记不住某个对象，可以在普通模式下按 `v` 进入可视模式，再按对象键（如 `ib`、`aB`），Vim 会高亮选中范围
+
 ### 选择
 
 * vim 重选刚才的行
@@ -6902,24 +6994,43 @@
 
 ### fold 相关
 
-* vim 关于 fold 的指令
+* 详细讲讲 vim 中的 manual fold
 
-	zR: 打开所有 fold
+    Vim 的 manual fold（手动折叠）是一种由你完全手动控制、按需创建的折叠方式。它不依赖缩进或语法规则，非常适合临时性地隐藏代码或文本块，让你能专注于当前任务。默认情况下，Vim 使用的就是这种折叠方法。
 
-	zM: 关闭所有 fold
+    * 如何创建与删除手动折叠
 
-	zr: 只打开一层光标所在的层级
+        创建手动折叠的核心命令是 `zf`（`z` 代表折叠，`f` 代表 fold）。它遵循 Vim 的操作符语法，后面可以跟动作命令或文本对象。
 
-	zm: 只关闭一层
+        *   **在普通模式下**：`zf{motion}` 可以对指定的范围创建折叠。例如，`zfip` 折叠当前段落，`zfG` 折叠从当前行到文件末尾的内容，`zfa{` 则折叠当前 `{}` 块内的文本。
 
-	rO: 递归展开光标下所有嵌套 fold
+        *   **在可视模式下**：先用 `v`、`V` 或 `Ctrl-v` 选中要折叠的行，然后按 `zf` 即可。
 
-	还可以 set foldlevel:
+        *   **通过命令行**：使用 `:{range}fold` 命令。例如，`:5,10fold` 折叠第 5 到 10 行，`:,+1fold` 折叠当前行和下一行。
 
-	```vim
-	:set foldlevel=0
-	:set foldlevel=999
-	```
+        *   **删除折叠**：将光标移到折叠上，按 `zd` 可删除当前折叠（嵌套折叠会上移一层）；按 `zD` 则递归删除该处的所有嵌套折叠。**注意**：手动折叠的删除操作通常无法用 `u` 撤销。
+
+* 详细讲讲 zf{motion}
+
+    `zf{motion}` 是 Vim 手动折叠的核心命令。它的本质是一个**操作符**（Operator），后面必须跟一个**动作命令**（Motion）或**文本对象**（Text Object）来界定折叠的范围。这完全符合 Vim “操作符 + 动作”的语法逻辑。
+
+    * 基本语法与常见组合
+
+        `zf` 后面可以接几乎所有标准的 Vim 动作命令，从而精准地指定从光标当前位置到目标位置的文本范围。
+
+        *   **折叠到文件末尾**：`zfG`。从当前行一直折叠到文件最后一行。
+
+        *   **折叠当前段落**：`zfip`。折叠光标所在的内层段落（inner paragraph）。
+
+        *   **折叠到指定标记**：先在某处用 `ma` 打上标记 `a`，然后在另一处执行 `zf\`a`，即可折叠这两点之间的内容。
+
+        *   **折叠花括号块**：`zfa{`。当光标位于 `{` 上时，它会自动匹配对应的 `}`，并折叠两者之间的所有内容，这在编辑代码时非常方便。
+
+        *   **折叠向下 N 行**：`zf3j`。折叠当前行及其下方的 3 行，共计 4 行内容。
+
+    * 一个关键细节：折叠的包含范围
+
+        当你执行 `zfj`（折叠当前行和下一行）时，Vim 的反馈通常会显示类似 `+-- 2 lines` 的字样。这说明**光标所在行本身也被包含在了折叠内部**。折叠的起始位置是光标所在行，结束位置则是动作命令所指向的那一行（或该行之前的特定位置，取决于具体动作）。
 
 * 详细讲讲 vim 中的 fold
 
@@ -6927,245 +7038,269 @@
 
     折叠是 Vim 中一个非常强大的功能，它可以把一段代码"卷起来"，只显示一行摘要，让长文件更容易浏览和导航。
 
-    **一、基本概念**
+    折叠是**窗口本地**的，这意味着你可以在同一缓冲区的两个窗口中，一个显示折叠、另一个不显示。
 
-    折叠的最小单位是**一个 fold（折叠）**，它可以包含若干行。折叠有**打开（open）**和**关闭（closed）**两种状态：
+    * 一、基本概念
 
-    - **打开**：正常显示所有行
-    - **关闭**：只显示一行，行首会有折叠标记
+        折叠的最小单位是**一个 fold（折叠）**，它可以包含若干行。折叠有**打开（open）**和**关闭（closed）**两种状态：
 
-    折叠是可以**嵌套**的，一个 fold 里可以包含另一个 fold。
+        - **打开**：正常显示所有行
 
-    **二、折叠的六种方法（foldmethod）**
+        - **关闭**：只显示一行，行首会有折叠标记
 
-    Vim 通过 `foldmethod` 选项决定如何创建折叠。可以用 `:set foldmethod=xxx` 设置。
+        折叠是可以**嵌套**的，一个 fold 里可以包含另一个 fold。
 
-    1. `manual`（手动）
+    * 二、折叠的六种方法（foldmethod）
 
-        完全由用户手动创建，最灵活但最费事。
+        Vim 通过 `foldmethod` 选项决定如何创建折叠。可以用 `:set foldmethod=xxx` 设置。
+
+        1. `manual`（手动）
+
+            完全由用户手动创建，最灵活但最费事。
+
+            ```vim
+            :set foldmethod=manual
+            ```
+
+            创建折叠：在可视模式下选中若干行，然后按 `zf`。
+
+            * zfap: 折叠当前段落
+
+            * zf5j: 折叠下面 5 行 (实际折叠的是 6 行)
+
+        2. `indent`（缩进）
+
+            根据行的缩进层级自动折叠。相同缩进的连续行归为一组。它依赖 `shiftwidth` 选项来判断层级，适合缩进规范的编程语言。
+
+            ```vim
+            :set foldmethod=indent
+            ```
+
+            这是 Python 等缩进敏感语言最常用的方式。可以用 `foldlevel` 控制折叠的层级。
+
+        3. `syntax`（语法）
+
+            根据语法高亮定义的折叠区域来折叠，比如 `{}`、`if...endif` 等。通常能准确折叠函数、类、代码块等结构。需要文件类型支持 folding。对大型文件可能影响性能。
+
+            ```vim
+            :set foldmethod=syntax
+            ```
+
+        4. `expr`（表达式）
+
+            用自定义表达式（通常是 `foldexpr`）决定每一行的折叠层级，最强大也最灵活。
+
+            ```vim
+            :set foldmethod=expr
+            :set foldexpr=...
+            ```
+
+            例如用正则判断 Markdown 标题：
+
+            ```vim
+            :set foldexpr=getline(v:lnum)=~'^#'?'>1':'='
+            ```
+
+        5. `marker`（标记）
+
+            用特定的标记文本（默认是 `{{{` 和 `}}}`）来界定折叠区域。适合在代码中手动标注折叠区域，或配合其他编辑器使用。
+
+            ```vim
+            :set foldmethod=marker
+            :set foldmarker={{{,}}}
+            ```
+
+            例如：
+
+            ```c
+            // {{{ 这是折叠区
+            code...
+            // }}}
+            ```
+
+        6. `diff`（差异）
+
+            在 diff 模式下自动折叠未改变的行，用于 `vimdiff`。一般不用手动设置。
+
+    * 折叠的层级与全局开关
+
+        折叠有“层级（foldlevel）”概念。`foldlevel` 值越低，关闭的折叠越多；为 0 时全部关闭。`zm` 和 `zr` 命令分别增加和减少折叠（即调整 `foldlevel`），`zM` 关闭所有折叠，`zR` 打开所有折叠。
+
+        除了用层级批量控制，`zo` 和 `zc` 可以打开或关闭光标下的单个折叠，`za` 则切换当前折叠的开关状态。`zO` 和 `zC` 会递归地打开或关闭光标所在位置的所有嵌套折叠。
+
+        如果你只是想临时查看全文而不改动折叠结构，可以用 `zn` 禁用折叠（全部展开），`zN` 恢复之前的折叠状态，`zi` 在两者之间切换。
+
+    * 三、常用操作（命令与快捷键）
+
+        **打开/关闭**
+
+        | 命令 | 快捷键 | 说明 |
+        |------|--------|------|
+        | `zo` | | 打开光标下的折叠 |
+        | `zc` | | 关闭光标下的折叠 |
+        | `za` | | 切换（toggle）光标下的折叠 |
+        | `zO` | | 递归打开所有嵌套折叠 |
+        | `zC` | | 递归关闭所有嵌套折叠 |
+        | `zA` | | 递归切换 |
+
+        **全局操作**
+
+        | 命令 | 说明 |
+        |------|------|
+        | `zR` | 打开**所有**折叠（R = Reduce? 记作 "打开全部"） |
+        | `zM` | 关闭**所有**折叠（M = More，全部关闭） |
+        | `zm` | 增加折叠层级（foldlevel - 1，关得更多） |
+        | `zr` | 减少折叠层级（foldlevel + 1，开得更多） |
+
+        记忆技巧：**小写逐级，大写全部**。
+
+        **移动**
+
+        | 命令 | 说明 |
+        |------|------|
+        | `zj` | 移到下一个折叠的开头 |
+        | `zk` | 移到上一个折叠的开头 |
+        | `[z` | 移到当前折叠的开头 |
+        | `]z` | 移到当前折叠的结尾 |
+
+        **删除**
+
+        | 命令 | 说明 |
+        |------|------|
+        | `zd` | 删除光标下的折叠 |
+        | `zD` | 递归删除折叠 |
+        | `zE` | 删除所有折叠（仅 manual/expr 有意义） |
+
+        **创建（manual 模式）**
+
+        | 命令 | 说明 |
+        |------|------|
+        | `zf` | 在可视模式下选中后创建折叠 |
+        | `zF` | 创建折叠并指定行数，如 `3zF` |
+        | `zf%` | 配合 `%` 匹配括号创建折叠 |
+
+    * 四、重要选项
 
         ```vim
-        :set foldmethod=manual
+        :set foldenable          " 启用折叠（默认开启）
+        :set nofoldenable        " 临时关闭所有折叠显示
+        :set foldlevel=0         " 当前折叠层级，0 表示全部关闭
+        :set foldcolumn=2        " 左侧显示折叠列，宽度 2
+        :set foldminlines=1      " 至少几行才折叠
+        :set foldnestmax=10      " 最大嵌套层数
+        :set foldtext=...        " 自定义折叠后显示的文本
+        :set foldopen=...        " 哪些操作会自动打开折叠
+        :set foldclose=...       " 是否自动关闭
         ```
 
-        创建折叠：在可视模式下选中若干行，然后按 `zf`。
-
-    2. `indent`（缩进）
-
-        根据行的缩进层级自动折叠。相同缩进的连续行归为一组。
+        **常用组合**
 
         ```vim
+        " 打开文件时记住折叠状态
         :set foldmethod=indent
+        :set foldlevel=99        " 打开时全部展开
         ```
 
-        这是 Python 等缩进敏感语言最常用的方式。可以用 `foldlevel` 控制折叠的层级。
+        **自定义 foldtext**
 
-    3. `syntax`（语法）
-
-        根据语法高亮定义的折叠区域来折叠，比如 `{}`、`if...endif` 等。需要文件类型支持 folding。
+        默认折叠显示是类似 `+-- 10 lines: ...`。可以自定义，比如显示行数和首行：
 
         ```vim
-        :set foldmethod=syntax
+        function! MyFoldText()
+            let line = getline(v:foldstart)
+            let nucolwidth = &fdc + &number * &numberwidth
+            let windowwidth = winwidth(0) - nucolwidth - 3
+            let foldedlinecount = v:foldend - v:foldstart
+            let line = strpart(line, 0, windowwidth - 2 - len(foldedlinecount))
+            let fillcharcount = windowwidth - len(line) - len(foldedlinecount)
+            return line . '…' . repeat(" ",fillcharcount) . foldedlinecount . '…'
+        endfunction
+        :set foldtext=MyFoldText()
         ```
 
-    4. `expr`（表达式）
+        *   **显示折叠列**：如果觉得看不清哪里是折叠，可以执行 `:set foldcolumn=4`。这会在窗口左侧显示一列标识：`+` 表示关闭的折叠，`-` 或 `|` 表示打开的折叠。你甚至可以用鼠标点击这些符号来开合折叠。
 
-        用自定义表达式（通常是 `foldexpr`）决定每一行的折叠层级，最强大也最灵活。
+        *   **`foldopen`**：控制哪些操作会自动打开光标下的折叠。默认情况下，水平移动（如 `0`、`$`）会打开折叠。如果你希望光标下的折叠永远保持打开，可以临时设置 `:set foldopen=all`，但这会导致你无法将光标移动到关闭的折叠上。
+
+        *   **`foldclose`**：如果你希望光标移出折叠后，该折叠能自动关闭，可以设置 `:set foldclose=all`。这取决于个人习惯，你可以尝试后再决定是否保留。
+
+    * 五、持久化折叠状态
+
+        手动创建的折叠在关闭文件后会丢失, Vim 有内置的视图（view）功能，可以保存折叠状态, 用 `:mkview` 可以保存当前窗口的折叠状态（以及其他视图设置），下次打开文件后用 `:loadview` 恢复。一个文件最多可保存 10 个不同的视图。
 
         ```vim
-        :set foldmethod=expr
-        :set foldexpr=...
+        " 保存时自动保存视图
+        :autocmd BufWinLeave *.* mkview
+        :autocmd BufWinEnter *.* silent loadview
         ```
 
-        例如用正则判断 Markdown 标题：
+        这样重新打开文件时，折叠状态会被恢复。
+
+        也可以只保存折叠：
 
         ```vim
-        :set foldexpr=getline(v:lnum)=~'^#'?'>1':'='
+        :set viewoptions=folds
         ```
 
-    5. `marker`（标记）
+        *   **多视图**：你最多可以为同一个文件保存 10 个不同的视图。例如，`:mkview 3` 将当前状态保存为第 3 个视图，`:loadview 2` 则加载第 2 个视图。
 
-        用特定的标记文本（默认是 `{{{` 和 `}}}`）来界定折叠区域。
+    * 六、实用配置示例
 
-        ```vim
-        :set foldmethod=marker
-        :set foldmarker={{{,}}}
+        1. Python / 缩进语言
+
+            ```vim
+            autocmd FileType python setlocal foldmethod=indent
+            autocmd FileType python setlocal foldlevel=1
+            ```
+
+        2. Markdown 按标题折叠
+
+            ```vim
+            autocmd FileType markdown setlocal foldmethod=expr
+            autocmd FileType markdown setlocal foldexpr=getline(v:lnum)=~'^#'?'>1':'='
+            ```
+
+        3. 键位映射建议（放在 .vimrc）
+
+            ```vim
+            " 空格切换折叠
+            nnoremap <space> za
+            " 快捷打开所有
+            nnoremap zR zR
+            " 快速跳转
+            nnoremap <leader>zj zj
+            nnoremap <leader>zk zk
+            ```
+
+    * 七、常见问题
+
+        **Q: 为什么我按 zc 没反应？**
+        A: 检查 `foldmethod` 是否为 `manual` 但没创建折叠，或 `foldenable` 被关闭。也确认光标所在行确实在折叠区域内。
+
+        **Q: 折叠后行号乱了？**
+        A: 这是正常现象，折叠行只占一个行号显示。可用 `foldcolumn` 辅助查看。
+
+        **Q: syntax 折叠对某些文件不生效？**
+        A: 需要该文件类型的语法文件里定义了 `fold` 区域。可以改用 `indent` 或 `expr`。
+
+        **Q: 怎么让折叠默认全部关闭？**
+        A: `:set foldlevel=0`。想让某文件类型默认关闭折叠，可在 ftplugin 里设置 `foldlevel=0`。
+
+        折叠行的颜色由 `Folded` 高亮组决定。你可以通过 `:highlight Folded guibg=grey guifg=blue` 自定义颜色。
+
+    * 八、总结速查表
+
         ```
-
-        例如：
-
-        ```c
-        // {{{ 这是折叠区
-        code...
-        // }}}
+        创建：zf, zF, zf%
+        切换：za, zA
+        打开：zo, zO, zr, zR
+        关闭：zc, zC, zm, zM
+        删除：zd, zD, zE
+        跳转：zj, zk, [z, ]z
+        选项：foldmethod, foldlevel, foldcolumn, foldtext, foldenable
         ```
-
-    6. `diff`（差异）
-
-        在 diff 模式下自动折叠未改变的行，用于 `vimdiff`。一般不用手动设置。
-
-    **三、常用操作（命令与快捷键）**
-
-    **打开/关闭**
-
-    | 命令 | 快捷键 | 说明 |
-    |------|--------|------|
-    | `zo` | | 打开光标下的折叠 |
-    | `zc` | | 关闭光标下的折叠 |
-    | `za` | | 切换（toggle）光标下的折叠 |
-    | `zO` | | 递归打开所有嵌套折叠 |
-    | `zC` | | 递归关闭所有嵌套折叠 |
-    | `zA` | | 递归切换 |
-
-    **全局操作**
-
-    | 命令 | 说明 |
-    |------|------|
-    | `zR` | 打开**所有**折叠（R = Reduce? 记作 "打开全部"） |
-    | `zM` | 关闭**所有**折叠（M = More，全部关闭） |
-    | `zm` | 增加折叠层级（foldlevel - 1，关得更多） |
-    | `zr` | 减少折叠层级（foldlevel + 1，开得更多） |
-
-    记忆技巧：**小写逐级，大写全部**。
-
-    **移动**
-
-    | 命令 | 说明 |
-    |------|------|
-    | `zj` | 移到下一个折叠的开头 |
-    | `zk` | 移到上一个折叠的开头 |
-    | `[z` | 移到当前折叠的开头 |
-    | `]z` | 移到当前折叠的结尾 |
-
-    **删除**
-
-    | 命令 | 说明 |
-    |------|------|
-    | `zd` | 删除光标下的折叠 |
-    | `zD` | 递归删除折叠 |
-    | `zE` | 删除所有折叠（仅 manual/expr 有意义） |
-
-    **创建（manual 模式）**
-
-    | 命令 | 说明 |
-    |------|------|
-    | `zf` | 在可视模式下选中后创建折叠 |
-    | `zF` | 创建折叠并指定行数，如 `3zF` |
-    | `zf%` | 配合 `%` 匹配括号创建折叠 |
-
-    **四、重要选项**
-
-    ```vim
-    :set foldenable          " 启用折叠（默认开启）
-    :set nofoldenable        " 临时关闭所有折叠显示
-    :set foldlevel=0         " 当前折叠层级，0 表示全部关闭
-    :set foldcolumn=2        " 左侧显示折叠列，宽度 2
-    :set foldminlines=1      " 至少几行才折叠
-    :set foldnestmax=10      " 最大嵌套层数
-    :set foldtext=...        " 自定义折叠后显示的文本
-    :set foldopen=...        " 哪些操作会自动打开折叠
-    :set foldclose=...       " 是否自动关闭
-    ```
-
-    **常用组合**
-
-    ```vim
-    " 打开文件时记住折叠状态
-    :set foldmethod=indent
-    :set foldlevel=99        " 打开时全部展开
-    ```
-
-    **自定义 foldtext**
-
-    默认折叠显示是类似 `+-- 10 lines: ...`。可以自定义，比如显示行数和首行：
-
-    ```vim
-    function! MyFoldText()
-        let line = getline(v:foldstart)
-        let nucolwidth = &fdc + &number * &numberwidth
-        let windowwidth = winwidth(0) - nucolwidth - 3
-        let foldedlinecount = v:foldend - v:foldstart
-        let line = strpart(line, 0, windowwidth - 2 - len(foldedlinecount))
-        let fillcharcount = windowwidth - len(line) - len(foldedlinecount)
-        return line . '…' . repeat(" ",fillcharcount) . foldedlinecount . '…'
-    endfunction
-    :set foldtext=MyFoldText()
-    ```
-
-    **五、持久化折叠状态**
-
-    Vim 有内置的视图（view）功能，可以保存折叠状态：
-
-    ```vim
-    " 保存时自动保存视图
-    :autocmd BufWinLeave *.* mkview
-    :autocmd BufWinEnter *.* silent loadview
-    ```
-
-    这样重新打开文件时，折叠状态会被恢复。
-
-    也可以只保存折叠：
-
-    ```vim
-    :set viewoptions=folds
-    ```
-
-    **六、实用配置示例**
-
-    1. Python / 缩进语言
-
-        ```vim
-        autocmd FileType python setlocal foldmethod=indent
-        autocmd FileType python setlocal foldlevel=1
-        ```
-
-    2. Markdown 按标题折叠
-
-        ```vim
-        autocmd FileType markdown setlocal foldmethod=expr
-        autocmd FileType markdown setlocal foldexpr=getline(v:lnum)=~'^#'?'>1':'='
-        ```
-
-    3. 键位映射建议（放在 .vimrc）
-
-        ```vim
-        " 空格切换折叠
-        nnoremap <space> za
-        " 快捷打开所有
-        nnoremap zR zR
-        " 快速跳转
-        nnoremap <leader>zj zj
-        nnoremap <leader>zk zk
-        ```
-
-    **七、常见问题**
-
-    **Q: 为什么我按 zc 没反应？**
-    A: 检查 `foldmethod` 是否为 `manual` 但没创建折叠，或 `foldenable` 被关闭。也确认光标所在行确实在折叠区域内。
-
-    **Q: 折叠后行号乱了？**
-    A: 这是正常现象，折叠行只占一个行号显示。可用 `foldcolumn` 辅助查看。
-
-    **Q: syntax 折叠对某些文件不生效？**
-    A: 需要该文件类型的语法文件里定义了 `fold` 区域。可以改用 `indent` 或 `expr`。
-
-    **Q: 怎么让折叠默认全部关闭？**
-    A: `:set foldlevel=0`。想让某文件类型默认关闭折叠，可在 ftplugin 里设置 `foldlevel=0`。
-
-    **八、总结速查表**
-
-    ```
-    创建：zf, zF, zf%
-    切换：za, zA
-    打开：zo, zO, zr, zR
-    关闭：zc, zC, zm, zM
-    删除：zd, zD, zE
-    跳转：zj, zk, [z, ]z
-    选项：foldmethod, foldlevel, foldcolumn, foldtext, foldenable
-    ```
 
     掌握折叠能显著提升浏览大型代码文件的效率，建议从 `indent` 或 `marker` 入手，熟练后再尝试 `expr` 定制。
-
 
 ### "+ 寄存器
 
@@ -7270,8 +7405,6 @@
 * vim buffer 的使用
 
 	Vim 完全可以将多个文件以**隐藏缓冲区（hidden buffers）**的方式打开，并在它们之间快速切换，就像 Screen 的多个窗口一样——每次只显示一个文件，占满整个终端。
-
-	---
 
 	**基础操作**
 
