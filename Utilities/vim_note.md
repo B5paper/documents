@@ -2,6 +2,50 @@
 
 ## cache
 
+* 详细讲讲 vim 中的 :tabedit
+
+    `:tabedit` 是 Vim 中用于在**新标签页**中打开文件进行编辑的核心命令。它的行为类似于 `:edit`，但会为文件创建一个独立的标签页，方便你在多个文件间切换。
+
+    **基本用法**
+
+    * 打开文件： 输入 `:tabedit 文件名`（可简写为 `:tabe`），即可在新标签页中打开指定文件。
+
+    * 打开空标签页： 如果省略文件名，直接输入 `:tabedit` 或 `:tabnew`，会创建一个空白的缓冲区供你编辑。
+
+    **注意事项与别名**
+
+    * 别名： `:tabe`、`:tabnew` 通常被视为 `:tabedit` 的别名或同类命令，效果基本一致。
+
+    * 细微差异： 有资料提到，`:tabedit` 打开文件后可能会直接进入编辑（插入）模式，而 `:tabnew` 倾向于打开空窗口，但实际行为可能受配置影响。
+
+    * 文件名补全： 在输入文件名时，可以使用 `Tab` 键进行自动补全，这能有效提高操作效率。
+
+    **相关的标签页操作**
+
+    打开标签页后，通常需要配合以下操作：
+
+    * 切换标签：使用 `gt` 切换到下一个标签页，使用 `gT` 切换到上一个。
+
+    * 批量操作：可以使用 `:tabdo` 命令对所有已打开的标签页执行同一指令（例如批量替换），无需逐个切换。
+
+    如果你需要了解如何在特定场景下（例如从光标处直接在新标签页打开文件）操作，可以告诉我。
+
+* vim 中, set path 相关的细节
+
+    1. `./`表示当前文件所在的文件夹，不是打开 vim 时的目录
+
+        如果只启动 vim，未打开目录，那么即使`set path=.`，find 也无法搜索当前目录下的文件，只能使用`find ./xxx`进行补全。这种情况下就类似于`:e`了。
+
+    2. 可以使用`set path=some_path/**`递归搜索所有子目录。如果不设置`**`，那么只搜索`some_path`目录。
+
+    3. 如果没有设置 path，又想用 find 临时找个文件，可以使用`:find **/file_name<tab>`。这个等价于`:e **/file_name<tab>`。这个本质使用的是 vim 的命令行路径补全，而不是 find 搜索。
+
+        其中`**`表示递归搜索多级目录，最大可达 30 层目录。如果设置为`:e */file_name<tab>`，那么只搜索一层目录，比如`subdir/file_name`
+
+        :edit **/file 这类命令的补全是由 Vim 的通配符机制处理的，它可以在当前工作目录下进行递归展开。
+
+    4. `set path=**`表示 vim 打开时所在的目录以及其子目录，`set path=./**`表示当前文件所在的目录及子目录
+
 * some plugins
 
     * live-preview.nvim
@@ -715,45 +759,49 @@
 
     在 `vimrc` 中插入其他 Vim script 文件，核心命令是 **`:source`**（可简写为 `:so`）。它会将指定文件的内容当作 Vim 命令逐行执行。
 
-    ### 1. 基本用法：`:source`
-    如果你的配置文件放在固定位置，直接用绝对路径或 `~` 即可。
+    1. 基本用法：`:source`
 
-    ```vim
-    " 加载用户目录下的自定义脚本
-    source ~/.vim/my_settings.vim
-    ```
+        如果你的配置文件放在固定位置，直接用绝对路径或 `~` 即可。
 
-    为了避免文件不存在时报错，通常会先判断文件是否可读：
+        ```vim
+        " 加载用户目录下的自定义脚本
+        source ~/.vim/my_settings.vim
+        ```
 
-    ```vim
-    if filereadable(expand('~/.vimrc.local'))
-        source ~/.vimrc.local
-    endif
-    ```
-    这里 `expand()` 是为了正确解析路径中的 `~`，`filereadable()` 则确保只在文件存在时才加载。
+        为了避免文件不存在时报错，通常会先判断文件是否可读：
 
-    ### 2. 进阶用法：`:runtime`
-    如果你想加载的文件位于 Vim 的 **`runtimepath`** 所包含的目录下（如 `~/.vim/`、`$VIMRUNTIME` 等），使用 `:runtime` 会更方便。它会自动在这些标准目录中搜索并加载文件，不需要你写死具体路径。
+        ```vim
+        if filereadable(expand('~/.vimrc.local'))
+            source ~/.vimrc.local
+        endif
+        ```
+        这里 `expand()` 是为了正确解析路径中的 `~`，`filereadable()` 则确保只在文件存在时才加载。
 
-    例如，你的脚本放在 `~/.vim/shared/abbreviations.vim`，可以在 `vimrc` 或其它脚本中这样写：
+    2. 进阶用法：`:runtime`
 
-    ```vim
-    runtime shared/abbreviations.vim
-    ```
-    Vim 会自动去 `~/.vim/` 等目录下寻找 `shared/abbreviations.vim` 并执行。
+        如果你想加载的文件位于 Vim 的 **`runtimepath`** 所包含的目录下（如 `~/.vim/`、`$VIMRUNTIME` 等），使用 `:runtime` 会更方便。它会自动在这些标准目录中搜索并加载文件，不需要你写死具体路径。
 
-    ### 3. 实用场景：拆分 vimrc
-    如果你的 `.vimrc` 太长，可以把它拆成多个文件（如 `settings.vim`、`functions.vim`、`keymaps.vim`），然后在主 `vimrc` 里用 `source` 逐一引入，便于管理和维护。
+        例如，你的脚本放在 `~/.vim/shared/abbreviations.vim`，可以在 `vimrc` 或其它脚本中这样写：
 
-    ```vim
-    " 在 ~/.vimrc 中
-    source ~/.vim/settings.vim
-    source ~/.vim/functions.vim
-    source ~/.vim/keymaps.vim
-    ```
+        ```vim
+        runtime shared/abbreviations.vim
+        ```
+        Vim 会自动去 `~/.vim/` 等目录下寻找 `shared/abbreviations.vim` 并执行。
 
-    ### 4. 注意区分：自动加载目录
-    如果你只是想把脚本放在某个目录下让 Vim **自动**加载，而不需要在 `vimrc` 里手写 `source`，应该将文件放入 `runtimepath` 下的特定子目录，最常见的是 `plugin/`。放在 `~/.vim/plugin/` 下的 `.vim` 文件会在启动时被 Vim 自动执行。如果只是做个人配置拆分，用 `source` 手动控制加载顺序会更明确。
+    3. 实用场景：拆分 vimrc
+
+        如果你的 `.vimrc` 太长，可以把它拆成多个文件（如 `settings.vim`、`functions.vim`、`keymaps.vim`），然后在主 `vimrc` 里用 `source` 逐一引入，便于管理和维护。
+
+        ```vim
+        " 在 ~/.vimrc 中
+        source ~/.vim/settings.vim
+        source ~/.vim/functions.vim
+        source ~/.vim/keymaps.vim
+        ```
+
+    4. 注意区分：自动加载目录
+
+        如果你只是想把脚本放在某个目录下让 Vim **自动**加载，而不需要在 `vimrc` 里手写 `source`，应该将文件放入 `runtimepath` 下的特定子目录，最常见的是 `plugin/`。放在 `~/.vim/plugin/` 下的 `.vim` 文件会在启动时被 Vim 自动执行。如果只是做个人配置拆分，用 `source` 手动控制加载顺序会更明确。
 
 * 我希望自己开发vim插件，为vim添加这样一个功能：
     对于 markdown 文件，如果方括号中的数字 [N] 不在代码块中，那么将方括号连同数字视为一个锚点标记，比如 [0], [1], [2], ..., [10], [11] 等。每个锚点标记记录了其所在的行」列，以及这个锚点的创建、修改时间，还有一小段备注。当光标在锚点上时，我可以输入快捷键，快速切换到这个锚点处，比如：
@@ -28713,8 +28761,6 @@ coc.vim 的这个提示是什么意思？
 
     > **💡 核心特征：** 这些符号在代码中通常有明显的关键字前缀（如 `void`、`class`、`enum`），且它们的生命周期通常伴随整个程序或整个文件。
 
-    ---
-
     二、 Ctags 无法（或极难）跳转哪些符号？
 
     `ctags` 无法跳转的符号，通常具有“动态性”**、**“局部性”**或**“高度依赖上下文语义”的特点。
@@ -28727,16 +28773,13 @@ coc.vim 的这个提示是什么意思？
         
         原因： 没有固定的符号名称或完全动态生成。
 
-
     3. **通过父类指针/接口调用的多态方法（Polymorphic Calls）：**
 
         * *虚函数调用：* 当你在一行代码 `ptr->doSomething();` 上按跳转时，如果 `ptr` 是父类指针，`ctags` 只会傻傻地带你到**父类的虚函数声明**处，而**无法**根据运行时的实际类型带你跳转到子类的具体实现。
 
-
     4. **动态语言中的动态属性/反射符号：**
 
         * *原因：* 比如 Python 中通过 `setattr()` 动态绑定的属性，或者 JavaScript 中动态组装的对象键值。静态扫描工具根本无法在不运行代码的情况下预知这些符号。
-
 
     5. **宏展开后生成的符号：**
 
@@ -28770,17 +28813,18 @@ coc.vim 的这个提示是什么意思？
 
         当符号完全脱离了语法规则（比如宏拼接出来的符号，或者配置文件里配置的动态函数名），不管是 `ctags` 还是普通的 LSP 可能都会失效。这时候只能靠**速度纯粹到极致的文本检索**。
 
-        * **推荐工具：** `ripgrep` (rg) — 目前世界上最快的文本搜索工具。
-        * **使用方法：** 直接在工程根目录下暴力搜索字符串。
-        ```bash
-        rg "void .*my_macro_built_func" 
-        # 或者直接搜变量名
-        rg -w "target_variable_name"
-        # -w 表示精确匹配单词
+        * 推荐工具： `ripgrep` (rg) — 目前世界上最快的文本搜索工具。
 
-        ```
+        * 使用方法： 直接在工程根目录下暴力搜索字符串。
 
-        * **集成体验：** 在 Vim 中配合 `fzf.vim` 或 `telescope.nvim`，可以实现一键全工程模糊搜索。虽然它不理解语义，但因为速度极快（几毫秒遍历数万文件），在死角情况下往往能救命。
+            ```bash
+            rg "void .*my_macro_built_func" 
+            # 或者直接搜变量名
+            rg -w "target_variable_name"
+            # -w 表示精确匹配单词
+            ```
+
+        * 集成体验： 在 Vim 中配合 `fzf.vim` 或 `telescope.nvim`，可以实现一键全工程模糊搜索。虽然它不理解语义，但因为速度极快（几毫秒遍历数万文件），在死角情况下往往能救命。
 
     4. 强行让 Ctags 支持局部变量（不推荐，但可行）
 
@@ -28790,7 +28834,6 @@ coc.vim 的这个提示是什么意思？
 
         ```bash
         ctags --c-kinds=+l -R .
-
         ```
 
         *警告：这会导致 `tags` 文件体积暴增数倍甚至数十倍，且编辑器在遇到同名常见变量（如 `i`, `ret`）时会频繁弹出让人崩溃的冲突选择列表，请谨慎使用。*
@@ -28799,32 +28842,24 @@ coc.vim 的这个提示是什么意思？
 
     在没有 LSP 的时代，资深开发者通常是这样搭配的：
 
-    1. **跨文件找函数/结构体定义：** 用 `ctags` (快捷键 `Ctrl + ]`)。
-    2. **函数内找局部变量：** 用 Vim 内置的 `gd`。
-    3. **找虚函数实现/谁调用了这个函数：** 用 `GNU Global (gtags)` 查看引用列表。
-    4. **遇到诡异的宏定义或动态符号：** 用 `ripgrep` 全局暴力模糊搜索。
+    1. 跨文件找函数/结构体定义： 用 `ctags` (快捷键 `Ctrl + ]`)。
+
+    2. 函数内找局部变量： 用 Vim 内置的 `gd`。
+
+    3. 找虚函数实现/谁调用了这个函数： 用 `GNU Global (gtags)` 查看引用列表。
+
+    4. 遇到诡异的宏定义或动态符号： 用 `ripgrep` 全局暴力模糊搜索。
 
 * vim 如何 ctag 跳转？
 
-    好的，在 Vim 中使用 Ctags 进行跳转是一个非常强大和高效的功能。下面我将为你提供一个从安装到使用的完整指南。
-
-    **核心步骤概览**
-
-    1.  **安装 Ctags** 工具。
-    2.  在**项目根目录**生成标签文件（`tags`）。
-    3.  在 Vim 中使用快捷键进行跳转。
-
-    **详细步骤**
-
     1. 安装 Ctags
-
-        首先，你需要在你的操作系统上安装 `ctags` 工具。
 
         * Ubuntu/Debian
 
             ```bash
             sudo apt-get install universal-ctags
             ```
+
             > 注意：推荐安装 `universal-ctags`（功能更强的新一代维护版本），而不是古老的 `exuberant-ctags`。
 
         * CentOS/RHEL/Fedora
@@ -28835,10 +28870,6 @@ coc.vim 的这个提示是什么意思？
             # 或者
             sudo yum install ctags
             ```
-
-        * Windows (with WSL or MSYS2)
-
-            建议在 WSL (Windows Subsystem for Linux) 环境中使用上述 Linux 安装方法，或者通过 MSYS2 的包管理器安装。
 
         安装完成后，可以在终端输入 `ctags --version` 确认安装成功。
 
@@ -28876,15 +28907,7 @@ coc.vim 的这个提示是什么意思？
         | `:ts <tag>` 或 `:tselect <tag>` | 列出所有匹配 `<tag>` 的标签定义，供你选择。 |
         | `:tjump <tag>` | 跳转到 `<tag>`。如果只有一个匹配则直接跳转，有多个则列出列表。 |
 
-    **示例：**
-    1.  在 Vim 中打开一个 C 文件。
-    2.  将光标移动到一个函数名（如 `main`）或者一个变量名上。
-    3.  按下 `Ctrl-]`，Vim 会立刻跳转到该函数或变量的定义处。
-    4.  查看完定义后，按下 `Ctrl-t` 即可返回到原来的位置。
-
-    ---
-
-    高级配置和技巧
+    **高级配置和技巧**
 
     为了让体验更好，你可以在 `~/.vimrc` 文件中添加一些配置。
 
@@ -28896,14 +28919,18 @@ coc.vim 的这个提示是什么意思？
         " 在 ~/.vimrc 中添加
         set tags=./tags;,tags;
         ```
+
         *   `./tags;`：从当前文件所在目录开始查找名为 `tags` 的文件，`;` 代表“如果没找到，继续向上递归到父目录查找”，直到找到为止。
+
         *   `tags;`：同时也在当前工作目录（`:pwd` 显示的目录）下查找 `tags` 文件。
 
     2. 自动生成 Tags
 
         对于大型项目，每次手动生成 tags 很麻烦。你可以：
-        *   将 `ctags -R .` 命令写入项目的 `Makefile` 或构建脚本。
-        *   使用插件（如 **vim-gutentags**）来**自动管理** tags 文件的生成和更新，在你保存文件时自动在后台更新 tags，体验非常好。
+
+        * 将 `ctags -R .` 命令写入项目的 `Makefile` 或构建脚本。
+
+        * 使用插件（如 **vim-gutentags**）来**自动管理** tags 文件的生成和更新，在你保存文件时自动在后台更新 tags，体验非常好。
 
     3. 使用多个 Tags 文件
 
@@ -28912,18 +28939,6 @@ coc.vim 的这个提示是什么意思？
         ```vim
         set tags=./tags,./TAGS,tags,TAGS,/path/to/other/tags
         ```
-
-    总结
-
-    1.  **安装**: `sudo apt-get install universal-ctags`
-    2.  **生成**: 在项目根目录运行 `ctags -R .`
-    3.  **跳转**:
-        *   `Ctrl-]` - 跳转到定义
-        *   `Ctrl-t` - 跳回
-    4.  **配置**: 在 `~/.vimrc` 中添加 `set tags=./tags;,tags;` 以便自动查找标签文件。
-
-    掌握 Ctags 能极大提升你在 Vim 中阅读和导航代码的效率，是 Vim 使用者必备的技能之一。
-
 
     你可以在终端使用以下命令查看 **你的 ctags 版本** 所支持的全部语言列表：
 

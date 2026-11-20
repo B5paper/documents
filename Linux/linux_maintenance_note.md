@@ -6,6 +6,85 @@
 
 ## cache
 
+* 我想用 diff 对比同一个文件的两个相似的段落，比如 file.txt 的 1 ~ 50 行，200 ~ 260 行，怎么办？
+
+    可以用 `diff` 的进程替换（process substitution）配合 `sed`/`head`/`tail` 提取行段，让 `diff` 直接比较两个"虚拟文件"：
+
+    ## Bash / Zsh（进程替换）
+
+    ```bash
+    diff <(sed -n '1,50p' file.txt) <(sed -n '200,260p' file.txt)
+    ```
+
+    或者用 `head`/`tail` 组合：
+
+    ```bash
+    diff <(head -n 50 file.txt) <(sed -n '200,260p' file.txt)
+    ```
+
+    ## 更易读的并排对比
+
+    ```bash
+    diff -y <(sed -n '1,50p' file.txt) <(sed -n '200,260p' file.txt)
+    ```
+
+    或者用 `--side-by-side` 简写：
+
+    ```bash
+    diff --side-by-side --width=160 \
+      <(sed -n '1,50p' file.txt) \
+      <(sed -n '200,260p' file.txt)
+    ```
+
+    ## 带行号上下文（更好定位）
+
+    `diff` 本身的行号是相对两段的，不直观。可以给两边加原文件行号再比：
+
+    ```bash
+    diff -u \
+      <(sed -n '1,50p' file.txt | nl -ba -v1) \
+      <(sed -n '200,260p' file.txt | nl -ba -v200)
+    ```
+
+    `nl -v` 指定起始行号，这样 diff 输出里显示的就是原文件真实行号。
+
+    ## 如果不在 bash（比如纯 POSIX sh）
+
+    进程替换不支持，可以借助临时文件：
+
+    ```sh
+    sed -n '1,50p' file.txt > /tmp/a.txt
+    sed -n '200,260p' file.txt > /tmp/b.txt
+    diff /tmp/a.txt /tmp/b.txt
+    ```
+
+    ## 小提示
+
+    - 两个段落行数不同（50 vs 61 行）没问题，`diff` 会按 LCS 对齐显示差异。
+    - 想忽略空白差异加 `-w`，忽略大小写加 `-i`。
+    - 想高亮更漂亮可以用 `delta`、`colordiff` 或 `vimdiff`，同样支持进程替换：`vimdiff <(sed -n '1,50p' file.txt) <(sed -n '200,260p' file.txt)`。
+
+* diff 和 git diff 有什么区别
+
+    `diff` 和 `git diff` 的核心区别在于：**`diff` 比较的是两个独立的文件，而 `git diff` 比较的是同一文件在不同版本状态下的差异**（如工作区、暂存区、提交记录之间）。
+
+    ### 核心定位与比较对象
+    *   **`diff`**：一个通用的文件比较工具。你需要明确提供两个文件路径（如 `diff file1.txt file2.txt`），它就会逐行对比这两个文件的内容。
+    *   **`git diff`**：Git 版本控制系统的一部分。它主要用于追踪文件在 Git 仓库中的状态变化，比如查看你修改了但还没暂存（`git add`）的内容，或者比较两个提交、两个分支之间的差异。
+
+    ### 输出格式与能力
+    *   **`git diff` 的输出更“丰富”**：默认情况下，`git diff` 的输出会包含 Git 特有的头信息（如 `diff --git a/file b/file` 和索引哈希值）。它的格式设计为可以直接被 `git apply` 等 Git 命令使用，方便打补丁。
+    *   **`diff` 更“纯粹”**：标准的 `diff` 输出（尤其是 `-u` 格式）是通用的，可以被 `patch` 命令直接应用，不依赖于 Git 环境。
+    *   **兼容性**：`git diff` 其实也能比较两个普通的文件，但需要加上 `--no-index` 参数（例如 `git diff --no-index file1 file2`）。如果不加这个参数直接给两个文件名，Git 可能会把它们误认为是版本号或路径，从而产生非预期的行为。
+
+    ### 如何选择
+    *   如果你只是想**快速对比磁盘上任意两个文件的文本内容**（就像你之前对比同一文件的两个段落），直接用系统自带的 **`diff`** 命令是最直接、最不容易产生误解的选择。
+    *   如果你需要**查看或管理 Git 仓库中的代码变更**，或者想利用 Git 的分支对比、历史追溯功能，那么**`git diff`** 是必须的。
+
+    ---
+    ### 如果你需要更具体的帮助
+    如果你是想在 Git 仓库中对比**同一个文件在不同提交（commit）之间**的差异，或者**两个不同分支**上该文件的差异，我可以告诉你对应的 `git diff` 命令写法。
+
 * cp 递归复制文件夹里的内容，而不是文件夹本身：
 
     `cp -r dir_1/. dir_2/`

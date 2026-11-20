@@ -2,6 +2,26 @@
 
 ## cache
 
+* vscode 插件 Partial Diff
+
+    作者：Ryuichi Inagaki
+
+    使用方法：
+
+    1. 先选择一段文本 A
+
+    2. 然后按 ctrl + shift + p，打开命令面板, 选择 PartialDiff: select text for compare
+
+    3. 再选择一段文件 B
+
+    4. 按 ctrl + shirt + p, 选择 PartialDiff: compare text with previous selection
+
+    另外一种使用方式：
+
+    1. 使用 split 窗口，打开两个文件
+
+    2. 打开命令面板，选择 PartialDif: compare text in visible editors 
+
 * 是否有 vscode 快捷键，可以找到下一个以`##`或`###`开头的行？
 
     这个可能是在说是否有能识别 markdown 段落布局的 vscode 快捷键，可以快速在段落之间跳转。
