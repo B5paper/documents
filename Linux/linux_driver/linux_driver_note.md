@@ -6,6 +6,45 @@ Ref:
 
 ## cache
 
+* 详细讲讲 register_kprobe
+
+    `register_kprobe` 是 Linux 内核 Kprobes 机制的核心注册函数，用于在几乎任意内核代码地址动态插入一个断点，并在触发时调用你指定的处理函数。它的本质是**在运行时修改内核指令流**，因此理解其工作原理与限制条件比记住函数原型更重要。
+
+    **核心工作流程**
+
+    当你调用 `register_kprobe` 时，内核会执行以下关键步骤：
+
+    1.  **复制并替换指令**：Kprobes 会复制被探测地址处的原始指令，然后将该地址的第一个字节（或前几个字节，取决于架构）替换为**断点指令**（例如 x86 上的 `int3`）。
+    2.  **触发与陷入**：当 CPU 执行到该地址时，会触发一个陷阱（trap），保存当前寄存器状态，并将控制权交给 Kprobes。
+    3.  **执行你的处理函数**：Kprobes 调用你设置的 `pre_handler`，并传入 `kprobe` 结构体和保存的寄存器 `pt_regs`。
+    4.  **单步执行原指令**：`pre_handler` 返回后，Kprobes 会**单步执行**它之前复制的那条原始指令（而不是在原地址执行，以避免临时移除断点带来的竞态窗口）。
+    5.  **善后与恢复**：单步执行完成后，调用可选的 `post_handler`，最后恢复原指令流，继续执行被探测指令之后的代码。
+
+    ### 关键数据结构与处理函数
+
+    你需要填充 `struct kprobe` 并注册。最关键的两个字段是探测点位置和处理函数：
+
+    *   **指定探测点**：必须设置 `symbol_name`（函数名）或 `addr`（地址）之一。如果已知符号内的偏移，可配合 `offset` 字段使用。若同时指定 `symbol_name` 和 `addr`，注册会失败并返回 `-EINVAL`。
+    *   **`pre_handler`**：在断点触发后、原指令执行前调用。签名通常为 `int pre_handler(struct kprobe *p, struct pt_regs *regs)`。你可以通过修改 `regs` 来改变被探测函数的执行环境（如修改参数或寄存器），但需极其谨慎。返回 0 表示继续正常流程；返回非 0 则会跳过单步执行和 `post_handler`。
+    *   **`post_handler`**：在单步执行完原指令后调用。注意，**带有 `post_handler` 的探测点无法被优化**（即无法使用跳转优化来降低开销）。
+
+    ### 必须注意的限制与约束
+
+    `register_kprobe` 并非万能，内核在注册时会进行一系列检查，违反这些约束通常返回 `-EINVAL`：
+
+    *   **不能探测 Kprobes 自身实现**：不能在内核 Kprobes 核心代码（`kernel/kprobes.c` 等）以及 `do_page_fault`、`notifier_call_chain` 等关键路径上安装探测点。
+    *   **内联函数无效**：如果你探测的函数被编译器内联，Kprobes 无法“追踪”到所有内联展开的实例，你可能看不到预期的触发。
+    *   **特定架构限制**：例如在 x86_64 上，无法在 `__switch_to()` 上注册返回探测（kretprobe），因为该函数执行时栈可能已切换，返回地址机制会失效。
+    *   **处理函数上下文的严格限制**：处理函数运行时，**抢占是被禁用的**（部分架构下中断也可能被禁用）。因此，**绝对禁止**在处理函数中睡眠（如获取信号量、等待 I/O），否则可能导致系统死锁或崩溃。
+
+    ### 性能与优化（补充说明）
+
+    标准的断点式 kprobe 开销相对较高（微秒级）。如果内核启用了 `CONFIG_OPTPROBES`，Kprobes 会尝试将断点替换为**跳转指令**，将开销降低一个数量级（至几十纳秒级）。但如前所述，带有 `post_handler` 的探测点会被排除在优化之外。
+
+    ---
+    ### 为了帮你判断是否适合使用它
+    既然你详细询问了注册函数，通常意味着需要在模块中嵌入探测逻辑。可以告诉我你的具体场景吗？例如：你是想**追踪某个内核函数的调用参数**，还是想**在特定条件下修改执行流**？这有助于判断你是否需要考虑 kretprobe（返回探测）或 eBPF 等替代方案。
+
 * 合并注册设备号和注册 cdev:
 
     ```c
@@ -202,443 +241,6 @@ Ref:
     ```
 
     **注意**：对于不支持定位的设备，**不要**简单地返回 0 或假装成功。正确的做法是使用 `no_llseek` 并在 `open` 中标记不可定位，这样用户空间程序（如 `cp` 或 `cat`）在尝试定位时能获得明确的错误反馈，从而正确处理流式数据。
-
-* 为什么 linux 的 ioctl 中，使用 _IO 创建的 cmd 是 unsigned int 类型，而使用 _IOW 创建的 cmd 是 unsigned long 类型？
-
-    #define HLC_CDEV_CMD_1 _IOW('H', 1, int)
-    #define HLC_CDEV_CMD_2 _IO('H', 2)
-    ...
-    pr_info("hlc cdev: supported ioctl cmds:\n");
-    pr_info("\t%lu\n", HLC_CDEV_CMD_1);
-    pr_info("\t%u\n", HLC_CDEV_CMD_2);
-    我说的是这种的
-
-    你贴的代码里：
-
-    ```c
-    pr_info("\t%lu\n", HLC_CDEV_CMD_1);   // _IOW 用 %lu
-    pr_info("\t%u\n",  HLC_CDEV_CMD_2);   // _IO  用 %u
-    ```
-
-    这里 `HLC_CDEV_CMD_1` 和 `HLC_CDEV_CMD_2` **本身都是 32 位整数**，但一个用 `%lu` 打印、一个用 `%u` 打印，看起来像是"类型不同"。真正的原因不是宏产生了不同类型，而是**宏展开后的整数常量的字面量类型不同**，导致在变参函数中提升/传递的方式不同。
-
-    ### 关键：宏展开后的字面量类型
-
-    看 `_IOW` 和 `_IO` 的定义（`include/uapi/asm-generic/ioctl.h`）：
-
-    ```c
-    #define _IOC(dir,type,nr,size) \
-        (((dir)  << _IOC_DIRSHIFT) | \
-         ((type) << _IOC_TYPESHIFT) | \
-         ((nr)   << _IOC_NRSHIFT) | \
-         ((size) << _IOC_SIZESHIFT))
-
-    #define _IO(type,nr)        _IOC(_IOC_NONE,(type),(nr),0)
-    #define _IOW(type,nr,size)  _IOC(_IOC_WRITE,(type),(nr),sizeof(size))
-    ```
-
-    - `_IO('H', 2)`：`dir=0`、`size=0`，展开结果的高位（dir 位、size 位）都是 0，数值很小，编译器把它当作 **`int`**（能放进 int 的最小类型）。
-    - `_IOW('H', 1, int)`：`dir=_IOC_WRITE`（非 0）、`size=sizeof(int)=4`，展开后 `dir` 左移到最高两位。`_IOC_WRITE` 通常是 `1`，左移 `_IOC_DIRSHIFT`（30）后得到 `0x40000000`。这个值 **超过了 `INT_MAX`**（`0x7FFFFFFF`），所以 C 编译器会把它推导为 **`unsigned int`**（如果放得进 unsigned int）或更大的无符号类型。
-
-    ### 变参函数中的后果
-
-    `pr_info` 是变参函数，参数经过默认实参提升：
-
-    - `HLC_CDEV_CMD_2`（`int` 类型，值为正的小数）→ 提升规则下保持 `int`，用 `%u` 读是匹配的（int 与 unsigned int 同宽同表示，值非负时无差异）。
-    - `HLC_CDEV_CMD_1`（`unsigned int` 类型，值 `0x40000000 | ...`）→ 以 `unsigned int` 传入。用 `%lu` 读意味着期望 `unsigned long`（64 位系统上 8 字节），而实际压栈的是 4 字节的 `unsigned int`。**这是格式串与实参类型不匹配**，属于未定义行为（UB）。在 x86-64 上通常"碰巧能工作"，因为变参寄存器/栈槽是 8 字节对齐、小值扩展后高位为 0；但在某些 ABI（如部分 32 位平台）上会读错。
-
-    ### 那为什么作者这么写？
-
-    这其实是**一个常见但不严谨的写法**：作者下意识地把"带指针参数的 `_IOW` 命令"和"`unsigned long`"联系起来（因为 ioctl 的第三个参数在 `_IOW` 场景下是指针，而指针宽度是 `unsigned long`），于是用 `%lu` 打印；而 `_IO` 命令是纯标量，用 `%u`。但从类型系统看，**两个命令号都是 32 位无符号整数，正确且一致的写法应该是都用 `%u`**，或者统一强转：
-
-    ```c
-    pr_info("\t%u\n", (unsigned int)HLC_CDEV_CMD_1);
-    pr_info("\t%u\n", (unsigned int)HLC_CDEV_CMD_2);
-    ```
-
-    ### 结论
-
-    - `_IO` 和 `_IOW` **不产生不同宽度的类型**；命令号都是 32 位。
-    - 你看到 `%lu` vs `%u` 的差别，源于**宏展开后整数字面量的推导类型不同**（`_IOW` 因 dir/size 位使值超过 `INT_MAX`，被推导为 `unsigned int`；`_IO` 被推导为 `int`），再叠加作者对"指针 → unsigned long"的联想。
-    - 用 `%lu` 打印 `_IOW` 命令号在 64 位平台多数情况下不报错但属于类型不匹配；规范做法是统一用 `%u` 并显式转换。
-
-    * 如果我写成  pr_info("\t%u\n", HLC_CDEV_CMD_1);，clangd 会给我报警告：[clang -Wformat] [W] Format specifies type 'unsigned int' but the argument has type 'unsigned long' (fix available)
-
-        你遇到的这个警告，恰好精确地揭示了 `_IOW` 宏类型问题的根源：**`_IOW` 宏内部的 `sizeof` 操作符，导致整个表达式的类型被提升为 `unsigned long`（在 64 位系统上是 `size_t` 的典型宽度）。**
-
-        ### 🔍 根源：`sizeof` 操作符的返回类型是 `size_t`
-
-        在 C 语言中，`sizeof` 操作符的返回值类型并非 `int`，而是 **`size_t`**。`size_t` 是一个与平台相关的无符号整数类型，在 64 位 Linux 系统上，它通常被定义为 `unsigned long`。
-
-        我们来看 `_IOW` 宏的定义（简化版）：
-        ```c
-        #define _IOW(type,nr,size) _IOC(_IOC_WRITE, (type), (nr), sizeof(size))
-        ```
-        这里 `sizeof(int)` 的结果是 `size_t` 类型的 4。
-
-        ### ⚙️ 类型提升：`size_t` 如何“感染”整个表达式
-
-        `_IOC` 宏的核心是一个由多个部分按位或（`|`）组合而成的表达式：
-        ```c
-        #define _IOC(dir,type,nr,size) \
-            (((dir)  << _IOC_DIRSHIFT) | \
-             ((type) << _IOC_TYPESHIFT) | \
-             ((nr)   << _IOC_NRSHIFT) | \
-             ((size) << _IOC_SIZESHIFT))
-        ```
-        当其中一项是 `size_t`（即 `unsigned long`）时，C 语言的**寻常算术转换**规则会起作用：在包含多种类型的表达式中，操作数会被提升为其中“等级”最高的类型。由于 `unsigned long` 的等级高于 `int` 和 `unsigned int`，**整个按位或表达式的结果类型就被提升为 `unsigned long`**。
-
-        因此，`_IOW('H', 1, int)` 展开后，虽然数值上仍然是一个 32 位的值，但它的 **C 语言类型被编译器判定为 `unsigned long`**。
-
-        ### 🤔 为什么 `_IO` 没有这个问题？
-
-        `_IO` 宏的定义是：
-        ```c
-        #define _IO(type,nr) _IOC(_IOC_NONE, (type), (nr), 0)
-        ```
-        它直接将 `size` 参数硬编码为字面量 `0`，而不是 `sizeof(...)`。字面量 `0` 的类型是 `int`，因此不会引入 `size_t`，整个表达式在经过整型提升后，类型是 `unsigned int` 或 `int`，而不是 `unsigned long`。
-
-        ### 💡 如何解决这个警告？
-
-        你有几种选择：
-
-        1.  **顺应类型，修改格式字符串**：既然 clangd 认为它是 `unsigned long`，最直接的修复就是将 `%u` 改为 `%lu`。
-            ```c
-            pr_info("\t%lu\n", (unsigned long)HLC_CDEV_CMD_1);
-            ```
-            添加强制类型转换 `(unsigned long)` 可以让代码意图更清晰，也确保即使在不同平台上，类型也匹配。
-
-        2.  **消除类型提升的源头**：在宏定义层面，可以显式地将 `sizeof` 的结果转换为 `unsigned int`，阻止其“感染”整个表达式。一些 C 库（如 musl）的补丁正是采用了这种方法。但因为你无法修改内核头文件，这一点仅作为原理说明。
-
-        3.  **统一使用一种格式符**：为了代码风格一致，你也可以考虑将 `_IO` 命令也强制转换为 `unsigned long` 后用 `%lu` 打印。
-
-        **总结一下**：clangd 的警告是准确的。`_IOW` 宏因为内部使用了 `sizeof`，其表达式结果的类型被提升为 `unsigned long`（即 `size_t`），而不是我们直觉上的 `unsigned int`。这解释了你在代码中看到的 `%lu` 写法的由来，也说明了为什么改用 `%u` 会触发类型不匹配的警告。
-
-* linux 中，如果使用 _IOR 定义了一个 ioctl  command，但是我在 kmd 里进行了 write 操作，会发生什么？
-
-    在 Linux 中，`_IOR` 宏定义仅用于**标记**该 ioctl 命令的数据传输方向（从内核读到用户空间），它本身**不会**在运行时强制执行任何内存访问检查或阻止你在内核驱动（KMD）中调用 `copy_from_user`（即执行“write”操作）。
-
-    具体来说，会发生以下情况：
-
-    ### 1. 编码层面的结果
-    `_IOR(type, nr, size)` 会将方向位设置为 `_IOC_READ`，并将 `size` 编码进命令号中。在你的 KMD 里，`ioctl` 函数接收到的 `cmd` 参数仍然携带这个标记，但内核的通用 ioctl 处理层**不会**因为这个标记是 READ 就阻止你执行写入逻辑。
-
-    ### 2. 驱动层面的行为
-    如果你在驱动中忽略了方向标记，直接对用户传入的 `arg` 执行了 `copy_from_user`（例如将用户数据写入内核缓冲区），**操作会成功执行**（假设地址合法）。Linux 内核信任驱动开发者正确处理用户空间指针，方向标记主要起文档和约定作用。
-
-    ### 3. 潜在的后果与风险
-    虽然技术上可行，但这属于**违反约定**的行为，会带来隐患：
-    - **兼容性工具误判**：像 `strace` 之类的工具会自动解析 `_IOC_DIR`，如果标记为 `_IOR`（读），`strace` 可能尝试读取用户缓冲区来打印内容，但由于你实际执行的是写操作，可能导致 `strace` 显示错误的数据或产生误导性输出。
-    - **子系统或通用层检查**：某些子系统（如 V4L2、DVB）的通用 ioctl 包装层可能会根据方向标记决定是否预先调用 `copy_from_user` 或 `copy_to_user`。如果标记与实际操作不符，可能导致数据被意外复制或遗漏，甚至引发兼容性问题。
-    - **安全审查与维护**：代码审查时会被视为明显的逻辑错误，因为 ioctl 编号的语义与实现相反，增加了后续维护者的认知负担。
-
-    ### 建议
-    **不要这样做**。如果驱动需要从用户空间读取数据，应使用 `_IOW` 或 `_IOWR` 来定义命令。如果该命令号已经对外发布且不能更改（为了保持 ABI 兼容），你至少需要在驱动代码的注释中明确说明为何标记错误，并确保没有依赖通用层自动拷贝的逻辑。
-
-    ---
-    **如果你是在问“如果用户态用 `_IOR` 的命令号调用 `write()` 系统调用会怎样”**，那完全是另一回事：`write()` 和 `ioctl()` 是不同的系统调用路径，`write()` 不会解析 `_IOR` 宏，它只会把数据交给驱动的 `.write` 方法（如果有的话），两者互不干扰。
-
-* 是否有宏或函数可以反向解码出 ioctl cmd 的各个字段？
-
-    有的。Linux 内核在 `include/uapi/asm-generic/ioctl.h`（或各架构的 `ioctl.h`）中直接提供了一组用于反向解码的宏，它们就是 `_IOC` 系列宏的逆运算。
-
-    ### 核心解码宏
-
-    直接使用以下四个宏，传入你的 `ioctl` 命令号即可提取对应字段：
-
-    | 宏 | 作用 | 提取的字段 |
-    | :--- | :--- | :--- |
-    | `_IOC_DIR(nr)` | 获取数据传输方向 | 返回 `_IOC_NONE`、`_IOC_READ`、`_IOC_WRITE` 或它们的组合 |
-    | `_IOC_TYPE(nr)` | 获取“幻数”（type） | 通常是 8 位，对应 `_IOR('x', ...)` 中的字符 `'x'` |
-    | `_IOC_NR(nr)` | 获取命令序号（nr） | 8 位，对应驱动内具体的功能编号 |
-    | `_IOC_SIZE(nr)` | 获取参数大小 | 14 位（多数架构），即定义时 `sizeof(data_type)` 的结果 |
-
-    这些宏定义在 `ioctl.h` 中，实现方式就是按位右移并掩码，例如 `_IOC_TYPE(nr)` 等价于 `(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)`。
-
-    ### 使用注意
-
-    - **架构差异**：绝大多数架构（如 x86、ARM）使用上述标准的 2 位方向 + 14 位大小布局。但极少数架构（如 PowerPC）可能使用 3 位方向 + 13 位大小的变体，此时应包含对应架构的 `ioctl.h`，直接使用宏即可屏蔽差异，无需手动移位。
-    - **仅解出数值**：`_IOC_TYPE` 解出的是数值（例如 `'r'` 会得到 `0x72`），它不会自动帮你还原成字符，也不包含具体的数据类型信息（只能得到大小）。
-
-    如果你需要在用户态工具（如调试程序）中解码，无法直接包含内核头文件，可以手动复制这几个宏的定义，或者直接按位运算提取。
-
-* 为什么`sys/ioctl.h>`里的`ioctl()`的第 3 个参数要被设计成`...`？
-
-    ioctl 函数原型是
-
-    ```c
-    extern int ioctl (int __fd, unsigned long int __request, ...) __THROW;
-    ```
-
-    驱动里的 ioctl 的原型是
-
-    ```c
-    long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
-    ```
-
-    第 3 个参数写明了是`unsigned long`，为什么与用户态不同？
-    
-* ioctl 是阻塞执行的
-
-* 详细讲讲 linux 中 ioctl 的 cmd
-
-    在 Linux 中，`ioctl` 的 `cmd`（命令码）是一个由用户空间和驱动共同约定的 **32 位请求码**，用于告诉驱动具体要执行什么控制操作。它并非简单的整数，而是通过一组标准宏编码了**数据传输方向、设备类型、命令序号以及参数大小**，目的是保证命令的唯一性并避免冲突。
-
-    ### 核心编码宏：`_IO`、`_IOR`、`_IOW`、`_IOWR`
-
-    现代 Linux 驱动开发要求使用 `include/uapi/asm-generic/ioctl.h` 提供的四个宏来生成 `cmd`，严禁手动硬编码数值。
-
-    这四个宏对应不同的数据流向（**方向是从用户空间视角定义的**）：
-
-    * `_IO(type, nr)`：命令**无参数**。仅用于不需要传递额外数据的场景（如复位设备）。
-
-    * `_IOR(type, nr, data_type)`：**读**命令。数据从**内核**流向**用户空间**。例如 `ioctl(fd, MY_CMD, &buf)` 中，驱动会将数据写入 `buf`。
-
-    * `_IOW(type, nr, data_type)`：**写**命令。数据从**用户空间**流向**内核**。用户通过指针将配置参数传给驱动。
-
-    *   **`_IOWR(type, nr, data_type)`**：**读写**命令。数据双向流动，既传入配置又传出结果。
-
-    **`cmd` 的内部位域结构**
-
-    一个典型的 32 位 `cmd` 由以下四个部分拼接而成（以常见的通用架构为例）：
-
-    | 位域 | 宽度 | 含义 | 说明 |
-    | :--- | :--- | :--- | :--- |
-    | **dir** | 2 bit | 方向 | 00=无，01=写(`_IOW`)，10=读(`_IOR`)，11=读写(`_IOWR`) |
-    | **size** | 13/14 bit | 参数大小 | 编码了 `sizeof(data_type)`，上限通常为 8191 或 16383 字节 |
-    | **type** | 8 bit | 幻数 | 通常是一个 ASCII 字符（如 `'k'`、`'t'`），用于标识特定的驱动或子系统，避免不同驱动的命令号冲突 |
-    | **nr** | 8 bit | 序号 | 该驱动内部命令的编号（0~255），用于区分同一个驱动下的不同操作 |
-
-    **关键注意点**：在 `_IOR/_IOW/_IOWR` 中，**第三个参数必须直接填数据类型名**（如 `int`、`struct my_data`），**绝对不要填 `sizeof(类型)`**。宏内部会自动进行类型检查并计算大小，手动传 `sizeof` 会导致编码进去的大小变成指针的大小（`sizeof(size_t)`），从而引发兼容性问题。
-
-    **为什么必须用宏：兼容性与冲突规避**
-
-    1.  **唯一性保证**：`type`（幻数）是防止冲突的第一道防线。Linux 内核文档维护了一份 `ioctl-number.rst`，列出了已被占用的幻数。开发新驱动前必须查阅该文档，挑选一个未被占用的字符，否则可能导致应用层对 A 设备调用的命令被 B 设备误解。
-
-    2.  **32/64 位兼容（compat）**：在 64 位内核上运行 32 位应用时，指针宽度和数据结构对齐可能发生变化。标准宏编码了大小信息，配合内核的 `compat_ioctl` 机制，有助于系统正确处理这种差异。历史上，未正确使用宏定义大小的命令容易在兼容模式下引发内存越界或数据截断。
-
-    3.  **可读性与维护**：像 `_IOR('V', 1, struct v4l2_capability)` 这样的定义，一眼就能看出是 Video4Linux 子系统、读操作、获取能力集，远比直接写 `0x80685600` 易于维护。
-
-    **应用层的实际例子**
-
-    假设你在写一个字符设备驱动，约定幻数为 `'x'`：
-
-    * **驱动头文件定义**：
-
-        ```c
-        #define MYDEV_RESET    _IO('x', 0)
-        #define MYDEV_GET_VAL  _IOR('x', 1, int)
-        #define MYDEV_SET_VAL  _IOW('x', 2, int)
-        ```
-
-    * **用户空间调用**：
-
-        ```c
-        int val;
-        ioctl(fd, MYDEV_GET_VAL, &val); // 正确：传 int 的地址
-        // ioctl(fd, MYDEV_GET_VAL, val); // 错误：传了值而非地址
-        ```
-
-    **错误处理惯例**
-
-    当驱动收到一个不认识的 `cmd` 时，标准的返回错误码是 **`-ENOTTY`**（在用户空间表现为 `errno` 被设为 `ENOTTY`，“Inappropriate ioctl for device”）。内核文档明确指出，不要使用 `-EINVAL` 或 `-ENOSYS` 来替代，以免用户空间无法准确区分“参数错误”和“命令不支持”。
-
-    **顺带一提**：如果你是在排查某个具体的设备问题（比如终端 `TIOCGWINSZ` 或文件属性 `FS_IOC_GETFLAGS`），这些系统自带的 `cmd` 通常不需要你手动定义，直接包含对应的系统头文件（如 `<sys/ioctl.h>`、`<linux/fs.h>`）即可使用。
-
-    * 如果我只想传一个 unsigned long 整数下去到 kmd，不需要传整块 buffer，该怎么办
-
-        如果你想直接传递一个 `unsigned long` 整数给内核驱动，而不通过缓冲区指针，核心做法是：**使用 `_IO` 宏来定义命令，并在驱动中直接将 `arg` 参数当作整数使用**。
-
-        ### 具体做法
-
-        1.  **定义命令**：使用 `_IO(type, nr)` 宏。根据内核文档，`_IO` 既可以表示“无参数”的命令，也可以用于“直接传递整数而非指针”的场景。
-            ```c
-            #define MYDEV_SET_LONG  _IO('x', 3)
-            ```
-
-        2.  **用户空间调用**：直接将整数作为第三个参数传入。
-            ```c
-            unsigned long my_val = 12345;
-            ioctl(fd, MYDEV_SET_LONG, my_val);
-            ```
-
-        3.  **内核驱动处理**：在 `unlocked_ioctl` 函数中，`arg` 的类型是 `unsigned long`。由于你事先约定该命令传递的是整数，因此**不需要**进行 `copy_from_user`，直接强制转换或使用即可。
-            ```c
-            static long mydev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-            {
-                switch (cmd) {
-                case MYDEV_SET_LONG:
-                    // 直接将 arg 当作 unsigned long 整数使用
-                    unsigned long kernel_val = arg;
-                    // 后续处理...
-                    break;
-                }
-                return 0;
-            }
-            ```
-
-        ### 关键注意点
-
-        内核文档虽然指出 `_IO` 可以用于传递整数，但同时也**建议**对于需要传递数据的场景，应优先使用指针（即 `_IOW`）。直接传整数属于一种“可行但不完全推荐”的惯例。
-
-        因此，如果你选择这种方式，需要确保：
-        *   用户空间和内核空间对该命令的参数类型有**严格且明确的约定**（即都认为是 `unsigned long` 而非指针）。
-        *   由于没有使用 `_IOW` 编码，命令码本身不包含大小信息。在 32 位兼容模式下，`unsigned long` 的宽度可能变化，需要留意兼容性问题（如果只针对纯 64 位或纯 32 位环境则无此顾虑）。
-
-* 是否有工具可以直接对 /dev/xxx_dev 发起 ioctl cmd? 比如 read 有 cat，write 有 tee 命令，ioctl 有没有类似的工具？
-
-    针对你开发驱动、想直接测试 `/dev/xxx_dev` 的需求，最对口的依然是之前提到的第三方工具 **`ioctl`**（作者 Jérôme Pouiller）。它没有预装在系统里，需要自己编译安装，但因为它能识别符号名、自动推断缓冲区大小，对驱动开发者来说最方便。
-
-    ### 安装与编译
-
-    这个工具在 GitHub 上开源，官方推荐直接用 `make` 编译安装：
-
-    ```bash
-    git clone https://github.com/jerome-pouiller/ioctl.git
-    cd ioctl
-    make && sudo make install
-    ```
-
-    **如果编译报错**：作者提到 `ioctls_list.c` 可能因为内核头文件兼容性问题生成失败。如果遇到这种情况，可以用下面的命令跳过符号名列表的编译（代价是只能用数字 cmd，不能用 `VIDIOC_QUERYCAP` 这类符号名）：
-
-    ```bash
-    make IGNORE_IOCTLS_LIST=1
-    ```
-
-    ### 用法示例
-
-    安装后，基本语法是 `ioctl [选项] 设备文件 IOCTL号或符号名`。
-
-    **1. 直接传值（用 `-v` 代替指针）**
-    如果你的驱动 ioctl 的 `arg` 就是一个整数/值，而不是指针：
-    ```bash
-    # 相当于 ioctl(fd, 30, 1)
-    ioctl /dev/your_dev 30 -v 1
-    ```
-
-    **2. 传缓冲区指针（最常用）**
-    大多数驱动 ioctl 需要传一个结构体指针。这时**不要加 `-v`**，工具会根据 ioctl 编号自动推断数据方向（读/写）和大小，并从标准输入/输出收发数据。
-    ```bash
-    # 从设备读取数据到文件（假设 cmd 是只读的）
-    ioctl /dev/your_dev YOUR_CMD > output.bin
-
-    # 把文件内容作为参数写入设备（假设 cmd 是只写的）
-    ioctl /dev/your_dev YOUR_CMD < input.bin
-    ```
-
-    **3. 强制指定大小和方向**
-    如果你的自定义 ioctl 编号没有遵循内核编码规范，工具推断不出大小，可以用 `-s`（大小）和 `-d`（方向，R/W）强制指定：
-    ```bash
-    # 强制读取 1024 字节
-    ioctl /dev/your_dev 0x1234 -s 1024 -d R > dump.bin
-    ```
-
-    **4. 查看支持的符号名**
-    编译时如果成功生成了列表，可以用 `-L` 查看它认识的所有符号 ioctl 名称。
-
-    ### 一个重要的提醒
-
-    搜索时你可能会看到一个叫 `ioctl` 的工具可以通过 `brew` 或 `curl` 脚本安装。**请注意区分**：那是 **IoTeX 区块链**的命令行客户端，和我们讨论的 Linux 设备 ioctl 工具完全是两回事，不要装错了。
-
-* 为什么我执行 test@Ubuntu22:~/projs/ioctl$ sudo ./ioctl /dev/hlc_dev 2 时会报错？log 放在 /home/test/projs/ioctl/output.log 里。我在 dmesg 里只看到 device open 和 release，没有看到进入 ioctl 函数
-
-    原因找到了：命令号 2 与内核已有的 FIGETBSZ 冲突，请求在进入你的驱动回调之前就被内核处理了。 与 /dev/hlc_dev 的权限无关。
-
-    日志中的关键错误是：
-
-    Returned -1 (errno: 14, "Bad address")
-
-    结合代码，执行过程是：
-
-    1. 用户态工具把命令 2 解码成数据大小为 0，于是传入 NULL，相当于：
-
-       ioctl(fd, 2, NULL);
-    2. 内核将 2 识别为通用命令 FIGETBSZ，尝试通过第三个参数返回文件系统块大小。
-    3. 第三个参数是 NULL，写入失败，返回 -EFAULT，用户态显示为 Bad address。
-
-    内核的处理代码相当于：
-
-    case FIGETBSZ:
-        /* ... */
-        return put_user(inode->i_sb->s_blocksize,
-                        (int __user *)argp);
-
-    这个处理发生在调用驱动的 .unlocked_ioctl 之前，所以你只看到 open 和 release。内核源码 (https://github.com/torvalds/linux/blob/v6.8/fs/ioctl.c#L767)
-
-    建议把 驱动中的命令号 (hlc_cdev.c:91) 改成使用 _IO() 编码，例如：
-
-    #include <linux/ioctl.h>
-
-    #define HLC_CMD_1 _IO('H', 1)
-    #define HLC_CMD_2 _IO('H', 2)
-
-    然后修改 switch：
-
-    switch (cmd) {
-    case HLC_CMD_1:
-        pr_info("hlc cdev: command 1, data: %lu\n", data);
-        break;
-    case HLC_CMD_2:
-        pr_info("hlc cdev: command 2\n");
-        break;
-    default:
-        return -ENOTTY;
-    }
-
-    在你使用的常见 x86 Linux 环境中，_IO('H', 2) 的值为 0x4802。重新编译并重新加载模块后，使用：
-
-    sudo ./ioctl /dev/hlc_dev 0x4802
-
-    这样应能进入 my_unlocked_ioctl() 的命令 2 分支。用户态程序与驱动最好共享同一个命令定义头文件，避免两边使用不同的命令值。
-
-* 详细讲讲 linux 中的 unlocked_ioctl
-
-    `unlocked_ioctl` 是 Linux 内核中 `file_operations` 结构体里的一个函数指针成员，用于替代早期的 `ioctl`。它的核心变化在于**不再由内核自动持有大内核锁（BKL，Big Kernel Lock）**，因此得名“unlocked”。这意味着驱动程序的 `unlocked_ioctl` 函数可能会被多个进程或线程并发调用，驱动开发者必须自行负责并发保护。
-
-    ### 历史背景与设计动机
-
-    在早期的 Linux 内核中，`ioctl` 系统调用在进入驱动程序的 `ioctl` 方法时，内核会自动获取 BKL。BKL 是一把全局锁，虽然能简化驱动开发（无需担心并发），但在多处理器系统上性能极差，会导致不必要的串行化，成为内核扩展性的瓶颈。
-
-    为了移除 BKL，内核引入了 `unlocked_ioctl`。它允许驱动程序在无 BKL 保护的情况下处理 ioctl 调用，将锁的粒度交由驱动自己控制，从而提升并发性能。在过渡期后，旧的 `ioctl` 成员最终被移除，现代内核的 `file_operations` 中已不存在 `ioctl` 字段。
-
-    ### 函数原型与实现要点
-
-    `unlocked_ioctl` 的函数原型与旧 `ioctl` 不同，返回值类型变成了 `long`：
-    ```c
-    long (*unlocked_ioctl) (struct file *filp, unsigned int cmd, unsigned long arg);
-    ```
-    在驱动中通常这样定义并赋值：
-    ```c
-    static long mydev_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
-        // 实现
-    }
-
-    static const struct file_operations mydev_fops = {
-        .owner = THIS_MODULE,
-        .unlocked_ioctl = mydev_unlocked_ioctl,
-        // ...
-    };
-    ```
-
-    ### 并发保护：驱动开发者的核心责任
-
-    这是使用 `unlocked_ioctl` 最关键的一点。由于内核不再提供全局锁，你的 `unlocked_ioctl` 函数可能同时在多个 CPU 上被执行。
-
-    **必须根据驱动访问的共享资源来决定保护策略**：
-    *   **如果驱动仅操作局部变量**，或访问的硬件寄存器本身是原子操作且无竞态，可能不需要额外锁。
-    *   **如果访问全局/静态数据**，或需要维护设备状态机的一致性，就必须使用互斥锁（`mutex`）、自旋锁（`spinlock`）等机制来保护临界区。
-    *   内核文档也明确指出，实现 `unlocked_ioctl` 的代码必须是可重入的，或者内部采取适当的锁。
-
-    ### 与 `compat_ioctl` 的关系
-
-    `compat_ioctl` 是另一个相关成员，用于处理 32 位用户程序在 64 位内核上发起的 ioctl 调用。如果 `unlocked_ioctl` 中处理的数据结构在 32 位和 64 位下大小或布局不同（例如涉及指针或 `long` 类型），则需要额外实现 `compat_ioctl` 来进行参数转换；如果参数是 32/64 位安全的，则可以省略。
-
-    ### 常见返回值约定
-
-    在实现 `unlocked_ioctl` 时，对于不认识的命令，**应当返回 `-ENOTTY`**。历史上曾出现过返回 `-ENOIOCTLCMD` 的用法，但内核的通用层可能会将其转换为 `-EINVAL`，这不符合 POSIX 规范对未知 ioctl 请求的要求。因此，直接返回 `-ENOTTY` 是更规范的做法。
-
-    ---
-    **如果你想进一步了解如何为 `unlocked_ioctl` 编写正确的并发保护代码，或者 `compat_ioctl` 的具体实现示例，可以告诉我。**
 
 * size_t 是 unsigned long
 
@@ -4925,6 +4527,24 @@ Ref:
 
 ### linux 驱动简介与常识
 
+* There are many ways to Communicate between the Userspace and Kernel Space, they are:
+
+    * IOCTL
+
+    * Procfs
+
+    * Sysfs
+
+    * Configfs
+
+    * Debugfs
+
+    * Sysctl
+
+    * UDP Sockets
+
+    * Netlink Sockets
+
 * linux 设备类型
 
     常见的有字符设备，块设备和网络设备。
@@ -7483,6 +7103,622 @@ MODULE_LICENSE("GPL");
 
 #### ioctl
     
+* 为什么 linux 的 ioctl 中，使用 _IO 创建的 cmd 是 unsigned int 类型，而使用 _IOW 创建的 cmd 是 unsigned long 类型？
+
+    #define HLC_CDEV_CMD_1 _IOW('H', 1, int)
+    #define HLC_CDEV_CMD_2 _IO('H', 2)
+    ...
+    pr_info("hlc cdev: supported ioctl cmds:\n");
+    pr_info("\t%lu\n", HLC_CDEV_CMD_1);
+    pr_info("\t%u\n", HLC_CDEV_CMD_2);
+    我说的是这种的
+
+    你贴的代码里：
+
+    ```c
+    pr_info("\t%lu\n", HLC_CDEV_CMD_1);   // _IOW 用 %lu
+    pr_info("\t%u\n",  HLC_CDEV_CMD_2);   // _IO  用 %u
+    ```
+
+    这里 `HLC_CDEV_CMD_1` 和 `HLC_CDEV_CMD_2` **本身都是 32 位整数**，但一个用 `%lu` 打印、一个用 `%u` 打印，看起来像是"类型不同"。真正的原因不是宏产生了不同类型，而是**宏展开后的整数常量的字面量类型不同**，导致在变参函数中提升/传递的方式不同。
+
+    ### 关键：宏展开后的字面量类型
+
+    看 `_IOW` 和 `_IO` 的定义（`include/uapi/asm-generic/ioctl.h`）：
+
+    ```c
+    #define _IOC(dir,type,nr,size) \
+        (((dir)  << _IOC_DIRSHIFT) | \
+         ((type) << _IOC_TYPESHIFT) | \
+         ((nr)   << _IOC_NRSHIFT) | \
+         ((size) << _IOC_SIZESHIFT))
+
+    #define _IO(type,nr)        _IOC(_IOC_NONE,(type),(nr),0)
+    #define _IOW(type,nr,size)  _IOC(_IOC_WRITE,(type),(nr),sizeof(size))
+    ```
+
+    - `_IO('H', 2)`：`dir=0`、`size=0`，展开结果的高位（dir 位、size 位）都是 0，数值很小，编译器把它当作 **`int`**（能放进 int 的最小类型）。
+    - `_IOW('H', 1, int)`：`dir=_IOC_WRITE`（非 0）、`size=sizeof(int)=4`，展开后 `dir` 左移到最高两位。`_IOC_WRITE` 通常是 `1`，左移 `_IOC_DIRSHIFT`（30）后得到 `0x40000000`。这个值 **超过了 `INT_MAX`**（`0x7FFFFFFF`），所以 C 编译器会把它推导为 **`unsigned int`**（如果放得进 unsigned int）或更大的无符号类型。
+
+    ### 变参函数中的后果
+
+    `pr_info` 是变参函数，参数经过默认实参提升：
+
+    - `HLC_CDEV_CMD_2`（`int` 类型，值为正的小数）→ 提升规则下保持 `int`，用 `%u` 读是匹配的（int 与 unsigned int 同宽同表示，值非负时无差异）。
+    - `HLC_CDEV_CMD_1`（`unsigned int` 类型，值 `0x40000000 | ...`）→ 以 `unsigned int` 传入。用 `%lu` 读意味着期望 `unsigned long`（64 位系统上 8 字节），而实际压栈的是 4 字节的 `unsigned int`。**这是格式串与实参类型不匹配**，属于未定义行为（UB）。在 x86-64 上通常"碰巧能工作"，因为变参寄存器/栈槽是 8 字节对齐、小值扩展后高位为 0；但在某些 ABI（如部分 32 位平台）上会读错。
+
+    ### 那为什么作者这么写？
+
+    这其实是**一个常见但不严谨的写法**：作者下意识地把"带指针参数的 `_IOW` 命令"和"`unsigned long`"联系起来（因为 ioctl 的第三个参数在 `_IOW` 场景下是指针，而指针宽度是 `unsigned long`），于是用 `%lu` 打印；而 `_IO` 命令是纯标量，用 `%u`。但从类型系统看，**两个命令号都是 32 位无符号整数，正确且一致的写法应该是都用 `%u`**，或者统一强转：
+
+    ```c
+    pr_info("\t%u\n", (unsigned int)HLC_CDEV_CMD_1);
+    pr_info("\t%u\n", (unsigned int)HLC_CDEV_CMD_2);
+    ```
+
+    ### 结论
+
+    - `_IO` 和 `_IOW` **不产生不同宽度的类型**；命令号都是 32 位。
+    - 你看到 `%lu` vs `%u` 的差别，源于**宏展开后整数字面量的推导类型不同**（`_IOW` 因 dir/size 位使值超过 `INT_MAX`，被推导为 `unsigned int`；`_IO` 被推导为 `int`），再叠加作者对"指针 → unsigned long"的联想。
+    - 用 `%lu` 打印 `_IOW` 命令号在 64 位平台多数情况下不报错但属于类型不匹配；规范做法是统一用 `%u` 并显式转换。
+
+    * 如果我写成  pr_info("\t%u\n", HLC_CDEV_CMD_1);，clangd 会给我报警告：[clang -Wformat] [W] Format specifies type 'unsigned int' but the argument has type 'unsigned long' (fix available)
+
+        你遇到的这个警告，恰好精确地揭示了 `_IOW` 宏类型问题的根源：**`_IOW` 宏内部的 `sizeof` 操作符，导致整个表达式的类型被提升为 `unsigned long`（在 64 位系统上是 `size_t` 的典型宽度）。**
+
+        ### 🔍 根源：`sizeof` 操作符的返回类型是 `size_t`
+
+        在 C 语言中，`sizeof` 操作符的返回值类型并非 `int`，而是 **`size_t`**。`size_t` 是一个与平台相关的无符号整数类型，在 64 位 Linux 系统上，它通常被定义为 `unsigned long`。
+
+        我们来看 `_IOW` 宏的定义（简化版）：
+        ```c
+        #define _IOW(type,nr,size) _IOC(_IOC_WRITE, (type), (nr), sizeof(size))
+        ```
+        这里 `sizeof(int)` 的结果是 `size_t` 类型的 4。
+
+        ### ⚙️ 类型提升：`size_t` 如何“感染”整个表达式
+
+        `_IOC` 宏的核心是一个由多个部分按位或（`|`）组合而成的表达式：
+        ```c
+        #define _IOC(dir,type,nr,size) \
+            (((dir)  << _IOC_DIRSHIFT) | \
+             ((type) << _IOC_TYPESHIFT) | \
+             ((nr)   << _IOC_NRSHIFT) | \
+             ((size) << _IOC_SIZESHIFT))
+        ```
+        当其中一项是 `size_t`（即 `unsigned long`）时，C 语言的**寻常算术转换**规则会起作用：在包含多种类型的表达式中，操作数会被提升为其中“等级”最高的类型。由于 `unsigned long` 的等级高于 `int` 和 `unsigned int`，**整个按位或表达式的结果类型就被提升为 `unsigned long`**。
+
+        因此，`_IOW('H', 1, int)` 展开后，虽然数值上仍然是一个 32 位的值，但它的 **C 语言类型被编译器判定为 `unsigned long`**。
+
+        ### 🤔 为什么 `_IO` 没有这个问题？
+
+        `_IO` 宏的定义是：
+        ```c
+        #define _IO(type,nr) _IOC(_IOC_NONE, (type), (nr), 0)
+        ```
+        它直接将 `size` 参数硬编码为字面量 `0`，而不是 `sizeof(...)`。字面量 `0` 的类型是 `int`，因此不会引入 `size_t`，整个表达式在经过整型提升后，类型是 `unsigned int` 或 `int`，而不是 `unsigned long`。
+
+        ### 💡 如何解决这个警告？
+
+        你有几种选择：
+
+        1.  **顺应类型，修改格式字符串**：既然 clangd 认为它是 `unsigned long`，最直接的修复就是将 `%u` 改为 `%lu`。
+            ```c
+            pr_info("\t%lu\n", (unsigned long)HLC_CDEV_CMD_1);
+            ```
+            添加强制类型转换 `(unsigned long)` 可以让代码意图更清晰，也确保即使在不同平台上，类型也匹配。
+
+        2.  **消除类型提升的源头**：在宏定义层面，可以显式地将 `sizeof` 的结果转换为 `unsigned int`，阻止其“感染”整个表达式。一些 C 库（如 musl）的补丁正是采用了这种方法。但因为你无法修改内核头文件，这一点仅作为原理说明。
+
+        3.  **统一使用一种格式符**：为了代码风格一致，你也可以考虑将 `_IO` 命令也强制转换为 `unsigned long` 后用 `%lu` 打印。
+
+        **总结一下**：clangd 的警告是准确的。`_IOW` 宏因为内部使用了 `sizeof`，其表达式结果的类型被提升为 `unsigned long`（即 `size_t`），而不是我们直觉上的 `unsigned int`。这解释了你在代码中看到的 `%lu` 写法的由来，也说明了为什么改用 `%u` 会触发类型不匹配的警告。
+
+* linux 中，如果使用 _IOR 定义了一个 ioctl  command，但是我在 kmd 里进行了 write 操作，会发生什么？
+
+    在 Linux 中，`_IOR` 宏定义仅用于**标记**该 ioctl 命令的数据传输方向（从内核读到用户空间），它本身**不会**在运行时强制执行任何内存访问检查或阻止你在内核驱动（KMD）中调用 `copy_from_user`（即执行“write”操作）。
+
+    具体来说，会发生以下情况：
+
+    ### 1. 编码层面的结果
+    `_IOR(type, nr, size)` 会将方向位设置为 `_IOC_READ`，并将 `size` 编码进命令号中。在你的 KMD 里，`ioctl` 函数接收到的 `cmd` 参数仍然携带这个标记，但内核的通用 ioctl 处理层**不会**因为这个标记是 READ 就阻止你执行写入逻辑。
+
+    ### 2. 驱动层面的行为
+    如果你在驱动中忽略了方向标记，直接对用户传入的 `arg` 执行了 `copy_from_user`（例如将用户数据写入内核缓冲区），**操作会成功执行**（假设地址合法）。Linux 内核信任驱动开发者正确处理用户空间指针，方向标记主要起文档和约定作用。
+
+    ### 3. 潜在的后果与风险
+    虽然技术上可行，但这属于**违反约定**的行为，会带来隐患：
+    - **兼容性工具误判**：像 `strace` 之类的工具会自动解析 `_IOC_DIR`，如果标记为 `_IOR`（读），`strace` 可能尝试读取用户缓冲区来打印内容，但由于你实际执行的是写操作，可能导致 `strace` 显示错误的数据或产生误导性输出。
+    - **子系统或通用层检查**：某些子系统（如 V4L2、DVB）的通用 ioctl 包装层可能会根据方向标记决定是否预先调用 `copy_from_user` 或 `copy_to_user`。如果标记与实际操作不符，可能导致数据被意外复制或遗漏，甚至引发兼容性问题。
+    - **安全审查与维护**：代码审查时会被视为明显的逻辑错误，因为 ioctl 编号的语义与实现相反，增加了后续维护者的认知负担。
+
+    ### 建议
+    **不要这样做**。如果驱动需要从用户空间读取数据，应使用 `_IOW` 或 `_IOWR` 来定义命令。如果该命令号已经对外发布且不能更改（为了保持 ABI 兼容），你至少需要在驱动代码的注释中明确说明为何标记错误，并确保没有依赖通用层自动拷贝的逻辑。
+
+    ---
+    **如果你是在问“如果用户态用 `_IOR` 的命令号调用 `write()` 系统调用会怎样”**，那完全是另一回事：`write()` 和 `ioctl()` 是不同的系统调用路径，`write()` 不会解析 `_IOR` 宏，它只会把数据交给驱动的 `.write` 方法（如果有的话），两者互不干扰。
+
+* 是否有宏或函数可以反向解码出 ioctl cmd 的各个字段？
+
+    有的。Linux 内核在 `include/uapi/asm-generic/ioctl.h`（或各架构的 `ioctl.h`）中直接提供了一组用于反向解码的宏，它们就是 `_IOC` 系列宏的逆运算。
+
+    ### 核心解码宏
+
+    直接使用以下四个宏，传入你的 `ioctl` 命令号即可提取对应字段：
+
+    | 宏 | 作用 | 提取的字段 |
+    | :--- | :--- | :--- |
+    | `_IOC_DIR(nr)` | 获取数据传输方向 | 返回 `_IOC_NONE`、`_IOC_READ`、`_IOC_WRITE` 或它们的组合 |
+    | `_IOC_TYPE(nr)` | 获取“幻数”（type） | 通常是 8 位，对应 `_IOR('x', ...)` 中的字符 `'x'` |
+    | `_IOC_NR(nr)` | 获取命令序号（nr） | 8 位，对应驱动内具体的功能编号 |
+    | `_IOC_SIZE(nr)` | 获取参数大小 | 14 位（多数架构），即定义时 `sizeof(data_type)` 的结果 |
+
+    这些宏定义在 `ioctl.h` 中，实现方式就是按位右移并掩码，例如 `_IOC_TYPE(nr)` 等价于 `(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)`。
+
+    ### 使用注意
+
+    - **架构差异**：绝大多数架构（如 x86、ARM）使用上述标准的 2 位方向 + 14 位大小布局。但极少数架构（如 PowerPC）可能使用 3 位方向 + 13 位大小的变体，此时应包含对应架构的 `ioctl.h`，直接使用宏即可屏蔽差异，无需手动移位。
+    - **仅解出数值**：`_IOC_TYPE` 解出的是数值（例如 `'r'` 会得到 `0x72`），它不会自动帮你还原成字符，也不包含具体的数据类型信息（只能得到大小）。
+
+    如果你需要在用户态工具（如调试程序）中解码，无法直接包含内核头文件，可以手动复制这几个宏的定义，或者直接按位运算提取。
+
+* 为什么`sys/ioctl.h>`里的`ioctl()`的第 3 个参数要被设计成`...`？
+
+    ioctl 函数原型是
+
+    ```c
+    extern int ioctl (int __fd, unsigned long int __request, ...) __THROW;
+    ```
+
+    驱动里的 ioctl 的原型是
+
+    ```c
+    long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+    ```
+
+    第 3 个参数写明了是`unsigned long`，为什么与用户态不同？
+    
+* ioctl 是阻塞执行的
+
+* 详细讲讲 linux 中 ioctl 的 cmd
+
+    在 Linux 中，`ioctl` 的 `cmd`（命令码）是一个由用户空间和驱动共同约定的 **32 位请求码**，用于告诉驱动具体要执行什么控制操作。它并非简单的整数，而是通过一组标准宏编码了**数据传输方向、设备类型、命令序号以及参数大小**，目的是保证命令的唯一性并避免冲突。
+
+    ### 核心编码宏：`_IO`、`_IOR`、`_IOW`、`_IOWR`
+
+    现代 Linux 驱动开发要求使用 `include/uapi/asm-generic/ioctl.h` 提供的四个宏来生成 `cmd`，严禁手动硬编码数值。
+
+    这四个宏对应不同的数据流向（**方向是从用户空间视角定义的**）：
+
+    * `_IO(type, nr)`：命令**无参数**。仅用于不需要传递额外数据的场景（如复位设备）。
+
+    * `_IOR(type, nr, data_type)`：**读**命令。数据从**内核**流向**用户空间**。例如 `ioctl(fd, MY_CMD, &buf)` 中，驱动会将数据写入 `buf`。
+
+    * `_IOW(type, nr, data_type)`：**写**命令。数据从**用户空间**流向**内核**。用户通过指针将配置参数传给驱动。
+
+    *   **`_IOWR(type, nr, data_type)`**：**读写**命令。数据双向流动，既传入配置又传出结果。
+
+    **`cmd` 的内部位域结构**
+
+    一个典型的 32 位 `cmd` 由以下四个部分拼接而成（以常见的通用架构为例）：
+
+    | 位域 | 宽度 | 含义 | 说明 |
+    | :--- | :--- | :--- | :--- |
+    | **dir** | 2 bit | 方向 | 00=无，01=写(`_IOW`)，10=读(`_IOR`)，11=读写(`_IOWR`) |
+    | **size** | 13/14 bit | 参数大小 | 编码了 `sizeof(data_type)`，上限通常为 8191 或 16383 字节 |
+    | **type** | 8 bit | 幻数 | 通常是一个 ASCII 字符（如 `'k'`、`'t'`），用于标识特定的驱动或子系统，避免不同驱动的命令号冲突 |
+    | **nr** | 8 bit | 序号 | 该驱动内部命令的编号（0~255），用于区分同一个驱动下的不同操作 |
+
+    **关键注意点**：在 `_IOR/_IOW/_IOWR` 中，**第三个参数必须直接填数据类型名**（如 `int`、`struct my_data`），**绝对不要填 `sizeof(类型)`**。宏内部会自动进行类型检查并计算大小，手动传 `sizeof` 会导致编码进去的大小变成指针的大小（`sizeof(size_t)`），从而引发兼容性问题。
+
+    **为什么必须用宏：兼容性与冲突规避**
+
+    1.  **唯一性保证**：`type`（幻数）是防止冲突的第一道防线。Linux 内核文档维护了一份 `ioctl-number.rst`，列出了已被占用的幻数。开发新驱动前必须查阅该文档，挑选一个未被占用的字符，否则可能导致应用层对 A 设备调用的命令被 B 设备误解。
+
+    2.  **32/64 位兼容（compat）**：在 64 位内核上运行 32 位应用时，指针宽度和数据结构对齐可能发生变化。标准宏编码了大小信息，配合内核的 `compat_ioctl` 机制，有助于系统正确处理这种差异。历史上，未正确使用宏定义大小的命令容易在兼容模式下引发内存越界或数据截断。
+
+    3.  **可读性与维护**：像 `_IOR('V', 1, struct v4l2_capability)` 这样的定义，一眼就能看出是 Video4Linux 子系统、读操作、获取能力集，远比直接写 `0x80685600` 易于维护。
+
+    **应用层的实际例子**
+
+    假设你在写一个字符设备驱动，约定幻数为 `'x'`：
+
+    * **驱动头文件定义**：
+
+        ```c
+        #define MYDEV_RESET    _IO('x', 0)
+        #define MYDEV_GET_VAL  _IOR('x', 1, int)
+        #define MYDEV_SET_VAL  _IOW('x', 2, int)
+        ```
+
+    * **用户空间调用**：
+
+        ```c
+        int val;
+        ioctl(fd, MYDEV_GET_VAL, &val); // 正确：传 int 的地址
+        // ioctl(fd, MYDEV_GET_VAL, val); // 错误：传了值而非地址
+        ```
+
+    **错误处理惯例**
+
+    当驱动收到一个不认识的 `cmd` 时，标准的返回错误码是 **`-ENOTTY`**（在用户空间表现为 `errno` 被设为 `ENOTTY`，“Inappropriate ioctl for device”）。内核文档明确指出，不要使用 `-EINVAL` 或 `-ENOSYS` 来替代，以免用户空间无法准确区分“参数错误”和“命令不支持”。
+
+    **顺带一提**：如果你是在排查某个具体的设备问题（比如终端 `TIOCGWINSZ` 或文件属性 `FS_IOC_GETFLAGS`），这些系统自带的 `cmd` 通常不需要你手动定义，直接包含对应的系统头文件（如 `<sys/ioctl.h>`、`<linux/fs.h>`）即可使用。
+
+    * 如果我只想传一个 unsigned long 整数下去到 kmd，不需要传整块 buffer，该怎么办
+
+        如果你想直接传递一个 `unsigned long` 整数给内核驱动，而不通过缓冲区指针，核心做法是：**使用 `_IO` 宏来定义命令，并在驱动中直接将 `arg` 参数当作整数使用**。
+
+        ### 具体做法
+
+        1.  **定义命令**：使用 `_IO(type, nr)` 宏。根据内核文档，`_IO` 既可以表示“无参数”的命令，也可以用于“直接传递整数而非指针”的场景。
+            ```c
+            #define MYDEV_SET_LONG  _IO('x', 3)
+            ```
+
+        2.  **用户空间调用**：直接将整数作为第三个参数传入。
+            ```c
+            unsigned long my_val = 12345;
+            ioctl(fd, MYDEV_SET_LONG, my_val);
+            ```
+
+        3.  **内核驱动处理**：在 `unlocked_ioctl` 函数中，`arg` 的类型是 `unsigned long`。由于你事先约定该命令传递的是整数，因此**不需要**进行 `copy_from_user`，直接强制转换或使用即可。
+            ```c
+            static long mydev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+            {
+                switch (cmd) {
+                case MYDEV_SET_LONG:
+                    // 直接将 arg 当作 unsigned long 整数使用
+                    unsigned long kernel_val = arg;
+                    // 后续处理...
+                    break;
+                }
+                return 0;
+            }
+            ```
+
+        ### 关键注意点
+
+        内核文档虽然指出 `_IO` 可以用于传递整数，但同时也**建议**对于需要传递数据的场景，应优先使用指针（即 `_IOW`）。直接传整数属于一种“可行但不完全推荐”的惯例。
+
+        因此，如果你选择这种方式，需要确保：
+        *   用户空间和内核空间对该命令的参数类型有**严格且明确的约定**（即都认为是 `unsigned long` 而非指针）。
+        *   由于没有使用 `_IOW` 编码，命令码本身不包含大小信息。在 32 位兼容模式下，`unsigned long` 的宽度可能变化，需要留意兼容性问题（如果只针对纯 64 位或纯 32 位环境则无此顾虑）。
+
+* 是否有工具可以直接对 /dev/xxx_dev 发起 ioctl cmd? 比如 read 有 cat，write 有 tee 命令，ioctl 有没有类似的工具？
+
+    针对你开发驱动、想直接测试 `/dev/xxx_dev` 的需求，最对口的依然是之前提到的第三方工具 **`ioctl`**（作者 Jérôme Pouiller）。它没有预装在系统里，需要自己编译安装，但因为它能识别符号名、自动推断缓冲区大小，对驱动开发者来说最方便。
+
+    ### 安装与编译
+
+    这个工具在 GitHub 上开源，官方推荐直接用 `make` 编译安装：
+
+    ```bash
+    git clone https://github.com/jerome-pouiller/ioctl.git
+    cd ioctl
+    make && sudo make install
+    ```
+
+    **如果编译报错**：作者提到 `ioctls_list.c` 可能因为内核头文件兼容性问题生成失败。如果遇到这种情况，可以用下面的命令跳过符号名列表的编译（代价是只能用数字 cmd，不能用 `VIDIOC_QUERYCAP` 这类符号名）：
+
+    ```bash
+    make IGNORE_IOCTLS_LIST=1
+    ```
+
+    ### 用法示例
+
+    安装后，基本语法是 `ioctl [选项] 设备文件 IOCTL号或符号名`。
+
+    **1. 直接传值（用 `-v` 代替指针）**
+    如果你的驱动 ioctl 的 `arg` 就是一个整数/值，而不是指针：
+    ```bash
+    # 相当于 ioctl(fd, 30, 1)
+    ioctl /dev/your_dev 30 -v 1
+    ```
+
+    **2. 传缓冲区指针（最常用）**
+    大多数驱动 ioctl 需要传一个结构体指针。这时**不要加 `-v`**，工具会根据 ioctl 编号自动推断数据方向（读/写）和大小，并从标准输入/输出收发数据。
+    ```bash
+    # 从设备读取数据到文件（假设 cmd 是只读的）
+    ioctl /dev/your_dev YOUR_CMD > output.bin
+
+    # 把文件内容作为参数写入设备（假设 cmd 是只写的）
+    ioctl /dev/your_dev YOUR_CMD < input.bin
+    ```
+
+    **3. 强制指定大小和方向**
+    如果你的自定义 ioctl 编号没有遵循内核编码规范，工具推断不出大小，可以用 `-s`（大小）和 `-d`（方向，R/W）强制指定：
+    ```bash
+    # 强制读取 1024 字节
+    ioctl /dev/your_dev 0x1234 -s 1024 -d R > dump.bin
+    ```
+
+    **4. 查看支持的符号名**
+    编译时如果成功生成了列表，可以用 `-L` 查看它认识的所有符号 ioctl 名称。
+
+    ### 一个重要的提醒
+
+    搜索时你可能会看到一个叫 `ioctl` 的工具可以通过 `brew` 或 `curl` 脚本安装。**请注意区分**：那是 **IoTeX 区块链**的命令行客户端，和我们讨论的 Linux 设备 ioctl 工具完全是两回事，不要装错了。
+
+* 为什么我执行 test@Ubuntu22:~/projs/ioctl$ sudo ./ioctl /dev/hlc_dev 2 时会报错？log 放在 /home/test/projs/ioctl/output.log 里。我在 dmesg 里只看到 device open 和 release，没有看到进入 ioctl 函数
+
+    原因找到了：命令号 2 与内核已有的 FIGETBSZ 冲突，请求在进入你的驱动回调之前就被内核处理了。 与 /dev/hlc_dev 的权限无关。
+
+    日志中的关键错误是：
+
+    Returned -1 (errno: 14, "Bad address")
+
+    结合代码，执行过程是：
+
+    1. 用户态工具把命令 2 解码成数据大小为 0，于是传入 NULL，相当于：
+
+       ioctl(fd, 2, NULL);
+    2. 内核将 2 识别为通用命令 FIGETBSZ，尝试通过第三个参数返回文件系统块大小。
+    3. 第三个参数是 NULL，写入失败，返回 -EFAULT，用户态显示为 Bad address。
+
+    内核的处理代码相当于：
+
+    case FIGETBSZ:
+        /* ... */
+        return put_user(inode->i_sb->s_blocksize,
+                        (int __user *)argp);
+
+    这个处理发生在调用驱动的 .unlocked_ioctl 之前，所以你只看到 open 和 release。内核源码 (https://github.com/torvalds/linux/blob/v6.8/fs/ioctl.c#L767)
+
+    建议把 驱动中的命令号 (hlc_cdev.c:91) 改成使用 _IO() 编码，例如：
+
+    #include <linux/ioctl.h>
+
+    #define HLC_CMD_1 _IO('H', 1)
+    #define HLC_CMD_2 _IO('H', 2)
+
+    然后修改 switch：
+
+    switch (cmd) {
+    case HLC_CMD_1:
+        pr_info("hlc cdev: command 1, data: %lu\n", data);
+        break;
+    case HLC_CMD_2:
+        pr_info("hlc cdev: command 2\n");
+        break;
+    default:
+        return -ENOTTY;
+    }
+
+    在你使用的常见 x86 Linux 环境中，_IO('H', 2) 的值为 0x4802。重新编译并重新加载模块后，使用：
+
+    sudo ./ioctl /dev/hlc_dev 0x4802
+
+    这样应能进入 my_unlocked_ioctl() 的命令 2 分支。用户态程序与驱动最好共享同一个命令定义头文件，避免两边使用不同的命令值。
+
+* 详细讲讲 linux 中的 unlocked_ioctl
+
+    `unlocked_ioctl` 是 Linux 内核中 `file_operations` 结构体里的一个函数指针成员，用于替代早期的 `ioctl`。它的核心变化在于**不再由内核自动持有大内核锁（BKL，Big Kernel Lock）**，因此得名“unlocked”。这意味着驱动程序的 `unlocked_ioctl` 函数可能会被多个进程或线程并发调用，驱动开发者必须自行负责并发保护。
+
+    ### 历史背景与设计动机
+
+    在早期的 Linux 内核中，`ioctl` 系统调用在进入驱动程序的 `ioctl` 方法时，内核会自动获取 BKL。BKL 是一把全局锁，虽然能简化驱动开发（无需担心并发），但在多处理器系统上性能极差，会导致不必要的串行化，成为内核扩展性的瓶颈。
+
+    为了移除 BKL，内核引入了 `unlocked_ioctl`。它允许驱动程序在无 BKL 保护的情况下处理 ioctl 调用，将锁的粒度交由驱动自己控制，从而提升并发性能。在过渡期后，旧的 `ioctl` 成员最终被移除，现代内核的 `file_operations` 中已不存在 `ioctl` 字段。
+
+    ### 函数原型与实现要点
+
+    `unlocked_ioctl` 的函数原型与旧 `ioctl` 不同，返回值类型变成了 `long`：
+    ```c
+    long (*unlocked_ioctl) (struct file *filp, unsigned int cmd, unsigned long arg);
+    ```
+    在驱动中通常这样定义并赋值：
+    ```c
+    static long mydev_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
+        // 实现
+    }
+
+    static const struct file_operations mydev_fops = {
+        .owner = THIS_MODULE,
+        .unlocked_ioctl = mydev_unlocked_ioctl,
+        // ...
+    };
+    ```
+
+    ### 并发保护：驱动开发者的核心责任
+
+    这是使用 `unlocked_ioctl` 最关键的一点。由于内核不再提供全局锁，你的 `unlocked_ioctl` 函数可能同时在多个 CPU 上被执行。
+
+    **必须根据驱动访问的共享资源来决定保护策略**：
+    *   **如果驱动仅操作局部变量**，或访问的硬件寄存器本身是原子操作且无竞态，可能不需要额外锁。
+    *   **如果访问全局/静态数据**，或需要维护设备状态机的一致性，就必须使用互斥锁（`mutex`）、自旋锁（`spinlock`）等机制来保护临界区。
+    *   内核文档也明确指出，实现 `unlocked_ioctl` 的代码必须是可重入的，或者内部采取适当的锁。
+
+    ### 与 `compat_ioctl` 的关系
+
+    `compat_ioctl` 是另一个相关成员，用于处理 32 位用户程序在 64 位内核上发起的 ioctl 调用。如果 `unlocked_ioctl` 中处理的数据结构在 32 位和 64 位下大小或布局不同（例如涉及指针或 `long` 类型），则需要额外实现 `compat_ioctl` 来进行参数转换；如果参数是 32/64 位安全的，则可以省略。
+
+    ### 常见返回值约定
+
+    在实现 `unlocked_ioctl` 时，对于不认识的命令，**应当返回 `-ENOTTY`**。历史上曾出现过返回 `-ENOIOCTLCMD` 的用法，但内核的通用层可能会将其转换为 `-EINVAL`，这不符合 POSIX 规范对未知 ioctl 请求的要求。因此，直接返回 `-ENOTTY` 是更规范的做法。
+
+    ---
+    **如果你想进一步了解如何为 `unlocked_ioctl` 编写正确的并发保护代码，或者 `compat_ioctl` 的具体实现示例，可以告诉我。**
+
+* ioctl 简介
+
+    IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.
+
+    Some real-time applications of ioctl are Ejecting the media from a “cd” drive, changing the Baud Rate of Serial port, Adjusting the Volume, Reading or Writing device registers, etc. We already have the write and read function in our device driver. But it is not enough for all cases.
+
+* Create IOCTL command in the driver
+
+    * 语法
+
+        ```c
+        #define <ioctl_name> __IOX("magic number","command number","argument type")
+        ```
+
+    * 参数说明
+
+        where IOX can be:
+
+        * `IO`: an ioctl with no parameters
+
+        * `IOW`: an ioctl with write parameters (copy_from_user)
+
+        * `IOR`: an ioctl with read parameters (copy_to_user)
+
+        * `IOWR`: an ioctl with both write and read parameters
+
+        * The Magic Number is a unique number or character that will differentiate our set of ioctl calls from the other ioctl calls. some times the major number for the device is used here.
+      
+        * Command Number is the number that is assigned to the ioctl. This is used to differentiate the commands from one another.
+      
+        * The last is the type of data.
+
+    * Examples:
+
+        ```c
+        #include <linux/ioctl.h>
+
+        #define WR_VALUE _IOW('a','a', int32_t*)
+        #define RD_VALUE _IOR('a','b', int32_t*)
+        ```
+
+        这个是 kmd 中定义 ioctl cmd 的方法。在 user app 中需要定义相同的 ioctl cmd。
+
+        user app 中的 ioctl 的头文件为`<isys/ioctl.h>`
+
+* IOCTL function
+
+    * kmd 侧
+
+        ```c
+        int ioctl(struct inode *inode, struct file *file, unsigned int cmd,unsigned long arg)
+        ```
+
+        * `inode`: is the inode number of the file being worked on.
+
+        * `file`: is the file pointer to the file that was passed by the application.
+
+        * `cmd`: is the ioctl command that was called from the userspace.
+
+        * `arg`: are the arguments passed from the userspace
+
+        ```c
+        static long my_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+        {
+            switch(cmd) {
+                case WR_VALUE:
+                    if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) ) {
+                        pr_err("Data Write : Err!\n");
+                    }
+                    pr_info("Value = %d\n", value);
+                    break;
+                case RD_VALUE:
+                    if( copy_to_user((int32_t*) arg, &value, sizeof(value)) ) {
+                        pr_err("Data Read : Err!\n");
+                    }
+                    break;
+                default:
+                    pr_info("Default\n");
+                    break;
+            }
+            return 0;
+        }
+
+        static struct file_operations fops =
+        {
+            .owner          = THIS_MODULE,
+            .read           = my_read,
+            .write          = my_write,
+            .open           = my_open,
+            .unlocked_ioctl = my_ioctl,
+            .release        = my_release,
+        };
+        ```
+
+    * user app 侧
+
+        ```c
+        #include <sys/ioctl.h>
+        long ioctl("file descriptor", "ioctl command", "Arguments");
+        ```
+
+        * `file descriptor`: This the open file on which the ioctl command needs to be executed, which would generally be device files.
+      
+        * `ioctl command`: ioctl command which is implemented to achieve the desired functionality
+        
+        * `arguments`: The arguments need to be passed to the ioctl command.
+
+        Example:
+
+        ```c
+        ioctl(fd, WR_VALUE, (int32_t*) &number); 
+        ioctl(fd, RD_VALUE, (int32_t*) &value);
+        ```
+
+* ioctl driver and app example
+
+    ```c
+    #include <linux/kernel.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/kdev_t.h>
+    #include <linux/fs.h>
+    #include <linux/cdev.h>
+    #include <linux/device.h>
+    #include<linux/slab.h>                 // kmalloc()
+    #include<linux/uaccess.h>              // copy_to/from_user()
+    #include <linux/ioctl.h>
+    #include <linux/err.h>
+     
+     
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
+    MODULE_DESCRIPTION("Simple Linux device driver (IOCTL)");
+    MODULE_VERSION("1.5");
+    ```
+
+    User program full code:
+
+    ```c
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+     
+    #define WR_VALUE _IOW('a','a',int32_t*)
+    #define RD_VALUE _IOR('a','b',int32_t*)
+     
+    int main()
+    {
+        int fd;
+        int32_t value, number;
+
+        printf("\nOpening Driver\n");
+        fd = open("/dev/etx_device", O_RDWR);
+        if(fd < 0) {
+            printf("Cannot open device file...\n");
+            return 0;
+        }
+
+        printf("Enter the Value to send\n");
+        scanf("%d",&number);
+        printf("Writing Value to Driver\n");
+        ioctl(fd, WR_VALUE, (int32_t*) &number);
+
+        printf("Reading Value from Driver\n");
+        ioctl(fd, RD_VALUE, (int32_t*) &value);
+        printf("Value is %d\n", value);
+
+        printf("Closing Driver\n");
+        close(fd);
+    }
+    ```
+
+    This is a simple example of using ioctl in a Linux device driver. If you want to send multiple arguments, put those variables into the structure, and pass the address of the structure.
+
 #### 设备号
 
 * 设备号简介
@@ -11325,6 +11561,30 @@ MODULE_LICENSE("GPL");
     总结来说，`modinfo` 是理解内核模块构成和依赖关系的基础工具。它的 `-F` 字段筛选和 `-n` 路径输出选项在日常管理和脚本自动化中尤为常用。
 
 #### module parameters 模块参数
+
+* `module_param_named`
+
+    用于将**用户可见的参数名**与模块内部**实际变量名**解绑。当变量名不符合参数命名规范（例如位于结构体中），或希望暴露一个与变量名不同的参数名时使用。
+
+    * 用法：`module_param_named(name, value, type, perm)`
+
+    * 参数：`name` 是暴露给用户/命令行的名称；`value` 是模块内实际要修改的变量（可以是结构体成员，如 `i915_modparams.enable_dc`）。
+
+    * 例子：`module_param_named(enable_dma, r592_enable_dma, bool, S_IRUGO);` 用户传入 `enable_dma`，实际修改 `r592_enable_dma` 变量。
+
+* `module_param_named_unsafe`
+
+    功能与 `module_param_named` 相同，但**跳过了内核的参数类型安全检查**。通常在内核 lockdown 安全模式下，若参数涉及硬件配置（如强制覆盖固件路径、强制寄存器值），内核会拦截。`_unsafe` 后缀表示该参数即使在内核锁定模式下也**允许被设置**（或该参数被明确标记为危险但必须保留的功能）。
+
+    * 典型场景： Intel i915 显卡驱动中的 `guc_firmware_path` 或 `enable_psr` 等调试/覆盖类参数，为了能在安全启动环境下依然能强制加载测试固件或调整特性，常使用 `_unsafe` 版本。
+
+* `MODULE_PARM_DESC`
+
+    严格来说这不是注册参数的宏，而是**为参数添加描述字符串**的辅助宏，用于 `modinfo` 或 sysfs 展示。
+
+    * 用法：`MODULE_PARM_DESC(parm, desc)`
+
+    * 注意：`parm` 必须与 `module_param_named` 中暴露的 `name` 完全一致。描述字符串会显示在模块信息中，方便用户理解参数含义。
 
 * a simple example
 
@@ -18423,145 +18683,146 @@ obj-m += xxx.o xxx_2.o
 
 在加载模块的时候，应该先加载导出符号的模块，再加载使用符号的模块。卸载时，顺序要相反。
 
-## ioctl
+## Procfs
 
-* ioctl 简介
+* `/proc` is a mount point for the procfs (Process Filesystem) which is a filesystem in memory. Many processes store information about themselves on this virtual filesystem. ProcFS also stores other system information.
 
-    There are many ways to Communicate between the Userspace and Kernel Space, they are:
+    Check memory info: `cat /proc/meminfo`
 
-    * IOCTL
+    Check modules info: `cat /proc/modules`
 
-    * Procfs
+    * `/proc/devices` — registered character and block major numbers
+    * `/proc/iomem` — on-system physical RAM and bus device addresses
+    * `/proc/ioports` — on-system I/O port addresses (especially for x86 systems)
+    * `/proc/interrupts` — registered interrupt request numbers
+    * `/proc/softirqs` — registered soft IRQs
+    * `/proc/swaps` — currently active swaps
+    * `/proc/kallsyms` — running kernel symbols, including from loaded modules
+    * `/proc/partitions` — currently connected block devices and their partitions
+    * `/proc/filesystems` — currently active filesystem drivers
+    * `/proc/cpuinfo` — information about the CPU(s) on the system
 
-    * Sysfs
+    Most proc files are read-only and only expose kernel information to user space programs.
 
-    * Configfs
+    proc files can also be used to control and modify kernel behavior on the fly. The proc files need to be writable in this case.
 
-    * Debugfs
+* enable IP forwarding of iptable: `echo 1 > /proc/sys/net/ipv4/ip_forward`
 
-    * Sysctl
+    The proc file system can also be used to debug a kernel module. Just create entries for every variable that we want to track.
 
-    * UDP Sockets
-
-    * Netlink Sockets
-
-    IOCTL is referred to as Input and Output Control, which is used to talk to device drivers. This system call is available in most driver categories.
-
-    Some real-time applications of ioctl are Ejecting the media from a “cd” drive, changing the Baud Rate of Serial port, Adjusting the Volume, Reading or Writing device registers, etc. We already have the write and read function in our device driver. But it is not enough for all cases.
-
-    There are some steps involved to use IOCTL.
-
-* Create IOCTL command in the driver
+    Creating procfs directory:
 
     ```c
-    #include <linux/ioctl.h>
-
-    #define WR_VALUE _IOW('a','a',int32_t*)
-    #define RD_VALUE _IOR('a','b',int32_t*)
-
-    #define "ioctl name" __IOX("magic number","command number","argument type")
+    struct proc_dir_entry *proc_mkdir(const char *name, struct proc_dir_entry *parent)
     ```
 
-    where IOX can be:
+    `name`: The name of the directory that will be created under `/proc`.
 
-    * `IO`: an ioctl with no parameters
+    `parent`: In case the folder needs to be created in a subfolder under `/proc` a pointer to the same is passed else it can be left as NULL.
 
-    * `IOW`: an ioctl with write parameters (copy_from_user)
+    create proc entries:
 
-    * `IOR`: an ioctl with read parameters (copy_to_user)
-
-    * `IOWR`: an ioctl with both write and read parameters
-
-    * The Magic Number is a unique number or character that will differentiate our set of ioctl calls from the other ioctl calls. some times the major number for the device is used here.
-  
-    * Command Number is the number that is assigned to the ioctl. This is used to differentiate the commands from one another.
-  
-    * The last is the type of data.
-
-* Write IOCTL function in the driver
+    header file: `linux/proc_fs.h`
 
     ```c
-    int ioctl(struct inode *inode, struct file *file, unsigned int cmd,unsigned long arg)
+    struct proc_dir_entry *proc_create ( const char *name, umode_t mode, struct proc_dir_entry *parent, const struct file_operations *proc_fops )
     ```
 
-    * `inode`: is the inode number of the file being worked on.
-    * `file`: is the file pointer to the file that was passed by the application.
-    * `cmd`: is the ioctl command that was called from the userspace.
-    * `arg`: are the arguments passed from the userspace
+    * `name`: The name of the proc entry
+    * `mode`: The access mode for proc entry
+    * `parent`: The name of the parent directory under /proc. If NULL is passed as a parent, the /proc directory will be set as a parent.
+    * `proc_fops`: The structure in which the file operations for the proc entry will be created.
 
-    Within the function “ioctl” we need to implement all the commands that we defined above (`WR_VALUE`, `RD_VALUE`). We need to use the same commands in the `switch` statement which is defined above.
+    Note: The above proc_create is valid in the Linux Kernel v3.10 to v5.5. From v5.6, there is a change in this API. The fourth argument const struct file_operations *proc_fops is changed to const struct proc_ops *proc_ops.
 
-    Then we need to inform the kernel that the ioctl calls are implemented in the function “etx_ioctl“. This is done by making the fops pointer “unlocked_ioctl” to point to “etx_ioctl” as shown below.
+* Example
 
     ```c
-    /*
-    ** This function will be called when we write IOCTL on the Device file
-    */
-    static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-    {
-        switch(cmd) {
-            case WR_VALUE:
-                if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
-                {
-                    pr_err("Data Write : Err!\n");
-                }
-                pr_info("Value = %d\n", value);
-                break;
-            case RD_VALUE:
-                if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
-                {
-                    pr_err("Data Read : Err!\n");
-                }
-                break;
-            default:
-                pr_info("Default\n");
-                break;
-        }
-        return 0;
-    }
+    proc_create("etx_proc",0666,NULL,&proc_fops);
+    ```
 
-    /*
-    ** File operation sturcture
-    */
-    static struct file_operations fops =
-    {
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .unlocked_ioctl = etx_ioctl,
-        .release        = etx_release,
+    create `file_operations` structure `proc_fops` in which we can map the read and write functions for the proc entry:
+
+    ```c
+    static struct file_operations proc_fops = {
+        .open = open_proc,
+        .read = read_proc,
+        .write = write_proc,
+        .release = release_proc
     };
     ```
 
-* Create IOCTL command in a Userspace application
+    For linux kernel v5.6 and above, use this:
 
     ```c
-    #define WR_VALUE _IOW('a','a',int32_t*)
-    #define RD_VALUE _IOR('a','b',int32_t*)
+    static struct proc_ops proc_fops = {
+            .proc_open = open_proc,
+            .proc_read = read_proc,
+            .proc_write = write_proc,
+            .proc_release = release_proc
+    };
     ```
 
-* Use the IOCTL system call in a Userspace
+    `open` and `release` functions are optional:
 
     ```c
-    #include <sys/ioctl.h>
-    long ioctl( "file descriptor","ioctl command","Arguments");
+    static int open_proc(struct inode *inode, struct file *file)
+    {
+        printk(KERN_INFO "proc file opend.....\t");
+        return 0;
+    }
+
+    static int release_proc(struct inode *inode, struct file *file)
+    {
+        printk(KERN_INFO "proc file released.....\n");
+        return 0;
+    }
     ```
 
-    * `file descriptor`: This the open file on which the ioctl command needs to be executed, which would generally be device files.
-  
-    * `ioctl command`: ioctl command which is implemented to achieve the desired functionality
-    
-    * `arguments`: The arguments need to be passed to the ioctl command.
-
-    Example:
+    The write function will receive data from the user space using the function copy_from_user into an array “etx_array”:
 
     ```c
-    ioctl(fd, WR_VALUE, (int32_t*) &number); 
-    ioctl(fd, RD_VALUE, (int32_t*) &value);
+    static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_t * off)
+    {
+        printk(KERN_INFO "proc file write.....\t");
+        copy_from_user(etx_array,buff,len);
+        return len;
+    }
     ```
 
-* ioctl driver full code:
+    Once data is written to the proc entry we can read from the proc entry using a read function, i.e transfer data to the user space using the function `copy_to_user` function:
+
+    ```c
+    static ssize_t read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset)
+    {
+        printk(KERN_INFO "proc file read.....\n");
+        if(len)
+            len=0;
+        else{
+            len=1;
+            return 0;
+        }
+        copy_to_user(buffer,etx_array,20);
+
+        return length;;
+    }
+    ```
+
+    Proc entry should be removed in the Driver exit function using the below function:
+
+    ```c
+    void remove_proc_entry(const char *name, struct proc_dir_entry *parent);
+    ```
+
+* Example
+
+    ```c
+    remove_proc_entry("etx_proc",NULL);
+    ```
+
+    And you can remove the complete parent directory using `proc_remove(struct proc_dir_entry *parent)`.
+
+    Complete Driver Source Code:
 
     ```c
     #include <linux/kernel.h>
@@ -18571,52 +18832,157 @@ obj-m += xxx.o xxx_2.o
     #include <linux/fs.h>
     #include <linux/cdev.h>
     #include <linux/device.h>
-    #include<linux/slab.h>                 // kmalloc()
-    #include<linux/uaccess.h>              // copy_to/from_user()
+    #include <linux/slab.h>                 //kmalloc()
+    #include <linux/uaccess.h>              //copy_to/from_user()
     #include <linux/ioctl.h>
+    #include <linux/proc_fs.h>
     #include <linux/err.h>
-     
+
+    /* 
+    ** I am using the kernel 5.10.27-v7l. So I have set this as 510.
+    ** If you are using the kernel 3.10, then set this as 310,
+    ** and for kernel 5.1, set this as 501. Because the API proc_create()
+    ** changed in kernel above v5.5.
+    **
+    */ 
+    #define LINUX_KERNEL_VERSION  510
      
     #define WR_VALUE _IOW('a','a',int32_t*)
     #define RD_VALUE _IOR('a','b',int32_t*)
      
     int32_t value = 0;
+    char etx_array[20]="try_proc_array\n";
+    static int len = 1;
+     
      
     dev_t dev = 0;
     static struct class *dev_class;
     static struct cdev etx_cdev;
+    static struct proc_dir_entry *parent;
 
     /*
     ** Function Prototypes
     */
     static int      __init etx_driver_init(void);
     static void     __exit etx_driver_exit(void);
+
+    /*************** Driver Functions **********************/
     static int      etx_open(struct inode *inode, struct file *file);
     static int      etx_release(struct inode *inode, struct file *file);
     static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
     static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
     static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+     
+    /***************** Procfs Functions *******************/
+    static int      open_proc(struct inode *inode, struct file *file);
+    static int      release_proc(struct inode *inode, struct file *file);
+    static ssize_t  read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset);
+    static ssize_t  write_proc(struct file *filp, const char *buff, size_t len, loff_t * off);
 
     /*
     ** File operation sturcture
     */
     static struct file_operations fops =
     {
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .unlocked_ioctl = etx_ioctl,
-        .release        = etx_release,
+            .owner          = THIS_MODULE,
+            .read           = etx_read,
+            .write          = etx_write,
+            .open           = etx_open,
+            .unlocked_ioctl = etx_ioctl,
+            .release        = etx_release,
     };
+
+
+    #if ( LINUX_KERNEL_VERSION > 505 )
+
+    /*
+    ** procfs operation sturcture
+    */
+    static struct proc_ops proc_fops = {
+            .proc_open = open_proc,
+            .proc_read = read_proc,
+            .proc_write = write_proc,
+            .proc_release = release_proc
+    };
+
+    #else //LINUX_KERNEL_VERSION > 505
+
+    /*
+    ** procfs operation sturcture
+    */
+    static struct file_operations proc_fops = {
+            .open = open_proc,
+            .read = read_proc,
+            .write = write_proc,
+            .release = release_proc
+    };
+
+    #endif //LINUX_KERNEL_VERSION > 505
+
+    /*
+    ** This function will be called when we open the procfs file
+    */
+    static int open_proc(struct inode *inode, struct file *file)
+    {
+        pr_info("proc file opend.....\t");
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we close the procfs file
+    */
+    static int release_proc(struct inode *inode, struct file *file)
+    {
+        pr_info("proc file released.....\n");
+        return 0;
+    }
+
+    /*
+    ** This function will be called when we read the procfs file
+    */
+    static ssize_t read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset)
+    {
+        pr_info("proc file read.....\n");
+        if(len)
+        {
+            len=0;
+        }
+        else
+        {
+            len=1;
+            return 0;
+        }
+        
+        if( copy_to_user(buffer,etx_array,20) )
+        {
+            pr_err("Data Send : Err!\n");
+        }
+     
+        return length;;
+    }
+
+    /*
+    ** This function will be called when we write the procfs file
+    */
+    static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_t * off)
+    {
+        pr_info("proc file wrote.....\n");
+        
+        if( copy_from_user(etx_array,buff,len) )
+        {
+            pr_err("Data Write : Err!\n");
+        }
+        
+        return len;
+    }
 
     /*
     ** This function will be called when we open the Device file
     */
     static int etx_open(struct inode *inode, struct file *file)
     {
-        pr_info("Device File Opened...!!!\n");
-        return 0;
+            pr_info("Device File Opened...!!!\n");
+            return 0;
     }
 
     /*
@@ -18624,8 +18990,8 @@ obj-m += xxx.o xxx_2.o
     */
     static int etx_release(struct inode *inode, struct file *file)
     {
-        pr_info("Device File Closed...!!!\n");
-        return 0;
+            pr_info("Device File Closed...!!!\n");
+            return 0;
     }
 
     /*
@@ -18633,8 +18999,8 @@ obj-m += xxx.o xxx_2.o
     */
     static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
     {
-        pr_info("Read Function\n");
-        return 0;
+            pr_info("Read function\n");
+            return 0;
     }
 
     /*
@@ -18642,8 +19008,8 @@ obj-m += xxx.o xxx_2.o
     */
     static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
     {
-        pr_info("Write function\n");
-        return len;
+            pr_info("Write Function\n");
+            return len;
     }
 
     /*
@@ -18677,48 +19043,67 @@ obj-m += xxx.o xxx_2.o
     */
     static int __init etx_driver_init(void)
     {
-            /*Allocating Major number*/
-            if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-                    pr_err("Cannot allocate major number\n");
-                    return -1;
-            }
-            pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-     
-            /*Creating cdev structure*/
-            cdev_init(&etx_cdev,&fops);
-     
-            /*Adding character device to the system*/
-            if((cdev_add(&etx_cdev,dev,1)) < 0){
-                pr_err("Cannot add the device to the system\n");
-                goto r_class;
-            }
-     
-            /*Creating struct class*/
-            if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-                pr_err("Cannot create the struct class\n");
-                goto r_class;
-            }
-     
-            /*Creating device*/
-            if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-                pr_err("Cannot create the Device 1\n");
-                goto r_device;
-            }
-            pr_info("Device Driver Insert...Done!!!\n");
-            return 0;
+        /*Allocating Major number*/
+        if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
+                pr_info("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_info("Cannot add the device to the system\n");
+            goto r_class;
+        }
+
+        /*Creating struct class*/
+        if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
+            pr_info("Cannot create the struct class\n");
+            goto r_class;
+        }
+
+        /*Creating device*/
+        if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
+            pr_info("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        
+        /*Create proc directory. It will create a directory under "/proc" */
+        parent = proc_mkdir("etx",NULL);
+        
+        if( parent == NULL )
+        {
+            pr_info("Error creating proc entry");
+            goto r_device;
+        }
+        
+        /*Creating Proc entry under "/proc/etx/" */
+        proc_create("etx_proc", 0666, parent, &proc_fops);
+
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
      
     r_device:
-            class_destroy(dev_class);
+        class_destroy(dev_class);
     r_class:
-            unregister_chrdev_region(dev,1);
-            return -1;
+        unregister_chrdev_region(dev,1);
+        return -1;
     }
-
+     
     /*
     ** Module exit function
     */
     static void __exit etx_driver_exit(void)
     {
+        /* Removes single proc entry */
+        //remove_proc_entry("etx/etx_proc", parent);
+        
+        /* remove complete /proc/etx */
+        proc_remove(parent);
+        
         device_destroy(dev_class,dev);
         class_destroy(dev_class);
         cdev_del(&etx_cdev);
@@ -18731,509 +19116,29 @@ obj-m += xxx.o xxx_2.o
      
     MODULE_LICENSE("GPL");
     MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-    MODULE_DESCRIPTION("Simple Linux device driver (IOCTL)");
-    MODULE_VERSION("1.5");
+    MODULE_DESCRIPTION("Simple Linux device driver (procfs)");
+    MODULE_VERSION("1.6");
     ```
 
-    User program full code:
+    As there are changes in the procfs file system in the Linux kernel 3.10 and 5.6, we have added a macro called `LINUX_KERNEL_VERSION`. You have to mention your Linux kernel version. Based on that, we will control the APIs in this source code.
 
-    ```c
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <fcntl.h>
-    #include <unistd.h>
-    #include <sys/ioctl.h>
-     
-    #define WR_VALUE _IOW('a','a',int32_t*)
-    #define RD_VALUE _IOR('a','b',int32_t*)
-     
-    int main()
-    {
-        int fd;
-        int32_t value, number;
+* Note
 
-        printf("\nOpening Driver\n");
-        fd = open("/dev/etx_device", O_RDWR);
-        if(fd < 0) {
-            printf("Cannot open device file...\n");
-            return 0;
-        }
+    You can follow this format for this `LINUX_KERNEL_VERSION`.
 
-        printf("Enter the Value to send\n");
-        scanf("%d",&number);
-        printf("Writing Value to Driver\n");
-        ioctl(fd, WR_VALUE, (int32_t*) &number);
+    Example:
 
-        printf("Reading Value from Driver\n");
-        ioctl(fd, RD_VALUE, (int32_t*) &value);
-        printf("Value is %d\n", value);
+    |Your Linux Kernel version | LINUX_KERNEL_VERSION |
+    | - | - |
+    | v3.10 | 310 |
+    | v5.6 | 506 |
+    | v5.10 | 510 |
 
-        printf("Closing Driver\n");
-        close(fd);
-    }
-    ```
+    test:
 
-    This is a simple example of using ioctl in a Linux device driver. If you want to send multiple arguments, put those variables into the structure, and pass the address of the structure.
+    `cat /proc/etx/etx_proc`
 
-## Procfs
-
-`/proc` is a mount point for the procfs (Process Filesystem) which is a filesystem in memory. Many processes store information about themselves on this virtual filesystem. ProcFS also stores other system information.
-
-Check memory info: `cat /proc/meminfo`
-
-Check modules info: `cat /proc/modules`
-
-* `/proc/devices` — registered character and block major numbers
-* `/proc/iomem` — on-system physical RAM and bus device addresses
-* `/proc/ioports` — on-system I/O port addresses (especially for x86 systems)
-* `/proc/interrupts` — registered interrupt request numbers
-* `/proc/softirqs` — registered soft IRQs
-* `/proc/swaps` — currently active swaps
-* `/proc/kallsyms` — running kernel symbols, including from loaded modules
-* `/proc/partitions` — currently connected block devices and their partitions
-* `/proc/filesystems` — currently active filesystem drivers
-* `/proc/cpuinfo` — information about the CPU(s) on the system
-
-Most proc files are read-only and only expose kernel information to user space programs.
-
-proc files can also be used to control and modify kernel behavior on the fly. The proc files need to be writable in this case.
-
-enable IP forwarding of iptable: `echo 1 > /proc/sys/net/ipv4/ip_forward`
-
-The proc file system can also be used to debug a kernel module. Just create entries for every variable that we want to track.
-
-Creating procfs directory:
-
-```c
-struct proc_dir_entry *proc_mkdir(const char *name, struct proc_dir_entry *parent)
-```
-
-`name`: The name of the directory that will be created under `/proc`.
-
-`parent`: In case the folder needs to be created in a subfolder under `/proc` a pointer to the same is passed else it can be left as NULL.
-
-create proc entries:
-
-header file: `linux/proc_fs.h`
-
-```c
-struct proc_dir_entry *proc_create ( const char *name, umode_t mode, struct proc_dir_entry *parent, const struct file_operations *proc_fops )
-```
-
-* `name`: The name of the proc entry
-* `mode`: The access mode for proc entry
-* `parent`: The name of the parent directory under /proc. If NULL is passed as a parent, the /proc directory will be set as a parent.
-* `proc_fops`: The structure in which the file operations for the proc entry will be created.
-
-Note: The above proc_create is valid in the Linux Kernel v3.10 to v5.5. From v5.6, there is a change in this API. The fourth argument const struct file_operations *proc_fops is changed to const struct proc_ops *proc_ops.
-
-Example:
-
-```c
-proc_create("etx_proc",0666,NULL,&proc_fops);
-```
-
-create `file_operations` structure `proc_fops` in which we can map the read and write functions for the proc entry:
-
-```c
-static struct file_operations proc_fops = {
-    .open = open_proc,
-    .read = read_proc,
-    .write = write_proc,
-    .release = release_proc
-};
-```
-
-For linux kernel v5.6 and above, use this:
-
-```c
-static struct proc_ops proc_fops = {
-        .proc_open = open_proc,
-        .proc_read = read_proc,
-        .proc_write = write_proc,
-        .proc_release = release_proc
-};
-```
-
-`open` and `release` functions are optional:
-
-```c
-static int open_proc(struct inode *inode, struct file *file)
-{
-    printk(KERN_INFO "proc file opend.....\t");
-    return 0;
-}
-
-static int release_proc(struct inode *inode, struct file *file)
-{
-    printk(KERN_INFO "proc file released.....\n");
-    return 0;
-}
-```
-
-The write function will receive data from the user space using the function copy_from_user into an array “etx_array”:
-
-```c
-static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_t * off)
-{
-    printk(KERN_INFO "proc file write.....\t");
-    copy_from_user(etx_array,buff,len);
-    return len;
-}
-```
-
-Once data is written to the proc entry we can read from the proc entry using a read function, i.e transfer data to the user space using the function `copy_to_user` function:
-
-```c
-static ssize_t read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset)
-{
-    printk(KERN_INFO "proc file read.....\n");
-    if(len)
-        len=0;
-    else{
-        len=1;
-        return 0;
-    }
-    copy_to_user(buffer,etx_array,20);
-
-    return length;;
-}
-```
-
-Proc entry should be removed in the Driver exit function using the below function:
-
-```c
-void remove_proc_entry(const char *name, struct proc_dir_entry *parent);
-```
-
-Example:
-
-```c
-remove_proc_entry("etx_proc",NULL);
-```
-
-And you can remove the complete parent directory using `proc_remove(struct proc_dir_entry *parent)`.
-
-Complete Driver Source Code:
-
-```c
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-#include <linux/slab.h>                 //kmalloc()
-#include <linux/uaccess.h>              //copy_to/from_user()
-#include <linux/ioctl.h>
-#include <linux/proc_fs.h>
-#include <linux/err.h>
-
-/* 
-** I am using the kernel 5.10.27-v7l. So I have set this as 510.
-** If you are using the kernel 3.10, then set this as 310,
-** and for kernel 5.1, set this as 501. Because the API proc_create()
-** changed in kernel above v5.5.
-**
-*/ 
-#define LINUX_KERNEL_VERSION  510
- 
-#define WR_VALUE _IOW('a','a',int32_t*)
-#define RD_VALUE _IOR('a','b',int32_t*)
- 
-int32_t value = 0;
-char etx_array[20]="try_proc_array\n";
-static int len = 1;
- 
- 
-dev_t dev = 0;
-static struct class *dev_class;
-static struct cdev etx_cdev;
-static struct proc_dir_entry *parent;
-
-/*
-** Function Prototypes
-*/
-static int      __init etx_driver_init(void);
-static void     __exit etx_driver_exit(void);
-
-/*************** Driver Functions **********************/
-static int      etx_open(struct inode *inode, struct file *file);
-static int      etx_release(struct inode *inode, struct file *file);
-static ssize_t  etx_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
-static ssize_t  etx_write(struct file *filp, const char *buf, size_t len, loff_t * off);
-static long     etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
- 
-/***************** Procfs Functions *******************/
-static int      open_proc(struct inode *inode, struct file *file);
-static int      release_proc(struct inode *inode, struct file *file);
-static ssize_t  read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset);
-static ssize_t  write_proc(struct file *filp, const char *buff, size_t len, loff_t * off);
-
-/*
-** File operation sturcture
-*/
-static struct file_operations fops =
-{
-        .owner          = THIS_MODULE,
-        .read           = etx_read,
-        .write          = etx_write,
-        .open           = etx_open,
-        .unlocked_ioctl = etx_ioctl,
-        .release        = etx_release,
-};
-
-
-#if ( LINUX_KERNEL_VERSION > 505 )
-
-/*
-** procfs operation sturcture
-*/
-static struct proc_ops proc_fops = {
-        .proc_open = open_proc,
-        .proc_read = read_proc,
-        .proc_write = write_proc,
-        .proc_release = release_proc
-};
-
-#else //LINUX_KERNEL_VERSION > 505
-
-/*
-** procfs operation sturcture
-*/
-static struct file_operations proc_fops = {
-        .open = open_proc,
-        .read = read_proc,
-        .write = write_proc,
-        .release = release_proc
-};
-
-#endif //LINUX_KERNEL_VERSION > 505
-
-/*
-** This function will be called when we open the procfs file
-*/
-static int open_proc(struct inode *inode, struct file *file)
-{
-    pr_info("proc file opend.....\t");
-    return 0;
-}
-
-/*
-** This function will be called when we close the procfs file
-*/
-static int release_proc(struct inode *inode, struct file *file)
-{
-    pr_info("proc file released.....\n");
-    return 0;
-}
-
-/*
-** This function will be called when we read the procfs file
-*/
-static ssize_t read_proc(struct file *filp, char __user *buffer, size_t length,loff_t * offset)
-{
-    pr_info("proc file read.....\n");
-    if(len)
-    {
-        len=0;
-    }
-    else
-    {
-        len=1;
-        return 0;
-    }
-    
-    if( copy_to_user(buffer,etx_array,20) )
-    {
-        pr_err("Data Send : Err!\n");
-    }
- 
-    return length;;
-}
-
-/*
-** This function will be called when we write the procfs file
-*/
-static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_t * off)
-{
-    pr_info("proc file wrote.....\n");
-    
-    if( copy_from_user(etx_array,buff,len) )
-    {
-        pr_err("Data Write : Err!\n");
-    }
-    
-    return len;
-}
-
-/*
-** This function will be called when we open the Device file
-*/
-static int etx_open(struct inode *inode, struct file *file)
-{
-        pr_info("Device File Opened...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we close the Device file
-*/
-static int etx_release(struct inode *inode, struct file *file)
-{
-        pr_info("Device File Closed...!!!\n");
-        return 0;
-}
-
-/*
-** This function will be called when we read the Device file
-*/
-static ssize_t etx_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
-{
-        pr_info("Read function\n");
-        return 0;
-}
-
-/*
-** This function will be called when we write the Device file
-*/
-static ssize_t etx_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
-{
-        pr_info("Write Function\n");
-        return len;
-}
-
-/*
-** This function will be called when we write IOCTL on the Device file
-*/
-static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
-    switch(cmd) {
-        case WR_VALUE:
-            if( copy_from_user(&value ,(int32_t*) arg, sizeof(value)) )
-            {
-                pr_err("Data Write : Err!\n");
-            }
-            pr_info("Value = %d\n", value);
-            break;
-        case RD_VALUE:
-            if( copy_to_user((int32_t*) arg, &value, sizeof(value)) )
-            {
-                pr_err("Data Read : Err!\n");
-            }
-            break;
-        default:
-            pr_info("Default\n");
-            break;
-    }
-    return 0;
-}
- 
-/*
-** Module Init function
-*/
-static int __init etx_driver_init(void)
-{
-    /*Allocating Major number*/
-    if((alloc_chrdev_region(&dev, 0, 1, "etx_Dev")) <0){
-            pr_info("Cannot allocate major number\n");
-            return -1;
-    }
-    pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-
-    /*Creating cdev structure*/
-    cdev_init(&etx_cdev,&fops);
-
-    /*Adding character device to the system*/
-    if((cdev_add(&etx_cdev,dev,1)) < 0){
-        pr_info("Cannot add the device to the system\n");
-        goto r_class;
-    }
-
-    /*Creating struct class*/
-    if(IS_ERR(dev_class = class_create(THIS_MODULE,"etx_class"))){
-        pr_info("Cannot create the struct class\n");
-        goto r_class;
-    }
-
-    /*Creating device*/
-    if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-        pr_info("Cannot create the Device 1\n");
-        goto r_device;
-    }
-    
-    /*Create proc directory. It will create a directory under "/proc" */
-    parent = proc_mkdir("etx",NULL);
-    
-    if( parent == NULL )
-    {
-        pr_info("Error creating proc entry");
-        goto r_device;
-    }
-    
-    /*Creating Proc entry under "/proc/etx/" */
-    proc_create("etx_proc", 0666, parent, &proc_fops);
-
-    pr_info("Device Driver Insert...Done!!!\n");
-    return 0;
- 
-r_device:
-    class_destroy(dev_class);
-r_class:
-    unregister_chrdev_region(dev,1);
-    return -1;
-}
- 
-/*
-** Module exit function
-*/
-static void __exit etx_driver_exit(void)
-{
-    /* Removes single proc entry */
-    //remove_proc_entry("etx/etx_proc", parent);
-    
-    /* remove complete /proc/etx */
-    proc_remove(parent);
-    
-    device_destroy(dev_class,dev);
-    class_destroy(dev_class);
-    cdev_del(&etx_cdev);
-    unregister_chrdev_region(dev, 1);
-    pr_info("Device Driver Remove...Done!!!\n");
-}
- 
-module_init(etx_driver_init);
-module_exit(etx_driver_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple Linux device driver (procfs)");
-MODULE_VERSION("1.6");
-```
-
-As there are changes in the procfs file system in the Linux kernel 3.10 and 5.6, we have added a macro called `LINUX_KERNEL_VERSION`. You have to mention your Linux kernel version. Based on that, we will control the APIs in this source code.
-
-Note:
-
-You can follow this format for this `LINUX_KERNEL_VERSION`.
-
-Example:
-
-|Your Linux Kernel version | LINUX_KERNEL_VERSION |
-| - | - |
-| v3.10 | 310 |
-| v5.6 | 506 |
-| v5.10 | 510 |
-
-test:
-
-`cat /proc/etx/etx_proc`
-
-`echo "device driver proc" > /proc/etx/etx_proc`
+    `echo "device driver proc" > /proc/etx/etx_proc`
 
 ## waitqueue
 

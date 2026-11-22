@@ -141,11 +141,11 @@
 
 ### kmd hlc_test on 54
 
-* [ ] process driver note 18428 ~ 18780
+* [ ] 18623 ~ 19079 procfs
 
-* [v] process driver note: 18333 ~ 18427
+* [ ] ioctl 是否有 user app 版本？
 
-* [v] char device driver
+* [v] process driver note 18428 ~ 18780
 
 * 启动 kmd driver test qemu
 

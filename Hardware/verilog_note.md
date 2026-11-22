@@ -2,6 +2,117 @@
 
 ## cache
 
+* Verilated::commandArgs()
+
+    使用这个函数给 verilator 传参数。
+
+    常见参数：
+
+    * +verilator+debug
+
+        Enable simulation runtime debugging. Equivalent to +verilator+debugi+4.
+
+    * +verilator+debugi+value
+
+    * +verilator+error+limit+value
+
+        Set number of non-fatal errors (e.g. assertion failures) before exiting simulation runtime. Also a␛ects
+number of $stop calls needed before exit. Defaults to 1.
+
+    等等。
+
+* 编译 verilator 的 doc 目录时，需要安装的工具
+
+    ```bash
+    pip install --user sphinx sphinx-rtd-theme
+    sudo apt-get install latexmk texlive-latex-base texlive-latex-extra
+    sudo apt install libpod-latex-perl
+    ```
+
+* bear 可以识别 verilator 的编译命令，并生成 compile_commands.json
+
+    也可以识别 make 里的 verilator 的编译命令。
+
+    example:
+
+    ```makefile
+    all:
+        verilator --cc --exe --build -j -Wall sim_main.cpp our.v
+    ```
+
+    ```bash
+    bear -- make
+    ```
+
+    生成的 compile_commands.json 的部分内容：
+
+    ```json
+    [
+      {
+        "arguments": [
+          "/usr/bin/g++",
+          "-I.",
+          "-I/usr/share/verilator/include",
+          "-I/usr/share/verilator/include/vltstd",
+          "-DVM_COVERAGE=0",
+          "-DVM_SC=0",
+          "-DVM_TRACE=0",
+          "-faligned-new",
+          "-fcf-protection=none",
+    ...
+    ```
+
+* 其他常用的任务
+
+    $bitstoreal, $rtoi, $setup, $finish, $skew, $hold,
+
+    $setuphold, $itor, $period, $time, $printtimescale,
+
+    $timefoemat, $realtime, $width, $realtobits, $recovery
+
+* 值变转储文件
+
+    值变转储文件（VCD）是一个 ascii 文件，它包含仿真时间、范围与信号的定义以及仿真运行过程中信号值的变化等信息。
+
+    转储信号：$dumpvars
+
+    选择 vcd 文件的名称：$dumpfile
+
+    选择转储过程的起点和终点：$dumpon, $dumpoff
+
+    选择生成检测点：$dumpall
+
+    ```verilog
+    // 指定 vcd 文件名，若不指定 vcd 文件，则由仿真器指定一默认文件名
+    initial
+        $dumpfile("myfile.dmp");  // 仿真信息转储到 myfile dmp 文件
+
+    // 转储模块中的信号
+    initial
+        $dumpvars;  // 没有指定变量范围，把设计中全部信号都转储
+    initial
+        $dumpvars(1, top);  // 转储模块实例 top 中的信号
+        // 1 表示层次的等级，只转储 top 下第一层信号。即转储 top 模块中的变量，而不转储 top 中调用模块中的变量
+
+    initial
+        $dumpvars(2, top.m1);  // 转储 top.m1 模块下两层的信号
+
+    initial
+        $dumpvars(0, top.m1);  // 0 表示转储 top.m1 模块下面各个层的所有信号
+
+    // 启动和停止转储过程
+    initial begin
+        $dumpon;
+        #100000 $dumpoff;  // 经过 100 000 个仿真时间单位后，停止转储过程
+    end
+
+    // 生成一个检查点，转储所有 vcd 变量的现行值
+    initial
+        $dumpall;
+    ```
+
+    $dumpfile 和 $dumpvars 任务通常在仿真开始时指定，$dumpon, $dumpoff 和 $dumpall 任务在仿真过程中控制转储过程。
+
 * 选通显示, strobing, $strobe
 
     在同一时钟沿内，等其他赋值语句执行完毕后，再显示数据
@@ -719,7 +830,7 @@
 
     你之前看到的 `# ( N )` 是 Verilog 参数覆盖机制中的一种写法。Verilog 的参数系统主要涉及两个关键字：`parameter` 和 `localparam`，以及几种在实例化时修改参数值的方法。
 
-    ### 核心概念：parameter 与 localparam 的区别
+    **核心概念：parameter 与 localparam 的区别**
 
     在定义模块时，你需要根据用途选择使用 `parameter` 还是 `localparam`。
 
@@ -1220,347 +1331,6 @@
     这样 GTKWave 里每个输入组合会占一段宽度，跳变位置更清晰。但这纯粹是显示上的处理，组合逻辑本身并不需要"保持时间"才能正确工作。
 
     总结一句：**波形记录和时钟无关，只和 `dump()` 调用有关**。没有时钟的组合逻辑，只要测试台里调了 `dump()`，GTKWave 就能看。
-
-* verilator usage introduction
-
-    git repo: <https://github.com/verilator/verilator.git>
-
-    * install
-
-        ```bash
-        apt install verilator
-        apt install gtkwave
-        ```
-
-        check:
-
-        ```bash
-        verilator --version
-        ```
-
-        output:
-
-        ```
-        Verilator 4.038 2020-07-11 rev v4.036-114-g0cd4a57ad
-        ```
-
-        注：
-
-        1. verilator 最新版本是 5.x，使用 apt 安装的版本是 4.x，落后一些
-
-    * hello world
-
-        * verilator 4 版本
-
-            `our.v`:
-
-            ```verilog
-            module our;
-               initial begin
-                  $display("Hello World");
-                  $finish;
-               end
-            endmodule
-            ```
-
-            `sim_main.cpp`:
-
-            ```cpp
-            #include "Vour.h"
-            #include "verilated.h"
-
-            int main(int argc, char** argv) {
-                Verilated::commandArgs(argc, argv);
-                Vour* top = new Vour;
-                while (!Verilated::gotFinish()) {
-                    top->eval();
-                }
-                delete top;
-                return 0;
-            }
-            ```
-
-            compile:
-
-            ```bash
-            verilator --cc --exe --build -j -Wall sim_main.cpp our.v
-            ```
-
-            参数解释：
-
-            --cc：生成 C++ 模型（而非 SystemC 或仅做 lint）。
-
-            --exe：告诉 Verilator 用户提供了 C++ 测试台，需要生成可执行文件。
-
-            --build：让 Verilator 自动调用 make 完成编译链接。
-
-            output:
-
-            ```
-            make: Entering directory '/home/test/projs/test_our/obj_dir'
-            g++  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow      -Os -c -o sim_main.o ../sim_main.cpp
-            ar -cr Vour__ALL.a Vour__ALL.o
-            ranlib Vour__ALL.a
-            g++    sim_main.o verilated.o Vour__ALL.a      -o Vour
-            make: Leaving directory '/home/test/projs/test_our/obj_dir'
-            ```
-
-            run:
-
-            ```bash
-            ./obj_dir/Vour
-            ```
-
-            output:
-
-            ```
-            Hello World
-            - our.v:4: Verilog $finish
-            ```
-
-    * 反相器与波型
-
-        要用 Verilator 跑一个带时钟激励的反相器并查看波形，关键是在 C++ 测试台里手动翻转时钟，并调用波形记录接口。Verilator 本身不生成时钟，也不自带波形查看器，时钟和波形都需要你在 C++ 侧主动驱动和记录。
-
-        下面是一个可以直接跑通的完整例子。
-
-        ### 第一步：写反相器 Verilog
-
-        创建 `inv.v`：
-
-        ```verilog
-        module inv (
-            input  wire clk,
-            input  wire din,
-            output reg  dout
-        );
-
-            always @(posedge clk) begin
-                dout <= ~din;
-            end
-
-        endmodule
-        ```
-
-        这里用了一个时钟驱动的寄存器，方便你在波形里清楚看到“时钟沿到来时输出更新”的效果。
-
-        ### 第二步：写 C++ 测试台（生成时钟 + 记录波形）
-
-        创建 `sim_main.cpp`。关键点：**在每个仿真时间步，翻转 `clk` 并调用 `eval()`，然后调用 `dump()` 把当前信号值写入 VCD 文件**。
-
-        ```cpp
-        #include "Vinv.h"
-        #include "verilated.h"
-        #include "verilated_vcd_c.h"
-
-        int main(int argc, char** argv) {
-            Verilated::commandArgs(argc, argv);
-            Verilated::traceEverOn(true);          // 全局开启波形追踪
-
-            Vinv* top = new Vinv;
-
-            VerilatedVcdC* tfp = new VerilatedVcdC;
-            top->trace(tfp, 99);                   // 记录所有层级
-            tfp->open("inv.vcd");                  // 输出波形文件名
-
-            vluint64_t sim_time = 0;
-
-            top->clk = 0;
-            top->din = 0;
-
-            // 跑 10 个时钟周期，每个周期 2 个时间单位（半周期翻转一次）
-            for (int cycle = 0; cycle < 10; cycle++) {
-                // 低电平半周期
-                top->clk = 0;
-                top->eval();
-                tfp->dump(sim_time++);
-
-                // 高电平半周期（上升沿在这里）
-                top->clk = 1;
-                top->eval();
-                tfp->dump(sim_time++);
-
-                // 每个周期改变一次输入，方便观察反相效果
-                top->din = !top->din;
-            }
-
-            tfp->close();
-            delete top;
-            delete tfp;
-            return 0;
-        }
-        ```
-
-        几个容易踩坑的地方：
-
-        - `Verilated::traceEverOn(true)` 必须调用，否则波形不会被记录。
-        - `tfp->dump()` 必须在每次 `eval()` 之后调用，且传入递增的时间戳，否则波形时间轴会错乱。
-        - `tfp->close()` 不能漏，否则 VCD 文件可能不完整。
-
-        * `top->din = !top->din;`这里`!`表示逻辑取反，得到的值只有 0 或 1，如果使用`~`取反，那么会按位取反，得到的值可能是 0 和 0xff，导致输出为乱码。 
-
-        ### 第三步：编译
-
-        ```bash
-        verilator --cc --trace --exe --build -j -Wall inv.v sim_main.cpp
-        ```
-
-        和 hello world 的区别在于多了 `--trace` 选项，它让 Verilator 生成的模型支持波形 dump。
-
-        ### 第四步：运行并查看波形
-
-        ```bash
-        ./obj_dir/Vinv
-        gtkwave inv.vcd
-        ```
-
-        如果系统没有 GTKWave，Ubuntu 下可以 `sudo apt install gtkwave`。打开后，把 `clk`、`din`、`dout` 拖进波形窗口，你应该能看到：每个时钟上升沿到来后，`dout` 变成与 `din` 相反的值。
-
-        ### 关于时钟激励的一个提醒
-
-        Verilator 的 C++ 测试台里，时钟**不是自动跑的**。你在 `for` 循环里手动把 `clk` 从 0 翻到 1、再翻回 0，这就是时钟。每个“0→1→0”构成一个周期。上面的例子半周期占 1 个时间单位，所以波形上时钟周期是 2 个时间单位。如果你想要更真实的时间感（比如 10ns 周期），可以在翻转后给 `sim_time` 增加更大的步长，或者在 `dump()` 时使用更细的时间分辨率，但 Verilator 本身是周期精确仿真器，仿真时间由你传入 `dump()` 的数值决定。
-
-    * 组合逻辑的 example: 那如果我想测试一个组合逻辑呢，比如 y = ab' + a'b
-
-        组合逻辑的测试和时序逻辑有两个关键区别：**没有时钟**，输出只取决于当前输入，所以激励方式是"给一组输入 → eval → 观察输出"，而不是按时钟节拍推进；另外，组合逻辑可以**穷举真值表**来验证，这对 2 输入逻辑非常方便。
-
-        下面用 `y = ab' + a'b`（即异或）为例，给出两个版本：手写激励版和穷举真值表版。
-
-        ### Verilog 模块
-
-        创建 `xor_gate.v`：
-
-        ```verilog
-        module xor_gate (
-            input  wire a,
-            input  wire b,
-            output wire y
-        );
-
-            assign y = (a & ~b) | (~a & b);
-
-        endmodule
-        ```
-
-        注意用 `assign` 连续赋值，这是组合逻辑的典型写法，没有 `always @(posedge clk)`。
-
-        ### 版本一：手写激励 + 波形
-
-        `sim_main.cpp`：
-
-        ```cpp
-        #include "Vxor_gate.h"
-        #include "verilated.h"
-        #include "verilated_vcd_c.h"
-
-        int main(int argc, char** argv) {
-            Verilated::commandArgs(argc, argv);
-            Verilated::traceEverOn(true);
-
-            Vxor_gate* top = new Vxor_gate;
-
-            VerilatedVcdC* tfp = new VerilatedVcdC;
-            top->trace(tfp, 99);
-            tfp->open("xor_gate.vcd");
-
-            vluint64_t sim_time = 0;
-
-            // 穷举 2 输入的全部 4 种组合
-            int inputs[4][2] = {{0,0}, {0,1}, {1,0}, {1,1}};
-
-            for (int i = 0; i < 4; i++) {
-                top->a = inputs[i][0];
-                top->b = inputs[i][1];
-                top->eval();                     // 组合逻辑：eval 后输出立即稳定
-                tfp->dump(sim_time++);
-
-                printf("a=%d b=%d -> y=%d\n", top->a, top->b, top->y);
-            }
-
-            tfp->close();
-            delete top;
-            delete tfp;
-            return 0;
-        }
-        ```
-
-        编译命令和之前一样，只需换文件名：
-
-        ```bash
-        verilator --cc --trace --exe --build -j -Wall xor_gate.v sim_main.cpp
-        ./obj_dir/Vxor_gate
-        ```
-
-        预期输出：
-
-        ```
-        a=0 b=0 -> y=0
-        a=0 b=1 -> y=1
-        a=1 b=0 -> y=1
-        a=1 b=1 -> y=0
-        ```
-
-        这正是异或的真值表，说明逻辑正确。用 `gtkwave xor_gate.vcd` 也能看到 4 段输入组合下 `y` 的跳变。
-
-        ### 版本二：自检式测试台（推荐做法）
-
-        实际验证中更有价值的是让测试台**自己判断对错**，而不是靠人眼看 printf。组合逻辑没有时钟，所以循环里直接遍历输入、比对期望值即可：
-
-        ```cpp
-        #include "Vxor_gate.h"
-        #include "verilated.h"
-        #include <cstdio>
-
-        int main(int argc, char** argv) {
-            Verilated::commandArgs(argc, argv);
-            Vxor_gate* top = new Vxor_gate;
-
-            int errors = 0;
-            for (int a = 0; a < 2; a++) {
-                for (int b = 0; b < 2; b++) {
-                    top->a = a;
-                    top->b = b;
-                    top->eval();
-
-                    int expected = a ^ b;         // 参考模型
-                    if (top->y != expected) {
-                        printf("FAIL: a=%d b=%d y=%d expected=%d\n",
-                               a, b, top->y, expected);
-                        errors++;
-                    }
-                }
-            }
-
-            if (errors == 0)
-                printf("PASS: all 4 cases correct\n");
-            else
-                printf("FAILED: %d errors\n", errors);
-
-            delete top;
-            return errors ? 1 : 0;
-        }
-        ```
-
-        编译时不需要 `--trace`（不记录波形可以更快）：
-
-        ```bash
-        verilator --cc --exe --build -j 0 -Wall xor_gate.v sim_main.cpp
-        ./obj_dir/Vxor_gate
-        ```
-
-        这里用 `a ^ b` 作为参考模型（reference model），把 DUT 输出和它比对。这种"激励 + 期望值 + 自动比对"的结构就是最简单的自检测试台（self-checking testbench），实际项目中会把它扩展成随机激励、覆盖率统计等。
-
-        ### 组合逻辑测试的要点
-
-        | 要点 | 说明 |
-        |------|------|
-        | 不需要时钟 | 给输入后直接 `eval()`，输出立即更新，没有"等下一个沿"的概念 |
-        | 穷举输入空间 | n 输入组合逻辑最多 2^n 种输入，小规模时全遍历最彻底 |
-        | 关注 `eval()` 时机 | 如果模块有内部组合链，一次 `eval()` 通常已收敛；但存在多级反馈或复杂结构时，Verilator 会在单次 `eval()` 内迭代到稳定 |
-        | 波形用途 | 组合逻辑波形主要看输入变化后输出是否按预期跳变，时间轴可以只按"输入序号"递增，不必模拟真实时间 |
-        | 容易漏测的输入 | 如果模块有多个输入端口，穷举时注意别只测部分端口组合；对 2 输入没问题，输入多了要考虑用随机激励 |
-
-        如果你的组合逻辑规模变大（比如 8 输入），就不适合再手写穷举数组了，可以改用双重循环或随机数生成激励，并用参考模型自动比对——结构和版本二完全一样，只是激励来源换成循环/随机函数。
 
 * 三位加法器
 
@@ -2155,6 +1925,357 @@
     - **实际应用**：可根据需求选择合适的设计，或使用Verilog内置的"+"运算符
 
 ## topics
+
+### verilator
+
+* verilator 不是一个传统的仿真器，而是把 verilog / systemverilog 转换成 c++ 代码，从而可以直接执行。因此 verilator 是一个编译器，而不是一个完全的仿真器。
+
+    编译的 .cpp, .h 的结果叫做 Verilating，编译的过程称为 to Verilate, 输出是一个 Verilated model.
+
+    启动仿真的 c++ 文件称为 wrapper
+
+* verilator usage introduction
+
+    home page: <https://www.veripool.org>
+
+    git repo: <https://github.com/verilator/verilator.git>
+
+    * install
+
+        ```bash
+        apt install verilator
+        apt install gtkwave
+        ```
+
+        check:
+
+        ```bash
+        verilator --version
+        ```
+
+        output:
+
+        ```
+        Verilator 4.038 2020-07-11 rev v4.036-114-g0cd4a57ad
+        ```
+
+        注：
+
+        1. verilator 最新版本是 5.x，使用 apt 安装的版本是 4.x，落后一些
+
+    * hello world
+
+        * verilator 4 版本
+
+            `our.v`:
+
+            ```verilog
+            module our;
+               initial begin
+                  $display("Hello World");
+                  $finish;
+               end
+            endmodule
+            ```
+
+            `sim_main.cpp`:
+
+            ```cpp
+            #include "Vour.h"
+            #include "verilated.h"
+
+            int main(int argc, char** argv) {
+                Verilated::commandArgs(argc, argv);
+                Vour* top = new Vour;
+                while (!Verilated::gotFinish()) {
+                    top->eval();
+                }
+                delete top;
+                return 0;
+            }
+            ```
+
+            compile:
+
+            ```bash
+            verilator --cc --exe --build -j -Wall sim_main.cpp our.v
+            ```
+
+            参数解释：
+
+            * --cc：生成 C++ 模型（而非 SystemC 或仅做 lint）。
+
+            * --exe：告诉 Verilator 用户提供了 C++ 测试台，需要生成可执行文件。
+
+            * --build：让 Verilator 自动调用 make 完成编译链接。
+
+            output:
+
+            ```
+            make: Entering directory '/home/test/projs/test_our/obj_dir'
+            g++  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow      -Os -c -o sim_main.o ../sim_main.cpp
+            ar -cr Vour__ALL.a Vour__ALL.o
+            ranlib Vour__ALL.a
+            g++    sim_main.o verilated.o Vour__ALL.a      -o Vour
+            make: Leaving directory '/home/test/projs/test_our/obj_dir'
+            ```
+
+            run:
+
+            ```bash
+            ./obj_dir/Vour
+            ```
+
+            output:
+
+            ```
+            Hello World
+            - our.v:4: Verilog $finish
+            ```
+
+    * 反相器与波型
+
+        要用 Verilator 跑一个带时钟激励的反相器并查看波形，关键是在 C++ 测试台里手动翻转时钟，并调用波形记录接口。Verilator 本身不生成时钟，也不自带波形查看器，时钟和波形都需要你在 C++ 侧主动驱动和记录。
+
+        下面是一个可以直接跑通的完整例子。
+
+        ### 第一步：写反相器 Verilog
+
+        创建 `inv.v`：
+
+        ```verilog
+        module inv (
+            input  wire clk,
+            input  wire din,
+            output reg  dout
+        );
+
+            always @(posedge clk) begin
+                dout <= ~din;
+            end
+
+        endmodule
+        ```
+
+        这里用了一个时钟驱动的寄存器，方便你在波形里清楚看到“时钟沿到来时输出更新”的效果。
+
+        ### 第二步：写 C++ 测试台（生成时钟 + 记录波形）
+
+        创建 `sim_main.cpp`。关键点：**在每个仿真时间步，翻转 `clk` 并调用 `eval()`，然后调用 `dump()` 把当前信号值写入 VCD 文件**。
+
+        ```cpp
+        #include "Vinv.h"
+        #include "verilated.h"
+        #include "verilated_vcd_c.h"
+
+        int main(int argc, char** argv) {
+            Verilated::commandArgs(argc, argv);
+            Verilated::traceEverOn(true);          // 全局开启波形追踪
+
+            Vinv* top = new Vinv;
+
+            VerilatedVcdC* tfp = new VerilatedVcdC;
+            top->trace(tfp, 99);                   // 记录所有层级
+            tfp->open("inv.vcd");                  // 输出波形文件名
+
+            vluint64_t sim_time = 0;
+
+            top->clk = 0;
+            top->din = 0;
+
+            // 跑 10 个时钟周期，每个周期 2 个时间单位（半周期翻转一次）
+            for (int cycle = 0; cycle < 10; cycle++) {
+                // 低电平半周期
+                top->clk = 0;
+                top->eval();
+                tfp->dump(sim_time++);
+
+                // 高电平半周期（上升沿在这里）
+                top->clk = 1;
+                top->eval();
+                tfp->dump(sim_time++);
+
+                // 每个周期改变一次输入，方便观察反相效果
+                top->din = !top->din;
+            }
+
+            tfp->close();
+            delete top;
+            delete tfp;
+            return 0;
+        }
+        ```
+
+        几个容易踩坑的地方：
+
+        - `Verilated::traceEverOn(true)` 必须调用，否则波形不会被记录。
+        - `tfp->dump()` 必须在每次 `eval()` 之后调用，且传入递增的时间戳，否则波形时间轴会错乱。
+        - `tfp->close()` 不能漏，否则 VCD 文件可能不完整。
+
+        * `top->din = !top->din;`这里`!`表示逻辑取反，得到的值只有 0 或 1，如果使用`~`取反，那么会按位取反，得到的值可能是 0 和 0xff，导致输出为乱码。 
+
+        ### 第三步：编译
+
+        ```bash
+        verilator --cc --trace --exe --build -j -Wall inv.v sim_main.cpp
+        ```
+
+        和 hello world 的区别在于多了 `--trace` 选项，它让 Verilator 生成的模型支持波形 dump。
+
+        ### 第四步：运行并查看波形
+
+        ```bash
+        ./obj_dir/Vinv
+        gtkwave inv.vcd
+        ```
+
+        如果系统没有 GTKWave，Ubuntu 下可以 `sudo apt install gtkwave`。打开后，把 `clk`、`din`、`dout` 拖进波形窗口，你应该能看到：每个时钟上升沿到来后，`dout` 变成与 `din` 相反的值。
+
+        ### 关于时钟激励的一个提醒
+
+        Verilator 的 C++ 测试台里，时钟**不是自动跑的**。你在 `for` 循环里手动把 `clk` 从 0 翻到 1、再翻回 0，这就是时钟。每个“0→1→0”构成一个周期。上面的例子半周期占 1 个时间单位，所以波形上时钟周期是 2 个时间单位。如果你想要更真实的时间感（比如 10ns 周期），可以在翻转后给 `sim_time` 增加更大的步长，或者在 `dump()` 时使用更细的时间分辨率，但 Verilator 本身是周期精确仿真器，仿真时间由你传入 `dump()` 的数值决定。
+
+    * 组合逻辑的 example: 那如果我想测试一个组合逻辑呢，比如 y = ab' + a'b
+
+        组合逻辑的测试和时序逻辑有两个关键区别：**没有时钟**，输出只取决于当前输入，所以激励方式是"给一组输入 → eval → 观察输出"，而不是按时钟节拍推进；另外，组合逻辑可以**穷举真值表**来验证，这对 2 输入逻辑非常方便。
+
+        下面用 `y = ab' + a'b`（即异或）为例，给出两个版本：手写激励版和穷举真值表版。
+
+        ### Verilog 模块
+
+        创建 `xor_gate.v`：
+
+        ```verilog
+        module xor_gate (
+            input  wire a,
+            input  wire b,
+            output wire y
+        );
+
+            assign y = (a & ~b) | (~a & b);
+
+        endmodule
+        ```
+
+        注意用 `assign` 连续赋值，这是组合逻辑的典型写法，没有 `always @(posedge clk)`。
+
+        ### 版本一：手写激励 + 波形
+
+        `sim_main.cpp`：
+
+        ```cpp
+        #include "Vxor_gate.h"
+        #include "verilated.h"
+        #include "verilated_vcd_c.h"
+
+        int main(int argc, char** argv) {
+            Verilated::commandArgs(argc, argv);
+            Verilated::traceEverOn(true);
+
+            Vxor_gate* top = new Vxor_gate;
+
+            VerilatedVcdC* tfp = new VerilatedVcdC;
+            top->trace(tfp, 99);
+            tfp->open("xor_gate.vcd");
+
+            vluint64_t sim_time = 0;
+
+            // 穷举 2 输入的全部 4 种组合
+            int inputs[4][2] = {{0,0}, {0,1}, {1,0}, {1,1}};
+
+            for (int i = 0; i < 4; i++) {
+                top->a = inputs[i][0];
+                top->b = inputs[i][1];
+                top->eval();                     // 组合逻辑：eval 后输出立即稳定
+                tfp->dump(sim_time++);
+
+                printf("a=%d b=%d -> y=%d\n", top->a, top->b, top->y);
+            }
+
+            tfp->close();
+            delete top;
+            delete tfp;
+            return 0;
+        }
+        ```
+
+        编译命令和之前一样，只需换文件名：
+
+        ```bash
+        verilator --cc --trace --exe --build -j -Wall xor_gate.v sim_main.cpp
+        ./obj_dir/Vxor_gate
+        ```
+
+        预期输出：
+
+        ```
+        a=0 b=0 -> y=0
+        a=0 b=1 -> y=1
+        a=1 b=0 -> y=1
+        a=1 b=1 -> y=0
+        ```
+
+        这正是异或的真值表，说明逻辑正确。用 `gtkwave xor_gate.vcd` 也能看到 4 段输入组合下 `y` 的跳变。
+
+        ### 版本二：自检式测试台（推荐做法）
+
+        实际验证中更有价值的是让测试台**自己判断对错**，而不是靠人眼看 printf。组合逻辑没有时钟，所以循环里直接遍历输入、比对期望值即可：
+
+        ```cpp
+        #include "Vxor_gate.h"
+        #include "verilated.h"
+        #include <cstdio>
+
+        int main(int argc, char** argv) {
+            Verilated::commandArgs(argc, argv);
+            Vxor_gate* top = new Vxor_gate;
+
+            int errors = 0;
+            for (int a = 0; a < 2; a++) {
+                for (int b = 0; b < 2; b++) {
+                    top->a = a;
+                    top->b = b;
+                    top->eval();
+
+                    int expected = a ^ b;         // 参考模型
+                    if (top->y != expected) {
+                        printf("FAIL: a=%d b=%d y=%d expected=%d\n",
+                               a, b, top->y, expected);
+                        errors++;
+                    }
+                }
+            }
+
+            if (errors == 0)
+                printf("PASS: all 4 cases correct\n");
+            else
+                printf("FAILED: %d errors\n", errors);
+
+            delete top;
+            return errors ? 1 : 0;
+        }
+        ```
+
+        编译时不需要 `--trace`（不记录波形可以更快）：
+
+        ```bash
+        verilator --cc --exe --build -j 0 -Wall xor_gate.v sim_main.cpp
+        ./obj_dir/Vxor_gate
+        ```
+
+        这里用 `a ^ b` 作为参考模型（reference model），把 DUT 输出和它比对。这种"激励 + 期望值 + 自动比对"的结构就是最简单的自检测试台（self-checking testbench），实际项目中会把它扩展成随机激励、覆盖率统计等。
+
+        ### 组合逻辑测试的要点
+
+        | 要点 | 说明 |
+        |------|------|
+        | 不需要时钟 | 给输入后直接 `eval()`，输出立即更新，没有"等下一个沿"的概念 |
+        | 穷举输入空间 | n 输入组合逻辑最多 2^n 种输入，小规模时全遍历最彻底 |
+        | 关注 `eval()` 时机 | 如果模块有内部组合链，一次 `eval()` 通常已收敛；但存在多级反馈或复杂结构时，Verilator 会在单次 `eval()` 内迭代到稳定 |
+        | 波形用途 | 组合逻辑波形主要看输入变化后输出是否按预期跳变，时间轴可以只按"输入序号"递增，不必模拟真实时间 |
+        | 容易漏测的输入 | 如果模块有多个输入端口，穷举时注意别只测部分端口组合；对 2 输入没问题，输入多了要考虑用随机激励 |
+
+        如果你的组合逻辑规模变大（比如 8 输入），就不适合再手写穷举数组了，可以改用双重循环或随机数生成激励，并用参考模型自动比对——结构和版本二完全一样，只是激励来源换成循环/随机函数。
 
 ### verilog 语法
 
