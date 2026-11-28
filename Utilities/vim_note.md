@@ -2,6 +2,117 @@
 
 ## cache
 
+* vim 中 ctrl + w，> 增加子窗口的大小，每次只能增大一格，非常慢。有没有连续增大的办法
+
+    有的，而且不止一种办法。最直接的是用**数字前缀**，如果你希望“按住一个键就能连续调整”，则需要通过**自定义映射**或**插件**来实现。
+
+    ### 1. 最直接：使用数字前缀
+    Vim 原生的 `Ctrl + w >` 是支持计数的。你不需要按很多次，只需在按 `Ctrl + w` 之前输入数字即可一次性增加多列。
+
+    - **操作**：输入 `10`，然后按 `Ctrl + w`，再按 `>`。
+    - **效果**：当前窗口宽度一次性增加 10 列。
+    - **对应命令**：这等同于执行 `:vertical resize +10`。
+
+    ### 2. 配置“连按”映射（无需插件）
+    如果你希望实现“按一次 `Ctrl + w >` 进入调整模式，之后只需连按 `>` 就能持续增大”，可以在 `.vimrc` 中添加一段映射。它的原理是让第一次操作后进入一个临时状态，此时单独按 `>` 会重复调整命令。
+
+    将以下内容加入你的配置文件：
+
+    ```vim
+    " 连续调整窗口大小
+    nmap <C-w>> <C-w>><SID>ws
+    nmap <SID>ws <Nop>
+    nnoremap <script> <SID>ws> <C-w>><SID>ws
+    ```
+
+    **使用方法**：按 `Ctrl + w` 然后按 `>`，接着你就可以**持续按 `>` 键**，窗口会一直变宽，直到你按其他任意键（如 `Esc`）退出该模式。
+
+    ### 3. 使用插件（最直观）
+    如果你不想折腾配置，可以使用专门管理窗口大小的插件，例如 `winresizer.vim`。
+    它允许你按 `Ctrl + E` 进入调整模式，然后直接用 `h` `j` `k` `l` 键来连续改变窗口宽高，调整完成后按回车确认。这比记住复杂的 Vim 快捷键要直观得多。
+
+* vim 中，我想让 width 都替换成 WIDTH，我已经写了 :s/width/WIDTH/ ，但是它只替换了一处，我想按 n 搜到下一个后，按某个键继续替换，怎么办
+
+    你现在的做法（`:s/width/WIDTH/` 然后按 `n` 跳转）本身不能直接“继续替换”，因为 `n` 只是重复上一次**搜索**，不是重复**替换**。
+
+    想实现“跳着看、挑着替换”，最直接的方法是改用带确认标志 `c` 的替换命令。
+
+    ### 方法一：直接用 `:s` 加 `c` 标志（最符合你的需求）
+
+    在你已有的命令后面加上 `c`（confirm，确认）：
+
+    ```vim
+    :s/width/WIDTH/gc
+    ```
+
+    如果你是想替换整个文件里所有的 `width`，就在前面加 `%`：
+
+    ```vim
+    :%s/width/WIDTH/gc
+    ```
+
+    按下回车后，Vim 会逐个高亮匹配项并停在每个匹配处，等你按键决定：
+    - 按 **`y`**：替换这一处
+    - 按 **`n`**：跳过这一处，去下一个
+    - 按 **`a`**：替换这一处，并且后面所有匹配都不再询问，直接全部替换
+    - 按 **`q`**：退出替换操作
+
+    这样你就能用 `n` 跳过不想改的地方，用 `y` 确认替换，完全满足“按 n 到下一个后继续替换”的意图。
+
+    ### 方法二：用 `gn` 配合 `.` 重复（更“Vim 原生”的手感）
+
+    如果你想保留现在“先搜索、再按 n 跳转”的习惯，可以换一种按键流程：
+
+    1. 先搜索：`/width`
+    2. 跳到想改的地方后，按 **`cgn`**：这会选中当前匹配并进入插入模式，输入 `WIDTH` 后按 `Esc` 回到普通模式
+    3. 之后按 **`n`** 跳到下一个，如果想替换就按 **`.`**（重复上一次修改），不想替换就再按 `n` 跳过
+
+    `cgn` 的好处是：`n` 负责跳转，`.` 负责“再改一次”，分工明确。
+
+* 如果你不排斥 Neovim，可以考虑走 LSP（Language Server Protocol） 路线。配置 svls 或 svlangserver 作为语言服务器，配合 nvim-lint 做检查、tree-sitter 做高亮，能获得接近现代 IDE 的体验（比如更精准的跳转、补全和实时错误提示）。
+
+* rainbow：彩虹括号。Verilog 嵌套括号多，这个插件让不同层级的括号显示不同颜色，能一眼看清嵌套关系。
+
+* 写 Verilog 经常要重复敲实例化模板、Testbench 或者 UVM 框架。
+
+    自动实例化/Testbench：Vim 官方脚本库里有多个选择，比如 verilog-instance.vim（从端口声明生成实例化）、verilog_auto_testbench（自动生成测试平台），或者 automatic for Verilog & RtlTree（功能更综合，带 RtlTree 功能）。
+
+    verilog_emacsauto.vim：如果你眼馋 Emacs 的 verilog-mode 的 AUTO 功能（比如自动生成端口声明、例化），这个插件可以让你在 Vim 里调用它，但依赖 Emacs 和 verilog-mode.el。
+
+    verilog-support.vim：如果你也写 SystemVerilog/UVM，这个插件提供了丰富的代码片段（Snippets），可以快速插入 UVM 的 class 骨架、sequence 等模板。
+
+* neocomplete.vim：轻量级的补全框架，需要 Vim 编译时带 Lua 支持。它能提供基于当前上下文的补全（Omni completion），在输入模块端口或函数参数时比较方便。
+
+* systemverilog.vim：在 Vim 官方脚本库评分很高，专注于 Indent（缩进）功能，如果你主要写 SystemVerilog，它的缩进处理可能更顺手。
+
+* verilog_systemverilog.vim
+
+    repo: <https://github.com/vhda/verilog_systemverilog.vim>
+
+    支持 Verilog/SystemVerilog 语法高亮、自动缩进，还能识别 VCS、ModelSim、Vivado 等常见编译器的错误格式，配合 :make 可以直接在 Vim 里跳转错误位置。
+
+    * 目前只学了弹出实例参数提示的简单用法：
+
+        先创建 tags:
+
+        ```bash
+        ctags --extra=+q --fields=+i -n -R
+        ```
+
+        然后 set tags:
+
+        ```vim
+        set tags=./tags;
+        ```
+
+        输入一个模块名和`.`后，按`ctrl + x, ctrl + o`，弹出 module instance 的参数提示, example:
+
+        ```verilog
+        my_mod mod_1(.a(cur_a), .<ctrrl +x, ctrl + o>)
+        ```
+
+        这个提示使用的是 omni 的功能。
+
 * 详细讲讲 vim 中的 :tabedit
 
     `:tabedit` 是 Vim 中用于在**新标签页**中打开文件进行编辑的核心命令。它的行为类似于 `:edit`，但会为文件创建一个独立的标签页，方便你在多个文件间切换。
